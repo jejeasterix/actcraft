@@ -1,3 +1,6 @@
+#include <actcraft/render/fixedpageitem.h>
+#include <actcraft/ui/pageview.h>
+
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -27,6 +30,13 @@ private slots:
         QVERIFY(page);
         QCOMPARE(page->width(), 1024.0);
         QCOMPARE(page->height(), 768.0);
+
+        auto* view = window->findChild<actcraft::ui::PageView*>(QStringLiteral("pageView"));
+        auto* fixed = window->findChild<actcraft::render::FixedPageItem*>(QStringLiteral("fixedPage"));
+        QVERIFY(view && fixed);
+        QTRY_VERIFY_WITH_TIMEOUT(fixed->isReady() && view->cacheReady(), 20000);
+        QCOMPARE(fixed->objectCount(), 300);
+        QVERIFY(window->title().contains(QStringLiteral("logiciel")));
     }
 };
 
