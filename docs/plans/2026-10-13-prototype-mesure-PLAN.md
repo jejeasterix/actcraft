@@ -20,7 +20,7 @@ l'exécutable. Cadrage qui fait autorité : `docs/specs/2026-10-13-prototype-mes
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | T1 | Profil (banc = résultat), tests par module, `/Ob2`, Objective-C++ | — | `.claude/chantier.md`, `CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/verifications.cmake`, `tests/core.cmake`, `tests/render.cmake`, `tests/input.cmake`, `tests/tools.cmake`, `tests/ui.cmake`, `tests/bench.cmake` | partagé | implementeur-tdd | TESTS OK, ≥ 3 tests ; `/Ob2` dans `build/release/build.ninja` | S1 | #tache-t1 |
-| T2 | Vérifications Qt 6.12 (nœud logiciel, couche logicielle, tablette) | T1 | `tests/verifications.cmake`, `tests/tst_qt_verifications.cpp`, `docs/verifications/2026-10-13-qt612.md` | isolé | concepteur-critique | TESTS OK, ≥ 4 tests, `tst_qt_verifications` Passed ; 4 lignes `VERIF` | S2 | #tache-t2 |
+| T2 | Vérifications Qt 6.12 (nœud logiciel, couche logicielle, tablette) | T1 | `tests/verifications.cmake`, `tests/tst_qt_verifications.cpp`, `docs/verifications/2026-10-13-qt612.md` | isolé | concepteur-critique | TESTS OK, ≥ 4 tests, `tst_qt_verifications` Passed ; 5 lignes `VERIF` | S2 | #tache-t2 |
 | T3 | `core` : modèle, empreinte, générateur 300 objets, sonde, horloge | T1 | `core/CMakeLists.txt`, `core/include/actcraft/core/model.h`, `core/include/actcraft/core/generator.h`, `core/include/actcraft/core/clock.h`, `core/include/actcraft/core/inkprobe.h`, `core/src/model.cpp`, `core/src/generator.cpp`, `tests/core.cmake`, `tests/tst_core_model.cpp`, `tests/tst_core_generator.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 5 tests, `tst_core_model` et `tst_core_generator` Passed | S4 | #tache-t3 |
 | T4 | `render` : registre, moteurs forme et trait (RHI + logiciel) | T2, T3 | `render/CMakeLists.txt`, `render/include/actcraft/render/strokegeometry.h`, `render/include/actcraft/render/painternode.h`, `render/include/actcraft/render/objectrenderer.h`, `render/include/actcraft/render/shaperenderer.h`, `render/include/actcraft/render/strokerenderer.h`, `render/src/strokegeometry.cpp`, `render/src/painternode.cpp`, `render/src/nodes.h`, `render/src/nodes.cpp`, `render/src/registry.cpp`, `render/src/shaperenderer.cpp`, `render/src/strokerenderer.cpp`, `tests/render.cmake`, `tests/support/renderhost.h`, `tests/tst_render_engines.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 7 tests, `tst_render_engines` Passed | S2 | #tache-t4 |
 | T5 | `render` : images procédurales sur fil secondaire, moteur image | T4 | `render/CMakeLists.txt`, `render/include/actcraft/render/imagesynth.h`, `render/include/actcraft/render/imagestore.h`, `render/include/actcraft/render/imagerenderer.h`, `render/src/imagesynth.cpp`, `render/src/imagestore.cpp`, `render/src/imagerenderer.cpp`, `render/src/registry.cpp`, `tests/render.cmake`, `tests/tst_render_images.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 8 tests, `tst_render_images` Passed | S2 | #tache-t5 |
@@ -30,10 +30,10 @@ l'exécutable. Cadrage qui fait autorité : `docs/specs/2026-10-13-prototype-mes
 | T9 | `render` : tampon d'encre par blocs, élément d'encre (chemin RHI, sonde) | T6 | `render/CMakeLists.txt`, `render/include/actcraft/render/inkbuffer.h`, `render/include/actcraft/render/inkitem.h`, `render/src/inkbuffer.cpp`, `render/src/inkitem.cpp`, `tests/render.cmake`, `tests/tst_render_inkbuffer.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 10 tests, `tst_render_inkbuffer` Passed | S1 | #tache-t9 |
 | T10 | `render` : encre en rendu logiciel (un `QSGRenderNode` par bloc) | T9 | `render/include/actcraft/render/inkitem.h`, `render/src/inkitem.cpp`, `tests/render.cmake`, `tests/tst_render_ink_software.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 11 tests, `tst_render_ink_software` Passed | S2 | #tache-t10 |
 | T11 | `ui` : `PageView` (zoom, défilement, politique du cache) | T1 | `ui/CMakeLists.txt`, `ui/include/actcraft/ui/viewtransform.h`, `ui/include/actcraft/ui/pageview.h`, `ui/src/viewtransform.cpp`, `ui/src/pageview.cpp`, `tests/ui.cmake`, `tests/tst_viewtransform.cpp`, `tests/tst_pageview.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 5 tests, `tst_viewtransform` et `tst_pageview` Passed | S5 | #tache-t11 |
-| T12 | `ui` + `app` : `Main.qml`, câblage stylo / encre / cache, `--sans-cache` | T6, T8, T10, T11 | `ui/CMakeLists.txt`, `ui/qml/Main.qml`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/qmltypes.h`, `ui/src/penadapters.h`, `ui/src/penadapters.cpp`, `app/startup.h`, `app/startup.cpp`, `app/main.cpp`, `app/CMakeLists.txt`, `tests/ui.cmake`, `tests/tst_ui.cpp`, `tests/tst_ui_drawing.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 16 tests, `tst_ui` et `tst_ui_drawing` Passed | S5 | #tache-t12 |
+| T12 | `ui` + `app` : `Main.qml`, câblage stylo / encre / cache, `--sans-cache` | T6, T8, T10, T11 | `ui/CMakeLists.txt`, `ui/qml/Main.qml`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/uiforeigntypes.h`, `ui/src/penadapters.h`, `ui/src/penadapters.cpp`, `app/startup.h`, `app/startup.cpp`, `app/main.cpp`, `app/CMakeLists.txt`, `tests/ui.cmake`, `tests/tst_ui.cpp`, `tests/tst_ui_drawing.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 16 tests, `tst_ui` et `tst_ui_drawing` Passed | S5 | #tache-t12 |
 | T13 | `bench` : statistiques (intervalles actifs, figements, latence) | T1 | `bench/CMakeLists.txt`, `bench/include/actcraft/bench/stats.h`, `bench/src/stats.cpp`, `tests/bench.cmake`, `tests/tst_bench_stats.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 4 tests, `tst_bench_stats` Passed | S1 | #tache-t13 |
 | T14 | `bench` : mémoire, machine, fichier JSON | T13 | `bench/CMakeLists.txt`, `bench/include/actcraft/bench/memory.h`, `bench/include/actcraft/bench/machineinfo.h`, `bench/include/actcraft/bench/result.h`, `bench/src/memory.cpp`, `bench/src/gpumemory_win.cpp`, `bench/src/gpumemory_mac.mm`, `bench/src/gpumemory_other.cpp`, `bench/src/machineinfo.cpp`, `bench/src/result.cpp`, `bench/src/buildinfo.h.in`, `tests/bench.cmake`, `tests/tst_bench_json.cpp`, `tests/tst_bench_memory.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 6 tests, `tst_bench_json` et `tst_bench_memory` Passed | S1 | #tache-t14 |
-| T15 | `bench` : scénarios et injecteur avec rattrapage | T3, T11, T14 | `bench/CMakeLists.txt`, `bench/include/actcraft/bench/scenarios.h`, `bench/include/actcraft/bench/injector.h`, `bench/src/scenarios.cpp`, `bench/src/injector.cpp`, `tests/bench.cmake`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_injector.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 10 tests, `tst_bench_scenarios` et `tst_bench_injector` Passed | S5 | #tache-t15 |
+| T15 | `bench` : scénarios et injecteur avec rattrapage | T3, T11, T14 | `bench/CMakeLists.txt`, `bench/include/actcraft/bench/scenarios.h`, `bench/include/actcraft/bench/injector.h`, `bench/src/scenarios.cpp`, `bench/src/injector.cpp`, `tests/bench.cmake`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_injector.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 12 tests, `tst_bench_scenarios` et `tst_bench_injector` Passed | S5 | #tache-t15 |
 | T16 | `bench` : options, collecteur, déroulé, verdict, exécutable `actcraft-bench` | T12, T15 | `bench/CMakeLists.txt`, `bench/include/actcraft/bench/options.h`, `bench/include/actcraft/bench/verdict.h`, `bench/include/actcraft/bench/recorder.h`, `bench/include/actcraft/bench/runner.h`, `bench/src/options.cpp`, `bench/src/verdict.cpp`, `bench/src/recorder.cpp`, `bench/src/runner.cpp`, `bench/app/main.cpp`, `tests/bench.cmake`, `tests/tst_bench_options.cpp`, `tests/tst_bench_verdict.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 23 tests, `tst_bench_options` et `tst_bench_verdict` Passed ; passage hors écran : JSON à 3 scénarios | S1 | #tache-t16 |
 | T17 | `bench` : démonstration, captures, contrôle de contenu | T16 | `bench/CMakeLists.txt`, `bench/include/actcraft/bench/contentcheck.h`, `bench/src/contentcheck.cpp`, `bench/include/actcraft/bench/runner.h`, `bench/src/runner.cpp`, `tests/bench.cmake`, `tests/tst_bench_content.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 24 tests, `tst_bench_content` Passed ; passage hors écran : `content_check.ok = true`, 4 PNG | S2 | #tache-t17 |
 | T18 | Fumée ctest du banc, `tst_bench_result`, pas CI macOS | T17 | `tests/bench.cmake`, `tests/run_bench_smoke.cmake`, `tests/tst_bench_result.cpp`, `.github/workflows/ci.yml` | isolé | implementeur-tdd | TESTS OK, ≥ 27 tests, `tst_bench_smoke` et `tst_bench_result` Passed | S4 | #tache-t18 |
@@ -84,7 +84,7 @@ Deux tâches d'une même vague ne partagent aucun fichier (vérifié sur la colo
 | `tools/include/actcraft/tools/pentool.h` | `PenTool`, `InkSurface`, `DocumentSink` | T8 |
 | `ui/include/actcraft/ui/viewtransform.h` | calculs purs de zoom, défilement, taille du cache | T11 |
 | `ui/include/actcraft/ui/pageview.h` | élément `PageView` (QML) | T11, T12 |
-| `ui/src/qmltypes.h`, `ui/src/penadapters.*` | `FixedPage` / `InkLayer` en QML ; adaptateurs du stylo | T12 |
+| `ui/src/uiforeigntypes.h`, `ui/src/penadapters.*` | `FixedPage` / `InkLayer` en QML ; adaptateurs du stylo | T12 |
 | `app/startup.*` | chargement commun de `Main` (application et banc) | T12 |
 | `bench/include/actcraft/bench/stats.h` | intervalles actifs, figements, percentiles, latence | T13 |
 | `bench/include/actcraft/bench/{memory,machineinfo,result}.h` | mémoire, métadonnées, JSON `actcraft-bench/1` | T14 |
@@ -257,7 +257,8 @@ git -C <worktree> commit -m "Profil : banc sans refus pendant le prototype ; tes
 1. un `QSGRenderNode` peint au `QPainter` dessine en rendu logiciel (et, à titre d'information, un
    `QSGGeometryNode` n'y dessine pas) ;
 2. un `ShaderEffectSource` `live: false` en rendu logiciel garde son image, se redessine sur
-   `scheduleUpdate()` et émet `scheduledUpdateCompleted` ;
+   `scheduleUpdate()` et émet `scheduledUpdateCompleted`, avec pour source un `Rectangle` puis un élément C++ à
+   `QSGRenderNode` peint au `QPainter` (le cas réel de la page fixe) ;
 3. un `QTabletEvent` posté à la fenêtre depuis un périphérique synthétique atteint `QQuickItem::event()` d'un
    élément C++ avec sa pression ; sinon, un filtre d'événements sur la fenêtre le voit (repli).
 
@@ -274,12 +275,12 @@ lui-même ne marche pas. Le point 1 est une assertion : le cadrage s'appuie dess
 Set-Location <worktree>; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File ./scripts/test.ps1 > .tmp/test.txt 2>&1 ; Select-String -Path .tmp/test.txt -Pattern 'tests passed|TESTS (OK|EN ECHEC)|tst_qt_verifications .*(Passed|Failed)' | Select-Object -Last 3
 Set-Location <worktree>; pwsh -NoProfile -Command ". ./scripts/dev-env.ps1; `$env:QT_QPA_PLATFORM='offscreen'; `$env:QT_QUICK_BACKEND='software'; ./build/debug/tst_qt_verifications.exe *> .tmp/verif.txt"; Select-String -Path .tmp/verif.txt -Pattern 'VERIF '
 ```
-Attendu : `out of N` avec N ≥ 4, `tst_qt_verifications ... Passed`, `TESTS OK` ; quatre lignes `VERIF`.
+Attendu : `out of N` avec N ≥ 4, `tst_qt_verifications ... Passed`, `TESTS OK` ; cinq lignes `VERIF`.
 
 **Interdits.** Ne pas affaiblir l'assertion du point 1 pour la faire passer. Ne pas écrire de code de
 production (`render/`, `ui/`) : cette tâche ne fait que constater.
 
-**Terminé quand.** Preuves vertes ; `docs/verifications/2026-10-13-qt612.md` contient les quatre lignes
+**Terminé quand.** Preuves vertes ; `docs/verifications/2026-10-13-qt612.md` contient les cinq lignes
 `clé: oui|non` recopiées de la sortie réelle. **Si `render-node-logiciel: non`** (assertion en échec), ne pas
 contourner : le rapport commence par `REPLI RENDERNODE` (repli écrit dans le document : chaque moteur peint son
 objet dans une `QImage` affichée par un `QSGImageNode`) et l'orchestrateur ouvre une porte immédiate, T4 et T10
@@ -303,6 +304,9 @@ objet dans une `QImage` affichée par un `QSGImageNode`) et l'orchestrateur ouvr
 #include <QSignalSpy>
 #include <QTabletEvent>
 #include <QTest>
+#include <QtQml/qqml.h>
+
+#include <memory>
 
 // Vérifications de comportements de Qt 6.12 dont dépend le prototype de mesure (cadrage, décisions 6, 7, 13).
 // Les lignes « VERIF <clé>: oui|non » sont recopiées dans docs/verifications/2026-10-13-qt612.md.
@@ -323,16 +327,18 @@ public:
         if (!painter) {
             return;
         }
-        painter->setTransform(matrix()->toTransform());
-        painter->setOpacity(inheritedOpacity());
+        // La région de découpe est en coordonnées du périphérique : la poser avant la transformation.
         if (const QRegion* clip = state->clipRegion(); clip && !clip->isEmpty()) {
             painter->setClipRegion(*clip, Qt::ReplaceClip);
         }
+        painter->setTransform(matrix()->toTransform());
+        painter->setOpacity(inheritedOpacity());
         painter->fillRect(m_rect, m_color);
     }
     StateFlags changedStates() const override { return {}; }
     RenderingFlags flags() const override { return BoundedRectRendering; }
     QRectF rect() const override { return m_rect; }
+    void setColor(QColor color) { m_color = color; }
 
 private:
     QQuickWindow* m_window;
@@ -442,6 +448,83 @@ bool sameColor(QColor a, QColor b)
 
 } // namespace
 
+// Source C++ à QSGRenderNode, comme la page fixe en rendu logiciel (T6), pour vérifier la couche sur ce cas.
+class ColorPainterItem : public QQuickItem
+{
+    Q_OBJECT
+    Q_PROPERTY(QColor color READ color WRITE setColor)
+
+public:
+    ColorPainterItem() { setFlag(ItemHasContents); }
+    QColor color() const { return m_color; }
+    void setColor(QColor color)
+    {
+        m_color = color;
+        update();
+    }
+
+protected:
+    QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData*) override
+    {
+        auto* node = old ? static_cast<PainterNode*>(old)
+                         : new PainterNode(window(), QRectF(0, 0, width(), height()), m_color);
+        node->setColor(m_color);
+        node->markDirty(QSGNode::DirtyMaterial);
+        return node;
+    }
+
+private:
+    QColor m_color = Qt::red;
+};
+
+// Vrai si un ShaderEffectSource `live: false` garde son image, se redessine sur scheduleUpdate() et émet
+// scheduledUpdateCompleted, avec pour source l'élément décrit par `source` (id src, propriété color).
+static bool staticLayerWorks(const QByteArray& source, QString& details)
+{
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData("import QtQuick\nimport Verif\nItem {\n    width: 200; height: 200\n    " + source +
+                          "\n    ShaderEffectSource {\n        objectName: \"cache\"; width: 100; height: 100\n"
+                          "        sourceItem: src; live: false; hideSource: true; textureSize: Qt.size(200, 200)\n"
+                          "    }\n}\n",
+                      QUrl());
+    std::unique_ptr<QObject> root(component.create());
+    if (!root) {
+        details = component.errorString();
+        return false;
+    }
+    QQuickWindow window;
+    window.setColor(Qt::white);
+    window.resize(200, 200);
+    auto* rootItem = qobject_cast<QQuickItem*>(root.get());
+    rootItem->setParentItem(window.contentItem());
+    window.show();
+    if (!QTest::qWaitForWindowExposed(&window)) {
+        details = QStringLiteral("fenêtre non exposée");
+        return false;
+    }
+    const bool firstRed = sameColor(window.grabWindow().pixelColor(50, 50), QColor(Qt::red));
+    auto* src = rootItem->findChild<QObject*>(QStringLiteral("src"));
+    auto* cache = rootItem->findChild<QObject*>(QStringLiteral("cache"));
+    if (!src || !cache) {
+        details = QStringLiteral("src ou cache introuvable");
+        return false;
+    }
+    src->setProperty("color", QColor(Qt::green));
+    QTest::qWait(100);
+    const bool stillRed = sameColor(window.grabWindow().pixelColor(50, 50), QColor(Qt::red));
+    QSignalSpy completed(cache, SIGNAL(scheduledUpdateCompleted()));
+    QMetaObject::invokeMethod(cache, "scheduleUpdate");
+    const bool signalled = completed.isValid() && completed.wait(2000);
+    const bool nowGreen = sameColor(window.grabWindow().pixelColor(50, 50), QColor(Qt::green));
+    details = QStringLiteral("premier=%1 fige=%2 signal=%3 redessin=%4")
+                  .arg(firstRed)
+                  .arg(stillRed)
+                  .arg(signalled)
+                  .arg(nowGreen);
+    return firstRed && stillRed && signalled && nowGreen;
+}
+
 class TstQtVerifications : public QObject
 {
     Q_OBJECT
@@ -480,48 +563,22 @@ private slots:
         qInfo("VERIF geometrie-logiciel: %s", drawn ? "oui" : "non");
     }
 
+    void initTestCase() { qmlRegisterType<ColorPainterItem>("Verif", 1, 0, "ColorPainter"); }
+
     void staticLayerInSoftware()
     {
-        QQmlEngine engine;
-        QQmlComponent component(&engine);
-        component.setData(R"(
-import QtQuick
-Item {
-    width: 200; height: 200
-    Rectangle { id: src; objectName: "src"; width: 100; height: 100; color: "red" }
-    ShaderEffectSource {
-        objectName: "cache"; width: 100; height: 100
-        sourceItem: src; live: false; hideSource: true; textureSize: Qt.size(200, 200)
+        QString details;
+        const bool works = staticLayerWorks(
+            "Rectangle { id: src; objectName: \"src\"; width: 100; height: 100; color: \"red\" }", details);
+        qInfo("VERIF couche-logicielle: %s (%s)", works ? "oui" : "non", qPrintable(details));
     }
-}
-)",
-                          QUrl());
-        std::unique_ptr<QObject> root(component.create());
-        QVERIFY2(root, qPrintable(component.errorString()));
-        QQuickWindow window;
-        window.setColor(Qt::white);
-        window.resize(200, 200);
-        auto* rootItem = qobject_cast<QQuickItem*>(root.get());
-        rootItem->setParentItem(window.contentItem());
-        window.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));
-        const bool firstRed = sameColor(window.grabWindow().pixelColor(50, 50), QColor(Qt::red));
 
-        auto* src = rootItem->findChild<QObject*>(QStringLiteral("src"));
-        auto* cache = rootItem->findChild<QObject*>(QStringLiteral("cache"));
-        QVERIFY(src && cache);
-        src->setProperty("color", QColor(Qt::green));
-        QTest::qWait(100);
-        const bool stillRed = sameColor(window.grabWindow().pixelColor(50, 50), QColor(Qt::red));
-
-        QSignalSpy completed(cache, SIGNAL(scheduledUpdateCompleted()));
-        QVERIFY(completed.isValid());
-        QMetaObject::invokeMethod(cache, "scheduleUpdate");
-        const bool signalled = completed.wait(2000);
-        const bool nowGreen = sameColor(window.grabWindow().pixelColor(50, 50), QColor(Qt::green));
-        const bool works = firstRed && stillRed && signalled && nowGreen;
-        qInfo("VERIF couche-logicielle: %s (premier=%d fige=%d signal=%d redessin=%d)", works ? "oui" : "non",
-              firstRed, stillRed, signalled, nowGreen);
+    void staticLayerOverRenderNodeInSoftware()
+    {
+        QString details;
+        const bool works = staticLayerWorks(
+            "ColorPainter { id: src; objectName: \"src\"; width: 100; height: 100; color: \"red\" }", details);
+        qInfo("VERIF couche-rendernode-logiciel: %s (%s)", works ? "oui" : "non", qPrintable(details));
     }
 
     void tabletEventReachesQuickItem()
@@ -572,7 +629,7 @@ actcraft_add_test(tst_qt_verifications
 - [ ] **Étape 3 : lancer.** Commande bornée. Attendu : `tst_qt_verifications ... Passed`, `TESTS OK`. Si la
 compilation échoue sur une signature de Qt 6.12 (constructeur de `QTabletEvent`, de `QPointingDevice`), lire
 l'en-tête installé (`C:\Qt\6.12.0\msvc2022_64\include\QtGui\qevent.h`) et corriger l'appel sans changer ce qui
-est vérifié. Puis la seconde commande : relever les quatre lignes `VERIF`.
+est vérifié. Puis la seconde commande : relever les cinq lignes `VERIF`.
 
 - [ ] **Étape 4 : document.** Créer `docs/verifications/2026-10-13-qt612.md` ; remplacer chaque `<oui|non>` par
 la valeur lue à l'étape 3 :
@@ -586,6 +643,7 @@ par les tâches suivantes du plan `docs/plans/2026-10-13-prototype-mesure-PLAN.m
 render-node-logiciel: <oui|non>
 geometrie-logiciel: <oui|non>
 couche-logicielle: <oui|non>
+couche-rendernode-logiciel: <oui|non>
 tablette-element: <oui|non>
 
 | Clé | Ce qui est vérifié | Si « oui » | Repli si « non » |
@@ -593,12 +651,13 @@ tablette-element: <oui|non>
 | `render-node-logiciel` | un `QSGRenderNode` peint au `QPainter` dessine en logiciel | chemin logiciel des moteurs et de l'encre (DA2) | chaque moteur peint son objet dans une `QImage` affichée par un `QSGImageNode` ; T4 et T10 à replanifier (porte immédiate) |
 | `geometrie-logiciel` | un `QSGGeometryNode` dessine en logiciel | information : le chemin `QPainter` resterait utile pour l'antialiasing | attendu : le chemin `QPainter` est obligatoire en logiciel |
 | `couche-logicielle` | `ShaderEffectSource` `live: false` : image figée, `scheduleUpdate()` redessine, `scheduledUpdateCompleted` émis | cache actif dans les deux rendus | cache désactivé en rendu logiciel (`Main.qml`, variante B de T12) ; `cache` vaut `false` dans le JSON logiciel |
+| `couche-rendernode-logiciel` | même vérification, avec pour source un élément C++ à `QSGRenderNode` peint au `QPainter` (cas de la page fixe en logiciel) | cache actif en logiciel | même repli que `couche-logicielle` (variante B de T12) |
 | `tablette-element` | un `QTabletEvent` posté atteint `QQuickItem::event()` avec sa pression | `PageView::event()` reçoit le stylet (variante A de T12) | filtre d'événements sur la fenêtre (variante B de T12), vérifié par le même test |
 
 Sortie brute :
 
 ```text
-<coller ici les quatre lignes VERIF de .tmp/verif.txt>
+<coller ici les cinq lignes VERIF de .tmp/verif.txt>
 ```
 ~~~
 
@@ -609,7 +668,7 @@ Set-Location <worktree>; pwsh -NoProfile -File ./scripts/format.ps1
 Set-Location <worktree>; git add tests/verifications.cmake tests/tst_qt_verifications.cpp docs/verifications/2026-10-13-qt612.md
 git -C <worktree> commit -m "Vérifications de Qt 6.12 : nœud logiciel, couche logicielle, tablette" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
-Le rapport donne les quatre valeurs `VERIF` sur ses trois premières lignes.
+Le rapport donne les cinq valeurs `VERIF` sur ses trois premières lignes.
 
 ---
 
@@ -875,6 +934,8 @@ private slots:
                 QVERIFY(im->sourceWidth >= 256 && im->sourceWidth <= 1024);
                 QVERIFY(im->sourceHeight >= 256 && im->sourceHeight <= 1024);
                 QVERIFY(im->pattern != ImagePattern::SolidCenter);
+                QVERIFY(im->bounds.x >= 0 && im->bounds.x + im->bounds.width <= 1024);
+                QVERIFY(im->bounds.y >= 0 && im->bounds.y + im->bounds.height <= 768);
             } else if (const auto* sh = std::get_if<Shape>(&o)) {
                 QVERIFY(!nearBlack(sh->fill));
                 QVERIFY(sh->bounds.x >= 0 && sh->bounds.x + sh->bounds.width <= 1024);
@@ -1344,8 +1405,12 @@ ImageObject makeImage(Rng& rng)
     image.sourceHeight = rng.between(16, 64) * 16;
     const std::int32_t dw = rng.between(48, 240);
     std::int32_t dh = dw * image.sourceHeight / image.sourceWidth;
+    // Proportions gardées, hauteur bornée : une image haute (256 × 1024) donnerait jusqu'à 960 px > 768,
+    // et between(0, (768 − dh) × 16) recevrait une borne négative.
     if (dh < 16) {
         dh = 16;
+    } else if (dh > 768 - 16) {
+        dh = 768 - 16;
     }
     const std::int32_t x = rng.between(0, (1024 - dw) * kSub);
     const std::int32_t y = rng.between(0, (768 - dh) * kSub);
@@ -1994,11 +2059,12 @@ void PainterNode::render(const RenderState* state)
         return;
     }
     painter->save();
-    painter->setTransform(matrix()->toTransform());
-    painter->setOpacity(inheritedOpacity());
+    // La région de découpe est en coordonnées du périphérique : la poser avant la transformation.
     if (const QRegion* clip = state->clipRegion(); clip && !clip->isEmpty()) {
         painter->setClipRegion(*clip, Qt::ReplaceClip);
     }
+    painter->setTransform(matrix()->toTransform());
+    painter->setOpacity(inheritedOpacity());
     painter->setRenderHint(QPainter::Antialiasing, true);
     paint(*painter);
     painter->restore();
@@ -2420,7 +2486,8 @@ git -C <worktree> commit -m "render : registre et moteurs forme et trait, chemin
 **Objectif.** Les 30 images sont générées par notre code (dégradé, damier, anneaux, centre uni), jamais lues sur
 disque, sur un fil secondaire (`QThreadPool`, règle de fluidité 1, décision 4) ; le moteur « image » les affiche
 par un `QSGImageNode` (fourni par Qt dans les deux rendus : `QSGSoftwareImageNode` en logiciel, d'où un seul
-chemin pour ce moteur).
+chemin pour ce moteur — **écart (e) au cadrage** : décision 6 et DA2 prévoient deux chemins par moteur ; consigné
+en fin de plan).
 
 **Fichiers.**
 - Créer : `render/include/actcraft/render/imagesynth.h`, `render/include/actcraft/render/imagestore.h`,
@@ -2507,8 +2574,10 @@ private slots:
         render::ImageStore store;
         QSignalSpy ready(&store, &render::ImageStore::ready);
         store.generate(page);
+        QVERIFY(!store.isReady()); // generate() rend la main avant la fin de la génération
         QVERIFY(ready.wait(20000));
         QVERIFY(store.isReady());
+        QVERIFY(store.generatedOffOwnerThread()); // chaque image a été synthétisée sur un fil secondaire
         QCOMPARE(store.imageCount(), std::size_t{30});
         for (std::size_t i = 0; i < page.objects.size(); ++i) {
             if (const auto* im = std::get_if<core::ImageObject>(&page.objects[i])) {
@@ -2681,12 +2750,15 @@ public:
     bool isReady() const noexcept;
     QImage image(std::size_t objectIndex) const;
     std::size_t imageCount() const;
+    // Crochet de test : vrai si toutes les images de la dernière génération ont été synthétisées hors du fil de
+    // l'objet.
+    bool generatedOffOwnerThread() const noexcept;
 
 signals:
     void ready();
 
 private:
-    void onImageReady(std::uint64_t generation, std::size_t index, const QImage& image);
+    void onImageReady(std::uint64_t generation, std::size_t index, const QImage& image, bool offOwnerThread);
 
     QThreadPool m_pool;
     mutable QMutex m_mutex;
@@ -2694,6 +2766,7 @@ private:
     std::size_t m_pending = 0;
     std::uint64_t m_generation = 0;
     bool m_ready = false;
+    bool m_offOwnerThread = true;
 };
 
 } // namespace actcraft::render
@@ -2733,6 +2806,8 @@ void ImageStore::generate(const core::Page& page)
     }
     m_ready = false;
     m_pending = 0;
+    m_offOwnerThread = true;
+    QThread* const owner = thread();
     for (std::size_t i = 0; i < page.objects.size(); ++i) {
         const auto* object = std::get_if<core::ImageObject>(&page.objects[i]);
         if (!object) {
@@ -2740,10 +2815,11 @@ void ImageStore::generate(const core::Page& page)
         }
         ++m_pending;
         const core::ImageObject copy = *object;
-        m_pool.start([this, generation, i, copy] {
+        m_pool.start([this, generation, i, copy, owner] {
             const QImage image = synthesizeImage(copy);
+            const bool off = QThread::currentThread() != owner;
             QMetaObject::invokeMethod(
-                this, [this, generation, i, image] { onImageReady(generation, i, image); },
+                this, [this, generation, i, image, off] { onImageReady(generation, i, image, off); },
                 Qt::QueuedConnection);
         });
     }
@@ -2760,11 +2836,12 @@ void ImageStore::generate(const core::Page& page)
     }
 }
 
-void ImageStore::onImageReady(std::uint64_t generation, std::size_t index, const QImage& image)
+void ImageStore::onImageReady(std::uint64_t generation, std::size_t index, const QImage& image, bool offOwnerThread)
 {
     if (generation != m_generation) {
         return;
     }
+    m_offOwnerThread = m_offOwnerThread && offOwnerThread;
     {
         QMutexLocker lock(&m_mutex);
         m_images[index] = image;
@@ -2778,6 +2855,11 @@ void ImageStore::onImageReady(std::uint64_t generation, std::size_t index, const
 bool ImageStore::isReady() const noexcept
 {
     return m_ready;
+}
+
+bool ImageStore::generatedOffOwnerThread() const noexcept
+{
+    return m_offOwnerThread;
 }
 
 QImage ImageStore::image(std::size_t objectIndex) const
@@ -4939,7 +5021,14 @@ bool open(Fixture& f)
     f.content->setParentItem(f.view);
     f.view->setContent(f.content);
     f.window.show();
-    return QTest::qWaitForWindowExposed(&f.window);
+    if (!QTest::qWaitForWindowExposed(&f.window)) {
+        return false;
+    }
+    // Pas de QML ici : le test termine lui-même les redessins demandés à l'ouverture.
+    for (int i = 0; i < 5 && !f.view->cacheReady(); ++i) {
+        f.view->notifyCacheUpdated();
+    }
+    return f.view->cacheReady();
 }
 
 void wheel(Fixture& f, QPointF pos, QPoint angle, Qt::KeyboardModifiers modifiers,
@@ -5022,6 +5111,21 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(refresh.count(), 1, 1000);
         QCOMPARE(f.view->cacheTextureSize(), cacheTextureSize(QSizeF(1024, 768), f.view->zoom(),
                                                               f.window.effectiveDevicePixelRatio()));
+    }
+
+    void overlappingRequestsWaitForTheLastOne()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        QSignalSpy refresh(f.view, &PageView::cacheRefreshRequested);
+        f.view->requestCacheRefresh();
+        f.view->requestCacheRefresh(); // pendant le premier redessin
+        QCOMPARE(refresh.count(), 1);
+        f.view->notifyCacheUpdated(); // fin du premier : déjà périmé
+        QVERIFY(!f.view->cacheReady());
+        QCOMPARE(refresh.count(), 2);
+        f.view->notifyCacheUpdated();
+        QVERIFY(f.view->cacheReady());
     }
 
     void cacheUpdatedSignalMakesReady()
@@ -5256,6 +5360,8 @@ public:
 
     Q_INVOKABLE void fitPage();
     // Demande un redessin du cache (QML : cache.scheduleUpdate()) ; sans cache, « prêt » tout de suite.
+    // Un seul redessin à la fois : une demande reçue pendant un redessin en relance un à sa fin, et cacheReady
+    // ne redevient vrai qu'une fois la dernière demande servie.
     Q_INVOKABLE void requestCacheRefresh();
     // QML : appelé sur ShaderEffectSource.scheduledUpdateCompleted.
     Q_INVOKABLE void notifyCacheUpdated();
@@ -5289,6 +5395,8 @@ private:
     bool m_fitMode = true;
     bool m_cacheEnabled = true;
     bool m_cacheReady = false;
+    bool m_refreshInFlight = false; // un redessin du cache est demandé et pas encore terminé
+    bool m_refreshAgain = false;    // une demande est arrivée pendant ce redessin
     QSize m_cacheTextureSize;
     QTimer m_cacheTimer;
     QList<const QInputDevice*> m_exclusive;
@@ -5417,16 +5525,29 @@ void PageView::fitPage()
 void PageView::requestCacheRefresh()
 {
     if (!m_cacheEnabled) {
+        m_refreshInFlight = false;
+        m_refreshAgain = false;
         setCacheReady(true);
         emit cacheUpdated();
         return;
     }
     setCacheReady(false);
+    if (m_refreshInFlight) {
+        m_refreshAgain = true; // servi à la fin du redessin en cours
+        return;
+    }
+    m_refreshInFlight = true;
     emit cacheRefreshRequested();
 }
 
 void PageView::notifyCacheUpdated()
 {
+    m_refreshInFlight = false;
+    if (m_refreshAgain) {
+        m_refreshAgain = false;
+        requestCacheRefresh(); // l'image qui vient d'être dessinée précède la dernière demande
+        return;
+    }
     setCacheReady(true);
     emit cacheUpdated();
 }
@@ -5577,12 +5698,13 @@ trait figé est versé à la page fixe, l'encre se vide et le cache est redessin
 **Préalable : lire `docs/verifications/2026-10-13-qt612.md`.**
 - `tablette-element: oui` → **variante A** (le stylet arrive à `PageView::event()`).
 - `tablette-element: non` → **variante B** (filtre d'événements sur la fenêtre).
-- `couche-logicielle: oui` → **variante A du cache** (cache dans les deux rendus).
-- `couche-logicielle: non` → **variante B du cache** (cache coupé en rendu logiciel).
+- `couche-logicielle: oui` **et** `couche-rendernode-logiciel: oui` → **variante A du cache** (cache dans les
+  deux rendus).
+- l'une des deux à `non` → **variante B du cache** (cache coupé en rendu logiciel).
 Le rapport nomme les variantes appliquées.
 
 **Fichiers.**
-- Créer : `ui/src/qmltypes.h`, `ui/src/penadapters.h`, `ui/src/penadapters.cpp`, `app/startup.h`,
+- Créer : `ui/src/uiforeigntypes.h`, `ui/src/penadapters.h`, `ui/src/penadapters.cpp`, `app/startup.h`,
   `app/startup.cpp`, `tests/tst_ui_drawing.cpp`
 - Modifier : `ui/CMakeLists.txt`, `ui/qml/Main.qml`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`,
   `app/main.cpp`, `app/CMakeLists.txt`, `tests/ui.cmake`, `tests/tst_ui.cpp`
@@ -5645,6 +5767,7 @@ Créer `tests/tst_ui_drawing.cpp` :
 #include <actcraft/render/inkitem.h>
 #include <actcraft/ui/pageview.h>
 
+#include <QElapsedTimer>
 #include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
@@ -5725,11 +5848,27 @@ private:
         QTRY_VERIFY_WITH_TIMEOUT(app.ink->pointCount() >= 100, 3000);
         QVERIFY2(colorNear(pixelAtPage(app, QPointF(350, 670)), QColor(Qt::black), 60), "encre en cours");
 
+        // Décision 10 : entre le relâché et le cache redessiné, aucune image ne doit perdre le trait
+        // (encre vidée et trait versé à la page fixe dans le même tour de boucle).
+        QSignalSpy swapped(app.window, &QQuickWindow::frameSwapped);
         post(app, QEvent::TabletRelease, QPointF(500, 670), 0.0, Qt::LeftButton, Qt::NoButton);
-        QTRY_COMPARE_WITH_TIMEOUT(frozen.count(), 1, 3000);
+        QElapsedTimer clock;
+        clock.start();
+        int checkedFrames = 0;
+        while (!(frozen.count() == 1 && app.view->cacheReady()) && clock.elapsed() < 3000) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
+            if (frozen.count() == 1 && !swapped.isEmpty()) {
+                swapped.clear();
+                ++checkedFrames;
+                QVERIFY2(colorNear(pixelAtPage(app, QPointF(350, 670)), QColor(Qt::black), 60),
+                         "trait absent entre le relâché et le cache prêt");
+            }
+        }
+        QCOMPARE(frozen.count(), 1);
+        QVERIFY(app.view->cacheReady());
+        qInfo("images contrôlées entre relâché et cache prêt : %d", checkedFrames);
         QCOMPARE(app.ink->pointCount(), std::size_t{0});
         QCOMPARE(app.fixed->objectCount(), 301);
-        QTRY_VERIFY_WITH_TIMEOUT(app.view->cacheReady(), 3000);
         QVERIFY2(colorNear(pixelAtPage(app, QPointF(350, 670)), QColor(Qt::black), 60), "trait figé");
     }
 
@@ -5840,7 +5979,7 @@ Dans `app/main.cpp`, ajouter `#include "startup.h"` et remplacer la ligne
 ```
 Dans `app/CMakeLists.txt`, ajouter `startup.cpp` et `startup.h` à `qt_add_executable(actcraft …)`.
 
-- [ ] **Étape 3 : types QML de `render/` et adaptateurs.** Créer `ui/src/qmltypes.h` :
+- [ ] **Étape 3 : types QML de `render/` et adaptateurs.** Créer `ui/src/uiforeigntypes.h` :
 
 ```cpp
 #pragma once
@@ -6295,7 +6434,7 @@ Window {
 }
 ```
 
-**Variante B du cache (`couche-logicielle: non`)** : remplacer la ligne `cacheEnabled: root.cacheEnabled` de
+**Variante B du cache (`couche-logicielle: non` ou `couche-rendernode-logiciel: non`)** : remplacer la ligne `cacheEnabled: root.cacheEnabled` de
 `PageView` par
 `cacheEnabled: root.cacheEnabled && GraphicsInfo.api !== GraphicsInfo.Software` ; le JSON du banc lit
 `PageView::cacheEnabled()` et écrira donc `cache: false` en logiciel.
@@ -6303,9 +6442,18 @@ Window {
 - [ ] **Étape 6 : CMake de `ui/`.** Dans `ui/CMakeLists.txt`, compléter `SOURCES` :
 
 ```cmake
-        src/qmltypes.h
+        src/uiforeigntypes.h
         src/penadapters.h
         src/penadapters.cpp
+```
+remplacer l'appel `target_include_directories` par (le code d'enregistrement généré inclut
+`<uiforeigntypes.h>` sous `#if __has_include(...)` : hors du chemin d'inclusion, l'inclusion est sautée sans
+erreur et `qmlRegisterTypesAndRevisions<actcraft::ui::FixedPageForeign>` ne compile plus) :
+
+```cmake
+target_include_directories(actcraft_ui
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/actcraft/ui ${CMAKE_CURRENT_SOURCE_DIR}/src)
 ```
 et remplacer la ligne `target_link_libraries` par :
 
@@ -6313,9 +6461,10 @@ et remplacer la ligne `target_link_libraries` par :
 target_link_libraries(actcraft_ui PUBLIC
     Qt6::Quick ActCraft::actions ActCraft::input ActCraft::render ActCraft::tools)
 ```
-Si `qmltyperegistrar` ne trouve pas `actcraft::render::FixedPageItem` (« type not found » à la compilation de
-`actcraft_ui`), vérifier que `qt_extract_metatypes(actcraft_render)` figure dans `render/CMakeLists.txt` (T6) et
-que `actcraft_ui` lie `ActCraft::render` en `PUBLIC`.
+Si `actcraft_ui_qmltyperegistrations.cpp` ne compile pas sur `FixedPageForeign` ou `InkLayerForeign` : vérifier
+d'abord que `src` figure dans les inclusions privées ci-dessus. Si `qmltyperegistrar` signale « type not found »
+pour `actcraft::render::FixedPageItem` : vérifier `qt_extract_metatypes(actcraft_render)` dans
+`render/CMakeLists.txt` (T6) et le lien `PUBLIC` vers `ActCraft::render`.
 
 - [ ] **Étape 7 : vert.** Commande bornée : `tst_ui ... Passed`, `tst_ui_drawing ... Passed`, `TESTS OK`.
 Si l'encre en cours n'apparaît pas dans `stylusStrokeWithCache` alors que `pointCount()` grandit : vérifier
@@ -6325,7 +6474,7 @@ l'ordre des enfants de `pageContent` (`InkLayer` en dernier) et que le cache ne 
 
 ```powershell
 Set-Location <worktree>; pwsh -NoProfile -File ./scripts/format.ps1
-Set-Location <worktree>; git add ui/CMakeLists.txt ui/qml/Main.qml ui/include/actcraft/ui/pageview.h ui/src/pageview.cpp ui/src/qmltypes.h ui/src/penadapters.h ui/src/penadapters.cpp app/startup.h app/startup.cpp app/main.cpp app/CMakeLists.txt tests/ui.cmake tests/tst_ui.cpp tests/tst_ui_drawing.cpp
+Set-Location <worktree>; git add ui/CMakeLists.txt ui/qml/Main.qml ui/include/actcraft/ui/pageview.h ui/src/pageview.cpp ui/src/uiforeigntypes.h ui/src/penadapters.h ui/src/penadapters.cpp app/startup.h app/startup.cpp app/main.cpp app/CMakeLists.txt tests/ui.cmake tests/tst_ui.cpp tests/tst_ui_drawing.cpp
 git -C <worktree> commit -m "ui : page fixe en cache, encre et stylo câblés ; option --sans-cache" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
@@ -6334,9 +6483,10 @@ git -C <worktree> commit -m "ui : page fixe en cache, encre et stylo câblés ; 
 ### Tâche T13 — `bench` : statistiques (intervalles actifs, figements, latence)
 
 **Objectif.** Fonctions pures du banc (décisions 24 et 25, N1-1) :
-- **intervalle actif** entre deux `frameSwapped` : au moins une entrée postée dans l'intervalle, **et** la
-  première de ces entrées arrive au plus 2 périodes d'écran après l'image de départ ; sinon l'intervalle est
-  « au repos » (pause du stylo levé, attente du redessin) ;
+- **intervalle actif** entre deux `frameSwapped` : au moins une entrée dans l'intervalle, **et** la première
+  de ces entrées arrive au plus 2 périodes d'écran après l'image de départ ; sinon l'intervalle est « au repos »
+  (pause du stylo levé, attente du redessin). Les instants d'entrée sont les instants **prévus** (T16 les
+  fournit) : un fil principal bloqué qui poste l'arriéré d'un coup ne fait pas passer l'intervalle « au repos » ;
 - un intervalle qui contient un **figement** de trait est compté à part ;
 - statistiques sur les intervalles actifs hors figements : p50, p95, p99, max (rang le plus proche), part des
   intervalles > 25 ms, **images/s = 1000 / intervalle médian** ; figements : maximum et nombre de figements
@@ -6449,6 +6599,22 @@ private slots:
         QVERIFY(qAbs(l.freezeMaxMs - 50.0) < 1e-6);
     }
 
+    void plannedInstantsKeepABlockedIntervalActive()
+    {
+        // Fil principal bloqué 90 ms : entrées prévues toutes les 5 ms, postées en bloc à la fin.
+        FrameSeries planned;
+        planned.swapNs = {0, ms(90)};
+        for (int i = 1; i <= 17; ++i) {
+            planned.inputNs.push_back(ms(5.0 * i));
+        }
+        const IntervalStats r = classifyIntervals(planned);
+        QCOMPARE(r.classes[0], IntervalClass::Active);
+        QVERIFY(qAbs(r.active.max - 90.0) < 1e-6); // le blocage compte dans p95, p99 et max
+        FrameSeries posted = planned;
+        posted.inputNs.assign(17, ms(89));
+        QCOMPARE(classifyIntervals(posted).classes[0], IntervalClass::Idle); // d'où les instants prévus
+    }
+
     void fpsAndShareOver25()
     {
         FrameSeries s;
@@ -6529,7 +6695,7 @@ Percentiles summarize(const std::vector<double>& values);
 struct FrameSeries
 {
     std::vector<std::int64_t> swapNs;   // frameSwapped, croissants
-    std::vector<std::int64_t> inputNs;  // entrées postées, croissantes
+    std::vector<std::int64_t> inputNs;  // instants PRÉVUS des entrées postées, croissants (décision 23)
     std::vector<std::int64_t> freezeNs; // figements de trait
     std::int64_t refreshPeriodNs = 16'666'667;
 };
@@ -6754,7 +6920,8 @@ brutes en ns relatives au début du scénario, octets en nombres.
                "criteria": [ { "scenario", "criterion", "value", "limit", "ok" } ] }
 }
 P = { "p50", "p95", "p99", "max", "count" } ; "gpu_*_bytes" = null si indisponible ;
-"interval_class" = une lettre par intervalle : A (actif), I (repos), F (figement).
+"interval_class" = une lettre par intervalle : A (actif), I (repos), F (figement) ;
+"input_ns" = instants prévus des entrées postées.
 ```
 
 **Test et commande bornée.**
@@ -7838,7 +8005,7 @@ dès que le fil principal est occupé et ne le rattrape jamais : la latence mesu
 ```powershell
 Set-Location <worktree>; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File ./scripts/test.ps1 > .tmp/test.txt 2>&1 ; Select-String -Path .tmp/test.txt -Pattern 'tests passed|TESTS (OK|EN ECHEC)|tst_bench_(scenarios|injector) .*(Passed|Failed)' | Select-Object -Last 4
 ```
-Attendu : `out of N` avec N ≥ 10, `tst_bench_scenarios ... Passed`, `tst_bench_injector ... Passed`, `TESTS OK`.
+Attendu : `out of N` avec N ≥ 12, `tst_bench_scenarios ... Passed`, `tst_bench_injector ... Passed`, `TESTS OK`.
 
 **Interdits.** Pas de `SendInput`, `QTest::mouse*` ni `QCursor::setPos` dans `bench/`. Pas de
 `QWindowSystemInterface` (API privée, N2-14). Le relâché n'est jamais « mesuré ».
@@ -9544,7 +9711,9 @@ ScenarioResult Runner::play(const ScenarioPlan& plan)
     s.frames.swapNs = m_recorder->swapNs();
     for (std::size_t i = 0; i < posted.size(); ++i) {
         if (posted[i] >= 0) {
-            s.frames.inputNs.push_back(posted[i]);
+            // Instants prévus (décision 23) : un fil principal bloqué qui poste en retard ne rend pas l'intervalle
+            // « au repos » ; l'instant d'envoi ne sert qu'au retard d'injection.
+            s.frames.inputNs.push_back(planned[i]);
             s.injectionDelayMs.push_back(static_cast<double>(posted[i] - planned[i]) / 1e6);
         }
     }
@@ -9718,6 +9887,10 @@ qt_add_executable(actcraft-bench
 target_include_directories(actcraft-bench PRIVATE ${PROJECT_SOURCE_DIR}/app)
 target_link_libraries(actcraft-bench PRIVATE ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick)
 actcraft_set_warnings(actcraft-bench)
+# qt_standard_project_setup ne regroupe les exécutables à la racine du dossier de construction que sous Windows
+# (Qt6CoreMacros.cmake) : on l'impose partout, pour que scripts/bench.sh et la CI macOS trouvent
+# build/<preset>/actcraft-bench.
+set_target_properties(actcraft-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 ```
 
 - [ ] **Étape 7 : vert et passage hors écran.** Commande bornée : `tst_bench_options ... Passed`,
@@ -10247,6 +10420,9 @@ Commande bornée. Attendu d'abord `tst_bench_result` rouge si le JSON manque ; u
         continue-on-error: true
         run: |
           set +e
+          if [ ! -x ./build/debug/actcraft-bench ]; then
+            echo "actcraft-bench introuvable dans build/debug :"; ls build/debug; exit 1
+          fi
           ./build/debug/actcraft-bench --scenario court --rendu auto --taille 1280x800 --sortie "$RUNNER_TEMP/bench-macos.json"
           echo "code de sortie du banc : $?"
           python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print('graphics_api =', d['graphics_api'])" "$RUNNER_TEMP/bench-macos.json"
@@ -10812,12 +10988,17 @@ tâche) ; 33 (T18) ; 34 (T18 CI, T19 `bench.sh`) ; 35 (T1, T19) ; 36 (T19 paquet
 38 (T1 profil, clôture). DA1-DA6 : T16/T12, T4/T10, T12, T3/T9/T16, T9/T10, T15. N1-1 et N1-7 : seuils figés en
 T16 ; N2-1 à N2-14 : valeurs reprises telles quelles (N2-3 en T9, N2-4 en T11, N2-11 en T11, N2-13 en T1).
 
-**Ajouts du plan, signalés.** (1) Découpage de `tests/CMakeLists.txt` en `tests/<module>.cmake` (T1) pour le
-parallélisme ; chaque test reste déclaré par `actcraft_add_test`. (2) `--sortie` accepte un dossier (valeur sans
-`.json`), pour que les scripts écrivent dans `bench/results/` sous le nom calculé par le banc. (3) `-HorsEcran`
-(`--hors-ecran`) et `-SansConstruire` (`--sans-construire`) dans les scripts, pour les preuves de tâche sans
-fenêtre et pour enchaîner les passages. (4) `scripts/resume-banc.ps1` produit le résumé de S3. (5) Le moteur
-image n'a qu'un chemin : `QSGImageNode` est fourni par Qt dans les deux rendus.
+**Écarts au cadrage (jugés acceptables à la relecture du plan, tour 1).**
+- (a) Découpage de `tests/CMakeLists.txt` en `tests/<module>.cmake` (T1) pour le parallélisme ; chaque test
+  reste déclaré par `actcraft_add_test`.
+- (b) `--sortie` accepte un dossier (valeur sans `.json`), pour que les scripts écrivent dans `bench/results/`
+  sous le nom calculé par le banc (T16).
+- (c) `-HorsEcran` (`--hors-ecran`) et `-SansConstruire` (`--sans-construire`) dans les scripts (T19), pour les
+  preuves de tâche sans fenêtre et pour enchaîner les passages.
+- (d) `scripts/resume-banc.ps1` produit le résumé de S3 (T20).
+- (e) **Écart à la décision 6 et à DA2** (« deux chemins par moteur ») : le moteur image n'a qu'un chemin,
+  `QSGImageNode`, que Qt fournit pour le RHI et pour le rendu logiciel (`QSGSoftwareImageNode`) ; les moteurs
+  forme et trait, et l'encre, gardent leurs deux chemins (T4, T5, T9, T10).
 
 **Noms.** Vérifiés d'une tâche à l'autre : `PageView` (`setZoom`, `setPan`, `cacheReady`, `requestCacheRefresh`,
 `notifyCacheUpdated`, `pageToScene`, `setExclusiveDevices`, `setInkProbe`, `resetInputSequence`,
