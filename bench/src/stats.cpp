@@ -41,23 +41,47 @@ Percentiles summarize(const std::vector<double>& values)
 IntervalStats classifyIntervals(const FrameSeries& s)
 {
     IntervalStats r;
+    if (s.refreshPeriodNs <= 0) {
+        r.invalidRefreshPeriod = true;
+        return r;
+    }
+    const std::int64_t pauseNs = 2 * s.refreshPeriodNs;
+    const auto inputs = s.inputNs.begin();
+    const auto inputsEnd = s.inputNs.end();
     for (std::size_t i = 1; i < s.swapNs.size(); ++i) {
         const std::int64_t start = s.swapNs[i - 1];
         const std::int64_t end = s.swapNs[i];
-        const double length = toMs(end - start);
+        // Intervalle (start, end] : upper_bound écarte l'instant de l'image de départ, `<= end` garde celui
+        // de l'image d'arrivée.
+        const auto first = std::upper_bound(inputs, inputsEnd, start);
+        const bool hasInput = first != inputsEnd && *first <= end;
+        const bool pauseBefore = hasInput && *first - start > pauseNs;
         const auto freeze = std::upper_bound(s.freezeNs.begin(), s.freezeNs.end(), start);
         if (freeze != s.freezeNs.end() && *freeze <= end) {
+            const auto next = std::upper_bound(inputs, inputsEnd, *freeze);
+            if (next != inputsEnd && *next <= end && *next - *freeze > pauseNs) {
+                // Pause après le figement sans image entre les deux : sa durée n'est pas mesurable, et
+                // l'image d'arrivée est celle de la reprise.
+                ++r.freezeUnmeasured;
+                r.classes.push_back(IntervalClass::Resume);
+                r.resumeMs.push_back(toMs(end - *next));
+                continue;
+            }
+            // Une pause qui précède la première entrée (posée avant le figement) n'en fait pas partie.
+            const std::int64_t origin = pauseBefore && *first <= *freeze ? *first : start;
             r.classes.push_back(IntervalClass::Freeze);
-            r.freezeMs.push_back(length);
+            r.freezeMs.push_back(toMs(end - origin));
             continue;
         }
-        const auto input = std::upper_bound(s.inputNs.begin(), s.inputNs.end(), start);
-        if (input == s.inputNs.end() || *input > end || *input - start > 2 * s.refreshPeriodNs) {
+        if (!hasInput) {
             r.classes.push_back(IntervalClass::Idle);
-            continue;
+        } else if (pauseBefore) {
+            r.classes.push_back(IntervalClass::Resume);
+            r.resumeMs.push_back(toMs(end - *first));
+        } else {
+            r.classes.push_back(IntervalClass::Active);
+            r.activeMs.push_back(toMs(end - start));
         }
-        r.classes.push_back(IntervalClass::Active);
-        r.activeMs.push_back(length);
     }
     r.active = summarize(r.activeMs);
     if (!r.activeMs.empty()) {
@@ -67,12 +91,16 @@ IntervalStats classifyIntervals(const FrameSeries& s)
         r.over25Ratio = static_cast<double>(over) / static_cast<double>(r.activeMs.size());
     }
     const double limitMs = kFreezeFactor * toMs(s.refreshPeriodNs);
-    for (double v : r.freezeMs) {
-        r.freezeMaxMs = std::max(r.freezeMaxMs, v);
-        if (v >= limitMs) {
-            ++r.freezeOverLimit;
+    const auto overLimit = [limitMs](const std::vector<double>& values, double& maxMs, std::size_t& count) {
+        for (double v : values) {
+            maxMs = std::max(maxMs, v);
+            if (v >= limitMs) {
+                ++count;
+            }
         }
-    }
+    };
+    overLimit(r.freezeMs, r.freezeMaxMs, r.freezeOverLimit);
+    overLimit(r.resumeMs, r.resumeMaxMs, r.resumeOverLimit);
     return r;
 }
 

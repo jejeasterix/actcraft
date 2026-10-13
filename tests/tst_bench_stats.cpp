@@ -9,6 +9,20 @@ constexpr std::int64_t ms(double v)
 {
     return static_cast<std::int64_t>(v * 1'000'000.0);
 }
+
+constexpr std::int64_t kPeriod60Hz = 16'666'667;
+
+FrameSeries at60Hz()
+{
+    FrameSeries s;
+    s.refreshPeriodNs = kPeriod60Hz;
+    return s;
+}
+
+bool near(double a, double b)
+{
+    return qAbs(a - b) < 1e-6;
+}
 } // namespace
 
 class TstBenchStats : public QObject
@@ -44,9 +58,27 @@ private slots:
         }
     }
 
+    void invalidRefreshPeriodComputesNothing()
+    {
+        // Sans période mesurée, aucun seuil n'a de sens : indicateur explicite, pas de faux « 0 image/s ».
+        FrameSeries s;
+        s.swapNs = {0, ms(16), ms(33)};
+        s.inputNs = {ms(5), ms(20)};
+        const IntervalStats unset = classifyIntervals(s);
+        QVERIFY(unset.invalidRefreshPeriod);
+        QVERIFY(unset.classes.empty());
+        QCOMPARE(unset.fps, 0.0);
+        s.refreshPeriodNs = -1;
+        QVERIFY(classifyIntervals(s).invalidRefreshPeriod);
+        s.refreshPeriodNs = kPeriod60Hz;
+        const IntervalStats valid = classifyIntervals(s);
+        QVERIFY(!valid.invalidRefreshPeriod);
+        QCOMPARE(valid.activeMs.size(), std::size_t{2});
+    }
+
     void intervalNeedsAnInput()
     {
-        FrameSeries s;
+        FrameSeries s = at60Hz();
         s.swapNs = {0, ms(16), ms(33), ms(50)};
         s.inputNs = {ms(5), ms(20)};
         const IntervalStats r = classifyIntervals(s);
@@ -57,21 +89,44 @@ private slots:
         QCOMPARE(r.activeMs.size(), std::size_t{2});
     }
 
-    void firstIntervalAfterAPauseIsIdle()
+    void firstIntervalAfterAPauseIsAResume()
     {
-        FrameSeries s;
+        FrameSeries s = at60Hz();
         s.swapNs = {0, ms(16), ms(316), ms(333)};
         s.inputNs = {ms(5), ms(310), ms(320)};
         const IntervalStats r = classifyIntervals(s);
         QCOMPARE(r.classes[0], IntervalClass::Active);
-        QCOMPARE(r.classes[1], IntervalClass::Idle); // 294 ms sans entrée depuis l'image de départ
+        QCOMPARE(r.classes[1], IntervalClass::Resume); // 294 ms sans entrée depuis l'image de départ
         QCOMPARE(r.classes[2], IntervalClass::Active);
         QVERIFY(r.active.max < 20.0);
+        QCOMPARE(r.resumeMs.size(), std::size_t{1});
+        QVERIFY(near(r.resumeMs[0], 6.0)); // 316 − 310 : la pause n'en fait pas partie
+    }
+
+    void slowResumeIsCountedApart()
+    {
+        // Accroc de 200 ms au début d'un trait : invisible dans les intervalles actifs, compté comme reprise.
+        FrameSeries slow = at60Hz();
+        slow.swapNs = {0, ms(16), ms(516), ms(533)};
+        slow.inputNs = {ms(5), ms(310), ms(520)};
+        const IntervalStats r = classifyIntervals(slow);
+        QCOMPARE(r.classes[1], IntervalClass::Resume);
+        QVERIFY(r.active.max < 20.0);
+        QCOMPARE(r.resumeOverLimit, std::size_t{1}); // 206 ms ≥ 2,5 × 16,7 ms
+        QVERIFY(near(r.resumeMaxMs, 206.0));
+
+        FrameSeries fast = at60Hz();
+        fast.swapNs = {0, ms(16), ms(320), ms(336)};
+        fast.inputNs = {ms(5), ms(310), ms(325)};
+        const IntervalStats f = classifyIntervals(fast);
+        QCOMPARE(f.classes[1], IntervalClass::Resume);
+        QCOMPARE(f.resumeOverLimit, std::size_t{0});
+        QVERIFY(near(f.resumeMaxMs, 10.0));
     }
 
     void freezeIsCountedApart()
     {
-        FrameSeries s;
+        FrameSeries s = at60Hz();
         s.swapNs = {0, ms(16), ms(33), ms(50)};
         s.inputNs = {ms(5), ms(18), ms(40)};
         s.freezeNs = {ms(20)};
@@ -81,7 +136,7 @@ private slots:
         QCOMPARE(r.freezeOverLimit, std::size_t{0});
         QCOMPARE(r.activeMs.size(), std::size_t{2});
 
-        FrameSeries slow;
+        FrameSeries slow = at60Hz();
         slow.swapNs = {0, ms(16), ms(66)};
         slow.inputNs = {ms(5), ms(18)};
         slow.freezeNs = {ms(20)};
@@ -90,11 +145,47 @@ private slots:
         QVERIFY(qAbs(l.freezeMaxMs - 50.0) < 1e-6);
     }
 
+    void freezeNeverCountsAPause()
+    {
+        // Figement à 20 ms sans image avant le trait suivant (posé à 318 ms) : la pause n'est pas un
+        // figement.
+        FrameSeries spanning = at60Hz();
+        spanning.swapNs = {0, ms(16), ms(336), ms(352)};
+        spanning.inputNs = {ms(5), ms(15), ms(318), ms(340)};
+        spanning.freezeNs = {ms(20)};
+        const IntervalStats a = classifyIntervals(spanning);
+        QCOMPARE(a.classes[1], IntervalClass::Resume);
+        QVERIFY(a.freezeMs.empty());
+        QCOMPARE(a.freezeOverLimit, std::size_t{0});
+        QCOMPARE(a.freezeUnmeasured, std::size_t{1});
+        QVERIFY(near(a.resumeMaxMs, 18.0)); // 336 − 318
+        QCOMPARE(a.resumeOverLimit, std::size_t{0});
+
+        // Figement tardif (trait figé à 300 ms, posé suivant à 318 ms) : c'est un vrai figement, hors limite.
+        FrameSeries late = spanning;
+        late.freezeNs = {ms(300)};
+        const IntervalStats b = classifyIntervals(late);
+        QCOMPARE(b.classes[1], IntervalClass::Freeze);
+        QCOMPARE(b.freezeOverLimit, std::size_t{1});
+        QCOMPARE(b.freezeUnmeasured, std::size_t{0});
+
+        // Trait court après une pause (posé 310, levé 315, figé 316, image 330) : durée comptée depuis le
+        // posé.
+        FrameSeries tap = at60Hz();
+        tap.swapNs = {0, ms(16), ms(330), ms(346)};
+        tap.inputNs = {ms(5), ms(310), ms(315), ms(335)};
+        tap.freezeNs = {ms(316)};
+        const IntervalStats c = classifyIntervals(tap);
+        QCOMPARE(c.classes[1], IntervalClass::Freeze);
+        QVERIFY(near(c.freezeMaxMs, 20.0));
+        QCOMPARE(c.freezeOverLimit, std::size_t{0});
+    }
+
     void thresholdsFollowTheMeasuredRefreshPeriod()
     {
         // 60 Hz : un figement de 38 ms reste sous 2,5 × 16,7 = 41,7 ms ; un seuil fixe de 33,4 ms le
         // compterait.
-        FrameSeries hz60;
+        FrameSeries hz60 = at60Hz();
         hz60.swapNs = {0, ms(16), ms(54)};
         hz60.inputNs = {ms(5), ms(18)};
         hz60.freezeNs = {ms(20)};
@@ -116,13 +207,12 @@ private slots:
         pause144.inputNs = {ms(2), ms(27)};
         const IntervalStats p = classifyIntervals(pause144);
         QCOMPARE(p.classes[0], IntervalClass::Active);
-        QCOMPARE(p.classes[1], IntervalClass::Idle);
+        QCOMPARE(p.classes[1], IntervalClass::Resume);
     }
 
     void thresholdBoundaries()
     {
-        // Période de 10 ms : au repos au-delà de 2 périodes (strictement), figement hors limite dès 2,5
-        // périodes.
+        // Période de 10 ms : pause au-delà de 2 périodes (strictement), hors limite dès 2,5 périodes.
         FrameSeries s;
         s.refreshPeriodNs = 10'000'000;
         s.swapNs = {0, ms(30), ms(60), ms(85), ms(110) - 1};
@@ -130,16 +220,53 @@ private slots:
         s.freezeNs = {ms(70), ms(90)};
         const IntervalStats r = classifyIntervals(s);
         QCOMPARE(r.classes[0], IntervalClass::Active); // première entrée à 2 périodes pile
-        QCOMPARE(r.classes[1], IntervalClass::Idle);   // 1 ns de plus
+        QCOMPARE(r.classes[1], IntervalClass::Resume); // 1 ns de plus
         QCOMPARE(r.classes[2], IntervalClass::Freeze); // 25 ms = 2,5 périodes : hors limite
         QCOMPARE(r.classes[3], IntervalClass::Freeze); // 25 ms − 1 ns : dans la limite
         QCOMPARE(r.freezeOverLimit, std::size_t{1});
+
+        FrameSeries resume;
+        resume.refreshPeriodNs = 10'000'000;
+        resume.swapNs = {0, ms(60), ms(120) - 1};
+        resume.inputNs = {ms(35), ms(95)};
+        const IntervalStats q = classifyIntervals(resume);
+        QCOMPARE(q.classes[0], IntervalClass::Resume); // 25 ms : hors limite
+        QCOMPARE(q.classes[1], IntervalClass::Resume); // 25 ms − 1 ns : dans la limite
+        QCOMPARE(q.resumeOverLimit, std::size_t{1});
+    }
+
+    void activeIntervalOfExactly25MsIsNotOver()
+    {
+        FrameSeries s = at60Hz();
+        s.swapNs = {0, ms(25), ms(50) + 1};
+        s.inputNs = {ms(1), ms(26)};
+        const IntervalStats r = classifyIntervals(s);
+        QCOMPARE(r.activeMs.size(), std::size_t{2});
+        QCOMPARE(r.over25Ratio, 0.5); // 25 ms pile n'est pas « > 25 ms », 25 ms + 1 ns l'est
+    }
+
+    void instantsOnAFrameBelongToTheIntervalTheyEnd()
+    {
+        FrameSeries input = at60Hz();
+        input.swapNs = {0, ms(16), ms(32)};
+        input.inputNs = {ms(16)};
+        const IntervalStats i = classifyIntervals(input);
+        QCOMPARE(i.classes[0], IntervalClass::Active);
+        QCOMPARE(i.classes[1], IntervalClass::Idle);
+
+        FrameSeries freeze = at60Hz();
+        freeze.swapNs = {0, ms(16), ms(32)};
+        freeze.inputNs = {ms(5), ms(20)};
+        freeze.freezeNs = {ms(16)};
+        const IntervalStats f = classifyIntervals(freeze);
+        QCOMPARE(f.classes[0], IntervalClass::Freeze);
+        QCOMPARE(f.classes[1], IntervalClass::Active);
     }
 
     void plannedInstantsKeepABlockedIntervalActive()
     {
         // Fil principal bloqué 90 ms : entrées prévues toutes les 5 ms, postées en bloc à la fin.
-        FrameSeries planned;
+        FrameSeries planned = at60Hz();
         planned.swapNs = {0, ms(90)};
         for (int i = 1; i <= 17; ++i) {
             planned.inputNs.push_back(ms(5.0 * i));
@@ -149,12 +276,14 @@ private slots:
         QVERIFY(qAbs(r.active.max - 90.0) < 1e-6); // le blocage compte dans p95, p99 et max
         FrameSeries posted = planned;
         posted.inputNs.assign(17, ms(89));
-        QCOMPARE(classifyIntervals(posted).classes[0], IntervalClass::Idle); // d'où les instants prévus
+        const IntervalStats p = classifyIntervals(posted);
+        QCOMPARE(p.classes[0], IntervalClass::Resume); // d'où les instants prévus :
+        QVERIFY(near(p.resumeMaxMs, 1.0));             // avec les instants postés, le blocage disparaît
     }
 
     void fpsAndShareOver25()
     {
-        FrameSeries s;
+        FrameSeries s = at60Hz();
         for (int i = 0; i <= 100; ++i) {
             s.swapNs.push_back(ms(16.6667 * i + (i > 98 ? 20 : 0)));
             s.inputNs.push_back(ms(16.6667 * i + 1));
