@@ -4,6 +4,9 @@
 #include <actcraft/render/strokegeometry.h>
 #include <actcraft/render/strokerenderer.h>
 
+#include <algorithm>
+#include <numbers>
+
 namespace actcraft::render {
 
 namespace {
@@ -15,7 +18,14 @@ public:
         : PainterNode(window), m_stroke(stroke)
     {
         const core::RectF r = strokeBounds(stroke.points, stroke.baseWidth);
-        setRect(QRectF(r.x, r.y, r.width, r.height));
+        // strokeBounds ignore les coins des bouts carrés (jusqu'à (√2 − 1) × demi-largeur en diagonale) ;
+        // le moteur logiciel découpe au rect() : on ajoute cette marge, plus 1 px d'anticrénelage.
+        double half = 0;
+        for (const auto& p : stroke.points) {
+            half = std::max(half, core::strokeWidthAt(stroke.baseWidth, p.pressure) / 2);
+        }
+        const double margin = half * (std::numbers::sqrt2 - 1.0) + 1.0;
+        setRect(QRectF(r.x - margin, r.y - margin, r.width + 2 * margin, r.height + 2 * margin));
     }
 
 protected:
