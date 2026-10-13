@@ -5,6 +5,9 @@
 #include <actcraft/bench/recorder.h>
 #include <actcraft/bench/result.h>
 
+#include <QImage>
+#include <QList>
+#include <QString>
 #include <QStringList>
 
 #include <cstdint>
@@ -22,6 +25,11 @@ class PageView;
 }
 
 namespace actcraft::bench {
+
+// Écrit les captures (une par étape de captureSteps()) dans `dir`, créé si besoin. Chaque échec est ajouté à
+// `errors` sous la forme « error: capture … ».
+void saveCaptures(const QString& dir, const QString& graphicsApi, const QList<QImage>& images,
+                  QStringList& errors);
 
 // Joue un passage complet du banc sur la fenêtre déjà chargée ; ne quitte pas l'application.
 // DURÉE DE VIE : le Runner doit être détruit APRÈS la fenêtre. Qt Quick garde les périphériques synthétiques

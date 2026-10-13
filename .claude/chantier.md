@@ -52,7 +52,7 @@ tâche.
   `MESURE INVALIDE` (2) ; code de sortie = verdict du rendu par défaut (d3d11). Options : `-Rendu
   d3d11|logiciel|tous`, `-SansCache`, `-Captures <dossier>`, `-Scenario complet|court`, `-Taille
   plein-ecran|LxH`, `-HorsEcran`, `-SansConstruire`.
-- Forme bornée : `pwsh -NoProfile -File ./scripts/bench.ps1 > .tmp/bench.txt 2>&1 ; Select-String -Path
+- Forme bornée : `New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File ./scripts/bench.ps1 > .tmp/bench.txt 2>&1 ; Select-String -Path
   .tmp/bench.txt -Pattern 'BUDGET (TENU|DEPASSE)|MESURE INVALIDE' | Select-Object -Last 1`
 - Preuve de tâche sans écran (aucune fenêtre visible) : ajouter `-Rendu logiciel -Scenario court -Taille
   1280x800 -HorsEcran`. Un passage en plein écran se joue sous le jeton `ecran`, annoncé d'une ligne à Jérôme.

@@ -15,13 +15,17 @@ scenario=complet
 taille=plein-ecran
 hors_ecran=0
 construire=1
+# Une option à valeur sans valeur : MESURE INVALIDE, code 2 (sous « set -u », $2 arrêterait bash sans message).
+valeur() {
+  if [ $# -lt 2 ]; then echo "$1 attend une valeur" >&2; echo "MESURE INVALIDE"; exit 2; fi
+}
 while [ $# -gt 0 ]; do
   case "$1" in
-    --rendu) rendu="$2"; shift 2 ;;
+    --rendu) valeur "$@"; rendu="$2"; shift 2 ;;
     --sans-cache) sans_cache=1; shift ;;
-    --captures) captures="$2"; shift 2 ;;
-    --scenario) scenario="$2"; shift 2 ;;
-    --taille) taille="$2"; shift 2 ;;
+    --captures) valeur "$@"; captures="$2"; shift 2 ;;
+    --scenario) valeur "$@"; scenario="$2"; shift 2 ;;
+    --taille) valeur "$@"; taille="$2"; shift 2 ;;
     --hors-ecran) hors_ecran=1; shift ;;
     --sans-construire) construire=0; shift ;;
     *) echo "option inconnue : $1" >&2; echo "MESURE INVALIDE"; exit 2 ;;

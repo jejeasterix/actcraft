@@ -1,6 +1,10 @@
 #include <actcraft/bench/contentcheck.h>
+#include <actcraft/bench/runner.h>
 
+#include <QDir>
+#include <QFile>
 #include <QImage>
+#include <QTemporaryDir>
 #include <QTest>
 
 using namespace actcraft::bench;
@@ -10,6 +14,31 @@ class TstBenchContent : public QObject
     Q_OBJECT
 
 private slots:
+    void captureSavingReportsEveryFailure()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QImage image(4, 4, QImage::Format_ARGB32);
+        image.fill(Qt::red);
+        const QList<QImage> images{image, image, image, image};
+
+        QStringList errors;
+        saveCaptures(dir.filePath(QStringLiteral("ok")), QStringLiteral("d3d11"), images, errors);
+        QVERIFY2(errors.isEmpty(), qPrintable(errors.join('|')));
+        QCOMPARE(QDir(dir.filePath(QStringLiteral("ok"))).entryList(QDir::Files).size(), 4);
+
+        // Un fichier à la place du dossier : mkpath et save échouent, chacun est remonté.
+        QFile blocker(dir.filePath(QStringLiteral("bloque")));
+        QVERIFY(blocker.open(QIODevice::WriteOnly));
+        blocker.close();
+        errors.clear();
+        saveCaptures(blocker.fileName(), QStringLiteral("d3d11"), images, errors);
+        QVERIFY(!errors.isEmpty());
+        for (const QString& e : errors) {
+            QVERIFY2(e.startsWith(QLatin1String("error: capture")), qPrintable(e));
+        }
+    }
+
     void colorNearUsesEveryChannel()
     {
         QVERIFY(colorNear(QColor(100, 100, 100), QColor(110, 90, 100), 10));
