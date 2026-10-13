@@ -103,6 +103,7 @@ public:
     TabletProbeItem() { setAcceptedMouseButtons(Qt::LeftButton); }
     int tabletEvents = 0;
     qreal firstPressure = -1;
+    int mousePresses = 0;
 
 protected:
     bool event(QEvent* e) override
@@ -124,7 +125,11 @@ protected:
         }
         return QQuickItem::event(e);
     }
-    void mousePressEvent(QMouseEvent* e) override { e->accept(); }
+    void mousePressEvent(QMouseEvent* e) override
+    {
+        ++mousePresses;
+        e->accept();
+    }
 };
 
 class TabletFilter : public QObject
@@ -132,6 +137,7 @@ class TabletFilter : public QObject
 public:
     int tabletEvents = 0;
     qreal firstPressure = -1;
+    QPointF firstPosition{-1, -1};
 
 protected:
     bool eventFilter(QObject* watched, QEvent* e) override
@@ -139,7 +145,9 @@ protected:
         if (e->type() == QEvent::TabletPress || e->type() == QEvent::TabletMove ||
             e->type() == QEvent::TabletRelease) {
             if (tabletEvents == 0) {
-                firstPressure = static_cast<QTabletEvent*>(e)->pressure();
+                const auto* tablet = static_cast<QTabletEvent*>(e);
+                firstPressure = tablet->pressure();
+                firstPosition = tablet->position();
             }
             ++tabletEvents;
         }
@@ -183,10 +191,13 @@ private:
     QColor m_color = Qt::red;
 };
 
-// Vrai si un ShaderEffectSource `live: false` garde son image, se redessine sur scheduleUpdate() et émet
+// Constate si un ShaderEffectSource `live: false` garde son image, se redessine sur scheduleUpdate() et émet
 // scheduledUpdateCompleted, avec pour source l'élément décrit par `source` (id src, propriété color).
-static bool staticLayerWorks(const QByteArray& source, QString& details)
+// Une mise en place ratée fait échouer le test (QVERIFY2) au lieu d'être rapportée comme un « non » : un faux
+// « non » ferait partir T12 sur le repli sans raison. L'appelant teste QTest::currentTestFailed() au retour.
+static void checkStaticLayer(const QByteArray& source, bool& works, QString& details)
 {
+    works = false;
     QQmlEngine engine;
     QQmlComponent component(&engine);
     component.setData(
@@ -196,27 +207,21 @@ static bool staticLayerWorks(const QByteArray& source, QString& details)
             "    }\n}\n",
         QUrl());
     std::unique_ptr<QObject> root(component.create());
-    if (!root) {
-        details = component.errorString();
-        return false;
-    }
+    QVERIFY2(root, qPrintable(component.errorString()));
     QQuickWindow window;
     window.setColor(Qt::white);
     window.resize(200, 200);
     auto* rootItem = qobject_cast<QQuickItem*>(root.get());
+    QVERIFY2(rootItem, "la racine QML n'est pas un QQuickItem");
     rootItem->setParentItem(window.contentItem());
     window.show();
-    if (!QTest::qWaitForWindowExposed(&window)) {
-        details = QStringLiteral("fenêtre non exposée");
-        return false;
-    }
-    const bool firstRed = sameColor(window.grabWindow().pixelColor(50, 50), QColor(Qt::red));
+    QVERIFY2(QTest::qWaitForWindowExposed(&window), "fenêtre non exposée");
+    QCOMPARE(window.rendererInterface()->graphicsApi(), QSGRendererInterface::Software);
     auto* src = rootItem->findChild<QObject*>(QStringLiteral("src"));
     auto* cache = rootItem->findChild<QObject*>(QStringLiteral("cache"));
-    if (!src || !cache) {
-        details = QStringLiteral("src ou cache introuvable");
-        return false;
-    }
+    QVERIFY2(src, "élément source « src » introuvable");
+    QVERIFY2(cache, "ShaderEffectSource « cache » introuvable");
+    const bool firstRed = sameColor(window.grabWindow().pixelColor(50, 50), QColor(Qt::red));
     src->setProperty("color", QColor(Qt::green));
     QTest::qWait(100);
     const bool stillRed = sameColor(window.grabWindow().pixelColor(50, 50), QColor(Qt::red));
@@ -229,7 +234,7 @@ static bool staticLayerWorks(const QByteArray& source, QString& details)
                   .arg(stillRed)
                   .arg(signalled)
                   .arg(nowGreen);
-    return firstRed && stillRed && signalled && nowGreen;
+    works = firstRed && stillRed && signalled && nowGreen;
 }
 
 class TstQtVerifications : public QObject
@@ -245,6 +250,7 @@ private slots:
         auto* item = new PainterItem;
         item->setSize(QSizeF(100, 100));
         item->setParentItem(window.contentItem());
+        item->setParent(window.contentItem());
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         QCOMPARE(window.rendererInterface()->graphicsApi(), QSGRendererInterface::Software);
@@ -263,6 +269,7 @@ private slots:
         auto* item = new GeometryItem;
         item->setSize(QSizeF(100, 100));
         item->setParentItem(window.contentItem());
+        item->setParent(window.contentItem());
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         const QImage image = window.grabWindow();
@@ -274,36 +281,51 @@ private slots:
 
     void staticLayerInSoftware()
     {
+        bool works = false;
         QString details;
-        const bool works = staticLayerWorks(
-            "Rectangle { id: src; objectName: \"src\"; width: 100; height: 100; color: \"red\" }", details);
+        checkStaticLayer(
+            "Rectangle { id: src; objectName: \"src\"; width: 100; height: 100; color: \"red\" }", works,
+            details);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
         qInfo("VERIF couche-logicielle: %s (%s)", works ? "oui" : "non", qPrintable(details));
     }
 
     void staticLayerOverRenderNodeInSoftware()
     {
+        bool works = false;
         QString details;
-        const bool works = staticLayerWorks(
-            "ColorPainter { id: src; objectName: \"src\"; width: 100; height: 100; color: \"red\" }",
+        checkStaticLayer(
+            "ColorPainter { id: src; objectName: \"src\"; width: 100; height: 100; color: \"red\" }", works,
             details);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
         qInfo("VERIF couche-rendernode-logiciel: %s (%s)", works ? "oui" : "non", qPrintable(details));
     }
 
     void tabletEventReachesQuickItem()
     {
+        // Le périphérique survit à la fenêtre : l'agent de livraison de Qt Quick peut garder sa trace.
+        QPointingDevice stylus(QStringLiteral("verif-stylus"), 4242, QInputDevice::DeviceType::Stylus,
+                               QPointingDevice::PointerType::Pen,
+                               QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3);
         QQuickWindow window;
         window.resize(200, 200);
+        // Hors de l'origine : position locale et position globale de l'événement diffèrent.
+        window.setPosition(300, 200);
         auto* item = new TabletProbeItem;
         item->setSize(QSizeF(200, 200));
         item->setParentItem(window.contentItem());
+        item->setParent(window.contentItem());
         TabletFilter filter;
         window.installEventFilter(&filter);
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY2(window.mapToGlobal(QPointF(50, 50)) != QPointF(50, 50),
+                 "fenêtre à l'origine : la position relevée ne distinguerait pas locale et globale");
 
-        QPointingDevice stylus(QStringLiteral("verif-stylus"), 4242, QInputDevice::DeviceType::Stylus,
-                               QPointingDevice::PointerType::Pen,
-                               QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3);
         const auto post = [&](QEvent::Type type, QPointF pos, qreal pressure, Qt::MouseButton button,
                               Qt::MouseButtons buttons) {
             QCoreApplication::postEvent(&window, new QTabletEvent(type, &stylus, pos, window.mapToGlobal(pos),
@@ -313,12 +335,24 @@ private slots:
         post(QEvent::TabletPress, QPointF(50, 50), 0.7, Qt::LeftButton, Qt::LeftButton);
         post(QEvent::TabletMove, QPointF(60, 60), 0.4, Qt::NoButton, Qt::LeftButton);
         post(QEvent::TabletRelease, QPointF(60, 60), 0.0, Qt::LeftButton, Qt::NoButton);
+        // Repli (variante B de T12) : le filtre sur la fenêtre voit les trois événements, avec la pression et
+        // la position locale à la fenêtre que T12 passe à mapFromScene().
         QTRY_COMPARE_WITH_TIMEOUT(filter.tabletEvents, 3, 2000);
         QVERIFY(qAbs(filter.firstPressure - 0.7) < 0.01);
+        QCOMPARE(filter.firstPosition, QPointF(50, 50));
 
+        const int mouseFromTablet = item->mousePresses;
         const bool delivered = item->tabletEvents == 3 && qAbs(item->firstPressure - 0.7) < 0.01;
-        qInfo("VERIF tablette-element: %s (recus=%d pression=%.2f)", delivered ? "oui" : "non",
-              item->tabletEvents, item->firstPressure);
+
+        // Contrôle du montage : un appui de souris au même point atteint l'élément. Sans lui, un « non »
+        // pourrait venir d'un élément hors d'atteinte et non de Qt.
+        QTest::mousePress(&window, Qt::LeftButton, Qt::NoModifier, QPoint(50, 50));
+        QTest::mouseRelease(&window, Qt::LeftButton, Qt::NoModifier, QPoint(50, 50));
+        QVERIFY2(item->mousePresses == mouseFromTablet + 1,
+                 "l'appui de souris en (50, 50) n'atteint pas l'élément");
+
+        qInfo("VERIF tablette-element: %s (recus=%d pression=%.2f souris-synthetisee=%d)",
+              delivered ? "oui" : "non", item->tabletEvents, item->firstPressure, mouseFromTablet);
     }
 };
 
