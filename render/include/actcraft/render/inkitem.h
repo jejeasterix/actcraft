@@ -21,6 +21,7 @@ public:
     // `seq` : numéro de l'échantillon (input/), rendu à la sonde quand le point entre dans la géométrie
     // (DA4).
     void addPoint(const core::StrokePoint& point, std::uint64_t seq);
+    // Garde le numéro en attente : il est signalé à la synchronisation suivante (voir inkitem.cpp).
     void clear();
     // Sonde de latence (DA4), nulle par défaut : coût nul. Elle doit survivre à l'élément ou être retirée
     // avant.
@@ -29,10 +30,11 @@ public:
     std::size_t blockCount() const noexcept;
 
     // Chemin RHI (DA5) : un nœud de géométrie par bloc de `buffer` sous `root`, alloué une fois à sa
-    // capacité. Seuls les segments apparus depuis l'appel précédent sont écrits, dans les blocs sales.
-    // `root` ne contient que des nœuds créés par cette fonction pour ce tampon ; après InkBuffer::clear(),
-    // l'appelant le vide. Public pour les tests : hors écran, Qt prend toujours le rendu logiciel et ce
-    // chemin n'y est jamais appelé.
+    // capacité, avec un matériau propre au bloc (un lot par bloc). Seuls les segments apparus depuis l'appel
+    // précédent sont écrits, dans les blocs sales ; un nœud créé (racine neuve) est écrit en entier. Vide
+    // `root` si le tampon a été vidé depuis le dernier markClean(). `root` ne contient que des nœuds créés
+    // par cette fonction pour ce tampon. Public pour les tests : hors écran, Qt prend toujours le rendu
+    // logiciel et ce chemin n'y est jamais appelé.
     static void syncRhiBlocks(QSGNode* root, const InkBuffer& buffer);
 
 protected:

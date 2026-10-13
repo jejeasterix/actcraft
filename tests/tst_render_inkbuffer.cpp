@@ -4,6 +4,7 @@
 #include <actcraft/render/strokegeometry.h>
 
 #include <QQuickWindow>
+#include <QSGFlatColorMaterial>
 #include <QSGGeometryNode>
 #include <QSignalSpy>
 #include <QTest>
@@ -53,10 +54,50 @@ std::vector<render::Vertex2D> segment(int from, double baseWidth)
     return out;
 }
 
-bool allPoison(std::span<const render::Vertex2D> vertices)
+bool allEqual(std::span<const render::Vertex2D> vertices, const render::Vertex2D& value)
 {
     for (const auto& v : vertices) {
-        if (!same(v, kPoison)) {
+        if (!same(v, value)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool allPoison(std::span<const render::Vertex2D> vertices)
+{
+    return allEqual(vertices, kPoison);
+}
+
+render::Vertex2D vertexAt(const core::StrokePoint& p)
+{
+    return {static_cast<float>(p.x), static_cast<float>(p.y)};
+}
+
+std::size_t writtenVertices(const render::InkBuffer& buffer, int block)
+{
+    return (buffer.block(static_cast<std::size_t>(block)).size() - 1) * render::kVerticesPerSegment;
+}
+
+// Sommets écrits des blocs mis bout à bout, place libre exclue. `root` a autant d'enfants que de blocs.
+std::vector<render::Vertex2D> drawnVertices(QSGNode& root, const render::InkBuffer& buffer)
+{
+    std::vector<render::Vertex2D> drawn;
+    for (int b = 0; b < root.childCount(); ++b) {
+        const auto vertices = verticesOf(blockNode(root, b));
+        drawn.insert(drawn.end(), vertices.begin(),
+                     vertices.begin() + static_cast<std::ptrdiff_t>(writtenVertices(buffer, b)));
+    }
+    return drawn;
+}
+
+bool sameVertices(const std::vector<render::Vertex2D>& a, const std::vector<render::Vertex2D>& b)
+{
+    if (a.size() != b.size()) {
+        return false;
+    }
+    for (std::size_t v = 0; v < a.size(); ++v) {
+        if (!same(a[v], b[v])) {
             return false;
         }
     }
@@ -200,31 +241,114 @@ private slots:
         buffer.markClean();
 
         QCOMPARE(root.childCount(), 3);
-        std::vector<render::Vertex2D> expected;
-        render::appendStrokeTriangles(all, 3.0, expected);
-        std::vector<render::Vertex2D> drawn;
         for (int b = 0; b < root.childCount(); ++b) {
             QSGGeometryNode* node = blockNode(root, b);
             QCOMPARE(node->geometry()->vertexCount(), kCapacity);
             QCOMPARE(node->geometry()->vertexDataPattern(), QSGGeometry::DynamicPattern);
             QCOMPARE(node->geometry()->drawingMode(), QSGGeometry::DrawTriangles);
-            const std::size_t written =
-                (buffer.block(static_cast<std::size_t>(b)).size() - 1) * render::kVerticesPerSegment;
-            const auto vertices = verticesOf(node);
-            drawn.insert(drawn.end(), vertices.begin(),
-                         vertices.begin() + static_cast<std::ptrdiff_t>(written));
-            if (b == root.childCount() - 1) {
-                // Place libre du dernier bloc : triangles dégénérés (sommets tous confondus), rien de
-                // visible.
-                for (std::size_t v = written; v < vertices.size(); ++v) {
-                    QVERIFY(same(vertices[v], vertices[written]));
-                }
-            }
         }
-        QCOMPARE(drawn.size(), expected.size());
-        for (std::size_t v = 0; v < expected.size(); ++v) {
-            QVERIFY2(same(drawn[v], expected[v]), qPrintable(QStringLiteral("sommet %1").arg(v)));
+        std::vector<render::Vertex2D> expected;
+        render::appendStrokeTriangles(all, 3.0, expected);
+        QVERIFY2(sameVertices(drawnVertices(root, buffer), expected), "blocs ≠ trait figé");
+        // Place libre du dernier bloc : triangles dégénérés posés sur le premier point du bloc (510, 6), pas
+        // à l'origine, qui étendrait les bornes du nœud jusqu'à (0, 0).
+        const auto tail = verticesOf(blockNode(root, 2)).subspan(writtenVertices(buffer, 2));
+        QVERIFY(!tail.empty());
+        QVERIFY2(allEqual(tail, vertexAt(buffer.block(2).front())), "place libre hors du bloc");
+    }
+
+    // Matériau des blocs (revue T9, mesuré en D3D11) : le moteur de rendu par lots range dans un même lot les
+    // nœuds dont les matériaux ont le même type() et compare() == 0, et renvoie tout le lot quand l'un
+    // change. Avec un QSGFlatColorMaterial commun, chaque point renvoyait les 4 blocs d'un trait de 1000
+    // points. Hors écran, seul le critère se vérifie : deux blocs ne sont jamais égaux.
+    void rhiBlockMaterialsNeverShareABatch()
+    {
+        render::InkBuffer buffer;
+        buffer.begin(0xFF102030u, 3.0);
+        for (int i = 0; i < 600; ++i) {
+            buffer.add(pt(i));
         }
+        QSGNode root;
+        render::InkItem::syncRhiBlocks(&root, buffer);
+        QCOMPARE(root.childCount(), 3);
+        QSGMaterial* m0 = blockNode(root, 0)->material();
+        QSGMaterial* m1 = blockNode(root, 1)->material();
+        QSGMaterial* m2 = blockNode(root, 2)->material();
+
+        // Couleur unie du trait, même shader que QSGFlatColorMaterial…
+        const auto* flat = dynamic_cast<const QSGFlatColorMaterial*>(m0);
+        QVERIFY(flat);
+        QCOMPARE(flat->color(), QColor::fromRgba(0xFF102030u));
+        // … mais un type propre : le moteur ne compare jamais un bloc à un autre matériau de couleur unie.
+        const QSGFlatColorMaterial plain;
+        QVERIFY(m0->type() == m1->type() && m1->type() == m2->type());
+        QVERIFY(m0->type() != plain.type());
+        // Deux blocs ne sont jamais égaux : un lot par bloc, seul le bloc modifié est renvoyé.
+        QVERIFY(m0->compare(m1) != 0);
+        QVERIFY(m1->compare(m2) != 0);
+        QVERIFY(m0->compare(m2) != 0);
+        QVERIFY((m0->compare(m1) < 0) == (m1->compare(m0) > 0)); // ordre cohérent
+        QCOMPARE(m0->compare(m0), 0);
+        // Même bloc, nœud recréé sous une autre racine : égal.
+        QSGNode other;
+        render::InkItem::syncRhiBlocks(&other, buffer);
+        QCOMPARE(blockNode(other, 1)->material()->compare(m1), 0);
+    }
+
+    // Qt rappelle updatePaintNode(nullptr) sur un tampon déjà propre (réinsertion de l'élément, perte du
+    // périphérique, releaseResources()) : les nœuds recréés doivent être remplis, sinon l'encre disparaît.
+    void rhiRefillsTheBlocksOfAFreshRoot()
+    {
+        render::InkBuffer buffer;
+        buffer.begin(0xFF000000u, 3.0);
+        std::vector<core::StrokePoint> all;
+        for (int i = 0; i < 700; ++i) {
+            all.push_back(pt(i));
+            buffer.add(all.back());
+        }
+        QSGNode first;
+        render::InkItem::syncRhiBlocks(&first, buffer);
+        buffer.markClean();
+
+        QSGNode fresh;
+        render::InkItem::syncRhiBlocks(&fresh, buffer);
+        QCOMPARE(fresh.childCount(), 3);
+        std::vector<render::Vertex2D> expected;
+        render::appendStrokeTriangles(all, 3.0, expected);
+        QVERIFY2(sameVertices(drawnVertices(fresh, buffer), expected), "blocs recréés vides");
+    }
+
+    // clear() puis nouveau trait : les nœuds de l'ancien trait disparaissent, le nouveau est écrit en entier,
+    // dans sa couleur.
+    void rhiClearThenNewStrokeReplacesTheBlocks()
+    {
+        render::InkBuffer buffer;
+        buffer.begin(0xFF000000u, 3.0);
+        for (int i = 0; i < 300; ++i) {
+            buffer.add(pt(i));
+        }
+        QSGNode root;
+        render::InkItem::syncRhiBlocks(&root, buffer);
+        buffer.markClean();
+        QCOMPARE(root.childCount(), 2);
+
+        buffer.clear();
+        buffer.begin(0xFFFF0000u, 5.0);
+        std::vector<core::StrokePoint> next;
+        for (int i = 0; i < 100; ++i) {
+            next.push_back(pt(1000 + i));
+            buffer.add(next.back());
+        }
+        render::InkItem::syncRhiBlocks(&root, buffer);
+        buffer.markClean();
+
+        QCOMPARE(root.childCount(), 1);
+        std::vector<render::Vertex2D> expected;
+        render::appendStrokeTriangles(next, 5.0, expected);
+        QVERIFY2(sameVertices(drawnVertices(root, buffer), expected), "ancien trait encore dessiné");
+        const auto* flat = dynamic_cast<const QSGFlatColorMaterial*>(blockNode(root, 0)->material());
+        QVERIFY(flat);
+        QCOMPARE(flat->color(), QColor(Qt::red));
     }
 
     // Le test qui garde l'invariant : après un point, ni réallocation, ni réécriture de ce qui est déjà
@@ -300,6 +424,9 @@ private slots:
         for (std::size_t v = 0; v < render::kVerticesPerSegment; ++v) {
             QVERIFY2(same(opened[v], expected[v]), "segment de jonction absent");
         }
+        // Place libre du bloc ouvert : sur sa jonction (255, 3), pas à l'origine.
+        QVERIFY2(allEqual(opened.subspan(render::kVerticesPerSegment), vertexAt(pt(255))),
+                 "place libre hors du bloc");
     }
 
     // La sonde reçoit, pendant la synchronisation, le numéro du dernier échantillon entré dans la géométrie :
