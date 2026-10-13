@@ -1,9 +1,30 @@
 #include <actcraft/bench/options.h>
 
 #include <QDir>
+#include <QFileInfo>
 #include <QRegularExpression>
+#include <QSet>
 
 namespace actcraft::bench {
+
+namespace {
+
+// --sortie : un fichier « .json », ou un dossier. Toute autre extension, ou un fichier existant qui n'est pas
+// « .json », serait pris pour un dossier et en créerait un du même nom : refusé.
+bool outputAccepted(const QString& path, QString& error)
+{
+    const QFileInfo info(path);
+    if (info.isDir() || info.suffix().compare(QLatin1String("json"), Qt::CaseInsensitive) == 0) {
+        return true;
+    }
+    if (!info.suffix().isEmpty() || info.isFile()) {
+        error = QStringLiteral("--sortie : un fichier .json ou un dossier (reçu : %1)").arg(path);
+        return false;
+    }
+    return true;
+}
+
+} // namespace
 
 bool parseBenchOptions(const QStringList& args, BenchOptions& out, QString& error)
 {
@@ -13,8 +34,16 @@ bool parseBenchOptions(const QStringList& args, BenchOptions& out, QString& erro
 #else
     out.requestedBackend = QStringLiteral("auto");
 #endif
+    QSet<QString> seen;
     for (qsizetype i = 1; i < args.size(); ++i) {
         const QString option = args.at(i);
+        // app/renderbackend.cpp garde la première occurrence d'une option : en accepter plusieurs ferait
+        // mesurer un rendu et en noter un autre.
+        if (seen.contains(option)) {
+            error = QStringLiteral("%1 donné plusieurs fois").arg(option);
+            return false;
+        }
+        seen.insert(option);
         const auto value = [&](QString& target) {
             if (i + 1 >= args.size()) {
                 error = QStringLiteral("%1 attend une valeur").arg(option);
@@ -41,7 +70,7 @@ bool parseBenchOptions(const QStringList& args, BenchOptions& out, QString& erro
                 return false;
             }
         } else if (option == QLatin1String("--sortie")) {
-            if (!value(out.output)) {
+            if (!value(out.output) || !outputAccepted(out.output, error)) {
                 return false;
             }
         } else if (option == QLatin1String("--sans-cache")) {

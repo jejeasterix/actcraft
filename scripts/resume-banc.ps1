@@ -56,6 +56,8 @@ foreach ($s in $sources) { $lignes.Add($s) }
 
 $texte = ($lignes -join "`n") + "`n"
 if ($Sortie) {
+    $dossier = Split-Path -Parent ([System.IO.Path]::GetFullPath($Sortie, (Get-Location).Path))
+    New-Item -ItemType Directory -Force $dossier | Out-Null
     [System.IO.File]::WriteAllText($Sortie, $texte, [System.Text.UTF8Encoding]::new($false))
 } else {
     Write-Output $texte

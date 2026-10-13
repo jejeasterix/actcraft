@@ -13,7 +13,8 @@ struct BenchOptions
 {
     QString requestedBackend; // valeur de --rendu ; défaut : d3d11 sous Windows, auto ailleurs
     ScenarioSet scenarioSet = ScenarioSet::Complet;
-    QString output;           // --sortie : fichier « .json », sinon dossier ; vide = dossier par défaut
+    QString
+        output; // --sortie : fichier « .json » ou dossier (toute autre extension est refusée) ; vide = défaut
     bool cacheEnabled = true; // --sans-cache
     bool fullScreen = true;   // --taille plein-ecran (défaut) | LxH
     QSize windowSize;

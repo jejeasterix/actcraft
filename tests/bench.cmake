@@ -74,10 +74,14 @@ set_tests_properties(tst_bench_result PROPERTIES
 # Résumé Markdown du banc (S3), sur le JSON de la fumée.
 find_program(ACTCRAFT_PWSH pwsh)
 if(ACTCRAFT_PWSH)
+    # Sortie dans un dossier absent (créé par le script) : on l'efface avant, pour que le test reste rouge sans le correctif.
+    set(_bench_summary_dir ${CMAKE_BINARY_DIR}/bench-smoke-resume)
+    add_test(NAME bench_summary_setup COMMAND ${CMAKE_COMMAND} -E remove_directory ${_bench_summary_dir})
+    set_tests_properties(bench_summary_setup PROPERTIES FIXTURES_SETUP bench_summary_clean)
     add_test(NAME tst_bench_summary
         COMMAND ${ACTCRAFT_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/scripts/resume-banc.ps1
-            -Entrees ${_bench_smoke_json} -Sortie ${CMAKE_BINARY_DIR}/bench-smoke-resume.md)
+            -Entrees ${_bench_smoke_json} -Sortie ${_bench_summary_dir}/sous/dossier/resume.md)
     set_tests_properties(tst_bench_summary PROPERTIES
-        FIXTURES_REQUIRED bench_smoke_json
+        FIXTURES_REQUIRED "bench_smoke_json;bench_summary_clean"
         PASS_REGULAR_EXPRESSION "RESUME OK")
 endif()

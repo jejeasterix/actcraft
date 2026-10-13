@@ -12,6 +12,7 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QGuiApplication>
+#include <QImage>
 #include <QQuickWindow>
 #include <QScreen>
 #include <QTimer>
@@ -245,11 +246,35 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     return s;
 }
 
+void saveCaptures(const QString& dirPath, const QString& graphicsApi, const QList<QImage>& images,
+                  QStringList& errors)
+{
+    QDir dir(dirPath);
+    if (!dir.mkpath(QStringLiteral("."))) {
+        errors << QStringLiteral("error: capture directory not created: %1").arg(dirPath);
+        return;
+    }
+    const QStringList steps = captureSteps();
+    for (qsizetype i = 0; i < steps.size() && i < images.size(); ++i) {
+        const QString file = dir.filePath(captureFileName(graphicsApi, steps.at(i)));
+        if (!images.at(i).save(file)) {
+            errors << QStringLiteral("error: capture not saved: %1").arg(file);
+        }
+    }
+}
+
 void Runner::runDemo(BenchResult& result)
 {
     // Séquence non mesurée (décision 31) : captures en mémoire, 4 contrôles, PNG seulement avec --captures.
+    const auto must = [&](const char* step, const std::function<bool()>& condition, int timeoutMs) {
+        if (!waitFor(condition, timeoutMs)) {
+            result.invalidReasons << QStringLiteral("error: demo %1").arg(QLatin1String(step));
+        }
+    };
+    const auto cacheReady = [this] { return m_view->cacheReady(); };
+    const auto injected = [this] { return m_injector->finished(); };
     m_view->setZoom(1.0);
-    waitFor([this] { return m_view->cacheReady(); }, 10000);
+    must("cache not ready at start", cacheReady, 10000);
     waitMs(100);
     m_view->setExclusiveDevices({m_injector->stylus(), m_injector->wheel()});
 
@@ -263,26 +288,26 @@ void Runner::runDemo(BenchResult& result)
     }
 
     startInputs(firstHalf, core::monotonicNowNs());
-    waitFor([this] { return m_injector->finished(); }, 5000);
+    must("first half not injected", injected, 5000);
     waitMs(100);
     const QPoint inkPixel =
         sceneToImage(m_view->pageToScene(demoInkProbePoint()), m_window->devicePixelRatio());
     const QImage midStroke = m_window->grabWindow();
 
     startInputs(secondHalf, core::monotonicNowNs());
-    waitFor([this] { return m_injector->finished(); }, 5000);
+    must("second half not injected", injected, 5000);
     waitMs(50);
-    waitFor([this] { return m_view->cacheReady(); }, 10000); // trait figé dans le cache
+    must("cache not ready after stroke", cacheReady, 10000); // trait figé dans le cache
     waitMs(100);
     const QImage endStroke = m_window->grabWindow();
 
     m_view->setZoom(8.0);
-    waitFor([this] { return m_view->cacheReady(); }, 10000);
+    must("cache not ready at zoom 800", cacheReady, 10000);
     waitMs(100);
     const QImage zoom800 = m_window->grabWindow();
 
     m_view->setZoom(1.0);
-    waitFor([this] { return m_view->cacheReady(); }, 10000);
+    must("cache not ready back at 100", cacheReady, 10000);
     waitMs(100);
     const QImage back100 = m_window->grabWindow();
     m_view->setExclusiveDevices({});
@@ -301,13 +326,8 @@ void Runner::runDemo(BenchResult& result)
     };
 
     if (!m_options.capturesDir.isEmpty()) {
-        QDir dir(m_options.capturesDir);
-        dir.mkpath(QStringLiteral("."));
-        const QImage images[] = {midStroke, endStroke, zoom800, back100};
-        const QStringList steps = captureSteps();
-        for (qsizetype i = 0; i < steps.size(); ++i) {
-            images[i].save(dir.filePath(captureFileName(result.graphicsApi, steps.at(i))));
-        }
+        saveCaptures(m_options.capturesDir, result.graphicsApi, {midStroke, endStroke, zoom800, back100},
+                     result.invalidReasons);
     }
 }
 

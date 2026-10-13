@@ -1,6 +1,8 @@
 #include <actcraft/bench/options.h>
 
 #include <QDir>
+#include <QFile>
+#include <QTemporaryDir>
 #include <QTest>
 
 using namespace actcraft::bench;
@@ -47,7 +49,7 @@ private slots:
     {
         BenchOptions o;
         QString error;
-        QVERIFY(parseBenchOptions({"b", "--taille", "800x600", "--taille", "plein-ecran"}, o, error));
+        QVERIFY(parseBenchOptions({"b", "--taille", "plein-ecran"}, o, error));
         QVERIFY(o.fullScreen);
     }
 
@@ -63,6 +65,56 @@ private slots:
             QString error;
             QVERIFY2(!parseBenchOptions(args, o, error), qPrintable(args.join(' ')));
             QVERIFY(!error.isEmpty());
+        }
+    }
+
+    void repeatedOptionIsRejected()
+    {
+        // app/renderbackend.cpp garde la première occurrence de --rendu : le banc ne doit pas en lire une
+        // autre.
+        const QList<QStringList> cases{
+            {"b", "--rendu", "d3d11", "--rendu", "logiciel"},
+            {"b", "--taille", "800x600", "--taille", "plein-ecran"},
+            {"b", "--sans-cache", "--sans-cache"},
+        };
+        for (const QStringList& args : cases) {
+            BenchOptions o;
+            QString error;
+            QVERIFY2(!parseBenchOptions(args, o, error), qPrintable(args.join(' ')));
+            QVERIFY2(error.contains(QLatin1String("plusieurs fois")), qPrintable(error));
+        }
+    }
+
+    void outputWithForeignExtensionIsRejected()
+    {
+        const QStringList bad{"x.txt", "bench-smoke.json.autre", "dossier.v2/resultat.csv"};
+        for (const QString& path : bad) {
+            BenchOptions o;
+            QString error;
+            QVERIFY2(!parseBenchOptions({"b", "--sortie", path}, o, error), qPrintable(path));
+            QVERIFY2(error.contains(QLatin1String("--sortie")), qPrintable(error));
+        }
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile plain(dir.filePath(QStringLiteral("fichier")));
+        QVERIFY(plain.open(QIODevice::WriteOnly));
+        plain.close();
+        BenchOptions o;
+        QString error;
+        QVERIFY(!parseBenchOptions({"b", "--sortie", plain.fileName()}, o, error));
+        QVERIFY(!error.isEmpty());
+    }
+
+    void outputAcceptedForms()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        for (const QString& path :
+             {QStringLiteral("x.json"), QStringLiteral("X.JSON"), QStringLiteral("bench/results/"),
+              QStringLiteral("resultats"), dir.path()}) {
+            BenchOptions o;
+            QString error;
+            QVERIFY2(parseBenchOptions({"b", "--sortie", path}, o, error), qPrintable(path + error));
         }
     }
 

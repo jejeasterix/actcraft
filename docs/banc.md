@@ -110,6 +110,9 @@ La liste est dans le JSON (`verdict.invalid_reasons`) et dans la sortie du passa
 | `latency-unmatched` | Des échantillons d'encre ne sont jamais apparus dans une image | Refaire ; si cela se répète, le signaler. |
 | `release-not-synced` | Une fin de trait a été rattachée au trait suivant | Refaire ; si cela se répète, le signaler. |
 | `gpu-memory-unavailable` | La mémoire graphique n'a pas pu être lue (rendu matériel seulement) | Le signaler avec le JSON : le pic de mémoire ne serait jugé que sur la mémoire privée. |
+| `error: …` | Le banc n'a pas pu dérouler le passage (interface incomplète, fenêtre non exposée, page ou cache non prêts, injection incomplète, écriture du JSON impossible). Le texte après `error:` dit laquelle. | Refaire une fois, autres applications fermées ; si le même message revient, le signaler avec le JSON. |
+| `error: demo …` | Une étape de la séquence de démonstration (non mesurée) n'a pas abouti à temps : cache non prêt ou trait non injecté. | Refaire ; si cela se répète, relancer avec `--captures` et joindre les images. |
+| `error: capture …` | Les captures demandées par `--captures` n'ont pas pu être écrites (dossier non créé ou non inscriptible, disque plein). | Choisir un dossier inscriptible et refaire. |
 | `content-check-failed` | Le rendu n'a pas dessiné les couleurs attendues : le chiffre ne mesure pas la vraie interface | Relancer avec `--captures` et joindre les images. |
 
 ## Ce qu'il faut renvoyer
@@ -157,9 +160,12 @@ Sur le poste de développement :
 2. Copier le zip sur une clé USB. Le paquet reste local : il n'est jamais publié.
 
 Sur le Dell (secteur branché, mode d'alimentation « Performances optimales », toutes les autres applications
-fermées ; écran externe 1080p si c'est l'usage visé, branché avant le lancement) :
+fermées). Le banc mesure l'**écran principal** : pour viser un écran externe 1080p, le brancher avant le
+lancement et en faire l'écran principal (Paramètres > Système > Affichage > « Définir comme écran principal »).
+Après le premier passage, vérifier `meta.screen` dans le JSON (largeur, hauteur, fréquence).
 
-1. Extraire le zip dans `C:\banc`.
+1. Extraire le zip dans `C:\banc` : `Expand-Archive <zip> C:\banc` (le clic droit de l'Explorateur ajoute un
+   sous-dossier portant le nom du zip, et le chemin de l'étape 2 ne serait plus bon).
 2. Ouvrir PowerShell, puis : `cd C:\banc\actcraft-bench`.
 3. Si SmartScreen bloque l'exécutable (non signé) : « Informations complémentaires » → « Exécuter quand même ».
 4. Lancer les quatre passages l'un après l'autre, sans toucher à rien pendant chacun, et noter la dernière ligne
@@ -185,14 +191,20 @@ fermées ; écran externe 1080p si c'est l'usage visé, branché avant le lancem
 
 ## Procédure MacBook Air M1 (macOS 14.4 ou plus, construction sur place)
 
-1. Installer les outils : `xcode-select --install`, puis CMake et Ninja (`brew install cmake ninja`, ou les
-   paquets officiels), et Python 3.12.
+1. Installer les outils :
+   ```bash
+   xcode-select --install
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"   # Homebrew
+   brew install cmake ninja python@3.12
+   ```
 2. Installer Qt 6.12 :
    ```bash
    python3 -m pip install --user "git+https://github.com/miurahr/aqtinstall"
    python3 -m aqt install-qt mac desktop 6.12.0 clang_64 -m qtshadertools qtimageformats --outputdir ~/Qt
    export ACTCRAFT_QT_DIR=~/Qt/6.12.0/macos
    ```
+   `export` ne vaut que pour le terminal courant : le refaire dans chaque nouveau terminal, ou ajouter la ligne à
+   `~/.zshrc`.
 3. Récupérer le code :
    ```bash
    git clone https://github.com/jejeasterix/actcraft.git && cd actcraft
@@ -205,7 +217,8 @@ fermées ; écran externe 1080p si c'est l'usage visé, branché avant le lancem
    scripts/bench.sh --sans-cache --sans-construire
    ```
    Le premier donne le verdict de référence (Metal, avec cache, puis logiciel). Le second chiffre le gain du
-   cache.5. Vérifier que le JSON Metal porte bien `"graphics_api": "metal"` (N1-8) :
+   cache.
+5. Vérifier que le JSON Metal porte bien `"graphics_api": "metal"` (N1-8) :
    ```bash
    grep '"graphics_api"' bench/results/*.json
    ```
