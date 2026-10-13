@@ -1,3 +1,4 @@
+#include <actcraft/render/imagerenderer.h>
 #include <actcraft/render/objectrenderer.h>
 #include <actcraft/render/shaperenderer.h>
 #include <actcraft/render/strokerenderer.h>
@@ -28,6 +29,7 @@ RendererRegistry RendererRegistry::withDefaults()
 {
     RendererRegistry registry;
     registry.add(std::make_unique<ShapeRenderer>());
+    registry.add(std::make_unique<ImageRenderer>());
     registry.add(std::make_unique<StrokeRenderer>());
     return registry;
 }
