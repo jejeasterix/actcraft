@@ -1,0 +1,6 @@
+#pragma once
+// Généré par CMake (bench/CMakeLists.txt) à chaque configuration.
+#define ACTCRAFT_GIT_COMMIT "@ACTCRAFT_GIT_COMMIT@"
+#define ACTCRAFT_GIT_DIRTY @ACTCRAFT_GIT_DIRTY@
+#define ACTCRAFT_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
+#define ACTCRAFT_CXX_FLAGS "@ACTCRAFT_CXX_FLAGS@"
