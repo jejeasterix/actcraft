@@ -52,6 +52,7 @@ void Injector::start(std::vector<PlannedInput> inputs, std::int64_t t0Ns, bool a
     m_next = 0;
     m_autoTick = autoTick;
     m_finishedSignalled = false;
+    m_stopped = false;
     if (m_autoTick) {
         tick(core::monotonicNowNs());
     }
@@ -59,6 +60,9 @@ void Injector::start(std::vector<PlannedInput> inputs, std::int64_t t0Ns, bool a
 
 std::size_t Injector::tick(std::int64_t nowNs)
 {
+    if (m_stopped) {
+        return 0;
+    }
     std::size_t count = 0;
     // Rattrapage : tout l'arriéré part maintenant, chaque échantillon garde son instant prévu (m_planned).
     while (m_next < m_inputs.size() && m_planned[m_next] <= nowNs) {
@@ -77,6 +81,17 @@ std::size_t Injector::tick(std::int64_t nowNs)
         scheduleNext();
     }
     return count;
+}
+
+void Injector::stop()
+{
+    m_timer.stop();
+    m_stopped = true;
+}
+
+const QTimer& Injector::wakeTimer() const noexcept
+{
+    return m_timer;
 }
 
 bool Injector::finished() const noexcept

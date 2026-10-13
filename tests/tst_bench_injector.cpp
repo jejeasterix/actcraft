@@ -8,6 +8,7 @@
 #include <QWheelEvent>
 #include <QWindow>
 
+#include <algorithm>
 #include <chrono>
 #include <thread>
 
@@ -148,6 +149,46 @@ private slots:
         QVERIFY2(longestBurst >= 9, qPrintable(QString::number(longestBurst)));
         QCoreApplication::processEvents();
         QCOMPARE(window.events.size(), std::size_t{40});
+    }
+
+    // Déterministe, sans boucle d'événements : un minuteur grossier ou armé à une durée fixe passerait les
+    // tests de rattrapage (l'arriéré part quand même), mais décalerait chaque envoi de son instant prévu.
+    void wakeTimerIsPreciseAndArmedOnTheNextDeadline()
+    {
+        RecordingWindow window;
+        bench::Injector injector(&window, [](QPointF p) { return p; });
+        injector.start(strokePlan(3), core::monotonicNowNs() + 10'000'000, true);
+        QCOMPARE(injector.postedNs()[0], std::int64_t{-1});
+        QVERIFY(injector.wakeTimer().isActive());
+        QCOMPARE(injector.wakeTimer().timerType(), Qt::PreciseTimer);
+        const int remaining = injector.wakeTimer().remainingTime();
+        QVERIFY2(remaining >= 9 && remaining <= 11, qPrintable(QString::number(remaining)));
+        injector.stop();
+    }
+
+    // Abandon (« injection incomplete », T16) : le minuteur ne doit plus poster d'événements stylet, et le
+    // plan n'est pas déclaré fini.
+    void stopLeavesThePlanUnfinishedAndSilent()
+    {
+        RecordingWindow window;
+        bench::Injector injector(&window, [](QPointF p) { return p; });
+        QSignalSpy finished(&injector, &bench::Injector::planFinished);
+        injector.start(strokePlan(20), core::monotonicNowNs(), true); // le premier échantillon part aussitôt
+        const auto sent = [&injector] {
+            return static_cast<std::size_t>(std::count_if(injector.postedNs().begin(),
+                                                          injector.postedNs().end(),
+                                                          [](std::int64_t t) { return t >= 0; }));
+        };
+        const std::size_t beforeStop = sent();
+        QVERIFY(beforeStop >= 1 && beforeStop < 20);
+        injector.stop();
+        QVERIFY(!injector.wakeTimer().isActive());
+        QTest::qWait(150); // le plan entier tient en 95 ms
+        QCOMPARE(injector.tick(core::monotonicNowNs()), std::size_t{0});
+        QCOMPARE(sent(), beforeStop);
+        QCOMPARE(window.events.size(), beforeStop);
+        QVERIFY(!injector.finished());
+        QCOMPARE(finished.count(), 0);
     }
 
     void wheelEventsCarryDeltaAndModifiers()
