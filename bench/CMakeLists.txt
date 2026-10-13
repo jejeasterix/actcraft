@@ -17,12 +17,18 @@ actcraft_add_module(bench
         include/actcraft/bench/injector.h
         src/scenarios.cpp
         src/injector.cpp
+        include/actcraft/bench/recorder.h
+        src/options.cpp
+        src/verdict.cpp
+        src/recorder.cpp
+        include/actcraft/bench/runner.h
+        src/runner.cpp
         ${_bench_gpu_source}
     DEPENDS
-        ActCraft::core ActCraft::render Qt6::Quick)
+        ActCraft::core ActCraft::render ActCraft::ui Qt6::Quick)
 
 if(WIN32)
-    target_link_libraries(actcraft_bench PRIVATE dxgi psapi)
+    target_link_libraries(actcraft_bench PRIVATE dxgi psapi dwmapi)
 elseif(APPLE)
     target_link_libraries(actcraft_bench PRIVATE "-framework Metal" "-framework Foundation")
 endif()
@@ -46,3 +52,16 @@ string(TOUPPER "${CMAKE_BUILD_TYPE}" _bench_build_type)
 string(STRIP "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${_bench_build_type}}" ACTCRAFT_CXX_FLAGS)
 configure_file(src/buildinfo.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/buildinfo.h @ONLY)
 target_include_directories(actcraft_bench PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
+
+# Exécutable du banc (DA1) : charge la vraie interface ; console, sans paquet macOS.
+qt_add_executable(actcraft-bench
+    app/main.cpp
+    ${PROJECT_SOURCE_DIR}/app/renderbackend.cpp
+    ${PROJECT_SOURCE_DIR}/app/startup.cpp)
+target_include_directories(actcraft-bench PRIVATE ${PROJECT_SOURCE_DIR}/app)
+target_link_libraries(actcraft-bench PRIVATE ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick)
+actcraft_set_warnings(actcraft-bench)
+# qt_standard_project_setup ne regroupe les exécutables à la racine du dossier de construction que sous Windows
+# (Qt6CoreMacros.cmake) : on l'impose partout, pour que scripts/bench.sh et la CI macOS trouvent
+# build/<preset>/actcraft-bench.
+set_target_properties(actcraft-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
