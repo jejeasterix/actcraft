@@ -1,6 +1,14 @@
+#include "penadapters.h"
+
+#include <actcraft/core/clock.h>
+#include <actcraft/input/pipeline.h>
+#include <actcraft/input/qtevents.h>
+#include <actcraft/tools/pentool.h>
 #include <actcraft/ui/pageview.h>
 
+#include <QMouseEvent>
 #include <QQuickWindow>
+#include <QTabletEvent>
 #include <QWheelEvent>
 
 namespace actcraft::ui {
@@ -15,6 +23,8 @@ PageView::PageView(QQuickItem* parent) : QQuickItem(parent)
         requestCacheRefresh();
     });
 }
+
+PageView::~PageView() = default;
 
 QQuickItem* PageView::content() const noexcept
 {
@@ -141,6 +151,152 @@ void PageView::notifyCacheUpdated()
     m_refreshInFlight = false;
     setCacheReady(true);
     emit cacheUpdated();
+}
+
+render::FixedPageItem* PageView::fixedPage() const noexcept
+{
+    return m_fixedPage;
+}
+
+void PageView::setFixedPage(render::FixedPageItem* page)
+{
+    if (page == m_fixedPage) {
+        return;
+    }
+    disconnect(m_readyConnection);
+    m_fixedPage = page;
+    if (m_fixedPage) {
+        // Page prête : premier dessin du cache.
+        m_readyConnection = connect(m_fixedPage, &render::FixedPageItem::readyChanged, this, [this] {
+            if (m_fixedPage && m_fixedPage->isReady()) {
+                requestCacheRefresh();
+            }
+        });
+    }
+    rebuildPen();
+    emit fixedPageChanged();
+}
+
+render::InkItem* PageView::ink() const noexcept
+{
+    return m_ink;
+}
+
+void PageView::setInk(render::InkItem* ink)
+{
+    if (ink == m_ink) {
+        return;
+    }
+    m_ink = ink;
+    rebuildPen();
+    emit inkChanged();
+}
+
+void PageView::setInkProbe(core::InkProbe* probe)
+{
+    m_probe = probe;
+    if (m_pipeline) {
+        m_pipeline->setProbe(probe);
+    }
+    if (m_ink) {
+        m_ink->setProbe(probe);
+    }
+}
+
+void PageView::resetInputSequence(std::uint64_t next)
+{
+    if (m_pipeline) {
+        m_pipeline->resetSequence(next);
+    }
+}
+
+void PageView::onStrokeFrozen()
+{
+    emit strokeFrozen();
+    requestCacheRefresh();
+}
+
+void PageView::rebuildPen()
+{
+    m_pipeline.reset();
+    m_pen.reset();
+    m_documentSink.reset();
+    m_inkSurface.reset();
+    if (!m_fixedPage || !m_ink) {
+        return;
+    }
+    m_inkSurface = std::make_unique<InkSurfaceAdapter>(*m_ink);
+    m_documentSink = std::make_unique<FixedPageSink>(*m_fixedPage, *this);
+    m_pen = std::make_unique<tools::PenTool>(*m_inkSurface, *m_documentSink);
+    m_pipeline = std::make_unique<input::Pipeline>(*m_pen);
+    m_pipeline->setProbe(m_probe);
+    m_ink->setProbe(m_probe);
+}
+
+bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
+{
+    if (!m_pipeline) {
+        return false;
+    }
+    const auto& pointer = static_cast<const QPointerEvent&>(event);
+    if (!acceptsDevice(pointer.pointingDevice())) {
+        return false;
+    }
+    const auto sample =
+        input::sampleFromEvent(event, viewTransform().viewToPage(viewPos), core::monotonicNowNs());
+    if (!sample) {
+        return false;
+    }
+    m_pipeline->push(*sample);
+    return true;
+}
+
+void PageView::mousePressEvent(QMouseEvent* event)
+{
+    event->setAccepted(handlePointer(*event, event->position()));
+}
+
+void PageView::mouseMoveEvent(QMouseEvent* event)
+{
+    event->setAccepted(handlePointer(*event, event->position()));
+}
+
+void PageView::mouseReleaseEvent(QMouseEvent* event)
+{
+    event->setAccepted(handlePointer(*event, event->position()));
+}
+
+// Variante B (T2 : tablette-element = non) : le stylet n'est pas adressé aux éléments, la fenêtre le reçoit.
+bool PageView::event(QEvent* event)
+{
+    return QQuickItem::event(event);
+}
+
+void PageView::itemChange(ItemChange change, const ItemChangeData& value)
+{
+    QQuickItem::itemChange(change, value);
+    if (change == ItemSceneChange) {
+        if (m_filteredWindow) {
+            m_filteredWindow->removeEventFilter(this);
+        }
+        m_filteredWindow = value.window;
+        if (m_filteredWindow) {
+            m_filteredWindow->installEventFilter(this);
+        }
+    }
+}
+
+bool PageView::eventFilter(QObject* watched, QEvent* event)
+{
+    if (event->type() == QEvent::TabletPress || event->type() == QEvent::TabletMove ||
+        event->type() == QEvent::TabletRelease) {
+        auto* tablet = static_cast<QTabletEvent*>(event);
+        if (handlePointer(*tablet, mapFromScene(tablet->position()))) {
+            tablet->accept();
+            return true; // consommé : pas de souris synthétisée en double
+        }
+    }
+    return QQuickItem::eventFilter(watched, event);
 }
 
 QPointF PageView::pageToScene(QPointF pagePoint) const

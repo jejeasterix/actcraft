@@ -1,15 +1,32 @@
 #pragma once
 
+#include <actcraft/core/inkprobe.h>
+#include <actcraft/render/fixedpageitem.h>
+#include <actcraft/render/inkitem.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <QList>
+#include <QPointer>
 #include <QQuickItem>
 #include <QTimer>
 #include <QtQml/qqmlregistration.h>
 
+#include <cstdint>
+#include <memory>
+
 class QInputDevice;
 
+namespace actcraft::input {
+class Pipeline;
+}
+namespace actcraft::tools {
+class PenTool;
+}
+
 namespace actcraft::ui {
+
+class InkSurfaceAdapter;
+class FixedPageSink;
 
 // Vue de la page (décision 14) : zoom, défilement, politique du cache. Transforme l'élément `content`.
 class PageView : public QQuickItem
@@ -22,9 +39,23 @@ class PageView : public QQuickItem
     Q_PROPERTY(bool cacheEnabled READ cacheEnabled WRITE setCacheEnabled NOTIFY cacheEnabledChanged)
     Q_PROPERTY(QSize cacheTextureSize READ cacheTextureSize NOTIFY cacheTextureSizeChanged)
     Q_PROPERTY(bool cacheReady READ cacheReady NOTIFY cacheReadyChanged)
+    Q_PROPERTY(
+        actcraft::render::FixedPageItem* fixedPage READ fixedPage WRITE setFixedPage NOTIFY fixedPageChanged)
+    Q_PROPERTY(actcraft::render::InkItem* ink READ ink WRITE setInk NOTIFY inkChanged)
 
 public:
     explicit PageView(QQuickItem* parent = nullptr);
+    ~PageView() override;
+
+    render::FixedPageItem* fixedPage() const noexcept;
+    void setFixedPage(render::FixedPageItem* page);
+    render::InkItem* ink() const noexcept;
+    void setInk(render::InkItem* ink);
+    // Banc : sonde de latence (DA4) et numérotation des échantillons depuis `next`.
+    void setInkProbe(core::InkProbe* probe);
+    void resetInputSequence(std::uint64_t next = 0);
+    // Appelé par l'adaptateur du document quand un trait est figé.
+    void onStrokeFrozen();
 
     QQuickItem* content() const noexcept;
     void setContent(QQuickItem* content);
@@ -63,17 +94,38 @@ signals:
     void cacheReadyChanged();
     void cacheRefreshRequested();
     void cacheUpdated();
+    void fixedPageChanged();
+    void inkChanged();
+    void strokeFrozen();
 
 protected:
     void wheelEvent(QWheelEvent* event) override;
     void geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) override;
     bool acceptsDevice(const QInputDevice* device) const;
+    bool event(QEvent* event) override;
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
+    void itemChange(ItemChange change, const ItemChangeData& value) override;
 
 private:
     QSizeF pageSize() const;
     void apply(const ViewTransform& transform);
     void updateCacheTextureSize();
     void setCacheReady(bool ready);
+    void rebuildPen();
+    bool handlePointer(const QEvent& event, QPointF viewPos);
+
+    render::FixedPageItem* m_fixedPage = nullptr;
+    render::InkItem* m_ink = nullptr;
+    core::InkProbe* m_probe = nullptr;
+    std::unique_ptr<InkSurfaceAdapter> m_inkSurface;
+    std::unique_ptr<FixedPageSink> m_documentSink;
+    std::unique_ptr<tools::PenTool> m_pen;
+    std::unique_ptr<input::Pipeline> m_pipeline;
+    QMetaObject::Connection m_readyConnection;
+    QPointer<QQuickWindow> m_filteredWindow; // variante B : le stylet est capté par un filtre sur la fenêtre
 
     QQuickItem* m_content = nullptr;
     ViewTransform m_transform;

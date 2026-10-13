@@ -10,12 +10,16 @@ qt_add_qml_module(actcraft_ui
     SOURCES
         include/actcraft/ui/viewtransform.h
         include/actcraft/ui/pageview.h
+        src/uiforeigntypes.h
+        src/penadapters.h
+        src/penadapters.cpp
         src/viewtransform.cpp
         src/pageview.cpp)
 
 # Le code d'enregistrement QML généré inclut les en-têtes par leur seul nom : d'où le dossier privé.
 target_include_directories(actcraft_ui
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/actcraft/ui)
-target_link_libraries(actcraft_ui PUBLIC Qt6::Quick ActCraft::actions)
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/actcraft/ui ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(actcraft_ui PUBLIC
+    Qt6::Quick ActCraft::actions ActCraft::input ActCraft::render ActCraft::tools)
 actcraft_set_warnings(actcraft_ui)

@@ -1,7 +1,9 @@
 qt_add_executable(actcraft WIN32 MACOSX_BUNDLE
     main.cpp
     renderbackend.cpp
-    renderbackend.h)
+    renderbackend.h
+    startup.cpp
+    startup.h)
 
 target_link_libraries(actcraft PRIVATE
     Qt6::Quick
