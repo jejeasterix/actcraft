@@ -8,5 +8,9 @@ actcraft_add_module(render
         src/registry.cpp
         src/shaperenderer.cpp
         src/strokerenderer.cpp
+        include/actcraft/render/imagestore.h
+        src/imagesynth.cpp
+        src/imagestore.cpp
+        src/imagerenderer.cpp
     DEPENDS
         ActCraft::core Qt6::Quick)
