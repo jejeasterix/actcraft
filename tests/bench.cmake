@@ -70,3 +70,14 @@ target_compile_definitions(tst_bench_result PRIVATE ACTCRAFT_EXPECT_VALID=${_ben
 set_tests_properties(tst_bench_result PROPERTIES
     FIXTURES_REQUIRED bench_smoke_json
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;ACTCRAFT_BENCH_SMOKE_JSON=${_bench_smoke_json}")
+
+# Résumé Markdown du banc (S3), sur le JSON de la fumée.
+find_program(ACTCRAFT_PWSH pwsh)
+if(ACTCRAFT_PWSH)
+    add_test(NAME tst_bench_summary
+        COMMAND ${ACTCRAFT_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/scripts/resume-banc.ps1
+            -Entrees ${_bench_smoke_json} -Sortie ${CMAKE_BINARY_DIR}/bench-smoke-resume.md)
+    set_tests_properties(tst_bench_summary PROPERTIES
+        FIXTURES_REQUIRED bench_smoke_json
+        PASS_REGULAR_EXPRESSION "RESUME OK")
+endif()
