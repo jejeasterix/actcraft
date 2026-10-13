@@ -1,21 +1,30 @@
 #include <actcraft/core/clock.h>
 #include <actcraft/render/inkitem.h>
 #include <actcraft/render/objectrenderer.h>
+#include <actcraft/render/painternode.h>
 #include <actcraft/render/strokegeometry.h>
 
+#include <QPainter>
 #include <QQuickWindow>
 #include <QSGFlatColorMaterial>
 #include <QSGGeometryNode>
 #include <QSGRendererInterface>
+#include <QSGTransformNode>
 
 #include <algorithm>
+#include <atomic>
+#include <cstddef>
 #include <cstring>
+#include <numbers>
 #include <span>
 #include <vector>
 
 namespace actcraft::render {
 
 namespace {
+
+// Segments peints par les blocs logiciels (InkItem::softwareSegmentsPainted).
+std::atomic<std::uint64_t> g_softwareSegments{0};
 
 void clearChildren(QSGNode* root)
 {
@@ -101,7 +110,101 @@ private:
     std::vector<Vertex2D> m_scratch;
 };
 
+// Bloc logiciel : le moteur logiciel repeint tout le rect() d'un nœud sali, et rappelle render() de chaque
+// nœud dont le rect() chevauche la zone repeinte, découpé à cette zone. Ne pas reprendre StrokePainterNode
+// (StrokeRenderer) : un nœud unique au rect() du trait entier repeindrait tout le trait à chaque point. Un
+// nœud par bloc, rect() de son bloc : un bloc plein ne change plus, ni ses points ni son rect(), et n'est
+// plus marqué modifié. Il est encore rappelé quand son rect() chevauche celui du dernier bloc (toujours le
+// bloc précédent, par la jonction ; tous les blocs d'un trait qui se recroise) : paint() n'en peint alors que
+// les segments qui touchent la zone repeinte. Les points sont copiés : render() peut tourner sur le fil de
+// rendu.
+class InkBlockPainterNode final : public PainterNode
+{
+public:
+    InkBlockPainterNode(QQuickWindow* window, QColor color, double baseWidth)
+        : PainterNode(window), m_color(color), m_baseWidth(baseWidth)
+    {}
+
+    // `points` : tout le bloc, dont les m_points.size() premiers sont déjà copiés (un bloc ne fait que
+    // grandir). `bounds` : InkBuffer::blockBounds du bloc.
+    void appendFrom(std::span<const core::StrokePoint> points, const core::RectF& bounds)
+    {
+        if (points.size() <= m_points.size()) {
+            return;
+        }
+        for (const core::StrokePoint& point : points.subspan(m_points.size())) {
+            m_points.push_back(point);
+            m_maxHalf = std::max(m_maxHalf, core::strokeWidthAt(m_baseWidth, point.pressure) / 2);
+        }
+        // blockBounds agrandit les points de la demi-largeur h ; le coin d'un bout carré est à h√2 de son
+        // point (segment en diagonale) et en sort donc jusqu'à (√2 − 1) × h. Hors de rect(), le moteur le
+        // rognerait.
+        const double margin = (std::numbers::sqrt2 - 1) * m_maxHalf;
+        setRect(QRectF(bounds.x - margin, bounds.y - margin, bounds.width + 2 * margin,
+                       bounds.height + 2 * margin));
+        markDirty(QSGNode::DirtyMaterial);
+    }
+
+protected:
+    // Seuls les segments qui touchent la découpe (zone repeinte, en coordonnées de l'élément) sont peints,
+    // par suites de segments consécutifs : chaque segment ne dépend que de ses deux points.
+    void paint(QPainter& painter) override
+    {
+        const std::span<const core::StrokePoint> points(m_points);
+        if (!painter.hasClipping()) {
+            paintRun(painter, points);
+            return;
+        }
+        const QRectF clip = painter.clipBoundingRect();
+        std::size_t runStart = 0;
+        bool inRun = false;
+        for (std::size_t i = 0; i + 1 < points.size(); ++i) {
+            const bool meets = segmentReach(points[i], points[i + 1]).intersects(clip);
+            if (meets && !inRun) {
+                runStart = i;
+                inRun = true;
+            } else if (!meets && inRun) {
+                paintRun(painter, points.subspan(runStart, i - runStart + 1));
+                inRun = false;
+            }
+        }
+        if (inRun) {
+            paintRun(painter, points.subspan(runStart));
+        }
+    }
+
+private:
+    // Rectangle que le segment [a, b] peut toucher : bout carré, coins à demi-largeur × √2 de leur point,
+    // plus une unité d'arrondi.
+    QRectF segmentReach(const core::StrokePoint& a, const core::StrokePoint& b) const
+    {
+        const double reach = core::strokeWidthAt(m_baseWidth, a.pressure) / 2 * std::numbers::sqrt2 + 1;
+        return QRectF(QPointF(std::min(a.x, b.x), std::min(a.y, b.y)),
+                      QPointF(std::max(a.x, b.x), std::max(a.y, b.y)))
+            .adjusted(-reach, -reach, reach, reach);
+    }
+
+    void paintRun(QPainter& painter, std::span<const core::StrokePoint> run) const
+    {
+        if (run.size() < 2) {
+            return;
+        }
+        paintStrokeSegments(painter, run, m_baseWidth, m_color);
+        g_softwareSegments.fetch_add(run.size() - 1, std::memory_order_relaxed);
+    }
+
+    QColor m_color;
+    double m_baseWidth;
+    double m_maxHalf = 0;
+    std::vector<core::StrokePoint> m_points;
+};
+
 } // namespace
+
+std::uint64_t InkItem::softwareSegmentsPainted() noexcept
+{
+    return g_softwareSegments.load(std::memory_order_relaxed);
+}
 
 InkItem::InkItem(QQuickItem* parent) : QQuickItem(parent)
 {
@@ -149,8 +252,16 @@ std::size_t InkItem::blockCount() const noexcept
 // Synchronisation : le fil principal est bloqué, m_buffer et m_lastSeq se lisent sans verrou.
 QSGNode* InkItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
 {
-    QSGNode* root = old ? old : new QSGNode;
-    if (window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software) {
+    const bool software = window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
+    QSGNode* root = old;
+    if (root == nullptr) {
+        // Logiciel : racine de transformation (identité). Sous une racine QSGNode nue déjà rendue, le moteur
+        // logiciel donnait aux blocs ajoutés la transformation identité (et une découpe non transformée) au
+        // lieu de la position et de l'échelle de l'élément ; sous un QSGTransformNode, ils reçoivent celles
+        // de l'élément (relevé sur Qt 6.12 ; test transformedItemPaintsAtItsPlace).
+        root = software ? new QSGTransformNode : new QSGNode;
+    }
+    if (software) {
         updateSoftware(root);
     } else {
         syncRhiBlocks(root, m_buffer);
@@ -189,10 +300,29 @@ void InkItem::syncRhiBlocks(QSGNode* root, const InkBuffer& buffer)
     }
 }
 
-void InkItem::updateSoftware(QSGNode*)
+// Chemin logiciel (DA5) : mêmes blocs et mêmes règles que syncRhiBlocks, un nœud peint par bloc.
+void InkItem::updateSoftware(QSGNode* root)
 {
-    // Chemin logiciel : tâche T10 (un nœud de rendu par bloc). Rien n'est dessiné en logiciel avant elle.
-    // Comme syncRhiBlocks, ce chemin devra vider `root` si m_buffer.clearedSinceClean().
+    if (m_buffer.clearedSinceClean()) {
+        clearChildren(root); // trait vidé ou remplacé depuis la dernière synchronisation
+    }
+    const std::size_t count = m_buffer.blockCount();
+    const std::size_t firstDirty = m_buffer.firstDirtyBlock();
+    QSGNode* child = root->firstChild();
+    for (std::size_t index = 0; index < count; ++index) {
+        if (child == nullptr) {
+            // Un nœud créé se remplit même sur un tampon propre (updatePaintNode(nullptr) après une
+            // réinsertion de l'élément), avant son ajout : le moteur lit son rect() à l'ajout.
+            auto* node = new InkBlockPainterNode(window(), toQColor(m_buffer.color()), m_buffer.baseWidth());
+            node->appendFrom(m_buffer.block(index), m_buffer.blockBounds(index));
+            root->appendChildNode(node);
+            child = node;
+        } else if (index >= firstDirty) {
+            static_cast<InkBlockPainterNode*>(child)->appendFrom(m_buffer.block(index),
+                                                                 m_buffer.blockBounds(index));
+        }
+        child = child->nextSibling();
+    }
 }
 
 } // namespace actcraft::render
