@@ -15,3 +15,7 @@ actcraft_add_test(tst_render_fixedpage
 actcraft_add_test(tst_render_inkbuffer
     SOURCES tst_render_inkbuffer.cpp
     LIBS ActCraft::render Qt6::Quick)
+
+actcraft_add_test(tst_render_ink_software
+    SOURCES tst_render_ink_software.cpp
+    LIBS ActCraft::render Qt6::Quick)

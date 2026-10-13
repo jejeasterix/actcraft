@@ -1,6 +1,7 @@
 #include <actcraft/core/clock.h>
 #include <actcraft/render/inkitem.h>
 #include <actcraft/render/objectrenderer.h>
+#include <actcraft/render/painternode.h>
 #include <actcraft/render/strokegeometry.h>
 
 #include <QQuickWindow>
@@ -9,7 +10,9 @@
 #include <QSGRendererInterface>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
+#include <numbers>
 #include <span>
 #include <vector>
 
@@ -101,6 +104,48 @@ private:
     std::vector<Vertex2D> m_scratch;
 };
 
+// Bloc logiciel : le moteur logiciel repeint tout le rect() d'un nœud sali, et tout ce qui le recouvre. Ne
+// pas reprendre StrokePainterNode (StrokeRenderer) : un nœud unique au rect() du trait entier repeindrait
+// tout le trait à chaque point. Un nœud par bloc, rect() de son bloc : un bloc plein ne change plus, ni ses
+// points ni son rect(), et n'est plus jamais sali. Les points sont copiés : render() peut tourner sur le fil
+// de rendu.
+class InkBlockPainterNode final : public PainterNode
+{
+public:
+    InkBlockPainterNode(QQuickWindow* window, QColor color, double baseWidth)
+        : PainterNode(window), m_color(color), m_baseWidth(baseWidth)
+    {}
+
+    // `points` : tout le bloc, dont les m_points.size() premiers sont déjà copiés (un bloc ne fait que
+    // grandir). `bounds` : InkBuffer::blockBounds du bloc.
+    void appendFrom(std::span<const core::StrokePoint> points, const core::RectF& bounds)
+    {
+        if (points.size() <= m_points.size()) {
+            return;
+        }
+        for (const core::StrokePoint& point : points.subspan(m_points.size())) {
+            m_points.push_back(point);
+            m_maxHalf = std::max(m_maxHalf, core::strokeWidthAt(m_baseWidth, point.pressure) / 2);
+        }
+        // blockBounds agrandit les points de la demi-largeur h ; le coin d'un bout carré est à h√2 de son
+        // point (segment en diagonale) et en sort donc jusqu'à (√2 − 1) × h. Hors de rect(), le moteur le
+        // rognerait.
+        const double margin = (std::numbers::sqrt2 - 1) * m_maxHalf;
+        setRect(QRectF(bounds.x - margin, bounds.y - margin, bounds.width + 2 * margin,
+                       bounds.height + 2 * margin));
+        markDirty(QSGNode::DirtyMaterial);
+    }
+
+protected:
+    void paint(QPainter& painter) override { paintStrokeSegments(painter, m_points, m_baseWidth, m_color); }
+
+private:
+    QColor m_color;
+    double m_baseWidth;
+    double m_maxHalf = 0;
+    std::vector<core::StrokePoint> m_points;
+};
+
 } // namespace
 
 InkItem::InkItem(QQuickItem* parent) : QQuickItem(parent)
@@ -189,10 +234,29 @@ void InkItem::syncRhiBlocks(QSGNode* root, const InkBuffer& buffer)
     }
 }
 
-void InkItem::updateSoftware(QSGNode*)
+// Chemin logiciel (DA5) : mêmes blocs et mêmes règles que syncRhiBlocks, un nœud peint par bloc.
+void InkItem::updateSoftware(QSGNode* root)
 {
-    // Chemin logiciel : tâche T10 (un nœud de rendu par bloc). Rien n'est dessiné en logiciel avant elle.
-    // Comme syncRhiBlocks, ce chemin devra vider `root` si m_buffer.clearedSinceClean().
+    if (m_buffer.clearedSinceClean()) {
+        clearChildren(root); // trait vidé ou remplacé depuis la dernière synchronisation
+    }
+    const std::size_t count = m_buffer.blockCount();
+    const std::size_t firstDirty = m_buffer.firstDirtyBlock();
+    QSGNode* child = root->firstChild();
+    for (std::size_t index = 0; index < count; ++index) {
+        if (child == nullptr) {
+            // Un nœud créé se remplit même sur un tampon propre (updatePaintNode(nullptr) après une
+            // réinsertion de l'élément), avant son ajout : le moteur lit son rect() à l'ajout.
+            auto* node = new InkBlockPainterNode(window(), toQColor(m_buffer.color()), m_buffer.baseWidth());
+            node->appendFrom(m_buffer.block(index), m_buffer.blockBounds(index));
+            root->appendChildNode(node);
+            child = node;
+        } else if (index >= firstDirty) {
+            static_cast<InkBlockPainterNode*>(child)->appendFrom(m_buffer.block(index),
+                                                                 m_buffer.blockBounds(index));
+        }
+        child = child->nextSibling();
+    }
 }
 
 } // namespace actcraft::render
