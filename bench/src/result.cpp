@@ -100,6 +100,8 @@ QJsonObject scenarioJson(const ScenarioResult& s)
             {"total_ms", percentiles(s.latency->total)},
             {"planned_to_sync_ms", percentiles(s.latency->plannedToSync)},
             {"sync_to_swap_ms", percentiles(s.latency->syncToSwap)},
+            {"releases_checked", static_cast<double>(s.releases.checked)},
+            {"releases_not_synced", static_cast<double>(s.releases.notSynced)},
         };
         for (std::uint64_t seq : s.latency->seq) {
             latencySeq.append(static_cast<double>(seq));
@@ -194,6 +196,10 @@ QJsonObject toJson(const BenchResult& r)
                                {"height", r.screenSize.height()},
                                {"refresh_hz", r.refreshHz},
                                {"device_pixel_ratio", r.devicePixelRatio}}},
+        {"refresh",
+         QJsonObject{{"reference_period_ms", static_cast<double>(r.refresh.referenceNs) / 1'000'000.0},
+                     {"source", r.refresh.source},
+                     {"measured_median_ms", static_cast<double>(r.refresh.measuredMedianNs) / 1'000'000.0}}},
         {"window", QJsonObject{{"mode", r.windowMode},
                                {"width", r.windowSize.width()},
                                {"height", r.windowSize.height()}}},

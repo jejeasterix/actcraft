@@ -35,6 +35,22 @@ struct Criterion
     bool ok = false;
 };
 
+// Contrôle du rattachement des traits à leurs images (verdict.h, releaseCoverage).
+struct ReleaseCoverage
+{
+    std::size_t checked = 0;   // relâchés suivis d'une synchronisation avant l'appui suivant
+    std::size_t notSynced = 0; // parmi eux, relâchés qu'aucune synchronisation de leur trait ne couvre
+};
+
+// Période d'écran : la référence fixe pause et limites (classifyIntervals) ; la médiane mesurée la contrôle.
+struct RefreshPeriod
+{
+    std::int64_t referenceNs = 0;            // période de l'écran ; ≤ 0 : inconnue (mesure invalide)
+    QString source = QStringLiteral("none"); // dwm | qscreen | none
+    std::int64_t measuredMedianNs =
+        0; // médiane des intervalles d'un rendu continu (chauffe) ; 0 : non mesurée
+};
+
 struct ScenarioResult
 {
     QString name;             // stroke | zoom | scroll
@@ -46,6 +62,7 @@ struct ScenarioResult
     std::vector<double> receptionDelayMs;
     MemorySummary memory;
     bool exposureLost = false;
+    ReleaseCoverage releases; // tracé seulement
 };
 
 struct BenchResult
@@ -62,7 +79,8 @@ struct BenchResult
     QSize windowSize;
     QString screenName;
     QSize screenSize;
-    double refreshHz = 0;
+    double refreshHz = 0; // nominale (QScreen)
+    RefreshPeriod refresh;
     double devicePixelRatio = 1;
     bool activated = false;
     std::vector<ScenarioResult> scenarios;

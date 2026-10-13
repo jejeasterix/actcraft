@@ -14,7 +14,42 @@
 
 #include <algorithm>
 
+#if defined(Q_OS_WIN)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+// clang-format off
+#include <windows.h>
+#include <dwmapi.h>
+// clang-format on
+#endif
+
 namespace actcraft::bench {
+
+namespace {
+
+// Période de composition de DWM (écran principal), 0 si indisponible ou hors Windows.
+std::int64_t readDwmRefreshPeriodNs()
+{
+#if defined(Q_OS_WIN)
+    DWM_TIMING_INFO info{};
+    info.cbSize = sizeof(info);
+    LARGE_INTEGER frequency{};
+    if (FAILED(DwmGetCompositionTimingInfo(nullptr, &info)) || info.qpcRefreshPeriod == 0 ||
+        !QueryPerformanceFrequency(&frequency) || frequency.QuadPart <= 0) {
+        return 0;
+    }
+    return static_cast<std::int64_t>(static_cast<double>(info.qpcRefreshPeriod) * 1e9 /
+                                     static_cast<double>(frequency.QuadPart));
+#else
+    return 0;
+#endif
+}
+
+} // namespace
 
 Runner::Runner(BenchOptions options) : m_options(std::move(options)) {}
 
@@ -68,22 +103,24 @@ bool Runner::placeWindow(BenchResult& result)
     result.windowSize = m_window->size();
     result.screenName = screen->name();
     result.screenSize = screen->size();
-    result.refreshHz = screen->refreshRate(); // nominale ; la période utilisée est mesurée (warmUp)
+    result.refreshHz = screen->refreshRate(); // nominale
+    result.refresh = referenceRefreshPeriod(readDwmRefreshPeriodNs(), result.refreshHz);
     result.devicePixelRatio = m_window->devicePixelRatio();
     return true;
 }
 
 std::int64_t Runner::warmUp(int ms)
 {
-    // Rendu continu : chaque image présentée en demande une autre. La médiane des intervalles est la période
-    // effective de présentation (synchronisation verticale), pas la valeur nominale de QScreen (N1-1).
+    // Rendu continu : chaque image présentée en demande une autre. La médiane des intervalles ne sert que de
+    // contrôle : hors synchronisation verticale (logiciel, hors écran), elle suit le cadencement de
+    // requestUpdate et le coût du rendu, pas l'écran ; la référence est la période de l'écran (placeWindow).
     const auto pump = QObject::connect(m_window, &QQuickWindow::frameSwapped, m_window, &QQuickWindow::update,
                                        Qt::QueuedConnection);
     m_recorder->begin();
     m_window->update();
     waitMs(ms);
     // Rendu lent (debug, logiciel hors écran : une image prend des dizaines de ms) : la chauffe se prolonge,
-    // bornée, jusqu'à avoir assez d'intervalles pour mesurer ; au-delà, la période reste inconnue (invalide).
+    // bornée, jusqu'à avoir assez d'intervalles pour mesurer ; au-delà, la médiane reste 0.
     waitFor([this] { return m_recorder->swapNs().size() > kMinRefreshIntervals; }, 5000);
     m_recorder->end();
     QObject::disconnect(pump);
@@ -169,7 +206,7 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     }
     std::sort(s.frames.inputNs.begin(), s.frames.inputNs.end());
     s.frames.freezeNs = freezes;
-    s.frames.refreshPeriodNs = refreshPeriodNs; // mesurée à la chauffe ; ≤ 0 → invalid-refresh-period
+    s.frames.refreshPeriodNs = refreshPeriodNs; // période de l'écran ; ≤ 0 → invalid-refresh-period
     s.intervals = classifyIntervals(s.frames);
 
     const auto received = m_recorder->received();
@@ -180,9 +217,8 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
         std::any_of(inputs.begin(), inputs.end(), [](const PlannedInput& in) { return in.measured; });
     if (hasMeasured) {
         const auto records = m_recorder->syncRecords();
-        if (releasesNotSynced(inputs, received, s.frames.swapNs, records) > 0) {
-            invalidReasons << QStringLiteral("release-not-synced in %1").arg(plan.name);
-        }
+        s.releases =
+            releaseCoverage(inputs, received, m_recorder->syncStartNs(), records); // jugé par applyVerdict
         std::vector<std::int64_t> measured(planned.size(), -1);
         for (std::size_t i = 0; i < inputs.size(); ++i) {
             if (inputs[i].measured) {
@@ -238,7 +274,9 @@ BenchResult Runner::run(QQuickWindow* window)
     }
     result.graphicsApi = apiName(m_window->rendererInterface()->graphicsApi());
     result.cache = m_view->cacheEnabled();
-    const std::int64_t refreshPeriodNs = warmUp(2000 / durationDivisor(m_options.scenarioSet));
+    // Médiane d'un rendu continu : contrôle de cohérence de la période de référence (applyVerdict).
+    result.refresh.measuredMedianNs = warmUp(2000 / durationDivisor(m_options.scenarioSet));
+    const std::int64_t refreshPeriodNs = result.refresh.referenceNs;
 
     for (const ScenarioPlan& plan : allScenarios(m_options.scenarioSet)) {
         if (!setLevel(plan)) {

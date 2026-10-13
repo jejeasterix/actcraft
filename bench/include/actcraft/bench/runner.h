@@ -42,7 +42,7 @@ private:
     bool waitFor(const std::function<bool()>& condition, int timeoutMs);
     void waitMs(int ms);
     bool placeWindow(BenchResult& result);
-    // Chauffe en rendu continu ; retourne la période d'écran effective (0 si non mesurable).
+    // Chauffe en rendu continu ; retourne la médiane des intervalles (0 si non mesurable).
     std::int64_t warmUp(int ms);
     bool setLevel(const ScenarioPlan& plan);
     // Toute injection passe par ici (scénarios, et le trait de démonstration) : la numérotation de la chaîne

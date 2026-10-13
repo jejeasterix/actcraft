@@ -7,6 +7,8 @@
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/pageview.h>
 
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QTest>
@@ -32,10 +34,12 @@ BenchResult good()
     r.graphicsApi = QStringLiteral("direct3d11");
     r.contentChecks = {
         {QStringLiteral("witness-shape"), true, QStringLiteral("#ff1e88e5"), QStringLiteral("#ff1e88e5")}};
+    r.refresh = {kPeriod60Ns, QStringLiteral("dwm"), kPeriod60Ns + 100'000};
     ScenarioResult s;
     s.name = QStringLiteral("stroke");
     s.frames.refreshPeriodNs = kPeriod60Ns;
     s.intervals.fps = 60;
+    s.intervals.active.p50 = 16.6;
     s.intervals.active.p95 = 17;
     s.intervals.active.count = 100;
     s.intervals.over25Ratio = 0;
@@ -323,30 +327,32 @@ private slots:
         QVERIFY(!sequenceMatchesPlan(mixed, receivedInOrder(0, 3)));
     }
 
-    // Le test qui distingue : si la dernière synchronisation d'un trait ne couvre pas son relâché alors que
-    // des images ont été synchronisées avant l'appui suivant, la fin du trait est rattachée à la première
-    // image du trait suivant (latence ≈ la pause).
+    // Le test qui distingue : si une synchronisation a eu lieu entre le relâché et l'appui suivant sans
+    // couvrir le relâché, la fin du trait est rattachée à la première image du trait suivant (latence ≈ la
+    // pause).
     void releaseMustBeCoveredByASyncOfItsOwnStroke()
     {
         // Trait 1 : n° 0 à 9 (relâché 9) reçus de 0 à 45 ms ; trait 2 : n° 10 à 19 reçus de 345 à 390 ms ;
-        // une image toutes les 16 ms.
+        // une synchronisation toutes les 16 ms.
         const auto plan = strokes(2, 10, 300'000'000);
         constexpr std::int64_t ms = 1'000'000;
         ReceivedSamples received;
         for (std::size_t i = 0; i < plan.size(); ++i) {
             received.emplace_back(i, plan[i].offsetNs);
         }
-        std::vector<std::int64_t> swaps;
+        std::vector<std::int64_t> syncs;
         for (std::int64_t t = 8 * ms; t < 600 * ms; t += 16 * ms) {
-            swaps.push_back(t);
+            syncs.push_back(t);
         }
         const std::vector<SyncRecord> covered{
             {4, 25 * ms, 30 * ms}, {9, 50 * ms, 55 * ms}, {14, 370 * ms, 375 * ms}, {19, 395 * ms, 400 * ms}};
-        QCOMPARE(releasesNotSynced(plan, received, swaps, covered), std::size_t{0});
+        const ReleaseCoverage c = releaseCoverage(plan, received, syncs, covered);
+        QCOMPARE(c.checked, std::size_t{2});
+        QCOMPARE(c.notSynced, std::size_t{0});
 
         const std::vector<SyncRecord> lateTail{
             {4, 25 * ms, 30 * ms}, {8, 50 * ms, 55 * ms}, {14, 370 * ms, 375 * ms}, {19, 395 * ms, 400 * ms}};
-        QCOMPARE(releasesNotSynced(plan, received, swaps, lateTail), std::size_t{1});
+        QCOMPARE(releaseCoverage(plan, received, syncs, lateTail).notSynced, std::size_t{1});
         // Ce que l'invariant protège : le n° 9 irait à la première image du trait suivant (375 ms), soit une
         // « latence » de 330 ms qui n'est que la pause.
         std::vector<std::int64_t> planned(plan.size());
@@ -359,16 +365,40 @@ private slots:
 
         const std::vector<SyncRecord> lastMissing{
             {4, 25 * ms, 30 * ms}, {9, 50 * ms, 55 * ms}, {14, 370 * ms, 375 * ms}};
-        QCOMPARE(releasesNotSynced(plan, received, swaps, lastMissing), std::size_t{1});
-        QCOMPARE(releasesNotSynced(plan, received, swaps, {}), std::size_t{2});
+        QCOMPARE(releaseCoverage(plan, received, syncs, lastMissing).notSynced, std::size_t{1});
+        QCOMPARE(releaseCoverage(plan, received, syncs, {}).notSynced, std::size_t{2});
+
+        // Le verdict le juge : la mesure de latence est fausse.
+        BenchResult r = good();
+        r.scenarios[0].releases = {2, 1};
+        applyVerdict(r);
+        QVERIFY(r.invalidReasons.contains(QStringLiteral("release-not-synced")));
+        QCOMPARE(exitCodeFor(r), ExitCode::Invalid);
+    }
+
+    // Point 4 de la revue : une seule synchronisation entre les deux réceptions suffit, elle avait le relâché
+    // en attente. La règle « deux images au moins » sautait ce contrôle sur un passage sain et rapide.
+    void oneSyncBetweenIsEnoughToCheck()
+    {
+        const auto plan = strokes(2, 10, 300'000'000);
+        constexpr std::int64_t ms = 1'000'000;
+        ReceivedSamples received;
+        for (std::size_t i = 0; i < plan.size(); ++i) {
+            received.emplace_back(i, plan[i].offsetNs);
+        }
+        const std::vector<std::int64_t> syncs{30 * ms, 200 * ms, 395 * ms, 500 * ms};
+        const std::vector<SyncRecord> stale{{8, 30 * ms, 35 * ms}, {19, 395 * ms, 400 * ms}};
+        const ReleaseCoverage c = releaseCoverage(plan, received, syncs, stale);
+        QCOMPARE(c.checked, std::size_t{2});
+        QCOMPARE(c.notSynced, std::size_t{1});
     }
 
     // Fil principal bloqué de 40 à 400 ms (relevé en debug, rendu logiciel : redessin du cache après un trait
-    // figé) : relâché 9 et appui 10 sont reçus d'un bloc, la première image qui les contient est la même. Ce
-    // n'est pas un défaut de mesure mais une lenteur : la latence (≈ 360 ms) va au verdict, qui la juge.
-    // Exiger une synchronisation propre au trait 1 rendrait ce passage « MESURE INVALIDE » au lieu de «
-    // BUDGET DEPASSE ».
-    void releaseReceivedWithTheNextPressIsNotAMeasurementDefect()
+    // figé) : relâché 9 et appui 10 sont reçus d'un bloc, sans synchronisation entre eux ; la première image
+    // qui les contient est la même. Ce n'est pas un défaut de mesure mais une lenteur : la latence (≈ 360 ms)
+    // va au verdict. Exiger une synchronisation propre au trait 1 rendrait ce passage « MESURE INVALIDE » au
+    // lieu de « BUDGET DEPASSE ».
+    void releaseReceivedWithTheNextPressIsNotChecked()
     {
         const auto plan = strokes(2, 10, 300'000'000);
         constexpr std::int64_t ms = 1'000'000;
@@ -376,10 +406,111 @@ private slots:
         for (std::size_t i = 0; i < plan.size(); ++i) {
             received.emplace_back(i, i >= 8 ? std::max(plan[i].offsetNs, 400 * ms) : plan[i].offsetNs);
         }
-        const std::vector<std::int64_t> swaps{8 * ms, 24 * ms, 40 * ms, 410 * ms, 426 * ms, 442 * ms};
-        const std::vector<SyncRecord> records{
-            {7, 36 * ms, 40 * ms}, {11, 401 * ms, 410 * ms}, {19, 420 * ms, 426 * ms}};
-        QCOMPARE(releasesNotSynced(plan, received, swaps, records), std::size_t{0});
+        const std::vector<std::int64_t> syncs{8 * ms, 24 * ms, 36 * ms, 401 * ms, 420 * ms, 436 * ms};
+        const std::vector<SyncRecord> records{{7, 36 * ms, 40 * ms}, {19, 401 * ms, 410 * ms}};
+        const ReleaseCoverage c = releaseCoverage(plan, received, syncs, records);
+        QCOMPARE(c.checked, std::size_t{1}); // le dernier relâché seulement
+        QCOMPARE(c.notSynced, std::size_t{0});
+    }
+
+    // Point 1 : la référence est la période de l'écran (DWM, sinon QScreen), jamais la médiane du rendu
+    // continu, qui suit QT_QPA_UPDATE_IDLE_TIME hors écran (33,4 puis 21,5 ms pour un écran à 60 Hz).
+    void refreshReferenceIsTheScreen()
+    {
+        const RefreshPeriod dwm = referenceRefreshPeriod(16'683'333, 60.0);
+        QCOMPARE(dwm.referenceNs, std::int64_t{16'683'333});
+        QCOMPARE(dwm.source, QStringLiteral("dwm"));
+        const RefreshPeriod screen = referenceRefreshPeriod(0, 144.0);
+        QCOMPARE(screen.referenceNs, std::int64_t{6'944'444});
+        QCOMPARE(screen.source, QStringLiteral("qscreen"));
+        const RefreshPeriod none = referenceRefreshPeriod(0, 0.0);
+        QCOMPARE(none.referenceNs, std::int64_t{0});
+        QCOMPARE(none.source, QStringLiteral("none"));
+    }
+
+    // Hors logiciel, la médiane mesurée doit tenir à 10 % de la référence, et le p50 des intervalles actifs
+    // ne peut pas descendre sous 0,9 période (images plus rapides que l'écran : pas de synchronisation
+    // verticale).
+    void measuredMedianMustMatchTheScreenOutsideSoftware()
+    {
+        BenchResult ok = good();
+        ok.refresh.measuredMedianNs = 18'000'000; // + 8 %
+        QCOMPARE(after(ok), ExitCode::WithinBudget);
+
+        BenchResult drift = good();
+        drift.refresh.measuredMedianNs = 21'540'000;
+        applyVerdict(drift);
+        QVERIFY(drift.invalidReasons.contains(QStringLiteral("invalid-refresh-period")));
+        QCOMPARE(exitCodeFor(drift), ExitCode::Invalid);
+
+        BenchResult unmeasured = good();
+        unmeasured.refresh.measuredMedianNs = 0;
+        QCOMPARE(after(unmeasured), ExitCode::Invalid);
+
+        BenchResult fast = good();
+        fast.scenarios[0].intervals.active.p50 = 4.9; // 204 images/s sur un écran à 60 Hz
+        applyVerdict(fast);
+        QVERIFY(fast.invalidReasons.contains(QStringLiteral("invalid-refresh-period")));
+
+        // Logiciel : informatif, la médiane n'est pas celle de l'écran et ne l'invalide pas.
+        BenchResult software = good();
+        software.graphicsApi = QStringLiteral("software");
+        software.refresh.measuredMedianNs = 33'390'000;
+        software.scenarios[0].intervals.active.p50 = 4.9;
+        software.scenarios[0].memory.gpuPeak.reset();
+        applyVerdict(software);
+        QVERIFY(!software.invalidReasons.contains(QStringLiteral("invalid-refresh-period")));
+    }
+
+    // Point 2 : une sonde muette (aucun échantillon vu dans une image) donnait p50 = 0 → « BUDGET DEPASSE ».
+    void unmatchedLatencyIsInvalid()
+    {
+        BenchResult silent = good();
+        silent.scenarios[0].latency = LatencyStats{};
+        silent.scenarios[0].latency->unmatched = 590;
+        applyVerdict(silent);
+        QVERIFY(silent.invalidReasons.contains(QStringLiteral("latency-unmatched")));
+        QCOMPARE(exitCodeFor(silent), ExitCode::Invalid);
+
+        BenchResult some = good();
+        some.scenarios[0].latency->unmatched = 2;
+        QCOMPARE(after(some), ExitCode::Invalid);
+
+        BenchResult empty = good();
+        empty.scenarios[0].latency = LatencyStats{};
+        QCOMPARE(after(empty), ExitCode::Invalid);
+    }
+
+    // Point 3 : hors logiciel, une mémoire graphique illisible comptait pour 0 (N1-7 jugé sur le privé seul).
+    void missingGpuMemoryIsInvalidOutsideSoftware()
+    {
+        BenchResult r = good();
+        r.scenarios[0].memory.gpuPeak.reset();
+        applyVerdict(r);
+        QVERIFY(r.invalidReasons.contains(QStringLiteral("gpu-memory-unavailable")));
+        QCOMPARE(exitCodeFor(r), ExitCode::Invalid);
+
+        BenchResult software = good();
+        software.graphicsApi = QStringLiteral("software");
+        software.scenarios[0].memory.gpuPeak.reset();
+        applyVerdict(software);
+        QVERIFY(!software.invalidReasons.contains(QStringLiteral("gpu-memory-unavailable")));
+        QCOMPARE(exitCodeFor(software), ExitCode::WithinBudget);
+    }
+
+    void jsonCarriesTheReferenceAndTheReleaseCheck()
+    {
+        BenchResult r = good();
+        r.scenarios[0].releases = {10, 0};
+        const QJsonObject json = toJson(r);
+        const QJsonObject refresh = json[QStringLiteral("meta")][QStringLiteral("refresh")].toObject();
+        QCOMPARE(refresh[QStringLiteral("source")].toString(), QStringLiteral("dwm"));
+        QCOMPARE(refresh[QStringLiteral("reference_period_ms")].toDouble(), 16.666667);
+        QCOMPARE(refresh[QStringLiteral("measured_median_ms")].toDouble(), 16.766667);
+        const QJsonObject latency =
+            json[QStringLiteral("scenarios")].toArray().at(0)[QStringLiteral("latency")].toObject();
+        QCOMPARE(latency[QStringLiteral("releases_checked")].toDouble(), 10.0);
+        QCOMPARE(latency[QStringLiteral("releases_not_synced")].toDouble(), 0.0);
     }
 
     // Chaîne réelle : la molette POSTÉE (pas envoyée par sendEvent) atteint la vue, depuis le périphérique de
@@ -434,7 +565,7 @@ private slots:
         // Pauses longues : en debug et rendu logiciel, le redessin du cache après un trait figé bloque le fil
         // principal plusieurs centaines de ms ; il faut des images entre relâché et appui suivant pour que
         // l'invariant soit exercé.
-        const auto plan = strokes(3, 20, 800'000'000);
+        const auto plan = strokes(3, 20, 1'000'000'000);
         recorder->begin();
         injector->start(plan, core::monotonicNowNs() + 20'000'000);
         QTRY_VERIFY_WITH_TIMEOUT(injector->finished(), 20000);
@@ -453,8 +584,10 @@ private slots:
         for (const SyncRecord& rec : records) {
             synced << QString::number(rec.lastSeq);
         }
-        QVERIFY2(releasesNotSynced(plan, recorder->received(), recorder->swapNs(), records) == 0,
-                 qPrintable(synced.join(' ')));
+        const ReleaseCoverage coverage =
+            releaseCoverage(plan, recorder->received(), recorder->syncStartNs(), records);
+        QCOMPARE(coverage.checked, std::size_t{3}); // une synchronisation suit chaque relâché
+        QVERIFY2(coverage.notSynced == 0, qPrintable(synced.join(' ')));
         // Premier trait, précédé d'un repos : son relâché (n° 19) est signalé par une synchronisation propre.
         QVERIFY2(std::any_of(records.begin(), records.end(),
                              [](const SyncRecord& rec) { return rec.lastSeq == 19; }),

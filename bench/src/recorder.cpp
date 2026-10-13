@@ -9,6 +9,8 @@ namespace actcraft::bench {
 
 FrameRecorder::FrameRecorder(QQuickWindow* window, QObject* parent) : QObject(parent), m_window(window)
 {
+    connect(window, &QQuickWindow::beforeSynchronizing, this, &FrameRecorder::onBeforeSynchronizing,
+            Qt::DirectConnection);
     connect(window, &QQuickWindow::beforeRendering, this, &FrameRecorder::onBeforeRendering,
             Qt::DirectConnection);
     connect(window, &QQuickWindow::frameSwapped, this, &FrameRecorder::onFrameSwapped, Qt::DirectConnection);
@@ -18,6 +20,7 @@ void FrameRecorder::begin()
 {
     std::lock_guard lock(m_mutex);
     m_swaps.clear();
+    m_syncStarts.clear();
     m_pendingSyncs.clear();
     m_syncs.clear();
     m_received.clear();
@@ -44,6 +47,15 @@ void FrameRecorder::samplesSynced(std::uint64_t lastSeq, std::int64_t nowNs)
     std::lock_guard lock(m_mutex);
     if (m_recording) {
         m_pendingSyncs.emplace_back(lastSeq, nowNs);
+    }
+}
+
+void FrameRecorder::onBeforeSynchronizing()
+{
+    const std::int64_t now = core::monotonicNowNs();
+    std::lock_guard lock(m_mutex);
+    if (m_recording) {
+        m_syncStarts.push_back(now);
     }
 }
 
@@ -89,6 +101,12 @@ std::vector<std::int64_t> FrameRecorder::swapNs() const
 {
     std::lock_guard lock(m_mutex);
     return m_swaps;
+}
+
+std::vector<std::int64_t> FrameRecorder::syncStartNs() const
+{
+    std::lock_guard lock(m_mutex);
+    return m_syncStarts;
 }
 
 std::vector<SyncRecord> FrameRecorder::syncRecords() const

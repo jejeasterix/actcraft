@@ -1,6 +1,7 @@
 #include <actcraft/bench/verdict.h>
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 namespace actcraft::bench {
@@ -33,16 +34,42 @@ void applyVerdict(BenchResult& r, const Budget& b)
         r.machine.buildType != QLatin1String("Release")) {
         addReason(r, QStringLiteral("build-not-release"));
     }
+    // Rendu matériel : synchronisation verticale attendue, mémoire graphique lisible (décision 26). Le rendu
+    // logiciel est informatif (N1-3) : ni l'une ni l'autre.
+    const bool hardware = !r.scenarios.empty() && r.graphicsApi != QLatin1String("software");
+    if (hardware) {
+        const auto reference = static_cast<double>(r.refresh.referenceNs);
+        const auto measured = static_cast<double>(r.refresh.measuredMedianNs);
+        if (r.refresh.referenceNs > 0 && (r.refresh.measuredMedianNs <= 0 ||
+                                          std::abs(measured - reference) > kRefreshTolerance * reference)) {
+            addReason(r, QStringLiteral("invalid-refresh-period")); // l'écran ne présente pas à sa période
+        }
+    }
     bool periodKnown = true;
     for (const ScenarioResult& s : r.scenarios) {
         if (s.exposureLost) {
             addReason(r, QStringLiteral("exposure-lost"));
         }
         if (invalidPeriod(s)) {
-            // Sans période d'écran mesurée, classifyIntervals ne calcule rien : juger ces zéros donnerait un
-            // faux « BUDGET DEPASSE ».
+            // Sans période d'écran, classifyIntervals ne calcule rien : juger ces zéros donnerait un faux
+            // « BUDGET DEPASSE ».
             addReason(r, QStringLiteral("invalid-refresh-period"));
             periodKnown = false;
+        } else if (hardware && s.intervals.active.count > 0 &&
+                   s.intervals.active.p50 <
+                       kMinActiveP50Periods * static_cast<double>(s.frames.refreshPeriodNs) / 1e6) {
+            addReason(r, QStringLiteral("invalid-refresh-period")); // images plus rapides que l'écran
+        }
+        if (s.latency && (s.latency->unmatched > 0 || s.latency->total.count == 0)) {
+            // Échantillons jamais vus dans une image (sonde muette, fin de trait perdue) : le p50 les
+            // ignorerait.
+            addReason(r, QStringLiteral("latency-unmatched"));
+        }
+        if (s.releases.notSynced > 0) {
+            addReason(r, QStringLiteral("release-not-synced")); // fin de trait rattachée au trait suivant
+        }
+        if (hardware && !s.memory.gpuPeak) {
+            addReason(r, QStringLiteral("gpu-memory-unavailable")); // N1-7 ne serait jugé que sur le privé
         }
     }
     if (!contentCheckOk(r)) {
@@ -113,11 +140,13 @@ QStringList summaryLines(const BenchResult& r, const QString& path)
                  .arg(r.graphicsApi, r.requestedBackend,
                       r.cache ? QStringLiteral("oui") : QStringLiteral("non"), r.renderLoop,
                       r.informative ? QStringLiteral(" · informatif") : QString());
+    lines << QStringLiteral("Période d'écran : %1 ms (%2) · médiane du rendu continu : %3 ms")
+                 .arg(static_cast<double>(r.refresh.referenceNs) / 1e6, 0, 'f', 2)
+                 .arg(r.refresh.source)
+                 .arg(static_cast<double>(r.refresh.measuredMedianNs) / 1e6, 0, 'f', 2);
     for (const ScenarioResult& s : r.scenarios) {
         const IntervalStats& iv = s.intervals;
-        QString line = QStringLiteral("%1 : période mesurée %2 ms · ")
-                           .arg(s.name)
-                           .arg(static_cast<double>(s.frames.refreshPeriodNs) / 1e6, 0, 'f', 2);
+        QString line = QStringLiteral("%1 : ").arg(s.name);
         if (invalidPeriod(s)) {
             line += QStringLiteral("statistiques non calculées");
         } else {
@@ -181,8 +210,9 @@ bool sequenceMatchesPlan(const std::vector<PlannedInput>& inputs, const Received
     return k == received.size();
 }
 
-std::size_t releasesNotSynced(const std::vector<PlannedInput>& inputs, const ReceivedSamples& received,
-                              const std::vector<std::int64_t>& swapNs, const std::vector<SyncRecord>& records)
+ReleaseCoverage releaseCoverage(const std::vector<PlannedInput>& inputs, const ReceivedSamples& received,
+                                const std::vector<std::int64_t>& syncStartNs,
+                                const std::vector<SyncRecord>& records)
 {
     std::vector<std::int64_t> receivedAt(inputs.size(), -1);
     for (const auto& [seq, at] : received) {
@@ -190,10 +220,10 @@ std::size_t releasesNotSynced(const std::vector<PlannedInput>& inputs, const Rec
             receivedAt[seq] = at;
         }
     }
-    std::size_t missing = 0;
+    ReleaseCoverage out;
     for (std::size_t release = 0; release < inputs.size(); ++release) {
         if (inputs[release].kind != InputKind::TabletRelease || receivedAt[release] < 0) {
-            continue; // relâché jamais reçu : sequenceMatchesPlan invalide déjà la mesure
+            continue;
         }
         std::uint64_t nextPress = std::numeric_limits<std::uint64_t>::max();
         std::int64_t until = std::numeric_limits<std::int64_t>::max();
@@ -206,20 +236,34 @@ std::size_t releasesNotSynced(const std::vector<PlannedInput>& inputs, const Rec
                 break;
             }
         }
-        const auto swaps = std::count_if(swapNs.begin(), swapNs.end(), [&](std::int64_t t) {
+        const auto syncs = std::count_if(syncStartNs.begin(), syncStartNs.end(), [&](std::int64_t t) {
             return t > receivedAt[release] && t < until;
         });
-        if (swaps < 2) {
-            continue; // relâché et appui suivant reçus d'un bloc
+        if (syncs == 0) {
+            continue; // relâché et appui suivant reçus d'un bloc : pas de synchronisation entre eux
         }
+        ++out.checked;
         const bool covered = std::any_of(records.begin(), records.end(), [&](const SyncRecord& rec) {
             return rec.lastSeq >= release && rec.lastSeq < nextPress;
         });
         if (!covered) {
-            ++missing;
+            ++out.notSynced;
         }
     }
-    return missing;
+    return out;
+}
+
+RefreshPeriod referenceRefreshPeriod(std::int64_t dwmPeriodNs, double screenHz)
+{
+    RefreshPeriod out;
+    if (dwmPeriodNs > 0) {
+        out.referenceNs = dwmPeriodNs;
+        out.source = QStringLiteral("dwm");
+    } else if (screenHz > 0) {
+        out.referenceNs = static_cast<std::int64_t>(1e9 / screenHz);
+        out.source = QStringLiteral("qscreen");
+    }
+    return out;
 }
 
 } // namespace actcraft::bench

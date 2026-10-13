@@ -32,6 +32,8 @@ public:
     void samplesSynced(std::uint64_t lastSeq, std::int64_t nowNs) override;
 
     std::vector<std::int64_t> swapNs() const;
+    // Début de chaque synchronisation (beforeSynchronizing) : le fil principal y est arrêté.
+    std::vector<std::int64_t> syncStartNs() const;
     // Chaque synchronisation est rattachée au frameSwapped qui la suit (l'image qu'elle prépare).
     std::vector<SyncRecord> syncRecords() const;
     std::vector<std::pair<std::uint64_t, std::int64_t>> received() const;
@@ -40,13 +42,15 @@ public:
     QString gpuName() const;
 
 private:
-    void onBeforeRendering(); // fil de rendu
-    void onFrameSwapped();    // fil de rendu
+    void onBeforeSynchronizing(); // fil de rendu, fil principal arrêté
+    void onBeforeRendering();     // fil de rendu
+    void onFrameSwapped();        // fil de rendu
 
     QQuickWindow* m_window;
     mutable std::mutex m_mutex;
     bool m_recording = false;
     std::vector<std::int64_t> m_swaps;
+    std::vector<std::int64_t> m_syncStarts;
     std::vector<std::pair<std::uint64_t, std::int64_t>> m_pendingSyncs;
     std::vector<SyncRecord> m_syncs;
     std::vector<std::pair<std::uint64_t, std::int64_t>> m_received;

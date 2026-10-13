@@ -28,7 +28,7 @@ actcraft_add_module(bench
         ActCraft::core ActCraft::render ActCraft::ui Qt6::Quick)
 
 if(WIN32)
-    target_link_libraries(actcraft_bench PRIVATE dxgi psapi)
+    target_link_libraries(actcraft_bench PRIVATE dxgi psapi dwmapi)
 elseif(APPLE)
     target_link_libraries(actcraft_bench PRIVATE "-framework Metal" "-framework Foundation")
 endif()
