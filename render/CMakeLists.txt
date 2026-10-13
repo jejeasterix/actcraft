@@ -12,5 +12,10 @@ actcraft_add_module(render
         src/imagesynth.cpp
         src/imagestore.cpp
         src/imagerenderer.cpp
+        include/actcraft/render/fixedpageitem.h
+        src/fixedpageitem.cpp
     DEPENDS
         ActCraft::core Qt6::Quick)
+
+# Les types de render/ sont exposés en QML par ui/ (QML_FOREIGN) : qmltyperegistrar a besoin de leurs métatypes.
+qt_extract_metatypes(actcraft_render)
