@@ -6,6 +6,7 @@
 #include <QQuickWindow>
 #include <QSGNode>
 #include <QSGRendererInterface>
+#include <QSGTransformNode>
 
 #include <vector>
 
@@ -21,14 +22,16 @@ public:
 protected:
     QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData*) override
     {
-        QSGNode* root = old ? old : new QSGNode;
+        const bool software = window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
+        // Logiciel : racine de transformation (identité), voir InkItem et FixedPageItem.
+        QSGNode* root = old ? old : (software ? new QSGTransformNode : new QSGNode);
         while (QSGNode* child = root->firstChild()) {
             root->removeChildNode(child);
             delete child;
         }
         actcraft::render::RenderContext context;
         context.window = window();
-        context.software = window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
+        context.software = software;
         context.images = images;
         for (std::size_t i = 0; i < objects.size(); ++i) {
             if (const auto* renderer = m_registry.find(actcraft::core::kindOf(objects[i]))) {
