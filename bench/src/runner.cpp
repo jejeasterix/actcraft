@@ -1,11 +1,15 @@
+#include <actcraft/bench/contentcheck.h>
 #include <actcraft/bench/runner.h>
+#include <actcraft/bench/scenarios.h>
 #include <actcraft/bench/verdict.h>
 #include <actcraft/core/clock.h>
+#include <actcraft/core/generator.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QQuickWindow>
@@ -241,6 +245,72 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     return s;
 }
 
+void Runner::runDemo(BenchResult& result)
+{
+    // Séquence non mesurée (décision 31) : captures en mémoire, 4 contrôles, PNG seulement avec --captures.
+    m_view->setZoom(1.0);
+    waitFor([this] { return m_view->cacheReady(); }, 10000);
+    waitMs(100);
+    m_view->setExclusiveDevices({m_injector->stylus(), m_injector->wheel()});
+
+    const std::vector<PlannedInput> demo = demoStroke();
+    const auto mid = static_cast<std::ptrdiff_t>(kDemoMidIndex);
+    const std::vector<PlannedInput> firstHalf(demo.begin(), demo.begin() + mid);
+    std::vector<PlannedInput> secondHalf(demo.begin() + mid, demo.end());
+    const std::int64_t shift = secondHalf.front().offsetNs;
+    for (PlannedInput& in : secondHalf) {
+        in.offsetNs -= shift;
+    }
+
+    startInputs(firstHalf, core::monotonicNowNs());
+    waitFor([this] { return m_injector->finished(); }, 5000);
+    waitMs(100);
+    const QPoint inkPixel =
+        sceneToImage(m_view->pageToScene(demoInkProbePoint()), m_window->devicePixelRatio());
+    const QImage midStroke = m_window->grabWindow();
+
+    startInputs(secondHalf, core::monotonicNowNs());
+    waitFor([this] { return m_injector->finished(); }, 5000);
+    waitMs(50);
+    waitFor([this] { return m_view->cacheReady(); }, 10000); // trait figé dans le cache
+    waitMs(100);
+    const QImage endStroke = m_window->grabWindow();
+
+    m_view->setZoom(8.0);
+    waitFor([this] { return m_view->cacheReady(); }, 10000);
+    waitMs(100);
+    const QImage zoom800 = m_window->grabWindow();
+
+    m_view->setZoom(1.0);
+    waitFor([this] { return m_view->cacheReady(); }, 10000);
+    waitMs(100);
+    const QImage back100 = m_window->grabWindow();
+    m_view->setExclusiveDevices({});
+
+    const core::Witnesses& w = core::witnesses();
+    const qreal dpr = m_window->devicePixelRatio();
+    const auto at = [&](core::PointF p) { return sceneToImage(m_view->pageToScene(QPointF(p.x, p.y)), dpr); };
+    result.contentChecks = {
+        checkColor(QStringLiteral("witness-shape"), back100, at(w.shapeRect.center()),
+                   QColor::fromRgba(w.shapeColor), kWitnessTolerance),
+        checkColor(QStringLiteral("witness-image"), back100, at(w.imageRect.center()),
+                   QColor::fromRgba(w.imageCenterColor), kWitnessTolerance),
+        checkColor(QStringLiteral("witness-stroke"), back100, at(w.strokeProbe),
+                   QColor::fromRgba(w.strokeColor), kWitnessTolerance),
+        checkColor(QStringLiteral("ink-mid-stroke"), midStroke, inkPixel, QColor(Qt::black), kInkTolerance),
+    };
+
+    if (!m_options.capturesDir.isEmpty()) {
+        QDir dir(m_options.capturesDir);
+        dir.mkpath(QStringLiteral("."));
+        const QImage images[] = {midStroke, endStroke, zoom800, back100};
+        const QStringList steps = captureSteps();
+        for (qsizetype i = 0; i < steps.size(); ++i) {
+            images[i].save(dir.filePath(captureFileName(result.graphicsApi, steps.at(i))));
+        }
+    }
+}
+
 BenchResult Runner::run(QQuickWindow* window)
 {
     BenchResult result;
@@ -288,6 +358,9 @@ BenchResult Runner::run(QQuickWindow* window)
             result.invalidReasons << QStringLiteral("error: injection incomplete in %1").arg(plan.name);
             break;
         }
+    }
+    if (result.invalidReasons.isEmpty()) { // à ce stade, seules des erreurs y figurent
+        runDemo(result);
     }
     result.renderLoop = m_recorder->renderLoop();
     result.gpuName = m_recorder->gpuName().isEmpty() ? result.graphicsApi : m_recorder->gpuName();

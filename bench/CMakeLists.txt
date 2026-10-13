@@ -20,6 +20,7 @@ actcraft_add_module(bench
         include/actcraft/bench/recorder.h
         src/options.cpp
         src/verdict.cpp
+        src/contentcheck.cpp
         src/recorder.cpp
         include/actcraft/bench/runner.h
         src/runner.cpp
