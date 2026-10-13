@@ -14,6 +14,10 @@ actcraft_add_module(render
         src/imagerenderer.cpp
         include/actcraft/render/fixedpageitem.h
         src/fixedpageitem.cpp
+        include/actcraft/render/inkbuffer.h
+        src/inkbuffer.cpp
+        include/actcraft/render/inkitem.h
+        src/inkitem.cpp
     DEPENDS
         ActCraft::core Qt6::Quick)
 
