@@ -32,3 +32,7 @@ actcraft_add_test(tst_bench_verdict
     SOURCES tst_bench_verdict.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick)
 target_include_directories(tst_bench_verdict PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_bench_content
+    SOURCES tst_bench_content.cpp
+    LIBS ActCraft::bench)

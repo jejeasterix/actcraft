@@ -48,6 +48,8 @@ private:
     // Toute injection passe par ici (scénarios, et le trait de démonstration) : la numérotation de la chaîne
     // d'entrée repart de 0, donc numéro de séquence = indice de l'événement dans `inputs`.
     void startInputs(std::vector<PlannedInput> inputs, std::int64_t t0Ns);
+    // Séquence de démonstration non mesurée : captures en mémoire, contrôles de contenu, PNG si demandés.
+    void runDemo(BenchResult& result);
     ScenarioResult play(const ScenarioPlan& plan, std::int64_t refreshPeriodNs, QStringList& invalidReasons);
 
     QQuickWindow* m_window = nullptr;
