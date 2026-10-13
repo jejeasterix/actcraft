@@ -3,6 +3,7 @@
 #include <actcraft/render/objectrenderer.h>
 #include <actcraft/render/strokegeometry.h>
 
+#include <QSignalSpy>
 #include <QTest>
 
 #include <algorithm>
@@ -46,6 +47,38 @@ class TstRenderEngines : public QObject
     Q_OBJECT
 
 private slots:
+    // Rendu logiciel : les nœuds recréés à la mise à jour restent sous la transformation de l'élément.
+    void updatedHostKeepsTransform()
+    {
+        QQuickWindow window;
+        window.setColor(Qt::white);
+        window.resize(800, 600);
+        auto* host = new RenderHostItem;
+        host->setSize(QSizeF(300, 200));
+        host->setPosition(QPointF(100, 50));
+        host->setTransformOrigin(QQuickItem::TopLeft);
+        host->setScale(2.0);
+        const auto line = [](double y) {
+            core::Stroke stroke;
+            stroke.baseWidth = 6;
+            stroke.color = 0xFF000000u;
+            stroke.points = {{10, y, 0.5f}, {60, y, 0.5f}, {110, y, 0.5f}};
+            return stroke;
+        };
+        host->objects.emplace_back(line(10));
+        host->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QSignalSpy swapped(&window, &QQuickWindow::frameSwapped);
+        host->update();
+        QVERIFY(swapped.wait(2000));
+        host->objects.emplace_back(line(40));
+        host->update();
+        const QImage image = window.grabWindow();
+        QVERIFY2(colorNear(image.pixelColor(220, 70), QColor(Qt::black), 40), "trait 1");
+        QVERIFY2(colorNear(image.pixelColor(220, 130), QColor(Qt::black), 40), "trait 2");
+        QVERIFY2(colorNear(image.pixelColor(60, 10), QColor(Qt::white), 1), "sans transformation");
+    }
     void registryHasShapeAndStroke()
     {
         const auto registry = render::RendererRegistry::withDefaults();

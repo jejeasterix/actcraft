@@ -4,6 +4,7 @@
 #include <QQuickWindow>
 #include <QSGRectangleNode>
 #include <QSGRendererInterface>
+#include <QSGTransformNode>
 
 namespace actcraft::render {
 
@@ -82,7 +83,10 @@ void FixedPageItem::geometryChange(const QRectF& newGeometry, const QRectF& oldG
 
 QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
 {
-    QSGNode* root = old ? old : new QSGNode;
+    const bool software = window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
+    // Logiciel : racine de transformation (identité). Sous une racine QSGNode nue déjà rendue, le moteur
+    // logiciel de Qt 6.12 peint les nœuds ajoutés sans la transformation de l'élément (voir InkItem).
+    QSGNode* root = old ? old : (software ? new QSGTransformNode : new QSGNode);
     if (m_rebuild || !old) {
         clearChildren(root);
         QSGRectangleNode* background = window()->createRectangleNode();
@@ -95,7 +99,7 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     if (m_ready) {
         RenderContext context;
         context.window = window();
-        context.software = window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
+        context.software = software;
         context.images = &m_images;
         for (std::size_t i = m_builtCount; i < m_page.objects.size(); ++i) {
             if (const ObjectRenderer* renderer = m_registry.find(core::kindOf(m_page.objects[i]))) {
