@@ -140,6 +140,23 @@ private slots:
         QVERIFY(colorNear(image.pixelColor(200, 250), QColor(Qt::black), 10));
         QVERIFY(colorNear(image.pixelColor(100, 270), QColor(Qt::white), 1));
     }
+
+    void diagonalStrokeKeepsSquareCapCorners()
+    {
+        // Largeur 40 (demi-largeur 20), diagonale à 45° : les coins du bout carré dépassent de strokeBounds
+        // (de (√2 − 1) × demi-largeur, soit ~8 px) ; le moteur logiciel découpe au rect() du nœud.
+        core::Stroke stroke;
+        stroke.baseWidth = 40;
+        stroke.color = 0xFF000000u;
+        stroke.points = {{100, 100, 0.5f}, {150, 150, 0.5f}};
+        const core::RectF bounds = render::strokeBounds(stroke.points, stroke.baseWidth);
+        QVERIFY(176 > bounds.y + bounds.height); // le coin (150 ; 178,3) est hors des bornes
+        const QImage image = renderObjects({stroke});
+        QVERIFY(!image.isNull());
+        QVERIFY(colorNear(image.pixelColor(150, 175), QColor(Qt::black), 10));
+        QVERIFY(colorNear(image.pixelColor(175, 150), QColor(Qt::black), 10));
+        QVERIFY(colorNear(image.pixelColor(125, 125), QColor(Qt::black), 10));
+    }
 };
 
 QTEST_MAIN(TstRenderEngines)
