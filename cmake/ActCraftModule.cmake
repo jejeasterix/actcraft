@@ -1,0 +1,53 @@
+# Fonctions communes aux modules d'ActCraft.
+
+# Avertissements traités comme erreurs, sur tous les compilateurs.
+function(actcraft_set_warnings target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4 /WX /permissive- /utf-8 /Zc:__cplusplus)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror)
+    endif()
+endfunction()
+
+# Déclare un module : bibliothèque statique actcraft_<nom>, alias ActCraft::<nom>,
+# en-têtes publics sous <module>/include/actcraft/<nom>/.
+#   actcraft_add_module(core SOURCES src/a.cpp DEPENDS Qt6::Core)
+function(actcraft_add_module name)
+    cmake_parse_arguments(ARG "" "" "SOURCES;DEPENDS" ${ARGN})
+    set(target actcraft_${name})
+    add_library(${target} STATIC ${ARG_SOURCES})
+    add_library(ActCraft::${name} ALIAS ${target})
+    target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(${target} PUBLIC ${ARG_DEPENDS})
+    actcraft_set_warnings(${target})
+endfunction()
+
+# Échoue à la configuration si `target` lie l'une des bibliothèques interdites,
+# directement ou par un module dont il dépend.
+function(actcraft_forbid_links target)
+    set(forbidden ${ARGN})
+    set(todo ${target})
+    set(seen "")
+    while(todo)
+        list(POP_FRONT todo current)
+        if(current IN_LIST seen)
+            continue()
+        endif()
+        list(APPEND seen ${current})
+        if(current IN_LIST forbidden)
+            message(FATAL_ERROR "${target} ne doit pas dépendre de ${current} (règle de modularité, voir docs/BRIEF.md)")
+        endif()
+        if(TARGET ${current} AND current MATCHES "^actcraft_")
+            get_target_property(libs ${current} LINK_LIBRARIES)
+            if(libs)
+                foreach(lib IN LISTS libs)
+                    if(lib MATCHES "^ActCraft::(.*)$")
+                        list(APPEND todo actcraft_${CMAKE_MATCH_1})
+                    else()
+                        list(APPEND todo ${lib})
+                    endif()
+                endforeach()
+            endif()
+        endif()
+    endwhile()
+endfunction()

@@ -1,0 +1,9 @@
+# Artefacts de construction et outils locaux : ce n'est pas du code source.
+build/
+out/
+.vs/
+.worktrees/
+.claude/
+.playwright-mcp/
+.tmp/
+bench/results/

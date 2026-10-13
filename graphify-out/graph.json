@@ -1,0 +1,1305 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "label": "actions.h",
+      "file_type": "code",
+      "source_file": "actions/include/actcraft/actions/actions.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "actions_actions",
+      "community": 3,
+      "norm_label": "actions.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "actions/include/actcraft/actions/actions.h",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "actions_actions_actcraft",
+      "community": 3,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "actions/include/actcraft/actions/actions.h",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "actions_include_actcraft_actions_actions_h_namespace",
+      "community": 3,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "actions.cpp",
+      "file_type": "code",
+      "source_file": "actions/src/actions.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_actions",
+      "community": 11,
+      "norm_label": "actions.cpp"
+    },
+    {
+      "label": "moduleId()",
+      "file_type": "code",
+      "source_file": "actions/src/actions.cpp",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "src_actions_moduleid",
+      "community": 11,
+      "norm_label": "moduleid()"
+    },
+    {
+      "label": "main.cpp",
+      "file_type": "code",
+      "source_file": "app/main.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_main",
+      "community": 0,
+      "norm_label": "main.cpp"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "app/main.cpp",
+      "source_location": "L12",
+      "_origin": "ast",
+      "id": "app_main_main",
+      "community": 0,
+      "norm_label": "main()"
+    },
+    {
+      "label": "renderbackend.cpp",
+      "file_type": "code",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_renderbackend_cpp_app_renderbackend",
+      "community": 0,
+      "norm_label": "renderbackend.cpp"
+    },
+    {
+      "label": "parseRenderBackend()",
+      "file_type": "code",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "app_renderbackend_parserenderbackend",
+      "community": 0,
+      "norm_label": "parserenderbackend()"
+    },
+    {
+      "label": "QStringList",
+      "file_type": "code",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "qstringlist",
+      "community": 2,
+      "norm_label": "qstringlist"
+    },
+    {
+      "label": "RenderBackend",
+      "file_type": "code",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "renderbackend",
+      "community": 0,
+      "norm_label": "renderbackend"
+    },
+    {
+      "label": "QString",
+      "file_type": "code",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "qstring",
+      "community": 2,
+      "norm_label": "qstring"
+    },
+    {
+      "label": "applyRenderBackend()",
+      "file_type": "code",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "app_renderbackend_applyrenderbackend",
+      "community": 0,
+      "norm_label": "applyrenderbackend()"
+    },
+    {
+      "label": "renderbackend.h",
+      "file_type": "code",
+      "source_file": "app/renderbackend.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_renderbackend_h_app_renderbackend",
+      "community": 2,
+      "norm_label": "renderbackend.h"
+    },
+    {
+      "label": "RenderBackend()",
+      "file_type": "code",
+      "source_file": "app/renderbackend.h",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "app_renderbackend_renderbackend",
+      "community": 2,
+      "norm_label": "renderbackend()"
+    },
+    {
+      "label": "bench.h",
+      "file_type": "code",
+      "source_file": "bench/include/actcraft/bench/bench.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "bench_bench",
+      "community": 4,
+      "norm_label": "bench.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "bench/include/actcraft/bench/bench.h",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "bench_bench_actcraft",
+      "community": 4,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "bench/include/actcraft/bench/bench.h",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "bench_include_actcraft_bench_bench_h_namespace",
+      "community": 4,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "bench.cpp",
+      "file_type": "code",
+      "source_file": "bench/src/bench.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_bench",
+      "community": 12,
+      "norm_label": "bench.cpp"
+    },
+    {
+      "label": "moduleId()",
+      "file_type": "code",
+      "source_file": "bench/src/bench.cpp",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "src_bench_moduleid",
+      "community": 12,
+      "norm_label": "moduleid()"
+    },
+    {
+      "label": "core.h",
+      "file_type": "code",
+      "source_file": "core/include/actcraft/core/core.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "core_core",
+      "community": 5,
+      "norm_label": "core.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "core/include/actcraft/core/core.h",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "core_core_actcraft",
+      "community": 5,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "core/include/actcraft/core/core.h",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "core_include_actcraft_core_core_h_namespace",
+      "community": 5,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "core.cpp",
+      "file_type": "code",
+      "source_file": "core/src/core.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_core",
+      "community": 13,
+      "norm_label": "core.cpp"
+    },
+    {
+      "label": "moduleId()",
+      "file_type": "code",
+      "source_file": "core/src/core.cpp",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "src_core_moduleid",
+      "community": 13,
+      "norm_label": "moduleid()"
+    },
+    {
+      "label": "features.h",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/features.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "features_features",
+      "community": 6,
+      "norm_label": "features.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/features.h",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "features_features_actcraft",
+      "community": 6,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/features.h",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "features_include_actcraft_features_features_h_namespace",
+      "community": 6,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "features.cpp",
+      "file_type": "code",
+      "source_file": "features/src/features.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_features",
+      "community": 14,
+      "norm_label": "features.cpp"
+    },
+    {
+      "label": "moduleId()",
+      "file_type": "code",
+      "source_file": "features/src/features.cpp",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "src_features_moduleid",
+      "community": 14,
+      "norm_label": "moduleid()"
+    },
+    {
+      "label": "formats.h",
+      "file_type": "code",
+      "source_file": "formats/include/actcraft/formats/formats.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "formats_formats",
+      "community": 7,
+      "norm_label": "formats.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "formats/include/actcraft/formats/formats.h",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "formats_formats_actcraft",
+      "community": 7,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "formats/include/actcraft/formats/formats.h",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "formats_include_actcraft_formats_formats_h_namespace",
+      "community": 7,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "formats.cpp",
+      "file_type": "code",
+      "source_file": "formats/src/formats.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_formats",
+      "community": 15,
+      "norm_label": "formats.cpp"
+    },
+    {
+      "label": "moduleId()",
+      "file_type": "code",
+      "source_file": "formats/src/formats.cpp",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "src_formats_moduleid",
+      "community": 15,
+      "norm_label": "moduleid()"
+    },
+    {
+      "label": "input.h",
+      "file_type": "code",
+      "source_file": "input/include/actcraft/input/input.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "input_input",
+      "community": 8,
+      "norm_label": "input.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "input/include/actcraft/input/input.h",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "input_input_actcraft",
+      "community": 8,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "input/include/actcraft/input/input.h",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "input_include_actcraft_input_input_h_namespace",
+      "community": 8,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "input.cpp",
+      "file_type": "code",
+      "source_file": "input/src/input.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_input",
+      "community": 16,
+      "norm_label": "input.cpp"
+    },
+    {
+      "label": "moduleId()",
+      "file_type": "code",
+      "source_file": "input/src/input.cpp",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "src_input_moduleid",
+      "community": 16,
+      "norm_label": "moduleid()"
+    },
+    {
+      "label": "render.h",
+      "file_type": "code",
+      "source_file": "render/include/actcraft/render/render.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "render_render",
+      "community": 9,
+      "norm_label": "render.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "render/include/actcraft/render/render.h",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "render_render_actcraft",
+      "community": 9,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "render/include/actcraft/render/render.h",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "render_include_actcraft_render_render_h_namespace",
+      "community": 9,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "render.cpp",
+      "file_type": "code",
+      "source_file": "render/src/render.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_render",
+      "community": 17,
+      "norm_label": "render.cpp"
+    },
+    {
+      "label": "moduleId()",
+      "file_type": "code",
+      "source_file": "render/src/render.cpp",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "src_render_moduleid",
+      "community": 17,
+      "norm_label": "moduleid()"
+    },
+    {
+      "label": "build.ps1",
+      "file_type": "code",
+      "source_file": "scripts/build.ps1",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "scripts_build",
+      "community": 19,
+      "norm_label": "build.ps1"
+    },
+    {
+      "label": "dev-env.ps1",
+      "file_type": "code",
+      "source_file": "scripts/dev-env.ps1",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "scripts_dev_env",
+      "community": 20,
+      "norm_label": "dev-env.ps1"
+    },
+    {
+      "label": "format.ps1",
+      "file_type": "code",
+      "source_file": "scripts/format.ps1",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "scripts_format",
+      "community": 21,
+      "norm_label": "format.ps1"
+    },
+    {
+      "label": "test.ps1",
+      "file_type": "code",
+      "source_file": "scripts/test.ps1",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "scripts_test",
+      "community": 22,
+      "norm_label": "test.ps1"
+    },
+    {
+      "label": "tst_modules.cpp",
+      "file_type": "code",
+      "source_file": "tests/tst_modules.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_tst_modules",
+      "community": 1,
+      "norm_label": "tst_modules.cpp"
+    },
+    {
+      "label": "TstModules",
+      "file_type": "code",
+      "source_file": "tests/tst_modules.cpp",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "tests_tst_modules_tstmodules",
+      "community": 1,
+      "norm_label": "tstmodules"
+    },
+    {
+      "label": "QObject",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "qobject",
+      "community": 1,
+      "norm_label": "qobject"
+    },
+    {
+      "label": ".private()",
+      "file_type": "code",
+      "source_file": "tests/tst_modules.cpp",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "tests_tst_modules_tstmodules_private",
+      "community": 1,
+      "norm_label": ".private()"
+    },
+    {
+      "label": "Q_OBJECT",
+      "file_type": "code",
+      "source_file": "tests/tst_modules.cpp",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "tests_tst_modules_cpp_q_object",
+      "community": 1,
+      "norm_label": "q_object"
+    },
+    {
+      "label": "tst_renderbackend.cpp",
+      "file_type": "code",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_tst_renderbackend",
+      "community": 0,
+      "norm_label": "tst_renderbackend.cpp"
+    },
+    {
+      "label": "TstRenderBackend",
+      "file_type": "code",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "tests_tst_renderbackend_tstrenderbackend",
+      "community": 0,
+      "norm_label": "tstrenderbackend"
+    },
+    {
+      "label": ".private()",
+      "file_type": "code",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "tests_tst_renderbackend_tstrenderbackend_private",
+      "community": 0,
+      "norm_label": ".private()"
+    },
+    {
+      "label": "Q_OBJECT",
+      "file_type": "code",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "tests_tst_renderbackend_cpp_q_object",
+      "community": 0,
+      "norm_label": "q_object"
+    },
+    {
+      "label": ".softwareIsSelectable()",
+      "file_type": "code",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L22",
+      "_origin": "ast",
+      "id": "tests_tst_renderbackend_tstrenderbackend_softwareisselectable",
+      "community": 0,
+      "norm_label": ".softwareisselectable()"
+    },
+    {
+      "label": ".unknownValueIsRejected()",
+      "file_type": "code",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L32",
+      "_origin": "ast",
+      "id": "tests_tst_renderbackend_tstrenderbackend_unknownvalueisrejected",
+      "community": 0,
+      "norm_label": ".unknownvalueisrejected()"
+    },
+    {
+      "label": ".missingValueIsRejected()",
+      "file_type": "code",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L42",
+      "_origin": "ast",
+      "id": "tests_tst_renderbackend_tstrenderbackend_missingvalueisrejected",
+      "community": 0,
+      "norm_label": ".missingvalueisrejected()"
+    },
+    {
+      "label": "tst_ui.cpp",
+      "file_type": "code",
+      "source_file": "tests/tst_ui.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_tst_ui",
+      "community": 1,
+      "norm_label": "tst_ui.cpp"
+    },
+    {
+      "label": "TstUi",
+      "file_type": "code",
+      "source_file": "tests/tst_ui.cpp",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "tests_tst_ui_tstui",
+      "community": 1,
+      "norm_label": "tstui"
+    },
+    {
+      "label": ".private()",
+      "file_type": "code",
+      "source_file": "tests/tst_ui.cpp",
+      "source_location": "L12",
+      "_origin": "ast",
+      "id": "tests_tst_ui_tstui_private",
+      "community": 1,
+      "norm_label": ".private()"
+    },
+    {
+      "label": "Q_OBJECT",
+      "file_type": "code",
+      "source_file": "tests/tst_ui.cpp",
+      "source_location": "L12",
+      "_origin": "ast",
+      "id": "tests_tst_ui_cpp_q_object",
+      "community": 1,
+      "norm_label": "q_object"
+    },
+    {
+      "label": "tools.h",
+      "file_type": "code",
+      "source_file": "tools/include/actcraft/tools/tools.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tools_tools",
+      "community": 10,
+      "norm_label": "tools.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "tools/include/actcraft/tools/tools.h",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "tools_tools_actcraft",
+      "community": 10,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "tools/include/actcraft/tools/tools.h",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "tools_include_actcraft_tools_tools_h_namespace",
+      "community": 10,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "tools.cpp",
+      "file_type": "code",
+      "source_file": "tools/src/tools.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_tools",
+      "community": 18,
+      "norm_label": "tools.cpp"
+    },
+    {
+      "label": "moduleId()",
+      "file_type": "code",
+      "source_file": "tools/src/tools.cpp",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "src_tools_moduleid",
+      "community": 18,
+      "norm_label": "moduleid()"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "actions/include/actcraft/actions/actions.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "actions_actions",
+      "target": "actions_actions_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "actions/include/actcraft/actions/actions.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "actions_actions_actcraft",
+      "target": "actions_include_actcraft_actions_actions_h_namespace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "actions/src/actions.cpp",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "src_actions",
+      "target": "src_actions_moduleid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/main.cpp",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "app_main",
+      "target": "app_main_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "app/main.cpp",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "app_main_main",
+      "target": "app_renderbackend_applyrenderbackend"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "app/main.cpp",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "app_main_main",
+      "target": "app_renderbackend_parserenderbackend"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "app_renderbackend_cpp_app_renderbackend",
+      "target": "app_renderbackend_applyrenderbackend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "app_renderbackend_cpp_app_renderbackend",
+      "target": "app_renderbackend_cpp_app_renderbackend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "app_renderbackend_cpp_app_renderbackend",
+      "target": "app_renderbackend_parserenderbackend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L6",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "app_renderbackend_parserenderbackend",
+      "target": "qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L6",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "app_renderbackend_parserenderbackend",
+      "target": "qstringlist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L6",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "app_renderbackend_parserenderbackend",
+      "target": "renderbackend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "app/renderbackend.cpp",
+      "source_location": "L35",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "app_renderbackend_applyrenderbackend",
+      "target": "renderbackend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/renderbackend.h",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "app_renderbackend_h_app_renderbackend",
+      "target": "app_renderbackend_renderbackend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/renderbackend.h",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "app_renderbackend_h_app_renderbackend",
+      "target": "qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/renderbackend.h",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "app_renderbackend_h_app_renderbackend",
+      "target": "qstringlist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "bench/include/actcraft/bench/bench.h",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "bench_bench",
+      "target": "bench_bench_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "bench/include/actcraft/bench/bench.h",
+      "source_location": "L5",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "bench_bench_actcraft",
+      "target": "bench_include_actcraft_bench_bench_h_namespace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "bench/src/bench.cpp",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "src_bench",
+      "target": "src_bench_moduleid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core/include/actcraft/core/core.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "core_core",
+      "target": "core_core_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "core/include/actcraft/core/core.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "core_core_actcraft",
+      "target": "core_include_actcraft_core_core_h_namespace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core/src/core.cpp",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "src_core",
+      "target": "src_core_moduleid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/features.h",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "features_features",
+      "target": "features_features_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/features.h",
+      "source_location": "L5",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "features_features_actcraft",
+      "target": "features_include_actcraft_features_features_h_namespace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/features.cpp",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "src_features",
+      "target": "src_features_moduleid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "formats/include/actcraft/formats/formats.h",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "formats_formats",
+      "target": "formats_formats_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "formats/include/actcraft/formats/formats.h",
+      "source_location": "L5",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "formats_formats_actcraft",
+      "target": "formats_include_actcraft_formats_formats_h_namespace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "formats/src/formats.cpp",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "src_formats",
+      "target": "src_formats_moduleid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "input/include/actcraft/input/input.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "input_input",
+      "target": "input_input_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "input/include/actcraft/input/input.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "input_input_actcraft",
+      "target": "input_include_actcraft_input_input_h_namespace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "input/src/input.cpp",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "src_input",
+      "target": "src_input_moduleid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "render/include/actcraft/render/render.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "render_render",
+      "target": "render_render_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "render/include/actcraft/render/render.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "render_render_actcraft",
+      "target": "render_include_actcraft_render_render_h_namespace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "render/src/render.cpp",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "src_render",
+      "target": "src_render_moduleid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_modules.cpp",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "tests_tst_modules",
+      "target": "tests_tst_modules_tstmodules",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_modules.cpp",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "tests_tst_modules_tstmodules",
+      "target": "qobject",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_modules.cpp",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "tests_tst_modules_tstmodules",
+      "target": "tests_tst_modules_tstmodules_private",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_modules.cpp",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "tests_tst_modules_tstmodules_private",
+      "target": "tests_tst_modules_cpp_q_object",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "tests_tst_renderbackend",
+      "target": "renderbackend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "tests_tst_renderbackend",
+      "target": "tests_tst_renderbackend_tstrenderbackend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "tests_tst_renderbackend_tstrenderbackend",
+      "target": "qobject",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "tests_tst_renderbackend_tstrenderbackend",
+      "target": "tests_tst_renderbackend_tstrenderbackend_missingvalueisrejected",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "tests_tst_renderbackend_tstrenderbackend",
+      "target": "tests_tst_renderbackend_tstrenderbackend_private",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "tests_tst_renderbackend_tstrenderbackend",
+      "target": "tests_tst_renderbackend_tstrenderbackend_softwareisselectable",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "tests_tst_renderbackend_tstrenderbackend",
+      "target": "tests_tst_renderbackend_tstrenderbackend_unknownvalueisrejected",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "tests_tst_renderbackend_tstrenderbackend_private",
+      "target": "app_renderbackend_parserenderbackend"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L7",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "tests_tst_renderbackend_tstrenderbackend_private",
+      "target": "tests_tst_renderbackend_cpp_q_object",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "tests_tst_renderbackend_tstrenderbackend_softwareisselectable",
+      "target": "app_renderbackend_parserenderbackend"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "tests_tst_renderbackend_tstrenderbackend_unknownvalueisrejected",
+      "target": "app_renderbackend_parserenderbackend"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_renderbackend.cpp",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "tests_tst_renderbackend_tstrenderbackend_missingvalueisrejected",
+      "target": "app_renderbackend_parserenderbackend"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_ui.cpp",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "tests_tst_ui",
+      "target": "tests_tst_ui_tstui",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_ui.cpp",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "tests_tst_ui_tstui",
+      "target": "qobject",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_ui.cpp",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "tests_tst_ui_tstui",
+      "target": "tests_tst_ui_tstui_private",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_ui.cpp",
+      "source_location": "L12",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "tests_tst_ui_tstui_private",
+      "target": "tests_tst_ui_cpp_q_object",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tools/include/actcraft/tools/tools.h",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "tools_tools",
+      "target": "tools_tools_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "tools/include/actcraft/tools/tools.h",
+      "source_location": "L5",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "tools_tools_actcraft",
+      "target": "tools_include_actcraft_tools_tools_h_namespace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tools/src/tools.cpp",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "src_tools",
+      "target": "src_tools_moduleid",
+      "confidence_score": 1.0
+    }
+  ],
+  "hyperedges": []
+}

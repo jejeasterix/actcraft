@@ -1,0 +1,20 @@
+# Construction
+build/
+out/
+CMakeUserPresets.json
+*.user
+
+# Éditeurs
+.vs/
+.vscode/
+.idea/
+
+# Agents et outils locaux
+.worktrees/
+.claude/worktrees/
+.claude/settings.local.json
+.playwright-mcp/
+.tmp/
+
+# Résultats du banc (seuls les résumés commités dans docs/ font foi)
+bench/results/

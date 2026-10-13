@@ -1,0 +1,28 @@
+# Tout le texte en LF, sur toutes les plateformes.
+* text=auto eol=lf
+
+# Scripts Windows : CRLF exigé par cmd.exe.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binaires
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.flipchart binary
+
+# Graphe graphify : réécrit en entier à chaque mise à jour.
+# graph.json est fusionné par le pilote graphify (union des nœuds et des arêtes), à configurer une fois :
+#   git config merge.graphify.name "graphify graph.json union merge"
+#   git config merge.graphify.driver "<chemin>/graphify.exe merge-driver %O %A %B"
+# Les autres fichiers de graphify-out/ sont dérivés : on garde ceux de la branche courante,
+# puis `graphify update .` les remet d'aplomb (OBLIGATOIRE après un merge).
+graphify-out/graph.json merge=graphify
+graphify-out/GRAPH_REPORT.md merge=ours
+graphify-out/manifest.json merge=ours
+graphify-out/cost.json merge=ours
+graphify-out/cache/** merge=ours

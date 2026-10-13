@@ -1,0 +1,217 @@
+{
+  "C:\\Users\\JeromeDenis\\ActCraft\\CMakePresets.json": {
+    "mtime": 1791904843.4844334,
+    "ast_hash": "6e3d529b5f3a519f0a3340959e7749b3",
+    "semantic_hash": "6e3d529b5f3a519f0a3340959e7749b3"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\actions\\include\\actcraft\\actions\\actions.h": {
+    "mtime": 1791905039.825095,
+    "ast_hash": "6fa043705991b7b021e908d785bf2182",
+    "semantic_hash": "6fa043705991b7b021e908d785bf2182"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\actions\\src\\actions.cpp": {
+    "mtime": 1791904782.0798662,
+    "ast_hash": "29ffe8911a9743bf8333b0eddac5c418",
+    "semantic_hash": "29ffe8911a9743bf8333b0eddac5c418"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\app\\main.cpp": {
+    "mtime": 1791904809.1978471,
+    "ast_hash": "9f2f1b0ed788adcde0a29c12c3d7f446",
+    "semantic_hash": "9f2f1b0ed788adcde0a29c12c3d7f446"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\app\\renderbackend.cpp": {
+    "mtime": 1791904804.4252532,
+    "ast_hash": "c17e20d3715025b9fb7322bfe7531a30",
+    "semantic_hash": "c17e20d3715025b9fb7322bfe7531a30"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\app\\renderbackend.h": {
+    "mtime": 1791904799.984534,
+    "ast_hash": "4aec64051a928794dca5db75717de284",
+    "semantic_hash": "4aec64051a928794dca5db75717de284"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\bench\\include\\actcraft\\bench\\bench.h": {
+    "mtime": 1791904782.169488,
+    "ast_hash": "89e14cf56a643a6bbbb8daa5855c0be6",
+    "semantic_hash": "89e14cf56a643a6bbbb8daa5855c0be6"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\bench\\src\\bench.cpp": {
+    "mtime": 1791904782.1724875,
+    "ast_hash": "0d36c62d78da0c04cef52cec057e1e9c",
+    "semantic_hash": "0d36c62d78da0c04cef52cec057e1e9c"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\core\\include\\actcraft\\core\\core.h": {
+    "mtime": 1791905039.8654726,
+    "ast_hash": "1cda018aff45afbd037156bf003cb138",
+    "semantic_hash": "1cda018aff45afbd037156bf003cb138"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\core\\src\\core.cpp": {
+    "mtime": 1791904782.046796,
+    "ast_hash": "cd6a6999f9c4b3adcb8655d540d2ecac",
+    "semantic_hash": "cd6a6999f9c4b3adcb8655d540d2ecac"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\features\\include\\actcraft\\features\\features.h": {
+    "mtime": 1791904782.1504345,
+    "ast_hash": "8147592e24faeb17da171a9d7e508652",
+    "semantic_hash": "8147592e24faeb17da171a9d7e508652"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\features\\src\\features.cpp": {
+    "mtime": 1791904782.1534333,
+    "ast_hash": "58f02fdda6f72ae4c31eb163061551d1",
+    "semantic_hash": "58f02fdda6f72ae4c31eb163061551d1"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\formats\\include\\actcraft\\formats\\formats.h": {
+    "mtime": 1791904782.0588684,
+    "ast_hash": "e573c682a036adbdf25e1f573b650462",
+    "semantic_hash": "e573c682a036adbdf25e1f573b650462"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\formats\\src\\formats.cpp": {
+    "mtime": 1791904782.061865,
+    "ast_hash": "799b6354829072bf082742bf96485f46",
+    "semantic_hash": "799b6354829072bf082742bf96485f46"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\input\\include\\actcraft\\input\\input.h": {
+    "mtime": 1791905039.902522,
+    "ast_hash": "5d208faa8701721aeb1487e620b7ca44",
+    "semantic_hash": "5d208faa8701721aeb1487e620b7ca44"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\input\\src\\input.cpp": {
+    "mtime": 1791904782.0968678,
+    "ast_hash": "5e486d6596c1235dfb886955de70d1b0",
+    "semantic_hash": "5e486d6596c1235dfb886955de70d1b0"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\render\\include\\actcraft\\render\\render.h": {
+    "mtime": 1791905039.9185781,
+    "ast_hash": "8d1369407e49c3d4d5a1f9539a36c2da",
+    "semantic_hash": "8d1369407e49c3d4d5a1f9539a36c2da"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\render\\src\\render.cpp": {
+    "mtime": 1791904782.1188624,
+    "ast_hash": "75780d09a6988f9ee3dc2364853f146a",
+    "semantic_hash": "75780d09a6988f9ee3dc2364853f146a"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\scripts\\build.ps1": {
+    "mtime": 1791904852.7228565,
+    "ast_hash": "a4474fd7c4bb634386ef579bf57cc092",
+    "semantic_hash": "a4474fd7c4bb634386ef579bf57cc092"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\scripts\\dev-env.ps1": {
+    "mtime": 1791905135.4164498,
+    "ast_hash": "1ae5f39633e3beac9976983e8e97f03c",
+    "semantic_hash": "1ae5f39633e3beac9976983e8e97f03c"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\scripts\\format.ps1": {
+    "mtime": 1791904881.9051325,
+    "ast_hash": "06b2b3178410386654aff4c64074795a",
+    "semantic_hash": "06b2b3178410386654aff4c64074795a"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\scripts\\test.ps1": {
+    "mtime": 1791904856.403358,
+    "ast_hash": "f4e11c038ee987d98811c91a233601bd",
+    "semantic_hash": "f4e11c038ee987d98811c91a233601bd"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\tests\\tst_modules.cpp": {
+    "mtime": 1791904824.009121,
+    "ast_hash": "f4032ffdf8f31d8dd2823da6bad58c19",
+    "semantic_hash": "f4032ffdf8f31d8dd2823da6bad58c19"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\tests\\tst_renderbackend.cpp": {
+    "mtime": 1791905039.9441283,
+    "ast_hash": "d7c3bc271c2913713dd8da2a8a9169b4",
+    "semantic_hash": "d7c3bc271c2913713dd8da2a8a9169b4"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\tests\\tst_ui.cpp": {
+    "mtime": 1791904832.2744167,
+    "ast_hash": "3df93ecdf1c3c8d4091644a6ec4fcc3e",
+    "semantic_hash": "3df93ecdf1c3c8d4091644a6ec4fcc3e"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\tools\\include\\actcraft\\tools\\tools.h": {
+    "mtime": 1791904782.134894,
+    "ast_hash": "294bb357a9a03231a8963844bcdb6fb8",
+    "semantic_hash": "294bb357a9a03231a8963844bcdb6fb8"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\tools\\src\\tools.cpp": {
+    "mtime": 1791904782.1374385,
+    "ast_hash": "3b8b54666cd28fa2f8c61aaad684512e",
+    "semantic_hash": "3b8b54666cd28fa2f8c61aaad684512e"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\.github\\workflows\\ci.yml": {
+    "mtime": 1791904895.7641132,
+    "ast_hash": "70f4772ecb8da3f1a4da3294b619a379",
+    "semantic_hash": "70f4772ecb8da3f1a4da3294b619a379"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\CLAUDE.md": {
+    "mtime": 1791905235.3573346,
+    "ast_hash": "595416dc34ae03aabb8a61204e99ea91",
+    "semantic_hash": "595416dc34ae03aabb8a61204e99ea91"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\CMakeLists.txt": {
+    "mtime": 1791904740.7604434,
+    "ast_hash": "5794fdb7740d7f2c6dd516ab2fdf2c24",
+    "semantic_hash": "5794fdb7740d7f2c6dd516ab2fdf2c24"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\README.md": {
+    "mtime": 1791905340.7234073,
+    "ast_hash": "3c7ad6c89b107024390696e35d442a4c",
+    "semantic_hash": "3c7ad6c89b107024390696e35d442a4c"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\actions\\CMakeLists.txt": {
+    "mtime": 1791904782.0728662,
+    "ast_hash": "c88a27e48cacb664def078affb89e6bf",
+    "semantic_hash": "c88a27e48cacb664def078affb89e6bf"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\app\\CMakeLists.txt": {
+    "mtime": 1791904797.8886414,
+    "ast_hash": "b6d4bd7ef1934a9d52e8f3e587304a73",
+    "semantic_hash": "b6d4bd7ef1934a9d52e8f3e587304a73"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\bench\\CMakeLists.txt": {
+    "mtime": 1791904782.16749,
+    "ast_hash": "c1169bd4558cd3b0ad399be829f4bd3c",
+    "semantic_hash": "c1169bd4558cd3b0ad399be829f4bd3c"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\core\\CMakeLists.txt": {
+    "mtime": 1791905094.8906102,
+    "ast_hash": "c681a7f099c318a2700b574f95617583",
+    "semantic_hash": "c681a7f099c318a2700b574f95617583"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\docs\\BRIEF.md": {
+    "mtime": 1791904936.984051,
+    "ast_hash": "2ac74c0d8de004128a96a86819e49e62",
+    "semantic_hash": "2ac74c0d8de004128a96a86819e49e62"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\features\\CMakeLists.txt": {
+    "mtime": 1791904782.1474352,
+    "ast_hash": "8b6e4f0226e7a099371c53e7f90b6aa1",
+    "semantic_hash": "8b6e4f0226e7a099371c53e7f90b6aa1"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\formats\\CMakeLists.txt": {
+    "mtime": 1791904782.055839,
+    "ast_hash": "25fd5571876d90e1b86391c086bb53ae",
+    "semantic_hash": "25fd5571876d90e1b86391c086bb53ae"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\input\\CMakeLists.txt": {
+    "mtime": 1791904782.0908659,
+    "ast_hash": "e2752a6453f910d3de05e801e8e2d5a4",
+    "semantic_hash": "e2752a6453f910d3de05e801e8e2d5a4"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\render\\CMakeLists.txt": {
+    "mtime": 1791904782.1088715,
+    "ast_hash": "0e823b8aa5c6672029eed427ed2283c2",
+    "semantic_hash": "0e823b8aa5c6672029eed427ed2283c2"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\tests\\CMakeLists.txt": {
+    "mtime": 1791904820.020521,
+    "ast_hash": "ae27389a77918a74ac3530e92655309c",
+    "semantic_hash": "ae27389a77918a74ac3530e92655309c"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\tools\\CMakeLists.txt": {
+    "mtime": 1791904782.1318932,
+    "ast_hash": "8ef5b5c63ba7321477c2aa727709ca2a",
+    "semantic_hash": "8ef5b5c63ba7321477c2aa727709ca2a"
+  },
+  "C:\\Users\\JeromeDenis\\ActCraft\\ui\\CMakeLists.txt": {
+    "mtime": 1791904790.9873028,
+    "ast_hash": "a46ae75deaf0de66691b65ef42b45410",
+    "semantic_hash": "a46ae75deaf0de66691b65ef42b45410"
+  }
+}
