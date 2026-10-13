@@ -45,7 +45,20 @@ s'ouvrir sur l'écran principal (1920 × 1080, 4 moniteurs).
 
 À partir de l'étape 1 du BRIEF : toute tâche qui touche `render/`, `input/`, `tools/` ou `ui/` passe au banc
 (preset `release`) ; un dépassement du budget du BRIEF § 3 (60 images/s, latence d'encre < 20 ms) refuse la
-tâche. Commande à écrire avec le banc.
+tâche.
+
+- Commande : `pwsh -NoProfile -File ./scripts/bench.ps1` (release ; D3D11 puis logiciel ; plein écran sur
+  l'écran principal ; JSON dans `bench/results/`). Dernière ligne : `BUDGET TENU` (0), `BUDGET DEPASSE` (1),
+  `MESURE INVALIDE` (2) ; code de sortie = verdict du rendu par défaut (d3d11). Options : `-Rendu
+  d3d11|logiciel|tous`, `-SansCache`, `-Captures <dossier>`, `-Scenario complet|court`, `-Taille
+  plein-ecran|LxH`, `-HorsEcran`, `-SansConstruire`.
+- Forme bornée : `pwsh -NoProfile -File ./scripts/bench.ps1 > .tmp/bench.txt 2>&1 ; Select-String -Path
+  .tmp/bench.txt -Pattern 'BUDGET (TENU|DEPASSE)|MESURE INVALIDE' | Select-Object -Last 1`
+- Preuve de tâche sans écran (aucune fenêtre visible) : ajouter `-Rendu logiciel -Scenario court -Taille
+  1280x800 -HorsEcran`. Un passage en plein écran se joue sous le jeton `ecran`, annoncé d'une ligne à Jérôme.
+- macOS : `scripts/bench.sh` (`--rendu auto|logiciel|tous`, `--sans-cache`, `--captures`, `--hors-ecran`).
+- Paquet pour le Dell 3510 : `pwsh -NoProfile -File ./scripts/paquet-banc.ps1` (zip local dans
+  `build/paquet-banc/`, jamais publié). Procédure : `docs/banc.md`.
 
 **Pendant le chantier `prototype-mesure`** (décision 38 du cadrage
 `docs/specs/2026-10-13-prototype-mesure-cadrage.md`, hypothèse N1-10) : le verdict du banc est un
