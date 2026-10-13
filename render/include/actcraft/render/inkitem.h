@@ -37,6 +37,10 @@ public:
     // logiciel et ce chemin n'y est jamais appelé.
     static void syncRhiBlocks(QSGNode* root, const InkBuffer& buffer);
 
+    // Segments d'encre peints par le chemin logiciel depuis le lancement, tous éléments confondus : borne le
+    // travail d'une image (tests, banc).
+    static std::uint64_t softwareSegmentsPainted() noexcept;
+
 protected:
     QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData* data) override;
 
