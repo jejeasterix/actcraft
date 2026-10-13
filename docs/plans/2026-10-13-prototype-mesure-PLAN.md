@@ -668,7 +668,7 @@ Set-Location <worktree>; pwsh -NoProfile -File ./scripts/format.ps1
 Set-Location <worktree>; git add tests/verifications.cmake tests/tst_qt_verifications.cpp docs/verifications/2026-10-13-qt612.md
 git -C <worktree> commit -m "Vérifications de Qt 6.12 : nœud logiciel, couche logicielle, tablette" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
-Le rapport donne les cinq valeurs `VERIF` sur ses trois premières lignes.
+Le rapport donne les cinq valeurs `VERIF` dans ses premières lignes.
 
 ---
 
@@ -5024,7 +5024,8 @@ bool open(Fixture& f)
     if (!QTest::qWaitForWindowExposed(&f.window)) {
         return false;
     }
-    // Pas de QML ici : le test termine lui-même les redessins demandés à l'ouverture.
+    // Pas de QML ici : le test termine lui-même les redessins demandés à l'ouverture (chaque fin peut en
+    // relancer un, d'où la boucle bornée).
     for (int i = 0; i < 5 && !f.view->cacheReady(); ++i) {
         f.view->notifyCacheUpdated();
     }
@@ -5119,13 +5120,14 @@ private slots:
         QVERIFY(open(f));
         QSignalSpy refresh(f.view, &PageView::cacheRefreshRequested);
         f.view->requestCacheRefresh();
-        f.view->requestCacheRefresh(); // pendant le premier redessin
-        QCOMPARE(refresh.count(), 1);
-        f.view->notifyCacheUpdated(); // fin du premier : déjà périmé
-        QVERIFY(!f.view->cacheReady());
+        f.view->requestCacheRefresh(); // pendant le premier redessin : émise tout de suite quand même
         QCOMPARE(refresh.count(), 2);
+        f.view->notifyCacheUpdated(); // fin d'un redessin peut-être antérieur à la seconde demande
+        QVERIFY(!f.view->cacheReady());
+        QCOMPARE(refresh.count(), 3);  // un redessin de plus
         f.view->notifyCacheUpdated();
         QVERIFY(f.view->cacheReady());
+        QCOMPARE(refresh.count(), 3);
     }
 
     void cacheUpdatedSignalMakesReady()
@@ -5360,8 +5362,10 @@ public:
 
     Q_INVOKABLE void fitPage();
     // Demande un redessin du cache (QML : cache.scheduleUpdate()) ; sans cache, « prêt » tout de suite.
-    // Un seul redessin à la fois : une demande reçue pendant un redessin en relance un à sa fin, et cacheReady
-    // ne redevient vrai qu'une fois la dernière demande servie.
+    // La demande part toujours tout de suite (un trait figé n'attend pas, décision 10). Si elle arrive pendant
+    // un redessin, la fin de celui-ci en relance un autre : cacheReady ne redevient vrai qu'après un redessin
+    // commencé après la dernière demande. Une demande perdue (QML pas encore branché) est rattrapée par la
+    // suivante.
     Q_INVOKABLE void requestCacheRefresh();
     // QML : appelé sur ShaderEffectSource.scheduledUpdateCompleted.
     Q_INVOKABLE void notifyCacheUpdated();
@@ -5396,7 +5400,7 @@ private:
     bool m_cacheEnabled = true;
     bool m_cacheReady = false;
     bool m_refreshInFlight = false; // un redessin du cache est demandé et pas encore terminé
-    bool m_refreshAgain = false;    // une demande est arrivée pendant ce redessin
+    bool m_refreshAgain = false;    // une demande est arrivée pendant ce redessin : en refaire un à sa fin
     QSize m_cacheTextureSize;
     QTimer m_cacheTimer;
     QList<const QInputDevice*> m_exclusive;
@@ -5533,21 +5537,21 @@ void PageView::requestCacheRefresh()
     }
     setCacheReady(false);
     if (m_refreshInFlight) {
-        m_refreshAgain = true; // servi à la fin du redessin en cours
-        return;
+        m_refreshAgain = true; // la fin du redessin en cours ne suffira pas
     }
     m_refreshInFlight = true;
-    emit cacheRefreshRequested();
+    emit cacheRefreshRequested(); // toujours tout de suite (décision 10)
 }
 
 void PageView::notifyCacheUpdated()
 {
-    m_refreshInFlight = false;
     if (m_refreshAgain) {
+        // Ce redessin a pu commencer avant la dernière demande : un de plus garantit l'état final.
         m_refreshAgain = false;
-        requestCacheRefresh(); // l'image qui vient d'être dessinée précède la dernière demande
+        emit cacheRefreshRequested();
         return;
     }
+    m_refreshInFlight = false;
     setCacheReady(true);
     emit cacheUpdated();
 }
@@ -5850,6 +5854,8 @@ private:
 
         // Décision 10 : entre le relâché et le cache redessiné, aucune image ne doit perdre le trait
         // (encre vidée et trait versé à la page fixe dans le même tour de boucle).
+        // Limite : grabWindow() synchronise et dessine sa propre image ; on vérifie l'état de la scène après
+        // chaque lot d'événements traité, pas l'image réellement présentée à l'écran.
         QSignalSpy swapped(app.window, &QQuickWindow::frameSwapped);
         post(app, QEvent::TabletRelease, QPointF(500, 670), 0.0, Qt::LeftButton, Qt::NoButton);
         QElapsedTimer clock;
@@ -6377,6 +6383,9 @@ Window {
         content: pageContent
         fixedPage: fixedPageItem
         ink: inkLayer
+        // Branché dès la création de la vue (un bloc Connections déclaré plus bas ne l'est qu'en fin de
+        // composant et perdrait les premières demandes).
+        onCacheRefreshRequested: cache.scheduleUpdate()
 
         // Page au format d'un paperboard (1024 × 768), transformée par la vue.
         Item {
@@ -6410,13 +6419,6 @@ Window {
                 objectName: "ink"
                 anchors.fill: parent
             }
-        }
-    }
-
-    Connections {
-        target: view
-        function onCacheRefreshRequested() {
-            cache.scheduleUpdate()
         }
     }
 
@@ -10863,8 +10865,8 @@ mesuré mais informatif.
 | Latence interne d'encre, p50 | < 20 ms |
 | Pic de mémoire privée + pic de mémoire graphique | ≤ 1 Gio |
 
-Un intervalle n'est « actif » que si une entrée a été postée depuis l'image précédente, au plus 2 périodes d'écran
-après elle : les pauses du stylo et l'attente des redessins ne comptent pas. Un passage est invalide si la
+Un intervalle n'est « actif » que si une entrée y était prévue depuis l'image précédente, au plus 2 périodes
+d'écran après elle (instant prévu, pas instant d'envoi : un fil principal bloqué ne masque pas son retard) : les pauses du stylo et l'attente des redessins ne comptent pas. Un passage est invalide si la
 construction n'est pas `release`, si la fenêtre perd son exposition, si un contrôle de contenu échoue, ou sur
 erreur ; les scripts relancent une fois un passage invalide.
 
