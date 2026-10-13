@@ -47,6 +47,13 @@ s'ouvrir sur l'écran principal (1920 × 1080, 4 moniteurs).
 (preset `release`) ; un dépassement du budget du BRIEF § 3 (60 images/s, latence d'encre < 20 ms) refuse la
 tâche. Commande à écrire avec le banc.
 
+**Pendant le chantier `prototype-mesure`** (décision 38 du cadrage
+`docs/specs/2026-10-13-prototype-mesure-cadrage.md`, hypothèse N1-10) : le verdict du banc est un
+**résultat, pas une porte**. Les tâches antérieures au banc sont validées par leurs tests seuls ; les tâches postérieures
+passent au banc et joignent le JSON, sans refus sur dépassement. Un `BUDGET DEPASSE` produit un rapport chiffré
+(critère, valeur, seuil, scénario) et une hypothèse N1 pour Jérôme, sans bloquer le merge. La règle de refus
+ci-dessus s'applique après la décision go / no-go de l'étape 2 du BRIEF.
+
 ## Sources du cadrage (après le coffre)
 
 1. `docs/BRIEF.md` (document maître) et `CLAUDE.md`

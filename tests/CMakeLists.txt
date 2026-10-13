@@ -23,3 +23,13 @@ target_include_directories(tst_renderbackend PRIVATE ${PROJECT_SOURCE_DIR}/app)
 actcraft_add_test(tst_ui
     SOURCES tst_ui.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+# Un fichier par module : deux tâches parallèles ne modifient pas le même fichier.
+# Chaque test y est déclaré par actcraft_add_test (fonction ci-dessus).
+include(${CMAKE_CURRENT_SOURCE_DIR}/verifications.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/core.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/render.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/input.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/tools.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/ui.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/bench.cmake)

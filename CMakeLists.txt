@@ -10,6 +10,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Mesures du banc en RelWithDebInfo : MSVC y met /Ob1 (inlining limité) ; /Ob2 comme en Release
+# (décision 28 du cadrage du prototype de mesure). Clang garde ses options.
+if(MSVC)
+    string(REPLACE "/Ob1" "/Ob2" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+endif()
+
+# Mémoire graphique de Metal (bench/) : Objective-C++.
+if(APPLE)
+    enable_language(OBJCXX)
+endif()
+
 option(ACTCRAFT_BUILD_TESTS "Construire les tests" ON)
 option(ACTCRAFT_BUILD_BENCH "Construire le banc de fluidité" ON)
 
