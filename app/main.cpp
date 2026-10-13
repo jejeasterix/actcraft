@@ -1,4 +1,5 @@
 #include "renderbackend.h"
+#include "startup.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -29,7 +30,9 @@ int main(int argc, char* argv[])
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] { QCoreApplication::exit(1); },
         Qt::QueuedConnection);
-    engine.loadFromModule("ActCraft.Ui", "Main");
+    if (!loadMainWindow(engine, parseStartupOptions(args))) {
+        return 1;
+    }
 
     // `--quitter-apres <ms>` : fermeture automatique, pour les essais de démarrage et le banc.
     const qsizetype quitIndex = args.indexOf(QStringLiteral("--quitter-apres"));
