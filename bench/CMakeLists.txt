@@ -14,6 +14,9 @@ actcraft_add_module(bench
         src/memory.cpp
         src/machineinfo.cpp
         src/result.cpp
+        include/actcraft/bench/injector.h
+        src/scenarios.cpp
+        src/injector.cpp
         ${_bench_gpu_source}
     DEPENDS
         ActCraft::core ActCraft::render Qt6::Quick)

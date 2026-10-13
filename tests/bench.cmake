@@ -14,3 +14,11 @@ actcraft_add_test(tst_bench_json
 actcraft_add_test(tst_bench_memory
     SOURCES tst_bench_memory.cpp
     LIBS ActCraft::bench Qt6::Quick)
+
+actcraft_add_test(tst_bench_scenarios
+    SOURCES tst_bench_scenarios.cpp
+    LIBS ActCraft::bench ActCraft::ui)
+
+actcraft_add_test(tst_bench_injector
+    SOURCES tst_bench_injector.cpp
+    LIBS ActCraft::bench Qt6::Gui)
