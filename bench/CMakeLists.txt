@@ -2,5 +2,6 @@
 actcraft_add_module(bench
     SOURCES
         src/bench.cpp
+        src/stats.cpp
     DEPENDS
         ActCraft::core ActCraft::render Qt6::Quick)
