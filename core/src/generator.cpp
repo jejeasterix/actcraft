@@ -1,6 +1,8 @@
 #include <actcraft/core/generator.h>
 
 #include <array>
+#include <cassert>
+#include <limits>
 
 namespace actcraft::core {
 
@@ -11,6 +13,7 @@ std::uint32_t PortableRng::next()
 
 std::uint32_t PortableRng::below(std::uint32_t n)
 {
+    assert(n > 0 && "below(0) : intervalle vide");
     const std::uint64_t range = 1ull << 32;
     const std::uint64_t limit = range - range % n;
     std::uint64_t x = 0;
@@ -22,7 +25,13 @@ std::uint32_t PortableRng::below(std::uint32_t n)
 
 std::int32_t PortableRng::between(std::int32_t lo, std::int32_t hi)
 {
-    return lo + static_cast<std::int32_t>(below(static_cast<std::uint32_t>(hi - lo + 1)));
+    assert(lo <= hi && "between(lo, hi) : hi < lo");
+    // Calcul sur 64 bits : hi - lo + 1 va de 1 à 2^32 et déborderait sur 32 bits.
+    const std::int64_t span = std::int64_t{hi} - std::int64_t{lo} + 1;
+    const std::uint32_t offset = span > std::int64_t{std::numeric_limits<std::uint32_t>::max()}
+                                     ? next() // plage entière : chaque tirage brut est déjà uniforme
+                                     : below(static_cast<std::uint32_t>(span));
+    return static_cast<std::int32_t>(std::int64_t{lo} + offset);
 }
 
 namespace {
@@ -130,8 +139,10 @@ ImageObject makeImage(PortableRng& rng)
     image.sourceHeight = rng.between(16, 64) * 16;
     const std::int32_t dw = rng.between(48, 240);
     std::int32_t dh = dw * image.sourceHeight / image.sourceWidth;
-    // Proportions gardées, hauteur bornée : une image haute (256 × 1024) donnerait jusqu'à 960 px > 768,
-    // et between(0, (768 − dh) × 16) recevrait une borne négative.
+    // Hauteur proportionnelle à la largeur affichée, tronquée à l'entier, puis bornée à [16, 752] px : une
+    // image haute (256 × 1024) donnerait jusqu'à 960 px > 768, et between(0, (768 − dh) × 16) recevrait une
+    // borne négative. Le plancher et le plafond déforment alors l'image ; la troncature l'écrase de moins
+    // d'un pixel.
     if (dh < 16) {
         dh = 16;
     } else if (dh > 768 - 16) {

@@ -22,9 +22,10 @@ public:
     explicit PortableRng(std::uint32_t seed) : m_engine(seed) {}
 
     std::uint32_t next();
-    // Entier uniforme dans [0, n), n > 0 : x mod n après rejet des x >= 2^32 - (2^32 mod n).
+    // Entier uniforme dans [0, n) : x mod n après rejet des x >= 2^32 - (2^32 mod n). Exige n > 0 (assert).
     std::uint32_t below(std::uint32_t n);
-    // Entier uniforme dans [lo, hi] (bornes incluses).
+    // Entier uniforme dans [lo, hi] (bornes incluses), toute la plage de int32 comprise. Exige lo <= hi
+    // (assert).
     std::int32_t between(std::int32_t lo, std::int32_t hi);
 
 private:

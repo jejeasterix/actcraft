@@ -65,9 +65,10 @@ private slots:
         QVERIFY(fingerprint(d) != reference);
     }
 
-    // Valeurs calculées hors C++ (implémentation indépendante en Python : FNV-1a 64 bits sur les octets
-    // petit-boutistes, dans l'ordre de model.cpp). std::hash, un memcpy des structures (pointeurs, bourrage)
-    // ou un autre ordre d'octets donneraient d'autres valeurs, et pas les mêmes sous MSVC et sous Clang.
+    // Valeurs calculées hors C++, à partir du format seul : FNV-1a 64 bits (base 0xCBF29CE484222325,
+    // multiplicateur 0x100000001B3) sur les octets petit-boutistes des champs, dans l'ordre de model.cpp.
+    // std::hash, un memcpy des structures (pointeurs, bourrage) ou un autre ordre d'octets donneraient
+    // d'autres valeurs, et pas les mêmes sous MSVC et sous Clang.
     void fingerprintMatchesIndependentReference()
     {
         QCOMPARE(fingerprint(Page{}), std::uint64_t{0xD93C4EE35CD928ADull});
