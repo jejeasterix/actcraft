@@ -64,3 +64,16 @@ jobs:
 
       - name: Tester
         run: ctest --preset debug
+
+      # N1-8 : premier contact avec Metal ; informatif, ne bloque jamais la CI.
+      - name: Banc sur la plateforme native (informatif)
+        if: runner.os == 'macOS'
+        continue-on-error: true
+        run: |
+          set +e
+          if [ ! -x ./build/debug/actcraft-bench ]; then
+            echo "actcraft-bench introuvable dans build/debug :"; ls build/debug; exit 1
+          fi
+          ./build/debug/actcraft-bench --scenario court --rendu auto --taille 1280x800 --sortie "$RUNNER_TEMP/bench-macos.json"
+          echo "code de sortie du banc : $?"
+          python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print('graphics_api =', d['graphics_api'])" "$RUNNER_TEMP/bench-macos.json"

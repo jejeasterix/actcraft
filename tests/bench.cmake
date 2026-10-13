@@ -36,3 +36,37 @@ target_include_directories(tst_bench_verdict PRIVATE ${PROJECT_SOURCE_DIR}/app)
 actcraft_add_test(tst_bench_content
     SOURCES tst_bench_content.cpp
     LIBS ActCraft::bench)
+
+# Fumée du banc (décision 33) : sans actcraft_add_test pour le lancement, qui construit son propre exécutable.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(_bench_smoke_expected "2")
+    set(_bench_smoke_valid 0)
+else()
+    set(_bench_smoke_expected "0,1")
+    set(_bench_smoke_valid 1)
+endif()
+set(_bench_smoke_json ${CMAKE_BINARY_DIR}/bench-smoke.json)
+
+# Efface le JSON avant la fumée : jamais de résultat périmé.
+add_test(NAME bench_smoke_setup COMMAND ${CMAKE_COMMAND} -E rm -f ${_bench_smoke_json})
+set_tests_properties(bench_smoke_setup PROPERTIES FIXTURES_SETUP bench_smoke_clean)
+
+add_test(NAME tst_bench_smoke
+    COMMAND ${CMAKE_COMMAND}
+        -DBENCH=$<TARGET_FILE:actcraft-bench>
+        -DOUTPUT=${_bench_smoke_json}
+        -DEXPECTED=${_bench_smoke_expected}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/run_bench_smoke.cmake)
+set_tests_properties(tst_bench_smoke PROPERTIES
+    TIMEOUT 60
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    FIXTURES_REQUIRED bench_smoke_clean
+    FIXTURES_SETUP bench_smoke_json)
+
+actcraft_add_test(tst_bench_result
+    SOURCES tst_bench_result.cpp
+    LIBS Qt6::Core)
+target_compile_definitions(tst_bench_result PRIVATE ACTCRAFT_EXPECT_VALID=${_bench_smoke_valid})
+set_tests_properties(tst_bench_result PROPERTIES
+    FIXTURES_REQUIRED bench_smoke_json
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;ACTCRAFT_BENCH_SMOKE_JSON=${_bench_smoke_json}")
