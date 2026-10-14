@@ -15,6 +15,9 @@ target_link_libraries(actcraft PRIVATE
 
 actcraft_set_warnings(actcraft)
 
+# `actcraft --version` (décision 31, S1).
+target_compile_definitions(actcraft PRIVATE ACTCRAFT_VERSION="${PROJECT_VERSION}")
+
 set_target_properties(actcraft PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER org.actcraft.ActCraft
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
