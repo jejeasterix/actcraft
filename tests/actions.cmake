@@ -3,3 +3,7 @@
 actcraft_add_test(tst_actions_registry
     SOURCES tst_actions_registry.cpp
     LIBS ActCraft::actions)
+
+actcraft_add_test(tst_actions_layout
+    SOURCES tst_actions_layout.cpp
+    LIBS ActCraft::actions)

@@ -3,6 +3,7 @@ actcraft_add_module(actions
     SOURCES
         src/actions.cpp
         src/commandregistry.cpp
+        src/layout.cpp
     DEPENDS
         ActCraft::core)
 
@@ -11,4 +12,5 @@ qt_add_resources(actcraft_actions "actions_data"
     PREFIX "/actcraft/actions"
     BASE data
     FILES
-        data/commands.json)
+        data/commands.json
+        data/layout.json)
