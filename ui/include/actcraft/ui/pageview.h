@@ -140,6 +140,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent* event) override;
     bool eventFilter(QObject* watched, QEvent* event) override;
     void touchEvent(QTouchEvent* event) override;
+    void touchUngrabEvent() override;
     void itemChange(ItemChange change, const ItemChangeData& value) override;
 
 private:
