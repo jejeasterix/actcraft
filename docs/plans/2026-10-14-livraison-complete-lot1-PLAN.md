@@ -25,26 +25,26 @@ Actions (Windows, macOS, Ubuntu + KVM).
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
-| L1-T1 | Profil du chantier : release due sous go, motifs d'action finale, durée du go, régime du banc, preuve visuelle | — | `.claude/chantier.md` | isolé | implementeur-tdd | `PROFIL OK` (10 cas du bloc `action-finale`, rouge avant) | S1, S2, S3 | #tache-l1-t1 |
-| L1-T2 | Outillage des paquets : JDK 17, SDK/NDK, Qt 6.12 Android, Inno Setup, émulateur (WHPX sinon CI) | — | `scripts/dev-env-android.ps1`, `packaging/android/versions.env`, `docs/verifications/2026-10-14-outillage-paquets.md` | isolé | implementeur-tdd | ≥ 11 lignes `VERIF` ; `dev-env-android.ps1` → `ENV ANDROID OK` ; `ISCC` répond | S1, S3 | #tache-l1-t2 |
+| L1-T1 | Profil du chantier : release due sous go, motifs d'action finale, durée du go, régime du banc, preuve visuelle | — | `.claude/chantier.md` | isolé | implementeur-tdd | `PROFIL OK` (37 cas : 23 écritures tenues, 14 lectures laissées ; rouge avant : 19 `ECART`) | S1, S2, S3 | #tache-l1-t1 |
+| L1-T2 | Outillage des paquets : JDK 17, SDK/NDK, Qt 6.12 Android, Inno Setup, émulateur (WHPX sinon CI) | — | `scripts/dev-env-android.ps1`, `packaging/android/versions.env`, `docs/verifications/2026-10-14-outillage-paquets.md` | isolé | implementeur-tdd | 14 lignes `VERIF` sans `…` ; `dev-env-android.ps1` → `ENV ANDROID OK` ; `ISCC` répond | S1, S3 | #tache-l1-t2 |
 | L1-T3 | `core` : squelette `Document` (pages, page suivante qui ajoute, empreinte) | L1-T1 | `core/CMakeLists.txt`, `core/include/actcraft/core/document.h`, `core/src/document.cpp`, `tests/core.cmake`, `tests/tst_core_document.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 30 tests, `tst_core_document` Passed | S2 | #tache-l1-t3 |
 | L1-T4 | `actions` : registre des commandes nommées, déclarations JSON | L1-T1 | `actions/CMakeLists.txt`, `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `actions/data/commands.json`, `tests/CMakeLists.txt`, `tests/actions.cmake`, `tests/tst_actions_registry.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 30 tests, `tst_actions_registry` Passed | S2 | #tache-l1-t4 |
 | L1-T5 | `actions` : disposition (menus, palette, raccourcis, couleurs, épaisseurs), profil d'abord | L1-T4 | `actions/CMakeLists.txt`, `actions/include/actcraft/actions/layout.h`, `actions/src/layout.cpp`, `actions/data/layout.json`, `tests/actions.cmake`, `tests/tst_actions_layout.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 31 tests, `tst_actions_layout` Passed | S2 | #tache-l1-t5 |
-| L1-T6 | `input` : un doigt devient un échantillon | L1-T1 | `input/include/actcraft/input/sample.h`, `input/include/actcraft/input/qtevents.h`, `input/src/qtevents.cpp`, `tests/tst_input.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 29 tests, `tst_input` Passed (2 fonctions nouvelles) ; banc hors écran (résultat) | S3 | #tache-l1-t6 |
+| L1-T6 | `input` : un doigt devient un échantillon | L1-T1 | `input/include/actcraft/input/sample.h`, `input/include/actcraft/input/qtevents.h`, `input/src/qtevents.cpp`, `tests/tst_input.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 29 tests, `tst_input` Passed ; `tst_input.exe` : 2 lignes `PASS` des fonctions nouvelles ; banc hors écran (résultat) | S3 | #tache-l1-t6 |
 | L1-T7 | `ui` : direction visuelle, thème `Theme` et icônes SVG à nous | L1-T1 | `CMakeLists.txt`, `ui/CMakeLists.txt`, `ui/qml/Theme.qml`, `ui/icons/menu.svg`, `ui/icons/outils.svg`, `ui/icons/page-precedente.svg`, `ui/icons/page-suivante.svg`, `ui/icons/stylo.svg`, `ui/icons/plein-ecran.svg`, `ui/icons/ajuster.svg`, `ui/icons/quitter.svg`, `ui/icons/aide.svg`, `ui/icons/a-propos.svg`, `tests/ui.cmake`, `tests/tst_ui_theme.cpp`, `docs/design/2026-10-14-direction-visuelle.md` | isolé | implementeur-tdd | TESTS OK, ≥ 30 tests, `tst_ui_theme` Passed ; banc hors écran (résultat) | S2 | #tache-l1-t7 |
-| L1-T8 | `ui` : `PageView` — stylo réglable, défilement, entrée réservée à la vue, doigt unique | L1-T6 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/include/actcraft/ui/viewtransform.h`, `ui/src/viewtransform.cpp`, `tests/tst_pageview.cpp`, `tests/tst_viewtransform.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 29 tests, `tst_pageview` et `tst_viewtransform` Passed ; banc hors écran (résultat) | S2, S3 | #tache-l1-t8 |
+| L1-T8 | `ui` : `PageView` — stylo réglable, défilement, entrée réservée à la vue, doigt unique | L1-T6 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/include/actcraft/ui/viewtransform.h`, `ui/src/viewtransform.cpp`, `tests/tst_pageview.cpp`, `tests/tst_viewtransform.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 29 tests, `tst_pageview` et `tst_viewtransform` Passed ; exécutables : 7 lignes `PASS` des fonctions nouvelles ; banc hors écran (résultat) | S2, S3 | #tache-l1-t8 |
 | L1-T9 | `ui` : `DocumentController` (pages, page affichée, navigation) | L1-T3, L1-T7 | `ui/CMakeLists.txt`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `tests/ui.cmake`, `tests/tst_ui_document.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 32 tests, `tst_ui_document` Passed ; banc hors écran (résultat) | S2 | #tache-l1-t9 |
 | L1-T10 | `ui` : pont QML `Commands` (menus, palette, raccourcis filtrés, déclenchement) | L1-T5, L1-T9 | `ui/CMakeLists.txt`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `tests/ui.cmake`, `tests/tst_ui_commands.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 35 tests, `tst_ui_commands` Passed ; banc hors écran (résultat) | S2 | #tache-l1-t10 |
 | L1-T11 | Version, « À propos », notices, liste des modules Qt autorisés | L1-T10 | `ui/CMakeLists.txt`, `ui/include/actcraft/ui/appinfo.h`, `ui/src/appinfo.cpp`, `ui/qml/AboutDialog.qml`, `app/CMakeLists.txt`, `app/main.cpp`, `THIRD_PARTY_NOTICES.md`, `LICENSES/LGPL-3.0.txt`, `LICENSES/GPL-3.0.txt`, `packaging/qt-autorises.txt`, `scripts/verifier-licences.ps1`, `scripts/version-projet.ps1`, `tests/CMakeLists.txt`, `tests/app.cmake`, `tests/ui.cmake`, `tests/tst_ui_about.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 39 tests, `tst_ui_about`, `tst_app_version`, `tst_licences_ok`, `tst_licences_refus` Passed ; banc hors écran (résultat) | S1 | #tache-l1-t11 |
-| L1-T12 | `ui` + `app` : coquille QML (ligne supérieure, palette, zone de page, F5, commandes) | L1-T8, L1-T11 | `ui/CMakeLists.txt`, `ui/qml/Main.qml`, `ui/qml/TopBar.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/PageArea.qml`, `ui/qml/CommandButton.qml`, `ui/qml/CommandMenu.qml`, `ui/qml/ColorSwatches.qml`, `ui/qml/WidthPicker.qml`, `app/startup.h`, `app/startup.cpp`, `bench/app/main.cpp`, `tests/ui.cmake`, `tests/tst_ui.cpp`, `tests/tst_ui_drawing.cpp`, `tests/tst_bench_verdict.cpp`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 40 tests, `tst_ui_shell`, `tst_ui`, `tst_ui_drawing` Passed ; banc hors écran (résultat) | S2 | #tache-l1-t12 |
+| L1-T12 | `ui` + `app` : coquille QML (ligne supérieure, palette, zone de page, F5, commandes) | L1-T8, L1-T11 | `ui/CMakeLists.txt`, `ui/qml/Main.qml`, `ui/qml/TopBar.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/PageArea.qml`, `ui/qml/CommandButton.qml`, `ui/qml/CommandMenu.qml`, `ui/qml/ColorSwatches.qml`, `ui/qml/WidthPicker.qml`, `app/startup.h`, `app/startup.cpp`, `bench/app/main.cpp`, `tests/ui.cmake`, `tests/tst_ui.cpp`, `tests/tst_ui_drawing.cpp`, `tests/tst_bench_verdict.cpp`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 40 tests, `tst_ui_shell`, `tst_ui`, `tst_ui_drawing` Passed ; exécutables : 8 `PASS` `TstUiShell`, 1 `PASS` `generatedPageOptionLoadsThe300Objects` ; banc hors écran (résultat) | S2 | #tache-l1-t12 |
 | L1-T13 | `bench` : `actcraft-captures`, joueur de scénarios d'interface (DA8) | L1-T9 | `bench/CMakeLists.txt`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `bench/captures/main.cpp`, `tests/bench.cmake`, `tests/tst_bench_uiscenario.cpp`, `tests/data/uiscenario/fenetre.qml` | isolé | concepteur-critique | TESTS OK, ≥ 33 tests, `tst_bench_uiscenario` Passed | S2 | #tache-l1-t13 |
-| L1-T14 | Banc adapté à la nouvelle interface (DA7) | L1-T12 | `tests/tst_bench_verdict.cpp`, `bench/src/runner.cpp` | isolé | concepteur-critique | release : TESTS OK, ≥ 40 tests, `tst_bench_verdict` et `tst_bench_smoke` Passed ; banc hors écran : `content_check.ok = True` | S2 | #tache-l1-t14 |
+| L1-T14 | Banc adapté à la nouvelle interface (DA7) | L1-T12 | `tests/tst_bench_verdict.cpp`, `bench/src/runner.cpp` | isolé | concepteur-critique | release : TESTS OK, ≥ 40 tests, `tst_bench_verdict` et `tst_bench_smoke` Passed, `PASS` de `benchTargetsAreVisibleInTheShell` ; banc hors écran : `content_check.ok = True` | S2 | #tache-l1-t14 |
 | L1-T15 | Scénario `premiers-pas` et `scripts/captures.ps1` (S2) | L1-T12, L1-T13 | `bench/scenarios/premiers-pas.json`, `scripts/captures.ps1`, `tests/bench.cmake` | isolé | implementeur-tdd | TESTS OK, ≥ 42 tests, `tst_captures_premiers_pas` Passed ; `captures.ps1` → `LU pageIndicator.text=1 / 2 OK` puis `CAPTURES OK` | S2 | #tache-l1-t15 |
 | L1-T16 | Installateur Windows : Inno Setup, `paquet.ps1`, `essai-installateur.ps1` (S1) | L1-T2, L1-T11 | `packaging/windows/actcraft.iss`, `scripts/paquet.ps1`, `scripts/essai-installateur.ps1`, `packaging/qt-autorises.txt` | isolé | implementeur-tdd | `PAQUET OK` puis `INSTALLATEUR OK` | S1 | #tache-l1-t16 |
 | L1-T17 | Chaîne Android : presets, propriétés de l'APK, `paquet-android.ps1` | L1-T2, L1-T11, L1-T16 | `CMakePresets.json`, `app/CMakeLists.txt`, `scripts/paquet-android.ps1`, `scripts/dev-env-android.ps1`, `packaging/qt-autorises.txt`, `docs/verifications/2026-10-14-outillage-paquets.md`, `android/AndroidManifest.xml` (repli seulement) | isolé | concepteur-critique | `APK OK` (2 APK : identifiant, `versionCode` 100, aucune permission, signature, licences) | S3 | #tache-l1-t17 |
 | L1-T18 | Essai de l'APK sur émulateur : `essai-android.ps1`, `lire-pixel.py` (S3) | L1-T12, L1-T17 | `scripts/essai-android.ps1`, `scripts/lire-pixel.py`, `docs/verifications/2026-10-14-outillage-paquets.md` | isolé | implementeur-tdd | `ANDROID OK` (émulateur local) ; sans WHPX : scripts analysés sans erreur, S3 prouvé par L1-T19 | S3 | #tache-l1-t18 |
-| L1-T19 | CI : jobs `paquet-windows` (S1) et `android` (S3, KVM), branches `essai-ci/**` | L1-T14, L1-T15, L1-T16, L1-T18 | `.github/workflows/ci.yml`, `scripts/paquet.ps1`, `scripts/essai-installateur.ps1`, `scripts/paquet-android.ps1`, `scripts/essai-android.ps1`, `scripts/dev-env-android.ps1`, `packaging/android/versions.env` | isolé | concepteur-critique | run CI réel sur `essai-ci/L1-T19` vert ; journaux : `INSTALLATEUR OK`, `APK OK`, `ANDROID OK` | S1, S3 | #tache-l1-t19 |
-| L1-T20 | `release.yml` (brouillon, essai / réel, échec sans secrets), `CHANGELOG.md`, commandes réelles au profil | L1-T19 | `.github/workflows/release.yml`, `CHANGELOG.md`, `scripts/verifier-secrets-release.ps1`, `scripts/notes-version.ps1`, `.claude/chantier.md` | isolé | concepteur-critique | run réel de `release.yml` sur `essai-ci/release-L1-T20` vert : `CONTROLE OK`, `NOTES OK`, `INSTALLATEUR OK`, `APK OK` ; aucune release créée | S1, S3 | #tache-l1-t20 |
+| L1-T19 | CI : jobs `paquet-windows` (S1) et `android` (S3, KVM), branches `essai-ci/**` | L1-T14, L1-T15, L1-T16, L1-T18 | `.github/workflows/ci.yml`, `scripts/paquet.ps1`, `scripts/essai-installateur.ps1`, `scripts/paquet-android.ps1`, `scripts/essai-android.ps1`, `scripts/dev-env-android.ps1`, `packaging/android/versions.env` ; en repli de L1-T17 ou L1-T18 seulement : `CMakePresets.json`, `app/CMakeLists.txt`, `android/AndroidManifest.xml`, `packaging/qt-autorises.txt`, `scripts/lire-pixel.py` | isolé | concepteur-critique | contrôle de propriété intellectuelle avant push recopié ; run CI réel sur `essai-ci/L1-T19` `completed / success` (suivi par appels de 8 min) ; journaux : `INSTALLATEUR OK`, `APK OK`, `ANDROID OK` | S1, S3 | #tache-l1-t19 |
+| L1-T20 | `release.yml` (brouillon, essai / réel, échec sans secrets), `CHANGELOG.md`, commandes réelles au profil | L1-T19 | `.github/workflows/release.yml`, `CHANGELOG.md`, `scripts/verifier-secrets-release.ps1`, `scripts/notes-version.ps1`, `.claude/chantier.md` | isolé | concepteur-critique | contrôle de propriété intellectuelle avant push recopié ; run réel de `release.yml` sur `essai-ci/release-L1-T20` `completed / success` : `CONTROLE OK`, `NOTES OK`, `INSTALLATEUR OK`, `APK OK` ; aucune release créée ; bloc `action-finale` inchangé | S1, S3 | #tache-l1-t20 |
 
 20 tâches, un lot (lot 1 du cadrage). Le nombre minimal de tests de la colonne `preuve` compte les 29 tests de la
 référence (`docs/sessions/livraison-complete-etat.md`, « Référence ») plus ceux des tâches dont la tâche dépend,
@@ -57,6 +57,35 @@ complet de non-régression (DA7) et la remise des paquets sont faits **à la cl�
 jeton `ecran` (section « Clôture du lot 1 »). Deux tâches affichent une fenêtre ordinaire quelques secondes
 (L1-T16 : lancement de 5 s de l'application installée ; L1-T18 : rien, l'émulateur tourne sans fenêtre) : les
 annoncer d'une ligne.
+
+## Écarts au cadrage (repris à la porte de fin du lot 1)
+
+Choix de ce plan que le cadrage ne dit pas, ou dit autrement. Chacun est réversible et présenté à Jérôme à la
+porte de fin.
+
+1. **Menus Éditer et Insérer masqués tant qu'ils sont vides** (L1-T5, L1-T10, L1-T12). La décision 4 cite six menus ;
+   ils sont tous déclarés dans `actions/data/layout.json`, mais un menu sans commande disponible n'est pas affiché :
+   le lot 1 montre Fichier, Affichage, Outils, Aide. Les deux autres apparaissent quand un lot leur donne une
+   commande.
+2. **Page de démarrage vierge** (L1-T9, L1-T12). Le cadrage ne le dit pas (la décision 4 ne parle pas du
+   démarrage) : défaut prudent, un tableau blanc s'ouvre sur une page vierge ; la page générée de 300 objets
+   n'est chargée que pour le banc et les tests (`StartupOptions::generatedPage`, DA7). Trois tests du prototype
+   changent pour cette raison (écrite en L1-T12).
+3. **`release.yml` dès le lot 1** (L1-T20). Le cadrage place l'essai à blanc complet (S14) au lot 11 ; le workflow
+   est avancé pour que la release 0.1.0 puisse être proposée à la porte du lot 1 (décision 33). Le lot 11 garde S14.
+4. **Preuves de CI par des branches `essai-ci/…`** (L1-T19, L1-T20). `workflow_dispatch` n'est utilisable qu'une fois
+   le workflow sur `main`, et la PR du lot est créée une seule fois, à la clôture : les tâches de CI poussent une
+   branche jetable `essai-ci/<sujet>` (ou `essai-ci/release-<sujet>`), après un contrôle de propriété intellectuelle,
+   puis la suppriment. Ce push publie le lot sur le dépôt public avant la relecture de fin de lot.
+5. **Motifs d'action finale élargis** (L1-T1). Les deux motifs de la décision 38 b et les trois du profil sont
+   remplacés par quatre motifs plus stricts : `git -C <dossier>`, `tag -a`, `--tags`, `--follow-tags`, `refs/tags/`,
+   `gh release upload|delete`, `gh api` en écriture implicite (`-f`, `-F`, `--input`) sont tenus ; les lectures
+   restent libres.
+6. **Association `.flipchart` réduite à « Ouvrir avec »** (L1-T16). Décision 26 : association proposée décochée ;
+   cochée, elle ajoute ActCraft à « Ouvrir avec » sans prendre la place d'ActivInspire. La 0.1.0 n'ouvre encore
+   aucun fichier (lecteur et format natif au lot 2) : les associations lancent l'application sur une page vierge.
+7. **Épaisseur du stylo par défaut : 4 px au lieu de 3** (L1-T8 ; F-220). Les traits mesurés par le banc
+   s'épaississent un peu ; la mesure de fin de lot 1 devient la référence (DA7).
 
 ## Couverture des scénarios
 
@@ -212,12 +241,14 @@ la commande de preuve visuelle de la décision 36 (annoncée ; sa forme bornée 
 irréversible »). Fichier d'essai non commité : `.tmp/verifier-profil.js`.
 
 **Test et commande bornée.** Le test est un script Node qui lit le bloc `action-finale` exactement comme
-`~/.claude/hooks/interdits.js` (fonctions `bloc` et `regle`) et l'applique à 10 commandes :
+`~/.claude/hooks/interdits.js` (fonctions `bloc` et `regle`) et l'applique à 37 commandes (23 écritures à tenir,
+14 lectures à laisser) :
 ```powershell
 Set-Location <worktree>; node .tmp/verifier-profil.js > .tmp/profil.txt 2>&1 ; Select-String -Path .tmp/profil.txt -Pattern '^(ECART|PROFIL)' | Select-Object -Last 6
 ```
-Rouge avant la modification : 5 lignes `ECART` (`gh release edit …`, `gh api …`), puis `PROFIL EN ECHEC`. Vert
-après : aucune ligne `ECART`, dernière ligne `PROFIL OK`.
+Rouge avant la modification : 19 lignes `ECART`, puis `PROFIL EN ECHEC`. Vert après : aucune ligne `ECART`
+(`Select-String -Path .tmp/profil.txt -Pattern '^ECART' | Measure-Object` → 0), 37 lignes `OK`, dernière ligne
+`PROFIL OK`.
 
 **Interdits.** Ne toucher ni au bloc `interdits` ni aux autres sections. Ne pas affaiblir un motif existant. Ne
 pas commiter `.tmp/verifier-profil.js`. Aucun push, aucun tag.
@@ -240,18 +271,30 @@ function bloc(t, nom) {
 }
 const motifs = bloc(texte, "action-finale").map((l) => new RegExp(l.split(" :: ")[0]));
 const tenue = (c) => motifs.some((r) => r.test(c));
-const cas = [
-  ["git tag v0.1.0", true],
-  ["git push origin v0.1.0", true],
-  ["gh release create v0.1.0 --draft", true],
-  ["gh release edit v0.1.0 --draft=false", true],
-  ["gh release edit v0.1.0 --draft false", true],
-  ["gh api -X PATCH repos/jejeasterix/actcraft/releases/123 -F draft=false", true],
-  ["gh api --method=POST repos/jejeasterix/actcraft/releases", true],
-  ["gh api --method DELETE repos/jejeasterix/actcraft/releases/1", true],
-  ["gh api repos/jejeasterix/actcraft/releases", false],
-  ["gh api -X PATCH repos/jejeasterix/actcraft/pulls/3", false],
+// Toutes les formes d'écriture d'une release sont tenues, avec ou sans `git -C <dossier>` (règle des tâches) ;
+// les lectures restent libres.
+const bloquer = [
+  "git tag v0.1.0", "git -C wt tag v0.1.0", "git tag -a v0.1.0 -m x", "git -C C:/a/b tag -a v0.1.0",
+  "git push origin v0.1.0", "git -C wt push origin v0.1.0", "git push origin --tags", "git push -u origin v0.1.0",
+  "git push origin HEAD:refs/tags/v0.1.0", "git push origin refs/tags/v0.1.0", "git push --follow-tags origin x",
+  "git push origin tag v0.1.0",
+  "gh release create v0.1.0 --draft", "gh release edit v0.1.0 --draft=false", "gh release edit v0.1.0 --draft false",
+  "gh release edit v0.1.0 --draft=$false", "gh release upload v0.1.0 a.apk", "gh release delete v0.1.0",
+  "gh api -X PATCH repos/jejeasterix/actcraft/releases/123 -F draft=false",
+  "gh api --method=POST repos/jejeasterix/actcraft/releases",
+  "gh api --method DELETE repos/jejeasterix/actcraft/releases/1",
+  "gh api repos/jejeasterix/actcraft/releases -f tag_name=v0.1.0 -F draft=false",
+  "gh api repos/jejeasterix/actcraft/releases --input corps.json",
 ];
+const laisser = [
+  "gh release view v0.1.0", "gh release list --limit 5", "gh api repos/jejeasterix/actcraft/releases",
+  "gh api -X GET repos/jejeasterix/actcraft/releases", "gh api --method GET repos/x/y/releases -f per_page=5",
+  "git tag --list", "git tag -l", "git -C wt log --oneline -1", "git push origin feat/livraison-complete",
+  "git push origin HEAD:refs/heads/essai-ci/L1-T19", "git push origin --delete essai-ci/L1-T19",
+  "gh api -X PATCH repos/jejeasterix/actcraft/pulls/3", "git -C wt push origin HEAD:refs/heads/essai-ci/release-L1-T20",
+  "gh run list --branch essai-ci/release-L1-T20 --workflow release.yml",
+];
+const cas = [...bloquer.map((c) => [c, true]), ...laisser.map((c) => [c, false])];
 let ok = true;
 for (const [commande, attendu] of cas) {
   const lu = tenue(commande);
@@ -262,19 +305,20 @@ console.log(ok ? "PROFIL OK" : "PROFIL EN ECHEC");
 process.exit(ok ? 0 : 1);
 ```
 
-- [ ] **Étape 2 : le voir échouer.** Lancer la commande bornée. Attendu : 5 lignes `ECART` (les deux
-`gh release edit` et les trois `gh api` d'écriture), puis `PROFIL EN ECHEC`.
+- [ ] **Étape 2 : le voir échouer.** Lancer la commande bornée (sortie entière :
+`Get-Content .tmp/profil.txt`). Attendu avec le profil actuel : 19 lignes `ECART` (formes `git -C`, `tag -a`,
+`--tags`, `-u`, `refs/tags`, `--follow-tags`, `push … tag`, `gh release edit/upload/delete`, les cinq `gh api`
+d'écriture), aucune lecture bloquée, puis `PROFIL EN ECHEC`.
 
 - [ ] **Étape 3 : bloc `action-finale` et lignes qui le suivent.** Dans `.claude/chantier.md`, remplacer le bloc et
 les deux premières puces qui le suivent (« Go requis », « Due seulement quand… ») par :
 
 ````markdown
 ```action-finale
-\bgit\s+tag\s+v\d :: tag de release
-\bgit\s+push\s+\S+\s+(refs/tags/)?v\d :: publication du tag de release
-\bgh\s+release\s+create :: release GitHub publique
-\bgh\s+release\s+edit\b.*--draft[= ]?false :: publication du brouillon de release
-\bgh\s+api\b(?=.*(-X|--method)[\s=]*(POST|PATCH|DELETE|post|patch|delete))(?=.*releases) :: écriture dans les releases par l'API
+\bgit\b(\s+-[Cc]\s+\S+)*\s+tag\b(?=.*\sv\d) :: tag de release
+\bgit\b(\s+-[Cc]\s+\S+)*\s+push\b(?=.*(\s(\S+:)?(refs/tags/)?v\d|\s--tags\b|\s--follow-tags\b|\stag\s)) :: publication du tag de release
+\bgh\s+release\s+(create|edit|upload|delete)\b :: écriture d'une release GitHub (création, publication du brouillon, fichiers, suppression)
+\bgh\s+api\b(?=.*releases)(?!.*(-X|--method)[\s=]*(GET|get)\b)(?=.*(\s-X|\s--method|\s(-f|-F|--field|--raw-field|--input)[\s=])) :: écriture dans les releases par l'API
 ```
 
 - Go requis : oui — une release est publique et téléchargeable ; jamais sans accord explicite de Jérôme.
@@ -290,9 +334,12 @@ les deux premières puces qui le suivent (« Go requis », « Due seulement quan
   redemandé à Jérôme.
 ````
 
-Garder telles quelles les puces « Porte avant merge » et « CI couverte par la suite complète ». Le motif `gh api`
-élargit celui du cadrage (`\s*` → `[\s=]*`, méthodes aussi en minuscules) pour tenir aussi `--method=PATCH` :
-écart signalé au rapport, plus strict, jamais plus permissif.
+Garder telles quelles les puces « Porte avant merge » et « CI couverte par la suite complète ». Les quatre motifs
+remplacent les trois d'origine et les deux du cadrage (décision 38 b) : ils tiennent tout ce que ceux-ci tenaient,
+plus les formes `git -C <dossier>`, `tag -a`, `--tags`, `--follow-tags`, `refs/tags/`, `gh release
+upload|delete`, et `gh api` en écriture implicite (`-f`, `-F`, `--input` font un POST) ; les lectures restent
+libres (vérifié sous node, 23 cas tenus, 14 lectures laissées). Écart au cadrage, plus strict, jamais plus
+permissif (section « Écarts au cadrage »).
 
 - [ ] **Étape 4 : section « Preuve visuelle ».** La remplacer entière par :
 
@@ -329,7 +376,8 @@ la mesure de fin de lot 1, commitée dans `docs/mesures/`, devient la référenc
 l'étape 2 du BRIEF.
 ```
 
-- [ ] **Étape 6 : le voir passer.** Relancer la commande bornée. Attendu : 10 lignes `OK`, `PROFIL OK`. Puis :
+- [ ] **Étape 6 : le voir passer.** Relancer la commande bornée. Attendu : 37 lignes `OK`, aucune `ECART`,
+`PROFIL OK`. Puis :
 
 ```powershell
 Set-Location <worktree>; Select-String -Path .claude/chantier.md -Pattern 'jusqu.à la publication du brouillon|Due seulement quand|résultat, pas une porte' | ForEach-Object { $_.Line.Trim() }
@@ -2138,7 +2186,14 @@ Dans `qtevents.h`, remplacer le commentaire de `sampleFromEvent` par :
 - [ ] **Étape 5 : le voir passer.** Commande ciblée, motif `tst_input`. Attendu : `0 tests failed out of 1`.
 
 - [ ] **Étape 6 : format, preuve, banc.** `pwsh -NoProfile -File ./scripts/format.ps1` ; forme bornée (N ≥ 29,
-`TESTS OK`, `tst_input .*Passed`) ; banc sans écran (`BUDGET TENU` ou `BUDGET DEPASSE`, nom du JSON au rapport).
+`TESTS OK`, `tst_input .*Passed`) ; puis la preuve que les fonctions ajoutées ont tourné (la ligne ctest ne le dit
+pas) :
+
+```powershell
+Set-Location <worktree>; pwsh -NoProfile -Command ". ./scripts/dev-env.ps1; `$env:QT_QPA_PLATFORM='offscreen'; ./build/debug/tst_input.exe *> .tmp/fonctions.txt"; Select-String -Path .tmp/fonctions.txt -Pattern '^(PASS|FAIL!).*(singleTouchPointBecomesTouchSamples|twoFingersAndCancelGiveNothing)|^Totals' | ForEach-Object { $_.Line }
+```
+Attendu : deux lignes `PASS   : TstInput::…()` et `Totals: N passed, 0 failed`. Enfin le banc sans écran
+(`BUDGET TENU` ou `BUDGET DEPASSE`, nom du JSON au rapport).
 
 - [ ] **Étape 7 : commit.**
 
@@ -2972,7 +3027,13 @@ barres).
 l'épaisseur par défaut passe de 3 à 4, ce qui ne change pas leurs pixels sondés).
 
 - [ ] **Étape 8 : format, preuve, banc.** `pwsh -NoProfile -File ./scripts/format.ps1` ; forme bornée (N ≥ 29,
-`TESTS OK`, lignes `tst_pageview .*Passed` et `tst_viewtransform .*Passed`) ; banc sans écran (résultat ; noter au
+`TESTS OK`, lignes `tst_pageview .*Passed` et `tst_viewtransform .*Passed`) ; preuve que les 7 fonctions ajoutées
+ont tourné :
+
+```powershell
+Set-Location <worktree>; pwsh -NoProfile -Command ". ./scripts/dev-env.ps1; `$env:QT_QPA_PLATFORM='offscreen'; `$env:QT_QUICK_BACKEND='software'; ./build/debug/tst_viewtransform.exe *> .tmp/fonctions-vt.txt; ./build/debug/tst_pageview.exe *> .tmp/fonctions-pv.txt"; Select-String -Path .tmp/fonctions-vt.txt, .tmp/fonctions-pv.txt -Pattern '^(PASS|FAIL!).*(scrollAxisCoversPageAndMargins|panForScrollPositionInvertsScrollAxis|penColorAndWidthAreClampedAndSignalled|scrollPropertiesFollowZoom|strokeStartsOnlyOnTheViewThenFollowsTheStylus|blockedInputStartsNoStroke|oneFingerDrawsTwoFingersDoNot)|^Totals' | ForEach-Object { $_.Line }
+```
+Attendu : 7 lignes `PASS`, deux lignes `Totals: … 0 failed` ; banc sans écran (résultat ; noter au
 rapport que l'épaisseur par défaut du stylo passe de 3 à 4 px, F-220, ce qui touche aussi les traits du banc).
 
 - [ ] **Étape 9 : commit.**
@@ -4524,6 +4585,8 @@ F-125, F-128, F-133, F-134, F-137, F-138, F-200, F-220, F-630, F-720 en partie, 
   `Commands.trigger` ; `runCommand(id, argument)` sur la fenêtre pour piloter sans souris (DA8) ; tant qu'une
   fenêtre surgissante est ouverte, la page ne prend pas le stylet (`PageView.inputBlocked`) ;
 - la page de 300 objets n'est plus chargée d'office : seulement avec `StartupOptions::generatedPage` (banc, tests).
+  Ce n'est pas écrit au cadrage : c'est un défaut prudent de ce plan (un tableau blanc s'ouvre sur une page
+  vierge ; la page générée est un outil de mesure, DA7), consigné dans la section « Écarts au cadrage ».
 
 **Fichiers.**
 - Créer : `ui/qml/TopBar.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/PageArea.qml`, `ui/qml/CommandButton.qml`,
@@ -4532,7 +4595,7 @@ F-125, F-128, F-133, F-134, F-137, F-138, F-200, F-220, F-630, F-720 en partie, 
   `tests/ui.cmake`, `tests/tst_ui.cpp`, `tests/tst_ui_drawing.cpp`, `tests/tst_bench_verdict.cpp`
 
 **Changements voulus de tests existants (raison écrite).** `tst_ui` attendait 300 objets au démarrage : le
-démarrage montre désormais une page vierge (décision 4) ; la page générée reste vérifiée sous l'option
+démarrage montre désormais une page vierge (défaut de ce plan, « Écarts au cadrage ») ; la page générée reste vérifiée sous l'option
 `generatedPage`. `tst_ui_drawing` et `tst_bench_verdict` sondent des pixels de la page générée : ils passent
 `generatedPage = true` (même page qu'avant).
 
@@ -4870,7 +4933,7 @@ private slots:
         auto* fixed = window->findChild<actcraft::render::FixedPageItem*>(QStringLiteral("fixedPage"));
         QVERIFY(view && fixed);
         QTRY_VERIFY_WITH_TIMEOUT(fixed->isReady() && view->cacheReady(), 20000);
-        QCOMPARE(fixed->objectCount(), 0); // page vierge au démarrage (décision 4)
+        QCOMPARE(fixed->objectCount(), 0); // page vierge au démarrage (la page générée sert au banc)
         QVERIFY(window->title().contains(QStringLiteral("logiciel")));
     }
 
@@ -5643,7 +5706,14 @@ Set-Location <worktree>; New-Item -ItemType Directory -Force .tmp | Out-Null; pw
 Attendu : `code 0` et aucune ligne `qml` ni `warning` (sinon la corriger et recommencer).
 
 - [ ] **Étape 14 : format, preuve, banc.** `pwsh -NoProfile -File ./scripts/format.ps1` ; forme bornée (N ≥ 40,
-`TESTS OK`, lignes `Passed` de `tst_ui_shell`, `tst_ui`, `tst_ui_drawing`) ; banc sans écran (résultat ; un
+`TESTS OK`, lignes `Passed` de `tst_ui_shell`, `tst_ui`, `tst_ui_drawing`) ; preuve que les fonctions nouvelles ont
+tourné :
+
+```powershell
+Set-Location <worktree>; pwsh -NoProfile -Command ". ./scripts/dev-env.ps1; `$env:QT_QPA_PLATFORM='offscreen'; `$env:QT_QUICK_BACKEND='software'; ./build/debug/tst_ui_shell.exe *> .tmp/fonctions-shell.txt; ./build/debug/tst_ui.exe *> .tmp/fonctions-ui.txt"; Select-String -Path .tmp/fonctions-shell.txt, .tmp/fonctions-ui.txt -Pattern '^PASS .*(TstUiShell::(?!initTestCase|cleanupTestCase)|generatedPageOptionLoadsThe300Objects)|^FAIL!|^Totals' | ForEach-Object { $_.Line }
+```
+Attendu : 8 lignes `PASS   : TstUiShell::…`, une ligne `PASS   : TstUi::generatedPageOptionLoadsThe300Objects()`,
+aucune `FAIL!`, deux lignes `Totals: … 0 failed` ; banc sans écran (résultat ; un
 `MESURE INVALIDE` ici signale que le banc ne trouve plus la page : le dire au rapport, L1-T14 le traite).
 
 - [ ] **Étape 15 : commit.**
@@ -6757,7 +6827,13 @@ motif `tst_bench_verdict`, jusqu'au vert. Le test de l'étape 1 n'est pas modifi
 visé est hors d'atteinte à 1280 × 800 : arrêter et le dire au rapport (décision de taille pour l'orchestrateur).
 
 - [ ] **Étape 5 : preuves.** `pwsh -NoProfile -File ./scripts/format.ps1` ; les deux commandes bornées `release`
-ci-dessus ; la forme bornée `debug` ; le banc sans écran et sa ligne `content_check.ok`. Attendu : N ≥ 40 en release
+ci-dessus ; la preuve que la fonction ajoutée a tourné en release :
+
+```powershell
+Set-Location <worktree>; pwsh -NoProfile -Command ". ./scripts/dev-env.ps1; `$env:QT_QPA_PLATFORM='offscreen'; `$env:QT_QUICK_BACKEND='software'; ./build/release/tst_bench_verdict.exe *> .tmp/fonctions-verdict.txt"; Select-String -Path .tmp/fonctions-verdict.txt -Pattern '^(PASS|FAIL!).*benchTargetsAreVisibleInTheShell|^Totals' | ForEach-Object { $_.Line }
+```
+Attendu : `PASS   : TstBenchVerdict::benchTargetsAreVisibleInTheShell()` et `Totals: … 0 failed` ; la forme
+bornée `debug` ; le banc sans écran et sa ligne `content_check.ok`. Attendu : N ≥ 40 en release
 et en debug, `TESTS OK` deux fois, `tst_bench_verdict` et `tst_bench_smoke` `Passed`, `BUDGET TENU` ou
 `BUDGET DEPASSE`, `content_check.ok = True`. Joindre le nom du JSON et les quatre contrôles (`checks`) au rapport.
 
@@ -7106,9 +7182,10 @@ Name: "{autodesktop}\ActCraft"; Filename: "{app}\actcraft.exe"; Tasks: desktopic
 
 [Registry]
 Root: HKA; Subkey: "Software\Classes\.actcraft"; ValueType: string; ValueName: ""; ValueData: "ActCraft.Document"; Flags: uninsdeletevalue; Tasks: assoc_actcraft
-Root: HKA; Subkey: "Software\Classes\ActCraft.Document"; ValueType: string; ValueName: ""; ValueData: "Document ActCraft"; Flags: uninsdeletekey; Tasks: assoc_actcraft
-Root: HKA; Subkey: "Software\Classes\ActCraft.Document\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\actcraft.exe,0"; Tasks: assoc_actcraft
-Root: HKA; Subkey: "Software\Classes\ActCraft.Document\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actcraft.exe"" ""%1"""; Tasks: assoc_actcraft
+; Le ProgID sert aux deux associations : créé dès que l'une des deux est cochée.
+Root: HKA; Subkey: "Software\Classes\ActCraft.Document"; ValueType: string; ValueName: ""; ValueData: "Document ActCraft"; Flags: uninsdeletekey; Tasks: assoc_actcraft or assoc_flipchart
+Root: HKA; Subkey: "Software\Classes\ActCraft.Document\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\actcraft.exe,0"; Tasks: assoc_actcraft or assoc_flipchart
+Root: HKA; Subkey: "Software\Classes\ActCraft.Document\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actcraft.exe"" ""%1"""; Tasks: assoc_actcraft or assoc_flipchart
 ; .flipchart : seulement « Ouvrir avec » ; l'application par défaut (ActivInspire installé) reste inchangée.
 Root: HKA; Subkey: "Software\Classes\.flipchart\OpenWithProgids"; ValueType: string; ValueName: "ActCraft.Document"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc_flipchart
 
@@ -7628,18 +7705,32 @@ que seul Jérôme peut faire).
 
 **Fichiers.** Modifier : `.github/workflows/ci.yml`. Corrections propres à la CI permises (et seulement elles) :
 `scripts/paquet.ps1`, `scripts/essai-installateur.ps1`, `scripts/paquet-android.ps1`, `scripts/essai-android.ps1`,
-`scripts/dev-env-android.ps1`, `packaging/android/versions.env` — chacune nommée au rapport avec la ligne du
-journal qui l'a imposée.
+`scripts/dev-env-android.ps1`, `packaging/android/versions.env`. Si L1-T17 a prouvé par analyse (chaîne absente du
+poste) ou si L1-T18 n'a pas joué S3 en local (pas de WHPX), la première vraie construction Android et le premier
+vrai S3 ont lieu ici : sont alors permis aussi `CMakePresets.json`, `app/CMakeLists.txt`,
+`android/AndroidManifest.xml` (repli de L1-T17, étape 6), `packaging/qt-autorises.txt` (module LGPL seulement, même
+règle que L1-T16) et `scripts/lire-pixel.py`. Chaque correction est nommée au rapport avec la ligne du journal qui
+l'a imposée.
 
-**Test et commande bornée.** Run réel de la CI sur la branche `essai-ci/L1-T19` (jamais de tag) :
+**Publication sur le dépôt public.** Le push d'une branche `essai-ci/…` publie tout le lot sur un dépôt **public**
+avant la relecture de fin de lot ; supprimer la branche n'efface ni les commits ni les journaux. Le contrôle de
+l'étape 2 (propriété intellectuelle) précède donc **tout** push, et son résultat entre dans la preuve.
+
+**Test et commande bornée.** Run réel de la CI sur la branche `essai-ci/L1-T19` (jamais de tag). Un run dure plus
+que le plafond de 10 min d'un appel d'outil : on attend que le run apparaisse, puis on le suit par appels courts.
 ```powershell
 Set-Location <worktree>; git push origin HEAD:refs/heads/essai-ci/L1-T19
-Set-Location <worktree>; Start-Sleep -Seconds 20; $id = (gh run list --branch essai-ci/L1-T19 --workflow ci.yml --limit 1 --json databaseId | ConvertFrom-Json)[0].databaseId; gh run watch $id --exit-status > .tmp/ci-run.txt 2>&1; Write-Output "run $id : code $LASTEXITCODE"
-Set-Location <worktree>; gh run view $id --json jobs --jq '.jobs[] | "\(.name) : \(.conclusion)"'; gh run view $id --log | Select-String 'INSTALLATEUR OK|APK OK|ANDROID OK' | Select-Object -First 3 | ForEach-Object { $_.Line.Substring([Math]::Max(0, $_.Line.Length - 60)) }
+Set-Location <worktree>; $sha = git rev-parse HEAD; $id = $null; $fin = (Get-Date).AddMinutes(3); while (-not $id -and (Get-Date) -lt $fin) { Start-Sleep -Seconds 10; $id = (gh run list --branch essai-ci/L1-T19 --workflow ci.yml --commit $sha --limit 1 --json databaseId | ConvertFrom-Json | Select-Object -First 1).databaseId }; Write-Output "run : $id"
+Set-Location <worktree>; $fin = (Get-Date).AddMinutes(8); do { Start-Sleep -Seconds 30; $r = gh run view <id> --json status,conclusion | ConvertFrom-Json } until ($r.status -eq 'completed' -or (Get-Date) -gt $fin); Write-Output "état : $($r.status) / $($r.conclusion)"
+Set-Location <worktree>; gh run view <id> --json jobs --jq '.jobs[] | "\(.name) : \(.conclusion)"'; gh run view <id> --log | Select-String 'INSTALLATEUR OK|APK OK|ANDROID OK' | Select-Object -First 3 | ForEach-Object { $_.Line.Substring([Math]::Max(0, $_.Line.Length - 60)) }
 ```
-Attendu : `run <id> : code 0` ; tous les jobs `success` (`format`, `build (windows-latest…)`, `build (macos-latest…)`,
-`paquet-windows`, `android`) ; trois lignes se terminant par `INSTALLATEUR OK`, `APK OK`, `ANDROID OK`. Puis
-suppression de la branche : `git -C <worktree> push origin --delete essai-ci/L1-T19`.
+La deuxième commande donne l'identifiant (`run : <id>` ; vide après 3 min : relire `gh run list --branch
+essai-ci/L1-T19` et le rapporter). La troisième se **relance** tant que l'état n'est pas `completed` (chaque appel
+dure 8 min au plus) ; on peut aussi lancer `gh run watch <id> --exit-status --interval 60 > .tmp/ci-run.txt 2>&1`
+en arrière-plan (`run_in_background`) et attendre sa notification. Attendu : `état : completed / success` ; tous
+les jobs `success` (`format`, `build (windows-latest…)`, `build (macos-latest…)`, `paquet-windows`, `android`) ; trois
+lignes se terminant par `INSTALLATEUR OK`, `APK OK`, `ANDROID OK`. Puis suppression de la branche :
+`git -C <worktree> push origin --delete essai-ci/L1-T19`.
 
 **Interdits.** Aucun `actions/upload-artifact` dans `ci.yml` (pas de distribution avant le go). Jamais de tag `v*`,
 jamais de push sur `main`. Pas de secret. Ne pas désactiver un job ni marquer `continue-on-error` un essai S1 ou S3
@@ -7842,9 +7933,24 @@ Set-Location <worktree>; git add .github/workflows/ci.yml
 git -C <worktree> commit -m "CI : installateur (S1) et APK sur émulateur (S3) construits et essayés, sans téléversement" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
-- [ ] **Étape 3 : run réel.** Lancer les trois commandes bornées (push de `essai-ci/L1-T19`, attente, lecture).
-Rouge : un job en `failure`. Lire son journal :
-`gh run view $id --log-failed | Select-Object -Last 60`. Corriger **la cause** dans l'un des fichiers permis
+- [ ] **Étape 2 bis : contrôle avant publication (propriété intellectuelle).** Avant **tout** push (et avant
+chaque nouveau push après une correction) :
+
+```powershell
+Set-Location <worktree>; git fetch origin main; git diff --name-only --diff-filter=AM origin/main..HEAD | Where-Object { Test-Path $_ } | ForEach-Object { Select-String -Path $_ -Pattern 'Promethean|ActivInspire|\bActiv\b|ExpressPoll|Planet' } | ForEach-Object { "$($_.Path | Resolve-Path -Relative):$($_.LineNumber): $($_.Line.Trim())" }
+Set-Location <worktree>; git diff --name-only --diff-filter=A origin/main..HEAD | Where-Object { $_ -match '\.(png|jpe?g|gif|bmp|ico|svg|flipchart|flp|as4|wav|mp3|mp4|ttf|otf)$' -or $_ -match '^(build|\.tmp|bench/results)/' -or $_ -match 'samples' }
+```
+Attendu : la première commande ne liste que des **mentions écrites par nous** (le nom d'ActivInspire cité pour
+l'interopérabilité ou pour dire ce qu'on ne reprend pas : cadrage, plan, direction visuelle, commentaire du `.iss`)
+— aucune phrase, donnée ou libellé copiés de l'aide, des binaires ou de `docs/re/` de l'ancien dépôt ; la deuxième ne
+liste que les 10 icônes `ui/icons/*.svg` de L1-T7, chacune relue (outil Read) : chemins géométriques simples à une
+couleur, `viewBox` 24 × 24, aucun commentaire ni métadonnée d'origine. Recopier les deux sorties et le verdict
+(une ligne par fichier) dans la preuve. Tout contenu de Promethean, toute capture, tout fichier de `samples/`,
+`build/`, `.tmp/` ou `bench/results/` **bloque le push** : s'arrêter et le rapporter.
+
+- [ ] **Étape 3 : run réel.** Lancer les trois commandes bornées (push de `essai-ci/L1-T19`, identifiant du run,
+suivi par appels de 8 min au plus, puis lecture). Rouge : un job en `failure`. Lire son journal :
+`gh run view <id> --log-failed | Select-Object -Last 60`. Corriger **la cause** dans l'un des fichiers permis
 (chemins Linux, variable d'environnement, version d'outil), commiter (message : « CI : <correction> »), repousser
 (`git push origin HEAD:refs/heads/essai-ci/L1-T19`), relire. Trois essais au plus ; au-delà, rapport avec le
 journal (et porte « installation » si c'est l'émulateur et que WHPX n'est pas utilisable).
@@ -7884,13 +7990,16 @@ le mode `essai` et l'échec du mode réel sans secrets.
 
 **Test et commande bornée.** Rouge puis vert, localement : les deux scripts (sans secrets → `SECRETS ABSENTS`, code
 1 ; avec des valeurs factices → `SECRETS OK` ; notes de 0.1.0 → `NOTES OK`). Puis run réel de `release.yml` en mode
-`essai` sur `essai-ci/release-L1-T20` :
+`essai` sur `essai-ci/release-L1-T20`, précédé du contrôle avant publication (étape 7 bis). Un run dure plus que le
+plafond de 10 min d'un appel d'outil : attendre qu'il apparaisse, puis le suivre par appels courts.
 ```powershell
 Set-Location <worktree>; git push origin HEAD:refs/heads/essai-ci/release-L1-T20
-Set-Location <worktree>; Start-Sleep -Seconds 20; $id = (gh run list --branch essai-ci/release-L1-T20 --workflow release.yml --limit 1 --json databaseId | ConvertFrom-Json)[0].databaseId; gh run watch $id --exit-status > .tmp/release-run.txt 2>&1; Write-Output "run $id : code $LASTEXITCODE"
-Set-Location <worktree>; gh run view $id --json jobs --jq '.jobs[] | "\(.name) : \(.conclusion)"'; gh run view $id --log | Select-String 'CONTROLE OK|NOTES OK|INSTALLATEUR OK|APK OK|NON PUBLIABLE' | ForEach-Object { $_.Line.Substring([Math]::Max(0, $_.Line.Length - 70)) }; gh release list --limit 5
+Set-Location <worktree>; $sha = git rev-parse HEAD; $id = $null; $fin = (Get-Date).AddMinutes(3); while (-not $id -and (Get-Date) -lt $fin) { Start-Sleep -Seconds 10; $id = (gh run list --branch essai-ci/release-L1-T20 --workflow release.yml --commit $sha --limit 1 --json databaseId | ConvertFrom-Json | Select-Object -First 1).databaseId }; Write-Output "run : $id"
+Set-Location <worktree>; $fin = (Get-Date).AddMinutes(8); do { Start-Sleep -Seconds 30; $r = gh run view <id> --json status,conclusion | ConvertFrom-Json } until ($r.status -eq 'completed' -or (Get-Date) -gt $fin); Write-Output "état : $($r.status) / $($r.conclusion)"
+Set-Location <worktree>; gh run view <id> --json jobs --jq '.jobs[] | "\(.name) : \(.conclusion)"'; gh run view <id> --log | Select-String 'CONTROLE OK|NOTES OK|INSTALLATEUR OK|APK OK|NON PUBLIABLE' | ForEach-Object { $_.Line.Substring([Math]::Max(0, $_.Line.Length - 70)) }; gh release list --limit 5
 ```
-Attendu : `code 0` ; jobs `mode`, `controle-mode-reel`, `windows`, `android` en `success`, `secrets` et `release`
+La troisième commande se relance tant que l'état n'est pas `completed` (ou `gh run watch <id> --exit-status
+--interval 60` lancé en arrière-plan). Attendu : `état : completed / success` ; jobs `mode`, `controle-mode-reel`, `windows`, `android` en `success`, `secrets` et `release`
 en `skipped` ; lignes `CONTROLE OK`, `NOTES OK`, `INSTALLATEUR OK`, `APK OK`, `APK NON PUBLIABLE` ; `gh release
 list` ne montre **aucune** release nouvelle. Puis `git -C <worktree> push origin --delete essai-ci/release-L1-T20`.
 
@@ -7899,7 +8008,7 @@ list` ne montre **aucune** release nouvelle. Puis `git -C <worktree> push origin
 publie jamais le brouillon (la publication est l'action finale, go écrit de Jérôme).
 
 **Terminé quand.** Scripts verts localement ; run `essai` vert, aucune release créée, branche supprimée ; profil à
-jour (`PROFIL OK` de L1-T1 toujours vrai) ; commit fait.
+jour, bloc `action-finale` inchangé (étape 9) ; contrôle avant publication recopié dans la preuve ; commit fait.
 
 **Étapes.**
 
@@ -8000,8 +8109,9 @@ on:
         options: [essai, reel]
         default: essai
 
+# Lecture seule partout ; seul le job « release » écrit (brouillon, suppression des artefacts du run).
 permissions:
-  contents: write
+  contents: read
 
 env:
   QT_VERSION: "6.12.0"
@@ -8176,6 +8286,9 @@ jobs:
     needs: [mode, windows, android]
     if: needs.mode.outputs.mode == 'reel'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -8196,6 +8309,17 @@ jobs:
         run: |
           gh release create "v${{ needs.mode.outputs.version }}" --draft --verify-tag \
             --title "ActCraft ${{ needs.mode.outputs.version }}" --notes-file notes.md paquets/*
+      # Les artefacts du run (installateur, APK signé) ne servent qu'à assembler le brouillon : supprimés aussitôt,
+      # même en cas d'échec, pour qu'ils ne restent pas téléchargeables avant la publication (go écrit).
+      - name: Supprimer les artefacts du run
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --jq '.artifacts[].id' |
+            while read -r artefact; do
+              gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artefact"
+            done
 ```
 (Le job `android` de `release.yml` n'installe que Qt `android_arm64_v8a` : la release ne livre que cette ABI,
 décision 28 ; `ACTCRAFT_QT_ANDROID_X86_64_DIR` y pointe vers le même dossier pour que `dev-env-android.ps1` ne
@@ -8244,13 +8368,30 @@ Set-Location <worktree>; git add .github/workflows/release.yml CHANGELOG.md scri
 git -C <worktree> commit -m "Release : brouillon sur tag, mode essai sans release, échec sans secrets ; profil des paquets" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
-- [ ] **Étape 8 : run réel du mode essai.** Lancer les trois commandes bornées. Rouge : un job en `failure` →
-`gh run view $id --log-failed | Select-Object -Last 60`, corriger la cause dans `release.yml` ou les deux scripts de
-cette tâche, commiter, repousser ; trois essais au plus. Vert : voir « Attendu ». Vérifier que `gh release list`
-n'a rien de nouveau.
+- [ ] **Étape 7 bis : contrôle avant publication (propriété intellectuelle).** Avant **tout** push (le dépôt est
+public ; supprimer la branche n'efface ni les commits ni les journaux) :
 
-- [ ] **Étape 9 : profil toujours tenu.** Relancer `node .tmp/verifier-profil.js` (recréer le fichier depuis la
-section L1-T1, étape 1, s'il manque dans ce worktree). Attendu : `PROFIL OK`.
+```powershell
+Set-Location <worktree>; git fetch origin main; git diff --name-only --diff-filter=AM origin/main..HEAD | Where-Object { Test-Path $_ } | ForEach-Object { Select-String -Path $_ -Pattern 'Promethean|ActivInspire|\bActiv\b|ExpressPoll|Planet' } | ForEach-Object { "$($_.Path | Resolve-Path -Relative):$($_.LineNumber): $($_.Line.Trim())" }
+Set-Location <worktree>; git diff --name-only --diff-filter=A origin/main..HEAD | Where-Object { $_ -match '\.(png|jpe?g|gif|bmp|ico|svg|flipchart|flp|as4|wav|mp3|mp4|ttf|otf)$' -or $_ -match '^(build|\.tmp|bench/results)/' -or $_ -match 'samples' }
+```
+Attendu : seulement des mentions écrites par nous (nom cité pour l'interopérabilité ou pour dire ce qu'on ne
+reprend pas), et seulement les 10 icônes `ui/icons/*.svg` déjà relues en L1-T19. Recopier les sorties et le
+verdict dans la preuve ; tout contenu de Promethean ou fichier de `samples/`, `build/`, `.tmp/`, `bench/results/`
+bloque le push.
+
+- [ ] **Étape 8 : run réel du mode essai.** Lancer les trois commandes bornées. Rouge : un job en `failure` →
+`gh run view <id> --log-failed | Select-Object -Last 60`, corriger la cause dans `release.yml` ou les deux scripts
+de cette tâche, commiter, refaire l'étape 7 bis, repousser ; trois essais au plus. Vert : voir « Attendu ».
+Vérifier que `gh release list` n'a rien de nouveau.
+
+- [ ] **Étape 9 : profil toujours tenu.** Le bloc `action-finale` posé par L1-T1 ne doit pas avoir changé :
+
+```powershell
+Set-Location <worktree>; $t = Get-Content -Raw .claude/chantier.md; foreach ($m in '\bgit\b(\s+-[Cc]\s+\S+)*\s+tag\b', '\bgh\s+release\s+(create|edit|upload|delete)\b', '\bgh\s+api\b(?=.*releases)') { Write-Output "$($t.Contains($m)) : $m" }; git -C <worktree> log --format=%h -- .claude/chantier.md | Select-Object -First 1 | ForEach-Object { git -C <worktree> show $_ -- .claude/chantier.md } | Select-String '^[-+].*action-finale|^[-+]\\b(git|gh)'
+```
+Attendu : trois lignes `True`, et aucune ligne de diff sur le bloc `action-finale` (cette tâche n'ajoute que les
+sections « Preuve visuelle » et « Paquets »).
 
 - [ ] **Étape 10 : nettoyer.** `git -C <worktree> push origin --delete essai-ci/release-L1-T20` ; vérifier avec
 `git -C <worktree> ls-remote --heads origin "essai-ci/*"`.
@@ -8279,4 +8420,5 @@ la branche `feat/livraison-complete` à jour :
 6. **Porte de fin du lot 1** : release 0.1.0 proposée (publiée seulement sur go écrit, décision 38 et profil) ; deux
    questions avec défaut appliqué sans réponse : fonctions à revoir complètement (défaut : aucune, N1-1) ; avancer le
    lot « cache incrémental » (défaut : non, N1-10). Signaler aussi N1-13 (aspect et icônes neufs, captures à
-   l'appui) et l'écart du menu (Éditer et Insérer masqués tant qu'ils sont vides).
+   l'appui) et les sept points de la section « Écarts au cadrage » (dont : la 0.1.0 n'ouvre encore aucun fichier,
+   et le lot a été publié sur le dépôt public par les branches `essai-ci/…`).
