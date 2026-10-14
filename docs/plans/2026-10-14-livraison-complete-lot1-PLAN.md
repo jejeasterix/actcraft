@@ -25,7 +25,7 @@ Actions (Windows, macOS, Ubuntu + KVM).
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
-| L1-T1 | Profil du chantier : release due sous go, motifs d'action finale, durée du go, régime du banc, preuve visuelle | — | `.claude/chantier.md` | isolé | implementeur-tdd | `PROFIL OK` (37 cas : 23 écritures tenues, 14 lectures laissées ; rouge avant : 19 `ECART`) | S1, S2, S3 | #tache-l1-t1 |
+| L1-T1 | Profil du chantier : release due sous go, motifs d'action finale, durée du go, régime du banc, preuve visuelle | — | `.claude/chantier.md` | isolé | implementeur-tdd | `PROFIL OK` (53 cas : 35 écritures tenues, 18 lectures laissées ; rouge avant : 31 `ECART`) | S1, S2, S3 | #tache-l1-t1 |
 | L1-T2 | Outillage des paquets : JDK 17, SDK/NDK, Qt 6.12 Android, Inno Setup, émulateur (WHPX sinon CI) | — | `scripts/dev-env-android.ps1`, `packaging/android/versions.env`, `docs/verifications/2026-10-14-outillage-paquets.md` | isolé | implementeur-tdd | 14 lignes `VERIF` sans `…` ; `dev-env-android.ps1` → `ENV ANDROID OK` ; `ISCC` répond | S1, S3 | #tache-l1-t2 |
 | L1-T3 | `core` : squelette `Document` (pages, page suivante qui ajoute, empreinte) | L1-T1 | `core/CMakeLists.txt`, `core/include/actcraft/core/document.h`, `core/src/document.cpp`, `tests/core.cmake`, `tests/tst_core_document.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 30 tests, `tst_core_document` Passed | S2 | #tache-l1-t3 |
 | L1-T4 | `actions` : registre des commandes nommées, déclarations JSON | L1-T1 | `actions/CMakeLists.txt`, `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `actions/data/commands.json`, `tests/CMakeLists.txt`, `tests/actions.cmake`, `tests/tst_actions_registry.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 30 tests, `tst_actions_registry` Passed | S2 | #tache-l1-t4 |
@@ -79,8 +79,9 @@ porte de fin.
    puis la suppriment. Ce push publie le lot sur le dépôt public avant la relecture de fin de lot.
 5. **Motifs d'action finale élargis** (L1-T1). Les deux motifs de la décision 38 b et les trois du profil sont
    remplacés par quatre motifs plus stricts : `git -C <dossier>`, `tag -a`, `--tags`, `--follow-tags`, `refs/tags/`,
-   `gh release upload|delete`, `gh api` en écriture implicite (`-f`, `-F`, `--input`) sont tenus ; les lectures
-   restent libres.
+   `gh release upload|delete`, `gh api` en écriture implicite (`-f`, `-F`, `--input`), guillemets, `.exe`,
+   `--mirror`, `refs/tags/*`, création de tag par l'API sont tenus ; les lectures restent libres. Résidus acceptés
+   (règle écrite seulement) : tag passé par variable, `curl` / `Invoke-RestMethod` vers l'API, mutation GraphQL.
 6. **Association `.flipchart` réduite à « Ouvrir avec »** (L1-T16). Décision 26 : association proposée décochée ;
    cochée, elle ajoute ActCraft à « Ouvrir avec » sans prendre la place d'ActivInspire. La 0.1.0 n'ouvre encore
    aucun fichier (lecteur et format natif au lot 2) : les associations lancent l'application sur une page vierge.
@@ -241,13 +242,13 @@ la commande de preuve visuelle de la décision 36 (annoncée ; sa forme bornée 
 irréversible »). Fichier d'essai non commité : `.tmp/verifier-profil.js`.
 
 **Test et commande bornée.** Le test est un script Node qui lit le bloc `action-finale` exactement comme
-`~/.claude/hooks/interdits.js` (fonctions `bloc` et `regle`) et l'applique à 37 commandes (23 écritures à tenir,
-14 lectures à laisser) :
+`~/.claude/hooks/interdits.js` (fonctions `bloc` et `regle`) et l'applique à 53 commandes (35 écritures à tenir,
+18 lectures à laisser) :
 ```powershell
 Set-Location <worktree>; node .tmp/verifier-profil.js > .tmp/profil.txt 2>&1 ; Select-String -Path .tmp/profil.txt -Pattern '^(ECART|PROFIL)' | Select-Object -Last 6
 ```
-Rouge avant la modification : 19 lignes `ECART`, puis `PROFIL EN ECHEC`. Vert après : aucune ligne `ECART`
-(`Select-String -Path .tmp/profil.txt -Pattern '^ECART' | Measure-Object` → 0), 37 lignes `OK`, dernière ligne
+Rouge avant la modification : 31 lignes `ECART`, puis `PROFIL EN ECHEC`. Vert après : aucune ligne `ECART`
+(`Select-String -Path .tmp/profil.txt -Pattern '^ECART' | Measure-Object` → 0), 53 lignes `OK`, dernière ligne
 `PROFIL OK`.
 
 **Interdits.** Ne toucher ni au bloc `interdits` ni aux autres sections. Ne pas affaiblir un motif existant. Ne
@@ -285,6 +286,11 @@ const bloquer = [
   "gh api --method DELETE repos/jejeasterix/actcraft/releases/1",
   "gh api repos/jejeasterix/actcraft/releases -f tag_name=v0.1.0 -F draft=false",
   "gh api repos/jejeasterix/actcraft/releases --input corps.json",
+  // Guillemets, `+`, `refs/tags/*`, `--mirror`, `.exe`, dossier à espaces, création de tag par l'API.
+  "git tag \"v0.1.0\"", "git tag 'v0.1.0'", "git push origin \"v0.1.0\"", "git push origin 'refs/tags/v0.1.0'",
+  "git push origin refs/tags/*", "git push origin +v0.1.0", "git push origin :v0.1.0", "git push --mirror origin",
+  "git.exe tag v0.1.0", "gh.exe release create v0.1.0", "git -C \"C:/a b/c\" tag v0.1.0",
+  "gh api repos/o/r/git/refs -f ref=refs/tags/v0.1.0 -f sha=abc",
 ];
 const laisser = [
   "gh release view v0.1.0", "gh release list --limit 5", "gh api repos/jejeasterix/actcraft/releases",
@@ -293,6 +299,8 @@ const laisser = [
   "git push origin HEAD:refs/heads/essai-ci/L1-T19", "git push origin --delete essai-ci/L1-T19",
   "gh api -X PATCH repos/jejeasterix/actcraft/pulls/3", "git -C wt push origin HEAD:refs/heads/essai-ci/release-L1-T20",
   "gh run list --branch essai-ci/release-L1-T20 --workflow release.yml",
+  "git push origin HEAD:refs/heads/essai-ci/v2", "gh api repos/o/r/git/refs/tags",
+  "git -C \"C:/a b/c\" log --oneline -1", "git push origin feat/x",
 ];
 const cas = [...bloquer.map((c) => [c, true]), ...laisser.map((c) => [c, false])];
 let ok = true;
@@ -306,8 +314,8 @@ process.exit(ok ? 0 : 1);
 ```
 
 - [ ] **Étape 2 : le voir échouer.** Lancer la commande bornée (sortie entière :
-`Get-Content .tmp/profil.txt`). Attendu avec le profil actuel : 19 lignes `ECART` (formes `git -C`, `tag -a`,
-`--tags`, `-u`, `refs/tags`, `--follow-tags`, `push … tag`, `gh release edit/upload/delete`, les cinq `gh api`
+`Get-Content .tmp/profil.txt`). Attendu avec le profil actuel : 31 lignes `ECART` (guillemets, `.exe`, `git -C`, `tag -a`, `--mirror`,
+`--tags`, `-u`, `refs/tags`, `--follow-tags`, `push … tag`, `gh release edit/upload/delete`, les `gh api`
 d'écriture), aucune lecture bloquée, puis `PROFIL EN ECHEC`.
 
 - [ ] **Étape 3 : bloc `action-finale` et lignes qui le suivent.** Dans `.claude/chantier.md`, remplacer le bloc et
@@ -315,10 +323,10 @@ les deux premières puces qui le suivent (« Go requis », « Due seulement quan
 
 ````markdown
 ```action-finale
-\bgit\b(\s+-[Cc]\s+\S+)*\s+tag\b(?=.*\sv\d) :: tag de release
-\bgit\b(\s+-[Cc]\s+\S+)*\s+push\b(?=.*(\s(\S+:)?(refs/tags/)?v\d|\s--tags\b|\s--follow-tags\b|\stag\s)) :: publication du tag de release
-\bgh\s+release\s+(create|edit|upload|delete)\b :: écriture d'une release GitHub (création, publication du brouillon, fichiers, suppression)
-\bgh\s+api\b(?=.*releases)(?!.*(-X|--method)[\s=]*(GET|get)\b)(?=.*(\s-X|\s--method|\s(-f|-F|--field|--raw-field|--input)[\s=])) :: écriture dans les releases par l'API
+\bgit(\.exe)?\b(\s+-[Cc]\s+("[^"]*"|'[^']*'|\S+))*\s+tag\b(?=.*[\s"']v\d) :: tag de release
+\bgit(\.exe)?\b(\s+-[Cc]\s+("[^"]*"|'[^']*'|\S+))*\s+push\b(?=.*(refs/tags/|[\s"'+:]v\d|\s--tags\b|\s--follow-tags\b|\s--mirror\b|\stag\s)) :: publication du tag de release
+\bgh(\.exe)?\s+release\s+(create|edit|upload|delete)\b :: écriture d'une release GitHub (création, publication du brouillon, fichiers, suppression)
+\bgh(\.exe)?\s+api\b(?=.*(releases|refs/tags))(?!.*(-X|--method)[\s=]*(GET|get)\b)(?=.*(\s-X|\s--method|\s(-f|-F|--field|--raw-field|--input)[\s=])) :: écriture dans les releases ou les tags par l'API
 ```
 
 - Go requis : oui — une release est publique et téléchargeable ; jamais sans accord explicite de Jérôme.
@@ -338,8 +346,12 @@ Garder telles quelles les puces « Porte avant merge » et « CI couverte par la
 remplacent les trois d'origine et les deux du cadrage (décision 38 b) : ils tiennent tout ce que ceux-ci tenaient,
 plus les formes `git -C <dossier>`, `tag -a`, `--tags`, `--follow-tags`, `refs/tags/`, `gh release
 upload|delete`, et `gh api` en écriture implicite (`-f`, `-F`, `--input` font un POST) ; les lectures restent
-libres (vérifié sous node, 23 cas tenus, 14 lectures laissées). Écart au cadrage, plus strict, jamais plus
-permissif (section « Écarts au cadrage »).
+libres (vérifié sous node, 35 cas tenus, 18 lectures laissées, dont guillemets, `.exe`, `+v…`, `refs/tags/*`,
+`--mirror`, dossier à espaces et création de tag par `gh api …/git/refs`). Écart au cadrage, plus strict, jamais
+plus permissif (section « Écarts au cadrage »). **Résidus acceptés**, que des motifs ne peuvent pas tenir sans
+bloquer aussi des lectures : tag passé par variable (`$t='v0.1.0'; git tag $t`), appel direct de l'API par `curl`
+ou `Invoke-RestMethod`, mutation GraphQL (`gh api graphql`). Ils restent couverts par la règle écrite (go requis) et
+sont rappelés à la porte de fin.
 
 - [ ] **Étape 4 : section « Preuve visuelle ».** La remplacer entière par :
 
@@ -376,7 +388,7 @@ la mesure de fin de lot 1, commitée dans `docs/mesures/`, devient la référenc
 l'étape 2 du BRIEF.
 ```
 
-- [ ] **Étape 6 : le voir passer.** Relancer la commande bornée. Attendu : 37 lignes `OK`, aucune `ECART`,
+- [ ] **Étape 6 : le voir passer.** Relancer la commande bornée. Attendu : 53 lignes `OK`, aucune `ECART`,
 `PROFIL OK`. Puis :
 
 ```powershell
@@ -7726,8 +7738,9 @@ Set-Location <worktree>; gh run view <id> --json jobs --jq '.jobs[] | "\(.name) 
 ```
 La deuxième commande donne l'identifiant (`run : <id>` ; vide après 3 min : relire `gh run list --branch
 essai-ci/L1-T19` et le rapporter). La troisième se **relance** tant que l'état n'est pas `completed` (chaque appel
-dure 8 min au plus) ; on peut aussi lancer `gh run watch <id> --exit-status --interval 60 > .tmp/ci-run.txt 2>&1`
-en arrière-plan (`run_in_background`) et attendre sa notification. Attendu : `état : completed / success` ; tous
+dure 8 min au plus), **8 fois au plus** (environ 64 min) ; au-delà, s'arrêter et rapporter
+`gh run view <id> --json jobs`. On peut aussi lancer `gh run watch <id> --exit-status --interval 60 >
+.tmp/ci-run.txt 2>&1` en arrière-plan (`run_in_background`), avec la même limite, et attendre sa notification. Attendu : `état : completed / success` ; tous
 les jobs `success` (`format`, `build (windows-latest…)`, `build (macos-latest…)`, `paquet-windows`, `android`) ; trois
 lignes se terminant par `INSTALLATEUR OK`, `APK OK`, `ANDROID OK`. Puis suppression de la branche :
 `git -C <worktree> push origin --delete essai-ci/L1-T19`.
@@ -7994,12 +8007,13 @@ le mode `essai` et l'échec du mode réel sans secrets.
 plafond de 10 min d'un appel d'outil : attendre qu'il apparaisse, puis le suivre par appels courts.
 ```powershell
 Set-Location <worktree>; git push origin HEAD:refs/heads/essai-ci/release-L1-T20
-Set-Location <worktree>; $sha = git rev-parse HEAD; $id = $null; $fin = (Get-Date).AddMinutes(3); while (-not $id -and (Get-Date) -lt $fin) { Start-Sleep -Seconds 10; $id = (gh run list --branch essai-ci/release-L1-T20 --workflow release.yml --commit $sha --limit 1 --json databaseId | ConvertFrom-Json | Select-Object -First 1).databaseId }; Write-Output "run : $id"
+Set-Location <worktree>; $sha = git rev-parse HEAD; $id = $null; $fin = (Get-Date).AddMinutes(3); while (-not $id -and (Get-Date) -lt $fin) { Start-Sleep -Seconds 10; $id = (gh run list --branch essai-ci/release-L1-T20 --commit $sha --limit 1 --json databaseId | ConvertFrom-Json | Select-Object -First 1).databaseId }; Write-Output "run : $id"
 Set-Location <worktree>; $fin = (Get-Date).AddMinutes(8); do { Start-Sleep -Seconds 30; $r = gh run view <id> --json status,conclusion | ConvertFrom-Json } until ($r.status -eq 'completed' -or (Get-Date) -gt $fin); Write-Output "état : $($r.status) / $($r.conclusion)"
 Set-Location <worktree>; gh run view <id> --json jobs --jq '.jobs[] | "\(.name) : \(.conclusion)"'; gh run view <id> --log | Select-String 'CONTROLE OK|NOTES OK|INSTALLATEUR OK|APK OK|NON PUBLIABLE' | ForEach-Object { $_.Line.Substring([Math]::Max(0, $_.Line.Length - 70)) }; gh release list --limit 5
 ```
-La troisième commande se relance tant que l'état n'est pas `completed` (ou `gh run watch <id> --exit-status
---interval 60` lancé en arrière-plan). Attendu : `état : completed / success` ; jobs `mode`, `controle-mode-reel`, `windows`, `android` en `success`, `secrets` et `release`
+La troisième commande se relance tant que l'état n'est pas `completed`, **8 fois au plus** (environ 64 min) ;
+au-delà, s'arrêter et rapporter `gh run view <id> --json jobs` (ou `gh run watch <id> --exit-status --interval 60`,
+lancé en arrière-plan, avec la même limite). Attendu : `état : completed / success` ; jobs `mode`, `controle-mode-reel`, `windows`, `android` en `success`, `secrets`, `release` et `nettoyer`
 en `skipped` ; lignes `CONTROLE OK`, `NOTES OK`, `INSTALLATEUR OK`, `APK OK`, `APK NON PUBLIABLE` ; `gh release
 list` ne montre **aucune** release nouvelle. Puis `git -C <worktree> push origin --delete essai-ci/release-L1-T20`.
 
@@ -8109,7 +8123,7 @@ on:
         options: [essai, reel]
         default: essai
 
-# Lecture seule partout ; seul le job « release » écrit (brouillon, suppression des artefacts du run).
+# Lecture seule partout ; seuls « release » (brouillon) et « nettoyer » (artefacts du run) écrivent.
 permissions:
   contents: read
 
@@ -8288,7 +8302,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      actions: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -8309,10 +8322,18 @@ jobs:
         run: |
           gh release create "v${{ needs.mode.outputs.version }}" --draft --verify-tag \
             --title "ActCraft ${{ needs.mode.outputs.version }}" --notes-file notes.md paquets/*
-      # Les artefacts du run (installateur, APK signé) ne servent qu'à assembler le brouillon : supprimés aussitôt,
-      # même en cas d'échec, pour qu'ils ne restent pas téléchargeables avant la publication (go écrit).
+
+  # Mode réel : les artefacts du run (installateur, APK signé) ne servent qu'à assembler le brouillon. Supprimés à
+  # la fin quoi qu'il arrive (échec de « windows », d'« android » ou de « release » compris), pour qu'ils ne restent
+  # pas téléchargeables avant la publication (go écrit).
+  nettoyer:
+    needs: [mode, windows, android, release]
+    if: always() && needs.mode.outputs.mode == 'reel'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
       - name: Supprimer les artefacts du run
-        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -8388,9 +8409,9 @@ Vérifier que `gh release list` n'a rien de nouveau.
 - [ ] **Étape 9 : profil toujours tenu.** Le bloc `action-finale` posé par L1-T1 ne doit pas avoir changé :
 
 ```powershell
-Set-Location <worktree>; $t = Get-Content -Raw .claude/chantier.md; foreach ($m in '\bgit\b(\s+-[Cc]\s+\S+)*\s+tag\b', '\bgh\s+release\s+(create|edit|upload|delete)\b', '\bgh\s+api\b(?=.*releases)') { Write-Output "$($t.Contains($m)) : $m" }; git -C <worktree> log --format=%h -- .claude/chantier.md | Select-Object -First 1 | ForEach-Object { git -C <worktree> show $_ -- .claude/chantier.md } | Select-String '^[-+].*action-finale|^[-+]\\b(git|gh)'
+Set-Location <worktree>; $t = Get-Content -Raw .claude/chantier.md; foreach ($m in '\bgit(\.exe)?\b(\s+-[Cc]\s+(', '\s--follow-tags\b|\s--mirror\b|\stag\s))', '\bgh(\.exe)?\s+release\s+(create|edit|upload|delete)\b', '\bgh(\.exe)?\s+api\b(?=.*(releases|refs/tags))') { Write-Output "$($t.Contains($m)) : $m" }; git -C <worktree> log --format=%h -- .claude/chantier.md | Select-Object -First 1 | ForEach-Object { git -C <worktree> show $_ -- .claude/chantier.md } | Select-String '^[-+].*action-finale|^[-+]\\b(git|gh)'
 ```
-Attendu : trois lignes `True`, et aucune ligne de diff sur le bloc `action-finale` (cette tâche n'ajoute que les
+Attendu : quatre lignes `True`, et aucune ligne de diff sur le bloc `action-finale` (cette tâche n'ajoute que les
 sections « Preuve visuelle » et « Paquets »).
 
 - [ ] **Étape 10 : nettoyer.** `git -C <worktree> push origin --delete essai-ci/release-L1-T20` ; vérifier avec
