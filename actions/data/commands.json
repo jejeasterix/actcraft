@@ -1,0 +1,18 @@
+{
+  "format": "actcraft-commands/1",
+  "commands": [
+    { "id": "file.quit", "label": "Quitter", "icon": "quitter", "shortcut": "Ctrl+Q" },
+    { "id": "view.fullscreen", "label": "Plein écran", "icon": "plein-ecran", "shortcut": "F5", "checkable": true },
+    { "id": "view.fit", "label": "Ajuster la page", "icon": "ajuster" },
+    { "id": "view.zoom", "label": "Échelle", "argument": "number" },
+    { "id": "page.previous", "label": "Page précédente", "icon": "page-precedente", "shortcut": "PgUp" },
+    { "id": "page.next", "label": "Page suivante", "icon": "page-suivante", "shortcut": "PgDown" },
+    { "id": "tool.pen", "label": "Stylo", "icon": "stylo", "shortcut": "Ctrl+Shift+P", "checkable": true },
+    { "id": "pen.color", "label": "Couleur du stylo", "argument": "color" },
+    { "id": "pen.width", "label": "Épaisseur du stylo", "argument": "number" },
+    { "id": "menu.main", "label": "Menu principal", "icon": "menu" },
+    { "id": "menu.tools", "label": "Outils", "icon": "outils" },
+    { "id": "help.website", "label": "Site du projet", "icon": "aide", "shortcut": "F1" },
+    { "id": "help.about", "label": "À propos d'ActCraft", "icon": "a-propos" }
+  ]
+}
