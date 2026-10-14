@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 project(ActCraft
     VERSION 0.1.0
-    DESCRIPTION "Logiciel libre de tableau blanc interactif"
+    DESCRIPTION "Logiciel de tableau blanc interactif"
     LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
