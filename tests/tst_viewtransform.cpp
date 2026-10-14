@@ -79,6 +79,29 @@ private slots:
         QCOMPARE(cacheTextureSize(QSizeF(1024, 768), 1.0, 2.0), QSize(2048, 1536));
         QCOMPARE(cacheTextureSize(QSizeF(1024, 768), 3.0, 2.0), QSize(4096, 3072));
     }
+
+    void scrollAxisCoversPageAndMargins()
+    {
+        const ScrollAxis fits = scrollAxis(10, 1000, 500);
+        QCOMPARE(fits.size, 1.0);
+        QCOMPARE(fits.position, 0.0);
+        const double extent = 2000 + 2 * kViewMargin;
+        const ScrollAxis start = scrollAxis(kViewMargin, 1000, 2000);
+        QCOMPARE(start.size, 1000 / extent);
+        QCOMPARE(start.position, 0.0);
+        const ScrollAxis end = scrollAxis(1000 - 2000 - kViewMargin, 1000, 2000);
+        QVERIFY(qAbs(end.position - (1.0 - 1000 / extent)) < 1e-12);
+    }
+
+    void panForScrollPositionInvertsScrollAxis()
+    {
+        for (const double position : {0.0, 0.2, 0.4}) {
+            const double pan = panForScrollPosition(position, 1000, 2000);
+            QVERIFY(qAbs(scrollAxis(pan, 1000, 2000).position - position) < 1e-12);
+        }
+        QCOMPARE(panForScrollPosition(0.5, 1000, 500), 250.0); // page plus petite que la vue : centrée
+        QCOMPARE(panForScrollPosition(-1.0, 1000, 2000), kViewMargin); // borné au début
+    }
 };
 
 QTEST_GUILESS_MAIN(TstViewTransform)

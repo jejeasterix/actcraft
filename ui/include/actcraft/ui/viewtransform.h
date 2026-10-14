@@ -40,4 +40,18 @@ QPointF wheelScrollDelta(QPoint angleDelta, QPoint pixelDelta, Qt::KeyboardModif
 // Taille de la texture du cache : page × zoom × rapport de pixels, plus grand côté plafonné (décision 7).
 QSize cacheTextureSize(QSizeF page, double zoom, double devicePixelRatio, int maxSide = kMaxCacheSide);
 
+// Barre de défilement d'un axe (F-022) : taille et position en fraction de l'étendue (page zoomée + 2
+// marges), comme ScrollBar.size et ScrollBar.position de Qt Quick Controls.
+// Page plus petite que la vue : taille 1, position 0.
+struct ScrollAxis
+{
+    double size = 1.0;
+    double position = 0.0;
+};
+ScrollAxis scrollAxis(double pan, double viewLength, double contentLength, double margin = kViewMargin);
+// Inverse de scrollAxis : défilement pour une position (bornée à [0, 1 − taille]) ; page plus petite que la
+// vue : centrée.
+double panForScrollPosition(double position, double viewLength, double contentLength,
+                            double margin = kViewMargin);
+
 } // namespace actcraft::ui

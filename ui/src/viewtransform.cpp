@@ -72,4 +72,26 @@ QSize cacheTextureSize(QSizeF page, double zoom, double devicePixelRatio, int ma
     return QSize(std::max(1, static_cast<int>(w)), std::max(1, static_cast<int>(h)));
 }
 
+ScrollAxis scrollAxis(double pan, double viewLength, double contentLength, double margin)
+{
+    const double extent = contentLength + 2 * margin;
+    if (extent <= viewLength || extent <= 0) {
+        return {};
+    }
+    ScrollAxis axis;
+    axis.size = viewLength / extent;
+    axis.position = std::clamp((margin - pan) / extent, 0.0, 1.0 - axis.size);
+    return axis;
+}
+
+double panForScrollPosition(double position, double viewLength, double contentLength, double margin)
+{
+    const double extent = contentLength + 2 * margin;
+    if (extent <= viewLength) {
+        return (viewLength - contentLength) / 2;
+    }
+    const double p = std::clamp(position, 0.0, 1.0 - viewLength / extent);
+    return margin - p * extent;
+}
+
 } // namespace actcraft::ui

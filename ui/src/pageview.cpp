@@ -9,13 +9,17 @@
 #include <QMouseEvent>
 #include <QQuickWindow>
 #include <QTabletEvent>
+#include <QTouchEvent>
 #include <QWheelEvent>
+
+#include <algorithm>
 
 namespace actcraft::ui {
 
 PageView::PageView(QQuickItem* parent) : QQuickItem(parent)
 {
     setAcceptedMouseButtons(Qt::LeftButton);
+    setAcceptTouchEvents(true);
     m_cacheTimer.setSingleShot(true);
     m_cacheTimer.setInterval(kCacheRefreshDelayMs);
     connect(&m_cacheTimer, &QTimer::timeout, this, [this] {
@@ -36,6 +40,8 @@ void PageView::setContent(QQuickItem* content)
     if (content == m_content) {
         return;
     }
+    const QSizeF oldPage = pageSize();
+    const ViewTransform old = m_transform;
     m_content = content;
     if (m_content) {
         m_content->setTransformOrigin(QQuickItem::TopLeft);
@@ -44,6 +50,11 @@ void PageView::setContent(QQuickItem* content)
         fitPage();
     } else {
         apply(clampPan(m_transform, size(), pageSize()));
+    }
+    // La taille de la page change les barres même quand ni le zoom ni le défilement ne bougent (apply n'a
+    // alors rien émis).
+    if (pageSize() != oldPage && qFuzzyCompare(old.zoom, m_transform.zoom) && old.pan == m_transform.pan) {
+        emit scrollChanged();
     }
     emit contentChanged();
 }
@@ -228,6 +239,8 @@ void PageView::rebuildPen()
     m_inkSurface = std::make_unique<InkSurfaceAdapter>(*m_ink);
     m_documentSink = std::make_unique<FixedPageSink>(*m_fixedPage, *this);
     m_pen = std::make_unique<tools::PenTool>(*m_inkSurface, *m_documentSink);
+    m_pen->setColor(m_penColor.rgba());
+    m_pen->setBaseWidth(m_penWidth);
     m_pipeline = std::make_unique<input::Pipeline>(*m_pen);
     m_pipeline->setProbe(m_probe);
     m_ink->setProbe(m_probe);
@@ -253,6 +266,10 @@ bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
 
 void PageView::mousePressEvent(QMouseEvent* event)
 {
+    if (!canStartStroke(event->position())) {
+        event->ignore();
+        return;
+    }
     event->setAccepted(handlePointer(*event, event->position()));
 }
 
@@ -288,15 +305,184 @@ void PageView::itemChange(ItemChange change, const ItemChangeData& value)
 
 bool PageView::eventFilter(QObject* watched, QEvent* event)
 {
-    if (event->type() == QEvent::TabletPress || event->type() == QEvent::TabletMove ||
-        event->type() == QEvent::TabletRelease) {
+    const QEvent::Type type = event->type();
+    if (type == QEvent::TabletPress || type == QEvent::TabletMove || type == QEvent::TabletRelease) {
         auto* tablet = static_cast<QTabletEvent*>(event);
-        if (handlePointer(*tablet, mapFromScene(tablet->position()))) {
+        const QPointF viewPos = mapFromScene(tablet->position());
+        // La décision se prend à l'appui, comme la saisie implicite de Qt Quick pour la souris : un trait ne
+        // commence que sur la vue ; commencé, il suit le stylet partout jusqu'au relâché. Le reste (appui
+        // ailleurs et ce qui le suit, survol) passe au reste de l'interface. Le trait suivi est celui du
+        // stylet, pas celui du stylo (PenTool::isDrawing vaut aussi pour un doigt ou la souris).
+        bool taken = false;
+        if (type == QEvent::TabletPress) {
+            if (canStartStroke(viewPos) && acceptsDevice(tablet->pointingDevice())) {
+                // Un seul trait à la fois : le stylet termine d'abord celui du doigt (PenTool mêlerait les
+                // points des deux).
+                finishTouchStroke();
+                taken = handlePointer(*tablet, viewPos);
+            }
+            m_stylusDrawing = taken;
+        } else if (m_stylusDrawing) {
+            taken = handlePointer(*tablet, viewPos);
+            if (type == QEvent::TabletRelease) {
+                m_stylusDrawing = false;
+            }
+        }
+        if (taken) {
             tablet->accept();
             return true; // consommé : pas de souris synthétisée en double
         }
     }
     return QQuickItem::eventFilter(watched, event);
+}
+
+bool PageView::canStartStroke(QPointF viewPos) const
+{
+    // isEnabled : le stylet passe par le filtre de la fenêtre et contournerait « enabled: false ».
+    return !m_inputBlocked && isVisible() && isEnabled() && contains(viewPos);
+}
+
+void PageView::touchEvent(QTouchEvent* event)
+{
+    if (event->type() == QEvent::TouchCancel) {
+        finishTouchStroke();
+        event->accept();
+        return;
+    }
+    // L'événement remis à la vue ne porte que ses points (saisis par elle ou appuyés sur elle) : un deuxième
+    // doigt posé sur la vue y figure avec le premier ; posé ailleurs (palette), il n'arrête rien.
+    if (event->pointCount() != 1) {
+        finishTouchStroke(); // un deuxième doigt arrête le trait du premier (gestes : lot 3)
+        event->ignore();
+        return;
+    }
+    const QPointF viewPos = event->points().constFirst().position();
+    const bool begin = event->type() == QEvent::TouchBegin;
+    // Pendant un trait du stylet, un doigt (ou la paume) ne commence rien : le trait du stylet continue.
+    if ((begin && (m_stylusDrawing || !canStartStroke(viewPos))) || (!begin && !m_touchDrawing)) {
+        event->ignore();
+        return;
+    }
+    m_lastTouchViewPos = viewPos;
+    const bool handled = handlePointer(*event, viewPos);
+    if (begin) {
+        m_touchDrawing = handled;
+    } else if (event->type() == QEvent::TouchEnd) {
+        m_touchDrawing = false;
+    }
+    event->setAccepted(handled);
+}
+
+void PageView::touchUngrabEvent()
+{
+    finishTouchStroke(); // saisie volée (futur geste, Flickable) : le trait du doigt se termine proprement
+    QQuickItem::touchUngrabEvent();
+}
+
+void PageView::finishTouchStroke()
+{
+    if (!m_touchDrawing) {
+        return;
+    }
+    m_touchDrawing = false;
+    if (!m_pipeline) {
+        return;
+    }
+    const QPointF page = viewTransform().viewToPage(m_lastTouchViewPos);
+    input::Sample release;
+    release.x = page.x();
+    release.y = page.y();
+    release.timestampNs = core::monotonicNowNs();
+    release.device = input::DeviceKind::Touch;
+    release.phase = input::Phase::Release;
+    m_pipeline->push(release);
+}
+
+QColor PageView::penColor() const noexcept
+{
+    return m_penColor;
+}
+
+void PageView::setPenColor(const QColor& color)
+{
+    if (!color.isValid() || color == m_penColor) {
+        return;
+    }
+    m_penColor = color;
+    if (m_pen) {
+        m_pen->setColor(m_penColor.rgba());
+    }
+    emit penChanged();
+}
+
+qreal PageView::penWidth() const noexcept
+{
+    return m_penWidth;
+}
+
+void PageView::setPenWidth(qreal width)
+{
+    const qreal clamped = std::clamp(width, kMinPenWidth, kMaxPenWidth);
+    if (qFuzzyCompare(clamped, m_penWidth)) {
+        return;
+    }
+    m_penWidth = clamped;
+    if (m_pen) {
+        m_pen->setBaseWidth(m_penWidth);
+    }
+    emit penChanged();
+}
+
+bool PageView::inputBlocked() const noexcept
+{
+    return m_inputBlocked;
+}
+
+void PageView::setInputBlocked(bool blocked)
+{
+    if (blocked == m_inputBlocked) {
+        return;
+    }
+    m_inputBlocked = blocked;
+    emit inputBlockedChanged();
+}
+
+qreal PageView::scrollSizeX() const
+{
+    return scrollAxis(m_transform.pan.x(), width(), pageSize().width() * m_transform.zoom).size;
+}
+
+qreal PageView::scrollPositionX() const
+{
+    return scrollAxis(m_transform.pan.x(), width(), pageSize().width() * m_transform.zoom).position;
+}
+
+qreal PageView::scrollSizeY() const
+{
+    return scrollAxis(m_transform.pan.y(), height(), pageSize().height() * m_transform.zoom).size;
+}
+
+qreal PageView::scrollPositionY() const
+{
+    return scrollAxis(m_transform.pan.y(), height(), pageSize().height() * m_transform.zoom).position;
+}
+
+void PageView::scrollTo(qreal positionX, qreal positionY)
+{
+    ViewTransform t = m_transform;
+    const QSizeF content = pageSize() * t.zoom;
+    t.pan = QPointF(panForScrollPosition(positionX, width(), content.width()),
+                    panForScrollPosition(positionY, height(), content.height()));
+    t = clampPan(t, size(), pageSize());
+    // Une barre branchée sur la position renvoie souvent la position courante : rien ne bouge, « Ajuster »
+    // reste (tolérance : l'axe limitant d'« Ajuster » tombe pile sur la marge, aux arrondis près).
+    constexpr double kSamePan = 1e-6;
+    if (qAbs(t.pan.x() - m_transform.pan.x()) < kSamePan &&
+        qAbs(t.pan.y() - m_transform.pan.y()) < kSamePan) {
+        return;
+    }
+    m_fitMode = false;
+    apply(t);
 }
 
 QPointF PageView::pageToScene(QPointF pagePoint) const
@@ -350,6 +536,7 @@ void PageView::geometryChange(const QRectF& newGeometry, const QRectF& oldGeomet
     } else {
         apply(clampPan(m_transform, size(), pageSize()));
     }
+    emit scrollChanged(); // la taille de la vue change la taille des barres
 }
 
 QSizeF PageView::pageSize() const
@@ -371,6 +558,9 @@ void PageView::apply(const ViewTransform& transform)
     }
     if (panChangedNow) {
         emit panChanged();
+    }
+    if (zoomChangedNow || panChangedNow) {
+        emit scrollChanged();
     }
 }
 
