@@ -3,6 +3,7 @@
 #include <QMouseEvent>
 #include <QPointingDevice>
 #include <QTabletEvent>
+#include <QTouchEvent>
 
 namespace actcraft::input {
 
@@ -49,6 +50,20 @@ std::optional<Sample> sampleFromEvent(const QEvent& event, QPointF pagePos, std:
         }
         sample.device = DeviceKind::Mouse;
         sample.pressure = 0.5f;
+        return sample;
+    }
+    case QEvent::TouchBegin:
+    case QEvent::TouchUpdate:
+    case QEvent::TouchEnd: {
+        const auto& touch = static_cast<const QTouchEvent&>(event);
+        if (touch.pointCount() != 1) {
+            return std::nullopt; // deux doigts et plus : gestes (lot 3), jamais un trait
+        }
+        sample.device = DeviceKind::Touch;
+        sample.phase = event.type() == QEvent::TouchBegin    ? Phase::Press
+                       : event.type() == QEvent::TouchUpdate ? Phase::Move
+                                                             : Phase::Release;
+        sample.pressure = 0.5f; // comme la souris : épaisseur nominale
         return sample;
     }
     default:

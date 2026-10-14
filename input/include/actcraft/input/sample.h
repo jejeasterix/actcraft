@@ -9,6 +9,7 @@ enum class DeviceKind : std::uint8_t
     Stylus,
     Mouse,
     Other,
+    Touch, // un doigt (décision 25 du cadrage livraison-complete) ; ajouté en dernier : valeurs inchangées
 };
 
 enum class Phase : std::uint8_t
