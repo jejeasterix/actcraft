@@ -190,6 +190,38 @@ private slots:
         QCOMPARE(controller.pageLabel(), QStringLiteral("2 / 2"));
     }
 
+    // Échange d'élément : l'ancien rend sa page au document avant que le nouveau ne la reçoive.
+    void swappingTheItemHandsBackItsPage()
+    {
+        render::FixedPageItem first;
+        render::FixedPageItem second;
+        ui::DocumentController controller;
+        controller.setFixedPage(&first);
+        first.appendStroke(redStroke());
+        controller.setFixedPage(&second);
+        QCOMPARE(second.objectCount(), 1);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+    }
+
+    // Page 2 affichée : la page 1 change dans le document, l'élément garde la page 2 et ses traits.
+    void generatedFirstPageWhileShowingPageTwo()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.nextPage();
+        fixed.appendStroke(redStroke());
+        controller.loadGeneratedFirstPage();
+        QCOMPARE(fixed.objectCount(), 1);
+        QCOMPARE(controller.pageLabel(), QStringLiteral("2 / 2"));
+        const core::Document& document = controller.document();
+        QCOMPARE(core::fingerprint(document.page(0)),
+                 core::fingerprint(core::generatePage(core::kDefaultSeed)));
+        QCOMPARE(document.page(1).objects.size(), std::size_t{1});
+        controller.previousPage();
+        QCOMPARE(fixed.objectCount(), 300);
+    }
+
     void registeredInQml()
     {
         QQmlEngine engine;

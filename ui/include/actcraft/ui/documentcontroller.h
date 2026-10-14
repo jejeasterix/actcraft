@@ -17,6 +17,14 @@ namespace actcraft::ui {
 // pages. La page affichée est recopiée dans le document avant tout changement de page et à toute lecture
 // (document()). Aucune copie suivie trait par trait : un écrivain qui ne passe pas par appendStroke serait
 // perdu. Le lot 2 remplace ce relais par le vrai modèle et sa pile d'annulation.
+//
+// Conditions d'emploi, que ce relais ne vérifie pas :
+// - même élément : `fixedPage` doit être l'élément que le stylo remplit, celui de `PageView.fixedPage`.
+//   Les deux liaisons sont indépendantes ; liées à deux éléments différents, les traits iraient dans une
+//   page que le document ne lit jamais.
+// - durée de vie : la page affichée n'existe que dans l'élément. S'il est détruit avant le contrôleur sans
+//   avoir été détaché (setFixedPage(nullptr)), les traits faits depuis le dernier changement de page sont
+//   perdus, sans message.
 class DocumentController : public QObject
 {
     Q_OBJECT
@@ -36,7 +44,8 @@ public:
     int pageCount() const noexcept;
     int currentIndex() const noexcept;
     QString pageLabel() const; // « n / N » (F-002)
-    // Document à jour de la page affichée.
+    // Document à jour de la page affichée. Chaque appel copie la page affichée dans le document : à appeler
+    // sur un événement (changement de page, enregistrement), pas par image.
     const core::Document& document();
 
     // F-125 : sur la dernière page, ajoute une page vierge et l'affiche.
