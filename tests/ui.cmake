@@ -20,3 +20,7 @@ actcraft_add_test(tst_ui_theme
 actcraft_add_test(tst_ui_document
     SOURCES tst_ui_document.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+actcraft_add_test(tst_ui_commands
+    SOURCES tst_ui_commands.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)

@@ -1,10 +1,18 @@
+#include <actcraft/core/model.h>
+#include <actcraft/render/fixedpageitem.h>
+#include <actcraft/render/inkitem.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QPointingDevice>
 #include <QQuickWindow>
 #include <QSignalSpy>
+#include <QTabletEvent>
 #include <QTest>
+#include <QTouchEvent>
 #include <QWheelEvent>
+
+#include <memory>
+#include <variant>
 
 using namespace actcraft::ui;
 
@@ -47,13 +55,367 @@ void wheel(Fixture& f, QPointF pos, QPoint angle, Qt::KeyboardModifiers modifier
     QCoreApplication::sendEvent(&f.window, &event);
 }
 
+// Compte les événements de tablette que la vue laisse passer au reste de la fenêtre (barres, palettes). Posé
+// sur la fenêtre avant la vue, il n'est consulté qu'après le filtre de celle-ci : ce qu'elle prend, il ne le
+// voit pas.
+class PassedOn : public QObject
+{
+public:
+    int count = 0;
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        const QEvent::Type type = event->type();
+        if (type == QEvent::TabletPress || type == QEvent::TabletMove || type == QEvent::TabletRelease) {
+            ++count;
+        }
+        return QObject::eventFilter(watched, event);
+    }
+};
+
+// Vue de 600 × 600 posée en x = 200 dans une fenêtre de 1000 × 600 : à gauche et à droite, « hors de la vue »
+// (barre, palette). Page vierge, sans cache.
+struct DrawFixture
+{
+    QQuickWindow window;
+    PassedOn passedOn;
+    PageView* view = nullptr;
+    actcraft::render::FixedPageItem* fixed = nullptr;
+    QPointingDevice* stylus = nullptr;
+};
+
+bool openDrawing(DrawFixture& f, QPointingDevice* stylus)
+{
+    f.stylus = stylus;
+    f.window.resize(1000, 600);
+    f.window.installEventFilter(&f.passedOn); // avant la vue : consulté après son filtre
+    f.view = new PageView;
+    f.view->setParentItem(f.window.contentItem());
+    f.view->setPosition(QPointF(200, 0));
+    f.view->setSize(QSizeF(600, 600));
+    auto* content = new QQuickItem;
+    content->setSize(QSizeF(1024, 768));
+    content->setParentItem(f.view);
+    f.fixed = new actcraft::render::FixedPageItem;
+    f.fixed->setSize(content->size());
+    f.fixed->setParentItem(content);
+    auto* ink = new actcraft::render::InkItem;
+    ink->setSize(content->size());
+    ink->setParentItem(content);
+    f.view->setCacheEnabled(false);
+    f.view->setContent(content);
+    f.view->setFixedPage(f.fixed);
+    f.view->setInk(ink);
+    f.fixed->setPage(actcraft::core::Page{});
+    f.window.show();
+    return QTest::qWaitForWindowExposed(&f.window) &&
+           QTest::qWaitFor([&] { return f.fixed->isReady(); }, 5000);
+}
+
+void tablet(DrawFixture& f, QEvent::Type type, QPointF scene, Qt::MouseButtons buttons)
+{
+    QTabletEvent event(type, f.stylus, scene, f.window.mapToGlobal(scene), buttons ? 0.5 : 0.0, 0, 0, 0, 0, 0,
+                       Qt::NoModifier, Qt::LeftButton, buttons);
+    QCoreApplication::sendEvent(&f.window, &event);
+}
+
+// Appui, quatre déplacements, relâché : six événements.
+void tabletStroke(DrawFixture& f, QPointF from, QPointF to)
+{
+    tablet(f, QEvent::TabletPress, from, Qt::LeftButton);
+    for (int i = 1; i <= 4; ++i) {
+        tablet(f, QEvent::TabletMove, from + (to - from) * i / 4.0, Qt::LeftButton);
+    }
+    tablet(f, QEvent::TabletRelease, to, Qt::NoButton);
+}
+
+const actcraft::core::Stroke& lastStroke(const DrawFixture& f)
+{
+    return std::get<actcraft::core::Stroke>(f.fixed->page().objects.back());
+}
+
+// Qt Quick retarde et compresse les TouchUpdate jusqu'à l'image suivante : avant un événement envoyé
+// directement (stylet, annulation, saisie volée), laisser passer une image pour que le déplacement soit
+// livré.
+void settleTouch()
+{
+    QTest::qWait(50);
+}
+
+// Les traits des tests sont horizontaux : un point d'un autre trait (autre hauteur) s'y verrait.
+bool onOneLine(const actcraft::core::Stroke& stroke)
+{
+    for (const actcraft::core::StrokePoint& point : stroke.points) {
+        if (point.y != stroke.points.front().y) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace
 
 class TstPageView : public QObject
 {
     Q_OBJECT
 
+private:
+    std::unique_ptr<QPointingDevice> m_stylus;
+
 private slots:
+    void initTestCase()
+    {
+        m_stylus = std::make_unique<QPointingDevice>(
+            QStringLiteral("tst-pageview-stylus"), 5160, QInputDevice::DeviceType::Stylus,
+            QPointingDevice::PointerType::Pen,
+            QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3);
+    }
+
+    void penColorAndWidthAreClampedAndSignalled()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        QCOMPARE(f.view->penColor(), QColor(Qt::black));
+        QCOMPARE(f.view->penWidth(), kDefaultPenWidth);
+        QSignalSpy changed(f.view, &PageView::penChanged);
+        f.view->setPenColor(QColor(QStringLiteral("#E53935")));
+        f.view->setPenWidth(0.0);
+        QCOMPARE(f.view->penWidth(), kMinPenWidth);
+        f.view->setPenWidth(500.0);
+        QCOMPARE(f.view->penWidth(), kMaxPenWidth);
+        f.view->setPenColor(QColor()); // invalide : ignorée
+        QCOMPARE(f.view->penColor(), QColor(QStringLiteral("#E53935")));
+        QCOMPARE(changed.count(), 3);
+        // Appliquées au stylo en place…
+        tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(lastStroke(f).color, 0xFFE53935u);
+        QCOMPARE(lastStroke(f).baseWidth, kMaxPenWidth);
+        // … et gardées quand il est reconstruit (la page change).
+        f.view->setFixedPage(nullptr);
+        f.view->setFixedPage(f.fixed);
+        tabletStroke(f, QPointF(300, 400), QPointF(500, 400));
+        QTRY_COMPARE(f.fixed->objectCount(), 2);
+        QCOMPARE(lastStroke(f).color, 0xFFE53935u);
+        QCOMPARE(lastStroke(f).baseWidth, kMaxPenWidth);
+    }
+
+    void scrollPropertiesFollowZoom()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        QCOMPARE(f.view->scrollSizeX(), 1.0);
+        QCOMPARE(f.view->scrollSizeY(), 1.0);
+        QSignalSpy scrolled(f.view, &PageView::scrollChanged);
+        f.view->setZoom(4.0);
+        QVERIFY(scrolled.count() >= 1);
+        QVERIFY(f.view->scrollSizeX() < 1.0);
+        QVERIFY(f.view->scrollSizeY() < 1.0);
+        f.view->scrollTo(0.0, 0.0);
+        QCOMPARE(f.view->pan(), QPointF(kViewMargin, kViewMargin));
+        QCOMPARE(f.view->scrollPositionX(), 0.0);
+        f.view->scrollTo(1.0, 1.0); // borné à 1 − taille
+        QVERIFY(qAbs(f.view->scrollPositionX() + f.view->scrollSizeX() - 1.0) < 1e-9);
+    }
+
+    void strokeStartsOnlyOnTheViewThenFollowsTheStylus()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        // Appui hors de la vue (palette) : rien n'est pris, pas même les déplacements qui passent sur la vue.
+        tabletStroke(f, QPointF(100, 300), QPointF(500, 300));
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 0);
+        QCOMPARE(f.passedOn.count, 6);
+        // Appui sur la vue, relâché hors de la vue : tout le trait est pris, jusqu'au relâché.
+        tabletStroke(f, QPointF(300, 300), QPointF(900, 300));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(f.passedOn.count, 6);
+        // Le trait suivi est celui du stylet : un doigt qui dessine sur la vue ne fait pas prendre le stylet
+        // posé sur la palette.
+        QPointingDevice* screen = QTest::createTouchDevice();
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100));
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(450, 100));
+        tabletStroke(f, QPointF(100, 500), QPointF(150, 500));
+        QCOMPARE(f.passedOn.count, 12);
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(450, 100));
+        QTRY_COMPARE(f.fixed->objectCount(), 2);
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 2);
+    }
+
+    void blockedInputStartsNoStroke()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        QSignalSpy blocked(f.view, &PageView::inputBlockedChanged);
+        f.view->setInputBlocked(true);
+        QCOMPARE(blocked.count(), 1);
+        tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 0);
+        f.view->setInputBlocked(false);
+        tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+    }
+
+    void oneFingerDrawsTwoFingersDoNot()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        QPointingDevice* screen = QTest::createTouchDevice();
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 200));
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 200));
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(500, 200));
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(500, 200));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+        // Deux doigts posés ensemble : un geste (lot 3), jamais un trait.
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 400)).press(1, QPoint(600, 400));
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 400)).move(1, QPoint(650, 400));
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(350, 400)).release(1, QPoint(650, 400));
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 1);
+        // Un deuxième doigt posé pendant le trait du premier le termine (son début est gardé) ; ensuite, ni
+        // le deuxième doigt, ni les deux ensemble, ni le premier resté seul ne dessinent.
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 500));
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 500));
+        QTest::touchEvent(&f.window, screen).stationary(0).press(1, QPoint(600, 500));
+        QTRY_COMPARE(f.fixed->objectCount(), 2);
+        QTest::touchEvent(&f.window, screen).stationary(0).move(1, QPoint(650, 500));
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 500)).move(1, QPoint(700, 500));
+        QTest::touchEvent(&f.window, screen).stationary(0).release(1, QPoint(700, 500));
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(450, 500));
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(450, 500));
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 2);
+        QCOMPARE(lastStroke(f).points.size(), std::size_t{2}); // appui et déplacement du premier doigt
+    }
+
+    void fingerThenStylusMakeTwoSeparateStrokes()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        QPointingDevice* screen = QTest::createTouchDevice();
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100));
+        settleTouch();
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 100));
+        settleTouch();
+        tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton); // termine le trait du doigt
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 100));
+        settleTouch();
+        tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(400, 100));
+        settleTouch();
+        tablet(f, QEvent::TabletMove, QPointF(400, 300), Qt::LeftButton);
+        tablet(f, QEvent::TabletRelease, QPointF(450, 300), Qt::NoButton);
+        QTRY_COMPARE(f.fixed->objectCount(), 2);
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 2);
+        const auto& finger = std::get<actcraft::core::Stroke>(f.fixed->page().objects[0]);
+        const auto& stylus = std::get<actcraft::core::Stroke>(f.fixed->page().objects[1]);
+        QCOMPARE(finger.points.size(), std::size_t{2}); // appui et premier déplacement du doigt
+        QVERIFY(onOneLine(finger));
+        QCOMPARE(stylus.points.size(), std::size_t{4}); // 300, 350, 400, 450 : aucun point du doigt
+        QVERIFY(onOneLine(stylus));
+    }
+
+    void stylusStrokeIgnoresFingerUntilReleased()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        QPointingDevice* screen = QTest::createTouchDevice();
+        tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton);
+        tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100)); // paume ou doigt : refusé
+        settleTouch();
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 100));
+        settleTouch();
+        tablet(f, QEvent::TabletMove, QPointF(400, 300), Qt::LeftButton);
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(400, 100));
+        settleTouch();
+        tablet(f, QEvent::TabletMove, QPointF(450, 300), Qt::LeftButton);
+        tablet(f, QEvent::TabletRelease, QPointF(500, 300), Qt::NoButton);
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(lastStroke(f).points.size(), std::size_t{5}); // 300 à 500, d'un seul tenant
+        QVERIFY(onOneLine(lastStroke(f)));
+    }
+
+    void fingerStrokeEndsOnCancelOrLostGrab()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        QPointingDevice* screen = QTest::createTouchDevice();
+        // Trait ordinaire : le relâché, à un autre point que le dernier déplacement, en fait partie.
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100));
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 100));
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(400, 100));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(lastStroke(f).points.size(), std::size_t{3});
+        // Annulation (système) : le trait se termine au dernier point connu, la suite ne dessine pas.
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 200));
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 200));
+        settleTouch();
+        QTouchEvent cancel(QEvent::TouchCancel, screen);
+        QCoreApplication::sendEvent(f.view, &cancel);
+        QTRY_COMPARE(f.fixed->objectCount(), 2);
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 200));
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(400, 200));
+        // Saisie volée (futur geste, Flickable) : idem.
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 300));
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 300));
+        settleTouch();
+        f.view->ungrabTouchPoints();
+        QTRY_COMPARE(f.fixed->objectCount(), 3);
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 300));
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(400, 300));
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 3);
+        QCOMPARE(lastStroke(f).points.size(), std::size_t{2});
+    }
+
+    void disabledViewTakesNoStylus()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->setEnabled(false);
+        tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 0);
+        QCOMPARE(f.passedOn.count, 6);
+        f.view->setEnabled(true);
+        tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+    }
+
+    void pageSizeChangeSignalsScroll()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        f.view->setZoom(4.0);
+        f.view->setPan(QPointF(kViewMargin, kViewMargin));
+        const qreal before = f.view->scrollSizeX();
+        QSignalSpy scrolled(f.view, &PageView::scrollChanged);
+        auto* wider = new QQuickItem;
+        wider->setSize(QSizeF(2048, 768));
+        wider->setParentItem(f.view);
+        f.view->setContent(wider); // ni le zoom ni le défilement ne bougent, les barres si
+        QCOMPARE(f.view->pan(), QPointF(kViewMargin, kViewMargin));
+        QVERIFY(f.view->scrollSizeX() < before);
+        QCOMPARE(scrolled.count(), 1);
+    }
+
+    void scrollToKeepsFitWhenNothingMoves()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        f.view->scrollTo(0.0, 0.0); // page entière visible : une barre renvoie sa position, rien ne bouge
+        f.view->setSize(QSizeF(640, 400));
+        QVERIFY(qFuzzyCompare(f.view->zoom(), (400.0 - 64.0) / 768.0)); // toujours « Ajuster »
+    }
+
     void startsInFitMode()
     {
         Fixture f;
