@@ -7,7 +7,8 @@ set_tests_properties(tst_app_version PROPERTIES PASS_REGULAR_EXPRESSION "^ActCra
 # Liste des modules Qt autorisés : un dossier conforme passe, un module sous GPL seule est refusé.
 find_program(ACTCRAFT_PWSH pwsh)
 if(ACTCRAFT_PWSH)
-    set(_licences ${CMAKE_BINARY_DIR}/licences-essai)
+    # Fixtures HORS du dossier de construction : verifier-licences.ps1 -Dossier build/<preset> les trouverait sinon.
+    set(_licences ${CMAKE_BINARY_DIR}/../tests-fixtures/licences)
     file(MAKE_DIRECTORY ${_licences}/autorise ${_licences}/refuse)
     file(WRITE ${_licences}/autorise/Qt6Core.dll "")
     file(WRITE ${_licences}/autorise/Qt6Quick.dll "")
@@ -21,4 +22,10 @@ if(ACTCRAFT_PWSH)
         COMMAND ${ACTCRAFT_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/scripts/verifier-licences.ps1
             -Dossier ${_licences}/refuse)
     set_tests_properties(tst_licences_refus PROPERTIES PASS_REGULAR_EXPRESSION "LICENCES EN ECHEC : Qt6Charts")
+    # Garde : le dossier de construction lui-même ne contient aucune fixture refusée.
+    add_test(NAME tst_licences_sans_fixture
+        COMMAND ${ACTCRAFT_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/scripts/verifier-licences.ps1
+            -Dossier ${CMAKE_BINARY_DIR})
+    set_tests_properties(tst_licences_sans_fixture PROPERTIES PASS_REGULAR_EXPRESSION "LICENCES"
+        FAIL_REGULAR_EXPRESSION "Qt6Charts")
 endif()
