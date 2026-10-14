@@ -89,5 +89,5 @@ endif()
 # Joueur de scénarios d'interface d'actcraft-captures (DA8), sur une fenêtre d'essai à vraie PageView.
 actcraft_add_test(tst_bench_uiscenario
     SOURCES tst_bench_uiscenario.cpp
-    LIBS ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick)
+    LIBS ActCraft::benchui ActCraft::ui actcraft_uiplugin Qt6::Quick)
 target_compile_definitions(tst_bench_uiscenario PRIVATE ACTCRAFT_TESTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

@@ -2,6 +2,7 @@
 
 #include <QFile>
 #include <QQmlApplicationEngine>
+#include <QQuickItem>
 #include <QQuickWindow>
 #include <QTemporaryDir>
 #include <QTest>
@@ -181,6 +182,12 @@ private slots:
         QCOMPARE(propertyText(0.5), QStringLiteral("0.5"));
         QCOMPARE(propertyText(QColor(QStringLiteral("#E53935"))), QStringLiteral("#e53935"));
         QCOMPARE(propertyText(QStringLiteral("2 / 2")), QStringLiteral("2 / 2"));
+        // Types sans texte : nommés, jamais lus « "" » (qui égalerait une valeur attendue vide).
+        QCOMPARE(propertyText(QPointF(1, 2)), QStringLiteral("<non textuel : QPointF>"));
+        QCOMPARE(propertyText(QRectF(0, 0, 1, 1)), QStringLiteral("<non textuel : QRectF>"));
+        QObject object;
+        QCOMPARE(propertyText(QVariant::fromValue(&object)), QStringLiteral("<non textuel : QObject*>"));
+        QCOMPARE(propertyText(QVariant()), QStringLiteral("<absente>"));
     }
 
     void playsOnARealPageView()
@@ -191,12 +198,19 @@ private slots:
         Fixture f;
         QVERIFY(load(f));
         QStringList report;
+        QStringList streamed; // lignes données au fil de l'eau, avant la fin du scénario
+        f.player->setLineSink([&streamed](const QString& line) { streamed << line; });
         QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(streamed, report);
         QCOMPARE(f.window->property("dernier").toString(), QStringLiteral("sans.argument"));
         QVERIFY(QFile::exists(f.out.filePath(QStringLiteral("essai-01-fin.png"))));
         QVERIFY(QFile::exists(f.out.filePath(QStringLiteral("index.md"))));
         const QString all = report.join(QLatin1Char('\n'));
         QVERIFY2(all.contains(QLatin1String("TRAIT 2 points OK")), qPrintable(all));
+        QVERIFY2(all.contains(QLatin1String("ATTENTE 10 ms OK")), qPrintable(all));
+        QVERIFY2(all.contains(QLatin1String("CAPTURE ") + f.out.filePath(QStringLiteral("essai-01-fin.png")) +
+                              QLatin1String(" OK")),
+                 qPrintable(all));
         // QTest::keySequence hors écran : le raccourci d'application a bien été déclenché (compteur 12, pas
         // 2).
         QVERIFY2(all.contains(QLatin1String("TOUCHE F5 OK (raccourci)")), qPrintable(all));
@@ -250,6 +264,41 @@ private slots:
         QVERIFY2(!f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
         QVERIFY2(report.last().startsWith(QLatin1String("TOUCHE F6 ECHEC")), qPrintable(report.last()));
         QCOMPARE(f.window->property("compteur").toInt(), 0);
+    }
+
+    // Discriminant : l'élément « piege » a le focus et reçoit F6 sans l'accepter ; F7 est un raccourci
+    // ambigu. Recevoir n'est pas accepter, et un raccourci ambigu ne joue rien.
+    void keyReceivedButIgnoredOrAmbiguousFails()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        auto* trap = f.window->findChild<QQuickItem*>(QStringLiteral("piege"));
+        QVERIFY(trap);
+        f.window->requestActivate();
+        QTRY_VERIFY(trap->hasActiveFocus()); // piège armé : F6 lui est bien livrée
+        QStringList report;
+        QVERIFY(!f.player->play(scenario("ignoree", "[{\"key\":\"F6\"}]"), f.out.path(), report));
+        QVERIFY2(report.last().startsWith(QLatin1String("TOUCHE F6 ECHEC")), qPrintable(report.last()));
+        QVERIFY(!f.player->play(scenario("ambigue", "[{\"key\":\"F7\"}]"), f.out.path(), report));
+        QVERIFY2(report.last().startsWith(QLatin1String("TOUCHE F7 ECHEC")) &&
+                     report.last().contains(QLatin1String("ambigu")),
+                 qPrintable(report.last()));
+        QCOMPARE(f.window->property("compteur").toInt(), 0);
+    }
+
+    // Discriminant : une capture uniforme (rien de dessiné) est refusée.
+    void uniformCaptureFails()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        auto* view = f.window->findChild<QQuickItem*>(QStringLiteral("pageView"));
+        QVERIFY(view);
+        view->setVisible(false); // reste le seul fond de la fenêtre
+        QStringList report;
+        QVERIFY(!f.player->play(scenario("uniforme", "[{\"capture\":\"vide\"}]"), f.out.path(), report));
+        QVERIFY2(report.last().startsWith(QLatin1String("CAPTURE")) &&
+                     report.last().contains(QLatin1String("ECHEC")),
+                 qPrintable(report.last()));
     }
 
     // Discriminant : le contrôle de pixel lit l'image du moment (pas la dernière capture) et peut échouer.

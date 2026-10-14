@@ -8,6 +8,7 @@
 #include <QVariant>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -62,17 +63,18 @@ struct UiScenario
 bool parseUiScenario(const QByteArray& json, UiScenario& out, QString& error);
 // « objet.propriété=valeur » (premier point, premier signe =) → étape Expect ; faux si une partie manque.
 bool parseReadSpec(const QString& text, UiStep& out);
-// Valeur d'une propriété en texte : booléen « true »/« false », réel sans zéros inutiles, couleur « #rrggbb
-// ».
+// Valeur d'une propriété en texte : booléen « true »/« false », réel sans zéros inutiles, couleur
+// « #rrggbb », « <absente> » si invalide, « <non textuel : Type> » si elle ne se convertit pas en texte.
 QString propertyText(const QVariant& value);
 
 // Joue un scénario sur une fenêtre Qt Quick (DA8). Une ligne de rapport par étape : COMMANDE, TRAIT, TOUCHE,
 // ATTENTE, PRET, CAPTURE, PIXEL, LU. Chaque étape d'action contrôle son résultat, jamais « OK » sur le seul
 // envoi : COMMANDE exige le retour vrai de runCommand ; TRAIT, postés à la fenêtre (le filtre de la PageView
-// les y attend, variante B), exige un trait figé par la vue ; TOUCHE exige un raccourci déclenché ou un
-// élément actif qui la reçoit (repli s'il n'y en a pas : la commande nommée équivalente). Aucune attente à
-// durée fixe hors de l'étape « wait » : conditions avec plafond. DURÉE DE VIE : le joueur possède le stylet
-// synthétique ; il doit être détruit APRÈS la fenêtre (le déclarer avant le moteur QML).
+// les y attend, variante B), exige un trait figé par la vue ; TOUCHE exige l'appui accepté par un raccourci
+// non ambigu ou par un élément actif (repli sinon : la commande nommée équivalente) ; CAPTURE refuse une
+// image vide ou uniforme. Lignes terminées par OK, ECHEC ou ECART. Aucune attente à durée fixe hors de
+// l'étape « wait » : conditions avec plafond. DURÉE DE VIE : le joueur possède le stylet synthétique ; il
+// doit être détruit APRÈS la fenêtre (le déclarer avant le moteur QML).
 class UiScenarioPlayer
 {
 public:
@@ -81,6 +83,10 @@ public:
     UiScenarioPlayer(const UiScenarioPlayer&) = delete;
     UiScenarioPlayer& operator=(const UiScenarioPlayer&) = delete;
 
+    using LineSink = std::function<void(const QString&)>;
+    // Reçoit chaque ligne du rapport dès qu'elle est écrite (sortie au fil de l'eau d'actcraft-captures).
+    void setLineSink(LineSink sink);
+
     // S'arrête à la première étape en échec. Captures et index.md dans `outputDir` (créé).
     bool play(const UiScenario& scenario, const QString& outputDir, QStringList& report);
     // Lecture d'une propriété (étape Expect) : « LU cible.propriété=valeur OK » ou « … ECART (attendu …) ».
@@ -88,6 +94,8 @@ public:
 
 private:
     bool runStep(const UiStep& step, QStringList& report);
+    bool read(const UiStep& step, QStringList& report); // expect() sans sortie au fil de l'eau
+    void emitFrom(const QStringList& report, qsizetype first) const;
     QObject* find(const QString& target) const;
     ui::PageView* view() const;
     bool isReady() const;
@@ -105,6 +113,7 @@ private:
     QString m_outputDir;
     QStringList m_index;
     int m_captureIndex = 0;
+    LineSink m_sink;
 };
 
 } // namespace actcraft::bench

@@ -15,9 +15,11 @@
 #include <QPointingDevice>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QShortcutEvent>
 #include <QTabletEvent>
 #include <QTest>
 #include <QTimer>
+#include <qpa/qwindowsysteminterface.h>
 
 #include <functional>
 #include <utility>
@@ -169,35 +171,63 @@ bool waitUntil(const std::function<bool()>& condition, int timeoutMs)
     return true;
 }
 
-// Témoin d'une touche (filtre posé sur l'application le temps de l'étape) : un raccourci déclenché
-// (QShortcutEvent), ou l'appui livré à un élément actif autre que la racine de la fenêtre (la racine ne
-// reçoit une touche que quand personne n'a le focus, et n'en fait rien).
+// Témoin d'une touche (filtre posé sur l'application le temps de l'étape). Le booléen « acceptée » de
+// QWindowSystemInterface dit si quelqu'un a pris la touche ; le témoin dit qui : un raccourci joué, un
+// raccourci ambigu (plusieurs candidats, aucun joué), ou l'appui livré à un élément. Sans élément ni
+// raccourci, un appui reste « accepté » par défaut : le témoin l'empêche de passer pour réussi.
 class KeyWitness : public QObject
 {
 public:
-    explicit KeyWitness(const QQuickItem* root) : m_root(root) {}
-
     bool shortcut = false;
-    QString receiver;
+    bool ambiguous = false;
+    QString receiver; // dernier élément qui a reçu l'appui (propagation vers les parents comprise)
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override
     {
         if (event->type() == QEvent::Shortcut) {
-            shortcut = true;
-        } else if (event->type() == QEvent::KeyPress && receiver.isEmpty()) {
-            const auto* item = qobject_cast<const QQuickItem*>(watched);
-            if (item && item != m_root) {
+            if (static_cast<QShortcutEvent*>(event)->isAmbiguous()) {
+                ambiguous = true;
+            } else {
+                shortcut = true;
+            }
+        } else if (event->type() == QEvent::KeyPress) {
+            if (const auto* item = qobject_cast<const QQuickItem*>(watched)) {
                 receiver = item->objectName().isEmpty() ? QString::fromLatin1(item->metaObject()->className())
                                                         : item->objectName();
             }
         }
         return QObject::eventFilter(watched, event);
     }
-
-private:
-    const QQuickItem* m_root;
 };
+
+// Texte d'une touche imprimable sans autre modificateur que Maj (comme QTest), vide sinon.
+QString keyText(QKeyCombination combination)
+{
+    const int key = static_cast<int>(combination.key());
+    const Qt::KeyboardModifiers modifiers = combination.keyboardModifiers();
+    if (key < 0x20 || key > 0xff || (modifiers & ~Qt::KeyboardModifiers(Qt::ShiftModifier))) {
+        return {};
+    }
+    const QChar c(key);
+    return QString((modifiers & Qt::ShiftModifier) ? c.toUpper() : c.toLower());
+}
+
+// Image où tous les pixels sont identiques : rien n'a été dessiné (rendu absent, fenêtre vide).
+bool isUniform(const QImage& image)
+{
+    const QImage rgb = image.convertToFormat(QImage::Format_RGB32);
+    const QRgb first = rgb.pixel(0, 0);
+    for (int y = 0; y < rgb.height(); ++y) {
+        const auto* line = reinterpret_cast<const QRgb*>(rgb.constScanLine(y));
+        for (int x = 0; x < rgb.width(); ++x) {
+            if (line[x] != first) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
 // Les délégués d'un Repeater n'ont pas toujours la fenêtre pour parent QObject : on suit aussi l'arbre des
 // éléments.
@@ -276,6 +306,9 @@ bool parseReadSpec(const QString& text, UiStep& out)
 
 QString propertyText(const QVariant& value)
 {
+    if (!value.isValid()) {
+        return QStringLiteral("<absente>");
+    }
     switch (value.typeId()) {
     case QMetaType::Bool:
         return value.toBool() ? QStringLiteral("true") : QStringLiteral("false");
@@ -285,6 +318,10 @@ QString propertyText(const QVariant& value)
     case QMetaType::QColor:
         return value.value<QColor>().name(QColor::HexRgb);
     default:
+        if (!value.canConvert<QString>()) {
+            // QPointF, QRectF, QObject*… : nommés, jamais lus « "" ».
+            return QStringLiteral("<non textuel : %1>").arg(QString::fromLatin1(value.typeName()));
+        }
         return value.toString();
     }
 }
@@ -297,6 +334,11 @@ UiScenarioPlayer::UiScenarioPlayer(QQuickWindow* window)
 {}
 
 UiScenarioPlayer::~UiScenarioPlayer() = default;
+
+void UiScenarioPlayer::setLineSink(LineSink sink)
+{
+    m_sink = std::move(sink);
+}
 
 QObject* UiScenarioPlayer::find(const QString& target) const
 {
@@ -336,15 +378,29 @@ void UiScenarioPlayer::postTablet(QEvent::Type type, QPointF page, double pressu
     QCoreApplication::processEvents();
 }
 
+void UiScenarioPlayer::emitFrom(const QStringList& report, qsizetype first) const
+{
+    if (m_sink) {
+        for (qsizetype i = first; i < report.size(); ++i) {
+            m_sink(report.at(i));
+        }
+    }
+}
+
 bool UiScenarioPlayer::expect(const UiStep& step, QStringList& report)
 {
+    const qsizetype first = report.size();
+    const bool ok = read(step, report);
+    emitFrom(report, first);
+    return ok;
+}
+
+bool UiScenarioPlayer::read(const UiStep& step, QStringList& report)
+{
     QObject* object = find(step.target);
-    QString actual = QStringLiteral("<introuvable>");
-    if (object) {
-        const QVariant value = object->property(step.property.toUtf8().constData());
-        // Propriété absente : jamais lue « "" », qui égalerait à tort une valeur attendue vide.
-        actual = value.isValid() ? propertyText(value) : QStringLiteral("<absente>");
-    }
+    // Propriété absente : « <absente> » (propertyText), jamais « "" » qui égalerait une valeur attendue vide.
+    const QString actual = object ? propertyText(object->property(step.property.toUtf8().constData()))
+                                  : QStringLiteral("<introuvable>");
     const bool ok = object && actual == step.value;
     report << (ok ? QStringLiteral("LU %1.%2=%3 OK").arg(step.target, step.property, actual)
                   : QStringLiteral("LU %1.%2=%3 ECART (attendu %4)")
@@ -392,25 +448,44 @@ bool UiScenarioPlayer::key(const UiStep& step, QStringList& report)
     // Fenêtre active si possible (raccourcis de fenêtre) ; un raccourci d'application agit de toute façon.
     m_window->requestActivate();
     const bool active = QTest::qWaitForWindowActive(m_window, kActivateTimeoutMs);
-    // QTest::keySequence passe par QWindowSystemInterface, comme une vraie touche : la carte des raccourcis
-    // de QGuiApplication puis l'élément actif. Vérifié hors écran (tst_bench_uiscenario, F5).
-    KeyWitness witness(m_window->contentItem());
+    // Même chemin qu'une vraie touche et que QTest::keySequence (qt_handleKeyEvent) : QWindowSystemInterface
+    // en livraison synchrone, carte des raccourcis de QGuiApplication puis élément actif. QTest jette le
+    // booléen « acceptée » ; on le garde : un élément qui reçoit la touche sans l'accepter ne la fait pas
+    // réussir.
+    const QKeySequence sequence(step.key);
+    KeyWitness witness;
     QCoreApplication::instance()->installEventFilter(&witness);
-    QTest::keySequence(m_window, QKeySequence(step.key));
+    bool accepted = true;
+    for (int i = 0; i < sequence.count(); ++i) {
+        const QKeyCombination combination = sequence[static_cast<uint>(i)];
+        const int code = static_cast<int>(combination.key());
+        const Qt::KeyboardModifiers modifiers = combination.keyboardModifiers();
+        const QString text = keyText(combination);
+        accepted = QWindowSystemInterface::handleKeyEvent<QWindowSystemInterface::SynchronousDelivery>(
+                       m_window, QEvent::KeyPress, code, modifiers, text) &&
+                   accepted;
+        QWindowSystemInterface::handleKeyEvent<QWindowSystemInterface::SynchronousDelivery>(
+            m_window, QEvent::KeyRelease, code, modifiers, text);
+    }
     QCoreApplication::processEvents();
     QCoreApplication::instance()->removeEventFilter(&witness);
-    if (witness.shortcut) {
+    if (witness.ambiguous) {
+        report << QStringLiteral("TOUCHE %1 ECHEC (raccourci ambigu : plusieurs candidats, aucun joué)")
+                      .arg(step.key);
+        return false;
+    }
+    if (accepted && witness.shortcut) {
         report << QStringLiteral("TOUCHE %1 OK (raccourci)").arg(step.key);
         return true;
     }
-    if (!witness.receiver.isEmpty()) {
-        report << QStringLiteral("TOUCHE %1 OK (reçue par %2)").arg(step.key, witness.receiver);
+    if (accepted && !witness.receiver.isEmpty()) {
+        report << QStringLiteral("TOUCHE %1 OK (acceptée par %2)").arg(step.key, witness.receiver);
         return true;
     }
-    // Repli écrit : sans raccourci ni élément actif (focus perdu, plateforme sans activation), jouer la
-    // commande nommée équivalente ({"command": …}), même chemin que les boutons.
+    // Repli écrit : sans raccourci ni élément actif qui l'accepte (focus perdu, plateforme sans activation),
+    // jouer la commande nommée équivalente ({"command": …}), même chemin que les boutons.
     report << QStringLiteral(
-                  "TOUCHE %1 ECHEC (ni raccourci ni élément actif ne l'a reçue%2 ; repli : commande "
+                  "TOUCHE %1 ECHEC (ni raccourci ni élément actif ne l'a acceptée%2 ; repli : commande "
                   "nommée équivalente)")
                   .arg(step.key, active ? QString() : QStringLiteral(", fenêtre inactive"));
     return false;
@@ -467,7 +542,7 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         QElapsedTimer clock;
         clock.start();
         waitUntil([&clock, &step] { return clock.elapsed() >= step.ms; }, step.ms + 1000);
-        report << QStringLiteral("ATTENTE %1 ms").arg(step.ms);
+        report << QStringLiteral("ATTENTE %1 ms OK").arg(step.ms);
         return true;
     }
     case UiStepKind::WaitReady: {
@@ -483,24 +558,33 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
                                  .arg(++m_captureIndex, 2, 10, QLatin1Char('0'))
                                  .arg(step.name);
         const QString path = QDir(m_outputDir).filePath(file);
-        const bool ok = !image.isNull() && image.save(path);
+        QString why;
+        if (image.isNull()) {
+            why = QStringLiteral("capture vide");
+        } else if (isUniform(image)) {
+            why = QStringLiteral("image uniforme : rien de dessiné");
+        } else if (!image.save(path)) {
+            why = QStringLiteral("écriture impossible");
+        }
         m_index << QStringLiteral("- `%1` : %2").arg(file, step.name);
-        report << (ok ? QStringLiteral("CAPTURE %1").arg(path)
-                      : QStringLiteral("CAPTURE %1 ECHEC").arg(path));
-        return ok;
+        report << (why.isEmpty() ? QStringLiteral("CAPTURE %1 OK").arg(path)
+                                 : QStringLiteral("CAPTURE %1 ECHEC (%2)").arg(path, why));
+        return why.isEmpty();
     }
     case UiStepKind::CheckPixel:
         return checkPixel(step, report);
     case UiStepKind::Expect:
-        return expect(step, report);
+        return read(step, report);
     }
     return false;
 }
 
 bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir, QStringList& report)
 {
+    const qsizetype first = report.size();
     if (!m_window) {
         report << QStringLiteral("FENETRE absente");
+        emitFrom(report, first);
         return false;
     }
     m_scenarioName = scenario.name;
@@ -509,11 +593,15 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
     m_index.clear();
     if (!QDir().mkpath(outputDir)) {
         report << QStringLiteral("CAPTURE dossier impossible : %1").arg(outputDir);
+        emitFrom(report, first);
         return false;
     }
     bool ok = true;
     for (const UiStep& step : scenario.steps) {
-        if (!runStep(step, report)) {
+        const qsizetype before = report.size();
+        const bool stepOk = runStep(step, report);
+        emitFrom(report, before); // au fil de l'eau : la ligne sort avant l'étape suivante
+        if (!stepOk) {
             ok = false;
             break;
         }

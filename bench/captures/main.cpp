@@ -31,7 +31,7 @@ void printLine(const QString& line)
 
 int invalid(const QString& why)
 {
-    std::fprintf(stderr, "%s\n", qPrintable(why));
+    std::fprintf(stderr, "%s\n", why.toUtf8().constData()); // UTF-8 : accents intacts
     printLine(QStringLiteral("SCENARIO INVALIDE"));
     return 2;
 }
@@ -50,6 +50,8 @@ QString valueAfter(const QStringList& args, const QString& name)
 //                     [--taille LxH|plein-ecran] [--lire objet.propriété=valeur]…
 int main(int argc, char* argv[])
 {
+    // DA8 : dialogues Qt Quick non natifs forcés (un dialogue natif ne reçoit pas d'événements postés).
+    QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Captures"));
     const QStringList args = QGuiApplication::arguments();
@@ -117,20 +119,21 @@ int main(int argc, char* argv[])
         window->showNormal();
     }
     player = std::make_unique<UiScenarioPlayer>(window);
+    player->setLineSink(printLine); // une ligne par étape, au fil de l'eau
 
     int code = 2;
     QTimer::singleShot(0, &app, [&] {
         QStringList report;
-        bool ok = QTest::qWaitForWindowExposed(window, 10000);
-        if (!ok) {
-            report << QStringLiteral("FENETRE non exposée");
+        if (!QTest::qWaitForWindowExposed(window, 10000)) {
+            printLine(QStringLiteral("FENETRE non exposée"));
+            printLine(QStringLiteral("SCENARIO INVALIDE"));
+            code = 2;
+            QCoreApplication::exit(code);
+            return;
         }
-        ok = ok && player->play(scenario, output, report);
+        bool ok = player->play(scenario, output, report);
         for (const UiStep& read : reads) {
             ok = player->expect(read, report) && ok;
-        }
-        for (const QString& line : std::as_const(report)) {
-            printLine(line);
         }
         printLine(ok ? QStringLiteral("SCENARIO OK") : QStringLiteral("SCENARIO EN ECHEC"));
         code = ok ? 0 : 1;

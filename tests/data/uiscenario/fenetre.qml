@@ -7,6 +7,7 @@ Window {
     width: 800
     height: 600
     visible: true
+    color: "#3c3f45" // fond de la coquille : une capture de page vierge n'est jamais uniforme
     property string dernier: ""
     property int compteur: 0
 
@@ -23,6 +24,24 @@ Window {
         sequence: "F5"
         context: Qt.ApplicationShortcut
         onActivated: root.compteur += 10
+    }
+
+    // F7 en double : raccourci ambigu, rien n'est joué.
+    Shortcut {
+        sequence: "F7"
+        context: Qt.ApplicationShortcut
+        onActivated: root.compteur += 100
+    }
+    Shortcut {
+        sequence: "F7"
+        context: Qt.ApplicationShortcut
+        onActivated: root.compteur += 100
+    }
+
+    // Piège : un élément qui a le focus et ignore les touches. Le recevoir n'est pas l'accepter.
+    Item {
+        objectName: "piege"
+        focus: true
     }
 
     DocumentController {
