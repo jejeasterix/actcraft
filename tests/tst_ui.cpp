@@ -35,8 +35,23 @@ private slots:
         auto* fixed = window->findChild<actcraft::render::FixedPageItem*>(QStringLiteral("fixedPage"));
         QVERIFY(view && fixed);
         QTRY_VERIFY_WITH_TIMEOUT(fixed->isReady() && view->cacheReady(), 20000);
-        QCOMPARE(fixed->objectCount(), 300);
+        QCOMPARE(fixed->objectCount(), 0); // page vierge au démarrage (la page générée sert au banc)
         QVERIFY(window->title().contains(QStringLiteral("logiciel")));
+    }
+
+    void generatedPageOptionLoadsThe300Objects()
+    {
+        QQmlApplicationEngine engine;
+        engine.setInitialProperties({{QStringLiteral("generatedPage"), true}});
+        engine.loadFromModule("ActCraft.Ui", "Main");
+        QCOMPARE(engine.rootObjects().size(), 1);
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+        QVERIFY(window && QTest::qWaitForWindowExposed(window));
+        auto* view = window->findChild<actcraft::ui::PageView*>(QStringLiteral("pageView"));
+        auto* fixed = window->findChild<actcraft::render::FixedPageItem*>(QStringLiteral("fixedPage"));
+        QVERIFY(view && fixed);
+        QTRY_VERIFY_WITH_TIMEOUT(fixed->isReady() && view->cacheReady(), 20000);
+        QCOMPARE(fixed->objectCount(), 300);
     }
 };
 

@@ -102,7 +102,9 @@ struct App
 
 bool start(App& app)
 {
-    app.window = loadMainWindow(app.engine, StartupOptions{});
+    StartupOptions options;
+    options.generatedPage = true; // le banc mesure la page de 300 objets
+    app.window = loadMainWindow(app.engine, options);
     if (!app.window || !QTest::qWaitForWindowExposed(app.window)) {
         return false;
     }

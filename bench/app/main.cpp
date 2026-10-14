@@ -49,6 +49,7 @@ int main(int argc, char* argv[])
     QQmlApplicationEngine engine;
     StartupOptions startup;
     startup.cacheEnabled = options.cacheEnabled;
+    startup.generatedPage = true; // le banc mesure la page de 300 objets (DA7)
     QQuickWindow* window = loadMainWindow(engine, startup);
     if (!window) {
         printLine(QStringLiteral("MESURE INVALIDE"));
