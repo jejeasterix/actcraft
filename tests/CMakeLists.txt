@@ -28,6 +28,7 @@ actcraft_add_test(tst_ui
 # Chaque test y est déclaré par actcraft_add_test (fonction ci-dessus).
 include(${CMAKE_CURRENT_SOURCE_DIR}/verifications.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/core.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/actions.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/render.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/input.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/tools.cmake)
