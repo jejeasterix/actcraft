@@ -37,9 +37,18 @@ Toujours `pwsh -NoProfile` (jamais `powershell.exe` 5.1).
 
 ## Preuve visuelle
 
-Aucune commande automatique pour l'instant. Lancer `build/debug/actcraft.exe --rendu d3d11` puis
-`--rendu logiciel` ; les captures et ce qu'il faut regarder vont à la porte de fin. Les fenêtres doivent
-s'ouvrir sur l'écran principal (1920 × 1080, 4 moniteurs).
+Commande (décision 36 et DA8 du cadrage `docs/specs/2026-10-14-livraison-complete-cadrage.md`), livrée par la tâche
+L1-T15 du chantier `livraison-complete` :
+`pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario <nom>|tous [-Rendu d3d11|logiciel] [-HorsEcran] -Sortie <dossier> [-Lire "<objet>.<propriété>=<attendu>"]`.
+Elle joue un scénario d'interface nommé (`bench/scenarios/<nom>.json` : commandes, stylet injecté, touches),
+contrôle des pixels, lit des propriétés (lignes `LU …`, à lire avant les images) et écrit les captures PNG et un
+`index.md`. Sorties sous `.tmp/` ou `build/`, jamais commitées. Hors écran en rendu logiciel pour chaque tâche
+d'interface ; à l'écran en D3D11 en fin de lot, sous le jeton `ecran`. La forme bornée exacte est écrite ici par la
+tâche L1-T20.
+
+Tant que la commande n'existe pas : lancer `build/debug/actcraft.exe --rendu d3d11` puis `--rendu logiciel` ; les
+captures et ce qu'il faut regarder vont à la porte de fin. Les fenêtres doivent s'ouvrir sur l'écran principal
+(1920 × 1080, 4 moniteurs).
 
 ## Banc de fluidité
 
@@ -60,12 +69,16 @@ tâche.
 - Paquet pour le Dell 3510 : `pwsh -NoProfile -File ./scripts/paquet-banc.ps1` (zip local dans
   `build/paquet-banc/`, jamais publié). Procédure : `docs/banc.md`.
 
-**Pendant le chantier `prototype-mesure`** (décision 38 du cadrage
-`docs/specs/2026-10-13-prototype-mesure-cadrage.md`, hypothèse N1-10) : le verdict du banc est un
-**résultat, pas une porte**. Les tâches antérieures au banc sont validées par leurs tests seuls ; les tâches postérieures
-passent au banc et joignent le JSON, sans refus sur dépassement. Un `BUDGET DEPASSE` produit un rapport chiffré
-(critère, valeur, seuil, scénario) et une hypothèse N1 pour Jérôme, sans bloquer le merge. La règle de refus
-ci-dessus s'applique après la décision go / no-go de l'étape 2 du BRIEF.
+**Pendant le chantier `livraison-complete`** (décision 35 et DA7 du cadrage
+`docs/specs/2026-10-14-livraison-complete-cadrage.md`, hypothèse N1-9) : le régime de la décision 38 du prototype
+continue — le verdict du banc est un **résultat, pas une porte** — tant que l'étape 2 du BRIEF n'est pas faite.
+Chaque tâche qui touche `render/`, `input/`, `tools/` ou `ui/` joint le JSON du banc sans écran (`-Rendu logiciel
+-Scenario court -Taille 1280x800 -HorsEcran`). S'y ajoute une **porte de non-régression par lot** : en fin de lot,
+banc complet D3D11 en plein écran sous le jeton `ecran` ; tout critère tenu par la référence doit l'être encore,
+sinon une tâche de correction précède la clôture. Référence du lot 1 : `docs/mesures/2026-10-13-prototype-mesure.md` ;
+la mesure de fin de lot 1, commitée dans `docs/mesures/`, devient la référence des lots suivants ; après le lot 10,
+« figements » et « reprises » y entrent. La règle de refus ci-dessus s'applique après la décision go / no-go de
+l'étape 2 du BRIEF.
 
 ## Sources du cadrage (après le coffre)
 
@@ -96,13 +109,23 @@ toujours :: (taskkill|Stop-Process)[^|;&\n]*\b(Inspire|actcraft)\b(?![^|;&\n]*-I
 ## Action finale irréversible
 
 ```action-finale
-\bgit\s+tag\s+v\d :: tag de release
-\bgit\s+push\s+\S+\s+(refs/tags/)?v\d :: publication du tag de release
-\bgh\s+release\s+create :: release GitHub publique
+\bgit(\.exe)?\b(\s+-[Cc]\s+("[^"]*"|'[^']*'|\S+))*\s+tag\b(?=.*[\s"']v\d) :: tag de release
+\bgit(\.exe)?\b(\s+-[Cc]\s+("[^"]*"|'[^']*'|\S+))*\s+push\b(?=.*(refs/tags/|[\s"'+:]v\d|\s--tags\b|\s--follow-tags\b|\s--mirror\b|\stag\s)) :: publication du tag de release
+\bgh(\.exe)?\s+release\s+(create|edit|upload|delete)\b :: écriture d'une release GitHub (création, publication du brouillon, fichiers, suppression)
+\bgh(\.exe)?\s+api\b(?=.*(releases|refs/tags))(?!.*(-X|--method)[\s=]*(GET|get)\b)(?=.*(\s-X|\s--method|\s(-f|-F|--field|--raw-field|--input)[\s=])) :: écriture dans les releases ou les tags par l'API
 ```
 
 - Go requis : oui — une release est publique et téléchargeable ; jamais sans accord explicite de Jérôme.
-- Due seulement quand Jérôme la demande (pas de distribution avant la décision go / no-go de l'étape 2).
+- Due : proposée à la porte de fin de chaque lot du chantier `livraison-complete` (Jérôme a demandé les releases
+  `.exe` et `.apk` le 2026-10-14 ; décisions 32, 33 et 38 du cadrage
+  `docs/specs/2026-10-14-livraison-complete-cadrage.md`). Chaque publication reste soumise à son go écrit. Le tag,
+  sa poussée et la publication du brouillon (`gh release edit --draft=false` ou appel d'API) relèvent du **même**
+  go. Aucune distribution hors de ce go : les paquets de chaque lot sont remis localement (`build/paquet/`), la CI
+  les construit et les essaie sans les téléverser.
+- Fichier go : `<git-common-dir>/chantiers/go-action-finale` est écrit au go, **reste en place après le tag
+  jusqu'à la publication du brouillon** (le brouillon n'existe qu'à la fin du workflow `release.yml`), dans la
+  limite de 6 h que lit `interdits.js`, puis est supprimé aussitôt la publication faite. Passé 6 h sans publication, le go est
+  redemandé à Jérôme.
 - Porte avant merge : non — rien ne part en production au merge.
 - CI couverte par la suite complète : non — la CI compile et teste aussi sous macOS, que la suite locale ne
   couvre pas. Le merge attend la CI verte.
