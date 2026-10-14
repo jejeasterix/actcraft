@@ -3,6 +3,9 @@ qt_add_library(actcraft_ui STATIC)
 add_library(ActCraft::ui ALIAS actcraft_ui)
 
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+# Le code C++ généré pour ce dialogue déclenche C4702 (code inatteignable, dans les en-têtes de Qt) sous /W4 /WX :
+# il est chargé depuis sa source QML, sans précompilation (écran rarement ouvert).
+set_source_files_properties(qml/AboutDialog.qml PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)
 
 qt_add_qml_module(actcraft_ui
     URI ActCraft.Ui
@@ -10,6 +13,7 @@ qt_add_qml_module(actcraft_ui
     QML_FILES
         qml/Main.qml
         qml/Theme.qml
+        qml/AboutDialog.qml
     RESOURCES
         icons/menu.svg
         icons/outils.svg
@@ -32,7 +36,9 @@ qt_add_qml_module(actcraft_ui
         src/viewtransform.cpp
         src/pageview.cpp
         src/documentcontroller.cpp
-        src/commands.cpp)
+        src/commands.cpp
+        include/actcraft/ui/appinfo.h
+        src/appinfo.cpp)
 
 # Le code d'enregistrement QML généré inclut les en-têtes par leur seul nom : d'où le dossier privé.
 target_include_directories(actcraft_ui
@@ -41,3 +47,13 @@ target_include_directories(actcraft_ui
 target_link_libraries(actcraft_ui PUBLIC
     Qt6::Quick ActCraft::actions ActCraft::input ActCraft::render ActCraft::tools)
 actcraft_set_warnings(actcraft_ui)
+
+# Version affichée par « À propos » (décision 31).
+target_compile_definitions(actcraft_ui PRIVATE ACTCRAFT_VERSION="${PROJECT_VERSION}")
+
+# Notices des composants tiers, affichées par « À propos » et livrées dans les paquets (décision 34).
+set_source_files_properties(${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md
+    PROPERTIES QT_RESOURCE_ALIAS THIRD_PARTY_NOTICES.md)
+qt_add_resources(actcraft_ui "ui_notices"
+    PREFIX "/actcraft"
+    FILES ${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md)

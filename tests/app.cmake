@@ -1,0 +1,24 @@
+# Tests de l'exécutable et des scripts de paquets (S1, décision 34).
+
+# --version : écrit la version et sort avant toute fenêtre.
+add_test(NAME tst_app_version COMMAND $<TARGET_FILE:actcraft> --version)
+set_tests_properties(tst_app_version PROPERTIES PASS_REGULAR_EXPRESSION "^ActCraft ${PROJECT_VERSION}")
+
+# Liste des modules Qt autorisés : un dossier conforme passe, un module sous GPL seule est refusé.
+find_program(ACTCRAFT_PWSH pwsh)
+if(ACTCRAFT_PWSH)
+    set(_licences ${CMAKE_BINARY_DIR}/licences-essai)
+    file(MAKE_DIRECTORY ${_licences}/autorise ${_licences}/refuse)
+    file(WRITE ${_licences}/autorise/Qt6Core.dll "")
+    file(WRITE ${_licences}/autorise/Qt6Quick.dll "")
+    file(WRITE ${_licences}/refuse/Qt6Core.dll "")
+    file(WRITE ${_licences}/refuse/Qt6Charts.dll "")
+    add_test(NAME tst_licences_ok
+        COMMAND ${ACTCRAFT_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/scripts/verifier-licences.ps1
+            -Dossier ${_licences}/autorise)
+    set_tests_properties(tst_licences_ok PROPERTIES PASS_REGULAR_EXPRESSION "LICENCES OK")
+    add_test(NAME tst_licences_refus
+        COMMAND ${ACTCRAFT_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/scripts/verifier-licences.ps1
+            -Dossier ${_licences}/refuse)
+    set_tests_properties(tst_licences_refus PROPERTIES PASS_REGULAR_EXPRESSION "LICENCES EN ECHEC : Qt6Charts")
+endif()
