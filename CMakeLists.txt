@@ -24,7 +24,7 @@ endif()
 option(ACTCRAFT_BUILD_TESTS "Construire les tests" ON)
 option(ACTCRAFT_BUILD_BENCH "Construire le banc de fluidité" ON)
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Svg)
 qt_standard_project_setup(REQUIRES 6.12)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")

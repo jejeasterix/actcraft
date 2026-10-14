@@ -12,3 +12,7 @@ actcraft_add_test(tst_ui_drawing
     SOURCES tst_ui_drawing.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 target_include_directories(tst_ui_drawing PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_theme
+    SOURCES tst_ui_theme.cpp
+    LIBS Qt6::Quick Qt6::Svg ActCraft::ui actcraft_uiplugin)
