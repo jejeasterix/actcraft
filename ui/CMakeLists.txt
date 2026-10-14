@@ -24,11 +24,13 @@ qt_add_qml_module(actcraft_ui
     SOURCES
         include/actcraft/ui/viewtransform.h
         include/actcraft/ui/pageview.h
+        include/actcraft/ui/documentcontroller.h
         src/uiforeigntypes.h
         src/penadapters.h
         src/penadapters.cpp
         src/viewtransform.cpp
-        src/pageview.cpp)
+        src/pageview.cpp
+        src/documentcontroller.cpp)
 
 # Le code d'enregistrement QML généré inclut les en-têtes par leur seul nom : d'où le dossier privé.
 target_include_directories(actcraft_ui
