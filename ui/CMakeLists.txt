@@ -2,11 +2,25 @@
 qt_add_library(actcraft_ui STATIC)
 add_library(ActCraft::ui ALIAS actcraft_ui)
 
+set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(actcraft_ui
     URI ActCraft.Ui
     VERSION 1.0
     QML_FILES
         qml/Main.qml
+        qml/Theme.qml
+    RESOURCES
+        icons/menu.svg
+        icons/outils.svg
+        icons/page-precedente.svg
+        icons/page-suivante.svg
+        icons/stylo.svg
+        icons/plein-ecran.svg
+        icons/ajuster.svg
+        icons/quitter.svg
+        icons/aide.svg
+        icons/a-propos.svg
     SOURCES
         include/actcraft/ui/viewtransform.h
         include/actcraft/ui/pageview.h
