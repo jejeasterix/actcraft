@@ -1,4 +1,7 @@
 # Banc de fluidité : temps par image, latence d'encre, mémoire.
+# QTest : touches synthétiques d'actcraft-captures (raccourcis QML compris).
+find_package(Qt6 6.12 REQUIRED COMPONENTS Test)
+
 if(WIN32)
     set(_bench_gpu_source src/gpumemory_win.cpp)
 elseif(APPLE)
@@ -24,9 +27,12 @@ actcraft_add_module(bench
         src/recorder.cpp
         include/actcraft/bench/runner.h
         src/runner.cpp
+        include/actcraft/bench/uiscenario.h
+        src/uiscenario.cpp
         ${_bench_gpu_source}
     DEPENDS
         ActCraft::core ActCraft::render ActCraft::ui Qt6::Quick)
+target_link_libraries(actcraft_bench PRIVATE Qt6::Test)
 
 if(WIN32)
     target_link_libraries(actcraft_bench PRIVATE dxgi psapi dwmapi)
@@ -66,3 +72,13 @@ actcraft_set_warnings(actcraft-bench)
 # (Qt6CoreMacros.cmake) : on l'impose partout, pour que scripts/bench.sh et la CI macOS trouvent
 # build/<preset>/actcraft-bench.
 set_target_properties(actcraft-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+# Captures et scénarios d'interface (DA8) : outil de preuve, jamais livré.
+qt_add_executable(actcraft-captures
+    captures/main.cpp
+    ${PROJECT_SOURCE_DIR}/app/renderbackend.cpp
+    ${PROJECT_SOURCE_DIR}/app/startup.cpp)
+target_include_directories(actcraft-captures PRIVATE ${PROJECT_SOURCE_DIR}/app)
+target_link_libraries(actcraft-captures PRIVATE ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick Qt6::Test)
+actcraft_set_warnings(actcraft-captures)
+set_target_properties(actcraft-captures PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
