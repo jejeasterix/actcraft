@@ -7,3 +7,7 @@ actcraft_add_test(tst_core_model
 actcraft_add_test(tst_core_generator
     SOURCES tst_core_generator.cpp
     LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_document
+    SOURCES tst_core_document.cpp
+    LIBS ActCraft::core)
