@@ -18,6 +18,8 @@ namespace actcraft::render {
 // référence (REA - Activinspire/tools/render_flipchart.py, app/actcraft/canvas/grid.py), écrites par nous.
 
 inline constexpr int kThumbnailWidth = 320;
+// Hauteur maximale d'une miniature : une page très haute garde son rapport, sa largeur est réduite d'autant.
+inline constexpr int kThumbnailMaxHeight = 2400;
 
 // Image décodée d'une ressource du document par sa clé ; image nulle si absente.
 using ImageLookup = std::function<QImage(const std::string& resourceKey)>;
@@ -36,8 +38,9 @@ private:
 };
 
 // Décode toutes les ressources que QImage sait lire (la signature fait foi, pas l'extension) ; à appeler sur
-// un fil secondaire pour un gros document.
-DecodedImages decodeImages(const core::Document& document);
+// un fil secondaire pour un gros document. `maxSide` > 0 : chaque image est décodée réduite pour que son plus
+// grand côté n'en dépasse pas la valeur (miniatures), jamais agrandie.
+DecodedImages decodeImages(const core::Document& document, int maxSide = 0);
 
 struct PaintOptions
 {
@@ -62,7 +65,8 @@ void paintPage(QPainter& painter, const core::Page& page, const ImageLookup& ima
 // Image de la page à l'échelle `scale` : fond blanc, 96 ppp, lissage.
 QImage renderPage(const core::Page& page, const ImageLookup& images, double scale,
                   const PaintOptions& options = {});
-// Miniature PNG de kThumbnailWidth pixels de large (hauteur selon la page), comme les .thm d'origine.
+// Miniature PNG de kThumbnailWidth pixels de large (hauteur selon la page, kThumbnailMaxHeight au plus),
+// comme les .thm d'origine ; page de taille nulle, négative ou non finie : miniature blanche de 320 × 240.
 QByteArray thumbnailPng(const core::Page& page, const ImageLookup& images);
 
 } // namespace actcraft::render

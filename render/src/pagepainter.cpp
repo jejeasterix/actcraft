@@ -6,6 +6,7 @@
 
 #include <QBuffer>
 #include <QFontMetricsF>
+#include <QImageReader>
 #include <QLineF>
 #include <QLinearGradient>
 #include <QPainter>
@@ -13,6 +14,8 @@
 #include <QPolygonF>
 #include <QRadialGradient>
 #include <QTextDocument>
+#include <QUrl>
+#include <QVariant>
 
 #include <algorithm>
 #include <cmath>
@@ -22,6 +25,51 @@ namespace actcraft::render {
 namespace {
 
 constexpr int kMaxGridLines = 4000; // garde-fou : pas minuscule sur une grande page (grid.py)
+
+// Garde-fou par page, tous niveaux confondus (rangeOf ne borne qu'un niveau).
+struct GridBudget
+{
+    std::size_t lines = static_cast<std::size_t>(kMaxGridLines);
+    std::size_t marks = static_cast<std::size_t>(kMaxGridLines) * 8;
+};
+
+// HTML des fichiers ouverts (.flipchart, format natif) : aucune ressource externe. Toute ressource demandée
+// (image, fond `background`, `background-image`, feuille de style `<link>` ou `@import`, toutes URL et tous
+// schémas, dont file://hôte/partage) reçoit une valeur vide mais valide : QTextDocument ne se rabat alors ni
+// sur un fournisseur de ressources, ni sur la lecture directe du fichier que font l'affichage des images et
+// les fonds quand la ressource est nulle.
+class IsolatedTextDocument final : public QTextDocument
+{
+public:
+    IsolatedTextDocument()
+    {
+        setResourceProvider([](const QUrl&) { return QVariant(QByteArray()); });
+    }
+
+protected:
+    QVariant loadResource(int type, const QUrl&) override
+    {
+        if (type == QTextDocument::ImageResource) {
+            QImage blank(1, 1, QImage::Format_ARGB32_Premultiplied);
+            blank.fill(Qt::transparent);
+            return blank;
+        }
+        if (type == QTextDocument::StyleSheetResource) {
+            return QString();
+        }
+        return QByteArray();
+    }
+};
+
+// rstrip() de Python : espaces de fin retirés, espaces de tête gardés.
+QString withoutTrailingSpaces(const QString& text)
+{
+    qsizetype end = text.size();
+    while (end > 0 && text.at(end - 1).isSpace()) {
+        --end;
+    }
+    return text.left(end);
+}
 
 QColor color(core::Argb argb)
 {
@@ -58,6 +106,8 @@ QBrush brushOf(const core::Fill& f, const QRectF& rect)
     case core::FillKind::Solid:
         return QBrush(color(f.color));
     case core::FillKind::Pattern:
+        // Fond opaque des motifs (opaqueBackground, backgroundColor) ignoré, comme la référence
+        // (REA - Activinspire/tools/render_flipchart.py, make_brush).
         return QBrush(color(f.color), static_cast<Qt::BrushStyle>(std::clamp<int>(f.pattern, 2, 14)));
     case core::FillKind::Gradient:
         break;
@@ -234,9 +284,11 @@ void paintText(QPainter& p, const core::Text& t)
             font.setStrikeOut(run.strikeOut);
             p.setFont(font);
             // Les métriques de certaines polices diffèrent entre l'original et Qt 6 : on recale la taille sur
-            // la largeur mesurée par l'original (rectangle du run), comme la référence.
+            // la largeur mesurée par l'original (rectangle du run), comme la référence (render_flipchart.py :
+            // texte sans ses espaces de fin, rstrip ; 4 caractères au moins hors espaces, strip).
             const double target = run.bounds.width;
-            const double advance = QFontMetricsF(font, p.device()).horizontalAdvance(text.trimmed());
+            const double advance =
+                QFontMetricsF(font, p.device()).horizontalAdvance(withoutTrailingSpaces(text));
             if (target > 0 && advance > 0 && text.trimmed().size() >= 4) {
                 const double ratio = target / advance;
                 if (std::abs(ratio - 1.0) > 0.06 && ratio > 0.5 && ratio < 2.0) {
@@ -252,7 +304,7 @@ void paintText(QPainter& p, const core::Text& t)
     if (t.html.empty()) {
         return;
     }
-    QTextDocument document;
+    IsolatedTextDocument document;
     document.setDocumentMargin(0);
     document.setHtml(QString::fromStdString(t.html));
     if (t.bounds.width > 0) {
@@ -382,7 +434,7 @@ std::vector<QLineF> gridLines(const core::GridLevel& l, double w, double h, doub
     return out;
 }
 
-std::vector<QPointF> gridPoints(const core::GridLevel& l, double w, double h, double scale)
+std::vector<QPointF> gridPoints(const core::GridLevel& l, double w, double h, double scale, std::size_t limit)
 {
     const double sx = std::max(l.spacingX * scale, 1.0);
     const double sy = std::max(l.spacingY * scale, 1.0);
@@ -395,9 +447,12 @@ std::vector<QPointF> gridPoints(const core::GridLevel& l, double w, double h, do
         const Range ry = rangeOf(l.start.y, sy, std::max(0.0, l.start.y), h);
         for (long long i = rx.first; i <= rx.last; ++i) {
             for (long long j = ry.first; j <= ry.last; ++j) {
+                if (out.size() >= limit) {
+                    return out;
+                }
                 out.emplace_back(l.start.x + static_cast<double>(i) * sx,
                                  l.start.y + static_cast<double>(j) * sy);
-                if (out.size() > static_cast<std::size_t>(kMaxGridLines) * 8) {
+                if (out.size() >= limit) {
                     return out;
                 }
             }
@@ -415,8 +470,11 @@ std::vector<QPointF> gridPoints(const core::GridLevel& l, double w, double h, do
             const double t = (b - a) / 2;
             const QPointF q(a + t, l.start.y + t / cot);
             if (q.x() >= 0 && q.x() <= w && q.y() >= 0 && q.y() <= h) {
+                if (out.size() >= limit) {
+                    return out;
+                }
                 out.push_back(q);
-                if (out.size() > static_cast<std::size_t>(kMaxGridLines) * 8) {
+                if (out.size() >= limit) {
                     return out;
                 }
             }
@@ -425,7 +483,8 @@ std::vector<QPointF> gridPoints(const core::GridLevel& l, double w, double h, do
     return out;
 }
 
-void paintGridLevel(QPainter& p, const core::GridLevel& l, double w, double h, double scale, double width)
+void paintGridLevel(QPainter& p, const core::GridLevel& l, double w, double h, double scale, double width,
+                    GridBudget& budget)
 {
     const QColor c = color(l.color | 0xFF000000u);
     if (l.line == core::GridLine::Solid || l.line == core::GridLine::Dotted ||
@@ -439,22 +498,30 @@ void paintGridLevel(QPainter& p, const core::GridLevel& l, double w, double h, d
             pen.setDashPattern({3, 8});
         }
         p.setPen(pen);
-        for (const QLineF& seg : gridLines(l, w, h, scale)) {
-            p.drawLine(seg);
+        if (budget.lines == 0) {
+            return;
         }
+        const std::vector<QLineF> lines = gridLines(l, w, h, scale);
+        const std::size_t count = std::min(lines.size(), budget.lines);
+        for (std::size_t i = 0; i < count; ++i) {
+            p.drawLine(lines[i]);
+        }
+        budget.lines -= count;
         return;
     }
     // Marques aux intersections, en pixels écran.
     const QTransform t = p.worldTransform();
     std::vector<QPointF> marks;
-    for (const QPointF& q : gridPoints(l, w, h, scale)) {
+    const std::vector<QPointF> points = gridPoints(l, w, h, scale, budget.marks);
+    budget.marks -= points.size();
+    for (const QPointF& q : points) {
         marks.push_back(t.map(q));
     }
     p.save();
     p.resetTransform();
     for (const QPointF& q : marks) {
         const int x = static_cast<int>(std::floor(q.x()));
-        const int y = static_cast<int>(std::lround(q.y()));
+        const int y = static_cast<int>(std::nearbyint(q.y())); // round() de Python : au pair
         if (l.line == core::GridLine::Points) {
             p.fillRect(static_cast<int>(std::ceil(q.x() - 0.2)), y, 1, 1, c);
         } else if (l.line == core::GridLine::Cross) {
@@ -490,11 +557,23 @@ ImageLookup DecodedImages::lookup() const
     return [this](const std::string& key) { return find(key); };
 }
 
-DecodedImages decodeImages(const core::Document& document)
+DecodedImages decodeImages(const core::Document& document, int maxSide)
 {
     DecodedImages out;
     for (const auto& [key, resource] : document.resources()) {
-        QImage image = QImage::fromData(resource.data);
+        QBuffer buffer;
+        buffer.setData(resource.data);
+        buffer.open(QIODevice::ReadOnly);
+        QImageReader reader(&buffer);
+        reader.setDecideFormatFromContent(true);
+        if (maxSide > 0) {
+            const QSize size = reader.size();
+            if (size.isValid() && (size.width() > maxSide || size.height() > maxSide)) {
+                reader.setScaledSize(
+                    size.scaled(maxSide, maxSide, Qt::KeepAspectRatio).expandedTo(QSize(1, 1)));
+            }
+        }
+        QImage image = reader.read();
         if (!image.isNull()) {
             out.insert(key, std::move(image));
         }
@@ -573,9 +652,10 @@ void paintGrid(QPainter& p, const core::Page& page, bool thumbnail)
         // Les traits nets de l'original tombent sur floor(x + 0,2) (relevé de grid.py).
         p.setWorldTransform(p.worldTransform() * QTransform::fromTranslate(0.2, 0));
     }
+    GridBudget budget;
     for (const core::GridLevel& level : page.grid.levels) {
         if (level.visible) {
-            paintGridLevel(p, level, page.width, page.height, scale, thumbnail ? 0.7 : 0);
+            paintGridLevel(p, level, page.width, page.height, scale, thumbnail ? 0.7 : 0, budget);
         }
     }
     p.restore();
@@ -617,10 +697,16 @@ QImage renderPage(const core::Page& page, const ImageLookup& images, double scal
 
 QByteArray thumbnailPng(const core::Page& page, const ImageLookup& images)
 {
-    PaintOptions options;
-    options.thumbnail = true;
-    const double scale = page.width > 0 ? kThumbnailWidth / page.width : 1.0;
-    const QImage image = renderPage(page, images, scale, options);
+    QImage image;
+    if (std::isfinite(page.width) && std::isfinite(page.height) && page.width > 0 && page.height > 0) {
+        PaintOptions options;
+        options.thumbnail = true;
+        const double scale = std::min(kThumbnailWidth / page.width, kThumbnailMaxHeight / page.height);
+        image = renderPage(page, images, scale, options);
+    } else {
+        image = QImage(kThumbnailWidth, kThumbnailWidth * 3 / 4, QImage::Format_ARGB32_Premultiplied);
+        image.fill(Qt::white);
+    }
     QByteArray png;
     QBuffer buffer(&png);
     buffer.open(QIODevice::WriteOnly);
