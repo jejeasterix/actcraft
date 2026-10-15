@@ -487,6 +487,27 @@ private slots:
         QVERIFY(qFuzzyCompare(f.view->zoom(), (400.0 - 64.0) / 768.0)); // toujours « Ajuster »
     }
 
+    // Molette sur une page entière visible : rien ne bouge, « Ajuster » reste (F5 ou un redimensionnement
+    // recadrent encore la page), comme pour une barre de défilement.
+    void wheelKeepsFitWhenNothingMoves()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        const QPointF center(640, 400);
+        wheel(f, center, QPoint(0, -120), Qt::NoModifier);
+        wheel(f, center, QPoint(0, -120), Qt::ShiftModifier);
+        f.view->setSize(QSizeF(640, 400));
+        QVERIFY(qFuzzyCompare(f.view->zoom(), (400.0 - 64.0) / 768.0)); // toujours « Ajuster »
+        // Un défilement qui bouge vraiment quitte « Ajuster ».
+        f.view->setZoom(2.0);
+        f.view->fitPage();
+        f.view->setZoom(2.0);
+        const qreal zoomed = f.view->zoom();
+        wheel(f, center, QPoint(0, -120), Qt::NoModifier);
+        f.view->setSize(QSizeF(1280, 800));
+        QCOMPARE(f.view->zoom(), zoomed);
+    }
+
     void startsInFitMode()
     {
         Fixture f;

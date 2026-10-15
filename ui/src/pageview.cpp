@@ -18,6 +18,14 @@ namespace actcraft::ui {
 
 namespace {
 
+// Même défilement, aux arrondis près : l'axe limitant d'« Ajuster » tombe pile sur la marge, et clampPan peut
+// l'en écarter d'un rien.
+bool samePan(QPointF a, QPointF b)
+{
+    constexpr double kSamePan = 1e-6;
+    return qAbs(a.x() - b.x()) < kSamePan && qAbs(a.y() - b.y()) < kSamePan;
+}
+
 // `item` ou l'un de ses descendants prendrait l'appui de la souris ou du doigt au point `scenePos` : visible,
 // actif, sous le point, et acceptant le bouton gauche ou le toucher (barre de défilement, bouton).
 bool takesPressAt(const QQuickItem* item, QPointF scenePos)
@@ -535,10 +543,8 @@ void PageView::scrollTo(qreal positionX, qreal positionY)
                     panForScrollPosition(positionY, height(), content.height()));
     t = clampPan(t, size(), pageSize());
     // Une barre branchée sur la position renvoie souvent la position courante : rien ne bouge, « Ajuster »
-    // reste (tolérance : l'axe limitant d'« Ajuster » tombe pile sur la marge, aux arrondis près).
-    constexpr double kSamePan = 1e-6;
-    if (qAbs(t.pan.x() - m_transform.pan.x()) < kSamePan &&
-        qAbs(t.pan.y() - m_transform.pan.y()) < kSamePan) {
+    // reste.
+    if (samePan(t.pan, m_transform.pan)) {
         return;
     }
     m_fitMode = false;
@@ -566,26 +572,36 @@ void PageView::wheelEvent(QWheelEvent* event)
         event->ignore();
         return;
     }
-    m_fitMode = false;
+    event->accept();
+    // Comme scrollTo : si rien ne bouge (page entière visible, butée du zoom), « Ajuster » reste.
     if (event->modifiers() & Qt::ControlModifier) {
         const int delta = event->angleDelta().y();
-        if (delta != 0) {
-            const ViewTransform t =
-                clampPan(zoomAt(m_transform, event->position(), m_transform.zoom * wheelZoomFactor(delta)),
-                         size(), pageSize());
-            const bool changed = !qFuzzyCompare(t.zoom, m_transform.zoom);
-            apply(t);
-            if (changed) {
-                setCacheReady(false);
-                m_cacheTimer.start(); // redessin 150 ms après le dernier cran
-            }
+        if (delta == 0) {
+            return;
+        }
+        const ViewTransform t =
+            clampPan(zoomAt(m_transform, event->position(), m_transform.zoom * wheelZoomFactor(delta)),
+                     size(), pageSize());
+        const bool changed = !qFuzzyCompare(t.zoom, m_transform.zoom);
+        if (!changed && samePan(t.pan, m_transform.pan)) {
+            return;
+        }
+        m_fitMode = false;
+        apply(t);
+        if (changed) {
+            setCacheReady(false);
+            m_cacheTimer.start(); // redessin 150 ms après le dernier cran
         }
     } else {
         ViewTransform t = m_transform;
         t.pan += wheelScrollDelta(event->angleDelta(), event->pixelDelta(), event->modifiers());
-        apply(clampPan(t, size(), pageSize()));
+        t = clampPan(t, size(), pageSize());
+        if (samePan(t.pan, m_transform.pan)) {
+            return;
+        }
+        m_fitMode = false;
+        apply(t);
     }
-    event->accept();
 }
 
 void PageView::geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry)
