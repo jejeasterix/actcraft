@@ -49,4 +49,5 @@ if ($LASTEXITCODE -ne 0) { throw 'licences : bibliothèque Qt hors de packaging/
 if ($LASTEXITCODE -ne 0) { throw 'ISCC en échec' }
 $setup = Join-Path $racine "ActCraft-$version-setup.exe"
 if (-not (Test-Path $setup)) { throw "$setup absent" }
+Write-Output ""   # ISCC /Qp ne termine pas sa ligne
 Write-Output "PAQUET OK : $setup"

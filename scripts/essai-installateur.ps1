@@ -75,7 +75,7 @@ $limite = (Get-Date).AddSeconds(30)
 while (((Test-Path $dossier) -or (Test-Path $menu)) -and (Get-Date) -lt $limite) {
     Start-Sleep -Milliseconds 500
 }
-$restes = @(Get-ChildItem -Recurse -File $dossier -ErrorAction SilentlyContinue)
+$restes = if (Test-Path $dossier) { @(Get-ChildItem -Recurse -File $dossier) } else { @() }
 if ($restes.Count -gt 0) { Echec "$($restes.Count) fichier(s) restant(s) après désinstallation" }
 if (Test-Path $dossier) { Echec "dossier $dossier restant après désinstallation" }
 if (Test-Path $menu) { Echec "raccourci $menu restant après désinstallation" }
