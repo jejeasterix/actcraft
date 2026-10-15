@@ -2,7 +2,7 @@
 
 Statut : en cours — repris le 2026-10-15 (nouvelle session) ; règles communes recréées dans le scratchpad de la session (`regles-tache-livraison.md`)
 Gabarit : lots (provisoire, à confirmer à l'étage 2)
-Étage : porte de fin du lot 1 (PR #3 mergée, 3de027a) ; ensuite lot 2 : planificateur sur le cadrage (lecteur `.flipchart`, format natif), en reprenant « Pour le plan du lot 2 » des pièges
+Étage : 2 (plan du lot 2 en cours, planificateur) — lot 1 clos et mergé (PR #3, 3de027a). Ordre des lots modifié par Jérôme : lot 2 (lecteur `.flipchart`, format natif), puis lot « cache incrémental » (ex-lot 10), puis les autres dans l'ordre du cadrage.
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete   Branche : feat/livraison-complete   Base : origin/main @ 175b336
 Branche principale locale au lancement : 175b336   (vérifiée à chaque rapport de tâche)
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md (663644e ; 38 questions, 16 N1, 12 DA, S1–S14, 11 lots ≈ 134 tâches dont lot 9 vidéos et lot 10 cache ; 175 exigences incluses, 25 exclues)   Plans : un par lot — lot 1 : docs/plans/2026-10-14-livraison-complete-lot1-PLAN.md (7e4c743 ; 20 tâches L1-T1…T20, 12 vagues)
@@ -118,7 +118,7 @@ Défauts du code : 0 bloquant. Suite donnée :
 - (L1-T8) `scrollChanged` non émis quand la taille du contenu change seule.
 
 ## Portes
-ouvertes : — · passées : —
+ouvertes : — · passées : **porte de fin du lot 1** (2026-10-15, CI de main 38733657291 verte 5/5) — réponses écrites de Jérôme : release 0.1.0 « Pas maintenant » (reproposée à la fin du lot 2, 0.2.0) ; fonctions à revoir : « Aucune » ; lot cache : « Oui, ne considère pas les test sur machine spécifique comme une gâte. Avance en autonomie jusqu'à livraison finale » → lot cache avancé juste après le lot 2, mesures Dell/M1 sans porte (coffre 02_Decisions/0087) ; choix du lot 1 (direction visuelle, réglette log, trait terminé, pas d'API privée) : « Valider ».
 
 ## Pièges trouvés
 - Construction d'APK : un démon Gradle (`java.exe` de `~/.tools/jdk-21`) reste vivant après `paquet-android.ps1` et verrouille le worktree (`git worktree remove` → « Invalid argument »). L'arrêter par PID (`Stop-Process -Id`) avant de supprimer le worktree. Vu le 2026-10-15 (L1-T17). Pour la CI : `--no-daemon` ou `org.gradle.daemon=false` à envisager.
