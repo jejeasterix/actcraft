@@ -5,5 +5,7 @@ actcraft_add_module(core
         src/model.cpp
         src/generator.cpp
         src/document.cpp
+        src/undo.cpp
+        src/edits.cpp
     DEPENDS
         Qt6::Core)
