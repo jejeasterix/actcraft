@@ -34,7 +34,7 @@ Python 3.12 (oracle, dans l'ancien dépôt seulement).
 | L2-T1 | `core` : modèle complet (propriétés communes, cinq types, fond, grille, ressources, identifiants) et empreintes recalculées | — | `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/include/actcraft/core/document.h`, `core/src/document.cpp`, `core/src/generator.cpp`, `render/include/actcraft/render/objectrenderer.h`, `tests/tst_core_model.cpp`, `tests/tst_core_document.cpp`, `tests/tst_core_generator.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 44 tests, `tst_core_model`, `tst_core_document`, `tst_core_generator` Passed ; empreintes de `Page{}` et de `samplePage()` recoupées par le script Python de l'étape 7 ; banc hors écran (résultat) | S4, S5 | #tache-l2-t1 |
 | L2-T2 | `core` : pile d'annulation, commandes du lot (objet au sommet de sa couche, page), changements | L2-T1 | `core/include/actcraft/core/undo.h`, `core/src/undo.cpp`, `core/include/actcraft/core/edits.h`, `core/src/edits.cpp`, `core/CMakeLists.txt`, `tests/core.cmake`, `tests/tst_core_undo.cpp`, `tests/tst_core_edits.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 46 tests, `tst_core_undo` et `tst_core_edits` Passed | S5 | #tache-l2-t2 |
 | L2-T3 | `actions` : argument facultatif, commandes de fichier déclarées | — | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `actions/data/commands.json`, `tests/tst_actions_registry.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 44 tests, `tst_actions_registry` Passed (dont `optionalArgumentMayBeAbsent`) | S5 | #tache-l2-t3 |
-| L2-T4 | miniz vendu, `formats/` interdit de QtGui, fichiers de tests des formats | — | `third_party/miniz/miniz.c`, `third_party/miniz/miniz.h`, `third_party/miniz/LICENSE`, `third_party/miniz/README.md`, `third_party/miniz/CMakeLists.txt`, `CMakeLists.txt`, `formats/CMakeLists.txt`, `formats/native.cmake`, `formats/flipchart.cmake`, `scripts/format.ps1`, `.graphifyignore`, `THIRD_PARTY_NOTICES.md`, `tests/CMakeLists.txt`, `tests/formats.cmake`, `tests/flipchart.cmake`, `tests/tst_third_party_miniz.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 45 tests, `tst_third_party_miniz` Passed ; configuration en échec si `actcraft_formats` lie `Qt6::Gui` (rouge vu puis remis par `git checkout --`) | S5 | #tache-l2-t4 |
+| L2-T4 | miniz vendu, `formats/` interdit de QtGui, fichiers de tests des formats | — | `third_party/miniz/miniz.c`, `third_party/miniz/miniz.h`, `third_party/miniz/LICENSE`, `third_party/miniz/README.md`, `third_party/miniz/CMakeLists.txt`, `third_party/.clang-format`, `CMakeLists.txt`, `formats/CMakeLists.txt`, `formats/native.cmake`, `formats/flipchart.cmake`, `scripts/format.ps1`, `.graphifyignore`, `THIRD_PARTY_NOTICES.md`, `tests/CMakeLists.txt`, `tests/formats.cmake`, `tests/flipchart.cmake`, `tests/tst_third_party_miniz.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 45 tests, `tst_third_party_miniz` Passed ; configuration en échec si `actcraft_formats` lie `Qt6::Gui` (rouge vu puis remis par `git checkout --`) | S5 | #tache-l2-t4 |
 | L2-T5 | `formats` : `document.json` (écriture, lecture tolérante, version majeure refusée) | L2-T1, L2-T4 | `formats/include/actcraft/formats/nativejson.h`, `formats/src/nativejson.cpp`, `formats/native.cmake`, `tests/formats.cmake`, `tests/support/richdocument.h`, `tests/tst_formats_nativejson.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 46 tests, `tst_formats_nativejson` Passed (dont `roundTripKeepsTheFingerprint`) | S5 | #tache-l2-t5 |
 | L2-T6 | `formats` : archive `.actcraft` (miniz) et E/S par URL (fichier local atomique, `content://`) | L2-T5 | `formats/include/actcraft/formats/nativefile.h`, `formats/src/nativefile.cpp`, `formats/include/actcraft/formats/urlio.h`, `formats/src/urlio.cpp`, `formats/native.cmake`, `tests/formats.cmake`, `tests/tst_formats_nativefile.cpp`, `tests/tst_formats_urlio.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 48 tests, `tst_formats_nativefile` et `tst_formats_urlio` Passed | S5 | #tache-l2-t6 |
 | L2-T7 | `formats` : conteneur Bamboo et index « culm » ; écrivain de paperboards synthétiques | L2-T4 | `formats/include/actcraft/formats/bamboo.h`, `formats/src/bamboo.cpp`, `formats/flipchart.cmake`, `tests/flipchart.cmake`, `tests/support/flipchartwriter.h`, `tests/tst_formats_bamboo.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 46 tests, `tst_formats_bamboo` Passed | S4 | #tache-l2-t7 |
@@ -77,6 +77,12 @@ Aucune tâche de 2a n'ouvre de fenêtre. Seule L2-T1 (en-tête de `render/`) joi
    ne les garde pas).
 7. **Translucidité sur 0-255** (L2-T1) comme le `.flipchart` (opacité = 1 − t / 255) ; le navigateur de propriétés
    (lot 6) l'affichera en pour cent.
+8. **Conteneur `.flipchart` décompressé par miniz, pas par `qUncompress`** (L2-T7 ; la décision 18 dit
+   « `qUncompress` pour le conteneur »). L'en-tête de taille de `qCompress` est écrit par le fichier et `qUncompress`
+   le dépasse (bombe zlib mesurée en relecture : en-tête de 16 octets, 597 Kio → 600 Mio) ; miniz décompresse dans un
+   tampon de la taille de l'entrée, bornée à 512 Mio, et `formats/` le lie déjà (L2-T4).
+9. **Extensions de ressources contraintes** (L2-T1) : `[a-z0-9]{1,8}`, sinon `bin` ; clés lues dans `document.json`
+   vérifiées (`[0-9a-f]{64}`) avant toute lecture de l'archive (L2-T5).
 
 ## Couverture des scénarios
 
@@ -145,7 +151,8 @@ Une tâche ne renomme aucun de ces noms. Ceux du lot 1 (`docs/plans/2026-10-14-l
   `file.new-custom`, `file.open` (URL facultative), `file.save`, `file.save-as` (URL facultative), `file.close`.
 - `actcraft::formats` (L2-T5, L2-T6) : `kNativeFormat` (`"actcraft-document/1"`), `kNativeMajorVersion`,
   `documentToJson`, `ResourceLoader`, `JsonReadResult`, `documentFromJson`, `encodeActcraft`, `DecodeResult`,
-  `decodeActcraft`, `archiveEntryNames`, `looksLikeActcraft`, `kMaxArchiveEntry`, `UrlReadResult`, `readUrl`,
+  `decodeActcraft`, `archiveEntryNames`, `looksLikeActcraft`, `kMaxArchiveEntry`, `kMaxArchiveTotal`,
+  `UrlReadResult`, `readUrl`,
   `writeUrl`, `urlFromArgument`. Noms d'entrées : `document.json`, `resources/<sha256>.<ext>`,
   `thumbnails/page-<n>.png` (n à partir de 1).
 - `actcraft::formats::flipchart` (L2-T7 à L2-T10) : `BambooEntry`, `BambooContainer` (`parse`, `names`,
@@ -509,6 +516,10 @@ rouge jusqu'à l'étape 7.
         QCOMPARE(d.resource(key)->extension, std::string("png"));
         QCOMPARE(d.resource(key)->data, QByteArray("abc"));
         QVERIFY(d.resource("absente") == nullptr);
+        // Extension sûre seulement : jamais de chemin dans un nom d'entrée d'archive.
+        QCOMPARE(d.resource(d.addResource(QByteArray("y"), "../../evil"))->extension, std::string("bin"));
+        QCOMPARE(d.resource(d.addResource(QByteArray("z"), ""))->extension, std::string("bin"));
+        QCOMPARE(d.resource(d.addResource(QByteArray("w"), "tropLongueExtension"))->extension, std::string("bin"));
     }
 
     void pagesCanBeInsertedAndTaken()
@@ -1400,7 +1411,7 @@ namespace actcraft::core {
 struct Resource
 {
     QByteArray data;
-    std::string extension; // minuscules, sans point : « png », « jpg », « mp3 »…
+    std::string extension; // [a-z0-9]{1,8}, sans point : « png », « jpg », « mp3 »… ; sinon « bin »
 };
 
 // Document (DA2, décision 15) : une suite de pages, jamais vide ; ressources par empreinte SHA-256 ;
@@ -1592,6 +1603,14 @@ std::string Document::addResource(QByteArray data, std::string extension)
 {
     std::transform(extension.begin(), extension.end(), extension.begin(),
                    [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+    // Extension sûre : elle forme un nom d'entrée d'archive (« resources/<clé>.<ext> ») et, au lot 5, un nom de
+    // fichier exporté. [a-z0-9]{1,8}, sinon « bin » (relecture du plan, tour 1 : glissement de chemin).
+    const bool safe = !extension.empty() && extension.size() <= 8 &&
+                      std::all_of(extension.begin(), extension.end(),
+                                  [](char c) { return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'); });
+    if (!safe) {
+        extension = "bin";
+    }
     std::string key = sha256Hex(data);
     m_resources.try_emplace(key, Resource{std::move(data), std::move(extension)});
     return key;
@@ -2809,7 +2828,7 @@ lecteur `.flipchart` : `formats/native.cmake`, `formats/flipchart.cmake`, `tests
 
 **Fichiers.**
 - Créer : `third_party/miniz/miniz.c`, `third_party/miniz/miniz.h`, `third_party/miniz/LICENSE`,
-  `third_party/miniz/README.md`, `third_party/miniz/CMakeLists.txt`, `formats/native.cmake`,
+  `third_party/miniz/README.md`, `third_party/miniz/CMakeLists.txt`, `third_party/.clang-format`, `formats/native.cmake`,
   `formats/flipchart.cmake`, `tests/formats.cmake`, `tests/flipchart.cmake`, `tests/tst_third_party_miniz.cpp`
 - Modifier : `CMakeLists.txt`, `formats/CMakeLists.txt`, `scripts/format.ps1`, `.graphifyignore`,
   `THIRD_PARTY_NOTICES.md`, `tests/CMakeLists.txt`
@@ -3036,6 +3055,16 @@ $files = git ls-files --cached --others --exclude-standard -- '*.cpp' '*.h' '*.h
 
   Dans `.graphifyignore`, ajouter la ligne `third_party/` (avec le commentaire `# Code tiers vendu.`).
 
+  Le job `format` de la CI (`.github/workflows/ci.yml:30`) passe **tous** les `*.h` suivis par git à
+  `clang-format --dry-run --Werror`, donc `third_party/miniz/miniz.h` : `format.ps1` ne suffit pas. Créer
+  `third_party/.clang-format` (clang-format prend le fichier de configuration le plus proche) :
+
+```yaml
+# Code tiers tel que publié : jamais reformaté. Le job « format » de la CI passe tous les *.h suivis par git.
+DisableFormat: true
+SortIncludes: Never
+```
+
   Dans `THIRD_PARTY_NOTICES.md`, ajouter à la fin une section :
 
 ```markdown
@@ -3049,7 +3078,10 @@ Source : https://github.com/richgel999/miniz (version 3.0.2). Licence MIT :
 
   Le texte de la licence est celui du fichier téléchargé, recopié à l'identique (obligation de la licence MIT).
 
-- [ ] **Étape 6 : vert ciblé.** Commande ciblée (motif `tst_third_party_miniz`) : `100% tests passed`. Vérifier
+- [ ] **Étape 6 : vert ciblé.** Commande ciblée (motif `tst_third_party_miniz`) : `100% tests passed`. Rejouer
+  ensuite la commande du job `format` de la CI, avec le clang-format que trouve `format.ps1`, sur les deux fichiers
+  tiers : `clang-format --dry-run --Werror third_party/miniz/miniz.h third_party/miniz/miniz.c` → code 0 (sans
+  `third_party/.clang-format`, des centaines d'écarts : le constater une fois, rouge vu). Vérifier
   aussi `pwsh -NoProfile -Command "Set-Location '<worktree>'; pwsh -NoProfile -File ./scripts/format.ps1 -Check; Write-Output `$LASTEXITCODE"` → `0`
   (miniz ignoré).
 
@@ -3059,7 +3091,7 @@ Source : https://github.com/richgel999/miniz (version 3.0.2). Licence MIT :
 - [ ] **Étape 8 : commit.**
 
 ```powershell
-git -C <worktree> add third_party/miniz/miniz.c third_party/miniz/miniz.h third_party/miniz/LICENSE third_party/miniz/README.md third_party/miniz/CMakeLists.txt CMakeLists.txt formats/CMakeLists.txt formats/native.cmake formats/flipchart.cmake scripts/format.ps1 .graphifyignore THIRD_PARTY_NOTICES.md tests/CMakeLists.txt tests/formats.cmake tests/flipchart.cmake tests/tst_third_party_miniz.cpp
+git -C <worktree> add third_party/miniz/miniz.c third_party/miniz/miniz.h third_party/miniz/LICENSE third_party/miniz/README.md third_party/miniz/CMakeLists.txt third_party/.clang-format CMakeLists.txt formats/CMakeLists.txt formats/native.cmake formats/flipchart.cmake scripts/format.ps1 .graphifyignore THIRD_PARTY_NOTICES.md tests/CMakeLists.txt tests/formats.cmake tests/flipchart.cmake tests/tst_third_party_miniz.cpp
 git -C <worktree> commit -m "miniz 3.0.2 vendu pour le format natif ; formats/ interdit de QtGui ; fichiers de tests des formats" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
@@ -3187,6 +3219,10 @@ inline actcraft::core::Document richDocument()
     picture.sourceWidth = 2;
     picture.sourceHeight = 2;
     picture.resource = png;
+    picture.pattern = ImagePattern::Rings;
+    picture.colorA = 0xFF00FF00u;
+    picture.colorB = 0xFF0000FFu;
+    picture.seed = 3;
     picture.hasTransparentColor = true;
     picture.transparentColor = 0xFFFFFFFFu;
     PageObject o3 = picture;
@@ -3199,6 +3235,13 @@ inline actcraft::core::Document richDocument()
     path.bounds = {-3, -3, 86, 66};
     path.paths = {{{0, 0}, {80, 0}, {80, 60}}, {{20, 20}, {60, 20}, {40, 50}}};
     path.windingFill = true;
+    path.open = true;
+    path.polygon = {{1, 1}, {9, 1}, {5, 8}};
+    path.fill = 0xFF010101u;
+    path.outline = 0xFF020202u;
+    path.outlineWidth = 4;
+    path.opacity = 0.5;
+    path.brush.pattern = 5;
     path.pen.style = PenStyle::Dash;
     path.pen.color = 0xFF010203u;
     path.pen.width = 6;
@@ -3232,6 +3275,8 @@ inline actcraft::core::Document richDocument()
     first.weight = 700;
     first.italic = true;
     first.color = 0xFFFF0000u;
+    first.underline = true;
+    first.strikeOut = true;
     first.baseline = {0, 30};
     first.bounds = {0, 0, 90, 36};
     TextRun second = first;
@@ -3284,6 +3329,8 @@ inline actcraft::core::Document richDocument()
     p1.objects.push_back(o10);
 
     Page& p2 = pages[1];
+    p2.name = "Page deux";
+    p2.notes = "Notes de la page deux";
     p2.width = 800;
     p2.height = 600;
     p2.background.fill.kind = FillKind::Gradient;
@@ -3309,6 +3356,10 @@ inline actcraft::core::Document richDocument()
     fine.angle = 45;
     fine.line = GridLine::Dotted;
     fine.drawY = false;
+    fine.drawX = false;
+    fine.stepX = 64;
+    fine.stepY = 48;
+    fine.color = 0xFF00FF00u;
     p2.grid.levels = {coarse, fine};
 
     Document document(std::move(pages));
@@ -3430,6 +3481,133 @@ private slots:
         QCOMPARE(page2.value(u"grid"_s).toObject().value(u"levels"_s).toArray().at(1).toObject()
                      .value(u"line"_s).toString(),
                  u"dotted"_s);
+    }
+
+    // Garde-fou de parité (relecture du plan, tour 1) : chaque champ du modèle a, dans richDocument, une valeur hors
+    // défaut. Un champ ajouté au modèle casse ces liaisons structurées à la compilation : il faut alors le remplir
+    // ici, et roundTripKeepsTheFingerprint prouve qu'il traverse document.json (l'empreinte couvre tous les champs).
+    void richDocumentFillsEveryField()
+    {
+        using namespace actcraft::core;
+        const Document d = richdoc::richDocument();
+        const Page& p1 = d.page(0);
+        {
+            const auto& [id, name, layer, visible, locked, translucency, restrictions, transform, label, actions] =
+                p1.objects[0].common;
+            QVERIFY(id != 0 && !name.empty() && layer != Layer::Middle && !visible && locked && translucency != 0);
+            const auto& [canMove, canSize, canRotate] = restrictions;
+            QVERIFY(!canMove && !canSize && !canRotate);
+            const auto& [m11, m12, m21, m22, dx, dy] = transform;
+            QVERIFY(m11 != 1 && m12 != 0 && m21 != 0 && m22 != 1 && dx != 0 && dy != 0);
+            QVERIFY(!label.empty() && actions.size() == 1);
+            const auto& [kind, sourceType, command, target, resource] = actions[0];
+            QVERIFY(kind != ActionKind::Other && sourceType != 0 && command != 0 && target != 0 && !resource.empty());
+        }
+        {
+            const auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill, pen,
+                         brush] = std::get<Shape>(p1.objects[3]);
+            QVERIFY(kind != ShapeKind::Rectangle && bounds.width != 0 && !polygon.empty() && fill != 0xFFFFFFFFu &&
+                    outline != 0xFF000000u && outlineWidth != 1 && opacity != 1 && !paths.empty() && open &&
+                    windingFill);
+            const auto& [style, color, width, cap, join] = pen;
+            QVERIFY(style != PenStyle::Solid && color != 0xFF000000u && width != 1 && cap != PenCap::Round &&
+                    join != PenJoin::Round);
+            const auto& [fillKind, color1, color2, gradient, pattern, opaque, background] = brush;
+            QVERIFY(fillKind != FillKind::None && color1 != 0xFFFFFFFFu && color2 != 0xFFFFFFFFu &&
+                    gradient != GradientKind::Vertical && pattern != 0 && opaque && background != 0xFF000000u);
+        }
+        {
+            const auto& [bounds, sw, sh, pattern, a, b, seed, resource, hasTransparent, transparent] =
+                std::get<ImageObject>(p1.objects[2]);
+            QVERIFY(bounds.width != 0 && sw != 256 && sh != 256 && pattern != ImagePattern::LinearGradient &&
+                    a != 0xFF000000u && b != 0xFFFFFFFFu && seed != 0 && !resource.empty() && hasTransparent &&
+                    transparent != 0);
+        }
+        {
+            const auto& [points, baseWidth, color, kind, cap] = std::get<Stroke>(p1.objects[9]);
+            QVERIFY(points.size() == 3 && points[0].pressure != 0.5f && baseWidth != 3 && color != 0xFF000000u &&
+                    kind != StrokeKind::Pen && cap != PenCap::Square);
+        }
+        {
+            const auto& [points, pen] = std::get<Line>(p1.objects[4]);
+            QVERIFY(!points.empty() && pen.style != PenStyle::Solid);
+        }
+        {
+            const auto& [bounds, html, runs] = std::get<Text>(p1.objects[5]);
+            QVERIFY(bounds.width != 0 && !html.empty() && !runs.empty());
+            const auto& [text, family, size, weight, italic, underline, strikeOut, color, baseline, runBounds] =
+                runs[0];
+            QVERIFY(!text.empty() && !family.empty() && size != 12 && weight != 400 && italic && underline &&
+                    strikeOut && color != 0xFF000000u && baseline.y != 0 && runBounds.width != 0);
+        }
+        {
+            const auto& [bounds, placeholder, media, fileName, autoPlay, loop] = std::get<Media>(p1.objects[6]);
+            QVERIFY(bounds.width != 0 && !placeholder.empty() && !media.empty() && !fileName.empty() && autoPlay &&
+                    loop);
+        }
+        {
+            const auto& [members] = std::get<Group>(p1.objects[7]);
+            QVERIFY(!members.empty());
+        }
+        {
+            const auto& [endA, endB, objectA, objectB, pen] = std::get<Connector>(p1.objects[8]);
+            QVERIFY(endA.x != 0 && endB.x != 0 && objectA != 0 && objectB != 0 && pen.color != 0xFF000000u);
+        }
+        {
+            const auto& [width, height, objects, background, grid, name, notes] = d.page(1);
+            QVERIFY(width != 1024 && height != 768 && objects.empty() && !name.empty() && !notes.empty());
+            const auto& [fill, image] = background;
+            QVERIFY(fill.kind != FillKind::Solid && !image.empty());
+            const auto& [visible, allowSnap, onTop, thumbnailScale, defaultScale, scaleStep, levels] = grid;
+            QVERIFY(visible && allowSnap && onTop && thumbnailScale != 1 && defaultScale != 1 && scaleStep != 0.5 &&
+                    levels.size() == 2);
+            const auto& [lvVisible, snap, start, stepX, stepY, color, pattern, angle, line, drawX, drawY] = levels[1];
+            QVERIFY(!lvVisible && !snap && start.x != 0 && stepX != 32 && stepY != 32 && color != 0xFF000000u &&
+                    pattern != GridPattern::Normal && angle != 30 && line != GridLine::Solid && !drawX && !drawY);
+        }
+        QVERIFY(!d.title().empty() && d.resources().size() == 2 && d.nextId() == 20);
+    }
+
+    void hugeOrNonFiniteNumbersAreRefused()
+    {
+        const core::Document rich = richdoc::richDocument();
+        QJsonObject o = object(formats::documentToJson(rich), 0, 1); // image procédurale
+        o.insert(u"sourceWidth"_s, 1e30);
+        o.insert(u"seed"_s, -5);
+        core::Document back;
+        const auto r = formats::documentFromJson(withObject(formats::documentToJson(rich), 0, 1, o), loaderFrom(rich), back);
+        QVERIFY(r.ok);
+        QCOMPARE(r.warnings.size(), 2);
+        const auto* image = std::get_if<core::ImageObject>(&back.page(0).objects[1]);
+        QVERIFY(image);
+        QCOMPARE(image->sourceWidth, std::int32_t{256}); // hors limites : défaut du modèle, pas 1e30 tronqué
+        QCOMPARE(image->seed, std::uint32_t{0});          // négatif pour un non signé : défaut du modèle
+    }
+
+    void unsafeResourceNamesAreRefused()
+    {
+        const core::Document rich = richdoc::richDocument();
+        QJsonObject root = formats::documentToJson(rich);
+        QJsonArray resources = root.value(u"resources"_s).toArray();
+        QJsonObject first = resources.at(0).toObject();
+        first.insert(u"extension"_s, u"../../x"_s);
+        resources.replace(0, first);
+        QJsonObject second = resources.at(1).toObject();
+        second.insert(u"key"_s, u"../cle"_s);
+        resources.replace(1, second);
+        root.insert(u"resources"_s, resources);
+        core::Document back;
+        bool loaderCalled = false;
+        const auto r = formats::documentFromJson(
+            root, [&loaderCalled](const std::string&, const std::string&) -> std::optional<QByteArray> {
+                loaderCalled = true;
+                return std::nullopt;
+            },
+            back);
+        QVERIFY(r.ok);
+        QVERIFY(!loaderCalled); // un nom invalide n'atteint jamais l'archive
+        QVERIFY(r.warnings.join(u' ').contains(u"nom invalide"_s));
+        QCOMPARE(back.resources().size(), std::size_t{0});
     }
 
     void unknownKeysAreIgnoredSilently()
@@ -3598,6 +3776,8 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
+#include <regex>
 #include <utility>
 
 namespace actcraft::formats {
@@ -3936,6 +4116,18 @@ public:
         return v.toBool();
     }
 
+    // Entier lu d'un réel : hors des bornes du type (1e30, négatif pour un non signé), défaut et avertissement.
+    template <typename T> T integer(const QJsonObject& o, QStringView key, T fallback, const QString& where)
+    {
+        const double v = number(o, key, static_cast<double>(fallback), where);
+        if (v < static_cast<double>(std::numeric_limits<T>::lowest()) ||
+            v > static_cast<double>(std::numeric_limits<T>::max())) {
+            warn(where, u"« %1 » hors limites"_s.arg(key));
+            return fallback;
+        }
+        return static_cast<T>(v);
+    }
+
     std::string text(const QJsonObject& o, QStringView key)
     {
         return o.value(key).toString().toStdString();
@@ -4060,7 +4252,7 @@ public:
             action.kind = pick(kActionKinds, a.value(u"kind"_s), action.kind, where);
             action.sourceType =
                 static_cast<std::uint16_t>(std::clamp(number(a, u"sourceType", 0, where), 0.0, 65535.0));
-            action.command = static_cast<std::int32_t>(number(a, u"command", 0, where));
+            action.command = integer<std::int32_t>(a, u"command", 0, where);
             action.target = id(a.value(u"target"_s));
             action.resource = text(a, u"resource");
             c.actions.push_back(std::move(action));
@@ -4091,12 +4283,12 @@ public:
         } else if (type == u"image"_s) {
             ImageObject im;
             im.bounds = rect(j.value(u"bounds"_s), im.bounds, where);
-            im.sourceWidth = static_cast<std::int32_t>(number(j, u"sourceWidth", im.sourceWidth, where));
-            im.sourceHeight = static_cast<std::int32_t>(number(j, u"sourceHeight", im.sourceHeight, where));
+            im.sourceWidth = integer<std::int32_t>(j, u"sourceWidth", im.sourceWidth, where);
+            im.sourceHeight = integer<std::int32_t>(j, u"sourceHeight", im.sourceHeight, where);
             im.pattern = pick(kPatterns, j.value(u"pattern"_s), im.pattern, where);
             im.colorA = color(j, u"colorA", im.colorA, where);
             im.colorB = color(j, u"colorB", im.colorB, where);
-            im.seed = static_cast<std::uint32_t>(number(j, u"seed", im.seed, where));
+            im.seed = integer<std::uint32_t>(j, u"seed", im.seed, where);
             im.resource = text(j, u"resource");
             if (j.value(u"transparentColor"_s).isString()) {
                 im.hasTransparentColor = true;
@@ -4133,7 +4325,7 @@ public:
                 run.text = text(r, u"text");
                 run.fontFamily = text(r, u"fontFamily");
                 run.pointSize = number(r, u"pointSize", run.pointSize, where);
-                run.weight = static_cast<std::int32_t>(number(r, u"weight", run.weight, where));
+                run.weight = integer<std::int32_t>(r, u"weight", run.weight, where);
                 run.italic = flag(r, u"italic", run.italic, where);
                 run.underline = flag(r, u"underline", run.underline, where);
                 run.strikeOut = flag(r, u"strikeOut", run.strikeOut, where);
@@ -4272,6 +4464,13 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
         const QJsonObject r = rv.toObject();
         const std::string key = r.value(u"key"_s).toString().toStdString();
         const std::string extension = r.value(u"extension"_s).toString().toStdString();
+        // Clé = SHA-256 hexadécimal, extension sûre : sinon le nom d'entrée d'archive pourrait viser ailleurs.
+        static const std::regex kKey("^[0-9a-f]{64}$");
+        static const std::regex kExtension("^[a-z0-9]{1,8}$");
+        if (!std::regex_match(key, kKey) || !std::regex_match(extension, kExtension)) {
+            reader.warnings << u"ressource « %1.%2 » : nom invalide, écartée"_s.arg(str(key), str(extension));
+            continue;
+        }
         const std::optional<QByteArray> data = loadResource ? loadResource(key, extension) : std::nullopt;
         if (!data) {
             reader.warnings << u"ressource %1 absente de l'archive"_s.arg(str(key));
@@ -4521,6 +4720,17 @@ private slots:
         QVERIFY2(tooBig.error.contains(u"volumineux"_s), qPrintable(tooBig.error));
     }
 
+    void smallFileDoesNotReserveTheMaximum()
+    {
+        // Borne énorme : l'ancienne lecture (file.read(maxBytes + 1)) tentait de réserver 1 Tio et échouait.
+        QTemporaryDir dir;
+        const QUrl url = QUrl::fromLocalFile(dir.filePath(u"petit"_s));
+        QVERIFY(formats::writeUrl(url, QByteArray("7 octets"), nullptr));
+        const formats::UrlReadResult r = formats::readUrl(url, 1ll << 40);
+        QVERIFY2(r.ok, qPrintable(r.error));
+        QCOMPARE(r.data, QByteArray("7 octets"));
+    }
+
     void unsupportedSchemeIsRefused()
     {
         QString error;
@@ -4580,8 +4790,10 @@ actcraft_add_test(tst_formats_urlio
 
 namespace actcraft::formats {
 
-// Une entrée décompressée de plus de 512 Mio est refusée avant toute allocation (archive non fiable).
+// Une entrée décompressée de plus de 512 Mio est refusée avant toute allocation (archive non fiable), et une archive
+// dont les entrées lues dépasseraient 2 Gio au total aussi (budget de décompression).
 inline constexpr qint64 kMaxArchiveEntry = 512ll * 1024 * 1024;
+inline constexpr qint64 kMaxArchiveTotal = 2048ll * 1024 * 1024;
 
 // Archive .actcraft (DA3) : « document.json » (compressé), « resources/<sha256>.<ext> » (stockés tels quels),
 // « thumbnails/page-<n>.png » (n à partir de 1 ; octets fournis par l'appelant, rangés tels quels). Reproductible :
@@ -4680,7 +4892,8 @@ public:
         if (!mz_zip_reader_file_stat(&m_zip, static_cast<mz_uint>(index), &stat)) {
             return std::nullopt;
         }
-        if (stat.m_uncomp_size > static_cast<mz_uint64>(kMaxArchiveEntry)) {
+        if (stat.m_uncomp_size > static_cast<mz_uint64>(kMaxArchiveEntry) ||
+            m_total + static_cast<qint64>(stat.m_uncomp_size) > kMaxArchiveTotal) {
             if (tooBig) {
                 *tooBig = true;
             }
@@ -4691,12 +4904,14 @@ public:
                                           static_cast<size_t>(out.size()), 0)) {
             return std::nullopt;
         }
+        m_total += out.size();
         return out;
     }
 
 private:
     mz_zip_archive m_zip{};
     bool m_open = false;
+    qint64 m_total = 0; // octets décompressés jusqu'ici (budget kMaxArchiveTotal)
 };
 
 } // namespace
@@ -4873,13 +5088,31 @@ UrlReadResult readUrl(const QUrl& url, qint64 maxBytes)
         r.error = u"ouverture impossible : %1 (%2)"_s.arg(url.toDisplayString(), file.errorString());
         return r;
     }
-    if (file.size() > maxBytes) { // content:// peut annoncer 0 : la lecture bornée ci-dessous tranche
+    if (file.size() > maxBytes) {
         r.error = u"fichier trop volumineux : %1"_s.arg(url.toDisplayString());
         return r;
     }
-    QByteArray data = file.read(maxBytes + 1);
-    if (data.size() > maxBytes) {
-        r.error = u"fichier trop volumineux : %1"_s.arg(url.toDisplayString());
+    // Jamais file.read(maxBytes + 1) : QIODevice réserve la taille demandée avant de lire (relecture du plan,
+    // tour 1 : 2 Gio réservés pour un fichier de 7 octets). Fichier local : taille connue, contrôlée, lecture
+    // entière. content:// : taille souvent inconnue (0) : blocs de 1 Mio, total borné.
+    QByteArray data;
+    if (url.isLocalFile()) {
+        data = file.readAll();
+    } else {
+        while (!file.atEnd()) {
+            const QByteArray chunk = file.read(1 << 20);
+            if (chunk.isEmpty()) {
+                break;
+            }
+            data += chunk;
+            if (data.size() > maxBytes) {
+                r.error = u"fichier trop volumineux : %1"_s.arg(url.toDisplayString());
+                return r;
+            }
+        }
+    }
+    if (file.error() != QFileDevice::NoError) {
+        r.error = u"lecture impossible : %1 (%2)"_s.arg(url.toDisplayString(), file.errorString());
         return r;
     }
     r.ok = true;
@@ -4915,10 +5148,13 @@ bool writeUrl(const QUrl& url, const QByteArray& data, QString* error)
         if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
             return fail(u"écriture impossible : %1 (%2)"_s.arg(url.toDisplayString(), file.errorString()));
         }
-        if (file.write(data) != data.size()) {
+        if (file.write(data) != data.size() || !file.flush()) {
             return fail(u"écriture incomplète : %1 (%2)"_s.arg(url.toDisplayString(), file.errorString()));
         }
-        file.close();
+        file.close(); // erreur possible à la fermeture (fournisseur de documents) : la lire
+        if (file.error() != QFileDevice::NoError) {
+            return fail(u"enregistrement impossible : %1 (%2)"_s.arg(url.toDisplayString(), file.errorString()));
+        }
         return true;
     }
     return fail(u"URL non prise en charge : %1"_s.arg(url.toString()));
@@ -4990,7 +5226,14 @@ n'entre dans les tests.
 - Modifier : `formats/flipchart.cmake`, `tests/flipchart.cmake`
 
 **Test et commande bornée.** Rouge : commande ciblée, motif `tst_formats_bamboo` → `error` (`bamboo.h`
-introuvable). Vert : forme bornée, N ≥ 46, `TESTS OK`, `tst_formats_bamboo .*Passed`.
+introuvable). Vert : forme bornée, N ≥ 46, `TESTS OK`, `tst_formats_bamboo .*Passed`. Bombe zlib : le verdict de
+`decompressionStopsAtTheAnnouncedSize` est le même avec `qUncompress` (taille différente de l'annoncée) ; ce qui
+change est la mémoire. Le prouver une fois par mutation : remettre `qUncompress(e.raw)` (en-tête réécrit à 600 Mio par
+le test, `qToBigEndian`), lancer `tst_formats_bamboo.exe` seul et relever `PeakWorkingSet64` du processus
+(`Get-Process -Id <pid>` en fin d'exécution, ou `Measure-Command` + compteur) : centaines de Mio ; puis
+`git -C <worktree> checkout -- formats/src/bamboo.cpp` et relever le pic avec `mz_uncompress` (quelques Mio). Les deux
+valeurs vont au rapport. **Écart à la décision 18** (« `qUncompress` pour le conteneur ») : décompression par miniz
+(déjà lié par `formats/`, L2-T4), bornée par la taille de l'entrée.
 
 **Interdits.** QtCore seulement. Rien de copié depuis `samples/` (ni octets, ni noms de fichiers réels). Pas de
 lecture hors limites (`Cursor` vérifie chaque taille). Aucun nom de classe d'Inspire dans le code.
@@ -5231,6 +5474,21 @@ private slots:
         QVERIFY2(error.contains(u"volumineuse"_s), qPrintable(error));
     }
 
+    void decompressionStopsAtTheAnnouncedSize()
+    {
+        // Entrée piégée : 10 octets annoncés, flux qui en donnerait 4 Mio (bombe zlib en petit).
+        fctest::Bytes b;
+        b.raw(QByteArray(" Bamboo ", 8)).u16(7).qstr(u"1.0"_s).raw(QByteArray(8, '\0'));
+        const QByteArray stored = qCompress(QByteArray(4 * 1024 * 1024, 'a'));
+        b.qstr(u"bombe.io"_s).qstr(u""_s).qstr(u""_s).qstr(u""_s).u64(10).u8(1).u64(static_cast<quint64>(stored.size()));
+        b.raw(stored);
+        QString error;
+        const auto c = BambooContainer::parse(b.data(), error);
+        QVERIFY(c);
+        QVERIFY(!c->read(u"bombe.io"_s, error));
+        QVERIFY2(error.contains(u"annoncés"_s), qPrintable(error));
+    }
+
     void indexKeepsTreeOrderAndReferences()
     {
         const fctest::Node root(101, 1, 100,
@@ -5364,6 +5622,8 @@ std::optional<IndexNode> parseIndex(const QByteArray& data, QString& error);
 
 #include <QStringDecoder>
 #include <QtEndian>
+
+#include <miniz.h>
 
 namespace actcraft::formats::flipchart {
 
@@ -5510,13 +5770,20 @@ std::optional<QByteArray> BambooContainer::read(const QString& name, QString& er
         error = u"entrée « %1 » : bloc compressé trop court"_s.arg(name);
         return std::nullopt;
     }
-    if (qFromBigEndian<quint32>(e.raw.constData()) > static_cast<quint64>(kMaxEntrySize)) {
-        error = u"entrée « %1 » trop volumineuse"_s.arg(name);
-        return std::nullopt;
+    if (e.size == 0) {
+        return QByteArray();
     }
-    const QByteArray out = qUncompress(e.raw);
-    if (static_cast<quint64>(out.size()) != e.size) {
-        error = u"entrée « %1 » : %2 octets décompressés, %3 annoncés"_s.arg(name).arg(out.size()).arg(e.size);
+    // Décompression dans un tampon de la taille annoncée par l'entrée (≤ kMaxEntrySize), jamais plus : l'en-tête de
+    // 4 octets de qCompress est fixé par le fichier et qUncompress le dépasse (relecture du plan, tour 1 : en-tête
+    // de 16 octets, entrée de 597 Kio → 600 Mio). mz_uncompress s'arrête au bout du tampon (MZ_BUF_ERROR).
+    QByteArray out(static_cast<qsizetype>(e.size), Qt::Uninitialized);
+    mz_ulong length = static_cast<mz_ulong>(e.size);
+    const int status = mz_uncompress(reinterpret_cast<unsigned char*>(out.data()), &length,
+                                     reinterpret_cast<const unsigned char*>(e.raw.constData()) + 4,
+                                     static_cast<mz_ulong>(e.raw.size() - 4));
+    if (status != MZ_OK || length != static_cast<mz_ulong>(e.size)) {
+        error = u"entrée « %1 » : flux zlib illisible ou d'une autre taille que les %2 octets annoncés"_s.arg(name).arg(
+            e.size);
         return std::nullopt;
     }
     return out;
@@ -6888,6 +7155,8 @@ inline QByteArray sampleFlipchart(const std::vector<QByteArray>& thumbnails = {}
 
 #include <QTest>
 
+#include <limits>
+
 using namespace actcraft;
 using namespace Qt::StringLiterals;
 using fctest::Entry;
@@ -7065,6 +7334,22 @@ private slots:
         QVERIFY(r.warnings.join(u' ').contains(u"203"_s));
     }
 
+    void absurdNumbersFallBackToDefaults()
+    {
+        // Couche NaN, profondeur 1e30, taille d'image hors bornes : défauts, aucune conversion indéfinie.
+        const QByteArray page = fctest::container(
+            {Entry(u"103.in"_s, fctest::index(Node(103, 2, 102, {Node(110, 7, 111)}))),
+             Entry(u"102.io"_s, Obj(2, 102).stream()),
+             Entry(u"111.io"_s, Obj(7, 111).real(8, std::numeric_limits<double>::quiet_NaN()).real(9, 1e30).stream())});
+        const QByteArray data = fctest::container(
+            {Entry(u"101.in"_s, fctest::index(Node(101, 1, 100, {Node(103, 2, 102)}))),
+             Entry(u"100.io"_s, Obj(1, 100).stream()), Entry(u"103.fpg"_s, page)});
+        const auto r = formats::flipchart::readFlipchart(data);
+        QVERIFY2(r.ok, qPrintable(r.error));
+        QCOMPARE(r.document.page(0).objects.size(), std::size_t{1});
+        QCOMPARE(r.document.page(0).objects[0].common.layer, core::Layer::Middle);
+    }
+
     void refusesWhatIsNotAFlipchart()
     {
         QVERIFY(!formats::flipchart::looksLikeFlipchart("PK\x03\x04"));
@@ -7125,14 +7410,15 @@ inline constexpr quint16 Text = 11;
 inline constexpr quint16 Grid = 13;
 inline constexpr quint16 GridLevel = 14;
 inline constexpr quint16 Group = 18;
-inline constexpr quint16 ActionSelectTool = 22;
-inline constexpr quint16 ActionNavigate = 23;
-inline constexpr quint16 ActionMove = 24;
-inline constexpr quint16 ActionApplication = 25;
+// Actions : numéros du format (§ 7.6), noms à nous.
+inline constexpr quint16 ActionTool = 22;
+inline constexpr quint16 ActionGoToPage = 23;
+inline constexpr quint16 ActionShift = 24;
+inline constexpr quint16 ActionProgram = 25;
 inline constexpr quint16 ActionOpenFile = 26;
-inline constexpr quint16 ActionOnObject = 28;
+inline constexpr quint16 ActionTargetObject = 28;
 inline constexpr quint16 Background = 29;
-inline constexpr quint16 ActionOnText = 50;
+inline constexpr quint16 ActionTargetText = 50;
 inline constexpr quint16 Connector = 52;
 inline constexpr quint16 Label = 53;
 inline constexpr quint16 Media = 253;
@@ -7141,9 +7427,9 @@ inline constexpr quint16 ActionLaunch = 463;
 
 inline constexpr bool isAction(quint16 t) noexcept
 {
-    return t == type::ActionSelectTool || t == type::ActionNavigate || t == type::ActionMove ||
-           t == type::ActionApplication || t == type::ActionOpenFile || t == type::ActionOnObject ||
-           t == type::ActionOnText || t == type::ActionLaunch;
+    return t == type::ActionTool || t == type::ActionGoToPage || t == type::ActionShift ||
+           t == type::ActionProgram || t == type::ActionOpenFile || t == type::ActionTargetObject ||
+           t == type::ActionTargetText || t == type::ActionLaunch;
 }
 
 namespace flipchart {
@@ -7300,17 +7586,17 @@ inline constexpr quint16 StrikeOut = 12;
 
 // Actions (§ 7.6) : commande et cible selon le type.
 namespace action {
-inline constexpr quint16 OnObjectTarget = 2;
-inline constexpr quint16 OnObjectCommand = 5;
+inline constexpr quint16 TargetObjectTarget = 2;
+inline constexpr quint16 TargetObjectCommand = 5;
 inline constexpr quint16 OpenFileResource = 2;
 inline constexpr quint16 OpenFileTarget = 4;
 inline constexpr quint16 OpenFileCommand = 10;
-inline constexpr quint16 NavigateCommand = 4;
-inline constexpr quint16 SelectToolCommand = 3;
-inline constexpr quint16 MoveCommand = 3;
-inline constexpr quint16 ApplicationCommand = 4;
-inline constexpr quint16 OnTextTarget = 3;
-inline constexpr quint16 OnTextCommand = 6;
+inline constexpr quint16 GoToPageCommand = 4;
+inline constexpr quint16 ToolCommand = 3;
+inline constexpr quint16 ShiftCommand = 3;
+inline constexpr quint16 ProgramCommand = 4;
+inline constexpr quint16 TargetTextTarget = 3;
+inline constexpr quint16 TargetTextCommand = 6;
 inline constexpr quint16 LaunchCommand = 4;
 } // namespace action
 
@@ -7361,7 +7647,9 @@ bool looksLikeFlipchart(const QByteArray& head) noexcept;
 #include <actcraft/formats/objectstream.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -7383,9 +7671,15 @@ double numberOr(const StreamObject* o, quint16 id, double fallback)
     return o ? asNumber(o->find(id)).value_or(fallback) : fallback;
 }
 
+// Entier lu du fichier (non fiable) : NaN, infini ou hors des bornes d'un int → valeur par défaut.
 int intOr(const StreamObject* o, quint16 id, int fallback)
 {
-    return static_cast<int>(numberOr(o, id, fallback));
+    const double v = numberOr(o, id, fallback);
+    if (!std::isfinite(v) || v < static_cast<double>(std::numeric_limits<int>::min()) ||
+        v > static_cast<double>(std::numeric_limits<int>::max())) {
+        return fallback;
+    }
+    return static_cast<int>(v);
 }
 
 bool flagOr(const StreamObject* o, quint16 id, bool fallback)
@@ -7696,29 +7990,45 @@ private:
         return std::nullopt;
     }
 
-    // Clé de la ressource image `rid` (vide, avec un avertissement, si ses données manquent).
+    // Clé de la ressource image `rid` (vide, avec un avertissement, si ses données manquent). Mémorisée par
+    // identifiant : une image partagée par cent objets n'est lue, décompressée et hachée qu'une fois.
     std::string imageKey(quint32 rid)
     {
+        if (const auto it = m_fileKeys.find(rid); it != m_fileKeys.end()) {
+            return it->second.first;
+        }
         const auto file = resourceFile(rid, resourceObject(rid));
         if (!file) {
             warn(u"données image introuvables pour la ressource %1"_s.arg(rid));
+            m_fileKeys[rid] = {};
             return {};
         }
-        return m_resources.addResource(file->second, extensionOf(file->second, file->first));
+        const std::string key = m_resources.addResource(file->second, extensionOf(file->second, file->first));
+        m_fileKeys[rid] = {key, file->first.toStdString()};
+        return key;
     }
 
     // Clé d'un fichier quelconque (son, vidéo, document ouvert par une action) ; `fileName` reçoit son nom.
     std::string fileKey(quint32 rid, std::string* fileName)
     {
+        if (const auto it = m_fileKeys.find(rid); it != m_fileKeys.end()) {
+            if (fileName) {
+                *fileName = it->second.second;
+            }
+            return it->second.first;
+        }
         const auto file = resourceFile(rid, resourceObject(rid));
         if (!file) {
             warn(u"données introuvables pour la ressource %1"_s.arg(rid));
+            m_fileKeys[rid] = {};
             return {};
         }
+        const std::string key = m_resources.addResource(file->second, extensionOf(file->second, file->first));
+        m_fileKeys[rid] = {key, file->first.toStdString()};
         if (fileName) {
             *fileName = file->first.toStdString();
         }
-        return m_resources.addResource(file->second, extensionOf(file->second, file->first));
+        return key;
     }
 
     std::optional<core::Page> readPage(const IndexNode& pageNode, const SizeF& defaultSize, QByteArray& thumbnail)
@@ -7871,10 +8181,10 @@ private:
         quint16 command = 0;
         quint16 target = 0;
         switch (node.type) {
-        case ids::type::ActionOnObject:
+        case ids::type::ActionTargetObject:
             p.action.kind = core::ActionKind::OnObject;
-            command = ids::action::OnObjectCommand;
-            target = ids::action::OnObjectTarget;
+            command = ids::action::TargetObjectCommand;
+            target = ids::action::TargetObjectTarget;
             break;
         case ids::type::ActionOpenFile: {
             p.action.kind = core::ActionKind::OpenExternal;
@@ -7886,22 +8196,22 @@ private:
             }
             break;
         }
-        case ids::type::ActionNavigate:
+        case ids::type::ActionGoToPage:
             p.action.kind = core::ActionKind::Navigate;
-            command = ids::action::NavigateCommand;
+            command = ids::action::GoToPageCommand;
             break;
-        case ids::type::ActionSelectTool:
-            command = ids::action::SelectToolCommand;
+        case ids::type::ActionTool:
+            command = ids::action::ToolCommand;
             break;
-        case ids::type::ActionMove:
-            command = ids::action::MoveCommand;
+        case ids::type::ActionShift:
+            command = ids::action::ShiftCommand;
             break;
-        case ids::type::ActionApplication:
-            command = ids::action::ApplicationCommand;
+        case ids::type::ActionProgram:
+            command = ids::action::ProgramCommand;
             break;
-        case ids::type::ActionOnText:
-            command = ids::action::OnTextCommand;
-            target = ids::action::OnTextTarget;
+        case ids::type::ActionTargetText:
+            command = ids::action::TargetTextCommand;
+            target = ids::action::TargetTextTarget;
             break;
         case ids::type::ActionLaunch:
             command = ids::action::LaunchCommand;
@@ -8051,7 +8361,9 @@ private:
             if (rid > 0) {
                 im.resource = imageKey(static_cast<quint32>(rid));
                 if (const StreamObject* res = resourceObject(static_cast<quint32>(rid))) {
-                    if (const std::optional<SizeF> size = asSize(res->find(ids::resource::ImageSize))) {
+                    if (const std::optional<SizeF> size = asSize(res->find(ids::resource::ImageSize));
+                        size && std::isfinite(size->width) && std::isfinite(size->height) && size->width >= 0 &&
+                        size->height >= 0 && size->width < 1e6 && size->height < 1e6) {
                         im.sourceWidth = static_cast<std::int32_t>(size->width);
                         im.sourceHeight = static_cast<std::int32_t>(size->height);
                     }
@@ -8172,6 +8484,7 @@ private:
     std::optional<BambooContainer> m_root;
     std::map<quint32, ResourceItem> m_register;
     std::map<quint32, std::shared_ptr<const StreamObject>> m_resourceObjects;
+    std::map<quint32, std::pair<std::string, std::string>> m_fileKeys; // ressource → (clé, nom de fichier)
     core::Document m_resources; // ne sert qu'à ranger les ressources par empreinte
     QStringList m_warnings;
     core::ObjectId m_nextId = 1;
@@ -8217,7 +8530,10 @@ set(ACTCRAFT_FORMATS_FLIPCHART_SOURCES
 
 - [ ] **Étape 8 : preuve.** `format.ps1`, preuve de tâche (N ≥ 48 ; `tst_formats_flipchart` Passed).
   `git -C <worktree> grep -n "\bas[A-Z][a-zA-Z]*" -- formats/src/flipchartids.h` ne doit rien trouver (aucun nom
-  `as…` d'Inspire).
+  `as…` d'Inspire), ni `git -C <worktree> grep -n -w -e ActionOnObject -e ActionNavigate -e ActionSelectTool -e
+  ActionOnText -e ActionMove -e ActionApp -- formats tests` (noms des classes d'action d'Inspire : nos constantes
+  s'appellent `ActionTargetObject`, `ActionGoToPage`, `ActionTool`, `ActionTargetText`, `ActionShift`,
+  `ActionProgram`).
 
 - [ ] **Étape 9 : commit.**
 
@@ -8437,7 +8753,9 @@ if __name__ == "__main__":
   Lancer la première commande de la preuve : `ORACLE OK : 17 paperboards, 124 pages`. Commiter **dans l'ancien
   dépôt**, ce seul fichier (il a d'autres modifications en cours qui ne sont pas les nôtres) :
   `git -C "C:\Users\JeromeDenis\REA - Activinspire" add tools/oracle_flipchart.py` puis
-  `git -C "C:\Users\JeromeDenis\REA - Activinspire" commit -m "Oracle du lecteur .flipchart d'ActCraft (JSON canonique, L2-T10)" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"`.
+  `git -C "C:\Users\JeromeDenis\REA - Activinspire" commit -m "Oracle du lecteur .flipchart d'ActCraft (JSON canonique, L2-T10)" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- tools/oracle_flipchart.py`
+  — le `-- tools/oracle_flipchart.py` final restreint le commit à ce fichier, même si un autre agent a indexé autre
+  chose dans ce dépôt entre-temps.
 
 - [ ] **Étape 2 : écrire les tests C++.** Créer `tests/tst_formats_dump.cpp` :
 
@@ -9019,6 +9337,9 @@ du lot 2 est créée à la clôture de 2b.
      `third_party/miniz/` ;
    - `git -C <worktree> grep -n -i "AsAnnotation\|AsShape\|asBoundingRect\|Promethean" -- formats core tests bench`
      → vide (aucun nom d'Inspire dans le code ; le mot n'apparaît que dans la documentation et les commentaires de
-     propriété intellectuelle).
+     propriété intellectuelle) ;
+   - `git -C <worktree> grep -n -w -e ActionOnObject -e ActionNavigate -e ActionSelectTool -e ActionOnText -e
+     ActionMove -e ActionApp -- formats core tests bench` → vide (noms de classes d'action d'Inspire ; les nôtres :
+     `ActionTargetObject`, `ActionGoToPage`, `ActionTool`, `ActionTargetText`, `ActionShift`, `ActionProgram`).
 4. **État** : tâches L2-T1 à L2-T10 terminées, compteurs, pièges rencontrés ; puis lancement de
    `docs/plans/2026-10-15-livraison-complete-lot2b-PLAN.md` (sa table) sur la même branche.

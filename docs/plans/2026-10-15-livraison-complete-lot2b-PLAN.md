@@ -40,7 +40,7 @@ pour Android, émulateur `x86_64` ; PowerShell 7.
 | L2-T19 | Ouvrir le fichier passé au lancement (`actcraft.exe <fichier>`, `--ouvrir`) | L2-T18 | `app/startup.h`, `app/startup.cpp`, `app/main.cpp`, `tests/app.cmake`, `tests/tst_app_open.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 61 tests, `tst_app_open` Passed | S4 | #tache-l2-t19 |
 | L2-T20 | Joueur de scénarios : fixtures, variables, attente, sonde de boucle ; scénario `aller-retour-natif` (S5) | L2-T18 | `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `bench/include/actcraft/bench/fixtures.h`, `bench/src/fixtures.cpp`, `bench/CMakeLists.txt`, `bench/scenarios/aller-retour-natif.json`, `tests/bench.cmake`, `tests/tst_bench_uiscenario.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 61 tests, `tst_bench_uiscenario` et `tst_captures_aller_retour_natif` Passed ; `captures.ps1 -Scenario aller-retour-natif -Rendu logiciel -HorsEcran` → `BOUCLE max=… ms OK`, `LU documentController.fingerprint=… OK`, `CAPTURES OK` | S5 | #tache-l2-t20 |
 | L2-T21 | S4 : miniatures comparées aux `.thm`, scénarios `ouvrir-flipchart-synthetique` (CI) et `local/ouvrir-flipchart` | L2-T10, L2-T19, L2-T20 | `bench/flipchart/main.cpp`, `bench/CMakeLists.txt`, `bench/src/fixtures.cpp`, `bench/src/uiscenario.cpp`, `bench/scenarios/ouvrir-flipchart-synthetique.json`, `bench/scenarios/local/ouvrir-flipchart.json`, `scripts/captures.ps1`, `tests/bench.cmake` | isolé | concepteur-critique | TESTS OK, ≥ 66 tests, `tst_flipchart_miniatures_synthetique` et `tst_captures_ouvrir_flipchart_synthetique` Passed ; localement `MINIATURES OK : 124 pages, médiane ≤ 2,0, ≤ 3 au-dessus de 7` et `captures.ps1 -Scenario local/ouvrir-flipchart -Ouvrir "<samples>\tri des formes.flipchart"` → `CAPTURES OK` | S4 | #tache-l2-t21 |
-| L2-T22 | Android : Ouvrir et Enregistrer par `content://` sur l'émulateur, sinon commandes de fichier retirées de l'APK | L2-T18 | `scripts/essai-android-fichiers.ps1`, `actions/data/commands.json`, `docs/verifications/2026-10-15-android-fichiers.md` | isolé | concepteur-critique | `ANDROID FICHIERS OK` (empreinte enregistrée = empreinte relue, logcat) ; sinon repli : `APK OK` + capture du menu Fichier de l'APK sans « Ouvrir… » ni « Enregistrer » | S5 | #tache-l2-t22 |
+| L2-T22 | Android : Ouvrir et Enregistrer par `content://` sur l'émulateur, sinon commandes de fichier retirées de l'APK | L2-T18 | `scripts/android-commun.ps1`, `scripts/essai-android.ps1`, `scripts/essai-android-fichiers.ps1`, `actions/data/commands.json`, `docs/verifications/2026-10-15-android-fichiers.md` | isolé | concepteur-critique | `ANDROID FICHIERS OK` (empreinte enregistrée = empreinte relue, logcat) ; sinon repli : `APK OK` + capture du menu Fichier de l'APK sans « Ouvrir… » ni « Enregistrer » | S5 | #tache-l2-t22 |
 | L2-T23 | Banc : scénario « changement de page » ; page fixe sans éclair blanc pendant le décodage | L2-T16, L2-T17 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `tests/tst_render_fixedpage.cpp`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `tests/tst_bench_verdict.cpp`, `scripts/resume-banc.ps1`, `docs/banc.md` | isolé | concepteur-critique | TESTS OK, ≥ 59 tests, `tst_render_fixedpage` (dont `keepsTheOldContentUntilTheNewPageIsReady`), `tst_bench_scenarios`, `tst_bench_result` Passed ; banc hors écran : scénario `page` présent, `content_check.ok = True` | S4 | #tache-l2-t23 |
 
 13 tâches. Les minima comptent les **55** tests de la fin de 2a, plus ceux des tâches dont la tâche dépend, plus les
@@ -76,6 +76,11 @@ touche aucun de ces fichiers.
 7. **Miniatures du format natif** : PNG de 320 px de large (la hauteur suit la page), comme les `.thm`.
 8. **Titre de fenêtre** : `[*]<titre> — ActCraft — rendu : <moteur>` (le moteur reste dans le titre, décision 19 du
    prototype).
+9. **Dialogues non natifs pas encore forcés** (décision 22, « moyen exact relevé au lot 2 ») : relevé —
+   `QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs)` dans `actcraft-captures` — mais pas appliqué, aucun
+   scénario du lot n'ouvrant de dialogue (H2b-6).
+10. **S4 : pages au-dessus de 7 nommées** (L2-T21) : la liste des trois pages connues est passée à l'outil en local
+    (`--connues`), pas écrite dans le code (dépôt public).
 
 ## Couverture des scénarios
 
@@ -123,13 +128,13 @@ Tous les noms de 2a, du lot 1 et du prototype restent figés ; on ajoute, on ne 
   `lookup`), `decodeImages`, `PaintOptions` (`background`, `grid`, `thumbnail`), `paintObjectLocal`, `paintObject`,
   `paintBackground`, `paintGrid`, `paintPage`, `renderPage`, `thumbnailPng`.
 - `actcraft::render` (L2-T12) : `ImageStore::generate(const core::Page&, const core::Document* = nullptr)`,
-  `ImageStore::resourceImage`, `ImageStore::objectImage`, `ImageStore::variantKey`.
+  `ImageStore::resourceImage`, `ImageStore::objectImage`, `ImageStore::variantKey`, `ImageStore::covers`.
 - `actcraft::render` (L2-T13) : `PaintedRenderer` (`createNode`), `usesPaintedRenderer`, `rasterizeLocal`,
   `createBackgroundNode`, `createGridNode`, `RenderContext::rasterScale`, `FixedPageItem::setRasterScale`,
-  `FixedPageItem::rasterScale`.
+  `FixedPageItem::rasterScale`, `FixedPageItem::rebuildCount` (crochet de test).
 - `actcraft::core` (L2-T14) : `PageCache` (`insert`, `remove`, `invalidate`), `applyToCache`.
 - `actcraft::render` (L2-T14) : `FixedPageItem` (dérive aussi de `core::PageCache`) : `setSource`, `sourceDocument`,
-  `sourcePage`, `rebuildCount` (crochet de test), signal `contentChanged` ; `setPage`, `page`, `appendStroke`,
+  `sourcePage`, signal `contentChanged` ; `setPage`, `page`, `appendStroke`,
   `loadGeneratedPage`, `isReady`, `objectCount` gardés.
 - `actcraft::ui` (L2-T15) : `DocumentController` — propriétés `pageSize`, `modified`, `title`, `fileUrl`,
   `fingerprint`, `canUndo`, `canRedo` ; méthodes `document() const`, `execute`, `undo`, `redo`, `commitStroke`,
@@ -138,7 +143,8 @@ Tous les noms de 2a, du lot 1 et du prototype restent figés ; on ajoute, on ne 
   `ControllerSink`. Titre d'un document neuf : « Sans titre ».
 - `actcraft::ui` (L2-T17) : `LoadOutcome`, `loadDocument`, `SaveOutcome`, `saveDocument`, `titleFromUrl`,
   `defaultDocumentsFolder` ; `DocumentController` : `openUrl`, `saveToUrl`, `busy`, `warnings`, `lastError`,
-  `suggestedFileName`, `urlFromArgument`, `defaultFolderUrl`, signaux `loadFinished(bool, QString)`,
+  `suggestedFileName`, `lastIoOffMainThread`, `urlFromArgument`, `defaultFolderUrl`, `LoadOutcome::offMainThread`,
+  `SaveOutcome::offMainThread`, signaux `loadFinished(bool, QString)`,
   `saveFinished(bool, QString)`. Journal (catégorie `actcraft.document`) : `ACTCRAFT OUVERT <empreinte>`,
   `ACTCRAFT ENREGISTRE <empreinte>` (empreinte en hexadécimal, 16 chiffres).
 - QML (L2-T18) : `objectName` `fileActions`, `openDialog`, `saveDialog`, `saveChangesDialog`, `pageSizeDialog`,
@@ -154,7 +160,10 @@ Tous les noms de 2a, du lot 1 et du prototype restent figés ; on ajoute, on ne 
   `captures.ps1 -Ouvrir <fichier>`.
 - Script (L2-T22) : `essai-android-fichiers.ps1 -Apk <apk>` → `ANDROID FICHIERS OK` / `ANDROID FICHIERS EN ECHEC :
   <raison>`.
-- Banc (L2-T23) : scénario `page`, `InputKind::Command`, `PlannedInput::command`, `pageScenario`.
+- Banc (L2-T23) : scénario `page`, `InputKind::Command`, `PlannedInput::command`, `PlannedInput::argument`,
+  `pageScenario`, `DocumentController::loadGeneratedPages(int, bool painted)`, `content_check.page_flash`.
+- `PageView::onStrokeFrozen` (L2-T15) n'émet plus que `strokeFrozen` : le redessin du cache vient de
+  `FixedPageItem::contentChanged`, une fois par trait.
 
 ## Règles communes à toutes les tâches (rappelées dans chaque section)
 
@@ -517,15 +526,29 @@ private slots:
 
     void paintsOffTheMainThread()
     {
+        // Comme les miniatures (L2-T17) : formes ET texte (polices, QTextDocument) peints sur un fil secondaire.
         core::Page page;
         page.objects.push_back(square(0, 0, 100, 0xFF00FF00u));
+        core::Text t;
+        t.bounds = {0, 0, 300, 60};
+        t.html = "<p style=\"color:#ff0000; font-size:40px\">XXXX</p>";
+        core::PageObject text = t;
+        text.common.transform = core::translation(200, 200);
+        page.objects.push_back(text);
         QThread* worker = nullptr;
         const QImage image = QtConcurrent::run([&page, &worker] {
                                  worker = QThread::currentThread();
-                                 return render::renderPage(page, kNoImages, 0.5);
+                                 return render::renderPage(page, kNoImages, 1.0);
                              }).result();
         QVERIFY(worker != QThread::currentThread());
-        QVERIFY(near(image.pixelColor(10, 10), Qt::green, 2));
+        QVERIFY(near(image.pixelColor(20, 20), Qt::green, 2));
+        int red = 0;
+        for (int y = 200; y < 260; ++y) {
+            for (int x = 200; x < 500; ++x) {
+                red += image.pixelColor(x, y).red() > 200 && image.pixelColor(x, y).green() < 80 ? 1 : 0;
+            }
+        }
+        QVERIFY2(red > 200, qPrintable(QString::number(red)));
     }
 };
 
@@ -1435,6 +1458,9 @@ QByteArray pngOf(const QImage& image)
     QImage objectImage(const core::ImageObject& object, std::size_t objectIndex) const;
     // Clé de la ressource, suivie de « #aarrggbb » si l'objet a une couleur transparente.
     static std::string variantKey(const core::ImageObject& object);
+    // Vrai si les images de la dernière génération suffisent à `page` (mêmes images procédurales aux mêmes indices,
+    // toutes les ressources voulues décodées) : la page fixe se reconstruit alors sans redécoder (L2-T14).
+    bool covers(const core::Page& page, const core::Document* resources) const;
 ```
 
   et dans la section privée, remplacer la signature de `onImageReady` par :
@@ -1444,8 +1470,10 @@ QByteArray pngOf(const QImage& image)
                       bool offOwnerThread);
 ```
 
-  et ajouter le membre `std::unordered_map<std::string, QImage> m_resources;` (sous `m_images`). `imageCount()`
-  continue de compter les seules images procédurales.
+  et ajouter les membres `std::unordered_map<std::string, QImage> m_resources;` et
+  `std::unordered_map<std::size_t, core::ImageObject> m_procedural;` (sources des images procédurales de la
+  dernière génération, par indice ; remplis dans `generate`). `imageCount()` continue de compter les seules images
+  procédurales.
 
 - [ ] **Étape 4 : écrire l'implémentation.** Dans `render/src/imagestore.cpp`, ajouter les includes `<set>` et
   `<utility>`, une fonction locale et remplacer `generate` et `onImageReady` :
@@ -1596,6 +1624,57 @@ QImage ImageStore::objectImage(const core::ImageObject& object, std::size_t obje
 {
     return object.resource.empty() ? image(objectIndex) : resourceImage(variantKey(object));
 }
+
+bool ImageStore::covers(const core::Page& page, const core::Document* resources) const
+{
+    if (!m_ready) {
+        return false;
+    }
+    QMutexLocker lock(&m_mutex);
+    const auto has = [this, resources](const std::string& key) {
+        return key.empty() || !resources || !resources->resource(key) || m_resources.count(key) > 0;
+    };
+    std::size_t procedural = 0;
+    for (std::size_t i = 0; i < page.objects.size(); ++i) {
+        if (const auto* im = std::get_if<core::ImageObject>(&page.objects[i])) {
+            if (im->resource.empty()) {
+                ++procedural;
+                const auto it = m_procedural.find(i);
+                if (it == m_procedural.end() || it->second.pattern != im->pattern || it->second.seed != im->seed ||
+                    it->second.colorA != im->colorA || it->second.colorB != im->colorB ||
+                    it->second.sourceWidth != im->sourceWidth || it->second.sourceHeight != im->sourceHeight) {
+                    return false;
+                }
+            } else if (!has(variantKey(*im)) || !has(im->resource)) {
+                return false;
+            }
+        } else if (const auto* m = std::get_if<core::Media>(&page.objects[i]); m && !has(m->placeholder)) {
+            return false;
+        }
+    }
+    return procedural == m_procedural.size() && has(page.background.image);
+}
+```
+
+  Dans `generate`, `m_procedural.clear()` avec `m_images.clear()`, et `m_procedural[i] = *object;` pour chaque image
+  procédurale. Ajouter le test :
+
+```cpp
+    void coversTellsWhetherAPageNeedsDecoding()
+    {
+        core::Page page = core::generatePage();
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(page);
+        QVERIFY(ready.wait(20000));
+        QVERIFY(store.covers(page, nullptr));
+        core::Stroke stroke;
+        stroke.points = {{1, 1, 0.5f}};
+        page.objects.emplace_back(stroke); // trait ajouté en fin : les images gardent leurs indices
+        QVERIFY(store.covers(page, nullptr));
+        page.objects.insert(page.objects.begin(), core::PageObject(stroke)); // indices décalés
+        QVERIFY(!store.covers(page, nullptr));
+    }
 ```
 
   Le lambda des images procédurales passe une clé vide et une image ; celui des ressources range ses images
@@ -1912,17 +1991,22 @@ private slots:
         QVERIFY2(mean < 2.0, qPrintable(QString::number(mean)));
     }
 
-    void rasterScaleRebuildsOnlyPaintedPagesInRhi()
+    void rasterScaleNeverRebuildsInSoftware()
     {
         core::Page page;
-        page.objects.push_back(core::PageObject(core::Shape{}));
+        page.objects.push_back(redText()); // objet peint : en RHI, une nouvelle échelle le rastériserait
         Fixture f;
         QVERIFY(open(f, page));
+        grab(f);
+        const int before = f.page->rebuildCount();
         f.page->setRasterScale(2.0);
         QCOMPARE(f.page->rasterScale(), 2.0);
-        // Rendu logiciel : rien à reconstruire (vérifié par l'absence de nouvelle construction au prochain dessin).
-        const QImage before = grab(f);
-        QVERIFY(!before.isNull());
+        grab(f);
+        QCOMPARE(f.page->rebuildCount(), before); // logiciel : nœuds vectoriels, rien à rastériser
+        f.page->setRasterScale(2.0);              // même échelle : rien
+        grab(f);
+        QCOMPARE(f.page->rebuildCount(), before);
+        // Rouge vu par mutation : retirer le test « !software » de setRasterScale → rebuildCount + 1.
     }
 };
 
@@ -2236,7 +2320,11 @@ QSGNode* createGridNode(const core::Page& page, const RenderContext& context)
 ```
 
   et membres privés `PaintedRenderer m_painted;`, `double m_rasterScale = 1;`, `QSGNode* m_gridOnTop = nullptr;`,
-  `bool m_hasPainted = false;`.
+  `bool m_hasPainted = false;`, `std::atomic<int> m_rebuildCount{0};` (include `<atomic>`), avec la méthode publique
+  `int rebuildCount() const noexcept; // crochet de test : reconstructions complètes de la scène` (rend
+  `m_rebuildCount.load()`). Le chemin RHI (rastérisation dans `updatePaintNode`, reconstruction à chaque zoom posé
+  d'une page qui peint) ne se teste pas en ctest (rendu logiciel) : il est **mesuré** par le scénario de banc `page`
+  (page à objets peints, zooms posés, L2-T23) en D3D11 à la clôture.
 
   Dans `render/src/fixedpageitem.cpp`, ajouter les includes `<QSGOpacityNode>`, `<QMatrix4x4>` et `<algorithm>`,
   deux fonctions locales (dans l'espace anonyme existant) :
@@ -2311,6 +2399,7 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     context.rasterScale = m_rasterScale;
     const core::Page& shown = m_page;
     if (m_rebuild || !old) {
+        ++m_rebuildCount;
         clearChildren(root);
         m_gridOnTop = nullptr;
         if (m_ready) {
@@ -2697,8 +2786,6 @@ void applyToCache(const Changes& changes, std::size_t shownPage, PageCache& cach
     void insert(core::ObjectId id) override;
     void remove(core::ObjectId id) override;
     void invalidate(const core::RectF& pageRect) override;
-    // Crochet de test : nombre de reconstructions complètes de la scène.
-    int rebuildCount() const noexcept;
 ```
 
   avec les commentaires de `setPage` (« Banc et tests : la page devient celle de la page interne ; la source est
@@ -2713,7 +2800,6 @@ void applyToCache(const Changes& changes, std::size_t shownPage, PageCache& cach
     const core::Document* m_source = nullptr;
     std::size_t m_sourcePage = 0;
     core::Document m_own; // page interne (une page)
-    std::atomic<int> m_rebuildCount{0};
 ```
 
   Dans `render/src/fixedpageitem.cpp`, include `<actcraft/core/edits.h>` et `<QDebug>`, puis remplacer
@@ -2738,11 +2824,14 @@ const core::Page& FixedPageItem::page() const noexcept
 void FixedPageItem::restart()
 {
     m_rebuild = true;
-    if (m_ready) {
-        m_ready = false;
-        emit readyChanged();
+    // Redécoder seulement si le magasin ne couvre plus la page (annuler un trait ne redécode rien).
+    if (!m_images.covers(page(), &document())) {
+        if (m_ready) {
+            m_ready = false;
+            emit readyChanged();
+        }
+        m_images.generate(page(), &document());
     }
-    m_images.generate(page(), &document());
     emit objectCountChanged();
     emit contentChanged();
     update();
@@ -2822,11 +2911,6 @@ void FixedPageItem::invalidate(const core::RectF&)
     restart();
 }
 
-int FixedPageItem::rebuildCount() const noexcept
-{
-    return m_rebuildCount.load();
-}
-
 int FixedPageItem::objectCount() const noexcept
 {
     return static_cast<int>(page().objects.size());
@@ -2834,10 +2918,13 @@ int FixedPageItem::objectCount() const noexcept
 ```
 
   Dans `updatePaintNode` (L2-T13) : `const core::Page& shown = m_page;` devient `const core::Page& shown = page();`
-  et la branche `if (m_rebuild || !old)` commence par `++m_rebuildCount;`. Dans `setRasterScale` (L2-T13),
+  (le compteur `rebuildCount` est posé par L2-T13). Dans `setRasterScale` (L2-T13),
   `pagePaintsSomething(m_page)` devient `pagePaintsSomething(page())`. Dans `onImagesReady` et `geometryChange`, rien ne
-  change. `restart()` régénère les images à chaque appel (le magasin ne fait rien de coûteux sur une page sans image) :
-  c'est le « redessin actuel » que le lot 10 remplacera.
+  change. `restart()` ne régénère les images que si le magasin ne couvre plus la page (`ImageStore::covers`,
+  L2-T12) : annuler ou rétablir un trait ne redécode rien. La reconstruction complète des nœuds reste le « redessin
+  actuel » que le lot cache (qui suit le lot 2) remplacera. Ajouter le test `undoingAStrokeDoesNotRedecode` : page
+  générée (30 images) montrée par un document, trait ajouté puis retiré (`remove`) → `isReady()` reste vrai pendant
+  tout l'aller-retour (aucun `readyChanged` à faux, `QSignalSpy`).
 
   Le test du lot 1 `strokeAppendedAfterFirstFrameKeepsTransform` et `appendedStrokeIsDrawnOnTop` passent par
   `appendStroke` : ils restent verts (ajout en fin de page sans reconstruction).
@@ -3462,9 +3549,32 @@ void ControllerSink::commitStroke(core::Stroke stroke)
 
   (`m_controllerSink.reset()` avec les autres remises à zéro en tête de `rebuildPen`.) La vue relie aussi
   `FixedPageItem::contentChanged` à `requestCacheRefresh()` dans `setFixedPage` (connexion directe, gardée dans une
-  `QMetaObject::Connection` comme `m_readyConnection`) : une annulation redessine le cache. `onStrokeFrozen` reste
-  appelé par les puits (signal `strokeFrozen` du banc et du joueur de scénarios) ; la double demande de redessin
-  (puits + `contentChanged`) est absorbée par `requestCacheRefresh` (une demande pendant un redessin en relance un seul).
+  `QMetaObject::Connection` comme `m_readyConnection`) : une annulation redessine le cache. Le trait figé arrive
+  alors **deux fois** à la vue (`contentChanged` par l'insertion, puis `onStrokeFrozen` par le puits) et
+  `requestCacheRefresh` ne fusionne pas : une demande pendant un redessin en relance un second (`m_refreshAgain`,
+  `pageview.cpp`). **Un seul redessin par trait** : `onStrokeFrozen()` n'émet plus que `strokeFrozen` (banc, joueur de
+  scénarios) ; la demande de redessin vient de `contentChanged`, émis dans le même tour de boucle que le vidage de
+  l'encre (décision 10 tenue). Test d'abord, dans `tests/tst_pageview.cpp` :
+
+```cpp
+    void oneCacheRenderPerStroke()
+    {
+        // (fixture du fichier : vue, page fixe, encre, cache activé ; avec contrôleur relié à la page fixe)
+        Fixture f;
+        open(f);
+        ui::DocumentController controller;
+        controller.setFixedPage(f.fixed);
+        f.view->setDocumentController(&controller);
+        QTRY_VERIFY(f.view->cacheReady());
+        QSignalSpy requested(f.view, &PageView::cacheRefreshRequested);
+        drawStroke(f, {QPointF(100, 100), QPointF(300, 120)}); // aide de trait au stylet existante du fichier
+        QTRY_VERIFY(f.view->cacheReady());
+        QCOMPARE(requested.count(), 1);
+    }
+```
+
+  (adapter `Fixture`, `open`, `drawStroke` aux noms réels du fichier). Rouge attendu avant le changement de
+  `onStrokeFrozen` : `requested.count() == 2`. Le même test sans contrôleur (puits `FixedPageSink`) attend aussi 1.
 
 - [ ] **Étape 6 : brancher le QML.** Dans `ui/qml/PageArea.qml`, ajouter `property DocumentController
   documentController: null` à l'élément racine et `documentController: area.documentController` à la `PageView`.
@@ -3531,6 +3641,17 @@ page fixe son échelle de rastérisation (`zoom × devicePixelRatio`, L2-T13), a
         QVERIFY(qAbs(f.view->zoom() - before / 2) < 1e-6); // « Ajuster » suit la nouvelle taille
     }
 
+    void contentResizeRequestsTheCacheOnce()
+    {
+        Fixture f;
+        open(f);
+        f.view->fitPage();
+        QTRY_VERIFY(f.view->cacheReady());
+        QSignalSpy requested(f.view, &PageView::cacheRefreshRequested);
+        f.content->setSize(QSizeF(800, 600));
+        QCOMPARE(requested.count(), 1);
+    }
+
     void contentResizeOutsideFitClampsThePan()
     {
         Fixture f;
@@ -3594,11 +3715,9 @@ void PageView::onContentSizeChanged(QSizeF oldPage)
     }
     finishStroke(); // un trait en cours reste sur sa page (comme pour un zoom)
     const ViewTransform old = m_transform;
-    if (m_fitMode) {
-        fitPage();
-    } else {
-        apply(clampPan(m_transform, size(), newPage));
-    }
+    // Pas fitPage() ici : il demanderait lui-même un redessin du cache, et la fin de cette fonction un second.
+    m_cacheTimer.stop();
+    apply(m_fitMode ? ui::fitPage(size(), newPage) : clampPan(m_transform, size(), newPage));
     // apply n'émet rien si ni le zoom ni le défilement n'ont bougé : la taille de la page change pourtant les barres.
     if (qFuzzyCompare(old.zoom, m_transform.zoom) && old.pan == m_transform.pan) {
         emit scrollChanged();
@@ -3740,27 +3859,26 @@ private slots:
         QVERIFY(!controller.isModified());
     }
 
+    // Le fil d'exécution est relevé PAR l'écriture et la lecture elles-mêmes (point d'injection : offMainThread des
+    // résultats) : une écriture synchrone émise ensuite en file serait vue (relecture du plan, tour 1).
     void ioRunsOffTheMainThread()
     {
         QTemporaryDir dir;
-        core::Document document(std::vector<core::Page>(3));
-        const QUrl url = QUrl::fromLocalFile(dir.filePath(QStringLiteral("fil.actcraft")));
-        bool saveOff = false;
-        bool loadOff = false;
-        QThread* main = QThread::currentThread();
-        QThread::create([&] {
-            saveOff = QThread::currentThread() != main && ui::saveDocument(document, url).ok;
-            loadOff = QThread::currentThread() != main && ui::loadDocument(url).ok;
-        })->start();
-        QTRY_VERIFY_WITH_TIMEOUT(saveOff && loadOff, 10000);
-        // Et le contrôleur ne bloque pas : saveToUrl rend la main avant la fin de l'écriture.
         render::FixedPageItem fixed;
         ui::DocumentController controller;
         controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        const QUrl url = QUrl::fromLocalFile(dir.filePath(QStringLiteral("fil.actcraft")));
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
-        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("rapide.actcraft"))));
-        QCOMPARE(savedSpy.count(), 0);
+        controller.saveToUrl(url);
         QVERIFY(savedSpy.wait(10000));
+        QVERIFY(controller.property("lastIoOffMainThread").toBool());
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        controller.openUrl(url);
+        QVERIFY(loaded.wait(10000));
+        QVERIFY(controller.property("lastIoOffMainThread").toBool());
+        // Appel direct sur le fil principal : le résultat le dit (le relevé n'est pas une constante).
+        QVERIFY(!ui::saveDocument(controller.document(), url).offMainThread);
     }
 
     void thumbnailsAreWrittenForEveryPage()
@@ -3826,10 +3944,12 @@ private slots:
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("b.actcraft"))));
-        QVERIFY(savedSpy.wait(10000));
-        QTest::qWait(200);
-        QCOMPARE(savedSpy.count(), 2);
-        QCOMPARE(savedSpy.at(1).at(0).toBool(), false); // refusée : une opération est en cours
+        QCOMPARE(savedSpy.count(), 0); // le refus aussi arrive en file, jamais pendant l'appel
+        QTRY_COMPARE_WITH_TIMEOUT(savedSpy.count(), 2, 10000);
+        // Le refus, mis en file aussitôt, arrive AVANT la fin de l'écriture de « a ».
+        QCOMPARE(savedSpy.at(0).at(0).toBool(), false);
+        QCOMPARE(savedSpy.at(1).at(0).toBool(), true);
+        QVERIFY(QFile::exists(dir.filePath(QStringLiteral("a.actcraft"))));
         QVERIFY(!QFile::exists(dir.filePath(QStringLiteral("b.actcraft"))));
     }
 
@@ -3849,8 +3969,8 @@ QTEST_MAIN(TstUiFiles)
 #include "tst_ui_files.moc"
 ```
 
-  `secondOperationIsRefusedWhileBusy` suppose que le refus est rendu par `saveFinished(false, …)` émis **en file**
-  (connexion différée) : le deuxième appel ne doit pas émettre pendant l'appel lui-même. Ajouter `#include <QFileInfo>`,
+  `secondOperationIsRefusedWhileBusy` : le refus est rendu par `saveFinished(false, …)` émis **en file** dès le
+  second appel, donc avant le succès du premier. Ajouter `#include <QFileInfo>`,
   `<QImage>`, `<QThread>`. Ajouter à `tests/ui.cmake` :
 
 ```cmake
@@ -3885,6 +4005,7 @@ struct LoadOutcome
     core::Document document;
     bool native = false; // .actcraft (sinon .flipchart : document sans fichier, décision 18)
     QString title;       // nom du fichier sans extension
+    bool offMainThread = false; // relevé par la lecture elle-même (preuve de S5, point d'injection de test)
 };
 
 LoadOutcome loadDocument(const QUrl& url);
@@ -3894,6 +4015,7 @@ struct SaveOutcome
     bool ok = false;
     QString error;
     std::uint64_t fingerprint = 0; // empreinte du document enregistré
+    bool offMainThread = false;    // relevé par l'écriture elle-même
 };
 
 // Miniatures (peintre partagé, 320 px), archive .actcraft, écriture atomique (fichier local) ou en une passe
@@ -3916,16 +4038,28 @@ QString defaultDocumentsFolder();
 #include <actcraft/render/pagepainter.h>
 #include <actcraft/ui/documentio.h>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
 #include <QStandardPaths>
+#include <QThread>
 #include <QSysInfo>
 
 namespace actcraft::ui {
 
+namespace {
+
+bool offMainThread()
+{
+    return QCoreApplication::instance() && QThread::currentThread() != QCoreApplication::instance()->thread();
+}
+
+} // namespace
+
 LoadOutcome loadDocument(const QUrl& url)
 {
     LoadOutcome out;
+    out.offMainThread = offMainThread();
     const formats::UrlReadResult read = formats::readUrl(url);
     if (!read.ok) {
         out.error = read.error;
@@ -3963,6 +4097,7 @@ LoadOutcome loadDocument(const QUrl& url)
 SaveOutcome saveDocument(const core::Document& snapshot, const QUrl& url)
 {
     SaveOutcome out;
+    out.offMainThread = offMainThread();
     const render::DecodedImages images = render::decodeImages(snapshot);
     std::vector<QByteArray> thumbnails;
     thumbnails.reserve(snapshot.pageCount());
@@ -4016,6 +4151,9 @@ QString defaultDocumentsFolder()
     Q_PROPERTY(QStringList warnings READ warnings NOTIFY warningsChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
     Q_PROPERTY(QString suggestedFileName READ suggestedFileName NOTIFY titleChanged)
+    // Vrai si la dernière lecture ou écriture a tourné hors du fil principal (S5 : la lit ; mutation : écriture
+    // synchrone → faux).
+    Q_PROPERTY(bool lastIoOffMainThread READ lastIoOffMainThread NOTIFY lastErrorChanged)
 public:
     bool isBusy() const noexcept;
     QStringList warnings() const;
@@ -4083,6 +4221,7 @@ void DocumentController::openUrl(const QUrl& url)
                     emit self->loadFinished(false, outcome->error);
                     return;
                 }
+                self->m_lastIoOffMainThread = outcome->offMainThread;
                 self->replaceDocument(std::move(outcome->document), outcome->native ? url : QUrl(), outcome->title);
                 self->m_warnings = outcome->warnings; // après replaceDocument, qui les efface
                 emit self->warningsChanged();
@@ -4113,6 +4252,7 @@ void DocumentController::saveToUrl(const QUrl& url)
                     return;
                 }
                 self->setBusy(false);
+                self->m_lastIoOffMainThread = outcome.offMainThread;
                 if (!outcome.ok) {
                     self->m_lastError = outcome.error;
                     emit self->lastErrorChanged();
@@ -4136,7 +4276,8 @@ void DocumentController::saveToUrl(const QUrl& url)
 }
 ```
 
-  plus les accesseurs (`isBusy`, `warnings`, `lastError`, `suggestedFileName` = `m_title + ".actcraft"`,
+  plus le membre `bool m_lastIoOffMainThread = false;`, l'accesseur `lastIoOffMainThread()` et les accesseurs
+  (`isBusy`, `warnings`, `lastError`, `suggestedFileName` = `m_title + ".actcraft"`,
   `urlFromArgument` = `formats::urlFromArgument(argument)`, `defaultFolderUrl` =
   `QUrl::fromLocalFile(defaultDocumentsFolder())`). `replaceDocument` vide `m_warnings` et `m_lastError` (et émet
   leurs signaux) ; `openUrl` pose les avertissements de la lecture **après** lui.
@@ -4144,8 +4285,11 @@ void DocumentController::saveToUrl(const QUrl& url)
   Dans `ui/CMakeLists.txt` : ajouter `include/actcraft/ui/documentio.h` et `src/documentio.cpp` aux `SOURCES`, et
   `ActCraft::formats` à `target_link_libraries(actcraft_ui PUBLIC …)`.
 
-- [ ] **Étape 5 : vert ciblé, preuve et banc.** Commande ciblée (`tst_ui_`) : `100% tests passed`. `format.ps1`,
-  preuve de tâche (N ≥ 59 ; `tst_ui_files` Passed), banc sans écran (`content_check.ok = True`).
+- [ ] **Étape 5 : vert ciblé, rouge par mutation, preuve et banc.** Commande ciblée (`tst_ui_`) : `100% tests
+  passed`. Après le commit de l'étape 6 : remplacer, dans `saveToUrl`, le `QThreadPool::globalInstance()->start(…)` par
+  un appel direct du même lambda (écriture synchrone, résultat toujours émis en file) → `ioRunsOffTheMainThread` rouge
+  (`lastIoOffMainThread` faux) ; remettre par `git -C <worktree> checkout -- ui/src/documentcontroller.cpp`. Puis
+  `format.ps1`, preuve de tâche (N ≥ 59 ; `tst_ui_files` Passed), banc sans écran (`content_check.ok = True`).
 
 - [ ] **Étape 6 : commit.**
 
@@ -4260,7 +4404,8 @@ private slots:
         auto* doc = controller(s);
         QVERIFY(run(s, QStringLiteral("page.next")));
         QVERIFY(run(s, QStringLiteral("file.close")));
-        QQuickItem* dialog = item(s, "saveChangesDialog");
+        // Un Dialog est un Popup, pas un QQuickItem : item() ne le voit pas (comme tst_ui_shell.cpp:551).
+        QObject* dialog = s.window->findChild<QObject*>(QStringLiteral("saveChangesDialog"));
         QVERIFY(dialog);
         QTRY_VERIFY(dialog->property("visible").toBool());
         QCOMPARE(doc->pageCount(), 2); // rien n'est fermé avant la réponse
@@ -4276,7 +4421,8 @@ private slots:
         auto* doc = controller(s);
         QVERIFY(run(s, QStringLiteral("page.next")));
         QVERIFY(run(s, QStringLiteral("file.new")));
-        QQuickItem* dialog = item(s, "saveChangesDialog");
+        QObject* dialog = s.window->findChild<QObject*>(QStringLiteral("saveChangesDialog"));
+        QVERIFY(dialog);
         QTRY_VERIFY(dialog->property("visible").toBool());
         QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
         QTRY_VERIFY(!dialog->property("visible").toBool());
@@ -4296,7 +4442,8 @@ private slots:
         QVERIFY(run(s, QStringLiteral("file.new-screen")));
         QCOMPARE(doc->pageSize(), QSizeF(s.window->screen()->size()));
         QVERIFY(run(s, QStringLiteral("file.new-custom")));
-        QQuickItem* sizeDialog = item(s, "pageSizeDialog");
+        QObject* sizeDialog = s.window->findChild<QObject*>(QStringLiteral("pageSizeDialog"));
+        QVERIFY(sizeDialog);
         QTRY_VERIFY(sizeDialog->property("visible").toBool());
         QVERIFY(QMetaObject::invokeMethod(sizeDialog, "acceptSize", Q_ARG(QVariant, 640), Q_ARG(QVariant, 480)));
         QTRY_COMPARE(doc->pageSize(), QSizeF(640, 480));
@@ -4323,8 +4470,10 @@ private slots:
         QVERIFY(text->property("text").toString().contains(QStringLiteral("1 avertissement")));
         // Contraste sur les couleurs RENDUES (leçon L1-C5) : fond lu dans la capture, texte lu sur l'élément.
         const QImage shot = s.window->grabWindow();
-        const QPointF corner = banner->mapToScene(QPointF(2, 2));
-        const QColor background = shot.pixelColor(corner.toPoint());
+        // Fond lu à l'intérieur du bandeau, à mi-hauteur, entre le bord (1 px) et le texte (marge Theme.espace2).
+        const QPointF inside = banner->mapToScene(QPointF(4, banner->height() / 2));
+        const QColor background = shot.pixelColor(inside.toPoint());
+        QVERIFY(qAbs(background.red() - banner->property("color").value<QColor>().red()) <= 2);
         const QColor ink = text->property("color").value<QColor>();
         const auto luminance = [](QColor c) {
             const auto channel = [](double v) {
@@ -4342,6 +4491,31 @@ private slots:
         }
         QVERIFY(QMetaObject::invokeMethod(banner, "dismiss"));
         QTRY_VERIFY(!banner->isVisible());
+    }
+
+    void cancelledSaveAsForgetsThePendingAction()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(run(s, QStringLiteral("file.close")));
+        QObject* ask = s.window->findChild<QObject*>(QStringLiteral("saveChangesDialog"));
+        QVERIFY(ask);
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(ask, "save")); // document sans fichier → « Enregistrer sous »
+        QObject* saveDialog = s.window->findChild<QObject*>(QStringLiteral("saveDialog"));
+        QVERIFY(saveDialog);
+        QVERIFY(QMetaObject::invokeMethod(saveDialog, "reject"));
+        QObject* actions = s.window->findChild<QObject*>(QStringLiteral("fileActions"));
+        QVERIFY(actions);
+        QTRY_VERIFY(actions->property("afterSave").isNull() || !actions->property("afterSave").isValid());
+        // Un enregistrement plus tard ne doit pas fermer le document (l'action abandonnée est oubliée).
+        QTemporaryDir dir;
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        QVERIFY(run(s, QStringLiteral("file.save-as"), dir.filePath(QStringLiteral("plus-tard.actcraft"))));
+        QVERIFY(saved.wait(10000));
+        QCOMPARE(doc->pageCount(), 2);
     }
 
     void titleShowsTheModifiedMark()
@@ -4555,6 +4729,8 @@ Item {
         defaultSuffix: "actcraft"
         nameFilters: [qsTr("Paperboards ActCraft (*.actcraft)")]
         onAccepted: actions.document.saveToUrl(selectedFile)
+        // « Enregistrer sous » abandonné après « Enregistrer les modifications ? » : l'action en attente est oubliée.
+        onRejected: actions.afterSave = null
     }
     SaveChangesDialog {
         id: saveChanges
@@ -4869,7 +5045,9 @@ d'analyse. Vert : forme bornée, N ≥ 61, `TESTS OK`, `tst_bench_uiscenario .*P
 pwsh -NoProfile -Command "Set-Location '<worktree>'; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario aller-retour-natif -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire 'pageIndicator.text=1 / 3' > .tmp/captures.txt 2>&1; Select-String -Path .tmp/captures.txt -Pattern '^(COMMANDE|TRAIT|ATTENTE|FIXTURE|BOUCLE|MEMO|ARCHIVE|LU|PIXEL|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16"
 ```
 
-Attendu : `BOUCLE max=<x> ms OK` (x ≤ 25), `ARCHIVE … OK`, `LU documentController.fingerprint=<mémorisée> OK`,
+Attendu : `BOUCLE max=<x> ms OK` (x ≤ 25), `LU documentController.lastIoOffMainThread=true OK` (deux fois :
+écriture et relecture faites hors du fil principal, relevé par elles-mêmes, L2-T17), `ARCHIVE … OK`,
+`LU documentController.fingerprint=<mémorisée> OK`,
 `LU pageIndicator.text=1 / 3 OK`, `SCENARIO OK`, `CAPTURES OK` ; décrire les captures `relu-page-1` (trait noir),
 `relu-page-2` (rectangle bleu, « Bonjour ») et `relu-page-3` (image rouge et blanche).
 
@@ -5232,6 +5410,7 @@ bool buildFixture(const QString& name, const QString& path, QString& error)
     {"command": "file.save-as", "argument": "${SORTIE}/copie.actcraft"},
     {"waitFor": "documentController.busy", "value": false},
     {"maxEventLoopGapMs": 25},
+    {"expect": "documentController.lastIoOffMainThread", "value": true},
     {"expect": "documentController.modified", "value": false},
     {"remember": "documentController.fingerprint", "as": "avant"},
     {"archive": "${SORTIE}/copie.actcraft", "contains": ["document.json", "resources/", "thumbnails/page-1.png", "thumbnails/page-3.png"]},
@@ -5241,6 +5420,7 @@ bool buildFixture(const QString& name, const QString& path, QString& error)
     {"command": "file.open", "argument": "${SORTIE}/copie.actcraft"},
     {"waitFor": "documentController.busy", "value": false},
     {"expect": "documentController.fingerprint", "value": "${avant}"},
+    {"expect": "documentController.lastIoOffMainThread", "value": true},
     {"expect": "pageIndicator.text", "value": "1 / 3"},
     {"waitReady": true},
     {"checkPixel": "trait-relu", "at": [400, 600], "color": "#000000", "tolerance": 60},
@@ -5302,6 +5482,11 @@ ramenées à 80 × 60 par `QImage::scaled(…, Qt::IgnoreAspectRatio, Qt::Smooth
 - `--miniatures <fichier>` : compare les pages d'un paperboard ; lignes `PAGE <n> écart <e>` puis
   `MINIATURES OK : <n> pages, médiane <m>, <k> au-dessus de 7` (code 0 si médiane ≤ 2,0 et k ≤ 3) ou
   `MINIATURES EN ECHEC : …` (code 1) ; pages sans `.thm` ignorées et comptées à part ;
+- `--connues "<fichier>:<page>;…"` (page `*` = une page quelconque du fichier) : le cadrage exige que les pages
+  au-dessus de 7 soient **les** 3 pages déjà connues (`cadrage` l. 252-253, `format-flipchart.md` § 8-9 : deux à
+  miniature présumée périmée, `compréhension Clown` p2 et une page de `les canards`, plus `T'Choupi` p5) ; toute page
+  au-dessus de 7 hors de cette liste → `MINIATURES EN ECHEC : page <fichier>:<n> au-dessus de 7 et non connue`. La
+  liste ne vit que dans la commande locale (aucun nom de paperboard réel dans le code ni dans `tests/`) ;
 - `--samples <dossier>` : même chose sur tous les `.flipchart` du dossier (124 pages attendues), code **77** si le
   dossier est absent ou vide (test sauté) ;
 - `--ecrire-synthetique <fichier>` : écrit `fctest::sampleFlipchart` avec des miniatures rendues par notre peintre
@@ -5323,11 +5508,12 @@ par L2-T10, capture de chaque page). `captures.ps1` gagne `-Ouvrir <fichier>` (p
 en local). Local, S4 complet :
 
 ```powershell
-pwsh -NoProfile -Command "Set-Location '<worktree>'; . ./scripts/dev-env.ps1; ./build/debug/actcraft-flipchart-dump.exe --samples 'C:\Users\JeromeDenis\REA - Activinspire\samples' > .tmp/miniatures.txt 2>&1; Select-String -Path .tmp/miniatures.txt -Pattern 'MINIATURES (OK|EN ECHEC)' | Select-Object -Last 1"
+pwsh -NoProfile -Command "Set-Location '<worktree>'; . ./scripts/dev-env.ps1; ./build/debug/actcraft-flipchart-dump.exe --samples 'C:\Users\JeromeDenis\REA - Activinspire\samples' --connues \"compréhension Clown.flipchart:2;les canards.flipchart:*;T'Choupi entre à l'école.flipchart:5\" > .tmp/miniatures.txt 2>&1; Select-String -Path .tmp/miniatures.txt -Pattern 'MINIATURES (OK|EN ECHEC)' | Select-Object -Last 1"
 pwsh -NoProfile -Command "Set-Location '<worktree>'; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario local/ouvrir-flipchart -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Ouvrir 'C:\Users\JeromeDenis\REA - Activinspire\samples\tri des formes.flipchart' > .tmp/captures.txt 2>&1; Select-String -Path .tmp/captures.txt -Pattern '^(LU|PIXEL|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16"
 ```
 
-Attendu : `MINIATURES OK : 124 pages, médiane <m ≤ 2,0>, <k ≤ 3> au-dessus de 7` ; `LU pageIndicator.text=1 / N OK`,
+Attendu : `MINIATURES OK : 124 pages, médiane <m ≤ 2,0>, <k ≤ 3> au-dessus de 7` (toutes dans la liste `--connues`,
+pages fautives nommées sinon) ; `LU pageIndicator.text=1 / N OK`,
 `CAPTURES OK`. Décrire deux captures (page 1, une page à images).
 
 **Interdits.** Aucun octet de `samples/` dans le dépôt, les tests CI ou les captures commitées (sorties sous `.tmp/`).
@@ -5502,8 +5688,10 @@ d'Android (`"platforms": ["windows", "macos", "linux"]` dans `actions/data/comma
 cause écrite dans `docs/verifications/2026-10-15-android-fichiers.md` et au rapport (porte de fin du lot 2).
 
 **Fichiers.**
-- Créer : `scripts/essai-android-fichiers.ps1`, `docs/verifications/2026-10-15-android-fichiers.md`
-- Modifier (repli seulement) : `actions/data/commands.json`
+- Créer : `scripts/android-commun.ps1`, `scripts/essai-android-fichiers.ps1`,
+  `docs/verifications/2026-10-15-android-fichiers.md`
+- Modifier : `scripts/essai-android.ps1` (passe par le module commun) ; en repli seulement :
+  `actions/data/commands.json`
 
 **Test et commande bornée.**
 
@@ -5570,8 +5758,9 @@ function Wait-Journal([string]$motif, [int]$secondes = 30) {
 }
 try {
     New-Item -ItemType Directory -Force .tmp | Out-Null
-    # … démarrage de l'émulateur comme essai-android.ps1 ($emulateur = Start-Process … -PassThru), attente de
-    #     sys.boot_completed, adb install -r $Apk, adb logcat -c, am start du paquet, attente du processus …
+    $emulateur = Start-ActCraftEmulateur -Avd $Avd          # android-commun.ps1 : -no-window -gpu host, PID gardé
+    Wait-ActCraftDemarrage                                   # sys.boot_completed, borné
+    Install-ActCraftApk -Apk $Apk                            # adb install -r, logcat -c, am start, processus vivant
     Invoke-Adb @('shell', 'input', 'swipe', '600', '700', '1000', '760', '400') | Out-Null
     Invoke-Adb @('shell', 'input', 'keycombination', '113', '59', '47') | Out-Null    # Ctrl+Maj+S
     Start-Sleep -Seconds 3
@@ -5597,9 +5786,12 @@ try {
 }
 ```
 
-  Les lignes « … démarrage de l'émulateur comme essai-android.ps1 … » se remplacent par le **même code** que
-  `essai-android.ps1` (le recopier, en gardant ses bornes et son arrêt par PID) ; `Start-Sleep` y est permis (script
-  hors du joueur de scénarios). Les intitulés du sélecteur dépendent de la langue de l'image système : le motif
+  **Pas de copie** : extraire d'abord de `essai-android.ps1` son démarrage d'émulateur, son attente de démarrage, son
+  installation de l'APK et son arrêt par PID dans `scripts/android-commun.ps1` (fonctions `Start-ActCraftEmulateur`,
+  `Wait-ActCraftDemarrage`, `Install-ActCraftApk`, `Stop-ActCraftEmulateur`, mêmes bornes, même arrêt par PID),
+  chargé par point (`. "$PSScriptRoot/android-commun.ps1"`) dans les deux scripts ; `essai-android.ps1` doit redonner
+  `ANDROID OK` après l'extraction (rejouer S3 une fois, émulateur arrêté par PID). `Stop-Essai` appelle
+  `Stop-ActCraftEmulateur`. `Start-Sleep` est permis ici (script hors du joueur de scénarios). Les intitulés du sélecteur dépendent de la langue de l'image système : le motif
   accepte l'anglais et le français.
 
 - [ ] **Étape 2 : jouer l'essai.** Les deux commandes de la section « Test et commande bornée ». En cas d'échec,
@@ -5613,7 +5805,7 @@ try {
 - [ ] **Étape 4 : commit.**
 
 ```powershell
-git -C <worktree> add scripts/essai-android-fichiers.ps1 docs/verifications/2026-10-15-android-fichiers.md
+git -C <worktree> add scripts/android-commun.ps1 scripts/essai-android.ps1 scripts/essai-android-fichiers.ps1 docs/verifications/2026-10-15-android-fichiers.md
 git -C <worktree> commit -m "Android : enregistrer et rouvrir par content:// sur l'émulateur (S5)" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
@@ -5631,7 +5823,10 @@ sont pas prêtes ») et S4 (un paperboard réel a des images sur chaque page). D
    précédents** au lieu de ne dessiner qu'un fond blanc, et ne les remplace qu'une fois prêt ; la vue ne redessine
    son cache qu'à `readyChanged` (déjà le cas). Plus d'éclair blanc, avec ou sans cache.
 2. **Banc** : scénario `page` (complet et court) — sur un document de deux pages générées (graines différentes, 30
-   images chacune, `DocumentController::loadGeneratedPages(2)`), des changements de page à intervalle fixe
+   images chacune, `DocumentController::loadGeneratedPages(2, true)` : la page 2 reçoit en plus 20 textes et 20
+   formes à chemins, objets **peints** — le chemin RHI rastérisé de L2-T13 entre ainsi dans la mesure), des
+   changements de page à intervalle fixe, puis deux zooms posés sur la page peinte (`view.zoom` 150, `view.fit` :
+   reconstruction rastérisée à la nouvelle échelle en RHI),
    (`InputKind::Command`, commande `page.next` puis `page.previous`, appelée par `runCommand` au moment prévu) ;
    mesures habituelles (temps par image, images > 25 ms) ; contrôle de contenu `page_flash` : juste après chaque
    changement, à l'image suivante, le pixel du témoin de forme (`core::witnesses().shapeRect`, mêmes positions pour
@@ -5701,16 +5896,35 @@ de touches pour changer de page (commande nommée appelée directement : pas de 
   `rebuildCount` n'est incrémenté que lors d'une vraie reconstruction (après ce retour anticipé).
 
 - [ ] **Étape 3 : pages générées pour le banc.** Dans `documentcontroller.h`, ajouter
-  `Q_INVOKABLE void loadGeneratedPages(int count);` (« Banc : `count` pages générées, graines `kDefaultSeed + i` ;
-  document propre, page 1 affichée ») et dans le `.cpp` :
+  `Q_INVOKABLE void loadGeneratedPages(int count, bool painted = false);` (« Banc : `count` pages générées, graines
+  `kDefaultSeed + i` ; `painted` : chaque page paire (2, 4…) reçoit 20 textes et 20 formes à chemins ; document propre,
+  page 1 affichée ») et dans le `.cpp` :
 
 ```cpp
-void DocumentController::loadGeneratedPages(int count)
+void DocumentController::loadGeneratedPages(int count, bool painted)
 {
     std::vector<core::Page> pages;
     for (int i = 0; i < std::max(1, count); ++i) {
         core::Page page = core::generatePage(core::kDefaultSeed + static_cast<std::uint32_t>(i));
         // Identifiants uniques dans le document (1 à 300 sur chaque page générée sinon).
+        if (painted && i % 2 == 1) {
+            for (int k = 0; k < 20; ++k) {
+                core::Text text;
+                text.bounds = {0, 0, 220, 50};
+                text.html = "<p style=\"font-size:32px; color:#202020\">Texte du banc</p>";
+                core::PageObject t = text;
+                t.common.transform = core::translation(40 + 45.0 * k, 60 + 30.0 * k);
+                page.objects.push_back(t);
+                core::Shape shape;
+                shape.kind = core::ShapeKind::Path;
+                shape.paths = {{{0, 0}, {80, 10}, {60, 70}, {-10, 50}}};
+                shape.pen.width = 4;
+                shape.brush = core::solidFill(0xFF26A69Au);
+                core::PageObject s = shape;
+                s.common.transform = core::translation(500 + 20.0 * k, 120 + 25.0 * k);
+                page.objects.push_back(s);
+            }
+        }
         for (std::size_t j = 0; j < page.objects.size(); ++j) {
             page.objects[j].common.id = static_cast<core::ObjectId>(i) * 1000 + j + 1;
         }
@@ -5721,7 +5935,8 @@ void DocumentController::loadGeneratedPages(int count)
 ```
 
 - [ ] **Étape 4 : le scénario de banc.** Dans `scenarios.h`, ajouter à la fin de `InputKind` `Command` ; à
-  `PlannedInput`, `QString command; // InputKind::Command : commande nommée appelée par runCommand` ; déclarer
+  `PlannedInput`, `QString command; // InputKind::Command : commande nommée appelée par runCommand` et
+  `QVariant argument; // son argument éventuel` (include `<QVariant>`) ; déclarer
   `ScenarioPlan pageScenario(ScenarioSet set);` et mettre à jour le commentaire d'`allScenarios` (« stroke, zoom,
   scroll, page »). Dans `scenarios.cpp` :
 
@@ -5738,12 +5953,24 @@ ScenarioPlan pageScenario(ScenarioSet set)
         in.command = i % 2 == 0 ? QStringLiteral("page.next") : QStringLiteral("page.previous");
         plan.inputs.push_back(in);
     }
+    // Sur la page peinte (2), deux zooms posés : rastérisation à la nouvelle échelle en RHI (L2-T13).
+    const std::int64_t end = static_cast<std::int64_t>(flips) * 500'000'000;
+    const std::pair<const char*, QVariant> zooms[] = {{"page.next", QVariant()}, {"view.zoom", QVariant(150)},
+                                                      {"view.fit", QVariant()}};
+    for (std::size_t k = 0; k < 3; ++k) {
+        PlannedInput in;
+        in.offsetNs = end + static_cast<std::int64_t>(k) * 700'000'000;
+        in.kind = InputKind::Command;
+        in.command = QString::fromLatin1(zooms[k].first);
+        in.argument = zooms[k].second;
+        plan.inputs.push_back(in);
+    }
     return plan;
 }
 ```
 
   et `allScenarios` rend `{strokeScenario(set), zoomScenario(set), scrollScenario(set), pageScenario(set)}`. Dans
-  `runner.cpp` : avant le scénario `page`, `loadGeneratedPages(2)` sur le contrôleur (trouvé par `objectName`
+  `runner.cpp` : avant le scénario `page`, `loadGeneratedPages(2, true)` sur le contrôleur (trouvé par `objectName`
   `documentController`) puis attente du prêt ; une entrée `Command` est jouée par
   `QMetaObject::invokeMethod(window, "runCommand", …)` à son heure (dans la boucle qui poste les entrées, à côté de la
   molette) ; après la mesure, le contrôle `page_flash` : trois changements, chacun suivi d'un `grabWindow` à la
@@ -5784,6 +6011,14 @@ git -C <worktree> commit -m "Banc : scénario changement de page et contrôle d'
   d'enregistrement).
 - **H2b-4 — Translucidité et transformation par nœuds parents** (L2-T13) : coût par objet en RHI à surveiller au
   banc quand des pages réelles chargées seront mesurées (lot cache, qui suit le lot 2).
+- **H2b-5 — Rastérisation dans la synchronisation** (L2-T13) : en RHI, le moteur peint rastérise ses objets pendant
+  `updatePaintNode` (fil principal bloqué) et toute la page peinte est reconstruite à chaque zoom posé. Mesuré par le
+  scénario `page` en D3D11 à la clôture ; si les images de cette phase dépassent le budget, le lot cache (qui suit)
+  déplace la rastérisation sur un fil secondaire derrière la même interface.
+- **H2b-6 — Dialogues non natifs** (décision 22) : aucun scénario de 2b n'ouvre de dialogue (commandes avec URL) ; le
+  moyen relevé pour forcer les dialogues Qt Quick dans `actcraft-captures`, `QCoreApplication::setAttribute(
+  Qt::AA_DontUseNativeDialogs)` avant la création de l'application, est laissé au premier lot dont un scénario doit
+  voir un dialogue (hors écran, la plateforme `offscreen` n'a de toute façon pas de dialogue natif).
 
 ## Clôture du lot 2 (orchestrateur, hors tâches)
 
@@ -5810,7 +6045,8 @@ il part de l'interface `core::PageCache` figée ici (L2-T14) et ne change que so
    `pwsh -NoProfile -File ./scripts/bench.ps1 -Rendu tous -Captures .tmp/banc-lot2`, comparé critère par critère à
    `docs/mesures/2026-10-15-lot1-socle.md` : tout critère tenu par la référence doit l'être encore (scénarios
    `stroke`, `zoom`, `scroll`), sinon une tâche de correction précède la clôture ; le scénario `page` (nouveau) est
-   rapporté, et `content_check.page_flash = 0` exigé. Résumé commité `docs/mesures/<date>-lot2-document.md` (par
+   rapporté — avec ses images > 25 ms sur la page peinte et pendant les deux zooms posés (chemin RHI rastérisé,
+   H2b-5) —, et `content_check.page_flash = 0` exigé. Résumé commité `docs/mesures/<date>-lot2-document.md` (par
    `scripts/resume-banc.ps1`) : il devient la référence du lot suivant (cache incrémental).
 6. **Paquets remis à Jérôme** : `scripts/paquet.ps1` + `scripts/essai-installateur.ps1` (`PAQUET OK`,
    `INSTALLATEUR OK`, `--version : ActCraft 0.2.0`), `scripts/paquet-android.ps1` (`APK OK`) ; l'association
