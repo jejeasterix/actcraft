@@ -596,6 +596,27 @@ private slots:
         QCOMPARE(render::decodeImages(document, 1000).find(key).size(), QSize(400, 200)); // jamais agrandie
     }
 
+    // Garde-fou par page, tous niveaux confondus : un premier niveau blanc à pas minuscule épuise les 4 000
+    // traits, le second niveau n'en a plus (par niveau, il serait dessiné).
+    void gridBudgetCountsEveryLevel()
+    {
+        core::Page page;
+        page.width = 100000;
+        page.height = 100000;
+        page.grid.visible = true;
+        core::GridLevel invisible;
+        invisible.spacingX = 0.001;
+        invisible.spacingY = 0.001;
+        invisible.color = 0xFFFFFFFFu;
+        core::GridLevel visible;
+        visible.spacingX = 50000;
+        visible.spacingY = 50000;
+        page.grid.levels = {visible};
+        QVERIFY(near(render::renderPage(page, kNoImages, 0.01).pixelColor(500, 700), Qt::black, 10));
+        page.grid.levels = {invisible, visible};
+        QVERIFY(near(render::renderPage(page, kNoImages, 0.01).pixelColor(500, 700), Qt::white, 0));
+    }
+
     void objectTransformComposesWithPageScale()
     {
         core::Page page;
@@ -650,16 +671,18 @@ private slots:
         QVERIFY(near(render::renderPage(page, kNoImages, 1.0).pixelColor(100, 50), Qt::black, 10));
     }
 
+    // Trait de 0,7 px à x = 32 px : lissé, partagé entre deux colonnes (environ 166) ; net, une seule colonne
+    // à 70 % (environ 77).
     void thumbnailGridIsSmoothed()
     {
         render::PaintOptions options;
         options.thumbnail = true;
-        const QImage image = render::renderPage(gridPage(core::GridLevel{}), kNoImages, 0.3125, options);
+        const QImage image = render::renderPage(gridPage(core::GridLevel{}), kNoImages, 0.32, options);
         int darkest = 255;
         for (int x = 28; x <= 35; ++x) {
             darkest = std::min(darkest, image.pixelColor(x, 10).red());
         }
-        QVERIFY2(darkest > 30 && darkest < 245,
+        QVERIFY2(darkest > 120 && darkest < 230,
                  qPrintable(QString::number(darkest))); // 0,7 px lissé, jamais net
     }
 
