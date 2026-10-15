@@ -171,6 +171,10 @@ private slots:
         page.objects.emplace_back(shape);
         page.objects.back().common.id = 1;
         page.objects.back().common.transform.m12 = -0.0;
+        core::Stroke stroke;
+        stroke.points = {{1, 2, -0.0f}, {3, 4, 0.5f}};
+        page.objects.emplace_back(stroke);
+        page.objects.back().common.id = 2;
         const core::Document source(std::vector<core::Page>{page});
         QVERIFY(std::signbit(std::get<core::Shape>(source.page(0).objects[0]).polygon[0].x));
         core::Document back;

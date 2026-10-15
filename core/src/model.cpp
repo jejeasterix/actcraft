@@ -32,7 +32,7 @@ public:
     // −0 et +0 se valent : on hache +0 pour les deux (le −0 ne survit pas à un aller-retour JSON). Un NaN
     // garde son motif binaire.
     void f64(double v) noexcept { u64(std::bit_cast<std::uint64_t>(v == 0.0 ? 0.0 : v)); }
-    void f32(float v) noexcept { u32(std::bit_cast<std::uint32_t>(v)); }
+    void f32(float v) noexcept { u32(std::bit_cast<std::uint32_t>(v == 0.0f ? 0.0f : v)); }
     void boolean(bool v) noexcept { byte(v ? 1u : 0u); }
     template <typename E> void tag(E v) noexcept { byte(static_cast<std::uint8_t>(v)); }
     void text(const std::string& s) noexcept

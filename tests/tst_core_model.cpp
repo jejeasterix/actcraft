@@ -200,6 +200,7 @@ private slots:
             Page p = richPage();
             std::get<Shape>(p.objects[0]).polygon[0].x = zero;
             std::get<Stroke>(p.objects[2]).points[0].y = zero;
+            std::get<Stroke>(p.objects[2]).points[0].pressure = static_cast<float>(zero);
             p.objects[0].common.transform.m12 = zero;
             p.objects[1].common.transform.dx = zero;
             std::get<ImageObject>(p.objects[1]).bounds.x = zero;
