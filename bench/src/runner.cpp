@@ -18,6 +18,7 @@
 #include <QTimer>
 
 #include <algorithm>
+#include <iterator>
 
 #if defined(Q_OS_WIN)
 #ifndef NOMINMAX
@@ -54,7 +55,41 @@ std::int64_t readDwmRefreshPeriodNs()
 #endif
 }
 
+// Hors écran (QT_QPA_PLATFORM=offscreen, scripts/bench.ps1 -HorsEcran), « plein écran » prend l'écran fictif
+// de la plateforme : relevé 800 de large, la vue réduite par la barre et la palette ne contient plus les
+// témoins à 100 % (witness-image « hors-image », content-check-failed). Taille fixe, celle de la fumée, des
+// captures et de benchTargetsAreVisibleInTheShell ; une taille LxH explicite reste prioritaire.
+constexpr QSize kOffscreenWindowSize(1280, 800);
+
+bool offscreenPlatform()
+{
+    return QGuiApplication::platformName() == QLatin1String("offscreen");
+}
+
+// Centre des points lus par les contrôles de contenu de runDemo : centres des témoins de forme et d'image,
+// sonde du témoin de trait (core/src/generator.cpp), encre de mi-trait. Ces points, et non l'enveloppe des
+// témoins (y 16 à 732), tiennent dans une vue de 680 de haut (fenêtre de 1280 × 720).
+QPointF demoTargetsCenter()
+{
+    const core::Witnesses& w = core::witnesses();
+    const QPointF ink = demoInkProbePoint();
+    const double xs[] = {w.shapeRect.center().x, w.imageRect.center().x, w.strokeProbe.x, ink.x()};
+    const double ys[] = {w.shapeRect.center().y, w.imageRect.center().y, w.strokeProbe.y, ink.y()};
+    const auto [left, right] = std::minmax_element(std::begin(xs), std::end(xs));
+    const auto [top, bottom] = std::minmax_element(std::begin(ys), std::end(ys));
+    return QPointF((*left + *right) / 2, (*top + *bottom) / 2);
+}
+
 } // namespace
+
+void showDemoTargets(ui::PageView& view)
+{
+    view.setZoom(1.0);
+    // À 100 %, page et vue ont la même échelle : défilement = centre de la vue − centre des points (setPan le
+    // borne). Sans lui, la vue garde le centre laissé par le défilement (400 %, haut à gauche) : à 1366 ×
+    // 768, la sonde du témoin de trait tombait sous le bas de la fenêtre.
+    view.setPan(QPointF(view.width() / 2, view.height() / 2) - demoTargetsCenter());
+}
 
 Runner::Runner(BenchOptions options) : m_options(std::move(options)) {}
 
@@ -86,15 +121,15 @@ bool Runner::placeWindow(BenchResult& result)
 {
     QScreen* screen = QGuiApplication::primaryScreen();
     m_window->setScreen(screen);
-    if (m_options.fullScreen) {
+    if (m_options.fullScreen && !offscreenPlatform()) {
         m_window->setGeometry(screen->geometry());
         m_window->showFullScreen();
         result.windowMode = QStringLiteral("fullscreen");
     } else {
-        m_window->resize(m_options.windowSize);
+        const QSize size = m_options.fullScreen ? kOffscreenWindowSize : m_options.windowSize;
+        m_window->resize(size);
         const QRect available = screen->availableGeometry();
-        m_window->setPosition(available.center() -
-                              QPoint(m_options.windowSize.width() / 2, m_options.windowSize.height() / 2));
+        m_window->setPosition(available.center() - QPoint(size.width() / 2, size.height() / 2));
         m_window->showNormal();
         result.windowMode = QStringLiteral("window");
     }
@@ -273,7 +308,7 @@ void Runner::runDemo(BenchResult& result)
     };
     const auto cacheReady = [this] { return m_view->cacheReady(); };
     const auto injected = [this] { return m_injector->finished(); };
-    m_view->setZoom(1.0);
+    showDemoTargets(*m_view);
     must("cache not ready at start", cacheReady, 10000);
     waitMs(100);
     m_view->setExclusiveDevices({m_injector->stylus(), m_injector->wheel()});
@@ -306,7 +341,7 @@ void Runner::runDemo(BenchResult& result)
     waitMs(100);
     const QImage zoom800 = m_window->grabWindow();
 
-    m_view->setZoom(1.0);
+    showDemoTargets(*m_view);
     must("cache not ready back at 100", cacheReady, 10000);
     waitMs(100);
     const QImage back100 = m_window->grabWindow();

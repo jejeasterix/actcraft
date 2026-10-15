@@ -1,0 +1,41 @@
+# Modules Qt autorisés dans les paquets d'ActCraft (décision 34 du cadrage livraison-complete, N1-8).
+# Tous sous LGPLv3 et liés dynamiquement. Lu par scripts/verifier-licences.ps1 (un nom de module par ligne).
+# Jamais : Qt6VirtualKeyboard, Qt6Charts, Qt6Graphs, Qt6DataVisualization, Qt6Quick3D*, Qt6Lottie*,
+# Qt6QuickTimeline* (disponibles seulement sous GPL ou licence commerciale).
+# Ajouter un module : vérifier d'abord sa licence sur https://doc.qt.io/qt-6/qtmodules.html, puis l'écrire ici.
+Qt6Core
+Qt6Gui
+Qt6Network
+Qt6OpenGL
+Qt6Svg
+Qt6Qml
+Qt6QmlMeta
+Qt6QmlModels
+Qt6QmlWorkerScript
+Qt6Quick
+Qt6QuickLayouts
+Qt6QuickShapes
+Qt6QuickEffects
+Qt6QuickTemplates2
+Qt6QuickControls2
+Qt6QuickControls2Impl
+Qt6QuickControls2Basic
+Qt6QuickControls2BasicStyleImpl
+Qt6QuickControls2Fusion
+Qt6QuickControls2FusionStyleImpl
+Qt6QuickControls2Material
+Qt6QuickControls2MaterialStyleImpl
+Qt6QuickControls2Universal
+Qt6QuickControls2UniversalStyleImpl
+Qt6QuickControls2Imagine
+Qt6QuickControls2ImagineStyleImpl
+Qt6QuickControls2FluentWinUI3StyleImpl
+Qt6QuickControls2WindowsStyleImpl
+Qt6QuickDialogs2
+Qt6QuickDialogs2QuickImpl
+Qt6QuickDialogs2Utils
+Qt6LabsFolderListModel
+Qt6LabsQmlModels
+Qt6LabsSettings
+Qt6LabsAnimation
+Qt6LabsPlatform

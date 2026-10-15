@@ -2,14 +2,19 @@
 
 #include <actcraft/bench/injector.h>
 #include <actcraft/bench/recorder.h>
+#include <actcraft/bench/runner.h>
+#include <actcraft/bench/scenarios.h>
 #include <actcraft/bench/verdict.h>
 #include <actcraft/core/clock.h>
+#include <actcraft/core/generator.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/pageview.h>
 
+#include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QQmlApplicationEngine>
+#include <QQuickItem>
 #include <QQuickWindow>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
@@ -102,7 +107,9 @@ struct App
 
 bool start(App& app)
 {
-    app.window = loadMainWindow(app.engine, StartupOptions{});
+    StartupOptions options;
+    options.generatedPage = true; // le banc mesure la page de 300 objets
+    app.window = loadMainWindow(app.engine, options);
     if (!app.window || !QTest::qWaitForWindowExposed(app.window)) {
         return false;
     }
@@ -112,6 +119,35 @@ bool start(App& app)
         return false;
     }
     return QTest::qWaitFor([&] { return fixed->isReady() && app.view->cacheReady(); }, 20000);
+}
+
+// Passage réel du banc (Runner::run, comme bench/app/main.cpp) sur la vraie interface, scénarios courts. Le
+// Runner est déclaré AVANT le moteur QML : il doit survivre à la fenêtre (runner.h).
+BenchResult runBench(BenchOptions options)
+{
+    options.scenarioSet = ScenarioSet::Court;
+    Runner runner(options);
+    QQmlApplicationEngine engine;
+    StartupOptions startup;
+    startup.generatedPage = true;
+    QQuickWindow* window = loadMainWindow(engine, startup);
+    if (!window) {
+        BenchResult none;
+        none.invalidReasons << QStringLiteral("error: interface non chargée");
+        return none;
+    }
+    return runner.run(window);
+}
+
+QString describeChecks(const BenchResult& r)
+{
+    QStringList parts;
+    for (const ContentCheck& c : r.contentChecks) {
+        parts << QStringLiteral("%1 %2 (lu %3)")
+                     .arg(c.name, c.ok ? QStringLiteral("ok") : QStringLiteral("ÉCHEC"), c.actual);
+    }
+    parts << r.invalidReasons;
+    return parts.join(QStringLiteral(" ; "));
 }
 
 } // namespace
@@ -559,17 +595,36 @@ private slots:
             std::make_unique<Injector>(app.window, [&app](QPointF p) { return app.view->pageToScene(p); });
         recorder = std::make_unique<FrameRecorder>(app.window);
         app.view->setExclusiveDevices({injector->stylus(), injector->wheel()});
-        app.view->resetInputSequence(0);
+        app.view->resetInputSequence(0); // une seule fois : n° = indice dans `plan` sur les trois traits
         app.view->setInkProbe(recorder.get());
 
-        // Pauses longues : en debug et rendu logiciel, le redessin du cache après un trait figé bloque le fil
-        // principal plusieurs centaines de ms ; il faut des images entre relâché et appui suivant pour que
-        // l'invariant soit exercé.
-        const auto plan = strokes(3, 20, 1'000'000'000);
+        // Un trait à la fois : le suivant n'est injecté qu'une fois son prédécesseur relâché ET signalé par
+        // une synchronisation. Une pause fixe (1 s) ne le garantissait pas : fil principal bloqué plus
+        // longtemps (debug, rendu logiciel, tests en parallèle : 8 échecs sur 16), relâché et appui suivant
+        // partaient d'un bloc, sans synchronisation entre eux, et l'invariant n'était plus exercé (checked =
+        // 2).
+        constexpr std::size_t kSamples = 20;
+        const auto plan = strokes(3, static_cast<int>(kSamples), 0); // instants recalés trait par trait
+        const auto syncedUpTo = [&recorder](std::uint64_t seq) {
+            const auto records = recorder->syncRecords();
+            return std::any_of(records.begin(), records.end(),
+                               [seq](const SyncRecord& rec) { return rec.lastSeq == seq; });
+        };
+        std::vector<std::int64_t> plannedNs;
         recorder->begin();
-        injector->start(plan, core::monotonicNowNs() + 20'000'000);
-        QTRY_VERIFY_WITH_TIMEOUT(injector->finished(), 20000);
-        QTest::qWait(300);
+        for (std::size_t first = 0; first < plan.size(); first += kSamples) {
+            std::vector<PlannedInput> stroke(plan.begin() + static_cast<std::ptrdiff_t>(first),
+                                             plan.begin() + static_cast<std::ptrdiff_t>(first + kSamples));
+            const std::int64_t shift = stroke.front().offsetNs;
+            for (PlannedInput& in : stroke) {
+                in.offsetNs -= shift;
+            }
+            injector->start(stroke, core::monotonicNowNs() + 20'000'000);
+            QTRY_VERIFY_WITH_TIMEOUT(injector->finished(), 20000);
+            plannedNs.insert(plannedNs.end(), injector->plannedNs().begin(), injector->plannedNs().end());
+            // Le relâché (dernier de son trait, seul reçu depuis) est signalé par une synchronisation propre.
+            QTRY_VERIFY_WITH_TIMEOUT(syncedUpTo(first + kSamples - 1), 20000);
+        }
         recorder->end();
         app.view->setInkProbe(nullptr);
         app.view->setExclusiveDevices({});
@@ -588,20 +643,112 @@ private slots:
             releaseCoverage(plan, recorder->received(), recorder->syncStartNs(), records);
         QCOMPARE(coverage.checked, std::size_t{3}); // une synchronisation suit chaque relâché
         QVERIFY2(coverage.notSynced == 0, qPrintable(synced.join(' ')));
-        // Premier trait, précédé d'un repos : son relâché (n° 19) est signalé par une synchronisation propre.
-        QVERIFY2(std::any_of(records.begin(), records.end(),
-                             [](const SyncRecord& rec) { return rec.lastSeq == 19; }),
-                 qPrintable(synced.join(' ')));
+        QCOMPARE(plannedNs.size(), plan.size());
         std::vector<std::int64_t> measured(plan.size(), -1);
         for (std::size_t i = 0; i < plan.size(); ++i) {
             if (plan[i].measured) {
-                measured[i] = injector->plannedNs()[i];
+                measured[i] = plannedNs[i];
             }
         }
         const LatencyStats latency = computeLatency(measured, records);
         QCOMPARE(latency.unmatched, std::size_t{0});
         QCOMPARE(latency.seq.size(), std::size_t{57});
         QVERIFY(!recorder->swapNs().empty());
+    }
+
+    // Chemin réel (Runner::run → runDemo) à 1366 × 768 (Dell 3510) : la démonstration recentre la vue sur ses
+    // points contrôlés. Si runDemo se contentait de setZoom(1.0), la vue garderait le centre laissé par le
+    // défilement (400 %, haut à gauche) et la sonde du témoin de trait sortirait de la fenêtre (« hors-image
+    // »). Une taille LxH explicite l'emporte sur la taille fixe hors écran.
+    void benchRunReadsItsTargetsAt1366x768()
+    {
+        BenchOptions options;
+        options.fullScreen = false;
+        options.windowSize = QSize(1366, 768);
+        const BenchResult r = runBench(options);
+        QCOMPARE(r.windowMode, QStringLiteral("window"));
+        QCOMPARE(r.windowSize, QSize(1366, 768));
+        QCOMPARE(r.contentChecks.size(), std::size_t{4});
+        const bool allOk = std::all_of(r.contentChecks.begin(), r.contentChecks.end(),
+                                       [](const ContentCheck& c) { return c.ok; });
+        QVERIFY2(allOk, qPrintable(describeChecks(r)));
+    }
+
+    // Hors écran, le plein écran demandé (défaut du banc) donne une fenêtre fixe de 1280 × 800, pas l'écran
+    // fictif de la plateforme (800 de large : témoins hors de la vue, content-check-failed).
+    void offscreenFullScreenGetsTheFixedSize()
+    {
+        QCOMPARE(QGuiApplication::platformName(), QStringLiteral("offscreen"));
+        BenchOptions options;
+        QVERIFY(options.fullScreen);
+        const BenchResult r = runBench(options);
+        QCOMPARE(r.windowMode, QStringLiteral("window"));
+        QCOMPARE(r.windowSize, QSize(1280, 800));
+    }
+
+    void benchTargetsAreVisibleInTheShell_data()
+    {
+        QTest::addColumn<QSize>("size");
+        QTest::newRow("1366x768") << QSize(1366, 768); // Dell 3510, machine de référence du BRIEF
+        QTest::newRow("1280x800") << QSize(1280, 800); // fumée et preuves hors écran
+        QTest::newRow("1280x720") << QSize(1280, 720);
+        QTest::newRow("1920x1080") << QSize(1920, 1080);
+    }
+
+    // DA7 : dans la nouvelle interface, les points contrôlés par la démonstration du banc tombent dans la vue
+    // à 100 %, hors barre, palette et barres de défilement visibles, quelle que soit la position laissée par
+    // les scénarios : le défilement finit à 400 %, calé en haut à gauche (scenarios.cpp, scrollScenario).
+    void benchTargetsAreVisibleInTheShell()
+    {
+        QFETCH(QSize, size);
+        App app;
+        QVERIFY(start(app));
+        app.window->resize(size);
+        QTRY_COMPARE(app.window->size(), size);
+        // La vue prend sa taille au polissage de la disposition, après la fenêtre : la positionner avant,
+        // c'est centrer sur l'ancienne hauteur. Le banc, lui, la positionne après les scénarios.
+        const auto* palette = app.window->findChild<QQuickItem*>(QStringLiteral("toolPalette"));
+        QVERIFY(palette);
+        QTRY_VERIFY(qRound(app.view->mapRectToScene(app.view->boundingRect()).bottom()) == size.height() &&
+                    qRound(palette->mapRectToScene(palette->boundingRect()).right()) == size.width());
+        app.view->setZoom(4.0);
+        app.view->setPan(QPointF(ui::kViewMargin, ui::kViewMargin));
+        showDemoTargets(*app.view);      // ce que fait runDemo, au début et au retour à 100 %
+        QCOMPARE(app.view->zoom(), 1.0); // 100 % : un ajustement de la page à la vue ne compterait pas
+        QTRY_VERIFY(app.view->cacheReady());
+        const QRectF visible = app.view->mapRectToScene(app.view->boundingRect());
+        QList<QRectF> bars; // posées sur la vue : un point dessous n'est pas lisible
+        for (const char* name : {"horizontalScrollBar", "verticalScrollBar"}) {
+            const auto* bar = app.window->findChild<QQuickItem*>(QLatin1String(name));
+            QVERIFY2(bar, name);
+            if (bar->isVisible()) {
+                bars << bar->mapRectToScene(bar->boundingRect());
+            }
+        }
+        const core::Witnesses& w = core::witnesses();
+        const QList<QPointF> targets{
+            QPointF(w.shapeRect.center().x, w.shapeRect.center().y),
+            QPointF(w.imageRect.center().x, w.imageRect.center().y),
+            QPointF(w.strokeProbe.x, w.strokeProbe.y),
+            bench::demoInkProbePoint(),
+        };
+        for (const QPointF& page : targets) {
+            const QPointF scene = app.view->pageToScene(page);
+            const bool underBar = std::any_of(bars.begin(), bars.end(),
+                                              [&scene](const QRectF& bar) { return bar.contains(scene); });
+            QVERIFY2(
+                visible.contains(scene) && !underBar,
+                qPrintable(QStringLiteral("point de page (%1, %2) → scène (%3, %4) hors de la vue (%5, %6, "
+                                          "%7 × %8) ou sous une barre de défilement")
+                               .arg(page.x())
+                               .arg(page.y())
+                               .arg(scene.x())
+                               .arg(scene.y())
+                               .arg(visible.x())
+                               .arg(visible.y())
+                               .arg(visible.width())
+                               .arg(visible.height())));
+        }
     }
 };
 

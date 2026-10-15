@@ -7,11 +7,22 @@
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <cstdio>
+#include <cstring>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 int main(int argc, char* argv[])
 {
+    // `--version` (S1) : avant toute fenêtre, sur la sortie standard. Pas de QCommandLineParser::showVersion
+    // : sous Windows, une application sans console l'afficherait dans une boîte de message.
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--version") == 0) {
+            std::printf("ActCraft %s\n", ACTCRAFT_VERSION);
+            std::fflush(stdout);
+            return 0;
+        }
+    }
+
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft"));
     QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));

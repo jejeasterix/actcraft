@@ -1,0 +1,26 @@
+{
+  "format": "actcraft-layout/1",
+  "menus": [
+    { "id": "file", "label": "Fichier", "items": ["file.quit"] },
+    { "id": "edit", "label": "Éditer", "items": [] },
+    { "id": "view", "label": "Affichage", "items": ["view.fullscreen", "-", "page.previous", "page.next", "-", "view.fit"] },
+    { "id": "insert", "label": "Insérer", "items": [] },
+    { "id": "tools", "label": "Outils", "items": ["tool.pen"] },
+    { "id": "help", "label": "Aide", "items": ["help.website", "-", "help.about"] }
+  ],
+  "palette": [
+    { "group": "commandes", "items": ["menu.main", "menu.tools"] },
+    { "group": "pages", "items": ["page.previous", "page.next"] },
+    { "group": "couleurs" },
+    { "group": "epaisseur" },
+    { "group": "outils", "items": ["tool.pen"] }
+  ],
+  "shortcuts": {},
+  "colors": [
+    "#E53935", "#FB8C00", "#FDD835", "#43A047",
+    "#00ACC1", "#1E88E5", "#8E24AA", "#D81B60",
+    "#6D4C41", "#F5CBA7", "#B39DDB", "#880E4F",
+    "#000000", "#424242", "#9E9E9E", "#FFFFFF"
+  ],
+  "penWidths": [2, 4, 6, 8]
+}

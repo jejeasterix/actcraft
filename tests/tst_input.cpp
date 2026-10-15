@@ -6,6 +6,7 @@
 #include <QPointingDevice>
 #include <QTabletEvent>
 #include <QTest>
+#include <QTouchEvent>
 
 #include <utility>
 #include <vector>
@@ -152,6 +153,46 @@ private slots:
         const QMouseEvent hover(QEvent::MouseMove, QPointF(5, 5), QPointF(5, 5), QPointF(5, 5), Qt::NoButton,
                                 Qt::NoButton, Qt::NoModifier);
         QVERIFY(!input::sampleFromEvent(hover, QPointF(10, 20), 0).has_value());
+    }
+
+    void singleTouchPointBecomesTouchSamples()
+    {
+        QPointingDevice screen(QStringLiteral("tst-touch"), 7701, QInputDevice::DeviceType::TouchScreen,
+                               QPointingDevice::PointerType::Finger, QInputDevice::Capability::Position, 10,
+                               0);
+        QTouchEvent begin(QEvent::TouchBegin, &screen, Qt::NoModifier,
+                          {QEventPoint(1, QEventPoint::State::Pressed, QPointF(10, 20), QPointF(10, 20))});
+        const auto press = input::sampleFromEvent(begin, QPointF(5, 6), 42);
+        QVERIFY(press.has_value());
+        QVERIFY(press->device == input::DeviceKind::Touch);
+        QVERIFY(press->phase == Phase::Press);
+        QCOMPARE(press->x, 5.0);
+        QCOMPARE(press->y, 6.0);
+        QCOMPARE(press->pressure, 0.5f);
+        QCOMPARE(press->timestampNs, std::int64_t{42});
+
+        QTouchEvent update(QEvent::TouchUpdate, &screen, Qt::NoModifier,
+                           {QEventPoint(1, QEventPoint::State::Updated, QPointF(30, 20), QPointF(30, 20))});
+        const auto move = input::sampleFromEvent(update, QPointF(7, 6), 43);
+        QVERIFY(move.has_value() && move->phase == Phase::Move);
+
+        QTouchEvent end(QEvent::TouchEnd, &screen, Qt::NoModifier,
+                        {QEventPoint(1, QEventPoint::State::Released, QPointF(30, 20), QPointF(30, 20))});
+        const auto release = input::sampleFromEvent(end, QPointF(7, 6), 44);
+        QVERIFY(release.has_value() && release->phase == Phase::Release);
+    }
+
+    void twoFingersAndCancelGiveNothing()
+    {
+        QPointingDevice screen(QStringLiteral("tst-touch-2"), 7702, QInputDevice::DeviceType::TouchScreen,
+                               QPointingDevice::PointerType::Finger, QInputDevice::Capability::Position, 10,
+                               0);
+        QTouchEvent two(QEvent::TouchUpdate, &screen, Qt::NoModifier,
+                        {QEventPoint(1, QEventPoint::State::Updated, QPointF(10, 20), QPointF(10, 20)),
+                         QEventPoint(2, QEventPoint::State::Pressed, QPointF(90, 20), QPointF(90, 20))});
+        QVERIFY(!input::sampleFromEvent(two, QPointF(5, 6), 1).has_value());
+        QTouchEvent cancel(QEvent::TouchCancel, &screen, Qt::NoModifier, QList<QEventPoint>{});
+        QVERIFY(!input::sampleFromEvent(cancel, QPointF(5, 6), 2).has_value());
     }
 
     void otherEventsIgnored()

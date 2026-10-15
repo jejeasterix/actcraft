@@ -1,0 +1,65 @@
+# Outillage des paquets — vérifications du 2026-10-14
+
+Tâche L1-T2 du chantier `livraison-complete` (décisions 26, 27, 28 ; N2-8, N2-12 du cadrage
+`docs/specs/2026-10-14-livraison-complete-cadrage.md`). Une ligne `VERIF` par point ; les commandes exactes sont
+celles du plan `docs/plans/2026-10-14-livraison-complete-lot1-PLAN.md`, tâche L1-T2. Les tâches L1-T17 (APK) et
+L1-T18 (émulateur) ajoutent leurs lignes plus bas.
+
+## Résultats
+
+VERIF jdk17 = OK (Temurin 17.0.20.1, ~/.tools/jdk-17 ; JDK 21.0.12.1 aussi installé, ~/.tools/jdk-21, exigé par Qt 6.12)
+VERIF sdk = OK (cmdline-tools 12.0, sdkmanager 11076708, ~/.tools/android-sdk ; platform-tools 37.0.1)
+VERIF build-tools = 36.0.0
+VERIF plateforme = android-36
+VERIF ndk = 27.2.12479018 (source : doc Qt 6.12, android-configure-dev-environment)
+VERIF api-min = 28 (source : C:/Qt/6.12.0/android_arm64_v8a/lib/cmake/Qt6Core/Qt6AndroidGradleHelpers.cmake:241)
+VERIF qt-android-arm64 = OK (C:/Qt/6.12.0/android_arm64_v8a, qt.toolchain.cmake présent, aqtinstall de développement, hôte all_os)
+VERIF qt-android-x86_64 = OK (C:/Qt/6.12.0/android_x86_64, qt.toolchain.cmake présent)
+VERIF qt-android-modules = Svg, QuickControls2, QuickTemplates2 présents (arm64-v8a)
+VERIF inno = OK (6.7.3, C:/Users/JeromeDenis/AppData/Local/Programs/Inno Setup 6/ISCC.exe, winget --scope user)
+VERIF whpx = utilisable (emulator -accel-check : WHPX(10.0.26300) is installed and usable)
+VERIF emulateur-local = démarre (boot en 235 s, sans fenêtre, swiftshader_indirect)
+VERIF avd = actcraft-x86_64, android-34 google_apis x86_64, appareil pixel_tablet
+VERIF pillow = OK (12.1.0)
+
+Tâche L1-T17 (2026-10-15, `pwsh -NoProfile -File ./scripts/paquet-android.ps1`, sortie `.tmp/apk.txt`) :
+
+VERIF apk-arm64 = OK (ActCraft-0.1.0-arm64-v8a.apk, 48.5 Mo)
+VERIF apk-x86_64 = OK (ActCraft-0.1.0-x86_64.apk, 49.4 Mo)
+VERIF apk-identifiant = io.github.jejeasterix.actcraft, versionCode 100, versionName 0.1.0 (propriétés de cible)
+VERIF apk-api-cible = targetSdkVersion 36 (= ANDROID_PLATFORM, QT_ANDROID_TARGET_SDK_VERSION ; défaut de Qt 6.12 : 37), minSdkVersion 28
+VERIF apk-permissions = aucune (manifeste à nous, android/AndroidManifest.xml)
+VERIF apk-signature = clé de débogage locale (CN=Android Debug)
+VERIF apk-licences = LICENCES OK
+VERIF s3-local = ANDROID OK (émulateur actcraft-x86_64 lancé avec -gpu host, 2560 × 1600 ; palette, trois coins opposés à la diagonale et trait vérifiés ; aucun FATAL EXCEPTION ni SecurityException dans logcat ; émulateur neuf : attendre charge < 4 et écarter les boîtes « Application Not Responding » du système)
+VERIF s3-rendu = avec le GPU logiciel de l'émulateur (SwiftShader : -gpu swiftshader_indirect, swiftshader, swangle_indirect, angle_indirect, guest), Qt Quick (OpenGL ES 3.0, « Android Emulator OpenGL ES Translator (Google SwiftShader) ») ne dessine que la moitié de chaque rectangle, en un triangle ; textes entiers. Un projet Qt Quick minimal sans code ActCraft (un Window, deux Rectangle, un Text) montre le même défaut : cause = émulateur + SwiftShader, pas l'application. Avec -gpu host : rendu juste. QT_QUICK_BACKEND=software ne démarre pas sous Android (QRhiGles2 : Failed to create context). essai-android.ps1 le détecte (pixels dans la moitié manquante) et finit alors par ANDROID EN ECHEC. Pour L1-T19 : un exécuteur sans GPU hôte retombe sur SwiftShader et échouera à ce contrôle ; il faut un exécuteur à GPU, ou un mode d'émulateur qui rend juste (non trouvé ici), avant de compter sur S3 en CI.
+
+Tâche L1-T19 (2026-10-15, exécuteur GitHub `ubuntu-latest` sans GPU, KVM, émulateur 37.2.12, AVD pixel_tablet API 34,
+run 38682880020, boucle de recherche temporaire ; captures : artefact `recherche-s3` du run, 3 jours) :
+
+VERIF s3-ci = -gpu lavapipe rend juste sans GPU : essai strict ANDROID OK (écran 2560 × 1600 ; page (1958, 1392) 255 255 255, palette (2368, 1152) 43 47 54, pastille (2382, 416) 229 57 53, trait 0 0 0) ; GLES « ANGLE (Mesa, Vulkan 1.4.318 (llvmpipe (LLVM 21.0.0 256 bits)), llvmpipe-25.2.4) », fourni avec l'émulateur. Justes aussi : -gpu swangle_indirect, -gpu host avec Mesa llvmpipe sous Xvfb. Faux (rectangles en un triangle, page lue 74 106 138) : -gpu swiftshader_indirect et -gpu software (API 34), -gpu swiftshader_indirect (API 36). Retenu pour la CI : lavapipe, sans Xvfb ni paquet Mesa ; l'essai S3 de la CI reste strict
+VERIF ci-emulateur = qemu exige libpulse.so.0, absent de ubuntu-latest (paquet libpulse0) ; avdmanager récent écrit sous ~/.config/.android/avd alors que l'émulateur lit ~/.android/avd (ANDROID_AVD_HOME, hors action reactivecircus)
+VERIF ci-build-tools = ubuntu-latest a des build-tools plus récents que 36.0.0, dont apksigner écrit « V3.0 Signer: certificate DN » : paquet-android.ps1 prend ceux de versions.env
+VERIF ci-msvc = windows-latest : Visual Studio 18 (MSVC 14.51.36231), runtime sous x64/Microsoft.VC145.CRT (VC143 sur le poste) : paquet.ps1 prend le dossier Microsoft.VC14*.CRT présent
+VERIF ci-s1 = windows-latest ouvre une vraie fenêtre (plateforme windows, sans -HorsEcran) ; D3D11 sur « Microsoft Basic Render Driver » (WARP), qwindows.dll et runtime MSVC chargés depuis le dossier installé, INSTALLATEUR OK (run 38686077102)
+VERIF ci-epinglage = émulateur 37.2.12.0 (build 16428233, ANDROID_EMULATOR_BUILD) et image system-images;android-34;google_apis;x86_64 révision 14 (ANDROID_SYSTEM_IMAGE_REVISION, contrôlée avant le lancement) dans packaging/android/versions.env : versions sur lesquelles lavapipe rend juste ; actions tierces épinglées par SHA de commit, aqtinstall sur le commit 076e1659807d0b362a3ed684d54c2e9c775eb9c7
+
+## Conséquences
+
+- Émulateur : local (WHPX utilisable) ; la CI (KVM sur `ubuntu-latest`, tâche L1-T19) le double.
+- Écart au plan : la doc de Qt 6.12 exige JDK 21 ou plus (et non 17), plateforme android-36, build-tools 36.0.0.
+  Les deux JDK sont installés ; `dev-env-android.ps1` prend `jdk-21` (repli `jdk-17`). La CI doit installer JDK 21.
+- `sdk_definitions.json` de Qt Creator n'a pas d'entrée pour Qt 6.x récent (dernière : 6.4, NDK 23) : la doc de Qt
+  fait foi, aucune valeur n'en est reprise.
+- APK (L1-T17) : les propriétés de cible `QT_ANDROID_PACKAGE_NAME`, `QT_ANDROID_VERSION_NAME` et
+  `QT_ANDROID_VERSION_CODE` suffisent pour l'identifiant et la version. Les permissions, non : sans manifeste à nous,
+  `aapt2 dump badging` relève `ACCESS_NETWORK_STATE` (Qt6Network), `INTERNET` et `WRITE_EXTERNAL_STORAGE` (Qt6Core,
+  `lib/Qt6Core_arm64-v8a-android-dependencies.xml`), `READ_EXTERNAL_STORAGE` (implicite) et
+  `io.github.jejeasterix.actcraft.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (androidx.core 1.17.0, fusion des
+  manifestes). Repli : `android/AndroidManifest.xml`, gabarit de Qt sans le marqueur `%%INSERT_PERMISSIONS`, plus
+  `tools:node="remove"` pour la permission d'androidx.core (le code Java de Qt appelle `Context.registerReceiver`,
+  jamais `ContextCompat`).
+- Chaîne Android sur le poste : `JAVA_HOME` du poste désigne un JRE (`~/.tools/jdk-21.0.11+10-jre`, sans `javac`),
+  refusé par Gradle ; `dev-env-android.ps1` l'écarte au profit de `~/.tools/jdk-21`. Ninja de pip 1.13 est dans le
+  dossier `Scripts` de Python (`ninja.BIN_DIR`), plus sous `ninja/data/bin`.
+- Les outils en ligne de commande (build 11076708) ont la somme SHA-256 publiée par Qt Creator (4d6931209eebb1bfb7c7e8b240a6a3cb3ab24479ea294f3539429574b1eec862).
