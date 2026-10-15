@@ -36,6 +36,9 @@ Options de `bench.ps1` : `-Rendu d3d11|logiciel|tous`, `-SansCache`, `-Captures 
 `--rendu auto|logiciel|tous`, `--sans-cache`, `--captures <dossier>`, `--scenario complet|court`,
 `--taille plein-ecran|LxH`, `--hors-ecran`, `--sans-construire`.
 
+Hors écran (`-HorsEcran`, plateforme Qt `offscreen`), `plein-ecran` donne une fenêtre fixe de 1280 × 800
+(`meta.window.mode` = `window`) au lieu de l'écran fictif de la plateforme ; une taille `LxH` explicite l'emporte.
+
 Sans `--sortie`, le JSON va dans `resultats-banc/` à côté de l'exécutable ; les scripts écrivent dans
 `bench/results/` (ignoré par git). Un passage complet dure environ 70 à 90 s pour les deux rendus.
 
@@ -146,6 +149,10 @@ foi ; les JSON restent hors du dépôt.
 - **Le chemin Metal n'a jamais été exécuté avant le MacBook M1 (N1-8).** Le premier passage sur le M1 peut
   révéler un défaut de la chaîne, pas seulement un chiffre : vérifier que `graphics_api` vaut `metal` dans le
   JSON. S'il vaut autre chose, le signaler avant toute lecture des chiffres.
+- **Hauteur minimale de la vue.** La démonstration lit ses contrôles de contenu à 100 %, sur des points qui
+  couvrent 672 px de haut (y 48 à 720 de la page). Une vue de moins d'environ 672 px utiles en hauteur (fenêtre
+  de moins d'environ 713 px, barre du haut comprise) rend la mesure invalide (`content-check-failed`). Vérifié
+  valide hors écran : 1280 × 720, 1280 × 800, 1366 × 768, 1920 × 1080.
 - **Machine de développement ≠ machine de référence.** Seuls les passages sur le Dell 3510 et le M1 comptent
   pour le go / no-go.
 - **Mesure bout à bout (non outillée).** Filmer à 240 images/s ou plus la pointe du stylet et l'encre, avec un
@@ -162,7 +169,10 @@ Sur le poste de développement :
 Sur le Dell (secteur branché, mode d'alimentation « Performances optimales », toutes les autres applications
 fermées). Le banc mesure l'**écran principal** : pour viser un écran externe 1080p, le brancher avant le
 lancement et en faire l'écran principal (Paramètres > Système > Affichage > « Définir comme écran principal »).
-Après le premier passage, vérifier `meta.screen` dans le JSON (largeur, hauteur, fréquence).
+Après le premier passage, vérifier `meta.screen` dans le JSON (largeur, hauteur, fréquence). Pendant la mesure,
+la mise à l'échelle de Windows doit être à 100 % (Paramètres > Système > Affichage > Échelle) : à 125 %, un
+écran 1366 × 768 n'offre qu'environ 1093 × 614 pixels logiques et la mesure serait invalide (hauteur minimale,
+voir « Limites connues »).
 
 1. Extraire le zip dans `C:\banc` : `Expand-Archive <zip> C:\banc` (le clic droit de l'Explorateur ajoute un
    sous-dossier portant le nom du zip, et le chemin de l'étape 2 ne serait plus bon).
