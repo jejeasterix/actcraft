@@ -67,6 +67,18 @@ CI verte · releases publiées seulement sur go écrit de Jérôme (action final
 - N1 (orchestrateur, 2026-10-15) — **S3 en CI sans GPU** : l'émulateur de la CI (sans GPU hôte) retombe sur SwiftShader, qui dessine chaque rectangle en un triangle (L1-T18). Défaut prudent si L1-T19 ne trouve pas de mode d'émulateur Linux qui rend juste : la CI vérifie « démarre sans plantage + palette visible » et signale `RENDU NON CONTROLE (GPU logiciel)` ; le contrôle complet du rendu reste local (`-gpu host`). Aucune dépense. Autre option à présenter à la porte : exécuteur GitHub à GPU (payant).
 - Réglette d'épaisseur logarithmique (L1-C1) au lieu de linéaire 1-100 (F-137) : à présenter à la porte de fin (autre choix : préréglages ou plage revus).
 
+## Relecture de fin de lot 1 (tour 1, sur 8492731, sans L1-T19/T20)
+Conformité : 0 bloquant. Constats et suite donnée :
+- Imp. S1 joué hors écran (`essai-installateur.ps1` : offscreen + logiciel, `qoffscreen.dll` copié) au lieu de D3D11 + vraie fenêtre 5 s (plan l. 7060, 7100-7109) → confié à L1-T19 (fichier de sa table).
+- Imp. décision 23 non tenue : skill `impeccable` non invoqué pour la direction visuelle (`docs/design/2026-10-14-direction-visuelle.md:4` contre `:39`) → tâche corrective (après la relecture du code).
+- Imp. F5 : la preuve lit la propriété QML `fullScreen`, affectée avant `showFullScreen()` (`Main.qml:42`) ; rien ne lit `visibility` → tâche corrective.
+- Min. `.gitignore` (*.jks, *.keystore, L1-T17) hors table : accepté par l'orchestrateur (protection de la signature).
+- Min. DA8 annonce clics, molette, gestes : le joueur (`uiscenario.h:25-35`) ne fait que commande, trait, touche, attente, capture, pixel, lecture → écart déclaré ici, reporté au lot qui en aura besoin (S2 n'en a pas besoin).
+- Min. JSON du banc hors écran absent de l'état pour L1-T7…T10 (session précédente) et L1-C1 (`2026-10-15_061746-…-software.json`, content_check.ok) : couvert par le banc complet de clôture.
+- Min. `paquet.ps1` sans ligne `PAQUET EN ECHEC` (contrat l. 181-182) → confié à L1-T19.
+- Non vérifié par la relecture : licence de `Qt6QuickControls2FluentWinUI3StyleImpl` ; traduisibilité des libellés JSON (N2-2).
+Défauts du code : en cours.
+
 ## Hors périmètre
 - (L1-T8) `canStartStroke` ne vérifie que la zone de la vue : une palette flottante au-dessus de la page laisserait le stylet tracer dessous → lot 3.
 - (L1-T8) Rejet de la paume au-delà du refus du toucher pendant un trait de stylet (corrigé par la revue de L1-T8) → lot 3 (gestes).
