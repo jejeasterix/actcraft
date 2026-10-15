@@ -56,8 +56,12 @@ $fondPalette = @([Convert]::ToInt32($hex.Substring(0, 2), 16), [Convert]::ToInt3
     [Convert]::ToInt32($hex.Substring(4, 2), 16))
 
 New-Item -ItemType Directory -Force $Sortie | Out-Null
-& adb wait-for-device
+# Attente bornée (6 min) : « adb get-state » répond tout de suite, contrairement à « adb wait-for-device ».
 $limite = (Get-Date).AddMinutes(6)
+while ("$(& adb get-state 2>$null)".Trim() -ne 'device') {
+    if ((Get-Date) -gt $limite) { Echec 'aucun appareil adb après 6 min' }
+    Start-Sleep -Seconds 2
+}
 while ("$(& adb shell getprop sys.boot_completed)".Trim() -ne '1') {
     if ((Get-Date) -gt $limite) { Echec 'émulateur non démarré après 6 min' }
     Start-Sleep -Seconds 2
@@ -89,7 +93,10 @@ Write-Output "logcat : aucun $filtre pour $paquet (pid $processus)"
 $avant = Capture 'avant'
 $taille = ("$(& $python -I scripts/lire-pixel.py $avant --taille)".Trim()).Split(' ')
 $largeur = [int]$taille[0]; $hauteur = [int]$taille[1]
-Write-Output "écran : $largeur × $hauteur"
+Write-Output "écran : $largeur × $hauteur, densité $("$(& adb shell wm density)".Trim())"
+# Les points de contrôle de la palette (décalages en pixels depuis le bord droit) sont calés sur l'appareil
+# pixel_tablet (2560 × 1600, packaging/android/versions.env, aussi celui de la CI) : un autre écran est refusé.
+if ($largeur -ne 2560 -or $hauteur -ne 1600) { Echec "écran $largeur × $hauteur : 2560 × 1600 attendu (profil pixel_tablet)" }
 foreach ($f in 0.25, 0.5, 0.75) {
     $y = [int]($hauteur * $f)
     $lu = Pixel $avant ($largeur - 3) $y

@@ -129,7 +129,7 @@ try {
     if (-not $run.WaitForExit(30000)) { Echec 'pas de fermeture après --quitter-apres 5000' }
     if ($run.ExitCode -ne 0) { Echec "code de sortie $($run.ExitCode)" }
     $qsg = @(Get-Content -ErrorAction SilentlyContinue $traces)
-    $qsg | Where-Object { $_ -match 'backend|Adapter|Using' } | Select-Object -First 4 | ForEach-Object { Write-Output "qt : $_" }
+    $qsg | Where-Object { $_ -match 'Creating QRhi with backend|Adapter \d+:' } | Select-Object -First 3 | ForEach-Object { Write-Output "qt : $($_.Trim())" }
     if ($Rendu -eq 'd3d11' -and -not ($qsg -match 'backend D3D11')) { Echec "rendu D3D11 non obtenu (journal de Qt : $traces)" }
     if ($HorsEcran) { Remove-Item (Join-Path $dossier 'platforms/qoffscreen.dll') -Force }
 
