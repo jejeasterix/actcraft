@@ -39,7 +39,7 @@ pour Android, émulateur `x86_64` ; PowerShell 7.
 | L2-T18 | QML : menu Fichier, dialogues, « enregistrer les modifications ? », bandeau d'avertissements | L2-T3, L2-T16, L2-T17 | `ui/qml/Main.qml`, `ui/qml/FileActions.qml`, `ui/qml/SaveChangesDialog.qml`, `ui/qml/PageSizeDialog.qml`, `ui/qml/MessageBanner.qml`, `ui/CMakeLists.txt`, `actions/data/layout.json`, `tests/ui.cmake`, `tests/tst_ui_filemenu.cpp`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 60 tests, `tst_ui_filemenu` et `tst_ui_shell` Passed ; captures hors écran de la fenêtre (menu Fichier, bandeau) ; banc hors écran (résultat) | S4, S5 | #tache-l2-t18 |
 | L2-T19 | Ouvrir le fichier passé au lancement (`actcraft.exe <fichier>`, `--ouvrir`) | L2-T18 | `app/startup.h`, `app/startup.cpp`, `app/main.cpp`, `tests/app.cmake`, `tests/tst_app_open.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 61 tests, `tst_app_open` Passed | S4 | #tache-l2-t19 |
 | L2-T20 | Joueur de scénarios : fixtures, variables, attente, sonde de boucle ; scénario `aller-retour-natif` (S5) | L2-T18 | `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `bench/include/actcraft/bench/fixtures.h`, `bench/src/fixtures.cpp`, `bench/CMakeLists.txt`, `bench/scenarios/aller-retour-natif.json`, `tests/bench.cmake`, `tests/tst_bench_uiscenario.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 61 tests, `tst_bench_uiscenario` et `tst_captures_aller_retour_natif` Passed ; `captures.ps1 -Scenario aller-retour-natif -Rendu logiciel -HorsEcran` → `BOUCLE max=… ms OK`, `LU documentController.fingerprint=… OK`, `CAPTURES OK` | S5 | #tache-l2-t20 |
-| L2-T21 | S4 : miniatures comparées aux `.thm`, scénarios `ouvrir-flipchart-synthetique` (CI) et `local/ouvrir-flipchart` | L2-T10, L2-T19, L2-T20 | `bench/flipchart/main.cpp`, `bench/CMakeLists.txt`, `bench/src/fixtures.cpp`, `bench/scenarios/ouvrir-flipchart-synthetique.json`, `bench/scenarios/local/ouvrir-flipchart.json`, `scripts/captures.ps1`, `tests/bench.cmake` | isolé | concepteur-critique | TESTS OK, ≥ 66 tests, `tst_flipchart_miniatures_synthetique` et `tst_captures_ouvrir_flipchart_synthetique` Passed ; localement `MINIATURES OK : 124 pages, médiane ≤ 2,0, ≤ 3 au-dessus de 7` et `captures.ps1 -Scenario local/ouvrir-flipchart -Ouvrir "<samples>\tri des formes.flipchart"` → `CAPTURES OK` | S4 | #tache-l2-t21 |
+| L2-T21 | S4 : miniatures comparées aux `.thm`, scénarios `ouvrir-flipchart-synthetique` (CI) et `local/ouvrir-flipchart` | L2-T10, L2-T19, L2-T20 | `bench/flipchart/main.cpp`, `bench/CMakeLists.txt`, `bench/src/fixtures.cpp`, `bench/src/uiscenario.cpp`, `bench/scenarios/ouvrir-flipchart-synthetique.json`, `bench/scenarios/local/ouvrir-flipchart.json`, `scripts/captures.ps1`, `tests/bench.cmake` | isolé | concepteur-critique | TESTS OK, ≥ 66 tests, `tst_flipchart_miniatures_synthetique` et `tst_captures_ouvrir_flipchart_synthetique` Passed ; localement `MINIATURES OK : 124 pages, médiane ≤ 2,0, ≤ 3 au-dessus de 7` et `captures.ps1 -Scenario local/ouvrir-flipchart -Ouvrir "<samples>\tri des formes.flipchart"` → `CAPTURES OK` | S4 | #tache-l2-t21 |
 | L2-T22 | Android : Ouvrir et Enregistrer par `content://` sur l'émulateur, sinon commandes de fichier retirées de l'APK | L2-T18 | `scripts/essai-android-fichiers.ps1`, `actions/data/commands.json`, `docs/verifications/2026-10-15-android-fichiers.md` | isolé | concepteur-critique | `ANDROID FICHIERS OK` (empreinte enregistrée = empreinte relue, logcat) ; sinon repli : `APK OK` + capture du menu Fichier de l'APK sans « Ouvrir… » ni « Enregistrer » | S5 | #tache-l2-t22 |
 | L2-T23 | Banc : scénario « changement de page » ; page fixe sans éclair blanc pendant le décodage | L2-T16, L2-T17 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `tests/tst_render_fixedpage.cpp`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `tests/tst_bench_verdict.cpp`, `scripts/resume-banc.ps1`, `docs/banc.md` | isolé | concepteur-critique | TESTS OK, ≥ 59 tests, `tst_render_fixedpage` (dont `keepsTheOldContentUntilTheNewPageIsReady`), `tst_bench_scenarios`, `tst_bench_result` Passed ; banc hors écran : scénario `page` présent, `content_check.ok = True` | S4 | #tache-l2-t23 |
 
@@ -94,7 +94,7 @@ partagés tenus par les dépendances : `render/src/fixedpageitem.cpp` et `tests/
 L2-T14 → L2-T23) ; `render/CMakeLists.txt` et `tests/render.cmake` (L2-T11 → L2-T13) ; `ui/src/pageview.cpp`,
 `tests/tst_pageview.cpp` et `ui/qml/PageArea.qml` (L2-T15 → L2-T16) ; `ui/src/documentcontroller.cpp` (L2-T15 →
 L2-T17 → L2-T23) ; `ui/CMakeLists.txt` et `tests/ui.cmake` (L2-T17 → L2-T18) ; `ui/qml/Main.qml` (L2-T15 → L2-T18) ;
-`bench/CMakeLists.txt`, `bench/src/fixtures.cpp` et `tests/bench.cmake` (L2-T20 → L2-T21) ;
+`bench/CMakeLists.txt`, `bench/src/fixtures.cpp`, `bench/src/uiscenario.cpp` et `tests/bench.cmake` (L2-T20 → L2-T21) ;
 `actions/data/commands.json` (L2-T3 en 2a → L2-T22).
 
 ## Carte des fichiers
@@ -4833,3 +4833,992 @@ git -C <worktree> add app/startup.h app/startup.cpp app/main.cpp tests/app.cmake
 git -C <worktree> commit -m "app : ouvrir le fichier passé au lancement (Ouvrir avec, --ouvrir)" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
+
+<a id="tache-l2-t20"></a>
+### Tâche L2-T20 — Joueur de scénarios : fixtures, variables, attente, sonde de boucle ; scénario `aller-retour-natif` (S5)
+
+**Objectif.** S5 joué sans souris (DA8) : le joueur d'`actcraft-captures` gagne six étapes, **ajoutées à la fin** de
+`UiStepKind` (contrat du lot 1 : on ajoute, on ne renomme pas) :
+
+| Étape JSON | Effet | Ligne de rapport |
+|---|---|---|
+| `{"fixture": "trois-pages", "path": "${SORTIE}/source.actcraft"}` | écrit un document de scénario (`buildFixture`) | `FIXTURE trois-pages <chemin> OK` |
+| `{"waitFor": "objet.propriété", "value": …, "timeoutMs": 10000}` | attend que la propriété vaille la valeur | `ATTENTE objet.propriété=valeur OK` / `ECHEC` |
+| `{"watchEventLoop": true}` | démarre la sonde : minuterie de 5 ms sur le fil principal, plus long intervalle mesuré | `BOUCLE sonde démarrée` |
+| `{"maxEventLoopGapMs": 25}` | arrête la sonde, compare le plus long intervalle | `BOUCLE max=<x> ms OK` / `ECART` |
+| `{"remember": "objet.propriété", "as": "nom"}` | mémorise une valeur pour `${nom}` | `MEMO nom=valeur` |
+| `{"archive": "<chemin>", "contains": ["document.json", …]}` | ouvre l'archive (`formats::archiveEntryNames`), vérifie les entrées (préfixe accepté) | `ARCHIVE <chemin> OK` / `ECART (manque …)` |
+
+Variables remplacées dans les arguments textuels, les chemins et les valeurs attendues : `${SORTIE}` (dossier de
+sortie du scénario), `${SAMPLES}` (`ACTCRAFT_SAMPLES_DIR` ; étape en `ECHEC` si absente), `${<nom>}` (mémorisé).
+Fixture `trois-pages` : page 1 vide (le trait y sera ajouté au stylet injecté), page 2 un rectangle bleu et un texte
+« Bonjour », page 3 une image (PNG 64 × 64 rouge et blanc produit par Qt, ressource). Scénario
+`bench/scenarios/aller-retour-natif.json` (S5) et test ctest `tst_captures_aller_retour_natif`.
+
+**Fichiers.**
+- Créer : `bench/include/actcraft/bench/fixtures.h`, `bench/src/fixtures.cpp`,
+  `bench/scenarios/aller-retour-natif.json`
+- Modifier : `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `bench/CMakeLists.txt`,
+  `tests/bench.cmake`, `tests/tst_bench_uiscenario.cpp`
+
+**Test et commande bornée.** Rouge : commande ciblée, motif `tst_bench_uiscenario` → échecs des nouveaux cas
+d'analyse. Vert : forme bornée, N ≥ 61, `TESTS OK`, `tst_bench_uiscenario .*Passed`,
+`tst_captures_aller_retour_natif .*Passed`. Preuve visuelle :
+
+```powershell
+pwsh -NoProfile -Command "Set-Location '<worktree>'; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario aller-retour-natif -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire 'pageIndicator.text=1 / 3' > .tmp/captures.txt 2>&1; Select-String -Path .tmp/captures.txt -Pattern '^(COMMANDE|TRAIT|ATTENTE|FIXTURE|BOUCLE|MEMO|ARCHIVE|LU|PIXEL|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16"
+```
+
+Attendu : `BOUCLE max=<x> ms OK` (x ≤ 25), `ARCHIVE … OK`, `LU documentController.fingerprint=<mémorisée> OK`,
+`LU pageIndicator.text=1 / 3 OK`, `SCENARIO OK`, `CAPTURES OK` ; décrire les captures `relu-page-1` (trait noir),
+`relu-page-2` (rectangle bleu, « Bonjour ») et `relu-page-3` (image rouge et blanche).
+
+**Interdits.** Aucun binaire commité (la fixture est écrite à chaque passage, sous la sortie du scénario). Aucune
+attente à durée fixe hors de l'étape `wait`. Touches : seulement par l'étape `key` existante.
+
+**Terminé quand.** Preuve verte, captures décrites, commit fait.
+
+**Étapes.**
+
+- [ ] **Étape 1 : écrire les tests d'analyse.** Dans `tests/tst_bench_uiscenario.cpp`, ajouter :
+
+```cpp
+    void newStepsAreParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseUiScenario(R"({"format":"actcraft-scenario/1","name":"x","steps":[
+            {"fixture":"trois-pages","path":"${SORTIE}/a.actcraft"},
+            {"waitFor":"documentController.busy","value":false,"timeoutMs":5000},
+            {"watchEventLoop":true},
+            {"maxEventLoopGapMs":25},
+            {"remember":"documentController.fingerprint","as":"avant"},
+            {"archive":"${SORTIE}/a.actcraft","contains":["document.json","thumbnails/"]}]})",
+                                 s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{6});
+        QVERIFY(s.steps[0].kind == UiStepKind::Fixture);
+        QCOMPARE(s.steps[0].name, QStringLiteral("trois-pages"));
+        QVERIFY(s.steps[1].kind == UiStepKind::WaitFor);
+        QCOMPARE(s.steps[1].ms, 5000);
+        QVERIFY(s.steps[2].kind == UiStepKind::WatchEventLoop);
+        QVERIFY(s.steps[3].kind == UiStepKind::MaxEventLoopGap);
+        QCOMPARE(s.steps[3].ms, 25);
+        QVERIFY(s.steps[4].kind == UiStepKind::Remember);
+        QCOMPARE(s.steps[4].name, QStringLiteral("avant"));
+        QVERIFY(s.steps[5].kind == UiStepKind::ArchiveContains);
+        QCOMPARE(s.steps[5].values, (QStringList{QStringLiteral("document.json"), QStringLiteral("thumbnails/")}));
+    }
+
+    void badNewStepsAreRefused_data()
+    {
+        QTest::addColumn<QByteArray>("step");
+        QTest::newRow("fixture sans chemin") << QByteArray(R"({"fixture":"trois-pages"})");
+        QTest::newRow("fixture inconnue") << QByteArray(R"({"fixture":"inconnue","path":"x"})");
+        QTest::newRow("waitFor sans valeur") << QByteArray(R"({"waitFor":"a.b"})");
+        QTest::newRow("remember sans nom") << QByteArray(R"({"remember":"a.b"})");
+        QTest::newRow("archive sans liste") << QByteArray(R"({"archive":"x"})");
+    }
+
+    void badNewStepsAreRefused()
+    {
+        QFETCH(QByteArray, step);
+        UiScenario s;
+        QString error;
+        QVERIFY(!parseUiScenario(R"({"format":"actcraft-scenario/1","name":"x","steps":[)" + step + "]}", s, error));
+        QVERIFY(error.startsWith(QStringLiteral("étape 1")));
+    }
+
+    void fixtureWritesAThreePageDocument()
+    {
+        QTemporaryDir dir;
+        QString error;
+        const QString path = dir.filePath(QStringLiteral("f.actcraft"));
+        QVERIFY2(buildFixture(QStringLiteral("trois-pages"), path, error), qPrintable(error));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const formats::DecodeResult r = formats::decodeActcraft(file.readAll());
+        QVERIFY(r.ok);
+        QCOMPARE(r.document.pageCount(), std::size_t{3});
+        QCOMPARE(r.document.resources().size(), std::size_t{1});
+        QVERIFY(!buildFixture(QStringLiteral("inconnue"), path, error));
+    }
+```
+
+  et un cas joué sur la fenêtre d'essai du fichier (`tests/data/uiscenario/fenetre.qml`) : `rememberThenExpect` —
+  `{"remember":"window.width","as":"l"}` puis `{"expect":"window.width","value":"${l}"}` → `MEMO l=…` puis
+  `LU window.width=… OK` ; et `eventLoopProbeMeasures` — `watchEventLoop`, `wait` 100, `maxEventLoopGapMs` 1000 →
+  ligne `BOUCLE max=` suivie d'un nombre, `OK`. Includes : `<actcraft/bench/fixtures.h>`,
+  `<actcraft/formats/nativefile.h>`, `<QTemporaryDir>`, `<QFile>`.
+
+- [ ] **Étape 2 : constater le rouge.** Commande ciblée, motif `tst_bench_uiscenario` → `error`
+  (`UiStepKind::Fixture` inconnu).
+
+- [ ] **Étape 3 : les fixtures.** Créer `bench/include/actcraft/bench/fixtures.h` :
+
+```cpp
+#pragma once
+
+#include <QString>
+
+namespace actcraft::bench {
+
+// Documents de scénario (DA8), écrits avant d'être ouverts : aucun binaire commité. « trois-pages » (S5) : page 1
+// vide, page 2 rectangle bleu et texte « Bonjour », page 3 image rouge et blanche. Faux et `error` si le nom est
+// inconnu ou l'écriture impossible.
+bool buildFixture(const QString& name, const QString& path, QString& error);
+
+} // namespace actcraft::bench
+```
+
+  Créer `bench/src/fixtures.cpp` :
+
+```cpp
+#include <actcraft/bench/fixtures.h>
+#include <actcraft/core/document.h>
+#include <actcraft/formats/nativefile.h>
+#include <actcraft/formats/urlio.h>
+
+#include <QBuffer>
+#include <QImage>
+#include <QPainter>
+#include <QUrl>
+
+namespace actcraft::bench {
+
+namespace {
+
+QByteArray redAndWhitePng()
+{
+    QImage image(64, 64, QImage::Format_ARGB32);
+    image.fill(Qt::white);
+    QPainter p(&image);
+    p.fillRect(QRect(0, 0, 32, 64), Qt::red);
+    p.end();
+    QByteArray png;
+    QBuffer buffer(&png);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "PNG");
+    return png;
+}
+
+core::Document threePages()
+{
+    std::vector<core::Page> pages(3);
+    core::Shape rect;
+    rect.kind = core::ShapeKind::Rectangle;
+    rect.bounds = {200, 200, 300, 200};
+    rect.fill = 0xFF1E88E5u;
+    core::PageObject shape = rect;
+    shape.common.id = 1;
+    pages[1].objects.push_back(shape);
+    core::Text text;
+    text.bounds = {600, 200, 300, 80};
+    text.html = "<p style=\"font-size:48px; color:#000000\">Bonjour</p>";
+    core::PageObject textObject = text;
+    textObject.common.id = 2;
+    pages[1].objects.push_back(textObject);
+    const QByteArray png = redAndWhitePng();
+    core::ImageObject image;
+    image.bounds = {0, 0, 64, 64};
+    image.sourceWidth = 64;
+    image.sourceHeight = 64;
+    image.resource = core::sha256Hex(png);
+    core::PageObject imageObject = image;
+    imageObject.common.id = 3;
+    imageObject.common.transform = core::compose(core::scaling(4, 4), core::translation(300, 200));
+    pages[2].objects.push_back(imageObject);
+    core::Document document(std::move(pages));
+    document.addResource(png, "png");
+    document.setTitle("Trois pages");
+    return document;
+}
+
+} // namespace
+
+bool buildFixture(const QString& name, const QString& path, QString& error)
+{
+    core::Document document;
+    if (name == QLatin1String("trois-pages")) {
+        document = threePages();
+    } else {
+        error = QStringLiteral("fixture inconnue « %1 »").arg(name);
+        return false;
+    }
+    const QByteArray archive = formats::encodeActcraft(document, {}, &error);
+    return !archive.isEmpty() && formats::writeUrl(QUrl::fromLocalFile(path), archive, &error);
+}
+
+} // namespace actcraft::bench
+```
+
+  Dans `bench/CMakeLists.txt`, ajouter `include/actcraft/bench/fixtures.h` et `src/fixtures.cpp` aux `SOURCES` de
+  `actcraft_benchui`, et `ActCraft::formats` à ses `DEPENDS` (le module `benchui` n'est jamais livré).
+
+- [ ] **Étape 4 : les étapes du joueur.** Dans `uiscenario.h` : ajouter à la fin de `UiStepKind`
+  `Fixture, WaitFor, WatchEventLoop, MaxEventLoopGap, Remember, ArchiveContains` (commentaires JSON comme les autres) ;
+  à `UiStep`, `QString path;` et `QStringList values;` ; à `UiScenarioPlayer`, membres privés
+  `QHash<QString, QString> m_memory;`, `QElapsedTimer m_loopClock;`, `QTimer* m_loopTimer = nullptr;`,
+  `qint64 m_loopLast = 0;`, `qint64 m_loopMax = 0;` et la méthode `QString expand(const QString& text) const;`.
+  Mettre à jour le commentaire de classe (liste des lignes de rapport). Dans `uiscenario.cpp`, `parseStep` gagne :
+
+```cpp
+    if (o.contains(QStringLiteral("fixture"))) {
+        step.kind = UiStepKind::Fixture;
+        step.name = o.value(QStringLiteral("fixture")).toString();
+        step.path = o.value(QStringLiteral("path")).toString();
+        if (step.path.isEmpty() || step.name != QLatin1String("trois-pages")) {
+            why = QStringLiteral("fixture invalide (nom connu et path)");
+            return false;
+        }
+        return true;
+    }
+    if (o.contains(QStringLiteral("waitFor"))) {
+        step.kind = UiStepKind::WaitFor;
+        step.ms = o.value(QStringLiteral("timeoutMs")).toInt(10000);
+        if (!splitTarget(o.value(QStringLiteral("waitFor")).toString(), step.target, step.property) ||
+            !o.contains(QStringLiteral("value"))) {
+            why = QStringLiteral("attente invalide (waitFor « objet.propriété », value)");
+            return false;
+        }
+        step.value = jsonText(o.value(QStringLiteral("value")));
+        return true;
+    }
+    if (o.contains(QStringLiteral("watchEventLoop"))) {
+        step.kind = UiStepKind::WatchEventLoop;
+        return true;
+    }
+    if (o.contains(QStringLiteral("maxEventLoopGapMs"))) {
+        step.kind = UiStepKind::MaxEventLoopGap;
+        step.ms = o.value(QStringLiteral("maxEventLoopGapMs")).toInt(-1);
+        if (step.ms <= 0) {
+            why = QStringLiteral("seuil de boucle invalide");
+            return false;
+        }
+        return true;
+    }
+    if (o.contains(QStringLiteral("remember"))) {
+        step.kind = UiStepKind::Remember;
+        step.name = o.value(QStringLiteral("as")).toString();
+        if (!splitTarget(o.value(QStringLiteral("remember")).toString(), step.target, step.property) ||
+            step.name.isEmpty()) {
+            why = QStringLiteral("mémoire invalide (remember « objet.propriété », as)");
+            return false;
+        }
+        return true;
+    }
+    if (o.contains(QStringLiteral("archive"))) {
+        step.kind = UiStepKind::ArchiveContains;
+        step.path = o.value(QStringLiteral("archive")).toString();
+        for (const QJsonValue& v : o.value(QStringLiteral("contains")).toArray()) {
+            step.values << v.toString();
+        }
+        if (step.path.isEmpty() || step.values.isEmpty()) {
+            why = QStringLiteral("archive invalide (archive, contains)");
+            return false;
+        }
+        return true;
+    }
+```
+
+  (avant la ligne `why = QStringLiteral("étape inconnue");`). `expand` remplace `${SORTIE}` par `m_outputDir`,
+  `${SAMPLES}` par `qEnvironmentVariable("ACTCRAFT_SAMPLES_DIR")` (vide → l'étape échoue avec
+  `ECHEC (ACTCRAFT_SAMPLES_DIR absent)`), puis chaque `${nom}` de `m_memory`. `runStep` l'applique à l'argument textuel
+  d'une commande (`step.argument` de type chaîne), à `step.path` et à `step.value` (étapes `Expect` et `WaitFor`), et
+  traite les nouvelles étapes :
+
+```cpp
+    case UiStepKind::Fixture: {
+        QString error;
+        const QString path = expand(step.path);
+        const bool ok = buildFixture(step.name, path, error);
+        report << (ok ? QStringLiteral("FIXTURE %1 %2 OK").arg(step.name, path)
+                      : QStringLiteral("FIXTURE %1 ECHEC (%2)").arg(step.name, error));
+        return ok;
+    }
+    case UiStepKind::WaitFor: {
+        QObject* target = find(step.target);
+        const QString expected = expand(step.value);
+        const bool ok = target && waitUntil([&] {
+            return propertyText(target->property(step.property.toUtf8().constData())) == expected;
+        }, step.ms);
+        report << QStringLiteral("ATTENTE %1.%2=%3 %4")
+                      .arg(step.target, step.property, expected, ok ? QStringLiteral("OK") : QStringLiteral("ECHEC"));
+        return ok;
+    }
+    case UiStepKind::WatchEventLoop: {
+        delete m_loopTimer;
+        m_loopTimer = new QTimer;
+        m_loopTimer->setInterval(5);
+        m_loopClock.start();
+        m_loopLast = 0;
+        m_loopMax = 0;
+        QObject::connect(m_loopTimer, &QTimer::timeout, m_loopTimer, [this] {
+            const qint64 now = m_loopClock.elapsed();
+            m_loopMax = std::max(m_loopMax, now - m_loopLast);
+            m_loopLast = now;
+        });
+        m_loopTimer->start();
+        report << QStringLiteral("BOUCLE sonde démarrée");
+        return true;
+    }
+    case UiStepKind::MaxEventLoopGap: {
+        if (!m_loopTimer) {
+            report << QStringLiteral("BOUCLE ECHEC (sonde non démarrée)");
+            return false;
+        }
+        m_loopTimer->stop();
+        const qint64 tail = m_loopClock.elapsed() - m_loopLast;
+        m_loopMax = std::max(m_loopMax, tail);
+        delete m_loopTimer;
+        m_loopTimer = nullptr;
+        const bool ok = m_loopMax <= step.ms;
+        report << QStringLiteral("BOUCLE max=%1 ms %2")
+                      .arg(m_loopMax)
+                      .arg(ok ? QStringLiteral("OK") : QStringLiteral("ECART (seuil %1 ms)").arg(step.ms));
+        return ok;
+    }
+    case UiStepKind::Remember: {
+        QObject* target = find(step.target);
+        if (!target) {
+            report << QStringLiteral("MEMO %1 ECHEC (objet %2 absent)").arg(step.name, step.target);
+            return false;
+        }
+        const QString value = propertyText(target->property(step.property.toUtf8().constData()));
+        m_memory.insert(step.name, value);
+        report << QStringLiteral("MEMO %1=%2").arg(step.name, value);
+        return true;
+    }
+    case UiStepKind::ArchiveContains: {
+        const QString path = expand(step.path);
+        QFile file(path);
+        const QStringList names = file.open(QIODevice::ReadOnly) ? formats::archiveEntryNames(file.readAll())
+                                                                  : QStringList();
+        QStringList missing;
+        for (const QString& wanted : step.values) {
+            if (std::none_of(names.cbegin(), names.cend(),
+                             [&wanted](const QString& n) { return n.startsWith(wanted); })) {
+                missing << wanted;
+            }
+        }
+        report << (missing.isEmpty() ? QStringLiteral("ARCHIVE %1 OK").arg(path)
+                                     : QStringLiteral("ARCHIVE %1 ECART (manque %2)").arg(path, missing.join(u", ")));
+        return missing.isEmpty();
+    }
+```
+
+  `UiScenarioPlayer::~UiScenarioPlayer` détruit `m_loopTimer`. Le minuteur mesure les intervalles **entre deux tours de
+  la boucle du fil principal** : un enregistrement fait sur le fil principal les allongerait au-delà du seuil (écart 1
+  de ce plan). Pour l'étape `Expect`, appliquer `expand` à `step.value` avant la comparaison.
+
+- [ ] **Étape 5 : le scénario S5.** Créer `bench/scenarios/aller-retour-natif.json` :
+
+```json
+{
+  "format": "actcraft-scenario/1",
+  "name": "aller-retour-natif",
+  "description": "S5 : un document de 3 pages (trait, forme, texte, image) enregistré en .actcraft hors du fil principal, fermé, rouvert : même empreinte ; l'archive contient document.json, resources/, thumbnails/.",
+  "steps": [
+    {"waitReady": true},
+    {"fixture": "trois-pages", "path": "${SORTIE}/source.actcraft"},
+    {"command": "file.open", "argument": "${SORTIE}/source.actcraft"},
+    {"waitFor": "documentController.busy", "value": false},
+    {"expect": "pageIndicator.text", "value": "1 / 3"},
+    {"waitReady": true},
+    {"stroke": [[200, 600], [600, 600]], "pressure": 0.5},
+    {"waitReady": true},
+    {"expect": "documentController.modified", "value": true},
+    {"watchEventLoop": true},
+    {"command": "file.save-as", "argument": "${SORTIE}/copie.actcraft"},
+    {"waitFor": "documentController.busy", "value": false},
+    {"maxEventLoopGapMs": 25},
+    {"expect": "documentController.modified", "value": false},
+    {"remember": "documentController.fingerprint", "as": "avant"},
+    {"archive": "${SORTIE}/copie.actcraft", "contains": ["document.json", "resources/", "thumbnails/page-1.png", "thumbnails/page-3.png"]},
+    {"command": "file.close"},
+    {"waitReady": true},
+    {"expect": "pageIndicator.text", "value": "1 / 1"},
+    {"command": "file.open", "argument": "${SORTIE}/copie.actcraft"},
+    {"waitFor": "documentController.busy", "value": false},
+    {"expect": "documentController.fingerprint", "value": "${avant}"},
+    {"expect": "pageIndicator.text", "value": "1 / 3"},
+    {"waitReady": true},
+    {"checkPixel": "trait-relu", "at": [400, 600], "color": "#000000", "tolerance": 60},
+    {"capture": "relu-page-1"},
+    {"command": "page.next"},
+    {"waitReady": true},
+    {"checkPixel": "rectangle-relu", "at": [350, 300], "color": "#1E88E5", "tolerance": 30},
+    {"capture": "relu-page-2"},
+    {"command": "page.next"},
+    {"waitReady": true},
+    {"checkPixel": "image-relue", "at": [340, 300], "color": "#FF0000", "tolerance": 40},
+    {"capture": "relu-page-3"}
+  ]
+}
+```
+
+  (Le trait du stylo est noir par défaut ; l'image de 64 px agrandie 4 fois en (300, 200) est rouge sur sa moitié
+  gauche : (340, 300) y tombe.) Ajouter à `tests/bench.cmake`, sur le modèle de `tst_captures_premiers_pas` :
+
+```cmake
+# Scénario d'acceptation S5 (aller-retour natif), hors écran en rendu logiciel.
+add_test(NAME tst_captures_aller_retour_natif
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/aller-retour-natif.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-aller-retour-natif)
+set_tests_properties(tst_captures_aller_retour_natif PROPERTIES
+    TIMEOUT 180
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+```
+
+- [ ] **Étape 6 : vert ciblé.** Commande ciblée, motif `tst_bench_uiscenario|tst_captures_` : `100% tests passed`. Si
+  `BOUCLE` dépasse 25 ms en debug hors écran, rejouer en release (`-Preset release`, mesures de fluidité en release
+  seulement, profil) ; un dépassement en release est un défaut à rapporter (enregistrement pas assez déporté), pas un
+  seuil à relever.
+
+- [ ] **Étape 7 : preuve et captures.** `format.ps1`, preuve de tâche (N ≥ 61), commande de preuve visuelle, capture
+  décrite.
+
+- [ ] **Étape 8 : commit.**
+
+```powershell
+git -C <worktree> add bench/include/actcraft/bench/uiscenario.h bench/src/uiscenario.cpp bench/include/actcraft/bench/fixtures.h bench/src/fixtures.cpp bench/CMakeLists.txt bench/scenarios/aller-retour-natif.json tests/bench.cmake tests/tst_bench_uiscenario.cpp
+git -C <worktree> commit -m "Captures : fixtures, attente, sonde de boucle, mémoire, archive ; scénario S5 aller-retour natif" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+```
+
+
+<a id="tache-l2-t21"></a>
+### Tâche L2-T21 — S4 : miniatures comparées aux `.thm`, scénarios `ouvrir-flipchart-synthetique` (CI) et `local/ouvrir-flipchart`
+
+**Objectif.** S4 : le rendu de chaque page d'un `.flipchart`, réduit à 80 × 60, est comparé à sa miniature `.thm`
+d'origine ; **écart médian ≤ 2,0 sur 255** et au plus 3 pages au-dessus de 7 (comme la référence,
+`format-flipchart.md` § 9). Mesure écrite par nous (écart 3 du plan) : les deux images converties en RGB 8 bits,
+ramenées à 80 × 60 par `QImage::scaled(…, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)`, écart = moyenne des
+|a − b| sur les trois canaux et tous les pixels ; rendu par `render::renderPage` (peintre partagé, images décodées par
+`decodeImages`). L'outil `actcraft-flipchart-dump` gagne :
+
+- `--miniatures <fichier>` : compare les pages d'un paperboard ; lignes `PAGE <n> écart <e>` puis
+  `MINIATURES OK : <n> pages, médiane <m>, <k> au-dessus de 7` (code 0 si médiane ≤ 2,0 et k ≤ 3) ou
+  `MINIATURES EN ECHEC : …` (code 1) ; pages sans `.thm` ignorées et comptées à part ;
+- `--samples <dossier>` : même chose sur tous les `.flipchart` du dossier (124 pages attendues), code **77** si le
+  dossier est absent ou vide (test sauté) ;
+- `--ecrire-synthetique <fichier>` : écrit `fctest::sampleFlipchart` avec des miniatures rendues par notre peintre
+  (JPEG 320 × 240), `SYNTHETIQUE OK : <fichier>` — chemin prouvé en CI (fidélité seulement en local).
+
+Le joueur gagne la fixture `flipchart-synthetique` (même paperboard, pour le scénario CI). Scénarios :
+`bench/scenarios/ouvrir-flipchart-synthetique.json` (CI : ouvre la fixture, « 1 / 2 », bandeau d'un avertissement,
+pixels du fond dégradé et de la forme verte, capture) et `bench/scenarios/local/ouvrir-flipchart.json` (local : la
+fenêtre est lancée avec `--ouvrir "<samples>\tri des formes.flipchart"`, l'indicateur montre « 1 / N » avec N relevé
+par L2-T10, capture de chaque page). `captures.ps1` gagne `-Ouvrir <fichier>` (passé en `--ouvrir`).
+
+**Fichiers.**
+- Créer : `bench/scenarios/ouvrir-flipchart-synthetique.json`, `bench/scenarios/local/ouvrir-flipchart.json`
+- Modifier : `bench/flipchart/main.cpp`, `bench/CMakeLists.txt`, `bench/src/fixtures.cpp`,
+  `bench/src/uiscenario.cpp` (nom de fixture accepté par `parseStep`), `scripts/captures.ps1`, `tests/bench.cmake`
+
+**Test et commande bornée.** Vert : forme bornée, N ≥ 66, `TESTS OK`, `tst_flipchart_miniatures_synthetique .*Passed`,
+`tst_captures_ouvrir_flipchart_synthetique .*Passed` (`tst_flipchart_miniatures_samples` : « Skipped » en CI, Passed
+en local). Local, S4 complet :
+
+```powershell
+pwsh -NoProfile -Command "Set-Location '<worktree>'; . ./scripts/dev-env.ps1; ./build/debug/actcraft-flipchart-dump.exe --samples 'C:\Users\JeromeDenis\REA - Activinspire\samples' > .tmp/miniatures.txt 2>&1; Select-String -Path .tmp/miniatures.txt -Pattern 'MINIATURES (OK|EN ECHEC)' | Select-Object -Last 1"
+pwsh -NoProfile -Command "Set-Location '<worktree>'; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario local/ouvrir-flipchart -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Ouvrir 'C:\Users\JeromeDenis\REA - Activinspire\samples\tri des formes.flipchart' > .tmp/captures.txt 2>&1; Select-String -Path .tmp/captures.txt -Pattern '^(LU|PIXEL|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16"
+```
+
+Attendu : `MINIATURES OK : 124 pages, médiane <m ≤ 2,0>, <k ≤ 3> au-dessus de 7` ; `LU pageIndicator.text=1 / N OK`,
+`CAPTURES OK`. Décrire deux captures (page 1, une page à images).
+
+**Interdits.** Aucun octet de `samples/` dans le dépôt, les tests CI ou les captures commitées (sorties sous `.tmp/`).
+Ne pas relever les seuils : une médiane au-dessus de 2,0 se corrige dans le peintre (L2-T11) ou le lecteur, par un
+correctif que l'orchestrateur ouvre — la tâche rapporte les pages fautives (numéro, écart, capture côte à côte sous
+`.tmp/`).
+
+**Terminé quand.** Preuve verte en CI et en local (ou écarts rapportés), commit fait.
+
+**Étapes.**
+
+- [ ] **Étape 1 : écrire les tests ctest (rouges).** Ajouter à `tests/bench.cmake` :
+
+```cmake
+# S4 en CI (paperboard synthétique, miniatures rendues par notre peintre) et en local (samples/, sauté sinon).
+set(_flipchart_synthetic ${CMAKE_BINARY_DIR}/flipchart-synthetique.flipchart)
+add_test(NAME tst_flipchart_ecrire_synthetique
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --ecrire-synthetique ${_flipchart_synthetic})
+set_tests_properties(tst_flipchart_ecrire_synthetique PROPERTIES
+    FIXTURES_SETUP flipchart_synthetic ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "SYNTHETIQUE OK")
+add_test(NAME tst_flipchart_miniatures_synthetique
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_synthetic})
+set_tests_properties(tst_flipchart_miniatures_synthetique PROPERTIES
+    FIXTURES_REQUIRED flipchart_synthetic ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES OK : 2 pages")
+add_test(NAME tst_flipchart_miniatures_samples
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --samples "$ENV{ACTCRAFT_SAMPLES_DIR}")
+set_tests_properties(tst_flipchart_miniatures_samples PROPERTIES
+    SKIP_RETURN_CODE 77 TIMEOUT 600 ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "MINIATURES OK")
+add_test(NAME tst_captures_ouvrir_flipchart_synthetique
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/ouvrir-flipchart-synthetique.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-ouvrir-flipchart)
+set_tests_properties(tst_captures_ouvrir_flipchart_synthetique PROPERTIES
+    TIMEOUT 120 ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK" FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+```
+
+  `$ENV{ACTCRAFT_SAMPLES_DIR}` est lu à la configuration : vide en CI → l'outil reçoit `""` → code 77 → sauté.
+  Lancer la commande ciblée (`tst_flipchart_|tst_captures_ouvrir`) : échecs (options inconnues).
+
+- [ ] **Étape 2 : l'outil.** Dans `bench/flipchart/main.cpp`, avant le traitement actuel, aiguiller sur les options
+  (le chemin existant reste le défaut) ; l'outil lie désormais `ActCraft::render` et `Qt6::Gui`
+  (`target_link_libraries(actcraft-flipchart-dump PRIVATE ActCraft::formats ActCraft::render Qt6::Gui)`,
+  `target_include_directories(actcraft-flipchart-dump PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)` pour l'écrivain
+  synthétique), et crée un `QGuiApplication` (texte) au lieu du `QCoreApplication`. Code de la comparaison :
+
+```cpp
+// Écart moyen (0 à 255) entre deux images ramenées à 80 × 60 (mesure de S4, L2-T21).
+double thumbnailGap(const QImage& rendered, const QImage& thumbnail)
+{
+    const QImage a = rendered.convertToFormat(QImage::Format_RGB888)
+                         .scaled(80, 60, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    const QImage b = thumbnail.convertToFormat(QImage::Format_RGB888)
+                         .scaled(80, 60, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    double total = 0;
+    for (int y = 0; y < 60; ++y) {
+        const uchar* la = a.constScanLine(y);
+        const uchar* lb = b.constScanLine(y);
+        for (int x = 0; x < 80 * 3; ++x) {
+            total += std::abs(int(la[x]) - int(lb[x]));
+        }
+    }
+    return total / (80.0 * 60.0 * 3.0);
+}
+
+// Écarts de toutes les pages à miniature d'un paperboard ; `withoutThumbnail` compte les autres.
+std::vector<double> pageGaps(const QByteArray& data, int& withoutThumbnail, QString& error)
+{
+    const auto r = actcraft::formats::flipchart::readFlipchart(data);
+    if (!r.ok) {
+        error = r.error;
+        return {};
+    }
+    const actcraft::render::DecodedImages images = actcraft::render::decodeImages(r.document);
+    std::vector<double> gaps;
+    for (std::size_t i = 0; i < r.document.pageCount(); ++i) {
+        const QImage thumbnail = QImage::fromData(r.thumbnails[i]);
+        if (thumbnail.isNull()) {
+            ++withoutThumbnail;
+            continue;
+        }
+        const actcraft::core::Page& page = r.document.page(i);
+        const double scale = page.width > 0 ? thumbnail.width() / page.width : 1.0;
+        actcraft::render::PaintOptions options;
+        options.thumbnail = true;
+        gaps.push_back(thumbnailGap(actcraft::render::renderPage(page, images.lookup(), scale, options), thumbnail));
+    }
+    return gaps;
+}
+```
+
+  `--miniatures` et `--samples` impriment `PAGE <fichier>:<n> écart <e>` par page (deux décimales), puis la synthèse :
+  médiane (moyenne des deux valeurs centrales si le nombre est pair), nombre au-dessus de 7, verdict (médiane ≤ 2,0 et
+  au plus 3 au-dessus de 7) ; `--samples` trie les fichiers par nom et rend 77 si aucun `.flipchart`.
+  `--ecrire-synthetique` : lire `fctest::sampleFlipchart()`, rendre ses deux pages par `renderPage` (320 px de large,
+  `PaintOptions::thumbnail`), les encoder en JPEG (`QImage::save(&buffer, "JPG", 90)`), réécrire le paperboard par
+  `fctest::sampleFlipchart({jpeg1, jpeg2})` et l'écrire ; `SYNTHETIQUE OK : <chemin>`.
+
+- [ ] **Étape 3 : la fixture et les scénarios.** Dans `bench/src/fixtures.cpp`, ajouter la fixture
+  `flipchart-synthetique` (octets de `fctest::sampleFlipchart()` écrits tels quels par `formats::writeUrl` ;
+  `bench/CMakeLists.txt` : `target_include_directories(actcraft_benchui PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)`),
+  et élargir la vérification de nom de `parseStep` (`uiscenario.cpp`) aux deux fixtures. Créer
+  `bench/scenarios/ouvrir-flipchart-synthetique.json` :
+
+```json
+{
+  "format": "actcraft-scenario/1",
+  "name": "ouvrir-flipchart-synthetique",
+  "description": "S4 en CI : un paperboard .flipchart écrit par nous s'ouvre ; deux pages, avertissement affiché sans bloquer, fond dégradé et forme verte visibles ; document sans fichier.",
+  "steps": [
+    {"waitReady": true},
+    {"fixture": "flipchart-synthetique", "path": "${SORTIE}/cours.flipchart"},
+    {"command": "file.open", "argument": "${SORTIE}/cours.flipchart"},
+    {"waitFor": "documentController.busy", "value": false},
+    {"expect": "pageIndicator.text", "value": "1 / 2"},
+    {"expect": "documentController.title", "value": "cours"},
+    {"expect": "messageBanner.visible", "value": true},
+    {"waitReady": true},
+    {"checkPixel": "forme-verte", "at": [340, 230], "color": "#008000", "tolerance": 40},
+    {"capture": "page-1"},
+    {"command": "page.next"},
+    {"waitReady": true},
+    {"capture": "page-2"}
+  ]
+}
+```
+
+  (La forme du paperboard synthétique est translatée en (300, 200), 80 × 60, verte : (340, 230) est dedans. Si le
+  dessin de la forme la recouvre d'une étiquette ou du trait, ajuster le point **dans** la forme, pas la tolérance.)
+  Créer `bench/scenarios/local/ouvrir-flipchart.json` : `waitReady`, `waitFor documentController.busy=false`,
+  `expect pageIndicator.text = "1 / N"` (N = nombre de pages de « tri des formes », relevé par L2-T10 étape 7),
+  `capture` de la page 1, puis `page.next` + `waitReady` + `capture` pour chaque page (N − 1 fois).
+
+  Dans `scripts/captures.ps1` : paramètre `[string]$Ouvrir = ''` ; s'il n'est pas vide, ajouter
+  `'--ouvrir', $Ouvrir` aux arguments d'`actcraft-captures` ; `actcraft-captures` les passe déjà à
+  `parseStartupOptions` (L2-T19) : vérifier qu'il ne prend pas `--ouvrir` pour une option inconnue. Documenter
+  `-Ouvrir` dans l'en-tête du script.
+
+- [ ] **Étape 4 : vert ciblé, puis S4 local.** Commande ciblée (`tst_flipchart_|tst_captures_`) : `100% tests
+  passed` (`tst_flipchart_miniatures_samples` « Skipped » si la variable n'était pas posée à la configuration). Puis
+  les deux commandes locales de la section « Test et commande bornée » ; noter médiane, nombre au-dessus de 7, pages
+  sans miniature ; décrire les captures.
+
+- [ ] **Étape 5 : preuve.** `format.ps1`, preuve de tâche (N ≥ 66).
+
+- [ ] **Étape 6 : commit.**
+
+```powershell
+git -C <worktree> add bench/flipchart/main.cpp bench/CMakeLists.txt bench/src/fixtures.cpp bench/src/uiscenario.cpp bench/scenarios/ouvrir-flipchart-synthetique.json bench/scenarios/local/ouvrir-flipchart.json scripts/captures.ps1 tests/bench.cmake
+git -C <worktree> commit -m "S4 : miniatures comparées aux .thm (outil), scénarios d'ouverture d'un .flipchart (CI synthétique, local)" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+```
+
+
+<a id="tache-l2-t22"></a>
+### Tâche L2-T22 — Android : Ouvrir et Enregistrer par `content://` sur l'émulateur, sinon commandes de fichier retirées de l'APK
+
+**Objectif.** Décision 17 et S5 (Android) : sur l'émulateur, enregistrer puis rouvrir le même document par une URL
+`content://` donne la **même empreinte**. Chemin : APK `x86_64` construit (`paquet-android.ps1`), installé ; un trait
+au doigt (`adb shell input swipe`) ; « Enregistrer sous » par le raccourci Ctrl+Maj+S
+(`adb shell input keycombination 113 59 47`) → sélecteur du système (DocumentsUI, `ACTION_CREATE_DOCUMENT`), bouton
+d'enregistrement trouvé par `adb shell uiautomator dump` et touché par `adb shell input tap` ; journal
+`ACTCRAFT ENREGISTRE <empreinte>` lu par `adb logcat -d -s actcraft.document` (catégorie Qt) ; Ctrl+W, puis Ctrl+O
+(`keycombination 113 51`, `113 43`) → sélecteur → le fichier touché → `ACTCRAFT OUVERT <empreinte>` ; les deux
+empreintes égales → `ANDROID FICHIERS OK`. L'émulateur est démarré par le script **sans fenêtre** (`-no-window`,
+`-gpu host`, piège SwiftShader du lot 1) et arrêté par son PID ; aucun démon Gradle laissé vivant.
+
+**Repli (décision 17)** : si, après trois essais, le chemin ne peut être prouvé (sélecteur non pilotable, écriture
+refusée, URL inutilisable), les commandes `file.open`, `file.save` et `file.save-as` sont déclarées absentes
+d'Android (`"platforms": ["windows", "macos", "linux"]` dans `actions/data/commands.json`) jusqu'au lot 11 ; preuve :
+`APK OK` puis capture (`adb exec-out screencap -p`) du menu Fichier de l'APK sans « Ouvrir… » ni « Enregistrer » ;
+cause écrite dans `docs/verifications/2026-10-15-android-fichiers.md` et au rapport (porte de fin du lot 2).
+
+**Fichiers.**
+- Créer : `scripts/essai-android-fichiers.ps1`, `docs/verifications/2026-10-15-android-fichiers.md`
+- Modifier (repli seulement) : `actions/data/commands.json`
+
+**Test et commande bornée.**
+
+```powershell
+pwsh -NoProfile -Command "Set-Location '<worktree>'; pwsh -NoProfile -File ./scripts/paquet-android.ps1 > .tmp/apk.txt 2>&1; Select-String -Path .tmp/apk.txt -Pattern 'APK (OK|EN ECHEC)' | Select-Object -Last 1"
+pwsh -NoProfile -Command "Set-Location '<worktree>'; pwsh -NoProfile -File ./scripts/essai-android-fichiers.ps1 -Apk build/paquet/ActCraft-0.1.0-x86_64.apk > .tmp/fichiers.txt 2>&1; Select-String -Path .tmp/fichiers.txt -Pattern 'ENREGISTRE|OUVERT|ANDROID FICHIERS (OK|EN ECHEC)' | Select-Object -Last 3"
+```
+
+Attendu : `APK OK`, deux lignes d'empreinte égales, `ANDROID FICHIERS OK` (ou le repli et sa preuve). Le numéro de
+version de l'APK est celui du `CMakeLists.txt` au moment de la tâche (0.1.0 ; 0.2.0 après la clôture).
+
+**Interdits.** L'émulateur et la chaîne Android sont ceux de L1-T2 (`scripts/dev-env-android.ps1`, `~/.tools`) :
+aucune installation nouvelle sans le rapporter. Rien n'est poussé. Aucune donnée réelle sur l'émulateur. Ne jamais
+arrêter un processus par son nom. Pas de nouvelle permission Android (décision 28 : le sélecteur suffit).
+
+**Terminé quand.** `ANDROID FICHIERS OK` (ou repli prouvé), note de vérification écrite, commit fait, émulateur et
+démons arrêtés (PID au rapport).
+
+**Étapes.**
+
+- [ ] **Étape 1 : écrire le script.** Créer `scripts/essai-android-fichiers.ps1`, sur le modèle de
+  `scripts/essai-android.ps1` (relire ce script : démarrage de l'émulateur, attente du démarrage, `adb` borné,
+  arrêt par PID, lignes `… EN ECHEC` sur toute erreur, y compris imprévue) :
+
+```powershell
+# S5 sous Android (décision 17) : enregistrer puis rouvrir par content:// sur l'émulateur, empreintes égales.
+# Usage : pwsh -NoProfile -File ./scripts/essai-android-fichiers.ps1 -Apk <…-x86_64.apk> [-Avd <nom>]
+# Dernière ligne : « ANDROID FICHIERS OK » (0) ou « ANDROID FICHIERS EN ECHEC : <raison> » (1).
+param([Parameter(Mandatory)][string]$Apk, [string]$Avd = '')
+$ErrorActionPreference = 'Stop'
+Set-Location (Join-Path $PSScriptRoot '..')
+. "$PSScriptRoot/dev-env-android.ps1"
+$paquet = 'io.github.jejeasterix.actcraft'
+$emulateur = $null
+function Stop-Essai([string]$raison) {
+    if ($emulateur) { Stop-Process -Id $emulateur.Id -Force -ErrorAction SilentlyContinue }
+    Write-Output "ANDROID FICHIERS EN ECHEC : $raison"
+    exit 1
+}
+function Invoke-Adb([string[]]$arguments, [int]$secondes = 30) {
+    $p = Start-Process adb -ArgumentList $arguments -NoNewWindow -PassThru -RedirectStandardOutput .tmp/adb.out -RedirectStandardError .tmp/adb.err
+    if (-not $p.WaitForExit($secondes * 1000)) { Stop-Process -Id $p.Id -Force; Stop-Essai "adb $($arguments -join ' ') : délai dépassé" }
+    return (Get-Content -Raw .tmp/adb.out)
+}
+# Touche le nœud de l'interface Android dont le texte ou l'identifiant correspond (sélecteur du système).
+function Invoke-Toucher([string]$motif) {
+    Invoke-Adb @('shell', 'uiautomator', 'dump', '/sdcard/ui.xml') | Out-Null
+    Invoke-Adb @('pull', '/sdcard/ui.xml', '.tmp/ui.xml') | Out-Null
+    [xml]$ui = Get-Content -Raw .tmp/ui.xml
+    $noeud = $ui.SelectNodes('//node') | Where-Object { $_.text -match $motif -or $_.'resource-id' -match $motif } | Select-Object -First 1
+    if (-not $noeud) { return $false }
+    $b = [regex]::Matches($noeud.bounds, '\d+') | ForEach-Object { [int]$_.Value }
+    Invoke-Adb @('shell', 'input', 'tap', [string](($b[0] + $b[2]) / 2), [string](($b[1] + $b[3]) / 2)) | Out-Null
+    return $true
+}
+function Wait-Journal([string]$motif, [int]$secondes = 30) {
+    $fin = (Get-Date).AddSeconds($secondes)
+    while ((Get-Date) -lt $fin) {
+        $ligne = (Invoke-Adb @('logcat', '-d')) -split "`n" | Where-Object { $_ -match $motif } | Select-Object -Last 1
+        if ($ligne) { return $ligne }
+        Start-Sleep -Milliseconds 500
+    }
+    return $null
+}
+try {
+    New-Item -ItemType Directory -Force .tmp | Out-Null
+    # … démarrage de l'émulateur comme essai-android.ps1 ($emulateur = Start-Process … -PassThru), attente de
+    #     sys.boot_completed, adb install -r $Apk, adb logcat -c, am start du paquet, attente du processus …
+    Invoke-Adb @('shell', 'input', 'swipe', '600', '700', '1000', '760', '400') | Out-Null
+    Invoke-Adb @('shell', 'input', 'keycombination', '113', '59', '47') | Out-Null    # Ctrl+Maj+S
+    Start-Sleep -Seconds 3
+    if (-not (Invoke-Toucher '(?i)^(save|enregistrer)$|android:id/button1')) { Stop-Essai 'bouton d''enregistrement du sélecteur introuvable' }
+    $enregistre = Wait-Journal 'ACTCRAFT ENREGISTRE ([0-9a-f]{16})'
+    if (-not $enregistre) { Stop-Essai 'aucune ligne ACTCRAFT ENREGISTRE' }
+    Write-Output $enregistre
+    Invoke-Adb @('shell', 'input', 'keycombination', '113', '51') | Out-Null           # Ctrl+W
+    Invoke-Adb @('shell', 'input', 'keycombination', '113', '43') | Out-Null           # Ctrl+O
+    Start-Sleep -Seconds 3
+    if (-not (Invoke-Toucher '\.actcraft$')) { Stop-Essai 'fichier enregistré absent du sélecteur' }
+    $ouvert = Wait-Journal 'ACTCRAFT OUVERT ([0-9a-f]{16})'
+    if (-not $ouvert) { Stop-Essai 'aucune ligne ACTCRAFT OUVERT' }
+    Write-Output $ouvert
+    $a = [regex]::Match($enregistre, '[0-9a-f]{16}').Value
+    $b = [regex]::Match($ouvert, '[0-9a-f]{16}').Value
+    if ($a -ne $b) { Stop-Essai "empreintes différentes : $a enregistrée, $b relue" }
+    Stop-Process -Id $emulateur.Id -Force
+    Write-Output 'ANDROID FICHIERS OK'
+    exit 0
+} catch {
+    Stop-Essai $_.Exception.Message
+}
+```
+
+  Les lignes « … démarrage de l'émulateur comme essai-android.ps1 … » se remplacent par le **même code** que
+  `essai-android.ps1` (le recopier, en gardant ses bornes et son arrêt par PID) ; `Start-Sleep` y est permis (script
+  hors du joueur de scénarios). Les intitulés du sélecteur dépendent de la langue de l'image système : le motif
+  accepte l'anglais et le français.
+
+- [ ] **Étape 2 : jouer l'essai.** Les deux commandes de la section « Test et commande bornée ». En cas d'échec,
+  diagnostiquer (capture `adb exec-out screencap -p > .tmp/ecran.png`, `.tmp/ui.xml`), corriger le script, rejouer ;
+  au troisième échec, appliquer le repli.
+
+- [ ] **Étape 3 : la note de vérification.** Écrire `docs/verifications/2026-10-15-android-fichiers.md` : image
+  système et API de l'émulateur, commande jouée, les deux lignes d'empreinte, verdict ; ou, en repli, la cause, la
+  modification de `commands.json`, la ligne `APK OK` et la description de la capture du menu.
+
+- [ ] **Étape 4 : commit.**
+
+```powershell
+git -C <worktree> add scripts/essai-android-fichiers.ps1 docs/verifications/2026-10-15-android-fichiers.md
+git -C <worktree> commit -m "Android : enregistrer et rouvrir par content:// sur l'émulateur (S5)" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+```
+
+  En repli, ajouter `actions/data/commands.json` et écrire « commandes de fichier retirées de l'APK (repli de la
+  décision 17) » dans le message.
+
+
+<a id="tache-l2-t23"></a>
+### Tâche L2-T23 — Banc : scénario « changement de page » ; page fixe sans éclair blanc pendant le décodage
+
+**Objectif.** Revue L1-T9 (« ajouter un scénario de banc “changement de page” : éclair blanc tant que les images ne
+sont pas prêtes ») et S4 (un paperboard réel a des images sur chaque page). Deux volets :
+
+1. **Page fixe** : pendant qu'une nouvelle page décode ses images (`!isReady()`), l'élément **garde ses nœuds
+   précédents** au lieu de ne dessiner qu'un fond blanc, et ne les remplace qu'une fois prêt ; la vue ne redessine
+   son cache qu'à `readyChanged` (déjà le cas). Plus d'éclair blanc, avec ou sans cache.
+2. **Banc** : scénario `page` (complet et court) — sur un document de deux pages générées (graines différentes, 30
+   images chacune, `DocumentController::loadGeneratedPages(2)`), des changements de page à intervalle fixe
+   (`InputKind::Command`, commande `page.next` puis `page.previous`, appelée par `runCommand` au moment prévu) ;
+   mesures habituelles (temps par image, images > 25 ms) ; contrôle de contenu `page_flash` : juste après chaque
+   changement, à l'image suivante, le pixel du témoin de forme (`core::witnesses().shapeRect`, mêmes positions pour
+   toutes les graines) n'est pas blanc. Le verdict reste un **résultat** (décision 35) ; la clôture le compare.
+
+**Fichiers.**
+- Modifier : `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`,
+  `tests/tst_render_fixedpage.cpp`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`,
+  `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`,
+  `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `tests/tst_bench_verdict.cpp`,
+  `scripts/resume-banc.ps1`, `docs/banc.md`
+
+**Test et commande bornée.** Rouge : commande ciblée, motif `tst_render_fixedpage` → échec de
+`keepsTheOldContentUntilTheNewPageIsReady` ; motif `tst_bench_scenarios` → échec de `pageScenarioFlipsPages`. Vert :
+forme bornée, N ≥ 59, `TESTS OK`, `tst_render_fixedpage`, `tst_bench_scenarios`, `tst_bench_result` Passed. Banc
+hors écran : le JSON contient le scénario `page`, `content_check.ok = True`, `page_flash = 0`.
+
+**Interdits.** Ne pas changer les scénarios `stroke`, `zoom`, `scroll` (référence de non-régression). Ne pas poster
+de touches pour changer de page (commande nommée appelée directement : pas de piège de raccourci sous macOS).
+`tst_bench_verdict.cpp` et `tst_bench_result.cpp` ne changent que pour compter le quatrième scénario (raison écrite) ;
+`tst_bench_verdict` reste instable sous charge (piège du lot 1) : le rejouer machine calme.
+
+**Terminé quand.** Preuve verte, JSON du banc joint (avec le scénario `page`), commit fait.
+
+**Étapes.**
+
+- [ ] **Étape 1 : le test de la page fixe.** Dans `tests/tst_render_fixedpage.cpp` :
+
+```cpp
+    void keepsTheOldContentUntilTheNewPageIsReady()
+    {
+        Fixture f;
+        open(f);
+        core::Page first;
+        first.background.fill = core::solidFill(0xFF0000FFu);
+        f.page->setPage(first);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
+        f.page->setPage(core::generatePage(core::kDefaultSeed)); // 30 images à synthétiser : pas prêt tout de suite
+        QVERIFY(!f.page->isReady());
+        waitFrame(f);
+        // Tant que la page suivante n'est pas prête, l'ancienne reste affichée (jamais un fond blanc nu).
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        QVERIFY(!colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
+    }
+```
+
+  Le test du lot 1 qui attendait un fond blanc avant le premier « prêt » d'une page **sans contenu précédent**
+  (`emptyPageIsWhite`) reste vrai : sans nœuds précédents (premier dessin), le fond blanc est dessiné.
+
+- [ ] **Étape 2 : garder l'ancien contenu.** Dans `FixedPageItem::updatePaintNode` (L2-T13/L2-T14), la branche de
+  reconstruction ne vide les nœuds que si la page est prête **ou** s'il n'y a pas encore de contenu :
+
+```cpp
+    if (m_rebuild || !old) {
+        if (!m_ready && old && root->childCount() > 0) {
+            return root; // garder la page précédente jusqu'au prêt (pas d'éclair blanc, L2-T23)
+        }
+        // … reconstruction existante …
+    }
+```
+
+  Après `onImagesReady`, `m_rebuild` vaut vrai : la reconstruction a lieu au dessin suivant. Le crochet
+  `rebuildCount` n'est incrémenté que lors d'une vraie reconstruction (après ce retour anticipé).
+
+- [ ] **Étape 3 : pages générées pour le banc.** Dans `documentcontroller.h`, ajouter
+  `Q_INVOKABLE void loadGeneratedPages(int count);` (« Banc : `count` pages générées, graines `kDefaultSeed + i` ;
+  document propre, page 1 affichée ») et dans le `.cpp` :
+
+```cpp
+void DocumentController::loadGeneratedPages(int count)
+{
+    std::vector<core::Page> pages;
+    for (int i = 0; i < std::max(1, count); ++i) {
+        core::Page page = core::generatePage(core::kDefaultSeed + static_cast<std::uint32_t>(i));
+        // Identifiants uniques dans le document (1 à 300 sur chaque page générée sinon).
+        for (std::size_t j = 0; j < page.objects.size(); ++j) {
+            page.objects[j].common.id = static_cast<core::ObjectId>(i) * 1000 + j + 1;
+        }
+        pages.push_back(std::move(page));
+    }
+    replaceDocument(core::Document(std::move(pages)), QUrl(), QString());
+}
+```
+
+- [ ] **Étape 4 : le scénario de banc.** Dans `scenarios.h`, ajouter à la fin de `InputKind` `Command` ; à
+  `PlannedInput`, `QString command; // InputKind::Command : commande nommée appelée par runCommand` ; déclarer
+  `ScenarioPlan pageScenario(ScenarioSet set);` et mettre à jour le commentaire d'`allScenarios` (« stroke, zoom,
+  scroll, page »). Dans `scenarios.cpp` :
+
+```cpp
+ScenarioPlan pageScenario(ScenarioSet set)
+{
+    ScenarioPlan plan;
+    plan.name = QStringLiteral("page");
+    const int flips = 20 / durationDivisor(set); // complet : 20 changements, court : 4
+    for (int i = 0; i < flips; ++i) {
+        PlannedInput in;
+        in.offsetNs = static_cast<std::int64_t>(i) * 500'000'000; // toutes les 500 ms
+        in.kind = InputKind::Command;
+        in.command = i % 2 == 0 ? QStringLiteral("page.next") : QStringLiteral("page.previous");
+        plan.inputs.push_back(in);
+    }
+    return plan;
+}
+```
+
+  et `allScenarios` rend `{strokeScenario(set), zoomScenario(set), scrollScenario(set), pageScenario(set)}`. Dans
+  `runner.cpp` : avant le scénario `page`, `loadGeneratedPages(2)` sur le contrôleur (trouvé par `objectName`
+  `documentController`) puis attente du prêt ; une entrée `Command` est jouée par
+  `QMetaObject::invokeMethod(window, "runCommand", …)` à son heure (dans la boucle qui poste les entrées, à côté de la
+  molette) ; après la mesure, le contrôle `page_flash` : trois changements, chacun suivi d'un `grabWindow` à la
+  première image rendue (`frameSwapped`), pixel du centre de `witnesses().shapeRect` (converti en coordonnées de
+  fenêtre par la vue) comparé au blanc ; `content_check.page_flash` = nombre de captures blanches, et
+  `content_check.ok` faux si > 0. Le verdict du scénario `page` suit les règles de `scroll` (images par seconde,
+  images > 25 ms) ; `verdict.cpp` traite déjà les entrées autres que la molette comme des entrées mesurées : exclure
+  `InputKind::Command` de la latence d'encre (aucune encre).
+
+  Tests : dans `tests/tst_bench_scenarios.cpp`, `pageScenarioFlipsPages` (court : 4 entrées `Command`, alternance
+  `page.next` / `page.previous`, 500 ms d'écart ; `allScenarios(Court).size() == 4`, dernier nommé `page`) ; dans
+  `tests/tst_bench_result.cpp`, le nombre de scénarios lus passe de 3 à 4 (raison : scénario `page` ajouté) ; dans
+  `tests/tst_bench_verdict.cpp`, seulement si un cas compte les scénarios. `scripts/resume-banc.ps1` ajoute une ligne
+  `page` à son tableau ; `docs/banc.md` décrit le scénario et `page_flash`.
+
+- [ ] **Étape 5 : vert ciblé, preuve, banc.** Commande ciblée (`tst_render_fixedpage|tst_bench_`) : `100% tests
+  passed`. `format.ps1`, preuve de tâche (N ≥ 59), banc sans écran : le JSON a le scénario `page` et
+  `content_check.page_flash = 0` (le lire avec `ConvertFrom-Json` et le recopier au rapport).
+
+- [ ] **Étape 6 : commit.**
+
+```powershell
+git -C <worktree> add render/include/actcraft/render/fixedpageitem.h render/src/fixedpageitem.cpp tests/tst_render_fixedpage.cpp ui/include/actcraft/ui/documentcontroller.h ui/src/documentcontroller.cpp bench/include/actcraft/bench/scenarios.h bench/src/scenarios.cpp bench/src/runner.cpp tests/tst_bench_scenarios.cpp tests/tst_bench_result.cpp tests/tst_bench_verdict.cpp scripts/resume-banc.ps1 docs/banc.md
+git -C <worktree> commit -m "Banc : scénario changement de page et contrôle d'éclair ; la page fixe garde l'ancienne page jusqu'au prêt" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+```
+
+  (Ne nommer que les fichiers réellement modifiés.)
+
+---
+
+## Hypothèses nouvelles de 2b (à revoir, porte de fin du lot 2)
+
+- **H2b-1 — Mesure des miniatures** (L2-T21) écrite par nous ; si la médiane locale dépasse 2,0 alors que la
+  référence Python l'atteint, l'écart vient du peintre ou de la mesure : à trancher avec la page fautive sous les yeux.
+- **H2b-2 — Sélecteur Android piloté par uiautomator** (L2-T22) : dépend de la langue et de la version de DocumentsUI
+  de l'image système ; en repli, les commandes de fichier manquent à l'APK jusqu'au lot 11.
+- **H2b-3 — Pas d'onglets avant le lot 5** : Nouveau et Ouvrir remplacent le document affiché (après la demande
+  d'enregistrement).
+- **H2b-4 — Translucidité et transformation par nœuds parents** (L2-T13) : coût par objet en RHI à surveiller au
+  banc quand des pages réelles chargées seront mesurées (lot cache, qui suit le lot 2).
+
+## Clôture du lot 2 (orchestrateur, hors tâches)
+
+Jouée par l'orchestrateur après la dernière vague de 2b, dans le worktree du chantier, sur `feat/livraison-complete`
+à jour, avant la PR du lot (étage 4). Le lot « cache incrémental » (H-mes-1), avancé par Jérôme, **suit** le lot 2 :
+il part de l'interface `core::PageCache` figée ici (L2-T14) et ne change que son implémentation.
+
+1. **Version 0.2.0** : `project(VERSION 0.2.0)` dans `CMakeLists.txt` racine ; `CHANGELOG.md` : section
+   `## 0.2.0 — <date>` (ouvrir un `.flipchart`, format natif `.actcraft`, menu Fichier, avertissements, Android selon
+   L2-T22) ; `scripts/notes-version.ps1` → `NOTES OK`. Commit.
+2. **Suite complète** : `scripts/test.ps1 -Preset release` puis `scripts/test.ps1` (formes bornées du profil),
+   N ≥ 66 chacune, `TESTS OK` ; aucun test retiré ; seuls `QSKIP` / sautés : `tst_formats_oracle` et
+   `tst_flipchart_miniatures_samples` sans `ACTCRAFT_SAMPLES_DIR`. Puis, avec la variable posée (configuration
+   refaite), les deux tests locaux verts.
+3. **S4 à l'écran** (jeton `ecran`, annoncé d'une ligne à Jérôme) : oracle local `0 écart` (L2-T10) ;
+   `MINIATURES OK : 124 pages, médiane ≤ 2,0, ≤ 3 au-dessus de 7` (L2-T21) ;
+   `captures.ps1 -Scenario local/ouvrir-flipchart -Rendu d3d11 -Sortie .tmp/captures-ecran -Ouvrir "<samples>\tri des formes.flipchart"`
+   → `CAPTURES OK`, captures regardées et décrites ; puis `build/release/actcraft.exe "<samples>\tri des
+   formes.flipchart" --quitter-apres 8000` lancé, suivi par son PID : fenêtre ouverte sur le document, sortie à 0.
+4. **S5 à l'écran** : `captures.ps1 -Scenario aller-retour-natif -Rendu d3d11 -Sortie .tmp/captures-ecran` →
+   `BOUCLE max=… ms OK`, `LU documentController.fingerprint=… OK`, `CAPTURES OK` ; Android : `ANDROID FICHIERS OK`
+   (L2-T22, rejoué sur l'APK 0.2.0) ou repli constaté (capture du menu).
+5. **Banc de non-régression (DA7, décision 35)** sous le jeton `ecran` :
+   `pwsh -NoProfile -File ./scripts/bench.ps1 -Rendu tous -Captures .tmp/banc-lot2`, comparé critère par critère à
+   `docs/mesures/2026-10-15-lot1-socle.md` : tout critère tenu par la référence doit l'être encore (scénarios
+   `stroke`, `zoom`, `scroll`), sinon une tâche de correction précède la clôture ; le scénario `page` (nouveau) est
+   rapporté, et `content_check.page_flash = 0` exigé. Résumé commité `docs/mesures/<date>-lot2-document.md` (par
+   `scripts/resume-banc.ps1`) : il devient la référence du lot suivant (cache incrémental).
+6. **Paquets remis à Jérôme** : `scripts/paquet.ps1` + `scripts/essai-installateur.ps1` (`PAQUET OK`,
+   `INSTALLATEUR OK`, `--version : ActCraft 0.2.0`), `scripts/paquet-android.ps1` (`APK OK`) ; l'association
+   `.actcraft` de l'installateur ouvre désormais le fichier (L2-T19) : l'essayer une fois (double-clic simulé par
+   `Start-Process <fichier.actcraft>` après installation silencieuse, fenêtre suivie par PID puis fermée).
+7. **Contrôles du dépôt public** : ceux du point d'étape 2a, plus `git ls-files 'bench/scenarios/local/*'` (aucune
+   donnée de `samples/` : seulement des commandes et des chemins `${SAMPLES}` ou `-Ouvrir`).
+8. **Graphe** : `graphify update .` puis commit de `graphify-out/`.
+9. **Porte de fin du lot 2** : release 0.2.0 proposée (publiée seulement sur go écrit, profil) ; signaler les écarts
+   au cadrage de 2a et de 2b, les hypothèses H2a-* et H2b-*, le verdict Android (preuve ou repli), les médianes S4,
+   et les captures à l'écran.
