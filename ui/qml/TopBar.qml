@@ -17,10 +17,14 @@ Rectangle {
     implicitHeight: Theme.hauteurBarre
     color: Theme.barre
 
+    // Tout ce que la barre contient fait la hauteur d'une cible tactile (Theme.tailleBouton) : la barre l'entoure
+    // de deux marges au lieu de couper le bouton plein écran et le zoom (L1-C5).
     RowLayout {
         anchors.fill: parent
         anchors.leftMargin: Theme.espace2
         anchors.rightMargin: Theme.espace2
+        anchors.topMargin: Theme.espace1
+        anchors.bottomMargin: Theme.espace1
         spacing: Theme.espace1
 
         Repeater {
@@ -28,6 +32,7 @@ Rectangle {
             delegate: ToolButton {
                 id: menuButton
                 required property var modelData
+                readonly property bool onAccent: menuButton.down || menu.opened
                 objectName: "menu-" + modelData.id
                 text: modelData.label
                 font.pixelSize: Theme.taillePolice
@@ -35,13 +40,15 @@ Rectangle {
                 contentItem: Label {
                     text: menuButton.text
                     font: menuButton.font
-                    color: Theme.texte
+                    color: menuButton.onAccent ? Theme.texteSurActive : Theme.texte
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
                     radius: Theme.rayon
-                    color: menuButton.down || menu.opened ? Theme.surfaceActive
+                    color: menuButton.onAccent ? Theme.surfaceActive
                          : menuButton.hovered ? Theme.surfaceSurvol : "transparent"
+                    border.width: menuButton.visualFocus ? 2 : 0 // focus clavier (Tab)
+                    border.color: Theme.surfaceActive
                 }
                 onClicked: menu.popup(menuButton, 0, menuButton.height)
 
@@ -72,6 +79,7 @@ Rectangle {
             id: zoomBox
             objectName: "zoomBox"
             Layout.preferredWidth: 112
+            Layout.fillHeight: true // couleurs : palette de la fenêtre (Main.qml), tirée de Theme
             readonly property var percents: [0, 25, 50, 100, 150, 200, 400, 800]
             model: [qsTr("Ajuster"), "25 %", "50 %", "100 %", "150 %", "200 %", "400 %", "800 %"]
             displayText: Math.round(bar.view.zoom * 100) + " %"

@@ -20,23 +20,32 @@ ColumnLayout {
         spacing: Theme.espace1
         Repeater {
             model: picker.commands.penWidths
+            // Même pas que les pastilles (Theme.taillePastille) : les deux grilles s'alignent (L1-C5).
             delegate: Rectangle {
                 id: preset
                 required property real modelData
                 required property int index
+                readonly property bool current: picker.view.penWidth === modelData
                 objectName: "widthPreset-" + index
-                width: 21
-                height: 21
+                width: Theme.taillePastille
+                height: Theme.taillePastille
                 radius: 4
-                color: picker.view.penWidth === modelData ? Theme.surfaceActive : Theme.surface
+                color: current ? Theme.surfaceActive : Theme.surface
+                scale: presetTap.pressed ? 0.9 : 1 // appui visible au doigt
+                Accessible.role: Accessible.RadioButton
+                Accessible.name: qsTr("Épaisseur %1").arg(modelData)
+                Accessible.checked: current
+                Accessible.onPressAction: picker.commands.trigger("pen.width", preset.modelData)
                 Rectangle {
                     anchors.centerIn: parent
-                    width: Math.min(17, 3 + preset.modelData * 1.5)
+                    width: Math.min(Theme.taillePastille - 4, 3 + preset.modelData * 1.5)
                     height: width
                     radius: width / 2
-                    color: Theme.texte
+                    color: preset.current ? Theme.texteSurActive : Theme.texte
                 }
                 TapHandler {
+                    id: presetTap
+                    margin: Theme.espace1 / 2 // cible contiguë : le pas de la rangée (24 px)
                     onTapped: picker.commands.trigger("pen.width", preset.modelData)
                 }
             }
@@ -57,11 +66,47 @@ ColumnLayout {
         }
         // Le glissement peut casser la liaison : on la rend au stylo au relâché.
         onPressedChanged: if (!pressed) value = Qt.binding(() => picker.widthPosition)
+        Accessible.name: qsTr("Épaisseur du stylo")
+
+        // Dessinée d'après le thème (L1-C5) : le style Basic remplissait la partie parcourue d'un gris presque
+        // invisible sur la palette et laissait claire la partie restante, la valeur se lisait à l'envers.
+        implicitHeight: Theme.tailleBouton
+        background: Rectangle {
+            x: slider.leftPadding
+            y: slider.topPadding + (slider.availableHeight - height) / 2
+            width: slider.availableWidth
+            height: 6
+            radius: 3
+            color: Theme.surfaceSurvol
+            Rectangle {
+                width: slider.visualPosition * parent.width
+                height: parent.height
+                radius: 3
+                color: Theme.surfaceActive
+            }
+        }
+        handle: Rectangle {
+            x: slider.leftPadding + slider.visualPosition * (slider.availableWidth - width)
+            y: slider.topPadding + (slider.availableHeight - height) / 2
+            implicitWidth: Theme.taillePastille
+            implicitHeight: Theme.taillePastille
+            radius: width / 2
+            color: slider.pressed ? Theme.surfaceActive : Theme.texte
+        }
     }
 
+    // Échantillon posé sur un puits couleur de page : l'encre se voit comme sur la page, y compris le noir par
+    // défaut, invisible sur la palette sombre (L1-C5).
     Item {
         Layout.fillWidth: true
         implicitHeight: 40
+        Rectangle {
+            anchors.centerIn: parent
+            width: parent.implicitHeight
+            height: width
+            radius: Theme.rayon
+            color: Theme.page
+        }
         Rectangle {
             objectName: "widthIndicatorSample"
             anchors.centerIn: parent

@@ -74,11 +74,33 @@ Item {
         color: "transparent"
         border.width: 1
         border.color: view.penColor
+        // Filet extérieur « contour » : le cercle reste visible quand l'encre a la couleur de la page (L1-C5).
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -1
+            radius: width / 2
+            color: "transparent"
+            border.width: 1
+            border.color: Theme.contour
+        }
+    }
+
+    // Pouce des barres de défilement : sombre cerclé de clair, lisible sur la page blanche comme sur le fond bleu
+    // (le gris translucide du style Basic tombait sous 3:1 sur les deux, L1-C5).
+    component Thumb: Rectangle {
+        required property ScrollBar bar
+        implicitWidth: 6
+        implicitHeight: 6
+        radius: 3
+        color: bar.pressed ? Theme.surfaceActive : Theme.barre
+        border.width: 1
+        border.color: Theme.texte
     }
 
     ScrollBar {
         id: horizontalBar
         objectName: "horizontalScrollBar"
+        contentItem: Thumb { bar: horizontalBar }
         orientation: Qt.Horizontal
         anchors.left: parent.left
         anchors.right: verticalBar.left
@@ -94,6 +116,7 @@ Item {
     ScrollBar {
         id: verticalBar
         objectName: "verticalScrollBar"
+        contentItem: Thumb { bar: verticalBar }
         orientation: Qt.Vertical
         anchors.top: parent.top
         anchors.right: parent.right

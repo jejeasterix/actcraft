@@ -28,11 +28,15 @@ Dialog {
             wrapMode: Text.WordWrap
             text: qsTr("Logiciel libre de tableau blanc interactif, sous licence %1.").arg(AppInfo.licenseName)
         }
+        // Texte stylé, pas riche : seul le premier suit `linkColor` (la palette de la fenêtre, Theme.surfaceActive) ;
+        // en texte riche le lien prenait le bleu par défaut de Qt, illisible sur le dialogue sombre (L1-C5).
         Label {
-            textFormat: Text.RichText
+            textFormat: Text.StyledText
             text: "<a href=\"%1\">%1</a>".arg(AppInfo.projectUrl)
             onLinkActivated: link => Qt.openUrlExternally(link)
         }
+        // Les notices sont un document à lire : posées sur un puits couleur de page, en texte sombre. Le Markdown
+        // colore ses liens d'après la palette de l'application (bleu de Qt), lisible sur ce fond clair.
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -42,6 +46,11 @@ Dialog {
                 wrapMode: TextEdit.Wrap
                 textFormat: TextEdit.MarkdownText
                 text: AppInfo.notices
+                color: Theme.barre
+                background: Rectangle {
+                    color: Theme.page
+                    radius: Theme.rayon
+                }
             }
         }
     }

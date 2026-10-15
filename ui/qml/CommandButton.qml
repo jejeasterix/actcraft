@@ -20,7 +20,11 @@ ToolButton {
     icon.source: commands.iconUrl(commandId)
     icon.width: Theme.tailleIcone
     icon.height: Theme.tailleIcone
-    icon.color: "transparent" // garder la couleur dessinée de l'icône
+    // Icônes d'une seule couleur, teintées par l'état (L1-C5) : appuyé ou coché sur l'accent, indisponible estompé.
+    // Au doigt il n'y a pas de survol : l'appui seul doit se voir.
+    readonly property bool onAccent: button.checked || button.down
+    icon.color: !button.enabled ? Theme.texteDesactive : button.onAccent ? Theme.texteSurActive : Theme.texte
+    Accessible.name: commands.label(commandId)
     ToolTip.visible: hovered
     ToolTip.delay: 600
     ToolTip.text: commands.shortcut(commandId) === ""
@@ -29,7 +33,7 @@ ToolButton {
 
     background: Rectangle {
         radius: Theme.rayon
-        color: button.checked ? Theme.surfaceActive : button.hovered ? Theme.surfaceSurvol : Theme.surface
+        color: button.onAccent ? Theme.surfaceActive : button.hovered ? Theme.surfaceSurvol : Theme.surface
     }
 
     onClicked: {
