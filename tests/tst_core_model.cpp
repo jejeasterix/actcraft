@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <variant>
 
 using namespace actcraft::core;
@@ -189,6 +190,35 @@ private slots:
     {
         QCOMPARE(fingerprint(Page{}), std::uint64_t{0xB59B2DE2A9B3C823ull});
         QCOMPARE(fingerprint(samplePage()), std::uint64_t{0x29E4AA55B1A00D2Eull});
+    }
+
+    // −0 et +0 se valent (même rendu) : l'empreinte ne doit pas les distinguer. Un NaN, lui, garde son motif
+    // binaire (inchangé) : égal à lui-même, différent de 0.
+    void fingerprintTreatsNegativeZeroAsPositiveZero()
+    {
+        const auto withZero = [](double zero) {
+            Page p = richPage();
+            std::get<Shape>(p.objects[0]).polygon[0].x = zero;
+            std::get<Stroke>(p.objects[2]).points[0].y = zero;
+            p.objects[0].common.transform.m12 = zero;
+            p.objects[1].common.transform.dx = zero;
+            std::get<ImageObject>(p.objects[1]).bounds.x = zero;
+            p.grid.levels[0].angle = zero;
+            return p;
+        };
+        const Page positive = withZero(0.0);
+        const Page negative = withZero(-0.0);
+        QVERIFY(std::signbit(std::get<Shape>(negative.objects[0]).polygon[0].x));
+        QCOMPARE(fingerprint(negative), fingerprint(positive));
+
+        const auto withNan = [](double v) {
+            Page p = richPage();
+            p.objects[0].common.transform.m12 = v;
+            return p;
+        };
+        const double nan = std::numeric_limits<double>::quiet_NaN();
+        QCOMPARE(fingerprint(withNan(nan)), fingerprint(withNan(nan)));
+        QVERIFY(fingerprint(withNan(nan)) != fingerprint(withNan(0.0)));
     }
 
     void strokeWidthFollowsPressure()

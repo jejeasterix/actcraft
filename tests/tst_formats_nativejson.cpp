@@ -160,6 +160,26 @@ private slots:
         }
     }
 
+    // −0 revient +0 de QJsonValue ; l'empreinte hache −0 comme +0, donc l'aller-retour la conserve.
+    void roundTripKeepsTheFingerprintWithNegativeZeros()
+    {
+        core::Page page;
+        core::Shape shape;
+        shape.kind = core::ShapeKind::Polygon;
+        shape.bounds = {10, 20, 30, 40};
+        shape.polygon = {{-0.0, 20}, {40, -0.0}, {25, 60}};
+        page.objects.emplace_back(shape);
+        page.objects.back().common.id = 1;
+        page.objects.back().common.transform.m12 = -0.0;
+        const core::Document source(std::vector<core::Page>{page});
+        QVERIFY(std::signbit(std::get<core::Shape>(source.page(0).objects[0]).polygon[0].x));
+        core::Document back;
+        const formats::JsonReadResult r =
+            formats::documentFromJson(formats::documentToJson(source), loaderFrom(source), back);
+        QVERIFY2(r.ok, qPrintable(r.error));
+        QCOMPARE(core::fingerprint(back), core::fingerprint(source));
+    }
+
     void roundTripThroughTextKeepsTheFingerprint()
     {
         const core::Document rich = richdoc::richDocument();

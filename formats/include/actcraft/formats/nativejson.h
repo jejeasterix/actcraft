@@ -23,7 +23,7 @@ inline constexpr int kNativeMajorVersion = 1;
 // Tout le document sauf les octets des ressources (déclarées par clé SHA-256 et extension ; l'archive les
 // porte, L2-T6). Parité : documentFromJson(documentToJson(d)) a l'empreinte core::fingerprint(d) et le même
 // nextId(). Deux limites de QJsonValue, mesurées : un réel −0 revient +0 (QJsonValue range un réel entier
-// comme un entier ; l'empreinte, qui hache le motif binaire, change alors) ; un identifiant au-delà de 2^53
+// comme un entier ; l'empreinte hache −0 comme +0, donc elle ne change pas) ; un identifiant au-delà de 2^53
 // n'est pas porté exactement (la lecture le refuse).
 QJsonObject documentToJson(const core::Document& document);
 
