@@ -22,6 +22,15 @@ VERIF emulateur-local = démarre (boot en 235 s, sans fenêtre, swiftshader_indi
 VERIF avd = actcraft-x86_64, android-34 google_apis x86_64, appareil pixel_tablet
 VERIF pillow = OK (12.1.0)
 
+Tâche L1-T17 (2026-10-15, `pwsh -NoProfile -File ./scripts/paquet-android.ps1`, sortie `.tmp/apk.txt`) :
+
+VERIF apk-arm64 = OK (ActCraft-0.1.0-arm64-v8a.apk, 48.3 Mo)
+VERIF apk-x86_64 = OK (ActCraft-0.1.0-x86_64.apk, 49.2 Mo)
+VERIF apk-identifiant = io.github.jejeasterix.actcraft, versionCode 100, versionName 0.1.0 (propriétés de cible)
+VERIF apk-permissions = aucune (manifeste à nous, android/AndroidManifest.xml)
+VERIF apk-signature = clé de débogage locale (CN=Android Debug)
+VERIF apk-licences = LICENCES OK
+
 ## Conséquences
 
 - Émulateur : local (WHPX utilisable) ; la CI (KVM sur `ubuntu-latest`, tâche L1-T19) le double.
@@ -29,4 +38,15 @@ VERIF pillow = OK (12.1.0)
   Les deux JDK sont installés ; `dev-env-android.ps1` prend `jdk-21` (repli `jdk-17`). La CI doit installer JDK 21.
 - `sdk_definitions.json` de Qt Creator n'a pas d'entrée pour Qt 6.x récent (dernière : 6.4, NDK 23) : la doc de Qt
   fait foi, aucune valeur n'en est reprise.
+- APK (L1-T17) : les propriétés de cible `QT_ANDROID_PACKAGE_NAME`, `QT_ANDROID_VERSION_NAME` et
+  `QT_ANDROID_VERSION_CODE` suffisent pour l'identifiant et la version. Les permissions, non : sans manifeste à nous,
+  `aapt2 dump badging` relève `ACCESS_NETWORK_STATE` (Qt6Network), `INTERNET` et `WRITE_EXTERNAL_STORAGE` (Qt6Core,
+  `lib/Qt6Core_arm64-v8a-android-dependencies.xml`), `READ_EXTERNAL_STORAGE` (implicite) et
+  `io.github.jejeasterix.actcraft.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (androidx.core 1.17.0, fusion des
+  manifestes). Repli : `android/AndroidManifest.xml`, gabarit de Qt sans le marqueur `%%INSERT_PERMISSIONS`, plus
+  `tools:node="remove"` pour la permission d'androidx.core (le code Java de Qt appelle `Context.registerReceiver`,
+  jamais `ContextCompat`).
+- Chaîne Android sur le poste : `JAVA_HOME` du poste désigne un JRE (`~/.tools/jdk-21.0.11+10-jre`, sans `javac`),
+  refusé par Gradle ; `dev-env-android.ps1` l'écarte au profit de `~/.tools/jdk-21`. Ninja de pip 1.13 est dans le
+  dossier `Scripts` de Python (`ninja.BIN_DIR`), plus sous `ninja/data/bin`.
 - Les outils en ligne de commande (build 11076708) ont la somme SHA-256 publiée par Qt Creator (4d6931209eebb1bfb7c7e8b240a6a3cb3ab24479ea294f3539429574b1eec862).

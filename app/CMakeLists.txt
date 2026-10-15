@@ -32,5 +32,9 @@ if(ANDROID)
         QT_ANDROID_PACKAGE_NAME io.github.jejeasterix.actcraft
         QT_ANDROID_APP_NAME ActCraft
         QT_ANDROID_VERSION_NAME ${PROJECT_VERSION}
-        QT_ANDROID_VERSION_CODE ${ACTCRAFT_VERSION_CODE})
+        QT_ANDROID_VERSION_CODE ${ACTCRAFT_VERSION_CODE}
+        # Manifeste à nous (décision 28) : sans le marqueur %%INSERT_PERMISSIONS, androiddeployqt n'ajoute pas les
+        # permissions par défaut de Qt (INTERNET, WRITE_EXTERNAL_STORAGE, ACCESS_NETWORK_STATE) ; celle
+        # d'androidx.core (DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION) y est ôtée par tools:node="remove".
+        QT_ANDROID_PACKAGE_SOURCE_DIR ${PROJECT_SOURCE_DIR}/android)
 endif()

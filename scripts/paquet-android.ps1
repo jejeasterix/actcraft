@@ -57,6 +57,7 @@ try {
 
         $aligne = Join-Path $sortie "ActCraft-$version-$a-aligne.apk"
         $final = Join-Path $sortie "ActCraft-$version-$a.apk"
+        $enControle = $final # supprimé si un contrôle échoue : build/paquet/ ne garde que des APK conformes
         & $zipalign -p -f 4 $brut.FullName $aligne
         if ($LASTEXITCODE -ne 0) { throw 'zipalign en échec' }
         & $apksigner sign --ks $Keystore --ks-pass "pass:$KeystorePass" --ks-key-alias $KeyAlias `
@@ -90,9 +91,11 @@ try {
         & "$PSScriptRoot/verifier-licences.ps1" -Apk $final
         if ($LASTEXITCODE -ne 0) { throw 'licences en échec' }
         Write-Output "APK : $final"
+        $enControle = $null
     }
     Write-Output 'APK OK'
 } catch {
+    if ($enControle) { Remove-Item -Force -ErrorAction SilentlyContinue $enControle, "$enControle.idsig" }
     Write-Output "APK EN ECHEC : $($_.Exception.Message)"
     exit 1
 }
