@@ -1,6 +1,7 @@
 #include <actcraft/formats/flipchart.h>
 #include <actcraft/formats/flipchartdump.h>
 
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -16,11 +17,15 @@ class TstFormatsOracle : public QObject
 {
     Q_OBJECT
 
+public:
+    bool skipped = false; // lu par main : code de sortie 77
+
 private slots:
     void everySampleMatchesThePythonReader()
     {
         const QString samples = qEnvironmentVariable("ACTCRAFT_SAMPLES_DIR");
         if (samples.isEmpty()) {
+            skipped = true;
             QSKIP("ACTCRAFT_SAMPLES_DIR absent : oracle local seulement (décision 19, DA4)");
         }
         QString oracle = qEnvironmentVariable("ACTCRAFT_ORACLE_DIR");
@@ -84,5 +89,13 @@ private slots:
     }
 };
 
-QTEST_GUILESS_MAIN(TstFormatsOracle)
+// Sauté : code de sortie 77, que ctest compte « Skipped » (SKIP_RETURN_CODE, tests/flipchart.cmake) ; QSKIP
+// seul sortirait 0, compté « Passed ».
+int main(int argc, char** argv)
+{
+    QCoreApplication app(argc, argv);
+    TstFormatsOracle test;
+    const int failures = QTest::qExec(&test, argc, argv);
+    return failures == 0 && test.skipped ? 77 : failures;
+}
 #include "tst_formats_oracle.moc"
