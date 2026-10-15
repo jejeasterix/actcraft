@@ -41,10 +41,10 @@ Lot 1 (plan 7e4c743) — fichiers touchés exacts et preuves : table du plan.
 | L1-T9 | T3,T7 | ui DocumentController | crit | (mergé) | terminée | 1/3 | 34b06c9 → merge feca79c | 34/34 TESTS OK, tst_ui_document Passed (13 cas) ; revue : 2 mineurs corrigés |
 | L1-T10 | T5,T9 | ui pont Commands | impl | (mergé) | terminée | 1/3 | a5293d3 → merge 31c438e | 35/35 TESTS OK, tst_ui_commands Passed ; rouge non vu → 3 mutations détectées (palette non mutée) |
 | L1-T11 | T10 | version, À propos, licences | impl | (mergé) | terminée | 2/3 | f5371ea → merge e8e38b7 | 40/40 TESTS OK, 4 tests nommés + tst_licences_sans_fixture Passed ; banc 1280x800 content OK (la « régression » venait d'un `-Taille` oublié) |
-| L1-T12 | T8,T11 | coquille QML | impl | --L1-T12 | en cours (essai 2 sur le WIP 9528341 : diagnostic du blocage d'abord — aucune fenêtre, `--quitter-apres` ne quitte pas) | 2/3 | — | — |
+| L1-T12 | T8,T11 | coquille QML | impl | (mergé) | terminée | 2/3 | b1318f9 → merge 96e99c3 | après intégration du chantier (b44a0ce) : 42/42 TESTS OK, tst_ui_shell, tst_ui, tst_ui_drawing, tst_bench_uiscenario Passed ; aucun test retiré ni QSKIP ; lancement debug hors écran `--quitter-apres 3000` → code 0 en 4,6 s ; banc (agent) BUDGET DEPASSE, content_check.ok = true. Cause du blocage : boucle `while (count > 0) removeItem(itemAt(0))` (Main.qml, CommandMenu.qml) → `Instantiator` (écart au plan). Release non jouée : à la clôture du lot |
 | L1-T13 | T9 | actcraft-captures | crit | (mergé) | terminée | 1/3 | 59f789d → merge e7d4a3a | 41/41 TESTS OK, tst_bench_uiscenario Passed ; revue : touche acceptée réellement, module benchui (QtTest hors du banc), captures uniformes refusées |
 | L1-T14 | T12 | banc adapté | crit | — | à faire | 0/3 | — | — |
-| L1-T15 | T12,T13 | scénario premiers-pas | impl | — | à faire | 0/3 | — | — |
+| L1-T15 | T12,T13 | scénario premiers-pas | impl | --L1-T15 | en cours | 1/3 | — | — |
 | L1-T16 | T2,T11 | installateur Inno Setup | impl | (mergé) | terminée | 2/3 | 6bdf6a4 → merge fd9ffee | `LICENCES OK`, `PAQUET OK : …\build\paquet\ActCraft-0.1.0-setup.exe`, `--version : ActCraft 0.1.0`, `INSTALLATEUR OK` (code 0) ; rouge vu (DLL fictive) ; essai en échec nettoie tout (5 Test-Path False, 6bdf6a4) ; aucun C++ ni test touché |
 | L1-T17 | T2,T11,T16 | chaîne Android | crit | --L1-T17 | en cours | 1/3 | — | — |
 | L1-T18 | T12,T17 | essai APK émulateur | impl | — | à faire | 0/3 | — | — |
@@ -72,6 +72,8 @@ CI verte · releases publiées seulement sur go écrit de Jérôme (action final
 ouvertes : — · passées : —
 
 ## Pièges trouvés
+- Orchestrateur : un `Set-Location <worktree de tâche>` dans une commande déplace le dossier courant de la SESSION ; le dossier reste alors verrouillé et `git worktree remove` échoue (« Invalid argument » / « Permission denied »). Vu 2026-10-15 sur L1-T16 et L1-T12. Toujours `git -C` et chemins absolus ; si besoin d'un dossier courant, `pwsh -NoProfile -Command "Set-Location …; …"` (process enfant).
+- QML : `while (count > 0) removeItem(itemAt(0))` sur un `Menu` boucle sans fin (fil principal bloqué, aucune fenêtre, `--quitter-apres` sans effet) ; entrées créées par `createObject(null)` survivent au menu. Remplacé par `Instantiator` (L1-T12, b1318f9). Candidat au coffre (`04_Pieges/`) — cause exacte non isolée entre les deux boucles.
 - Hook `interdits.js` : `git -C <dossier> add .` N'EST PAS bloqué (le motif `bgits+adds+(-A|--all|.)` ne voit pas `-C`) — même trou que les tags avant L1-T1. Vu le 2026-10-15 (commits WIP, contenu vérifié conforme). À corriger dans le bloc `interdits` comme L1-T1 l'a fait pour `action-finale`.
 - Banc `-HorsEcran` sans `-Taille` : la fenêtre « plein-ecran » hors écran n'a pas la taille attendue, `witness-image` = `hors-image` → `content-check-failed`. Toujours passer `-Taille 1280x800` hors écran ; à corriger dans le banc (L1-T14 : `-HorsEcran` implique une taille fixe).
 - Qt Quick retarde les `TouchUpdate` jusqu'à l'image suivante : un test qui mêle doigt et stylet doit laisser passer une image (L1-T8, 50 ms ; répété 20× sans échec).
