@@ -64,8 +64,10 @@ add_test(NAME tst_bench_smoke
         -DOUTPUT=${_bench_smoke_json}
         -DEXPECTED=${_bench_smoke_expected}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/run_bench_smoke.cmake)
+# Délai : 25-29 s en debug sur machine calme ; 50 s déjà sous charge modérée, plus de 60 s avec des compilations
+# en parallèle. 300 s (≥ 10 × la durée calme) : le délai ne sert qu'à détecter un blocage, pas à mesurer.
 set_tests_properties(tst_bench_smoke PROPERTIES
-    TIMEOUT 60
+    TIMEOUT 300
     ENVIRONMENT "${_bench_env_offscreen}"
     FIXTURES_REQUIRED bench_smoke_clean
     FIXTURES_SETUP bench_smoke_json)
@@ -106,8 +108,9 @@ add_test(NAME tst_captures_premiers_pas
     COMMAND $<TARGET_FILE:actcraft-captures>
         --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/premiers-pas.json
         --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-premiers-pas)
+# Même règle : environ 14 s calme ; 300 s ne détecte qu'un blocage.
 set_tests_properties(tst_captures_premiers_pas PROPERTIES
-    TIMEOUT 120
+    TIMEOUT 300
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
