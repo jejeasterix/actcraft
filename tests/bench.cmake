@@ -3,6 +3,13 @@ if(NOT ACTCRAFT_BUILD_BENCH)
     return()
 endif()
 
+# Environnement hors écran des tests lancés sans actcraft_add_test (fumée du banc, captures) : mêmes polices que
+# lui sous Windows (tests/CMakeLists.txt), sans quoi leurs textes et captures n'ont que des carrés vides.
+set(_bench_env_offscreen "QT_QPA_PLATFORM=offscreen")
+if(WIN32)
+    list(APPEND _bench_env_offscreen "QT_QPA_FONTDIR=$ENV{WINDIR}/Fonts")
+endif()
+
 actcraft_add_test(tst_bench_stats
     SOURCES tst_bench_stats.cpp
     LIBS ActCraft::bench)
@@ -59,7 +66,7 @@ add_test(NAME tst_bench_smoke
         -P ${CMAKE_CURRENT_SOURCE_DIR}/run_bench_smoke.cmake)
 set_tests_properties(tst_bench_smoke PROPERTIES
     TIMEOUT 60
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    ENVIRONMENT "${_bench_env_offscreen}"
     FIXTURES_REQUIRED bench_smoke_clean
     FIXTURES_SETUP bench_smoke_json)
 
@@ -101,6 +108,6 @@ add_test(NAME tst_captures_premiers_pas
         --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-premiers-pas)
 set_tests_properties(tst_captures_premiers_pas PROPERTIES
     TIMEOUT 120
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
