@@ -11,10 +11,6 @@
 #include <QTabletEvent>
 #include <QTouchEvent>
 #include <QWheelEvent>
-// État privé de Qt Quick (Qt 6.12 LTS, version fixée) : boutons propres d'un élément et ses gestionnaires de
-// pointeur, que l'API publique confond (takesPress).
-#include <QtQuick/private/qquickitem_p.h>
-#include <QtQuick/private/qquickpointerhandler_p.h>
 
 #include <algorithm>
 
@@ -30,28 +26,43 @@ bool samePan(QPointF a, QPointF b)
     return qAbs(a.x() - b.x()) < kSamePan && qAbs(a.y() - b.y()) < kSamePan;
 }
 
-// `item` prendrait lui-même un appui : il accepte le bouton gauche ou le toucher, ou porte un gestionnaire
-// qui prend l'appui (TapHandler, DragHandler). acceptedMouseButtons() ne suffit pas : tout gestionnaire, même
-// un HoverHandler qui ne prend jamais l'appui, y ajoute tous les boutons ; Qt garde à part ceux de l'élément.
+// Gestionnaire de pointeur actif qui prend l'appui (noms des classes publiques des types QML). Le survol
+// (HoverHandler), la molette (WheelHandler) et le pincement (deux points, jamais un stylet) ne le prennent
+// pas.
+bool isPressHandler(const QObject* object)
+{
+    return (object->inherits("QQuickTapHandler") || object->inherits("QQuickDragHandler") ||
+            object->inherits("QQuickPointHandler")) &&
+           object->property("enabled").toBool();
+}
+
+// Types qui prennent eux-mêmes le bouton gauche qu'ils acceptent, qu'ils portent des gestionnaires ou non.
+bool takesLeftButtonItself(const QQuickItem* item)
+{
+    return item->inherits("QQuickMouseArea") || item->inherits("QQuickControl") ||
+           item->inherits("QQuickFlickable");
+}
+
+// `item` prendrait lui-même un appui : il accepte le toucher, porte un gestionnaire qui prend l'appui, ou
+// prend le bouton gauche. API publique seulement : acceptedMouseButtons() compte tous les boutons dès qu'un
+// gestionnaire est posé, même un HoverHandler ; le bouton gauche ne compte alors que pour les types qui le
+// prennent eux-mêmes (limite : un autre type à bouton gauche propre et survol n'est pas reconnu).
 bool takesPress(const QQuickItem* item)
 {
     if (item->acceptTouchEvents()) {
         return true;
     }
-    const QQuickItemPrivate* d = QQuickItemPrivate::get(item);
-    if (!d->hasPointerHandlers()) {
-        return item->acceptedMouseButtons() & Qt::LeftButton;
+    bool hasHandlers = false;
+    for (const QObject* child : item->children()) {
+        if (child->inherits("QQuickPointerHandler")) {
+            if (isPressHandler(child)) {
+                return true;
+            }
+            hasHandlers = true;
+        }
     }
-    // Le bouton gauche propre est rangé à part, dans l'étiquette de `extra` (QQuickItemPrivate::
-    // acceptedMouseButtons) ; acceptedMouseButtonsWithoutHandlers ne garde que les autres boutons.
-    if (d->extra.tag().testFlag(QQuickItemPrivate::LeftMouseButtonAccepted)) {
-        return true;
-    }
-    const QList<QQuickPointerHandler*>& handlers = d->extra->pointerHandlers;
-    return std::any_of(handlers.cbegin(), handlers.cend(), [](const QQuickPointerHandler* handler) {
-        return handler->enabled() &&
-               (handler->inherits("QQuickTapHandler") || handler->inherits("QQuickDragHandler"));
-    });
+    const bool left = item->acceptedMouseButtons() & Qt::LeftButton;
+    return left && (!hasHandlers || takesLeftButtonItself(item));
 }
 
 // `item` ou l'un de ses descendants prendrait l'appui de la souris ou du doigt au point `scenePos` : visible,

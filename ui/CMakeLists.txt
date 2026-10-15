@@ -58,10 +58,6 @@ target_include_directories(actcraft_ui
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/actcraft/ui ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(actcraft_ui PUBLIC
     Qt6::Quick ActCraft::actions ActCraft::input ActCraft::render ActCraft::tools)
-# PageView distingue les boutons propres d'un élément de ceux qu'ajoutent ses gestionnaires de pointeur : l'API
-# publique les confond (pageview.cpp, takesPress).
-find_package(Qt6 6.12 REQUIRED COMPONENTS QuickPrivate)
-target_link_libraries(actcraft_ui PRIVATE Qt6::QuickPrivate)
 actcraft_set_warnings(actcraft_ui)
 
 # Version affichée par « À propos » (décision 31).

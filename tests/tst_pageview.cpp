@@ -443,7 +443,8 @@ private slots:
     }
 
     // Un gestionnaire de pointeur ajoute tous les boutons à acceptedMouseButtons() de son élément : seuls
-    // comptent ceux de l'élément et les gestionnaires qui prennent l'appui (TapHandler, DragHandler).
+    // comptent ceux de l'élément et les gestionnaires qui prennent l'appui (TapHandler, DragHandler,
+    // PointHandler).
     void stylusIgnoresHandlersThatTakeNoPress()
     {
         QQmlEngine engine; // avant la fenêtre : détruit après les éléments qu'il a créés
@@ -471,13 +472,20 @@ private slots:
         QTest::qWait(50);
         QCOMPARE(f.fixed->objectCount(), 1);
         QCOMPARE(f.passedOn.count, 6);
-        // Élément qui prend lui-même le bouton gauche, avec un survol : laissé aussi.
-        QQuickItem* own = make("HoverHandler {}", QPointF(300, 400));
-        QVERIFY(own);
-        own->setAcceptedMouseButtons(Qt::LeftButton);
+        // MouseArea (prend elle-même le bouton gauche) avec un survol : laissée aussi.
+        QVERIFY(make("MouseArea { anchors.fill: parent; HoverHandler {} }", QPointF(300, 400)));
         tabletStroke(f, QPointF(350, 450), QPointF(450, 450));
         QTest::qWait(50);
         QCOMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(f.passedOn.count, 12);
+        // Limite connue (API publique seule) : un élément d'un autre type qui accepte le bouton gauche ET
+        // porte un survol n'est pas reconnu, le stylet y dessine. Aucun élément de l'interface n'est dans ce
+        // cas.
+        QQuickItem* plain = make("HoverHandler {}", QPointF(550, 400));
+        QVERIFY(plain);
+        plain->setAcceptedMouseButtons(Qt::LeftButton);
+        tabletStroke(f, QPointF(600, 450), QPointF(700, 450));
+        QTRY_COMPARE(f.fixed->objectCount(), 2);
         QCOMPARE(f.passedOn.count, 12);
     }
 
