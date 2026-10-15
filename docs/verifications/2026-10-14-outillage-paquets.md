@@ -34,6 +34,14 @@ VERIF apk-licences = LICENCES OK
 VERIF s3-local = ANDROID OK (émulateur actcraft-x86_64 lancé avec -gpu host, 2560 × 1600 ; palette, trois coins opposés à la diagonale et trait vérifiés ; aucun FATAL EXCEPTION ni SecurityException dans logcat ; émulateur neuf : attendre charge < 4 et écarter les boîtes « Application Not Responding » du système)
 VERIF s3-rendu = avec le GPU logiciel de l'émulateur (SwiftShader : -gpu swiftshader_indirect, swiftshader, swangle_indirect, angle_indirect, guest), Qt Quick (OpenGL ES 3.0, « Android Emulator OpenGL ES Translator (Google SwiftShader) ») ne dessine que la moitié de chaque rectangle, en un triangle ; textes entiers. Un projet Qt Quick minimal sans code ActCraft (un Window, deux Rectangle, un Text) montre le même défaut : cause = émulateur + SwiftShader, pas l'application. Avec -gpu host : rendu juste. QT_QUICK_BACKEND=software ne démarre pas sous Android (QRhiGles2 : Failed to create context). essai-android.ps1 le détecte (pixels dans la moitié manquante) et finit alors par ANDROID EN ECHEC. Pour L1-T19 : un exécuteur sans GPU hôte retombe sur SwiftShader et échouera à ce contrôle ; il faut un exécuteur à GPU, ou un mode d'émulateur qui rend juste (non trouvé ici), avant de compter sur S3 en CI.
 
+Tâche L1-T19 (2026-10-15, exécuteur GitHub `ubuntu-latest` sans GPU, KVM, émulateur 37.2.12, AVD pixel_tablet API 34,
+run 38682880020, boucle de recherche temporaire ; captures : artefact `recherche-s3` du run, 3 jours) :
+
+VERIF s3-ci = -gpu lavapipe rend juste sans GPU : essai strict ANDROID OK (écran 2560 × 1600 ; page (1958, 1392) 255 255 255, palette (2368, 1152) 43 47 54, pastille (2382, 416) 229 57 53, trait 0 0 0) ; GLES « ANGLE (Mesa, Vulkan 1.4.318 (llvmpipe (LLVM 21.0.0 256 bits)), llvmpipe-25.2.4) », fourni avec l'émulateur. Justes aussi : -gpu swangle_indirect, -gpu host avec Mesa llvmpipe sous Xvfb. Faux (rectangles en un triangle, page lue 74 106 138) : -gpu swiftshader_indirect et -gpu software (API 34), -gpu swiftshader_indirect (API 36). Retenu pour la CI : lavapipe, sans Xvfb ni paquet Mesa ; l'essai S3 de la CI reste strict
+VERIF ci-emulateur = qemu exige libpulse.so.0, absent de ubuntu-latest (paquet libpulse0) ; avdmanager récent écrit sous ~/.config/.android/avd alors que l'émulateur lit ~/.android/avd (ANDROID_AVD_HOME, hors action reactivecircus)
+VERIF ci-build-tools = ubuntu-latest a des build-tools plus récents que 36.0.0, dont apksigner écrit « V3.0 Signer: certificate DN » : paquet-android.ps1 prend ceux de versions.env
+VERIF ci-msvc = windows-latest : Visual Studio 18 (MSVC 14.51.36231), runtime sous x64/Microsoft.VC145.CRT (VC143 sur le poste) : paquet.ps1 prend le dossier Microsoft.VC14*.CRT présent
+
 ## Conséquences
 
 - Émulateur : local (WHPX utilisable) ; la CI (KVM sur `ubuntu-latest`, tâche L1-T19) le double.

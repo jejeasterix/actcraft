@@ -1,13 +1,11 @@
 # Essai de l'APK sur un émulateur déjà démarré (scénario S3) : installation, lancement, processus vivant après 10 s,
 # palette visible sur la capture, trait d'un doigt visible sur la capture suivante.
-# Usage : pwsh -NoProfile -File ./scripts/essai-android.ps1 -Apk <fichier.apk> [-Sortie <dossier>] [-RenduLogiciel]
+# Usage : pwsh -NoProfile -File ./scripts/essai-android.ps1 -Apk <fichier.apk> [-Sortie <dossier>]
 # adb doit être dans le PATH (dev-env-android.ps1, ou l'émulateur de la CI). Captures sous -Sortie (.tmp/android).
-# -RenduLogiciel : pour la CI seulement (émulateur sans GPU hôte, SwiftShader). Les pixels de la moitié manquante des
-# rectangles sont lus et écrits au journal, mais non exigés ; tous les autres contrôles restent ; la ligne
-# « RENDU NON CONTROLE (GPU logiciel de l'émulateur) » précède alors « ANDROID OK ». En local, sans ce drapeau :
-# contrôle complet (émulateur lancé avec -gpu host).
+# Émulateur : -gpu host en local ; -gpu lavapipe sur un exécuteur sans GPU (CI) — SwiftShader rend faux (voir
+# docs/verifications/2026-10-14-outillage-paquets.md, VERIF s3-rendu et s3-ci).
 # Dernière ligne et code : « ANDROID OK » (0) ou « ANDROID EN ECHEC : <raison> » (1).
-param([Parameter(Mandatory)][string]$Apk, [string]$Sortie = '.tmp/android', [switch]$RenduLogiciel)
+param([Parameter(Mandatory)][string]$Apk, [string]$Sortie = '.tmp/android')
 $ErrorActionPreference = 'Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
 $paquet = 'io.github.jejeasterix.actcraft'
@@ -106,7 +104,6 @@ Write-Output 'palette : visible au bord droit'
 
 # Rectangles entiers : un rendu défectueux (émulateur à GPU logiciel SwiftShader, voir docs/verifications) ne dessine
 # que la moitié de chaque rectangle, en triangle. Ces pixels tombent dans la moitié qui manquerait (tablette 2560 × 1600).
-# Avec -RenduLogiciel (CI), ils sont lus et écrits, mais seul ce contrôle-ci n'est pas exigé.
 $coins = @(
     @{ Nom = 'page, coin bas-droit'; X = [int]($largeur * 0.765); Y = [int]($hauteur * 0.87); Attendu = @(255, 255, 255); Tol = 12 },
     @{ Nom = 'fond de palette, bas-gauche'; X = $largeur - 192; Y = [int]($hauteur * 0.72); Attendu = $fondPalette; Tol = 16 },
@@ -116,11 +113,10 @@ foreach ($coin in $coins) {
     $lu = Pixel $avant $coin.X $coin.Y
     Write-Output "coin $($coin.Nom) ($($coin.X), $($coin.Y)) : lu $($lu -join ' ')"
     if (-not (Proche $lu $coin.Attendu $coin.Tol)) {
-        if ($RenduLogiciel) { Write-Output "coin $($coin.Nom) : non exigé (-RenduLogiciel, attendu $($coin.Attendu -join ' '))"; continue }
         Echec "rectangle à moitié dessiné : $($coin.Nom) (lu $($lu -join ' '), attendu $($coin.Attendu -join ' ')) : rendu GPU de l'émulateur défectueux ?"
     }
 }
-if ($RenduLogiciel) { Write-Output 'rectangles : non exigés (-RenduLogiciel)' } else { Write-Output 'rectangles : entiers (coins opposés à la diagonale)' }
+Write-Output 'rectangles : entiers (coins opposés à la diagonale)'
 
 # Trait d'un doigt au milieu de la page (blanche avant le trait).
 $y = [int]($hauteur * 0.5)
@@ -134,5 +130,4 @@ $trait = Pixel $apres $xm $y
 Write-Output "trait : lu $($trait -join ' ')"
 if (-not ($trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100)) { Echec 'trait absent après le glissement' }
 if ("$(& adb shell pidof $paquet)".Trim() -ne $processus) { Echec 'le processus a redémarré ou s''est arrêté' }
-if ($RenduLogiciel) { Write-Output "RENDU NON CONTROLE (GPU logiciel de l'émulateur)" }
 Write-Output 'ANDROID OK'
