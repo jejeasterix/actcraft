@@ -76,7 +76,7 @@ Lot 2b (plan `docs/plans/2026-10-15-livraison-complete-lot2b-PLAN.md` ; vagues V
 | id | dépend | zone | agent | worktree | état | essais | dernier commit vert | preuve rejouée |
 |----|--------|------|-------|----------|------|--------|---------------------|----------------|
 | L2-T11 | T1 | render : peintre partagé | crit | .worktrees/livraison-complete--L2-T11 (feat/livraison-complete--L2-T11) | en cours | 1/3 | — | — |
-| L2-T12 | T1 | render : images des ressources hors fil principal | impl | .worktrees/livraison-complete--L2-T12 (feat/livraison-complete--L2-T12) | en cours | 1/3 | — | — |
+| L2-T12 | T1 | render : images des ressources hors fil principal | impl | (mergé) | terminée | 1/3 | 6396b1a → merge (voir log) | rejoué : 56/56 TESTS OK, tst_render_images Passed (6 cas nouveaux dont `resourceImagesAreDecodedOffThreadAndMasked`, fil vérifié) ; rouge : C2660/C2039 ; `NOMS OK`. Banc hors écran (agent) : `BUDGET DEPASSE` (gel de trait 1, reprises 3), `content_check.ok = True`, `2026-10-15_235511-…-software.json` — résultat, à comparer à la référence du lot 1 à la clôture. Écart : image non masquée aussi demandée pour une ressource utilisée masquée. Avis tiers : libtiff 4.7.2, libwebp 1.6.0 (page Qt du 2026-10-15) |
 | L2-T13 | T11,T12 | render : nouveaux types dans la scène | crit | — | à faire | 0/3 | — | — |
 | L2-T14 | T2,T13 | cache figé (DA11), page fixe sur le document | crit | — | à faire | 0/3 | — | — |
 | L2-T15 | T14 | ui : DocumentController sur document et pile | crit | — | à faire | 0/3 | — | — |
