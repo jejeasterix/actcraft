@@ -15,6 +15,7 @@
 class QObject;
 class QPointingDevice;
 class QQuickWindow;
+class QWindow;
 
 namespace actcraft::ui {
 class PageView;
@@ -87,6 +88,14 @@ public:
     // Reçoit chaque ligne du rapport dès qu'elle est écrite (sortie au fil de l'eau d'actcraft-captures).
     void setLineSink(LineSink sink);
 
+    // Livraison d'un appui ou d'un relâché à la fenêtre ; vrai si la touche a été acceptée. Par défaut
+    // QWindowSystemInterface::handleKeyEvent, synchrone : le chemin d'une vraie touche après la plateforme.
+    // Remplaçable pour les tests seulement, pour simuler une plateforme dont la livraison ne consulte pas la
+    // carte des raccourcis (macOS, voir key()).
+    using KeyDelivery = std::function<bool(QWindow* window, ulong timestamp, QEvent::Type type, int key,
+                                           Qt::KeyboardModifiers modifiers, const QString& text)>;
+    void setKeyDelivery(KeyDelivery delivery);
+
     // S'arrête à la première étape en échec. Captures et index.md dans `outputDir` (créé).
     bool play(const UiScenario& scenario, const QString& outputDir, QStringList& report);
     // Lecture d'une propriété (étape Expect) : « LU cible.propriété=valeur OK » ou « … ECART (attendu …) ».
@@ -114,6 +123,7 @@ private:
     QStringList m_index;
     int m_captureIndex = 0;
     LineSink m_sink;
+    KeyDelivery m_keyDelivery;
 };
 
 } // namespace actcraft::bench

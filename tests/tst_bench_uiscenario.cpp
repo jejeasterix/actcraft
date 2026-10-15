@@ -1,5 +1,6 @@
 #include <actcraft/bench/uiscenario.h>
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
@@ -7,6 +8,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
+#include <qpa/qwindowsysteminterface.h>
 
 #include <memory>
 
@@ -95,6 +97,38 @@ protected:
         }
     }
 };
+
+// Accepte tout ShortcutOverride : QWindowSystemInterface::handleShortcutEvent conclut alors que la touche est
+// reprise par l'élément actif et ne consulte pas la carte des raccourcis.
+class ShortcutMapBypass : public QObject
+{
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        if (event->type() == QEvent::ShortcutOverride) {
+            event->accept();
+            return true;
+        }
+        return QObject::eventFilter(watched, event);
+    }
+};
+
+// Livraison d'une plateforme qui ne consulte pas la carte des raccourcis, comme Qt sous macOS :
+// QGuiApplicationPrivate::processKeyEvent n'y appelle pas handleShortcutEvent (« #if !defined(Q_OS_MACOS) »),
+// la plateforme Cocoa et QTest (qt_handleKeyEvent) le font avant elle. Reproduite sur toute plateforme par le
+// vrai chemin (appui spontané, élément actif), carte neutralisée le temps de la livraison. Pas de
+// QCoreApplication::sendEvent : un appui non spontané fait consulter la carte par Qt Quick
+// (QQuickDeliveryAgentPrivate::deliverKeyEvent), le test ne distinguerait plus rien.
+bool deliverWithoutShortcutMap(QWindow* window, ulong timestamp, QEvent::Type type, int key,
+                               Qt::KeyboardModifiers modifiers, const QString& text)
+{
+    ShortcutMapBypass bypass;
+    QCoreApplication::instance()->installEventFilter(&bypass);
+    const bool accepted = QWindowSystemInterface::handleKeyEvent<QWindowSystemInterface::SynchronousDelivery>(
+        window, timestamp, type, key, modifiers, text);
+    QCoreApplication::instance()->removeEventFilter(&bypass);
+    return accepted;
+}
 
 } // namespace
 
@@ -284,6 +318,37 @@ private slots:
                      report.last().contains(QLatin1String("ambigu")),
                  qPrintable(report.last()));
         QCOMPARE(f.window->property("compteur").toInt(), 0);
+    }
+
+    // Discriminant : un raccourci est joué même quand la livraison de la plateforme ne consulte pas la carte
+    // des raccourcis (Qt sous macOS). Un joueur qui s'en remet à QWindowSystemInterface::handleKeyEvent passe
+    // sous Windows et échoue sous macOS (run 38690918062 : « TOUCHE F5 ECHEC (ni raccourci ni élément actif…)
+    // »).
+    void keyReachesShortcutsWhenDeliveryIgnoresThem()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        f.window->requestActivate();
+        QVERIFY(QTest::qWaitForWindowActive(f.window));
+        // Prémisse : cette livraison seule n'atteint pas le raccourci F5, comme sous macOS.
+        deliverWithoutShortcutMap(f.window, 0, QEvent::KeyPress, Qt::Key_F5, Qt::NoModifier, QString());
+        deliverWithoutShortcutMap(f.window, 0, QEvent::KeyRelease, Qt::Key_F5, Qt::NoModifier, QString());
+        QCOMPARE(f.window->property("compteur").toInt(), 0);
+
+        f.player->setKeyDelivery(deliverWithoutShortcutMap);
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("raccourci", "[{\"key\":\"F5\"}]"), f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(report.last(), QStringLiteral("TOUCHE F5 OK (raccourci)"));
+        QCOMPARE(f.window->property("compteur").toInt(), 10);
+        // Le contrôle « acceptée » tient sur ce chemin : ambiguë, et reçue sans être acceptée, échouent.
+        QVERIFY(!f.player->play(scenario("ambigue", "[{\"key\":\"F7\"}]"), f.out.path(), report));
+        QVERIFY2(report.last().startsWith(QLatin1String("TOUCHE F7 ECHEC")) &&
+                     report.last().contains(QLatin1String("ambigu")),
+                 qPrintable(report.last()));
+        QVERIFY(!f.player->play(scenario("ignoree", "[{\"key\":\"F6\"}]"), f.out.path(), report));
+        QVERIFY2(report.last().startsWith(QLatin1String("TOUCHE F6 ECHEC")), qPrintable(report.last()));
+        QCOMPARE(f.window->property("compteur").toInt(), 10);
     }
 
     // Discriminant : une capture uniforme (rien de dessiné) est refusée.
