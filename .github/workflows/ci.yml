@@ -62,9 +62,8 @@ jobs:
       - name: Configurer
         run: cmake --preset debug
 
-      # RECHERCHE (temporaire) : -k 0 pour relever toutes les erreurs de clang d'un coup.
       - name: Compiler
-        run: cmake --build --preset debug -- -k 0
+        run: cmake --build --preset debug
 
       - name: Tester
         run: ctest --preset debug
@@ -187,14 +186,17 @@ jobs:
           set +e
           sdk="$ANDROID_SDK_ROOT"
           export PATH="$sdk/platform-tools:$sdk/emulator:$PATH"
+          # avdmanager récent écrit sous ~/.config/.android/avd, l'émulateur lit ~/.android/avd (run 38682097874).
+          export ANDROID_AVD_HOME="$HOME/.android/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
           yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
           "$sdk/cmdline-tools/latest/bin/sdkmanager" emulator platform-tools \
             "system-images;android-$ANDROID_EMULATOR_API;google_apis;x86_64" "system-images;android-36;google_apis;x86_64" > /dev/null
           echo no | "$sdk/cmdline-tools/latest/bin/avdmanager" create avd -n a$ANDROID_EMULATOR_API -k "system-images;android-$ANDROID_EMULATOR_API;google_apis;x86_64" -d "$ANDROID_AVD_PROFILE" --force
           echo no | "$sdk/cmdline-tools/latest/bin/avdmanager" create avd -n a36 -k "system-images;android-36;google_apis;x86_64" -d "$ANDROID_AVD_PROFILE" --force
+          emulator -list-avds
+          sudo apt-get update -qq && sudo apt-get install -y -qq libpulse0 xvfb mesa-utils libgl1-mesa-dri libegl1 > /dev/null
           emulator -version | head -2
-          emulator -help-gpu || true
-          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb mesa-utils libgl1-mesa-dri libegl1 > /dev/null
           Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
           export DISPLAY=:99
           sleep 3
@@ -242,6 +244,7 @@ jobs:
           fi
           essayer swangle-34 a$ANDROID_EMULATOR_API -no-window -gpu swangle_indirect
           essayer lavapipe-34 a$ANDROID_EMULATOR_API -no-window -gpu lavapipe
+          essayer software-34 a$ANDROID_EMULATOR_API -no-window -gpu software
           essayer swiftshader-36 a36 -no-window -gpu swiftshader_indirect
           grep -h "^RECHERCHE\|^ANDROID" build/recherche/*.txt || true
 
