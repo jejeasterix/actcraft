@@ -41,6 +41,7 @@ VERIF s3-ci = -gpu lavapipe rend juste sans GPU : essai strict ANDROID OK (écra
 VERIF ci-emulateur = qemu exige libpulse.so.0, absent de ubuntu-latest (paquet libpulse0) ; avdmanager récent écrit sous ~/.config/.android/avd alors que l'émulateur lit ~/.android/avd (ANDROID_AVD_HOME, hors action reactivecircus)
 VERIF ci-build-tools = ubuntu-latest a des build-tools plus récents que 36.0.0, dont apksigner écrit « V3.0 Signer: certificate DN » : paquet-android.ps1 prend ceux de versions.env
 VERIF ci-msvc = windows-latest : Visual Studio 18 (MSVC 14.51.36231), runtime sous x64/Microsoft.VC145.CRT (VC143 sur le poste) : paquet.ps1 prend le dossier Microsoft.VC14*.CRT présent
+VERIF ci-s1 = windows-latest ouvre une vraie fenêtre (plateforme windows, sans -HorsEcran) ; D3D11 sur « Microsoft Basic Render Driver » (WARP), qwindows.dll et runtime MSVC chargés depuis le dossier installé, INSTALLATEUR OK (run 38686077102)
 
 ## Conséquences
 
