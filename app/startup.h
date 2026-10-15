@@ -9,6 +9,8 @@ class QQuickWindow;
 struct StartupOptions
 {
     bool cacheEnabled = true;
+    // Banc et tests : la page 1 est la page générée de 300 objets (DA7) ; sinon, page vierge.
+    bool generatedPage = false;
 };
 
 // Lit `--sans-cache` (décision 8).
