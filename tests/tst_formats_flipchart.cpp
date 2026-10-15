@@ -528,6 +528,62 @@ private slots:
         QVERIFY(formats::flipchart::readFlipchart(data).ok); // 100 Mo : sous la borne par défaut
     }
 
+    // Comme la référence (L2-C4) : les enfants d'un objet non lu (formule, texte vertical) sont gardés, à sa
+    // place et composés avec sa transformation ; l'objet non lu lui-même n'entre pas dans le modèle.
+    void childrenOfAnUnreadObjectAreKept()
+    {
+        const auto r = formats::flipchart::readFlipchart(fctest::synth::unreadParents());
+        QVERIFY2(r.ok, qPrintable(r.error));
+        const auto& objects = r.document.page(0).objects;
+        QStringList names;
+        for (const core::PageObject& o : objects) {
+            names << QString::fromStdString(o.common.name);
+        }
+        QCOMPARE(names,
+                 (QStringList{u"A"_s, u"enfant-non-lu C2"_s, u"enfant-non-lu C1"_s, u"enfant-non-lu L"_s,
+                              u"petit-enfant-non-lu N"_s, u"B"_s, u"K vers formule"_s}));
+        const core::Transform& t = objects[1].common.transform; // (3, 4), puis quart de tour et (100, 50)
+        QVERIFY(nearlyEqual(t.m12, 1));
+        QVERIFY(nearlyEqual(t.dx, 96));
+        QVERIFY(nearlyEqual(t.dy, 53));
+        QCOMPARE(as<core::Connector>(objects[6]).objectB, core::ObjectId{0}); // vise la formule : sans cible
+        QCOMPARE(r.warnings.filter(u"non lu"_s).size(), 2);
+        QVERIFY(core::hasUniqueIds(r.document));
+    }
+
+    // Comme la référence (L2-C4) : de deux grilles sur une page, la dernière gagne, niveaux compris.
+    void theLastGridOfAPageWins()
+    {
+        const auto r = formats::flipchart::readFlipchart(fctest::synth::twoGrids());
+        QVERIFY2(r.ok, qPrintable(r.error));
+        const core::Grid& grid = r.document.page(0).grid;
+        QVERIFY(grid.visible);
+        QVERIFY(!grid.snapEnabled);
+        QVERIFY(!grid.drawnAbove);
+        QCOMPARE(grid.previewZoom, 1.0);
+        QCOMPARE(grid.baseZoom, 3.0);
+        QCOMPARE(grid.zoomIncrement, 0.25);
+        QCOMPARE(grid.levels.size(), std::size_t{2});
+        QCOMPARE(grid.levels[0].angle, 45.0);
+        QCOMPARE(grid.levels[0].spacingX, 32.0); // 0 vaut la valeur par défaut
+        QCOMPARE(grid.levels[1].spacingY, 8.0);
+    }
+
+    // Comme la référence (L2-C4) : une taille de police 0 vaut 12 ; une graisse 0 vaut 50 (400 en Qt 6).
+    void zeroFontSizeAndWeightFollowTheReference()
+    {
+        const auto r = formats::flipchart::readFlipchart(fctest::synth::fonts());
+        QVERIFY2(r.ok, qPrintable(r.error));
+        const auto& runs = as<core::Text>(r.document.page(0).objects[0]).runs;
+        QCOMPARE(runs.size(), std::size_t{8});
+        QCOMPARE(runs[0].pointSize, 12.0);
+        QCOMPARE(runs[0].weight, std::int32_t{400});
+        QCOMPARE(runs[1].pointSize, 12.0);
+        QCOMPARE(runs[2].pointSize, 18.5);
+        QCOMPARE(runs[3].pointSize, 12.0);
+        QCOMPARE(runs[3].weight, std::int32_t{200});
+    }
+
     void refusesWhatIsNotAFlipchart()
     {
         QVERIFY(!formats::flipchart::looksLikeFlipchart("PK\x03\x04"));

@@ -24,3 +24,11 @@ actcraft_add_test(tst_formats_dump
 actcraft_add_test(tst_formats_oracle
     SOURCES tst_formats_oracle.cpp
     LIBS ActCraft::formats)
+
+# Oracle synthétique (L2-C4) : paperboards de notre écrivain lus par notre lecteur et par la référence Python
+# (tools/oracle_flipchart.py de l'ancien dépôt), comparés en un seul test. Sauté et signalé sans l'ancien dépôt
+# (ACTCRAFT_REFERENCE_DIR, ou ACTCRAFT_SAMPLES_DIR comme l'oracle réel) ou sans Python 3 (ACTCRAFT_PYTHON,
+# python, python3). Écrit sous build/<preset>/oracle-synth/, jamais commité.
+actcraft_add_test(tst_formats_oracle_synth
+    SOURCES tst_formats_oracle_synth.cpp
+    LIBS ActCraft::formats Qt6::Gui)

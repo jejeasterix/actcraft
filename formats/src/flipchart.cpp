@@ -22,7 +22,8 @@ namespace {
 
 // Objets imbriqués lus au plus sur 32 niveaux : la lecture est récursive et l'index en admet 256 (en
 // débogage, 200 niveaux débordaient la pile du fil principal). Les paperboards réels n'imbriquent que
-// quelques niveaux.
+// quelques niveaux. Écart gardé (sécurité, L2-C4) : la référence ne borne pas ; l'oracle synthétique ne
+// l'exerce pas.
 constexpr int kMaxNesting = 32;
 // Côté de page accepté, en pixels de page ; au-delà (ou NaN, nul, négatif), taille par défaut et
 // avertissement.
@@ -254,6 +255,9 @@ struct Pending
     quint32 connectorB = 0;
     std::vector<PendingAction> actions;
     std::vector<Pending> children;
+    // Genre non lu (formule, texte vertical…) : absent du modèle, mais ses enfants y entrent, à sa place dans
+    // l'ordre de dessin et composés avec sa transformation, comme dans la référence.
+    bool unread = false;
 };
 
 bool drawsBefore(const Pending& a, const Pending& b)
@@ -575,15 +579,14 @@ private:
             if (child.type == ids::kind::kTagObject) {
                 continue;
             }
-            std::optional<Pending> p = toPending(*container, child, *o, where, 1);
-            if (!p) {
+            Pending p = toPending(*container, child, *o, where, 1);
+            p.order = order++;
+            const bool unread = p.unread;
+            const bool isGroup = std::get_if<core::Group>(&p.object) != nullptr;
+            pending.push_back(std::move(p));
+            if (unread) {
                 last.reset(); // comme la référence : l'action suivante viserait cet objet non lu
-                continue;
-            }
-            p->order = order++;
-            const bool isGroup = std::get_if<core::Group>(&p->object) != nullptr;
-            pending.push_back(std::move(*p));
-            if (!isGroup) {
+            } else if (!isGroup) {
                 last = pending.size() - 1;
             }
         }
@@ -619,6 +622,11 @@ private:
             }
             sheet.objects.push_back(std::move(p->object));
         }
+        // Contrat du modèle : Page::objects est rangé par couche (model.h, isLayerOrdered ; nativejson.cpp le
+        // rétablit au rechargement). La référence garde l'ordre de l'arbre (parent puis enfants, seuls les
+        // frères sont triés) : un enfant d'une autre couche que son parent est ici déplacé, avec un
+        // avertissement. Écart nommé de l'oracle synthétique (« enfants-ranges-par-couche »), gardé en
+        // attente de décision (L2-C4).
         if (!std::is_sorted(sheet.objects.begin(), sheet.objects.end(),
                             [](const core::PageObject& a, const core::PageObject& b) {
                                 return a.common.layer < b.common.layer;
@@ -646,9 +654,11 @@ private:
                 composed = core::Transform{};
             }
             p.object.common.transform = composed;
-            p.object.common.id = m_nextId++;
-            idOf[p.nodeId] = p.object.common.id;
-            flat.push_back(&p);
+            if (!p.unread) {
+                p.object.common.id = m_nextId++;
+                idOf[p.nodeId] = p.object.common.id;
+                flat.push_back(&p);
+            }
             std::stable_sort(p.children.begin(), p.children.end(), drawsBefore);
             flatten(p.children, p.object.common.transform, flat, idOf, where);
         }
@@ -740,6 +750,11 @@ private:
     void applyGuides(const BambooContainer& container, const IndexNode& treeNode, const StreamObject& g,
                      core::Page& sheet)
     {
+        // Plusieurs grilles sur une page : la dernière remplace les précédentes, niveaux compris, comme la
+        // référence (chaque grille y remplace la grille de la page).
+        const bool shown = sheet.grid.visible;
+        sheet.grid = core::Grid{};
+        sheet.grid.visible = shown;
         sheet.grid.snapEnabled = flagOr(&g, ids::guideKeys::kSnapEnabled, false);
         sheet.grid.drawnAbove = flagOr(&g, ids::guideKeys::kDrawnAbove, false);
         sheet.grid.previewZoom = numberOr(&g, ids::guideKeys::kPreviewZoom, sheet.grid.previewZoom);
@@ -752,6 +767,8 @@ private:
             QString error;
             const std::optional<StreamObject> s = load(container, child.storageName(), error);
             if (!s) {
+                // Écart gardé (robustesse, L2-C4) : le niveau est sauté ; la référence perd toute la page.
+                // L'oracle synthétique ne l'exerce pas.
                 warn(u"niveau de grille illisible : %1"_s.arg(error));
                 continue;
             }
@@ -785,8 +802,8 @@ private:
         }
     }
 
-    std::optional<Pending> toPending(const BambooContainer& container, const IndexNode& treeNode,
-                                     const StreamObject& o, const QString& where, int nesting)
+    Pending toPending(const BambooContainer& container, const IndexNode& treeNode, const StreamObject& o,
+                      const QString& where, int nesting)
     {
         const quint16 type = treeNode.type;
         Pending p;
@@ -815,6 +832,8 @@ private:
                 }
             }
             p.object = std::move(s);
+            // Seuls les traits portent une translucidité dans le format. Bornée à 0..255 : écart gardé
+            // (L2-C4), la référence garde l'entier brut ; l'oracle synthétique ne l'exerce pas.
             p.object.common.translucency =
                 static_cast<std::uint8_t>(std::clamp(intOr(&o, ids::strokeKeys::kSeeThrough, 0), 0, 255));
             break;
@@ -903,7 +922,11 @@ private:
                     core::TextSpan run;
                     run.text = characters.toStdString();
                     run.fontFamily = typeface.toStdString();
+                    // 0 vaut 12 et la graisse 0 vaut 50 (qt6Weight), comme dans la référence.
                     run.pointSize = numberOr(r, ids::runKeys::kPointHeight, 12);
+                    if (run.pointSize == 0) {
+                        run.pointSize = 12;
+                    }
                     run.weight = qt6Weight(intOr(r, ids::runKeys::kBoldness, 50));
                     run.italic = flagOr(r, ids::runKeys::kSlanted, false);
                     run.underline = flagOr(r, ids::runKeys::kUnderlined, false);
@@ -952,14 +975,18 @@ private:
             break;
         }
         default:
+            // Signalé ; la référence se tait (écart nommé « objet-non-lu-signale » de l'oracle synthétique).
             warn(u"%1 : objet de genre %2 non lu (nœud %3)"_s.arg(where).arg(type).arg(treeNode.nodeId));
-            return std::nullopt;
+            p.unread = true;
+            break;
         }
 
         core::ObjectCommon& c = p.object.common;
         c.name = stringOf(&o, ids::itemKeys::kItemTitle);
         p.layer = intOr(&o, ids::itemKeys::kPlane, 1);
         c.layer = p.layer == 0 ? core::Layer::Bottom : p.layer == 2 ? core::Layer::Top : core::Layer::Middle;
+        // Couche hors 0..2 : couche intermédiaire, que le modèle sait représenter. Écart gardé (L2-C4) : la
+        // référence garde la valeur brute ; l'oracle synthétique ne l'exerce pas.
         if (p.layer < 0 || p.layer > 2) {
             warn(u"%1 : couche %2 inconnue (nœud %3), couche intermédiaire"_s.arg(where).arg(p.layer).arg(
                 treeNode.nodeId));
@@ -1006,10 +1033,9 @@ private:
             if (child.type == ids::kind::kTagObject) {
                 continue;
             }
-            if (std::optional<Pending> cp = toPending(container, child, *co, where, nesting + 1)) {
-                cp->order = order++;
-                p.children.push_back(std::move(*cp));
-            }
+            Pending cp = toPending(container, child, *co, where, nesting + 1);
+            cp.order = order++;
+            p.children.push_back(std::move(cp));
         }
         return p;
     }
