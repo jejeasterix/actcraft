@@ -62,8 +62,9 @@ jobs:
       - name: Configurer
         run: cmake --preset debug
 
+      # RECHERCHE (temporaire) : -k 0 pour relever toutes les erreurs de clang d'un coup.
       - name: Compiler
-        run: cmake --build --preset debug
+        run: cmake --build --preset debug -- -k 0
 
       - name: Tester
         run: ctest --preset debug
