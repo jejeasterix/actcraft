@@ -16,14 +16,14 @@
                 "image": ""
             },
             "grid": {
-                "allowSnap": false,
-                "defaultScale": 1,
+                "baseZoom": 1,
+                "drawnAbove": false,
                 "levels": [
                 ],
-                "onTop": false,
-                "scaleStep": 0.5,
-                "thumbnailScale": 1,
-                "visible": false
+                "previewZoom": 1,
+                "snapEnabled": false,
+                "visible": false,
+                "zoomIncrement": 0.5
             },
             "height": 768,
             "name": "Page un",
@@ -105,8 +105,9 @@
                     ],
                     "colorA": "#ff00ff00",
                     "colorB": "#ff0000ff",
-                    "hasTransparentColor": false,
+                    "hasKeyColor": false,
                     "id": 2,
+                    "keyColor": "#00000000",
                     "label": "",
                     "layer": "middle",
                     "locked": false,
@@ -130,7 +131,6 @@
                         0
                     ],
                     "translucency": 0,
-                    "transparentColor": "#00000000",
                     "type": "image",
                     "visible": true
                 },
@@ -145,8 +145,9 @@
                     ],
                     "colorA": "#ff00ff00",
                     "colorB": "#ff0000ff",
-                    "hasTransparentColor": true,
+                    "hasKeyColor": true,
                     "id": 3,
+                    "keyColor": "#ffffffff",
                     "label": "",
                     "layer": "middle",
                     "locked": false,
@@ -170,7 +171,6 @@
                         0
                     ],
                     "translucency": 0,
-                    "transparentColor": "#ffffffff",
                     "type": "image",
                     "visible": true
                 },
@@ -371,7 +371,6 @@
                 {
                     "actions": [
                     ],
-                    "autoPlay": true,
                     "bounds": [
                         0,
                         0,
@@ -387,6 +386,7 @@
                     "media": "1970a0946b6ebaf93c35eb29812afe6d4e75934f32f8ef3a74c6f05cd4018fa5",
                     "name": "",
                     "placeholder": "2ca39923cec91a5146b92803ca2b69ce81577af42d115d624f7373806b2804e6",
+                    "playOnOpen": true,
                     "restrictions": {
                         "move": true,
                         "rotate": true,
@@ -436,13 +436,9 @@
                 {
                     "actions": [
                     ],
-                    "endA": [
+                    "firstEnd": [
                         1,
                         2
-                    ],
-                    "endB": [
-                        300,
-                        400
                     ],
                     "id": 9,
                     "label": "",
@@ -463,6 +459,10 @@
                         "rotate": true,
                         "size": true
                     },
+                    "secondEnd": [
+                        300,
+                        400
+                    ],
                     "transform": [
                         1,
                         0,
@@ -532,62 +532,62 @@
                 "image": "2ca39923cec91a5146b92803ca2b69ce81577af42d115d624f7373806b2804e6"
             },
             "grid": {
-                "allowSnap": false,
-                "defaultScale": 2,
+                "baseZoom": 2,
+                "drawnAbove": true,
                 "levels": [
                     {
                         "angle": 30,
                         "color": "#ff0000ff",
-                        "drawX": true,
-                        "drawY": true,
                         "line": "solid",
+                        "linesAlongX": true,
+                        "linesAlongY": true,
                         "pattern": "normal",
                         "snap": false,
+                        "spacingX": 50,
+                        "spacingY": 25,
                         "start": [
                             0,
                             0
                         ],
-                        "stepX": 50,
-                        "stepY": 25,
                         "visible": true
                     },
                     {
                         "angle": 45,
                         "color": "#ff00ff00",
-                        "drawX": true,
-                        "drawY": false,
                         "line": "dotted",
+                        "linesAlongX": true,
+                        "linesAlongY": false,
                         "pattern": "angle",
                         "snap": true,
+                        "spacingX": 64,
+                        "spacingY": 48,
                         "start": [
                             3,
                             4
                         ],
-                        "stepX": 64,
-                        "stepY": 48,
                         "visible": false
                     },
                     {
                         "angle": 30,
                         "color": "#ff808080",
-                        "drawX": false,
-                        "drawY": false,
                         "line": "solid",
+                        "linesAlongX": false,
+                        "linesAlongY": false,
                         "pattern": "normal",
                         "snap": true,
+                        "spacingX": 16,
+                        "spacingY": 12,
                         "start": [
                             0,
                             0
                         ],
-                        "stepX": 16,
-                        "stepY": 12,
                         "visible": true
                     }
                 ],
-                "onTop": true,
-                "scaleStep": 0.25,
-                "thumbnailScale": 0.5,
-                "visible": true
+                "previewZoom": 0.5,
+                "snapEnabled": false,
+                "visible": true,
+                "zoomIncrement": 0.25
             },
             "height": 600,
             "name": "Page deux",
@@ -610,14 +610,14 @@
                 "image": ""
             },
             "grid": {
-                "allowSnap": true,
-                "defaultScale": 1,
+                "baseZoom": 1,
+                "drawnAbove": true,
                 "levels": [
                 ],
-                "onTop": true,
-                "scaleStep": 0.5,
-                "thumbnailScale": 1,
-                "visible": false
+                "previewZoom": 1,
+                "snapEnabled": true,
+                "visible": false,
+                "zoomIncrement": 0.5
             },
             "height": 768,
             "name": "",
@@ -626,7 +626,6 @@
                 {
                     "actions": [
                     ],
-                    "autoPlay": false,
                     "bounds": [
                         500,
                         300,
@@ -642,6 +641,7 @@
                     "media": "1970a0946b6ebaf93c35eb29812afe6d4e75934f32f8ef3a74c6f05cd4018fa5",
                     "name": "",
                     "placeholder": "",
+                    "playOnOpen": false,
                     "restrictions": {
                         "move": true,
                         "rotate": true,

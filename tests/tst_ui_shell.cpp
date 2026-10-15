@@ -365,14 +365,14 @@ private slots:
         Shell s;
         QVERIFY(start(s));
         QVERIFY(run(s, QStringLiteral("pen.color"), QStringLiteral("#E53935")));
-        QCOMPARE(s.view->penColor(), QColor(QStringLiteral("#E53935")));
+        QCOMPARE(s.view->inkColor(), QColor(QStringLiteral("#E53935")));
         QVERIFY(run(s, QStringLiteral("pen.width"), 8));
-        QCOMPARE(s.view->penWidth(), 8.0);
+        QCOMPARE(s.view->inkWidth(), 8.0);
         QVERIFY(!run(s, QStringLiteral("pen.color"), QStringLiteral("rouge")));
-        QCOMPARE(s.view->penColor(), QColor(QStringLiteral("#E53935")));
+        QCOMPARE(s.view->inkColor(), QColor(QStringLiteral("#E53935")));
     }
 
-    void widthSliderFollowsThePenWidth()
+    void widthSliderFollowsTheInkWidth()
     {
         Shell s;
         QVERIFY(start(s));
@@ -391,14 +391,14 @@ private slots:
         QVERIFY(strong);
         const QPoint c = strong->mapToScene(QPointF(strong->width() / 2, strong->height() / 2)).toPoint();
         QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier, c);
-        QTRY_COMPARE(s.view->penWidth(), 8.0);
+        QTRY_COMPARE(s.view->inkWidth(), 8.0);
         QTRY_VERIFY(slider->property("visualPosition").toDouble() > 0.3);
         // Sens inverse : déplacer la réglette change l'épaisseur du stylo.
         const QPointF origin = slider->mapToScene(QPointF(0, 0));
         const QPoint mid = (origin + QPointF(slider->width() / 2, slider->height() / 2)).toPoint();
         QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier, mid);
-        QTRY_VERIFY2(s.view->penWidth() > 8.0 && s.view->penWidth() < 100.0,
-                     qPrintable(QString::number(s.view->penWidth())));
+        QTRY_VERIFY2(s.view->inkWidth() > 8.0 && s.view->inkWidth() < 100.0,
+                     qPrintable(QString::number(s.view->inkWidth())));
         // L'échantillon montre l'épaisseur du stylo, lisible (au moins 8 px pour 8).
         QQuickItem* sample = item(s, "widthIndicatorSample");
         QVERIFY(sample);
@@ -465,7 +465,7 @@ private slots:
         QVERIFY(commands->isChecked(QStringLiteral("view.fullscreen")));
     }
 
-    void swatchTapChoosesThePenColor()
+    void swatchTapChoosesTheInkColor()
     {
         Shell s;
         QVERIFY(start(s));
@@ -473,7 +473,7 @@ private slots:
         QVERIFY(swatch);
         const QPointF center = swatch->mapToScene(QPointF(swatch->width() / 2, swatch->height() / 2));
         QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier, center.toPoint());
-        QTRY_COMPARE(s.view->penColor(), QColor(QStringLiteral("#1E88E5")));
+        QTRY_COMPARE(s.view->inkColor(), QColor(QStringLiteral("#1E88E5")));
     }
 
     void stylusOnThePaletteDoesNotDraw()

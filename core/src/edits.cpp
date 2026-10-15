@@ -78,8 +78,8 @@ RectF localBounds(const PageObject& object) noexcept
     } else if (const auto* m = std::get_if<Media>(&object)) {
         box.addRect(m->bounds);
     } else if (const auto* c = std::get_if<Connector>(&object)) {
-        box.add(c->endA);
-        box.add(c->endB);
+        box.add(c->firstEnd);
+        box.add(c->secondEnd);
         margin = c->pen.width / 2;
     }
     return box.empty() ? RectF{} : box.grown(margin);
@@ -87,7 +87,7 @@ RectF localBounds(const PageObject& object) noexcept
 
 } // namespace
 
-std::size_t insertOnTopOfLayer(Page& page, PageObject object)
+std::size_t insertAtTopOfLayer(Page& page, PageObject object)
 {
     const Layer layer = object.common.layer;
     const auto it = std::find_if(page.objects.begin(), page.objects.end(),
@@ -159,7 +159,7 @@ void AddObjectCommand::redo(Document& document, Changes& changes)
             return; // identifiants épuisés : jamais d'objet d'identifiant 0
         }
     }
-    insertOnTopOfLayer(document.page(m_page), m_object);
+    insertAtTopOfLayer(document.page(m_page), m_object);
     m_inserted = true;
     changes.push_back(
         Change{Change::Kind::ObjectInserted, m_page, m_object.common.id, boundsOnPage(m_object)});

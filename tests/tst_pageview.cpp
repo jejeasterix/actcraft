@@ -174,33 +174,33 @@ private slots:
             QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3);
     }
 
-    void penColorAndWidthAreClampedAndSignalled()
+    void inkColorAndWidthAreClampedAndSignalled()
     {
         DrawFixture f;
         QVERIFY(openDrawing(f, m_stylus.get()));
-        QCOMPARE(f.view->penColor(), QColor(Qt::black));
-        QCOMPARE(f.view->penWidth(), kDefaultPenWidth);
+        QCOMPARE(f.view->inkColor(), QColor(Qt::black));
+        QCOMPARE(f.view->inkWidth(), kDefaultInkWidth);
         QSignalSpy changed(f.view, &PageView::penChanged);
-        f.view->setPenColor(QColor(QStringLiteral("#E53935")));
-        f.view->setPenWidth(0.0);
-        QCOMPARE(f.view->penWidth(), kMinPenWidth);
-        f.view->setPenWidth(500.0);
-        QCOMPARE(f.view->penWidth(), kMaxPenWidth);
-        f.view->setPenColor(QColor()); // invalide : ignorée
-        QCOMPARE(f.view->penColor(), QColor(QStringLiteral("#E53935")));
+        f.view->setInkColor(QColor(QStringLiteral("#E53935")));
+        f.view->setInkWidth(0.0);
+        QCOMPARE(f.view->inkWidth(), kMinInkWidth);
+        f.view->setInkWidth(500.0);
+        QCOMPARE(f.view->inkWidth(), kMaxInkWidth);
+        f.view->setInkColor(QColor()); // invalide : ignorée
+        QCOMPARE(f.view->inkColor(), QColor(QStringLiteral("#E53935")));
         QCOMPARE(changed.count(), 3);
         // Appliquées au stylo en place…
         tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
         QTRY_COMPARE(f.fixed->objectCount(), 1);
         QCOMPARE(lastStroke(f).color, 0xFFE53935u);
-        QCOMPARE(lastStroke(f).baseWidth, kMaxPenWidth);
+        QCOMPARE(lastStroke(f).baseWidth, kMaxInkWidth);
         // … et gardées quand il est reconstruit (la page change).
         f.view->setFixedPage(nullptr);
         f.view->setFixedPage(f.fixed);
         tabletStroke(f, QPointF(300, 400), QPointF(500, 400));
         QTRY_COMPARE(f.fixed->objectCount(), 2);
         QCOMPARE(lastStroke(f).color, 0xFFE53935u);
-        QCOMPARE(lastStroke(f).baseWidth, kMaxPenWidth);
+        QCOMPARE(lastStroke(f).baseWidth, kMaxInkWidth);
     }
 
     void scrollPropertiesFollowZoom()

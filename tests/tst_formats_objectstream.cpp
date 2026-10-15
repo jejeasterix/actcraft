@@ -27,7 +27,7 @@ private slots:
                                     .string(6, u"Forme24"_s)
                                     .stringList(7, {u"a"_s, u"b"_s})
                                     .bytes(8, "xyz")
-                                    .rectF(9, 1, 2, 3, 4)
+                                    .floatRect(9, 1, 2, 3, 4)
                                     .size(10, 320, 240)
                                     .sizeF(11, 1024, 768)
                                     .pointF(12, 5, 6)

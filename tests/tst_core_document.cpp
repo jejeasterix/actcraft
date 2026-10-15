@@ -65,8 +65,8 @@ private slots:
 
     void previousStopsAtFirstPage()
     {
-        QCOMPARE(previousPageIndex(0), std::size_t{0});
-        QCOMPARE(previousPageIndex(3), std::size_t{2});
+        QCOMPARE(formerPageIndex(0), std::size_t{0});
+        QCOMPARE(formerPageIndex(3), std::size_t{2});
     }
 
     void fingerprintFollowsPagesAndContent()

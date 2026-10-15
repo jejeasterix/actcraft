@@ -173,7 +173,7 @@ std::size_t nextPageIndex(Document& document, std::size_t current)
     return document.appendPage();
 }
 
-std::size_t previousPageIndex(std::size_t current) noexcept
+std::size_t formerPageIndex(std::size_t current) noexcept
 {
     return current == 0 ? 0 : current - 1;
 }

@@ -139,7 +139,7 @@ private slots:
         QCOMPARE(actual, kExpectedFingerprint);
     }
 
-    void witnessesOnTop()
+    void witnessesAtTop()
     {
         const Page page = generatePage();
         const Witnesses& w = witnesses();

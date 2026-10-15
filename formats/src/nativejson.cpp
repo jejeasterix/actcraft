@@ -439,9 +439,9 @@ void writeCommon(QJsonObject& j, const ObjectCommon& common)
     j.insert(u"visible"_s, visible);
     j.insert(u"locked"_s, locked);
     j.insert(u"translucency"_s, static_cast<int>(translucency));
-    const auto& [canMove, canSize, canRotate] = restrictions;
+    const auto& [movable, resizable, rotatable] = restrictions;
     j.insert(u"restrictions"_s,
-             QJsonObject{{u"move"_s, canMove}, {u"size"_s, canSize}, {u"rotate"_s, canRotate}});
+             QJsonObject{{u"move"_s, movable}, {u"size"_s, resizable}, {u"rotate"_s, rotatable}});
     j.insert(u"transform"_s, transformJson(transform));
     j.insert(u"label"_s, str(label));
     QJsonArray list;
@@ -482,8 +482,8 @@ void writeBody(QJsonObject& j, const Shape& shape)
 
 void writeBody(QJsonObject& j, const ImageObject& image)
 {
-    const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource,
-                 hasTransparentColor, transparentColor] = image;
+    const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource, hasKeyColor,
+                 keyColor] = image;
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"sourceWidth"_s, static_cast<int>(sourceWidth));
     j.insert(u"sourceHeight"_s, static_cast<int>(sourceHeight));
@@ -494,8 +494,8 @@ void writeBody(QJsonObject& j, const ImageObject& image)
     j.insert(u"resource"_s, str(resource));
     // Deux clés, pas une couleur « null » sans transparence : le modèle garde les deux champs et l'empreinte
     // les hache tous les deux (unusedFieldsStillTravel).
-    j.insert(u"hasTransparentColor"_s, hasTransparentColor);
-    j.insert(u"transparentColor"_s, colorText(transparentColor));
+    j.insert(u"hasKeyColor"_s, hasKeyColor);
+    j.insert(u"keyColor"_s, colorText(keyColor));
 }
 
 void writeBody(QJsonObject& j, const Stroke& stroke)
@@ -522,7 +522,7 @@ void writeBody(QJsonObject& j, const Line& line)
     j.insert(u"pen"_s, outlineJson(pen));
 }
 
-QJsonObject runJson(const TextRun& run)
+QJsonObject runJson(const TextSpan& run)
 {
     const auto& [text, fontFamily, pointSize, weight, italic, underline, strikeOut, color, baseline, bounds] =
         run;
@@ -544,7 +544,7 @@ void writeBody(QJsonObject& j, const Text& textObject)
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"html"_s, str(html));
     QJsonArray list;
-    for (const TextRun& run : runs) {
+    for (const TextSpan& run : runs) {
         list.append(runJson(run));
     }
     j.insert(u"runs"_s, list);
@@ -552,12 +552,12 @@ void writeBody(QJsonObject& j, const Text& textObject)
 
 void writeBody(QJsonObject& j, const Media& mediaObject)
 {
-    const auto& [bounds, placeholder, media, fileName, autoPlay, loop] = mediaObject;
+    const auto& [bounds, placeholder, media, fileName, playOnOpen, loop] = mediaObject;
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"placeholder"_s, str(placeholder));
     j.insert(u"media"_s, str(media));
     j.insert(u"fileName"_s, str(fileName));
-    j.insert(u"autoPlay"_s, autoPlay);
+    j.insert(u"playOnOpen"_s, playOnOpen);
     j.insert(u"loop"_s, loop);
 }
 
@@ -573,9 +573,9 @@ void writeBody(QJsonObject& j, const Group& group)
 
 void writeBody(QJsonObject& j, const Connector& connector)
 {
-    const auto& [endA, endB, objectA, objectB, pen] = connector;
-    j.insert(u"endA"_s, pointJson(endA));
-    j.insert(u"endB"_s, pointJson(endB));
+    const auto& [firstEnd, secondEnd, objectA, objectB, pen] = connector;
+    j.insert(u"firstEnd"_s, pointJson(firstEnd));
+    j.insert(u"secondEnd"_s, pointJson(secondEnd));
     j.insert(u"objectA"_s, idValue(objectA));
     j.insert(u"objectB"_s, idValue(objectB));
     j.insert(u"pen"_s, outlineJson(pen));
@@ -593,33 +593,29 @@ QJsonObject objectJson(const PageObject& object)
 
 QJsonObject gridLevelJson(const GridLevel& level)
 {
-    const auto& [visible, snap, start, stepX, stepY, color, pattern, angle, line, drawX, drawY] = level;
-    return QJsonObject{{u"visible"_s, visible},
-                       {u"snap"_s, snap},
-                       {u"start"_s, pointJson(start)},
-                       {u"stepX"_s, stepX},
-                       {u"stepY"_s, stepY},
-                       {u"color"_s, colorText(color)},
-                       {u"pattern"_s, nameText(pattern)},
-                       {u"angle"_s, angle},
-                       {u"line"_s, nameText(line)},
-                       {u"drawX"_s, drawX},
-                       {u"drawY"_s, drawY}};
+    const auto& [visible, snap, start, spacingX, spacingY, color, pattern, angle, line, linesAlongX,
+                 linesAlongY] = level;
+    return QJsonObject{{u"visible"_s, visible},           {u"snap"_s, snap},
+                       {u"start"_s, pointJson(start)},    {u"spacingX"_s, spacingX},
+                       {u"spacingY"_s, spacingY},         {u"color"_s, colorText(color)},
+                       {u"pattern"_s, nameText(pattern)}, {u"angle"_s, angle},
+                       {u"line"_s, nameText(line)},       {u"linesAlongX"_s, linesAlongX},
+                       {u"linesAlongY"_s, linesAlongY}};
 }
 
 QJsonObject gridJson(const Grid& grid)
 {
-    const auto& [visible, allowSnap, onTop, thumbnailScale, defaultScale, scaleStep, levels] = grid;
+    const auto& [visible, snapEnabled, drawnAbove, previewZoom, baseZoom, zoomIncrement, levels] = grid;
     QJsonArray list;
     for (const GridLevel& level : levels) {
         list.append(gridLevelJson(level));
     }
     return QJsonObject{{u"visible"_s, visible},
-                       {u"allowSnap"_s, allowSnap},
-                       {u"onTop"_s, onTop},
-                       {u"thumbnailScale"_s, thumbnailScale},
-                       {u"defaultScale"_s, defaultScale},
-                       {u"scaleStep"_s, scaleStep},
+                       {u"snapEnabled"_s, snapEnabled},
+                       {u"drawnAbove"_s, drawnAbove},
+                       {u"previewZoom"_s, previewZoom},
+                       {u"baseZoom"_s, baseZoom},
+                       {u"zoomIncrement"_s, zoomIncrement},
                        {u"levels"_s, list}};
 }
 
@@ -995,10 +991,10 @@ ObjectCommon readCommon(Reader& r, const QJsonObject& j)
     locked = r.readFlag(j, u"locked", locked);
     translucency = r.readInteger(j, u"translucency", translucency);
     const QJsonObject jr = r.readChild(j, u"restrictions");
-    auto& [canMove, canSize, canRotate] = restrictions;
-    canMove = r.readFlag(jr, u"move", canMove);
-    canSize = r.readFlag(jr, u"size", canSize);
-    canRotate = r.readFlag(jr, u"rotate", canRotate);
+    auto& [movable, resizable, rotatable] = restrictions;
+    movable = r.readFlag(jr, u"move", movable);
+    resizable = r.readFlag(jr, u"size", resizable);
+    rotatable = r.readFlag(jr, u"rotate", rotatable);
     transform = r.readTransform(j, u"transform", transform);
     label = r.readString(j, u"label");
     for (const QJsonValue& value : r.readArray(j, u"actions")) {
@@ -1038,8 +1034,8 @@ void readBody(Reader& r, const QJsonObject& j, Shape& shape)
 
 void readBody(Reader& r, const QJsonObject& j, ImageObject& image)
 {
-    auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource, hasTransparentColor,
-           transparentColor] = image;
+    auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource, hasKeyColor,
+           keyColor] = image;
     bounds = r.readRect(j, u"bounds", bounds);
     sourceWidth = r.readInteger(j, u"sourceWidth", sourceWidth);
     sourceHeight = r.readInteger(j, u"sourceHeight", sourceHeight);
@@ -1048,8 +1044,8 @@ void readBody(Reader& r, const QJsonObject& j, ImageObject& image)
     colorB = r.readColor(j, u"colorB", colorB);
     seed = r.readInteger(j, u"seed", seed);
     resource = r.readString(j, u"resource");
-    hasTransparentColor = r.readFlag(j, u"hasTransparentColor", hasTransparentColor);
-    transparentColor = r.readColor(j, u"transparentColor", transparentColor);
+    hasKeyColor = r.readFlag(j, u"hasKeyColor", hasKeyColor);
+    keyColor = r.readColor(j, u"keyColor", keyColor);
 }
 
 void readBody(Reader& r, const QJsonObject& j, Stroke& stroke)
@@ -1089,9 +1085,9 @@ void readBody(Reader& r, const QJsonObject& j, Line& line)
     pen = r.readOutline(j, u"pen");
 }
 
-TextRun readRun(Reader& r, const QJsonObject& j)
+TextSpan readRun(Reader& r, const QJsonObject& j)
 {
-    TextRun run;
+    TextSpan run;
     auto& [text, fontFamily, pointSize, weight, italic, underline, strikeOut, color, baseline, bounds] = run;
     text = r.readString(j, u"text");
     fontFamily = r.readString(j, u"fontFamily");
@@ -1120,12 +1116,12 @@ void readBody(Reader& r, const QJsonObject& j, Text& textObject)
 
 void readBody(Reader& r, const QJsonObject& j, Media& mediaObject)
 {
-    auto& [bounds, placeholder, media, fileName, autoPlay, loop] = mediaObject;
+    auto& [bounds, placeholder, media, fileName, playOnOpen, loop] = mediaObject;
     bounds = r.readRect(j, u"bounds", bounds);
     placeholder = r.readString(j, u"placeholder");
     media = r.readString(j, u"media");
     fileName = r.readString(j, u"fileName");
-    autoPlay = r.readFlag(j, u"autoPlay", autoPlay);
+    playOnOpen = r.readFlag(j, u"playOnOpen", playOnOpen);
     loop = r.readFlag(j, u"loop", loop);
 }
 
@@ -1139,9 +1135,9 @@ void readBody(Reader& r, const QJsonObject& j, Group& group)
 
 void readBody(Reader& r, const QJsonObject& j, Connector& connector)
 {
-    auto& [endA, endB, objectA, objectB, pen] = connector;
-    endA = r.readPoint(j, u"endA", endA);
-    endB = r.readPoint(j, u"endB", endB);
+    auto& [firstEnd, secondEnd, objectA, objectB, pen] = connector;
+    firstEnd = r.readPoint(j, u"firstEnd", firstEnd);
+    secondEnd = r.readPoint(j, u"secondEnd", secondEnd);
     objectA = r.readId(j, u"objectA");
     objectB = r.readId(j, u"objectB");
     pen = r.readOutline(j, u"pen");
@@ -1180,31 +1176,32 @@ std::optional<PageObject> readObject(Reader& r, const QJsonValue& value)
 GridLevel readGridLevel(Reader& r, const QJsonObject& j)
 {
     GridLevel level;
-    auto& [visible, snap, start, stepX, stepY, color, pattern, angle, line, drawX, drawY] = level;
+    auto& [visible, snap, start, spacingX, spacingY, color, pattern, angle, line, linesAlongX, linesAlongY] =
+        level;
     visible = r.readFlag(j, u"visible", visible);
     snap = r.readFlag(j, u"snap", snap);
     start = r.readPoint(j, u"start", start);
-    stepX = r.readNumber(j, u"stepX", stepX);
-    stepY = r.readNumber(j, u"stepY", stepY);
+    spacingX = r.readNumber(j, u"spacingX", spacingX);
+    spacingY = r.readNumber(j, u"spacingY", spacingY);
     color = r.readColor(j, u"color", color);
     pattern = r.readEnum(kGridPatterns, j, u"pattern", pattern);
     angle = r.readNumber(j, u"angle", angle);
     line = r.readEnum(kGridLines, j, u"line", line);
-    drawX = r.readFlag(j, u"drawX", drawX);
-    drawY = r.readFlag(j, u"drawY", drawY);
+    linesAlongX = r.readFlag(j, u"linesAlongX", linesAlongX);
+    linesAlongY = r.readFlag(j, u"linesAlongY", linesAlongY);
     return level;
 }
 
 Grid readGrid(Reader& r, const QJsonObject& j)
 {
     Grid grid;
-    auto& [visible, allowSnap, onTop, thumbnailScale, defaultScale, scaleStep, levels] = grid;
+    auto& [visible, snapEnabled, drawnAbove, previewZoom, baseZoom, zoomIncrement, levels] = grid;
     visible = r.readFlag(j, u"visible", visible);
-    allowSnap = r.readFlag(j, u"allowSnap", allowSnap);
-    onTop = r.readFlag(j, u"onTop", onTop);
-    thumbnailScale = r.readNumber(j, u"thumbnailScale", thumbnailScale);
-    defaultScale = r.readNumber(j, u"defaultScale", defaultScale);
-    scaleStep = r.readNumber(j, u"scaleStep", scaleStep);
+    snapEnabled = r.readFlag(j, u"snapEnabled", snapEnabled);
+    drawnAbove = r.readFlag(j, u"drawnAbove", drawnAbove);
+    previewZoom = r.readNumber(j, u"previewZoom", previewZoom);
+    baseZoom = r.readNumber(j, u"baseZoom", baseZoom);
+    zoomIncrement = r.readNumber(j, u"zoomIncrement", zoomIncrement);
     for (const QJsonValue& value : r.readArray(j, u"levels")) {
         if (const std::optional<QJsonObject> jl = r.readElement(value, u"levels")) {
             levels.push_back(readGridLevel(r, *jl));

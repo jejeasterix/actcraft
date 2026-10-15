@@ -50,7 +50,7 @@ public:
 
     // F-125 : sur la dernière page, ajoute une page vierge et l'affiche.
     Q_INVOKABLE void nextPage();
-    Q_INVOKABLE void previousPage();
+    Q_INVOKABLE void pageBack();
     // Banc et tests : la page 1 devient la page générée de 300 objets (core::generatePage). Ni le nombre de
     // pages ni la page affichée ne changent : pas de pagesChanged.
     Q_INVOKABLE void loadGeneratedFirstPage();

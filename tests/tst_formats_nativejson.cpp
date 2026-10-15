@@ -250,10 +250,10 @@ private slots:
         const QJsonObject generated = object(root, 0, 1);
         QCOMPARE(generated.value(u"type"_s).toString(), u"image"_s);
         QCOMPARE(generated.value(u"pattern"_s).toString(), u"rings"_s);
-        QCOMPARE(generated.value(u"hasTransparentColor"_s).toBool(true), false);
+        QCOMPARE(generated.value(u"hasKeyColor"_s).toBool(true), false);
         const QJsonObject picture = object(root, 0, 2);
-        QCOMPARE(picture.value(u"hasTransparentColor"_s).toBool(false), true);
-        QCOMPARE(picture.value(u"transparentColor"_s).toString(), u"#ffffffff"_s);
+        QCOMPARE(picture.value(u"hasKeyColor"_s).toBool(false), true);
+        QCOMPARE(picture.value(u"keyColor"_s).toString(), u"#ffffffff"_s);
         const QJsonObject path = object(root, 0, 3);
         QCOMPARE(path.value(u"shape"_s).toString(), u"path"_s);
         QCOMPARE(path.value(u"pen"_s).toObject().value(u"style"_s).toString(), u"dash"_s);
@@ -300,8 +300,8 @@ private slots:
                          actions] = p1.objects[0].common;
             QVERIFY(id != 0 && !name.empty() && layer != Layer::Middle && !visible && locked &&
                     translucency != 0);
-            const auto& [canMove, canSize, canRotate] = restrictions;
-            QVERIFY(!canMove && !canSize && canRotate && !p1.objects[1].common.restrictions.canRotate);
+            const auto& [movable, resizable, rotatable] = restrictions;
+            QVERIFY(!movable && !resizable && rotatable && !p1.objects[1].common.restrictions.rotatable);
             const auto& [m11, m12, m21, m22, dx, dy] = transform;
             QVERIFY(m11 != 1 && m12 != 0 && m21 != 0 && m22 != 1 && dx != 0 && dy != 0);
             QVERIFY(!label.empty() && actions.size() == 1);
@@ -312,7 +312,7 @@ private slots:
         {
             const auto& [x, y, width, height] = std::get<Shape>(p1.objects[0]).bounds;
             QVERIFY(x != 0 && y != 0 && width != 0 && height != 0);
-            const auto& [px, py] = std::get<Connector>(p1.objects[8]).endA;
+            const auto& [px, py] = std::get<Connector>(p1.objects[8]).firstEnd;
             QVERIFY(px != 0 && py != 0);
         }
         {
@@ -357,33 +357,35 @@ private slots:
                     runBounds.width != 0);
         }
         {
-            const auto& [bounds, placeholder, media, fileName, autoPlay, loop] =
+            const auto& [bounds, placeholder, media, fileName, playOnOpen, loop] =
                 std::get<Media>(p1.objects[6]);
             QVERIFY(bounds.width != 0 && !placeholder.empty() && !media.empty() && !fileName.empty() &&
-                    autoPlay && !loop && std::get<Media>(d.page(2).objects[0]).loop);
+                    playOnOpen && !loop && std::get<Media>(d.page(2).objects[0]).loop);
         }
         {
             const auto& [members] = std::get<Group>(p1.objects[7]);
             QVERIFY(!members.empty());
         }
         {
-            const auto& [endA, endB, objectA, objectB, pen] = std::get<Connector>(p1.objects[8]);
-            QVERIFY(endA.x != 0 && endB.x != 0 && objectA != 0 && objectB != 0 && pen.color != 0xFF000000u);
+            const auto& [firstEnd, secondEnd, objectA, objectB, pen] = std::get<Connector>(p1.objects[8]);
+            QVERIFY(firstEnd.x != 0 && secondEnd.x != 0 && objectA != 0 && objectB != 0 &&
+                    pen.color != 0xFF000000u);
         }
         {
             const auto& [width, height, objects, background, grid, name, notes] = d.page(1);
             QVERIFY(width != 1024 && height != 768 && objects.empty() && !name.empty() && !notes.empty());
             const auto& [fill, image] = background;
             QVERIFY(fill.kind != FillKind::Solid && !image.empty());
-            const auto& [visible, allowSnap, onTop, thumbnailScale, defaultScale, scaleStep, levels] = grid;
-            QVERIFY(visible && !allowSnap && d.page(2).grid.allowSnap && onTop && thumbnailScale != 1 &&
-                    defaultScale != 1 && scaleStep != 0.5 && levels.size() == 3);
-            const auto& [lvVisible, snap, start, stepX, stepY, color, pattern, angle, line, drawX, drawY] =
-                levels[1];
-            QVERIFY(!lvVisible && snap && start.x != 0 && stepX != 32 && stepY != 32 &&
+            const auto& [visible, snapEnabled, drawnAbove, previewZoom, baseZoom, zoomIncrement, levels] =
+                grid;
+            QVERIFY(visible && !snapEnabled && d.page(2).grid.snapEnabled && drawnAbove && previewZoom != 1 &&
+                    baseZoom != 1 && zoomIncrement != 0.5 && levels.size() == 3);
+            const auto& [lvVisible, snap, start, spacingX, spacingY, color, pattern, angle, line, linesAlongX,
+                         linesAlongY] = levels[1];
+            QVERIFY(!lvVisible && snap && start.x != 0 && spacingX != 32 && spacingY != 32 &&
                     color != 0xFF000000u && pattern != GridPattern::Normal && angle != 30 &&
-                    line != GridLine::Solid && drawX && !drawY);
-            QVERIFY(!levels[0].snap && !levels[2].drawX);
+                    line != GridLine::Solid && linesAlongX && !linesAlongY);
+            QVERIFY(!levels[0].snap && !levels[2].linesAlongX);
         }
         {
             const auto& [data, extension] = d.resources().begin()->second;
@@ -422,18 +424,18 @@ private slots:
             pageSizes.push_back({page.width, page.height});
             pageTexts.push_back({page.name, page.notes});
             addFill(page.background.fill);
-            gridFlags.push_back({page.grid.visible, page.grid.allowSnap, page.grid.onTop});
-            gridScales.push_back({page.grid.thumbnailScale, page.grid.defaultScale, page.grid.scaleStep});
+            gridFlags.push_back({page.grid.visible, page.grid.snapEnabled, page.grid.drawnAbove});
+            gridScales.push_back({page.grid.previewZoom, page.grid.baseZoom, page.grid.zoomIncrement});
             for (const GridLevel& level : page.grid.levels) {
-                levelFlags.push_back({level.visible, level.snap, level.drawX, level.drawY});
-                levelNumbers.push_back({level.stepX, level.stepY, level.angle});
+                levelFlags.push_back({level.visible, level.snap, level.linesAlongX, level.linesAlongY});
+                levelNumbers.push_back({level.spacingX, level.spacingY, level.angle});
                 addPoint(level.start);
             }
             for (const PageObject& o : page.objects) {
                 const ObjectCommon& c = o.common;
                 commonFlags.push_back({c.visible, c.locked});
                 restrictionFlags.push_back(
-                    {c.restrictions.canMove, c.restrictions.canSize, c.restrictions.canRotate});
+                    {c.restrictions.movable, c.restrictions.resizable, c.restrictions.rotatable});
                 transforms.push_back({c.transform.m11, c.transform.m12, c.transform.m21, c.transform.m22,
                                       c.transform.dx, c.transform.dy});
                 commonTexts.push_back({c.name, c.label});
@@ -445,7 +447,7 @@ private slots:
                     addFill(s->brush);
                 } else if (const auto* im = std::get_if<ImageObject>(&o)) {
                     imageSizes.push_back({im->sourceWidth, im->sourceHeight});
-                    imageColors.push_back({im->colorA, im->colorB, im->transparentColor});
+                    imageColors.push_back({im->colorA, im->colorB, im->keyColor});
                     addRect(im->bounds);
                 } else if (const auto* st = std::get_if<Stroke>(&o)) {
                     for (const StrokePoint& sp : st->points) {
@@ -453,20 +455,20 @@ private slots:
                     }
                 } else if (const auto* tx = std::get_if<Text>(&o)) {
                     addRect(tx->bounds);
-                    for (const TextRun& run : tx->runs) {
+                    for (const TextSpan& run : tx->runs) {
                         runFlags.push_back({run.italic, run.underline, run.strikeOut});
                         runTexts.push_back({run.text, run.fontFamily});
                         addPoint(run.baseline);
                         addRect(run.bounds);
                     }
                 } else if (const auto* m = std::get_if<Media>(&o)) {
-                    mediaFlags.push_back({m->autoPlay, m->loop});
+                    mediaFlags.push_back({m->playOnOpen, m->loop});
                     mediaTexts.push_back({m->placeholder, m->media, m->fileName});
                     addRect(m->bounds);
                 } else if (const auto* cn = std::get_if<Connector>(&o)) {
                     connectorIds.push_back({cn->objectA, cn->objectB});
-                    addPoint(cn->endA);
-                    addPoint(cn->endB);
+                    addPoint(cn->firstEnd);
+                    addPoint(cn->secondEnd);
                 }
             }
         }
@@ -502,8 +504,8 @@ private slots:
     {
         core::ImageObject image;
         image.bounds = {0, 0, 10, 10};
-        image.hasTransparentColor = false;
-        image.transparentColor = 0xFF123456u;
+        image.hasKeyColor = false;
+        image.keyColor = 0xFF123456u;
         core::PageObject o = image;
         o.common.id = 1;
         std::vector<core::Page> pages(1);
@@ -517,8 +519,8 @@ private slots:
         QVERIFY2(r.warnings.isEmpty(), qPrintable(r.warnings.join(u'\n')));
         const auto* read = std::get_if<core::ImageObject>(&back.page(0).objects[0]);
         QVERIFY(read);
-        QVERIFY(!read->hasTransparentColor);
-        QCOMPARE(read->transparentColor, core::Argb{0xFF123456u});
+        QVERIFY(!read->hasKeyColor);
+        QCOMPARE(read->keyColor, core::Argb{0xFF123456u});
         QCOMPARE(core::fingerprint(back), core::fingerprint(source));
     }
 

@@ -113,7 +113,7 @@ private slots:
         QCOMPARE(formats::readUrl(QUrl::fromLocalFile(path)).data, QByteArray("ancien"));
     }
 
-    void existingFileIsNeverRewrittenInPlace()
+    void existingFileIsNeverRewrittenDirectly()
     {
         // Un lecteur garde l'ancien fichier ouvert pendant l'enregistrement. Remplacement atomique : il lit
         // l'ancien contenu entier (POSIX : le renommage lui laisse l'ancien fichier ; Windows : le renommage

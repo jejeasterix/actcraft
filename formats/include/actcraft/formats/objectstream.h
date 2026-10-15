@@ -93,7 +93,7 @@ std::optional<bool> asBool(const Value* v);     // booléen ou entier
 QString asString(const Value* v);               // chaîne nulle si absente
 std::optional<core::PointF> asPoint(const Value* v);
 std::optional<SizeF> asSize(const Value* v);
-std::optional<core::RectF> asRect(const Value* v); // QRectF, QRect ou AsRectF
+std::optional<core::RectF> asRect(const Value* v); // QRectF, QRect ou rectangle réel propre au format
 std::optional<Color> asColor(const Value* v);
 std::optional<Pointer> asPointer(const Value* v);
 const StreamObject* asObject(const Value* v);

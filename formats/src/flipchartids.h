@@ -172,7 +172,7 @@ inline constexpr quint16 kOutlineColor = 7;
 inline constexpr quint16 kFillPattern = 8;     // 0 aucun, 1 plein, 2 à 14 motifs, 25 dégradé
 inline constexpr quint16 kFillTint = 9;        // couleur du remplissage
 inline constexpr quint16 kOpaqueHatch = 10;    // fond des motifs opaque
-inline constexpr quint16 kHatchBackColor = 11; // couleur de ce fond
+inline constexpr quint16 kHatchBaseColor = 11; // couleur de ce fond
 inline constexpr quint16 kSecondaryColor = 13; // seconde couleur du dégradé
 inline constexpr quint16 kBlendDirection = 14; // 0 aucun dégradé, 1 à 5 : core::GradientKind
 } // namespace penKeys

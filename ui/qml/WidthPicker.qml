@@ -13,8 +13,8 @@ ColumnLayout {
     required property Commands commands
     required property PageView view
     spacing: Theme.espace1
-    readonly property real maxWidth: 100 // = kMaxPenWidth
-    readonly property real widthPosition: Math.log(Math.max(1, picker.view.penWidth)) / Math.log(maxWidth)
+    readonly property real maxWidth: 100 // = kMaxInkWidth
+    readonly property real widthPosition: Math.log(Math.max(1, picker.view.inkWidth)) / Math.log(maxWidth)
 
     Row {
         spacing: Theme.espace1
@@ -25,7 +25,7 @@ ColumnLayout {
                 id: preset
                 required property real modelData
                 required property int index
-                readonly property bool current: picker.view.penWidth === modelData
+                readonly property bool current: picker.view.inkWidth === modelData
                 objectName: "widthPreset-" + index
                 width: Theme.taillePastille
                 height: Theme.taillePastille
@@ -61,7 +61,7 @@ ColumnLayout {
         value: picker.widthPosition
         onMoved: {
             const width = Math.round(Math.pow(picker.maxWidth, value))
-            if (width !== Math.round(picker.view.penWidth))
+            if (width !== Math.round(picker.view.inkWidth))
                 picker.commands.trigger("pen.width", width)
         }
         // Le glissement peut casser la liaison : on la rend au stylo au relâché.
@@ -123,7 +123,7 @@ ColumnLayout {
             width: 4 + 32 * picker.widthPosition
             height: width
             radius: width / 2
-            color: picker.view.penColor
+            color: picker.view.inkColor
             border.width: 1
             border.color: Theme.separateur
         }

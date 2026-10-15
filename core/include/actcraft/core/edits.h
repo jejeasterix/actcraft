@@ -10,7 +10,7 @@ namespace actcraft::core {
 // Briques d'édition d'une page ; Page::objects reste rangé par couche (F-510, F-512).
 
 // Insère `object` au sommet de sa couche ; retourne son indice dans page.objects.
-std::size_t insertOnTopOfLayer(Page& page, PageObject object);
+std::size_t insertAtTopOfLayer(Page& page, PageObject object);
 // Indice de l'objet `id`, ou page.objects.size() s'il n'y est pas.
 std::size_t indexOf(const Page& page, ObjectId id) noexcept;
 // Profondeur (F-512, lecture seule) : rang dans sa couche, 0 = base ; page.objects.size() si absent.

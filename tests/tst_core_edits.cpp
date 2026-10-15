@@ -29,14 +29,14 @@ class TstCoreEdits : public QObject
     Q_OBJECT
 
 private slots:
-    void newObjectGoesOnTopOfItsLayer()
+    void newObjectGoesAtTopOfItsLayer()
     {
         Page p;
-        insertOnTopOfLayer(p, onLayer(Layer::Middle, 1));
-        insertOnTopOfLayer(p, onLayer(Layer::Top, 2));
-        QCOMPARE(insertOnTopOfLayer(p, onLayer(Layer::Middle, 3)), std::size_t{1});
-        QCOMPARE(insertOnTopOfLayer(p, onLayer(Layer::Bottom, 4)), std::size_t{0});
-        QCOMPARE(insertOnTopOfLayer(p, onLayer(Layer::Background, 5)), std::size_t{0});
+        insertAtTopOfLayer(p, onLayer(Layer::Middle, 1));
+        insertAtTopOfLayer(p, onLayer(Layer::Top, 2));
+        QCOMPARE(insertAtTopOfLayer(p, onLayer(Layer::Middle, 3)), std::size_t{1});
+        QCOMPARE(insertAtTopOfLayer(p, onLayer(Layer::Bottom, 4)), std::size_t{0});
+        QCOMPARE(insertAtTopOfLayer(p, onLayer(Layer::Background, 5)), std::size_t{0});
         QCOMPARE(p.objects[0].common.id, ObjectId{5});
         QCOMPARE(p.objects[1].common.id, ObjectId{4});
         QCOMPARE(p.objects[2].common.id, ObjectId{1});
@@ -48,9 +48,9 @@ private slots:
     void depthCountsWithinTheLayer()
     {
         Page p;
-        insertOnTopOfLayer(p, onLayer(Layer::Bottom, 1));
-        insertOnTopOfLayer(p, onLayer(Layer::Middle, 2));
-        insertOnTopOfLayer(p, onLayer(Layer::Middle, 3));
+        insertAtTopOfLayer(p, onLayer(Layer::Bottom, 1));
+        insertAtTopOfLayer(p, onLayer(Layer::Middle, 2));
+        insertAtTopOfLayer(p, onLayer(Layer::Middle, 3));
         QCOMPARE(depthInLayer(p, 1), std::size_t{0});
         QCOMPARE(depthInLayer(p, 2), std::size_t{0});
         QCOMPARE(depthInLayer(p, 3), std::size_t{1});
@@ -115,7 +115,7 @@ private slots:
         QCOMPARE(d.nextId(), id + 1);
     }
 
-    void addObjectLandsOnTopOfItsLayerNotAtTheEnd()
+    void addObjectLandsAtTopOfItsLayerNotAtTheEnd()
     {
         Document d;
         UndoStack stack;

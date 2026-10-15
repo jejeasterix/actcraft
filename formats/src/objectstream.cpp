@@ -199,7 +199,7 @@ Value readUser(Reader& r, quint16 sub, int depth, QString& error)
     return v;
 }
 
-Value readVariant(Reader& r, int depth, QString& error)
+Value readStreamValue(Reader& r, int depth, QString& error)
 {
     Value v;
     if (depth > kMaxDepth) {
@@ -225,7 +225,7 @@ Value readVariant(Reader& r, int depth, QString& error)
         ValueList list;
         const qint32 n = r.count();
         for (qint32 i = 0; i < n && r.ok(); ++i) {
-            list.push_back(readVariant(r, depth + 1, error));
+            list.push_back(readStreamValue(r, depth + 1, error));
         }
         v.data = std::move(list);
         break;
@@ -357,7 +357,7 @@ std::optional<StreamObject> readObject(Reader& r, int depth, QString& error)
         const quint16 id = header.le<quint16>();
         Reader sub(r.data(), start + 4, end);
         QString ignored;
-        Value value = readVariant(sub, depth, ignored);
+        Value value = readStreamValue(sub, depth, ignored);
         if (!sub.ok()) {
             Reader rawType(r.data(), start + 4, end);
             const quint16 qtype = rawType.le<quint16>();

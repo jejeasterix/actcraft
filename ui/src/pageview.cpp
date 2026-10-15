@@ -309,8 +309,8 @@ void PageView::rebuildPen()
     m_inkSurface = std::make_unique<InkSurfaceAdapter>(*m_ink);
     m_documentSink = std::make_unique<FixedPageSink>(*m_fixedPage, *this);
     m_pen = std::make_unique<tools::PenTool>(*m_inkSurface, *m_documentSink);
-    m_pen->setColor(m_penColor.rgba());
-    m_pen->setBaseWidth(m_penWidth);
+    m_pen->setColor(m_inkColor.rgba());
+    m_pen->setBaseWidth(m_inkWidth);
     m_pipeline = std::make_unique<input::Pipeline>(*m_pen);
     m_pipeline->setProbe(m_probe);
     m_ink->setProbe(m_probe);
@@ -505,37 +505,37 @@ void PageView::finishTouchStroke()
     m_pipeline->push(release);
 }
 
-QColor PageView::penColor() const noexcept
+QColor PageView::inkColor() const noexcept
 {
-    return m_penColor;
+    return m_inkColor;
 }
 
-void PageView::setPenColor(const QColor& color)
+void PageView::setInkColor(const QColor& color)
 {
-    if (!color.isValid() || color == m_penColor) {
+    if (!color.isValid() || color == m_inkColor) {
         return;
     }
-    m_penColor = color;
+    m_inkColor = color;
     if (m_pen) {
-        m_pen->setColor(m_penColor.rgba());
+        m_pen->setColor(m_inkColor.rgba());
     }
     emit penChanged();
 }
 
-qreal PageView::penWidth() const noexcept
+qreal PageView::inkWidth() const noexcept
 {
-    return m_penWidth;
+    return m_inkWidth;
 }
 
-void PageView::setPenWidth(qreal width)
+void PageView::setInkWidth(qreal width)
 {
-    const qreal clamped = std::clamp(width, kMinPenWidth, kMaxPenWidth);
-    if (qFuzzyCompare(clamped, m_penWidth)) {
+    const qreal clamped = std::clamp(width, kMinInkWidth, kMaxInkWidth);
+    if (qFuzzyCompare(clamped, m_inkWidth)) {
         return;
     }
-    m_penWidth = clamped;
+    m_inkWidth = clamped;
     if (m_pen) {
-        m_pen->setBaseWidth(m_penWidth);
+        m_pen->setBaseWidth(m_inkWidth);
     }
     emit penChanged();
 }

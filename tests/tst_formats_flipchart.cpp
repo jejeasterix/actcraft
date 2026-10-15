@@ -146,10 +146,10 @@ private slots:
         QCOMPARE(p1.background.fill.color2, core::Argb{0xFFFFFFFFu});
         QCOMPARE(p1.background.fill.gradient, core::GradientKind::Vertical);
         QVERIFY(p1.grid.visible);
-        QVERIFY(p1.grid.allowSnap);
+        QVERIFY(p1.grid.snapEnabled);
         QCOMPARE(p1.grid.levels.size(), std::size_t{1});
-        QCOMPARE(p1.grid.levels[0].stepX, 50.0);
-        QCOMPARE(p1.grid.levels[0].stepY, 25.0);
+        QCOMPARE(p1.grid.levels[0].spacingX, 50.0);
+        QCOMPARE(p1.grid.levels[0].spacingY, 25.0);
         QCOMPARE(p1.grid.levels[0].color, core::Argb{0xFF0000FFu});
         QCOMPARE(p1.grid.levels[0].line, core::GridLine::Solid);
         const core::Page& p2 = r.document.page(1);
@@ -169,8 +169,8 @@ private slots:
         QCOMPARE(p.objects.size(), std::size_t{4}); // la formule (460) est sautée
         const auto& picture = as<core::ImageObject>(p.objects[0]);
         QCOMPARE(picture.resource, p.background.image);
-        QVERIFY(picture.hasTransparentColor);
-        QCOMPARE(picture.transparentColor, core::Argb{0xFFFFFFFFu});
+        QVERIFY(picture.hasKeyColor);
+        QCOMPARE(picture.keyColor, core::Argb{0xFFFFFFFFu});
         QCOMPARE(picture.sourceWidth, std::int32_t{2});
         const core::PointF corner = p.objects[0].common.transform.map({1, 1});
         QCOMPARE(corner.x, 60.0);
@@ -182,12 +182,12 @@ private slots:
         const auto& media = as<core::Media>(p.objects[2]);
         QCOMPARE(media.placeholder, picture.resource);
         QCOMPARE(media.fileName, std::string("351.mp3"));
-        QVERIFY(media.autoPlay);
+        QVERIFY(media.playOnOpen);
         QCOMPARE(r.document.resource(media.media)->extension, std::string("mp3"));
         const auto& link = as<core::Connector>(p.objects[3]);
         QCOMPARE(link.objectA, p.objects[0].common.id);
         QCOMPARE(link.objectB, p.objects[1].common.id);
-        QCOMPARE(link.endB.x, 100.0);
+        QCOMPARE(link.secondEnd.x, 100.0);
     }
 
     // Repères et numéros propres à chaque classe (§ 7.1, § 7.3, § 7.4). Les matrices attendues sont calculées
@@ -459,8 +459,8 @@ private slots:
         }
         const core::Grid& guides = r.document.page(0).grid;
         QCOMPARE(guides.levels.size(), std::size_t{1});
-        QCOMPARE(guides.levels[0].stepX, 32.0);
-        QCOMPARE(guides.levels[0].stepY, 32.0);
+        QCOMPARE(guides.levels[0].spacingX, 32.0);
+        QCOMPARE(guides.levels[0].spacingY, 32.0);
         const QString warnings = r.warnings.join(u'\n');
         QCOMPARE(r.warnings.filter(u"taille"_s).size(), 3); // défaut du paperboard, pages 103 et 203
         QVERIFY2(warnings.contains(u"grille"_s), qPrintable(warnings));

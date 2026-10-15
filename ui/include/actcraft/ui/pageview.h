@@ -30,9 +30,9 @@ class InkSurfaceAdapter;
 class FixedPageSink;
 
 // Épaisseur du stylo, pixels de page (F-137 : réglette 1 à 100 ; F-220 : 4 par défaut).
-inline constexpr qreal kDefaultPenWidth = 4.0;
-inline constexpr qreal kMinPenWidth = 1.0;
-inline constexpr qreal kMaxPenWidth = 100.0;
+inline constexpr qreal kDefaultInkWidth = 4.0;
+inline constexpr qreal kMinInkWidth = 1.0;
+inline constexpr qreal kMaxInkWidth = 100.0;
 
 // Vue de la page (décision 14) : zoom, défilement, politique du cache. Transforme l'élément `content`.
 class PageView : public QQuickItem
@@ -48,8 +48,8 @@ class PageView : public QQuickItem
     Q_PROPERTY(
         actcraft::render::FixedPageItem* fixedPage READ fixedPage WRITE setFixedPage NOTIFY fixedPageChanged)
     Q_PROPERTY(actcraft::render::InkItem* ink READ ink WRITE setInk NOTIFY inkChanged)
-    Q_PROPERTY(QColor penColor READ penColor WRITE setPenColor NOTIFY penChanged)
-    Q_PROPERTY(qreal penWidth READ penWidth WRITE setPenWidth NOTIFY penChanged)
+    Q_PROPERTY(QColor inkColor READ inkColor WRITE setInkColor NOTIFY penChanged)
+    Q_PROPERTY(qreal inkWidth READ inkWidth WRITE setInkWidth NOTIFY penChanged)
     Q_PROPERTY(bool inputBlocked READ inputBlocked WRITE setInputBlocked NOTIFY inputBlockedChanged)
     Q_PROPERTY(qreal scrollSizeX READ scrollSizeX NOTIFY scrollChanged)
     Q_PROPERTY(qreal scrollPositionX READ scrollPositionX NOTIFY scrollChanged)
@@ -84,12 +84,12 @@ public:
     // Vrai quand la texture du cache correspond à la page et au zoom courants (toujours vrai sans cache).
     bool cacheReady() const noexcept;
     const ViewTransform& viewTransform() const noexcept;
-    QColor penColor() const noexcept;
+    QColor inkColor() const noexcept;
     // Couleur invalide ignorée.
-    void setPenColor(const QColor& color);
-    qreal penWidth() const noexcept;
-    // Bornée à [kMinPenWidth, kMaxPenWidth].
-    void setPenWidth(qreal width);
+    void setInkColor(const QColor& color);
+    qreal inkWidth() const noexcept;
+    // Bornée à [kMinInkWidth, kMaxInkWidth].
+    void setInkWidth(qreal width);
     bool inputBlocked() const noexcept;
     // Vrai tant qu'une fenêtre surgissante est ouverte (menu, dialogue) : aucun trait ne commence ; un trait
     // commencé se termine normalement.
@@ -184,8 +184,8 @@ private:
     QSize m_cacheTextureSize;
     QTimer m_cacheTimer;
     QList<const QInputDevice*> m_exclusive;
-    QColor m_penColor = Qt::black;
-    qreal m_penWidth = kDefaultPenWidth;
+    QColor m_inkColor = Qt::black;
+    qreal m_inkWidth = kDefaultInkWidth;
     bool m_inputBlocked = false;
     bool m_stylusDrawing = false; // un trait du stylet, commencé sur la vue, est en cours
     bool m_touchDrawing = false;  // un trait d'un doigt est en cours

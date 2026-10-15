@@ -66,14 +66,14 @@ Item {
     Rectangle {
         objectName: "widthIndicator"
         visible: hover.hovered && !area.inputBlocked
-        width: Math.max(4, view.penWidth * view.zoom)
+        width: Math.max(4, view.inkWidth * view.zoom)
         height: width
         radius: width / 2
         x: hover.point.position.x - width / 2
         y: hover.point.position.y - height / 2
         color: "transparent"
         border.width: 1
-        border.color: view.penColor
+        border.color: view.inkColor
         // Filet extérieur « contour » : le cercle reste visible quand l'encre a la couleur de la page (L1-C5).
         Rectangle {
             anchors.fill: parent
