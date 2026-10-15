@@ -179,18 +179,66 @@ private slots:
         CommandRegistry r;
         QString error;
         QVERIFY2(r.loadDeclarations(json, error), qPrintable(error));
-        const QStringList expected{
-            QStringLiteral("file.quit"), QStringLiteral("view.fullscreen"), QStringLiteral("view.fit"),
-            QStringLiteral("view.zoom"), QStringLiteral("page.previous"),   QStringLiteral("page.next"),
-            QStringLiteral("tool.pen"),  QStringLiteral("pen.color"),       QStringLiteral("pen.width"),
-            QStringLiteral("menu.main"), QStringLiteral("menu.tools"),      QStringLiteral("help.website"),
-            QStringLiteral("help.about")};
+        const QStringList expected{QStringLiteral("file.new"),           QStringLiteral("file.new-screen"),
+                                   QStringLiteral("file.new-1024x768"),  QStringLiteral("file.new-1152x864"),
+                                   QStringLiteral("file.new-1280x1024"), QStringLiteral("file.new-custom"),
+                                   QStringLiteral("file.open"),          QStringLiteral("file.save"),
+                                   QStringLiteral("file.save-as"),       QStringLiteral("file.close"),
+                                   QStringLiteral("file.quit"),          QStringLiteral("view.fullscreen"),
+                                   QStringLiteral("view.fit"),           QStringLiteral("view.zoom"),
+                                   QStringLiteral("page.previous"),      QStringLiteral("page.next"),
+                                   QStringLiteral("tool.pen"),           QStringLiteral("pen.color"),
+                                   QStringLiteral("pen.width"),          QStringLiteral("menu.main"),
+                                   QStringLiteral("menu.tools"),         QStringLiteral("help.website"),
+                                   QStringLiteral("help.about")};
         QCOMPARE(r.ids(), expected);
         QCOMPARE(r.find(QStringLiteral("view.fullscreen"))->shortcut, QStringLiteral("F5"));
         QVERIFY(r.find(QStringLiteral("view.fullscreen"))->checkable);
         QVERIFY(r.find(QStringLiteral("pen.width"))->argument == ArgumentKind::Number);
         QVERIFY(r.find(QStringLiteral("pen.color"))->argument == ArgumentKind::Color);
         QVERIFY(r.find(QStringLiteral("view.zoom"))->argument == ArgumentKind::Number);
+        QVERIFY(r.find(QStringLiteral("file.open"))->argument == ArgumentKind::Url);
+        QVERIFY(r.find(QStringLiteral("file.open"))->argumentOptional);
+        QVERIFY(r.find(QStringLiteral("file.save-as"))->argumentOptional);
+        QCOMPARE(r.find(QStringLiteral("file.new"))->shortcut, QStringLiteral("Ctrl+N"));
+        QCOMPARE(r.find(QStringLiteral("file.open"))->shortcut, QStringLiteral("Ctrl+O"));
+        QCOMPARE(r.find(QStringLiteral("file.save"))->shortcut, QStringLiteral("Ctrl+S"));
+        QCOMPARE(r.find(QStringLiteral("file.save-as"))->shortcut, QStringLiteral("Ctrl+Shift+S"));
+        QCOMPARE(r.find(QStringLiteral("file.close"))->shortcut, QStringLiteral("Ctrl+W"));
+    }
+
+    void optionalArgumentMayBeAbsent()
+    {
+        CommandRegistry r;
+        QString error;
+        QVERIFY2(r.loadDeclarations(R"({"format":"actcraft-commands/1","commands":[
+            {"id":"file.open","label":"Ouvrir…","argument":"url","optional":true},
+            {"id":"file.export","label":"Exporter","argument":"url"}]})",
+                                    error),
+                 qPrintable(error));
+        QVERIFY(r.find(QStringLiteral("file.open"))->argumentOptional);
+        QVERIFY(!r.find(QStringLiteral("file.export"))->argumentOptional);
+        QVariantList seen;
+        r.setHandler(QStringLiteral("file.open"), [&seen](const QVariant& a) { seen << a; });
+        r.setHandler(QStringLiteral("file.export"), [&seen](const QVariant& a) { seen << a; });
+        const Platform here = currentPlatform();
+        QVERIFY(r.trigger(QStringLiteral("file.open"), QVariant(), here)); // absent : dialogue
+        QVERIFY(r.trigger(QStringLiteral("file.open"), QStringLiteral("C:/a.actcraft"), here));
+        QVERIFY(!r.trigger(QStringLiteral("file.open"), QStringLiteral(""), here)); // présent mais vide
+        QVERIFY(!r.trigger(QStringLiteral("file.open"), 42, here));           // présent mais pas une URL
+        QVERIFY(!r.trigger(QStringLiteral("file.export"), QVariant(), here)); // obligatoire
+        QCOMPARE(seen.size(), 2);
+        QVERIFY(!seen.at(0).isValid());
+    }
+
+    void optionalWithoutArgumentIsRefused()
+    {
+        CommandRegistry r;
+        QString error;
+        QVERIFY(!r.loadDeclarations(
+            R"({"format":"actcraft-commands/1","commands":[{"id":"a.b","label":"A","optional":true}]})",
+            error));
+        QVERIFY2(error.contains(QStringLiteral("facultatif")), qPrintable(error));
     }
 };
 

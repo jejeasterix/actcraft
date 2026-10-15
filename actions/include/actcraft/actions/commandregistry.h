@@ -47,6 +47,9 @@ struct CommandInfo
     bool checkable = false;
     Platforms platforms = kAllPlatforms;
     ArgumentKind argument = ArgumentKind::None;
+    // Vrai : la commande se déclenche aussi sans argument (QVariant invalide) — dialogue au lieu d'une URL
+    // (décision 22). Un argument présent doit rester valide.
+    bool argumentOptional = false;
 };
 
 bool argumentIsValid(ArgumentKind kind, const QVariant& argument);
@@ -74,7 +77,8 @@ public:
     bool isChecked(const QString& id) const; // faux par défaut
 
     // Faux, sans rien appeler, si la commande est inconnue, absente de `platform`, désactivée, sans
-    // gestionnaire, ou si l'argument ne convient pas. Le gestionnaire est copié avant l'appel : il peut
+    // gestionnaire, ou si l'argument ne convient pas (un argument absent convient à une
+    // commande dont l'argument est facultatif). Le gestionnaire est copié avant l'appel : il peut
     // modifier le registre.
     bool trigger(const QString& id, const QVariant& argument, Platform platform) const;
 
