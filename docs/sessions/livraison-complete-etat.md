@@ -50,6 +50,7 @@ Lot 1 (plan 7e4c743) — fichiers touchés exacts et preuves : table du plan.
 | L1-T18 | T12,T17 | essai APK émulateur | impl | (mergé) | terminée | 1/3 | 404d52c → merge e1dfdc7 | rejoué par l'orchestrateur (émulateur sans fenêtre, `-gpu host`, PID 4348 arrêté) : logcat sans FATAL/SecurityException (pid 4241), page (1958, 1392) 255 255 255, palette 43 47 54, pastille 229 57 53, trait 0 0 0, `ANDROID OK` ; capture : page entière, palette complète, textes lisibles. Rouge vu (agent) : SwiftShader → `rectangle à moitié dessiné`. Cause : GPU logiciel de l'émulateur (projet Qt minimal idem) → coffre `04_Pieges/qt-quick-emulateur-android-swiftshader-rectangle-en-un-triangle` |
 | L1-T19 | T14,T15,T16,T18 | CI paquets | crit | --L1-T19 | en cours | 1/3 | — | — |
 | L1-T20 | T19 | release.yml, CHANGELOG | crit | — | à faire | 0/3 | — | — |
+| L1-C1 | — | correctif : curseur d'épaisseur qui ne suit pas `penWidth` (constat des captures Windows et Android) | impl | (mergé) | terminée | 1/3 | bf88764 → merge 945f7f9 | 43/43 TESTS OK, tst_ui_shell Passed (cas `widthSliderFollowsThePenWidth`), 0 « Binding loop » ; rouge vu (position 0,07 pour 8) ; `CAPTURES OK`, capture `02-trait` : curseur ≈ 45 %, aperçu rouge lisible. Cause : réglette linéaire 1-100, préréglages 2-8 → échelle log (écart à F-137 « linéaire », porte de fin ; préréglage max ≠ curseur tout à droite) |
 
 ## Terminé quand
 lot final « confrontation aux vidéos » fait (écarts corrigés ou consignés) · tous les lots terminés (aucune tâche bloquée) · double relecture par lot sans bloquant · suite complète sans
@@ -63,7 +64,7 @@ CI verte · releases publiées seulement sur go écrit de Jérôme (action final
 
 ## Hypothèses à revoir (niveau 1 d'abord)
 - N1 (orchestrateur, 2026-10-15) — **S3 en CI sans GPU** : l'émulateur de la CI (sans GPU hôte) retombe sur SwiftShader, qui dessine chaque rectangle en un triangle (L1-T18). Défaut prudent si L1-T19 ne trouve pas de mode d'émulateur Linux qui rend juste : la CI vérifie « démarre sans plantage + palette visible » et signale `RENDU NON CONTROLE (GPU logiciel)` ; le contrôle complet du rendu reste local (`-gpu host`). Aucune dépense. Autre option à présenter à la porte : exécuteur GitHub à GPU (payant).
-- Constat (captures Windows et Android) : curseur `widthSlider` tout à gauche quelle que soit l'épaisseur choisie (`ui/qml/WidthPicker.qml`, L1-T12) → relecture de fin de lot.
+- Réglette d'épaisseur logarithmique (L1-C1) au lieu de linéaire 1-100 (F-137) : à présenter à la porte de fin (autre choix : préréglages ou plage revus).
 
 ## Hors périmètre
 - (L1-T8) `canStartStroke` ne vérifie que la zone de la vue : une palette flottante au-dessus de la page laisserait le stylet tracer dessous → lot 3.
