@@ -11,7 +11,7 @@ using namespace actcraft::core;
 
 namespace {
 // Valeur relevée au premier passage sous Windows après l'ajout des propriétés communes du lot 2 (DA2 :
-// empreinte recalculée), vérifiée sous macOS par la CI et recoupée hors dépôt par la réimplémentation Python
+// empreinte recalculée), à vérifier par la CI macOS, recoupée hors dépôt par la réimplémentation Python
 // du générateur du lot 1, étendue aux champs du lot 2. Le contenu des 300 objets n'a pas changé ; seuls des
 // champs à valeur par défaut et les identifiants 1 à 300 entrent dans l'empreinte. Valeur du lot 1 :
 // 0xEC92781F3ED73B1E. Ne jamais la « corriger » : si elle change, c'est le générateur qui a changé.

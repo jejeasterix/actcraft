@@ -1,16 +1,20 @@
 #include <actcraft/core/document.h>
 
 #include <QCryptographicHash>
+#include <QtLogging>
 
 #include <algorithm>
 #include <cassert>
-#include <cctype>
+#include <limits>
 #include <set>
 #include <utility>
 
 namespace actcraft::core {
 
 namespace {
+
+// Dernier identifiant, jamais attribué : marque l'espace épuisé (allocateId rend alors 0).
+constexpr ObjectId kExhausted = std::numeric_limits<ObjectId>::max();
 
 // FNV-1a 64 bits sur les 8 octets de `value`, poids faible d'abord (même ordre que model.cpp).
 std::uint64_t mix(std::uint64_t hash, std::uint64_t value) noexcept
@@ -93,6 +97,10 @@ Page Document::takePage(std::size_t index)
 
 ObjectId Document::allocateId() noexcept
 {
+    if (m_nextId == kExhausted) {
+        qWarning("Document : identifiants d'objets épuisés");
+        return 0;
+    }
     return m_nextId++;
 }
 
@@ -109,7 +117,7 @@ void Document::refreshNextId() noexcept
             largest = std::max(largest, o.common.id);
         }
     }
-    reserveIdsBelow(largest + 1);
+    reserveIdsBelow(largest == kExhausted ? kExhausted : largest + 1);
 }
 
 void Document::reserveIdsBelow(ObjectId next) noexcept
@@ -119,8 +127,10 @@ void Document::reserveIdsBelow(ObjectId next) noexcept
 
 std::string Document::addResource(QByteArray data, std::string extension)
 {
+    // Minuscules ASCII à la main : std::tolower suit la locale du processus (Qt appelle setlocale(LC_ALL, "")
+    // sous Unix ; en locale turque mono-octet, « I » ne devient pas « i »).
     std::transform(extension.begin(), extension.end(), extension.begin(),
-                   [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+                   [](char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; });
     // Extension sûre : elle forme un nom d'entrée d'archive (« resources/<clé>.<ext> ») et, au lot 5, un nom
     // de fichier exporté. [a-z0-9]{1,8}, sinon « bin » (relecture du plan, tour 1 : glissement de chemin).
     const bool safe = !extension.empty() && extension.size() <= 8 &&

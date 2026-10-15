@@ -3,6 +3,8 @@
 #include <QByteArray>
 #include <QTest>
 
+#include <limits>
+
 using namespace actcraft::core;
 
 namespace {
@@ -173,6 +175,53 @@ private slots:
         Document d;
         d.allocateId();
         QCOMPARE(fingerprint(a), fingerprint(d));
+    }
+
+    // Mêmes octets (donc même clé), extensions différentes : l'extension entre dans l'empreinte.
+    void fingerprintFollowsResourceExtension()
+    {
+        Document a;
+        a.addResource(QByteArray("x"), "png");
+        Document b;
+        b.addResource(QByteArray("x"), "jpg");
+        QCOMPARE(a.resources().begin()->first, b.resources().begin()->first);
+        QVERIFY(fingerprint(a) != fingerprint(b));
+    }
+
+    // Minuscules ASCII seulement, quelle que soit la locale du processus.
+    void extensionIsLoweredInAscii()
+    {
+        Document d;
+        QCOMPARE(d.resource(d.addResource(QByteArray("t"), "TIF"))->extension, std::string("tif"));
+        QCOMPARE(d.resource(d.addResource(QByteArray("u"), "Mp4"))->extension, std::string("mp4"));
+    }
+
+    // Le dernier identifiant (2^64 − 1) n'est jamais attribué : il marque l'espace épuisé. Jamais de retour à
+    // 0 ni à un identifiant déjà pris.
+    void allocationRefusesInsteadOfWrapping()
+    {
+        constexpr ObjectId kLast = std::numeric_limits<ObjectId>::max();
+        Document d;
+        d.reserveIdsBelow(kLast - 1);
+        QCOMPARE(d.allocateId(), kLast - 1);
+        QTest::ignoreMessage(QtWarningMsg, "Document : identifiants d'objets épuisés");
+        QCOMPARE(d.allocateId(), ObjectId{0});
+        QTest::ignoreMessage(QtWarningMsg, "Document : identifiants d'objets épuisés");
+        QCOMPARE(d.allocateId(), ObjectId{0});
+        QCOMPARE(d.nextId(), kLast);
+    }
+
+    void refreshAfterTheLargestIdSaturates()
+    {
+        constexpr ObjectId kLast = std::numeric_limits<ObjectId>::max();
+        Document d;
+        PageObject o = redStroke();
+        o.common.id = kLast;
+        d.page(0).objects.push_back(o);
+        d.refreshNextId(); // largest + 1 déborderait à 0
+        QCOMPARE(d.nextId(), kLast);
+        QTest::ignoreMessage(QtWarningMsg, "Document : identifiants d'objets épuisés");
+        QCOMPARE(d.allocateId(), ObjectId{0});
     }
 };
 

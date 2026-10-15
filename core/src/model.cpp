@@ -123,97 +123,131 @@ void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
     }
 }
 
+// Un hachage par type d'objet ; hashBody() appelle celui du type tenu. Un type ajouté au variant sans sa
+// fonction tombe sur ce modèle et la compilation échoue (relecture de L2-T1 : une chaîne de get_if sans
+// branche finale laissait un type nouveau hors de l'empreinte, deux pages différentes ayant alors la même).
+template <typename T> void hashType(Fnv1a&, const T&) noexcept
+{
+    static_assert(sizeof(T) == 0,
+                  "type d'objet sans hachage : écrire son hashType() (et suivre le script de L2-T1)");
+}
+
+void hashType(Fnv1a& h, const Shape& shape) noexcept
+{
+    const auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill, pen,
+                 brush] = shape;
+    h.tag(kind);
+    h.rect(bounds);
+    h.points(polygon);
+    h.u32(fill);
+    h.u32(outline);
+    h.f64(outlineWidth);
+    h.f64(opacity);
+    h.u64(static_cast<std::uint64_t>(paths.size()));
+    for (const auto& path : paths) {
+        h.points(path);
+    }
+    h.boolean(open);
+    h.boolean(windingFill);
+    h.outline(pen);
+    h.fill(brush);
+}
+
+void hashType(Fnv1a& h, const ImageObject& image) noexcept
+{
+    const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource,
+                 hasTransparentColor, transparentColor] = image;
+    h.rect(bounds);
+    h.i32(sourceWidth);
+    h.i32(sourceHeight);
+    h.tag(pattern);
+    h.u32(colorA);
+    h.u32(colorB);
+    h.u32(seed);
+    h.text(resource);
+    h.boolean(hasTransparentColor);
+    h.u32(transparentColor);
+}
+
+void hashType(Fnv1a& h, const Stroke& stroke) noexcept
+{
+    const auto& [points, baseWidth, color, kind, cap] = stroke;
+    h.u64(static_cast<std::uint64_t>(points.size()));
+    for (const StrokePoint& p : points) {
+        const auto& [x, y, pressure] = p;
+        h.f64(x);
+        h.f64(y);
+        h.f32(pressure);
+    }
+    h.f64(baseWidth);
+    h.u32(color);
+    h.tag(kind);
+    h.tag(cap);
+}
+
+void hashType(Fnv1a& h, const Line& line) noexcept
+{
+    const auto& [points, pen] = line;
+    h.points(points);
+    h.outline(pen);
+}
+
+void hashType(Fnv1a& h, const Text& textObject) noexcept
+{
+    const auto& [bounds, html, runs] = textObject;
+    h.rect(bounds);
+    h.text(html);
+    h.u64(static_cast<std::uint64_t>(runs.size()));
+    for (const TextRun& r : runs) {
+        const auto& [text, fontFamily, pointSize, weight, italic, underline, strikeOut, color, baseline,
+                     runBounds] = r;
+        h.text(text);
+        h.text(fontFamily);
+        h.f64(pointSize);
+        h.i32(weight);
+        h.boolean(italic);
+        h.boolean(underline);
+        h.boolean(strikeOut);
+        h.u32(color);
+        h.point(baseline);
+        h.rect(runBounds);
+    }
+}
+
+void hashType(Fnv1a& h, const Media& mediaObject) noexcept
+{
+    const auto& [bounds, placeholder, media, fileName, autoPlay, loop] = mediaObject;
+    h.rect(bounds);
+    h.text(placeholder);
+    h.text(media);
+    h.text(fileName);
+    h.boolean(autoPlay);
+    h.boolean(loop);
+}
+
+void hashType(Fnv1a& h, const Group& group) noexcept
+{
+    const auto& [members] = group;
+    h.u64(static_cast<std::uint64_t>(members.size()));
+    for (const ObjectId id : members) {
+        h.u64(id);
+    }
+}
+
+void hashType(Fnv1a& h, const Connector& connector) noexcept
+{
+    const auto& [endA, endB, objectA, objectB, pen] = connector;
+    h.point(endA);
+    h.point(endB);
+    h.u64(objectA);
+    h.u64(objectB);
+    h.outline(pen);
+}
+
+// std::visit sur le variant de base (body), jamais sur PageObject : il couvre chaque type par construction.
 void hashBody(Fnv1a& h, const PageObject& object) noexcept
 {
-    if (const auto* s = std::get_if<Shape>(&object)) {
-        const auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill,
-                     pen, brush] = *s;
-        h.tag(kind);
-        h.rect(bounds);
-        h.points(polygon);
-        h.u32(fill);
-        h.u32(outline);
-        h.f64(outlineWidth);
-        h.f64(opacity);
-        h.u64(static_cast<std::uint64_t>(paths.size()));
-        for (const auto& path : paths) {
-            h.points(path);
-        }
-        h.boolean(open);
-        h.boolean(windingFill);
-        h.outline(pen);
-        h.fill(brush);
-    } else if (const auto* im = std::get_if<ImageObject>(&object)) {
-        const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource,
-                     hasTransparentColor, transparentColor] = *im;
-        h.rect(bounds);
-        h.i32(sourceWidth);
-        h.i32(sourceHeight);
-        h.tag(pattern);
-        h.u32(colorA);
-        h.u32(colorB);
-        h.u32(seed);
-        h.text(resource);
-        h.boolean(hasTransparentColor);
-        h.u32(transparentColor);
-    } else if (const auto* st = std::get_if<Stroke>(&object)) {
-        const auto& [points, baseWidth, color, kind, cap] = *st;
-        h.u64(static_cast<std::uint64_t>(points.size()));
-        for (const StrokePoint& p : points) {
-            const auto& [x, y, pressure] = p;
-            h.f64(x);
-            h.f64(y);
-            h.f32(pressure);
-        }
-        h.f64(baseWidth);
-        h.u32(color);
-        h.tag(kind);
-        h.tag(cap);
-    } else if (const auto* l = std::get_if<Line>(&object)) {
-        const auto& [points, pen] = *l;
-        h.points(points);
-        h.outline(pen);
-    } else if (const auto* t = std::get_if<Text>(&object)) {
-        const auto& [bounds, html, runs] = *t;
-        h.rect(bounds);
-        h.text(html);
-        h.u64(static_cast<std::uint64_t>(runs.size()));
-        for (const TextRun& r : runs) {
-            const auto& [text, fontFamily, pointSize, weight, italic, underline, strikeOut, color, baseline,
-                         runBounds] = r;
-            h.text(text);
-            h.text(fontFamily);
-            h.f64(pointSize);
-            h.i32(weight);
-            h.boolean(italic);
-            h.boolean(underline);
-            h.boolean(strikeOut);
-            h.u32(color);
-            h.point(baseline);
-            h.rect(runBounds);
-        }
-    } else if (const auto* m = std::get_if<Media>(&object)) {
-        const auto& [bounds, placeholder, media, fileName, autoPlay, loop] = *m;
-        h.rect(bounds);
-        h.text(placeholder);
-        h.text(media);
-        h.text(fileName);
-        h.boolean(autoPlay);
-        h.boolean(loop);
-    } else if (const auto* g = std::get_if<Group>(&object)) {
-        const auto& [members] = *g;
-        h.u64(static_cast<std::uint64_t>(members.size()));
-        for (const ObjectId id : members) {
-            h.u64(id);
-        }
-    } else if (const auto* c = std::get_if<Connector>(&object)) {
-        const auto& [endA, endB, objectA, objectB, pen] = *c;
-        h.point(endA);
-        h.point(endB);
-        h.u64(objectA);
-        h.u64(objectB);
-        h.outline(pen);
-    }
+    std::visit([&h](const auto& value) { hashType(h, value); }, body(object));
 }
 
 } // namespace
@@ -286,7 +320,7 @@ ObjectKind kindOf(const PageObject& object) noexcept
 // : son type (un octet), ses propriétés communes, puis les champs de son type. Le script Python de L2-T1
 // (étape 7) suit ce même ordre : le modifier change les valeurs figées des tests.
 static_assert(std::variant_size_v<ObjectVariant> == kObjectKindCount,
-              "type d'objet ajouté : l'ajouter à hashBody() et à kObjectKindCount");
+              "type d'objet ajouté : l'ajouter à kObjectKindCount (hashType() : la compilation l'exige)");
 
 std::uint64_t fingerprint(const Page& page) noexcept
 {

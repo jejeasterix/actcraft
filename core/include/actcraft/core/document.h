@@ -41,10 +41,13 @@ public:
     // Retire et rend la page `index` ; exige pageCount() > 1.
     Page takePage(std::size_t index);
 
-    // Identifiant neuf, jamais 0.
+    // Identifiant neuf, de 1 à 2^64 − 2. Le dernier (2^64 − 1) n'est jamais attribué : nextId() == lui,
+    // l'espace est épuisé, et allocateId() rend 0 (« aucun ») avec un avertissement, jamais un identifiant
+    // déjà pris.
     ObjectId allocateId() noexcept;
     ObjectId nextId() const noexcept;
     // Le prochain identifiant dépasse tous ceux des pages (après une lecture ou une page posée telle quelle).
+    // Borné à 2^64 − 1 (épuisé) si une page porte déjà ce dernier identifiant.
     void refreshNextId() noexcept;
     // Le prochain identifiant vaut au moins `next` ; jamais en arrière.
     void reserveIdsBelow(ObjectId next) noexcept;
