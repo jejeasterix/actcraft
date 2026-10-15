@@ -2,7 +2,7 @@
 
 Statut : en cours — repris le 2026-10-15 (nouvelle session) ; règles communes recréées dans le scratchpad de la session (`regles-tache-livraison.md`)
 Gabarit : lots (provisoire, à confirmer à l'étage 2)
-Étage : 3.8 (lot 1 : toutes les tâches et les correctifs C1-C5 mergés ; clôture du lot en cours — section « Clôture du lot 1 » du plan)
+Étage : porte de fin du lot 1 (PR #3 mergée, 3de027a) ; ensuite lot 2 : planificateur sur le cadrage (lecteur `.flipchart`, format natif), en reprenant « Pour le plan du lot 2 » des pièges
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete   Branche : feat/livraison-complete   Base : origin/main @ 175b336
 Branche principale locale au lancement : 175b336   (vérifiée à chaque rapport de tâche)
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md (663644e ; 38 questions, 16 N1, 12 DA, S1–S14, 11 lots ≈ 134 tâches dont lot 9 vidéos et lot 10 cache ; 175 exigences incluses, 25 exclues)   Plans : un par lot — lot 1 : docs/plans/2026-10-14-livraison-complete-lot1-PLAN.md (7e4c743 ; 20 tâches L1-T1…T20, 12 vagues)
@@ -68,6 +68,9 @@ CI verte · releases publiées seulement sur go écrit de Jérôme (action final
 3. Banc complet à l'écran (`bench.ps1 -Rendu tous`) : D3D11 `BUDGET DEPASSE` (`2026-10-15_105053-…-direct3d11.json`, content_check.ok = True), logiciel informatif (`…_105129-…-software.json`). **Aucune régression** : tous les critères tenus par la référence (283df8a) le sont encore (60 images/s, p95 ≤ 17,1 ms, 0 % > 25 ms, 0 reprise, latence p50 10,0 / p95 17,6 ms, mémoire ≤ 698 Mo) ; seul `stroke freeze_over_limit = 1` (41,654 ms pour 41,6525 ms), déjà dépassé par la référence (64,4 ms) et hors porte jusqu'au lot 10. Résumé `docs/mesures/2026-10-15-lot1-socle.md` (fe60448), référence des lots suivants.
 4. Paquets (`build/paquet/` du worktree du chantier) : `PAQUET OK : …\ActCraft-0.1.0-setup.exe` (25,5 Mo) ; `INSTALLATEUR OK` (`--version : ActCraft 0.1.0`, fenêtre « ActCraft — rendu : Direct3D 11 », `qwindows.dll` du dossier installé) ; `APK OK` : `ActCraft-0.1.0-arm64-v8a.apk` (48,7 Mo), `ActCraft-0.1.0-x86_64.apk` (49,6 Mo), cible 36, 0 permission, signature de débogage.
 5. CHANGELOG daté (`## 0.1.0 — 2026-10-15`, `NOTES OK`) ; `graphify update .` (1962 nœuds) ; commit 70cfea5.
+
+## PR du lot 1
+PR #3 https://github.com/jejeasterix/actcraft/pull/3 (branche poussée à ab07504, README à jour). Point de retour : origin/main = 175b336. Conditions du merge : double relecture faite, 0 bloquant ouvert · 0 tâche bloquée · suite complète release 44/44 + debug 44/44 (référence 29/29) · aucun test retiré ni QSKIP · S1, S2, S3 joués et réussis · CLI : sans objet · CI de la PR : run 38732546016 vert (format, build windows, build macos, paquet-windows, android). Contrôle de PI avant push : aucun binaire ajouté, mentions toutes écrites par nous. **Mergée** le 2026-10-15 : `3de027a` sur main ; main locale avancée (`pull --ff-only` dans le dossier principal). CI de main après merge : suivie avant toute release.
 
 ## Rapport du lot 1
 **Scénarios** — S1 installateur : local `INSTALLATEUR OK` en vraie fenêtre D3D11 + CI (job `paquet-windows`). S2 premiers pas : à l'écran en D3D11 `SCENARIO OK` / `CAPTURES OK`, vrai plein écran ; hors écran en CI (Windows, macOS). S3 APK : local `ANDROID OK` (émulateur `-gpu host`) + CI `ANDROID OK` (`-gpu lavapipe`, `rectangles : entiers`). Dernier run CI complet vert : 38697953843 (5/5 jobs) ; release.yml en essai : 38706518252.
