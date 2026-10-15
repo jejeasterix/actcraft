@@ -4,6 +4,10 @@ out/
 CMakeUserPresets.json
 *.user
 
+# Clés de signature (APK) : jamais versionnées
+*.jks
+*.keystore
+
 # Éditeurs
 .vs/
 .vscode/

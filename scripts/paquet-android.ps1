@@ -1,15 +1,17 @@
 # APK Android (décisions 27, 28, 30, 31 ; DA9) : presets android-arm64 et android-x86_64, alignement, signature
 # (clé de débogage locale par défaut, clé de release seulement en paramètres), contrôles.
 # Usage : pwsh -NoProfile -File ./scripts/paquet-android.ps1 [-Abi arm64-v8a|x86_64|tous]
-#         [-Keystore <fichier> -KeystorePass <p> -KeyAlias <alias> -KeyPass <p>]
+#         [-Keystore <fichier> -KeyAlias <alias>]
+# Mots de passe d'une clé de release : variables ACTCRAFT_KEYSTORE_PASS et ACTCRAFT_KEY_PASS (ou -KeystorePass,
+# -KeyPass) ; transmis à apksigner par « env: », jamais sur sa ligne de commande.
 # Produit build/paquet/ActCraft-<version>-<abi>.apk ; local, jamais publié.
 # Dernière ligne : « APK OK » (0) ou « APK EN ECHEC : <raison> » (1).
 param(
     [ValidateSet('arm64-v8a', 'x86_64', 'tous')][string]$Abi = 'tous',
     [string]$Keystore,
-    [string]$KeystorePass,
+    [string]$KeystorePass = $env:ACTCRAFT_KEYSTORE_PASS,
     [string]$KeyAlias,
-    [string]$KeyPass
+    [string]$KeyPass = $env:ACTCRAFT_KEY_PASS
 )
 $ErrorActionPreference = 'Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
@@ -20,6 +22,10 @@ try {
     $version = Get-ActCraftVersion
     $versionCode = Get-ActCraftVersionCode
     $identifiant = 'io.github.jejeasterix.actcraft'
+    # API cible = plateforme de compilation (packaging/android/versions.env), figée dans app/CMakeLists.txt.
+    $versions = Join-Path $PSScriptRoot '../packaging/android/versions.env'
+    $apiCible = (Get-Content $versions | Where-Object { $_ -match '^ANDROID_PLATFORM=' }) -replace '^ANDROID_PLATFORM=', ''
+    if (-not $apiCible) { throw "ANDROID_PLATFORM absent de $versions" }
     $sortie = Join-Path (Get-Location) 'build/paquet'
     New-Item -ItemType Directory -Force $sortie | Out-Null
 
@@ -60,22 +66,36 @@ try {
         $enControle = $final # supprimé si un contrôle échoue : build/paquet/ ne garde que des APK conformes
         & $zipalign -p -f 4 $brut.FullName $aligne
         if ($LASTEXITCODE -ne 0) { throw 'zipalign en échec' }
-        & $apksigner sign --ks $Keystore --ks-pass "pass:$KeystorePass" --ks-key-alias $KeyAlias `
-            --key-pass "pass:$KeyPass" --out $final $aligne
+        # Mots de passe par l'environnement (invisibles dans la liste des processus) ; pas de signature v4 : son
+        # fichier .idsig sortirait des noms du contrat de build/paquet/.
+        Remove-Item -Force -ErrorAction SilentlyContinue "$final.idsig"
+        $env:ACTCRAFT_APKSIGNER_KS_PASS = $KeystorePass
+        $env:ACTCRAFT_APKSIGNER_KEY_PASS = $KeyPass
+        try {
+            & $apksigner sign --ks $Keystore --ks-pass env:ACTCRAFT_APKSIGNER_KS_PASS --ks-key-alias $KeyAlias `
+                --key-pass env:ACTCRAFT_APKSIGNER_KEY_PASS --v4-signing-enabled false --out $final $aligne
+        } finally {
+            Remove-Item -ErrorAction SilentlyContinue Env:ACTCRAFT_APKSIGNER_KS_PASS, Env:ACTCRAFT_APKSIGNER_KEY_PASS
+        }
         if ($LASTEXITCODE -ne 0) { throw 'apksigner en échec' }
         Remove-Item -Force $aligne
 
-        # Contrôles : identifiant, version, aucune permission (décision 28), signature, licences (décision 34).
+        # Contrôles : identifiant, version, API cible, aucune permission (décision 28), signature, licences (décision
+        # 34). Comparaisons sensibles à la casse : Android distingue les majuscules.
         $badging = @(& $aapt2 dump badging $final)
         if ($LASTEXITCODE -ne 0) { throw 'aapt2 dump badging en échec' }
         $tete = ($badging | Select-String "^package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'").Matches
         if (-not $tete) { throw "en-tête de paquet illisible : $($badging[0])" }
         Write-Output "$a : identifiant = $($tete[0].Groups[1].Value)"
-        if ($tete[0].Groups[1].Value -ne $identifiant) { throw "identifiant inattendu : $($badging[0])" }
+        if ($tete[0].Groups[1].Value -cne $identifiant) { throw "identifiant inattendu : $($badging[0])" }
         Write-Output "$a : versionCode = $($tete[0].Groups[2].Value), versionName = $($tete[0].Groups[3].Value)"
-        if ($tete[0].Groups[2].Value -ne "$versionCode" -or $tete[0].Groups[3].Value -ne $version) {
+        if ($tete[0].Groups[2].Value -cne "$versionCode" -or $tete[0].Groups[3].Value -cne $version) {
             throw "version inattendue : $($badging[0]) (attendu $versionCode / $version)"
         }
+        $cible = ($badging | Select-String -CaseSensitive "^targetSdkVersion:'(\d+)'").Matches
+        $cibleLue = if ($cible) { $cible[0].Groups[1].Value } else { '' }
+        Write-Output "$a : targetSdkVersion = $cibleLue"
+        if ($cibleLue -cne $apiCible) { throw "API cible inattendue : '$cibleLue' (attendu $apiCible, android-$apiCible)" }
         $permissions = @($badging | Select-String "^uses-permission(?:-sdk-23)?: name='([^']+)'" |
             ForEach-Object { $_.Matches[0].Groups[1].Value })
         Write-Output "$a : permissions = $($permissions -join ', ')"

@@ -33,6 +33,9 @@ if(ANDROID)
         QT_ANDROID_APP_NAME ActCraft
         QT_ANDROID_VERSION_NAME ${PROJECT_VERSION}
         QT_ANDROID_VERSION_CODE ${ACTCRAFT_VERSION_CODE}
+        # API cible = plateforme de compilation (ANDROID_PLATFORM de packaging/android/versions.env) ; le défaut de
+        # Qt 6.12 (37) dépasserait la plateforme installée. Contrôlée par scripts/paquet-android.ps1.
+        QT_ANDROID_TARGET_SDK_VERSION 36
         # Manifeste à nous (décision 28) : sans le marqueur %%INSERT_PERMISSIONS, androiddeployqt n'ajoute pas les
         # permissions par défaut de Qt (INTERNET, WRITE_EXTERNAL_STORAGE, ACCESS_NETWORK_STATE) ; celle
         # d'androidx.core (DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION) y est ôtée par tools:node="remove".

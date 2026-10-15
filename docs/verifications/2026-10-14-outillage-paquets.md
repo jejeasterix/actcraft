@@ -27,6 +27,7 @@ Tâche L1-T17 (2026-10-15, `pwsh -NoProfile -File ./scripts/paquet-android.ps1`,
 VERIF apk-arm64 = OK (ActCraft-0.1.0-arm64-v8a.apk, 48.3 Mo)
 VERIF apk-x86_64 = OK (ActCraft-0.1.0-x86_64.apk, 49.2 Mo)
 VERIF apk-identifiant = io.github.jejeasterix.actcraft, versionCode 100, versionName 0.1.0 (propriétés de cible)
+VERIF apk-api-cible = targetSdkVersion 36 (= ANDROID_PLATFORM, QT_ANDROID_TARGET_SDK_VERSION ; défaut de Qt 6.12 : 37), minSdkVersion 28
 VERIF apk-permissions = aucune (manifeste à nous, android/AndroidManifest.xml)
 VERIF apk-signature = clé de débogage locale (CN=Android Debug)
 VERIF apk-licences = LICENCES OK
