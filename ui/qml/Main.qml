@@ -107,20 +107,17 @@ Window {
         onOpened: root.popupOpened()
         onClosed: root.popupClosed()
 
-        function rebuild() {
-            while (mainMenu.count > 0)
-                mainMenu.removeItem(mainMenu.itemAt(0))
-            const menus = appCommands.menus
-            for (let i = 0; i < menus.length; ++i)
-                mainMenu.addMenu(subMenuComponent.createObject(null, { commands: appCommands, spec: menus[i] }))
+        Instantiator {
+            model: appCommands.menus
+            delegate: CommandMenu {
+                required property var modelData
+                commands: appCommands
+                spec: modelData
+            }
+            onObjectAdded: (index, object) => mainMenu.insertMenu(index, object)
+            onObjectRemoved: (index, object) => mainMenu.removeMenu(object)
         }
     }
-
-    Component {
-        id: subMenuComponent
-        CommandMenu {}
-    }
-
     // « Outils » (F-128) : le menu Outils en menu surgissant.
     CommandMenu {
         id: toolsMenu
@@ -148,13 +145,6 @@ Window {
         }
     }
 
-    Connections {
-        target: appCommands
-        function onLayoutChanged() {
-            mainMenu.rebuild()
-        }
-    }
-
     Component.onCompleted: {
         appCommands.setHandler("file.quit", function () { Qt.quit() })
         appCommands.setHandler("view.fullscreen", function () { root.setFullScreen(!root.fullScreen) })
@@ -170,7 +160,6 @@ Window {
         appCommands.setHandler("help.about", function () { aboutDialog.open() })
         appCommands.setHandler("help.website", function () { Qt.openUrlExternally(AppInfo.projectUrl) })
         appCommands.setChecked("tool.pen", true) // F-200 : le stylo est l'outil de départ
-        mainMenu.rebuild()
         if (root.generatedPage)
             appDocument.loadGeneratedFirstPage()
     }

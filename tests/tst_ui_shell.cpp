@@ -43,7 +43,8 @@ bool start(Shell& s)
     return s.view && s.fixed && ready(s);
 }
 
-// Les délégués d'un Repeater n'ont pas toujours la fenêtre pour parent QObject : on suit l'arbre des éléments.
+// Les délégués d'un Repeater n'ont pas toujours la fenêtre pour parent QObject : on suit l'arbre des
+// éléments.
 QQuickItem* findItem(QQuickItem* root, const QString& name)
 {
     if (!root) {
@@ -105,10 +106,10 @@ private:
 
     void post(Shell& s, QEvent::Type type, QPointF scene, Qt::MouseButtons buttons)
     {
-        QCoreApplication::postEvent(
-            s.window, new QTabletEvent(type, m_stylus.get(), scene, s.window->mapToGlobal(scene),
-                                       buttons ? 0.5 : 0.0, 0, 0, 0, 0, 0, Qt::NoModifier, Qt::LeftButton,
-                                       buttons));
+        QCoreApplication::postEvent(s.window,
+                                    new QTabletEvent(type, m_stylus.get(), scene,
+                                                     s.window->mapToGlobal(scene), buttons ? 0.5 : 0.0, 0, 0,
+                                                     0, 0, 0, Qt::NoModifier, Qt::LeftButton, buttons));
     }
 
 private slots:
@@ -124,10 +125,10 @@ private slots:
     {
         Shell s;
         QVERIFY(start(s));
-        for (const char* name : {"topBar", "toolPalette", "pageArea", "pageIndicator", "zoomBox", "colorSwatches",
-                                 "widthPicker", "menu-file", "menu-view", "menu-tools", "menu-help",
-                                 "button-page.next", "button-page.previous", "button-tool.pen",
-                                 "button-menu.main", "button-menu.tools", "button-view.fullscreen"}) {
+        for (const char* name :
+             {"topBar", "toolPalette", "pageArea", "pageIndicator", "zoomBox", "colorSwatches", "widthPicker",
+              "menu-file", "menu-view", "menu-tools", "menu-help", "button-page.next", "button-page.previous",
+              "button-tool.pen", "button-menu.main", "button-menu.tools", "button-view.fullscreen"}) {
             QQuickItem* found = item(s, name);
             QVERIFY2(found && found->isVisible(), name);
         }
@@ -135,10 +136,12 @@ private slots:
         QVERIFY(!item(s, "menu-insert")); // idem
         QCOMPARE(indicator(s), QStringLiteral("1 / 1"));
         QCOMPARE(s.fixed->objectCount(), 0);
-        // Palette à droite de la page, ligne supérieure au-dessus (F-001, F-002) ; pas de barre d'état (F-003).
+        // Palette à droite de la page, ligne supérieure au-dessus (F-001, F-002) ; pas de barre d'état
+        // (F-003).
         QQuickItem* palette = item(s, "toolPalette");
         QQuickItem* bar = item(s, "topBar");
-        QVERIFY(palette->mapToScene(QPointF(0, 0)).x() >= s.view->mapToScene(QPointF(s.view->width(), 0)).x() - 1);
+        QVERIFY(palette->mapToScene(QPointF(0, 0)).x() >=
+                s.view->mapToScene(QPointF(s.view->width(), 0)).x() - 1);
         QVERIFY(bar->mapToScene(QPointF(0, bar->height())).y() <= s.view->mapToScene(QPointF(0, 0)).y() + 1);
         QVERIFY(s.view->mapToScene(QPointF(0, s.view->height())).y() >= s.window->height() - 1);
         QVERIFY(item(s, "button-tool.pen")->property("checked").toBool()); // F-200
