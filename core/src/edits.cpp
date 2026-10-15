@@ -78,8 +78,8 @@ RectF localBounds(const PageObject& object) noexcept
     } else if (const auto* m = std::get_if<Media>(&object)) {
         box.addRect(m->bounds);
     } else if (const auto* c = std::get_if<Connector>(&object)) {
-        box.add(c->endA);
-        box.add(c->endB);
+        box.add(c->firstEnd);
+        box.add(c->secondEnd);
         margin = c->pen.width / 2;
     }
     return box.empty() ? RectF{} : box.grown(margin);

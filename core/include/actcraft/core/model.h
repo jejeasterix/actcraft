@@ -142,9 +142,9 @@ inline Fill solidFill(Argb color) noexcept
 
 struct Restrictions
 {
-    bool canMove = true;
-    bool canSize = true;
-    bool canRotate = true;
+    bool movable = true;
+    bool resizable = true;
+    bool rotatable = true;
 };
 
 // Actions : données seulement au lot 2 (F-583) ; leur comportement arrive au lot 8.
@@ -241,7 +241,7 @@ struct ImageObject
     std::uint32_t seed = 0;
     std::string resource;
     bool hasTransparentColor = false;
-    Argb transparentColor = 0;
+    Argb keyColor = 0;
 };
 
 struct StrokePoint
@@ -280,7 +280,7 @@ struct Line
 };
 
 // Ligne d'un texte mise en page à l'avance (.flipchart) ; vide pour un texte créé par ActCraft.
-struct TextRun
+struct TextSpan
 {
     std::string text;
     std::string fontFamily;
@@ -299,7 +299,7 @@ struct Text
 {
     RectF bounds;
     std::string html;
-    std::vector<TextRun> runs;
+    std::vector<TextSpan> runs;
 };
 
 // Son ou vidéo (N2-9 : ouvert par l'application du système) ; dessiné par son image d'espace réservé.
@@ -309,7 +309,7 @@ struct Media
     std::string placeholder; // clé de ressource image ; vide : cadre par défaut
     std::string media;       // clé de ressource du son ou de la vidéo
     std::string fileName;
-    bool autoPlay = false;
+    bool playOnOpen = false;
     bool loop = false;
 };
 
@@ -321,8 +321,8 @@ struct Group
 
 struct Connector
 {
-    PointF endA;
-    PointF endB;
+    PointF firstEnd;
+    PointF secondEnd;
     ObjectId objectA = 0;
     ObjectId objectB = 0;
     Outline pen;
@@ -373,24 +373,24 @@ struct GridLevel
     bool visible = true;
     bool snap = true;
     PointF start;
-    double stepX = 32;
-    double stepY = 32;
+    double spacingX = 32;
+    double spacingY = 32;
     Argb color = 0xFF000000u;
     GridPattern pattern = GridPattern::Normal;
     double angle = 30;
     GridLine line = GridLine::Solid;
-    bool drawX = true;
-    bool drawY = true;
+    bool linesAlongX = true;
+    bool linesAlongY = true;
 };
 
 struct Grid
 {
     bool visible = false;
-    bool allowSnap = false;
-    bool onTop = false;
-    double thumbnailScale = 1;
-    double defaultScale = 1;
-    double scaleStep = 0.5;
+    bool snapEnabled = false;
+    bool drawnAbove = false;
+    double previewZoom = 1;
+    double baseZoom = 1;
+    double zoomIncrement = 0.5;
     std::vector<GridLevel> levels;
 };
 

@@ -60,7 +60,7 @@ private slots:
         QCOMPARE(controller.pageCount(), 2);
         QCOMPARE(controller.currentIndex(), 1);
         QCOMPARE(controller.pageLabel(), QStringLiteral("2 / 2"));
-        controller.previousPage();
+        controller.pageBack();
         QCOMPARE(controller.pageLabel(), QStringLiteral("1 / 2"));
         controller.nextPage(); // la page 2 existe : pas de troisième page
         QCOMPARE(controller.pageCount(), 2);
@@ -72,7 +72,7 @@ private slots:
         ui::DocumentController controller;
         controller.setFixedPage(&fixed);
         QSignalSpy pages(&controller, &ui::DocumentController::pagesChanged);
-        controller.previousPage();
+        controller.pageBack();
         QCOMPARE(pages.count(), 0);
         QCOMPARE(controller.currentIndex(), 0);
     }
@@ -85,7 +85,7 @@ private slots:
         fixed.appendStroke(redStroke()); // comme le stylo (FixedPageSink)
         controller.nextPage();
         QCOMPARE(fixed.objectCount(), 0);
-        controller.previousPage();
+        controller.pageBack();
         QCOMPARE(fixed.objectCount(), 1);
         const core::Document& document = controller.document();
         QCOMPARE(document.page(0).objects.size(), std::size_t{1});
@@ -116,7 +116,7 @@ private slots:
         const std::uint64_t shown = core::fingerprint(fixed.page());
         QCOMPARE(core::fingerprint(controller.document().page(0)), shown);
         controller.nextPage();
-        controller.previousPage();
+        controller.pageBack();
         QCOMPARE(fixed.objectCount(), 301);
         QCOMPARE(core::fingerprint(fixed.page()), shown);
     }
@@ -152,11 +152,11 @@ private slots:
         connect(&controller, &ui::DocumentController::pagesChanged, this, [&] {
             seen << QStringLiteral("%1 : %2").arg(controller.pageLabel()).arg(fixed.objectCount());
         });
-        controller.nextPage();     // ajoute la page 2 et l'affiche
-        controller.previousPage(); // retour sur la page 1
-        controller.nextPage();     // la page 2 existe déjà
-        controller.previousPage();
-        controller.previousPage(); // première page : pas de déplacement
+        controller.nextPage(); // ajoute la page 2 et l'affiche
+        controller.pageBack(); // retour sur la page 1
+        controller.nextPage(); // la page 2 existe déjà
+        controller.pageBack();
+        controller.pageBack(); // première page : pas de déplacement
         QCOMPARE(seen, (QStringList{QStringLiteral("2 / 2 : 0"), QStringLiteral("1 / 2 : 1"),
                                     QStringLiteral("2 / 2 : 0"), QStringLiteral("1 / 2 : 1")}));
     }
@@ -190,11 +190,11 @@ private slots:
         QCOMPARE(leaving.count(), 1);
         QCOMPARE(fixed.objectCount(), 0);
         QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
-        controller.previousPage();
+        controller.pageBack();
         QCOMPARE(leaving.count(), 2);
         QCOMPARE(fixed.objectCount(), 1);
         QCOMPARE(controller.document().page(1).objects.size(), std::size_t{1});
-        controller.previousPage(); // première page : aucun déplacement, aucun signal
+        controller.pageBack(); // première page : aucun déplacement, aucun signal
         QCOMPARE(leaving.count(), 2);
     }
 
@@ -240,7 +240,7 @@ private slots:
         QCOMPARE(core::fingerprint(document.page(0)),
                  core::fingerprint(core::generatePage(core::kDefaultSeed)));
         QCOMPARE(document.page(1).objects.size(), std::size_t{1});
-        controller.previousPage();
+        controller.pageBack();
         QCOMPARE(fixed.objectCount(), 300);
     }
 

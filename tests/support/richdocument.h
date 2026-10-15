@@ -54,8 +54,8 @@ inline actcraft::core::Document richDocument()
     o1.common.visible = false;
     o1.common.locked = true;
     o1.common.translucency = 40;
-    o1.common.restrictions.canMove = false;
-    o1.common.restrictions.canSize = false; // canRotate reste vrai : o2 porte l'autre combinaison
+    o1.common.restrictions.movable = false;
+    o1.common.restrictions.resizable = false; // rotatable reste vrai : o2 porte l'autre combinaison
     o1.common.transform = compose(compose(scaling(2, 3), rotation(30)), translation(5.5, -2.25));
     o1.common.label = "Légende";
     Action action;
@@ -77,8 +77,8 @@ inline actcraft::core::Document richDocument()
     generated.seed = 7;
     PageObject o2 = generated;
     o2.common.id = 2;
-    o2.common.restrictions.canSize = false;
-    o2.common.restrictions.canRotate = false;
+    o2.common.restrictions.resizable = false;
+    o2.common.restrictions.rotatable = false;
     p1.objects.push_back(o2);
 
     ImageObject picture;
@@ -91,7 +91,7 @@ inline actcraft::core::Document richDocument()
     picture.colorB = 0xFF0000FFu;
     picture.seed = 3;
     picture.hasTransparentColor = true;
-    picture.transparentColor = 0xFFFFFFFFu;
+    picture.keyColor = 0xFFFFFFFFu;
     PageObject o3 = picture;
     o3.common.id = 3;
     o3.common.transform = scaling(50, 25);
@@ -134,7 +134,7 @@ inline actcraft::core::Document richDocument()
     Text text;
     text.bounds = {0, 0, 180, 40};
     text.html = "<p>Bonjour <b>tout</b> le monde</p>";
-    TextRun first;
+    TextSpan first;
     first.text = "Bonjour";
     first.fontFamily = "Arial";
     first.pointSize = 24;
@@ -145,7 +145,7 @@ inline actcraft::core::Document richDocument()
     first.strikeOut = false;
     first.baseline = {0, 30};
     first.bounds = {0, 0, 90, 36};
-    TextRun second = first;
+    TextSpan second = first;
     second.text = "tout";
     second.weight = 400;
     second.italic = false;
@@ -160,7 +160,7 @@ inline actcraft::core::Document richDocument()
     media.placeholder = png;
     media.media = mp3;
     media.fileName = "chanson.mp3";
-    media.autoPlay = true;
+    media.playOnOpen = true;
     media.loop = false; // vrai sur le média de la page 3
     PageObject o7 = media;
     o7.common.id = 7;
@@ -173,8 +173,8 @@ inline actcraft::core::Document richDocument()
     p1.objects.push_back(o8);
 
     Connector connector;
-    connector.endA = {1, 2};
-    connector.endB = {300, 400};
+    connector.firstEnd = {1, 2};
+    connector.secondEnd = {300, 400};
     connector.objectA = 4;
     connector.objectB = 6;
     connector.pen.color = 0xFF990000u;
@@ -205,14 +205,14 @@ inline actcraft::core::Document richDocument()
     p2.background.fill.gradient = GradientKind::DiagonalUp;
     p2.background.image = png;
     p2.grid.visible = true;
-    p2.grid.allowSnap = false; // vrai sur la grille de la page 3
-    p2.grid.onTop = true;
-    p2.grid.thumbnailScale = 0.5;
-    p2.grid.defaultScale = 2;
-    p2.grid.scaleStep = 0.25;
+    p2.grid.snapEnabled = false; // vrai sur la grille de la page 3
+    p2.grid.drawnAbove = true;
+    p2.grid.previewZoom = 0.5;
+    p2.grid.baseZoom = 2;
+    p2.grid.zoomIncrement = 0.25;
     GridLevel coarse;
-    coarse.stepX = 50;
-    coarse.stepY = 25;
+    coarse.spacingX = 50;
+    coarse.spacingY = 25;
     coarse.color = 0xFF0000FFu;
     coarse.snap = false;
     GridLevel fine;
@@ -221,21 +221,21 @@ inline actcraft::core::Document richDocument()
     fine.pattern = GridPattern::Angle;
     fine.angle = 45;
     fine.line = GridLine::Dotted;
-    fine.drawY = false;
-    fine.stepX = 64;
-    fine.stepY = 48;
+    fine.linesAlongY = false;
+    fine.spacingX = 64;
+    fine.spacingY = 48;
     fine.color = 0xFF00FF00u;
     GridLevel third;
-    third.drawX = false;
-    third.drawY = false;
-    third.stepX = 16;
-    third.stepY = 12;
+    third.linesAlongX = false;
+    third.linesAlongY = false;
+    third.spacingX = 16;
+    third.spacingY = 12;
     third.color = 0xFF808080u;
     p2.grid.levels = {coarse, fine, third};
 
     Page& p3 = pages[2];
-    p3.grid.allowSnap = true;
-    p3.grid.onTop = true;
+    p3.grid.snapEnabled = true;
+    p3.grid.drawnAbove = true;
     Media song;
     song.bounds = {500, 300, 32, 24};
     song.media = mp3;

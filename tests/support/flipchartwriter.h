@@ -177,7 +177,7 @@ public:
     {
         return add(id, Bytes().u16(12).u32(static_cast<quint32>(v.size())).raw(v));
     }
-    Obj& rectF(quint16 id, double x, double y, double w, double h)
+    Obj& floatRect(quint16 id, double x, double y, double w, double h)
     {
         return add(id, Bytes().u16(20).f64(x).f64(y).f64(w).f64(h));
     }
@@ -439,7 +439,7 @@ inline QByteArray sampleFlipchart(const std::vector<QByteArray>& thumbnails = {}
                              .resources(9, {Res(330, QStringLiteral("330.ir"), QString())})
                              .resources(11, {Res(350, QStringLiteral("350.ir"), QStringLiteral("351.mp3"))});
     const Obj run = Obj(31, 0)
-                        .rectF(2, 0, 0, 90, 36)
+                        .floatRect(2, 0, 0, 90, 36)
                         .pointF(3, 0, 30)
                         .color(5, 255, 0, 0)
                         .string(6, QStringLiteral("Bonjour"))

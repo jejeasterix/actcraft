@@ -740,11 +740,11 @@ private:
     void applyGuides(const BambooContainer& container, const IndexNode& treeNode, const StreamObject& g,
                      core::Page& sheet)
     {
-        sheet.grid.allowSnap = flagOr(&g, ids::guideKeys::kSnapEnabled, false);
-        sheet.grid.onTop = flagOr(&g, ids::guideKeys::kDrawnAbove, false);
-        sheet.grid.thumbnailScale = numberOr(&g, ids::guideKeys::kPreviewZoom, sheet.grid.thumbnailScale);
-        sheet.grid.defaultScale = numberOr(&g, ids::guideKeys::kBaseZoom, sheet.grid.defaultScale);
-        sheet.grid.scaleStep = numberOr(&g, ids::guideKeys::kZoomIncrement, sheet.grid.scaleStep);
+        sheet.grid.snapEnabled = flagOr(&g, ids::guideKeys::kSnapEnabled, false);
+        sheet.grid.drawnAbove = flagOr(&g, ids::guideKeys::kDrawnAbove, false);
+        sheet.grid.previewZoom = numberOr(&g, ids::guideKeys::kPreviewZoom, sheet.grid.previewZoom);
+        sheet.grid.baseZoom = numberOr(&g, ids::guideKeys::kBaseZoom, sheet.grid.baseZoom);
+        sheet.grid.zoomIncrement = numberOr(&g, ids::guideKeys::kZoomIncrement, sheet.grid.zoomIncrement);
         for (const IndexNode& child : treeNode.children) {
             if (child.type != ids::kind::kGridLevelObject || !container.contains(child.storageName())) {
                 continue;
@@ -759,22 +759,22 @@ private:
             core::GridLevel tier;
             // 0 vaut la valeur par défaut, comme dans la référence.
             const auto orDefault = [](double v, double fallback) { return v != 0 ? v : fallback; };
-            tier.stepX = orDefault(numberOr(l, ids::guideLevelKeys::kSpacingX, 32), 32);
-            tier.stepY = orDefault(numberOr(l, ids::guideLevelKeys::kSpacingY, 32), 32);
+            tier.spacingX = orDefault(numberOr(l, ids::guideLevelKeys::kSpacingX, 32), 32);
+            tier.spacingY = orDefault(numberOr(l, ids::guideLevelKeys::kSpacingY, 32), 32);
             tier.angle = orDefault(numberOr(l, ids::guideLevelKeys::kSlant, 30), 30);
-            if (!isPositiveFinite(tier.stepX) || !isPositiveFinite(tier.stepY) ||
+            if (!isPositiveFinite(tier.spacingX) || !isPositiveFinite(tier.spacingY) ||
                 !std::isfinite(tier.angle)) {
                 warn(u"niveau de grille %1 : pas ou angle invalide, valeurs par défaut"_s.arg(child.nodeId));
-                tier.stepX = isPositiveFinite(tier.stepX) ? tier.stepX : 32;
-                tier.stepY = isPositiveFinite(tier.stepY) ? tier.stepY : 32;
+                tier.spacingX = isPositiveFinite(tier.spacingX) ? tier.spacingX : 32;
+                tier.spacingY = isPositiveFinite(tier.spacingY) ? tier.spacingY : 32;
                 tier.angle = std::isfinite(tier.angle) ? tier.angle : 30;
             }
             tier.color = colorOr(l, ids::guideLevelKeys::kTint, 0xFF000000u) | 0xFF000000u;
             tier.visible = flagOr(l, ids::guideLevelKeys::kShown, true);
             tier.snap = flagOr(l, ids::guideLevelKeys::kMagnetic, true);
             tier.start = asPoint(l->find(ids::guideLevelKeys::kAnchor)).value_or(core::PointF{});
-            tier.drawX = flagOr(l, ids::guideLevelKeys::kLinesAlongX, true);
-            tier.drawY = flagOr(l, ids::guideLevelKeys::kLinesAlongY, true);
+            tier.linesAlongX = flagOr(l, ids::guideLevelKeys::kLinesAlongX, true);
+            tier.linesAlongY = flagOr(l, ids::guideLevelKeys::kLinesAlongY, true);
             const int pattern = intOr(l, ids::guideLevelKeys::kLayoutStyle, 1);
             tier.pattern = pattern >= 1 && pattern <= 3 ? static_cast<core::GridPattern>(pattern - 1)
                                                         : core::GridPattern::Normal;
@@ -879,7 +879,7 @@ private:
             }
             if (flagOr(&o, ids::imageKeys::kKeyed, false)) {
                 im.hasTransparentColor = true;
-                im.transparentColor = colorOr(&o, ids::imageKeys::kKeyColor, 0xFF000000u);
+                im.keyColor = colorOr(&o, ids::imageKeys::kKeyColor, 0xFF000000u);
             }
             p.object = std::move(im);
             break;
@@ -899,8 +899,8 @@ private:
                     const QString characters = asString(r->find(ids::runKeys::kCharacters));
                     const QString typeface = asString(r->find(ids::runKeys::kTypeface));
                     chargeModel(2 * (characters.size() + typeface.size()) +
-                                static_cast<qint64>(sizeof(core::TextRun)));
-                    core::TextRun run;
+                                static_cast<qint64>(sizeof(core::TextSpan)));
+                    core::TextSpan run;
                     run.text = characters.toStdString();
                     run.fontFamily = typeface.toStdString();
                     run.pointSize = numberOr(r, ids::runKeys::kPointHeight, 12);
@@ -930,15 +930,15 @@ private:
             if (const int clip = intOr(&o, ids::mediaKeys::kClipRef, 0); clip > 0) {
                 m.media = fileKey(static_cast<quint32>(clip), &m.fileName);
             }
-            m.autoPlay = flagOr(&o, ids::mediaKeys::kPlayOnOpen, false);
+            m.playOnOpen = flagOr(&o, ids::mediaKeys::kPlayOnOpen, false);
             m.loop = flagOr(&o, ids::mediaKeys::kRepeat, false);
             p.object = std::move(m);
             break;
         }
         case ids::kind::kConnectorObject: {
             core::Connector link;
-            link.endA = asPoint(o.find(ids::connectorKeys::kFromPoint)).value_or(core::PointF{});
-            link.endB = asPoint(o.find(ids::connectorKeys::kToPoint)).value_or(core::PointF{});
+            link.firstEnd = asPoint(o.find(ids::connectorKeys::kFromPoint)).value_or(core::PointF{});
+            link.secondEnd = asPoint(o.find(ids::connectorKeys::kToPoint)).value_or(core::PointF{});
             link.pen = outlineFrom(pen);
             if (const std::optional<Pointer> a = asPointer(o.find(ids::connectorKeys::kFromItem));
                 a && !a->isNull()) {
@@ -970,9 +970,9 @@ private:
         }
         c.visible = flagOr(&o, ids::itemKeys::kShown, true);
         c.locked = flagOr(&o, ids::itemKeys::kFrozen, false);
-        c.restrictions.canMove = flagOr(&o, ids::itemKeys::kMovable, true);
-        c.restrictions.canSize = flagOr(&o, ids::itemKeys::kResizable, true);
-        c.restrictions.canRotate = flagOr(&o, ids::itemKeys::kRotatable, true);
+        c.restrictions.movable = flagOr(&o, ids::itemKeys::kMovable, true);
+        c.restrictions.resizable = flagOr(&o, ids::itemKeys::kResizable, true);
+        c.restrictions.rotatable = flagOr(&o, ids::itemKeys::kRotatable, true);
         c.transform = localTransform(o, bounds);
         if (!isFinite(c.transform)) {
             warn(u"%1 : transformation non finie (nœud %2), identité"_s.arg(where).arg(treeNode.nodeId));

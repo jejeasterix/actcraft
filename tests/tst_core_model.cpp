@@ -45,7 +45,7 @@ private:
         Text text;
         text.bounds = {0, 0, 90, 36};
         text.html = "<p>Bonjour</p>";
-        TextRun run;
+        TextSpan run;
         run.text = "Bonjour";
         run.fontFamily = "Arial";
         run.pointSize = 24;
@@ -59,7 +59,7 @@ private:
         group.members = {1, 2};
         page.objects.emplace_back(group);
         Connector connector;
-        connector.endB = {100, 100};
+        connector.secondEnd = {100, 100};
         page.objects.emplace_back(connector);
         page.grid.levels.push_back(GridLevel{});
         return page;
@@ -158,7 +158,7 @@ private slots:
         QVERIFY(differs([](Page& p) { p.objects[0].common.visible = false; }));
         QVERIFY(differs([](Page& p) { p.objects[0].common.locked = true; }));
         QVERIFY(differs([](Page& p) { p.objects[0].common.translucency = 1; }));
-        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.canSize = false; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.resizable = false; }));
         QVERIFY(differs([](Page& p) { p.objects[0].common.transform.dx = 0.5; }));
         QVERIFY(differs([](Page& p) { p.objects[0].common.label = "Légende"; }));
         QVERIFY(differs([](Page& p) { p.objects[0].common.actions.push_back(Action{}); }));
@@ -177,7 +177,7 @@ private slots:
         QVERIFY(differs([](Page& p) { p.background.fill.color2 = 0xFF000000u; }));
         QVERIFY(differs([](Page& p) { p.background.image = "cle"; }));
         QVERIFY(differs([](Page& p) { p.grid.visible = true; }));
-        QVERIFY(differs([](Page& p) { p.grid.levels[0].stepY = 31; }));
+        QVERIFY(differs([](Page& p) { p.grid.levels[0].spacingY = 31; }));
         QVERIFY(differs([](Page& p) { p.name = "Page un"; }));
         QVERIFY(differs([](Page& p) { p.notes = "notes"; }));
     }

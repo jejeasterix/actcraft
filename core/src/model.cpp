@@ -108,10 +108,10 @@ void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
     h.boolean(visible);
     h.boolean(locked);
     h.byte(translucency);
-    const auto& [canMove, canSize, canRotate] = restrictions;
-    h.boolean(canMove);
-    h.boolean(canSize);
-    h.boolean(canRotate);
+    const auto& [movable, resizable, rotatable] = restrictions;
+    h.boolean(movable);
+    h.boolean(resizable);
+    h.boolean(rotatable);
     h.transform(transform);
     h.text(label);
     h.u64(static_cast<std::uint64_t>(actions.size()));
@@ -158,7 +158,7 @@ void hashType(Fnv1a& h, const Shape& shape) noexcept
 void hashType(Fnv1a& h, const ImageObject& image) noexcept
 {
     const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource,
-                 hasTransparentColor, transparentColor] = image;
+                 hasTransparentColor, keyColor] = image;
     h.rect(bounds);
     h.i32(sourceWidth);
     h.i32(sourceHeight);
@@ -168,7 +168,7 @@ void hashType(Fnv1a& h, const ImageObject& image) noexcept
     h.u32(seed);
     h.text(resource);
     h.boolean(hasTransparentColor);
-    h.u32(transparentColor);
+    h.u32(keyColor);
 }
 
 void hashType(Fnv1a& h, const Stroke& stroke) noexcept
@@ -200,7 +200,7 @@ void hashType(Fnv1a& h, const Text& textObject) noexcept
     h.rect(bounds);
     h.text(html);
     h.u64(static_cast<std::uint64_t>(runs.size()));
-    for (const TextRun& r : runs) {
+    for (const TextSpan& r : runs) {
         const auto& [text, fontFamily, pointSize, weight, italic, underline, strikeOut, color, baseline,
                      runBounds] = r;
         h.text(text);
@@ -218,12 +218,12 @@ void hashType(Fnv1a& h, const Text& textObject) noexcept
 
 void hashType(Fnv1a& h, const Media& mediaObject) noexcept
 {
-    const auto& [bounds, placeholder, media, fileName, autoPlay, loop] = mediaObject;
+    const auto& [bounds, placeholder, media, fileName, playOnOpen, loop] = mediaObject;
     h.rect(bounds);
     h.text(placeholder);
     h.text(media);
     h.text(fileName);
-    h.boolean(autoPlay);
+    h.boolean(playOnOpen);
     h.boolean(loop);
 }
 
@@ -238,9 +238,9 @@ void hashType(Fnv1a& h, const Group& group) noexcept
 
 void hashType(Fnv1a& h, const Connector& connector) noexcept
 {
-    const auto& [endA, endB, objectA, objectB, pen] = connector;
-    h.point(endA);
-    h.point(endB);
+    const auto& [firstEnd, secondEnd, objectA, objectB, pen] = connector;
+    h.point(firstEnd);
+    h.point(secondEnd);
     h.u64(objectA);
     h.u64(objectB);
     h.outline(pen);
@@ -339,27 +339,28 @@ std::uint64_t fingerprint(const Page& page) noexcept
     const auto& [fill, image] = background;
     h.fill(fill);
     h.text(image);
-    const auto& [visible, allowSnap, onTop, thumbnailScale, defaultScale, scaleStep, levels] = grid;
+    const auto& [visible, snapEnabled, drawnAbove, previewZoom, baseZoom, zoomIncrement, levels] = grid;
     h.boolean(visible);
-    h.boolean(allowSnap);
-    h.boolean(onTop);
-    h.f64(thumbnailScale);
-    h.f64(defaultScale);
-    h.f64(scaleStep);
+    h.boolean(snapEnabled);
+    h.boolean(drawnAbove);
+    h.f64(previewZoom);
+    h.f64(baseZoom);
+    h.f64(zoomIncrement);
     h.u64(static_cast<std::uint64_t>(levels.size()));
     for (const GridLevel& l : levels) {
-        const auto& [lvVisible, snap, start, stepX, stepY, color, pattern, angle, line, drawX, drawY] = l;
+        const auto& [lvVisible, snap, start, spacingX, spacingY, color, pattern, angle, line, linesAlongX,
+                     linesAlongY] = l;
         h.boolean(lvVisible);
         h.boolean(snap);
         h.point(start);
-        h.f64(stepX);
-        h.f64(stepY);
+        h.f64(spacingX);
+        h.f64(spacingY);
         h.u32(color);
         h.tag(pattern);
         h.f64(angle);
         h.tag(line);
-        h.boolean(drawX);
-        h.boolean(drawY);
+        h.boolean(linesAlongX);
+        h.boolean(linesAlongY);
     }
     h.text(name);
     h.text(notes);

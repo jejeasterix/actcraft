@@ -52,7 +52,7 @@ void DocumentController::nextPage()
     show(core::nextPageIndex(m_document, m_current));
 }
 
-void DocumentController::previousPage()
+void DocumentController::pageBack()
 {
     const std::size_t target = core::previousPageIndex(m_current);
     if (target == m_current) {
