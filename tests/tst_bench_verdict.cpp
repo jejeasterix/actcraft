@@ -645,8 +645,8 @@ private slots:
         QVERIFY(start(app));
         app.window->resize(size);
         QTRY_COMPARE(app.window->size(), size);
-        // La vue prend sa taille au polissage de la disposition, après la fenêtre : la positionner avant, c'est
-        // centrer sur l'ancienne hauteur. Le banc, lui, la positionne après les scénarios.
+        // La vue prend sa taille au polissage de la disposition, après la fenêtre : la positionner avant,
+        // c'est centrer sur l'ancienne hauteur. Le banc, lui, la positionne après les scénarios.
         const auto* palette = app.window->findChild<QQuickItem*>(QStringLiteral("toolPalette"));
         QVERIFY(palette);
         QTRY_VERIFY(qRound(app.view->mapRectToScene(app.view->boundingRect()).bottom()) == size.height() &&
