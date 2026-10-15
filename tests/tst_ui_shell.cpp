@@ -171,6 +171,39 @@ private slots:
         QCOMPARE(s.view->penColor(), QColor(QStringLiteral("#E53935")));
     }
 
+    void widthSliderFollowsThePenWidth()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QQuickItem* slider = item(s, "widthSlider");
+        QVERIFY(slider);
+        // Quelle que soit l'origine du changement, la réglette reflète l'épaisseur : valeur et position.
+        QVERIFY(run(s, QStringLiteral("pen.width"), 8));
+        QTRY_VERIFY(slider->property("visualPosition").toDouble() > 0.3);
+        const double positionAt8 = slider->property("visualPosition").toDouble();
+        QVERIFY2(positionAt8 > 0.3, qPrintable(QString::number(positionAt8)));
+        QVERIFY(run(s, QStringLiteral("pen.width"), 100));
+        QTRY_COMPARE(slider->property("value").toDouble(), 1.0);
+        QCOMPARE(slider->property("visualPosition").toDouble(), 1.0);
+        // Un préréglage cliqué (la plus forte) ramène la réglette à droite des plus faibles.
+        QQuickItem* strong = item(s, "widthPreset-3");
+        QVERIFY(strong);
+        const QPoint c = strong->mapToScene(QPointF(strong->width() / 2, strong->height() / 2)).toPoint();
+        QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier, c);
+        QTRY_COMPARE(s.view->penWidth(), 8.0);
+        QTRY_VERIFY(slider->property("visualPosition").toDouble() > 0.3);
+        // Sens inverse : déplacer la réglette change l'épaisseur du stylo.
+        const QPointF origin = slider->mapToScene(QPointF(0, 0));
+        const QPoint mid = (origin + QPointF(slider->width() / 2, slider->height() / 2)).toPoint();
+        QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier, mid);
+        QTRY_VERIFY2(s.view->penWidth() > 8.0 && s.view->penWidth() < 100.0,
+                     qPrintable(QString::number(s.view->penWidth())));
+        // L'échantillon montre l'épaisseur du stylo, lisible (au moins 8 px pour 8).
+        QQuickItem* sample = item(s, "widthIndicatorSample");
+        QVERIFY(sample);
+        QVERIFY2(sample->width() >= 12, qPrintable(QString::number(sample->width())));
+    }
+
     void redStrokeSurvivesPageRoundTrip()
     {
         Shell s;

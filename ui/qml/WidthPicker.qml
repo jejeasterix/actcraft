@@ -5,12 +5,16 @@ import ActCraft.Ui
 
 // Épaisseur du stylo (F-137, F-138) : quatre préréglages ronds, réglette de 1 à 100, échantillon de la largeur
 // et de la couleur courantes. Tout passe par la commande « pen.width ».
+// La réglette est logarithmique : les préréglages (2 à 8) occupent le début d'une échelle linéaire de 1 à 100 et
+// laissaient le curseur collé à gauche. Position 0..1 = ln(épaisseur) / ln(100).
 ColumnLayout {
     id: picker
     objectName: "widthPicker"
     required property Commands commands
     required property PageView view
     spacing: Theme.espace1
+    readonly property real maxWidth: 100 // = kMaxPenWidth
+    readonly property real widthPosition: Math.log(Math.max(1, picker.view.penWidth)) / Math.log(maxWidth)
 
     Row {
         spacing: Theme.espace1
@@ -43,13 +47,16 @@ ColumnLayout {
         id: slider
         objectName: "widthSlider"
         Layout.fillWidth: true
-        from: 1
-        to: 100
-        stepSize: 1
-        value: picker.view.penWidth
-        onMoved: picker.commands.trigger("pen.width", value)
-        // Le glissement casse la liaison : on la rend au stylo au relâché.
-        onPressedChanged: if (!pressed) value = Qt.binding(() => picker.view.penWidth)
+        from: 0
+        to: 1
+        value: picker.widthPosition
+        onMoved: {
+            const width = Math.round(Math.pow(picker.maxWidth, value))
+            if (width !== Math.round(picker.view.penWidth))
+                picker.commands.trigger("pen.width", width)
+        }
+        // Le glissement peut casser la liaison : on la rend au stylo au relâché.
+        onPressedChanged: if (!pressed) value = Qt.binding(() => picker.widthPosition)
     }
 
     Item {
@@ -58,7 +65,7 @@ ColumnLayout {
         Rectangle {
             objectName: "widthIndicatorSample"
             anchors.centerIn: parent
-            width: Math.min(36, Math.max(2, picker.view.penWidth))
+            width: 4 + 32 * picker.widthPosition
             height: width
             radius: width / 2
             color: picker.view.penColor
