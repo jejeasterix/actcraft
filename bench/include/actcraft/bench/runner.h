@@ -31,6 +31,10 @@ namespace actcraft::bench {
 void saveCaptures(const QString& dir, const QString& graphicsApi, const QList<QImage>& images,
                   QStringList& errors);
 
+// Vue de la démonstration (DA7) : 100 %, centrée sur les points lus par ses contrôles de contenu, quelle que
+// soit la position laissée par les scénarios. Ne déplace que la vue, jamais l'interface.
+void showDemoTargets(ui::PageView& view);
+
 // Joue un passage complet du banc sur la fenêtre déjà chargée ; ne quitte pas l'application.
 // DURÉE DE VIE : le Runner doit être détruit APRÈS la fenêtre. Qt Quick garde les périphériques synthétiques
 // de l'injecteur, et le collecteur reçoit des appels directs du fil de rendu (bench/app/main.cpp le déclare

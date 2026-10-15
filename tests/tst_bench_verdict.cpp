@@ -2,6 +2,7 @@
 
 #include <actcraft/bench/injector.h>
 #include <actcraft/bench/recorder.h>
+#include <actcraft/bench/runner.h>
 #include <actcraft/bench/scenarios.h>
 #include <actcraft/bench/verdict.h>
 #include <actcraft/core/clock.h>
@@ -12,6 +13,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QQmlApplicationEngine>
+#include <QQuickItem>
 #include <QQuickWindow>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
@@ -624,19 +626,44 @@ private slots:
         QVERIFY(!recorder->swapNs().empty());
     }
 
+    void benchTargetsAreVisibleInTheShell_data()
+    {
+        QTest::addColumn<QSize>("size");
+        QTest::newRow("1366x768") << QSize(1366, 768); // Dell 3510, machine de référence du BRIEF
+        QTest::newRow("1280x800") << QSize(1280, 800); // fumée et preuves hors écran
+        QTest::newRow("1280x720") << QSize(1280, 720);
+        QTest::newRow("1920x1080") << QSize(1920, 1080);
+    }
+
     // DA7 : dans la nouvelle interface, les points contrôlés par la démonstration du banc tombent dans la vue
-    // à 100 %, hors barre, palette et barres de défilement, à 1280 × 800 (taille de la fumée et des preuves).
+    // à 100 %, hors barre, palette et barres de défilement visibles, quelle que soit la position laissée par
+    // les scénarios : le défilement finit à 400 %, calé en haut à gauche (scenarios.cpp, scrollScenario).
     void benchTargetsAreVisibleInTheShell()
     {
+        QFETCH(QSize, size);
         App app;
         QVERIFY(start(app));
-        app.window->resize(1280, 800);
-        QTRY_COMPARE(app.window->width(), 1280);
-        app.view->setZoom(1.0);
+        app.window->resize(size);
+        QTRY_COMPARE(app.window->size(), size);
+        // La vue prend sa taille au polissage de la disposition, après la fenêtre : la positionner avant, c'est
+        // centrer sur l'ancienne hauteur. Le banc, lui, la positionne après les scénarios.
+        const auto* palette = app.window->findChild<QQuickItem*>(QStringLiteral("toolPalette"));
+        QVERIFY(palette);
+        QTRY_VERIFY(qRound(app.view->mapRectToScene(app.view->boundingRect()).bottom()) == size.height() &&
+                    qRound(palette->mapRectToScene(palette->boundingRect()).right()) == size.width());
+        app.view->setZoom(4.0);
+        app.view->setPan(QPointF(ui::kViewMargin, ui::kViewMargin));
+        showDemoTargets(*app.view); // ce que fait runDemo, au début et au retour à 100 %
         QTRY_VERIFY(app.view->cacheReady());
-        const qreal scrollBarRoom = 16; // barres de défilement, à droite et en bas de la vue
-        const QRectF visible = app.view->mapRectToScene(
-            QRectF(0, 0, app.view->width() - scrollBarRoom, app.view->height() - scrollBarRoom));
+        const QRectF visible = app.view->mapRectToScene(app.view->boundingRect());
+        QList<QRectF> bars; // posées sur la vue : un point dessous n'est pas lisible
+        for (const char* name : {"horizontalScrollBar", "verticalScrollBar"}) {
+            const auto* bar = app.window->findChild<QQuickItem*>(QLatin1String(name));
+            QVERIFY2(bar, name);
+            if (bar->isVisible()) {
+                bars << bar->mapRectToScene(bar->boundingRect());
+            }
+        }
         const core::Witnesses& w = core::witnesses();
         const QList<QPointF> targets{
             QPointF(w.shapeRect.center().x, w.shapeRect.center().y),
@@ -646,14 +673,20 @@ private slots:
         };
         for (const QPointF& page : targets) {
             const QPointF scene = app.view->pageToScene(page);
-            QVERIFY2(visible.contains(scene),
-                     qPrintable(QStringLiteral("point de page (%1, %2) → scène (%3, %4) hors de %5 × %6")
-                                    .arg(page.x())
-                                    .arg(page.y())
-                                    .arg(scene.x())
-                                    .arg(scene.y())
-                                    .arg(visible.width())
-                                    .arg(visible.height())));
+            const bool underBar = std::any_of(bars.begin(), bars.end(),
+                                              [&scene](const QRectF& bar) { return bar.contains(scene); });
+            QVERIFY2(
+                visible.contains(scene) && !underBar,
+                qPrintable(QStringLiteral("point de page (%1, %2) → scène (%3, %4) hors de la vue (%5, %6, "
+                                          "%7 × %8) ou sous une barre de défilement")
+                               .arg(page.x())
+                               .arg(page.y())
+                               .arg(scene.x())
+                               .arg(scene.y())
+                               .arg(visible.x())
+                               .arg(visible.y())
+                               .arg(visible.width())
+                               .arg(visible.height())));
         }
     }
 };
