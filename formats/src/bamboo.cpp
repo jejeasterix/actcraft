@@ -155,7 +155,7 @@ std::optional<QByteArray> BambooContainer::read(const QString& name, QString& er
         return QByteArray();
     }
     // Décompression dans un tampon de la taille annoncée par l'entrée (≤ kMaxEntrySize), jamais plus :
-    // l'en-tête de 4 octets de qCompress est fixé par le fichier et qUncompress le dépasse (relecture du
+    // l'en-tête de 4 octets de qCompress est fixé par le fichier et la fonction de Qt qui le suit le dépasse (relecture du
     // plan, tour 1 : en-tête de 16 octets, entrée de 597 Kio → 600 Mio). mz_uncompress s'arrête au bout du
     // tampon (MZ_BUF_ERROR).
     QByteArray out(static_cast<qsizetype>(e.size), Qt::Uninitialized);
