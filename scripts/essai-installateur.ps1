@@ -11,7 +11,27 @@ Set-Location (Join-Path $PSScriptRoot '..')
 $version = Get-ActCraftVersion
 if (-not $Setup) { $Setup = "build/paquet/ActCraft-$version-setup.exe" }
 
+$dossier = $null
+$menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'ActCraft.lnk'
+$cles = 'HKCU:\Software\Classes\.actcraft', 'HKCU:\Software\Classes\ActCraft.Document'
+$cleDesinstallation = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{5F0C2E7A-3B4D-4C8E-9A61-ACC0C4AF7A10}_is1'
+
+# Un essai en échec ne laisse rien : désinstallation silencieuse si l'installation a eu lieu, puis suppression des restes.
+function Nettoyer {
+    if (-not $dossier) { return }
+    $unins = Join-Path $dossier 'unins000.exe'
+    if (Test-Path $unins) {
+        $u = Start-Process -FilePath $unins -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -PassThru -WindowStyle Hidden
+        if (-not $u.WaitForExit(120000)) { Stop-Process -Id $u.Id -Force }
+        $limite = (Get-Date).AddSeconds(20)
+        while ((Test-Path $dossier) -and (Get-Date) -lt $limite) { Start-Sleep -Milliseconds 500 }
+    }
+    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $dossier, "$dossier.log", "$dossier-version.txt", $menu
+    foreach ($c in $cles + $cleDesinstallation) { Remove-Item -LiteralPath $c -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 function Echec([string]$Raison) {
+    Nettoyer
     Write-Output "INSTALLATEUR EN ECHEC : $Raison"
     exit 1
 }
@@ -29,8 +49,6 @@ if (-not (Test-Path $exe)) { Echec 'actcraft.exe absent après installation' }
 Write-Output "Installé dans $dossier"
 
 # Les clés d'association et le raccourci existent après l'installation (sinon le contrôle final ne prouve rien).
-$menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'ActCraft.lnk'
-$cles = 'HKCU:\Software\Classes\.actcraft', 'HKCU:\Software\Classes\ActCraft.Document'
 if (-not (Test-Path $menu)) { Echec "raccourci du menu Démarrer absent après installation ($menu)" }
 foreach ($c in $cles) { if (-not (Test-Path $c)) { Echec "clé $c absente après installation" } }
 
