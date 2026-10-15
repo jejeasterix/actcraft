@@ -20,6 +20,7 @@ struct RenderContext
     QQuickWindow* window = nullptr;
     bool software = false; // rendererInterface()->graphicsApi() == Software
     const ImageStore* images = nullptr;
+    double rasterScale = 1; // pixels d'écran par pixel de page (RHI : rastérisation du moteur peint)
 };
 
 QColor toQColor(core::Argb argb, double opacity = 1.0);

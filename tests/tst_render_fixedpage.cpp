@@ -152,6 +152,18 @@ private slots:
         const QImage image = f.window.grabWindow();
         QVERIFY(colorNear(image.pixelColor(512, 384), QColor(Qt::white), 1));
     }
+
+    void solidBackgroundColorIsDrawn()
+    {
+        Fixture f;
+        open(f);
+        core::Page page;
+        page.background.fill = core::solidFill(0xFF00FF00u);
+        f.page->setPage(page);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::green), 2));
+    }
 };
 
 QTEST_MAIN(TstRenderFixedPage)

@@ -1,0 +1,35 @@
+#pragma once
+
+#include <actcraft/render/objectrenderer.h>
+#include <actcraft/render/pagepainter.h>
+
+#include <QImage>
+#include <QRectF>
+
+class QSGNode;
+
+namespace actcraft::render {
+
+// Vrai si l'objet passe par le peintre partagé plutôt que par un moteur du prototype : texte, ligne, média,
+// connecteur, forme à chemins, trait autre que le stylo à bouts carrés.
+bool usesPaintedRenderer(const core::PageObject& object) noexcept;
+
+// Objet en coordonnées de l'objet, rastérisé à `scale` dans une image ARGB prémultipliée ; `localRect` reçoit
+// le rectangle couvert (coordonnées de l'objet, épaisseur comprise).
+QImage rasterizeLocal(const core::PageObject& object, const ImageLookup& images, double scale,
+                      QRectF* localRect);
+
+// Moteur peint (DA5, décision 37). Sa transformation et sa translucidité sont posées par la page fixe (nœuds
+// parents) : il dessine en coordonnées de l'objet. Logiciel : nœud QPainter vectoriel ; RHI : texture
+// rastérisée à context.rasterScale. Copie à sa création les images dont il a besoin.
+class PaintedRenderer
+{
+public:
+    QSGNode* createNode(const core::PageObject& object, const RenderContext& context) const;
+};
+
+// Fond de la page (rectangle uni si possible, sinon peint) ; grille (nullptr si invisible ou sans niveau).
+QSGNode* createBackgroundNode(const core::Page& page, const RenderContext& context);
+QSGNode* createGridNode(const core::Page& page, const RenderContext& context);
+
+} // namespace actcraft::render

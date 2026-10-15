@@ -23,3 +23,12 @@ actcraft_add_test(tst_render_ink_software
 actcraft_add_test(tst_render_painter
     SOURCES tst_render_painter.cpp
     LIBS ActCraft::render Qt6::Gui)
+
+actcraft_add_test(tst_render_painted
+    SOURCES tst_render_painted.cpp
+    LIBS ActCraft::render Qt6::Quick)
+
+# Même exécutable à la densité 2 : le texte d'un document ne charge aucune ressource à la densité de l'écran.
+add_test(NAME tst_render_painted_density COMMAND tst_render_painted htmlImagesNeverBlockTheScene)
+get_test_property(tst_render_painted ENVIRONMENT _painted_env)
+set_tests_properties(tst_render_painted_density PROPERTIES ENVIRONMENT "${_painted_env};QT_SCALE_FACTOR=2")
