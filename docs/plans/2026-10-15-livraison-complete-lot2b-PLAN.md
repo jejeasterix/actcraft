@@ -352,7 +352,7 @@ private slots:
         QVERIFY(near(image.pixelColor(97, 102), Qt::black, 30)); // bout carré : coin rempli
     }
 
-    void imageResourceWithTransparentColor()
+    void imageResourceWithKeyColor()
     {
         QImage source(4, 4, QImage::Format_ARGB32);
         source.fill(Qt::white);
@@ -362,7 +362,7 @@ private slots:
         core::ImageObject im;
         im.bounds = {0, 0, 4, 4};
         im.resource = "cle";
-        im.hasTransparentColor = true;
+        im.hasKeyColor = true;
         im.keyColor = 0xFFFFFFFFu;
         core::PageObject o = im;
         o.common.transform = core::scaling(25, 25); // 100 × 100 px
@@ -449,7 +449,7 @@ private slots:
         QVERIFY(horizontal.pixelColor(253, 100).red() > 235);
     }
 
-    void backgroundImageCoversThePage()
+    void pictureBackgroundCoversThePage()
     {
         QImage source(2, 2, QImage::Format_ARGB32);
         source.fill(Qt::red);
@@ -737,7 +737,7 @@ QBrush brushOf(const core::Fill& f, const QRectF& rect)
 }
 
 // Pixels de la couleur `transparent` (alpha ignoré) rendus transparents.
-QImage withTransparentColor(const QImage& source, core::Argb transparent)
+QImage withKeyColor(const QImage& source, core::Argb transparent)
 {
     QImage image = source.convertToFormat(QImage::Format_ARGB32);
     const QRgb key = transparent & 0x00FFFFFFu;
@@ -857,8 +857,8 @@ void paintImage(QPainter& p, const core::ImageObject& im, const ImageLookup& ima
         p.fillRect(rect, QColor(255, 0, 255, 60)); // repère d'image illisible, comme la référence
         return;
     }
-    if (im.hasTransparentColor) {
-        image = withTransparentColor(image, im.keyColor);
+    if (im.hasKeyColor) {
+        image = withKeyColor(image, im.keyColor);
     }
     p.setRenderHint(QPainter::SmoothPixmapTransform, true);
     p.drawImage(rect, image);
@@ -1271,7 +1271,7 @@ QByteArray thumbnailPng(const core::Page& page, const ImageLookup& images)
 
   Points d'attention : `rectanglePolygon`, `ellipsePolygon` et `paintStrokeSegments` existent déjà
   (`strokegeometry.h`, `painternode.h`) ; `QGradientStops` se construit par paires `{position, couleur}` ;
-  `pen.setDashPattern({1, 4})` prend des `qreal` ; la boucle de `withTransparentColor` lit `scanLine` en `QRgb`
+  `pen.setDashPattern({1, 4})` prend des `qreal` ; la boucle de `withKeyColor` lit `scanLine` en `QRgb`
   (format ARGB32 garanti par la conversion). Dans le test `runsAreDrawnAtTheirBaseline`, la police « Arial » peut
   manquer sous macOS (CI) : Qt prend une police de repli, le comptage de pixels reste valable.
 
@@ -1354,7 +1354,7 @@ QByteArray pngOf(const QImage& image)
         plain.bounds = {0, 0, 4, 4};
         plain.resource = key;
         core::ImageObject masked = plain;
-        masked.hasTransparentColor = true;
+        masked.hasKeyColor = true;
         masked.keyColor = 0xFFFFFFFFu;
         core::Page page;
         page.objects.emplace_back(plain);
@@ -1482,7 +1482,7 @@ QByteArray pngOf(const QImage& image)
 namespace {
 
 // Pixels de la couleur `transparent` (alpha ignoré) rendus transparents (même règle que pagepainter.cpp).
-QImage withTransparentColor(const QImage& source, core::Argb transparent)
+QImage withKeyColor(const QImage& source, core::Argb transparent)
 {
     QImage image = source.convertToFormat(QImage::Format_ARGB32);
     const QRgb key = transparent & 0x00FFFFFFu;
@@ -1501,7 +1501,7 @@ QImage withTransparentColor(const QImage& source, core::Argb transparent)
 
 std::string ImageStore::variantKey(const core::ImageObject& object)
 {
-    if (!object.hasTransparentColor) {
+    if (!object.hasKeyColor) {
         return object.resource;
     }
     return object.resource + QStringLiteral("#%1").arg(object.keyColor, 8, 16, QLatin1Char('0')).toStdString();
@@ -1543,7 +1543,7 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
                 const core::ImageObject copy = *object;
                 m_pool.start([post, i, copy] { post(i, std::string(), synthesizeImage(copy)); });
             } else {
-                want(object->resource, object->hasTransparentColor ? std::optional<core::Argb>(object->keyColor)
+                want(object->resource, object->hasKeyColor ? std::optional<core::Argb>(object->keyColor)
                                                                    : std::nullopt);
             }
         } else if (const auto* media = std::get_if<core::Media>(&page.objects[i])) {
@@ -1561,9 +1561,9 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
                 if (color && !decoded.isNull()) {
                     core::ImageObject probe;
                     probe.resource = key;
-                    probe.hasTransparentColor = true;
+                    probe.hasKeyColor = true;
                     probe.keyColor = *color;
-                    out.emplace_back(variantKey(probe), withTransparentColor(decoded, *color));
+                    out.emplace_back(variantKey(probe), withKeyColor(decoded, *color));
                 }
             }
             QMetaObject::invokeMethod(
@@ -1689,7 +1689,7 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
         core::ImageObject plain;
         plain.resource = document.addResource(pngOf(source), "png");
         core::ImageObject masked = plain;
-        masked.hasTransparentColor = true;
+        masked.hasKeyColor = true;
         masked.keyColor = 0xFFFFFFFFu;
         core::Page withPlain;
         withPlain.objects.emplace_back(plain);
@@ -1949,7 +1949,7 @@ private slots:
         QVERIFY(image.pixelColor(500, 764).red() > 225);
     }
 
-    void gridOnTopStaysAboveObjects()
+    void gridAtTopStaysAboveObjects()
     {
         core::Page page;
         core::PageObject red = pathSquare(300, 0xFFFF0000u);
@@ -2146,7 +2146,7 @@ DecodedImages imagesOf(const core::PageObject& object, const ImageStore* store)
     return out;
 }
 
-DecodedImages backgroundImageOf(const core::Page& page, const ImageStore* store)
+DecodedImages pictureBackgroundOf(const core::Page& page, const ImageStore* store)
 {
     DecodedImages out;
     if (store && !page.background.image.empty()) {
@@ -2309,7 +2309,7 @@ QSGNode* createBackgroundNode(const core::Page& page, const RenderContext& conte
         node->setColor(fill.kind == core::FillKind::Solid ? QColor::fromRgba(fill.color) : QColor(Qt::white));
         return node;
     }
-    DecodedImages images = backgroundImageOf(page, context.images);
+    DecodedImages images = pictureBackgroundOf(page, context.images);
     if (context.software) {
         return new PaintedPageNode(context.window, withoutObjects(page), std::move(images),
                                    PaintedPageNode::Part::Background);
@@ -2346,7 +2346,7 @@ QSGNode* createGridNode(const core::Page& page, const RenderContext& context)
     double rasterScale() const noexcept;
 ```
 
-  et membres privés `PaintedRenderer m_painted;`, `double m_rasterScale = 1;`, `QSGNode* m_gridOnTop = nullptr;`,
+  et membres privés `PaintedRenderer m_painted;`, `double m_rasterScale = 1;`, `QSGNode* m_gridDrawnAbove = nullptr;`,
   `bool m_hasPainted = false;`, `std::atomic<int> m_rebuildCount{0};` (include `<atomic>`), avec la méthode publique
   `int rebuildCount() const noexcept; // crochet de test : reconstructions complètes de la scène` (rend
   `m_rebuildCount.load()`). Le chemin RHI (rastérisation dans `updatePaintNode`, reconstruction à chaque zoom posé
@@ -2428,12 +2428,12 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     if (m_rebuild || !old) {
         ++m_rebuildCount;
         clearChildren(root);
-        m_gridOnTop = nullptr;
+        m_gridDrawnAbove = nullptr;
         if (m_ready) {
             root->appendChildNode(createBackgroundNode(shown, context));
             if (QSGNode* grid = createGridNode(shown, context)) {
                 if (shown.grid.drawnAbove) {
-                    m_gridOnTop = grid;
+                    m_gridDrawnAbove = grid;
                 }
                 root->appendChildNode(grid);
             }
@@ -2463,8 +2463,8 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
                 continue;
             }
             node = wrapped(node, object.common);
-            if (m_gridOnTop) {
-                root->insertChildNodeBefore(node, m_gridOnTop);
+            if (m_gridDrawnAbove) {
+                root->insertChildNodeBefore(node, m_gridDrawnAbove);
             } else {
                 root->appendChildNode(node);
             }
@@ -2602,7 +2602,7 @@ actcraft_add_test(tst_core_pagecache
         core::PageObject stroke = lineAt(300);
         stroke.common.id = d.allocateId();
         stroke.common.layer = core::Layer::Top;
-        core::insertOnTopOfLayer(d.page(1), stroke);
+        core::insertAtTopOfLayer(d.page(1), stroke);
         f.page->setSource(&d, 1);
         QCOMPARE(f.page->sourceDocument(), &d);
         QCOMPARE(f.page->sourcePage(), std::size_t{1});
@@ -2627,7 +2627,7 @@ actcraft_add_test(tst_core_pagecache
         core::PageObject stroke = lineAt(200);
         stroke.common.id = d.allocateId();
         stroke.common.layer = core::Layer::Top;
-        core::insertOnTopOfLayer(d.page(0), stroke);
+        core::insertAtTopOfLayer(d.page(0), stroke);
         f.page->insert(stroke.common.id);
         waitFrame(f);
         QCOMPARE(f.page->rebuildCount(), rebuilds);
@@ -2644,14 +2644,14 @@ actcraft_add_test(tst_core_pagecache
         core::PageObject top = lineAt(200);
         top.common.id = d.allocateId();
         top.common.layer = core::Layer::Top;
-        core::insertOnTopOfLayer(d.page(0), top);
+        core::insertAtTopOfLayer(d.page(0), top);
         f.page->setSource(&d, 0);
         QTRY_VERIFY(f.page->isReady());
         waitFrame(f);
         const int rebuilds = f.page->rebuildCount();
         core::PageObject middle = lineAt(400);
         middle.common.id = d.allocateId();
-        core::insertOnTopOfLayer(d.page(0), middle); // couche intermédiaire : sous le trait du dessus
+        core::insertAtTopOfLayer(d.page(0), middle); // couche intermédiaire : sous le trait du dessus
         f.page->insert(middle.common.id);
         waitFrame(f);
         QCOMPARE(f.page->rebuildCount(), rebuilds + 1);
@@ -2665,7 +2665,7 @@ actcraft_add_test(tst_core_pagecache
         core::Document d;
         core::PageObject stroke = lineAt(200);
         stroke.common.id = d.allocateId();
-        core::insertOnTopOfLayer(d.page(0), stroke);
+        core::insertAtTopOfLayer(d.page(0), stroke);
         f.page->setSource(&d, 0);
         QTRY_VERIFY(f.page->isReady());
         waitFrame(f);
@@ -2704,7 +2704,7 @@ actcraft_add_test(tst_core_pagecache
         core::Document d;
         core::PageObject stroke = lineAt(200);
         stroke.common.id = d.allocateId();
-        core::insertOnTopOfLayer(d.page(0), stroke);
+        core::insertAtTopOfLayer(d.page(0), stroke);
         f.page->setSource(&d, 0);
         QCOMPARE(f.page->objectCount(), 1);
         f.page->setSource(nullptr, 0);
@@ -2902,7 +2902,7 @@ void FixedPageItem::appendStroke(core::Stroke stroke)
     object.common.id = m_own.allocateId();
     object.common.layer = core::Layer::Top;
     const core::ObjectId id = object.common.id;
-    core::insertOnTopOfLayer(m_own.page(0), std::move(object));
+    core::insertAtTopOfLayer(m_own.page(0), std::move(object));
     insert(id);
 }
 
@@ -2953,7 +2953,7 @@ int FixedPageItem::objectCount() const noexcept
   générée (30 images) montrée par un document, trait ajouté puis retiré (`remove`) → `isReady()` reste vrai pendant
   tout l'aller-retour (aucun `readyChanged` à faux, `QSignalSpy`).
 
-  Le test du lot 1 `strokeAppendedAfterFirstFrameKeepsTransform` et `appendedStrokeIsDrawnOnTop` passent par
+  Le test du lot 1 `strokeAppendedAfterFirstFrameKeepsTransform` et `appendedStrokeIsDrawnAtTop` passent par
   `appendStroke` : ils restent verts (ajout en fin de page sans reconstruction).
 
 - [ ] **Étape 6 : vert ciblé.** Commande ciblée, motif `tst_core_pagecache|tst_render_` : `100% tests passed`.
@@ -3015,7 +3015,7 @@ vide la pile. Pas d'Annuler / Rétablir dans l'interface (lot 3). Tests existant
   supposent le relais (`strokeSurvivesPageRoundTrip`, `documentReadsTheShownPage`,
   `documentFollowsEveryWriterOfTheShownPage`, `newPageTakesTheShownPageSize`, `swappingTheItemHandsBackItsPage`,
   `generatedFirstPageWhileShowingPageTwo`) par les suivantes ; garder `startsWithOneBlankPageShown`,
-  `nextOnLastPageAddsABlankPage`, `previousOnFirstPageDoesNothing`, `pagesChangedOncePerMoveWithTheNewPageInPlace`,
+  `nextOnLastPageAddsABlankPage`, `previousOnFirstPageDoesNothing`, `pagesChangedOncePerMoveWithTheNewPageSettled`,
   `noPagesChangedWithoutAMove`, `pageAboutToChangeComesBeforeTheCopy` (renommée
   `pageAboutToChangeComesBeforeTheMove`, même contenu, le mot « copie » n'a plus de sens), `generatedFirstPageForTheBench`
   et `registeredInQml` en remplaçant tout `fixed.appendStroke(redStroke())` par `controller.commitStroke(redStroke())` :
@@ -3487,7 +3487,7 @@ void DocumentController::nextPage()
 
 void DocumentController::pageBack()
 {
-    const std::size_t target = core::previousPageIndex(m_current);
+    const std::size_t target = core::formerPageIndex(m_current);
     if (target == m_current) {
         return;
     }
@@ -3517,7 +3517,7 @@ void DocumentController::loadGeneratedFirstPage()
 
   Règle de recalage vérifiée par `addedPageIsUndoneAndTheShownPageStaysValid` : annuler l'ajout de la page affichée
   (retrait sur elle) borne l'indice et montre la page 1 ; rétablir (ajout après elle) ne la change pas (« 1 / 2 »).
-  `nextPage` n'émet `pagesChanged` qu'une fois (`pagesChangedOncePerMoveWithTheNewPageInPlace`, lot 1). Ajouter
+  `nextPage` n'émet `pagesChanged` qu'une fois (`pagesChangedOncePerMoveWithTheNewPageSettled`, lot 1). Ajouter
   `void notifyState();` aux méthodes privées de l'en-tête (signaux d'état : document, pile, modifié).
 
 - [ ] **Étape 5 : le stylo verse au contrôleur.** Dans `ui/src/penadapters.h`, déclarer :

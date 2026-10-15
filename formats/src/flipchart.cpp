@@ -187,7 +187,7 @@ core::Fill fillFrom(const StreamObject* pen)
     f.color = colorOr(pen, ids::penKeys::kFillTint, 0xFFFFFFFFu);
     f.color2 = colorOr(pen, ids::penKeys::kSecondaryColor, 0xFF000000u);
     f.opaqueBackground = intOr(pen, ids::penKeys::kOpaqueHatch, 0) != 0;
-    f.backgroundColor = colorOr(pen, ids::penKeys::kHatchBackColor, 0xFF000000u);
+    f.backgroundColor = colorOr(pen, ids::penKeys::kHatchBaseColor, 0xFF000000u);
     const int style = intOr(pen, ids::penKeys::kFillPattern, 0);
     const int gradient = intOr(pen, ids::penKeys::kBlendDirection, 0);
     if (style == 0) {
@@ -878,7 +878,7 @@ private:
                 }
             }
             if (flagOr(&o, ids::imageKeys::kKeyed, false)) {
-                im.hasTransparentColor = true;
+                im.hasKeyColor = true;
                 im.keyColor = colorOr(&o, ids::imageKeys::kKeyColor, 0xFF000000u);
             }
             p.object = std::move(im);

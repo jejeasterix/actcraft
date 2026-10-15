@@ -118,7 +118,7 @@ L1-T18).
 | `.claude/chantier.md` | profil : release due sous go, motifs d'action finale, banc, preuve visuelle, paquets | L1-T1, L1-T20 |
 | `scripts/dev-env-android.ps1`, `packaging/android/versions.env` | environnement de la chaîne Android (poste et CI), versions relevées | L1-T2 (L1-T17, L1-T19 corrigent) |
 | `docs/verifications/2026-10-14-outillage-paquets.md` | lignes `VERIF` de l'outillage, de l'APK et de l'émulateur | L1-T2, L1-T17, L1-T18 |
-| `core/include/actcraft/core/document.h` | `Document`, `nextPageIndex`, `previousPageIndex`, `fingerprint(Document)` | L1-T3 |
+| `core/include/actcraft/core/document.h` | `Document`, `nextPageIndex`, `formerPageIndex`, `fingerprint(Document)` | L1-T3 |
 | `actions/include/actcraft/actions/commandregistry.h`, `actions/data/commands.json` | `CommandRegistry`, `CommandInfo`, `Platform`, `ArgumentKind`, déclarations des 13 commandes | L1-T4 |
 | `actions/include/actcraft/actions/layout.h`, `actions/data/layout.json` | `Layout`, `parseLayout`, `readLayeredFile`, `unknownCommands` ; disposition par défaut | L1-T5 |
 | `input/include/actcraft/input/sample.h`, `input/src/qtevents.cpp` | `DeviceKind::Touch`, conversion d'un doigt | L1-T6 |
@@ -144,7 +144,7 @@ L1-T18).
 Une tâche ne renomme aucun de ces noms. Les noms du prototype (plan `docs/plans/2026-10-13-prototype-mesure-PLAN.md`,
 section « Contrats ») restent figés eux aussi.
 
-- `actcraft::core` : `Document` (`pageCount`, `page`, `appendPage`), `nextPageIndex`, `previousPageIndex`,
+- `actcraft::core` : `Document` (`pageCount`, `page`, `appendPage`), `nextPageIndex`, `formerPageIndex`,
   `fingerprint(const Document&)`.
 - `actcraft::actions` : `Platform` (`Windows`, `Android`, `MacOS`, `Linux`), `Platforms`, `kAllPlatforms`,
   `platformBit`, `currentPlatform`, `platformName`, `ArgumentKind` (`None`, `Color`, `Number`, `Url`),
@@ -737,8 +737,8 @@ private slots:
 
     void previousStopsAtFirstPage()
     {
-        QCOMPARE(previousPageIndex(0), std::size_t{0});
-        QCOMPARE(previousPageIndex(3), std::size_t{2});
+        QCOMPARE(formerPageIndex(0), std::size_t{0});
+        QCOMPARE(formerPageIndex(3), std::size_t{2});
     }
 
     void fingerprintFollowsPagesAndContent()
@@ -806,7 +806,7 @@ private:
 // « Page suivante » (F-125) : indice suivant ; sur la dernière page, ajoute d'abord une page vierge.
 std::size_t nextPageIndex(Document& document, std::size_t current);
 // « Page précédente » : indice précédent, borné à 0.
-std::size_t previousPageIndex(std::size_t current) noexcept;
+std::size_t formerPageIndex(std::size_t current) noexcept;
 
 // Empreinte FNV-1a 64 bits : nombre de pages, puis fingerprint(page) de chaque page dans l'ordre.
 std::uint64_t fingerprint(const Document& document) noexcept;
@@ -874,7 +874,7 @@ std::size_t nextPageIndex(Document& document, std::size_t current)
     return document.appendPage();
 }
 
-std::size_t previousPageIndex(std::size_t current) noexcept
+std::size_t formerPageIndex(std::size_t current) noexcept
 {
     return current == 0 ? 0 : current - 1;
 }
@@ -3357,7 +3357,7 @@ void DocumentController::nextPage()
 
 void DocumentController::pageBack()
 {
-    const std::size_t target = core::previousPageIndex(m_current);
+    const std::size_t target = core::formerPageIndex(m_current);
     if (target == m_current) {
         return;
     }

@@ -240,7 +240,7 @@ struct ImageObject
     Argb colorB = 0xFFFFFFFFu;
     std::uint32_t seed = 0;
     std::string resource;
-    bool hasTransparentColor = false;
+    bool hasKeyColor = false;
     Argb keyColor = 0;
 };
 

@@ -169,7 +169,7 @@ private slots:
         QCOMPARE(p.objects.size(), std::size_t{4}); // la formule (460) est sautée
         const auto& picture = as<core::ImageObject>(p.objects[0]);
         QCOMPARE(picture.resource, p.background.image);
-        QVERIFY(picture.hasTransparentColor);
+        QVERIFY(picture.hasKeyColor);
         QCOMPARE(picture.keyColor, core::Argb{0xFFFFFFFFu});
         QCOMPARE(picture.sourceWidth, std::int32_t{2});
         const core::PointF corner = p.objects[0].common.transform.map({1, 1});

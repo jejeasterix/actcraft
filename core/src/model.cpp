@@ -157,8 +157,8 @@ void hashType(Fnv1a& h, const Shape& shape) noexcept
 
 void hashType(Fnv1a& h, const ImageObject& image) noexcept
 {
-    const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource,
-                 hasTransparentColor, keyColor] = image;
+    const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource, hasKeyColor,
+                 keyColor] = image;
     h.rect(bounds);
     h.i32(sourceWidth);
     h.i32(sourceHeight);
@@ -167,7 +167,7 @@ void hashType(Fnv1a& h, const ImageObject& image) noexcept
     h.u32(colorB);
     h.u32(seed);
     h.text(resource);
-    h.boolean(hasTransparentColor);
+    h.boolean(hasKeyColor);
     h.u32(keyColor);
 }
 

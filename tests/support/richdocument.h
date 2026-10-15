@@ -90,7 +90,7 @@ inline actcraft::core::Document richDocument()
     picture.colorA = 0xFF00FF00u;
     picture.colorB = 0xFF0000FFu;
     picture.seed = 3;
-    picture.hasTransparentColor = true;
+    picture.hasKeyColor = true;
     picture.keyColor = 0xFFFFFFFFu;
     PageObject o3 = picture;
     o3.common.id = 3;

@@ -72,7 +72,7 @@ private:
 // « Page suivante » (F-125) : indice suivant ; sur la dernière page, ajoute d'abord une page vierge.
 std::size_t nextPageIndex(Document& document, std::size_t current);
 // « Page précédente » : indice précédent, borné à 0.
-std::size_t previousPageIndex(std::size_t current) noexcept;
+std::size_t formerPageIndex(std::size_t current) noexcept;
 
 // SHA-256 en hexadécimal minuscule.
 std::string sha256Hex(const QByteArray& data);

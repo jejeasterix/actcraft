@@ -142,7 +142,7 @@ private slots:
 
     // pagesChanged : une fois par déplacement, jamais sans déplacement, et émis quand tout est en place (le
     // libellé et l'élément montrent déjà la nouvelle page, y compris celle qui vient d'être ajoutée).
-    void pagesChangedOncePerMoveWithTheNewPageInPlace()
+    void pagesChangedOncePerMoveWithTheNewPageSettled()
     {
         render::FixedPageItem fixed;
         ui::DocumentController controller;

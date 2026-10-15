@@ -109,7 +109,7 @@ et le lecteur `.flipchart` en parallèle.
 | `core/include/actcraft/core/model.h` | types d'objets, `ObjectCommon`, `Transform`, `Outline`, `Fill`, `Page` (fond, grille), empreinte de page | L2-T1 |
 | `core/include/actcraft/core/document.h` | `Document` (pages, ressources SHA-256, identifiants, titre), empreinte du document | L2-T1 |
 | `core/include/actcraft/core/undo.h` | `Change`, `Changes`, `UndoCommand`, `UndoStack` (500 étapes, état propre, fusion) | L2-T2 |
-| `core/include/actcraft/core/edits.h` | `insertOnTopOfLayer`, `indexOf`, `depthInLayer`, `isLayerOrdered`, `boundsOnPage`, `AddObjectCommand`, `AddPageCommand` | L2-T2 |
+| `core/include/actcraft/core/edits.h` | `insertAtTopOfLayer`, `indexOf`, `depthInLayer`, `isLayerOrdered`, `boundsOnPage`, `AddObjectCommand`, `AddPageCommand` | L2-T2 |
 | `actions/data/commands.json` | commandes `file.*` du lot 2 | L2-T3 |
 | `third_party/miniz/` | miniz 3.0.2 amalgamé, licence, provenance | L2-T4 |
 | `formats/native.cmake`, `formats/flipchart.cmake` | listes de sources des deux familles de formats | L2-T4 (puis T5-T10) |
@@ -144,7 +144,7 @@ Une tâche ne renomme aucun de ces noms. Ceux du lot 1 (`docs/plans/2026-10-14-l
 - `actcraft::core` (L2-T2) : `Change` (`Kind` : `ObjectInserted`, `ObjectRemoved`, `ObjectChanged`,
   `PageInserted`, `PageRemoved`, `PageChanged` ; champs `kind`, `page`, `object`, `area`), `Changes`,
   `UndoCommand` (`redo`, `undo`, `mergeId`, `mergeWith`), `UndoStack` (`kDefaultLimit` = 500, `push`, `undo`,
-  `redo`, `canUndo`, `canRedo`, `count`, `index`, `limit`, `isClean`, `setClean`, `clear`), `insertOnTopOfLayer`,
+  `redo`, `canUndo`, `canRedo`, `count`, `index`, `limit`, `isClean`, `setClean`, `clear`), `insertAtTopOfLayer`,
   `indexOf`, `depthInLayer`, `isLayerOrdered`, `boundsOnPage`, `AddObjectCommand` (`id`), `AddPageCommand`.
 - `actcraft::actions` (L2-T3) : `CommandInfo::argumentOptional` ; clé JSON `"optional"`. Identifiants :
   `file.new`, `file.new-screen`, `file.new-1024x768`, `file.new-1152x864`, `file.new-1280x1024`,
@@ -872,7 +872,7 @@ struct ImageObject
     Argb colorB = 0xFFFFFFFFu;
     std::uint32_t seed = 0;
     std::string resource;
-    bool hasTransparentColor = false;
+    bool hasKeyColor = false;
     Argb keyColor = 0;
 };
 
@@ -1201,7 +1201,7 @@ void hashBody(Fnv1a& h, const PageObject& object) noexcept
         h.outline(pen);
         h.fill(brush);
     } else if (const auto* im = std::get_if<ImageObject>(&object)) {
-        const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource, hasTransparentColor,
+        const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource, hasKeyColor,
                      keyColor] = *im;
         h.rect(bounds);
         h.i32(sourceWidth);
@@ -1211,7 +1211,7 @@ void hashBody(Fnv1a& h, const PageObject& object) noexcept
         h.u32(colorB);
         h.u32(seed);
         h.text(resource);
-        h.boolean(hasTransparentColor);
+        h.boolean(hasKeyColor);
         h.u32(keyColor);
     } else if (const auto* st = std::get_if<Stroke>(&object)) {
         const auto& [points, baseWidth, color, kind, cap] = *st;
@@ -1463,7 +1463,7 @@ private:
 // « Page suivante » (F-125) : indice suivant ; sur la dernière page, ajoute d'abord une page vierge.
 std::size_t nextPageIndex(Document& document, std::size_t current);
 // « Page précédente » : indice précédent, borné à 0.
-std::size_t previousPageIndex(std::size_t current) noexcept;
+std::size_t formerPageIndex(std::size_t current) noexcept;
 
 // SHA-256 en hexadécimal minuscule.
 std::string sha256Hex(const QByteArray& data);
@@ -1645,7 +1645,7 @@ std::size_t nextPageIndex(Document& document, std::size_t current)
     return document.appendPage();
 }
 
-std::size_t previousPageIndex(std::size_t current) noexcept
+std::size_t formerPageIndex(std::size_t current) noexcept
 {
     return current == 0 ? 0 : current - 1;
 }
@@ -1803,7 +1803,7 @@ ici), par document, 500 étapes au plus (N2-1), avec état propre (pour « enreg
 fusion des commandes consécutives de même famille. Chaque commande rend la liste des **changements** qu'elle a
 faits (`Change`) : 2b les enverra au cache de la page affichée (DA11). Deux commandes au lot 2 : ajouter un objet
 **au sommet de sa couche** (F-512 ; identifiant alloué une fois, gardé au rétablissement) et ajouter une page. Les
-briques d'édition (`insertOnTopOfLayer`, `indexOf`, `depthInLayer`, `isLayerOrdered`, `boundsOnPage`) sont
+briques d'édition (`insertAtTopOfLayer`, `indexOf`, `depthInLayer`, `isLayerOrdered`, `boundsOnPage`) sont
 publiques : les outils des lots 3 à 8 les réutilisent.
 
 **Fichiers.**
@@ -2050,14 +2050,14 @@ class TstCoreEdits : public QObject
     Q_OBJECT
 
 private slots:
-    void newObjectGoesOnTopOfItsLayer()
+    void newObjectGoesAtTopOfItsLayer()
     {
         Page p;
-        insertOnTopOfLayer(p, onLayer(Layer::Middle, 1));
-        insertOnTopOfLayer(p, onLayer(Layer::Top, 2));
-        QCOMPARE(insertOnTopOfLayer(p, onLayer(Layer::Middle, 3)), std::size_t{1});
-        QCOMPARE(insertOnTopOfLayer(p, onLayer(Layer::Bottom, 4)), std::size_t{0});
-        QCOMPARE(insertOnTopOfLayer(p, onLayer(Layer::Background, 5)), std::size_t{0});
+        insertAtTopOfLayer(p, onLayer(Layer::Middle, 1));
+        insertAtTopOfLayer(p, onLayer(Layer::Top, 2));
+        QCOMPARE(insertAtTopOfLayer(p, onLayer(Layer::Middle, 3)), std::size_t{1});
+        QCOMPARE(insertAtTopOfLayer(p, onLayer(Layer::Bottom, 4)), std::size_t{0});
+        QCOMPARE(insertAtTopOfLayer(p, onLayer(Layer::Background, 5)), std::size_t{0});
         QCOMPARE(p.objects[0].common.id, ObjectId{5});
         QCOMPARE(p.objects[1].common.id, ObjectId{4});
         QCOMPARE(p.objects[2].common.id, ObjectId{1});
@@ -2069,9 +2069,9 @@ private slots:
     void depthCountsWithinTheLayer()
     {
         Page p;
-        insertOnTopOfLayer(p, onLayer(Layer::Bottom, 1));
-        insertOnTopOfLayer(p, onLayer(Layer::Middle, 2));
-        insertOnTopOfLayer(p, onLayer(Layer::Middle, 3));
+        insertAtTopOfLayer(p, onLayer(Layer::Bottom, 1));
+        insertAtTopOfLayer(p, onLayer(Layer::Middle, 2));
+        insertAtTopOfLayer(p, onLayer(Layer::Middle, 3));
         QCOMPARE(depthInLayer(p, 1), std::size_t{0});
         QCOMPARE(depthInLayer(p, 2), std::size_t{0});
         QCOMPARE(depthInLayer(p, 3), std::size_t{1});
@@ -2136,7 +2136,7 @@ private slots:
         QCOMPARE(d.nextId(), id + 1);
     }
 
-    void addObjectLandsOnTopOfItsLayerNotAtTheEnd()
+    void addObjectLandsAtTopOfItsLayerNotAtTheEnd()
     {
         Document d;
         UndoStack stack;
@@ -2398,7 +2398,7 @@ namespace actcraft::core {
 // Briques d'édition d'une page ; Page::objects reste rangé par couche (F-510, F-512).
 
 // Insère `object` au sommet de sa couche ; retourne son indice dans page.objects.
-std::size_t insertOnTopOfLayer(Page& page, PageObject object);
+std::size_t insertAtTopOfLayer(Page& page, PageObject object);
 // Indice de l'objet `id`, ou page.objects.size() s'il n'y est pas.
 std::size_t indexOf(const Page& page, ObjectId id) noexcept;
 // Profondeur (F-512, lecture seule) : rang dans sa couche, 0 = base ; page.objects.size() si absent.
@@ -2532,7 +2532,7 @@ RectF localBounds(const PageObject& object) noexcept
 
 } // namespace
 
-std::size_t insertOnTopOfLayer(Page& page, PageObject object)
+std::size_t insertAtTopOfLayer(Page& page, PageObject object)
 {
     const Layer layer = object.common.layer;
     const auto it = std::find_if(page.objects.begin(), page.objects.end(),
@@ -2599,7 +2599,7 @@ void AddObjectCommand::redo(Document& document, Changes& changes)
     if (m_object.common.id == 0) {
         m_object.common.id = document.allocateId();
     }
-    insertOnTopOfLayer(document.page(m_page), m_object);
+    insertAtTopOfLayer(document.page(m_page), m_object);
     changes.push_back(Change{Change::Kind::ObjectInserted, m_page, m_object.common.id, boundsOnPage(m_object)});
 }
 
@@ -3223,7 +3223,7 @@ inline actcraft::core::Document richDocument()
     picture.colorA = 0xFF00FF00u;
     picture.colorB = 0xFF0000FFu;
     picture.seed = 3;
-    picture.hasTransparentColor = true;
+    picture.hasKeyColor = true;
     picture.keyColor = 0xFFFFFFFFu;
     PageObject o3 = picture;
     o3.common.id = 3;
@@ -3972,7 +3972,7 @@ QJsonObject objectJson(const PageObject& object)
         j.insert(u"colorB"_s, colorText(im->colorB));
         j.insert(u"seed"_s, static_cast<double>(im->seed));
         j.insert(u"resource"_s, str(im->resource));
-        j.insert(u"keyColor"_s, im->hasTransparentColor ? QJsonValue(colorText(im->keyColor))
+        j.insert(u"keyColor"_s, im->hasKeyColor ? QJsonValue(colorText(im->keyColor))
                                                                  : QJsonValue(QJsonValue::Null));
     } else if (const auto* st = std::get_if<Stroke>(&object)) {
         QJsonArray points;
@@ -4291,7 +4291,7 @@ public:
             im.seed = integer<std::uint32_t>(j, u"seed", im.seed, where);
             im.resource = text(j, u"resource");
             if (j.value(u"keyColor"_s).isString()) {
-                im.hasTransparentColor = true;
+                im.hasKeyColor = true;
                 im.keyColor = color(j, u"keyColor", 0, where);
             }
             out = std::move(im);
@@ -7475,7 +7475,7 @@ private slots:
         QCOMPARE(p.objects.size(), std::size_t{4}); // la formule (460) est sautée
         const auto& image = as<core::ImageObject>(p.objects[0]);
         QCOMPARE(image.resource, p.background.image);
-        QVERIFY(image.hasTransparentColor);
+        QVERIFY(image.hasKeyColor);
         QCOMPARE(image.keyColor, core::Argb{0xFFFFFFFFu});
         QCOMPARE(image.sourceWidth, std::int32_t{2});
         const core::PointF corner = p.objects[0].common.transform.map({1, 1});
@@ -7760,7 +7760,7 @@ inline constexpr quint16 kOutlineColor = 7;
 inline constexpr quint16 kFillPattern = 8;     // 0 aucun, 1 plein, 2 à 14 motifs, 25 dégradé
 inline constexpr quint16 kFillTint = 9;        // couleur du remplissage
 inline constexpr quint16 kOpaqueHatch = 10;    // fond des motifs opaque
-inline constexpr quint16 kHatchBackColor = 11; // couleur de ce fond
+inline constexpr quint16 kHatchBaseColor = 11; // couleur de ce fond
 inline constexpr quint16 kSecondaryColor = 13; // seconde couleur du dégradé
 inline constexpr quint16 kBlendDirection = 14; // 0 aucun dégradé, 1 à 5 : core::GradientKind
 } // namespace penKeys
@@ -8579,7 +8579,7 @@ private:
                 }
             }
             if (flagOr(&o, 39, false)) {
-                im.hasTransparentColor = true;
+                im.hasKeyColor = true;
                 im.keyColor = colorOr(&o, 40, 0xFF000000u);
             }
             p.object = std::move(im);
@@ -9284,7 +9284,7 @@ QJsonObject object(const PageObject& o, const std::map<ObjectId, int>& indexOf)
         d.insert(u"kind"_s, u"image"_s);
         d.insert(u"bounds"_s, rect(im->bounds));
         d.insert(u"image"_s, sha(im->resource));
-        d.insert(u"transparent"_s, im->hasTransparentColor);
+        d.insert(u"transparent"_s, im->hasKeyColor);
     } else if (const auto* tx = std::get_if<Text>(&o)) {
         d.insert(u"kind"_s, u"text"_s);
         d.insert(u"bounds"_s, rect(tx->bounds));

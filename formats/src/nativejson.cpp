@@ -482,8 +482,8 @@ void writeBody(QJsonObject& j, const Shape& shape)
 
 void writeBody(QJsonObject& j, const ImageObject& image)
 {
-    const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource,
-                 hasTransparentColor, keyColor] = image;
+    const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource, hasKeyColor,
+                 keyColor] = image;
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"sourceWidth"_s, static_cast<int>(sourceWidth));
     j.insert(u"sourceHeight"_s, static_cast<int>(sourceHeight));
@@ -494,7 +494,7 @@ void writeBody(QJsonObject& j, const ImageObject& image)
     j.insert(u"resource"_s, str(resource));
     // Deux clés, pas une couleur « null » sans transparence : le modèle garde les deux champs et l'empreinte
     // les hache tous les deux (unusedFieldsStillTravel).
-    j.insert(u"hasTransparentColor"_s, hasTransparentColor);
+    j.insert(u"hasKeyColor"_s, hasKeyColor);
     j.insert(u"keyColor"_s, colorText(keyColor));
 }
 
@@ -1034,7 +1034,7 @@ void readBody(Reader& r, const QJsonObject& j, Shape& shape)
 
 void readBody(Reader& r, const QJsonObject& j, ImageObject& image)
 {
-    auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource, hasTransparentColor,
+    auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource, hasKeyColor,
            keyColor] = image;
     bounds = r.readRect(j, u"bounds", bounds);
     sourceWidth = r.readInteger(j, u"sourceWidth", sourceWidth);
@@ -1044,7 +1044,7 @@ void readBody(Reader& r, const QJsonObject& j, ImageObject& image)
     colorB = r.readColor(j, u"colorB", colorB);
     seed = r.readInteger(j, u"seed", seed);
     resource = r.readString(j, u"resource");
-    hasTransparentColor = r.readFlag(j, u"hasTransparentColor", hasTransparentColor);
+    hasKeyColor = r.readFlag(j, u"hasKeyColor", hasKeyColor);
     keyColor = r.readColor(j, u"keyColor", keyColor);
 }
 

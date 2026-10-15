@@ -124,7 +124,7 @@ private slots:
         QVERIFY(colorNear(at(w.strokeProbe), argb(w.strokeColor), 10));
     }
 
-    void appendedStrokeIsDrawnOnTop()
+    void appendedStrokeIsDrawnAtTop()
     {
         Fixture f;
         open(f);

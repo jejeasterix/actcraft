@@ -250,9 +250,9 @@ private slots:
         const QJsonObject generated = object(root, 0, 1);
         QCOMPARE(generated.value(u"type"_s).toString(), u"image"_s);
         QCOMPARE(generated.value(u"pattern"_s).toString(), u"rings"_s);
-        QCOMPARE(generated.value(u"hasTransparentColor"_s).toBool(true), false);
+        QCOMPARE(generated.value(u"hasKeyColor"_s).toBool(true), false);
         const QJsonObject picture = object(root, 0, 2);
-        QCOMPARE(picture.value(u"hasTransparentColor"_s).toBool(false), true);
+        QCOMPARE(picture.value(u"hasKeyColor"_s).toBool(false), true);
         QCOMPARE(picture.value(u"keyColor"_s).toString(), u"#ffffffff"_s);
         const QJsonObject path = object(root, 0, 3);
         QCOMPARE(path.value(u"shape"_s).toString(), u"path"_s);
@@ -504,7 +504,7 @@ private slots:
     {
         core::ImageObject image;
         image.bounds = {0, 0, 10, 10};
-        image.hasTransparentColor = false;
+        image.hasKeyColor = false;
         image.keyColor = 0xFF123456u;
         core::PageObject o = image;
         o.common.id = 1;
@@ -519,7 +519,7 @@ private slots:
         QVERIFY2(r.warnings.isEmpty(), qPrintable(r.warnings.join(u'\n')));
         const auto* read = std::get_if<core::ImageObject>(&back.page(0).objects[0]);
         QVERIFY(read);
-        QVERIFY(!read->hasTransparentColor);
+        QVERIFY(!read->hasKeyColor);
         QCOMPARE(read->keyColor, core::Argb{0xFF123456u});
         QCOMPARE(core::fingerprint(back), core::fingerprint(source));
     }
