@@ -91,3 +91,14 @@ actcraft_add_test(tst_bench_uiscenario
     SOURCES tst_bench_uiscenario.cpp
     LIBS ActCraft::benchui ActCraft::ui actcraft_uiplugin Qt6::Quick)
 target_compile_definitions(tst_bench_uiscenario PRIVATE ACTCRAFT_TESTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
+# Scénario d'acceptation S2 (premiers pas), hors écran en rendu logiciel (DA8, décision 36).
+add_test(NAME tst_captures_premiers_pas
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/premiers-pas.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-premiers-pas)
+set_tests_properties(tst_captures_premiers_pas PROPERTIES
+    TIMEOUT 120
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")

@@ -7,6 +7,11 @@ set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # il est chargé depuis sa source QML, sans précompilation (écran rarement ouvert).
 set_source_files_properties(qml/AboutDialog.qml PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)
 
+# Même défaut (C4702) pour trois composants de la coquille qui appellent Commands.trigger : chargés depuis leur
+# source QML. Les composants du chemin de dessin (page, vue, encre) restent précompilés.
+set_source_files_properties(qml/TopBar.qml qml/CommandButton.qml qml/WidthPicker.qml
+    PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)
+
 qt_add_qml_module(actcraft_ui
     URI ActCraft.Ui
     VERSION 1.0
@@ -14,6 +19,13 @@ qt_add_qml_module(actcraft_ui
         qml/Main.qml
         qml/Theme.qml
         qml/AboutDialog.qml
+        qml/TopBar.qml
+        qml/ToolPalette.qml
+        qml/PageArea.qml
+        qml/CommandButton.qml
+        qml/CommandMenu.qml
+        qml/ColorSwatches.qml
+        qml/WidthPicker.qml
     RESOURCES
         icons/menu.svg
         icons/outils.svg

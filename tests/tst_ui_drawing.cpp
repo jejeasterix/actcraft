@@ -35,6 +35,7 @@ bool start(App& app, bool cacheEnabled)
 {
     StartupOptions options;
     options.cacheEnabled = cacheEnabled;
+    options.generatedPage = true;
     app.window = loadMainWindow(app.engine, options);
     if (!app.window || !QTest::qWaitForWindowExposed(app.window)) {
         return false;

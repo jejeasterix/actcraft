@@ -12,7 +12,8 @@ StartupOptions parseStartupOptions(const QStringList& args)
 
 QQuickWindow* loadMainWindow(QQmlApplicationEngine& engine, const StartupOptions& options)
 {
-    engine.setInitialProperties({{QStringLiteral("cacheEnabled"), options.cacheEnabled}});
+    engine.setInitialProperties({{QStringLiteral("cacheEnabled"), options.cacheEnabled},
+                                 {QStringLiteral("generatedPage"), options.generatedPage}});
     engine.loadFromModule("ActCraft.Ui", "Main");
     if (engine.rootObjects().isEmpty()) {
         return nullptr;
