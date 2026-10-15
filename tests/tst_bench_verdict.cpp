@@ -563,17 +563,36 @@ private slots:
             std::make_unique<Injector>(app.window, [&app](QPointF p) { return app.view->pageToScene(p); });
         recorder = std::make_unique<FrameRecorder>(app.window);
         app.view->setExclusiveDevices({injector->stylus(), injector->wheel()});
-        app.view->resetInputSequence(0);
+        app.view->resetInputSequence(0); // une seule fois : n° = indice dans `plan` sur les trois traits
         app.view->setInkProbe(recorder.get());
 
-        // Pauses longues : en debug et rendu logiciel, le redessin du cache après un trait figé bloque le fil
-        // principal plusieurs centaines de ms ; il faut des images entre relâché et appui suivant pour que
-        // l'invariant soit exercé.
-        const auto plan = strokes(3, 20, 1'000'000'000);
+        // Un trait à la fois : le suivant n'est injecté qu'une fois son prédécesseur relâché ET signalé par
+        // une synchronisation. Une pause fixe (1 s) ne le garantissait pas : fil principal bloqué plus
+        // longtemps (debug, rendu logiciel, tests en parallèle : 8 échecs sur 16), relâché et appui suivant
+        // partaient d'un bloc, sans synchronisation entre eux, et l'invariant n'était plus exercé (checked =
+        // 2).
+        constexpr std::size_t kSamples = 20;
+        const auto plan = strokes(3, static_cast<int>(kSamples), 0); // instants recalés trait par trait
+        const auto syncedUpTo = [&recorder](std::uint64_t seq) {
+            const auto records = recorder->syncRecords();
+            return std::any_of(records.begin(), records.end(),
+                               [seq](const SyncRecord& rec) { return rec.lastSeq == seq; });
+        };
+        std::vector<std::int64_t> plannedNs;
         recorder->begin();
-        injector->start(plan, core::monotonicNowNs() + 20'000'000);
-        QTRY_VERIFY_WITH_TIMEOUT(injector->finished(), 20000);
-        QTest::qWait(300);
+        for (std::size_t first = 0; first < plan.size(); first += kSamples) {
+            std::vector<PlannedInput> stroke(plan.begin() + static_cast<std::ptrdiff_t>(first),
+                                             plan.begin() + static_cast<std::ptrdiff_t>(first + kSamples));
+            const std::int64_t shift = stroke.front().offsetNs;
+            for (PlannedInput& in : stroke) {
+                in.offsetNs -= shift;
+            }
+            injector->start(stroke, core::monotonicNowNs() + 20'000'000);
+            QTRY_VERIFY_WITH_TIMEOUT(injector->finished(), 20000);
+            plannedNs.insert(plannedNs.end(), injector->plannedNs().begin(), injector->plannedNs().end());
+            // Le relâché (dernier de son trait, seul reçu depuis) est signalé par une synchronisation propre.
+            QTRY_VERIFY_WITH_TIMEOUT(syncedUpTo(first + kSamples - 1), 20000);
+        }
         recorder->end();
         app.view->setInkProbe(nullptr);
         app.view->setExclusiveDevices({});
@@ -592,14 +611,11 @@ private slots:
             releaseCoverage(plan, recorder->received(), recorder->syncStartNs(), records);
         QCOMPARE(coverage.checked, std::size_t{3}); // une synchronisation suit chaque relâché
         QVERIFY2(coverage.notSynced == 0, qPrintable(synced.join(' ')));
-        // Premier trait, précédé d'un repos : son relâché (n° 19) est signalé par une synchronisation propre.
-        QVERIFY2(std::any_of(records.begin(), records.end(),
-                             [](const SyncRecord& rec) { return rec.lastSeq == 19; }),
-                 qPrintable(synced.join(' ')));
+        QCOMPARE(plannedNs.size(), plan.size());
         std::vector<std::int64_t> measured(plan.size(), -1);
         for (std::size_t i = 0; i < plan.size(); ++i) {
             if (plan[i].measured) {
-                measured[i] = injector->plannedNs()[i];
+                measured[i] = plannedNs[i];
             }
         }
         const LatencyStats latency = computeLatency(measured, records);
