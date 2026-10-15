@@ -75,7 +75,6 @@ nouveau refusé par ce hook : regarder la mémoire libre avant toute autre chose
 
 ## ♻️ Reliquats hors chantier
 - Étape 2 du BRIEF (Dell 3510, MacBook M1) : plus une porte ; procédure `docs/banc.md` disponible si Jérôme mesure.
-- Dossier vide `.worktrees/prototype-mesure` verrouillé par Windows : à supprimer quand il se libère.
 
 ## 🛠️ Skills utiles
 `nouvelle-feature` (reprise), `finalize-session-chaine` (PR du lot 2), `transfert-session`.
