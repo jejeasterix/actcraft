@@ -133,7 +133,8 @@ private slots:
         r.setChecked(QStringLiteral("pen.color"), true);
         QVERIFY(r.isChecked(QStringLiteral("pen.color")));
         QVERIFY(!r.isEnabled(QStringLiteral("absent")));
-        QVERIFY(!r.declare(CommandInfo{QStringLiteral("page.next"), QStringLiteral("Doublon")}));
+        QVERIFY(!r.declare(CommandInfo{QStringLiteral("page.next"), QStringLiteral("Doublon"), QString(),
+                                       QString(), false, kAllPlatforms, ArgumentKind::None}));
         QVERIFY(!r.declare(CommandInfo{}));
     }
 
