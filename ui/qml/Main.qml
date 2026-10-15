@@ -91,6 +91,13 @@ Window {
             inputBlocked: root.openPopups > 0
         }
 
+        ToolPalette {
+            id: toolPalette
+            Layout.fillHeight: true
+            Layout.preferredWidth: Theme.largeurPalette
+            commands: appCommands
+            view: pageArea.view
+        }
     }
 
     // « Menu principal » (F-122) : les mêmes menus que la ligne supérieure.
@@ -124,6 +131,11 @@ Window {
         onClosed: root.popupClosed()
     }
 
+    AboutDialog {
+        id: aboutDialog
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
+    }
 
     // Raccourcis de la disposition (commande, ou remplacement du profil).
     Instantiator {
@@ -155,7 +167,7 @@ Window {
         appCommands.setHandler("pen.width", function (width) { pageArea.view.penWidth = width })
         appCommands.setHandler("menu.main", function () { mainMenu.popup() })
         appCommands.setHandler("menu.tools", function () { toolsMenu.popup() })
-        
+        appCommands.setHandler("help.about", function () { aboutDialog.open() })
         appCommands.setHandler("help.website", function () { Qt.openUrlExternally(AppInfo.projectUrl) })
         appCommands.setChecked("tool.pen", true) // F-200 : le stylo est l'outil de départ
         mainMenu.rebuild()

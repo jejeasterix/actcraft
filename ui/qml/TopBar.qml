@@ -68,6 +68,26 @@ Rectangle {
             Layout.rightMargin: Theme.espace3
         }
 
+        ComboBox {
+            id: zoomBox
+            objectName: "zoomBox"
+            Layout.preferredWidth: 112
+            readonly property var percents: [0, 25, 50, 100, 150, 200, 400, 800]
+            model: [qsTr("Ajuster"), "25 %", "50 %", "100 %", "150 %", "200 %", "400 %", "800 %"]
+            displayText: Math.round(bar.view.zoom * 100) + " %"
+            onActivated: index => {
+                if (index === 0)
+                    bar.commands.trigger("view.fit")
+                else
+                    bar.commands.trigger("view.zoom", zoomBox.percents[index])
+            }
+            Connections {
+                target: zoomBox.popup
+                function onOpened() { bar.popupOpened() }
+                function onClosed() { bar.popupClosed() }
+            }
+        }
+
         CommandButton {
             commands: bar.commands
             commandId: "view.fullscreen"
