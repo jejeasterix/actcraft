@@ -50,6 +50,9 @@ Lot 1 (plan 7e4c743) — fichiers touchés exacts et preuves : table du plan.
 | L1-T18 | T12,T17 | essai APK émulateur | impl | (mergé) | terminée | 1/3 | 404d52c → merge e1dfdc7 | rejoué par l'orchestrateur (émulateur sans fenêtre, `-gpu host`, PID 4348 arrêté) : logcat sans FATAL/SecurityException (pid 4241), page (1958, 1392) 255 255 255, palette 43 47 54, pastille 229 57 53, trait 0 0 0, `ANDROID OK` ; capture : page entière, palette complète, textes lisibles. Rouge vu (agent) : SwiftShader → `rectangle à moitié dessiné`. Cause : GPU logiciel de l'émulateur (projet Qt minimal idem) → coffre `04_Pieges/qt-quick-emulateur-android-swiftshader-rectangle-en-un-triangle` |
 | L1-T19 | T14,T15,T16,T18 | CI paquets | crit | --L1-T19 | en cours | 1/3 | — | — |
 | L1-T20 | T19 | release.yml, CHANGELOG | crit | — | à faire | 0/3 | — | — |
+| L1-C3 | — | correctifs interface de la relecture (stylet sous les barres, trait pendant changement de page/vue, preuve F5 sur `visibility`, coche plein écran, molette/Ajuster, `reload()`) | crit | --L1-C3 | en cours | 1/3 | — | — |
+| L1-C4 | L1-C3,T19 | correctifs scripts de capture/banc (garde WINDIR, polices des tests bench.cmake, `CAPTURES EN ECHEC`) | impl | — | à faire | 0/3 | — | — |
+| L1-C5 | L1-C3 | décision 23 : direction visuelle par le skill `impeccable` (critique + contrastes AA) | crit | — | à faire | 0/3 | — | — |
 | L1-C2 | — | correctif : textes en carrés vides hors écran (captures, CI) | impl | (mergé) | terminée | 1/3 | 207c660 → merge 41a02ae | 44/44 TESTS OK (format compris), tst_ui_police Passed (rouge 3/3 avant) ; `CAPTURES OK`, `01-interface` : « Fichier Affichage Outils Aide », « 1 / 1 », « 91 % » lisibles. Cause : plateforme `offscreen` sous Windows sans dossier de polices (`Cannot find font directory …/lib/fonts`) → `QT_QPA_FONTDIR=%WINDIR%\Fonts` hors écran (captures.ps1, bench.ps1, actcraft_add_test). Limites (relecture) : police étroite au lieu de Segoe UI hors écran ; Linux/macOS non vérifiés ; `actcraft.exe` lancé à la main en offscreen toujours sans police |
 | L1-C1 | — | correctif : curseur d'épaisseur qui ne suit pas `penWidth` (constat des captures Windows et Android) | impl | (mergé) | terminée | 1/3 | bf88764 → merge 945f7f9 | 43/43 TESTS OK, tst_ui_shell Passed (cas `widthSliderFollowsThePenWidth`), 0 « Binding loop » ; rouge vu (position 0,07 pour 8) ; `CAPTURES OK`, capture `02-trait` : curseur ≈ 45 %, aperçu rouge lisible. Cause : réglette linéaire 1-100, préréglages 2-8 → échelle log (écart à F-137 « linéaire », porte de fin ; préréglage max ≠ curseur tout à droite) |
 
@@ -77,7 +80,14 @@ Conformité : 0 bloquant. Constats et suite donnée :
 - Min. JSON du banc hors écran absent de l'état pour L1-T7…T10 (session précédente) et L1-C1 (`2026-10-15_061746-…-software.json`, content_check.ok) : couvert par le banc complet de clôture.
 - Min. `paquet.ps1` sans ligne `PAQUET EN ECHEC` (contrat l. 181-182) → confié à L1-T19.
 - Non vérifié par la relecture : licence de `Qt6QuickControls2FluentWinUI3StyleImpl` ; traduisibilité des libellés JSON (N2-2).
-Défauts du code : en cours.
+Défauts du code : 0 bloquant. Suite donnée :
+- Imp. stylet capté sous les barres de défilement (`pageview.cpp:317-322`, `PageArea.qml:257-285`) → L1-C3.
+- Imp. changement de page (PgDown, doigt sur « page suivante ») ou de vue (F5, ajuster) pendant un trait : trait versé à la nouvelle page / qui saute (`Main.qml:138-153`, `documentcontroller.cpp:121-160`, `penadapters.cpp:28-31`) → L1-C3.
+- Imp. `essai-installateur.ps1:74,66` : sortie rapide de l'app → exception, pas de nettoyage ni de ligne EN ECHEC → L1-T19.
+- Min. molette qui quitte « Ajuster » sans mouvement (`pageview.cpp:509`) ; `fullScreen` ne suit pas `visibility` (`Main.qml:41-48`) ; `reload()` remet les coches à zéro (`commands.cpp:39`) → L1-C3.
+- Min. attentes sans borne (`essai-android.ps1:55`, `essai-installateur.ps1:65`) → L1-T19.
+- Min. `Join-Path $env:WINDIR` sans garde Windows (`bench.ps1:33`, `captures.ps1:33`) ; `tst_captures_premiers_pas` et `tst_bench_smoke` sans `QT_QPA_FONTDIR` (`tests/bench.cmake`) ; `captures.ps1:28` scénario inconnu sans `CAPTURES EN ECHEC`, dossier vide → `CAPTURES OK` → tâche corrective L1-C4 (après L1-C3/L1-T19).
+- Décision 23 (`impeccable`) → tâche corrective L1-C5 (après L1-C3 : Theme/QML).
 
 ## Hors périmètre
 - (L1-T8) `canStartStroke` ne vérifie que la zone de la vue : une palette flottante au-dessus de la page laisserait le stylet tracer dessous → lot 3.
