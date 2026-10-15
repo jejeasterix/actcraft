@@ -810,8 +810,11 @@ inline QByteArray unreadParents()
     Sheet s(1003);
     s.tree = {Node(1010, 7, 1011),
               Node(1012, 460, 1013, {Node(1014, 7, 1015), Node(1016, 3, 1017), Node(1018, 28, 1019)}),
-              Node(1020, 469, 1021, {Node(1022, 5, 1023, {Node(1024, 7, 1025)})}), Node(1030, 7, 1031),
-              Node(1032, 52, 1033)};
+              Node(1034, 28, 1035),
+              Node(1020, 469, 1021, {Node(1022, 5, 1023, {Node(1024, 7, 1025)})}),
+              Node(1030, 7, 1031),
+              Node(1032, 52, 1033),
+              Node(1040, 460, 1041)};
     Obj c2 = item(3, 1017, "enfant-non-lu C2", 1, 1, place(3, 4));
     c2.object(10, 6, ink(2, 1, 32, 128, black)).integer(39, 2501);
     Obj l = item(5, 1023, "enfant-non-lu L", 2, 1, place(10, 10, 0, 2, 2));
@@ -834,6 +837,9 @@ inline QByteArray unreadParents()
         io(1025, rectangle(1025, "petit-enfant-non-lu N", 2, 1, place(0, 5, 20), ink(1, 1, 0, 0, black))),
         io(1031, rectangle(1031, "B", 2, 5, place(500, 500), ink(1, 1, 32, 128, black))),
         io(1033, k)};
+    // Action juste après la formule : la référence la rattache à la formule. Formule de couche 7 (hors 0..2).
+    s.entries.push_back(io(1035, Obj(28, 1035).pointer(2, 1010, 1011, 7).integer(5, 184)));
+    s.entries.push_back(io(1041, item(460, 1041, "formule couche 7", 7, 1, place(0, 0))));
     return paperboard(QStringLiteral("Objets non lus"), {s},
                       {ir(2501, Obj(4, 2501).points(4, {QPointF(0, 0), QPointF(4, 4), QPointF(8, 0)})),
                        ir(2502, Obj(6, 2502).points(4, {QPointF(0, 0), QPointF(25, 25)}))});

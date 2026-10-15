@@ -1,7 +1,9 @@
 #include "support/flipchartwriter.h"
 
+#include <actcraft/formats/bamboo.h>
 #include <actcraft/formats/flipchart.h>
 #include <actcraft/formats/flipchartdump.h>
+#include <actcraft/formats/objectstream.h>
 
 #include <QCoreApplication>
 #include <QDir>
@@ -18,6 +20,7 @@
 #include <numeric>
 #include <vector>
 
+using namespace actcraft::formats;
 using namespace actcraft::formats::flipchart;
 using namespace Qt::StringLiterals;
 
@@ -58,13 +61,12 @@ QString referenceRoot()
 }
 
 // Écart « enfants-ranges-par-couche » : notre lecteur range la page par couche, stable (contrat du modèle :
-// Page::objects est rangé par couche, model.h ; nativejson.cpp le rétablit au rechargement), avec un
-// avertissement par page dérangée ; la référence garde l'ordre de l'arbre (parent puis enfants). Les
-// références (membres, cibles, extrémités) suivent les objets déplacés.
+// Page::objects est rangé par couche, model.h ; nativejson.cpp le rétablit au rechargement) ; la référence
+// garde l'ordre de l'arbre (parent puis enfants). Les références (membres, cibles, extrémités) suivent les
+// objets.
 void sortByLayer(QJsonObject& dump)
 {
     QJsonArray pages = dump.value(u"pages"_s).toArray();
-    int moved = 0;
     for (qsizetype p = 0; p < pages.size(); ++p) {
         QJsonObject page = pages.at(p).toObject();
         const QJsonArray objects = page.value(u"objects"_s).toArray();
@@ -77,7 +79,6 @@ void sortByLayer(QJsonObject& dump)
         if (std::is_sorted(order.begin(), order.end())) {
             continue;
         }
-        ++moved;
         std::vector<int> newIndex(order.size());
         for (std::size_t i = 0; i < order.size(); ++i) {
             newIndex[static_cast<std::size_t>(order[i])] = static_cast<int>(i);
@@ -119,32 +120,50 @@ void sortByLayer(QJsonObject& dump)
         pages.replace(p, page);
     }
     dump.insert(u"pages"_s, pages);
-    dump.insert(u"warnings"_s, dump.value(u"warnings"_s).toInt() + moved);
 }
 
-// Écart « objet-non-lu-signale » : notre lecteur signale chaque objet de genre non lu (ici la formule et le
-// texte vertical) ; la référence le garde en silence. Rien d'autre ne diffère : ses enfants sont lus des deux
-// côtés.
-void unreadObjectsWarn(QJsonObject& dump)
-{
-    dump.insert(u"warnings"_s, dump.value(u"warnings"_s).toInt() + 2);
-}
-
-// Écarts attendus, nommés. Chacun transforme l'export de la référence en ce que notre lecteur doit produire ;
-// le reste doit être identique, et chaque écart doit être observé (sinon il n'a plus lieu d'être déclaré).
+// Écart attendu, nommé : `adjust` transforme l'export de la référence en ce que notre lecteur produit (nul :
+// rien d'autre que les avertissements) ; `warnings` sont les avertissements EXACTS (page et nœud) que notre
+// lecteur émet en plus de la référence. L'export canonique ne compte les avertissements que par un entier :
+// le test exige donc aussi que chacun de ces textes soit émis, pour qu'un avertissement substitué à un autre
+// ne passe pas. Le reste doit être identique, et chaque écart doit être observé (sinon il n'a plus lieu
+// d'être déclaré).
 struct NamedGap
 {
-    const char* file;
-    const char* name;
+    QString file;
+    QString name;
     void (*adjust)(QJsonObject&);
+    QStringList warnings;
 };
 
-const NamedGap kGaps[] = {
-    {"imbrication", "enfants-ranges-par-couche", sortByLayer},
-    {"non-lus", "objet-non-lu-signale", unreadObjectsWarn},
-};
+const std::vector<NamedGap>& gaps()
+{
+    static const std::vector<NamedGap> list{
+        {u"imbrication"_s,
+         u"enfants-ranges-par-couche"_s,
+         sortByLayer,
+         {u"page 1003 : enfants d'objets rangés par couche (ordre de l'arbre modifié)"_s}},
+        // Notre lecteur signale chaque objet de genre non lu ; la référence le garde en silence.
+        {u"non-lus"_s,
+         u"objet-non-lu-signale"_s,
+         nullptr,
+         {u"page 1003 : objet de genre 460 non lu (nœud 1012)"_s,
+          u"page 1003 : objet de genre 469 non lu (nœud 1020)"_s,
+          u"page 1003 : objet de genre 460 non lu (nœud 1040)"_s}},
+    };
+    return list;
+}
 
-// Ce que l'export de la référence doit contenir : sans cela, « 0 écart » ne prouverait rien.
+void applyGap(const NamedGap& g, QJsonObject& dump)
+{
+    if (g.adjust) {
+        g.adjust(dump);
+    }
+    dump.insert(u"warnings"_s, dump.value(u"warnings"_s).toInt() + static_cast<int>(g.warnings.size()));
+}
+
+// Ce que l'export de la référence et le fichier écrit doivent contenir : sans cela, « 0 écart » ne prouverait
+// rien.
 const char* const kRequired[] = {
     "annotation",
     "line",
@@ -192,8 +211,12 @@ const char* const kRequired[] = {
     "image-transparente",
     "police-taille-0",
     "police-graisse-0",
+    "ecrit-2-grilles",
+    "ecrit-taille-0",
+    "ecrit-graisse-0",
 };
 
+// Ce que la référence a lu (export canonique).
 void collectFeatures(const QJsonObject& dump, QSet<QString>& f)
 {
     for (const QJsonValue& pv : dump.value(u"pages"_s).toArray()) {
@@ -281,16 +304,62 @@ void collectFeatures(const QJsonObject& dump, QSet<QString>& f)
     }
 }
 
+// Ce que le fichier ÉCRIT contient, relu brut (conteneur, index, flux objet), sans aucun des deux lecteurs :
+// une ligne de texte dont les clés 8 (taille) et 9 (graisse) valent 0, une page qui porte deux grilles. Une
+// valeur par défaut lue ne suffit pas : l'écrivain aurait pu omettre la clé.
+void collectWritten(const QByteArray& bytes, QSet<QString>& f)
+{
+    QString error;
+    const std::optional<BambooContainer> root = BambooContainer::parse(bytes, error);
+    if (!root) {
+        return;
+    }
+    for (const QString& entry : root->names()) {
+        const std::optional<QByteArray> data = root->read(entry, error);
+        if (!data) {
+            continue;
+        }
+        if (entry.endsWith(u".fpg"_s)) {
+            const std::optional<BambooContainer> page = BambooContainer::parse(*data, error);
+            for (const QString& name : page ? page->names() : QStringList()) {
+                const std::optional<QByteArray> in =
+                    name.endsWith(u".in"_s) ? page->read(name, error) : std::nullopt;
+                const std::optional<IndexNode> tree = in ? parseIndex(*in, error) : std::nullopt;
+                if (tree && std::count_if(tree->children.begin(), tree->children.end(),
+                                          [](const IndexNode& n) { return n.type == 13; }) >= 2) {
+                    f << u"ecrit-2-grilles"_s;
+                }
+            }
+        } else if (entry.endsWith(u".ir"_s)) {
+            const std::optional<StreamObject> res = parseObjectStream(*data, error);
+            if (!res || res->type != 12) {
+                continue;
+            }
+            for (const StreamObject* run : asObjects(res->find(4))) {
+                if (run && asNumber(run->find(8)) == 0.0) {
+                    f << u"ecrit-taille-0"_s;
+                }
+                if (run && asNumber(run->find(9)) == 0.0) {
+                    f << u"ecrit-graisse-0"_s;
+                }
+            }
+        }
+    }
+}
+
 } // namespace
 
 // Oracle synthétique (L2-C4) : les paperboards de notre écrivain (fctest::synth::oracleCases) sont lus par
 // notre lecteur et par la référence Python (tools/oracle_flipchart.py de l'ancien dépôt), puis comparés par
-// compareCanonical. Génération, script et comparaison en un seul test. Local seulement : sauté (et signalé)
-// sans l'ancien dépôt ou sans Python 3. Fichiers et JSON sous <dossier des exécutables>/oracle-synth/, jamais
-// commités.
+// compareCanonical. Génération, script et comparaison en un seul test. Local seulement : sauté sans l'ancien
+// dépôt ou sans Python 3, avec le code de sortie 77 que ctest compte « Skipped ». Fichiers et JSON sous
+// <dossier des exécutables>/oracle-synth/, jamais commités.
 class TstFormatsOracleSynth : public QObject
 {
     Q_OBJECT
+
+public:
+    bool skipped = false; // lu par main : code de sortie 77
 
 private slots:
     void syntheticFlipchartsMatchThePythonReader()
@@ -299,12 +368,13 @@ private slots:
         const QString script =
             root.isEmpty() ? QString() : QDir(root).absoluteFilePath(u"tools/oracle_flipchart.py"_s);
         if (script.isEmpty() || !QFileInfo::exists(script)) {
+            skipped = true;
             QSKIP("ancien dépôt absent (ACTCRAFT_REFERENCE_DIR ou ACTCRAFT_SAMPLES_DIR) : oracle synthétique "
-                  "local "
-                  "seulement");
+                  "local seulement");
         }
         const QString python = findPython();
         if (python.isEmpty()) {
+            skipped = true;
             QSKIP("Python 3 introuvable (ACTCRAFT_PYTHON, python, python3) : oracle synthétique local "
                   "seulement");
         }
@@ -335,6 +405,7 @@ private slots:
         QStringList observed;
         int pages = 0;
         for (const auto& [name, bytes] : cases) {
+            collectWritten(bytes, features);
             const FlipchartReadResult r = readFlipchart(bytes);
             if (!r.ok) {
                 failures << u"%1 : %2"_s.arg(name, r.error);
@@ -358,37 +429,42 @@ private slots:
             }
             collectFeatures(expected, features);
             const QJsonObject actual = canonicalDump(r);
-            std::vector<const NamedGap*> gaps;
-            for (const NamedGap& g : kGaps) {
-                if (name == QLatin1String(g.file)) {
-                    gaps.push_back(&g);
+            std::vector<const NamedGap*> fileGaps;
+            for (const NamedGap& g : gaps()) {
+                if (g.file == name) {
+                    fileGaps.push_back(&g);
                 }
             }
             QJsonObject adjusted = expected;
-            for (const NamedGap* g : gaps) {
-                g->adjust(adjusted);
+            for (const NamedGap* g : fileGaps) {
+                applyGap(*g, adjusted);
             }
             for (const QString& diff : compareCanonical(adjusted, actual, 60)) {
                 failures << u"%1 : %2"_s.arg(name, diff);
             }
-            for (const NamedGap* g : gaps) {
+            for (const NamedGap* g : fileGaps) {
+                for (const QString& w : g->warnings) {
+                    if (!r.warnings.contains(w)) {
+                        failures << u"%1 : écart « %2 » : avertissement attendu absent : %3"_s.arg(
+                            name, g->name, w);
+                    }
+                }
                 QJsonObject without = expected;
-                for (const NamedGap* other : gaps) {
+                for (const NamedGap* other : fileGaps) {
                     if (other != g) {
-                        other->adjust(without);
+                        applyGap(*other, without);
                     }
                 }
                 if (compareCanonical(without, actual, 1).isEmpty()) {
-                    failures << u"%1 : écart attendu « %2 » non observé"_s.arg(name, QLatin1String(g->name));
+                    failures << u"%1 : écart attendu « %2 » non observé"_s.arg(name, g->name);
                 } else {
-                    observed << u"%1/%2"_s.arg(name, QLatin1String(g->name));
+                    observed << u"%1/%2"_s.arg(name, g->name);
                 }
             }
         }
         for (const char* feature : kRequired) {
             if (!features.contains(QLatin1String(feature))) {
-                failures << u"couverture : « %1 » absent de l'export de la référence"_s.arg(
-                    QLatin1String(feature));
+                failures << u"couverture : « %1 » absent"_s.arg(QLatin1String(feature));
             }
         }
         for (const QString& f : failures.mid(0, 80)) {
@@ -400,5 +476,14 @@ private slots:
     }
 };
 
-QTEST_GUILESS_MAIN(TstFormatsOracleSynth)
+// Sauté : code de sortie 77, que ctest compte « Skipped » (SKIP_RETURN_CODE, tests/flipchart.cmake) ; QSKIP
+// seul sortirait 0, compté « Passed ».
+int main(int argc, char** argv)
+{
+    QCoreApplication app(argc, argv);
+    TstFormatsOracleSynth test;
+    const int failures = QTest::qExec(&test, argc, argv);
+    return failures == 0 && test.skipped ? 77 : failures;
+}
+
 #include "tst_formats_oracle_synth.moc"

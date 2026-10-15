@@ -383,9 +383,9 @@ private slots:
         QVERIFY(core::hasUniqueIds(r.document));
     }
 
-    // Comme la référence : une action qui suit un objet non lu (formule) n'a pas de déclencheur ; elle n'est
-    // pas rattachée à l'objet lu qui précède.
-    void actionAfterAnUnreadObjectHasNoTrigger()
+    // Comme la référence (L2-C4) : une action qui suit un objet non lu (formule) lui revient et disparaît
+    // avec lui, sans autre avertissement que « non lu » ; elle n'est pas rattachée à l'objet lu qui précède.
+    void actionAfterAnUnreadObjectGoesWithIt()
     {
         const auto r = formats::flipchart::readFlipchart(
             onePage(Node(103, 2, 102, {Node(110, 7, 111), Node(112, 460, 113), Node(114, 28, 115)}),
@@ -395,7 +395,8 @@ private slots:
         const auto& objects = r.document.page(0).objects;
         QCOMPARE(objects.size(), std::size_t{1});
         QVERIFY(objects[0].common.actions.empty());
-        QVERIFY2(r.warnings.join(u' ').contains(u"déclencheur"_s), qPrintable(r.warnings.join(u'\n')));
+        QCOMPARE(r.warnings.size(), 1);
+        QVERIFY2(r.warnings.first().contains(u"460"_s), qPrintable(r.warnings.join(u'\n')));
     }
 
     // Profondeur NaN : lue comme 0, l'ordre reste total. Arbre : B (z 1), A (z NaN), C (z 0) → A, C, B.
@@ -547,7 +548,8 @@ private slots:
         QVERIFY(nearlyEqual(t.dx, 96));
         QVERIFY(nearlyEqual(t.dy, 53));
         QCOMPARE(as<core::Connector>(objects[6]).objectB, core::ObjectId{0}); // vise la formule : sans cible
-        QCOMPARE(r.warnings.filter(u"non lu"_s).size(), 2);
+        QCOMPARE(r.warnings.filter(u"non lu"_s).size(), 3); // formule, texte vertical, formule de couche 7
+        QCOMPARE(r.warnings.size(), 3); // ni « couche inconnue » ni « déclencheur » : la référence se tait
         QVERIFY(core::hasUniqueIds(r.document));
     }
 
@@ -582,6 +584,29 @@ private slots:
         QCOMPARE(runs[2].pointSize, 18.5);
         QCOMPARE(runs[3].pointSize, 12.0);
         QCOMPARE(runs[3].weight, std::int32_t{200});
+    }
+
+    // Table des graisses Qt 4 → Qt 6 contre des valeurs écrites à la main (pas contre sa copie Python) : 0
+    // vaut 50, valeur de la table la plus proche, 100 et plus gardés, bornés à 900.
+    void fontWeightsFollowAHandWrittenTable()
+    {
+        const std::vector<std::pair<qint32, std::int32_t>> cases{
+            {0, 400},  {1, 100},  {50, 400},  {56, 500},  {57, 500},  {75, 700},
+            {87, 900}, {99, 900}, {100, 100}, {900, 900}, {1000, 900}};
+        std::vector<Obj> runs;
+        for (const auto& c : cases) {
+            runs.push_back(Obj(31, 0).integer(9, c.first));
+        }
+        const auto r = formats::flipchart::readFlipchart(
+            onePage(Node(103, 2, 102, {Node(110, 11, 111)}),
+                    {Entry(u"111.io"_s, Obj(11, 111).integer(38, 300).stream())},
+                    {Entry(u"300.ir"_s, Obj(12, 300).runs(4, runs).stream())}));
+        QVERIFY2(r.ok, qPrintable(r.error));
+        const auto& spans = as<core::Text>(r.document.page(0).objects[0]).runs;
+        QCOMPARE(spans.size(), cases.size());
+        for (std::size_t i = 0; i < cases.size(); ++i) {
+            QCOMPARE(spans[i].weight, cases[i].second);
+        }
     }
 
     void refusesWhatIsNotAFlipchart()

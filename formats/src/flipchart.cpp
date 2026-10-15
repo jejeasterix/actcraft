@@ -581,12 +581,12 @@ private:
             }
             Pending p = toPending(*container, child, *o, where, 1);
             p.order = order++;
-            const bool unread = p.unread;
-            const bool isGroup = std::get_if<core::Group>(&p.object) != nullptr;
+            const bool isGroup = !p.unread && std::get_if<core::Group>(&p.object) != nullptr;
             pending.push_back(std::move(p));
-            if (unread) {
-                last.reset(); // comme la référence : l'action suivante viserait cet objet non lu
-            } else if (!isGroup) {
+            if (!isGroup) {
+                // Un objet non lu reste déclencheur, comme dans la référence : l'action qui le suit lui
+                // revient et disparaît avec lui (il n'a pas d'identifiant ici), sans autre avertissement que
+                // « non lu ».
                 last = pending.size() - 1;
             }
         }
@@ -987,7 +987,8 @@ private:
         c.layer = p.layer == 0 ? core::Layer::Bottom : p.layer == 2 ? core::Layer::Top : core::Layer::Middle;
         // Couche hors 0..2 : couche intermédiaire, que le modèle sait représenter. Écart gardé (L2-C4) : la
         // référence garde la valeur brute ; l'oracle synthétique ne l'exerce pas.
-        if (p.layer < 0 || p.layer > 2) {
+        // Un objet non lu n'entre pas dans le modèle : sa couche n'est pas signalée (la référence se tait).
+        if (!p.unread && (p.layer < 0 || p.layer > 2)) {
             warn(u"%1 : couche %2 inconnue (nœud %3), couche intermédiaire"_s.arg(where).arg(p.layer).arg(
                 treeNode.nodeId));
         }
