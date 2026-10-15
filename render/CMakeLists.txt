@@ -18,6 +18,8 @@ actcraft_add_module(render
         src/inkbuffer.cpp
         include/actcraft/render/inkitem.h
         src/inkitem.cpp
+        include/actcraft/render/pagepainter.h
+        src/pagepainter.cpp
     DEPENDS
         ActCraft::core Qt6::Quick)
 
