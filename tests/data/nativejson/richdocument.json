@@ -1,0 +1,677 @@
+{
+    "format": "actcraft-document/1",
+    "nextId": 20,
+    "pages": [
+        {
+            "background": {
+                "fill": {
+                    "backgroundColor": "#ff000000",
+                    "color": "#ffffffff",
+                    "color2": "#ffffffff",
+                    "gradient": "vertical",
+                    "kind": "solid",
+                    "opaqueBackground": false,
+                    "pattern": 0
+                },
+                "image": ""
+            },
+            "grid": {
+                "allowSnap": false,
+                "defaultScale": 1,
+                "levels": [
+                ],
+                "onTop": false,
+                "scaleStep": 0.5,
+                "thumbnailScale": 1,
+                "visible": false
+            },
+            "height": 768,
+            "name": "Page un",
+            "notes": "Notes : « é è à »",
+            "objects": [
+                {
+                    "actions": [
+                        {
+                            "command": 184,
+                            "kind": "onObject",
+                            "resource": "1970a0946b6ebaf93c35eb29812afe6d4e75934f32f8ef3a74c6f05cd4018fa5",
+                            "sourceType": 28,
+                            "target": 6
+                        }
+                    ],
+                    "bounds": [
+                        10,
+                        20,
+                        100,
+                        50
+                    ],
+                    "brush": {
+                        "backgroundColor": "#ff000000",
+                        "color": "#ffffffff",
+                        "color2": "#ffffffff",
+                        "gradient": "vertical",
+                        "kind": "none",
+                        "opaqueBackground": false,
+                        "pattern": 0
+                    },
+                    "fill": "#ff336699",
+                    "id": 1,
+                    "label": "Légende",
+                    "layer": "bottom",
+                    "locked": true,
+                    "name": "Rectangle",
+                    "opacity": 0.75,
+                    "open": false,
+                    "outline": "#ff112233",
+                    "outlineWidth": 2.5,
+                    "paths": [
+                    ],
+                    "pen": {
+                        "cap": "round",
+                        "color": "#ff000000",
+                        "join": "round",
+                        "style": "solid",
+                        "width": 1
+                    },
+                    "polygon": [
+                    ],
+                    "restrictions": {
+                        "move": false,
+                        "rotate": true,
+                        "size": false
+                    },
+                    "shape": "rectangle",
+                    "transform": [
+                        1.7320508075688774,
+                        0.9999999999999999,
+                        -1.4999999999999998,
+                        2.598076211353316,
+                        5.5,
+                        -2.25
+                    ],
+                    "translucency": 40,
+                    "type": "shape",
+                    "visible": false,
+                    "windingFill": true
+                },
+                {
+                    "actions": [
+                    ],
+                    "bounds": [
+                        200,
+                        10,
+                        64,
+                        48
+                    ],
+                    "colorA": "#ff00ff00",
+                    "colorB": "#ff0000ff",
+                    "hasTransparentColor": false,
+                    "id": 2,
+                    "label": "",
+                    "layer": "middle",
+                    "locked": false,
+                    "name": "",
+                    "pattern": "rings",
+                    "resource": "",
+                    "restrictions": {
+                        "move": true,
+                        "rotate": false,
+                        "size": false
+                    },
+                    "seed": 7,
+                    "sourceHeight": 96,
+                    "sourceWidth": 128,
+                    "transform": [
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    "translucency": 0,
+                    "transparentColor": "#00000000",
+                    "type": "image",
+                    "visible": true
+                },
+                {
+                    "actions": [
+                    ],
+                    "bounds": [
+                        0,
+                        0,
+                        2,
+                        2
+                    ],
+                    "colorA": "#ff00ff00",
+                    "colorB": "#ff0000ff",
+                    "hasTransparentColor": true,
+                    "id": 3,
+                    "label": "",
+                    "layer": "middle",
+                    "locked": false,
+                    "name": "",
+                    "pattern": "rings",
+                    "resource": "2ca39923cec91a5146b92803ca2b69ce81577af42d115d624f7373806b2804e6",
+                    "restrictions": {
+                        "move": true,
+                        "rotate": true,
+                        "size": true
+                    },
+                    "seed": 3,
+                    "sourceHeight": 2,
+                    "sourceWidth": 2,
+                    "transform": [
+                        50,
+                        0,
+                        0,
+                        25,
+                        0,
+                        0
+                    ],
+                    "translucency": 0,
+                    "transparentColor": "#ffffffff",
+                    "type": "image",
+                    "visible": true
+                },
+                {
+                    "actions": [
+                    ],
+                    "bounds": [
+                        -3,
+                        -3,
+                        86,
+                        66
+                    ],
+                    "brush": {
+                        "backgroundColor": "#ff444444",
+                        "color": "#ff00aa00",
+                        "color2": "#80ffffff",
+                        "gradient": "radial",
+                        "kind": "gradient",
+                        "opaqueBackground": true,
+                        "pattern": 5
+                    },
+                    "fill": "#ff010101",
+                    "id": 4,
+                    "label": "",
+                    "layer": "middle",
+                    "locked": false,
+                    "name": "",
+                    "opacity": 0.5,
+                    "open": true,
+                    "outline": "#ff020202",
+                    "outlineWidth": 4,
+                    "paths": [
+                        [
+                            0,
+                            0,
+                            80,
+                            0,
+                            80,
+                            60
+                        ],
+                        [
+                            20,
+                            20,
+                            60,
+                            20,
+                            40,
+                            50
+                        ]
+                    ],
+                    "pen": {
+                        "cap": "flat",
+                        "color": "#ff010203",
+                        "join": "bevel",
+                        "style": "dash",
+                        "width": 6
+                    },
+                    "polygon": [
+                        1,
+                        1,
+                        9,
+                        1,
+                        5,
+                        8
+                    ],
+                    "restrictions": {
+                        "move": true,
+                        "rotate": true,
+                        "size": true
+                    },
+                    "shape": "path",
+                    "transform": [
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    "translucency": 0,
+                    "type": "shape",
+                    "visible": true,
+                    "windingFill": false
+                },
+                {
+                    "actions": [
+                    ],
+                    "id": 5,
+                    "label": "",
+                    "layer": "middle",
+                    "locked": false,
+                    "name": "",
+                    "pen": {
+                        "cap": "round",
+                        "color": "#ff000000",
+                        "join": "round",
+                        "style": "dashDotDot",
+                        "width": 3
+                    },
+                    "points": [
+                        0,
+                        0,
+                        50,
+                        25,
+                        100,
+                        0
+                    ],
+                    "restrictions": {
+                        "move": true,
+                        "rotate": true,
+                        "size": true
+                    },
+                    "transform": [
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    "translucency": 0,
+                    "type": "line",
+                    "visible": true
+                },
+                {
+                    "actions": [
+                    ],
+                    "bounds": [
+                        0,
+                        0,
+                        180,
+                        40
+                    ],
+                    "html": "<p>Bonjour <b>tout</b> le monde</p>",
+                    "id": 6,
+                    "label": "",
+                    "layer": "middle",
+                    "locked": false,
+                    "name": "",
+                    "restrictions": {
+                        "move": true,
+                        "rotate": true,
+                        "size": true
+                    },
+                    "runs": [
+                        {
+                            "baseline": [
+                                0,
+                                30
+                            ],
+                            "bounds": [
+                                0,
+                                0,
+                                90,
+                                36
+                            ],
+                            "color": "#ffff0000",
+                            "fontFamily": "Arial",
+                            "italic": true,
+                            "pointSize": 24,
+                            "strikeOut": false,
+                            "text": "Bonjour",
+                            "underline": true,
+                            "weight": 700
+                        },
+                        {
+                            "baseline": [
+                                0,
+                                30
+                            ],
+                            "bounds": [
+                                0,
+                                0,
+                                90,
+                                36
+                            ],
+                            "color": "#ffff0000",
+                            "fontFamily": "Arial",
+                            "italic": false,
+                            "pointSize": 24,
+                            "strikeOut": true,
+                            "text": "tout",
+                            "underline": true,
+                            "weight": 400
+                        }
+                    ],
+                    "transform": [
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    "translucency": 0,
+                    "type": "text",
+                    "visible": true
+                },
+                {
+                    "actions": [
+                    ],
+                    "autoPlay": true,
+                    "bounds": [
+                        0,
+                        0,
+                        64,
+                        48
+                    ],
+                    "fileName": "chanson.mp3",
+                    "id": 7,
+                    "label": "",
+                    "layer": "middle",
+                    "locked": false,
+                    "loop": false,
+                    "media": "1970a0946b6ebaf93c35eb29812afe6d4e75934f32f8ef3a74c6f05cd4018fa5",
+                    "name": "",
+                    "placeholder": "2ca39923cec91a5146b92803ca2b69ce81577af42d115d624f7373806b2804e6",
+                    "restrictions": {
+                        "move": true,
+                        "rotate": true,
+                        "size": true
+                    },
+                    "transform": [
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    "translucency": 0,
+                    "type": "media",
+                    "visible": true
+                },
+                {
+                    "actions": [
+                    ],
+                    "id": 8,
+                    "label": "",
+                    "layer": "middle",
+                    "locked": false,
+                    "members": [
+                        4,
+                        5
+                    ],
+                    "name": "",
+                    "restrictions": {
+                        "move": true,
+                        "rotate": true,
+                        "size": true
+                    },
+                    "transform": [
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    "translucency": 0,
+                    "type": "group",
+                    "visible": true
+                },
+                {
+                    "actions": [
+                    ],
+                    "endA": [
+                        1,
+                        2
+                    ],
+                    "endB": [
+                        300,
+                        400
+                    ],
+                    "id": 9,
+                    "label": "",
+                    "layer": "top",
+                    "locked": false,
+                    "name": "",
+                    "objectA": 4,
+                    "objectB": 6,
+                    "pen": {
+                        "cap": "round",
+                        "color": "#ff990000",
+                        "join": "round",
+                        "style": "solid",
+                        "width": 1
+                    },
+                    "restrictions": {
+                        "move": true,
+                        "rotate": true,
+                        "size": true
+                    },
+                    "transform": [
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    "translucency": 0,
+                    "type": "connector",
+                    "visible": true
+                },
+                {
+                    "actions": [
+                    ],
+                    "baseWidth": 6,
+                    "cap": "round",
+                    "color": "#80ffff00",
+                    "id": 10,
+                    "kind": "highlighter",
+                    "label": "",
+                    "layer": "top",
+                    "locked": false,
+                    "name": "",
+                    "points": [
+                        10,
+                        10,
+                        0.25,
+                        20,
+                        15,
+                        0.5,
+                        30,
+                        10,
+                        0.75
+                    ],
+                    "restrictions": {
+                        "move": true,
+                        "rotate": true,
+                        "size": true
+                    },
+                    "transform": [
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    "translucency": 0,
+                    "type": "stroke",
+                    "visible": true
+                }
+            ],
+            "width": 1024
+        },
+        {
+            "background": {
+                "fill": {
+                    "backgroundColor": "#ff000000",
+                    "color": "#ffc8dcff",
+                    "color2": "#ffffffff",
+                    "gradient": "diagonalUp",
+                    "kind": "gradient",
+                    "opaqueBackground": false,
+                    "pattern": 0
+                },
+                "image": "2ca39923cec91a5146b92803ca2b69ce81577af42d115d624f7373806b2804e6"
+            },
+            "grid": {
+                "allowSnap": false,
+                "defaultScale": 2,
+                "levels": [
+                    {
+                        "angle": 30,
+                        "color": "#ff0000ff",
+                        "drawX": true,
+                        "drawY": true,
+                        "line": "solid",
+                        "pattern": "normal",
+                        "snap": false,
+                        "start": [
+                            0,
+                            0
+                        ],
+                        "stepX": 50,
+                        "stepY": 25,
+                        "visible": true
+                    },
+                    {
+                        "angle": 45,
+                        "color": "#ff00ff00",
+                        "drawX": true,
+                        "drawY": false,
+                        "line": "dotted",
+                        "pattern": "angle",
+                        "snap": true,
+                        "start": [
+                            3,
+                            4
+                        ],
+                        "stepX": 64,
+                        "stepY": 48,
+                        "visible": false
+                    },
+                    {
+                        "angle": 30,
+                        "color": "#ff808080",
+                        "drawX": false,
+                        "drawY": false,
+                        "line": "solid",
+                        "pattern": "normal",
+                        "snap": true,
+                        "start": [
+                            0,
+                            0
+                        ],
+                        "stepX": 16,
+                        "stepY": 12,
+                        "visible": true
+                    }
+                ],
+                "onTop": true,
+                "scaleStep": 0.25,
+                "thumbnailScale": 0.5,
+                "visible": true
+            },
+            "height": 600,
+            "name": "Page deux",
+            "notes": "Notes de la page deux",
+            "objects": [
+            ],
+            "width": 800
+        },
+        {
+            "background": {
+                "fill": {
+                    "backgroundColor": "#ff000000",
+                    "color": "#ffffffff",
+                    "color2": "#ffffffff",
+                    "gradient": "vertical",
+                    "kind": "solid",
+                    "opaqueBackground": false,
+                    "pattern": 0
+                },
+                "image": ""
+            },
+            "grid": {
+                "allowSnap": true,
+                "defaultScale": 1,
+                "levels": [
+                ],
+                "onTop": true,
+                "scaleStep": 0.5,
+                "thumbnailScale": 1,
+                "visible": false
+            },
+            "height": 768,
+            "name": "",
+            "notes": "",
+            "objects": [
+                {
+                    "actions": [
+                    ],
+                    "autoPlay": false,
+                    "bounds": [
+                        500,
+                        300,
+                        32,
+                        24
+                    ],
+                    "fileName": "boucle.mp3",
+                    "id": 11,
+                    "label": "",
+                    "layer": "middle",
+                    "locked": false,
+                    "loop": true,
+                    "media": "1970a0946b6ebaf93c35eb29812afe6d4e75934f32f8ef3a74c6f05cd4018fa5",
+                    "name": "",
+                    "placeholder": "",
+                    "restrictions": {
+                        "move": true,
+                        "rotate": true,
+                        "size": true
+                    },
+                    "transform": [
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    "translucency": 0,
+                    "type": "media",
+                    "visible": true
+                }
+            ],
+            "width": 1024
+        }
+    ],
+    "resources": [
+        {
+            "extension": "mp3",
+            "key": "1970a0946b6ebaf93c35eb29812afe6d4e75934f32f8ef3a74c6f05cd4018fa5"
+        },
+        {
+            "extension": "png",
+            "key": "2ca39923cec91a5146b92803ca2b69ce81577af42d115d624f7373806b2804e6"
+        }
+    ],
+    "title": "Document riche"
+}
