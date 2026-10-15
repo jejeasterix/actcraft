@@ -4,6 +4,7 @@
 #include <actcraft/render/painternode.h>
 #include <actcraft/render/strokegeometry.h>
 
+#include <QAbstractTextDocumentLayout>
 #include <QBuffer>
 #include <QFontMetricsF>
 #include <QImageReader>
@@ -14,6 +15,7 @@
 #include <QPolygonF>
 #include <QRadialGradient>
 #include <QTextDocument>
+#include <QTextFormat>
 #include <QUrl>
 #include <QVariant>
 
@@ -38,12 +40,30 @@ struct GridBudget
 // schémas, dont file://hôte/partage) reçoit une valeur vide mais valide : QTextDocument ne se rabat alors ni
 // sur un fournisseur de ressources, ni sur la lecture directe du fichier que font l'affichage des images et
 // les fonds quand la ressource est nulle.
+// Images du HTML : ni lues ni dessinées, leur place seule est gardée. Remplace le gestionnaire de Qt, qui
+// cherche « nom@2x.png » sur le disque avant toute ressource dès que la densité de pixels dépasse 1
+// (résolution réseau d'un chemin UNC, existence d'un fichier local révélée).
+class NoImageHandler final : public QObject, public QTextObjectInterface
+{
+    Q_OBJECT
+    Q_INTERFACES(QTextObjectInterface)
+
+public:
+    QSizeF intrinsicSize(QTextDocument*, int, const QTextFormat& format) override
+    {
+        const QTextImageFormat image = format.toImageFormat();
+        return QSizeF(std::max(0.0, image.width()), std::max(0.0, image.height()));
+    }
+    void drawObject(QPainter*, const QRectF&, QTextDocument*, int, const QTextFormat&) override {}
+};
+
 class IsolatedTextDocument final : public QTextDocument
 {
 public:
     IsolatedTextDocument()
     {
         setResourceProvider([](const QUrl&) { return QVariant(QByteArray()); });
+        documentLayout()->registerHandler(QTextFormat::ImageObject, &m_images);
     }
 
 protected:
@@ -59,6 +79,9 @@ protected:
         }
         return QByteArray();
     }
+
+private:
+    NoImageHandler m_images;
 };
 
 // rstrip() de Python : espaces de fin retirés, espaces de tête gardés.
@@ -715,3 +738,5 @@ QByteArray thumbnailPng(const core::Page& page, const ImageLookup& images)
 }
 
 } // namespace actcraft::render
+
+#include "pagepainter.moc"

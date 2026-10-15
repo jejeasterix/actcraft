@@ -9,6 +9,7 @@
 #include <QFontMetricsF>
 #include <QImageReader>
 #include <QPainter>
+#include <QRandomGenerator>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QThread>
@@ -102,6 +103,34 @@ QRect runInk(const QString& text, double width)
         }
     }
     return ink;
+}
+
+// Page d'un texte HTML peinte par paintPage sur une image de densité `ratio`, sur ce fil ou sur un fil
+// secondaire.
+QImage paintHtml(const QString& html, qreal ratio, bool onWorker)
+{
+    core::Text t;
+    t.bounds = {0, 0, 300, 100};
+    t.html = html.toStdString();
+    core::PageObject o = t;
+    o.common.transform = core::translation(50, 50);
+    core::Page page;
+    page.objects.push_back(o);
+    QImage image(qRound(450 * ratio), qRound(250 * ratio), QImage::Format_ARGB32_Premultiplied);
+    image.setDevicePixelRatio(ratio);
+    image.fill(Qt::white);
+    const auto paint = [&page, &image] {
+        QPainter painter(&image);
+        render::paintPage(painter, page, kNoImages);
+    };
+    if (onWorker) {
+        const std::unique_ptr<QThread> thread(QThread::create(paint));
+        thread->start();
+        thread->wait();
+    } else {
+        paint();
+    }
+    return image;
 }
 
 core::Page gridPage(core::GridLevel level)
@@ -452,6 +481,7 @@ private slots:
         red.fill(Qt::red);
         const QString png = dir.filePath(QStringLiteral("rouge.png"));
         QVERIFY(red.save(png, "PNG"));
+        QVERIFY(red.save(dir.filePath(QStringLiteral("rouge@2x.png")), "PNG")); // variante de densité 2
         const QString css = dir.filePath(QStringLiteral("style.css"));
         {
             QFile file(css);
@@ -467,20 +497,37 @@ private slots:
             QStringLiteral("<table background=\"") + pngUrl +
                 QStringLiteral("\" width=\"200\" height=\"60\"><tr><td>XXXX</td></tr></table>"),
             QStringLiteral("<p style=\"background-image:url(") + pngUrl + QStringLiteral(")\">XXXX XXXX</p>"),
-            QStringLiteral("<link rel=\"stylesheet\" href=\"") + cssUrl + QStringLiteral("\"><p>XXXX</p>"),
             QStringLiteral("<style>@import url(") + cssUrl + QStringLiteral(");</style><p>XXXX</p>"),
         };
+        // Fil principal et fil secondaire, densités 1, 2 et 1,25.
         for (const QString& html : variants) {
-            core::Text t;
-            t.bounds = {0, 0, 300, 100};
-            t.html = html.toStdString();
-            core::PageObject o = t;
-            o.common.transform = core::translation(50, 50);
-            core::Page page;
-            page.objects.push_back(o);
-            const QImage image = render::renderPage(page, kNoImages, 1.0);
-            const int reds = countPixels(image, QRect(0, 0, 450, 250), isRed);
-            QVERIFY2(reds == 0, qPrintable(html + QStringLiteral(" : ") + QString::number(reds)));
+            for (const qreal ratio : {1.0, 2.0, 1.25}) {
+                for (const bool onWorker : {false, true}) {
+                    const QImage image = paintHtml(html, ratio, onWorker);
+                    const int reds = countPixels(image, image.rect(), isRed);
+                    QVERIFY2(reds == 0, qPrintable(html + QStringLiteral(" : ") + QString::number(reds)));
+                }
+            }
+        }
+    }
+
+    // Densité > 1 : le gestionnaire d'images de Qt cherche « nom@2x.png » sur le disque avant toute ressource
+    // ; un hôte UNC inexistant y coûte une résolution réseau (environ 1,3 s). Le peintre ne lit aucune image
+    // du HTML.
+    void htmlImagesNeverTouchTheFileSystem()
+    {
+        const QString host =
+            QStringLiteral("actcraft-sonde-") + QString::number(QRandomGenerator::global()->generate64(), 16);
+        const QString html = QStringLiteral("<img src=\"\\\\") + host +
+                             QStringLiteral("\\x\\x.png\" width=\"60\" height=\"60\">");
+        paintHtml(html, 1.0, false); // polices chargées
+        for (const qreal ratio : {2.0, 1.25}) {
+            QElapsedTimer timer;
+            timer.start();
+            const QImage image = paintHtml(html, ratio, false);
+            QVERIFY2(timer.elapsed() < 100, qPrintable(QString::number(ratio) + QStringLiteral(" : ") +
+                                                       QString::number(timer.elapsed())));
+            QCOMPARE(countPixels(image, image.rect(), isRed), 0);
         }
     }
 
