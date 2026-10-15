@@ -1,6 +1,7 @@
 #include <actcraft/formats/flipchart.h>
 #include <actcraft/formats/flipchartdump.h>
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
@@ -31,12 +32,18 @@ private slots:
             qPrintable(u"JSON de l'oracle absents : %1 (lancer tools/oracle_flipchart.py)"_s.arg(oracle)));
         const QFileInfoList files = QDir(samples).entryInfoList({u"*.flipchart"_s}, QDir::Files, QDir::Name);
         QVERIFY(!files.isEmpty());
+        // Fraîcheur : un JSON par paperboard, aucun en trop, aucun plus ancien que le script qui l'a écrit.
+        const QFileInfoList written = QDir(oracle).entryInfoList({u"*.json"_s}, QDir::Files, QDir::Name);
+        QVERIFY2(written.size() == files.size(),
+                 qPrintable(u"%1 JSON pour %2 paperboards"_s.arg(written.size()).arg(files.size())));
+        const QFileInfo script(QDir(samples).absoluteFilePath(u"../tools/oracle_flipchart.py"_s));
         int pages = 0;
         QStringList failures;
         for (const QFileInfo& info : files) {
             QFile file(info.absoluteFilePath());
             QVERIFY(file.open(QIODevice::ReadOnly)); // lecture seule : samples/ n'est jamais modifié
-            const FlipchartReadResult r = readFlipchart(file.readAll());
+            const QByteArray bytes = file.readAll();
+            const FlipchartReadResult r = readFlipchart(bytes);
             if (!r.ok) {
                 failures << u"%1 : %2"_s.arg(info.fileName(), r.error);
                 continue;
@@ -47,18 +54,29 @@ private slots:
                 failures << u"%1 : JSON de l'oracle absent"_s.arg(info.fileName());
                 continue;
             }
+            if (script.exists() && QFileInfo(expectedFile).lastModified() < script.lastModified()) {
+                failures << u"%1 : JSON plus ancien que le script de l'oracle"_s.arg(info.fileName());
+                continue;
+            }
             QJsonParseError parse{};
-            const QJsonDocument expected = QJsonDocument::fromJson(expectedFile.readAll(), &parse);
-            if (parse.error != QJsonParseError::NoError || !expected.isObject()) {
+            const QJsonDocument parsed = QJsonDocument::fromJson(expectedFile.readAll(), &parse);
+            if (parse.error != QJsonParseError::NoError || !parsed.isObject()) {
                 failures << u"%1 : JSON de l'oracle illisible (%2)"_s.arg(info.fileName(),
                                                                           parse.errorString());
                 continue;
             }
-            for (const QString& diff : compareCanonical(expected.object(), canonicalDump(r.document))) {
+            QJsonObject expected = parsed.object();
+            const QString source = expected.take(u"source"_s).toString();
+            if (source != QString::fromStdString(actcraft::core::sha256Hex(bytes))) {
+                failures << u"%1 : JSON de l'oracle écrit pour un autre paperboard (empreinte)"_s.arg(
+                    info.fileName());
+                continue;
+            }
+            for (const QString& diff : compareCanonical(expected, canonicalDump(r))) {
                 failures << u"%1 : %2"_s.arg(info.fileName(), diff);
             }
         }
-        for (const QString& f : failures.mid(0, 40)) {
+        for (const QString& f : failures.mid(0, 60)) {
             qWarning("ECART %s", qPrintable(f));
         }
         QVERIFY2(failures.isEmpty(), qPrintable(u"%1 écart(s)"_s.arg(failures.size())));
