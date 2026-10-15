@@ -177,6 +177,21 @@ private slots:
         QCOMPARE(root->property("recu").toDouble(), 6.0);
     }
 
+    // L'état coché (outil courant, plein écran) n'est pas dans les fichiers relus : gardé par reload().
+    void reloadKeepsCheckedStates()
+    {
+        Commands c;
+        c.setProfileDir(m_emptyProfile.path());
+        c.setChecked(QStringLiteral("tool.pen"), true);
+        c.setChecked(QStringLiteral("view.fullscreen"), true);
+        c.reload();
+        QVERIFY(c.isChecked(QStringLiteral("tool.pen")));
+        QVERIFY(c.isChecked(QStringLiteral("view.fullscreen")));
+        QVERIFY(!c.isChecked(QStringLiteral("view.fit")));
+        c.setPlatform(Platform::Android); // recharge aussi
+        QVERIFY(c.isChecked(QStringLiteral("tool.pen")));
+    }
+
     void stateChangesBumpRevision()
     {
         Commands c;

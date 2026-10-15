@@ -36,12 +36,23 @@ void Commands::setPlatform(actions::Platform platform)
 
 void Commands::reload()
 {
+    // L'état coché (outil courant, plein écran) n'est pas dans les fichiers relus : gardé pour les commandes
+    // qui existent encore.
+    QStringList checked;
+    for (const QString& id : m_registry.ids()) {
+        if (m_registry.isChecked(id)) {
+            checked << id;
+        }
+    }
     m_registry = actions::CommandRegistry{};
     m_layout = actions::Layout{};
     m_errors.clear();
     QString error;
     if (!m_registry.loadDeclarations(actions::defaultCommandsJson(), error)) {
         m_errors << QStringLiteral("commands.json : %1").arg(error);
+    }
+    for (const QString& id : std::as_const(checked)) {
+        m_registry.setChecked(id, true); // sans effet sur une commande disparue
     }
     const QString resourceDir = actions::dataResourceDir();
     QString used;
