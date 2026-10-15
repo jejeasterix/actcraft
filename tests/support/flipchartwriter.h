@@ -4,7 +4,10 @@
 // documentation du format (REA - Activinspire/docs/re/format-flipchart.md), jamais à partir de fichiers réels
 // : aucun octet de samples/ n'est copié ici. Complété par L2-T8 (flux objet) et L2-T9 (paperboard complet).
 
+#include <QBuffer>
 #include <QByteArray>
+#include <QColor>
+#include <QImage>
 #include <QPointF>
 #include <QString>
 #include <QStringList>
@@ -293,5 +296,188 @@ private:
     std::optional<quint32> m_owner;
     std::vector<std::pair<quint16, QByteArray>> m_props;
 };
+
+// PNG w × h d'une couleur, produit par Qt (tests et outils de preuve seulement).
+inline QByteArray pngBytes(int w, int h, QRgb color)
+{
+    QImage image(w, h, QImage::Format_ARGB32);
+    image.fill(color);
+    QByteArray out;
+    QBuffer buffer(&out);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "PNG");
+    return out;
+}
+
+inline const QByteArray& sampleMp3()
+{
+    static const QByteArray bytes("ID3\x04\0\0\0\0\0\0son", 13);
+    return bytes;
+}
+
+// Paperboard synthétique de deux pages qui passe par chaque branche du lecteur (L2-T9). Numéros de types : 1
+// paperboard, 2 page, 3 annotation, 4 ressource d'annotation, 5 ligne, 6 ressource de ligne, 7 forme, 8
+// ressource de forme, 9 image, 10 ressource d'image, 11 texte, 12 ressource de texte, 13 grille, 14 niveau de
+// grille, 15 transformation, 16 registre, 18 groupe, 20 encre, 28 action sur objet, 29 fond, 30 ressource de
+// média, 31 ligne de texte, 52 connecteur, 53 étiquette, 253 média, 460 formule (non lue). `thumbnails` :
+// octets des miniatures « 103.thm » et « 203.thm » (aucune si vide).
+inline QByteArray sampleFlipchart(const std::vector<QByteArray>& thumbnails = {})
+{
+    const QByteArray png = pngBytes(2, 2, qRgb(255, 0, 0));
+    const auto translate = [](double x, double y) { return Obj(15, 0).pointF(2, x, y); };
+
+    const QByteArray page1 = container({
+        Entry(QStringLiteral("103.in"),
+              index(Node(103, 2, 102,
+                         {Node(104, 29, 105), Node(106, 13, 107, {Node(108, 14, 109)}), Node(110, 3, 111),
+                          Node(112, 7, 113), Node(114, 28, 115), Node(116, 11, 117),
+                          Node(118, 18, 119, {}, {110, 112})}))),
+        Entry(QStringLiteral("102.io"), Obj(2, 102)
+                                            .string(2, QStringLiteral("Page un"))
+                                            .string(5, QStringLiteral("Notes 1"))
+                                            .sizeF(6, 1024, 768)
+                                            .boolean(17, true)
+                                            .owner(103)
+                                            .stream()),
+        Entry(QStringLiteral("105.io"),
+              Obj(29, 105)
+                  .integer(2, 0)
+                  .object(3, 6,
+                          Obj(20, 0)
+                              .integer(8, 1)
+                              .color(9, 200, 220, 255)
+                              .integer(14, 1)
+                              .color(13, 255, 255, 255))
+                  .stream()),
+        Entry(QStringLiteral("107.io"), Obj(13, 107).boolean(16, true).real(14, 1).stream()),
+        Entry(QStringLiteral("109.io"),
+              Obj(14, 109).real(7, 50).real(8, 25).color(4, 0, 0, 255).integer(2, 3).integer(3, 1).stream()),
+        Entry(
+            QStringLiteral("111.io"),
+            Obj(3, 111)
+                .string(4, QStringLiteral("Stylo1"))
+                .integer(8, 2)
+                .real(9, 1)
+                .object(2, 7, Obj(15, 0).pointF(2, 100, 100).real(3, 90).pointF(4, 2, 1))
+                .object(10, 6, Obj(20, 0).integer(2, 1).real(3, 20).color(7, 255, 255, 0, 128).integer(5, 32))
+                .integer(39, 310)
+                .owner(110)
+                .stream()),
+        Entry(QStringLiteral("113.io"),
+              Obj(7, 113)
+                  .string(4, QStringLiteral("Forme1"))
+                  .integer(8, 1)
+                  .real(9, 2)
+                  .object(2, 7, translate(300, 200))
+                  .userRect(7, -3, -3, 86, 66)
+                  .object(
+                      10,
+                      6,
+                      Obj(20, 0).integer(4, 2).real(3, 6).color(7, 0, 0, 0).integer(8, 1).color(9, 0, 128, 0))
+                  .integer(38, 320)
+                  .integer(39, 2)
+                  .object(34, 12, Obj(53, 0).string(2, QStringLiteral("Étiquette")))
+                  .owner(112)
+                  .stream()),
+        Entry(QStringLiteral("115.io"),
+              Obj(28, 115).pointer(2, 116, 117, 11).integer(3, 42).integer(5, 184).stream()),
+        Entry(QStringLiteral("117.io"), Obj(11, 117)
+                                            .integer(8, 1)
+                                            .real(9, 3)
+                                            .object(2, 7, translate(500, 500))
+                                            .userRect(7, 0, 0, 90, 36)
+                                            .boolean(18, true)
+                                            .integer(38, 330)
+                                            .owner(116)
+                                            .stream()),
+        Entry(QStringLiteral("119.io"), Obj(18, 119).owner(118).stream()),
+    });
+
+    const QByteArray page2 = container({
+        Entry(QStringLiteral("203.in"),
+              index(Node(203, 2, 202,
+                         {Node(204, 29, 205), Node(208, 9, 209), Node(210, 5, 211), Node(212, 253, 213),
+                          Node(214, 52, 215), Node(216, 460, 217)}))),
+        Entry(QStringLiteral("202.io"), Obj(2, 202).sizeF(6, 800, 600).stream()),
+        Entry(QStringLiteral("205.io"), Obj(29, 205).integer(2, 1).pointer(4, 0, 207, 9).stream()),
+        Entry(QStringLiteral("207.io"), Obj(9, 207).integer(38, 300).stream()),
+        Entry(QStringLiteral("209.io"), Obj(9, 209)
+                                            .integer(8, 1)
+                                            .userRect(7, 0, 0, 2, 2)
+                                            .object(2, 7, Obj(15, 0).pointF(2, 10, 10).pointF(4, 50, 50))
+                                            .integer(38, 300)
+                                            .boolean(39, true)
+                                            .color(40, 255, 255, 255)
+                                            .stream()),
+        Entry(QStringLiteral("211.io"),
+              Obj(5, 211)
+                  .integer(8, 1)
+                  .object(10, 6, Obj(20, 0).real(3, 3).color(7, 0, 0, 255).integer(4, 1))
+                  .integer(38, 340)
+                  .stream()),
+        Entry(QStringLiteral("213.io"), Obj(253, 213)
+                                            .integer(8, 1)
+                                            .userRect(7, 0, 0, 64, 48)
+                                            .integer(38, 300)
+                                            .integer(45, 350)
+                                            .boolean(41, true)
+                                            .stream()),
+        Entry(QStringLiteral("215.io"), Obj(52, 215)
+                                            .pointF(39, 0, 0)
+                                            .pointF(40, 100, 100)
+                                            .pointer(34, 208, 209, 9)
+                                            .pointer(35, 210, 211, 5)
+                                            .stream()),
+        Entry(QStringLiteral("217.io"), Obj(460, 217).stream()),
+    });
+
+    const Obj registry = Obj(16, 0)
+                             .resources(5, {Res(310, QStringLiteral("310.ir"), QString())})
+                             .resources(6, {Res(300, QStringLiteral("300.ir"), QStringLiteral("301.png"))})
+                             .resources(7, {Res(340, QStringLiteral("340.ir"), QString())})
+                             .resources(8, {Res(320, QStringLiteral("320.ir"), QString())})
+                             .resources(9, {Res(330, QStringLiteral("330.ir"), QString())})
+                             .resources(11, {Res(350, QStringLiteral("350.ir"), QStringLiteral("351.mp3"))});
+    const Obj run = Obj(31, 0)
+                        .rectF(2, 0, 0, 90, 36)
+                        .pointF(3, 0, 30)
+                        .color(5, 255, 0, 0)
+                        .string(6, QStringLiteral("Bonjour"))
+                        .string(7, QStringLiteral("Arial"))
+                        .real(8, 24)
+                        .integer(9, 75);
+    std::vector<Entry> root{
+        Entry(QStringLiteral("101.in"), index(Node(101, 1, 100, {Node(103, 2, 102), Node(203, 2, 202)}))),
+        Entry(QStringLiteral("100.io"), Obj(1, 100)
+                                            .string(12, QStringLiteral("Essai synthétique"))
+                                            .sizeF(18, 1024, 768)
+                                            .object(7, 4, registry)
+                                            .owner(101)
+                                            .stream()),
+        Entry(QStringLiteral("103.fpg"), page1),
+        Entry(QStringLiteral("203.fpg"), page2),
+        Entry(QStringLiteral("300.ir"), Obj(10, 300).size(5, 2, 2).stream()),
+        Entry(QStringLiteral("301.png"), png, false),
+        Entry(QStringLiteral("310.ir"),
+              Obj(4, 310).points(4, {QPointF(0, 0), QPointF(100, 0), QPointF(100, 50)}).stream()),
+        Entry(QStringLiteral("320.ir"),
+              Obj(8, 320)
+                  .polygons(4, {{QPointF(0, 0), QPointF(80, 0), QPointF(80, 60), QPointF(0, 60)},
+                                {QPointF(20, 20), QPointF(60, 20), QPointF(40, 50)}})
+                  .stream()),
+        Entry(QStringLiteral("330.ir"),
+              Obj(12, 330).runs(4, {run}).string(5, QStringLiteral("<p>Bonjour</p>")).integer(6, 2).stream()),
+        Entry(QStringLiteral("340.ir"), Obj(6, 340).points(4, {QPointF(0, 0), QPointF(200, 100)}).stream()),
+        Entry(QStringLiteral("350.ir"), Obj(30, 350).string(3, QStringLiteral("351.mp3")).stream()),
+        Entry(QStringLiteral("351.mp3"), sampleMp3(), false),
+    };
+    if (thumbnails.size() >= 1) {
+        root.emplace_back(QStringLiteral("103.thm"), thumbnails[0], false);
+    }
+    if (thumbnails.size() >= 2) {
+        root.emplace_back(QStringLiteral("203.thm"), thumbnails[1], false);
+    }
+    return container(root);
+}
 
 } // namespace fctest
