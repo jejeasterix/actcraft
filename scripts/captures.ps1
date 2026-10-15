@@ -29,6 +29,8 @@ $fichiers = @(if ($Scenario -eq 'tous') { Get-ChildItem bench/scenarios/*.json }
 
 if ($HorsEcran) {
     $env:QT_QPA_PLATFORM = 'offscreen'
+    # Hors écran, Qt n'a aucune police sous Windows : sans ceci, tous les textes sont des carrés vides.
+    if (-not $env:QT_QPA_FONTDIR) { $env:QT_QPA_FONTDIR = Join-Path $env:WINDIR 'Fonts' }
 } else {
     Write-Output 'Les scénarios s''affichent sur l''écran principal (souris non pilotée).'
 }
