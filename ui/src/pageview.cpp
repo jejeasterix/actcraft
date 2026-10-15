@@ -11,6 +11,10 @@
 #include <QTabletEvent>
 #include <QTouchEvent>
 #include <QWheelEvent>
+// État privé de Qt Quick (Qt 6.12 LTS, version fixée) : boutons propres d'un élément et ses gestionnaires de
+// pointeur, que l'API publique confond (takesPress).
+#include <QtQuick/private/qquickitem_p.h>
+#include <QtQuick/private/qquickpointerhandler_p.h>
 
 #include <algorithm>
 
@@ -26,15 +30,39 @@ bool samePan(QPointF a, QPointF b)
     return qAbs(a.x() - b.x()) < kSamePan && qAbs(a.y() - b.y()) < kSamePan;
 }
 
+// `item` prendrait lui-même un appui : il accepte le bouton gauche ou le toucher, ou porte un gestionnaire
+// qui prend l'appui (TapHandler, DragHandler). acceptedMouseButtons() ne suffit pas : tout gestionnaire, même
+// un HoverHandler qui ne prend jamais l'appui, y ajoute tous les boutons ; Qt garde à part ceux de l'élément.
+bool takesPress(const QQuickItem* item)
+{
+    if (item->acceptTouchEvents()) {
+        return true;
+    }
+    const QQuickItemPrivate* d = QQuickItemPrivate::get(item);
+    if (!d->hasPointerHandlers()) {
+        return item->acceptedMouseButtons() & Qt::LeftButton;
+    }
+    // Le bouton gauche propre est rangé à part, dans l'étiquette de `extra` (QQuickItemPrivate::
+    // acceptedMouseButtons) ; acceptedMouseButtonsWithoutHandlers ne garde que les autres boutons.
+    if (d->extra.tag().testFlag(QQuickItemPrivate::LeftMouseButtonAccepted)) {
+        return true;
+    }
+    const QList<QQuickPointerHandler*>& handlers = d->extra->pointerHandlers;
+    return std::any_of(handlers.cbegin(), handlers.cend(), [](const QQuickPointerHandler* handler) {
+        return handler->enabled() &&
+               (handler->inherits("QQuickTapHandler") || handler->inherits("QQuickDragHandler"));
+    });
+}
+
 // `item` ou l'un de ses descendants prendrait l'appui de la souris ou du doigt au point `scenePos` : visible,
-// actif, sous le point, et acceptant le bouton gauche ou le toucher (barre de défilement, bouton).
+// actif, sous le point, et prenant l'appui (barre de défilement, bouton).
 bool takesPressAt(const QQuickItem* item, QPointF scenePos)
 {
     if (!item->isVisible() || !item->isEnabled()) {
         return false;
     }
     const bool inside = item->contains(item->mapFromScene(scenePos));
-    if (inside && ((item->acceptedMouseButtons() & Qt::LeftButton) || item->acceptTouchEvents())) {
+    if (inside && takesPress(item)) {
         return true;
     }
     if (item->clip() && !inside) {
