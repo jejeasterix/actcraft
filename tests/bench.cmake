@@ -85,3 +85,9 @@ if(ACTCRAFT_PWSH)
         FIXTURES_REQUIRED "bench_smoke_json;bench_summary_clean"
         PASS_REGULAR_EXPRESSION "RESUME OK")
 endif()
+
+# Joueur de scénarios d'interface d'actcraft-captures (DA8), sur une fenêtre d'essai à vraie PageView.
+actcraft_add_test(tst_bench_uiscenario
+    SOURCES tst_bench_uiscenario.cpp
+    LIBS ActCraft::benchui ActCraft::ui actcraft_uiplugin Qt6::Quick)
+target_compile_definitions(tst_bench_uiscenario PRIVATE ACTCRAFT_TESTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
