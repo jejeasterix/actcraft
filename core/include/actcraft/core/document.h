@@ -2,18 +2,33 @@
 
 #include <actcraft/core/model.h>
 
+#include <QByteArray>
+
 #include <cstddef>
 #include <cstdint>
+#include <map>
+#include <string>
 #include <vector>
 
 namespace actcraft::core {
 
-// Squelette du document (DA2, décision 15 du cadrage livraison-complete) : une suite de pages, jamais vide.
-// Couches, ressources et pile d'annulation arrivent au lot 2.
+// Ressource d'un document (image, son, vidéo) : octets d'origine, jamais recompressés (DA3).
+struct Resource
+{
+    QByteArray data;
+    std::string extension; // [a-z0-9]{1,8}, sans point : « png », « jpg », « mp3 »… ; sinon « bin »
+};
+
+// Document (DA2, décision 15) : une suite de pages, jamais vide ; ressources par empreinte SHA-256 ;
+// identifiants d'objets uniques dans tout le document. Les modifications passent par la pile d'annulation
+// (undo.h, edits.h) ; ces méthodes sont ses briques.
 class Document
 {
 public:
     Document(); // une page vierge de 1024 × 768
+    Document(double pageWidth, double pageHeight);
+    // Liste vide : une page vierge (un document n'est jamais vide).
+    explicit Document(std::vector<Page> pages);
 
     std::size_t pageCount() const noexcept;
     // Exige index < pageCount() (assert).
@@ -21,9 +36,34 @@ public:
     Page& page(std::size_t index);
     // Ajoute à la fin une page vierge de la taille de la dernière ; retourne son indice.
     std::size_t appendPage();
+    // Exige index <= pageCount().
+    void insertPage(std::size_t index, Page page);
+    // Retire et rend la page `index` ; exige pageCount() > 1.
+    Page takePage(std::size_t index);
+
+    // Identifiant neuf, jamais 0.
+    ObjectId allocateId() noexcept;
+    ObjectId nextId() const noexcept;
+    // Le prochain identifiant dépasse tous ceux des pages (après une lecture ou une page posée telle quelle).
+    void refreshNextId() noexcept;
+    // Le prochain identifiant vaut au moins `next` ; jamais en arrière.
+    void reserveIdsBelow(ObjectId next) noexcept;
+
+    // Clé = SHA-256 des octets en hexadécimal minuscule (64 caractères) ; même contenu, même clé, une seule
+    // copie.
+    std::string addResource(QByteArray data, std::string extension);
+    // nullptr si la clé est inconnue.
+    const Resource* resource(const std::string& key) const noexcept;
+    const std::map<std::string, Resource>& resources() const noexcept;
+
+    const std::string& title() const noexcept;
+    void setTitle(std::string title);
 
 private:
     std::vector<Page> m_pages;
+    std::map<std::string, Resource> m_resources;
+    ObjectId m_nextId = 1;
+    std::string m_title;
 };
 
 // « Page suivante » (F-125) : indice suivant ; sur la dernière page, ajoute d'abord une page vierge.
@@ -31,7 +71,13 @@ std::size_t nextPageIndex(Document& document, std::size_t current);
 // « Page précédente » : indice précédent, borné à 0.
 std::size_t previousPageIndex(std::size_t current) noexcept;
 
-// Empreinte FNV-1a 64 bits : nombre de pages, puis fingerprint(page) de chaque page dans l'ordre.
+// SHA-256 en hexadécimal minuscule.
+std::string sha256Hex(const QByteArray& data);
+// Vrai si chaque objet a un identifiant non nul, unique dans tout le document.
+bool hasUniqueIds(const Document& document);
+
+// Empreinte FNV-1a 64 bits : nombre de pages, empreinte de chaque page, titre, ressources (clé et extension ;
+// la clé résume les octets). Le prochain identifiant n'y entre pas : un document relu a la même empreinte.
 std::uint64_t fingerprint(const Document& document) noexcept;
 
 } // namespace actcraft::core

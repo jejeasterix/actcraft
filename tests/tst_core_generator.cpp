@@ -10,10 +10,11 @@
 using namespace actcraft::core;
 
 namespace {
-// Valeur relevée au premier passage sous Windows (étape 7), vérifiée sous macOS par la CI et recoupée hors
-// dépôt par deux réimplémentations indépendantes du générateur (sans bibliothèque C++).
-// Ne jamais la « corriger » : si elle change, c'est le générateur qui a changé.
-constexpr std::uint64_t kExpectedFingerprint = 0xEC92781F3ED73B1Eull;
+// Valeur relevée au premier passage sous Windows après l'ajout des propriétés communes du lot 2 (DA2 :
+// empreinte recalculée), vérifiée sous macOS par la CI. Le contenu des 300 objets n'a pas changé ; seuls des
+// champs à valeur par défaut et les identifiants 1 à 300 entrent dans l'empreinte. Valeur du lot 1 :
+// 0xEC92781F3ED73B1E. Ne jamais la « corriger » : si elle change, c'est le générateur qui a changé.
+constexpr std::uint64_t kExpectedFingerprint = 0x3551EB2438FDFDC1ull;
 
 bool nearBlack(Argb c)
 {
@@ -102,11 +103,24 @@ private slots:
             case ObjectKind::Stroke:
                 ++strokes;
                 break;
+            default: // types du lot 2 : absents de la page du banc (et -Wswitch de Clang exige ce cas)
+                QFAIL("type d'objet inattendu dans la page du banc");
             }
         }
         QCOMPARE(shapes, kShapeCount);
         QCOMPARE(images, kImageCount);
         QCOMPARE(strokes, kStrokeCount);
+    }
+
+    void objectsHaveIdsOneToThreeHundredOnTheMiddleLayer()
+    {
+        const Page page = generatePage();
+        QCOMPARE(page.objects.size(), std::size_t{300});
+        for (std::size_t i = 0; i < page.objects.size(); ++i) {
+            QCOMPARE(page.objects[i].common.id, static_cast<ObjectId>(i + 1));
+            QCOMPARE(page.objects[i].common.layer, Layer::Middle);
+            QVERIFY(page.objects[i].common.transform.isIdentity());
+        }
     }
 
     void deterministic()
