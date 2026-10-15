@@ -1,0 +1,372 @@
+name: Release
+
+# Décision 32 du cadrage livraison-complete (docs/specs/2026-10-14-livraison-complete-cadrage.md).
+# - Tag v<version> : mode « reel ». Refus si le tag ne correspond pas à la version du projet ; secrets de signature
+#   obligatoires, vérifiés avant toute construction ; installateur + APK arm64-v8a signé par la clé de release ;
+#   SHA256SUMS.txt ; notes tirées de CHANGELOG.md ; BROUILLON de release, jamais publié par ce workflow.
+# - workflow_dispatch : « essai » ou « reel » (mêmes règles ; « reel » se lance sur le tag v<version>).
+# - Push d'une branche essai-ci/release-<sujet> : « essai », pour prouver le flux sans tag (workflow_dispatch n'est
+#   utilisable qu'une fois le workflow sur main).
+# Mode « essai » : tout est construit et essayé, l'APK est signé par une clé de débogage (non publiable) ; aucun
+# secret lu, aucun artefact téléversé, aucune release. Un job y prouve que le mode réel, privé de secrets, échoue avec
+# son message. Le tag, sa poussée et la publication du brouillon relèvent du go écrit de Jérôme (action finale,
+# .claude/chantier.md).
+# Pratiques de ci.yml (L1-T19) : actions épinglées par commit (version en commentaire), aqtinstall épinglé, délai par
+# job, verdict de chaque script exigé sur sa dernière ligne en plus du code de sortie.
+on:
+  push:
+    tags: ["v*"]
+    branches: ["essai-ci/release-**"]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "essai (non publiable, aucune release) ou reel (secrets de signature requis, sur le tag)"
+        type: choice
+        options: [essai, reel]
+        default: essai
+
+# Un seul run à la fois par référence : jamais deux brouillons pour un même tag ; un run en cours n'est pas annulé.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# Lecture seule partout ; seuls « release » (brouillon) et « nettoyer » (artefacts du run) écrivent, en mode réel.
+permissions:
+  contents: read
+
+env:
+  QT_VERSION: "6.12.0"
+
+jobs:
+  mode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+      version: ${{ steps.mode.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # Contexte passé par l'environnement, jamais interpolé dans le script (un nom de branche peut contenir « ' »).
+      - id: mode
+        shell: pwsh
+        env:
+          EVENEMENT: ${{ github.event_name }}
+          TYPE_REF: ${{ github.ref_type }}
+          NOM_REF: ${{ github.ref_name }}
+          MODE_DEMANDE: ${{ inputs.mode }}
+        run: |
+          . ./scripts/version-projet.ps1
+          $version = Get-ActCraftVersion
+          if ($env:EVENEMENT -eq 'workflow_dispatch') { $mode = $env:MODE_DEMANDE }
+          elseif ($env:TYPE_REF -eq 'tag') { $mode = 'reel' }
+          else { $mode = 'essai' }
+          if ($mode -cnotin 'essai', 'reel') { Write-Output "Mode inconnu « $mode » : arrêt."; exit 1 }
+          if ($env:TYPE_REF -eq 'tag' -and $env:NOM_REF -cne "v$version") {
+            Write-Output "Tag $env:NOM_REF différent de la version du projet (v$version) : arrêt."
+            exit 1
+          }
+          "mode=$mode" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Output "Mode $mode, version $version ($env:EVENEMENT, $env:TYPE_REF $env:NOM_REF)"
+
+  # Mode réel : refus, avant toute construction, si un secret de signature manque (secret absent = variable vide).
+  secrets:
+    needs: mode
+    if: needs.mode.outputs.mode == 'reel'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Secrets de signature
+        shell: pwsh
+        env:
+          ACTCRAFT_KEYSTORE_BASE64: ${{ secrets.ACTCRAFT_KEYSTORE_BASE64 }}
+          ACTCRAFT_KEYSTORE_PASSWORD: ${{ secrets.ACTCRAFT_KEYSTORE_PASSWORD }}
+          ACTCRAFT_KEY_ALIAS: ${{ secrets.ACTCRAFT_KEY_ALIAS }}
+          ACTCRAFT_KEY_PASSWORD: ${{ secrets.ACTCRAFT_KEY_PASSWORD }}
+        run: |
+          pwsh -NoProfile -File ./scripts/verifier-secrets-release.ps1 | Tee-Object -FilePath "$env:RUNNER_TEMP/secrets.txt"
+          if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/secrets.txt" -Tail 1) -cne 'SECRETS OK') { exit 1 }
+
+      # Les paquets du brouillon sont construits depuis le commit du tag (ref_name = v<version>, vérifié par « mode ») :
+      # un workflow_dispatch « reel » lancé sur une branche est refusé, avant toute construction.
+      - name: Mode réel sur le tag de la version
+        shell: pwsh
+        env:
+          TYPE_REF: ${{ github.ref_type }}
+          NOM_REF: ${{ github.ref_name }}
+        run: |
+          if ($env:TYPE_REF -cne 'tag') {
+            Write-Output "Mode réel lancé sur $env:TYPE_REF $env:NOM_REF : à lancer sur le tag v<version>. Arrêt."
+            exit 1
+          }
+
+  # Mode essai : prouve que le mode réel, privé de secrets, échoue avec son message ; et que les notes existent.
+  controle-mode-reel:
+    needs: mode
+    if: needs.mode.outputs.mode == 'essai'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # Même script que le job « secrets », dans la forme qu'y prend un secret absent : variable définie et vide.
+      # Contre-épreuve avec des valeurs factices : le contrôle laisse passer, il n'échoue donc pas toujours.
+      - name: Le mode réel échoue sans secrets
+        shell: pwsh
+        env:
+          ACTCRAFT_KEYSTORE_BASE64: ""
+          ACTCRAFT_KEYSTORE_PASSWORD: ""
+          ACTCRAFT_KEY_ALIAS: ""
+          ACTCRAFT_KEY_PASSWORD: ""
+        run: |
+          $noms = 'ACTCRAFT_KEYSTORE_BASE64', 'ACTCRAFT_KEYSTORE_PASSWORD', 'ACTCRAFT_KEY_ALIAS', 'ACTCRAFT_KEY_PASSWORD'
+          Write-Output "Variables définies et vides : $(@($noms | Where-Object { (Test-Path "Env:$_") -and -not [Environment]::GetEnvironmentVariable($_) }).Count) / 4"
+          $sortie = @(pwsh -NoProfile -File ./scripts/verifier-secrets-release.ps1)
+          $code = $LASTEXITCODE
+          $sortie | Write-Output
+          if ($code -ne 1 -or $sortie[-1] -notmatch '^SECRETS ABSENTS : ') {
+            Write-Output 'Le mode réel aurait dû échouer sans secrets.'
+            exit 1
+          }
+          foreach ($n in $noms) { Set-Item "Env:$n" 'factice' }
+          $env:ACTCRAFT_KEYSTORE_BASE64 = 'eA=='
+          $contre = @(pwsh -NoProfile -File ./scripts/verifier-secrets-release.ps1)
+          $codeContre = $LASTEXITCODE
+          $contre | Write-Output
+          if ($codeContre -ne 0 -or $contre[-1] -cne 'SECRETS OK') {
+            Write-Output 'Avec des valeurs factices, le contrôle aurait dû laisser passer.'
+            exit 1
+          }
+          Write-Output 'CONTROLE OK : sans secrets, le mode réel échoue avant toute construction.'
+
+      - name: Notes de la version
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.mode.outputs.version }}
+        run: |
+          pwsh -NoProfile -File ./scripts/notes-version.ps1 -Version $env:VERSION -Sortie notes.md | Tee-Object -FilePath "$env:RUNNER_TEMP/notes.txt"
+          if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/notes.txt" -Tail 1) -cne 'NOTES OK : notes.md') { exit 1 }
+          Get-Content notes.md
+
+  # S1 : installateur construit et essayé comme dans ci.yml (paquet-windows) ; téléversé en mode réel seulement.
+  windows:
+    needs: [mode, secrets]
+    if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 : même commit que ci.yml.
+      - name: Installer Ninja et aqtinstall
+        run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+
+      - name: Installer Qt
+        shell: bash
+        run: |
+          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats --outputdir "$RUNNER_TEMP/Qt"
+          dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
+          echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
+          echo "${dir%/}/bin" >> "$GITHUB_PATH"
+
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      - name: Installer Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe introuvable après installation" }
+          "ACTCRAFT_ISCC=$iscc" >> $env:GITHUB_ENV
+
+      - name: Construire l'installateur
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File ./scripts/paquet.ps1 | Tee-Object -FilePath "$env:RUNNER_TEMP/paquet.txt"
+          if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/paquet.txt" -Tail 1) -notmatch '^PAQUET OK : ') { exit 1 }
+
+      # S1 dans une vraie fenêtre, rendu D3D11 (WARP sur l'exécuteur sans GPU), comme ci.yml.
+      - name: Essai de l'installateur (S1)
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -Rendu d3d11 | Tee-Object -FilePath "$env:RUNNER_TEMP/s1.txt"
+          if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/s1.txt" -Tail 1) -cne 'INSTALLATEUR OK') { exit 1 }
+
+      - name: Somme SHA-256
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.mode.outputs.version }}
+        run: |
+          Get-FileHash "build/paquet/ActCraft-$env:VERSION-setup.exe" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" }
+
+      - name: Conserver l'installateur pour le brouillon (mode réel seulement)
+        if: needs.mode.outputs.mode == 'reel'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: paquet-windows
+          path: build/paquet/ActCraft-${{ needs.mode.outputs.version }}-setup.exe
+          if-no-files-found: error
+          retention-days: 1
+
+  # S3 : APK arm64-v8a seul (la release ne livre que cette ABI, décision 28). Clé de release en mode réel ; clé de
+  # débogage en mode essai (APK annoncé non publiable). Téléversé en mode réel seulement.
+  android:
+    needs: [mode, secrets]
+    if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # Un démon Gradle resté vivant verrouille le dossier de construction (piège L1-T17).
+      GRADLE_OPTS: -Dorg.gradle.daemon=false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      # Qt 6.12 pour Android exige JDK 21 (VERIF jdk17, docs/verifications/2026-10-14-outillage-paquets.md).
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Versions de la chaîne Android
+        run: cat packaging/android/versions.env >> "$GITHUB_ENV"
+
+      - name: Installer Ninja et aqtinstall
+        run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+
+      # Qt Android arm64-v8a seul ; ACTCRAFT_QT_ANDROID_X86_64_DIR désigne le même dossier pour que
+      # dev-env-android.ps1 ne s'arrête pas (le preset android-x86_64 n'est pas construit ici).
+      - name: Installer Qt (hôte et Android arm64-v8a)
+        run: |
+          python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtimageformats --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt all_os android "$QT_VERSION" android_arm64_v8a -m qtshadertools qtimageformats --outputdir "$RUNNER_TEMP/Qt"
+          echo "ACTCRAFT_QT_HOST_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
+          echo "ACTCRAFT_QT_ANDROID_ARM64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a" >> "$GITHUB_ENV"
+          echo "ACTCRAFT_QT_ANDROID_X86_64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a" >> "$GITHUB_ENV"
+
+      - name: Installer le NDK, la plateforme et les build-tools
+        run: |
+          sdkmanager="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdkmanager" --licenses > /dev/null
+          "$sdkmanager" "ndk;$ANDROID_NDK_VERSION" "build-tools;$ANDROID_BUILD_TOOLS" "platforms;android-$ANDROID_PLATFORM"
+          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+
+      # Secrets lus en mode réel seulement (vides en mode essai). Mots de passe transmis à paquet-android.ps1 par ses
+      # variables (ACTCRAFT_KEYSTORE_PASS, ACTCRAFT_KEY_PASS), jamais sur une ligne de commande. Le signataire écrit
+      # par paquet-android.ps1 est contrôlé : clé de débogage refusée en mode réel, exigée (et annoncée) en essai.
+      - name: Construire l'APK arm64-v8a
+        shell: pwsh
+        env:
+          MODE: ${{ needs.mode.outputs.mode }}
+          VERSION: ${{ needs.mode.outputs.version }}
+          ACTCRAFT_KEYSTORE_BASE64: ${{ needs.mode.outputs.mode == 'reel' && secrets.ACTCRAFT_KEYSTORE_BASE64 || '' }}
+          ACTCRAFT_KEY_ALIAS: ${{ needs.mode.outputs.mode == 'reel' && secrets.ACTCRAFT_KEY_ALIAS || '' }}
+          ACTCRAFT_KEYSTORE_PASS: ${{ needs.mode.outputs.mode == 'reel' && secrets.ACTCRAFT_KEYSTORE_PASSWORD || '' }}
+          ACTCRAFT_KEY_PASS: ${{ needs.mode.outputs.mode == 'reel' && secrets.ACTCRAFT_KEY_PASSWORD || '' }}
+        run: |
+          $journal = Join-Path $env:RUNNER_TEMP 'apk.txt'
+          if ($env:MODE -eq 'reel') {
+            $ks = Join-Path $env:RUNNER_TEMP 'release.keystore'
+            try {
+              [IO.File]::WriteAllBytes($ks, [Convert]::FromBase64String($env:ACTCRAFT_KEYSTORE_BASE64))
+              pwsh -NoProfile -File ./scripts/paquet-android.ps1 -Abi arm64-v8a -Keystore $ks -KeyAlias $env:ACTCRAFT_KEY_ALIAS |
+                Tee-Object -FilePath $journal
+              $code = $LASTEXITCODE
+            } finally {
+              Remove-Item -Force -ErrorAction SilentlyContinue $ks
+            }
+          } else {
+            pwsh -NoProfile -File ./scripts/paquet-android.ps1 -Abi arm64-v8a | Tee-Object -FilePath $journal
+            $code = $LASTEXITCODE
+          }
+          if ($code -ne 0 -or (Get-Content $journal -Tail 1) -cne 'APK OK') { exit 1 }
+          $lu = Select-String -Path $journal -Pattern '^arm64-v8a : signature = (.+)$' | Select-Object -Last 1
+          $signataire = if ($lu) { $lu.Matches[0].Groups[1].Value } else { '' }
+          $debogage = $signataire -match '^CN=Android Debug(,|$)'
+          if ($env:MODE -eq 'reel') {
+            if (-not $signataire -or $debogage) { Write-Output "APK signé par « $signataire » : refusé en mode réel."; exit 1 }
+          } else {
+            if (-not $debogage) { Write-Output "Mode essai : signataire inattendu « $signataire »."; exit 1 }
+            Write-Output "APK NON PUBLIABLE : signé par la clé de débogage ($signataire), mode essai."
+          }
+          Get-FileHash "build/paquet/ActCraft-$env:VERSION-arm64-v8a.apk" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" }
+
+      - name: Conserver l'APK pour le brouillon (mode réel seulement)
+        if: needs.mode.outputs.mode == 'reel'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: paquet-android
+          path: build/paquet/ActCraft-${{ needs.mode.outputs.version }}-arm64-v8a.apk
+          if-no-files-found: error
+          retention-days: 1
+
+  # Mode réel seulement : brouillon de release, jamais publié ici (publication = go écrit, action finale).
+  release:
+    needs: [mode, secrets, windows, android]
+    if: needs.mode.outputs.mode == 'reel'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: paquets
+          merge-multiple: true
+
+      - name: Sommes SHA-256 et notes
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.mode.outputs.version }}
+        run: |
+          $attendus = @("ActCraft-$env:VERSION-arm64-v8a.apk", "ActCraft-$env:VERSION-setup.exe")
+          $lus = @(Get-ChildItem paquets -File | ForEach-Object Name | Sort-Object)
+          if (($lus -join ', ') -cne ($attendus -join ', ')) { Write-Output "Paquets inattendus : $($lus -join ', ')"; exit 1 }
+          Get-ChildItem paquets -File | Get-FileHash -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } |
+            Set-Content -Encoding utf8NoBOM paquets/SHA256SUMS.txt
+          Get-Content paquets/SHA256SUMS.txt
+          pwsh -NoProfile -File ./scripts/notes-version.ps1 -Version $env:VERSION -Sortie notes.md | Tee-Object -FilePath "$env:RUNNER_TEMP/notes.txt"
+          if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/notes.txt" -Tail 1) -cne 'NOTES OK : notes.md') { exit 1 }
+
+      - name: Brouillon de release (jamais publié ici)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.mode.outputs.version }}
+        run: |
+          gh release create "v$VERSION" --draft --verify-tag \
+            --title "ActCraft $VERSION" --notes-file notes.md paquets/*
+
+  # Mode réel : les artefacts du run (installateur, APK signé) ne servent qu'à assembler le brouillon. Supprimés à
+  # la fin quoi qu'il arrive (échec de « windows », d'« android » ou de « release » compris), pour qu'ils ne restent
+  # pas téléchargeables avant la publication (go écrit).
+  nettoyer:
+    needs: [mode, windows, android, release]
+    if: always() && needs.mode.outputs.mode == 'reel'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Supprimer les artefacts du run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --jq '.artifacts[].id' |
+            while read -r artefact; do
+              gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artefact"
+            done

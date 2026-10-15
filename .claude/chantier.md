@@ -43,8 +43,14 @@ L1-T15 du chantier `livraison-complete` :
 Elle joue un scénario d'interface nommé (`bench/scenarios/<nom>.json` : commandes, stylet injecté, touches),
 contrôle des pixels, lit des propriétés (lignes `LU …`, à lire avant les images) et écrit les captures PNG et un
 `index.md`. Sorties sous `.tmp/` ou `build/`, jamais commitées. Hors écran en rendu logiciel pour chaque tâche
-d'interface ; à l'écran en D3D11 en fin de lot, sous le jeton `ecran`. La forme bornée exacte est écrite ici par la
-tâche L1-T20.
+d'interface ; à l'écran en D3D11 en fin de lot, sous le jeton `ecran`.
+
+- Forme bornée :
+  `New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario premiers-pas -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire "pageIndicator.text=1 / 2" > .tmp/captures.txt 2>&1 ; Select-String -Path .tmp/captures.txt -Pattern '^(LU|PIXEL|CAPTURE) |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16`
+- Motifs d'échec : `CAPTURES EN ECHEC`, toute ligne `LU … ECART`, `PIXEL … ECART`, `CAPTURE … ECHEC` ou
+  `SCENARIO INVALIDE`. Le scénario s'arrête à la première étape en écart : elle reste dans les 16 dernières lignes.
+- À l'écran (fin de lot, jeton `ecran`) : même commande avec `-Rendu d3d11` et sans `-HorsEcran`.
+- Le scénario `premiers-pas` est aussi un test ctest (`tst_captures_premiers_pas`, hors écran).
 
 Tant que la commande n'existe pas : lancer `build/debug/actcraft.exe --rendu d3d11` puis `--rendu logiciel` ; les
 captures et ce qu'il faut regarder vont à la porte de fin. Les fenêtres doivent s'ouvrir sur l'écran principal
@@ -79,6 +85,30 @@ sinon une tâche de correction précède la clôture. Référence du lot 1 : `do
 la mesure de fin de lot 1, commitée dans `docs/mesures/`, devient la référence des lots suivants ; après le lot 10,
 « figements » et « reprises » y entrent. La règle de refus ci-dessus s'applique après la décision go / no-go de
 l'étape 2 du BRIEF.
+
+## Paquets (installateur Windows, APK Android) et release
+
+Locaux, jamais publiés hors du go de la release (décisions 26 à 33 du cadrage
+`docs/specs/2026-10-14-livraison-complete-cadrage.md`).
+
+- Installateur : `pwsh -NoProfile -File ./scripts/paquet.ps1` → `build/paquet/ActCraft-<version>-setup.exe`
+  (`PAQUET OK`) ; essai S1 : `pwsh -NoProfile -File ./scripts/essai-installateur.ps1` (`INSTALLATEUR OK` ; ouvre une
+  fenêtre 5 s : l'annoncer).
+- APK : `pwsh -NoProfile -File ./scripts/paquet-android.ps1` (chaîne : `scripts/dev-env-android.ps1`) →
+  `build/paquet/ActCraft-<version>-arm64-v8a.apk` et `…-x86_64.apk`, clé de débogage locale (`APK OK`) ; essai S3 sur
+  un émulateur démarré : `pwsh -NoProfile -File ./scripts/essai-android.ps1 -Apk <…-x86_64.apk>` (`ANDROID OK`).
+  Émulateur local ou CI : `docs/verifications/2026-10-14-outillage-paquets.md`.
+- Licences : `scripts/verifier-licences.ps1` (appelé par les deux scripts de paquet ; liste
+  `packaging/qt-autorises.txt`).
+- CI : jobs `paquet-windows` (S1) et `android` (S3, émulateur KVM) à chaque PR, sans téléversement. Essai de CI sans
+  PR : push d'une branche `essai-ci/<sujet>`, puis suppression de la branche.
+- Release : `.github/workflows/release.yml`. Tag `v<version>` (action finale, go écrit) → brouillon avec
+  installateur, APK `arm64-v8a` signé par la clé de release, `SHA256SUMS.txt`, notes de `CHANGELOG.md`
+  (`scripts/notes-version.ps1`, `NOTES OK`). Sans les secrets de signature, le mode réel échoue avant toute
+  construction (`scripts/verifier-secrets-release.ps1`, `SECRETS ABSENTS`). Essai sans tag : `workflow_dispatch`
+  `mode=essai` (workflow sur `main`) ou push d'une branche `essai-ci/release-<sujet>` (APK signé par une clé de
+  débogage, annoncé `APK NON PUBLIABLE` ; aucune release, aucun téléversement), puis suppression de la branche.
+  Publication du brouillon : `gh release edit v<version> --draft=false`, sous le même go.
 
 ## Sources du cadrage (après le coffre)
 
