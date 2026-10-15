@@ -135,7 +135,7 @@ Une tâche ne renomme aucun de ces noms. Ceux du lot 1 (`docs/plans/2026-10-14-l
   `isIdentity`), `compose`, `translation`, `scaling`, `rotation`, `Layer` (`Background`, `Bottom`, `Middle`, `Top`),
   `PenStyle`, `PenCap`, `PenJoin`, `Outline`, `FillKind`, `GradientKind`, `Fill`, `solidFill`, `Restrictions`,
   `ActionKind`, `Action`, `ObjectCommon`, `ObjectKind` (8 valeurs, ordre du variant), `kObjectKindCount`,
-  `ShapeKind::Path`, `StrokeKind`, `Line`, `TextRun`, `Text`, `Media`, `Group`, `Connector`, `ObjectVariant`,
+  `ShapeKind::Path`, `StrokeKind`, `Line`, `TextSpan`, `Text`, `Media`, `Group`, `Connector`, `ObjectVariant`,
   `PageObject` (dérive du variant, membre `common`), `body`, `GridPattern`, `GridLine`, `GridLevel`, `Grid`,
   `Background`, `Page` (`width`, `height`, `objects`, `background`, `grid`, `name`, `notes`), `Resource`,
   `Document` (`pageCount`, `page`, `appendPage`, `insertPage`, `takePage`, `allocateId`, `nextId`,
@@ -323,7 +323,7 @@ private:
         Text text;
         text.bounds = {0, 0, 90, 36};
         text.html = "<p>Bonjour</p>";
-        TextRun run;
+        TextSpan run;
         run.text = "Bonjour";
         run.fontFamily = "Arial";
         run.pointSize = 24;
@@ -337,7 +337,7 @@ private:
         group.members = {1, 2};
         page.objects.emplace_back(group);
         Connector connector;
-        connector.endB = {100, 100};
+        connector.secondEnd = {100, 100};
         page.objects.emplace_back(connector);
         page.grid.levels.push_back(GridLevel{});
         return page;
@@ -433,7 +433,7 @@ private slots:
         QVERIFY(differs([](Page& p) { p.objects[0].common.visible = false; }));
         QVERIFY(differs([](Page& p) { p.objects[0].common.locked = true; }));
         QVERIFY(differs([](Page& p) { p.objects[0].common.translucency = 1; }));
-        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.canSize = false; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.resizable = false; }));
         QVERIFY(differs([](Page& p) { p.objects[0].common.transform.dx = 0.5; }));
         QVERIFY(differs([](Page& p) { p.objects[0].common.label = "Légende"; }));
         QVERIFY(differs([](Page& p) { p.objects[0].common.actions.push_back(Action{}); }));
@@ -451,7 +451,7 @@ private slots:
         QVERIFY(differs([](Page& p) { p.background.fill.color2 = 0xFF000000u; }));
         QVERIFY(differs([](Page& p) { p.background.image = "cle"; }));
         QVERIFY(differs([](Page& p) { p.grid.visible = true; }));
-        QVERIFY(differs([](Page& p) { p.grid.levels[0].stepY = 31; }));
+        QVERIFY(differs([](Page& p) { p.grid.levels[0].spacingY = 31; }));
         QVERIFY(differs([](Page& p) { p.name = "Page un"; }));
         QVERIFY(differs([](Page& p) { p.notes = "notes"; }));
     }
@@ -775,9 +775,9 @@ inline Fill solidFill(Argb color) noexcept
 
 struct Restrictions
 {
-    bool canMove = true;
-    bool canSize = true;
-    bool canRotate = true;
+    bool movable = true;
+    bool resizable = true;
+    bool rotatable = true;
 };
 
 // Actions : données seulement au lot 2 (F-583) ; leur comportement arrive au lot 8.
@@ -873,7 +873,7 @@ struct ImageObject
     std::uint32_t seed = 0;
     std::string resource;
     bool hasTransparentColor = false;
-    Argb transparentColor = 0;
+    Argb keyColor = 0;
 };
 
 struct StrokePoint
@@ -912,7 +912,7 @@ struct Line
 };
 
 // Ligne d'un texte mise en page à l'avance (.flipchart) ; vide pour un texte créé par ActCraft.
-struct TextRun
+struct TextSpan
 {
     std::string text;
     std::string fontFamily;
@@ -931,7 +931,7 @@ struct Text
 {
     RectF bounds;
     std::string html;
-    std::vector<TextRun> runs;
+    std::vector<TextSpan> runs;
 };
 
 // Son ou vidéo (N2-9 : ouvert par l'application du système) ; dessiné par son image d'espace réservé.
@@ -941,7 +941,7 @@ struct Media
     std::string placeholder; // clé de ressource image ; vide : cadre par défaut
     std::string media;       // clé de ressource du son ou de la vidéo
     std::string fileName;
-    bool autoPlay = false;
+    bool playOnOpen = false;
     bool loop = false;
 };
 
@@ -953,8 +953,8 @@ struct Group
 
 struct Connector
 {
-    PointF endA;
-    PointF endB;
+    PointF firstEnd;
+    PointF secondEnd;
     ObjectId objectA = 0;
     ObjectId objectB = 0;
     Outline pen;
@@ -1005,24 +1005,24 @@ struct GridLevel
     bool visible = true;
     bool snap = true;
     PointF start;
-    double stepX = 32;
-    double stepY = 32;
+    double spacingX = 32;
+    double spacingY = 32;
     Argb color = 0xFF000000u;
     GridPattern pattern = GridPattern::Normal;
     double angle = 30;
     GridLine line = GridLine::Solid;
-    bool drawX = true;
-    bool drawY = true;
+    bool linesAlongX = true;
+    bool linesAlongY = true;
 };
 
 struct Grid
 {
     bool visible = false;
-    bool allowSnap = false;
-    bool onTop = false;
-    double thumbnailScale = 1;
-    double defaultScale = 1;
-    double scaleStep = 0.5;
+    bool snapEnabled = false;
+    bool drawnAbove = false;
+    double previewZoom = 1;
+    double baseZoom = 1;
+    double zoomIncrement = 0.5;
     std::vector<GridLevel> levels;
 };
 
@@ -1163,10 +1163,10 @@ void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
     h.boolean(visible);
     h.boolean(locked);
     h.byte(translucency);
-    const auto& [canMove, canSize, canRotate] = restrictions;
-    h.boolean(canMove);
-    h.boolean(canSize);
-    h.boolean(canRotate);
+    const auto& [movable, resizable, rotatable] = restrictions;
+    h.boolean(movable);
+    h.boolean(resizable);
+    h.boolean(rotatable);
     h.transform(transform);
     h.text(label);
     h.u64(static_cast<std::uint64_t>(actions.size()));
@@ -1202,7 +1202,7 @@ void hashBody(Fnv1a& h, const PageObject& object) noexcept
         h.fill(brush);
     } else if (const auto* im = std::get_if<ImageObject>(&object)) {
         const auto& [bounds, sourceWidth, sourceHeight, pattern, colorA, colorB, seed, resource, hasTransparentColor,
-                     transparentColor] = *im;
+                     keyColor] = *im;
         h.rect(bounds);
         h.i32(sourceWidth);
         h.i32(sourceHeight);
@@ -1212,7 +1212,7 @@ void hashBody(Fnv1a& h, const PageObject& object) noexcept
         h.u32(seed);
         h.text(resource);
         h.boolean(hasTransparentColor);
-        h.u32(transparentColor);
+        h.u32(keyColor);
     } else if (const auto* st = std::get_if<Stroke>(&object)) {
         const auto& [points, baseWidth, color, kind, cap] = *st;
         h.u64(static_cast<std::uint64_t>(points.size()));
@@ -1235,7 +1235,7 @@ void hashBody(Fnv1a& h, const PageObject& object) noexcept
         h.rect(bounds);
         h.text(html);
         h.u64(static_cast<std::uint64_t>(runs.size()));
-        for (const TextRun& r : runs) {
+        for (const TextSpan& r : runs) {
             const auto& [text, fontFamily, pointSize, weight, italic, underline, strikeOut, color, baseline,
                          runBounds] = r;
             h.text(text);
@@ -1250,12 +1250,12 @@ void hashBody(Fnv1a& h, const PageObject& object) noexcept
             h.rect(runBounds);
         }
     } else if (const auto* m = std::get_if<Media>(&object)) {
-        const auto& [bounds, placeholder, media, fileName, autoPlay, loop] = *m;
+        const auto& [bounds, placeholder, media, fileName, playOnOpen, loop] = *m;
         h.rect(bounds);
         h.text(placeholder);
         h.text(media);
         h.text(fileName);
-        h.boolean(autoPlay);
+        h.boolean(playOnOpen);
         h.boolean(loop);
     } else if (const auto* g = std::get_if<Group>(&object)) {
         const auto& [members] = *g;
@@ -1264,9 +1264,9 @@ void hashBody(Fnv1a& h, const PageObject& object) noexcept
             h.u64(id);
         }
     } else if (const auto* c = std::get_if<Connector>(&object)) {
-        const auto& [endA, endB, objectA, objectB, pen] = *c;
-        h.point(endA);
-        h.point(endB);
+        const auto& [firstEnd, secondEnd, objectA, objectB, pen] = *c;
+        h.point(firstEnd);
+        h.point(secondEnd);
         h.u64(objectA);
         h.u64(objectB);
         h.outline(pen);
@@ -1360,27 +1360,27 @@ std::uint64_t fingerprint(const Page& page) noexcept
     const auto& [fill, image] = background;
     h.fill(fill);
     h.text(image);
-    const auto& [visible, allowSnap, onTop, thumbnailScale, defaultScale, scaleStep, levels] = grid;
+    const auto& [visible, snapEnabled, drawnAbove, previewZoom, baseZoom, zoomIncrement, levels] = grid;
     h.boolean(visible);
-    h.boolean(allowSnap);
-    h.boolean(onTop);
-    h.f64(thumbnailScale);
-    h.f64(defaultScale);
-    h.f64(scaleStep);
+    h.boolean(snapEnabled);
+    h.boolean(drawnAbove);
+    h.f64(previewZoom);
+    h.f64(baseZoom);
+    h.f64(zoomIncrement);
     h.u64(static_cast<std::uint64_t>(levels.size()));
     for (const GridLevel& l : levels) {
-        const auto& [lvVisible, snap, start, stepX, stepY, color, pattern, angle, line, drawX, drawY] = l;
+        const auto& [lvVisible, snap, start, spacingX, spacingY, color, pattern, angle, line, linesAlongX, linesAlongY] = l;
         h.boolean(lvVisible);
         h.boolean(snap);
         h.point(start);
-        h.f64(stepX);
-        h.f64(stepY);
+        h.f64(spacingX);
+        h.f64(spacingY);
         h.u32(color);
         h.tag(pattern);
         h.f64(angle);
         h.tag(line);
-        h.boolean(drawX);
-        h.boolean(drawY);
+        h.boolean(linesAlongX);
+        h.boolean(linesAlongY);
     }
     h.text(name);
     h.text(notes);
@@ -2523,8 +2523,8 @@ RectF localBounds(const PageObject& object) noexcept
     } else if (const auto* m = std::get_if<Media>(&object)) {
         box.addRect(m->bounds);
     } else if (const auto* c = std::get_if<Connector>(&object)) {
-        box.add(c->endA);
-        box.add(c->endB);
+        box.add(c->firstEnd);
+        box.add(c->secondEnd);
         margin = c->pen.width / 2;
     }
     return box.empty() ? RectF{} : box.grown(margin);
@@ -3188,9 +3188,9 @@ inline actcraft::core::Document richDocument()
     o1.common.visible = false;
     o1.common.locked = true;
     o1.common.translucency = 40;
-    o1.common.restrictions.canMove = false;
-    o1.common.restrictions.canSize = false;
-    o1.common.restrictions.canRotate = false;
+    o1.common.restrictions.movable = false;
+    o1.common.restrictions.resizable = false;
+    o1.common.restrictions.rotatable = false;
     o1.common.transform = compose(rotation(30), translation(5.5, -2.25));
     o1.common.label = "Légende";
     Action action;
@@ -3224,7 +3224,7 @@ inline actcraft::core::Document richDocument()
     picture.colorB = 0xFF0000FFu;
     picture.seed = 3;
     picture.hasTransparentColor = true;
-    picture.transparentColor = 0xFFFFFFFFu;
+    picture.keyColor = 0xFFFFFFFFu;
     PageObject o3 = picture;
     o3.common.id = 3;
     o3.common.transform = scaling(50, 25);
@@ -3268,7 +3268,7 @@ inline actcraft::core::Document richDocument()
     Text text;
     text.bounds = {0, 0, 180, 40};
     text.html = "<p>Bonjour <b>tout</b> le monde</p>";
-    TextRun first;
+    TextSpan first;
     first.text = "Bonjour";
     first.fontFamily = "Arial";
     first.pointSize = 24;
@@ -3279,7 +3279,7 @@ inline actcraft::core::Document richDocument()
     first.strikeOut = true;
     first.baseline = {0, 30};
     first.bounds = {0, 0, 90, 36};
-    TextRun second = first;
+    TextSpan second = first;
     second.text = "tout";
     second.underline = true;
     second.strikeOut = true;
@@ -3294,7 +3294,7 @@ inline actcraft::core::Document richDocument()
     media.placeholder = png;
     media.media = mp3;
     media.fileName = "chanson.mp3";
-    media.autoPlay = true;
+    media.playOnOpen = true;
     media.loop = true;
     PageObject o7 = media;
     o7.common.id = 7;
@@ -3307,8 +3307,8 @@ inline actcraft::core::Document richDocument()
     p1.objects.push_back(o8);
 
     Connector connector;
-    connector.endA = {1, 2};
-    connector.endB = {300, 400};
+    connector.firstEnd = {1, 2};
+    connector.secondEnd = {300, 400};
     connector.objectA = 4;
     connector.objectB = 6;
     connector.pen.color = 0xFF990000u;
@@ -3339,14 +3339,14 @@ inline actcraft::core::Document richDocument()
     p2.background.fill.gradient = GradientKind::DiagonalUp;
     p2.background.image = png;
     p2.grid.visible = true;
-    p2.grid.allowSnap = true;
-    p2.grid.onTop = true;
-    p2.grid.thumbnailScale = 0.5;
-    p2.grid.defaultScale = 2;
-    p2.grid.scaleStep = 0.25;
+    p2.grid.snapEnabled = true;
+    p2.grid.drawnAbove = true;
+    p2.grid.previewZoom = 0.5;
+    p2.grid.baseZoom = 2;
+    p2.grid.zoomIncrement = 0.25;
     GridLevel coarse;
-    coarse.stepX = 50;
-    coarse.stepY = 25;
+    coarse.spacingX = 50;
+    coarse.spacingY = 25;
     coarse.color = 0xFF0000FFu;
     GridLevel fine;
     fine.visible = false;
@@ -3355,10 +3355,10 @@ inline actcraft::core::Document richDocument()
     fine.pattern = GridPattern::Angle;
     fine.angle = 45;
     fine.line = GridLine::Dotted;
-    fine.drawY = false;
-    fine.drawX = false;
-    fine.stepX = 64;
-    fine.stepY = 48;
+    fine.linesAlongY = false;
+    fine.linesAlongX = false;
+    fine.spacingX = 64;
+    fine.spacingY = 48;
     fine.color = 0xFF00FF00u;
     p2.grid.levels = {coarse, fine};
 
@@ -3495,8 +3495,8 @@ private slots:
             const auto& [id, name, layer, visible, locked, translucency, restrictions, transform, label, actions] =
                 p1.objects[0].common;
             QVERIFY(id != 0 && !name.empty() && layer != Layer::Middle && !visible && locked && translucency != 0);
-            const auto& [canMove, canSize, canRotate] = restrictions;
-            QVERIFY(!canMove && !canSize && !canRotate);
+            const auto& [movable, resizable, rotatable] = restrictions;
+            QVERIFY(!movable && !resizable && !rotatable);
             const auto& [m11, m12, m21, m22, dx, dy] = transform;
             QVERIFY(m11 != 1 && m12 != 0 && m21 != 0 && m22 != 1 && dx != 0 && dy != 0);
             QVERIFY(!label.empty() && actions.size() == 1);
@@ -3541,8 +3541,8 @@ private slots:
                     strikeOut && color != 0xFF000000u && baseline.y != 0 && runBounds.width != 0);
         }
         {
-            const auto& [bounds, placeholder, media, fileName, autoPlay, loop] = std::get<Media>(p1.objects[6]);
-            QVERIFY(bounds.width != 0 && !placeholder.empty() && !media.empty() && !fileName.empty() && autoPlay &&
+            const auto& [bounds, placeholder, media, fileName, playOnOpen, loop] = std::get<Media>(p1.objects[6]);
+            QVERIFY(bounds.width != 0 && !placeholder.empty() && !media.empty() && !fileName.empty() && playOnOpen &&
                     loop);
         }
         {
@@ -3550,20 +3550,20 @@ private slots:
             QVERIFY(!members.empty());
         }
         {
-            const auto& [endA, endB, objectA, objectB, pen] = std::get<Connector>(p1.objects[8]);
-            QVERIFY(endA.x != 0 && endB.x != 0 && objectA != 0 && objectB != 0 && pen.color != 0xFF000000u);
+            const auto& [firstEnd, secondEnd, objectA, objectB, pen] = std::get<Connector>(p1.objects[8]);
+            QVERIFY(firstEnd.x != 0 && secondEnd.x != 0 && objectA != 0 && objectB != 0 && pen.color != 0xFF000000u);
         }
         {
             const auto& [width, height, objects, background, grid, name, notes] = d.page(1);
             QVERIFY(width != 1024 && height != 768 && objects.empty() && !name.empty() && !notes.empty());
             const auto& [fill, image] = background;
             QVERIFY(fill.kind != FillKind::Solid && !image.empty());
-            const auto& [visible, allowSnap, onTop, thumbnailScale, defaultScale, scaleStep, levels] = grid;
-            QVERIFY(visible && allowSnap && onTop && thumbnailScale != 1 && defaultScale != 1 && scaleStep != 0.5 &&
+            const auto& [visible, snapEnabled, drawnAbove, previewZoom, baseZoom, zoomIncrement, levels] = grid;
+            QVERIFY(visible && snapEnabled && drawnAbove && previewZoom != 1 && baseZoom != 1 && zoomIncrement != 0.5 &&
                     levels.size() == 2);
-            const auto& [lvVisible, snap, start, stepX, stepY, color, pattern, angle, line, drawX, drawY] = levels[1];
-            QVERIFY(!lvVisible && !snap && start.x != 0 && stepX != 32 && stepY != 32 && color != 0xFF000000u &&
-                    pattern != GridPattern::Normal && angle != 30 && line != GridLine::Solid && !drawX && !drawY);
+            const auto& [lvVisible, snap, start, spacingX, spacingY, color, pattern, angle, line, linesAlongX, linesAlongY] = levels[1];
+            QVERIFY(!lvVisible && !snap && start.x != 0 && spacingX != 32 && spacingY != 32 && color != 0xFF000000u &&
+                    pattern != GridPattern::Normal && angle != 30 && line != GridLine::Solid && !linesAlongX && !linesAlongY);
         }
         QVERIFY(!d.title().empty() && d.resources().size() == 2 && d.nextId() == 20);
     }
@@ -3924,9 +3924,9 @@ void writeCommon(QJsonObject& j, const ObjectCommon& c)
     j.insert(u"visible"_s, c.visible);
     j.insert(u"locked"_s, c.locked);
     j.insert(u"translucency"_s, static_cast<int>(c.translucency));
-    j.insert(u"restrictions"_s, QJsonObject{{u"move"_s, c.restrictions.canMove},
-                                            {u"size"_s, c.restrictions.canSize},
-                                            {u"rotate"_s, c.restrictions.canRotate}});
+    j.insert(u"restrictions"_s, QJsonObject{{u"move"_s, c.restrictions.movable},
+                                            {u"size"_s, c.restrictions.resizable},
+                                            {u"rotate"_s, c.restrictions.rotatable}});
     const Transform& t = c.transform;
     j.insert(u"transform"_s, QJsonArray{t.m11, t.m12, t.m21, t.m22, t.dx, t.dy});
     j.insert(u"label"_s, str(c.label));
@@ -3972,7 +3972,7 @@ QJsonObject objectJson(const PageObject& object)
         j.insert(u"colorB"_s, colorText(im->colorB));
         j.insert(u"seed"_s, static_cast<double>(im->seed));
         j.insert(u"resource"_s, str(im->resource));
-        j.insert(u"transparentColor"_s, im->hasTransparentColor ? QJsonValue(colorText(im->transparentColor))
+        j.insert(u"keyColor"_s, im->hasTransparentColor ? QJsonValue(colorText(im->keyColor))
                                                                  : QJsonValue(QJsonValue::Null));
     } else if (const auto* st = std::get_if<Stroke>(&object)) {
         QJsonArray points;
@@ -3993,7 +3993,7 @@ QJsonObject objectJson(const PageObject& object)
         j.insert(u"bounds"_s, rectArray(t->bounds));
         j.insert(u"html"_s, str(t->html));
         QJsonArray runs;
-        for (const TextRun& r : t->runs) {
+        for (const TextSpan& r : t->runs) {
             runs.append(QJsonObject{{u"text"_s, str(r.text)},
                                     {u"fontFamily"_s, str(r.fontFamily)},
                                     {u"pointSize"_s, r.pointSize},
@@ -4011,7 +4011,7 @@ QJsonObject objectJson(const PageObject& object)
         j.insert(u"placeholder"_s, str(m->placeholder));
         j.insert(u"media"_s, str(m->media));
         j.insert(u"fileName"_s, str(m->fileName));
-        j.insert(u"autoPlay"_s, m->autoPlay);
+        j.insert(u"playOnOpen"_s, m->playOnOpen);
         j.insert(u"loop"_s, m->loop);
     } else if (const auto* g = std::get_if<Group>(&object)) {
         QJsonArray members;
@@ -4020,8 +4020,8 @@ QJsonObject objectJson(const PageObject& object)
         }
         j.insert(u"members"_s, members);
     } else if (const auto* c = std::get_if<Connector>(&object)) {
-        j.insert(u"endA"_s, pointArray(c->endA));
-        j.insert(u"endB"_s, pointArray(c->endB));
+        j.insert(u"firstEnd"_s, pointArray(c->firstEnd));
+        j.insert(u"secondEnd"_s, pointArray(c->secondEnd));
         j.insert(u"objectA"_s, idValue(c->objectA));
         j.insert(u"objectB"_s, idValue(c->objectB));
         j.insert(u"pen"_s, outlineJson(c->pen));
@@ -4043,21 +4043,21 @@ QJsonObject pageJson(const Page& p)
         levels.append(QJsonObject{{u"visible"_s, l.visible},
                                   {u"snap"_s, l.snap},
                                   {u"start"_s, pointArray(l.start)},
-                                  {u"stepX"_s, l.stepX},
-                                  {u"stepY"_s, l.stepY},
+                                  {u"spacingX"_s, l.spacingX},
+                                  {u"spacingY"_s, l.spacingY},
                                   {u"color"_s, colorText(l.color)},
                                   {u"pattern"_s, nameOf(kGridPatterns, l.pattern)},
                                   {u"angle"_s, l.angle},
                                   {u"line"_s, nameOf(kGridLines, l.line)},
-                                  {u"drawX"_s, l.drawX},
-                                  {u"drawY"_s, l.drawY}});
+                                  {u"linesAlongX"_s, l.linesAlongX},
+                                  {u"linesAlongY"_s, l.linesAlongY}});
     }
     j.insert(u"grid"_s, QJsonObject{{u"visible"_s, p.grid.visible},
-                                    {u"allowSnap"_s, p.grid.allowSnap},
-                                    {u"onTop"_s, p.grid.onTop},
-                                    {u"thumbnailScale"_s, p.grid.thumbnailScale},
-                                    {u"defaultScale"_s, p.grid.defaultScale},
-                                    {u"scaleStep"_s, p.grid.scaleStep},
+                                    {u"snapEnabled"_s, p.grid.snapEnabled},
+                                    {u"drawnAbove"_s, p.grid.drawnAbove},
+                                    {u"previewZoom"_s, p.grid.previewZoom},
+                                    {u"baseZoom"_s, p.grid.baseZoom},
+                                    {u"zoomIncrement"_s, p.grid.zoomIncrement},
                                     {u"levels"_s, levels}});
     QJsonArray objects;
     for (const PageObject& o : p.objects) {
@@ -4235,9 +4235,9 @@ public:
         c.translucency =
             static_cast<std::uint8_t>(std::clamp(number(j, u"translucency", c.translucency, where), 0.0, 255.0));
         const QJsonObject r = j.value(u"restrictions"_s).toObject();
-        c.restrictions.canMove = flag(r, u"move", true, where);
-        c.restrictions.canSize = flag(r, u"size", true, where);
-        c.restrictions.canRotate = flag(r, u"rotate", true, where);
+        c.restrictions.movable = flag(r, u"move", true, where);
+        c.restrictions.resizable = flag(r, u"size", true, where);
+        c.restrictions.rotatable = flag(r, u"rotate", true, where);
         const QJsonArray t = j.value(u"transform"_s).toArray();
         if (t.size() == 6) {
             c.transform = Transform{t.at(0).toDouble(), t.at(1).toDouble(), t.at(2).toDouble(),
@@ -4290,9 +4290,9 @@ public:
             im.colorB = color(j, u"colorB", im.colorB, where);
             im.seed = integer<std::uint32_t>(j, u"seed", im.seed, where);
             im.resource = text(j, u"resource");
-            if (j.value(u"transparentColor"_s).isString()) {
+            if (j.value(u"keyColor"_s).isString()) {
                 im.hasTransparentColor = true;
-                im.transparentColor = color(j, u"transparentColor", 0, where);
+                im.keyColor = color(j, u"keyColor", 0, where);
             }
             out = std::move(im);
         } else if (type == u"stroke"_s) {
@@ -4321,7 +4321,7 @@ public:
             t.html = text(j, u"html");
             for (const QJsonValue& rv : j.value(u"runs"_s).toArray()) {
                 const QJsonObject r = rv.toObject();
-                TextRun run;
+                TextSpan run;
                 run.text = text(r, u"text");
                 run.fontFamily = text(r, u"fontFamily");
                 run.pointSize = number(r, u"pointSize", run.pointSize, where);
@@ -4341,7 +4341,7 @@ public:
             m.placeholder = text(j, u"placeholder");
             m.media = text(j, u"media");
             m.fileName = text(j, u"fileName");
-            m.autoPlay = flag(j, u"autoPlay", m.autoPlay, where);
+            m.playOnOpen = flag(j, u"playOnOpen", m.playOnOpen, where);
             m.loop = flag(j, u"loop", m.loop, where);
             out = std::move(m);
         } else if (type == u"group"_s) {
@@ -4352,8 +4352,8 @@ public:
             out = std::move(g);
         } else if (type == u"connector"_s) {
             Connector c;
-            c.endA = point(j.value(u"endA"_s), c.endA, where);
-            c.endB = point(j.value(u"endB"_s), c.endB, where);
+            c.firstEnd = point(j.value(u"firstEnd"_s), c.firstEnd, where);
+            c.secondEnd = point(j.value(u"secondEnd"_s), c.secondEnd, where);
             c.objectA = id(j.value(u"objectA"_s));
             c.objectB = id(j.value(u"objectB"_s));
             c.pen = outline(j.value(u"pen"_s), where);
@@ -4378,25 +4378,25 @@ public:
         p.background.image = text(bg, u"image");
         const QJsonObject g = j.value(u"grid"_s).toObject();
         p.grid.visible = flag(g, u"visible", p.grid.visible, where);
-        p.grid.allowSnap = flag(g, u"allowSnap", p.grid.allowSnap, where);
-        p.grid.onTop = flag(g, u"onTop", p.grid.onTop, where);
-        p.grid.thumbnailScale = number(g, u"thumbnailScale", p.grid.thumbnailScale, where);
-        p.grid.defaultScale = number(g, u"defaultScale", p.grid.defaultScale, where);
-        p.grid.scaleStep = number(g, u"scaleStep", p.grid.scaleStep, where);
+        p.grid.snapEnabled = flag(g, u"snapEnabled", p.grid.snapEnabled, where);
+        p.grid.drawnAbove = flag(g, u"drawnAbove", p.grid.drawnAbove, where);
+        p.grid.previewZoom = number(g, u"previewZoom", p.grid.previewZoom, where);
+        p.grid.baseZoom = number(g, u"baseZoom", p.grid.baseZoom, where);
+        p.grid.zoomIncrement = number(g, u"zoomIncrement", p.grid.zoomIncrement, where);
         for (const QJsonValue& lv : g.value(u"levels"_s).toArray()) {
             const QJsonObject l = lv.toObject();
             GridLevel level;
             level.visible = flag(l, u"visible", level.visible, where);
             level.snap = flag(l, u"snap", level.snap, where);
             level.start = point(l.value(u"start"_s), level.start, where);
-            level.stepX = number(l, u"stepX", level.stepX, where);
-            level.stepY = number(l, u"stepY", level.stepY, where);
+            level.spacingX = number(l, u"spacingX", level.spacingX, where);
+            level.spacingY = number(l, u"spacingY", level.spacingY, where);
             level.color = color(l, u"color", level.color, where);
             level.pattern = pick(kGridPatterns, l.value(u"pattern"_s), level.pattern, where);
             level.angle = number(l, u"angle", level.angle, where);
             level.line = pick(kGridLines, l.value(u"line"_s), level.line, where);
-            level.drawX = flag(l, u"drawX", level.drawX, where);
-            level.drawY = flag(l, u"drawY", level.drawY, where);
+            level.linesAlongX = flag(l, u"linesAlongX", level.linesAlongX, where);
+            level.linesAlongY = flag(l, u"linesAlongY", level.linesAlongY, where);
             p.grid.levels.push_back(level);
         }
         const QJsonArray objects = j.value(u"objects"_s).toArray();
@@ -6074,7 +6074,7 @@ git -C <worktree> commit -m "formats : conteneur Bamboo et index culm du .flipch
 ### Tâche L2-T8 — `formats` : flux objet (variantes, sous-types, saut des propriétés illisibles)
 
 **Objectif.** DA4 : deuxième couche du lecteur, d'après `format-flipchart.md` § 4 (grammaire, identifiants, types
-de variante, sous-types) ; comportement de référence : `_read_object`, `_read_variant`, `_read_user` de
+de variante, sous-types) ; comportement de référence : `_read_object`, la lecture d'une valeur, `_read_user` de
 `app/actcraft/io/objstream.py`. Un flux `.io`/`.ir` donne un `StreamObject` générique : type, identifiant de
 stockage, nœud propriétaire éventuel, propriétés **par numéro** (`std::map<quint16, Value>`). Aucune table de noms
 ici : les numéros sont interprétés par L2-T9. Une propriété qu'on ne sait pas décoder devient `RawValue` grâce à la
@@ -6135,7 +6135,7 @@ public:
         return add(id, b);
     }
     Obj& bytes(quint16 id, const QByteArray& v) { return add(id, Bytes().u16(12).u32(static_cast<quint32>(v.size())).raw(v)); }
-    Obj& rectF(quint16 id, double x, double y, double w, double h)
+    Obj& floatRect(quint16 id, double x, double y, double w, double h)
     {
         return add(id, Bytes().u16(20).f64(x).f64(y).f64(w).f64(h));
     }
@@ -6287,7 +6287,7 @@ private slots:
                                     .string(6, u"Forme24"_s)
                                     .stringList(7, {u"a"_s, u"b"_s})
                                     .bytes(8, "xyz")
-                                    .rectF(9, 1, 2, 3, 4)
+                                    .floatRect(9, 1, 2, 3, 4)
                                     .size(10, 320, 240)
                                     .sizeF(11, 1024, 768)
                                     .pointF(12, 5, 6)
@@ -6524,7 +6524,7 @@ std::optional<bool> asBool(const Value* v);     // booléen ou entier
 QString asString(const Value* v);               // chaîne nulle si absente
 std::optional<core::PointF> asPoint(const Value* v);
 std::optional<SizeF> asSize(const Value* v);
-std::optional<core::RectF> asRect(const Value* v); // QRectF, QRect ou AsRectF
+std::optional<core::RectF> asRect(const Value* v); // QRectF, QRect ou rectangle réel propre au format
 std::optional<Color> asColor(const Value* v);
 std::optional<Pointer> asPointer(const Value* v);
 const StreamObject* asObject(const Value* v);
@@ -6740,7 +6740,7 @@ Value readUser(Reader& r, quint16 sub, int depth, QString& error)
     return v;
 }
 
-Value readVariant(Reader& r, int depth, QString& error)
+Value readStreamValue(Reader& r, int depth, QString& error)
 {
     Value v;
     if (depth > kMaxDepth) {
@@ -6766,7 +6766,7 @@ Value readVariant(Reader& r, int depth, QString& error)
         ValueList list;
         const qint32 n = r.count();
         for (qint32 i = 0; i < n && r.ok(); ++i) {
-            list.push_back(readVariant(r, depth + 1, error));
+            list.push_back(readStreamValue(r, depth + 1, error));
         }
         v.data = std::move(list);
         break;
@@ -6896,7 +6896,7 @@ std::optional<StreamObject> readObject(Reader& r, int depth, QString& error)
         const quint16 id = header.le<quint16>();
         Reader sub(r.data(), start + 4, end);
         QString ignored;
-        Value value = readVariant(sub, depth, ignored);
+        Value value = readStreamValue(sub, depth, ignored);
         if (!sub.ok()) {
             Reader rawType(r.data(), start + 4, end);
             const quint16 qtype = rawType.le<quint16>();
@@ -7280,7 +7280,7 @@ inline QByteArray sampleFlipchart(const std::vector<QByteArray>& thumbnails = {}
                              .resources(9, {Res(330, QStringLiteral("330.ir"), QString())})
                              .resources(11, {Res(350, QStringLiteral("350.ir"), QStringLiteral("351.mp3"))});
     const Obj run = Obj(31, 0)
-                        .rectF(2, 0, 0, 90, 36)
+                        .floatRect(2, 0, 0, 90, 36)
                         .pointF(3, 0, 30)
                         .color(5, 255, 0, 0)
                         .string(6, QStringLiteral("Bonjour"))
@@ -7452,10 +7452,10 @@ private slots:
         QCOMPARE(p1.background.fill.color2, core::Argb{0xFFFFFFFFu});
         QCOMPARE(p1.background.fill.gradient, core::GradientKind::Vertical);
         QVERIFY(p1.grid.visible);
-        QVERIFY(p1.grid.allowSnap);
+        QVERIFY(p1.grid.snapEnabled);
         QCOMPARE(p1.grid.levels.size(), std::size_t{1});
-        QCOMPARE(p1.grid.levels[0].stepX, 50.0);
-        QCOMPARE(p1.grid.levels[0].stepY, 25.0);
+        QCOMPARE(p1.grid.levels[0].spacingX, 50.0);
+        QCOMPARE(p1.grid.levels[0].spacingY, 25.0);
         QCOMPARE(p1.grid.levels[0].color, core::Argb{0xFF0000FFu});
         QCOMPARE(p1.grid.levels[0].line, core::GridLine::Solid);
         const core::Page& p2 = r.document.page(1);
@@ -7476,7 +7476,7 @@ private slots:
         const auto& image = as<core::ImageObject>(p.objects[0]);
         QCOMPARE(image.resource, p.background.image);
         QVERIFY(image.hasTransparentColor);
-        QCOMPARE(image.transparentColor, core::Argb{0xFFFFFFFFu});
+        QCOMPARE(image.keyColor, core::Argb{0xFFFFFFFFu});
         QCOMPARE(image.sourceWidth, std::int32_t{2});
         const core::PointF corner = p.objects[0].common.transform.map({1, 1});
         QCOMPARE(corner.x, 60.0);
@@ -7488,12 +7488,12 @@ private slots:
         const auto& media = as<core::Media>(p.objects[2]);
         QCOMPARE(media.placeholder, image.resource);
         QCOMPARE(media.fileName, std::string("351.mp3"));
-        QVERIFY(media.autoPlay);
+        QVERIFY(media.playOnOpen);
         QCOMPARE(r.document.resource(media.media)->extension, std::string("mp3"));
         const auto& connector = as<core::Connector>(p.objects[3]);
         QCOMPARE(connector.objectA, p.objects[0].common.id);
         QCOMPARE(connector.objectB, p.objects[1].common.id);
-        QCOMPARE(connector.endB.x, 100.0);
+        QCOMPARE(connector.secondEnd.x, 100.0);
     }
 
     void unreadablePagesAreSkippedWithAWarning()
@@ -7582,217 +7582,232 @@ actcraft_add_test(tst_formats_flipchart
 
 - [ ] **Étape 4 : écrire les tables.** Créer `formats/src/flipchartids.h` :
 
+> Bloc réécrit (L2-C2) : c'est le fichier livré par L2-T9, à nos noms. Les extraits de code de cette tâche
+> citent les clés du format par leur numéro seul.
+
 ```cpp
 #pragma once
 
 #include <QtGlobal>
 
 // Numéros du format .flipchart lus par ActCraft, écrits à la main d'après notre documentation
-// (REA - Activinspire/docs/re/format-flipchart.md § 4 à § 7). Seuls les types et propriétés lus y sont ; les noms
-// sont les nôtres. Les numéros de propriétés sont stables entre versions du format (§ 4.2).
+// (REA - Activinspire/docs/re/format-flipchart.md § 4 à § 7). Seuls les numéros des genres d'objets et des
+// propriétés lus y sont, sous des noms à nous : aucun nom de classe ni de propriété d'Inspire. Les numéros de
+// propriétés sont stables entre versions du format (§ 4.2), mais propres à chaque genre au-delà de 36 : 38
+// est la ressource d'une forme et la translucidité d'une annotation.
 
 namespace actcraft::formats::flipchart::ids {
 
-namespace type {
-inline constexpr quint16 Flipchart = 1;
-inline constexpr quint16 Page = 2;
-inline constexpr quint16 Annotation = 3;
-inline constexpr quint16 Line = 5;
-inline constexpr quint16 Shape = 7;
-inline constexpr quint16 Image = 9;
-inline constexpr quint16 Text = 11;
-inline constexpr quint16 Grid = 13;
-inline constexpr quint16 GridLevel = 14;
-inline constexpr quint16 Group = 18;
-// Actions : numéros du format (§ 7.6), noms à nous.
-inline constexpr quint16 ActionTool = 22;
-inline constexpr quint16 ActionGoToPage = 23;
-inline constexpr quint16 ActionShift = 24;
-inline constexpr quint16 ActionProgram = 25;
-inline constexpr quint16 ActionOpenFile = 26;
-inline constexpr quint16 ActionTargetObject = 28;
-inline constexpr quint16 Background = 29;
-inline constexpr quint16 ActionTargetText = 50;
-inline constexpr quint16 Connector = 52;
-inline constexpr quint16 Label = 53;
-inline constexpr quint16 Media = 253;
-inline constexpr quint16 ActionLaunch = 463;
-} // namespace type
+// Genres d'objets : numéro u16 après la balise 'O' d'un flux et dans chaque nœud de l'index.
+namespace kind {
+inline constexpr quint16 kDocumentObject = 1;    // le paperboard lui-même
+inline constexpr quint16 kPageObject = 2;        // une page
+inline constexpr quint16 kStrokeObject = 3;      // trait d'encre (annotation)
+inline constexpr quint16 kLineObject = 5;        // ligne brisée
+inline constexpr quint16 kShapeObject = 7;       // forme à polygones
+inline constexpr quint16 kImageObject = 9;       // image
+inline constexpr quint16 kTextObject = 11;       // texte riche
+inline constexpr quint16 kGridObject = 13;       // grille de la page
+inline constexpr quint16 kGridLevelObject = 14;  // un niveau de la grille
+inline constexpr quint16 kGroupObject = 18;      // groupe par références
+inline constexpr quint16 kToolAction = 22;       // action : choisir un outil
+inline constexpr quint16 kGoToPageAction = 23;   // action : aller à une page
+inline constexpr quint16 kShiftAction = 24;      // action : déplacer
+inline constexpr quint16 kProgramAction = 25;    // action : commande de l'application
+inline constexpr quint16 kOpenFileAction = 26;   // action : ouvrir un fichier
+inline constexpr quint16 kObjectAction = 28;     // action sur un objet de la page
+inline constexpr quint16 kBackgroundObject = 29; // fond de la page
+inline constexpr quint16 kTextAction = 50;       // action sur un texte
+inline constexpr quint16 kConnectorObject = 52;  // connecteur entre deux objets
+inline constexpr quint16 kTagObject = 53;        // étiquette (légende) d'un objet
+inline constexpr quint16 kMediaObject = 253;     // son ou vidéo
+inline constexpr quint16 kLaunchAction = 463;    // action : lancer une mini-application
+} // namespace kind
 
-inline constexpr bool isAction(quint16 t) noexcept
+inline constexpr bool isActionKind(quint16 k) noexcept
 {
-    return t == type::ActionTool || t == type::ActionGoToPage || t == type::ActionShift ||
-           t == type::ActionProgram || t == type::ActionOpenFile || t == type::ActionTargetObject ||
-           t == type::ActionTargetText || t == type::ActionLaunch;
+    return k == kind::kToolAction || k == kind::kGoToPageAction || k == kind::kShiftAction ||
+           k == kind::kProgramAction || k == kind::kOpenFileAction || k == kind::kObjectAction ||
+           k == kind::kTextAction || k == kind::kLaunchAction;
 }
 
-namespace flipchart {
-inline constexpr quint16 Name = 2;
-inline constexpr quint16 ResourceRegister = 7;
-inline constexpr quint16 Title = 12;
-inline constexpr quint16 DefaultPageSize = 18;
-} // namespace flipchart
+// Paperboard (§ 5).
+namespace docKeys {
+inline constexpr quint16 kFallbackTitle = 2;  // titre de secours, si le titre est vide
+inline constexpr quint16 kResourceTable = 7;  // table des ressources (objet embarqué)
+inline constexpr quint16 kTitleText = 12;     // titre
+inline constexpr quint16 kStartPageSize = 18; // taille des pages qui n'en donnent pas
+} // namespace docKeys
 
-namespace page {
-inline constexpr quint16 Name = 2;
-inline constexpr quint16 Notes = 5;
-inline constexpr quint16 Size = 6;
-inline constexpr quint16 GridVisible = 17;
-} // namespace page
+// Page (§ 6).
+namespace pageKeys {
+inline constexpr quint16 kPageTitle = 2;
+inline constexpr quint16 kPresenterNotes = 5;
+inline constexpr quint16 kSheetSize = 6;
+inline constexpr quint16 kShowGuides = 17; // grille affichée
+} // namespace pageKeys
 
-namespace background {
-inline constexpr quint16 Kind = 2; // 0 encre, 1 image, 2 ressource
-inline constexpr quint16 Ink = 3;
-inline constexpr quint16 Image = 4;
-} // namespace background
+// Fond de page (§ 6).
+namespace fillKeys {
+inline constexpr quint16 kFillSource = 2; // 0 encre, 1 image, 2 ressource
+inline constexpr quint16 kFillStyle = 3;  // encre embarquée : couleur ou dégradé
+inline constexpr quint16 kPictureRef = 4; // pointeur vers l'objet image
+} // namespace fillKeys
 
-namespace grid {
-inline constexpr quint16 ThumbnailScale = 13;
-inline constexpr quint16 DefaultScale = 14;
-inline constexpr quint16 ScaleStep = 15;
-inline constexpr quint16 AllowSnap = 16;
-inline constexpr quint16 OnTop = 17;
-} // namespace grid
+// Grille de la page.
+namespace guideKeys {
+inline constexpr quint16 kPreviewZoom = 13;   // échelle dans les miniatures
+inline constexpr quint16 kBaseZoom = 14;      // échelle de départ
+inline constexpr quint16 kZoomIncrement = 15; // pas d'échelle
+inline constexpr quint16 kSnapEnabled = 16;   // aimantation permise
+inline constexpr quint16 kDrawnAbove = 17;    // dessinée par-dessus les objets
+} // namespace guideKeys
 
-namespace gridlevel {
-inline constexpr quint16 LineStyle = 2; // indice + 1 dans GridLine
-inline constexpr quint16 Pattern = 3;   // indice + 1 dans GridPattern
-inline constexpr quint16 Color = 4;
-inline constexpr quint16 Visible = 5;
-inline constexpr quint16 Start = 6;
-inline constexpr quint16 StepX = 7;
-inline constexpr quint16 StepY = 8;
-inline constexpr quint16 Angle = 9;
-inline constexpr quint16 DrawX = 11;
-inline constexpr quint16 DrawY = 12;
-inline constexpr quint16 Snap = 13;
-} // namespace gridlevel
+// Niveau de grille.
+namespace guideLevelKeys {
+inline constexpr quint16 kMarkStyle = 2;   // tracé : indice + 1 dans core::GridLine
+inline constexpr quint16 kLayoutStyle = 3; // disposition : indice + 1 dans core::GridPattern
+inline constexpr quint16 kTint = 4;        // couleur
+inline constexpr quint16 kShown = 5;
+inline constexpr quint16 kAnchor = 6; // point de départ
+inline constexpr quint16 kSpacingX = 7;
+inline constexpr quint16 kSpacingY = 8;
+inline constexpr quint16 kSlant = 9; // angle de la disposition oblique
+inline constexpr quint16 kLinesAlongX = 11;
+inline constexpr quint16 kLinesAlongY = 12;
+inline constexpr quint16 kMagnetic = 13; // aimante les objets
+} // namespace guideLevelKeys
 
 // Propriétés communes aux objets affichables (§ 7.1).
-namespace object {
-inline constexpr quint16 Transform = 2;
-inline constexpr quint16 Name = 4;
-inline constexpr quint16 Visible = 6;
-inline constexpr quint16 BoundingRect = 7;
-inline constexpr quint16 Layer = 8;
-inline constexpr quint16 Depth = 9;
-inline constexpr quint16 Ink = 10;
-inline constexpr quint16 RotateOrigin = 12;
-inline constexpr quint16 CanMove = 13;
-inline constexpr quint16 CanSize = 14;
-inline constexpr quint16 CanRotate = 15;
-inline constexpr quint16 Locked = 18;
-inline constexpr quint16 Label = 34; // sauf connecteur
-} // namespace object
+namespace itemKeys {
+inline constexpr quint16 kPlacement = 2;   // transformation (objet embarqué)
+inline constexpr quint16 kItemTitle = 4;   // nom de l'objet
+inline constexpr quint16 kShown = 6;       // visible
+inline constexpr quint16 kLocalBox = 7;    // rectangle englobant local
+inline constexpr quint16 kPlane = 8;       // couche : 0 inférieure, 1 intermédiaire, 2 supérieure
+inline constexpr quint16 kStackOrder = 9;  // profondeur dans la couche
+inline constexpr quint16 kPenAndFill = 10; // encre (objet embarqué)
+inline constexpr quint16 kPivot = 12;      // origine de rotation (objet embarqué)
+inline constexpr quint16 kMovable = 13;
+inline constexpr quint16 kResizable = 14;
+inline constexpr quint16 kRotatable = 15;
+inline constexpr quint16 kFrozen = 18;       // verrouillé
+inline constexpr quint16 kConnectorTag = 33; // étiquette d'un connecteur (sa 34 est une extrémité)
+inline constexpr quint16 kTag = 34;          // étiquette des autres objets
+} // namespace itemKeys
 
-namespace annotation {
-inline constexpr quint16 Translucency = 38;
-inline constexpr quint16 Resource = 39;
-} // namespace annotation
+namespace strokeKeys {
+inline constexpr quint16 kSeeThrough = 38; // translucidité, 0 opaque à 255 invisible
+inline constexpr quint16 kPointsRef = 39;  // ressource des points
+} // namespace strokeKeys
 
-namespace shape {
-inline constexpr quint16 Resource = 38;
-inline constexpr quint16 FillMode = 39;
-inline constexpr quint16 Open = 42;
-inline constexpr quint16 LocalPoints = 49;
-} // namespace shape
+namespace shapeKeys {
+inline constexpr quint16 kOutlineRef = 38;   // ressource des polygones
+inline constexpr quint16 kWindingRule = 39;  // 2 : remplissage « winding »
+inline constexpr quint16 kUnclosed = 42;     // contour ouvert
+inline constexpr quint16 kInlinePoints = 49; // points portés par l'objet, sans ressource
+} // namespace shapeKeys
 
-namespace line {
-inline constexpr quint16 Resource = 38;
+namespace lineKeys {
+inline constexpr quint16 kPointsRef = 38;
 }
 
-namespace image {
-inline constexpr quint16 Resource = 38;
-inline constexpr quint16 Transparent = 39;
-inline constexpr quint16 TransparentColor = 40;
-} // namespace image
+namespace imageKeys {
+inline constexpr quint16 kPixelsRef = 38; // ressource de l'image
+inline constexpr quint16 kKeyed = 39;     // une couleur est rendue transparente
+inline constexpr quint16 kKeyColor = 40;  // cette couleur
+} // namespace imageKeys
 
-namespace text {
-inline constexpr quint16 Resource = 38;
+namespace textKeys {
+inline constexpr quint16 kContentRef = 38;
 }
 
-namespace media {
-inline constexpr quint16 Placeholder = 38;
-inline constexpr quint16 AutoPlay = 41;
-inline constexpr quint16 Loop = 42;
-inline constexpr quint16 File = 45;
-} // namespace media
+namespace mediaKeys {
+inline constexpr quint16 kPosterRef = 38; // image affichée à la place du média
+inline constexpr quint16 kPlayOnOpen = 41;
+inline constexpr quint16 kRepeat = 42;
+inline constexpr quint16 kClipRef = 45; // ressource du son ou de la vidéo
+} // namespace mediaKeys
 
-namespace connector {
-inline constexpr quint16 ObjectA = 34;
-inline constexpr quint16 ObjectB = 35;
-inline constexpr quint16 PointA = 39;
-inline constexpr quint16 PointB = 40;
-} // namespace connector
+namespace connectorKeys {
+inline constexpr quint16 kFromItem = 34; // pointeur vers l'objet de départ
+inline constexpr quint16 kToItem = 35;   // pointeur vers l'objet d'arrivée
+inline constexpr quint16 kFromPoint = 39;
+inline constexpr quint16 kToPoint = 40;
+} // namespace connectorKeys
 
-namespace transform {
-inline constexpr quint16 Translate = 2;
-inline constexpr quint16 Angle = 3;
-inline constexpr quint16 Scale = 4;
-inline constexpr quint16 Mirrored = 5; // miroir horizontal
-inline constexpr quint16 Flipped = 6;  // miroir vertical
-} // namespace transform
+// Transformation embarquée (§ 7.4).
+namespace placementKeys {
+inline constexpr quint16 kOffset = 2;      // translation
+inline constexpr quint16 kTurnDegrees = 3; // rotation, degrés, sens horaire
+inline constexpr quint16 kAxisFactors = 4; // facteurs d'échelle
+inline constexpr quint16 kMirrorX = 5;     // miroir horizontal
+inline constexpr quint16 kMirrorY = 6;     // miroir vertical
+} // namespace placementKeys
 
-namespace origin {
-inline constexpr quint16 Point = 2;
+namespace pivotKeys {
+inline constexpr quint16 kPivotPoint = 2;
 }
 
-namespace ink {
-inline constexpr quint16 Kind = 2; // 0 normal, 1 surligneur, 2 encre révélatrice
-inline constexpr quint16 PenWidth = 3;
-inline constexpr quint16 PenStyle = 4;
-inline constexpr quint16 PenCap = 5;  // 0 plat, 16 carré, 32 rond
-inline constexpr quint16 PenJoin = 6; // 0 angle, 64 biseau, 128 rond
-inline constexpr quint16 PenColor = 7;
-inline constexpr quint16 BrushStyle = 8; // 0 aucun, 1 plein, 2 à 14 motifs, 25 dégradé
-inline constexpr quint16 BrushColor = 9;
-inline constexpr quint16 BackgroundMode = 10;
-inline constexpr quint16 BackgroundColor = 11;
-inline constexpr quint16 BrushColor2 = 13;
-inline constexpr quint16 Gradient = 14;
-} // namespace ink
+// Encre embarquée (§ 7.2) : plume et remplissage.
+namespace penKeys {
+inline constexpr quint16 kStrokeMode = 2; // 0 stylo, 1 surligneur, 2 encre révélatrice
+inline constexpr quint16 kOutlineWidth = 3;
+inline constexpr quint16 kDashPattern = 4; // valeurs de Qt::PenStyle
+inline constexpr quint16 kEndShape = 5;    // bouts : 0 plat, 16 carré, 32 rond
+inline constexpr quint16 kCornerShape = 6; // jointures : 0 angle, 64 biseau, 128 rond
+inline constexpr quint16 kOutlineColor = 7;
+inline constexpr quint16 kFillPattern = 8;     // 0 aucun, 1 plein, 2 à 14 motifs, 25 dégradé
+inline constexpr quint16 kFillTint = 9;        // couleur du remplissage
+inline constexpr quint16 kOpaqueHatch = 10;    // fond des motifs opaque
+inline constexpr quint16 kHatchBackColor = 11; // couleur de ce fond
+inline constexpr quint16 kSecondaryColor = 13; // seconde couleur du dégradé
+inline constexpr quint16 kBlendDirection = 14; // 0 aucun dégradé, 1 à 5 : core::GradientKind
+} // namespace penKeys
 
-namespace label {
-inline constexpr quint16 Caption = 2;
+namespace tagKeys {
+inline constexpr quint16 kTagText = 2;
 }
 
-namespace resource {
-inline constexpr quint16 Points = 4;       // annotation, ligne
-inline constexpr quint16 Polygons = 4;     // forme
-inline constexpr quint16 OriginalName = 3; // image, média
-inline constexpr quint16 ImageSize = 5;
-inline constexpr quint16 TextRuns = 4;
-inline constexpr quint16 TextHtml = 5;
-} // namespace resource
+// Objets ressources (fichiers .ir, § 5).
+namespace resourceKeys {
+inline constexpr quint16 kPointList = 4;      // trait d'encre, ligne
+inline constexpr quint16 kPathOutlines = 4;   // forme
+inline constexpr quint16 kSourceFileName = 3; // image, média : nom du fichier d'origine
+inline constexpr quint16 kPixelSize = 5;      // image : taille en pixels
+inline constexpr quint16 kLayoutRuns = 4;     // texte : lignes mises en page
+inline constexpr quint16 kMarkup = 5;         // texte : HTML
+} // namespace resourceKeys
 
-namespace run {
-inline constexpr quint16 Bounds = 2;
-inline constexpr quint16 Baseline = 3;
-inline constexpr quint16 Color = 5;
-inline constexpr quint16 Text = 6;
-inline constexpr quint16 Family = 7;
-inline constexpr quint16 PointSize = 8;
-inline constexpr quint16 Weight = 9; // échelle Qt 4 (50 normal, 75 gras)
-inline constexpr quint16 Italic = 10;
-inline constexpr quint16 Underline = 11;
-inline constexpr quint16 StrikeOut = 12;
-} // namespace run
+// Ligne de texte mise en page (§ 7.5).
+namespace runKeys {
+inline constexpr quint16 kBox = 2;
+inline constexpr quint16 kBaselinePoint = 3;
+inline constexpr quint16 kGlyphColor = 5;
+inline constexpr quint16 kCharacters = 6;
+inline constexpr quint16 kTypeface = 7;
+inline constexpr quint16 kPointHeight = 8;
+inline constexpr quint16 kBoldness = 9; // échelle Qt 4 (50 normal, 75 gras)
+inline constexpr quint16 kSlanted = 10;
+inline constexpr quint16 kUnderlined = 11;
+inline constexpr quint16 kStruckThrough = 12;
+} // namespace runKeys
 
-// Actions (§ 7.6) : commande et cible selon le type.
-namespace action {
-inline constexpr quint16 TargetObjectTarget = 2;
-inline constexpr quint16 TargetObjectCommand = 5;
-inline constexpr quint16 OpenFileResource = 2;
-inline constexpr quint16 OpenFileTarget = 4;
-inline constexpr quint16 OpenFileCommand = 10;
-inline constexpr quint16 GoToPageCommand = 4;
-inline constexpr quint16 ToolCommand = 3;
-inline constexpr quint16 ShiftCommand = 3;
-inline constexpr quint16 ProgramCommand = 4;
-inline constexpr quint16 TargetTextTarget = 3;
-inline constexpr quint16 TargetTextCommand = 6;
-inline constexpr quint16 LaunchCommand = 4;
-} // namespace action
+// Actions (§ 7.6) : commande et cible selon le genre.
+namespace actionKeys {
+inline constexpr quint16 kObjectActionTarget = 2;
+inline constexpr quint16 kObjectActionCommand = 5;
+inline constexpr quint16 kOpenFileResource = 2;
+inline constexpr quint16 kOpenFileTarget = 4;
+inline constexpr quint16 kOpenFileCommand = 10;
+inline constexpr quint16 kGoToPageCommand = 4;
+inline constexpr quint16 kToolCommand = 3;
+inline constexpr quint16 kShiftCommand = 3;
+inline constexpr quint16 kProgramCommand = 4;
+inline constexpr quint16 kTextActionTarget = 3;
+inline constexpr quint16 kTextActionCommand = 6;
+inline constexpr quint16 kLaunchCommand = 4;
+} // namespace actionKeys
 
 } // namespace actcraft::formats::flipchart::ids
 ```
@@ -7948,16 +7963,16 @@ core::Outline outlineFrom(const StreamObject* ink)
     if (!ink) {
         return o;
     }
-    const int style = intOr(ink, ids::ink::PenStyle, 1);
+    const int style = intOr(ink, 4, 1);
     o.style = style >= 0 && style <= 5 ? static_cast<core::PenStyle>(style) : core::PenStyle::Solid;
-    o.color = colorOr(ink, ids::ink::PenColor, 0xFF000000u);
-    o.width = numberOr(ink, ids::ink::PenWidth, 1);
+    o.color = colorOr(ink, 7, 0xFF000000u);
+    o.width = numberOr(ink, 3, 1);
     if (o.width <= 0) {
         o.style = core::PenStyle::None;
     }
-    const int cap = intOr(ink, ids::ink::PenCap, 32);
+    const int cap = intOr(ink, 5, 32);
     o.cap = cap == 0 ? core::PenCap::Flat : cap == 16 ? core::PenCap::Square : core::PenCap::Round;
-    const int join = intOr(ink, ids::ink::PenJoin, 128);
+    const int join = intOr(ink, 6, 128);
     o.join = join == 0 ? core::PenJoin::Miter : join == 64 ? core::PenJoin::Bevel : core::PenJoin::Round;
     return o;
 }
@@ -7970,12 +7985,12 @@ core::GradientKind gradientOf(int value)
 core::Fill fillFrom(const StreamObject* ink)
 {
     core::Fill f;
-    f.color = colorOr(ink, ids::ink::BrushColor, 0xFFFFFFFFu);
-    f.color2 = colorOr(ink, ids::ink::BrushColor2, 0xFF000000u);
-    f.opaqueBackground = intOr(ink, ids::ink::BackgroundMode, 0) != 0;
-    f.backgroundColor = colorOr(ink, ids::ink::BackgroundColor, 0xFF000000u);
-    const int style = intOr(ink, ids::ink::BrushStyle, 0);
-    const int gradient = intOr(ink, ids::ink::Gradient, 0);
+    f.color = colorOr(ink, 9, 0xFFFFFFFFu);
+    f.color2 = colorOr(ink, 13, 0xFF000000u);
+    f.opaqueBackground = intOr(ink, 10, 0) != 0;
+    f.backgroundColor = colorOr(ink, 11, 0xFF000000u);
+    const int style = intOr(ink, 8, 0);
+    const int gradient = intOr(ink, 14, 0);
     if (style == 0) {
         f.kind = core::FillKind::None;
     } else if (gradient != 0 || style == 25) {
@@ -7993,18 +8008,18 @@ core::Fill fillFrom(const StreamObject* ink)
 // § 7.4 : translate(t + o) ; rotate(angle) ; scale(sx, sy) ; translate(-o) ; puis miroir éventuel.
 core::Transform localTransform(const StreamObject& o, const core::RectF& bounds)
 {
-    const StreamObject* t = asObject(o.find(ids::object::Transform));
+    const StreamObject* t = asObject(o.find(2));
     if (!t) {
         return {};
     }
-    const core::PointF translate = asPoint(t->find(ids::transform::Translate)).value_or(core::PointF{});
-    const core::PointF scale = asPoint(t->find(ids::transform::Scale)).value_or(core::PointF{1, 1});
-    const double angle = numberOr(t, ids::transform::Angle, 0);
-    const bool mirrored = flagOr(t, ids::transform::Mirrored, false);
-    const bool flipped = flagOr(t, ids::transform::Flipped, false);
+    const core::PointF translate = asPoint(t->find(2)).value_or(core::PointF{});
+    const core::PointF scale = asPoint(t->find(4)).value_or(core::PointF{1, 1});
+    const double angle = numberOr(t, 3, 0);
+    const bool mirrored = flagOr(t, 5, false);
+    const bool flipped = flagOr(t, 6, false);
     core::PointF origin;
-    if (const StreamObject* rot = asObject(o.find(ids::object::RotateOrigin))) {
-        origin = asPoint(rot->find(ids::origin::Point)).value_or(core::PointF{});
+    if (const StreamObject* rot = asObject(o.find(12))) {
+        origin = asPoint(rot->find(2)).value_or(core::PointF{});
     }
     core::Transform m = core::compose(
         core::compose(core::compose(core::translation(-origin.x, -origin.y), core::scaling(scale.x, scale.y)),
@@ -8087,22 +8102,22 @@ public:
             result.error = u"objet paperboard illisible : %1"_s.arg(error);
             return result;
         }
-        if (const StreamObject* registry = asObject(fc->find(ids::flipchart::ResourceRegister))) {
+        if (const StreamObject* registry = asObject(fc->find(7))) {
             for (const auto& [id, value] : registry->properties) {
                 for (const ResourceItem& item : asResourceItems(&value)) {
                     m_register[item.id] = item;
                 }
             }
         }
-        std::string title = text(&*fc, ids::flipchart::Title);
+        std::string title = text(&*fc, 12);
         if (title.empty()) {
-            title = text(&*fc, ids::flipchart::Name);
+            title = text(&*fc, 2);
         }
         const SizeF defaultSize =
-            asSize(fc->find(ids::flipchart::DefaultPageSize)).value_or(SizeF{1024, 768});
+            asSize(fc->find(18)).value_or(SizeF{1024, 768});
         std::vector<core::Page> pages;
         for (const IndexNode& child : tree->children) {
-            if (child.type != ids::type::Page) {
+            if (child.type != 2) {
                 continue;
             }
             QByteArray thumbnail;
@@ -8164,7 +8179,7 @@ private:
             names << item->second.dataFile;
         }
         if (res) {
-            if (const QString original = asString(res->find(ids::resource::OriginalName)); !original.isEmpty()) {
+            if (const QString original = asString(res->find(3)); !original.isEmpty()) {
                 names << original;
             }
         }
@@ -8252,12 +8267,12 @@ private:
             return std::nullopt;
         }
         core::Page page;
-        const SizeF size = asSize(pageObject->find(ids::page::Size)).value_or(defaultSize);
+        const SizeF size = asSize(pageObject->find(6)).value_or(defaultSize);
         page.width = size.width;
         page.height = size.height;
-        page.name = text(&*pageObject, ids::page::Name);
-        page.notes = text(&*pageObject, ids::page::Notes);
-        page.grid.visible = flagOr(&*pageObject, ids::page::GridVisible, false);
+        page.name = text(&*pageObject, 2);
+        page.notes = text(&*pageObject, 5);
+        page.grid.visible = flagOr(&*pageObject, 17, false);
         const QString thumbName = u"%1.thm"_s.arg(pageNode.nodeId);
         if (m_root->contains(thumbName)) {
             thumbnail = m_root->read(thumbName, error).value_or(QByteArray());
@@ -8286,15 +8301,15 @@ private:
                 }
                 continue;
             }
-            if (child.type == ids::type::Background) {
+            if (child.type == 29) {
                 background(*container, *o, page);
                 continue;
             }
-            if (child.type == ids::type::Grid) {
+            if (child.type == 13) {
                 grid(*container, child, *o, page);
                 continue;
             }
-            if (child.type == ids::type::Label) {
+            if (child.type == 53) {
                 continue;
             }
             std::optional<Pending> p = toPending(*container, child, *o, where);
@@ -8375,40 +8390,40 @@ private:
         quint16 command = 0;
         quint16 target = 0;
         switch (node.type) {
-        case ids::type::ActionTargetObject:
+        case 28:
             p.action.kind = core::ActionKind::OnObject;
-            command = ids::action::TargetObjectCommand;
-            target = ids::action::TargetObjectTarget;
+            command = 5;
+            target = 2;
             break;
-        case ids::type::ActionOpenFile: {
+        case 26: {
             p.action.kind = core::ActionKind::OpenExternal;
-            command = ids::action::OpenFileCommand;
-            target = ids::action::OpenFileTarget;
-            const int rid = intOr(&o, ids::action::OpenFileResource, 0);
+            command = 10;
+            target = 4;
+            const int rid = intOr(&o, 2, 0);
             if (rid > 0) {
                 p.action.resource = fileKey(static_cast<quint32>(rid), nullptr);
             }
             break;
         }
-        case ids::type::ActionGoToPage:
+        case 23:
             p.action.kind = core::ActionKind::Navigate;
-            command = ids::action::GoToPageCommand;
+            command = 4;
             break;
-        case ids::type::ActionTool:
-            command = ids::action::ToolCommand;
+        case 22:
+            command = 3;
             break;
-        case ids::type::ActionShift:
-            command = ids::action::ShiftCommand;
+        case 24:
+            command = 3;
             break;
-        case ids::type::ActionProgram:
-            command = ids::action::ProgramCommand;
+        case 25:
+            command = 4;
             break;
-        case ids::type::ActionTargetText:
-            command = ids::action::TargetTextCommand;
-            target = ids::action::TargetTextTarget;
+        case 50:
+            command = 6;
+            target = 3;
             break;
-        case ids::type::ActionLaunch:
-            command = ids::action::LaunchCommand;
+        case 463:
+            command = 4;
             break;
         default:
             break;
@@ -8424,17 +8439,17 @@ private:
 
     void background(const BambooContainer& container, const StreamObject& bg, core::Page& page)
     {
-        const StreamObject* ink = asObject(bg.find(ids::background::Ink));
-        if (intOr(ink, ids::ink::BrushStyle, 0) != 0) {
-            page.background.fill = core::solidFill(colorOr(ink, ids::ink::BrushColor, 0xFFFFFFFFu));
-            if (const int gradient = intOr(ink, ids::ink::Gradient, 0); gradient != 0) {
+        const StreamObject* ink = asObject(bg.find(3));
+        if (intOr(ink, 8, 0) != 0) {
+            page.background.fill = core::solidFill(colorOr(ink, 9, 0xFFFFFFFFu));
+            if (const int gradient = intOr(ink, 14, 0); gradient != 0) {
                 page.background.fill.kind = core::FillKind::Gradient;
                 page.background.fill.gradient = gradientOf(gradient);
-                page.background.fill.color2 = colorOr(ink, ids::ink::BrushColor2, 0xFF000000u);
+                page.background.fill.color2 = colorOr(ink, 13, 0xFF000000u);
             }
         }
-        const int kind = intOr(&bg, ids::background::Kind, 0);
-        const std::optional<Pointer> ptr = asPointer(bg.find(ids::background::Image));
+        const int kind = intOr(&bg, 2, 0);
+        const std::optional<Pointer> ptr = asPointer(bg.find(4));
         if ((kind == 1 || kind == 2) && ptr && !ptr->isNull()) {
             const QString name = u"%1.io"_s.arg(ptr->storageId);
             const BambooContainer& source = container.contains(name) ? container : *m_root;
@@ -8444,7 +8459,7 @@ private:
                 warn(u"image de fond illisible : %1"_s.arg(error));
                 return;
             }
-            const int rid = intOr(&*image, ids::image::Resource, 0);
+            const int rid = intOr(&*image, 38, 0);
             if (rid > 0) {
                 page.background.image = imageKey(static_cast<quint32>(rid));
             }
@@ -8453,13 +8468,13 @@ private:
 
     void grid(const BambooContainer& container, const IndexNode& node, const StreamObject& g, core::Page& page)
     {
-        page.grid.allowSnap = flagOr(&g, ids::grid::AllowSnap, false);
-        page.grid.onTop = flagOr(&g, ids::grid::OnTop, false);
-        page.grid.thumbnailScale = numberOr(&g, ids::grid::ThumbnailScale, page.grid.thumbnailScale);
-        page.grid.defaultScale = numberOr(&g, ids::grid::DefaultScale, page.grid.defaultScale);
-        page.grid.scaleStep = numberOr(&g, ids::grid::ScaleStep, page.grid.scaleStep);
+        page.grid.snapEnabled = flagOr(&g, 16, false);
+        page.grid.drawnAbove = flagOr(&g, 17, false);
+        page.grid.previewZoom = numberOr(&g, 13, page.grid.previewZoom);
+        page.grid.baseZoom = numberOr(&g, 14, page.grid.baseZoom);
+        page.grid.zoomIncrement = numberOr(&g, 15, page.grid.zoomIncrement);
         for (const IndexNode& child : node.children) {
-            if (child.type != ids::type::GridLevel || !container.contains(child.storageName())) {
+            if (child.type != 14 || !container.contains(child.storageName())) {
                 continue;
             }
             QString error;
@@ -8471,19 +8486,19 @@ private:
             const StreamObject* l = &*s;
             core::GridLevel level;
             const auto orDefault = [](double v, double fallback) { return v != 0 ? v : fallback; };
-            level.stepX = orDefault(numberOr(l, ids::gridlevel::StepX, 32), 32);
-            level.stepY = orDefault(numberOr(l, ids::gridlevel::StepY, 32), 32);
-            level.color = colorOr(l, ids::gridlevel::Color, 0xFF000000u) | 0xFF000000u;
-            level.visible = flagOr(l, ids::gridlevel::Visible, true);
-            level.snap = flagOr(l, ids::gridlevel::Snap, true);
-            level.start = asPoint(l->find(ids::gridlevel::Start)).value_or(core::PointF{});
-            level.angle = orDefault(numberOr(l, ids::gridlevel::Angle, 30), 30);
-            level.drawX = flagOr(l, ids::gridlevel::DrawX, true);
-            level.drawY = flagOr(l, ids::gridlevel::DrawY, true);
-            const int pattern = intOr(l, ids::gridlevel::Pattern, 1);
+            level.spacingX = orDefault(numberOr(l, 7, 32), 32);
+            level.spacingY = orDefault(numberOr(l, 8, 32), 32);
+            level.color = colorOr(l, 4, 0xFF000000u) | 0xFF000000u;
+            level.visible = flagOr(l, 5, true);
+            level.snap = flagOr(l, 13, true);
+            level.start = asPoint(l->find(6)).value_or(core::PointF{});
+            level.angle = orDefault(numberOr(l, 9, 30), 30);
+            level.linesAlongX = flagOr(l, 11, true);
+            level.linesAlongY = flagOr(l, 12, true);
+            const int pattern = intOr(l, 3, 1);
             level.pattern = pattern >= 1 && pattern <= 3 ? static_cast<core::GridPattern>(pattern - 1)
                                                          : core::GridPattern::Normal;
-            const int line = intOr(l, ids::gridlevel::LineStyle, 3);
+            const int line = intOr(l, 2, 3);
             level.line = line >= 1 && line <= 6 ? static_cast<core::GridLine>(line - 1) : core::GridLine::Solid;
             page.grid.levels.push_back(level);
         }
@@ -8495,67 +8510,67 @@ private:
         const quint16 type = node.type;
         Pending p;
         p.nodeId = node.nodeId;
-        const core::RectF bounds = asRect(o.find(ids::object::BoundingRect)).value_or(core::RectF{});
-        const StreamObject* ink = asObject(o.find(ids::object::Ink));
+        const core::RectF bounds = asRect(o.find(7)).value_or(core::RectF{});
+        const StreamObject* ink = asObject(o.find(10));
         switch (type) {
-        case ids::type::Annotation: {
+        case 3: {
             core::Stroke s;
             const core::Outline pen = outlineFrom(ink);
-            s.baseWidth = numberOr(ink, ids::ink::PenWidth, 1);
+            s.baseWidth = numberOr(ink, 3, 1);
             s.color = pen.color;
             s.cap = pen.cap;
-            const int kind = intOr(ink, ids::ink::Kind, 0);
+            const int kind = intOr(ink, 2, 0);
             s.kind = kind == 1 ? core::StrokeKind::Highlighter
                                : kind == 2 ? core::StrokeKind::Revealer : core::StrokeKind::Pen;
-            const int rid = intOr(&o, ids::annotation::Resource, 0);
+            const int rid = intOr(&o, 39, 0);
             if (const StreamObject* res = rid > 0 ? resourceObject(static_cast<quint32>(rid)) : nullptr) {
-                for (const core::PointF& q : asPolyline(res->find(ids::resource::Points))) {
+                for (const core::PointF& q : asPolyline(res->find(4))) {
                     s.points.push_back(core::StrokePoint{q.x, q.y, 0.5f});
                 }
             }
             p.object = std::move(s);
             p.object.common.translucency =
-                static_cast<std::uint8_t>(std::clamp(intOr(&o, ids::annotation::Translucency, 0), 0, 255));
+                static_cast<std::uint8_t>(std::clamp(intOr(&o, 38, 0), 0, 255));
             break;
         }
-        case ids::type::Line: {
+        case 5: {
             core::Line l;
             l.pen = outlineFrom(ink);
-            const int rid = intOr(&o, ids::line::Resource, 0);
+            const int rid = intOr(&o, 38, 0);
             if (const StreamObject* res = rid > 0 ? resourceObject(static_cast<quint32>(rid)) : nullptr) {
-                l.points = asPolyline(res->find(ids::resource::Points));
+                l.points = asPolyline(res->find(4));
             }
             p.object = std::move(l);
             break;
         }
-        case ids::type::Shape: {
+        case 7: {
             core::Shape s;
             s.kind = core::ShapeKind::Path;
             s.bounds = bounds;
-            const int rid = intOr(&o, ids::shape::Resource, 0);
+            const int rid = intOr(&o, 38, 0);
             if (const StreamObject* res = rid > 0 ? resourceObject(static_cast<quint32>(rid)) : nullptr) {
-                s.paths = asPolylines(res->find(ids::resource::Polygons));
+                s.paths = asPolylines(res->find(4));
             }
             if (s.paths.empty()) {
-                if (Polyline local = asPolyline(o.find(ids::shape::LocalPoints)); !local.empty()) {
+                if (Polyline local = asPolyline(o.find(49)); !local.empty()) {
                     s.paths.push_back(std::move(local));
                 }
             }
-            s.open = flagOr(&o, ids::shape::Open, false);
-            s.windingFill = intOr(&o, ids::shape::FillMode, 0) == 2;
+            s.open = flagOr(&o, 42, false);
+            s.windingFill = intOr(&o, 39, 0) == 2;
             s.pen = outlineFrom(ink);
             s.brush = fillFrom(ink);
             p.object = std::move(s);
             break;
         }
-        case ids::type::Image: {
+        case 9: {
             core::ImageObject im;
             im.bounds = bounds;
-            const int rid = intOr(&o, ids::image::Resource, 0);
+            const int rid = intOr(&o, 38, 0);
             if (rid > 0) {
                 im.resource = imageKey(static_cast<quint32>(rid));
                 if (const StreamObject* res = resourceObject(static_cast<quint32>(rid))) {
-                    if (const std::optional<SizeF> size = asSize(res->find(ids::resource::ImageSize));
+                    if (const std::optional<SizeF> size = asSize(res->find(5));
                         size && std::isfinite(size->width) && std::isfinite(size->height) && size->width >= 0 &&
                         size->height >= 0 && size->width < 1e6 && size->height < 1e6) {
                         im.sourceWidth = static_cast<std::int32_t>(size->width);
@@ -8563,64 +8578,64 @@ private:
                     }
                 }
             }
-            if (flagOr(&o, ids::image::Transparent, false)) {
+            if (flagOr(&o, 39, false)) {
                 im.hasTransparentColor = true;
-                im.transparentColor = colorOr(&o, ids::image::TransparentColor, 0xFF000000u);
+                im.keyColor = colorOr(&o, 40, 0xFF000000u);
             }
             p.object = std::move(im);
             break;
         }
-        case ids::type::Text: {
+        case 11: {
             core::Text t;
             t.bounds = bounds;
-            const int rid = intOr(&o, ids::text::Resource, 0);
+            const int rid = intOr(&o, 38, 0);
             if (const StreamObject* res = rid > 0 ? resourceObject(static_cast<quint32>(rid)) : nullptr) {
-                t.html = text(res, ids::resource::TextHtml);
-                for (const StreamObject* r : asObjects(res->find(ids::resource::TextRuns))) {
-                    core::TextRun run;
-                    run.text = text(r, ids::run::Text);
-                    run.fontFamily = text(r, ids::run::Family);
-                    run.pointSize = numberOr(r, ids::run::PointSize, 12);
-                    run.weight = qt6Weight(intOr(r, ids::run::Weight, 50));
-                    run.italic = flagOr(r, ids::run::Italic, false);
-                    run.underline = flagOr(r, ids::run::Underline, false);
-                    run.strikeOut = flagOr(r, ids::run::StrikeOut, false);
-                    run.color = colorOr(r, ids::run::Color, 0xFF000000u);
-                    run.baseline = asPoint(r->find(ids::run::Baseline)).value_or(core::PointF{});
-                    run.bounds = asRect(r->find(ids::run::Bounds)).value_or(core::RectF{});
+                t.html = text(res, 5);
+                for (const StreamObject* r : asObjects(res->find(4))) {
+                    core::TextSpan run;
+                    run.text = text(r, 6);
+                    run.fontFamily = text(r, 7);
+                    run.pointSize = numberOr(r, 8, 12);
+                    run.weight = qt6Weight(intOr(r, 9, 50));
+                    run.italic = flagOr(r, 10, false);
+                    run.underline = flagOr(r, 11, false);
+                    run.strikeOut = flagOr(r, 12, false);
+                    run.color = colorOr(r, 5, 0xFF000000u);
+                    run.baseline = asPoint(r->find(3)).value_or(core::PointF{});
+                    run.bounds = asRect(r->find(2)).value_or(core::RectF{});
                     t.runs.push_back(std::move(run));
                 }
             }
             p.object = std::move(t);
             break;
         }
-        case ids::type::Group:
+        case 18:
             p.object = core::Group{};
             p.members = node.refs;
             break;
-        case ids::type::Media: {
+        case 253: {
             core::Media m;
             m.bounds = bounds;
-            if (const int placeholder = intOr(&o, ids::media::Placeholder, 0); placeholder > 0) {
+            if (const int placeholder = intOr(&o, 38, 0); placeholder > 0) {
                 m.placeholder = imageKey(static_cast<quint32>(placeholder));
             }
-            if (const int file = intOr(&o, ids::media::File, 0); file > 0) {
+            if (const int file = intOr(&o, 45, 0); file > 0) {
                 m.media = fileKey(static_cast<quint32>(file), &m.fileName);
             }
-            m.autoPlay = flagOr(&o, ids::media::AutoPlay, false);
-            m.loop = flagOr(&o, ids::media::Loop, false);
+            m.playOnOpen = flagOr(&o, 41, false);
+            m.loop = flagOr(&o, 42, false);
             p.object = std::move(m);
             break;
         }
-        case ids::type::Connector: {
+        case 52: {
             core::Connector c;
-            c.endA = asPoint(o.find(ids::connector::PointA)).value_or(core::PointF{});
-            c.endB = asPoint(o.find(ids::connector::PointB)).value_or(core::PointF{});
+            c.firstEnd = asPoint(o.find(39)).value_or(core::PointF{});
+            c.secondEnd = asPoint(o.find(40)).value_or(core::PointF{});
             c.pen = outlineFrom(ink);
-            if (const std::optional<Pointer> a = asPointer(o.find(ids::connector::ObjectA)); a && !a->isNull()) {
+            if (const std::optional<Pointer> a = asPointer(o.find(34)); a && !a->isNull()) {
                 p.connectorA = a->nodeId;
             }
-            if (const std::optional<Pointer> b = asPointer(o.find(ids::connector::ObjectB)); b && !b->isNull()) {
+            if (const std::optional<Pointer> b = asPointer(o.find(35)); b && !b->isNull()) {
                 p.connectorB = b->nodeId;
             }
             p.object = std::move(c);
@@ -8632,22 +8647,22 @@ private:
         }
 
         core::ObjectCommon& c = p.object.common;
-        c.name = text(&o, ids::object::Name);
-        p.layer = intOr(&o, ids::object::Layer, 1);
+        c.name = text(&o, 4);
+        p.layer = intOr(&o, 8, 1);
         c.layer = p.layer == 0 ? core::Layer::Bottom : p.layer == 2 ? core::Layer::Top : core::Layer::Middle;
         if (p.layer < 0 || p.layer > 2) {
             warn(u"%1 : couche %2 inconnue (nœud %3), couche intermédiaire"_s.arg(where).arg(p.layer).arg(node.nodeId));
         }
-        p.depth = numberOr(&o, ids::object::Depth, 0);
-        c.visible = flagOr(&o, ids::object::Visible, true);
-        c.locked = flagOr(&o, ids::object::Locked, false);
-        c.restrictions.canMove = flagOr(&o, ids::object::CanMove, true);
-        c.restrictions.canSize = flagOr(&o, ids::object::CanSize, true);
-        c.restrictions.canRotate = flagOr(&o, ids::object::CanRotate, true);
+        p.depth = numberOr(&o, 9, 0);
+        c.visible = flagOr(&o, 6, true);
+        c.locked = flagOr(&o, 18, false);
+        c.restrictions.movable = flagOr(&o, 13, true);
+        c.restrictions.resizable = flagOr(&o, 14, true);
+        c.restrictions.rotatable = flagOr(&o, 15, true);
         c.transform = localTransform(o, bounds);
-        if (type != ids::type::Connector) {
-            if (const StreamObject* label = asObject(o.find(ids::object::Label))) {
-                c.label = text(label, ids::label::Caption);
+        if (type != 52) {
+            if (const StreamObject* label = asObject(o.find(34))) {
+                c.label = text(label, 2);
             }
         }
 
@@ -8663,7 +8678,7 @@ private:
                 p.actions.push_back(actionFrom(child, *co));
                 continue;
             }
-            if (child.type == ids::type::Label) {
+            if (child.type == 53) {
                 continue;
             }
             if (std::optional<Pending> cp = toPending(container, child, *co, where)) {
@@ -8723,9 +8738,8 @@ set(ACTCRAFT_FORMATS_FLIPCHART_SOURCES
   ou le test ; ne jamais « ajuster » le paperboard synthétique pour faire passer le lecteur.
 
 - [ ] **Étape 8 : preuve.** `format.ps1`, preuve de tâche (N ≥ 48 ; `tst_formats_flipchart` Passed).
-  `git -C <worktree> grep -n "\bas[A-Z][a-zA-Z]*" -- formats/src/flipchartids.h` ne doit rien trouver (aucun nom
-  `as…` d'Inspire), ni `git -C <worktree> grep -n -w -e ActionOnObject -e ActionNavigate -e ActionSelectTool -e
-  ActionOnText -e ActionMove -e ActionApp -- formats tests` (noms des classes d'action d'Inspire : nos constantes
+  `python -I "C:\Users\JeromeDenis\REA - Activinspire\tools\controle_noms_actcraft.py" <worktree>` finit par `NOMS OK` (aucun nom d'Inspire,
+  préfixé ou non, dans les fichiers suivis, classes d'action comprises : nos constantes
   s'appellent `ActionTargetObject`, `ActionGoToPage`, `ActionTool`, `ActionTargetText`, `ActionShift`,
   `ActionProgram`).
 
@@ -8757,7 +8771,7 @@ les deux côtés les appliquent :
 | page | `width`, `height` (réels) ; `background` : `color` (`#rrggbbaa`), `gradient` (0 sans dégradé ; sinon 2 à 5, toute autre valeur → 1), `color2` (`#rrggbbaa` si dégradé, sinon `""`), `image` (SHA-256 des octets, `""` sans image) ; `grid` : `visible`, `levels` (nombre de niveaux) ; `objects` |
 | objets | ordre de `Page.walk()` (parent puis enfants) ; seuls les genres `annotation`, `line`, `shape`, `image`, `text`, `group`, `connector`, `media` ; indices de cette liste pour `members` et `target` |
 | tout objet | `kind`, `layer` (0, 1, 2), `name`, `visible`, `locked`, `translucency` (entier), `matrix` (6 réels, objet → page, convention QTransform), `actions` : liste de `{type` (numéro de type de l'action), `command` (0 si absent), `target` (indice, −1 si aucun)`}` |
-| `annotation` | `pen` : `{color, width}` ; `inkType` (0, 1, 2 ; autre → 0) ; `geometry` : `{points, sum: [Σx, Σy]}` (coordonnées locales) |
+| `annotation` | `pen` : `{color, width}` ; `strokeMode` (0, 1, 2 ; autre → 0) ; `geometry` : `{points, sum: [Σx, Σy]}` (coordonnées locales) |
 | `line` | `pen` : `{color, width, style}` (style 0 si largeur ≤ 0, sinon 0 à 5, autre → 1) ; `geometry` |
 | `shape` | `pen` ; `brush` : `{kind` (`none` si style 0 ; `gradient` si type de dégradé ≠ 0 ou style 25 ; `pattern` si style 2 à 14 ; `solid` sinon), `color`, `color2` (`""` hors dégradé), `gradient` (règle de page, 0 hors dégradé), `pattern` (style, 0 hors motif)`}` ; `geometry` : `{polygons, points, sum}` ; `open` ; `bounds` (rectangle local) |
 | `image` | `bounds` ; `image` (SHA-256 des données) ; `transparent` (booléen) |
@@ -8800,6 +8814,8 @@ l'ancien dépôt, commit fait.
   `C:\Users\JeromeDenis\REA - Activinspire\tools\oracle_flipchart.py` :
 
 ```python
+# Les <…> désignent des attributs de l'ancien lecteur (app/actcraft/io/flipchart_reader.py), à reprendre
+# de ce fichier : leurs noms viennent d'Inspire et n'entrent pas dans le dépôt public (L2-C2).
 """Oracle du lecteur .flipchart d'ActCraft (DA4, décision 19 du cadrage livraison-complete).
 
 Exporte en JSON canonique (« actcraft-flipchart-dump/1 ») ce que lit le lecteur Python de ce dépôt pour chaque
@@ -8840,12 +8856,12 @@ def gradient_rule(value: int) -> int:
 
 
 def pen(st) -> dict:
-    style = 0 if st.pen_width <= 0 else (st.pen_style if 0 <= st.pen_style <= 5 else 1)
-    return {"color": rgba(st.pen_color), "width": float(st.pen_width), "style": style}
+    style = 0 if st.<largeur_plume> <= 0 else (st.<style_plume> if 0 <= st.<style_plume> <= 5 else 1)
+    return {"color": rgba(st.<couleur_plume>), "width": float(st.<largeur_plume>), "style": style}
 
 
 def brush(st) -> dict:
-    s = st.brush_style
+    s = st.<motif_remplissage>
     if s == 0:
         kind, gradient, pattern = "none", 0, 0
     elif st.gradient or s == 25:
@@ -8854,8 +8870,8 @@ def brush(st) -> dict:
         kind, gradient, pattern = "pattern", 0, s
     else:
         kind, gradient, pattern = "solid", 0, 0
-    return {"kind": kind, "color": rgba(st.brush_color),
-            "color2": rgba(st.brush_color2) if kind == "gradient" else "",
+    return {"kind": kind, "color": rgba(st.<couleur_remplissage>),
+            "color2": rgba(st.<couleur_remplissage_2>) if kind == "gradient" else "",
             "gradient": gradient, "pattern": pattern}
 
 
@@ -8868,8 +8884,8 @@ def canonical_object(o, index_of) -> dict:
     d = {"kind": o.kind, "layer": o.layer_index, "name": o.name, "visible": bool(o.visible),
          "locked": bool(o.locked), "translucency": int(o.translucency), "matrix": list(o.page_matrix())}
     if o.kind == "annotation":
-        d["pen"] = {"color": rgba(st.pen_color), "width": float(st.pen_width)}
-        d["inkType"] = st.ink_type if st.ink_type in (0, 1, 2) else 0
+        d["pen"] = {"color": rgba(st.<couleur_plume>), "width": float(st.<largeur_plume>)}
+        d["strokeMode"] = st.<genre_trait> if st.<genre_trait> in (0, 1, 2) else 0
         d["geometry"] = geometry(o.data.get("points") or [])
     elif o.kind == "line":
         d["pen"] = pen(st)
@@ -8879,27 +8895,27 @@ def canonical_object(o, index_of) -> dict:
         d["pen"] = pen(st)
         d["brush"] = brush(st)
         d["geometry"] = {"polygons": len(polys), **geometry([p for poly in polys for p in poly])}
-        d["open"] = bool(o.data.get("is_open"))
-        d["bounds"] = [float(v) for v in o.bounding_rect]
+        d["open"] = bool(o.data.get("<ouvert>"))
+        d["bounds"] = [float(v) for v in o.<rectangle_englobant>]
     elif o.kind == "image":
         img = o.data.get("image")
-        d["bounds"] = [float(v) for v in o.bounding_rect]
+        d["bounds"] = [float(v) for v in o.<rectangle_englobant>]
         d["image"] = sha(img.data) if img else ""
-        d["transparent"] = o.data.get("transparent_color") is not None
+        d["transparent"] = o.data.get("<couleur_cle>") is not None
     elif o.kind == "text":
         html = o.data.get("html") or ""
-        d["bounds"] = [float(v) for v in o.bounding_rect]
+        d["bounds"] = [float(v) for v in o.<rectangle_englobant>]
         d["text"] = {"html": hashlib.sha256(html.encode("utf-8")).hexdigest() if html else "",
                      "runs": len(o.data.get("runs") or [])}
     elif o.kind == "media":
         ph = o.data.get("placeholder")
-        d["bounds"] = [float(v) for v in o.bounding_rect]
+        d["bounds"] = [float(v) for v in o.<rectangle_englobant>]
         d["image"] = sha(ph.data) if ph else ""
     elif o.kind == "group":
         d["members"] = sorted(index_of[m] for m in o.data.get("member_ids", []) if m in index_of)
     elif o.kind == "connector":
         d["pen"] = pen(st)
-    d["actions"] = [{"type": TYPE_BY_CLASS.get(a.kind, 0), "command": int(a.feature_type or 0),
+    d["actions"] = [{"type": TYPE_BY_CLASS.get(a.kind, 0), "command": int(a.<commande> or 0),
                      "target": index_of.get(a.target_node_id, -1)} for a in o.actions]
     return d
 
@@ -8914,8 +8930,8 @@ def canonical_page(page) -> dict:
         "background": {"color": rgba(color),
                        "gradient": gradient_rule(grad[0]) if grad else 0,
                        "color2": rgba(grad[1]) if grad else "",
-                       "image": sha(page.background_image.data) if page.background_image else ""},
-        "grid": {"visible": bool(page.grid_visible), "levels": len(page.grid["styles"]) if page.grid else 0},
+                       "image": sha(page.<image_de_fond>.data) if page.<image_de_fond> else ""},
+        "grid": {"visible": bool(page.<grille_visible>), "levels": len(page.grid["styles"]) if page.grid else 0},
         "objects": [canonical_object(o, index_of) for o in objects],
     }
 
@@ -9002,7 +9018,7 @@ private slots:
         const QJsonObject annotation = objects.at(3).toObject();
         QCOMPARE(annotation.value(u"kind"_s).toString(), u"annotation"_s);
         QCOMPARE(annotation.value(u"layer"_s).toInt(), 2);
-        QCOMPARE(annotation.value(u"inkType"_s).toInt(), 1);
+        QCOMPARE(annotation.value(u"strokeMode"_s).toInt(), 1);
         QCOMPARE(annotation.value(u"pen"_s).toObject().value(u"color"_s).toString(), u"#ffff0080"_s);
         QCOMPARE(annotation.value(u"geometry"_s).toObject().value(u"sum"_s).toArray(), (QJsonArray{200.0, 50.0}));
         QCOMPARE(annotation.value(u"matrix"_s).toArray().size(), 6);
@@ -9245,7 +9261,7 @@ QJsonObject object(const PageObject& o, const std::map<ObjectId, int>& indexOf)
     if (const auto* s = std::get_if<Stroke>(&o)) {
         d.insert(u"kind"_s, u"annotation"_s);
         d.insert(u"pen"_s, QJsonObject{{u"color"_s, rgba(s->color)}, {u"width"_s, s->baseWidth}});
-        d.insert(u"inkType"_s, static_cast<int>(s->kind));
+        d.insert(u"strokeMode"_s, static_cast<int>(s->kind));
         d.insert(u"geometry"_s, geometry(s->points));
     } else if (const auto* l = std::get_if<Line>(&o)) {
         d.insert(u"kind"_s, u"line"_s);
@@ -9529,12 +9545,11 @@ du lot 2 est créée à la clôture de 2b.
    - `git -C <worktree> grep -n "Private\|_p\.h" -- core formats actions render ui app` → vide ;
    - `git -C <worktree> ls-files -- '*.flipchart' '*.thm' 'third_party/*'` → seulement les cinq fichiers de
      `third_party/miniz/` ;
-   - `git -C <worktree> grep -n -i "AsAnnotation\|AsShape\|asBoundingRect\|Promethean" -- formats core tests bench`
-     → vide (aucun nom d'Inspire dans le code ; le mot n'apparaît que dans la documentation et les commentaires de
-     propriété intellectuelle) ;
+   - `git -C <worktree> grep -n -i "Promethean" -- formats core tests bench` → vide (le mot n'apparaît que
+     dans la documentation et les commentaires de propriété intellectuelle) ;
    - `git -C <worktree> grep -n "qUncompress" -- formats/src` → vide (décompression bornée par miniz, L2-T7) ;
-   - `git -C <worktree> grep -n -w -e ActionOnObject -e ActionNavigate -e ActionSelectTool -e ActionOnText -e
-     ActionMove -e ActionApp -- formats core tests bench` → vide (noms de classes d'action d'Inspire ; les nôtres :
+   - `python -I "C:\Users\JeromeDenis\REA - Activinspire\tools\controle_noms_actcraft.py" <worktree>` → `NOMS OK` (aucun nom de
+     classe ou de propriété d'Inspire, préfixé ou non, dans les fichiers suivis ; nos classes d'action :
      `ActionTargetObject`, `ActionGoToPage`, `ActionTool`, `ActionTargetText`, `ActionShift`, `ActionProgram`).
 4. **État** : tâches L2-T1 à L2-T10 terminées, compteurs, pièges rencontrés ; puis lancement de
    `docs/plans/2026-10-15-livraison-complete-lot2b-PLAN.md` (sa table) sur la même branche.

@@ -363,7 +363,7 @@ private slots:
         im.bounds = {0, 0, 4, 4};
         im.resource = "cle";
         im.hasTransparentColor = true;
-        im.transparentColor = 0xFFFFFFFFu;
+        im.keyColor = 0xFFFFFFFFu;
         core::PageObject o = im;
         o.common.transform = core::scaling(25, 25); // 100 × 100 px
         core::Page page;
@@ -410,7 +410,7 @@ private slots:
     {
         core::Text t;
         t.bounds = {0, 0, 200, 40};
-        core::TextRun run;
+        core::TextSpan run;
         run.text = "XXXX";
         run.fontFamily = "Arial";
         run.pointSize = 24;
@@ -467,8 +467,8 @@ private slots:
         core::Page page;
         page.grid.visible = true;
         core::GridLevel level;
-        level.stepX = 100;
-        level.stepY = 100;
+        level.spacingX = 100;
+        level.spacingY = 100;
         level.color = 0xFF000000u;
         page.grid.levels.push_back(level);
         const QImage image = render::renderPage(page, kNoImages, 1.0);
@@ -485,8 +485,8 @@ private slots:
         core::Page page;
         page.grid.visible = true;
         core::GridLevel level;
-        level.stepX = 100;
-        level.stepY = 100;
+        level.spacingX = 100;
+        level.spacingY = 100;
         level.line = core::GridLine::Cross;
         page.grid.levels.push_back(level);
         const QImage image = render::renderPage(page, kNoImages, 1.0);
@@ -629,7 +629,7 @@ void paintObject(QPainter& painter, const core::PageObject& object, const ImageL
 void paintBackground(QPainter& painter, const core::Page& page, const ImageLookup& images);
 // Grille visible de la page (F-621) ; traits de 1 px écran.
 void paintGrid(QPainter& painter, const core::Page& page, bool thumbnail);
-// Page entière en coordonnées de page : fond, grille dessous (ou dessus si onTop), objets dans l'ordre du vecteur.
+// Page entière en coordonnées de page : fond, grille dessous (ou dessus si drawnAbove), objets dans l'ordre du vecteur.
 void paintPage(QPainter& painter, const core::Page& page, const ImageLookup& images, const PaintOptions& options = {});
 // Image de la page à l'échelle `scale` : fond blanc, 96 ppp, lissage.
 QImage renderPage(const core::Page& page, const ImageLookup& images, double scale, const PaintOptions& options = {});
@@ -858,7 +858,7 @@ void paintImage(QPainter& p, const core::ImageObject& im, const ImageLookup& ima
         return;
     }
     if (im.hasTransparentColor) {
-        image = withTransparentColor(image, im.transparentColor);
+        image = withTransparentColor(image, im.keyColor);
     }
     p.setRenderHint(QPainter::SmoothPixmapTransform, true);
     p.drawImage(rect, image);
@@ -867,7 +867,7 @@ void paintImage(QPainter& p, const core::ImageObject& im, const ImageLookup& ima
 void paintText(QPainter& p, const core::Text& t)
 {
     if (!t.runs.empty()) {
-        for (const core::TextRun& run : t.runs) {
+        for (const core::TextSpan& run : t.runs) {
             const QString text = QString::fromStdString(run.text);
             QFont font(QString::fromStdString(run.fontFamily));
             font.setPointSizeF(std::max(1.0, run.pointSize));
@@ -976,20 +976,20 @@ bool clip(QLineF& line, const QRectF& r)
 
 std::vector<QLineF> gridLines(const core::GridLevel& l, double w, double h, double scale)
 {
-    const double sx = std::max(l.stepX * scale, 1.0);
-    const double sy = std::max(l.stepY * scale, 1.0);
+    const double sx = std::max(l.spacingX * scale, 1.0);
+    const double sy = std::max(l.spacingY * scale, 1.0);
     std::vector<QLineF> out;
     if (l.pattern == core::GridPattern::Normal) {
         const double x0 = std::max(0.0, l.start.x);
         const double y0 = std::max(0.0, l.start.y);
-        if (l.drawX) {
+        if (l.linesAlongX) {
             const Range r = rangeOf(l.start.x, sx, x0, w);
             for (long long k = r.first; k <= r.last; ++k) {
                 const double x = l.start.x + static_cast<double>(k) * sx;
                 out.emplace_back(x, y0, x, h);
             }
         }
-        if (l.drawY) {
+        if (l.linesAlongY) {
             const Range r = rangeOf(l.start.y, sy, y0, h);
             for (long long k = r.first; k <= r.last; ++k) {
                 const double y = l.start.y + static_cast<double>(k) * sy;
@@ -1005,7 +1005,7 @@ std::vector<QLineF> gridLines(const core::GridLevel& l, double w, double h, doub
         double sign;
         bool on;
         double step;
-    } families[2] = {{1, l.drawX, sx}, {-1, l.drawY, sy}};
+    } families[2] = {{1, l.linesAlongX, sx}, {-1, l.linesAlongY, sy}};
     for (const auto& f : families) {
         if (!f.on) {
             continue;
@@ -1025,11 +1025,11 @@ std::vector<QLineF> gridLines(const core::GridLevel& l, double w, double h, doub
 
 std::vector<QPointF> gridPoints(const core::GridLevel& l, double w, double h, double scale)
 {
-    const double sx = std::max(l.stepX * scale, 1.0);
-    const double sy = std::max(l.stepY * scale, 1.0);
+    const double sx = std::max(l.spacingX * scale, 1.0);
+    const double sy = std::max(l.spacingY * scale, 1.0);
     std::vector<QPointF> out;
     if (l.pattern == core::GridPattern::Normal) {
-        if (!l.drawX || !l.drawY) {
+        if (!l.linesAlongX || !l.linesAlongY) {
             return out;
         }
         const Range rx = rangeOf(l.start.x, sx, std::max(0.0, l.start.x), w);
@@ -1162,7 +1162,7 @@ void paintObjectLocal(QPainter& p, const core::PageObject& object, const ImageLo
         paintMedia(p, *m, images);
     } else if (const auto* c = std::get_if<core::Connector>(&object)) {
         p.setPen(penOf(c->pen));
-        p.drawLine(QPointF(c->endA.x, c->endA.y), QPointF(c->endB.x, c->endB.y));
+        p.drawLine(QPointF(c->firstEnd.x, c->firstEnd.y), QPointF(c->secondEnd.x, c->secondEnd.y));
     }
     p.restore();
 }
@@ -1204,7 +1204,7 @@ void paintGrid(QPainter& p, const core::Page& page, bool thumbnail)
     if (!page.grid.visible) {
         return;
     }
-    const double scale = thumbnail ? page.grid.thumbnailScale : page.grid.defaultScale;
+    const double scale = thumbnail ? page.grid.previewZoom : page.grid.baseZoom;
     p.save();
     p.setRenderHint(QPainter::Antialiasing, thumbnail);
     p.setClipRect(QRectF(0, 0, page.width, page.height), Qt::IntersectClip);
@@ -1225,13 +1225,13 @@ void paintPage(QPainter& p, const core::Page& page, const ImageLookup& images, c
     if (options.background) {
         paintBackground(p, page, images);
     }
-    if (options.grid && !page.grid.onTop) {
+    if (options.grid && !page.grid.drawnAbove) {
         paintGrid(p, page, options.thumbnail);
     }
     for (const core::PageObject& object : page.objects) {
         paintObject(p, object, images);
     }
-    if (options.grid && page.grid.onTop) {
+    if (options.grid && page.grid.drawnAbove) {
         paintGrid(p, page, options.thumbnail);
     }
 }
@@ -1355,7 +1355,7 @@ QByteArray pngOf(const QImage& image)
         plain.resource = key;
         core::ImageObject masked = plain;
         masked.hasTransparentColor = true;
-        masked.transparentColor = 0xFFFFFFFFu;
+        masked.keyColor = 0xFFFFFFFFu;
         core::Page page;
         page.objects.emplace_back(plain);
         page.objects.emplace_back(masked);
@@ -1504,7 +1504,7 @@ std::string ImageStore::variantKey(const core::ImageObject& object)
     if (!object.hasTransparentColor) {
         return object.resource;
     }
-    return object.resource + QStringLiteral("#%1").arg(object.transparentColor, 8, 16, QLatin1Char('0')).toStdString();
+    return object.resource + QStringLiteral("#%1").arg(object.keyColor, 8, 16, QLatin1Char('0')).toStdString();
 }
 
 void ImageStore::generate(const core::Page& page, const core::Document* resources)
@@ -1543,7 +1543,7 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
                 const core::ImageObject copy = *object;
                 m_pool.start([post, i, copy] { post(i, std::string(), synthesizeImage(copy)); });
             } else {
-                want(object->resource, object->hasTransparentColor ? std::optional<core::Argb>(object->transparentColor)
+                want(object->resource, object->hasTransparentColor ? std::optional<core::Argb>(object->keyColor)
                                                                    : std::nullopt);
             }
         } else if (const auto* media = std::get_if<core::Media>(&page.objects[i])) {
@@ -1562,7 +1562,7 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
                     core::ImageObject probe;
                     probe.resource = key;
                     probe.hasTransparentColor = true;
-                    probe.transparentColor = *color;
+                    probe.keyColor = *color;
                     out.emplace_back(variantKey(probe), withTransparentColor(decoded, *color));
                 }
             }
@@ -1690,7 +1690,7 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
         plain.resource = document.addResource(pngOf(source), "png");
         core::ImageObject masked = plain;
         masked.hasTransparentColor = true;
-        masked.transparentColor = 0xFFFFFFFFu;
+        masked.keyColor = 0xFFFFFFFFu;
         core::Page withPlain;
         withPlain.objects.emplace_back(plain);
         core::Page withMasked;
@@ -1742,7 +1742,7 @@ ordre couche puis profondeur puis arbre) et décision 37 (texte dessiné par le 
 le rendu RHI, redessinée après un zoom). La page fixe dessine :
 
 - le **fond** de la page (rectangle uni si possible, sinon peint) puis la **grille** (sous les objets, ou au-dessus
-  si `onTop`) ;
+  si `drawnAbove`) ;
 - chaque objet visible, dans l'ordre du vecteur (déjà rangé par couche puis profondeur), par le moteur du
   prototype s'il sait le faire (formes simples, trait du stylo à bouts carrés, image), sinon par le **moteur peint** :
   en rendu logiciel, un nœud QPainter qui appelle `paintObjectLocal` (vectoriel, net à tout zoom) ; en RHI, une
@@ -1955,10 +1955,10 @@ private slots:
         core::PageObject red = pathSquare(300, 0xFFFF0000u);
         page.objects.push_back(red);
         page.grid.visible = true;
-        page.grid.onTop = true;
+        page.grid.drawnAbove = true;
         core::GridLevel level;
-        level.stepX = 100;
-        level.stepY = 100;
+        level.spacingX = 100;
+        level.spacingY = 100;
         page.grid.levels.push_back(level);
         Fixture f;
         QVERIFY(open(f, page));
@@ -2432,7 +2432,7 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         if (m_ready) {
             root->appendChildNode(createBackgroundNode(shown, context));
             if (QSGNode* grid = createGridNode(shown, context)) {
-                if (shown.grid.onTop) {
+                if (shown.grid.drawnAbove) {
                     m_gridOnTop = grid;
                 }
                 root->appendChildNode(grid);
@@ -3002,7 +3002,7 @@ inconnu). Vert : forme bornée, N ≥ 58, `TESTS OK`, `tst_ui_document`, `tst_pa
 `LU pageIndicator.text=1 / 2 OK`, `CAPTURES OK` (le trait rouge survit à l'aller-retour de page par le document).
 
 **Interdits.** Ne renommer aucun nom figé du lot 1 (`fixedPage`, `pageCount`, `currentIndex`, `pageLabel`,
-`nextPage`, `previousPage`, `loadGeneratedFirstPage`, `document`, `pageAboutToChange`, `pagesChanged`). Aucune
+`nextPage`, `pageBack`, `loadGeneratedFirstPage`, `document`, `pageAboutToChange`, `pagesChanged`). Aucune
 écriture du document hors de la pile, sauf `replaceDocument` (ouverture, nouveau document, page générée du banc), qui
 vide la pile. Pas d'Annuler / Rétablir dans l'interface (lot 3). Tests existants : seuls ceux qui supposaient le relais
 (écrire dans l'élément et le lire dans le document) changent, pour cette raison écrite.
@@ -3062,7 +3062,7 @@ vide la pile. Pas d'Annuler / Rétablir dans l'interface (lot 3). Tests existant
         controller.commitStroke(redStroke());
         controller.nextPage();
         QCOMPARE(fixed.objectCount(), 0);
-        controller.previousPage();
+        controller.pageBack();
         QCOMPARE(fixed.objectCount(), 1);
         QVERIFY(std::get<core::Stroke>(controller.document().page(0).objects[0]).color == 0xFFE53935u);
         QVERIFY(controller.document().page(1).objects.empty());
@@ -3230,7 +3230,7 @@ public:
 
     // F-125 : sur la dernière page, ajoute une page (commande annulable) et l'affiche.
     Q_INVOKABLE void nextPage();
-    Q_INVOKABLE void previousPage();
+    Q_INVOKABLE void pageBack();
     // Banc et tests : la page 1 devient la page générée de 300 objets ; document propre, pile vide.
     Q_INVOKABLE void loadGeneratedFirstPage();
 
@@ -3485,7 +3485,7 @@ void DocumentController::nextPage()
     notifyState();
 }
 
-void DocumentController::previousPage()
+void DocumentController::pageBack()
 {
     const std::size_t target = core::previousPageIndex(m_current);
     if (target == m_current) {
