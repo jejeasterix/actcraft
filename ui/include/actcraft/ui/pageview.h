@@ -111,6 +111,11 @@ public:
     // QML : appelé sur ShaderEffectSource.scheduledUpdateCompleted.
     Q_INVOKABLE void notifyCacheUpdated();
     Q_INVOKABLE QPointF pageToScene(QPointF pagePoint) const;
+    // Termine le trait en cours (stylet, doigt ou souris) à son dernier point et le verse à la page affichée
+    // ; la suite du même contact ne dessine plus. Appelé avant tout changement de page
+    // (DocumentController::pageAboutToChange, branché dans Main.qml) et, par la vue elle-même, avant tout
+    // changement de zoom ou de défilement : un trait n'est jamais perdu ni versé à une autre page.
+    Q_INVOKABLE void finishStroke();
     // Pendant un scénario du banc, seuls ces périphériques sont écoutés ; liste vide = tous.
     void setExclusiveDevices(QList<const QInputDevice*> devices);
 
@@ -152,6 +157,10 @@ private:
     bool handlePointer(const QEvent& event, QPointF viewPos);
     // Un trait peut commencer ici : vue visible, aucune fenêtre surgissante, point sur la vue.
     bool canStartStroke(QPointF viewPos) const;
+    // Un élément posé sur la vue (empilé au-dessus d'elle chez son parent : barres de défilement) prendrait
+    // la souris ou le doigt à ce point. Qt Quick le leur livre avant la vue ; le stylet, capté par le filtre
+    // de la fenêtre, doit leur être laissé de même. Consulté à l'appui seulement, jamais par point.
+    bool coveredAt(QPointF viewPos) const;
     // Termine le trait d'un doigt (deuxième doigt, annulation) par un relâché au dernier point connu.
     void finishTouchStroke();
 
@@ -181,6 +190,7 @@ private:
     bool m_stylusDrawing = false; // un trait du stylet, commencé sur la vue, est en cours
     bool m_touchDrawing = false;  // un trait d'un doigt est en cours
     QPointF m_lastTouchViewPos;
+    QPointF m_lastPagePoint; // dernier point transmis au stylo, en coordonnées de page
 };
 
 } // namespace actcraft::ui

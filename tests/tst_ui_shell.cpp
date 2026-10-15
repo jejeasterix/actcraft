@@ -1,6 +1,10 @@
 #include "startup.h"
 
+#include <actcraft/core/document.h>
 #include <actcraft/render/fixedpageitem.h>
+#include <actcraft/render/inkitem.h>
+#include <actcraft/ui/commands.h>
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QPointingDevice>
@@ -12,6 +16,7 @@
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <memory>
+#include <variant>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
@@ -227,14 +232,41 @@ private slots:
         QVERIFY(near(pixelAtPage(s, QPointF(500, 400)), QColor(QStringLiteral("#E53935")), 60));
     }
 
+    // L'état réel de la fenêtre (visibility), pas une propriété affectée avant de le demander.
     void f5TogglesFullScreen()
     {
         Shell s;
         QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands);
+        QVERIFY(s.window->visibility() != QWindow::FullScreen);
         QTest::keyClick(s.window, Qt::Key_F5);
-        QTRY_VERIFY(s.window->property("fullScreen").toBool());
+        QTRY_COMPARE(s.window->visibility(), QWindow::FullScreen);
+        QVERIFY(s.window->property("fullScreen").toBool());
+        QVERIFY(commands->isChecked(QStringLiteral("view.fullscreen")));
         QTest::keyClick(s.window, Qt::Key_F5);
+        QTRY_VERIFY(s.window->visibility() == QWindow::Windowed ||
+                    s.window->visibility() == QWindow::Maximized);
+        QVERIFY(!s.window->property("fullScreen").toBool());
+        QVERIFY(!commands->isChecked(QStringLiteral("view.fullscreen")));
+    }
+
+    // Sortie du plein écran par le système (raccourci du gestionnaire de fenêtres, autre application) : la
+    // coche suit, et une seule pression sur F5 y revient.
+    void fullScreenLeftByTheSystemFollowsTheRealState()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands);
+        QTest::keyClick(s.window, Qt::Key_F5);
+        QTRY_COMPARE(s.window->visibility(), QWindow::FullScreen);
+        s.window->showNormal(); // le système, pas la commande
         QTRY_VERIFY(!s.window->property("fullScreen").toBool());
+        QVERIFY(!commands->isChecked(QStringLiteral("view.fullscreen")));
+        QTest::keyClick(s.window, Qt::Key_F5);
+        QTRY_COMPARE(s.window->visibility(), QWindow::FullScreen);
+        QVERIFY(commands->isChecked(QStringLiteral("view.fullscreen")));
     }
 
     void swatchTapChoosesThePenColor()
@@ -259,6 +291,60 @@ private slots:
         post(s, QEvent::TabletRelease, a - QPointF(300, 0), Qt::NoButton);
         QTest::qWait(150);
         QCOMPARE(s.fixed->objectCount(), 0);
+    }
+
+    // Zoom 200 % : les barres de défilement sont posées sur la page. Le stylet appuyé sur la barre ne trace
+    // pas : il est laissé à la barre, comme la souris et le doigt.
+    void stylusOnAScrollBarDoesNotDraw()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QVERIFY(run(s, QStringLiteral("view.zoom"), 200));
+        QVERIFY(ready(s));
+        QQuickItem* bar = item(s, "horizontalScrollBar");
+        QVERIFY(bar);
+        QTRY_VERIFY(bar->isVisible());
+        const QPointF a = bar->mapToScene(QPointF(bar->width() / 2, bar->height() / 2));
+        QVERIFY(s.view->contains(s.view->mapFromScene(a))); // la barre est bien dans les limites de la vue
+        post(s, QEvent::TabletPress, a, Qt::LeftButton);
+        for (int i = 1; i <= 5; ++i) {
+            post(s, QEvent::TabletMove, a + QPointF(20.0 * i, 0), Qt::LeftButton);
+        }
+        post(s, QEvent::TabletRelease, a + QPointF(100, 0), Qt::NoButton);
+        QTest::qWait(150);
+        QCOMPARE(s.fixed->objectCount(), 0);
+    }
+
+    // Page suivante pendant un trait (PgDown, télécommande, doigt sur le bouton) : le trait se termine et
+    // reste sur la page où il a été commencé ; rien n'est versé à la nouvelle page, rien n'y reste dessiné.
+    void pageChangeDuringAStrokeLeavesItOnItsPage()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* ink = s.window->findChild<render::InkItem*>(QStringLiteral("ink"));
+        auto* controller = s.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(ink && controller);
+        post(s, QEvent::TabletPress, s.view->pageToScene(QPointF(300, 400)), Qt::LeftButton);
+        for (int i = 1; i <= 5; ++i) {
+            post(s, QEvent::TabletMove, s.view->pageToScene(QPointF(300 + 20.0 * i, 400)), Qt::LeftButton);
+        }
+        QTRY_COMPARE(ink->pointCount(), std::size_t{6});
+        QTest::keyClick(s.window, Qt::Key_PageDown);
+        QCOMPARE(indicator(s), QStringLiteral("2 / 2"));
+        QCOMPARE(ink->pointCount(), std::size_t{0});
+        QCOMPARE(s.fixed->objectCount(), 0);
+        for (int i = 6; i <= 10; ++i) {
+            post(s, QEvent::TabletMove, s.view->pageToScene(QPointF(300 + 20.0 * i, 400)), Qt::LeftButton);
+        }
+        post(s, QEvent::TabletRelease, s.view->pageToScene(QPointF(500, 400)), Qt::NoButton);
+        QTest::qWait(150);
+        QCOMPARE(s.fixed->objectCount(), 0);
+        QCOMPARE(ink->pointCount(), std::size_t{0});
+        const core::Document& document = controller->document();
+        QCOMPARE(document.page(1).objects.size(), std::size_t{0});
+        QCOMPARE(document.page(0).objects.size(), std::size_t{1});
+        const auto& stroke = std::get<core::Stroke>(document.page(0).objects.front());
+        QCOMPARE(stroke.points.size(), std::size_t{6}); // de 300 à 400 : rien d'après le changement de page
     }
 
     void aboutCommandOpensTheDialogAndBlocksThePage()

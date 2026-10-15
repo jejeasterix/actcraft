@@ -4,6 +4,8 @@
 #include <actcraft/ui/pageview.h>
 
 #include <QPointingDevice>
+#include <QQmlComponent>
+#include <QQmlEngine>
 #include <QQuickWindow>
 #include <QSignalSpy>
 #include <QTabletEvent>
@@ -390,6 +392,134 @@ private slots:
         QTRY_COMPARE(f.fixed->objectCount(), 1);
     }
 
+    // Une barre de défilement posée sur la vue prend la souris et le doigt avant elle (Qt Quick livre à
+    // l'élément du dessus) ; le stylet, capté par le filtre de la fenêtre, doit lui être laissé de même.
+    void stylusLeavesAnInteractiveItemAboveTheViewAlone()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        // Barre : au-dessus de la vue (empilée après elle), sur sa partie basse droite, prend le bouton
+        // gauche.
+        auto* bar = new QQuickItem;
+        bar->setParentItem(f.window.contentItem());
+        bar->setPosition(QPointF(600, 500));
+        bar->setSize(QSizeF(200, 100));
+        bar->setAcceptedMouseButtons(Qt::LeftButton);
+        tabletStroke(f, QPointF(650, 550), QPointF(750, 550));
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 0);
+        QCOMPARE(f.passedOn.count, 6);
+        // Indicateur (cercle sous le pointeur) : au-dessus de la vue mais ne prend rien, le stylet dessine.
+        auto* ring = new QQuickItem;
+        ring->setParentItem(f.window.contentItem());
+        ring->setPosition(QPointF(300, 0));
+        ring->setSize(QSizeF(200, 600));
+        tabletStroke(f, QPointF(350, 300), QPointF(450, 300));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(f.passedOn.count, 6);
+        // Élément actif sous la vue, ou barre cachée : la vue est dessus, le stylet dessine.
+        auto* under = new QQuickItem;
+        under->setParentItem(f.window.contentItem());
+        under->setZ(-1);
+        under->setPosition(QPointF(200, 100));
+        under->setSize(QSizeF(200, 100));
+        under->setAcceptedMouseButtons(Qt::LeftButton);
+        tabletStroke(f, QPointF(250, 150), QPointF(350, 150));
+        QTRY_COMPARE(f.fixed->objectCount(), 2);
+        bar->setVisible(false);
+        tabletStroke(f, QPointF(650, 550), QPointF(750, 550));
+        QTRY_COMPARE(f.fixed->objectCount(), 3);
+        QCOMPARE(f.passedOn.count, 6);
+        // Élément actif de même z déclaré avant la vue : dessous, le stylet dessine.
+        auto* before = new QQuickItem;
+        before->setParentItem(f.window.contentItem());
+        before->stackBefore(f.view);
+        before->setPosition(QPointF(500, 100));
+        before->setSize(QSizeF(300, 100));
+        before->setAcceptedMouseButtons(Qt::LeftButton);
+        tabletStroke(f, QPointF(550, 150), QPointF(650, 150));
+        QTRY_COMPARE(f.fixed->objectCount(), 4);
+        QCOMPARE(f.passedOn.count, 6);
+    }
+
+    // Un gestionnaire de pointeur ajoute tous les boutons à acceptedMouseButtons() de son élément : seuls
+    // comptent ceux de l'élément et les gestionnaires qui prennent l'appui (TapHandler, DragHandler,
+    // PointHandler).
+    void stylusIgnoresHandlersThatTakeNoPress()
+    {
+        QQmlEngine engine; // avant la fenêtre : détruit après les éléments qu'il a créés
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        const auto make = [&](const QByteArray& qml, QPointF pos) -> QQuickItem* {
+            QQmlComponent component(&engine);
+            component.setData("import QtQuick\nItem { width: 200; height: 100\n" + qml + "\n}", QUrl());
+            auto* item = qobject_cast<QQuickItem*>(component.create());
+            if (item) {
+                item->setParent(f.window.contentItem());
+                item->setParentItem(f.window.contentItem());
+                item->setPosition(pos);
+            }
+            return item;
+        };
+        // Survol seulement : au-dessus de la vue, ne prend pas l'appui, le stylet dessine.
+        QVERIFY(make("HoverHandler {}", QPointF(300, 0)));
+        tabletStroke(f, QPointF(350, 50), QPointF(450, 50));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(f.passedOn.count, 0);
+        // Tape : prend l'appui, le stylet lui est laissé.
+        QVERIFY(make("TapHandler {}", QPointF(300, 200)));
+        tabletStroke(f, QPointF(350, 250), QPointF(450, 250));
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(f.passedOn.count, 6);
+        // MouseArea (prend elle-même le bouton gauche) avec un survol : laissée aussi.
+        QVERIFY(make("MouseArea { anchors.fill: parent; HoverHandler {} }", QPointF(300, 400)));
+        tabletStroke(f, QPointF(350, 450), QPointF(450, 450));
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(f.passedOn.count, 12);
+        // Limite connue (API publique seule) : un élément d'un autre type qui accepte le bouton gauche ET
+        // porte un survol n'est pas reconnu, le stylet y dessine. Aucun élément de l'interface n'est dans ce
+        // cas.
+        QQuickItem* plain = make("HoverHandler {}", QPointF(550, 400));
+        QVERIFY(plain);
+        plain->setAcceptedMouseButtons(Qt::LeftButton);
+        tabletStroke(f, QPointF(600, 450), QPointF(700, 450));
+        QTRY_COMPARE(f.fixed->objectCount(), 2);
+        QCOMPARE(f.passedOn.count, 12);
+    }
+
+    // Zoom, « Ajuster » ou défilement pendant un trait : la page bouge sous le stylet. Le trait se termine
+    // avant, là où il était, versé à la page ; la suite du contact ne dessine plus (sinon le trait
+    // sauterait).
+    void transformChangeEndsTheStrokeWhereItWas()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        const auto changes = {+[](PageView* v) { v->setZoom(2.0); }, +[](PageView* v) { v->fitPage(); }};
+        int strokes = 0;
+        for (const auto& change : changes) {
+            tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton);
+            tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
+            tablet(f, QEvent::TabletMove, QPointF(400, 300), Qt::LeftButton);
+            const QPointF last = f.view->viewTransform().viewToPage(f.view->mapFromScene(QPointF(400, 300)));
+            change(f.view);
+            ++strokes;
+            QCOMPARE(f.fixed->objectCount(), strokes); // versé avant que la transformation change
+            QCOMPARE(f.view->ink()->pointCount(), std::size_t{0});
+            QCOMPARE(lastStroke(f).points.size(), std::size_t{3});
+            QCOMPARE(lastStroke(f).points.back().x, last.x());
+            tablet(f, QEvent::TabletMove, QPointF(450, 300), Qt::LeftButton);
+            tablet(f, QEvent::TabletRelease, QPointF(500, 300), Qt::NoButton);
+            QTest::qWait(50);
+            QCOMPARE(f.fixed->objectCount(), strokes);
+            QCOMPARE(lastStroke(f).points.size(), std::size_t{3});
+        }
+        // Le contact suivant dessine normalement.
+        tabletStroke(f, QPointF(300, 400), QPointF(500, 400));
+        QTRY_COMPARE(f.fixed->objectCount(), strokes + 1);
+    }
+
     void pageSizeChangeSignalsScroll()
     {
         Fixture f;
@@ -414,6 +544,50 @@ private slots:
         f.view->scrollTo(0.0, 0.0); // page entière visible : une barre renvoie sa position, rien ne bouge
         f.view->setSize(QSizeF(640, 400));
         QVERIFY(qFuzzyCompare(f.view->zoom(), (400.0 - 64.0) / 768.0)); // toujours « Ajuster »
+    }
+
+    // Molette sur une page entière visible : rien ne bouge, « Ajuster » reste (F5 ou un redimensionnement
+    // recadrent encore la page), comme pour une barre de défilement.
+    void wheelKeepsFitWhenNothingMoves()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        wheel(f, QPointF(640, 400), QPoint(0, -120), Qt::NoModifier);
+        wheel(f, QPointF(640, 400), QPoint(0, -120), Qt::ShiftModifier);
+        f.view->setSize(QSizeF(640, 400));
+        QVERIFY(qFuzzyCompare(f.view->zoom(), (400.0 - 64.0) / 768.0)); // toujours « Ajuster »
+        // Vue si petite qu'« Ajuster » bute sur le zoom minimal : Ctrl+molette (dézoom) ne bouge rien.
+        f.view->setSize(QSizeF(250, 200));
+        QCOMPARE(f.view->zoom(), kMinZoom);
+        const QPointF pan = f.view->pan();
+        wheel(f, QPointF(125, 100), QPoint(0, -120), Qt::ControlModifier);
+        QCOMPARE(f.view->zoom(), kMinZoom);
+        QCOMPARE(f.view->pan(), pan);
+        f.view->setSize(QSizeF(640, 400));
+        QVERIFY(qFuzzyCompare(f.view->zoom(), (400.0 - 64.0) / 768.0)); // toujours « Ajuster »
+    }
+
+    // Une molette qui bouge vraiment la page quitte « Ajuster » : le redimensionnement ne recadre plus.
+    void wheelThatMovesLeavesFit()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        // Défilement : « Ajuster » au zoom minimal sur une vue étroite, la page déborde en largeur.
+        f.view->setSize(QSizeF(250, 200));
+        QCOMPARE(f.view->zoom(), kMinZoom);
+        const QPointF pan = f.view->pan();
+        wheel(f, QPointF(125, 100), QPoint(0, -120), Qt::ShiftModifier);
+        QVERIFY(f.view->pan() != pan);
+        f.view->setSize(QSizeF(640, 400));
+        QCOMPARE(f.view->zoom(), kMinZoom);
+        // Zoom : Ctrl+molette depuis « Ajuster ».
+        f.view->fitPage();
+        const qreal fit = f.view->zoom();
+        wheel(f, QPointF(320, 200), QPoint(0, 120), Qt::ControlModifier);
+        const qreal zoomed = f.view->zoom();
+        QVERIFY(zoomed > fit);
+        f.view->setSize(QSizeF(1280, 800));
+        QCOMPARE(f.view->zoom(), zoomed);
     }
 
     void startsInFitMode()
