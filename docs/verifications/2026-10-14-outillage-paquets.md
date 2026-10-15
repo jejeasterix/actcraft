@@ -31,6 +31,7 @@ VERIF apk-api-cible = targetSdkVersion 36 (= ANDROID_PLATFORM, QT_ANDROID_TARGET
 VERIF apk-permissions = aucune (manifeste à nous, android/AndroidManifest.xml)
 VERIF apk-signature = clé de débogage locale (CN=Android Debug)
 VERIF apk-licences = LICENCES OK
+VERIF s3-local = ANDROID OK (émulateur actcraft-x86_64, 2560 × 1600 ; palette visible, trait lu sombre, aucun FATAL EXCEPTION ni SecurityException dans logcat pour le processus ; émulateur neuf : attendre charge < 4 et écarter une boîte ANR du système)
 
 ## Conséquences
 
