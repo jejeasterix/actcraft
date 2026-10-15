@@ -29,9 +29,11 @@ try {
     $sortie = Join-Path (Get-Location) 'build/paquet'
     New-Item -ItemType Directory -Force $sortie | Out-Null
 
-    $outils = Get-ChildItem (Join-Path $env:ANDROID_SDK_ROOT 'build-tools') -Directory |
-        Sort-Object { [version]($_.Name -replace '-.*$', '') } | Select-Object -Last 1
-    if (-not $outils) { throw 'build-tools Android introuvables' }
+    # build-tools de versions.env, pas les plus récents installés : l'exécuteur de la CI en a de plus récents, dont
+    # apksigner écrit autrement ses certificats (« V3.0 Signer: certificate DN »).
+    $voulus = (Get-Content $versions | Where-Object { $_ -match '^ANDROID_BUILD_TOOLS=' }) -replace '^ANDROID_BUILD_TOOLS=', ''
+    $outils = Get-Item -ErrorAction SilentlyContinue (Join-Path $env:ANDROID_SDK_ROOT "build-tools/$voulus")
+    if (-not $voulus -or -not $outils) { throw "build-tools Android $voulus introuvables (packaging/android/versions.env)" }
     $bat = if ($IsWindows) { '.bat' } else { '' }
     $exe = if ($IsWindows) { '.exe' } else { '' }
     $apksigner = Join-Path $outils.FullName "apksigner$bat"
@@ -104,7 +106,8 @@ try {
         $certificats = @(& $apksigner verify --print-certs $final)
         if ($LASTEXITCODE -ne 0) { throw 'signature invalide' }
         $certificats | Write-Output
-        $signataire = $certificats | Select-String '^Signer #1 certificate DN: (.+)$' | Select-Object -First 1
+        $signataire = $certificats | Select-String '^(?:Signer #1 certificate DN|V[\d.]+ Signer(?: #1)?: certificate DN): (.+)$' |
+            Select-Object -First 1
         if (-not $signataire) { throw 'signature : aucun certificat de signataire' }
         Write-Output "$a : signature = $($signataire.Matches[0].Groups[1].Value)"
 

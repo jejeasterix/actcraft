@@ -35,9 +35,13 @@ $windeployqt = Join-Path $env:ACTCRAFT_QT_DIR 'bin/windeployqt.exe'
 if ($LASTEXITCODE -ne 0) { throw 'windeployqt en échec' }
 Get-ChildItem -Recurse -Filter *.pdb $stage | Remove-Item -Force # N2-7 : pas de PDB dans l'installateur
 
-# Runtime MSVC à côté de l'exécutable : vc_redist exigerait l'administrateur.
-$crt = Join-Path $env:VCToolsRedistDir 'x64\Microsoft.VC143.CRT'
-foreach ($dll in 'vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll') { Copy-Item (Join-Path $crt $dll) $stage }
+# Runtime MSVC à côté de l'exécutable : vc_redist exigerait l'administrateur. Le dossier suit la version de Visual
+# Studio : Microsoft.VC143.CRT (2022, poste), Microsoft.VC145.CRT (2026, exécuteurs windows-latest de la CI).
+$crt = Get-ChildItem -Directory (Join-Path $env:VCToolsRedistDir 'x64') -Filter 'Microsoft.VC14*.CRT' |
+    Sort-Object Name | Select-Object -Last 1
+if (-not $crt) { throw "runtime MSVC introuvable sous $(Join-Path $env:VCToolsRedistDir 'x64')" }
+Write-Output "Runtime MSVC : $($crt.FullName)"
+foreach ($dll in 'vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll') { Copy-Item (Join-Path $crt.FullName $dll) $stage }
 Copy-Item LICENSE (Join-Path $stage 'LICENSE.txt')
 Copy-Item THIRD_PARTY_NOTICES.md $stage
 Copy-Item -Recurse LICENSES (Join-Path $stage 'LICENSES')
