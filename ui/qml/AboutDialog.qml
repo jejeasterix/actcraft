@@ -40,6 +40,11 @@ Dialog {
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            // Pouce lisible sur le puits blanc (le gris du style Basic y tombait sous 3:1 une fois appuyé).
+            ScrollBar.vertical: ScrollBar {
+                objectName: "aboutScrollBar"
+                contentItem: ScrollThumb {}
+            }
             TextArea {
                 objectName: "aboutNotices"
                 readOnly: true

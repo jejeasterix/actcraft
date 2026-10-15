@@ -30,6 +30,9 @@ Menu {
                 return !entry.isSeparator && menu.commands.revision >= 0 && menu.commands.isChecked(entry.commandId)
             })
             onTriggered: if (!isSeparator) menu.commands.trigger(commandId)
+            background: ItemHighlight {
+                control: entry
+            }
             contentItem: Item {
                 implicitHeight: entry.isSeparator ? 1 : label.implicitHeight
                 Rectangle {

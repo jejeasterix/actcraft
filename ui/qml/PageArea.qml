@@ -85,22 +85,12 @@ Item {
         }
     }
 
-    // Pouce des barres de défilement : sombre cerclé de clair, lisible sur la page blanche comme sur le fond bleu
-    // (le gris translucide du style Basic tombait sous 3:1 sur les deux, L1-C5).
-    component Thumb: Rectangle {
-        required property ScrollBar bar
-        implicitWidth: 6
-        implicitHeight: 6
-        radius: 3
-        color: bar.pressed ? Theme.surfaceActive : Theme.barre
-        border.width: 1
-        border.color: Theme.texte
-    }
-
+    // Pouce des barres de défilement : ScrollThumb (le gris translucide du style Basic tombait sous 3:1 sur la page
+    // comme sur le fond, L1-C5).
     ScrollBar {
         id: horizontalBar
         objectName: "horizontalScrollBar"
-        contentItem: Thumb { bar: horizontalBar }
+        contentItem: ScrollThumb {}
         orientation: Qt.Horizontal
         anchors.left: parent.left
         anchors.right: verticalBar.left
@@ -116,7 +106,7 @@ Item {
     ScrollBar {
         id: verticalBar
         objectName: "verticalScrollBar"
-        contentItem: Thumb { bar: verticalBar }
+        contentItem: ScrollThumb {}
         orientation: Qt.Vertical
         anchors.top: parent.top
         anchors.right: parent.right

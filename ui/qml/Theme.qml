@@ -10,8 +10,8 @@ QtObject {
     readonly property color fond: "#4A6A8A"           // autour de la page (F-020 : fond bleu par défaut)
     readonly property color barre: "#20242B"          // ligne supérieure ; fond des info-bulles
     readonly property color palette: "#2B2F36"        // palette d'outils, menus, dialogues (repère de l'essai Android, S3)
-    readonly property color surface: "#363B44"        // bouton au repos, entrée de menu survolée
-    readonly property color surfaceSurvol: "#424955"  // bouton survolé, entrée de menu surlignée, rainure de réglette
+    readonly property color surface: "#363B44"        // bouton au repos, zoom, bouton du dialogue
+    readonly property color surfaceSurvol: "#424955"  // survol ; entrée surlignée (avec filet d'accent) ; rainure
     readonly property color surfaceActive: "#8DB3F0"  // accent : coché, appuyé, ouvert, focus, lien, partie remplie
     readonly property color texte: "#E8EAED"          // libellés et icônes
     readonly property color texteDiscret: "#B4BBC5"   // raccourcis des menus

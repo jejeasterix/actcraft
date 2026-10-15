@@ -92,6 +92,16 @@ ColumnLayout {
             implicitHeight: Theme.taillePastille
             radius: width / 2
             color: slider.pressed ? Theme.surfaceActive : Theme.texte
+            // Focus clavier (Tab) : anneau d'accent détaché de la poignée, sur la palette (6,30:1, WCAG 2.4.7).
+            Rectangle {
+                visible: slider.visualFocus
+                anchors.fill: parent
+                anchors.margins: -4
+                radius: width / 2
+                color: "transparent"
+                border.width: 2
+                border.color: Theme.surfaceActive
+            }
         }
     }
 

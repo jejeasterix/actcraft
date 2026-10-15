@@ -79,8 +79,10 @@ private slots:
         QVERIFY(contrastRatio(QColor(0x77, 0x77, 0x77), Qt::white) < kText);
     }
 
-    // Chaque paire premier plan / fond que l'interface rend réellement (L1-C5, table des contrastes de
-    // docs/design/2026-10-14-direction-visuelle.md) tient le seuil WCAG 2.1 AA de son rôle.
+    // Paires de jetons distinctes que l'interface rend (L1-C5, table de docs/design/2026-10-14-direction-
+    // visuelle.md), chacune au seuil WCAG 2.1 AA le plus exigeant de ses rôles. Les couleurs réellement
+    // rendues, état par état (contrôles du style Basic compris), sont vérifiées par tst_ui_shell
+    // (renderedColorsMeetWcagAa, keyboardFocusIsVisible, scrollThumbIsVisibleOnPageAndBackground).
     void themePairsMeetWcagAa_data()
     {
         QTest::addColumn<QString>("foreground");
@@ -92,38 +94,24 @@ private slots:
             const char* background;
             double minimum;
         } pairs[] = {
-            // Textes : menus de la barre, indicateur de page, menus surgissants, zoom, dialogue.
-            {"texte", "barre", kText},
-            {"texte", "palette", kText},
-            {"texte", "surface", kText},
-            {"texte", "surfaceSurvol", kText},
-            {"texteDiscret", "palette", kText},
-            {"texteDiscret", "surface", kText},
-            {"texteDiscret", "surfaceSurvol", kText},
-            {"texteSurActive", "surfaceActive", kText},
-            {"surfaceActive", "palette", kText}, // lien du dialogue « À propos »
-            // Les icônes (« texte » au repos et survolées, « texteSurActive » sur l'accent) sont couvertes
-            // par les
-            // paires de texte ci-dessus, plus exigeantes. Indicateurs d'état : coché, appuyé, focus contre ce
-            // qui
-            // les entoure (la rainure de la réglette est « surfaceSurvol ») ; cadre de la pastille choisie ;
-            // bord
-            // des pastilles sombres et flèche du zoom ; poignée de la réglette.
-            {"surfaceActive", "barre", kUi},
-            {"surfaceActive", "surface", kUi},
-            {"surfaceActive", "surfaceSurvol", kUi},
-            {"cadreSelection", "palette", kUi},
-            {"contour", "palette", kUi},
-            {"contour", "surface", kUi},
-            {"texte", "surfaceSurvol", kUi},
-            // Sur la zone de la page : pouce des barres de défilement (sombre cerclé de clair) et filet de
-            // l'indicateur de largeur, sur la page comme sur le fond ; bord de la page contre le fond. «
-            // barre » sur
-            // « page » est aussi le texte des notices du dialogue « À propos » (seuil de texte).
-            {"barre", "page", kText},
-            {"texte", "fond", kUi},
-            {"contour", "page", kUi},
-            {"page", "fond", kUi},
+            {"texte", "barre", kText},                  // menus de la barre, indicateur de page, info-bulles
+            {"texte", "palette", kText},                // menus, dialogue ; poignée de la réglette
+            {"texte", "surface", kText},                // zoom, bouton du dialogue, icône au repos
+            {"texte", "surfaceSurvol", kText},          // survol, entrée surlignée (menus, zoom)
+            {"texteDiscret", "palette", kText},         // raccourci d'un menu
+            {"texteDiscret", "surfaceSurvol", kText},   // raccourci d'une entrée surlignée
+            {"texteSurActive", "surfaceActive", kText}, // ouvert, appuyé, coché ; sélection de texte
+            {"surfaceActive", "palette", kText},     // lien ; filet de surlignage ; anneau de focus ; coché
+            {"surfaceActive", "barre", kUi},         // menu de la barre ouvert ou avec le focus
+            {"surfaceActive", "surface", kUi},       // préréglage choisi à côté des autres ; focus du zoom
+            {"surfaceActive", "surfaceSurvol", kUi}, // partie parcourue de la réglette ; filet sur l'entrée
+            {"cadreSelection", "palette", kUi},      // cadre de la pastille choisie
+            {"contour", "palette", kUi},             // bord des pastilles
+            {"contour", "surface", kUi},             // flèche du zoom au repos
+            {"barre", "page", kText},                // notices de « À propos » ; pouce sur la page
+            {"texte", "fond", kUi},                  // bord du pouce sur le fond
+            {"contour", "page", kUi},                // filet de l'indicateur de largeur sur la page
+            {"page", "fond", kUi},                   // bord de la page
         };
         for (const auto& pair : pairs) {
             QTest::addRow("%s sur %s (%.1f)", pair.foreground, pair.background, pair.minimum)

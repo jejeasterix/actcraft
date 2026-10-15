@@ -78,6 +78,32 @@ Rectangle {
             objectName: "zoomBox"
             Layout.preferredWidth: 112
             Layout.fillHeight: true // couleurs : palette de la fenêtre (Main.qml), tirée de Theme
+            // Ouverte ou appuyée : accent, texte et flèche sombres, comme un menu de la barre ouvert (L1-C5). Le
+            // style Basic peint alors le fond en `mid` et la flèche en `dark` ; la liste hérite de cette palette.
+            palette.mid: Theme.surfaceActive
+            palette.buttonText: zoomBox.down ? Theme.texteSurActive : Theme.texte
+            palette.dark: zoomBox.down ? Theme.texteSurActive : Theme.contour
+            delegate: ItemDelegate {
+                id: zoomEntry
+                required property var modelData
+                required property int index
+                width: ListView.view.width
+                implicitHeight: Theme.tailleBouton
+                text: modelData
+                font.pixelSize: Theme.taillePolice
+                font.weight: zoomBox.currentIndex === index ? Font.DemiBold : Font.Normal
+                highlighted: zoomBox.highlightedIndex === index
+                hoverEnabled: zoomBox.hoverEnabled
+                contentItem: Label {
+                    text: zoomEntry.text
+                    font: zoomEntry.font
+                    color: Theme.texte
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: ItemHighlight {
+                    control: zoomEntry
+                }
+            }
             readonly property var percents: [0, 25, 50, 100, 150, 200, 400, 800]
             model: [qsTr("Ajuster"), "25 %", "50 %", "100 %", "150 %", "200 %", "400 %", "800 %"]
             displayText: Math.round(bar.view.zoom * 100) + " %"

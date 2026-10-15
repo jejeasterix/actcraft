@@ -136,6 +136,15 @@ Window {
         objectName: "mainMenu"
         onOpened: root.popupOpened()
         onClosed: root.popupClosed()
+        // Entrées vers les sous-menus : même surlignage que les entrées de commande (L1-C5).
+        delegate: MenuItem {
+            id: mainEntry
+            implicitHeight: Theme.tailleBouton
+            font.pixelSize: Theme.taillePolice
+            background: ItemHighlight {
+                control: mainEntry
+            }
+        }
 
         Instantiator {
             model: appCommands.menus
