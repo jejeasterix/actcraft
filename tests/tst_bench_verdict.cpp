@@ -2,8 +2,10 @@
 
 #include <actcraft/bench/injector.h>
 #include <actcraft/bench/recorder.h>
+#include <actcraft/bench/scenarios.h>
 #include <actcraft/bench/verdict.h>
 #include <actcraft/core/clock.h>
+#include <actcraft/core/generator.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/pageview.h>
 
@@ -604,6 +606,39 @@ private slots:
         QCOMPARE(latency.unmatched, std::size_t{0});
         QCOMPARE(latency.seq.size(), std::size_t{57});
         QVERIFY(!recorder->swapNs().empty());
+    }
+
+    // DA7 : dans la nouvelle interface, les points contrôlés par la démonstration du banc tombent dans la vue
+    // à 100 %, hors barre, palette et barres de défilement, à 1280 × 800 (taille de la fumée et des preuves).
+    void benchTargetsAreVisibleInTheShell()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.window->resize(1280, 800);
+        QTRY_COMPARE(app.window->width(), 1280);
+        app.view->setZoom(1.0);
+        QTRY_VERIFY(app.view->cacheReady());
+        const qreal scrollBarRoom = 16; // barres de défilement, à droite et en bas de la vue
+        const QRectF visible = app.view->mapRectToScene(
+            QRectF(0, 0, app.view->width() - scrollBarRoom, app.view->height() - scrollBarRoom));
+        const core::Witnesses& w = core::witnesses();
+        const QList<QPointF> targets{
+            QPointF(w.shapeRect.center().x, w.shapeRect.center().y),
+            QPointF(w.imageRect.center().x, w.imageRect.center().y),
+            QPointF(w.strokeProbe.x, w.strokeProbe.y),
+            bench::demoInkProbePoint(),
+        };
+        for (const QPointF& page : targets) {
+            const QPointF scene = app.view->pageToScene(page);
+            QVERIFY2(visible.contains(scene),
+                     qPrintable(QStringLiteral("point de page (%1, %2) → scène (%3, %4) hors de %5 × %6")
+                                    .arg(page.x())
+                                    .arg(page.y())
+                                    .arg(scene.x())
+                                    .arg(scene.y())
+                                    .arg(visible.width())
+                                    .arg(visible.height())));
+        }
     }
 };
 
