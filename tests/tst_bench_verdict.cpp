@@ -10,6 +10,7 @@
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/pageview.h>
 
+#include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QQmlApplicationEngine>
@@ -118,6 +119,35 @@ bool start(App& app)
         return false;
     }
     return QTest::qWaitFor([&] { return fixed->isReady() && app.view->cacheReady(); }, 20000);
+}
+
+// Passage réel du banc (Runner::run, comme bench/app/main.cpp) sur la vraie interface, scénarios courts. Le
+// Runner est déclaré AVANT le moteur QML : il doit survivre à la fenêtre (runner.h).
+BenchResult runBench(BenchOptions options)
+{
+    options.scenarioSet = ScenarioSet::Court;
+    Runner runner(options);
+    QQmlApplicationEngine engine;
+    StartupOptions startup;
+    startup.generatedPage = true;
+    QQuickWindow* window = loadMainWindow(engine, startup);
+    if (!window) {
+        BenchResult none;
+        none.invalidReasons << QStringLiteral("error: interface non chargée");
+        return none;
+    }
+    return runner.run(window);
+}
+
+QString describeChecks(const BenchResult& r)
+{
+    QStringList parts;
+    for (const ContentCheck& c : r.contentChecks) {
+        parts << QStringLiteral("%1 %2 (lu %3)")
+                     .arg(c.name, c.ok ? QStringLiteral("ok") : QStringLiteral("ÉCHEC"), c.actual);
+    }
+    parts << r.invalidReasons;
+    return parts.join(QStringLiteral(" ; "));
 }
 
 } // namespace
@@ -626,6 +656,36 @@ private slots:
         QVERIFY(!recorder->swapNs().empty());
     }
 
+    // Chemin réel (Runner::run → runDemo) à 1366 × 768 (Dell 3510) : la démonstration recentre la vue sur ses
+    // points contrôlés. Si runDemo se contentait de setZoom(1.0), la vue garderait le centre laissé par le
+    // défilement (400 %, haut à gauche) et la sonde du témoin de trait sortirait de la fenêtre (« hors-image
+    // »). Une taille LxH explicite l'emporte sur la taille fixe hors écran.
+    void benchRunReadsItsTargetsAt1366x768()
+    {
+        BenchOptions options;
+        options.fullScreen = false;
+        options.windowSize = QSize(1366, 768);
+        const BenchResult r = runBench(options);
+        QCOMPARE(r.windowMode, QStringLiteral("window"));
+        QCOMPARE(r.windowSize, QSize(1366, 768));
+        QCOMPARE(r.contentChecks.size(), std::size_t{4});
+        const bool allOk = std::all_of(r.contentChecks.begin(), r.contentChecks.end(),
+                                       [](const ContentCheck& c) { return c.ok; });
+        QVERIFY2(allOk, qPrintable(describeChecks(r)));
+    }
+
+    // Hors écran, le plein écran demandé (défaut du banc) donne une fenêtre fixe de 1280 × 800, pas l'écran
+    // fictif de la plateforme (800 de large : témoins hors de la vue, content-check-failed).
+    void offscreenFullScreenGetsTheFixedSize()
+    {
+        QCOMPARE(QGuiApplication::platformName(), QStringLiteral("offscreen"));
+        BenchOptions options;
+        QVERIFY(options.fullScreen);
+        const BenchResult r = runBench(options);
+        QCOMPARE(r.windowMode, QStringLiteral("window"));
+        QCOMPARE(r.windowSize, QSize(1280, 800));
+    }
+
     void benchTargetsAreVisibleInTheShell_data()
     {
         QTest::addColumn<QSize>("size");
@@ -653,7 +713,8 @@ private slots:
                     qRound(palette->mapRectToScene(palette->boundingRect()).right()) == size.width());
         app.view->setZoom(4.0);
         app.view->setPan(QPointF(ui::kViewMargin, ui::kViewMargin));
-        showDemoTargets(*app.view); // ce que fait runDemo, au début et au retour à 100 %
+        showDemoTargets(*app.view);      // ce que fait runDemo, au début et au retour à 100 %
+        QCOMPARE(app.view->zoom(), 1.0); // 100 % : un ajustement de la page à la vue ne compterait pas
         QTRY_VERIFY(app.view->cacheReady());
         const QRectF visible = app.view->mapRectToScene(app.view->boundingRect());
         QList<QRectF> bars; // posées sur la vue : un point dessous n'est pas lisible
