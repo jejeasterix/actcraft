@@ -52,13 +52,19 @@ dialogue, info-bulles) prennent la même palette. Aucune ombre calculée, aucun 
   `surfaceSurvol` ; indisponible → icône `texteDesactive`. L'appui se voit sans survol (doigt).
 - **Menus de la barre** : ouvert ou appuyé → accent et texte sombre ; focus clavier (Tab) → filet de 2 px
   `surfaceActive`.
-- **Menus surgissants** : fond `palette`, texte `texte`, raccourcis `texteDiscret` (plus d'opacité), entrée
-  indisponible `texteDesactive`, hauteur 44, colonne de la coche réservée (la coche recouvrait « Stylo »).
+- **Menus surgissants et liste du zoom** : fond `palette`, texte `texte`, raccourcis `texteDiscret` (plus
+  d'opacité), entrée indisponible `texteDesactive`, hauteur 44, colonne de la coche réservée (la coche recouvrait
+  « Stylo »). Entrée surlignée (survol, flèches), appuyée ou avec le focus : fond `surfaceSurvol` et **filet
+  d'accent de 2 px** (`ItemHighlight.qml`) ; le fond seul ne se détachait du menu qu'à 1,48:1.
+- **Zoom** : au repos `surface`, flèche `contour` ; ouvert ou appuyé → accent, texte et flèche `texteSurActive`
+  (comme un menu de la barre ouvert) ; focus → bord d'accent du style.
+- **Focus clavier** : menus de la barre et zoom → bord d'accent ; réglette → anneau d'accent détaché de la poignée.
 - **Pastilles et préréglages** : bord `contour` ; choisie → cadre blanc de 2 px doublé d'un filet `palette`, visible
   aussi sur la pastille blanche ; appui → réduction à 90 % ; zone de toucher étendue au pas de la grille (24 px).
 - **Réglette** : rainure `surfaceSurvol`, partie parcourue `surfaceActive`, poignée `texte` (accent quand appuyée).
 - **Échantillon d'épaisseur** : posé sur un puits couleur de page ; l'encre noire par défaut y est lisible.
-- **Barres de défilement** : pouce `barre` cerclé de `texte`, lisible sur la page comme sur le fond.
+- **Barres de défilement** (page et notices de « À propos ») : pouce `barre` cerclé de `texte` (`ScrollThumb.qml`),
+  lisible sur la page comme sur le fond, au repos comme appuyé (l'accent d'appui tombait à 2,13:1 sur la page).
 - **Indicateur de largeur sous le pointeur** : cercle de la couleur de l'encre et filet extérieur `contour`.
 - **Fenêtre** : `palette` de la `Window` (`Main.qml`) tirée de `Theme` pour tous les contrôles du style Basic.
 - **« À propos »** : lien en texte stylé (couleur `surfaceActive`) ; notices sur un puits couleur de page en texte
@@ -79,7 +85,11 @@ plus. Aucune icône n'a été jugée illisible : aucune n'a été redessinée.
 | Icône cochée ou appuyée sur l'accent | 3,30 | 7,30 |
 | Accent contre la palette / la barre / `surface` / `surfaceSurvol` | 3,38 / 3,92 / 2,83 / 2,28 | 6,30 / 7,30 / 5,27 / 4,25 |
 | Raccourci de menu | 4,07 (opacité 0,6 sur blanc) | 6,95 sur la palette, 4,69 surligné |
-| Entrée de menu surlignée (clavier) contre le menu | 1,08 (`#F6F6F6` / blanc) | 1,48, texte à 7,52 |
+| Entrée surlignée (menus, liste du zoom) contre le menu | 1,08 (`#F6F6F6` / blanc) | filet d'accent à 6,30, texte à 7,52 |
+| Texte de l'entrée surlignée du zoom | 18,42 (style clair) | 7,52 (1,72 dans la première version de L1-C5) |
+| Flèche du zoom ouvert | 7,88 (style clair) | 7,30 sur l'accent (2,70 dans la première version) |
+| Focus clavier de la réglette | bord du style | anneau d'accent à 6,30 contre la palette (absent dans la première version) |
+| Pouce de défilement appuyé sur la page | 1,57 | 15,57 (2,13 dans la première version) |
 | Réglette : partie parcourue contre la palette | 1,11 | 6,30 (4,25 contre la rainure) |
 | Échantillon noir (couleur par défaut) | 1,56 sur la palette | 21 sur le puits blanc |
 | Pastilles sombres contre la palette | 1,34 à 1,77 | bord `contour` à 4,01 |
@@ -91,9 +101,18 @@ plus. Aucune icône n'a été jugée illisible : aucune n'a été redessinée.
 | Flèche du zoom sur `surface` | 9,17 (style clair) | 3,36 |
 | Notices de « À propos » | 12,11 | 15,57 (`#20242B` sur le puits blanc) |
 
-`tst_ui_theme` (`themePairsMeetWcagAa`) vérifie 20 paires du thème et la formule elle-même ; il a été vu rouge sur
-le thème de L1-T7 (accent contre `surface`, `texteDiscret` surligné, jetons absents) et sur une paire rendue mauvaise
-exprès.
+Deux tests gardent ces valeurs :
+
+- `tst_ui_theme` (`themePairsMeetWcagAa`) vérifie les 18 paires de jetons distinctes que l'interface rend, chacune
+  au seuil le plus exigeant de ses rôles, et la formule elle-même. Vu rouge sur le thème de L1-T7 et sur une paire
+  rendue mauvaise exprès.
+- `tst_ui_shell` lit les couleurs **réellement affichées**, sans liste écrite à la main : tout texte, lien et icône
+  visible contre le fond dessiné sous lui, nos composants comme ceux du style Basic colorés par la palette de la
+  fenêtre, au repos, appuyés, menus et liste du zoom ouverts avec une entrée surlignée (indicateur à 3:1 du menu),
+  dialogue « À propos » (`renderedColorsMeetWcagAa`) ; focus clavier visible, au moins 30 pixels changeant de 3:1
+  (`keyboardFocusIsVisible`) ; pouce au repos et appuyé (`scrollThumbIsVisibleOnPageAndBackground`). Vu rouge sur
+  la première version de L1-C5 (les cinq constats de la relecture), vert ensuite. Les info-bulles (survol) n'y sont
+  pas ouvertes : leur paire `texte` / `barre` est dans la table des jetons.
 
 ## Cibles tactiles
 
