@@ -22,3 +22,22 @@ set_target_properties(actcraft PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER org.actcraft.ActCraft
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
+
+# APK Android (décisions 28 et 31) : identifiant, nom affiché, version. versionCode = majeur × 10000 + mineur × 100
+# + correctif.
+if(ANDROID)
+    math(EXPR ACTCRAFT_VERSION_CODE
+        "${PROJECT_VERSION_MAJOR} * 10000 + ${PROJECT_VERSION_MINOR} * 100 + ${PROJECT_VERSION_PATCH}")
+    set_target_properties(actcraft PROPERTIES
+        QT_ANDROID_PACKAGE_NAME io.github.jejeasterix.actcraft
+        QT_ANDROID_APP_NAME ActCraft
+        QT_ANDROID_VERSION_NAME ${PROJECT_VERSION}
+        QT_ANDROID_VERSION_CODE ${ACTCRAFT_VERSION_CODE}
+        # API cible = plateforme de compilation (ANDROID_PLATFORM de packaging/android/versions.env) ; le défaut de
+        # Qt 6.12 (37) dépasserait la plateforme installée. Contrôlée par scripts/paquet-android.ps1.
+        QT_ANDROID_TARGET_SDK_VERSION 36
+        # Manifeste à nous (décision 28) : sans le marqueur %%INSERT_PERMISSIONS, androiddeployqt n'ajoute pas les
+        # permissions par défaut de Qt (INTERNET, WRITE_EXTERNAL_STORAGE, ACCESS_NETWORK_STATE) ; celle
+        # d'androidx.core (DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION) y est ôtée par tools:node="remove".
+        QT_ANDROID_PACKAGE_SOURCE_DIR ${PROJECT_SOURCE_DIR}/android)
+endif()

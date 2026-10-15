@@ -46,8 +46,8 @@ Lot 1 (plan 7e4c743) — fichiers touchés exacts et preuves : table du plan.
 | L1-T14 | T12 | banc adapté | crit | --L1-T14 | en cours | 1/3 | — | — |
 | L1-T15 | T12,T13 | scénario premiers-pas | impl | (mergé) | terminée | 1/3 | 344e12f → merge 0420a9e | 43/43 TESTS OK, tst_captures_premiers_pas Passed ; `captures.ps1 -Scenario premiers-pas -Rendu logiciel -HorsEcran` → 3 PIXEL OK, `LU pageIndicator.text=1 / 2 OK`, `CAPTURES OK` (code 0) ; rouge vu (test : SCENARIO INVALIDE ; script : `-Lire 9 / 9` → CAPTURES EN ECHEC) |
 | L1-T16 | T2,T11 | installateur Inno Setup | impl | (mergé) | terminée | 2/3 | 6bdf6a4 → merge fd9ffee | `LICENCES OK`, `PAQUET OK : …\build\paquet\ActCraft-0.1.0-setup.exe`, `--version : ActCraft 0.1.0`, `INSTALLATEUR OK` (code 0) ; rouge vu (DLL fictive) ; essai en échec nettoie tout (5 Test-Path False, 6bdf6a4) ; aucun C++ ni test touché |
-| L1-T17 | T2,T11,T16 | chaîne Android | crit | --L1-T17 | en cours | 1/3 | — | — |
-| L1-T18 | T12,T17 | essai APK émulateur | impl | — | à faire | 0/3 | — | — |
+| L1-T17 | T2,T11,T16 | chaîne Android | crit | (mergé) | terminée | 1/3 | 2b18836 → merge 4ff5654 | `APK OK` (arm64-v8a, x86_64 : identifiant, versionCode 100, targetSdkVersion 36, 0 permission, signature débogage, LICENCES OK ; `build/paquet` sans `.idsig`) ; 43/43 TESTS OK (un premier passage 42/43 sous charge : `tst_bench_smoke` Timeout) ; revue adversariale : 0 bloquant, 1 imp. + 3 min. corrigés (0556485). Écart au plan : manifeste de repli + `tools:node="remove"` sur `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (porte de fin) ; effet à l'exécution → L1-T18 |
+| L1-T18 | T12,T17 | essai APK émulateur | impl | --L1-T18 | en cours | 1/3 | — | — |
 | L1-T19 | T14,T15,T16,T18 | CI paquets | crit | — | à faire | 0/3 | — | — |
 | L1-T20 | T19 | release.yml, CHANGELOG | crit | — | à faire | 0/3 | — | — |
 
@@ -73,6 +73,8 @@ CI verte · releases publiées seulement sur go écrit de Jérôme (action final
 ouvertes : — · passées : —
 
 ## Pièges trouvés
+- Construction d'APK : un démon Gradle (`java.exe` de `~/.tools/jdk-21`) reste vivant après `paquet-android.ps1` et verrouille le worktree (`git worktree remove` → « Invalid argument »). L'arrêter par PID (`Stop-Process -Id`) avant de supprimer le worktree. Vu le 2026-10-15 (L1-T17). Pour la CI : `--no-daemon` ou `org.gradle.daemon=false` à envisager.
+- `tst_bench_smoke` (debug) prend ≈ 25 s et a un délai de 60 s ; sous charge (autre agent qui construit en release et joue le banc), il dépasse et `tst_bench_result` (qui en dépend par fixture) échoue sans message dans la sortie de `test.ps1`. Vu le 2026-10-15 sur L1-T17. Rejouer la suite quand la machine est calme ; pour le détail : `ctest -R '^tst_bench_result$' --output-on-failure`.
 - Orchestrateur : un `Set-Location <worktree de tâche>` dans une commande déplace le dossier courant de la SESSION ; le dossier reste alors verrouillé et `git worktree remove` échoue (« Invalid argument » / « Permission denied »). Vu 2026-10-15 sur L1-T16 et L1-T12. Toujours `git -C` et chemins absolus ; si besoin d'un dossier courant, `pwsh -NoProfile -Command "Set-Location …; …"` (process enfant).
 - QML : `while (count > 0) removeItem(itemAt(0))` sur un `Menu` boucle sans fin (fil principal bloqué, aucune fenêtre, `--quitter-apres` sans effet) ; entrées créées par `createObject(null)` survivent au menu. Remplacé par `Instantiator` (L1-T12, b1318f9). Candidat au coffre (`04_Pieges/`) — cause exacte non isolée entre les deux boucles.
 - Hook `interdits.js` : `git -C <dossier> add .` N'EST PAS bloqué (le motif `bgits+adds+(-A|--all|.)` ne voit pas `-C`) — même trou que les tags avant L1-T1. Vu le 2026-10-15 (commits WIP, contenu vérifié conforme). À corriger dans le bloc `interdits` comme L1-T1 l'a fait pour `action-finale`.
