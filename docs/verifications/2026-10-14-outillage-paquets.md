@@ -31,7 +31,8 @@ VERIF apk-api-cible = targetSdkVersion 36 (= ANDROID_PLATFORM, QT_ANDROID_TARGET
 VERIF apk-permissions = aucune (manifeste à nous, android/AndroidManifest.xml)
 VERIF apk-signature = clé de débogage locale (CN=Android Debug)
 VERIF apk-licences = LICENCES OK
-VERIF s3-local = ANDROID OK (émulateur actcraft-x86_64, 2560 × 1600 ; palette visible, trait lu sombre, aucun FATAL EXCEPTION ni SecurityException dans logcat pour le processus ; émulateur neuf : attendre charge < 4 et écarter une boîte ANR du système)
+VERIF s3-local = ANDROID OK (émulateur actcraft-x86_64 lancé avec -gpu host, 2560 × 1600 ; palette, trois coins opposés à la diagonale et trait vérifiés ; aucun FATAL EXCEPTION ni SecurityException dans logcat ; émulateur neuf : attendre charge < 4 et écarter les boîtes « Application Not Responding » du système)
+VERIF s3-rendu = avec le GPU logiciel de l'émulateur (SwiftShader : -gpu swiftshader_indirect, swiftshader, swangle_indirect, angle_indirect, guest), Qt Quick (OpenGL ES 3.0, « Android Emulator OpenGL ES Translator (Google SwiftShader) ») ne dessine que la moitié de chaque rectangle, en un triangle ; textes entiers. Un projet Qt Quick minimal sans code ActCraft (un Window, deux Rectangle, un Text) montre le même défaut : cause = émulateur + SwiftShader, pas l'application. Avec -gpu host : rendu juste. QT_QUICK_BACKEND=software ne démarre pas sous Android (QRhiGles2 : Failed to create context). essai-android.ps1 le détecte (pixels dans la moitié manquante) et finit alors par ANDROID EN ECHEC. Pour L1-T19 : un exécuteur sans GPU hôte retombe sur SwiftShader et échouera à ce contrôle ; il faut un exécuteur à GPU, ou un mode d'émulateur qui rend juste (non trouvé ici), avant de compter sur S3 en CI.
 
 ## Conséquences
 

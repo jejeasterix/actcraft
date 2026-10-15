@@ -24,11 +24,24 @@ function Proche($A, $B, [int]$Tolerance) {
     return $true
 }
 function Capture([string]$Nom) {
+    Ecarter-Anr
     $fichier = Join-Path $Sortie "$Nom.png"
     & adb shell screencap -p "/sdcard/actcraft-$Nom.png" | Out-Null
     & adb pull "/sdcard/actcraft-$Nom.png" $fichier | Out-Null
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path $fichier)) { Echec "capture $Nom" }
     return $fichier
+}
+
+function Ecarter-Anr {
+    for ($essai = 0; $essai -lt 3; $essai++) {
+        if ("$(& adb shell dumpsys window | Select-String 'mCurrentFocus')" -notmatch 'Application Not Responding') { break }
+        & adb shell uiautomator dump /sdcard/ui.xml | Out-Null
+        $xml = "$(& adb shell cat /sdcard/ui.xml)"
+        if ($xml -match 'text="Wait"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"') {
+            & adb shell input tap ([int](([int]$Matches[1] + [int]$Matches[3]) / 2)) ([int](([int]$Matches[2] + [int]$Matches[4]) / 2)) | Out-Null
+        }
+        Start-Sleep -Seconds 3
+    }
 }
 
 # Repère : couleur de la palette, lue dans le thème (décision 23).
@@ -50,15 +63,7 @@ while ("$(& adb shell getprop sys.boot_completed)".Trim() -ne '1') {
 # « Application Not Responding » éventuelle du système (bouton « Wait », repéré par uiautomator).
 $limite = (Get-Date).AddMinutes(6)
 while ([double]("$(& adb shell cat /proc/loadavg)".Trim().Split(' ')[0]) -gt 4 -and (Get-Date) -lt $limite) { Start-Sleep -Seconds 5 }
-for ($essai = 0; $essai -lt 3; $essai++) {
-    if ("$(& adb shell dumpsys window | Select-String 'mCurrentFocus')" -notmatch 'Application Not Responding') { break }
-    & adb shell uiautomator dump /sdcard/ui.xml | Out-Null
-    $xml = "$(& adb shell cat /sdcard/ui.xml)"
-    if ($xml -match 'text="Wait"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"') {
-        & adb shell input tap ([int](([int]$Matches[1] + [int]$Matches[3]) / 2)) ([int](([int]$Matches[2] + [int]$Matches[4]) / 2)) | Out-Null
-    }
-    Start-Sleep -Seconds 3
-}
+Ecarter-Anr
 & adb install -r (Resolve-Path $Apk).Path
 if ($LASTEXITCODE -ne 0) { Echec 'adb install' }
 & adb logcat -c | Out-Null
@@ -87,6 +92,22 @@ foreach ($f in 0.25, 0.5, 0.75) {
     if (-not (Proche $lu $fondPalette 16)) { Echec "palette absente au bord droit, y = $y (lu $($lu -join ' '), attendu $($fondPalette -join ' '))" }
 }
 Write-Output 'palette : visible au bord droit'
+
+# Rectangles entiers : un rendu défectueux (émulateur à GPU logiciel SwiftShader, voir docs/verifications) ne dessine
+# que la moitié de chaque rectangle, en triangle. Ces pixels tombent dans la moitié qui manquerait (tablette 2560 × 1600).
+$coins = @(
+    @{ Nom = 'page, coin bas-droit'; X = [int]($largeur * 0.765); Y = [int]($hauteur * 0.87); Attendu = @(255, 255, 255); Tol = 12 },
+    @{ Nom = 'fond de palette, bas-gauche'; X = $largeur - 192; Y = [int]($hauteur * 0.72); Attendu = $fondPalette; Tol = 16 },
+    @{ Nom = 'pastille rouge, coin bas-droit'; X = $largeur - 178; Y = [int]($hauteur * 0.26); Attendu = @(229, 57, 53); Tol = 40 }
+)
+foreach ($coin in $coins) {
+    $lu = Pixel $avant $coin.X $coin.Y
+    Write-Output "coin $($coin.Nom) ($($coin.X), $($coin.Y)) : lu $($lu -join ' ')"
+    if (-not (Proche $lu $coin.Attendu $coin.Tol)) {
+        Echec "rectangle à moitié dessiné : $($coin.Nom) (lu $($lu -join ' '), attendu $($coin.Attendu -join ' ')) : rendu GPU de l'émulateur défectueux ?"
+    }
+}
+Write-Output 'rectangles : entiers (coins opposés à la diagonale)'
 
 # Trait d'un doigt au milieu de la page (blanche avant le trait).
 $y = [int]($hauteur * 0.5)
