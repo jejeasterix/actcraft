@@ -16,6 +16,29 @@
 
 namespace actcraft::ui {
 
+namespace {
+
+// `item` ou l'un de ses descendants prendrait l'appui de la souris ou du doigt au point `scenePos` : visible,
+// actif, sous le point, et acceptant le bouton gauche ou le toucher (barre de défilement, bouton).
+bool takesPressAt(const QQuickItem* item, QPointF scenePos)
+{
+    if (!item->isVisible() || !item->isEnabled()) {
+        return false;
+    }
+    const bool inside = item->contains(item->mapFromScene(scenePos));
+    if (inside && ((item->acceptedMouseButtons() & Qt::LeftButton) || item->acceptTouchEvents())) {
+        return true;
+    }
+    if (item->clip() && !inside) {
+        return false;
+    }
+    const QList<QQuickItem*> children = item->childItems();
+    return std::any_of(children.cbegin(), children.cend(),
+                       [scenePos](const QQuickItem* child) { return takesPressAt(child, scenePos); });
+}
+
+} // namespace
+
 PageView::PageView(QQuickItem* parent) : QQuickItem(parent)
 {
     setAcceptedMouseButtons(Qt::LeftButton);
@@ -315,7 +338,7 @@ bool PageView::eventFilter(QObject* watched, QEvent* event)
         // stylet, pas celui du stylo (PenTool::isDrawing vaut aussi pour un doigt ou la souris).
         bool taken = false;
         if (type == QEvent::TabletPress) {
-            if (canStartStroke(viewPos) && acceptsDevice(tablet->pointingDevice())) {
+            if (canStartStroke(viewPos) && acceptsDevice(tablet->pointingDevice()) && !coveredAt(viewPos)) {
                 // Un seul trait à la fois : le stylet termine d'abord celui du doigt (PenTool mêlerait les
                 // points des deux).
                 finishTouchStroke();
@@ -340,6 +363,26 @@ bool PageView::canStartStroke(QPointF viewPos) const
 {
     // isEnabled : le stylet passe par le filtre de la fenêtre et contournerait « enabled: false ».
     return !m_inputBlocked && isVisible() && isEnabled() && contains(viewPos);
+}
+
+bool PageView::coveredAt(QPointF viewPos) const
+{
+    const QQuickItem* parent = parentItem();
+    if (!parent) {
+        return false;
+    }
+    // Ordre de Qt Quick : z croissant, puis ordre des enfants à z égal.
+    const QPointF scenePos = mapToScene(viewPos);
+    const QList<QQuickItem*> siblings = parent->childItems();
+    const qsizetype self = siblings.indexOf(this);
+    for (qsizetype i = 0; i < siblings.size(); ++i) {
+        const QQuickItem* other = siblings.at(i);
+        const bool above = other->z() > z() || (!(other->z() < z()) && i > self);
+        if (above && takesPressAt(other, scenePos)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void PageView::touchEvent(QTouchEvent* event)

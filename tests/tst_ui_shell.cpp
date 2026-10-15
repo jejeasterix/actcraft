@@ -261,6 +261,28 @@ private slots:
         QCOMPARE(s.fixed->objectCount(), 0);
     }
 
+    // Zoom 200 % : les barres de défilement sont posées sur la page. Le stylet appuyé sur la barre ne trace
+    // pas : il est laissé à la barre, comme la souris et le doigt.
+    void stylusOnAScrollBarDoesNotDraw()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QVERIFY(run(s, QStringLiteral("view.zoom"), 200));
+        QVERIFY(ready(s));
+        QQuickItem* bar = item(s, "horizontalScrollBar");
+        QVERIFY(bar);
+        QTRY_VERIFY(bar->isVisible());
+        const QPointF a = bar->mapToScene(QPointF(bar->width() / 2, bar->height() / 2));
+        QVERIFY(s.view->contains(s.view->mapFromScene(a))); // la barre est bien dans les limites de la vue
+        post(s, QEvent::TabletPress, a, Qt::LeftButton);
+        for (int i = 1; i <= 5; ++i) {
+            post(s, QEvent::TabletMove, a + QPointF(20.0 * i, 0), Qt::LeftButton);
+        }
+        post(s, QEvent::TabletRelease, a + QPointF(100, 0), Qt::NoButton);
+        QTest::qWait(150);
+        QCOMPARE(s.fixed->objectCount(), 0);
+    }
+
     void aboutCommandOpensTheDialogAndBlocksThePage()
     {
         Shell s;

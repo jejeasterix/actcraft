@@ -152,6 +152,10 @@ private:
     bool handlePointer(const QEvent& event, QPointF viewPos);
     // Un trait peut commencer ici : vue visible, aucune fenêtre surgissante, point sur la vue.
     bool canStartStroke(QPointF viewPos) const;
+    // Un élément posé sur la vue (empilé au-dessus d'elle chez son parent : barres de défilement) prendrait
+    // la souris ou le doigt à ce point. Qt Quick le leur livre avant la vue ; le stylet, capté par le filtre
+    // de la fenêtre, doit leur être laissé de même. Consulté à l'appui seulement, jamais par point.
+    bool coveredAt(QPointF viewPos) const;
     // Termine le trait d'un doigt (deuxième doigt, annulation) par un relâché au dernier point connu.
     void finishTouchStroke();
 

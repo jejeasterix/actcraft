@@ -390,6 +390,46 @@ private slots:
         QTRY_COMPARE(f.fixed->objectCount(), 1);
     }
 
+    // Une barre de défilement posée sur la vue prend la souris et le doigt avant elle (Qt Quick livre à
+    // l'élément du dessus) ; le stylet, capté par le filtre de la fenêtre, doit lui être laissé de même.
+    void stylusLeavesAnInteractiveItemAboveTheViewAlone()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        // Barre : au-dessus de la vue (empilée après elle), sur sa partie basse droite, prend le bouton
+        // gauche.
+        auto* bar = new QQuickItem;
+        bar->setParentItem(f.window.contentItem());
+        bar->setPosition(QPointF(600, 500));
+        bar->setSize(QSizeF(200, 100));
+        bar->setAcceptedMouseButtons(Qt::LeftButton);
+        tabletStroke(f, QPointF(650, 550), QPointF(750, 550));
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 0);
+        QCOMPARE(f.passedOn.count, 6);
+        // Indicateur (cercle sous le pointeur) : au-dessus de la vue mais ne prend rien, le stylet dessine.
+        auto* ring = new QQuickItem;
+        ring->setParentItem(f.window.contentItem());
+        ring->setPosition(QPointF(300, 0));
+        ring->setSize(QSizeF(200, 600));
+        tabletStroke(f, QPointF(350, 300), QPointF(450, 300));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(f.passedOn.count, 6);
+        // Élément actif sous la vue, ou barre cachée : la vue est dessus, le stylet dessine.
+        auto* under = new QQuickItem;
+        under->setParentItem(f.window.contentItem());
+        under->setZ(-1);
+        under->setPosition(QPointF(200, 100));
+        under->setSize(QSizeF(200, 100));
+        under->setAcceptedMouseButtons(Qt::LeftButton);
+        tabletStroke(f, QPointF(250, 150), QPointF(350, 150));
+        QTRY_COMPARE(f.fixed->objectCount(), 2);
+        bar->setVisible(false);
+        tabletStroke(f, QPointF(650, 550), QPointF(750, 550));
+        QTRY_COMPARE(f.fixed->objectCount(), 3);
+        QCOMPARE(f.passedOn.count, 6);
+    }
+
     void pageSizeChangeSignalsScroll()
     {
         Fixture f;
