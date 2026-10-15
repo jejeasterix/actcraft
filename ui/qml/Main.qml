@@ -15,6 +15,32 @@ Window {
     title: qsTr("ActCraft — rendu : %1").arg(root.apiName(GraphicsInfo.api))
     color: Theme.fond
 
+    // Palette des contrôles laissés au style Basic (menus, zoom, dialogue, info-bulles, barres de défilement) :
+    // tirée de Theme, sinon ils restent clairs dans une interface sombre (critique impeccable, L1-C5). Les contrastes
+    // de ces rôles sont ceux des paires vérifiées par tst_ui_theme.
+    palette.window: Theme.palette
+    palette.windowText: Theme.texte
+    palette.base: Theme.barre
+    palette.alternateBase: Theme.surface
+    palette.text: Theme.texte
+    palette.button: Theme.surface
+    palette.buttonText: Theme.texte
+    palette.brightText: Theme.texte
+    palette.light: Theme.surfaceSurvol
+    palette.midlight: Theme.surfaceSurvol
+    palette.mid: Theme.surfaceSurvol
+    palette.dark: Theme.contour
+    palette.highlight: Theme.surfaceActive
+    palette.highlightedText: Theme.texteSurActive
+    palette.link: Theme.surfaceActive
+    palette.linkVisited: Theme.surfaceActive
+    palette.toolTipBase: Theme.barre
+    palette.toolTipText: Theme.texte
+    palette.placeholderText: Theme.texteDiscret
+    palette.disabled.windowText: Theme.texteDesactive
+    palette.disabled.text: Theme.texteDesactive
+    palette.disabled.buttonText: Theme.texteDesactive
+
     // Fixées avant le chargement par l'application, le banc ou les tests (app/startup.cpp).
     property bool cacheEnabled: true
     property bool generatedPage: false
@@ -110,6 +136,15 @@ Window {
         objectName: "mainMenu"
         onOpened: root.popupOpened()
         onClosed: root.popupClosed()
+        // Entrées vers les sous-menus : même surlignage que les entrées de commande (L1-C5).
+        delegate: MenuItem {
+            id: mainEntry
+            implicitHeight: Theme.tailleBouton
+            font.pixelSize: Theme.taillePolice
+            background: ItemHighlight {
+                control: mainEntry
+            }
+        }
 
         Instantiator {
             model: appCommands.menus

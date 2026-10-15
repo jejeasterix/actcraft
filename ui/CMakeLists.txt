@@ -26,6 +26,8 @@ qt_add_qml_module(actcraft_ui
         qml/CommandMenu.qml
         qml/ColorSwatches.qml
         qml/WidthPicker.qml
+        qml/ItemHighlight.qml
+        qml/ScrollThumb.qml
     RESOURCES
         icons/menu.svg
         icons/outils.svg
