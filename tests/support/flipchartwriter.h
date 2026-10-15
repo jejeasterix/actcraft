@@ -324,7 +324,7 @@ inline const QByteArray& sampleMp3()
 inline QByteArray sampleFlipchart(const std::vector<QByteArray>& thumbnails = {})
 {
     const QByteArray png = pngBytes(2, 2, qRgb(255, 0, 0));
-    const auto translate = [](double x, double y) { return Obj(15, 0).pointF(2, x, y); };
+    const auto offsetBy = [](double x, double y) { return Obj(15, 0).pointF(2, x, y); };
 
     const QByteArray page1 = container({
         Entry(QStringLiteral("103.in"),
@@ -368,7 +368,7 @@ inline QByteArray sampleFlipchart(const std::vector<QByteArray>& thumbnails = {}
                   .string(4, QStringLiteral("Forme1"))
                   .integer(8, 1)
                   .real(9, 2)
-                  .object(2, 7, translate(300, 200))
+                  .object(2, 7, offsetBy(300, 200))
                   .userRect(7, -3, -3, 86, 66)
                   .object(
                       10,
@@ -384,7 +384,7 @@ inline QByteArray sampleFlipchart(const std::vector<QByteArray>& thumbnails = {}
         Entry(QStringLiteral("117.io"), Obj(11, 117)
                                             .integer(8, 1)
                                             .real(9, 3)
-                                            .object(2, 7, translate(500, 500))
+                                            .object(2, 7, offsetBy(500, 500))
                                             .userRect(7, 0, 0, 90, 36)
                                             .boolean(18, true)
                                             .integer(38, 330)

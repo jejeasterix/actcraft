@@ -13,3 +13,6 @@ actcraft_add_test(tst_formats_objectstream
 actcraft_add_test(tst_formats_flipchart
     SOURCES tst_formats_flipchart.cpp
     LIBS ActCraft::formats Qt6::Gui)
+if(WIN32)
+    target_link_libraries(tst_formats_flipchart PRIVATE psapi) # GetProcessMemoryInfo (peakmemory.h)
+endif()
