@@ -2858,3 +2858,1978 @@ git -C <worktree> add core/include/actcraft/core/pagecache.h core/src/pagecache.
 git -C <worktree> commit -m "Interface de cache figée (DA11) ; la page fixe lit la page du document au lieu de la posséder" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
+
+<a id="tache-l2-t15"></a>
+### Tâche L2-T15 — `ui` : `DocumentController` sur le document et sa pile (relais du lot 1 défait)
+
+**Objectif.** Revue L1-T9 (« Pour le plan du lot 2 ») : défaire le relais. Le contrôleur **possède** le
+`core::Document` et sa `core::UndoStack` ; la page fixe **lit** la page affichée (`setSource`, L2-T14) ; plus de
+`syncFromView`, plus de page possédée par l'élément, `document()` devient constant ; le stylo verse son trait au
+contrôleur (`ControllerSink`), qui l'ajoute par une commande annulable (`AddObjectCommand`, couche supérieure, F-510) ;
+« page suivante » sur la dernière page ajoute la page par une commande annulable (`AddPageCommand`) ; chaque commande
+rend ses changements, envoyés au cache par `applyToCache` (DA11). Le contrôleur expose aussi l'état que l'interface
+et S5 lisent : taille de la page affichée, modifié (pile non propre), titre (« Sans titre », F-656), URL du fichier,
+empreinte (hexadécimal), annuler / rétablir possibles. Le test `documentFollowsEveryWriterOfTheShownPage` est
+réécrit : il n'y a plus qu'un écrivain, la pile (`everyWriteGoesThroughTheUndoStack`).
+
+Après une annulation ou un rétablissement qui ajoute ou retire des pages, la page affichée reste valide : ajout
+avant elle → indice + 1 ; retrait avant elle → indice − 1 ; retrait de la page affichée → même indice borné au
+nombre de pages. Le trait en cours se termine avant tout changement de page (`pageAboutToChange`, lot 1, inchangé).
+
+**Fichiers.**
+- Modifier : `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`,
+  `ui/src/penadapters.h`, `ui/src/penadapters.cpp`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`,
+  `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `tests/tst_ui_document.cpp`, `tests/tst_pageview.cpp`
+
+**Test et commande bornée.** Rouge : commande ciblée, motif `tst_ui_document` → `error` (`commitStroke`
+inconnu). Vert : forme bornée, N ≥ 58, `TESTS OK`, `tst_ui_document`, `tst_pageview`, `tst_ui_shell`,
+`tst_ui_drawing`, `tst_captures_premiers_pas` Passed. Banc hors écran : `content_check.ok = True`. Preuve visuelle :
+`captures.ps1 -Scenario premiers-pas -Rendu logiciel -HorsEcran -Lire "pageIndicator.text=1 / 2"` →
+`LU pageIndicator.text=1 / 2 OK`, `CAPTURES OK` (le trait rouge survit à l'aller-retour de page par le document).
+
+**Interdits.** Ne renommer aucun nom figé du lot 1 (`fixedPage`, `pageCount`, `currentIndex`, `pageLabel`,
+`nextPage`, `previousPage`, `loadGeneratedFirstPage`, `document`, `pageAboutToChange`, `pagesChanged`). Aucune
+écriture du document hors de la pile, sauf `replaceDocument` (ouverture, nouveau document, page générée du banc), qui
+vide la pile. Pas d'Annuler / Rétablir dans l'interface (lot 3). Tests existants : seuls ceux qui supposaient le relais
+(écrire dans l'élément et le lire dans le document) changent, pour cette raison écrite.
+
+**Terminé quand.** Preuve verte, capture décrite, JSON du banc joint, commit fait.
+
+**Étapes.**
+
+- [ ] **Étape 1 : réécrire les tests du contrôleur.** Remplacer les fonctions de `tests/tst_ui_document.cpp` qui
+  supposent le relais (`strokeSurvivesPageRoundTrip`, `documentReadsTheShownPage`,
+  `documentFollowsEveryWriterOfTheShownPage`, `newPageTakesTheShownPageSize`, `swappingTheItemHandsBackItsPage`,
+  `generatedFirstPageWhileShowingPageTwo`) par les suivantes ; garder `startsWithOneBlankPageShown`,
+  `nextOnLastPageAddsABlankPage`, `previousOnFirstPageDoesNothing`, `pagesChangedOncePerMoveWithTheNewPageInPlace`,
+  `noPagesChangedWithoutAMove`, `pageAboutToChangeComesBeforeTheCopy` (renommée
+  `pageAboutToChangeComesBeforeTheMove`, même contenu, le mot « copie » n'a plus de sens), `generatedFirstPageForTheBench`
+  et `registeredInQml` en remplaçant tout `fixed.appendStroke(redStroke())` par `controller.commitStroke(redStroke())` :
+
+```cpp
+    void strokeLandsOnTheTopLayerOfTheShownPage()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        const core::Page& page = controller.document().page(0);
+        QCOMPARE(page.objects.size(), std::size_t{1});
+        QCOMPARE(page.objects[0].common.layer, core::Layer::Top);
+        QVERIFY(page.objects[0].common.id != 0);
+        QCOMPARE(fixed.objectCount(), 1);
+        QCOMPARE(&fixed.page(), &page); // l'élément lit le document
+        QVERIFY(controller.isModified());
+    }
+
+    void everyWriteGoesThroughTheUndoStack()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        QSignalSpy modified(&controller, &ui::DocumentController::modifiedChanged);
+        controller.commitStroke(redStroke());
+        QVERIFY(controller.canUndo());
+        controller.undo();
+        QVERIFY(controller.document().page(0).objects.empty());
+        QCOMPARE(fixed.objectCount(), 0);
+        QVERIFY(!controller.isModified());
+        controller.redo();
+        QCOMPARE(fixed.objectCount(), 1);
+        QVERIFY(controller.isModified());
+        QVERIFY(modified.count() >= 3);
+    }
+
+    void strokeSurvivesPageRoundTrip()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        controller.nextPage();
+        QCOMPARE(fixed.objectCount(), 0);
+        controller.previousPage();
+        QCOMPARE(fixed.objectCount(), 1);
+        QVERIFY(std::get<core::Stroke>(controller.document().page(0).objects[0]).color == 0xFFE53935u);
+        QVERIFY(controller.document().page(1).objects.empty());
+    }
+
+    void addedPageIsUndoneAndTheShownPageStaysValid()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.nextPage(); // page 2 ajoutée par la pile, affichée
+        QCOMPARE(controller.pageLabel(), QStringLiteral("2 / 2"));
+        controller.undo();
+        QCOMPARE(controller.pageCount(), 1);
+        QCOMPARE(controller.currentIndex(), 0);
+        QCOMPARE(fixed.sourcePage(), std::size_t{0});
+        controller.redo();
+        QCOMPARE(controller.pageCount(), 2);
+        QCOMPARE(controller.pageLabel(), QStringLiteral("1 / 2"));
+    }
+
+    void newPageTakesTheLastPageSize()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.newDocument(800, 600);
+        controller.nextPage();
+        QCOMPARE(controller.document().page(1).width, 800.0);
+        QCOMPARE(controller.pageSize(), QSizeF(800, 600));
+    }
+
+    void newAndReplacedDocumentsAreCleanAndShownFromPageOne()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        QCOMPARE(controller.title(), QStringLiteral("Sans titre"));
+        controller.commitStroke(redStroke());
+        core::Document other(std::vector<core::Page>(3));
+        other.setTitle("Autre");
+        QSignalSpy pages(&controller, &ui::DocumentController::pagesChanged);
+        controller.replaceDocument(std::move(other), QUrl::fromLocalFile(QStringLiteral("C:/x/autre.actcraft")),
+                                   QStringLiteral("autre"));
+        QCOMPARE(controller.pageLabel(), QStringLiteral("1 / 3"));
+        QCOMPARE(controller.title(), QStringLiteral("autre"));
+        QVERIFY(!controller.isModified());
+        QVERIFY(!controller.canUndo());
+        QCOMPARE(controller.fileUrl().fileName(), QStringLiteral("autre.actcraft"));
+        QCOMPARE(pages.count(), 1);
+        controller.newDocument(1280, 1024);
+        QCOMPARE(controller.pageSize(), QSizeF(1280, 1024));
+        QCOMPARE(controller.title(), QStringLiteral("Sans titre"));
+        QVERIFY(controller.fileUrl().isEmpty());
+    }
+
+    void fingerprintPropertyFollowsTheDocument()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        const QString empty = controller.property("fingerprint").toString();
+        QCOMPARE(empty.size(), 16);
+        QSignalSpy changed(&controller, &ui::DocumentController::documentChanged);
+        controller.commitStroke(redStroke());
+        QCOMPARE(changed.count(), 1);
+        QVERIFY(controller.property("fingerprint").toString() != empty);
+        QCOMPARE(controller.property("fingerprint").toString(),
+                 QStringLiteral("%1").arg(core::fingerprint(controller.document()), 16, 16, QLatin1Char('0')));
+    }
+
+    void detachingTheItemLeavesItEmpty()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        controller.setFixedPage(nullptr);
+        QVERIFY(fixed.sourceDocument() == nullptr);
+        QCOMPARE(fixed.objectCount(), 0);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1}); // rien n'est perdu
+    }
+```
+
+  Dans `generatedFirstPageForTheBench`, ajouter `QVERIFY(!controller.isModified());` (la page du banc n'est pas une
+  modification). Inclure `<QUrl>` et `<QSizeF>`. Dans `tests/tst_pageview.cpp`, ajouter (avec l'include
+  `<actcraft/ui/documentcontroller.h>`) un test qui reprend l'installation de la fixture existante (fenêtre, vue, page
+  fixe, encre) et vérifie qu'avec `view->setDocumentController(&controller)` (contrôleur relié à la même page fixe), un
+  trait injecté au stylet par l'aide existante du fichier (celle qu'emploient les tests de trait du lot 1) arrive dans
+  `controller.document().page(0)` (1 objet, couche `Top`) et que `strokeFrozen` est émis une fois ; sans contrôleur,
+  le trait va comme avant dans la page interne (test existant inchangé).
+
+- [ ] **Étape 2 : constater le rouge.** Commande ciblée, motif `tst_ui_document|tst_pageview` → `error`.
+
+- [ ] **Étape 3 : écrire l'en-tête du contrôleur.** Remplacer `ui/include/actcraft/ui/documentcontroller.h` par :
+
+```cpp
+#pragma once
+
+#include <actcraft/core/document.h>
+#include <actcraft/core/undo.h>
+#include <actcraft/render/fixedpageitem.h>
+
+#include <QObject>
+#include <QPointer>
+#include <QSizeF>
+#include <QString>
+#include <QUrl>
+#include <QtQml/qqmlregistration.h>
+
+#include <cstddef>
+#include <memory>
+
+namespace actcraft::ui {
+
+// Document ouvert (DA2, décision 16) : le contrôleur possède le document et sa pile d'annulation ; la page fixe
+// LIT la page affichée (setSource) ; toute modification passe par execute() (pile), ses changements vont au cache
+// de la page affichée par core::applyToCache (DA11). Relais du lot 1 défait (revue L1-T9).
+class DocumentController : public QObject
+{
+    Q_OBJECT
+    QML_ELEMENT
+    Q_PROPERTY(
+        actcraft::render::FixedPageItem* fixedPage READ fixedPage WRITE setFixedPage NOTIFY fixedPageChanged)
+    Q_PROPERTY(int pageCount READ pageCount NOTIFY pagesChanged)
+    Q_PROPERTY(int currentIndex READ currentIndex NOTIFY pagesChanged)
+    Q_PROPERTY(QString pageLabel READ pageLabel NOTIFY pagesChanged)
+    Q_PROPERTY(QSizeF pageSize READ pageSize NOTIFY pagesChanged)
+    Q_PROPERTY(bool modified READ isModified NOTIFY modifiedChanged)
+    Q_PROPERTY(QString title READ title NOTIFY titleChanged)
+    Q_PROPERTY(QUrl fileUrl READ fileUrl NOTIFY fileUrlChanged)
+    Q_PROPERTY(QString fingerprint READ fingerprintText NOTIFY documentChanged)
+    Q_PROPERTY(bool canUndo READ canUndo NOTIFY undoChanged)
+    Q_PROPERTY(bool canRedo READ canRedo NOTIFY undoChanged)
+
+public:
+    explicit DocumentController(QObject* parent = nullptr);
+    ~DocumentController() override; // détache la page fixe
+
+    render::FixedPageItem* fixedPage() const noexcept;
+    // L'élément montre aussitôt la page affichée ; l'ancien est détaché (page interne vide).
+    void setFixedPage(render::FixedPageItem* page);
+    int pageCount() const noexcept;
+    int currentIndex() const noexcept;
+    QString pageLabel() const; // « n / N » (F-002)
+    QSizeF pageSize() const;
+    bool isModified() const noexcept;
+    QString title() const;
+    QUrl fileUrl() const;
+    QString fingerprintText() const; // core::fingerprint en hexadécimal (16 chiffres)
+    bool canUndo() const noexcept;
+    bool canRedo() const noexcept;
+
+    const core::Document& document() const noexcept;
+    // Seule voie d'écriture du document (décision 16).
+    void execute(std::unique_ptr<core::UndoCommand> command);
+    Q_INVOKABLE void undo();
+    Q_INVOKABLE void redo();
+    // Le stylo verse son trait (DocumentSink du stylo, ControllerSink) : couche supérieure de la page affichée.
+    void commitStroke(core::Stroke stroke);
+    // Remplace le document (ouverture, nouveau) : pile vidée, état propre, page 1 affichée.
+    void replaceDocument(core::Document document, const QUrl& fileUrl, const QString& title);
+    // Paperboard vierge « Sans titre » d'une page `width` × `height` (F-656, F-700).
+    Q_INVOKABLE void newDocument(double width, double height);
+
+    // F-125 : sur la dernière page, ajoute une page (commande annulable) et l'affiche.
+    Q_INVOKABLE void nextPage();
+    Q_INVOKABLE void previousPage();
+    // Banc et tests : la page 1 devient la page générée de 300 objets ; document propre, pile vide.
+    Q_INVOKABLE void loadGeneratedFirstPage();
+
+signals:
+    void fixedPageChanged();
+    // Juste avant un changement de page affichée (ajout compris) : la vue y termine le trait en cours.
+    void pageAboutToChange();
+    // Une fois par changement de page affichée ou du nombre de pages, l'élément montrant déjà la nouvelle page.
+    void pagesChanged();
+    void modifiedChanged();
+    void titleChanged();
+    void fileUrlChanged();
+    void documentChanged();
+    void undoChanged();
+
+private:
+    // Changements d'une commande : page affichée recalée, cache, signaux.
+    void apply(const core::Changes& changes);
+    void show(std::size_t index);
+    void afterReplace();
+
+    core::Document m_document;
+    core::UndoStack m_undo;
+    std::size_t m_current = 0;
+    QPointer<render::FixedPageItem> m_fixed;
+    QUrl m_fileUrl;
+    QString m_title;
+    bool m_wasModified = false;
+};
+
+} // namespace actcraft::ui
+```
+
+- [ ] **Étape 4 : écrire le contrôleur.** Remplacer `ui/src/documentcontroller.cpp` par :
+
+```cpp
+#include <actcraft/core/edits.h>
+#include <actcraft/core/generator.h>
+#include <actcraft/core/pagecache.h>
+#include <actcraft/ui/documentcontroller.h>
+
+#include <algorithm>
+#include <utility>
+
+namespace actcraft::ui {
+
+namespace {
+
+const QString kUntitled = QStringLiteral("Sans titre");
+
+} // namespace
+
+DocumentController::DocumentController(QObject* parent) : QObject(parent), m_title(kUntitled) {}
+
+DocumentController::~DocumentController()
+{
+    if (m_fixed) {
+        m_fixed->setSource(nullptr, 0);
+    }
+}
+
+render::FixedPageItem* DocumentController::fixedPage() const noexcept
+{
+    return m_fixed.data();
+}
+
+void DocumentController::setFixedPage(render::FixedPageItem* page)
+{
+    if (page == m_fixed) {
+        return;
+    }
+    if (m_fixed) {
+        m_fixed->setSource(nullptr, 0);
+    }
+    m_fixed = page;
+    if (m_fixed) {
+        m_fixed->setSource(&m_document, m_current);
+    }
+    emit fixedPageChanged();
+}
+
+int DocumentController::pageCount() const noexcept
+{
+    return static_cast<int>(m_document.pageCount());
+}
+
+int DocumentController::currentIndex() const noexcept
+{
+    return static_cast<int>(m_current);
+}
+
+QString DocumentController::pageLabel() const
+{
+    return QStringLiteral("%1 / %2").arg(m_current + 1).arg(m_document.pageCount());
+}
+
+QSizeF DocumentController::pageSize() const
+{
+    const core::Page& p = m_document.page(m_current);
+    return QSizeF(p.width, p.height);
+}
+
+bool DocumentController::isModified() const noexcept
+{
+    return !m_undo.isClean();
+}
+
+QString DocumentController::title() const
+{
+    return m_title;
+}
+
+QUrl DocumentController::fileUrl() const
+{
+    return m_fileUrl;
+}
+
+QString DocumentController::fingerprintText() const
+{
+    return QStringLiteral("%1").arg(core::fingerprint(m_document), 16, 16, QLatin1Char('0'));
+}
+
+bool DocumentController::canUndo() const noexcept
+{
+    return m_undo.canUndo();
+}
+
+bool DocumentController::canRedo() const noexcept
+{
+    return m_undo.canRedo();
+}
+
+const core::Document& DocumentController::document() const noexcept
+{
+    return m_document;
+}
+
+void DocumentController::execute(std::unique_ptr<core::UndoCommand> command)
+{
+    apply(m_undo.push(m_document, std::move(command)));
+}
+
+void DocumentController::undo()
+{
+    apply(m_undo.undo(m_document));
+}
+
+void DocumentController::redo()
+{
+    apply(m_undo.redo(m_document));
+}
+
+void DocumentController::commitStroke(core::Stroke stroke)
+{
+    core::PageObject object = std::move(stroke);
+    object.common.layer = core::Layer::Top; // F-510 : les annotations vont sur la couche supérieure
+    execute(std::make_unique<core::AddObjectCommand>(m_current, std::move(object)));
+}
+
+void DocumentController::apply(const core::Changes& changes)
+{
+    if (changes.empty()) {
+        return;
+    }
+    // Page affichée recalée : ajout avant ou sur elle → + 1 ; retrait avant elle → − 1 ; puis bornée.
+    std::size_t target = m_current;
+    bool pagesMoved = false;
+    for (const core::Change& c : changes) {
+        if (c.kind == core::Change::Kind::PageInserted) {
+            pagesMoved = true;
+            if (c.page <= target) {
+                ++target;
+            }
+        } else if (c.kind == core::Change::Kind::PageRemoved) {
+            pagesMoved = true;
+            if (c.page < target) {
+                --target;
+            }
+        }
+    }
+    if (pagesMoved) {
+        target = std::min(target, m_document.pageCount() - 1);
+        if (target != m_current) {
+            emit pageAboutToChange();
+        }
+        show(target); // la page fixe relit la page affichée ; pagesChanged une fois
+    } else if (m_fixed) {
+        core::applyToCache(changes, m_current, *m_fixed);
+    }
+    notifyState();
+}
+
+void DocumentController::notifyState()
+{
+    emit documentChanged();
+    emit undoChanged();
+    if (isModified() != m_wasModified) {
+        m_wasModified = isModified();
+        emit modifiedChanged();
+    }
+}
+
+void DocumentController::show(std::size_t index)
+{
+    m_current = std::min(index, m_document.pageCount() - 1);
+    if (m_fixed) {
+        m_fixed->setSource(&m_document, m_current);
+    }
+    emit pagesChanged();
+}
+
+void DocumentController::replaceDocument(core::Document document, const QUrl& fileUrl, const QString& title)
+{
+    emit pageAboutToChange();
+    m_document = std::move(document);
+    m_undo.clear();
+    m_fileUrl = fileUrl;
+    m_title = title.isEmpty() ? kUntitled : title;
+    afterReplace();
+}
+
+void DocumentController::newDocument(double width, double height)
+{
+    replaceDocument(core::Document(width, height), QUrl(), kUntitled);
+}
+
+void DocumentController::afterReplace()
+{
+    show(0);
+    emit fileUrlChanged();
+    emit titleChanged();
+    emit documentChanged();
+    emit undoChanged();
+    m_wasModified = false;
+    emit modifiedChanged();
+}
+
+void DocumentController::nextPage()
+{
+    emit pageAboutToChange(); // le trait en cours rejoint la page affichée avant le déplacement
+    if (m_current + 1 < m_document.pageCount()) {
+        show(m_current + 1);
+        return;
+    }
+    // Taille relevée avant l'ajout (la référence à la dernière page ne survit pas à l'insertion).
+    const double width = m_document.page(m_document.pageCount() - 1).width;
+    const double height = m_document.page(m_document.pageCount() - 1).height;
+    const std::size_t added = m_document.pageCount();
+    // Page ajoutée après la page affichée : rien pour son cache ; une seule émission de pagesChanged.
+    m_undo.push(m_document, std::make_unique<core::AddPageCommand>(added, width, height));
+    show(added);
+    notifyState();
+}
+
+void DocumentController::previousPage()
+{
+    const std::size_t target = core::previousPageIndex(m_current);
+    if (target == m_current) {
+        return;
+    }
+    emit pageAboutToChange();
+    show(target);
+}
+
+void DocumentController::loadGeneratedFirstPage()
+{
+    core::Page generated = core::generatePage(core::kDefaultSeed);
+    std::vector<core::Page> pages;
+    pages.reserve(m_document.pageCount());
+    pages.push_back(std::move(generated));
+    for (std::size_t i = 1; i < m_document.pageCount(); ++i) {
+        pages.push_back(m_document.page(i));
+    }
+    m_document = core::Document(std::move(pages));
+    m_undo.clear();
+    if (m_fixed) {
+        m_fixed->setSource(&m_document, m_current);
+    }
+    emit documentChanged();
+}
+
+} // namespace actcraft::ui
+```
+
+  Règle de recalage vérifiée par `addedPageIsUndoneAndTheShownPageStaysValid` : annuler l'ajout de la page affichée
+  (retrait sur elle) borne l'indice et montre la page 1 ; rétablir (ajout après elle) ne la change pas (« 1 / 2 »).
+  `nextPage` n'émet `pagesChanged` qu'une fois (`pagesChangedOncePerMoveWithTheNewPageInPlace`, lot 1). Ajouter
+  `void notifyState();` aux méthodes privées de l'en-tête (signaux d'état : document, pile, modifié).
+
+- [ ] **Étape 5 : le stylo verse au contrôleur.** Dans `ui/src/penadapters.h`, déclarer :
+
+```cpp
+class DocumentController;
+
+// Le trait figé va au document par la pile (L2-T15) ; la vue est prévenue dans le même tour de boucle (le cache
+// est redessiné avec le vidage de l'encre, décision 10).
+class ControllerSink final : public tools::DocumentSink
+{
+public:
+    ControllerSink(DocumentController& controller, PageView& view);
+    void commitStroke(core::Stroke stroke) override;
+
+private:
+    DocumentController& m_controller;
+    PageView& m_view;
+};
+```
+
+  et dans `penadapters.cpp` (include `<actcraft/ui/documentcontroller.h>`) :
+
+```cpp
+ControllerSink::ControllerSink(DocumentController& controller, PageView& view)
+    : m_controller(controller), m_view(view)
+{
+}
+
+void ControllerSink::commitStroke(core::Stroke stroke)
+{
+    m_controller.commitStroke(std::move(stroke));
+    m_view.onStrokeFrozen();
+}
+```
+
+  Dans `ui/include/actcraft/ui/pageview.h` : déclaration avancée `class DocumentController;`, propriété
+  `Q_PROPERTY(actcraft::ui::DocumentController* documentController READ documentController WRITE
+  setDocumentController NOTIFY documentControllerChanged)`, accesseurs, signal `documentControllerChanged()`, membres
+  `QPointer<DocumentController> m_controller;` et `std::unique_ptr<ControllerSink> m_controllerSink;` (déclaration
+  avancée de `ControllerSink`). Dans `pageview.cpp`, `setDocumentController` mémorise le contrôleur et appelle
+  `rebuildPen()` ; dans `rebuildPen()`, le puits du stylo est `ControllerSink(*m_controller, *this)` quand un
+  contrôleur est posé, sinon `FixedPageSink` comme avant :
+
+```cpp
+    tools::DocumentSink* sink = nullptr;
+    if (m_controller) {
+        m_controllerSink = std::make_unique<ControllerSink>(*m_controller, *this);
+        sink = m_controllerSink.get();
+    } else {
+        m_documentSink = std::make_unique<FixedPageSink>(*m_fixedPage, *this);
+        sink = m_documentSink.get();
+    }
+    m_pen = std::make_unique<tools::PenTool>(*m_inkSurface, *sink);
+```
+
+  (`m_controllerSink.reset()` avec les autres remises à zéro en tête de `rebuildPen`.) La vue relie aussi
+  `FixedPageItem::contentChanged` à `requestCacheRefresh()` dans `setFixedPage` (connexion directe, gardée dans une
+  `QMetaObject::Connection` comme `m_readyConnection`) : une annulation redessine le cache. `onStrokeFrozen` reste
+  appelé par les puits (signal `strokeFrozen` du banc et du joueur de scénarios) ; la double demande de redessin
+  (puits + `contentChanged`) est absorbée par `requestCacheRefresh` (une demande pendant un redessin en relance un seul).
+
+- [ ] **Étape 6 : brancher le QML.** Dans `ui/qml/PageArea.qml`, ajouter `property DocumentController
+  documentController: null` à l'élément racine et `documentController: area.documentController` à la `PageView`.
+  Dans `ui/qml/Main.qml`, passer `documentController: appDocument` au `PageArea`. Le reste de `Main.qml` ne change pas.
+
+- [ ] **Étape 7 : vert ciblé.** Commande ciblée, motif `tst_ui_|tst_pageview|tst_captures` : `100% tests passed`.
+  `tst_ui_shell`, `tst_ui_drawing` et `tst_captures_premiers_pas` passent sans changement (même comportement vu de
+  l'interface). Rouge par mutation : remplacer dans `commitStroke` `core::Layer::Top` par `core::Layer::Middle`,
+  constater l'échec de `strokeLandsOnTheTopLayerOfTheShownPage`, remettre le fichier par
+  `git -C <worktree> checkout -- ui/src/documentcontroller.cpp` (si le fichier n'est pas encore commité, faire la
+  mutation après le commit de l'étape 9 puis remettre).
+
+- [ ] **Étape 8 : preuve, capture et banc.** `format.ps1`, preuve de tâche (N ≥ 58), commande de preuve visuelle
+  (lecture `pageIndicator.text=1 / 2` puis `CAPTURES OK` ; décrire la capture `retour-page-1` : trait rouge présent),
+  banc sans écran (`content_check.ok = True`).
+
+- [ ] **Étape 9 : commit.**
+
+```powershell
+git -C <worktree> add ui/include/actcraft/ui/documentcontroller.h ui/src/documentcontroller.cpp ui/src/penadapters.h ui/src/penadapters.cpp ui/include/actcraft/ui/pageview.h ui/src/pageview.cpp ui/qml/Main.qml ui/qml/PageArea.qml tests/tst_ui_document.cpp tests/tst_pageview.cpp
+git -C <worktree> commit -m "ui : le contrôleur possède le document et sa pile ; le stylo verse par une commande annulable ; relais du lot 1 défait" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+```
+
+
+<a id="tache-l2-t16"></a>
+### Tâche L2-T16 — `ui` : taille de page suivie, barres à jour, échelle de rastérisation
+
+**Objectif.** F-602 et constat L1-T8 (« `scrollChanged` non émis quand la taille du contenu change seule ») : la page
+affichée n'a plus toujours 1024 × 768 (paperboard 800 × 600, Nouveau 1280 × 1024). L'élément `page` de `PageArea.qml`
+prend la taille de la page affichée (`documentController.pageSize`) ; la vue, quand la taille de son contenu change
+**sans** changer d'élément, se réajuste (mode « Ajuster ») ou borne son défilement, met à jour la taille de texture du
+cache, redemande le cache et émet `scrollChanged`. Quand le zoom se pose (fin de zoom, ajustement), la vue donne à la
+page fixe son échelle de rastérisation (`zoom × devicePixelRatio`, L2-T13), avant de redemander le cache.
+
+**Fichiers.**
+- Modifier : `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/qml/PageArea.qml`,
+  `tests/tst_pageview.cpp`
+
+**Test et commande bornée.** Rouge : commande ciblée, motif `tst_pageview` → échec de
+`contentResizeRefitsAndEmitsScroll`. Vert : forme bornée, N ≥ 58, `TESTS OK`, `tst_pageview .*Passed`. Banc hors
+écran : `content_check.ok = True` (page du banc à 1024 × 768 : aucun changement).
+
+**Interdits.** Ne pas changer `ViewTransform`, `fitPage`, `clampPan` (lot 1). Pas de reconstruction de la page fixe
+à chaque image d'un zoom continu : l'échelle de rastérisation n'est posée qu'à la fin du zoom (minuterie existante
+`m_cacheTimer`) et par `setZoom` / `fitPage`.
+
+**Terminé quand.** Preuve verte, JSON du banc joint, commit fait.
+
+**Étapes.**
+
+- [ ] **Étape 1 : écrire les tests.** Dans `tests/tst_pageview.cpp`, ajouter (avec la fixture existante qui pose une
+  vue sur un élément `content` de 1024 × 768) :
+
+```cpp
+    void contentResizeRefitsAndEmitsScroll()
+    {
+        Fixture f;
+        open(f);
+        f.view->fitPage();
+        const qreal before = f.view->zoom();
+        QSignalSpy scrolled(f.view, &PageView::scrollChanged);
+        f.content->setSize(QSizeF(2048, 1536)); // même élément, page deux fois plus grande
+        QVERIFY(scrolled.count() >= 1);
+        QVERIFY(qAbs(f.view->zoom() - before / 2) < 1e-6); // « Ajuster » suit la nouvelle taille
+    }
+
+    void contentResizeOutsideFitClampsThePan()
+    {
+        Fixture f;
+        open(f);
+        f.view->setZoom(2.0);
+        f.view->scrollTo(1.0, 1.0); // en bas à droite
+        QSignalSpy scrolled(f.view, &PageView::scrollChanged);
+        f.content->setSize(QSizeF(512, 384)); // la page rapetisse : le défilement doit rester dans les bornes
+        QVERIFY(scrolled.count() >= 1);
+        QCOMPARE(f.view->zoom(), 2.0);
+        QVERIFY(f.view->scrollPositionX() <= 1.0);
+    }
+
+    void settledZoomSetsTheRasterScale()
+    {
+        Fixture f;
+        open(f);
+        f.view->setZoom(2.0);
+        const qreal dpr = f.window.effectiveDevicePixelRatio();
+        QCOMPARE(f.fixed->rasterScale(), 2.0 * dpr);
+        f.view->fitPage();
+        QCOMPARE(f.fixed->rasterScale(), f.view->zoom() * dpr);
+    }
+```
+
+  Les noms `Fixture`, `open`, `f.content`, `f.fixed`, `f.window` sont ceux de la fixture existante du fichier : les
+  relire et s'y conformer (si l'élément de contenu porte un autre nom, l'utiliser).
+
+- [ ] **Étape 2 : constater le rouge.** Commande ciblée, motif `tst_pageview` → `contentResizeRefitsAndEmitsScroll`
+  et `settledZoomSetsTheRasterScale` en échec (`FAIL!`).
+
+- [ ] **Étape 3 : suivre la taille du contenu.** Dans `pageview.h`, membre `QMetaObject::Connection
+  m_contentWidthConnection, m_contentHeightConnection;` (déclarés séparément) et méthode privée
+  `void onContentSizeChanged(QSizeF oldPage);`. Dans `pageview.cpp`, `setContent` déconnecte les deux connexions de
+  l'ancien contenu et relie `widthChanged` / `heightChanged` du nouveau :
+
+```cpp
+    disconnect(m_contentWidthConnection);
+    disconnect(m_contentHeightConnection);
+    // … (code existant qui pose m_content) …
+    if (m_content) {
+        m_lastPageSize = pageSize();
+        m_contentWidthConnection = connect(m_content, &QQuickItem::widthChanged, this, [this] {
+            onContentSizeChanged(m_lastPageSize);
+        });
+        m_contentHeightConnection = connect(m_content, &QQuickItem::heightChanged, this, [this] {
+            onContentSizeChanged(m_lastPageSize);
+        });
+    }
+```
+
+  avec le membre `QSizeF m_lastPageSize;` et :
+
+```cpp
+void PageView::onContentSizeChanged(QSizeF oldPage)
+{
+    const QSizeF newPage = pageSize();
+    m_lastPageSize = newPage;
+    if (newPage == oldPage) {
+        return;
+    }
+    finishStroke(); // un trait en cours reste sur sa page (comme pour un zoom)
+    const ViewTransform old = m_transform;
+    if (m_fitMode) {
+        fitPage();
+    } else {
+        apply(clampPan(m_transform, size(), newPage));
+    }
+    // apply n'émet rien si ni le zoom ni le défilement n'ont bougé : la taille de la page change pourtant les barres.
+    if (qFuzzyCompare(old.zoom, m_transform.zoom) && old.pan == m_transform.pan) {
+        emit scrollChanged();
+    }
+    updateCacheTextureSize();
+    requestCacheRefresh();
+}
+```
+
+- [ ] **Étape 4 : échelle de rastérisation.** À la fin de `updateCacheTextureSize()` (appelée quand le zoom est posé :
+  minuterie, `setZoom`, `fitPage`, contenu redimensionné), ajouter :
+
+```cpp
+    if (m_fixedPage) {
+        const qreal dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
+        m_fixedPage->setRasterScale(m_transform.zoom * dpr);
+    }
+```
+
+  `setRasterScale` ne reconstruit qu'en RHI et pour une page qui peint quelque chose (L2-T13).
+
+- [ ] **Étape 5 : la page prend la taille du document.** Dans `ui/qml/PageArea.qml`, l'élément `pageContent` :
+
+```qml
+            width: area.documentController ? area.documentController.pageSize.width : 1024
+            height: area.documentController ? area.documentController.pageSize.height : 768
+```
+
+  (au lieu de `width: 1024` / `height: 768`) ; le commentaire « Page au format d'un paperboard (1024 × 768) » devient
+  « Page à la taille de la page affichée (F-602) ».
+
+- [ ] **Étape 6 : vert ciblé, preuve et banc.** Commande ciblée (`tst_pageview|tst_ui_`) : `100% tests passed`.
+  `format.ps1`, preuve de tâche (N ≥ 58 ; `tst_pageview` Passed), banc sans écran (`content_check.ok = True`).
+
+- [ ] **Étape 7 : commit.**
+
+```powershell
+git -C <worktree> add ui/include/actcraft/ui/pageview.h ui/src/pageview.cpp ui/qml/PageArea.qml tests/tst_pageview.cpp
+git -C <worktree> commit -m "ui : la page suit la taille de la page affichée ; barres et cache à jour ; échelle de rastérisation au zoom posé" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+```
+
+
+<a id="tache-l2-t17"></a>
+### Tâche L2-T17 — `ui` : ouvrir, enregistrer, nouveau, fermer — hors du fil principal, miniatures
+
+**Objectif.** Décisions 17, 18, 22 et règle de fluidité 1 : lecture et écriture des documents **sur un fil
+secondaire**, résultat rendu au fil principal. Ouvrir une URL : la signature choisit le lecteur (`PK\3\4` → archive
+`.actcraft`, `" Bamboo "` → `.flipchart`), sinon erreur. Un `.flipchart` ouvert devient un document **sans fichier**
+(« Enregistrer » proposera `<nom>.actcraft`, décision 18). Enregistrer : instantané du document (copie, ressources
+partagées implicitement), miniatures PNG de chaque page par le peintre partagé (L2-T11, images décodées dans le même
+fil), archive (L2-T6), écriture atomique (L2-T6) ; à la fin, état propre si le document n'a pas changé pendant
+l'enregistrement (empreinte comparée). Pendant une opération, `busy` est vrai et une seconde opération est refusée.
+Avertissements de lecture et dernière erreur exposés (le bandeau est en L2-T18). Journal : `ACTCRAFT OUVERT
+<empreinte>` et `ACTCRAFT ENREGISTRE <empreinte>` (catégorie `actcraft.document`, info) — L2-T22 les lit dans
+logcat. Dossier par défaut (F-657, N2-4) : `Documents/ActCraft` sous Windows (créé), dossier de l'application ailleurs.
+
+**Fichiers.**
+- Créer : `ui/include/actcraft/ui/documentio.h`, `ui/src/documentio.cpp`, `tests/tst_ui_files.cpp`
+- Modifier : `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `ui/CMakeLists.txt`,
+  `tests/ui.cmake`
+
+**Test et commande bornée.** Rouge : commande ciblée, motif `tst_ui_files` → `error`. Vert : forme bornée, N ≥ 59,
+`TESTS OK`, `tst_ui_files .*Passed`. Banc hors écran (module `ui/`) : `content_check.ok = True`.
+
+**Interdits.** Aucune lecture, aucun décodage, aucune compression, aucune écriture sur le fil principal (sauf le
+calcul de l'empreinte, rapide). Le document affiché n'est jamais modifié par le fil secondaire (il travaille sur une
+copie). Un `.flipchart` n'est jamais réécrit. Pas de dialogue ici (L2-T18).
+
+**Terminé quand.** Preuve verte, JSON du banc joint, commit fait.
+
+**Étapes.**
+
+- [ ] **Étape 1 : écrire les tests.** Créer `tests/tst_ui_files.cpp` :
+
+```cpp
+#include "support/flipchartwriter.h"
+
+#include <actcraft/formats/nativefile.h>
+#include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documentio.h>
+
+#include <QFile>
+#include <QSignalSpy>
+#include <QTemporaryDir>
+#include <QTest>
+
+using namespace actcraft;
+
+namespace {
+
+core::Stroke redStroke()
+{
+    core::Stroke s;
+    s.points = {core::StrokePoint{100, 100, 0.5f}, core::StrokePoint{300, 100, 0.5f}};
+    s.baseWidth = 8;
+    s.color = 0xFFE53935u;
+    return s;
+}
+
+bool writeFile(const QString& path, const QByteArray& bytes)
+{
+    QFile f(path);
+    return f.open(QIODevice::WriteOnly) && f.write(bytes) == bytes.size();
+}
+
+} // namespace
+
+// Ouverture et enregistrement hors du fil principal (décision 17, règle de fluidité 1).
+class TstUiFiles : public QObject
+{
+    Q_OBJECT
+
+private slots:
+    void saveThenOpenKeepsTheFingerprint()
+    {
+        QTemporaryDir dir;
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        controller.nextPage();
+        const QString saved = controller.property("fingerprint").toString();
+        const QUrl url = QUrl::fromLocalFile(dir.filePath(QStringLiteral("essai.actcraft")));
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(url);
+        QVERIFY(controller.property("busy").toBool());
+        QVERIFY(savedSpy.wait(10000));
+        QCOMPARE(savedSpy.first().at(0).toBool(), true);
+        QVERIFY(!controller.isModified());
+        QCOMPARE(controller.fileUrl(), url);
+        QCOMPARE(controller.title(), QStringLiteral("essai"));
+        controller.newDocument(1024, 768);
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        controller.openUrl(url);
+        QVERIFY(loaded.wait(10000));
+        QCOMPARE(loaded.first().at(0).toBool(), true);
+        QCOMPARE(controller.property("fingerprint").toString(), saved);
+        QCOMPARE(controller.pageLabel(), QStringLiteral("1 / 2"));
+        QVERIFY(!controller.isModified());
+    }
+
+    void ioRunsOffTheMainThread()
+    {
+        QTemporaryDir dir;
+        core::Document document(std::vector<core::Page>(3));
+        const QUrl url = QUrl::fromLocalFile(dir.filePath(QStringLiteral("fil.actcraft")));
+        bool saveOff = false;
+        bool loadOff = false;
+        QThread* main = QThread::currentThread();
+        QThread::create([&] {
+            saveOff = QThread::currentThread() != main && ui::saveDocument(document, url).ok;
+            loadOff = QThread::currentThread() != main && ui::loadDocument(url).ok;
+        })->start();
+        QTRY_VERIFY_WITH_TIMEOUT(saveOff && loadOff, 10000);
+        // Et le contrôleur ne bloque pas : saveToUrl rend la main avant la fin de l'écriture.
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("rapide.actcraft"))));
+        QCOMPARE(savedSpy.count(), 0);
+        QVERIFY(savedSpy.wait(10000));
+    }
+
+    void thumbnailsAreWrittenForEveryPage()
+    {
+        QTemporaryDir dir;
+        core::Document document(std::vector<core::Page>(3));
+        const QUrl url = QUrl::fromLocalFile(dir.filePath(QStringLiteral("m.actcraft")));
+        QVERIFY(ui::saveDocument(document, url).ok);
+        QFile file(url.toLocalFile());
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const formats::DecodeResult r = formats::decodeActcraft(file.readAll());
+        QVERIFY(r.ok);
+        QCOMPARE(r.thumbnails.size(), std::size_t{3});
+        QImage thumb;
+        QVERIFY(thumb.loadFromData(r.thumbnails[2], "PNG"));
+        QCOMPARE(thumb.size(), QSize(320, 240));
+    }
+
+    void openingAFlipchartGivesADocumentWithoutFile()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("cours.flipchart"));
+        QVERIFY(writeFile(path, fctest::sampleFlipchart()));
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        controller.openUrl(QUrl::fromLocalFile(path));
+        QVERIFY(loaded.wait(10000));
+        QCOMPARE(loaded.first().at(0).toBool(), true);
+        QCOMPARE(controller.pageCount(), 2);
+        QVERIFY(controller.fileUrl().isEmpty());
+        QCOMPARE(controller.title(), QStringLiteral("cours"));
+        QCOMPARE(controller.property("suggestedFileName").toString(), QStringLiteral("cours.actcraft"));
+        QCOMPARE(controller.property("warnings").toStringList().size(), 1); // la formule non lue
+    }
+
+    void unreadableFileKeepsTheDocumentAndReportsWhy()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("faux.actcraft"));
+        QVERIFY(writeFile(path, "ni zip ni paperboard"));
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        const QString before = controller.property("fingerprint").toString();
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        controller.openUrl(QUrl::fromLocalFile(path));
+        QVERIFY(loaded.wait(10000));
+        QCOMPARE(loaded.first().at(0).toBool(), false);
+        QVERIFY(!controller.property("lastError").toString().isEmpty());
+        QCOMPARE(controller.property("fingerprint").toString(), before);
+        QVERIFY(controller.isModified());
+    }
+
+    void secondOperationIsRefusedWhileBusy()
+    {
+        QTemporaryDir dir;
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("b.actcraft"))));
+        QVERIFY(savedSpy.wait(10000));
+        QTest::qWait(200);
+        QCOMPARE(savedSpy.count(), 2);
+        QCOMPARE(savedSpy.at(1).at(0).toBool(), false); // refusée : une opération est en cours
+        QVERIFY(!QFile::exists(dir.filePath(QStringLiteral("b.actcraft"))));
+    }
+
+    void argumentsBecomeUrlsAndTheDefaultFolderExists()
+    {
+        ui::DocumentController controller;
+        QVERIFY(controller.urlFromArgument(QStringLiteral("content://fournisseur/doc")).scheme() ==
+                QStringLiteral("content"));
+        QVERIFY(controller.urlFromArgument(QVariant()).isEmpty());
+        const QUrl folder = controller.defaultFolderUrl();
+        QVERIFY(folder.isLocalFile());
+        QVERIFY(QFileInfo(folder.toLocalFile()).isDir());
+    }
+};
+
+QTEST_MAIN(TstUiFiles)
+#include "tst_ui_files.moc"
+```
+
+  `secondOperationIsRefusedWhileBusy` suppose que le refus est rendu par `saveFinished(false, …)` émis **en file**
+  (connexion différée) : le deuxième appel ne doit pas émettre pendant l'appel lui-même. Ajouter `#include <QFileInfo>`,
+  `<QImage>`, `<QThread>`. Ajouter à `tests/ui.cmake` :
+
+```cmake
+actcraft_add_test(tst_ui_files
+    SOURCES tst_ui_files.cpp
+    LIBS Qt6::Quick ActCraft::ui ActCraft::formats)
+```
+
+- [ ] **Étape 2 : constater le rouge.** Commande ciblée, motif `tst_ui_files` → `error`.
+
+- [ ] **Étape 3 : écrire les E/S de document.** Créer `ui/include/actcraft/ui/documentio.h` :
+
+```cpp
+#pragma once
+
+#include <actcraft/core/document.h>
+
+#include <QString>
+#include <QStringList>
+#include <QUrl>
+
+#include <cstdint>
+
+namespace actcraft::ui {
+
+// Lecture et écriture d'un document par son URL (décision 17), à appeler sur un fil secondaire.
+struct LoadOutcome
+{
+    bool ok = false;
+    QString error;
+    QStringList warnings;
+    core::Document document;
+    bool native = false; // .actcraft (sinon .flipchart : document sans fichier, décision 18)
+    QString title;       // nom du fichier sans extension
+};
+
+LoadOutcome loadDocument(const QUrl& url);
+
+struct SaveOutcome
+{
+    bool ok = false;
+    QString error;
+    std::uint64_t fingerprint = 0; // empreinte du document enregistré
+};
+
+// Miniatures (peintre partagé, 320 px), archive .actcraft, écriture atomique (fichier local) ou en une passe
+// (content://).
+SaveOutcome saveDocument(const core::Document& snapshot, const QUrl& url);
+// Nom du fichier sans extension ; pour content://, dernier segment décodé.
+QString titleFromUrl(const QUrl& url);
+// F-657, N2-4 : Documents/ActCraft (créé s'il manque) ; sous Android, dossier de l'application.
+QString defaultDocumentsFolder();
+
+} // namespace actcraft::ui
+```
+
+  Créer `ui/src/documentio.cpp` :
+
+```cpp
+#include <actcraft/formats/flipchart.h>
+#include <actcraft/formats/nativefile.h>
+#include <actcraft/formats/urlio.h>
+#include <actcraft/render/pagepainter.h>
+#include <actcraft/ui/documentio.h>
+
+#include <QDir>
+#include <QFileInfo>
+#include <QStandardPaths>
+#include <QSysInfo>
+
+namespace actcraft::ui {
+
+LoadOutcome loadDocument(const QUrl& url)
+{
+    LoadOutcome out;
+    const formats::UrlReadResult read = formats::readUrl(url);
+    if (!read.ok) {
+        out.error = read.error;
+        return out;
+    }
+    out.title = titleFromUrl(url);
+    if (formats::looksLikeActcraft(read.data)) {
+        formats::DecodeResult r = formats::decodeActcraft(read.data);
+        if (!r.ok) {
+            out.error = r.error;
+            return out;
+        }
+        out.ok = true;
+        out.native = true;
+        out.warnings = r.warnings;
+        out.document = std::move(r.document);
+        return out;
+    }
+    if (formats::flipchart::looksLikeFlipchart(read.data)) {
+        formats::flipchart::FlipchartReadResult r = formats::flipchart::readFlipchart(read.data);
+        if (!r.ok) {
+            out.error = r.error;
+            out.warnings = r.warnings;
+            return out;
+        }
+        out.ok = true;
+        out.warnings = r.warnings;
+        out.document = std::move(r.document);
+        return out;
+    }
+    out.error = QStringLiteral("format non reconnu : ni paperboard ActCraft, ni .flipchart");
+    return out;
+}
+
+SaveOutcome saveDocument(const core::Document& snapshot, const QUrl& url)
+{
+    SaveOutcome out;
+    const render::DecodedImages images = render::decodeImages(snapshot);
+    std::vector<QByteArray> thumbnails;
+    thumbnails.reserve(snapshot.pageCount());
+    for (std::size_t i = 0; i < snapshot.pageCount(); ++i) {
+        thumbnails.push_back(render::thumbnailPng(snapshot.page(i), images.lookup()));
+    }
+    QString error;
+    const QByteArray archive = formats::encodeActcraft(snapshot, thumbnails, &error);
+    if (archive.isEmpty()) {
+        out.error = error;
+        return out;
+    }
+    if (!formats::writeUrl(url, archive, &error)) {
+        out.error = error;
+        return out;
+    }
+    out.ok = true;
+    out.fingerprint = core::fingerprint(snapshot);
+    return out;
+}
+
+QString titleFromUrl(const QUrl& url)
+{
+    const QString name = url.isLocalFile() ? QFileInfo(url.toLocalFile()).fileName()
+                                           : QUrl::fromPercentEncoding(url.path().section(u'/', -1).toUtf8())
+                                                 .section(u':', -1)
+                                                 .section(u'/', -1);
+    const qsizetype dot = name.lastIndexOf(u'.');
+    return dot > 0 ? name.left(dot) : name;
+}
+
+QString defaultDocumentsFolder()
+{
+    // Choix à l'exécution (pas de #ifdef hors de app/ et des fichiers *_android, DA10).
+    const QString base = QSysInfo::productType() == QLatin1String("android")
+                             ? QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+                             : QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                                   QStringLiteral("/ActCraft");
+    QDir().mkpath(base);
+    return base;
+}
+
+} // namespace actcraft::ui
+```
+
+- [ ] **Étape 4 : le contrôleur ouvre et enregistre.** Dans `documentcontroller.h`, ajouter les propriétés et
+  méthodes :
+
+```cpp
+    Q_PROPERTY(bool busy READ isBusy NOTIFY busyChanged)
+    Q_PROPERTY(QStringList warnings READ warnings NOTIFY warningsChanged)
+    Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
+    Q_PROPERTY(QString suggestedFileName READ suggestedFileName NOTIFY titleChanged)
+public:
+    bool isBusy() const noexcept;
+    QStringList warnings() const;
+    QString lastError() const;
+    QString suggestedFileName() const; // « <titre>.actcraft »
+    // Ouverture et enregistrement sur un fil secondaire ; loadFinished / saveFinished à la fin (toujours émis, en
+    // file, même pour un refus). Refusés pendant une autre opération.
+    Q_INVOKABLE void openUrl(const QUrl& url);
+    Q_INVOKABLE void saveToUrl(const QUrl& url);
+    // Argument d'une commande de fichier → URL (formats::urlFromArgument) ; vide si absent.
+    Q_INVOKABLE QUrl urlFromArgument(const QVariant& argument) const;
+    Q_INVOKABLE QUrl defaultFolderUrl() const;
+signals:
+    void busyChanged();
+    void warningsChanged();
+    void lastErrorChanged();
+    void loadFinished(bool ok, const QString& message);
+    void saveFinished(bool ok, const QString& message);
+private:
+    void setBusy(bool busy);
+    bool m_busy = false;
+    QStringList m_warnings;
+    QString m_lastError;
+    std::uint64_t m_operation = 0; // identifiant de l'opération en cours (résultats périmés ignorés)
+```
+
+  Dans `documentcontroller.cpp` (includes `<actcraft/formats/urlio.h>`, `<actcraft/ui/documentio.h>`,
+  `<QLoggingCategory>`, `<QThreadPool>`, `<memory>`) :
+
+```cpp
+Q_LOGGING_CATEGORY(lcDocument, "actcraft.document", QtInfoMsg)
+
+void DocumentController::setBusy(bool busy)
+{
+    if (busy != m_busy) {
+        m_busy = busy;
+        emit busyChanged();
+    }
+}
+
+void DocumentController::openUrl(const QUrl& url)
+{
+    if (m_busy) {
+        QMetaObject::invokeMethod(this, [this] { emit loadFinished(false, tr("Une opération est déjà en cours.")); },
+                                  Qt::QueuedConnection);
+        return;
+    }
+    setBusy(true);
+    const std::uint64_t operation = ++m_operation;
+    QPointer<DocumentController> self(this);
+    QThreadPool::globalInstance()->start([self, operation, url] {
+        auto outcome = std::make_shared<LoadOutcome>(loadDocument(url));
+        QMetaObject::invokeMethod(
+            self.data(),
+            [self, operation, url, outcome] {
+                if (!self || operation != self->m_operation) {
+                    return;
+                }
+                self->setBusy(false);
+                if (!outcome->ok) {
+                    self->m_warnings = outcome->warnings;
+                    emit self->warningsChanged();
+                    self->m_lastError = outcome->error;
+                    emit self->lastErrorChanged();
+                    emit self->loadFinished(false, outcome->error);
+                    return;
+                }
+                self->replaceDocument(std::move(outcome->document), outcome->native ? url : QUrl(), outcome->title);
+                self->m_warnings = outcome->warnings; // après replaceDocument, qui les efface
+                emit self->warningsChanged();
+                qCInfo(lcDocument, "ACTCRAFT OUVERT %s", qPrintable(self->fingerprintText()));
+                emit self->loadFinished(true, QString());
+            },
+            Qt::QueuedConnection);
+    });
+}
+
+void DocumentController::saveToUrl(const QUrl& url)
+{
+    if (m_busy) {
+        QMetaObject::invokeMethod(this, [this] { emit saveFinished(false, tr("Une opération est déjà en cours.")); },
+                                  Qt::QueuedConnection);
+        return;
+    }
+    setBusy(true);
+    const std::uint64_t operation = ++m_operation;
+    auto snapshot = std::make_shared<const core::Document>(m_document); // copie : le fil n'écrit jamais l'affiché
+    QPointer<DocumentController> self(this);
+    QThreadPool::globalInstance()->start([self, operation, url, snapshot] {
+        const SaveOutcome outcome = saveDocument(*snapshot, url);
+        QMetaObject::invokeMethod(
+            self.data(),
+            [self, operation, url, outcome] {
+                if (!self || operation != self->m_operation) {
+                    return;
+                }
+                self->setBusy(false);
+                if (!outcome.ok) {
+                    self->m_lastError = outcome.error;
+                    emit self->lastErrorChanged();
+                    emit self->saveFinished(false, outcome.error);
+                    return;
+                }
+                if (core::fingerprint(self->m_document) == outcome.fingerprint) {
+                    self->m_undo.setClean(); // rien n'a changé pendant l'écriture
+                }
+                self->m_fileUrl = url;
+                self->m_title = titleFromUrl(url);
+                emit self->fileUrlChanged();
+                emit self->titleChanged();
+                self->notifyState();
+                qCInfo(lcDocument, "ACTCRAFT ENREGISTRE %s", qPrintable(QStringLiteral("%1").arg(
+                                                                 outcome.fingerprint, 16, 16, QLatin1Char('0'))));
+                emit self->saveFinished(true, QString());
+            },
+            Qt::QueuedConnection);
+    });
+}
+```
+
+  plus les accesseurs (`isBusy`, `warnings`, `lastError`, `suggestedFileName` = `m_title + ".actcraft"`,
+  `urlFromArgument` = `formats::urlFromArgument(argument)`, `defaultFolderUrl` =
+  `QUrl::fromLocalFile(defaultDocumentsFolder())`). `replaceDocument` vide `m_warnings` et `m_lastError` (et émet
+  leurs signaux) ; `openUrl` pose les avertissements de la lecture **après** lui.
+
+  Dans `ui/CMakeLists.txt` : ajouter `include/actcraft/ui/documentio.h` et `src/documentio.cpp` aux `SOURCES`, et
+  `ActCraft::formats` à `target_link_libraries(actcraft_ui PUBLIC …)`.
+
+- [ ] **Étape 5 : vert ciblé, preuve et banc.** Commande ciblée (`tst_ui_`) : `100% tests passed`. `format.ps1`,
+  preuve de tâche (N ≥ 59 ; `tst_ui_files` Passed), banc sans écran (`content_check.ok = True`).
+
+- [ ] **Étape 6 : commit.**
+
+```powershell
+git -C <worktree> add ui/include/actcraft/ui/documentio.h ui/src/documentio.cpp ui/include/actcraft/ui/documentcontroller.h ui/src/documentcontroller.cpp ui/CMakeLists.txt tests/ui.cmake tests/tst_ui_files.cpp
+git -C <worktree> commit -m "ui : ouvrir et enregistrer hors du fil principal (.actcraft, .flipchart), miniatures, état propre, journal" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+```
+
+
+<a id="tache-l2-t18"></a>
+### Tâche L2-T18 — QML : menu Fichier, dialogues, « enregistrer les modifications ? », bandeau d'avertissements
+
+**Objectif.** F-700 (partie), décisions 20 et 22 : le menu Fichier propose Nouveau (et ses cinq tailles), Ouvrir,
+Enregistrer, Enregistrer sous, Fermer, Quitter ; raccourcis Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Maj+S, Ctrl+W, Ctrl+Q.
+Chaque entrée déclenche sa commande (L2-T3) ; les commandes `file.open` et `file.save-as` **avec** une URL agissent
+sans dialogue (scénarios, ligne de commande), **sans** URL ouvrent le dialogue de fichier (`QtQuick.Dialogs`, natif ;
+`content://` sous Android). Un document modifié demande « Enregistrer les modifications ? » (Enregistrer / Ne pas
+enregistrer / Annuler) avant Nouveau, Ouvrir, Fermer, Quitter et la fermeture de la fenêtre. Un document sans
+fichier (neuf ou `.flipchart`) s'enregistre par « Enregistrer sous », nom proposé `<titre>.actcraft`, dans le dossier
+par défaut. Avertissements de lecture et erreurs : **bandeau** en haut de la page, sans bloquer, refermable. Titre de
+fenêtre : `[*]<titre> — ActCraft — rendu : <moteur>`.
+
+**Fichiers.**
+- Créer : `ui/qml/FileActions.qml`, `ui/qml/SaveChangesDialog.qml`, `ui/qml/PageSizeDialog.qml`,
+  `ui/qml/MessageBanner.qml`, `tests/tst_ui_filemenu.cpp`
+- Modifier : `ui/qml/Main.qml`, `ui/CMakeLists.txt`, `actions/data/layout.json`, `tests/ui.cmake`,
+  `tests/tst_ui_shell.cpp`
+
+**Test et commande bornée.** Rouge : commande ciblée, motif `tst_ui_filemenu` → `error`. Vert : forme bornée,
+N ≥ 60, `TESTS OK`, `tst_ui_filemenu .*Passed`, `tst_ui_shell .*Passed`. Preuve visuelle (hors écran) : après le
+commit, capture de la fenêtre avec le bandeau ouvert, par le test `bannerShowsReadingWarnings` qui l'écrit sous
+`.tmp/` (`QT_ACTCRAFT_CAPTURES` = dossier) ; décrire : bandeau lisible au-dessus de la page, texte « 1 avertissement
+de lecture », bouton de fermeture. Banc hors écran : `content_check.ok = True`.
+
+**Interdits.** Aucun texte ni icône de Promethean ; libellés écrits par nous (`qsTr`). Pas de dialogue de fichier
+dans les scénarios ni les tests (commandes avec URL). Pas de nouveau jeton de couleur sans test de contraste sur les
+couleurs rendues. Tests existants : `tst_ui_shell` ne change que pour les entrées du menu Fichier (comportement voulu).
+
+**Terminé quand.** Preuve verte, capture décrite, JSON du banc joint, commit fait.
+
+**Étapes.**
+
+- [ ] **Étape 1 : écrire les tests.** Créer `tests/tst_ui_filemenu.cpp` (même harnais que `tst_ui_shell.cpp` :
+  `Shell`, `start`, `findItem`, `run` — les recopier du fichier existant, ils ne sont pas partagés) :
+
+```cpp
+// (includes et harnais Shell/start/findItem/item/run recopiés de tests/tst_ui_shell.cpp, plus :)
+#include <actcraft/formats/nativefile.h>
+#include <QSignalSpy>
+#include <QTemporaryDir>
+
+// Menu Fichier et ses commandes (F-700, L2-T18), sans dialogue de fichier : commandes avec URL.
+class TstUiFileMenu : public QObject
+{
+    Q_OBJECT
+
+private:
+    static ui::DocumentController* controller(Shell& s)
+    {
+        return s.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+    }
+
+private slots:
+    void fileMenuListsTheLotTwoCommands()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands);
+        QStringList ids;
+        for (const QVariant& menu : commands->menus()) {
+            const QVariantMap m = menu.toMap();
+            if (m.value(QStringLiteral("id")).toString() == QLatin1String("file")) {
+                for (const QVariant& entry : m.value(QStringLiteral("items")).toList()) {
+                    ids << entry.toMap().value(QStringLiteral("id")).toString();
+                }
+            }
+        }
+        for (const char* id : {"file.new", "file.new-screen", "file.new-1024x768", "file.new-1152x864",
+                               "file.new-1280x1024", "file.new-custom", "file.open", "file.save", "file.save-as",
+                               "file.close", "file.quit"}) {
+            QVERIFY2(ids.contains(QString::fromLatin1(id)), id);
+        }
+    }
+
+    void saveAsThenOpenByCommands()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("essai.actcraft"));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(doc->isModified());
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        QVERIFY(run(s, QStringLiteral("file.save-as"), path));
+        QVERIFY(saved.wait(10000));
+        QVERIFY(!doc->isModified());
+        QVERIFY(s.window->title().startsWith(QStringLiteral("essai — ActCraft")));
+        QVERIFY(run(s, QStringLiteral("file.close")));
+        QCOMPARE(doc->pageCount(), 1);
+        QSignalSpy loaded(doc, &ui::DocumentController::loadFinished);
+        QVERIFY(run(s, QStringLiteral("file.open"), path));
+        QVERIFY(loaded.wait(10000));
+        QCOMPARE(doc->pageCount(), 2);
+    }
+
+    void modifiedDocumentAsksBeforeClosing()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(run(s, QStringLiteral("file.close")));
+        QQuickItem* dialog = item(s, "saveChangesDialog");
+        QVERIFY(dialog);
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QCOMPARE(doc->pageCount(), 2); // rien n'est fermé avant la réponse
+        QVERIFY(QMetaObject::invokeMethod(dialog, "discard"));
+        QTRY_COMPARE(doc->pageCount(), 1);
+        QVERIFY(!doc->isModified());
+    }
+
+    void cancelKeepsTheDocument()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(run(s, QStringLiteral("file.new")));
+        QQuickItem* dialog = item(s, "saveChangesDialog");
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
+        QTRY_VERIFY(!dialog->property("visible").toBool());
+        QCOMPARE(doc->pageCount(), 2);
+        QVERIFY(doc->isModified());
+    }
+
+    void newSizesComeFromTheirCommands()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("file.new-1280x1024")));
+        QCOMPARE(doc->pageSize(), QSizeF(1280, 1024));
+        QVERIFY(run(s, QStringLiteral("file.new-1152x864")));
+        QCOMPARE(doc->pageSize(), QSizeF(1152, 864));
+        QVERIFY(run(s, QStringLiteral("file.new-screen")));
+        QCOMPARE(doc->pageSize(), QSizeF(s.window->screen()->size()));
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QQuickItem* sizeDialog = item(s, "pageSizeDialog");
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(sizeDialog, "acceptSize", Q_ARG(QVariant, 640), Q_ARG(QVariant, 480)));
+        QTRY_COMPARE(doc->pageSize(), QSizeF(640, 480));
+    }
+
+    void bannerShowsReadingWarnings()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("cours.flipchart"));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(fctest::sampleFlipchart()); // une formule non lue : un avertissement
+        file.close();
+        auto* doc = controller(s);
+        QSignalSpy loaded(doc, &ui::DocumentController::loadFinished);
+        QVERIFY(run(s, QStringLiteral("file.open"), path));
+        QVERIFY(loaded.wait(10000));
+        QQuickItem* banner = item(s, "messageBanner");
+        QQuickItem* text = item(s, "messageText");
+        QVERIFY(banner && text);
+        QTRY_VERIFY(banner->isVisible());
+        QVERIFY(text->property("text").toString().contains(QStringLiteral("1 avertissement")));
+        // Contraste sur les couleurs RENDUES (leçon L1-C5) : fond lu dans la capture, texte lu sur l'élément.
+        const QImage shot = s.window->grabWindow();
+        const QPointF corner = banner->mapToScene(QPointF(2, 2));
+        const QColor background = shot.pixelColor(corner.toPoint());
+        const QColor ink = text->property("color").value<QColor>();
+        const auto luminance = [](QColor c) {
+            const auto channel = [](double v) {
+                v /= 255.0;
+                return v <= 0.03928 ? v / 12.92 : std::pow((v + 0.055) / 1.055, 2.4);
+            };
+            return 0.2126 * channel(c.red()) + 0.7152 * channel(c.green()) + 0.0722 * channel(c.blue());
+        };
+        const double a = luminance(background);
+        const double b = luminance(ink);
+        const double ratio = (std::max(a, b) + 0.05) / (std::min(a, b) + 0.05);
+        QVERIFY2(ratio >= 4.5, qPrintable(QString::number(ratio)));
+        if (const QString out = qEnvironmentVariable("QT_ACTCRAFT_CAPTURES"); !out.isEmpty()) {
+            shot.save(out + QStringLiteral("/bandeau.png"));
+        }
+        QVERIFY(QMetaObject::invokeMethod(banner, "dismiss"));
+        QTRY_VERIFY(!banner->isVisible());
+    }
+
+    void titleShowsTheModifiedMark()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QVERIFY(s.window->title().startsWith(QStringLiteral("Sans titre — ActCraft — rendu : ")));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QTRY_VERIFY(s.window->title().startsWith(QStringLiteral("*Sans titre")));
+    }
+};
+
+QTEST_MAIN(TstUiFileMenu)
+#include "tst_ui_filemenu.moc"
+```
+
+  Includes à ajouter au harnais recopié : `"support/flipchartwriter.h"`, `<QFile>`, `<QScreen>`, `<cmath>`. Ajouter à
+  `tests/ui.cmake` :
+
+```cmake
+actcraft_add_test(tst_ui_filemenu
+    SOURCES tst_ui_filemenu.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick Qt6::Gui ActCraft::ui ActCraft::formats actcraft_uiplugin)
+target_include_directories(tst_ui_filemenu PRIVATE ${PROJECT_SOURCE_DIR}/app)
+```
+
+  Dans `tests/tst_ui_shell.cpp`, la liste d'objets attendus qui contient `"menu-file"` ne change pas ; seul un test
+  qui énumérerait les entrées du menu Fichier (aucun au lot 1, à vérifier par `grep file.quit`) serait à mettre à jour.
+
+- [ ] **Étape 2 : constater le rouge.** Commande ciblée, motif `tst_ui_filemenu` → échecs (`saveChangesDialog`
+  introuvable, entrées absentes).
+
+- [ ] **Étape 3 : la disposition.** Dans `actions/data/layout.json`, le menu `file` devient :
+
+```json
+    { "id": "file", "label": "Fichier", "items": ["file.new", "file.new-screen", "file.new-1024x768", "file.new-1152x864", "file.new-1280x1024", "file.new-custom", "-", "file.open", "-", "file.save", "file.save-as", "-", "file.close", "-", "file.quit"] },
+```
+
+- [ ] **Étape 4 : les composants QML.** Créer `ui/qml/SaveChangesDialog.qml` :
+
+```qml
+import QtQuick
+import QtQuick.Controls.Basic
+import QtQuick.Layouts
+import ActCraft.Ui
+
+// « Enregistrer les modifications ? » (F-700 : Fermer, Quitter) : Enregistrer, Ne pas enregistrer, Annuler.
+Dialog {
+    id: dialog
+    objectName: "saveChangesDialog"
+    property string documentTitle: ""
+    signal saveRequested()
+    signal discardRequested()
+    title: qsTr("Enregistrer les modifications ?")
+    modal: true
+    anchors.centerIn: Overlay.overlay
+    closePolicy: Popup.CloseOnEscape
+
+    function discard() { dialog.close(); dialog.discardRequested() }
+    function cancel() { dialog.reject() }
+    function save() { dialog.close(); dialog.saveRequested() }
+
+    Label {
+        text: qsTr("Le paperboard « %1 » a été modifié. Enregistrer les modifications ?").arg(dialog.documentTitle)
+        wrapMode: Text.WordWrap
+        width: Math.min(420, implicitWidth)
+    }
+    footer: DialogButtonBox {
+        Button { objectName: "saveChangesSave"; text: qsTr("Enregistrer"); onClicked: dialog.save() }
+        Button { objectName: "saveChangesDiscard"; text: qsTr("Ne pas enregistrer"); onClicked: dialog.discard() }
+        Button { objectName: "saveChangesCancel"; text: qsTr("Annuler"); onClicked: dialog.cancel() }
+    }
+}
+```
+
+  Créer `ui/qml/PageSizeDialog.qml` :
+
+```qml
+import QtQuick
+import QtQuick.Controls.Basic
+import QtQuick.Layouts
+import ActCraft.Ui
+
+// « Taille de paperboard personnalisée » (F-700) : largeur × hauteur en pixels.
+Dialog {
+    id: dialog
+    objectName: "pageSizeDialog"
+    signal sizeAccepted(real width, real height)
+    title: qsTr("Taille de paperboard personnalisée")
+    modal: true
+    anchors.centerIn: Overlay.overlay
+    standardButtons: Dialog.Ok | Dialog.Cancel
+
+    function acceptSize(w, h) { widthBox.value = w; heightBox.value = h; dialog.accept() }
+    onAccepted: dialog.sizeAccepted(widthBox.value, heightBox.value)
+
+    GridLayout {
+        columns: 2
+        Label { text: qsTr("Largeur (pixels)") }
+        SpinBox { id: widthBox; objectName: "pageWidthBox"; from: 200; to: 8000; value: 1024; editable: true }
+        Label { text: qsTr("Hauteur (pixels)") }
+        SpinBox { id: heightBox; objectName: "pageHeightBox"; from: 200; to: 8000; value: 768; editable: true }
+    }
+}
+```
+
+  Créer `ui/qml/MessageBanner.qml` :
+
+```qml
+import QtQuick
+import QtQuick.Controls.Basic
+import QtQuick.Layouts
+import ActCraft.Ui
+
+// Avertissements de lecture et erreurs (décision 5) : affichés sans bloquer, refermables.
+Rectangle {
+    id: banner
+    objectName: "messageBanner"
+    property string message: ""
+    visible: message.length > 0
+    color: Theme.barre
+    border.color: Theme.contour
+    radius: Theme.rayon
+    implicitHeight: row.implicitHeight + 2 * Theme.espace2
+
+    function show(text) { banner.message = text }
+    function dismiss() { banner.message = "" }
+
+    RowLayout {
+        id: row
+        anchors.fill: parent
+        anchors.margins: Theme.espace2
+        Label {
+            objectName: "messageText"
+            Layout.fillWidth: true
+            text: banner.message
+            color: Theme.texte
+            wrapMode: Text.WordWrap
+            font.pixelSize: Theme.taillePolice
+        }
+        Button {
+            objectName: "messageClose"
+            text: qsTr("Fermer")
+            onClicked: banner.dismiss()
+        }
+    }
+}
+```
+
+  Créer `ui/qml/FileActions.qml` :
+
+```qml
+import QtQuick
+import QtQuick.Dialogs
+import ActCraft.Ui
+
+// Commandes de fichier (F-700, décisions 20 et 22) : avec une URL, sans dialogue ; sans URL, le dialogue de fichier
+// (natif ; content:// sous Android). Tout ce qui remplace un document modifié demande d'abord de l'enregistrer.
+Item {
+    id: actions
+    objectName: "fileActions"
+    required property DocumentController document
+    signal popupOpened()
+    signal popupClosed()
+    property var pending: null    // action à reprendre après « enregistrer ? »
+    property var afterSave: null  // action à reprendre après un enregistrement réussi
+    property bool quitting: false
+
+    function guard(action) {
+        if (!actions.document.modified) { action(); return }
+        actions.pending = action
+        saveChanges.documentTitle = actions.document.title
+        saveChanges.open()
+    }
+    function newDocument(w, h) { guard(function () { actions.document.newDocument(w, h) }) }
+    function askSize() { sizeDialog.open() }
+    function open(argument) {
+        const url = actions.document.urlFromArgument(argument)
+        if (url.toString() === "")
+            guard(function () { openDialog.currentFolder = actions.document.defaultFolderUrl(); openDialog.open() })
+        else
+            guard(function () { actions.document.openUrl(url) })
+    }
+    function save() {
+        if (actions.document.fileUrl.toString() === "") saveAs(undefined)
+        else actions.document.saveToUrl(actions.document.fileUrl)
+    }
+    function saveAs(argument) {
+        const url = actions.document.urlFromArgument(argument)
+        if (url.toString() !== "") { actions.document.saveToUrl(url); return }
+        saveDialog.currentFolder = actions.document.defaultFolderUrl()
+        saveDialog.selectedFile = actions.document.defaultFolderUrl() + "/" + actions.document.suggestedFileName
+        saveDialog.open()
+    }
+    function close() { guard(function () { actions.document.newDocument(1024, 768) }) }
+    function quit() { guard(function () { actions.quitting = true; Qt.quit() }) }
+
+    FileDialog {
+        id: openDialog
+        objectName: "openDialog"
+        title: qsTr("Ouvrir un paperboard")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [qsTr("Paperboards (*.actcraft *.flipchart)"), qsTr("Tous les fichiers (*)")]
+        onAccepted: actions.document.openUrl(selectedFile)
+    }
+    FileDialog {
+        id: saveDialog
+        objectName: "saveDialog"
+        title: qsTr("Enregistrer le paperboard sous")
+        fileMode: FileDialog.SaveFile
+        defaultSuffix: "actcraft"
+        nameFilters: [qsTr("Paperboards ActCraft (*.actcraft)")]
+        onAccepted: actions.document.saveToUrl(selectedFile)
+    }
+    SaveChangesDialog {
+        id: saveChanges
+        onOpened: actions.popupOpened()
+        onClosed: actions.popupClosed()
+        onSaveRequested: { actions.afterSave = actions.pending; actions.pending = null; actions.save() }
+        onDiscardRequested: { const a = actions.pending; actions.pending = null; if (a) a() }
+        onRejected: actions.pending = null
+    }
+    PageSizeDialog {
+        id: sizeDialog
+        onOpened: actions.popupOpened()
+        onClosed: actions.popupClosed()
+        onSizeAccepted: (w, h) => actions.newDocument(w, h)
+    }
+    Connections {
+        target: actions.document
+        function onSaveFinished(ok, message) {
+            const a = actions.afterSave
+            actions.afterSave = null
+            if (ok && a) a()
+        }
+    }
+}
+```
+
+- [ ] **Étape 5 : brancher `Main.qml`.** Le titre devient :
+
+```qml
+    title: qsTr("%1%2 — ActCraft — rendu : %3").arg(appDocument.modified ? "*" : "").arg(appDocument.title)
+               .arg(root.apiName(GraphicsInfo.api))
+```
+
+  Ajouter, après `AboutDialog` :
+
+```qml
+    FileActions {
+        id: fileActions
+        document: appDocument
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
+    }
+
+    // Fermeture de la fenêtre : même demande que « Quitter ».
+    onClosing: close => {
+        if (appDocument.modified && !fileActions.quitting) {
+            close.accepted = false
+            fileActions.quit()
+        }
+    }
+```
+
+  et, en tête de `PageArea` (à l'intérieur, en haut, au-dessus de la page), un bandeau :
+
+```qml
+        MessageBanner {
+            id: messageBanner
+            parent: pageArea
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.margins: Theme.espace2
+            z: 10
+        }
+        Connections {
+            target: appDocument
+            function onLoadFinished(ok, message) {
+                if (!ok) messageBanner.show(qsTr("Ouverture impossible : %1").arg(message))
+                else if (appDocument.warnings.length === 1)
+                    messageBanner.show(qsTr("1 avertissement de lecture : %1").arg(appDocument.warnings[0]))
+                else if (appDocument.warnings.length > 1)
+                    messageBanner.show(qsTr("%1 avertissements de lecture : %2").arg(appDocument.warnings.length)
+                                       .arg(appDocument.warnings.slice(0, 3).join(" ; ")))
+                else messageBanner.dismiss()
+            }
+            function onSaveFinished(ok, message) {
+                if (!ok) messageBanner.show(qsTr("Enregistrement impossible : %1").arg(message))
+            }
+        }
+```
+
+  Dans `Component.onCompleted`, remplacer le gestionnaire de
+  `file.quit` et ajouter :
+
+```js
+        appCommands.setHandler("file.quit", function () { fileActions.quit() })
+        appCommands.setHandler("file.new", function () { fileActions.newDocument(1024, 768) })
+        appCommands.setHandler("file.new-screen", function () { fileActions.newDocument(root.screen.width, root.screen.height) })
+        appCommands.setHandler("file.new-1024x768", function () { fileActions.newDocument(1024, 768) })
+        appCommands.setHandler("file.new-1152x864", function () { fileActions.newDocument(1152, 864) })
+        appCommands.setHandler("file.new-1280x1024", function () { fileActions.newDocument(1280, 1024) })
+        appCommands.setHandler("file.new-custom", function () { fileActions.askSize() })
+        appCommands.setHandler("file.open", function (url) { fileActions.open(url) })
+        appCommands.setHandler("file.save", function () { fileActions.save() })
+        appCommands.setHandler("file.save-as", function (url) { fileActions.saveAs(url) })
+        appCommands.setHandler("file.close", function () { fileActions.close() })
+```
+
+  Ajouter les quatre fichiers à `QML_FILES` de `ui/CMakeLists.txt`. Si MSVC lève C4702 sur l'un d'eux, l'ajouter à la
+  liste `QT_QML_SKIP_CACHEGEN` (règle commune).
+
+- [ ] **Étape 6 : vert ciblé.** Commande ciblée, motif `tst_ui_` : `100% tests passed`.
+
+- [ ] **Étape 7 : preuve, capture et banc.** `format.ps1`, preuve de tâche (N ≥ 60), puis la capture :
+  `pwsh -NoProfile -Command "Set-Location '<worktree>'; New-Item -ItemType Directory -Force .tmp/bandeau | Out-Null; . ./scripts/dev-env.ps1; `$env:QT_ACTCRAFT_CAPTURES = (Resolve-Path .tmp/bandeau).Path; ctest --preset debug -R '^tst_ui_filemenu$' *> .tmp/filemenu.txt; Select-String -Path .tmp/filemenu.txt -Pattern 'tests passed|tests failed' | Select-Object -Last 1"`
+  puis lire `.tmp/bandeau/bandeau.png` et la décrire au rapport. Banc sans écran (`content_check.ok = True`).
+
+- [ ] **Étape 8 : commit.**
+
+```powershell
+git -C <worktree> add ui/qml/Main.qml ui/qml/FileActions.qml ui/qml/SaveChangesDialog.qml ui/qml/PageSizeDialog.qml ui/qml/MessageBanner.qml ui/CMakeLists.txt actions/data/layout.json tests/ui.cmake tests/tst_ui_filemenu.cpp tests/tst_ui_shell.cpp
+git -C <worktree> commit -m "Interface : menu Fichier, dialogues, demande d'enregistrement, bandeau d'avertissements" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+```
+
+  (`tests/tst_ui_shell.cpp` n'est ajouté que s'il a changé.)
+
+
+<a id="tache-l2-t19"></a>
+### Tâche L2-T19 — Ouvrir le fichier passé au lancement (`actcraft.exe <fichier>`, `--ouvrir`)
+
+**Objectif.** S4 (« `actcraft.exe "<samples>\tri des formes.flipchart"` ouvre le document ») et association de
+fichiers de l'installateur (décision 26) : le premier argument qui n'est pas une option est un fichier à ouvrir ;
+l'option `--ouvrir <fichier>` fait de même (outils : `actcraft-captures`, qui a ses propres options). Le fichier est
+ouvert par la commande `file.open` avec son URL, une fois la fenêtre chargée (même chemin que le menu).
+
+**Fichiers.**
+- Créer : `tests/tst_app_open.cpp`
+- Modifier : `app/startup.h`, `app/startup.cpp`, `app/main.cpp`, `tests/app.cmake`
+
+**Test et commande bornée.** Rouge : commande ciblée, motif `tst_app_open` → `error`. Vert : forme bornée, N ≥ 61,
+`TESTS OK`, `tst_app_open .*Passed`.
+
+**Interdits.** Pas de `#ifdef` hors de `app/`. Les options connues (`--rendu`, `--quitter-apres`, `--sans-cache`,
+`--version`, `--ouvrir`) ne sont jamais prises pour un fichier.
+
+**Terminé quand.** Preuve verte ; commit fait.
+
+**Étapes.**
+
+- [ ] **Étape 1 : écrire les tests.** Créer `tests/tst_app_open.cpp` :
+
+```cpp
+#include "startup.h"
+
+#include <actcraft/core/document.h>
+#include <actcraft/formats/nativefile.h>
+#include <actcraft/ui/documentcontroller.h>
+
+#include <QFile>
+#include <QQmlApplicationEngine>
+#include <QQuickWindow>
+#include <QTemporaryDir>
+#include <QTest>
+#include <QtQml/qqmlextensionplugin.h>
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
+
+using namespace actcraft;
+
+// Fichier ouvert au lancement (S4, décision 26).
+class TstAppOpen : public QObject
+{
+    Q_OBJECT
+
+private slots:
+    void firstNonOptionArgumentIsTheFile()
+    {
+        QCOMPARE(openFileArgument({QStringLiteral("actcraft.exe"), QStringLiteral("C:/a/b.flipchart")}),
+                 QStringLiteral("C:/a/b.flipchart"));
+        QCOMPARE(openFileArgument({QStringLiteral("actcraft.exe"), QStringLiteral("--rendu"), QStringLiteral("d3d11"),
+                                   QStringLiteral("x.actcraft")}),
+                 QStringLiteral("x.actcraft"));
+        QCOMPARE(openFileArgument({QStringLiteral("actcraft.exe"), QStringLiteral("--quitter-apres"),
+                                   QStringLiteral("5000")}),
+                 QString());
+        QCOMPARE(openFileArgument({QStringLiteral("x"), QStringLiteral("--ouvrir"), QStringLiteral("y.actcraft")}),
+                 QStringLiteral("y.actcraft"));
+        QVERIFY(parseStartupOptions({QStringLiteral("x"), QStringLiteral("--ouvrir"), QStringLiteral("y.actcraft")})
+                    .openUrl.isLocalFile());
+    }
+
+    void startupOpensTheFile()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("trois.actcraft"));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(formats::encodeActcraft(core::Document(std::vector<core::Page>(3)), {}));
+        file.close();
+        StartupOptions options;
+        options.openUrl = QUrl::fromLocalFile(path);
+        QQmlApplicationEngine engine;
+        QQuickWindow* window = loadMainWindow(engine, options);
+        QVERIFY(window);
+        auto* doc = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(doc);
+        QTRY_COMPARE_WITH_TIMEOUT(doc->pageCount(), 3, 10000);
+        QCOMPARE(doc->title(), QStringLiteral("trois"));
+    }
+};
+
+QTEST_MAIN(TstAppOpen)
+#include "tst_app_open.moc"
+```
+
+  Ajouter à `tests/app.cmake` :
+
+```cmake
+actcraft_add_test(tst_app_open
+    SOURCES tst_app_open.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui ActCraft::formats actcraft_uiplugin)
+target_include_directories(tst_app_open PRIVATE ${PROJECT_SOURCE_DIR}/app)
+```
+
+- [ ] **Étape 2 : constater le rouge.** Commande ciblée, motif `tst_app_open` → `error`.
+
+- [ ] **Étape 3 : écrire le code.** Dans `app/startup.h` : include `<QUrl>` ; champ `QUrl openUrl;` dans
+  `StartupOptions` (« fichier à ouvrir au lancement, vide sinon ») ; déclaration
+  `QString openFileArgument(const QStringList& args);` (« `--ouvrir <f>`, sinon premier argument qui n'est ni une
+  option ni la valeur d'une option ; vide sinon »). Dans `app/startup.cpp` :
+
+```cpp
+QString openFileArgument(const QStringList& args)
+{
+    const qsizetype explicitIndex = args.indexOf(QStringLiteral("--ouvrir"));
+    if (explicitIndex >= 0 && explicitIndex + 1 < args.size()) {
+        return args.at(explicitIndex + 1);
+    }
+    static const QStringList withValue{QStringLiteral("--rendu"), QStringLiteral("--quitter-apres"),
+                                       QStringLiteral("--ouvrir")};
+    for (qsizetype i = 1; i < args.size(); ++i) {
+        const QString& a = args.at(i);
+        if (withValue.contains(a)) {
+            ++i; // sa valeur n'est pas un fichier
+            continue;
+        }
+        if (!a.startsWith(QLatin1String("--"))) {
+            return a;
+        }
+    }
+    return QString();
+}
+```
+
+  `parseStartupOptions` lit seulement `--ouvrir` (les outils ont leurs propres arguments positionnels) :
+
+```cpp
+    const qsizetype at = args.indexOf(QStringLiteral("--ouvrir"));
+    if (at >= 0 && at + 1 < args.size()) {
+        options.openUrl = actcraft::formats::urlFromArgument(args.at(at + 1));
+    }
+```
+
+  (include `<actcraft/formats/urlio.h>`), et `loadMainWindow`, après le chargement :
+
+```cpp
+    if (window && options.openUrl.isValid() && !options.openUrl.isEmpty()) {
+        QMetaObject::invokeMethod(window, "runCommand", Q_ARG(QVariant, QVariant(QStringLiteral("file.open"))),
+                                  Q_ARG(QVariant, QVariant(options.openUrl)));
+    }
+```
+
+  (`runCommand` rend une valeur : ajouter `Q_RETURN_ARG(QVariant, result)` avec un `QVariant result;` local, comme le
+  joueur de scénarios.) Dans `app/main.cpp`, après `parseStartupOptions(args)`, si `openUrl` est vide,
+  `openFileArgument(args)` non vide → `options.openUrl = actcraft::formats::urlFromArgument(<valeur>)` (l'application
+  accepte le fichier nu, « Ouvrir avec »). `app/CMakeLists.txt` lie déjà `ui`, qui lie `formats` (L2-T17) : rien à
+  ajouter ; sinon l'ajouter et le déclarer au rapport.
+
+- [ ] **Étape 4 : vert ciblé, preuve.** Commande ciblée (`tst_app_`) : `100% tests passed`. `format.ps1`, preuve
+  (N ≥ 61 ; `tst_app_open` Passed).
+
+- [ ] **Étape 5 : commit.**
+
+```powershell
+git -C <worktree> add app/startup.h app/startup.cpp app/main.cpp tests/app.cmake tests/tst_app_open.cpp
+git -C <worktree> commit -m "app : ouvrir le fichier passé au lancement (Ouvrir avec, --ouvrir)" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+```
+
