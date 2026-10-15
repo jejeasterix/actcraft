@@ -5,10 +5,13 @@
 // : aucun octet de samples/ n'est copié ici. Complété par L2-T8 (flux objet) et L2-T9 (paperboard complet).
 
 #include <QByteArray>
+#include <QPointF>
 #include <QString>
+#include <QStringList>
 #include <QtEndian>
 
 #include <cstring>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -132,5 +135,163 @@ inline QByteArray index(const Node& root)
     writeNode(b, root);
     return b.data();
 }
+
+// Entrée du registre de ressources (sous-type 3).
+struct Res
+{
+    Res(quint32 i, QString e, QString f, QString d = QStringLiteral("unknown"), quint32 r = 1)
+        : id(i), entry(std::move(e)), dataFile(std::move(f)), digest(std::move(d)), refCount(r)
+    {}
+    quint32 id;
+    QString entry;
+    QString dataFile;
+    QString digest;
+    quint32 refCount;
+};
+
+// Objet du flux (§ 4.1) : 'O' type stockage 'M' n tailles enregistrements 'p' ['R' nœud 'r'] 'o'. Les
+// propriétés sont des numéros : l'écrivain ne connaît pas leurs noms.
+class Obj
+{
+public:
+    Obj(quint16 type, quint32 storage) : m_type(type), m_storage(storage) {}
+
+    Obj& boolean(quint16 id, bool v) { return add(id, Bytes().u16(1).u8(v ? 1 : 0)); }
+    Obj& integer(quint16 id, qint32 v) { return add(id, Bytes().u16(2).i32(v)); }
+    Obj& uinteger(quint16 id, quint32 v) { return add(id, Bytes().u16(3).u32(v)); }
+    Obj& real(quint16 id, double v) { return add(id, Bytes().u16(6).f64(v)); }
+    Obj& string(quint16 id, const QString& v) { return add(id, Bytes().u16(10).str16(v)); }
+    Obj& stringList(quint16 id, const QStringList& v)
+    {
+        Bytes b;
+        b.u16(11).u16(1).i32(static_cast<qint32>(v.size()));
+        for (const QString& s : v) {
+            b.qstr(s);
+        }
+        return add(id, b);
+    }
+    Obj& bytes(quint16 id, const QByteArray& v)
+    {
+        return add(id, Bytes().u16(12).u32(static_cast<quint32>(v.size())).raw(v));
+    }
+    Obj& rectF(quint16 id, double x, double y, double w, double h)
+    {
+        return add(id, Bytes().u16(20).f64(x).f64(y).f64(w).f64(h));
+    }
+    Obj& size(quint16 id, qint32 w, qint32 h) { return add(id, Bytes().u16(21).i32(w).i32(h)); }
+    Obj& sizeF(quint16 id, double w, double h) { return add(id, Bytes().u16(22).f64(w).f64(h)); }
+    Obj& pointF(quint16 id, double x, double y) { return add(id, Bytes().u16(26).f64(x).f64(y)); }
+    Obj& color(quint16 id, quint8 r, quint8 g, quint8 b, quint8 a = 255)
+    {
+        return add(id, Bytes().u16(67).u8(r).u8(g).u8(b).u8(a));
+    }
+    Obj& points(quint16 id, const std::vector<QPointF>& v)
+    {
+        Bytes b;
+        b.u16(127).u16(1).i32(static_cast<qint32>(v.size()));
+        appendPoints(b, v);
+        return add(id, b);
+    }
+    Obj& polygons(quint16 id, const std::vector<std::vector<QPointF>>& v)
+    {
+        Bytes b;
+        b.u16(127).u16(2).i32(static_cast<qint32>(v.size()));
+        for (const auto& poly : v) {
+            b.i32(static_cast<qint32>(poly.size()));
+            appendPoints(b, poly);
+        }
+        return add(id, b);
+    }
+    Obj& resources(quint16 id, const std::vector<Res>& v)
+    {
+        Bytes b;
+        b.u16(127).u16(3).i32(static_cast<qint32>(v.size()));
+        for (const Res& r : v) {
+            b.u32(r.id).str16(r.entry).str16(r.dataFile).str16(r.digest).u32(r.refCount);
+        }
+        return add(id, b);
+    }
+    // Objet embarqué (sous-types 4, 6, 7, 8, 12, 14, 18).
+    Obj& object(quint16 id, quint16 subtype, const Obj& inner)
+    {
+        return add(id, Bytes().u16(127).u16(subtype).raw(inner.body()));
+    }
+    Obj& userRect(quint16 id, double x, double y, double w, double h)
+    {
+        return add(id, Bytes().u16(127).u16(5).f64(x).f64(y).f64(w).f64(h));
+    }
+    Obj& pointer(quint16 id, quint32 node, quint32 storage, quint16 type)
+    {
+        return add(id, Bytes().u16(127).u16(9).u32(node).u32(storage).u16(type));
+    }
+    Obj& runs(quint16 id, const std::vector<Obj>& v)
+    {
+        Bytes b;
+        b.u16(127).u16(10).i32(static_cast<qint32>(v.size()));
+        for (const Obj& o : v) {
+            b.raw(o.body());
+        }
+        return add(id, b);
+    }
+    // Variante quelconque (type et octets donnés) : types inconnus, valeurs illisibles.
+    Obj& raw(quint16 id, const QByteArray& variant) { return add(id, Bytes().raw(variant)); }
+    Obj& owner(quint32 node)
+    {
+        m_owner = node;
+        return *this;
+    }
+
+    // L'objet sans en-tête de flux (objet embarqué).
+    QByteArray body() const
+    {
+        std::vector<QByteArray> records;
+        for (std::size_t i = 0; i < m_props.size(); ++i) {
+            Bytes r;
+            r.tag(i == 0 ? 'm' : 'p').tag('P').u16(m_props[i].first).raw(m_props[i].second);
+            records.push_back(r.data());
+        }
+        Bytes b;
+        b.tag('O').u16(m_type).u32(m_storage).tag('M').u32(static_cast<quint32>(records.size()));
+        for (const QByteArray& r : records) {
+            b.u32(static_cast<quint32>(r.size()));
+        }
+        for (const QByteArray& r : records) {
+            b.raw(r);
+        }
+        b.tag('p');
+        if (m_owner) {
+            b.tag('R').u32(*m_owner).tag('r');
+        }
+        b.tag('o');
+        return b.data();
+    }
+    // Fichier .io / .ir : en-tête de flux " Bamboo " u16 1 u16 7, puis l'objet.
+    QByteArray stream() const
+    {
+        Bytes b;
+        b.raw(QByteArray(" Bamboo ", 8)).u16(1).u16(7).raw(body());
+        return b.data();
+    }
+
+private:
+    static void appendPoints(Bytes& b, const std::vector<QPointF>& v)
+    {
+        Bytes doubles;
+        for (const QPointF& p : v) {
+            doubles.f64(p.x()).f64(p.y());
+        }
+        b.u32(static_cast<quint32>(doubles.data().size())).raw(doubles.data());
+    }
+    Obj& add(quint16 id, const Bytes& variant)
+    {
+        m_props.emplace_back(id, variant.data());
+        return *this;
+    }
+
+    quint16 m_type;
+    quint32 m_storage;
+    std::optional<quint32> m_owner;
+    std::vector<std::pair<quint16, QByteArray>> m_props;
+};
 
 } // namespace fctest
