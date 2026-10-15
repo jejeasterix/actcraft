@@ -1,10 +1,10 @@
 # État — livraison-complete
 
-Statut : en cours — repris le 2026-10-15 (nouvelle session) ; règles communes recréées dans le scratchpad de la session (`regles-tache-livraison.md`)
+Statut : en cours — repris le 2026-10-15 (nouvelle session, 2e reprise : L2-T2 mergée ; L2-T5 ‖ L2-T9 en cours) ; règles communes recréées dans le scratchpad de la session (`regles-tache-livraison.md`)
 Gabarit : lots (provisoire, à confirmer à l'étage 2)
 Étage : 3 (lot 2a en exécution : L2-T1, T3, T4, T7, T8 mergées, branche intégrée 608de10 → 47/47 TESTS OK ; prochaine vague : L2-T2 (pile d'annulation, dépend de T1) ‖ L2-T5 (`document.json`, dépend de T1, T4) ; puis L2-T6 ‖ L2-T9, puis L2-T10, puis point d'étape 2a et lot 2b). Historique du plan : (plan du lot 2 écrit, 6f1521b : sous-lots 2a `docs/plans/2026-10-15-livraison-complete-lot2a-PLAN.md` L2-T1…T10 et 2b `…-lot2b-PLAN.md` L2-T11…T23, 23 tâches, S4 et S5 ; tables contrôlées 10/10 et 13/13 ; relecture du plan tour 1/3 : 2a 0 bloquant, 4 imp. (bombe zlib, `readUrl` réserve 1 Gio, clang-format sur `miniz.h` en CI, parité `document.json`) + 6 min. ; 2b 0 bloquant, 7 imp. (dialogues introuvables par `item()`, ordre refus/succès, deux rendus du cache par trait, RHI sans mesure, S5 hors fil principal non prouvé, pages connues de S4, `afterSave`) + 4 min. → corrigés en 804d8c0 ; tour 2/3 : 2a 0 bloquant, 2 imp. (preuve de la bombe zlib qui ne discrimine pas ; `atEnd` sur `content://` de taille inconnue) + 2 min. ; 2b 0 bloquant, 5 imp. (test `oneCacheRenderPerStroke` impossible, `covers` et variante absente, compte du scénario `page`, reconstruction RHI non vérifiée, module Android qui casserait la CI, `--connues`) + 2 min. → corrigés en 8234719 ; tour 3/3 : 0 bloquant, 1 imp. (`peakmemory.h` et clang-format) + 2 min. (budget cumulé, module Android autonome) → retouches demandées au planificateur, sans nouveau tour ; exécution du lot 2a lancée (V1)) — lot 1 clos et mergé (PR #3, 3de027a). Ordre des lots modifié par Jérôme : lot 2 (lecteur `.flipchart`, format natif), puis lot « cache incrémental » (ex-lot 10), puis les autres dans l'ordre du cadrage.
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete   Branche : feat/livraison-complete   Base : origin/main @ 175b336
-Branche principale locale au lancement : 175b336   (vérifiée à chaque rapport de tâche)
+Branche principale locale au lancement : 175b336 ; depuis la PR #3 : 3de027a   (vérifiée à chaque rapport de tâche)
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md (663644e ; 38 questions, 16 N1, 12 DA, S1–S14, 11 lots ≈ 134 tâches dont lot 9 vidéos et lot 10 cache ; 175 exigences incluses, 25 exclues)   Plans : un par lot — lot 1 : docs/plans/2026-10-14-livraison-complete-lot1-PLAN.md (7e4c743 ; 20 tâches L1-T1…T20, 12 vagues)
 Mode du cadrage : autonome (consigne de Jérôme, 2026-10-14 : « travailler en autonomie jusqu'à livraison complète »)
 
@@ -60,14 +60,14 @@ Lot 2a (plan `docs/plans/2026-10-15-livraison-complete-lot2a-PLAN.md` @ 8234719 
 | id | dépend | zone | agent | worktree | état | essais | dernier commit vert | preuve rejouée |
 |----|--------|------|-------|----------|------|--------|---------------------|----------------|
 | L2-T1 | — | core : modèle complet, empreintes | crit | (mergé) | terminée | 1/3 | 29efad0 → merge 608de10 | 45/45 TESTS OK (tst_core_model, generator, document Passed) ; aucun test retiré (2 renommés/renforcés) ; empreintes recalculées (DA2 : Page{} 0xB59B2DE2A9B3C823, samplePage 0x29E4AA55B1A00D2E, generatePage 0x3551EB2438FDFDC1). Revue : 0 bloquant, 1 imp. (hachage exhaustif par `std::visit` + `static_assert` : un type sans hachage ne compile pas, prouvé) + 4 min. corrigés. **Contrat pour L2-T2** : `AddObjectCommand` traite le 0 que rend `allocateId()` quand l'espace d'identifiants est épuisé. À faire en 2b : moteurs pour les nouveaux types, forme `Path`, fond de page, identifiants des traits (`fixedpageitem.cpp:53,94,105`) |
-| L2-T2 | T1 | core : pile d'annulation | impl | — | à faire | 0/3 | — | — |
+| L2-T2 | T1 | core : pile d'annulation | impl | (mergé) | terminée | 1/3 | 2a359ec → merge b665aea | rejoué par l'orchestrateur : 49/49 TESTS OK, tst_core_undo et tst_core_edits Passed ; diff : 8 fichiers de la table, aucun test retiré ni QSKIP. Rouge : source absente (CMake) puis mutation de la garde d'identifiant épuisé → tst_core_edits rouge. Contrat L2-T1 tenu : `AddObjectCommand` sur id 0 n'insère rien (`addObjectInsertsNothingWhenIdsAreExhausted`) |
 | L2-T3 | — | actions : argument facultatif, commandes de fichier | impl | (mergé) | terminée | 1/3 | 0561710 → merge fa0d966 | 46/46 TESTS OK (tst_actions_registry, tst_ui_shell Passed) ; rouge vu (`argumentOptional` inconnu) ; 10 commandes `file.*` (« Nouveau ▸ » à plat, `file.close` Ctrl+W) ; un seul test du lot 1 étendu (`defaultCommandsFileDeclaresLotOne`, prévu par le plan) |
 | L2-T4 | — | miniz vendu, formats sans QtGui | impl | (mergé) | terminée | 1/3 | eab0732 → merge b0b50b5 | 45/45 TESTS OK, tst_third_party_miniz Passed ; commande format de la CI (`git ls-files '*.cpp' '*.h' '*.hpp'` + clang-format 23.1.3 `--dry-run --Werror`) code 0 ; rouges vus (agent) : cible miniz absente, lien Qt6::Gui interdit. miniz 3.0.2 officiel, SHA-256 `ADA38DB0…32C5`, notice MIT dans THIRD_PARTY_NOTICES.md (`verifier-licences.ps1` ne contrôle que les paquets) |
-| L2-T5 | T1,T4 | formats : document.json | crit | — | à faire | 0/3 | — | — |
+| L2-T5 | T1,T4 | formats : document.json | crit | .worktrees/livraison-complete--L2-T5 (feat/livraison-complete--L2-T5) | en cours | 1/3 | — | — |
 | L2-T6 | T5 | formats : archive .actcraft, E/S par URL | crit | — | à faire | 0/3 | — | — |
 | L2-T7 | T4 | formats : Bamboo, index culm, écrivain synthétique | impl | (mergé) | terminée | 1/3 | c0d8dde → merge af04cd9 | 46/46 TESTS OK, tst_formats_bamboo Passed ; `git grep qUncompress -- formats/src` vide ; bombe zlib rouge par mutation (agent : hausse du pic 511 Mio > 32 Mio). Écart connu : index non fermé refusé (Python l'accepte) → oracle L2-T10. À éclaircir : sous mutation, la suite complète échoue sans ligne FAIL visible |
 | L2-T8 | T7 | formats : flux objet | impl | (mergé) | terminée | 1/3 | a783e20 → merge 08c7c26 | 47/47 TESTS OK, tst_formats_objectstream Passed ; 12 cas malformés testés (compteurs hors borne, table de 10 001 propriétés, troncature à chaque octet, profondeur 40, NaN/1e30…) ; mutation `kMaxDepth` 32 → 100 rouge. À la relecture de fin de lot : les bornes de compteurs sont redondantes avec l'arrêt sur troncature (leur retrait n'est pas détecté) |
-| L2-T9 | T1,T8 | formats : lecteur .flipchart | crit | — | à faire | 0/3 | — | — |
+| L2-T9 | T1,T8 | formats : lecteur .flipchart | crit | .worktrees/livraison-complete--L2-T9 (feat/livraison-complete--L2-T9) | en cours | 1/3 | — | — |
 | L2-T10 | T9 | oracle : export canonique, dump, script Python | crit | — | à faire | 0/3 | — | — |
 
 ## Terminé quand
@@ -127,6 +127,7 @@ Défauts du code : 0 bloquant. Suite donnée :
 - Décision 23 (`impeccable`) → tâche corrective L1-C5 (après L1-C3 : Theme/QML).
 
 ## Hors périmètre
+- (L2-T2) `UndoStack::push` enregistre une étape pour une commande sans effet (identifiants épuisés) : `undo` ne fait alors rien de visible → à trancher par l'appelant en 2b (ne pas pousser une commande dont `redo` n'a rien changé).
 - (L1-T8) `canStartStroke` ne vérifie que la zone de la vue : une palette flottante au-dessus de la page laisserait le stylet tracer dessous → lot 3.
 - (L1-T8) Rejet de la paume au-delà du refus du toucher pendant un trait de stylet (corrigé par la revue de L1-T8) → lot 3 (gestes).
 - (L1-T8) `scrollChanged` non émis quand la taille du contenu change seule.
