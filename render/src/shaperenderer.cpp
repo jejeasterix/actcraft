@@ -21,6 +21,8 @@ std::vector<core::PointF> outlineOf(const core::Shape& shape)
         return ellipsePolygon(shape.bounds, 48);
     case core::ShapeKind::Polygon:
         return shape.polygon;
+    case core::ShapeKind::Path: // formes à chemins : dessinées au lot 2b
+        break;
     }
     return {};
 }

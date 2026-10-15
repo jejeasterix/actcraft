@@ -282,6 +282,11 @@ Page generatePage(std::uint32_t seed)
         }
     }
     appendWitnesses(page);
+    // Identifiants stables (DA2) : 1 à 300 dans l'ordre de dessin ; tous sur la couche intermédiaire
+    // (défaut).
+    for (std::size_t i = 0; i < page.objects.size(); ++i) {
+        page.objects[i].common.id = static_cast<ObjectId>(i + 1);
+    }
     return page;
 }
 

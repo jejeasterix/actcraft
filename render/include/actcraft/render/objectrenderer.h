@@ -46,7 +46,7 @@ public:
     static RendererRegistry withDefaults();
 
 private:
-    std::array<std::unique_ptr<ObjectRenderer>, 3> m_renderers;
+    std::array<std::unique_ptr<ObjectRenderer>, core::kObjectKindCount> m_renderers;
 };
 
 } // namespace actcraft::render
