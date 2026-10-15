@@ -46,15 +46,15 @@ contrôle des pixels, lit des propriétés (lignes `LU …`, à lire avant les i
 d'interface ; à l'écran en D3D11 en fin de lot, sous le jeton `ecran`.
 
 - Forme bornée :
-  `New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario premiers-pas -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire "pageIndicator.text=1 / 2" > .tmp/captures.txt 2>&1 ; Select-String -Path .tmp/captures.txt -Pattern '^(LU|PIXEL|CAPTURE) |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16`
-- Motifs d'échec : `CAPTURES EN ECHEC`, toute ligne `LU … ECART`, `PIXEL … ECART`, `CAPTURE … ECHEC` ou
-  `SCENARIO INVALIDE`. Le scénario s'arrête à la première étape en écart : elle reste dans les 16 dernières lignes.
+  `New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario premiers-pas -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire "pageIndicator.text=1 / 2" > .tmp/captures.txt 2>&1 ; Select-String -Path .tmp/captures.txt -Pattern '^(COMMANDE|TRAIT|TOUCHE|ATTENTE|PRET|FENETRE|LU|PIXEL|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16`
+- Motifs d'échec : `CAPTURES EN ECHEC`, `SCENARIO EN ECHEC`, `SCENARIO INVALIDE`, toute ligne d'étape en `ECART`
+  (`LU`, `PIXEL`) ou en `ECHEC` (`COMMANDE`, `TRAIT`, `TOUCHE`, `PRET`, `CAPTURE`), `FENETRE …`. Le scénario
+  s'arrête à la première étape en écart : elle reste dans les 16 dernières lignes, suivie des lectures `-Lire` et
+  des verdicts.
 - À l'écran (fin de lot, jeton `ecran`) : même commande avec `-Rendu d3d11` et sans `-HorsEcran`.
 - Le scénario `premiers-pas` est aussi un test ctest (`tst_captures_premiers_pas`, hors écran).
 
-Tant que la commande n'existe pas : lancer `build/debug/actcraft.exe --rendu d3d11` puis `--rendu logiciel` ; les
-captures et ce qu'il faut regarder vont à la porte de fin. Les fenêtres doivent s'ouvrir sur l'écran principal
-(1920 × 1080, 4 moniteurs).
+Les fenêtres doivent s'ouvrir sur l'écran principal (1920 × 1080, 4 moniteurs).
 
 ## Banc de fluidité
 
@@ -108,7 +108,15 @@ Locaux, jamais publiés hors du go de la release (décisions 26 à 33 du cadrage
   construction (`scripts/verifier-secrets-release.ps1`, `SECRETS ABSENTS`). Essai sans tag : `workflow_dispatch`
   `mode=essai` (workflow sur `main`) ou push d'une branche `essai-ci/release-<sujet>` (APK signé par une clé de
   débogage, annoncé `APK NON PUBLIABLE` ; aucune release, aucun téléversement), puis suppression de la branche.
+  Une release déjà présente pour le tag (brouillon compris) arrête le workflow (`RELEASE EXISTE DEJA`).
   Publication du brouillon : `gh release edit v<version> --draft=false`, sous le même go.
+- **Au go, avant de pousser le tag** (Jérôme ou l'orchestrateur, une seule fois) : créer l'environnement GitHub
+  `release` (Settings → Environments), règle de déploiement limitée aux tags `v*` (« Selected branches and tags »,
+  motif de tag `v*`), et y placer les quatre secrets `ACTCRAFT_KEYSTORE_BASE64`, `ACTCRAFT_KEYSTORE_PASSWORD`,
+  `ACTCRAFT_KEY_ALIAS`, `ACTCRAFT_KEY_PASSWORD` comme secrets d'environnement, jamais comme secrets de dépôt
+  (`gh secret set <nom> --env release`). `release.yml` référence cet environnement en mode réel seulement (jobs
+  `secrets`, `android`, `release`) : sans lui, le premier tag le créerait sans protection. Le mode essai n'y touche
+  pas (nom d'environnement vide).
 
 ## Sources du cadrage (après le coffre)
 

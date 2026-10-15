@@ -25,7 +25,10 @@ on:
         options: [essai, reel]
         default: essai
 
-# Un seul run à la fois par référence : jamais deux brouillons pour un même tag ; un run en cours n'est pas annulé.
+# Un seul run à la fois par référence (un run en cours n'est pas annulé). Une release déjà présente pour le tag,
+# brouillon compris, arrête le job « release » (RELEASE EXISTE DEJA) : jamais de second brouillon.
+# Environnement GitHub « release » (tags v* seulement, secrets de signature) : référencé en mode réel seulement ; en
+# mode essai le nom est vide, aucun environnement n'est créé ni lu. Création au go : .claude/chantier.md.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -74,6 +77,7 @@ jobs:
   secrets:
     needs: mode
     if: needs.mode.outputs.mode == 'reel'
+    environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -221,6 +225,8 @@ jobs:
   android:
     needs: [mode, secrets]
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
+    # Mode réel seulement (secrets de signature) ; vide en mode essai : aucun environnement.
+    environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -262,9 +268,12 @@ jobs:
           "$sdkmanager" "ndk;$ANDROID_NDK_VERSION" "build-tools;$ANDROID_BUILD_TOOLS" "platforms;android-$ANDROID_PLATFORM"
           echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
 
-      # Secrets lus en mode réel seulement (vides en mode essai). Mots de passe transmis à paquet-android.ps1 par ses
-      # variables (ACTCRAFT_KEYSTORE_PASS, ACTCRAFT_KEY_PASS), jamais sur une ligne de commande. Le signataire écrit
-      # par paquet-android.ps1 est contrôlé : clé de débogage refusée en mode réel, exigée (et annoncée) en essai.
+      # Secrets lus en mode réel seulement (vides en mode essai). Clé et alias lus puis retirés de l'environnement de
+      # l'étape avant tout lancement ; mots de passe transmis à paquet-android.ps1 par ses variables
+      # (ACTCRAFT_KEYSTORE_PASS, ACTCRAFT_KEY_PASS), jamais sur une ligne de commande : le script les retire de son
+      # environnement avant la construction (ni CMake ni Gradle ne les héritent) et ne les passe qu'à apksigner. Le
+      # signataire écrit par paquet-android.ps1 est contrôlé : clé de débogage refusée en mode réel, exigée (et
+      # annoncée) en essai.
       - name: Construire l'APK arm64-v8a
         shell: pwsh
         env:
@@ -276,17 +285,22 @@ jobs:
           ACTCRAFT_KEY_PASS: ${{ needs.mode.outputs.mode == 'reel' && secrets.ACTCRAFT_KEY_PASSWORD || '' }}
         run: |
           $journal = Join-Path $env:RUNNER_TEMP 'apk.txt'
+          $base64 = $env:ACTCRAFT_KEYSTORE_BASE64
+          $alias = $env:ACTCRAFT_KEY_ALIAS
+          Remove-Item -ErrorAction SilentlyContinue Env:ACTCRAFT_KEYSTORE_BASE64, Env:ACTCRAFT_KEY_ALIAS
           if ($env:MODE -eq 'reel') {
             $ks = Join-Path $env:RUNNER_TEMP 'release.keystore'
             try {
-              [IO.File]::WriteAllBytes($ks, [Convert]::FromBase64String($env:ACTCRAFT_KEYSTORE_BASE64))
-              pwsh -NoProfile -File ./scripts/paquet-android.ps1 -Abi arm64-v8a -Keystore $ks -KeyAlias $env:ACTCRAFT_KEY_ALIAS |
+              [IO.File]::WriteAllBytes($ks, [Convert]::FromBase64String($base64))
+              $base64 = $null
+              pwsh -NoProfile -File ./scripts/paquet-android.ps1 -Abi arm64-v8a -Keystore $ks -KeyAlias $alias |
                 Tee-Object -FilePath $journal
               $code = $LASTEXITCODE
             } finally {
               Remove-Item -Force -ErrorAction SilentlyContinue $ks
             }
           } else {
+            Remove-Item -ErrorAction SilentlyContinue Env:ACTCRAFT_KEYSTORE_PASS, Env:ACTCRAFT_KEY_PASS
             pwsh -NoProfile -File ./scripts/paquet-android.ps1 -Abi arm64-v8a | Tee-Object -FilePath $journal
             $code = $LASTEXITCODE
           }
@@ -316,6 +330,7 @@ jobs:
   release:
     needs: [mode, secrets, windows, android]
     if: needs.mode.outputs.mode == 'reel'
+    environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -343,7 +358,23 @@ jobs:
           pwsh -NoProfile -File ./scripts/notes-version.ps1 -Version $env:VERSION -Sortie notes.md | Tee-Object -FilePath "$env:RUNNER_TEMP/notes.txt"
           if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/notes.txt" -Tail 1) -cne 'NOTES OK : notes.md') { exit 1 }
 
+      # Lecture seule : toutes les releases du dépôt, brouillons compris (le jeton du job les voit). Un échec de la
+      # lecture arrête le job (bash -eo pipefail), il ne vaut jamais « absente ».
+      - name: Aucune release pour ce tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.mode.outputs.version }}
+        run: |
+          tags=$(gh api --paginate "repos/${{ github.repository }}/releases?per_page=100" --jq '.[].tag_name')
+          if grep -qxF "v$VERSION" <<<"$tags"; then
+            echo "RELEASE EXISTE DEJA : v$VERSION (brouillon ou publiée) ; aucun second brouillon créé."
+            exit 1
+          fi
+          echo "Aucune release pour v$VERSION."
+
       - name: Brouillon de release (jamais publié ici)
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.mode.outputs.version }}
@@ -362,11 +393,21 @@ jobs:
     permissions:
       actions: write
     steps:
+      # bash explicite = « bash -eo pipefail » : un échec de la liste ou d'une suppression fait échouer l'étape. Fin
+      # vérifiée : la liste relue doit être vide.
       - name: Supprimer les artefacts du run
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LISTE: repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?per_page=100
         run: |
-          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --jq '.artifacts[].id' |
-            while read -r artefact; do
-              gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artefact"
-            done
+          ids=$(gh api --paginate "$LISTE" --jq '.artifacts[].id')
+          for artefact in $ids; do
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artefact"
+          done
+          restants=$(gh api --paginate "$LISTE" --jq '.artifacts[].id')
+          if [ -n "$restants" ]; then
+            echo "ARTEFACTS RESTANTS : $restants"
+            exit 1
+          fi
+          echo "Artefacts du run supprimés ($(wc -w <<<"$ids") supprimé(s), 0 restant)."

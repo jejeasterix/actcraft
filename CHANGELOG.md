@@ -12,6 +12,6 @@ Premier socle utilisable : une interface, le stylo en couleurs, plusieurs pages,
   écran (F5) dans la ligne supérieure ; palette d'outils à droite ; pas de barre d'état.
 - Stylo : 16 couleurs, 4 épaisseurs et une réglette, indicateur de largeur ; tracé au stylet, à la souris ou d'un
   doigt.
-- Pages : « Page suivante » ajoute une page vierge après la dernière ; « Page précédente ».
+- Pages : « Page suivante » avance d'une page, et depuis la dernière ajoute une page vierge ; « Page précédente ».
 - « À propos » : version, licence MIT, notices des composants tiers ; `actcraft --version`.
 - Installateur Windows sans droits d'administrateur ; APK Android (arm64-v8a).

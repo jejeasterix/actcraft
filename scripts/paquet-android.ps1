@@ -3,7 +3,8 @@
 # Usage : pwsh -NoProfile -File ./scripts/paquet-android.ps1 [-Abi arm64-v8a|x86_64|tous]
 #         [-Keystore <fichier> -KeyAlias <alias>]
 # Mots de passe d'une clé de release : variables ACTCRAFT_KEYSTORE_PASS et ACTCRAFT_KEY_PASS (ou -KeystorePass,
-# -KeyPass) ; transmis à apksigner par « env: », jamais sur sa ligne de commande.
+# -KeyPass) ; transmis à apksigner par « env: », jamais sur sa ligne de commande. Lues au démarrage puis retirées de
+# l'environnement du processus : ni CMake ni Gradle (qui télécharge et exécute sa distribution) ne les héritent.
 # Produit build/paquet/ActCraft-<version>-<abi>.apk ; local, jamais publié.
 # Dernière ligne : « APK OK » (0) ou « APK EN ECHEC : <raison> » (1).
 param(
@@ -15,6 +16,13 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
+
+# Secrets de signature déjà lus par les paramètres : retirés de l'environnement avant toute construction (noms de ce
+# script et noms des secrets de release.yml). Seul apksigner reçoit les mots de passe, le temps de la signature.
+foreach ($nom in 'ACTCRAFT_KEYSTORE_PASS', 'ACTCRAFT_KEY_PASS', 'ACTCRAFT_KEYSTORE_PASSWORD', 'ACTCRAFT_KEY_PASSWORD',
+    'ACTCRAFT_KEYSTORE_BASE64', 'ACTCRAFT_KEY_ALIAS') {
+    Remove-Item -ErrorAction SilentlyContinue "Env:$nom"
+}
 
 try {
     . "$PSScriptRoot/version-projet.ps1"
