@@ -29,6 +29,8 @@ New-Item -ItemType Directory -Force $resultats | Out-Null
 
 if ($HorsEcran) {
     $env:QT_QPA_PLATFORM = 'offscreen'
+    # Hors écran, Qt n'a aucune police sous Windows : sans ceci, tous les textes sont des carrés vides.
+    if (-not $env:QT_QPA_FONTDIR) { $env:QT_QPA_FONTDIR = Join-Path $env:WINDIR 'Fonts' }
 } elseif ($Taille -eq 'plein-ecran') {
     Write-Output 'La fenêtre du banc couvre l''écran principal pendant 30 à 60 s par rendu.'
 }

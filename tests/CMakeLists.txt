@@ -6,8 +6,13 @@ function(actcraft_add_test name)
     actcraft_set_warnings(${name})
     add_test(NAME ${name} COMMAND ${name})
     # Sans écran : fenêtres hors écran, rendu logiciel (le secours doit toujours marcher).
-    set_tests_properties(${name} PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    set(env_test "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    if(WIN32)
+        # La plateforme hors écran de Qt n'a pas de polices sous Windows (elle cherche <Qt>/lib/fonts) : tous les
+        # textes deviennent des carrés vides. On lui montre le dossier des polices du système (L1-C2).
+        list(APPEND env_test "QT_QPA_FONTDIR=$ENV{WINDIR}/Fonts")
+    endif()
+    set_tests_properties(${name} PROPERTIES ENVIRONMENT "${env_test}")
 endfunction()
 
 actcraft_add_test(tst_modules
