@@ -43,8 +43,8 @@ Lot 1 (plan 7e4c743) — fichiers touchés exacts et preuves : table du plan.
 | L1-T11 | T10 | version, À propos, licences | impl | (mergé) | terminée | 2/3 | f5371ea → merge e8e38b7 | 40/40 TESTS OK, 4 tests nommés + tst_licences_sans_fixture Passed ; banc 1280x800 content OK (la « régression » venait d'un `-Taille` oublié) |
 | L1-T12 | T8,T11 | coquille QML | impl | (mergé) | terminée | 2/3 | b1318f9 → merge 96e99c3 | après intégration du chantier (b44a0ce) : 42/42 TESTS OK, tst_ui_shell, tst_ui, tst_ui_drawing, tst_bench_uiscenario Passed ; aucun test retiré ni QSKIP ; lancement debug hors écran `--quitter-apres 3000` → code 0 en 4,6 s ; banc (agent) BUDGET DEPASSE, content_check.ok = true. Cause du blocage : boucle `while (count > 0) removeItem(itemAt(0))` (Main.qml, CommandMenu.qml) → `Instantiator` (écart au plan). Release non jouée : à la clôture du lot |
 | L1-T13 | T9 | actcraft-captures | crit | (mergé) | terminée | 1/3 | 59f789d → merge e7d4a3a | 41/41 TESTS OK, tst_bench_uiscenario Passed ; revue : touche acceptée réellement, module benchui (QtTest hors du banc), captures uniformes refusées |
-| L1-T14 | T12 | banc adapté | crit | — | à faire | 0/3 | — | — |
-| L1-T15 | T12,T13 | scénario premiers-pas | impl | --L1-T15 | en cours | 1/3 | — | — |
+| L1-T14 | T12 | banc adapté | crit | --L1-T14 | en cours | 1/3 | — | — |
+| L1-T15 | T12,T13 | scénario premiers-pas | impl | (mergé) | terminée | 1/3 | 344e12f → merge 0420a9e | 43/43 TESTS OK, tst_captures_premiers_pas Passed ; `captures.ps1 -Scenario premiers-pas -Rendu logiciel -HorsEcran` → 3 PIXEL OK, `LU pageIndicator.text=1 / 2 OK`, `CAPTURES OK` (code 0) ; rouge vu (test : SCENARIO INVALIDE ; script : `-Lire 9 / 9` → CAPTURES EN ECHEC) |
 | L1-T16 | T2,T11 | installateur Inno Setup | impl | (mergé) | terminée | 2/3 | 6bdf6a4 → merge fd9ffee | `LICENCES OK`, `PAQUET OK : …\build\paquet\ActCraft-0.1.0-setup.exe`, `--version : ActCraft 0.1.0`, `INSTALLATEUR OK` (code 0) ; rouge vu (DLL fictive) ; essai en échec nettoie tout (5 Test-Path False, 6bdf6a4) ; aucun C++ ni test touché |
 | L1-T17 | T2,T11,T16 | chaîne Android | crit | --L1-T17 | en cours | 1/3 | — | — |
 | L1-T18 | T12,T17 | essai APK émulateur | impl | — | à faire | 0/3 | — | — |
@@ -58,7 +58,8 @@ logiciel) · installateur Windows `.exe` et `.apk` Android produits par la CI et
 CI verte · releases publiées seulement sur go écrit de Jérôme (action finale)
 
 ## Scénarios et captures
-—
+- S2 hors écran (L1-T15, rendu logiciel, 1280×800, `.tmp/captures-orch/` du worktree L1-T15, supprimé) : `02-trait` — barre du haut, palette à droite (16 pastilles, 4 épaisseurs, curseur, stylo actif), page blanche sur fond bleu, trait rouge horizontal ; pastille rouge entourée, épaisseur max choisie.
+- **À traiter à la relecture du lot (constats de l'orchestrateur sur la capture)** : (a) tous les textes en carrés vides (« tofu ») hors écran — police absente de la plateforme `offscreen` (supposé, à vérifier à l'écran D3D11 ; si la CI capture hors écran, il faudra une police embarquée) ; (b) curseur d'épaisseur `widthSlider` tout à gauche alors que l'épaisseur max (`widthPreset-3`) est choisie — liaison suspecte dans `ui/qml/WidthPicker.qml` (L1-T12) ; (c) `05-plein-ecran` 800×800 hors écran (taille de l'écran virtuel).
 
 ## Hypothèses à revoir (niveau 1 d'abord)
 —
