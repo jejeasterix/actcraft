@@ -4558,7 +4558,9 @@ déraisonnable.
 #include "support/richdocument.h"
 
 #include <actcraft/formats/nativefile.h>
+#include <actcraft/formats/nativejson.h>
 
+#include <QJsonDocument>
 #include <QTest>
 
 using namespace actcraft;
@@ -4626,12 +4628,17 @@ private slots:
 
     void totalDecompressionBudgetIsEnforced()
     {
+        // Budget = document.json + 1 octet : chaque entrée tient seule sous le budget, seul le CUMUL le dépasse dès la
+        // première ressource (sans `m_total += …`, les deux ressources seraient lues et le test passerait au rouge).
         const core::Document rich = richdoc::richDocument();
         const QByteArray archive = formats::encodeActcraft(rich, {});
         QVERIFY(formats::decodeActcraft(archive).ok);
-        const formats::DecodeResult r = formats::decodeActcraft(archive, 100); // budget plus petit que document.json
-        QVERIFY(!r.ok);
-        QVERIFY2(r.error.contains(u"volumineux"_s), qPrintable(r.error));
+        const qint64 json = QJsonDocument(formats::documentToJson(rich)).toJson(QJsonDocument::Indented).size();
+        const formats::DecodeResult r = formats::decodeActcraft(archive, json + 1);
+        QVERIFY2(r.ok, qPrintable(r.error)); // document.json lu ; les ressources refusées deviennent des avertissements
+        QCOMPARE(r.document.resources().size(), std::size_t{0});
+        QVERIFY2(r.warnings.join(u' ').contains(u"absente"_s), qPrintable(r.warnings.join(u'
+')));
     }
 
     void garbageIsRefusedWithAMessage()
@@ -5687,8 +5694,15 @@ endif()
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+// windows.h doit précéder psapi.h : clang-format (SortIncludes) ne doit pas les inverser (même bloc que
+// bench/src/memory.cpp).
+// clang-format off
 #include <windows.h>
 #include <psapi.h>
+// clang-format on
 #else
 #include <sys/resource.h>
 #endif

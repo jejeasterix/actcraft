@@ -5832,10 +5832,9 @@ function Stop-Essai([string]$raison) {
     Write-Output "ANDROID FICHIERS EN ECHEC : $raison"
     exit 1
 }
+# Adaptateur sur l'appel borné du module commun (Adb) : aucune copie ; ses exceptions arrivent au catch final.
 function Invoke-Adb([string[]]$arguments, [int]$secondes = 30) {
-    $p = Start-Process adb -ArgumentList $arguments -NoNewWindow -PassThru -RedirectStandardOutput .tmp/adb.out -RedirectStandardError .tmp/adb.err
-    if (-not $p.WaitForExit($secondes * 1000)) { Stop-Process -Id $p.Id -Force; Stop-Essai "adb $($arguments -join ' ') : délai dépassé" }
-    return (Get-Content -Raw .tmp/adb.out)
+    return "$(Adb $secondes @arguments)"
 }
 # Touche le nœud de l'interface Android dont le texte ou l'identifiant correspond (sélecteur du système).
 function Invoke-Toucher([string]$motif) {
@@ -5859,6 +5858,7 @@ function Wait-Journal([string]$motif, [int]$secondes = 30) {
 }
 try {
     New-Item -ItemType Directory -Force .tmp | Out-Null
+    Initialize-ActCraftAdb                                   # android-commun.ps1 : adb du PATH, exception sinon
     $emulateur = Start-ActCraftEmulateur -Avd $Avd          # défini dans CE script : -no-window -gpu host, PID gardé
     Wait-ActCraftDemarrage                                   # android-commun.ps1 : appareil, sys.boot_completed, borné
     Ecarter-Anr                                              # android-commun.ps1
@@ -5893,7 +5893,14 @@ try {
   `scripts/android-commun.ps1` seulement ce qui est commun : la fonction `Adb` (appel borné), l'attente bornée de
   l'appareil et de `sys.boot_completed` (`Wait-ActCraftDemarrage`), l'installation et le lancement de l'APK
   (`Install-ActCraftApk`) et `Ecarter-Anr` — mêmes bornes, mêmes messages ; module chargé par point
-  (`. "$PSScriptRoot/android-commun.ps1"`) dans les deux scripts. `essai-android.ps1` garde son contrat et ses lignes
+  (`. "$PSScriptRoot/android-commun.ps1"`) dans les deux scripts. **Module autonome** : il ne lit aucune variable ni
+  fonction de ses appelants. `Initialize-ActCraftAdb` cherche `adb` dans le PATH et le garde dans
+  `$script:ActCraftAdb` (variable propre au module, nommée pour ne heurter personne) ; `Adb`, `Wait-ActCraftDemarrage`,
+  `Install-ActCraftApk` et `Ecarter-Anr` **lèvent une exception** (`throw "<raison>"`) au lieu d'appeler `Echec` ;
+  chaque script appelle `Initialize-ActCraftAdb` en tête de son `try` et traduit l'exception dans son `catch` par sa
+  propre dernière ligne (`ANDROID EN ECHEC : <raison>` pour `essai-android.ps1`, inchangée ;
+  `ANDROID FICHIERS EN ECHEC : <raison>` pour `essai-android-fichiers.ps1`). `essai-android-fichiers.ps1` n'a plus
+  d'appel `adb` à lui : son `Invoke-Adb` n'est qu'un adaptateur sur `Adb`. `essai-android.ps1` garde son contrat et ses lignes
   de sortie, et redonne `ANDROID OK` sur un émulateur démarré (rejouer S3 une fois) ; le job `android` de la CI ne
   change pas de comportement (même commande, même dernière ligne). Le **démarrage local** de l'émulateur
   (`Start-ActCraftEmulateur`, `-no-window -gpu host`, PID gardé) et son arrêt par PID (`Stop-ActCraftEmulateur`) restent
