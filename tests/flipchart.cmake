@@ -3,10 +3,16 @@
 # tst_formats_oracle, en place, et seulement si ACTCRAFT_SAMPLES_DIR est posé (décision 19).
 actcraft_add_test(tst_formats_bamboo
     SOURCES tst_formats_bamboo.cpp
-    LIBS ActCraft::formats ActCraft::miniz)
+    LIBS ActCraft::formats ActCraft::miniz Qt6::Gui)
 if(WIN32)
     target_link_libraries(tst_formats_bamboo PRIVATE psapi) # GetProcessMemoryInfo (peakmemory.h)
 endif()
 actcraft_add_test(tst_formats_objectstream
     SOURCES tst_formats_objectstream.cpp
-    LIBS ActCraft::formats)
+    LIBS ActCraft::formats Qt6::Gui)
+actcraft_add_test(tst_formats_flipchart
+    SOURCES tst_formats_flipchart.cpp
+    LIBS ActCraft::formats Qt6::Gui)
+if(WIN32)
+    target_link_libraries(tst_formats_flipchart PRIVATE psapi) # GetProcessMemoryInfo (peakmemory.h)
+endif()
