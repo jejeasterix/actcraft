@@ -37,7 +37,7 @@ Python 3.12 (oracle, dans l'ancien dépôt seulement).
 | L2-T4 | miniz vendu, `formats/` interdit de QtGui, fichiers de tests des formats | — | `third_party/miniz/miniz.c`, `third_party/miniz/miniz.h`, `third_party/miniz/LICENSE`, `third_party/miniz/README.md`, `third_party/miniz/CMakeLists.txt`, `third_party/.clang-format`, `CMakeLists.txt`, `formats/CMakeLists.txt`, `formats/native.cmake`, `formats/flipchart.cmake`, `scripts/format.ps1`, `.graphifyignore`, `THIRD_PARTY_NOTICES.md`, `tests/CMakeLists.txt`, `tests/formats.cmake`, `tests/flipchart.cmake`, `tests/tst_third_party_miniz.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 45 tests, `tst_third_party_miniz` Passed ; configuration en échec si `actcraft_formats` lie `Qt6::Gui` (rouge vu puis remis par `git checkout --`) | S5 | #tache-l2-t4 |
 | L2-T5 | `formats` : `document.json` (écriture, lecture tolérante, version majeure refusée) | L2-T1, L2-T4 | `formats/include/actcraft/formats/nativejson.h`, `formats/src/nativejson.cpp`, `formats/native.cmake`, `tests/formats.cmake`, `tests/support/richdocument.h`, `tests/tst_formats_nativejson.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 46 tests, `tst_formats_nativejson` Passed (dont `roundTripKeepsTheFingerprint`) | S5 | #tache-l2-t5 |
 | L2-T6 | `formats` : archive `.actcraft` (miniz) et E/S par URL (fichier local atomique, `content://`) | L2-T5 | `formats/include/actcraft/formats/nativefile.h`, `formats/src/nativefile.cpp`, `formats/include/actcraft/formats/urlio.h`, `formats/src/urlio.cpp`, `formats/native.cmake`, `tests/formats.cmake`, `tests/tst_formats_nativefile.cpp`, `tests/tst_formats_urlio.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 48 tests, `tst_formats_nativefile` et `tst_formats_urlio` Passed | S5 | #tache-l2-t6 |
-| L2-T7 | `formats` : conteneur Bamboo et index « culm » ; écrivain de paperboards synthétiques | L2-T4 | `formats/include/actcraft/formats/bamboo.h`, `formats/src/bamboo.cpp`, `formats/flipchart.cmake`, `tests/flipchart.cmake`, `tests/support/flipchartwriter.h`, `tests/tst_formats_bamboo.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 46 tests, `tst_formats_bamboo` Passed | S4 | #tache-l2-t7 |
+| L2-T7 | `formats` : conteneur Bamboo et index « culm » ; écrivain de paperboards synthétiques | L2-T4 | `formats/include/actcraft/formats/bamboo.h`, `formats/src/bamboo.cpp`, `formats/flipchart.cmake`, `tests/flipchart.cmake`, `tests/support/flipchartwriter.h`, `tests/support/peakmemory.h`, `tests/tst_formats_bamboo.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 46 tests, `tst_formats_bamboo` Passed | S4 | #tache-l2-t7 |
 | L2-T8 | `formats` : flux objet (variantes, sous-types, saut des propriétés illisibles) | L2-T7 | `formats/include/actcraft/formats/objectstream.h`, `formats/src/objectstream.cpp`, `formats/flipchart.cmake`, `tests/flipchart.cmake`, `tests/support/flipchartwriter.h`, `tests/tst_formats_objectstream.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 47 tests, `tst_formats_objectstream` Passed | S4 | #tache-l2-t8 |
 | L2-T9 | `formats` : lecteur `.flipchart` vers le modèle (tables écrites à la main) | L2-T1, L2-T8 | `formats/include/actcraft/formats/flipchart.h`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `formats/flipchart.cmake`, `tests/flipchart.cmake`, `tests/support/flipchartwriter.h`, `tests/tst_formats_flipchart.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 48 tests, `tst_formats_flipchart` Passed | S4 | #tache-l2-t9 |
 | L2-T10 | Oracle : export canonique, `actcraft-flipchart-dump`, script Python de l'ancien dépôt, test local | L2-T9 | `formats/include/actcraft/formats/flipchartdump.h`, `formats/src/flipchartdump.cpp`, `formats/flipchart.cmake`, `bench/flipchart/main.cpp`, `bench/CMakeLists.txt`, `tests/flipchart.cmake`, `tests/tst_formats_dump.cpp`, `tests/tst_formats_oracle.cpp` ; hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\tools\oracle_flipchart.py` | isolé | concepteur-critique | TESTS OK, ≥ 50 tests, `tst_formats_dump` Passed ; localement `ORACLE OK : 17 paperboards, 124 pages, 0 écart` (`tst_formats_oracle`, `ACTCRAFT_SAMPLES_DIR` posé) | S4 | #tache-l2-t10 |
@@ -152,7 +152,7 @@ Une tâche ne renomme aucun de ces noms. Ceux du lot 1 (`docs/plans/2026-10-14-l
 - `actcraft::formats` (L2-T5, L2-T6) : `kNativeFormat` (`"actcraft-document/1"`), `kNativeMajorVersion`,
   `documentToJson`, `ResourceLoader`, `JsonReadResult`, `documentFromJson`, `encodeActcraft`, `DecodeResult`,
   `decodeActcraft`, `archiveEntryNames`, `looksLikeActcraft`, `kMaxArchiveEntry`, `kMaxArchiveTotal`,
-  `UrlReadResult`, `readUrl`,
+  `UrlReadResult`, `readUrl`, `readBounded`,
   `writeUrl`, `urlFromArgument`. Noms d'entrées : `document.json`, `resources/<sha256>.<ext>`,
   `thumbnails/page-<n>.png` (n à partir de 1).
 - `actcraft::formats::flipchart` (L2-T7 à L2-T10) : `BambooEntry`, `BambooContainer` (`parse`, `names`,
@@ -4624,6 +4624,16 @@ private slots:
         QVERIFY(r.thumbnails[0].isEmpty());
     }
 
+    void totalDecompressionBudgetIsEnforced()
+    {
+        const core::Document rich = richdoc::richDocument();
+        const QByteArray archive = formats::encodeActcraft(rich, {});
+        QVERIFY(formats::decodeActcraft(archive).ok);
+        const formats::DecodeResult r = formats::decodeActcraft(archive, 100); // budget plus petit que document.json
+        QVERIFY(!r.ok);
+        QVERIFY2(r.error.contains(u"volumineux"_s), qPrintable(r.error));
+    }
+
     void garbageIsRefusedWithAMessage()
     {
         QVERIFY(!formats::looksLikeActcraft("Bamboo"));
@@ -4662,6 +4672,9 @@ QTEST_GUILESS_MAIN(TstFormatsNativeFile)
 #include <QFile>
 #include <QTemporaryDir>
 #include <QTest>
+
+#include <algorithm>
+#include <cstring>
 
 using namespace actcraft;
 using namespace Qt::StringLiterals;
@@ -4718,6 +4731,42 @@ private slots:
         const formats::UrlReadResult tooBig = formats::readUrl(big, 10);
         QVERIFY(!tooBig.ok);
         QVERIFY2(tooBig.error.contains(u"volumineux"_s), qPrintable(tooBig.error));
+    }
+
+    void sequentialDeviceOfUnknownSizeIsReadToTheEnd()
+    {
+        // Comme un content:// : séquentiel, taille 0 annoncée, atEnd() vrai avant toute lecture.
+        class Sequential final : public QIODevice
+        {
+        public:
+            explicit Sequential(QByteArray data) : m_data(std::move(data)) {}
+            bool isSequential() const override { return true; }
+
+        protected:
+            qint64 readData(char* out, qint64 max) override
+            {
+                const qint64 n = std::min(max, static_cast<qint64>(m_data.size()) - m_pos);
+                std::memcpy(out, m_data.constData() + m_pos, static_cast<std::size_t>(n));
+                m_pos += n;
+                return n;
+            }
+            qint64 writeData(const char*, qint64) override { return -1; }
+
+        private:
+            QByteArray m_data;
+            qint64 m_pos = 0;
+        };
+        const QByteArray payload(5 * (1 << 20) / 2, 'q'); // 2,5 Mio : trois blocs
+        Sequential device(payload);
+        QVERIFY(device.open(QIODevice::ReadOnly));
+        QString error;
+        const std::optional<QByteArray> all = formats::readBounded(device, 1ll << 30, &error);
+        QVERIFY2(all, qPrintable(error));
+        QCOMPARE(all->size(), payload.size());
+        Sequential bounded(payload);
+        QVERIFY(bounded.open(QIODevice::ReadOnly));
+        QVERIFY(!formats::readBounded(bounded, 1 << 20, &error));
+        QVERIFY(error.contains(u"volumineux"_s));
     }
 
     void smallFileDoesNotReserveTheMaximum()
@@ -4810,7 +4859,8 @@ struct DecodeResult
     std::vector<QByteArray> thumbnails; // une case par page, vide si absente
 };
 
-DecodeResult decodeActcraft(const QByteArray& archive);
+// `maxTotal` : budget de décompression (petit dans les tests, pour le prouver sans archive de 2 Gio).
+DecodeResult decodeActcraft(const QByteArray& archive, qint64 maxTotal = kMaxArchiveTotal);
 // Noms des entrées dans l'ordre de l'archive ; vide si illisible.
 QStringList archiveEntryNames(const QByteArray& archive);
 // Signature zip (« PK\3\4 ») : de quoi choisir le lecteur sans lire tout le fichier.
@@ -4853,7 +4903,7 @@ std::string thumbnailEntry(std::size_t page)
 class ZipReader
 {
 public:
-    explicit ZipReader(const QByteArray& archive)
+    explicit ZipReader(const QByteArray& archive, qint64 maxTotal = kMaxArchiveTotal) : m_maxTotal(maxTotal)
     {
         m_open = !archive.isEmpty() &&
                  mz_zip_reader_init_mem(&m_zip, archive.constData(), static_cast<size_t>(archive.size()), 0);
@@ -4893,7 +4943,7 @@ public:
             return std::nullopt;
         }
         if (stat.m_uncomp_size > static_cast<mz_uint64>(kMaxArchiveEntry) ||
-            m_total + static_cast<qint64>(stat.m_uncomp_size) > kMaxArchiveTotal) {
+            m_total + static_cast<qint64>(stat.m_uncomp_size) > m_maxTotal) {
             if (tooBig) {
                 *tooBig = true;
             }
@@ -4911,7 +4961,8 @@ public:
 private:
     mz_zip_archive m_zip{};
     bool m_open = false;
-    qint64 m_total = 0; // octets décompressés jusqu'ici (budget kMaxArchiveTotal)
+    qint64 m_total = 0; // octets décompressés jusqu'ici
+    qint64 m_maxTotal;  // budget (kMaxArchiveTotal hors des tests)
 };
 
 } // namespace
@@ -4967,10 +5018,10 @@ QByteArray encodeActcraft(const core::Document& document, const std::vector<QByt
     return out;
 }
 
-DecodeResult decodeActcraft(const QByteArray& archive)
+DecodeResult decodeActcraft(const QByteArray& archive, qint64 maxTotal)
 {
     DecodeResult result;
-    ZipReader zip(archive);
+    ZipReader zip(archive, maxTotal);
     if (!zip.isOpen()) {
         result.error = u"archive .actcraft illisible"_s;
         return result;
@@ -5028,9 +5079,12 @@ bool looksLikeActcraft(const QByteArray& head) noexcept
 #pragma once
 
 #include <QByteArray>
+#include <QIODevice>
 #include <QString>
 #include <QUrl>
 #include <QVariant>
+
+#include <optional>
 
 namespace actcraft::formats {
 
@@ -5044,6 +5098,9 @@ struct UrlReadResult
 };
 
 UrlReadResult readUrl(const QUrl& url, qint64 maxBytes = 1024ll * 1024 * 1024);
+// Lit `device` par blocs de 1 Mio jusqu'à un bloc vide (jamais atEnd : taille inconnue d'un content://) ; nullopt et
+// `error` au-delà de `maxBytes`.
+std::optional<QByteArray> readBounded(QIODevice& device, qint64 maxBytes, QString* error);
 // Fichier local : temporaire voisin puis renommage (QSaveFile) — l'ancien fichier reste intact en cas d'échec.
 // content:// : écriture complète en une passe (pas de dossier voisin inscriptible).
 bool writeUrl(const QUrl& url, const QByteArray& data, QString* error);
@@ -5076,6 +5133,26 @@ bool isContent(const QUrl& url)
 
 } // namespace
 
+std::optional<QByteArray> readBounded(QIODevice& device, qint64 maxBytes, QString* error)
+{
+    // Jamais atEnd() : un appareil séquentiel de taille inconnue (content://) dit « fini » avant la première lecture.
+    QByteArray data;
+    for (;;) {
+        const QByteArray chunk = device.read(1 << 20);
+        if (chunk.isEmpty()) {
+            break;
+        }
+        data += chunk;
+        if (data.size() > maxBytes) {
+            if (error) {
+                *error = u"fichier trop volumineux"_s;
+            }
+            return std::nullopt;
+        }
+    }
+    return data;
+}
+
 UrlReadResult readUrl(const QUrl& url, qint64 maxBytes)
 {
     UrlReadResult r;
@@ -5099,17 +5176,12 @@ UrlReadResult readUrl(const QUrl& url, qint64 maxBytes)
     if (url.isLocalFile()) {
         data = file.readAll();
     } else {
-        while (!file.atEnd()) {
-            const QByteArray chunk = file.read(1 << 20);
-            if (chunk.isEmpty()) {
-                break;
-            }
-            data += chunk;
-            if (data.size() > maxBytes) {
-                r.error = u"fichier trop volumineux : %1"_s.arg(url.toDisplayString());
-                return r;
-            }
+        std::optional<QByteArray> read = readBounded(file, maxBytes, &r.error);
+        if (!read) {
+            r.error = u"%1 : %2"_s.arg(url.toDisplayString(), r.error);
+            return r;
         }
+        data = std::move(*read);
     }
     if (file.error() != QFileDevice::NoError) {
         r.error = u"lecture impossible : %1 (%2)"_s.arg(url.toDisplayString(), file.errorString());
@@ -5222,17 +5294,18 @@ n'entre dans les tests.
 
 **Fichiers.**
 - Créer : `formats/include/actcraft/formats/bamboo.h`, `formats/src/bamboo.cpp`,
-  `tests/support/flipchartwriter.h`, `tests/tst_formats_bamboo.cpp`
+  `tests/support/flipchartwriter.h`, `tests/support/peakmemory.h`, `tests/tst_formats_bamboo.cpp`
 - Modifier : `formats/flipchart.cmake`, `tests/flipchart.cmake`
 
 **Test et commande bornée.** Rouge : commande ciblée, motif `tst_formats_bamboo` → `error` (`bamboo.h`
-introuvable). Vert : forme bornée, N ≥ 46, `TESTS OK`, `tst_formats_bamboo .*Passed`. Bombe zlib : le verdict de
-`decompressionStopsAtTheAnnouncedSize` est le même avec `qUncompress` (taille différente de l'annoncée) ; ce qui
-change est la mémoire. Le prouver une fois par mutation : remettre `qUncompress(e.raw)` (en-tête réécrit à 600 Mio par
-le test, `qToBigEndian`), lancer `tst_formats_bamboo.exe` seul et relever `PeakWorkingSet64` du processus
-(`Get-Process -Id <pid>` en fin d'exécution, ou `Measure-Command` + compteur) : centaines de Mio ; puis
-`git -C <worktree> checkout -- formats/src/bamboo.cpp` et relever le pic avec `mz_uncompress` (quelques Mio). Les deux
-valeurs vont au rapport. **Écart à la décision 18** (« `qUncompress` pour le conteneur ») : décompression par miniz
+introuvable). Vert : forme bornée, N ≥ 46, `TESTS OK`, `tst_formats_bamboo .*Passed`. Bombe zlib, deux preuves :
+(a) structurelle, `git -C <worktree> grep -n "qUncompress" -- formats/src` → vide ; (b) le test
+`zlibBombStaysWithinTheAnnouncedSize` : 256 Mio de zéros compressés par `mz_deflate` (≈ 256 Kio), annoncés à
+10 octets ; hausse du pic de mémoire du processus pendant `read()` < 32 Mio (aide `tests/support/peakmemory.h`). Le
+chemin fautif (`qUncompress`) **écrit** les 256 Mio décompressés dans son tampon avant de constater l'écart de taille :
+les pages sont touchées, le pic monte d'environ 256 Mio. Rouge vu par mutation **après le commit** : remplacer
+l'appel `mz_uncompress` par `const QByteArray out = qUncompress(e.raw);` suivi du contrôle de taille, constater le
+rouge (hausse ≈ 256 Mio), remettre par `git -C <worktree> checkout -- formats/src/bamboo.cpp`. **Écart à la décision 18** (« `qUncompress` pour le conteneur ») : décompression par miniz
 (déjà lié par `formats/`, L2-T4), bornée par la taille de l'entrée.
 
 **Interdits.** QtCore seulement. Rien de copié depuis `samples/` (ni octets, ni noms de fichiers réels). Pas de
@@ -5383,13 +5456,44 @@ inline QByteArray index(const Node& root)
 
 ```cpp
 #include "support/flipchartwriter.h"
+#include "support/peakmemory.h"
 
 #include <actcraft/formats/bamboo.h>
 
 #include <QTest>
 
+#include <miniz.h>
+
 using namespace actcraft::formats::flipchart;
 using namespace Qt::StringLiterals;
+
+namespace {
+
+// Flux zlib de `total` octets nuls, compressé par blocs de 1 Mio : jamais `total` octets en mémoire.
+QByteArray zlibOfZeros(qint64 total)
+{
+    mz_stream s{};
+    mz_deflateInit(&s, MZ_BEST_COMPRESSION);
+    const QByteArray zeros(1 << 20, '\0');
+    QByteArray buffer(1 << 16, Qt::Uninitialized);
+    QByteArray out;
+    for (qint64 done = 0; done < total; done += zeros.size()) {
+        const bool last = done + zeros.size() >= total;
+        s.next_in = reinterpret_cast<const unsigned char*>(zeros.constData());
+        s.avail_in = static_cast<unsigned int>(zeros.size());
+        int status = MZ_OK;
+        do {
+            s.next_out = reinterpret_cast<unsigned char*>(buffer.data());
+            s.avail_out = static_cast<unsigned int>(buffer.size());
+            status = mz_deflate(&s, last ? MZ_FINISH : MZ_NO_FLUSH);
+            out.append(buffer.constData(), buffer.size() - static_cast<qsizetype>(s.avail_out));
+        } while (s.avail_in > 0 || (last && status != MZ_STREAM_END));
+    }
+    mz_deflateEnd(&s);
+    return out;
+}
+
+} // namespace
 
 // Conteneur Bamboo et index « culm » (format-flipchart.md § 2 et § 3), sur des octets écrits par fctest.
 class TstFormatsBamboo : public QObject
@@ -5474,6 +5578,23 @@ private slots:
         QVERIFY2(error.contains(u"volumineuse"_s), qPrintable(error));
     }
 
+    void zlibBombStaysWithinTheAnnouncedSize()
+    {
+        const QByteArray stream = zlibOfZeros(256ll << 20); // ≈ 256 Kio compressés
+        fctest::Bytes b;
+        b.raw(QByteArray(" Bamboo ", 8)).u16(7).qstr(u"1.0"_s).raw(QByteArray(8, '\0'));
+        b.qstr(u"bombe.io"_s).qstr(u""_s).qstr(u""_s).qstr(u""_s).u64(10).u8(1);
+        b.u64(static_cast<quint64>(4 + stream.size()));
+        b.u32(qToBigEndian(quint32{10})).raw(stream); // en-tête qCompress menteur : 10 octets
+        QString error;
+        const auto c = BambooContainer::parse(b.data(), error);
+        QVERIFY(c);
+        const qint64 before = peakMemoryBytes();
+        QVERIFY(!c->read(u"bombe.io"_s, error));
+        const qint64 rise = peakMemoryBytes() - before;
+        QVERIFY2(rise < (32ll << 20), qPrintable(QStringLiteral("hausse du pic : %1 Mio").arg(rise >> 20)));
+    }
+
     void decompressionStopsAtTheAnnouncedSize()
     {
         // Entrée piégée : 10 octets annoncés, flux qui en donnerait 4 Mio (bombe zlib en petit).
@@ -5548,7 +5669,48 @@ QTEST_GUILESS_MAIN(TstFormatsBamboo)
 ```cmake
 actcraft_add_test(tst_formats_bamboo
     SOURCES tst_formats_bamboo.cpp
-    LIBS ActCraft::formats)
+    LIBS ActCraft::formats ActCraft::miniz)
+if(WIN32)
+    target_link_libraries(tst_formats_bamboo PRIVATE psapi) # GetProcessMemoryInfo (peakmemory.h)
+endif()
+```
+
+  Créer `tests/support/peakmemory.h` (aide de test, jamais livrée) :
+
+```cpp
+#pragma once
+
+// Pic de mémoire résidente du processus, en octets (tests de bornes mémoire).
+#include <QtGlobal>
+
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <psapi.h>
+#else
+#include <sys/resource.h>
+#endif
+
+inline qint64 peakMemoryBytes()
+{
+#ifdef Q_OS_WIN
+    PROCESS_MEMORY_COUNTERS counters{};
+    counters.cb = sizeof counters;
+    return GetProcessMemoryInfo(GetCurrentProcess(), &counters, sizeof counters)
+               ? static_cast<qint64>(counters.PeakWorkingSetSize)
+               : 0;
+#else
+    rusage usage{};
+    getrusage(RUSAGE_SELF, &usage);
+#ifdef Q_OS_MACOS
+    return static_cast<qint64>(usage.ru_maxrss); // octets sous macOS
+#else
+    return static_cast<qint64>(usage.ru_maxrss) * 1024; // Kio ailleurs
+#endif
+#endif
+}
 ```
 
 - [ ] **Étape 3 : constater le rouge.** Commande ciblée, motif `tst_formats_bamboo` → `error`.
@@ -5889,7 +6051,7 @@ set(ACTCRAFT_FORMATS_FLIPCHART_SOURCES
 - [ ] **Étape 8 : commit.**
 
 ```powershell
-git -C <worktree> add formats/include/actcraft/formats/bamboo.h formats/src/bamboo.cpp formats/flipchart.cmake tests/flipchart.cmake tests/support/flipchartwriter.h tests/tst_formats_bamboo.cpp
+git -C <worktree> add formats/include/actcraft/formats/bamboo.h formats/src/bamboo.cpp formats/flipchart.cmake tests/flipchart.cmake tests/support/flipchartwriter.h tests/support/peakmemory.h tests/tst_formats_bamboo.cpp
 git -C <worktree> commit -m "formats : conteneur Bamboo et index culm du .flipchart (lecture bornée) ; écrivain de paperboards synthétiques" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
@@ -7338,16 +7500,34 @@ private slots:
     {
         // Couche NaN, profondeur 1e30, taille d'image hors bornes : défauts, aucune conversion indéfinie.
         const QByteArray page = fctest::container(
-            {Entry(u"103.in"_s, fctest::index(Node(103, 2, 102, {Node(110, 7, 111)}))),
+            {Entry(u"103.in"_s, fctest::index(Node(103, 2, 102, {Node(110, 7, 111), Node(112, 9, 113)}))),
              Entry(u"102.io"_s, Obj(2, 102).stream()),
-             Entry(u"111.io"_s, Obj(7, 111).real(8, std::numeric_limits<double>::quiet_NaN()).real(9, 1e30).stream())});
+             Entry(u"111.io"_s, Obj(7, 111).real(8, std::numeric_limits<double>::quiet_NaN()).real(9, 1e30).stream()),
+             Entry(u"113.io"_s, Obj(9, 113).integer(38, 300).stream())});
+        const QByteArray page2 = fctest::container(
+            {Entry(u"203.in"_s, fctest::index(Node(203, 2, 202, {Node(210, 9, 211), Node(212, 9, 213)}))),
+             Entry(u"202.io"_s, Obj(2, 202).stream()), Entry(u"211.io"_s, Obj(9, 211).integer(38, 999).stream()),
+             Entry(u"213.io"_s, Obj(9, 213).integer(38, 999).stream())});
         const QByteArray data = fctest::container(
-            {Entry(u"101.in"_s, fctest::index(Node(101, 1, 100, {Node(103, 2, 102)}))),
-             Entry(u"100.io"_s, Obj(1, 100).stream()), Entry(u"103.fpg"_s, page)});
+            {Entry(u"101.in"_s, fctest::index(Node(101, 1, 100, {Node(103, 2, 102), Node(203, 2, 202)}))),
+             Entry(u"100.io"_s, Obj(1, 100).stream()), Entry(u"103.fpg"_s, page), Entry(u"203.fpg"_s, page2),
+             Entry(u"300.ir"_s, Obj(10, 300).sizeF(5, 1e30, 1e30).stream()),
+             Entry(u"300.png"_s, fctest::pngBytes(2, 2, qRgb(0, 0, 255)), false)});
         const auto r = formats::flipchart::readFlipchart(data);
         QVERIFY2(r.ok, qPrintable(r.error));
-        QCOMPARE(r.document.page(0).objects.size(), std::size_t{1});
-        QCOMPARE(r.document.page(0).objects[0].common.layer, core::Layer::Middle);
+        const auto& objects = r.document.page(0).objects;
+        QCOMPARE(objects.size(), std::size_t{2});
+        // Avec un cast direct, NaN donne INT_MIN sous MSVC : « couche -2147483648 inconnue ». Ici, défaut sans bruit.
+        QVERIFY2(!r.warnings.join(u' ').contains(u"couche"_s), qPrintable(r.warnings.join(u'\n')));
+        for (const core::PageObject& o : objects) {
+            if (const auto* im = std::get_if<core::ImageObject>(&o)) {
+                QCOMPARE(im->sourceWidth, std::int32_t{256}); // taille 1e30 × 1e30 : défaut du modèle
+            } else {
+                QCOMPARE(o.common.layer, core::Layer::Middle);
+            }
+        }
+        // Mémorisation par ressource : deux images sur la même ressource absente → un seul avertissement.
+        QCOMPARE(r.warnings.filter(u"999"_s).size(), 1);
     }
 
     void refusesWhatIsNotAFlipchart()
@@ -9338,6 +9518,7 @@ du lot 2 est créée à la clôture de 2b.
    - `git -C <worktree> grep -n -i "AsAnnotation\|AsShape\|asBoundingRect\|Promethean" -- formats core tests bench`
      → vide (aucun nom d'Inspire dans le code ; le mot n'apparaît que dans la documentation et les commentaires de
      propriété intellectuelle) ;
+   - `git -C <worktree> grep -n "qUncompress" -- formats/src` → vide (décompression bornée par miniz, L2-T7) ;
    - `git -C <worktree> grep -n -w -e ActionOnObject -e ActionNavigate -e ActionSelectTool -e ActionOnText -e
      ActionMove -e ActionApp -- formats core tests bench` → vide (noms de classes d'action d'Inspire ; les nôtres :
      `ActionTargetObject`, `ActionGoToPage`, `ActionTool`, `ActionTargetText`, `ActionShift`, `ActionProgram`).

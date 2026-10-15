@@ -143,7 +143,7 @@ Tous les noms de 2a, du lot 1 et du prototype restent figés ; on ajoute, on ne 
   `ControllerSink`. Titre d'un document neuf : « Sans titre ».
 - `actcraft::ui` (L2-T17) : `LoadOutcome`, `loadDocument`, `SaveOutcome`, `saveDocument`, `titleFromUrl`,
   `defaultDocumentsFolder` ; `DocumentController` : `openUrl`, `saveToUrl`, `busy`, `warnings`, `lastError`,
-  `suggestedFileName`, `lastIoOffMainThread`, `urlFromArgument`, `defaultFolderUrl`, `LoadOutcome::offMainThread`,
+  `suggestedFileName`, `lastIoOffMainThread` (signal `lastIoChanged`), `urlFromArgument`, `defaultFolderUrl`, `LoadOutcome::offMainThread`,
   `SaveOutcome::offMainThread`, signaux `loadFinished(bool, QString)`,
   `saveFinished(bool, QString)`. Journal (catégorie `actcraft.document`) : `ACTCRAFT OUVERT <empreinte>`,
   `ACTCRAFT ENREGISTRE <empreinte>` (empreinte en hexadécimal, 16 chiffres).
@@ -1631,8 +1631,13 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
         return false;
     }
     QMutexLocker lock(&m_mutex);
+    // Ressource absente du document : rien à décoder (image nulle attendue). Présente : décodée ou non.
     const auto has = [this, resources](const std::string& key) {
         return key.empty() || !resources || !resources->resource(key) || m_resources.count(key) > 0;
+    };
+    // Variante à couleur transparente : sa clé n'est pas une ressource du document ; on regarde la ressource de base.
+    const auto hasVariant = [this, resources](const core::ImageObject& im) {
+        return !resources || !resources->resource(im.resource) || m_resources.count(variantKey(im)) > 0;
     };
     std::size_t procedural = 0;
     for (std::size_t i = 0; i < page.objects.size(); ++i) {
@@ -1645,7 +1650,7 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
                     it->second.sourceWidth != im->sourceWidth || it->second.sourceHeight != im->sourceHeight) {
                     return false;
                 }
-            } else if (!has(variantKey(*im)) || !has(im->resource)) {
+            } else if (!has(im->resource) || !hasVariant(*im)) {
                 return false;
             }
         } else if (const auto* m = std::get_if<core::Media>(&page.objects[i]); m && !has(m->placeholder)) {
@@ -1674,6 +1679,28 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
         QVERIFY(store.covers(page, nullptr));
         page.objects.insert(page.objects.begin(), core::PageObject(stroke)); // indices décalés
         QVERIFY(!store.covers(page, nullptr));
+    }
+
+    void coversSeesAMissingTransparentVariant()
+    {
+        QImage source(4, 4, QImage::Format_ARGB32);
+        source.fill(Qt::white);
+        core::Document document;
+        core::ImageObject plain;
+        plain.resource = document.addResource(pngOf(source), "png");
+        core::ImageObject masked = plain;
+        masked.hasTransparentColor = true;
+        masked.transparentColor = 0xFFFFFFFFu;
+        core::Page withPlain;
+        withPlain.objects.emplace_back(plain);
+        core::Page withMasked;
+        withMasked.objects.emplace_back(masked);
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(withPlain, &document);
+        QVERIFY(ready.wait(5000));
+        QVERIFY(store.covers(withPlain, &document));
+        QVERIFY(!store.covers(withMasked, &document)); // même ressource, variante jamais calculée
     }
 ```
 
@@ -3557,24 +3584,90 @@ void ControllerSink::commitStroke(core::Stroke stroke)
   l'encre (décision 10 tenue). Test d'abord, dans `tests/tst_pageview.cpp` :
 
 ```cpp
+// Vue AVEC cache, page fixe et encre, sans QML : le test termine lui-même chaque redessin demandé (personne
+// n'appelle notifyCacheUpdated hors de PageArea.qml) et compte les demandes.
+struct CachedFixture
+{
+    QQuickWindow window;
+    PageView* view = nullptr;
+    actcraft::render::FixedPageItem* fixed = nullptr;
+    QPointingDevice* stylus = nullptr;
+};
+
+bool openCached(CachedFixture& f, QPointingDevice* stylus)
+{
+    f.stylus = stylus;
+    f.window.resize(1000, 600);
+    f.view = new PageView;
+    f.view->setParentItem(f.window.contentItem());
+    f.view->setSize(QSizeF(1000, 600));
+    auto* content = new QQuickItem;
+    content->setSize(QSizeF(1024, 768));
+    content->setParentItem(f.view);
+    f.fixed = new actcraft::render::FixedPageItem;
+    f.fixed->setSize(content->size());
+    f.fixed->setParentItem(content);
+    auto* ink = new actcraft::render::InkItem;
+    ink->setSize(content->size());
+    ink->setParentItem(content);
+    f.view->setContent(content); // cache activé (défaut)
+    f.view->setFixedPage(f.fixed);
+    f.view->setInk(ink);
+    f.fixed->setPage(actcraft::core::Page{});
+    f.window.show();
+    if (!QTest::qWaitForWindowExposed(&f.window) || !QTest::qWaitFor([&] { return f.fixed->isReady(); }, 5000)) {
+        return false;
+    }
+    for (int i = 0; i < 5 && !f.view->cacheReady(); ++i) {
+        f.view->notifyCacheUpdated();
+    }
+    return f.view->cacheReady();
+}
+
+void cachedStroke(CachedFixture& f, QPointF from, QPointF to)
+{
+    const auto send = [&f](QEvent::Type type, QPointF scene, Qt::MouseButtons buttons) {
+        QTabletEvent event(type, f.stylus, scene, f.window.mapToGlobal(scene), buttons ? 0.5 : 0.0, 0, 0, 0, 0, 0,
+                           Qt::NoModifier, Qt::LeftButton, buttons);
+        QCoreApplication::sendEvent(&f.window, &event);
+    };
+    send(QEvent::TabletPress, from, Qt::LeftButton);
+    for (int i = 1; i <= 4; ++i) {
+        send(QEvent::TabletMove, from + (to - from) * i / 4.0, Qt::LeftButton);
+    }
+    send(QEvent::TabletRelease, to, Qt::NoButton);
+}
+```
+
+  (ces trois définitions dans l'espace anonyme du fichier, après `DrawFixture`), puis, dans la classe :
+
+```cpp
     void oneCacheRenderPerStroke()
     {
-        // (fixture du fichier : vue, page fixe, encre, cache activé ; avec contrôleur relié à la page fixe)
-        Fixture f;
-        open(f);
+        CachedFixture f;
+        QVERIFY(openCached(f, m_stylus.get()));
         ui::DocumentController controller;
         controller.setFixedPage(f.fixed);
         f.view->setDocumentController(&controller);
-        QTRY_VERIFY(f.view->cacheReady());
+        for (int i = 0; i < 5 && !f.view->cacheReady(); ++i) {
+            f.view->notifyCacheUpdated(); // setSource du contrôleur a demandé un redessin
+        }
+        QVERIFY(f.view->cacheReady());
         QSignalSpy requested(f.view, &PageView::cacheRefreshRequested);
-        drawStroke(f, {QPointF(100, 100), QPointF(300, 120)}); // aide de trait au stylet existante du fichier
-        QTRY_VERIFY(f.view->cacheReady());
+        cachedStroke(f, QPointF(300, 200), QPointF(500, 260));
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        for (int i = 0; i < 5 && !f.view->cacheReady(); ++i) {
+            f.view->notifyCacheUpdated(); // fin de redessin, comme ShaderEffectSource.scheduledUpdateCompleted
+        }
+        QVERIFY(f.view->cacheReady());
         QCOMPARE(requested.count(), 1);
     }
 ```
 
-  (adapter `Fixture`, `open`, `drawStroke` aux noms réels du fichier). Rouge attendu avant le changement de
-  `onStrokeFrozen` : `requested.count() == 2`. Le même test sans contrôleur (puits `FixedPageSink`) attend aussi 1.
+  Rouge attendu avant le changement de `onStrokeFrozen` (vérifié sur `pageview.cpp:207-235`) : `contentChanged` →
+  demande 1 (redessin en cours) ; `onStrokeFrozen` → demande 2 et `m_refreshAgain` ; le premier `notifyCacheUpdated`
+  relance → demande 3 ; `requested.count() == 3`. Vert : 1. Le relever tel quel au rapport (rouge 3, vert 1) ; si le
+  code donne un autre nombre, l'écrire et l'expliquer, sans ajuster l'assertion du vert (1).
 
 - [ ] **Étape 6 : brancher le QML.** Dans `ui/qml/PageArea.qml`, ajouter `property DocumentController
   documentController: null` à l'élément racine et `documentController: area.documentController` à la `PageView`.
@@ -4153,7 +4246,7 @@ QString defaultDocumentsFolder()
     Q_PROPERTY(QString suggestedFileName READ suggestedFileName NOTIFY titleChanged)
     // Vrai si la dernière lecture ou écriture a tourné hors du fil principal (S5 : la lit ; mutation : écriture
     // synchrone → faux).
-    Q_PROPERTY(bool lastIoOffMainThread READ lastIoOffMainThread NOTIFY lastErrorChanged)
+    Q_PROPERTY(bool lastIoOffMainThread READ lastIoOffMainThread NOTIFY lastIoChanged)
 public:
     bool isBusy() const noexcept;
     QStringList warnings() const;
@@ -4276,7 +4369,10 @@ void DocumentController::saveToUrl(const QUrl& url)
 }
 ```
 
-  plus le membre `bool m_lastIoOffMainThread = false;`, l'accesseur `lastIoOffMainThread()` et les accesseurs
+  plus le membre `bool m_lastIoOffMainThread = false;`, le signal `lastIoChanged()` — émis à **chaque** fin de
+  lecture ou d'écriture, succès ou échec, juste après l'affectation de `m_lastIoOffMainThread` (y compris dans la
+  branche d'échec d'`openUrl` : y affecter `outcome->offMainThread` aussi) —, l'accesseur `lastIoOffMainThread()` et
+  les accesseurs
   (`isBusy`, `warnings`, `lastError`, `suggestedFileName` = `m_title + ".actcraft"`,
   `urlFromArgument` = `formats::urlFromArgument(argument)`, `defaultFolderUrl` =
   `QUrl::fromLocalFile(defaultDocumentsFolder())`). `replaceDocument` vide `m_warnings` et `m_lastError` (et émet
@@ -5486,7 +5582,11 @@ ramenées à 80 × 60 par `QImage::scaled(…, Qt::IgnoreAspectRatio, Qt::Smooth
   au-dessus de 7 soient **les** 3 pages déjà connues (`cadrage` l. 252-253, `format-flipchart.md` § 8-9 : deux à
   miniature présumée périmée, `compréhension Clown` p2 et une page de `les canards`, plus `T'Choupi` p5) ; toute page
   au-dessus de 7 hors de cette liste → `MINIATURES EN ECHEC : page <fichier>:<n> au-dessus de 7 et non connue`. La
-  liste ne vit que dans la commande locale (aucun nom de paperboard réel dans le code ni dans `tests/`) ;
+  liste ne vit que dans la commande locale et dans la variable `ACTCRAFT_THM_CONNUES` lue par le test local
+  (aucun nom de paperboard réel dans le code ni dans `tests/`). **Sans `--connues`** (ou liste vide) : aucune page au-
+  dessus de 7 n'est tenue pour connue, le verdict n'exige que médiane ≤ 2,0 et k ≤ 3, et la ligne finale le dit
+  (`… , liste des pages connues absente`) — c'est le cas en CI, où le test est de toute façon sauté (77). Poser
+  `ACTCRAFT_THM_CONNUES` comme l'argument de la commande locale avant de configurer pour le test local ;
 - `--samples <dossier>` : même chose sur tous les `.flipchart` du dossier (124 pages attendues), code **77** si le
   dossier est absent ou vide (test sauté) ;
 - `--ecrire-synthetique <fichier>` : écrit `fctest::sampleFlipchart` avec des miniatures rendues par notre peintre
@@ -5540,7 +5640,8 @@ set_tests_properties(tst_flipchart_miniatures_synthetique PROPERTIES
     FIXTURES_REQUIRED flipchart_synthetic ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "MINIATURES OK : 2 pages")
 add_test(NAME tst_flipchart_miniatures_samples
-    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --samples "$ENV{ACTCRAFT_SAMPLES_DIR}")
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --samples "$ENV{ACTCRAFT_SAMPLES_DIR}"
+        --connues "$ENV{ACTCRAFT_THM_CONNUES}")
 set_tests_properties(tst_flipchart_miniatures_samples PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 600 ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "MINIATURES OK")
 add_test(NAME tst_captures_ouvrir_flipchart_synthetique
@@ -5758,9 +5859,10 @@ function Wait-Journal([string]$motif, [int]$secondes = 30) {
 }
 try {
     New-Item -ItemType Directory -Force .tmp | Out-Null
-    $emulateur = Start-ActCraftEmulateur -Avd $Avd          # android-commun.ps1 : -no-window -gpu host, PID gardé
-    Wait-ActCraftDemarrage                                   # sys.boot_completed, borné
-    Install-ActCraftApk -Apk $Apk                            # adb install -r, logcat -c, am start, processus vivant
+    $emulateur = Start-ActCraftEmulateur -Avd $Avd          # défini dans CE script : -no-window -gpu host, PID gardé
+    Wait-ActCraftDemarrage                                   # android-commun.ps1 : appareil, sys.boot_completed, borné
+    Ecarter-Anr                                              # android-commun.ps1
+    Install-ActCraftApk -Apk $Apk                            # android-commun.ps1 : install -r, logcat -c, lancement
     Invoke-Adb @('shell', 'input', 'swipe', '600', '700', '1000', '760', '400') | Out-Null
     Invoke-Adb @('shell', 'input', 'keycombination', '113', '59', '47') | Out-Null    # Ctrl+Maj+S
     Start-Sleep -Seconds 3
@@ -5786,12 +5888,16 @@ try {
 }
 ```
 
-  **Pas de copie** : extraire d'abord de `essai-android.ps1` son démarrage d'émulateur, son attente de démarrage, son
-  installation de l'APK et son arrêt par PID dans `scripts/android-commun.ps1` (fonctions `Start-ActCraftEmulateur`,
-  `Wait-ActCraftDemarrage`, `Install-ActCraftApk`, `Stop-ActCraftEmulateur`, mêmes bornes, même arrêt par PID),
-  chargé par point (`. "$PSScriptRoot/android-commun.ps1"`) dans les deux scripts ; `essai-android.ps1` doit redonner
-  `ANDROID OK` après l'extraction (rejouer S3 une fois, émulateur arrêté par PID). `Stop-Essai` appelle
-  `Stop-ActCraftEmulateur`. `Start-Sleep` est permis ici (script hors du joueur de scénarios). Les intitulés du sélecteur dépendent de la langue de l'image système : le motif
+  **Pas de copie** : `essai-android.ps1` **ne démarre pas** l'émulateur (contrat inchangé : un appareil est déjà là ;
+  en CI, `android-emulator-runner` le démarre, `ci.yml:208`). Extraire de `essai-android.ps1` dans
+  `scripts/android-commun.ps1` seulement ce qui est commun : la fonction `Adb` (appel borné), l'attente bornée de
+  l'appareil et de `sys.boot_completed` (`Wait-ActCraftDemarrage`), l'installation et le lancement de l'APK
+  (`Install-ActCraftApk`) et `Ecarter-Anr` — mêmes bornes, mêmes messages ; module chargé par point
+  (`. "$PSScriptRoot/android-commun.ps1"`) dans les deux scripts. `essai-android.ps1` garde son contrat et ses lignes
+  de sortie, et redonne `ANDROID OK` sur un émulateur démarré (rejouer S3 une fois) ; le job `android` de la CI ne
+  change pas de comportement (même commande, même dernière ligne). Le **démarrage local** de l'émulateur
+  (`Start-ActCraftEmulateur`, `-no-window -gpu host`, PID gardé) et son arrêt par PID (`Stop-ActCraftEmulateur`) restent
+  dans `essai-android-fichiers.ps1` ; `Stop-Essai` l'arrête. `Start-Sleep` est permis ici (script hors du joueur de scénarios). Les intitulés du sélecteur dépendent de la langue de l'image système : le motif
   accepte l'anglais et le français.
 
 - [ ] **Étape 2 : jouer l'essai.** Les deux commandes de la section « Test et commande bornée ». En cas d'échec,
@@ -5976,12 +6082,17 @@ ScenarioPlan pageScenario(ScenarioSet set)
   molette) ; après la mesure, le contrôle `page_flash` : trois changements, chacun suivi d'un `grabWindow` à la
   première image rendue (`frameSwapped`), pixel du centre de `witnesses().shapeRect` (converti en coordonnées de
   fenêtre par la vue) comparé au blanc ; `content_check.page_flash` = nombre de captures blanches, et
-  `content_check.ok` faux si > 0. Le verdict du scénario `page` suit les règles de `scroll` (images par seconde,
+  `content_check.ok` faux si > 0. Le JSON reçoit aussi `content_check.page_rebuilds_during_zoom` : écart de
+  `FixedPageItem::rebuildCount()` entre le `view.zoom` et la fin du scénario (page peinte affichée). En rendu logiciel
+  (preuve de tâche, ctest) il vaut 0 (nœuds vectoriels) ; **en D3D11 la clôture exige ≥ 2** (zoom posé, puis
+  ajustement : rastérisation refaite à chaque échelle). Aucun test ctest ne tourne en RHI (tous hors écran en rendu
+  logiciel, `QT_QUICK_BACKEND=software`) : le chemin RHI n'est prouvé que par ce relevé du banc à l'écran. Le verdict du scénario `page` suit les règles de `scroll` (images par seconde,
   images > 25 ms) ; `verdict.cpp` traite déjà les entrées autres que la molette comme des entrées mesurées : exclure
   `InputKind::Command` de la latence d'encre (aucune encre).
 
-  Tests : dans `tests/tst_bench_scenarios.cpp`, `pageScenarioFlipsPages` (court : 4 entrées `Command`, alternance
-  `page.next` / `page.previous`, 500 ms d'écart ; `allScenarios(Court).size() == 4`, dernier nommé `page`) ; dans
+  Tests : dans `tests/tst_bench_scenarios.cpp`, `pageScenarioFlipsPages` (court : **7** entrées `Command` — 4
+  changements de page en alternance `page.next` / `page.previous` à 500 ms d'écart, puis `page.next`, `view.zoom`
+  (argument 150) et `view.fit` à 700 ms d'écart ; complet : 23 entrées ; `allScenarios(Court).size() == 4`, dernier nommé `page`) ; dans
   `tests/tst_bench_result.cpp`, le nombre de scénarios lus passe de 3 à 4 (raison : scénario `page` ajouté) ; dans
   `tests/tst_bench_verdict.cpp`, seulement si un cas compte les scénarios. `scripts/resume-banc.ps1` ajoute une ligne
   `page` à son tableau ; `docs/banc.md` décrit le scénario et `page_flash`.
@@ -6015,6 +6126,10 @@ git -C <worktree> commit -m "Banc : scénario changement de page et contrôle d'
   `updatePaintNode` (fil principal bloqué) et toute la page peinte est reconstruite à chaque zoom posé. Mesuré par le
   scénario `page` en D3D11 à la clôture ; si les images de cette phase dépassent le budget, le lot cache (qui suit)
   déplace la rastérisation sur un fil secondaire derrière la même interface.
+- **H2b-7 — Deux redessins du cache vers une page à images** (L2-T14, L2-T23) : `setSource` émet `contentChanged`
+  (redessin qui reprend l'ancienne page, gardée jusqu'au prêt) puis `readyChanged` (redessin de la nouvelle) ; le
+  premier est inutile mais sans éclair. Consigné, pas corrigé au lot 2 : le lot cache (qui suit) peut ne demander le
+  redessin qu'au prêt ; le scénario `page` le mesure.
 - **H2b-6 — Dialogues non natifs** (décision 22) : aucun scénario de 2b n'ouvre de dialogue (commandes avec URL) ; le
   moyen relevé pour forcer les dialogues Qt Quick dans `actcraft-captures`, `QCoreApplication::setAttribute(
   Qt::AA_DontUseNativeDialogs)` avant la création de l'application, est laissé au premier lot dont un scénario doit
@@ -6046,7 +6161,8 @@ il part de l'interface `core::PageCache` figée ici (L2-T14) et ne change que so
    `docs/mesures/2026-10-15-lot1-socle.md` : tout critère tenu par la référence doit l'être encore (scénarios
    `stroke`, `zoom`, `scroll`), sinon une tâche de correction précède la clôture ; le scénario `page` (nouveau) est
    rapporté — avec ses images > 25 ms sur la page peinte et pendant les deux zooms posés (chemin RHI rastérisé,
-   H2b-5) —, et `content_check.page_flash = 0` exigé. Résumé commité `docs/mesures/<date>-lot2-document.md` (par
+   H2b-5) —, `content_check.page_flash = 0` exigé, et `content_check.page_rebuilds_during_zoom ≥ 2` exigé pour le
+   passage D3D11 (preuve que la rastérisation RHI a bien eu lieu). Résumé commité `docs/mesures/<date>-lot2-document.md` (par
    `scripts/resume-banc.ps1`) : il devient la référence du lot suivant (cache incrémental).
 6. **Paquets remis à Jérôme** : `scripts/paquet.ps1` + `scripts/essai-installateur.ps1` (`PAQUET OK`,
    `INSTALLATEUR OK`, `--version : ActCraft 0.2.0`), `scripts/paquet-android.ps1` (`APK OK`) ; l'association
