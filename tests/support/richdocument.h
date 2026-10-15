@@ -2,8 +2,9 @@
 
 // Document de test qui remplit chaque champ du modèle d'une valeur hors défaut (DA2) : allers-retours du
 // format natif (L2-T5, L2-T6) et des fichiers (L2-T17). Écrit par nous ; les « images » sont de faux octets
-// (le format ne les décode pas). tst_formats_nativejson::richDocumentFillsEveryField vérifie que chaque champ
-// est bien rempli.
+// (le format ne les décode pas). tst_formats_nativejson vérifie que chaque champ est rempli
+// (richDocumentFillsEveryField) et que deux champs frères de même type diffèrent dans une instance au moins
+// (richDocumentSeparatesSiblings) : sinon, les échanger dans l'écrivain ou le lecteur garderait l'empreinte.
 
 #include <actcraft/core/document.h>
 
@@ -45,6 +46,7 @@ inline actcraft::core::Document richDocument()
     rect.outline = 0xFF112233u;
     rect.outlineWidth = 2.5;
     rect.opacity = 0.75;
+    rect.windingFill = true; // `open` reste faux ici, vrai sur le chemin (o4)
     PageObject o1 = rect;
     o1.common.id = 1;
     o1.common.name = "Rectangle";
@@ -53,9 +55,8 @@ inline actcraft::core::Document richDocument()
     o1.common.locked = true;
     o1.common.translucency = 40;
     o1.common.restrictions.canMove = false;
-    o1.common.restrictions.canSize = false;
-    o1.common.restrictions.canRotate = false;
-    o1.common.transform = compose(rotation(30), translation(5.5, -2.25));
+    o1.common.restrictions.canSize = false; // canRotate reste vrai : o2 porte l'autre combinaison
+    o1.common.transform = compose(compose(scaling(2, 3), rotation(30)), translation(5.5, -2.25));
     o1.common.label = "Légende";
     Action action;
     action.kind = ActionKind::OnObject;
@@ -76,6 +77,8 @@ inline actcraft::core::Document richDocument()
     generated.seed = 7;
     PageObject o2 = generated;
     o2.common.id = 2;
+    o2.common.restrictions.canSize = false;
+    o2.common.restrictions.canRotate = false;
     p1.objects.push_back(o2);
 
     ImageObject picture;
@@ -98,7 +101,6 @@ inline actcraft::core::Document richDocument()
     path.kind = ShapeKind::Path;
     path.bounds = {-3, -3, 86, 66};
     path.paths = {{{0, 0}, {80, 0}, {80, 60}}, {{20, 20}, {60, 20}, {40, 50}}};
-    path.windingFill = true;
     path.open = true;
     path.polygon = {{1, 1}, {9, 1}, {5, 8}};
     path.fill = 0xFF010101u;
@@ -140,12 +142,14 @@ inline actcraft::core::Document richDocument()
     first.italic = true;
     first.color = 0xFFFF0000u;
     first.underline = true;
-    first.strikeOut = true;
+    first.strikeOut = false;
     first.baseline = {0, 30};
     first.bounds = {0, 0, 90, 36};
     TextRun second = first;
     second.text = "tout";
     second.weight = 400;
+    second.italic = false;
+    second.strikeOut = true;
     text.runs = {first, second};
     PageObject o6 = text;
     o6.common.id = 6;
@@ -157,7 +161,7 @@ inline actcraft::core::Document richDocument()
     media.media = mp3;
     media.fileName = "chanson.mp3";
     media.autoPlay = true;
-    media.loop = true;
+    media.loop = false; // vrai sur le média de la page 3
     PageObject o7 = media;
     o7.common.id = 7;
     p1.objects.push_back(o7);
@@ -201,7 +205,7 @@ inline actcraft::core::Document richDocument()
     p2.background.fill.gradient = GradientKind::DiagonalUp;
     p2.background.image = png;
     p2.grid.visible = true;
-    p2.grid.allowSnap = true;
+    p2.grid.allowSnap = false; // vrai sur la grille de la page 3
     p2.grid.onTop = true;
     p2.grid.thumbnailScale = 0.5;
     p2.grid.defaultScale = 2;
@@ -210,19 +214,36 @@ inline actcraft::core::Document richDocument()
     coarse.stepX = 50;
     coarse.stepY = 25;
     coarse.color = 0xFF0000FFu;
+    coarse.snap = false;
     GridLevel fine;
     fine.visible = false;
-    fine.snap = false;
     fine.start = {3, 4};
     fine.pattern = GridPattern::Angle;
     fine.angle = 45;
     fine.line = GridLine::Dotted;
     fine.drawY = false;
-    fine.drawX = false;
     fine.stepX = 64;
     fine.stepY = 48;
     fine.color = 0xFF00FF00u;
-    p2.grid.levels = {coarse, fine};
+    GridLevel third;
+    third.drawX = false;
+    third.drawY = false;
+    third.stepX = 16;
+    third.stepY = 12;
+    third.color = 0xFF808080u;
+    p2.grid.levels = {coarse, fine, third};
+
+    Page& p3 = pages[2];
+    p3.grid.allowSnap = true;
+    p3.grid.onTop = true;
+    Media song;
+    song.bounds = {500, 300, 32, 24};
+    song.media = mp3;
+    song.fileName = "boucle.mp3";
+    song.loop = true;
+    PageObject o11 = song;
+    o11.common.id = 11;
+    p3.objects.push_back(o11);
 
     Document document(std::move(pages));
     document.setTitle("Document riche");

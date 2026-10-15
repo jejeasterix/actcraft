@@ -11,6 +11,7 @@
 #include <limits>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -32,8 +33,220 @@ using namespace actcraft::core;
 
 namespace {
 
-// --- Noms
-// -------------------------------------------------------------------------------------------------------
+// --- Noms des énumérations -----------------------------------------------------------------------------
+
+// Un switch sans « default » par énumération, seul endroit qui nomme ses valeurs : un énumérateur ajouté au
+// modèle sans son nom ne compile pas (-Wswitch sous Clang et GCC ; C4062, mis en erreur ci-dessous, sous
+// MSVC). Une valeur hors énumération (conversion fautive) a un nom vide, que la lecture signale. Les tables
+// de lecture en sont déduites à la compilation (namesOf).
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma warning(error : 4062)
+#endif
+
+constexpr std::string_view enumName(Layer value) noexcept
+{
+    switch (value) {
+    case Layer::Background:
+        return "background";
+    case Layer::Bottom:
+        return "bottom";
+    case Layer::Middle:
+        return "middle";
+    case Layer::Top:
+        return "top";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(PenStyle value) noexcept
+{
+    switch (value) {
+    case PenStyle::None:
+        return "none";
+    case PenStyle::Solid:
+        return "solid";
+    case PenStyle::Dash:
+        return "dash";
+    case PenStyle::Dot:
+        return "dot";
+    case PenStyle::DashDot:
+        return "dashDot";
+    case PenStyle::DashDotDot:
+        return "dashDotDot";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(PenCap value) noexcept
+{
+    switch (value) {
+    case PenCap::Flat:
+        return "flat";
+    case PenCap::Square:
+        return "square";
+    case PenCap::Round:
+        return "round";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(PenJoin value) noexcept
+{
+    switch (value) {
+    case PenJoin::Miter:
+        return "miter";
+    case PenJoin::Bevel:
+        return "bevel";
+    case PenJoin::Round:
+        return "round";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(FillKind value) noexcept
+{
+    switch (value) {
+    case FillKind::None:
+        return "none";
+    case FillKind::Solid:
+        return "solid";
+    case FillKind::Pattern:
+        return "pattern";
+    case FillKind::Gradient:
+        return "gradient";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(GradientKind value) noexcept
+{
+    switch (value) {
+    case GradientKind::Vertical:
+        return "vertical";
+    case GradientKind::Horizontal:
+        return "horizontal";
+    case GradientKind::DiagonalDown:
+        return "diagonalDown";
+    case GradientKind::DiagonalUp:
+        return "diagonalUp";
+    case GradientKind::Radial:
+        return "radial";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(ActionKind value) noexcept
+{
+    switch (value) {
+    case ActionKind::Other:
+        return "other";
+    case ActionKind::Navigate:
+        return "navigate";
+    case ActionKind::OpenExternal:
+        return "openExternal";
+    case ActionKind::OnObject:
+        return "onObject";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(ObjectKind value) noexcept
+{
+    switch (value) {
+    case ObjectKind::Shape:
+        return "shape";
+    case ObjectKind::Image:
+        return "image";
+    case ObjectKind::Stroke:
+        return "stroke";
+    case ObjectKind::Line:
+        return "line";
+    case ObjectKind::Text:
+        return "text";
+    case ObjectKind::Media:
+        return "media";
+    case ObjectKind::Group:
+        return "group";
+    case ObjectKind::Connector:
+        return "connector";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(ShapeKind value) noexcept
+{
+    switch (value) {
+    case ShapeKind::Rectangle:
+        return "rectangle";
+    case ShapeKind::Ellipse:
+        return "ellipse";
+    case ShapeKind::Polygon:
+        return "polygon";
+    case ShapeKind::Path:
+        return "path";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(ImagePattern value) noexcept
+{
+    switch (value) {
+    case ImagePattern::LinearGradient:
+        return "linearGradient";
+    case ImagePattern::Checker:
+        return "checker";
+    case ImagePattern::Rings:
+        return "rings";
+    case ImagePattern::SolidCenter:
+        return "solidCenter";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(StrokeKind value) noexcept
+{
+    switch (value) {
+    case StrokeKind::Pen:
+        return "pen";
+    case StrokeKind::Highlighter:
+        return "highlighter";
+    case StrokeKind::Revealer:
+        return "revealer";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(GridPattern value) noexcept
+{
+    switch (value) {
+    case GridPattern::Normal:
+        return "normal";
+    case GridPattern::Diagonal45:
+        return "diagonal45";
+    case GridPattern::Angle:
+        return "angle";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(GridLine value) noexcept
+{
+    switch (value) {
+    case GridLine::Points:
+        return "points";
+    case GridLine::Cross:
+        return "cross";
+    case GridLine::Solid:
+        return "solid";
+    case GridLine::Dotted:
+        return "dotted";
+    case GridLine::Dashed:
+        return "dashed";
+    case GridLine::BigDots:
+        return "bigDots";
+    }
+    return {};
+}
 
 template <typename E> struct Named
 {
@@ -41,61 +254,49 @@ template <typename E> struct Named
     std::string_view name;
 };
 
-constexpr std::array<Named<Layer>, 4> kLayers{{{Layer::Background, "background"},
-                                               {Layer::Bottom, "bottom"},
-                                               {Layer::Middle, "middle"},
-                                               {Layer::Top, "top"}}};
-constexpr std::array<Named<PenStyle>, 6> kPenStyles{{{PenStyle::None, "none"},
-                                                     {PenStyle::Solid, "solid"},
-                                                     {PenStyle::Dash, "dash"},
-                                                     {PenStyle::Dot, "dot"},
-                                                     {PenStyle::DashDot, "dashDot"},
-                                                     {PenStyle::DashDotDot, "dashDotDot"}}};
-constexpr std::array<Named<PenCap>, 3> kPenCaps{
-    {{PenCap::Flat, "flat"}, {PenCap::Square, "square"}, {PenCap::Round, "round"}}};
-constexpr std::array<Named<PenJoin>, 3> kPenJoins{
-    {{PenJoin::Miter, "miter"}, {PenJoin::Bevel, "bevel"}, {PenJoin::Round, "round"}}};
-constexpr std::array<Named<FillKind>, 4> kFillKinds{{{FillKind::None, "none"},
-                                                     {FillKind::Solid, "solid"},
-                                                     {FillKind::Pattern, "pattern"},
-                                                     {FillKind::Gradient, "gradient"}}};
-constexpr std::array<Named<GradientKind>, 5> kGradients{{{GradientKind::Vertical, "vertical"},
-                                                         {GradientKind::Horizontal, "horizontal"},
-                                                         {GradientKind::DiagonalDown, "diagonalDown"},
-                                                         {GradientKind::DiagonalUp, "diagonalUp"},
-                                                         {GradientKind::Radial, "radial"}}};
-constexpr std::array<Named<ActionKind>, 4> kActionKinds{{{ActionKind::Other, "other"},
-                                                         {ActionKind::Navigate, "navigate"},
-                                                         {ActionKind::OpenExternal, "openExternal"},
-                                                         {ActionKind::OnObject, "onObject"}}};
-// Dans l'ordre du variant : blankObject() construit le type d'après ce rang (static_assert plus bas).
-constexpr std::array<Named<ObjectKind>, 8> kObjectKinds{{{ObjectKind::Shape, "shape"},
-                                                         {ObjectKind::Image, "image"},
-                                                         {ObjectKind::Stroke, "stroke"},
-                                                         {ObjectKind::Line, "line"},
-                                                         {ObjectKind::Text, "text"},
-                                                         {ObjectKind::Media, "media"},
-                                                         {ObjectKind::Group, "group"},
-                                                         {ObjectKind::Connector, "connector"}}};
-constexpr std::array<Named<ShapeKind>, 4> kShapeKinds{{{ShapeKind::Rectangle, "rectangle"},
-                                                       {ShapeKind::Ellipse, "ellipse"},
-                                                       {ShapeKind::Polygon, "polygon"},
-                                                       {ShapeKind::Path, "path"}}};
-constexpr std::array<Named<ImagePattern>, 4> kPatterns{{{ImagePattern::LinearGradient, "linearGradient"},
-                                                        {ImagePattern::Checker, "checker"},
-                                                        {ImagePattern::Rings, "rings"},
-                                                        {ImagePattern::SolidCenter, "solidCenter"}}};
-constexpr std::array<Named<StrokeKind>, 3> kStrokeKinds{
-    {{StrokeKind::Pen, "pen"}, {StrokeKind::Highlighter, "highlighter"}, {StrokeKind::Revealer, "revealer"}}};
-constexpr std::array<Named<GridPattern>, 3> kGridPatterns{{{GridPattern::Normal, "normal"},
-                                                           {GridPattern::Diagonal45, "diagonal45"},
-                                                           {GridPattern::Angle, "angle"}}};
-constexpr std::array<Named<GridLine>, 6> kGridLines{{{GridLine::Points, "points"},
-                                                     {GridLine::Cross, "cross"},
-                                                     {GridLine::Solid, "solid"},
-                                                     {GridLine::Dotted, "dotted"},
-                                                     {GridLine::Dashed, "dashed"},
-                                                     {GridLine::BigDots, "bigDots"}}};
+// Valeurs nommées de E, dans l'ordre des valeurs : E tient sur un octet, les 256 valeurs sont essayées à la
+// compilation.
+template <typename E> constexpr std::size_t namedCount()
+{
+    static_assert(std::is_same_v<std::underlying_type_t<E>, std::uint8_t>,
+                  "énumération sur un octet attendue (namesOf essaie les 256 valeurs)");
+    std::size_t count = 0;
+    for (unsigned u = 0; u <= 0xFFu; ++u) {
+        if (!enumName(static_cast<E>(u)).empty()) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+template <typename E> constexpr std::array<Named<E>, namedCount<E>()> namesOf()
+{
+    std::array<Named<E>, namedCount<E>()> table{};
+    std::size_t k = 0;
+    for (unsigned u = 0; u <= 0xFFu; ++u) {
+        const E value = static_cast<E>(u);
+        if (!enumName(value).empty()) {
+            table[k].value = value;
+            table[k].name = enumName(value);
+            ++k;
+        }
+    }
+    return table;
+}
+
+constexpr auto kLayers = namesOf<Layer>();
+constexpr auto kPenStyles = namesOf<PenStyle>();
+constexpr auto kPenCaps = namesOf<PenCap>();
+constexpr auto kPenJoins = namesOf<PenJoin>();
+constexpr auto kFillKinds = namesOf<FillKind>();
+constexpr auto kGradients = namesOf<GradientKind>();
+constexpr auto kActionKinds = namesOf<ActionKind>();
+constexpr auto kObjectKinds = namesOf<ObjectKind>();
+constexpr auto kShapeKinds = namesOf<ShapeKind>();
+constexpr auto kPatterns = namesOf<ImagePattern>();
+constexpr auto kStrokeKinds = namesOf<StrokeKind>();
+constexpr auto kGridPatterns = namesOf<GridPattern>();
+constexpr auto kGridLines = namesOf<GridLine>();
 
 // Un nom ou une valeur en double : la relecture rendrait une autre valeur que celle écrite.
 template <typename E, std::size_t N> constexpr bool distinct(const std::array<Named<E>, N>& table)
@@ -131,15 +332,9 @@ QString latin1(std::string_view text)
     return QString::fromLatin1(text.data(), static_cast<qsizetype>(text.size()));
 }
 
-// Valeur hors table (énumérateur ajouté au modèle sans son nom) : le premier nom, qui se relit sans erreur.
-template <typename E, std::size_t N> QString nameOf(const std::array<Named<E>, N>& table, E value)
+template <typename E> QString nameText(E value)
 {
-    for (const Named<E>& entry : table) {
-        if (entry.value == value) {
-            return latin1(entry.name);
-        }
-    }
-    return latin1(table[0].name);
+    return latin1(enumName(value));
 }
 
 template <typename E, std::size_t N>
@@ -153,8 +348,7 @@ std::optional<E> valueOf(const std::array<Named<E>, N>& table, const QString& te
     return std::nullopt;
 }
 
-// --- Écriture
-// ---------------------------------------------------------------------------------------------------
+// --- Écriture ------------------------------------------------------------------------------------------
 
 QString str(const std::string& s)
 {
@@ -206,27 +400,29 @@ QJsonArray transformJson(const Transform& transform)
 QJsonObject outlineJson(const Outline& pen)
 {
     const auto& [style, color, width, cap, join] = pen;
-    return QJsonObject{{u"style"_s, nameOf(kPenStyles, style)},
+    return QJsonObject{{u"style"_s, nameText(style)},
                        {u"color"_s, colorText(color)},
                        {u"width"_s, width},
-                       {u"cap"_s, nameOf(kPenCaps, cap)},
-                       {u"join"_s, nameOf(kPenJoins, join)}};
+                       {u"cap"_s, nameText(cap)},
+                       {u"join"_s, nameText(join)}};
 }
 
 QJsonObject fillJson(const Fill& brush)
 {
     const auto& [kind, color, color2, gradient, pattern, opaqueBackground, backgroundColor] = brush;
-    return QJsonObject{
-        {u"kind"_s, nameOf(kFillKinds, kind)},     {u"color"_s, colorText(color)},
-        {u"color2"_s, colorText(color2)},          {u"gradient"_s, nameOf(kGradients, gradient)},
-        {u"pattern"_s, static_cast<int>(pattern)}, // Qt::BrushStyle : un nombre dans le modèle
-        {u"opaqueBackground"_s, opaqueBackground}, {u"backgroundColor"_s, colorText(backgroundColor)}};
+    return QJsonObject{{u"kind"_s, nameText(kind)},
+                       {u"color"_s, colorText(color)},
+                       {u"color2"_s, colorText(color2)},
+                       {u"gradient"_s, nameText(gradient)},
+                       {u"pattern"_s, static_cast<int>(pattern)}, // Qt::BrushStyle : un nombre dans le modèle
+                       {u"opaqueBackground"_s, opaqueBackground},
+                       {u"backgroundColor"_s, colorText(backgroundColor)}};
 }
 
 QJsonObject actionJson(const Action& action)
 {
     const auto& [kind, sourceType, command, target, resource] = action;
-    return QJsonObject{{u"kind"_s, nameOf(kActionKinds, kind)},
+    return QJsonObject{{u"kind"_s, nameText(kind)},
                        {u"sourceType"_s, static_cast<int>(sourceType)},
                        {u"command"_s, static_cast<int>(command)},
                        {u"target"_s, idValue(target)},
@@ -239,7 +435,7 @@ void writeCommon(QJsonObject& j, const ObjectCommon& common)
         common;
     j.insert(u"id"_s, idValue(id));
     j.insert(u"name"_s, str(name));
-    j.insert(u"layer"_s, nameOf(kLayers, layer));
+    j.insert(u"layer"_s, nameText(layer));
     j.insert(u"visible"_s, visible);
     j.insert(u"locked"_s, locked);
     j.insert(u"translucency"_s, static_cast<int>(translucency));
@@ -266,7 +462,7 @@ void writeBody(QJsonObject& j, const Shape& shape)
 {
     const auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill, pen,
                  brush] = shape;
-    j.insert(u"shape"_s, nameOf(kShapeKinds, kind));
+    j.insert(u"shape"_s, nameText(kind));
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"polygon"_s, pairsJson(polygon));
     j.insert(u"fill"_s, colorText(fill));
@@ -291,7 +487,7 @@ void writeBody(QJsonObject& j, const ImageObject& image)
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"sourceWidth"_s, static_cast<int>(sourceWidth));
     j.insert(u"sourceHeight"_s, static_cast<int>(sourceHeight));
-    j.insert(u"pattern"_s, nameOf(kPatterns, pattern));
+    j.insert(u"pattern"_s, nameText(pattern));
     j.insert(u"colorA"_s, colorText(colorA));
     j.insert(u"colorB"_s, colorText(colorB));
     j.insert(u"seed"_s, static_cast<double>(seed));
@@ -315,8 +511,8 @@ void writeBody(QJsonObject& j, const Stroke& stroke)
     j.insert(u"points"_s, flat);
     j.insert(u"baseWidth"_s, baseWidth);
     j.insert(u"color"_s, colorText(color));
-    j.insert(u"kind"_s, nameOf(kStrokeKinds, kind));
-    j.insert(u"cap"_s, nameOf(kPenCaps, cap));
+    j.insert(u"kind"_s, nameText(kind));
+    j.insert(u"cap"_s, nameText(cap));
 }
 
 void writeBody(QJsonObject& j, const Line& line)
@@ -388,7 +584,7 @@ void writeBody(QJsonObject& j, const Connector& connector)
 QJsonObject objectJson(const PageObject& object)
 {
     QJsonObject j;
-    j.insert(u"type"_s, nameOf(kObjectKinds, kindOf(object)));
+    j.insert(u"type"_s, nameText(kindOf(object)));
     writeCommon(j, object.common);
     // std::visit sur le variant de base (body), jamais sur PageObject (model.h).
     std::visit([&j](const auto& value) { writeBody(j, value); }, body(object));
@@ -404,9 +600,9 @@ QJsonObject gridLevelJson(const GridLevel& level)
                        {u"stepX"_s, stepX},
                        {u"stepY"_s, stepY},
                        {u"color"_s, colorText(color)},
-                       {u"pattern"_s, nameOf(kGridPatterns, pattern)},
+                       {u"pattern"_s, nameText(pattern)},
                        {u"angle"_s, angle},
-                       {u"line"_s, nameOf(kGridLines, line)},
+                       {u"line"_s, nameText(line)},
                        {u"drawX"_s, drawX},
                        {u"drawY"_s, drawY}};
 }
@@ -446,10 +642,11 @@ QJsonObject pageJson(const Page& page)
     return j;
 }
 
-// --- Lecture
-// ----------------------------------------------------------------------------------------------------
+// --- Lecture -------------------------------------------------------------------------------------------
 
-constexpr double kMaxExactId = 9007199254740992.0; // 2^53
+// 2^53 : 2^53 + 1 s'écrit 2^53 dans un réel JSON, la valeur est ambiguë ; le plus grand identifiant porté
+// exactement est 2^53 − 1.
+constexpr double kMaxExactId = 9007199254740992.0;
 
 int hexDigit(QChar c)
 {
@@ -628,7 +825,7 @@ public:
             return 0;
         }
         const double d = v.toDouble();
-        if (!v.isDouble() || !std::isfinite(d) || d < 0 || d != std::floor(d) || d > kMaxExactId) {
+        if (!v.isDouble() || !std::isfinite(d) || d < 0 || d != std::floor(d) || d >= kMaxExactId) {
             warn(u"« %1 » : identifiant invalide"_s.arg(key));
             return 0;
         }
@@ -672,7 +869,11 @@ public:
         std::vector<PointF> out;
         out.reserve(n.size() / 2);
         for (std::size_t i = 0; i + 1 < n.size(); i += 2) {
-            out.push_back(PointF{n[i], n[i + 1]});
+            PointF point;
+            auto& [x, y] = point;
+            x = n[i];
+            y = n[i + 1];
+            out.push_back(point);
         }
         return out;
     }
@@ -705,22 +906,41 @@ public:
         return out;
     }
 
-    PointF readPoint(const QJsonObject& o, QStringView key, PointF fallback)
+    // Liaisons nommées comme ailleurs : un champ ajouté à PointF, RectF ou Transform casse la compilation.
+    PointF readPoint(const QJsonObject& o, QStringView key, PointF point)
     {
-        const std::optional<std::array<double, 2>> a = readFixed<2>(o, key);
-        return a ? PointF{(*a)[0], (*a)[1]} : fallback;
+        if (const std::optional<std::array<double, 2>> a = readFixed<2>(o, key)) {
+            auto& [x, y] = point;
+            x = (*a)[0];
+            y = (*a)[1];
+        }
+        return point;
     }
 
-    RectF readRect(const QJsonObject& o, QStringView key, RectF fallback)
+    RectF readRect(const QJsonObject& o, QStringView key, RectF rect)
     {
-        const std::optional<std::array<double, 4>> a = readFixed<4>(o, key);
-        return a ? RectF{(*a)[0], (*a)[1], (*a)[2], (*a)[3]} : fallback;
+        if (const std::optional<std::array<double, 4>> a = readFixed<4>(o, key)) {
+            auto& [x, y, width, height] = rect;
+            x = (*a)[0];
+            y = (*a)[1];
+            width = (*a)[2];
+            height = (*a)[3];
+        }
+        return rect;
     }
 
-    Transform readTransform(const QJsonObject& o, QStringView key, Transform fallback)
+    Transform readTransform(const QJsonObject& o, QStringView key, Transform transform)
     {
-        const std::optional<std::array<double, 6>> a = readFixed<6>(o, key);
-        return a ? Transform{(*a)[0], (*a)[1], (*a)[2], (*a)[3], (*a)[4], (*a)[5]} : fallback;
+        if (const std::optional<std::array<double, 6>> a = readFixed<6>(o, key)) {
+            auto& [m11, m12, m21, m22, dx, dy] = transform;
+            m11 = (*a)[0];
+            m12 = (*a)[1];
+            m21 = (*a)[2];
+            m22 = (*a)[3];
+            dx = (*a)[4];
+            dy = (*a)[5];
+        }
+        return transform;
     }
 
     Outline readOutline(const QJsonObject& parent, QStringView key)
@@ -1015,6 +1235,15 @@ Page readPage(Reader& r, const QJsonObject& j)
         }
     }
     r.where = pageWhere;
+    // Page::objects est rangé par couche (model.h ; isLayerOrdered, L2-T2) : un fichier désordonné est remis
+    // en ordre, stable dans chaque couche, avec un avertissement. Rien n'est perdu, d'où la tolérance.
+    const auto below = [](const PageObject& a, const PageObject& b) {
+        return a.common.layer < b.common.layer;
+    };
+    if (!std::is_sorted(objects.begin(), objects.end(), below)) {
+        r.warn(u"objets hors de l'ordre des couches, remis en ordre"_s);
+        std::stable_sort(objects.begin(), objects.end(), below);
+    }
     return page;
 }
 
