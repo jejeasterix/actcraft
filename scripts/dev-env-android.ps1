@@ -13,6 +13,10 @@ function Set-ActCraftDefault([string]$Nom, [string]$Valeur) {
     }
 }
 
+# Un JAVA_HOME qui désigne un JRE (sans javac) n'est pas gardé : Gradle exige un JDK (« does not provide the
+# required capabilities: [JAVA_COMPILER] »).
+$javac = if ($IsWindows) { 'javac.exe' } else { 'javac' }
+if ($env:JAVA_HOME -and -not (Test-Path (Join-Path $env:JAVA_HOME "bin/$javac"))) { $env:JAVA_HOME = $null }
 $jdk = Join-Path $outils 'jdk-21'
 if (-not (Test-Path $jdk)) { $jdk = Join-Path $outils 'jdk-17' }
 Set-ActCraftDefault 'JAVA_HOME' $jdk
@@ -44,6 +48,9 @@ foreach ($d in $dossiers) {
 if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
     # `python3` est un raccourci du Microsoft Store sous Windows : `python` d'abord.
     $python = if (Get-Command python -ErrorAction SilentlyContinue) { 'python' } else { 'python3' }
-    $ninjaDir = & $python -c "import ninja, os; print(os.path.join(os.path.dirname(ninja.__file__), 'data', 'bin'))"
+    # ninja ≥ 1.11.1.2 (pip) range ninja.exe dans le dossier Scripts et l'annonce par ninja.BIN_DIR ; avant, sous
+    # ninja/data/bin. Sans Visual Studio (qui fournit le sien à dev-env.ps1), seul ce chemin le trouve.
+    $ninjaDir = & $python -c "import ninja, os; print(getattr(ninja, 'BIN_DIR', '') or os.path.join(os.path.dirname(ninja.__file__), 'data', 'bin'))"
     $env:PATH = "$ninjaDir$sep$env:PATH"
+    if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) { throw "ninja introuvable ($ninjaDir) : python -m pip install --user ninja" }
 }
