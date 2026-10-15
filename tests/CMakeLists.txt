@@ -34,6 +34,8 @@ actcraft_add_test(tst_ui
 include(${CMAKE_CURRENT_SOURCE_DIR}/verifications.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/core.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/actions.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/formats.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/flipchart.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/render.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/input.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/tools.cmake)

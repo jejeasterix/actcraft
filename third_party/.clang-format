@@ -1,0 +1,3 @@
+# Code tiers tel que publié : jamais reformaté. Le job « format » de la CI passe tous les *.h suivis par git.
+DisableFormat: true
+SortIncludes: Never

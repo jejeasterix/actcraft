@@ -12,7 +12,8 @@ if (-not $clangFormat) {
 }
 if (-not $clangFormat) { throw 'clang-format introuvable : python -m pip install --user clang-format' }
 
-$files = git ls-files --cached --others --exclude-standard -- '*.cpp' '*.h' '*.hpp'
+# Code tiers (third_party/) : tel que publié, jamais reformaté.
+$files = git ls-files --cached --others --exclude-standard -- '*.cpp' '*.h' '*.hpp' ':!third_party/**'
 if (-not $files) { exit 0 }
 
 if ($Check) {
