@@ -2,12 +2,18 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - "essai-ci/**"
+      - "!essai-ci/release-**"
   pull_request:
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 env:
   QT_VERSION: "6.12.0"
@@ -15,8 +21,9 @@ env:
 jobs:
   format:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Vérifier le format C++
         run: |
           pip install clang-format==23.1.3
@@ -32,17 +39,18 @@ jobs:
           - os: macos-latest
             qt_arch: clang_64
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
 
-      # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 (nouveau découpage du dépôt Qt) :
-      # on prend la version de développement, vérifiée le 2026-10-13.
+      # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 (nouveau découpage du dépôt Qt) : version de développement,
+      # épinglée sur le commit vérifié par les runs du 2026-10-15 (même commit dans les trois jobs).
       - name: Installer Ninja et aqtinstall
-        run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall"
+        run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
 
       - name: Installer Qt
         shell: bash
@@ -53,7 +61,7 @@ jobs:
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
 
-      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
         if: runner.os == 'Windows'
 
       - name: Configurer
@@ -77,3 +85,124 @@ jobs:
           ./build/debug/actcraft-bench --scenario court --rendu auto --taille 1280x800 --sortie "$RUNNER_TEMP/bench-macos.json"
           echo "code de sortie du banc : $?"
           python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print('graphics_api =', d['graphics_api'])" "$RUNNER_TEMP/bench-macos.json"
+
+  # S1 : installateur construit et essayé, jamais téléversé (DA9).
+  paquet-windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Installer Ninja et aqtinstall
+        run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+
+      - name: Installer Qt
+        shell: bash
+        run: |
+          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats --outputdir "$RUNNER_TEMP/Qt"
+          dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
+          echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
+          echo "${dir%/}/bin" >> "$GITHUB_PATH"
+
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      - name: Installer Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe introuvable après installation" }
+          "ACTCRAFT_ISCC=$iscc" >> $env:GITHUB_ENV
+
+      # Chaque script finit par une ligne de verdict (« … OK » / « … EN ECHEC : … ») : la CI l'exige en plus du code.
+      - name: Construire l'installateur
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File ./scripts/paquet.ps1 | Tee-Object -FilePath "$env:RUNNER_TEMP/paquet.txt"
+          if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/paquet.txt" -Tail 1) -notmatch '^PAQUET OK : ') { exit 1 }
+
+      # S1 dans une vraie fenêtre, rendu D3D11 (WARP sur l'exécuteur sans GPU).
+      - name: Essai de l'installateur (S1)
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -Rendu d3d11 | Tee-Object -FilePath "$env:RUNNER_TEMP/s1.txt"
+          if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/s1.txt" -Tail 1) -ne 'INSTALLATEUR OK') { exit 1 }
+
+  # S3 : APK arm64-v8a et x86_64 construits, x86_64 essayé sur l'émulateur (KVM), jamais téléversés (DA9).
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # Un démon Gradle resté vivant verrouille le dossier de construction (piège L1-T17).
+      GRADLE_OPTS: -Dorg.gradle.daemon=false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      # Qt 6.12 pour Android exige JDK 21 (VERIF jdk17, docs/verifications/2026-10-14-outillage-paquets.md).
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Versions de la chaîne Android
+        run: |
+          cat packaging/android/versions.env >> "$GITHUB_ENV"
+          echo "ACTCRAFT_VERSION=$(pwsh -NoProfile -Command '. ./scripts/version-projet.ps1; Get-ActCraftVersion')" >> "$GITHUB_ENV"
+
+      - name: Installer Ninja, aqtinstall et Pillow
+        run: python -m pip install ninja pillow "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+
+      - name: Installer Qt (hôte et Android)
+        run: |
+          python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtimageformats --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt all_os android "$QT_VERSION" android_arm64_v8a -m qtshadertools qtimageformats --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt all_os android "$QT_VERSION" android_x86_64 -m qtshadertools qtimageformats --outputdir "$RUNNER_TEMP/Qt"
+          echo "ACTCRAFT_QT_HOST_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
+          echo "ACTCRAFT_QT_ANDROID_ARM64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a" >> "$GITHUB_ENV"
+          echo "ACTCRAFT_QT_ANDROID_X86_64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_x86_64" >> "$GITHUB_ENV"
+
+      - name: Installer le NDK, la plateforme et les build-tools
+        run: |
+          sdkmanager="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdkmanager" --licenses > /dev/null
+          "$sdkmanager" "ndk;$ANDROID_NDK_VERSION" "build-tools;$ANDROID_BUILD_TOOLS" "platforms;android-$ANDROID_PLATFORM"
+          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+
+      - name: Construire les APK
+        run: |
+          pwsh -NoProfile -File ./scripts/paquet-android.ps1 | tee "$RUNNER_TEMP/apk.txt"
+          tail -n 1 "$RUNNER_TEMP/apk.txt" | grep -qx 'APK OK'
+
+      # L'émulateur (qemu) charge libpulse.so.0, absente de l'image ubuntu-latest (run 38682097874).
+      - name: Activer KVM et installer libpulse0
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo apt-get update -qq && sudo apt-get install -y -qq libpulse0 > /dev/null
+
+      # GPU de l'émulateur : lavapipe (ANGLE sur le Vulkan logiciel de Mesa, fourni avec l'émulateur). SwiftShader
+      # (swiftshader_indirect, software) dessine chaque rectangle en un triangle (VERIF s3-rendu, s3-ci) : l'essai
+      # reste strict, rectangles entiers compris.
+      - name: Essai sur l'émulateur (S3)
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ env.ANDROID_EMULATOR_API }}
+          arch: x86_64
+          target: google_apis
+          profile: ${{ env.ANDROID_AVD_PROFILE }}
+          disable-animations: true
+          emulator-options: -no-window -gpu lavapipe -noaudio -no-boot-anim -no-snapshot
+          # Émulateur et image système épinglés (packaging/android/versions.env, VERIF s3-ci) : le rendu juste de
+          # lavapipe est prouvé sur ces versions-là.
+          emulator-build: ${{ env.ANDROID_EMULATOR_BUILD }}
+          pre-emulator-launch-script: f="$ANDROID_SDK_ROOT/system-images/android-$ANDROID_EMULATOR_API/google_apis/x86_64/source.properties"; grep Pkg.Revision "$f"; grep -qx "Pkg.Revision=$ANDROID_SYSTEM_IMAGE_REVISION" "$f"
+          script: pwsh -NoProfile -File ./scripts/essai-android.ps1 -Apk build/paquet/ActCraft-${{ env.ACTCRAFT_VERSION }}-x86_64.apk -Sortie build/android-essai > build/essai-android.txt 2>&1; s=$?; cat build/essai-android.txt; test $s -eq 0 && tail -n 1 build/essai-android.txt | grep -qx 'ANDROID OK'
