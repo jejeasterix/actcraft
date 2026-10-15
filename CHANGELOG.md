@@ -4,7 +4,7 @@ Les versions d'ActCraft, de la plus récente à la plus ancienne. Une section pa
 chaque lot (décision 31 du cadrage `docs/specs/2026-10-14-livraison-complete-cadrage.md`) ; la section sert de notes
 à la release correspondante.
 
-## 0.1.0 — à paraître
+## 0.1.0 — 2026-10-15
 
 Premier socle utilisable : une interface, le stylo en couleurs, plusieurs pages, et les deux paquets.
 
