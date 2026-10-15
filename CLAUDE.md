@@ -5,9 +5,11 @@ Tout texte destiné à Jérôme en français. Code, identifiants et commandes en
 français.
 
 ## Qu'est-ce qu'ActCraft
-Logiciel libre de tableau blanc interactif, réécriture en C++20 / Qt 6.12 Quick de l'application Python
-d'ActCraft (clone d'ActivInspire Studio 3.5.18 construit par rétro-ingénierie). **Lire `docs/BRIEF.md` avant
-toute session** : objectifs, décisions, matériel cible, budget de fluidité, architecture, plan.
+Logiciel de tableau blanc interactif au code source public (PolyForm Noncommercial 1.0.0), réécriture en
+C++20 / Qt 6.12 Quick de l'application Python d'ActCraft (clone d'ActivInspire Studio 3.5.18 construit par
+rétro-ingénierie). **Lire `docs/BRIEF.md` avant toute session** : objectifs, décisions, matériel cible, budget de
+fluidité, architecture, plan.
+**Puis lire `docs/A-TRAITER.md`** : points ouverts laissés par les sessions précédentes ; le tenir à jour.
 
 Priorité absolue : **la fluidité**. Toute affirmation de performance s'appuie sur une mesure du banc (`bench/`),
 jamais sur une intuition.

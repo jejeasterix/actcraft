@@ -1,6 +1,6 @@
 # ActCraft
 
-Logiciel libre de tableau blanc interactif pour la classe, écrit en C++20 et Qt 6 Quick.
+Logiciel de tableau blanc interactif pour la classe, au code source public, écrit en C++20 et Qt 6 Quick.
 
 Objectifs, dans l'ordre :
 
@@ -55,4 +55,8 @@ Détails : [`docs/BRIEF.md`](docs/BRIEF.md).
 
 ## Licence
 
-[MIT](LICENSE). Qt est utilisé sous licence LGPLv3.
+[PolyForm Noncommercial 1.0.0](LICENSE) : usage, modification et diffusion libres à des fins non commerciales.
+Les établissements d'enseignement, les organismes publics et les associations peuvent l'utiliser librement.
+L'usage commercial demande l'accord écrit de l'auteur.
+
+Les versions publiées avant le 2026-10-14 restent sous licence MIT. Qt est utilisé sous licence LGPLv3.

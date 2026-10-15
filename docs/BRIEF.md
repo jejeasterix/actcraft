@@ -11,7 +11,7 @@ nouvelle stack. Exigences de Jérôme, dans l'ordre :
 
 1. **Fluidité, priorité absolue.**
 2. **Multiplateforme** : Windows et macOS d'abord ; Linux, Android et iOS ensuite.
-3. **Open source** (licence MIT).
+3. **Code source public**, sans exploitation commerciale par des tiers (licence PolyForm Noncommercial 1.0.0).
 4. **Très modulaire** : chaque fonction peut être modifiée ou remplacée sans toucher aux autres.
 
 L'application Python sert de référence de comportement, pas de modèle visuel imposé.
@@ -27,7 +27,7 @@ L'application Python sert de référence de comportement, pas de modèle visuel 
 | Rendu macOS | Metal (défaut de Qt) | 2026-10-13 |
 | Secours | rendu logiciel de Qt Quick (`--rendu logiciel`), testé à chaque passage des tests | 2026-10-13 |
 | Construction | CMake + Ninja, presets `debug` et `release` | 2026-10-13 |
-| Licence | **MIT** | 2026-10-13 |
+| Licence | **PolyForm Noncommercial 1.0.0** (remplace MIT). Les versions publiées sous MIT le restent | 2026-10-14 |
 | Dépôt | `C:\Users\JeromeDenis\ActCraft`, public sur GitHub (`jejeasterix/actcraft`) dès le premier commit | 2026-10-13 |
 
 Écartés : Rust + wgpu/Slint/egui, Flutter, Web/Tauri (raisons dans le coffre, décision 0074).
