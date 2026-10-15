@@ -12,8 +12,16 @@ Objectifs, dans l'ordre :
 ActCraft lit les paperboards `.flipchart` pour l'interopérabilité. Ce projet n'est ni affilié à Promethean ni
 soutenu par Promethean.
 
-> État : démarrage (octobre 2026). Le prototype de mesure de fluidité est en cours ; rien n'est encore
-> utilisable en classe.
+> État : version 0.1.0 en préparation (octobre 2026). Premier socle : une fenêtre avec ses menus, le stylo en
+> 16 couleurs et 4 épaisseurs, plusieurs pages et le plein écran (F5). ActCraft n'ouvre encore aucun fichier ;
+> la lecture des `.flipchart` arrive avec la version suivante. Détail : [`CHANGELOG.md`](CHANGELOG.md).
+
+## Installer
+
+- **Windows 10 ou 11** : `ActCraft-<version>-setup.exe`, sans droits d'administrateur.
+- **Android 9 ou plus** : `ActCraft-<version>-arm64-v8a.apk`.
+
+Les paquets seront publiés sur la page des [versions](https://github.com/jejeasterix/actcraft/releases) du dépôt.
 
 ## Construire (Windows)
 
