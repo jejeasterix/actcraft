@@ -59,14 +59,14 @@ Lot 1 (plan 7e4c743) — fichiers touchés exacts et preuves : table du plan.
 Lot 2a (plan `docs/plans/2026-10-15-livraison-complete-lot2a-PLAN.md` @ 8234719 ; vagues V1 T1‖T4 · V2 T2‖T7 · V3 T5‖T8 · V4 T6‖T9 · V5 T10‖T3 ; 55 tests attendus en fin de 2a). Lot 2b (`…-lot2b-PLAN.md`, L2-T11…T23, 8 vagues, 66 tests en fin de lot ; une seule PR à la fin de 2b).
 | id | dépend | zone | agent | worktree | état | essais | dernier commit vert | preuve rejouée |
 |----|--------|------|-------|----------|------|--------|---------------------|----------------|
-| L2-T1 | — | core : modèle complet, empreintes | crit | --L2-T1 | en cours | 1/3 | — | — |
+| L2-T1 | — | core : modèle complet, empreintes | crit | --L2-T1 | revue en cours : add4dad ; intégré au chantier, 45/45 TESTS OK (tst_core_model, generator, document Passed) ; aucun test retiré (2 renommés/renforcés) ; empreintes recalculées (DA2) | 1/3 | add4dad | — |
 | L2-T2 | T1 | core : pile d'annulation | impl | — | à faire | 0/3 | — | — |
-| L2-T3 | — | actions : argument facultatif, commandes de fichier | impl | — | à faire | 0/3 | — | — |
-| L2-T4 | — | miniz vendu, formats sans QtGui | impl | --L2-T4 | en cours | 1/3 | — | — |
+| L2-T3 | — | actions : argument facultatif, commandes de fichier | impl | (mergé) | terminée | 1/3 | 0561710 → merge fa0d966 | 46/46 TESTS OK (tst_actions_registry, tst_ui_shell Passed) ; rouge vu (`argumentOptional` inconnu) ; 10 commandes `file.*` (« Nouveau ▸ » à plat, `file.close` Ctrl+W) ; un seul test du lot 1 étendu (`defaultCommandsFileDeclaresLotOne`, prévu par le plan) |
+| L2-T4 | — | miniz vendu, formats sans QtGui | impl | (mergé) | terminée | 1/3 | eab0732 → merge b0b50b5 | 45/45 TESTS OK, tst_third_party_miniz Passed ; commande format de la CI (`git ls-files '*.cpp' '*.h' '*.hpp'` + clang-format 23.1.3 `--dry-run --Werror`) code 0 ; rouges vus (agent) : cible miniz absente, lien Qt6::Gui interdit. miniz 3.0.2 officiel, SHA-256 `ADA38DB0…32C5`, notice MIT dans THIRD_PARTY_NOTICES.md (`verifier-licences.ps1` ne contrôle que les paquets) |
 | L2-T5 | T1,T4 | formats : document.json | crit | — | à faire | 0/3 | — | — |
 | L2-T6 | T5 | formats : archive .actcraft, E/S par URL | crit | — | à faire | 0/3 | — | — |
-| L2-T7 | T4 | formats : Bamboo, index culm, écrivain synthétique | impl | — | à faire | 0/3 | — | — |
-| L2-T8 | T7 | formats : flux objet | impl | — | à faire | 0/3 | — | — |
+| L2-T7 | T4 | formats : Bamboo, index culm, écrivain synthétique | impl | (mergé) | terminée | 1/3 | c0d8dde → merge af04cd9 | 46/46 TESTS OK, tst_formats_bamboo Passed ; `git grep qUncompress -- formats/src` vide ; bombe zlib rouge par mutation (agent : hausse du pic 511 Mio > 32 Mio). Écart connu : index non fermé refusé (Python l'accepte) → oracle L2-T10. À éclaircir : sous mutation, la suite complète échoue sans ligne FAIL visible |
+| L2-T8 | T7 | formats : flux objet | impl | (mergé) | terminée | 1/3 | a783e20 → merge 08c7c26 | 47/47 TESTS OK, tst_formats_objectstream Passed ; 12 cas malformés testés (compteurs hors borne, table de 10 001 propriétés, troncature à chaque octet, profondeur 40, NaN/1e30…) ; mutation `kMaxDepth` 32 → 100 rouge. À la relecture de fin de lot : les bornes de compteurs sont redondantes avec l'arrêt sur troncature (leur retrait n'est pas détecté) |
 | L2-T9 | T1,T8 | formats : lecteur .flipchart | crit | — | à faire | 0/3 | — | — |
 | L2-T10 | T9 | oracle : export canonique, dump, script Python | crit | — | à faire | 0/3 | — | — |
 
