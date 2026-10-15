@@ -20,7 +20,9 @@ const char* const kIcons[] = {"menu",        "outils",  "page-precedente", "page
 // Luminance relative de WCAG 2.1 (composantes sRGB linéarisées).
 double relativeLuminance(const QColor& color)
 {
-    const auto linear = [](double c) { return c <= 0.04045 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4); };
+    const auto linear = [](double c) {
+        return c <= 0.04045 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
+    };
     return 0.2126 * linear(color.redF()) + 0.7152 * linear(color.greenF()) + 0.0722 * linear(color.blueF());
 }
 
@@ -31,7 +33,8 @@ double contrastRatio(const QColor& a, const QColor& b)
     return (std::max(la, lb) + 0.05) / (std::min(la, lb) + 0.05);
 }
 
-// Seuils WCAG 2.1 AA : 4,5:1 pour un texte, 3:1 pour une icône, un indicateur d'état ou une bordure de contrôle.
+// Seuils WCAG 2.1 AA : 4,5:1 pour un texte, 3:1 pour une icône, un indicateur d'état ou une bordure de
+// contrôle.
 constexpr double kText = 4.5;
 constexpr double kUi = 3.0;
 
@@ -66,8 +69,9 @@ private slots:
         QVERIFY(tokens->property("hauteurBarre").toInt() >= 32);
     }
 
-    // La formule elle-même, sur des valeurs de référence : noir sur blanc vaut 21:1 ; #767676 est le gris le plus
-    // clair qui passe 4,5:1 sur blanc, #777777 ne passe plus (sans linéarisation sRGB, les deux passeraient).
+    // La formule elle-même, sur des valeurs de référence : noir sur blanc vaut 21:1 ; #767676 est le gris le
+    // plus clair qui passe 4,5:1 sur blanc, #777777 ne passe plus (une formule sans linéarisation sRGB les
+    // ferait échouer tous les deux).
     void contrastFormulaMatchesWcagReferences()
     {
         QVERIFY(qAbs(contrastRatio(Qt::black, Qt::white) - 21.0) < 1e-9);
@@ -98,9 +102,12 @@ private slots:
             {"texteDiscret", "surfaceSurvol", kText},
             {"texteSurActive", "surfaceActive", kText},
             {"surfaceActive", "palette", kText}, // lien du dialogue « À propos »
-            // Les icônes (« texte » au repos et survolées, « texteSurActive » sur l'accent) sont couvertes par les
-            // paires de texte ci-dessus, plus exigeantes. Indicateurs d'état : coché, appuyé, focus contre ce qui
-            // les entoure (la rainure de la réglette est « surfaceSurvol ») ; cadre de la pastille choisie ; bord
+            // Les icônes (« texte » au repos et survolées, « texteSurActive » sur l'accent) sont couvertes
+            // par les
+            // paires de texte ci-dessus, plus exigeantes. Indicateurs d'état : coché, appuyé, focus contre ce
+            // qui
+            // les entoure (la rainure de la réglette est « surfaceSurvol ») ; cadre de la pastille choisie ;
+            // bord
             // des pastilles sombres et flèche du zoom ; poignée de la réglette.
             {"surfaceActive", "barre", kUi},
             {"surfaceActive", "surface", kUi},
@@ -110,7 +117,8 @@ private slots:
             {"contour", "surface", kUi},
             {"texte", "surfaceSurvol", kUi},
             // Sur la zone de la page : pouce des barres de défilement (sombre cerclé de clair) et filet de
-            // l'indicateur de largeur, sur la page comme sur le fond ; bord de la page contre le fond. « barre » sur
+            // l'indicateur de largeur, sur la page comme sur le fond ; bord de la page contre le fond. «
+            // barre » sur
             // « page » est aussi le texte des notices du dialogue « À propos » (seuil de texte).
             {"barre", "page", kText},
             {"texte", "fond", kUi},
@@ -119,7 +127,8 @@ private slots:
         };
         for (const auto& pair : pairs) {
             QTest::addRow("%s sur %s (%.1f)", pair.foreground, pair.background, pair.minimum)
-                << QString::fromLatin1(pair.foreground) << QString::fromLatin1(pair.background) << pair.minimum;
+                << QString::fromLatin1(pair.foreground) << QString::fromLatin1(pair.background)
+                << pair.minimum;
         }
     }
 
@@ -130,7 +139,8 @@ private slots:
         QFETCH(double, minimum);
         QQmlEngine engine;
         QQmlComponent component(&engine);
-        component.setData("import QtQuick\nimport ActCraft.Ui\nQtObject { property QtObject theme: Theme }\n", QUrl());
+        component.setData("import QtQuick\nimport ActCraft.Ui\nQtObject { property QtObject theme: Theme }\n",
+                          QUrl());
         std::unique_ptr<QObject> holder(component.create());
         QVERIFY2(holder, qPrintable(component.errorString()));
         const QObject* theme = holder->property("theme").value<QObject*>();

@@ -17,14 +17,12 @@ Rectangle {
     implicitHeight: Theme.hauteurBarre
     color: Theme.barre
 
-    // Tout ce que la barre contient fait la hauteur d'une cible tactile (Theme.tailleBouton) : la barre l'entoure
-    // de deux marges au lieu de couper le bouton plein écran et le zoom (L1-C5).
+    // Tout ce que la barre contient fait la hauteur de la barre, celle d'une cible tactile (Theme.hauteurBarre =
+    // Theme.tailleBouton) : le bouton plein écran et le zoom n'en débordent plus (L1-C5).
     RowLayout {
         anchors.fill: parent
         anchors.leftMargin: Theme.espace2
         anchors.rightMargin: Theme.espace2
-        anchors.topMargin: Theme.espace1
-        anchors.bottomMargin: Theme.espace1
         spacing: Theme.espace1
 
         Repeater {

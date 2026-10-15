@@ -28,7 +28,9 @@ QtObject {
     readonly property int espace3: 12
     readonly property int espace4: 16
     readonly property int rayon: 6
-    readonly property int hauteurBarre: 52      // un bouton de 44 et deux marges de 4
+    // Hauteur d'une cible tactile, sans marge : à 52, la page 1024 × 768 à 100 % sortait de la vue en 1280 × 720 et
+    // les témoins du banc avec elle (tst_bench_verdict, benchTargetsAreVisibleInTheShell).
+    readonly property int hauteurBarre: 44
     readonly property int largeurPalette: 112
     readonly property int tailleBouton: 44      // cible tactile
     readonly property int tailleIcone: 24

@@ -42,7 +42,7 @@ dialogue, info-bulles) prennent la même palette. Aucune ombre calculée, aucun 
 | `contour` | `#858D98` (nouveau) | bord des pastilles, flèche du zoom, bord des menus, filet de l'indicateur de largeur | les pastilles sombres (noir, `#424242`) tombaient à 1,34-1,56:1 contre la palette |
 | `separateur` | `#3F444D` | séparation des groupes | décor, sans seuil |
 | `cadreSelection`, `page` | `#FFFFFF` | pastille choisie ; page et puits de l'échantillon | inchangés |
-| `hauteurBarre` | 52 (était 40) | barre | un bouton de 44 et deux marges de 4 : le bouton plein écran et le zoom débordaient |
+| `hauteurBarre` | 44 (était 40) | barre | la hauteur d'une cible tactile : le bouton plein écran (44) et le zoom débordaient. La critique proposait 52 (deux marges de 4) : refusé, la page à 100 % sortait alors de la vue en 1280 × 720 avec les témoins du banc (`tst_bench_verdict`, `benchTargetsAreVisibleInTheShell`) |
 | `tailleBouton`, `tailleIcone`, `taillePastille` | 44, 24, 20 | cibles, icônes, pastilles | inchangés ; les préréglages d'épaisseur et la poignée de la réglette passent à `taillePastille` |
 | `largeurPalette`, `espace1…4`, `rayon`, polices | 112 ; 4, 8, 12, 16 ; 6 ; 14 et 16 | gabarit | inchangés |
 
@@ -119,7 +119,8 @@ palette repliable »).
 
 1. **Accent clair** `#8DB3F0` avec texte et icône sombres sur l'outil actif et le menu ouvert : choix fait pour le
    contraste et la lecture à distance ; à confirmer à l'œil sur un TNI.
-2. **Barre de 52 px** au lieu de 40 : la page perd 12 px de hauteur.
+2. **Barre de 44 px** au lieu de 40, sans marge autour des boutons : la page perd 4 px de hauteur. Plus d'air
+   (52 px) demanderait de revoir la position des témoins du banc en 1280 × 720.
 3. **Cibles sur tablette** : 44-48 dp sur la palette imposent deux colonnes de pastilles ou une palette plus large ;
    à trancher pour le lot 11.
 4. **Libellés au doigt** : sans survol, aucune info-bulle ; un appui long qui l'affiche changerait le clic.
