@@ -11,3 +11,11 @@ actcraft_add_test(tst_core_generator
 actcraft_add_test(tst_core_document
     SOURCES tst_core_document.cpp
     LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_undo
+    SOURCES tst_core_undo.cpp
+    LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_edits
+    SOURCES tst_core_edits.cpp
+    LIBS ActCraft::core)
