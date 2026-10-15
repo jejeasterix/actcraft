@@ -89,3 +89,9 @@ target_include_directories(actcraft-captures PRIVATE ${PROJECT_SOURCE_DIR}/app)
 target_link_libraries(actcraft-captures PRIVATE ActCraft::benchui ActCraft::ui actcraft_uiplugin Qt6::Quick Qt6::Test)
 actcraft_set_warnings(actcraft-captures)
 set_target_properties(actcraft-captures PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+# Export canonique d'un .flipchart (oracle du lecteur, décision 19) : outil de preuve, jamais livré.
+qt_add_executable(actcraft-flipchart-dump flipchart/main.cpp)
+target_link_libraries(actcraft-flipchart-dump PRIVATE ActCraft::formats Qt6::Core)
+actcraft_set_warnings(actcraft-flipchart-dump)
+set_target_properties(actcraft-flipchart-dump PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
