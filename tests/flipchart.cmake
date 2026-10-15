@@ -16,3 +16,11 @@ actcraft_add_test(tst_formats_flipchart
 if(WIN32)
     target_link_libraries(tst_formats_flipchart PRIVATE psapi) # GetProcessMemoryInfo (peakmemory.h)
 endif()
+actcraft_add_test(tst_formats_dump
+    SOURCES tst_formats_dump.cpp
+    LIBS ActCraft::formats Qt6::Gui)
+
+# Oracle local (décision 19) : sauté sans ACTCRAFT_SAMPLES_DIR ; lit samples/ en place, n'écrit rien.
+actcraft_add_test(tst_formats_oracle
+    SOURCES tst_formats_oracle.cpp
+    LIBS ActCraft::formats)

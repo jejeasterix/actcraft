@@ -6,4 +6,6 @@ set(ACTCRAFT_FORMATS_FLIPCHART_SOURCES
     src/objectstream.cpp
     include/actcraft/formats/flipchart.h
     src/flipchartids.h
-    src/flipchart.cpp)
+    src/flipchart.cpp
+    include/actcraft/formats/flipchartdump.h
+    src/flipchartdump.cpp)
