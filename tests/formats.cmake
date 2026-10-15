@@ -8,3 +8,10 @@ actcraft_add_test(tst_formats_nativejson
     LIBS ActCraft::formats)
 # document.json de référence du document riche : tests/data/nativejson/richdocument.json.
 target_compile_definitions(tst_formats_nativejson PRIVATE ACTCRAFT_TESTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+# miniz lié au test pour fabriquer des archives hostiles (doublons, tailles annoncées fausses, zip64, dossiers).
+actcraft_add_test(tst_formats_nativefile
+    SOURCES tst_formats_nativefile.cpp
+    LIBS ActCraft::formats ActCraft::miniz)
+actcraft_add_test(tst_formats_urlio
+    SOURCES tst_formats_urlio.cpp
+    LIBS ActCraft::formats)
