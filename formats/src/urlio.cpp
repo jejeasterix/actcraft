@@ -13,6 +13,7 @@ using namespace Qt::StringLiterals;
 namespace {
 
 constexpr qsizetype kChunk = qsizetype{1} << 20; // 1 Mio
+constexpr qint64 kMaxReserve = qint64{64} << 20; // 64 Mio
 
 bool isContent(const QUrl& url)
 {
@@ -33,15 +34,16 @@ std::optional<QByteArray> readBounded(QIODevice& device, qint64 maxBytes, QStrin
         return fail(u"fichier trop volumineux (plus de %1 octets)"_s.arg(maxBytes));
     };
     // Jamais device.read(maxBytes) : QIODevice réserve la taille demandée avant de lire (relecture du plan :
-    // 2 Gio réservés pour un fichier de 7 octets). Réservé : la taille annoncée d'un fichier, déjà comparée à
-    // la borne.
+    // 2 Gio réservés pour un fichier de 7 octets). Taille annoncée au-delà de la borne : refusé sans lire.
+    // Réservé : la taille annoncée, plafonnée à 64 Mio (celle d'un content:// vient du fournisseur) ;
+    // au-delà, le tampon grandit par blocs.
     QByteArray data;
     if (!device.isSequential()) {
         const qint64 remaining = device.size() - device.pos();
         if (remaining > maxBytes) {
             return tooBig();
         }
-        data.reserve(static_cast<qsizetype>(std::max<qint64>(remaining, 0)));
+        data.reserve(static_cast<qsizetype>(std::clamp<qint64>(remaining, 0, kMaxReserve)));
     }
     // Jamais atEnd() : un appareil séquentiel de taille inconnue (content://) dit « fini » avant la première
     // lecture. Blocs de 1 Mio jusqu'à un bloc vide ; -1 est une erreur, pas une fin.

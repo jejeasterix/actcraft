@@ -19,7 +19,10 @@ struct UrlReadResult
     QByteArray data;
 };
 
-UrlReadResult readUrl(const QUrl& url, qint64 maxBytes = 1024ll * 1024 * 1024);
+// Borne de lecture par défaut (1 Gio) ; kMaxArchiveSize ne la dépasse pas.
+inline constexpr qint64 kMaxUrlRead = 1024ll * 1024 * 1024;
+
+UrlReadResult readUrl(const QUrl& url, qint64 maxBytes = kMaxUrlRead);
 // Lit `device` par blocs de 1 Mio jusqu'à un bloc vide (jamais atEnd : taille inconnue d'un content://) ;
 // nullopt et `error` au-delà de `maxBytes` ou sur une erreur de lecture. Ne réserve jamais `maxBytes`
 // d'avance.

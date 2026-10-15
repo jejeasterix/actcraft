@@ -1,5 +1,6 @@
 #include <actcraft/formats/urlio.h>
 
+#include <QBuffer>
 #include <QDir>
 #include <QFile>
 #include <QTemporaryDir>
@@ -42,6 +43,30 @@ protected:
 private:
     QByteArray m_data;
     qint64 m_failAt;
+    qint64 m_pos = 0;
+};
+
+// Accès direct (non séquentiel) dont la taille annoncée ment : comme un fournisseur content:// qui annonce
+// 512 Mio et rend 8 octets.
+class LyingDevice final : public QIODevice
+{
+public:
+    LyingDevice(QByteArray data, qint64 announced) : m_data(std::move(data)), m_announced(announced) {}
+    qint64 size() const override { return m_announced; }
+
+protected:
+    qint64 readData(char* out, qint64 max) override
+    {
+        const qint64 n = std::min(max, static_cast<qint64>(m_data.size()) - m_pos);
+        std::memcpy(out, m_data.constData() + m_pos, static_cast<std::size_t>(n));
+        m_pos += n;
+        return n;
+    }
+    qint64 writeData(const char*, qint64) override { return -1; }
+
+private:
+    QByteArray m_data;
+    qint64 m_announced;
     qint64 m_pos = 0;
 };
 
@@ -148,6 +173,30 @@ private slots:
         QString error;
         QVERIFY(!formats::readBounded(device, 1ll << 30, &error));
         QVERIFY2(error.contains(u"lecture"_s), qPrintable(error));
+    }
+
+    void announcedSizeIsRefusedBeforeReading()
+    {
+        // Taille annoncée au-delà de la borne : refusé sans lire un octet.
+        QByteArray bytes(100, 'x');
+        QBuffer buffer(&bytes);
+        QVERIFY(buffer.open(QIODevice::ReadOnly));
+        QString error;
+        QVERIFY(!formats::readBounded(buffer, 10, &error));
+        QVERIFY2(error.contains(u"volumineux"_s), qPrintable(error));
+        QCOMPARE(buffer.pos(), qint64{0});
+    }
+
+    void announcedSizeReservesAtMostAModestBlock()
+    {
+        // La taille annoncée d'un content:// vient du fournisseur : réservée jusqu'à 64 Mio, pas au-delà.
+        LyingDevice device(QByteArray("8 octets"), 512ll << 20);
+        QVERIFY(device.open(QIODevice::ReadOnly));
+        QString error;
+        const std::optional<QByteArray> data = formats::readBounded(device, 1ll << 30, &error);
+        QVERIFY2(data, qPrintable(error));
+        QCOMPARE(*data, QByteArray("8 octets"));
+        QVERIFY2(data->capacity() <= (qsizetype{64} << 20), qPrintable(QString::number(data->capacity())));
     }
 
     void smallFileDoesNotReserveTheMaximum()

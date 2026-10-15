@@ -65,6 +65,26 @@ void setLe32(QByteArray& zip, qsizetype at, quint32 value)
     qToLittleEndian<quint32>(value, zip.data() + at);
 }
 
+quint16 le16(const QByteArray& zip, qsizetype at)
+{
+    return qFromLittleEndian<quint16>(zip.constData() + at);
+}
+
+quint32 le32(const QByteArray& zip, qsizetype at)
+{
+    return qFromLittleEndian<quint32>(zip.constData() + at);
+}
+
+// Accès aux bornes une à une (pas d'agrégat partiel par position).
+formats::ArchiveLimits limits(qint64 maxEntry, qint64 maxTotal, qint64 maxArchiveSize)
+{
+    formats::ArchiveLimits l;
+    l.maxEntry = maxEntry;
+    l.maxTotal = maxTotal;
+    l.maxArchiveSize = maxArchiveSize;
+    return l;
+}
+
 } // namespace
 
 // Archive .actcraft (DA3) : document.json + ressources + miniatures ; aller-retour à empreinte égale. Chaque
@@ -109,17 +129,35 @@ private slots:
     void resourcesAreStoredVerbatim()
     {
         const core::Document rich = richdoc::richDocument();
-        const QByteArray archive = formats::encodeActcraft(rich, {});
-        QVERIFY(
-            archive.contains(richdoc::pngBytes())); // stockées sans compression : octets d'origine lisibles
+        const QByteArray archive = formats::encodeActcraft(rich, {QByteArray("png-1")});
+        QVERIFY(archive.contains(richdoc::pngBytes())); // octets d'origine lisibles par d'autres outils
         QVERIFY(archive.contains(richdoc::mp3Bytes()));
+        // Méthode de chaque entrée : 0 (stockée) pour ressources et miniatures, 8 (deflate) pour
+        // document.json. Un petit flux deflate peut garder les octets lisibles (bloc stocké) : seule la
+        // méthode le distingue.
+        const QStringList names = formats::archiveEntryNames(archive);
+        QCOMPARE(names.size(), 4);
+        for (const QString& name : names) {
+            const qsizetype at = centralHeader(archive, name.toUtf8());
+            QVERIFY(at >= 0);
+            QCOMPARE(le16(archive, at + 10), quint16(name == u"document.json"_s ? 8 : 0));
+        }
     }
 
     void encodingIsReproducible()
     {
         const core::Document rich = richdoc::richDocument();
-        QCOMPARE(formats::encodeActcraft(rich, {QByteArray("x")}),
-                 formats::encodeActcraft(rich, {QByteArray("x")}));
+        const QByteArray archive = formats::encodeActcraft(rich, {QByteArray("x")});
+        QCOMPARE(archive, formats::encodeActcraft(rich, {QByteArray("x")}));
+        // Heure et date DOS nulles dans chaque en-tête central et local : rien ne dépend du moment de
+        // l'écriture (deux écritures dans la même seconde seraient égales même horodatées).
+        for (const QString& name : formats::archiveEntryNames(archive)) {
+            const qsizetype at = centralHeader(archive, name.toUtf8());
+            QVERIFY(at >= 0);
+            QCOMPARE(le32(archive, at + 12), quint32{0});
+            const auto local = static_cast<qsizetype>(le32(archive, at + 42));
+            QCOMPARE(le32(archive, local + 10), quint32{0});
+        }
     }
 
     void missingThumbnailsAreAllowed()
@@ -145,7 +183,107 @@ private slots:
             r.ok,
             qPrintable(r.error)); // document.json lu ; les ressources refusées deviennent des avertissements
         QCOMPARE(r.document.resources().size(), std::size_t{0});
-        QVERIFY2(r.warnings.join(u' ').contains(u"absente"_s), qPrintable(r.warnings.join(u'\n')));
+        // La cause est transmise (revue de L2-T6) : « trop volumineuse », non plus « absente ».
+        const QString warnings = r.warnings.join(u'\n');
+        QVERIFY2(warnings.contains(u"trop volumineuse"_s) && !warnings.contains(u"absente"_s),
+                 qPrintable(warnings));
+    }
+
+    void failedExtractionsCountAgainstTheBudget()
+    {
+        // Deux miniatures de 1 Mio au CRC faux, puis une valide de 10 octets ; budget = document.json + 1 Mio
+        // + 10. miniz ne vérifie le CRC qu'après avoir tout décompressé : une extraction ratée a coûté autant
+        // qu'une réussie. Imputée avant d'extraire, la deuxième est refusée sans être décompressée.
+        const core::Document pages{std::vector<core::Page>(3)};
+        const QByteArray mib(1 << 20, 'm');
+        QByteArray archive = formats::encodeActcraft(pages, {mib, mib, QByteArray(10, 't')});
+        for (const char* name : {"thumbnails/page-1.png", "thumbnails/page-2.png"}) {
+            const qsizetype at = centralHeader(archive, name);
+            QVERIFY(at >= 0);
+            setLe32(archive, at + 16, le32(archive, at + 16) ^ 1u); // CRC faux
+        }
+        const formats::DecodeResult r =
+            formats::decodeActcraft(archive, jsonOf(pages).size() + (1 << 20) + 10);
+        QVERIFY2(r.ok, qPrintable(r.error));
+        QCOMPARE(r.thumbnails[2], QByteArray(10, 't'));
+        const QString warnings = r.warnings.join(u'\n');
+        QVERIFY2(warnings.contains(u"page 1 illisible"_s), qPrintable(warnings));
+        QVERIFY2(warnings.contains(u"page 2 trop volumineuse"_s), qPrintable(warnings));
+    }
+
+    void refusedResourceSaysWhy()
+    {
+        // Ressource au CRC faux : l'avertissement dit « illisible », pas « absente ».
+        QByteArray archive = formats::encodeActcraft(richdoc::richDocument(), {});
+        const QString png = QString::fromStdString(core::sha256Hex(richdoc::pngBytes()));
+        const qsizetype at = centralHeader(archive, (u"resources/"_s + png + u".png"_s).toUtf8());
+        QVERIFY(at >= 0);
+        setLe32(archive, at + 16, le32(archive, at + 16) ^ 1u);
+        const formats::DecodeResult r = formats::decodeActcraft(archive);
+        QVERIFY2(r.ok, qPrintable(r.error));
+        QCOMPARE(r.document.resources().size(), std::size_t{1});
+        const QString warnings = r.warnings.join(u'\n');
+        QVERIFY2(warnings.contains(png + u" illisible"_s) && !warnings.contains(u"absente"_s),
+                 qPrintable(warnings));
+    }
+
+    void documentJsonMustBeAnObject()
+    {
+        const QByteArray zip =
+            writeZip([](mz_zip_archive& z) { return addMem(z, "document.json", QByteArray("[]")); });
+        const formats::DecodeResult r = formats::decodeActcraft(zip);
+        QVERIFY(!r.ok);
+        QVERIFY2(r.error.contains(u"objet"_s), qPrintable(r.error));
+    }
+
+    void caseOnlyDuplicatesAreRefused()
+    {
+        // « document.json » et « DOCUMENT.JSON » : un outil qui ignore la casse ne saurait lequel lire.
+        const QByteArray json = jsonOf(richdoc::richDocument());
+        const QByteArray zip = writeZip([&](mz_zip_archive& z) {
+            return addMem(z, "document.json", json) && addMem(z, "DOCUMENT.JSON", json);
+        });
+        const formats::DecodeResult r = formats::decodeActcraft(zip);
+        QVERIFY(!r.ok);
+        QVERIFY2(r.error.contains(u"double"_s), qPrintable(r.error));
+    }
+
+    void encodingRefusesWhatDecodingWouldRefuse()
+    {
+        // Chaque borne de la lecture, réduite : l'écriture refuse un octet de trop, accepte pile la borne, et
+        // l'archive acceptée se relit sous les mêmes bornes. Sinon, un fichier enregistré ne se rouvrirait
+        // pas.
+        const core::Document rich = richdoc::richDocument();
+        const qint64 json = jsonOf(rich).size();
+        const qint64 resources = richdoc::pngBytes().size() + richdoc::mp3Bytes().size();
+        const qint64 big = formats::kMaxArchiveSize;
+        QString error;
+        const auto roundTrips = [&](const formats::ArchiveLimits& l, const std::vector<QByteArray>& thumbs) {
+            const QByteArray archive = formats::encodeActcraft(rich, thumbs, &error, l);
+            const formats::DecodeResult r = formats::decodeActcraft(archive, l);
+            return !archive.isEmpty() && r.ok && r.warnings.isEmpty();
+        };
+        // Une entrée (ici une miniature) au-delà de la borne par entrée, fixée à la taille de document.json.
+        const std::vector<QByteArray> tooBig{QByteArray(static_cast<qsizetype>(json + 1), 'p')};
+        QVERIFY(formats::encodeActcraft(rich, tooBig, &error, limits(json, big, big)).isEmpty());
+        QVERIFY2(error.contains(u"thumbnails/page-1.png"_s) && error.contains(u"trop volumineuse"_s),
+                 qPrintable(error));
+        const std::vector<QByteArray> justFits{QByteArray(static_cast<qsizetype>(json), 'p')};
+        QVERIFY2(roundTrips(limits(json, big, big), justFits), qPrintable(error));
+        // Le total décompressé : document.json + les deux ressources.
+        QVERIFY(formats::encodeActcraft(rich, {}, &error, limits(big, json + resources - 1, big)).isEmpty());
+        QVERIFY2(error.contains(u"au total"_s), qPrintable(error));
+        QVERIFY2(roundTrips(limits(big, json + resources, big), {}), qPrintable(error));
+        // La taille de l'archive.
+        const qint64 size = formats::encodeActcraft(rich, {}).size();
+        QVERIFY(formats::encodeActcraft(rich, {}, &error, limits(big, big, size - 1)).isEmpty());
+        QVERIFY2(error.contains(u"archive trop volumineuse"_s), qPrintable(error));
+        QVERIFY2(roundTrips(limits(big, big, size), {}), qPrintable(error));
+        // La lecture, elle, refuse l'archive trop grande.
+        const formats::DecodeResult r =
+            formats::decodeActcraft(formats::encodeActcraft(rich, {}), limits(big, big, size - 1));
+        QVERIFY(!r.ok);
+        QVERIFY2(r.error.contains(u"trop volumineuse"_s), qPrintable(r.error));
     }
 
     void oversizedEntryIsRefusedOnItsAnnouncedSize()
