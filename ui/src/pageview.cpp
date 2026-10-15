@@ -278,13 +278,30 @@ bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
     if (!acceptsDevice(pointer.pointingDevice())) {
         return false;
     }
-    const auto sample =
-        input::sampleFromEvent(event, viewTransform().viewToPage(viewPos), core::monotonicNowNs());
+    const QPointF pagePos = viewTransform().viewToPage(viewPos);
+    const auto sample = input::sampleFromEvent(event, pagePos, core::monotonicNowNs());
     if (!sample) {
         return false;
     }
+    m_lastPagePoint = pagePos;
     m_pipeline->push(*sample);
     return true;
+}
+
+void PageView::finishStroke()
+{
+    m_touchDrawing = false; // la suite du contact du doigt ne dessine plus
+    // Stylet : m_stylusDrawing reste vrai, le contact reste pris jusqu'au relâché (rien n'en passe à
+    // l'interface) ; ses points n'ajoutent rien, le stylo ne dessine plus. Souris : idem par la saisie.
+    if (!m_pipeline || !m_pen || !m_pen->isDrawing()) {
+        return;
+    }
+    input::Sample release;
+    release.x = m_lastPagePoint.x(); // au dernier point : le relâché n'ajoute aucun point
+    release.y = m_lastPagePoint.y();
+    release.timestampNs = core::monotonicNowNs();
+    release.phase = input::Phase::Release;
+    m_pipeline->push(release);
 }
 
 void PageView::mousePressEvent(QMouseEvent* event)
@@ -591,6 +608,11 @@ void PageView::apply(const ViewTransform& transform)
 {
     const bool zoomChangedNow = !qFuzzyCompare(transform.zoom, m_transform.zoom);
     const bool panChangedNow = transform.pan != m_transform.pan;
+    if (zoomChangedNow || panChangedNow) {
+        // La page va bouger sous le pointeur : le trait en cours se termine avant, là où il était (la suite,
+        // placée avec la nouvelle transformation, sauterait).
+        finishStroke();
+    }
     m_transform = transform;
     if (m_content) {
         m_content->setScale(transform.zoom);

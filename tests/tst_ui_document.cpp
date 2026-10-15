@@ -176,6 +176,28 @@ private slots:
         QCOMPARE(controller.pageLabel(), QStringLiteral("1 / 1"));
     }
 
+    // La vue termine le trait en cours sur pageAboutToChange : ce qu'elle verse alors doit rejoindre la page
+    // quittée, donc le signal précède la recopie dans le document.
+    void pageAboutToChangeComesBeforeTheCopy()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        QSignalSpy leaving(&controller, &ui::DocumentController::pageAboutToChange);
+        connect(&controller, &ui::DocumentController::pageAboutToChange, &fixed,
+                [&fixed] { fixed.appendStroke(redStroke()); });
+        controller.nextPage();
+        QCOMPARE(leaving.count(), 1);
+        QCOMPARE(fixed.objectCount(), 0);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        controller.previousPage();
+        QCOMPARE(leaving.count(), 2);
+        QCOMPARE(fixed.objectCount(), 1);
+        QCOMPARE(controller.document().page(1).objects.size(), std::size_t{1});
+        controller.previousPage(); // première page : aucun déplacement, aucun signal
+        QCOMPARE(leaving.count(), 2);
+    }
+
     void generatedFirstPageForTheBench()
     {
         render::FixedPageItem fixed;

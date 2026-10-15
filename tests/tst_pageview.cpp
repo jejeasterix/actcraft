@@ -430,6 +430,37 @@ private slots:
         QCOMPARE(f.passedOn.count, 6);
     }
 
+    // Zoom, « Ajuster » ou défilement pendant un trait : la page bouge sous le stylet. Le trait se termine
+    // avant, là où il était, versé à la page ; la suite du contact ne dessine plus (sinon le trait
+    // sauterait).
+    void transformChangeEndsTheStrokeWhereItWas()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        const auto changes = {+[](PageView* v) { v->setZoom(2.0); }, +[](PageView* v) { v->fitPage(); }};
+        int strokes = 0;
+        for (const auto& change : changes) {
+            tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton);
+            tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
+            tablet(f, QEvent::TabletMove, QPointF(400, 300), Qt::LeftButton);
+            const QPointF last = f.view->viewTransform().viewToPage(f.view->mapFromScene(QPointF(400, 300)));
+            change(f.view);
+            ++strokes;
+            QCOMPARE(f.fixed->objectCount(), strokes); // versé avant que la transformation change
+            QCOMPARE(f.view->ink()->pointCount(), std::size_t{0});
+            QCOMPARE(lastStroke(f).points.size(), std::size_t{3});
+            QCOMPARE(lastStroke(f).points.back().x, last.x());
+            tablet(f, QEvent::TabletMove, QPointF(450, 300), Qt::LeftButton);
+            tablet(f, QEvent::TabletRelease, QPointF(500, 300), Qt::NoButton);
+            QTest::qWait(50);
+            QCOMPARE(f.fixed->objectCount(), strokes);
+            QCOMPARE(lastStroke(f).points.size(), std::size_t{3});
+        }
+        // Le contact suivant dessine normalement.
+        tabletStroke(f, QPointF(300, 400), QPointF(500, 400));
+        QTRY_COMPARE(f.fixed->objectCount(), strokes + 1);
+    }
+
     void pageSizeChangeSignalsScroll()
     {
         Fixture f;

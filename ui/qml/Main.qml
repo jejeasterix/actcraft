@@ -31,6 +31,9 @@ Window {
         id: appDocument
         objectName: "documentController"
         fixedPage: pageArea.fixedPage
+        // Page suivante pendant un trait (PgDown, télécommande, doigt sur le bouton) : le trait se termine et
+        // reste sur sa page.
+        onPageAboutToChange: pageArea.view.finishStroke()
     }
 
     // Pilotage sans souris (actcraft-captures, tests) : même chemin que les boutons.

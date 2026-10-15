@@ -46,6 +46,7 @@ const core::Document& DocumentController::document()
 
 void DocumentController::nextPage()
 {
+    emit pageAboutToChange(); // le trait en cours rejoint la page affichée avant la recopie
     // Avant l'ajout : la page vierge prend la taille de la dernière, qui peut être celle affichée.
     syncFromView();
     show(core::nextPageIndex(m_document, m_current));
@@ -57,6 +58,7 @@ void DocumentController::previousPage()
     if (target == m_current) {
         return;
     }
+    emit pageAboutToChange();
     syncFromView();
     show(target);
 }

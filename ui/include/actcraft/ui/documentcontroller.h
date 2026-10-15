@@ -57,6 +57,9 @@ public:
 
 signals:
     void fixedPageChanged();
+    // Juste avant un déplacement (page ajoutée comprise), avant la recopie de la page affichée dans le
+    // document : la vue y termine le trait en cours, qui reste ainsi sur la page où il a été commencé.
+    void pageAboutToChange();
     // Une fois par déplacement (page ajoutée comprise), quand l'élément montre déjà la nouvelle page.
     void pagesChanged();
 

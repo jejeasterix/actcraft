@@ -1,6 +1,9 @@
 #include "startup.h"
 
+#include <actcraft/core/document.h>
 #include <actcraft/render/fixedpageitem.h>
+#include <actcraft/render/inkitem.h>
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QPointingDevice>
@@ -12,6 +15,7 @@
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <memory>
+#include <variant>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
@@ -281,6 +285,38 @@ private slots:
         post(s, QEvent::TabletRelease, a + QPointF(100, 0), Qt::NoButton);
         QTest::qWait(150);
         QCOMPARE(s.fixed->objectCount(), 0);
+    }
+
+    // Page suivante pendant un trait (PgDown, télécommande, doigt sur le bouton) : le trait se termine et
+    // reste sur la page où il a été commencé ; rien n'est versé à la nouvelle page, rien n'y reste dessiné.
+    void pageChangeDuringAStrokeLeavesItOnItsPage()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* ink = s.window->findChild<render::InkItem*>(QStringLiteral("ink"));
+        auto* controller = s.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(ink && controller);
+        post(s, QEvent::TabletPress, s.view->pageToScene(QPointF(300, 400)), Qt::LeftButton);
+        for (int i = 1; i <= 5; ++i) {
+            post(s, QEvent::TabletMove, s.view->pageToScene(QPointF(300 + 20.0 * i, 400)), Qt::LeftButton);
+        }
+        QTRY_COMPARE(ink->pointCount(), std::size_t{6});
+        QTest::keyClick(s.window, Qt::Key_PageDown);
+        QCOMPARE(indicator(s), QStringLiteral("2 / 2"));
+        QCOMPARE(ink->pointCount(), std::size_t{0});
+        QCOMPARE(s.fixed->objectCount(), 0);
+        for (int i = 6; i <= 10; ++i) {
+            post(s, QEvent::TabletMove, s.view->pageToScene(QPointF(300 + 20.0 * i, 400)), Qt::LeftButton);
+        }
+        post(s, QEvent::TabletRelease, s.view->pageToScene(QPointF(500, 400)), Qt::NoButton);
+        QTest::qWait(150);
+        QCOMPARE(s.fixed->objectCount(), 0);
+        QCOMPARE(ink->pointCount(), std::size_t{0});
+        const core::Document& document = controller->document();
+        QCOMPARE(document.page(1).objects.size(), std::size_t{0});
+        QCOMPARE(document.page(0).objects.size(), std::size_t{1});
+        const auto& stroke = std::get<core::Stroke>(document.page(0).objects.front());
+        QCOMPARE(stroke.points.size(), std::size_t{6}); // de 300 à 400 : rien d'après le changement de page
     }
 
     void aboutCommandOpensTheDialogAndBlocksThePage()
