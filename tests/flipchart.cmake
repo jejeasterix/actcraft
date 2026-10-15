@@ -7,3 +7,6 @@ actcraft_add_test(tst_formats_bamboo
 if(WIN32)
     target_link_libraries(tst_formats_bamboo PRIVATE psapi) # GetProcessMemoryInfo (peakmemory.h)
 endif()
+actcraft_add_test(tst_formats_objectstream
+    SOURCES tst_formats_objectstream.cpp
+    LIBS ActCraft::formats)
