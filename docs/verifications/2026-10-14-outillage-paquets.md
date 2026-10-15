@@ -42,6 +42,7 @@ VERIF ci-emulateur = qemu exige libpulse.so.0, absent de ubuntu-latest (paquet l
 VERIF ci-build-tools = ubuntu-latest a des build-tools plus récents que 36.0.0, dont apksigner écrit « V3.0 Signer: certificate DN » : paquet-android.ps1 prend ceux de versions.env
 VERIF ci-msvc = windows-latest : Visual Studio 18 (MSVC 14.51.36231), runtime sous x64/Microsoft.VC145.CRT (VC143 sur le poste) : paquet.ps1 prend le dossier Microsoft.VC14*.CRT présent
 VERIF ci-s1 = windows-latest ouvre une vraie fenêtre (plateforme windows, sans -HorsEcran) ; D3D11 sur « Microsoft Basic Render Driver » (WARP), qwindows.dll et runtime MSVC chargés depuis le dossier installé, INSTALLATEUR OK (run 38686077102)
+VERIF ci-epinglage = émulateur 37.2.12.0 (build 16428233, ANDROID_EMULATOR_BUILD) et image system-images;android-34;google_apis;x86_64 révision 14 (ANDROID_SYSTEM_IMAGE_REVISION, contrôlée avant le lancement) dans packaging/android/versions.env : versions sur lesquelles lavapipe rend juste ; actions tierces épinglées par SHA de commit, aqtinstall sur le commit 076e1659807d0b362a3ed684d54c2e9c775eb9c7
 
 ## Conséquences
 

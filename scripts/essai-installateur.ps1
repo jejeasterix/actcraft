@@ -4,7 +4,8 @@
 # contrôle qu'il ne reste ni dossier, ni raccourci du menu Démarrer, ni clé dans HKCU\Software\Classes.
 # La fenêtre de 5 s s'ouvre sur l'écran principal (en local : prendre le jeton « ecran »).
 # -HorsEcran : plateforme offscreen (greffon qoffscreen de Qt copié le temps du lancement), pour une machine sans
-# session graphique seulement ; le journal l'écrit (« HORS ECRAN ») et qwindows.dll n'est alors pas contrôlé.
+# session graphique seulement ; rendu logiciel imposé ; le journal l'écrit (« HORS ECRAN ») et qwindows.dll n'est
+# alors pas contrôlé. La CI windows-latest n'en a pas besoin (vraie fenêtre, VERIF ci-s1).
 # Usage : pwsh -NoProfile -File ./scripts/essai-installateur.ps1 [-Setup <chemin>] [-Rendu d3d11|logiciel] [-HorsEcran]
 # Dernière ligne et code : « INSTALLATEUR OK » (0) ou « INSTALLATEUR EN ECHEC : <raison> » (1). Tout échec, même
 # imprévu (exception), arrête les processus lancés, désinstalle et nettoie avant cette ligne.
@@ -21,20 +22,25 @@ $cleDesinstallation = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall
 
 # Un essai en échec ne laisse rien : processus lancés arrêtés par leur PID, désinstallation silencieuse si
 # l'installation a eu lieu, puis suppression des restes.
+# Ne lève jamais : un incident de nettoyage est écrit, et la ligne « INSTALLATEUR EN ECHEC » suit toujours.
 function Nettoyer {
-    foreach ($p in $lances) {
-        if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; $null = $p.WaitForExit(10000) }
+    try {
+        foreach ($p in $lances) {
+            if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; $null = $p.WaitForExit(10000) }
+        }
+        if (-not $dossier) { return }
+        $unins = Join-Path $dossier 'unins000.exe'
+        if (Test-Path $unins) {
+            $u = Start-Process -FilePath $unins -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -PassThru -WindowStyle Hidden
+            if (-not $u.WaitForExit(120000)) { Stop-Process -Id $u.Id -Force -ErrorAction SilentlyContinue }
+            $limite = (Get-Date).AddSeconds(20)
+            while ((Test-Path $dossier) -and (Get-Date) -lt $limite) { Start-Sleep -Milliseconds 500 }
+        }
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $dossier, "$dossier.log", "$dossier-version.txt", "$dossier-qt.txt", $menu
+        foreach ($c in $cles + $cleDesinstallation) { Remove-Item -LiteralPath $c -Recurse -Force -ErrorAction SilentlyContinue }
+    } catch {
+        Write-Output "nettoyage incomplet : $($_.Exception.Message)"
     }
-    if (-not $dossier) { return }
-    $unins = Join-Path $dossier 'unins000.exe'
-    if (Test-Path $unins) {
-        $u = Start-Process -FilePath $unins -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -PassThru -WindowStyle Hidden
-        if (-not $u.WaitForExit(120000)) { Stop-Process -Id $u.Id -Force }
-        $limite = (Get-Date).AddSeconds(20)
-        while ((Test-Path $dossier) -and (Get-Date) -lt $limite) { Start-Sleep -Milliseconds 500 }
-    }
-    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $dossier, "$dossier.log", "$dossier-version.txt", "$dossier-qt.txt", $menu
-    foreach ($c in $cles + $cleDesinstallation) { Remove-Item -LiteralPath $c -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
 function Echec([string]$Raison) {
@@ -86,7 +92,8 @@ try {
         Copy-Item $hors (Join-Path $dossier 'platforms')
         $env:QT_QPA_PLATFORM = 'offscreen'
         $plateforme = 'qoffscreen.dll'
-        Write-Output 'HORS ECRAN : plateforme offscreen, aucune fenêtre ; qwindows.dll non contrôlé'
+        $Rendu = 'logiciel'
+        Write-Output 'HORS ECRAN : plateforme offscreen, aucune fenêtre, rendu logiciel imposé ; qwindows.dll non contrôlé'
     }
 
     # --version : application graphique, sortie standard redirigée vers un fichier ; attente bornée.
