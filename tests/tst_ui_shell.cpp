@@ -3,6 +3,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 
@@ -231,14 +232,41 @@ private slots:
         QVERIFY(near(pixelAtPage(s, QPointF(500, 400)), QColor(QStringLiteral("#E53935")), 60));
     }
 
+    // L'état réel de la fenêtre (visibility), pas une propriété affectée avant de le demander.
     void f5TogglesFullScreen()
     {
         Shell s;
         QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands);
+        QVERIFY(s.window->visibility() != QWindow::FullScreen);
         QTest::keyClick(s.window, Qt::Key_F5);
-        QTRY_VERIFY(s.window->property("fullScreen").toBool());
+        QTRY_COMPARE(s.window->visibility(), QWindow::FullScreen);
+        QVERIFY(s.window->property("fullScreen").toBool());
+        QVERIFY(commands->isChecked(QStringLiteral("view.fullscreen")));
         QTest::keyClick(s.window, Qt::Key_F5);
+        QTRY_VERIFY(s.window->visibility() == QWindow::Windowed ||
+                    s.window->visibility() == QWindow::Maximized);
+        QVERIFY(!s.window->property("fullScreen").toBool());
+        QVERIFY(!commands->isChecked(QStringLiteral("view.fullscreen")));
+    }
+
+    // Sortie du plein écran par le système (raccourci du gestionnaire de fenêtres, autre application) : la
+    // coche suit, et une seule pression sur F5 y revient.
+    void fullScreenLeftByTheSystemFollowsTheRealState()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands);
+        QTest::keyClick(s.window, Qt::Key_F5);
+        QTRY_COMPARE(s.window->visibility(), QWindow::FullScreen);
+        s.window->showNormal(); // le système, pas la commande
         QTRY_VERIFY(!s.window->property("fullScreen").toBool());
+        QVERIFY(!commands->isChecked(QStringLiteral("view.fullscreen")));
+        QTest::keyClick(s.window, Qt::Key_F5);
+        QTRY_COMPARE(s.window->visibility(), QWindow::FullScreen);
+        QVERIFY(commands->isChecked(QStringLiteral("view.fullscreen")));
     }
 
     void swatchTapChoosesThePenColor()

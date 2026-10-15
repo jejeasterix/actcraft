@@ -18,9 +18,12 @@ Window {
     // Fixées avant le chargement par l'application, le banc ou les tests (app/startup.cpp).
     property bool cacheEnabled: true
     property bool generatedPage: false
-    // État de l'interface, lu par les tests et par actcraft-captures.
-    property bool fullScreen: false
+    // État de l'interface, lu par les tests et par actcraft-captures. Le plein écran est l'état réel de la
+    // fenêtre : il suit aussi une sortie par le système, et la coche de « Plein écran » le suit.
+    readonly property bool fullScreen: root.visibility === Window.FullScreen
     property int openPopups: 0
+
+    onFullScreenChanged: appCommands.setChecked("view.fullscreen", root.fullScreen)
 
     Commands {
         id: appCommands
@@ -42,12 +45,10 @@ Window {
     }
 
     function setFullScreen(on) {
-        root.fullScreen = on
         if (on)
             root.showFullScreen()
         else
             root.showNormal()
-        appCommands.setChecked("view.fullscreen", on)
     }
 
     function popupOpened() {

@@ -29,10 +29,12 @@
     {"capture": "retour-page-1"},
     {"key": "F5"},
     {"wait": 300},
+    {"expect": "window.visibility", "value": "FullScreen"},
     {"expect": "window.fullScreen", "value": true},
     {"capture": "plein-ecran"},
     {"key": "F5"},
     {"wait": 300},
+    {"expect": "window.visibility", "value": "Windowed"},
     {"expect": "window.fullScreen", "value": false}
   ]
 }
