@@ -1,14 +1,29 @@
 #include "support/renderhost.h"
 
+#include <actcraft/core/document.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/render/imagestore.h>
 #include <actcraft/render/imagesynth.h>
 
+#include <QBuffer>
 #include <QSignalSpy>
 #include <QTest>
 #include <QThread>
 
 using namespace actcraft;
+
+namespace {
+
+QByteArray pngOf(const QImage& image)
+{
+    QByteArray png;
+    QBuffer buffer(&png);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "PNG");
+    return png;
+}
+
+} // namespace
 
 class TstRenderImages : public QObject
 {
@@ -112,6 +127,140 @@ private slots:
         QVERIFY(colorNear(image.pixelColor(52, 52), QColor(0x43, 0xA0, 0x47), 3));
         QVERIFY(colorNear(image.pixelColor(23, 23), QColor(0x7E, 0x57, 0xC2), 3));
         QVERIFY(colorNear(image.pixelColor(150, 150), QColor(Qt::white), 1));
+    }
+
+    void resourceImagesAreDecodedOffThreadAndMasked()
+    {
+        QImage source(4, 4, QImage::Format_ARGB32);
+        source.fill(Qt::white);
+        source.setPixelColor(1, 1, Qt::red);
+        core::Document document;
+        const std::string key = document.addResource(pngOf(source), "png");
+        core::ImageObject plain;
+        plain.bounds = {0, 0, 4, 4};
+        plain.resource = key;
+        core::ImageObject masked = plain;
+        masked.hasKeyColor = true;
+        masked.keyColor = 0xFFFFFFFFu;
+        core::Page page;
+        page.objects.emplace_back(plain);
+        page.objects.emplace_back(masked);
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(page, &document);
+        QVERIFY(ready.wait(5000));
+        QVERIFY(store.generatedOffOwnerThread());
+        QCOMPARE(store.resourceImage(key).size(), QSize(4, 4));
+        QCOMPARE(store.objectImage(plain, 0).pixelColor(0, 0), QColor(Qt::white));
+        const QImage cut = store.objectImage(masked, 1);
+        QCOMPARE(cut.pixelColor(0, 0).alpha(), 0);
+        QCOMPARE(cut.pixelColor(1, 1), QColor(Qt::red));
+        QVERIFY(render::ImageStore::variantKey(masked) != render::ImageStore::variantKey(plain));
+        QCOMPARE(store.imageCount(), std::size_t{0}); // aucune image procédurale
+    }
+
+    void placeholderAndBackgroundAreDecoded()
+    {
+        QImage source(2, 2, QImage::Format_ARGB32);
+        source.fill(Qt::blue);
+        core::Document document;
+        const std::string key = document.addResource(pngOf(source), "png");
+        core::Media media;
+        media.bounds = {0, 0, 10, 10};
+        media.placeholder = key;
+        core::Page page;
+        page.background.image = key;
+        page.objects.emplace_back(media);
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(page, &document);
+        QVERIFY(ready.wait(5000));
+        QCOMPARE(store.resourceImage(key).pixelColor(0, 0), QColor(Qt::blue));
+    }
+
+    void unreadableOrMissingResourcesGiveNullImages()
+    {
+        core::Document document;
+        const std::string bad = document.addResource(QByteArray("pas une image"), "png");
+        core::ImageObject a;
+        a.resource = bad;
+        core::ImageObject b;
+        b.resource = "absente";
+        core::Page page;
+        page.objects.emplace_back(a);
+        page.objects.emplace_back(b);
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(page, &document);
+        QVERIFY(ready.wait(5000));
+        QVERIFY(store.isReady());
+        QVERIFY(store.resourceImage(bad).isNull());
+        QVERIFY(store.objectImage(b, 1).isNull());
+    }
+
+    void resourceImageRendersInSoftware()
+    {
+        QImage source(8, 8, QImage::Format_ARGB32);
+        source.fill(Qt::red);
+        core::Document document;
+        core::ImageObject im;
+        im.bounds = {20, 20, 64, 64};
+        im.resource = document.addResource(pngOf(source), "png");
+        core::Page page;
+        page.objects.emplace_back(im);
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(page, &document);
+        QVERIFY(ready.wait(5000));
+        QQuickWindow window;
+        window.setColor(Qt::white);
+        window.resize(200, 200);
+        auto* host = new RenderHostItem;
+        host->setSize(QSizeF(200, 200));
+        host->objects = page.objects;
+        host->images = &store;
+        host->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(colorNear(window.grabWindow().pixelColor(52, 52), QColor(Qt::red), 3));
+    }
+
+    void coversTellsWhetherAPageNeedsDecoding()
+    {
+        core::Page page = core::generatePage();
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(page);
+        QVERIFY(ready.wait(20000));
+        QVERIFY(store.covers(page, nullptr));
+        core::Stroke stroke;
+        stroke.points = {{1, 1, 0.5f}};
+        page.objects.emplace_back(stroke); // trait ajouté en fin : les images gardent leurs indices
+        QVERIFY(store.covers(page, nullptr));
+        page.objects.insert(page.objects.begin(), core::PageObject(stroke)); // indices décalés
+        QVERIFY(!store.covers(page, nullptr));
+    }
+
+    void coversSeesAMissingTransparentVariant()
+    {
+        QImage source(4, 4, QImage::Format_ARGB32);
+        source.fill(Qt::white);
+        core::Document document;
+        core::ImageObject plain;
+        plain.resource = document.addResource(pngOf(source), "png");
+        core::ImageObject masked = plain;
+        masked.hasKeyColor = true;
+        masked.keyColor = 0xFFFFFFFFu;
+        core::Page withPlain;
+        withPlain.objects.emplace_back(plain);
+        core::Page withMasked;
+        withMasked.objects.emplace_back(masked);
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(withPlain, &document);
+        QVERIFY(ready.wait(5000));
+        QVERIFY(store.covers(withPlain, &document));
+        QVERIFY(!store.covers(withMasked, &document)); // même ressource, variante jamais calculée
     }
 };
 

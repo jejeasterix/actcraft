@@ -53,6 +53,8 @@ livrés. Selon la plateforme, certains ne sont pas présents dans le paquet.
 | Qt Gui | Wintab API (Windows) | licence LCS-Telegraphics |
 | Qt Gui | Native Style for Android (Android) | Apache-2.0 |
 | Qt Gui | profil de couleur sRGB (fichier ICC) | licence de l'International Color Consortium |
+| Qt Image Formats | libtiff 4.7.2 (TIFF Software Distribution) | Libtiff License |
+| Qt Image Formats | libwebp 1.6.0 (WebP) | BSD-3-Clause |
 | Qt Qml | JavaScriptCore Macro Assembler | BSD-2-Clause |
 | Qt Quick | Yoga | MIT |
 | Qt Quick Controls | valeurs d'ombre d'Angular Material | MIT |
