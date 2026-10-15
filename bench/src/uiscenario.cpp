@@ -213,6 +213,24 @@ QString keyText(QKeyCombination combination)
     return QString((modifiers & Qt::ShiftModifier) ? c.toUpper() : c.toLower());
 }
 
+// Horodatage des touches synthétiques : horloge monotone commune à la recherche de raccourci et à la
+// livraison.
+ulong keyTimestamp()
+{
+    static QElapsedTimer clock;
+    if (!clock.isValid()) {
+        clock.start();
+    }
+    return static_cast<ulong>(clock.elapsed());
+}
+
+bool deliverKey(QWindow* window, ulong timestamp, QEvent::Type type, int key, Qt::KeyboardModifiers modifiers,
+                const QString& text)
+{
+    return QWindowSystemInterface::handleKeyEvent<QWindowSystemInterface::SynchronousDelivery>(
+        window, timestamp, type, key, modifiers, text);
+}
+
 // Image où tous les pixels sont identiques : rien n'a été dessiné (rendu absent, fenêtre vide).
 bool isUniform(const QImage& image)
 {
@@ -330,7 +348,8 @@ UiScenarioPlayer::UiScenarioPlayer(QQuickWindow* window)
     : m_window(window), m_stylus(std::make_unique<QPointingDevice>(
                             QStringLiteral("actcraft-captures-stylet"), 5180,
                             QInputDevice::DeviceType::Stylus, QPointingDevice::PointerType::Pen,
-                            QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3))
+                            QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3)),
+      m_keyDelivery(deliverKey)
 {}
 
 UiScenarioPlayer::~UiScenarioPlayer() = default;
@@ -338,6 +357,11 @@ UiScenarioPlayer::~UiScenarioPlayer() = default;
 void UiScenarioPlayer::setLineSink(LineSink sink)
 {
     m_sink = std::move(sink);
+}
+
+void UiScenarioPlayer::setKeyDelivery(KeyDelivery delivery)
+{
+    m_keyDelivery = delivery ? std::move(delivery) : KeyDelivery(deliverKey);
 }
 
 QObject* UiScenarioPlayer::find(const QString& target) const
@@ -448,10 +472,13 @@ bool UiScenarioPlayer::key(const UiStep& step, QStringList& report)
     // Fenêtre active si possible (raccourcis de fenêtre) ; un raccourci d'application agit de toute façon.
     m_window->requestActivate();
     const bool active = QTest::qWaitForWindowActive(m_window, kActivateTimeoutMs);
-    // Même chemin qu'une vraie touche et que QTest::keySequence (qt_handleKeyEvent) : QWindowSystemInterface
-    // en livraison synchrone, carte des raccourcis de QGuiApplication puis élément actif. QTest jette le
-    // booléen « acceptée » ; on le garde : un élément qui reçoit la touche sans l'accepter ne la fait pas
-    // réussir.
+    // Chemin d'une vraie touche : carte des raccourcis de QGuiApplication d'abord, puis livraison synchrone à
+    // la fenêtre (élément actif). Le joueur consulte lui-même la carte : la livraison de Qt ne le fait pas
+    // sous macOS (QGuiApplicationPrivate::processKeyEvent, « #if !defined(Q_OS_MACOS) » ; la plateforme Cocoa
+    // et QTest, par qt_handleKeyEvent, appellent handleShortcutEvent avant elle). Ailleurs la livraison la
+    // consulte une seconde fois, sans effet : une touche que la carte vient de refuser l'est encore. Ni
+    // qt_handleKeyEvent ni QTest::keySequence : ils jettent le booléen « acceptée », qu'on garde (un élément
+    // qui reçoit la touche sans l'accepter ne la fait pas réussir).
     const QKeySequence sequence(step.key);
     KeyWitness witness;
     QCoreApplication::instance()->installEventFilter(&witness);
@@ -461,11 +488,16 @@ bool UiScenarioPlayer::key(const UiStep& step, QStringList& report)
         const int code = static_cast<int>(combination.key());
         const Qt::KeyboardModifiers modifiers = combination.keyboardModifiers();
         const QString text = keyText(combination);
-        accepted = QWindowSystemInterface::handleKeyEvent<QWindowSystemInterface::SynchronousDelivery>(
-                       m_window, QEvent::KeyPress, code, modifiers, text) &&
-                   accepted;
-        QWindowSystemInterface::handleKeyEvent<QWindowSystemInterface::SynchronousDelivery>(
-            m_window, QEvent::KeyRelease, code, modifiers, text);
+        const ulong timestamp = keyTimestamp();
+        // Vrai : raccourci joué ou ambigu, ou début d'une séquence à plusieurs touches ; l'appui n'est alors
+        // pas livré, comme pour une vraie touche.
+        bool pressAccepted =
+            QWindowSystemInterface::handleShortcutEvent(m_window, timestamp, code, modifiers, 0, 0, 0, text);
+        if (!pressAccepted) {
+            pressAccepted = m_keyDelivery(m_window, timestamp, QEvent::KeyPress, code, modifiers, text);
+        }
+        accepted = pressAccepted && accepted;
+        m_keyDelivery(m_window, keyTimestamp(), QEvent::KeyRelease, code, modifiers, text);
     }
     QCoreApplication::processEvents();
     QCoreApplication::instance()->removeEventFilter(&witness);

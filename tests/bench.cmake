@@ -86,10 +86,12 @@ if(ACTCRAFT_PWSH)
         PASS_REGULAR_EXPRESSION "RESUME OK")
 endif()
 
-# Joueur de scénarios d'interface d'actcraft-captures (DA8), sur une fenêtre d'essai à vraie PageView.
+# Joueur de scénarios d'interface d'actcraft-captures (DA8), sur une fenêtre d'essai à vraie PageView. QPA
+# (GuiPrivate) : le test simule une livraison des touches sans carte des raccourcis, comme Qt sous macOS.
+find_package(Qt6 6.12 REQUIRED COMPONENTS GuiPrivate)
 actcraft_add_test(tst_bench_uiscenario
     SOURCES tst_bench_uiscenario.cpp
-    LIBS ActCraft::benchui ActCraft::ui actcraft_uiplugin Qt6::Quick)
+    LIBS ActCraft::benchui ActCraft::ui actcraft_uiplugin Qt6::Quick Qt6::GuiPrivate)
 target_compile_definitions(tst_bench_uiscenario PRIVATE ACTCRAFT_TESTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Scénario d'acceptation S2 (premiers pas), hors écran en rendu logiciel (DA8, décision 36).
