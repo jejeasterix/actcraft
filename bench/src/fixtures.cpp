@@ -1,3 +1,5 @@
+#include "flipchartwriter.h"
+
 #include <actcraft/bench/fixtures.h>
 #include <actcraft/core/document.h>
 #include <actcraft/formats/nativefile.h>
@@ -16,6 +18,10 @@ namespace actcraft::bench {
 namespace {
 
 constexpr QLatin1StringView kThreePages("trois-pages");
+// S4 en CI (L2-T21) : paperboard .flipchart de notre écrivain de tests (deux pages, fond dégradé, forme
+// verte, fond image rouge en page 2), écrit octet pour octet. Jamais réencodé en .actcraft : il doit passer
+// par le lecteur .flipchart à l'ouverture (document sans fichier, avertissements de lecture).
+constexpr QLatin1StringView kSyntheticFlipchart("flipchart-synthetique");
 
 // PNG de 64 × 64 produit par Qt à chaque passage : moitié gauche rouge, moitié droite blanche.
 QByteArray redAndWhitePng()
@@ -73,11 +79,14 @@ core::Document threePages()
 
 QStringList fixtureNames()
 {
-    return {QString(kThreePages)};
+    return {QString(kThreePages), QString(kSyntheticFlipchart)};
 }
 
 bool buildFixture(const QString& name, const QString& path, QString& error)
 {
+    if (name == kSyntheticFlipchart) {
+        return formats::writeUrl(QUrl::fromLocalFile(path), fctest::sampleFlipchart(), &error);
+    }
     core::Document document;
     if (name == kThreePages) {
         document = threePages();

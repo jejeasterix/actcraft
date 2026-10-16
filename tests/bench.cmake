@@ -127,3 +127,57 @@ set_tests_properties(tst_captures_aller_retour_natif PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
+# S4 (L2-T21) : rendu de chaque page comparé à sa miniature .thm d'origine, réduits à 80 × 60. En CI, sur le
+# paperboard de fctest::sampleFlipchart dont les miniatures sont rendues par notre peintre (preuve du chemin) ; en
+# local, sur samples/ lu en place (fidélité), sauté sans ACTCRAFT_SAMPLES_DIR (code 77). Les deux variables sont lues
+# à la configuration : les poser avant scripts/build.ps1 pour le test local.
+set(_flipchart_synthetic ${CMAKE_BINARY_DIR}/flipchart-synthetique.flipchart)
+set(_flipchart_altered ${CMAKE_BINARY_DIR}/flipchart-altere.flipchart)
+add_test(NAME tst_flipchart_ecrire_synthetique
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --ecrire-synthetique ${_flipchart_synthetic})
+set_tests_properties(tst_flipchart_ecrire_synthetique PROPERTIES
+    FIXTURES_SETUP flipchart_synthetic ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "SYNTHETIQUE OK")
+# Même paperboard, quart droit de chaque miniature peint en noir : la mesure doit le voir.
+add_test(NAME tst_flipchart_ecrire_altere
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --ecrire-synthetique ${_flipchart_altered} --miniatures-alterees)
+set_tests_properties(tst_flipchart_ecrire_altere PROPERTIES
+    FIXTURES_SETUP flipchart_altered ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "SYNTHETIQUE OK")
+add_test(NAME tst_flipchart_miniatures_synthetique
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_synthetic})
+set_tests_properties(tst_flipchart_miniatures_synthetique PROPERTIES
+    FIXTURES_REQUIRED flipchart_synthetic ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES OK : 2 pages")
+# Tests qui distinguent une vraie mesure d'une mesure aveugle : l'écart tient dans le quart droit des images, que
+# lirait de travers une mesure qui suppose le format RGB 8 bits conservé par la réduction (QImage::scaled lissé
+# rend du RGB 32 bits). Code 1 attendu : le motif seul juge (le code de sortie est ignoré avec PASS_REGULAR_EXPRESSION).
+add_test(NAME tst_flipchart_miniatures_alterees
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_altered})
+set_tests_properties(tst_flipchart_miniatures_alterees PROPERTIES
+    FIXTURES_REQUIRED flipchart_altered ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : 2 pages, ")
+# La liste des pages connues est lue page par page : la page 2, au-dessus de 7 et hors de la liste, est nommée.
+add_test(NAME tst_flipchart_miniatures_non_connue
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_altered}
+        --connues "flipchart-altere.flipchart:1")
+set_tests_properties(tst_flipchart_miniatures_non_connue PROPERTIES
+    FIXTURES_REQUIRED flipchart_altered ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : page flipchart-altere.flipchart:2 au-dessus de 7 et non connue")
+add_test(NAME tst_flipchart_miniatures_samples
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --samples "$ENV{ACTCRAFT_SAMPLES_DIR}"
+        --connues "$ENV{ACTCRAFT_THM_CONNUES}")
+set_tests_properties(tst_flipchart_miniatures_samples PROPERTIES
+    SKIP_RETURN_CODE 77 TIMEOUT 600 ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "MINIATURES OK")
+
+# Scénario d'acceptation S4 en CI, hors écran en rendu logiciel : le paperboard synthétique écrit par la fixture
+# s'ouvre par le lecteur .flipchart (document sans fichier, avertissement affiché), fond et forme visibles.
+add_test(NAME tst_captures_ouvrir_flipchart_synthetique
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/ouvrir-flipchart-synthetique.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-ouvrir-flipchart)
+# Comme premiers-pas : le délai ne détecte qu'un blocage (machine chargée), il ne mesure rien.
+set_tests_properties(tst_captures_ouvrir_flipchart_synthetique PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")

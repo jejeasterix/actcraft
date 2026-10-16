@@ -1,0 +1,25 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "ouvrir-flipchart-synthetique",
+  "description": "S4 en CI : un paperboard .flipchart écrit par nous s'ouvre par le lecteur .flipchart ; deux pages, avertissement affiché sans bloquer, fond dégradé et forme verte visibles, fond image de la page 2 décodé ; document sans fichier.",
+  "steps": [
+    {"waitReady": true},
+    {"fixture": "flipchart-synthetique", "path": "${SORTIE}/cours.flipchart"},
+    {"command": "file.open", "argument": "${SORTIE}/cours.flipchart"},
+    {"waitFor": "documentController.busy", "value": false},
+    {"expect": "pageIndicator.text", "value": "1 / 2"},
+    {"expect": "documentController.title", "value": "cours"},
+    {"expect": "documentController.fileUrl", "value": ""},
+    {"expect": "messageBanner.visible", "value": true},
+    {"waitReady": true},
+    {"checkPixel": "fond-degrade-haut", "at": [625, 112], "color": "#D0E1FF", "tolerance": 12},
+    {"checkPixel": "fond-degrade-bas", "at": [625, 737], "color": "#FDFEFF", "tolerance": 12},
+    {"checkPixel": "forme-verte", "at": [310, 240], "color": "#008000", "tolerance": 40},
+    {"capture": "page-1"},
+    {"command": "page.next"},
+    {"waitReady": true},
+    {"expect": "pageIndicator.text", "value": "2 / 2"},
+    {"checkPixel": "fond-image-rouge", "at": [600, 450], "color": "#FF0000", "tolerance": 40},
+    {"capture": "page-2"}
+  ]
+}
