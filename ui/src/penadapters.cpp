@@ -1,5 +1,6 @@
 #include "penadapters.h"
 
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 
 #include <utility>
@@ -28,7 +29,17 @@ FixedPageSink::FixedPageSink(render::FixedPageItem& page, PageView& view) : m_pa
 void FixedPageSink::commitStroke(core::Stroke stroke)
 {
     m_page.appendStroke(std::move(stroke));
-    m_view.onStrokeFrozen(); // cache redessiné dans le même tour de boucle que le vidage de l'encre
+    m_view.onStrokeFrozen(); // le cache, lui, est redessiné sur contentChanged (insertion)
+}
+
+ControllerSink::ControllerSink(DocumentController& controller, PageView& view)
+    : m_controller(controller), m_view(view)
+{}
+
+void ControllerSink::commitStroke(core::Stroke stroke)
+{
+    m_controller.commitStroke(std::move(stroke));
+    m_view.onStrokeFrozen();
 }
 
 } // namespace actcraft::ui

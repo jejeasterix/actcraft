@@ -6,6 +6,7 @@
 
 namespace actcraft::ui {
 
+class DocumentController;
 class PageView;
 
 // Le stylo (tools/) ne connaît que des interfaces ; ui/ les branche sur render/ (règle de modularité 2).
@@ -29,6 +30,20 @@ public:
 
 private:
     render::FixedPageItem& m_page;
+    PageView& m_view;
+};
+
+// Le trait figé va au document par la pile (L2-T15). Le cache est redessiné par
+// FixedPageItem::contentChanged, émis par l'insertion dans le même tour de boucle que le vidage de l'encre
+// (décision 10) ; la vue ne fait qu'annoncer le trait figé (strokeFrozen).
+class ControllerSink final : public tools::DocumentSink
+{
+public:
+    ControllerSink(DocumentController& controller, PageView& view);
+    void commitStroke(core::Stroke stroke) override;
+
+private:
+    DocumentController& m_controller;
     PageView& m_view;
 };
 

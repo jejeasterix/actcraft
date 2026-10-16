@@ -3,6 +3,7 @@
 #include <actcraft/core/inkprobe.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <QColor>
@@ -28,6 +29,7 @@ namespace actcraft::ui {
 
 class InkSurfaceAdapter;
 class FixedPageSink;
+class ControllerSink;
 
 // Épaisseur du stylo, pixels de page (F-137 : réglette 1 à 100 ; F-220 : 4 par défaut).
 inline constexpr qreal kDefaultInkWidth = 4.0;
@@ -48,6 +50,8 @@ class PageView : public QQuickItem
     Q_PROPERTY(
         actcraft::render::FixedPageItem* fixedPage READ fixedPage WRITE setFixedPage NOTIFY fixedPageChanged)
     Q_PROPERTY(actcraft::render::InkItem* ink READ ink WRITE setInk NOTIFY inkChanged)
+    Q_PROPERTY(actcraft::ui::DocumentController* documentController READ documentController WRITE
+                   setDocumentController NOTIFY documentControllerChanged)
     Q_PROPERTY(QColor inkColor READ inkColor WRITE setInkColor NOTIFY penChanged)
     Q_PROPERTY(qreal inkWidth READ inkWidth WRITE setInkWidth NOTIFY penChanged)
     Q_PROPERTY(bool inputBlocked READ inputBlocked WRITE setInputBlocked NOTIFY inputBlockedChanged)
@@ -64,10 +68,15 @@ public:
     void setFixedPage(render::FixedPageItem* page);
     render::InkItem* ink() const noexcept;
     void setInk(render::InkItem* ink);
+    DocumentController* documentController() const noexcept;
+    // Posé : le stylo verse ses traits au document par la pile du contrôleur (ControllerSink), qui doit
+    // montrer la même page fixe que la vue. Sinon : dans la page interne de la page fixe (banc, tests).
+    void setDocumentController(DocumentController* controller);
     // Banc : sonde de latence (DA4) et numérotation des échantillons depuis `next`.
     void setInkProbe(core::InkProbe* probe);
     void resetInputSequence(std::uint64_t next = 0);
-    // Appelé par l'adaptateur du document quand un trait est figé.
+    // Appelé par l'adaptateur du document quand un trait est figé : émet strokeFrozen, rien de plus. Le
+    // redessin du cache vient de FixedPageItem::contentChanged, une fois par trait.
     void onStrokeFrozen();
 
     QQuickItem* content() const noexcept;
@@ -130,6 +139,7 @@ signals:
     void cacheUpdated();
     void fixedPageChanged();
     void inkChanged();
+    void documentControllerChanged();
     void strokeFrozen();
     void penChanged();
     void inputBlockedChanged();
@@ -169,9 +179,13 @@ private:
     core::InkProbe* m_probe = nullptr;
     std::unique_ptr<InkSurfaceAdapter> m_inkSurface;
     std::unique_ptr<FixedPageSink> m_documentSink;
+    QPointer<DocumentController> m_controller;
+    std::unique_ptr<ControllerSink> m_controllerSink;
+    QMetaObject::Connection m_controllerConnection;
     std::unique_ptr<tools::PenTool> m_pen;
     std::unique_ptr<input::Pipeline> m_pipeline;
     QMetaObject::Connection m_readyConnection;
+    QMetaObject::Connection m_contentConnection; // contentChanged de la page fixe : redessin du cache
     QPointer<QQuickWindow> m_filteredWindow; // variante B : le stylet est capté par un filtre sur la fenêtre
 
     QQuickItem* m_content = nullptr;

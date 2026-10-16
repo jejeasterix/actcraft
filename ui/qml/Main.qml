@@ -119,6 +119,7 @@ Window {
             Layout.fillHeight: true
             cacheEnabled: root.cacheEnabled
             inputBlocked: root.openPopups > 0
+            documentController: appDocument
         }
 
         ToolPalette {

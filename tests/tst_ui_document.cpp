@@ -1,18 +1,25 @@
 #include <actcraft/core/document.h>
+#include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/documentcontroller.h>
 
 #include <QQmlComponent>
 #include <QQmlEngine>
+#include <QRegularExpression>
 #include <QSignalSpy>
+#include <QSizeF>
 #include <QStringList>
 #include <QTest>
+#include <QUrl>
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <cstdint>
+#include <limits>
 #include <memory>
+#include <utility>
 #include <variant>
+#include <vector>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
@@ -31,7 +38,7 @@ core::Stroke redStroke()
 
 } // namespace
 
-// Document ouvert et page affichée (squelette du lot 1, DA2).
+// Document ouvert, page affichée et pile d'annulation (DA2, décision 16 ; relais du lot 1 défait).
 class TstUiDocument : public QObject
 {
     Q_OBJECT
@@ -77,67 +84,208 @@ private slots:
         QCOMPARE(controller.currentIndex(), 0);
     }
 
+    void strokeLandsOnTheTopLayerOfTheShownPage()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        const core::Page& page = controller.document().page(0);
+        QCOMPARE(page.objects.size(), std::size_t{1});
+        QCOMPARE(page.objects[0].common.layer, core::Layer::Top);
+        QVERIFY(page.objects[0].common.id != 0);
+        QCOMPARE(fixed.objectCount(), 1);
+        QCOMPARE(&fixed.page(), &page); // l'élément lit le document
+        QVERIFY(controller.isModified());
+    }
+
+    // Un seul écrivain du document : la pile. Le relais du lot 1 écrivait dans l'élément puis recopiait.
+    void everyWriteGoesThroughTheUndoStack()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        QSignalSpy modified(&controller, &ui::DocumentController::modifiedChanged);
+        controller.commitStroke(redStroke());
+        QVERIFY(controller.canUndo());
+        controller.undo();
+        QVERIFY(controller.document().page(0).objects.empty());
+        QCOMPARE(fixed.objectCount(), 0);
+        QVERIFY(!controller.isModified());
+        controller.redo();
+        QCOMPARE(fixed.objectCount(), 1);
+        QVERIFY(controller.isModified());
+        QVERIFY(modified.count() >= 3);
+    }
+
+    // Identifiants alloués par LE document : le relais en tirait un par page interne de l'élément (compteur
+    // remis à 1 à chaque page montrée), d'où des doublons d'une page à l'autre. La page générée du banc
+    // (identifiants 1 à 300) n'en partage aucun avec les autres pages ni avec les traits suivants.
+    void idsStayUniqueAcrossPagesAndRoundTrips()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        controller.commitStroke(redStroke());
+        controller.nextPage();
+        controller.commitStroke(redStroke());
+        controller.pageBack();
+        controller.commitStroke(redStroke());
+        controller.nextPage();
+        controller.commitStroke(redStroke());
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{3});
+        QCOMPARE(controller.document().page(1).objects.size(), std::size_t{2});
+        QCOMPARE(fixed.objectCount(), 2);
+        QVERIFY(core::hasUniqueIds(controller.document()));
+        controller.loadGeneratedFirstPage(); // page 2 affichée
+        QVERIFY(core::hasUniqueIds(controller.document()));
+        QCOMPARE(controller.document().page(1).objects.size(), std::size_t{2});
+        controller.pageBack();
+        controller.commitStroke(redStroke());
+        QCOMPARE(fixed.objectCount(), 301);
+        QVERIFY(core::hasUniqueIds(controller.document()));
+    }
+
+    // UndoStack::push enregistre aussi une commande sans effet (hors périmètre, L2-T2) : le contrôleur ne
+    // pousse pas un trait qui n'a rien ajouté (identifiants épuisés) et garde la branche à rétablir.
+    void aStrokeThatAddsNothingIsNotRecorded()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        core::Document exhausted;
+        exhausted.reserveIdsBelow(std::numeric_limits<core::ObjectId>::max());
+        controller.replaceDocument(std::move(exhausted), QUrl(), QString());
+        controller.nextPage();
+        controller.undo();
+        QVERIFY(controller.canRedo());
+        QSignalSpy changed(&controller, &ui::DocumentController::documentChanged);
+        QSignalSpy undo(&controller, &ui::DocumentController::undoChanged);
+        QTest::ignoreMessage(QtWarningMsg, QRegularExpression(QStringLiteral("puis")));
+        controller.commitStroke(redStroke());
+        QVERIFY(controller.document().page(0).objects.empty());
+        QVERIFY(!controller.canUndo());
+        QVERIFY(controller.canRedo());
+        QVERIFY(!controller.isModified());
+        QCOMPARE(changed.count(), 0);
+        QCOMPARE(undo.count(), 0);
+    }
+
     void strokeSurvivesPageRoundTrip()
     {
         render::FixedPageItem fixed;
         ui::DocumentController controller;
         controller.setFixedPage(&fixed);
-        fixed.appendStroke(redStroke()); // comme le stylo (FixedPageSink)
+        controller.commitStroke(redStroke());
         controller.nextPage();
         QCOMPARE(fixed.objectCount(), 0);
         controller.pageBack();
         QCOMPARE(fixed.objectCount(), 1);
-        const core::Document& document = controller.document();
-        QCOMPARE(document.page(0).objects.size(), std::size_t{1});
-        QVERIFY(std::get<core::Stroke>(document.page(0).objects[0]).color == 0xFFE53935u);
-        QVERIFY(document.page(1).objects.empty());
+        QVERIFY(std::get<core::Stroke>(controller.document().page(0).objects[0]).color == 0xFFE53935u);
+        QVERIFY(controller.document().page(1).objects.empty());
     }
 
-    void documentReadsTheShownPage()
+    void addedPageIsUndoneAndTheShownPageStaysValid()
     {
         render::FixedPageItem fixed;
         ui::DocumentController controller;
         controller.setFixedPage(&fixed);
-        fixed.appendStroke(redStroke());
-        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        controller.nextPage(); // page 2 ajoutée par la pile, affichée
+        QCOMPARE(controller.pageLabel(), QStringLiteral("2 / 2"));
+        QSignalSpy pages(&controller, &ui::DocumentController::pagesChanged);
+        controller.undo();
+        QCOMPARE(controller.pageCount(), 1);
+        QCOMPARE(controller.currentIndex(), 0);
+        QCOMPARE(fixed.sourcePage(), std::size_t{0});
+        QCOMPARE(fixed.sourceDocument(), &controller.document());
+        controller.redo();
+        QCOMPARE(controller.pageCount(), 2);
+        QCOMPARE(controller.pageLabel(), QStringLiteral("1 / 2"));
+        QCOMPARE(pages.count(), 2); // le nombre de pages a changé deux fois
     }
 
-    // Une seule source de vérité : la page affichée est celle de l'élément, quel que soit l'écrivain. Un
-    // contrôleur qui recopierait chaque trait dans le document (patron du miroir, branché sur strokeAppended
-    // ou sur le puits du stylo) ne verrait pas une page posée sans passer par appendStroke — Main.qml appelle
-    // encore loadGeneratedPage() — et perdrait ces 300 objets au premier aller-retour.
-    void documentFollowsEveryWriterOfTheShownPage()
+    // Page insérée avant la page affichée : l'indice rendu par applyToCache est suivi, la page fixe relit la
+    // même page à son nouvel indice (pas la page vierge insérée à sa place).
+    void pageInsertedBeforeTheShownPageKeepsItShown()
     {
         render::FixedPageItem fixed;
         ui::DocumentController controller;
         controller.setFixedPage(&fixed);
-        fixed.loadGeneratedPage(); // autre écrivain que le stylo : aucun strokeAppended
-        fixed.appendStroke(redStroke());
-        const std::uint64_t shown = core::fingerprint(fixed.page());
-        QCOMPARE(core::fingerprint(controller.document().page(0)), shown);
+        controller.commitStroke(redStroke());
+        controller.execute(std::make_unique<core::AddPageCommand>(0, 1024, 768));
+        QCOMPARE(controller.currentIndex(), 1);
+        QCOMPARE(controller.pageLabel(), QStringLiteral("2 / 2"));
+        QCOMPARE(fixed.sourcePage(), std::size_t{1});
+        QCOMPARE(&fixed.page(), &controller.document().page(1));
+        QCOMPARE(fixed.objectCount(), 1);
+        controller.undo();
+        QCOMPARE(controller.currentIndex(), 0);
+        QCOMPARE(fixed.objectCount(), 1);
+    }
+
+    void newPageTakesTheLastPageSize()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.newDocument(800, 600);
         controller.nextPage();
-        controller.pageBack();
-        QCOMPARE(fixed.objectCount(), 301);
-        QCOMPARE(core::fingerprint(fixed.page()), shown);
+        QCOMPARE(controller.document().page(1).width, 800.0);
+        QCOMPARE(controller.pageSize(), QSizeF(800, 600));
     }
 
-    // Le contrôleur pilote core::Document (nextPageIndex) : la page ajoutée prend la taille de la dernière,
-    // c'est-à-dire de la page affichée telle que l'élément la tient, recopiée avant l'ajout.
-    void newPageTakesTheShownPageSize()
+    void newAndReplacedDocumentsAreCleanAndShownFromPageOne()
     {
         render::FixedPageItem fixed;
         ui::DocumentController controller;
         controller.setFixedPage(&fixed);
-        core::Page wide;
-        wide.width = 1280;
-        wide.height = 720;
-        fixed.setPage(wide);
-        controller.nextPage();
-        const core::Document& document = controller.document();
-        QCOMPARE(document.pageCount(), std::size_t{2});
-        QCOMPARE(document.page(1).width, 1280.0);
-        QCOMPARE(document.page(1).height, 720.0);
-        QCOMPARE(fixed.page().width, 1280.0);
+        QCOMPARE(controller.title(), QStringLiteral("Sans titre"));
+        controller.commitStroke(redStroke());
+        core::Document other(std::vector<core::Page>(3));
+        other.setTitle("Autre");
+        QSignalSpy pages(&controller, &ui::DocumentController::pagesChanged);
+        controller.replaceDocument(std::move(other),
+                                   QUrl::fromLocalFile(QStringLiteral("C:/x/autre.actcraft")),
+                                   QStringLiteral("autre"));
+        QCOMPARE(controller.pageLabel(), QStringLiteral("1 / 3"));
+        QCOMPARE(controller.title(), QStringLiteral("autre"));
+        QVERIFY(!controller.isModified());
+        QVERIFY(!controller.canUndo());
+        QCOMPARE(controller.fileUrl().fileName(), QStringLiteral("autre.actcraft"));
+        QCOMPARE(pages.count(), 1);
+        controller.newDocument(1280, 1024);
+        QCOMPARE(controller.pageSize(), QSizeF(1280, 1024));
+        QCOMPARE(controller.title(), QStringLiteral("Sans titre"));
+        QVERIFY(controller.fileUrl().isEmpty());
+    }
+
+    void fingerprintPropertyFollowsTheDocument()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        const QString empty = controller.property("fingerprint").toString();
+        QCOMPARE(empty.size(), 16);
+        QSignalSpy changed(&controller, &ui::DocumentController::documentChanged);
+        controller.commitStroke(redStroke());
+        QCOMPARE(changed.count(), 1);
+        QVERIFY(controller.property("fingerprint").toString() != empty);
+        QCOMPARE(
+            controller.property("fingerprint").toString(),
+            QStringLiteral("%1").arg(core::fingerprint(controller.document()), 16, 16, QLatin1Char('0')));
+    }
+
+    void detachingTheItemLeavesItEmpty()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        controller.setFixedPage(nullptr);
+        QVERIFY(fixed.sourceDocument() == nullptr);
+        QCOMPARE(fixed.objectCount(), 0);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1}); // rien n'est perdu
     }
 
     // pagesChanged : une fois par déplacement, jamais sans déplacement, et émis quand tout est en place (le
@@ -147,7 +295,7 @@ private slots:
         render::FixedPageItem fixed;
         ui::DocumentController controller;
         controller.setFixedPage(&fixed);
-        fixed.appendStroke(redStroke());
+        controller.commitStroke(redStroke());
         QStringList seen;
         connect(&controller, &ui::DocumentController::pagesChanged, this, [&] {
             seen << QStringLiteral("%1 : %2").arg(controller.pageLabel()).arg(fixed.objectCount());
@@ -177,15 +325,15 @@ private slots:
     }
 
     // La vue termine le trait en cours sur pageAboutToChange : ce qu'elle verse alors doit rejoindre la page
-    // quittée, donc le signal précède la recopie dans le document.
-    void pageAboutToChangeComesBeforeTheCopy()
+    // quittée, donc le signal précède le déplacement.
+    void pageAboutToChangeComesBeforeTheMove()
     {
         render::FixedPageItem fixed;
         ui::DocumentController controller;
         controller.setFixedPage(&fixed);
         QSignalSpy leaving(&controller, &ui::DocumentController::pageAboutToChange);
         connect(&controller, &ui::DocumentController::pageAboutToChange, &fixed,
-                [&fixed] { fixed.appendStroke(redStroke()); });
+                [&controller] { controller.commitStroke(redStroke()); });
         controller.nextPage();
         QCOMPARE(leaving.count(), 1);
         QCOMPARE(fixed.objectCount(), 0);
@@ -207,41 +355,10 @@ private slots:
         QCOMPARE(fixed.objectCount(), 300);
         QCOMPARE(core::fingerprint(controller.document().page(0)),
                  core::fingerprint(core::generatePage(core::kDefaultSeed)));
+        QVERIFY(!controller.isModified());
         controller.nextPage();
         QCOMPARE(fixed.objectCount(), 0);
         QCOMPARE(controller.pageLabel(), QStringLiteral("2 / 2"));
-    }
-
-    // Échange d'élément : l'ancien rend sa page au document avant que le nouveau ne la reçoive.
-    void swappingTheItemHandsBackItsPage()
-    {
-        render::FixedPageItem first;
-        render::FixedPageItem second;
-        ui::DocumentController controller;
-        controller.setFixedPage(&first);
-        first.appendStroke(redStroke());
-        controller.setFixedPage(&second);
-        QCOMPARE(second.objectCount(), 1);
-        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
-    }
-
-    // Page 2 affichée : la page 1 change dans le document, l'élément garde la page 2 et ses traits.
-    void generatedFirstPageWhileShowingPageTwo()
-    {
-        render::FixedPageItem fixed;
-        ui::DocumentController controller;
-        controller.setFixedPage(&fixed);
-        controller.nextPage();
-        fixed.appendStroke(redStroke());
-        controller.loadGeneratedFirstPage();
-        QCOMPARE(fixed.objectCount(), 1);
-        QCOMPARE(controller.pageLabel(), QStringLiteral("2 / 2"));
-        const core::Document& document = controller.document();
-        QCOMPARE(core::fingerprint(document.page(0)),
-                 core::fingerprint(core::generatePage(core::kDefaultSeed)));
-        QCOMPARE(document.page(1).objects.size(), std::size_t{1});
-        controller.pageBack();
-        QCOMPARE(fixed.objectCount(), 300);
     }
 
     void registeredInQml()

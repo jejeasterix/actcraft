@@ -11,6 +11,8 @@ Item {
     property alias fixedPage: fixedPageItem
     property bool cacheEnabled: true
     property bool inputBlocked: false
+    // Document ouvert : le stylo y verse ses traits par la pile (L2-T15).
+    property DocumentController documentController: null
     clip: true
 
     PageView {
@@ -22,6 +24,7 @@ Item {
         content: pageContent
         fixedPage: fixedPageItem
         ink: inkLayer
+        documentController: area.documentController
         // Branché dès la création de la vue (un bloc Connections ne l'est qu'en fin de composant).
         onCacheRefreshRequested: cache.scheduleUpdate()
 
