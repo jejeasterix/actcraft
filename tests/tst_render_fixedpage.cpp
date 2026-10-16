@@ -229,6 +229,7 @@ private slots:
         QVERIFY(!f.page->isReady());
         f.page->appendStroke(lineAt(700));
         f.page->appendStroke(lineAt(720));
+        f.page->remove(core::ObjectId{1}, core::RectF{}); // autre changement de la même page, hors fin de scène
         QCOMPARE(f.page->decodeCount(), decodes + 1);
         QTRY_VERIFY(f.page->isReady());
         waitFrame(f);
