@@ -1,6 +1,7 @@
 #include <actcraft/bench/result.h>
 #include <actcraft/bench/scenarios.h>
 #include <actcraft/core/generator.h>
+#include <actcraft/render/paintedrenderer.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/viewtransform.h>
 
@@ -228,6 +229,19 @@ private slots:
         QVERIFY(!controller.isModified());
         QVERIFY(!controller.canUndo());
         QCOMPARE(controller.currentIndex(), 0);
+        // Valeur attendue du relevé D3D11 (docs/banc.md) : la page 2 a exactement 40 nœuds rastérisés en RHI
+        // (éléments peints, ni fond peint ni grille), la page 1 aucun. Deux échelles posées (view.zoom,
+        // view.fit) : page_rasterizations_during_zoom = 2 × 40 = 80.
+        const auto rasterSlots = [](const core::Page& page) {
+            int count = render::backgroundIsPainted(page) ? 1 : 0;
+            count += page.grid.visible && !page.grid.levels.empty() ? 1 : 0;
+            for (const core::PageObject& object : page.objects) {
+                count += object.common.visible && render::usesPaintedRenderer(object) ? 1 : 0;
+            }
+            return count;
+        };
+        QCOMPARE(rasterSlots(d.page(0)), 0);
+        QCOMPARE(rasterSlots(d.page(1)), 40);
     }
 
     void cumulativeSplitIsExact()

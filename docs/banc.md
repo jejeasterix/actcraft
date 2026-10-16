@@ -73,10 +73,11 @@ sans cache. À la première image rendue après un changement de page, le pixel 
 doit garder la couleur relevée sur l'ancienne page juste avant (ni blanc, ni transparent, ni autre
 couleur). Une capture n'est retenue que si la nouvelle page n'est pas encore prête (jusqu'à six
 changements pour trois captures) ; aucune capture retenue sans cache rend la mesure invalide
-(`page-flash-unverified`). Le verdict (`page_flash`) ne repose que sur les captures sans cache : avec
-cache, la vue ne redessine sa texture qu'au prêt de la page et masquerait l'éclair de la page elle-même
-(`page_flash_cached`, relevé). Le banc revient ensuite à la page 1 pour la
-démonstration.
+(`page-flash-unverified`). Le verdict (`page_flash`) ne repose que sur les captures sans cache. La moitié
+avec cache ne discrimine pas, et c'est inhérent : la vue ne redessine sa texture qu'au prêt de la page
+(`PageView::setFixedPage`), elle montre donc l'ancienne texture pendant tout le décodage, quoi que dessine la
+page fixe ; ses captures (`page_flash_cached`) sont un relevé, jamais un critère. Le banc revient ensuite à la
+page 1 pour la démonstration.
 
 ## Fichier de résultats
 
@@ -90,12 +91,15 @@ et le commit y figurent, rien qui identifie une personne. Clés principales :
   de rendu, type de construction, options de compilation, fenêtre, et `refresh` (période d'écran de référence et
   période mesurée) ;
 - `scenarios` : statistiques d'intervalles, figements et reprises, latence, entrées, mémoire, séries brutes ;
-- `content_check` : les contrôles de couleur ; avec le scénario `page`, `page_flash` (captures blanches juste
-  après un changement de page : `content_check.ok` est faux au-dessus de 0), `page_rebuilds_during_zoom`
+- `content_check` : les contrôles de couleur ; avec le scénario `page`, `page_flash` (captures sans cache où
+  le témoin n'a plus la couleur de l'ancienne page juste après un changement : `content_check.ok` est faux
+  au-dessus de 0), `page_rebuilds_during_zoom`
   (reconstructions complètes de la page fixe entre le zoom posé et la fin du scénario : 0 attendu, le zoom ne
   refait que les nœuds rastérisés) et `page_rasterizations_during_zoom` (nœuds rastérisés refaits dans le
-  même intervalle : 0 en rendu logiciel ; en D3D11 ou Metal, au moins 80 : deux échelles × 40 éléments
-  peints) ; les deux valent -1 si la page peinte n'était pas prête et dessinée au zoom (non mesuré) ;
+  même intervalle : 0 en rendu logiciel, nœuds vectoriels ; en D3D11 ou Metal, au moins 80, exigé à la
+  clôture : deux échelles posées, `view.zoom` puis `view.fit`, × 40 éléments peints de la page 2, sans fond
+  peint ni grille ; 40 signale une seule échelle refaite, 0 l'absence du chemin rastérisé) ; les deux valent
+  -1 si la page peinte n'était pas prête et dessinée au zoom (non mesuré : passage à rejouer) ;
   `page_flash_probes` et `page_flash_cached` : captures retenues sans cache, éclairs relevés avec cache ;
 - `verdict` : `invalid_reasons` et `criteria` (valeur, seuil, réussi ou non, par scénario).
 

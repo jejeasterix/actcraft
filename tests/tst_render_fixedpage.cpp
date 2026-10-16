@@ -227,9 +227,15 @@ private slots:
         const int decodes = f.page->decodeCount();
         f.page->setPage(five);
         QVERIFY(!f.page->isReady());
+        QSignalSpy appended(f.page, &render::FixedPageItem::strokeAppended);
         f.page->appendStroke(lineAt(700));
         f.page->appendStroke(lineAt(720));
-        f.page->remove(core::ObjectId{1}, core::RectF{}); // autre changement de la même page, hors fin de scène
+        // Chemin rapide de fin de page, comme avant L2-T23 : le changement de page oublie les 300 nœuds de
+        // l'ancienne (aucun ajout « en fin de scène » ne se compare à eux).
+        QCOMPARE(appended.count(), 2);
+        // Notification du cache sur la même page hors fin de scène (reconstruction complète) : elle non plus
+        // ne relance pas le décodage en cours.
+        f.page->remove(core::ObjectId{1}, core::RectF{});
         QCOMPARE(f.page->decodeCount(), decodes + 1);
         QTRY_VERIFY(f.page->isReady());
         waitFrame(f);
