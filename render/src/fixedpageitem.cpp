@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace actcraft::render {
 
@@ -43,16 +44,9 @@ QSGNode* wrapped(QSGNode* node, const core::ObjectCommon& common)
     return node;
 }
 
-// Vrai si la page a un élément rastérisé en RHI : fond peint, grille ou objet du moteur peint.
-bool pagePaintsSomething(const core::Page& page)
-{
-    if (!page.background.image.empty() || page.background.fill.kind == core::FillKind::Gradient ||
-        page.background.fill.kind == core::FillKind::Pattern || page.grid.visible) {
-        return true;
-    }
-    return std::any_of(page.objects.begin(), page.objects.end(),
-                       [](const core::PageObject& o) { return usesPaintedRenderer(o); });
-}
+// Emplacements du fond peint et de la grille parmi les nœuds rastérisés (les objets y sont par leur indice).
+constexpr std::size_t kBackgroundSlot = std::numeric_limits<std::size_t>::max();
+constexpr std::size_t kGridSlot = kBackgroundSlot - 1;
 } // namespace
 
 FixedPageItem::FixedPageItem(QQuickItem* parent)
@@ -109,10 +103,10 @@ void FixedPageItem::setRasterScale(double scale)
         return;
     }
     m_rasterScale = scale;
-    const bool software =
-        window() && window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
-    if (!software && pagePaintsSomething(m_page)) {
-        m_rebuild = true;
+    // Seuls les nœuds rastérisés suivent l'échelle, refaits en place : aucun en rendu logiciel ni sur une
+    // page sans fond peint, grille ou objet peint (page du banc) ; les nœuds du prototype ne bougent jamais.
+    if (m_rasterNodes.load() > 0) {
+        m_rescale = true;
         update();
     }
 }
@@ -125,6 +119,46 @@ double FixedPageItem::rasterScale() const noexcept
 int FixedPageItem::rebuildCount() const noexcept
 {
     return m_rebuildCount.load();
+}
+
+void FixedPageItem::setForceRasterized(bool on)
+{
+    m_forceRasterized = on;
+    m_rebuild = true;
+    update();
+}
+
+int FixedPageItem::rasterizationCount() const noexcept
+{
+    return m_rasterizationCount.load();
+}
+
+void FixedPageItem::addRasterSlot(QSGNode* node, std::size_t object)
+{
+    m_rasterSlots.push_back(RasterSlot{node, object});
+    ++m_rasterizationCount;
+}
+
+void FixedPageItem::rescaleRasterNodes(const core::Page& page, const RenderContext& painted)
+{
+    for (RasterSlot& slot : m_rasterSlots) {
+        QSGNode* fresh = slot.object == kBackgroundSlot ? createBackgroundNode(page, painted)
+                         : slot.object == kGridSlot
+                             ? createGridNode(page, painted)
+                             : m_painted.createNode(page.objects[slot.object], painted);
+        if (!fresh) {
+            continue;
+        }
+        QSGNode* parent = slot.node->parent();
+        parent->insertChildNodeBefore(fresh, slot.node);
+        parent->removeChildNode(slot.node);
+        if (m_gridDrawnAbove == slot.node) {
+            m_gridDrawnAbove = fresh;
+        }
+        delete slot.node;
+        slot.node = fresh;
+        ++m_rasterizationCount;
+    }
 }
 
 void FixedPageItem::onImagesReady()
@@ -153,18 +187,30 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     context.software = software;
     context.images = &m_images;
     context.rasterScale = m_rasterScale;
+    // Moteur peint, fond peint et grille : vectoriels en rendu logiciel, textures en RHI (décision 37).
+    RenderContext painted = context;
+    painted.software = software && !m_forceRasterized;
+    const bool rasterized = !painted.software;
     const core::Page& shown = m_page;
     if (m_rebuild || !old) {
         ++m_rebuildCount;
         clearChildren(root);
         m_gridDrawnAbove = nullptr;
+        m_rasterSlots.clear();
         if (m_ready) {
-            root->appendChildNode(createBackgroundNode(shown, context));
-            if (QSGNode* grid = createGridNode(shown, context)) {
+            QSGNode* background = createBackgroundNode(shown, painted);
+            root->appendChildNode(background);
+            if (rasterized && backgroundIsPainted(shown)) {
+                addRasterSlot(background, kBackgroundSlot);
+            }
+            if (QSGNode* grid = createGridNode(shown, painted)) {
                 if (shown.grid.drawnAbove) {
                     m_gridDrawnAbove = grid;
                 }
                 root->appendChildNode(grid);
+                if (rasterized) {
+                    addRasterSlot(grid, kGridSlot);
+                }
             }
         } else {
             QSGRectangleNode* background = window()->createRectangleNode();
@@ -174,7 +220,10 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         }
         m_builtCount = 0;
         m_rebuild = !m_ready;
+    } else if (m_rescale) {
+        rescaleRasterNodes(shown, painted);
     }
+    m_rescale = false;
     if (m_ready) {
         // Ordre du vecteur (couche, profondeur, arbre) ; moteur du prototype s'il sait faire, sinon moteur
         // peint.
@@ -184,13 +233,22 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
                 continue;
             }
             QSGNode* node = nullptr;
-            if (usesPaintedRenderer(object)) {
-                node = m_painted.createNode(object, context);
+            bool viaPainter = usesPaintedRenderer(object);
+            if (viaPainter) {
+                node = m_painted.createNode(object, painted);
             } else if (const ObjectRenderer* renderer = m_registry.find(core::kindOf(object))) {
                 node = renderer->createNode(object, i, context);
+                if (!node && std::get_if<core::ImageObject>(&object)) {
+                    // Image illisible : le peintre pose son repère, comme la miniature.
+                    node = m_painted.createNode(object, painted);
+                    viaPainter = true;
+                }
             }
             if (!node) {
                 continue;
+            }
+            if (viaPainter && rasterized) {
+                addRasterSlot(node, i); // feuille : les nœuds de transformation et d'opacité restent en place
             }
             node = wrapped(node, object.common);
             if (m_gridDrawnAbove) {
@@ -201,6 +259,7 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         }
         m_builtCount = shown.objects.size();
     }
+    m_rasterNodes.store(static_cast<int>(m_rasterSlots.size()));
     return root;
 }
 

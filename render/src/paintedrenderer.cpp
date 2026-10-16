@@ -125,11 +125,31 @@ QImage transparentImage(double width, double height, double scale)
     return image;
 }
 
+// Image transparente qui recouvre exactement `rect` à l'échelle bornée.
+QImage rasterTarget(const QRectF& rect, double scale)
+{
+    return transparentImage(rect.width(), rect.height(),
+                            boundedRasterScale(rect.width(), rect.height(), scale));
+}
+
+// Le peintre dessine ensuite en coordonnées de `rect`.
+void mapOnto(QPainter& painter, const QImage& image, const QRectF& rect)
+{
+    painter.scale(image.width() / rect.width(), image.height() / rect.height());
+    painter.translate(-rect.x(), -rect.y());
+}
+
+QRectF pageRect(const core::Page& page)
+{
+    return QRectF(0, 0, std::max(page.width, 1.0), std::max(page.height, 1.0));
+}
+
 QImage rasterizePage(const core::Page& page, const ImageLookup& images, double scale, bool grid)
 {
-    QImage image = transparentImage(page.width, page.height, scale);
+    const QRectF rect = pageRect(page);
+    QImage image = rasterTarget(rect, scale);
     QPainter p(&image);
-    p.scale(scale, scale);
+    mapOnto(p, image, rect);
     if (grid) {
         paintGrid(p, page, false);
     } else {
@@ -139,12 +159,74 @@ QImage rasterizePage(const core::Page& page, const ImageLookup& images, double s
     return image;
 }
 
-double positiveScale(double scale)
+void unitePoint(QRectF& rect, double x, double y, double reach)
 {
-    return std::isfinite(scale) ? std::max(scale, 0.01) : 1.0;
+    rect = rect.united(QRectF(x - reach, y - reach, 2 * reach, 2 * reach));
+}
+
+// Rectangle couvert par le dessin en coordonnées de l'objet : boîte du modèle, élargie de la largeur
+// réellement dessinée autour de chaque sommet (le peintre trace les traits autres que le stylo carré à
+// largeur constante, pas à celle de la pression). Une largeur entière couvre le bout rond (1/2), le bout
+// carré en diagonale (√2/2) et l'onglet (limite 2 de Qt : 1/2 × 2).
+QRectF drawnRect(const core::PageObject& local)
+{
+    const core::RectF b = core::boundsOnPage(local);
+    QRectF rect(b.x, b.y, b.width, b.height);
+    if (const auto* st = std::get_if<core::Stroke>(&local)) {
+        double width = st->baseWidth;
+        for (const core::StrokePoint& q : st->points) {
+            width = std::max(width, core::strokeWidthAt(st->baseWidth, q.pressure));
+        }
+        for (const core::StrokePoint& q : st->points) {
+            unitePoint(rect, q.x, q.y, width);
+        }
+    } else if (const auto* l = std::get_if<core::Line>(&local)) {
+        for (const core::PointF& q : l->points) {
+            unitePoint(rect, q.x, q.y, std::max(l->pen.width, 1.0));
+        }
+    } else if (const auto* c = std::get_if<core::Connector>(&local)) {
+        unitePoint(rect, c->firstEnd.x, c->firstEnd.y, std::max(c->pen.width, 1.0));
+        unitePoint(rect, c->secondEnd.x, c->secondEnd.y, std::max(c->pen.width, 1.0));
+    } else if (const auto* sh = std::get_if<core::Shape>(&local); sh && sh->kind == core::ShapeKind::Path) {
+        const double reach = sh->pen.style == core::PenStyle::None ? 0.0 : std::max(sh->pen.width, 1.0);
+        for (const auto& path : sh->paths) {
+            for (const core::PointF& q : path) {
+                unitePoint(rect, q.x, q.y, reach);
+            }
+        }
+    }
+    return rect;
+}
+
+QColor overWhite(core::Argb argb)
+{
+    const QColor c = QColor::fromRgba(argb);
+    const double a = c.alphaF();
+    const auto blend = [a](int channel) { return qRound(channel * a + 255.0 * (1.0 - a)); };
+    return QColor(blend(c.red()), blend(c.green()), blend(c.blue()));
 }
 
 } // namespace
+
+double boundedRasterScale(double width, double height, double scale) noexcept
+{
+    double s = std::isfinite(scale) ? std::max(scale, 0.01) : 1.0;
+    const double w = std::max(width, 1.0);
+    const double h = std::max(height, 1.0);
+    if (!std::isfinite(w) || !std::isfinite(h)) {
+        return s;
+    }
+    s = std::min({s, std::sqrt(kMaxRasterPixels / (w * h)), kMaxRasterSide / w, kMaxRasterSide / h});
+    const auto fits = [w, h](double k) {
+        const double cw = std::ceil(w * k);
+        const double ch = std::ceil(h * k);
+        return cw * ch <= kMaxRasterPixels && cw <= kMaxRasterSide && ch <= kMaxRasterSide;
+    };
+    while (s > 1e-9 && !fits(s)) {
+        s *= 0.999;
+    }
+    return s;
+}
 
 bool usesPaintedRenderer(const core::PageObject& object) noexcept
 {
@@ -166,15 +248,14 @@ QImage rasterizeLocal(const core::PageObject& object, const ImageLookup& images,
 {
     core::PageObject local = object;
     local.common.transform = core::Transform{};
-    const core::RectF b = core::boundsOnPage(local);
-    const QRectF rect(b.x, b.y, std::max(b.width, 1.0), std::max(b.height, 1.0));
+    QRectF rect = drawnRect(local);
+    rect.setSize(QSizeF(std::max(rect.width(), 1.0), std::max(rect.height(), 1.0)));
     if (localRect) {
         *localRect = rect;
     }
-    QImage image = transparentImage(rect.width(), rect.height(), scale);
+    QImage image = rasterTarget(rect, scale);
     QPainter p(&image);
-    p.scale(scale, scale);
-    p.translate(-rect.x(), -rect.y());
+    mapOnto(p, image, rect);
     paintObjectLocal(p, local, images);
     p.end();
     return image;
@@ -186,35 +267,46 @@ QSGNode* PaintedRenderer::createNode(const core::PageObject& object, const Rende
     if (context.software) {
         core::PageObject local = object;
         local.common.transform = core::Transform{};
-        const core::RectF b = core::boundsOnPage(local);
         // Marge d'un pixel : l'anticrénelage déborde du rectangle exact.
-        const QRectF rect(b.x - 1, b.y - 1, b.width + 2, b.height + 2);
+        const QRectF rect = drawnRect(local).adjusted(-1, -1, 1, 1);
         return new PaintedObjectNode(context.window, std::move(local), std::move(images), rect);
     }
     QRectF rect;
-    const QImage image = rasterizeLocal(object, images.lookup(), positiveScale(context.rasterScale), &rect);
+    const QImage image = rasterizeLocal(object, images.lookup(), context.rasterScale, &rect);
     return textureNode(context.window, image, rect);
+}
+
+bool backgroundIsPainted(const core::Page& page) noexcept
+{
+    const core::FillKind kind = page.background.fill.kind;
+    return !page.background.image.empty() || (kind != core::FillKind::Solid && kind != core::FillKind::None);
 }
 
 QSGNode* createBackgroundNode(const core::Page& page, const RenderContext& context)
 {
     const core::Fill& fill = page.background.fill;
-    const QRectF rect(0, 0, page.width, page.height);
-    if (page.background.image.empty() &&
-        (fill.kind == core::FillKind::Solid || fill.kind == core::FillKind::None)) {
-        QSGRectangleNode* node = context.window->createRectangleNode();
-        node->setRect(rect);
-        // Fond « aucun » : la page reste blanche (F-610).
-        node->setColor(fill.kind == core::FillKind::Solid ? QColor::fromRgba(fill.color) : QColor(Qt::white));
-        return node;
+    // Blanc de la page sous le fond, comme renderPage : ce que le fond ne couvre pas reste blanc, quelle que
+    // soit la couleur derrière l'élément.
+    QSGRectangleNode* white = context.window->createRectangleNode();
+    white->setRect(QRectF(0, 0, page.width, page.height));
+    if (!backgroundIsPainted(page)) {
+        white->setColor(fill.kind == core::FillKind::Solid ? overWhite(fill.color) : QColor(Qt::white));
+        return white;
     }
+    white->setColor(Qt::white);
     DecodedImages images = pictureBackgroundOf(page, context.images);
+    QSGNode* painted = nullptr;
     if (context.software) {
-        return new PaintedPageNode(context.window, withoutObjects(page), std::move(images),
-                                   PaintedPageNode::Part::Background);
+        painted = new PaintedPageNode(context.window, withoutObjects(page), std::move(images),
+                                      PaintedPageNode::Part::Background);
+    } else {
+        painted = textureNode(
+            context.window, rasterizePage(page, images.lookup(), context.rasterScale, false), pageRect(page));
     }
-    return textureNode(context.window,
-                       rasterizePage(page, images.lookup(), positiveScale(context.rasterScale), false), rect);
+    if (painted) {
+        white->appendChildNode(painted);
+    }
+    return white;
 }
 
 QSGNode* createGridNode(const core::Page& page, const RenderContext& context)
@@ -226,9 +318,8 @@ QSGNode* createGridNode(const core::Page& page, const RenderContext& context)
         return new PaintedPageNode(context.window, withoutObjects(page), DecodedImages{},
                                    PaintedPageNode::Part::Grid);
     }
-    return textureNode(context.window,
-                       rasterizePage(page, ImageLookup{}, positiveScale(context.rasterScale), true),
-                       QRectF(0, 0, page.width, page.height));
+    return textureNode(context.window, rasterizePage(page, ImageLookup{}, context.rasterScale, true),
+                       pageRect(page));
 }
 
 } // namespace actcraft::render
