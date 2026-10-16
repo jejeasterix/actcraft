@@ -797,6 +797,97 @@ private slots:
         QCOMPARE(requested.count(), 1);
     }
 
+    void contentResizeRefitsAndEmitsScroll()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        f.view->fitPage();
+        const qreal before = f.view->zoom();
+        QSignalSpy scrolled(f.view, &PageView::scrollChanged);
+        f.content->setSize(QSizeF(2048, 1536)); // même élément, page deux fois plus grande
+        QVERIFY(scrolled.count() >= 1);
+        QVERIFY(qAbs(f.view->zoom() - before / 2) < 1e-6); // « Ajuster » suit la nouvelle taille
+    }
+
+    void contentResizeRequestsTheCacheOnce()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        f.view->fitPage();
+        QTRY_VERIFY(f.view->cacheReady());
+        QSignalSpy requested(f.view, &PageView::cacheRefreshRequested);
+        f.content->setSize(QSizeF(800, 600));
+        QCOMPARE(requested.count(), 1);
+    }
+
+    void contentResizeOutsideFitClampsThePan()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        f.view->setZoom(2.0);
+        f.view->scrollTo(1.0, 1.0); // en bas à droite
+        QSignalSpy scrolled(f.view, &PageView::scrollChanged);
+        f.content->setSize(QSizeF(512, 384)); // la page rapetisse : le défilement reste dans les bornes
+        QVERIFY(scrolled.count() >= 1);
+        QCOMPARE(f.view->zoom(), 2.0);
+        QVERIFY(f.view->scrollPositionX() <= 1.0);
+    }
+
+    void settledZoomSetsTheRasterScale()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->setZoom(2.0);
+        const qreal dpr = f.window.effectiveDevicePixelRatio();
+        QCOMPARE(f.fixed->rasterScale(), 2.0 * dpr);
+        f.view->fitPage();
+        QCOMPARE(f.fixed->rasterScale(), f.view->zoom() * dpr);
+    }
+
+    // Fluidité : pendant un zoom continu à la molette, la page fixe n'est pas refaite ; l'échelle n'est posée
+    // qu'à la fin (minuterie), une seule fois.
+    void continuousZoomSetsTheRasterScaleOnlyAtTheEnd()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->setZoom(1.0);
+        const double scale = f.fixed->rasterScale();
+        const int rasterizations = f.fixed->rasterizationCount();
+        const QPointF pos(500, 300);
+        for (int i = 0; i < 4; ++i) {
+            QWheelEvent event(pos, f.window.mapToGlobal(pos), QPoint(), QPoint(0, 120), Qt::NoButton,
+                              Qt::ControlModifier, Qt::NoScrollPhase, false);
+            QCoreApplication::sendEvent(&f.window, &event);
+        }
+        QVERIFY(f.view->zoom() > 1.0);
+        QCOMPARE(f.fixed->rasterScale(), scale); // zoom en cours : rien n'a bougé
+        QCOMPARE(f.fixed->rasterizationCount(), rasterizations);
+        const qreal dpr = f.window.effectiveDevicePixelRatio();
+        QTRY_COMPARE_WITH_TIMEOUT(f.fixed->rasterScale(), f.view->zoom() * dpr, 2000); // fin du zoom
+    }
+
+    // Un zoom à la molette est en cours quand la taille de la page change : le redessin dû au changement de
+    // taille pose l'échelle du zoom courant, la fin de zoom n'est pas perdue (page nette, pas rastérisée à
+    // l'ancienne échelle).
+    void contentResizeDuringWheelZoomKeepsTheFinalRasterScale()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->setZoom(1.0);
+        const QPointF pos(500, 300);
+        for (int i = 0; i < 3; ++i) {
+            QWheelEvent event(pos, f.window.mapToGlobal(pos), QPoint(), QPoint(0, 120), Qt::NoButton,
+                              Qt::ControlModifier, Qt::NoScrollPhase, false);
+            QCoreApplication::sendEvent(&f.window, &event);
+        }
+        QVERIFY(f.view->zoom() > 1.0);
+        f.view->content()->setSize(QSizeF(800, 600)); // avant la fin de la minuterie du zoom
+        const qreal dpr = f.window.effectiveDevicePixelRatio();
+        QTRY_COMPARE_WITH_TIMEOUT(f.fixed->rasterScale(), f.view->zoom() * dpr, 2000);
+        QTest::qWait(300); // la minuterie, si elle courait encore, est passée : l'échelle est restée la bonne
+        QCOMPARE(f.fixed->rasterScale(), f.view->zoom() * dpr);
+    }
+
     // Fluidité : un trait figé n'ajoute qu'un nœud à la scène de la page affichée, même sur la page générée
     // du banc (300 objets) ; jamais une reconstruction de la page (relais par copie de page, ou identifiant
     // déjà pris par la page générée).
