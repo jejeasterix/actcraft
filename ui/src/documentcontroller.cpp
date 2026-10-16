@@ -1,15 +1,42 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/pagecache.h>
+#include <actcraft/formats/urlio.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documentio.h>
+
+#include <QLoggingCategory>
+#include <QMetaObject>
+#include <QThreadPool>
 
 #include <algorithm>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <utility>
 
 namespace actcraft::ui {
 
+// Fil secondaire → contrôleur. Le fil poste son résultat sous le verrou, et le destructeur du contrôleur
+// efface la cible sous le même verrou : jamais un envoi vers un objet en cours de destruction (un QPointer lu
+// depuis un autre fil ne le garantit pas). Un résultat posté avant la destruction est retiré par ~QObject.
+struct IoRelay
+{
+    std::mutex mutex;
+    DocumentController* target = nullptr;
+
+    template <typename F> void post(F&& function)
+    {
+        const std::lock_guard<std::mutex> lock(mutex);
+        if (target) {
+            QMetaObject::invokeMethod(target, std::forward<F>(function), Qt::QueuedConnection);
+        }
+    }
+};
+
 namespace {
+
+Q_STATIC_LOGGING_CATEGORY(lcDocument, "actcraft.document", QtInfoMsg)
 
 QString untitled()
 {
@@ -61,10 +88,18 @@ public:
 
 } // namespace
 
-DocumentController::DocumentController(QObject* parent) : QObject(parent), m_title(untitled()) {}
+DocumentController::DocumentController(QObject* parent)
+    : QObject(parent), m_title(untitled()), m_relay(std::make_shared<IoRelay>())
+{
+    m_relay->target = this;
+}
 
 DocumentController::~DocumentController()
 {
+    {
+        const std::lock_guard<std::mutex> lock(m_relay->mutex);
+        m_relay->target = nullptr; // une opération en cours finit seule, sans rien rendre
+    }
     if (m_fixed) {
         m_fixed->setSource(nullptr, 0);
     }
@@ -216,6 +251,11 @@ void DocumentController::notifyState(bool pages)
     }
     emit documentChanged();
     emit undoChanged();
+    updateModified();
+}
+
+void DocumentController::updateModified()
+{
     if (isModified() != m_wasModified) {
         m_wasModified = isModified();
         emit modifiedChanged();
@@ -244,9 +284,12 @@ void DocumentController::replaceDocument(core::Document document, const QUrl& fi
     m_fileUrl = fileUrl;
     m_title = title.isEmpty() ? untitled() : title;
     m_modifiedOutsideStack = false;
+    ++m_generation;
     show(0);
     emit fileUrlChanged();
     emit titleChanged();
+    setWarnings({});
+    setLastError({});
     notifyState(false);
 }
 
@@ -304,6 +347,187 @@ void DocumentController::loadGeneratedFirstPage()
         attach();
     }
     notifyState(pageSize() != shownSize);
+}
+
+bool DocumentController::isBusy() const noexcept
+{
+    return m_busy;
+}
+
+QStringList DocumentController::warnings() const
+{
+    return m_warnings;
+}
+
+QString DocumentController::lastError() const
+{
+    return m_lastError;
+}
+
+QString DocumentController::suggestedFileName() const
+{
+    return m_title + QStringLiteral(".actcraft");
+}
+
+bool DocumentController::lastIoOffMainThread() const noexcept
+{
+    return m_lastIoOffMainThread;
+}
+
+QUrl DocumentController::urlFromArgument(const QVariant& argument) const
+{
+    return formats::urlFromArgument(argument);
+}
+
+QUrl DocumentController::defaultFolderUrl(bool create) const
+{
+    return QUrl::fromLocalFile(defaultDocumentsFolder(m_documentsRoot, create));
+}
+
+void DocumentController::setDocumentsRoot(const QString& documents)
+{
+    m_documentsRoot = documents;
+}
+
+void DocumentController::setBusy(bool busy)
+{
+    if (busy != m_busy) {
+        m_busy = busy;
+        emit busyChanged();
+    }
+}
+
+void DocumentController::setWarnings(const QStringList& warnings)
+{
+    if (warnings != m_warnings) {
+        m_warnings = warnings;
+        emit warningsChanged();
+    }
+}
+
+void DocumentController::setLastError(const QString& error)
+{
+    if (error != m_lastError) {
+        m_lastError = error;
+        emit lastErrorChanged();
+    }
+}
+
+void DocumentController::setLastIo(bool offMainThread)
+{
+    m_lastIoOffMainThread = offMainThread;
+    emit lastIoChanged(); // à chaque fin de lecture ou d'écriture, succès ou échec
+}
+
+void DocumentController::openUrl(const QUrl& url)
+{
+    if (m_busy) {
+        QMetaObject::invokeMethod(
+            this, [this] { emit loadFinished(false, tr("Une opération est déjà en cours.")); },
+            Qt::QueuedConnection);
+        return;
+    }
+    setBusy(true);
+    // Relevés à l'appel : un trait, « Nouveau » ou « Fermer » pendant la lecture n'est jamais écrasé en
+    // silence.
+    const std::uint64_t generation = m_generation;
+    const std::uint64_t before = core::fingerprint(m_document);
+    std::shared_ptr<IoRelay> relay = m_relay;
+    QThreadPool::globalInstance()->start([relay, url, generation, before] {
+        auto outcome = std::make_shared<LoadOutcome>(loadDocument(url));
+        relay->post([relay, url, outcome, generation, before] {
+            DocumentController& self = *relay->target; // livré au contrôleur vivant (IoRelay)
+            self.setBusy(false);
+            self.setLastIo(outcome->offMainThread);
+            if (outcome->ok &&
+                (generation != self.m_generation || core::fingerprint(self.m_document) != before)) {
+                const QString changed =
+                    tr("Le paperboard a changé pendant l'ouverture : ouverture annulée, rien n'est perdu.");
+                self.setLastError(changed);
+                emit self.loadFinished(false, changed);
+                return;
+            }
+            if (!outcome->ok) {
+                self.setWarnings(outcome->warnings);
+                self.setLastError(outcome->error);
+                emit self.loadFinished(false, outcome->error);
+                return;
+            }
+            // Un .flipchart devient un document sans fichier : « Enregistrer » proposera <nom>.actcraft.
+            self.replaceDocument(std::move(outcome->document), outcome->native ? url : QUrl(),
+                                 outcome->title);
+            self.setWarnings(outcome->warnings); // après replaceDocument, qui les efface
+            qCInfo(lcDocument, "ACTCRAFT OUVERT %s", qPrintable(self.fingerprintText()));
+            emit self.loadFinished(true, QString());
+        });
+    });
+}
+
+void DocumentController::saveToUrl(const QUrl& url)
+{
+    if (m_busy) {
+        QMetaObject::invokeMethod(
+            this, [this] { emit saveFinished(false, tr("Une opération est déjà en cours.")); },
+            Qt::QueuedConnection);
+        return;
+    }
+    QString refusal;
+    const QUrl target = actcraftTarget(url, &refusal);
+    if (target.isEmpty()) {
+        QMetaObject::invokeMethod(
+            this,
+            [this, refusal] {
+                setLastError(refusal);
+                emit saveFinished(false, refusal);
+            },
+            Qt::QueuedConnection);
+        return;
+    }
+    setBusy(true);
+    // Copie prise ici, sur le fil principal (ressources partagées implicitement) : le fil secondaire ne lit
+    // jamais le document affiché, que l'utilisateur continue de modifier.
+    auto snapshot = std::make_shared<const core::Document>(m_document);
+    const std::uint64_t generation = m_generation;
+    std::shared_ptr<IoRelay> relay = m_relay;
+    QThreadPool::globalInstance()->start([relay, url = target, snapshot, generation] {
+        const SaveOutcome outcome = saveDocument(*snapshot, url);
+        relay->post([relay, url, outcome, generation] {
+            DocumentController& self = *relay->target; // livré au contrôleur vivant (IoRelay)
+            self.setBusy(false);
+            self.setLastIo(outcome.offMainThread);
+            if (!outcome.ok) {
+                self.setLastError(outcome.error);
+                emit self.saveFinished(false, outcome.error);
+                return;
+            }
+            self.setLastError({});
+            // Même document (pas de « Nouveau » entre-temps) : il prend ce fichier. « Modifié » faux ⇔
+            // l'écran est le contenu du fichier : propre si rien n'a changé pendant l'écriture ; sinon
+            // modifié jusqu'au prochain enregistrement, car l'ancien repère propre de la pile désigne un
+            // contenu que le fichier n'a plus (trait annulé pendant l'écriture).
+            if (generation == self.m_generation) {
+                if (core::fingerprint(self.m_document) == outcome.fingerprint) {
+                    self.m_undo.setClean();
+                    self.m_modifiedOutsideStack = false; // la page du banc est dans le fichier
+                } else {
+                    self.m_modifiedOutsideStack = true;
+                }
+                if (url != self.m_fileUrl) {
+                    self.m_fileUrl = url;
+                    emit self.fileUrlChanged();
+                }
+                const QString title = titleFromUrl(url);
+                if (title != self.m_title) {
+                    self.m_title = title;
+                    emit self.titleChanged();
+                }
+                self.updateModified(); // le document n'a pas changé : ni documentChanged, ni undoChanged
+            }
+            qCInfo(lcDocument, "ACTCRAFT ENREGISTRE %s",
+                   qPrintable(QStringLiteral("%1").arg(outcome.fingerprint, 16, 16, QLatin1Char('0'))));
+            emit self.saveFinished(true, QString());
+        });
+    });
 }
 
 } // namespace actcraft::ui

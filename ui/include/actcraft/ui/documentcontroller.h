@@ -8,13 +8,18 @@
 #include <QPointer>
 #include <QSizeF>
 #include <QString>
+#include <QStringList>
 #include <QUrl>
+#include <QVariant>
 #include <QtQml/qqmlregistration.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 
 namespace actcraft::ui {
+
+struct IoRelay; // documentcontroller.cpp
 
 // Document ouvert (DA2, décision 16) : le contrôleur possède le document et sa pile d'annulation ; la page
 // fixe LIT la page affichée (setSource), elle n'en garde aucune copie ; toute modification passe par
@@ -36,6 +41,13 @@ class DocumentController : public QObject
     Q_PROPERTY(QString fingerprint READ fingerprintText NOTIFY documentChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY undoChanged)
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY undoChanged)
+    Q_PROPERTY(bool busy READ isBusy NOTIFY busyChanged)
+    Q_PROPERTY(QStringList warnings READ warnings NOTIFY warningsChanged)
+    Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
+    Q_PROPERTY(QString suggestedFileName READ suggestedFileName NOTIFY titleChanged)
+    // Vrai si la dernière lecture ou écriture a tourné hors du fil principal (S5 la lit ; mutation : écriture
+    // synchrone → faux).
+    Q_PROPERTY(bool lastIoOffMainThread READ lastIoOffMainThread NOTIFY lastIoChanged)
 
 public:
     explicit DocumentController(QObject* parent = nullptr);
@@ -79,6 +91,28 @@ public:
     // seulement si la taille de la page affichée change).
     Q_INVOKABLE void loadGeneratedFirstPage();
 
+    bool isBusy() const noexcept;
+    QStringList warnings() const;
+    QString lastError() const;
+    QString
+    suggestedFileName() const; // « <titre>.actcraft » (décision 18 : un .flipchart n'est jamais réécrit)
+    bool lastIoOffMainThread() const noexcept;
+    // Ouverture et enregistrement sur un fil secondaire (décision 17) ; loadFinished / saveFinished à la fin,
+    // toujours émis en file, même pour un refus. Refusés pendant une autre opération (`busy`).
+    // Ouvrir : un .actcraft garde son fichier ; un .flipchart devient un document sans fichier (décision 18).
+    // Enregistrer : le fil écrit une copie prise à l'appel, sur le fil principal ; à la fin, état propre
+    // (pile et drapeau hors pile) si le document n'a pas changé entre-temps (empreinte comparée, même
+    // document).
+    Q_INVOKABLE void openUrl(const QUrl& url);
+    Q_INVOKABLE void saveToUrl(const QUrl& url);
+    // Argument d'une commande de fichier → URL (formats::urlFromArgument) ; vide si absent.
+    Q_INVOKABLE QUrl urlFromArgument(const QVariant& argument) const;
+    // `create` : le dossier est créé s'il manque — le dialogue d'ouverture ou d'enregistrement le demande en
+    // s'ouvrant (L2-T18) ; sans lui, aucun accès disque.
+    Q_INVOKABLE QUrl defaultFolderUrl(bool create = false) const;
+    // Tests : dossier qui remplace Documents pour defaultFolderUrl (un test n'écrit jamais dans le profil).
+    void setDocumentsRoot(const QString& documents);
+
 signals:
     void fixedPageChanged();
     // Juste avant un changement de page affichée demandé (page suivante ou précédente, ajout compris,
@@ -92,8 +126,18 @@ signals:
     void fileUrlChanged();
     void documentChanged();
     void undoChanged();
+    void busyChanged();
+    void warningsChanged();
+    void lastErrorChanged();
+    void lastIoChanged();
+    void loadFinished(bool ok, const QString& message);
+    void saveFinished(bool ok, const QString& message);
 
 private:
+    void setBusy(bool busy);
+    void setWarnings(const QStringList& warnings);
+    void setLastError(const QString& error);
+    void setLastIo(bool offMainThread);
     // Exécute la commande ; elle n'entre dans la pile que si elle a changé quelque chose (changements
     // rendus).
     core::Changes run(std::unique_ptr<core::UndoCommand> command);
@@ -103,7 +147,8 @@ private:
     bool settle(const core::Changes& changes);
     // Signaux d'état après une modification : pagesChanged (si `pages`), document, pile, modifié.
     void notifyState(bool pages);
-    void attach(); // la page fixe lit la page affichée
+    void updateModified(); // modifiedChanged si l'état « modifié » a changé
+    void attach();         // la page fixe lit la page affichée
     void show(std::size_t index);
 
     core::Document m_document;
@@ -113,9 +158,20 @@ private:
     QUrl m_fileUrl;
     QString m_title;
     bool m_wasModified = false;
-    // Modification faite hors de la pile (page du banc sur un document modifié) : remise à faux par
-    // replaceDocument et, au lot de l'enregistrement, avec setClean().
+    // Modification faite hors de la pile : page du banc sur un document modifié, ou fichier écrit avec un
+    // contenu que l'écran n'a plus (changé pendant l'écriture). Remise à faux par replaceDocument et par un
+    // enregistrement réussi du contenu affiché, avec setClean().
     bool m_modifiedOutsideStack = false;
+    bool m_busy = false;
+    QStringList m_warnings;
+    QString m_lastError;
+    bool m_lastIoOffMainThread = false;
+    QString m_documentsRoot; // vide : Documents du système
+    // Change à chaque replaceDocument : un enregistrement fini après « Nouveau » ne rattache pas le fichier
+    // au document neuf, même d'empreinte égale.
+    std::uint64_t m_generation = 0;
+    // Le fil secondaire rend son résultat par ce relais, tant que le contrôleur vit (documentcontroller.cpp).
+    std::shared_ptr<IoRelay> m_relay;
 };
 
 } // namespace actcraft::ui

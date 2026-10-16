@@ -38,3 +38,11 @@ target_include_directories(tst_ui_shell PRIVATE ${PROJECT_SOURCE_DIR}/app)
 actcraft_add_test(tst_ui_police
     SOURCES tst_ui_police.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+# Ouvrir et enregistrer hors du fil principal (L2-T17).
+actcraft_add_test(tst_ui_files
+    SOURCES tst_ui_files.cpp
+    LIBS Qt6::Quick ActCraft::ui ActCraft::formats)
+if(WIN32)
+    target_link_libraries(tst_ui_files PRIVATE psapi) # GetProcessMemoryInfo (peakmemory.h)
+endif()
