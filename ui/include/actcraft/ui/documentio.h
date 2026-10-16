@@ -39,10 +39,15 @@ struct SaveOutcome
 // atomique (fichier local) ou en une passe (content://). `snapshot` est une copie à soi : jamais le document
 // affiché.
 SaveOutcome saveDocument(const core::Document& snapshot, const QUrl& url);
-// Nom du fichier sans extension ; pour content://, dernier segment décodé.
+// Cible d'un enregistrement : un .flipchart (toute casse) est refusé (URL vide, `error` dit pourquoi ;
+// décision 18 : il ne se réécrit jamais) ; un fichier local sans l'extension .actcraft la reçoit (jamais un
+// fichier d'un autre format écrasé) ; une URL content:// est gardée telle quelle (le fournisseur nomme).
+QUrl actcraftTarget(const QUrl& url, QString* error);
+// Nom du fichier sans extension ; pour content://, dernier segment du chemin, décodé une seule fois.
 QString titleFromUrl(const QUrl& url);
-// F-657, N2-4 : Documents/ActCraft (créé s'il manque) ; sous Android, dossier de l'application. `documents`
-// non vide remplace le dossier Documents du système (tests : jamais le profil de l'utilisateur).
-QString defaultDocumentsFolder(const QString& documents = QString());
+// F-657, N2-4 : Documents/ActCraft ; sous Android, dossier de l'application. `documents` non vide remplace
+// le dossier Documents du système (tests : jamais le profil de l'utilisateur). `create` : créé s'il manque
+// (seulement à la demande d'un dialogue : Documents peut être sous OneDrive) ; sinon aucun accès disque.
+QString defaultDocumentsFolder(const QString& documents = QString(), bool create = false);
 
 } // namespace actcraft::ui

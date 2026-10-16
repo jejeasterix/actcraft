@@ -251,6 +251,11 @@ void DocumentController::notifyState(bool pages)
     }
     emit documentChanged();
     emit undoChanged();
+    updateModified();
+}
+
+void DocumentController::updateModified()
+{
     if (isModified() != m_wasModified) {
         m_wasModified = isModified();
         emit modifiedChanged();
@@ -374,9 +379,9 @@ QUrl DocumentController::urlFromArgument(const QVariant& argument) const
     return formats::urlFromArgument(argument);
 }
 
-QUrl DocumentController::defaultFolderUrl() const
+QUrl DocumentController::defaultFolderUrl(bool create) const
 {
-    return QUrl::fromLocalFile(defaultDocumentsFolder(m_documentsRoot));
+    return QUrl::fromLocalFile(defaultDocumentsFolder(m_documentsRoot, create));
 }
 
 void DocumentController::setDocumentsRoot(const QString& documents)
@@ -423,13 +428,25 @@ void DocumentController::openUrl(const QUrl& url)
         return;
     }
     setBusy(true);
+    // Relevés à l'appel : un trait, « Nouveau » ou « Fermer » pendant la lecture n'est jamais écrasé en
+    // silence.
+    const std::uint64_t generation = m_generation;
+    const std::uint64_t before = core::fingerprint(m_document);
     std::shared_ptr<IoRelay> relay = m_relay;
-    QThreadPool::globalInstance()->start([relay, url] {
+    QThreadPool::globalInstance()->start([relay, url, generation, before] {
         auto outcome = std::make_shared<LoadOutcome>(loadDocument(url));
-        relay->post([relay, url, outcome] {
+        relay->post([relay, url, outcome, generation, before] {
             DocumentController& self = *relay->target; // livré au contrôleur vivant (IoRelay)
             self.setBusy(false);
             self.setLastIo(outcome->offMainThread);
+            if (outcome->ok &&
+                (generation != self.m_generation || core::fingerprint(self.m_document) != before)) {
+                const QString changed =
+                    tr("Le paperboard a changé pendant l'ouverture : ouverture annulée, rien n'est perdu.");
+                self.setLastError(changed);
+                emit self.loadFinished(false, changed);
+                return;
+            }
             if (!outcome->ok) {
                 self.setWarnings(outcome->warnings);
                 self.setLastError(outcome->error);
@@ -454,13 +471,25 @@ void DocumentController::saveToUrl(const QUrl& url)
             Qt::QueuedConnection);
         return;
     }
+    QString refusal;
+    const QUrl target = actcraftTarget(url, &refusal);
+    if (target.isEmpty()) {
+        QMetaObject::invokeMethod(
+            this,
+            [this, refusal] {
+                setLastError(refusal);
+                emit saveFinished(false, refusal);
+            },
+            Qt::QueuedConnection);
+        return;
+    }
     setBusy(true);
     // Copie prise ici, sur le fil principal (ressources partagées implicitement) : le fil secondaire ne lit
     // jamais le document affiché, que l'utilisateur continue de modifier.
     auto snapshot = std::make_shared<const core::Document>(m_document);
     const std::uint64_t generation = m_generation;
     std::shared_ptr<IoRelay> relay = m_relay;
-    QThreadPool::globalInstance()->start([relay, url, snapshot, generation] {
+    QThreadPool::globalInstance()->start([relay, url = target, snapshot, generation] {
         const SaveOutcome outcome = saveDocument(*snapshot, url);
         relay->post([relay, url, outcome, generation] {
             DocumentController& self = *relay->target; // livré au contrôleur vivant (IoRelay)
@@ -471,20 +500,28 @@ void DocumentController::saveToUrl(const QUrl& url)
                 emit self.saveFinished(false, outcome.error);
                 return;
             }
-            // Même document (pas de « Nouveau » entre-temps) : il prend ce fichier ; propre seulement s'il
-            // n'a pas changé pendant l'écriture (sinon le trait tiré entre-temps reste à enregistrer).
+            self.setLastError({});
+            // Même document (pas de « Nouveau » entre-temps) : il prend ce fichier. « Modifié » faux ⇔
+            // l'écran est le contenu du fichier : propre si rien n'a changé pendant l'écriture ; sinon
+            // modifié jusqu'au prochain enregistrement, car l'ancien repère propre de la pile désigne un
+            // contenu que le fichier n'a plus (trait annulé pendant l'écriture).
             if (generation == self.m_generation) {
                 if (core::fingerprint(self.m_document) == outcome.fingerprint) {
                     self.m_undo.setClean();
                     self.m_modifiedOutsideStack = false; // la page du banc est dans le fichier
+                } else {
+                    self.m_modifiedOutsideStack = true;
                 }
                 if (url != self.m_fileUrl) {
                     self.m_fileUrl = url;
                     emit self.fileUrlChanged();
                 }
-                self.m_title = titleFromUrl(url);
-                emit self.titleChanged();
-                self.notifyState(false);
+                const QString title = titleFromUrl(url);
+                if (title != self.m_title) {
+                    self.m_title = title;
+                    emit self.titleChanged();
+                }
+                self.updateModified(); // le document n'a pas changé : ni documentChanged, ni undoChanged
             }
             qCInfo(lcDocument, "ACTCRAFT ENREGISTRE %s",
                    qPrintable(QStringLiteral("%1").arg(outcome.fingerprint, 16, 16, QLatin1Char('0'))));

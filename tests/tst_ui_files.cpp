@@ -8,6 +8,8 @@
 #include <actcraft/ui/documentio.h>
 
 #include <QBuffer>
+#include <QCoreApplication>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
@@ -62,6 +64,57 @@ QString savedFingerprint(const QString& path)
     const formats::DecodeResult r = formats::decodeActcraft(file.readAll());
     return r.ok ? hex(core::fingerprint(r.document)) : QString();
 }
+
+QByteArray readAll(const QString& path)
+{
+    QFile f(path);
+    return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray();
+}
+
+// Paperboard natif de deux pages écrit sur le fil du test (fichier à ouvrir).
+QUrl writeTwoPages(const QTemporaryDir& dir, const QString& name)
+{
+    const QUrl url = QUrl::fromLocalFile(dir.filePath(name));
+    const core::Document document(std::vector<core::Page>(2));
+    return ui::saveDocument(document, url).ok ? url : QUrl();
+}
+
+// Tient tous les fils du pool global occupés jusqu'à release() : une opération lancée entre-temps attend.
+class PoolBlocker
+{
+public:
+    PoolBlocker() : m_threads(QThreadPool::globalInstance()->maxThreadCount())
+    {
+        for (int i = 0; i < m_threads; ++i) {
+            QThreadPool::globalInstance()->start([this] {
+                m_started.release();
+                m_gate.acquire();
+            });
+        }
+    }
+    ~PoolBlocker()
+    {
+        release();
+        QThreadPool::globalInstance()->waitForDone(10000);
+    }
+    PoolBlocker(const PoolBlocker&) = delete;
+    PoolBlocker& operator=(const PoolBlocker&) = delete;
+
+    bool allBlocked() { return m_started.tryAcquire(m_threads, 10000); }
+    void release()
+    {
+        if (!m_released) {
+            m_released = true;
+            m_gate.release(m_threads);
+        }
+    }
+
+private:
+    int m_threads;
+    QSemaphore m_started;
+    QSemaphore m_gate;
+    bool m_released = false;
+};
 
 } // namespace
 
@@ -218,6 +271,13 @@ private slots:
         QVERIFY(!controller.property("lastError").toString().isEmpty());
         QCOMPARE(controller.property("fingerprint").toString(), before);
         QVERIFY(controller.isModified());
+        // Une ouverture réussie efface la dernière erreur.
+        const QUrl good = writeTwoPages(dir, QStringLiteral("bon.actcraft"));
+        QVERIFY(!good.isEmpty());
+        controller.openUrl(good);
+        QVERIFY(loaded.wait(10000));
+        QCOMPARE(loaded.last().at(0).toBool(), true);
+        QVERIFY(controller.property("lastError").toString().isEmpty());
     }
 
     void secondOperationIsRefusedWhileBusy()
@@ -253,6 +313,8 @@ private slots:
         const QUrl folder = controller.defaultFolderUrl();
         QVERIFY(folder.isLocalFile());
         QCOMPARE(folder.toLocalFile(), documents.filePath(QStringLiteral("ActCraft")));
+        QVERIFY(!QFileInfo::exists(folder.toLocalFile()));   // aucun accès disque sans demande
+        QCOMPARE(controller.defaultFolderUrl(true), folder); // le dialogue le demande en s'ouvrant
         QVERIFY(QFileInfo(folder.toLocalFile()).isDir());
         QCOMPARE(QFileInfo::exists(real), realExisted);
     }
@@ -270,12 +332,14 @@ private slots:
         QVERIFY(controller.isModified());
         QVERIFY(!controller.canUndo());
         QSignalSpy modifiedSpy(&controller, &ui::DocumentController::modifiedChanged);
+        QSignalSpy documentSpy(&controller, &ui::DocumentController::documentChanged);
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("banc.actcraft"))));
         QVERIFY(savedSpy.wait(10000));
         QCOMPARE(savedSpy.first().at(0).toBool(), true);
         QVERIFY(!controller.isModified());
         QCOMPARE(modifiedSpy.count(), 1);
+        QCOMPARE(documentSpy.count(), 0); // le document n'a pas changé : rien à redessiner ni à relire
     }
 
     // Le fichier reçoit la copie prise à l'appel, pas le document tel qu'il est quand le fil démarre : le fil
@@ -332,6 +396,232 @@ private slots:
         QVERIFY(controller.fileUrl().isEmpty());
         QCOMPARE(controller.title(), QStringLiteral("Sans titre"));
         QVERIFY(!controller.property("busy").toBool());
+    }
+
+    // Revue, bloquant 1 : « modifié » faux ⇔ l'écran est le contenu du fichier lié. Trait A enregistré
+    // (repère propre à l'indice 1), trait B, Enregistrer, Annuler pendant l'écriture : le fichier a B,
+    // l'écran non.
+    void undoDuringSaveLeavesTheDocumentModified()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        const QUrl url = QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft")));
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.commitStroke(redStroke());
+        controller.saveToUrl(url);
+        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(!controller.isModified());
+        controller.commitStroke(stroke(0xFF1E88E5u, 200));
+        controller.saveToUrl(url);
+        controller.undo(); // pendant l'écriture : retour à l'indice qui portait l'ancien repère propre
+        QVERIFY(savedSpy.wait(10000));
+        QCOMPARE(savedSpy.last().at(0).toBool(), true);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        QVERIFY(controller.isModified());
+        QVERIFY(controller.property("modified").toBool());
+    }
+
+    // Même chose par « Enregistrer sous » : le nouveau fichier a B, l'écran non.
+    void undoDuringSaveAsLeavesTheDocumentModified()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.commitStroke(redStroke());
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
+        QVERIFY(savedSpy.wait(10000));
+        controller.commitStroke(stroke(0xFF1E88E5u, 200));
+        const QUrl other = QUrl::fromLocalFile(dir.filePath(QStringLiteral("b.actcraft")));
+        controller.saveToUrl(other);
+        controller.undo();
+        QVERIFY(savedSpy.wait(10000));
+        QCOMPARE(controller.fileUrl(), other);
+        QVERIFY(controller.isModified());
+    }
+
+    // Revue, important 2 : un trait tiré pendant une ouverture n'est jamais perdu en silence.
+    void strokeDuringOpenRefusesTheOpening()
+    {
+        QTemporaryDir dir;
+        const QUrl url = writeTwoPages(dir, QStringLiteral("deux.actcraft"));
+        QVERIFY(!url.isEmpty());
+        ui::DocumentController controller;
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        controller.openUrl(url);
+        controller.commitStroke(redStroke()); // pendant l'ouverture
+        QVERIFY(loaded.wait(10000));
+        QCOMPARE(loaded.first().at(0).toBool(), false);
+        QVERIFY(!controller.property("lastError").toString().isEmpty());
+        QCOMPARE(controller.pageCount(), 1);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        QVERIFY(controller.isModified());
+        QVERIFY(!controller.property("busy").toBool());
+    }
+
+    // « Nouveau » (et « Fermer », qui laisse un paperboard vierge) pendant une ouverture : pas écrasé, même
+    // d'empreinte égale.
+    void newDocumentDuringOpenRefusesTheOpening()
+    {
+        QTemporaryDir dir;
+        const QUrl url = writeTwoPages(dir, QStringLiteral("deux.actcraft"));
+        QVERIFY(!url.isEmpty());
+        ui::DocumentController controller;
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        controller.openUrl(url);
+        controller.newDocument(1024, 768); // même empreinte que le paperboard vierge de départ
+        QVERIFY(loaded.wait(10000));
+        QCOMPARE(loaded.first().at(0).toBool(), false);
+        QCOMPARE(controller.pageCount(), 1);
+        QVERIFY(controller.fileUrl().isEmpty());
+    }
+
+    // Revue, important 3 (décision 18) : une cible .flipchart est refusée, quelle que soit la casse ; le
+    // fichier reste intact octet pour octet.
+    void flipchartIsNeverOverwritten()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("cours.flipchart"));
+        const QByteArray original = fctest::sampleFlipchart();
+        QVERIFY(writeFile(path, original));
+        ui::DocumentController controller;
+        controller.commitStroke(redStroke());
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(QUrl::fromLocalFile(path));
+        QCOMPARE(savedSpy.count(), 0); // refus en file, jamais pendant l'appel
+        QVERIFY(savedSpy.wait(10000));
+        QCOMPARE(savedSpy.first().at(0).toBool(), false);
+        QVERIFY(!controller.property("lastError").toString().isEmpty());
+        QVERIFY(controller.fileUrl().isEmpty());
+        QVERIFY(controller.isModified());
+        const QString upper = dir.filePath(QStringLiteral("COURS.FLIPCHART"));
+        QVERIFY(writeFile(upper, original));
+        QVERIFY(!ui::saveDocument(controller.document(), QUrl::fromLocalFile(upper)).ok);
+        QCOMPARE(readAll(path), original);
+        QCOMPARE(readAll(upper), original);
+    }
+
+    // Une cible locale sans l'extension .actcraft la reçoit : jamais un fichier d'un autre format écrasé.
+    void localTargetWithoutExtensionGetsActcraft()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("cours"))));
+        QVERIFY(savedSpy.wait(10000));
+        QCOMPARE(savedSpy.first().at(0).toBool(), true);
+        QCOMPARE(controller.fileUrl(), QUrl::fromLocalFile(dir.filePath(QStringLiteral("cours.actcraft"))));
+        QVERIFY(QFile::exists(dir.filePath(QStringLiteral("cours.actcraft"))));
+        QVERIFY(!QFile::exists(dir.filePath(QStringLiteral("cours"))));
+        QCOMPARE(controller.title(), QStringLiteral("cours"));
+    }
+
+    // Revue, important 4 : un enregistrement qui échoue (dossier absent) laisse le document modifié et sans
+    // fichier ; le suivant, réussi, efface l'erreur.
+    void failedSaveKeepsTheDocumentModified()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        controller.commitStroke(redStroke());
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("absent/x.actcraft"))));
+        QVERIFY(savedSpy.wait(10000));
+        QCOMPARE(savedSpy.first().at(0).toBool(), false);
+        QVERIFY(!controller.property("lastError").toString().isEmpty());
+        QVERIFY(controller.isModified());
+        QVERIFY(controller.fileUrl().isEmpty());
+        QCOMPARE(controller.title(), QStringLiteral("Sans titre"));
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("x.actcraft"))));
+        QVERIFY(savedSpy.wait(10000));
+        QCOMPARE(savedSpy.last().at(0).toBool(), true);
+        QVERIFY(controller.property("lastError").toString().isEmpty());
+    }
+
+    void openIsRefusedWhileBusy()
+    {
+        QTemporaryDir dir;
+        const QUrl url = writeTwoPages(dir, QStringLiteral("deux.actcraft"));
+        QVERIFY(!url.isEmpty());
+        ui::DocumentController controller;
+        controller.commitStroke(redStroke());
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
+        controller.openUrl(url);
+        QCOMPARE(loaded.count(), 0);
+        QVERIFY(savedSpy.wait(10000));
+        QCOMPARE(loaded.count(), 1);
+        QCOMPARE(loaded.first().at(0).toBool(), false);
+        QCOMPARE(savedSpy.first().at(0).toBool(), true);
+        QCOMPARE(controller.pageCount(), 1);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+    }
+
+    // Contrôleur détruit pendant une écriture puis pendant une lecture : le fil finit seul, rien n'est rendu
+    // à un objet détruit ; le fichier écrit est complet (relu).
+    void controllerDestroyedDuringIoReceivesNothing()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("orphelin.actcraft"));
+        {
+            auto* controller = new ui::DocumentController;
+            controller->commitStroke(redStroke());
+            PoolBlocker blocker;
+            QVERIFY(blocker.allBlocked());
+            controller->saveToUrl(QUrl::fromLocalFile(path));
+            delete controller; // l'écriture n'a pas commencé
+            blocker.release();
+            QVERIFY(QThreadPool::globalInstance()->waitForDone(10000));
+            QCoreApplication::sendPostedEvents();
+        }
+        QVERIFY(!savedFingerprint(path).isEmpty());
+        {
+            auto* controller = new ui::DocumentController;
+            PoolBlocker blocker;
+            QVERIFY(blocker.allBlocked());
+            controller->openUrl(QUrl::fromLocalFile(path));
+            delete controller;
+            blocker.release();
+            QVERIFY(QThreadPool::globalInstance()->waitForDone(10000));
+            QCoreApplication::sendPostedEvents();
+        }
+    }
+
+    // Revue, mineur 5 : le chemin d'une URL content:// n'est décodé qu'une fois.
+    void contentTitlesAreDecodedOnce()
+    {
+        QCOMPARE(ui::titleFromUrl(QUrl(QStringLiteral(
+                     "content://fournisseur/document/primary%3A100%25%20r%C3%A9ussite.actcraft"))),
+                 QString::fromUtf8("100% r\xC3\xA9ussite"));
+        QCOMPARE(ui::titleFromUrl(QUrl(QStringLiteral("content://fournisseur/document/a%2541b.actcraft"))),
+                 QStringLiteral("a%41b"));
+    }
+
+    // Revue, mineur 7 : coût, sur le fil principal, de la copie prise à l'Enregistrer (5 000 traits de 50
+    // points). Garde large ; le chiffre est écrit dans le journal du test.
+    void snapshotCopyCostIsMeasured()
+    {
+        core::Document document;
+        for (int i = 0; i < 5000; ++i) {
+            core::Stroke s;
+            for (int k = 0; k < 50; ++k) {
+                s.points.push_back(core::StrokePoint{10.0 + k * 4, 10.0 + (i % 700), 0.5f});
+            }
+            core::PageObject object = std::move(s);
+            object.common.id = document.allocateId();
+            document.page(0).objects.push_back(std::move(object));
+        }
+        ui::DocumentController controller;
+        controller.replaceDocument(std::move(document), QUrl(), QStringLiteral("mesure"));
+        QTemporaryDir dir;
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        QElapsedTimer timer;
+        timer.start();
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("mesure.actcraft"))));
+        const qint64 micros = timer.nsecsElapsed() / 1000;
+        qInfo("COPIE A L'ENREGISTRER : %lld us (5000 traits de 50 points)", static_cast<long long>(micros));
+        QVERIFY2(micros < 1000000, qPrintable(QStringLiteral("%1 us").arg(micros)));
+        QVERIFY(savedSpy.wait(60000));
+        QCOMPARE(savedSpy.first().at(0).toBool(), true);
     }
 };
 

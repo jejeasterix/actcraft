@@ -107,7 +107,9 @@ public:
     Q_INVOKABLE void saveToUrl(const QUrl& url);
     // Argument d'une commande de fichier → URL (formats::urlFromArgument) ; vide si absent.
     Q_INVOKABLE QUrl urlFromArgument(const QVariant& argument) const;
-    Q_INVOKABLE QUrl defaultFolderUrl() const;
+    // `create` : le dossier est créé s'il manque — le dialogue d'ouverture ou d'enregistrement le demande en
+    // s'ouvrant (L2-T18) ; sans lui, aucun accès disque.
+    Q_INVOKABLE QUrl defaultFolderUrl(bool create = false) const;
     // Tests : dossier qui remplace Documents pour defaultFolderUrl (un test n'écrit jamais dans le profil).
     void setDocumentsRoot(const QString& documents);
 
@@ -145,7 +147,8 @@ private:
     bool settle(const core::Changes& changes);
     // Signaux d'état après une modification : pagesChanged (si `pages`), document, pile, modifié.
     void notifyState(bool pages);
-    void attach(); // la page fixe lit la page affichée
+    void updateModified(); // modifiedChanged si l'état « modifié » a changé
+    void attach();         // la page fixe lit la page affichée
     void show(std::size_t index);
 
     core::Document m_document;
@@ -155,8 +158,9 @@ private:
     QUrl m_fileUrl;
     QString m_title;
     bool m_wasModified = false;
-    // Modification faite hors de la pile (page du banc sur un document modifié) : remise à faux par
-    // replaceDocument et par un enregistrement réussi, avec setClean().
+    // Modification faite hors de la pile : page du banc sur un document modifié, ou fichier écrit avec un
+    // contenu que l'écran n'a plus (changé pendant l'écriture). Remise à faux par replaceDocument et par un
+    // enregistrement réussi du contenu affiché, avec setClean().
     bool m_modifiedOutsideStack = false;
     bool m_busy = false;
     QStringList m_warnings;

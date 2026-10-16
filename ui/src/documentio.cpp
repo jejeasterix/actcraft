@@ -24,6 +24,24 @@ namespace {
 // Décodées en grand, 30 photos de 12 Mpx tiendraient 1,4 Go à chaque enregistrement ; réduites, 37 Mo.
 constexpr int kThumbnailImageSide = 2 * render::kThumbnailWidth;
 
+// Nom du fichier visé : fichier local, ou dernier segment du chemin d'une URL content:// (décodé une fois).
+QString targetName(const QUrl& url)
+{
+    return url.isLocalFile() ? QFileInfo(url.toLocalFile()).fileName()
+                             : url.path(QUrl::FullyDecoded).section(u'/', -1);
+}
+
+bool isFlipchartName(const QString& name)
+{
+    return name.endsWith(QStringLiteral(".flipchart"), Qt::CaseInsensitive);
+}
+
+QString flipchartRefusal()
+{
+    return QStringLiteral("Un paperboard .flipchart ne se réécrit pas : enregistrez-le au format ActCraft "
+                          "(.actcraft).");
+}
+
 } // namespace
 
 LoadOutcome loadDocument(const QUrl& url)
@@ -67,6 +85,10 @@ SaveOutcome saveDocument(const core::Document& snapshot, const QUrl& url)
 {
     SaveOutcome out;
     out.offMainThread = !QThread::isMainThread();
+    if (isFlipchartName(targetName(url))) {
+        out.error = flipchartRefusal(); // décision 18, même appelé sans passer par actcraftTarget
+        return out;
+    }
     const render::DecodedImages images = render::decodeImages(snapshot, kThumbnailImageSide);
     std::vector<QByteArray> thumbnails;
     thumbnails.reserve(snapshot.pageCount());
@@ -88,17 +110,31 @@ SaveOutcome saveDocument(const core::Document& snapshot, const QUrl& url)
     return out;
 }
 
+QUrl actcraftTarget(const QUrl& url, QString* error)
+{
+    const QString name = targetName(url);
+    if (isFlipchartName(name)) {
+        if (error) {
+            *error = flipchartRefusal();
+        }
+        return {};
+    }
+    if (url.isLocalFile() && !name.endsWith(QStringLiteral(".actcraft"), Qt::CaseInsensitive)) {
+        return QUrl::fromLocalFile(url.toLocalFile() + QStringLiteral(".actcraft"));
+    }
+    return url;
+}
+
 QString titleFromUrl(const QUrl& url)
 {
-    const QString name = url.isLocalFile() ? QFileInfo(url.toLocalFile()).fileName()
-                                           : QUrl::fromPercentEncoding(url.path().section(u'/', -1).toUtf8())
-                                                 .section(u':', -1)
-                                                 .section(u'/', -1);
+    // content:// : « primary:Download/cours.actcraft » (fournisseur de documents) → « cours.actcraft ».
+    const QString name =
+        url.isLocalFile() ? targetName(url) : targetName(url).section(u':', -1).section(u'/', -1);
     const qsizetype dot = name.lastIndexOf(u'.');
     return dot > 0 ? name.left(dot) : name;
 }
 
-QString defaultDocumentsFolder(const QString& documents)
+QString defaultDocumentsFolder(const QString& documents, bool create)
 {
     // Choix à l'exécution (pas de #ifdef hors de app/ et des fichiers *_android, DA10).
     const QString base = !documents.isEmpty() ? documents + QStringLiteral("/ActCraft")
@@ -106,7 +142,9 @@ QString defaultDocumentsFolder(const QString& documents)
                              ? QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
                              : QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
                                    QStringLiteral("/ActCraft");
-    QDir().mkpath(base);
+    if (create) {
+        QDir().mkpath(base);
+    }
     return base;
 }
 
