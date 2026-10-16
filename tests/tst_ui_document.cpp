@@ -361,6 +361,78 @@ private slots:
         QCOMPARE(controller.pageLabel(), QStringLiteral("2 / 2"));
     }
 
+    // Signal d'état de la pile (canUndo, canRedo) : à chaque écriture, annulation et rétablissement.
+    void undoChangedFollowsEveryStackMove()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        QSignalSpy undo(&controller, &ui::DocumentController::undoChanged);
+        controller.commitStroke(redStroke());
+        QCOMPARE(undo.count(), 1);
+        controller.undo();
+        QCOMPARE(undo.count(), 2);
+        controller.redo();
+        QCOMPARE(undo.count(), 3);
+    }
+
+    // Page affichée retirée par une annulation : même indice, borné au nombre de pages (pas la page 1).
+    void undoingTheShownLastPageShowsTheNewLastPage()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.replaceDocument(core::Document(std::vector<core::Page>(3)), QUrl(), QString());
+        controller.nextPage();
+        controller.nextPage();
+        controller.nextPage(); // page 4 ajoutée et affichée
+        QCOMPARE(controller.pageLabel(), QStringLiteral("4 / 4"));
+        controller.undo();
+        QCOMPARE(controller.pageLabel(), QStringLiteral("3 / 3"));
+        QCOMPARE(fixed.sourcePage(), std::size_t{2});
+    }
+
+    // Contrôleur détruit avant l'élément : l'élément ne lit plus le document détruit (page interne vide).
+    void destroyedControllerDetachesTheItem()
+    {
+        render::FixedPageItem fixed;
+        {
+            ui::DocumentController controller;
+            controller.setFixedPage(&fixed);
+            controller.commitStroke(redStroke());
+            QCOMPARE(fixed.objectCount(), 1);
+        }
+        QVERIFY(fixed.sourceDocument() == nullptr);
+        QCOMPARE(fixed.objectCount(), 0);
+    }
+
+    // Page générée du banc : la taille de la page affichée suit (pagesChanged) ; « modifié » reste ce qu'il
+    // était (la page du banc n'est pas une modification, mais n'efface pas celles des autres pages).
+    void generatedFirstPageKeepsSizeAndModifiedState()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.newDocument(800, 600);
+        QSignalSpy pages(&controller, &ui::DocumentController::pagesChanged);
+        controller.loadGeneratedFirstPage();
+        QCOMPARE(pages.count(), 1);
+        const core::Page& first = controller.document().page(0);
+        QCOMPARE(controller.pageSize(), QSizeF(first.width, first.height));
+        QVERIFY(controller.pageSize() != QSizeF(800, 600));
+        QVERIFY(!controller.isModified());
+        controller.nextPage();
+        controller.commitStroke(redStroke()); // page 2 modifiée
+        QSignalSpy modified(&controller, &ui::DocumentController::modifiedChanged);
+        controller.loadGeneratedFirstPage(); // page 2 affichée : sa taille ne change pas
+        QCOMPARE(pages.count(), 2);
+        QVERIFY(controller.isModified());
+        QVERIFY(!controller.canUndo());
+        QCOMPARE(modified.count(), 0);
+        controller.newDocument(800, 600);
+        QVERIFY(!controller.isModified()); // remplacement : propre
+    }
+
     void registeredInQml()
     {
         QQmlEngine engine;

@@ -29,9 +29,10 @@ public:
 
     // Page des 300 objets (core::generatePage(core::kDefaultSeed)).
     Q_INVOKABLE void loadGeneratedPage();
-    // Banc et tests (et relais du contrôleur jusqu'à L2-T15) : la page devient celle de la page interne ; la
-    // source est oubliée. Tout repart, images et readyChanged compris : la vue redessine son cache sur
-    // readyChanged.
+    // Banc et tests : la page devient celle de la page interne ; la source est oubliée. Tout repart, images
+    // et readyChanged compris (restart(true)). Depuis L2-T15 la vue redessine aussi sur contentChanged : ce
+    // redécodage forcé est devenu redondant ; il coûte un décodage à chaque setPage (banc et tests
+    // seulement).
     void setPage(core::Page page);
     // Page affichée : celle du document source (référence dans le document), sinon la page interne. Jamais
     // hors des bornes : une page source retirée du document se lit comme la page interne, vide, jusqu'à

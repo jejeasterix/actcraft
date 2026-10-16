@@ -111,7 +111,7 @@ QSizeF DocumentController::pageSize() const
 
 bool DocumentController::isModified() const noexcept
 {
-    return !m_undo.isClean();
+    return m_modifiedOutsideStack || !m_undo.isClean();
 }
 
 QString DocumentController::title() const
@@ -166,6 +166,8 @@ void DocumentController::execute(std::unique_ptr<core::UndoCommand> command)
     notifyState(settle(changes));
 }
 
+// Lot 3 (annuler ou rétablir pendant un trait) : terminer le trait en cours AVANT m_undo.undo / m_undo.redo.
+// Aujourd'hui aucune commande ni raccourci n'annule : non atteignable.
 void DocumentController::undo()
 {
     if (!m_undo.canUndo()) {
@@ -241,6 +243,7 @@ void DocumentController::replaceDocument(core::Document document, const QUrl& fi
     m_undo.clear();
     m_fileUrl = fileUrl;
     m_title = title.isEmpty() ? untitled() : title;
+    m_modifiedOutsideStack = false;
     show(0);
     emit fileUrlChanged();
     emit titleChanged();
@@ -284,6 +287,8 @@ void DocumentController::pageBack()
 
 void DocumentController::loadGeneratedFirstPage()
 {
+    const QSizeF shownSize = pageSize();
+    const bool modified = isModified();
     core::Page& first = m_document.page(0);
     first = core::generatePage(core::kDefaultSeed);
     // Identifiants tirés du compteur du document (1 à 300 dans un document neuf, comme le générateur) :
@@ -293,10 +298,12 @@ void DocumentController::loadGeneratedFirstPage()
         object.common.id = m_document.allocateId();
     }
     m_undo.clear(); // les commandes visaient l'ancienne page 1
+    // La page du banc n'est pas une modification ; celles des autres pages restent à enregistrer.
+    m_modifiedOutsideStack = modified;
     if (m_current == 0) {
         attach();
     }
-    notifyState(false);
+    notifyState(pageSize() != shownSize);
 }
 
 } // namespace actcraft::ui

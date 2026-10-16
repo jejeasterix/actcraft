@@ -73,9 +73,10 @@ public:
     // l'affiche.
     Q_INVOKABLE void nextPage();
     Q_INVOKABLE void pageBack();
-    // Banc et tests : la page 1 devient la page générée de 300 objets (core::generatePage) ; les objets des
-    // autres pages reçoivent des identifiants neufs (aucun doublon avec ceux de la page générée). Document
-    // propre, pile vide ; ni le nombre de pages ni la page affichée ne changent : pas de pagesChanged.
+    // Banc et tests : la page 1 devient la page générée de 300 objets (core::generatePage), renumérotée
+    // depuis le compteur du document (1 à 300 dans un document neuf) : aucun doublon avec les autres pages.
+    // Pile vidée ; « modifié » inchangé ; ni le nombre de pages ni la page affichée ne changent (pagesChanged
+    // seulement si la taille de la page affichée change).
     Q_INVOKABLE void loadGeneratedFirstPage();
 
 signals:
@@ -112,6 +113,9 @@ private:
     QUrl m_fileUrl;
     QString m_title;
     bool m_wasModified = false;
+    // Modification faite hors de la pile (page du banc sur un document modifié) : remise à faux par
+    // replaceDocument et, au lot de l'enregistrement, avec setClean().
+    bool m_modifiedOutsideStack = false;
 };
 
 } // namespace actcraft::ui

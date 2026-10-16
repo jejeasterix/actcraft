@@ -818,6 +818,22 @@ private slots:
         QVERIFY(actcraft::core::hasUniqueIds(controller.document()));
     }
 
+    // Contrôleur détruit avant la vue : le stylo ne garde aucune référence vers lui. Le trait va à la page
+    // interne de la page fixe (détachée par le contrôleur), comme sans contrôleur : rien n'est perdu en
+    // silence, rien n'est écrit dans un objet détruit.
+    void strokeAfterTheControllerIsGoneGoesToTheInternalPage()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        auto controller = std::make_unique<DocumentController>();
+        controller->setFixedPage(f.fixed);
+        f.view->setDocumentController(controller.get());
+        controller.reset();
+        QVERIFY(f.view->documentController() == nullptr);
+        tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+    }
+
     void exclusiveDevicesFilterTheWheel()
     {
         Fixture f;
