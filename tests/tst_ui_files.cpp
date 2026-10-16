@@ -87,7 +87,8 @@ public:
     // Les sémaphores sont tenus par un shared_ptr capturé par valeur : une tâche qui survivrait au bloqueur
     // (délai dépassé) ne touche jamais un objet détruit. Le destructeur relâche la porte quel que soit le
     // chemin de sortie du test (échec d'un QVERIFY compris), puis attend le pool de façon bornée.
-    PoolBlocker() : m_threads(QThreadPool::globalInstance()->maxThreadCount()), m_state(std::make_shared<State>())
+    PoolBlocker()
+        : m_threads(QThreadPool::globalInstance()->maxThreadCount()), m_state(std::make_shared<State>())
     {
         for (int i = 0; i < m_threads; ++i) {
             QThreadPool::globalInstance()->start([state = m_state] {
@@ -132,6 +133,11 @@ class TstUiFiles : public QObject
     Q_OBJECT
 
 private slots:
+    // Filet commun : quelle que soit la sortie d'un test (échec d'un QVERIFY compris), aucune tâche du pool
+    // ne survit à sa fonction de test, donc aucune ne touche un objet local déjà détruit pendant le test
+    // suivant.
+    void cleanup() { QThreadPool::globalInstance()->waitForDone(60000); }
+
     // En tête : le pic de mémoire du processus ne descend jamais, aucun test avant celui-ci ne doit l'avoir
     // monté. Huit photos de 12 Mpx distinctes : décodées en grand pour les miniatures, elles tiendraient
     // ensemble 8 × 48 Mo ; décodées réduites (une miniature fait 320 px de large), quelques Mo.
@@ -361,7 +367,8 @@ private slots:
         controller.commitStroke(redStroke());
         const QString before = controller.property("fingerprint").toString();
         const QString path = dir.filePath(QStringLiteral("copie.actcraft"));
-        PoolBlocker blocker; // détruit avant le contrôleur : porte relâchée et pool vidé même si un QVERIFY sort
+        PoolBlocker
+            blocker; // détruit avant le contrôleur : porte relâchée et pool vidé même si un QVERIFY sort
         QVERIFY(blocker.allBlocked());
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         controller.saveToUrl(QUrl::fromLocalFile(path));
