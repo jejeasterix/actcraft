@@ -349,6 +349,44 @@ void DocumentController::loadGeneratedFirstPage()
     notifyState(pageSize() != shownSize);
 }
 
+void DocumentController::loadGeneratedPages(int count, bool painted)
+{
+    std::vector<core::Page> pages;
+    for (int i = 0; i < std::max(1, count); ++i) {
+        pages.push_back(core::generatePage(core::kDefaultSeed + static_cast<std::uint32_t>(i)));
+        core::Page& page = pages.back();
+        if (!painted || i % 2 == 0) {
+            continue;
+        }
+        for (int k = 0; k < 20; ++k) {
+            core::Text text;
+            text.bounds = core::RectF{0, 0, 220, 50};
+            text.html = "<p style=\"font-size:32px; color:#202020\">Texte du banc</p>";
+            core::PageObject t = text;
+            t.common.transform = core::translation(40 + 45.0 * k, 60 + 30.0 * k);
+            page.objects.push_back(std::move(t));
+            core::Shape shape;
+            shape.kind = core::ShapeKind::Path;
+            shape.paths = {{{0, 0}, {80, 10}, {60, 70}, {-10, 50}}};
+            shape.bounds = core::RectF{-12, -2, 94, 74}; // épaisseur de plume comprise
+            shape.pen.width = 4;
+            shape.brush = core::solidFill(0xFF26A69Au);
+            core::PageObject s = shape;
+            s.common.transform = core::translation(500 + 20.0 * k, 120 + 25.0 * k);
+            page.objects.push_back(std::move(s));
+        }
+    }
+    core::Document document(std::move(pages));
+    // Chaque page générée numérote ses objets de 1 à 300 : renumérotés par le compteur du document (aucune
+    // référence d'identifiant dans une page générée, voir loadGeneratedFirstPage).
+    for (std::size_t p = 0; p < document.pageCount(); ++p) {
+        for (core::PageObject& object : document.page(p).objects) {
+            object.common.id = document.allocateId();
+        }
+    }
+    replaceDocument(std::move(document), QUrl(), QString());
+}
+
 bool DocumentController::isBusy() const noexcept
 {
     return m_busy;

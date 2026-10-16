@@ -1,7 +1,9 @@
 #include <actcraft/bench/scenarios.h>
 
 #include <cmath>
+#include <iterator>
 #include <numbers>
+#include <utility>
 
 namespace actcraft::bench {
 
@@ -113,9 +115,40 @@ ScenarioPlan scrollScenario(ScenarioSet set)
     return plan;
 }
 
+ScenarioPlan pageScenario(ScenarioSet set)
+{
+    constexpr std::int64_t kFlipPeriodNs = 500'000'000;
+    constexpr std::int64_t kZoomPeriodNs = 700'000'000;
+    ScenarioPlan plan;
+    plan.name = QStringLiteral("page");
+    plan.generatedPages = 2; // page 1 : images ; page 2 : images, textes et formes à chemins (moteur peint)
+    const int flips = 20 / durationDivisor(set); // nombre pair : la série finit sur la page 1
+    for (int i = 0; i < flips; ++i) {
+        PlannedInput in;
+        in.offsetNs = static_cast<std::int64_t>(i) * kFlipPeriodNs;
+        in.kind = InputKind::Command;
+        in.command = i % 2 == 0 ? QStringLiteral("page.next") : QStringLiteral("page.previous");
+        plan.inputs.push_back(in);
+    }
+    // Sur la page peinte, deux zooms posés : rastérisation à la nouvelle échelle en RHI (L2-T13).
+    const std::int64_t end = static_cast<std::int64_t>(flips) * kFlipPeriodNs;
+    const std::pair<QString, QVariant> zooms[] = {{QStringLiteral("page.next"), QVariant()},
+                                                  {QStringLiteral("view.zoom"), QVariant(150)},
+                                                  {QStringLiteral("view.fit"), QVariant()}};
+    for (std::size_t k = 0; k < std::size(zooms); ++k) {
+        PlannedInput in;
+        in.offsetNs = end + static_cast<std::int64_t>(k) * kZoomPeriodNs;
+        in.kind = InputKind::Command;
+        in.command = zooms[k].first;
+        in.argument = zooms[k].second;
+        plan.inputs.push_back(in);
+    }
+    return plan;
+}
+
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
 {
-    return {strokeScenario(set), zoomScenario(set), scrollScenario(set)};
+    return {strokeScenario(set), zoomScenario(set), scrollScenario(set), pageScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()

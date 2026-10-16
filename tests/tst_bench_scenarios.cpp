@@ -114,10 +114,57 @@ private slots:
     void allScenariosInOrder()
     {
         const auto plans = bench::allScenarios(bench::ScenarioSet::Court);
-        QCOMPARE(plans.size(), std::size_t{3});
+        QCOMPARE(plans.size(), std::size_t{4}); // L2-T23 : scénario « page » ajouté en dernier
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
+        QCOMPARE(plans[3].name, QStringLiteral("page"));
+    }
+
+    // L2-T23 : changements de page à intervalle fixe par commandes nommées (aucun événement posté, aucune
+    // encre), puis deux zooms posés sur la page peinte ; document de deux pages générées chargé avant.
+    void pageScenarioFlipsPages()
+    {
+        const bench::ScenarioPlan court = bench::pageScenario(bench::ScenarioSet::Court);
+        QCOMPARE(court.name, QStringLiteral("page"));
+        QCOMPARE(court.generatedPages, 2);
+        QCOMPARE(court.inputs.size(), std::size_t{7});
+        for (std::size_t i = 0; i < 4; ++i) {
+            const bench::PlannedInput& in = court.inputs[i];
+            QVERIFY(in.kind == InputKind::Command);
+            QCOMPARE(in.command, i % 2 == 0 ? QStringLiteral("page.next") : QStringLiteral("page.previous"));
+            QCOMPARE(in.offsetNs, static_cast<std::int64_t>(i) * 500'000'000);
+            QVERIFY(!in.argument.isValid());
+            QVERIFY(!in.measured);
+        }
+        const QStringList zooms{QStringLiteral("page.next"), QStringLiteral("view.zoom"),
+                                QStringLiteral("view.fit")};
+        for (std::size_t k = 0; k < 3; ++k) {
+            const bench::PlannedInput& in = court.inputs[4 + k];
+            QVERIFY(in.kind == InputKind::Command);
+            QCOMPARE(in.command, zooms.at(static_cast<qsizetype>(k)));
+            QCOMPARE(in.offsetNs, 2'000'000'000 + static_cast<std::int64_t>(k) * 700'000'000);
+            QVERIFY(!in.measured);
+        }
+        QVERIFY(!court.inputs[4].argument.isValid());
+        QCOMPARE(court.inputs[5].argument.toInt(), 150);
+        QVERIFY(!court.inputs[6].argument.isValid());
+
+        const bench::ScenarioPlan complet = bench::pageScenario(bench::ScenarioSet::Complet);
+        QCOMPARE(complet.inputs.size(), std::size_t{23});
+        QCOMPARE(complet.inputs[19].command,
+                 QStringLiteral("page.previous"));                         // 20 changements : retour page 1
+        QCOMPARE(complet.inputs[20].command, QStringLiteral("page.next")); // puis la page peinte
+        QCOMPARE(complet.inputs.back().command, QStringLiteral("view.fit"));
+        // Les scénarios de référence gardent la page en place.
+        for (const auto& plan : {bench::strokeScenario(bench::ScenarioSet::Court),
+                                 bench::zoomScenario(bench::ScenarioSet::Court),
+                                 bench::scrollScenario(bench::ScenarioSet::Court)}) {
+            QCOMPARE(plan.generatedPages, 0);
+            for (const bench::PlannedInput& in : plan.inputs) {
+                QVERIFY(in.kind != InputKind::Command);
+            }
+        }
     }
 
     void cumulativeSplitIsExact()

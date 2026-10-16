@@ -85,6 +85,13 @@ struct BenchResult
     bool activated = false;
     std::vector<ScenarioResult> scenarios;
     std::vector<ContentCheck> contentChecks;
+    // Scénario « page » (L2-T23) ; -1 s'il n'a pas été joué. pageFlash : captures blanches au témoin de forme
+    // juste après un changement de page (contentCheckOk faux si > 0). Entre le zoom posé (view.zoom) et la
+    // fin du scénario, sur la page peinte : reconstructions complètes de la page fixe (rebuildCount) et nœuds
+    // rastérisés refaits (rasterizationCount ; 0 en rendu logiciel, nœuds vectoriels).
+    int pageFlash = -1;
+    int pageRebuildsDuringZoom = -1;
+    int pageRasterizationsDuringZoom = -1;
     std::vector<Criterion> criteria;
     QStringList invalidReasons;
     bool valid = false;

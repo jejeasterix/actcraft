@@ -180,6 +180,33 @@ private slots:
         QVERIFY(colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::green), 2));
     }
 
+    // Revue L1-T9 (L2-T23) : pendant le décodage d'une autre page, l'ancienne reste affichée (jamais un fond
+    // blanc nu) et la scène n'est reconstruite qu'une fois, au prêt.
+    void keepsTheOldContentUntilTheNewPageIsReady()
+    {
+        Fixture f;
+        open(f);
+        core::Page first;
+        first.background.fill = core::solidFill(0xFF0000FFu);
+        f.page->setPage(first);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
+        const int rebuilds = f.page->rebuildCount();
+        f.page->setPage(
+            core::generatePage(core::kDefaultSeed)); // 30 images à synthétiser : pas prêt aussitôt
+        QVERIFY(!f.page->isReady());
+        waitFrame(f);
+        QVERIFY(!f.page->isReady()); // sinon la capture suivante ne prouverait rien
+        // Tant que la page suivante n'est pas prête, l'ancienne reste affichée (jamais un fond blanc nu).
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        QVERIFY(!colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
+        QCOMPARE(f.page->rebuildCount() - rebuilds,
+                 1); // ni fond blanc intermédiaire, ni reconstruction à vide
+    }
+
     void showsThePageOfItsDocument()
     {
         Fixture f;

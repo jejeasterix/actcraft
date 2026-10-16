@@ -55,7 +55,9 @@ public:
     void insert(core::ObjectId id) override;
     void remove(core::ObjectId id, const core::RectF& area) override;
     void invalidate(core::ObjectId id, const core::CacheArea& area) override;
-    // Vrai quand les images sont prêtes et les nœuds construits à la prochaine image.
+    // Vrai quand les images sont prêtes et les nœuds construits à la prochaine image. Tant qu'il est faux
+    // après un changement de page, l'élément garde les nœuds de la page précédente (pas d'éclair blanc,
+    // L2-T23).
     bool isReady() const noexcept;
     int objectCount() const noexcept;
     // Pixels d'écran par pixel de page : échelle de rastérisation du moteur peint en RHI (décision 37). Ne
@@ -103,6 +105,7 @@ private:
     ImageStore m_images;
     bool m_ready = false;
     bool m_rebuild = true;
+    bool m_showsPage = false; // fil de rendu : les nœuds montrent une page prête, pas le fond d'attente
     std::size_t m_builtCount = 0;
     double m_rasterScale = 1;
     QSGNode* m_gridDrawnAbove = nullptr; // fil de rendu : les objets s'insèrent avant la grille du dessus

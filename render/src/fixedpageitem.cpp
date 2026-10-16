@@ -283,6 +283,13 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     const bool rasterized = !painted.software;
     const core::Page& shown = page();
     if (m_rebuild || !old) {
+        // Autre page en décodage (page suivante, setPage) : la page précédente reste à l'écran jusqu'au prêt,
+        // au lieu d'un fond blanc nu (éclair blanc, revue L1-T9, L2-T23). Ni reconstruction ni changement
+        // d'échelle sur ces nœuds : leurs indices visent l'ancienne page ; onImagesReady relance la
+        // reconstruction. Sans page déjà montrée (premier dessin), le fond blanc d'attente est dessiné.
+        if (!m_ready && old && m_showsPage) {
+            return root;
+        }
         ++m_rebuildCount;
         clearChildren(root);
         m_gridDrawnAbove = nullptr;
@@ -309,6 +316,7 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
             root->appendChildNode(background); // tant que les images manquent, on ne dessine que le fond
         }
         m_builtCount = 0;
+        m_showsPage = m_ready;
         m_rebuild = !m_ready;
     } else if (m_rescale) {
         rescaleRasterNodes(shown, painted);

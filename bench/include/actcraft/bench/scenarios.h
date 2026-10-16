@@ -1,11 +1,12 @@
 #pragma once
 
-// Scénarios rejoués par le banc (décision 22, durées N2-1) : tracé, zoom, défilement, et trait de
-// démonstration.
+// Scénarios rejoués par le banc (décision 22, durées N2-1) : tracé, zoom, défilement, changement de page
+// (L2-T23), et trait de démonstration.
 
 #include <QPoint>
 #include <QPointF>
 #include <QString>
+#include <QVariant>
 #include <Qt>
 
 #include <cstddef>
@@ -20,6 +21,7 @@ enum class InputKind : std::uint8_t
     TabletMove,
     TabletRelease,
     Wheel,
+    Command, // commande nommée appelée par runCommand de la fenêtre : aucun événement posté (L2-T23)
 };
 
 struct PlannedInput
@@ -31,6 +33,8 @@ struct PlannedInput
     QPoint angleDelta; // molette
     Qt::KeyboardModifiers modifiers = Qt::NoModifier;
     bool measured = false; // compte dans la latence d'encre (appui et déplacements du tracé)
+    QString command;       // InputKind::Command : commande nommée appelée par runCommand
+    QVariant argument;     // son argument éventuel
 };
 
 enum class ScenarioSet
@@ -41,9 +45,12 @@ enum class ScenarioSet
 
 struct ScenarioPlan
 {
-    QString name;         // stroke | zoom | scroll
+    QString name;         // stroke | zoom | scroll | page
     double zoom = 1.0;    // niveau imposé avant la mesure (décision 17)
     bool topLeft = false; // page calée en haut à gauche (défilement) ; sinon position par défaut
+    // > 0 : document de `generatedPages` pages générées chargé avant la mesure
+    // (DocumentController::loadGeneratedPages, pages paires peintes) ; 0 : la page en place.
+    int generatedPages = 0;
     std::vector<PlannedInput> inputs;
 };
 
@@ -55,7 +62,10 @@ int durationDivisor(ScenarioSet set) noexcept; // 1 (complet) ou 5 (court)
 ScenarioPlan strokeScenario(ScenarioSet set);
 ScenarioPlan zoomScenario(ScenarioSet set);
 ScenarioPlan scrollScenario(ScenarioSet set);
-std::vector<ScenarioPlan> allScenarios(ScenarioSet set); // stroke, zoom, scroll
+// Changements de page à 500 ms d'écart (complet : 20, court : 4) en alternance page.next / page.previous,
+// puis page.next, view.zoom 150 et view.fit à 700 ms d'écart sur la page peinte (L2-T23).
+ScenarioPlan pageScenario(ScenarioSet set);
+std::vector<ScenarioPlan> allScenarios(ScenarioSet set); // stroke, zoom, scroll, page
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();
 // Point du trait de démonstration déjà tracé à la capture « mi-trait ».

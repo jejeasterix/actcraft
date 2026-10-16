@@ -90,6 +90,11 @@ public:
     // Pile vidée ; « modifié » inchangé ; ni le nombre de pages ni la page affichée ne changent (pagesChanged
     // seulement si la taille de la page affichée change).
     Q_INVOKABLE void loadGeneratedFirstPage();
+    // Banc (scénario « page », L2-T23) : document neuf de `count` pages générées (au moins une), graines
+    // core::kDefaultSeed + i ; `painted` : chaque page paire (2, 4…) reçoit en plus 20 textes et 20 formes à
+    // chemins (moteur peint). Identifiants tirés du compteur du document, comme loadGeneratedFirstPage :
+    // aucun doublon d'une page à l'autre. Comme une ouverture : pile vidée, document propre, page 1 affichée.
+    Q_INVOKABLE void loadGeneratedPages(int count, bool painted = false);
 
     bool isBusy() const noexcept;
     QStringList warnings() const;

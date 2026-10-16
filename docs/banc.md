@@ -51,10 +51,25 @@ Après « page prête » (images générées, premier cache dessiné) et 2 s de 
 | `stroke` | 10 traits de 1,5 s à 200 points/s, pression variable, stylo levé 300 ms entre deux traits | 100 % |
 | `zoom` | 100 → 800 → 25 → 100 % en 6 s, molette fine Ctrl à 120 Hz | 100 % |
 | `scroll` | aller-retour vertical puis horizontal en 6 s | 400 %, page calée en haut à gauche |
+| `page` | 20 changements de page à 500 ms d'écart (page suivante, précédente…), puis page suivante, zoom posé à 150 % et ajustement à 700 ms d'écart | 100 %, document de deux pages générées |
+
+Le scénario `page` charge d'abord un document de deux pages générées (`DocumentController::loadGeneratedPages(2,
+true)`) : 30 images chacune, et sur la page 2, 20 textes et 20 formes à chemins dessinés par le moteur peint
+(rastérisés en RHI). Chaque changement de page est la commande nommée `page.next` ou `page.previous`, appelée par
+`runCommand` de la fenêtre à son heure : aucune touche ni aucun événement posté. Chaque changement décode les images
+de la page affichée, et seulement elle ; pendant ce décodage, l'ancienne page reste à l'écran (pas d'éclair blanc).
+Il est jugé comme `scroll` (images par seconde, images de plus de 25 ms), sans latence d'encre.
 
 Puis une séquence de démonstration non mesurée : un trait capturé à mi-parcours, à la fin, à 800 % et de retour à
 100 %. Quatre contrôles de couleur (trois objets témoins, l'encre en cours) prouvent que le rendu dessine
-vraiment ; `--captures` écrit les quatre images `<rendu>-<étape>.png`. `--scenario court` divise les durées par 5.
+vraiment ; `--captures` écrit les quatre images `<rendu>-<étape>.png`. `--scenario court` divise les durées par 5
+(scénario `page` : 4 changements).
+
+Après le scénario `page`, le contrôle d'éclair : trois changements de page avec le cache tel que configuré, puis
+trois sans cache (avec cache, la vue ne redessine sa texture qu'au prêt de la page et masquerait l'éclair de la
+page elle-même). À la première image rendue après chaque changement, le pixel du centre du témoin de forme (même
+position sur toutes les pages générées) ne doit pas être blanc. Le banc revient ensuite à la page 1 pour la
+démonstration.
 
 ## Fichier de résultats
 
@@ -68,7 +83,11 @@ et le commit y figurent, rien qui identifie une personne. Clés principales :
   de rendu, type de construction, options de compilation, fenêtre, et `refresh` (période d'écran de référence et
   période mesurée) ;
 - `scenarios` : statistiques d'intervalles, figements et reprises, latence, entrées, mémoire, séries brutes ;
-- `content_check` : les contrôles de couleur ;
+- `content_check` : les contrôles de couleur ; avec le scénario `page`, `page_flash` (captures blanches juste
+  après un changement de page : `content_check.ok` est faux au-dessus de 0), `page_rebuilds_during_zoom`
+  (reconstructions complètes de la page fixe entre le zoom posé et la fin du scénario : 0 attendu, le zoom ne
+  refait que les nœuds rastérisés) et `page_rasterizations_during_zoom` (nœuds rastérisés refaits dans le même
+  intervalle : 0 en rendu logiciel, au moins un par élément peint et par échelle en D3D11 ou Metal) ;
 - `verdict` : `invalid_reasons` et `criteria` (valeur, seuil, réussi ou non, par scénario).
 
 ## Lire le verdict

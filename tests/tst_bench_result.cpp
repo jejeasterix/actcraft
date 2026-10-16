@@ -47,12 +47,14 @@ private slots:
         }
     }
 
-    void threeScenariosWithFrames()
+    // L2-T23 : quatrième scénario, « page » (changements de page par commandes nommées).
+    void fourScenariosWithFrames()
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
-        QCOMPARE(scenarios.size(), 3);
-        const QStringList names{QStringLiteral("stroke"), QStringLiteral("zoom"), QStringLiteral("scroll")};
-        for (qsizetype i = 0; i < 3; ++i) {
+        QCOMPARE(scenarios.size(), 4);
+        const QStringList names{QStringLiteral("stroke"), QStringLiteral("zoom"), QStringLiteral("scroll"),
+                                QStringLiteral("page")};
+        for (qsizetype i = 0; i < 4; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);
