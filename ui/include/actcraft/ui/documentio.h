@@ -41,7 +41,8 @@ struct SaveOutcome
 SaveOutcome saveDocument(const core::Document& snapshot, const QUrl& url);
 // Nom du fichier sans extension ; pour content://, dernier segment décodé.
 QString titleFromUrl(const QUrl& url);
-// F-657, N2-4 : Documents/ActCraft (créé s'il manque) ; sous Android, dossier de l'application.
-QString defaultDocumentsFolder();
+// F-657, N2-4 : Documents/ActCraft (créé s'il manque) ; sous Android, dossier de l'application. `documents`
+// non vide remplace le dossier Documents du système (tests : jamais le profil de l'utilisateur).
+QString defaultDocumentsFolder(const QString& documents = QString());
 
 } // namespace actcraft::ui

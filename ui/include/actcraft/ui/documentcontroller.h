@@ -108,6 +108,8 @@ public:
     // Argument d'une commande de fichier → URL (formats::urlFromArgument) ; vide si absent.
     Q_INVOKABLE QUrl urlFromArgument(const QVariant& argument) const;
     Q_INVOKABLE QUrl defaultFolderUrl() const;
+    // Tests : dossier qui remplace Documents pour defaultFolderUrl (un test n'écrit jamais dans le profil).
+    void setDocumentsRoot(const QString& documents);
 
 signals:
     void fixedPageChanged();
@@ -160,6 +162,7 @@ private:
     QStringList m_warnings;
     QString m_lastError;
     bool m_lastIoOffMainThread = false;
+    QString m_documentsRoot; // vide : Documents du système
     // Change à chaque replaceDocument : un enregistrement fini après « Nouveau » ne rattache pas le fichier
     // au document neuf, même d'empreinte égale.
     std::uint64_t m_generation = 0;

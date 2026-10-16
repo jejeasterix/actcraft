@@ -13,6 +13,7 @@
 #include <QImage>
 #include <QSemaphore>
 #include <QSignalSpy>
+#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QThread>
@@ -237,15 +238,23 @@ private slots:
         QVERIFY(!QFile::exists(dir.filePath(QStringLiteral("b.actcraft"))));
     }
 
+    // Le dossier par défaut est créé sous le dossier de test, jamais sous le vrai Documents de l'utilisateur.
     void argumentsBecomeUrlsAndTheDefaultFolderExists()
     {
+        const QString real =
+            QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QStringLiteral("/ActCraft");
+        const bool realExisted = QFileInfo::exists(real);
+        QTemporaryDir documents;
         ui::DocumentController controller;
+        controller.setDocumentsRoot(documents.path());
         QVERIFY(controller.urlFromArgument(QStringLiteral("content://fournisseur/doc")).scheme() ==
                 QStringLiteral("content"));
         QVERIFY(controller.urlFromArgument(QVariant()).isEmpty());
         const QUrl folder = controller.defaultFolderUrl();
         QVERIFY(folder.isLocalFile());
+        QCOMPARE(folder.toLocalFile(), documents.filePath(QStringLiteral("ActCraft")));
         QVERIFY(QFileInfo(folder.toLocalFile()).isDir());
+        QCOMPARE(QFileInfo::exists(real), realExisted);
     }
 
     // La page du banc garde « modifié » hors de la pile (L2-T15) : un enregistrement réussi rend l'état

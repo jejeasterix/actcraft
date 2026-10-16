@@ -98,10 +98,11 @@ QString titleFromUrl(const QUrl& url)
     return dot > 0 ? name.left(dot) : name;
 }
 
-QString defaultDocumentsFolder()
+QString defaultDocumentsFolder(const QString& documents)
 {
     // Choix à l'exécution (pas de #ifdef hors de app/ et des fichiers *_android, DA10).
-    const QString base = QSysInfo::productType() == QLatin1String("android")
+    const QString base = !documents.isEmpty() ? documents + QStringLiteral("/ActCraft")
+                         : QSysInfo::productType() == QLatin1String("android")
                              ? QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
                              : QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
                                    QStringLiteral("/ActCraft");

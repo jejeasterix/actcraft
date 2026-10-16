@@ -376,7 +376,12 @@ QUrl DocumentController::urlFromArgument(const QVariant& argument) const
 
 QUrl DocumentController::defaultFolderUrl() const
 {
-    return QUrl::fromLocalFile(defaultDocumentsFolder());
+    return QUrl::fromLocalFile(defaultDocumentsFolder(m_documentsRoot));
+}
+
+void DocumentController::setDocumentsRoot(const QString& documents)
+{
+    m_documentsRoot = documents;
 }
 
 void DocumentController::setBusy(bool busy)
