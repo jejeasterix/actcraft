@@ -70,7 +70,10 @@ const core::Document& FixedPageItem::document() const noexcept
 
 const core::Page& FixedPageItem::page() const noexcept
 {
-    return m_source ? m_source->page(m_sourcePage) : m_own.page(0);
+    if (m_source && m_sourcePage < m_source->pageCount()) {
+        return m_source->page(m_sourcePage);
+    }
+    return m_own.page(0);
 }
 
 void FixedPageItem::restart(bool redecode)
@@ -103,11 +106,15 @@ void FixedPageItem::setPage(core::Page page)
 
 void FixedPageItem::setSource(const core::Document* document, std::size_t pageIndex)
 {
+    if (document && pageIndex >= document->pageCount()) {
+        qWarning().nospace() << "FixedPageItem::setSource : page " << pageIndex
+                             << " absente (le document en a " << document->pageCount()
+                             << ") ; page interne vide";
+        document = nullptr;
+    }
     m_source = document;
     m_sourcePage = document ? pageIndex : 0;
-    if (!document) {
-        m_own = core::Document();
-    }
+    m_own = core::Document(); // l'ancienne page interne ne revient jamais en repli
     restart(false);
 }
 
@@ -158,12 +165,13 @@ void FixedPageItem::insert(core::ObjectId id)
     restart(false);
 }
 
-void FixedPageItem::remove(core::ObjectId)
+// Lot 2 : reconstruction complète ; le lot « cache incrémental » visera le nœud de `id` et la zone.
+void FixedPageItem::remove(core::ObjectId, const core::RectF&)
 {
     restart(false);
 }
 
-void FixedPageItem::invalidate(const core::RectF&)
+void FixedPageItem::invalidate(core::ObjectId, const core::CacheArea&)
 {
     restart(false);
 }

@@ -6,6 +6,8 @@
 #include <actcraft/core/pagecache.h>
 #include <actcraft/render/fixedpageitem.h>
 
+#include <QBuffer>
+#include <QImage>
 #include <QRegularExpression>
 #include <QSignalSpy>
 #include <QTest>
@@ -287,14 +289,14 @@ private slots:
         waitFrame(f);
         const int rebuilds = f.page->rebuildCount();
         d.page(0).objects.clear();
-        f.page->remove(stroke.common.id);
+        f.page->remove(stroke.common.id, core::boundsOnPage(stroke));
         QTRY_VERIFY(f.page->isReady());
         waitFrame(f);
         QCOMPARE(f.page->rebuildCount(), rebuilds + 1);
         QVERIFY(colorNear(f.window.grabWindow().pixelColor(60, 200), QColor(Qt::white), 1));
         d.page(0).background = core::Background{};
         d.page(0).background.fill = core::solidFill(0xFF00FF00u);
-        f.page->invalidate(core::RectF{});
+        f.page->invalidate(0, std::nullopt);
         QTRY_VERIFY(f.page->isReady());
         waitFrame(f);
         QCOMPARE(f.page->rebuildCount(), rebuilds + 2);
@@ -362,6 +364,9 @@ private slots:
     {
         Fixture f;
         open(f);
+        core::Page former;
+        former.objects.emplace_back(lineAt(400));
+        f.page->setPage(std::move(former)); // ancienne page interne : ne doit pas revenir au détachement
         core::Document d;
         core::PageObject stroke = lineAt(200);
         stroke.common.id = d.allocateId();
@@ -371,6 +376,80 @@ private slots:
         f.page->setSource(nullptr, 0);
         QVERIFY(f.page->sourceDocument() == nullptr);
         QCOMPARE(f.page->objectCount(), 0);
+    }
+
+    // Une image et un média ajoutés en fin de page par la pile sont décodés avant d'être montrés.
+    void insertedImagesAreDecoded()
+    {
+        Fixture f;
+        open(f);
+        core::Document d;
+        QImage blue(32, 32, QImage::Format_ARGB32);
+        blue.fill(Qt::blue);
+        QByteArray png;
+        QBuffer buffer(&png);
+        buffer.open(QIODevice::WriteOnly);
+        QVERIFY(blue.save(&buffer, "PNG"));
+        const std::string key = d.addResource(png, "png");
+        f.page->setSource(&d, 0);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        // Média d'abord : un média décodé par la reconstruction de l'image ne prouverait rien. Chaque objet
+        // est vérifié dès son ajout.
+        core::Media media;
+        media.bounds = core::RectF{500, 100, 200, 150};
+        media.placeholder = key;
+        core::ImageObject image;
+        image.bounds = core::RectF{100, 100, 200, 150};
+        image.resource = key;
+        const std::pair<core::PageObject, QPoint> inserted[] = {{core::PageObject(media), QPoint(600, 175)},
+                                                                {core::PageObject(image), QPoint(200, 175)}};
+        for (const auto& [shown, center] : inserted) {
+            core::PageObject object = shown;
+            object.common.layer = core::Layer::Top;
+            core::AddObjectCommand add(0, object);
+            core::Changes changes;
+            add.redo(d, changes);
+            core::applyToCache(changes, 0, *f.page);
+            QTRY_VERIFY(f.page->isReady());
+            waitFrame(f);
+            QVERIFY(colorNear(f.window.grabWindow().pixelColor(center), QColor(Qt::blue), 2));
+        }
+    }
+
+    void setSourceRefusesAMissingPage()
+    {
+        Fixture f;
+        open(f);
+        core::Document d;
+        QTest::ignoreMessage(QtWarningMsg, QRegularExpression(QStringLiteral("setSource")));
+        f.page->setSource(&d, 3);
+        QVERIFY(f.page->sourceDocument() == nullptr);
+        QCOMPARE(f.page->objectCount(), 0);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+    }
+
+    // La page affichée retirée du document avant que le contrôleur ne rattache l'élément : jamais de lecture
+    // hors des bornes, l'élément montre la page interne vide.
+    void removedShownPageIsNeverReadOutOfBounds()
+    {
+        Fixture f;
+        open(f);
+        core::Document d;
+        d.appendPage();
+        core::PageObject stroke = lineAt(200);
+        stroke.common.id = d.allocateId();
+        core::insertAtTopOfLayer(d.page(1), stroke);
+        f.page->setSource(&d, 1);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        d.takePage(1);
+        QCOMPARE(f.page->objectCount(), 0);
+        f.page->invalidate(0, std::nullopt);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(60, 200), QColor(Qt::white), 1));
     }
 };
 
