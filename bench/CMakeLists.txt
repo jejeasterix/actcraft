@@ -76,8 +76,10 @@ actcraft_add_module(benchui
     SOURCES
         include/actcraft/bench/uiscenario.h
         src/uiscenario.cpp
+        include/actcraft/bench/fixtures.h
+        src/fixtures.cpp
     DEPENDS
-        ActCraft::bench)
+        ActCraft::bench ActCraft::formats)
 target_link_libraries(actcraft_benchui PRIVATE Qt6::Test Qt6::GuiPrivate)
 
 # Captures et scénarios d'interface (DA8) : outil de preuve, jamais livré.
