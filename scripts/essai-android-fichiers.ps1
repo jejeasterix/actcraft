@@ -112,7 +112,8 @@ try {
     Ecarter-Anr
     Write-Output "appareil : API $("$(Invoke-Adb @('shell', 'getprop', 'ro.build.version.sdk'))".Trim()), $("$(Invoke-Adb @('shell', 'getprop', 'ro.product.cpu.abi'))".Trim()), langue $("$(Invoke-Adb @('shell', 'getprop', 'persist.sys.locale'))".Trim())"
     # Paperboards d'un essai précédent retirés : le sélecteur n'en montre qu'un, celui de cet essai.
-    $null = Invoke-Adb @('shell', 'find', '/sdcard', '-name', "'*.actcraft'", '-delete')
+    # « /sdcard/ » : /sdcard est un lien symbolique, que find ne suit pas sans la barre finale.
+    $null = Invoke-Adb @('shell', 'find', '/sdcard/', '-name', "'*.actcraft'", '-delete')
     # La clé de débogage est propre à chaque dossier de construction (build/android-debug.keystore) : un APK installé
     # depuis un autre worktree a une autre signature, et « install -r » le refuse (INSTALL_FAILED_UPDATE_INCOMPATIBLE).
     # Désinstallé d'abord (code ignoré s'il est absent) ; l'émulateur n'a aucune donnée réelle.
