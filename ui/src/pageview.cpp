@@ -112,9 +112,18 @@ void PageView::setContent(QQuickItem* content)
     }
     const QSizeF oldPage = pageSize();
     const ViewTransform old = m_transform;
+    disconnect(m_contentWidthConnection);
+    disconnect(m_contentHeightConnection);
     m_content = content;
+    m_lastPageSize = pageSize();
     if (m_content) {
         m_content->setTransformOrigin(QQuickItem::TopLeft);
+        // La taille du contenu change sans changer d'élément (autre page, autre document) : barres, zoom et
+        // cache suivent.
+        m_contentWidthConnection = connect(m_content, &QQuickItem::widthChanged, this,
+                                           [this] { onContentSizeChanged(m_lastPageSize); });
+        m_contentHeightConnection = connect(m_content, &QQuickItem::heightChanged, this,
+                                            [this] { onContentSizeChanged(m_lastPageSize); });
     }
     if (m_fitMode) {
         fitPage();
@@ -715,6 +724,28 @@ void PageView::apply(const ViewTransform& transform)
     }
 }
 
+void PageView::onContentSizeChanged(QSizeF oldPage)
+{
+    const QSizeF newPage = pageSize();
+    m_lastPageSize = newPage;
+    if (newPage == oldPage) {
+        return;
+    }
+    finishStroke(); // un trait en cours reste sur sa page (comme pour un zoom)
+    const ViewTransform old = m_transform;
+    // Pas fitPage() ici : il demanderait lui-même un redessin du cache, et la fin de cette fonction un
+    // second.
+    m_cacheTimer.stop();
+    apply(m_fitMode ? ui::fitPage(size(), newPage) : clampPan(m_transform, size(), newPage));
+    // apply n'émet rien si ni le zoom ni le défilement n'ont bougé : la taille de la page change pourtant les
+    // barres.
+    if (qFuzzyCompare(old.zoom, m_transform.zoom) && old.pan == m_transform.pan) {
+        emit scrollChanged();
+    }
+    updateCacheTextureSize();
+    requestCacheRefresh();
+}
+
 void PageView::updateCacheTextureSize()
 {
     const qreal dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
@@ -722,6 +753,11 @@ void PageView::updateCacheTextureSize()
     if (s != m_cacheTextureSize) {
         m_cacheTextureSize = s;
         emit cacheTextureSizeChanged();
+    }
+    // Le zoom est posé (fin de zoom, ajustement, contenu redimensionné) : la page fixe refait ses nœuds
+    // rastérisés à cette échelle, jamais à chaque image d'un zoom continu.
+    if (m_fixedPage) {
+        m_fixedPage->setRasterScale(m_transform.zoom * dpr);
     }
 }
 

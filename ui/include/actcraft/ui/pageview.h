@@ -162,6 +162,7 @@ private:
     QSizeF pageSize() const;
     void apply(const ViewTransform& transform);
     void updateCacheTextureSize();
+    void onContentSizeChanged(QSizeF oldPage);
     void setCacheReady(bool ready);
     void rebuildPen();
     bool handlePointer(const QEvent& event, QPointF viewPos);
@@ -189,6 +190,9 @@ private:
     QPointer<QQuickWindow> m_filteredWindow; // variante B : le stylet est capté par un filtre sur la fenêtre
 
     QQuickItem* m_content = nullptr;
+    QMetaObject::Connection m_contentWidthConnection;
+    QMetaObject::Connection m_contentHeightConnection;
+    QSizeF m_lastPageSize;
     ViewTransform m_transform;
     bool m_fitMode = true;
     bool m_cacheEnabled = true;

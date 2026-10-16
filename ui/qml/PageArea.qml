@@ -28,12 +28,12 @@ Item {
         // Branché dès la création de la vue (un bloc Connections ne l'est qu'en fin de composant).
         onCacheRefreshRequested: cache.scheduleUpdate()
 
-        // Page au format d'un paperboard (1024 × 768), transformée par la vue.
+        // Page à la taille de la page affichée (F-602), transformée par la vue.
         Item {
             id: pageContent
             objectName: "page"
-            width: 1024
-            height: 768
+            width: area.documentController ? area.documentController.pageSize.width : 1024
+            height: area.documentController ? area.documentController.pageSize.height : 768
 
             FixedPage {
                 id: fixedPageItem
