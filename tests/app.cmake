@@ -29,3 +29,9 @@ if(ACTCRAFT_PWSH)
     set_tests_properties(tst_licences_sans_fixture PROPERTIES PASS_REGULAR_EXPRESSION "LICENCES"
         FAIL_REGULAR_EXPRESSION "Qt6Charts")
 endif()
+
+# Fichier ouvert au lancement (S4, décision 26).
+actcraft_add_test(tst_app_open
+    SOURCES tst_app_open.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui ActCraft::formats actcraft_uiplugin)
+target_include_directories(tst_app_open PRIVATE ${PROJECT_SOURCE_DIR}/app)

@@ -1,6 +1,8 @@
 #include "renderbackend.h"
 #include "startup.h"
 
+#include <actcraft/formats/urlio.h>
+
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QTimer>
@@ -41,7 +43,15 @@ int main(int argc, char* argv[])
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] { QCoreApplication::exit(1); },
         Qt::QueuedConnection);
-    if (!loadMainWindow(engine, parseStartupOptions(args))) {
+    // Fichier nu (« Ouvrir avec », association de fichiers) ou `--ouvrir <fichier>`.
+    StartupOptions options = parseStartupOptions(args);
+    if (options.openUrl.isEmpty()) {
+        const QString file = openFileArgument(args);
+        if (!file.isEmpty()) {
+            options.openUrl = actcraft::formats::urlFromArgument(file);
+        }
+    }
+    if (!loadMainWindow(engine, options)) {
         return 1;
     }
 
