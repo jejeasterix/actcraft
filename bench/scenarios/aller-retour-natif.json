@@ -23,6 +23,7 @@
     {"command": "file.close"},
     {"waitReady": true},
     {"expect": "pageIndicator.text", "value": "1 / 1"},
+    {"checkPixel": "trait-efface", "at": [400, 600], "color": "#FFFFFF", "tolerance": 30},
     {"command": "file.open", "argument": "${SORTIE}/copie.actcraft"},
     {"waitFor": "documentController.busy", "value": false},
     {"expect": "documentController.fingerprint", "value": "${avant}"},

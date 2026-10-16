@@ -498,39 +498,59 @@ private slots:
     void badNewStepsAreRefused_data()
     {
         QTest::addColumn<QByteArray>("step");
-        QTest::newRow("fixture sans chemin") << QByteArray("{\"fixture\":\"trois-pages\"}");
-        QTest::newRow("fixture inconnue") << QByteArray("{\"fixture\":\"inconnue\",\"path\":\"x\"}");
-        QTest::newRow("waitFor sans valeur") << QByteArray("{\"waitFor\":\"a.b\"}");
-        QTest::newRow("waitFor sans point") << QByteArray("{\"waitFor\":\"ab\",\"value\":1}");
+        QTest::addColumn<QString>("expected"); // motif propre à la ligne
+        QTest::newRow("fixture sans chemin")
+            << QByteArray("{\"fixture\":\"trois-pages\"}") << QStringLiteral("fixture invalide");
+        QTest::newRow("fixture inconnue")
+            << QByteArray("{\"fixture\":\"inconnue\",\"path\":\"x\"}") << QStringLiteral("fixture invalide");
+        QTest::newRow("waitFor sans valeur")
+            << QByteArray("{\"waitFor\":\"a.b\"}") << QStringLiteral("attente invalide (waitFor");
+        QTest::newRow("waitFor sans point")
+            << QByteArray("{\"waitFor\":\"ab\",\"value\":1}") << QStringLiteral("attente invalide (waitFor");
         // Bornes d'attente (entrée non fiable) : ni nulle, ni négative, ni sans fin.
-        QTest::newRow("attente nulle") << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"timeoutMs\":0}");
-        QTest::newRow("attente négative") << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"timeoutMs\":-5}");
+        QTest::newRow("attente nulle") << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"timeoutMs\":0}")
+                                       << QStringLiteral("timeoutMs de 1 à 120000");
+        QTest::newRow("attente négative") << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"timeoutMs\":-5}")
+                                          << QStringLiteral("timeoutMs de 1 à 120000");
         QTest::newRow("attente sans fin")
-            << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"timeoutMs\":2000000000}");
+            << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"timeoutMs\":2000000000}")
+            << QStringLiteral("timeoutMs de 1 à 120000");
         QTest::newRow("attente non numérique")
-            << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"timeoutMs\":\"long\"}");
-        QTest::newRow("seuil de boucle nul") << QByteArray("{\"maxEventLoopGapMs\":0}");
-        QTest::newRow("seuil de boucle démesuré") << QByteArray("{\"maxEventLoopGapMs\":2000000000}");
-        QTest::newRow("remember sans nom") << QByteArray("{\"remember\":\"a.b\"}");
+            << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"timeoutMs\":\"long\"}")
+            << QStringLiteral("timeoutMs de 1 à 120000");
+        QTest::newRow("seuil de boucle nul")
+            << QByteArray("{\"maxEventLoopGapMs\":0}") << QStringLiteral("seuil de boucle invalide");
+        QTest::newRow("seuil de boucle démesuré")
+            << QByteArray("{\"maxEventLoopGapMs\":2000000000}") << QStringLiteral("seuil de boucle invalide");
+        QTest::newRow("remember sans nom")
+            << QByteArray("{\"remember\":\"a.b\"}") << QStringLiteral("mémoire invalide");
         // Noms réservés : ${SORTIE} et ${SAMPLES} ne se redéfinissent pas (une fixture irait ailleurs).
-        QTest::newRow("remember SORTIE") << QByteArray("{\"remember\":\"a.b\",\"as\":\"SORTIE\"}");
-        QTest::newRow("remember SAMPLES") << QByteArray("{\"remember\":\"a.b\",\"as\":\"SAMPLES\"}");
-        QTest::newRow("remember nom invalide") << QByteArray("{\"remember\":\"a.b\",\"as\":\"a}b\"}");
-        QTest::newRow("archive sans liste") << QByteArray("{\"archive\":\"x\"}");
-        QTest::newRow("archive liste vide") << QByteArray("{\"archive\":\"x\",\"contains\":[]}");
+        QTest::newRow("remember SORTIE")
+            << QByteArray("{\"remember\":\"a.b\",\"as\":\"SORTIE\"}") << QStringLiteral("mémoire invalide");
+        QTest::newRow("remember SAMPLES")
+            << QByteArray("{\"remember\":\"a.b\",\"as\":\"SAMPLES\"}") << QStringLiteral("mémoire invalide");
+        QTest::newRow("remember nom invalide")
+            << QByteArray("{\"remember\":\"a.b\",\"as\":\"a}b\"}") << QStringLiteral("mémoire invalide");
+        QTest::newRow("archive sans liste")
+            << QByteArray("{\"archive\":\"x\"}") << QStringLiteral("archive invalide (archive, contains)");
+        QTest::newRow("archive liste vide") << QByteArray("{\"archive\":\"x\",\"contains\":[]}")
+                                            << QStringLiteral("archive invalide (archive, contains)");
         // Un préfixe vide serait trouvé dans toute archive : refusé, comme une entrée non textuelle.
-        QTest::newRow("archive entrée vide") << QByteArray("{\"archive\":\"x\",\"contains\":[\"\"]}");
-        QTest::newRow("archive entrée nombre") << QByteArray("{\"archive\":\"x\",\"contains\":[3]}");
+        QTest::newRow("archive entrée vide") << QByteArray("{\"archive\":\"x\",\"contains\":[\"\"]}")
+                                             << QStringLiteral("entrée vide ou non textuelle");
+        QTest::newRow("archive entrée nombre") << QByteArray("{\"archive\":\"x\",\"contains\":[3]}")
+                                               << QStringLiteral("entrée vide ou non textuelle");
     }
 
     void badNewStepsAreRefused()
     {
         QFETCH(QByteArray, step);
+        QFETCH(QString, expected);
         UiScenario s;
         QString error;
         QVERIFY(!parseUiScenario(
             "{\"format\":\"actcraft-scenario/1\",\"name\":\"x\",\"steps\":[" + step + "]}", s, error));
-        QVERIFY2(error.startsWith(QStringLiteral("étape 1")), qPrintable(error));
+        QVERIFY2(error.startsWith(QStringLiteral("étape 1")) && error.contains(expected), qPrintable(error));
     }
 
     void fixtureWritesAThreePageDocument()
