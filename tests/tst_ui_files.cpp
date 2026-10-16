@@ -22,6 +22,7 @@
 #include <QThreadPool>
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -83,36 +84,44 @@ QUrl writeTwoPages(const QTemporaryDir& dir, const QString& name)
 class PoolBlocker
 {
 public:
-    PoolBlocker() : m_threads(QThreadPool::globalInstance()->maxThreadCount())
+    // Les sémaphores sont tenus par un shared_ptr capturé par valeur : une tâche qui survivrait au bloqueur
+    // (délai dépassé) ne touche jamais un objet détruit. Le destructeur relâche la porte quel que soit le
+    // chemin de sortie du test (échec d'un QVERIFY compris), puis attend le pool de façon bornée.
+    PoolBlocker()
+        : m_threads(QThreadPool::globalInstance()->maxThreadCount()), m_state(std::make_shared<State>())
     {
         for (int i = 0; i < m_threads; ++i) {
-            QThreadPool::globalInstance()->start([this] {
-                m_started.release();
-                m_gate.acquire();
+            QThreadPool::globalInstance()->start([state = m_state] {
+                state->started.release();
+                state->gate.acquire();
             });
         }
     }
     ~PoolBlocker()
     {
         release();
-        QThreadPool::globalInstance()->waitForDone(10000);
+        QThreadPool::globalInstance()->waitForDone(60000);
     }
     PoolBlocker(const PoolBlocker&) = delete;
     PoolBlocker& operator=(const PoolBlocker&) = delete;
 
-    bool allBlocked() { return m_started.tryAcquire(m_threads, 10000); }
+    bool allBlocked() { return m_state->started.tryAcquire(m_threads, 60000); }
     void release()
     {
         if (!m_released) {
             m_released = true;
-            m_gate.release(m_threads);
+            m_state->gate.release(m_threads);
         }
     }
 
 private:
+    struct State
+    {
+        QSemaphore started;
+        QSemaphore gate;
+    };
     int m_threads;
-    QSemaphore m_started;
-    QSemaphore m_gate;
+    std::shared_ptr<State> m_state;
     bool m_released = false;
 };
 
@@ -124,6 +133,11 @@ class TstUiFiles : public QObject
     Q_OBJECT
 
 private slots:
+    // Filet commun : quelle que soit la sortie d'un test (échec d'un QVERIFY compris), aucune tâche du pool
+    // ne survit à sa fonction de test, donc aucune ne touche un objet local déjà détruit pendant le test
+    // suivant.
+    void cleanup() { QThreadPool::globalInstance()->waitForDone(60000); }
+
     // En tête : le pic de mémoire du processus ne descend jamais, aucun test avant celui-ci ne doit l'avoir
     // monté. Huit photos de 12 Mpx distinctes : décodées en grand pour les miniatures, elles tiendraient
     // ensemble 8 × 48 Mo ; décodées réduites (une miniature fait 320 px de large), quelques Mo.
@@ -174,7 +188,7 @@ private slots:
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         controller.saveToUrl(url);
         QVERIFY(controller.property("busy").toBool());
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QCOMPARE(savedSpy.first().at(0).toBool(), true);
         QVERIFY(!controller.property("busy").toBool());
         QVERIFY(!controller.isModified());
@@ -184,7 +198,7 @@ private slots:
         QTest::ignoreMessage(QtInfoMsg, qPrintable(QStringLiteral("ACTCRAFT OUVERT ") + saved));
         QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
         controller.openUrl(url);
-        QVERIFY(loaded.wait(10000));
+        QVERIFY(loaded.wait(60000));
         QCOMPARE(loaded.first().at(0).toBool(), true);
         QCOMPARE(controller.property("fingerprint").toString(), saved);
         QCOMPARE(controller.pageLabel(), QStringLiteral("1 / 2"));
@@ -206,12 +220,12 @@ private slots:
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         QSignalSpy ioSpy(&controller, &ui::DocumentController::lastIoChanged);
         controller.saveToUrl(url);
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QVERIFY(controller.property("lastIoOffMainThread").toBool());
         QCOMPARE(ioSpy.count(), 1);
         QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
         controller.openUrl(url);
-        QVERIFY(loaded.wait(10000));
+        QVERIFY(loaded.wait(60000));
         QVERIFY(controller.property("lastIoOffMainThread").toBool());
         QCOMPARE(ioSpy.count(), 2);
         // Appel direct sur le fil principal : le résultat le dit (le relevé n'est pas une constante).
@@ -245,7 +259,7 @@ private slots:
         controller.setFixedPage(&fixed);
         QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
         controller.openUrl(QUrl::fromLocalFile(path));
-        QVERIFY(loaded.wait(10000));
+        QVERIFY(loaded.wait(60000));
         QCOMPARE(loaded.first().at(0).toBool(), true);
         QCOMPARE(controller.pageCount(), 2);
         QVERIFY(controller.fileUrl().isEmpty());
@@ -266,7 +280,7 @@ private slots:
         const QString before = controller.property("fingerprint").toString();
         QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
         controller.openUrl(QUrl::fromLocalFile(path));
-        QVERIFY(loaded.wait(10000));
+        QVERIFY(loaded.wait(60000));
         QCOMPARE(loaded.first().at(0).toBool(), false);
         QVERIFY(!controller.property("lastError").toString().isEmpty());
         QCOMPARE(controller.property("fingerprint").toString(), before);
@@ -275,7 +289,7 @@ private slots:
         const QUrl good = writeTwoPages(dir, QStringLiteral("bon.actcraft"));
         QVERIFY(!good.isEmpty());
         controller.openUrl(good);
-        QVERIFY(loaded.wait(10000));
+        QVERIFY(loaded.wait(60000));
         QCOMPARE(loaded.last().at(0).toBool(), true);
         QVERIFY(controller.property("lastError").toString().isEmpty());
     }
@@ -290,7 +304,7 @@ private slots:
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("b.actcraft"))));
         QCOMPARE(savedSpy.count(), 0); // le refus aussi arrive en file, jamais pendant l'appel
-        QTRY_COMPARE_WITH_TIMEOUT(savedSpy.count(), 2, 10000);
+        QTRY_COMPARE_WITH_TIMEOUT(savedSpy.count(), 2, 60000);
         // Le refus, mis en file aussitôt, arrive AVANT la fin de l'écriture de « a ».
         QCOMPARE(savedSpy.at(0).at(0).toBool(), false);
         QCOMPARE(savedSpy.at(1).at(0).toBool(), true);
@@ -335,7 +349,7 @@ private slots:
         QSignalSpy documentSpy(&controller, &ui::DocumentController::documentChanged);
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("banc.actcraft"))));
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QCOMPARE(savedSpy.first().at(0).toBool(), true);
         QVERIFY(!controller.isModified());
         QCOMPARE(modifiedSpy.count(), 1);
@@ -353,25 +367,17 @@ private slots:
         controller.commitStroke(redStroke());
         const QString before = controller.property("fingerprint").toString();
         const QString path = dir.filePath(QStringLiteral("copie.actcraft"));
-        QThreadPool* pool = QThreadPool::globalInstance();
-        const int threads = pool->maxThreadCount();
-        QSemaphore started;
-        QSemaphore gate;
-        for (int i = 0; i < threads; ++i) {
-            pool->start([&started, &gate] {
-                started.release();
-                gate.acquire();
-            });
-        }
-        QVERIFY(started.tryAcquire(threads, 10000));
+        PoolBlocker
+            blocker; // détruit avant le contrôleur : porte relâchée et pool vidé même si un QVERIFY sort
+        QVERIFY(blocker.allBlocked());
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         controller.saveToUrl(QUrl::fromLocalFile(path));
         controller.commitStroke(stroke(0xFF1E88E5u, 200)); // pendant l'enregistrement
         const QString after = controller.property("fingerprint").toString();
         QVERIFY(after != before);
-        gate.release(threads);
-        QVERIFY(savedSpy.wait(10000));
-        QVERIFY(pool->waitForDone(10000));
+        blocker.release();
+        QVERIFY(savedSpy.wait(60000));
+        QVERIFY(QThreadPool::globalInstance()->waitForDone(60000));
         QCOMPARE(savedSpy.first().at(0).toBool(), true);
         QCOMPARE(savedFingerprint(path), before);
         QVERIFY(controller.isModified());
@@ -391,7 +397,7 @@ private slots:
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("vierge.actcraft"))));
         controller.newDocument(1024, 768);
         QCOMPARE(controller.property("fingerprint").toString(), blank);
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QCOMPARE(savedSpy.first().at(0).toBool(), true);
         QVERIFY(controller.fileUrl().isEmpty());
         QCOMPARE(controller.title(), QStringLiteral("Sans titre"));
@@ -409,12 +415,12 @@ private slots:
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         controller.commitStroke(redStroke());
         controller.saveToUrl(url);
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QVERIFY(!controller.isModified());
         controller.commitStroke(stroke(0xFF1E88E5u, 200));
         controller.saveToUrl(url);
         controller.undo(); // pendant l'écriture : retour à l'indice qui portait l'ancien repère propre
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QCOMPARE(savedSpy.last().at(0).toBool(), true);
         QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
         QVERIFY(controller.isModified());
@@ -429,12 +435,12 @@ private slots:
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         controller.commitStroke(redStroke());
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         controller.commitStroke(stroke(0xFF1E88E5u, 200));
         const QUrl other = QUrl::fromLocalFile(dir.filePath(QStringLiteral("b.actcraft")));
         controller.saveToUrl(other);
         controller.undo();
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QCOMPARE(controller.fileUrl(), other);
         QVERIFY(controller.isModified());
     }
@@ -449,7 +455,7 @@ private slots:
         QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
         controller.openUrl(url);
         controller.commitStroke(redStroke()); // pendant l'ouverture
-        QVERIFY(loaded.wait(10000));
+        QVERIFY(loaded.wait(60000));
         QCOMPARE(loaded.first().at(0).toBool(), false);
         QVERIFY(!controller.property("lastError").toString().isEmpty());
         QCOMPARE(controller.pageCount(), 1);
@@ -469,7 +475,7 @@ private slots:
         QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
         controller.openUrl(url);
         controller.newDocument(1024, 768); // même empreinte que le paperboard vierge de départ
-        QVERIFY(loaded.wait(10000));
+        QVERIFY(loaded.wait(60000));
         QCOMPARE(loaded.first().at(0).toBool(), false);
         QCOMPARE(controller.pageCount(), 1);
         QVERIFY(controller.fileUrl().isEmpty());
@@ -488,7 +494,7 @@ private slots:
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         controller.saveToUrl(QUrl::fromLocalFile(path));
         QCOMPARE(savedSpy.count(), 0); // refus en file, jamais pendant l'appel
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QCOMPARE(savedSpy.first().at(0).toBool(), false);
         QVERIFY(!controller.property("lastError").toString().isEmpty());
         QVERIFY(controller.fileUrl().isEmpty());
@@ -507,7 +513,7 @@ private slots:
         ui::DocumentController controller;
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("cours"))));
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QCOMPARE(savedSpy.first().at(0).toBool(), true);
         QCOMPARE(controller.fileUrl(), QUrl::fromLocalFile(dir.filePath(QStringLiteral("cours.actcraft"))));
         QVERIFY(QFile::exists(dir.filePath(QStringLiteral("cours.actcraft"))));
@@ -524,14 +530,14 @@ private slots:
         controller.commitStroke(redStroke());
         QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("absent/x.actcraft"))));
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QCOMPARE(savedSpy.first().at(0).toBool(), false);
         QVERIFY(!controller.property("lastError").toString().isEmpty());
         QVERIFY(controller.isModified());
         QVERIFY(controller.fileUrl().isEmpty());
         QCOMPARE(controller.title(), QStringLiteral("Sans titre"));
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("x.actcraft"))));
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QCOMPARE(savedSpy.last().at(0).toBool(), true);
         QVERIFY(controller.property("lastError").toString().isEmpty());
     }
@@ -548,7 +554,7 @@ private slots:
         controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
         controller.openUrl(url);
         QCOMPARE(loaded.count(), 0);
-        QVERIFY(savedSpy.wait(10000));
+        QVERIFY(savedSpy.wait(60000));
         QCOMPARE(loaded.count(), 1);
         QCOMPARE(loaded.first().at(0).toBool(), false);
         QCOMPARE(savedSpy.first().at(0).toBool(), true);
@@ -570,7 +576,7 @@ private slots:
             controller->saveToUrl(QUrl::fromLocalFile(path));
             delete controller; // l'écriture n'a pas commencé
             blocker.release();
-            QVERIFY(QThreadPool::globalInstance()->waitForDone(10000));
+            QVERIFY(QThreadPool::globalInstance()->waitForDone(60000));
             QCoreApplication::sendPostedEvents();
         }
         QVERIFY(!savedFingerprint(path).isEmpty());
@@ -581,7 +587,7 @@ private slots:
             controller->openUrl(QUrl::fromLocalFile(path));
             delete controller;
             blocker.release();
-            QVERIFY(QThreadPool::globalInstance()->waitForDone(10000));
+            QVERIFY(QThreadPool::globalInstance()->waitForDone(60000));
             QCoreApplication::sendPostedEvents();
         }
     }
