@@ -145,6 +145,20 @@ private slots:
         }
     }
 
+    void fileMenuOpensFromTheTopBar()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QQuickItem* button = item(s, "menu-file");
+        QVERIFY(button);
+        QVERIFY(QMetaObject::invokeMethod(button, "clicked"));
+        QTRY_COMPARE(s.window->property("openPopups").toInt(), 1);
+        QTest::qWait(200);
+        if (const QString out = qEnvironmentVariable("QT_ACTCRAFT_CAPTURES"); !out.isEmpty()) {
+            s.window->grabWindow().save(out + QStringLiteral("/menu-fichier.png"));
+        }
+    }
+
     void saveAsThenOpenByCommands()
     {
         Shell s;
