@@ -148,9 +148,9 @@ add_test(NAME tst_flipchart_miniatures_synthetique
 set_tests_properties(tst_flipchart_miniatures_synthetique PROPERTIES
     FIXTURES_REQUIRED flipchart_synthetic ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "MINIATURES OK : 2 pages")
-# Tests qui distinguent une vraie mesure d'une mesure aveugle : l'écart tient dans le quart droit des images, que
-# lirait de travers une mesure qui suppose le format RGB 8 bits conservé par la réduction (QImage::scaled lissé
-# rend du RGB 32 bits). Code 1 attendu : le motif seul juge (le code de sortie est ignoré avec PASS_REGULAR_EXPRESSION).
+# Tests qui distinguent une vraie mesure d'une mesure aveugle (rendu comparé à lui-même, lignes lues en partie) :
+# l'écart tient dans le quart droit des miniatures. Code 1 attendu : le motif seul juge (le code de sortie est
+# ignoré avec PASS_REGULAR_EXPRESSION).
 add_test(NAME tst_flipchart_miniatures_alterees
     COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_altered})
 set_tests_properties(tst_flipchart_miniatures_alterees PROPERTIES

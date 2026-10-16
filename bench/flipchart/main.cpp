@@ -66,8 +66,9 @@ QString number(double value)
     return QString::number(value, 'f', 2);
 }
 
-// Image ramenée à 80 × 60 par lissage, PUIS en RGB 8 bits : QImage::scaled lissé rend du RGB 32 bits quel que
-// soit le format reçu, et lire ses lignes comme des triplets RGB n'en couvrirait que les 60 premiers pixels.
+// Image ramenée à 80 × 60 par lissage, puis en RGB 8 bits : la documentation de QImage::scaled ne garantit
+// pas le format rendu (Qt 6.12 garde le RGB 8 bits, vérifié), et thumbnailGap lit ses lignes comme des
+// triplets RGB.
 QImage gapImage(const QImage& image)
 {
     return image.scaled(kGapWidth, kGapHeight, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
