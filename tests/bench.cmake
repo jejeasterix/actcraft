@@ -114,3 +114,16 @@ set_tests_properties(tst_captures_premiers_pas PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
+# Scénario d'acceptation S5 (aller-retour natif), hors écran en rendu logiciel : document de 3 pages écrit par la
+# fixture sous le dossier de sortie, enregistré hors du fil principal (sonde de boucle), fermé, rouvert.
+add_test(NAME tst_captures_aller_retour_natif
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/aller-retour-natif.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-aller-retour-natif)
+# Comme premiers-pas : le délai ne détecte qu'un blocage (machine chargée), il ne mesure rien.
+set_tests_properties(tst_captures_aller_retour_natif PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
