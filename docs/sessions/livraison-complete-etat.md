@@ -158,6 +158,8 @@ Défauts du code : 0 bloquant. Suite donnée :
 - Décision 23 (`impeccable`) → tâche corrective L1-C5 (après L1-C3 : Theme/QML).
 
 ## Hors périmètre
+- (L2-T15, pour le lot 3) Annulation/rétablissement pendant un trait : non atteignable aujourd'hui (aucune commande ni raccourci) ; quand on les branche, terminer le trait en cours AVANT `m_undo.undo` (`ui/src/documentcontroller.cpp:174`), sinon le trait va sur la page bornée (mauvaise page si l'annulation retire la page affichée) et efface la branche à rétablir.
+- (L2-T15) `FixedPageItem::setPage` garde un `restart(true)` devenu redondant (redécode les images à chaque `setPage` ; banc et tests seulement) → lot « cache incrémental ».
 - Contrôle des noms (L2-C2) : `python -I "C:/Users/JeromeDenis/REA - Activinspire/tools/controle_noms_actcraft.py" <worktree>` → `NOMS OK` exigé avant la PR du lot 2 et à chaque fin de lot ; `graphify-out/` exclu (régénéré par `graphify update .`).
 - (L2-T2) `UndoStack::push` enregistre une étape pour une commande sans effet (identifiants épuisés) : `undo` ne fait alors rien de visible → à trancher par l'appelant en 2b (ne pas pousser une commande dont `redo` n'a rien changé).
 - (L1-T8) `canStartStroke` ne vérifie que la zone de la vue : une palette flottante au-dessus de la page laisserait le stylet tracer dessous → lot 3.
