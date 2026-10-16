@@ -207,6 +207,60 @@ private slots:
                  1); // ni fond blanc intermédiaire, ni reconstruction à vide
     }
 
+    // Revue L2-T23 : des traits posés pendant le décodage d'une page plus courte que l'ancienne ne relancent
+    // pas le décodage (sinon des traits plus rapides que lui repoussent le prêt sans fin) ; la page s'affiche
+    // avec.
+    void strokesDuringDecodeDoNotRestartIt()
+    {
+        Fixture f;
+        open(f);
+        f.page->setPage(core::generatePage(core::kDefaultSeed)); // 300 objets
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        core::Page five;
+        for (const core::PageObject& object : core::generatePage(core::kDefaultSeed + 1).objects) {
+            if (std::get_if<core::ImageObject>(&object) && five.objects.size() < 5) {
+                five.objects.push_back(object);
+            }
+        }
+        QCOMPARE(five.objects.size(), std::size_t{5});
+        const int decodes = f.page->decodeCount();
+        f.page->setPage(five);
+        QVERIFY(!f.page->isReady());
+        f.page->appendStroke(lineAt(700));
+        f.page->appendStroke(lineAt(720));
+        QCOMPARE(f.page->decodeCount(), decodes + 1);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        QCOMPARE(f.page->decodeCount(), decodes + 1);
+        QCOMPARE(f.page->objectCount(), 7);
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(60, 700), QColor(Qt::black), 40));
+    }
+
+    // Revue L2-T23 : page suivante plus grande, pendant son décodage : l'ancienne page reste, posée sur un
+    // fond de page blanc à la nouvelle taille (pas de trou à la couleur de la fenêtre).
+    void largerNextPageGetsAWhiteBackgroundWhileDecoding()
+    {
+        Fixture f;
+        open(f);
+        core::Page first;
+        first.width = 600;
+        first.height = 400;
+        first.background.fill = core::solidFill(0xFF0000FFu);
+        f.page->setSize(QSizeF(600, 400));
+        f.page->setPage(first);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        f.page->setPage(core::generatePage(core::kDefaultSeed));
+        f.page->setSize(QSizeF(1024, 768)); // comme PageArea : l'élément prend la taille de la page affichée
+        waitFrame(f);
+        QVERIFY(!f.page->isReady());
+        const QImage image = f.window.grabWindow();
+        QVERIFY(colorNear(image.pixelColor(300, 200), QColor(Qt::blue), 2));
+        QVERIFY(colorNear(image.pixelColor(800, 600), QColor(Qt::white), 1));
+        QTRY_VERIFY(f.page->isReady());
+    }
+
     void showsThePageOfItsDocument()
     {
         Fixture f;

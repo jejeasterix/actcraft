@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <limits>
 #include <optional>
 #include <utility>
 
@@ -260,11 +261,22 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
         }
     };
     QObject::connect(&commandTimer, &QTimer::timeout, &commandTimer, runDueCommands);
-    // Changements de page : quelques images par changement seulement. Rendu continu pendant la mesure (comme
-    // la chauffe) : chaque intervalle compte, et le coût d'un changement (décodage, reconstruction) y
-    // apparaît.
+    // Changements de page : sans entrée continue, quelques images par changement seulement. Rendu continu
+    // pendant la mesure (comme la chauffe) : les intervalles existent entre deux changements ; ceux d'un
+    // changement (de la commande à la première image après le prêt) sont comptés actifs (pageChangeMarks).
     QMetaObject::Connection pump;
+    // Instants où la page affichée est prête et son cache redessiné : fin d'un changement de page.
+    std::vector<std::int64_t> shownNs;
+    QMetaObject::Connection readyWatch;
+    QMetaObject::Connection cacheWatch;
     if (!commands.empty()) {
+        const auto noteShown = [this, &shownNs] {
+            if (m_fixed->isReady() && m_view->cacheReady()) {
+                shownNs.push_back(core::monotonicNowNs());
+            }
+        };
+        readyWatch = QObject::connect(m_fixed, &render::FixedPageItem::readyChanged, m_view, noteShown);
+        cacheWatch = QObject::connect(m_view, &ui::PageView::cacheReadyChanged, m_view, noteShown);
         pump = QObject::connect(m_window, &QQuickWindow::frameSwapped, m_window, &QQuickWindow::update,
                                 Qt::QueuedConnection);
         m_window->update();
@@ -290,6 +302,8 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     waitMs(150); // dernières images : figement, redessin du cache
     m_recorder->end();
     QObject::disconnect(pump);
+    QObject::disconnect(readyWatch);
+    QObject::disconnect(cacheWatch);
 
     exposure.stop();
     QObject::disconnect(frozen);
@@ -320,7 +334,20 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     std::sort(s.frames.inputNs.begin(), s.frames.inputNs.end());
     s.frames.freezeNs = freezes;
     s.frames.refreshPeriodNs = refreshPeriodNs; // période de l'écran ; ≤ 0 → invalid-refresh-period
-    s.intervals = classifyIntervals(s.frames);
+    // Commandes : leurs changements (commande → première image après le prêt) comptent actifs.
+    std::vector<std::pair<std::int64_t, std::int64_t>> changes;
+    for (const std::int64_t at : commandRun) {
+        if (at >= 0) {
+            const auto shown = std::lower_bound(shownNs.begin(), shownNs.end(), at);
+            changes.emplace_back(at,
+                                 shown == shownNs.end() ? std::numeric_limits<std::int64_t>::max() : *shown);
+        }
+    }
+    FrameSeries classified = s.frames;
+    const std::vector<std::int64_t> marks = pageChangeMarks(s.frames.swapNs, changes);
+    classified.inputNs.insert(classified.inputNs.end(), marks.begin(), marks.end());
+    std::sort(classified.inputNs.begin(), classified.inputNs.end());
+    s.intervals = classifyIntervals(classified);
 
     const auto received = m_recorder->received();
     if (!sequenceMatchesPlan(inputs, received)) {
@@ -480,25 +507,41 @@ BenchResult Runner::run(QQuickWindow* window)
     const std::int64_t refreshPeriodNs = result.refresh.referenceNs;
 
     const auto pageShown = [this] { return m_fixed->isReady() && m_view->cacheReady(); };
-    // Contrôle « page_flash » (L2-T23).
+    // Contrôle « page_flash » (L2-T23, revue). À la première image rendue après un changement de page, tant
+    // que la nouvelle page n'est pas prête, le centre du témoin de forme garde la couleur qu'il avait sur
+    // l'ancienne page (relevée juste avant) : ni fond blanc, ni page transparente, ni autre couleur. Une
+    // capture n'est retenue que si la nouvelle page n'est pas encore prête (sinon elle ne prouve rien) :
+    // jusqu'à 6 changements pour 3 captures. Le verdict repose sur les captures SANS cache : avec cache, la
+    // vue ne redessine sa texture qu'au prêt (PageView::setFixedPage) et masque la page fixe ; celles-là sont
+    // un relevé à part.
     const auto checkPageFlash = [&](BenchResult& out) {
-        // Juste après un changement de page, à la première image rendue, le centre du témoin de forme (même
-        // position sur toutes les pages générées) n'est pas blanc : l'ancienne page reste affichée pendant le
-        // décodage de la nouvelle. Avec cache, puis sans : avec cache, la vue ne redessine sa texture qu'au
-        // prêt de la page (PageView::setFixedPage) et masquerait un éclair de la page fixe elle-même.
         const bool cached = m_view->cacheEnabled();
         const core::PointF center = core::witnesses().shapeRect.center();
+        const auto witness = [this, center](const QImage& image) {
+            return sampleColor(image, sceneToImage(m_view->pageToScene(QPointF(center.x, center.y)),
+                                                   m_window->devicePixelRatio()));
+        };
         int swaps = 0;
         const auto counter =
             QObject::connect(m_window, &QQuickWindow::frameSwapped, m_window, [&swaps] { ++swaps; });
-        int white = 0;
+        int flashes = 0;
+        int cachedFlashes = 0;
+        int probes = 0;
+        bool failed = false;
         for (const bool withCache : {true, false}) {
-            if (withCache && !cached) {
+            if ((withCache && !cached) || failed) {
                 continue;
             }
             m_view->setCacheEnabled(withCache);
-            waitFor(pageShown, 30000);
-            for (int i = 0; i < 3; ++i) {
+            if (!waitFor(pageShown, 30000)) {
+                out.invalidReasons << QStringLiteral("error: page flash check: page not shown");
+                failed = true;
+                break;
+            }
+            int kept = 0;
+            for (int attempt = 0; attempt < 6 && kept < 3; ++attempt) {
+                waitMs(50);
+                const QColor expected = witness(m_window->grabWindow()); // ancienne page, prête
                 const int before = swaps;
                 const QString command = document->currentIndex() == 0 ? QStringLiteral("page.next")
                                                                       : QStringLiteral("page.previous");
@@ -506,20 +549,34 @@ BenchResult Runner::run(QQuickWindow* window)
                     !waitFor([&swaps, before] { return swaps > before; }, 5000)) {
                     out.invalidReasons
                         << QStringLiteral("error: page flash check: %1 not shown").arg(command);
+                    failed = true;
                     break;
                 }
-                const QImage shot = m_window->grabWindow();
-                const QColor color =
-                    sampleColor(shot, sceneToImage(m_view->pageToScene(QPointF(center.x, center.y)),
-                                                   m_window->devicePixelRatio()));
-                if (!color.isValid() || colorNear(color, QColor(Qt::white), kWitnessTolerance)) {
-                    ++white;
+                const bool decoding = !m_fixed->isReady();
+                const QColor color = witness(m_window->grabWindow());
+                if (decoding) {
+                    ++kept;
+                    if (!expected.isValid() || !color.isValid() ||
+                        !colorNear(color, expected, kWitnessTolerance)) {
+                        ++(withCache ? cachedFlashes : flashes);
+                    }
                 }
-                waitFor(pageShown, 30000);
+                if (!waitFor(pageShown, 30000)) {
+                    out.invalidReasons
+                        << QStringLiteral("error: page flash check: %1 never ready").arg(command);
+                    failed = true;
+                    break;
+                }
+            }
+            if (!withCache) {
+                probes = kept;
             }
         }
         QObject::disconnect(counter);
         m_view->setCacheEnabled(cached);
+        if (!failed && probes == 0) {
+            out.invalidReasons << QStringLiteral("page-flash-unverified"); // décodage plus court qu'une image
+        }
         // La démonstration se joue sur la page 1 (mêmes témoins que la page générée de départ).
         if (document->currentIndex() != 0) {
             runWindowCommand(m_window, QStringLiteral("page.previous"));
@@ -528,7 +585,9 @@ BenchResult Runner::run(QQuickWindow* window)
             out.invalidReasons << QStringLiteral("error: page 1 not ready after page flash check");
         }
         waitMs(100);
-        out.pageFlash = white;
+        out.pageFlash = flashes;
+        out.pageFlashCached = cached ? cachedFlashes : -1;
+        out.pageFlashProbes = probes;
     };
     for (const ScenarioPlan& plan : allScenarios(m_options.scenarioSet)) {
         if (plan.generatedPages > 0) {
@@ -546,11 +605,18 @@ BenchResult Runner::run(QQuickWindow* window)
         // Compteurs de la page fixe au zoom posé (view.zoom 150) : ce qu'il refait jusqu'à la fin du
         // scénario.
         std::optional<std::pair<int, int>> atZoom;
-        const auto zoomWatch = QObject::connect(m_view, &ui::PageView::zoomChanged, m_view, [this, &atZoom] {
-            if (!atZoom && std::abs(m_view->zoom() - 1.5) < 1e-9) {
-                atZoom = std::make_pair(m_fixed->rebuildCount(), m_fixed->rasterizationCount());
-            }
-        });
+        bool zoomSeen = false;
+        const auto zoomWatch = QObject::connect(
+            m_view, &ui::PageView::zoomChanged, m_view, [this, &atZoom, &zoomSeen, &pageShown] {
+                if (!zoomSeen && std::abs(m_view->zoom() - 1.5) < 1e-9) {
+                    zoomSeen = true;
+                    // Relevé seulement si la page peinte est prête et dessinée : sinon sa reconstruction au
+                    // prêt gonflerait le compte (-1 : non mesuré).
+                    if (pageShown()) {
+                        atZoom = std::make_pair(m_fixed->rebuildCount(), m_fixed->rasterizationCount());
+                    }
+                }
+            });
         result.scenarios.push_back(play(plan, refreshPeriodNs, result.invalidReasons));
         QObject::disconnect(zoomWatch);
         if (!m_injector->finished()) {

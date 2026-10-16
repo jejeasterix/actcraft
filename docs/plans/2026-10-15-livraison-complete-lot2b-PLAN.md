@@ -6089,10 +6089,14 @@ ScenarioPlan pageScenario(ScenarioSet set)
   molette) ; après la mesure, le contrôle `page_flash` : trois changements, chacun suivi d'un `grabWindow` à la
   première image rendue (`frameSwapped`), pixel du centre de `witnesses().shapeRect` (converti en coordonnées de
   fenêtre par la vue) comparé au blanc ; `content_check.page_flash` = nombre de captures blanches, et
-  `content_check.ok` faux si > 0. Le JSON reçoit aussi `content_check.page_rebuilds_during_zoom` : écart de
-  `FixedPageItem::rebuildCount()` entre le `view.zoom` et la fin du scénario (page peinte affichée). En rendu logiciel
-  (preuve de tâche, ctest) il vaut 0 (nœuds vectoriels) ; **en D3D11 la clôture exige ≥ 2** (zoom posé, puis
-  ajustement : rastérisation refaite à chaque échelle). Aucun test ctest ne tourne en RHI (tous hors écran en rendu
+  `content_check.ok` faux si > 0. Le JSON reçoit aussi (amendé à la revue de L2-T23) `content_check.page_rebuilds_during_zoom` (écart de
+  `FixedPageItem::rebuildCount()`) et `content_check.page_rasterizations_during_zoom` (écart de
+  `rasterizationCount()`) entre le `view.zoom` et la fin du scénario, relevés seulement si la page peinte est
+  prête et dessinée au zoom (sinon -1 : sa reconstruction au prêt gonflerait le compte). Le zoom refait les
+  nœuds rastérisés en place (L2-T13), sans reconstruction : `page_rebuilds_during_zoom` vaut 0 partout. En
+  rendu logiciel (preuve de tâche, ctest) `page_rasterizations_during_zoom` vaut 0 (nœuds vectoriels) ;
+  **en D3D11 la clôture exige `page_rasterizations_during_zoom ≥ 80`** (zoom posé puis ajustement : deux
+  échelles × 40 éléments peints de la page 2). Aucun test ctest ne tourne en RHI (tous hors écran en rendu
   logiciel, `QT_QUICK_BACKEND=software`) : le chemin RHI n'est prouvé que par ce relevé du banc à l'écran. Le verdict du scénario `page` suit les règles de `scroll` (images par seconde,
   images > 25 ms) ; `verdict.cpp` traite déjà les entrées autres que la molette comme des entrées mesurées : exclure
   `InputKind::Command` de la latence d'encre (aucune encre).
@@ -6168,8 +6172,10 @@ il part de l'interface `core::PageCache` figée ici (L2-T14) et ne change que so
    `docs/mesures/2026-10-15-lot1-socle.md` : tout critère tenu par la référence doit l'être encore (scénarios
    `stroke`, `zoom`, `scroll`), sinon une tâche de correction précède la clôture ; le scénario `page` (nouveau) est
    rapporté — avec ses images > 25 ms sur la page peinte et pendant les deux zooms posés (chemin RHI rastérisé,
-   H2b-5) —, `content_check.page_flash = 0` exigé, et `content_check.page_rebuilds_during_zoom ≥ 2` exigé pour le
-   passage D3D11 (preuve que la rastérisation RHI a bien eu lieu). Résumé commité `docs/mesures/<date>-lot2-document.md` (par
+   H2b-5) —, `content_check.page_flash = 0` exigé (avec `page_flash_probes ≥ 1`), et
+   `content_check.page_rasterizations_during_zoom ≥ 80` exigé pour le passage D3D11 (preuve que la
+   rastérisation RHI a bien eu lieu à chaque échelle ; -1 : page peinte pas prête au zoom, passage à rejouer ;
+   amendé à la revue de L2-T23, `page_rebuilds_during_zoom` y vaut 0 par construction). Résumé commité `docs/mesures/<date>-lot2-document.md` (par
    `scripts/resume-banc.ps1`) : il devient la référence du lot suivant (cache incrémental).
 6. **Paquets remis à Jérôme** : `scripts/paquet.ps1` + `scripts/essai-installateur.ps1` (`PAQUET OK`,
    `INSTALLATEUR OK`, `--version : ActCraft 0.2.0`), `scripts/paquet-android.ps1` (`APK OK`) ; l'association

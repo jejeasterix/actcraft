@@ -1,11 +1,14 @@
+#include <actcraft/bench/result.h>
 #include <actcraft/bench/scenarios.h>
 #include <actcraft/core/generator.h>
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <QTest>
 
 #include <cmath>
 #include <numeric>
+#include <set>
 
 using namespace actcraft;
 using bench::InputKind;
@@ -165,6 +168,66 @@ private slots:
                 QVERIFY(in.kind != InputKind::Command);
             }
         }
+    }
+
+    // Revue L2-T23 : un changement de page compte, de sa commande à la première image après le prêt, comme
+    // une suite d'intervalles actifs ; sans ces marques, seul l'intervalle de la commande l'était.
+    void pageChangeIntervalsAreActive()
+    {
+        bench::FrameSeries s;
+        s.refreshPeriodNs = 16'000'000;
+        for (std::int64_t k = 0; k <= 10; ++k) {
+            s.swapNs.push_back(k * 16'000'000); // 0, 16, …, 160 ms
+        }
+        s.inputNs = {20'000'000}; // commande dans (16, 32]
+        const std::vector<std::int64_t> marks = bench::pageChangeMarks(s.swapNs, {{20'000'000, 70'000'000}});
+        QCOMPARE(marks,
+                 (std::vector<std::int64_t>{32'000'001, 48'000'001, 64'000'001})); // jusqu'à l'image de 80 ms
+        QCOMPARE(static_cast<int>(bench::classifyIntervals(s).active.count), 1);
+        bench::FrameSeries busy = s;
+        busy.inputNs.insert(busy.inputNs.end(), marks.begin(), marks.end());
+        std::sort(busy.inputNs.begin(), busy.inputNs.end());
+        QCOMPARE(static_cast<int>(bench::classifyIntervals(busy).active.count), 4);
+        // Jamais prête pendant la mesure : tout ce qui suit la commande est actif.
+        QCOMPARE(
+            bench::pageChangeMarks(s.swapNs, {{20'000'000, std::numeric_limits<std::int64_t>::max()}}).size(),
+            std::size_t{8});
+    }
+
+    // L2-T23 : document du scénario « page » : deux pages générées, la seconde peinte (20 textes, 20 formes à
+    // chemins), identifiants uniques dans le document, état propre comme une ouverture, page 1 affichée.
+    void generatedPagesForThePageScenario()
+    {
+        ui::DocumentController controller;
+        controller.loadGeneratedPages(2, true);
+        const core::Document& d = controller.document();
+        QCOMPARE(d.pageCount(), std::size_t{2});
+        const auto painted = [](const core::Page& page) {
+            int texts = 0;
+            int paths = 0;
+            for (const core::PageObject& object : page.objects) {
+                texts += std::get_if<core::Text>(&object) ? 1 : 0;
+                const auto* shape = std::get_if<core::Shape>(&object);
+                paths += shape && shape->kind == core::ShapeKind::Path ? 1 : 0;
+            }
+            return std::make_pair(texts, paths);
+        };
+        const core::Page first = core::generatePage(core::kDefaultSeed);
+        const core::Page second = core::generatePage(core::kDefaultSeed + 1);
+        QCOMPARE(d.page(0).objects.size(), first.objects.size());
+        QCOMPARE(d.page(1).objects.size(), second.objects.size() + 40);
+        QCOMPARE(painted(d.page(0)), painted(first));
+        QCOMPARE(painted(d.page(1)).first, painted(second).first + 20);
+        QCOMPARE(painted(d.page(1)).second, painted(second).second + 20);
+        std::set<core::ObjectId> ids;
+        for (std::size_t p = 0; p < d.pageCount(); ++p) {
+            for (const core::PageObject& object : d.page(p).objects) {
+                QVERIFY(ids.insert(object.common.id).second);
+            }
+        }
+        QVERIFY(!controller.isModified());
+        QVERIFY(!controller.canUndo());
+        QCOMPARE(controller.currentIndex(), 0);
     }
 
     void cumulativeSplitIsExact()

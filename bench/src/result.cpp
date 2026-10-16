@@ -221,6 +221,8 @@ QJsonObject toJson(const BenchResult& r)
     QJsonObject contentCheck{{"ok", contentCheckOk(r)}, {"checks", checks}};
     if (r.pageFlash >= 0) { // scénario « page » joué (L2-T23)
         contentCheck.insert("page_flash", r.pageFlash);
+        contentCheck.insert("page_flash_probes", r.pageFlashProbes);
+        contentCheck.insert("page_flash_cached", r.pageFlashCached);
         contentCheck.insert("page_rebuilds_during_zoom", r.pageRebuildsDuringZoom);
         contentCheck.insert("page_rasterizations_during_zoom", r.pageRasterizationsDuringZoom);
     }

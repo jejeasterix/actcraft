@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 namespace actcraft::bench {
@@ -73,5 +74,11 @@ QPointF demoInkProbePoint();
 // `count` deltas entiers dont la somme vaut exactement `total`.
 std::vector<int> cumulativeSplit(int total, int count);
 std::int64_t planDurationNs(const ScenarioPlan& plan);
+// Scénario « page » (revue L2-T23) : un changement de page dure de sa commande (`first`) jusqu'à la première
+// image qui suit le prêt de la page affichée (`second` : images décodées, cache redessiné). Rend, pour chaque
+// intervalle d'images (swapNs[k-1], swapNs[k]] qui commence dans cette fenêtre, l'instant swapNs[k-1] + 1 :
+// ajoutés aux entrées, classifyIntervals compte ces intervalles actifs (décodage, reconstruction, redessin).
+std::vector<std::int64_t> pageChangeMarks(const std::vector<std::int64_t>& swapNs,
+                                          const std::vector<std::pair<std::int64_t, std::int64_t>>& changes);
 
 } // namespace actcraft::bench

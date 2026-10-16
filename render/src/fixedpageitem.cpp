@@ -76,15 +76,20 @@ const core::Page& FixedPageItem::page() const noexcept
     return m_own.page(0);
 }
 
-void FixedPageItem::restart(bool redecode)
+void FixedPageItem::restart(bool redecode, bool samePage)
 {
     m_rebuild = true;
-    // Redécoder seulement si le magasin ne couvre plus la page (annuler un trait ne redécode rien).
-    if (redecode || !m_images.covers(page(), &document())) {
+    m_builtCount = 0; // les nœuds affichés ne suivent plus cette page : aucun ajout « en fin de scène »
+    // Redécoder seulement si le magasin ne couvre plus la page (annuler un trait ne redécode rien). Pendant
+    // le décodage de la page affichée, covers() est faux : un trait (même page) ne le relance pas, sinon des
+    // traits plus rapides que lui repousseraient le prêt sans fin et l'ancienne page resterait à l'écran.
+    const bool decodingThisPage = samePage && !m_ready;
+    if (redecode || (!decodingThisPage && !m_images.covers(page(), &document()))) {
         if (m_ready) {
             m_ready = false;
             emit readyChanged();
         }
+        ++m_decodeCount;
         m_images.generate(page(), &document());
     }
     emit objectCountChanged();
@@ -102,7 +107,7 @@ void FixedPageItem::setPage(core::Page page)
     // Redécodage forcé : nécessaire au relais du lot 1 (la vue ne redessinait que sur readyChanged) ;
     // redondant depuis L2-T15 (la vue écoute contentChanged), gardé : il redécode à chaque setPage (banc et
     // tests).
-    restart(true);
+    restart(true, false);
 }
 
 void FixedPageItem::setSource(const core::Document* document, std::size_t pageIndex)
@@ -116,7 +121,7 @@ void FixedPageItem::setSource(const core::Document* document, std::size_t pageIn
     m_source = document;
     m_sourcePage = document ? pageIndex : 0;
     m_own = core::Document(); // l'ancienne page interne ne revient jamais en repli
-    restart(false);
+    restart(false, false);
 }
 
 const core::Document* FixedPageItem::sourceDocument() const noexcept
@@ -163,18 +168,23 @@ void FixedPageItem::insert(core::ObjectId id)
         update();
         return;
     }
-    restart(false);
+    restart(needsImages && !m_ready, true); // image ajoutée pendant un décodage : il ne la couvre pas
 }
 
 // Lot 2 : reconstruction complète ; le lot « cache incrémental » visera le nœud de `id` et la zone.
 void FixedPageItem::remove(core::ObjectId, const core::RectF&)
 {
-    restart(false);
+    restart(false, true);
 }
 
-void FixedPageItem::invalidate(core::ObjectId, const core::CacheArea&)
+void FixedPageItem::invalidate(core::ObjectId id, const core::CacheArea&)
 {
-    restart(false);
+    const core::Page& shown = page();
+    const std::size_t index = core::indexOf(shown, id);
+    const bool image =
+        index < shown.objects.size() && (std::get_if<core::ImageObject>(&shown.objects[index]) ||
+                                         std::get_if<core::Media>(&shown.objects[index]));
+    restart(image && !m_ready, true);
 }
 
 bool FixedPageItem::isReady() const noexcept
@@ -209,6 +219,11 @@ double FixedPageItem::rasterScale() const noexcept
 int FixedPageItem::rebuildCount() const noexcept
 {
     return m_rebuildCount.load();
+}
+
+int FixedPageItem::decodeCount() const noexcept
+{
+    return m_decodeCount;
 }
 
 void FixedPageItem::setForceRasterized(bool on)
@@ -288,10 +303,22 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         // d'échelle sur ces nœuds : leurs indices visent l'ancienne page ; onImagesReady relance la
         // reconstruction. Sans page déjà montrée (premier dessin), le fond blanc d'attente est dessiné.
         if (!m_ready && old && m_showsPage) {
+            if (boundingRect() != m_shownRect) {
+                // Page suivante d'une autre taille (l'élément prend sa taille) : fond de page blanc à la
+                // nouvelle taille sous l'ancienne page, jamais un trou à la couleur de la fenêtre. Plus
+                // petite, l'ancienne page dépasse jusqu'au prêt.
+                if (!m_underlay) {
+                    m_underlay = window()->createRectangleNode();
+                    m_underlay->setColor(Qt::white);
+                    root->prependChildNode(m_underlay);
+                }
+                m_underlay->setRect(boundingRect());
+            }
             return root;
         }
         ++m_rebuildCount;
         clearChildren(root);
+        m_underlay = nullptr;
         m_gridDrawnAbove = nullptr;
         m_rasterSlots.clear();
         if (m_ready) {
@@ -317,6 +344,9 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         }
         m_builtCount = 0;
         m_showsPage = m_ready;
+        if (m_ready) {
+            m_shownRect = boundingRect();
+        }
         m_rebuild = !m_ready;
     } else if (m_rescale) {
         rescaleRasterNodes(shown, painted);

@@ -1,7 +1,9 @@
 #include <actcraft/bench/scenarios.h>
 
+#include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <limits>
 #include <numbers>
 #include <utility>
 
@@ -176,6 +178,25 @@ QPointF demoInkProbePoint()
 std::int64_t planDurationNs(const ScenarioPlan& plan)
 {
     return plan.inputs.empty() ? 0 : plan.inputs.back().offsetNs;
+}
+
+std::vector<std::int64_t> pageChangeMarks(const std::vector<std::int64_t>& swapNs,
+                                          const std::vector<std::pair<std::int64_t, std::int64_t>>& changes)
+{
+    std::vector<std::int64_t> marks;
+    for (const auto& [command, shown] : changes) {
+        const auto after =
+            std::upper_bound(swapNs.begin(), swapNs.end(), shown); // première image après le prêt
+        const std::int64_t until = after == swapNs.end() ? std::numeric_limits<std::int64_t>::max() : *after;
+        for (std::size_t k = 1; k < swapNs.size(); ++k) {
+            if (swapNs[k - 1] >= command && swapNs[k - 1] < until) {
+                marks.push_back(swapNs[k - 1] + 1);
+            }
+        }
+    }
+    std::sort(marks.begin(), marks.end());
+    marks.erase(std::unique(marks.begin(), marks.end()), marks.end());
+    return marks;
 }
 
 } // namespace actcraft::bench
