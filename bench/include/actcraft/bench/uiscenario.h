@@ -93,9 +93,12 @@ QString propertyText(const QVariant& value);
 // ${<nom>} (mémorisé par « remember ») ; une variable inconnue ou non fermée fait échouer l'étape.
 // Sonde de boucle (BOUCLE, écart 1 du plan 2b) : une minuterie de 5 ms sur le fil principal relève le plus
 // long intervalle entre deux de ses tours, intervalle en cours à l'arrêt compris. Elle tient hors écran, où
-// les images ne sont produites qu'à la demande : un blocage sans image la dépasse aussi. DURÉE DE VIE : le
-// joueur possède le stylet synthétique ; il doit être détruit APRÈS la fenêtre (le déclarer avant le moteur
-// QML).
+// les images ne sont produites qu'à la demande : un blocage sans image la dépasse aussi. Son démarrage attend
+// d'abord que l'image en attente soit rendue (une image demandée, son frameSwapped, 1 s au plus ; sinon «
+// BOUCLE sonde démarrée (aucune image rendue en 1000 ms) ») : elle mesure la boucle pendant les étapes
+// suivantes (l'E/S de S5), pas le rendu laissé par l'étape précédente (trait), qui prend à lui seul 11 à 147
+// ms sur le fil principal en rendu logiciel debug (mesuré, L2-T20). DURÉE DE VIE : le joueur possède le
+// stylet synthétique ; il doit être détruit APRÈS la fenêtre (le déclarer avant le moteur QML).
 class UiScenarioPlayer
 {
 public:

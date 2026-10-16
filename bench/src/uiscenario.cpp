@@ -28,6 +28,7 @@
 #include <qpa/qwindowsysteminterface.h>
 
 #include <algorithm>
+#include <atomic>
 #include <functional>
 #include <utility>
 
@@ -45,6 +46,7 @@ constexpr int kWaitForDefaultMs = 10000;
 constexpr int kWaitForMaxMs = 120000;
 constexpr int kLoopGapMaxMs = 60000;
 constexpr int kLoopProbeIntervalMs = 5;
+constexpr int kLoopSettleTimeoutMs = 1000; // image en attente rendue avant d'armer la sonde
 
 bool readPoint(const QJsonValue& value, QPointF& out)
 {
@@ -762,6 +764,20 @@ bool UiScenarioPlayer::waitFor(const UiStep& step, QStringList& report)
 
 bool UiScenarioPlayer::watchEventLoop(QStringList& report)
 {
+    // Image laissée en attente par l'étape précédente (trait, changement de page) : rendue AVANT d'armer la
+    // sonde, qui mesure la boucle pendant ce qui suit (l'E/S), pas ce rendu. Une image est demandée ; son
+    // frameSwapped, qui est celui de l'image déjà en attente s'il y en a une, libère l'attente. Attente
+    // bornée : fenêtre cachée ou rendu arrêté, aucune image ne vient, la sonde s'arme quand même et le dit.
+    QString note;
+    auto swapped = std::make_shared<std::atomic<bool>>(false);
+    const QMetaObject::Connection connection = QObject::connect(
+        m_window, &QQuickWindow::frameSwapped, m_window, [swapped] { swapped->store(true); },
+        Qt::DirectConnection); // fil de rendu ou fil principal selon la boucle de rendu
+    m_window->update();
+    if (!waitUntil([&swapped] { return swapped->load(); }, kLoopSettleTimeoutMs)) {
+        note = QStringLiteral(" (aucune image rendue en %1 ms)").arg(kLoopSettleTimeoutMs);
+    }
+    QObject::disconnect(connection);
     // Minuterie du fil principal : chaque tour relève l'intervalle depuis le précédent. Un blocage du fil
     // (écriture synchrone, calcul) l'allonge, qu'une image soit produite ou non. Précise : une minuterie
     // grossière peut être servie avec retard (Qt::TimerType), ce qui grossirait les intervalles.
@@ -777,7 +793,7 @@ bool UiScenarioPlayer::watchEventLoop(QStringList& report)
     });
     m_loopClock.start();
     m_loopTimer->start();
-    report << QStringLiteral("BOUCLE sonde démarrée");
+    report << QStringLiteral("BOUCLE sonde démarrée") + note;
     return true;
 }
 

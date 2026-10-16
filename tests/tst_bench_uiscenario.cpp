@@ -768,11 +768,17 @@ private slots:
     {
         Fixture f;
         QVERIFY(load(f));
-        QTimer::singleShot(150, f.window, [] { QThread::msleep(250); });
+        // Blocage armé une fois la sonde démarrée (son démarrage attend une image, de durée variable).
+        f.player->setLineSink([&f](const QString& line) {
+            if (line.startsWith(QStringLiteral("BOUCLE sonde démarrée"))) {
+                QTimer::singleShot(100, f.window, [] { QThread::msleep(250); });
+            }
+        });
         QStringList report;
-        QVERIFY(!f.player->play(scenario("bloque", "[{\"watchEventLoop\":true},{\"wait\":600},"
-                                                   " {\"maxEventLoopGapMs\":100}]"),
-                                f.out.path(), report));
+        QVERIFY2(!f.player->play(scenario("bloque", "[{\"watchEventLoop\":true},{\"wait\":600},"
+                                                    " {\"maxEventLoopGapMs\":100}]"),
+                                 f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
         QVERIFY2(loopMax(report.last()) >= 250 &&
                      report.last().contains(QLatin1String("ECART (seuil 100 ms)")),
                  qPrintable(report.join(QLatin1Char('\n'))));
@@ -796,6 +802,53 @@ private slots:
                                 f.out.path(), report));
         QVERIFY2(loopMax(report.last()) >= 250 && report.last().contains(QLatin1String("ECART")),
                  qPrintable(report.join(QLatin1Char('\n'))));
+    }
+
+    // Discriminant : une image en attente au démarrage de la sonde (ici, une image dont la préparation bloque
+    // le fil principal 250 ms, comme le rendu logiciel d'un trait en debug) est rendue AVANT que la sonde
+    // s'arme. Armée tout de suite, la sonde mesurerait ce rendu (ECART) au lieu de la boucle qui suit.
+    void eventLoopProbeStartsAfterThePendingFrame()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        int frames = 0;
+        const auto slow = QObject::connect(
+            f.window, &QQuickWindow::afterAnimating, f.window,
+            [&frames] {
+                if (++frames == 1) {
+                    QThread::msleep(250);
+                }
+            },
+            Qt::DirectConnection);
+        f.window->update(); // image en attente, pas encore rendue (aucun tour de boucle avant play)
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("attente-image", "[{\"watchEventLoop\":true},{\"wait\":100},"
+                                                          " {\"maxEventLoopGapMs\":100}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QObject::disconnect(slow);
+        QVERIFY(frames >= 1); // l'image lente a bien été rendue, avant la sonde
+        QCOMPARE(report.at(0), QStringLiteral("BOUCLE sonde démarrée"));
+    }
+
+    // L'attente de l'image est bornée : fenêtre cachée, aucune image ne vient, la sonde s'arme après 1 s et
+    // le dit, sans bloquer le scénario.
+    void eventLoopProbeStartIsBounded()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        f.window->hide();
+        QTRY_VERIFY(!f.window->isExposed());
+        QElapsedTimer clock;
+        clock.start();
+        QStringList report;
+        QVERIFY2(f.player->play(
+                     scenario("sans-image", "[{\"watchEventLoop\":true},{\"maxEventLoopGapMs\":60000}]"),
+                     f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        const qint64 elapsed = clock.elapsed();
+        QCOMPARE(report.at(0), QStringLiteral("BOUCLE sonde démarrée (aucune image rendue en 1000 ms)"));
+        QVERIFY2(elapsed >= 1000 && elapsed < 5000, qPrintable(QString::number(elapsed)));
     }
 };
 
