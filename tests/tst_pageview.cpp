@@ -1,6 +1,8 @@
+#include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QPointingDevice>
@@ -130,6 +132,61 @@ void tabletStroke(DrawFixture& f, QPointF from, QPointF to)
         tablet(f, QEvent::TabletMove, from + (to - from) * i / 4.0, Qt::LeftButton);
     }
     tablet(f, QEvent::TabletRelease, to, Qt::NoButton);
+}
+
+// Vue AVEC cache, page fixe et encre, sans QML : le test termine lui-même chaque redessin demandé (personne
+// n'appelle notifyCacheUpdated hors de PageArea.qml) et compte les demandes.
+struct CachedFixture
+{
+    QQuickWindow window;
+    PageView* view = nullptr;
+    actcraft::render::FixedPageItem* fixed = nullptr;
+    QPointingDevice* stylus = nullptr;
+};
+
+bool openCached(CachedFixture& f, QPointingDevice* stylus)
+{
+    f.stylus = stylus;
+    f.window.resize(1000, 600);
+    f.view = new PageView;
+    f.view->setParentItem(f.window.contentItem());
+    f.view->setSize(QSizeF(1000, 600));
+    auto* content = new QQuickItem;
+    content->setSize(QSizeF(1024, 768));
+    content->setParentItem(f.view);
+    f.fixed = new actcraft::render::FixedPageItem;
+    f.fixed->setSize(content->size());
+    f.fixed->setParentItem(content);
+    auto* ink = new actcraft::render::InkItem;
+    ink->setSize(content->size());
+    ink->setParentItem(content);
+    f.view->setContent(content); // cache activé (défaut)
+    f.view->setFixedPage(f.fixed);
+    f.view->setInk(ink);
+    f.fixed->setPage(actcraft::core::Page{});
+    f.window.show();
+    if (!QTest::qWaitForWindowExposed(&f.window) ||
+        !QTest::qWaitFor([&] { return f.fixed->isReady(); }, 5000)) {
+        return false;
+    }
+    for (int i = 0; i < 5 && !f.view->cacheReady(); ++i) {
+        f.view->notifyCacheUpdated();
+    }
+    return f.view->cacheReady();
+}
+
+void cachedStroke(CachedFixture& f, QPointF from, QPointF to)
+{
+    const auto send = [&f](QEvent::Type type, QPointF scene, Qt::MouseButtons buttons) {
+        QTabletEvent event(type, f.stylus, scene, f.window.mapToGlobal(scene), buttons ? 0.5 : 0.0, 0, 0, 0,
+                           0, 0, Qt::NoModifier, Qt::LeftButton, buttons);
+        QCoreApplication::sendEvent(&f.window, &event);
+    };
+    send(QEvent::TabletPress, from, Qt::LeftButton);
+    for (int i = 1; i <= 4; ++i) {
+        send(QEvent::TabletMove, from + (to - from) * i / 4.0, Qt::LeftButton);
+    }
+    send(QEvent::TabletRelease, to, Qt::NoButton);
 }
 
 const actcraft::core::Stroke& lastStroke(const DrawFixture& f)
@@ -696,6 +753,85 @@ private slots:
         QCOMPARE(refresh.count(), 0);
         QCOMPARE(updated.count(), 1);
         QVERIFY(f.view->cacheReady());
+    }
+
+    // Avec un contrôleur, le stylo verse au document par la pile (ControllerSink) ; sans contrôleur, le trait
+    // va comme avant dans la page interne de l'élément (tests de trait ci-dessus, inchangés).
+    void strokeGoesToTheControllerDocument()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        DocumentController controller;
+        controller.setFixedPage(f.fixed);
+        f.view->setDocumentController(&controller);
+        QSignalSpy frozen(f.view, &PageView::strokeFrozen);
+        tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
+        QTRY_COMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        QCOMPARE(controller.document().page(0).objects[0].common.layer, actcraft::core::Layer::Top);
+        QCOMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(frozen.count(), 1);
+        QVERIFY(controller.canUndo());
+    }
+
+    // Un redessin du cache par trait : contentChanged (insertion dans le cache) le demande, onStrokeFrozen
+    // n'émet plus que strokeFrozen. Les deux ensemble en demanderaient trois (m_refreshAgain).
+    void oneCacheRenderPerStroke()
+    {
+        CachedFixture f;
+        QVERIFY(openCached(f, m_stylus.get()));
+        DocumentController controller;
+        controller.setFixedPage(f.fixed);
+        f.view->setDocumentController(&controller);
+        for (int i = 0; i < 5 && !f.view->cacheReady(); ++i) {
+            f.view->notifyCacheUpdated(); // setSource du contrôleur a demandé un redessin
+        }
+        QVERIFY(f.view->cacheReady());
+        QSignalSpy requested(f.view, &PageView::cacheRefreshRequested);
+        cachedStroke(f, QPointF(300, 200), QPointF(500, 260));
+        QTRY_COMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        for (int i = 0; i < 5 && !f.view->cacheReady(); ++i) {
+            f.view
+                ->notifyCacheUpdated(); // fin de redessin, comme ShaderEffectSource.scheduledUpdateCompleted
+        }
+        QVERIFY(f.view->cacheReady());
+        QCOMPARE(requested.count(), 1);
+    }
+
+    // Fluidité : un trait figé n'ajoute qu'un nœud à la scène de la page affichée, même sur la page générée
+    // du banc (300 objets) ; jamais une reconstruction de la page (relais par copie de page, ou identifiant
+    // déjà pris par la page générée).
+    void strokeOnTheGeneratedPageAddsOneNode()
+    {
+        CachedFixture f;
+        QVERIFY(openCached(f, m_stylus.get()));
+        DocumentController controller;
+        controller.setFixedPage(f.fixed);
+        f.view->setDocumentController(&controller);
+        controller.loadGeneratedFirstPage();
+        QTRY_VERIFY(f.fixed->isReady());
+        f.window.grabWindow(); // scène des 300 objets construite
+        const int rebuilds = f.fixed->rebuildCount();
+        cachedStroke(f, QPointF(300, 200), QPointF(500, 260));
+        QTRY_COMPARE(f.fixed->objectCount(), 301);
+        f.window.grabWindow();
+        QCOMPARE(f.fixed->rebuildCount(), rebuilds);
+        QVERIFY(actcraft::core::hasUniqueIds(controller.document()));
+    }
+
+    // Contrôleur détruit avant la vue : le stylo ne garde aucune référence vers lui. Le trait va à la page
+    // interne de la page fixe (détachée par le contrôleur), comme sans contrôleur : rien n'est perdu en
+    // silence, rien n'est écrit dans un objet détruit.
+    void strokeAfterTheControllerIsGoneGoesToTheInternalPage()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        auto controller = std::make_unique<DocumentController>();
+        controller->setFixedPage(f.fixed);
+        f.view->setDocumentController(controller.get());
+        controller.reset();
+        QVERIFY(f.view->documentController() == nullptr);
+        tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
     }
 
     void exclusiveDevicesFilterTheWheel()

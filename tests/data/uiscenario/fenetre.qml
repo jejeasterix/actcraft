@@ -45,6 +45,7 @@ Window {
     }
 
     DocumentController {
+        id: doc
         fixedPage: fixed
     }
 
@@ -55,6 +56,7 @@ Window {
         cacheEnabled: false
         content: page
         fixedPage: fixed
+        documentController: doc
         ink: ink
 
         Item {

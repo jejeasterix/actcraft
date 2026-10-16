@@ -245,14 +245,18 @@ void PageView::setFixedPage(render::FixedPageItem* page)
         return;
     }
     disconnect(m_readyConnection);
+    disconnect(m_contentConnection);
     m_fixedPage = page;
     if (m_fixedPage) {
-        // Page prête : premier dessin du cache.
-        m_readyConnection = connect(m_fixedPage, &render::FixedPageItem::readyChanged, this, [this] {
+        // Page prête (premier dessin, images décodées) ou contenu changé (trait inséré, annulation, autre
+        // page lue) : un redessin du cache. Pas avant que la page soit prête : readyChanged suivra.
+        const auto refresh = [this] {
             if (m_fixedPage && m_fixedPage->isReady()) {
                 requestCacheRefresh();
             }
-        });
+        };
+        m_readyConnection = connect(m_fixedPage, &render::FixedPageItem::readyChanged, this, refresh);
+        m_contentConnection = connect(m_fixedPage, &render::FixedPageItem::contentChanged, this, refresh);
     }
     rebuildPen();
     emit fixedPageChanged();
@@ -291,10 +295,29 @@ void PageView::resetInputSequence(std::uint64_t next)
     }
 }
 
+DocumentController* PageView::documentController() const noexcept
+{
+    return m_controller.data();
+}
+
+void PageView::setDocumentController(DocumentController* controller)
+{
+    if (controller == m_controller) {
+        return;
+    }
+    disconnect(m_controllerConnection);
+    m_controller = controller;
+    if (m_controller) {
+        // Contrôleur détruit avant la vue : le stylo ne garde pas de référence pendante.
+        m_controllerConnection = connect(m_controller, &QObject::destroyed, this, [this] { rebuildPen(); });
+    }
+    rebuildPen();
+    emit documentControllerChanged();
+}
+
 void PageView::onStrokeFrozen()
 {
-    emit strokeFrozen();
-    requestCacheRefresh();
+    emit strokeFrozen(); // le cache est redessiné sur contentChanged de la page fixe (un redessin par trait)
 }
 
 void PageView::rebuildPen()
@@ -302,13 +325,21 @@ void PageView::rebuildPen()
     m_pipeline.reset();
     m_pen.reset();
     m_documentSink.reset();
+    m_controllerSink.reset();
     m_inkSurface.reset();
     if (!m_fixedPage || !m_ink) {
         return;
     }
     m_inkSurface = std::make_unique<InkSurfaceAdapter>(*m_ink);
-    m_documentSink = std::make_unique<FixedPageSink>(*m_fixedPage, *this);
-    m_pen = std::make_unique<tools::PenTool>(*m_inkSurface, *m_documentSink);
+    tools::DocumentSink* sink = nullptr;
+    if (m_controller) {
+        m_controllerSink = std::make_unique<ControllerSink>(*m_controller, *this);
+        sink = m_controllerSink.get();
+    } else {
+        m_documentSink = std::make_unique<FixedPageSink>(*m_fixedPage, *this);
+        sink = m_documentSink.get();
+    }
+    m_pen = std::make_unique<tools::PenTool>(*m_inkSurface, *sink);
     m_pen->setColor(m_inkColor.rgba());
     m_pen->setBaseWidth(m_inkWidth);
     m_pipeline = std::make_unique<input::Pipeline>(*m_pen);

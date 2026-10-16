@@ -99,8 +99,9 @@ void FixedPageItem::setPage(core::Page page)
     std::vector<core::Page> pages;
     pages.push_back(std::move(page));
     m_own = core::Document(std::move(pages));
-    // Relais du lot 1 : la vue ne redessine son cache que sur readyChanged tant qu'elle n'écoute pas
-    // contentChanged (L2-T15) ; une page sans image couverte par le magasin ne le ferait jamais repasser.
+    // Redécodage forcé : nécessaire au relais du lot 1 (la vue ne redessinait que sur readyChanged) ;
+    // redondant depuis L2-T15 (la vue écoute contentChanged), gardé : il redécode à chaque setPage (banc et
+    // tests).
     restart(true);
 }
 
