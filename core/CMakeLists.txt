@@ -7,5 +7,6 @@ actcraft_add_module(core
         src/document.cpp
         src/undo.cpp
         src/edits.cpp
+        src/pagecache.cpp
     DEPENDS
         Qt6::Core)

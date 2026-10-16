@@ -1,6 +1,8 @@
 #pragma once
 
+#include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/pagecache.h>
 #include <actcraft/render/imagestore.h>
 #include <actcraft/render/objectrenderer.h>
 #include <actcraft/render/paintedrenderer.h>
@@ -12,9 +14,11 @@
 
 namespace actcraft::render {
 
-// Contenu fixe de la page : modèle → nœuds par le registre de moteurs. Les traits figés s'y ajoutent
-// (décision 10). Le cache (ShaderEffectSource, Main.qml) prend cet élément pour source.
-class FixedPageItem : public QQuickItem
+// Contenu fixe de la page affichée : modèle → nœuds par les moteurs (décision 10). La page est LUE dans le
+// document (setSource), jamais copiée ; ses changements arrivent par l'interface de cache (DA11). Pour le
+// banc et les tests, une page interne (setPage, appendStroke, loadGeneratedPage). Le cache
+// (ShaderEffectSource, PageArea.qml) prend cet élément pour source.
+class FixedPageItem : public QQuickItem, public core::PageCache
 {
     Q_OBJECT
     Q_PROPERTY(bool ready READ isReady NOTIFY readyChanged)
@@ -25,10 +29,25 @@ public:
 
     // Page des 300 objets (core::generatePage(core::kDefaultSeed)).
     Q_INVOKABLE void loadGeneratedPage();
+    // Banc et tests (et relais du contrôleur jusqu'à L2-T15) : la page devient celle de la page interne ; la
+    // source est oubliée. Tout repart, images et readyChanged compris : la vue redessine son cache sur
+    // readyChanged.
     void setPage(core::Page page);
+    // Page affichée : celle du document source (référence dans le document), sinon la page interne.
     const core::Page& page() const noexcept;
-    // Trait figé : ajouté au modèle et à la scène à la prochaine synchronisation, sans reconstruire le reste.
+    // Page interne seulement : refusé, avec un avertissement, quand l'élément montre un document. Le trait va
+    // au sommet de la couche supérieure ; ajouté à la scène sans reconstruire le reste (insert).
     void appendStroke(core::Stroke stroke);
+    // Page `pageIndex` de `document` : le document doit survivre à l'élément, ou appeler setSource(nullptr,
+    // 0) avant de mourir. nullptr : page interne vide.
+    void setSource(const core::Document* document, std::size_t pageIndex);
+    const core::Document* sourceDocument() const noexcept;
+    std::size_t sourcePage() const noexcept;
+    // core::PageCache (DA11), implémentation du lot 2 : ajout en fin de page sans reconstruction (seul le
+    // nœud de l'objet est construit), sinon reconstruction complète. Chaque appel émet contentChanged.
+    void insert(core::ObjectId id) override;
+    void remove(core::ObjectId id) override;
+    void invalidate(const core::RectF& pageRect) override;
     // Vrai quand les images sont prêtes et les nœuds construits à la prochaine image.
     bool isReady() const noexcept;
     int objectCount() const noexcept;
@@ -47,6 +66,7 @@ signals:
     void readyChanged();
     void objectCountChanged();
     void strokeAppended();
+    void contentChanged();
 
 protected:
     QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData* data) override;
@@ -61,11 +81,16 @@ private:
         std::size_t object = 0;
     };
 
+    const core::Document& document() const noexcept; // source, ou page interne
+    // Reconstruction complète ; images régénérées si `redecode` ou si le magasin ne couvre plus la page.
+    void restart(bool redecode);
     void onImagesReady();
     void addRasterSlot(QSGNode* node, std::size_t object);
     void rescaleRasterNodes(const core::Page& page, const RenderContext& painted);
 
-    core::Page m_page;
+    const core::Document* m_source = nullptr;
+    std::size_t m_sourcePage = 0;
+    core::Document m_own; // page interne (une page)
     RendererRegistry m_registry;
     PaintedRenderer m_painted;
     ImageStore m_images;

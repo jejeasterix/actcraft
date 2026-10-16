@@ -1,6 +1,8 @@
+#include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/render/fixedpageitem.h>
 
+#include <QDebug>
 #include <QMatrix4x4>
 #include <QQuickWindow>
 #include <QSGOpacityNode>
@@ -61,30 +63,109 @@ void FixedPageItem::loadGeneratedPage()
     setPage(core::generatePage(core::kDefaultSeed));
 }
 
-void FixedPageItem::setPage(core::Page page)
+const core::Document& FixedPageItem::document() const noexcept
 {
-    m_page = std::move(page);
-    m_rebuild = true;
-    if (m_ready) {
-        m_ready = false;
-        emit readyChanged();
-    }
-    m_images.generate(m_page);
-    emit objectCountChanged();
-    update();
+    return m_source ? *m_source : m_own;
 }
 
 const core::Page& FixedPageItem::page() const noexcept
 {
-    return m_page;
+    return m_source ? m_source->page(m_sourcePage) : m_own.page(0);
+}
+
+void FixedPageItem::restart(bool redecode)
+{
+    m_rebuild = true;
+    // Redécoder seulement si le magasin ne couvre plus la page (annuler un trait ne redécode rien).
+    if (redecode || !m_images.covers(page(), &document())) {
+        if (m_ready) {
+            m_ready = false;
+            emit readyChanged();
+        }
+        m_images.generate(page(), &document());
+    }
+    emit objectCountChanged();
+    emit contentChanged();
+    update();
+}
+
+void FixedPageItem::setPage(core::Page page)
+{
+    m_source = nullptr;
+    m_sourcePage = 0;
+    std::vector<core::Page> pages;
+    pages.push_back(std::move(page));
+    m_own = core::Document(std::move(pages));
+    // Relais du lot 1 : la vue ne redessine son cache que sur readyChanged tant qu'elle n'écoute pas
+    // contentChanged (L2-T15) ; une page sans image couverte par le magasin ne le ferait jamais repasser.
+    restart(true);
+}
+
+void FixedPageItem::setSource(const core::Document* document, std::size_t pageIndex)
+{
+    m_source = document;
+    m_sourcePage = document ? pageIndex : 0;
+    if (!document) {
+        m_own = core::Document();
+    }
+    restart(false);
+}
+
+const core::Document* FixedPageItem::sourceDocument() const noexcept
+{
+    return m_source;
+}
+
+std::size_t FixedPageItem::sourcePage() const noexcept
+{
+    return m_sourcePage;
 }
 
 void FixedPageItem::appendStroke(core::Stroke stroke)
 {
-    m_page.objects.emplace_back(std::move(stroke));
-    emit objectCountChanged();
-    emit strokeAppended();
-    update();
+    if (m_source) {
+        qWarning(
+            "FixedPageItem::appendStroke : la page affichée appartient à un document ; passer par sa pile");
+        return;
+    }
+    core::PageObject object = std::move(stroke);
+    object.common.id = m_own.allocateId();
+    object.common.layer = core::Layer::Top;
+    const core::ObjectId id = object.common.id;
+    core::insertAtTopOfLayer(m_own.page(0), std::move(object));
+    insert(id);
+}
+
+void FixedPageItem::insert(core::ObjectId id)
+{
+    const core::Page& shown = page();
+    const std::size_t index = core::indexOf(shown, id);
+    if (index == shown.objects.size()) {
+        return;
+    }
+    const core::PageObject& object = shown.objects[index];
+    const bool needsImages = std::get_if<core::ImageObject>(&object) || std::get_if<core::Media>(&object);
+    if (index + 1 == shown.objects.size() && index >= m_builtCount && !needsImages) {
+        // Fin de page (le stylo) : le prochain updatePaintNode n'ajoute que ce nœud.
+        emit objectCountChanged();
+        if (std::get_if<core::Stroke>(&object)) {
+            emit strokeAppended();
+        }
+        emit contentChanged();
+        update();
+        return;
+    }
+    restart(false);
+}
+
+void FixedPageItem::remove(core::ObjectId)
+{
+    restart(false);
+}
+
+void FixedPageItem::invalidate(const core::RectF&)
+{
+    restart(false);
 }
 
 bool FixedPageItem::isReady() const noexcept
@@ -94,7 +175,7 @@ bool FixedPageItem::isReady() const noexcept
 
 int FixedPageItem::objectCount() const noexcept
 {
-    return static_cast<int>(m_page.objects.size());
+    return static_cast<int>(page().objects.size());
 }
 
 void FixedPageItem::setRasterScale(double scale)
@@ -191,7 +272,7 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     RenderContext painted = context;
     painted.software = software && !m_forceRasterized;
     const bool rasterized = !painted.software;
-    const core::Page& shown = m_page;
+    const core::Page& shown = page();
     if (m_rebuild || !old) {
         ++m_rebuildCount;
         clearChildren(root);
