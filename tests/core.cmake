@@ -19,3 +19,7 @@ actcraft_add_test(tst_core_undo
 actcraft_add_test(tst_core_edits
     SOURCES tst_core_edits.cpp
     LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_pagecache
+    SOURCES tst_core_pagecache.cpp
+    LIBS ActCraft::core)
