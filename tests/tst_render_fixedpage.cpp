@@ -265,7 +265,45 @@ private slots:
         const QImage image = f.window.grabWindow();
         QVERIFY(colorNear(image.pixelColor(300, 200), QColor(Qt::blue), 2));
         QVERIFY(colorNear(image.pixelColor(800, 600), QColor(Qt::white), 1));
+        // Revenue à la taille de la page montrée avant le prêt : le fond blanc ne déborde plus (2e revue).
+        f.page->setSize(QSizeF(600, 400));
+        waitFrame(f);
+        QVERIFY(!f.page->isReady());
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(800, 600), QColor(0x3c, 0x3f, 0x45), 2));
         QTRY_VERIFY(f.page->isReady());
+    }
+
+    // Revue L2-T23 (2e tour) : le magasin range les images synthétiques par INDICE d'objet. Une suppression
+    // avant elles pendant le décodage décale ces indices : le décodage en cours ne couvre plus la page et
+    // repart, sinon B prend l'image de A jusqu'au décodage suivant.
+    void removalBeforeImagesDuringDecodeRedecodes()
+    {
+        Fixture f;
+        open(f);
+        const auto image = [](double x, core::Argb color) -> core::PageObject {
+            core::ImageObject im;
+            im.bounds = {x, 100, 200, 200};
+            im.pattern = core::ImagePattern::SolidCenter;
+            im.colorA = color;
+            im.colorB = color;
+            return im;
+        };
+        core::Document d;
+        const core::PageObject stroke = lineAt(600);
+        for (core::PageObject object : {stroke, image(100, 0xFF43A047u), image(500, 0xFF1E88E5u)}) {
+            object.common.id = d.allocateId();
+            d.page(0).objects.push_back(object);
+        }
+        f.page->setSource(&d, 0);
+        QVERIFY(!f.page->isReady());
+        const core::ObjectId strokeId = d.page(0).objects.front().common.id;
+        d.page(0).objects.erase(d.page(0).objects.begin());
+        f.page->remove(strokeId, core::RectF{});
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        const QImage shot = f.window.grabWindow();
+        QVERIFY(colorNear(shot.pixelColor(200, 200), QColor(0x43, 0xa0, 0x47), 4)); // A, verte
+        QVERIFY(colorNear(shot.pixelColor(600, 200), QColor(0x1e, 0x88, 0xe5), 4)); // B, bleue
     }
 
     void showsThePageOfItsDocument()

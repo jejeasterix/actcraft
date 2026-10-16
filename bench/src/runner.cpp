@@ -23,7 +23,6 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
-#include <limits>
 #include <optional>
 #include <utility>
 
@@ -241,6 +240,7 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     }
     std::vector<std::int64_t> commandPlanned(commands.size(), 0);
     std::vector<std::int64_t> commandRun(commands.size(), -1);
+    std::vector<bool> commandAwaits(commands.size(), true); // un prêt (page, cache) doit suivre la commande
     std::size_t nextCommand = 0;
     QTimer commandTimer; // coup unique réarmé sur l'échéance suivante, comme l'injecteur
     commandTimer.setSingleShot(true);
@@ -253,6 +253,9 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
                 invalidReasons
                     << QStringLiteral("error: command %1 refused in %2").arg(in.command, plan.name);
             }
+            // Page et cache encore prêts : aucun prêt ne viendra (zoom sans cache), la fenêtre se ferme à la
+            // première image qui suit la commande.
+            commandAwaits[nextCommand] = !(m_fixed->isReady() && m_view->cacheReady());
             ++nextCommand;
         }
         if (nextCommand < commands.size()) {
@@ -335,16 +338,9 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     s.frames.freezeNs = freezes;
     s.frames.refreshPeriodNs = refreshPeriodNs; // période de l'écran ; ≤ 0 → invalid-refresh-period
     // Commandes : leurs changements (commande → première image après le prêt) comptent actifs.
-    std::vector<std::pair<std::int64_t, std::int64_t>> changes;
-    for (const std::int64_t at : commandRun) {
-        if (at >= 0) {
-            const auto shown = std::lower_bound(shownNs.begin(), shownNs.end(), at);
-            changes.emplace_back(at,
-                                 shown == shownNs.end() ? std::numeric_limits<std::int64_t>::max() : *shown);
-        }
-    }
     FrameSeries classified = s.frames;
-    const std::vector<std::int64_t> marks = pageChangeMarks(s.frames.swapNs, changes);
+    const std::vector<std::int64_t> marks =
+        pageChangeMarks(s.frames.swapNs, pageChangeWindows(commandRun, commandAwaits, shownNs));
     classified.inputNs.insert(classified.inputNs.end(), marks.begin(), marks.end());
     std::sort(classified.inputNs.begin(), classified.inputNs.end());
     s.intervals = classifyIntervals(classified);

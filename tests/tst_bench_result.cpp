@@ -62,6 +62,31 @@ private slots:
         }
     }
 
+    // 2e revue L2-T23 : le câblage du runner (marques, prêts relevés, fenêtres) classe actifs les intervalles
+    // des changements, et eux seuls. Sans les marques, seul l'intervalle de chaque commande serait actif (au
+    // plus 7) ; sans prêt relevé, tout serait actif de la première commande à la fin. Il faut donc un
+    // intervalle au repos après la première commande : un changement au moins (le zoom posé a 700 ms) finit
+    // avant la commande suivante, même en debug sous charge (relevé : 1 sur 12 intervalles, 111 s de banc).
+    void pageChangesAreActiveUntilShown()
+    {
+        const QJsonObject page = m_root.value("scenarios").toArray().at(3).toObject();
+        const QJsonObject raw = page.value("raw").toObject();
+        const QJsonArray inputs = raw.value("input_ns").toArray();
+        const QJsonArray swaps = raw.value("swap_ns").toArray();
+        const QString classes = raw.value("interval_class").toString();
+        QCOMPARE(inputs.size(), 7);
+        QCOMPARE(classes.size(), swaps.size() - 1);
+        QVERIFY(page.value("frames").toObject().value("active").toInt() > inputs.size());
+        const double first = inputs.first().toDouble();
+        qsizetype idleAfter = 0;
+        for (qsizetype k = 0; k < classes.size(); ++k) {
+            if (swaps.at(k).toDouble() >= first && classes.at(k) == u'I') {
+                ++idleAfter;
+            }
+        }
+        QVERIFY(idleAfter > 0);
+    }
+
     void strokeHasLatency()
     {
         const QJsonObject latency =

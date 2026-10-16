@@ -11,6 +11,7 @@
 #include <QRectF>
 
 #include <atomic>
+#include <string>
 #include <vector>
 
 class QSGRectangleNode;
@@ -115,6 +116,9 @@ private:
     QRectF m_shownRect;       // fil de rendu : rectangle de l'élément quand la page affichée a été construite
     QSGRectangleNode* m_underlay = nullptr; // fil de rendu : fond blanc à la taille de la page suivante
     int m_decodeCount = 0;
+    // Images remises au décodage en cours, avec leur indice d'objet (le magasin range les images
+    // synthétiques par indice) : il ne couvre la page que si elle les a encore aux mêmes indices.
+    std::string m_decodingInputs;
     std::size_t m_builtCount = 0;
     double m_rasterScale = 1;
     QSGNode* m_gridDrawnAbove = nullptr; // fil de rendu : les objets s'insèrent avant la grille du dessus

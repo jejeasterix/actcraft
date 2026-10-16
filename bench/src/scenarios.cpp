@@ -189,7 +189,7 @@ std::vector<std::int64_t> pageChangeMarks(const std::vector<std::int64_t>& swapN
             std::upper_bound(swapNs.begin(), swapNs.end(), shown); // première image après le prêt
         const std::int64_t until = after == swapNs.end() ? std::numeric_limits<std::int64_t>::max() : *after;
         for (std::size_t k = 1; k < swapNs.size(); ++k) {
-            if (swapNs[k - 1] >= command && swapNs[k - 1] < until) {
+            if (swapNs[k] >= command && swapNs[k - 1] < until) {
                 marks.push_back(swapNs[k - 1] + 1);
             }
         }
@@ -197,6 +197,26 @@ std::vector<std::int64_t> pageChangeMarks(const std::vector<std::int64_t>& swapN
     std::sort(marks.begin(), marks.end());
     marks.erase(std::unique(marks.begin(), marks.end()), marks.end());
     return marks;
+}
+
+std::vector<std::pair<std::int64_t, std::int64_t>>
+pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<bool>& awaitsReady,
+                  const std::vector<std::int64_t>& shownNs)
+{
+    std::vector<std::pair<std::int64_t, std::int64_t>> windows;
+    for (std::size_t i = 0; i < commandNs.size(); ++i) {
+        const std::int64_t at = commandNs[i];
+        if (at < 0) {
+            continue; // commande jamais jouée
+        }
+        if (i < awaitsReady.size() && !awaitsReady[i]) {
+            windows.emplace_back(at, at);
+            continue;
+        }
+        const auto shown = std::lower_bound(shownNs.begin(), shownNs.end(), at);
+        windows.emplace_back(at, shown == shownNs.end() ? std::numeric_limits<std::int64_t>::max() : *shown);
+    }
+    return windows;
 }
 
 } // namespace actcraft::bench

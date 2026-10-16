@@ -76,9 +76,16 @@ std::vector<int> cumulativeSplit(int total, int count);
 std::int64_t planDurationNs(const ScenarioPlan& plan);
 // Scénario « page » (revue L2-T23) : un changement de page dure de sa commande (`first`) jusqu'à la première
 // image qui suit le prêt de la page affichée (`second` : images décodées, cache redessiné). Rend, pour chaque
-// intervalle d'images (swapNs[k-1], swapNs[k]] qui commence dans cette fenêtre, l'instant swapNs[k-1] + 1 :
-// ajoutés aux entrées, classifyIntervals compte ces intervalles actifs (décodage, reconstruction, redessin).
+// intervalle d'images (swapNs[k-1], swapNs[k]] qui touche cette fenêtre (dont celui où la commande s'exécute,
+// même partie en retard sur son heure prévue), l'instant swapNs[k-1] + 1 : ajoutés aux entrées,
+// classifyIntervals compte ces intervalles actifs (décodage, reconstruction, redessin).
 std::vector<std::int64_t> pageChangeMarks(const std::vector<std::int64_t>& swapNs,
                                           const std::vector<std::pair<std::int64_t, std::int64_t>>& changes);
+// Fenêtres des commandes jouées (`commandNs[i]` ≥ 0) : jusqu'au premier prêt relevé après elles (`shownNs`,
+// trié ; aucun : jusqu'à la fin), ou jusqu'à la commande elle-même si elle n'en attend aucun
+// (`awaitsReady[i]` faux : page et cache encore prêts juste après elle, comme un zoom sans cache).
+std::vector<std::pair<std::int64_t, std::int64_t>>
+pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<bool>& awaitsReady,
+                  const std::vector<std::int64_t>& shownNs);
 
 } // namespace actcraft::bench

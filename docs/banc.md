@@ -59,9 +59,11 @@ true)`) : 30 images chacune, et sur la page 2, 20 textes et 20 formes à chemins
 `runCommand` de la fenêtre à son heure : aucune touche ni aucun événement posté. Chaque changement décode les images
 de la page affichée, et seulement elle ; pendant ce décodage, l'ancienne page reste à l'écran (pas d'éclair blanc).
 Il est jugé comme `scroll` (images par seconde, images de plus de 25 ms), sans latence d'encre, sur ses
-intervalles actifs : ceux qui vont de chaque commande à la première image qui suit le prêt de la page
-affichée (images décodées, cache redessiné). Décodage, reconstruction et redessin du cache y comptent ;
-les images entre deux changements (rendu continu pendant la mesure) restent au repos.
+intervalles actifs : ceux qui vont de chaque commande (dès l'intervalle où elle s'exécute, même partie en
+retard sur son heure) à la première image qui suit le prêt de la page affichée (images décodées, cache
+redessiné). Une commande qui n'attend aucun prêt (zoom posé sans cache : page et cache restent prêts) s'arrête
+à la première image qui la suit. Décodage, reconstruction et redessin du cache y comptent ; les images entre
+deux changements (rendu continu pendant la mesure) restent au repos.
 
 Puis une séquence de démonstration non mesurée : un trait capturé à mi-parcours, à la fin, à 800 % et de retour à
 100 %. Quatre contrôles de couleur (trois objets témoins, l'encre en cours) prouvent que le rendu dessine
@@ -73,7 +75,9 @@ sans cache. À la première image rendue après un changement de page, le pixel 
 doit garder la couleur relevée sur l'ancienne page juste avant (ni blanc, ni transparent, ni autre
 couleur). Une capture n'est retenue que si la nouvelle page n'est pas encore prête (jusqu'à six
 changements pour trois captures) ; aucune capture retenue sans cache rend la mesure invalide
-(`page-flash-unverified`). Le verdict (`page_flash`) ne repose que sur les captures sans cache. La moitié
+(`page-flash-unverified`). Risque connu, non corrigé : sur une machine où le décodage des 30 images tient dans
+une image, aucune capture n'est retenue et c'est tout le passage, `stroke`, `zoom` et `scroll` compris, qui
+devient invalide, et le rejouer n'aide pas tant que le décodage reste aussi court. Le verdict (`page_flash`) ne repose que sur les captures sans cache. La moitié
 avec cache ne discrimine pas, et c'est inhérent : la vue ne redessine sa texture qu'au prêt de la page
 (`PageView::setFixedPage`), elle montre donc l'ancienne texture pendant tout le décodage, quoi que dessine la
 page fixe ; ses captures (`page_flash_cached`) sont un relevé, jamais un critère. Le banc revient ensuite à la

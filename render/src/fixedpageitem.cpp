@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <string>
 
 namespace actcraft::render {
 
@@ -49,6 +50,25 @@ QSGNode* wrapped(QSGNode* node, const core::ObjectCommon& common)
 // Emplacements du fond peint et de la grille parmi les nœuds rastérisés (les objets y sont par leur indice).
 constexpr std::size_t kBackgroundSlot = std::numeric_limits<std::size_t>::max();
 constexpr std::size_t kGridSlot = kBackgroundSlot - 1;
+
+// Ce qu'ImageStore::generate reçoit de la page : image du fond, images (synthétiques rangées par INDICE
+// d'objet, ressources par clé) et vignettes des médias. Deux pages de même empreinte se décodent pareil.
+std::string decodeInputs(const core::Page& page)
+{
+    std::string out = page.background.image;
+    for (std::size_t i = 0; i < page.objects.size(); ++i) {
+        if (const auto* im = std::get_if<core::ImageObject>(&page.objects[i])) {
+            out += '|' + std::to_string(i) + ':' + std::to_string(static_cast<int>(im->pattern)) + ':' +
+                   std::to_string(im->colorA) + ':' + std::to_string(im->colorB) + ':' +
+                   std::to_string(im->seed) + ':' + std::to_string(im->sourceWidth) + 'x' +
+                   std::to_string(im->sourceHeight) + ':' +
+                   (im->hasKeyColor ? std::to_string(im->keyColor) : std::string()) + ':' + im->resource;
+        } else if (const auto* media = std::get_if<core::Media>(&page.objects[i])) {
+            out += '|' + std::to_string(i) + ":m:" + media->placeholder;
+        }
+    }
+    return out;
+}
 } // namespace
 
 FixedPageItem::FixedPageItem(QQuickItem* parent)
@@ -83,13 +103,16 @@ void FixedPageItem::restart(bool redecode, bool samePage)
     // Redécoder seulement si le magasin ne couvre plus la page (annuler un trait ne redécode rien). Pendant
     // le décodage de la page affichée, covers() est faux : un trait (même page) ne le relance pas, sinon des
     // traits plus rapides que lui repousseraient le prêt sans fin et l'ancienne page resterait à l'écran.
-    const bool decodingThisPage = samePage && !m_ready;
+    // Mais seulement si ses images n'ont pas bougé : une suppression avant elles décale leurs indices, et
+    // le décodage en cours poserait l'image d'un objet sur son voisin.
+    const bool decodingThisPage = samePage && !m_ready && decodeInputs(page()) == m_decodingInputs;
     if (redecode || (!decodingThisPage && !m_images.covers(page(), &document()))) {
         if (m_ready) {
             m_ready = false;
             emit readyChanged();
         }
         ++m_decodeCount;
+        m_decodingInputs = decodeInputs(page());
         m_images.generate(page(), &document());
     }
     emit objectCountChanged();
@@ -313,6 +336,10 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
                     root->prependChildNode(m_underlay);
                 }
                 m_underlay->setRect(boundingRect());
+            } else if (m_underlay) { // revenue à la taille de la page montrée : le fond ne déborde plus
+                root->removeChildNode(m_underlay);
+                delete m_underlay;
+                m_underlay = nullptr;
             }
             return root;
         }
