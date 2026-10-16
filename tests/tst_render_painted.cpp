@@ -353,13 +353,14 @@ private slots:
         store.generate(core::Page{}); // page suivante : la ressource quitte le magasin
         QTRY_VERIFY_WITH_TIMEOUT(store.isReady(), 5000);
         QVERIFY(store.resourceImage(media.placeholder).isNull());
-        host->update();
-        QVERIFY(colorNear(window.grabWindow().pixelColor(50, 50), QColor(Qt::red), 3));
+        // Nœud gardé mais redessiné : l'élément se déplace (le rendu logiciel ne repeint que ce qui change).
+        host->setPosition(QPointF(10, 10));
+        QVERIFY(colorNear(window.grabWindow().pixelColor(60, 60), QColor(Qt::red), 3));
     }
 
     // Le texte d'un document ne charge aucune ressource, à la densité de l'écran (ctest
-    // tst_render_painted_density : QT_SCALE_FACTOR=2). Une image sur un hôte UNC inexistant coûterait une
-    // résolution réseau (environ 1,3 s) au premier rendu de la scène.
+    // tst_render_painted_density : QT_SCREEN_SCALE_FACTORS=2). Une image sur un hôte UNC inexistant coûterait
+    // une résolution réseau (environ 1,3 s) au premier rendu de la scène.
     void htmlImagesNeverBlockTheScene()
     {
         core::Page warm;
@@ -367,7 +368,7 @@ private slots:
         Fixture f;
         QVERIFY(open(f, warm));
         grab(f); // polices chargées
-        const QByteArray factor = qgetenv("QT_SCALE_FACTOR");
+        const QByteArray factor = qgetenv("QT_SCREEN_SCALE_FACTORS");
         if (!factor.isEmpty()) {
             QCOMPARE(f.window.devicePixelRatio(), factor.toDouble());
         }

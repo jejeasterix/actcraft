@@ -31,4 +31,4 @@ actcraft_add_test(tst_render_painted
 # Même exécutable à la densité 2 : le texte d'un document ne charge aucune ressource à la densité de l'écran.
 add_test(NAME tst_render_painted_density COMMAND tst_render_painted htmlImagesNeverBlockTheScene)
 get_test_property(tst_render_painted ENVIRONMENT _painted_env)
-set_tests_properties(tst_render_painted_density PROPERTIES ENVIRONMENT "${_painted_env};QT_SCALE_FACTOR=2")
+set_tests_properties(tst_render_painted_density PROPERTIES ENVIRONMENT "${_painted_env};QT_SCREEN_SCALE_FACTORS=2")
