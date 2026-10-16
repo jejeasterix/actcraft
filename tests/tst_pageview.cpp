@@ -866,6 +866,28 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(f.fixed->rasterScale(), f.view->zoom() * dpr, 2000); // fin du zoom
     }
 
+    // Un zoom à la molette est en cours quand la taille de la page change : le redessin dû au changement de
+    // taille pose l'échelle du zoom courant, la fin de zoom n'est pas perdue (page nette, pas rastérisée à
+    // l'ancienne échelle).
+    void contentResizeDuringWheelZoomKeepsTheFinalRasterScale()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->setZoom(1.0);
+        const QPointF pos(500, 300);
+        for (int i = 0; i < 3; ++i) {
+            QWheelEvent event(pos, f.window.mapToGlobal(pos), QPoint(), QPoint(0, 120), Qt::NoButton,
+                              Qt::ControlModifier, Qt::NoScrollPhase, false);
+            QCoreApplication::sendEvent(&f.window, &event);
+        }
+        QVERIFY(f.view->zoom() > 1.0);
+        f.view->content()->setSize(QSizeF(800, 600)); // avant la fin de la minuterie du zoom
+        const qreal dpr = f.window.effectiveDevicePixelRatio();
+        QTRY_COMPARE_WITH_TIMEOUT(f.fixed->rasterScale(), f.view->zoom() * dpr, 2000);
+        QTest::qWait(300); // la minuterie, si elle courait encore, est passée : l'échelle est restée la bonne
+        QCOMPARE(f.fixed->rasterScale(), f.view->zoom() * dpr);
+    }
+
     // Fluidité : un trait figé n'ajoute qu'un nœud à la scène de la page affichée, même sur la page générée
     // du banc (300 objets) ; jamais une reconstruction de la page (relais par copie de page, ou identifiant
     // déjà pris par la page générée).
