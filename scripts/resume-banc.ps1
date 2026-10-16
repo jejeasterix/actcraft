@@ -44,6 +44,10 @@ foreach ($f in $fichiers) {
     $m = $j.meta
     $ligne = "- ``$($f.Name)`` : $($j.graphics_api), cache $cache, $($m.machine_model), $($m.cpu), puce $($m.gpu), écran $($m.screen.width) × $($m.screen.height) à $(Nombre $m.screen.refresh_hz 0) Hz, fenêtre $($m.window.mode), boucle $($m.render_loop), construction $($m.build_type), commit $($m.commit)"
     $raisons = @($j.verdict.invalid_reasons)
+    if ($null -ne $j.content_check.page_flash) {
+        # Scénario « page » (L2-T23) : éclairs blancs au changement de page, relevés du zoom posé sur la page peinte.
+        $ligne += ", page : $($j.content_check.page_flash) éclair(s) sur $($j.content_check.page_flash_probes) capture(s) sans cache, zoom posé : $($j.content_check.page_rebuilds_during_zoom) reconstruction(s), $($j.content_check.page_rasterizations_during_zoom) nœud(s) rastérisé(s)"
+    }
     if ($raisons.Count -gt 0) { $ligne += ", raisons d'invalidité : $($raisons -join ', ')" }
     $depasses = @($j.verdict.criteria | Where-Object { -not $_.ok } | ForEach-Object { "$($_.scenario) $($_.criterion) = $(Nombre $_.value 2) (seuil $(Nombre $_.limit 2))" })
     if ($depasses.Count -gt 0) { $ligne += ", critères dépassés : $($depasses -join ' ; ')" }

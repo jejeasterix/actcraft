@@ -1,7 +1,11 @@
 #include <actcraft/bench/scenarios.h>
 
+#include <algorithm>
 #include <cmath>
+#include <iterator>
+#include <limits>
 #include <numbers>
+#include <utility>
 
 namespace actcraft::bench {
 
@@ -113,9 +117,40 @@ ScenarioPlan scrollScenario(ScenarioSet set)
     return plan;
 }
 
+ScenarioPlan pageScenario(ScenarioSet set)
+{
+    constexpr std::int64_t kFlipPeriodNs = 500'000'000;
+    constexpr std::int64_t kZoomPeriodNs = 700'000'000;
+    ScenarioPlan plan;
+    plan.name = QStringLiteral("page");
+    plan.generatedPages = 2; // page 1 : images ; page 2 : images, textes et formes à chemins (moteur peint)
+    const int flips = 20 / durationDivisor(set); // nombre pair : la série finit sur la page 1
+    for (int i = 0; i < flips; ++i) {
+        PlannedInput in;
+        in.offsetNs = static_cast<std::int64_t>(i) * kFlipPeriodNs;
+        in.kind = InputKind::Command;
+        in.command = i % 2 == 0 ? QStringLiteral("page.next") : QStringLiteral("page.previous");
+        plan.inputs.push_back(in);
+    }
+    // Sur la page peinte, deux zooms posés : rastérisation à la nouvelle échelle en RHI (L2-T13).
+    const std::int64_t end = static_cast<std::int64_t>(flips) * kFlipPeriodNs;
+    const std::pair<QString, QVariant> zooms[] = {{QStringLiteral("page.next"), QVariant()},
+                                                  {QStringLiteral("view.zoom"), QVariant(150)},
+                                                  {QStringLiteral("view.fit"), QVariant()}};
+    for (std::size_t k = 0; k < std::size(zooms); ++k) {
+        PlannedInput in;
+        in.offsetNs = end + static_cast<std::int64_t>(k) * kZoomPeriodNs;
+        in.kind = InputKind::Command;
+        in.command = zooms[k].first;
+        in.argument = zooms[k].second;
+        plan.inputs.push_back(in);
+    }
+    return plan;
+}
+
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
 {
-    return {strokeScenario(set), zoomScenario(set), scrollScenario(set)};
+    return {strokeScenario(set), zoomScenario(set), scrollScenario(set), pageScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()
@@ -143,6 +178,45 @@ QPointF demoInkProbePoint()
 std::int64_t planDurationNs(const ScenarioPlan& plan)
 {
     return plan.inputs.empty() ? 0 : plan.inputs.back().offsetNs;
+}
+
+std::vector<std::int64_t> pageChangeMarks(const std::vector<std::int64_t>& swapNs,
+                                          const std::vector<std::pair<std::int64_t, std::int64_t>>& changes)
+{
+    std::vector<std::int64_t> marks;
+    for (const auto& [command, shown] : changes) {
+        const auto after =
+            std::upper_bound(swapNs.begin(), swapNs.end(), shown); // première image après le prêt
+        const std::int64_t until = after == swapNs.end() ? std::numeric_limits<std::int64_t>::max() : *after;
+        for (std::size_t k = 1; k < swapNs.size(); ++k) {
+            if (swapNs[k] >= command && swapNs[k - 1] < until) {
+                marks.push_back(swapNs[k - 1] + 1);
+            }
+        }
+    }
+    std::sort(marks.begin(), marks.end());
+    marks.erase(std::unique(marks.begin(), marks.end()), marks.end());
+    return marks;
+}
+
+std::vector<std::pair<std::int64_t, std::int64_t>>
+pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<bool>& awaitsReady,
+                  const std::vector<std::int64_t>& shownNs)
+{
+    std::vector<std::pair<std::int64_t, std::int64_t>> windows;
+    for (std::size_t i = 0; i < commandNs.size(); ++i) {
+        const std::int64_t at = commandNs[i];
+        if (at < 0) {
+            continue; // commande jamais jouée
+        }
+        if (i < awaitsReady.size() && !awaitsReady[i]) {
+            windows.emplace_back(at, at);
+            continue;
+        }
+        const auto shown = std::lower_bound(shownNs.begin(), shownNs.end(), at);
+        windows.emplace_back(at, shown == shownNs.end() ? std::numeric_limits<std::int64_t>::max() : *shown);
+    }
+    return windows;
 }
 
 } // namespace actcraft::bench

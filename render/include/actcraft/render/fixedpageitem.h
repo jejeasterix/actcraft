@@ -8,9 +8,13 @@
 #include <actcraft/render/paintedrenderer.h>
 
 #include <QQuickItem>
+#include <QRectF>
 
 #include <atomic>
+#include <string>
 #include <vector>
+
+class QSGRectangleNode;
 
 namespace actcraft::render {
 
@@ -55,7 +59,9 @@ public:
     void insert(core::ObjectId id) override;
     void remove(core::ObjectId id, const core::RectF& area) override;
     void invalidate(core::ObjectId id, const core::CacheArea& area) override;
-    // Vrai quand les images sont prêtes et les nœuds construits à la prochaine image.
+    // Vrai quand les images sont prêtes et les nœuds construits à la prochaine image. Tant qu'il est faux
+    // après un changement de page, l'élément garde les nœuds de la page précédente (pas d'éclair blanc,
+    // L2-T23).
     bool isReady() const noexcept;
     int objectCount() const noexcept;
     // Pixels d'écran par pixel de page : échelle de rastérisation du moteur peint en RHI (décision 37). Ne
@@ -63,6 +69,7 @@ public:
     void setRasterScale(double scale);
     double rasterScale() const noexcept;
     int rebuildCount() const noexcept; // crochet de test : reconstructions complètes de la scène
+    int decodeCount() const noexcept;  // crochet de test : décodages d'images lancés
     // Crochet de test : le moteur peint, le fond peint et la grille passent par des textures (chemin RHI)
     // même en rendu logiciel ; reconstruit la scène.
     void setForceRasterized(bool on);
@@ -90,7 +97,9 @@ private:
 
     const core::Document& document() const noexcept; // source, ou page interne
     // Reconstruction complète ; images régénérées si `redecode` ou si le magasin ne couvre plus la page.
-    void restart(bool redecode);
+    // `samePage` : la page affichée a seulement changé de contenu (cache, trait) ; pendant son décodage, le
+    // décodage en cours la couvre et n'est pas relancé (sauf `redecode` : image ajoutée).
+    void restart(bool redecode, bool samePage);
     void onImagesReady();
     void addRasterSlot(QSGNode* node, std::size_t object);
     void rescaleRasterNodes(const core::Page& page, const RenderContext& painted);
@@ -103,6 +112,13 @@ private:
     ImageStore m_images;
     bool m_ready = false;
     bool m_rebuild = true;
+    bool m_showsPage = false; // fil de rendu : les nœuds montrent une page prête, pas le fond d'attente
+    QRectF m_shownRect;       // fil de rendu : rectangle de l'élément quand la page affichée a été construite
+    QSGRectangleNode* m_underlay = nullptr; // fil de rendu : fond blanc à la taille de la page suivante
+    int m_decodeCount = 0;
+    // Images remises au décodage en cours, avec leur indice d'objet (le magasin range les images
+    // synthétiques par indice) : il ne couvre la page que si elle les a encore aux mêmes indices.
+    std::string m_decodingInputs;
     std::size_t m_builtCount = 0;
     double m_rasterScale = 1;
     QSGNode* m_gridDrawnAbove = nullptr; // fil de rendu : les objets s'insèrent avant la grille du dessus

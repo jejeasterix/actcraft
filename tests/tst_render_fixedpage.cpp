@@ -180,6 +180,132 @@ private slots:
         QVERIFY(colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::green), 2));
     }
 
+    // Revue L1-T9 (L2-T23) : pendant le décodage d'une autre page, l'ancienne reste affichée (jamais un fond
+    // blanc nu) et la scène n'est reconstruite qu'une fois, au prêt.
+    void keepsTheOldContentUntilTheNewPageIsReady()
+    {
+        Fixture f;
+        open(f);
+        core::Page first;
+        first.background.fill = core::solidFill(0xFF0000FFu);
+        f.page->setPage(first);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
+        const int rebuilds = f.page->rebuildCount();
+        f.page->setPage(
+            core::generatePage(core::kDefaultSeed)); // 30 images à synthétiser : pas prêt aussitôt
+        QVERIFY(!f.page->isReady());
+        waitFrame(f);
+        QVERIFY(!f.page->isReady()); // sinon la capture suivante ne prouverait rien
+        // Tant que la page suivante n'est pas prête, l'ancienne reste affichée (jamais un fond blanc nu).
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        QVERIFY(!colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
+        QCOMPARE(f.page->rebuildCount() - rebuilds,
+                 1); // ni fond blanc intermédiaire, ni reconstruction à vide
+    }
+
+    // Revue L2-T23 : des traits posés pendant le décodage d'une page plus courte que l'ancienne ne relancent
+    // pas le décodage (sinon des traits plus rapides que lui repoussent le prêt sans fin) ; la page s'affiche
+    // avec.
+    void strokesDuringDecodeDoNotRestartIt()
+    {
+        Fixture f;
+        open(f);
+        f.page->setPage(core::generatePage(core::kDefaultSeed)); // 300 objets
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        core::Page five;
+        for (const core::PageObject& object : core::generatePage(core::kDefaultSeed + 1).objects) {
+            if (std::get_if<core::ImageObject>(&object) && five.objects.size() < 5) {
+                five.objects.push_back(object);
+            }
+        }
+        QCOMPARE(five.objects.size(), std::size_t{5});
+        const int decodes = f.page->decodeCount();
+        f.page->setPage(five);
+        QVERIFY(!f.page->isReady());
+        QSignalSpy appended(f.page, &render::FixedPageItem::strokeAppended);
+        f.page->appendStroke(lineAt(700));
+        f.page->appendStroke(lineAt(720));
+        // Chemin rapide de fin de page, comme avant L2-T23 : le changement de page oublie les 300 nœuds de
+        // l'ancienne (aucun ajout « en fin de scène » ne se compare à eux).
+        QCOMPARE(appended.count(), 2);
+        // Notification du cache sur la même page hors fin de scène (reconstruction complète) : elle non plus
+        // ne relance pas le décodage en cours.
+        f.page->remove(core::ObjectId{1}, core::RectF{});
+        QCOMPARE(f.page->decodeCount(), decodes + 1);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        QCOMPARE(f.page->decodeCount(), decodes + 1);
+        QCOMPARE(f.page->objectCount(), 7);
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(60, 700), QColor(Qt::black), 40));
+    }
+
+    // Revue L2-T23 : page suivante plus grande, pendant son décodage : l'ancienne page reste, posée sur un
+    // fond de page blanc à la nouvelle taille (pas de trou à la couleur de la fenêtre).
+    void largerNextPageGetsAWhiteBackgroundWhileDecoding()
+    {
+        Fixture f;
+        open(f);
+        core::Page first;
+        first.width = 600;
+        first.height = 400;
+        first.background.fill = core::solidFill(0xFF0000FFu);
+        f.page->setSize(QSizeF(600, 400));
+        f.page->setPage(first);
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        f.page->setPage(core::generatePage(core::kDefaultSeed));
+        f.page->setSize(QSizeF(1024, 768)); // comme PageArea : l'élément prend la taille de la page affichée
+        waitFrame(f);
+        QVERIFY(!f.page->isReady());
+        const QImage image = f.window.grabWindow();
+        QVERIFY(colorNear(image.pixelColor(300, 200), QColor(Qt::blue), 2));
+        QVERIFY(colorNear(image.pixelColor(800, 600), QColor(Qt::white), 1));
+        // Revenue à la taille de la page montrée avant le prêt : le fond blanc ne déborde plus (2e revue).
+        f.page->setSize(QSizeF(600, 400));
+        waitFrame(f);
+        QVERIFY(!f.page->isReady());
+        QVERIFY(colorNear(f.window.grabWindow().pixelColor(800, 600), QColor(0x3c, 0x3f, 0x45), 2));
+        QTRY_VERIFY(f.page->isReady());
+    }
+
+    // Revue L2-T23 (2e tour) : le magasin range les images synthétiques par INDICE d'objet. Une suppression
+    // avant elles pendant le décodage décale ces indices : le décodage en cours ne couvre plus la page et
+    // repart, sinon B prend l'image de A jusqu'au décodage suivant.
+    void removalBeforeImagesDuringDecodeRedecodes()
+    {
+        Fixture f;
+        open(f);
+        const auto image = [](double x, core::Argb color) -> core::PageObject {
+            core::ImageObject im;
+            im.bounds = {x, 100, 200, 200};
+            im.pattern = core::ImagePattern::SolidCenter;
+            im.colorA = color;
+            im.colorB = color;
+            return im;
+        };
+        core::Document d;
+        const core::PageObject stroke = lineAt(600);
+        for (core::PageObject object : {stroke, image(100, 0xFF43A047u), image(500, 0xFF1E88E5u)}) {
+            object.common.id = d.allocateId();
+            d.page(0).objects.push_back(object);
+        }
+        f.page->setSource(&d, 0);
+        QVERIFY(!f.page->isReady());
+        const core::ObjectId strokeId = d.page(0).objects.front().common.id;
+        d.page(0).objects.erase(d.page(0).objects.begin());
+        f.page->remove(strokeId, core::RectF{});
+        QTRY_VERIFY(f.page->isReady());
+        waitFrame(f);
+        const QImage shot = f.window.grabWindow();
+        QVERIFY(colorNear(shot.pixelColor(200, 200), QColor(0x43, 0xa0, 0x47), 4)); // A, verte
+        QVERIFY(colorNear(shot.pixelColor(600, 200), QColor(0x1e, 0x88, 0xe5), 4)); // B, bleue
+    }
+
     void showsThePageOfItsDocument()
     {
         Fixture f;
