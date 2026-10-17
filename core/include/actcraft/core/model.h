@@ -162,7 +162,8 @@ struct Action
     std::uint16_t sourceType = 0; // numéro de type .flipchart d'origine ; 0 : action créée par ActCraft
     std::int32_t command = 0;
     ObjectId target = 0;
-    std::string resource; // clé de ressource (fichier ouvert) ; vide sinon
+    std::string resource;    // clé de ressource (fichier ouvert) ; vide sinon
+    std::string unknownKeys; // clés de l'élément inconnues de cette version (comme PageObject::unknownKeys)
 };
 
 // Propriétés communes à tout objet (décision 15).
@@ -191,8 +192,9 @@ enum class ObjectKind : std::uint8_t
     Media = 5,
     Group = 6,
     Connector = 7,
+    Unknown = 8, // type que cette version ne connaît pas (UnknownObject) ; toujours le dernier
 };
-inline constexpr std::size_t kObjectKindCount = 8;
+inline constexpr std::size_t kObjectKindCount = 9;
 
 enum class ShapeKind : std::uint8_t
 {
@@ -292,6 +294,7 @@ struct TextSpan
     Argb color = 0xFF000000u;
     PointF baseline; // origine de la ligne de base, coordonnées de l'objet
     RectF bounds;
+    std::string unknownKeys; // clés de l'élément inconnues de cette version (comme PageObject::unknownKeys)
 };
 
 // Texte riche (décision 37) : HTML pour QTextDocument ; `runs`, s'il y en a, fait foi pour le dessin.
@@ -328,7 +331,21 @@ struct Connector
     Outline pen;
 };
 
-using ObjectVariant = std::variant<Shape, ImageObject, Stroke, Line, Text, Media, Group, Connector>;
+// Objet d'un type que cette version ne connaît pas (fichier d'une version plus récente, L2-C8) : gardé tel
+// quel et réécrit à l'identique ; montré par un repère neutre ; jamais modifié par cette version. `json` :
+// l'objet JSON lu, toutes ses clés (« type » compris), en texte UTF-8 compact, que formats/ seul interprète.
+// `common` (PageObject) en est tiré pour la couche, l'ordre, l'identifiant et la transformation ; il n'est
+// pas réécrit. `bounds` : boîte en coordonnées de l'objet, si le fichier en donne une lisible.
+struct UnknownObject
+{
+    std::string type;
+    std::string json;
+    RectF bounds;
+    bool hasBounds = false;
+};
+
+using ObjectVariant =
+    std::variant<Shape, ImageObject, Stroke, Line, Text, Media, Group, Connector, UnknownObject>;
 
 // Objet de page : le variant de son type (std::get_if, std::get, index() marchent tels quels) et ses
 // propriétés communes. Ne pas appeler std::visit dessus : passer par body().
@@ -337,6 +354,9 @@ struct PageObject : ObjectVariant
     using ObjectVariant::ObjectVariant;
     using ObjectVariant::operator=;
     ObjectCommon common;
+    // Clés de l'objet que cette version ne connaît pas (version plus récente, L2-C8) : objet JSON compact des
+    // seuls membres inconnus, à toute profondeur d'objets, réécrits tels quels ; vide : aucune.
+    std::string unknownKeys;
 };
 
 inline const ObjectVariant& body(const PageObject& object) noexcept
@@ -381,6 +401,7 @@ struct GridLevel
     GridLine line = GridLine::Solid;
     bool linesAlongX = true;
     bool linesAlongY = true;
+    std::string unknownKeys; // clés de l'élément inconnues de cette version (comme PageObject::unknownKeys)
 };
 
 struct Grid
@@ -411,11 +432,15 @@ struct Page
     Grid grid;
     std::string name;
     std::string notes;
+    // Clés de la page que cette version ne connaît pas (comme PageObject::unknownKeys) ; vide : aucune.
+    std::string unknownKeys;
 };
 
 // Empreinte FNV-1a 64 bits du contenu ; identique sur toutes les plateformes (types à taille fixe, octets
 // dans un ordre fixé, réels par leur motif binaire IEEE 754, textes par leurs octets UTF-8 précédés de leur
-// longueur).
+// longueur). Les clés inconnues (unknownKeys, L2-C8) de la page et de ses objets n'y entrent qu'en fin de
+// flux et s'il y en a, celles d'une action, d'une ligne de texte ou d'un niveau de grille avec l'élément :
+// une page qui n'en a pas garde son empreinte d'avant L2-C8.
 std::uint64_t fingerprint(const Page& page) noexcept;
 
 } // namespace actcraft::core

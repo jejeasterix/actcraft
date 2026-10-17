@@ -10,6 +10,7 @@
 #include <map>
 #include <miniz.h>
 #include <optional>
+#include <set>
 #include <string>
 #include <utility>
 
@@ -30,6 +31,36 @@ std::string resourceEntry(const std::string& key, const std::string& extension)
 std::string thumbnailEntry(std::size_t page)
 {
     return "thumbnails/page-" + std::to_string(page + 1) + ".png";
+}
+
+// Noms de ce format (casse ASCII ignorée, comme l'index du lecteur) : document.json, resources/, thumbnails/.
+// Ce que cette version y trouve sans le lire (ressource non déclarée, miniature en trop) n'est pas gardé.
+bool isFormatEntry(const QByteArray& name)
+{
+    const QByteArray lower = name.toLower();
+    return lower == "document.json" || lower.startsWith("resources/") || lower.startsWith("thumbnails/");
+}
+
+// Entrée inconnue qu'on peut garder et réécrire (L2-C8) : nom UTF-8 valide d'au plus 1024 octets, relatif,
+// segments non vides, ni « . » ni « .. », ni barre inverse, ni deux-points, ni caractère de contrôle. Un nom
+// qui viserait hors du dossier d'extraction d'un autre outil n'est jamais réécrit.
+bool isSafeEntryName(const QByteArray& name)
+{
+    if (name.isEmpty() || name.size() > 1024 || QString::fromUtf8(name).toUtf8() != name) {
+        return false;
+    }
+    for (const char c : name) {
+        const auto u = static_cast<unsigned char>(c);
+        if (u < 0x20 || u == 0x7F || c == '\\' || c == ':') {
+            return false;
+        }
+    }
+    for (const QByteArray& segment : name.split('/')) {
+        if (segment.isEmpty() || segment == "." || segment == "..") {
+            return false;
+        }
+    }
+    return true;
 }
 
 enum class Extracted
@@ -93,6 +124,7 @@ public:
             folded.insert(key);
             m_index.insert(name, i);
             m_names << QString::fromUtf8(name);
+            m_rawNames << name;
         }
         m_open = true;
     }
@@ -108,6 +140,7 @@ public:
     bool isOpen() const noexcept { return m_open; }
     const QString& error() const noexcept { return m_error; }
     const QStringList& names() const noexcept { return m_names; }
+    const QList<QByteArray>& rawNames() const noexcept { return m_rawNames; } // octets exacts, même ordre
 
     Extracted extract(const std::string& name, QByteArray& out)
     {
@@ -150,7 +183,8 @@ private:
     QString m_error;
     QHash<QByteArray, mz_uint> m_index;
     QStringList m_names; // ordre de l'archive
-    qint64 m_total = 0;  // octets décompressés ou tentés jusqu'ici
+    QList<QByteArray> m_rawNames;
+    qint64 m_total = 0; // octets décompressés ou tentés jusqu'ici
 };
 
 } // namespace
@@ -176,6 +210,26 @@ QByteArray encodeActcraft(const core::Document& document, const std::vector<QByt
             entries.emplace_back(thumbnailEntry(i), &thumbnailsPng[i]);
         }
     }
+    // Entrées inconnues gardées à la lecture (L2-C8), octets d'origine, mêmes bornes que les ressources. La
+    // lecture ne produit jamais un nom dangereux, un nom de ce format (il doublerait document.json, une
+    // ressource ou une miniature) ni deux noms que la casse seule distingue (la lecture refuse l'archive) :
+    // ils viennent d'un appelant, et sont refusés plutôt que perdus ou écrits en double.
+    QSet<QByteArray> foldedNames;
+    for (const auto& [name, entry] : document.unknownEntries()) {
+        const QByteArray raw = QByteArray::fromStdString(name);
+        const QString shown = QString::fromUtf8(raw.left(200));
+        if (!isSafeEntryName(raw)) {
+            return refuse(u"archive : entrée « %1 » : nom refusé"_s.arg(shown));
+        }
+        if (isFormatEntry(raw)) {
+            return refuse(u"archive : entrée « %1 » : nom réservé au format"_s.arg(shown));
+        }
+        if (foldedNames.contains(raw.toLower())) {
+            return refuse(u"archive : entrée « %1 » : nom en double (casse ignorée)"_s.arg(shown));
+        }
+        foldedNames.insert(raw.toLower());
+        entries.emplace_back(name, &entry.data);
+    }
     // Ce que la lecture refuserait sous les mêmes bornes est refusé ici : un fichier enregistré se rouvre
     // toujours.
     if (entries.size() > limits.maxEntryCount) {
@@ -199,10 +253,15 @@ QByteArray encodeActcraft(const core::Document& document, const std::vector<QByt
     if (!mz_zip_writer_init_heap(&zip, 0, 64 * 1024)) {
         return refuse(u"archive : initialisation impossible"_s);
     }
-    // Horodatage des entrées : nul (miniz compilé avec MINIZ_NO_TIME), d'où la reproductibilité.
+    // Horodatage des entrées : nul (miniz compilé avec MINIZ_NO_TIME), d'où la reproductibilité. Les entrées
+    // inconnues sont compressées (la lecture en accepte maxTotal décompressés, l'archive est bornée à
+    // maxArchiveSize) ; miniz range telle quelle toute entrée que la compression grossirait.
+    const std::size_t knownCount = entries.size() - document.unknownEntries().size();
     for (std::size_t i = 0; i < entries.size(); ++i) {
         const auto& [name, data] = entries[i];
-        const auto level = static_cast<mz_uint>(i == 0 ? MZ_BEST_COMPRESSION : MZ_NO_COMPRESSION);
+        const auto level = static_cast<mz_uint>(i == 0            ? MZ_BEST_COMPRESSION
+                                                : i >= knownCount ? MZ_DEFAULT_LEVEL
+                                                                  : MZ_NO_COMPRESSION);
         if (!mz_zip_writer_add_mem(&zip, name.c_str(), data->constData(), static_cast<size_t>(data->size()),
                                    level)) {
             mz_zip_writer_end(&zip);
@@ -264,11 +323,14 @@ DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limi
         result.error = u"document.json illisible : un objet JSON est attendu"_s;
         return result;
     }
-    std::map<std::string, Extracted> refused; // ressources présentes mais refusées, et pourquoi
+    std::map<std::string, Extracted> refused;        // ressources présentes mais refusées, et pourquoi
+    std::set<std::string> consumed{"document.json"}; // entrées du format que cette version a cherché à lire
     const JsonReadResult read = documentFromJson(
         doc.object(),
-        [&zip, &refused](const std::string& key, const std::string& extension) -> std::optional<QByteArray> {
+        [&zip, &refused, &consumed](const std::string& key,
+                                    const std::string& extension) -> std::optional<QByteArray> {
             QByteArray data;
+            consumed.insert(resourceEntry(key, extension));
             const Extracted status = zip.extract(resourceEntry(key, extension), data);
             if (status != Extracted::Ok) {
                 if (status != Extracted::Absent) {
@@ -304,10 +366,38 @@ DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limi
     }
     result.thumbnails.resize(result.document.pageCount());
     for (std::size_t i = 0; i < result.thumbnails.size(); ++i) {
+        consumed.insert(thumbnailEntry(i));
         const Extracted status = zip.extract(thumbnailEntry(i), result.thumbnails[i]);
         if (status == Extracted::TooBig || status == Extracted::Invalid) {
             result.warnings << u"miniature de la page %1 %2, ignorée"_s.arg(i + 1).arg(describe(status));
         }
+    }
+    // Entrées que cette version ne connaît pas (version plus récente, L2-C8) : gardées telles quelles, sous
+    // le même budget de décompression que les ressources ; un dossier n'a pas d'octets, un nom dangereux est
+    // écarté (jamais réécrit). Une entrée au nom du format que cette version n'a pas lue (ressource non
+    // déclarée, miniature d'une page qui n'existe pas) est perdue à l'enregistrement : on le dit.
+    for (const QByteArray& name : zip.rawNames()) {
+        if (name.endsWith('/')) {
+            continue;
+        }
+        const QString shown = QString::fromUtf8(name.left(200));
+        if (isFormatEntry(name)) {
+            if (!consumed.count(name.toStdString())) {
+                result.warnings << u"entrée « %1 » : non lue par cette version, écartée"_s.arg(shown);
+            }
+            continue;
+        }
+        if (!isSafeEntryName(name)) {
+            result.warnings << u"entrée « %1 » : nom refusé, écartée"_s.arg(shown);
+            continue;
+        }
+        QByteArray data;
+        const Extracted status = zip.extract(name.toStdString(), data);
+        if (status != Extracted::Ok) {
+            result.warnings << u"entrée « %1 » %2, écartée"_s.arg(shown, describe(status));
+            continue;
+        }
+        result.document.setUnknownEntry(name.toStdString(), std::move(data));
     }
     result.ok = true;
     return result;

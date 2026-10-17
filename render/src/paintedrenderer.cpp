@@ -230,6 +230,9 @@ double boundedRasterScale(double width, double height, double scale) noexcept
 
 bool usesPaintedRenderer(const core::PageObject& object) noexcept
 {
+    if (const auto* u = std::get_if<core::UnknownObject>(&object)) {
+        return u->hasBounds; // repère peint ; sans boîte, aucun moteur : rien à dessiner
+    }
     if (std::get_if<core::Text>(&object) || std::get_if<core::Line>(&object) ||
         std::get_if<core::Media>(&object) || std::get_if<core::Connector>(&object)) {
         return true;

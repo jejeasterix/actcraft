@@ -56,6 +56,42 @@ QJsonObject withObject(QJsonObject root, int page, int index, const QJsonObject&
     return root;
 }
 
+// Octets JSON d'un objet, forme compacte de Qt (clés triées) : ce que l'écrivain en écrit, à l'indentation
+// près.
+QByteArray compact(const QJsonObject& value)
+{
+    return QJsonDocument(value).toJson(QJsonDocument::Compact);
+}
+
+QJsonObject page(const QJsonObject& root, int index)
+{
+    return root.value(u"pages"_s).toArray().at(index).toObject();
+}
+
+QJsonObject withPage(QJsonObject root, int index, const QJsonObject& value)
+{
+    QJsonArray pages = root.value(u"pages"_s).toArray();
+    pages.replace(index, value);
+    root.insert(u"pages"_s, pages);
+    return root;
+}
+
+// Objet d'un type qu'aucune version d'ici ne connaît, comme l'écrirait une version plus récente (L2-C8) :
+// une partie seulement des clés communes (ni « name », ni « restrictions », ni « actions »…), les siennes,
+// une boîte et une ressource citée. Il prend l'identifiant et la couche de l'objet qu'il remplace.
+QJsonObject equationObject(const QJsonObject& replaced, const QString& resource)
+{
+    return QJsonObject{{u"type"_s, u"equation"_s},
+                       {u"id"_s, replaced.value(u"id"_s)},
+                       {u"layer"_s, replaced.value(u"layer"_s)},
+                       {u"transform"_s, QJsonArray{1, 0, 0, 1, 100, 50}},
+                       {u"bounds"_s, QJsonArray{0, 0, 120, 40}},
+                       {u"latex"_s, u"x^2 + 1"_s},
+                       {u"scale"_s, 1.25},
+                       {u"style"_s, QJsonObject{{u"font"_s, u"Serif"_s}, {u"size"_s, 18}}},
+                       {u"render"_s, resource}};
+}
+
 // document.json du document riche, figé : toutes ses clés, à tous les niveaux.
 QString referencePath()
 {
@@ -305,9 +341,10 @@ private slots:
             const auto& [m11, m12, m21, m22, dx, dy] = transform;
             QVERIFY(m11 != 1 && m12 != 0 && m21 != 0 && m22 != 1 && dx != 0 && dy != 0);
             QVERIFY(!label.empty() && actions.size() == 1);
-            const auto& [kind, sourceType, command, target, resource] = actions[0];
+            const auto& [kind, sourceType, command, target, resource, actionKeys] = actions[0];
             QVERIFY(kind != ActionKind::Other && sourceType != 0 && command != 0 && target != 0 &&
                     !resource.empty());
+            QVERIFY(actionKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
         }
         {
             const auto& [x, y, width, height] = std::get<Shape>(p1.objects[0]).bounds;
@@ -350,11 +387,12 @@ private slots:
         {
             const auto& [bounds, html, runs] = std::get<Text>(p1.objects[5]);
             QVERIFY(bounds.width != 0 && !html.empty() && runs.size() == 2);
-            const auto& [text, family, size, weight, italic, underline, strikeOut, color, baseline,
-                         runBounds] = runs[0];
+            const auto& [text, family, size, weight, italic, underline, strikeOut, color, baseline, runBounds,
+                         runKeys] = runs[0];
             QVERIFY(!text.empty() && !family.empty() && size != 12 && weight != 400 && italic && underline &&
                     !strikeOut && runs[1].strikeOut && color != 0xFF000000u && baseline.y != 0 &&
                     runBounds.width != 0);
+            QVERIFY(runKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
         }
         {
             const auto& [bounds, placeholder, media, fileName, playOnOpen, loop] =
@@ -372,8 +410,11 @@ private slots:
                     pen.color != 0xFF000000u);
         }
         {
-            const auto& [width, height, objects, background, grid, name, notes] = d.page(1);
+            const auto& [width, height, objects, background, grid, name, notes, unknownKeys] = d.page(1);
             QVERIFY(width != 1024 && height != 768 && objects.empty() && !name.empty() && !notes.empty());
+            // Clés inconnues (L2-C8) : jamais dans le document riche, dont les clés sont figées (référence) ;
+            // leur aller-retour : unknownKeysAreKeptAndRewritten.
+            QVERIFY(unknownKeys.empty());
             const auto& [fill, image] = background;
             QVERIFY(fill.kind != FillKind::Solid && !image.empty());
             const auto& [visible, snapEnabled, drawnAbove, previewZoom, baseZoom, zoomIncrement, levels] =
@@ -381,15 +422,17 @@ private slots:
             QVERIFY(visible && !snapEnabled && d.page(2).grid.snapEnabled && drawnAbove && previewZoom != 1 &&
                     baseZoom != 1 && zoomIncrement != 0.5 && levels.size() == 3);
             const auto& [lvVisible, snap, start, spacingX, spacingY, color, pattern, angle, line, linesAlongX,
-                         linesAlongY] = levels[1];
+                         linesAlongY, levelKeys] = levels[1];
+            QVERIFY(levelKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
             QVERIFY(!lvVisible && snap && start.x != 0 && spacingX != 32 && spacingY != 32 &&
                     color != 0xFF000000u && pattern != GridPattern::Normal && angle != 30 &&
                     line != GridLine::Solid && linesAlongX && !linesAlongY);
             QVERIFY(!levels[0].snap && !levels[2].linesAlongX);
         }
         {
-            const auto& [data, extension] = d.resources().begin()->second;
+            const auto& [data, extension, resourceKeys] = d.resources().begin()->second;
             QVERIFY(!data.isEmpty() && !extension.empty());
+            QVERIFY(resourceKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
         }
         QVERIFY(!d.title().empty() && d.resources().size() == 2 && d.nextId() == 20);
     }
@@ -630,22 +673,76 @@ private slots:
         QCOMPARE(back.resources().size(), std::size_t{0});
     }
 
-    void unknownKeysAreIgnoredSilently()
+    // Compatibilité ascendante (§ 1 de l'amendement 1, L2-C8) : une clé inconnue (document, page, objet, et
+    // dans un sous-objet connu : « pen », « background ») est gardée sans bruit et réécrite telle quelle. Le
+    // patron écarté (clé ignorée, comme une valeur mal formée retombe sur le défaut) relirait le même modèle
+    // et passerait un test d'empreinte : ce test-ci compare le document.json réécrit à celui lu.
+    void unknownKeysAreKeptAndRewritten()
     {
         const core::Document rich = richdoc::richDocument();
         QJsonObject root = formats::documentToJson(rich);
         root.insert(u"future"_s, u"plus tard"_s);
-        QJsonObject o = object(root, 0, 0);
+        root.insert(u"restrictions"_s, QJsonObject{{u"export"_s, false}});
+        QJsonObject o = object(root, 0, 3); // forme « path » : plume et remplissage
         o.insert(u"future"_s, 3);
-        root = withObject(root, 0, 0, o);
+        QJsonObject pen = o.value(u"pen"_s).toObject();
+        pen.insert(u"dashOffset"_s, 2.5);
+        o.insert(u"pen"_s, pen);
+        root = withObject(root, 0, 3, o);
+        QJsonObject p = page(root, 0);
+        p.insert(u"zones"_s, QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}});
+        QJsonObject background = p.value(u"background"_s).toObject();
+        background.insert(u"blur"_s, 4);
+        p.insert(u"background"_s, background);
+        root = withPage(root, 0, p);
         core::Document back;
         const auto r = formats::documentFromJson(root, loaderFrom(rich), back);
         QVERIFY(r.ok);
-        QVERIFY(r.warnings.isEmpty());
-        QCOMPARE(core::fingerprint(back), core::fingerprint(rich));
+        QVERIFY2(r.warnings.isEmpty(), qPrintable(r.warnings.join(u'\n'))); // rien d'anormal à signaler
+        const QJsonObject again = formats::documentToJson(back);
+        const QString difference = firstDifference(root, again, u"document"_s);
+        QVERIFY2(difference.isEmpty(), qPrintable(difference));
+        QVERIFY(core::fingerprint(back) != core::fingerprint(rich)); // gardées : du contenu, enregistré
+        // Les valeurs connues viennent toujours du modèle.
+        QCOMPARE(std::get<core::Shape>(back.page(0).objects[3]).pen.width,
+                 std::get<core::Shape>(rich.page(0).objects[3]).pen.width);
     }
 
-    void unknownObjectTypeIsSkippedWithAWarning()
+    // L2-C8 : les éléments des tableaux d'objets du format (actions, lignes de texte, niveaux de grille,
+    // déclarations de ressources) gardent aussi leurs clés inconnues, chacun la sienne.
+    void unknownKeysOfArrayElementsAreKept()
+    {
+        const core::Document rich = richdoc::richDocument();
+        QJsonObject root = formats::documentToJson(rich);
+        const auto withKey = [](QJsonArray list, int index, const QString& key, const QJsonValue& value) {
+            QJsonObject element = list.at(index).toObject();
+            element.insert(key, value);
+            list.replace(index, element);
+            return list;
+        };
+        QJsonObject rect = object(root, 0, 0);
+        rect.insert(u"actions"_s, withKey(rect.value(u"actions"_s).toArray(), 0, u"delay"_s, 2));
+        root = withObject(root, 0, 0, rect);
+        QJsonObject text = object(root, 0, 5);
+        text.insert(u"runs"_s, withKey(text.value(u"runs"_s).toArray(), 1, u"rise"_s, 0.5));
+        root = withObject(root, 0, 5, text);
+        QJsonObject second = page(root, 1);
+        QJsonObject grid = second.value(u"grid"_s).toObject();
+        grid.insert(u"levels"_s, withKey(grid.value(u"levels"_s).toArray(), 1, u"opacity"_s, 0.4));
+        second.insert(u"grid"_s, grid);
+        root = withPage(root, 1, second);
+        root.insert(u"resources"_s,
+                    withKey(root.value(u"resources"_s).toArray(), 0, u"origin"_s, u"appareil photo"_s));
+        core::Document back;
+        const auto r = formats::documentFromJson(root, loaderFrom(rich), back);
+        QVERIFY(r.ok);
+        QVERIFY2(r.warnings.isEmpty(), qPrintable(r.warnings.join(u'\n')));
+        const QString difference = firstDifference(root, formats::documentToJson(back), u"document"_s);
+        QVERIFY2(difference.isEmpty(), qPrintable(difference));
+        QVERIFY(core::fingerprint(back) != core::fingerprint(rich));
+    }
+
+    void unknownObjectTypeIsKeptWithAWarning()
     {
         const core::Document rich = richdoc::richDocument();
         QJsonObject o = object(formats::documentToJson(rich), 0, 1);
@@ -655,7 +752,136 @@ private slots:
                                                  loaderFrom(rich), back);
         QVERIFY(r.ok);
         QVERIFY(r.warnings.join(u' ').contains(u"hologram"_s));
-        QCOMPARE(back.page(0).objects.size(), std::size_t{9});
+        QCOMPARE(back.page(0).objects.size(), std::size_t{10});
+        QCOMPARE(core::kindOf(back.page(0).objects[1]), core::ObjectKind::Unknown);
+    }
+
+    // L2-C8, le test qui discrimine : l'objet inconnu est gardé à sa place et réécrit octet pour octet. Sous
+    // le patron écarté (objet sauté), il manque ; sous le patron voisin (objet regénéré depuis le modèle, par
+    // writeCommon et un corps), les clés communes absentes du fichier (« name », « restrictions »,
+    // « actions »…) apparaissent et les octets diffèrent.
+    void unknownObjectKeepsItsPlaceAndItsBytes()
+    {
+        const core::Document rich = richdoc::richDocument();
+        QJsonObject root = formats::documentToJson(rich);
+        const QString png = QString::fromStdString(core::sha256Hex(richdoc::pngBytes()));
+        const QJsonObject unknown = equationObject(object(root, 0, 1), png);
+        root = withObject(root, 0, 1, unknown);
+        core::Document back;
+        const auto r = formats::documentFromJson(root, loaderFrom(rich), back);
+        QVERIFY2(r.ok, qPrintable(r.error));
+        QCOMPARE(r.warnings.size(), 1); // l'objet inconnu, seul
+        QVERIFY2(r.warnings.first().contains(u"equation"_s), qPrintable(r.warnings.first()));
+        const std::vector<core::PageObject>& objects = back.page(0).objects;
+        QCOMPARE(objects.size(), std::size_t{10});
+        const auto* kept = std::get_if<core::UnknownObject>(&objects[1]);
+        QVERIFY(kept);
+        QCOMPARE(kept->type, std::string("equation"));
+        // À sa place : mêmes voisins, même identifiant, même couche ; transformation lue pour son repère.
+        for (std::size_t i = 0; i < objects.size(); ++i) {
+            QCOMPARE(objects[i].common.id, rich.page(0).objects[i].common.id);
+        }
+        QCOMPARE(objects[1].common.layer, rich.page(0).objects[1].common.layer);
+        QCOMPARE(objects[1].common.transform.dx, 100.0);
+        QVERIFY(kept->hasBounds);
+        QCOMPARE(kept->bounds.width, 120.0);
+        // Réécrit à l'identique, puis relu et réécrit encore : mêmes octets.
+        const QJsonObject rewritten = formats::documentToJson(back);
+        QCOMPARE(compact(object(rewritten, 0, 1)), compact(unknown));
+        core::Document again;
+        QVERIFY(formats::documentFromJson(rewritten, loaderFrom(rich), again).ok);
+        QCOMPARE(compact(object(formats::documentToJson(again), 0, 1)), compact(unknown));
+        QCOMPARE(core::fingerprint(again), core::fingerprint(back));
+        // Deux documents qui ne diffèrent que par l'objet inconnu n'ont pas la même empreinte.
+        QJsonObject other = unknown;
+        other.insert(u"latex"_s, u"x^3"_s);
+        core::Document otherBack;
+        QVERIFY(formats::documentFromJson(withObject(root, 0, 1, other), loaderFrom(rich), otherBack).ok);
+        QVERIFY(core::fingerprint(otherBack) != core::fingerprint(back));
+    }
+
+    // Une ressource que seul un objet inconnu cite reste au document (et donc dans l'archive) : ni le lecteur
+    // ni l'écrivain n'élaguent les ressources que rien de connu ne cite.
+    void resourceCitedOnlyByAnUnknownObjectIsKept()
+    {
+        core::Page p;
+        p.objects.emplace_back(core::Line{});
+        p.objects.back().common.id = 1;
+        core::Document source(std::vector<core::Page>{p});
+        const std::string key = source.addResource(richdoc::pngBytes(), "png");
+        QJsonObject root = formats::documentToJson(source);
+        const QJsonObject replaced{{u"id"_s, 1}, {u"layer"_s, u"middle"_s}};
+        root = withObject(root, 0, 0, equationObject(replaced, QString::fromStdString(key)));
+        core::Document back;
+        QVERIFY(formats::documentFromJson(root, loaderFrom(source), back).ok);
+        QCOMPARE(back.page(0).objects.size(), std::size_t{1});
+        QVERIFY(std::get_if<core::UnknownObject>(&back.page(0).objects[0]));
+        QVERIFY(back.resource(key));
+        QCOMPARE(back.resource(key)->data, richdoc::pngBytes());
+        const QJsonArray declared = formats::documentToJson(back).value(u"resources"_s).toArray();
+        QCOMPARE(declared.size(), 1);
+        QCOMPARE(declared.at(0).toObject().value(u"key"_s).toString(), QString::fromStdString(key));
+    }
+
+    // Un objet inconnu ne désigne rien hors de l'archive : ses textes (chemin relatif, adresse file://, clé
+    // bien formée mais non déclarée) restent des données, réécrites telles quelles ; le chargeur n'est
+    // appelé que pour les ressources déclarées du document.
+    void unknownObjectNeverReachesOutsideTheArchive()
+    {
+        const core::Document rich = richdoc::richDocument();
+        QJsonObject root = formats::documentToJson(rich);
+        QJsonObject unknown = equationObject(object(root, 0, 1), QString(64, u'a'));
+        unknown.insert(u"file"_s, u"../../secret.png"_s);
+        unknown.insert(u"url"_s, u"file://serveur/partage/x.png"_s);
+        root = withObject(root, 0, 1, unknown);
+        std::vector<std::string> asked;
+        core::Document back;
+        const auto r = formats::documentFromJson(
+            root,
+            [&asked, &rich](const std::string& key, const std::string&) -> std::optional<QByteArray> {
+                asked.push_back(key);
+                const core::Resource* found = rich.resource(key);
+                return found ? std::optional<QByteArray>(found->data) : std::nullopt;
+            },
+            back);
+        QVERIFY(r.ok);
+        QCOMPARE(asked.size(), std::size_t{2});
+        for (const std::string& key : asked) {
+            QVERIFY(rich.resource(key));
+        }
+        QCOMPARE(back.resources().size(), std::size_t{2});
+        QVERIFY(std::get_if<core::UnknownObject>(&back.page(0).objects[1]));
+        QCOMPARE(compact(object(formats::documentToJson(back), 0, 1)), compact(unknown));
+    }
+
+    // La boîte d'un objet inconnu (son repère) n'est lue que bien formée : quatre nombres, taille positive
+    // ou nulle, coins finis ; sinon pas de repère, sans avertissement de plus (le sens de « bounds » est
+    // celui d'un type inconnu).
+    void unknownObjectBoxIsReadOnlyWhenWellFormed()
+    {
+        const core::Document rich = richdoc::richDocument();
+        const QJsonObject base = formats::documentToJson(rich);
+        const auto readBox = [&rich, &base](const QJsonValue& bounds) {
+            QJsonObject unknown = equationObject(object(base, 0, 1), QString());
+            if (bounds.isUndefined()) {
+                unknown.remove(u"bounds"_s);
+            } else {
+                unknown.insert(u"bounds"_s, bounds);
+            }
+            core::Document back;
+            const auto r = formats::documentFromJson(withObject(base, 0, 1, unknown), loaderFrom(rich), back);
+            const auto* u = std::get_if<core::UnknownObject>(&back.page(0).objects[1]);
+            return QString::number(u ? (u->hasBounds ? 1 : 0) : -1) + u'/' +
+                   QString::number(r.warnings.size());
+        };
+        QCOMPARE(readBox(QJsonArray{0, 0, 120, 40}), u"1/1"_s);
+        QCOMPARE(readBox(QJsonArray{0, 0, 0, 0}), u"1/1"_s);
+        QCOMPARE(readBox(QJsonValue()), u"0/1"_s);
+        QCOMPARE(readBox(QJsonArray{0, 0, 120}), u"0/1"_s);
+        QCOMPARE(readBox(QJsonArray{u"a"_s, 0, 1, 1}), u"0/1"_s);
+        QCOMPARE(readBox(QJsonArray{0, 0, -5, 10}), u"0/1"_s);
+        QCOMPARE(readBox(QJsonArray{1e308, 0, 1e308, 1}), u"0/1"_s);
+        QCOMPARE(readBox(u"0 0 1 1"_s), u"0/1"_s);
     }
 
     void otherMajorVersionIsRefusedAndTargetUntouched()

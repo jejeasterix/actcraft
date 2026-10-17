@@ -99,6 +99,15 @@ private:
     std::uint64_t m_hash = 0xCBF29CE484222325ull;
 };
 
+// Clés inconnues d'un élément de tableau (L2-C8) : hachées s'il y en a seulement, pour que le flux d'un
+// élément qui n'en a pas reste celui d'avant L2-C8.
+void hashUnknownKeys(Fnv1a& h, const std::string& keys) noexcept
+{
+    if (!keys.empty()) {
+        h.text(keys);
+    }
+}
+
 void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
 {
     const auto& [id, name, layer, visible, locked, translucency, restrictions, transform, label, actions] = c;
@@ -116,12 +125,13 @@ void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
     h.text(label);
     h.u64(static_cast<std::uint64_t>(actions.size()));
     for (const Action& a : actions) {
-        const auto& [kind, sourceType, command, target, resource] = a;
+        const auto& [kind, sourceType, command, target, resource, unknownKeys] = a;
         h.tag(kind);
         h.u32(sourceType);
         h.i32(command);
         h.u64(target);
         h.text(resource);
+        hashUnknownKeys(h, unknownKeys);
     }
 }
 
@@ -202,7 +212,7 @@ void hashType(Fnv1a& h, const Text& textObject) noexcept
     h.u64(static_cast<std::uint64_t>(runs.size()));
     for (const TextSpan& r : runs) {
         const auto& [text, fontFamily, pointSize, weight, italic, underline, strikeOut, color, baseline,
-                     runBounds] = r;
+                     runBounds, unknownKeys] = r;
         h.text(text);
         h.text(fontFamily);
         h.f64(pointSize);
@@ -213,6 +223,7 @@ void hashType(Fnv1a& h, const Text& textObject) noexcept
         h.u32(color);
         h.point(baseline);
         h.rect(runBounds);
+        hashUnknownKeys(h, unknownKeys);
     }
 }
 
@@ -244,6 +255,15 @@ void hashType(Fnv1a& h, const Connector& connector) noexcept
     h.u64(objectA);
     h.u64(objectB);
     h.outline(pen);
+}
+
+void hashType(Fnv1a& h, const UnknownObject& unknown) noexcept
+{
+    const auto& [type, json, bounds, hasBounds] = unknown;
+    h.text(type);
+    h.text(json);
+    h.rect(bounds);
+    h.boolean(hasBounds);
 }
 
 // std::visit sur le variant de base (body), jamais sur PageObject : il couvre chaque type par construction.
@@ -326,7 +346,7 @@ static_assert(std::variant_size_v<ObjectVariant> == kObjectKindCount,
 
 std::uint64_t fingerprint(const Page& page) noexcept
 {
-    const auto& [width, height, objects, background, grid, name, notes] = page;
+    const auto& [width, height, objects, background, grid, name, notes, unknownKeys] = page;
     Fnv1a h;
     h.f64(width);
     h.f64(height);
@@ -349,7 +369,7 @@ std::uint64_t fingerprint(const Page& page) noexcept
     h.u64(static_cast<std::uint64_t>(levels.size()));
     for (const GridLevel& l : levels) {
         const auto& [lvVisible, snap, start, spacingX, spacingY, color, pattern, angle, line, linesAlongX,
-                     linesAlongY] = l;
+                     linesAlongY, levelKeys] = l;
         h.boolean(lvVisible);
         h.boolean(snap);
         h.point(start);
@@ -361,9 +381,27 @@ std::uint64_t fingerprint(const Page& page) noexcept
         h.tag(line);
         h.boolean(linesAlongX);
         h.boolean(linesAlongY);
+        hashUnknownKeys(h, levelKeys);
     }
     h.text(name);
     h.text(notes);
+    // Clés inconnues (L2-C8) : en fin de flux, et seulement s'il y en a, pour qu'une page qui n'en a pas
+    // garde son empreinte d'avant (valeurs figées de tst_core_model). Le flux d'une page sans elles s'arrête
+    // après `notes` : cette suite ne peut pas se confondre avec le flux d'une autre page.
+    std::uint64_t keyed = 0;
+    for (const PageObject& object : objects) {
+        keyed += object.unknownKeys.empty() ? 0u : 1u;
+    }
+    if (keyed > 0 || !unknownKeys.empty()) {
+        h.text(unknownKeys);
+        h.u64(keyed);
+        for (std::size_t i = 0; i < objects.size(); ++i) {
+            if (!objects[i].unknownKeys.empty()) {
+                h.u64(static_cast<std::uint64_t>(i));
+                h.text(objects[i].unknownKeys);
+            }
+        }
+    }
     return h.value();
 }
 

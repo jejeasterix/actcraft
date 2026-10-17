@@ -559,6 +559,22 @@ void paintGridLevel(QPainter& p, const core::GridLevel& l, double w, double h, d
     p.restore();
 }
 
+// Objet d'un type inconnu (L2-C8) : repère neutre, cadre gris pointillé d'un pixel quel que soit le zoom
+// (plume cosmétique, que Qt découpe au périphérique : une boîte démesurée ne coûte rien), sur sa boîte s'il
+// en a une. Ni texte, ni HTML, ni ressource.
+void paintUnknown(QPainter& p, const core::UnknownObject& unknown)
+{
+    if (!unknown.hasBounds) {
+        return;
+    }
+    QPen pen(QColor(0x80, 0x80, 0x80), 0, Qt::DashLine);
+    pen.setCosmetic(true);
+    p.setPen(pen);
+    p.setBrush(Qt::NoBrush);
+    const core::RectF& b = unknown.bounds;
+    p.drawRect(QRectF(b.x, b.y, b.width, b.height));
+}
+
 } // namespace
 
 void DecodedImages::insert(std::string key, QImage image)
@@ -629,6 +645,8 @@ void paintObjectLocal(QPainter& p, const core::PageObject& object, const ImageLo
     } else if (const auto* c = std::get_if<core::Connector>(&object)) {
         p.setPen(penOf(c->pen));
         p.drawLine(QPointF(c->firstEnd.x, c->firstEnd.y), QPointF(c->secondEnd.x, c->secondEnd.y));
+    } else if (const auto* u = std::get_if<core::UnknownObject>(&object)) {
+        paintUnknown(p, *u);
     }
     p.restore();
 }

@@ -222,6 +222,78 @@ private slots:
         QVERIFY(fingerprint(withNan(nan)) != fingerprint(withNan(0.0)));
     }
 
+    // L2-C8 : un objet d'un type inconnu a son rang, le dernier, après tous les types connus.
+    void unknownObjectIsTheLastKind()
+    {
+        const PageObject o = UnknownObject{};
+        QCOMPARE(kindOf(o), ObjectKind::Unknown);
+        QCOMPARE(static_cast<std::size_t>(ObjectKind::Unknown) + 1, kObjectKindCount);
+    }
+
+    // L2-C8 : ce que la page garde pour une version plus récente (objet inconnu, clés inconnues) est écrit à
+    // l'enregistrement, donc entre dans l'empreinte ; une page qui n'en a pas garde son empreinte d'avant
+    // (fingerprintMatchesIndependentReference).
+    void fingerprintSeesWhatIsKeptForANewerVersion()
+    {
+        const auto withUnknown = [](const std::string& type, const std::string& json, RectF bounds,
+                                    bool hasBounds) {
+            Page p = samplePage();
+            UnknownObject u;
+            u.type = type;
+            u.json = json;
+            u.bounds = bounds;
+            u.hasBounds = hasBounds;
+            p.objects.insert(p.objects.begin() + 1, PageObject(u));
+            return p;
+        };
+        const std::string json = "{\"latex\":\"x\",\"type\":\"equation\"}";
+        const std::uint64_t reference = fingerprint(withUnknown("equation", json, {1, 2, 3, 4}, true));
+        QVERIFY(reference != fingerprint(samplePage()));
+        QVERIFY(reference != fingerprint(withUnknown("chart", json, {1, 2, 3, 4}, true)));
+        QVERIFY(reference != fingerprint(withUnknown("equation", "{\"latex\":\"y\",\"type\":\"equation\"}",
+                                                     {1, 2, 3, 4}, true)));
+        QVERIFY(reference != fingerprint(withUnknown("equation", json, {1, 2, 3, 5}, true)));
+        QVERIFY(reference != fingerprint(withUnknown("equation", json, {1, 2, 3, 4}, false)));
+
+        const std::string keys = "{\"future\":1}";
+        Page first = samplePage();
+        first.objects[0].unknownKeys = keys;
+        Page last = samplePage();
+        last.objects[2].unknownKeys = keys;
+        Page page = samplePage();
+        page.unknownKeys = keys;
+        const std::uint64_t plain = fingerprint(samplePage());
+        QVERIFY(fingerprint(first) != plain);
+        QVERIFY(fingerprint(last) != plain);
+        QVERIFY(fingerprint(page) != plain);
+        QVERIFY(fingerprint(first) != fingerprint(last)); // l'objet qui porte la clé compte
+        QVERIFY(fingerprint(first) != fingerprint(page));
+        first.objects[0].unknownKeys = "{\"future\":2}";
+        QVERIFY(fingerprint(first) != fingerprint(last));
+
+        // Éléments des tableaux (action, ligne de texte, niveau de grille) : avec leur élément.
+        Page acted = richPage();
+        acted.objects[0].common.actions.push_back(Action{});
+        Page actedKeyed = acted;
+        actedKeyed.objects[0].common.actions[0].unknownKeys = keys;
+        QVERIFY(fingerprint(actedKeyed) != fingerprint(acted));
+        Page run = richPage();
+        std::get<Text>(run.objects[4]).runs[0].unknownKeys = keys;
+        QVERIFY(fingerprint(run) != fingerprint(richPage()));
+        Page level = richPage();
+        level.grid.levels[0].unknownKeys = keys;
+        QVERIFY(fingerprint(level) != fingerprint(richPage()));
+    }
+
+    // L2-C8 : action, ligne de texte et niveau de grille sans clé inconnue n'ajoutent rien au flux. Valeur
+    // calculée sur la base du chantier (avant L2-C8, 999d548) pour la page de richPage() avec une action.
+    void fingerprintOfElementsWithoutUnknownKeysIsUnchanged()
+    {
+        Page page = richPage();
+        page.objects[0].common.actions.push_back(Action{});
+        QCOMPARE(fingerprint(page), std::uint64_t{0x109437226CD48FFBull});
+    }
+
     void strokeWidthFollowsPressure()
     {
         QCOMPARE(strokeWidthAt(3.0, 0.5f), 3.0);

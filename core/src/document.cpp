@@ -125,6 +125,16 @@ void Document::reserveIdsBelow(ObjectId next) noexcept
     m_nextId = std::max(m_nextId, next);
 }
 
+const std::string& Document::unknownKeys() const noexcept
+{
+    return m_unknownKeys;
+}
+
+void Document::setUnknownKeys(std::string keys)
+{
+    m_unknownKeys = std::move(keys);
+}
+
 std::string Document::addResource(QByteArray data, std::string extension)
 {
     // Minuscules ASCII à la main : std::tolower suit la locale du processus (Qt appelle setlocale(LC_ALL, "")
@@ -140,8 +150,31 @@ std::string Document::addResource(QByteArray data, std::string extension)
         extension = "bin";
     }
     std::string key = sha256Hex(data);
-    m_resources.try_emplace(key, Resource{std::move(data), std::move(extension)});
+    Resource resource;
+    resource.data = std::move(data);
+    resource.extension = std::move(extension);
+    m_resources.try_emplace(key, std::move(resource));
     return key;
+}
+
+void Document::setResourceUnknownKeys(const std::string& key, std::string keys)
+{
+    if (const auto it = m_resources.find(key); it != m_resources.end()) {
+        it->second.unknownKeys = std::move(keys);
+    }
+}
+
+const std::map<std::string, ArchiveEntry>& Document::unknownEntries() const noexcept
+{
+    return m_unknownEntries;
+}
+
+void Document::setUnknownEntry(std::string name, QByteArray data)
+{
+    ArchiveEntry entry;
+    entry.sha256 = sha256Hex(data);
+    entry.data = std::move(data);
+    m_unknownEntries[std::move(name)] = std::move(entry);
 }
 
 const Resource* Document::resource(const std::string& key) const noexcept
@@ -208,6 +241,18 @@ std::uint64_t fingerprint(const Document& document) noexcept
     for (const auto& [key, resource] : document.resources()) {
         hash = mixText(hash, key);
         hash = mixText(hash, resource.extension);
+        if (!resource.unknownKeys.empty()) {
+            hash = mixText(hash, resource.unknownKeys);
+        }
+    }
+    // En dernier et seulement s'il y en a (L2-C8) : clés inconnues du document, entrées d'archive inconnues.
+    if (!document.unknownKeys().empty() || !document.unknownEntries().empty()) {
+        hash = mixText(hash, document.unknownKeys());
+        hash = mix(hash, static_cast<std::uint64_t>(document.unknownEntries().size()));
+        for (const auto& [name, entry] : document.unknownEntries()) {
+            hash = mixText(hash, name);
+            hash = mixText(hash, entry.sha256);
+        }
     }
     return hash;
 }
