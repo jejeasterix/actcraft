@@ -36,6 +36,31 @@ private:
     int m_mergeKey;
 };
 
+// Commande déjà exécutée une fois par l'appelant : compte ses rejeux et ses annulations.
+class Counted final : public UndoCommand
+{
+public:
+    Counted(int* redos, int* undos, int mergeKey = -1) : m_redos(redos), m_undos(undos), m_mergeKey(mergeKey)
+    {}
+    void redo(Document& d, Changes&) override
+    {
+        ++*m_redos;
+        d.setTitle(d.title() + 'x');
+    }
+    void undo(Document& d, Changes&) override
+    {
+        ++*m_undos;
+        d.setTitle(d.title().substr(0, d.title().size() - 1));
+    }
+    int mergeId() const noexcept override { return m_mergeKey; }
+    bool mergeWith(const UndoCommand&) override { return true; }
+
+private:
+    int* m_redos;
+    int* m_undos;
+    int m_mergeKey;
+};
+
 } // namespace
 
 class TstCoreUndo : public QObject
@@ -182,6 +207,131 @@ private slots:
         QCOMPARE(stack.count(), std::size_t{0});
         QVERIFY(stack.isClean());
         QVERIFY(!stack.canUndo());
+    }
+
+    void pushExecutedDoesNotReplayTheCommand()
+    {
+        Document d;
+        d.setTitle("x"); // l'appelant a déjà appliqué la commande
+        UndoStack stack;
+        int redos = 0;
+        int undos = 0;
+        stack.pushExecuted(std::make_unique<Counted>(&redos, &undos));
+        QCOMPARE(redos, 0);
+        QCOMPARE(d.title(), std::string("x"));
+        QCOMPARE(stack.count(), std::size_t{1});
+        QCOMPARE(stack.index(), std::size_t{1});
+        QVERIFY(stack.canUndo());
+        QVERIFY(!stack.canRedo());
+    }
+
+    void pushExecutedCommandUndoesAndRedoes()
+    {
+        Document d;
+        d.setTitle("x");
+        UndoStack stack;
+        int redos = 0;
+        int undos = 0;
+        stack.pushExecuted(std::make_unique<Counted>(&redos, &undos));
+        stack.undo(d);
+        QCOMPARE(undos, 1);
+        QCOMPARE(d.title(), std::string());
+        QVERIFY(stack.canRedo());
+        stack.redo(d);
+        QCOMPARE(redos, 1);
+        QCOMPARE(d.title(), std::string("x"));
+    }
+
+    void pushExecutedDropsTheRedoBranch()
+    {
+        Document d;
+        UndoStack stack;
+        stack.push(d, std::make_unique<Append>('a'));
+        stack.push(d, std::make_unique<Append>('b'));
+        stack.undo(d);
+        int redos = 0;
+        int undos = 0;
+        d.setTitle(d.title() + 'x');
+        stack.pushExecuted(std::make_unique<Counted>(&redos, &undos));
+        QVERIFY(!stack.canRedo());
+        QCOMPARE(stack.count(), std::size_t{2}); // « a » et la commande ; « b » est effacée
+        QCOMPARE(redos, 0);
+    }
+
+    void pushExecutedMergesLikePush()
+    {
+        Document d;
+        UndoStack stack;
+        int redos = 0;
+        int undos = 0;
+        stack.pushExecuted(std::make_unique<Counted>(&redos, &undos, 7));
+        stack.pushExecuted(std::make_unique<Counted>(&redos, &undos, 7));
+        QCOMPARE(stack.count(), std::size_t{1});
+        stack.pushExecuted(std::make_unique<Counted>(&redos, &undos, 8));
+        QCOMPARE(stack.count(), std::size_t{2});
+    }
+
+    void pushExecutedHonoursTheLimit()
+    {
+        UndoStack stack(2);
+        int redos = 0;
+        int undos = 0;
+        for (int i = 0; i < 5; ++i) {
+            stack.pushExecuted(std::make_unique<Counted>(&redos, &undos));
+        }
+        QCOMPARE(stack.count(), std::size_t{2});
+        QCOMPARE(stack.index(), std::size_t{2});
+    }
+
+    void pushExecutedKeepsTheCleanStateAccounting()
+    {
+        Document d;
+        UndoStack stack(2);
+        int redos = 0;
+        int undos = 0;
+        QVERIFY(stack.isClean());
+        stack.pushExecuted(std::make_unique<Counted>(&redos, &undos));
+        QVERIFY(!stack.isClean());
+        stack.setClean();
+        QVERIFY(stack.isClean());
+        stack.pushExecuted(std::make_unique<Counted>(&redos, &undos));
+        QVERIFY(!stack.isClean());
+        stack.undo(d);
+        QVERIFY(stack.isClean()); // revenu à l'état enregistré
+        stack.pushExecuted(
+            std::make_unique<Counted>(&redos, &undos)); // efface la branche : l'état propre reste
+        QVERIFY(!stack.isClean());
+        stack.pushExecuted(
+            std::make_unique<Counted>(&redos, &undos)); // la borne chasse la commande enregistrée
+        stack.undo(d);
+        QVERIFY(!stack.isClean());
+        stack.undo(d);
+        QVERIFY(stack.isClean()); // l'indice enregistré a suivi le décalage de la borne
+    }
+
+    void pushExecutedLosesTheCleanStateOfADroppedBranch()
+    {
+        Document d;
+        UndoStack stack;
+        int redos = 0;
+        int undos = 0;
+        stack.pushExecuted(std::make_unique<Counted>(&redos, &undos));
+        stack.setClean();
+        stack.undo(d);
+        stack.pushExecuted(std::make_unique<Counted>(&redos, &undos));
+        stack.undo(d);
+        QVERIFY(!stack.isClean());
+        stack.redo(d);
+        QVERIFY(!stack.isClean());
+    }
+
+    void pushExecutedIgnoresANullCommand()
+    {
+        UndoStack stack;
+        stack.pushExecuted(nullptr);
+        QCOMPARE(stack.count(), std::size_t{0});
+        QVERIFY(!stack.canUndo());
+        QVERIFY(stack.isClean());
     }
 };
 
