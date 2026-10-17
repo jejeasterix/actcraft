@@ -207,6 +207,13 @@ function Stop-Essai([string]$raison) {
 # Adaptateur sur l'appel borné du module commun (Adb) : aucune copie ; ses exceptions arrivent au catch final.
 # Nœuds de l'arbre d'interface (uiautomator), en tableau.
 function Get-Noeuds($arbre) { return @($arbre.SelectNodes('//node')) }
+# Raison d'un refus du module Android que l'essai tolère (adb sans réponse, MediaStore momentanément muet) ;
+# toute autre erreur remonte.
+function Get-RaisonTolerable($erreur) {
+    $raison = Get-ActCraftAndroidRaison $erreur
+    if (-not $raison) { throw $erreur }
+    return $raison
+}
 function Invoke-Adb([string[]]$arguments, [int]$secondes = 30) {
     return @(Adb $secondes @arguments)
 }
@@ -215,8 +222,7 @@ function Invoke-Adb([string[]]$arguments, [int]$secondes = 30) {
 # l'attente bornée de l'étape décide. Rend $null après un tel refus ; toute autre erreur remonte.
 function Invoke-AdbTour([string[]]$arguments, [int]$secondes = 30) {
     try { return @(Invoke-Adb $arguments $secondes) } catch {
-        $raison = Get-ActCraftAndroidRaison $_
-        if (-not $raison) { throw }
+        $raison = Get-RaisonTolerable $_
         Write-Host "adb : $raison, tour suivant"
         return $null
     }
@@ -393,8 +399,7 @@ function Clear-FichiersEssai([int]$secondes = 120) {
             $restes = @(@(Get-FichiersMediaStore | ForEach-Object { $_.Nom }) + @(Get-FichiersStockage))
             if ($restes.Count -eq 0) { Write-Output 'état initial : aucun fichier d''essai (MediaStore et stockage)'; return }
         } catch {
-            $restes = @(Get-ActCraftAndroidRaison $_)
-            if (-not $restes[0]) { throw }
+            $restes = @(Get-RaisonTolerable $_)
         }
         if ((Get-Date) -gt $fin) { Stop-Essai "état initial : fichiers d'essai restants en $secondes s : $($restes -join ', ')" }
         Start-Sleep -Seconds 3
@@ -495,7 +500,7 @@ try {
     # Le fichier écrit porte le nom exact, seul fichier de l'essai dans MediaStore (attente bornée de l'indexation).
     $fin = (Get-Date).AddSeconds(30)
     do {
-        $ecrits = @(try { Get-FichiersMediaStore } catch { if (-not (Get-ActCraftAndroidRaison $_)) { throw }; Write-Host "MediaStore : $(Get-ActCraftAndroidRaison $_)" })
+        $ecrits = @(try { Get-FichiersMediaStore } catch { Write-Host "MediaStore : $(Get-RaisonTolerable $_)" })
         if ($ecrits.Count -eq 1 -and $ecrits[0].Nom -ceq $nomFichier) { break }
         Start-Sleep -Seconds 2
     } while ((Get-Date) -lt $fin)
