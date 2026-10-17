@@ -241,7 +241,9 @@ std::uint64_t fingerprint(const Document& document) noexcept
     for (const auto& [key, resource] : document.resources()) {
         hash = mixText(hash, key);
         hash = mixText(hash, resource.extension);
-        hash = mixText(hash, resource.unknownKeys);
+        if (!resource.unknownKeys.empty()) {
+            hash = mixText(hash, resource.unknownKeys);
+        }
     }
     // En dernier et seulement s'il y en a (L2-C8) : clés inconnues du document, entrées d'archive inconnues.
     if (!document.unknownKeys().empty() || !document.unknownEntries().empty()) {

@@ -639,7 +639,9 @@ private slots:
         QVERIFY2(warnings.contains(u"../evil.txt"_s) && warnings.contains(u"« /abs.txt »"_s) &&
                      warnings.contains(u"a\\b.txt"_s),
                  qPrintable(warnings));
-        QCOMPARE(opened.warnings.size(), 3);
+        // La miniature d'une page qui n'existe pas est perdue à l'enregistrement : avertissement.
+        QVERIFY2(warnings.contains(u"thumbnails/page-9.png"_s), qPrintable(warnings));
+        QCOMPARE(opened.warnings.size(), 4);
         QString error;
         const QByteArray saved = formats::encodeActcraft(opened.document, {}, &error);
         QVERIFY2(!saved.isEmpty(), qPrintable(error));
@@ -680,6 +682,134 @@ private slots:
         QString error;
         QVERIFY(formats::encodeActcraft(withBig, {}, &error, limits(2048, 1 << 20, 1 << 20)).isEmpty());
         QVERIFY2(error.contains(u"web/big.bin"_s), qPrintable(error));
+    }
+
+    // L2-C8 : noms d'entrées inconnues. Chaque branche du filtre a sa ligne ; la lecture écarte avec un
+    // avertissement, l'écriture refuse (rien n'est écrit en silence).
+    void unknownEntryNameFilter_data()
+    {
+        QTest::addColumn<QByteArray>("name");
+        QTest::addColumn<bool>("accepted");
+        QTest::newRow("plain") << QByteArray("web/index.html") << true;
+        QTest::newRow("utf8") << QByteArray("dossier/é.txt") << true;
+        QTest::newRow("exactly-1024-bytes") << QByteArray(1024, 'a') << true;
+        QTest::newRow("1025-bytes") << QByteArray(1025, 'a') << false;
+        QTest::newRow("invalid-utf8") << QByteArray("a\xFF"
+                                                    "\xFE"
+                                                    "b.txt")
+                                      << false;
+        QTest::newRow("colon-ntfs-stream") << QByteArray("a.txt:x") << false;
+        QTest::newRow("control-0x01") << QByteArray("a\x01"
+                                                    ".txt")
+                                      << false;
+        QTest::newRow("control-0x1F") << QByteArray("a\x1F"
+                                                    ".txt")
+                                      << false;
+        QTest::newRow("delete-0x7F") << QByteArray("a\x7F"
+                                                   ".txt")
+                                     << false;
+        QTest::newRow("empty-segment") << QByteArray("a//b.txt") << false;
+        QTest::newRow("dot-segment") << QByteArray("a/./b.txt") << false;
+        QTest::newRow("dotdot-segment") << QByteArray("a/../b.txt") << false;
+    }
+
+    void unknownEntryNameFilter()
+    {
+        QFETCH(QByteArray, name);
+        QFETCH(bool, accepted);
+        const QByteArray json = jsonOf(core::Document{});
+        const QByteArray archive = writeZip([&](mz_zip_archive& zip) {
+            return addMem(zip, "document.json", json) && addMem(zip, name.toStdString(), QByteArray("x"));
+        });
+        QVERIFY(!archive.isEmpty());
+        const formats::DecodeResult opened = formats::decodeActcraft(archive);
+        QVERIFY2(opened.ok, qPrintable(opened.error));
+        QCOMPARE(opened.document.unknownEntries().size(), accepted ? std::size_t{1} : std::size_t{0});
+        QCOMPARE(opened.warnings.size(), accepted ? 0 : 1);
+
+        core::Document document;
+        document.setUnknownEntry(name.toStdString(), QByteArray("x"));
+        QString error;
+        const QByteArray saved = formats::encodeActcraft(document, {}, &error);
+        QCOMPARE(!saved.isEmpty(), accepted);
+        if (!accepted) {
+            QVERIFY2(error.contains(u"nom refusé"_s), qPrintable(error));
+        }
+    }
+
+    // Les noms du format ne s'écrivent jamais comme entrée inconnue (ils doubleraient document.json, une
+    // ressource ou une miniature) ; deux noms que la casse seule distingue non plus (la lecture refuserait
+    // l'archive).
+    void unknownEntriesNeverDuplicateAFormatEntryOnWrite_data()
+    {
+        QTest::addColumn<QByteArray>("name");
+        QTest::newRow("document") << QByteArray("document.json");
+        QTest::newRow("document-other-case") << QByteArray("Document.JSON");
+        QTest::newRow("resource") << QByteArray("resources/abc.png");
+        QTest::newRow("resource-other-case") << QByteArray("Resources/abc.png");
+        QTest::newRow("thumbnail") << QByteArray("thumbnails/page-1.png");
+        QTest::newRow("thumbnail-other-case") << QByteArray("THUMBNAILS/page-1.png");
+    }
+
+    void unknownEntriesNeverDuplicateAFormatEntryOnWrite()
+    {
+        QFETCH(QByteArray, name);
+        core::Document document;
+        document.setUnknownEntry(name.toStdString(), QByteArray("x"));
+        QString error;
+        QVERIFY(formats::encodeActcraft(document, {QByteArray("t")}, &error).isEmpty());
+        QVERIFY2(error.contains(u"nom réservé"_s), qPrintable(error));
+    }
+
+    void unknownEntriesDifferingOnlyByCaseAreRefusedOnWrite()
+    {
+        core::Document document;
+        document.setUnknownEntry("web/A.txt", QByteArray("1"));
+        document.setUnknownEntry("web/a.txt", QByteArray("2"));
+        QString error;
+        QVERIFY(formats::encodeActcraft(document, {}, &error).isEmpty());
+        QVERIFY2(error.contains(u"en double"_s), qPrintable(error));
+    }
+
+    // L2-C8 : les entrées inconnues sont réécrites compressées. 100 Ko d'octets identiques tiennent dans une
+    // archive bornée à 20 Ko ; stockées, elles la dépasseraient (la lecture en accepte maxTotal
+    // décompressés).
+    void unknownEntriesAreWrittenCompressed()
+    {
+        core::Document document;
+        const QByteArray text(100000, 'a');
+        document.setUnknownEntry("web/page.txt", text);
+        QString error;
+        const QByteArray saved =
+            formats::encodeActcraft(document, {}, &error, limits(1 << 20, 1 << 20, 20000));
+        QVERIFY2(!saved.isEmpty(), qPrintable(error));
+        QCOMPARE(entryOf(saved, "web/page.txt"), text);
+        QCOMPARE(formats::decodeActcraft(saved).document.unknownEntries().at("web/page.txt").data, text);
+    }
+
+    // L2-C8 : une entrée au nom du format que cette version n'a pas lue (ressource non déclarée, miniature
+    // d'une page absente) est perdue à l'enregistrement : avertissement. Les entrées lues n'en ont pas.
+    void unreadFormatEntriesAreReported()
+    {
+        core::Document document;
+        const std::string key = document.addResource(QByteArray("png-bytes"), "png");
+        const QByteArray base = formats::encodeActcraft(document, {QByteArray("t")});
+        QVERIFY(formats::decodeActcraft(base).warnings.isEmpty());
+        const QByteArray json = entryOf(base, "document.json");
+        const QByteArray archive = writeZip([&](mz_zip_archive& zip) {
+            return addMem(zip, "document.json", json) &&
+                   addMem(zip, "resources/" + key + ".png", QByteArray("png-bytes")) &&
+                   addMem(zip, "thumbnails/page-1.png", QByteArray("t")) &&
+                   addMem(zip, "resources/orpheline.png", QByteArray("o")) &&
+                   addMem(zip, "thumbnails/page-2.png", QByteArray("t2"));
+        });
+        const formats::DecodeResult r = formats::decodeActcraft(archive);
+        QVERIFY2(r.ok, qPrintable(r.error));
+        const QString warnings = r.warnings.join(u'\n');
+        QVERIFY2(warnings.contains(u"resources/orpheline.png"_s) &&
+                     warnings.contains(u"thumbnails/page-2.png"_s),
+                 qPrintable(warnings));
+        QCOMPARE(r.warnings.size(), 2);
     }
 
     void archiveWithoutDocumentJsonIsRefused()

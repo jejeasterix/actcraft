@@ -99,6 +99,15 @@ private:
     std::uint64_t m_hash = 0xCBF29CE484222325ull;
 };
 
+// Clés inconnues d'un élément de tableau (L2-C8) : hachées s'il y en a seulement, pour que le flux d'un
+// élément qui n'en a pas reste celui d'avant L2-C8.
+void hashUnknownKeys(Fnv1a& h, const std::string& keys) noexcept
+{
+    if (!keys.empty()) {
+        h.text(keys);
+    }
+}
+
 void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
 {
     const auto& [id, name, layer, visible, locked, translucency, restrictions, transform, label, actions] = c;
@@ -122,7 +131,7 @@ void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
         h.i32(command);
         h.u64(target);
         h.text(resource);
-        h.text(unknownKeys);
+        hashUnknownKeys(h, unknownKeys);
     }
 }
 
@@ -214,7 +223,7 @@ void hashType(Fnv1a& h, const Text& textObject) noexcept
         h.u32(color);
         h.point(baseline);
         h.rect(runBounds);
-        h.text(unknownKeys);
+        hashUnknownKeys(h, unknownKeys);
     }
 }
 
@@ -372,7 +381,7 @@ std::uint64_t fingerprint(const Page& page) noexcept
         h.tag(line);
         h.boolean(linesAlongX);
         h.boolean(linesAlongY);
-        h.text(levelKeys);
+        hashUnknownKeys(h, levelKeys);
     }
     h.text(name);
     h.text(notes);

@@ -285,6 +285,15 @@ private slots:
         QVERIFY(fingerprint(level) != fingerprint(richPage()));
     }
 
+    // L2-C8 : action, ligne de texte et niveau de grille sans clé inconnue n'ajoutent rien au flux. Valeur
+    // calculée sur la base du chantier (avant L2-C8, 999d548) pour la page de richPage() avec une action.
+    void fingerprintOfElementsWithoutUnknownKeysIsUnchanged()
+    {
+        Page page = richPage();
+        page.objects[0].common.actions.push_back(Action{});
+        QCOMPARE(fingerprint(page), std::uint64_t{0x109437226CD48FFBull});
+    }
+
     void strokeWidthFollowsPressure()
     {
         QCOMPARE(strokeWidthAt(3.0, 0.5f), 3.0);

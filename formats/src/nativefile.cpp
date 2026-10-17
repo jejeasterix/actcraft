@@ -10,6 +10,7 @@
 #include <map>
 #include <miniz.h>
 #include <optional>
+#include <set>
 #include <string>
 #include <utility>
 
@@ -209,14 +210,25 @@ QByteArray encodeActcraft(const core::Document& document, const std::vector<QByt
             entries.emplace_back(thumbnailEntry(i), &thumbnailsPng[i]);
         }
     }
-    // Entrées inconnues gardées à la lecture (L2-C8), octets d'origine, mêmes bornes que les ressources. Un
-    // nom dangereux ou de ce format (jamais produit par la lecture) n'est pas écrit : il doublerait une
-    // entrée.
+    // Entrées inconnues gardées à la lecture (L2-C8), octets d'origine, mêmes bornes que les ressources. La
+    // lecture ne produit jamais un nom dangereux, un nom de ce format (il doublerait document.json, une
+    // ressource ou une miniature) ni deux noms que la casse seule distingue (la lecture refuse l'archive) :
+    // ils viennent d'un appelant, et sont refusés plutôt que perdus ou écrits en double.
+    QSet<QByteArray> foldedNames;
     for (const auto& [name, entry] : document.unknownEntries()) {
         const QByteArray raw = QByteArray::fromStdString(name);
-        if (isSafeEntryName(raw) && !isFormatEntry(raw)) {
-            entries.emplace_back(name, &entry.data);
+        const QString shown = QString::fromUtf8(raw.left(200));
+        if (!isSafeEntryName(raw)) {
+            return refuse(u"archive : entrée « %1 » : nom refusé"_s.arg(shown));
         }
+        if (isFormatEntry(raw)) {
+            return refuse(u"archive : entrée « %1 » : nom réservé au format"_s.arg(shown));
+        }
+        if (foldedNames.contains(raw.toLower())) {
+            return refuse(u"archive : entrée « %1 » : nom en double (casse ignorée)"_s.arg(shown));
+        }
+        foldedNames.insert(raw.toLower());
+        entries.emplace_back(name, &entry.data);
     }
     // Ce que la lecture refuserait sous les mêmes bornes est refusé ici : un fichier enregistré se rouvre
     // toujours.
@@ -241,10 +253,15 @@ QByteArray encodeActcraft(const core::Document& document, const std::vector<QByt
     if (!mz_zip_writer_init_heap(&zip, 0, 64 * 1024)) {
         return refuse(u"archive : initialisation impossible"_s);
     }
-    // Horodatage des entrées : nul (miniz compilé avec MINIZ_NO_TIME), d'où la reproductibilité.
+    // Horodatage des entrées : nul (miniz compilé avec MINIZ_NO_TIME), d'où la reproductibilité. Les entrées
+    // inconnues sont compressées (la lecture en accepte maxTotal décompressés, l'archive est bornée à
+    // maxArchiveSize) ; miniz range telle quelle toute entrée que la compression grossirait.
+    const std::size_t knownCount = entries.size() - document.unknownEntries().size();
     for (std::size_t i = 0; i < entries.size(); ++i) {
         const auto& [name, data] = entries[i];
-        const auto level = static_cast<mz_uint>(i == 0 ? MZ_BEST_COMPRESSION : MZ_NO_COMPRESSION);
+        const auto level = static_cast<mz_uint>(i == 0            ? MZ_BEST_COMPRESSION
+                                                : i >= knownCount ? MZ_DEFAULT_LEVEL
+                                                                  : MZ_NO_COMPRESSION);
         if (!mz_zip_writer_add_mem(&zip, name.c_str(), data->constData(), static_cast<size_t>(data->size()),
                                    level)) {
             mz_zip_writer_end(&zip);
@@ -306,11 +323,14 @@ DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limi
         result.error = u"document.json illisible : un objet JSON est attendu"_s;
         return result;
     }
-    std::map<std::string, Extracted> refused; // ressources présentes mais refusées, et pourquoi
+    std::map<std::string, Extracted> refused;        // ressources présentes mais refusées, et pourquoi
+    std::set<std::string> consumed{"document.json"}; // entrées du format que cette version a cherché à lire
     const JsonReadResult read = documentFromJson(
         doc.object(),
-        [&zip, &refused](const std::string& key, const std::string& extension) -> std::optional<QByteArray> {
+        [&zip, &refused, &consumed](const std::string& key,
+                                    const std::string& extension) -> std::optional<QByteArray> {
             QByteArray data;
+            consumed.insert(resourceEntry(key, extension));
             const Extracted status = zip.extract(resourceEntry(key, extension), data);
             if (status != Extracted::Ok) {
                 if (status != Extracted::Absent) {
@@ -346,6 +366,7 @@ DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limi
     }
     result.thumbnails.resize(result.document.pageCount());
     for (std::size_t i = 0; i < result.thumbnails.size(); ++i) {
+        consumed.insert(thumbnailEntry(i));
         const Extracted status = zip.extract(thumbnailEntry(i), result.thumbnails[i]);
         if (status == Extracted::TooBig || status == Extracted::Invalid) {
             result.warnings << u"miniature de la page %1 %2, ignorée"_s.arg(i + 1).arg(describe(status));
@@ -353,12 +374,19 @@ DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limi
     }
     // Entrées que cette version ne connaît pas (version plus récente, L2-C8) : gardées telles quelles, sous
     // le même budget de décompression que les ressources ; un dossier n'a pas d'octets, un nom dangereux est
-    // écarté (jamais réécrit).
+    // écarté (jamais réécrit). Une entrée au nom du format que cette version n'a pas lue (ressource non
+    // déclarée, miniature d'une page qui n'existe pas) est perdue à l'enregistrement : on le dit.
     for (const QByteArray& name : zip.rawNames()) {
-        if (name.endsWith('/') || isFormatEntry(name)) {
+        if (name.endsWith('/')) {
             continue;
         }
         const QString shown = QString::fromUtf8(name.left(200));
+        if (isFormatEntry(name)) {
+            if (!consumed.count(name.toStdString())) {
+                result.warnings << u"entrée « %1 » : non lue par cette version, écartée"_s.arg(shown);
+            }
+            continue;
+        }
         if (!isSafeEntryName(name)) {
             result.warnings << u"entrée « %1 » : nom refusé, écartée"_s.arg(shown);
             continue;
