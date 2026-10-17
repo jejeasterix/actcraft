@@ -16,6 +16,8 @@ VERIF s5-mutation = journal OUVERT faussé d'un bit (ui/src/documentcontroller.c
 VERIF s5-final = APK propre reconstruit après la mutation, script final (nettoyage par `find /sdcard/`) : `ACTCRAFT ENREGISTRE a3277271775faa91`, `ACTCRAFT OUVERT a3277271775faa91`, ANDROID FICHIERS OK
 VERIF s5-trois-passages = 2026-10-17, APK reconstruit après L2-C6 (LICENCES OK sans ajout), script robuste (nom propre à l'essai, critères indépendants de la langue, indication « plein écran » écartée, serveur adb arrêté par PID) : passages consécutifs `essai-20261017-023343.actcraft` d168020cda87c217 = d168020cda87c217, `essai-20261017-023710.actcraft` 285cad712988f85e = 285cad712988f85e, `essai-20261017-024148.actcraft` 285cad712988f85e = 285cad712988f85e : trois ANDROID FICHIERS OK
 VERIF s5-mutation-2 = même mutation sur le script robuste (2026-10-17) : `ANDROID FICHIERS EN ECHEC : empreintes différentes : 285cad712988f85e enregistrée, 285cad712988f85f relue` ; fichier remis par git checkout --, APK reconstruit propre
+VERIF s5-mutation-3 = même mutation sur le script final (2be9c25, 2026-10-17) : `ANDROID FICHIERS EN ECHEC : empreintes différentes : 380221149fbb1b81 enregistrée, 380221149fbb1b80 relue` ; fichier remis par git checkout --, APK propre reconstruit avant les cinq passages
+VERIF s5-cinq-passages = 2026-10-17, script final 2be9c25, même APK propre (SHA-256 BA76C9277916AE12…, identique avant et après la mutation), chaque passage sous le jeton `tests`, machine partagée : 285cad712988f85e = 285cad712988f85e, 285cad712988f85e = 285cad712988f85e, 69b71dec81c2416f = 69b71dec81c2416f, 8c1d213facef8e5f = 8c1d213facef8e5f, 28710ede3f19e88c = 28710ede3f19e88c : cinq ANDROID FICHIERS OK consécutifs (nom saisi une fois, relu deux fois)
 VERIF s3-module = essai-android.ps1 passe par scripts/android-commun.ps1 ; sous un adb bouchon qui ne répond pas, dernière ligne identique avant et après l'extraction : `ANDROID EN ECHEC : adb get-state sans réponse (15 s)`
 VERIF s5-patron-ecarte = sous les mêmes bouchons (adb et emulator), essai-android-fichiers.ps1 finit par `ANDROID FICHIERS EN ECHEC : adb get-state sans réponse (15 s)` et l'émulateur bouchon est arrêté ; avec l'`Echec` d'essai-android.ps1 recopié dans le module (patron écarté), la dernière ligne devient `ANDROID EN ECHEC : …` et l'émulateur bouchon reste vivant
 
@@ -42,6 +44,24 @@ VERIF s5-patron-ecarte = sous les mêmes bouchons (adb et emulator), essai-andro
    propre à l'essai (`essai-<date>.actcraft`, Ctrl+A puis `input text`), retouche « SAVE » tant que le sélecteur reste
    ouvert (trois fois au plus) et rouvre ce nom exact. Glissement rejoué (trois fois au plus) s'il tombe pendant le
    passage en plein écran. À tout échec : journal et capture sous `.tmp/fichiers-echec-*`.
+
+6. Rejeu de l'orchestrateur (2026-10-17, 3 passages, 1 OK) : `ouvrir : nœud ^android:id/title$ introuvable en 120 s`.
+   L'arbre montre deux fichiers « ess » et « essai-20261017-033111.actcr » : noms réellement tronqués (la description
+   de l'aperçu reprend le même nom), pas une ellipse de la vue grille (les passages OK étaient aussi en grille, titres
+   en `android:id/title`). « SAVE » était touché avant que la saisie (`input text`, qui passe par le clavier du système)
+   ait rempli le champ. Ces noms, sans extension, échappaient au nettoyage `find -name '*.actcraft'` et restaient
+   listés. Le script : (a) ressaisit le nom (champ touché, Ctrl+A, `input text`) tant que l'arbre ne le relit pas
+   exact deux fois de suite, attend s'il se remplit encore (180 s au plus) ; (b) vérifie après l'enregistrement que
+   MediaStore contient ce seul fichier d'essai, sous ce nom ; (c) ouvre par le texte exact, quel que soit
+   l'identifiant du nœud (vue liste ou grille) ; (d) efface au départ les fichiers d'essai par MediaStore
+   (`content delete --uri content://media/external/file/<id>`, base d'où le fournisseur des téléchargements tire sa
+   liste), puis du stockage s'il en reste, et vérifie les deux, sinon échec. Fichier d'essai : extension `.actcraft`,
+   nom `essai-…` ou début de ce nom. MediaStore plutôt qu'un AVD effacé (`-wipe-data`) : la voie est vérifiable à
+   chaque passage, et un premier démarrage à neuf est plus long et plus chargé.
+7. Mise au point (2026-10-17, 0,4 Go libres) : boîte « System UI isn't responding » sur le sélecteur pendant la
+   relecture du nom ; chaque lecture de l'arbre l'écarte par `android:id/aerr_wait`. Passage de la mutation : émulateur
+   figé plus d'une minute (ANR de gms et du lanceur), `adb shell screencap sans réponse (60 s)` avant le trait ; dans
+   les attentes bornées (arbre, trait, journal, MediaStore), un adb sans réponse compte comme un tour manqué.
 
 ## Hors périmètre, constaté
 
