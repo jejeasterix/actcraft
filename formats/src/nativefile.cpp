@@ -291,7 +291,7 @@ DecodeResult decodeActcraft(const QByteArray& archive, qint64 maxTotal)
     return decodeActcraft(archive, limits);
 }
 
-DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limits)
+DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limits, Thumbnails thumbnails)
 {
     DecodeResult result;
     ZipReader zip(archive, limits);
@@ -364,9 +364,14 @@ DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limi
             result.warnings << cause;
         }
     }
-    result.thumbnails.resize(result.document.pageCount());
-    for (std::size_t i = 0; i < result.thumbnails.size(); ++i) {
+    // Miniatures des pages : connues dans tous les cas ; extraites seulement si l'appelant les veut (L2-C9).
+    for (std::size_t i = 0; i < result.document.pageCount(); ++i) {
         consumed.insert(thumbnailEntry(i));
+    }
+    if (thumbnails == Thumbnails::Read) {
+        result.thumbnails.resize(result.document.pageCount());
+    }
+    for (std::size_t i = 0; i < result.thumbnails.size(); ++i) {
         const Extracted status = zip.extract(thumbnailEntry(i), result.thumbnails[i]);
         if (status == Extracted::TooBig || status == Extracted::Invalid) {
             result.warnings << u"miniature de la page %1 %2, ignorée"_s.arg(i + 1).arg(describe(status));

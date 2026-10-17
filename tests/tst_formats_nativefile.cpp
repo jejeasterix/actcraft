@@ -224,6 +224,35 @@ private slots:
         QVERIFY(r.thumbnails[0].isEmpty());
     }
 
+    // L2-C9, constat 6 : l'ouverture ne veut pas les miniatures. Non extraites, elles ne consomment pas le
+    // budget de décompression avant les entrées inconnues, et restent des entrées connues du format.
+    void skippedThumbnailsSpareTheBudget()
+    {
+        const core::Document pages{std::vector<core::Page>(2)};
+        const QByteArray json = jsonOf(pages);
+        const QByteArray thumbnail(100, 't');
+        const QByteArray extra(100, 'x');
+        const QByteArray archive = writeZip([&](mz_zip_archive& zip) {
+            return addMem(zip, "document.json", json) && addMem(zip, "thumbnails/page-1.png", thumbnail) &&
+                   addMem(zip, "thumbnails/page-2.png", thumbnail) && addMem(zip, "web/extra.bin", extra);
+        });
+        // Budget : document.json et 150 octets. Lues, la première miniature en prend 100 : il ne reste rien
+        // pour l'entrée inconnue.
+        const formats::ArchiveLimits budget = limits(1 << 20, json.size() + 150, 1 << 20);
+        const formats::DecodeResult read = formats::decodeActcraft(archive, budget);
+        QVERIFY2(read.ok, qPrintable(read.error));
+        QCOMPARE(read.thumbnails.size(), std::size_t{2});
+        QCOMPARE(read.thumbnails[0], thumbnail);
+        QVERIFY(read.document.unknownEntries().empty());
+        const formats::DecodeResult skipped =
+            formats::decodeActcraft(archive, budget, formats::Thumbnails::Skip);
+        QVERIFY2(skipped.ok, qPrintable(skipped.error));
+        QVERIFY(skipped.thumbnails.empty());
+        QCOMPARE(skipped.document.unknownEntries().size(), std::size_t{1});
+        QCOMPARE(skipped.document.unknownEntries().at("web/extra.bin").data, extra);
+        QVERIFY2(skipped.warnings.isEmpty(), qPrintable(skipped.warnings.join(u'\n')));
+    }
+
     void totalDecompressionBudgetIsEnforced()
     {
         // Budget = document.json + 1 octet : chaque entrée tient seule sous le budget, seul le CUMUL le

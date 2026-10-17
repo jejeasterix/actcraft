@@ -55,7 +55,9 @@ LoadOutcome loadDocument(const QUrl& url)
     }
     out.title = titleFromUrl(url);
     if (formats::looksLikeActcraft(read.data)) {
-        formats::DecodeResult r = formats::decodeActcraft(read.data);
+        // Miniatures laissées dans l'archive : l'ouverture ne s'en sert pas (L2-C9).
+        formats::DecodeResult r =
+            formats::decodeActcraft(read.data, formats::ArchiveLimits{}, formats::Thumbnails::Skip);
         if (!r.ok) {
             out.error = r.error;
             return out;
