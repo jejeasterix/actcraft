@@ -205,6 +205,8 @@ function Stop-Essai([string]$raison) {
     exit 1
 }
 # Adaptateur sur l'appel borné du module commun (Adb) : aucune copie ; ses exceptions arrivent au catch final.
+# Nœuds de l'arbre d'interface (uiautomator), en tableau.
+function Get-Noeuds($arbre) { return @($arbre.SelectNodes('//node')) }
 function Invoke-Adb([string[]]$arguments, [int]$secondes = 30) {
     return @(Adb $secondes @arguments)
 }
@@ -232,9 +234,9 @@ function Read-ArbreUi {
         $null = Invoke-AdbTour @('pull', '/sdcard/actcraft-ui.xml', $script:arbreUi) 30
         if (-not (Test-Path -LiteralPath $script:arbreUi)) { return $null }
         try { $arbre = [xml](Get-Content -Raw -Encoding utf8 -LiteralPath $script:arbreUi) } catch { return $null }
-        $attendre = @($arbre.SelectNodes('//node')) | Where-Object { $_.'resource-id' -eq 'android:id/aerr_wait' } | Select-Object -First 1
+        $attendre = Get-Noeuds $arbre | Where-Object { $_.'resource-id' -eq 'android:id/aerr_wait' } | Select-Object -First 1
         if (-not $attendre -or $boite -eq 3) { break }
-        Write-Host "boîte « ne répond pas » du système écartée : $(@($arbre.SelectNodes('//node')) | Where-Object { $_.'resource-id' -eq 'android:id/alertTitle' } | ForEach-Object { $_.text })"
+        Write-Host "boîte « ne répond pas » du système écartée : $(Get-Noeuds $arbre | Where-Object { $_.'resource-id' -eq 'android:id/alertTitle' } | ForEach-Object { $_.text })"
         Invoke-Tap $attendre
         Start-Sleep -Seconds 2
     }
@@ -270,7 +272,7 @@ function Invoke-Selecteur([string[]]$touches, [string]$quoi, [string]$id, [strin
     while ((Get-Date) -lt $fin) {
         $arbre = Read-ArbreUi
         if ($arbre) {
-            $noeuds = @($arbre.SelectNodes('//node'))
+            $noeuds = Get-Noeuds $arbre
             if ($noeuds | Where-Object { $_.'resource-id' -eq 'android:id/immersive_cling_title' }) {
                 $ok = $noeuds | Where-Object { $_.'resource-id' -eq 'android:id/ok' -and $_.package -eq 'android' } | Select-Object -First 1
                 if ($ok) { Invoke-Tap $ok }
@@ -299,7 +301,7 @@ function Invoke-Selecteur([string[]]$touches, [string]$quoi, [string]$id, [strin
 }
 # Champ du nom du sélecteur d'enregistrement (EditText android:id/title de DocumentsUI), ou $null.
 function Get-ChampNom($arbre) {
-    return @($arbre.SelectNodes('//node')) | Where-Object {
+    return Get-Noeuds $arbre | Where-Object {
         $_.package -cmatch 'documentsui' -and $_.'resource-id' -eq 'android:id/title' -and $_.class -cmatch 'EditText'
     } | Select-Object -First 1
 }
@@ -485,7 +487,7 @@ try {
         if ($echec) { if ($essai -eq 0) { Stop-Essai $echec } else { break } }
         Start-Sleep -Seconds 3
         $arbre = Read-ArbreUi
-        if ($arbre -and -not @($arbre.SelectNodes('//node') | Where-Object { $_.package -cmatch 'documentsui' })) { break }
+        if ($arbre -and -not @(Get-Noeuds $arbre | Where-Object { $_.package -cmatch 'documentsui' })) { break }
     }
     $enregistre = Wait-Journal 'ACTCRAFT ENREGISTRE [0-9a-f]{16}'
     if (-not $enregistre) { Stop-Essai 'aucune ligne ACTCRAFT ENREGISTRE' }
