@@ -141,6 +141,8 @@ signals:
 
 private:
     void setBusy(bool busy);
+    // Refus visible d'une opération demandée pendant une autre : dernière erreur et signal de fin, en file.
+    void refuseWhileBusy(const QString& message, void (DocumentController::*finished)(bool, const QString&));
     void setWarnings(const QStringList& warnings);
     void setLastError(const QString& error);
     void setLastIo(bool offMainThread);

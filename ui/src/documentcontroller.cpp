@@ -428,18 +428,25 @@ void DocumentController::setLastIo(bool offMainThread)
     emit lastIoChanged(); // à chaque fin de lecture ou d'écriture, succès ou échec
 }
 
+void DocumentController::refuseWhileBusy(const QString& message,
+                                         void (DocumentController::*finished)(bool, const QString&))
+{
+    // Refus visible (revue de L2-C9) : dernière erreur et bandeau, comme tout échec d'ouverture ou
+    // d'enregistrement.
+    QMetaObject::invokeMethod(
+        this,
+        [this, message, finished] {
+            setLastError(message);
+            emit(this->*finished)(false, message);
+        },
+        Qt::QueuedConnection);
+}
+
 void DocumentController::openUrl(const QUrl& url)
 {
     if (m_busy) {
-        // Refus visible, comme celui de l'enregistrement : dernière erreur et bandeau (revue de L2-C9).
-        QMetaObject::invokeMethod(
-            this,
-            [this] {
-                const QString busy = tr("Une opération est déjà en cours : ouverture refusée.");
-                setLastError(busy);
-                emit loadFinished(false, busy);
-            },
-            Qt::QueuedConnection);
+        refuseWhileBusy(tr("Une opération est déjà en cours : ouverture refusée."),
+                        &DocumentController::loadFinished);
         return;
     }
     setBusy(true);
@@ -487,15 +494,8 @@ void DocumentController::openUrl(const QUrl& url)
 void DocumentController::saveToUrl(const QUrl& url)
 {
     if (m_busy) {
-        // Refus visible (L2-C9) : dernière erreur et bandeau, comme tout échec d'enregistrement.
-        QMetaObject::invokeMethod(
-            this,
-            [this] {
-                const QString busy = tr("Une opération est déjà en cours : enregistrement refusé.");
-                setLastError(busy);
-                emit saveFinished(false, busy);
-            },
-            Qt::QueuedConnection);
+        refuseWhileBusy(tr("Une opération est déjà en cours : enregistrement refusé."),
+                        &DocumentController::saveFinished);
         return;
     }
     QString refusal;
