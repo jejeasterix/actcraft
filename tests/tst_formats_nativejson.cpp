@@ -919,8 +919,8 @@ private slots:
             core::Document back;
             const auto r = formats::documentFromJson(
                 formats::documentToJson(rich),
-                [failure = failure](const std::string&, const std::string&) {
-                    return formats::LoadedResource(failure);
+                [cause = failure](const std::string&, const std::string&) {
+                    return formats::LoadedResource(cause);
                 },
                 back);
             QVERIFY(r.ok);
