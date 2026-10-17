@@ -12,9 +12,10 @@ Objectifs, dans l'ordre :
 ActCraft lit les paperboards `.flipchart` pour l'interopérabilité. Ce projet n'est ni affilié à Promethean ni
 soutenu par Promethean.
 
-> État : version 0.1.0 en préparation (octobre 2026). Premier socle : une fenêtre avec ses menus, le stylo en
-> 16 couleurs et 4 épaisseurs, plusieurs pages et le plein écran (F5). ActCraft n'ouvre encore aucun fichier ;
-> la lecture des `.flipchart` arrive avec la version suivante. Détail : [`CHANGELOG.md`](CHANGELOG.md).
+> État : version 0.2.0 en préparation (octobre 2026). ActCraft ouvre et enregistre les paperboards : format natif
+> `.actcraft`, lecture des `.flipchart`, menu Fichier, et sur Android le sélecteur de fichiers du système. Le stylo
+> en 16 couleurs, plusieurs pages et le plein écran (F5) viennent de la 0.1.0. Les autres outils arrivent avec les
+> versions suivantes. Détail : [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Installer
 

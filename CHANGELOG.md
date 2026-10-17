@@ -24,8 +24,7 @@ l'enregistrement par le sélecteur du système sur Android.
   depuis son dernier enregistrement.
 - Bandeau d'avertissements : ce qui a été écarté ou remplacé à la lecture d'un fichier est signalé en haut de la
   fenêtre.
-- La page prend la taille de la page affichée ; le changement de page n'affiche plus d'éclair blanc pendant que
-  les images se décodent.
+- Le changement de page n'affiche plus d'éclair blanc pendant que les images se décodent.
 - Ouvrir, enregistrer et décoder les images se font hors du fil principal : la fenêtre reste fluide pendant une
   opération longue.
 - Un fichier passé au lancement s'ouvre (« Ouvrir avec », association de fichiers, `--ouvrir <fichier>`).
