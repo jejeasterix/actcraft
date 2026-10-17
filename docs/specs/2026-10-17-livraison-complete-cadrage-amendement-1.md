@@ -39,11 +39,13 @@ commandes et mêmes comportements sur la page.
 changement de page (N2-10), modes du toucher (décision 25). Restent propres à une plateforme : fonctions de bureau
 (Windows) ; reconnaissance d'écriture (Windows) ; raccourcis vers des programmes (Windows) ; enregistreur d'écran
 (Windows) ; enregistreur de son (Android avec la permission du micro, N1-A2) ; boîte d'impression complète (Windows,
-Android par PDF) ; recherche de mises à jour (Windows) ; cadre web (Android : contenu local seulement, N1-A3).
+Android par PDF) ; recherche de mises à jour et serveur mandataire (Windows) ; cadre web (Android : contenu local seulement, N1-A3).
 
 **Hypothèse N2-6, amendée.** Les cinq profils fournis par l'original sont repris **dans leur usage et leur
 disposition** (au tableau, création, langues, mathématiques, médias : ce que chacun ouvre, épingle et règle), avec nos
-noms et nos contenus.
+noms et nos contenus. Ils sont livrés au lot 6 avec les outils déjà là ; trois d'entre eux épinglent des outils des
+lots 7 et 8 (`fonctionnalites.md:825`). Règle : **chaque lot qui livre un outil épinglé par un profil complète ce
+profil** (une ligne dans la tâche de l'outil) ; le contrôle de bout en bout est S32 au lot 11.
 
 **§ 6 du cadrage, remplacé pour les exigences.** Restent exclus, comme le dit la décision 0100 :
 
@@ -60,8 +62,11 @@ noms et nos contenus.
 
 **En attente** (chiffrés au § 5, aucun lot tant que Jérôme n'a pas tranché) : F-661, F-662, F-663, F-665, F-814, et les
 anciens `.flp` de F-655. Les autres exclusions du § 6 du cadrage (paquet macOS, `.aab`, armv7, signature, Linux, iOS,
-mesures sur machines de référence, ressources de Promethean, contenu des vidéos) restent valables. Le réglage du
-serveur mandataire de F-930, muet jusqu'ici, est **repris** (§ 2.2).
+mesures sur machines de référence, ressources de Promethean, contenu des vidéos) restent valables, ainsi que
+**l'encre à faible latence native et la prédiction du stylet** : ce sont des techniques de rendu, pas des fonctions
+d'ActivInspire, exclues depuis le prototype (`docs/specs/2026-10-13-prototype-mesure-cadrage.md:104-105,204`) parce
+que le banc mesure la latence interne, que la prédiction ne réduit pas ; une mesure du banc peut les rouvrir. Le
+réglage du serveur mandataire de F-930, muet jusqu'ici, est **repris** pour le bureau (§ 2.2).
 
 **Contraintes posées aux lots déjà cadrés** (sans tâche de plus pour eux) :
 
@@ -77,6 +82,15 @@ serveur mandataire de F-930, muet jusqu'ici, est **repris** (§ 2.2).
   n'est pas publiée. Règle de compatibilité ascendante : un lecteur qui rencontre une clé inconnue la **conserve et la
   réécrit telle quelle** à l'enregistrement ; si le lecteur du lot 2 la perd, la première tâche qui ajoute une clé le
   corrige, prouvé par un aller-retour avec une clé inconnue.
+- **Types d'objet inconnus (lot 2, avant toute release).** Le lecteur du lot 2 saute un objet de type inconnu
+  (`formats/src/nativejson.cpp:1166-1168`), et l'équation (lot 7) comme le cadre web (lot 8) n'existent pas dans
+  `ObjectKind` (`core/include/actcraft/core/model.h:184-194`) : une 0.2.0 publiée qui ouvrirait puis enregistrerait un
+  fichier d'une version plus récente perdrait ces objets. Règle : un objet de type inconnu est **gardé tel quel** (JSON
+  brut de l'objet, place dans l'ordre des couches et de profondeur, ressources qu'il référence conservées dans
+  l'archive), **affiché par un repère neutre** (cadre de sa boîte englobante, s'il en a une), et **réécrit à
+  l'identique**. Tâche corrective **`L2-C8`** (`formats/` et `core/`), faite dans le lot 2 avant toute release ;
+  preuve : aller-retour d'un document qui contient un objet de type inconnu et une clé inconnue, octets JSON de
+  l'objet identiques à l'entrée, ressource référencée toujours présente (S31).
 
 ## 2. Fonctions reprises ou rétablies
 
@@ -90,7 +104,7 @@ Tâches = tâches de plan estimées, en plus du cadrage (estimation brute, voir 
 | F-301 (a) | Allonger la page : une poignée l'agrandit par pas de 10 % | 4 | W, A | 1 | F | emplacement de la commande (écart E12, V50) ; la poignée reste d'une page à l'autre ; base du pas (fixe ou cumulée) |
 | F-301 (b) | Texte de haut en bas, avec sa barre de mise en forme | 4 | W, A | 2 | M | lettres empilées ou ligne tournée (REA sur la 3.5.18) ; lecture des `.flipchart` qui en contiennent |
 | F-603 | Découpage de la page en zones horizontales et verticales | 4 | W, A | 2 | É | comportement entier inconnu (spécification : « à vérifier ») : REA d'abord, aucune ligne de code avant |
-| F-298 | Mode classe protégé par mot de passe | 6 | W, A | 2 | M | liste des fonctions grisées, non décrite (V20) : REA ; elle couvre des commandes des lots 3 à 11 (attribut « verrouillable », § 1) |
+| F-298 | Mode classe protégé par mot de passe | 6 | W, A | 2 | M | liste des fonctions grisées, non décrite (V20) : REA ; elle couvre des commandes des lots 1 à 11 (attribut « verrouillable », § 1) |
 | F-920, F-142 | Raccourcis vers des programmes ou des fichiers, dans la barre de raccourcis | 6 | W | 2 | M | place du bouton d'édition (écart E3) ; suppression d'un raccourci (V94) |
 | F-297 | Correcteur d'orthographe du paperboard et d'un texte | 6 | W, A | 3 | M | options de la section de réglages ; parcours des pages ; dictionnaire de l'utilisateur |
 | F-291 | Message défilant : texte, police, ombre, fond, position, boucle, vitesse | 7 | W, A | 2 | F | bouton de validation (écart E11) ; un seul passage sans boucle (V131) |
@@ -99,7 +113,7 @@ Tâches = tâches de plan estimées, en plus du cadrage (estimation brute, voir 
 | F-680 | Diffusion protégée : copie, enregistrement, impression, caméra interdits, sur notre format | 8 | W, A | 2 | M | messages et refus en mode protégé (V58) ; un nouveau fichier est écrit ; dépend de la caméra (lot 7), des ressources (lot 6) et des actions (lot 8) |
 | F-292 | Enregistreur d'écran : plein écran ou zone, pause, arrêt, annulation, indicateur visible | 8 | W | 3 | É | réapparition de sa palette masquée (V43) ; réglages de la section des enregistrements |
 | F-293 | Enregistreur de son : fichier son et icône de lecture sur la page, indicateur visible | 8 | W, A (N1-A2) | 2 | M | aucun |
-| F-302 | Cadre web sur la page | 8 | W, A (local seulement) | 3 | É | capture d'image fixe de la vue, glisser du texte ou d'une image vers la page (V63) ; vue native au-dessus de la scène (N1-A3) |
+| F-302 | Cadre web sur la page : code HTML saisi par l'utilisateur, affiché dans un cadre redimensionnable | 8 | W, A (local seulement) | 3 | É | capture d'image fixe de la vue, glisser du texte ou d'une image vers la page (V63) ; vue native au-dessus de la scène (N1-A3) |
 | F-110, F-303 | Mode à deux utilisateurs : deuxième palette, deux pointeurs, chacun son outil, ses réglages, sa sélection et ses outils de maths ; aucune boîte de dialogue pour le second ; gestes à deux doigts suspendus | 11 | W, A | 4 | É | contenu de la deuxième palette ; objet tenu par un utilisateur inaccessible à l'autre ; schéma d'entrée (`L3-T0`, DA-A1) |
 
 F-302 n'était pas dans la liste de Jérôme : il est repris au nom du principe (N1-A11).
@@ -112,8 +126,8 @@ F-302 n'était pas dans la liste de Jérôme : il est repris au nom du principe 
 | F-552 | Lecteur de médias intégré : sons à deux pistes, vidéos sur la page, lecteur de sons ; **mesuré par le banc** | 8 | W, A | 3 | É | formats lus par Qt Multimedia ; second média placé à côté du premier (V126, à vérifier) ; GIF animé (V57) |
 | F-640 | Catalogue d'effets de changement de page, effet par page, durée réglable ; **chaque effet mesuré** | 7 | W, A | 3 | M | liste et comportement des effets de l'original (REA) ; cas où les effets sont désactivés |
 | F-930 (toucher) | Quatre modes du toucher : ignoré, comme le stylo, comme le sélecteur, gestion complète | 11 | W, A | 2 | M | outil par défaut du toucher ; mode d'interaction par défaut avec les objets (REA) |
-| F-930 (réseau) | Réglages réseau : serveur mandataire, port, compte ; mot de passe rangé dans le trousseau du système | 6 | W, A | 1 | M | aucun ; bibliothèque de trousseau à licence compatible (N1-A10) |
-| F-880 | Cinq profils fournis, repris dans leur usage et leur disposition, à nos noms (N2-6 amendée) | 6 | W, A | 1 | F | ce que chaque profil ouvre, épingle et règle (REA sur les profils livrés) |
+| F-930 (réseau) | Réglages réseau : serveur mandataire, port, compte ; mot de passe rangé dans le trousseau du système | 6 | W (bureau seulement) | 1 | M | aucun ; bibliothèque de trousseau à licence compatible (N1-A10) |
+| F-880 | Cinq profils fournis, repris dans leur usage et leur disposition, à nos noms (N2-6 amendée) | 6, complétés aux lots 7 et 8 | W, A | 1 | M (trois profils dépendent d'outils des lots 7 et 8) | ce que chaque profil ouvre, épingle et règle (REA sur les profils livrés) |
 | F-760 (aide) | Aide hors ligne écrite par nous, ouverte par F1 | 6 (lecteur), 11 (pages) | W, A | 1 + 2 | F | aucun ; textes à nous seulement |
 | F-760, F-930 (mises à jour) | Recherche de mises à jour par les releases du dépôt public | 11 | W | 2 | F | aucun (N1-A12) |
 | F-930 (langue) | Textes traduisibles : fichiers de traduction préparés, français livré, réglage de la langue | 6 (réglage), 11 (contrôle) | W, A | 1 + 1 | F | aucun |
@@ -229,12 +243,12 @@ packs et PowerPoint en images d'abord (≈ 9 tâches, les plus utiles en classe 
 ## 6. Table des lots mise à jour
 
 Ordre en vigueur (fichier d'état) : lot 2, lot 10, puis lots 3 à 9 et 11. Les lots 1 et 2 ne changent pas ; leur
-nombre réel de tâches est donné pour comparaison.
+nombre réel de tâches est donné pour comparaison ; le lot 2 reçoit la tâche corrective `L2-C8` (§ 1).
 
 | Lot | Titre | Avant | Après | Ajouts | Version |
 |---|---|---|---|---|---|
 | 1 | Socle ouvrable et paquets | 16 | 16 | — (réel : 25, + 56 %, clos) | 0.1.0 |
-| 2 | Document, format natif, lecteur `.flipchart` | 16 | 16 | — (réel : 30, + 88 %, en clôture) | 0.2.0 |
+| 2 | Document, format natif, lecteur `.flipchart` | 16 | 17 | `L2-C8` : types d'objet inconnus gardés (réel : 30 + 1, + 88 %, en clôture) | 0.2.0 |
 | 10 | Cache incrémental | 4 | 4 | — | 0.3.0 |
 | 3 | Outils I | 12 | 13 | ouverture 1 ; contraintes du § 1 | 0.4.0 |
 | 4 | Outils II : formes, texte, pages, grille | 13 | 20 | ouverture 1, fonctions 5, principes 1 | 0.5.0 |
@@ -244,10 +258,11 @@ nombre réel de tâches est donné pour comparaison.
 | 8 | Interactivité et multimédia | 11 | 26 | ouverture 1, fonctions 13, principes 1 | 0.9.0 |
 | 9 | Passe finale de contrôle (corpus) | 8 | 8 | confrontation avancée dans chaque lot | 0.10.0 |
 | 11 | Tablette, toucher, finitions, 1.0 | 8 | 20 | ouverture 1, fonctions 11 | 1.0.0 |
-| **Total** | | **134** | **202** | **+ 68** brut (imports : ≈ + 38, non comptés) ; corrigé : ≈ 320 à 375 (N1-A1) | |
+| **Total** | | **134** | **203** | **+ 69** brut (imports : ≈ + 38, non comptés) ; corrigé : ≈ 320 à 375 (N1-A1) | |
 
 Les lots 5, 6, 7 et 8 dépassent 20 tâches : leur plan les découpe en deux sous-lots, comme le lot 2 (une seule PR et
-une seule version par lot).
+une seule version par lot). Le seuil de 20 se juge aussi sur l'estimation corrigée (× 1,56 à 1,88) : les lots 3, 4 et
+11 passent en sous-lots si leur plan dépasse 20 tâches.
 
 **Décision 31 du cadrage, amendée (versions).** Les versions suivent l'ordre de livraison, mineure + 1 par lot : lot 2
 → 0.2.0, lot 10 → 0.3.0, lot 3 → 0.4.0, … lot 8 → 0.9.0, lot 9 → 0.10.0 (SemVer compare les nombres, pas les
@@ -277,7 +292,7 @@ Même règle que S1–S14 : joués par l'agent sans souris réelle (`actcraft-ca
 - **S19 — Mode classe protégé (lot 6, rejoué au lot 11).** Créer un mot de passe, verrouiller : toutes les commandes
   marquées « verrouillables » sont grisées ; un mauvais mot de passe ne déverrouille pas ; le bon, si ; relancer :
   l'état verrouillé est gardé et le mot de passe n'est jamais en clair dans les réglages. Rejoué au lot 11 sur toutes
-  les commandes des lots 3 à 11.
+  les commandes des lots 1 à 11.
 - **S20 — Raccourci vers un programme (lot 6, Windows).** Un programme d'essai écrit par nous (dans `tests/`) écrit
   un fichier témoin sous `.tmp/` quand on le lance. Ajouter un raccourci vers lui : il apparaît dans la barre de
   raccourcis avec son info-bulle ; un clic crée le fichier témoin ; le supprimer : il disparaît. Un raccourci lu dans
@@ -307,7 +322,11 @@ Même règle que S1–S14 : joués par l'agent sans souris réelle (`actcraft-ca
 - **S27 — Cadre web (lot 8).** Un cadre web avec un HTML local d'essai : le contenu s'affiche, se redimensionne,
   recharge ; un `<img src="file://…">` ou un lien vers un partage réseau du HTML n'est pas chargé (politique de
   N1-A3) ; la capture d'image fixe, par le moyen retenu en `L8-T0`, pose une image sur la page ; enregistré puis
-  rouvert, le cadre est là. Rideau ouvert : son comportement au-dessus du cadre est celui écrit par `L8-T0`.
+  rouvert, le cadre est là. Rideau ouvert : son comportement au-dessus du cadre est celui écrit par `L8-T0`. Le cadre
+  est créé par la saisie d'un code HTML. Un document d'essai « reçu » dont le cadre pointe vers un serveur local de
+  test hors du dossier du document : à l'ouverture, aucune requête n'atteint le serveur (journal du serveur vide) et le
+  repère de blocage est visible ; déblocage confirmé : le contenu s'affiche et le serveur reçoit la requête ; une autre
+  page du même document reste bloquée.
 - **S28 — Deux utilisateurs et toucher (lot 11).** Mode à deux utilisateurs activé : la deuxième palette apparaît ;
   deux pointeurs injectés, rattachés à deux utilisateurs, tracent en même temps deux traits de couleurs et d'épaisseurs
   différentes ; chacun garde sa sélection ; une règle ouverte par l'un n'apparaît pas chez l'autre ; une commande qui
@@ -325,26 +344,40 @@ Même règle que S1–S14 : joués par l'agent sans souris réelle (`actcraft-ca
   chaque constat du lot (§ 4) y a une ligne (exigence, tâche, scénario, ou raison) ; `git grep` des titres de la table
   de correspondance du corpus ne trouve rien ; `git grep` des noms de fichiers du jeu d'essai, **lus dans le dossier
   `samples/` hors dépôt** (jamais écrits dans le dépôt), ne trouve rien ; `NOMS OK`.
+- **S31 — Objet de type inconnu (lot 2, `L2-C8`).** Un `.actcraft` synthétique dont une page contient, entre deux
+  objets connus, un objet d'un type que la version ne connaît pas (avec une clé inconnue et une ressource image qu'il
+  référence) : ouvert, la page s'affiche avec un repère neutre à la place de l'objet et un avertissement de lecture ;
+  un trait ajouté, enregistré sous un autre nom : les octets JSON de l'objet inconnu sont identiques à l'entrée, il
+  reste à la même place dans l'ordre des couches et de profondeur, la ressource est toujours dans l'archive, et la clé
+  inconnue du document est conservée.
+- **S32 — Profils fournis (lot 11).** Pour chacun des cinq profils : l'activer depuis un profil vierge ; les outils
+  qu'il épingle, ceux des lots 7 et 8 compris, sont tous présents dans la palette et la barre de raccourcis (lecture
+  du modèle de disposition et capture) ; les navigateurs et réglages qu'il fixe sont appliqués ; aucune commande
+  absente de la plateforme n'y figure (Android).
 
 ## 8. Hypothèses à revoir créées par l'amendement
 
 ### Niveau 1 — difficiles à défaire ou visibles des utilisateurs
 
-- **N1-A1 — Volume.** Estimation brute : + 68 tâches (134 → 202), sans les imports. Les lots 1 et 2 ont dépassé leur
+- **N1-A1 — Volume.** Estimation brute : + 69 tâches (134 → 203, dont `L2-C8`), sans les imports. Les lots 1 et 2 ont dépassé leur
   estimation de 56 % (16 → 25) et de 88 % (16 → 30) ; appliqué aux 170 tâches restantes, ce rythme donne 265 à 320
-  tâches, soit **≈ 320 à 375 au total** avec les 55 déjà faites. La note 0100 annonçait 20 à 25 tâches de plus, sans
+  tâches, soit **≈ 320 à 375 au total** avec les 56 faites ou engagées (lots 1 et 2, `L2-C8` compris). La note 0100 annonçait 20 à 25 tâches de plus, sans
   les tâches d'ouverture, l'équation, les enregistreurs ni le cadre web. Lots 5 à 8 en deux sous-lots.
 - **N1-A2 — Permissions Android.** La décision 28 (« aucune permission ») est amendée pour le seul enregistreur de son :
   le micro est demandé à la première utilisation ; refusé, la commande se désactive. L'enregistreur d'écran est
   **Windows seul** (sous Android, il exigerait la capture d'écran du système et un service de premier plan).
 - **N1-A3 — Cadre web (F-302).** Sous Windows, un moteur du système par Qt WebView s'il existe pour Qt 6.12, sinon Qt
-  WebEngine : ≈ + 150 Mo pour un installateur de 25,5 Mio aujourd'hui, soit **≈ 7 fois plus lourd**. Qt WebView est une
+  WebEngine : ≈ + 150 Mo **installés** (fichiers sur le disque), soit un installateur compressé plusieurs fois plus
+  lourd que les 25,5 Mio d'aujourd'hui (jusqu'à ≈ 7 fois si la compression gagne peu) — **non vérifié, à mesurer en
+  `L8-T0`** (taille installée et taille de l'installateur, avec et sans le moteur). Qt WebView est une
   vue native posée **au-dessus** de la scène Qt Quick : pas de capture par `grabToImage`, et le rideau, le spot et les
   autres surcouches ne la couvrent pas (non vérifié en 6.12, à vérifier en `L8-T0`). Sous Android, vue web du système,
   contenu local seulement (pas de permission réseau ; un lien distant s'ouvre dans le navigateur). **Politique de
   contenu**, sur les deux plateformes : JavaScript désactivé par défaut ; aucun contenu distant chargé sans une
   adresse saisie par l'utilisateur ; aucun `file://` hors du dossier de ressources du document ; aucun chemin réseau
-  (SMB, `file://hôte/…`) — même garde que le `QTextDocument` neutralisé de L2-T11. **Question posée à Jérôme à la
+  (SMB, `file://hôte/…`) — même garde que le `QTextDocument` neutralisé de L2-T11. Un document **reçu** dont un cadre
+  web embarque du contenu distant l'ouvre bloqué : le cadre montre un repère et un bouton de déblocage, qui demande
+  une confirmation et ne vaut que pour cette page de ce document. **Question posée à Jérôme à la
   porte de fin du lot 2** : reprendre F-302 au prix du poids, ou le réserver à une option de construction.
 - **N1-A4 — Restrictions de diffusion.** Sur un format ouvert, elles sont une courtoisie : un utilisateur averti peut
   les retirer en éditant le JSON. Pas de chiffrement.
