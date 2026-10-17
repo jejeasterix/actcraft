@@ -454,6 +454,7 @@ try {
     # un document vide s'enregistrerait et se relirait aussi à l'identique.
     # Glissement rejoué (trois fois au plus) s'il tombe pendant un changement de disposition (passage en plein écran).
     $captureTrait = Join-Path $tmp 'fichiers-trait.png'
+    $traitVu = $false
     for ($essai = 0; $essai -lt 3; $essai++) {
         Start-Sleep -Seconds 3
         $null = Invoke-AdbTour @('shell', 'input', 'swipe', '768', '800', '1408', '800', '600')
@@ -461,12 +462,13 @@ try {
         Remove-Item -ErrorAction SilentlyContinue -LiteralPath $captureTrait # jamais la capture d'un passage précédent
         $null = Invoke-AdbTour @('shell', 'screencap', '-p', '/sdcard/actcraft-trait.png') 60
         $null = Invoke-AdbTour @('pull', '/sdcard/actcraft-trait.png', $captureTrait) 60
-        if (-not (Test-Path -LiteralPath $captureTrait)) { $trait = @(); continue }
+        if (-not (Test-Path -LiteralPath $captureTrait)) { $trait = @(); $traitVu = $false; continue }
         $trait = @("$(& $python -I (Join-Path $PSScriptRoot 'lire-pixel.py') $captureTrait 1088 800)".Trim().Split(' ') | ForEach-Object { [int]$_ })
         Write-Output "trait : lu $($trait -join ' ')"
-        if ($trait.Count -eq 3 -and $trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100) { break }
+        $traitVu = $trait.Count -eq 3 -and $trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100
+        if ($traitVu) { break }
     }
-    if ($trait.Count -ne 3 -or $trait[0] -ge 100 -or $trait[1] -ge 100 -or $trait[2] -ge 100) { Stop-Essai 'trait absent après trois glissements (capture .tmp/fichiers-trait.png)' }
+    if (-not $traitVu) { Stop-Essai 'trait absent après trois glissements (capture .tmp/fichiers-trait.png)' }
 
     # Ctrl+Maj+S → DocumentsUI (ACTION_CREATE_DOCUMENT). Nom propre au passage dans le champ du nom (EditText
     # android:id/title), relu avant « SAVE » : un nom déjà pris change le déroulé (« (1) », remplacement), un nom
