@@ -515,8 +515,14 @@ void DocumentController::openUrl(const QUrl& url)
 void DocumentController::saveToUrl(const QUrl& url)
 {
     if (m_busy) {
+        // Refus visible (L2-C9) : dernière erreur et bandeau, comme tout échec d'enregistrement.
         QMetaObject::invokeMethod(
-            this, [this] { emit saveFinished(false, tr("Une opération est déjà en cours.")); },
+            this,
+            [this] {
+                const QString busy = tr("Une opération est déjà en cours : enregistrement refusé.");
+                setLastError(busy);
+                emit saveFinished(false, busy);
+            },
             Qt::QueuedConnection);
         return;
     }

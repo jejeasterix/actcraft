@@ -16,11 +16,14 @@
 #include <QQmlComponent>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QScopeGuard>
 #include <QScreen>
+#include <QSemaphore>
 #include <QSignalSpy>
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QThreadPool>
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <algorithm>
@@ -230,6 +233,53 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
         QTRY_VERIFY(!dialog->property("visible").toBool());
         QVERIFY(doc->isModified());
+    }
+
+    // L2-C9, constat 5 : « Quitter » pendant un enregistrement, puis « Enregistrer » : l'enregistrement
+    // demandé attend la fin de celui en cours, puis « Quitter » reprend. Avant : refusé (occupé) sans
+    // erreur, et l'action en attente oubliée.
+    void quitDuringASaveWaitsForItThenQuits()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QTemporaryDir dir;
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        QVERIFY(run(s, QStringLiteral("file.save-as"), dir.filePath(QStringLiteral("cours.actcraft"))));
+        QVERIFY(saved.wait(10000));
+        QVERIFY(!doc->isModified());
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(doc->isModified());
+        // Fils du pool global tenus : l'enregistrement lancé reste en cours tant que le test ne les rend pas.
+        const int threads = QThreadPool::globalInstance()->maxThreadCount();
+        auto started = std::make_shared<QSemaphore>();
+        auto gate = std::make_shared<QSemaphore>();
+        for (int i = 0; i < threads; ++i) {
+            QThreadPool::globalInstance()->start([started, gate] {
+                started->release();
+                gate->acquire();
+            });
+        }
+        const auto releasePool = qScopeGuard([gate, threads] {
+            gate->release(threads);
+            QThreadPool::globalInstance()->waitForDone(60000);
+        });
+        QVERIFY(started->tryAcquire(threads, 60000));
+        QVERIFY(run(s, QStringLiteral("file.save")));
+        QVERIFY(doc->isBusy());
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        QObject* ask = namedObject(s, "saveChangesDialog");
+        QVERIFY(ask);
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(ask, "save"));
+        QObject* actions = namedObject(s, "fileActions");
+        QVERIFY(actions);
+        QTest::qWait(50);                                 // un refus serait livré ici, en file
+        QVERIFY(!actions->property("quitting").toBool()); // pas avant la fin des enregistrements
+        gate->release(threads);
+        QTRY_VERIFY_WITH_TIMEOUT(actions->property("quitting").toBool(), 20000);
+        QVERIFY(!doc->isModified()); // le second enregistrement a écrit l'écran
+        QVERIFY(doc->lastError().isEmpty());
     }
 
     void newSizesComeFromTheirCommands()

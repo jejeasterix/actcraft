@@ -624,6 +624,26 @@ private slots:
         QVERIFY(controller.property("lastError").toString().isEmpty());
     }
 
+    // L2-C9, constat 5 : un enregistrement refusé parce qu'une opération est en cours le dit (dernière
+    // erreur).
+    void saveRefusedWhileBusySetsTheLastError()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        controller.commitStroke(redStroke());
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        QStringList errors; // dernière erreur relevée à chaque fin d'enregistrement
+        connect(&controller, &ui::DocumentController::saveFinished, &controller,
+                [&] { errors << controller.lastError(); });
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("b.actcraft"))));
+        QTRY_VERIFY_WITH_TIMEOUT(savedSpy.count() == 2, 60000);
+        QCOMPARE(savedSpy.at(0).at(0).toBool(), false); // le refus, livré en file, avant la fin de l'écriture
+        QVERIFY(!errors.at(0).isEmpty());
+        QCOMPARE(savedSpy.at(1).at(0).toBool(), true);
+        QVERIFY(errors.at(1).isEmpty()); // l'écriture réussie l'efface
+    }
+
     void openIsRefusedWhileBusy()
     {
         QTemporaryDir dir;
