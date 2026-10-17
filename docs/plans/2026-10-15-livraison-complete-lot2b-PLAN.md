@@ -39,7 +39,7 @@ pour Android, émulateur `x86_64` ; PowerShell 7.
 | L2-T18 | QML : menu Fichier, dialogues, « enregistrer les modifications ? », bandeau d'avertissements | L2-T3, L2-T16, L2-T17 | `ui/qml/Main.qml`, `ui/qml/FileActions.qml`, `ui/qml/SaveChangesDialog.qml`, `ui/qml/PageSizeDialog.qml`, `ui/qml/MessageBanner.qml`, `ui/CMakeLists.txt`, `actions/data/layout.json`, `tests/ui.cmake`, `tests/tst_ui_filemenu.cpp`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 60 tests, `tst_ui_filemenu` et `tst_ui_shell` Passed ; captures hors écran de la fenêtre (menu Fichier, bandeau) ; banc hors écran (résultat) | S4, S5 | #tache-l2-t18 |
 | L2-T19 | Ouvrir le fichier passé au lancement (`actcraft.exe <fichier>`, `--ouvrir`) | L2-T18 | `app/startup.h`, `app/startup.cpp`, `app/main.cpp`, `tests/app.cmake`, `tests/tst_app_open.cpp` | isolé | implementeur-tdd | TESTS OK, ≥ 61 tests, `tst_app_open` Passed | S4 | #tache-l2-t19 |
 | L2-T20 | Joueur de scénarios : fixtures, variables, attente, sonde de boucle ; scénario `aller-retour-natif` (S5) | L2-T18 | `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `bench/include/actcraft/bench/fixtures.h`, `bench/src/fixtures.cpp`, `bench/CMakeLists.txt`, `bench/scenarios/aller-retour-natif.json`, `tests/bench.cmake`, `tests/tst_bench_uiscenario.cpp` | isolé | concepteur-critique | TESTS OK, ≥ 61 tests, `tst_bench_uiscenario` et `tst_captures_aller_retour_natif` Passed ; `captures.ps1 -Scenario aller-retour-natif -Rendu logiciel -HorsEcran` → `BOUCLE max=… ms OK`, `LU documentController.fingerprint=… OK`, `CAPTURES OK` | S5 | #tache-l2-t20 |
-| L2-T21 | S4 : miniatures comparées aux `.thm`, scénarios `ouvrir-flipchart-synthetique` (CI) et `local/ouvrir-flipchart` | L2-T10, L2-T19, L2-T20 | `bench/flipchart/main.cpp`, `bench/CMakeLists.txt`, `bench/src/fixtures.cpp`, `bench/src/uiscenario.cpp`, `bench/scenarios/ouvrir-flipchart-synthetique.json`, `bench/scenarios/local/ouvrir-flipchart.json`, `scripts/captures.ps1`, `tests/bench.cmake` | isolé | concepteur-critique | TESTS OK, ≥ 66 tests, `tst_flipchart_miniatures_synthetique` et `tst_captures_ouvrir_flipchart_synthetique` Passed ; localement `MINIATURES OK : 124 pages, médiane ≤ 2,0, ≤ 3 au-dessus de 7` et `captures.ps1 -Scenario local/ouvrir-flipchart -Ouvrir "<samples>\tri des formes.flipchart"` → `CAPTURES OK` | S4 | #tache-l2-t21 |
+| L2-T21 | S4 : miniatures comparées aux `.thm`, scénarios `ouvrir-flipchart-synthetique` (CI) et `local/ouvrir-flipchart` | L2-T10, L2-T19, L2-T20 | `bench/flipchart/main.cpp`, `bench/CMakeLists.txt`, `bench/src/fixtures.cpp`, `bench/src/uiscenario.cpp`, `bench/scenarios/ouvrir-flipchart-synthetique.json`, `bench/scenarios/local/ouvrir-flipchart.json`, `scripts/captures.ps1`, `tests/bench.cmake` | isolé | concepteur-critique | TESTS OK, ≥ 66 tests, `tst_flipchart_miniatures_synthetique` et `tst_captures_ouvrir_flipchart_synthetique` Passed ; localement `MINIATURES OK : 124 pages, médiane ≤ 2,0, ≤ 3 au-dessus de 7` et `captures.ps1 -Scenario local/ouvrir-flipchart -Ouvrir "<samples>\<paperboard réel n° 16>"` → `CAPTURES OK` | S4 | #tache-l2-t21 |
 | L2-T22 | Android : Ouvrir et Enregistrer par `content://` sur l'émulateur, sinon commandes de fichier retirées de l'APK | L2-T18 | `scripts/android-commun.ps1`, `scripts/essai-android.ps1`, `scripts/essai-android-fichiers.ps1`, `actions/data/commands.json`, `docs/verifications/2026-10-15-android-fichiers.md` | isolé | concepteur-critique | `ANDROID FICHIERS OK` (empreinte enregistrée = empreinte relue, logcat) ; sinon repli : `APK OK` + capture du menu Fichier de l'APK sans « Ouvrir… » ni « Enregistrer » | S5 | #tache-l2-t22 |
 | L2-T23 | Banc : scénario « changement de page » ; page fixe sans éclair blanc pendant le décodage | L2-T16, L2-T17 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `tests/tst_render_fixedpage.cpp`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `tests/tst_bench_verdict.cpp`, `scripts/resume-banc.ps1`, `docs/banc.md` | isolé | concepteur-critique | TESTS OK, ≥ 59 tests, `tst_render_fixedpage` (dont `keepsTheOldContentUntilTheNewPageIsReady`), `tst_bench_scenarios`, `tst_bench_result` Passed ; banc hors écran : scénario `page` présent, `content_check.ok = True` | S4 | #tache-l2-t23 |
 
@@ -86,7 +86,7 @@ touche aucun de ces fichiers.
 
 | Scénario | Tâches | Joué à la clôture |
 |---|---|---|
-| S4 — ouvrir un `.flipchart` | L2-T11 (peintre), L2-T12 (images), L2-T13 (scène), L2-T16 (taille de page), L2-T17 (ouverture), L2-T18 (avertissements), L2-T19 (ligne de commande), L2-T21 (miniatures, scénarios), L2-T23 (fluidité au changement de page) ; 2a : L2-T7 à L2-T10 | oui : oracle local (17 paperboards, 124 pages, 0 écart), `MINIATURES OK` local, `captures.ps1 -Scenario local/ouvrir-flipchart -Rendu d3d11` à l'écran, `actcraft.exe "<samples>\tri des formes.flipchart"` |
+| S4 — ouvrir un `.flipchart` | L2-T11 (peintre), L2-T12 (images), L2-T13 (scène), L2-T16 (taille de page), L2-T17 (ouverture), L2-T18 (avertissements), L2-T19 (ligne de commande), L2-T21 (miniatures, scénarios), L2-T23 (fluidité au changement de page) ; 2a : L2-T7 à L2-T10 | oui : oracle local (17 paperboards, 124 pages, 0 écart), `MINIATURES OK` local, `captures.ps1 -Scenario local/ouvrir-flipchart -Rendu d3d11` à l'écran, `actcraft.exe "<samples>\<paperboard réel n° 16>"` |
 | S5 — aller-retour natif | L2-T14, L2-T15 (document, pile, cache), L2-T17 (fichiers), L2-T18 (commandes), L2-T20 (scénario), L2-T22 (Android) ; 2a : L2-T1 à L2-T6 | oui : `captures.ps1 -Scenario aller-retour-natif -Rendu d3d11` à l'écran ; Android : `ANDROID FICHIERS OK` (ou repli constaté) |
 
 ## Vagues proposées (parallélisme 2 au plus)
@@ -4947,7 +4947,7 @@ git -C <worktree> commit -m "Interface : menu Fichier, dialogues, demande d'enre
 <a id="tache-l2-t19"></a>
 ### Tâche L2-T19 — Ouvrir le fichier passé au lancement (`actcraft.exe <fichier>`, `--ouvrir`)
 
-**Objectif.** S4 (« `actcraft.exe "<samples>\tri des formes.flipchart"` ouvre le document ») et association de
+**Objectif.** S4 (« `actcraft.exe "<samples>\<paperboard réel n° 16>"` ouvre le document ») et association de
 fichiers de l'installateur (décision 26) : le premier argument qui n'est pas une option est un fichier à ouvrir ;
 l'option `--ouvrir <fichier>` fait de même (outils : `actcraft-captures`, qui a ses propres options). Le fichier est
 ouvert par la commande `file.open` avec son URL, une fois la fenêtre chargée (même chemin que le menu).
@@ -5580,7 +5580,7 @@ ramenées à 80 × 60 par `QImage::scaled(…, Qt::IgnoreAspectRatio, Qt::Smooth
   `MINIATURES EN ECHEC : …` (code 1) ; pages sans `.thm` ignorées et comptées à part ;
 - `--connues "<fichier>:<page>;…"` (page `*` = une page quelconque du fichier) : le cadrage exige que les pages
   au-dessus de 7 soient **les** 3 pages déjà connues (`cadrage` l. 252-253, `format-flipchart.md` § 8-9 : deux à
-  miniature présumée périmée, `compréhension Clown` p2 et une page de `les canards`, plus `T'Choupi` p5) ; toute page
+  miniature présumée périmée, le paperboard réel n° 4 p2 et une page du n° 9, plus le n° 15 p5) ; toute page
   au-dessus de 7 hors de cette liste → `MINIATURES EN ECHEC : page <fichier>:<n> au-dessus de 7 et non connue`. La
   liste ne vit que dans la commande locale et dans la variable `ACTCRAFT_THM_CONNUES` lue par le test local
   (aucun nom de paperboard réel dans le code ni dans `tests/`). **Sans `--connues`** (ou liste vide) : aucune page au-
@@ -5595,7 +5595,7 @@ ramenées à 80 × 60 par `QImage::scaled(…, Qt::IgnoreAspectRatio, Qt::Smooth
 Le joueur gagne la fixture `flipchart-synthetique` (même paperboard, pour le scénario CI). Scénarios :
 `bench/scenarios/ouvrir-flipchart-synthetique.json` (CI : ouvre la fixture, « 1 / 2 », bandeau d'un avertissement,
 pixels du fond dégradé et de la forme verte, capture) et `bench/scenarios/local/ouvrir-flipchart.json` (local : la
-fenêtre est lancée avec `--ouvrir "<samples>\tri des formes.flipchart"`, l'indicateur montre « 1 / N » avec N relevé
+fenêtre est lancée avec `--ouvrir "<samples>\<paperboard réel n° 16>"`, l'indicateur montre « 1 / N » avec N relevé
 par L2-T10, capture de chaque page). `captures.ps1` gagne `-Ouvrir <fichier>` (passé en `--ouvrir`).
 
 **Fichiers.**
@@ -5608,8 +5608,8 @@ par L2-T10, capture de chaque page). `captures.ps1` gagne `-Ouvrir <fichier>` (p
 en local). Local, S4 complet :
 
 ```powershell
-pwsh -NoProfile -Command "Set-Location '<worktree>'; . ./scripts/dev-env.ps1; ./build/debug/actcraft-flipchart-dump.exe --samples 'C:\Users\JeromeDenis\REA - Activinspire\samples' --connues \"compréhension Clown.flipchart:2;les canards.flipchart:*;T'Choupi entre à l'école.flipchart:5\" > .tmp/miniatures.txt 2>&1; Select-String -Path .tmp/miniatures.txt -Pattern 'MINIATURES (OK|EN ECHEC)' | Select-Object -Last 1"
-pwsh -NoProfile -Command "Set-Location '<worktree>'; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario local/ouvrir-flipchart -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Ouvrir 'C:\Users\JeromeDenis\REA - Activinspire\samples\tri des formes.flipchart' > .tmp/captures.txt 2>&1; Select-String -Path .tmp/captures.txt -Pattern '^(LU|PIXEL|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16"
+pwsh -NoProfile -Command "Set-Location '<worktree>'; . ./scripts/dev-env.ps1; ./build/debug/actcraft-flipchart-dump.exe --samples 'C:\Users\JeromeDenis\REA - Activinspire\samples' --connues \"<liste lue hors dépôt>\" > .tmp/miniatures.txt 2>&1; Select-String -Path .tmp/miniatures.txt -Pattern 'MINIATURES (OK|EN ECHEC)' | Select-Object -Last 1"
+pwsh -NoProfile -Command "Set-Location '<worktree>'; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario local/ouvrir-flipchart -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Ouvrir '<samples>\<paperboard réel n° 16>' > .tmp/captures.txt 2>&1; Select-String -Path .tmp/captures.txt -Pattern '^(LU|PIXEL|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16"
 ```
 
 Attendu : `MINIATURES OK : 124 pages, médiane <m ≤ 2,0>, <k ≤ 3> au-dessus de 7` (toutes dans la liste `--connues`,
@@ -5746,7 +5746,7 @@ std::vector<double> pageGaps(const QByteArray& data, int& withoutThumbnail, QStr
   (La forme du paperboard synthétique est translatée en (300, 200), 80 × 60, verte : (340, 230) est dedans. Si le
   dessin de la forme la recouvre d'une étiquette ou du trait, ajuster le point **dans** la forme, pas la tolérance.)
   Créer `bench/scenarios/local/ouvrir-flipchart.json` : `waitReady`, `waitFor documentController.busy=false`,
-  `expect pageIndicator.text = "1 / N"` (N = nombre de pages de « tri des formes », relevé par L2-T10 étape 7),
+  `expect pageIndicator.text = "1 / N"` (N = nombre de pages du paperboard réel n° 16, relevé par L2-T10 étape 7),
   `capture` de la page 1, puis `page.next` + `waitReady` + `capture` pour chaque page (N − 1 fois).
 
   Dans `scripts/captures.ps1` : paramètre `[string]$Ouvrir = ''` ; s'il n'est pas vide, ajouter
@@ -6156,14 +6156,22 @@ il part de l'interface `core::PageCache` figée ici (L2-T14) et ne change que so
    `## 0.2.0 — <date>` (ouvrir un `.flipchart`, format natif `.actcraft`, menu Fichier, avertissements, Android selon
    L2-T22) ; `scripts/notes-version.ps1` → `NOTES OK`. Commit.
 2. **Suite complète** : `scripts/test.ps1 -Preset release` puis `scripts/test.ps1` (formes bornées du profil),
-   N ≥ 66 chacune, `TESTS OK` ; aucun test retiré ; seuls `QSKIP` / sautés : `tst_formats_oracle` et
-   `tst_flipchart_miniatures_samples` sans `ACTCRAFT_SAMPLES_DIR`. Puis, avec la variable posée (configuration
-   refaite), les deux tests locaux verts.
+   N ≥ 66 chacune, `TESTS OK` ; aucun test retiré ; seuls sautés (code 77) : les **trois** tests locaux
+   `tst_formats_oracle`, `tst_formats_oracle_synth` et `tst_flipchart_miniatures_samples`.
+   **Amendement du 2026-10-17** (le texte d'origine, « deux tests sautés », omettait `tst_formats_oracle_synth`).
+   Pour les rejouer, poser **avant la configuration** (`scripts/build.ps1` ou `scripts/test.ps1` les lisent à ce
+   moment ; configuration refaite si elles changent) : `ACTCRAFT_SAMPLES_DIR` (dossier des paperboards réels) ;
+   `ACTCRAFT_REFERENCE_DIR` (racine de l'ancien dépôt, pour l'oracle synthétique, qui exige Python 3 : `ACTCRAFT_PYTHON`
+   sinon `python` / `python3`) ; `ACTCRAFT_THM_PAGES=124` ; `ACTCRAFT_THM_CONNUES` (liste des pages connues, lue d'un
+   fichier **hors dépôt** et jamais écrite dans ce plan ni dans un rapport). Lignes attendues (`ctest -V`, sorties
+   gardées dans `.tmp/`) : `tst_formats_oracle` → `ORACLE OK : 17 paperboards, 124 pages, 0 écart` ;
+   `tst_formats_oracle_synth` → `ORACLE SYNTHETIQUE OK : <n> paperboards, <p> pages, 0 écart ; écarts attendus nommés : …` ;
+   `tst_flipchart_miniatures_samples` → `MINIATURES OK : 124 pages, médiane ≤ 2,0, ≤ 3 au-dessus de 7`. Les trois
+   Passed, aucun sauté.
 3. **S4 à l'écran** (jeton `ecran`, annoncé d'une ligne à Jérôme) : oracle local `0 écart` (L2-T10) ;
    `MINIATURES OK : 124 pages, médiane ≤ 2,0, ≤ 3 au-dessus de 7` (L2-T21) ;
-   `captures.ps1 -Scenario local/ouvrir-flipchart -Rendu d3d11 -Sortie .tmp/captures-ecran -Ouvrir "<samples>\tri des formes.flipchart"`
-   → `CAPTURES OK`, captures regardées et décrites ; puis `build/release/actcraft.exe "<samples>\tri des
-   formes.flipchart" --quitter-apres 8000` lancé, suivi par son PID : fenêtre ouverte sur le document, sortie à 0.
+   `captures.ps1 -Scenario local/ouvrir-flipchart -Rendu d3d11 -Sortie .tmp/captures-ecran -Ouvrir "<samples>\<paperboard réel n° 16>"`
+   → `CAPTURES OK`, captures regardées et décrites ; puis `build/release/actcraft.exe "<samples>\<paperboard réel n° 16>" --quitter-apres 8000` lancé, suivi par son PID : fenêtre ouverte sur le document, sortie à 0.
 4. **S5 à l'écran** : `captures.ps1 -Scenario aller-retour-natif -Rendu d3d11 -Sortie .tmp/captures-ecran` →
    `BOUCLE max=… ms OK`, `LU documentController.fingerprint=… OK`, `CAPTURES OK` ; Android : `ANDROID FICHIERS OK`
    (L2-T22, rejoué sur l'APK 0.2.0) ou repli constaté (capture du menu).
@@ -6175,7 +6183,7 @@ il part de l'interface `core::PageCache` figée ici (L2-T14) et ne change que so
    H2b-5) —, `content_check.page_flash = 0` exigé (avec `page_flash_probes ≥ 1`), et
    `content_check.page_rasterizations_during_zoom ≥ 80` exigé pour le passage D3D11 (preuve que la
    rastérisation RHI a bien eu lieu à chaque échelle ; -1 : page peinte pas prête au zoom, passage à rejouer ;
-   amendé à la revue de L2-T23, `page_rebuilds_during_zoom` y vaut 0 par construction). Résumé commité `docs/mesures/<date>-lot2-document.md` (par
+   amendé à la revue de L2-T23, `page_rebuilds_during_zoom = 0` exigé, aussi bien en D3D11 qu'en logiciel). Résumé commité `docs/mesures/<date>-lot2-document.md` (par
    `scripts/resume-banc.ps1`) : il devient la référence du lot suivant (cache incrémental).
 6. **Paquets remis à Jérôme** : `scripts/paquet.ps1` + `scripts/essai-installateur.ps1` (`PAQUET OK`,
    `INSTALLATEUR OK`, `--version : ActCraft 0.2.0`), `scripts/paquet-android.ps1` (`APK OK`) ; l'association

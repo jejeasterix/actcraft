@@ -9507,7 +9507,7 @@ set_target_properties(actcraft-flipchart-dump PROPERTIES RUNTIME_OUTPUT_DIRECTOR
   fautif, relancer) ; sinon c'est une différence de lecture : la rapporter telle quelle (paperboard, chemin JSON, deux
   valeurs, cause supposée) sans toucher à `formats/src/flipchart.cpp`, et terminer la tâche en signalant le correctif
   à ouvrir. Lancer aussi l'outil sur un paperboard, sortie sous `.tmp/` :
-  `pwsh -NoProfile -Command "Set-Location '<worktree>'; . ./scripts/dev-env.ps1; ./build/debug/actcraft-flipchart-dump.exe 'C:\Users\JeromeDenis\REA - Activinspire\samples\tri des formes.flipchart' --sortie .tmp/tri.json | Select-Object -Last 1"`
+  `pwsh -NoProfile -Command "Set-Location '<worktree>'; . ./scripts/dev-env.ps1; ./build/debug/actcraft-flipchart-dump.exe '<samples>\<paperboard réel n° 16>' --sortie .tmp/tri.json | Select-Object -Last 1"`
   → `DUMP OK : <n> pages` ; noter `<n>` au rapport (L2-T21 s'en sert).
 
 - [ ] **Étape 8 : preuve.** `format.ps1`, preuve de tâche (N ≥ 50 ; `tst_formats_dump` Passed).

@@ -425,6 +425,11 @@ N1-A7, N1-A9 et N1-A13 de la première version sont passées au niveau 2 (N2-A9 
 - **N2-A10** Vidéos de versions anciennes : le corpus montre les versions 1.4 à 1.6 ; un principe non confirmé par la
   3.5.18 n'est pas repris. L'observation de l'original à l'écran prévient Jérôme avant chaque séance.
 - **N2-A11** Adresse d'accueil du navigateur web : la page du projet par défaut ; réglable.
+- **N2-A12** Écart F-583 (données de page), constaté à la clôture du lot 2. Les cadres de page (F-603) et l'effet de
+  changement de page propre à une page (F-640), lus d'un `.flipchart`, ne sont pas dans le modèle de document au lot 2 :
+  ils sont donc perdus à l'enregistrement en `.actcraft`. Hypothèse : cette perte est acceptée jusqu'aux lots 4
+  (cadres) et 7 (effets), où le lecteur `.flipchart` devra les lire et le format natif les porter. À revoir si un
+  paperboard réel les utilise avant.
 
 ### Décisions d'architecture de l'amendement
 
