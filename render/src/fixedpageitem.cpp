@@ -100,8 +100,10 @@ const core::Page& FixedPageItem::page() const noexcept
     return m_own.page(0);
 }
 
-void FixedPageItem::restart(bool redecode, bool samePage)
+void FixedPageItem::restart(Decode decode, Scope scope)
 {
+    const bool redecode = decode == Decode::Force;
+    const bool samePage = scope == Scope::SamePage;
     m_rebuild = true;
     m_builtCount = 0; // les nœuds affichés ne suivent plus cette page : aucun ajout « en fin de scène »
     // Redécoder seulement si le magasin ne couvre plus la page (annuler un trait ne redécode rien). Pendant
@@ -134,7 +136,7 @@ void FixedPageItem::setPage(core::Page page)
     // Redécodage forcé : nécessaire au relais du lot 1 (la vue ne redessinait que sur readyChanged) ;
     // redondant depuis L2-T15 (la vue écoute contentChanged), gardé : il redécode à chaque setPage (banc et
     // tests).
-    restart(true, false);
+    restart(Decode::Force, Scope::OtherPage);
 }
 
 void FixedPageItem::setSource(const core::Document* document, std::size_t pageIndex)
@@ -148,7 +150,7 @@ void FixedPageItem::setSource(const core::Document* document, std::size_t pageIn
     m_source = document;
     m_sourcePage = document ? pageIndex : 0;
     m_own = core::Document(); // l'ancienne page interne ne revient jamais en repli
-    restart(false, false);
+    restart(Decode::IfUncovered, Scope::OtherPage);
 }
 
 const core::Document* FixedPageItem::sourceDocument() const noexcept
@@ -202,7 +204,7 @@ void FixedPageItem::insert(core::ObjectId id)
 // Lot 2 : reconstruction complète ; le lot « cache incrémental » visera le nœud de `id` et la zone.
 void FixedPageItem::remove(core::ObjectId, const core::RectF&)
 {
-    restart(false, true);
+    restart(Decode::IfUncovered, Scope::SamePage);
 }
 
 void FixedPageItem::invalidate(core::ObjectId id, const core::CacheArea&)
