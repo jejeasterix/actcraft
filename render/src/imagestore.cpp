@@ -98,7 +98,9 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
                 }
                 m_pool.start([this, post, i, copy] {
                     m_started.fetch_add(1);
-                    post(i, std::string(), synthesizeImage(copy));
+                    // Couleur transparente appliquée comme la miniature (pagepainter.cpp, paintImage), L2-C9.
+                    const QImage image = synthesizeImage(copy);
+                    post(i, std::string(), copy.hasKeyColor ? withKeyColor(image, copy.keyColor) : image);
                 });
             } else {
                 want(object->resource,
@@ -209,7 +211,9 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
                 if (it == m_procedural.end() || it->second.pattern != im->pattern ||
                     it->second.seed != im->seed || it->second.colorA != im->colorA ||
                     it->second.colorB != im->colorB || it->second.sourceWidth != im->sourceWidth ||
-                    it->second.sourceHeight != im->sourceHeight) {
+                    it->second.sourceHeight != im->sourceHeight ||
+                    it->second.hasKeyColor != im->hasKeyColor ||
+                    (im->hasKeyColor && it->second.keyColor != im->keyColor)) {
                     return false;
                 }
             } else if (!has(im->resource) || !hasVariant(*im)) {
