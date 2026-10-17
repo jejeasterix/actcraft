@@ -19,7 +19,8 @@ redessin complet ; ce redessin « verse » les objets en attente dans la scène 
 demande, de sorte que la même image montre le cache qui les contient et la couche d'attente qui ne les dessine
 plus. Annuler un objet encore en attente ne redessine rien. **Limite déclarée de DA11** : seuls les objets insérés
 en fin de page, sans image, sur une page sans grille dessinée au-dessus des objets, sont différés ; les autres (forme
-posée sous la couche du dessus, image insérée, trait sur une page à grille au-dessus) gardent le redessin immédiat
+posée sous la couche du dessus, image insérée, trait sur une page à grille au-dessus, encre révélatrice, gomme, reconnaissance) gardent le
+redessin immédiat
 du lot 2 (écart 5, H10-8). Le banc gagne le scénario `pauses`, dont chaque reprise
 tombe dans la fenêtre du versement différé. Si une reprise y dépasse sa limite, une tâche conditionnelle passe à un
 cache par tuiles (DA11). Anticrénelage : échantillonnage multiple (MSAA 4×) de la fenêtre et de la texture du cache
@@ -35,7 +36,7 @@ en Direct3D 11, mesuré au banc ; la grille reste nette (règle de rendu relevé
 | L10-T1 | Banc : scénario `pauses` (reprises dans la fenêtre du versement), redessins du cache relevés par scénario | — | `ui/include/actcraft/ui/viewtransform.h`, `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `docs/banc.md` | isolé | implementeur-tdd | `100% tests passed … out of N`, N ≥ 91, `TESTS OK`, `tst_bench_scenarios` et `tst_bench_result` Passed (dont `pausesResumeInsideTheFoldWindow`, `fiveScenariosWithFrames`) ; banc hors écran : scénario `pauses` présent, `cache.refreshes` relevé | S13 | #tache-l10-t1 |
 | L10-T2 | `render` : fabrique de nœuds d'objet partagée (refonte sans changement de comportement) | — | `render/src/objectnodes.h`, `render/src/objectnodes.cpp`, `render/src/fixedpageitem.cpp`, `render/CMakeLists.txt` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 91, `tst_render_fixedpage` et `tst_render_painted` Passed ; mutation de `wrapped` rouge puis remise ; banc hors écran `content_check.ok = True` | S13 | #tache-l10-t2 |
 | L10-T5 | Anticrénelage en Direct3D 11 (MSAA 4× fenêtre et cache) ; étape `checkEdge` du joueur ; grille nette | L10-T0 | `app/renderbackend.h`, `app/renderbackend.cpp`, `tests/tst_renderbackend.cpp`, `ui/qml/PageArea.qml`, `bench/include/actcraft/bench/contentcheck.h`, `bench/src/contentcheck.cpp`, `tests/tst_bench_content.cpp`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `bench/src/fixtures.cpp`, `bench/scenarios/anticrenelage.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 92, `tst_renderbackend`, `tst_bench_content`, `tst_bench_uiscenario`, `tst_captures_anticrenelage` Passed ; à l'écran D3D11 (jeton `ecran`) : `BORD trait-diagonal OK`, `BORD grille-nette OK`, `LU pageCache.samples=4 OK` ; banc A/B D3D11 avant / après | S33 | #tache-l10-t5 |
-| L10-T3 | Page fixe : objets en attente hors de la scène du cache ; couche d'attente `PendingLayerItem` | L10-T0, L10-T2 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `render/include/actcraft/render/pendinglayeritem.h`, `render/src/pendinglayeritem.cpp`, `render/CMakeLists.txt`, `tests/render.cmake`, `tests/tst_render_pendinglayer.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 92, `tst_render_pendinglayer` Passed (dont `foldShowsTheSameImage`, `undoingAPendingStrokeRebuildsNothing`, `pendingStrokeMovedToTheFrontFoldsEverything`), `tst_render_fixedpage` Passed ; banc hors écran `content_check.ok = True` | S13 | #tache-l10-t3 |
+| L10-T3 | Page fixe : objets en attente hors de la scène du cache ; couche d'attente `PendingLayerItem` | L10-T0, L10-T2 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `render/include/actcraft/render/pendinglayeritem.h`, `render/src/pendinglayeritem.cpp`, `render/CMakeLists.txt`, `tests/render.cmake`, `tests/tst_render_pendinglayer.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 92, `tst_render_pendinglayer` Passed (dont `foldShowsTheSameImage`, `undoingAPendingStrokeRebuildsNothing`, `pendingStrokeMovedToTheFrontFoldsEverything`, `revealerStrokeIsNeverDeferred`), `tst_render_fixedpage` Passed ; banc hors écran `content_check.ok = True` | S13 | #tache-l10-t3 |
 | L10-T4 | Vue : versement différé (inactivité, plafond, zoom), couche d'attente branchée, scénario `cache-differe` | L10-T1, L10-T3, L10-T5 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/uiforeigntypes.h`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_verdict.cpp`, `tests/tst_bench_result.cpp`, `bench/scenarios/cache-differe.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 94, `tst_pageview` (dont `strokeWaitsAboveTheCacheUntilIdle`, `wheelPostponesTheFold`, `hoverDoesNotPostponeTheFold`), `tst_ui_drawing` (dont `deferredStrokeStaysVisibleThroughTheFold`), `tst_captures_cache_differe`, `tst_bench_verdict`, `tst_bench_result` (dont `deferredFoldShowsInTheResult`) Passed ; `captures.ps1 -Scenario cache-differe` hors écran `CAPTURES OK` ; banc hors écran : `stroke` → `cache.refreshes = 0`, `stroke-folded` OK | S13 | #tache-l10-t4 |
 | L10-T6 | Mesure S13 : trois passages D3D11 plein écran encadrés par la référence, condition « machine calme », décision tuiles | L10-T4 | `docs/mesures/AAAA-MM-JJ-cache-incremental.md` (date du passage) | isolé | concepteur-critique | 3 passages D3D11 plein écran consécutifs du lot 10 : `freeze_over_limit = 0` et `resume_over_limit = 0` sur les 5 scénarios ; référence avant et après ; RAM libre relevée à chaque passage ; résumé commité ; décision écrite sur L10-T7 | S13 | #tache-l10-t6 |
 | L10-T7 | (Conditionnelle) Cache par tuiles : seules les tuiles touchées par les objets versés sont redessinées | L10-T6 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `tests/tst_render_pendinglayer.cpp`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `docs/mesures/AAAA-MM-JJ-cache-incremental.md` | isolé | concepteur-critique | jouée seulement si L10-T6 l'exige ; `TESTS OK`, N ≥ 94, `tst_pageview` (dont `foldRefreshesOnlyTheTouchedTiles`) Passed ; mesure S13 de L10-T6 rejouée et tenue | S13 | #tache-l10-t7 |
@@ -107,13 +108,16 @@ L10-T0 le complète par le corpus et par le binaire.
    anticrénelage en D3D11 traités au lot 10 »), appliquées **faute d'autre réponse** de Jérôme (sa seule réponse
    écrite : « Pas maintenant » pour la release), pas d'un choix explicite de sa part. À verser au cadrage et à
    présenter comme tel à la porte de fin du lot 10.
-5. **Limite de DA11 déclarée.** Seuls les objets insérés en fin de page, sans image, sur une page sans grille
-   dessinée au-dessus, attendent au-dessus du cache. Trois cas gardent le redessin immédiat du lot 2 (un figement
-   possible) : (a) une forme ou un objet posé sous la couche du dessus (outils du lot 4) ; (b) une image insérée
-   (lot 5) ; (c) un trait sur une page dont la grille est dessinée au-dessus des objets (lot 4). S7 et S8 sont des
-   scénarios de captures, pas des mesures : un scénario de banc est **à ajouter au banc du lot 4** (cas a et c) et
-   **du lot 5** (cas b). Si leur mesure dépasse la limite : tuiles (L10-T7, si elle a été construite) ou tâche du
-   lot concerné (H10-8).
+5. **Limite de DA11 déclarée.** Seuls les traits ordinaires insérés en fin de page, sans image, sur une page sans
+   grille dessinée au-dessus, attendent au-dessus du cache. **Le lot 10 traite le stylo et le marqueur, pas le cas
+   courant des autres objets** : formes, textes et images vont sur la couche intermédiaire, donc **sous** les
+   annotations déjà posées (L10-T0, P6) ; dès qu'une page porte des annotations, chacun d'eux est inséré hors fin
+   de page et garde le redessin immédiat du lot 2 (un figement possible). Les autres cas (H10-8) : image insérée,
+   trait sur une page à grille au-dessus, encre révélatrice (exclue dès L10-T3, P8), gomme (P9) et reconnaissance
+   (P14), qui refont des traits déjà versés. S7 et S8 sont des scénarios de captures, pas des mesures : un scénario
+   de banc **« forme sur page annotée » est obligatoire au lot 4**, et des scénarios de banc sont à ajouter aux lots
+   3 (« gommer »), 4 (grille au-dessus), 5 (image) et 7 (« reconnaissance »). Si leur mesure dépasse la limite :
+   tuiles (L10-T7) ou cache par groupe de couches (décision de L10-T6), ou tâche du lot concerné.
 6. **Volume.** Le lot passe de 4 tâches estimées (cadrage § 1, amendement § 6) à 8, dont une conditionnelle :
    tâche d'ouverture (décision 0100), anticrénelage (porte du lot 2), outil de mesure et refonte. À présenter à la
    porte de fin du lot 10.
@@ -1324,10 +1328,15 @@ private slots:
     {
         Fixture f;
         open(f, true);
+        // P5 : un trait translucide en attente par-dessus un trait translucide déjà versé (deux passages foncent).
+        f.page->appendStroke(lineAt(100, 0x80E53935u)); // sans différé : versé tout de suite
+        const QColor single = at(f, 300, 100);
+        QVERIFY(!near(single, Qt::white, 8));
         f.page->setDeferredFolding(true);
-        f.page->appendStroke(lineAt(100, 0x80E53935u));
+        f.page->appendStroke(lineAt(100, 0x80E53935u)); // en attente, sur le premier
+        QCOMPARE(f.page->pendingCount(), 1);
         const QColor before = at(f, 300, 100);
-        QVERIFY(!near(before, Qt::white, 8));
+        QVERIFY2(!near(before, single, 8), "deux passages translucides doivent foncer");
         f.page->foldPending();
         const QColor after = at(f, 300, 100);
         QCOMPARE(f.layer->builtCount(), 0);
@@ -1450,6 +1459,22 @@ private slots:
         QVERIFY(near(at(f, 300, 100), Qt::black, 60));
     }
 
+    // P8 (L10-T0) : l'encre révélatrice rend transparents les objets sous elle ; jamais en attente, redessin
+    // immédiat. Rouge tant que la condition manque à insert (le trait serait mis en attente).
+    void revealerStrokeIsNeverDeferred()
+    {
+        Fixture f;
+        open(f, true);
+        f.page->setDeferredFolding(true);
+        QSignalSpy content(f.page, &render::FixedPageItem::contentChanged);
+        core::Stroke revealer = lineAt(100);
+        revealer.kind = core::StrokeKind::Revealer;
+        f.page->appendStroke(std::move(revealer));
+        QCOMPARE(f.page->pendingCount(), 0);
+        QCOMPARE(content.count(), 1);
+        QCOMPARE(f.page->cachedObjectCount(), std::size_t{1});
+    }
+
     void gridDrawnAboveIsNeverDeferred()
     {
         Fixture f;
@@ -1479,7 +1504,9 @@ actcraft_add_test(tst_render_pendinglayer
 ```
 
 - [ ] **Étape 2 : voir le rouge.** Commande ciblée, motif `tst_render_pendinglayer` → `error`
-  (`pendinglayeritem.h` absent).
+  (`pendinglayeritem.h` absent). Puis, une fois les étapes 3 à 5 écrites **sans** la condition `revealer` de
+  `insert`, `revealerStrokeIsNeverDeferred` doit échouer (`pendingCount` vaut 1) : ce rouge vu, ajouter la
+  condition.
 
 - [ ] **Étape 3 : l'interface de la page fixe.** Dans `render/include/actcraft/render/fixedpageitem.h` :
   `Q_PROPERTY(int pendingCount READ pendingCount NOTIFY pendingChanged)` ; en public, après `invalidate` :
@@ -1581,7 +1608,10 @@ void FixedPageItem::insert(core::ObjectId id)
     const core::PageObject& object = shown.objects[index];
     const bool imageChanged = usesImages(object);
     const bool atEnd = index + 1 == shown.objects.size();
-    if (atEnd && m_deferred && m_ready && !imageChanged && !shown.grid.drawnAbove) {
+    const auto* strokeObject = std::get_if<core::Stroke>(&object);
+    // P8 : l'encre révélatrice rend transparents les objets sous elle : jamais en attente, redessin immédiat.
+    const bool revealer = strokeObject && strokeObject->kind == core::StrokeKind::Revealer;
+    if (atEnd && m_deferred && m_ready && !imageChanged && !revealer && !shown.grid.drawnAbove) {
         // Lot 10 : il attend au-dessus du cache ; ni nœud dans la scène, ni redessin du cache. Limite de DA11
         // (écart 5, H10-8) : hors fin de page, image ou grille au-dessus → redessin immédiat ci-dessous.
         m_pendingIds.push_back(id);
@@ -2401,7 +2431,11 @@ cause), et la **décision sur L10-T7** ; worktree de référence supprimé.
   (l'attribution par recouvrement reste faite). Le
   verdict S13 compte, lui, toutes les reprises.
 - [ ] **Étape 4 : décider L10-T7.** Machine calme et S13 tenu → **L10-T7 non jouée** (écrite « non requise »). Machine
-  calme, une reprise ou un figement hors limite attribué à un redessin du cache → **L10-T7 requise** (DA11). Hors
+  calme, une reprise ou un figement hors limite attribué à un redessin du cache → **un repli est requis**, parmi
+  deux, choisi et justifié dans le résumé : **tuiles** (L10-T7, DA11) ou **cache par groupe de couches** (un cache
+  pour le fond et les couches inférieure et intermédiaire, un pour la couche du dessus, comme les images séparées de
+  la référence, P15), qui traite aussi la limite (a) de l'écart 5 (P6). Le second n'a pas de tâche dans ce plan :
+  s'il est choisi, l'orchestrateur l'écrit (relecture du plan exigée). Hors
   limite attribué à autre chose → rapporté à l'orchestrateur (tâche de correction à écrire, hors tuiles). Machine
   chargée → **non jugé**, L10-T7 non jouée, mesure à refaire à la clôture.
 - [ ] **Étape 5 : écrire le résumé** `docs/mesures/AAAA-MM-JJ-cache-incremental.md` sur le modèle de
@@ -2548,18 +2582,30 @@ pixel est un défaut : test de pixels sur une frontière de tuile).
 - **H10-4 — Annuler un objet déjà versé** redessine tout le cache tout de suite (comportement du lot 2) ; annuler un
   objet encore en attente ne coûte rien. Mesuré au lot 3 (S6, annulation branchée).
 - **H10-5 — MSAA 4×** de la fenêtre et du cache : coût mesuré sur la puce Intel intégrée de la machine de
-  développement ; sur le Dell 3510, inconnu (mesure hors porte, décision 0087).
+  développement ; sur le Dell 3510, inconnu (mesure hors porte, décision 0087). **Repli** si le MSAA y coûte trop :
+  encre vive sans lissage et lissage au relâché (le trait versé est lissé), comme la référence le fait par défaut,
+  qui abaisse la qualité du rendu pendant l'écriture et la rétablit ensuite (L10-T0, P2).
 - **H10-6 — Forme du trait de la référence** (courbe lissée, bouts et jonctions ronds) : hors lot 10 ; transmise au
   lot 3 (`L3-T0`), qui la tranche sur la 3.5.18.
 - **H10-7 — Grille nette** : préservée par contrôle négatif (S33) ; si une grille lue d'un `.flipchart` est dessinée
   en géométrie un jour, le MSAA la toucherait : le contrôle `grille-nette` le verra.
-- **H10-8 — Limite de DA11** (écart 5) : restent au redessin immédiat, avec un figement possible, (a) l'objet posé
-  sous la couche du dessus (lot 4), (b) l'image insérée (lot 5), (c) le trait sur une page à grille dessinée
-  au-dessus (lot 4) ; scénarios de banc à ajouter au banc du lot 4 (a, c) et du lot 5 (b), S7 et S8 n'étant que des
-  captures. Hors limite : tuiles (L10-T7) ou tâche du lot concerné.
+- **H10-8 — Limite de DA11** (écart 5) : restent au redessin immédiat, avec un figement possible :
+  (a) **le cas courant**, toute forme, tout texte, toute image posés sur une page déjà annotée (couche intermédiaire,
+  sous les annotations, P6) — scénario de banc **« forme sur page annotée » obligatoire au lot 4** ; (b) l'image
+  insérée (lot 5, scénario de banc à ajouter) ; (c) le trait sur une page à grille dessinée au-dessus (lot 4) —
+  limite levable par une couche de grille posée au-dessus de la couche d'attente (P7 : la référence garde un premier
+  plan séparé) ; (d) l'encre révélatrice, exclue du différé dès L10-T3 (P8) ; (e) la gomme, qui retire et scinde des
+  traits déjà versés (P9 : redessin complet, scénario de banc « gommer » au lot 3) ; (f) la reconnaissance, qui
+  remplace après son délai des traits déjà versés (P14 : redessin complet, scénario de banc « reconnaissance » au
+  lot 7). S7 et S8 ne sont que des captures. Hors limite : tuiles (L10-T7) ou cache par groupe de couches (P15,
+  décision de L10-T6), ou tâche du lot concerné.
 - **H10-9 — Mémoire du MSAA** : texture du cache jusqu'à 4096 px de côté (zoom 800 %), + 192 à + 384 Mio selon le
   pilote, sur un pic du lot 1 de 473 à 698 Mo et un budget de 1 Gio ; relevée à L10-T5 (pic GPU de `zoom`) ; repli
   écrit à L10-T5, étape 6 (échantillons du cache selon la taille de la texture : 4 sous 2048², 1 au-dessus ; 0 suivrait la fenêtre).
+- **H10-10 — Rendu pendant le zoom** : ce que montre la référence pendant un zoom (flou puis net, ou net tout de
+  suite) n'est ni décrit dans le corpus ni relevé dans le binaire (L10-T0, P13). ActCraft garde son comportement
+  (texture du cache agrandie pendant le geste, redessinée nette à la fin) ; à observer sur la référence au lot 7
+  (zoom de page), Jérôme prévenu avant toute observation à l'écran.
 
 **Écartés du lot 10, avec la raison :**
 - H2b-5 (rastérisation des objets peints pendant la synchronisation, RHI) : ni un figement ni une reprise ; le
@@ -2611,9 +2657,14 @@ Jouée après la dernière vague, dans le worktree du chantier, sur `feat/livrai
    ajouté au fichier de mesure du lot. Machine chargée : rapporté, **non jugé**, présenté tel quel à la porte.
 7. **Paquets** : `scripts/paquet.ps1` + `scripts/essai-installateur.ps1` (`PAQUET OK`, `INSTALLATEUR OK`,
    `--version : ActCraft 0.3.0`), `scripts/paquet-android.ps1` (`APK OK`, démon Gradle arrêté par PID).
-8. **Dépôt public** : `NOMS OK` ; `git grep` des titres du corpus vide (commande de L10-T0) ;
-   `git grep -n "Private\|_p\.h" -- core formats actions render ui app` vide.
+8. **Dépôt public** : `NOMS OK` ; `git grep -n "Private\|_p\.h" -- core formats actions render ui app` vide ;
+   titres du corpus absents du dépôt, **hors deux titres génériques déjà présents avant le lot** (« Boutons définis
+   par l'utilisateur », « Nouveau paperboard ») — sortie vide attendue :
+   ```powershell
+   pwsh -NoProfile -Command "`$exclus = @('Boutons définis par l''utilisateur', 'Nouveau paperboard'); Get-ChildItem 'C:\Users\JeromeDenis\REA - Activinspire\docs\videos-tanguay\*.md' -Exclude README.md | ForEach-Object { `$t = (Get-Content -LiteralPath `$_.FullName -TotalCount 5 -Encoding utf8 | Where-Object { `$_ -like '# *' } | Select-Object -First 1); if (`$t) { `$t = `$t.Substring(2).Trim(); if (`$exclus -notcontains `$t) { git -C 'C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete' grep -l -i -F -- `$t } } }"
+   ```
+   (`-notcontains` ignore la casse ; une ligne affichée est un nom de fichier du dépôt qui contient un titre).
 9. **Graphe** : `graphify update .`, commit de `graphify-out/`.
 10. **PR du lot** (étage 4) et **porte de fin du lot 10** : release 0.3.0 proposée (publiée seulement sur go écrit) ;
     S13 (tenu, non tenu ou non jugé, avec la condition machine), S33, écarts au cadrage 1 à 6 (dont le volume, 4 → 8 tâches), hypothèses H10-1 à
-    H10-9, décision sur L10-T7, constats de L10-T0 transmis aux autres lots.
+    H10-10, décision sur L10-T7, constats de L10-T0 transmis aux autres lots.
