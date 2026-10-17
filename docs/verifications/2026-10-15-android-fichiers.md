@@ -14,6 +14,7 @@ VERIF s5-ouvert = `10-16 22:09:30.626  6138  6165 I actcraft.document: ACTCRAFT 
 VERIF s5-verdict = ANDROID FICHIERS OK (empreinte enregistrée = empreinte relue ; trait au doigt contrôlé sur la capture avant l'enregistrement, pixel lu 0 0 0 ; aucun FATAL EXCEPTION dans logcat)
 VERIF s5-mutation = journal OUVERT faussé d'un bit (ui/src/documentcontroller.cpp, `fingerprint ^ 1`), APK reconstruit : `ANDROID FICHIERS EN ECHEC : empreintes différentes : a6c1e66f17d9f0a3 enregistrée, a6c1e66f17d9f0a2 relue` ; fichier remis par git checkout --, APK reconstruit propre
 VERIF s5-final = APK propre reconstruit après la mutation, script final (nettoyage par `find /sdcard/`) : `ACTCRAFT ENREGISTRE a3277271775faa91`, `ACTCRAFT OUVERT a3277271775faa91`, ANDROID FICHIERS OK
+VERIF s5-trois-passages = 2026-10-17, APK reconstruit après L2-C6 (LICENCES OK sans ajout), script robuste (nom propre à l'essai, critères indépendants de la langue, indication « plein écran » écartée, serveur adb arrêté par PID) : passages consécutifs `essai-20261017-023343.actcraft` d168020cda87c217 = d168020cda87c217, `essai-20261017-023710.actcraft` 285cad712988f85e = 285cad712988f85e, `essai-20261017-024148.actcraft` 285cad712988f85e = 285cad712988f85e : trois ANDROID FICHIERS OK
 VERIF s3-module = essai-android.ps1 passe par scripts/android-commun.ps1 ; sous un adb bouchon qui ne répond pas, dernière ligne identique avant et après l'extraction : `ANDROID EN ECHEC : adb get-state sans réponse (15 s)`
 VERIF s5-patron-ecarte = sous les mêmes bouchons (adb et emulator), essai-android-fichiers.ps1 finit par `ANDROID FICHIERS EN ECHEC : adb get-state sans réponse (15 s)` et l'émulateur bouchon est arrêté ; avec l'`Echec` d'essai-android.ps1 recopié dans le module (patron écarté), la dernière ligne devient `ANDROID EN ECHEC : …` et l'émulateur bouchon reste vivant
 
@@ -26,6 +27,20 @@ VERIF s5-patron-ecarte = sous les mêmes bouchons (adb et emulator), essai-andro
    après la fin du script) et du dossier courant (worktree verrouillé). Le script le démarre à part
    (`adb start-server`, dossier temporaire, sans handle hérité).
 3. `uiautomator dump` sans fichier tant que la fenêtre de l'application s'anime : nouvel essai jusqu'au délai.
+4. Rejeu de l'orchestrateur (2026-10-17) : `bouton d'enregistrement du sélecteur introuvable`. L'arbre et la capture
+   montrent l'indication « plein écran » du système (`android:id/immersive_cling_title`, paquet `android`) au premier
+   plein écran de l'application réinstallée : elle prend le raccourci, aucun sélecteur ne s'ouvre. Le script confirme
+   l'indication d'avance (`settings put secure immersive_mode_confirmations confirmed`), l'écarte par son identifiant
+   si elle paraît et renvoie le raccourci (une fois de plus si aucune fenêtre de DocumentsUI n'est venue en 20 s).
+   Critères indépendants de la langue : paquet DocumentsUI et `android:id/button1` pour enregistrer,
+   `android:id/title` et l'extension `.actcraft` pour ouvrir. En échec, l'arbre et la capture restent sous `.tmp/`
+   (`fichiers-enregistrer.xml|png`, `fichiers-ouvrir.xml|png`), chemins dans la ligne d'échec. Le serveur adb démarré
+   par l'essai (port 5037 libre avant) est arrêté par son PID.
+5. Paperboards des essais précédents toujours listés par le fournisseur des téléchargements malgré `find -delete`
+   (« Sans titre (1).actcraft »…) : un passage a fini sans ligne ENREGISTRE après « SAVE ». Le script saisit un nom
+   propre à l'essai (`essai-<date>.actcraft`, Ctrl+A puis `input text`), retouche « SAVE » tant que le sélecteur reste
+   ouvert (trois fois au plus) et rouvre ce nom exact. Glissement rejoué (trois fois au plus) s'il tombe pendant le
+   passage en plein écran. À tout échec : journal et capture sous `.tmp/fichiers-echec-*`.
 
 ## Hors périmètre, constaté
 
