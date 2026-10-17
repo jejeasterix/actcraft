@@ -1424,6 +1424,17 @@ std::optional<int> majorVersion(const QString& format)
 
 } // namespace
 
+namespace {
+
+// Entrée « resources » du JSON : clé et extension (documentToJson l'écrit, documentFromJson en déduit les
+// clés connues).
+QJsonObject resourceJson(const std::string& key, const std::string& extension)
+{
+    return QJsonObject{{u"key"_s, str(key)}, {u"extension"_s, str(extension)}};
+}
+
+} // namespace
+
 QJsonObject documentToJson(const Document& document)
 {
     QJsonObject root;
@@ -1434,8 +1445,7 @@ QJsonObject documentToJson(const Document& document)
     for (const auto& [key, resource] : document.resources()) {
         // Les octets vont dans l'archive (L2-T6), jamais dans le JSON.
         [[maybe_unused]] const auto& [data, extension, unknownKeys] = resource;
-        resources.append(
-            withKept(QJsonObject{{u"key"_s, str(key)}, {u"extension"_s, str(extension)}}, unknownKeys));
+        resources.append(withKept(resourceJson(key, extension), unknownKeys));
     }
     root.insert(u"resources"_s, resources);
     QJsonArray pages;
@@ -1474,7 +1484,7 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
     known.action = actionJson(Action{});
     known.run = runJson(TextSpan{});
     known.level = gridLevelJson(GridLevel{});
-    known.resource = QJsonObject{{u"key"_s, QString()}, {u"extension"_s, QString()}};
+    known.resource = resourceJson({}, {});
     known.document = documentToJson(Document{});
 
     // Tout est lu dans un document neuf : `out` n'est remplacé qu'à la fin, lecture réussie.
