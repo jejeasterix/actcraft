@@ -4,7 +4,8 @@
 
 **But.** Version **0.3.0** : plus aucun figement ni aucune reprise hors limite au banc, en Direct3D 11 plein écran,
 sur tous les scénarios, dont un nouveau scénario à pauses longues (S13) ; traits lissés (anticrénelés) en
-Direct3D 11 comme en rendu logiciel (constat L2-C11, tranché à la porte de fin du lot 2). Seule change
+Direct3D 11 comme en rendu logiciel (constat L2-C11 ; recommandation de la porte de fin du lot 2 appliquée faute
+d'autre réponse de Jérôme, pas un choix explicite : à lui présenter à la porte de fin du lot 10). Seule change
 l'**implémentation** de l'interface de cache figée au lot 2 (`core::PageCache` : `insert`, `remove`, `invalidate`) :
 aucun outil, aucun appelant de cette interface ne change (décision 13 et DA11 du cadrage).
 
@@ -16,7 +17,10 @@ d'attente** (`render::PendingLayerItem`, nouvelle) le dessine par-dessus. Le cac
 **hors de l'écriture** : après 500 ms sans entrée, au-delà de 128 objets en attente, à la fin d'un zoom, ou à tout
 redessin complet ; ce redessin « verse » les objets en attente dans la scène dans le même tour de boucle que la
 demande, de sorte que la même image montre le cache qui les contient et la couche d'attente qui ne les dessine
-plus. Annuler un objet encore en attente ne redessine rien. Le banc gagne le scénario `pauses`, dont chaque reprise
+plus. Annuler un objet encore en attente ne redessine rien. **Limite déclarée de DA11** : seuls les objets insérés
+en fin de page, sans image, sur une page sans grille dessinée au-dessus des objets, sont différés ; les autres (forme
+posée sous la couche du dessus, image insérée, trait sur une page à grille au-dessus) gardent le redessin immédiat
+du lot 2 (écart 5, H10-8). Le banc gagne le scénario `pauses`, dont chaque reprise
 tombe dans la fenêtre du versement différé. Si une reprise y dépasse sa limite, une tâche conditionnelle passe à un
 cache par tuiles (DA11). Anticrénelage : échantillonnage multiple (MSAA 4×) de la fenêtre et de la texture du cache
 en Direct3D 11, mesuré au banc ; la grille reste nette (règle de rendu relevée au pixel sur la référence).
@@ -31,8 +35,8 @@ en Direct3D 11, mesuré au banc ; la grille reste nette (règle de rendu relevé
 | L10-T1 | Banc : scénario `pauses` (reprises dans la fenêtre du versement), redessins du cache relevés par scénario | — | `ui/include/actcraft/ui/viewtransform.h`, `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `docs/banc.md` | isolé | implementeur-tdd | `100% tests passed … out of N`, N ≥ 91, `TESTS OK`, `tst_bench_scenarios` et `tst_bench_result` Passed (dont `pausesResumeInsideTheFoldWindow`, `fiveScenariosWithFrames`) ; banc hors écran : scénario `pauses` présent, `cache.refreshes` relevé | S13 | #tache-l10-t1 |
 | L10-T2 | `render` : fabrique de nœuds d'objet partagée (refonte sans changement de comportement) | — | `render/src/objectnodes.h`, `render/src/objectnodes.cpp`, `render/src/fixedpageitem.cpp`, `render/CMakeLists.txt` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 91, `tst_render_fixedpage` et `tst_render_painted` Passed ; mutation de `wrapped` rouge puis remise ; banc hors écran `content_check.ok = True` | S13 | #tache-l10-t2 |
 | L10-T5 | Anticrénelage en Direct3D 11 (MSAA 4× fenêtre et cache) ; étape `checkEdge` du joueur ; grille nette | L10-T0 | `app/renderbackend.h`, `app/renderbackend.cpp`, `tests/tst_renderbackend.cpp`, `ui/qml/PageArea.qml`, `bench/include/actcraft/bench/contentcheck.h`, `bench/src/contentcheck.cpp`, `tests/tst_bench_content.cpp`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `bench/src/fixtures.cpp`, `bench/scenarios/anticrenelage.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 92, `tst_renderbackend`, `tst_bench_content`, `tst_bench_uiscenario`, `tst_captures_anticrenelage` Passed ; à l'écran D3D11 (jeton `ecran`) : `BORD trait-diagonal OK`, `BORD grille-nette OK`, `LU pageCache.samples=4 OK` ; banc A/B D3D11 avant / après | S33 | #tache-l10-t5 |
-| L10-T3 | Page fixe : objets en attente hors de la scène du cache ; couche d'attente `PendingLayerItem` | L10-T0, L10-T2 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `render/include/actcraft/render/pendinglayeritem.h`, `render/src/pendinglayeritem.cpp`, `render/CMakeLists.txt`, `tests/render.cmake`, `tests/tst_render_pendinglayer.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 92, `tst_render_pendinglayer` Passed (dont `foldShowsTheSameImage`, `undoingAPendingStrokeRebuildsNothing`), `tst_render_fixedpage` Passed ; banc hors écran `content_check.ok = True` | S13 | #tache-l10-t3 |
-| L10-T4 | Vue : versement différé (inactivité, plafond, zoom), couche d'attente branchée, scénario `cache-differe` | L10-T1, L10-T3, L10-T5 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/uiforeigntypes.h`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_verdict.cpp`, `bench/scenarios/cache-differe.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 94, `tst_pageview` (dont `strokeWaitsAboveTheCacheUntilIdle`), `tst_ui_drawing` (dont `deferredStrokeStaysVisibleThroughTheFold`), `tst_captures_cache_differe`, `tst_bench_verdict` Passed ; `captures.ps1 -Scenario cache-differe` hors écran `CAPTURES OK` ; banc hors écran : `stroke` → `cache.refreshes = 0`, `stroke-folded` OK | S13 | #tache-l10-t4 |
+| L10-T3 | Page fixe : objets en attente hors de la scène du cache ; couche d'attente `PendingLayerItem` | L10-T0, L10-T2 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `render/include/actcraft/render/pendinglayeritem.h`, `render/src/pendinglayeritem.cpp`, `render/CMakeLists.txt`, `tests/render.cmake`, `tests/tst_render_pendinglayer.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 92, `tst_render_pendinglayer` Passed (dont `foldShowsTheSameImage`, `undoingAPendingStrokeRebuildsNothing`, `pendingStrokeMovedToTheFrontFoldsEverything`), `tst_render_fixedpage` Passed ; banc hors écran `content_check.ok = True` | S13 | #tache-l10-t3 |
+| L10-T4 | Vue : versement différé (inactivité, plafond, zoom), couche d'attente branchée, scénario `cache-differe` | L10-T1, L10-T3, L10-T5 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/uiforeigntypes.h`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_verdict.cpp`, `tests/tst_bench_result.cpp`, `bench/scenarios/cache-differe.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 94, `tst_pageview` (dont `strokeWaitsAboveTheCacheUntilIdle`, `wheelPostponesTheFold`), `tst_ui_drawing` (dont `deferredStrokeStaysVisibleThroughTheFold`), `tst_captures_cache_differe`, `tst_bench_verdict` Passed ; `captures.ps1 -Scenario cache-differe` hors écran `CAPTURES OK` ; banc hors écran : `stroke` → `cache.refreshes = 0`, `stroke-folded` OK | S13 | #tache-l10-t4 |
 | L10-T6 | Mesure S13 : trois passages D3D11 plein écran encadrés par la référence, condition « machine calme », décision tuiles | L10-T4 | `docs/mesures/AAAA-MM-JJ-cache-incremental.md` (date du passage) | isolé | concepteur-critique | 3 passages D3D11 plein écran consécutifs du lot 10 : `freeze_over_limit = 0` et `resume_over_limit = 0` sur les 5 scénarios ; référence avant et après ; RAM libre relevée à chaque passage ; résumé commité ; décision écrite sur L10-T7 | S13 | #tache-l10-t6 |
 | L10-T7 | (Conditionnelle) Cache par tuiles : seules les tuiles touchées par les objets versés sont redessinées | L10-T6 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `tests/tst_render_pendinglayer.cpp`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `docs/mesures/AAAA-MM-JJ-cache-incremental.md` | isolé | concepteur-critique | jouée seulement si L10-T6 l'exige ; `TESTS OK`, N ≥ 94, `tst_pageview` (dont `foldRefreshesOnlyTheTouchedTiles`) Passed ; mesure S13 de L10-T6 rejouée et tenue | S13 | #tache-l10-t7 |
 
@@ -98,8 +102,19 @@ L10-T0 le complète par le corpus et par le binaire.
 3. **Référence du lot 10.** Le commit de merge de L10-T1 (ancienne implémentation du cache, banc du lot 10) : la
    0.2.0 n'a pas le scénario `pauses`. La non-régression du lot 2 (0.1.0 contre 0.2.0) et celle du lot 10 (0.2.0
    contre 0.3.0) se jouent ensemble à la clôture, sur `stroke`, `zoom`, `scroll`.
-4. **Scénario S33 ajouté par ce plan** (porte de fin du lot 2 : « traits sans anticrénelage en D3D11 traités au lot
-   10 ») ; à verser au cadrage par l'orchestrateur à la porte de fin.
+4. **Scénario S33 ajouté par ce plan.** Il vient des recommandations de la porte de fin du lot 2 (« traits sans
+   anticrénelage en D3D11 traités au lot 10 »), appliquées **faute d'autre réponse** de Jérôme (sa seule réponse
+   écrite : « Pas maintenant » pour la release), pas d'un choix explicite de sa part. À verser au cadrage et à
+   présenter comme tel à la porte de fin du lot 10.
+5. **Limite de DA11 déclarée.** Seuls les objets insérés en fin de page, sans image, sur une page sans grille
+   dessinée au-dessus, attendent au-dessus du cache. Trois cas gardent le redessin immédiat du lot 2 (un figement
+   possible) : (a) une forme ou un objet posé sous la couche du dessus (outils du lot 4 : mesuré par S7) ; (b) une
+   image insérée (lot 5 : mesurée par S8) ; (c) un trait sur une page dont la grille est dessinée au-dessus des
+   objets (lot 4 : S7). Si leur mesure dépasse la limite : tuiles (L10-T7, si elle a été construite) ou tâche du
+   lot concerné (H10-8).
+6. **Volume.** Le lot passe de 4 tâches estimées (cadrage § 1, amendement § 6) à 8, dont une conditionnelle :
+   tâche d'ouverture (décision 0100), anticrénelage (porte du lot 2), outil de mesure et refonte. À présenter à la
+   porte de fin du lot 10.
 
 ## Scénario ajouté
 
@@ -316,7 +331,10 @@ chemin ; `NOMS OK` ; la commande des titres ne sort rien ; le rapport de tâche 
 **Objectif.** DA11 : « le banc gagne un scénario à pauses longues pour que le redessin différé soit mesuré ». Le
 scénario `stroke` laisse 300 ms entre deux traits : un redessin déclenché après une inactivité plus longue n'y
 arriverait jamais, et la mesure tromperait. `pauses` trace 10 traits (4 en court) séparés par **le délai
-d'inactivité plus 0 à 64 ms** (0 à 48 ms en court) : chaque reprise du stylet tombe dans la fenêtre où le cache est redessiné. Le banc
+d'inactivité plus 0 à 64 ms** (0 à 48 ms en court) : chaque reprise du stylet tombe dans la fenêtre où le cache est redessiné.
+La reprise k = 0 tombe à l'instant même du versement : l'appui relance la minuterie et ne mesure rien de sûr ;
+seules les reprises k ≥ 1 comptent pour juger le versement (L10-T6), à condition que le relâché qui les précède ait
+été posté avec moins de 8 ms de retard (champ `input` du JSON). Le banc
 relève aussi, par scénario, les instants des demandes de redessin du cache et de leurs fins (`cache.refreshes`,
 `raw.cache_request_ns`, `raw.cache_updated_ns`), pour attribuer un figement ou une reprise à un redessin (L10-T6).
 La tâche ne change pas le cache : sur l'implémentation du lot 2, `pauses` doit montrer un redessin par trait.
@@ -383,7 +401,9 @@ ni `render/` ni `ui/src/`. Un test existant ne change que là où il compte les 
                 QVERIFY(p >= idleNs);
                 QVERIFY(p <= idleNs + 64'000'000);
             }
-            QCOMPARE(pauses.front(), idleNs); // la première reprise tombe à l'instant même du redessin
+            // k = 0 : l'appui tombe à l'instant du versement et relance la minuterie ; il ne mesure rien de sûr.
+            // Seules les reprises k >= 1 jugent le versement (L10-T6).
+            QCOMPARE(pauses.front(), idleNs);
             QVERIFY(pauses.back() - pauses.front() >= 40'000'000); // la fenêtre du versement est balayée
         }
     }
@@ -427,9 +447,11 @@ ni `render/` ni `ui/src/`. Un test existant ne change que là où il compte les 
         const QJsonObject raw = pauses.value("raw").toObject();
         const QJsonArray requests = raw.value("cache_request_ns").toArray();
         const QJsonArray updates = raw.value("cache_updated_ns").toArray();
-        QCOMPARE(cache.value("refreshes").toInt(), requests.size());
-        QVERIFY(requests.size() >= 1);
-        QVERIFY(!updates.isEmpty());
+        // Lot 2 : un redessin par trait de « pauses », 4 en court ; au moins 3 exigés (la fin du dernier peut
+        // tomber après la fenêtre). L10-T4 abaisse ce minimum à 2 (versement différé, reprise k = 0 exclue).
+        QVERIFY2(cache.value("refreshes").toInt() >= 3, "un redessin par trait attendu (ancien cache)");
+        QVERIFY(requests.size() >= 3);
+        QVERIFY(updates.size() >= 3);
         for (qsizetype i = 1; i < requests.size(); ++i) {
             QVERIFY(requests.at(i).toDouble() >= requests.at(i - 1).toDouble());
         }
@@ -765,8 +787,9 @@ que le banc mesure ce que l'utilisateur voit.
 `tst_renderbackend`, `tst_bench_content`, `tst_bench_uiscenario`, `tst_captures_anticrenelage` Passed. Preuve
 visuelle hors écran : `captures.ps1 -Scenario anticrenelage -Rendu logiciel -HorsEcran` → `LU pageCache.samples=4
 OK`, `BORD trait-diagonal OK`, `BORD trait-zoom OK`, `BORD grille-nette OK`, `CAPTURES OK`. **À l'écran en D3D11**
-(jeton `ecran`, annoncé par l'orchestrateur) : d'abord sur le commit de base du worktree (avant la tâche) →
-`BORD trait-diagonal ECART (intermédiaires 0 …)` (le rouge du constat), puis sur la tâche → les quatre lignes OK ;
+(jeton `ecran`, annoncé par l'orchestrateur) : d'abord sous mutation (échantillonnage coupé, étape 10 : la base
+n'a pas l'étape `checkEdge`) → `BORD trait-diagonal ECART (intermédiaires 0 …)` (le rouge du constat), puis sans
+mutation → les lignes `BORD` OK ;
 captures regardées et décrites (bord du trait, grille). Banc A/B D3D11 plein écran (voir étape 10).
 
 **Interdits.** Pas d'anticrénelage dans `render/` par une autre voie (géométrie à bords fondus, shader) sans que
@@ -827,6 +850,8 @@ Ne pas lisser la grille. Rien de changé en rendu logiciel.
         QCOMPARE(bench::countIntermediatePixels(aliased, from, to, Qt::white, Qt::black, 24), 0);
         QVERIFY(bench::countIntermediatePixels(smooth, from, to, Qt::white, Qt::black, 24) >= 2);
         QCOMPARE(bench::countIntermediatePixels(QImage(), from, to, Qt::white, Qt::black, 24), -1);
+        QVERIFY(bench::countInkPixels(aliased, from, to, Qt::black, 24) >= 1); // la ligne croise le trait
+        QCOMPARE(bench::countInkPixels(aliased, QPoint(0, 0), QPoint(0, 39), Qt::black, 24), 0);
     }
 ```
 
@@ -851,6 +876,7 @@ Ne pas lisser la grille. Rien de changé en rendu logiciel.
         QCOMPARE(step.to, QPointF(440, 400));
         QCOMPARE(step.minIntermediate, 2);
         QCOMPARE(step.maxIntermediate, -1); // sans plafond
+        QCOMPARE(step.minInk, 0);
         const QByteArray bad = R"({"format": "actcraft-scenario/1", "name": "x", "steps": [
             {"checkEdge": "bord", "from": [380, 400]}]})";
         QVERIFY(!bench::parseUiScenario(bad, s, error));
@@ -881,6 +907,12 @@ Ne pas lisser la grille. Rien de changé en rendu logiciel.
 
 - [ ] **Étape 6 : cache multi-échantillonné.** Dans `ui/qml/PageArea.qml`, au `ShaderEffectSource` `pageCache` :
   `samples: 4 // L10-T5 : texture du cache lissée en RHI (sans effet en rendu logiciel)`.
+  Mémoire (H10-9) : la texture du cache va jusqu'à 4096 px de côté au zoom 800 % ; multi-échantillonnée 4×, elle
+  coûte de + 192 à + 384 Mio selon le pilote, à ajouter au pic du lot 1 (473-698 Mo) sous le budget de 1 Gio. Le
+  pic mémoire GPU du scénario `zoom` est relevé à l'étape 10. **Repli** s'il dépasse le budget ou gagne plus de
+  200 Mio sur la base : échantillons selon la taille de la texture,
+  `samples: view.cacheTextureSize.width * view.cacheTextureSize.height <= 2048 * 2048 ? 4 : 0` (lissé jusqu'à
+  2048², net au-delà, aux forts zooms où le crénelage se voit le moins), puis A/B rejoué.
 
 - [ ] **Étape 7 : compte de pixels et étape `checkEdge`.** Dans `bench/include/actcraft/bench/contentcheck.h` :
 
@@ -890,6 +922,9 @@ Ne pas lisser la grille. Rien de changé en rendu logiciel.
 // si un point sort de l'image.
 int countIntermediatePixels(const QImage& image, QPoint from, QPoint to, QColor background, QColor ink,
                             int margin);
+// Pixels de la même ligne à `margin` près de l'encre : contrôle positif (le segment croise bien un trait ou
+// une ligne de grille). -1 dans les mêmes cas.
+int countInkPixels(const QImage& image, QPoint from, QPoint to, QColor ink, int margin);
 ```
 
   Dans `bench/src/contentcheck.cpp` :
@@ -931,14 +966,19 @@ int countIntermediatePixels(const QImage& image, QPoint from, QPoint to, QColor 
 }
 ```
 
+  `countInkPixels` : même parcours de Bresenham, compte les pixels `colorNear(c, ink, margin)`. Écrire le parcours
+  une fois, dans une fonction interne qui reçoit un prédicat sur la couleur, et l'appeler depuis les deux
+  fonctions publiques (mêmes cas -1).
+
   Dans `bench/include/actcraft/bench/uiscenario.h`, à la fin de `UiStepKind` :
 
 ```cpp
     // Ajoutée au lot 10 (L10-T5, S33), à la fin.
-    CheckEdge, // {"checkEdge": "nom", "from": [x, y], "to": [x, y], "minIntermediate": 2, "maxIntermediate": 0}
+    CheckEdge, // {"checkEdge": "nom", "from": [x, y], "to": [x, y], "minIntermediate": 2, "maxIntermediate": 0, "minInk": 1}
 ```
 
-  et à `UiStep` : `QPointF to;`, `int minIntermediate = 0;`, `int maxIntermediate = -1; // -1 : sans plafond`.
+  et à `UiStep` : `QPointF to;`, `int minIntermediate = 0;`, `int maxIntermediate = -1; // -1 : sans plafond`,
+  `int minInk = 0; // pixels d'encre exigés sur le segment (contrôle positif d'un contrôle négatif)`.
   Déclarer `bool checkEdge(const UiStep& step, QStringList& report);` près de `checkPixel`. Dans
   `bench/src/uiscenario.cpp`, analyse (après le bloc `checkPixel`) :
 
@@ -948,6 +988,7 @@ int countIntermediatePixels(const QImage& image, QPoint from, QPoint to, QColor 
         step.name = o.value(QStringLiteral("checkEdge")).toString();
         step.minIntermediate = o.value(QStringLiteral("minIntermediate")).toInt(0);
         step.maxIntermediate = o.value(QStringLiteral("maxIntermediate")).toInt(-1);
+        step.minInk = o.value(QStringLiteral("minInk")).toInt(0);
         if (step.name.isEmpty() || !readPoint(o.value(QStringLiteral("from")), step.at) ||
             !readPoint(o.value(QStringLiteral("to")), step.to)) {
             why = QStringLiteral("contrôle de bord invalide (checkEdge, from, to)");
@@ -967,21 +1008,25 @@ bool UiScenarioPlayer::checkEdge(const UiStep& step, QStringList& report)
     ui::PageView* v = view();
     const QImage image = m_window->grabWindow();
     int count = -1;
+    int ink = -1;
     if (v && !image.isNull()) {
         const qreal dpr = m_window->devicePixelRatio();
-        count = countIntermediatePixels(image, sceneToImage(v->pageToScene(step.at), dpr),
-                                        sceneToImage(v->pageToScene(step.to), dpr), QColor(Qt::white),
-                                        QColor(Qt::black), 24);
+        const QPoint from = sceneToImage(v->pageToScene(step.at), dpr);
+        const QPoint to = sceneToImage(v->pageToScene(step.to), dpr);
+        count = countIntermediatePixels(image, from, to, QColor(Qt::white), QColor(Qt::black), 24);
+        ink = countInkPixels(image, from, to, QColor(Qt::black), 24);
     }
     const bool ok = count >= step.minIntermediate &&
-                    (step.maxIntermediate < 0 || count <= step.maxIntermediate);
+                    (step.maxIntermediate < 0 || count <= step.maxIntermediate) && ink >= step.minInk;
     const QString expected = step.maxIntermediate < 0
                                  ? QStringLiteral("≥ %1").arg(step.minIntermediate)
                                  : QStringLiteral("%1 à %2").arg(step.minIntermediate).arg(step.maxIntermediate);
-    report << QStringLiteral("BORD %1 %2 (intermédiaires %3, attendu %4)")
+    report << QStringLiteral("BORD %1 %2 (intermédiaires %3, attendu %4 ; encre %5, au moins %6)")
                   .arg(step.name, ok ? QStringLiteral("OK") : QStringLiteral("ECART"))
                   .arg(count)
-                  .arg(expected);
+                  .arg(expected)
+                  .arg(ink)
+                  .arg(step.minInk);
     return ok;
 }
 ```
@@ -1026,7 +1071,7 @@ bool buildGrid(const QString& path, QString& error)
     {"waitFor": "pageIndicator.text", "value": "1 / 1", "timeoutMs": 10000},
     {"command": "view.zoom", "argument": 100},
     {"waitReady": true},
-    {"checkEdge": "grille-nette", "from": [100, 40], "to": [100, 90], "minIntermediate": 0, "maxIntermediate": 0},
+    {"checkEdge": "grille-nette", "from": [100, 40], "to": [100, 90], "minIntermediate": 0, "maxIntermediate": 0, "minInk": 1},
     {"capture": "grille"},
     {"command": "pen.color", "argument": "#000000"},
     {"command": "pen.width", "argument": 8},
@@ -1050,8 +1095,11 @@ bool buildGrid(const QString& path, QString& error)
   croise le segment vertical `x = 100` (de `y = 40` à `y = 90`, entre les colonnes de grille 96 et 128) : ses
   pixels sont noirs ou blancs, aucun intermédiaire. Les lignes de grille croisées par le segment du trait (colonnes
   384 et 416) sont noires : elles ne comptent pas comme intermédiaires. Avant de figer les nombres, jouer le
-  scénario hors écran (étape 9) et n'ajuster que les coordonnées si un segment sort de la vue (lire les lignes
-  `BORD`), jamais les seuils. Si `grille-nette` échoue **aussi sans MSAA** (mutation de l'étape 10), le défaut
+  scénario hors écran (étape 9). Le segment de la grille est **fixé par la géométrie de la fixture** (ligne `y = 64`,
+  colonnes 96 et 128) et ne se déplace pas : s'il sort de la vue, changer le zoom ou le défilement, pas le segment.
+  Son contrôle positif (`minInk: 1` : au moins un pixel noir, la ligne est bien croisée) rend le contrôle négatif
+  probant ; un segment qui ne croise rien échouerait. Toute coordonnée changée pour un trait est rejouée sous la
+  mutation de l'étape 10 (rouge exigé), jamais les seuils. Si `grille-nette` échoue **aussi sans MSAA** (mutation de l'étape 10), le défaut
   précède la tâche (grille rééchantillonnée à une position fractionnaire, par exemple) : le rapporter, garder
   l'étape et l'écrire en hypothèse pour l'orchestrateur, sans corriger la grille ici.
 
@@ -1095,7 +1143,8 @@ set_tests_properties(tst_captures_anticrenelage PROPERTIES
   `scripts/build.ps1 -Preset release` sous le jeton `tests`) ; relever la « machine calme » (règles communes),
   puis, sous le jeton `ecran`, en alternance base → tâche → base → tâche,
   `pwsh -NoProfile -File ./scripts/bench.ps1 -Rendu d3d11 -SansConstruire` dans le worktree concerné. Rapporter pour chaque passage : RAM libre, images/s, p95 et part > 25 ms de `stroke`, `zoom`,
-  `scroll`, latence p50/p95, pic mémoire. **Critère** : aucun de ces critères tenu par la base n'est perdu par la
+  `scroll`, latence p50/p95, pic mémoire, et **pic mémoire GPU du scénario `zoom`** (`memory.gpu_peak_bytes`, base
+  contre tâche ; repli de l'étape 6 si besoin, H10-9). **Critère** : aucun de ces critères tenu par la base n'est perdu par la
   tâche sur les deux paires (machine calme) ; machine chargée : rapporté, non jugé. Si le MSAA fait perdre un
   critère sur machine calme, s'arrêter et le rapporter à l'orchestrateur (repli : bords fondus dans la géométrie,
   tâche nouvelle). Supprimer le worktree de base ensuite (`git worktree remove`, depuis un autre dossier courant).
@@ -1118,6 +1167,9 @@ cache photographie) : il **attend**. `PendingLayerItem` le dessine, avec les mê
 le verse dans la scène. Annuler un objet en attente (`remove`) ou le modifier (`invalidate`) ne reconstruit rien :
 seule la couche d'attente change. Tout autre changement fait la reconstruction complète du lot 2, qui verse aussi
 tout ce qui attend. Hors mode différé, rien ne change (défaut : comportement du lot 2, tests existants inchangés).
+Les cas non différés sont la limite déclarée de DA11 (écart 5, H10-8). Un objet en attente que l'on réordonne
+(changement annoncé en `ObjectChanged` : `core/include/actcraft/core/undo.h` n'a pas de type « réordonné ») cesse
+d'être en queue de page : `invalidate` le détecte et reconstruit tout.
 
 **Invariant partagé (à tester, c'est le piège).** À chaque synchronisation, la scène de `FixedPageItem` contient
 exactement les `cachedObjectCount()` premiers objets de la page, et la couche d'attente exactement les suivants
@@ -1158,6 +1210,8 @@ Aucun test existant modifié. Aucun verrou.
 #include <QQuickWindow>
 #include <QSignalSpy>
 #include <QTest>
+
+#include <algorithm>
 
 using namespace actcraft;
 
@@ -1331,6 +1385,37 @@ private slots:
         QCOMPARE(f.page->cachedObjectCount(), std::size_t{2});
     }
 
+    // Un trait en attente réordonné en tête de page (ObjectChanged) n'est plus en queue : tout est reconstruit.
+    void pendingStrokeMovedToTheFrontFoldsEverything()
+    {
+        Fixture f;
+        open(f, true);
+        core::Document d;
+        core::PageObject first = lineAt(100);
+        first.common.id = d.allocateId();
+        first.common.layer = core::Layer::Top;
+        core::insertAtTopOfLayer(d.page(0), std::move(first));
+        f.page->setSource(&d, 0);
+        QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 5000));
+        f.page->setDeferredFolding(true);
+        core::PageObject moved = lineAt(300);
+        moved.common.id = d.allocateId();
+        moved.common.layer = core::Layer::Top;
+        const core::ObjectId id = moved.common.id;
+        core::insertAtTopOfLayer(d.page(0), std::move(moved));
+        f.page->insert(id);
+        QCOMPARE(f.page->pendingCount(), 1);
+        QVERIFY(near(at(f, 300, 300), Qt::black, 60));
+        const int rebuilds = f.page->rebuildCount();
+        auto& objects = d.page(0).objects;
+        std::rotate(objects.begin(), objects.end() - 1, objects.end()); // en tête de page
+        f.page->invalidate(id, core::RectF{100, 296, 400, 8});
+        QCOMPARE(f.page->pendingCount(), 0);
+        QVERIFY(near(at(f, 300, 300), Qt::black, 60)); // dans la scène, plus dans la couche
+        QCOMPARE(f.layer->builtCount(), 0);
+        QVERIFY(f.page->rebuildCount() > rebuilds);
+    }
+
     void pendingAreAlwaysTheLastObjects()
     {
         Fixture f;
@@ -1492,7 +1577,8 @@ void FixedPageItem::insert(core::ObjectId id)
     const bool imageChanged = usesImages(object);
     const bool atEnd = index + 1 == shown.objects.size();
     if (atEnd && m_deferred && m_ready && !imageChanged && !shown.grid.drawnAbove) {
-        // Lot 10 : il attend au-dessus du cache ; ni nœud dans la scène, ni redessin du cache.
+        // Lot 10 : il attend au-dessus du cache ; ni nœud dans la scène, ni redessin du cache. Limite de DA11
+        // (écart 5, H10-8) : hors fin de page, image ou grille au-dessus → redessin immédiat ci-dessous.
         m_pendingIds.push_back(id);
         emit objectCountChanged();
         if (std::get_if<core::Stroke>(&object)) {
@@ -1535,14 +1621,40 @@ void FixedPageItem::remove(core::ObjectId id, const core::RectF&)
 void FixedPageItem::invalidate(core::ObjectId id, const core::CacheArea&)
 {
     if (id != 0 && std::find(m_pendingIds.begin(), m_pendingIds.end(), id) != m_pendingIds.end()) {
-        ++m_pendingRevision; // modifié en place pendant qu'il attend : la couche le refait
-        emit pendingChanged();
+        if (pendingAreTheLastObjects()) {
+            ++m_pendingRevision; // modifié en place pendant qu'il attend : la couche le refait
+            emit pendingChanged();
+            return;
+        }
+        // Réordonné pendant qu'il attend (annoncé en ObjectChanged, undo.h n'a pas de type « réordonné ») : ce
+        // qui attend n'est plus la queue de la page ; reconstruction complète, qui verse tout.
+        restart(Decode::IfUncovered, Scope::SamePage);
         return;
     }
     const core::Page& shown = page();
     const std::size_t index = core::indexOf(shown, id);
     const bool imageChanged = index < shown.objects.size() && usesImages(shown.objects[index]);
     restart(imageChanged && !m_ready ? Decode::Force : Decode::IfUncovered, Scope::SamePage);
+}
+```
+
+  Fonction privée (déclarée dans l'en-tête, `bool pendingAreTheLastObjects() const noexcept;`) :
+
+```cpp
+// Invariant de la couche d'attente : les objets en attente sont, dans l'ordre, les derniers de la page.
+bool FixedPageItem::pendingAreTheLastObjects() const noexcept
+{
+    const core::Page& shown = page();
+    if (m_pendingIds.size() > shown.objects.size()) {
+        return false;
+    }
+    const std::size_t first = shown.objects.size() - m_pendingIds.size();
+    for (std::size_t k = 0; k < m_pendingIds.size(); ++k) {
+        if (shown.objects[first + k].common.id != m_pendingIds[k]) {
+            return false;
+        }
+    }
+    return true;
 }
 ```
 
@@ -1740,7 +1852,8 @@ appel du cache).
 - Créer : `bench/scenarios/cache-differe.json`
 - Modifier : `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/uiforeigntypes.h`,
   `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `bench/include/actcraft/bench/result.h`,
-  `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_verdict.cpp`, `tests/bench.cmake`
+  `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_verdict.cpp`, `tests/tst_bench_result.cpp`,
+  `tests/bench.cmake`
 
 **Test et commande bornée.** Rouge : commande ciblée, motif `tst_pageview|tst_ui_drawing` → `error`
 (`setPendingLayer` inconnu). Vert : preuve de tâche, N ≥ 94, `tst_pageview`, `tst_ui_drawing`,
@@ -1752,8 +1865,10 @@ OK`, `PIXEL … OK`, `BORD trait-en-attente OK`, `CAPTURES OK`. Banc sans écran
 
 **Interdits.** Aucun changement de `DocumentController`, `penadapters.*`, `tools/`, `core/`. `oneCacheRenderPerStroke`
 et les autres tests du cache de `tst_pageview` restent tels quels (sans couche d'attente : comportement du lot 2).
-Un seul test existant change, avec sa raison : `benchRunReadsItsTargetsAt1366x768` (`tst_bench_verdict`) compte cinq
-contrôles de contenu au lieu de quatre (`stroke-folded` ajouté par le plan).
+Deux tests existants changent, avec leur raison : `benchRunReadsItsTargetsAt1366x768` (`tst_bench_verdict`) compte
+cinq contrôles de contenu au lieu de quatre (`stroke-folded` ajouté par le plan) ; `cacheRefreshesAreRecorded`
+(`tst_bench_result`, L10-T1) exige au moins 2 redessins dans `pauses` au lieu de 3 (versement différé : un par
+reprise k ≥ 1, la reprise k = 0 relançant la minuterie), le commentaire du test le dit.
 
 **Terminé quand.** Preuve verte, captures décrites, JSON du banc joint, commit fait.
 
@@ -1810,6 +1925,27 @@ bool openPending(PendingFixture& f, QPointingDevice* stylus)
         cachedStroke(f.cached, QPointF(300, 300), QPointF(500, 360));
         QTest::qWait(kCacheFoldIdleMs * 6 / 10);
         QCOMPARE(requested.count(), 0); // 1,2 délai depuis le premier trait, 0,6 depuis le second
+        QTRY_COMPARE_WITH_TIMEOUT(requested.count(), 1, kCacheFoldIdleMs + 2000);
+        QCOMPARE(f.cached.fixed->pendingCount(), 0);
+    }
+
+    // Molette et clavier repoussent aussi le versement (une entrée, quelle qu'elle soit).
+    void wheelPostponesTheFold()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        QSignalSpy requested(f.cached.view, &PageView::cacheRefreshRequested);
+        f.cached.fixed->appendStroke(line(100));
+        QVERIFY(f.cached.view->foldTimerActive());
+        QTest::qWait(kCacheFoldIdleMs * 6 / 10);
+        QWheelEvent event(QPointF(500, 300), f.cached.window.mapToGlobal(QPointF(500, 300)), QPoint(),
+                          QPoint(0, -120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+        QCoreApplication::sendEvent(&f.cached.window, &event);
+        QTest::qWait(kCacheFoldIdleMs * 6 / 10);
+        QCOMPARE(requested.count(), 0); // 1,2 délai depuis le trait, 0,6 depuis la molette
+        QTest::keyClick(&f.cached.window, Qt::Key_Shift);
+        QTest::qWait(kCacheFoldIdleMs * 6 / 10);
+        QCOMPARE(requested.count(), 0); // 0,6 délai depuis la touche
         QTRY_COMPARE_WITH_TIMEOUT(requested.count(), 1, kCacheFoldIdleMs + 2000);
         QCOMPARE(f.cached.fixed->pendingCount(), 0);
     }
@@ -1881,19 +2017,32 @@ bool openPending(PendingFixture& f, QPointingDevice* stylus)
         QElapsedTimer clock;
         clock.start();
         int checked = 0;
-        while (app.fixed->pendingCount() > 0 && clock.elapsed() < ui::kCacheFoldIdleMs + 3000) {
+        int checkedAfterRequest = 0; // images contrôlées entre la demande de redessin et le cache prêt
+        const auto checkFrame = [&] {
+            swapped.clear();
+            ++checked;
+            if (requested.count() > 0) {
+                ++checkedAfterRequest;
+            }
+            QVERIFY2(colorNear(pixelAtPage(app, probe), QColor(Qt::black), 60),
+                     "trait absent entre le relâché et le versement achevé");
+        };
+        while (!(app.fixed->pendingCount() == 0 && app.view->cacheReady()) &&
+               clock.elapsed() < ui::kCacheFoldIdleMs + 5000) {
             QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
             if (!swapped.isEmpty()) {
-                swapped.clear();
-                ++checked;
-                QVERIFY2(colorNear(pixelAtPage(app, probe), QColor(Qt::black), 60), "trait absent en attente");
+                checkFrame();
             }
         }
+        if (!swapped.isEmpty()) {
+            checkFrame(); // image échangée dans le même tour que la fin du versement
+        }
         QCOMPARE(app.fixed->pendingCount(), 0);
-        QTRY_VERIFY_WITH_TIMEOUT(app.view->cacheReady(), 5000);
+        QVERIFY(app.view->cacheReady());
         QVERIFY2(colorNear(pixelAtPage(app, probe), QColor(Qt::black), 60), "trait absent après le versement");
         QCOMPARE(requested.count(), 1);
-        qInfo("images contrôlées pendant l'attente : %d", checked);
+        QVERIFY2(checked >= 2, qPrintable(QStringLiteral("images contrôlées : %1").arg(checked)));
+        QVERIFY2(checkedAfterRequest >= 1, "aucune image contrôlée pendant le versement");
     }
 
     void undoOfAPendingStrokeLeavesTheCacheAlone()
@@ -2012,9 +2161,12 @@ void PageView::onPendingChanged()
   (avant le branchement sur `m_cacheEnabled`, pour que tout redessin verse). Dans `setFixedPage`, après les deux
   connexions existantes : `m_pendingConnection = connect(m_fixedPage, &render::FixedPageItem::pendingChanged, this,
   &PageView::onPendingChanged);` (et `disconnect(m_pendingConnection);` avec les autres), puis `updateDeferral();`.
-  Dans `setCacheEnabled`, après `m_cacheEnabled = enabled;` : `updateDeferral();`. Dans `handlePointer`, après le
-  contrôle du périphérique : `if (m_foldTimer.isActive()) { m_foldTimer.start(); }` (une entrée repousse le
-  versement).
+  Dans `setCacheEnabled`, après `m_cacheEnabled = enabled;` : `updateDeferral();`. **Toute entrée repousse le versement**, pas seulement le pointeur :
+  une fonction privée `void postponeFold() { if (m_foldTimer.isActive()) { m_foldTimer.start(); } }` est appelée
+  dans `handlePointer`, dans `wheelEvent`, et dans `PageView::eventFilter` (le filtre déjà posé sur la fenêtre,
+  `itemChange`) pour les types `KeyPress`, `KeyRelease`, `Wheel`, `TabletPress`, `TabletMove`, `TabletRelease`,
+  `MouseButtonPress`, `MouseMove`, `MouseButtonRelease`, `TouchBegin`, `TouchUpdate`, `TouchEnd`, sans rien
+  accepter ni filtrer de plus qu'aujourd'hui.
 
   Le redessin du lot 2 sur `contentChanged` reste : en différé, un trait n'émet plus `contentChanged` (il émet
   `pendingChanged`), une reconstruction l'émet toujours.
@@ -2047,8 +2199,9 @@ struct PendingLayerForeign
   // L10-T4 : plus grand FixedPageItem::pendingCount pendant le scénario`. Dans `bench/src/runner.cpp`, `play` :
   connexion `render::FixedPageItem::pendingChanged` → `s.pendingMax = std::max(s.pendingMax,
   m_fixed->pendingCount());` (déconnectée avec les autres). Dans `bench/src/result.cpp` : l'objet `cache` du
-  scénario gagne `{"pending_max", s.pendingMax}`. Contrôle `stroke-folded` dans la démonstration, juste après
-  `must("cache not ready after stroke", cacheReady, 10000);` :
+  scénario gagne `{"pending_max", s.pendingMax}`. Contrôle `stroke-folded` dans la démonstration, juste **après** la capture
+  `const QImage endStroke = m_window->grabWindow();` (qui garde ainsi une image de l'état en attente : le trait de
+  démonstration y est dessiné par la couche d'attente) :
 
 ```cpp
     // Lot 10 : le trait de démonstration attend au-dessus du cache, puis y est versé ; il doit y être encore.
@@ -2062,7 +2215,8 @@ struct PendingLayerForeign
   inkPixel, QColor(Qt::black), kInkTolerance),`. `must` prend une condition et un délai comme ses voisins (relire
   sa signature dans le fichier et s'y conformer). Dans `tests/tst_bench_verdict.cpp`,
   `benchRunReadsItsTargetsAt1366x768` : `std::size_t{5}` au lieu de `{4}` (commentaire : `// L10-T4 :
-  stroke-folded`).
+  stroke-folded`). Dans `tests/tst_bench_result.cpp`, `cacheRefreshesAreRecorded` : les trois minimums passent de 3
+  à 2, commentaire « L10-T4 : versement différé, un redessin par reprise k ≥ 1 (4 traits en court) ».
 
 - [ ] **Étape 7 : scénario `cache-differe`.** Créer `bench/scenarios/cache-differe.json` :
 
@@ -2113,8 +2267,8 @@ struct PendingLayerForeign
 
 - [ ] **Étape 9 : commit.**
   ```powershell
-  git -C <wt> add ui/include/actcraft/ui/pageview.h ui/src/pageview.cpp ui/src/uiforeigntypes.h ui/qml/PageArea.qml tests/tst_pageview.cpp tests/tst_ui_drawing.cpp bench/include/actcraft/bench/result.h bench/src/result.cpp bench/src/runner.cpp tests/tst_bench_verdict.cpp bench/scenarios/cache-differe.json tests/bench.cmake
-  git -C <wt> commit -m "Vue : versement différé au cache (inactivité, plafond, zoom), couche d'attente branchée (L10-T4)" -m "tst_bench_verdict compte cinq contrôles de contenu : stroke-folded est ajouté par le plan du lot 10." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  git -C <wt> add ui/include/actcraft/ui/pageview.h ui/src/pageview.cpp ui/src/uiforeigntypes.h ui/qml/PageArea.qml tests/tst_pageview.cpp tests/tst_ui_drawing.cpp bench/include/actcraft/bench/result.h bench/src/result.cpp bench/src/runner.cpp tests/tst_bench_verdict.cpp tests/tst_bench_result.cpp bench/scenarios/cache-differe.json tests/bench.cmake
+  git -C <wt> commit -m "Vue : versement différé au cache (inactivité, plafond, zoom), couche d'attente branchée (L10-T4)" -m "tst_bench_verdict compte cinq contrôles de contenu (stroke-folded) ; tst_bench_result attend au moins deux redessins dans pauses (versement différé)." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
 ---
@@ -2164,9 +2318,14 @@ cause), et la **décision sur L10-T7** ; worktree de référence supprimé.
 
 - [ ] **Étape 1 : construire** la référence et le lot 10 en release (commandes ci-dessus).
 - [ ] **Étape 2 : jouer la série** (cinq passages, relevé « machine calme » avant chacun, sous le jeton `ecran`).
-- [ ] **Étape 3 : attribuer.** Pour chaque intervalle `F` ou `R` hors limite (`raw.interval_class`,
-  `raw.swap_ns`), chercher une demande de redessin du cache (`raw.cache_request_ns`) dans les 50 ms qui précèdent
-  la fin de l'intervalle : « redessin » ou « autre ».
+- [ ] **Étape 3 : attribuer.** Fenêtres de redessin : pour chaque demande `raw.cache_request_ns[i]`, la fenêtre
+  va jusqu'à la première fin `raw.cache_updated_ns` qui la suit (des demandes rapprochées peuvent partager une fin ;
+  sans fin dans le scénario : jusqu'à la dernière image). Tout intervalle `F` ou `R` hors limite (`raw.interval_class`,
+  bornes `raw.swap_ns[k-1]`, `raw.swap_ns[k]`) qui **recoupe** une fenêtre est classé « redessin », sinon « autre »
+  (une fenêtre fixe de 50 ms raterait un redessin de 41,65 ms suivi d'une période). Dans `pauses`, ne juger le
+  versement que sur les reprises k ≥ 1, et seulement si le relâché qui les précède a été posté avec moins de 8 ms
+  de retard (`input`, retards d'injection) ; une reprise hors de cette condition est notée « hors fenêtre ». Le
+  verdict S13 compte, lui, toutes les reprises.
 - [ ] **Étape 4 : décider L10-T7.** Machine calme et S13 tenu → **L10-T7 non jouée** (écrite « non requise »). Machine
   calme, une reprise ou un figement hors limite attribué à un redessin du cache → **L10-T7 requise** (DA11). Hors
   limite attribué à autre chose → rapporté à l'orchestrateur (tâche de correction à écrire, hors tuiles). Machine
@@ -2301,7 +2460,9 @@ pixel est un défaut : test de pixels sur une frontière de tuile).
 ## Hypothèses à revoir (porte de fin du lot 10)
 
 - **H10-1 — S6 et S7 remplacés** (écart 1) par S2, S4, S5 et `cache-differe` ; S6 et S7 joués sur la nouvelle
-  implémentation aux lots 3 et 4.
+  implémentation aux lots 3 et 4. **Reporté explicitement dans S6 (lot 3)** : l'essai, à l'écran en D3D11, de
+  l'annulation d'un trait encore en attente (le trait disparaît, aucun redessin du cache), quand l'annulation sera
+  branchée à une commande.
 - **H10-2 — Délai d'inactivité 500 ms, plafond 128 objets** : valeurs de départ. Un délai plus court verse plus
   souvent pendant l'écriture (risque de reprise au mauvais moment) ; plus long, la couche d'attente grandit. Réglées
   par la mesure de L10-T6 si elle le demande.
@@ -2315,6 +2476,12 @@ pixel est un défaut : test de pixels sur une frontière de tuile).
   lot 3 (`L3-T0`), qui la tranche sur la 3.5.18.
 - **H10-7 — Grille nette** : préservée par contrôle négatif (S33) ; si une grille lue d'un `.flipchart` est dessinée
   en géométrie un jour, le MSAA la toucherait : le contrôle `grille-nette` le verra.
+- **H10-8 — Limite de DA11** (écart 5) : restent au redessin immédiat, avec un figement possible, (a) l'objet posé
+  sous la couche du dessus (lot 4, mesuré par S7), (b) l'image insérée (lot 5, S8), (c) le trait sur une page à
+  grille dessinée au-dessus (lot 4, S7). Hors limite : tuiles (L10-T7) ou tâche du lot concerné.
+- **H10-9 — Mémoire du MSAA** : texture du cache jusqu'à 4096 px de côté (zoom 800 %), + 192 à + 384 Mio selon le
+  pilote, sur un pic du lot 1 de 473 à 698 Mo et un budget de 1 Gio ; relevée à L10-T5 (pic GPU de `zoom`) ; repli
+  écrit à L10-T5, étape 6 (échantillons du cache selon la taille de la texture : 4 sous 2048², 0 au-dessus).
 
 **Écartés du lot 10, avec la raison :**
 - H2b-5 (rastérisation des objets peints pendant la synchronisation, RHI) : ni un figement ni une reprise ; le
@@ -2370,5 +2537,5 @@ Jouée après la dernière vague, dans le worktree du chantier, sur `feat/livrai
    `git grep -n "Private\|_p\.h" -- core formats actions render ui app` vide.
 9. **Graphe** : `graphify update .`, commit de `graphify-out/`.
 10. **PR du lot** (étage 4) et **porte de fin du lot 10** : release 0.3.0 proposée (publiée seulement sur go écrit) ;
-    S13 (tenu, non tenu ou non jugé, avec la condition machine), S33, écarts au cadrage 1 à 4, hypothèses H10-1 à
-    H10-7, décision sur L10-T7, constats de L10-T0 transmis aux autres lots.
+    S13 (tenu, non tenu ou non jugé, avec la condition machine), S33, écarts au cadrage 1 à 6 (dont le volume, 4 → 8 tâches), hypothèses H10-1 à
+    H10-9, décision sur L10-T7, constats de L10-T0 transmis aux autres lots.
