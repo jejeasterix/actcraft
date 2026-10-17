@@ -464,6 +464,58 @@ private slots:
         QVERIFY(!controller.property("busy").toBool());
     }
 
+    // L2-C9, constat 2 : compteur de révisions, plus d'empreinte sur le fil principal. Un trait puis son
+    // annulation pendant la lecture changent la révision : l'ouverture est refusée (prudent : rien n'est
+    // perdu), même si le contenu est revenu au même (une comparaison d'empreintes l'accepterait).
+    void strokeThenUndoDuringOpenRefusesTheOpening()
+    {
+        QTemporaryDir dir;
+        const QUrl url = writeTwoPages(dir, QStringLiteral("deux.actcraft"));
+        QVERIFY(!url.isEmpty());
+        ui::DocumentController controller;
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        controller.openUrl(url);
+        controller.commitStroke(redStroke()); // pendant l'ouverture
+        controller.undo();
+        QVERIFY(loaded.wait(60000));
+        QCOMPARE(loaded.first().at(0).toBool(), false);
+        QCOMPARE(controller.pageCount(), 1);
+        QVERIFY(controller.canRedo()); // l'historique est gardé
+    }
+
+    // Même règle à l'enregistrement : un trait puis son annulation pendant l'écriture laissent « modifié »
+    // (voulu, prudent), le fichier lié reste celui écrit.
+    void strokeThenUndoDuringSaveLeavesTheDocumentModified()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        const QUrl url = QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft")));
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(url);
+        controller.commitStroke(redStroke()); // pendant l'écriture
+        controller.undo();
+        QVERIFY(savedSpy.wait(60000));
+        QCOMPARE(savedSpy.first().at(0).toBool(), true);
+        QCOMPARE(controller.fileUrl(), url);
+        QVERIFY(controller.isModified());
+        // Rien n'a changé pendant l'écriture suivante : propre.
+        controller.saveToUrl(url);
+        QVERIFY(savedSpy.wait(60000));
+        QVERIFY(!controller.isModified());
+    }
+
+    // L'empreinte du document lu (journal ACTCRAFT OUVERT) est calculée par la lecture, hors du fil
+    // principal.
+    void loadComputesTheFingerprintOfTheDocumentRead()
+    {
+        QTemporaryDir dir;
+        const QUrl url = writeTwoPages(dir, QStringLiteral("deux.actcraft"));
+        QVERIFY(!url.isEmpty());
+        const ui::LoadOutcome outcome = ui::loadDocument(url);
+        QVERIFY(outcome.ok);
+        QCOMPARE(outcome.fingerprint, core::fingerprint(outcome.document));
+    }
+
     // L2-C9, constat 1 : trait commencé pendant la lecture, stylet encore posé à la fin. La vue ne le verse
     // qu'à pageAboutToChange (Main.qml : finishStroke) ; s'il n'est versé qu'au remplacement du document, il
     // rejoint l'ancien document, aussitôt remplacé : perdu. Il doit être versé avant le contrôle « le

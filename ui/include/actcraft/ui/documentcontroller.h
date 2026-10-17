@@ -106,7 +106,7 @@ public:
     // toujours émis en file, même pour un refus. Refusés pendant une autre opération (`busy`).
     // Ouvrir : un .actcraft garde son fichier ; un .flipchart devient un document sans fichier (décision 18).
     // Enregistrer : le fil écrit une copie prise à l'appel, sur le fil principal ; à la fin, état propre
-    // (pile et drapeau hors pile) si le document n'a pas changé entre-temps (empreinte comparée, même
+    // (pile et drapeau hors pile) si le document n'a pas changé entre-temps (révision comparée, même
     // document).
     Q_INVOKABLE void openUrl(const QUrl& url);
     Q_INVOKABLE void saveToUrl(const QUrl& url);
@@ -176,6 +176,11 @@ private:
     // Change à chaque replaceDocument : un enregistrement fini après « Nouveau » ne rattache pas le fichier
     // au document neuf, même d'empreinte égale.
     std::uint64_t m_generation = 0;
+    // Change à chaque modification du document (commande de la pile, annuler, rétablir, page du banc,
+    // replaceDocument) : « a-t-il changé pendant la lecture ou l'écriture ? » sans parcourir le document sur
+    // le fil principal (L2-C9). Un changement puis son annulation la font bouger deux fois : jamais «
+    // inchangé ».
+    std::uint64_t m_revision = 0;
     // Le fil secondaire rend son résultat par ce relais, tant que le contrôleur vit (documentcontroller.cpp).
     std::shared_ptr<IoRelay> m_relay;
 };

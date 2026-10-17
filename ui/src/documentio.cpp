@@ -64,6 +64,7 @@ LoadOutcome loadDocument(const QUrl& url)
         out.native = true;
         out.warnings = r.warnings;
         out.document = std::move(r.document);
+        out.fingerprint = core::fingerprint(out.document);
         return out;
     }
     if (formats::flipchart::looksLikeFlipchart(read.data)) {
@@ -75,6 +76,7 @@ LoadOutcome loadDocument(const QUrl& url)
         }
         out.ok = true;
         out.document = std::move(r.document);
+        out.fingerprint = core::fingerprint(out.document);
         return out;
     }
     out.error = QStringLiteral("Format non reconnu : ni paperboard ActCraft, ni .flipchart.");
