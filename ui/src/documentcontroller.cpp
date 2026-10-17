@@ -465,8 +465,14 @@ void DocumentController::setLastIo(bool offMainThread)
 void DocumentController::openUrl(const QUrl& url)
 {
     if (m_busy) {
+        // Refus visible, comme celui de l'enregistrement : dernière erreur et bandeau (revue de L2-C9).
         QMetaObject::invokeMethod(
-            this, [this] { emit loadFinished(false, tr("Une opération est déjà en cours.")); },
+            this,
+            [this] {
+                const QString busy = tr("Une opération est déjà en cours : ouverture refusée.");
+                setLastError(busy);
+                emit loadFinished(false, busy);
+            },
             Qt::QueuedConnection);
         return;
     }

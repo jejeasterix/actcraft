@@ -644,6 +644,27 @@ private slots:
         QVERIFY(errors.at(1).isEmpty()); // l'écriture réussie l'efface
     }
 
+    // Revue de L2-C9, mineur 3 : une ouverture refusée parce qu'une opération est en cours le dit aussi
+    // (dernière erreur), comme un enregistrement refusé.
+    void openRefusedWhileBusySetsTheLastError()
+    {
+        QTemporaryDir dir;
+        const QUrl url = writeTwoPages(dir, QStringLiteral("deux.actcraft"));
+        QVERIFY(!url.isEmpty());
+        ui::DocumentController controller;
+        QStringList errors; // dernière erreur relevée à la fin de l'ouverture refusée
+        connect(&controller, &ui::DocumentController::loadFinished, &controller,
+                [&] { errors << controller.lastError(); });
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
+        controller.openUrl(url);
+        QVERIFY(loaded.wait(60000));
+        QCOMPARE(loaded.first().at(0).toBool(), false);
+        QVERIFY(!errors.first().isEmpty());
+        QVERIFY(savedSpy.count() == 1 || savedSpy.wait(60000));
+    }
+
     void openIsRefusedWhileBusy()
     {
         QTemporaryDir dir;
