@@ -1,6 +1,8 @@
+#include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QPointingDevice>
@@ -132,6 +134,61 @@ void tabletStroke(DrawFixture& f, QPointF from, QPointF to)
     tablet(f, QEvent::TabletRelease, to, Qt::NoButton);
 }
 
+// Vue AVEC cache, page fixe et encre, sans QML : le test termine lui-même chaque redessin demandé (personne
+// n'appelle notifyCacheUpdated hors de PageArea.qml) et compte les demandes.
+struct CachedFixture
+{
+    QQuickWindow window;
+    PageView* view = nullptr;
+    actcraft::render::FixedPageItem* fixed = nullptr;
+    QPointingDevice* stylus = nullptr;
+};
+
+bool openCached(CachedFixture& f, QPointingDevice* stylus)
+{
+    f.stylus = stylus;
+    f.window.resize(1000, 600);
+    f.view = new PageView;
+    f.view->setParentItem(f.window.contentItem());
+    f.view->setSize(QSizeF(1000, 600));
+    auto* content = new QQuickItem;
+    content->setSize(QSizeF(1024, 768));
+    content->setParentItem(f.view);
+    f.fixed = new actcraft::render::FixedPageItem;
+    f.fixed->setSize(content->size());
+    f.fixed->setParentItem(content);
+    auto* ink = new actcraft::render::InkItem;
+    ink->setSize(content->size());
+    ink->setParentItem(content);
+    f.view->setContent(content); // cache activé (défaut)
+    f.view->setFixedPage(f.fixed);
+    f.view->setInk(ink);
+    f.fixed->setPage(actcraft::core::Page{});
+    f.window.show();
+    if (!QTest::qWaitForWindowExposed(&f.window) ||
+        !QTest::qWaitFor([&] { return f.fixed->isReady(); }, 5000)) {
+        return false;
+    }
+    for (int i = 0; i < 5 && !f.view->cacheReady(); ++i) {
+        f.view->notifyCacheUpdated();
+    }
+    return f.view->cacheReady();
+}
+
+void cachedStroke(CachedFixture& f, QPointF from, QPointF to)
+{
+    const auto send = [&f](QEvent::Type type, QPointF scene, Qt::MouseButtons buttons) {
+        QTabletEvent event(type, f.stylus, scene, f.window.mapToGlobal(scene), buttons ? 0.5 : 0.0, 0, 0, 0,
+                           0, 0, Qt::NoModifier, Qt::LeftButton, buttons);
+        QCoreApplication::sendEvent(&f.window, &event);
+    };
+    send(QEvent::TabletPress, from, Qt::LeftButton);
+    for (int i = 1; i <= 4; ++i) {
+        send(QEvent::TabletMove, from + (to - from) * i / 4.0, Qt::LeftButton);
+    }
+    send(QEvent::TabletRelease, to, Qt::NoButton);
+}
+
 const actcraft::core::Stroke& lastStroke(const DrawFixture& f)
 {
     return std::get<actcraft::core::Stroke>(f.fixed->page().objects.back());
@@ -174,33 +231,33 @@ private slots:
             QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3);
     }
 
-    void penColorAndWidthAreClampedAndSignalled()
+    void inkColorAndWidthAreClampedAndSignalled()
     {
         DrawFixture f;
         QVERIFY(openDrawing(f, m_stylus.get()));
-        QCOMPARE(f.view->penColor(), QColor(Qt::black));
-        QCOMPARE(f.view->penWidth(), kDefaultPenWidth);
+        QCOMPARE(f.view->inkColor(), QColor(Qt::black));
+        QCOMPARE(f.view->inkWidth(), kDefaultInkWidth);
         QSignalSpy changed(f.view, &PageView::penChanged);
-        f.view->setPenColor(QColor(QStringLiteral("#E53935")));
-        f.view->setPenWidth(0.0);
-        QCOMPARE(f.view->penWidth(), kMinPenWidth);
-        f.view->setPenWidth(500.0);
-        QCOMPARE(f.view->penWidth(), kMaxPenWidth);
-        f.view->setPenColor(QColor()); // invalide : ignorée
-        QCOMPARE(f.view->penColor(), QColor(QStringLiteral("#E53935")));
+        f.view->setInkColor(QColor(QStringLiteral("#E53935")));
+        f.view->setInkWidth(0.0);
+        QCOMPARE(f.view->inkWidth(), kMinInkWidth);
+        f.view->setInkWidth(500.0);
+        QCOMPARE(f.view->inkWidth(), kMaxInkWidth);
+        f.view->setInkColor(QColor()); // invalide : ignorée
+        QCOMPARE(f.view->inkColor(), QColor(QStringLiteral("#E53935")));
         QCOMPARE(changed.count(), 3);
         // Appliquées au stylo en place…
         tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
         QTRY_COMPARE(f.fixed->objectCount(), 1);
         QCOMPARE(lastStroke(f).color, 0xFFE53935u);
-        QCOMPARE(lastStroke(f).baseWidth, kMaxPenWidth);
+        QCOMPARE(lastStroke(f).baseWidth, kMaxInkWidth);
         // … et gardées quand il est reconstruit (la page change).
         f.view->setFixedPage(nullptr);
         f.view->setFixedPage(f.fixed);
         tabletStroke(f, QPointF(300, 400), QPointF(500, 400));
         QTRY_COMPARE(f.fixed->objectCount(), 2);
         QCOMPARE(lastStroke(f).color, 0xFFE53935u);
-        QCOMPARE(lastStroke(f).baseWidth, kMaxPenWidth);
+        QCOMPARE(lastStroke(f).baseWidth, kMaxInkWidth);
     }
 
     void scrollPropertiesFollowZoom()
@@ -696,6 +753,176 @@ private slots:
         QCOMPARE(refresh.count(), 0);
         QCOMPARE(updated.count(), 1);
         QVERIFY(f.view->cacheReady());
+    }
+
+    // Avec un contrôleur, le stylo verse au document par la pile (ControllerSink) ; sans contrôleur, le trait
+    // va comme avant dans la page interne de l'élément (tests de trait ci-dessus, inchangés).
+    void strokeGoesToTheControllerDocument()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        DocumentController controller;
+        controller.setFixedPage(f.fixed);
+        f.view->setDocumentController(&controller);
+        QSignalSpy frozen(f.view, &PageView::strokeFrozen);
+        tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
+        QTRY_COMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        QCOMPARE(controller.document().page(0).objects[0].common.layer, actcraft::core::Layer::Top);
+        QCOMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(frozen.count(), 1);
+        QVERIFY(controller.canUndo());
+    }
+
+    // Un redessin du cache par trait : contentChanged (insertion dans le cache) le demande, onStrokeFrozen
+    // n'émet plus que strokeFrozen. Les deux ensemble en demanderaient trois (m_refreshAgain).
+    void oneCacheRenderPerStroke()
+    {
+        CachedFixture f;
+        QVERIFY(openCached(f, m_stylus.get()));
+        DocumentController controller;
+        controller.setFixedPage(f.fixed);
+        f.view->setDocumentController(&controller);
+        for (int i = 0; i < 5 && !f.view->cacheReady(); ++i) {
+            f.view->notifyCacheUpdated(); // setSource du contrôleur a demandé un redessin
+        }
+        QVERIFY(f.view->cacheReady());
+        QSignalSpy requested(f.view, &PageView::cacheRefreshRequested);
+        cachedStroke(f, QPointF(300, 200), QPointF(500, 260));
+        QTRY_COMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        for (int i = 0; i < 5 && !f.view->cacheReady(); ++i) {
+            f.view
+                ->notifyCacheUpdated(); // fin de redessin, comme ShaderEffectSource.scheduledUpdateCompleted
+        }
+        QVERIFY(f.view->cacheReady());
+        QCOMPARE(requested.count(), 1);
+    }
+
+    void contentResizeRefitsAndEmitsScroll()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        f.view->fitPage();
+        const qreal before = f.view->zoom();
+        QSignalSpy scrolled(f.view, &PageView::scrollChanged);
+        f.content->setSize(QSizeF(2048, 1536)); // même élément, page deux fois plus grande
+        QVERIFY(scrolled.count() >= 1);
+        QVERIFY(qAbs(f.view->zoom() - before / 2) < 1e-6); // « Ajuster » suit la nouvelle taille
+    }
+
+    void contentResizeRequestsTheCacheOnce()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        f.view->fitPage();
+        QTRY_VERIFY(f.view->cacheReady());
+        QSignalSpy requested(f.view, &PageView::cacheRefreshRequested);
+        f.content->setSize(QSizeF(800, 600));
+        QCOMPARE(requested.count(), 1);
+    }
+
+    void contentResizeOutsideFitClampsThePan()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        f.view->setZoom(2.0);
+        f.view->scrollTo(1.0, 1.0); // en bas à droite
+        QSignalSpy scrolled(f.view, &PageView::scrollChanged);
+        f.content->setSize(QSizeF(512, 384)); // la page rapetisse : le défilement reste dans les bornes
+        QVERIFY(scrolled.count() >= 1);
+        QCOMPARE(f.view->zoom(), 2.0);
+        QVERIFY(f.view->scrollPositionX() <= 1.0);
+    }
+
+    void settledZoomSetsTheRasterScale()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->setZoom(2.0);
+        const qreal dpr = f.window.effectiveDevicePixelRatio();
+        QCOMPARE(f.fixed->rasterScale(), 2.0 * dpr);
+        f.view->fitPage();
+        QCOMPARE(f.fixed->rasterScale(), f.view->zoom() * dpr);
+    }
+
+    // Fluidité : pendant un zoom continu à la molette, la page fixe n'est pas refaite ; l'échelle n'est posée
+    // qu'à la fin (minuterie), une seule fois.
+    void continuousZoomSetsTheRasterScaleOnlyAtTheEnd()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->setZoom(1.0);
+        const double scale = f.fixed->rasterScale();
+        const int rasterizations = f.fixed->rasterizationCount();
+        const QPointF pos(500, 300);
+        for (int i = 0; i < 4; ++i) {
+            QWheelEvent event(pos, f.window.mapToGlobal(pos), QPoint(), QPoint(0, 120), Qt::NoButton,
+                              Qt::ControlModifier, Qt::NoScrollPhase, false);
+            QCoreApplication::sendEvent(&f.window, &event);
+        }
+        QVERIFY(f.view->zoom() > 1.0);
+        QCOMPARE(f.fixed->rasterScale(), scale); // zoom en cours : rien n'a bougé
+        QCOMPARE(f.fixed->rasterizationCount(), rasterizations);
+        const qreal dpr = f.window.effectiveDevicePixelRatio();
+        QTRY_COMPARE_WITH_TIMEOUT(f.fixed->rasterScale(), f.view->zoom() * dpr, 2000); // fin du zoom
+    }
+
+    // Un zoom à la molette est en cours quand la taille de la page change : le redessin dû au changement de
+    // taille pose l'échelle du zoom courant, la fin de zoom n'est pas perdue (page nette, pas rastérisée à
+    // l'ancienne échelle).
+    void contentResizeDuringWheelZoomKeepsTheFinalRasterScale()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->setZoom(1.0);
+        const QPointF pos(500, 300);
+        for (int i = 0; i < 3; ++i) {
+            QWheelEvent event(pos, f.window.mapToGlobal(pos), QPoint(), QPoint(0, 120), Qt::NoButton,
+                              Qt::ControlModifier, Qt::NoScrollPhase, false);
+            QCoreApplication::sendEvent(&f.window, &event);
+        }
+        QVERIFY(f.view->zoom() > 1.0);
+        f.view->content()->setSize(QSizeF(800, 600)); // avant la fin de la minuterie du zoom
+        const qreal dpr = f.window.effectiveDevicePixelRatio();
+        QTRY_COMPARE_WITH_TIMEOUT(f.fixed->rasterScale(), f.view->zoom() * dpr, 2000);
+        QTest::qWait(300); // la minuterie, si elle courait encore, est passée : l'échelle est restée la bonne
+        QCOMPARE(f.fixed->rasterScale(), f.view->zoom() * dpr);
+    }
+
+    // Fluidité : un trait figé n'ajoute qu'un nœud à la scène de la page affichée, même sur la page générée
+    // du banc (300 objets) ; jamais une reconstruction de la page (relais par copie de page, ou identifiant
+    // déjà pris par la page générée).
+    void strokeOnTheGeneratedPageAddsOneNode()
+    {
+        CachedFixture f;
+        QVERIFY(openCached(f, m_stylus.get()));
+        DocumentController controller;
+        controller.setFixedPage(f.fixed);
+        f.view->setDocumentController(&controller);
+        controller.loadGeneratedFirstPage();
+        QTRY_VERIFY(f.fixed->isReady());
+        f.window.grabWindow(); // scène des 300 objets construite
+        const int rebuilds = f.fixed->rebuildCount();
+        cachedStroke(f, QPointF(300, 200), QPointF(500, 260));
+        QTRY_COMPARE(f.fixed->objectCount(), 301);
+        f.window.grabWindow();
+        QCOMPARE(f.fixed->rebuildCount(), rebuilds);
+        QVERIFY(actcraft::core::hasUniqueIds(controller.document()));
+    }
+
+    // Contrôleur détruit avant la vue : le stylo ne garde aucune référence vers lui. Le trait va à la page
+    // interne de la page fixe (détachée par le contrôleur), comme sans contrôleur : rien n'est perdu en
+    // silence, rien n'est écrit dans un objet détruit.
+    void strokeAfterTheControllerIsGoneGoesToTheInternalPage()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        auto controller = std::make_unique<DocumentController>();
+        controller->setFixedPage(f.fixed);
+        f.view->setDocumentController(controller.get());
+        controller.reset();
+        QVERIFY(f.view->documentController() == nullptr);
+        tabletStroke(f, QPointF(300, 300), QPointF(500, 300));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
     }
 
     void exclusiveDevicesFilterTheWheel()

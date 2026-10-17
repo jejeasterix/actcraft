@@ -20,6 +20,7 @@ struct RenderContext
     QQuickWindow* window = nullptr;
     bool software = false; // rendererInterface()->graphicsApi() == Software
     const ImageStore* images = nullptr;
+    double rasterScale = 1; // pixels d'écran par pixel de page (RHI : rastérisation du moteur peint)
 };
 
 QColor toQColor(core::Argb argb, double opacity = 1.0);
@@ -46,7 +47,7 @@ public:
     static RendererRegistry withDefaults();
 
 private:
-    std::array<std::unique_ptr<ObjectRenderer>, 3> m_renderers;
+    std::array<std::unique_ptr<ObjectRenderer>, core::kObjectKindCount> m_renderers;
 };
 
 } // namespace actcraft::render

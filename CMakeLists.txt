@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(ActCraft
-    VERSION 0.1.0
+    VERSION 0.2.0
     DESCRIPTION "Logiciel libre de tableau blanc interactif"
-    LANGUAGES CXX)
+    LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -31,6 +31,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(ActCraftModule)
 
 # Ordre = sens des dépendances : un module ne dépend que de ceux listés avant lui.
+# Code tiers (DA3) : avant les modules qui l'utilisent.
+add_subdirectory(third_party/miniz)
 add_subdirectory(core)
 add_subdirectory(formats)
 add_subdirectory(actions)
@@ -53,3 +55,5 @@ endif()
 
 # Règle 4 du BRIEF : core/ ne dépend d'aucune interface graphique.
 actcraft_forbid_links(actcraft_core Qt6::Gui Qt6::Quick Qt6::Qml Qt6::Widgets)
+# DA4 : formats/ lit et écrit sans interface graphique (QtCore seulement) ; images et PDF vont dans export/ (DA12).
+actcraft_forbid_links(actcraft_formats Qt6::Gui Qt6::Quick Qt6::Qml Qt6::Widgets)

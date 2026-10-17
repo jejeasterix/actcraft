@@ -7,7 +7,7 @@ class TstRenderBackend : public QObject
     Q_OBJECT
 
 private slots:
-    void defaultDependsOnPlatform()
+    void defaultFollowsPlatform()
     {
         RenderBackend backend = RenderBackend::Software;
         QString error;

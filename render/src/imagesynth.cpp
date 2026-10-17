@@ -15,6 +15,14 @@ QRgb mix(QRgb a, QRgb b, int t) // t de 0 à 255
 
 } // namespace
 
+std::string synthesisKey(const core::ImageObject& object)
+{
+    return std::to_string(static_cast<int>(object.pattern)) + ':' + std::to_string(object.colorA) + ':' +
+           std::to_string(object.colorB) + ':' + std::to_string(object.seed) + ':' +
+           std::to_string(object.sourceWidth) + 'x' + std::to_string(object.sourceHeight) + ':' +
+           (object.hasKeyColor ? std::to_string(object.keyColor) : std::string());
+}
+
 QImage synthesizeImage(const core::ImageObject& object)
 {
     const int w = std::max(1, static_cast<int>(object.sourceWidth));

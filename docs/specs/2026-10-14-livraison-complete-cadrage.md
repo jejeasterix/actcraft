@@ -247,10 +247,10 @@ ligne de commande, installation silencieuse, émulateur Android. `<samples>` =
   `adb exec-out screencap -p` montre la palette (contrôle de pixels) ; `adb shell input swipe` d'un doigt laisse un
   trait visible sur la capture suivante.
 - **S4 — Ouvrir un `.flipchart` (lot 2).** Localement, le test d'oracle passe sur les 17 paperboards de `<samples>`
-  (124 pages) ; `actcraft.exe "<samples>\tri des formes.flipchart"` ouvre le document, l'indicateur montre le bon
+  (124 pages) ; `actcraft.exe "<samples>\<paperboard réel n° 16>"` ouvre le document, l'indicateur montre le bon
   nombre de pages, et le rendu de chaque page, réduit à 80 × 60, est comparé à sa miniature `.thm` d'origine :
   **écart médian ≤ 2,0 sur 255**, et au plus les 3 pages déjà connues au-dessus de 7 (deux à miniature présumée
-  périmée, `T'Choupi` p5), comme la référence (`docs/re/format-flipchart.md:264-265`). En CI, les paperboards
+  périmée, le paperboard réel n° 15 p5), comme la référence (`docs/re/format-flipchart.md:264-265`). En CI, les paperboards
   synthétiques passent.
 - **S5 — Aller-retour natif (lot 2).** Par les commandes `file.save-as <chemin>` et `file.open <chemin>` (sans
   dialogue) : un document de 3 pages (trait, forme, texte, image) enregistré en `.actcraft`, fermé, rouvert : même
@@ -275,7 +275,7 @@ ligne de commande, installation silencieuse, émulateur Android. `<samples>` =
   Windows, des traits injectés suivis du délai de reconnaissance donnent un objet texte sur la couche intermédiaire
   (contenu non comparé ; test sauté et signalé si le reconnaisseur `msinkaut.InkRecognizers` manque, comme
   `REA - Activinspire/app/actcraft/canvas/recognition.py:178`) ; la commande est absente du menu de l'APK.
-- **S11 — Interactivité (lot 8).** Localement, `<samples>\présences.flipchart` : un clic sur un rond rouge masque
+- **S11 — Interactivité (lot 8).** Localement, `<samples>\<paperboard réel n° 13>` : un clic sur un rond rouge masque
   puis réaffiche l'étiquette visée ; un objet déposé hors de son conteneur revient à sa place.
 - **S12 — Confrontation au corpus (lot 9).** Le corpus est complet (`README.md` présent, une fiche par vidéo de sa
   liste) ; chaque fiche a une ligne, sous son identifiant neutre V01…, dans

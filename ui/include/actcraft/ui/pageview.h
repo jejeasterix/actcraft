@@ -3,6 +3,7 @@
 #include <actcraft/core/inkprobe.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <QColor>
@@ -28,11 +29,12 @@ namespace actcraft::ui {
 
 class InkSurfaceAdapter;
 class FixedPageSink;
+class ControllerSink;
 
 // Épaisseur du stylo, pixels de page (F-137 : réglette 1 à 100 ; F-220 : 4 par défaut).
-inline constexpr qreal kDefaultPenWidth = 4.0;
-inline constexpr qreal kMinPenWidth = 1.0;
-inline constexpr qreal kMaxPenWidth = 100.0;
+inline constexpr qreal kDefaultInkWidth = 4.0;
+inline constexpr qreal kMinInkWidth = 1.0;
+inline constexpr qreal kMaxInkWidth = 100.0;
 
 // Vue de la page (décision 14) : zoom, défilement, politique du cache. Transforme l'élément `content`.
 class PageView : public QQuickItem
@@ -48,8 +50,10 @@ class PageView : public QQuickItem
     Q_PROPERTY(
         actcraft::render::FixedPageItem* fixedPage READ fixedPage WRITE setFixedPage NOTIFY fixedPageChanged)
     Q_PROPERTY(actcraft::render::InkItem* ink READ ink WRITE setInk NOTIFY inkChanged)
-    Q_PROPERTY(QColor penColor READ penColor WRITE setPenColor NOTIFY penChanged)
-    Q_PROPERTY(qreal penWidth READ penWidth WRITE setPenWidth NOTIFY penChanged)
+    Q_PROPERTY(actcraft::ui::DocumentController* documentController READ documentController WRITE
+                   setDocumentController NOTIFY documentControllerChanged)
+    Q_PROPERTY(QColor inkColor READ inkColor WRITE setInkColor NOTIFY penChanged)
+    Q_PROPERTY(qreal inkWidth READ inkWidth WRITE setInkWidth NOTIFY penChanged)
     Q_PROPERTY(bool inputBlocked READ inputBlocked WRITE setInputBlocked NOTIFY inputBlockedChanged)
     Q_PROPERTY(qreal scrollSizeX READ scrollSizeX NOTIFY scrollChanged)
     Q_PROPERTY(qreal scrollPositionX READ scrollPositionX NOTIFY scrollChanged)
@@ -64,10 +68,15 @@ public:
     void setFixedPage(render::FixedPageItem* page);
     render::InkItem* ink() const noexcept;
     void setInk(render::InkItem* ink);
+    DocumentController* documentController() const noexcept;
+    // Posé : le stylo verse ses traits au document par la pile du contrôleur (ControllerSink), qui doit
+    // montrer la même page fixe que la vue. Sinon : dans la page interne de la page fixe (banc, tests).
+    void setDocumentController(DocumentController* controller);
     // Banc : sonde de latence (DA4) et numérotation des échantillons depuis `next`.
     void setInkProbe(core::InkProbe* probe);
     void resetInputSequence(std::uint64_t next = 0);
-    // Appelé par l'adaptateur du document quand un trait est figé.
+    // Appelé par l'adaptateur du document quand un trait est figé : émet strokeFrozen, rien de plus. Le
+    // redessin du cache vient de FixedPageItem::contentChanged, une fois par trait.
     void onStrokeFrozen();
 
     QQuickItem* content() const noexcept;
@@ -84,12 +93,12 @@ public:
     // Vrai quand la texture du cache correspond à la page et au zoom courants (toujours vrai sans cache).
     bool cacheReady() const noexcept;
     const ViewTransform& viewTransform() const noexcept;
-    QColor penColor() const noexcept;
+    QColor inkColor() const noexcept;
     // Couleur invalide ignorée.
-    void setPenColor(const QColor& color);
-    qreal penWidth() const noexcept;
-    // Bornée à [kMinPenWidth, kMaxPenWidth].
-    void setPenWidth(qreal width);
+    void setInkColor(const QColor& color);
+    qreal inkWidth() const noexcept;
+    // Bornée à [kMinInkWidth, kMaxInkWidth].
+    void setInkWidth(qreal width);
     bool inputBlocked() const noexcept;
     // Vrai tant qu'une fenêtre surgissante est ouverte (menu, dialogue) : aucun trait ne commence ; un trait
     // commencé se termine normalement.
@@ -130,6 +139,7 @@ signals:
     void cacheUpdated();
     void fixedPageChanged();
     void inkChanged();
+    void documentControllerChanged();
     void strokeFrozen();
     void penChanged();
     void inputBlockedChanged();
@@ -152,6 +162,7 @@ private:
     QSizeF pageSize() const;
     void apply(const ViewTransform& transform);
     void updateCacheTextureSize();
+    void onContentSizeChanged(QSizeF oldPage);
     void setCacheReady(bool ready);
     void rebuildPen();
     bool handlePointer(const QEvent& event, QPointF viewPos);
@@ -169,12 +180,19 @@ private:
     core::InkProbe* m_probe = nullptr;
     std::unique_ptr<InkSurfaceAdapter> m_inkSurface;
     std::unique_ptr<FixedPageSink> m_documentSink;
+    QPointer<DocumentController> m_controller;
+    std::unique_ptr<ControllerSink> m_controllerSink;
+    QMetaObject::Connection m_controllerConnection;
     std::unique_ptr<tools::PenTool> m_pen;
     std::unique_ptr<input::Pipeline> m_pipeline;
     QMetaObject::Connection m_readyConnection;
+    QMetaObject::Connection m_contentConnection; // contentChanged de la page fixe : redessin du cache
     QPointer<QQuickWindow> m_filteredWindow; // variante B : le stylet est capté par un filtre sur la fenêtre
 
     QQuickItem* m_content = nullptr;
+    QMetaObject::Connection m_contentWidthConnection;
+    QMetaObject::Connection m_contentHeightConnection;
+    QSizeF m_lastPageSize;
     ViewTransform m_transform;
     bool m_fitMode = true;
     bool m_cacheEnabled = true;
@@ -184,8 +202,8 @@ private:
     QSize m_cacheTextureSize;
     QTimer m_cacheTimer;
     QList<const QInputDevice*> m_exclusive;
-    QColor m_penColor = Qt::black;
-    qreal m_penWidth = kDefaultPenWidth;
+    QColor m_inkColor = Qt::black;
+    qreal m_inkWidth = kDefaultInkWidth;
     bool m_inputBlocked = false;
     bool m_stylusDrawing = false; // un trait du stylet, commencé sur la vue, est en cours
     bool m_touchDrawing = false;  // un trait d'un doigt est en cours

@@ -12,7 +12,9 @@ Window {
     height: 800
     visible: true
     // Rendu effectif dans le titre (décision 19 du prototype) : aucun texte dans la scène.
-    title: qsTr("ActCraft — rendu : %1").arg(root.apiName(GraphicsInfo.api))
+    // Titre : `*` devant un document modifié, puis le titre du paperboard (L2-T18).
+    title: qsTr("%1%2 — ActCraft — rendu : %3").arg(appDocument.modified ? "*" : "").arg(appDocument.title)
+               .arg(root.apiName(GraphicsInfo.api))
     color: Theme.fond
 
     // Palette des contrôles laissés au style Basic (menus, zoom, dialogue, info-bulles, barres de défilement) :
@@ -119,6 +121,7 @@ Window {
             Layout.fillHeight: true
             cacheEnabled: root.cacheEnabled
             inputBlocked: root.openPopups > 0
+            documentController: appDocument
         }
 
         ToolPalette {
@@ -173,6 +176,50 @@ Window {
         onClosed: root.popupClosed()
     }
 
+    FileActions {
+        id: fileActions
+        document: appDocument
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
+    }
+
+    // Fermeture de la fenêtre : même demande que « Quitter ».
+    onClosing: close => {
+        if (appDocument.modified && !fileActions.quitting) {
+            close.accepted = false
+            fileActions.quit()
+        }
+    }
+
+    // Avertissements de lecture et erreurs : en haut de la page, sans bloquer, refermables.
+    MessageBanner {
+        id: messageBanner
+        parent: pageArea
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: Theme.espace2
+        z: 10
+    }
+    Connections {
+        target: appDocument
+        function onLoadFinished(ok, message) {
+            if (!ok)
+                messageBanner.show(qsTr("Ouverture impossible : %1").arg(message))
+            else if (appDocument.warnings.length === 1)
+                messageBanner.show(qsTr("1 avertissement de lecture : %1").arg(appDocument.warnings[0]))
+            else if (appDocument.warnings.length > 1)
+                messageBanner.show(qsTr("%1 avertissements de lecture : %2").arg(appDocument.warnings.length)
+                                   .arg(appDocument.warnings.slice(0, 3).join(" ; ")))
+            else
+                messageBanner.dismiss()
+        }
+        function onSaveFinished(ok, message) {
+            if (!ok)
+                messageBanner.show(qsTr("Enregistrement impossible : %1").arg(message))
+        }
+    }
+
     // Raccourcis de la disposition (commande, ou remplacement du profil).
     Instantiator {
         model: appCommands.shortcuts
@@ -185,15 +232,25 @@ Window {
     }
 
     Component.onCompleted: {
-        appCommands.setHandler("file.quit", function () { Qt.quit() })
+        appCommands.setHandler("file.quit", function () { fileActions.quit() })
+        appCommands.setHandler("file.new", function () { fileActions.newDocument(1024, 768) })
+        appCommands.setHandler("file.new-screen", function () { fileActions.newDocument(root.screen.width, root.screen.height) })
+        appCommands.setHandler("file.new-1024x768", function () { fileActions.newDocument(1024, 768) })
+        appCommands.setHandler("file.new-1152x864", function () { fileActions.newDocument(1152, 864) })
+        appCommands.setHandler("file.new-1280x1024", function () { fileActions.newDocument(1280, 1024) })
+        appCommands.setHandler("file.new-custom", function () { fileActions.askSize() })
+        appCommands.setHandler("file.open", function (url) { fileActions.open(url) })
+        appCommands.setHandler("file.save", function () { fileActions.save() })
+        appCommands.setHandler("file.save-as", function (url) { fileActions.saveAs(url) })
+        appCommands.setHandler("file.close", function () { fileActions.close() })
         appCommands.setHandler("view.fullscreen", function () { root.setFullScreen(!root.fullScreen) })
         appCommands.setHandler("view.fit", function () { pageArea.view.fitPage() })
         appCommands.setHandler("view.zoom", function (percent) { pageArea.view.zoom = percent / 100 })
         appCommands.setHandler("page.next", function () { appDocument.nextPage() })
-        appCommands.setHandler("page.previous", function () { appDocument.previousPage() })
+        appCommands.setHandler("page.previous", function () { appDocument.pageBack() })
         appCommands.setHandler("tool.pen", function () { appCommands.setChecked("tool.pen", true) })
-        appCommands.setHandler("pen.color", function (color) { pageArea.view.penColor = color })
-        appCommands.setHandler("pen.width", function (width) { pageArea.view.penWidth = width })
+        appCommands.setHandler("pen.color", function (color) { pageArea.view.inkColor = color })
+        appCommands.setHandler("pen.width", function (width) { pageArea.view.inkWidth = width })
         appCommands.setHandler("menu.main", function () { mainMenu.popup() })
         appCommands.setHandler("menu.tools", function () { toolsMenu.popup() })
         appCommands.setHandler("help.about", function () { aboutDialog.open() })

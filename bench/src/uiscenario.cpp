@@ -1,5 +1,8 @@
 #include <actcraft/bench/contentcheck.h>
+#include <actcraft/bench/fixtures.h>
 #include <actcraft/bench/uiscenario.h>
+#include <actcraft/formats/nativefile.h>
+#include <actcraft/formats/urlio.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/pageview.h>
 
@@ -7,11 +10,13 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
+#include <QFileInfo>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QKeySequence>
+#include <QPointer>
 #include <QPointingDevice>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -19,8 +24,11 @@
 #include <QTabletEvent>
 #include <QTest>
 #include <QTimer>
+#include <QUrl>
 #include <qpa/qwindowsysteminterface.h>
 
+#include <algorithm>
+#include <atomic>
 #include <functional>
 #include <utility>
 
@@ -32,6 +40,16 @@ constexpr int kStrokeSubdivisions = 16; // déplacements postés entre deux poin
 constexpr int kReadyTimeoutMs = 10000;
 constexpr int kStrokeTimeoutMs = 5000;   // trait figé après le relâché
 constexpr int kActivateTimeoutMs = 2000; // fenêtre active avant une touche
+// Bornes des étapes de L2-T20 (le scénario est une entrée non fiable) : attente d'une propriété de 1 ms à 2
+// min, seuil de boucle de 1 ms à 1 min.
+constexpr int kWaitForDefaultMs = 10000;
+constexpr int kWaitForMaxMs = 120000;
+constexpr int kLoopGapMaxMs = 60000;
+constexpr int kLoopProbeIntervalMs = 5;
+constexpr int kLoopSettleTimeoutMs = 1000; // image en attente rendue avant d'armer la sonde
+// Variables réservées d'un scénario (${SORTIE}, ${SAMPLES}) ; les autres viennent de « remember ».
+constexpr QLatin1StringView kOutputVariable("SORTIE");
+constexpr QLatin1StringView kSamplesVariable("SAMPLES");
 
 bool readPoint(const QJsonValue& value, QPointF& out)
 {
@@ -63,6 +81,30 @@ bool splitTarget(const QString& text, QString& target, QString& property)
     target = text.left(dot);
     property = text.mid(dot + 1);
     return true;
+}
+
+// Nom de variable mémorisée : lettres ASCII, chiffres, « _ » et « - » ; SORTIE et SAMPLES sont réservés (une
+// fixture écrite sous « ${SORTIE} » n'irait jamais ailleurs).
+bool isMemoryName(const QString& name)
+{
+    if (name.isEmpty() || name == kOutputVariable || name == kSamplesVariable) {
+        return false;
+    }
+    return std::all_of(name.cbegin(), name.cend(), [](QChar c) {
+        return (c >= u'a' && c <= u'z') || (c >= u'A' && c <= u'Z') || (c >= u'0' && c <= u'9') ||
+               c == u'_' || c == u'-';
+    });
+}
+
+// Vrai si `path` (relatif : au dossier courant, comme formats::urlFromArgument) désigne un fichier sous
+// `dir`, une fois « .. » résolus.
+bool isUnder(const QString& dir, const QString& path)
+{
+    const QDir root(QDir::cleanPath(QDir(dir).absolutePath()));
+    const QString file = QDir::cleanPath(QDir::current().absoluteFilePath(path));
+    const QString relative = root.relativeFilePath(file);
+    return !relative.isEmpty() && relative != QLatin1String(".") && relative != QLatin1String("..") &&
+           !relative.startsWith(QLatin1String("../")) && QDir::isRelativePath(relative);
 }
 
 bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
@@ -148,6 +190,75 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         step.value = jsonText(o.value(QStringLiteral("value")));
+        return true;
+    }
+    if (o.contains(QStringLiteral("fixture"))) {
+        step.kind = UiStepKind::Fixture;
+        step.name = o.value(QStringLiteral("fixture")).toString();
+        step.path = o.value(QStringLiteral("path")).toString();
+        if (step.path.isEmpty() || !fixtureNames().contains(step.name)) {
+            why = QStringLiteral("fixture invalide (nom connu et path)");
+            return false;
+        }
+        return true;
+    }
+    if (o.contains(QStringLiteral("waitFor"))) {
+        step.kind = UiStepKind::WaitFor;
+        step.ms = o.contains(QStringLiteral("timeoutMs")) ? o.value(QStringLiteral("timeoutMs")).toInt(-1)
+                                                          : kWaitForDefaultMs;
+        if (!splitTarget(o.value(QStringLiteral("waitFor")).toString(), step.target, step.property) ||
+            !o.contains(QStringLiteral("value"))) {
+            why = QStringLiteral("attente invalide (waitFor « objet.propriété », value)");
+            return false;
+        }
+        if (step.ms < 1 || step.ms > kWaitForMaxMs) {
+            why = QStringLiteral("attente invalide (timeoutMs de 1 à %1)").arg(kWaitForMaxMs);
+            return false;
+        }
+        step.value = jsonText(o.value(QStringLiteral("value")));
+        return true;
+    }
+    if (o.contains(QStringLiteral("watchEventLoop"))) {
+        step.kind = UiStepKind::WatchEventLoop;
+        return true;
+    }
+    if (o.contains(QStringLiteral("maxEventLoopGapMs"))) {
+        step.kind = UiStepKind::MaxEventLoopGap;
+        step.ms = o.value(QStringLiteral("maxEventLoopGapMs")).toInt(-1);
+        if (step.ms < 1 || step.ms > kLoopGapMaxMs) {
+            why = QStringLiteral("seuil de boucle invalide (de 1 à %1 ms)").arg(kLoopGapMaxMs);
+            return false;
+        }
+        return true;
+    }
+    if (o.contains(QStringLiteral("remember"))) {
+        step.kind = UiStepKind::Remember;
+        step.name = o.value(QStringLiteral("as")).toString();
+        if (!splitTarget(o.value(QStringLiteral("remember")).toString(), step.target, step.property) ||
+            !isMemoryName(step.name)) {
+            why = QStringLiteral("mémoire invalide (remember « objet.propriété », as : lettres, chiffres, _ "
+                                 "ou -, ni SORTIE ni "
+                                 "SAMPLES)");
+            return false;
+        }
+        return true;
+    }
+    if (o.contains(QStringLiteral("archive"))) {
+        step.kind = UiStepKind::ArchiveContains;
+        step.path = o.value(QStringLiteral("archive")).toString();
+        const QJsonArray contains = o.value(QStringLiteral("contains")).toArray();
+        for (const QJsonValue& value : contains) {
+            // Un préfixe vide serait trouvé dans toute archive.
+            if (!value.isString() || value.toString().isEmpty()) {
+                why = QStringLiteral("archive invalide (entrée vide ou non textuelle)");
+                return false;
+            }
+            step.values << value.toString();
+        }
+        if (step.path.isEmpty() || step.values.isEmpty()) {
+            why = QStringLiteral("archive invalide (archive, contains)");
+            return false;
+        }
         return true;
     }
     why = QStringLiteral("étape inconnue");
@@ -344,6 +455,42 @@ QString propertyText(const QVariant& value)
     }
 }
 
+// Sonde de boucle : minuterie du fil principal qui relève, à chaque tour, l'intervalle depuis le précédent.
+// Un blocage du fil (écriture synchrone, calcul) l'allonge, qu'une image soit produite ou non. Précise : une
+// minuterie grossière peut être servie avec retard (Qt::TimerType), ce qui grossirait les intervalles. Armée
+// à la construction.
+class EventLoopProbe
+{
+public:
+    EventLoopProbe()
+    {
+        m_timer.setTimerType(Qt::PreciseTimer);
+        m_timer.setInterval(kLoopProbeIntervalMs);
+        QObject::connect(&m_timer, &QTimer::timeout, &m_timer, [this] {
+            const qint64 now = m_clock.elapsed();
+            m_max = std::max(m_max, now - m_last);
+            m_last = now;
+        });
+        m_clock.start();
+        m_timer.start();
+    }
+
+    // Arrête la sonde et rend le plus long intervalle (ms), intervalle en cours compris : un blocage juste
+    // avant l'arrêt, sans tour de boucle, compte aussi.
+    qint64 stop()
+    {
+        m_timer.stop();
+        m_max = std::max(m_max, m_clock.elapsed() - m_last);
+        return m_max;
+    }
+
+private:
+    QTimer m_timer;
+    QElapsedTimer m_clock;
+    qint64 m_last = 0;
+    qint64 m_max = 0;
+};
+
 UiScenarioPlayer::UiScenarioPlayer(QQuickWindow* window)
     : m_window(window), m_stylus(std::make_unique<QPointingDevice>(
                             QStringLiteral("actcraft-captures-stylet"), 5180,
@@ -421,14 +568,19 @@ bool UiScenarioPlayer::expect(const UiStep& step, QStringList& report)
 
 bool UiScenarioPlayer::read(const UiStep& step, QStringList& report)
 {
+    QString expected;
+    if (!expandOrFail(step.value, QStringLiteral("LU %1.%2").arg(step.target, step.property), expected,
+                      report)) {
+        return false;
+    }
     QObject* object = find(step.target);
     // Propriété absente : « <absente> » (propertyText), jamais « "" » qui égalerait une valeur attendue vide.
     const QString actual = object ? propertyText(object->property(step.property.toUtf8().constData()))
                                   : QStringLiteral("<introuvable>");
-    const bool ok = object && actual == step.value;
+    const bool ok = object && actual == expected;
     report << (ok ? QStringLiteral("LU %1.%2=%3 OK").arg(step.target, step.property, actual)
                   : QStringLiteral("LU %1.%2=%3 ECART (attendu %4)")
-                        .arg(step.target, step.property, actual, step.value));
+                        .arg(step.target, step.property, actual, expected));
     return ok;
 }
 
@@ -549,18 +701,217 @@ bool UiScenarioPlayer::checkPixel(const UiStep& step, QStringList& report)
     return ok;
 }
 
+bool UiScenarioPlayer::expand(const QString& text, QString& out, QString& why) const
+{
+    QString result;
+    qsizetype from = 0;
+    for (;;) {
+        const qsizetype open = text.indexOf(QLatin1String("${"), from);
+        if (open < 0) {
+            result += QStringView(text).mid(from);
+            break;
+        }
+        const qsizetype close = text.indexOf(QLatin1Char('}'), open + 2);
+        if (close < 0) {
+            why = QStringLiteral("variable non fermée");
+            return false;
+        }
+        result += QStringView(text).mid(from, open - from);
+        const QString name = text.mid(open + 2, close - open - 2);
+        if (name == kOutputVariable) {
+            result += m_outputDir;
+        } else if (name == kSamplesVariable) {
+            const QString samples = qEnvironmentVariable("ACTCRAFT_SAMPLES_DIR");
+            if (samples.isEmpty()) {
+                why = QStringLiteral("ACTCRAFT_SAMPLES_DIR absent");
+                return false;
+            }
+            result += samples;
+        } else {
+            const auto found = m_memory.constFind(name);
+            if (found == m_memory.cend()) {
+                why = QStringLiteral("variable inconnue « %1 »").arg(name);
+                return false;
+            }
+            result += *found; // inséré tel quel : une valeur lue dans l'interface n'est jamais relue
+        }
+        from = close + 1;
+    }
+    out = result;
+    return true;
+}
+
+bool UiScenarioPlayer::expandOrFail(const QString& text, const QString& head, QString& out,
+                                    QStringList& report) const
+{
+    QString why;
+    if (expand(text, out, why)) {
+        return true;
+    }
+    report << head + QStringLiteral(" ECHEC (%1)").arg(why);
+    return false;
+}
+
+bool UiScenarioPlayer::fixture(const UiStep& step, QStringList& report)
+{
+    QString path;
+    if (!expandOrFail(step.path, QStringLiteral("FIXTURE %1").arg(step.name), path, report)) {
+        return false;
+    }
+    // Chemin venu du scénario : la fixture n'écrit que sous le dossier de sortie, jamais à côté.
+    if (!isUnder(m_outputDir, path)) {
+        report << QStringLiteral("FIXTURE %1 ECHEC (%2 hors du dossier de sortie %3)")
+                      .arg(step.name, path, m_outputDir);
+        return false;
+    }
+    QString error;
+    const bool ok = QDir().mkpath(QFileInfo(path).absolutePath()) && buildFixture(step.name, path, error);
+    report << (ok ? QStringLiteral("FIXTURE %1 %2 OK").arg(step.name, path)
+                  : QStringLiteral("FIXTURE %1 ECHEC (%2)")
+                        .arg(step.name, error.isEmpty() ? QStringLiteral("dossier impossible") : error));
+    return ok;
+}
+
+bool UiScenarioPlayer::waitFor(const UiStep& step, QStringList& report)
+{
+    const QString head = QStringLiteral("ATTENTE %1.%2").arg(step.target, step.property);
+    QString expected;
+    if (!expandOrFail(step.value, head, expected, report)) {
+        return false;
+    }
+    const QPointer<QObject> target = find(step.target);
+    if (!target) {
+        report << head + QStringLiteral(" ECHEC (objet %1 introuvable)").arg(step.target);
+        return false;
+    }
+    // Condition avec plafond, jamais une durée fixe ; l'objet peut disparaître pendant l'attente.
+    const QByteArray property = step.property.toUtf8();
+    QString actual;
+    waitUntil(
+        [&] {
+            if (!target) {
+                return true;
+            }
+            actual = propertyText(target->property(property.constData()));
+            return actual == expected;
+        },
+        step.ms);
+    if (!target) {
+        report << head + QStringLiteral(" ECHEC (objet détruit pendant l'attente)");
+        return false;
+    }
+    const bool ok = actual == expected;
+    report << (ok ? head + QStringLiteral("=%1 OK").arg(expected)
+                  : head +
+                        QStringLiteral("=%1 ECHEC (lu %2 après %3 ms)").arg(expected, actual).arg(step.ms));
+    return ok;
+}
+
+bool UiScenarioPlayer::watchEventLoop(QStringList& report)
+{
+    // Image laissée en attente par l'étape précédente (trait, changement de page) : rendue AVANT d'armer la
+    // sonde, qui mesure la boucle pendant ce qui suit (l'E/S), pas ce rendu. Une image est demandée ; son
+    // frameSwapped, qui est celui de l'image déjà en attente s'il y en a une, libère l'attente. Attente
+    // bornée : fenêtre cachée ou rendu arrêté, aucune image ne vient, la sonde s'arme quand même et le dit.
+    QString note;
+    auto swapped = std::make_shared<std::atomic<bool>>(false);
+    const QMetaObject::Connection connection = QObject::connect(
+        m_window, &QQuickWindow::frameSwapped, m_window, [swapped] { swapped->store(true); },
+        Qt::DirectConnection); // fil de rendu ou fil principal selon la boucle de rendu
+    m_window->update();
+    if (!waitUntil([&swapped] { return swapped->load(); }, kLoopSettleTimeoutMs)) {
+        note = QStringLiteral(" (aucune image rendue en %1 ms)").arg(kLoopSettleTimeoutMs);
+    }
+    QObject::disconnect(connection);
+    m_loopProbe = std::make_unique<EventLoopProbe>();
+    report << QStringLiteral("BOUCLE sonde démarrée") + note;
+    return true;
+}
+
+bool UiScenarioPlayer::maxEventLoopGap(const UiStep& step, QStringList& report)
+{
+    if (!m_loopProbe) {
+        report << QStringLiteral("BOUCLE ECHEC (sonde non démarrée)");
+        return false;
+    }
+    const qint64 max = m_loopProbe->stop();
+    m_loopProbe.reset();
+    const bool ok = max <= step.ms;
+    report << QStringLiteral("BOUCLE max=%1 ms %2")
+                  .arg(max)
+                  .arg(ok ? QStringLiteral("OK") : QStringLiteral("ECART (seuil %1 ms)").arg(step.ms));
+    return ok;
+}
+
+bool UiScenarioPlayer::remember(const UiStep& step, QStringList& report)
+{
+    QObject* target = find(step.target);
+    if (!target) {
+        report << QStringLiteral("MEMO %1 ECHEC (objet %2 introuvable)").arg(step.name, step.target);
+        return false;
+    }
+    // Propriété absente ou sans texte : rien à mémoriser (« <absente> » relu plus tard égalerait une autre
+    // propriété absente).
+    const QVariant value = target->property(step.property.toUtf8().constData());
+    if (!value.isValid() || !value.canConvert<QString>()) {
+        report << QStringLiteral("MEMO %1 ECHEC (%2.%3 : %4)")
+                      .arg(step.name, step.target, step.property, propertyText(value));
+        return false;
+    }
+    const QString text = propertyText(value);
+    m_memory.insert(step.name, text);
+    report << QStringLiteral("MEMO %1=%2").arg(step.name, text);
+    return true;
+}
+
+bool UiScenarioPlayer::archiveContains(const UiStep& step, QStringList& report)
+{
+    QString path;
+    if (!expandOrFail(step.path, QStringLiteral("ARCHIVE %1").arg(step.path), path, report)) {
+        return false;
+    }
+    // Lecture bornée (formats::readUrl, 1 Gio) ; relatif : au dossier courant, comme une commande de fichier.
+    const formats::UrlReadResult read =
+        formats::readUrl(QUrl::fromLocalFile(QDir::current().absoluteFilePath(path)));
+    if (!read.ok) {
+        report << QStringLiteral("ARCHIVE %1 ECHEC (%2)").arg(path, read.error);
+        return false;
+    }
+    const QStringList names = formats::archiveEntryNames(read.data);
+    QStringList missing;
+    for (const QString& wanted : step.values) {
+        if (std::none_of(names.cbegin(), names.cend(),
+                         [&wanted](const QString& name) { return name.startsWith(wanted); })) {
+            missing << wanted;
+        }
+    }
+    report << (missing.isEmpty() ? QStringLiteral("ARCHIVE %1 OK").arg(path)
+                                 : QStringLiteral("ARCHIVE %1 ECART (manque %2)")
+                                       .arg(path, missing.join(QStringLiteral(", "))));
+    return missing.isEmpty();
+}
+
 bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
 {
     switch (step.kind) {
     case UiStepKind::Command: {
+        QVariant argumentValue = step.argument;
+        if (argumentValue.typeId() == QMetaType::QString) {
+            QString expanded;
+            if (!expandOrFail(argumentValue.toString(), QStringLiteral("COMMANDE %1").arg(step.command),
+                              expanded, report)) {
+                return false;
+            }
+            argumentValue = expanded;
+        }
         QVariant result;
         const bool invoked = QMetaObject::invokeMethod(m_window, "runCommand", Q_RETURN_ARG(QVariant, result),
                                                        Q_ARG(QVariant, QVariant(step.command)),
-                                                       Q_ARG(QVariant, step.argument));
+                                                       Q_ARG(QVariant, argumentValue));
         QCoreApplication::processEvents();
         const bool ok = invoked && result.toBool();
         const QString argument =
-            step.argument.isValid() ? QStringLiteral(" ") + propertyText(step.argument) : QString();
+            argumentValue.isValid() ? QStringLiteral(" ") + propertyText(argumentValue) : QString();
         report << QStringLiteral("COMMANDE %1%2 %3")
                       .arg(step.command, argument, ok ? QStringLiteral("OK") : QStringLiteral("ECHEC"));
         return ok;
@@ -607,6 +958,18 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return checkPixel(step, report);
     case UiStepKind::Expect:
         return read(step, report);
+    case UiStepKind::Fixture:
+        return fixture(step, report);
+    case UiStepKind::WaitFor:
+        return waitFor(step, report);
+    case UiStepKind::WatchEventLoop:
+        return watchEventLoop(report);
+    case UiStepKind::MaxEventLoopGap:
+        return maxEventLoopGap(step, report);
+    case UiStepKind::Remember:
+        return remember(step, report);
+    case UiStepKind::ArchiveContains:
+        return archiveContains(step, report);
     }
     return false;
 }
@@ -623,6 +986,8 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
     m_outputDir = outputDir;
     m_captureIndex = 0;
     m_index.clear();
+    m_memory.clear();    // variables d'un scénario, pas du suivant
+    m_loopProbe.reset(); // sonde d'un scénario précédent jamais arrêtée
     if (!QDir().mkpath(outputDir)) {
         report << QStringLiteral("CAPTURE dossier impossible : %1").arg(outputDir);
         emitFrom(report, first);

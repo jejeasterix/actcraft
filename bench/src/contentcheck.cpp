@@ -37,8 +37,11 @@ QColor sampleColor(const QImage& image, QPoint pixel)
 
 QPoint sceneToImage(QPointF scenePoint, qreal devicePixelRatio)
 {
-    return QPoint(static_cast<int>(std::lround(scenePoint.x() * devicePixelRatio)),
-                  static_cast<int>(std::lround(scenePoint.y() * devicePixelRatio)));
+    // Le pixel i de la capture couvre [i, i + 1[ (centre en i + 0,5), comme pour le rastériseur : le point
+    // tombe dans le pixel floor(p). Arrondir le décalait d'un demi-pixel en moyenne, d'un pixel au pire, et
+    // l'échantillon 3 × 3 débordait d'un trait de 3 pixels (L2-C11 : #555555 en D3D11 au zoom 0,9).
+    return QPoint(static_cast<int>(std::floor(scenePoint.x() * devicePixelRatio)),
+                  static_cast<int>(std::floor(scenePoint.y() * devicePixelRatio)));
 }
 
 ContentCheck checkColor(const QString& name, const QImage& image, QPoint pixel, QColor expected,

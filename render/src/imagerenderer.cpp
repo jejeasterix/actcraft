@@ -14,7 +14,7 @@ QSGNode* ImageRenderer::createNode(const core::PageObject& object, std::size_t o
     if (!image || !context.images || !context.window) {
         return nullptr;
     }
-    const QImage pixels = context.images->image(objectIndex);
+    const QImage pixels = context.images->objectImage(*image, objectIndex);
     if (pixels.isNull()) {
         return nullptr;
     }

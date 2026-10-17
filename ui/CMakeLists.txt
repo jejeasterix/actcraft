@@ -12,6 +12,10 @@ set_source_files_properties(qml/AboutDialog.qml PROPERTIES QT_QML_SKIP_CACHEGEN 
 set_source_files_properties(qml/TopBar.qml qml/CommandButton.qml qml/WidthPicker.qml
     PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)
 
+# Même défaut (C4702) pour les commandes de fichier et leurs dialogues (L2-T18) : chargés depuis leur source.
+set_source_files_properties(qml/FileActions.qml qml/SaveChangesDialog.qml qml/PageSizeDialog.qml
+    PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)
+
 qt_add_qml_module(actcraft_ui
     URI ActCraft.Ui
     VERSION 1.0
@@ -28,6 +32,10 @@ qt_add_qml_module(actcraft_ui
         qml/WidthPicker.qml
         qml/ItemHighlight.qml
         qml/ScrollThumb.qml
+        qml/FileActions.qml
+        qml/SaveChangesDialog.qml
+        qml/PageSizeDialog.qml
+        qml/MessageBanner.qml
     RESOURCES
         icons/menu.svg
         icons/outils.svg
@@ -50,6 +58,8 @@ qt_add_qml_module(actcraft_ui
         src/viewtransform.cpp
         src/pageview.cpp
         src/documentcontroller.cpp
+        include/actcraft/ui/documentio.h
+        src/documentio.cpp
         src/commands.cpp
         include/actcraft/ui/appinfo.h
         src/appinfo.cpp)
@@ -59,7 +69,7 @@ target_include_directories(actcraft_ui
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/actcraft/ui ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(actcraft_ui PUBLIC
-    Qt6::Quick ActCraft::actions ActCraft::input ActCraft::render ActCraft::tools)
+    Qt6::Quick ActCraft::actions ActCraft::formats ActCraft::input ActCraft::render ActCraft::tools)
 actcraft_set_warnings(actcraft_ui)
 
 # Version affichée par « À propos » (décision 31).

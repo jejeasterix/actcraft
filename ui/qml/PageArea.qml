@@ -11,6 +11,8 @@ Item {
     property alias fixedPage: fixedPageItem
     property bool cacheEnabled: true
     property bool inputBlocked: false
+    // Document ouvert : le stylo y verse ses traits par la pile (L2-T15).
+    property DocumentController documentController: null
     clip: true
 
     PageView {
@@ -22,15 +24,16 @@ Item {
         content: pageContent
         fixedPage: fixedPageItem
         ink: inkLayer
+        documentController: area.documentController
         // Branché dès la création de la vue (un bloc Connections ne l'est qu'en fin de composant).
         onCacheRefreshRequested: cache.scheduleUpdate()
 
-        // Page au format d'un paperboard (1024 × 768), transformée par la vue.
+        // Page à la taille de la page affichée (F-602), transformée par la vue.
         Item {
             id: pageContent
             objectName: "page"
-            width: 1024
-            height: 768
+            width: area.documentController ? area.documentController.pageSize.width : 1024
+            height: area.documentController ? area.documentController.pageSize.height : 768
 
             FixedPage {
                 id: fixedPageItem
@@ -66,14 +69,14 @@ Item {
     Rectangle {
         objectName: "widthIndicator"
         visible: hover.hovered && !area.inputBlocked
-        width: Math.max(4, view.penWidth * view.zoom)
+        width: Math.max(4, view.inkWidth * view.zoom)
         height: width
         radius: width / 2
         x: hover.point.position.x - width / 2
         y: hover.point.position.y - height / 2
         color: "transparent"
         border.width: 1
-        border.color: view.penColor
+        border.color: view.inkColor
         // Filet extérieur « contour » : le cercle reste visible quand l'encre a la couleur de la page (L1-C5).
         Rectangle {
             anchors.fill: parent

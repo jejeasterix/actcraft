@@ -1,6 +1,16 @@
 {
   "format": "actcraft-commands/1",
   "commands": [
+    { "id": "file.new", "label": "Nouveau paperboard", "shortcut": "Ctrl+N" },
+    { "id": "file.new-screen", "label": "Paperboard à la taille de l'écran" },
+    { "id": "file.new-1024x768", "label": "Paperboard 1024 × 768" },
+    { "id": "file.new-1152x864", "label": "Paperboard 1152 × 864" },
+    { "id": "file.new-1280x1024", "label": "Paperboard 1280 × 1024" },
+    { "id": "file.new-custom", "label": "Taille de paperboard personnalisée…" },
+    { "id": "file.open", "label": "Ouvrir…", "shortcut": "Ctrl+O", "argument": "url", "optional": true },
+    { "id": "file.save", "label": "Enregistrer", "shortcut": "Ctrl+S" },
+    { "id": "file.save-as", "label": "Enregistrer sous…", "shortcut": "Ctrl+Shift+S", "argument": "url", "optional": true },
+    { "id": "file.close", "label": "Fermer le paperboard", "shortcut": "Ctrl+W" },
     { "id": "file.quit", "label": "Quitter", "icon": "quitter", "shortcut": "Ctrl+Q" },
     { "id": "view.fullscreen", "label": "Plein écran", "icon": "plein-ecran", "shortcut": "F5", "checkable": true },
     { "id": "view.fit", "label": "Ajuster la page", "icon": "ajuster" },

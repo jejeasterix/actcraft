@@ -9,6 +9,8 @@ actcraft_add_module(render
         src/shaperenderer.cpp
         src/strokerenderer.cpp
         include/actcraft/render/imagestore.h
+        include/actcraft/render/imagecolor.h
+        src/imagecolor.cpp
         src/imagesynth.cpp
         src/imagestore.cpp
         src/imagerenderer.cpp
@@ -18,6 +20,10 @@ actcraft_add_module(render
         src/inkbuffer.cpp
         include/actcraft/render/inkitem.h
         src/inkitem.cpp
+        include/actcraft/render/pagepainter.h
+        src/pagepainter.cpp
+        include/actcraft/render/paintedrenderer.h
+        src/paintedrenderer.cpp
     DEPENDS
         ActCraft::core Qt6::Quick)
 

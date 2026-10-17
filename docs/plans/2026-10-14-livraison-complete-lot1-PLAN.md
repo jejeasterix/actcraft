@@ -118,7 +118,7 @@ L1-T18).
 | `.claude/chantier.md` | profil : release due sous go, motifs d'action finale, banc, preuve visuelle, paquets | L1-T1, L1-T20 |
 | `scripts/dev-env-android.ps1`, `packaging/android/versions.env` | environnement de la chaîne Android (poste et CI), versions relevées | L1-T2 (L1-T17, L1-T19 corrigent) |
 | `docs/verifications/2026-10-14-outillage-paquets.md` | lignes `VERIF` de l'outillage, de l'APK et de l'émulateur | L1-T2, L1-T17, L1-T18 |
-| `core/include/actcraft/core/document.h` | `Document`, `nextPageIndex`, `previousPageIndex`, `fingerprint(Document)` | L1-T3 |
+| `core/include/actcraft/core/document.h` | `Document`, `nextPageIndex`, `formerPageIndex`, `fingerprint(Document)` | L1-T3 |
 | `actions/include/actcraft/actions/commandregistry.h`, `actions/data/commands.json` | `CommandRegistry`, `CommandInfo`, `Platform`, `ArgumentKind`, déclarations des 13 commandes | L1-T4 |
 | `actions/include/actcraft/actions/layout.h`, `actions/data/layout.json` | `Layout`, `parseLayout`, `readLayeredFile`, `unknownCommands` ; disposition par défaut | L1-T5 |
 | `input/include/actcraft/input/sample.h`, `input/src/qtevents.cpp` | `DeviceKind::Touch`, conversion d'un doigt | L1-T6 |
@@ -144,7 +144,7 @@ L1-T18).
 Une tâche ne renomme aucun de ces noms. Les noms du prototype (plan `docs/plans/2026-10-13-prototype-mesure-PLAN.md`,
 section « Contrats ») restent figés eux aussi.
 
-- `actcraft::core` : `Document` (`pageCount`, `page`, `appendPage`), `nextPageIndex`, `previousPageIndex`,
+- `actcraft::core` : `Document` (`pageCount`, `page`, `appendPage`), `nextPageIndex`, `formerPageIndex`,
   `fingerprint(const Document&)`.
 - `actcraft::actions` : `Platform` (`Windows`, `Android`, `MacOS`, `Linux`), `Platforms`, `kAllPlatforms`,
   `platformBit`, `currentPlatform`, `platformName`, `ArgumentKind` (`None`, `Color`, `Number`, `Url`),
@@ -157,11 +157,11 @@ section « Contrats ») restent figés eux aussi.
   pixels de page), `menu.main`, `menu.tools`, `help.website`, `help.about`.
 - Groupes de palette spéciaux : `couleurs`, `epaisseur` ; séparateur de menu : `"-"`.
 - `actcraft::input` : `DeviceKind::Touch` (ajouté après `Other`).
-- `actcraft::ui` : `ScrollAxis`, `scrollAxis`, `panForScrollPosition`, `kDefaultPenWidth`, `kMinPenWidth`,
-  `kMaxPenWidth` ; `PageView` (propriétés `penColor`, `penWidth`, `inputBlocked`, `scrollSizeX`,
+- `actcraft::ui` : `ScrollAxis`, `scrollAxis`, `panForScrollPosition`, `kDefaultInkWidth`, `kMinInkWidth`,
+  `kMaxInkWidth` ; `PageView` (propriétés `inkColor`, `inkWidth`, `inputBlocked`, `scrollSizeX`,
   `scrollPositionX`, `scrollSizeY`, `scrollPositionY` ; `scrollTo` ; signaux `penChanged`, `scrollChanged`,
   `inputBlockedChanged`) ; `DocumentController` (`fixedPage`, `pageCount`, `currentIndex`, `pageLabel`,
-  `nextPage`, `previousPage`, `loadGeneratedFirstPage`, `document`) ; `Commands` (`menus`, `palette`,
+  `nextPage`, `pageBack`, `loadGeneratedFirstPage`, `document`) ; `Commands` (`menus`, `palette`,
   `shortcuts`, `colors`, `penWidths`, `platformName`, `errors`, `revision`, `trigger`, `setHandler`, `label`,
   `iconUrl`, `shortcut`, `isAvailable`, `isEnabled`, `setEnabled`, `isChecked`, `setChecked`, `setProfileDir`,
   `setPlatform`, `reload`, signaux `layoutChanged`, `stateChanged`, `triggered`) ; `AppInfo` (singleton :
@@ -737,8 +737,8 @@ private slots:
 
     void previousStopsAtFirstPage()
     {
-        QCOMPARE(previousPageIndex(0), std::size_t{0});
-        QCOMPARE(previousPageIndex(3), std::size_t{2});
+        QCOMPARE(formerPageIndex(0), std::size_t{0});
+        QCOMPARE(formerPageIndex(3), std::size_t{2});
     }
 
     void fingerprintFollowsPagesAndContent()
@@ -806,7 +806,7 @@ private:
 // « Page suivante » (F-125) : indice suivant ; sur la dernière page, ajoute d'abord une page vierge.
 std::size_t nextPageIndex(Document& document, std::size_t current);
 // « Page précédente » : indice précédent, borné à 0.
-std::size_t previousPageIndex(std::size_t current) noexcept;
+std::size_t formerPageIndex(std::size_t current) noexcept;
 
 // Empreinte FNV-1a 64 bits : nombre de pages, puis fingerprint(page) de chaque page dans l'ordre.
 std::uint64_t fingerprint(const Document& document) noexcept;
@@ -874,7 +874,7 @@ std::size_t nextPageIndex(Document& document, std::size_t current)
     return document.appendPage();
 }
 
-std::size_t previousPageIndex(std::size_t current) noexcept
+std::size_t formerPageIndex(std::size_t current) noexcept
 {
     return current == 0 ? 0 : current - 1;
 }
@@ -2525,7 +2525,7 @@ git -C <worktree> commit -m "ui : direction visuelle, thème et icônes à nous"
 ### Tâche L1-T8 — `ui` : `PageView` — stylo réglable, défilement, entrée réservée à la vue, doigt unique
 
 **Objectif.** Préparer la vue à la coquille sans toucher à sa politique de cache :
-1. **Stylo réglable** (F-133, F-134, F-137, F-220) : propriétés `penColor` (noir par défaut) et `penWidth` (4 par
+1. **Stylo réglable** (F-133, F-134, F-137, F-220) : propriétés `inkColor` (noir par défaut) et `inkWidth` (4 par
    défaut, bornée à 1–100), appliquées au `PenTool` et gardées quand il est reconstruit.
 2. **Défilement** (F-022) : propriétés `scrollSizeX/Y`, `scrollPositionX/Y` et `scrollTo(x, y)`, calculées par deux
    fonctions pures de `viewtransform` (`scrollAxis`, `panForScrollPosition`).
@@ -2666,20 +2666,20 @@ private slots:
             QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3);
     }
 
-    void penColorAndWidthAreClampedAndSignalled()
+    void inkColorAndWidthAreClampedAndSignalled()
     {
         Fixture f;
         QVERIFY(open(f));
-        QCOMPARE(f.view->penColor(), QColor(Qt::black));
-        QCOMPARE(f.view->penWidth(), kDefaultPenWidth);
+        QCOMPARE(f.view->inkColor(), QColor(Qt::black));
+        QCOMPARE(f.view->inkWidth(), kDefaultInkWidth);
         QSignalSpy changed(f.view, &PageView::penChanged);
-        f.view->setPenColor(QColor(QStringLiteral("#E53935")));
-        f.view->setPenWidth(0.0);
-        QCOMPARE(f.view->penWidth(), kMinPenWidth);
-        f.view->setPenWidth(500.0);
-        QCOMPARE(f.view->penWidth(), kMaxPenWidth);
-        f.view->setPenColor(QColor()); // invalide : ignorée
-        QCOMPARE(f.view->penColor(), QColor(QStringLiteral("#E53935")));
+        f.view->setInkColor(QColor(QStringLiteral("#E53935")));
+        f.view->setInkWidth(0.0);
+        QCOMPARE(f.view->inkWidth(), kMinInkWidth);
+        f.view->setInkWidth(500.0);
+        QCOMPARE(f.view->inkWidth(), kMaxInkWidth);
+        f.view->setInkColor(QColor()); // invalide : ignorée
+        QCOMPARE(f.view->inkColor(), QColor(QStringLiteral("#E53935")));
         QCOMPARE(changed.count(), 3);
     }
 
@@ -2748,7 +2748,7 @@ Si `TstPageView` a déjà une section `private:`, y placer `m_stylus` ; s'il a d
 création de `m_stylus`.
 
 - [ ] **Étape 3 : les voir échouer.** Commande ciblée, motif `tst_viewtransform|tst_pageview`. Attendu : `error`
-(`ScrollAxis`, `penColor`, `kDefaultPenWidth`… inconnus).
+(`ScrollAxis`, `inkColor`, `kDefaultInkWidth`… inconnus).
 
 - [ ] **Étape 4 : `viewtransform`.** Dans `ui/include/actcraft/ui/viewtransform.h`, avant la fermeture de l'espace
 de noms, ajouter :
@@ -2797,15 +2797,15 @@ déclarations anticipées :
 
 ```cpp
 // Épaisseur du stylo, pixels de page (F-137 : réglette 1 à 100 ; F-220 : 4 par défaut).
-inline constexpr qreal kDefaultPenWidth = 4.0;
-inline constexpr qreal kMinPenWidth = 1.0;
-inline constexpr qreal kMaxPenWidth = 100.0;
+inline constexpr qreal kDefaultInkWidth = 4.0;
+inline constexpr qreal kMinInkWidth = 1.0;
+inline constexpr qreal kMaxInkWidth = 100.0;
 ```
 dans la classe, après `Q_PROPERTY(actcraft::render::InkItem* ink …)` :
 
 ```cpp
-    Q_PROPERTY(QColor penColor READ penColor WRITE setPenColor NOTIFY penChanged)
-    Q_PROPERTY(qreal penWidth READ penWidth WRITE setPenWidth NOTIFY penChanged)
+    Q_PROPERTY(QColor inkColor READ inkColor WRITE setInkColor NOTIFY penChanged)
+    Q_PROPERTY(qreal inkWidth READ inkWidth WRITE setInkWidth NOTIFY penChanged)
     Q_PROPERTY(bool inputBlocked READ inputBlocked WRITE setInputBlocked NOTIFY inputBlockedChanged)
     Q_PROPERTY(qreal scrollSizeX READ scrollSizeX NOTIFY scrollChanged)
     Q_PROPERTY(qreal scrollPositionX READ scrollPositionX NOTIFY scrollChanged)
@@ -2815,12 +2815,12 @@ dans la classe, après `Q_PROPERTY(actcraft::render::InkItem* ink …)` :
 dans `public:`, après `const ViewTransform& viewTransform() const noexcept;` :
 
 ```cpp
-    QColor penColor() const noexcept;
+    QColor inkColor() const noexcept;
     // Couleur invalide ignorée.
-    void setPenColor(const QColor& color);
-    qreal penWidth() const noexcept;
-    // Bornée à [kMinPenWidth, kMaxPenWidth].
-    void setPenWidth(qreal width);
+    void setInkColor(const QColor& color);
+    qreal inkWidth() const noexcept;
+    // Bornée à [kMinInkWidth, kMaxInkWidth].
+    void setInkWidth(qreal width);
     bool inputBlocked() const noexcept;
     // Vrai tant qu'une fenêtre surgissante est ouverte (menu, dialogue) : aucun trait ne commence ; un trait
     // commencé se termine normalement.
@@ -2844,8 +2844,8 @@ dans `signals:`, ajouter `void penChanged();`, `void inputBlockedChanged();`, `v
 et dans les membres, après `QList<const QInputDevice*> m_exclusive;` :
 
 ```cpp
-    QColor m_penColor = Qt::black;
-    qreal m_penWidth = kDefaultPenWidth;
+    QColor m_inkColor = Qt::black;
+    qreal m_inkWidth = kDefaultInkWidth;
     bool m_inputBlocked = false;
     bool m_touchDrawing = false; // un trait d'un doigt est en cours
     QPointF m_lastTouchViewPos;
@@ -2857,8 +2857,8 @@ Dans `rebuildPen()`, juste après `m_pen = std::make_unique<tools::PenTool>(*m_i
 ajouter :
 
 ```cpp
-    m_pen->setColor(m_penColor.rgba());
-    m_pen->setBaseWidth(m_penWidth);
+    m_pen->setColor(m_inkColor.rgba());
+    m_pen->setBaseWidth(m_inkWidth);
 ```
 Remplacer `mousePressEvent` et `eventFilter` par :
 
@@ -2945,37 +2945,37 @@ void PageView::finishTouchStroke()
     m_pipeline->push(release);
 }
 
-QColor PageView::penColor() const noexcept
+QColor PageView::inkColor() const noexcept
 {
-    return m_penColor;
+    return m_inkColor;
 }
 
-void PageView::setPenColor(const QColor& color)
+void PageView::setInkColor(const QColor& color)
 {
-    if (!color.isValid() || color == m_penColor) {
+    if (!color.isValid() || color == m_inkColor) {
         return;
     }
-    m_penColor = color;
+    m_inkColor = color;
     if (m_pen) {
-        m_pen->setColor(m_penColor.rgba());
+        m_pen->setColor(m_inkColor.rgba());
     }
     emit penChanged();
 }
 
-qreal PageView::penWidth() const noexcept
+qreal PageView::inkWidth() const noexcept
 {
-    return m_penWidth;
+    return m_inkWidth;
 }
 
-void PageView::setPenWidth(qreal width)
+void PageView::setInkWidth(qreal width)
 {
-    const qreal clamped = std::clamp(width, kMinPenWidth, kMaxPenWidth);
-    if (qFuzzyCompare(clamped, m_penWidth)) {
+    const qreal clamped = std::clamp(width, kMinInkWidth, kMaxInkWidth);
+    if (qFuzzyCompare(clamped, m_inkWidth)) {
         return;
     }
-    m_penWidth = clamped;
+    m_inkWidth = clamped;
     if (m_pen) {
-        m_pen->setBaseWidth(m_penWidth);
+        m_pen->setBaseWidth(m_inkWidth);
     }
     emit penChanged();
 }
@@ -3043,7 +3043,7 @@ l'épaisseur par défaut passe de 3 à 4, ce qui ne change pas leurs pixels sond
 ont tourné :
 
 ```powershell
-Set-Location <worktree>; pwsh -NoProfile -Command ". ./scripts/dev-env.ps1; `$env:QT_QPA_PLATFORM='offscreen'; `$env:QT_QUICK_BACKEND='software'; ./build/debug/tst_viewtransform.exe *> .tmp/fonctions-vt.txt; ./build/debug/tst_pageview.exe *> .tmp/fonctions-pv.txt"; Select-String -Path .tmp/fonctions-vt.txt, .tmp/fonctions-pv.txt -Pattern '^(PASS|FAIL!).*(scrollAxisCoversPageAndMargins|panForScrollPositionInvertsScrollAxis|penColorAndWidthAreClampedAndSignalled|scrollPropertiesFollowZoom|strokeStartsOnlyOnTheViewThenFollowsTheStylus|blockedInputStartsNoStroke|oneFingerDrawsTwoFingersDoNot)|^Totals' | ForEach-Object { $_.Line }
+Set-Location <worktree>; pwsh -NoProfile -Command ". ./scripts/dev-env.ps1; `$env:QT_QPA_PLATFORM='offscreen'; `$env:QT_QUICK_BACKEND='software'; ./build/debug/tst_viewtransform.exe *> .tmp/fonctions-vt.txt; ./build/debug/tst_pageview.exe *> .tmp/fonctions-pv.txt"; Select-String -Path .tmp/fonctions-vt.txt, .tmp/fonctions-pv.txt -Pattern '^(PASS|FAIL!).*(scrollAxisCoversPageAndMargins|panForScrollPositionInvertsScrollAxis|inkColorAndWidthAreClampedAndSignalled|scrollPropertiesFollowZoom|strokeStartsOnlyOnTheViewThenFollowsTheStylus|blockedInputStartsNoStroke|oneFingerDrawsTwoFingersDoNot)|^Totals' | ForEach-Object { $_.Line }
 ```
 Attendu : 7 lignes `PASS`, deux lignes `Totals: … 0 failed` ; banc sans écran (résultat ; noter au
 rapport que l'épaisseur par défaut du stylo passe de 3 à 4 px, F-220, ce qui touche aussi les traits du banc).
@@ -3151,7 +3151,7 @@ private slots:
         QCOMPARE(controller.pageCount(), 2);
         QCOMPARE(controller.currentIndex(), 1);
         QCOMPARE(controller.pageLabel(), QStringLiteral("2 / 2"));
-        controller.previousPage();
+        controller.pageBack();
         QCOMPARE(controller.pageLabel(), QStringLiteral("1 / 2"));
         controller.nextPage(); // la page 2 existe : pas de troisième page
         QCOMPARE(controller.pageCount(), 2);
@@ -3163,7 +3163,7 @@ private slots:
         ui::DocumentController controller;
         controller.setFixedPage(&fixed);
         QSignalSpy pages(&controller, &ui::DocumentController::pagesChanged);
-        controller.previousPage();
+        controller.pageBack();
         QCOMPARE(pages.count(), 0);
         QCOMPARE(controller.currentIndex(), 0);
     }
@@ -3176,7 +3176,7 @@ private slots:
         fixed.appendStroke(redStroke()); // comme le stylo (FixedPageSink)
         controller.nextPage();
         QCOMPARE(fixed.objectCount(), 0);
-        controller.previousPage();
+        controller.pageBack();
         QCOMPARE(fixed.objectCount(), 1);
         const core::Document& document = controller.document();
         QCOMPARE(document.page(0).objects.size(), std::size_t{1});
@@ -3280,7 +3280,7 @@ public:
 
     // F-125 : sur la dernière page, ajoute une page vierge et l'affiche.
     Q_INVOKABLE void nextPage();
-    Q_INVOKABLE void previousPage();
+    Q_INVOKABLE void pageBack();
     // Banc et tests : la page 1 devient la page générée de 300 objets (core::generatePage).
     Q_INVOKABLE void loadGeneratedFirstPage();
 
@@ -3355,9 +3355,9 @@ void DocumentController::nextPage()
     show(core::nextPageIndex(m_document, m_current));
 }
 
-void DocumentController::previousPage()
+void DocumentController::pageBack()
 {
-    const std::size_t target = core::previousPageIndex(m_current);
+    const std::size_t target = core::formerPageIndex(m_current);
     if (target == m_current) {
         return;
     }
@@ -4791,11 +4791,11 @@ private slots:
         Shell s;
         QVERIFY(start(s));
         QVERIFY(run(s, QStringLiteral("pen.color"), QStringLiteral("#E53935")));
-        QCOMPARE(s.view->penColor(), QColor(QStringLiteral("#E53935")));
+        QCOMPARE(s.view->inkColor(), QColor(QStringLiteral("#E53935")));
         QVERIFY(run(s, QStringLiteral("pen.width"), 8));
-        QCOMPARE(s.view->penWidth(), 8.0);
+        QCOMPARE(s.view->inkWidth(), 8.0);
         QVERIFY(!run(s, QStringLiteral("pen.color"), QStringLiteral("rouge")));
-        QCOMPARE(s.view->penColor(), QColor(QStringLiteral("#E53935")));
+        QCOMPARE(s.view->inkColor(), QColor(QStringLiteral("#E53935")));
     }
 
     void redStrokeSurvivesPageRoundTrip()
@@ -4831,7 +4831,7 @@ private slots:
         QTRY_VERIFY(!s.window->property("fullScreen").toBool());
     }
 
-    void swatchTapChoosesThePenColor()
+    void swatchTapChoosesTheInkColor()
     {
         Shell s;
         QVERIFY(start(s));
@@ -4839,7 +4839,7 @@ private slots:
         QVERIFY(swatch);
         const QPointF center = swatch->mapToScene(QPointF(swatch->width() / 2, swatch->height() / 2));
         QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier, center.toPoint());
-        QTRY_COMPARE(s.view->penColor(), QColor(QStringLiteral("#1E88E5")));
+        QTRY_COMPARE(s.view->inkColor(), QColor(QStringLiteral("#1E88E5")));
     }
 
     void stylusOnThePaletteDoesNotDraw()
@@ -5206,7 +5206,7 @@ Grid {
             id: swatch
             required property string modelData
             required property int index
-            readonly property bool current: Qt.colorEqual(grid.view.penColor, modelData)
+            readonly property bool current: Qt.colorEqual(grid.view.inkColor, modelData)
             objectName: "swatch-" + index
             width: Theme.taillePastille
             height: Theme.taillePastille
@@ -5249,7 +5249,7 @@ ColumnLayout {
                 width: 21
                 height: 21
                 radius: 4
-                color: picker.view.penWidth === modelData ? Theme.surfaceActive : Theme.surface
+                color: picker.view.inkWidth === modelData ? Theme.surfaceActive : Theme.surface
                 Rectangle {
                     anchors.centerIn: parent
                     width: Math.min(17, 3 + preset.modelData * 1.5)
@@ -5271,10 +5271,10 @@ ColumnLayout {
         from: 1
         to: 100
         stepSize: 1
-        value: picker.view.penWidth
+        value: picker.view.inkWidth
         onMoved: picker.commands.trigger("pen.width", value)
         // Le glissement casse la liaison : on la rend au stylo au relâché.
-        onPressedChanged: if (!pressed) value = Qt.binding(() => picker.view.penWidth)
+        onPressedChanged: if (!pressed) value = Qt.binding(() => picker.view.inkWidth)
     }
 
     Item {
@@ -5283,10 +5283,10 @@ ColumnLayout {
         Rectangle {
             objectName: "widthIndicatorSample"
             anchors.centerIn: parent
-            width: Math.min(36, Math.max(2, picker.view.penWidth))
+            width: Math.min(36, Math.max(2, picker.view.inkWidth))
             height: width
             radius: width / 2
-            color: picker.view.penColor
+            color: picker.view.inkColor
             border.width: 1
             border.color: Theme.separateur
         }
@@ -5452,14 +5452,14 @@ Item {
     Rectangle {
         objectName: "widthIndicator"
         visible: hover.hovered && !area.inputBlocked
-        width: Math.max(4, view.penWidth * view.zoom)
+        width: Math.max(4, view.inkWidth * view.zoom)
         height: width
         radius: width / 2
         x: hover.point.position.x - width / 2
         y: hover.point.position.y - height / 2
         color: "transparent"
         border.width: 1
-        border.color: view.penColor
+        border.color: view.inkColor
     }
 
     ScrollBar {
@@ -5660,10 +5660,10 @@ Window {
         appCommands.setHandler("view.fit", function () { pageArea.view.fitPage() })
         appCommands.setHandler("view.zoom", function (percent) { pageArea.view.zoom = percent / 100 })
         appCommands.setHandler("page.next", function () { appDocument.nextPage() })
-        appCommands.setHandler("page.previous", function () { appDocument.previousPage() })
+        appCommands.setHandler("page.previous", function () { appDocument.pageBack() })
         appCommands.setHandler("tool.pen", function () { appCommands.setChecked("tool.pen", true) })
-        appCommands.setHandler("pen.color", function (color) { pageArea.view.penColor = color })
-        appCommands.setHandler("pen.width", function (width) { pageArea.view.penWidth = width })
+        appCommands.setHandler("pen.color", function (color) { pageArea.view.inkColor = color })
+        appCommands.setHandler("pen.width", function (width) { pageArea.view.inkWidth = width })
         appCommands.setHandler("menu.main", function () { mainMenu.popup() })
         appCommands.setHandler("menu.tools", function () { toolsMenu.popup() })
         appCommands.setHandler("help.about", function () { aboutDialog.open() })
@@ -6927,8 +6927,8 @@ set_tests_properties(tst_captures_premiers_pas PROPERTIES
     {"capture": "interface"},
     {"command": "pen.color", "argument": "#E53935"},
     {"command": "pen.width", "argument": 8},
-    {"expect": "pageView.penColor", "value": "#e53935"},
-    {"expect": "pageView.penWidth", "value": 8},
+    {"expect": "pageView.inkColor", "value": "#e53935"},
+    {"expect": "pageView.inkWidth", "value": 8},
     {"stroke": [[300, 400], [700, 400]], "pressure": 0.5},
     {"waitReady": true},
     {"checkPixel": "trait-rouge", "at": [500, 400], "color": "#E53935", "tolerance": 60},

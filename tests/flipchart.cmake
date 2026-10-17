@@ -1,0 +1,38 @@
+# Tests du lecteur .flipchart (DA4) : actcraft_add_test(...) (fonction définie dans tests/CMakeLists.txt).
+# Les paperboards des tests sont écrits par tests/support/flipchartwriter.h ; samples/ n'est lu que par
+# tst_formats_oracle, en place, et seulement si ACTCRAFT_SAMPLES_DIR est posé (décision 19).
+actcraft_add_test(tst_formats_bamboo
+    SOURCES tst_formats_bamboo.cpp
+    LIBS ActCraft::formats ActCraft::miniz Qt6::Gui)
+if(WIN32)
+    target_link_libraries(tst_formats_bamboo PRIVATE psapi) # GetProcessMemoryInfo (peakmemory.h)
+endif()
+actcraft_add_test(tst_formats_objectstream
+    SOURCES tst_formats_objectstream.cpp
+    LIBS ActCraft::formats Qt6::Gui)
+actcraft_add_test(tst_formats_flipchart
+    SOURCES tst_formats_flipchart.cpp
+    LIBS ActCraft::formats Qt6::Gui)
+if(WIN32)
+    target_link_libraries(tst_formats_flipchart PRIVATE psapi) # GetProcessMemoryInfo (peakmemory.h)
+endif()
+actcraft_add_test(tst_formats_dump
+    SOURCES tst_formats_dump.cpp
+    LIBS ActCraft::formats Qt6::Gui)
+
+# Oracle local (décision 19) : sauté sans ACTCRAFT_SAMPLES_DIR ; lit samples/ en place, n'écrit rien.
+actcraft_add_test(tst_formats_oracle
+    SOURCES tst_formats_oracle.cpp
+    LIBS ActCraft::formats)
+
+# Oracle synthétique (L2-C4) : paperboards de notre écrivain lus par notre lecteur et par la référence Python
+# (tools/oracle_flipchart.py de l'ancien dépôt), comparés en un seul test. Sauté et signalé sans l'ancien dépôt
+# (ACTCRAFT_REFERENCE_DIR, ou ACTCRAFT_SAMPLES_DIR comme l'oracle réel) ou sans Python 3 (ACTCRAFT_PYTHON,
+# python, python3). Écrit sous build/<preset>/oracle-synth/, jamais commité.
+actcraft_add_test(tst_formats_oracle_synth
+    SOURCES tst_formats_oracle_synth.cpp
+    LIBS ActCraft::formats Qt6::Gui)
+
+# Un oracle sauté sort 77 (son main) : ctest le compte « Skipped » (« Not Run »), pas « Passed ». QSKIP seul sort 0,
+# et la sortie de QtTest n'arrive pas toujours à ctest : un motif (SKIP_REGULAR_EXPRESSION) ne suffirait pas.
+set_tests_properties(tst_formats_oracle tst_formats_oracle_synth PROPERTIES SKIP_RETURN_CODE 77)

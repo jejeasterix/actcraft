@@ -17,7 +17,7 @@ Grid {
             id: swatch
             required property string modelData
             required property int index
-            readonly property bool current: Qt.colorEqual(grid.view.penColor, modelData)
+            readonly property bool current: Qt.colorEqual(grid.view.inkColor, modelData)
             objectName: "swatch-" + index
             width: Theme.taillePastille
             height: Theme.taillePastille

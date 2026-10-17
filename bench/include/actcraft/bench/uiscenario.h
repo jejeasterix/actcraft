@@ -2,6 +2,7 @@
 
 #include <QColor>
 #include <QEvent>
+#include <QHash>
 #include <QPointF>
 #include <QString>
 #include <QStringList>
@@ -23,6 +24,8 @@ class PageView;
 
 namespace actcraft::bench {
 
+class EventLoopProbe;
+
 enum class UiStepKind : std::uint8_t
 {
     Command,    // {"command": "page.next", "argument": …}
@@ -33,6 +36,13 @@ enum class UiStepKind : std::uint8_t
     Capture,    // {"capture": "nom"}
     CheckPixel, // {"checkPixel": "nom", "at": [x, y], "color": "#rrggbb", "tolerance": 48}
     Expect,     // {"expect": "objet.propriété", "value": …}
+    // Ajoutées au lot 2 (L2-T20, S5), à la fin : les rangs ci-dessus ne changent pas.
+    Fixture,         // {"fixture": "trois-pages", "path": "${SORTIE}/a.actcraft"} — sous le dossier de sortie
+    WaitFor,         // {"waitFor": "objet.propriété", "value": …, "timeoutMs": 10000} — 1 ms à 2 min
+    WatchEventLoop,  // {"watchEventLoop": true} — démarre la sonde de la boucle du fil principal
+    MaxEventLoopGap, // {"maxEventLoopGapMs": 25} — arrête la sonde, compare le plus long intervalle
+    Remember,        // {"remember": "objet.propriété", "as": "nom"} — valeur de ${nom} ensuite
+    ArchiveContains, // {"archive": "<chemin>", "contains": ["document.json", "resources/", …]} — préfixes
 };
 
 struct UiStep
@@ -50,7 +60,9 @@ struct UiStep
     int tolerance = 48; // par canal
     QString target;     // objectName, ou « window » pour la fenêtre racine
     QString property;
-    QString value; // attendue, en texte (propertyText)
+    QString value;      // attendue, en texte (propertyText)
+    QString path;       // Fixture, ArchiveContains
+    QStringList values; // ArchiveContains : préfixes d'entrées attendus
 };
 
 struct UiScenario
@@ -69,13 +81,24 @@ bool parseReadSpec(const QString& text, UiStep& out);
 QString propertyText(const QVariant& value);
 
 // Joue un scénario sur une fenêtre Qt Quick (DA8). Une ligne de rapport par étape : COMMANDE, TRAIT, TOUCHE,
-// ATTENTE, PRET, CAPTURE, PIXEL, LU. Chaque étape d'action contrôle son résultat, jamais « OK » sur le seul
-// envoi : COMMANDE exige le retour vrai de runCommand ; TRAIT, postés à la fenêtre (le filtre de la PageView
-// les y attend, variante B), exige un trait figé par la vue ; TOUCHE exige l'appui accepté par un raccourci
-// non ambigu ou par un élément actif (repli sinon : la commande nommée équivalente) ; CAPTURE refuse une
-// image vide ou uniforme. Lignes terminées par OK, ECHEC ou ECART. Aucune attente à durée fixe hors de
-// l'étape « wait » : conditions avec plafond. DURÉE DE VIE : le joueur possède le stylet synthétique ; il
-// doit être détruit APRÈS la fenêtre (le déclarer avant le moteur QML).
+// ATTENTE, PRET, CAPTURE, PIXEL, LU, FIXTURE, BOUCLE, MEMO, ARCHIVE. Chaque étape d'action contrôle son
+// résultat, jamais « OK » sur le seul envoi : COMMANDE exige le retour vrai de runCommand ; TRAIT, postés à
+// la fenêtre (le filtre de la PageView les y attend, variante B), exige un trait figé par la vue ; TOUCHE
+// exige l'appui accepté par un raccourci non ambigu ou par un élément actif (repli sinon : la commande nommée
+// équivalente) ; CAPTURE refuse une image vide ou uniforme ; FIXTURE n'écrit que sous le dossier de sortie.
+// Lignes terminées par OK, ECHEC ou ECART. Aucune attente à durée fixe hors de l'étape « wait » : conditions
+// avec plafond (ATTENTE d'une propriété comprise).
+// Variables, remplacées en une passe dans l'argument textuel d'une commande, les chemins et les valeurs
+// attendues : ${SORTIE} (dossier de sortie), ${SAMPLES} (ACTCRAFT_SAMPLES_DIR ; absente, l'étape échoue),
+// ${<nom>} (mémorisé par « remember ») ; une variable inconnue ou non fermée fait échouer l'étape.
+// Sonde de boucle (BOUCLE, écart 1 du plan 2b) : une minuterie de 5 ms sur le fil principal relève le plus
+// long intervalle entre deux de ses tours, intervalle en cours à l'arrêt compris. Elle tient hors écran, où
+// les images ne sont produites qu'à la demande : un blocage sans image la dépasse aussi. Son démarrage attend
+// d'abord que l'image en attente soit rendue (une image demandée, son frameSwapped, 1 s au plus ; sinon «
+// BOUCLE sonde démarrée (aucune image rendue en 1000 ms) ») : elle mesure la boucle pendant les étapes
+// suivantes (l'E/S de S5), pas le rendu laissé par l'étape précédente (trait), qui prend à lui seul 11 à 147
+// ms sur le fil principal en rendu logiciel debug (mesuré, L2-T20). DURÉE DE VIE : le joueur possède le
+// stylet synthétique ; il doit être détruit APRÈS la fenêtre (le déclarer avant le moteur QML).
 class UiScenarioPlayer
 {
 public:
@@ -115,6 +138,17 @@ private:
     bool stroke(const UiStep& step, QStringList& report);
     bool key(const UiStep& step, QStringList& report);
     bool checkPixel(const UiStep& step, QStringList& report);
+    bool fixture(const UiStep& step, QStringList& report);
+    bool waitFor(const UiStep& step, QStringList& report);
+    bool watchEventLoop(QStringList& report);
+    bool maxEventLoopGap(const UiStep& step, QStringList& report);
+    bool remember(const UiStep& step, QStringList& report);
+    bool archiveContains(const UiStep& step, QStringList& report);
+    // Remplace les variables de `text` en une passe (les valeurs insérées ne sont pas relues) ; faux et
+    // `why` si une variable est inconnue, non fermée, ou ${SAMPLES} sans ACTCRAFT_SAMPLES_DIR.
+    bool expand(const QString& text, QString& out, QString& why) const;
+    // `expand`, sinon la ligne « <tête> ECHEC (raison) » est ajoutée au compte rendu.
+    bool expandOrFail(const QString& text, const QString& head, QString& out, QStringList& report) const;
 
     QQuickWindow* m_window = nullptr;
     std::unique_ptr<QPointingDevice> m_stylus;
@@ -124,6 +158,8 @@ private:
     int m_captureIndex = 0;
     LineSink m_sink;
     KeyDelivery m_keyDelivery;
+    QHash<QString, QString> m_memory;            // « remember » : nom → valeur
+    std::unique_ptr<EventLoopProbe> m_loopProbe; // sonde de boucle armée par « watchEventLoop »
 };
 
 } // namespace actcraft::bench

@@ -51,10 +51,37 @@ Après « page prête » (images générées, premier cache dessiné) et 2 s de 
 | `stroke` | 10 traits de 1,5 s à 200 points/s, pression variable, stylo levé 300 ms entre deux traits | 100 % |
 | `zoom` | 100 → 800 → 25 → 100 % en 6 s, molette fine Ctrl à 120 Hz | 100 % |
 | `scroll` | aller-retour vertical puis horizontal en 6 s | 400 %, page calée en haut à gauche |
+| `page` | 20 changements de page à 500 ms d'écart (page suivante, précédente…), puis page suivante, zoom posé à 150 % et ajustement à 700 ms d'écart | 100 %, document de deux pages générées |
+
+Le scénario `page` charge d'abord un document de deux pages générées (`DocumentController::loadGeneratedPages(2,
+true)`) : 30 images chacune, et sur la page 2, 20 textes et 20 formes à chemins dessinés par le moteur peint
+(rastérisés en RHI). Chaque changement de page est la commande nommée `page.next` ou `page.previous`, appelée par
+`runCommand` de la fenêtre à son heure : aucune touche ni aucun événement posté. Chaque changement décode les images
+de la page affichée, et seulement elle ; pendant ce décodage, l'ancienne page reste à l'écran (pas d'éclair blanc).
+Il est jugé comme `scroll` (images par seconde, images de plus de 25 ms), sans latence d'encre, sur ses
+intervalles actifs : ceux qui vont de chaque commande (dès l'intervalle où elle s'exécute, même partie en
+retard sur son heure) à la première image qui suit le prêt de la page affichée (images décodées, cache
+redessiné). Une commande qui n'attend aucun prêt (zoom posé sans cache : page et cache restent prêts) s'arrête
+à la première image qui la suit. Décodage, reconstruction et redessin du cache y comptent ; les images entre
+deux changements (rendu continu pendant la mesure) restent au repos.
 
 Puis une séquence de démonstration non mesurée : un trait capturé à mi-parcours, à la fin, à 800 % et de retour à
 100 %. Quatre contrôles de couleur (trois objets témoins, l'encre en cours) prouvent que le rendu dessine
-vraiment ; `--captures` écrit les quatre images `<rendu>-<étape>.png`. `--scenario court` divise les durées par 5.
+vraiment ; `--captures` écrit les quatre images `<rendu>-<étape>.png`. `--scenario court` divise les durées par 5
+(scénario `page` : 4 changements).
+
+Après le scénario `page`, le contrôle d'éclair : trois captures avec le cache tel que configuré, puis trois
+sans cache. À la première image rendue après un changement de page, le pixel du centre du témoin de forme
+doit garder la couleur relevée sur l'ancienne page juste avant (ni blanc, ni transparent, ni autre
+couleur). Une capture n'est retenue que si la nouvelle page n'est pas encore prête (jusqu'à six
+changements pour trois captures) ; aucune capture retenue sans cache rend la mesure invalide
+(`page-flash-unverified`). Risque connu, non corrigé : sur une machine où le décodage des 30 images tient dans
+une image, aucune capture n'est retenue et c'est tout le passage, `stroke`, `zoom` et `scroll` compris, qui
+devient invalide, et le rejouer n'aide pas tant que le décodage reste aussi court. Le verdict (`page_flash`) ne repose que sur les captures sans cache. La moitié
+avec cache ne discrimine pas, et c'est inhérent : la vue ne redessine sa texture qu'au prêt de la page
+(`PageView::setFixedPage`), elle montre donc l'ancienne texture pendant tout le décodage, quoi que dessine la
+page fixe ; ses captures (`page_flash_cached`) sont un relevé, jamais un critère. Le banc revient ensuite à la
+page 1 pour la démonstration.
 
 ## Fichier de résultats
 
@@ -68,7 +95,16 @@ et le commit y figurent, rien qui identifie une personne. Clés principales :
   de rendu, type de construction, options de compilation, fenêtre, et `refresh` (période d'écran de référence et
   période mesurée) ;
 - `scenarios` : statistiques d'intervalles, figements et reprises, latence, entrées, mémoire, séries brutes ;
-- `content_check` : les contrôles de couleur ;
+- `content_check` : les contrôles de couleur ; avec le scénario `page`, `page_flash` (captures sans cache où
+  le témoin n'a plus la couleur de l'ancienne page juste après un changement : `content_check.ok` est faux
+  au-dessus de 0), `page_rebuilds_during_zoom`
+  (reconstructions complètes de la page fixe entre le zoom posé et la fin du scénario : 0 attendu, le zoom ne
+  refait que les nœuds rastérisés) et `page_rasterizations_during_zoom` (nœuds rastérisés refaits dans le
+  même intervalle : 0 en rendu logiciel, nœuds vectoriels ; en D3D11 ou Metal, au moins 80, exigé à la
+  clôture : deux échelles posées, `view.zoom` puis `view.fit`, × 40 éléments peints de la page 2, sans fond
+  peint ni grille ; 40 signale une seule échelle refaite, 0 l'absence du chemin rastérisé) ; les deux valent
+  -1 si la page peinte n'était pas prête et dessinée au zoom (non mesuré : passage à rejouer) ;
+  `page_flash_probes` et `page_flash_cached` : captures retenues sans cache, éclairs relevés avec cache ;
 - `verdict` : `invalid_reasons` et `criteria` (valeur, seuil, réussi ou non, par scénario).
 
 ## Lire le verdict

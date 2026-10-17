@@ -177,6 +177,11 @@ bool CommandRegistry::loadDeclarations(const QByteArray& json, QString& error)
             error = where + QStringLiteral(" : argument inconnu « %1 »").arg(argument);
             return false;
         }
+        info.argumentOptional = o.value(QStringLiteral("optional")).toBool(false);
+        if (info.argumentOptional && info.argument == ArgumentKind::None) {
+            error = where + QStringLiteral(" : argument facultatif sans argument déclaré");
+            return false;
+        }
         seen.insert(info.id);
         parsed.push_back(std::move(info));
     }
@@ -275,7 +280,7 @@ bool CommandRegistry::trigger(const QString& id, const QVariant& argument, Platf
 {
     const Entry* e = entry(id);
     if (!e || !isAvailable(id, platform) || !e->enabled || !e->handler ||
-        !argumentIsValid(e->info.argument, argument)) {
+        !(argumentIsValid(e->info.argument, argument) || (e->info.argumentOptional && !argument.isValid()))) {
         return false;
     }
     const Handler handler = e->handler; // copie : le gestionnaire peut modifier le registre

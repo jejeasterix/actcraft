@@ -163,7 +163,7 @@ QString apiName(QSGRendererInterface::GraphicsApi api)
 
 bool contentCheckOk(const BenchResult& result)
 {
-    if (result.contentChecks.empty()) {
+    if (result.contentChecks.empty() || result.pageFlash > 0) {
         return false;
     }
     for (const ContentCheck& c : result.contentChecks) {
@@ -218,6 +218,14 @@ QJsonObject toJson(const BenchResult& r)
         checks.append(
             QJsonObject{{"name", c.name}, {"ok", c.ok}, {"expected", c.expected}, {"actual", c.actual}});
     }
+    QJsonObject contentCheck{{"ok", contentCheckOk(r)}, {"checks", checks}};
+    if (r.pageFlash >= 0) { // scénario « page » joué (L2-T23)
+        contentCheck.insert("page_flash", r.pageFlash);
+        contentCheck.insert("page_flash_probes", r.pageFlashProbes);
+        contentCheck.insert("page_flash_cached", r.pageFlashCached);
+        contentCheck.insert("page_rebuilds_during_zoom", r.pageRebuildsDuringZoom);
+        contentCheck.insert("page_rasterizations_during_zoom", r.pageRasterizationsDuringZoom);
+    }
     QJsonArray criteria;
     for (const Criterion& c : r.criteria) {
         criteria.append(QJsonObject{{"scenario", c.scenario},
@@ -243,7 +251,7 @@ QJsonObject toJson(const BenchResult& r)
         {"informative", r.informative},
         {"meta", meta},
         {"scenarios", scenarios},
-        {"content_check", QJsonObject{{"ok", contentCheckOk(r)}, {"checks", checks}}},
+        {"content_check", contentCheck},
         {"verdict", verdict},
     };
 }

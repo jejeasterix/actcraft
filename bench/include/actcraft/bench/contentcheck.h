@@ -16,7 +16,7 @@ inline constexpr int kInkTolerance = 48;
 bool colorNear(QColor actual, QColor expected, int tolerance) noexcept;
 // Moyenne 3 × 3 autour du pixel ; voisins hors de l'image ignorés ; invalide si le pixel est hors de l'image.
 QColor sampleColor(const QImage& image, QPoint pixel);
-// Point de scène (pixels logiques) → pixel de capture (× rapport de pixels, arrondi).
+// Point de scène (pixels logiques) → pixel de capture qui le contient (× rapport de pixels, partie entière).
 QPoint sceneToImage(QPointF scenePoint, qreal devicePixelRatio);
 ContentCheck checkColor(const QString& name, const QImage& image, QPoint pixel, QColor expected,
                         int tolerance);

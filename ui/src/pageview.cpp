@@ -112,9 +112,18 @@ void PageView::setContent(QQuickItem* content)
     }
     const QSizeF oldPage = pageSize();
     const ViewTransform old = m_transform;
+    disconnect(m_contentWidthConnection);
+    disconnect(m_contentHeightConnection);
     m_content = content;
+    m_lastPageSize = pageSize();
     if (m_content) {
         m_content->setTransformOrigin(QQuickItem::TopLeft);
+        // La taille du contenu change sans changer d'élément (autre page, autre document) : barres, zoom et
+        // cache suivent.
+        m_contentWidthConnection = connect(m_content, &QQuickItem::widthChanged, this,
+                                           [this] { onContentSizeChanged(m_lastPageSize); });
+        m_contentHeightConnection = connect(m_content, &QQuickItem::heightChanged, this,
+                                            [this] { onContentSizeChanged(m_lastPageSize); });
     }
     if (m_fitMode) {
         fitPage();
@@ -245,14 +254,18 @@ void PageView::setFixedPage(render::FixedPageItem* page)
         return;
     }
     disconnect(m_readyConnection);
+    disconnect(m_contentConnection);
     m_fixedPage = page;
     if (m_fixedPage) {
-        // Page prête : premier dessin du cache.
-        m_readyConnection = connect(m_fixedPage, &render::FixedPageItem::readyChanged, this, [this] {
+        // Page prête (premier dessin, images décodées) ou contenu changé (trait inséré, annulation, autre
+        // page lue) : un redessin du cache. Pas avant que la page soit prête : readyChanged suivra.
+        const auto refresh = [this] {
             if (m_fixedPage && m_fixedPage->isReady()) {
                 requestCacheRefresh();
             }
-        });
+        };
+        m_readyConnection = connect(m_fixedPage, &render::FixedPageItem::readyChanged, this, refresh);
+        m_contentConnection = connect(m_fixedPage, &render::FixedPageItem::contentChanged, this, refresh);
     }
     rebuildPen();
     emit fixedPageChanged();
@@ -291,10 +304,29 @@ void PageView::resetInputSequence(std::uint64_t next)
     }
 }
 
+DocumentController* PageView::documentController() const noexcept
+{
+    return m_controller.data();
+}
+
+void PageView::setDocumentController(DocumentController* controller)
+{
+    if (controller == m_controller) {
+        return;
+    }
+    disconnect(m_controllerConnection);
+    m_controller = controller;
+    if (m_controller) {
+        // Contrôleur détruit avant la vue : le stylo ne garde pas de référence pendante.
+        m_controllerConnection = connect(m_controller, &QObject::destroyed, this, [this] { rebuildPen(); });
+    }
+    rebuildPen();
+    emit documentControllerChanged();
+}
+
 void PageView::onStrokeFrozen()
 {
-    emit strokeFrozen();
-    requestCacheRefresh();
+    emit strokeFrozen(); // le cache est redessiné sur contentChanged de la page fixe (un redessin par trait)
 }
 
 void PageView::rebuildPen()
@@ -302,15 +334,23 @@ void PageView::rebuildPen()
     m_pipeline.reset();
     m_pen.reset();
     m_documentSink.reset();
+    m_controllerSink.reset();
     m_inkSurface.reset();
     if (!m_fixedPage || !m_ink) {
         return;
     }
     m_inkSurface = std::make_unique<InkSurfaceAdapter>(*m_ink);
-    m_documentSink = std::make_unique<FixedPageSink>(*m_fixedPage, *this);
-    m_pen = std::make_unique<tools::PenTool>(*m_inkSurface, *m_documentSink);
-    m_pen->setColor(m_penColor.rgba());
-    m_pen->setBaseWidth(m_penWidth);
+    tools::DocumentSink* sink = nullptr;
+    if (m_controller) {
+        m_controllerSink = std::make_unique<ControllerSink>(*m_controller, *this);
+        sink = m_controllerSink.get();
+    } else {
+        m_documentSink = std::make_unique<FixedPageSink>(*m_fixedPage, *this);
+        sink = m_documentSink.get();
+    }
+    m_pen = std::make_unique<tools::PenTool>(*m_inkSurface, *sink);
+    m_pen->setColor(m_inkColor.rgba());
+    m_pen->setBaseWidth(m_inkWidth);
     m_pipeline = std::make_unique<input::Pipeline>(*m_pen);
     m_pipeline->setProbe(m_probe);
     m_ink->setProbe(m_probe);
@@ -505,37 +545,37 @@ void PageView::finishTouchStroke()
     m_pipeline->push(release);
 }
 
-QColor PageView::penColor() const noexcept
+QColor PageView::inkColor() const noexcept
 {
-    return m_penColor;
+    return m_inkColor;
 }
 
-void PageView::setPenColor(const QColor& color)
+void PageView::setInkColor(const QColor& color)
 {
-    if (!color.isValid() || color == m_penColor) {
+    if (!color.isValid() || color == m_inkColor) {
         return;
     }
-    m_penColor = color;
+    m_inkColor = color;
     if (m_pen) {
-        m_pen->setColor(m_penColor.rgba());
+        m_pen->setColor(m_inkColor.rgba());
     }
     emit penChanged();
 }
 
-qreal PageView::penWidth() const noexcept
+qreal PageView::inkWidth() const noexcept
 {
-    return m_penWidth;
+    return m_inkWidth;
 }
 
-void PageView::setPenWidth(qreal width)
+void PageView::setInkWidth(qreal width)
 {
-    const qreal clamped = std::clamp(width, kMinPenWidth, kMaxPenWidth);
-    if (qFuzzyCompare(clamped, m_penWidth)) {
+    const qreal clamped = std::clamp(width, kMinInkWidth, kMaxInkWidth);
+    if (qFuzzyCompare(clamped, m_inkWidth)) {
         return;
     }
-    m_penWidth = clamped;
+    m_inkWidth = clamped;
     if (m_pen) {
-        m_pen->setBaseWidth(m_penWidth);
+        m_pen->setBaseWidth(m_inkWidth);
     }
     emit penChanged();
 }
@@ -684,6 +724,28 @@ void PageView::apply(const ViewTransform& transform)
     }
 }
 
+void PageView::onContentSizeChanged(QSizeF oldPage)
+{
+    const QSizeF newPage = pageSize();
+    m_lastPageSize = newPage;
+    if (newPage == oldPage) {
+        return;
+    }
+    finishStroke(); // un trait en cours reste sur sa page (comme pour un zoom)
+    const ViewTransform old = m_transform;
+    // Pas fitPage() ici : il demanderait lui-même un redessin du cache, et la fin de cette fonction un
+    // second.
+    m_cacheTimer.stop();
+    apply(m_fitMode ? ui::fitPage(size(), newPage) : clampPan(m_transform, size(), newPage));
+    // apply n'émet rien si ni le zoom ni le défilement n'ont bougé : la taille de la page change pourtant les
+    // barres.
+    if (qFuzzyCompare(old.zoom, m_transform.zoom) && old.pan == m_transform.pan) {
+        emit scrollChanged();
+    }
+    updateCacheTextureSize();
+    requestCacheRefresh();
+}
+
 void PageView::updateCacheTextureSize()
 {
     const qreal dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
@@ -691,6 +753,11 @@ void PageView::updateCacheTextureSize()
     if (s != m_cacheTextureSize) {
         m_cacheTextureSize = s;
         emit cacheTextureSizeChanged();
+    }
+    // Le zoom est posé (fin de zoom, ajustement, contenu redimensionné) : la page fixe refait ses nœuds
+    // rastérisés à cette échelle, jamais à chaque image d'un zoom continu.
+    if (m_fixedPage) {
+        m_fixedPage->setRasterScale(m_transform.zoom * dpr);
     }
 }
 
