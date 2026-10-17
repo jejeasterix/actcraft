@@ -22,7 +22,8 @@ class FixedPageItem;
 }
 namespace actcraft::ui {
 class PageView;
-}
+class DocumentController;
+} // namespace actcraft::ui
 
 namespace actcraft::bench {
 
@@ -65,6 +66,8 @@ private:
     void startInputs(std::vector<PlannedInput> inputs, std::int64_t t0Ns);
     // Séquence de démonstration non mesurée : captures en mémoire, contrôles de contenu, PNG si demandés.
     void runDemo(BenchResult& result);
+    // Contrôle « page_flash » (voir runner.cpp) ; joue sur les pages de `document`.
+    void checkPageFlash(BenchResult& out, ui::DocumentController& document);
     ScenarioResult play(const ScenarioPlan& plan, std::int64_t refreshPeriodNs, QStringList& invalidReasons);
 
     QQuickWindow* m_window = nullptr;
