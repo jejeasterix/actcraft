@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QColor>
-#include <QElapsedTimer>
 #include <QEvent>
 #include <QHash>
 #include <QPointF>
@@ -17,7 +16,6 @@
 class QObject;
 class QPointingDevice;
 class QQuickWindow;
-class QTimer;
 class QWindow;
 
 namespace actcraft::ui {
@@ -25,6 +23,8 @@ class PageView;
 }
 
 namespace actcraft::bench {
+
+class EventLoopProbe;
 
 enum class UiStepKind : std::uint8_t
 {
@@ -147,6 +147,8 @@ private:
     // Remplace les variables de `text` en une passe (les valeurs insérées ne sont pas relues) ; faux et
     // `why` si une variable est inconnue, non fermée, ou ${SAMPLES} sans ACTCRAFT_SAMPLES_DIR.
     bool expand(const QString& text, QString& out, QString& why) const;
+    // `expand`, sinon la ligne « <tête> ECHEC (raison) » est ajoutée au compte rendu.
+    bool expandOrFail(const QString& text, const QString& head, QString& out, QStringList& report) const;
 
     QQuickWindow* m_window = nullptr;
     std::unique_ptr<QPointingDevice> m_stylus;
@@ -156,12 +158,8 @@ private:
     int m_captureIndex = 0;
     LineSink m_sink;
     KeyDelivery m_keyDelivery;
-    QHash<QString, QString> m_memory; // « remember » : nom → valeur
-    // Sonde de boucle : minuterie du fil principal, horloge, dernier tour et plus long intervalle (ms).
-    std::unique_ptr<QTimer> m_loopTimer;
-    QElapsedTimer m_loopClock;
-    qint64 m_loopLast = 0;
-    qint64 m_loopMax = 0;
+    QHash<QString, QString> m_memory;            // « remember » : nom → valeur
+    std::unique_ptr<EventLoopProbe> m_loopProbe; // sonde de boucle armée par « watchEventLoop »
 };
 
 } // namespace actcraft::bench

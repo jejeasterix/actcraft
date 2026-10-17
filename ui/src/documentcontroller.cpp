@@ -38,44 +38,16 @@ namespace {
 
 Q_STATIC_LOGGING_CATEGORY(lcDocument, "actcraft.document", QtInfoMsg)
 
+// Empreinte en 16 chiffres hexadécimaux (journal, propriété `fingerprint`).
+QString fingerprintHex(std::uint64_t fingerprint)
+{
+    return QStringLiteral("%1").arg(fingerprint, 16, 16, QLatin1Char('0'));
+}
+
 QString untitled()
 {
     return QStringLiteral("Sans titre"); // F-656
 }
-
-// Commande déjà exécutée une fois par le contrôleur, pour savoir si elle change quelque chose : le redo()
-// qu'UndoStack::push fait aussitôt ne la rejoue pas ; les suivants (rétablir) la rejouent.
-class Executed final : public core::UndoCommand
-{
-public:
-    explicit Executed(std::unique_ptr<core::UndoCommand> command) : m_command(std::move(command)) {}
-
-    void redo(core::Document& document, core::Changes& changes) override
-    {
-        if (m_pending) {
-            m_pending = false;
-            return;
-        }
-        m_command->redo(document, changes);
-    }
-
-    void undo(core::Document& document, core::Changes& changes) override
-    {
-        m_command->undo(document, changes);
-    }
-
-    int mergeId() const noexcept override { return m_command->mergeId(); }
-
-    bool mergeWith(const core::UndoCommand& other) override
-    {
-        const auto* executed = dynamic_cast<const Executed*>(&other);
-        return m_command->mergeWith(executed ? *executed->m_command : other);
-    }
-
-private:
-    std::unique_ptr<core::UndoCommand> m_command;
-    bool m_pending = true;
-};
 
 // Sans page fixe : seul l'indice recalé de la page affichée compte.
 class NoCache final : public core::PageCache
@@ -161,7 +133,7 @@ QUrl DocumentController::fileUrl() const
 
 QString DocumentController::fingerprintText() const
 {
-    return QStringLiteral("%1").arg(core::fingerprint(m_document), 16, 16, QLatin1Char('0'));
+    return fingerprintHex(core::fingerprint(m_document));
 }
 
 bool DocumentController::canUndo() const noexcept
@@ -188,7 +160,7 @@ core::Changes DocumentController::run(std::unique_ptr<core::UndoCommand> command
     command->redo(m_document, changes);
     if (!changes.empty()) {
         ++m_revision;
-        m_undo.push(m_document, std::make_unique<Executed>(std::move(command)));
+        m_undo.pushExecuted(std::move(command)); // déjà exécutée ci-dessus
     }
     return changes;
 }
@@ -462,18 +434,25 @@ void DocumentController::setLastIo(bool offMainThread)
     emit lastIoChanged(); // à chaque fin de lecture ou d'écriture, succès ou échec
 }
 
+void DocumentController::refuseWhileBusy(const QString& message,
+                                         void (DocumentController::*finished)(bool, const QString&))
+{
+    // Refus visible (revue de L2-C9) : dernière erreur et bandeau, comme tout échec d'ouverture ou
+    // d'enregistrement.
+    QMetaObject::invokeMethod(
+        this,
+        [this, message, finished] {
+            setLastError(message);
+            emit(this->*finished)(false, message);
+        },
+        Qt::QueuedConnection);
+}
+
 void DocumentController::openUrl(const QUrl& url)
 {
     if (m_busy) {
-        // Refus visible, comme celui de l'enregistrement : dernière erreur et bandeau (revue de L2-C9).
-        QMetaObject::invokeMethod(
-            this,
-            [this] {
-                const QString busy = tr("Une opération est déjà en cours : ouverture refusée.");
-                setLastError(busy);
-                emit loadFinished(false, busy);
-            },
-            Qt::QueuedConnection);
+        refuseWhileBusy(tr("Une opération est déjà en cours : ouverture refusée."),
+                        &DocumentController::loadFinished);
         return;
     }
     setBusy(true);
@@ -511,8 +490,7 @@ void DocumentController::openUrl(const QUrl& url)
                                  outcome->title);
             self.setWarnings(outcome->warnings); // après replaceDocument, qui les efface
             // Empreinte calculée par la lecture, hors du fil principal : celle du document affiché.
-            qCInfo(lcDocument, "ACTCRAFT OUVERT %s",
-                   qPrintable(QStringLiteral("%1").arg(outcome->fingerprint, 16, 16, QLatin1Char('0'))));
+            qCInfo(lcDocument, "ACTCRAFT OUVERT %s", qPrintable(fingerprintHex(outcome->fingerprint)));
             emit self.loadFinished(true, QString());
         });
     });
@@ -521,15 +499,8 @@ void DocumentController::openUrl(const QUrl& url)
 void DocumentController::saveToUrl(const QUrl& url)
 {
     if (m_busy) {
-        // Refus visible (L2-C9) : dernière erreur et bandeau, comme tout échec d'enregistrement.
-        QMetaObject::invokeMethod(
-            this,
-            [this] {
-                const QString busy = tr("Une opération est déjà en cours : enregistrement refusé.");
-                setLastError(busy);
-                emit saveFinished(false, busy);
-            },
-            Qt::QueuedConnection);
+        refuseWhileBusy(tr("Une opération est déjà en cours : enregistrement refusé."),
+                        &DocumentController::saveFinished);
         return;
     }
     QString refusal;
@@ -587,8 +558,7 @@ void DocumentController::saveToUrl(const QUrl& url)
                 }
                 self.updateModified(); // le document n'a pas changé : ni documentChanged, ni undoChanged
             }
-            qCInfo(lcDocument, "ACTCRAFT ENREGISTRE %s",
-                   qPrintable(QStringLiteral("%1").arg(outcome.fingerprint, 16, 16, QLatin1Char('0'))));
+            qCInfo(lcDocument, "ACTCRAFT ENREGISTRE %s", qPrintable(fingerprintHex(outcome.fingerprint)));
             emit self.saveFinished(true, QString());
         });
     });

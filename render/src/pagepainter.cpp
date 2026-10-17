@@ -1,3 +1,4 @@
+#include <actcraft/render/imagecolor.h>
 #include <actcraft/render/imagesynth.h>
 #include <actcraft/render/objectrenderer.h>
 #include <actcraft/render/pagepainter.h>
@@ -164,22 +165,6 @@ QBrush brushOf(const core::Fill& f, const QRectF& rect)
     return QBrush(g);
 }
 
-// Pixels de la couleur `transparent` (alpha ignoré) rendus transparents.
-QImage withKeyColor(const QImage& source, core::Argb transparent)
-{
-    QImage image = source.convertToFormat(QImage::Format_ARGB32);
-    const QRgb key = transparent & 0x00FFFFFFu;
-    for (int y = 0; y < image.height(); ++y) {
-        auto* line = reinterpret_cast<QRgb*>(image.scanLine(y));
-        for (int x = 0; x < image.width(); ++x) {
-            if ((line[x] & 0x00FFFFFFu) == key) {
-                line[x] = 0;
-            }
-        }
-    }
-    return image;
-}
-
 QPainterPath polyline(const std::vector<core::PointF>& points)
 {
     QPainterPath path;
@@ -294,8 +279,9 @@ void paintShape(QPainter& p, const core::Shape& s)
 void paintImage(QPainter& p, const core::ImageObject& im, const ImageLookup& images)
 {
     const QRectF rect = rectOf(im.bounds);
-    QImage image = withoutColorTable(im.resource.empty() ? synthesizeImage(im)
-                                                         : (images ? images(im.resource) : QImage()));
+    // L'image procédurale est déjà en ARGB32 prémultiplié : seule celle cherchée par clé peut être indexée.
+    QImage image = im.resource.empty() ? synthesizeImage(im)
+                                       : withoutColorTable(images ? images(im.resource) : QImage());
     if (image.isNull()) {
         p.fillRect(rect, QColor(255, 0, 255, 60)); // repère d'image illisible, comme la référence
         return;

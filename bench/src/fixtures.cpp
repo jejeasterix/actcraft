@@ -77,25 +77,51 @@ core::Document threePages()
 
 } // namespace
 
+namespace {
+
+bool buildThreePages(const QString& path, QString& error)
+{
+    const QByteArray archive = formats::encodeActcraft(threePages(), {}, &error);
+    return !archive.isEmpty() && formats::writeUrl(QUrl::fromLocalFile(path), archive, &error);
+}
+
+bool buildSyntheticFlipchart(const QString& path, QString& error)
+{
+    return formats::writeUrl(QUrl::fromLocalFile(path), fctest::sampleFlipchart(), &error);
+}
+
+// Table des fixtures : nom, écriture du fichier (un seul endroit pour la liste et pour la construction).
+struct FixtureEntry
+{
+    QLatin1StringView name;
+    bool (*build)(const QString& path, QString& error);
+};
+
+constexpr FixtureEntry kFixtures[] = {
+    {kThreePages, buildThreePages},
+    {kSyntheticFlipchart, buildSyntheticFlipchart},
+};
+
+} // namespace
+
 QStringList fixtureNames()
 {
-    return {QString(kThreePages), QString(kSyntheticFlipchart)};
+    QStringList names;
+    for (const FixtureEntry& entry : kFixtures) {
+        names << QString(entry.name);
+    }
+    return names;
 }
 
 bool buildFixture(const QString& name, const QString& path, QString& error)
 {
-    if (name == kSyntheticFlipchart) {
-        return formats::writeUrl(QUrl::fromLocalFile(path), fctest::sampleFlipchart(), &error);
+    for (const FixtureEntry& entry : kFixtures) {
+        if (name == entry.name) {
+            return entry.build(path, error);
+        }
     }
-    core::Document document;
-    if (name == kThreePages) {
-        document = threePages();
-    } else {
-        error = QStringLiteral("fixture inconnue « %1 »").arg(name);
-        return false;
-    }
-    const QByteArray archive = formats::encodeActcraft(document, {}, &error);
-    return !archive.isEmpty() && formats::writeUrl(QUrl::fromLocalFile(path), archive, &error);
+    error = QStringLiteral("fixture inconnue « %1 »").arg(name);
+    return false;
 }
 
 } // namespace actcraft::bench

@@ -205,6 +205,15 @@ function Stop-Essai([string]$raison) {
     exit 1
 }
 # Adaptateur sur l'appel borné du module commun (Adb) : aucune copie ; ses exceptions arrivent au catch final.
+# Nœuds de l'arbre d'interface (uiautomator), en tableau.
+function Get-Noeuds($arbre) { return @($arbre.SelectNodes('//node')) }
+# Raison d'un refus du module Android que l'essai tolère (adb sans réponse, MediaStore momentanément muet) ;
+# toute autre erreur remonte.
+function Get-RaisonTolerable($erreur) {
+    $raison = Get-ActCraftAndroidRaison $erreur
+    if (-not $raison) { throw $erreur }
+    return $raison
+}
 function Invoke-Adb([string[]]$arguments, [int]$secondes = 30) {
     return @(Adb $secondes @arguments)
 }
@@ -213,8 +222,7 @@ function Invoke-Adb([string[]]$arguments, [int]$secondes = 30) {
 # l'attente bornée de l'étape décide. Rend $null après un tel refus ; toute autre erreur remonte.
 function Invoke-AdbTour([string[]]$arguments, [int]$secondes = 30) {
     try { return @(Invoke-Adb $arguments $secondes) } catch {
-        $raison = Get-ActCraftAndroidRaison $_
-        if (-not $raison) { throw }
+        $raison = Get-RaisonTolerable $_
         Write-Host "adb : $raison, tour suivant"
         return $null
     }
@@ -232,9 +240,9 @@ function Read-ArbreUi {
         $null = Invoke-AdbTour @('pull', '/sdcard/actcraft-ui.xml', $script:arbreUi) 30
         if (-not (Test-Path -LiteralPath $script:arbreUi)) { return $null }
         try { $arbre = [xml](Get-Content -Raw -Encoding utf8 -LiteralPath $script:arbreUi) } catch { return $null }
-        $attendre = @($arbre.SelectNodes('//node')) | Where-Object { $_.'resource-id' -eq 'android:id/aerr_wait' } | Select-Object -First 1
+        $attendre = Get-Noeuds $arbre | Where-Object { $_.'resource-id' -eq 'android:id/aerr_wait' } | Select-Object -First 1
         if (-not $attendre -or $boite -eq 3) { break }
-        Write-Host "boîte « ne répond pas » du système écartée : $(@($arbre.SelectNodes('//node')) | Where-Object { $_.'resource-id' -eq 'android:id/alertTitle' } | ForEach-Object { $_.text })"
+        Write-Host "boîte « ne répond pas » du système écartée : $(Get-Noeuds $arbre | Where-Object { $_.'resource-id' -eq 'android:id/alertTitle' } | ForEach-Object { $_.text })"
         Invoke-Tap $attendre
         Start-Sleep -Seconds 2
     }
@@ -270,7 +278,7 @@ function Invoke-Selecteur([string[]]$touches, [string]$quoi, [string]$id, [strin
     while ((Get-Date) -lt $fin) {
         $arbre = Read-ArbreUi
         if ($arbre) {
-            $noeuds = @($arbre.SelectNodes('//node'))
+            $noeuds = Get-Noeuds $arbre
             if ($noeuds | Where-Object { $_.'resource-id' -eq 'android:id/immersive_cling_title' }) {
                 $ok = $noeuds | Where-Object { $_.'resource-id' -eq 'android:id/ok' -and $_.package -eq 'android' } | Select-Object -First 1
                 if ($ok) { Invoke-Tap $ok }
@@ -299,7 +307,7 @@ function Invoke-Selecteur([string[]]$touches, [string]$quoi, [string]$id, [strin
 }
 # Champ du nom du sélecteur d'enregistrement (EditText android:id/title de DocumentsUI), ou $null.
 function Get-ChampNom($arbre) {
-    return @($arbre.SelectNodes('//node')) | Where-Object {
+    return Get-Noeuds $arbre | Where-Object {
         $_.package -cmatch 'documentsui' -and $_.'resource-id' -eq 'android:id/title' -and $_.class -cmatch 'EditText'
     } | Select-Object -First 1
 }
@@ -391,8 +399,7 @@ function Clear-FichiersEssai([int]$secondes = 120) {
             $restes = @(@(Get-FichiersMediaStore | ForEach-Object { $_.Nom }) + @(Get-FichiersStockage))
             if ($restes.Count -eq 0) { Write-Output 'état initial : aucun fichier d''essai (MediaStore et stockage)'; return }
         } catch {
-            $restes = @(Get-ActCraftAndroidRaison $_)
-            if (-not $restes[0]) { throw }
+            $restes = @(Get-RaisonTolerable $_)
         }
         if ((Get-Date) -gt $fin) { Stop-Essai "état initial : fichiers d'essai restants en $secondes s : $($restes -join ', ')" }
         Start-Sleep -Seconds 3
@@ -454,6 +461,7 @@ try {
     # un document vide s'enregistrerait et se relirait aussi à l'identique.
     # Glissement rejoué (trois fois au plus) s'il tombe pendant un changement de disposition (passage en plein écran).
     $captureTrait = Join-Path $tmp 'fichiers-trait.png'
+    $traitVu = $false
     for ($essai = 0; $essai -lt 3; $essai++) {
         Start-Sleep -Seconds 3
         $null = Invoke-AdbTour @('shell', 'input', 'swipe', '768', '800', '1408', '800', '600')
@@ -461,12 +469,13 @@ try {
         Remove-Item -ErrorAction SilentlyContinue -LiteralPath $captureTrait # jamais la capture d'un passage précédent
         $null = Invoke-AdbTour @('shell', 'screencap', '-p', '/sdcard/actcraft-trait.png') 60
         $null = Invoke-AdbTour @('pull', '/sdcard/actcraft-trait.png', $captureTrait) 60
-        if (-not (Test-Path -LiteralPath $captureTrait)) { $trait = @(); continue }
+        if (-not (Test-Path -LiteralPath $captureTrait)) { $trait = @(); $traitVu = $false; continue }
         $trait = @("$(& $python -I (Join-Path $PSScriptRoot 'lire-pixel.py') $captureTrait 1088 800)".Trim().Split(' ') | ForEach-Object { [int]$_ })
         Write-Output "trait : lu $($trait -join ' ')"
-        if ($trait.Count -eq 3 -and $trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100) { break }
+        $traitVu = $trait.Count -eq 3 -and $trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100
+        if ($traitVu) { break }
     }
-    if ($trait.Count -ne 3 -or $trait[0] -ge 100 -or $trait[1] -ge 100 -or $trait[2] -ge 100) { Stop-Essai 'trait absent après trois glissements (capture .tmp/fichiers-trait.png)' }
+    if (-not $traitVu) { Stop-Essai 'trait absent après trois glissements (capture .tmp/fichiers-trait.png)' }
 
     # Ctrl+Maj+S → DocumentsUI (ACTION_CREATE_DOCUMENT). Nom propre au passage dans le champ du nom (EditText
     # android:id/title), relu avant « SAVE » : un nom déjà pris change le déroulé (« (1) », remplacement), un nom
@@ -483,7 +492,7 @@ try {
         if ($echec) { if ($essai -eq 0) { Stop-Essai $echec } else { break } }
         Start-Sleep -Seconds 3
         $arbre = Read-ArbreUi
-        if ($arbre -and -not @($arbre.SelectNodes('//node') | Where-Object { $_.package -cmatch 'documentsui' })) { break }
+        if ($arbre -and -not @(Get-Noeuds $arbre | Where-Object { $_.package -cmatch 'documentsui' })) { break }
     }
     $enregistre = Wait-Journal 'ACTCRAFT ENREGISTRE [0-9a-f]{16}'
     if (-not $enregistre) { Stop-Essai 'aucune ligne ACTCRAFT ENREGISTRE' }
@@ -491,7 +500,7 @@ try {
     # Le fichier écrit porte le nom exact, seul fichier de l'essai dans MediaStore (attente bornée de l'indexation).
     $fin = (Get-Date).AddSeconds(30)
     do {
-        $ecrits = @(try { Get-FichiersMediaStore } catch { if (-not (Get-ActCraftAndroidRaison $_)) { throw }; Write-Host "MediaStore : $(Get-ActCraftAndroidRaison $_)" })
+        $ecrits = @(try { Get-FichiersMediaStore } catch { Write-Host "MediaStore : $(Get-RaisonTolerable $_)" })
         if ($ecrits.Count -eq 1 -and $ecrits[0].Nom -ceq $nomFichier) { break }
         Start-Sleep -Seconds 2
     } while ((Get-Date) -lt $fin)

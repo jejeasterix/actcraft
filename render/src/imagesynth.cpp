@@ -15,23 +15,12 @@ QRgb mix(QRgb a, QRgb b, int t) // t de 0 à 255
 
 } // namespace
 
-QImage withoutColorTable(const QImage& image)
+std::string synthesisKey(const core::ImageObject& object)
 {
-    qsizetype entries = 0;
-    if (image.format() == QImage::Format_Indexed8) {
-        entries = 256;
-    } else if (image.format() == QImage::Format_Mono || image.format() == QImage::Format_MonoLSB) {
-        entries = 2;
-    } else {
-        return image;
-    }
-    QList<QRgb> table = image.colorTable();
-    if (table.size() < entries) {
-        table.resize(entries, 0u); // index sans couleur : pixel transparent
-    }
-    QImage complete = image;
-    complete.setColorTable(table);
-    return complete.convertToFormat(QImage::Format_ARGB32);
+    return std::to_string(static_cast<int>(object.pattern)) + ':' + std::to_string(object.colorA) + ':' +
+           std::to_string(object.colorB) + ':' + std::to_string(object.seed) + ':' +
+           std::to_string(object.sourceWidth) + 'x' + std::to_string(object.sourceHeight) + ':' +
+           (object.hasKeyColor ? std::to_string(object.keyColor) : std::string());
 }
 
 QImage synthesizeImage(const core::ImageObject& object)

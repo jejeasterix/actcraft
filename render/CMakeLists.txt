@@ -9,6 +9,8 @@ actcraft_add_module(render
         src/shaperenderer.cpp
         src/strokerenderer.cpp
         include/actcraft/render/imagestore.h
+        include/actcraft/render/imagecolor.h
+        src/imagecolor.cpp
         src/imagesynth.cpp
         src/imagestore.cpp
         src/imagerenderer.cpp

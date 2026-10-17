@@ -1,3 +1,4 @@
+#include <actcraft/render/imagecolor.h>
 #include <actcraft/render/imagestore.h>
 #include <actcraft/render/imagesynth.h>
 
@@ -25,25 +26,7 @@ ImageStore::~ImageStore()
     m_pool.waitForDone();
 }
 
-namespace {
-
-// Pixels de la couleur `transparent` (alpha ignoré) rendus transparents.
-QImage withKeyColor(const QImage& source, core::Argb transparent)
-{
-    QImage image = source.convertToFormat(QImage::Format_ARGB32);
-    const QRgb key = transparent & 0x00FFFFFFu;
-    for (int y = 0; y < image.height(); ++y) {
-        auto* line = reinterpret_cast<QRgb*>(image.scanLine(y));
-        for (int x = 0; x < image.width(); ++x) {
-            if ((line[x] & 0x00FFFFFFu) == key) {
-                line[x] = 0;
-            }
-        }
-    }
-    return image;
-}
-
-} // namespace
+namespace {} // namespace
 
 std::string ImageStore::variantKey(const core::ImageObject& object)
 {
@@ -208,12 +191,7 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
             if (im->resource.empty()) {
                 ++procedural;
                 const auto it = m_procedural.find(i);
-                if (it == m_procedural.end() || it->second.pattern != im->pattern ||
-                    it->second.seed != im->seed || it->second.colorA != im->colorA ||
-                    it->second.colorB != im->colorB || it->second.sourceWidth != im->sourceWidth ||
-                    it->second.sourceHeight != im->sourceHeight ||
-                    it->second.hasKeyColor != im->hasKeyColor ||
-                    (im->hasKeyColor && it->second.keyColor != im->keyColor)) {
+                if (it == m_procedural.end() || synthesisKey(it->second) != synthesisKey(*im)) {
                     return false;
                 }
             } else if (!has(im->resource) || !hasVariant(*im)) {

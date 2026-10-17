@@ -14,6 +14,19 @@ Changes UndoStack::push(Document& document, std::unique_ptr<UndoCommand> command
         return changes;
     }
     command->redo(document, changes);
+    record(std::move(command));
+    return changes;
+}
+
+void UndoStack::pushExecuted(std::unique_ptr<UndoCommand> command)
+{
+    if (command) {
+        record(std::move(command));
+    }
+}
+
+void UndoStack::record(std::unique_ptr<UndoCommand> command)
+{
     if (m_index < m_commands.size()) {
         if (m_clean != kNoClean && m_clean > m_index) {
             m_clean = kNoClean; // l'état enregistré était dans la branche effacée
@@ -26,7 +39,7 @@ Changes UndoStack::push(Document& document, std::unique_ptr<UndoCommand> command
             if (m_clean == m_index) {
                 m_clean = kNoClean; // la commande enregistrée a changé
             }
-            return changes;
+            return;
         }
     }
     m_commands.push_back(std::move(command));
@@ -38,7 +51,6 @@ Changes UndoStack::push(Document& document, std::unique_ptr<UndoCommand> command
             m_clean = m_clean == 0 ? kNoClean : m_clean - 1;
         }
     }
-    return changes;
 }
 
 Changes UndoStack::undo(Document& document)

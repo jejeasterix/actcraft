@@ -61,6 +61,8 @@ public:
 
     // Exécute la commande, efface les commandes annulées, fusionne si possible, borne à limit().
     Changes push(Document& document, std::unique_ptr<UndoCommand> command);
+    // Comme push(), pour une commande que l'appelant a déjà exécutée une fois : elle n'est pas rejouée.
+    void pushExecuted(std::unique_ptr<UndoCommand> command);
     Changes undo(Document& document); // rien si !canUndo()
     Changes redo(Document& document); // rien si !canRedo()
 
@@ -75,6 +77,7 @@ public:
     void clear() noexcept;    // pile vide, état propre
 
 private:
+    void record(std::unique_ptr<UndoCommand> command); // efface les annulées, fusionne, borne
     static constexpr std::size_t kNoClean = std::numeric_limits<std::size_t>::max();
 
     std::vector<std::unique_ptr<UndoCommand>> m_commands;

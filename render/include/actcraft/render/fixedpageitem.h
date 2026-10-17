@@ -11,6 +11,7 @@
 #include <QRectF>
 
 #include <atomic>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -34,8 +35,8 @@ public:
     // Page des 300 objets (core::generatePage(core::kDefaultSeed)).
     Q_INVOKABLE void loadGeneratedPage();
     // Banc et tests : la page devient celle de la page interne ; la source est oubliée. Tout repart, images
-    // et readyChanged compris (restart(true)). Depuis L2-T15 la vue redessine aussi sur contentChanged : ce
-    // redécodage forcé est devenu redondant ; il coûte un décodage à chaque setPage (banc et tests
+    // et readyChanged compris (redécodage forcé). Depuis L2-T15 la vue redessine aussi sur contentChanged :
+    // ce redécodage forcé est devenu redondant ; il coûte un décodage à chaque setPage (banc et tests
     // seulement).
     void setPage(core::Page page);
     // Page affichée : celle du document source (référence dans le document), sinon la page interne. Jamais
@@ -96,10 +97,22 @@ private:
     };
 
     const core::Document& document() const noexcept; // source, ou page interne
-    // Reconstruction complète ; images régénérées si `redecode` ou si le magasin ne couvre plus la page.
-    // `samePage` : la page affichée a seulement changé de contenu (cache, trait) ; pendant son décodage, le
-    // décodage en cours la couvre et n'est pas relancé (sauf `redecode` : image ajoutée).
-    void restart(bool redecode, bool samePage);
+    // `Force` : image ajoutée ou page remplacée, on redécode ; `IfUncovered` : seulement si le magasin ne
+    // couvre plus la page.
+    enum class Decode : std::uint8_t
+    {
+        IfUncovered,
+        Force
+    };
+    // `SamePage` : la page affichée a seulement changé de contenu (cache, trait) ; pendant son décodage, le
+    // décodage en cours la couvre et n'est pas relancé (sauf `Force`).
+    enum class Scope : std::uint8_t
+    {
+        OtherPage,
+        SamePage
+    };
+    // Reconstruction complète ; images régénérées selon `decode`.
+    void restart(Decode decode, Scope scope);
     void onImagesReady();
     void addRasterSlot(QSGNode* node, std::size_t object);
     void rescaleRasterNodes(const core::Page& page, const RenderContext& painted);

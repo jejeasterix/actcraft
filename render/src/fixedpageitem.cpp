@@ -1,6 +1,7 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/render/fixedpageitem.h>
+#include <actcraft/render/imagesynth.h>
 
 #include <QDebug>
 #include <QMatrix4x4>
@@ -58,16 +59,19 @@ std::string decodeInputs(const core::Page& page)
     std::string out = page.background.image;
     for (std::size_t i = 0; i < page.objects.size(); ++i) {
         if (const auto* im = std::get_if<core::ImageObject>(&page.objects[i])) {
-            out += '|' + std::to_string(i) + ':' + std::to_string(static_cast<int>(im->pattern)) + ':' +
-                   std::to_string(im->colorA) + ':' + std::to_string(im->colorB) + ':' +
-                   std::to_string(im->seed) + ':' + std::to_string(im->sourceWidth) + 'x' +
-                   std::to_string(im->sourceHeight) + ':' +
-                   (im->hasKeyColor ? std::to_string(im->keyColor) : std::string()) + ':' + im->resource;
+            out += '|' + std::to_string(i) + ':' + synthesisKey(*im) + ':' + im->resource;
         } else if (const auto* media = std::get_if<core::Media>(&page.objects[i])) {
             out += '|' + std::to_string(i) + ":m:" + media->placeholder;
         }
     }
     return out;
+}
+
+// Objet dont l'image vient du magasin (image, vignette de média) : l'ajouter ou le modifier demande un
+// décodage.
+bool usesImages(const core::PageObject& object)
+{
+    return std::get_if<core::ImageObject>(&object) || std::get_if<core::Media>(&object);
 }
 } // namespace
 
@@ -96,8 +100,10 @@ const core::Page& FixedPageItem::page() const noexcept
     return m_own.page(0);
 }
 
-void FixedPageItem::restart(bool redecode, bool samePage)
+void FixedPageItem::restart(Decode decode, Scope scope)
 {
+    const bool redecode = decode == Decode::Force;
+    const bool samePage = scope == Scope::SamePage;
     m_rebuild = true;
     m_builtCount = 0; // les nœuds affichés ne suivent plus cette page : aucun ajout « en fin de scène »
     // Redécoder seulement si le magasin ne couvre plus la page (annuler un trait ne redécode rien). Pendant
@@ -130,7 +136,7 @@ void FixedPageItem::setPage(core::Page page)
     // Redécodage forcé : nécessaire au relais du lot 1 (la vue ne redessinait que sur readyChanged) ;
     // redondant depuis L2-T15 (la vue écoute contentChanged), gardé : il redécode à chaque setPage (banc et
     // tests).
-    restart(true, false);
+    restart(Decode::Force, Scope::OtherPage);
 }
 
 void FixedPageItem::setSource(const core::Document* document, std::size_t pageIndex)
@@ -144,7 +150,7 @@ void FixedPageItem::setSource(const core::Document* document, std::size_t pageIn
     m_source = document;
     m_sourcePage = document ? pageIndex : 0;
     m_own = core::Document(); // l'ancienne page interne ne revient jamais en repli
-    restart(false, false);
+    restart(Decode::IfUncovered, Scope::OtherPage);
 }
 
 const core::Document* FixedPageItem::sourceDocument() const noexcept
@@ -180,8 +186,8 @@ void FixedPageItem::insert(core::ObjectId id)
         return;
     }
     const core::PageObject& object = shown.objects[index];
-    const bool needsImages = std::get_if<core::ImageObject>(&object) || std::get_if<core::Media>(&object);
-    if (index + 1 == shown.objects.size() && index >= m_builtCount && !needsImages) {
+    const bool imageChanged = usesImages(object);
+    if (index + 1 == shown.objects.size() && index >= m_builtCount && !imageChanged) {
         // Fin de page (le stylo) : le prochain updatePaintNode n'ajoute que ce nœud.
         emit objectCountChanged();
         if (std::get_if<core::Stroke>(&object)) {
@@ -191,23 +197,22 @@ void FixedPageItem::insert(core::ObjectId id)
         update();
         return;
     }
-    restart(needsImages && !m_ready, true); // image ajoutée pendant un décodage : il ne la couvre pas
+    // image ajoutée pendant un décodage : il ne la couvre pas
+    restart(imageChanged && !m_ready ? Decode::Force : Decode::IfUncovered, Scope::SamePage);
 }
 
 // Lot 2 : reconstruction complète ; le lot « cache incrémental » visera le nœud de `id` et la zone.
 void FixedPageItem::remove(core::ObjectId, const core::RectF&)
 {
-    restart(false, true);
+    restart(Decode::IfUncovered, Scope::SamePage);
 }
 
 void FixedPageItem::invalidate(core::ObjectId id, const core::CacheArea&)
 {
     const core::Page& shown = page();
     const std::size_t index = core::indexOf(shown, id);
-    const bool image =
-        index < shown.objects.size() && (std::get_if<core::ImageObject>(&shown.objects[index]) ||
-                                         std::get_if<core::Media>(&shown.objects[index]));
-    restart(image && !m_ready, true);
+    const bool imageChanged = index < shown.objects.size() && usesImages(shown.objects[index]);
+    restart(imageChanged && !m_ready ? Decode::Force : Decode::IfUncovered, Scope::SamePage);
 }
 
 bool FixedPageItem::isReady() const noexcept

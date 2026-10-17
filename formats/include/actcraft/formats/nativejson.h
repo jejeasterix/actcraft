@@ -37,6 +37,9 @@ enum class ResourceFailure
     Corrupt, // entrée illisible
 };
 
+// Texte de la cause, tel qu'il figure dans les avertissements de lecture (ressource, miniature, entrée).
+QString describe(ResourceFailure failure);
+
 // Ce que rend le chargeur : les octets, ou la cause de leur absence. Se construit d'un std::optional (nullopt
 // : absente), d'octets ou d'une cause.
 struct LoadedResource
