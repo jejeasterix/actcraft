@@ -686,11 +686,12 @@ int compareThumbnails(const QStringList& args)
     bool hasFile = false;
     bool hasSamples = false;
     bool hasExpected = false;
-    bool unused = false;
+    bool hasKnown = false;
+    bool hasComparisons = false;
     const QString file = optionValue(args, QStringLiteral("--miniatures"), hasFile);
     const QString samples = optionValue(args, QStringLiteral("--samples"), hasSamples);
-    const QString knownText = optionValue(args, QStringLiteral("--connues"), unused);
-    const QString comparisons = optionValue(args, QStringLiteral("--comparaisons"), unused);
+    const QString knownText = optionValue(args, QStringLiteral("--connues"), hasKnown);
+    const QString comparisons = optionValue(args, QStringLiteral("--comparaisons"), hasComparisons);
     const QString expectedText = optionValue(args, QStringLiteral("--pages-attendues"), hasExpected);
     const bool recompress = !args.contains(QStringLiteral("--sans-recompression"));
     std::vector<KnownPage> known;
