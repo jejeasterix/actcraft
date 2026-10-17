@@ -608,6 +608,80 @@ private slots:
         QVERIFY(formats::decodeActcraft(archive).ok);
     }
 
+    // L2-C8 : une entrée d'archive inconnue (fichier d'une version plus récente) est gardée, octets
+    // identiques, et réécrite ; un nom dangereux (« .. », absolu, barre inverse) est écarté et jamais réécrit
+    // ; un dossier n'a pas d'octets ; ce que le format nomme sans le lire (miniature en trop) n'est pas
+    // gardé.
+    void unknownArchiveEntriesAreKeptVerbatim()
+    {
+        const QByteArray json = jsonOf(core::Document{});
+        QByteArray font(300, '\0');
+        font[7] = '\x7F';
+        font.append("fin");
+        const QByteArray html = QStringLiteral("<p>Bonjour é</p>").toUtf8();
+        QByteArray archive = writeZip([&](mz_zip_archive& zip) {
+            return addMem(zip, "document.json", json) && addMem(zip, "web/index.html", html) &&
+                   addMem(zip, "fonts/serif.ttf", font) && addMem(zip, "web/", QByteArray()) &&
+                   addMem(zip, "thumbnails/page-9.png", QByteArray("x")) &&
+                   addMem(zip, "../evil.txt", QByteArray("mal")) &&
+                   addMem(zip, "Xabs.txt", QByteArray("mal")) && addMem(zip, "aYb.txt", QByteArray("mal"));
+        });
+        QVERIFY(!archive.isEmpty());
+        archive.replace("Xabs.txt", "/abs.txt"); // noms local et central, même longueur
+        archive.replace("aYb.txt", "a\\b.txt");
+        const formats::DecodeResult opened = formats::decodeActcraft(archive);
+        QVERIFY2(opened.ok, qPrintable(opened.error));
+        const auto& kept = opened.document.unknownEntries();
+        QCOMPARE(kept.size(), std::size_t{2});
+        QCOMPARE(kept.at("web/index.html").data, html);
+        QCOMPARE(kept.at("fonts/serif.ttf").data, font);
+        const QString warnings = opened.warnings.join(u'\n');
+        QVERIFY2(warnings.contains(u"../evil.txt"_s) && warnings.contains(u"« /abs.txt »"_s) &&
+                     warnings.contains(u"a\\b.txt"_s),
+                 qPrintable(warnings));
+        QCOMPARE(opened.warnings.size(), 3);
+        QString error;
+        const QByteArray saved = formats::encodeActcraft(opened.document, {}, &error);
+        QVERIFY2(!saved.isEmpty(), qPrintable(error));
+        QCOMPARE(formats::archiveEntryNames(saved),
+                 (QStringList{u"document.json"_s, u"fonts/serif.ttf"_s, u"web/index.html"_s}));
+        QCOMPARE(entryOf(saved, "web/index.html"), html);
+        QCOMPARE(entryOf(saved, "fonts/serif.ttf"), font);
+        const formats::DecodeResult reopened = formats::decodeActcraft(saved);
+        QVERIFY2(reopened.ok && reopened.warnings.isEmpty(), qPrintable(reopened.warnings.join(u'\n')));
+        QCOMPARE(reopened.document.unknownEntries().size(), std::size_t{2});
+        QCOMPARE(core::fingerprint(reopened.document), core::fingerprint(opened.document));
+    }
+
+    // Une entrée inconnue a les bornes d'une ressource : taille par entrée et budget total à la lecture
+    // (écartée avec un avertissement), même borne à l'écriture (refus).
+    void unknownArchiveEntriesAreBoundedLikeResources()
+    {
+        const QByteArray json = jsonOf(core::Document{});
+        const QByteArray big(4096, 'b');
+        const QByteArray archive = writeZip([&](mz_zip_archive& zip) {
+            return addMem(zip, "document.json", json) && addMem(zip, "web/big.bin", big) &&
+                   addMem(zip, "web/small.txt", QByteArray("ok"));
+        });
+        const formats::DecodeResult perEntry =
+            formats::decodeActcraft(archive, limits(2048, 1 << 20, 1 << 20));
+        QVERIFY(perEntry.ok);
+        QCOMPARE(perEntry.document.unknownEntries().size(), std::size_t{1});
+        QVERIFY(perEntry.document.unknownEntries().count("web/small.txt"));
+        QVERIFY2(perEntry.warnings.join(u' ').contains(u"web/big.bin"_s),
+                 qPrintable(perEntry.warnings.join(u'\n')));
+        const formats::DecodeResult total =
+            formats::decodeActcraft(archive, limits(1 << 20, json.size() + 1000, 1 << 20));
+        QVERIFY(total.ok);
+        QCOMPARE(total.document.unknownEntries().size(), std::size_t{1});
+        QVERIFY(total.document.unknownEntries().count("web/small.txt"));
+        core::Document withBig;
+        withBig.setUnknownEntry("web/big.bin", big);
+        QString error;
+        QVERIFY(formats::encodeActcraft(withBig, {}, &error, limits(2048, 1 << 20, 1 << 20)).isEmpty());
+        QVERIFY2(error.contains(u"web/big.bin"_s), qPrintable(error));
+    }
+
     void archiveWithoutDocumentJsonIsRefused()
     {
         // Zip valide dont l'entrée « document.json » porte un autre nom de même longueur.

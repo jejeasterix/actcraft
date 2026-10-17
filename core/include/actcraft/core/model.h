@@ -162,7 +162,8 @@ struct Action
     std::uint16_t sourceType = 0; // numéro de type .flipchart d'origine ; 0 : action créée par ActCraft
     std::int32_t command = 0;
     ObjectId target = 0;
-    std::string resource; // clé de ressource (fichier ouvert) ; vide sinon
+    std::string resource;    // clé de ressource (fichier ouvert) ; vide sinon
+    std::string unknownKeys; // clés de l'élément inconnues de cette version (comme PageObject::unknownKeys)
 };
 
 // Propriétés communes à tout objet (décision 15).
@@ -293,6 +294,7 @@ struct TextSpan
     Argb color = 0xFF000000u;
     PointF baseline; // origine de la ligne de base, coordonnées de l'objet
     RectF bounds;
+    std::string unknownKeys; // clés de l'élément inconnues de cette version (comme PageObject::unknownKeys)
 };
 
 // Texte riche (décision 37) : HTML pour QTextDocument ; `runs`, s'il y en a, fait foi pour le dessin.
@@ -399,6 +401,7 @@ struct GridLevel
     GridLine line = GridLine::Solid;
     bool linesAlongX = true;
     bool linesAlongY = true;
+    std::string unknownKeys; // clés de l'élément inconnues de cette version (comme PageObject::unknownKeys)
 };
 
 struct Grid
@@ -435,8 +438,9 @@ struct Page
 
 // Empreinte FNV-1a 64 bits du contenu ; identique sur toutes les plateformes (types à taille fixe, octets
 // dans un ordre fixé, réels par leur motif binaire IEEE 754, textes par leurs octets UTF-8 précédés de leur
-// longueur). Les clés inconnues (unknownKeys) n'y entrent qu'en fin de flux et s'il y en a : une page qui
-// n'en a pas garde son empreinte d'avant L2-C8.
+// longueur). Les clés inconnues (unknownKeys, L2-C8) de la page et de ses objets n'y entrent qu'en fin de
+// flux et s'il y en a, celles d'une action, d'une ligne de texte ou d'un niveau de grille avec l'élément :
+// une page qui n'en a pas garde son empreinte d'avant L2-C8.
 std::uint64_t fingerprint(const Page& page) noexcept;
 
 } // namespace actcraft::core

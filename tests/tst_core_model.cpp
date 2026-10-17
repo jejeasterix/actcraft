@@ -270,6 +270,19 @@ private slots:
         QVERIFY(fingerprint(first) != fingerprint(page));
         first.objects[0].unknownKeys = "{\"future\":2}";
         QVERIFY(fingerprint(first) != fingerprint(last));
+
+        // Éléments des tableaux (action, ligne de texte, niveau de grille) : avec leur élément.
+        Page acted = richPage();
+        acted.objects[0].common.actions.push_back(Action{});
+        Page actedKeyed = acted;
+        actedKeyed.objects[0].common.actions[0].unknownKeys = keys;
+        QVERIFY(fingerprint(actedKeyed) != fingerprint(acted));
+        Page run = richPage();
+        std::get<Text>(run.objects[4]).runs[0].unknownKeys = keys;
+        QVERIFY(fingerprint(run) != fingerprint(richPage()));
+        Page level = richPage();
+        level.grid.levels[0].unknownKeys = keys;
+        QVERIFY(fingerprint(level) != fingerprint(richPage()));
     }
 
     void strokeWidthFollowsPressure()

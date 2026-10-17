@@ -116,12 +116,13 @@ void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
     h.text(label);
     h.u64(static_cast<std::uint64_t>(actions.size()));
     for (const Action& a : actions) {
-        const auto& [kind, sourceType, command, target, resource] = a;
+        const auto& [kind, sourceType, command, target, resource, unknownKeys] = a;
         h.tag(kind);
         h.u32(sourceType);
         h.i32(command);
         h.u64(target);
         h.text(resource);
+        h.text(unknownKeys);
     }
 }
 
@@ -202,7 +203,7 @@ void hashType(Fnv1a& h, const Text& textObject) noexcept
     h.u64(static_cast<std::uint64_t>(runs.size()));
     for (const TextSpan& r : runs) {
         const auto& [text, fontFamily, pointSize, weight, italic, underline, strikeOut, color, baseline,
-                     runBounds] = r;
+                     runBounds, unknownKeys] = r;
         h.text(text);
         h.text(fontFamily);
         h.f64(pointSize);
@@ -213,6 +214,7 @@ void hashType(Fnv1a& h, const Text& textObject) noexcept
         h.u32(color);
         h.point(baseline);
         h.rect(runBounds);
+        h.text(unknownKeys);
     }
 }
 
@@ -358,7 +360,7 @@ std::uint64_t fingerprint(const Page& page) noexcept
     h.u64(static_cast<std::uint64_t>(levels.size()));
     for (const GridLevel& l : levels) {
         const auto& [lvVisible, snap, start, spacingX, spacingY, color, pattern, angle, line, linesAlongX,
-                     linesAlongY] = l;
+                     linesAlongY, levelKeys] = l;
         h.boolean(lvVisible);
         h.boolean(snap);
         h.point(start);
@@ -370,6 +372,7 @@ std::uint64_t fingerprint(const Page& page) noexcept
         h.tag(line);
         h.boolean(linesAlongX);
         h.boolean(linesAlongY);
+        h.text(levelKeys);
     }
     h.text(name);
     h.text(notes);

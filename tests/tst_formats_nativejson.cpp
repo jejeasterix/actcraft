@@ -341,9 +341,10 @@ private slots:
             const auto& [m11, m12, m21, m22, dx, dy] = transform;
             QVERIFY(m11 != 1 && m12 != 0 && m21 != 0 && m22 != 1 && dx != 0 && dy != 0);
             QVERIFY(!label.empty() && actions.size() == 1);
-            const auto& [kind, sourceType, command, target, resource] = actions[0];
+            const auto& [kind, sourceType, command, target, resource, actionKeys] = actions[0];
             QVERIFY(kind != ActionKind::Other && sourceType != 0 && command != 0 && target != 0 &&
                     !resource.empty());
+            QVERIFY(actionKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
         }
         {
             const auto& [x, y, width, height] = std::get<Shape>(p1.objects[0]).bounds;
@@ -386,11 +387,12 @@ private slots:
         {
             const auto& [bounds, html, runs] = std::get<Text>(p1.objects[5]);
             QVERIFY(bounds.width != 0 && !html.empty() && runs.size() == 2);
-            const auto& [text, family, size, weight, italic, underline, strikeOut, color, baseline,
-                         runBounds] = runs[0];
+            const auto& [text, family, size, weight, italic, underline, strikeOut, color, baseline, runBounds,
+                         runKeys] = runs[0];
             QVERIFY(!text.empty() && !family.empty() && size != 12 && weight != 400 && italic && underline &&
                     !strikeOut && runs[1].strikeOut && color != 0xFF000000u && baseline.y != 0 &&
                     runBounds.width != 0);
+            QVERIFY(runKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
         }
         {
             const auto& [bounds, placeholder, media, fileName, playOnOpen, loop] =
@@ -420,15 +422,17 @@ private slots:
             QVERIFY(visible && !snapEnabled && d.page(2).grid.snapEnabled && drawnAbove && previewZoom != 1 &&
                     baseZoom != 1 && zoomIncrement != 0.5 && levels.size() == 3);
             const auto& [lvVisible, snap, start, spacingX, spacingY, color, pattern, angle, line, linesAlongX,
-                         linesAlongY] = levels[1];
+                         linesAlongY, levelKeys] = levels[1];
+            QVERIFY(levelKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
             QVERIFY(!lvVisible && snap && start.x != 0 && spacingX != 32 && spacingY != 32 &&
                     color != 0xFF000000u && pattern != GridPattern::Normal && angle != 30 &&
                     line != GridLine::Solid && linesAlongX && !linesAlongY);
             QVERIFY(!levels[0].snap && !levels[2].linesAlongX);
         }
         {
-            const auto& [data, extension] = d.resources().begin()->second;
+            const auto& [data, extension, resourceKeys] = d.resources().begin()->second;
             QVERIFY(!data.isEmpty() && !extension.empty());
+            QVERIFY(resourceKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
         }
         QVERIFY(!d.title().empty() && d.resources().size() == 2 && d.nextId() == 20);
     }
@@ -702,6 +706,40 @@ private slots:
         // Les valeurs connues viennent toujours du modèle.
         QCOMPARE(std::get<core::Shape>(back.page(0).objects[3]).pen.width,
                  std::get<core::Shape>(rich.page(0).objects[3]).pen.width);
+    }
+
+    // L2-C8 : les éléments des tableaux d'objets du format (actions, lignes de texte, niveaux de grille,
+    // déclarations de ressources) gardent aussi leurs clés inconnues, chacun la sienne.
+    void unknownKeysOfArrayElementsAreKept()
+    {
+        const core::Document rich = richdoc::richDocument();
+        QJsonObject root = formats::documentToJson(rich);
+        const auto withKey = [](QJsonArray list, int index, const QString& key, const QJsonValue& value) {
+            QJsonObject element = list.at(index).toObject();
+            element.insert(key, value);
+            list.replace(index, element);
+            return list;
+        };
+        QJsonObject rect = object(root, 0, 0);
+        rect.insert(u"actions"_s, withKey(rect.value(u"actions"_s).toArray(), 0, u"delay"_s, 2));
+        root = withObject(root, 0, 0, rect);
+        QJsonObject text = object(root, 0, 5);
+        text.insert(u"runs"_s, withKey(text.value(u"runs"_s).toArray(), 1, u"rise"_s, 0.5));
+        root = withObject(root, 0, 5, text);
+        QJsonObject second = page(root, 1);
+        QJsonObject grid = second.value(u"grid"_s).toObject();
+        grid.insert(u"levels"_s, withKey(grid.value(u"levels"_s).toArray(), 1, u"opacity"_s, 0.4));
+        second.insert(u"grid"_s, grid);
+        root = withPage(root, 1, second);
+        root.insert(u"resources"_s,
+                    withKey(root.value(u"resources"_s).toArray(), 0, u"origin"_s, u"appareil photo"_s));
+        core::Document back;
+        const auto r = formats::documentFromJson(root, loaderFrom(rich), back);
+        QVERIFY(r.ok);
+        QVERIFY2(r.warnings.isEmpty(), qPrintable(r.warnings.join(u'\n')));
+        const QString difference = firstDifference(root, formats::documentToJson(back), u"document"_s);
+        QVERIFY2(difference.isEmpty(), qPrintable(difference));
+        QVERIFY(core::fingerprint(back) != core::fingerprint(rich));
     }
 
     void unknownObjectTypeIsKeptWithAWarning()

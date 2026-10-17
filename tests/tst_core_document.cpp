@@ -190,6 +190,33 @@ private slots:
         QVERIFY(fingerprint(b) != fingerprint(c));
     }
 
+    // L2-C8 : clés inconnues d'une déclaration de ressource et entrées d'archive inconnues, réécrites, donc
+    // dans l'empreinte (nom et contenu de l'entrée).
+    void fingerprintFollowsUnknownResourceKeysAndArchiveEntries()
+    {
+        Document a;
+        a.addResource(QByteArray("x"), "png");
+        const std::string key = a.resources().begin()->first;
+        Document b = a;
+        b.setResourceUnknownKeys(key, "{\"origin\":1}");
+        QCOMPARE(b.resource(key)->unknownKeys, std::string("{\"origin\":1}"));
+        QVERIFY(fingerprint(a) != fingerprint(b));
+        Document absent = a;
+        absent.setResourceUnknownKeys(std::string(64, '0'),
+                                      "{\"origin\":1}"); // ressource absente : sans effet
+        QCOMPARE(fingerprint(absent), fingerprint(a));
+        Document c = a;
+        c.setUnknownEntry("web/index.html", QByteArray("<p>"));
+        QCOMPARE(c.unknownEntries().at("web/index.html").data, QByteArray("<p>"));
+        QVERIFY(fingerprint(a) != fingerprint(c));
+        Document d = a;
+        d.setUnknownEntry("web/index.html", QByteArray("<b>"));
+        QVERIFY(fingerprint(c) != fingerprint(d));
+        Document e = a;
+        e.setUnknownEntry("web/autre.html", QByteArray("<p>"));
+        QVERIFY(fingerprint(c) != fingerprint(e));
+    }
+
     // Mêmes octets (donc même clé), extensions différentes : l'extension entre dans l'empreinte.
     void fingerprintFollowsResourceExtension()
     {
