@@ -299,6 +299,46 @@ private slots:
         QVERIFY(store.covers(withPlain, &document));
         QVERIFY(!store.covers(withMasked, &document)); // même ressource, variante jamais calculée
     }
+
+    // L2-C9, constat 3 : une nouvelle génération (PgDown répétés) annule les décodages de la précédente qui
+    // n'ont pas commencé ; sans cela, toutes les pages traversées sont décodées. 64 ressources de 512 × 512
+    // (quelques ms chacune) : les fils du pool n'en ont commencé qu'une poignée quand la page suivante
+    // arrive.
+    void newGenerationDropsTheDecodesNotStarted()
+    {
+        constexpr int kCount = 64;
+        core::Document document;
+        core::Page crossed;
+        for (int i = 0; i < kCount; ++i) {
+            QImage noise(512, 512, QImage::Format_RGB32);
+            for (int y = 0; y < noise.height(); ++y) {
+                auto* line = reinterpret_cast<QRgb*>(noise.scanLine(y));
+                for (int x = 0; x < noise.width(); ++x) {
+                    line[x] = qRgb((x * 7 + y * 13 + i * 31) & 0xFF, (x * y + i) & 0xFF, (x ^ y ^ i) & 0xFF);
+                }
+            }
+            core::ImageObject im;
+            im.bounds = {0, 0, 10, 10};
+            im.resource = document.addResource(pngOf(noise), "png");
+            crossed.objects.emplace_back(im);
+        }
+        QImage small(4, 4, QImage::Format_RGB32);
+        small.fill(Qt::red);
+        core::ImageObject im;
+        im.bounds = {0, 0, 4, 4};
+        im.resource = document.addResource(pngOf(small), "png");
+        core::Page shown;
+        shown.objects.emplace_back(im);
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(crossed, &document);
+        store.generate(shown, &document); // page suivante aussitôt
+        QVERIFY(ready.wait(20000));
+        QVERIFY(store.covers(shown, &document));
+        QVERIFY(store.waitForIdle(60000));
+        const std::size_t started = store.startedTasks();
+        QVERIFY2(started < std::size_t{kCount + 1}, qPrintable(QString::number(started)));
+    }
 };
 
 QTEST_MAIN(TstRenderImages)
