@@ -149,6 +149,24 @@ add_test(NAME tst_flipchart_miniatures_synthetique
 set_tests_properties(tst_flipchart_miniatures_synthetique PROPERTIES
     FIXTURES_REQUIRED flipchart_synthetic ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "MINIATURES OK : 2 pages")
+# Miniature JPEG (L2-C7) : le rendu passe par le même codec, à la qualité lue dans les tables de la miniature, avant
+# la mesure. Miniatures de qualité 50 (celle des .thm) rendues par notre peintre : écart quasi nul avec la
+# recompression ; sans elle (--sans-recompression), l'écart de la compression seule, nettement plus grand.
+set(_flipchart_q50 ${CMAKE_BINARY_DIR}/flipchart-q50.flipchart)
+add_test(NAME tst_flipchart_ecrire_q50
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --ecrire-synthetique ${_flipchart_q50} --miniatures-q50)
+set_tests_properties(tst_flipchart_ecrire_q50 PROPERTIES
+    FIXTURES_SETUP flipchart_q50 ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "SYNTHETIQUE OK")
+add_test(NAME tst_flipchart_miniatures_q50
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_q50})
+set_tests_properties(tst_flipchart_miniatures_q50 PROPERTIES
+    FIXTURES_REQUIRED flipchart_q50 ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES OK : 2 pages, médiane 0[.]0[0-9]")
+add_test(NAME tst_flipchart_miniatures_q50_sans_recompression
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_q50} --sans-recompression)
+set_tests_properties(tst_flipchart_miniatures_q50_sans_recompression PROPERTIES
+    FIXTURES_REQUIRED flipchart_q50 ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : 2 pages, médiane ([2-9]|[1-9][0-9])[.]")
 # Tests qui distinguent une vraie mesure d'une mesure aveugle (rendu comparé à lui-même, lignes lues en partie) :
 # l'écart tient dans le quart droit des miniatures. Code 1 attendu : le motif seul juge (le code de sortie est
 # ignoré avec PASS_REGULAR_EXPRESSION).

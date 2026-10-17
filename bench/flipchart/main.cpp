@@ -10,10 +10,13 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QImage>
+#include <QImageWriter>
 #include <QJsonDocument>
 #include <QPainter>
 
 #include <algorithm>
+#include <array>
+#include <climits>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -40,11 +43,20 @@
 //   « <fichier>:* » excuse une page quelconque du fichier, une seule.
 //   --comparaisons <dossier> : rendu et miniature côte à côte (PNG) pour chaque page au-dessus de 7 ; dossier
 //   sous .tmp/ ou build/ du dépôt seulement (les PNG contiennent les vraies miniatures).
+//   Miniature JPEG : notre rendu passe d'abord par le même codec (QImageWriter, JPEG), à la qualité estimée
+//   par la table de quantification de la luminance de la miniature (table de la norme mise à l'échelle par la
+//   formule de libjpeg ; 50, la qualité relevée sur les .thm, si la table manque), et le JPEG écrit doit
+//   avoir le même échantillonnage des couleurs que la miniature, sinon la page échoue. Sans cela, l'écart
+//   mesure aussi la compression : un rendu parfait s'écarte de sa propre version JPEG de qualité 50 de 7,80
+//   sur une page d'aplats saturés (mesuré, L2-C7). Miniature d'un autre format (PNG…) : comparée sans
+//   recompression.
+//   --sans-recompression : rendu comparé tel quel, même à une miniature JPEG (preuve que la règle compte).
 //
 // actcraft-flipchart-dump --ecrire-synthetique <fichier.flipchart> [variante]
 //   Écrit fctest::sampleFlipchart avec des miniatures JPEG rendues par notre peintre (chemin prouvé en CI,
 //   pas la fidélité), « SYNTHETIQUE OK : <fichier> ». Variantes : --miniatures-alterees (quart droit noir),
-//   --miniatures-trouees (page 1 vide, page 2 indécodable), --miniatures-geantes (2000 px de large).
+//   --miniatures-trouees (page 1 vide, page 2 indécodable), --miniatures-geantes (2000 px de large),
+//   --miniatures-q50 (JPEG de qualité 50, comme les .thm, au lieu de 100).
 
 namespace {
 
@@ -111,6 +123,158 @@ QImage sideBySide(const QImage& rendered, const QImage& thumbnail)
     return out;
 }
 
+// --- Miniatures JPEG : rendu recompressé comme la miniature avant la mesure
+// ---------------------------------------------------------------------------------------
+
+constexpr int kDefaultJpegQuality = 50; // qualité relevée sur les .thm (tables de la norme à 50)
+
+// Table de quantification de la luminance de la norme JPEG (UIT-T T.81, annexe K, tableau K.1).
+constexpr std::array<int, 64> kStandardLumaTable = {
+    16, 11,  10,  16, 24, 40, 51, 61, 12,  12,  14,  19,  26, 58, 60, 55,  14,  13,  16,  24, 40, 57,
+    69, 56,  14,  17, 22, 29, 51, 87, 80,  62,  18,  22,  37, 56, 68, 109, 103, 77,  24,  35, 55, 64,
+    81, 104, 113, 92, 49, 64, 78, 87, 103, 121, 120, 101, 72, 92, 95, 98,  112, 100, 103, 99};
+
+// Ce que la mesure lit d'un JPEG : table 0 (luminance) et échantillonnage de chaque composante (h × 16 + v).
+struct JpegLayout
+{
+    bool isJpeg = false;
+    std::vector<int> luma;     // 64 valeurs dans l'ordre du fichier ; vide si absente
+    std::vector<int> sampling; // dans l'ordre du SOF
+};
+
+// Marqueurs lus jusqu'au début des données compressées (SOS), bornes vérifiées : fichier non fiable.
+JpegLayout jpegLayout(const QByteArray& data)
+{
+    JpegLayout out;
+    const auto at = [&data](qsizetype i) { return static_cast<int>(static_cast<uchar>(data.at(i))); };
+    if (data.size() < 4 || at(0) != 0xFF || at(1) != 0xD8) {
+        return out;
+    }
+    out.isJpeg = true;
+    qsizetype i = 2;
+    while (i + 4 <= data.size() && at(i) == 0xFF) {
+        const int marker = at(i + 1);
+        if (marker == 0xFF) { // remplissage
+            ++i;
+            continue;
+        }
+        if (marker == 0x01 || (marker >= 0xD0 && marker <= 0xD8)) { // marqueurs sans longueur
+            i += 2;
+            continue;
+        }
+        if (marker == 0xD9 || marker == 0xDA) {
+            break;
+        }
+        const qsizetype length = (at(i + 2) << 8) | at(i + 3);
+        const qsizetype end = i + 2 + length;
+        if (length < 2 || end > data.size()) {
+            break;
+        }
+        const qsizetype segment = i + 4;
+        if (marker == 0xDB) {
+            for (qsizetype j = segment; j < end;) {
+                const bool wide = (at(j) >> 4) != 0;
+                const int id = at(j) & 0x0F;
+                const qsizetype size = wide ? 128 : 64;
+                if (j + 1 + size > end) {
+                    break;
+                }
+                if (id == 0) {
+                    out.luma.clear();
+                    for (qsizetype k = 0; k < 64; ++k) {
+                        out.luma.push_back(wide ? (at(j + 1 + 2 * k) << 8) | at(j + 2 + 2 * k)
+                                                : at(j + 1 + k));
+                    }
+                }
+                j += 1 + size;
+            }
+        } else if ((marker == 0xC0 || marker == 0xC1 || marker == 0xC2) && segment + 6 <= end) {
+            const int components = at(segment + 5);
+            out.sampling.clear();
+            for (int k = 0; k < components && segment + 8 + 3 * k <= end; ++k) {
+                out.sampling.push_back(at(segment + 7 + 3 * k));
+            }
+        }
+        i = end;
+    }
+    return out;
+}
+
+// Somme de la table de la norme mise à l'échelle pour une qualité (formule de libjpeg, valeurs de 1 à 255).
+int scaledLumaSum(int quality)
+{
+    const int scale = quality < 50 ? 5000 / quality : 200 - 2 * quality;
+    int sum = 0;
+    for (const int v : kStandardLumaTable) {
+        sum += std::clamp((v * scale + 50) / 100, 1, 255);
+    }
+    return sum;
+}
+
+// Qualité dont la table mise à l'échelle a la somme la plus proche de celle de la miniature (exacte pour un
+// JPEG de libjpeg ; la plus haute en cas d'égalité).
+int estimatedQuality(const std::vector<int>& luma)
+{
+    if (luma.size() != kStandardLumaTable.size()) {
+        return kDefaultJpegQuality;
+    }
+    int sum = 0;
+    for (const int v : luma) {
+        sum += v;
+    }
+    int best = kDefaultJpegQuality;
+    int bestDiff = INT_MAX;
+    for (int q = 100; q >= 1; --q) {
+        const int diff = std::abs(scaledLumaSum(q) - sum);
+        if (diff < bestDiff) {
+            best = q;
+            bestDiff = diff;
+        }
+    }
+    return best;
+}
+
+QString samplingText(const std::vector<int>& sampling)
+{
+    QStringList parts;
+    for (const int s : sampling) {
+        parts << QStringLiteral("%1x%2").arg(s >> 4).arg(s & 0x0F);
+    }
+    return parts.isEmpty() ? QStringLiteral("inconnu") : parts.join(QLatin1Char(','));
+}
+
+// Rendu passé par le codec JPEG de Qt comme la miniature : même qualité, même échantillonnage (vérifié sur le
+// JPEG écrit, le codec ne le laisse pas choisir).
+std::optional<QImage> asThumbnailJpeg(const QImage& rendered, const JpegLayout& thumbnail, QString& why)
+{
+    const int quality = estimatedQuality(thumbnail.luma);
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    buffer.open(QIODevice::WriteOnly);
+    QImageWriter writer(&buffer, "jpeg");
+    writer.setQuality(quality);
+    if (!writer.write(rendered)) {
+        why = QStringLiteral("recompression JPEG impossible (%1)").arg(writer.errorString());
+        return std::nullopt;
+    }
+    buffer.close();
+    const JpegLayout written = jpegLayout(bytes);
+    if (written.sampling != thumbnail.sampling) {
+        why = QStringLiteral(
+                  "échantillonnage %1 de la miniature non reproduit par le codec à la qualité %2 (%3)")
+                  .arg(samplingText(thumbnail.sampling))
+                  .arg(quality)
+                  .arg(samplingText(written.sampling));
+        return std::nullopt;
+    }
+    QImage image = QImage::fromData(bytes, "JPEG");
+    if (image.isNull()) {
+        why = QStringLiteral("rendu recompressé illisible");
+        return std::nullopt;
+    }
+    return image;
+}
+
 struct PageGap
 {
     QString file; // nom du fichier, sans dossier
@@ -134,7 +298,7 @@ constexpr int kMaxRenderHeight = render::kThumbnailMaxHeight;
 // Pages d'un paperboard rendues comme les miniatures de l'application (peintre partagé, échelle de miniature)
 // à la largeur de leur .thm.
 bool pageGaps(const QString& path, std::vector<PageGap>& gaps, Tally& tally, const QString& comparisons,
-              QString& error)
+              bool recompress, QString& error)
 {
     const QString name = QFileInfo(path).fileName();
     QFile in(path);
@@ -188,7 +352,17 @@ bool pageGaps(const QString& path, std::vector<PageGap>& gaps, Tally& tally, con
         }
         render::PaintOptions options;
         options.thumbnail = true;
-        const QImage rendered = render::renderPage(page, images.lookup(), scale, options);
+        QImage rendered = render::renderPage(page, images.lookup(), scale, options);
+        const JpegLayout layout = jpegLayout(bytes);
+        if (layout.isJpeg && recompress) {
+            QString why;
+            std::optional<QImage> jpeg = asThumbnailJpeg(rendered, layout, why);
+            if (!jpeg) {
+                error = QStringLiteral("%1 page %2 : %3").arg(name).arg(pageNumber).arg(why);
+                return false;
+            }
+            rendered = std::move(*jpeg);
+        }
         const std::optional<double> gap = thumbnailGap(rendered, thumbnail);
         if (!gap) {
             error = QStringLiteral("%1 page %2 : images de mesure invalides").arg(name).arg(pageNumber);
@@ -345,6 +519,7 @@ enum class Variant
     Altered, // quart droit de chaque miniature peint en noir
     Holes,   // page 1 à miniature vide, page 2 à miniature indécodable
     Huge,    // miniatures de 2000 px de large
+    Jpeg50,  // miniatures JPEG de qualité 50, comme les .thm
 };
 
 int writeSynthetic(const QString& path, Variant variant)
@@ -373,13 +548,14 @@ int writeSynthetic(const QString& path, Variant variant)
         } else if (variant == Variant::Huge) {
             image = image.scaled(2000, 1500, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         }
-        // Qualité 100 : à 90, le sous-échantillonnage des couleurs du JPEG brouille les traits fins de la
-        // grille (écart 4,47 sur la page 1, contre 0,00 en PNG et 0,39 à 100, mesuré) ; la preuve porte sur
-        // le chemin.
+        // Qualité 100 : sans recompression du rendu, le sous-échantillonnage des couleurs du JPEG à 90
+        // brouillait les traits fins de la grille (écart 4,47 sur la page 1, contre 0,00 en PNG et 0,39 à
+        // 100, mesuré) ; la preuve porte sur le chemin. Qualité 50 (variante) : celle des .thm, pour prouver
+        // la recompression.
         QByteArray jpeg;
         QBuffer buffer(&jpeg);
         buffer.open(QIODevice::WriteOnly);
-        if (!image.save(&buffer, "JPG", 100)) {
+        if (!image.save(&buffer, "JPG", variant == Variant::Jpeg50 ? 50 : 100)) {
             return fail(QStringLiteral("encodage JPEG impossible (greffon d'images absent ?)"));
         }
         jpegs.push_back(jpeg);
@@ -445,6 +621,7 @@ int compareThumbnails(const QStringList& args)
     const QString knownText = optionValue(args, QStringLiteral("--connues"), unused);
     const QString comparisons = optionValue(args, QStringLiteral("--comparaisons"), unused);
     const QString expectedText = optionValue(args, QStringLiteral("--pages-attendues"), hasExpected);
+    const bool recompress = !args.contains(QStringLiteral("--sans-recompression"));
     std::vector<KnownPage> known;
     QString error;
     if (!parseKnown(knownText, known, error)) {
@@ -488,7 +665,7 @@ int compareThumbnails(const QStringList& args)
     std::vector<PageGap> gaps;
     Tally tally;
     for (const QString& f : files) {
-        if (!pageGaps(f, gaps, tally, comparisons, error)) {
+        if (!pageGaps(f, gaps, tally, comparisons, recompress, error)) {
             return fail(error);
         }
     }
@@ -565,6 +742,8 @@ int main(int argc, char* argv[])
             variant = Variant::Holes;
         } else if (args.contains(QStringLiteral("--miniatures-geantes"))) {
             variant = Variant::Huge;
+        } else if (args.contains(QStringLiteral("--miniatures-q50"))) {
+            variant = Variant::Jpeg50;
         }
         return writeSynthetic(args.at(synthetic + 1), variant);
     }
