@@ -530,9 +530,8 @@ bool UiScenarioPlayer::expect(const UiStep& step, QStringList& report)
 bool UiScenarioPlayer::read(const UiStep& step, QStringList& report)
 {
     QString expected;
-    QString why;
-    if (!expand(step.value, expected, why)) {
-        report << QStringLiteral("LU %1.%2 ECHEC (%3)").arg(step.target, step.property, why);
+    if (!expandOrFail(step.value, QStringLiteral("LU %1.%2").arg(step.target, step.property), expected,
+                      report)) {
         return false;
     }
     QObject* object = find(step.target);
@@ -703,12 +702,21 @@ bool UiScenarioPlayer::expand(const QString& text, QString& out, QString& why) c
     return true;
 }
 
+bool UiScenarioPlayer::expandOrFail(const QString& text, const QString& head, QString& out,
+                                    QStringList& report) const
+{
+    QString why;
+    if (expand(text, out, why)) {
+        return true;
+    }
+    report << head + QStringLiteral(" ECHEC (%1)").arg(why);
+    return false;
+}
+
 bool UiScenarioPlayer::fixture(const UiStep& step, QStringList& report)
 {
     QString path;
-    QString why;
-    if (!expand(step.path, path, why)) {
-        report << QStringLiteral("FIXTURE %1 ECHEC (%2)").arg(step.name, why);
+    if (!expandOrFail(step.path, QStringLiteral("FIXTURE %1").arg(step.name), path, report)) {
         return false;
     }
     // Chemin venu du scénario : la fixture n'écrit que sous le dossier de sortie, jamais à côté.
@@ -729,9 +737,7 @@ bool UiScenarioPlayer::waitFor(const UiStep& step, QStringList& report)
 {
     const QString head = QStringLiteral("ATTENTE %1.%2").arg(step.target, step.property);
     QString expected;
-    QString why;
-    if (!expand(step.value, expected, why)) {
-        report << head + QStringLiteral(" ECHEC (%1)").arg(why);
+    if (!expandOrFail(step.value, head, expected, report)) {
         return false;
     }
     const QPointer<QObject> target = find(step.target);
@@ -838,9 +844,7 @@ bool UiScenarioPlayer::remember(const UiStep& step, QStringList& report)
 bool UiScenarioPlayer::archiveContains(const UiStep& step, QStringList& report)
 {
     QString path;
-    QString why;
-    if (!expand(step.path, path, why)) {
-        report << QStringLiteral("ARCHIVE %1 ECHEC (%2)").arg(step.path, why);
+    if (!expandOrFail(step.path, QStringLiteral("ARCHIVE %1").arg(step.path), path, report)) {
         return false;
     }
     // Lecture bornée (formats::readUrl, 1 Gio) ; relatif : au dossier courant, comme une commande de fichier.
@@ -871,9 +875,8 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         QVariant argumentValue = step.argument;
         if (argumentValue.typeId() == QMetaType::QString) {
             QString expanded;
-            QString why;
-            if (!expand(argumentValue.toString(), expanded, why)) {
-                report << QStringLiteral("COMMANDE %1 ECHEC (%2)").arg(step.command, why);
+            if (!expandOrFail(argumentValue.toString(), QStringLiteral("COMMANDE %1").arg(step.command),
+                              expanded, report)) {
                 return false;
             }
             argumentValue = expanded;

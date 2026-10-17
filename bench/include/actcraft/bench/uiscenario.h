@@ -147,6 +147,8 @@ private:
     // Remplace les variables de `text` en une passe (les valeurs insérées ne sont pas relues) ; faux et
     // `why` si une variable est inconnue, non fermée, ou ${SAMPLES} sans ACTCRAFT_SAMPLES_DIR.
     bool expand(const QString& text, QString& out, QString& why) const;
+    // `expand`, sinon la ligne « <tête> ECHEC (raison) » est ajoutée au compte rendu.
+    bool expandOrFail(const QString& text, const QString& head, QString& out, QStringList& report) const;
 
     QQuickWindow* m_window = nullptr;
     std::unique_ptr<QPointingDevice> m_stylus;
