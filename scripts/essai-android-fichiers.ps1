@@ -1,10 +1,12 @@
 # S5 sous Android (décision 17) : enregistrer puis rouvrir par content:// sur l'émulateur, empreintes égales.
 # Usage : pwsh -NoProfile -File ./scripts/essai-android-fichiers.ps1 -Apk <…-x86_64.apk> [-Avd <nom>]
 # Démarre l'émulateur (sans fenêtre, -gpu host : SwiftShader rend faux, VERIF s3-rendu de
-# docs/verifications/2026-10-14-outillage-paquets.md), installe et lance l'APK, trace un trait au doigt, puis
-# « Enregistrer sous » (Ctrl+Maj+S) → sélecteur du système (DocumentsUI, ACTION_CREATE_DOCUMENT) → « ACTCRAFT
-# ENREGISTRE <empreinte> » dans logcat ; Fermer (Ctrl+W), Ouvrir (Ctrl+O) → sélecteur → le fichier → « ACTCRAFT OUVERT
-# <empreinte> ». Arrête l'émulateur par son PID, quoi qu'il arrive. Appels adb : scripts/android-commun.ps1.
+# docs/verifications/2026-10-14-outillage-paquets.md), efface par MediaStore les fichiers des passages précédents
+# (état initial vérifié), installe et lance l'APK, trace un trait au doigt, puis « Enregistrer sous » (Ctrl+Maj+S) →
+# sélecteur du système (DocumentsUI, ACTION_CREATE_DOCUMENT), nom du passage saisi et relu → « ACTCRAFT ENREGISTRE
+# <empreinte> » dans logcat, fichier de ce nom dans MediaStore ; Fermer (Ctrl+W), Ouvrir (Ctrl+O) → sélecteur → le
+# fichier, par son nom exact → « ACTCRAFT OUVERT <empreinte> ». Arrête l'émulateur par son PID, quoi qu'il arrive.
+# Appels adb : scripts/android-commun.ps1.
 # Dernière ligne : « ANDROID FICHIERS OK » (0) ou « ANDROID FICHIERS EN ECHEC : <raison> » (1), même sur une erreur
 # imprévue. Sorties de diagnostic sous .tmp/ (fichiers-*.png, fichiers-*.xml, fichiers-logcat.txt) ; le serveur adb
 # et l'émulateur démarrés par l'essai sont arrêtés par leur PID.
@@ -85,13 +87,23 @@ function Invoke-Adb([string[]]$arguments, [int]$secondes = 30) {
 }
 # Arbre de l'interface Android (uiautomator), ou $null s'il n'a pas pu être pris (« could not get idle state » tant
 # qu'une fenêtre s'anime). Dernier arbre lu : .tmp/fichiers-ui.xml.
+# Une boîte « … ne répond pas » du système (machine chargée : « System UI isn't responding » a couvert le sélecteur,
+# essai 3) est écartée par son bouton « attendre » (android:id/aerr_wait, indépendant de la langue) et l'arbre relu,
+# trois fois au plus : toute attente qui relit l'arbre la traverse.
 function Read-ArbreUi {
-    Remove-Item -ErrorAction SilentlyContinue .tmp/fichiers-ui.xml
-    $null = Invoke-Adb @('shell', 'rm', '-f', '/sdcard/actcraft-ui.xml')
-    $null = Invoke-Adb @('shell', 'uiautomator', 'dump', '/sdcard/actcraft-ui.xml') 60
-    $null = Invoke-Adb @('pull', '/sdcard/actcraft-ui.xml', '.tmp/fichiers-ui.xml') 30
-    if (-not (Test-Path .tmp/fichiers-ui.xml)) { return $null }
-    try { $arbre = [xml](Get-Content -Raw -Encoding utf8 .tmp/fichiers-ui.xml) } catch { return $null }
+    for ($boite = 0; $boite -le 3; $boite++) {
+        Remove-Item -ErrorAction SilentlyContinue .tmp/fichiers-ui.xml
+        $null = Invoke-Adb @('shell', 'rm', '-f', '/sdcard/actcraft-ui.xml')
+        $null = Invoke-Adb @('shell', 'uiautomator', 'dump', '/sdcard/actcraft-ui.xml') 60
+        $null = Invoke-Adb @('pull', '/sdcard/actcraft-ui.xml', '.tmp/fichiers-ui.xml') 30
+        if (-not (Test-Path .tmp/fichiers-ui.xml)) { return $null }
+        try { $arbre = [xml](Get-Content -Raw -Encoding utf8 .tmp/fichiers-ui.xml) } catch { return $null }
+        $attendre = @($arbre.SelectNodes('//node')) | Where-Object { $_.'resource-id' -eq 'android:id/aerr_wait' } | Select-Object -First 1
+        if (-not $attendre -or $boite -eq 3) { break }
+        Write-Host "boîte « ne répond pas » du système écartée : $(@($arbre.SelectNodes('//node')) | Where-Object { $_.'resource-id' -eq 'android:id/alertTitle' } | ForEach-Object { $_.text })"
+        Invoke-Tap $attendre
+        Start-Sleep -Seconds 2
+    }
     return , $arbre # virgule : un XmlDocument rendu tel quel serait énuméré nœud par nœud
 }
 # Touche un nœud en son centre (ligne d'information écrite à l'hôte : rien n'est rendu).
@@ -101,8 +113,17 @@ function Invoke-Tap($noeud) {
     Write-Host "touché : « $($noeud.text) » ($($noeud.'resource-id'), $($noeud.package)) en ($x, $y)"
     $null = Invoke-Adb @('shell', 'input', 'tap', "$x", "$y")
 }
+# Arbre et capture de l'écran laissés sous .tmp/fichiers-<quoi>.xml|png ; rend le texte des chemins pour la raison.
+function Save-Diagnostic([string]$quoi) {
+    $nom = "fichiers-$quoi"
+    if (Test-Path .tmp/fichiers-ui.xml) { Copy-Item .tmp/fichiers-ui.xml ".tmp/$nom.xml" -Force }
+    $null = Invoke-Adb @('shell', 'screencap', '-p', '/sdcard/actcraft-ecran.png') 60
+    $null = Invoke-Adb @('pull', '/sdcard/actcraft-ecran.png', ".tmp/$nom.png") 60
+    return "arbre .tmp/$nom.xml, capture .tmp/$nom.png"
+}
 # Ouvre un sélecteur du système par un raccourci de l'application, puis touche le nœud voulu. Critères indépendants
-# de la langue : paquet DocumentsUI, identifiant de ressource, texte choisi par nous (nom du fichier). Attente bornée
+# de la langue et de la vue (liste ou grille) : paquet DocumentsUI, identifiant de ressource, texte choisi par nous
+# (nom du fichier, cherché par son texte exact quel que soit l'identifiant du nœud). Attente bornée
 # qui relit l'arbre ; l'indication « plein écran » du système (immersive cling, qui prend les touches) est écartée
 # par son identifiant et le raccourci renvoyé ; renvoyé aussi une fois si aucune fenêtre de DocumentsUI n'est
 # apparue en 20 s. Rend $null, ou la raison de l'échec avec les chemins de l'arbre et de la capture laissés sous .tmp/.
@@ -127,7 +148,7 @@ function Invoke-Selecteur([string[]]$touches, [string]$quoi, [string]$id, [strin
             }
             $selecteur = @($noeuds | Where-Object { $_.package -match 'documentsui' })
             $noeud = $selecteur | Where-Object {
-                $_.enabled -eq 'true' -and $_.'resource-id' -match $id -and $_.text -match $texte -and $_.class -match $classe
+                $_.enabled -eq 'true' -and $_.'resource-id' -cmatch $id -and $_.text -cmatch $texte -and $_.class -match $classe
             } | Select-Object -First 1
             if ($noeud) { Invoke-Tap $noeud; return $null }
             if ($touches -and -not $renvoye -and $selecteur.Count -eq 0 -and ((Get-Date) - $envoi).TotalSeconds -gt 20) {
@@ -139,11 +160,99 @@ function Invoke-Selecteur([string[]]$touches, [string]$quoi, [string]$id, [strin
         }
         Start-Sleep -Seconds 2
     }
-    $nom = "fichiers-$quoi"
-    if (Test-Path .tmp/fichiers-ui.xml) { Copy-Item .tmp/fichiers-ui.xml ".tmp/$nom.xml" -Force }
-    $null = Invoke-Adb @('shell', 'screencap', '-p', '/sdcard/actcraft-ecran.png') 60
-    $null = Invoke-Adb @('pull', '/sdcard/actcraft-ecran.png', ".tmp/$nom.png") 60
-    return "$quoi : nœud $id introuvable en $secondes s (arbre .tmp/$nom.xml, capture .tmp/$nom.png)"
+    $critere = (@($id, $texte) | Where-Object { $_ }) -join ' de texte '
+    return "$quoi : nœud $critere introuvable en $secondes s ($(Save-Diagnostic $quoi))"
+}
+# Champ du nom du sélecteur d'enregistrement (EditText android:id/title de DocumentsUI), ou $null.
+function Get-ChampNom($arbre) {
+    return @($arbre.SelectNodes('//node')) | Where-Object {
+        $_.package -match 'documentsui' -and $_.'resource-id' -eq 'android:id/title' -and $_.class -match 'EditText'
+    } | Select-Object -First 1
+}
+# Saisit le nom dans le champ du sélecteur, puis le relit dans l'arbre jusqu'à le trouver exact. « input text » passe
+# par le clavier du système : le champ se remplit après le retour de la commande, et « SAVE » touché trop tôt
+# enregistre un nom tronqué (« ess », essai 2 du 2026-10-17). Le champ est touché, tout sélectionné (Ctrl+A) et le nom
+# ressaisi tant qu'il n'est ni exact ni en train de se remplir (début du nom qui s'allonge d'une lecture à l'autre) ;
+# exact seulement à deux lectures de suite (un reste de saisie arrivé entre-temps le fausserait). Attente bornée.
+# Rend $null, ou la raison de l'échec avec les chemins de l'arbre et de la capture.
+function Set-NomFichier([string]$nom, [int]$secondes = 180) {
+    $fin = (Get-Date).AddSeconds($secondes)
+    $saisies = 0
+    $lu = $null
+    while ((Get-Date) -lt $fin) {
+        $arbre = Read-ArbreUi
+        $champ = if ($arbre) { Get-ChampNom $arbre }
+        if (-not $champ) { $lu = $null; Start-Sleep -Seconds 2; continue }
+        $precedent = $lu
+        $lu = "$($champ.text)"
+        if ($lu -ceq $nom) {
+            if ($precedent -ceq $nom) { Write-Host "nom : « $nom » relu deux fois ($saisies saisie(s))"; return $null }
+            Start-Sleep -Seconds 1
+            continue
+        }
+        if ($saisies -gt 0 -and $lu -and $nom.StartsWith($lu, [StringComparison]::Ordinal) -and
+            $lu.Length -gt "$precedent".Length) {
+            Start-Sleep -Seconds 1
+            continue
+        }
+        if ($saisies -gt 0) { Write-Host "nom : lu « $lu » au lieu de « $nom », ressaisi" }
+        Invoke-Tap $champ
+        $null = Invoke-Adb @('shell', 'input', 'keycombination', '113', '29') # Ctrl+A : le contenu du champ est remplacé
+        $null = Invoke-Adb @('shell', 'input', 'text', $nom)
+        $saisies++
+        $lu = $null
+    }
+    return "nom : champ « $lu » au lieu de « $nom » après $saisies saisie(s) en $secondes s ($(Save-Diagnostic 'nom'))"
+}
+# Le nom vient-il de l'essai ? Extension .actcraft, nom de l'essai (« essai-… ») ou début de ce nom (« ess » : saisie
+# tronquée d'un passage d'avant cette vérification).
+function Test-NomEssai([string]$nom) {
+    return $nom -and ($nom.EndsWith('.actcraft') -or $nom.StartsWith('essai-') -or 'essai-'.StartsWith($nom))
+}
+# Fichiers de l'essai vus par MediaStore, la base d'où le fournisseur des téléchargements (racine « Downloads » de
+# DocumentsUI) tire sa liste : objets { Id ; Nom ; Chemin }. Exception si le fournisseur ne répond pas par des
+# lignes (« Row: … ») ou par « No result found. ».
+function Get-FichiersMediaStore {
+    $sortie = @(Invoke-Adb @('shell', 'content', 'query', '--uri', 'content://media/external/file', '--projection',
+            '_id:_display_name:_data', '--where', "`"_data LIKE '/storage/emulated/0/%'`"") 60)
+    if (-not ($sortie | Where-Object { $_ -match '^Row: |^No result found\.' })) {
+        Lever-ActCraftAndroid "MediaStore illisible : $(($sortie | Select-Object -First 2) -join ' ')"
+    }
+    foreach ($ligne in $sortie) {
+        if ($ligne -match '_id=(\d+), _display_name=(.*), _data=(.*)$' -and (Test-NomEssai $Matches[2].Trim())) {
+            [pscustomobject]@{ Id = $Matches[1]; Nom = $Matches[2].Trim(); Chemin = $Matches[3].Trim() }
+        }
+    }
+}
+# Fichiers de l'essai présents sur le stockage partagé (/sdcard/ : lien symbolique, d'où la barre finale), en chemins.
+function Get-FichiersStockage {
+    return @(Invoke-Adb @('shell', 'find', '/sdcard/', '-type', 'f') 60 | Where-Object { Test-NomEssai ($_ -split '/')[-1] })
+}
+# État initial propre : chaque fichier de l'essai est effacé par MediaStore (content delete : la ligne et le fichier),
+# ce qui le retire de la liste du sélecteur, puis du stockage s'il en restait un hors de MediaStore. Vérifié par une
+# nouvelle lecture des deux ; attente bornée (MediaStore peut ne pas répondre juste après le démarrage).
+function Clear-FichiersEssai([int]$secondes = 120) {
+    $fin = (Get-Date).AddSeconds($secondes)
+    while ($true) {
+        $restes = $null
+        try {
+            foreach ($f in @(Get-FichiersMediaStore)) {
+                $null = Invoke-Adb @('shell', 'content', 'delete', '--uri', "content://media/external/file/$($f.Id)") 60
+                Write-Output "état initial : « $($f.Nom) » effacé par MediaStore (id $($f.Id))"
+            }
+            foreach ($chemin in Get-FichiersStockage) {
+                $null = Invoke-Adb @('shell', 'rm', '-f', "'$chemin'")
+                Write-Output "état initial : $chemin effacé du stockage"
+            }
+            $restes = @(@(Get-FichiersMediaStore | ForEach-Object { $_.Nom }) + @(Get-FichiersStockage))
+            if ($restes.Count -eq 0) { Write-Output 'état initial : aucun fichier d''essai (MediaStore et stockage)'; return }
+        } catch {
+            $restes = @(Get-ActCraftAndroidRaison $_)
+            if (-not $restes[0]) { throw }
+        }
+        if ((Get-Date) -gt $fin) { Stop-Essai "état initial : fichiers d'essai restants en $secondes s : $($restes -join ', ')" }
+        Start-Sleep -Seconds 3
+    }
 }
 # Dernière ligne du journal qui correspond au motif, attendue jusqu'au délai.
 function Wait-Journal([string]$motif, [int]$secondes = 60) {
@@ -170,9 +279,9 @@ try {
     Write-Output "appareil : API $("$(Invoke-Adb @('shell', 'getprop', 'ro.build.version.sdk'))".Trim()), $("$(Invoke-Adb @('shell', 'getprop', 'ro.product.cpu.abi'))".Trim()), langue $("$(Invoke-Adb @('shell', 'getprop', 'persist.sys.locale'))$(Invoke-Adb @('shell', 'getprop', 'ro.product.locale'))".Trim())"
     # Indication « plein écran » du système déjà confirmée : sinon elle prend les touches au premier plein écran.
     $null = Invoke-Adb @('shell', 'settings', 'put', 'secure', 'immersive_mode_confirmations', 'confirmed')
-    # Paperboards d'un essai précédent retirés : le sélecteur n'en montre qu'un, celui de cet essai.
-    # « /sdcard/ » : /sdcard est un lien symbolique, que find ne suit pas sans la barre finale.
-    $null = Invoke-Adb @('shell', 'find', '/sdcard/', '-name', "'*.actcraft'", '-delete')
+    # Fichiers des passages précédents effacés par MediaStore, d'où le sélecteur tire sa liste (l'AVD garde ses
+    # données d'un démarrage à l'autre) : le sélecteur ne montrera que celui de ce passage. Vérifié, sinon échec.
+    Clear-FichiersEssai
     # La clé de débogage est propre à chaque dossier de construction (build/android-debug.keystore) : un APK installé
     # depuis un autre worktree a une autre signature, et « install -r » le refuse (INSTALL_FAILED_UPDATE_INCOMPATIBLE).
     # Désinstallé d'abord (code ignoré s'il est absent) ; l'émulateur n'a aucune donnée réelle.
@@ -195,15 +304,15 @@ try {
     }
     if ($trait.Count -ne 3 -or $trait[0] -ge 100 -or $trait[1] -ge 100 -or $trait[2] -ge 100) { Stop-Essai 'trait absent après trois glissements (capture .tmp/fichiers-trait.png)' }
 
-    # Ctrl+Maj+S → DocumentsUI (ACTION_CREATE_DOCUMENT). Nom propre à l'essai dans le champ du nom (EditText
-    # android:id/title) : les paperboards des essais précédents restent listés par le fournisseur des téléchargements
-    # (un « find -delete » ne les retire pas de sa liste) et un nom déjà pris change le déroulé (« (1) », remplacement).
+    # Ctrl+Maj+S → DocumentsUI (ACTION_CREATE_DOCUMENT). Nom propre au passage dans le champ du nom (EditText
+    # android:id/title), relu avant « SAVE » : un nom déjà pris change le déroulé (« (1) », remplacement), un nom
+    # tronqué rend le fichier introuvable à l'ouverture.
     $nomFichier = "essai-$(Get-Date -Format 'yyyyMMdd-HHmmss').actcraft"
+    Write-Output "nom : $nomFichier"
     $echec = Invoke-Selecteur @('113', '59', '47') 'enregistrer' '^android:id/title$' '' 'EditText'
     if ($echec) { Stop-Essai $echec }
-    $null = Invoke-Adb @('shell', 'input', 'keycombination', '113', '29') # Ctrl+A : le nom proposé est remplacé
-    $null = Invoke-Adb @('shell', 'input', 'text', $nomFichier)
-    Write-Output "nom : $nomFichier"
+    $echec = Set-NomFichier $nomFichier
+    if ($echec) { Stop-Essai $echec }
     # Bouton d'enregistrement (android:id/button1), touché jusqu'à la fermeture du sélecteur (trois fois au plus).
     for ($essai = 0; $essai -lt 3; $essai++) {
         $echec = Invoke-Selecteur @() 'enregistrer' '^android:id/button1$' '' '' 30
@@ -215,13 +324,25 @@ try {
     $enregistre = Wait-Journal 'ACTCRAFT ENREGISTRE [0-9a-f]{16}'
     if (-not $enregistre) { Stop-Essai 'aucune ligne ACTCRAFT ENREGISTRE' }
     Write-Output $enregistre
+    # Le fichier écrit porte le nom exact, seul fichier de l'essai dans MediaStore (attente bornée de l'indexation).
+    $fin = (Get-Date).AddSeconds(30)
+    do {
+        $ecrits = @(Get-FichiersMediaStore)
+        if ($ecrits.Count -eq 1 -and $ecrits[0].Nom -ceq $nomFichier) { break }
+        Start-Sleep -Seconds 2
+    } while ((Get-Date) -lt $fin)
+    if ($ecrits.Count -ne 1 -or $ecrits[0].Nom -cne $nomFichier) {
+        Stop-Essai "fichiers de l'essai après l'enregistrement : « $(($ecrits | ForEach-Object { $_.Nom }) -join ' », « ') » au lieu de « $nomFichier » seul"
+    }
+    Write-Output "fichier : $($ecrits[0].Chemin) (MediaStore id $($ecrits[0].Id))"
     # Journal vidé : la ligne OUVERT attendue ne peut venir que de l'ouverture qui suit.
     $null = Invoke-Adb @('logcat', '-c')
 
     $null = Invoke-Adb @('shell', 'input', 'keycombination', '113', '51') # Ctrl+W
     Start-Sleep -Seconds 2
-    # Ctrl+O, puis le paperboard de cet essai, par son nom, dans DocumentsUI (ACTION_OPEN_DOCUMENT).
-    $echec = Invoke-Selecteur @('113', '43') 'ouvrir' '^android:id/title$' "^$([regex]::Escape($nomFichier))$"
+    # Ctrl+O, puis le paperboard de cet essai dans DocumentsUI (ACTION_OPEN_DOCUMENT), par son texte exact, quel que
+    # soit l'identifiant du nœud : même critère en vue liste et en vue grille.
+    $echec = Invoke-Selecteur @('113', '43') 'ouvrir' '' "^$([regex]::Escape($nomFichier))$"
     if ($echec) { Stop-Essai $echec }
     $ouvert = Wait-Journal 'ACTCRAFT OUVERT [0-9a-f]{16}'
     if (-not $ouvert) { Stop-Essai 'aucune ligne ACTCRAFT OUVERT' }
