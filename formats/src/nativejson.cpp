@@ -1,6 +1,7 @@
 #include <actcraft/formats/nativejson.h>
 
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonValue>
 
 #include <algorithm>
@@ -169,6 +170,8 @@ constexpr std::string_view enumName(ObjectKind value) noexcept
         return "group";
     case ObjectKind::Connector:
         return "connector";
+    case ObjectKind::Unknown: // le nom est celui du fichier (UnknownObject::type), jamais un nom d'ici
+        return {};
     }
     return {};
 }
@@ -323,9 +326,13 @@ constexpr bool followsVariantOrder()
             return false;
         }
     }
-    return kObjectKinds.size() == kObjectKindCount && kObjectKindCount == std::variant_size_v<ObjectVariant>;
+    return kObjectKinds.size() + 1 == kObjectKindCount &&
+           static_cast<std::size_t>(ObjectKind::Unknown) + 1 == kObjectKindCount &&
+           kObjectKindCount == std::variant_size_v<ObjectVariant>;
 }
-static_assert(followsVariantOrder(), "document.json : un nom par type d'objet, dans l'ordre du variant");
+static_assert(
+    followsVariantOrder(),
+    "document.json : un nom par type d'objet connu, dans l'ordre du variant ; Unknown, sans nom, en dernier");
 
 QString latin1(std::string_view text)
 {
@@ -581,13 +588,53 @@ void writeBody(QJsonObject& j, const Connector& connector)
     j.insert(u"pen"_s, outlineJson(pen));
 }
 
+// Jamais appelé : objectJson écrit un objet inconnu tel quel (std::visit exige un écrivain par type).
+void writeBody(QJsonObject&, const UnknownObject&) {}
+
+// Objet JSON d'un texte gardé (UnknownObject::json, unknownKeys) ; vide si le texte est vide ou n'en est pas
+// un.
+QJsonObject keptObject(const std::string& text)
+{
+    if (text.empty()) {
+        return {};
+    }
+    return QJsonDocument::fromJson(QByteArray::fromStdString(text)).object();
+}
+
+// Ajoute à `written` les membres gardés `kept` (clés inconnues, L2-C8), sans jamais remplacer une clé écrite
+// d'après le modèle : un membre d'un sous-objet connu (« pen », « background »…) reprend sa place dedans.
+void mergeKept(QJsonObject& written, const QJsonObject& kept)
+{
+    for (auto it = kept.begin(); it != kept.end(); ++it) {
+        const QJsonValue current = written.value(it.key());
+        if (current.isUndefined()) {
+            written.insert(it.key(), it.value());
+        } else if (current.isObject() && it.value().isObject()) {
+            QJsonObject inner = current.toObject();
+            mergeKept(inner, it.value().toObject());
+            written.insert(it.key(), inner);
+        }
+    }
+}
+
 QJsonObject objectJson(const PageObject& object)
 {
+    // Type inconnu de cette version (L2-C8) : le JSON lu, tel quel ; ni « type » ni clés communes regénérés
+    // depuis le modèle (writeCommon ajouterait les clés que le fichier n'a pas).
+    if (const auto* unknown = std::get_if<UnknownObject>(&object)) {
+        QJsonObject kept = keptObject(unknown->json);
+        if (kept.isEmpty()) {
+            // Texte gardé illisible (le lecteur n'en produit jamais) : son type seul.
+            kept.insert(u"type"_s, str(unknown->type));
+        }
+        return kept;
+    }
     QJsonObject j;
     j.insert(u"type"_s, nameText(kindOf(object)));
     writeCommon(j, object.common);
     // std::visit sur le variant de base (body), jamais sur PageObject (model.h).
     std::visit([&j](const auto& value) { writeBody(j, value); }, body(object));
+    mergeKept(j, keptObject(object.unknownKeys));
     return j;
 }
 
@@ -621,7 +668,7 @@ QJsonObject gridJson(const Grid& grid)
 
 QJsonObject pageJson(const Page& page)
 {
-    const auto& [width, height, objects, background, grid, name, notes] = page;
+    const auto& [width, height, objects, background, grid, name, notes, unknownKeys] = page;
     QJsonObject j;
     j.insert(u"width"_s, width);
     j.insert(u"height"_s, height);
@@ -635,6 +682,7 @@ QJsonObject pageJson(const Page& page)
         list.append(objectJson(object));
     }
     j.insert(u"objects"_s, list);
+    mergeKept(j, keptObject(unknownKeys));
     return j;
 }
 
@@ -1143,6 +1191,9 @@ void readBody(Reader& r, const QJsonObject& j, Connector& connector)
     pen = r.readOutline(j, u"pen");
 }
 
+// Jamais appelé : readObject lit un objet inconnu par readUnknown (std::visit exige un lecteur par type).
+void readBody(Reader&, const QJsonObject&, UnknownObject&) {}
+
 // Objet vierge du type de rang `index` dans le variant (index < kObjectKindCount, garanti par kObjectKinds).
 template <std::size_t I = 0> PageObject blankObject(std::size_t index)
 {
@@ -1155,7 +1206,91 @@ template <std::size_t I = 0> PageObject blankObject(std::size_t index)
     return object;
 }
 
-std::optional<PageObject> readObject(Reader& r, const QJsonValue& value)
+// Clés qu'écrit l'écrivain : celles d'un objet vierge de chaque type connu, d'une page vierge et d'un
+// document vierge (l'écrivain écrit toutes ses clés, quelles que soient les valeurs). Une clé lue hors de ces
+// gabarits est inconnue de cette version. Construits à chaque lecture : rien de partagé entre fils.
+struct KnownKeys
+{
+    std::array<QJsonObject, kObjectKindCount> objects; // Unknown : vide, jamais consulté
+    QJsonObject page;
+    QJsonObject document;
+};
+
+// Membres de `read` absents de `known`, à toute profondeur d'objets (les éléments des tableaux ne sont pas
+// comparés) ; un membre connu dont la valeur est mal formée n'en est pas un (le lecteur l'a signalé).
+QJsonObject unknownMembers(const QJsonObject& read, const QJsonObject& known)
+{
+    QJsonObject out;
+    for (auto it = read.begin(); it != read.end(); ++it) {
+        const QJsonValue model = known.value(it.key());
+        if (model.isUndefined()) {
+            out.insert(it.key(), it.value());
+        } else if (model.isObject() && it.value().isObject()) {
+            const QJsonObject inner = unknownMembers(it.value().toObject(), model.toObject());
+            if (!inner.isEmpty()) {
+                out.insert(it.key(), inner);
+            }
+        }
+    }
+    return out;
+}
+
+// Texte compact des membres inconnus (PageObject::unknownKeys…) ; vide s'il n'y en a pas.
+std::string unknownKeysOf(const QJsonObject& read, const QJsonObject& known)
+{
+    const QJsonObject unknown = unknownMembers(read, known);
+    return unknown.isEmpty() ? std::string()
+                             : QJsonDocument(unknown).toJson(QJsonDocument::Compact).toStdString();
+}
+
+// Boîte d'un objet inconnu, s'il en donne une lisible : quatre nombres finis, taille positive ou nulle, coins
+// finis. Sans avertissement : « bounds » a le sens que lui donne un type inconnu.
+std::optional<RectF> readBox(const QJsonValue& v)
+{
+    const QJsonArray a = v.toArray();
+    if (!v.isArray() || a.size() != 4) {
+        return std::nullopt;
+    }
+    std::array<double, 4> n{};
+    for (std::size_t i = 0; i < n.size(); ++i) {
+        const QJsonValue e = a.at(static_cast<qsizetype>(i));
+        if (!e.isDouble() || !std::isfinite(e.toDouble())) {
+            return std::nullopt;
+        }
+        n[i] = e.toDouble();
+    }
+    if (n[2] < 0 || n[3] < 0 || !std::isfinite(n[0] + n[2]) || !std::isfinite(n[1] + n[3])) {
+        return std::nullopt;
+    }
+    RectF box;
+    auto& [x, y, width, height] = box;
+    x = n[0];
+    y = n[1];
+    width = n[2];
+    height = n[3];
+    return box;
+}
+
+// Objet d'un type inconnu (L2-C8) : gardé tel quel, toutes ses clés, à sa place. Ses propriétés communes sont
+// lues pour la couche, l'ordre, l'identifiant et le repère, jamais réécrites d'après le modèle. Rien de ce
+// qu'il cite n'est chargé.
+PageObject readUnknown(Reader& r, const QJsonObject& j, const QString& type)
+{
+    UnknownObject unknown;
+    unknown.type = type.toStdString();
+    unknown.json = QJsonDocument(j).toJson(QJsonDocument::Compact).toStdString();
+    if (const std::optional<RectF> box = readBox(j.value(u"bounds"_s))) {
+        unknown.bounds = *box;
+        unknown.hasBounds = true;
+    }
+    r.warn(u"objet de type inconnu « %1 » gardé tel quel (version plus récente ?) : montré par un repère, "
+           u"non modifiable"_s.arg(type.left(64)));
+    PageObject object = std::move(unknown);
+    object.common = readCommon(r, j);
+    return object;
+}
+
+std::optional<PageObject> readObject(Reader& r, const QJsonValue& value, const KnownKeys& known)
 {
     const std::optional<QJsonObject> j = r.readElement(value, u"objects");
     if (!j) {
@@ -1164,12 +1299,13 @@ std::optional<PageObject> readObject(Reader& r, const QJsonValue& value)
     const QString type = j->value(u"type"_s).toString();
     const std::optional<ObjectKind> kind = valueOf(kObjectKinds, type);
     if (!kind) {
-        r.warn(u"type d'objet inconnu « %1 », objet sauté"_s.arg(type));
-        return std::nullopt;
+        return readUnknown(r, *j, type);
     }
-    PageObject object = blankObject(static_cast<std::size_t>(*kind));
+    const auto index = static_cast<std::size_t>(*kind);
+    PageObject object = blankObject(index);
     std::visit([&r, &j](auto& held) { readBody(r, *j, held); }, body(object));
     object.common = readCommon(r, *j);
+    object.unknownKeys = unknownKeysOf(*j, known.objects[index]);
     return object;
 }
 
@@ -1210,10 +1346,11 @@ Grid readGrid(Reader& r, const QJsonObject& j)
     return grid;
 }
 
-Page readPage(Reader& r, const QJsonObject& j)
+Page readPage(Reader& r, const QJsonObject& j, const KnownKeys& known)
 {
     Page page;
-    auto& [width, height, objects, background, grid, name, notes] = page;
+    auto& [width, height, objects, background, grid, name, notes, unknownKeys] = page;
+    unknownKeys = unknownKeysOf(j, known.page);
     width = r.readNumber(j, u"width", width);
     height = r.readNumber(j, u"height", height);
     name = r.readString(j, u"name");
@@ -1227,7 +1364,7 @@ Page readPage(Reader& r, const QJsonObject& j)
     const QString pageWhere = r.where;
     for (qsizetype i = 0; i < list.size(); ++i) {
         r.where = u"%1, objet %2"_s.arg(pageWhere, QString::number(i + 1));
-        if (std::optional<PageObject> object = readObject(r, list.at(i))) {
+        if (std::optional<PageObject> object = readObject(r, list.at(i), known)) {
             objects.push_back(std::move(*object));
         }
     }
@@ -1281,6 +1418,7 @@ QJsonObject documentToJson(const Document& document)
         pages.append(pageJson(document.page(i)));
     }
     root.insert(u"pages"_s, pages);
+    mergeKept(root, keptObject(document.unknownKeys()));
     return root;
 }
 
@@ -1301,6 +1439,15 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
         return result;
     }
 
+    KnownKeys known;
+    for (std::size_t i = 0; i < known.objects.size(); ++i) {
+        if (i != static_cast<std::size_t>(ObjectKind::Unknown)) {
+            known.objects[i] = objectJson(blankObject(i));
+        }
+    }
+    known.page = pageJson(Page{});
+    known.document = documentToJson(Document{});
+
     // Tout est lu dans un document neuf : `out` n'est remplacé qu'à la fin, lecture réussie.
     Reader r;
     std::vector<Page> pages;
@@ -1308,7 +1455,7 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
     for (qsizetype i = 0; i < list.size(); ++i) {
         r.where = u"page %1"_s.arg(i + 1);
         if (const std::optional<QJsonObject> jp = r.readElement(list.at(i), u"pages")) {
-            pages.push_back(readPage(r, *jp));
+            pages.push_back(readPage(r, *jp, known));
         }
     }
     r.where = u"document"_s;
@@ -1317,6 +1464,7 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
     }
     Document document(std::move(pages));
     document.setTitle(r.readString(json, u"title"));
+    document.setUnknownKeys(unknownKeysOf(json, known.document));
     for (const QJsonValue& value : r.readArray(json, u"resources")) {
         const std::optional<QJsonObject> jr = r.readElement(value, u"resources");
         if (!jr) {

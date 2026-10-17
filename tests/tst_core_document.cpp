@@ -177,6 +177,19 @@ private slots:
         QCOMPARE(fingerprint(a), fingerprint(d));
     }
 
+    // L2-C8 : les clés du document que cette version ne connaît pas sont réécrites, donc dans l'empreinte.
+    void fingerprintFollowsUnknownDocumentKeys()
+    {
+        Document a;
+        Document b;
+        b.setUnknownKeys("{\"restrictions\":{\"export\":false}}");
+        QCOMPARE(b.unknownKeys(), std::string("{\"restrictions\":{\"export\":false}}"));
+        QVERIFY(fingerprint(a) != fingerprint(b));
+        Document c;
+        c.setUnknownKeys("{\"restrictions\":{\"export\":true}}");
+        QVERIFY(fingerprint(b) != fingerprint(c));
+    }
+
     // Mêmes octets (donc même clé), extensions différentes : l'extension entre dans l'empreinte.
     void fingerprintFollowsResourceExtension()
     {

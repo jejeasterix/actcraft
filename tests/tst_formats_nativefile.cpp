@@ -1,9 +1,12 @@
 #include "support/richdocument.h"
 
+#include <actcraft/core/edits.h>
 #include <actcraft/formats/nativefile.h>
 #include <actcraft/formats/nativejson.h>
 
+#include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QTest>
 #include <QtEndian>
 
@@ -73,6 +76,58 @@ quint16 le16(const QByteArray& zip, qsizetype at)
 quint32 le32(const QByteArray& zip, qsizetype at)
 {
     return qFromLittleEndian<quint32>(zip.constData() + at);
+}
+
+// Octets d'une entrée de l'archive, extraits par miniz (pas par le lecteur testé) ; vide si absente.
+QByteArray entryOf(const QByteArray& archive, const char* name)
+{
+    mz_zip_archive zip{};
+    if (!mz_zip_reader_init_mem(&zip, archive.constData(), static_cast<size_t>(archive.size()), 0)) {
+        return {};
+    }
+    size_t size = 0;
+    void* data = mz_zip_reader_extract_file_to_heap(&zip, name, &size, 0);
+    QByteArray out =
+        data ? QByteArray(static_cast<const char*>(data), static_cast<qsizetype>(size)) : QByteArray();
+    mz_free(data);
+    mz_zip_reader_end(&zip);
+    return out;
+}
+
+// Texte de l'objet JSON qui porte la clé `key` (guillemets compris), tel qu'il est écrit dans `text` : de
+// son « { » à son « } », chaînes respectées. Vide si absent.
+QByteArray enclosingObject(const QByteArray& text, const QByteArray& key)
+{
+    const qsizetype at = text.indexOf(key);
+    std::vector<qsizetype> open;
+    qsizetype start = -1;
+    bool inString = false;
+    for (qsizetype i = 0; at >= 0 && i < text.size(); ++i) {
+        if (i == at) {
+            if (open.empty()) {
+                return {};
+            }
+            start = open.back();
+        }
+        const char c = text.at(i);
+        if (inString) {
+            if (c == '\\') {
+                ++i;
+            } else if (c == '"') {
+                inString = false;
+            }
+        } else if (c == '"') {
+            inString = true;
+        } else if (c == '{') {
+            open.push_back(i);
+        } else if (c == '}' && !open.empty()) {
+            if (open.back() == start) {
+                return text.mid(start, i - start + 1);
+            }
+            open.pop_back();
+        }
+    }
+    return {};
 }
 
 // Accès aux bornes une à une (pas d'agrégat partiel par position).
@@ -440,6 +495,117 @@ private slots:
         QVERIFY(!r.ok);
         QVERIFY(!r.error.isEmpty());
         QVERIFY(!formats::decodeActcraft(QByteArray()).ok);
+    }
+
+    // S31 (L2-C8) : paperboard d'une version plus récente, écrit ici à la main (jamais par encodeActcraft) :
+    // une forme, un objet « equation » qui cite une image que rien d'autre ne cite, une ligne ; des clés
+    // inconnues sur la ligne, la page et le document. Ouvert, un trait ajouté, enregistré dans une autre
+    // archive, rouvert : l'objet inconnu a les mêmes octets dans document.json, la même place, sa ressource ;
+    // les clés inconnues sont là.
+    void s31UnknownObjectSurvivesOpenEditAndSave()
+    {
+        const QByteArray png = richdoc::pngBytes();
+        const QString key = QString::fromStdString(core::sha256Hex(png));
+        const QJsonObject shape{{u"type"_s, u"shape"_s},
+                                {u"id"_s, 1},
+                                {u"layer"_s, u"middle"_s},
+                                {u"shape"_s, u"rectangle"_s},
+                                {u"bounds"_s, QJsonArray{10, 10, 50, 50}}};
+        const QJsonObject unknown{{u"type"_s, u"equation"_s},
+                                  {u"id"_s, 2},
+                                  {u"layer"_s, u"middle"_s},
+                                  {u"transform"_s, QJsonArray{1, 0, 0, 1, 100, 100}},
+                                  {u"bounds"_s, QJsonArray{0, 0, 120, 40}},
+                                  {u"latex"_s, u"x^2 + 1"_s},
+                                  {u"render"_s, key},
+                                  {u"style"_s, QJsonObject{{u"size"_s, 18}}}};
+        const QJsonObject line{{u"type"_s, u"line"_s},
+                               {u"id"_s, 3},
+                               {u"layer"_s, u"middle"_s},
+                               {u"points"_s, QJsonArray{0, 0, 10, 10}},
+                               {u"dashOffset"_s, 2}};
+        const QJsonObject page{{u"width"_s, 1024},
+                               {u"height"_s, 768},
+                               {u"objects"_s, QJsonArray{shape, unknown, line}},
+                               {u"zones"_s, QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}}}};
+        const QJsonObject root{
+            {u"format"_s, u"actcraft-document/1.3"_s},
+            {u"title"_s, u"Plus récent"_s},
+            {u"nextId"_s, 4},
+            {u"resources"_s, QJsonArray{QJsonObject{{u"key"_s, key}, {u"extension"_s, u"png"_s}}}},
+            {u"pages"_s, QJsonArray{page}},
+            {u"restrictions"_s, QJsonObject{{u"export"_s, false}}}};
+        const QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Indented);
+        const std::string resourceName = "resources/" + key.toStdString() + ".png";
+        const QByteArray archive = writeZip([&](mz_zip_archive& zip) {
+            return addMem(zip, "document.json", json) && addMem(zip, resourceName, png);
+        });
+        QVERIFY(!archive.isEmpty());
+
+        formats::DecodeResult opened = formats::decodeActcraft(archive);
+        QVERIFY2(opened.ok, qPrintable(opened.error));
+        QVERIFY2(opened.warnings.join(u' ').contains(u"equation"_s), qPrintable(opened.warnings.join(u'\n')));
+        QVERIFY(std::get_if<core::UnknownObject>(&opened.document.page(0).objects[1]));
+        core::Stroke stroke;
+        stroke.points = {{1, 1, 0.5f}, {20, 20, 0.5f}};
+        core::PageObject added = stroke;
+        added.common.id = opened.document.allocateId();
+        core::insertAtTopOfLayer(opened.document.page(0), added);
+        QString error;
+        const QByteArray saved = formats::encodeActcraft(opened.document, {}, &error);
+        QVERIFY2(!saved.isEmpty(), qPrintable(error));
+
+        // Octets JSON de l'objet inconnu identiques à l'entrée, dans document.json lui-même.
+        const QByteArray savedJson = entryOf(saved, "document.json");
+        const QByteArray before = enclosingObject(json, "\"latex\"");
+        QVERIFY(!before.isEmpty());
+        QCOMPARE(enclosingObject(savedJson, "\"latex\""), before);
+        // Même place (entre la forme et la ligne, dans sa couche), le trait ajouté au-dessus de la ligne.
+        const formats::DecodeResult reopened = formats::decodeActcraft(saved);
+        QVERIFY2(reopened.ok, qPrintable(reopened.error));
+        const core::Page& back = reopened.document.page(0);
+        QCOMPARE(back.objects.size(), std::size_t{4});
+        const std::vector<core::ObjectId> ids{1, 2, 3, 4};
+        for (std::size_t i = 0; i < ids.size(); ++i) {
+            QCOMPARE(back.objects[i].common.id, ids[i]);
+        }
+        QVERIFY(std::get_if<core::UnknownObject>(&back.objects[1]));
+        QCOMPARE(back.objects[1].common.layer, core::Layer::Middle);
+        QCOMPARE(core::depthInLayer(back, 2), std::size_t{1});
+        // Ressource citée par le seul objet inconnu : toujours dans l'archive, octets d'origine.
+        QVERIFY(formats::archiveEntryNames(saved).contains(QString::fromStdString(resourceName)));
+        QVERIFY(reopened.document.resource(key.toStdString()));
+        QCOMPARE(reopened.document.resource(key.toStdString())->data, png);
+        // Clés inconnues du document, de la page et de la ligne.
+        const QJsonObject savedRoot = QJsonDocument::fromJson(savedJson).object();
+        const QJsonObject savedPage = savedRoot.value(u"pages"_s).toArray().at(0).toObject();
+        QCOMPARE(savedRoot.value(u"restrictions"_s), root.value(u"restrictions"_s));
+        QCOMPARE(savedPage.value(u"zones"_s), page.value(u"zones"_s));
+        QCOMPARE(savedPage.value(u"objects"_s).toArray().at(2).toObject().value(u"dashOffset"_s).toInt(), 2);
+    }
+
+    // Le texte gardé d'un objet inconnu est dans document.json : borné comme lui (ArchiveLimits), à la
+    // lecture comme à l'écriture.
+    void unknownObjectsCountAgainstTheDocumentJsonLimit()
+    {
+        core::UnknownObject u;
+        u.type = "equation";
+        u.json = "{\"latex\":\"" + std::string(4096, 'x') + "\",\"type\":\"equation\"}";
+        core::PageObject o = u;
+        o.common.id = 1;
+        core::Page p;
+        p.objects.push_back(o);
+        const core::Document big(std::vector<core::Page>{p});
+        const formats::ArchiveLimits small = limits(2048, 1 << 20, 1 << 20);
+        QString error;
+        QVERIFY(formats::encodeActcraft(big, {}, &error, small).isEmpty());
+        QVERIFY2(error.contains(u"document.json"_s), qPrintable(error));
+        const QByteArray archive = formats::encodeActcraft(big, {});
+        QVERIFY(!archive.isEmpty());
+        const formats::DecodeResult r = formats::decodeActcraft(archive, small);
+        QVERIFY(!r.ok);
+        QVERIFY2(r.error.contains(u"document.json"_s), qPrintable(r.error));
+        QVERIFY(formats::decodeActcraft(archive).ok);
     }
 
     void archiveWithoutDocumentJsonIsRefused()

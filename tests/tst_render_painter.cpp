@@ -2,6 +2,7 @@
 
 #include <actcraft/core/document.h>
 #include <actcraft/render/pagepainter.h>
+#include <actcraft/render/paintedrenderer.h>
 #include <actcraft/render/painternode.h>
 
 #include <QBuffer>
@@ -920,6 +921,68 @@ private slots:
         withPlaceholder.common.transform = core::translation(100, 100);
         page.objects = {withPlaceholder};
         QVERIFY(near(render::renderPage(page, images.lookup(), 1.0).pixelColor(120, 120), Qt::red, 2));
+    }
+
+    // L2-C8 : un objet d'un type inconnu est montré par un repère neutre, cadre gris pointillé d'un pixel sur
+    // sa boîte ; sans boîte lisible, rien. Aucune ressource demandée, même s'il en cite une ; une boîte
+    // démesurée ne fait ni planter ni attendre.
+    void unknownObjectShowsANeutralFrameAndNothingElse()
+    {
+        core::UnknownObject u;
+        u.type = "equation";
+        u.json = "{\"render\":\"vignette\",\"type\":\"equation\"}";
+        u.bounds = {0, 0, 200, 100};
+        u.hasBounds = true;
+        core::PageObject o = u;
+        o.common.transform = core::translation(100, 100);
+        core::Page page;
+        page.objects.push_back(o);
+        int lookups = 0;
+        const render::ImageLookup counting = [&lookups](const std::string&) {
+            ++lookups;
+            return QImage();
+        };
+        const QImage image = render::renderPage(page, counting, 1.0);
+        QCOMPARE(lookups, 0);
+        QVERIFY(render::usesPaintedRenderer(o));
+        // Bord haut (y = 100, à cheval sur les lignes 99 et 100) : des tirets gris, des trous blancs.
+        int grey = 0;
+        int white = 0;
+        int runs = 0;
+        bool previous = false;
+        for (int x = 105; x < 295; ++x) {
+            const QColor c = image.pixelColor(x, 99).red() < image.pixelColor(x, 100).red()
+                                 ? image.pixelColor(x, 99)
+                                 : image.pixelColor(x, 100);
+            const bool marked = c.red() < 230;
+            QVERIFY2(qAbs(c.red() - c.green()) <= 2 && qAbs(c.green() - c.blue()) <= 2,
+                     qPrintable(c.name())); // gris neutre
+            grey += marked ? 1 : 0;
+            white += marked ? 0 : 1;
+            runs += (marked && !previous) ? 1 : 0;
+            previous = marked;
+        }
+        QVERIFY2(grey > 40 && white > 40 && runs > 5,
+                 qPrintable(QStringLiteral("%1 %2 %3").arg(grey).arg(white).arg(runs)));
+        QVERIFY(near(image.pixelColor(200, 150), Qt::white, 0)); // intérieur vide
+        QVERIFY(near(image.pixelColor(50, 50), Qt::white, 0));
+
+        core::UnknownObject noBox = u;
+        noBox.hasBounds = false;
+        core::PageObject hidden = noBox;
+        hidden.common.transform = core::translation(100, 100);
+        page.objects = {hidden};
+        QVERIFY(!render::usesPaintedRenderer(hidden));
+        QCOMPARE(render::renderPage(page, counting, 1.0), render::renderPage(core::Page{}, kNoImages, 1.0));
+
+        core::UnknownObject huge = u;
+        huge.bounds = {-1e300, -1e300, 1e300, 1e300};
+        page.objects = {core::PageObject(huge)};
+        QElapsedTimer timer;
+        timer.start();
+        render::renderPage(page, counting, 1.0);
+        QVERIFY2(timer.elapsed() < 5000, qPrintable(QString::number(timer.elapsed())));
+        QCOMPARE(lookups, 0);
     }
 
     void diagonalAndAngledGrids()

@@ -39,11 +39,17 @@ struct JsonReadResult
     QStringList warnings; // valeurs remplacées par défaut, objets sautés, ressources écartées
 };
 
-// Remplace `out` par le document lu. Tolérant (clés inconnues ignorées, valeurs absentes = défauts du modèle,
-// objet de type inconnu sauté, valeur mal formée remplacée par le défaut avec un avertissement) ; refuse un
-// « format » absent, étranger ou d'une autre version majeure, sans toucher à `out`. Une ressource au nom
-// invalide est écartée avant tout appel au chargeur ; une ressource dont les octets ne redonnent pas la clé
-// est écartée.
+// Remplace `out` par le document lu. Tolérant (valeurs absentes = défauts du modèle, valeur mal formée
+// remplacée par le défaut avec un avertissement) ; refuse un « format » absent, étranger ou d'une autre
+// version majeure, sans toucher à `out`. Une ressource au nom invalide est écartée avant tout appel au
+// chargeur ; une ressource dont les octets ne redonnent pas la clé est écartée ; une ressource déclarée est
+// gardée, qu'un objet connu la cite ou non.
+//
+// Compatibilité ascendante (L2-C8, § 1 de l'amendement 1 du cadrage) : ce qu'une version plus récente a écrit
+// et que celle-ci ne connaît pas n'est jamais perdu. Une clé inconnue (document, page, objet, et dans leurs
+// sous-objets) est gardée sans avertissement (`unknownKeys`) et réécrite telle quelle ; un objet de type
+// inconnu est gardé tel quel à sa place (core::UnknownObject : son JSON entier), avec un avertissement, et
+// réécrit à l'identique. Rien de ce qu'il cite n'est chargé : ses textes restent des données.
 JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& loadResource,
                                 core::Document& out);
 

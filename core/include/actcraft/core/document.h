@@ -62,11 +62,16 @@ public:
     const std::string& title() const noexcept;
     void setTitle(std::string title);
 
+    // Clés du document que cette version ne connaît pas (comme PageObject::unknownKeys) ; vide : aucune.
+    const std::string& unknownKeys() const noexcept;
+    void setUnknownKeys(std::string keys);
+
 private:
     std::vector<Page> m_pages;
     std::map<std::string, Resource> m_resources;
     ObjectId m_nextId = 1;
     std::string m_title;
+    std::string m_unknownKeys;
 };
 
 // « Page suivante » (F-125) : indice suivant ; sur la dernière page, ajoute d'abord une page vierge.
@@ -80,7 +85,8 @@ std::string sha256Hex(const QByteArray& data);
 bool hasUniqueIds(const Document& document);
 
 // Empreinte FNV-1a 64 bits : nombre de pages, empreinte de chaque page, titre, ressources (clé et extension ;
-// la clé résume les octets). Le prochain identifiant n'y entre pas : un document relu a la même empreinte.
+// la clé résume les octets), puis les clés inconnues s'il y en a. Le prochain identifiant n'y entre pas : un
+// document relu a la même empreinte.
 std::uint64_t fingerprint(const Document& document) noexcept;
 
 } // namespace actcraft::core

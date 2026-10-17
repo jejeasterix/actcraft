@@ -125,6 +125,16 @@ void Document::reserveIdsBelow(ObjectId next) noexcept
     m_nextId = std::max(m_nextId, next);
 }
 
+const std::string& Document::unknownKeys() const noexcept
+{
+    return m_unknownKeys;
+}
+
+void Document::setUnknownKeys(std::string keys)
+{
+    m_unknownKeys = std::move(keys);
+}
+
 std::string Document::addResource(QByteArray data, std::string extension)
 {
     // Minuscules ASCII à la main : std::tolower suit la locale du processus (Qt appelle setlocale(LC_ALL, "")
@@ -208,6 +218,10 @@ std::uint64_t fingerprint(const Document& document) noexcept
     for (const auto& [key, resource] : document.resources()) {
         hash = mixText(hash, key);
         hash = mixText(hash, resource.extension);
+    }
+    // En dernier et seulement s'il y en a (L2-C8) : un document sans clé inconnue garde son empreinte.
+    if (!document.unknownKeys().empty()) {
+        hash = mixText(hash, document.unknownKeys());
     }
     return hash;
 }
