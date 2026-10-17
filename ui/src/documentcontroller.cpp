@@ -477,6 +477,12 @@ void DocumentController::openUrl(const QUrl& url)
             DocumentController& self = *relay->target; // livré au contrôleur vivant (IoRelay)
             self.setBusy(false);
             self.setLastIo(outcome->offMainThread);
+            // Le trait en cours (stylet encore posé) est versé AVANT le contrôle : versé seulement par
+            // replaceDocument, il rejoindrait l'ancien document, aussitôt remplacé (L2-C9). S'il change le
+            // document, l'ouverture est refusée comme pour tout changement pendant la lecture.
+            if (outcome->ok) {
+                emit self.pageAboutToChange();
+            }
             if (outcome->ok &&
                 (generation != self.m_generation || core::fingerprint(self.m_document) != before)) {
                 const QString changed =

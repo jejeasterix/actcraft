@@ -121,7 +121,8 @@ public:
 signals:
     void fixedPageChanged();
     // Juste avant un changement de page affichée demandé (page suivante ou précédente, ajout compris,
-    // remplacement du document) : la vue y termine le trait en cours, qui rejoint la page qu'il quitte.
+    // remplacement du document) : la vue y termine le trait en cours, qui rejoint la page qu'il quitte. Aussi
+    // à la fin d'une lecture réussie, avant le contrôle « changé pendant la lecture » (L2-C9).
     void pageAboutToChange();
     // Une fois par changement de page affichée ou du nombre de pages, l'élément montrant déjà la nouvelle
     // page.

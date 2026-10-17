@@ -464,6 +464,36 @@ private slots:
         QVERIFY(!controller.property("busy").toBool());
     }
 
+    // L2-C9, constat 1 : trait commencé pendant la lecture, stylet encore posé à la fin. La vue ne le verse
+    // qu'à pageAboutToChange (Main.qml : finishStroke) ; s'il n'est versé qu'au remplacement du document, il
+    // rejoint l'ancien document, aussitôt remplacé : perdu. Il doit être versé avant le contrôle « le
+    // document a-t-il changé pendant la lecture », qui refuse alors l'ouverture.
+    void strokeInProgressAtTheEndOfAnOpeningIsKept()
+    {
+        QTemporaryDir dir;
+        const QUrl url = writeTwoPages(dir, QStringLiteral("deux.actcraft"));
+        QVERIFY(!url.isEmpty());
+        ui::DocumentController controller;
+        QVERIFY(!controller.isModified());
+        bool inProgress = false;
+        connect(&controller, &ui::DocumentController::pageAboutToChange, &controller, [&] {
+            if (inProgress) { // ce que fait PageView::finishStroke : le trait rejoint la page affichée
+                inProgress = false;
+                controller.commitStroke(redStroke());
+            }
+        });
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        controller.openUrl(url);
+        inProgress = true; // stylet posé pendant la lecture, pas encore relevé
+        QVERIFY(loaded.wait(60000));
+        QVERIFY(!inProgress);
+        QCOMPARE(loaded.first().at(0).toBool(), false);
+        QVERIFY(!controller.property("lastError").toString().isEmpty());
+        QCOMPARE(controller.pageCount(), 1);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        QVERIFY(controller.isModified());
+    }
+
     // « Nouveau » (et « Fermer », qui laisse un paperboard vierge) pendant une ouverture : pas écrasé, même
     // d'empreinte égale.
     void newDocumentDuringOpenRefusesTheOpening()
