@@ -187,6 +187,7 @@ core::Changes DocumentController::run(std::unique_ptr<core::UndoCommand> command
     }
     command->redo(m_document, changes);
     if (!changes.empty()) {
+        ++m_revision;
         m_undo.push(m_document, std::make_unique<Executed>(std::move(command)));
     }
     return changes;
@@ -208,6 +209,7 @@ void DocumentController::undo()
     if (!m_undo.canUndo()) {
         return;
     }
+    ++m_revision;
     notifyState(settle(m_undo.undo(m_document)));
 }
 
@@ -216,6 +218,7 @@ void DocumentController::redo()
     if (!m_undo.canRedo()) {
         return;
     }
+    ++m_revision;
     notifyState(settle(m_undo.redo(m_document)));
 }
 
@@ -285,6 +288,7 @@ void DocumentController::replaceDocument(core::Document document, const QUrl& fi
     m_title = title.isEmpty() ? untitled() : title;
     m_modifiedOutsideStack = false;
     ++m_generation;
+    ++m_revision;
     show(0);
     emit fileUrlChanged();
     emit titleChanged();
@@ -334,6 +338,7 @@ void DocumentController::loadGeneratedFirstPage()
     const bool modified = isModified();
     core::Page& first = m_document.page(0);
     first = core::generatePage(core::kDefaultSeed);
+    ++m_revision;
     // Identifiants tirés du compteur du document (1 à 300 dans un document neuf, comme le générateur) :
     // aucun doublon avec les autres pages ni avec les traits suivants. La page générée ne porte aucune
     // référence d'identifiant (groupe, connecteur, action) : la renuméroter ne casse rien.
@@ -460,25 +465,35 @@ void DocumentController::setLastIo(bool offMainThread)
 void DocumentController::openUrl(const QUrl& url)
 {
     if (m_busy) {
+        // Refus visible, comme celui de l'enregistrement : dernière erreur et bandeau (revue de L2-C9).
         QMetaObject::invokeMethod(
-            this, [this] { emit loadFinished(false, tr("Une opération est déjà en cours.")); },
+            this,
+            [this] {
+                const QString busy = tr("Une opération est déjà en cours : ouverture refusée.");
+                setLastError(busy);
+                emit loadFinished(false, busy);
+            },
             Qt::QueuedConnection);
         return;
     }
     setBusy(true);
-    // Relevés à l'appel : un trait, « Nouveau » ou « Fermer » pendant la lecture n'est jamais écrasé en
-    // silence.
-    const std::uint64_t generation = m_generation;
-    const std::uint64_t before = core::fingerprint(m_document);
+    // Relevée à l'appel : un trait (même annulé), « Nouveau » ou « Fermer » pendant la lecture n'est jamais
+    // écrasé en silence. Une révision, pas une empreinte : rien à parcourir sur le fil principal (L2-C9).
+    const std::uint64_t revision = m_revision;
     std::shared_ptr<IoRelay> relay = m_relay;
-    QThreadPool::globalInstance()->start([relay, url, generation, before] {
+    QThreadPool::globalInstance()->start([relay, url, revision] {
         auto outcome = std::make_shared<LoadOutcome>(loadDocument(url));
-        relay->post([relay, url, outcome, generation, before] {
+        relay->post([relay, url, outcome, revision] {
             DocumentController& self = *relay->target; // livré au contrôleur vivant (IoRelay)
             self.setBusy(false);
             self.setLastIo(outcome->offMainThread);
-            if (outcome->ok &&
-                (generation != self.m_generation || core::fingerprint(self.m_document) != before)) {
+            // Le trait en cours (stylet encore posé) est versé AVANT le contrôle : versé seulement par
+            // replaceDocument, il rejoindrait l'ancien document, aussitôt remplacé (L2-C9). S'il change le
+            // document, l'ouverture est refusée comme pour tout changement pendant la lecture.
+            if (outcome->ok) {
+                emit self.pageAboutToChange();
+            }
+            if (outcome->ok && revision != self.m_revision) {
                 const QString changed =
                     tr("Le paperboard a changé pendant l'ouverture : ouverture annulée, rien n'est perdu.");
                 self.setLastError(changed);
@@ -495,7 +510,9 @@ void DocumentController::openUrl(const QUrl& url)
             self.replaceDocument(std::move(outcome->document), outcome->native ? url : QUrl(),
                                  outcome->title);
             self.setWarnings(outcome->warnings); // après replaceDocument, qui les efface
-            qCInfo(lcDocument, "ACTCRAFT OUVERT %s", qPrintable(self.fingerprintText()));
+            // Empreinte calculée par la lecture, hors du fil principal : celle du document affiché.
+            qCInfo(lcDocument, "ACTCRAFT OUVERT %s",
+                   qPrintable(QStringLiteral("%1").arg(outcome->fingerprint, 16, 16, QLatin1Char('0'))));
             emit self.loadFinished(true, QString());
         });
     });
@@ -504,8 +521,14 @@ void DocumentController::openUrl(const QUrl& url)
 void DocumentController::saveToUrl(const QUrl& url)
 {
     if (m_busy) {
+        // Refus visible (L2-C9) : dernière erreur et bandeau, comme tout échec d'enregistrement.
         QMetaObject::invokeMethod(
-            this, [this] { emit saveFinished(false, tr("Une opération est déjà en cours.")); },
+            this,
+            [this] {
+                const QString busy = tr("Une opération est déjà en cours : enregistrement refusé.");
+                setLastError(busy);
+                emit saveFinished(false, busy);
+            },
             Qt::QueuedConnection);
         return;
     }
@@ -526,10 +549,11 @@ void DocumentController::saveToUrl(const QUrl& url)
     // jamais le document affiché, que l'utilisateur continue de modifier.
     auto snapshot = std::make_shared<const core::Document>(m_document);
     const std::uint64_t generation = m_generation;
+    const std::uint64_t revision = m_revision;
     std::shared_ptr<IoRelay> relay = m_relay;
-    QThreadPool::globalInstance()->start([relay, url = target, snapshot, generation] {
+    QThreadPool::globalInstance()->start([relay, url = target, snapshot, generation, revision] {
         const SaveOutcome outcome = saveDocument(*snapshot, url);
-        relay->post([relay, url, outcome, generation] {
+        relay->post([relay, url, outcome, generation, revision] {
             DocumentController& self = *relay->target; // livré au contrôleur vivant (IoRelay)
             self.setBusy(false);
             self.setLastIo(outcome.offMainThread);
@@ -540,11 +564,13 @@ void DocumentController::saveToUrl(const QUrl& url)
             }
             self.setLastError({});
             // Même document (pas de « Nouveau » entre-temps) : il prend ce fichier. « Modifié » faux ⇔
-            // l'écran est le contenu du fichier : propre si rien n'a changé pendant l'écriture ; sinon
-            // modifié jusqu'au prochain enregistrement, car l'ancien repère propre de la pile désigne un
-            // contenu que le fichier n'a plus (trait annulé pendant l'écriture).
+            // l'écran est le contenu du fichier : propre si la révision n'a pas bougé pendant l'écriture ;
+            // sinon modifié jusqu'au prochain enregistrement, car l'ancien repère propre de la pile désigne
+            // un contenu que le fichier n'a plus (trait annulé pendant l'écriture). Un trait puis son
+            // annulation pendant l'écriture laissent aussi « modifié » : prudent, sans perte (L2-C9 : aucune
+            // empreinte du document sur le fil principal).
             if (generation == self.m_generation) {
-                if (core::fingerprint(self.m_document) == outcome.fingerprint) {
+                if (self.m_revision == revision) {
                     self.m_undo.setClean();
                     self.m_modifiedOutsideStack = false; // la page du banc est dans le fichier
                 } else {

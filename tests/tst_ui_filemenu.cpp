@@ -7,6 +7,7 @@
 #include <actcraft/render/inkitem.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documentio.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QFile>
@@ -17,10 +18,12 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QScreen>
+#include <QSemaphore>
 #include <QSignalSpy>
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QThreadPool>
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <algorithm>
@@ -107,6 +110,66 @@ double luminance(const QColor& c)
         return v <= 0.03928 ? v / 12.92 : std::pow((v + 0.055) / 1.055, 2.4);
     };
     return 0.2126 * channel(c.red()) + 0.7152 * channel(c.green()) + 0.0722 * channel(c.blue());
+}
+
+// Tient tous les fils du pool global jusqu'à release() ou la destruction : une lecture ou une écriture lancée
+// entre-temps reste en cours. Les sémaphores sont partagés avec les tâches : aucune ne touche un objet
+// détruit.
+class PoolHold
+{
+public:
+    PoolHold()
+        : m_threads(QThreadPool::globalInstance()->maxThreadCount()),
+          m_started(std::make_shared<QSemaphore>()), m_gate(std::make_shared<QSemaphore>())
+    {
+        for (int i = 0; i < m_threads; ++i) {
+            QThreadPool::globalInstance()->start([started = m_started, gate = m_gate] {
+                started->release();
+                gate->acquire();
+            });
+        }
+    }
+    ~PoolHold()
+    {
+        release();
+        QThreadPool::globalInstance()->waitForDone(60000);
+    }
+    PoolHold(const PoolHold&) = delete;
+    PoolHold& operator=(const PoolHold&) = delete;
+
+    bool held() { return m_started->tryAcquire(m_threads, 60000); }
+    void release()
+    {
+        if (!m_released) {
+            m_released = true;
+            m_gate->release(m_threads);
+        }
+    }
+
+private:
+    int m_threads;
+    std::shared_ptr<QSemaphore> m_started;
+    std::shared_ptr<QSemaphore> m_gate;
+    bool m_released = false;
+};
+
+QByteArray fileBytes(const QString& path)
+{
+    QFile f(path);
+    return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray();
+}
+
+// Nombre de pages du paperboard natif écrit en `path` (0 s'il ne se relit pas).
+std::size_t pagesIn(const QString& path)
+{
+    const formats::DecodeResult r = formats::decodeActcraft(fileBytes(path));
+    return r.ok ? r.document.pageCount() : 0;
+}
+
+// Paperboard natif de deux pages, écrit sur le fil du test.
+bool writeTwoPages(const QString& path)
+{
+    return ui::saveDocument(core::Document(std::vector<core::Page>(2)), QUrl::fromLocalFile(path)).ok;
 }
 
 bool isNullAction(const QVariant& value)
@@ -230,6 +293,143 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
         QTRY_VERIFY(!dialog->property("visible").toBool());
         QVERIFY(doc->isModified());
+    }
+
+    // L2-C9, constat 5 : « Quitter » pendant un enregistrement, puis « Enregistrer » : l'enregistrement
+    // demandé attend la fin de celui en cours, puis « Quitter » reprend. Avant : refusé (occupé) sans
+    // erreur, et l'action en attente oubliée.
+    void quitDuringASaveWaitsForItThenQuits()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("cours.actcraft"));
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        QVERIFY(run(s, QStringLiteral("file.save-as"), path));
+        QVERIFY(saved.wait(10000));
+        QVERIFY(!doc->isModified());
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(doc->isModified());
+        PoolHold pool; // l'enregistrement lancé reste en cours tant que le test ne rend pas les fils
+        QVERIFY(pool.held());
+        QVERIFY(run(s, QStringLiteral("file.save"))); // écrit 2 pages
+        QVERIFY(doc->isBusy());
+        // Revue de L2-C9, mineur 2 : une page de plus PENDANT l'écriture. Seul un second enregistrement
+        // l'écrit : une version qui quitterait après le premier laisserait 2 pages dans le fichier.
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QCOMPARE(doc->pageCount(), 3);
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        QObject* ask = namedObject(s, "saveChangesDialog");
+        QVERIFY(ask);
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(ask, "save"));
+        QObject* actions = namedObject(s, "fileActions");
+        QVERIFY(actions);
+        QTest::qWait(50);                                 // un refus serait livré ici, en file
+        QVERIFY(!actions->property("quitting").toBool()); // pas avant la fin des enregistrements
+        pool.release();
+        QTRY_VERIFY_WITH_TIMEOUT(actions->property("quitting").toBool(), 20000);
+        QCOMPARE(pagesIn(path), std::size_t{3}); // le second enregistrement a écrit l'écran
+        QVERIFY(!doc->isModified());
+        QVERIFY(doc->lastError().isEmpty());
+    }
+
+    // Revue de L2-C9, mineur 4 : rien n'a changé pendant l'écriture en cours, le document est propre à sa fin
+    // : « Quitter » reprend sans une seconde écriture inutile.
+    void quitDuringASaveOfTheShownContentWritesOnce()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("cours.actcraft"));
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        QVERIFY(run(s, QStringLiteral("file.save-as"), path));
+        QVERIFY(saved.wait(10000));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        PoolHold pool;
+        QVERIFY(pool.held());
+        QVERIFY(run(s, QStringLiteral("file.save")));
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        QObject* ask = namedObject(s, "saveChangesDialog");
+        QObject* actions = namedObject(s, "fileActions");
+        QVERIFY(ask && actions);
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(ask, "save"));
+        pool.release();
+        QTRY_VERIFY_WITH_TIMEOUT(actions->property("quitting").toBool(), 20000);
+        QTest::qWait(300);          // une seconde écriture finirait ici
+        QCOMPARE(saved.count(), 2); // « Enregistrer sous », puis l'enregistrement en cours : pas de troisième
+        QCOMPARE(pagesIn(path), std::size_t{2});
+        QVERIFY(!doc->isModified());
+    }
+
+    // Revue de L2-C9, important 1 : « Enregistrer » demandé pendant une ouverture qui RÉUSSIT visait le
+    // document remplacé ; il est abandonné, jamais relancé sur le document ouvert (qui serait réécrit sans
+    // demande, avec la perte de ce que la lecture a écarté).
+    void saveRequestedDuringASuccessfulOpenIsDropped()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("deux.actcraft"));
+        QVERIFY(writeTwoPages(path));
+        const QByteArray before = fileBytes(path);
+        QVERIFY(!doc->isModified());
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        QSignalSpy loaded(doc, &ui::DocumentController::loadFinished);
+        PoolHold pool;
+        QVERIFY(pool.held());
+        QVERIFY(run(s, QStringLiteral("file.open"), path));
+        QVERIFY(doc->isBusy());
+        QVERIFY(run(s, QStringLiteral("file.save"))); // Ctrl+S pendant la lecture
+        pool.release();
+        QVERIFY(loaded.wait(20000));
+        QCOMPARE(loaded.first().at(0).toBool(), true);
+        QTest::qWait(300); // un enregistrement relancé partirait et finirait ici
+        QCOMPARE(saved.count(), 0);
+        QCOMPARE(fileBytes(path), before);
+        QCOMPARE(doc->pageCount(), 2);
+    }
+
+    // Même chose par « Quitter » puis « Enregistrer » pendant l'ouverture (modifications abandonnées à
+    // l'ouverture) : l'action en attente est réévaluée sur le document ouvert, propre : on quitte sans
+    // écrire.
+    void quitThenSaveDuringASuccessfulOpenQuitsWithoutWriting()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("deux.actcraft"));
+        QVERIFY(writeTwoPages(path));
+        const QByteArray before = fileBytes(path);
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(doc->isModified());
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        QSignalSpy loaded(doc, &ui::DocumentController::loadFinished);
+        QObject* ask = namedObject(s, "saveChangesDialog");
+        QObject* actions = namedObject(s, "fileActions");
+        QVERIFY(ask && actions);
+        PoolHold pool;
+        QVERIFY(pool.held());
+        QVERIFY(run(s, QStringLiteral("file.open"), path));
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(ask, "discard")); // ouvrir sans enregistrer
+        QTRY_VERIFY(!ask->property("visible").toBool());
+        QVERIFY(doc->isBusy());
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(ask, "save"));
+        pool.release();
+        QVERIFY(loaded.wait(20000));
+        QCOMPARE(loaded.first().at(0).toBool(), true);
+        QTRY_VERIFY_WITH_TIMEOUT(actions->property("quitting").toBool(), 20000);
+        QTest::qWait(300);
+        QCOMPARE(saved.count(), 0);
+        QCOMPARE(fileBytes(path), before);
     }
 
     void newSizesComeFromTheirCommands()

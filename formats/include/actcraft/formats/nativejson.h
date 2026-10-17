@@ -10,6 +10,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 
 namespace actcraft::formats {
 
@@ -27,10 +28,31 @@ inline constexpr int kNativeMajorVersion = 1;
 // n'est pas porté exactement (la lecture le refuse).
 QJsonObject documentToJson(const core::Document& document);
 
-// Octets d'une ressource déclarée (clé SHA-256, extension) ; nullopt si l'archive ne les a pas. N'est appelé
-// qu'avec une clé [0-9a-f]{64} et une extension [a-z0-9]{1,8} : jamais avec un nom qui viserait ailleurs.
-using ResourceLoader =
-    std::function<std::optional<QByteArray>(const std::string& key, const std::string& extension)>;
+// Pourquoi le chargeur ne rend pas les octets d'une ressource (L2-C9) : documentFromJson rédige
+// l'avertissement d'après cette cause ; aucun appelant ne reconstruit ni ne remplace son texte.
+enum class ResourceFailure
+{
+    Absent,  // l'archive ne l'a pas
+    TooBig,  // au-delà d'une borne de lecture
+    Corrupt, // entrée illisible
+};
+
+// Ce que rend le chargeur : les octets, ou la cause de leur absence. Se construit d'un std::optional (nullopt
+// : absente), d'octets ou d'une cause.
+struct LoadedResource
+{
+    LoadedResource(std::nullopt_t) {}
+    LoadedResource(std::optional<QByteArray> bytes) : data(std::move(bytes)) {}
+    LoadedResource(QByteArray bytes) : data(std::move(bytes)) {}
+    LoadedResource(ResourceFailure why) : failure(why) {}
+
+    std::optional<QByteArray> data;
+    ResourceFailure failure = ResourceFailure::Absent; // si !data
+};
+
+// Octets d'une ressource déclarée (clé SHA-256, extension), ou la cause de leur absence. N'est appelé qu'avec
+// une clé [0-9a-f]{64} et une extension [a-z0-9]{1,8} : jamais avec un nom qui viserait ailleurs.
+using ResourceLoader = std::function<LoadedResource(const std::string& key, const std::string& extension)>;
 
 struct JsonReadResult
 {

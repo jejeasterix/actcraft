@@ -905,6 +905,33 @@ private slots:
         QVERIFY(formats::documentFromJson(root, loaderFrom(rich), target).ok);
     }
 
+    // L2-C9, constat 7 : le chargeur rend une cause typée, que documentFromJson rédige (un avertissement par
+    // ressource, qui dit la cause) ; aucun appelant ne reconstruit son libellé.
+    void loaderFailureCauseIsWritten()
+    {
+        const core::Document rich = richdoc::richDocument();
+        QCOMPARE(rich.resources().size(), std::size_t{2});
+        const std::pair<formats::ResourceFailure, QString> causes[] = {
+            {formats::ResourceFailure::Absent, u"absente"_s},
+            {formats::ResourceFailure::TooBig, u"trop volumineuse"_s},
+            {formats::ResourceFailure::Corrupt, u"illisible"_s}};
+        for (const auto& [failure, label] : causes) {
+            core::Document back;
+            const auto r = formats::documentFromJson(
+                formats::documentToJson(rich),
+                [failure = failure](const std::string&, const std::string&) {
+                    return formats::LoadedResource(failure);
+                },
+                back);
+            QVERIFY(r.ok);
+            QCOMPARE(r.warnings.size(), 2);
+            for (const QString& warning : r.warnings) {
+                QVERIFY2(warning.contains(label), qPrintable(warning));
+            }
+            QCOMPARE(back.resources().size(), std::size_t{0});
+        }
+    }
+
     void missingOrTamperedResourceIsAWarning()
     {
         const core::Document rich = richdoc::richDocument();

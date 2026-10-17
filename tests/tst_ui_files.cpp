@@ -464,6 +464,88 @@ private slots:
         QVERIFY(!controller.property("busy").toBool());
     }
 
+    // L2-C9, constat 2 : compteur de révisions, plus d'empreinte sur le fil principal. Un trait puis son
+    // annulation pendant la lecture changent la révision : l'ouverture est refusée (prudent : rien n'est
+    // perdu), même si le contenu est revenu au même (une comparaison d'empreintes l'accepterait).
+    void strokeThenUndoDuringOpenRefusesTheOpening()
+    {
+        QTemporaryDir dir;
+        const QUrl url = writeTwoPages(dir, QStringLiteral("deux.actcraft"));
+        QVERIFY(!url.isEmpty());
+        ui::DocumentController controller;
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        controller.openUrl(url);
+        controller.commitStroke(redStroke()); // pendant l'ouverture
+        controller.undo();
+        QVERIFY(loaded.wait(60000));
+        QCOMPARE(loaded.first().at(0).toBool(), false);
+        QCOMPARE(controller.pageCount(), 1);
+        QVERIFY(controller.canRedo()); // l'historique est gardé
+    }
+
+    // Même règle à l'enregistrement : un trait puis son annulation pendant l'écriture laissent « modifié »
+    // (voulu, prudent), le fichier lié reste celui écrit.
+    void strokeThenUndoDuringSaveLeavesTheDocumentModified()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        const QUrl url = QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft")));
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(url);
+        controller.commitStroke(redStroke()); // pendant l'écriture
+        controller.undo();
+        QVERIFY(savedSpy.wait(60000));
+        QCOMPARE(savedSpy.first().at(0).toBool(), true);
+        QCOMPARE(controller.fileUrl(), url);
+        QVERIFY(controller.isModified());
+        // Rien n'a changé pendant l'écriture suivante : propre.
+        controller.saveToUrl(url);
+        QVERIFY(savedSpy.wait(60000));
+        QVERIFY(!controller.isModified());
+    }
+
+    // L'empreinte du document lu (journal ACTCRAFT OUVERT) est calculée par la lecture, hors du fil
+    // principal.
+    void loadComputesTheFingerprintOfTheDocumentRead()
+    {
+        QTemporaryDir dir;
+        const QUrl url = writeTwoPages(dir, QStringLiteral("deux.actcraft"));
+        QVERIFY(!url.isEmpty());
+        const ui::LoadOutcome outcome = ui::loadDocument(url);
+        QVERIFY(outcome.ok);
+        QCOMPARE(outcome.fingerprint, core::fingerprint(outcome.document));
+    }
+
+    // L2-C9, constat 1 : trait commencé pendant la lecture, stylet encore posé à la fin. La vue ne le verse
+    // qu'à pageAboutToChange (Main.qml : finishStroke) ; s'il n'est versé qu'au remplacement du document, il
+    // rejoint l'ancien document, aussitôt remplacé : perdu. Il doit être versé avant le contrôle « le
+    // document a-t-il changé pendant la lecture », qui refuse alors l'ouverture.
+    void strokeInProgressAtTheEndOfAnOpeningIsKept()
+    {
+        QTemporaryDir dir;
+        const QUrl url = writeTwoPages(dir, QStringLiteral("deux.actcraft"));
+        QVERIFY(!url.isEmpty());
+        ui::DocumentController controller;
+        QVERIFY(!controller.isModified());
+        bool inProgress = false;
+        connect(&controller, &ui::DocumentController::pageAboutToChange, &controller, [&] {
+            if (inProgress) { // ce que fait PageView::finishStroke : le trait rejoint la page affichée
+                inProgress = false;
+                controller.commitStroke(redStroke());
+            }
+        });
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        controller.openUrl(url);
+        inProgress = true; // stylet posé pendant la lecture, pas encore relevé
+        QVERIFY(loaded.wait(60000));
+        QVERIFY(!inProgress);
+        QCOMPARE(loaded.first().at(0).toBool(), false);
+        QVERIFY(!controller.property("lastError").toString().isEmpty());
+        QCOMPARE(controller.pageCount(), 1);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        QVERIFY(controller.isModified());
+    }
+
     // « Nouveau » (et « Fermer », qui laisse un paperboard vierge) pendant une ouverture : pas écrasé, même
     // d'empreinte égale.
     void newDocumentDuringOpenRefusesTheOpening()
@@ -540,6 +622,47 @@ private slots:
         QVERIFY(savedSpy.wait(60000));
         QCOMPARE(savedSpy.last().at(0).toBool(), true);
         QVERIFY(controller.property("lastError").toString().isEmpty());
+    }
+
+    // L2-C9, constat 5 : un enregistrement refusé parce qu'une opération est en cours le dit (dernière
+    // erreur).
+    void saveRefusedWhileBusySetsTheLastError()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        controller.commitStroke(redStroke());
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        QStringList errors; // dernière erreur relevée à chaque fin d'enregistrement
+        connect(&controller, &ui::DocumentController::saveFinished, &controller,
+                [&] { errors << controller.lastError(); });
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("b.actcraft"))));
+        QTRY_VERIFY_WITH_TIMEOUT(savedSpy.count() == 2, 60000);
+        QCOMPARE(savedSpy.at(0).at(0).toBool(), false); // le refus, livré en file, avant la fin de l'écriture
+        QVERIFY(!errors.at(0).isEmpty());
+        QCOMPARE(savedSpy.at(1).at(0).toBool(), true);
+        QVERIFY(errors.at(1).isEmpty()); // l'écriture réussie l'efface
+    }
+
+    // Revue de L2-C9, mineur 3 : une ouverture refusée parce qu'une opération est en cours le dit aussi
+    // (dernière erreur), comme un enregistrement refusé.
+    void openRefusedWhileBusySetsTheLastError()
+    {
+        QTemporaryDir dir;
+        const QUrl url = writeTwoPages(dir, QStringLiteral("deux.actcraft"));
+        QVERIFY(!url.isEmpty());
+        ui::DocumentController controller;
+        QStringList errors; // dernière erreur relevée à la fin de l'ouverture refusée
+        connect(&controller, &ui::DocumentController::loadFinished, &controller,
+                [&] { errors << controller.lastError(); });
+        QSignalSpy loaded(&controller, &ui::DocumentController::loadFinished);
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
+        controller.openUrl(url);
+        QVERIFY(loaded.wait(60000));
+        QCOMPARE(loaded.first().at(0).toBool(), false);
+        QVERIFY(!errors.first().isEmpty());
+        QVERIFY(savedSpy.count() == 1 || savedSpy.wait(60000));
     }
 
     void openIsRefusedWhileBusy()

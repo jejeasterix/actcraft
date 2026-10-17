@@ -1510,9 +1510,16 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
             r.warn(u"ressource %1 déclarée deux fois"_s.arg(str(key)));
             continue;
         }
-        const std::optional<QByteArray> data = loadResource ? loadResource(key, extension) : std::nullopt;
+        const LoadedResource loaded =
+            loadResource ? loadResource(key, extension) : LoadedResource(std::nullopt);
+        const std::optional<QByteArray>& data = loaded.data;
         if (!data) {
-            r.warn(u"ressource %1 absente, écartée"_s.arg(str(key)));
+            // Cause typée rendue par le chargeur (L2-C9) : le texte n'est écrit qu'ici.
+            const QString cause = loaded.failure == ResourceFailure::TooBig ? u"trop volumineuse"_s
+                                  : loaded.failure == ResourceFailure::Corrupt
+                                      ? u"illisible (entrée corrompue)"_s
+                                      : u"absente"_s;
+            r.warn(u"ressource %1 %2, écartée"_s.arg(str(key), cause));
             continue;
         }
         if (sha256Hex(*data) != key) {

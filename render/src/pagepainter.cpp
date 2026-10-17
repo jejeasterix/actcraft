@@ -129,8 +129,7 @@ QBrush brushOf(const core::Fill& f, const QRectF& rect)
     case core::FillKind::Solid:
         return QBrush(color(f.color));
     case core::FillKind::Pattern:
-        // Fond opaque des motifs (opaqueBackground, backgroundColor) ignoré, comme la référence
-        // (REA - Activinspire/tools/render_flipchart.py, make_brush).
+        // Fond opaque du motif (F-574) : posé par le peintre de la forme (paintShape), pas par la brosse.
         return QBrush(color(f.color), static_cast<Qt::BrushStyle>(std::clamp<int>(f.pattern, 2, 14)));
     case core::FillKind::Gradient:
         break;
@@ -244,7 +243,20 @@ void paintShape(QPainter& p, const core::Shape& s)
             }
         }
         if (!s.open) {
+            // F-574, relevé sur ActivInspire (L2-C9) : en mode opaque, la couleur de fond est peinte sous le
+            // motif, avec l'alpha de la couleur du contour. Limité au remplissage : le fond dans les trous
+            // d'un contour en tirets n'est pas repris.
+            const bool opaque = s.brush.kind == core::FillKind::Pattern && s.brush.opaqueBackground;
+            if (opaque) {
+                QColor background = color(s.brush.backgroundColor);
+                background.setAlpha(qAlpha(s.pen.color));
+                p.setBackgroundMode(Qt::OpaqueMode);
+                p.setBackground(background);
+            }
             p.fillPath(path, brushOf(s.brush, path.boundingRect()));
+            if (opaque) {
+                p.setBackgroundMode(Qt::TransparentMode);
+            }
         }
         p.strokePath(path, penOf(s.pen));
         return;

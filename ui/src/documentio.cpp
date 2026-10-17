@@ -55,7 +55,9 @@ LoadOutcome loadDocument(const QUrl& url)
     }
     out.title = titleFromUrl(url);
     if (formats::looksLikeActcraft(read.data)) {
-        formats::DecodeResult r = formats::decodeActcraft(read.data);
+        // Miniatures laissées dans l'archive : l'ouverture ne s'en sert pas (L2-C9).
+        formats::DecodeResult r =
+            formats::decodeActcraft(read.data, formats::ArchiveLimits{}, formats::Thumbnails::Skip);
         if (!r.ok) {
             out.error = r.error;
             return out;
@@ -64,6 +66,7 @@ LoadOutcome loadDocument(const QUrl& url)
         out.native = true;
         out.warnings = r.warnings;
         out.document = std::move(r.document);
+        out.fingerprint = core::fingerprint(out.document);
         return out;
     }
     if (formats::flipchart::looksLikeFlipchart(read.data)) {
@@ -75,6 +78,7 @@ LoadOutcome loadDocument(const QUrl& url)
         }
         out.ok = true;
         out.document = std::move(r.document);
+        out.fingerprint = core::fingerprint(out.document);
         return out;
     }
     out.error = QStringLiteral("Format non reconnu : ni paperboard ActCraft, ni .flipchart.");

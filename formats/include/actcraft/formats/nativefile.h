@@ -43,12 +43,22 @@ struct DecodeResult
     QString error;
     QStringList warnings;
     core::Document document;
-    std::vector<QByteArray> thumbnails; // une case par page, vide si absente
+    std::vector<QByteArray> thumbnails; // une case par page, vide si absente ; aucune case si non lues
+};
+
+// Miniatures de l'archive : extraites (Read), ou laissées dans l'archive (Skip : l'ouverture d'un document
+// ne s'en sert pas). Non lues, elles ne consomment pas le budget de décompression et restent des entrées
+// connues du format (ni avertissement, ni entrée inconnue).
+enum class Thumbnails
+{
+    Read,
+    Skip,
 };
 
 // `maxTotal` : budget de décompression (petit dans les tests, pour le prouver sans archive de 2 Gio).
 DecodeResult decodeActcraft(const QByteArray& archive, qint64 maxTotal = kMaxArchiveTotal);
-DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limits);
+DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limits,
+                            Thumbnails thumbnails = Thumbnails::Read);
 // Noms des entrées dans l'ordre de l'archive ; vide si illisible.
 QStringList archiveEntryNames(const QByteArray& archive);
 // Signature zip (« PK\3\4 ») : de quoi choisir le lecteur sans lire tout le fichier.

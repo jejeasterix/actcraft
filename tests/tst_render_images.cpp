@@ -5,6 +5,7 @@
 #include <actcraft/core/generator.h>
 #include <actcraft/render/imagestore.h>
 #include <actcraft/render/imagesynth.h>
+#include <actcraft/render/pagepainter.h>
 
 #include <QBuffer>
 #include <QSignalSpy>
@@ -128,6 +129,53 @@ private slots:
         QVERIFY(colorNear(image.pixelColor(52, 52), QColor(0x43, 0xA0, 0x47), 3));
         QVERIFY(colorNear(image.pixelColor(23, 23), QColor(0x7E, 0x57, 0xC2), 3));
         QVERIFY(colorNear(image.pixelColor(150, 150), QColor(Qt::white), 1));
+    }
+
+    // L2-C9, constat 4 : image synthétique (sans ressource) à couleur transparente. Même règle à l'écran
+    // (magasin d'images) et dans la miniature (peintre partagé) : la couleur transparente s'applique.
+    void syntheticImageKeyColorMatchesTheThumbnail()
+    {
+        core::ImageObject witness;
+        witness.bounds = {20, 20, 64, 64};
+        witness.pattern = core::ImagePattern::SolidCenter;
+        witness.colorA = 0xFF43A047u;
+        witness.colorB = 0xFF7E57C2u; // bord : couleur transparente
+        witness.hasKeyColor = true;
+        witness.keyColor = 0xFF7E57C2u;
+        core::Page page;
+        page.width = 200;
+        page.height = 200;
+        page.objects.emplace_back(witness);
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(page);
+        QVERIFY(ready.wait(5000));
+        QVERIFY(store.covers(page, nullptr));
+        core::Page plain = page; // même image sans couleur transparente : une autre image à générer
+        std::get<core::ImageObject>(plain.objects[0]).hasKeyColor = false;
+        QVERIFY(!store.covers(plain, nullptr));
+
+        QQuickWindow window;
+        window.setColor(Qt::white);
+        window.resize(200, 200);
+        auto* host = new RenderHostItem;
+        host->setSize(QSizeF(200, 200));
+        host->objects = page.objects;
+        host->images = &store;
+        host->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        const QImage screen = window.grabWindow();
+        const QImage thumbnail = render::renderPage(page, {}, 1.0, render::PaintOptions{});
+        for (const QPoint at : {QPoint(23, 23), QPoint(52, 52)}) {
+            QVERIFY2(colorNear(screen.pixelColor(at), thumbnail.pixelColor(at), 3),
+                     qPrintable(QStringLiteral("(%1, %2) écran %3, miniature %4")
+                                    .arg(at.x())
+                                    .arg(at.y())
+                                    .arg(screen.pixelColor(at).name(), thumbnail.pixelColor(at).name())));
+        }
+        QVERIFY(colorNear(screen.pixelColor(23, 23), QColor(Qt::white), 3)); // bord transparent
+        QVERIFY(colorNear(screen.pixelColor(52, 52), QColor(0x43, 0xA0, 0x47), 3));
     }
 
     void resourceImagesAreDecodedOffThreadAndMasked()
@@ -298,6 +346,46 @@ private slots:
         QVERIFY(ready.wait(5000));
         QVERIFY(store.covers(withPlain, &document));
         QVERIFY(!store.covers(withMasked, &document)); // même ressource, variante jamais calculée
+    }
+
+    // L2-C9, constat 3 : une nouvelle génération (PgDown répétés) annule les décodages de la précédente qui
+    // n'ont pas commencé ; sans cela, toutes les pages traversées sont décodées. 64 ressources de 512 × 512
+    // (quelques ms chacune) : les fils du pool n'en ont commencé qu'une poignée quand la page suivante
+    // arrive.
+    void newGenerationDropsTheDecodesNotStarted()
+    {
+        constexpr int kCount = 64;
+        core::Document document;
+        core::Page crossed;
+        for (int i = 0; i < kCount; ++i) {
+            QImage noise(512, 512, QImage::Format_RGB32);
+            for (int y = 0; y < noise.height(); ++y) {
+                auto* line = reinterpret_cast<QRgb*>(noise.scanLine(y));
+                for (int x = 0; x < noise.width(); ++x) {
+                    line[x] = qRgb((x * 7 + y * 13 + i * 31) & 0xFF, (x * y + i) & 0xFF, (x ^ y ^ i) & 0xFF);
+                }
+            }
+            core::ImageObject im;
+            im.bounds = {0, 0, 10, 10};
+            im.resource = document.addResource(pngOf(noise), "png");
+            crossed.objects.emplace_back(im);
+        }
+        QImage small(4, 4, QImage::Format_RGB32);
+        small.fill(Qt::red);
+        core::ImageObject im;
+        im.bounds = {0, 0, 4, 4};
+        im.resource = document.addResource(pngOf(small), "png");
+        core::Page shown;
+        shown.objects.emplace_back(im);
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(crossed, &document);
+        store.generate(shown, &document); // page suivante aussitôt
+        QVERIFY(ready.wait(20000));
+        QVERIFY(store.covers(shown, &document));
+        QVERIFY(store.waitForIdle(60000));
+        const std::size_t started = store.startedTasks();
+        QVERIFY2(started < std::size_t{kCount + 1}, qPrintable(QString::number(started)));
     }
 };
 

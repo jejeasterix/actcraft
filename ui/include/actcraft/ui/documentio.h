@@ -18,8 +18,9 @@ struct LoadOutcome
     QString error;
     QStringList warnings;
     core::Document document;
-    bool native = false;        // .actcraft (sinon .flipchart : document sans fichier, décision 18)
-    QString title;              // nom du fichier sans extension
+    bool native = false;           // .actcraft (sinon .flipchart : document sans fichier, décision 18)
+    QString title;                 // nom du fichier sans extension
+    std::uint64_t fingerprint = 0; // core::fingerprint du document lu, calculée par la lecture (journal)
     bool offMainThread = false; // relevé par la lecture elle-même (preuve de S5, point d'injection de test)
 };
 

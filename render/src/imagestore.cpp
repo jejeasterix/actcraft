@@ -56,6 +56,9 @@ std::string ImageStore::variantKey(const core::ImageObject& object)
 
 void ImageStore::generate(const core::Page& page, const core::Document* resources)
 {
+    // Les tâches de la génération précédente pas encore commencées sont annulées (L2-C9) : des PgDown répétés
+    // ne décodent pas toutes les pages traversées. Une tâche commencée finit, son résultat est écarté.
+    m_pool.clear();
     const std::uint64_t generation = ++m_generation;
     {
         QMutexLocker lock(&m_mutex);
@@ -93,7 +96,12 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
                     QMutexLocker lock(&m_mutex);
                     m_procedural[i] = copy;
                 }
-                m_pool.start([post, i, copy] { post(i, std::string(), synthesizeImage(copy)); });
+                m_pool.start([this, post, i, copy] {
+                    m_started.fetch_add(1);
+                    // Couleur transparente appliquée comme la miniature (pagepainter.cpp, paintImage), L2-C9.
+                    const QImage image = synthesizeImage(copy);
+                    post(i, std::string(), copy.hasKeyColor ? withKeyColor(image, copy.keyColor) : image);
+                });
             } else {
                 want(object->resource,
                      object->hasKeyColor ? std::optional<core::Argb>(object->keyColor) : std::nullopt);
@@ -110,6 +118,7 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
         const QByteArray bytes =
             resources->resource(key)->data; // partagée implicitement : copie sûre entre fils
         m_pool.start([this, generation, owner, key, variants, bytes] {
+            m_started.fetch_add(1);
             const QImage decoded = withoutColorTable(QImage::fromData(bytes)); // L2-C7
             const bool off = QThread::currentThread() != owner;
             std::vector<std::pair<std::string, QImage>> out{{key, decoded}};
@@ -202,7 +211,9 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
                 if (it == m_procedural.end() || it->second.pattern != im->pattern ||
                     it->second.seed != im->seed || it->second.colorA != im->colorA ||
                     it->second.colorB != im->colorB || it->second.sourceWidth != im->sourceWidth ||
-                    it->second.sourceHeight != im->sourceHeight) {
+                    it->second.sourceHeight != im->sourceHeight ||
+                    it->second.hasKeyColor != im->hasKeyColor ||
+                    (im->hasKeyColor && it->second.keyColor != im->keyColor)) {
                     return false;
                 }
             } else if (!has(im->resource) || !hasVariant(*im)) {
@@ -223,6 +234,16 @@ bool ImageStore::isReady() const noexcept
 bool ImageStore::generatedOffOwnerThread() const noexcept
 {
     return m_offOwnerThread;
+}
+
+std::size_t ImageStore::startedTasks() const noexcept
+{
+    return m_started.load();
+}
+
+bool ImageStore::waitForIdle(int msecs)
+{
+    return m_pool.waitForDone(msecs);
 }
 
 QImage ImageStore::image(std::size_t objectIndex) const

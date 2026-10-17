@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QThreadPool>
 
+#include <atomic>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -46,6 +47,10 @@ public:
     // Crochet de test : vrai si toutes les images de la dernière génération ont été synthétisées hors du fil
     // de l'objet.
     bool generatedOffOwnerThread() const noexcept;
+    // Crochets de test : tâches de décodage ou de synthèse commencées depuis la création (une tâche annulée
+    // avant de commencer n'est pas comptée), et attente de la fin des tâches commencées.
+    std::size_t startedTasks() const noexcept;
+    bool waitForIdle(int msecs);
 
 signals:
     void ready();
@@ -63,6 +68,7 @@ private:
     std::uint64_t m_generation = 0;
     bool m_ready = false;
     bool m_offOwnerThread = true;
+    std::atomic<std::size_t> m_started{0};
 };
 
 } // namespace actcraft::render
