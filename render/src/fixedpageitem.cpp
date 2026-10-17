@@ -1,6 +1,7 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/render/fixedpageitem.h>
+#include <actcraft/render/imagesynth.h>
 
 #include <QDebug>
 #include <QMatrix4x4>
@@ -58,11 +59,7 @@ std::string decodeInputs(const core::Page& page)
     std::string out = page.background.image;
     for (std::size_t i = 0; i < page.objects.size(); ++i) {
         if (const auto* im = std::get_if<core::ImageObject>(&page.objects[i])) {
-            out += '|' + std::to_string(i) + ':' + std::to_string(static_cast<int>(im->pattern)) + ':' +
-                   std::to_string(im->colorA) + ':' + std::to_string(im->colorB) + ':' +
-                   std::to_string(im->seed) + ':' + std::to_string(im->sourceWidth) + 'x' +
-                   std::to_string(im->sourceHeight) + ':' +
-                   (im->hasKeyColor ? std::to_string(im->keyColor) : std::string()) + ':' + im->resource;
+            out += '|' + std::to_string(i) + ':' + synthesisKey(*im) + ':' + im->resource;
         } else if (const auto* media = std::get_if<core::Media>(&page.objects[i])) {
             out += '|' + std::to_string(i) + ":m:" + media->placeholder;
         }

@@ -191,12 +191,7 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
             if (im->resource.empty()) {
                 ++procedural;
                 const auto it = m_procedural.find(i);
-                if (it == m_procedural.end() || it->second.pattern != im->pattern ||
-                    it->second.seed != im->seed || it->second.colorA != im->colorA ||
-                    it->second.colorB != im->colorB || it->second.sourceWidth != im->sourceWidth ||
-                    it->second.sourceHeight != im->sourceHeight ||
-                    it->second.hasKeyColor != im->hasKeyColor ||
-                    (im->hasKeyColor && it->second.keyColor != im->keyColor)) {
+                if (it == m_procedural.end() || synthesisKey(it->second) != synthesisKey(*im)) {
                     return false;
                 }
             } else if (!has(im->resource) || !hasVariant(*im)) {
