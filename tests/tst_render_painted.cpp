@@ -487,6 +487,51 @@ private slots:
         QVERIFY2(mean < 0.05, qPrintable(QString::number(mean)));
     }
 
+    // L2-C9, constat 8 (F-574) : motif à fond opaque. ActivInspire peint la couleur de fond sous le motif,
+    // avec l'alpha de la couleur du contour ; en mode transparent, rien sous le motif. Écran (moteur peint,
+    // direct et en texture) et miniature (peintre partagé) : mêmes pixels.
+    void opaquePatternBackgroundIsDrawn()
+    {
+        core::Shape opaque;
+        opaque.kind = core::ShapeKind::Path;
+        opaque.paths = {{{100, 100}, {300, 100}, {300, 300}, {100, 300}}};
+        opaque.pen.style = core::PenStyle::None;
+        opaque.pen.color = 0xFF000000u;
+        opaque.brush.kind = core::FillKind::Pattern;
+        opaque.brush.color = 0xFF000000u;
+        opaque.brush.pattern = 5; // Qt::Dense4Pattern : un pixel sur deux
+        opaque.brush.opaqueBackground = true;
+        opaque.brush.backgroundColor = 0xFFFF0000u;
+        core::Shape transparent = opaque; // mode transparent : fond ignoré
+        transparent.paths = {{{400, 100}, {600, 100}, {600, 300}, {400, 300}}};
+        transparent.brush.opaqueBackground = false;
+        core::Shape clearPen = opaque; // contour d'alpha nul : fond d'alpha nul
+        clearPen.paths = {{{700, 100}, {900, 100}, {900, 300}, {700, 300}}};
+        clearPen.pen.color = 0x00000000u;
+        core::Page page;
+        page.objects = {core::PageObject(opaque), core::PageObject(transparent), core::PageObject(clearPen)};
+        const QImage painted = render::renderPage(page, kNoImages, 1.0).convertToFormat(QImage::Format_RGB32);
+        const QRect inside(110, 110, 180, 180);
+        const int area = inside.width() * inside.height();
+        QVERIFY2(redPixels(painted, inside) > area / 3,
+                 qPrintable(QString::number(redPixels(painted, inside))));
+        QCOMPARE(redPixels(painted, inside.translated(300, 0)), 0);
+        QCOMPARE(redPixels(painted, inside.translated(600, 0)), 0);
+        for (const bool rasterized : {false, true}) {
+            Fixture f;
+            QVERIFY(open(f, page, rasterized));
+            const QImage scene = grab(f).convertToFormat(QImage::Format_RGB32);
+            QCOMPARE(scene.size(), painted.size());
+            for (const int dx : {0, 300, 600}) {
+                const QRect zone = inside.translated(dx, 0);
+                QCOMPARE(redPixels(scene, zone), redPixels(painted, zone));
+                const double mean = meanDifference(scene, painted, zone);
+                QVERIFY2(mean < 1.0,
+                         qPrintable(QStringLiteral("%1 %2 : %3").arg(rasterized).arg(dx).arg(mean)));
+            }
+        }
+    }
+
     void rasterScaleNeverRebuildsInSoftware()
     {
         core::Page page;
