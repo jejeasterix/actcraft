@@ -795,9 +795,10 @@ int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv); // le peintre dessine du texte : polices de la plateforme
     const QStringList args = QGuiApplication::arguments();
-    const qsizetype synthetic = args.indexOf(QStringLiteral("--ecrire-synthetique"));
-    if (synthetic >= 0) {
-        if (synthetic + 1 >= args.size() || args.at(synthetic + 1).startsWith(QLatin1String("--"))) {
+    bool hasSynthetic = false;
+    const QString syntheticFile = optionValue(args, QStringLiteral("--ecrire-synthetique"), hasSynthetic);
+    if (hasSynthetic) {
+        if (syntheticFile.isEmpty()) {
             printLine(QStringLiteral("SYNTHETIQUE EN ECHEC : --ecrire-synthetique <fichier> attendu"));
             return 1;
         }
@@ -814,7 +815,7 @@ int main(int argc, char* argv[])
         } else if (args.contains(QStringLiteral("--miniatures-q50"))) {
             variant = Variant::Jpeg50;
         }
-        return writeSynthetic(args.at(synthetic + 1), variant);
+        return writeSynthetic(syntheticFile, variant);
     }
     if (args.contains(QStringLiteral("--miniatures")) || args.contains(QStringLiteral("--samples"))) {
         return compareThumbnails(args);
