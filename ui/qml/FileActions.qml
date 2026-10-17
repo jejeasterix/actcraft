@@ -92,8 +92,12 @@ Item {
     Connections {
         target: actions.document
         function onSaveFinished(ok, message) {
-            // L'enregistrement en attente part d'abord ; l'action qui le suit attend sa fin à lui.
-            if (actions.saveWaiting) { actions.saveWaiting = false; actions.save(); return }
+            // L'enregistrement en attente part d'abord, l'action qui le suit attend sa fin à lui ; sauf si
+            // l'écriture finie a déjà mis l'écran dans le fichier (document propre) : l'action reprend aussitôt.
+            if (actions.saveWaiting) {
+                actions.saveWaiting = false
+                if (!ok || actions.document.modified) { actions.save(); return }
+            }
             const a = actions.afterSave
             actions.afterSave = null
             if (ok && a) a()

@@ -335,6 +335,36 @@ private slots:
         QVERIFY(doc->lastError().isEmpty());
     }
 
+    // Revue de L2-C9, mineur 4 : rien n'a changé pendant l'écriture en cours, le document est propre à sa fin
+    // : « Quitter » reprend sans une seconde écriture inutile.
+    void quitDuringASaveOfTheShownContentWritesOnce()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("cours.actcraft"));
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        QVERIFY(run(s, QStringLiteral("file.save-as"), path));
+        QVERIFY(saved.wait(10000));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        PoolHold pool;
+        QVERIFY(pool.held());
+        QVERIFY(run(s, QStringLiteral("file.save")));
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        QObject* ask = namedObject(s, "saveChangesDialog");
+        QObject* actions = namedObject(s, "fileActions");
+        QVERIFY(ask && actions);
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(ask, "save"));
+        pool.release();
+        QTRY_VERIFY_WITH_TIMEOUT(actions->property("quitting").toBool(), 20000);
+        QTest::qWait(300);          // une seconde écriture finirait ici
+        QCOMPARE(saved.count(), 2); // « Enregistrer sous », puis l'enregistrement en cours : pas de troisième
+        QCOMPARE(pagesIn(path), std::size_t{2});
+        QVERIFY(!doc->isModified());
+    }
+
     // Revue de L2-C9, important 1 : « Enregistrer » demandé pendant une ouverture qui RÉUSSIT visait le
     // document remplacé ; il est abandonné, jamais relancé sur le document ouvert (qui serait réécrit sans
     // demande, avec la perte de ce que la lecture a écarté).
