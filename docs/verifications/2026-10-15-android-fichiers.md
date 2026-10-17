@@ -22,6 +22,7 @@ VERIF s5-revue-a-sec = 2026-10-17, script 0d0cb3a (constats de la revue), adb et
 VERIF s5-revue-ci = essai-android.ps1 sous adb bouchon muet : `ANDROID EN ECHEC : adb get-state sans réponse (15 s)`, code 1 (inchangé) ; `logcat -c` refusé : `ANDROID EN ECHEC : adb logcat -c (code 1)`
 VERIF s5-revue-arret-reel = sur l'émulateur réel, descendants arrêtés par l'essai : `qemu-system-x86_64-headless`, `netsimd`, `crashpad_handler` ; serveur adb identifié comme lancé par l'essai et arrêté ; aucun processus Android créé pendant un passage n'est resté vivant
 VERIF s5-revue-trois-passages = 2026-10-17, script 0d0cb3a, APK existant non reconstruit (SHA-256 D8C5678C0B788F69…), lancé depuis la racine du worktree, chaque passage sous le jeton `tests`, machine partagée (0,9 à 4,5 Go libres) : 24523d26c6dc58ef = 24523d26c6dc58ef, 18c072cf06239114 = 18c072cf06239114, 9a6e8411c2857e6e = 9a6e8411c2857e6e : trois ANDROID FICHIERS OK consécutifs
+VERIF s5-revue-chemins = sorties absolues sous le `.tmp/` de la racine du script (calculée depuis `$PSScriptRoot`), APK relatif résolu depuis le dossier d'appel : `adb pull` écrivait les chemins relatifs dans le dossier courant du processus, que `Set-Location` ne change pas (premier rejeu de la revue lancé hors de la racine : captures écrites dans le `.tmp` du dépôt principal, `trait absent après trois glissements`). À sec, lancé depuis un dossier vide qui a son `.tmp` : aucun fichier hors du `.tmp` du worktree, trait lu, essai poursuivi jusqu'au sélecteur ; version 0d0cb3a : `fichiers-trait.png` et `fichiers-echec.png` écrits dans le dossier d'appel, `trait absent après trois glissements`. Sortie d'erreur d'adb recueillie par l'appel borné : `ANDROID EN ECHEC : adb install : adb: failed to install stub.apk: Failure [STUB_REFUS]` (bouchon) ; dernière ligne sous adb muet inchangée. Passages réels rejoués par l'orchestrateur
 VERIF s3-module = essai-android.ps1 passe par scripts/android-commun.ps1 ; sous un adb bouchon qui ne répond pas, dernière ligne identique avant et après l'extraction : `ANDROID EN ECHEC : adb get-state sans réponse (15 s)`
 VERIF s5-patron-ecarte = sous les mêmes bouchons (adb et emulator), essai-android-fichiers.ps1 finit par `ANDROID FICHIERS EN ECHEC : adb get-state sans réponse (15 s)` et l'émulateur bouchon est arrêté ; avec l'`Echec` d'essai-android.ps1 recopié dans le module (patron écarté), la dernière ligne devient `ANDROID EN ECHEC : …` et l'émulateur bouchon reste vivant
 
@@ -69,14 +70,9 @@ VERIF s5-patron-ecarte = sous les mêmes bouchons (adb et emulator), essai-andro
 
 ## Hors périmètre, constaté
 
-- Le script suppose d'être lancé depuis la racine du dépôt (usage documenté) : `Set-Location` déplace l'emplacement
-  PowerShell, pas le dossier courant du processus, et `adb pull … .tmp/…` écrit dans ce dernier. Lancé depuis un autre
-  dossier (premier rejeu de la revue, 2026-10-17), les captures partent ailleurs et l'essai finit par `trait absent
-  après trois glissements`. Non corrigé ici (simplifications de fin de lot) : chemins absolus pour adb, ou
-  `[Environment]::CurrentDirectory` aligné.
 - Rejeu de la revue (2026-10-17, machine partagée, 2 Go libres) : un passage a fini par `adb install` (binder en
-  échec dans logcat, `Performing Streamed Install` sans suite) ; la sortie d'erreur d'adb n'est pas recueillie par
-  l'appel borné, d'où une raison sans détail.
+  échec dans logcat, `Performing Streamed Install` sans suite), sans détail : la sortie d'erreur d'adb n'était pas
+  recueillie (corrigé ensuite, VERIF s5-revue-chemins).
 
 - `packaging/qt-autorises.txt` ne contient pas `Qt6QuickControls2FluentWinUI3` (seulement sa `StyleImpl`) :
   `paquet-android.ps1` finit par `LICENCES EN ECHEC : Qt6QuickControls2FluentWinUI3` sur le code actuel. L'APK de

@@ -30,10 +30,12 @@ function Initialize-ActCraftAdb {
     if (-not $script:ActCraftAdb) { Lever-ActCraftAndroid 'adb introuvable dans le PATH' }
 }
 
-# Adb <secondes> <arguments…> : lignes de la sortie standard, $LASTEXITCODE positionné. Au-delà du délai, l'arbre du
-# processus adb est arrêté et l'essai échoue. Fonction simple ($args) : « -p », « -r »… restent des arguments d'adb.
+# Adb <secondes> <arguments…> : lignes de la sortie standard, $LASTEXITCODE positionné, sortie d'erreur recueillie
+# (Get-ActCraftAdbErreur). Au-delà du délai, l'arbre du processus adb est arrêté et l'essai échoue. Fonction simple
+# ($args) : « -p », « -r »… restent des arguments d'adb.
 function Adb {
     if (-not $script:ActCraftAdb) { Lever-ActCraftAndroid 'adb non initialisé (Initialize-ActCraftAdb)' }
+    $script:ActCraftAdbErreur = ''
     $secondes = [int]$args[0]
     $arguments = @($args | Select-Object -Skip 1 | ForEach-Object { "$_" })
     $info = [Diagnostics.ProcessStartInfo]::new($script:ActCraftAdb)
@@ -42,16 +44,26 @@ function Adb {
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
     $info.StandardOutputEncoding = [Text.Encoding]::UTF8
+    $info.StandardErrorEncoding = [Text.Encoding]::UTF8
     $p = [Diagnostics.Process]::Start($info)
     $sortie = $p.StandardOutput.ReadToEndAsync()
-    $null = $p.StandardError.ReadToEndAsync()
+    $erreur = $p.StandardError.ReadToEndAsync()
     if (-not $p.WaitForExit($secondes * 1000)) {
         try { $p.Kill($true) } catch { $null = $_ }
         Lever-ActCraftAndroid "adb $(($arguments | Select-Object -First 2) -join ' ') sans réponse ($secondes s)"
     }
     $p.WaitForExit()
     $global:LASTEXITCODE = $p.ExitCode
+    $script:ActCraftAdbErreur = (@($erreur.Result -split '\r?\n' | Where-Object { $_.Trim() -ne '' }) -join ' ').Trim()
     return @($sortie.Result -split '\r?\n' | Where-Object { $_ -ne '' })
+}
+
+# Sortie d'erreur du dernier appel Adb, prête à suivre une raison (« : … », 300 caractères au plus), ou ''.
+function Get-ActCraftAdbErreur {
+    $texte = "$script:ActCraftAdbErreur"
+    if (-not $texte) { return '' }
+    if ($texte.Length -gt 300) { $texte = $texte.Substring(0, 300) + '…' }
+    return " : $texte"
 }
 
 # Boîte « Application Not Responding » du système (bouton « Wait », repéré par uiautomator) : touchée, trois fois au
@@ -91,9 +103,9 @@ function Wait-ActCraftDemarrage {
 function Install-ActCraftApk([Parameter(Mandatory)][string]$Apk, [Parameter(Mandatory)][string]$Paquet) {
     if (-not (Test-Path -LiteralPath $Apk)) { Lever-ActCraftAndroid "APK introuvable : $Apk" }
     Adb 240 install -r (Resolve-Path -LiteralPath $Apk).Path | ForEach-Object { Write-Host "install : $_" }
-    if ($LASTEXITCODE -ne 0) { Lever-ActCraftAndroid 'adb install' }
+    if ($LASTEXITCODE -ne 0) { Lever-ActCraftAndroid "adb install$(Get-ActCraftAdbErreur)" }
     $null = Adb 30 logcat -c
-    if ($LASTEXITCODE -ne 0) { Lever-ActCraftAndroid "adb logcat -c (code $LASTEXITCODE)" }
+    if ($LASTEXITCODE -ne 0) { Lever-ActCraftAndroid "adb logcat -c (code $LASTEXITCODE)$(Get-ActCraftAdbErreur)" }
     $null = Adb 60 shell monkey -p $Paquet -c android.intent.category.LAUNCHER 1
     Start-Sleep -Seconds 10
     $processus = "$(Adb 30 shell pidof $Paquet)".Trim()

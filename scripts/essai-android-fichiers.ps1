@@ -8,13 +8,21 @@
 # fichier, par son nom exact → « ACTCRAFT OUVERT <empreinte> ». Refuse de démarrer si un émulateur occupe déjà le port
 # de l'essai. Appels adb : scripts/android-commun.ps1.
 # Dernière ligne : « ANDROID FICHIERS OK » (0) ou « ANDROID FICHIERS EN ECHEC : <raison> » (1), même sur une erreur
-# imprévue. Sorties de diagnostic sous .tmp/ (fichiers-*.png, fichiers-*.xml, fichiers-logcat.txt). Ce que l'essai a
+# imprévue. Sorties de diagnostic sous le .tmp/ du dépôt du script, quel que soit le dossier courant (fichiers-*.png,
+# fichiers-*.xml, fichiers-logcat.txt). Ce que l'essai a
 # lancé (émulateur et ses descendants, qemu compris ; client et serveur adb) est arrêté par les processus qu'il tient,
 # jamais par nom ni par un PID relu, y compris sur Ctrl+C (bloc finally) ; un serveur adb que l'essai n'a pas lancé
 # n'est jamais arrêté.
 param([Parameter(Mandatory)][string]$Apk, [string]$Avd = '')
 $ErrorActionPreference = 'Stop'
-Set-Location (Join-Path $PSScriptRoot '..')
+# Chemins absolus, calculés depuis l'emplacement du script : adb et python écrivent un chemin relatif dans le dossier
+# courant du processus, que Set-Location ne change pas (lancé depuis un autre dossier, l'essai écrivait ses captures
+# hors du dépôt : rejeu de la revue, 2026-10-17). Un APK donné en relatif l'est par rapport au dossier d'appel.
+$Apk = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Apk)
+$racine = Split-Path -Parent $PSScriptRoot
+$tmp = Join-Path $racine '.tmp'
+$arbreUi = Join-Path $tmp 'fichiers-ui.xml'
+Set-Location $racine
 $paquet = 'io.github.jejeasterix.actcraft'
 # Port propre à l'essai : tout appel adb vise cet émulateur (ANDROID_SERIAL), jamais un autre appareil branché.
 $port = 5584
@@ -80,7 +88,7 @@ function Start-ActCraftEmulateur([string]$Avd) {
         $Avd = @(& $exe -list-avds | Where-Object { $_ -cmatch '^[\w.-]+$' }) | Select-Object -First 1
         if (-not $Avd) { Stop-Essai 'aucun AVD (emulator -list-avds)' }
     }
-    $journal = Join-Path (Get-Location) '.tmp/fichiers-emulateur.txt'
+    $journal = Join-Path $script:tmp 'fichiers-emulateur.txt'
     $script:lancementEmulateur = Get-Date
     $p = Start-Process -FilePath $exe -PassThru -NoNewWindow -WorkingDirectory (Split-Path $exe) `
         -RedirectStandardOutput $journal -RedirectStandardError "$journal.err" `
@@ -185,9 +193,9 @@ function Stop-ActCraftLances {
 function Stop-Essai([string]$raison) {
     if ($script:emulateur -and $script:ActCraftAdb) {
         try {
-            Adb 60 logcat -d | Set-Content -Encoding utf8 .tmp/fichiers-echec-logcat.txt
+            Adb 60 logcat -d | Set-Content -Encoding utf8 -LiteralPath (Join-Path $script:tmp 'fichiers-echec-logcat.txt')
             $null = Adb 60 shell screencap -p /sdcard/actcraft-echec.png
-            $null = Adb 60 pull /sdcard/actcraft-echec.png .tmp/fichiers-echec.png
+            $null = Adb 60 pull /sdcard/actcraft-echec.png (Join-Path $script:tmp 'fichiers-echec.png')
             $raison += ' (journal .tmp/fichiers-echec-logcat.txt, capture .tmp/fichiers-echec.png)'
         } catch { $null = $_ }
     }
@@ -218,12 +226,12 @@ function Invoke-AdbTour([string[]]$arguments, [int]$secondes = 30) {
 # trois fois au plus : toute attente qui relit l'arbre la traverse.
 function Read-ArbreUi {
     for ($boite = 0; $boite -le 3; $boite++) {
-        Remove-Item -ErrorAction SilentlyContinue .tmp/fichiers-ui.xml
+        Remove-Item -ErrorAction SilentlyContinue -LiteralPath $script:arbreUi
         $null = Invoke-AdbTour @('shell', 'rm', '-f', '/sdcard/actcraft-ui.xml')
         $null = Invoke-AdbTour @('shell', 'uiautomator', 'dump', '/sdcard/actcraft-ui.xml') 60
-        $null = Invoke-AdbTour @('pull', '/sdcard/actcraft-ui.xml', '.tmp/fichiers-ui.xml') 30
-        if (-not (Test-Path .tmp/fichiers-ui.xml)) { return $null }
-        try { $arbre = [xml](Get-Content -Raw -Encoding utf8 .tmp/fichiers-ui.xml) } catch { return $null }
+        $null = Invoke-AdbTour @('pull', '/sdcard/actcraft-ui.xml', $script:arbreUi) 30
+        if (-not (Test-Path -LiteralPath $script:arbreUi)) { return $null }
+        try { $arbre = [xml](Get-Content -Raw -Encoding utf8 -LiteralPath $script:arbreUi) } catch { return $null }
         $attendre = @($arbre.SelectNodes('//node')) | Where-Object { $_.'resource-id' -eq 'android:id/aerr_wait' } | Select-Object -First 1
         if (-not $attendre -or $boite -eq 3) { break }
         Write-Host "boîte « ne répond pas » du système écartée : $(@($arbre.SelectNodes('//node')) | Where-Object { $_.'resource-id' -eq 'android:id/alertTitle' } | ForEach-Object { $_.text })"
@@ -242,9 +250,9 @@ function Invoke-Tap($noeud) {
 # Arbre et capture de l'écran laissés sous .tmp/fichiers-<quoi>.xml|png ; rend le texte des chemins pour la raison.
 function Save-Diagnostic([string]$quoi) {
     $nom = "fichiers-$quoi"
-    if (Test-Path .tmp/fichiers-ui.xml) { Copy-Item .tmp/fichiers-ui.xml ".tmp/$nom.xml" -Force }
+    if (Test-Path -LiteralPath $script:arbreUi) { Copy-Item -LiteralPath $script:arbreUi (Join-Path $script:tmp "$nom.xml") -Force }
     $null = Invoke-Adb @('shell', 'screencap', '-p', '/sdcard/actcraft-ecran.png') 60
-    $null = Invoke-Adb @('pull', '/sdcard/actcraft-ecran.png', ".tmp/$nom.png") 60
+    $null = Invoke-Adb @('pull', '/sdcard/actcraft-ecran.png', (Join-Path $script:tmp "$nom.png")) 60
     return "arbre .tmp/$nom.xml, capture .tmp/$nom.png"
 }
 # Ouvre un sélecteur du système par un raccourci de l'application, puis touche le nœud voulu. Critères indépendants
@@ -412,7 +420,7 @@ function Compare-Empreintes([string]$enregistre, [string]$ouvert) {
 }
 
 try {
-    New-Item -ItemType Directory -Force .tmp | Out-Null
+    New-Item -ItemType Directory -Force $tmp | Out-Null
     . "$PSScriptRoot/dev-env-android.ps1"
     . "$PSScriptRoot/android-commun.ps1"
     Initialize-ActCraftAdb
@@ -445,15 +453,16 @@ try {
     # Un trait au doigt au milieu de la page (tablette 2560 × 1600, comme essai-android.ps1), contrôlé sur la capture :
     # un document vide s'enregistrerait et se relirait aussi à l'identique.
     # Glissement rejoué (trois fois au plus) s'il tombe pendant un changement de disposition (passage en plein écran).
+    $captureTrait = Join-Path $tmp 'fichiers-trait.png'
     for ($essai = 0; $essai -lt 3; $essai++) {
         Start-Sleep -Seconds 3
         $null = Invoke-AdbTour @('shell', 'input', 'swipe', '768', '800', '1408', '800', '600')
         Start-Sleep -Seconds 2
-        Remove-Item -ErrorAction SilentlyContinue .tmp/fichiers-trait.png # jamais la capture d'un passage précédent
+        Remove-Item -ErrorAction SilentlyContinue -LiteralPath $captureTrait # jamais la capture d'un passage précédent
         $null = Invoke-AdbTour @('shell', 'screencap', '-p', '/sdcard/actcraft-trait.png') 60
-        $null = Invoke-AdbTour @('pull', '/sdcard/actcraft-trait.png', '.tmp/fichiers-trait.png') 60
-        if (-not (Test-Path .tmp/fichiers-trait.png)) { $trait = @(); continue }
-        $trait = @("$(& $python -I scripts/lire-pixel.py .tmp/fichiers-trait.png 1088 800)".Trim().Split(' ') | ForEach-Object { [int]$_ })
+        $null = Invoke-AdbTour @('pull', '/sdcard/actcraft-trait.png', $captureTrait) 60
+        if (-not (Test-Path -LiteralPath $captureTrait)) { $trait = @(); continue }
+        $trait = @("$(& $python -I (Join-Path $PSScriptRoot 'lire-pixel.py') $captureTrait 1088 800)".Trim().Split(' ') | ForEach-Object { [int]$_ })
         Write-Output "trait : lu $($trait -join ' ')"
         if ($trait.Count -eq 3 -and $trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100) { break }
     }
@@ -492,7 +501,7 @@ try {
     Write-Output "fichier : $($ecrits[0].Chemin) (MediaStore id $($ecrits[0].Id))"
     # Journal vidé : la ligne OUVERT attendue ne peut venir que de l'ouverture qui suit.
     $null = Invoke-Adb @('logcat', '-c')
-    if ($LASTEXITCODE -ne 0) { Stop-Essai "adb logcat -c (code $LASTEXITCODE) : journal non vidé avant l'ouverture" }
+    if ($LASTEXITCODE -ne 0) { Stop-Essai "adb logcat -c (code $LASTEXITCODE) : journal non vidé avant l'ouverture$(Get-ActCraftAdbErreur)" }
 
     $null = Invoke-Adb @('shell', 'input', 'keycombination', '113', '51') # Ctrl+W
     Start-Sleep -Seconds 2
@@ -503,7 +512,7 @@ try {
     $ouvert = Wait-Journal 'ACTCRAFT OUVERT [0-9a-f]{16}'
     if (-not $ouvert) { Stop-Essai 'aucune ligne ACTCRAFT OUVERT' }
     Write-Output $ouvert
-    Invoke-Adb @('logcat', '-d') | Set-Content -Encoding utf8 .tmp/fichiers-logcat.txt
+    Invoke-Adb @('logcat', '-d') | Set-Content -Encoding utf8 -LiteralPath (Join-Path $tmp 'fichiers-logcat.txt')
 
     $echec = Compare-Empreintes $enregistre $ouvert
     if ($echec) { Stop-Essai $echec }
