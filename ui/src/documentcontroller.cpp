@@ -38,6 +38,12 @@ namespace {
 
 Q_STATIC_LOGGING_CATEGORY(lcDocument, "actcraft.document", QtInfoMsg)
 
+// Empreinte en 16 chiffres hexadécimaux (journal, propriété `fingerprint`).
+QString fingerprintHex(std::uint64_t fingerprint)
+{
+    return QStringLiteral("%1").arg(fingerprint, 16, 16, QLatin1Char('0'));
+}
+
 QString untitled()
 {
     return QStringLiteral("Sans titre"); // F-656
@@ -127,7 +133,7 @@ QUrl DocumentController::fileUrl() const
 
 QString DocumentController::fingerprintText() const
 {
-    return QStringLiteral("%1").arg(core::fingerprint(m_document), 16, 16, QLatin1Char('0'));
+    return fingerprintHex(core::fingerprint(m_document));
 }
 
 bool DocumentController::canUndo() const noexcept
@@ -484,8 +490,7 @@ void DocumentController::openUrl(const QUrl& url)
                                  outcome->title);
             self.setWarnings(outcome->warnings); // après replaceDocument, qui les efface
             // Empreinte calculée par la lecture, hors du fil principal : celle du document affiché.
-            qCInfo(lcDocument, "ACTCRAFT OUVERT %s",
-                   qPrintable(QStringLiteral("%1").arg(outcome->fingerprint, 16, 16, QLatin1Char('0'))));
+            qCInfo(lcDocument, "ACTCRAFT OUVERT %s", qPrintable(fingerprintHex(outcome->fingerprint)));
             emit self.loadFinished(true, QString());
         });
     });
@@ -553,8 +558,7 @@ void DocumentController::saveToUrl(const QUrl& url)
                 }
                 self.updateModified(); // le document n'a pas changé : ni documentChanged, ni undoChanged
             }
-            qCInfo(lcDocument, "ACTCRAFT ENREGISTRE %s",
-                   qPrintable(QStringLiteral("%1").arg(outcome.fingerprint, 16, 16, QLatin1Char('0'))));
+            qCInfo(lcDocument, "ACTCRAFT ENREGISTRE %s", qPrintable(fingerprintHex(outcome.fingerprint)));
             emit self.saveFinished(true, QString());
         });
     });
