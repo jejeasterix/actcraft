@@ -5,7 +5,9 @@
 # Émulateur : -gpu host en local ; -gpu lavapipe sur un exécuteur sans GPU (CI) — SwiftShader rend faux (voir
 # docs/verifications/2026-10-14-outillage-paquets.md, VERIF s3-rendu et s3-ci).
 # Dernière ligne et code : « ANDROID OK » (0) ou « ANDROID EN ECHEC : <raison> » (1), même sur une erreur imprévue ;
-# chaque commande adb a un délai (au-delà : échec, processus adb arrêté).
+# chaque commande adb a un délai (au-delà : échec, processus adb arrêté). Appel borné d'adb, attente du démarrage,
+# installation et lancement : scripts/android-commun.ps1 (partagé avec essai-android-fichiers.ps1).
+# Ce script ne démarre pas l'émulateur : un appareil est déjà là (en CI, android-emulator-runner le démarre).
 param([Parameter(Mandatory)][string]$Apk, [string]$Sortie = '.tmp/android')
 $ErrorActionPreference = 'Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
@@ -16,28 +18,6 @@ $python = if (-not $IsWindows -and (Get-Command python3 -ErrorAction SilentlyCon
 function Echec([string]$Raison) {
     Write-Output "ANDROID EN ECHEC : $Raison"
     exit 1
-}
-# Adb <secondes> <arguments…> : lignes de la sortie standard, $LASTEXITCODE positionné. Au-delà du délai, l'arbre du
-# processus adb est arrêté et l'essai échoue. Fonction simple ($args) : « -p », « -r »… restent des arguments d'adb.
-function Adb {
-    $secondes = [int]$args[0]
-    $arguments = @($args | Select-Object -Skip 1 | ForEach-Object { "$_" })
-    $info = [Diagnostics.ProcessStartInfo]::new($script:adb)
-    foreach ($a in $arguments) { $info.ArgumentList.Add($a) }
-    $info.UseShellExecute = $false
-    $info.RedirectStandardOutput = $true
-    $info.RedirectStandardError = $true
-    $info.StandardOutputEncoding = [Text.Encoding]::UTF8
-    $p = [Diagnostics.Process]::Start($info)
-    $sortie = $p.StandardOutput.ReadToEndAsync()
-    $null = $p.StandardError.ReadToEndAsync()
-    if (-not $p.WaitForExit($secondes * 1000)) {
-        try { $p.Kill($true) } catch { $null = $_ }
-        Echec "adb $(($arguments | Select-Object -First 2) -join ' ') sans réponse ($secondes s)"
-    }
-    $p.WaitForExit()
-    $global:LASTEXITCODE = $p.ExitCode
-    return @($sortie.Result -split '\r?\n' | Where-Object { $_ -ne '' })
 }
 function Pixel([string]$Capture, [int]$X, [int]$Y) {
     $texte = & $python -I scripts/lire-pixel.py $Capture $X $Y
@@ -57,21 +37,9 @@ function Capture([string]$Nom) {
     return $fichier
 }
 
-function Ecarter-Anr {
-    for ($essai = 0; $essai -lt 3; $essai++) {
-        if ("$(Adb 30 shell dumpsys window | Select-String 'mCurrentFocus')" -notmatch 'Application Not Responding') { break }
-        $null = Adb 60 shell uiautomator dump /sdcard/ui.xml
-        $xml = "$(Adb 30 shell cat /sdcard/ui.xml)"
-        if ($xml -match 'text="Wait"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"') {
-            $null = Adb 30 shell input tap ([int](([int]$Matches[1] + [int]$Matches[3]) / 2)) ([int](([int]$Matches[2] + [int]$Matches[4]) / 2))
-        }
-        Start-Sleep -Seconds 3
-    }
-}
-
 try {
-$script:adb = (Get-Command adb -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
-if (-not $script:adb) { Echec 'adb introuvable dans le PATH' }
+. "$PSScriptRoot/android-commun.ps1"
+Initialize-ActCraftAdb
 if (-not (Test-Path -LiteralPath $Apk)) { Echec "APK introuvable : $Apk" }
 
 # Repère : couleur de la palette, lue dans le thème (décision 23).
@@ -82,29 +50,9 @@ $fondPalette = @([Convert]::ToInt32($hex.Substring(0, 2), 16), [Convert]::ToInt3
     [Convert]::ToInt32($hex.Substring(4, 2), 16))
 
 New-Item -ItemType Directory -Force $Sortie | Out-Null
-# Attente bornée (6 min) : « adb get-state » répond tout de suite, contrairement à « adb wait-for-device ».
-$limite = (Get-Date).AddMinutes(6)
-while ("$(Adb 15 get-state)".Trim() -ne 'device') {
-    if ((Get-Date) -gt $limite) { Echec 'aucun appareil adb après 6 min' }
-    Start-Sleep -Seconds 2
-}
-while ("$(Adb 15 shell getprop sys.boot_completed)".Trim() -ne '1') {
-    if ((Get-Date) -gt $limite) { Echec 'émulateur non démarré après 6 min' }
-    Start-Sleep -Seconds 2
-}
-$null = Adb 30 shell input keyevent 82 # déverrouille l'écran
-# Un émulateur tout juste démarré est saturé (charge > 20) : on attend qu'il se calme, puis on écarte une boîte
-# « Application Not Responding » éventuelle du système (bouton « Wait », repéré par uiautomator).
-$limite = (Get-Date).AddMinutes(6)
-while ([double]("$(Adb 15 shell cat /proc/loadavg)".Trim().Split(' ')[0]) -gt 4 -and (Get-Date) -lt $limite) { Start-Sleep -Seconds 5 }
+Wait-ActCraftDemarrage
 Ecarter-Anr
-Adb 240 install -r (Resolve-Path -LiteralPath $Apk).Path | ForEach-Object { Write-Output "install : $_" }
-if ($LASTEXITCODE -ne 0) { Echec 'adb install' }
-$null = Adb 30 logcat -c
-$null = Adb 60 shell monkey -p $paquet -c android.intent.category.LAUNCHER 1
-Start-Sleep -Seconds 10
-$processus = "$(Adb 30 shell pidof $paquet)".Trim()
-if (-not $processus) { Echec 'processus absent 10 s après le lancement' }
+$processus = Install-ActCraftApk -Apk $Apk -Paquet $paquet
 Write-Output "processus : $processus"
 
 # Journal : l'application ne doit avoir ni plantage fatal ni SecurityException (permissions retirées, L1-T17).
@@ -159,6 +107,12 @@ Write-Output "trait : lu $($trait -join ' ')"
 if (-not ($trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100)) { Echec 'trait absent après le glissement' }
 if ("$(Adb 30 shell pidof $paquet)".Trim() -ne $processus) { Echec 'le processus a redémarré ou s''est arrêté' }
 } catch {
+    # Refus du module commun : sa raison telle quelle (mêmes messages qu'avant l'extraction) ; le reste est imprévu,
+    # y compris un module introuvable.
+    if (Get-Command Get-ActCraftAndroidRaison -ErrorAction SilentlyContinue) {
+        $raison = Get-ActCraftAndroidRaison $_
+        if ($raison) { Echec $raison }
+    }
     Echec "erreur imprévue : $($_.Exception.Message) (ligne $($_.InvocationInfo.ScriptLineNumber))"
 }
 Write-Output 'ANDROID OK'
