@@ -7,7 +7,6 @@
 #include <QJsonObject>
 #include <QSet>
 
-#include <map>
 #include <miniz.h>
 #include <optional>
 #include <set>
@@ -323,22 +322,24 @@ DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limi
         result.error = u"document.json illisible : un objet JSON est attendu"_s;
         return result;
     }
-    std::map<std::string, Extracted> refused;        // ressources présentes mais refusées, et pourquoi
     std::set<std::string> consumed{"document.json"}; // entrées du format que cette version a cherché à lire
+    // La cause d'un refus est rendue typée : documentFromJson rédige l'avertissement (L2-C9).
     const JsonReadResult read = documentFromJson(
         doc.object(),
-        [&zip, &refused, &consumed](const std::string& key,
-                                    const std::string& extension) -> std::optional<QByteArray> {
+        [&zip, &consumed](const std::string& key, const std::string& extension) -> LoadedResource {
             QByteArray data;
             consumed.insert(resourceEntry(key, extension));
-            const Extracted status = zip.extract(resourceEntry(key, extension), data);
-            if (status != Extracted::Ok) {
-                if (status != Extracted::Absent) {
-                    refused[key] = status;
-                }
-                return std::nullopt;
+            switch (zip.extract(resourceEntry(key, extension), data)) {
+            case Extracted::Ok:
+                return data;
+            case Extracted::Absent:
+                return ResourceFailure::Absent;
+            case Extracted::TooBig:
+                return ResourceFailure::TooBig;
+            case Extracted::Invalid:
+                break;
             }
-            return data;
+            return ResourceFailure::Corrupt;
         },
         result.document);
     if (!read.ok) {
@@ -346,24 +347,6 @@ DecodeResult decodeActcraft(const QByteArray& archive, const ArchiveLimits& limi
         return result;
     }
     result.warnings = read.warnings;
-    // documentFromJson dit « absente » de toute ressource que le chargeur ne rend pas : la vraie cause la
-    // remplace.
-    for (const auto& [key, status] : refused) {
-        const QString absent = u"ressource %1 absente, écartée"_s.arg(QString::fromStdString(key));
-        const QString cause =
-            u"ressource %1 %2, écartée"_s.arg(QString::fromStdString(key), describe(status));
-        bool replaced = false;
-        for (QString& warning : result.warnings) {
-            if (warning.endsWith(absent)) {
-                warning.replace(warning.size() - absent.size(), absent.size(), cause);
-                replaced = true;
-                break;
-            }
-        }
-        if (!replaced) {
-            result.warnings << cause;
-        }
-    }
     // Miniatures des pages : connues dans tous les cas ; extraites seulement si l'appelant les veut (L2-C9).
     for (std::size_t i = 0; i < result.document.pageCount(); ++i) {
         consumed.insert(thumbnailEntry(i));

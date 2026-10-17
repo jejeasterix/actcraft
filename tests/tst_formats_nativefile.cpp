@@ -295,6 +295,23 @@ private slots:
         QVERIFY2(warnings.contains(u"page 2 trop volumineuse"_s), qPrintable(warnings));
     }
 
+    // L2-C9, constat 7 : une ressource refusée par l'archive a UN avertissement, qui dit la cause. Avant, le
+    // lecteur cherchait le texte « absente » de documentFromJson pour le remplacer : un libellé changé là-bas
+    // laissait deux avertissements (le libellé changé, et la cause ajoutée).
+    void refusedResourceHasOneWarningWithItsCause()
+    {
+        const core::Document rich = richdoc::richDocument();
+        const QByteArray archive = formats::encodeActcraft(rich, {});
+        const formats::DecodeResult r = formats::decodeActcraft(archive, jsonOf(rich).size() + 1);
+        QVERIFY2(r.ok, qPrintable(r.error));
+        for (const auto& [key, resource] : rich.resources()) {
+            const QString k = QString::fromStdString(key);
+            const QStringList about = r.warnings.filter(k);
+            QCOMPARE(about.size(), 1);
+            QVERIFY2(about.first().contains(u"trop volumineuse"_s), qPrintable(about.first()));
+        }
+    }
+
     void refusedResourceSaysWhy()
     {
         // Ressource au CRC faux : l'avertissement dit « illisible », pas « absente ».
