@@ -17,7 +17,6 @@
 #include <QQmlComponent>
 #include <QQuickItem>
 #include <QQuickWindow>
-#include <QScopeGuard>
 #include <QScreen>
 #include <QSemaphore>
 #include <QSignalSpy>
@@ -160,6 +159,13 @@ QByteArray fileBytes(const QString& path)
     return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray();
 }
 
+// Nombre de pages du paperboard natif écrit en `path` (0 s'il ne se relit pas).
+std::size_t pagesIn(const QString& path)
+{
+    const formats::DecodeResult r = formats::decodeActcraft(fileBytes(path));
+    return r.ok ? r.document.pageCount() : 0;
+}
+
 // Paperboard natif de deux pages, écrit sur le fil du test.
 bool writeTwoPages(const QString& path)
 {
@@ -298,29 +304,21 @@ private slots:
         QVERIFY(start(s));
         auto* doc = controller(s);
         QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("cours.actcraft"));
         QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
-        QVERIFY(run(s, QStringLiteral("file.save-as"), dir.filePath(QStringLiteral("cours.actcraft"))));
+        QVERIFY(run(s, QStringLiteral("file.save-as"), path));
         QVERIFY(saved.wait(10000));
         QVERIFY(!doc->isModified());
         QVERIFY(run(s, QStringLiteral("page.next")));
         QVERIFY(doc->isModified());
-        // Fils du pool global tenus : l'enregistrement lancé reste en cours tant que le test ne les rend pas.
-        const int threads = QThreadPool::globalInstance()->maxThreadCount();
-        auto started = std::make_shared<QSemaphore>();
-        auto gate = std::make_shared<QSemaphore>();
-        for (int i = 0; i < threads; ++i) {
-            QThreadPool::globalInstance()->start([started, gate] {
-                started->release();
-                gate->acquire();
-            });
-        }
-        const auto releasePool = qScopeGuard([gate, threads] {
-            gate->release(threads);
-            QThreadPool::globalInstance()->waitForDone(60000);
-        });
-        QVERIFY(started->tryAcquire(threads, 60000));
-        QVERIFY(run(s, QStringLiteral("file.save")));
+        PoolHold pool; // l'enregistrement lancé reste en cours tant que le test ne rend pas les fils
+        QVERIFY(pool.held());
+        QVERIFY(run(s, QStringLiteral("file.save"))); // écrit 2 pages
         QVERIFY(doc->isBusy());
+        // Revue de L2-C9, mineur 2 : une page de plus PENDANT l'écriture. Seul un second enregistrement
+        // l'écrit : une version qui quitterait après le premier laisserait 2 pages dans le fichier.
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QCOMPARE(doc->pageCount(), 3);
         QVERIFY(run(s, QStringLiteral("file.quit")));
         QObject* ask = namedObject(s, "saveChangesDialog");
         QVERIFY(ask);
@@ -330,9 +328,10 @@ private slots:
         QVERIFY(actions);
         QTest::qWait(50);                                 // un refus serait livré ici, en file
         QVERIFY(!actions->property("quitting").toBool()); // pas avant la fin des enregistrements
-        gate->release(threads);
+        pool.release();
         QTRY_VERIFY_WITH_TIMEOUT(actions->property("quitting").toBool(), 20000);
-        QVERIFY(!doc->isModified()); // le second enregistrement a écrit l'écran
+        QCOMPARE(pagesIn(path), std::size_t{3}); // le second enregistrement a écrit l'écran
+        QVERIFY(!doc->isModified());
         QVERIFY(doc->lastError().isEmpty());
     }
 
