@@ -81,6 +81,8 @@ actcraft_add_module(benchui
     DEPENDS
         ActCraft::bench ActCraft::formats)
 target_link_libraries(actcraft_benchui PRIVATE Qt6::Test Qt6::GuiPrivate)
+# Fixture « flipchart-synthetique » (L2-T21) : paperboard de notre écrivain de tests, jamais un fichier réel.
+target_include_directories(actcraft_benchui PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
 
 # Captures et scénarios d'interface (DA8) : outil de preuve, jamais livré.
 qt_add_executable(actcraft-captures
@@ -92,8 +94,12 @@ target_link_libraries(actcraft-captures PRIVATE ActCraft::benchui ActCraft::ui a
 actcraft_set_warnings(actcraft-captures)
 set_target_properties(actcraft-captures PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# Export canonique d'un .flipchart (oracle du lecteur, décision 19) : outil de preuve, jamais livré.
+# Export canonique d'un .flipchart (oracle du lecteur, décision 19) et miniatures comparées aux .thm (S4,
+# L2-T21) : outil de preuve, jamais livré. Peintre partagé (render) ; écrivain synthétique des tests.
 qt_add_executable(actcraft-flipchart-dump flipchart/main.cpp)
-target_link_libraries(actcraft-flipchart-dump PRIVATE ActCraft::formats Qt6::Core)
+target_link_libraries(actcraft-flipchart-dump PRIVATE ActCraft::formats ActCraft::render Qt6::Gui)
+target_include_directories(actcraft-flipchart-dump PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
+# Racine du dépôt : --comparaisons n'écrit que sous .tmp/ ou build/ (PNG des vraies miniatures).
+target_compile_definitions(actcraft-flipchart-dump PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 actcraft_set_warnings(actcraft-flipchart-dump)
 set_target_properties(actcraft-flipchart-dump PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

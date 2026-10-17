@@ -282,7 +282,8 @@ void paintShape(QPainter& p, const core::Shape& s)
 void paintImage(QPainter& p, const core::ImageObject& im, const ImageLookup& images)
 {
     const QRectF rect = rectOf(im.bounds);
-    QImage image = im.resource.empty() ? synthesizeImage(im) : (images ? images(im.resource) : QImage());
+    QImage image = withoutColorTable(im.resource.empty() ? synthesizeImage(im)
+                                                         : (images ? images(im.resource) : QImage()));
     if (image.isNull()) {
         p.fillRect(rect, QColor(255, 0, 255, 60)); // repère d'image illisible, comme la référence
         return;
@@ -341,7 +342,8 @@ void paintText(QPainter& p, const core::Text& t)
 void paintMedia(QPainter& p, const core::Media& m, const ImageLookup& images)
 {
     const QRectF rect = rectOf(m.bounds);
-    const QImage placeholder = m.placeholder.empty() || !images ? QImage() : images(m.placeholder);
+    const QImage placeholder =
+        withoutColorTable(m.placeholder.empty() || !images ? QImage() : images(m.placeholder));
     if (!placeholder.isNull()) {
         p.drawImage(rect, placeholder);
         return;
@@ -596,7 +598,8 @@ DecodedImages decodeImages(const core::Document& document, int maxSide)
                     size.scaled(maxSide, maxSide, Qt::KeepAspectRatio).expandedTo(QSize(1, 1)));
             }
         }
-        QImage image = reader.read();
+        // Réduite par le lecteur (maxSide), une image indexée est déjà convertie par Qt, table complétée.
+        QImage image = withoutColorTable(reader.read());
         if (!image.isNull()) {
             out.insert(key, std::move(image));
         }
@@ -652,7 +655,7 @@ void paintBackground(QPainter& p, const core::Page& page, const ImageLookup& ima
         p.fillRect(rect, brushOf(page.background.fill, rect));
     }
     if (!page.background.image.empty() && images) {
-        const QImage image = images(page.background.image);
+        const QImage image = withoutColorTable(images(page.background.image));
         if (!image.isNull()) {
             p.save();
             p.setRenderHint(QPainter::SmoothPixmapTransform, true);

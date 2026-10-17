@@ -1,8 +1,11 @@
 # Preuve visuelle (DA8, décision 36) : joue des scénarios d'interface et écrit captures PNG et index.md.
 # Usage : pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario <nom>|tous [-Rendu d3d11|logiciel] [-HorsEcran]
 #         -Sortie <dossier> [-Lire "<objet>.<propriété>=<attendu>[;…]"] [-Taille LxH|plein-ecran]
-#         [-Preset debug|release] [-SansConstruire]
-# Scénarios : bench/scenarios/<nom>.json. Sorties sous .tmp/ ou build/, jamais commitées.
+#         [-Preset debug|release] [-SansConstruire] [-Ouvrir <fichier>]
+# Scénarios : bench/scenarios/<nom>.json ; « tous » ne prend pas ceux de bench/scenarios/local/ (paperboards du
+# poste : -Scenario local/<nom>). Sorties sous .tmp/ ou build/, jamais commitées.
+# -Ouvrir <fichier> : la fenêtre s'ouvre sur ce fichier (--ouvrir d'actcraft-captures, lu au lancement comme par
+# actcraft.exe) ; un paperboard réel est lu en place, jamais copié.
 # Dernière ligne et code : « CAPTURES OK » (0) ou « CAPTURES EN ECHEC : <raison> » (1), y compris sur une
 # erreur imprévue et quand aucun scénario n'est trouvé.
 param(
@@ -13,7 +16,8 @@ param(
     [string]$Lire = '',
     [string]$Taille = '1280x800',
     [ValidateSet('debug', 'release')][string]$Preset = 'debug',
-    [switch]$SansConstruire
+    [switch]$SansConstruire,
+    [string]$Ouvrir = ''
 )
 $ErrorActionPreference = 'Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
@@ -59,6 +63,7 @@ try {
         $dossier = Join-Path $racine "$($f.BaseName)-$Rendu"
         $arguments = @('--scenario', $f.FullName, '--rendu', $Rendu, '--taille', $Taille, '--sortie', $dossier)
         foreach ($l in $lectures) { $arguments += @('--lire', $l) }
+        if ($Ouvrir) { $arguments += @('--ouvrir', $Ouvrir) }
         & $exe @arguments
         if ($LASTEXITCODE -ne 0) { $echecs++ }
     }

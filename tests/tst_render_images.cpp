@@ -1,3 +1,4 @@
+#include "support/indexedimage.h"
 #include "support/renderhost.h"
 
 #include <actcraft/core/document.h>
@@ -157,6 +158,42 @@ private slots:
         QCOMPARE(cut.pixelColor(1, 1), QColor(Qt::red));
         QVERIFY(render::ImageStore::variantKey(masked) != render::ImageStore::variantKey(plain));
         QCOMPARE(store.imageCount(), std::size_t{0}); // aucune image procédurale
+    }
+
+    // L2-C7 : une ressource indexée est rendue sans table (même règle que le peintre partagé : rien à lire
+    // hors de la table), ses couleurs intactes, et sa variante à couleur transparente se calcule sur l'image
+    // convertie, même quand la couleur n'est pas dans la table.
+    void indexedResourceHasNoColorTable()
+    {
+        QImage source = indexedtest::indexedImage(4, 4, 2, 0, 0);
+        source.setColor(1, qRgb(255, 255, 255));
+        source.scanLine(1)[1] = 1; // blanc
+        core::Document document;
+        const std::string key = document.addResource(indexedtest::indexedPng(source), "png");
+        core::ImageObject plain;
+        plain.bounds = {0, 0, 4, 4};
+        plain.resource = key;
+        core::ImageObject white = plain;
+        white.hasKeyColor = true;
+        white.keyColor = 0xFFFFFFFFu;
+        core::ImageObject green = plain;
+        green.hasKeyColor = true;
+        green.keyColor = 0xFF00FF00u; // absent de la table
+        core::Page page;
+        page.objects.emplace_back(plain);
+        page.objects.emplace_back(white);
+        page.objects.emplace_back(green);
+        render::ImageStore store;
+        QSignalSpy ready(&store, &render::ImageStore::ready);
+        store.generate(page, &document);
+        QVERIFY(ready.wait(5000));
+        const QImage image = store.objectImage(plain, 0);
+        QCOMPARE(image.colorCount(), 0);
+        QCOMPARE(image.pixelColor(0, 0), QColor(Qt::red));
+        QCOMPARE(image.pixelColor(1, 1), QColor(Qt::white));
+        QCOMPARE(store.objectImage(white, 1).pixelColor(1, 1).alpha(), 0);
+        QCOMPARE(store.objectImage(white, 1).pixelColor(0, 0), QColor(Qt::red));
+        QCOMPARE(store.objectImage(green, 2).pixelColor(1, 1), QColor(Qt::white));
     }
 
     void placeholderAndBackgroundAreDecoded()

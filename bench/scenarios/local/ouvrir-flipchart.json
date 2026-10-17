@@ -1,0 +1,21 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "ouvrir-flipchart",
+  "description": "S4 en local : la fenêtre est lancée sur un paperboard réel de trois pages (captures.ps1 -Ouvrir, jamais un nom de fichier ici) ; l'ouverture finit sans erreur, l'indicateur montre « 1 / 3 », chaque page est capturée.",
+  "steps": [
+    {"waitReady": true},
+    {"waitFor": "documentController.busy", "value": false},
+    {"expect": "documentController.lastError", "value": ""},
+    {"expect": "pageIndicator.text", "value": "1 / 3"},
+    {"waitReady": true},
+    {"capture": "page-1"},
+    {"command": "page.next"},
+    {"waitReady": true},
+    {"expect": "pageIndicator.text", "value": "2 / 3"},
+    {"capture": "page-2"},
+    {"command": "page.next"},
+    {"waitReady": true},
+    {"expect": "pageIndicator.text", "value": "3 / 3"},
+    {"capture": "page-3"}
+  ]
+}
