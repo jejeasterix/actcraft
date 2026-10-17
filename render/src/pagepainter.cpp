@@ -295,8 +295,9 @@ void paintShape(QPainter& p, const core::Shape& s)
 void paintImage(QPainter& p, const core::ImageObject& im, const ImageLookup& images)
 {
     const QRectF rect = rectOf(im.bounds);
-    QImage image = withoutColorTable(im.resource.empty() ? synthesizeImage(im)
-                                                         : (images ? images(im.resource) : QImage()));
+    // L'image procédurale est déjà en ARGB32 prémultiplié : seule celle cherchée par clé peut être indexée.
+    QImage image = im.resource.empty() ? synthesizeImage(im)
+                                       : withoutColorTable(images ? images(im.resource) : QImage());
     if (image.isNull()) {
         p.fillRect(rect, QColor(255, 0, 255, 60)); // repère d'image illisible, comme la référence
         return;
