@@ -1,3 +1,4 @@
+#include <actcraft/render/imagecolor.h>
 #include <actcraft/render/imagestore.h>
 #include <actcraft/render/imagesynth.h>
 

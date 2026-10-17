@@ -1,3 +1,4 @@
+#include <actcraft/render/imagecolor.h>
 #include <actcraft/render/imagesynth.h>
 #include <actcraft/render/objectrenderer.h>
 #include <actcraft/render/pagepainter.h>
