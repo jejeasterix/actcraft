@@ -145,6 +145,9 @@ CI verte · releases publiées seulement sur go écrit de Jérôme (action final
 - Outillage commun (hors dépôt, à proposer) : `jeton.ps1` (`depuis` = début d'attente ; file équitable), `paquet-android` (`--no-daemon`, dossier `jdk.net.unixdomain.tmpdir`).
 **Hors périmètre / reliquats** — voir « Hors périmètre » et les min. consignés par tâche.
 
+## PR du lot 2
+PR #4 https://github.com/jejeasterix/actcraft/pull/4 (branche poussée à b2bf681). Point de retour : origin/main = 3de027a. Profil : porte avant merge non, CI couverte par la suite complète non → merge seulement sur CI verte (5 jobs, dont macOS Clang : L2-C8 jamais compilé par Clang). Conditions écrites : double relecture faite, 0 bloquant ouvert · 0 tâche bloquée · suites release 91/91 et debug 91/91 (référence lot 1 : 44/44) · aucun test retiré ni QSKIP hors plan (3 tests locaux sautés en CI, joués localement : Passed) · S1, S3, S4, S5, S31 joués et réussis · CLI : sans objet · PI : 17 noms de `samples/` absents du dépôt et de `graphify-out/`, aucun binaire ajouté. Auto-fix de l'app actif sur la PR. CI : en cours.
+
 ## PR du lot 1
 PR #3 https://github.com/jejeasterix/actcraft/pull/3 (branche poussée à ab07504, README à jour). Point de retour : origin/main = 175b336. Conditions du merge : double relecture faite, 0 bloquant ouvert · 0 tâche bloquée · suite complète release 44/44 + debug 44/44 (référence 29/29) · aucun test retiré ni QSKIP · S1, S2, S3 joués et réussis · CLI : sans objet · CI de la PR : run 38732546016 vert (format, build windows, build macos, paquet-windows, android). Contrôle de PI avant push : aucun binaire ajouté, mentions toutes écrites par nous. **Mergée** le 2026-10-15 : `3de027a` sur main ; main locale avancée (`pull --ff-only` dans le dossier principal). CI de main après merge : suivie avant toute release.
 
