@@ -110,7 +110,7 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
         const QByteArray bytes =
             resources->resource(key)->data; // partagée implicitement : copie sûre entre fils
         m_pool.start([this, generation, owner, key, variants, bytes] {
-            const QImage decoded = QImage::fromData(bytes);
+            const QImage decoded = withoutColorTable(QImage::fromData(bytes)); // L2-C7
             const bool off = QThread::currentThread() != owner;
             std::vector<std::pair<std::string, QImage>> out{{key, decoded}};
             for (const std::optional<core::Argb>& color : variants) {

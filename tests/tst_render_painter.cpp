@@ -1,3 +1,5 @@
+#include "support/indexedimage.h"
+
 #include <actcraft/core/document.h>
 #include <actcraft/render/pagepainter.h>
 #include <actcraft/render/painternode.h>
@@ -43,6 +45,26 @@ core::PageObject square(double x, double y, double size, core::Argb fill)
 }
 
 const render::ImageLookup kNoImages = [](const std::string&) { return QImage(); };
+
+// L2-C7 : objet d'image indexée comme dans un paperboard réel (225 × 225 px, 228 octets par ligne, table
+// de 131 couleurs, aucune couleur transparente), peint en miniature (échelle 0,3125) agrandi puis
+// déplacé. Le peintre de Qt, en réduction lissée, lit l'octet de bourrage qui suit la dernière colonne,
+// que le décodeur n'écrit jamais : un index hors de la table (0xCD = 205 dans le tas de debug de MSVC),
+// d'où l'assertion de QList::at en debug et une lecture hors bornes en release.
+core::Page realIndexedImagePage(const std::string& key)
+{
+    core::ImageObject im;
+    im.bounds = {0, 0, 225, 225};
+    im.resource = key;
+    core::PageObject o = im;
+    o.common.transform.m11 = 1.9944625154476667;
+    o.common.transform.m22 = 1.8570267899391313;
+    o.common.transform.dx = 303.5542635658914;
+    o.common.transform.dy = 376.83869421646625;
+    core::Page page;
+    page.objects.push_back(o);
+    return page;
+}
 
 int countPixels(const QImage& image, const QRect& area, const std::function<bool(QColor)>& match)
 {
@@ -641,6 +663,78 @@ private slots:
         QCOMPARE(small.find(key).size(), QSize(100, 50));
         QVERIFY(near(small.find(key).pixelColor(50, 25), Qt::blue, 2));
         QCOMPARE(render::decodeImages(document, 1000).find(key).size(), QSize(400, 200)); // jamais agrandie
+    }
+
+    // Même chemin qu'un paperboard ouvert : PNG à palette écrit par nous -> decodeImages -> renderPage. Le
+    // lecteur PNG de Qt ramène à 0 un index hors table dans la largeur (vu : 200 -> 0) ; reste l'octet de
+    // bourrage, non initialisé.
+    void indexedImageOfAPaperboardNeverReadsOutsideItsTable()
+    {
+        const QImage source = indexedtest::indexedImage(225, 225, 131, 0, 0);
+        const QByteArray png = indexedtest::indexedPng(source);
+        const QImage raw = QImage::fromData(png); // précondition : le lecteur de Qt garde l'image indexée
+        QCOMPARE(raw.format(), QImage::Format_Indexed8);
+        QCOMPARE(raw.colorCount(), 131);
+        QCOMPARE(raw.bytesPerLine(), qsizetype{228});
+        core::Document document;
+        const std::string key = document.addResource(png, "png");
+        const render::DecodedImages images = render::decodeImages(document);
+        const QImage image = render::renderPage(realIndexedImagePage(key), images.lookup(), 0.3125);
+        QVERIFY(near(image.pixelColor(165, 160), Qt::red, 30));
+        const QImage decoded = images.find(key);
+        QCOMPARE(decoded.colorCount(), 0); // plus aucune table à lire
+        QCOMPARE(decoded.pixel(0, 0), qRgb(255, 0, 0));
+    }
+
+    // Le même octet de bourrage, posé hors de la table par le test (déterministe en debug comme en release),
+    // sur une image donnée au peintre sans passer par decodeImages : le garde est aussi au dessin.
+    void paddingOfAnIndexedImageIsNeverReadAsAColor()
+    {
+        render::DecodedImages images;
+        images.insert("indexee", indexedtest::indexedImage(225, 225, 131, 0, 205));
+        const QImage image = render::renderPage(realIndexedImagePage("indexee"), images.lookup(), 0.3125);
+        QVERIFY(near(image.pixelColor(165, 160), Qt::red, 30));
+    }
+
+    // Table vide, couleur transparente absente de la table, espace réservé d'un média, image de fond : aucune
+    // lecture hors de la table, et tout index sans couleur donne un pixel transparent (L2-C7).
+    void everyPaintedIndexedImageStaysInsideItsTable()
+    {
+        QImage outside = indexedtest::indexedImage(4, 4, 2, 0, 0);
+        outside.scanLine(0)[0] = 9; // hors de la table de 2 couleurs
+        render::DecodedImages images;
+        images.insert("hors", outside);
+        images.insert("vide", indexedtest::indexedImage(4, 4, 0, 7, 7));
+        const auto paint = [&images](core::Page page) {
+            page.width = 40;
+            page.height = 40;
+            page.background.fill = core::solidFill(0xFF0000FFu);
+            return render::renderPage(page, images.lookup(), 1.0);
+        };
+        core::ImageObject empty;
+        empty.bounds = {0, 0, 40, 40};
+        empty.resource = "vide";
+        core::Page withEmpty;
+        withEmpty.objects.push_back(empty);
+        QVERIFY(near(paint(withEmpty).pixelColor(20, 20), Qt::blue, 30));
+        core::ImageObject keyed = empty;
+        keyed.resource = "hors";
+        keyed.hasKeyColor = true;
+        keyed.keyColor = 0xFF00FF00u; // vert : absent de la table
+        core::Media media;
+        media.bounds = {0, 0, 40, 40};
+        media.placeholder = "hors";
+        core::Page withKeyed;
+        withKeyed.objects.push_back(keyed);
+        core::Page withMedia;
+        withMedia.objects.push_back(media);
+        core::Page withBackground;
+        withBackground.background.image = "hors";
+        for (const core::Page& page : {withKeyed, withMedia, withBackground}) {
+            const QImage image = paint(page);
+            QVERIFY(near(image.pixelColor(3, 3), Qt::blue, 30)); // pixel (0, 0), hors de la table
+            QVERIFY(near(image.pixelColor(25, 25), Qt::red, 30));
+        }
     }
 
     // Garde-fou par page, tous niveaux confondus : un premier niveau blanc à pas minuscule épuise les 4 000
