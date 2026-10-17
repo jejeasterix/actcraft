@@ -66,6 +66,13 @@ std::string decodeInputs(const core::Page& page)
     }
     return out;
 }
+
+// Objet dont l'image vient du magasin (image, vignette de média) : l'ajouter ou le modifier demande un
+// décodage.
+bool usesImages(const core::PageObject& object)
+{
+    return std::get_if<core::ImageObject>(&object) || std::get_if<core::Media>(&object);
+}
 } // namespace
 
 FixedPageItem::FixedPageItem(QQuickItem* parent)
@@ -177,8 +184,8 @@ void FixedPageItem::insert(core::ObjectId id)
         return;
     }
     const core::PageObject& object = shown.objects[index];
-    const bool needsImages = std::get_if<core::ImageObject>(&object) || std::get_if<core::Media>(&object);
-    if (index + 1 == shown.objects.size() && index >= m_builtCount && !needsImages) {
+    const bool imageChanged = usesImages(object);
+    if (index + 1 == shown.objects.size() && index >= m_builtCount && !imageChanged) {
         // Fin de page (le stylo) : le prochain updatePaintNode n'ajoute que ce nœud.
         emit objectCountChanged();
         if (std::get_if<core::Stroke>(&object)) {
@@ -188,7 +195,8 @@ void FixedPageItem::insert(core::ObjectId id)
         update();
         return;
     }
-    restart(needsImages && !m_ready, true); // image ajoutée pendant un décodage : il ne la couvre pas
+    // image ajoutée pendant un décodage : il ne la couvre pas
+    restart(imageChanged && !m_ready ? Decode::Force : Decode::IfUncovered, Scope::SamePage);
 }
 
 // Lot 2 : reconstruction complète ; le lot « cache incrémental » visera le nœud de `id` et la zone.
@@ -201,10 +209,8 @@ void FixedPageItem::invalidate(core::ObjectId id, const core::CacheArea&)
 {
     const core::Page& shown = page();
     const std::size_t index = core::indexOf(shown, id);
-    const bool image =
-        index < shown.objects.size() && (std::get_if<core::ImageObject>(&shown.objects[index]) ||
-                                         std::get_if<core::Media>(&shown.objects[index]));
-    restart(image && !m_ready, true);
+    const bool imageChanged = index < shown.objects.size() && usesImages(shown.objects[index]);
+    restart(imageChanged && !m_ready ? Decode::Force : Decode::IfUncovered, Scope::SamePage);
 }
 
 bool FixedPageItem::isReady() const noexcept
