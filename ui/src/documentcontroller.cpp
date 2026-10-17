@@ -43,40 +43,6 @@ QString untitled()
     return QStringLiteral("Sans titre"); // F-656
 }
 
-// Commande déjà exécutée une fois par le contrôleur, pour savoir si elle change quelque chose : le redo()
-// qu'UndoStack::push fait aussitôt ne la rejoue pas ; les suivants (rétablir) la rejouent.
-class Executed final : public core::UndoCommand
-{
-public:
-    explicit Executed(std::unique_ptr<core::UndoCommand> command) : m_command(std::move(command)) {}
-
-    void redo(core::Document& document, core::Changes& changes) override
-    {
-        if (m_pending) {
-            m_pending = false;
-            return;
-        }
-        m_command->redo(document, changes);
-    }
-
-    void undo(core::Document& document, core::Changes& changes) override
-    {
-        m_command->undo(document, changes);
-    }
-
-    int mergeId() const noexcept override { return m_command->mergeId(); }
-
-    bool mergeWith(const core::UndoCommand& other) override
-    {
-        const auto* executed = dynamic_cast<const Executed*>(&other);
-        return m_command->mergeWith(executed ? *executed->m_command : other);
-    }
-
-private:
-    std::unique_ptr<core::UndoCommand> m_command;
-    bool m_pending = true;
-};
-
 // Sans page fixe : seul l'indice recalé de la page affichée compte.
 class NoCache final : public core::PageCache
 {
@@ -188,7 +154,7 @@ core::Changes DocumentController::run(std::unique_ptr<core::UndoCommand> command
     command->redo(m_document, changes);
     if (!changes.empty()) {
         ++m_revision;
-        m_undo.push(m_document, std::make_unique<Executed>(std::move(command)));
+        m_undo.pushExecuted(std::move(command)); // déjà exécutée ci-dessus
     }
     return changes;
 }
