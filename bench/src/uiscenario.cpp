@@ -452,6 +452,42 @@ QString propertyText(const QVariant& value)
     }
 }
 
+// Sonde de boucle : minuterie du fil principal qui relève, à chaque tour, l'intervalle depuis le précédent.
+// Un blocage du fil (écriture synchrone, calcul) l'allonge, qu'une image soit produite ou non. Précise : une
+// minuterie grossière peut être servie avec retard (Qt::TimerType), ce qui grossirait les intervalles. Armée
+// à la construction.
+class EventLoopProbe
+{
+public:
+    EventLoopProbe()
+    {
+        m_timer.setTimerType(Qt::PreciseTimer);
+        m_timer.setInterval(kLoopProbeIntervalMs);
+        QObject::connect(&m_timer, &QTimer::timeout, &m_timer, [this] {
+            const qint64 now = m_clock.elapsed();
+            m_max = std::max(m_max, now - m_last);
+            m_last = now;
+        });
+        m_clock.start();
+        m_timer.start();
+    }
+
+    // Arrête la sonde et rend le plus long intervalle (ms), intervalle en cours compris : un blocage juste
+    // avant l'arrêt, sans tour de boucle, compte aussi.
+    qint64 stop()
+    {
+        m_timer.stop();
+        m_max = std::max(m_max, m_clock.elapsed() - m_last);
+        return m_max;
+    }
+
+private:
+    QTimer m_timer;
+    QElapsedTimer m_clock;
+    qint64 m_last = 0;
+    qint64 m_max = 0;
+};
+
 UiScenarioPlayer::UiScenarioPlayer(QQuickWindow* window)
     : m_window(window), m_stylus(std::make_unique<QPointingDevice>(
                             QStringLiteral("actcraft-captures-stylet"), 5180,
@@ -784,38 +820,22 @@ bool UiScenarioPlayer::watchEventLoop(QStringList& report)
         note = QStringLiteral(" (aucune image rendue en %1 ms)").arg(kLoopSettleTimeoutMs);
     }
     QObject::disconnect(connection);
-    // Minuterie du fil principal : chaque tour relève l'intervalle depuis le précédent. Un blocage du fil
-    // (écriture synchrone, calcul) l'allonge, qu'une image soit produite ou non. Précise : une minuterie
-    // grossière peut être servie avec retard (Qt::TimerType), ce qui grossirait les intervalles.
-    m_loopTimer = std::make_unique<QTimer>();
-    m_loopTimer->setTimerType(Qt::PreciseTimer);
-    m_loopTimer->setInterval(kLoopProbeIntervalMs);
-    m_loopLast = 0;
-    m_loopMax = 0;
-    QObject::connect(m_loopTimer.get(), &QTimer::timeout, m_loopTimer.get(), [this] {
-        const qint64 now = m_loopClock.elapsed();
-        m_loopMax = std::max(m_loopMax, now - m_loopLast);
-        m_loopLast = now;
-    });
-    m_loopClock.start();
-    m_loopTimer->start();
+    m_loopProbe = std::make_unique<EventLoopProbe>();
     report << QStringLiteral("BOUCLE sonde démarrée") + note;
     return true;
 }
 
 bool UiScenarioPlayer::maxEventLoopGap(const UiStep& step, QStringList& report)
 {
-    if (!m_loopTimer) {
+    if (!m_loopProbe) {
         report << QStringLiteral("BOUCLE ECHEC (sonde non démarrée)");
         return false;
     }
-    m_loopTimer->stop();
-    // Intervalle en cours compris : un blocage juste avant cette étape, sans tour de boucle, compte aussi.
-    m_loopMax = std::max(m_loopMax, m_loopClock.elapsed() - m_loopLast);
-    m_loopTimer.reset();
-    const bool ok = m_loopMax <= step.ms;
+    const qint64 max = m_loopProbe->stop();
+    m_loopProbe.reset();
+    const bool ok = max <= step.ms;
     report << QStringLiteral("BOUCLE max=%1 ms %2")
-                  .arg(m_loopMax)
+                  .arg(max)
                   .arg(ok ? QStringLiteral("OK") : QStringLiteral("ECART (seuil %1 ms)").arg(step.ms));
     return ok;
 }
@@ -964,7 +984,7 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
     m_captureIndex = 0;
     m_index.clear();
     m_memory.clear();    // variables d'un scénario, pas du suivant
-    m_loopTimer.reset(); // sonde d'un scénario précédent jamais arrêtée
+    m_loopProbe.reset(); // sonde d'un scénario précédent jamais arrêtée
     if (!QDir().mkpath(outputDir)) {
         report << QStringLiteral("CAPTURE dossier impossible : %1").arg(outputDir);
         emitFrom(report, first);
