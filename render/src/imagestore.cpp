@@ -26,25 +26,7 @@ ImageStore::~ImageStore()
     m_pool.waitForDone();
 }
 
-namespace {
-
-// Pixels de la couleur `transparent` (alpha ignoré) rendus transparents.
-QImage withKeyColor(const QImage& source, core::Argb transparent)
-{
-    QImage image = source.convertToFormat(QImage::Format_ARGB32);
-    const QRgb key = transparent & 0x00FFFFFFu;
-    for (int y = 0; y < image.height(); ++y) {
-        auto* line = reinterpret_cast<QRgb*>(image.scanLine(y));
-        for (int x = 0; x < image.width(); ++x) {
-            if ((line[x] & 0x00FFFFFFu) == key) {
-                line[x] = 0;
-            }
-        }
-    }
-    return image;
-}
-
-} // namespace
+namespace {} // namespace
 
 std::string ImageStore::variantKey(const core::ImageObject& object)
 {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <actcraft/core/model.h>
+
 #include <QImage>
 
 namespace actcraft::render {
@@ -12,5 +14,9 @@ namespace actcraft::render {
 // un index sans couleur dans la table donne un pixel transparent. Autres formats : l'image telle quelle.
 // Appelée au décodage (decodeImages, ImageStore) et au dessin (peintre partagé), sur tout fil.
 QImage withoutColorTable(const QImage& image);
+
+// Pixels de la couleur `transparent` (alpha ignoré) rendus transparents ; image rendue en ARGB32. Écran
+// (peintre partagé) et miniature (ImageStore) passent par ici : même résultat.
+QImage withKeyColor(const QImage& source, core::Argb transparent);
 
 } // namespace actcraft::render
