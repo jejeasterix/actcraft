@@ -85,6 +85,17 @@ function Stop-Essai([string]$raison) {
 function Invoke-Adb([string[]]$arguments, [int]$secondes = 30) {
     return @(Adb $secondes @arguments)
 }
+# Appel d'un tour d'attente bornée : un adb sans réponse (émulateur figé une minute sous charge, boîtes « ne répond
+# pas » de gms et du lanceur : passage de la mutation, essai 3) compte comme un tour manqué, pas comme un échec ;
+# l'attente bornée de l'étape décide. Rend $null après un tel refus ; toute autre erreur remonte.
+function Invoke-AdbTour([string[]]$arguments, [int]$secondes = 30) {
+    try { return @(Invoke-Adb $arguments $secondes) } catch {
+        $raison = Get-ActCraftAndroidRaison $_
+        if (-not $raison) { throw }
+        Write-Host "adb : $raison, tour suivant"
+        return $null
+    }
+}
 # Arbre de l'interface Android (uiautomator), ou $null s'il n'a pas pu être pris (« could not get idle state » tant
 # qu'une fenêtre s'anime). Dernier arbre lu : .tmp/fichiers-ui.xml.
 # Une boîte « … ne répond pas » du système (machine chargée : « System UI isn't responding » a couvert le sélecteur,
@@ -93,9 +104,9 @@ function Invoke-Adb([string[]]$arguments, [int]$secondes = 30) {
 function Read-ArbreUi {
     for ($boite = 0; $boite -le 3; $boite++) {
         Remove-Item -ErrorAction SilentlyContinue .tmp/fichiers-ui.xml
-        $null = Invoke-Adb @('shell', 'rm', '-f', '/sdcard/actcraft-ui.xml')
-        $null = Invoke-Adb @('shell', 'uiautomator', 'dump', '/sdcard/actcraft-ui.xml') 60
-        $null = Invoke-Adb @('pull', '/sdcard/actcraft-ui.xml', '.tmp/fichiers-ui.xml') 30
+        $null = Invoke-AdbTour @('shell', 'rm', '-f', '/sdcard/actcraft-ui.xml')
+        $null = Invoke-AdbTour @('shell', 'uiautomator', 'dump', '/sdcard/actcraft-ui.xml') 60
+        $null = Invoke-AdbTour @('pull', '/sdcard/actcraft-ui.xml', '.tmp/fichiers-ui.xml') 30
         if (-not (Test-Path .tmp/fichiers-ui.xml)) { return $null }
         try { $arbre = [xml](Get-Content -Raw -Encoding utf8 .tmp/fichiers-ui.xml) } catch { return $null }
         $attendre = @($arbre.SelectNodes('//node')) | Where-Object { $_.'resource-id' -eq 'android:id/aerr_wait' } | Select-Object -First 1
@@ -258,7 +269,7 @@ function Clear-FichiersEssai([int]$secondes = 120) {
 function Wait-Journal([string]$motif, [int]$secondes = 60) {
     $fin = (Get-Date).AddSeconds($secondes)
     while ((Get-Date) -lt $fin) {
-        $ligne = Invoke-Adb @('logcat', '-d') | Where-Object { $_ -match $motif } | Select-Object -Last 1
+        $ligne = Invoke-AdbTour @('logcat', '-d') | Where-Object { $_ -match $motif } | Select-Object -Last 1
         if ($ligne) { return $ligne }
         Start-Sleep -Milliseconds 500
     }
@@ -294,10 +305,12 @@ try {
     # Glissement rejoué (trois fois au plus) s'il tombe pendant un changement de disposition (passage en plein écran).
     for ($essai = 0; $essai -lt 3; $essai++) {
         Start-Sleep -Seconds 3
-        $null = Invoke-Adb @('shell', 'input', 'swipe', '768', '800', '1408', '800', '600')
+        $null = Invoke-AdbTour @('shell', 'input', 'swipe', '768', '800', '1408', '800', '600')
         Start-Sleep -Seconds 2
-        $null = Invoke-Adb @('shell', 'screencap', '-p', '/sdcard/actcraft-trait.png') 60
-        $null = Invoke-Adb @('pull', '/sdcard/actcraft-trait.png', '.tmp/fichiers-trait.png') 60
+        Remove-Item -ErrorAction SilentlyContinue .tmp/fichiers-trait.png # jamais la capture d'un passage précédent
+        $null = Invoke-AdbTour @('shell', 'screencap', '-p', '/sdcard/actcraft-trait.png') 60
+        $null = Invoke-AdbTour @('pull', '/sdcard/actcraft-trait.png', '.tmp/fichiers-trait.png') 60
+        if (-not (Test-Path .tmp/fichiers-trait.png)) { $trait = @(); continue }
         $trait = @("$(& $python -I scripts/lire-pixel.py .tmp/fichiers-trait.png 1088 800)".Trim().Split(' ') | ForEach-Object { [int]$_ })
         Write-Output "trait : lu $($trait -join ' ')"
         if ($trait.Count -eq 3 -and $trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100) { break }
@@ -327,7 +340,7 @@ try {
     # Le fichier écrit porte le nom exact, seul fichier de l'essai dans MediaStore (attente bornée de l'indexation).
     $fin = (Get-Date).AddSeconds(30)
     do {
-        $ecrits = @(Get-FichiersMediaStore)
+        $ecrits = @(try { Get-FichiersMediaStore } catch { if (-not (Get-ActCraftAndroidRaison $_)) { throw }; Write-Host "MediaStore : $(Get-ActCraftAndroidRaison $_)" })
         if ($ecrits.Count -eq 1 -and $ecrits[0].Nom -ceq $nomFichier) { break }
         Start-Sleep -Seconds 2
     } while ((Get-Date) -lt $fin)
