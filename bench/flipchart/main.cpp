@@ -56,7 +56,8 @@
 //   Écrit fctest::sampleFlipchart avec des miniatures JPEG rendues par notre peintre (chemin prouvé en CI,
 //   pas la fidélité), « SYNTHETIQUE OK : <fichier> ». Variantes : --miniatures-alterees (quart droit noir),
 //   --miniatures-trouees (page 1 vide, page 2 indécodable), --miniatures-geantes (2000 px de large),
-//   --miniatures-q50 (JPEG de qualité 50, comme les .thm, au lieu de 100).
+//   --miniatures-q50 (JPEG de qualité 50, comme les .thm, au lieu de 100) ; --miniatures-alterees avec
+//   --miniatures-q50 : quart droit noir ET qualité 50.
 
 namespace {
 
@@ -211,27 +212,55 @@ int scaledLumaSum(int quality)
     return sum;
 }
 
-// Qualité dont la table mise à l'échelle a la somme la plus proche de celle de la miniature (exacte pour un
-// JPEG de libjpeg ; la plus haute en cas d'égalité).
-int estimatedQuality(const std::vector<int>& luma)
+// Ordre en zigzag du fichier : la valeur k d'une table de quantification est celle de la case kZigzag[k] de
+// la table de la norme (donnée ligne par ligne).
+constexpr std::array<int, 64> kZigzag = {0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,
+                                         12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6,  7,  14, 21, 28,
+                                         35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51,
+                                         58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63};
+
+// Table de la norme mise à l'échelle pour une qualité (même formule que scaledLumaSum), dans l'ordre du
+// fichier.
+std::vector<int> scaledLuma(int quality)
 {
+    const int scale = quality < 50 ? 5000 / quality : 200 - 2 * quality;
+    std::vector<int> out;
+    for (const int natural : kZigzag) {
+        out.push_back(
+            std::clamp((kStandardLumaTable[static_cast<std::size_t>(natural)] * scale + 50) / 100, 1, 255));
+    }
+    return out;
+}
+
+struct QualityEstimate
+{
+    int quality = kDefaultJpegQuality;
+    bool usual = false; // la table de la miniature est exactement une table standard de cette qualité
+};
+
+// Qualité dont la table mise à l'échelle a la somme la plus proche de celle de la miniature (exacte pour un
+// JPEG de libjpeg ; la plus haute en cas d'égalité). `usual` faux : table absente ou qui ne correspond à
+// aucune qualité standard (la qualité estimée n'est alors qu'une approximation).
+QualityEstimate estimatedQuality(const std::vector<int>& luma)
+{
+    QualityEstimate out;
     if (luma.size() != kStandardLumaTable.size()) {
-        return kDefaultJpegQuality;
+        return out;
     }
     int sum = 0;
     for (const int v : luma) {
         sum += v;
     }
-    int best = kDefaultJpegQuality;
     int bestDiff = INT_MAX;
     for (int q = 100; q >= 1; --q) {
         const int diff = std::abs(scaledLumaSum(q) - sum);
         if (diff < bestDiff) {
-            best = q;
+            out.quality = q;
             bestDiff = diff;
         }
     }
-    return best;
+    out.usual = out.quality >= 1 && out.quality <= 100 && scaledLuma(out.quality) == luma;
+    return out;
 }
 
 QString samplingText(const std::vector<int>& sampling)
@@ -245,9 +274,9 @@ QString samplingText(const std::vector<int>& sampling)
 
 // Rendu passé par le codec JPEG de Qt comme la miniature : même qualité, même échantillonnage (vérifié sur le
 // JPEG écrit, le codec ne le laisse pas choisir).
-std::optional<QImage> asThumbnailJpeg(const QImage& rendered, const JpegLayout& thumbnail, QString& why)
+std::optional<QImage> asThumbnailJpeg(const QImage& rendered, const JpegLayout& thumbnail, int quality,
+                                      QString& why)
 {
-    const int quality = estimatedQuality(thumbnail.luma);
     QByteArray bytes;
     QBuffer buffer(&bytes);
     buffer.open(QIODevice::WriteOnly);
@@ -354,9 +383,18 @@ bool pageGaps(const QString& path, std::vector<PageGap>& gaps, Tally& tally, con
         options.thumbnail = true;
         QImage rendered = render::renderPage(page, images.lookup(), scale, options);
         const JpegLayout layout = jpegLayout(bytes);
+        QString qualityText;
+        if (layout.isJpeg) {
+            const QualityEstimate estimate = estimatedQuality(layout.luma);
+            qualityText = QStringLiteral(" qualité %1").arg(estimate.quality);
+            if (!estimate.usual) {
+                qualityText += QStringLiteral(", qualité inhabituelle (table hors des qualités standard)");
+            }
+        }
         if (layout.isJpeg && recompress) {
             QString why;
-            std::optional<QImage> jpeg = asThumbnailJpeg(rendered, layout, why);
+            std::optional<QImage> jpeg =
+                asThumbnailJpeg(rendered, layout, estimatedQuality(layout.luma).quality, why);
             if (!jpeg) {
                 error = QStringLiteral("%1 page %2 : %3").arg(name).arg(pageNumber).arg(why);
                 return false;
@@ -372,8 +410,10 @@ bool pageGaps(const QString& path, std::vector<PageGap>& gaps, Tally& tally, con
         entry.file = name;
         entry.page = pageNumber;
         entry.gap = *gap;
-        printLine(
-            QStringLiteral("PAGE %1:%2 écart %3").arg(entry.file).arg(entry.page).arg(number(entry.gap)));
+        printLine(QStringLiteral("PAGE %1:%2 écart %3%4")
+                      .arg(entry.file)
+                      .arg(entry.page)
+                      .arg(number(entry.gap), qualityText));
         if (entry.gap > kPageLimit && !comparisons.isEmpty()) {
             const QString target =
                 QDir(comparisons)
@@ -469,6 +509,30 @@ int verdict(const std::vector<PageGap>& gaps, const Tally& tally, int expectedPa
             }
         }
     }
+    // Pages de la liste redescendues sous 7 : signalées (la liste est à réviser), sans faire échouer.
+    for (std::size_t i = 0; i < known.size(); ++i) {
+        if (known[i].page > 0) {
+            for (const PageGap& g : gaps) {
+                if (g.page == known[i].page && sameFile(known[i].file, g.file) && g.gap <= kPageLimit) {
+                    printLine(QStringLiteral("CONNUE SOUS 7 : %1:%2 (%3)")
+                                  .arg(g.file)
+                                  .arg(g.page)
+                                  .arg(number(g.gap)));
+                }
+            }
+        } else if (!starUsed[i]) {
+            double worst = -1;
+            for (const PageGap& g : gaps) {
+                if (sameFile(known[i].file, g.file)) {
+                    worst = std::max(worst, g.gap);
+                }
+            }
+            if (worst >= 0) {
+                printLine(QStringLiteral("CONNUE SOUS 7 : %1:* (écart le plus haut %2)")
+                              .arg(known[i].file, number(worst)));
+            }
+        }
+    }
     QString summary = QStringLiteral("%1 pages, médiane %2, %3 au-dessus de 7")
                           .arg(static_cast<int>(n))
                           .arg(number(median))
@@ -516,10 +580,11 @@ int verdict(const std::vector<PageGap>& gaps, const Tally& tally, int expectedPa
 enum class Variant
 {
     Plain,
-    Altered, // quart droit de chaque miniature peint en noir
-    Holes,   // page 1 à miniature vide, page 2 à miniature indécodable
-    Huge,    // miniatures de 2000 px de large
-    Jpeg50,  // miniatures JPEG de qualité 50, comme les .thm
+    Altered,       // quart droit de chaque miniature peint en noir
+    Holes,         // page 1 à miniature vide, page 2 à miniature indécodable
+    Huge,          // miniatures de 2000 px de large
+    Jpeg50,        // miniatures JPEG de qualité 50, comme les .thm
+    AlteredJpeg50, // les deux : un défaut doit survivre à la recompression q50
 };
 
 int writeSynthetic(const QString& path, Variant variant)
@@ -541,7 +606,7 @@ int writeSynthetic(const QString& path, Variant variant)
         if (image.isNull()) {
             return fail(QStringLiteral("miniature de la page %1 vide").arg(i + 1));
         }
-        if (variant == Variant::Altered) {
+        if (variant == Variant::Altered || variant == Variant::AlteredJpeg50) {
             QPainter p(&image);
             p.fillRect(QRect(image.width() * 3 / 4, 0, image.width() - image.width() * 3 / 4, image.height()),
                        Qt::black);
@@ -555,7 +620,8 @@ int writeSynthetic(const QString& path, Variant variant)
         QByteArray jpeg;
         QBuffer buffer(&jpeg);
         buffer.open(QIODevice::WriteOnly);
-        if (!image.save(&buffer, "JPG", variant == Variant::Jpeg50 ? 50 : 100)) {
+        if (!image.save(&buffer, "JPG",
+                        variant == Variant::Jpeg50 || variant == Variant::AlteredJpeg50 ? 50 : 100)) {
             return fail(QStringLiteral("encodage JPEG impossible (greffon d'images absent ?)"));
         }
         jpegs.push_back(jpeg);
@@ -736,7 +802,10 @@ int main(int argc, char* argv[])
             return 1;
         }
         Variant variant = Variant::Plain;
-        if (args.contains(QStringLiteral("--miniatures-alterees"))) {
+        if (args.contains(QStringLiteral("--miniatures-alterees")) &&
+            args.contains(QStringLiteral("--miniatures-q50"))) {
+            variant = Variant::AlteredJpeg50;
+        } else if (args.contains(QStringLiteral("--miniatures-alterees"))) {
             variant = Variant::Altered;
         } else if (args.contains(QStringLiteral("--miniatures-trouees"))) {
             variant = Variant::Holes;

@@ -57,10 +57,10 @@ core::Page realIndexedImagePage(const std::string& key)
     im.bounds = {0, 0, 225, 225};
     im.resource = key;
     core::PageObject o = im;
-    o.common.transform.m11 = 1.9944625154476667;
-    o.common.transform.m22 = 1.8570267899391313;
-    o.common.transform.dx = 303.5542635658914;
-    o.common.transform.dy = 376.83869421646625;
+    o.common.transform.m11 = 1.994;
+    o.common.transform.m22 = 1.857;
+    o.common.transform.dx = 303.554;
+    o.common.transform.dy = 376.839;
     core::Page page;
     page.objects.push_back(o);
     return page;
@@ -686,14 +686,28 @@ private slots:
         QCOMPARE(decoded.pixel(0, 0), qRgb(255, 0, 0));
     }
 
-    // Le même octet de bourrage, posé hors de la table par le test (déterministe en debug comme en release),
-    // sur une image donnée au peintre sans passer par decodeImages : le garde est aussi au dessin.
+    // Le même octet de bourrage, mais posé DANS la table par le test et de couleur différente (bleu, contre
+    // le rouge de l'index des pixels) : aucune lecture hors bornes, donc le résultat est le même en debug et
+    // en release (sans assertion). Le peintre lisse l'image réduite en lisant l'octet qui suit la dernière
+    // colonne : sans le garde au dessin, le bord droit de l'image dessinée tire vers le bleu.
     void paddingOfAnIndexedImageIsNeverReadAsAColor()
     {
+        QImage source = indexedtest::indexedImage(225, 225, 131, 0, 1);
+        QList<QRgb> table = source.colorTable();
+        table[1] = qRgb(0, 0, 255);
+        source.setColorTable(table);
         render::DecodedImages images;
-        images.insert("indexee", indexedtest::indexedImage(225, 225, 131, 0, 205));
+        images.insert("indexee", source);
         const QImage image = render::renderPage(realIndexedImagePage("indexee"), images.lookup(), 0.3125);
         QVERIFY(near(image.pixelColor(165, 160), Qt::red, 30));
+        // Image dessinée : x de 95 à 235 environ. Le rouge, mêlé au blanc de la page, garde rouge >= bleu ;
+        // un pixel bleu-dominant ne peut venir que de l'index du bourrage, lu par la dernière colonne.
+        for (int x = 226; x <= 238; ++x) {
+            for (int y = 130; y <= 190; ++y) {
+                const QColor c = image.pixelColor(x, y);
+                QVERIFY2(c.blue() <= c.red(), qPrintable(QStringLiteral("x=%1 y=%2 bleu lu").arg(x).arg(y)));
+            }
+        }
     }
 
     // Table vide, couleur transparente absente de la table, espace réservé d'un média, image de fond : aucune

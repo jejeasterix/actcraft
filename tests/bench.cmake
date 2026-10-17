@@ -167,6 +167,31 @@ add_test(NAME tst_flipchart_miniatures_q50_sans_recompression
 set_tests_properties(tst_flipchart_miniatures_q50_sans_recompression PROPERTIES
     FIXTURES_REQUIRED flipchart_q50 ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : 2 pages, médiane ([2-9]|[1-9][0-9])[.]")
+# La qualité estimée de chaque page est imprimée (L2-C7).
+add_test(NAME tst_flipchart_miniatures_q50_qualite
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_q50})
+set_tests_properties(tst_flipchart_miniatures_q50_qualite PROPERTIES
+    FIXTURES_REQUIRED flipchart_q50 ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "PAGE flipchart-q50[.]flipchart:1 écart [0-9.]+ qualité 50\n")
+# Une page de la liste des pages connues redescendue sous 7 est signalée, sans faire échouer.
+add_test(NAME tst_flipchart_miniatures_connue_sous_7
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_synthetic}
+        --connues "flipchart-synthetique.flipchart:1;flipchart-synthetique.flipchart:*")
+set_tests_properties(tst_flipchart_miniatures_connue_sous_7 PROPERTIES
+    FIXTURES_REQUIRED flipchart_synthetic ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "CONNUE SOUS 7 : flipchart-synthetique[.]flipchart:1 [(][0-9.]+[)].*CONNUE SOUS 7 : flipchart-synthetique[.]flipchart:[*] .*MINIATURES OK")
+# Un défaut qui survit à la recompression q50 est vu : quart droit noir ET miniatures JPEG de qualité 50.
+set(_flipchart_altered_q50 ${CMAKE_BINARY_DIR}/flipchart-altere-q50.flipchart)
+add_test(NAME tst_flipchart_ecrire_altere_q50
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --ecrire-synthetique ${_flipchart_altered_q50}
+        --miniatures-alterees --miniatures-q50)
+set_tests_properties(tst_flipchart_ecrire_altere_q50 PROPERTIES
+    FIXTURES_SETUP flipchart_altered_q50 ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "SYNTHETIQUE OK")
+add_test(NAME tst_flipchart_miniatures_alterees_q50
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_altered_q50})
+set_tests_properties(tst_flipchart_miniatures_alterees_q50 PROPERTIES
+    FIXTURES_REQUIRED flipchart_altered_q50 ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : 2 pages, ")
 # Tests qui distinguent une vraie mesure d'une mesure aveugle (rendu comparé à lui-même, lignes lues en partie) :
 # l'écart tient dans le quart droit des miniatures. Code 1 attendu : le motif seul juge (le code de sortie est
 # ignoré avec PASS_REGULAR_EXPRESSION).
