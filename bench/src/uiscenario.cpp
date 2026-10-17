@@ -47,6 +47,9 @@ constexpr int kWaitForMaxMs = 120000;
 constexpr int kLoopGapMaxMs = 60000;
 constexpr int kLoopProbeIntervalMs = 5;
 constexpr int kLoopSettleTimeoutMs = 1000; // image en attente rendue avant d'armer la sonde
+// Variables réservées d'un scénario (${SORTIE}, ${SAMPLES}) ; les autres viennent de « remember ».
+constexpr QLatin1StringView kOutputVariable("SORTIE");
+constexpr QLatin1StringView kSamplesVariable("SAMPLES");
 
 bool readPoint(const QJsonValue& value, QPointF& out)
 {
@@ -84,7 +87,7 @@ bool splitTarget(const QString& text, QString& target, QString& property)
 // fixture écrite sous « ${SORTIE} » n'irait jamais ailleurs).
 bool isMemoryName(const QString& name)
 {
-    if (name.isEmpty() || name == QLatin1String("SORTIE") || name == QLatin1String("SAMPLES")) {
+    if (name.isEmpty() || name == kOutputVariable || name == kSamplesVariable) {
         return false;
     }
     return std::all_of(name.cbegin(), name.cend(), [](QChar c) {
@@ -715,9 +718,9 @@ bool UiScenarioPlayer::expand(const QString& text, QString& out, QString& why) c
         }
         result += QStringView(text).mid(from, open - from);
         const QString name = text.mid(open + 2, close - open - 2);
-        if (name == QLatin1String("SORTIE")) {
+        if (name == kOutputVariable) {
             result += m_outputDir;
-        } else if (name == QLatin1String("SAMPLES")) {
+        } else if (name == kSamplesVariable) {
             const QString samples = qEnvironmentVariable("ACTCRAFT_SAMPLES_DIR");
             if (samples.isEmpty()) {
                 why = QStringLiteral("ACTCRAFT_SAMPLES_DIR absent");
