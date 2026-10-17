@@ -52,6 +52,9 @@ public:
 
 private:
     bool waitFor(const std::function<bool()>& condition, int timeoutMs);
+    // Page affichée : images chargées et premier cache dessiné.
+    bool pageShown() const;
+    bool waitPageShown();
     void waitMs(int ms);
     bool placeWindow(BenchResult& result);
     // Chauffe en rendu continu ; retourne la médiane des intervalles (0 si non mesurable).

@@ -66,6 +66,7 @@ std::int64_t readDwmRefreshPeriodNs()
 // témoins à 100 % (witness-image « hors-image », content-check-failed). Taille fixe, celle de la fumée, des
 // captures et de benchTargetsAreVisibleInTheShell ; une taille LxH explicite reste prioritaire.
 constexpr QSize kOffscreenWindowSize(1280, 800);
+constexpr int kPageShownTimeoutMs = 30000; // images chargées et premier cache dessiné
 
 bool offscreenPlatform()
 {
@@ -125,6 +126,16 @@ bool Runner::waitFor(const std::function<bool()>& condition, int timeoutMs)
         QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents);
     }
     return true;
+}
+
+bool Runner::pageShown() const
+{
+    return m_fixed->isReady() && m_view->cacheReady();
+}
+
+bool Runner::waitPageShown()
+{
+    return waitFor([this] { return pageShown(); }, kPageShownTimeoutMs);
 }
 
 void Runner::waitMs(int ms)
@@ -491,7 +502,7 @@ BenchResult Runner::run(QQuickWindow* window)
         return result;
     }
     // Page prête : images chargées et premier cache dessiné.
-    if (!waitFor([this] { return m_fixed->isReady() && m_view->cacheReady(); }, 30000)) {
+    if (!waitPageShown()) {
         result.invalidReasons << QStringLiteral("error: page not ready");
         applyVerdict(result);
         return result;
@@ -502,7 +513,6 @@ BenchResult Runner::run(QQuickWindow* window)
     result.refresh.measuredMedianNs = warmUp(2000 / durationDivisor(m_options.scenarioSet));
     const std::int64_t refreshPeriodNs = result.refresh.referenceNs;
 
-    const auto pageShown = [this] { return m_fixed->isReady() && m_view->cacheReady(); };
     // Contrôle « page_flash » (L2-T23, revue). À la première image rendue après un changement de page, tant
     // que la nouvelle page n'est pas prête, le centre du témoin de forme garde la couleur qu'il avait sur
     // l'ancienne page (relevée juste avant) : ni fond blanc, ni page transparente, ni autre couleur. Une
@@ -529,7 +539,7 @@ BenchResult Runner::run(QQuickWindow* window)
                 continue;
             }
             m_view->setCacheEnabled(withCache);
-            if (!waitFor(pageShown, 30000)) {
+            if (!waitPageShown()) {
                 out.invalidReasons << QStringLiteral("error: page flash check: page not shown");
                 failed = true;
                 break;
@@ -557,7 +567,7 @@ BenchResult Runner::run(QQuickWindow* window)
                         ++(withCache ? cachedFlashes : flashes);
                     }
                 }
-                if (!waitFor(pageShown, 30000)) {
+                if (!waitPageShown()) {
                     out.invalidReasons
                         << QStringLiteral("error: page flash check: %1 never ready").arg(command);
                     failed = true;
@@ -577,7 +587,7 @@ BenchResult Runner::run(QQuickWindow* window)
         if (document->currentIndex() != 0) {
             runWindowCommand(m_window, QStringLiteral("page.previous"));
         }
-        if (!waitFor(pageShown, 30000)) {
+        if (!waitPageShown()) {
             out.invalidReasons << QStringLiteral("error: page 1 not ready after page flash check");
         }
         waitMs(100);
@@ -589,7 +599,7 @@ BenchResult Runner::run(QQuickWindow* window)
         if (plan.generatedPages > 0) {
             // Scénario « page » (L2-T23) : document de pages générées (pages paires peintes), page 1 prête.
             document->loadGeneratedPages(plan.generatedPages, true);
-            if (!waitFor(pageShown, 30000)) {
+            if (!waitPageShown()) {
                 result.invalidReasons << QStringLiteral("error: pages not ready before %1").arg(plan.name);
                 break;
             }
@@ -602,8 +612,8 @@ BenchResult Runner::run(QQuickWindow* window)
         // scénario.
         std::optional<std::pair<int, int>> atZoom;
         bool zoomSeen = false;
-        const auto zoomWatch = QObject::connect(
-            m_view, &ui::PageView::zoomChanged, m_view, [this, &atZoom, &zoomSeen, &pageShown] {
+        const auto zoomWatch =
+            QObject::connect(m_view, &ui::PageView::zoomChanged, m_view, [this, &atZoom, &zoomSeen] {
                 if (!zoomSeen && std::abs(m_view->zoom() - 1.5) < 1e-9) {
                     zoomSeen = true;
                     // Relevé seulement si la page peinte est prête et dessinée : sinon sa reconstruction au
