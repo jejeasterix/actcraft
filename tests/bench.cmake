@@ -130,8 +130,9 @@ set_tests_properties(tst_captures_aller_retour_natif PROPERTIES
 
 # S4 (L2-T21) : rendu de chaque page comparé à sa miniature .thm d'origine, réduits à 80 × 60. En CI, sur le
 # paperboard de fctest::sampleFlipchart dont les miniatures sont rendues par notre peintre (preuve du chemin) ; en
-# local, sur samples/ lu en place (fidélité), sauté sans ACTCRAFT_SAMPLES_DIR (code 77). Les deux variables sont lues
-# à la configuration : les poser avant scripts/build.ps1 pour le test local.
+# local, sur samples/ lu en place (fidélité), sauté sans ACTCRAFT_SAMPLES_DIR (code 77). Les trois variables
+# (ACTCRAFT_SAMPLES_DIR, ACTCRAFT_THM_CONNUES, ACTCRAFT_THM_PAGES) sont lues à la configuration : les poser avant
+# scripts/build.ps1 pour le test local.
 set(_flipchart_synthetic ${CMAKE_BINARY_DIR}/flipchart-synthetique.flipchart)
 set(_flipchart_altered ${CMAKE_BINARY_DIR}/flipchart-altere.flipchart)
 add_test(NAME tst_flipchart_ecrire_synthetique
@@ -163,9 +164,71 @@ add_test(NAME tst_flipchart_miniatures_non_connue
 set_tests_properties(tst_flipchart_miniatures_non_connue PROPERTIES
     FIXTURES_REQUIRED flipchart_altered ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : page flipchart-altere.flipchart:2 au-dessus de 7 et non connue")
+# « fichier:* » excuse UNE page quelconque du fichier (plan) : la seconde page au-dessus de 7 est nommée.
+add_test(NAME tst_flipchart_miniatures_etoile_une_page
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_altered}
+        --connues "flipchart-altere.flipchart:*")
+set_tests_properties(tst_flipchart_miniatures_etoile_une_page PROPERTIES
+    FIXTURES_REQUIRED flipchart_altered ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : page flipchart-altere.flipchart:2 au-dessus de 7 et non connue")
+# Aucune page ne sort de la mesure sans faire échouer : page 1 à miniature vide, page 2 à miniature indécodable ;
+# pages écartées par le lecteur : nombre de pages lues comparé au nombre attendu.
+set(_flipchart_holes ${CMAKE_BINARY_DIR}/flipchart-trous.flipchart)
+add_test(NAME tst_flipchart_ecrire_trous
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --ecrire-synthetique ${_flipchart_holes} --miniatures-trouees)
+set_tests_properties(tst_flipchart_ecrire_trous PROPERTIES
+    FIXTURES_SETUP flipchart_holes ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "SYNTHETIQUE OK")
+add_test(NAME tst_flipchart_miniatures_trous
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_holes})
+set_tests_properties(tst_flipchart_miniatures_trous PROPERTIES
+    FIXTURES_REQUIRED flipchart_holes ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : 2 pages hors de la mesure [(]1 sans miniature, 1 miniature illisible[)]")
+add_test(NAME tst_flipchart_miniatures_pages_attendues
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_synthetic} --pages-attendues 3)
+set_tests_properties(tst_flipchart_miniatures_pages_attendues PROPERTIES
+    FIXTURES_REQUIRED flipchart_synthetic ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : 2 pages lues, 3 attendues")
+# Critère « au plus 3 pages au-dessus de 7 » : 3 paperboards sains et 2 altérés, 10 pages, médiane basse, 4 pages
+# au-dessus de 7.
+set(_flipchart_folder ${CMAKE_BINARY_DIR}/flipchart-dossier)
+foreach(_flipchart_name sain-1 sain-2 sain-3 altere-1 altere-2)
+    set(_flipchart_variant "")
+    if(_flipchart_name MATCHES "^altere")
+        set(_flipchart_variant --miniatures-alterees)
+    endif()
+    add_test(NAME tst_flipchart_ecrire_dossier_${_flipchart_name}
+        COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --ecrire-synthetique
+            ${_flipchart_folder}/${_flipchart_name}.flipchart ${_flipchart_variant})
+    set_tests_properties(tst_flipchart_ecrire_dossier_${_flipchart_name} PROPERTIES
+        FIXTURES_SETUP flipchart_folder ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "SYNTHETIQUE OK")
+endforeach()
+add_test(NAME tst_flipchart_miniatures_quatre_au_dessus
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --samples ${_flipchart_folder} --pages-attendues 10)
+set_tests_properties(tst_flipchart_miniatures_quatre_au_dessus PROPERTIES
+    FIXTURES_REQUIRED flipchart_folder ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : 10 pages, médiane 0[.][0-9]+, 4 au-dessus de 7")
+# Rendu borné comme les miniatures du peintre : une miniature de 2000 px de large est refusée, jamais rendue.
+set(_flipchart_huge ${CMAKE_BINARY_DIR}/flipchart-geant.flipchart)
+add_test(NAME tst_flipchart_ecrire_geant
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --ecrire-synthetique ${_flipchart_huge} --miniatures-geantes)
+set_tests_properties(tst_flipchart_ecrire_geant PROPERTIES
+    FIXTURES_SETUP flipchart_huge ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "SYNTHETIQUE OK")
+add_test(NAME tst_flipchart_miniatures_geantes
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_huge})
+set_tests_properties(tst_flipchart_miniatures_geantes PROPERTIES
+    FIXTURES_REQUIRED flipchart_huge ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : flipchart-geant.flipchart page 1 : rendu de 2000 × 1500 refusé")
+# Les comparaisons contiennent les vraies miniatures : jamais écrites hors de .tmp/ ou build/ du dépôt.
+add_test(NAME tst_flipchart_comparaisons_hors_depot
+    COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --miniatures ${_flipchart_synthetic}
+        --comparaisons ${PROJECT_SOURCE_DIR}/bench/comparaisons)
+set_tests_properties(tst_flipchart_comparaisons_hors_depot PROPERTIES
+    FIXTURES_REQUIRED flipchart_synthetic ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "MINIATURES EN ECHEC : dossier de comparaisons hors de .tmp/ et de build/")
+# Local : ACTCRAFT_THM_PAGES = nombre de pages attendu (124), sans quoi le test échoue (jamais de nom réel ici).
 add_test(NAME tst_flipchart_miniatures_samples
     COMMAND $<TARGET_FILE:actcraft-flipchart-dump> --samples "$ENV{ACTCRAFT_SAMPLES_DIR}"
-        --connues "$ENV{ACTCRAFT_THM_CONNUES}")
+        --connues "$ENV{ACTCRAFT_THM_CONNUES}" --pages-attendues "$ENV{ACTCRAFT_THM_PAGES}")
 set_tests_properties(tst_flipchart_miniatures_samples PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 600 ENVIRONMENT "${_bench_env_offscreen}" PASS_REGULAR_EXPRESSION "MINIATURES OK")
 

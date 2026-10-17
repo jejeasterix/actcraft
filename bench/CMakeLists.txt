@@ -99,5 +99,7 @@ set_target_properties(actcraft-captures PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CM
 qt_add_executable(actcraft-flipchart-dump flipchart/main.cpp)
 target_link_libraries(actcraft-flipchart-dump PRIVATE ActCraft::formats ActCraft::render Qt6::Gui)
 target_include_directories(actcraft-flipchart-dump PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
+# Racine du dépôt : --comparaisons n'écrit que sous .tmp/ ou build/ (PNG des vraies miniatures).
+target_compile_definitions(actcraft-flipchart-dump PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 actcraft_set_warnings(actcraft-flipchart-dump)
 set_target_properties(actcraft-flipchart-dump PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

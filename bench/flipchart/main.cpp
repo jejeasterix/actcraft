@@ -14,6 +14,7 @@
 #include <QPainter>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <optional>
@@ -21,27 +22,29 @@
 
 // actcraft-flipchart-dump : outil de preuve, jamais livré.
 //
-//   actcraft-flipchart-dump <fichier.flipchart> [--sortie <fichier.json>]
-//     Export canonique du lecteur (oracle, décision 19). Le JSON seul va sur la sortie standard (ou dans
-//     --sortie) ; les messages vont sur la sortie d'erreur, dont la dernière ligne est « DUMP OK : <n> pages
-//     » (code 0) ou « DUMP EN ECHEC : <raison> » (code 1).
+// actcraft-flipchart-dump <fichier.flipchart> [--sortie <fichier.json>]
+//   Export canonique du lecteur (oracle, décision 19). Le JSON seul va sur la sortie standard (ou dans
+//   --sortie) ; les messages vont sur la sortie d'erreur, dont la dernière ligne est « DUMP OK : <n> pages »
+//   (code 0) ou « DUMP EN ECHEC : <raison> » (code 1).
 //
-//   actcraft-flipchart-dump --miniatures <fichier.flipchart> [--connues "<fichier>:<page>;…"] [--comparaisons
-//   <dossier>] actcraft-flipchart-dump --samples <dossier> [--connues "<fichier>:<page>;…"] [--comparaisons
-//   <dossier>]
-//     S4 (L2-T21) : rendu de chaque page par le peintre partagé, comparé à sa miniature .thm d'origine. Une
-//     ligne « PAGE <fichier>:<n> écart <e> » par page, puis « MINIATURES OK : <n> pages, médiane <m>, <k>
-//     au-dessus de 7 » (code 0 : médiane ≤ 2,0 et k ≤ 3) ou « MINIATURES EN ECHEC : <raison> » (code 1). Avec
-//     --connues (page « * » : toutes celles du fichier), toute page au-dessus de 7 hors de la liste fait
-//     échouer, et elle est nommée.
-//     --samples : tous les .flipchart du dossier, par nom ; code 77 si le dossier est absent ou vide (test
-//     sauté).
-//     --comparaisons : rendu et miniature côte à côte, en PNG, pour chaque page au-dessus de 7 (sous .tmp/).
+// actcraft-flipchart-dump --miniatures <fichier.flipchart> [options]
+// actcraft-flipchart-dump --samples <dossier> --pages-attendues <n> [options]
+//   S4 (L2-T21) : rendu de chaque page par le peintre partagé, comparé à sa miniature .thm d'origine. Une
+//   ligne « PAGE <fichier>:<n> écart <e> » par page (ou « sans miniature », « miniature illisible »), une
+//   ligne « AVERTISSEMENT » par avertissement du lecteur, « SYNTHESE : … », puis « MINIATURES OK : <n> pages,
+//   médiane <m>, <k> au-dessus de 7 » (code 0 : médiane ≤ 2,0, k ≤ 3) ou « MINIATURES EN ECHEC : <raison> »
+//   (code 1). Échoue aussi si une page lue manque à la mesure, ou si le nombre de pages lues diffère de
+//   --pages-attendues (obligatoire avec --samples). --samples : tous les .flipchart du dossier, par nom ;
+//   code 77 si le dossier est absent ou vide (test sauté).
+//   --connues "<fichier>:<page>;…" : toute page au-dessus de 7 hors de la liste fait échouer et est nommée ;
+//   « <fichier>:* » excuse une page quelconque du fichier, une seule.
+//   --comparaisons <dossier> : rendu et miniature côte à côte (PNG) pour chaque page au-dessus de 7 ; dossier
+//   sous .tmp/ ou build/ du dépôt seulement (les PNG contiennent les vraies miniatures).
 //
-//   actcraft-flipchart-dump --ecrire-synthetique <fichier.flipchart> [--miniatures-alterees]
-//     Écrit fctest::sampleFlipchart avec des miniatures JPEG rendues par notre peintre (chemin prouvé en CI,
-//     pas la fidélité) ; --miniatures-alterees peint en noir le quart droit de chacune. « SYNTHETIQUE OK :
-//     <fichier> ».
+// actcraft-flipchart-dump --ecrire-synthetique <fichier.flipchart> [variante]
+//   Écrit fctest::sampleFlipchart avec des miniatures JPEG rendues par notre peintre (chemin prouvé en CI,
+//   pas la fidélité), « SYNTHETIQUE OK : <fichier> ». Variantes : --miniatures-alterees (quart droit noir),
+//   --miniatures-trouees (page 1 vide, page 2 indécodable), --miniatures-geantes (2000 px de large).
 
 namespace {
 
@@ -115,10 +118,23 @@ struct PageGap
     double gap = 0;
 };
 
-// Pages à miniature d'un paperboard, rendues comme les miniatures de l'application (peintre partagé, échelle
-// de miniature) à la largeur de leur .thm ; `withoutThumbnail` compte les autres.
-bool pageGaps(const QString& path, std::vector<PageGap>& gaps, int& withoutThumbnail,
-              const QString& comparisons, QString& error)
+// Pages lues qui manquent à la mesure, et avertissements du lecteur : comptés et imprimés, jamais tus.
+struct Tally
+{
+    int pagesRead = 0;
+    int withoutThumbnail = 0;    // .thm absent ou vide
+    int unreadableThumbnail = 0; // .thm présent mais indécodable
+    int warnings = 0;
+};
+
+// Rendu borné comme render::thumbnailPng : la miniature d'un fichier non fiable ne commande pas la mémoire.
+constexpr int kMaxRenderWidth = 4 * render::kThumbnailWidth;
+constexpr int kMaxRenderHeight = render::kThumbnailMaxHeight;
+
+// Pages d'un paperboard rendues comme les miniatures de l'application (peintre partagé, échelle de miniature)
+// à la largeur de leur .thm.
+bool pageGaps(const QString& path, std::vector<PageGap>& gaps, Tally& tally, const QString& comparisons,
+              QString& error)
 {
     const QString name = QFileInfo(path).fileName();
     QFile in(path);
@@ -131,26 +147,56 @@ bool pageGaps(const QString& path, std::vector<PageGap>& gaps, int& withoutThumb
         error = QStringLiteral("%1 : %2").arg(name, r.error);
         return false;
     }
+    for (const QString& w : r.warnings) {
+        printLine(QStringLiteral("AVERTISSEMENT %1 : %2").arg(name, w));
+    }
+    tally.warnings += static_cast<int>(r.warnings.size());
+    tally.pagesRead += static_cast<int>(r.document.pageCount());
     const render::DecodedImages images = render::decodeImages(r.document);
     for (std::size_t i = 0; i < r.document.pageCount(); ++i) {
-        const QImage thumbnail = i < r.thumbnails.size() ? QImage::fromData(r.thumbnails[i]) : QImage();
+        const int pageNumber = static_cast<int>(i) + 1;
+        const QByteArray bytes = i < r.thumbnails.size() ? r.thumbnails[i] : QByteArray();
+        if (bytes.isEmpty()) {
+            ++tally.withoutThumbnail;
+            printLine(QStringLiteral("PAGE %1:%2 sans miniature").arg(name).arg(pageNumber));
+            continue;
+        }
+        const QImage thumbnail = QImage::fromData(bytes);
         if (thumbnail.isNull()) {
-            ++withoutThumbnail;
+            ++tally.unreadableThumbnail;
+            printLine(QStringLiteral("PAGE %1:%2 miniature illisible").arg(name).arg(pageNumber));
             continue;
         }
         const actcraft::core::Page& page = r.document.page(i);
-        const double scale = page.width > 0 ? thumbnail.width() / page.width : 1.0;
+        if (!std::isfinite(page.width) || !std::isfinite(page.height) || page.width <= 0 ||
+            page.height <= 0) {
+            error = QStringLiteral("%1 page %2 : taille de page invalide").arg(name).arg(pageNumber);
+            return false;
+        }
+        const double scale = thumbnail.width() / page.width;
+        const double width = page.width * scale;
+        const double height = page.height * scale;
+        if (!std::isfinite(height) || width > kMaxRenderWidth || height > kMaxRenderHeight) {
+            error = QStringLiteral("%1 page %2 : rendu de %3 × %4 refusé (au plus %5 × %6)")
+                        .arg(name)
+                        .arg(pageNumber)
+                        .arg(QString::number(width, 'f', 0))
+                        .arg(std::isfinite(height) ? QString::number(height, 'f', 0) : QStringLiteral("∞"))
+                        .arg(kMaxRenderWidth)
+                        .arg(kMaxRenderHeight);
+            return false;
+        }
         render::PaintOptions options;
         options.thumbnail = true;
         const QImage rendered = render::renderPage(page, images.lookup(), scale, options);
         const std::optional<double> gap = thumbnailGap(rendered, thumbnail);
         if (!gap) {
-            error = QStringLiteral("%1 page %2 : images de mesure invalides").arg(name).arg(i + 1);
+            error = QStringLiteral("%1 page %2 : images de mesure invalides").arg(name).arg(pageNumber);
             return false;
         }
         PageGap entry;
         entry.file = name;
-        entry.page = static_cast<int>(i) + 1;
+        entry.page = pageNumber;
         entry.gap = *gap;
         printLine(
             QStringLiteral("PAGE %1:%2 écart %3").arg(entry.file).arg(entry.page).arg(number(entry.gap)));
@@ -172,7 +218,7 @@ bool pageGaps(const QString& path, std::vector<PageGap>& gaps, int& withoutThumb
 struct KnownPage
 {
     QString file;
-    int page = 0; // 0 : toutes les pages du fichier (« * »)
+    int page = 0; // 0 : une page quelconque du fichier (« * »)
 };
 
 bool parseKnown(const QString& text, std::vector<KnownPage>& known, QString& error)
@@ -198,22 +244,35 @@ bool parseKnown(const QString& text, std::vector<KnownPage>& known, QString& err
     return true;
 }
 
-bool isKnown(const PageGap& g, const std::vector<KnownPage>& known)
+bool sameFile(const QString& a, const QString& b)
 {
-    return std::any_of(known.begin(), known.end(), [&g](const KnownPage& k) {
-        return k.file.compare(g.file, Qt::CaseInsensitive) == 0 && (k.page == 0 || k.page == g.page);
-    });
+    return a.compare(b, Qt::CaseInsensitive) == 0;
 }
 
-// Synthèse et verdict de S4 ; dernière ligne de la sortie.
-int verdict(const std::vector<PageGap>& gaps, int withoutThumbnail, bool hasKnownList,
+// Page au-dessus de 7 excusée par la liste : « fichier:n » excuse la page n ; « fichier:* » excuse UNE page
+// quelconque du fichier, la première rencontrée (`starUsed` le retient), jamais toutes.
+bool excused(const PageGap& g, const std::vector<KnownPage>& known, std::vector<bool>& starUsed)
+{
+    for (const KnownPage& k : known) {
+        if (k.page == g.page && sameFile(k.file, g.file)) {
+            return true;
+        }
+    }
+    for (std::size_t i = 0; i < known.size(); ++i) {
+        if (known[i].page == 0 && !starUsed[i] && sameFile(known[i].file, g.file)) {
+            starUsed[i] = true;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Synthèse et verdict de S4 ; dernière ligne de la sortie. Toute page lue qui manque à la mesure fait
+// échouer ; `expectedPages` > 0 : le nombre de pages lues doit l'égaler (pages écartées par le lecteur).
+int verdict(const std::vector<PageGap>& gaps, const Tally& tally, int expectedPages,
             const std::vector<KnownPage>& known)
 {
-    if (gaps.empty()) {
-        printLine(QStringLiteral("MINIATURES EN ECHEC : aucune page à miniature (%1 sans miniature)")
-                      .arg(withoutThumbnail));
-        return 1;
-    }
+    const bool hasKnownList = !known.empty();
     std::vector<double> sorted;
     sorted.reserve(gaps.size());
     for (const PageGap& g : gaps) {
@@ -221,13 +280,17 @@ int verdict(const std::vector<PageGap>& gaps, int withoutThumbnail, bool hasKnow
     }
     std::sort(sorted.begin(), sorted.end());
     const std::size_t n = sorted.size();
-    const double median = n % 2 == 1 ? sorted[n / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0;
+    double median = 0;
+    if (n > 0) {
+        median = n % 2 == 1 ? sorted[n / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0;
+    }
     QStringList unknown;
+    std::vector<bool> starUsed(known.size(), false);
     int above = 0;
     for (const PageGap& g : gaps) {
         if (g.gap > kPageLimit) {
             ++above;
-            if (hasKnownList && !isKnown(g, known)) {
+            if (hasKnownList && !excused(g, known, starUsed)) {
                 unknown << QStringLiteral("page %1:%2 au-dessus de 7 et non connue").arg(g.file).arg(g.page);
             }
         }
@@ -236,16 +299,38 @@ int verdict(const std::vector<PageGap>& gaps, int withoutThumbnail, bool hasKnow
                           .arg(static_cast<int>(n))
                           .arg(number(median))
                           .arg(above);
-    if (withoutThumbnail > 0) {
-        summary += QStringLiteral(", %1 sans miniature").arg(withoutThumbnail);
+    if (tally.withoutThumbnail > 0) {
+        summary += QStringLiteral(", %1 sans miniature").arg(tally.withoutThumbnail);
+    }
+    if (tally.unreadableThumbnail > 0) {
+        summary += QStringLiteral(", %1 miniature(s) illisible(s)").arg(tally.unreadableThumbnail);
+    }
+    if (tally.warnings > 0) {
+        summary += QStringLiteral(", %1 avertissement(s) de lecture").arg(tally.warnings);
     }
     if (!hasKnownList) {
         summary += QStringLiteral(", liste des pages connues absente");
     }
     printLine(QStringLiteral("SYNTHESE : %1").arg(summary));
-    if (!unknown.isEmpty()) {
-        printLine(QStringLiteral("MINIATURES EN ECHEC : %1").arg(unknown.join(QStringLiteral(" ; "))));
+    const auto fail = [](const QString& why) {
+        printLine(QStringLiteral("MINIATURES EN ECHEC : %1").arg(why));
         return 1;
+    };
+    if (expectedPages > 0 && tally.pagesRead != expectedPages) {
+        return fail(QStringLiteral("%1 pages lues, %2 attendues").arg(tally.pagesRead).arg(expectedPages));
+    }
+    const int outside = tally.withoutThumbnail + tally.unreadableThumbnail;
+    if (outside > 0) {
+        return fail(QStringLiteral("%1 pages hors de la mesure (%2 sans miniature, %3 miniature illisible)")
+                        .arg(outside)
+                        .arg(tally.withoutThumbnail)
+                        .arg(tally.unreadableThumbnail));
+    }
+    if (n == 0) {
+        return fail(QStringLiteral("aucune page à miniature"));
+    }
+    if (!unknown.isEmpty()) {
+        return fail(unknown.join(QStringLiteral(" ; ")));
     }
     const bool ok = median <= kMedianLimit && above <= kPagesAboveLimit;
     printLine(QStringLiteral("MINIATURES %1 : %2")
@@ -253,7 +338,16 @@ int verdict(const std::vector<PageGap>& gaps, int withoutThumbnail, bool hasKnow
     return ok ? 0 : 1;
 }
 
-int writeSynthetic(const QString& path, bool altered)
+// Variantes du paperboard synthétique, pour prouver que la mesure et son verdict voient chaque défaut.
+enum class Variant
+{
+    Plain,
+    Altered, // quart droit de chaque miniature peint en noir
+    Holes,   // page 1 à miniature vide, page 2 à miniature indécodable
+    Huge,    // miniatures de 2000 px de large
+};
+
+int writeSynthetic(const QString& path, Variant variant)
 {
     const auto fail = [](const QString& why) {
         printLine(QStringLiteral("SYNTHETIQUE EN ECHEC : %1").arg(why));
@@ -272,10 +366,12 @@ int writeSynthetic(const QString& path, bool altered)
         if (image.isNull()) {
             return fail(QStringLiteral("miniature de la page %1 vide").arg(i + 1));
         }
-        if (altered) {
+        if (variant == Variant::Altered) {
             QPainter p(&image);
             p.fillRect(QRect(image.width() * 3 / 4, 0, image.width() - image.width() * 3 / 4, image.height()),
                        Qt::black);
+        } else if (variant == Variant::Huge) {
+            image = image.scaled(2000, 1500, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         }
         // Qualité 100 : à 90, le sous-échantillonnage des couleurs du JPEG brouille les traits fins de la
         // grille (écart 4,47 sur la page 1, contre 0,00 en PNG et 0,39 à 100, mesuré) ; la preuve porte sur
@@ -287,6 +383,10 @@ int writeSynthetic(const QString& path, bool altered)
             return fail(QStringLiteral("encodage JPEG impossible (greffon d'images absent ?)"));
         }
         jpegs.push_back(jpeg);
+    }
+    if (variant == Variant::Holes && jpegs.size() == 2) {
+        jpegs[0].clear();
+        jpegs[1] = QByteArrayLiteral("pas une image");
     }
     const QByteArray data = fctest::sampleFlipchart(jpegs);
     QFile out(path);
@@ -310,6 +410,26 @@ QString optionValue(const QStringList& args, const QString& name, bool& present)
     return args.at(at + 1);
 }
 
+// Les comparaisons contiennent les vraies miniatures (dépôt public) : seulement sous .tmp/ ou build/ du
+// dépôt.
+bool isUnderWorkArea(const QString& dir)
+{
+#ifdef Q_OS_WIN
+    constexpr Qt::CaseSensitivity cs = Qt::CaseInsensitive;
+#else
+    constexpr Qt::CaseSensitivity cs = Qt::CaseSensitive;
+#endif
+    const QString target = QDir::cleanPath(QFileInfo(dir).absoluteFilePath());
+    const QString root = QDir::cleanPath(QStringLiteral(ACTCRAFT_SOURCE_DIR));
+    for (const QString& sub : {QStringLiteral(".tmp"), QStringLiteral("build")}) {
+        const QString base = root + QLatin1Char('/') + sub;
+        if (target.compare(base, cs) == 0 || target.startsWith(base + QLatin1Char('/'), cs)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int compareThumbnails(const QStringList& args)
 {
     const auto fail = [](const QString& why) {
@@ -318,15 +438,21 @@ int compareThumbnails(const QStringList& args)
     };
     bool hasFile = false;
     bool hasSamples = false;
+    bool hasExpected = false;
     bool unused = false;
     const QString file = optionValue(args, QStringLiteral("--miniatures"), hasFile);
     const QString samples = optionValue(args, QStringLiteral("--samples"), hasSamples);
     const QString knownText = optionValue(args, QStringLiteral("--connues"), unused);
     const QString comparisons = optionValue(args, QStringLiteral("--comparaisons"), unused);
+    const QString expectedText = optionValue(args, QStringLiteral("--pages-attendues"), hasExpected);
     std::vector<KnownPage> known;
     QString error;
     if (!parseKnown(knownText, known, error)) {
         return fail(error);
+    }
+    if (!comparisons.isEmpty() && !isUnderWorkArea(comparisons)) {
+        return fail(QStringLiteral("dossier de comparaisons hors de .tmp/ et de build/ du dépôt (%1)")
+                        .arg(comparisons));
     }
     QStringList files;
     if (hasSamples) {
@@ -350,14 +476,23 @@ int compareThumbnails(const QStringList& args)
     } else {
         return fail(QStringLiteral("--miniatures <fichier> ou --samples <dossier> attendu"));
     }
+    int expectedPages = 0;
+    if (hasExpected || hasSamples) {
+        bool ok = false;
+        expectedPages = expectedText.toInt(&ok);
+        if (!ok || expectedPages < 1) {
+            return fail(
+                QStringLiteral("--pages-attendues <n> attendu (n ≥ 1 ; ACTCRAFT_THM_PAGES pour --samples)"));
+        }
+    }
     std::vector<PageGap> gaps;
-    int withoutThumbnail = 0;
+    Tally tally;
     for (const QString& f : files) {
-        if (!pageGaps(f, gaps, withoutThumbnail, comparisons, error)) {
+        if (!pageGaps(f, gaps, tally, comparisons, error)) {
             return fail(error);
         }
     }
-    return verdict(gaps, withoutThumbnail, !known.empty(), known);
+    return verdict(gaps, tally, expectedPages, known);
 }
 
 int dump(const QStringList& args)
@@ -423,7 +558,15 @@ int main(int argc, char* argv[])
             printLine(QStringLiteral("SYNTHETIQUE EN ECHEC : --ecrire-synthetique <fichier> attendu"));
             return 1;
         }
-        return writeSynthetic(args.at(synthetic + 1), args.contains(QStringLiteral("--miniatures-alterees")));
+        Variant variant = Variant::Plain;
+        if (args.contains(QStringLiteral("--miniatures-alterees"))) {
+            variant = Variant::Altered;
+        } else if (args.contains(QStringLiteral("--miniatures-trouees"))) {
+            variant = Variant::Holes;
+        } else if (args.contains(QStringLiteral("--miniatures-geantes"))) {
+            variant = Variant::Huge;
+        }
+        return writeSynthetic(args.at(synthetic + 1), variant);
     }
     if (args.contains(QStringLiteral("--miniatures")) || args.contains(QStringLiteral("--samples"))) {
         return compareThumbnails(args);
