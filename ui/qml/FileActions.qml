@@ -16,7 +16,8 @@ Item {
     property var afterSave: null  // action à reprendre après un enregistrement réussi
     property bool quitting: false
     // « Enregistrer » demandé pendant une lecture ou une écriture : relancé à sa fin, puis l'action en attente
-    // (« Quitter » après « Enregistrer les modifications ? ») reprend (L2-C9). Jamais refusé en silence.
+    // (« Quitter » après « Enregistrer les modifications ? ») reprend (L2-C9). Jamais refusé en silence ; abandonné
+    // si une ouverture réussie a remplacé le document visé.
     property bool saveWaiting: false
 
     function guard(action) {
@@ -98,7 +99,16 @@ Item {
             if (ok && a) a()
         }
         function onLoadFinished(ok, message) {
-            if (actions.saveWaiting) { actions.saveWaiting = false; actions.save() }
+            if (!actions.saveWaiting)
+                return
+            actions.saveWaiting = false
+            // Lecture ratée : le document est le même, l'enregistrement demandé part. Lecture réussie : il
+            // visait le document remplacé, il est abandonné (jamais relancé sur le document ouvert) ; l'action
+            // en attente est réévaluée sur le nouveau document (revue de L2-C9).
+            if (!ok) { actions.save(); return }
+            const a = actions.afterSave
+            actions.afterSave = null
+            if (a) actions.guard(a)
         }
     }
 }
