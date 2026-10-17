@@ -5,67 +5,182 @@
 # (état initial vérifié), installe et lance l'APK, trace un trait au doigt, puis « Enregistrer sous » (Ctrl+Maj+S) →
 # sélecteur du système (DocumentsUI, ACTION_CREATE_DOCUMENT), nom du passage saisi et relu → « ACTCRAFT ENREGISTRE
 # <empreinte> » dans logcat, fichier de ce nom dans MediaStore ; Fermer (Ctrl+W), Ouvrir (Ctrl+O) → sélecteur → le
-# fichier, par son nom exact → « ACTCRAFT OUVERT <empreinte> ». Arrête l'émulateur par son PID, quoi qu'il arrive.
-# Appels adb : scripts/android-commun.ps1.
+# fichier, par son nom exact → « ACTCRAFT OUVERT <empreinte> ». Refuse de démarrer si un émulateur occupe déjà le port
+# de l'essai. Appels adb : scripts/android-commun.ps1.
 # Dernière ligne : « ANDROID FICHIERS OK » (0) ou « ANDROID FICHIERS EN ECHEC : <raison> » (1), même sur une erreur
-# imprévue. Sorties de diagnostic sous .tmp/ (fichiers-*.png, fichiers-*.xml, fichiers-logcat.txt) ; le serveur adb
-# et l'émulateur démarrés par l'essai sont arrêtés par leur PID.
+# imprévue. Sorties de diagnostic sous .tmp/ (fichiers-*.png, fichiers-*.xml, fichiers-logcat.txt). Ce que l'essai a
+# lancé (émulateur et ses descendants, qemu compris ; client et serveur adb) est arrêté par les processus qu'il tient,
+# jamais par nom ni par un PID relu, y compris sur Ctrl+C (bloc finally) ; un serveur adb que l'essai n'a pas lancé
+# n'est jamais arrêté.
 param([Parameter(Mandatory)][string]$Apk, [string]$Avd = '')
 $ErrorActionPreference = 'Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
 $paquet = 'io.github.jejeasterix.actcraft'
 # Port propre à l'essai : tout appel adb vise cet émulateur (ANDROID_SERIAL), jamais un autre appareil branché.
 $port = 5584
+# Processus lancés par l'essai, tenus par un handle ouvert (Process.Handle) : tant qu'il est tenu, un PID ne peut pas
+# être réattribué, et HasExited, Kill et WaitForExit visent ce processus-là.
 $emulateur = $null
+$lancementEmulateur = $null
+$descendantsEmulateur = @()
+$clientAdb = $null
+$lancementClientAdb = $null
 $serveurAdb = $null
+$identiteServeurAdb = $null
+$arretsRates = @()
 $python = if (-not $IsWindows -and (Get-Command python3 -ErrorAction SilentlyContinue)) { 'python3' } else { 'python' }
 
+# Ligne de la table des processus (Windows : ProcessId, ParentProcessId, CreationDate, Name, ExecutablePath), ou
+# $null si le PID n'est pas celui d'un processus vivant.
+function Get-LigneProcessus([int]$Id) {
+    return Get-CimInstance Win32_Process -Filter "ProcessId = $Id" -ErrorAction SilentlyContinue | Select-Object -First 1
+}
+# Processus d'un PID, tenu (handle ouvert), ou $null s'il est mort ou si le PID a été réattribué entre la lecture de
+# la table (création $Creation) et l'ouverture du handle : relue une fois le handle ouvert, la table doit donner la
+# même création.
+function Get-ProcessusTenu([int]$Id, [datetime]$Creation) {
+    try { $p = Get-Process -Id $Id -ErrorAction Stop; $null = $p.Handle } catch { return $null }
+    $ligne = Get-LigneProcessus $Id
+    if (-not $ligne -or $ligne.CreationDate -ne $Creation) { return $null }
+    return $p
+}
+function Get-NomProcessus($Processus) { try { return $Processus.ProcessName } catch { return '?' } }
+# Descendants d'un processus tenu (Windows), tenus à leur tour : parent attendu et création postérieure à celle du
+# parent ($Lancement : heure relevée juste avant le lancement de la racine) ; un PID de parent réattribué ne fait pas
+# d'un processus étranger un descendant. Un orphelin (qemu dont l'émulateur s'est arrêté) garde son ParentProcessId :
+# il est trouvé tant que son parent est tenu.
+function Get-Descendants($Racine, $Lancement) {
+    if (-not $IsWindows -or -not $Racine -or -not $Lancement) { return @() }
+    $table = @(Get-CimInstance Win32_Process -Property ProcessId, ParentProcessId, CreationDate -ErrorAction SilentlyContinue)
+    $trouves = [Collections.Generic.List[object]]::new()
+    $parents = [Collections.Generic.Queue[object]]::new()
+    $parents.Enqueue([pscustomobject]@{ Id = $Racine.Id; Debut = [datetime]$Lancement })
+    while ($parents.Count -gt 0) {
+        $parent = $parents.Dequeue()
+        foreach ($ligne in $table) {
+            if ($ligne.ParentProcessId -ne $parent.Id -or $ligne.ProcessId -eq $parent.Id -or -not $ligne.CreationDate -or
+                $ligne.CreationDate -lt $parent.Debut) { continue }
+            if (@($trouves | Where-Object { $_.Id -eq $ligne.ProcessId }).Count -gt 0) { continue }
+            $p = Get-ProcessusTenu $ligne.ProcessId $ligne.CreationDate
+            if (-not $p) { continue }
+            $trouves.Add($p)
+            $parents.Enqueue([pscustomobject]@{ Id = $p.Id; Debut = $ligne.CreationDate })
+        }
+    }
+    return @($trouves)
+}
+
 # Démarrage local de l'émulateur : sans fenêtre, -gpu host, démarrage à froid sans instantané (rien d'enregistré à
-# l'arrêt), dossier courant hors du dépôt (le worktree n'est pas verrouillé). Le processus est gardé pour l'arrêt.
+# l'arrêt), dossier courant hors du dépôt (le worktree n'est pas verrouillé). Le processus est tenu dès son lancement :
+# un arrêt pendant l'attente du démarrage l'arrête aussi.
 function Start-ActCraftEmulateur([string]$Avd) {
     $exe = (Get-Command emulator -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
     if (-not $exe) { Stop-Essai 'emulator introuvable dans le PATH (dev-env-android.ps1)' }
     if (-not $Avd) {
-        $Avd = @(& $exe -list-avds | Where-Object { $_ -match '^[\w.-]+$' }) | Select-Object -First 1
+        $Avd = @(& $exe -list-avds | Where-Object { $_ -cmatch '^[\w.-]+$' }) | Select-Object -First 1
         if (-not $Avd) { Stop-Essai 'aucun AVD (emulator -list-avds)' }
     }
     $journal = Join-Path (Get-Location) '.tmp/fichiers-emulateur.txt'
+    $script:lancementEmulateur = Get-Date
     $p = Start-Process -FilePath $exe -PassThru -NoNewWindow -WorkingDirectory (Split-Path $exe) `
         -RedirectStandardOutput $journal -RedirectStandardError "$journal.err" `
         -ArgumentList @('-avd', $Avd, '-port', "$port", '-no-window', '-gpu', 'host', '-no-snapshot', '-no-boot-anim', '-no-audio')
+    $null = $p.Handle
+    $script:emulateur = $p
     Write-Host "émulateur : $Avd, PID $($p.Id), port $port"
     Start-Sleep -Seconds 5
     if ($p.HasExited) { Stop-Essai "émulateur arrêté au démarrage (code $($p.ExitCode)) : $((Get-Content "$journal.err", $journal -ErrorAction SilentlyContinue | Select-Object -Last 2) -join ' ')" }
-    return $p
 }
-# Arrêt par PID : l'émulateur et ses processus enfants (qemu), sans rien enregistrer.
-function Stop-ActCraftEmulateur {
-    if (-not $script:emulateur) { return }
-    $p = $script:emulateur
-    $script:emulateur = $null
-    try { $p.Kill($true) } catch { $null = $_ }
-    $null = $p.WaitForExit(30000)
-    Write-Output "émulateur : PID $($p.Id) arrêté"
+# Refus net si un processus écoute déjà sur le port de l'essai (console $port, adb $port + 1) : l'émulateur d'un
+# passage interrompu servirait d'appareil à la place de celui que l'essai démarre.
+function Assert-PortEssaiLibre {
+    if (-not $IsWindows) { return }
+    $occupants = @(Get-NetTCPConnection -LocalPort $port, ($port + 1) -State Listen -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.OwningProcess } | Select-Object -Unique)
+    if ($occupants.Count -gt 0) {
+        Stop-Essai "port $port ou $($port + 1) déjà écouté (PID $($occupants -join ', ')) : émulateur d'un passage précédent ? à arrêter avant l'essai"
+    }
 }
 # Serveur adb démarré à part (sans handle hérité, dossier courant hors du dépôt) : démarré par le premier appel borné,
 # il hériterait de la sortie redirigée de ce script (« > fichier » resterait ouvert après la fin) et verrouillerait le
-# worktree. S'il ne tournait pas avant, son PID (port 5037, Windows) est gardé pour l'arrêter à la fin.
+# worktree. Le client « adb start-server » est tenu dès son lancement (arrêté s'il ne rend pas la main) ; le serveur
+# qui écoute ensuite sur le port 5037 n'est gardé, pour l'arrêter à la fin, que s'il descend de ce client : un serveur
+# déjà là, ou démarré entre-temps par une autre session, n'est jamais arrêté.
 function Start-ActCraftServeurAdb {
-    $avant = if ($IsWindows) { @(Get-NetTCPConnection -LocalPort 5037 -State Listen -ErrorAction SilentlyContinue) } else { @() }
-    $client = Start-Process -FilePath (Get-Command adb -CommandType Application | Select-Object -First 1).Source `
-        -ArgumentList 'start-server' -WorkingDirectory ([IO.Path]::GetTempPath()) -WindowStyle Hidden -PassThru
-    if (-not $client.WaitForExit(60000)) { Stop-Essai 'adb start-server sans réponse (60 s)' }
-    if ($IsWindows -and $avant.Count -eq 0) {
-        $script:serveurAdb = (Get-NetTCPConnection -LocalPort 5037 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1).OwningProcess
-        Write-Output "adb : serveur démarré, PID $script:serveurAdb"
+    $script:lancementClientAdb = Get-Date
+    $client = Start-Process -FilePath $script:ActCraftAdb -ArgumentList 'start-server' `
+        -WorkingDirectory ([IO.Path]::GetTempPath()) -WindowStyle Hidden -PassThru
+    $null = $client.Handle
+    $script:clientAdb = $client
+    $fin = (Get-Date).AddSeconds(60)
+    # Attente par tranches : un Ctrl+C est traité entre deux tranches, pas au bout des 60 s.
+    while (-not $client.WaitForExit(500)) {
+        if ((Get-Date) -gt $fin) { Stop-Essai 'adb start-server sans réponse (60 s)' }
     }
+    Find-ServeurAdbLance $client $script:lancementClientAdb
+    if ($script:serveurAdb) { Write-Output "adb : serveur démarré par l'essai, PID $($script:serveurAdb.Id)" }
+    elseif ($IsWindows) { Write-Output 'adb : serveur lancé hors de l''essai (déjà là, ou par une autre session), laissé vivant' }
+    else { Write-Output 'adb : serveur non identifiable hors de Windows, laissé vivant' }
 }
-function Stop-ActCraftServeurAdb {
-    if (-not $script:serveurAdb) { return }
-    $id = $script:serveurAdb
-    $script:serveurAdb = $null
-    Stop-Process -Id $id -Force -ErrorAction SilentlyContinue
-    Write-Output "adb : serveur PID $id arrêté"
+# Serveur adb lancé par le client tenu : processus qui écoute sur le port 5037 et descend de ce client. Son identité
+# (nom, heure de création, chemin) est relevée pour être revérifiée avant l'arrêt.
+function Find-ServeurAdbLance($Client, $Lancement) {
+    if ($script:serveurAdb -or -not $IsWindows -or -not $Client) { return }
+    $ecoute = @(Get-NetTCPConnection -LocalPort 5037 -State Listen -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.OwningProcess } | Select-Object -Unique)
+    if ($ecoute.Count -eq 0) { return }
+    $serveur = @(Get-Descendants $Client $Lancement | Where-Object { $ecoute -contains $_.Id }) | Select-Object -First 1
+    $ligne = if ($serveur) { Get-LigneProcessus $serveur.Id }
+    if (-not $ligne) { return }
+    $script:serveurAdb = $serveur
+    $script:identiteServeurAdb = @{ Nom = $ligne.Name; Creation = $ligne.CreationDate; Chemin = $ligne.ExecutablePath }
+}
+# Arrêt de ce que l'essai a lancé, par les processus tenus : l'émulateur et ses descendants (qemu…) sans rien
+# enregistrer, le client « start-server » s'il tourne encore, le serveur adb lancé par l'essai après revérification de
+# son identité. Rend les lignes d'état ; un arrêt manqué va dans $script:arretsRates (l'essai échoue) et rien n'est
+# dit « arrêté » qui ne soit mort. Sans effet la deuxième fois (Stop-Essai, fin réussie, puis bloc finally).
+function Stop-ActCraftLances {
+    if ($script:emulateur) {
+        $racine = $script:emulateur
+        $script:emulateur = $null
+        $cibles = @(@($racine) + @($script:descendantsEmulateur | Where-Object { $_ }) + @(Get-Descendants $racine $script:lancementEmulateur) |
+                Sort-Object Id -Unique)
+        $noms = @($cibles | Where-Object { $_.Id -ne $racine.Id } | ForEach-Object { "$(Get-NomProcessus $_) $($_.Id)" })
+        foreach ($c in $cibles) { try { if (-not $c.HasExited) { $c.Kill($true) } } catch { $null = $_ } }
+        $vivants = @($cibles | Where-Object { -not $_.WaitForExit(30000) })
+        if ($vivants.Count -gt 0) {
+            $script:arretsRates += "émulateur : PID $(($vivants | ForEach-Object { $_.Id }) -join ', ') encore vivant(s) 30 s après l'arrêt"
+        } else {
+            "émulateur : PID $($racine.Id) arrêté$(if ($noms) { ", descendants arrêtés : $($noms -join ', ')" })"
+        }
+    }
+    if ($script:clientAdb) {
+        $client = $script:clientAdb
+        $script:clientAdb = $null
+        Find-ServeurAdbLance $client $script:lancementClientAdb # avant l'arrêt du client : un serveur qu'il a lancé revient à l'essai
+        if (-not $client.HasExited) {
+            try { $client.Kill($true) } catch { $null = $_ }
+            if ($client.WaitForExit(10000)) { "adb : client start-server PID $($client.Id) arrêté" }
+            else { $script:arretsRates += "adb : client start-server PID $($client.Id) encore vivant 10 s après l'arrêt" }
+        }
+    }
+    if ($script:serveurAdb) {
+        $serveur = $script:serveurAdb
+        $identite = $script:identiteServeurAdb
+        $script:serveurAdb = $null
+        if ($serveur.HasExited) { "adb : serveur PID $($serveur.Id) déjà arrêté" }
+        else {
+            $actuel = Get-LigneProcessus $serveur.Id
+            if (-not $actuel -or $actuel.Name -ne $identite.Nom -or $actuel.CreationDate -ne $identite.Creation -or
+                $actuel.ExecutablePath -ne $identite.Chemin) {
+                $script:arretsRates += "adb : PID $($serveur.Id) n'a plus l'identité du serveur lancé par l'essai, laissé vivant"
+            } else {
+                try { $serveur.Kill() } catch { $null = $_ }
+                if ($serveur.WaitForExit(10000)) { "adb : serveur PID $($serveur.Id) arrêté" }
+                else { $script:arretsRates += "adb : serveur PID $($serveur.Id) encore vivant 10 s après l'arrêt" }
+            }
+        }
+    }
 }
 function Stop-Essai([string]$raison) {
     if ($script:emulateur -and $script:ActCraftAdb) {
@@ -76,8 +191,8 @@ function Stop-Essai([string]$raison) {
             $raison += ' (journal .tmp/fichiers-echec-logcat.txt, capture .tmp/fichiers-echec.png)'
         } catch { $null = $_ }
     }
-    Stop-ActCraftEmulateur
-    Stop-ActCraftServeurAdb
+    Stop-ActCraftLances
+    if ($script:arretsRates) { $raison += " ; $($script:arretsRates -join ' ; ')" }
     Write-Output "ANDROID FICHIERS EN ECHEC : $raison"
     exit 1
 }
@@ -157,9 +272,9 @@ function Invoke-Selecteur([string[]]$touches, [string]$quoi, [string]$id, [strin
                 $envoi = Get-Date
                 continue
             }
-            $selecteur = @($noeuds | Where-Object { $_.package -match 'documentsui' })
+            $selecteur = @($noeuds | Where-Object { $_.package -cmatch 'documentsui' })
             $noeud = $selecteur | Where-Object {
-                $_.enabled -eq 'true' -and $_.'resource-id' -cmatch $id -and $_.text -cmatch $texte -and $_.class -match $classe
+                $_.enabled -eq 'true' -and $_.'resource-id' -cmatch $id -and $_.text -cmatch $texte -and $_.class -cmatch $classe
             } | Select-Object -First 1
             if ($noeud) { Invoke-Tap $noeud; return $null }
             if ($touches -and -not $renvoye -and $selecteur.Count -eq 0 -and ((Get-Date) - $envoi).TotalSeconds -gt 20) {
@@ -177,7 +292,7 @@ function Invoke-Selecteur([string[]]$touches, [string]$quoi, [string]$id, [strin
 # Champ du nom du sélecteur d'enregistrement (EditText android:id/title de DocumentsUI), ou $null.
 function Get-ChampNom($arbre) {
     return @($arbre.SelectNodes('//node')) | Where-Object {
-        $_.package -match 'documentsui' -and $_.'resource-id' -eq 'android:id/title' -and $_.class -match 'EditText'
+        $_.package -cmatch 'documentsui' -and $_.'resource-id' -eq 'android:id/title' -and $_.class -cmatch 'EditText'
     } | Select-Object -First 1
 }
 # Saisit le nom dans le champ du sélecteur, puis le relit dans l'arbre jusqu'à le trouver exact. « input text » passe
@@ -215,10 +330,13 @@ function Set-NomFichier([string]$nom, [int]$secondes = 180) {
     }
     return "nom : champ « $lu » au lieu de « $nom » après $saisies saisie(s) en $secondes s ($(Save-Diagnostic 'nom'))"
 }
-# Le nom vient-il de l'essai ? Extension .actcraft, nom de l'essai (« essai-… ») ou début de ce nom (« ess » : saisie
-# tronquée d'un passage d'avant cette vérification).
-function Test-NomEssai([string]$nom) {
-    return $nom -and ($nom.EndsWith('.actcraft') -or $nom.StartsWith('essai-') -or 'essai-'.StartsWith($nom))
+# Fichier de l'essai : le nom exact que l'essai génère (essai-AAAAMMJJ-HHMMSS.actcraft, chiffres ASCII), à la racine
+# d'un dossier où le sélecteur enregistre (Download, Documents), vu par /sdcard ou par /storage/emulated/0. Rien
+# d'autre n'est effacé : ni un autre paperboard, ni un fichier de l'utilisateur qui commence par « essai », ni un
+# sous-dossier, ni Android/data ; un nom qui porte un caractère du shell (« ' », « ; ») est hors du motif.
+function Test-NomEssai([string]$nom) { return $nom -cmatch '^essai-[0-9]{8}-[0-9]{6}\.actcraft\z' }
+function Test-CheminEssai([string]$chemin) {
+    return $chemin -cmatch '^/(sdcard|storage/emulated/0)/(Download|Documents)/essai-[0-9]{8}-[0-9]{6}\.actcraft\z'
 }
 # Fichiers de l'essai vus par MediaStore, la base d'où le fournisseur des téléchargements (racine « Downloads » de
 # DocumentsUI) tire sa liste : objets { Id ; Nom ; Chemin }. Exception si le fournisseur ne répond pas par des
@@ -226,18 +344,22 @@ function Test-NomEssai([string]$nom) {
 function Get-FichiersMediaStore {
     $sortie = @(Invoke-Adb @('shell', 'content', 'query', '--uri', 'content://media/external/file', '--projection',
             '_id:_display_name:_data', '--where', "`"_data LIKE '/storage/emulated/0/%'`"") 60)
-    if (-not ($sortie | Where-Object { $_ -match '^Row: |^No result found\.' })) {
+    if (-not ($sortie | Where-Object { $_ -cmatch '^Row: |^No result found\.' })) {
         Lever-ActCraftAndroid "MediaStore illisible : $(($sortie | Select-Object -First 2) -join ' ')"
     }
     foreach ($ligne in $sortie) {
-        if ($ligne -match '_id=(\d+), _display_name=(.*), _data=(.*)$' -and (Test-NomEssai $Matches[2].Trim())) {
-            [pscustomobject]@{ Id = $Matches[1]; Nom = $Matches[2].Trim(); Chemin = $Matches[3].Trim() }
+        if ($ligne -cmatch '_id=([0-9]+), _display_name=(.*), _data=(.*)$') {
+            $nom = $Matches[2].Trim(); $chemin = $Matches[3].Trim()
+            if ((Test-NomEssai $nom) -and (Test-CheminEssai $chemin) -and $chemin.EndsWith("/$nom", [StringComparison]::Ordinal)) {
+                [pscustomobject]@{ Id = $Matches[1]; Nom = $nom; Chemin = $chemin }
+            }
         }
     }
 }
-# Fichiers de l'essai présents sur le stockage partagé (/sdcard/ : lien symbolique, d'où la barre finale), en chemins.
+# Fichiers de l'essai présents sur le stockage partagé, à la racine des dossiers du sélecteur, en chemins.
 function Get-FichiersStockage {
-    return @(Invoke-Adb @('shell', 'find', '/sdcard/', '-type', 'f') 60 | Where-Object { Test-NomEssai ($_ -split '/')[-1] })
+    return @(Invoke-Adb @('shell', 'find', '/sdcard/Download', '/sdcard/Documents', '-maxdepth', '1', '-type', 'f') 60 |
+            Where-Object { Test-CheminEssai $_ })
 }
 # État initial propre : chaque fichier de l'essai est effacé par MediaStore (content delete : la ligne et le fichier),
 # ce qui le retire de la liste du sélecteur, puis du stockage s'il en restait un hors de MediaStore. Vérifié par une
@@ -252,7 +374,10 @@ function Clear-FichiersEssai([int]$secondes = 120) {
                 Write-Output "état initial : « $($f.Nom) » effacé par MediaStore (id $($f.Id))"
             }
             foreach ($chemin in Get-FichiersStockage) {
-                $null = Invoke-Adb @('shell', 'rm', '-f', "'$chemin'")
+                # Garde : seul un chemin du motif de l'essai atteint le shell de l'appareil, et entre apostrophes
+                # échappées (« ' » → « '\'' »), même si le filtre ci-dessus venait à changer.
+                if (-not (Test-CheminEssai $chemin)) { Stop-Essai "état initial : chemin hors du motif de l'essai refusé : $chemin" }
+                $null = Invoke-Adb @('shell', 'rm', '-f', "'$($chemin.Replace("'", "'\''"))'")
                 Write-Output "état initial : $chemin effacé du stockage"
             }
             $restes = @(@(Get-FichiersMediaStore | ForEach-Object { $_.Nom }) + @(Get-FichiersStockage))
@@ -265,13 +390,23 @@ function Clear-FichiersEssai([int]$secondes = 120) {
         Start-Sleep -Seconds 3
     }
 }
-# Dernière ligne du journal qui correspond au motif, attendue jusqu'au délai.
+# Dernière ligne du journal qui correspond au motif (casse comprise), attendue jusqu'au délai.
 function Wait-Journal([string]$motif, [int]$secondes = 60) {
     $fin = (Get-Date).AddSeconds($secondes)
     while ((Get-Date) -lt $fin) {
-        $ligne = Invoke-AdbTour @('logcat', '-d') | Where-Object { $_ -match $motif } | Select-Object -Last 1
+        $ligne = Invoke-AdbTour @('logcat', '-d') | Where-Object { $_ -cmatch $motif } | Select-Object -Last 1
         if ($ligne) { return $ligne }
         Start-Sleep -Milliseconds 500
+    }
+    return $null
+}
+# Empreintes des lignes ENREGISTRE et OUVERT (casse comprise) : rend $null si elles sont égales et non vides, sinon la
+# raison de l'échec. Deux empreintes illisibles ne sont pas « égales ».
+function Compare-Empreintes([string]$enregistre, [string]$ouvert) {
+    $empreinteEnregistree = [regex]::Match($enregistre, 'ACTCRAFT ENREGISTRE ([0-9a-f]{16})').Groups[1].Value
+    $empreinteRelue = [regex]::Match($ouvert, 'ACTCRAFT OUVERT ([0-9a-f]{16})').Groups[1].Value
+    if (-not $empreinteEnregistree -or $empreinteEnregistree -cne $empreinteRelue) {
+        return "empreintes différentes : $(if ($empreinteEnregistree) { $empreinteEnregistree } else { '(vide)' }) enregistrée, $(if ($empreinteRelue) { $empreinteRelue } else { '(vide)' }) relue"
     }
     return $null
 }
@@ -282,10 +417,17 @@ try {
     . "$PSScriptRoot/android-commun.ps1"
     Initialize-ActCraftAdb
     if (-not (Test-Path -LiteralPath $Apk)) { Stop-Essai "APK introuvable : $Apk" }
+    Assert-PortEssaiLibre
     $env:ANDROID_SERIAL = "emulator-$port"
     Start-ActCraftServeurAdb
-    $emulateur = Start-ActCraftEmulateur -Avd $Avd
+    # Même refus vu d'adb (seul contrôle hors de Windows) : un appareil emulator-<port> déjà connu servirait d'appareil.
+    if (@(Invoke-Adb @('devices') 30) | Where-Object { $_ -cmatch "^emulator-$port\s" }) {
+        Stop-Essai "emulator-$port déjà connu d'adb avant le démarrage de l'essai : émulateur d'un passage précédent ?"
+    }
+    Start-ActCraftEmulateur -Avd $Avd
     Wait-ActCraftDemarrage
+    $descendantsEmulateur = @(Get-Descendants $emulateur $lancementEmulateur)
+    Write-Output "émulateur : descendants $(($descendantsEmulateur | ForEach-Object { "$(Get-NomProcessus $_) $($_.Id)" }) -join ', ')"
     Ecarter-Anr
     Write-Output "appareil : API $("$(Invoke-Adb @('shell', 'getprop', 'ro.build.version.sdk'))".Trim()), $("$(Invoke-Adb @('shell', 'getprop', 'ro.product.cpu.abi'))".Trim()), langue $("$(Invoke-Adb @('shell', 'getprop', 'persist.sys.locale'))$(Invoke-Adb @('shell', 'getprop', 'ro.product.locale'))".Trim())"
     # Indication « plein écran » du système déjà confirmée : sinon elle prend les touches au premier plein écran.
@@ -332,7 +474,7 @@ try {
         if ($echec) { if ($essai -eq 0) { Stop-Essai $echec } else { break } }
         Start-Sleep -Seconds 3
         $arbre = Read-ArbreUi
-        if ($arbre -and -not @($arbre.SelectNodes('//node') | Where-Object { $_.package -match 'documentsui' })) { break }
+        if ($arbre -and -not @($arbre.SelectNodes('//node') | Where-Object { $_.package -cmatch 'documentsui' })) { break }
     }
     $enregistre = Wait-Journal 'ACTCRAFT ENREGISTRE [0-9a-f]{16}'
     if (-not $enregistre) { Stop-Essai 'aucune ligne ACTCRAFT ENREGISTRE' }
@@ -350,6 +492,7 @@ try {
     Write-Output "fichier : $($ecrits[0].Chemin) (MediaStore id $($ecrits[0].Id))"
     # Journal vidé : la ligne OUVERT attendue ne peut venir que de l'ouverture qui suit.
     $null = Invoke-Adb @('logcat', '-c')
+    if ($LASTEXITCODE -ne 0) { Stop-Essai "adb logcat -c (code $LASTEXITCODE) : journal non vidé avant l'ouverture" }
 
     $null = Invoke-Adb @('shell', 'input', 'keycombination', '113', '51') # Ctrl+W
     Start-Sleep -Seconds 2
@@ -362,11 +505,13 @@ try {
     Write-Output $ouvert
     Invoke-Adb @('logcat', '-d') | Set-Content -Encoding utf8 .tmp/fichiers-logcat.txt
 
-    $a = [regex]::Match($enregistre, 'ACTCRAFT ENREGISTRE ([0-9a-f]{16})').Groups[1].Value
-    $b = [regex]::Match($ouvert, 'ACTCRAFT OUVERT ([0-9a-f]{16})').Groups[1].Value
-    if ($a -ne $b) { Stop-Essai "empreintes différentes : $a enregistrée, $b relue" }
-    Stop-ActCraftEmulateur
-    Stop-ActCraftServeurAdb
+    $echec = Compare-Empreintes $enregistre $ouvert
+    if ($echec) { Stop-Essai $echec }
+    Stop-ActCraftLances
+    if ($arretsRates) {
+        Write-Output "ANDROID FICHIERS EN ECHEC : $($arretsRates -join ' ; ')"
+        exit 1
+    }
     Write-Output 'ANDROID FICHIERS OK'
     exit 0
 } catch {
@@ -375,4 +520,11 @@ try {
     if (Get-Command Get-ActCraftAndroidRaison -ErrorAction SilentlyContinue) { $raison = Get-ActCraftAndroidRaison $_ }
     if (-not $raison) { $raison = "erreur imprévue : $($_.Exception.Message) (ligne $($_.InvocationInfo.ScriptLineNumber))" }
     Stop-Essai $raison
+} finally {
+    # Ctrl+C arrête le pipeline : le catch est sauté, pas ce bloc. Ce qui reste lancé est arrêté ici (rien après
+    # Stop-Essai ou une fin réussie) ; la sortie est peut-être déjà fermée, d'où les écritures à l'hôte protégées.
+    if ($emulateur -or $clientAdb -or $serveurAdb) {
+        $lignes = @(Stop-ActCraftLances) + @($arretsRates)
+        foreach ($ligne in $lignes) { try { Write-Host "arrêt (fin interrompue) : $ligne" } catch { $null = $_ } }
+    }
 }

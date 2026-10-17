@@ -86,13 +86,14 @@ function Wait-ActCraftDemarrage {
     while ([double]("$(Adb 15 shell cat /proc/loadavg)".Trim().Split(' ')[0]) -gt 4 -and (Get-Date) -lt $limite) { Start-Sleep -Seconds 5 }
 }
 
-# Installe l'APK (install -r), vide le journal (logcat -c), lance l'application et rend son PID, vivant 10 s après le
-# lancement. Lignes « install : … » écrites à l'hôte : la valeur rendue n'est que le PID.
+# Installe l'APK (install -r), vide le journal (logcat -c : refus si adb échoue), lance l'application et rend son
+# PID, vivant 10 s après le lancement. Lignes « install : … » écrites à l'hôte : la valeur rendue n'est que le PID.
 function Install-ActCraftApk([Parameter(Mandatory)][string]$Apk, [Parameter(Mandatory)][string]$Paquet) {
     if (-not (Test-Path -LiteralPath $Apk)) { Lever-ActCraftAndroid "APK introuvable : $Apk" }
     Adb 240 install -r (Resolve-Path -LiteralPath $Apk).Path | ForEach-Object { Write-Host "install : $_" }
     if ($LASTEXITCODE -ne 0) { Lever-ActCraftAndroid 'adb install' }
     $null = Adb 30 logcat -c
+    if ($LASTEXITCODE -ne 0) { Lever-ActCraftAndroid "adb logcat -c (code $LASTEXITCODE)" }
     $null = Adb 60 shell monkey -p $Paquet -c android.intent.category.LAUNCHER 1
     Start-Sleep -Seconds 10
     $processus = "$(Adb 30 shell pidof $Paquet)".Trim()
