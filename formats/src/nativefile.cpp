@@ -72,7 +72,10 @@ enum class Extracted
 
 QString describe(Extracted status)
 {
-    return status == Extracted::TooBig ? u"trop volumineuse"_s : u"illisible (entrée corrompue)"_s;
+    // Une entrée absente ou invalide se lit « illisible » ici (l'appelant ne décrit que des entrées
+    // présentes).
+    return formats::describe(status == Extracted::TooBig ? ResourceFailure::TooBig
+                                                         : ResourceFailure::Corrupt);
 }
 
 // Lecteur zip en mémoire, fermé à la destruction. Les noms sont indexés une fois, à l'identique (octets

@@ -1435,6 +1435,19 @@ QJsonObject resourceJson(const std::string& key, const std::string& extension)
 
 } // namespace
 
+QString describe(ResourceFailure failure)
+{
+    switch (failure) {
+    case ResourceFailure::TooBig:
+        return u"trop volumineuse"_s;
+    case ResourceFailure::Corrupt:
+        return u"illisible (entrée corrompue)"_s;
+    case ResourceFailure::Absent:
+        break;
+    }
+    return u"absente"_s;
+}
+
 QJsonObject documentToJson(const Document& document)
 {
     QJsonObject root;
@@ -1525,11 +1538,7 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
         const std::optional<QByteArray>& data = loaded.data;
         if (!data) {
             // Cause typée rendue par le chargeur (L2-C9) : le texte n'est écrit qu'ici.
-            const QString cause = loaded.failure == ResourceFailure::TooBig ? u"trop volumineuse"_s
-                                  : loaded.failure == ResourceFailure::Corrupt
-                                      ? u"illisible (entrée corrompue)"_s
-                                      : u"absente"_s;
-            r.warn(u"ressource %1 %2, écartée"_s.arg(str(key), cause));
+            r.warn(u"ressource %1 %2, écartée"_s.arg(str(key), describe(loaded.failure)));
             continue;
         }
         if (sha256Hex(*data) != key) {
