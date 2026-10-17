@@ -500,12 +500,16 @@ int verdict(const std::vector<PageGap>& gaps, const Tally& tally, int expectedPa
     }
     QStringList unknown;
     std::vector<bool> starUsed(known.size(), false);
+    const QString limit = QString::number(kPageLimit);
     int above = 0;
     for (const PageGap& g : gaps) {
         if (g.gap > kPageLimit) {
             ++above;
             if (hasKnownList && !excused(g, known, starUsed)) {
-                unknown << QStringLiteral("page %1:%2 au-dessus de 7 et non connue").arg(g.file).arg(g.page);
+                unknown << QStringLiteral("page %1:%2 au-dessus de %3 et non connue")
+                               .arg(g.file)
+                               .arg(g.page)
+                               .arg(limit);
             }
         }
     }
@@ -514,8 +518,8 @@ int verdict(const std::vector<PageGap>& gaps, const Tally& tally, int expectedPa
         if (known[i].page > 0) {
             for (const PageGap& g : gaps) {
                 if (g.page == known[i].page && sameFile(known[i].file, g.file) && g.gap <= kPageLimit) {
-                    printLine(QStringLiteral("CONNUE SOUS 7 : %1:%2 (%3)")
-                                  .arg(g.file)
+                    printLine(QStringLiteral("CONNUE SOUS %1 : %2:%3 (%4)")
+                                  .arg(limit, g.file)
                                   .arg(g.page)
                                   .arg(number(g.gap)));
                 }
@@ -528,15 +532,16 @@ int verdict(const std::vector<PageGap>& gaps, const Tally& tally, int expectedPa
                 }
             }
             if (worst >= 0) {
-                printLine(QStringLiteral("CONNUE SOUS 7 : %1:* (écart le plus haut %2)")
-                              .arg(known[i].file, number(worst)));
+                printLine(QStringLiteral("CONNUE SOUS %1 : %2:* (écart le plus haut %3)")
+                              .arg(limit, known[i].file, number(worst)));
             }
         }
     }
-    QString summary = QStringLiteral("%1 pages, médiane %2, %3 au-dessus de 7")
+    QString summary = QStringLiteral("%1 pages, médiane %2, %3 au-dessus de %4")
                           .arg(static_cast<int>(n))
                           .arg(number(median))
-                          .arg(above);
+                          .arg(above)
+                          .arg(limit);
     if (tally.withoutThumbnail > 0) {
         summary += QStringLiteral(", %1 sans miniature").arg(tally.withoutThumbnail);
     }
