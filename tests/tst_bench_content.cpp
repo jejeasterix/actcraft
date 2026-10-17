@@ -7,6 +7,8 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include <cmath>
+
 using namespace actcraft::bench;
 
 class TstBenchContent : public QObject
@@ -57,8 +59,39 @@ private slots:
 
     void sceneToImageScalesByRatio()
     {
-        QCOMPARE(sceneToImage(QPointF(10.4, 20.6), 1.0), QPoint(10, 21));
+        // Le pixel i couvre [i, i + 1[ : 20,6 tombe dans le pixel 20 (son centre est à 20,5), pas dans le 21.
+        QCOMPARE(sceneToImage(QPointF(10.4, 20.6), 1.0), QPoint(10, 20));
         QCOMPARE(sceneToImage(QPointF(10, 20), 1.5), QPoint(15, 30));
+        QCOMPARE(sceneToImage(QPointF(10.4, 20.6), 1.5), QPoint(15, 30)); // 15,6 ; 30,9
+        QCOMPARE(sceneToImage(QPointF(-0.25, 0.25), 1.0), QPoint(-1, 0)); // à gauche de l'image : hors image
+    }
+
+    // L2-C11 : un trait sans anticrénelage (D3D11) de 3,6 pixels (4 × zoom 0,901) couvre les lignes dont le
+    // centre est dans [c - 1,8 ; c + 1,8]. Lu au point de son axe, il doit sortir noir quelle que soit la
+    // position de l'axe dans le pixel : l'échantillon 3 × 3 centré sur le pixel qui contient l'axe reste dans
+    // le trait. Centré un demi-pixel trop bas (arrondi), il déborde d'une ligne : #555555 à l'écran.
+    void thinAliasedStrokeReadsDarkAtEveryPhase()
+    {
+        constexpr double kHalf = 1.8;
+        for (int step = 0; step < 20; ++step) {
+            const double axis = 616.0 + step / 20.0;
+            QImage image(40, 640, QImage::Format_RGB32);
+            image.fill(Qt::white);
+            for (int y = 0; y < image.height(); ++y) {
+                if (std::abs(y + 0.5 - axis) <= kHalf) {
+                    for (int x = 0; x < image.width(); ++x) {
+                        image.setPixelColor(x, y, Qt::black);
+                    }
+                }
+            }
+            const QColor onAxis = sampleColor(image, sceneToImage(QPointF(20.3, axis), 1.0));
+            QVERIFY2(colorNear(onAxis, Qt::black, 60),
+                     qPrintable(QStringLiteral("axe %1 : lu %2").arg(axis).arg(onAxis.name())));
+            // Toujours discriminant : à 3 pixels de l'axe, hors du trait, la lecture n'est pas noire.
+            const QColor beside = sampleColor(image, sceneToImage(QPointF(20.3, axis + 3.0), 1.0));
+            QVERIFY2(!colorNear(beside, Qt::black, 60),
+                     qPrintable(QStringLiteral("axe %1 + 3 : lu %2").arg(axis).arg(beside.name())));
+        }
     }
 
     void checkColorReportsExpectedAndActual()
