@@ -42,3 +42,6 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/tools.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/ui.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/bench.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/app.cmake)
+
+# Lot 7 : tests déclarés par la session B dans tests/presentation.cmake (absent tant que B n'est pas fusionnée).
+include(${CMAKE_CURRENT_SOURCE_DIR}/presentation.cmake OPTIONAL)
