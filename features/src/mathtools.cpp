@@ -20,7 +20,7 @@ QPointF rotated(QPointF local, QPointF origin, double degrees)
     return origin + QPointF(local.x() * c - local.y() * s, local.x() * s + local.y() * c);
 }
 
-// Angle affiché : degrés entiers ramenés dans 0..359.
+// Degrés entiers ramenés dans 0..359 (négatifs compris).
 int wholeDegrees(double degrees) noexcept
 {
     return ((qRound(degrees) % 360) + 360) % 360;
@@ -49,16 +49,18 @@ input::Sample movedTo(const input::Sample& sample, QPointF point)
     return out;
 }
 
-// Saisie d'un bord : le plus proche de `edges`, s'il est à moins de `tolerance` ; son index est noté dans
-// `seized`, que rien d'autre qu'une saisie réussie ne change.
-std::optional<input::Sample> captureEdge(const std::vector<QLineF>& edges, int& seized,
-                                         const input::Sample& sample, double tolerance)
+// Projection sur le bord le plus proche de `edges`, s'il est à moins de `tolerance`. Avec `seized`, l'index
+// de ce bord y est noté (saisie) ; sans, rien n'est noté (requête pure de project()).
+std::optional<input::Sample> snapToEdge(const std::vector<QLineF>& edges, const input::Sample& sample,
+                                        double tolerance, int* seized = nullptr)
 {
     const SegmentHit hit = projectOnSegments(edges, QPointF(sample.x, sample.y));
     if (hit.index < 0 || hit.distance > tolerance) {
         return std::nullopt;
     }
-    seized = hit.index;
+    if (seized) {
+        *seized = hit.index;
+    }
     return movedTo(sample, hit.point);
 }
 
@@ -135,7 +137,7 @@ std::vector<QLineF> Ruler::edges() const
 
 int Ruler::displayAngle() const noexcept
 {
-    return wholeDegrees(m_angle);
+    return wholeDegrees(-m_angle); // sens trigonométrique à l'écran (référence)
 }
 
 void Ruler::setUnits(RulerUnit top, RulerUnit bottom) noexcept
@@ -154,9 +156,14 @@ RulerUnit Ruler::bottomUnit() const noexcept
     return m_bottomUnit;
 }
 
+std::optional<input::Sample> Ruler::project(const input::Sample& sample, double tolerance) const
+{
+    return snapToEdge(edges(), sample, tolerance);
+}
+
 std::optional<input::Sample> Ruler::capture(const input::Sample& sample, double tolerance)
 {
-    return captureEdge(edges(), m_edge, sample, tolerance);
+    return snapToEdge(edges(), sample, tolerance, &m_edge);
 }
 
 input::Sample Ruler::follow(const input::Sample& sample)
@@ -184,12 +191,17 @@ std::vector<QLineF> SetSquare::edges() const
 
 int SetSquare::displayAngle() const noexcept
 {
-    return wholeDegrees(m_angle);
+    return wholeDegrees(-m_angle);
+}
+
+std::optional<input::Sample> SetSquare::project(const input::Sample& sample, double tolerance) const
+{
+    return snapToEdge(edges(), sample, tolerance);
 }
 
 std::optional<input::Sample> SetSquare::capture(const input::Sample& sample, double tolerance)
 {
-    return captureEdge(edges(), m_edge, sample, tolerance);
+    return snapToEdge(edges(), sample, tolerance, &m_edge);
 }
 
 input::Sample SetSquare::follow(const input::Sample& sample)

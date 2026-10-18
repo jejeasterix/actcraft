@@ -44,10 +44,13 @@ public:
     double width() const noexcept;
     double angleDegrees() const noexcept;
     std::vector<QLineF> edges() const; // [0] bord haut, [1] bord bas (à l'angle 0)
-    int displayAngle() const noexcept; // degrés entiers, 0 à 359
+    // Degrés entiers, 0 à 359, en sens trigonométrique comme la référence : -angleDegrees() ramené dans
+    // [0, 360) (y vers le bas : un angle positif tourne dans le sens des aiguilles d'une montre à l'écran).
+    int displayAngle() const noexcept;
     void setUnits(RulerUnit top, RulerUnit bottom) noexcept;
     RulerUnit topUnit() const noexcept;
     RulerUnit bottomUnit() const noexcept;
+    std::optional<input::Sample> project(const input::Sample& sample, double tolerance) const override;
     std::optional<input::Sample> capture(const input::Sample& sample, double tolerance) override;
     input::Sample follow(const input::Sample& sample) override;
 
@@ -68,7 +71,8 @@ class SetSquare final : public StrokeGuide
 public:
     void setFrame(QPointF rightAngleVertex, double side, double angleDegrees);
     std::vector<QLineF> edges() const; // [0] côté +x, [1] côté +y, [2] hypoténuse
-    int displayAngle() const noexcept;
+    int displayAngle() const noexcept; // comme Ruler::displayAngle()
+    std::optional<input::Sample> project(const input::Sample& sample, double tolerance) const override;
     std::optional<input::Sample> capture(const input::Sample& sample, double tolerance) override;
     input::Sample follow(const input::Sample& sample) override;
 

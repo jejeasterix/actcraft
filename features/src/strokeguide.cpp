@@ -25,6 +25,24 @@ void GuideSet::setTolerance(double pagePixels) noexcept
     m_tolerance = pagePixels;
 }
 
+GuideSet::Nearest GuideSet::nearest(const input::Sample& sample) const
+{
+    Nearest best;
+    double bestDistance = 0;
+    for (StrokeGuide* guide : m_guides) {
+        const auto projected = guide->project(sample, m_tolerance);
+        if (!projected) {
+            continue;
+        }
+        const double d = std::hypot(projected->x - sample.x, projected->y - sample.y);
+        if (!best.guide || d < bestDistance) {
+            best = {guide, *projected};
+            bestDistance = d;
+        }
+    }
+    return best;
+}
+
 input::Sample GuideSet::filter(const input::Sample& sample)
 {
     // Le guide n'est choisi qu'à l'appui ; le déplacement et le relâché suivent ce guide-là, sans jamais en
@@ -33,21 +51,17 @@ input::Sample GuideSet::filter(const input::Sample& sample)
     switch (sample.phase) {
     case input::Phase::Press: {
         m_active = nullptr;
-        double best = 0;
-        input::Sample result = sample;
-        for (StrokeGuide* guide : m_guides) {
-            const auto snapped = guide->capture(sample, m_tolerance);
-            if (!snapped) {
-                continue;
-            }
-            const double d = std::hypot(snapped->x - sample.x, snapped->y - sample.y);
-            if (!m_active || d < best) {
-                m_active = guide;
-                best = d;
-                result = *snapped;
-            }
+        // Seul le guide choisi mémorise son bord : les autres, seulement interrogés, ne changent pas.
+        StrokeGuide* const chosen = nearest(sample).guide;
+        if (!chosen) {
+            return sample;
         }
-        return result; // chaque guide garde le bord de son propre capture() : rien à re-saisir
+        const auto seized = chosen->capture(sample, m_tolerance); // la projection que project() a trouvée
+        if (!seized) {
+            return sample;
+        }
+        m_active = chosen;
+        return *seized;
     }
     case input::Phase::Move:
         return m_active ? m_active->follow(sample) : sample;
@@ -67,27 +81,16 @@ bool GuideSet::guiding() const noexcept
     return m_active != nullptr;
 }
 
-std::optional<input::Sample> GuideSet::snapPreview(const input::Sample& hover)
+std::optional<input::Sample> GuideSet::snapPreview(const input::Sample& hover) const
 {
-    // capture() note le bord saisi dans le guide : pendant un trait guidé, l'appeler changerait le bord que
-    // suit follow(). Sortie avant toute capture, donc.
     if (m_active) {
         return std::nullopt;
     }
-    std::optional<input::Sample> best;
-    double bestDistance = 0;
-    for (StrokeGuide* guide : m_guides) {
-        const auto snapped = guide->capture(hover, m_tolerance);
-        if (!snapped) {
-            continue;
-        }
-        const double d = std::hypot(snapped->x - hover.x, snapped->y - hover.y);
-        if (!best || d < bestDistance) {
-            best = snapped;
-            bestDistance = d;
-        }
+    const Nearest best = nearest(hover);
+    if (!best.guide) {
+        return std::nullopt;
     }
-    return best;
+    return best.sample;
 }
 
 } // namespace actcraft::features
