@@ -183,6 +183,12 @@ Amendement 3 confié au planificateur. **Acceptation conditionnelle** : je contr
 - `defaultLayoutMatchesLotOne` compare la liste exacte des groupes de palette : l'amender si le socle ajoute `edition` et `presentation`.
 - Le test `contextMenuRead` du plan du socle (`socle:720-727`) écrit `actions::Layout` et `actions::parseLayout`. Ces noms ne se résolvent pas dans `tst_actions_layout.cpp` (`using namespace actcraft::actions;`).
 Plan du lot 5 amendé (da1e999 : 34 tâches, 16 vagues, H5-7 à H5-10). Tour 2 de relecture en cours.
+**Plan du lot 4 accepté et mergé** (b60826b → merge b7add35).
+- Amendement 3 appliqué ; texte de M1 contrôlé par l'orchestrateur (`lot4b:553-558`) : il est juste.
+- 144 titres contrôlés, 0 trouvé ; NOMS OK 425.
+- D19 (place du groupe `formes-texte`) renvoyée à L4-T0.
+Plan du lot 6 amendé (c2d6796 : 38 tâches, 15 vagues ; nouvelles hypothèses H6-9 « procédure de déblocage publique » et H6-10 « mesure du PBKDF2 sur le Dell 3510 »). Tour 2 de relecture en cours.
+Hors dépôt, à écrire par l'orchestrateur avant L6-T6 : `REA - Activinspire\docs\re\lots\lot6-noms-profils.txt`.
 Relecture du plan du lot 6, tour 1 : 1 bloquant, 15 majeurs. Rapport : `scratchpad/revue-plan-lot6.md`. Amendement 1 en cours.
 **Nouvelle question pour Jérôme, H6-6b** : licence de Hunspell, MPL 1.1 (recommandé) ou LGPL en lien dynamique ; la décision 34 dit « LGPL, liés dynamiquement ». Elle n'est nécessaire qu'à V12 du lot 6.
 L0-S6 relancé (seul constructeur) : fusion de la tête du chantier d'abord, à cause de `/we4062` et d'`Equation`. Suite complète de V1 après le merge de L0-S6.
