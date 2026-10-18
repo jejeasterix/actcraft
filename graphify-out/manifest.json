@@ -1660,8 +1660,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792346209.7996938,
-    "ast_hash": "2873a49005c7bace348f6ff4d09dc616",
+    "mtime": 1792357626.4480433,
+    "ast_hash": "f8378e9955a88a485816cc9ed7db1a45",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -1720,8 +1720,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_pagezoom.cpp": {
-    "mtime": 1792349203.9470425,
-    "ast_hash": "f16559d452a996f4c1ad73206da777b9",
+    "mtime": 1792360104.6823678,
+    "ast_hash": "ff9da03d0a63b43e921dfaf0d13ba46e",
     "semantic_hash": ""
   },
   "tests/tst_features_recognitionsession.cpp": {
@@ -1745,8 +1745,28 @@
     "semantic_hash": ""
   },
   "tests/tst_features_transitions.cpp": {
-    "mtime": 1792349203.9607306,
-    "ast_hash": "cd0d0d0bd7691352a2166993504cc4d0",
+    "mtime": 1792360104.6872315,
+    "ast_hash": "0f61cfddc45479300d44224278279add",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/pagezoom.h": {
+    "mtime": 1792360104.665044,
+    "ast_hash": "f69e1e02bee6681a1bc40bdeef6d2c2c",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/transitions.h": {
+    "mtime": 1792360104.66848,
+    "ast_hash": "b325c3ace2f4425de62d2591f001e977",
+    "semantic_hash": ""
+  },
+  "features/src/pagezoom.cpp": {
+    "mtime": 1792360104.6720219,
+    "ast_hash": "a1ef02de0b788075ed042de2b606eb68",
+    "semantic_hash": ""
+  },
+  "features/src/transitions.cpp": {
+    "mtime": 1792360104.677514,
+    "ast_hash": "5ca7aff835c157416de669e8e33381b3",
     "semantic_hash": ""
   }
 }
