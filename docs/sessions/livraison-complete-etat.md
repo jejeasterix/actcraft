@@ -167,6 +167,14 @@ Plans écrits, non relus :
 - lot 6 : 38 tâches, 6a et 6b (809919b). H6-6 demande à Jérôme d'approuver le téléchargement de Hunspell et d'un dictionnaire, avant V12 du lot 6.
 Plan du lot 4 amendé en 860d7a0 (5 bloquants et 11 majeurs appliqués ; D6, D8, D17 et D18 renvoyés à L4-T0). Sa branche part d'avant f167eb9 : les titres qu'elle voit encore ne sont pas sur la branche du chantier.
 Relectures en cours : plan du lot 5 (tour 1), plan du lot 4 (tour 2), plan du lot 6 (tour 1).
+Relectures rendues :
+- Plan du lot 4, tour 2 : 0 bloquant, 5 majeurs. Rapport `scratchpad/revue-plan-lot4-t2.md`, amendement 2 en cours.
+  - **N2 concerne aussi L0-S4** : `defaultLayoutMatchesLotOne` compare la liste exacte des groupes de palette, et un groupe ajouté par le socle doit l'amender. À transmettre à l'agent de L0-S4.
+- Plan du lot 5, tour 1 : 4 bloquants, 13 majeurs. Rapport `scratchpad/revue-plan-lot5.md`, amendement 1 en cours.
+**L0-S3 mergée** (be2e5de, graphe a390e33).
+- Conflit du graphe résolu avec `--ours` (graphe propre du chantier), puis `graphify update .` : 4 163 nœuds, sans refus.
+- **Règle désormais** : au merge d'une tâche, garder `graphify-out/` du chantier, puis mettre à jour. Ne jamais prendre la version de la branche : l'union du pilote de fusion réintroduit des nœuds périmés.
+L0-S6 relancé (seul constructeur) : fusion de la tête du chantier d'abord, à cause de `/we4062` et d'`Equation`. Suite complète de V1 après le merge de L0-S6.
 **H6-6, accord de Jérôme (2026-10-18, message direct)** : « téléchargement de Hunspell, tu as mon accord ».
 - L6-T32 est débloquée pour Hunspell 1.7.2.
 - Le dictionnaire français (Grammalecte, MPL 2.0), prévu dans la même hypothèse, n'est pas nommé dans la réponse. Je le traite comme couvert par H6-6 et le signale à Jérôme ; à reconfirmer à la porte du lot 6 s'il le refuse. En attente : L0-S4, L0-S6, L10-T8 (agent), fin de L10-C2, plan lot 6.
@@ -177,7 +185,7 @@ Relectures en cours : plan du lot 5 (tour 1), plan du lot 4 (tour 2), plan du lo
 | L0-S0 | — | réservation (fichiers vides marqués, CMake, 19 tests, crochets du lot 7) | (mergé) | terminée | 1/3 | 12be1ea, 080399f → merge b904dcf | rejoué : build 0, 113 tests listés, les 19 neufs 100 % Passed (talons en SKIP nommant leur tâche, ex. `tst_core_hittest` : `SKIP reserved() Talon L0-S : rempli par L3-T3`), `premiers-pas` `CAPTURES OK`, `NOMS OK : 391`, ligne `include(... presentation.cmake OPTIONAL)` en dernière ligne de tests/CMakeLists.txt |
 | L0-S1 | S0 | icônes des deux lots (31 SVG) | (mergé) | terminée | 1/3 | 65fb991, cfe4661 → merge 4239898 | rejoué : format 0, build 0, `iconsAreOurSvgOnA24Grid` 41 PASS (`tst_ui_theme` 63 passed, 0 failed), 113 tests ; agent : suite 113/113 puis format corrigé ; SVG simples (24 × 24, sans image intégrée) |
 | L0-S2 | S0 | joueur : touch, pinch, pointer, doubleClick, expect avec tolérance | — | à faire | 0/3 | — | — |
-| L0-S3 | S0 | modèle partagé (Equation, PagePresentation, ReplaceObjectsCommand, /we4062) | .worktrees/livraison-complete--L0-S3 | en cours | 0/3 | — | — |
+| L0-S3 | S0 | modèle partagé (Equation, PagePresentation, ReplaceObjectsCommand, /we4062) | (mergé) | terminée | 2/3 | 56ce4b8, d45fbfd → merge be2e5de, graphe a390e33 | rejoué 2 fois ; 2e rejeu (d45fbfd) : build 0 ; 8 tests verts (replace 14, model 20, nativejson 31, painter 48, nativefile 50, generator 12, edits 10, pagecache 7) ; mutation `++next` rouge, `k = 0` rouge au 1er rejeu ; 113 tests listés ; NOMS OK. Relecture adversariale : 1 blocker et 1 majeur corrigés |
 | L0-S4 | S1 | données et disposition des deux lots (62 commandes, sous-menus, F-750) | — | à faire | 0/3 | — | — |
 | L0-S5 | S3 | DocumentController : API des deux lots, observateur unique | — | à faire | 0/3 | — | — |
 | L0-S6 | S0 | squelette du lot 3 (en-têtes figés, talons, LiftLayer QML) | .worktrees/livraison-complete--L0-S6 | en cours | 0/3 | — | — |
