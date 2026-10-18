@@ -8,6 +8,11 @@ Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 
+## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
+Toutes les tâches de fond mortes. Intégrité contrôlée : aucun index.lock, fsck propre, jetons libres ; .cpp sortis pour un rouge remis dans P1, P5, P9 ; wip sains recommités (P1 742ae60, P3 4aa56a5, P7 047f5e1). Dossiers build gardés : à effacer et reconstruire à froid à la première erreur suspecte (LNK1136, fichier tronqué, ninja corrompu).
+Parallélisme réduit (demande de Jérôme « mais soit prudent », relayée par Pilote) : au plus 3 sous-agents à la fois, un seul qui construit, jusqu'aux conclusions de l'étude mémoire.
+En cours : rejeu de P2, revue statique P0/P2, brouillon de l'amendement phase 2 (worktree livraison-complete-b--plan-p2).
+
 ## Reprise après le temps calme (2026-10-18 vers 22h30, redémarrage de l'app demandé par Jérôme)
 Mergé dans `feat/livraison-complete-b` : plan phase 1 (13ebe57), L7-T0 (f0772b6), L7-P0 (d163449, graphe dfc8857).
 Tous les sous-agents et constructions de B sont arrêtés ; chaque worktree L7-P a un commit (final pour P2, wip pour les autres), rien n'existe seulement en mémoire.
@@ -31,14 +36,14 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | amendement phase 1 | — | docs/plans/2026-10-18-livraison-complete-lot7-phase1-PLAN.md | chantier (partagé) | terminé : accepté au tour 2, mineurs appliqués (13ebe57) ; 10 tâches L7-P0…P9, vagues P0 · P3‖P7 · P8‖P1 · P4‖P2 · P5‖P6 · P9 | 1 | 13ebe57 | relecture t1 (2 B, 2 I corrigés), t2 accepter |
 | L7-T0 | — | docs/verifications/2026-10-18-lot7-principes.md ; hors dépôt REA docs/re/lots/lot7.md | supprimé | terminée, mergée (f0772b6), graphe efee804 | 3 | d16edb5 | NOMS OK 333, git grep du rapport vide, relevé présent, revue : 4 importants corrigés |
 | L7-P0 | amendement relu | voir ligne L7-P0 du plan phase 1 | supprimé | terminée, mergée (d163449), graphe dfc8857 | 1 | 2747662 | rejeu : 110 tests, `TESTS OK`, 16 tst_features Passed ; fin de tests/CMakeLists.txt identique au socle (md5) |
-| L7-P1 | L7-P0 | voir ligne L7-P1 du plan phase 1 | .worktrees/livraison-complete-b--L7-P1 (base 3866a4b + fusion dfc8857) | reprise après temps calme : agent relancé depuis le wip (consigne scratchpad reprise-P.md) | 2 | wip 3f8a29a | — |
-| L7-P3 | L7-P0 | voir ligne L7-P3 du plan phase 1 | .worktrees/livraison-complete-b--L7-P3 (base 3866a4b + fusion dfc8857) | reprise après temps calme : agent relancé depuis le wip (consigne scratchpad reprise-P.md) | 2 | wip a052c75 | — |
-| L7-P7 | L7-P0 | voir ligne L7-P7 du plan phase 1 | .worktrees/livraison-complete-b--L7-P7 (base 3866a4b + fusion dfc8857) | reprise après temps calme : agent relancé depuis le wip (consigne scratchpad reprise-P.md) | 2 | wip a4f7108 | — |
-| L7-P8 | L7-P0 | voir ligne L7-P8 du plan phase 1 | .worktrees/livraison-complete-b--L7-P8 (base 3866a4b + fusion dfc8857) | reprise après temps calme : agent relancé depuis le wip (consigne scratchpad reprise-P.md) | 2 | wip 0755a06 | — |
-| L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | .worktrees/livraison-complete-b--L7-P2 (base dfc8857) | rendue (ee87059) ; rejeu de l'orchestrateur en cours | 1 | ee87059 | — |
-| L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | .worktrees/livraison-complete-b--L7-P5 (base dfc8857) | reprise après temps calme : agent relancé depuis le wip (consigne scratchpad reprise-P.md) | 2 | wip 87c7abd | — |
-| L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | .worktrees/livraison-complete-b--L7-P6 (base dfc8857) | reprise après temps calme : agent relancé depuis le wip (consigne scratchpad reprise-P.md) | 2 | wip 783c2da | — |
-| L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | .worktrees/livraison-complete-b--L7-P9 (base dfc8857) | reprise après temps calme : agent relancé depuis le wip (consigne scratchpad reprise-P.md) | 2 | wip 59d3107 | — |
+| L7-P1 | L7-P0 | voir ligne L7-P1 du plan phase 1 | .worktrees/livraison-complete-b--L7-P1 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 742ae60 | — |
+| L7-P3 | L7-P0 | voir ligne L7-P3 du plan phase 1 | .worktrees/livraison-complete-b--L7-P3 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 4aa56a5 | — |
+| L7-P7 | L7-P0 | voir ligne L7-P7 du plan phase 1 | .worktrees/livraison-complete-b--L7-P7 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 047f5e1 | — |
+| L7-P8 | L7-P0 | voir ligne L7-P8 du plan phase 1 | .worktrees/livraison-complete-b--L7-P8 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 0755a06 | — |
+| L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | .worktrees/livraison-complete-b--L7-P2 (base dfc8857) | rendue (ee87059) ; rejeu de l'orchestrateur relancé après le redémarrage | 1 | ee87059 | — |
+| L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | .worktrees/livraison-complete-b--L7-P5 (base dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 87c7abd | — |
+| L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | .worktrees/livraison-complete-b--L7-P6 (base dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 783c2da | — |
+| L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | .worktrees/livraison-complete-b--L7-P9 (base dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 59d3107 | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
