@@ -46,12 +46,15 @@ enum class ScenarioSet
 
 struct ScenarioPlan
 {
-    QString name;         // stroke | zoom | scroll | page
+    QString name;         // stroke | zoom | scroll | page | pauses
     double zoom = 1.0;    // niveau imposé avant la mesure (décision 17)
     bool topLeft = false; // page calée en haut à gauche (défilement) ; sinon position par défaut
     // > 0 : document de `generatedPages` pages générées chargé avant la mesure
     // (DocumentController::loadGeneratedPages, pages paires peintes) ; 0 : la page en place.
     int generatedPages = 0;
+    // Relevés propres au scénario « page » (L2-T23) : reconstructions et rastérisations de la page fixe au
+    // zoom 150, éclair blanc au changement de page (runner.cpp). Lus par ce booléen, jamais par le nom.
+    bool pageChecks = false;
     std::vector<PlannedInput> inputs;
 };
 

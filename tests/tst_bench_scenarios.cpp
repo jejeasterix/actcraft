@@ -135,6 +135,7 @@ private slots:
             const bench::ScenarioPlan plan = bench::pausesScenario(set);
             QCOMPARE(plan.name, QStringLiteral("pauses"));
             QCOMPARE(plan.generatedPages, 1);
+            QVERIFY(!plan.pageChecks); // page rechargée, mais aucun relevé du scénario « page »
             QCOMPARE(plan.zoom, 1.0);
             std::vector<std::int64_t> pauses;
             std::int64_t lastRelease = -1;
@@ -176,6 +177,7 @@ private slots:
         const bench::ScenarioPlan court = bench::pageScenario(bench::ScenarioSet::Court);
         QCOMPARE(court.name, QStringLiteral("page"));
         QCOMPARE(court.generatedPages, 2);
+        QVERIFY(court.pageChecks); // relevés propres au scénario (runner.cpp), lus par ce booléen
         QCOMPARE(court.inputs.size(), std::size_t{7});
         for (std::size_t i = 0; i < 4; ++i) {
             const bench::PlannedInput& in = court.inputs[i];
@@ -200,6 +202,7 @@ private slots:
 
         const bench::ScenarioPlan complet = bench::pageScenario(bench::ScenarioSet::Complet);
         QCOMPARE(complet.inputs.size(), std::size_t{23});
+        QVERIFY(complet.pageChecks);
         QCOMPARE(complet.inputs[19].command,
                  QStringLiteral("page.previous"));                         // 20 changements : retour page 1
         QCOMPARE(complet.inputs[20].command, QStringLiteral("page.next")); // puis la page peinte
@@ -209,6 +212,7 @@ private slots:
                                  bench::zoomScenario(bench::ScenarioSet::Court),
                                  bench::scrollScenario(bench::ScenarioSet::Court)}) {
             QCOMPARE(plan.generatedPages, 0);
+            QVERIFY(!plan.pageChecks);
             for (const bench::PlannedInput& in : plan.inputs) {
                 QVERIFY(in.kind != InputKind::Command);
             }

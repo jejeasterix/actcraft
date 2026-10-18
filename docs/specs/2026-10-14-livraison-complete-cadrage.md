@@ -310,7 +310,7 @@ ligne de commande, installation silencieuse, émulateur Android. `<samples>` =
   référence).
 - HTML incorporé F-302 (moteur web) ; texte vertical, équation, extension de page F-301.
 - Publier F-680 (restrictions propres au `.flipchart`, que nous n'écrivons pas).
-- Boutons définis par l'utilisateur F-920, F-142 (lancement de programmes ; impossible sous Android).
+- Boutons personnalisés F-920, F-142 (lancement de programmes ; impossible sous Android).
 - Navigateur Web F-299 et liens vers les services en ligne de Promethean (dans F-760, F-090, F-930).
 - Cadres de page F-603 (comportement non élucidé).
 

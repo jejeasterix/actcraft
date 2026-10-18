@@ -52,21 +52,28 @@ Item {
                 hideSource: view.cacheEnabled
                 live: false
                 textureSize: view.cacheTextureSize
-                // = kMsaaSamples (app/renderbackend.h) ; attendu par bench/scenarios/anticrenelage.json.
-                // L10-T5 : texture du cache lissée en RHI ; H10-9 : son plafond suit cet échantillonnage.
+                // = kCacheMsaaSamples en RHI, 1 en rendu logiciel (PageView.cacheSamples) ; relu par
+                // bench/scenarios/anticrenelage.json (garde de liaison, pas une preuve du MSAA : celle-ci est
+                // checkEdge, à l'écran). L10-T5 : texture du cache lissée en RHI ; H10-9 : son plafond suit cet
+                // échantillonnage.
                 samples: view.cacheSamples
                 onScheduledUpdateCompleted: view.notifyCacheUpdated()
             }
 
             // Lot 10 : objets ajoutés depuis le dernier redessin du cache, dessinés au-dessus de lui. Sœur du
-            // cache, jamais enfant de la page fixe : hideSource la cacherait avec elle.
+            // cache, jamais enfant de la page fixe : hideSource la cacherait avec elle. Rognée à la page comme le
+            // cache (sourceRect vide : le rectangle de la page) : un trait qui sort sur la marge n'y apparaît
+            // pas pendant l'attente pour disparaître au versement.
             PendingLayer {
                 id: pendingLayerItem
                 objectName: "pendingLayer"
                 anchors.fill: parent
+                clip: true
                 fixedPage: fixedPageItem
             }
 
+            // Encre en cours : non rognée (règle du lot 2, inchangée) ; elle déborde sur la marge pendant le
+            // tracé, le trait figé est rogné à la page (cache et couche d'attente).
             InkLayer {
                 id: inkLayer
                 objectName: "ink"
