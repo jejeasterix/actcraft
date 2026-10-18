@@ -83,7 +83,7 @@ jusqu'à leur tâche :
 | 10 | `tst_ui_lifecycle` | L11-T13 | | 26 | `tst_captures_au_doigt` | L11-T12 |
 | 11 | `tst_ui_documentportal` | L11-T14 | | 27 | `tst_captures_cycle_de_vie` | L11-T13 |
 | 12 | `tst_bench_resultsdir` | L11-T15 | | 28 | `tst_captures_aide_complete` | L11-T18 |
-| 13 | `tst_ui_pseudolocale` | L11-T19 | | 29 | `tst_captures_pseudo_langue` | L11-T19 |
+| 13 | `tst_ui_pseudolocale` | L11-T19 | | 29 | `tst_captures_pseudo_langue` | L11-T19 (activé par L11-T20) |
 | 14 | `tst_ui_updatechecker` | L11-T21 | | 30 | `tst_captures_mises_a_jour` | L11-T22 |
 | 15 | `tst_ui_shortcuts` | L11-T23 | | 31 | `tst_captures_classe_protegee_complete` | L11-T26 |
 | 16 | `tst_ui_accessibility` | L11-T24 | | 32 | `tst_captures_profils_complets` | L11-T27 |
