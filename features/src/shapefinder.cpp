@@ -45,7 +45,7 @@ constexpr double kVertexMaxOffsetSteps = 1.0;
 // Côté droit : écart maximal à son segment, en part de sa longueur.
 constexpr double kSideMaxDeviation = 0.08;
 // Rectangle : chaque angle à 90° ± 10° ; un trapèze dessiné à main levée (76°, 104°) reste un polygone (P16).
-constexpr double kRightAngleSlackDegrees = 10.0;
+constexpr double kRightAngleSlack = 10.0;
 // Carré : rapport des côtés du tracé (petit / grand) d'au moins 0,85.
 constexpr double kSquareMinRatio = 0.85;
 // Polygone : au plus 6 coins. L'angle extérieur d'un polygone de 7 côtés ou plus (≤ 51°) est sous
@@ -464,7 +464,7 @@ std::optional<RecognizedShape> rectangleShape(const std::vector<SideLine>& lines
     for (std::size_t k = 0; k < 4; ++k) {
         const double cosine =
             std::clamp(QPointF::dotProduct(lines[(k + 3) % 4].direction, lines[k].direction), -1.0, 1.0);
-        if (std::abs(toDegrees(std::acos(cosine)) - 90.0) > kRightAngleSlackDegrees) {
+        if (std::abs(toDegrees(std::acos(cosine)) - 90.0) > kRightAngleSlack) {
             return std::nullopt;
         }
     }
