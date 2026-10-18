@@ -2,6 +2,7 @@
 
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/render/liftlayeritem.h>
 #include <actcraft/render/pendinglayeritem.h>
 
 #include <QtQml/qqmlregistration.h>
@@ -29,6 +30,14 @@ struct PendingLayerForeign
     Q_GADGET
     QML_FOREIGN(actcraft::render::PendingLayerItem)
     QML_NAMED_ELEMENT(PendingLayer)
+};
+
+// Lot 3 : couche des objets soulevés, au-dessus de la page fixe (socle, L0-S6).
+struct LiftLayerForeign
+{
+    Q_GADGET
+    QML_FOREIGN(actcraft::render::LiftLayerItem)
+    QML_NAMED_ELEMENT(LiftLayer)
 };
 
 } // namespace actcraft::ui
