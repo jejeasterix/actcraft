@@ -2,6 +2,31 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 3 (relecture tour 3)
+
+Relecture du tour 3 sur 5350a99 : 3 majeurs de texte, 7 mineurs, une précision de D21 ; pas de tour 4, texte de M1 à
+M3 contrôlé par l'orchestrateur. Noms revérifiés en tête du chantier (`C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete`) :
+`actions/include/actcraft/actions/layout.h` (`parseLayout(json, out, error)` l. 42, `unknownCommands(layout,
+registry)` fonction libre l. 49), `actions/src/layout.cpp` (format `actcraft-layout/1` exigé l. 45), `tests/tst_actions_layout.cpp`
+(classe `TstActionsLayout` l. 31, constante `kLayout`, aucune aide `loadLayout` / `loadRegistry`),
+`ui/src/pageview.cpp:274-341`, `render/src/fixedpageitem.cpp:98-155`, `ui/qml/PageArea.qml:30` (`cache.scheduleUpdate()`)
+et `:60` (`view.notifyCacheUpdated()`), `bench/src/runner.cpp:212` (attente `pendingCount() == 0 && cacheReady`),
+`.gitattributes` (aucune règle `*.pdf`).
+
+| # | Défaut | Changement |
+|---|---|---|
+| M1 | `switchRedrawsOnce` rouge sur une implémentation juste (demande avant le garage + `contentChanged` au rattachement = 2 à 3 rendus) ; mutation de `parkFoldsPendingFirst` restée verte (`restart` vide déjà la couche d'attente) | 5b, T20 : **aucune demande de redessin avant le garage** ; la bascule coûte un rendu ; nouvelle mutation : `resumeSession` sans `attach()` → `pendingCount()` reste 1, fantôme visible, rouge ; remise par `git checkout -- ui/src/documentcontroller.cpp` ; 5a, annexe A : commentaire de `DocumentTabs::view` corrigé ; ligne M8 de l'amendement 1 mise à jour |
+| M2 | `objectMenuSubmenusResolve` vert sans la règle (JSON sans `format`) ; noms faux | 5a, T1 étape 4 : test réécrit sur `TstActionsLayout`, `parseLayout(json, layout, error)`, `unknownCommands(layout, registry)` ; JSON tiré de `kLayout` (format gardé) avec un sous-menu `present` ; `>absent` refusé (« objectMenu : sous-menu absent inconnu »), `>present` accepté, doublon refusé (« déclaré deux fois »), `nope.cmd` listé seul ; mutation déclarée (vérification retirée de `layout.cpp`) ; `lot5EntriesDeclared` et `objectMenuOrder` passés sur `TstActionsLayout` avec des aides nommées à écrire |
+| M3 | PowerShell factice impossible tel que décrit | 5a, annexe A (`findConverter`) : `ACTCRAFT_POWERSHELL` posée → voie PowerPoint prise directement, avant LibreOffice, sans contrôle de présence ; présence normale par `HKCR\PowerPoint.Application` ; hors Windows, voies (1) et (3) seulement ; 5b, T29 : le factice est l'exécutable du test lui-même (`main` explicite, `ACTCRAFT_FAKE_DUMP`) ; arguments attendus exacts ; `QSKIP` hors Windows |
+| m1 | `objectMenu` `CONSTANT` ; doublon de sous-menu | `NOTIFY layoutChanged` ; « sous-menu <id> déclaré deux fois » refusé et testé |
+| m2 | `ACTCRAFT_POWERSHELL` ; chemin de `powershell.exe` | variable de diagnostic documentée dans `officeconvert.h` ; chemin absolu (dossier système, puis `WindowsPowerShell\v1.0\`) |
+| m3 | T30 sans convertisseur factice | preuve et captures de T30 avec `ACTCRAFT_OFFICE_CONVERTER`, même valeur que T33 |
+| m4 | Fenêtre de M-H | T19 : ouverte seulement après `pendingCount() == 0 && cacheReady` (`runner.cpp:212`) |
+| m5 | T31 : deux définitions de `memory_delta_mb` | seule « 4 onglets moins 1 onglet » reste |
+| m6 | `deux-pages.pdf` mal défini | T30 : produit par `exportPdf` d'un document de formes seules (aucune police), métadonnées sans nom de personne, test sur 2 pages ; `.gitattributes` reçoit `*.pdf binary` (fichier ajouté à T30) |
+| m7 | T18 : lecture `selectionIsGroup` ; menu ouvert sur quoi | étape `expect` du scénario ; groupe copie sélectionné avant `object.menu` |
+| D21 | Compter quoi | **rendus terminés** : appels de `notifyCacheUpdated` (`PageArea.qml:60`), pas les émissions de `cacheRefreshRequested` que `scheduleUpdate` regroupe |
+
 ## Amendement 2 (relecture tour 2)
 
 Relecture du tour 2 sur da1e999 : du tour 1, 14 défauts corrigés, 8 en partie, M8 non corrigé ; nouveaux : 2 bloquants,
@@ -44,7 +69,7 @@ du lot 3 (61c03fb). Chaque défaut, et ce qui a changé (5a = ce plan, 5b = `…
 | M5 | L5-T1 fige données et en-têtes en parallèle de L5-T0 | T1 dépend de T0 ; V1 = T0, V2 = T1 |
 | M6 | Noms faux | `core::Change::Kind` (`core/undo.h:18`) ; `CommandRegistry::ids()` + `find()` (`commandregistry.h:68-69`) ; `DocumentTabs::count` (`Q_PROPERTY(int count READ rowCount NOTIFY countChanged)`) ; `{in}` / `{out}` / `{outdir}` définis ensemble ; origine XY = `PagePresentation::hasOrigin` / `origin` (`model.h:469-470`) |
 | M7 | Fichiers manquants | T1 : `layout.h`, `layout.cpp`, `ui/…/commands.h`, `ui/src/commands.cpp`, `ui/…/toolhost.h`, `ui/src/toolhost.cpp` (`setConnectorStyle`), `tools/…/toolcontext.h` (`SelectionView::shapePoints`) ; T18 : `SelectionOverlay.qml` ; T3 : `nativejson.cpp` et `nativeobjects.h` ; T25 : plus de `PageContextMenu.qml`, `export.page-image` mis dans `contextMenu` par T1 |
-| M8 | `parkSession` oublie la couche d'attente du lot 10 | 5b, T20 : versement forcé d'abord par la demande de redessin de la vue, qui verse les objets en attente (`FixedPageItem::foldPending`, `pageview.h:133-140`) ; `DocumentTabs` reçoit la vue (propriété `view`, annexe A) ; test `parkFoldsPendingFirst` |
+| M8 | `parkSession` oublie la couche d'attente du lot 10 | 5b, T20 : test `parkFoldsPendingFirst` (aucun fantôme) ; la demande de redessin avant le garage, d'abord prévue ici, est retirée par l'amendement 3 (M1) |
 | M9 | Trois tests de T20 vrais sans code | `switchRedrawsOnce` attend la stabilisation puis compare ; `closingModifiedAsksToSave` contrôle aussi le document vide restant ; `oneViewForAllTabs` déplacé dans `tst_ui_shell` (T21), sur la fenêtre chargée |
 | M10 | Mémoire du cache : 20 o/px depuis L10-T8, seuil non mesurable | ≈ 41,5 Mio par vue en 1920 × 1080 (contrainte 3, H5-5) ; T31 : 4 documents synthétiques fixés, `memory_delta_mb` < coût d'une vue à la taille du passage (largeur × hauteur × 20 o) |
 | M11 | Attendus non chiffrés | T18 : `objectEditMenu.visibleCommandCount=13` ; T19 : `edition.refreshes_by_gesture` ventilé, chaque valeur ≤ 1 ; T31 : `export-fond` p95 ≤ 1,2 × p95 de `stroke` du même passage |
@@ -214,7 +239,7 @@ Recoupements vérifiés (colonne « fichiers touchés ») :
 | D17 | Impression (5b) | règle du nombre de feuilles (S17) ; notes ; page allongée entière ; gris ; aperçu ; réglages gardés (F-670, amendement § 2.2) |
 | D18 | PowerPoint en images (5b) | une diapositive = une page, en image de fond, par la chaîne de D16 |
 | D19 | Insérer une image ou un média | au plus 80 % de la page, centrée, couche intermédiaire, nommée d'après le fichier (`view.py:762-778`) ; média au centre (F-129) |
-| D21 | Ce que compte `cacheRefreshCount` (A18) | **recommandation** : le nombre de redessins réellement lancés, c'est-à-dire d'émissions de `PageView::cacheRefreshRequested`, relance de `m_refreshAgain` comprise (`ui/src/pageview.cpp:291-305`) — le coût réel ; les tests et le banc attendent la stabilité (`cacheReady` et `kCacheFoldIdleMs` + 300 ms sans redessin) et ne demandent jamais un redessin pendant un autre, pour un compte exact. Autre choix possible : le nombre de demandes. L5-T0 tranche et fixe le nom de la propriété ; L5-T19, L5-T20 et L5-T31 s'y conforment |
+| D21 | Ce que compte `cacheRefreshCount` (A18) | **recommandation (amendement 3)** : le nombre de **rendus terminés**, c'est-à-dire d'appels de `PageView::notifyCacheUpdated` (`ui/qml/PageArea.qml:60`, `onScheduledUpdateCompleted`), et non les émissions de `cacheRefreshRequested` : `cache.scheduleUpdate()` (`PageArea.qml:30`) regroupe plusieurs demandes en un rendu ; les tests et le banc attendent la stabilité (`cacheReady` et `kCacheFoldIdleMs` + 300 ms sans redessin) et ne demandent jamais un redessin pendant un autre, pour un compte exact. Autre choix possible : le nombre de demandes. L5-T0 tranche et fixe le nom de la propriété ; L5-T19, L5-T20 et L5-T31 s'y conforment |
 | D20 | Menu d'édition d'objet | entrées et ordre de F-770 pour les fonctions livrées (lots 3 à 5, 7) ; entrées des lots 6 et 8 absentes jusqu'à leur lot |
 
 ## Carte des fichiers
@@ -577,11 +602,13 @@ propre ; `NOMS OK`.
   Le menu contextuel de la page (`contextMenu`, F-771) reçoit `export.page-image` à la suite de ses entrées.
   `objectMenu` est ajouté à `Layout` (`layout.h`) à côté de `contextMenu` : tableau de chaînes facultatif
   (`layout.cpp`). **Règle des jetons** : dans `objectMenu`, un jeton `">id"` désigne le sous-menu `id` déjà déclaré
-  dans `menus` (cherché parmi les sous-menus de tous les menus) ; s'il n'existe pas, erreur « objectMenu : sous-menu
-  <id> inconnu » ; `unknownCommands` parcourt `objectMenu` (séparateurs `-` et jetons `>` exclus, les commandes des
-  sous-menus désignés étant déjà parcourues dans `menus`). `ui::Commands` (`commands.h`, `commands.cpp`) ajoute
-  `Q_PROPERTY(QVariantList objectMenu READ objectMenu CONSTANT)`, **rendue comme `menus()`** : chaque jeton `>id`
-  devient une entrée de sous-menu portant ses éléments (pas une simple liste de chaînes comme `contextMenu`). Tests rouges puis verts dans
+  dans `menus` (cherché parmi les sous-menus de tous les menus) ; s'il n'existe pas, `parseLayout` échoue avec
+  l'erreur « objectMenu : sous-menu <id> inconnu » ; un même identifiant de sous-menu déclaré dans deux menus fait
+  échouer `parseLayout` avec « sous-menu <id> déclaré deux fois ». La fonction libre
+  `unknownCommands(layout, registry)` (`layout.h:49`) parcourt `objectMenu` (séparateurs `-` et jetons `>` exclus,
+  les commandes des sous-menus désignés étant déjà parcourues dans `menus`). `ui::Commands` (`commands.h`,
+  `commands.cpp`) ajoute `Q_PROPERTY(QVariantList objectMenu READ objectMenu NOTIFY layoutChanged)` (même signal que
+  `menus`), **rendue comme `menus()`** : chaque jeton `>id` devient une entrée de sous-menu portant ses éléments. Tests rouges puis verts dans
   `tests/tst_actions_layout.cpp` (fabriques de registre et de disposition : celles du test existant) :
   ```cpp
   static const QStringList kLot5{
@@ -596,10 +623,10 @@ propre ; `NOMS OK`.
       "tab.previous", "view.tabs", "export.page-image", "export.pdf", "file.import-pdf",
       "file.import-powerpoint-images", "file.print"};
 
-  void TestLayout::lot5EntriesDeclared()
+  void TstActionsLayout::lot5EntriesDeclared()
   {
       QCOMPARE(kLot5.size(), 53);
-      const auto registry = loadRegistry();
+      const auto registry = registryFromResources(); // aide à écrire : registre lu des ressources livrées
       QSet<QString> shortcuts;
       for (const QString& id : registry.ids()) {
           const actions::CommandInfo* command = registry.find(id);
@@ -613,9 +640,9 @@ propre ; `NOMS OK`.
           QVERIFY2(registry.find(id) != nullptr, qPrintable(id));
   }
 
-  void TestLayout::objectMenuOrder()
+  void TstActionsLayout::objectMenuOrder()
   {
-      const auto layout = loadLayout();
+      const auto layout = layoutFromResources(); // aide à écrire : parseLayout des ressources livrées
       const QStringList expected{"object.shape-points", "-", "edit.cut", "edit.copy", "edit.paste-onto",
                                  "edit.duplicate", "edit.delete", "-", ">transform", ">align", ">arrange", "-", "object.lock",
                                  "object.group", "object.hide", "object.drag-copy", "-",
@@ -625,17 +652,54 @@ propre ; `NOMS OK`.
   ```
   `kLot5` est aussi la liste de L5-T2 (même ordre). Et, dans le même fichier :
   ```cpp
-  void TestLayout::objectMenuSubmenusResolve()
+  // Classe existante : TstActionsLayout (tests/tst_actions_layout.cpp:31) ; kLayout : sa constante JSON valide.
+  static QByteArray layoutWith(const QJsonArray& objectMenu, bool duplicateSubmenu = false)
   {
-      const auto layout = loadLayout();
-      QVERIFY(layout.unknownCommands(loadRegistry()).isEmpty()); // aucun jeton ">…" pris pour une commande
-      QCOMPARE(submenuItems(layout, "transform").size(), 13); // séparateurs compris
-      QCOMPARE(submenuItems(layout, "align").size(), 10);
-      QCOMPARE(submenuItems(layout, "arrange").size(), 8);
-      QVERIFY(!loadLayoutFrom(R"({"menus": [], "objectMenu": [">absent"]})").ok()); // erreur nommée
+      QJsonObject root = QJsonDocument::fromJson(kLayout).object(); // garde "format": "actcraft-layout/1"
+      QJsonArray menus = root.value(QStringLiteral("menus")).toArray();
+      QJsonObject file = menus[0].toObject();
+      QJsonArray items = file.value(QStringLiteral("items")).toArray();
+      const QJsonObject present{{QStringLiteral("submenu"), QStringLiteral("present")},
+                                {QStringLiteral("label"), QStringLiteral("Présent")},
+                                {QStringLiteral("items"), QJsonArray{QStringLiteral("help.about")}}};
+      items.append(present);
+      file.insert(QStringLiteral("items"), items);
+      menus[0] = file;
+      if (duplicateSubmenu) {
+          QJsonObject other{{QStringLiteral("id"), QStringLiteral("autre")},
+                            {QStringLiteral("label"), QStringLiteral("Autre")},
+                            {QStringLiteral("items"), QJsonArray{present}}};
+          menus.append(other);
+      }
+      root.insert(QStringLiteral("menus"), menus);
+      root.insert(QStringLiteral("objectMenu"), objectMenu);
+      return QJsonDocument(root).toJson(QJsonDocument::Compact);
+  }
+
+  void TstActionsLayout::objectMenuSubmenusResolve()
+  {
+      Layout layout;
+      QString error;
+      QVERIFY2(parseLayout(layoutWith({QStringLiteral(">present"), QStringLiteral("-"), QStringLiteral("help.about")}),
+                           layout, error), qPrintable(error));
+      QCOMPARE(layout.objectMenu, (QStringList{QStringLiteral(">present"), QStringLiteral("-"),
+                                               QStringLiteral("help.about")}));
+      Layout refused;
+      QVERIFY(!parseLayout(layoutWith({QStringLiteral(">absent")}), refused, error));
+      QVERIFY2(error.contains(QStringLiteral("objectMenu : sous-menu absent inconnu")), qPrintable(error));
+      QVERIFY(!parseLayout(layoutWith({QStringLiteral(">present")}, /*duplicateSubmenu=*/true), refused, error));
+      QVERIFY2(error.contains(QStringLiteral("sous-menu present déclaré deux fois")), qPrintable(error));
+      Layout withUnknown;
+      QVERIFY2(parseLayout(layoutWith({QStringLiteral("nope.cmd"), QStringLiteral(">present")}), withUnknown, error),
+               qPrintable(error));
+      QCOMPARE(unknownCommands(withUnknown, registryOfTheTest()), QStringList{QStringLiteral("nope.cmd")});
   }
   ```
-  (`submenuItems`, `loadLayoutFrom` : aides du test du socle, P3:524-568, à revérifier.) Dans
+  `registryOfTheTest()` : le registre que `unknownCommandsAreListedOnce` (même fichier, l. 132) construit déjà, sorti
+  en aide si besoin. Les ressources livrées sont contrôlées par `defaultLayoutMatchesLotOne` (vert, `unknownCommands`
+  vide) et par `objectMenuOrder`. **Mutation** : dans `layout.cpp`, retirer la vérification des jetons `>id`
+  d'`objectMenu` → `objectMenuSubmenusResolve` rouge (`>absent` accepté) ; remise par
+  `git -C <wt> checkout -- actions/src/layout.cpp`. Dans
   `tests/tst_ui_commands.cpp` : `objectBarAndContextMenu` (socle:811) passe de « 5 éléments » à « les éléments posés
   avant le lot 5 inchangés en tête, puis `object.menu`, `object.group`, `arrange.front`, `arrange.back`,
   `edit.duplicate`, `object.shape-points` », et `contextMenu` finit par `export.page-image` ; nouvelle fonction
@@ -1773,10 +1837,10 @@ plateforme), `convertEntriesOnlyForAnnotations`. Commande ciblée, motif `^(tst_
 
 **Preuve visuelle.** Scénario `edition`, pas dans l'ordre : poser trois formes par `tool.shape` ; les sélectionner par
 un rectangle ; `object.group` ; `edit.duplicate` (seule la copie est sélectionnée, D2) ; **sélectionner l'original et la
-copie** par un rectangle qui les touche tous deux ; `align.left` (deux objets) ; **lectures `LU` à ce moment**
-(`appEditing.selectionIsGroup=false`, deux objets sélectionnés) ; `arrange.front` ; `object.lock` sur le groupe d'origine,
+copie** par un rectangle qui les touche tous deux ; `align.left` (deux objets) ; étape `expect` du
+scénario à ce moment (`appEditing.selectionIsGroup` faux, deux objets sélectionnés) ; `arrange.front` ; `object.lock` sur le groupe d'origine,
 glissement refusé ; `tool.fill` dans une forme ; `object.shape-points`, glisser un point ; `tool.connector` entre deux
-formes, déplacer l'une ; `object.menu` sur le groupe copie, **lecture du menu à ce moment**. Lectures :
+formes, déplacer l'une ; **sélectionner le groupe copie** (clic sur lui), puis `object.menu`, et **lecture du menu à ce moment**. Lectures :
 ```powershell
 New-Item -ItemType Directory -Force '<wt>/.tmp' | Out-Null
 pwsh -NoProfile -Command "Set-Location '<wt>'; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario edition -Rendu logiciel -HorsEcran -Sortie .tmp/captures-edition -Lire 'appDocument.canUndo=true' -Lire 'objectEditMenu.visibleCommandCount=13' > .tmp/captures.txt 2>&1"
@@ -1804,8 +1868,9 @@ le document (tout passe par les commandes).
 aligner, organiser (premier plan), pendant qu'un trait est écrit toutes les 2 s ; relever figements et reprises
 (métriques existantes) et, **par geste**, le nombre de redessins du cache : nouvelle clé du JSON
 `edition.refreshes_by_gesture` = `{"paste": n, "group": n, "align": n, "front": n}` (différence de `cacheRefreshCount`,
-A18 ; ce qu'il compte : décision D21 de L5-T0). **Fenêtre de mesure** d'un geste : de l'envoi de sa commande jusqu'à la
-stabilité du cache (`cacheReady` vrai et aucun redessin pendant `ui::kCacheFoldIdleMs` + 300 ms) ; aucun trait n'est
+A18 ; ce qu'il compte : décision D21 de L5-T0). **Fenêtre de mesure** d'un geste : ouverte seulement quand
+`pendingCount() == 0 && cacheReady` (même attente que `bench/src/runner.cpp:212`), puis de l'envoi de sa commande
+jusqu'à la stabilité du cache (`cacheReady` vrai et aucun redessin pendant `ui::kCacheFoldIdleMs` + 300 ms) ; aucun trait n'est
 écrit pendant ces fenêtres (les traits du scénario tombent entre elles) ; `cache.refreshes` reste le total. Attendu :
 chaque valeur ≤ 1. Il mesure la limite
 déclarée (contrainte 1 : organiser = insertion hors fin de page → redessin immédiat).
@@ -2363,10 +2428,12 @@ struct Converter
     bool pathsByEnvironment = false; // vrai pour PowerPoint
     QString scriptResource;          // ressource Qt copiée dans le dossier temporaire puis passée par -File (PowerPoint)
 };
-// Ordre : ACTCRAFT_OFFICE_CONVERTER (programme puis arguments séparés par « | », remplacement des chemins), puis
-// LibreOffice (`soffice`), puis PowerPoint (`powershell.exe`, ou le programme nommé par ACTCRAFT_POWERSHELL :
-// couture de test, un programme factice qui écrit son environnement ; pathsByEnvironment vrai,
-// scriptResource = ":/actcraft/export/pptx-to-pdf.ps1").
+// Ordre : (1) ACTCRAFT_OFFICE_CONVERTER (programme puis arguments séparés par « | », remplacement des chemins) ;
+// (2) si ACTCRAFT_POWERSHELL est posée (variable de diagnostic documentée, coutures de test), voie PowerPoint prise
+// directement, sans contrôle de présence, avec ce programme ; (3) LibreOffice (`soffice`) ; (4) PowerPoint, présent si
+// la clé HKCR\PowerPoint.Application existe (QSettings, format natif), lancé par le chemin absolu de
+// powershell.exe (dossier système, puis son sous-dossier WindowsPowerShell\v1.0\) ; voie PowerPoint :
+// pathsByEnvironment vrai, scriptResource = ":/actcraft/export/pptx-to-pdf.ps1". Hors Windows : (1) et (3) seulement.
 std::optional<Converter> findConverter();
 struct ConvertResult
 {
@@ -2484,8 +2551,8 @@ private:
   QString& text, QPointF pagePoint)` ; signaux `busyChanged()`, `inserted(int count)`, `failed(QString message)`.
 - `documenttabs.h` — `DocumentTabs : QAbstractListModel` : propriétés `document` (`DocumentController*`),
   `count` (`Q_PROPERTY(int count READ rowCount NOTIFY countChanged)`, `rowCount(const QModelIndex& parent = {})`),
-  `view` (`PageView*`, lu et écrit : la vue unique, dont la demande de redessin verse la couche d'attente avant un
-  garage ; `NOTIFY viewChanged`),
+  `view` (`PageView*`, lu et écrit : la vue unique, montrée par `oneViewForAllTabs` ; aucune demande de redessin
+  avant un garage — `resumeSession` rattache la page, et `restart` vide déjà la couche d'attente ; `NOTIFY viewChanged`),
   `currentIndex` (lecture), `position` (« top », « bottom », « hidden », lu et écrit) ; rôles `TitleRole`,
   `ModifiedRole`, `CurrentRole`, `UrlRole` ; `Q_INVOKABLE void newTab()`, `openInNewTab(const QUrl&)`,
   `activate(int)`, `bool requestClose(int)` (faux : `saveRequested(int)` émis), `closeWithoutSaving(int)`,
