@@ -328,6 +328,14 @@ qu'elles ne contredisent pas. S'y ajoutent ou s'y substituent :
 - **Noms imposés** : `shapefinder`, `spotlightFrame`, `OriginMarker.qml`, `PageEffectsPicker.qml` (et non
   `EffectPicker.qml` de 7a, L7-T8), tests d'annulation suffixés `…MakesOneStep` ou `…IsUndoneAtOnce`. Un nom refusé par
   le contrôle se renomme et le renommage est rapporté (amendement de ce plan).
+- **Fonctions d'un test d'interface** (exécutable unique `tst_ui_lot7`, première option = clé de la classe :
+  `presentation`, `curtain`, `spotlight`, `pagezoom`, `pagetools`, `transitions`, `mathtools`, `dice`, `calculator`,
+  `clock`, `othertools`, `ticker`, `recognition`, `equation`, `camera`, `keyboard`, `desktop`) :
+  ```powershell
+  pwsh -NoProfile -Command "Set-Location '<wt>'; . ./scripts/dev-env.ps1; `$env:QT_QPA_PLATFORM='offscreen'; `$env:QT_QUICK_BACKEND='software'; & build/debug/tst_ui_lot7.exe <clé> -o .tmp/tst_ui_<clé>.txt,txt; Select-String -Path .tmp/tst_ui_<clé>.txt -Pattern '^PASS   :|^FAIL!  :|^SKIP   :|^Totals' | Select-Object -Last 40"
+  ```
+  (chemin : celui que `ctest --preset debug -N -V -R tst_ui_<clé>` imprime s'il diffère). Pour les autres tests, la
+  forme du socle (socle:231-235).
 - **Premier passage dans un worktree neuf** (construction complète) :
   ```powershell
   pwsh -NoProfile -Command "Set-Location '<wt>'; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File C:\Users\JeromeDenis\.claude\scripts\jeton.ps1 -Nom tests -Proprietaire livraison-complete-b/<id> -Commande 'pwsh -NoProfile -File ./scripts/build.ps1 *> .tmp/build.txt'; Select-String -Path .tmp/build.txt -Pattern 'error|FAILED' | Select-Object -Last 4"
@@ -367,9 +375,10 @@ qu'elles ne contredisent pas. S'y ajoutent ou s'y substituent :
 **Objectif.** Créer et enregistrer d'un coup tous les fichiers neufs d'interface du lot 7 que la phase 1 n'a pas
 posés : `Presentation.qml` complété de ses 17 racines, 27 QML talons, `ui/presentation.cmake` (noms figés
 `ACTCRAFT_UI_LOT7_QML`, `ACTCRAFT_UI_LOT7_SOURCES`), `DocumentInsertions` (en-tête figé, corps talon), aides de test
-au stylet, au doigt et à la souris, 29 tests et 9 scénarios talons. Après elle, aucune tâche ne touche un fichier
-CMake, et `Presentation.qml` n'est plus touché qu'en L7-T17 (au besoin) et L7-T34. Aucun comportement visible ne
-change. `concepteur-critique` : l'invariant partagé est le chargement du module QML (un doublon de `Presentation.qml`
+au stylet, au doigt et à la souris, exécutable d'interface unique `tst_ui_lot7` (registre et `main`), 29 entrées
+ctest et 9 scénarios talons, avec tous les chemins d'inclusion privés dont les tâches auront besoin. Après elle,
+aucune tâche ne touche un fichier CMake, et `Presentation.qml` n'est plus touché qu'en L7-T17 (au besoin). Aucun
+comportement visible ne change. `concepteur-critique` : l'invariant partagé est le chargement du module QML (un doublon de `Presentation.qml`
 ou une racine absente casse **toute** l'interface, pas seulement le lot 7).
 
 **Fichiers.** Voir la table. Créer tous les fichiers de la ligne sauf `ui/qml/Presentation.qml` (existe, socle L0-S9)
@@ -378,8 +387,9 @@ et `tests/presentation.cmake` (existe, phase 1) : ces deux-là sont complétés.
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_|tst_core_equation|tst_render_equation|tst_features_equationeditor|tst_captures_'`
 (toutes les suites `tst_ui_*` du dépôt, celles du socle comprises : aucune ne doit régresser) ; preuve de tâche
 (N = N_F + 29) ; preuve visuelle hors écran `premiers-pas` avec `-Lire "pageIndicator.text=1 / 2"` (la fenêtre n'a pas
-changé) ; « Fonctions d'un test » (socle:231-235) sur `tst_ui_curtain` → une ligne
-`SKIP   : TstUiCurtain::reserved() Talon L7-S8 : rempli par L7-T3.`
+changé) ; « Fonctions d'un test d'interface » (règles communes) sur la clé `curtain` → une ligne
+`SKIP   : TstUiCurtain::reserved() Talon L7-S8 : rempli par L7-T3.` ; la même commande sans clé → code 2 et la liste
+des 17 clés.
 
 **Preuve visuelle.** `premiers-pas` hors écran : `LU pageIndicator.text=1 / 2 OK`, `CAPTURES OK` ; capture
 `interface` décrite en une phrase (menus, palette et page comme avant ; aucune surcouche visible).
@@ -390,7 +400,7 @@ ni `qt_target_qml_sources` ni `qt_add_qml_module` dans `ui/presentation.cmake` (
 lignes de la phase 1 de `tests/presentation.cmake` modifiée ; aucun nom de classe dans un talon C++ ; libellés à nous.
 
 **Terminé quand.** Tous les fichiers existent, compilent et sont enregistrés ; N = N_F + 29 ; chaque talon porte le
-marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning` en `PASS` ; `premiers-pas`
+marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarning` (socle) toujours en `PASS` ; `premiers-pas`
 `CAPTURES OK` ; `TESTS OK` ; `NOMS OK` deux fois.
 
 **Étapes.**
@@ -402,8 +412,10 @@ marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning`
   le rapporter (socle non mergé). Premier passage (construction complète) ; preuve de tâche : `out of N_F` (la valeur
   de l'état), `TESTS OK`.
 - [ ] **Étape 2 : test rouge.** `tests/tst_ui_presentation.cpp` (montage de `tests/tst_ui_shell.cpp` : le lire et
-  reprendre son chargement de `Main.qml` hors écran, par `tests/support/presentationharness.h` de l'étape 6) :
+  reprendre son chargement de `Main.qml` hors écran, par `tests/support/presentationharness.h` de l'étape 6 ; classe
+  inscrite au registre de l'étape 7, aucun `QTEST_MAIN`) :
   ```cpp
+  #include "support/lot7registry.h"
   #include "support/presentationharness.h"
 
   #include <QtTest>
@@ -430,30 +442,30 @@ marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning`
               QVERIFY2(root->property("commands").value<QObject*>() != nullptr, name);
           }
           auto* overlays = main.window()->findChild<QQuickItem*>(QStringLiteral("pageOverlays"));
-          auto* mathTools = main.window()->findChild<QQuickItem*>(QStringLiteral("mathToolsRoot"));
-          QVERIFY(overlays != nullptr && mathTools != nullptr);
-          QCOMPARE(mathTools->parentItem(), overlays);
+          QVERIFY(overlays != nullptr);
+          for (const char* name : {"curtainRoot", "spotlightRoot", "mathToolsRoot"}) {
+              auto* root = main.window()->findChild<QQuickItem*>(QString::fromLatin1(name));
+              QVERIFY2(root != nullptr && root->parentItem() == overlays, name);
+          }
           auto* layer = main.window()->findChild<QQuickItem*>(QStringLiteral("presentationLayer"));
-          auto* curtain = main.window()->findChild<QQuickItem*>(QStringLiteral("curtainRoot"));
-          QVERIFY(layer != nullptr && curtain != nullptr);
-          QCOMPARE(curtain->parentItem(), layer);
-      }
-
-      void presentationLoadsWithoutQmlWarning()
-      {
-          QTest::failOnWarning(QRegularExpression(QStringLiteral("qrc:.*\\.qml")));
-          presentationharness::MainWindow main;
-          QVERIFY(main.window() != nullptr);
+          auto* ticker = main.window()->findChild<QQuickItem*>(QStringLiteral("tickerRoot"));
+          QVERIFY(layer != nullptr && ticker != nullptr);
+          QCOMPARE(ticker->parentItem(), layer);
+          for (const char* name : {"cameraRoot", "keyboardRoot", "desktopRoot"}) {
+              auto* root = main.window()->findChild<QQuickItem*>(QString::fromLatin1(name));
+              QVERIFY2(root != nullptr && !root->isVisible(), name); // racine non visuelle (décision 4 bis)
+          }
       }
 
       void reserved() { QSKIP("Talon L7-S8 : rempli par L7-T2."); }
   };
 
-  QTEST_MAIN(TstUiPresentation)
+  ACTCRAFT_LOT7_TEST("presentation", TstUiPresentation)
   #include "tst_ui_presentation.moc"
   ```
-  Commande ciblée `-R 'tst_ui_presentation'` → rouge (`tst_ui_presentation` inconnu, ou fichier manquant).
-- [ ] **Étape 3 : `DocumentInsertions`.** `ui/src/presentationdocument.h`, **tel quel** (contrat de S8a, D-S8 du socle) :
+  Commande ciblée `-R 'tst_ui_presentation'` → rouge (cible `tst_ui_lot7` inconnue, ou fichier manquant).
+- [ ] **Étape 3 : `DocumentInsertions`.** `ui/src/presentationdocument.h` : signatures identiques à S8a (D-S8 du
+  socle) ; seul ajout, `#include <cstddef>` pour `std::size_t` :
   ```cpp
   #pragma once
 
@@ -501,7 +513,8 @@ marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning`
   contrat suit le socle et l'écart est rapporté.
 - [ ] **Étape 4 : QML talons.** Les 17 racines (décision 3), contenu de la décision 4 mot pour mot, marqueur de leur
   tâche ; `PerPageTools.qml`, `TransitionLayer.qml`, `PageEffectsPicker.qml` avec leurs propriétés de lecture en
-  plus. Les 10 non-racines :
+  plus ; `CameraOverlay.qml`, `ScreenKeyboard.qml`, `DesktopAnnotation.qml` (décision 4 bis) avec `visible: false`
+  en plus (racine non visuelle ; la tâche y met son `Component { Window { … } }`). Les 10 non-racines :
   ```qml
   import QtQuick
 
@@ -527,14 +540,16 @@ marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning`
   }
   ```
 - [ ] **Étape 5 : `Presentation.qml`.** Remplacer le contenu posé par L0-S9 en gardant ses six propriétés **mot pour
-  mot** (lire le fichier mergé ; si L0-S9 a écrit autre chose que socle:1330-1346, garder le sien et le rapporter) :
+  mot** (lire le fichier mergé ; si L0-S9 a écrit autre chose que socle:1330-1346, garder le sien et le rapporter).
+  Seul `parent` est posé (aucun `anchors`, décision 3) ; les trois racines à fenêtre propre n'ont pas de `parent`
+  (décision 4 bis) :
   ```qml
   import QtQuick
   import ActCraft.Ui
 
   // Racine des fonctions du lot 7 : une racine par fonction (contrôleur, surcouche ou panneau, gestionnaires de
   // commandes). Une surcouche qui prend l'entrée se déclare couverture : pageArea.view.addInputCover(<item>).
-  // Après L7-S8, ce fichier ne change plus (amendement de phase 2, décision 1).
+  // Seul le parent est posé ici : chaque racine décide de sa géométrie. Après L7-S8, ce fichier ne change plus.
   Item {
       id: presentation
       property Commands commands: null
@@ -544,27 +559,27 @@ marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning`
       property Item pageOverlays: null
       property Item layer: null
 
-      CurtainOverlay { id: curtainRoot; objectName: "curtainRoot"; parent: presentation.layer; anchors.fill: parent
+      CurtainOverlay { id: curtainRoot; objectName: "curtainRoot"; parent: presentation.pageOverlays
           commands: presentation.commands; documentController: presentation.documentController
           tools: presentation.tools; pageArea: presentation.pageArea }
-      SpotlightOverlay { id: spotlightRoot; objectName: "spotlightRoot"; parent: presentation.layer; anchors.fill: parent
+      SpotlightOverlay { id: spotlightRoot; objectName: "spotlightRoot"; parent: presentation.pageOverlays
           commands: presentation.commands; documentController: presentation.documentController
           tools: presentation.tools; pageArea: presentation.pageArea }
       PageZoomOverlay { id: pageZoomRoot; objectName: "pageZoomRoot"
-          parent: presentation.pageArea ? presentation.pageArea.presentationSlot : null; anchors.fill: parent
+          parent: presentation.pageArea ? presentation.pageArea.presentationSlot : null
           commands: presentation.commands; documentController: presentation.documentController
           tools: presentation.tools; pageArea: presentation.pageArea }
       PerPageTools { id: pageToolsRoot; objectName: "pageToolsRoot"
           commands: presentation.commands; documentController: presentation.documentController
           tools: presentation.tools; pageArea: presentation.pageArea
           curtain: curtainRoot.controller; spotlight: spotlightRoot.controller }
-      TransitionLayer { id: transitionRoot; objectName: "transitionRoot"; parent: presentation.layer; anchors.fill: parent
+      TransitionLayer { id: transitionRoot; objectName: "transitionRoot"; parent: presentation.layer
           commands: presentation.commands; documentController: presentation.documentController
           tools: presentation.tools; pageArea: presentation.pageArea; curtain: curtainRoot.controller }
       PageEffectsPicker { id: effectsRoot; objectName: "effectsRoot"; parent: presentation.layer
           commands: presentation.commands; documentController: presentation.documentController
           tools: presentation.tools; pageArea: presentation.pageArea; transitions: transitionRoot.controller }
-      MathToolsLayer { id: mathToolsRoot; objectName: "mathToolsRoot"; parent: presentation.pageOverlays; anchors.fill: parent
+      MathToolsLayer { id: mathToolsRoot; objectName: "mathToolsRoot"; parent: presentation.pageOverlays
           commands: presentation.commands; documentController: presentation.documentController
           tools: presentation.tools; pageArea: presentation.pageArea }
       DicePanel { id: diceRoot; objectName: "diceRoot"; parent: presentation.layer
@@ -576,7 +591,7 @@ marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning`
       ClockPanel { id: clockRoot; objectName: "clockRoot"; parent: presentation.layer
           commands: presentation.commands; documentController: presentation.documentController
           tools: presentation.tools; pageArea: presentation.pageArea }
-      TickerOverlay { id: tickerRoot; objectName: "tickerRoot"; parent: presentation.layer; anchors.fill: parent
+      TickerOverlay { id: tickerRoot; objectName: "tickerRoot"; parent: presentation.layer
           commands: presentation.commands; documentController: presentation.documentController
           tools: presentation.tools; pageArea: presentation.pageArea }
       RecognitionAlternatives { id: recognitionRoot; objectName: "recognitionRoot"; parent: presentation.layer
@@ -585,7 +600,7 @@ marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning`
       EquationEditor { id: equationRoot; objectName: "equationRoot"; parent: presentation.layer
           commands: presentation.commands; documentController: presentation.documentController
           tools: presentation.tools; pageArea: presentation.pageArea }
-      CameraOverlay { id: cameraRoot; objectName: "cameraRoot"; parent: presentation.layer; anchors.fill: parent
+      CameraOverlay { id: cameraRoot; objectName: "cameraRoot"
           commands: presentation.commands; documentController: presentation.documentController
           tools: presentation.tools; pageArea: presentation.pageArea }
       ScreenKeyboard { id: keyboardRoot; objectName: "keyboardRoot"
@@ -693,10 +708,79 @@ marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning`
   Si `tests/tst_pageview.cpp` ou un test du socle (`tst_ui_inputpath`) a déjà une aide d'injection du stylet, la
   **reprendre** plutôt que ce constructeur de périphérique (qui doit, lui, être relu contre Qt 6.12 :
   **[SOCLE?]** forme exacte retenue par L0-S7 dans `tst_ui_inputpath`).
-- [ ] **Étape 7 : tests talons.** Les 16 `tests/tst_ui_<fonction>.cpp` hors `tst_ui_presentation`, et
-  `tst_core_equation.cpp`, `tst_render_equation.cpp`, `tst_features_equationeditor.cpp`, sur ce modèle (classe et
-  `.moc` adaptés ; `QTEST_GUILESS_MAIN` pour `core` et `features`, `QTEST_MAIN` pour `render` et `ui`) :
+- [ ] **Étape 7 : exécutable d'interface unique et tests talons** (décision 1, revue M5).
+  `tests/support/lot7registry.h` :
   ```cpp
+  #pragma once
+
+  // Registre des classes de test d'interface du lot 7 : un fichier par fonction, un seul exécutable (tst_ui_lot7).
+  // Chaque fichier inscrit sa classe sous une clé ; le main choisit la classe par sa première option.
+  #include <QObject>
+
+  #include <functional>
+  #include <map>
+  #include <memory>
+  #include <string>
+
+  namespace lot7 {
+
+  using Factory = std::function<std::unique_ptr<QObject>()>;
+
+  inline std::map<std::string, Factory>& registry()
+  {
+      static std::map<std::string, Factory> entries;
+      return entries;
+  }
+
+  struct Registration
+  {
+      Registration(const char* key, Factory factory) { registry().emplace(key, std::move(factory)); }
+  };
+
+  } // namespace lot7
+
+  #define ACTCRAFT_LOT7_TEST(key, Class) \
+      static const lot7::Registration lot7Registration##Class(key, [] { return std::make_unique<Class>(); });
+  ```
+  `tests/tst_ui_lot7_main.cpp` (écrit une fois ; plus aucune tâche n'y touche) :
+  ```cpp
+  #include "support/lot7registry.h"
+
+  #include <QGuiApplication>
+  #include <QtTest>
+
+  #include <cstdio>
+  #include <vector>
+
+  // Exécutable unique des tests d'interface du lot 7 : tst_ui_lot7 <clé> [options de Qt Test].
+  int main(int argc, char** argv)
+  {
+      if (argc < 2 || lot7::registry().count(argv[1]) == 0) {
+          std::fprintf(stderr, "tst_ui_lot7 : clé attendue parmi :");
+          for (const auto& entry : lot7::registry()) {
+              std::fprintf(stderr, " %s", entry.first.c_str());
+          }
+          std::fprintf(stderr, "\n");
+          return 2;
+      }
+      const lot7::Factory& factory = lot7::registry().at(argv[1]);
+      std::vector<char*> arguments{argv[0]};
+      for (int i = 2; i < argc; ++i) {
+          arguments.push_back(argv[i]);
+      }
+      int count = static_cast<int>(arguments.size());
+      QGuiApplication app(count, arguments.data());
+      std::unique_ptr<QObject> test = factory();
+      return QTest::qExec(test.get(), count, arguments.data());
+  }
+  ```
+  (`QTEST_MAIN` pose aussi des attributs d'application : les relire dans `qtest.h` de Qt 6.12 et reprendre ceux qui
+  s'appliquent à `QGuiApplication` ; point de Qt, à vérifier à la construction, liste « À vérifier », point 15.)
+  Les 16 `tests/tst_ui_<fonction>.cpp` hors `tst_ui_presentation`, sur ce modèle (classe, clé et
+  `.moc` adaptés) :
+  ```cpp
+  #include "support/lot7registry.h"
+
   #include <QtTest>
 
   class TstUiCurtain : public QObject
@@ -707,15 +791,16 @@ marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning`
       void reserved() { QSKIP("Talon L7-S8 : rempli par L7-T3."); }
   };
 
-  QTEST_MAIN(TstUiCurtain)
+  ACTCRAFT_LOT7_TEST("curtain", TstUiCurtain)
   #include "tst_ui_curtain.moc"
   ```
-  Tâches : `curtain` T3, `spotlight` T4, `pagezoom` T5, `pagetools` T6, `transitions` T7, `mathtools` T9, `dice` T14,
-  `calculator` T15, `clock` T16, `othertools` T17, `ticker` T18, `recognition` T21, `equation` T26, `camera` T28,
-  `keyboard` T29, `desktop` T30 ; `tst_core_equation` T24, `tst_render_equation` T25, `tst_features_equationeditor`
-  T26. **[SOCLE?]** Si L0-S3 a déjà créé `tst_core_equation.cpp` ou `tst_render_equation.cpp` (talons « attendent
-  L0-S3 », socle:1483), ne pas les recréer : les retirer de la ligne et de cette étape, garder leur déclaration du
-  socle, et diminuer le compte d'autant (N = N_F + 29 − k, rapporté).
+  Clés et tâches : `curtain` T3, `spotlight` T4, `pagezoom` T5, `pagetools` T6, `transitions` T7, `mathtools` T9,
+  `dice` T14, `calculator` T15, `clock` T16, `othertools` T17, `ticker` T18, `recognition` T21, `equation` T26,
+  `camera` T28, `keyboard` T29, `desktop` T30. `tst_core_equation.cpp` (T24), `tst_render_equation.cpp` (T25),
+  `tst_features_equationeditor.cpp` (T26) : exécutables à eux, modèle du socle (`QTEST_GUILESS_MAIN` pour `core` et
+  `features`, `QTEST_MAIN` pour `render`). **[SOCLE?]** Si L0-S3 a déjà créé `tst_core_equation.cpp` ou
+  `tst_render_equation.cpp` (talons « attendent L0-S3 », socle:1483), ne pas les recréer : les retirer de la ligne et
+  de cette étape, garder leur déclaration du socle, et diminuer le compte d'autant (N = N_F + 29 − k, rapporté).
 - [ ] **Étape 8 : scénarios talons.** Les 9 `bench/scenarios/<nom>.json`, sur le modèle exact d'un scénario talon du
   socle (`bench/scenarios/selection.json`, L0-S0 : le lire et reprendre ses clés), avec `"name": "<nom>"` et
   `"description": "Talon L7-S8 : rempli par L7-T<n> (S<k>)."` — `rideau` T3 (S10), `spot` T4 (S10), `effets` T8
@@ -787,17 +872,34 @@ marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning`
 - [ ] **Étape 10 : `tests/presentation.cmake`.** À la suite des 16 lignes de la phase 1 (inchangées) :
   ```cmake
   # Phase 2 (L7-S8) : tests d'interface, de logique de l'équation et de captures du lot 7, déclarés ici seulement ;
-  # aucune autre tâche n'en ajoute (compte figé : N = N_F + 29).
-  foreach(_lot7_ui_test IN ITEMS presentation curtain spotlight pagezoom pagetools transitions mathtools dice
-                                 calculator clock othertools ticker recognition equation camera keyboard desktop)
-      actcraft_add_test(tst_ui_${_lot7_ui_test}
-          SOURCES tst_ui_${_lot7_ui_test}.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
-          LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
-      target_include_directories(tst_ui_${_lot7_ui_test} PRIVATE ${PROJECT_SOURCE_DIR}/app ${CMAKE_CURRENT_SOURCE_DIR})
+  # aucune autre tâche n'en ajoute (compte figé : N = N_F + 29). Les chemins d'inclusion privés dont les tâches ont
+  # besoin sont posés ici une fois pour toutes (ui/src, render/src).
+  set(_lot7_ui_keys presentation curtain spotlight pagezoom pagetools transitions mathtools dice calculator clock
+                    othertools ticker recognition equation camera keyboard desktop)
+  set(_lot7_ui_sources tst_ui_lot7_main.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp)
+  foreach(_key IN LISTS _lot7_ui_keys)
+      list(APPEND _lot7_ui_sources tst_ui_${_key}.cpp)
   endforeach()
+  # Un seul exécutable pour les 17 classes (un lien, un PDB) ; 17 entrées ctest à leur nom.
+  qt_add_executable(tst_ui_lot7 ${_lot7_ui_sources})
+  target_link_libraries(tst_ui_lot7 PRIVATE Qt6::Test Qt6::Quick ActCraft::ui actcraft_uiplugin)
+  target_include_directories(tst_ui_lot7 PRIVATE ${PROJECT_SOURCE_DIR}/app ${PROJECT_SOURCE_DIR}/ui/src
+                                                 ${CMAKE_CURRENT_SOURCE_DIR})
+  actcraft_set_warnings(tst_ui_lot7)
+  set(_lot7_env "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+  if(WIN32)
+      list(APPEND _lot7_env "QT_QPA_FONTDIR=$ENV{WINDIR}/Fonts")
+  endif()
+  foreach(_key IN LISTS _lot7_ui_keys)
+      add_test(NAME tst_ui_${_key} COMMAND tst_ui_lot7 ${_key})
+      set_tests_properties(tst_ui_${_key} PROPERTIES ENVIRONMENT "${_lot7_env}")
+  endforeach()
+
   actcraft_add_test(tst_core_equation SOURCES tst_core_equation.cpp LIBS ActCraft::core)
   actcraft_add_test(tst_render_equation SOURCES tst_render_equation.cpp LIBS ActCraft::render Qt6::Gui)
+  target_include_directories(tst_render_equation PRIVATE ${PROJECT_SOURCE_DIR}/render/src)
   actcraft_add_test(tst_features_equationeditor SOURCES tst_features_equationeditor.cpp LIBS ActCraft::features)
+
   foreach(_lot7_scenario IN ITEMS rideau spot effets regle compte-a-rebours message reconnaissance-forme equation
                                   presentation)
       string(REPLACE "-" "_" _lot7_test "${_lot7_scenario}")
@@ -812,19 +914,23 @@ marqueur de sa tâche ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning`
           FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
   endforeach()
   ```
-  `LIBS` de `tst_ui_*` : alignés sur `tst_ui_shell` dans `tests/ui.cmake` (relu à la fusion) ; `tst_render_equation` :
-  aligné sur `tst_render_painter` dans `tests/render.cmake` (le lire). `_bench_env_offscreen` est posé par
-  `tests/bench.cmake`, inclus avant ce fichier (même portée) : **[SOCLE?]** ordre des `include` de
-  `tests/CMakeLists.txt` après la fusion.
-- [ ] **Étape 11 : vert et preuves.** Commande ciblée → vert (16 `tst_ui_*` en `SKIP` nommé, `tst_ui_presentation`
-  `Totals: 4 passed, 0 failed, 1 skipped`, suites du socle `tst_ui_shell`, `tst_ui_inputpath` sans régression,
-  9 `tst_captures_*` Passed) ; `format.ps1` ; preuve de tâche (N = N_F + 29) ; « Fonctions d'un test » sur
-  `tst_ui_curtain` ; preuve visuelle `premiers-pas` ; `git -C '<wt>' add` des fichiers de la ligne, nommés ;
+  L'environnement des 17 entrées reprend mot pour mot celui d'`actcraft_add_test` (`tests/CMakeLists.txt:9-15`) :
+  le relire à la fusion. `LIBS` de `tst_ui_lot7` : alignés sur `tst_ui_shell` dans `tests/ui.cmake` (relu à la
+  fusion) ; `tst_render_equation` : aligné sur `tst_render_painter` dans `tests/render.cmake` (le lire).
+  `_bench_env_offscreen` est posé par `tests/bench.cmake`, inclus avant ce fichier (même portée) : **[SOCLE?]** ordre
+  des `include` de `tests/CMakeLists.txt` après la fusion. `ui/src` en inclusion du test : `DocumentInsertions`
+  (L7-T2), contrôleurs construits par les tests (L7-T14, L7-T15, L7-T23, …) ; `render/src` : `layoutEquation`
+  (L7-T25). Côté `ui/` (bibliothèque), aucune inclusion de `render/src` n'est nécessaire : voir L7-T26.
+- [ ] **Étape 11 : vert et preuves.** Commande ciblée → vert (16 entrées `tst_ui_*` du lot en `SKIP` nommé,
+  `tst_ui_presentation` `Totals: 3 passed, 0 failed, 1 skipped`, suites du socle `tst_ui_shell` — dont
+  `shellLoadsWithoutQmlWarning` — et `tst_ui_inputpath` sans régression, 9 `tst_captures_*` Passed) ; `format.ps1` ;
+  preuve de tâche (N = N_F + 29) ; « Fonctions d'un test d'interface » sur la clé `curtain`, puis sans clé (code 2,
+  liste des 17 clés) ; preuve visuelle `premiers-pas` ; `git -C '<wt>' add` des fichiers de la ligne, nommés ;
   `NOMS OK`.
 - [ ] **Étape 12 : commit.**
   ```powershell
   git -C '<wt>' diff --cached --stat
-  git -C '<wt>' commit -m "Lot 7 : squelette de la phase 2 (racines des fonctions, QML talons, sources du lot, insertions, aides de test, tests et scénarios réservés) (L7-S8)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  git -C '<wt>' commit -m "Lot 7 : squelette de la phase 2 (racines des fonctions, QML talons, sources du lot, insertions, aides de test, exécutable d'interface unique, tests et scénarios réservés) (L7-S8)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
   puis `NOMS OK` relancé après le commit.
 
@@ -894,14 +1000,18 @@ publics **[SOCLE?]**, s'arrêter et le rapporter. **Terminé quand.** PASS des n
   `core::ReplaceObjectsCommand` (un `core::ObjectReplacement` qui retire `removed` et ajoute `added` en un groupe,
   `addedIds()` après `redo()`) **[SOCLE?]** forme exacte de `ObjectReplacement` ; `setPagePresentation` par
   `core::SetPagePresentationCommand(shownIndex(), value)` ; `addResource` par l'API de ressources du document existante
-  (lire `core/…/document.h`). `FloatingPanel.qml` : texte de 7a, plus `onVisibleChanged` qui appelle
-  `pageArea.view.addInputCover(panel)` / `removeInputCover(panel)` quand `pageArea` est posé.
+  (lire `core/…/document.h`). `FloatingPanel.qml` : texte de 7a, plus `Component.onCompleted` et `onVisibleChanged` qui appellent
+  `pageArea.view.addInputCover(panel)` / `removeInputCover(panel)` quand `pageArea` est posé (un panneau visible
+  dès sa création s'enregistre aussi ; `floatingPanelIsACover` ouvre un panneau déjà visible à sa création).
 - [ ] **Étape 3 : vert et preuves.** Commande ciblée verte, `format.ps1`, preuve, banc sans écran, `NOMS OK`, commit
   « Lot 7 : insertions du lot et panneau flottant couverture (L7-T2) ».
 
 <a id="tache-l7-t3"></a>
 ### Tâche L7-T3 — Rideau (7a:908-1103)
 
+**Placement** (décision 3, revue M2). `CurtainOverlay.qml` est dans `pageOverlays` (coordonnées de page, suit zoom et
+défilement) ; la racine écrit `anchors.fill: parent` ; l'alignement par `mapToItem` de 7a, étape 4, ne s'applique
+plus (le store se calcule en coordonnées de page, celles du scénario `rideau`).
 **Garde.** Étapes 3 (contrôleur), 4 (surcouche ; `CurtainOverlay.qml` **est** la racine : son contenu de 7a y va, le
 contrôleur `CurtainController { id: curtainController; … }` instancié dedans, `controller: curtainController`,
 gestionnaire `present.curtain` (bascule, Ctrl+R) dans son `Component.onCompleted`), 5 (`curtainNeverRefreshesTheCache`),
@@ -920,6 +1030,8 @@ D-S1) ; `curtainBlocksTheStylus` à données ; la mémorisation pour la page (P9
 <a id="tache-l7-t4"></a>
 ### Tâche L7-T4 — Spot (7a:1105-1204)
 
+**Placement.** Comme le rideau : racine dans `pageOverlays`, `anchors.fill: parent` dans la racine, masque en
+coordonnées de page.
 **Garde.** Étapes 3, 4, « stylet », 5 de 7a. **Disparaît.** Étapes 1 et 2 (L7-P1). **S'ajoute** (L7-T0, P7, P8 ;
 phase 1) : `SpotlightController` convertit `Spotlight::Shape` ↔ `core::SpotlightShape` (mêmes valeurs,
 `static_assert` par valeur) ; contour par défaut **`Spotlight::kDefaultOutline` (10)**, jamais 15 en dur ; curseur selon
@@ -964,8 +1076,15 @@ L7-T0 P9 et constat 5 ; L7-T7 étape 5 déplacée ici) :
 - Lecture `.flipchart` des propriétés de page 12, 13, 16, 18, 29, 30 **et 27** (outils de page, F-591, absente de
   `docs/re/format-flipchart.md` : l'y documenter est hors dépôt, à signaler au rapport), effet propre à la page
   compris : `pageToolsPropertyRead` (un `.flipchart` synthétique par `tests/support/flipchartwriter.h` dont la
-  propriété 27 vaut le code du rideau → `PagePresentation::tools == PageToolsMode::Curtain`). Codes exacts : relevé
-  REA de L7-T0 ; s'il manque, la tâche s'arrête et le rapporte.
+  propriété 27 vaut le code du rideau → `PagePresentation::tools == PageToolsMode::Curtain`). **Codes des valeurs**
+  (revue M7) : le relevé REA de L7-T0 (`REA - Activinspire/docs/re/lots/lot7.md:108-110`) ne donne que les numéros et
+  les noms des propriétés. Avant le lancement, l'agent **lit** dans l'ancien dépôt `app/actcraft/io/_schema.py`
+  (type énuméré de la propriété 27, vers la ligne 1832, et les types des propriétés 12, 13, 16, 18, 29, 30) les valeurs
+  énumérées, **sans rien copier** (ni code ni noms : nos identifiants, nos constantes nommées dans
+  `formats/src/flipchartids.h`, chacune commentée « valeur relevée, non vérifiée sur un fichier réel »). Ces valeurs
+  sont **non vérifiées** : la tâche le rapporte, et la question N2-A12 reste ouverte jusqu'à un `.flipchart` réel
+  qui les montre. Repli si une valeur manque au schéma : lire seulement les propriétés dont le codage est sûr, laisser
+  les autres à leur valeur par défaut (aucune perte : rien n'est réécrit dans le `.flipchart`), et le rapporter.
 - **Mémoriser le rideau pour la page** (P9) : entrée « Mémoriser pour cette page » du menu propre du rideau (décision
   8), qui pose `curtain` et `curtainDistance` courants par `DocumentInsertions::setPagePresentation` (une étape) ;
   `rememberCurtainIsUndoneAtOnce` (rideau tiré de 120 px depuis le haut, mémoriser : relu `Top`, 120 ; `undo` : défaut).
@@ -1075,7 +1194,7 @@ couverture. Les symétries autour de l'origine (P20) vont au lot 5 : rien ici ni
 **Garde.** Étapes 3, 4, « stylet », 5. **Disparaît.** Étapes 1 et 2 (L7-P5). **S'ajoute** (P1, P2, P3) : deux lignes
 (`expression()` au-dessus de `display()`), touches « C » (tout le calcul) et « CE » (dernière saisie), bouton
 « Poser sur la page » qui insère `pageText()` par `DocumentInsertions::insertText` (une étape) ; glisser vers la page :
-lot ultérieur, noté dans « Écarts au cadrage » à la clôture. **Test.** `-R 'tst_ui_calculator'`, PASS de la table
+L7-T32 (plan de phase 1, « Ce que la phase 2 reprend » : « 7b, P3 » ; revue M6). **Test.** `-R 'tst_ui_calculator'`, PASS de la table
 (`panelShowsTheCalculationAboveTheResult` : saisir 12 + 3 → ligne haute « 12 + 3 », ligne basse « 3 » puis « 15 »
 après « = » ; `clearEntryAndClearAllAreTwoKeys` ; `calculationToPageIsUndoneAtOnce`). **Étapes.** (1) Tests rouges.
 (2) 7a étape 3 et ajouts. (3) Preuves, commit de 7a.
@@ -1084,8 +1203,9 @@ après « = » ; `clearEntryAndClearAllAreTwoKeys` ; `calculationToPageIsUndoneA
 ### Tâche L7-T16 — Horloge et compte à rebours (7a:2069-2159)
 
 **Garde.** Étapes 3, 4, « stylet », 5. **Disparaît.** Étapes 1 et 2 (L7-P5). **S'ajoute.** **H7-14** (décision 11) :
-`endActionsAreTheSpecification` (la liste des actions de fin vaut exactement « aucune », « page suivante »,
-« page précédente » ; « rétablir la page » en L7-T34) ; panneau et boîte en `FloatingPanel` (couverture). Le son de fin
+`endActionsAreTheThreeOfThisLot` (la liste des actions de fin vaut exactement « aucune », « page suivante »,
+« page précédente », et « rétablir la page » n'y est **pas** : elle n'existe qu'après le lot 3 ; la spécification en
+compte quatre, L7-T34 ajoute la quatrième et remplace ce test par `endActionsAreTheFourOfTheSpecification`) ; panneau et boîte en `FloatingPanel` (couverture). Le son de fin
 reste au lot 8 (H7-4). **Test.** `-R 'tst_ui_clock|tst_captures_compte_a_rebours'`. **Preuve visuelle.**
 `compte-a-rebours` hors écran, `-Lire "pageIndicator.text=2 / 2"` après 3 s. **Étapes.** (1) Tests rouges. (2) 7a
 étape 3. (3) Scénario (talon remplacé). (4) Preuves, commit de 7a.
@@ -1139,7 +1259,8 @@ ajouts). (2) 7b étape 3 dans la racine. (3) 7b étape 5 (talon remplacé), preu
 `recognitionRunsOnOneDedicatedThread` (dans `tst_features_handwriting`) : retirés de la preuve. **S'ajoute.** Le
 contrôleur en mode écriture **possède** un `HandwritingThread` (aucun autre fil, aucun `moveToThread` à écrire) :
 `controllerOwnsOneHandwritingThread` ; commande grisée par `probe()` ; clic hors du texte = validation (P19,
-`clickOutsideValidatesTheText`) ; un objet texte par mot coupé à la pause (P17) ; alternatives en `FloatingPanel`
+`clickOutsideValidatesTheText`) ; un objet texte par mot coupé à la pause (P17, `eachWordBecomesItsOwnText` : deux mots factices séparés d'une
+pause → deux objets `Text`) ; alternatives en `FloatingPanel`
 (couverture, `alternativesBlockTheStylus`). Nom : `handwritingMakesOneStep`. **Test.** `-R 'tst_ui_recognition'`.
 **Étapes.** Celles de 7b, tests dans `tst_ui_recognition`.
 
@@ -1158,8 +1279,10 @@ triple, fonction trigonométrique), MathML écrit et relu à l'identique. **Test
 
 **Garde.** Étapes 1 à 3. **Change.** `render/src/equationlayout.*` créés par L0-S3 avec le repère neutre **[SOCLE?]** :
 remplacer le repère par la mise en page en gardant `malformedDrawsTheNeutralFrame` ; `tst_render_equation` déclaré par
-L7-S8 ; les cinq formes ajoutées par L7-T24 se dessinent (une ligne de données chacune dans
-`paintedMatchesSoftware`). **Test.** `-R 'tst_render_equation|tst_render_painter'`.
+L7-S8, avec `render/src` en inclusion privée (L7-S8, étape 10 : `layoutEquation` s'y lit) ; les formes ajoutées
+par L7-T24 se dessinent (une ligne de données chacune dans `paintedMatchesSoftware`). **S'ajoute** (pour l'aperçu de
+L7-T26, qui ne voit pas `render/src`) : une case vide `<mrow/>` se dessine en cadre pointillé, et la case qui porte
+l'attribut `class="actcraft-cursor"` se dessine surlignée : `emptyBoxAndCursorAreDrawn`. **Test.** `-R 'tst_render_equation|tst_render_painter'`.
 
 <a id="tache-l7-t26"></a>
 ### Tâche L7-T26 — Équation III : éditeur à modèles (7b:652-738)
@@ -1168,7 +1291,13 @@ L7-S8 ; les cinq formes ajoutées par L7-T24 se dessinent (une ligne de données
 `tst_features_equationeditor` déclaré par L7-S8 ; `EquationEditor.qml` racine (gestionnaire `insert.equation`) ;
 tests d'interface dans `tst_ui_equation`. **S'ajoute** (L7-T0) : palettes de l'éditeur par catégorie, en nos mots
 (fractions, racines, indices et exposants, au-dessus et au-dessous, accents, délimiteurs, grands opérateurs,
-intégrales, matrices, fonctions, relations, lettres grecques) ; `everyTemplateHasAPaletteEntry` (les 17 modèles de
+intégrales, matrices, fonctions, relations, lettres grecques) ; **aperçu par la voie publique** (revue B1) :
+`paintEquation` est déclaré dans `render/src/equationlayout.h`, privé à `render`, et `ui/CMakeLists.txt` est interdit
+à B ; `EquationPreview` dessine donc un `core::Equation` temporaire par `render::paintObjectLocal`
+(`render/include/actcraft/render/pagepainter.h:54`, public), que le peintre de page aiguille vers `paintEquation`
+depuis L0-S3 **[SOCLE?]** ; cases vides et curseur passent par le MathML (attribut de L7-T25) :
+`previewPaintsThroughThePublicPainter` (l'aperçu d'une fraction a des pixels non blancs au-dessus et au-dessous de
+sa barre, et `git grep -n "equationlayout.h" -- ui/` est vide) ; `everyTemplateHasAPaletteEntry` (les 17 modèles de
 L7-T24 ont une entrée) ; éditeur en `FloatingPanel` (`equationEditorBlocksTheStylus`). **Test.**
 `-R 'tst_features_equationeditor|tst_ui_equation'`.
 
@@ -1188,7 +1317,11 @@ scénario `equation` (talon remplacé) ; `flipchartEquationIsDrawn` s'appuie sur
 dans `camera.h`, écrite dans `camera_win.cpp` (`EnumWindows`, `DwmGetWindowAttribute`, `dwmapi` déjà lié) **et**
 `camera_other.cpp` (liste vide), créés ensemble (règle des paires) ; `topLevelWindowsListsOurWindow` (la fenêtre de
 test y figure, en pixels logiques) ; zone de capture partielle gardée d'une capture à l'autre (P11,
-`captureAreaKeptForTheNextCapture`) ; palette en `FloatingPanel`. Destinations « ressources » : lot 6 (H7-3). **Test.**
+`captureAreaKeptForTheNextCapture`) ; palette en `FloatingPanel` **dans la fenêtre de capture**. **Fenêtre propre**
+(décision 4 bis) : la fenêtre plein écran de 7b, étape 3, est le `Component` de la racine `CameraOverlay.qml`, créé
+à la demande ; `cameraWindowTakesEveryPointer` (à données) remplace `cameraPaletteBlocksTheStylus` : appui et glisser
+envoyés à la fenêtre de capture → rectangle de sélection agrandi pour chaque pointeur, page principale inchangée.
+Destinations « ressources » : lot 6 (H7-3). **Test.**
 `-R 'tst_ui_camera|tst_features_camera'`. **Écran.** Contrôle de 7b étape 5, annoncé à Jérôme.
 
 <a id="tache-l7-t29"></a>
@@ -1197,7 +1330,10 @@ test y figure, en pixels logiques) ; zone de capture partielle gardée d'une cap
 **Garde.** Étapes 3 à 5. **Disparaît.** Étapes 1 et 2 pour `ScreenKeyboard` (L7-P9). **S'ajoute.** Injecteur
 `keyinjector_win.cpp` (`SendInput`, jamais appelé par un test) **et** `keyinjector_other.cpp`, créés ensemble ; sa
 déclaration va dans `screenkeyboard.h` (ou un en-tête neuf de `features/include`, alors ajouté à la ligne) ; tests dans
-`tst_ui_keyboard`. **Test.** `-R 'tst_ui_keyboard|tst_features_keyboard'`.
+`tst_ui_keyboard`. **Fenêtre propre** (décision 4 bis) : la `Window` de 7b est le `Component` de la racine
+`ScreenKeyboard.qml` ; `keyboardWindowTakesEveryPointer` (à données) remplace `keyboardBlocksTheStylus` : une touche
+pressée au stylet, au doigt et à la souris sur la fenêtre du clavier tape son caractère dans le champ de test, la
+page principale reste inchangée. **Test.** `-R 'tst_ui_keyboard|tst_features_keyboard'`.
 
 <a id="tache-l7-t30"></a>
 ### Tâche L7-T30 — Annotation de bureau (7b:938-988)
@@ -1206,7 +1342,11 @@ déclaration va dans `screenkeyboard.h` (ou un en-tête neuf de `features/includ
 `pageAreaWithoutToolsDraws`, L0-S9). **S'ajoute** (L7-T0) : page suivante = nouvelle page transparente vierge (P13,
 `nextPageIsANewTransparentPage`) ; paperboard du bureau gardé d'une activation à l'autre pendant la session (P14,
 `desktopPaperboardKeptBetweenActivations`) ; fond « superposition » limité à sa page (P22,
-`onlyItsPageSeesTheDesktop`). L'onglet propre du bureau (P15) dépend du lot 2 : hors lot. **Test.**
+`onlyItsPageSeesTheDesktop`). L'onglet propre du bureau (P15) dépend du lot 2 : hors lot. **Fenêtre propre**
+(décision 4 bis) : `DesktopController` crée la fenêtre depuis le `Component` de la racine `DesktopAnnotation.qml`
+(`beginCreate`, format transparent posé sur la `QQuickWindow`, `completeCreate`) ; `desktopWindowTakesEveryPointer`
+(à données) : un trait au stylet, au doigt et à la souris sur la fenêtre de bureau est versé dans le paperboard du
+bureau, la page principale reste inchangée. **Test.**
 `-R 'tst_ui_desktop'`. **Écran.** Contrôle de 7b étape 3, annoncé.
 
 <a id="tache-l7-t31"></a>
@@ -1222,7 +1362,11 @@ déclaration va dans `screenkeyboard.h` (ou un en-tête neuf de `features/includ
 
 **Garde.** Étapes 1 à 4. **Change.** `everyLot7CommandHasAHandler` lit la liste des commandes du lot dans
 `actions/data/commands.json` (bloc du lot 7, L0-S4) au lieu de la recopier ; tests dans `tst_ui_presentation`.
-**S'ajoute.** `everyInputPanelIsACover` : chaque racine visible qui prend l'entrée (liste de la décision 3, sauf
+**S'ajoute.** Glisser le calcul vers la page (P3, rendu par la revue M6) : le résultat de `CalculatorPanel` se
+glisse hors du panneau, un `DragHandler` sur la ligne du résultat ; au relâché sur la page, `pageText()` est inséré à
+cet endroit par `DocumentInsertions::insertText` (une étape) : `calculationDraggedToThePageIsUndoneAtOnce` (glisser à
+la souris jusqu'à (300, 200) de page : un `Text` de plus dont les bornes contiennent ce point ; `undo` : retiré),
+dans `tst_ui_calculator`. `everyInputPanelIsACover` : chaque racine visible qui prend l'entrée (liste de la décision 3, sauf
 `PerPageTools`, `OtherToolsHost`, fenêtres propres) est une couverture déclarée quand elle est ouverte
 **[SOCLE?]** moyen de lire les couvertures déclarées (`PageView` en expose-t-il la liste ? sinon : un trait au stylet
 sous chacune, compte inchangé) ; contrôle des talons de la décision 2 (deux `git grep` vides) et règle 4 du socle
@@ -1235,14 +1379,18 @@ sous chacune, compte inchangé) ; contrôle des talons de la décision 2 (deux `
 **Change** (socle « Changent » 10) : la liste de conflits attendus de 7b (commandes, disposition, modèle, vue,
 contrôleur, `PageArea.qml`, `Main.qml`, `ui/CMakeLists.txt`, joueur de scénarios) **disparaît** : ces fichiers sont du
 socle, le lot 7 n'y a rien écrit. La ligne de `tests/CMakeLists.txt` a déjà fusionné en phase 2. **Aucun conflit
-attendu hors `graphify-out/`** ; tout autre conflit est un écart, rapporté avant résolution. Preuve : N ≥ N_A + 45.
+attendu hors `graphify-out/`** ; tout autre conflit est un écart, rapporté avant résolution. Preuve : N = N_A + 45.
 
 <a id="tache-l7-t34"></a>
 ### Tâche L7-T34 — Après fusion du lot 3 (7b:1128-1179)
 
 **Garde.** Toutes ses étapes. **Change.** Tests répartis dans `tst_ui_mathtools`, `tst_ui_recognition`,
 `tst_ui_equation`, `tst_ui_clock`, `tst_ui_desktop` (table) ; « Convertir en texte » du menu contextuel est déjà en
-données (socle « Changent » 11) : la tâche branche seulement ses gestionnaires dans les racines ; les points
+données (socle « Changent » 11) : la tâche branche seulement ses gestionnaires dans les racines concernées
+(`RecognitionAlternatives.qml`, `EquationEditor.qml`, `ClockPanel.qml`, `CountdownDialog.qml`,
+`DesktopAnnotation.qml`, `MathToolsLayer.qml`) et ne touche pas `Presentation.qml` (revue M3) ; « rétablir la page »
+devient la quatrième action de fin : `endActionsAreTheThreeOfThisLot` est **remplacé** par
+`endActionsAreTheFourOfTheSpecification` (revue M4), écrit dans le rapport ; les points
 d'accroche du lot 3 sont connus par leurs noms (contrats figés du socle) : `ToolHost::activeTool()`, outils `marker`
 et `eraser` **[SOCLE?]** identifiants ; guides du marqueur et de la gomme par le même filtre d'échantillons (le filtre
 est en amont de l'outil actif, socle D-S1 : rien à changer dans `pageview.*`). Les symétries autour de l'origine
@@ -1294,21 +1442,30 @@ un écart amende la section concernée (relecture exigée).
     (`_bench_env_offscreen`) ; forme de déclaration de `tst_ui_shell` (`app/startup.cpp`, `actcraft_uiplugin`).
 13. **Aides d'injection** : forme du stylet de test retenue par L0-S7 (`tst_ui_inputpath`), à reprendre dans
     `presentationharness.h`.
-14. **Noms** : `NOMS OK` sur la branche fusionnée ; noms neufs de ce plan (`PerPageTools.qml`,
+14. **Peintre public** : `render::paintObjectLocal` dessine un `core::Equation` en appelant `paintEquation`
+    (L0-S3) ; sinon, la voie de repli (une ligne `target_include_directories(actcraft_ui PRIVATE …/render/src)`) touche
+    `ui/presentation.cmake` au-delà des deux listes : accord de A exigé avant L7-T26.
+15. **Exécutable unique** : inscription statique des classes dans un exécutable (pas une bibliothèque statique :
+    aucun risque d'objet écarté par l'éditeur de liens) ; attributs que pose `QTEST_MAIN` sous Qt 6.12, à reprendre
+    dans `tst_ui_lot7_main.cpp`.
+16. **Fenêtres créées à la demande** : `Component` dont la racine est une `Window`, `createObject(null)`, et
+    `beginCreate` puis format de la `QQuickWindow` avant `completeCreate` (bureau) sous Qt 6.12, hors écran.
+17. **Noms** : `NOMS OK` sur la branche fusionnée ; noms neufs de ce plan (`PerPageTools.qml`,
     `OtherToolsHost.qml`, tests `tst_ui_*`, fonctions de test) repassés au contrôle après `git add`.
 
 ## Risques
 
-1. **Dix-sept exécutables de test d'interface** au lieu d'un : construction et suite plus longues (chaque test charge
-   `Main.qml`) ; c'est le prix de deux tâches de front. Si la suite dépasse le budget du profil, regrouper par paires
-   en clôture (amendement), jamais pendant l'exécution.
+1. **Exécutable d'interface unique** (décision 1, revue M5) : un seul lien et un seul PDB au lieu de 17 (34 avec
+   le preset release du banc) ; en échange, toute modification d'un `tst_ui_<fonction>.cpp` relie l'exécutable
+   entier, et un plantage d'une classe n'arrête que son entrée ctest (chaque entrée est un processus). ctest tourne en
+   série : la mémoire à l'exécution n'est pas multipliée.
 2. **`file(GLOB … CONFIGURE_DEPENDS)` dans `ui/`** : écart à la convention des listes écrites (déjà pris pour
    `features/`, phase 1) ; un contrôleur créé sous un autre nom n'est pas compilé — la commande ciblée rouge le montre.
 3. **Racines instanciées avant leur contenu** : une racine talon qui casse (propriété retirée) casse le chargement de
-   toute l'interface ; `lot7RootsExist` et `presentationLoadsWithoutQmlWarning` (dans `tst_ui_presentation`, suite
-   complète à chaque preuve) le gardent.
-4. **Couverture et `containmentMask`** : une surcouche plein cadre (rideau, caméra) qui ne restreint pas sa forme
+   toute l'interface ; `lot7RootsExist` (dans `tst_ui_presentation`) et `shellLoadsWithoutQmlWarning` (socle), joués
+   par la suite complète à chaque preuve, le gardent.
+4. **Couverture et `containmentMask`** : une surcouche qui couvre toute la page (rideau, spot) et ne restreint pas sa forme
    couvre toute la page ; chaque `…BlocksTheStylus` doit avoir son pendant « hors de la surcouche, le trait est
    versé » (piège de L3-T15, socle « Amendements », 12).
-5. **Brouillon** : écrit sans le code du socle ; les quatorze points ci-dessus peuvent changer des signatures, des
+5. **Brouillon** : écrit sans le code du socle ; les dix-sept points ci-dessus peuvent changer des signatures, des
    chemins ou le compte. Aucune tâche ne part avant la revue de ce plan contre le socle mergé.
