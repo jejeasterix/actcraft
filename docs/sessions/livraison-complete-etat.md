@@ -128,6 +128,13 @@ Agents arrêtés ; travail commité en **wip** (non prouvé, peut être rouge), 
 - **L10-T8** `7215925` (tête prouvée précédente a203792) : V3-3072 + `QSG_NO_DEPTH_BUFFER` ; mesures à l'écran tenues (banc 930,4 Mio, 800 % 609,1 Mio, S13 tenu) ; reste `tst_pageview` rouge à lire (`scratchpad/l10t8/pv2.ps1`), résumé à compléter (relevés après repli, écart V1), puis preuve ciblée et merge.
 **Premier geste à la reprise** : relire le handoff `~/.claude/handoffs/fd5ef06a-7b9b-46ba-a8c3-b06809fefd99.md`, puis relancer un agent par wip (L0-S3, L0-S6, L10-C2, L10-T8) en lui donnant ce paragraphe ; preuves ciblées par tâche, suite complète par l'orchestrateur après chaque vague ; ensuite V2 du socle (S7 ‖ S5 ‖ S4). Session B (`local_24731de6-05ad-4fc2-9c6a-9c2283da3a71`) : une place de tests, attend mon signal pour la 2e et « socle mergé ».
 
+## Reprise après le redémarrage du poste (2026-10-18, 22 h 50, cause probable : mémoire)
+Message de Jérôme relayé par Pilote : reprendre « mais soit prudent ». Consigne de Pilote : au plus 4 sous-agents à la fois, un seul qui construit, relectures et plans d'abord, jusqu'aux conclusions de son étude mémoire.
+Contrôle d'intégrité (23 h 05) : aucun `index.lock`, `fsck` propre, aucun fichier tronqué ni rempli de zéros, aucun jeton orphelin. Aucun build n'était en écriture au redémarrage (dernières écritures 20 h 16 à 22 h 18).
+Wip recommités (non prouvés) : L0-S3 `3aad439`, L0-S4 `267b2a6` (non construit), L0-S6 `1881750`, L10-C2 `4bd0dc0` (suite de fin jamais jouée : le jeton attendait la RAM), L10-T8 `2c0934e` (résumé seulement ; code = a203792).
+Perdu : rien de code ; les plans 5 et 6 n'avaient rien écrit ; les deux relectures statiques étaient en cours.
+Relancés (4) : relecture plan lot 4, relecture statique L10-T8, plan lot 5, L0-S3 (seul constructeur). En attente : L0-S4, L0-S6, L10-T8 (agent), fin de L10-C2, plan lot 6.
+
 ## Tâches du socle commun L0-S (plan 9b13275, mergé 1ffb07b ; relecture tour 1 : 1 bloquant, 11 importants, tous appliqués ; tour 2 en cours)
 | id | dépend | titre | worktree | état | essais | commit | preuve rejouée |
 |---|---|---|---|---|---|---|---|
