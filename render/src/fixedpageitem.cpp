@@ -1,16 +1,15 @@
+#include "objectnodes.h"
+
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/imagesynth.h>
 
 #include <QDebug>
-#include <QMatrix4x4>
 #include <QQuickWindow>
-#include <QSGOpacityNode>
 #include <QSGRectangleNode>
 #include <QSGRendererInterface>
 #include <QSGTransformNode>
-#include <QTransform>
 
 #include <algorithm>
 #include <cmath>
@@ -26,26 +25,6 @@ void clearChildren(QSGNode* root)
         root->removeChildNode(child);
         delete child;
     }
-}
-
-// Transformation et translucidité de l'objet par des nœuds parents, quel que soit son moteur : aucun moteur
-// ne les applique lui-même (sinon double transformation).
-QSGNode* wrapped(QSGNode* node, const core::ObjectCommon& common)
-{
-    if (!common.transform.isIdentity()) {
-        const core::Transform& t = common.transform;
-        auto* transform = new QSGTransformNode;
-        transform->setMatrix(QMatrix4x4(QTransform(t.m11, t.m12, t.m21, t.m22, t.dx, t.dy)));
-        transform->appendChildNode(node);
-        node = transform;
-    }
-    if (common.translucency != 0) {
-        auto* opacity = new QSGOpacityNode;
-        opacity->setOpacity(1.0 - common.translucency / 255.0);
-        opacity->appendChildNode(node);
-        node = opacity;
-    }
-    return node;
 }
 
 // Emplacements du fond peint et de la grille parmi les nœuds rastérisés (les objets y sont par leur indice).
@@ -388,33 +367,19 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         // Ordre du vecteur (couche, profondeur, arbre) ; moteur du prototype s'il sait faire, sinon moteur
         // peint.
         for (std::size_t i = m_builtCount; i < shown.objects.size(); ++i) {
-            const core::PageObject& object = shown.objects[i];
-            if (!object.common.visible || std::get_if<core::Group>(&object)) {
+            const ObjectNode made =
+                createObjectNode(shown.objects[i], i, m_registry, m_painted, context, painted);
+            if (!made.root) {
                 continue;
             }
-            QSGNode* node = nullptr;
-            bool viaPainter = usesPaintedRenderer(object);
-            if (viaPainter) {
-                node = m_painted.createNode(object, painted);
-            } else if (const ObjectRenderer* renderer = m_registry.find(core::kindOf(object))) {
-                node = renderer->createNode(object, i, context);
-                if (!node && std::get_if<core::ImageObject>(&object)) {
-                    // Image illisible : le peintre pose son repère, comme la miniature.
-                    node = m_painted.createNode(object, painted);
-                    viaPainter = true;
-                }
+            if (made.viaPainter && rasterized) {
+                addRasterSlot(made.leaf,
+                              i); // feuille : les nœuds de transformation et d'opacité restent en place
             }
-            if (!node) {
-                continue;
-            }
-            if (viaPainter && rasterized) {
-                addRasterSlot(node, i); // feuille : les nœuds de transformation et d'opacité restent en place
-            }
-            node = wrapped(node, object.common);
             if (m_gridDrawnAbove) {
-                root->insertChildNodeBefore(node, m_gridDrawnAbove);
+                root->insertChildNodeBefore(made.root, m_gridDrawnAbove);
             } else {
-                root->appendChildNode(node);
+                root->appendChildNode(made.root);
             }
         }
         m_builtCount = shown.objects.size();
