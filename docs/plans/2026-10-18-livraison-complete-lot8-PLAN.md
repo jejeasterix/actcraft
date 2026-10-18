@@ -62,10 +62,10 @@ CMake + Ninja, MSVC 2022, PowerShell 7. Aucune bibliothèque tierce en 8a.
 | L8-T13 | Actions glisser-déposer (F-892) : onglet, dépôt sur un objet, icône en surimpression, retrait par la corbeille ; scénario `glisser-deposer` | L8-T12 | `ui/include/actcraft/ui/dragdropactions.h`, `ui/src/dragdropactions.cpp`, `ui/qml/DragDropActions.qml`, `tests/tst_ui_dragdropactions.cpp`, `bench/scenarios/glisser-deposer.json`, `bench/scenarios/fixtures/glisser-deposer.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_dragdropactions` (dont `eighteenEntriesNoVote`, `dropAssignsInOneStep`, `overlayOnlyForDragDrop`, `trashRemovesInOneStep`), `tst_captures_glisser_deposer` Passed ; `captures.ps1 -Scenario glisser-deposer` : `LU appTools.current=pen OK`, `PIXEL icone-surimpression OK`, `CAPTURES OK` | S11 | #tache-l8-t13 |
 | L8-T14 | `core` : règles de conteneur (F-577, F-580) : accepter, contenir, imbriquer, retour, sortie en un geste | L8-T3 | `core/include/actcraft/core/containers.h`, `core/src/containers.cpp`, `tests/tst_core_containers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_containers` (dont `anythingAcceptsInFront`, `behindIsNeverContained`, `oneObjectOnly`, `commonKeyword`, `centresWithinTolerance`, `fullyInside`, `refusedBouncesBack`, `refusedWithoutBounceStays`, `nestedTopmostWins`, `strokeDrawnInsideIsContained`, `leavingIsOneGesture`, `hiddenContainerIgnored`) Passed ; mutation de la tolérance (`<` en `<=` inversé) rouge puis remise | S11 | #tache-l8-t14 |
 | L8-T15 | `core` : limiteurs et rotation (F-578, F-579, E6) : déplacement contraint, chemin, accrochage, dimension bloquée, pivot, pas, sens, objet bloquant | L8-T3 | `core/include/actcraft/core/restrictors.h`, `core/src/restrictors.cpp`, `tests/tst_core_restrictors.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_restrictors` (dont `verticalKeepsX`, `horizontalKeepsY`, `fixedTravelZero`, `alongTrackProjects`, `jumpsOntoTrackOnPress`, `landsOnTheMark`, `fixedSizeHasNoHandles`, `clockwiseOnly`, `turnStepRounds`, `pivotOnOtherObject`, `blockerStopsAtItsEdge`) Passed ; mutation de la projection rouge puis remise | S11 | #tache-l8-t15 |
-| L8-T16 | `tools` : outil de sélection — limiteurs et rotation pendant le glisser (soulèvement), conteneurs au relâché (retour sans étape), objets bloquants, politique du mode conception ; scénario `conteneurs` | L8-T9, L8-T14, L8-T15 | `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/interactionpolicy.h`, `tests/tst_tools_interactivity.cpp`, `bench/scenarios/conteneurs.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_tools_interactivity` (dont `bounceBackDropsWithoutAStep`, `acceptedDropIsOneStep`, `verticalDragKeepsX`, `noCacheRebuildDuringDrag`, `fixedSizeShowsNoSizeHandles`, `rotationFollowsTheStep`, `designModeLiftsRestrictions`, `blockerStopsTheDrag`, `containerSignalEmitted`), `tst_tools_select` (lot 3), `tst_captures_conteneurs` Passed ; `captures.ps1 -Scenario conteneurs` : `PIXEL revenu-au-depart OK`, `LU appDocument.canUndo=false OK`, `PIXEL contenu-accepte OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t16 |
+| L8-T16 | `tools` : outil de sélection — limiteurs et rotation pendant le glisser (soulèvement), conteneurs au relâché (retour sans étape), objets bloquants, politique du mode conception ; scénario `conteneurs` | L8-T9, L8-T14, L8-T15 | `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/interactionpolicy.h`, `tests/tst_tools_interactivity.cpp`, `bench/scenarios/conteneurs.json`, `bench/scenarios/fixtures/conteneurs.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_tools_interactivity` (dont `bounceBackDropsWithoutAStep`, `acceptedDropIsOneStep`, `verticalDragKeepsX`, `noCacheRebuildDuringDrag`, `fixedSizeShowsNoSizeHandles`, `rotationFollowsTheStep`, `designModeLiftsRestrictions`, `blockerStopsTheDrag`, `containerSignalEmitted`), `tst_tools_select` (lot 3), `tst_captures_conteneurs` Passed ; `captures.ps1 -Scenario conteneurs` : `PIXEL revenu-au-depart OK`, `LU appDocument.canUndo=false OK`, `PIXEL contenu-accepte OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t16 |
 | L8-T17 | `ui` : sections de propriétés Actions, Conteneur, Rotation, Limiteurs, Multimédia (F-577 à F-579, F-582) dans le navigateur de propriétés | L8-T3, L8-T11 | `ui/include/actcraft/ui/interactivityprops.h`, `ui/src/interactivityprops.cpp`, `ui/src/propertymodel.cpp`, `tests/tst_ui_interactivityprops.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_interactivityprops` (dont `fiveSectionsInOrder`, `multimediaOnlyForMedia`, `editIsOneStep`, `fixedTravelGreysTheTrack`, `keywordsFromLot6`, `refusedWhileLocked`), `tst_ui_propertymodel` Passed ; banc hors écran joint | S11 | #tache-l8-t17 |
-| L8-T18 | Encre révélatrice (F-255) : outil, découpe de la couche du dessus (logiciel et RHI), redessin immédiat ; scénario `encre-revelatrice` | L8-T1, L8-T2 | `tools/include/actcraft/tools/revealinktool.h`, `tools/src/revealinktool.cpp`, `render/src/pagepainter.cpp`, `render/src/fixedpageitem.cpp`, `tests/tst_render_reveal.cpp`, `bench/scenarios/encre-revelatrice.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_render_reveal` (dont `revealsMiddleLayer`, `onlyTopObjectsBelowIt`, `objectAboveItStays`, `noOwnPaint`, `movingMovesTheHole`, `revealStrokeIsNotDeferred`, `softwareAndRhiAgree`), `tst_captures_encre_revelatrice` Passed ; `captures.ps1 -Scenario encre-revelatrice` : `LU appTools.current=reveal-ink OK`, `PIXEL fond-revele OK`, `PIXEL dessus-garde OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t18 |
-| L8-T19 | Point d'étape 8a : S11 synthétique `interactivite` de bout en bout ; S11 local sur le paperboard réel n° 13 ; talons de 8a ; contrôles de sécurité ; graphe | L8-T4, L8-T5, L8-T10, L8-T12, L8-T13, L8-T16 à L8-T18 | `bench/scenarios/interactivite.json`, `tests/tst_formats_samples_interactivity.cpp`, `graphify-out/` | partagé | implementeur-tdd | `TESTS OK`, N = N8 + 21 ; `tst_captures_interactivite` Passed ; `captures.ps1 -Scenario interactivite` : `PIXEL etiquette-masquee OK`, `PIXEL etiquette-revenue OK`, `PIXEL revenu-hors-conteneur OK`, `CAPTURES OK` ; localement `tst_formats_samples_interactivity` Passed (sinon `SKIP` « ACTCRAFT_SAMPLES_DIR absent », jamais « Talon ») ; talons « rempli par L8-T2 » à « par L8-T18 » absents ; contrôle d'occurrences de `QDesktopServices` conforme ; `NOMS OK` ; `graphify update .` commité | S11 | #tache-l8-t19 |
+| L8-T18 | Encre révélatrice (F-255) : outil, découpe de la couche du dessus (logiciel et RHI), redessin immédiat ; scénario `encre-revelatrice` | L8-T1, L8-T2 | `tools/include/actcraft/tools/revealinktool.h`, `tools/src/revealinktool.cpp`, `render/src/pagepainter.cpp`, `render/src/fixedpageitem.cpp`, `tests/tst_render_reveal.cpp`, `bench/scenarios/encre-revelatrice.json`, `bench/scenarios/fixtures/encre-revelatrice.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_render_reveal` (dont `revealsMiddleLayer`, `onlyTopObjectsBelowIt`, `objectAboveItStays`, `noOwnPaint`, `movingMovesTheHole`, `revealStrokeIsNotDeferred`, `softwareAndRhiAgree`), `tst_captures_encre_revelatrice` Passed ; `captures.ps1 -Scenario encre-revelatrice` : `LU appTools.current=reveal-ink OK`, `PIXEL fond-revele OK`, `PIXEL dessus-garde OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t18 |
+| L8-T19 | Point d'étape 8a : S11 synthétique `interactivite` de bout en bout ; S11 local sur le paperboard réel n° 13 ; talons de 8a ; contrôles de sécurité ; graphe | L8-T4, L8-T5, L8-T10, L8-T12, L8-T13, L8-T16 à L8-T18 | `bench/scenarios/interactivite.json`, `bench/scenarios/fixtures/interactivite.json`, `tests/tst_formats_samples_interactivity.cpp`, `graphify-out/` | partagé | implementeur-tdd | `TESTS OK`, N = N8 + 21 ; `tst_captures_interactivite` Passed ; `captures.ps1 -Scenario interactivite` : `PIXEL etiquette-masquee OK`, `PIXEL etiquette-revenue OK`, `PIXEL revenu-hors-conteneur OK`, `CAPTURES OK` ; localement `tst_formats_samples_interactivity` Passed (sinon `SKIP` « ACTCRAFT_SAMPLES_DIR absent », jamais « Talon ») ; talons « rempli par L8-T2 » à « par L8-T18 » absents ; contrôle d'occurrences de `QDesktopServices` conforme ; `NOMS OK` ; `graphify update .` commité | S11 | #tache-l8-t19 |
 
 20 tâches dans ce sous-lot (15 dans 8b : 35 pour le lot, plus `L8-P1` si L8-T0 en propose une, amendement 1, § 4 :
 « lot 8 + 1 »). Tests ctest : L8-T1 enregistre d'un coup les **21** tests de 8a (16 unitaires, 5 de captures),
@@ -1622,6 +1622,7 @@ fichier extrait ne garde que les caractères `[A-Za-z0-9._ -]` de son nom d'orig
   {
       Q_OBJECT
       QML_ELEMENT
+      Q_PROPERTY(int openedCount READ openedCount NOTIFY opened) // nombre d'ouvertures (scénarios, L8-T19)
   public:
       enum Kind { Website, File, StoredFile, SystemMedia };
       Q_ENUM(Kind)
@@ -2141,7 +2142,210 @@ du projeté dans `projectOnTrack` → `alongTrackProjects` rouge, remise par `gi
   sans recouvrement, par dichotomie sur 16 pas).
 - [ ] **Étape 5 : vert**, mutation rouge puis remise ; commit « Lot 8 : limiteurs et rotation (L8-T15) » ; `NOMS OK`.
 
-> **État de rédaction (rapport intermédiaire).** Les sections L8-T1 à L8-T19 et le plan de 8b (`…-lot8b-PLAN.md`, L8-T20 à L8-T34) restent à écrire. Table, vagues, règles, API, talons, scénarios, hypothèses et L8-T0 font foi dès maintenant.
+<a id="tache-l8-t16"></a>
+### Tâche L8-T16 — `tools` : outil de sélection, limiteurs, rotation, conteneurs ; scénario `conteneurs`
+
+**Objectif.** Brancher L8-T14 et L8-T15 dans l'outil de sélection du lot 3 sans toucher au cache pendant l'écriture :
+pendant un glisser, la position des objets soulevés (A9) suit `allowedTravel` puis `stopAtBlockers` ; à l'appui sur
+un objet `AlongTrack`, il saute sur son chemin ; au relâché, `resolveDrop` décide : `BounceBack` → `dropLifted(nullptr)`
+(retour à la place de départ, **aucune** étape), sinon `dropLifted(TransformObjectsCommand)` (une étape), avec
+`landingPoint` si l'objet accroche ; poignées de dimension cachées si `!sizeHandlesShown` ; rotation par
+`allowedTurn` autour de `pivotOf` ; en mode conception (« désactiver les restrictions », « désactiver les objets
+bloquants »), les contraintes sont levées par la politique `InteractionPolicy` (D8-9). Le patron évident est le
+mauvais : corriger la position **après** le dépôt (une étape de plus, un redessin du cache), ou annuler par
+`undo()` (une étape visible dans la pile).
+
+**Fichiers.** `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`,
+`tools/include/actcraft/tools/interactionpolicy.h`, `tests/tst_tools_interactivity.cpp`, `bench/scenarios/conteneurs.json`,
+`bench/scenarios/fixtures/conteneurs.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_tools_interactivity|tst_tools_select|tst_captures_conteneurs'` ;
+banc hors écran joint.
+
+**Preuve visuelle.** `PIXEL revenu-au-depart OK`, `LU appDocument.canUndo=false OK` (après le retour), `PIXEL contenu-accepte OK`,
+`CAPTURES OK` ; décrire les captures `retour` et `contenu`.
+
+**Interdits.** `tools/` ne connaît pas `ui/` : la politique du mode conception arrive par l'interface
+`InteractionPolicy` (posée par `ToolHost`, côté `ui/`, A23) ; aucun redessin du cache pendant le glisser
+(`QSignalSpy` sur la demande de redessin de la page fixe, comme `noCacheRebuildDuringDrag`) ; le signal du son de
+confirmation est émis (`containerAccepted(ObjectId container, bool chime)`), le son est joué au sous-lot 8b (L8-T25).
+
+**Terminé quand** les neuf fonctions passent, `tst_tools_select` reste vert, le scénario passe hors écran.
+
+**Étapes.**
+- [ ] **Étape 1 : interface** `interactionpolicy.h` (remplace le talon) :
+  ```cpp
+  #pragma once
+
+  namespace actcraft::tools {
+  // Réglages du mode conception lus par les outils (D8-9) ; posée par ui::ToolHost.
+  class InteractionPolicy
+  {
+  public:
+      virtual ~InteractionPolicy() = default;
+      virtual bool actionsEnabled() const = 0;      // faux : un clic sur un objet d'action le sélectionne
+      virtual bool restrictionsEnabled() const = 0; // faux : limiteurs, rotation et conteneurs ignorés
+      virtual bool blockersEnabled() const = 0;     // faux : objets bloquants ignorés
+  };
+  } // namespace actcraft::tools
+  ```
+  `SelectTool` gagne `void setInteractionPolicy(const InteractionPolicy*)` (nul : tout actif) et le signal ou rappel
+  `containerAccepted` selon la forme des rappels de l'outil (A11).
+- [ ] **Étape 2 : test rouge** `tests/tst_tools_interactivity.cpp` (montage des tests de `tst_tools_select` du lot 3 :
+  faux `DocumentEditor` qui compte les `lift` / `drop` et les étapes, A9) : `bounceBackDropsWithoutAStep` (carotte
+  glissée dans le panier de L8-T14 : `drop(nullptr)`, aucune étape, position de départ) ; `acceptedDropIsOneStep` ;
+  `verticalDragKeepsX` ; `noCacheRebuildDuringDrag` ; `fixedSizeShowsNoSizeHandles` ; `rotationFollowsTheStep` (pas
+  45 : poignée de rotation tirée à 50° → 45°) ; `designModeLiftsRestrictions` (politique `restrictionsEnabled` faux :
+  la carotte reste dans le panier, une étape) ; `blockerStopsTheDrag` ; `containerSignalEmitted` (pomme acceptée,
+  `chime` vrai).
+- [ ] **Étape 3 : rouge.** **Étape 4 : code** dans `selecttool.cpp` (déplacement, poignées de `selectiongeometry`
+  inchangées hors masquage des poignées de dimension).
+- [ ] **Étape 5 : scénario** `conteneurs.json` (fixture : panier « fruit » avec retour, pomme, carotte) : glisser la
+  carotte dans le panier (`pointer` en trois points, `space: page`), `waitReady`, `checkPixel` `revenu-au-depart` à sa
+  place d'origine, `expect` `appDocument.canUndo` faux, capture `retour` ; glisser la pomme, `checkPixel`
+  `contenu-accepte` dans le panier, `expect` `appDocument.canUndo` vrai, capture `contenu`.
+- [ ] **Étape 6 : vert** ; banc hors écran ; commit « Lot 8 : sélection, limiteurs et conteneurs (L8-T16) » ;
+  `NOMS OK`.
+
+<a id="tache-l8-t17"></a>
+### Tâche L8-T17 — `ui` : sections de propriétés de l'interactivité
+
+**Objectif.** Ajouter au navigateur de propriétés (L6-T12, A22) cinq sections, dans cet ordre, après celles du lot 6 :
+« Actions » (liste en lecture, renvoi au navigateur d'actions), « Conteneur » (F-577), « Rotation » (F-578),
+« Limiteurs » (F-579), « Multimédia » (F-582, seulement pour un objet média) ; une modification = une étape par
+`SetObjectPropertiesCommand` étendue ou par une commande à nous `SetInteractivityCommand` (au choix de la tâche,
+écrit au rapport, une étape, plusieurs objets).
+
+**Fichiers.** `ui/include/actcraft/ui/interactivityprops.h`, `ui/src/interactivityprops.cpp`, `ui/src/propertymodel.cpp`,
+`tests/tst_ui_interactivityprops.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_interactivityprops|tst_ui_propertymodel'` ; banc hors écran.
+
+**Interdits.** Le navigateur ne demande aucun redessin (les champs de l'interactivité ne changent aucun pixel, sauf
+« Multimédia » : rien à l'écran au sous-lot 8a) ; refus sous le verrou et sans `commands` ; libellés à nous.
+
+**Terminé quand** les six fonctions passent et `tst_ui_propertymodel` reste vert.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** `tests/tst_ui_interactivityprops.cpp` : `fiveSectionsInOrder` (un objet média
+  sélectionné : les cinq clés `actions`, `container`, `rotation`, `restrictors`, `multimedia` à la fin de
+  `sections()`) ; `multimediaOnlyForMedia` (une forme : pas de `multimedia`) ; `editIsOneStep` (« peut déplacer » →
+  « verticalement » sur deux objets, un `undo`) ; `fixedTravelGreysTheTrack` (mode « non » : l'éditeur du chemin est
+  `enabled` faux) ; `keywordsFromLot6` (« contenir des mots » lit et écrit `ObjectCommon::keywords` du conteneur, pas
+  une copie) ; `refusedWhileLocked`.
+- [ ] **Étape 2 : code** : `interactivityprops.*` décrit les éditeurs (type `choice` pour les modes, `bool`, `number`,
+  `object` pour un objet choisi sur la page) ; `propertymodel.cpp` les ajoute à `sections()` (A22).
+- [ ] **Étape 3 : vert** ; banc hors écran ; commit « Lot 8 : propriétés de l'interactivité (L8-T17) » ; `NOMS OK`.
+
+<a id="tache-l8-t18"></a>
+### Tâche L8-T18 — Encre révélatrice ; scénario `encre-revelatrice`
+
+**Objectif.** F-255 et D8-8 : outil `tool.reveal-ink` (variante du stylo, couche du dessus, épaisseur 50 par défaut
+comme la référence en Python) ; rendu : dans `paintPage`, les objets de la couche du dessus **placés sous** une encre
+révélatrice visible sont découpés par la forme du trait (composition `DestinationOut` sur un calque de la couche du
+dessus), le trait lui-même ne se dessine pas (pointillé seulement s'il est sélectionné) ; même résultat par le chemin
+RHI de la page fixe (le cache est un dessin du peintre partagé : la découpe y entre par `paintPage`) ; versement
+**immédiat** (`canWait` inchangé, A2).
+
+**Fichiers.** `tools/include/actcraft/tools/revealinktool.h`, `tools/src/revealinktool.cpp`, `render/src/pagepainter.cpp`,
+`render/src/fixedpageitem.cpp`, `tests/tst_render_reveal.cpp`, `bench/scenarios/encre-revelatrice.json`,
+`bench/scenarios/fixtures/encre-revelatrice.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_render_reveal|tst_render_painter|tst_render_pendinglayer|tst_render_fixedpage|tst_captures_encre_revelatrice'` ;
+banc hors écran joint ; mutation : découper aussi les objets placés **au-dessus** du trait → `objectAboveItStays`
+rouge, remise par `git checkout -- render/src/pagepainter.cpp`.
+
+**Preuve visuelle.** `LU appTools.current=reveal-ink OK`, `PIXEL fond-revele OK`, `PIXEL dessus-garde OK`, `CAPTURES OK` ;
+décrire la capture `revelation`.
+
+**Interdits.** Ne pas changer `canWait` ; aucun nom de l'original (« encre révélatrice », jamais son nom d'origine) ;
+aucune découpe des couches intermédiaire et inférieure ; pas de découpe en direct pendant le tracé (contour translucide,
+H8-4) ; épinglage : l'outil rejoint `activate("pen-shape", …)` du lot 5 (A24).
+
+**Terminé quand** les sept fonctions passent, les tests de rendu existants restent verts (dont
+`revealerStrokeIsNeverDeferred`), le scénario passe.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** `tests/tst_render_reveal.cpp` (page 200 × 200 : image ou rectangle vert de la couche
+  intermédiaire, rectangle rouge de la couche du dessus, trait d'encre révélatrice de 40 px en travers ; rendu par
+  `paintPage` sur une `QImage`) : `revealsMiddleLayer` (sous le trait : vert) ; `onlyTopObjectsBelowIt` (un rectangle
+  bleu de la couche intermédiaire au-dessus du vert reste bleu sous le trait) ; `objectAboveItStays` (rectangle jaune
+  de la couche du dessus placé après le trait : jaune) ; `noOwnPaint` (sans objet du dessus : aucun pixel de la couleur
+  du trait) ; `movingMovesTheHole` (trait translaté de 50 px : la découpe suit) ; `revealStrokeIsNotDeferred`
+  (`canWait` faux pour ce trait, par l'API publique de la page fixe ou son test existant) ; `softwareAndRhiAgree`
+  (même page rendue par le moteur logiciel et par la page fixe hors écran : écart médian ≤ 2 sur 255).
+- [ ] **Étape 2 : rouge.** **Étape 3 : rendu** (`paintPage` : la couche du dessus dessinée dans un calque
+  `QImage` transparent, chaque encre révélatrice visible appliquée en `CompositionMode_DestinationOut` aux objets du
+  dessus qui la précèdent, puis le calque composé ; seulement si la page contient une encre révélatrice : aucun coût
+  ajouté sinon). **Étape 4 : outil** (`RevealInkTool` : mêmes échantillons que le stylo, `StrokeKind::Revealer`,
+  `Layer::Top`, aperçu vivant en contour translucide) et commande `tool.reveal-ink` (gestionnaire réel dans
+  `ActionOverlays.qml`, posé par L8-T2).
+- [ ] **Étape 5 : scénario** : fixture (image verte, rectangle rouge du dessus), `{"command": "tool.reveal-ink"}`,
+  `{"expect": "appTools.current", "value": "reveal-ink"}`, `{"stroke": [[50, 100], [150, 100]], "pressure": 0.5}`,
+  `waitReady`, `checkPixel` `fond-revele` sous le trait (vert), `checkPixel` `dessus-garde` hors du trait (rouge),
+  capture `revelation`.
+- [ ] **Étape 6 : vert**, mutation rouge puis remise ; banc hors écran ; commit « Lot 8 : encre révélatrice
+  (L8-T18) » ; `NOMS OK`.
+
+<a id="tache-l8-t19"></a>
+### Tâche L8-T19 — Point d'étape 8a
+
+**Objectif.** S11 de bout en bout sur un document synthétique (S11.1, S11.4, S11.7), S11 local sur le paperboard réel
+n° 13, contrôles du sous-lot (talons, sécurité, noms), graphe.
+
+**Fichiers.** `bench/scenarios/interactivite.json`, `bench/scenarios/fixtures/interactivite.json`,
+`tests/tst_formats_samples_interactivity.cpp`, `graphify-out/`.
+
+**Test et commande bornée.** Preuve de tâche (N = N8 + 21) ; `-R 'tst_captures_interactivite|tst_formats_samples_interactivity'`.
+
+**Preuve visuelle.** `PIXEL etiquette-masquee OK`, `PIXEL etiquette-revenue OK`, `PIXEL revenu-hors-conteneur OK`,
+`CAPTURES OK` ; décrire les captures `masquee`, `revenue`, `retour`.
+
+**Interdits.** Le paperboard réel n'est jamais nommé ni copié : le test lit `ACTCRAFT_SAMPLES_DIR` et choisit le
+fichier par une empreinte SHA-256 de ses octets écrite dans le test (calculée hors dépôt par L8-T0 et écrite au
+rapport), jamais par son nom ; sorties sous `.tmp/` ; aucune capture du paperboard réel commitée.
+
+**Terminé quand** le critère de la ligne L8-T19 est tenu.
+
+**Étapes.**
+- [ ] **Étape 1 : test local** `tests/tst_formats_samples_interactivity.cpp` : sans `ACTCRAFT_SAMPLES_DIR`,
+  `QSKIP("ACTCRAFT_SAMPLES_DIR absent")` ; sinon le fichier d'empreinte voulue est lu, ses actions « masquer ou
+  afficher » ont `catalogId` `object.toggle-hidden` et une cible présente ; `ActionRunner` (montage de L8-T9) : un clic
+  au centre du premier rond rouge masque la cible puis la réaffiche ; un objet glissé hors de son conteneur revient
+  (outil de sélection, montage de L8-T16).
+- [ ] **Étape 2 : scénario** `interactivite.json` : fixture (rond rouge portant `object.toggle-hidden` vers une
+  étiquette ; panier « fruit » ; carotte ; un objet lié à `https://example.org/` ; un média « lecture auto ») ; clic
+  sur le rond → `checkPixel` `etiquette-masquee` ; clic → `etiquette-revenue` ; glisser la carotte → `revenu-hors-conteneur` ;
+  clic sur l'objet lié → `{"expect": "linkConfirmDialog.visible", "value": true}` puis `{"key": "Escape"}` ; aucune
+  ouverture (le joueur pose un ouvreur qui compte, lu par `{"expect": "appLinks.openedCount", "value": 0}`).
+- [ ] **Étape 3 : contrôles.** Règle 4 des talons pour les 21 tests de 8a (`-functions` sans `reserved` ;
+  `git -C <wt> grep -n "Talon L8 : rempli par L8-T1[0-8]\b\|Talon L8 : rempli par L8-T[2-9]\." -- . ':(exclude)docs/'`
+  vide) ; contrôle d'occurrences de `QDesktopServices` et `openUrlExternally` (section « Sécurité : contrôle
+  d'occurrences ») ; `git -C <wt> grep -n "setHtml\|RichText" -- ui core render` : chaque ligne neuve du lot passe par
+  le garde `loadResource` ; `NOMS OK` ; titres et paperboards vides.
+- [ ] **Étape 4 : suites** debug (`TESTS OK`, N = N8 + 21) ; `graphify update .` ; commit « Lot 8 : point d'étape 8a
+  (L8-T19) ».
+
+## Couverture (relecture de 8a)
+
+| Exigence ou constat | Tâches |
+|---|---|
+| F-255 | L8-T3 (genre déjà au modèle), L8-T5, L8-T18 |
+| F-550, F-551 (ouverture) | L8-T6 (`document.*`), L8-T9, L8-T10 ; dialogues : L8-T22 |
+| F-577, F-580 | L8-T3, L8-T4, L8-T5, L8-T14, L8-T16, L8-T17 |
+| F-578, F-579, E6 | L8-T3, L8-T4, L8-T5, L8-T15, L8-T16, L8-T17 |
+| F-582 (données, section) | L8-T3, L8-T4, L8-T5, L8-T17 ; effet : L8-T25 |
+| F-850, F-851 | L8-T11, L8-T12 |
+| F-890 | L8-T9 (clic, clic droit, survol, mode conception), L8-T2 (cadre des actions) |
+| F-891 sans vote | L8-T6, L8-T7, L8-T8, L8-T9 |
+| F-892 sans vote | L8-T6, L8-T13 |
+| Constats V28, V103, V40, V42 (sélection, verrou, masquage) | L8-T0 (D4, D5), L8-T9 |
+| V42, V17 (navigateur), V113 | L8-T11, L8-T12 ; V113 : L8-T0 (cas limite, lot 6 ou hors lot) |
+| V39 (conteneur recouvert) | L8-T0 (D16), L8-T16 |
+| P8 du lot 10 | L8-T18 |
+| Sécurité (liens, fichiers, HTML) | L8-T8, L8-T10, L8-T19 |
+
+
 ## Décisions appliquées (tranchées par ce plan ; L8-T0 peut les amender)
 
 - **D8-1 — Une action = un identifiant de notre catalogue.** Le modèle garde `core::Action` du lot 2 (lu des
@@ -2438,4 +2642,4 @@ L8-T0.
   `NOMS OK` ; contrôles des titres et des paperboards vides ; commit « Lot 8 : principes confrontés, décisions et API
   revérifiées (L8-T0) ».
 
-> **État de rédaction (rapport intermédiaire).** Les sections L8-T1 à L8-T19 et le plan de 8b (`…-lot8b-PLAN.md`, L8-T20 à L8-T34) restent à écrire. Table, vagues, règles, API, talons, scénarios, hypothèses et L8-T0 font foi dès maintenant.
+
