@@ -64,6 +64,16 @@ private slots:
         applyRenderBackend(RenderBackend::Software);
         QVERIFY(QSurfaceFormat::defaultFormat().samples() <= 1); // le peintre lisse déjà
     }
+
+    void rhiHasNoDepthBufferFor2D() // H10-9 (L10-T8)
+    {
+        qunsetenv("QSG_NO_DEPTH_BUFFER");
+        applyRenderBackend(RenderBackend::Software);
+        QVERIFY(!qEnvironmentVariableIsSet("QSG_NO_DEPTH_BUFFER"));
+        applyRenderBackend(RenderBackend::Direct3D11);
+        QVERIFY(qEnvironmentVariableIsSet("QSG_NO_DEPTH_BUFFER"));
+        qunsetenv("QSG_NO_DEPTH_BUFFER");
+    }
 };
 
 QTEST_MAIN(TstRenderBackend)

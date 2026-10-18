@@ -4,7 +4,6 @@
 
 #include <QMetaObject>
 #include <QQmlApplicationEngine>
-#include <QQuickGraphicsConfiguration>
 #include <QQuickWindow>
 
 StartupOptions parseStartupOptions(const QStringList& args)
@@ -48,14 +47,6 @@ QQuickWindow* loadMainWindow(QQmlApplicationEngine& engine, const StartupOptions
         return nullptr;
     }
     auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
-    if (window) {
-        // H10-9 (L10-T8) : pas de tampon de profondeur pour le contenu 2D. Les couches, dont la texture du
-        // cache, perdent leur profondeur-stencil multi-échantillonnée. Main.qml montre la fenêtre au
-        // chargement ; elle n'est exposée (scène initialisée) qu'au retour à la boucle d'événements.
-        QQuickGraphicsConfiguration config = window->graphicsConfiguration();
-        config.setDepthBufferFor2D(false);
-        window->setGraphicsConfiguration(config);
-    }
     if (window && options.openUrl.isValid() && !options.openUrl.isEmpty()) {
         QVariant result;
         QMetaObject::invokeMethod(window, "runCommand", Q_RETURN_ARG(QVariant, result),

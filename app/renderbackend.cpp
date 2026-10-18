@@ -41,6 +41,12 @@ void applyRenderBackend(RenderBackend backend)
         QSurfaceFormat format = QSurfaceFormat::defaultFormat();
         format.setSamples(kMsaaSamples);
         QSurfaceFormat::setDefaultFormat(format);
+        // H10-9 (L10-T8) : pas de tampon de profondeur pour le contenu 2D ; les couches, dont la texture du
+        // cache, perdent leur profondeur-stencil multi-échantillonnée. Interrupteur documenté de
+        // QQuickGraphicsConfiguration::setDepthBufferFor2D, lu par Qt à la première configuration : posé sur
+        // la fenêtre dans loadMainWindow, il arrivait trop tard (Main.qml la montre au chargement), mesure
+        // L10-T8.
+        qputenv("QSG_NO_DEPTH_BUFFER", "1");
     }
     switch (backend) {
     case RenderBackend::Auto:
