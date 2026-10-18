@@ -29,7 +29,8 @@ public:
     explicit PendingLayerItem(QQuickItem* parent = nullptr);
     FixedPageItem* fixedPage() const noexcept;
     void setFixedPage(FixedPageItem* page);
-    int builtCount() const noexcept; // crochet de test : nœuds posés à la dernière synchronisation
+    int builtCount() const noexcept;   // crochet de test : nœuds posés à la dernière synchronisation
+    int createdCount() const noexcept; // crochet de test : nœuds d'objet créés depuis la construction
 
 signals:
     void fixedPageChanged();
@@ -48,6 +49,7 @@ private:
     std::uint64_t m_builtRevision = 0;
     bool m_pageSwitched = false; // posé par setFixedPage, remis par la synchronisation (fil principal bloqué)
     std::atomic<int> m_builtCount{0};
+    std::atomic<int> m_createdCount{0};
 };
 
 } // namespace actcraft::render

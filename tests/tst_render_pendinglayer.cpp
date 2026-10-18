@@ -416,6 +416,35 @@ private slots:
         QVERIFY(near(at(f, 300, 100), Qt::white, 8));
         QVERIFY(near(at(f, 300, 200), Qt::black, 60));
     }
+
+    // Revue m2 : annuler le dernier trait en attente retire son seul nœud ; les autres ne sont pas refaits.
+    void undoingTheLastPendingStrokeKeepsTheOthers()
+    {
+        Fixture f;
+        open(f, true);
+        core::Document d;
+        f.page->setSource(&d, 0);
+        QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 5000));
+        f.page->setDeferredFolding(true);
+        core::ObjectId last = 0;
+        for (int i = 0; i < 3; ++i) {
+            core::PageObject stroke = lineAt(100.0 + 100 * i);
+            stroke.common.id = d.allocateId();
+            stroke.common.layer = core::Layer::Top;
+            last = stroke.common.id;
+            core::insertAtTopOfLayer(d.page(0), std::move(stroke));
+            f.page->insert(last);
+        }
+        QVERIFY(near(at(f, 300, 300), Qt::black, 60));
+        QCOMPARE(f.layer->createdCount(), 3);
+        d.page(0).objects.pop_back();
+        f.page->remove(last, core::RectF{100, 296, 400, 8});
+        QVERIFY(near(at(f, 300, 300), Qt::white, 8));
+        QVERIFY(near(at(f, 300, 100), Qt::black, 60));
+        QCOMPARE(f.layer->builtCount(), 2);
+        QCOMPARE(f.layer->createdCount(), 3); // les deux restants n'ont pas été refaits
+        f.page->setSource(nullptr, 0);        // le document meurt avant l'élément
+    }
 };
 
 QTEST_MAIN(TstRenderPendingLayer)

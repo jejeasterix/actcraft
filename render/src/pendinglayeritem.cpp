@@ -57,6 +57,11 @@ int PendingLayerItem::builtCount() const noexcept
     return m_builtCount.load();
 }
 
+int PendingLayerItem::createdCount() const noexcept
+{
+    return m_createdCount.load();
+}
+
 // Fil de rendu, fil principal bloqué : la page fixe et ses objets en attente sont lus tels que le fil
 // principal les a laissés, comme la scène de la page fixe le fait dans la même synchronisation.
 QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
@@ -91,15 +96,23 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         m_builtCount.store(0);
         return root;
     }
-    // Les nœuds déjà posés restent s'ils sont le début de ce qui attend (traits ajoutés un à un) ; sinon
-    // (versement, retrait, modification en place) la couche refait tout.
-    bool keep = revision == m_builtRevision && m_nodes.size() <= wanted.size();
-    for (std::size_t i = 0; keep && i < m_nodes.size(); ++i) {
-        keep = m_nodes[i].first == wanted[i];
-    }
-    if (!keep) {
+    // Les nœuds déjà posés restent tant qu'ils sont le début de ce qui attend : trait ajouté, on pose la
+    // suite ; dernier trait annulé, on retire le seul surplus ; versement, tout part. Modification en place
+    // (révision changée) : tout est refait.
+    if (revision != m_builtRevision) {
         clearNodes(root, m_nodes);
         m_builtRevision = revision;
+    }
+    std::size_t kept = 0;
+    while (kept < m_nodes.size() && kept < wanted.size() && m_nodes[kept].first == wanted[kept]) {
+        ++kept;
+    }
+    while (m_nodes.size() > kept) {
+        if (QSGNode* node = m_nodes.back().second) {
+            root->removeChildNode(node);
+            delete node;
+        }
+        m_nodes.pop_back();
     }
     if (m_page && m_nodes.size() < wanted.size()) {
         const core::Page& shown = m_page->page();
@@ -117,6 +130,7 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
             const ObjectNode made =
                 createObjectNode(shown.objects[index], index, m_registry, m_painted, context, painted);
             m_nodes.emplace_back(wanted[k], made.root);
+            ++m_createdCount;
             if (made.root) {
                 root->appendChildNode(made.root);
             }
