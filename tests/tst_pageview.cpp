@@ -985,6 +985,94 @@ private slots:
         QCOMPARE(f.cached.fixed->pendingCount(), 0);
     }
 
+    // Revue de L10-T4 : au plafond, la vue verse pendant pendingChanged (elle y est branchée la première) ;
+    // un observateur branché après n'y voit que l'attente vide, objectCountChanged (émis avant) y voit le
+    // plafond. Le banc relève donc les deux (Runner::play, pending_max).
+    void theCapIsSeenOnObjectCountChangedOnly()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        actcraft::render::FixedPageItem* watched = f.cached.fixed;
+        int onPending = 0;
+        int onCount = 0;
+        QObject observer;
+        QObject::connect(watched, &actcraft::render::FixedPageItem::pendingChanged, &observer,
+                         [&onPending, watched] { onPending = qMax(onPending, watched->pendingCount()); });
+        QObject::connect(watched, &actcraft::render::FixedPageItem::objectCountChanged, &observer,
+                         [&onCount, watched] { onCount = qMax(onCount, watched->pendingCount()); });
+        for (int i = 0; i < kCacheFoldMaxPending; ++i) {
+            watched->appendStroke(line(10.0 + i));
+        }
+        QCOMPARE(watched->pendingCount(), 0);
+        QCOMPARE(onPending, kCacheFoldMaxPending - 1);
+        QCOMPARE(onCount, kCacheFoldMaxPending);
+    }
+
+    // Revue de L10-T4 : une autre page fixe posée sur la vue ; l'ancienne verse ce qui y attendait et quitte
+    // le différé (plus personne ne le verserait). La couche regarde toujours l'ancienne : la nouvelle ne
+    // diffère pas.
+    void replacedFixedPageFoldsAndLeavesTheDeferral()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        f.cached.fixed->appendStroke(line(100));
+        QCOMPARE(f.cached.fixed->pendingCount(), 1);
+        QSignalSpy requested(f.cached.view, &PageView::cacheRefreshRequested);
+        auto* other = new actcraft::render::FixedPageItem;
+        other->setSize(f.cached.fixed->size());
+        other->setParentItem(f.cached.fixed->parentItem());
+        f.cached.view->setFixedPage(other);
+        QCOMPARE(f.cached.fixed->pendingCount(), 0);
+        QVERIFY(!f.cached.fixed->deferredFolding());
+        QCOMPARE(requested.count(), 1);
+        QVERIFY(!other->deferredFolding());
+        QVERIFY(!f.cached.view->foldTimerActive());
+    }
+
+    // Revue de L10-T4 : la couche d'attente détruite, ce qui attendait est versé et la page quitte le
+    // différé.
+    void destroyedPendingLayerEndsTheDeferral()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        f.cached.fixed->appendStroke(line(100));
+        QCOMPARE(f.cached.fixed->pendingCount(), 1);
+        QSignalSpy requested(f.cached.view, &PageView::cacheRefreshRequested);
+        QSignalSpy layerChanged(f.cached.view, &PageView::pendingLayerChanged);
+        delete f.layer;
+        f.layer = nullptr;
+        QVERIFY(!f.cached.view->pendingLayer());
+        QCOMPARE(layerChanged.count(), 1);
+        QVERIFY(!f.cached.fixed->deferredFolding());
+        QCOMPARE(f.cached.fixed->pendingCount(), 0);
+        QCOMPARE(requested.count(), 1);
+        QVERIFY(!f.cached.view->foldTimerActive());
+        f.cached.fixed->appendStroke(line(200));
+        QCOMPARE(f.cached.fixed->pendingCount(), 0); // plus rien n'attend
+    }
+
+    // Revue de L10-T4 : une couche qui regarde une autre page fixe (ou aucune encore : ordre des liaisons
+    // QML) ne met pas la page de la vue en différé ; elle la suit quand sa page change.
+    void pendingLayerOfAnotherPageDoesNotDefer()
+    {
+        CachedFixture f;
+        QVERIFY(openCached(f, m_stylus.get()));
+        auto* layer = new actcraft::render::PendingLayerItem;
+        layer->setSize(f.fixed->size());
+        layer->setParentItem(f.fixed->parentItem());
+        f.view->setPendingLayer(layer);
+        QVERIFY(!f.fixed->deferredFolding());
+        layer->setFixedPage(f.fixed);
+        QVERIFY(f.fixed->deferredFolding());
+        f.fixed->appendStroke(line(100));
+        QCOMPARE(f.fixed->pendingCount(), 1);
+        auto* other = new actcraft::render::FixedPageItem;
+        layer->setFixedPage(other);
+        QVERIFY(!f.fixed->deferredFolding());
+        QCOMPARE(f.fixed->pendingCount(), 0);
+        QVERIFY(!f.view->foldTimerActive());
+    }
+
     void withoutCacheNothingWaits()
     {
         PendingFixture f;

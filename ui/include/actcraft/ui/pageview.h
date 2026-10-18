@@ -72,10 +72,11 @@ public:
     void setFixedPage(render::FixedPageItem* page);
     render::InkItem* ink() const noexcept;
     void setInk(render::InkItem* ink);
-    // Lot 10 (DA11) : couche d'attente branchée et cache actif, un objet ajouté en fin de page attend
-    // au-dessus du cache ; il y est versé après kCacheFoldIdleMs sans entrée qui agit (un survol ne compte
-    // pas), dès kCacheFoldMaxPending objets en attente, et à tout redessin du cache (requestCacheRefresh :
-    // zoom, page, reconstruction). Sans couche, ou sans cache : comportement du lot 2.
+    // Lot 10 (DA11) : couche d'attente branchée, qui regarde la page fixe de la vue, et cache actif, un objet
+    // ajouté en fin de page attend au-dessus du cache ; il y est versé après kCacheFoldIdleMs sans entrée qui
+    // agit (un survol ne compte pas), dès kCacheFoldMaxPending objets en attente, et à tout redessin du cache
+    // (requestCacheRefresh : zoom, page, reconstruction). Sans couche (ou couche détruite, ou couche d'une
+    // autre page fixe), ou sans cache : comportement du lot 2. Une page fixe remplacée quitte le différé.
     render::PendingLayerItem* pendingLayer() const noexcept;
     void setPendingLayer(render::PendingLayerItem* layer);
     bool foldTimerActive() const noexcept; // crochet de test
@@ -210,6 +211,8 @@ private:
     QMetaObject::Connection m_contentConnection; // contentChanged de la page fixe : redessin du cache
     QMetaObject::Connection m_pendingConnection; // pendingChanged de la page fixe : minuterie, plafond
     QPointer<render::PendingLayerItem> m_pendingLayer;
+    QMetaObject::Connection m_layerPageConnection;      // la couche change de page fixe : différé revu
+    QMetaObject::Connection m_layerDestroyedConnection; // la couche détruite : différé levé
     QPointer<QQuickWindow> m_filteredWindow; // variante B : le stylet est capté par un filtre sur la fenêtre
 
     QQuickItem* m_content = nullptr;

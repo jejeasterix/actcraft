@@ -8,6 +8,7 @@
 #include <actcraft/ui/viewtransform.h>
 
 #include <QElapsedTimer>
+#include <QKeyEvent>
 #include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
@@ -84,6 +85,26 @@ private:
         QTabletEvent event(type, m_stylus.get(), scene, app.window->mapToGlobal(scene), pressure, 0, 0, 0, 0,
                            0, Qt::NoModifier, button, buttons);
         QCoreApplication::sendEvent(app.window, &event);
+    }
+
+    // Trait du stylet de (300, y) à (500, y) : appui, 100 mouvements, relâché, postés.
+    void postStroke(App& app, qreal y)
+    {
+        post(app, QEvent::TabletPress, QPointF(300, y), 0.7, Qt::LeftButton, Qt::LeftButton);
+        for (int i = 1; i <= 100; ++i) {
+            post(app, QEvent::TabletMove, QPointF(300 + 2.0 * i, y), 0.7, Qt::NoButton, Qt::LeftButton);
+        }
+        post(app, QEvent::TabletRelease, QPointF(500, y), 0.0, Qt::LeftButton, Qt::NoButton);
+    }
+
+    // Le même trait, livré tout de suite (send).
+    void sendStroke(App& app, qreal y)
+    {
+        send(app, QEvent::TabletPress, QPointF(300, y), 0.7, Qt::LeftButton, Qt::LeftButton);
+        for (int i = 1; i <= 100; ++i) {
+            send(app, QEvent::TabletMove, QPointF(300 + 2.0 * i, y), 0.7, Qt::NoButton, Qt::LeftButton);
+        }
+        send(app, QEvent::TabletRelease, QPointF(500, y), 0.0, Qt::LeftButton, Qt::NoButton);
     }
 
     // Trait horizontal de (300, y) à (500, y) ; `probeX` est la colonne de page où l'on lit le pixel.
@@ -163,11 +184,7 @@ private slots:
         QVERIFY(start(app, true));
         const QPointF probe(350, 670);
         QSignalSpy requested(app.view, &ui::PageView::cacheRefreshRequested);
-        post(app, QEvent::TabletPress, QPointF(300, 670), 0.7, Qt::LeftButton, Qt::LeftButton);
-        for (int i = 1; i <= 100; ++i) {
-            post(app, QEvent::TabletMove, QPointF(300 + 2.0 * i, 670), 0.7, Qt::NoButton, Qt::LeftButton);
-        }
-        post(app, QEvent::TabletRelease, QPointF(500, 670), 0.0, Qt::LeftButton, Qt::NoButton);
+        postStroke(app, 670);
         QTRY_COMPARE_WITH_TIMEOUT(app.fixed->pendingCount(), 1, 3000);
         QCOMPARE(requested.count(), 0);
         QSignalSpy swapped(app.window, &QQuickWindow::frameSwapped);
@@ -211,11 +228,7 @@ private slots:
             app.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
         QVERIFY(controller);
         const QPointF probe(350, 670);
-        post(app, QEvent::TabletPress, QPointF(300, 670), 0.7, Qt::LeftButton, Qt::LeftButton);
-        for (int i = 1; i <= 100; ++i) {
-            post(app, QEvent::TabletMove, QPointF(300 + 2.0 * i, 670), 0.7, Qt::NoButton, Qt::LeftButton);
-        }
-        post(app, QEvent::TabletRelease, QPointF(500, 670), 0.0, Qt::LeftButton, Qt::NoButton);
+        postStroke(app, 670);
         QTRY_COMPARE_WITH_TIMEOUT(app.fixed->pendingCount(), 1, 3000);
         QSignalSpy requested(app.view, &ui::PageView::cacheRefreshRequested);
         const int rebuilds = app.fixed->rebuildCount();
@@ -237,23 +250,40 @@ private slots:
         const QPointF first(350, 670);
         const QPointF second(350, 640);
         QVERIFY2(!colorNear(pixelAtPage(app, second), QColor(Qt::black), 60), "point sondé déjà noir");
-        post(app, QEvent::TabletPress, QPointF(300, 670), 0.7, Qt::LeftButton, Qt::LeftButton);
-        for (int i = 1; i <= 100; ++i) {
-            post(app, QEvent::TabletMove, QPointF(300 + 2.0 * i, 670), 0.7, Qt::NoButton, Qt::LeftButton);
-        }
-        post(app, QEvent::TabletRelease, QPointF(500, 670), 0.0, Qt::LeftButton, Qt::NoButton);
+        postStroke(app, 670);
         QTRY_COMPARE_WITH_TIMEOUT(app.fixed->pendingCount(), 1, 3000);
         QSignalSpy requested(app.view, &ui::PageView::cacheRefreshRequested);
         app.view->requestCacheRefresh(); // demande de versement : le premier trait passe au cache
         QCOMPARE(app.fixed->pendingCount(), 0);
         // Second trait, livré avant toute synchronisation (événements envoyés, pas postés).
-        send(app, QEvent::TabletPress, QPointF(300, 640), 0.7, Qt::LeftButton, Qt::LeftButton);
-        for (int i = 1; i <= 100; ++i) {
-            send(app, QEvent::TabletMove, QPointF(300 + 2.0 * i, 640), 0.7, Qt::NoButton, Qt::LeftButton);
-        }
-        send(app, QEvent::TabletRelease, QPointF(500, 640), 0.0, Qt::LeftButton, Qt::NoButton);
+        sendStroke(app, 640);
         QCOMPARE(app.fixed->pendingCount(), 1);
-        QTRY_VERIFY_WITH_TIMEOUT(app.view->cacheReady(), 5000);
+        // Le redessin demandé dure autant que le délai d'inactivité en debug et rendu logiciel (279 à 520 ms
+        // relevés par la fumée du banc) : sans entrée, la minuterie verserait le second trait avant la fin.
+        // Une touche (KeyPress, vue par le filtre de la fenêtre : elle repousse le versement, sans rien
+        // prendre) toutes les 100 ms et après chaque image, jusqu'au cache prêt. Après chaque image : le
+        // redessin bloque le fil principal, la minuterie échue partirait dans le même passage de la boucle.
+        QElapsedTimer clock;
+        clock.start();
+        QElapsedTimer sinceKey;
+        sinceKey.start();
+        const auto pressShift = [&app, &sinceKey] {
+            QKeyEvent press(QEvent::KeyPress, Qt::Key_Shift, Qt::NoModifier);
+            QCoreApplication::sendEvent(app.window, &press);
+            QKeyEvent release(QEvent::KeyRelease, Qt::Key_Shift, Qt::NoModifier);
+            QCoreApplication::sendEvent(app.window, &release);
+            sinceKey.restart();
+        };
+        const auto afterFrame =
+            QObject::connect(app.window, &QQuickWindow::frameSwapped, app.window, pressShift);
+        while (!app.view->cacheReady() && clock.elapsed() < 5000) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
+            if (sinceKey.elapsed() >= 100) {
+                pressShift();
+            }
+        }
+        QObject::disconnect(afterFrame);
+        QVERIFY(app.view->cacheReady());
         QCOMPARE(requested.count(), 1);
         QCOMPARE(app.fixed->pendingCount(), 1); // il attend le prochain versement
         QVERIFY2(colorNear(pixelAtPage(app, first), QColor(Qt::black), 60), "trait versé absent du cache");

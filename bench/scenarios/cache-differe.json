@@ -13,6 +13,7 @@
     {"checkPixel": "attente-1", "at": [500, 300], "color": "#000000", "tolerance": 60},
     {"checkPixel": "attente-2", "at": [500, 400], "color": "#000000", "tolerance": 60},
     {"checkEdge": "trait-en-attente", "from": [370, 550], "to": [430, 550], "minIntermediate": 2, "minInk": 8},
+    {"expect": "fixedPage.pendingCount", "value": 3},
     {"capture": "en-attente"},
     {"waitFor": "fixedPage.pendingCount", "value": 0, "timeoutMs": 5000},
     {"waitReady": true},

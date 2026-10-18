@@ -57,8 +57,8 @@ Item {
                 onScheduledUpdateCompleted: view.notifyCacheUpdated()
             }
 
-            // Lot 10 : objets ajoutés depuis le dernier redessin du cache, dessinés au-dessus de lui (sœur du
-            // cache : enfant de la page fixe, hideSource la cacherait avec elle).
+            // Lot 10 : objets ajoutés depuis le dernier redessin du cache, dessinés au-dessus de lui. Sœur du
+            // cache, jamais enfant de la page fixe : hideSource la cacherait avec elle.
             PendingLayer {
                 id: pendingLayerItem
                 objectName: "pendingLayer"

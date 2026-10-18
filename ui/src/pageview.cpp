@@ -300,6 +300,13 @@ void PageView::setFixedPage(render::FixedPageItem* page)
     if (page == m_fixedPage) {
         return;
     }
+    if (m_fixedPage) {
+        // Lot 10 : l'ancienne page ne reste pas en différé, où personne ne verserait plus ce qui y attend.
+        if (m_fixedPage->pendingCount() > 0) {
+            requestCacheRefresh();
+        }
+        m_fixedPage->setDeferredFolding(false);
+    }
     disconnect(m_readyConnection);
     disconnect(m_contentConnection);
     disconnect(m_pendingConnection);
@@ -333,7 +340,20 @@ void PageView::setPendingLayer(render::PendingLayerItem* layer)
     if (layer == m_pendingLayer) {
         return;
     }
+    disconnect(m_layerPageConnection);
+    disconnect(m_layerDestroyedConnection);
     m_pendingLayer = layer;
+    if (layer) {
+        // Sa page fixe peut lui être donnée après la vue (ordre des liaisons QML) ou changer.
+        m_layerPageConnection =
+            connect(layer, &render::PendingLayerItem::fixedPageChanged, this, &PageView::updateDeferral);
+        // Détruite : plus personne ne dessine ce qui attend, la page fixe quitte le différé.
+        m_layerDestroyedConnection = connect(layer, &QObject::destroyed, this, [this] {
+            m_pendingLayer = nullptr;
+            updateDeferral();
+            emit pendingLayerChanged();
+        });
+    }
     updateDeferral();
     emit pendingLayerChanged();
 }
@@ -345,7 +365,10 @@ bool PageView::foldTimerActive() const noexcept
 
 void PageView::updateDeferral()
 {
-    const bool deferred = m_cacheEnabled && !m_pendingLayer.isNull();
+    // La couche doit dessiner les objets en attente de CETTE page fixe : regardant une autre page (ou
+    // aucune), personne ne les dessinerait.
+    const bool deferred = m_cacheEnabled && !m_pendingLayer.isNull() && m_fixedPage &&
+                          m_pendingLayer->fixedPage() == m_fixedPage;
     if (m_fixedPage) {
         if (!deferred && m_fixedPage->pendingCount() > 0) {
             requestCacheRefresh(); // ce qui attendait passe au cache avant que la couche ne serve plus

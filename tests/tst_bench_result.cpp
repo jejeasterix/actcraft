@@ -92,6 +92,13 @@ private slots:
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
         QCOMPARE(scenarios.at(0).toObject().value("cache").toObject().value("refreshes").toInt(), 0);
         QVERIFY(scenarios.at(4).toObject().value("cache").toObject().value("pending_max").toInt() >= 1);
+        // Revue de L10-T4 : « zoom », « scroll » et « page » ne tracent rien ; ce qui attendait à la fin du
+        // scénario précédent est versé avant leur mesure (Runner::setLevel) et n'y paraît pas.
+        for (qsizetype i = 1; i <= 3; ++i) {
+            const QJsonObject scenario = scenarios.at(i).toObject();
+            QVERIFY2(scenario.value("cache").toObject().value("pending_max").toInt() == 0,
+                     qPrintable(scenario.value("name").toString()));
+        }
     }
 
     // 2e revue L2-T23 : le câblage du runner (marques, prêts relevés, fenêtres) classe actifs les intervalles
