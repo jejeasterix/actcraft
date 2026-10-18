@@ -121,13 +121,13 @@ Plan : `docs/plans/2026-10-18-livraison-complete-lot10-PLAN.md` (66a9300, relu e
 ## Tâches du socle commun L0-S (plan 9b13275, mergé 1ffb07b ; relecture tour 1 : 1 bloquant, 11 importants, tous appliqués ; tour 2 en cours)
 | id | dépend | titre | worktree | état | essais | commit | preuve rejouée |
 |---|---|---|---|---|---|---|---|
-| L0-S0 | — | réservation (fichiers vides marqués, CMake, 19 tests, crochets du lot 7) | .worktrees/livraison-complete--L0-S0 | en cours | 0/3 | — | — |
-| L0-S1 | S0 | icônes des deux lots (31 SVG) | — | à faire | 0/3 | — | — |
+| L0-S0 | — | réservation (fichiers vides marqués, CMake, 19 tests, crochets du lot 7) | (mergé) | terminée | 1/3 | 12be1ea, 080399f → merge b904dcf | rejoué : build 0, 113 tests listés, les 19 neufs 100 % Passed (talons en SKIP nommant leur tâche, ex. `tst_core_hittest` : `SKIP reserved() Talon L0-S : rempli par L3-T3`), `premiers-pas` `CAPTURES OK`, `NOMS OK : 391`, ligne `include(... presentation.cmake OPTIONAL)` en dernière ligne de tests/CMakeLists.txt |
+| L0-S1 | S0 | icônes des deux lots (31 SVG) | .worktrees/livraison-complete--L0-S1 | en cours | 0/3 | — | — |
 | L0-S2 | S0 | joueur : touch, pinch, pointer, doubleClick, expect avec tolérance | — | à faire | 0/3 | — | — |
-| L0-S3 | S0 | modèle partagé (Equation, PagePresentation, ReplaceObjectsCommand, /we4062) | — | à faire | 0/3 | — | — |
+| L0-S3 | S0 | modèle partagé (Equation, PagePresentation, ReplaceObjectsCommand, /we4062) | .worktrees/livraison-complete--L0-S3 | en cours | 0/3 | — | — |
 | L0-S4 | S1 | données et disposition des deux lots (62 commandes, sous-menus, F-750) | — | à faire | 0/3 | — | — |
 | L0-S5 | S3 | DocumentController : API des deux lots, observateur unique | — | à faire | 0/3 | — | — |
-| L0-S6 | S0 | squelette du lot 3 (en-têtes figés, talons, LiftLayer QML) | — | à faire | 0/3 | — | — |
+| L0-S6 | S0 | squelette du lot 3 (en-têtes figés, talons, LiftLayer QML) | .worktrees/livraison-complete--L0-S6 | en cours | 0/3 | — | — |
 | L0-S7 | S6 | chemin d'entrée figé (couvertures, filtre, Pipeline, isBusy) | — | à faire | 0/3 | — | — |
 | L0-S9 | S4,S5,S7 | coquille QML (couches, emplacements, Presentation.qml) | — | à faire | 0/3 | — | — |
 | L0-S10 | tout | contrôle du socle (debug + release, talons comptés, graphe) | — | à faire | 0/3 | — | — |
