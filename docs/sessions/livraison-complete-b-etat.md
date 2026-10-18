@@ -12,16 +12,20 @@ Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.w
 Rapide : N0 = N1 = 94 tests, `TESTS OK` (debug, 2026-10-18, worktree du chantier @ e367657).
 
 ## Compteurs
-relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 et mineurs corrigés en bf8c930) · relecture amendement phase 1 : 1/3 · vagues sans progrès 0/2
+relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 et mineurs corrigés en bf8c930) · relecture amendement phase 1 : 2/3 · vagues sans progrès 0/2
 
 ## Tâches
 | id | dépend | fichiers touchés | worktree | état | essais | dernier commit vert | preuve rejouée |
 |----|--------|------------------|----------|------|--------|---------------------|----------------|
-| amendement phase 1 | — | docs/plans/2026-10-18-livraison-complete-lot7-phase1-PLAN.md | chantier (partagé) | écrit (5283a1e), relecture tour 1 en cours | 1 | 5283a1e | — |
-| L7-T0 | — | docs/verifications/2026-10-18-lot7-principes.md ; hors dépôt REA docs/re/lots/lot7.md | .worktrees/livraison-complete-b--L7-T0 (feat/livraison-complete-b--L7-T0) | essai 3 (revue : refusée, 4 importants, 0 bloquant) | 3 | 0be9a77 | NOMS OK, git grep du rapport vide, relevé présent |
+| amendement phase 1 | — | docs/plans/2026-10-18-livraison-complete-lot7-phase1-PLAN.md | chantier (partagé) | corrigé après tour 1 (62722be), relecture tour 2 en cours | 1 | 62722be | — |
+| L7-T0 | — | docs/verifications/2026-10-18-lot7-principes.md ; hors dépôt REA docs/re/lots/lot7.md | supprimé | terminée, mergée (f0772b6), graphe efee804 | 3 | d16edb5 | NOMS OK 333, git grep du rapport vide, relevé présent, revue : 4 importants corrigés |
+| L7-P0 | amendement phase 1 relu | voir plan phase 1 | .worktrees/livraison-complete-b--L7-P0 (feat/livraison-complete-b--L7-P0) | construction initiale (jeton tests) | 0 | — | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
+
+## À reporter en phase 2 (de L7-T0)
+Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrateur » de `docs/verifications/2026-10-18-lot7-principes.md` : T3/T6 (position du rideau par page, propriété 27), T4 (capture de la zone, curseurs, contour 10), T9–T11 (curseurs par zone, translucidité 100), T12 (mine à la couleur du stylo), T14 (1 dé, mémorisé), T15 (transfert sur la page), T16/T19 (H7-14, H7-15), T20 (polygone), T21 (délai 1 s), T24–T27 (palettes d'équation). P20 (symétries autour de l'origine) → lot 5.
 
 ## Portes
 ouvertes : — · passées : —
