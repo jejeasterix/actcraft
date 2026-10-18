@@ -1696,3 +1696,685 @@ sans écran (`-Scenario court` inclut `edition`) : la ligne de verdict et le JSO
 scénario de banc edition ».
 
 **Étapes.** Test rouge → scénario dans `scenarios.cpp` et branchement dans `runner.cpp` → vert → banc → commit.
+
+## Annexe A — en-têtes figés (écrits par L5-T1, mot pour mot)
+
+Noms du modèle vérifiés à 794cf84 (`core/include/actcraft/core/model.h`) : `ObjectCommon` (`id`, `name`, `layer`,
+`visible`, `locked`, `translucency`, `transform`), `Layer` (`Background`, `Bottom`, `Middle`, `Top`), `Transform`,
+`Outline`, `Fill`, `Shape::paths`, `Group::members`, `Connector` (`firstEnd`, `secondEnd`, `objectA`, `objectB`,
+`pen`), `Page::notes`. `UndoCommand::redo/undo(Document&, Changes&)` (`core/undo.h:37-46`). Types `PointF`, `RectF`,
+`SizeF`, `Argb` : ceux du modèle (à revérifier pour `SizeF`).
+
+### `core/include/actcraft/core/clipboardedits.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+#include <actcraft/core/undo.h>
+
+#include <memory>
+#include <vector>
+
+namespace actcraft::core {
+
+inline constexpr double kPasteOffset = 20.0;     // D1, unités de page
+inline constexpr double kDuplicateOffset = 10.0; // D2
+
+// Objets à copier, fermés : un groupe emporte ses membres (récursivement), dans l'ordre de la page ; un connecteur
+// garde le lien vers un objet emporté, perd l'autre (objectA ou objectB remis à 0).
+std::vector<PageObject> closureForCopy(const Page& page, const std::vector<ObjectId>& ids);
+// Copies prêtes à coller : nom vidé, déverrouillées, translatées de (dx, dy), ordonnées membres avant groupes,
+// connecteurs en dernier ; identifiants remplacés par des rangs provisoires 1..n (références remappées).
+std::vector<PageObject> preparePaste(std::vector<PageObject> objects, double dx, double dy);
+// Coller sur l'objet (F-540) : centre de l'ensemble sur le centre de `target`, couche de `target`.
+std::vector<PageObject> preparePasteOnto(std::vector<PageObject> objects, const PageObject& target);
+
+// Ajout de copies préparées en une étape : un ReplaceObjectsCommand (A6) puis, au redo, références de groupe et de
+// connecteur passées des rangs provisoires aux identifiants tirés (addedIds(), même ordre). Aucun Change de plus.
+class PasteObjectsCommand final : public UndoCommand
+{
+public:
+    PasteObjectsCommand(std::size_t page, std::vector<PageObject> prepared);
+    void redo(Document& document, Changes& changes) override;
+    void undo(Document& document, Changes& changes) override;
+    const std::vector<ObjectId>& addedIds() const noexcept;
+
+private:
+    std::unique_ptr<UndoCommand> m_inner; // ReplaceObjectsCommand
+    std::size_t m_page;
+    std::vector<ObjectId> m_ids;
+};
+
+std::unique_ptr<UndoCommand> makeCutCommand(const Page& page, std::size_t pageIndex, const std::vector<ObjectId>& ids);
+std::unique_ptr<PasteObjectsCommand> makeDuplicateCommand(const Page& page, std::size_t pageIndex,
+                                                          const std::vector<ObjectId>& ids);
+
+} // namespace actcraft::core
+```
+
+### `core/include/actcraft/core/arrange.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+#include <actcraft/core/undo.h>
+
+#include <memory>
+#include <utility>
+#include <vector>
+
+namespace actcraft::core {
+
+enum class ArrangeMove : std::uint8_t
+{
+    Forward,
+    Backward,
+    Front,
+    Back,
+};
+
+// Ordre de la page après le déplacement des objets choisis, couche par couche (D5) ; les membres d'un groupe choisi
+// bougent avec lui ; ordre inchangé si rien ne bouge.
+std::vector<ObjectId> arrangedOrder(const Page& page, const std::vector<ObjectId>& selected, ArrangeMove move);
+
+// Réordonne la page en une étape. Changes : pour chaque objet dont le rang change, un ObjectRemoved puis un
+// ObjectInserted (zone : son emprise) ; l'inverse à l'annulation ; rien si l'ordre est identique.
+class ReorderObjectsCommand final : public UndoCommand
+{
+public:
+    ReorderObjectsCommand(std::size_t page, std::vector<ObjectId> newOrder);
+    void redo(Document& document, Changes& changes) override;
+    void undo(Document& document, Changes& changes) override;
+
+private:
+    std::size_t m_page;
+    std::vector<ObjectId> m_newOrder;
+    std::vector<ObjectId> m_oldOrder;
+};
+
+// Change la couche des objets (F-513) : au sommet de la couche d'arrivée, ordre relatif gardé ; une étape.
+class SetLayerCommand final : public UndoCommand
+{
+public:
+    SetLayerCommand(std::size_t page, std::vector<ObjectId> ids, Layer layer);
+    void redo(Document& document, Changes& changes) override;
+    void undo(Document& document, Changes& changes) override;
+
+private:
+    std::size_t m_page;
+    std::vector<ObjectId> m_ids;
+    Layer m_layer;
+    std::vector<std::pair<ObjectId, Layer>> m_before;
+    std::vector<ObjectId> m_orderBefore;
+};
+
+// Groupes (F-525, D4) par ReplaceObjectsCommand (A6) ; nullptr si moins de 2 objets / aucun groupe.
+std::unique_ptr<UndoCommand> makeGroupCommand(const Page& page, std::size_t pageIndex, const std::vector<ObjectId>& ids);
+std::unique_ptr<UndoCommand> makeUngroupCommand(const Page& page, std::size_t pageIndex,
+                                                const std::vector<ObjectId>& groups);
+ObjectId topLevelGroupOf(const Page& page, ObjectId id);
+std::vector<ObjectId> expandGroups(const Page& page, const std::vector<ObjectId>& ids);
+
+} // namespace actcraft::core
+```
+
+### `core/include/actcraft/core/alignment.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+
+#include <utility>
+#include <vector>
+
+namespace actcraft::core {
+
+enum class AlignMode : std::uint8_t
+{
+    Left, CenterX, Right, Top, CenterY, Bottom, Width, Height, Angle, All,
+};
+enum class FitMode : std::uint8_t
+{
+    Width, Height, Page, OriginalSize,
+};
+enum class Axis : std::uint8_t
+{
+    X, // haut / bas
+    Y, // gauche / droite
+};
+using TransformList = std::vector<std::pair<ObjectId, Transform>>;
+
+// Transformations à passer à TransformObjectsCommand (A7) ; objets verrouillés et inchangés absents ; moins de 2 objets
+// non verrouillés : vide (D6).
+TransformList alignTransforms(const Page& page, const std::vector<ObjectId>& ids, AlignMode mode);
+TransformList fitTransforms(const Page& page, const std::vector<ObjectId>& ids, FitMode mode); // F-536
+TransformList flipTransforms(const Page& page, const std::vector<ObjectId>& ids, Axis axis);   // F-537 inverser
+TransformList originFlipTransforms(const Page& page, const std::vector<ObjectId>& ids, Axis axis, PointF origin);
+// F-537 projeter : copies miroir au-dessus (X) ou à gauche (Y), bord contre bord ; à passer à preparePaste(…, 0, 0).
+std::vector<PageObject> mirrorCopies(const Page& page, const std::vector<ObjectId>& ids, Axis axis);
+
+} // namespace actcraft::core
+```
+(L5-T6 adapte `TransformList` au type d'argument réel de `TransformObjectsCommand` relevé par L5-T0, A7.)
+
+### `core/include/actcraft/core/objectflags.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+#include <actcraft/core/undo.h>
+
+#include <vector>
+
+namespace actcraft::core {
+
+enum class ObjectFlag : std::uint8_t
+{
+    Locked,   // F-585
+    Hidden,   // F-586 (visible = false)
+    DragCopy, // F-587
+};
+bool flagOfAll(const Page& page, const std::vector<ObjectId>& ids, ObjectFlag flag);
+
+// Une étape. Changes : ObjectChanged (zone : emprise) pour Hidden ; aucun pour Locked et DragCopy.
+class SetObjectFlagCommand final : public UndoCommand
+{
+public:
+    SetObjectFlagCommand(std::size_t page, std::vector<ObjectId> ids, ObjectFlag flag, bool value);
+    void redo(Document& document, Changes& changes) override;
+    void undo(Document& document, Changes& changes) override;
+
+private:
+    std::size_t m_page;
+    std::vector<ObjectId> m_ids;
+    ObjectFlag m_flag;
+    bool m_value;
+    std::vector<bool> m_before;
+};
+
+} // namespace actcraft::core
+```
+
+### `core/include/actcraft/core/fill.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+#include <actcraft/core/undo.h>
+
+#include <memory>
+#include <string>
+
+namespace actcraft::core {
+
+enum class FillTarget : std::uint8_t
+{
+    Nothing, ShapeInside, Outline, Image, PageBackground,
+};
+struct FillHit
+{
+    FillTarget target = FillTarget::Nothing;
+    ObjectId object = 0;
+};
+inline constexpr int kDefaultImageFillTolerance = 5; // F-235, sur 100
+
+// Cible d'un clic en `point` (page), objet du dessus d'abord, verrouillés compris (D10) ; `tolerance` en unités de page.
+FillHit fillHitAt(const Page& page, PointF point, double tolerance);
+// Une étape ; nullptr pour Nothing et Image.
+std::unique_ptr<UndoCommand> makeFillCommand(const Page& page, std::size_t pageIndex, const FillHit& hit, Argb color);
+// Remplace la ressource de l'image par `pngBytes` (clé SHA-256 calculée ici) ; une étape.
+std::unique_ptr<UndoCommand> makeImageFillCommand(std::size_t pageIndex, ObjectId image, std::string pngBytes);
+
+} // namespace actcraft::core
+```
+
+### `core/include/actcraft/core/shapepoints.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+#include <actcraft/core/undo.h>
+
+#include <optional>
+#include <vector>
+
+namespace actcraft::core {
+
+// Points de forme (F-527, D13) en page : sommets puis milieux des côtés, chemin par chemin ; vide hors Shape.
+std::vector<PointF> shapePoints(const PageObject& object);
+
+// Déplace le point `index` en `to` (page), une étape ; la forme devient un polygone ; objet verrouillé : sans effet.
+class MoveShapePointCommand final : public UndoCommand
+{
+public:
+    MoveShapePointCommand(std::size_t page, ObjectId shape, std::size_t index, PointF to);
+    void redo(Document& document, Changes& changes) override;
+    void undo(Document& document, Changes& changes) override;
+
+private:
+    std::size_t m_page;
+    ObjectId m_shape;
+    std::size_t m_index;
+    PointF m_to;
+    std::optional<PageObject> m_before;
+};
+
+} // namespace actcraft::core
+```
+
+### `core/include/actcraft/core/connectors.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+#include <actcraft/core/undo.h>
+
+#include <memory>
+#include <optional>
+#include <vector>
+
+namespace actcraft::core {
+
+inline constexpr double kConnectorSnap = 20.0; // D11, unités de page
+
+std::vector<PointF> attachPoints(const PageObject& object); // sommets d'une forme, coins de l'emprise sinon
+struct Attachment
+{
+    ObjectId object = 0;
+    PointF point;
+};
+std::optional<Attachment> snapConnectorEnd(const Page& page, PointF point); // connecteurs exclus
+PageObject makeConnector(PointF a, ObjectId objectA, PointF b, ObjectId objectB, std::uint8_t style); // couche du dessus
+
+// Enveloppe une commande qui déplace, transforme ou retire : après son redo, chaque connecteur lié suit (même indice
+// de point d'attache) ou se détache ; une étape ; undo : connecteurs remis, puis commande annulée. Changes : ceux de
+// la commande plus un ObjectChanged par connecteur modifié.
+class FollowingConnectorsCommand final : public UndoCommand
+{
+public:
+    FollowingConnectorsCommand(std::size_t page, std::unique_ptr<UndoCommand> inner);
+    void redo(Document& document, Changes& changes) override;
+    void undo(Document& document, Changes& changes) override;
+
+private:
+    std::size_t m_page;
+    std::unique_ptr<UndoCommand> m_inner;
+    std::vector<PageObject> m_connectorsBefore;
+};
+std::unique_ptr<UndoCommand> withFollowingConnectors(const Page& page, std::size_t pageIndex,
+                                                     std::unique_ptr<UndoCommand> inner);
+
+} // namespace actcraft::core
+```
+
+### `core/include/actcraft/core/penmodifiers.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+
+#include <optional>
+#include <string_view>
+#include <vector>
+
+namespace actcraft::core {
+
+enum class PenShape : std::uint8_t
+{
+    Free, Horizontal, Vertical, Square, Rectangle, Circle, Ellipse, Arc, Polyline, Arrow, Zigzag,
+};
+std::optional<PenShape> penShapeFromId(std::string_view id); // argument de pen.shape
+std::vector<PointF> penShapePoints(PenShape shape, PointF from, PointF to, const std::vector<PointF>& clicks = {});
+PageObject penShapeStroke(const std::vector<PointF>& points, const Outline& pen, bool highlighter); // couche du dessus
+
+} // namespace actcraft::core
+```
+
+### `core/include/actcraft/core/printlayout.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+
+#include <vector>
+
+namespace actcraft::core {
+
+enum class PrintRange : std::uint8_t
+{
+    All, Current, FromTo,
+};
+enum class PrintNotes : std::uint8_t
+{
+    None, WithPages, NotesOnly,
+};
+struct PrintSettings
+{
+    int rows = 1;
+    int columns = 1;
+    bool frames = false;
+    bool pageNumbers = false;
+    PrintRange range = PrintRange::All;
+    int from = 1; // 1-based, inclus
+    int to = 1;
+    int copies = 1;
+    double marginMm = 5.0; // F-670
+    bool gray = false;
+    PrintNotes notes = PrintNotes::None;
+    bool noteBreak = true;
+    bool noteSeparator = false;
+};
+struct SheetCell
+{
+    std::size_t page = 0;
+    RectF target; // millimètres sur la feuille, rapport de la page gardé (page allongée entière)
+};
+struct Sheet
+{
+    bool notes = false;
+    std::vector<SheetCell> cells;
+    std::vector<std::size_t> noteOf;
+};
+inline constexpr int kNoteLinesPerSheet = 60;
+
+std::vector<Sheet> layoutSheets(const Document& document, const PrintSettings& settings, std::size_t current,
+                                SizeF sheetMm);
+int sheetCount(const Document& document, const PrintSettings& settings, std::size_t current, SizeF sheetMm);
+
+} // namespace actcraft::core
+```
+
+### `formats/include/actcraft/formats/clipboard.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+
+#include <QByteArray>
+#include <QString>
+
+#include <map>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace actcraft::formats {
+
+inline const QString kObjectsMimeType = QStringLiteral("application/x-actcraft-objects");
+
+struct ClipboardPayload
+{
+    std::vector<core::PageObject> objects;        // fermés (closureForCopy), ordre de la page
+    std::map<std::string, std::string> resources; // clé SHA-256 → octets
+};
+// {"format": "actcraft-objects/1", "objects": […], "resources": {clé: base64}} ; objets écrits par le code natif.
+QByteArray encodeClipboard(const ClipboardPayload& payload);
+std::optional<ClipboardPayload> decodeClipboard(const QByteArray& bytes);
+std::map<std::string, std::string> resourcesFor(const core::Document& document,
+                                                const std::vector<core::PageObject>& objects);
+
+} // namespace actcraft::formats
+```
+
+### `render/include/actcraft/render/imagefill.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+
+#include <QImage>
+#include <QPoint>
+
+namespace actcraft::render {
+
+// Zone 4-connexe de `seed` à moins de `tolerance` (0 à 100 % de l'écart maximal par canal) ; alpha gardé.
+QImage floodFill(const QImage& image, QPoint seed, core::Argb color, int tolerance);
+
+} // namespace actcraft::render
+```
+
+### Outils (`tools/include/actcraft/tools/{filltool,penshapetool,connectortool}.h`)
+Une classe `final : public Tool` chacun — `FillTool` (id « fill »), `PenShapeTool` (« pen-shape »), `ConnectorTool`
+(« connector ») — avec les membres de l'interface `Tool` du lot 3 **recopiés de `selecttool.h`** (A1), plus :
+```cpp
+void setColor(core::Argb color);                          // FillTool
+void setShape(core::PenShape shape);                      // PenShapeTool
+void setPen(const core::Outline& pen, bool highlighter);  // PenShapeTool
+void setStyle(std::uint8_t style);                        // ConnectorTool
+```
+
+### `export/include/actcraft/export/pageexport.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+
+#include <QFuture>
+#include <QString>
+#include <QUrl>
+
+namespace actcraft::exporting { // « export » est un mot réservé du C++
+
+enum class ImageFormat : std::uint8_t
+{
+    Png, Jpeg, Bmp, Tiff,
+};
+ImageFormat imageFormatFor(const QUrl& url); // d'après l'extension ; PNG par défaut
+struct ExportResult
+{
+    bool ok = false;
+    QString error; // texte à nous, pour la bannière
+};
+// Copie du document prise par valeur sur le fil appelant ; rendu par render::renderPage sur un fil secondaire, à la
+// taille de la page en pixels.
+QFuture<ExportResult> exportPageImage(core::Document document, std::size_t page, QUrl url);
+
+} // namespace actcraft::exporting
+```
+
+### `export/include/actcraft/export/pdfexport.h`
+```cpp
+#pragma once
+#include <actcraft/export/pageexport.h>
+
+#include <QByteArray>
+#include <vector>
+
+namespace actcraft::exporting {
+
+// Une page PDF par page (toutes si `pages` est vide), taille de la page (points = pixels × 72 / 96), marges nulles,
+// render::paintPage sur un fil secondaire.
+QFuture<ExportResult> exportPdf(core::Document document, QUrl url, std::vector<std::size_t> pages = {});
+int countPdfPages(const QByteArray& pdf); // dictionnaires « /Type /Page », sans Qt PDF
+
+} // namespace actcraft::exporting
+```
+
+### `export/include/actcraft/export/pdfimport.h`
+```cpp
+#pragma once
+#include <actcraft/core/model.h>
+
+#include <QFuture>
+#include <QString>
+#include <QUrl>
+
+namespace actcraft::exporting {
+
+bool pdfImportAvailable(); // construit avec ACTCRAFT_IMPORT_PDF
+struct ImportResult
+{
+    bool ok = false;
+    QString error;
+    core::Document document; // une page par page du PDF (D16)
+};
+QFuture<ImportResult> importPdf(QUrl url, int dpi = 150);
+
+} // namespace actcraft::exporting
+```
+
+### `export/include/actcraft/export/officeconvert.h`
+```cpp
+#pragma once
+#include <QFuture>
+#include <QString>
+#include <QStringList>
+
+#include <optional>
+
+namespace actcraft::exporting {
+
+struct Converter
+{
+    QString program;
+    QStringList arguments; // {in} et {out} remplacés
+    QString name;
+};
+// ACTCRAFT_OFFICE_CONVERTER (programme puis arguments séparés par « | »), puis LibreOffice, puis PowerPoint.
+std::optional<Converter> findConverter();
+struct ConvertResult
+{
+    bool ok = false;
+    QString error;
+    QString pdfPath;
+};
+QFuture<ConvertResult> convertToPdf(const Converter& converter, const QString& presentationPath); // 120 s au plus
+
+} // namespace actcraft::exporting
+```
+
+### `print/include/actcraft/print/printer.h`
+```cpp
+#pragma once
+#include <actcraft/core/printlayout.h>
+
+#include <QImage>
+#include <QString>
+#include <QStringList>
+
+namespace actcraft::print {
+
+bool printingAvailable(); // construit avec ACTCRAFT_PRINT
+QStringList printerNames();
+QString defaultPrinterName();
+QImage renderSheet(const core::Document& document, const core::Sheet& sheet, const core::PrintSettings& settings,
+                   core::SizeF sheetMm, int dpi); // gris si settings.gray
+struct PrintJob
+{
+    QString printer;
+    QString outputFile; // non vide : fichier écrit par l'imprimante
+    core::PrintSettings settings;
+};
+struct PrintResult
+{
+    bool ok = false;
+    QString error;
+    int sheets = 0;
+};
+PrintResult printDocument(const core::Document& document, std::size_t current, const PrintJob& job);
+
+} // namespace actcraft::print
+```
+
+### `ui/include/actcraft/ui/objectediting.h`
+```cpp
+#pragma once
+#include <QObject>
+#include <QPointF>
+#include <QQmlEngine>
+
+namespace actcraft::ui {
+class DocumentController;
+class ToolHost;
+
+class ObjectEditing : public QObject
+{
+    Q_OBJECT
+    QML_ELEMENT
+    Q_PROPERTY(DocumentController* document READ document WRITE setDocument NOTIFY documentChanged)
+    Q_PROPERTY(ToolHost* tools READ tools WRITE setTools NOTIFY toolsChanged)
+    Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY selectionStateChanged)
+    Q_PROPERTY(bool canPaste READ canPaste NOTIFY clipboardChanged)
+    Q_PROPERTY(bool selectionLocked READ selectionLocked NOTIFY selectionStateChanged)
+    Q_PROPERTY(bool selectionHidden READ selectionHidden NOTIFY selectionStateChanged)
+    Q_PROPERTY(bool selectionDragCopy READ selectionDragCopy NOTIFY selectionStateChanged)
+    Q_PROPERTY(bool selectionIsGroup READ selectionIsGroup NOTIFY selectionStateChanged)
+    Q_PROPERTY(bool selectionIsAnnotation READ selectionIsAnnotation NOTIFY selectionStateChanged)
+public:
+    explicit ObjectEditing(QObject* parent = nullptr);
+    DocumentController* document() const;
+    void setDocument(DocumentController* document);
+    ToolHost* tools() const;
+    void setTools(ToolHost* tools);
+    bool hasSelection() const;
+    bool canPaste() const;
+    bool selectionLocked() const;
+    bool selectionHidden() const;
+    bool selectionDragCopy() const;
+    bool selectionIsGroup() const;
+    bool selectionIsAnnotation() const;
+
+    Q_INVOKABLE void cut();
+    Q_INVOKABLE void copy();
+    Q_INVOKABLE void paste();
+    Q_INVOKABLE void pasteAt(QPointF pagePoint);
+    Q_INVOKABLE void pasteOnto();
+    Q_INVOKABLE void duplicate();
+    Q_INVOKABLE void toggleGroup();
+    Q_INVOKABLE void arrange(const QString& how);   // front, back, forward, backward, layer-top, layer-middle, layer-bottom
+    Q_INVOKABLE void align(const QString& how);     // left, center-x, right, top, center-y, bottom, width, height, angle, all
+    Q_INVOKABLE void transform(const QString& how); // original-size, fit-*, mirror-x|y, flip-x|y, origin-flip-x|y
+    Q_INVOKABLE void toggleFlag(const QString& flag); // lock, hide, drag-copy
+
+signals:
+    void documentChanged();
+    void toolsChanged();
+    void selectionStateChanged();
+    void clipboardChanged();
+
+private:
+    DocumentController* m_document = nullptr;
+    ToolHost* m_tools = nullptr;
+};
+
+} // namespace actcraft::ui
+```
+
+### Autres en-têtes de `ui/` (même forme : `QObject` ou `QAbstractListModel`, `QML_ELEMENT`)
+- `insertion.h` — `Insertion` : `Q_PROPERTY(DocumentController* document …)`, `Q_PROPERTY(bool busy READ isBusy NOTIFY
+  busyChanged)`, `Q_PROPERTY(bool lastDecodeOffMainThread READ lastDecodeOffMainThread NOTIFY inserted)`,
+  `Q_INVOKABLE void insertImage(const QUrl& url)`, `Q_INVOKABLE void insertMedia(const QUrl& url)`, `Q_INVOKABLE void
+  insertImageData(const QImage& image)` (collage, L5-T14), `Q_INVOKABLE bool acceptDrop(const QVariantList& urls, const
+  QString& text, QPointF pagePoint)` ; signaux `busyChanged()`, `inserted(int count)`, `failed(QString message)`.
+- `documenttabs.h` — `DocumentTabs : QAbstractListModel` : propriétés `document` (`DocumentController*`),
+  `currentIndex` (lecture), `position` (« top », « bottom », « hidden », lu et écrit) ; rôles `TitleRole`,
+  `ModifiedRole`, `CurrentRole`, `UrlRole` ; `Q_INVOKABLE void newTab()`, `openInNewTab(const QUrl&)`,
+  `activate(int)`, `bool requestClose(int)` (faux : `saveRequested(int)` émis), `closeWithoutSaving(int)`,
+  `copyPagesToTab(const QVariantList& pageIndexes, int tabIndex)` (F-011 : avant la première page), `next()`,
+  `previous()` ; signaux `documentChanged`, `currentIndexChanged`, `positionChanged`, `saveRequested(int)`.
+- `fileexchange.h` — `FileExchange` : propriétés `document`, `tabs` (`DocumentTabs*`), `busy`, `pdfImportAvailable`
+  (constante), `powerpointAvailable` (`NOTIFY converterChanged`) ; `Q_INVOKABLE void exportPdf(const QUrl&)`,
+  `exportPageImage(const QUrl&)`, `importPdf(const QUrl&)`, `importPowerpointImages(const QUrl&)`,
+  `printThroughPdf()` (Android, N1-15) ; signaux `busyChanged`, `converterChanged`, `finished(QString)`,
+  `failed(QString)`.
+- `printcontroller.h` — `PrintController` : propriétés lues et écrites `rows`, `columns`, `frames`, `pageNumbers`,
+  `range` (« all », « current », « from-to »), `from`, `to`, `copies`, `marginMm`, `gray`, `notes` (« none »,
+  « with-pages », « only »), `noteBreak`, `noteSeparator`, `printer` ; `printers` (constante), `sheetCount` (lecture,
+  `NOTIFY settingsChanged`), `document` ; `Q_INVOKABLE QImage previewSheet(int index, int dpi)`,
+  `Q_INVOKABLE bool print(const QString& outputFile = {})`, `Q_INVOKABLE void saveSettings()`,
+  `Q_INVOKABLE void loadSettings()` ; signal `settingsChanged`.
+
+### Ajout à `ui/include/actcraft/ui/documentcontroller.h` (A5), en public
+```cpp
+// Document garé par un onglet (L5-T20) : document, pile d'annulation, URL, état modifié, avertissements, page affichée.
+struct ParkedSession;
+// Rend la session affichée et en installe une vide ; dépose d'abord un soulèvement en cours (dropLifted(nullptr)).
+std::unique_ptr<ParkedSession> parkSession();
+// Installe une session garée : la page affichée est reconstruite une fois (cache redessiné une fois).
+void resumeSession(std::unique_ptr<ParkedSession> session);
+```
+Corps talons dans `documentcontroller.cpp` : `struct ParkedSession {};`, `parkSession` rend `nullptr`,
+`resumeSession` ne fait rien, chacun précédé de `// Talon L5-T1 : rempli par L5-T20.`
+
+## Hypothèses pour Jérôme (niveau 1 d'abord)
+
+- **H5-1** (N1) — Imports retenus à la porte du lot 2 : PowerPoint en images au lot 5 (réutilise l'import PDF), packs
+  de ressources au lot 6 (exigent le navigateur de ressources).
+- **H5-2** (N1) — Qt PDF installé sur le poste et en CI (`aqt … -m qtpdf`), licence LGPLv3, liste
+  `packaging/qt-autorises.txt` complétée (L5-T22) ; sans lui, l'import PDF et PowerPoint sont déclarés absents.
+- **H5-3** (N1) — PowerPoint en images passe par un convertisseur installé (LibreOffice, sinon PowerPoint) ; non
+  livré, Windows seulement ; Android : commande absente.
+- **H5-4** (N2) — Pot de peinture sur l'intersection de formes : forme du dessus remplie tant que L5-T0 ne l'a pas
+  tranché.
+- **H5-5** (N2) — Une seule vue pour tous les onglets (mémoire du cache MSAA) : changer d'onglet redessine le cache une
+  fois.
+- **H5-6** (N2) — Organiser (avancer, reculer) garde le redessin immédiat du cache (insertion hors fin de page, lot 10) :
+  mesuré par le banc `edition`.
