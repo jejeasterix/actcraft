@@ -234,7 +234,8 @@ bool usesPaintedRenderer(const core::PageObject& object) noexcept
         return u->hasBounds; // repère peint ; sans boîte, aucun moteur : rien à dessiner
     }
     if (std::get_if<core::Text>(&object) || std::get_if<core::Line>(&object) ||
-        std::get_if<core::Media>(&object) || std::get_if<core::Connector>(&object)) {
+        std::get_if<core::Media>(&object) || std::get_if<core::Connector>(&object) ||
+        std::get_if<core::Equation>(&object)) {
         return true;
     }
     if (const auto* s = std::get_if<core::Shape>(&object)) {

@@ -544,10 +544,10 @@ private slots:
     }
 
     // S31 (L2-C8) : paperboard d'une version plus récente, écrit ici à la main (jamais par encodeActcraft) :
-    // une forme, un objet « equation » qui cite une image que rien d'autre ne cite, une ligne ; des clés
-    // inconnues sur la ligne, la page et le document. Ouvert, un trait ajouté, enregistré dans une autre
-    // archive, rouvert : l'objet inconnu a les mêmes octets dans document.json, la même place, sa ressource ;
-    // les clés inconnues sont là.
+    // une forme, un objet « hologram » (type inconnu ; « equation » est connu depuis L0-S3) qui cite une
+    // image que rien d'autre ne cite, une ligne ; des clés inconnues sur la ligne, la page et le document.
+    // Ouvert, un trait ajouté, enregistré dans une autre archive, rouvert : l'objet inconnu a les mêmes
+    // octets dans document.json, la même place, sa ressource ; les clés inconnues sont là.
     void s31UnknownObjectSurvivesOpenEditAndSave()
     {
         const QByteArray png = richdoc::pngBytes();
@@ -557,7 +557,7 @@ private slots:
                                 {u"layer"_s, u"middle"_s},
                                 {u"shape"_s, u"rectangle"_s},
                                 {u"bounds"_s, QJsonArray{10, 10, 50, 50}}};
-        const QJsonObject unknown{{u"type"_s, u"equation"_s},
+        const QJsonObject unknown{{u"type"_s, u"hologram"_s},
                                   {u"id"_s, 2},
                                   {u"layer"_s, u"middle"_s},
                                   {u"transform"_s, QJsonArray{1, 0, 0, 1, 100, 100}},
@@ -590,7 +590,7 @@ private slots:
 
         formats::DecodeResult opened = formats::decodeActcraft(archive);
         QVERIFY2(opened.ok, qPrintable(opened.error));
-        QVERIFY2(opened.warnings.join(u' ').contains(u"equation"_s), qPrintable(opened.warnings.join(u'\n')));
+        QVERIFY2(opened.warnings.join(u' ').contains(u"hologram"_s), qPrintable(opened.warnings.join(u'\n')));
         QVERIFY(std::get_if<core::UnknownObject>(&opened.document.page(0).objects[1]));
         core::Stroke stroke;
         stroke.points = {{1, 1, 0.5f}, {20, 20, 0.5f}};
@@ -635,8 +635,8 @@ private slots:
     void unknownObjectsCountAgainstTheDocumentJsonLimit()
     {
         core::UnknownObject u;
-        u.type = "equation";
-        u.json = "{\"latex\":\"" + std::string(4096, 'x') + "\",\"type\":\"equation\"}";
+        u.type = "hologram";
+        u.json = "{\"latex\":\"" + std::string(4096, 'x') + "\",\"type\":\"hologram\"}";
         core::PageObject o = u;
         o.common.id = 1;
         core::Page p;
