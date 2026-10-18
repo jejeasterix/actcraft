@@ -151,7 +151,22 @@ L0-S3 rendue (`56ce4b8`, graphe `2bb5fac`). **Rejouée par l'orchestrateur à 23
 - Mutation `next = r - 0 * k` : `groupOfTwoTakesTheHigherRank` FAIL (1, 3, 5, 6). Remise par `git checkout --` : 12/12.
 - 113 tests listés, worktree propre, NOMS OK 392.
 - Merge en attente de la relecture adversariale statique (en cours).
-L10-T8 : preuve ciblée lancée sous le jeton à 23 h 24 (seule construction). En attente : L0-S4, L0-S6, L10-T8 (agent), fin de L10-C2, plan lot 6.
+L10-T8 : preuve ciblée lancée sous le jeton à 23 h 24 (seule construction).
+**L10-T8 terminée et mergée** (c6f9fe7 → merge d365a72). Preuve rejouée verte :
+- build 0 ; tst_pageview 53, tst_viewtransform 12, tst_renderbackend 9.
+- Mutation de l'ajustement : rouge (3072 au lieu de 3687), puis remise.
+- Captures en logiciel : anticrenelage (samples=1) et cache-differe OK. Capture anticrenelage OK en D3D11 (samples=4), sous le jeton `ecran`.
+- format OK, NOMS OK, titres 0 sur 144.
+- Graphe reconstruit par `--force` (bbea758), après refus de la garde anti-réduction : le graphe de base était pollué par des nœuds `document` d'autres worktrees. Perte : 7 nœuds `document` légitimes (CHANGELOG, plans, cadrage), à recréer par une extraction sémantique. Piège ajouté à `04_Pieges/rebase-du-graphe-graphify-noeuds-en-trop.md`.
+- Suite complète de la vague : à lancer par l'orchestrateur après le merge de L0-S3.
+L0-S3 : relecture adversariale « mergeable après correctifs ».
+- Défauts : 1 blocker (S31 de `tst_formats_nativefile` avec un type `"equation"` devenu connu), 1 majeur (pas de marge sur l'emprise de l'équation), 4 mineurs.
+- Correctifs `d45fbfd` (graphe `942d782`). Second rejeu en cours : 8 tests, mutation `++next`.
+Plans écrits, non relus :
+- lot 5 : 34 tâches, 5a et 5b (89c1673) ;
+- lot 6 : 38 tâches, 6a et 6b (809919b). H6-6 demande à Jérôme d'approuver le téléchargement de Hunspell et d'un dictionnaire, avant V12 du lot 6.
+Plan du lot 4 amendé en 860d7a0 (5 bloquants et 11 majeurs appliqués ; D6, D8, D17 et D18 renvoyés à L4-T0). Sa branche part d'avant f167eb9 : les titres qu'elle voit encore ne sont pas sur la branche du chantier.
+Relectures en cours : plan du lot 5 (tour 1), plan du lot 4 (tour 2), plan du lot 6 (tour 1). En attente : L0-S4, L0-S6, L10-T8 (agent), fin de L10-C2, plan lot 6.
 
 ## Tâches du socle commun L0-S (plan 9b13275, mergé 1ffb07b ; relecture tour 1 : 1 bloquant, 11 importants, tous appliqués ; tour 2 en cours)
 | id | dépend | titre | worktree | état | essais | commit | preuve rejouée |
