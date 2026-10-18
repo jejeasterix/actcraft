@@ -2866,10 +2866,9 @@ Jouée après la dernière vague, dans le worktree du chantier, sur `feat/livrai
 7. **Paquets** : `scripts/paquet.ps1` + `scripts/essai-installateur.ps1` (`PAQUET OK`, `INSTALLATEUR OK`,
    `--version : ActCraft 0.3.0`), `scripts/paquet-android.ps1` (`APK OK`, démon Gradle arrêté par PID).
 8. **Dépôt public** : `NOMS OK` ; `git grep -n "Private\|_p\.h" -- core formats actions render ui app` vide ;
-   titres du corpus absents du dépôt, **hors deux titres génériques déjà présents avant le lot** (« Boutons définis
-   par l'utilisateur », « Nouveau paperboard ») — sortie vide attendue :
+   titres du corpus absents du dépôt (les deux titres génériques autrefois exclus ont été retirés le 2026-10-18) — sortie vide attendue :
    ```powershell
-   pwsh -NoProfile -Command "`$exclus = @('Boutons définis par l''utilisateur', 'Nouveau paperboard'); Get-ChildItem 'C:\Users\JeromeDenis\REA - Activinspire\docs\videos-tanguay\*.md' -Exclude README.md | ForEach-Object { `$t = (Get-Content -LiteralPath `$_.FullName -TotalCount 5 -Encoding utf8 | Where-Object { `$_ -like '# *' } | Select-Object -First 1); if (`$t) { `$t = `$t.Substring(2).Trim(); if (`$exclus -notcontains `$t) { git -C 'C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete' grep -l -i -F -- `$t } } }"
+   pwsh -NoProfile -Command "`$exclus = @(); Get-ChildItem 'C:\Users\JeromeDenis\REA - Activinspire\docs\videos-tanguay\*.md' -Exclude README.md | ForEach-Object { `$t = (Get-Content -LiteralPath `$_.FullName -TotalCount 5 -Encoding utf8 | Where-Object { `$_ -like '# *' } | Select-Object -First 1); if (`$t) { `$t = `$t.Substring(2).Trim(); if (`$exclus -notcontains `$t) { git -C 'C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete' grep -l -i -F -- `$t } } }"
    ```
    (`-notcontains` ignore la casse ; une ligne affichée est un nom de fichier du dépôt qui contient un titre).
 9. **Graphe** : `graphify update .`, commit de `graphify-out/`.

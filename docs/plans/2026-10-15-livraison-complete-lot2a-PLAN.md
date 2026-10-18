@@ -2789,7 +2789,7 @@ d'icône nouvelle. Libellés écrits par nous (« paperboard » est un terme cou
   `file.quit` :
 
 ```json
-    { "id": "file.new", "label": "Nouveau paperboard", "shortcut": "Ctrl+N" },
+    { "id": "file.new", "label": "Créer un paperboard", "shortcut": "Ctrl+N" },
     { "id": "file.new-screen", "label": "Paperboard à la taille de l'écran" },
     { "id": "file.new-1024x768", "label": "Paperboard 1024 × 768" },
     { "id": "file.new-1152x864", "label": "Paperboard 1152 × 864" },
