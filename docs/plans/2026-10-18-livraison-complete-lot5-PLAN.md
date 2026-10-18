@@ -2,6 +2,33 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 2 (relecture tour 2)
+
+Relecture du tour 2 sur da1e999 : du tour 1, 14 défauts corrigés, 8 en partie, M8 non corrigé ; nouveaux : 2 bloquants,
+6 majeurs, 5 mineurs. Noms revérifiés en tête du chantier (`C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete`,
+cb2ad56, L0-S6 compris) : `render/include/actcraft/render/fixedpageitem.h` (`pendingCount` l. 31 et 77, `foldPending`
+l. 75, `setSource` l. 53), `render/src/fixedpageitem.cpp` (`m_pendingIds.clear()` l. 100 dans `restart`), `ui/src/pageview.cpp`
+(`m_refreshAgain` l. 285-305), `ui/include/actcraft/ui/pageview.h` (`fixedPage()` l. 76, `kCacheFoldIdleMs`, `cacheReady`),
+`.github/workflows/ci.yml` (matrice Windows et macOS, l. 38-44) ; `objectBar` et `objectBarAndContextMenu` ne sont pas
+encore dans le code (L0-S4 non mergée) : cités d'après le plan du socle (socle:811). Plans du lot 4 : désormais sur la
+branche du chantier (`docs/plans/2026-10-18-livraison-complete-lot4-PLAN.md`, `…-lot4b-PLAN.md`, b60826b).
+
+| # | Défaut | Changement |
+|---|---|---|
+| B-A | Jetons `>transform`, `>align`, `>arrange` d'`objectMenu` résolus par aucune règle | T1, étape 4 : règle écrite (un `>id` d'`objectMenu` désigne un sous-menu déclaré dans `menus`, erreur nommée s'il manque ; `unknownCommands` parcourt `objectMenu` sans les jetons) ; `ui::Commands::objectMenu` rendue comme `menus()` ; tests `objectMenuSubmenusResolve` et `objectMenuRenderedLikeMenus` ; `defaultLayoutMatchesLotOne` reste vert ; T18 lit `objectMenu` de `ui::Commands` |
+| B-D | `officeconvert.h` figé non amendé | annexe A : `Converter::pathsByEnvironment`, `Converter::scriptResource`, couture `ACTCRAFT_POWERSHELL` ; T29 : `pathsPassedByEnvironment` passe par la vraie voie PowerPoint (programme factice), `argumentsSubstituted` ne porte que sur les voies à remplacement |
+| M-B | `objectBarAndContextMenu` (5 éléments, socle:811) casse dès T1 | `tests/tst_ui_commands.cpp` ajouté à T1 (fichiers et preuve) : éléments d'avant le lot inchangés en tête, 6 du lot à la fin, `contextMenu` finit par `export.page-image` |
+| M-C / M8 | `hasPending()` inexistant ; `parkFoldsPendingFirst` ne pouvait pas être rouge (`setSource` → `restart` vide `m_pendingIds`) ; `switchRedrawsOnce` pouvait voir + 2 (`m_refreshAgain`) | décision **D21** de L5-T0 (ce que compte `cacheRefreshCount`, recommandation : redessins réellement lancés) ; T20 : test refait sur le vrai risque (aucun fantôme du trait en attente sur l'onglet d'arrivée, pixel contrôlé ; `fixedPage()->pendingCount()`), attente `kCacheFoldIdleMs` + 300 ms puis compte exact ; mutation déclarée |
+| M-E | 6 tests de captures sans garde de plateforme ni environnement | T33 : `tst_captures_imprimer` sous `if(ACTCRAFT_PRINT AND WIN32)`, `tst_captures_importer` sous `if(WIN32 AND ACTCRAFT_IMPORT_PDF)` avec `ACTCRAFT_OFFICE_CONVERTER` factice ; `tst_print_printer` sous `if(ACTCRAFT_PRINT)` (T1) ; N final par plateforme |
+| M-F | Scénario `edition` : `align.left` sur la seule copie | T18 : original et copie sélectionnés avant `align.left` ; moments des lectures fixés |
+| M-G | Qt Concurrent non lié ; résultat périmé du remplissage d'image | T1 lie `Qt6::Concurrent` à `actcraft_tools` et `actcraft_ui` ; T12 capture document, page, objet et révision, abandonne un résultat périmé ; test `staleImageFillDropped` |
+| M-H | Fenêtre de `refreshes_by_gesture` non définie | T19 : de la commande à la stabilité du cache (`kCacheFoldIdleMs` + 300 ms), aucun trait dans ces fenêtres |
+| m1 | T6 : interdit contraire à `TransformEachCommand` ; « 12 de plus » pour 11 | interdit reformulé ; « 11 fonctions de plus » (19 en tout) |
+| m2 | `transformEachIsOneStep` sans contrôle des `Changes` | un `ObjectChanged` par objet modifié, aucun sinon, zone = union avant / après |
+| m3 | 41,5 Mio faux ; unité de `memory_delta_mb` | 1920 × 1080 × 20 o ≈ 39,6 Mio ; 1 Mio = 2^20 o ; mesure = 4 onglets moins 1 onglet (T31) |
+| m4 | T12 : compte de fonctions et « (dont …) » doublé ; T18 oublie « Aligner » | 8 fonctions ; cellule de preuve réécrite ; sous-menus Transformer, Aligner et Organiser |
+| m5 | `DocumentTabs::view` sans signal | `NOTIFY viewChanged` (annexe A) |
+
 ## Amendement 1 (relecture tour 1)
 
 Relecture du tour 1 sur 89c1673 : 4 bloquants, 13 majeurs, 6 mineurs. Noms revérifiés contre la tête du chantier
@@ -67,7 +94,7 @@ verrouillage, masquage », 1 « Pages, fond, grille ») ; les symétries autour 
    peintre partagé (`render::paintPage`, DA5) sur un fil secondaire (5b).
 3. **Une seule `PageView` pour tous les onglets (5b).** Le cache MSAA coûte 36 octets par pixel (coffre
    `04_Pieges/qt-msaa-couche-36-octets-par-pixel-et-profondeur-2d-trop-tard.md`), ramené à **20 octets par pixel**
-   par L10-T8 : 1920 × 1080 × 20 ≈ 41,5 Mio par vue ; quatre onglets à une vue chacun ≈ 166 Mio. Les onglets garent leurs documents hors de la vue ; L5-T20 le
+   par L10-T8 : 1920 × 1080 × 20 o ≈ 39,6 Mio par vue ; quatre onglets à une vue chacun ≈ 158 Mio. Les onglets garent leurs documents hors de la vue ; L5-T20 le
    mesure (S8.5).
 4. **`export` est un mot réservé du C++.** Le module s'appelle `export/` (`actcraft_export`, en-têtes
    `<actcraft/export/…>`), son espace de noms `actcraft::exporting`.
@@ -88,8 +115,8 @@ font foi.
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
-| L5-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; décisions D1 à D20 ; API A1 à A21 revérifiées | — | `docs/verifications/2026-10-18-lot5-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot5.md`) | isolé | concepteur-critique | rapport commité, `NOMS OK` après `git add`, contrôle des titres du corpus sans sortie | S8.6 | #tache-l5-t0 |
-| L5-T1 | Réservation I : commandes, disposition, icônes, CMake (modules `export/` et `print/`), 26 tests enregistrés, en-têtes figés et talons des deux sous-lots | L5-T0 | `actions/data/commands.json`, `actions/data/layout.json`, `actions/include/actcraft/actions/layout.h`, `actions/src/layout.cpp` (liste `objectMenu`), `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp` (`objectMenu` exposé au QML comme `contextMenu`), `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp` (`setConnectorStyle` déclaré, corps talon), `tools/include/actcraft/tools/toolcontext.h` (champ `shapePoints` à la fin de `SelectionView`), `ui/icons/{couper,copier,coller,dupliquer,grouper,degrouper,organiser,aligner,transformer,verrouiller,masquer,glisser-copie,points-forme,pot-peinture,connecteur,modification-stylo,menu-objet,image,media,onglets,exporter,imprimer,importer}.svg`, `ui/CMakeLists.txt`, `CMakeLists.txt`, `core/CMakeLists.txt`, `formats/CMakeLists.txt`, `tools/CMakeLists.txt`, `export/CMakeLists.txt`, `print/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{core,formats,tools,ui}.cmake`, `tests/export.cmake`, `tests/print.cmake`, `core/include/actcraft/core/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.h`, `core/src/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.cpp`, `formats/include/actcraft/formats/clipboard.h`, `formats/src/clipboard.cpp`, `render/include/actcraft/render/imagefill.h`, `render/src/imagefill.cpp`, `tools/include/actcraft/tools/{filltool,penshapetool,connectortool}.h`, `tools/src/{filltool,penshapetool,connectortool}.cpp`, `export/include/actcraft/export/{pageexport,pdfexport,pdfimport,officeconvert}.h`, `export/src/{pageexport,pdfexport,pdfimport,officeconvert}.cpp`, `print/include/actcraft/print/printer.h`, `print/src/printer.cpp`, `ui/include/actcraft/ui/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.h`, `ui/src/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.cpp`, `ui/include/actcraft/ui/documentcontroller.h` (déclarations `parkSession` / `resumeSession` seulement), `ui/src/documentcontroller.cpp` (talons de ces deux membres seulement), 26 fichiers `tests/tst_*.cpp` de la carte, `tests/tst_actions_layout.cpp`, `core/include/actcraft/core/model.h` (champs `dragCopy`, `ConnectorCap`, `style`, `capA`, `capB`), `formats/src/nativejson.cpp` (ces champs), `tests/tst_formats_nativejson.cpp` | isolé | implementeur-tdd | build 0 avertissement ; `ctest -N` : N = N_départ + 26 ; `tst_actions_layout` Passed dont `lot5EntriesDeclared`, `objectMenuOrder` ; `tst_formats_nativejson` Passed dont `lot5FieldsRoundTrip` ; N_départ = 136 + n_B (n_B = tests apportés par la fusion du lot 7, ≥ 16) : tâche arrêtée sur un écart ; les 26 talons en SKIP nommant leur tâche ; `NOMS OK` | S8, S17 | #tache-l5-t1 |
+| L5-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; décisions D1 à D21 ; API A1 à A21 revérifiées | — | `docs/verifications/2026-10-18-lot5-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot5.md`) | isolé | concepteur-critique | rapport commité, `NOMS OK` après `git add`, contrôle des titres du corpus sans sortie | S8.6 | #tache-l5-t0 |
+| L5-T1 | Réservation I : commandes, disposition, icônes, CMake (modules `export/` et `print/`), 26 tests enregistrés, en-têtes figés et talons des deux sous-lots | L5-T0 | `actions/data/commands.json`, `actions/data/layout.json`, `actions/include/actcraft/actions/layout.h`, `actions/src/layout.cpp` (liste `objectMenu`), `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp` (`objectMenu` exposé au QML comme `contextMenu`), `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp` (`setConnectorStyle` déclaré, corps talon), `tools/include/actcraft/tools/toolcontext.h` (champ `shapePoints` à la fin de `SelectionView`), `ui/icons/{couper,copier,coller,dupliquer,grouper,degrouper,organiser,aligner,transformer,verrouiller,masquer,glisser-copie,points-forme,pot-peinture,connecteur,modification-stylo,menu-objet,image,media,onglets,exporter,imprimer,importer}.svg`, `ui/CMakeLists.txt`, `CMakeLists.txt`, `core/CMakeLists.txt`, `formats/CMakeLists.txt`, `tools/CMakeLists.txt`, `export/CMakeLists.txt`, `print/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{core,formats,tools,ui}.cmake`, `tests/export.cmake`, `tests/print.cmake`, `core/include/actcraft/core/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.h`, `core/src/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.cpp`, `formats/include/actcraft/formats/clipboard.h`, `formats/src/clipboard.cpp`, `render/include/actcraft/render/imagefill.h`, `render/src/imagefill.cpp`, `tools/include/actcraft/tools/{filltool,penshapetool,connectortool}.h`, `tools/src/{filltool,penshapetool,connectortool}.cpp`, `export/include/actcraft/export/{pageexport,pdfexport,pdfimport,officeconvert}.h`, `export/src/{pageexport,pdfexport,pdfimport,officeconvert}.cpp`, `print/include/actcraft/print/printer.h`, `print/src/printer.cpp`, `ui/include/actcraft/ui/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.h`, `ui/src/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.cpp`, `ui/include/actcraft/ui/documentcontroller.h` (déclarations `parkSession` / `resumeSession` seulement), `ui/src/documentcontroller.cpp` (talons de ces deux membres seulement), 26 fichiers `tests/tst_*.cpp` de la carte, `tests/tst_actions_layout.cpp`, `tests/tst_ui_commands.cpp` (`objectBarAndContextMenu` adapté, `objectMenuRenderedLikeMenus`), `core/include/actcraft/core/model.h` (champs `dragCopy`, `ConnectorCap`, `style`, `capA`, `capB`), `formats/src/nativejson.cpp` (ces champs), `tests/tst_formats_nativejson.cpp` | isolé | implementeur-tdd | build 0 avertissement ; `ctest -N` : N = N_départ + 26 ; `tst_actions_layout` Passed dont `lot5EntriesDeclared`, `objectMenuOrder`, `objectMenuSubmenusResolve`, et `defaultLayoutMatchesLotOne` toujours vert (`unknownCommands` vide) ; `tst_ui_commands` Passed dont `objectBarAndContextMenu` (éléments d'avant le lot 5 inchangés en tête, les 6 du lot à la fin) et `objectMenuRenderedLikeMenus` ; `tst_formats_nativejson` Passed dont `lot5FieldsRoundTrip` ; N_départ = 136 + n_B (n_B = tests apportés par la fusion du lot 7, ≥ 16) : tâche arrêtée sur un écart ; les 26 talons en SKIP nommant leur tâche ; `NOMS OK` | S8, S17 | #tache-l5-t1 |
 | L5-T2 | Réservation II : coquille QML (menu d'édition d'objet, barre d'objet complète, onglets, emplacements export, impression, import ; gestionnaires des commandes du lot) | L5-T1 | `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/ObjectBar.qml`, `ui/qml/TopBar.qml`, `ui/qml/{ObjectEditMenu,PenModifierBar,ConnectorPanel,DocumentTabBar,FileExchangeActions,PrintSetupDialog,SheetPreview}.qml` (neufs, talons), `ui/CMakeLists.txt` (bloc `QML_FILES` seulement), `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `tst_ui_shell` Passed dont `everyLot5CommandHasAHandler`, `lot5SlotsExist`, `shellLoadsWithoutQmlWarning` ; `premiers-pas` hors écran `CAPTURES OK` | S8 | #tache-l5-t2 |
 | L5-T3 | `formats` : presse-papiers d'objets (objets, ressources, groupes et connecteurs, sans perte) | L5-T0, L5-T1 | `formats/src/clipboard.cpp`, `formats/src/nativejson.cpp` (lecture et écriture d'un objet sorties de l'espace de noms anonyme), `formats/src/nativeobjects.h` (neuf, interne), `tests/tst_formats_clipboard.cpp` | isolé | concepteur-critique | `tst_formats_clipboard` Passed (dont `roundTripKeepsEveryKind`, `resourcesTravelWithObjects`, `groupMembersTravelTogether`, `foreignPayloadRejected`) ; mutation rouge puis remise | S8, S8.1 | #tache-l5-t3 |
 | L5-T5 | `core` : organiser (avancer, reculer, premier plan, arrière-plan, couches) et groupes (grouper, dégrouper, groupes de groupes) | L5-T0, L5-T1 | `core/src/arrange.cpp`, `tests/tst_core_arrange.cpp` | isolé | implementeur-tdd | `tst_core_arrange` Passed (dont `forwardSwapsOneStep`, `frontKeepsRelativeOrder`, `layerChangeLandsAboveTheOthers`, `groupingIsASingleStep`, `ungroupRestoresInnerGroups`, `reorderChangesSeenByCache`) | S8, S8.2 | #tache-l5-t5 |
@@ -102,7 +129,7 @@ font foi.
 | L5-T10 | `core` : connecteurs (points d'attache, accrochage à 20 px, suivi des objets dans toute commande qui les déplace) | L5-T0, L5-T1, L5-T4, L5-T5, L5-T6 | `core/src/connectors.cpp`, `tests/tst_core_connectors.cpp` | isolé | concepteur-critique | `tst_core_connectors` Passed (dont `attachPointsAreShapeVertices`, `endSnapsWithin20`, `connectorFollowsTransform`, `connectorFollowsAlign`, `undoRestoresConnectorAndObject`, `deletingAnEndDetaches`) ; mutation rouge puis remise | S8.4 | #tache-l5-t10 |
 | L5-T14 | `ui` : contrôleur d'édition d'objet (presse-papiers du système, couper, copier, coller, dupliquer, supprimer, tout sélectionner, grouper, organiser, aligner, transformer, bascules) | L5-T2, L5-T4, L5-T5, L5-T6, L5-T7, L5-T10, L5-T15 | `ui/src/objectediting.cpp`, `tests/tst_ui_objectediting.cpp` | isolé | implementeur-tdd | `tst_ui_objectediting` Passed (dont `copyPasteThroughSystemClipboard`, `pasteTextFromAnotherApp`, `pasteImageFromAnotherApp`, `withoutSelectionActsOnPage`, `groupThenUndoClearsSelection`, `alignGoesThroughTransformEachCommand`, `cutGoesThroughReplaceCommand`, `pasteHtmlLoadsNothing`) | S8, S8.1, S8.2 | #tache-l5-t14 |
 | L5-T15 | `ui` : insérer une image ou un média (fichier, glisser-déposer, décodage hors du fil principal) | L5-T2, L5-T4 | `ui/src/insertion.cpp`, `tests/tst_ui_insertion.cpp` | isolé | implementeur-tdd | `tst_ui_insertion` Passed (dont `imageFitsIn80PercentCentered`, `imageNamedAfterFile`, `decodeOffMainThread`, `mediaInsertedAtCenter`, `droppedTextBecomesText`, `droppedHtmlLoadsNothing`, `insertionIsOneStep`) | S8.1 | #tache-l5-t15 |
-| L5-T12 | `tools` : outils pot de peinture et modification de stylo | L5-T8, L5-T11 | `tools/src/filltool.cpp`, `tools/src/penshapetool.cpp`, `tests/tst_tools_fill.cpp`, `tests/tst_tools_penshape.cpp` | isolé | implementeur-tdd | `tst_tools_fill` (dont `clickFillsTopmostClosedShape`, `clickOnEmptyFillsBackground`) (dont `imageFillOffMainThread`) et `tst_tools_penshape` (dont `dragDrawsAPreviewThenOneStroke`, `previewUsesTheLiftSurface`) Passed | S8.3, S8.4 | #tache-l5-t12 |
+| L5-T12 | `tools` : outils pot de peinture et modification de stylo | L5-T8, L5-T11 | `tools/src/filltool.cpp`, `tools/src/penshapetool.cpp`, `tests/tst_tools_fill.cpp`, `tests/tst_tools_penshape.cpp` | isolé | implementeur-tdd | `tst_tools_fill` (dont `clickFillsTopmostClosedShape`, `clickOnEmptyFillsBackground`, `imageFillOffMainThread`, `staleImageFillDropped`) et `tst_tools_penshape` (dont `dragDrawsAPreviewThenOneStroke`, `previewUsesTheLiftSurface`) Passed | S8.3, S8.4 | #tache-l5-t12 |
 | L5-T13 | `tools` : outil connecteur (survol des points d'attache, tracé d'un objet à l'autre, une étape) | L5-T10 | `tools/src/connectortool.cpp`, `tests/tst_tools_connector.cpp` | isolé | implementeur-tdd | `tst_tools_connector` Passed (dont `hoverShowsAttachPoints`, `dragFromObjectToObjectConnects`, `releaseOnEmptyLeavesAFreeEnd`, `connectorLandsInTheUpperLayer`) | S8.4 | #tache-l5-t13 |
 | L5-T16 | `tools` : sélection — glisser une copie et édition des points de forme | L5-T4, L5-T7, L5-T9, L5-T10 | `tools/src/selecttool.cpp`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_selectcopy.cpp` | isolé | concepteur-critique | `tst_tools_selectcopy` Passed (dont `dragCopyLeavesTheOriginal`, `dragCopyIsOneStep`, `lockedMovesOnlyByMoveHandle`, `shapePointsModeShowsSquares`, `shapePointDragIsOneStep`) ; `tst_tools_select` (lot 3) encore vert | S8.3 | #tache-l5-t16 |
 | L5-T17 | `ui::ToolHost` : outils du lot branchés (pot de peinture, connecteur, modification de stylo, mode points de forme) et mémoire par outil | L5-T12, L5-T13, L5-T16 | `ui/src/toolhost.cpp`, `ui/src/tooladapters.cpp`, `ui/src/tooladapters.h`, `tests/tst_ui_lot5tools.cpp` | isolé | implementeur-tdd | `tst_ui_lot5tools` Passed (dont `fillToolActivatesFromCommand`, `penModifierOnlyWithInkTools`, `connectorRemembersStyle`, `escapeLeavesShapePoints`) ; banc hors écran joint | S8.3, S8.4 | #tache-l5-t17 |
@@ -187,6 +214,7 @@ Recoupements vérifiés (colonne « fichiers touchés ») :
 | D17 | Impression (5b) | règle du nombre de feuilles (S17) ; notes ; page allongée entière ; gris ; aperçu ; réglages gardés (F-670, amendement § 2.2) |
 | D18 | PowerPoint en images (5b) | une diapositive = une page, en image de fond, par la chaîne de D16 |
 | D19 | Insérer une image ou un média | au plus 80 % de la page, centrée, couche intermédiaire, nommée d'après le fichier (`view.py:762-778`) ; média au centre (F-129) |
+| D21 | Ce que compte `cacheRefreshCount` (A18) | **recommandation** : le nombre de redessins réellement lancés, c'est-à-dire d'émissions de `PageView::cacheRefreshRequested`, relance de `m_refreshAgain` comprise (`ui/src/pageview.cpp:291-305`) — le coût réel ; les tests et le banc attendent la stabilité (`cacheReady` et `kCacheFoldIdleMs` + 300 ms sans redessin) et ne demandent jamais un redessin pendant un autre, pour un compte exact. Autre choix possible : le nombre de demandes. L5-T0 tranche et fixe le nom de la propriété ; L5-T19, L5-T20 et L5-T31 s'y conforment |
 | D20 | Menu d'édition d'objet | entrées et ordre de F-770 pour les fonctions livrées (lots 3 à 5, 7) ; entrées des lots 6 et 8 absentes jusqu'à leur lot |
 
 ## Carte des fichiers
@@ -284,7 +312,7 @@ ligne `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
   (seuil de L5-T31) ; pages glissées d'un onglet à l'autre copiées avant la première page ; fermer un onglet modifié
   demande l'enregistrement.
 - **S8.6 — Ouverture.** Le rapport `docs/verifications/2026-10-18-lot5-principes.md` relie chaque constat du corpus
-  affecté au lot à une exigence, une tâche et un scénario (ou une raison), et rend D1 à D20 et A1 à A21.
+  affecté au lot à une exigence, une tâche et un scénario (ou une raison), et rend D1 à D21 et A1 à A21.
 
 ## Écarts au cadrage (repris à la porte de fin du lot 5)
 
@@ -312,7 +340,8 @@ fonctions du lot (presse-papiers, dupliquer, groupes, organiser, couches, aligne
 points de forme, pot de peinture, connecteur, modification de stylo, verrouiller, masquer, glisser une copie, onglets,
 insérer une image ou un média, export, import PDF, impression, PowerPoint en images), plus les **5 constats** affectés
 au lot 5 par le tableau du § 4 de l'amendement ; trancher sur la 3.5.18 par REA ; écrire en nos mots les exigences,
-les **décisions D1 à D20** (table ci-dessus, dont l'alignement d'un objet seul en D6), puis **revérifier les API A1 à A21** contre le code livré par L0-S et
+les **décisions D1 à D21** (table ci-dessus, dont l'alignement d'un objet seul en D6 et le compte de
+`cacheRefreshCount` en D21), puis **revérifier les API A1 à A21** contre le code livré par L0-S et
 les lots 3, 4 et 7.
 
 **Sources.**
@@ -356,7 +385,7 @@ paperboard réel. Aucune ligne de code. Ne modifier ni `samples/` ni le corpus. 
 annonce. Ne pas toucher au fichier d'état.
 
 **Terminé quand.** Le rapport a : une ligne par constat (principe → exigence en nos mots → tâche du lot 5 → scénario,
-ou raison et lot destinataire) ; une section « Décisions » D1 à D20 (valeur retenue et source, ou « non tranché » →
+ou raison et lot destinataire) ; une section « Décisions » D1 à D21 (valeur retenue et source, ou « non tranché » →
 hypothèse de niveau 1) ; une section « API » A1 à A21 (« conforme » ou écart précis : nom réel, fichier:ligne) ; une
 section « Amendements du plan » (tâche, fichier, changement) que l'orchestrateur applique avant V2 ; `NOMS OK` ;
 titres du corpus sans sortie.
@@ -367,7 +396,7 @@ titres du corpus sans sortie.
   chaque fiche citée ; noter dans `lot5.md` (hors dépôt) le principe, la fiche, la fonction du lot.
 - [ ] **Étape 2 : spécification et ancien dépôt.** Pour chaque exigence du lot, relever le comportement de l'ancien
   dépôt (fichiers des Sources) et l'accord avec la spécification ; noter les écarts.
-- [ ] **Étape 3 : REA en statique.** Pour D1 à D20, chercher dans le binaire les chaînes et valeurs par défaut
+- [ ] **Étape 3 : REA en statique.** Pour D1 à D21, chercher dans le binaire les chaînes et valeurs par défaut
   (raccourcis, ordre du menu d'objet, styles de connecteur, liste des tracés de modification de stylo, boîte
   d'impression : champs et valeurs par défaut, formats d'export de page). Relevé brut dans `lot5.md`.
 - [ ] **Étape 4 : API.** Lancer les requêtes `graphify` des Sources dans le worktree ; ouvrir chaque en-tête ;
@@ -546,9 +575,13 @@ propre ; `NOMS OK`.
                  "object.drag-copy", "-", "recognition.convert-to-text", "recognition.convert-to-shape"]
   ```
   Le menu contextuel de la page (`contextMenu`, F-771) reçoit `export.page-image` à la suite de ses entrées.
-  `objectMenu` est ajouté à `Layout` (`layout.h`) à côté de `contextMenu`, lu par la même règle (`layout.cpp` :
-  tableau de chaînes facultatif ; `unknownCommands` le parcourt) et exposé au QML par `ui::Commands` comme
-  `contextMenu` (`commands.h`, `commands.cpp`). Tests rouges puis verts dans
+  `objectMenu` est ajouté à `Layout` (`layout.h`) à côté de `contextMenu` : tableau de chaînes facultatif
+  (`layout.cpp`). **Règle des jetons** : dans `objectMenu`, un jeton `">id"` désigne le sous-menu `id` déjà déclaré
+  dans `menus` (cherché parmi les sous-menus de tous les menus) ; s'il n'existe pas, erreur « objectMenu : sous-menu
+  <id> inconnu » ; `unknownCommands` parcourt `objectMenu` (séparateurs `-` et jetons `>` exclus, les commandes des
+  sous-menus désignés étant déjà parcourues dans `menus`). `ui::Commands` (`commands.h`, `commands.cpp`) ajoute
+  `Q_PROPERTY(QVariantList objectMenu READ objectMenu CONSTANT)`, **rendue comme `menus()`** : chaque jeton `>id`
+  devient une entrée de sous-menu portant ses éléments (pas une simple liste de chaînes comme `contextMenu`). Tests rouges puis verts dans
   `tests/tst_actions_layout.cpp` (fabriques de registre et de disposition : celles du test existant) :
   ```cpp
   static const QStringList kLot5{
@@ -590,7 +623,23 @@ propre ; `NOMS OK`.
       QCOMPARE(layout.objectMenu, expected);
   }
   ```
-  `kLot5` est aussi la liste de L5-T2 (même ordre).
+  `kLot5` est aussi la liste de L5-T2 (même ordre). Et, dans le même fichier :
+  ```cpp
+  void TestLayout::objectMenuSubmenusResolve()
+  {
+      const auto layout = loadLayout();
+      QVERIFY(layout.unknownCommands(loadRegistry()).isEmpty()); // aucun jeton ">…" pris pour une commande
+      QCOMPARE(submenuItems(layout, "transform").size(), 13); // séparateurs compris
+      QCOMPARE(submenuItems(layout, "align").size(), 10);
+      QCOMPARE(submenuItems(layout, "arrange").size(), 8);
+      QVERIFY(!loadLayoutFrom(R"({"menus": [], "objectMenu": [">absent"]})").ok()); // erreur nommée
+  }
+  ```
+  (`submenuItems`, `loadLayoutFrom` : aides du test du socle, P3:524-568, à revérifier.) Dans
+  `tests/tst_ui_commands.cpp` : `objectBarAndContextMenu` (socle:811) passe de « 5 éléments » à « les éléments posés
+  avant le lot 5 inchangés en tête, puis `object.menu`, `object.group`, `arrange.front`, `arrange.back`,
+  `edit.duplicate`, `object.shape-points` », et `contextMenu` finit par `export.page-image` ; nouvelle fonction
+  `objectMenuRenderedLikeMenus` (l'entrée `>transform` de `objectMenu` porte 13 éléments, comme dans `menus()`).
 - [ ] **Étape 5 : icônes.** 23 SVG à nous sur la grille de 24 px, dans le style du jeu du lot 1 (traits de 2 px,
   `currentColor`), noms de la ligne de la table ; ajoutés au bloc `RESOURCES` de `ui/CMakeLists.txt`. Le test du
   thème du lot 1 (`iconsAreOurSvgOnA24Grid`) les couvre s'il tire ses données du dossier ; sinon ajouter les 23 lignes
@@ -606,7 +655,9 @@ propre ; `NOMS OK`.
   officeconvert}.cpp`, liens `actcraft_render actcraft_formats actcraft_core Qt6::Gui Qt6::Concurrent` (si
   `Qt6::Concurrent` n'est pas déjà trouvé par la racine, l'ajouter au `find_package` de la racine) ; `print` =
   `src/printer.cpp`, liens `actcraft_render actcraft_core Qt6::Gui` (Qt PrintSupport ajouté par L5-T27) ; `ui` lie
-  `actcraft_export` et `actcraft_print`. Les sources neuves de `core/`, `formats/`, `render/`, `tools/`, `ui/` entrent
+  `actcraft_export` et `actcraft_print` ; `Qt6::Concurrent` est lié à `actcraft_tools` et à `actcraft_ui` (remplissage
+  d'image et insertion hors du fil principal, L5-T12, L5-T15) ; dans `tests/print.cmake`, `tst_print_printer` n'est
+  déclaré que `if(ACTCRAFT_PRINT)`. Les sources neuves de `core/`, `formats/`, `render/`, `tools/`, `ui/` entrent
   dans leurs listes. `tests/export.cmake` et `tests/print.cmake` inclus par `tests/CMakeLists.txt` ; les 26 tests
   déclarés par `actcraft_add_test` dans le `.cmake` de leur module.
 - [ ] **Étape 7 : en-têtes figés.** Écrire mot pour mot les en-têtes de l'annexe A (fin de ce plan), dans l'ordre :
@@ -1086,9 +1137,12 @@ restant, même gabarit, avec ces attendus (a = {100, 10, 50, 50} créé d'abord,
 x de b = 200 ; `Right` → bord droit de a = 320 ; `Top` → haut de b = 10 ; `CenterY` → centre y de a = 70 ; `Bottom` →
 bas de a = 100 ; `Height` → hauteur de b = 50, haut gardé (80) ; `Angle` (a tourné de 30°) → angle de b = 30 ; `All` →
 b = taille, angle et centre de a ; ajustement `Height` (objet de 300 × 1536) → hauteur 768, largeur 150 ; `Page`
-(2048 × 1536) → 1024 × 768 ; `OriginalSize` (a agrandi de 2) → 50 × 50, centre gardé — 12 fonctions de plus.
+(2048 × 1536) → 1024 × 768 ; `OriginalSize` (a agrandi de 2) → 50 × 50, centre gardé — 11 fonctions de plus
+(7 + 1 + 11 = 19). `transformEachIsOneStep` contrôle aussi les `Changes` : un `ObjectChanged` par objet modifié, aucun
+pour un objet de la liste dont la transformation ne change pas, zone de chacun = union de ses emprises avant et après.
 
-**Interdits.** Aucune commande dans ce fichier (fonctions pures) ; aucune dépendance à l'interface.
+**Interdits.** Une seule commande dans ce fichier, `TransformEachCommand` ; les autres fonctions sont pures ; aucune
+dépendance à l'interface.
 
 **Terminé quand.** 19 fonctions en `PASS` ; commit « Lot 5 : aligner, ajuster, projeter, inverser (core) ».
 
@@ -1605,11 +1659,14 @@ convertie en page, puis `makeFillCommand` ou, sur une image, `render::floodFill`
 `clickOnImageFloodFills`, `dragDrawsAPreviewThenOneStroke` (un seul `execute` au relâché), `previewUsesTheLiftSurface`
 (`show` appelé pendant le geste, `clear` au relâché, aucun `execute` avant), `polylineEndsOnDoubleClick`,
 `imageFillOffMainThread` (le remplissage d'image tourne par `QtConcurrent::run` ; la commande est poussée au retour sur
-le fil principal ; fil relevé par un crochet de test).
+le fil principal ; fil relevé par un crochet de test), `staleImageFillDropped` (le calcul capture le document, la page,
+l'objet et la révision — index de la pile d'annulation et clé de ressource de l'image, A1/A5 ; si l'un a changé au
+retour — changement de page ou d'onglet, annulation, objet retiré —, le résultat est abandonné sans commande).
+`Qt6::Concurrent` est lié à `actcraft_tools` par L5-T1.
 
 **Interdits.** Aucun accès au document hors de `ToolContext` ; aucune commande pendant le geste.
 
-**Terminé quand.** Les deux tests `Passed` (6 fonctions en `PASS`) ; banc sans écran joint ; commit « Lot 5 : outils
+**Terminé quand.** Les deux tests `Passed` (8 fonctions en `PASS`) ; banc sans écran joint ; commit « Lot 5 : outils
 pot de peinture et modification de stylo ».
 
 **Étapes.** Tests rouges → `FillTool` → `PenShapeTool` → vert → banc → format → commit.
@@ -1699,8 +1756,8 @@ de dépôt par `core::withFollowingConnectors` (L5-T10) ; Échap quitte le mode 
 
 <a id="tache-l5-t18"></a>
 
-**Objectif.** Remplir `ObjectEditMenu.qml` (liste `objectMenu` de la disposition, A12 ; sous-menus Transformer et
-Organiser ; entrées « Convertir » visibles seulement si `appEditing.selectionIsAnnotation`, et « Convertir en texte »
+**Objectif.** Remplir `ObjectEditMenu.qml` (propriété `objectMenu` de `ui::Commands`, rendue comme `menus()` ;
+sous-menus Transformer, Aligner et Organiser ; entrées « Convertir » visibles seulement si `appEditing.selectionIsAnnotation`, et « Convertir en texte »
 seulement sous Windows ; bascules cochées selon `selectionLocked`, `selectionIsGroup`, `selectionHidden`,
 `selectionDragCopy` ; ouvert par `object.menu`, par le bouton de la barre d'objet et par le clic droit sur un objet),
 les boutons du lot dans `ObjectBar.qml` (actifs), `PenModifierBar.qml` (barre verticale à côté de la palette, un bouton
@@ -1714,12 +1771,15 @@ tâche de V8 : **fichier ajouté à cette tâche**.
 **Test et commande bornée.** `tst_ui_shell` : `objectMenuMatchesLayout` (entrées du menu = `objectMenu` filtrée par
 plateforme), `convertEntriesOnlyForAnnotations`. Commande ciblée, motif `^(tst_ui_shell)$`.
 
-**Preuve visuelle.** Scénario `edition` (pas : poser trois formes par `tool.shape`, sélectionner, `object.group`,
-`edit.duplicate`, `align.left`, `arrange.front`, `object.lock`, glissement refusé, `tool.fill` dans une forme,
-`object.shape-points`, glisser un point, `tool.connector` entre deux formes, déplacer l'une). Lectures d'abord :
+**Preuve visuelle.** Scénario `edition`, pas dans l'ordre : poser trois formes par `tool.shape` ; les sélectionner par
+un rectangle ; `object.group` ; `edit.duplicate` (seule la copie est sélectionnée, D2) ; **sélectionner l'original et la
+copie** par un rectangle qui les touche tous deux ; `align.left` (deux objets) ; **lectures `LU` à ce moment**
+(`appEditing.selectionIsGroup=false`, deux objets sélectionnés) ; `arrange.front` ; `object.lock` sur le groupe d'origine,
+glissement refusé ; `tool.fill` dans une forme ; `object.shape-points`, glisser un point ; `tool.connector` entre deux
+formes, déplacer l'une ; `object.menu` sur le groupe copie, **lecture du menu à ce moment**. Lectures :
 ```powershell
 New-Item -ItemType Directory -Force '<wt>/.tmp' | Out-Null
-pwsh -NoProfile -Command "Set-Location '<wt>'; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario edition -Rendu logiciel -HorsEcran -Sortie .tmp/captures-edition -Lire 'appEditing.selectionIsGroup=true' -Lire 'appDocument.canUndo=true' -Lire 'objectEditMenu.visibleCommandCount=13' > .tmp/captures.txt 2>&1"
+pwsh -NoProfile -Command "Set-Location '<wt>'; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario edition -Rendu logiciel -HorsEcran -Sortie .tmp/captures-edition -Lire 'appDocument.canUndo=true' -Lire 'objectEditMenu.visibleCommandCount=13' > .tmp/captures.txt 2>&1"
 Select-String -Path '<wt>/.tmp/captures.txt' -Pattern '^(COMMANDE|TRAIT|TOUCHE|ATTENTE|PRET|FENETRE|LU|PIXEL|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16
 ```
 `visibleCommandCount` (propriété du menu, entrées visibles hors séparateurs) vaut 13 pour un groupe sous Windows :
@@ -1744,7 +1804,10 @@ le document (tout passe par les commandes).
 aligner, organiser (premier plan), pendant qu'un trait est écrit toutes les 2 s ; relever figements et reprises
 (métriques existantes) et, **par geste**, le nombre de redessins du cache : nouvelle clé du JSON
 `edition.refreshes_by_gesture` = `{"paste": n, "group": n, "align": n, "front": n}` (différence de `cacheRefreshCount`,
-A18, autour de chaque geste ; `cache.refreshes` reste le total). Attendu : chaque valeur ≤ 1. Il mesure la limite
+A18 ; ce qu'il compte : décision D21 de L5-T0). **Fenêtre de mesure** d'un geste : de l'envoi de sa commande jusqu'à la
+stabilité du cache (`cacheReady` vrai et aucun redessin pendant `ui::kCacheFoldIdleMs` + 300 ms) ; aucun trait n'est
+écrit pendant ces fenêtres (les traits du scénario tombent entre elles) ; `cache.refreshes` reste le total. Attendu :
+chaque valeur ≤ 1. Il mesure la limite
 déclarée (contrainte 1 : organiser = insertion hors fin de page → redessin immédiat).
 
 **Fichiers.** Ceux de la ligne de la table.
@@ -2293,10 +2356,17 @@ namespace actcraft::exporting {
 struct Converter
 {
     QString program;
-    QStringList arguments; // {in} (présentation), {out} (PDF attendu) et {outdir} (dossier de {out}) remplacés
+    // Sans pathsByEnvironment : {in} (présentation), {out} (PDF attendu) et {outdir} (dossier de {out}) remplacés.
+    // Avec : aucun remplacement ; les chemins passent par ACTCRAFT_CONVERT_IN et ACTCRAFT_CONVERT_OUT.
+    QStringList arguments;
     QString name;
+    bool pathsByEnvironment = false; // vrai pour PowerPoint
+    QString scriptResource;          // ressource Qt copiée dans le dossier temporaire puis passée par -File (PowerPoint)
 };
-// ACTCRAFT_OFFICE_CONVERTER (programme puis arguments séparés par « | »), puis LibreOffice, puis PowerPoint.
+// Ordre : ACTCRAFT_OFFICE_CONVERTER (programme puis arguments séparés par « | », remplacement des chemins), puis
+// LibreOffice (`soffice`), puis PowerPoint (`powershell.exe`, ou le programme nommé par ACTCRAFT_POWERSHELL :
+// couture de test, un programme factice qui écrit son environnement ; pathsByEnvironment vrai,
+// scriptResource = ":/actcraft/export/pptx-to-pdf.ps1").
 std::optional<Converter> findConverter();
 struct ConvertResult
 {
@@ -2415,12 +2485,12 @@ private:
 - `documenttabs.h` — `DocumentTabs : QAbstractListModel` : propriétés `document` (`DocumentController*`),
   `count` (`Q_PROPERTY(int count READ rowCount NOTIFY countChanged)`, `rowCount(const QModelIndex& parent = {})`),
   `view` (`PageView*`, lu et écrit : la vue unique, dont la demande de redessin verse la couche d'attente avant un
-  garage),
+  garage ; `NOTIFY viewChanged`),
   `currentIndex` (lecture), `position` (« top », « bottom », « hidden », lu et écrit) ; rôles `TitleRole`,
   `ModifiedRole`, `CurrentRole`, `UrlRole` ; `Q_INVOKABLE void newTab()`, `openInNewTab(const QUrl&)`,
   `activate(int)`, `bool requestClose(int)` (faux : `saveRequested(int)` émis), `closeWithoutSaving(int)`,
   `copyPagesToTab(const QVariantList& pageIndexes, int tabIndex)` (F-011 : avant la première page), `next()`,
-  `previous()` ; signaux `documentChanged`, `countChanged`, `currentIndexChanged`, `positionChanged`, `saveRequested(int)`.
+  `previous()` ; signaux `documentChanged`, `countChanged`, `viewChanged`, `currentIndexChanged`, `positionChanged`, `saveRequested(int)`.
 - `fileexchange.h` — `FileExchange` : propriétés `document`, `tabs` (`DocumentTabs*`), `busy`, `pdfImportAvailable`
   (constante), `powerpointAvailable` (`NOTIFY converterChanged`) ; `Q_INVOKABLE void exportPdf(const QUrl&)`,
   `exportPageImage(const QUrl&)`, `importPdf(const QUrl&)`, `importPowerpointImages(const QUrl&)`,
@@ -2455,7 +2525,7 @@ Corps talons dans `documentcontroller.cpp` : `struct ParkedSession {};`, `parkSe
   livré, Windows seulement ; Android : commande absente.
 - **H5-4** (N2) — Pot de peinture sur l'intersection de formes : forme du dessus remplie tant que L5-T0 ne l'a pas
   tranché.
-- **H5-5** (N2) — Une seule vue pour tous les onglets (cache à 20 o/px depuis L10-T8, ≈ 41,5 Mio par vue en
+- **H5-5** (N2) — Une seule vue pour tous les onglets (cache à 20 o/px depuis L10-T8, ≈ 39,6 Mio par vue en
   1920 × 1080) : changer d'onglet redessine le cache une fois.
 - **H5-6** (N2) — Organiser (avancer, reculer) garde le redessin immédiat du cache (insertion hors fin de page, lot 10) :
   mesuré par le banc `edition`.
