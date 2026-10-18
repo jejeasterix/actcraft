@@ -174,7 +174,15 @@ Relectures rendues :
 **L0-S3 mergée** (be2e5de, graphe a390e33).
 - Conflit du graphe résolu avec `--ours` (graphe propre du chantier), puis `graphify update .` : 4 163 nœuds, sans refus.
 - **Règle désormais** : au merge d'une tâche, garder `graphify-out/` du chantier, puis mettre à jour. Ne jamais prendre la version de la branche : l'union du pilote de fusion réintroduit des nœuds périmés.
-Plan du lot 4 amendé une deuxième fois (12bf522) ; tour 3 de relecture en cours.
+Plan du lot 4 amendé une deuxième fois (12bf522). Tour 3 de relecture, le dernier (compteur 3/3) :
+- 10 corrigés sur 13, 3 partiels.
+- 1 majeur neuf : M1, le test `editingLoadsNoExternalResource` ne peut pas passer à cause du DOCTYPE `http`. Correction de deux lignes.
+- 6 mineurs.
+Amendement 3 confié au planificateur. **Acceptation conditionnelle** : je contrôle moi-même le texte de M1 ; il n'y aura pas de tour 4.
+**À transmettre à L0-S4** (2 points des relectures du lot 4) :
+- `defaultLayoutMatchesLotOne` compare la liste exacte des groupes de palette : l'amender si le socle ajoute `edition` et `presentation`.
+- Le test `contextMenuRead` du plan du socle (`socle:720-727`) écrit `actions::Layout` et `actions::parseLayout`. Ces noms ne se résolvent pas dans `tst_actions_layout.cpp` (`using namespace actcraft::actions;`).
+Plan du lot 5 amendé (da1e999 : 34 tâches, 16 vagues, H5-7 à H5-10). Tour 2 de relecture en cours.
 Relecture du plan du lot 6, tour 1 : 1 bloquant, 15 majeurs. Rapport : `scratchpad/revue-plan-lot6.md`. Amendement 1 en cours.
 **Nouvelle question pour Jérôme, H6-6b** : licence de Hunspell, MPL 1.1 (recommandé) ou LGPL en lien dynamique ; la décision 34 dit « LGPL, liés dynamiquement ». Elle n'est nécessaire qu'à V12 du lot 6.
 L0-S6 relancé (seul constructeur) : fusion de la tête du chantier d'abord, à cause de `/we4062` et d'`Equation`. Suite complète de V1 après le merge de L0-S6.
