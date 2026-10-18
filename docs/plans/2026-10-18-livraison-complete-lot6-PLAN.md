@@ -2,6 +2,34 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 2 (relecture tour 2)
+
+Relecture sur `c2d6796` : 19 défauts sur 24 corrigés, 4 en partie (repris ici), le n° 16 ouvert (décision de Jérôme
+H6-6b) ; nouveaux : 1 bloquant, 3 majeurs, 12 mineurs, tous appliqués. **Cet amendement fait autorité**, puis
+l'amendement 1, puis le texte d'origine ; chaque section touchée porte un bloc « Amendement 2 ». Noms vérifiés à la
+tête du chantier (`eb003f7` : `app/startup.h`, `app/startup.cpp`, `ui/qml/Main.qml:56-57` où `appCommands` est une
+instance QML, `bench/captures/main.cpp`, `bench/app/main.cpp`, `bench/src/uiscenario.cpp`) et à la tête du plan du
+lot 5 (`5350a99` : noms de A9 et A10 inchangés).
+
+| # | Constat | Correction | Où |
+|---|---|---|---|
+| B1 | les instances QML ne lient pas `commands` aux contrôleurs : le verrou n'agit pas dans l'application | chaque instance reçoit `commands: appCommands` et, s'il en a une, `contactActive: pageView.contactActive` ; **fermé par défaut** : un contrôleur dont `commands` est nul refuse toute modification (test `refusedWithoutCommands` par contrôleur) ; test `lot6ControllersWired` dans `tst_ui_shell` | L6-T9, L6-T12 à L6-T16, L6-T18, L6-T20, L6-T21, L6-T37 |
+| M1 | `Preferences` et `ProfileController` créés dans `app/main.cpp`, alors que `appCommands` est une instance QML et que le joueur, le banc et `tst_app_open` passent par `loadMainWindow` | les deux sont **créables en QML** et instanciés dans `Main.qml` à côté de `appCommands` (`Preferences { id: appPreferences }`, `ProfileController { id: appProfile; commands: appCommands; preferences: appPreferences }`) ; `app/main.cpp` retiré de L6-T5 ; test `createdFromQml` | L6-T5, L6-T23, L6-T36 |
+| M2 | marqueur de `profile.activate` sans propriétaire | `tests/tst_ui_shell.cpp` donné à L6-T5, qui retire l'exclusion | L6-T2, L6-T5 |
+| M3 | « six fichiers » faux | fichiers nommés, non comptés | L6-T5 |
+| m1 | sauts de ligne manquants | corrigés | vagues, H6-7 |
+| m2 | séquence de `ownStateSurvivesTheLock` contradictoire | réécrite en quatre temps | L6-T3 |
+| m3 | « ne pas modifier `commands.*` » | rayé | L6-T5 |
+| m4 | « huit fonctions » au lieu de onze | « les fonctions de la ligne de la table » | L6-T29, L6-T31 |
+| m5 | éditeurs actifs sous verrou | propriété `editable` (faux sans `commands` ou sous verrou, suit `Commands::stateChanged`) ; `readOnly: !appProperties.editable`, `readOnly: !appNotes.editable` ; test `editableFollowsTheLock` | L6-T12, L6-T13, L6-T16 |
+| m6 | réglages d'essai | joueur et banc : `setOrganizationName("ActCraft")` ; preuve par le fichier INI sous `<sortie>/reglages` (`Get-ChildItem -Recurse`) ; dossier du banc : `<dossier des résultats>/reglages` | L6-T5, L6-T18, L6-T37 |
+| m7 | `namesAreOurs` | variable posée par l'orchestrateur, `PASS   : TstUiProfiles::namesAreOurs()` exigé ; `trimmed()` sur chaque ligne | L6-T6 |
+| m8 | tableau des paramètres | `QJsonArray::fromStringList(arguments)` | L6-T29 |
+| m9 | A6, L6-T16 | A6 : « ou l'état retenu par L4-T17, relevé par L6-T0 » ; L6-T16 lie `contactActive` | table A, L6-T16 |
+| m10 | notices de l'option MPL | `THIRD_PARTY_NOTICES.md` livré dans l'installateur et l'APK, contrôlé | L6-T32 |
+| m11 | déverrouillage asynchrone | étape `waitFor` après chaque saisie du mot de passe | L6-T31 |
+| m12 | `importRejectsPathId` incomplet | contrôle des entrées (`QDir::AllEntries` et `QDir::NoDotAndDotDot`) du dossier utilisateur et de son parent | L6-T4 |
+
 ## Amendement 1 (relecture tour 1)
 
 Relecture du plan sur `809919b` : 1 bloquant, 15 majeurs, 8 mineurs, tous appliqués dans 6a et 6b. **Cet amendement
@@ -82,20 +110,20 @@ mandataire, Test), CMake + Ninja, MSVC 2022, PowerShell 7. Bibliothèque tierce 
 | L6-T2 | Coquille QML du lot : emplacements de la palette, de la barre de raccourcis, des quatre navigateurs, des fenêtres du lot ; gestionnaires des commandes | L6-T1 | `ui/qml/Main.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/BrowserPanel.qml`, `ui/qml/TopBar.qml`, `ui/qml/{PaletteFrame,ShortcutBar,ExtendedColors,ColorLoupe,ObjectBrowser,PropertyBrowser,PropertyEditor,NotesBrowser,ResourceBrowser,LabelTip,Dashboard,ProfileChooser,ProfileEditor,FormatPage,CommandsPage,LaunchersPage,SettingsPage,NetworkPage,ClassroomLockDialog,SpellingDialog,HelpViewer,SaveSummaryDialog}.qml`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N6 + 43, `tst_ui_shell` (dont `lot6ShellPlaceholders`, `everyLot6CommandHasAHandler`, `browserTabsInOrder`) Passed ; `premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S9 | #tache-l6-t2 |
 | L6-T3 | `actions` : attributs `lockable` et `restrictable`, porte du verrou dans le registre ; remplis pour toutes les commandes présentes (lots 1 à 5, 7, socle) | L6-T1 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `actions/data/commands.json`, `tests/tst_actions_lockable.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_actions_lockable` Passed (dont `attributesRead`, `lockGreysOnlyLockable`, `lockedTriggerCallsNothing`, `enableCannotBypassTheLock`, `everyCommandDeclaresBoth`, `fileAndQuitStayFree`, `ownStateSurvivesTheLock`), `tst_actions_registry` Passed ; mutation de la porte (`isEnabled` sans le verrou) rouge puis remise | S19 | #tache-l6-t3 |
 | L6-T4 | `actions` : modèle de profil `actcraft-profile/1` et magasin (fournis, utilisateur, enregistrer sous, supprimer, réinitialiser, exporter, importer) | L6-T1 | `actions/include/actcraft/actions/profile.h`, `actions/src/profile.cpp`, `actions/include/actcraft/actions/profilestore.h`, `actions/src/profilestore.cpp`, `tests/tst_actions_profile.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_actions_profile` Passed (dont `roundTripKeepsEveryField`, `unknownKeysKept`, `majorVersionRefused`, `iconPixelsClamped`, `builtinFirstThenUser`, `userCopyShadowsBuiltin`, `resetRemovesTheUserCopy`, `builtinCannotBeRemoved`, `saveIsAtomic`, `exportImportRoundTrip`, `importNeverOverwrites`, `importRejectsPathId`) | S9, S9.7 | #tache-l6-t4 |
-| L6-T5 | `ui` : réglages du poste (`Preferences`, QSettings) et `ProfileController` (profil courant, enregistrement implicite différé hors contact, dossier de disposition) | L6-T3, L6-T4 | `ui/include/actcraft/ui/preferences.h`, `ui/src/preferences.cpp`, `ui/include/actcraft/ui/profilecontroller.h`, `ui/src/profilecontroller.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `app/main.cpp`, `bench/captures/main.cpp`, `bench/app/main.cpp`, `tests/tst_ui_preferences.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_preferences` Passed (dont `keysAreOurs`, `currentProfileRestored`, `implicitSaveIsDebounced`, `noSaveDuringContact`, `activateSwitchesTheLayoutDir`, `brokenProfileFallsBack`, `settingDefaultsComeFromTheSchema`, `activateCommandIsNative`, `pathLikeIdRefused`, `defaultConstructorFollowsTheDefaultFormat`) | S9, S9.7 | #tache-l6-t5 |
+| L6-T5 | `ui` : réglages du poste (`Preferences`, QSettings) et `ProfileController` (profil courant, enregistrement implicite différé hors contact, dossier de disposition) | L6-T3, L6-T4 | `ui/include/actcraft/ui/preferences.h`, `ui/src/preferences.cpp`, `ui/include/actcraft/ui/profilecontroller.h`, `ui/src/profilecontroller.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `ui/qml/Main.qml`, `bench/captures/main.cpp`, `bench/app/main.cpp`, `tests/tst_ui_preferences.cpp`, `tests/tst_ui_shell.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_preferences` Passed (dont `keysAreOurs`, `currentProfileRestored`, `implicitSaveIsDebounced`, `noSaveDuringContact`, `activateSwitchesTheLayoutDir`, `brokenProfileFallsBack`, `settingDefaultsComeFromTheSchema`, `activateCommandIsNative`, `pathLikeIdRefused`, `defaultConstructorFollowsTheDefaultFormat`, `createdFromQml`), `tst_ui_shell` (dont `everyLot6CommandHasAHandler` sans exclusion) Passed | S9, S9.7 | #tache-l6-t5 |
 | L6-T6 | Cinq profils fournis, à nos noms, avec les épinglages du lot 7 et du lot 8 annoncé | L6-T4, L6-T5, L6-T7 | `actions/data/profiles/{en-classe,preparation,lecture-ecriture,calcul-geometrie,son-image}.json`, `tests/tst_ui_profiles.cpp`, `bench/scenarios/profils.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_profiles` (dont `fiveBuiltinsInOrder`, `pinnedCommandsExist`, `pinnedFilteredByPlatform`, `namesAreOurs`, `preparationOpensThePageBrowser`), `tst_captures_profils` Passed ; `captures.ps1 -Scenario profils` : `LU appProfile.currentId=calcul-geometrie OK`, `CAPTURES OK` | S9.7, S32 | #tache-l6-t6 |
 | L6-T7 | Palette : ancrage (4 bords, flottante), réduite, réduite au maximum, épinglée (repli au retrait du pointeur), taille des icônes 16 à 32 ; persistance | L6-T2, L6-T5 | `ui/qml/PaletteFrame.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/Theme.qml`, `tests/tst_ui_palette.cpp`, `bench/scenarios/palette.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_palette` (dont `dockFollowsTheProfile`, `dragToCenterFloats`, `collapsedShowsFirstRowOnly`, `fullCollapseHidesShortcuts`, `unpinnedHidesAfterLeave`, `iconPixelsScaleEveryIcon`), `tst_captures_palette` Passed ; `captures.ps1 -Scenario palette` : `LU appProfile.paletteDock=left OK`, `LU toolPalette.x=0 OK`, `CAPTURES OK` ; banc hors écran joint | S9, S9.1 | #tache-l6-t7 |
 | L6-T8 | Palette de couleurs étendue (6 × 6), copieur de couleur, boîte de couleur, couleurs ajoutées gardées ; 8, 16 ou 24 pastilles | L6-T2, L6-T5 | `ui/include/actcraft/ui/colorpalette.h`, `ui/src/colorpalette.cpp`, `ui/qml/ExtendedColors.qml`, `ui/qml/ColorLoupe.qml`, `ui/qml/ColorSwatches.qml`, `tests/tst_ui_colors.cpp`, `bench/scenarios/couleurs.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_colors` (dont `extendedGridIsSixBySix`, `addedColorIsKept`, `duplicatesIgnored`, `swatchCountFollowsTheProfile`, `loupeSamplesOnceOnOpen`), `tst_captures_couleurs` Passed ; `captures.ps1 -Scenario couleurs` : `LU appColors.extraCount=1 OK`, `PIXEL pastille-ajoutee OK`, `CAPTURES OK` | S9, S9.2 | #tache-l6-t8 |
-| L6-T9 | Barre de raccourcis : historique des outils hors palette (F-140), objets glissés devenus boutons (F-141) | L6-T7 | `ui/include/actcraft/ui/shortcutbar.h`, `ui/src/shortcutbar.cpp`, `ui/qml/ShortcutBar.qml`, `tests/tst_ui_shortcutbar.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_shortcutbar` Passed (dont `outOfPaletteToolIsRecorded`, `paletteToolIsNotRecorded`, `historyIsBoundedAndMovesToFront`, `droppedObjectBecomesAButton`, `clickInsertsACopyAtTheCenter`, `insertIsUndoneAtOnce`, `refusedWhileLocked`) ; banc hors écran joint | S9, S9.1 | #tache-l6-t9 |
+| L6-T9 | Barre de raccourcis : historique des outils hors palette (F-140), objets glissés devenus boutons (F-141) | L6-T7 | `ui/include/actcraft/ui/shortcutbar.h`, `ui/src/shortcutbar.cpp`, `ui/qml/ShortcutBar.qml`, `tests/tst_ui_shortcutbar.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_shortcutbar` Passed (dont `outOfPaletteToolIsRecorded`, `paletteToolIsNotRecorded`, `historyIsBoundedAndMovesToFront`, `droppedObjectBecomesAButton`, `clickInsertsACopyAtTheCenter`, `insertIsUndoneAtOnce`, `refusedWhileLocked`, `refusedWithoutCommands`) ; banc hors écran joint | S9, S9.1 | #tache-l6-t9 |
 | L6-T10 | `core` + `formats` : mots-clés (objet, page), description de page, style d'étiquette ; format natif sans perte, empreintes inchangées sans ces champs | L6-T0, L6-T1 | `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `formats/src/nativejson.cpp`, `tests/tst_core_model.cpp`, `tests/tst_formats_lot6.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_formats_lot6` (dont `keywordsRoundTrip`, `pageDescriptionRoundTrip`, `labelStyleRoundTrip`, `defaultsAreOmitted`, `olderFileReadsWithDefaults`), `tst_core_model` (dont `lot6FieldsKeepOldFingerprints`), `tst_formats_nativejson` Passed | S9.4, S9.10 | #tache-l6-t10 |
 | L6-T11 | `core` : `SetObjectPropertiesCommand` (une étape, plusieurs objets, fusion des glissés) et `SetPagePropertiesCommand` | L6-T10 | `core/include/actcraft/core/propertyedits.h`, `core/src/propertyedits.cpp`, `tests/tst_core_propertyedits.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_core_propertyedits` Passed (dont `oneStepForManyObjects`, `undoRestoresEachOldValue`, `sliderDragMergesIntoOneStep`, `differentPropertyDoesNotMerge`, `nameOnlyChangeSparesTheCache`, `layerVisibleLockedTranslucencyAreDelegated`, `pageWidthChangeIsOneStep`) ; mutation de `mergeWith` rouge puis remise | S9, S9.4 | #tache-l6-t11 |
-| L6-T12 | `ui` : `PropertyModel` (page, un objet, plusieurs objets ; sections F-570 à F-576, F-581, F-583 ; valeurs communes ; éditeurs typés) | L6-T11 | `ui/include/actcraft/ui/propertymodel.h`, `ui/src/propertymodel.cpp`, `tests/tst_ui_propertymodel.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_propertymodel` Passed (dont `pageWhenNothingSelected`, `sectionsOfAStroke`, `sectionsOfAShape`, `commonValuesOnly`, `editGoesThroughTheUndoStack`, `refreshIsDeferredDuringContact`, `noCacheRefreshOnSelectionChange`, `delegatedEditsUseTheLotCommands`, `refusedWhileLocked`) ; banc hors écran joint | S9, S9.4 | #tache-l6-t12 |
+| L6-T12 | `ui` : `PropertyModel` (page, un objet, plusieurs objets ; sections F-570 à F-576, F-581, F-583 ; valeurs communes ; éditeurs typés) | L6-T11 | `ui/include/actcraft/ui/propertymodel.h`, `ui/src/propertymodel.cpp`, `tests/tst_ui_propertymodel.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_propertymodel` Passed (dont `pageWhenNothingSelected`, `sectionsOfAStroke`, `sectionsOfAShape`, `commonValuesOnly`, `editGoesThroughTheUndoStack`, `refreshIsDeferredDuringContact`, `noCacheRefreshOnSelectionChange`, `delegatedEditsUseTheLotCommands`, `refusedWhileLocked`, `refusedWithoutCommands`, `editableFollowsTheLock`) ; banc hors écran joint | S9, S9.4 | #tache-l6-t12 |
 | L6-T13 | QML : navigateur de propriétés (sections repliables, éditeurs) ; scénario `proprietes` | L6-T2, L6-T12 | `ui/qml/PropertyBrowser.qml`, `ui/qml/PropertyEditor.qml`, `bench/scenarios/proprietes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_proprietes` Passed ; `captures.ps1 -Scenario proprietes` : `LU appProperties.title=Trait OK`, `LU appDocument.canUndo=true OK`, `PIXEL contour-epais OK`, `PIXEL contour-annule OK`, `CAPTURES OK` ; banc hors écran joint | S9, S9.4 | #tache-l6-t13 |
-| L6-T14 | `ui` : `ObjectTreeModel` (couches, ordre de superposition, clic qui sélectionne, glisser qui réordonne, masqué, verrouillé), mises à jour regroupées | L6-T0, L6-T1 | `ui/include/actcraft/ui/objecttree.h`, `ui/src/objecttree.cpp`, `tests/tst_ui_objecttree.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_objecttree` Passed (dont `fourLayerNodesTopFirst`, `objectsTopmostFirst`, `clickSelects`, `dragReordersInOneStep`, `dragToBackgroundRefused`, `toggleHiddenAndLocked`, `resetsAreBatched`, `noRefreshDuringContact`, `refusedWhileLocked`) ; banc hors écran joint | S9, S9.3 | #tache-l6-t14 |
+| L6-T14 | `ui` : `ObjectTreeModel` (couches, ordre de superposition, clic qui sélectionne, glisser qui réordonne, masqué, verrouillé), mises à jour regroupées | L6-T0, L6-T1 | `ui/include/actcraft/ui/objecttree.h`, `ui/src/objecttree.cpp`, `tests/tst_ui_objecttree.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_objecttree` Passed (dont `fourLayerNodesTopFirst`, `objectsTopmostFirst`, `clickSelects`, `dragReordersInOneStep`, `dragToBackgroundRefused`, `toggleHiddenAndLocked`, `resetsAreBatched`, `noRefreshDuringContact`, `refusedWhileLocked`, `refusedWithoutCommands`) ; banc hors écran joint | S9, S9.3 | #tache-l6-t14 |
 | L6-T15 | QML : navigateur d'objet ; scénario `navigateur-objets` | L6-T2, L6-T14 | `ui/qml/ObjectBrowser.qml`, `bench/scenarios/navigateur-objets.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_navigateur_objets` Passed ; `captures.ps1 -Scenario navigateur-objets` : `LU objectBrowser.visible=true OK`, `LU appObjectTree.rowCount=6 OK`, `LU appSelection.count=1 OK`, `CAPTURES OK` ; banc hors écran joint | S9, S9.3 | #tache-l6-t15 |
-| L6-T16 | Navigateur de notes : `SetPageNotesCommand` (fusionnée), éditeur riche, icône de notes dans la ligne supérieure | L6-T2 | `core/include/actcraft/core/notesedits.h`, `core/src/notesedits.cpp`, `tests/tst_core_notesedits.cpp`, `ui/include/actcraft/ui/notescontroller.h`, `ui/src/notescontroller.cpp`, `tests/tst_ui_notes.cpp`, `ui/qml/NotesBrowser.qml`, `bench/scenarios/notes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_core_notesedits` (dont `typingMergesIntoOneStep`, `notesTouchNoCache`), `tst_ui_notes` (dont `followsTheCurrentPage`, `hasNotesFlag`, `switchingPageCreatesNoStep`, `refusedWhileLocked`), `tst_captures_notes` Passed ; `captures.ps1 -Scenario notes` : `LU appNotes.hasNotes=true OK`, `LU notesIcon.visible=true OK`, `CAPTURES OK` | S9, S9.5 | #tache-l6-t16 |
+| L6-T16 | Navigateur de notes : `SetPageNotesCommand` (fusionnée), éditeur riche, icône de notes dans la ligne supérieure | L6-T2 | `core/include/actcraft/core/notesedits.h`, `core/src/notesedits.cpp`, `tests/tst_core_notesedits.cpp`, `ui/include/actcraft/ui/notescontroller.h`, `ui/src/notescontroller.cpp`, `tests/tst_ui_notes.cpp`, `ui/qml/NotesBrowser.qml`, `bench/scenarios/notes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_core_notesedits` (dont `typingMergesIntoOneStep`, `notesTouchNoCache`), `tst_ui_notes` (dont `followsTheCurrentPage`, `hasNotesFlag`, `switchingPageCreatesNoStep`, `refusedWhileLocked`, `refusedWithoutCommands`, `editableFollowsTheLock`), `tst_captures_notes` Passed ; `captures.ps1 -Scenario notes` : `LU appNotes.hasNotes=true OK`, `LU notesIcon.visible=true OK`, `CAPTURES OK` | S9, S9.5 | #tache-l6-t16 |
 | L6-T17 | Étiquettes : légende d'un objet montrée au survol, selon son style | L6-T10, L6-T2, L6-T13 | `ui/include/actcraft/ui/labeltips.h`, `ui/src/labeltips.cpp`, `ui/qml/LabelTip.qml`, `tests/tst_ui_labels.cpp`, `bench/scenarios/etiquettes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_labels` (dont `hoverShowsTheLabel`, `noLabelNoTip`, `hiddenObjectHasNoTip`, `styleIsApplied`), `tst_captures_etiquettes` Passed ; `captures.ps1 -Scenario etiquettes` : `LU labelTip.text=Soleil OK`, `CAPTURES OK` | S9.10 | #tache-l6-t17 |
-| L6-T18 | Point d'étape 6a : scénario S9 `reglages-gardes` (quitter, relancer), comptes des talons, graphe | L6-T6 à L6-T9, L6-T13, L6-T15 à L6-T17 | `bench/scenarios/reglages-gardes.json`, `bench/src/uiscenario.cpp`, `bench/include/actcraft/bench/uiscenario.h`, `tests/tst_bench_uiscenario.cpp`, `graphify-out/` | partagé | implementeur-tdd | `TESTS OK`, N = N6 + 43, `tst_bench_uiscenario` (dont `restartStepParsed`), `tst_captures_reglages_gardes` Passed ; `captures.ps1 -Scenario reglages-gardes` : `LU appProfile.paletteDock=left OK` **après** l'étape `restart`, `LU appColors.extraCount=1 OK`, `LU browserPanel.current=objects OK`, `CAPTURES OK` ; talons « par L6-T2 » à « par L6-T17 » absents ; `NOMS OK` ; `graphify update .` commité | S9 | #tache-l6-t18 |
+| L6-T18 | Point d'étape 6a : scénario S9 `reglages-gardes` (quitter, relancer), comptes des talons, graphe | L6-T6 à L6-T9, L6-T13, L6-T15 à L6-T17 | `bench/scenarios/reglages-gardes.json`, `bench/src/uiscenario.cpp`, `bench/include/actcraft/bench/uiscenario.h`, `tests/tst_bench_uiscenario.cpp`, `tests/tst_ui_shell.cpp`, `graphify-out/` | partagé | implementeur-tdd | `TESTS OK`, N = N6 + 43, `tst_bench_uiscenario` (dont `restartStepParsed`), `tst_ui_shell` (dont `lot6ControllersWired`), `tst_captures_reglages_gardes` Passed ; `captures.ps1 -Scenario reglages-gardes` : `LU appProfile.paletteDock=left OK` **après** l'étape `restart`, `LU appColors.extraCount=1 OK`, `LU browserPanel.current=objects OK`, `CAPTURES OK` ; talons « par L6-T2 » à « par L6-T17 » absents ; `NOMS OK` ; `graphify update .` commité | S9 | #tache-l6-t18 |
 
 19 tâches dans ce sous-lot (19 dans 6b : 38 pour le lot). Les tâches de principes que L6-T0 demanderait (au plus 2,
 amendement 1, § 4) s'ajoutent par amendement du plan, comme au lot 7 ; elles prennent les identifiants `L6-P1`,
@@ -121,13 +149,14 @@ Vérification des recoupements (colonne « fichiers touchés ») :
 - V1 : L6-T0 (`docs/verifications/`) / L6-T1 (CMake, données, icônes, talons) — disjoints.
 - V2 : L6-T2 (QML de la coquille, `tst_ui_shell.cpp`) / L6-T3 (`commandregistry.*`, `commands.json`,
   `tst_actions_lockable.cpp`) / L6-T4 (`profile.*`, `profilestore.*`, `tst_actions_profile.cpp`) — disjoints.
-- V3 : L6-T5 (`preferences.*`, `profilecontroller.*`, `app/main.cpp`, un test) / L6-T10 (`model.*`,
+- V3 : L6-T5 (`preferences.*`, `profilecontroller.*`, `commands.*`, `Main.qml`, `bench/captures/main.cpp`, `bench/app/main.cpp`, `tst_ui_preferences.cpp`, `tst_ui_shell.cpp`) / L6-T10 (`model.*`,
   `nativejson.cpp`, deux tests) / L6-T14 (`objecttree.*`, un test) — disjoints.
 - V4 : L6-T7 (`PaletteFrame.qml`, `ToolPalette.qml`, `Theme.qml`, un test, `palette.json`) / L6-T11 (`propertyedits.*`,
   un test) / L6-T15 (`ObjectBrowser.qml`, `navigateur-objets.json`) — disjoints.
 - V5 : L6-T6 (`actions/data/profiles/*.json`, un test, `profils.json`) / L6-T8 (`colorpalette.*`, `ExtendedColors.qml`,
   `ColorLoupe.qml`, `ColorSwatches.qml`, un test, `couleurs.json`) / L6-T12 (`propertymodel.*`, un test) — disjoints.
-  L6-T6 vient après L6-T7 : son scénario lit le groupe « profil » de la palette (amendement 1, point 6).- V6 : L6-T9 (`shortcutbar.*`, `ShortcutBar.qml`, un test) / L6-T13 (`PropertyBrowser.qml`, `PropertyEditor.qml`,
+  L6-T6 vient après L6-T7 : son scénario lit le groupe « profil » de la palette (amendement 1, point 6).
+- V6 : L6-T9 (`shortcutbar.*`, `ShortcutBar.qml`, un test) / L6-T13 (`PropertyBrowser.qml`, `PropertyEditor.qml`,
   `proprietes.json`) / L6-T16 (`notesedits.*`, `notescontroller.*`, `NotesBrowser.qml`, deux tests, `notes.json`) —
   disjoints.
 - Fichiers repris d'une vague à l'autre, tenus par « dépend de » : talons de L6-T1 → leur tâche ; `commands.json`
@@ -275,7 +304,7 @@ avant V2. Une API supposée qui diffère du code livré amende la section de la 
 | A3 | `ui::DocumentController::addChangeObserver` (observateur unique) et `ChangeOrigin` | L0-S5 (non mergé à `8189906`) | L6-T12, L6-T14, L6-T16, L6-T20 | oui |
 | A4 | `DocumentController::execute(std::unique_ptr<core::UndoCommand>)`, `document()`, `currentPageIndex()`, signal `currentPageChanged` | L0-S5, lot 2 | L6-T9, L6-T11 à L6-T16, L6-T19, L6-T21 | oui |
 | A5 | sélection : `tools::UserState::selection` (identifiants), `ui::ToolHost::user()`, `ToolHost::setSelection(QList<quint64>)`, signal `selectionChanged` | L0-S6, lot 3 | L6-T12, L6-T14, L6-T15 | oui |
-| A6 | garde de contact : `ui::PageView::contactActive` et `contactActiveChanged` (ajoutés en fin de `pageview.h` par L4-T17) | lot 4 (4b) | L6-T5, L6-T7, L6-T12, L6-T14, L6-T16, L6-T20, L6-T22 | oui |
+| A6 | garde de contact : `ui::PageView::contactActive` et `contactActiveChanged` (ajoutés en fin de `pageview.h` par L4-T17), ou l'état retenu par L4-T17, relevé par L6-T0 | lot 4 (4b) | L6-T5, L6-T7, L6-T12, L6-T14, L6-T16, L6-T20, L6-T22 | oui |
 | A7 | `PageView::addInputCover(QQuickItem*)` | L0-S7 | L6-T7, L6-T8, L6-T21 | oui |
 | A8 | `BrowserPanel.qml` : propriété `current` (`pages`, `resources`, `objects`, `notes`, `properties`, `actions`), côté, largeur, `view.browsers` | L4-T19 | L6-T2, L6-T15, L6-T18 | oui |
 | A9 | arrangement et drapeaux (plan du lot 5) : `core::arrangedOrder(page, selected, ArrangeMove)`, `core::ReorderObjectsCommand(std::size_t page, std::vector<ObjectId> newOrder)`, `core::SetLayerCommand(std::size_t page, std::vector<ObjectId> ids, Layer)` (`core/arrange.h`) ; `core::ObjectFlag { Locked, Hidden, DragCopy }`, `core::SetObjectFlagCommand(std::size_t page, std::vector<ObjectId> ids, ObjectFlag, bool)` (`core/objectflags.h`) ; commandes `arrange.front`, `arrange.back`, `arrange.forward`, `arrange.backward`, `arrange.layer-top`, `arrange.layer-middle`, `arrange.layer-bottom`, `object.hide`, `object.lock` | lot 5 | L6-T11, L6-T12, L6-T14, L6-T22 | oui (noms relus à la tête du plan du lot 5, `0112b7f`) |
@@ -378,7 +407,8 @@ profils fournis et leurs épinglages ; contrôle au lot 11). Sous-scénarios de 
     gagnent une entrée, et l'installateur un fichier.
   - **Recommandation : MPL 1.1.** Raison : elle garde la construction statique simple sur Windows et Android, ses
     obligations sont déjà tenues par la publication du dépôt, et elle évite une bibliothèque partagée de plus à
-    déployer et à contrôler dans deux paquets. Sans réponse, L6-T32 attend.- **H6-7** Verrou de classe : liste des commandes laissées libres tranchée par L6-T0 ; défaut : quitter, déverrouiller,
+    déployer et à contrôler dans deux paquets. Sans réponse, L6-T32 attend.
+- **H6-7** Verrou de classe : liste des commandes laissées libres tranchée par L6-T0 ; défaut : quitter, déverrouiller,
   aide, page précédente et suivante, plein écran.
 - **H6-8** N1-A14 (apparence simplifiée pour les petites classes) : non reprise ; le profil « En classe » en tient
   lieu.
@@ -769,6 +799,9 @@ ses tests existants, `shellLoadsWithoutQmlWarning` compris.
   ```
   `Main.qml` garde l'ancrage actuel de la palette sur `paletteFrame` (à droite).
 
+**Amendement 2 (L6-T2).** M2 : dans `everyLot6CommandHasAHandler`, l'exclusion de `profile.activate` porte le
+commentaire `// Talon L6 : rempli par L6-T5.` ; L6-T5 la retire.
+
 <a id="tache-l6-t3"></a>
 ### Tâche L6-T3 — `actions` : attributs « verrouillable » et « restreignable », porte du verrou
 
@@ -931,8 +964,9 @@ déclare explicitement `lockable` et `restrictable`.
 
 **Amendement 1 (L6-T3).** Point 1 : ajouter au registre
 `bool isOwnEnabled(const QString& id) const; // état posé par setEnabled, sans le verrou ; faux si inconnue`
-et le test `ownStateSurvivesTheLock` (verrou posé, `setEnabled("a.b", false)` : `isOwnEnabled` faux ; verrou levé :
-`isEnabled` faux ; `setEnabled(true)` : `isOwnEnabled` vrai, et `isEnabled` faux tant que le verrou est posé).
+et le test `ownStateSurvivesTheLock`, dans cet ordre : (1) verrou posé, `setEnabled("a.b", false)` → `isOwnEnabled`
+faux ; (2) verrou levé → `isEnabled` faux ; (3) `setEnabled("a.b", true)` → `isOwnEnabled` vrai, `isEnabled` vrai ;
+(4) verrou reposé → `isEnabled` faux, `isOwnEnabled` toujours vrai.
 
 <a id="tache-l6-t4"></a>
 ### Tâche L6-T4 — `actions` : modèle de profil et magasin
@@ -1283,6 +1317,10 @@ void importRejectsPathId()
 }
 ```
 
+**Amendement 2 (L6-T4).** m12 : `importRejectsPathId` relève avant l'import `QDir(m_user.path()).entryList(QDir::AllEntries | QDir::NoDotAndDotDot)`
+et la même liste pour `QFileInfo(m_user.path()).dir()` (le parent), et vérifie après l'import que les deux sont
+identiques.
+
 <a id="tache-l6-t5"></a>
 ### Tâche L6-T5 — `ui` : réglages du poste et contrôleur de profil
 
@@ -1299,7 +1337,7 @@ setter écrirait sur disque pendant un glisser de palette ou de réglette, sur l
 **Test et commande bornée.** Commande ciblée `-R tst_ui_preferences` ; sept fonctions en `PASS` ; banc sans écran.
 
 **Interdits.** Aucune clé `QSettings` en `camelCase` (D6-1) ; aucun accès disque sur le fil principal pendant un
-contact ; ne pas modifier `commands.*` (A1 suffit).
+contact.
 
 **Terminé quand** les sept fonctions passent ; `app/main.cpp` crée les deux objets et les expose (`appPreferences`,
 `appProfile`) ; au démarrage, le profil courant est relu ou, à défaut, `preparation`.
@@ -1608,7 +1646,7 @@ contact ; ne pas modifier `commands.*` (A1 suffit).
   `appCommands` : propriétés de contexte ou initialisation des propriétés requises, lire le fichier). `Main.qml` sera
   relié à `contactActive` par L6-T7 (tâche QML) : ne pas toucher au QML ici.
 - [ ] **Étape 6 : vert** (`-R 'tst_ui_preferences|tst_ui_commands'`), preuve de tâche, banc sans écran.
-- [ ] **Étape 7 : commit.** `git add` des six fichiers ; `NOMS OK` ; commit « Lot 6 : réglages du poste et profil
+- [ ] **Étape 7 : commit.** `git add` des fichiers de la ligne L6-T5 de la table, nommés un par un ; `NOMS OK` ; commit « Lot 6 : réglages du poste et profil
   courant, enregistrement implicite hors écriture (L6-T5) ».
 
 **Amendement 1 (L6-T5).** Points 2, 6, 8, 13.
@@ -1623,6 +1661,20 @@ contact ; ne pas modifier `commands.*` (A1 suffit).
   `QSettings::setDefaultFormat(QSettings::IniFormat)`, `QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, <dossier de sortie>/reglages)`.
   Test `defaultConstructorFollowsTheDefaultFormat` : format par défaut INI et chemin temporaire posés dans le test →
   `Preferences().setLanguage("fr")` écrit un fichier sous ce chemin.
+
+**Amendement 2 (L6-T5).** M1, M2, m6.
+- `Preferences` et `ProfileController` sont **créables en QML** (`QML_ELEMENT`, constructeur par défaut) ; le
+  constructeur de test à arguments reste. Propriétés QML de `ProfileController` : `commands` (`Commands*`),
+  `preferences` (`Preferences*`), `userRoot` (défaut `<AppConfigLocation>/profiles`) ; `start()` est appelé par
+  `QQmlParserStatus::componentComplete` (ou dès que `commands` et `preferences` sont posés). `Main.qml`, à côté de
+  `appCommands` : `Preferences { id: appPreferences }` puis
+  `ProfileController { id: appProfile; commands: appCommands; preferences: appPreferences }`. `app/main.cpp` n'est
+  plus touché : le joueur, le banc et `tst_app_open` ont `appProfile` par `loadMainWindow`. Test `createdFromQml`
+  (`QQmlComponent` sur ces deux instances et un `Commands` : `currentId` vaut `preparation`).
+- `tests/tst_ui_shell.cpp` : retirer l'exclusion de `profile.activate` dans `everyLot6CommandHasAHandler`.
+- `bench/captures/main.cpp` et `bench/app/main.cpp` : `QGuiApplication::setOrganizationName("ActCraft")` avant les
+  réglages ; dossier INI = `<sortie>/reglages` pour le joueur, `<dossier des résultats du banc>/reglages` pour le banc
+  (le dossier par défaut que passe `resolveOutputPath`).
 
 <a id="tache-l6-t6"></a>
 ### Tâche L6-T6 — Cinq profils fournis, à nos noms
@@ -1768,6 +1820,10 @@ non déclaré est **retiré** et listé au rapport (le lot 8 l'ajoutera).
 variable `ACTCRAFT_REFERENCE_NAMES` = chemin d'un fichier texte écrit par l'orchestrateur sous
 `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot6-noms-profils.txt` (un nom par ligne) ; sans elle, le test est
 sauté et le rapport le dit. Aucun de ces noms n'est écrit dans le dépôt.
+
+**Amendement 2 (L6-T6).** m7 : chaque ligne du fichier hors dépôt est `trimmed()` avant comparaison ; la preuve exige
+`PASS   : TstUiProfiles::namesAreOurs()` (l'orchestrateur pose `ACTCRAFT_REFERENCE_NAMES` pour la commande de preuve) ;
+un `SKIP` de cette fonction ne vaut pas preuve.
 
 <a id="tache-l6-t7"></a>
 ### Tâche L6-T7 — Palette : ancrage, réduite, épinglée, taille des icônes
@@ -2071,6 +2127,10 @@ bouton n'est pas une ressource (navigateur de ressources : L6-T21).
   manquantes, puis une seule commande (la même voie que le collage du lot 5).
 - `insert` et `addObjects` rendent faux, sans rien exécuter, quand `commands->registry().isLocked()` ; test
   `refusedWhileLocked`.
+
+**Amendement 2 (L6-T9).** B1 : `ShortcutBar.qml` instancie le contrôleur
+`ShortcutBar { id: appShortcuts; objectName: "appShortcuts"; commands: appCommands; profile: appProfile; document: appDocument }`.
+Fermé par défaut : sans `commands`, `insert` et `addObjects` rendent faux (test `refusedWithoutCommands`).
 
 <a id="tache-l6-t10"></a>
 ### Tâche L6-T10 — `core` + `formats` : mots-clés, description de page, style d'étiquette
@@ -2381,6 +2441,10 @@ aucune demande de redessin du cache (un changement de sélection ne touche pas l
   valeur ; un glisser de translucidité fait une étape si `SetTranslucencyCommand` fusionne, A23, sinon le rapport le
   note).
 
+**Amendement 2 (L6-T12).** B1, m5 : sans `commands`, `setValue` rend faux (test `refusedWithoutCommands`). Propriété
+`Q_PROPERTY(bool editable READ editable NOTIFY editableChanged)` : vraie si `commands` est posé et que le verrou n'est
+pas posé ; recalculée sur `Commands::stateChanged` (test `editableFollowsTheLock`).
+
 <a id="tache-l6-t13"></a>
 ### Tâche L6-T13 — QML : navigateur de propriétés ; scénario `proprietes`
 
@@ -2415,6 +2479,10 @@ la page), `trait.png` (sections d'un trait), `epais.png`, `annule.png`.
 - [ ] **Étape 2 : QML** des deux fichiers ; délégués nommés `prop-<clé>`.
 - [ ] **Étape 3 : vert**, preuve visuelle, banc sans écran, preuve de tâche ; `NOMS OK` ; commit « Lot 6 : navigateur
   de propriétés (L6-T13) ».
+
+**Amendement 2 (L6-T13).** B1, m5 : l'instance s'écrit
+`PropertyModel { id: appProperties; objectName: "appProperties"; document: appDocument; tools: appTools; commands: appCommands; contactActive: pageView.contactActive }` ;
+chaque éditeur porte `enabled: appProperties.editable` (ou `readOnly: !appProperties.editable` pour un champ).
 
 <a id="tache-l6-t14"></a>
 ### Tâche L6-T14 — `ui` : modèle du navigateur d'objet
@@ -2523,6 +2591,9 @@ reportées pendant un contact (D6-5).
 Propriétés `contactActive` et `commands` ; `move`, `setHidden`, `setLocked` rendent faux sous verrou (test
 `refusedWhileLocked`).
 
+**Amendement 2 (L6-T14).** B1 : sans `commands`, `move`, `setHidden` et `setLocked` rendent faux (test
+`refusedWithoutCommands`).
+
 <a id="tache-l6-t15"></a>
 ### Tâche L6-T15 — QML : navigateur d'objet ; scénario `navigateur-objets`
 
@@ -2553,6 +2624,9 @@ inchangé par rapport à la référence du lot pour `court`).
   glisser `objRow5` au-dessus de `objRow4` ; capture `deplace.png` ; `edit.undo`.
 - [ ] **Étape 2 : QML** (délégués nommés `objRow<n>`, n à partir de 0).
 - [ ] **Étape 3 : vert**, preuve visuelle, banc, preuve de tâche ; commit « Lot 6 : navigateur d'objet (L6-T15) ».
+
+**Amendement 2 (L6-T15).** B1 : l'instance s'écrit
+`ObjectTreeModel { id: appObjectTree; objectName: "appObjectTree"; document: appDocument; tools: appTools; commands: appCommands; contactActive: pageView.contactActive }`.
 
 <a id="tache-l6-t16"></a>
 ### Tâche L6-T16 — Navigateur de notes
@@ -2629,6 +2703,12 @@ continue se fusionne en une étape (même page, moins de 2 s entre deux frappes)
 garde « chargement » pendant qu'il recharge le texte d'une page (le `TextArea` qui se remplit n'exécute rien) ; test
 `switchingPageCreatesNoStep` (trois changements de page sans frappe : `canUndo` faux, document non modifié). Propriété
 `commands` : écrire `html` sous verrou ne change rien (test `refusedWhileLocked`).
+
+**Amendement 2 (L6-T16).** B1, m5, m9 : `NotesController` gagne `commands` (`Commands*`), `contactActive` (remise à
+jour reportée pendant un contact, comme les autres navigateurs) et `editable` (même règle que `PropertyModel`) ; sans
+`commands`, écrire `html` ne change rien (test `refusedWithoutCommands`) ; test `editableFollowsTheLock`. L'instance
+s'écrit `NotesController { id: appNotes; objectName: "appNotes"; document: appDocument; commands: appCommands; contactActive: pageView.contactActive }`
+et le `TextArea` porte `readOnly: !appNotes.editable`.
 
 <a id="tache-l6-t17"></a>
 ### Tâche L6-T17 — Étiquettes
@@ -2721,10 +2801,25 @@ vide, `NOMS OK`, `graphify update .` commité.
 - [ ] **Étape 5 : contrôle des talons** (commande du critère) ; `graphify update .` ; `git add` des fichiers de la ligne
   et de `graphify-out/` ; `NOMS OK` ; commit « Lot 6 : point d'étape 6a, réglages gardés de bout en bout (L6-T18) ».
 
-**Amendement 1 (L6-T18).** Le joueur emploie le dossier de réglages INI posé par L6-T5 : vérifier, avant et après
-`reglages-gardes`, que `HKCU\Software\ActCraft` n'a gagné aucune valeur
-(`Get-ItemProperty -Path 'HKCU:\Software\ActCraft\*' -ErrorAction SilentlyContinue` identique). Contrôle des talons :
+**Amendement 1 (L6-T18).** Le joueur emploie le dossier de réglages INI posé par L6-T5 : vérifier après
+`reglages-gardes` que le fichier INI existe sous le dossier de réglages d'essai
+(`Get-ChildItem -Recurse .tmp/captures/reglages -Filter *.ini` rend au moins un fichier, `ActCraft/ActCraft.ini`). Contrôle des talons :
 inclure le marqueur de `everyLot6CommandHasAHandler` posé par L6-T2.
+
+**Amendement 2 (L6-T18).** B1, m6. `tests/tst_ui_shell.cpp` gagne :
+```cpp
+void lot6ControllersWired()
+{
+    auto* root = loadMain();
+    for (const char* name : {"appProperties", "appObjectTree", "appNotes", "appShortcuts"}) {
+        QObject* o = root->findChild<QObject*>(QString::fromLatin1(name));
+        QVERIFY2(o, name);
+        QVERIFY2(o->property("commands").value<QObject*>() != nullptr, name);
+    }
+}
+```
+(`appResources` y est ajouté par L6-T37.) Preuve des réglages d'essai : après le scénario,
+`Get-ChildItem -Recurse .tmp/captures/reglages -Filter *.ini` rend au moins un fichier.
 
 ---
 
