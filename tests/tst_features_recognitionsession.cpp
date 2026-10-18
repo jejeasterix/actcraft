@@ -14,9 +14,11 @@ private slots:
         RecognitionSession s(5000); // délai en ms
         s.addStroke(11, 0);         // identifiant, instant (ns)
         QVERIFY(s.due(4'999'000'000).empty());
+        QCOMPARE(s.pending().size(), std::size_t{1}); // pas encore mûr : toujours en attente
         const auto due = s.due(5'000'000'000);
         QCOMPARE(due.size(), std::size_t{1});
         QCOMPARE(due.front(), actcraft::core::ObjectId{11});
+        QVERIFY(s.pending().empty());          // rendu, donc oublié
         QVERIFY(s.due(6'000'000'000).empty()); // une seule fois
     }
     void newStrokeRestartsTheDelay()
@@ -32,6 +34,10 @@ private slots:
         RecognitionSession s(0);
         s.addStroke(5, 100);
         QCOMPARE(s.due(100).size(), std::size_t{1});
+        s.addStroke(6, 200);
+        s.clear(); // trait abandonné : même sans délai, rien n'est rendu
+        QVERIFY(s.pending().empty());
+        QVERIFY(s.due(200).empty());
     }
     void defaultDelayIsOneSecond()
     {

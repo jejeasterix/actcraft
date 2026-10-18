@@ -547,11 +547,11 @@ std::optional<RecognizedShape> ellipseShape(const Points& ring)
     if (radialError(ring, axes) > kEllipseMaxRadialError) {
         return std::nullopt;
     }
-    double major = axes.halfU;
-    double minor = axes.halfV;
+    double halfMajor = axes.halfU;
+    double halfMinor = axes.halfV;
     double angle = toDegrees(axes.radians);
-    if (minor > major) {
-        std::swap(major, minor);
+    if (halfMinor > halfMajor) {
+        std::swap(halfMajor, halfMinor);
         angle += 90;
     }
     // Axe principal ramené dans ]−90, 90].
@@ -562,15 +562,16 @@ std::optional<RecognizedShape> ellipseShape(const Points& ring)
         angle += 180;
     }
     RecognizedShape shape;
-    if (minor / major >= kCircleMinRatio) {
-        const double diameter = major + minor;
+    if (halfMinor / halfMajor >= kCircleMinRatio) {
+        const double diameter = halfMajor + halfMinor;
         shape.kind = RecognizedShape::Kind::Circle;
         shape.bounds =
             QRectF(axes.center.x() - diameter / 2, axes.center.y() - diameter / 2, diameter, diameter);
         return shape;
     }
     shape.kind = RecognizedShape::Kind::Ellipse;
-    shape.bounds = QRectF(axes.center.x() - major, axes.center.y() - minor, 2 * major, 2 * minor);
+    shape.bounds =
+        QRectF(axes.center.x() - halfMajor, axes.center.y() - halfMinor, 2 * halfMajor, 2 * halfMinor);
     shape.angleDegrees = angle;
     return shape;
 }
