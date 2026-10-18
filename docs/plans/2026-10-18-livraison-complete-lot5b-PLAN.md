@@ -2,6 +2,18 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 1 (relecture tour 1)
+
+Table complète des défauts et des changements : section « Amendement 1 » du plan 5a. Ce qui change ici : **B1** T28 en
+V14 avec T30 et T31, vagues renumérotées V10 à V16 ; **M7** T25 n'écrit plus dans `PageContextMenu.qml`
+(`export.page-image` est dans `contextMenu` depuis L5-T1) ; **M8** T20 verse la couche d'attente avant de garer
+(`parkFoldsPendingFirst`) ; **M9** `switchRedrawsOnce` attend la stabilisation, `closingModifiedAsksToSave` contrôle le
+document vide restant, `oneViewForAllTabs` passe dans `tst_ui_shell` (T21) ; **M10** cache à 20 o/px (≈ 41,5 Mio par
+vue en 1920 × 1080) et seuil mémoire mesurable (T31) ; **M11** seuil d'`export-fond` ; **M12** S8 par `file.new` et deux
+objets alignés ; **M14** convertisseur PowerPoint sans injection ni `Quit()` du PowerPoint de l'utilisateur ; **M15**
+preuve réelle de l'absence de `QApplication`, `NativeFormat` forcé ; **M17** N final = 168 + n_B ; **m18** contrôle
+des talons en T33 ; **m23** « Imprimer » par PDF hors Windows, 6 tests de captures enregistrés par T33.
+
 **But.** Suite du sous-lot 5a (`docs/plans/2026-10-18-livraison-complete-lot5-PLAN.md`, qui fait autorité pour les
 contraintes, les API supposées A1 à A21, les décisions D1 à D20, les commandes communes des preuves, les scénarios et
 l'annexe A des en-têtes figés). Livre : onglets de documents (F-010 à F-012), module d'export (DA12 : page en image,
@@ -10,7 +22,7 @@ et la clôture du lot. Une seule PR pour le lot, à la fin de 5b ; version attri
 
 **Rappels.** L'export lit `core::Document` (copie prise sur le fil principal), jamais le cache ; rendu par
 `render::paintPage` / `renderPage` (A11, vérifiés à 794cf84) sur un fil secondaire. Une seule `PageView` pour tous les
-onglets (contrainte 3 du plan 5a). Espace de noms `actcraft::exporting` (contrainte 4). Tout HTML de document passe
+onglets (contrainte 3 du plan 5a ; cache à 20 o/px depuis L10-T8). Espace de noms `actcraft::exporting` (contrainte 4). Tout HTML de document passe
 par le `QTextDocument` à `loadResource` neutralisé du lot 2 (L2-T11) : le peintre partagé le fait déjà ; aucune tâche
 d'export ne rend du HTML autrement. Mutation remise par `git -C <wt> checkout -- <fichier>`, jamais par `Copy-Item`.
 
@@ -18,40 +30,40 @@ d'export ne rend du HTML autrement. Mutation remise par `git -C <wt> checkout --
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
-| L5-T20 | `ui` : onglets — sessions garées, une seule vue, bascule mesurée | L5-T19 | `ui/src/documenttabs.cpp`, `ui/src/documentcontroller.cpp` (corps de `parkSession` / `resumeSession`), `tests/tst_ui_tabs.cpp` | isolé | concepteur-critique | `tst_ui_tabs` Passed (dont `parkResumeKeepsUndoHistory`, `parkDropsALiftFirst`, `switchRedrawsOnce`, `closingModifiedAsksToSave`, `copyPagesGoBeforeFirstPage`, `oneViewForAllTabs`) ; `tst_ui_document` vert ; mutation rouge puis remise ; banc joint | S8, S8.5 | #tache-l5-t20 |
+| L5-T20 | `ui` : onglets — sessions garées, une seule vue, bascule mesurée | L5-T19 | `ui/src/documenttabs.cpp`, `ui/src/documentcontroller.cpp` (corps de `parkSession` / `resumeSession`), `tests/tst_ui_tabs.cpp` | isolé | concepteur-critique | `tst_ui_tabs` Passed (dont `parkResumeKeepsUndoHistory`, `parkDropsALiftFirst`, `parkFoldsPendingFirst`, `switchRedrawsOnce`, `closingModifiedAsksToSave`, `copyPagesGoBeforeFirstPage`) ; `tst_ui_document` vert ; mutation rouge puis remise ; banc joint | S8, S8.5 | #tache-l5-t20 |
 | L5-T22 | Qt PDF : installation sur le poste et en CI, licences, option `ACTCRAFT_IMPORT_PDF` automatique | L5-T19 | `CMakeLists.txt` (bloc des options seulement), `export/CMakeLists.txt`, `.github/workflows/ci.yml`, `packaging/qt-autorises.txt`, `CLAUDE.md` (ligne d'installation), `docs/BRIEF.md` (§ 4, module `export/`) | isolé | implementeur-tdd | `cmake` affiche `ACTCRAFT_IMPORT_PDF=ON` ; build 0 avertissement ; `scripts/verifier-licences.ps1` → `LICENCES OK` | S8 | #tache-l5-t22 |
 | L5-T26 | `core` : mise en page d'impression (feuilles, plage, copies, pages par feuille, marge, notes) | L5-T19 | `core/src/printlayout.cpp`, `tests/tst_core_printlayout.cpp` | isolé | implementeur-tdd | `tst_core_printlayout` Passed (dont `twoPerSheetRange2to4`, `notesAddSheets`, `longPageFitsWhole`, `copiesMultiply`, `marginRespected`, `currentOnly`) | S17 | #tache-l5-t26 |
-| L5-T21 | QML : barre d'onglets, fermer, glisser des pages vers un onglet ; scénario `onglets` | L5-T20 | `ui/qml/DocumentTabBar.qml`, `ui/qml/PageNavigator.qml` (dépôt sur un onglet seulement), `bench/scenarios/onglets.json`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `tst_ui_shell` Passed dont `tabBarFollowsPosition` ; `onglets` hors écran `CAPTURES OK` (lectures de la section) | S8.5 | #tache-l5-t21 |
+| L5-T21 | QML : barre d'onglets, fermer, glisser des pages vers un onglet ; scénario `onglets` | L5-T20 | `ui/qml/DocumentTabBar.qml`, `ui/qml/PageNavigator.qml` (dépôt sur un onglet seulement), `bench/scenarios/onglets.json`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `tst_ui_shell` Passed dont `tabBarFollowsPosition`, `oneViewForAllTabs` ; `onglets` hors écran `CAPTURES OK` (lectures de la section) | S8.5 | #tache-l5-t21 |
 | L5-T23 | `export` : page en image et PDF, hors du fil principal | L5-T22 | `export/src/pageexport.cpp`, `export/src/pdfexport.cpp`, `tests/tst_export_image.cpp`, `tests/tst_export_pdf.cpp` | isolé | implementeur-tdd | `tst_export_image` (dont `png1024x768`, `jpegBmpTiffByExtension`, `runsOffMainThread`) et `tst_export_pdf` (dont `threePagesGiveThreePages`, `pageSizeInPoints`, `textIsGuarded`) Passed | S8 | #tache-l5-t23 |
-| L5-T27 | `print/` : impression par `QPrinter` (sans `QApplication`), feuilles par le peintre partagé, gris ; démarrage mesuré | L5-T26 | `print/CMakeLists.txt`, `print/src/printer.cpp`, `tests/tst_print_printer.cpp`, `packaging/qt-autorises.txt` | isolé | concepteur-critique | `tst_print_printer` Passed (dont `printsToFileThroughVirtualPrinter`, `grayHasNoColor`, `sheetCountMatchesLayout`, `worksWithoutQApplication`) ; temps de démarrage avant / après relevé ; `LICENCES OK` | S17 | #tache-l5-t27 |
+| L5-T27 | `print/` : impression par `QPrinter` (sans `QApplication`), feuilles par le peintre partagé, gris ; démarrage mesuré | L5-T26 | `print/CMakeLists.txt`, `print/src/printer.cpp`, `tests/tst_print_printer.cpp`, `packaging/qt-autorises.txt` | isolé | concepteur-critique | `tst_print_printer` Passed (dont `printsToFileThroughVirtualPrinter`, `grayHasNoColor`, `sheetCountMatchesLayout`, `worksWithoutQApplication`, `nativeFormatKeptForPdfName`) ; temps de démarrage avant / après relevé ; `LICENCES OK` | S17 | #tache-l5-t27 |
 | L5-T24 | `export` : import PDF (une page par page, image verrouillée sur la couche de fond) | L5-T22, L5-T23 | `export/src/pdfimport.cpp`, `tests/tst_export_pdfimport.cpp` | isolé | implementeur-tdd | `tst_export_pdfimport` Passed (dont `roundTripThreePages`, `pageSizeFromPdf`, `imageOnBackgroundLocked`, `offMainThread`, `absentWithoutQtPdf`) | S8 | #tache-l5-t24 |
-| L5-T25 | `ui` + QML : commandes d'export et d'import PDF, menu de page « Exporter la page », impression par PDF sous Android | L5-T21, L5-T23, L5-T24 | `ui/src/fileexchange.cpp`, `ui/qml/FileExchangeActions.qml`, `ui/qml/PageContextMenu.qml` (entrée d'export seulement), `tests/tst_ui_fileexchange.cpp`, `bench/scenarios/exporter.json` | isolé | implementeur-tdd | `tst_ui_fileexchange` Passed (dont `exportPdfCommandWritesFile`, `exportPageImageCommand`, `importPdfOpensATab`, `printThroughPdfOnAndroid`, `busyWhileExporting`) ; `exporter` hors écran `CAPTURES OK` | S8 | #tache-l5-t25 |
+| L5-T25 | `ui` + QML : commandes d'export et d'import PDF, impression par PDF hors Windows | L5-T21, L5-T23, L5-T24 | `ui/src/fileexchange.cpp`, `ui/qml/FileExchangeActions.qml`, `tests/tst_ui_fileexchange.cpp`, `bench/scenarios/exporter.json` | isolé | implementeur-tdd | `tst_ui_fileexchange` Passed (dont `exportPdfCommandWritesFile`, `exportPageImageCommand`, `importPdfOpensATab`, `printThroughPdfOffWindows`, `busyWhileExporting`) ; `exporter` hors écran `CAPTURES OK` | S8 | #tache-l5-t25 |
 | L5-T28 | QML : boîte d'impression, aperçu, réglages gardés ; scénario S17 | L5-T25, L5-T27 | `ui/src/printcontroller.cpp`, `ui/qml/PrintSetupDialog.qml`, `ui/qml/SheetPreview.qml`, `tests/tst_ui_printdialog.cpp`, `bench/scenarios/imprimer.json` | isolé | implementeur-tdd | `tst_ui_printdialog` Passed (dont `settingsSurviveRestart`, `previewMatchesSheets`, `sheetCountFollowsSettings`) ; `imprimer` hors écran `CAPTURES OK` (S17) | S17 | #tache-l5-t28 |
-| L5-T29 | `export` : PowerPoint en images (convertisseur trouvé, conversion en PDF, import PDF) | L5-T24 | `export/src/officeconvert.cpp`, `tests/tst_export_officeconvert.cpp` | isolé | implementeur-tdd | `tst_export_officeconvert` Passed (dont `envConverterWins`, `argumentsSubstituted`, `timeoutReported`, `missingConverterReported`, `fakeConverterChainGivesPages`) | S8 | #tache-l5-t29 |
-| L5-T31 | Banc : scénarios `onglets` (mémoire et bascule) et `export-fond` (export PDF pendant l'écriture) | L5-T21, L5-T25 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp` | isolé | implementeur-tdd | `tst_bench_scenarios` Passed dont `tabsAndExportScenariosListed` ; banc hors écran : sections `onglets` (`memory_delta_mb`) et `export-fond` (latence d'encre) dans le JSON | S8.5, S8 | #tache-l5-t31 |
+| L5-T29 | `export` : PowerPoint en images (convertisseur trouvé, conversion en PDF, import PDF) | L5-T24 | `export/src/officeconvert.cpp`, `export/resources/pptx-to-pdf.ps1` (neuf), `export/CMakeLists.txt` (ressource seulement), `tests/tst_export_officeconvert.cpp` | isolé | implementeur-tdd | `tst_export_officeconvert` Passed (dont `envConverterWins`, `argumentsSubstituted`, `pathsPassedByEnvironment`, `timeoutReported`, `missingConverterReported`, `fakeConverterChainGivesPages`) | S8 | #tache-l5-t29 |
+| L5-T31 | Banc : scénarios `onglets` (mémoire et bascule) et `export-fond` (export PDF pendant l'écriture) | L5-T21, L5-T25 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp` | isolé | implementeur-tdd | `tst_bench_scenarios` Passed dont `tabsAndExportScenariosListed` ; banc hors écran : `onglets.memory_delta_mb` < largeur × hauteur × 20 o du passage, et `export-fond` p95 ≤ 1,2 × p95 de `stroke` du même passage, dans le JSON | S8.5, S8 | #tache-l5-t31 |
 | L5-T30 | `ui` + QML : import PowerPoint en images, menu Importer (PDF et présentation seulement, N1-A8) ; scénario `importer` | L5-T25, L5-T29 | `ui/src/fileexchange.cpp`, `ui/qml/FileExchangeActions.qml`, `tests/tst_ui_import.cpp`, `bench/scenarios/importer.json` | isolé | implementeur-tdd | `tst_ui_import` Passed (dont `powerpointThroughFakeConverter`, `menuHidesUnavailableImports`, `failureShowsBanner`) ; `importer` hors écran `CAPTURES OK` | S8 | #tache-l5-t30 |
 | L5-T32 | Scénario S8 `edition-export`, rejoué à l'écran en D3D11 ; S17 à l'écran | L5-T18, L5-T28, L5-T30, L5-T31 | `bench/scenarios/edition-export.json` | isolé | implementeur-tdd | hors écran `CAPTURES OK` (lectures de la section) ; à l'écran en D3D11 sous le jeton `ecran` `CAPTURES OK` | S8, S17 | #tache-l5-t32 |
-| L5-T33 | Contrôle de fin du lot : suites debug et release, talons, graphe, noms | L5-T0 à L5-T32 | `graphify-out/` | partagé | implementeur-tdd | debug et release `TESTS OK`, N = N_départ + 26 ; aucun talon `L5-T1` restant (`git grep -n "Talon L5-T1" -- . ':(exclude)docs/'` vide) ; aucun `QSKIP("réservé : L5-` ; captures `-Scenario tous` `CAPTURES OK` ; banc hors écran joint ; `NOMS OK` ; titres du corpus sans sortie ; `graphify update .` commité | S8, S17, S8.1 à S8.6 | #tache-l5-t33 |
+| L5-T33 | Contrôle de fin du lot : 6 tests de captures enregistrés, suites debug et release, talons, graphe, noms | L5-T0 à L5-T32 | `tests/bench.cmake` (6 tests `tst_captures_*` du lot), `graphify-out/` | partagé | implementeur-tdd | debug et release `TESTS OK`, N final = N_départ + 32 = 168 + n_B ; aucun talon (`git grep -n "Talon L5-" -- . ':(exclude)docs/'` vide) ; aucun `QSKIP("réservé : L5-` ; chaque test du lot listé par `-functions` sans `reserved` ; captures `-Scenario tous` `CAPTURES OK` ; banc hors écran joint ; `NOMS OK` ; titres du corpus sans sortie ; `graphify update .` commité | S8, S17, S8.1 à S8.6 | #tache-l5-t33 |
 
 14 tâches (L5-T20 à L5-T33). Lot entier : 34 tâches, deux plans, un cadrage.
 
 ## Vagues (largeur 3 au plus, 2 places de tests)
 
-V9 : L5-T20 ‖ L5-T22 ‖ L5-T26 · V10 : L5-T21 ‖ L5-T23 ‖ L5-T27 · V11 : L5-T24 ‖ L5-T28 · V12 : L5-T25 ‖ L5-T29 ·
-V13 : L5-T30 ‖ L5-T31 · V14 : L5-T32 · V15 : L5-T33.
+V10 : L5-T20 ‖ L5-T22 ‖ L5-T26 · V11 : L5-T21 ‖ L5-T23 ‖ L5-T27 · V12 : L5-T24 · V13 : L5-T25 ‖ L5-T29 ·
+V14 : L5-T28 ‖ L5-T30 ‖ L5-T31 · V15 : L5-T32 · V16 : L5-T33.
 
 Recoupements vérifiés :
-- V9 : T20 (`documenttabs.cpp`, `documentcontroller.cpp`, test) / T22 (CMake racine bloc des options, `export/CMakeLists.txt`,
+- V10 : T20 (`documenttabs.cpp`, `documentcontroller.cpp`, test) / T22 (CMake racine bloc des options, `export/CMakeLists.txt`,
   CI, licences, `CLAUDE.md`, `BRIEF.md`) / T26 (`printlayout.cpp`, test) — disjoints.
-- V10 : T21 (QML des onglets, `PageNavigator.qml`, `onglets.json`, `tst_ui_shell.cpp`) / T23 (`pageexport.cpp`,
+- V11 : T21 (QML des onglets, `PageNavigator.qml`, `onglets.json`, `tst_ui_shell.cpp`) / T23 (`pageexport.cpp`,
   `pdfexport.cpp`, deux tests) / T27 (`print/`, test, `packaging/qt-autorises.txt`) — disjoints (T22, qui touche aussi
-  `qt-autorises.txt`, est en V9).
-- V11 : T24 (`pdfimport.cpp`) / T28 (`printcontroller.cpp`, QML d'impression, `imprimer.json`). T25 est en V12 parce
-  qu'il dépend de T24.
-- V12 : T25 (`fileexchange.cpp`, `FileExchangeActions.qml`, `PageContextMenu.qml`, `exporter.json`) / T29
-  (`officeconvert.cpp`) — disjoints.
-- V13 : T30 (`fileexchange.cpp`, `FileExchangeActions.qml`, `importer.json`) / T31 (`bench/`) — disjoints ; T25 et
-  T30 partagent `fileexchange.cpp` et sont dans deux vagues.
+  `qt-autorises.txt`, est en V10).
+- V12 : T24 seul (T25 et T29 en dépendent).
+- V13 : T25 (`fileexchange.cpp`, `FileExchangeActions.qml`, `exporter.json`) / T29 (`officeconvert.cpp`, script,
+  `export/CMakeLists.txt`) — disjoints.
+- V14 : T28 (`printcontroller.cpp`, QML d'impression, `imprimer.json`) / T30 (`fileexchange.cpp`,
+  `FileExchangeActions.qml`, `importer.json`) / T31 (`bench/`) — disjoints ; T25 et T30 partagent `fileexchange.cpp` et
+  sont dans deux vagues ; T28 vient après T25 (sa dépendance).
 
 ---
 
@@ -66,7 +78,9 @@ avertissements, index de page affichée, page de référence de « Rétablir la 
 de l'actif puis `resumeSession()` de l'autre : un redessin du cache, une fois. Point délicat (`concepteur-critique`) :
 l'invariant partagé « tout ce qui appartient au document part avec lui » — un oubli (pile d'annulation, page de
 référence, soulèvement en cours, observateurs, miniatures du lot 4) se voit tard. Le patron évident (une
-`DocumentController` + une `PageView` par onglet) est écarté : ≈ 74,6 Mo de cache par vue.
+`DocumentController` + une `PageView` par onglet) est écarté : ≈ 41,5 Mio de cache par vue en 1920 × 1080 (20 o/px
+depuis L10-T8). La couche d'attente du lot 10 est versée avant tout garage : `parkSession` est appelé par
+`DocumentTabs` **après** la demande de redessin de sa `view`, qui verse les objets en attente (`pageview.h:133-140`).
 
 **Fichiers.** Ceux de la ligne de la table.
 
@@ -92,13 +106,25 @@ void TestTabs::parkDropsALiftFirst()
     QVERIFY(!f.document.isLifting());
     QCOMPARE(f.document.shownObjectCount(), 1); // l'objet soulevé est revenu, sans étape
 }
+void TestTabs::parkFoldsPendingFirst()
+{
+    Fixture f(/*withView=*/true);
+    f.drawStrokeLeftPending(); // trait versé, encore dans la couche d'attente (lot 10)
+    QVERIFY(f.view.pendingLayer()->hasPending()); // nom de la requête du lot 10 : à revérifier
+    f.tabs.newTab();
+    f.tabs.activate(0);
+    QCOMPARE(f.document.shownObjectCount(), 1); // le trait est dans le document garé puis rendu
+    QVERIFY(!f.view.pendingLayer()->hasPending());
+}
 void TestTabs::switchRedrawsOnce()
 {
     Fixture f(/*withView=*/true);
     f.tabs.newTab();
+    f.waitCacheStable(); // aucun redessin pendant 300 ms
     const int before = f.view.cacheRefreshCount();
     f.tabs.activate(0);
-    QTRY_COMPARE(f.view.cacheRefreshCount(), before + 1);
+    f.waitCacheStable();
+    QCOMPARE(f.view.cacheRefreshCount(), before + 1); // ni 0 ni 2 : comparé après stabilisation
 }
 void TestTabs::closingModifiedAsksToSave()
 {
@@ -108,6 +134,11 @@ void TestTabs::closingModifiedAsksToSave()
     QCOMPARE(asked.count(), 1);
     f.tabs.closeWithoutSaving(0);
     QCOMPARE(f.tabs.rowCount(), 1); // un document vide reste toujours ouvert
+    QCOMPARE(f.document.pageCount(), 1);
+    QCOMPARE(f.document.shownObjectCount(), 0);
+    QVERIFY(!f.document.isModified());
+    QCOMPARE(f.tabs.data(f.tabs.index(0), ui::DocumentTabs::TitleRole).toString(), QStringLiteral("Sans titre"));
+    QVERIFY(f.tabs.requestClose(0)); // document vide non modifié : fermé sans demande, remplacé par un vide
 }
 void TestTabs::copyPagesGoBeforeFirstPage()
 {
@@ -122,15 +153,8 @@ void TestTabs::copyPagesGoBeforeFirstPage()
     f.document.undo();        // une étape dans l'onglet d'arrivée
     QCOMPARE(f.document.pageCount(), 1);
 }
-void TestTabs::oneViewForAllTabs()
-{
-    Fixture f(/*withView=*/true);
-    for (int i = 0; i < 3; ++i)
-        f.tabs.newTab();
-    QCOMPARE(f.window.findChildren<ui::PageView*>().size(), qsizetype(1));
-}
 ```
-Mutation : ne pas garer la pile d'annulation (`parkSession` la laisse au contrôleur) → `parkResumeKeepsUndoHistory`
+`oneViewForAllTabs` est dans `tst_ui_shell` (L5-T21), sur la fenêtre chargée. Mutation : ne pas garer la pile d'annulation (`parkSession` la laisse au contrôleur) → `parkResumeKeepsUndoHistory`
 rouge ; remise par `git -C <wt> checkout -- ui/src/documentcontroller.cpp`. Banc sans écran joint.
 
 **Interdits.** Aucune seconde `PageView` ; aucune signature publique du contrôleur changée hors des deux membres
@@ -264,7 +288,9 @@ Fichier ▸ Nouveau et Ouvrir ouvrent un onglet ; fermer un onglet modifié ouvr
 dans `PageNavigator.qml` (lot 4), le dépôt de miniatures sur un onglet appelle `appTabs.copyPagesToTab` (F-011) ;
 scénario `bench/scenarios/onglets.json` (S8.5).
 
-**Test et commande bornée.** `tst_ui_shell` : `tabBarFollowsPosition`. Commande ciblée `^(tst_ui_shell)$`.
+**Test et commande bornée.** `tst_ui_shell` : `tabBarFollowsPosition` ; `oneViewForAllTabs` (fenêtre principale
+chargée, trois `appTabs.newTab()` : `findChildren<ui::PageView*>()` en compte exactement 1). Commande ciblée
+`^(tst_ui_shell)$`.
 
 **Preuve visuelle.** `captures.ps1 -Scenario onglets -Rendu logiciel -HorsEcran -Sortie .tmp/captures-onglets -Lire
 'appTabs.count=3' -Lire 'appTabs.currentIndex=1' -Lire 'appDocument.pageCount=2'` (forme bornée du profil) :
@@ -339,8 +365,25 @@ compose une feuille (`renderSheet`) ; l'aperçu et l'impression l'appellent tous
 
 **Test et commande bornée.** Commande ciblée, motif `^(tst_print_printer)$` : `printsToFileThroughVirtualPrinter`
 (document S17, 2 par feuille, plage 2-4, notes → fichier écrit, `countPdfPages` = 4), `grayHasNoColor` (chaque pixel
-de `renderSheet` a r = g = b), `sheetCountMatchesLayout`, `worksWithoutQApplication` (test lancé sous
-`QGuiApplication`). Test sauté avec `QSKIP("imprimante virtuelle absente")` seulement si `printerNames()` ne la
+de `renderSheet` a r = g = b), `sheetCountMatchesLayout`, `worksWithoutQApplication`, `nativeFormatKeptForPdfName`
+(sortie nommée `….pdf` vers l'imprimante virtuelle : `printer.outputFormat() == QPrinter::NativeFormat` après
+`setOutputFileName`, Qt passant sinon en `PdfFormat` d'après l'extension ; le format est reposé après le nom). Qt
+PrintSupport tire QtWidgets, et `QTEST_MAIN` créerait alors une `QApplication` : le test a un `main` explicite :
+```cpp
+int main(int argc, char** argv)
+{
+    QGuiApplication app(argc, argv); // jamais QApplication
+    TestPrinter test;
+    return QTest::qExec(&test, argc, argv);
+}
+void TestPrinter::worksWithoutQApplication()
+{
+    QVERIFY(!qApp->inherits("QApplication"));
+    QVERIFY(print::printDocument(documentS17(), 0, virtualPrinterJob()).ok);
+}
+```
+`Qt6::PrintSupport` est lié en `PRIVATE` à `actcraft_print` (aucun en-tête public de `print/` n'inclut un en-tête de
+Qt PrintSupport). Test sauté avec `QSKIP("imprimante virtuelle absente")` seulement si `printerNames()` ne la
 contient pas — et alors le rapport le dit.
 
 **Interdits.** Aucune boîte d'impression du système (la boîte est à nous, L5-T28) ; aucune dépendance de `core/` à
@@ -373,14 +416,15 @@ par le test). **Terminé quand.** Fonctions en `PASS` ; commit « Lot 5 : import
 <a id="tache-l5-t25"></a>
 
 **Objectif.** Remplir les méthodes d'export et d'import PDF de `ui/src/fileexchange.cpp` (`exportPdf`,
-`exportPageImage`, `importPdf` → nouvel onglet par `appTabs`, `printThroughPdf` sous Android : PDF dans le dossier
+`exportPageImage`, `importPdf` → nouvel onglet par `appTabs`, `printThroughPdf` hors Windows : PDF dans le dossier
 temporaire puis `QDesktopServices::openUrl`, N1-15), `busy` pendant le travail, bannière du lot 2 en cas d'erreur ;
 dialogues de `FileExchangeActions.qml` (`QtQuick.Dialogs`, filtres « PDF », « Images » ; les scénarios passent l'URL en
-argument, sans dialogue) ; entrée « Exporter la page » du menu de page (`PageContextMenu.qml`) ; scénario
+argument, sans dialogue) ; « Exporter la page » est au menu de page par les données (`contextMenu` reçoit `export.page-image` en L5-T1),
+aucun QML du menu de page n'est touché ; scénario
 `bench/scenarios/exporter.json`.
 
 **Test et commande bornée.** Commande ciblée, motif `^(tst_ui_fileexchange)$` : `exportPdfCommandWritesFile`,
-`exportPageImageCommand`, `importPdfOpensATab`, `printThroughPdfOnAndroid` (chemin forcé par une propriété de test),
+`exportPageImageCommand`, `importPdfOpensATab`, `printThroughPdfOffWindows` (chemin forcé par une propriété de test),
 `busyWhileExporting`.
 
 **Preuve visuelle.** `captures.ps1 -Scenario exporter … -Lire 'appExchange.busy=false' -Lire 'appTabs.count=2'` :
@@ -389,7 +433,7 @@ argument, sans dialogue) ; entrée « Exporter la page » du menu de page (`Page
 **Interdits.** Aucun rendu sur le fil principal ; aucun export du cache. **Terminé quand.** Test `Passed` ; captures
 `CAPTURES OK` ; banc joint ; commit « Lot 5 : commandes d'export et d'import PDF ».
 
-**Étapes.** Tests rouges → méthodes → dialogues → menu de page → scénario → captures → banc → commit.
+**Étapes.** Tests rouges → méthodes → dialogues → scénario → captures → banc → commit.
 
 ### Tâche L5-T28 — QML : boîte d'impression, aperçu ; scénario S17
 
@@ -419,20 +463,30 @@ vérifie le fichier écrit (4 feuilles) et un contrôle de pixels sans couleur ;
 <a id="tache-l5-t29"></a>
 
 **Objectif.** Remplir `export/src/officeconvert.cpp` (H5-3) : `findConverter` (variable `ACTCRAFT_OFFICE_CONVERTER`
-d'abord, puis `soffice` — `--headless --convert-to pdf --outdir {outdir} {in}` —, puis PowerPoint par
-`powershell.exe -NoProfile -NonInteractive -Command` et un script à nous qui ouvre la présentation par COM et
-l'enregistre en PDF) ; `convertToPdf` par `QProcess` dans un `QTemporaryDir`, délai de 120 s, erreur à nous si le PDF
+d'abord, puis `soffice` — arguments `--headless --convert-to pdf --outdir {outdir} {in}`, passés par `QProcess` en
+liste, jamais par un interpréteur de commandes —, puis PowerPoint par `powershell.exe -NoProfile -NonInteractive
+-ExecutionPolicy Bypass -File <script>`) ; le script `export/resources/pptx-to-pdf.ps1`, à nous, est rangé en ressource
+Qt (`export/CMakeLists.txt`) et copié dans le `QTemporaryDir` avant l'appel ; **aucun chemin n'est substitué dans la
+ligne de commande** : présentation et PDF passent par les variables d'environnement `ACTCRAFT_CONVERT_IN` et
+`ACTCRAFT_CONVERT_OUT` (`QProcessEnvironment`). Le script : s'attache à une instance de PowerPoint déjà ouverte ou en
+lance une (et le note) ; ouvre la présentation **en lecture seule, sans fenêtre** (`Presentations.Open(chemin, $true,
+$false, $false)`) ; l'enregistre en PDF ; ferme **sa seule présentation** ; n'appelle `Quit()` que s'il a lui-même
+lancé PowerPoint. Pourquoi `powershell.exe` : `pwsh` n'est pas installé sur les postes des utilisateurs ; la règle
+« jamais `powershell.exe` » du projet vise les commandes de développement, pas un appel du produit à un composant
+présent sur tout Windows (postes gérés : H5-7) ; `convertToPdf` par `QProcess` dans un `QTemporaryDir`, délai de 120 s, erreur à nous si le PDF
 n'est pas produit ; l'appelant (L5-T30) enchaîne `importPdf` (L5-T24). Le poste a PowerPoint
 (`C:\Program Files\Microsoft Office\root\Office16\POWERPNT.EXE`, relevé à 794cf84), pas LibreOffice.
 
 **Test et commande bornée.** Commande ciblée, motif `^(tst_export_officeconvert)$` : `envConverterWins`,
 `argumentsSubstituted`, `timeoutReported` (convertisseur factice qui attend), `missingConverterReported`,
 `fakeConverterChainGivesPages` (convertisseur factice `cmake -E copy <pdf de 2 pages produit par exportPdf> {out}` →
-`importPdf` → 2 pages). Un essai réel avec PowerPoint, sur une présentation **écrite par le test** (si l'automation
+`importPdf` → 2 pages), `pathsPassedByEnvironment` (convertisseur factice qui écrit son environnement : les deux
+variables portent les chemins, la ligne de commande n'en contient aucun ; un chemin avec `'`, `;` et `$` passe intact). Un essai réel avec PowerPoint, sur une présentation **écrite par le test** (si l'automation
 sait en créer une ; sinon essai sauté et noté), est rapporté sans être une preuve de tâche.
 
-**Interdits.** Aucun convertisseur livré ni téléchargé ; aucune présentation tierce commitée ; Windows seulement.
-**Terminé quand.** 5 fonctions en `PASS` ; commit « Lot 5 : conversion de présentation en PDF ».
+**Interdits.** Aucun convertisseur livré ni téléchargé ; aucune présentation tierce commitée ; Windows seulement ;
+aucun chemin dans une chaîne de commande ; jamais `Quit()` d'un PowerPoint que le script n'a pas lancé.
+**Terminé quand.** 6 fonctions en `PASS` ; commit « Lot 5 : conversion de présentation en PDF ».
 
 **Étapes.** Tests rouges → recherche → conversion → vert → format → commit.
 
@@ -440,10 +494,13 @@ sait en créer une ; sinon essai sauté et noté), est rapporté sans être une 
 
 <a id="tache-l5-t31"></a>
 
-**Objectif.** Deux scénarios de banc : `onglets` (ouvrir 4 documents de 20 pages, basculer 10 fois ; relever
-`memory_delta_mb` = mémoire du processus après moins avant, et la durée de chaque bascule) et `export-fond` (exporter
-un PDF de 20 pages pendant qu'un trait est écrit : latence d'encre et figements comme le scénario `stroke`). Seuil de
-S8.5 : `memory_delta_mb` < 4 × (taille des documents en mémoire) + 40 Mo, consigné comme résultat.
+**Objectif.** Deux scénarios de banc : `onglets` (4 documents synthétiques **fixés** par le banc : 20 pages de 50
+traits chacun, sans image ; ouverts, puis 10 bascules ; `memory_delta_mb` = mémoire du processus après les ouvertures
+moins avant, et la durée de chaque bascule) et `export-fond` (exporter en PDF un de ces documents pendant qu'un trait
+est écrit). Seuils, consignés comme résultats (le verdict du banc n'est pas une porte) : `memory_delta_mb` < coût d'une
+vue à la taille du passage (largeur × hauteur × 20 o, soit ≈ 19,5 Mio en 1280 × 800 hors écran, ≈ 41,5 Mio en
+1920 × 1080) — une vue par onglet le dépasserait ; `export-fond` : latence d'encre p95 ≤ 1,2 × celle du scénario
+`stroke` du même passage, et aucun figement de plus que `stroke`.
 
 **Test et commande bornée.** Commande ciblée, motif `^(tst_bench_scenarios)$` : `tabsAndExportScenariosListed` ;
 banc sans écran : sections `onglets` et `export-fond` dans le JSON. **Interdits.** Mesures `debug` jamais présentées
@@ -473,9 +530,12 @@ factice par la variable d'environnement).
 
 <a id="tache-l5-t32"></a>
 
-**Objectif.** Scénario `bench/scenarios/edition-export.json` = S8 : trois formes groupées dans l'onglet 1, copier,
-`tab.next` (onglet 2 créé), coller, `align.left`, `edit.undo` ; `export.pdf .tmp/s8.pdf` sur un document de 3 pages ;
-`export.page-image .tmp/s8.png`. Lectures : `-Lire 'appTabs.count=2' -Lire 'appDocument.canUndo=true'` ; `expect` sur
+**Objectif.** Scénario `bench/scenarios/edition-export.json` = S8 : trois formes groupées et une forme seule dans l'onglet 1 ;
+copier le groupe et la forme seule (deux objets de premier niveau) ; `file.new` (crée l'onglet 2) ; coller ; les deux
+objets collés restent sélectionnés ; `align.left` (deux objets : la forme seule rejoint le bord gauche du groupe) ;
+`edit.undo` ; `export.pdf .tmp/s8.pdf` sur un document de 3 pages ;
+`export.page-image .tmp/s8.png`. Lectures : `-Lire 'appTabs.count=2' -Lire 'appDocument.canUndo=true'` (le collage reste annulable après l'annulation
+de l'alignement) ; `expect` sur
 le PDF (3 pages) et sur l'image (1024 × 768). Hors écran en rendu logiciel, puis à l'écran en D3D11 sous le jeton
 `ecran` (annoncé d'une ligne à Jérôme), avec S17 (`imprimer`) rejoué à l'écran.
 
@@ -488,9 +548,15 @@ le PDF (3 pages) et sur l'image (1024 × 768). Hors écran en rendu logiciel, pu
 
 <a id="tache-l5-t33"></a>
 
-**Objectif.** Suites complètes debug et release (`scripts/test.ps1`, forme bornée du profil → `TESTS OK`, N =
-N_départ + 26) ; aucun talon du lot (`git -C <wt> grep -n "Talon L5-T1" -- . ':(exclude)docs/'` vide ;
-`git -C <wt> grep -n 'QSKIP("réservé : L5-' -- tests` vide) ; captures `-Scenario tous` hors écran `CAPTURES OK` ;
+**Objectif.** Enregistrer dans `tests/bench.cmake`, sur la forme exacte de `tst_captures_premiers_pas`
+(`tests/bench.cmake:105-117` en tête du chantier : `add_test` sur `actcraft-captures --scenario … --rendu logiciel
+--taille 1280x800 --sortie …`, `TIMEOUT 300`, `ENVIRONMENT "${_bench_env_offscreen}"`, `PASS_REGULAR_EXPRESSION
+"SCENARIO OK"`, `FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE"`), les 6 tests
+`tst_captures_edition`, `tst_captures_onglets`, `tst_captures_exporter`, `tst_captures_imprimer`,
+`tst_captures_importer`, `tst_captures_edition_export` ; puis suites complètes debug et release (`scripts/test.ps1`,
+forme bornée du profil → `TESTS OK`, **N final = N_départ + 32 = 168 + n_B**) ; aucun talon du lot
+(`git -C <wt> grep -n "Talon L5-" -- . ':(exclude)docs/'` vide ; `git -C <wt> grep -n 'QSKIP("réservé : L5-' --
+tests` vide ; pour chacun des 26 tests du lot, `build/debug/tests/<test>.exe -functions` ne liste pas `reserved`) ; captures `-Scenario tous` hors écran `CAPTURES OK` ;
 banc sans écran joint ; `NOMS OK` ; titres du corpus sans sortie ; `graphify update .` puis commit de
 `graphify-out/` ; liste des hypothèses H5-1 à H5-6 et des écarts du lot remise à l'orchestrateur pour la porte de fin
 (banc D3D11 plein écran sous le jeton `ecran`, porte de non-régression du profil).
