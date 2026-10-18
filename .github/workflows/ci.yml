@@ -7,6 +7,7 @@ on:
       - "essai-ci/**"
       - "!essai-ci/release-**"
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -20,6 +21,7 @@ env:
 
 jobs:
   format:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -30,6 +32,7 @@ jobs:
           git ls-files '*.cpp' '*.h' '*.hpp' | xargs --no-run-if-empty clang-format --dry-run --Werror
 
   build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
@@ -88,6 +91,7 @@ jobs:
 
   # S1 : installateur construit et essayé, jamais téléversé (DA9).
   paquet-windows:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
@@ -134,6 +138,7 @@ jobs:
 
   # S3 : APK arm64-v8a et x86_64 construits, x86_64 essayé sur l'émulateur (KVM), jamais téléversés (DA9).
   android:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
