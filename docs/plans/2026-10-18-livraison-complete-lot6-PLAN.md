@@ -52,7 +52,7 @@ mandataire, Test), CMake + Ninja, MSVC 2022, PowerShell 7. Bibliothèque tierce 
 | L6-T12 | `ui` : `PropertyModel` (page, un objet, plusieurs objets ; sections F-570 à F-576, F-581, F-583 ; valeurs communes ; éditeurs typés) | L6-T11 | `ui/include/actcraft/ui/propertymodel.h`, `ui/src/propertymodel.cpp`, `tests/tst_ui_propertymodel.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_propertymodel` Passed (dont `pageWhenNothingSelected`, `sectionsOfAStroke`, `sectionsOfAShape`, `commonValuesOnly`, `editGoesThroughTheUndoStack`, `refreshIsDeferredDuringContact`, `noCacheRefreshOnSelectionChange`) ; banc hors écran joint | S9, S9.4 | #tache-l6-t12 |
 | L6-T13 | QML : navigateur de propriétés (sections repliables, éditeurs) ; scénario `proprietes` | L6-T2, L6-T12 | `ui/qml/PropertyBrowser.qml`, `ui/qml/PropertyEditor.qml`, `bench/scenarios/proprietes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_proprietes` Passed ; `captures.ps1 -Scenario proprietes` : `LU appProperties.title=Trait OK`, `LU appDocument.canUndo=true OK`, `PIXEL contour-epais OK`, `PIXEL contour-annule OK`, `CAPTURES OK` ; banc hors écran joint | S9, S9.4 | #tache-l6-t13 |
 | L6-T14 | `ui` : `ObjectTreeModel` (couches, ordre de superposition, clic qui sélectionne, glisser qui réordonne, masqué, verrouillé), mises à jour regroupées | L6-T0, L6-T1 | `ui/include/actcraft/ui/objecttree.h`, `ui/src/objecttree.cpp`, `tests/tst_ui_objecttree.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_objecttree` Passed (dont `fourLayerNodesTopFirst`, `objectsTopmostFirst`, `clickSelects`, `dragReordersInOneStep`, `dragToBackgroundRefused`, `toggleHiddenAndLocked`, `resetsAreBatched`, `noRefreshDuringContact`) ; banc hors écran joint | S9, S9.3 | #tache-l6-t14 |
-| L6-T15 | QML : navigateur d'objet ; scénario `navigateur-objets` | L6-T2, L6-T14 | `ui/qml/ObjectBrowser.qml`, `bench/scenarios/navigateur-objets.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_navigateur_objets` Passed ; `captures.ps1 -Scenario navigateur-objets` : `LU objectBrowser.visible=true OK`, `LU appObjectTree.rowCount=4 OK`, `LU appSelection.count=1 OK`, `CAPTURES OK` ; banc hors écran joint | S9, S9.3 | #tache-l6-t15 |
+| L6-T15 | QML : navigateur d'objet ; scénario `navigateur-objets` | L6-T2, L6-T14 | `ui/qml/ObjectBrowser.qml`, `bench/scenarios/navigateur-objets.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_navigateur_objets` Passed ; `captures.ps1 -Scenario navigateur-objets` : `LU objectBrowser.visible=true OK`, `LU appObjectTree.rowCount=6 OK`, `LU appSelection.count=1 OK`, `CAPTURES OK` ; banc hors écran joint | S9, S9.3 | #tache-l6-t15 |
 | L6-T16 | Navigateur de notes : `SetPageNotesCommand` (fusionnée), éditeur riche, icône de notes dans la ligne supérieure | L6-T2 | `core/include/actcraft/core/notesedits.h`, `core/src/notesedits.cpp`, `tests/tst_core_notesedits.cpp`, `ui/include/actcraft/ui/notescontroller.h`, `ui/src/notescontroller.cpp`, `tests/tst_ui_notes.cpp`, `ui/qml/NotesBrowser.qml`, `bench/scenarios/notes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_core_notesedits` (dont `typingMergesIntoOneStep`, `notesTouchNoCache`), `tst_ui_notes` (dont `followsTheCurrentPage`, `hasNotesFlag`), `tst_captures_notes` Passed ; `captures.ps1 -Scenario notes` : `LU appNotes.hasNotes=true OK`, `LU notesIcon.visible=true OK`, `CAPTURES OK` | S9, S9.5 | #tache-l6-t16 |
 | L6-T17 | Étiquettes : légende d'un objet montrée au survol, selon son style | L6-T10, L6-T2 | `ui/include/actcraft/ui/labeltips.h`, `ui/src/labeltips.cpp`, `ui/qml/LabelTip.qml`, `tests/tst_ui_labels.cpp`, `bench/scenarios/etiquettes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_labels` (dont `hoverShowsTheLabel`, `noLabelNoTip`, `hiddenObjectHasNoTip`, `styleIsApplied`), `tst_captures_etiquettes` Passed ; `captures.ps1 -Scenario etiquettes` : `LU labelTip.text=Soleil OK`, `CAPTURES OK` | S9.10 | #tache-l6-t17 |
 | L6-T18 | Point d'étape 6a : scénario S9 `reglages-gardes` (quitter, relancer), comptes des talons, graphe | L6-T6 à L6-T9, L6-T13, L6-T15 à L6-T17 | `bench/scenarios/reglages-gardes.json`, `bench/src/uiscenario.cpp`, `bench/include/actcraft/bench/uiscenario.h`, `tests/tst_bench_uiscenario.cpp`, `graphify-out/` | partagé | implementeur-tdd | `TESTS OK`, N = N6 + 43, `tst_bench_uiscenario` (dont `restartStepParsed`), `tst_captures_reglages_gardes` Passed ; `captures.ps1 -Scenario reglages-gardes` : `LU appProfile.paletteDock=left OK` **après** l'étape `restart`, `LU appColors.extraCount=1 OK`, `LU browserPanel.current=objects OK`, `CAPTURES OK` ; talons « par L6-T2 » à « par L6-T17 » absents ; `NOMS OK` ; `graphify update .` commité | S9 | #tache-l6-t18 |
@@ -2210,4 +2210,331 @@ aucune demande de redessin du cache (un changement de sélection ne touche pas l
 - [ ] **Étape 3 : rouge, implémentation, vert** ; banc sans écran ; preuve de tâche.
 - [ ] **Étape 4 : commit** « Lot 6 : modèle du navigateur de propriétés (L6-T12) ».
 
-<!-- suite -->
+<a id="tache-l6-t13"></a>
+### Tâche L6-T13 — QML : navigateur de propriétés ; scénario `proprietes`
+
+**Objectif.** `PropertyBrowser.qml` : `ListView` sur une instance `PropertyModel { id: appProperties; objectName:
+"appProperties"; document: appDocument; tools: appTools; inputActive: pageView.inputActive }`, sections repliables
+(`section.property: "section"`, en-tête cliquable qui replie), titre `appProperties.title` ; `PropertyEditor.qml` :
+délégué qui choisit l'éditeur par `editor` (`TextField`, `SpinBox` réel, pastille + `ColorDialog`, `Slider` qui appelle
+`setValue` à chaque pas — la fusion de L6-T11 en fait une étape —, `ComboBox`, `Switch`, éditeur de mots-clés séparés
+par des espaces). Valeur invalide (objets différents) : champ vide. Scénario S9.4.
+
+**Fichiers.** `ui/qml/PropertyBrowser.qml`, `ui/qml/PropertyEditor.qml`, `bench/scenarios/proprietes.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_captures_proprietes|tst_ui_shell'` ; banc sans écran.
+
+**Preuve visuelle.** `captures.ps1 -Scenario proprietes … -Lire "appProperties.title=Trait" -Lire "appDocument.canUndo=true"` :
+deux `LU … OK`, `PIXEL contour-epais OK`, `PIXEL contour-annule OK`, `CAPTURES OK` ; décrire `page.png` (propriétés de
+la page), `trait.png` (sections d'un trait), `epais.png`, `annule.png`.
+
+**Interdits.** Aucun appel au document depuis le QML hors de `setValue` ; pas de liaison bidirectionnelle sur
+`ValueRole` (la valeur relue vient du modèle après `refreshed`).
+
+**Terminé quand** le scénario est vert, `tst_ui_shell` inchangé vert, banc joint.
+
+**Étapes.**
+- [ ] **Étape 1 : scénario rouge** `proprietes.json` : `waitReady` ; `browser.properties` ; capture `page.png` ;
+  `expect appProperties.title = Page` ; un trait au stylet injecté (étape de trait de `premiers-pas`) ; sélection du
+  trait par la commande ou le clic de l'outil de sélection du lot 3 ; `expect appProperties.title = Trait` ; capture
+  `trait.png` ; saisie de 12 dans l'éditeur `outline-width` (`pointer` sur le délégué nommé `prop-outline-width`, puis
+  `typeText "12"` et Entrée) ; contrôle `contour-epais` (bande de pixels au milieu du trait : au moins 10 px sombres) ;
+  capture `epais.png` ; `edit.undo` ; contrôle `contour-annule` (au plus 5 px sombres) ; capture `annule.png`. Rouge :
+  `SCENARIO EN ECHEC` sur `expect appProperties.title` (navigateur talon).
+- [ ] **Étape 2 : QML** des deux fichiers ; délégués nommés `prop-<clé>`.
+- [ ] **Étape 3 : vert**, preuve visuelle, banc sans écran, preuve de tâche ; `NOMS OK` ; commit « Lot 6 : navigateur
+  de propriétés (L6-T13) ».
+
+<a id="tache-l6-t14"></a>
+### Tâche L6-T14 — `ui` : modèle du navigateur d'objet
+
+**Objectif.** `ui::ObjectTreeModel` (F-820, F-821) : arbre à deux niveaux — quatre nœuds de couche (du dessus,
+intermédiaire, inférieure, fond), puis les objets de la page courante du plus haut au plus bas dans l'ordre de
+superposition, avec le nom, le genre (icône de l'outil créateur), masqué, verrouillé. Clic sur une ligne → sélection
+(A5) ; glisser une ligne → nouveau rang ou autre couche (pas vers le fond), **une** étape (commande d'arrangement du
+lot 5, A9 ; à défaut, `core::ReplaceObjectsCommand`, A12) ; colonnes masqué et verrouillé → commandes de drapeaux du
+lot 5 (A9) ou `SetObjectPropertiesCommand` (`Visible`, `Locked`, L6-T11 — **dépendance de repli** : si A9 manque,
+cette tâche attend L6-T11 et le note). Remises à jour regroupées (une `beginResetModel` par tour de boucle) et
+reportées pendant un contact (D6-5).
+
+**Fichiers.** `ui/include/actcraft/ui/objecttree.h`, `ui/src/objecttree.cpp`, `tests/tst_ui_objecttree.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_objecttree` ; banc sans écran.
+
+**Interdits.** Pas de `QAbstractItemModel` arborescent complet (QML `TreeView` n'est pas requis) : un modèle de liste
+à plat avec `depth` (0 couche, 1 objet) et `layer` suffit et reste simple ; aucune remise à jour pendant un contact.
+
+**Terminé quand** les huit fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** `objecttree.h` :
+  ```cpp
+  #pragma once
+
+  #include <QAbstractListModel>
+  #include <QTimer>
+  #include <QtQml/qqmlregistration.h>
+
+  namespace actcraft::ui {
+
+  class DocumentController;
+  class ToolHost;
+
+  class ObjectTreeModel : public QAbstractListModel
+  {
+      Q_OBJECT
+      QML_ELEMENT
+      Q_PROPERTY(DocumentController* document READ document WRITE setDocument NOTIFY sourcesChanged)
+      Q_PROPERTY(ToolHost* tools READ tools WRITE setTools NOTIFY sourcesChanged)
+      Q_PROPERTY(bool inputActive MEMBER m_inputActive NOTIFY inputActiveChanged)
+      Q_PROPERTY(int resetCount READ resetCount NOTIFY reset)
+  public:
+      enum Role
+      {
+          DepthRole = Qt::UserRole + 1, // 0 : couche ; 1 : objet
+          LayerRole,                    // « top », « middle », « bottom », « background »
+          ObjectIdRole,                 // 0 pour une couche
+          NameRole,
+          KindRole,                     // « stroke », « shape », « text », « image », « group »…
+          HiddenRole,
+          LockedRole,
+          SelectedRole,
+      };
+      explicit ObjectTreeModel(QObject* parent = nullptr);
+      int rowCount(const QModelIndex& parent = {}) const override;
+      QVariant data(const QModelIndex& index, int role) const override;
+      QHash<int, QByteArray> roleNames() const override;
+      Q_INVOKABLE void select(int row, int modifiers);       // Ctrl : ajoute ou retire
+      Q_INVOKABLE bool move(int row, int beforeRow);         // une étape ; faux vers le fond ou une couche seule
+      Q_INVOKABLE bool setHidden(int row, bool hidden);
+      Q_INVOKABLE bool setLocked(int row, bool locked);
+      DocumentController* document() const noexcept;
+      void setDocument(DocumentController* document);
+      ToolHost* tools() const noexcept;
+      void setTools(ToolHost* tools);
+      int resetCount() const noexcept;
+  signals:
+      void sourcesChanged();
+      void inputActiveChanged();
+      void reset();
+  private:
+      void requestReset();
+      void rebuild();
+      struct Row;
+      std::vector<Row> m_rows;
+      DocumentController* m_document = nullptr;
+      ToolHost* m_tools = nullptr;
+      QTimer m_timer;
+      bool m_inputActive = false;
+      bool m_pending = false;
+      int m_resets = 0;
+  };
+
+  } // namespace actcraft::ui
+  ```
+- [ ] **Étape 2 : test rouge** `tst_ui_objecttree.cpp` (document : un trait couche du dessus, deux formes
+  intermédiaires, une image inférieure) : `fourLayerNodesTopFirst` (lignes de `depth` 0 : top, middle, bottom,
+  background, dans cet ordre) ; `objectsTopmostFirst` (sous `middle`, la forme ajoutée en dernier d'abord) ;
+  `clickSelects` (`select(row)` → `user().selection` = cet identifiant ; aucun `Change` du document) ;
+  `dragReordersInOneStep` (`move` de la seconde forme au-dessus de la première → ordre inversé, une étape, Annuler le
+  rend) ; `dragToBackgroundRefused` (`move` vers une ligne sous `background` → faux, document inchangé) ;
+  `toggleHiddenAndLocked` (`setHidden` puis `setLocked` → drapeaux relus, deux étapes) ; `resetsAreBatched` (trois
+  ajouts d'objets dans le même tour → `resetCount` + 1 après `QCoreApplication::processEvents`) ;
+  `noRefreshDuringContact` (`inputActive` vrai, ajout → `resetCount` inchangé ; faux → + 1).
+- [ ] **Étape 3 : rouge, implémentation, vert** ; banc sans écran ; preuve de tâche ; commit « Lot 6 : modèle du
+  navigateur d'objet (L6-T14) ».
+
+<a id="tache-l6-t15"></a>
+### Tâche L6-T15 — QML : navigateur d'objet ; scénario `navigateur-objets`
+
+**Objectif.** `ObjectBrowser.qml` : `ListView` sur `ObjectTreeModel { id: appObjectTree; objectName: "appObjectTree";
+document: appDocument; tools: appTools; inputActive: pageView.inputActive }` ; ligne de couche en gras, ligne d'objet
+indentée avec icône du genre, nom, deux colonnes à icônes (`nav-objets-masque.svg`, `nav-objets-verrou.svg`) ; clic →
+`select`, Ctrl+clic → ajout ; glisser vertical → `move` (fantôme d'insertion) ; ligne sélectionnée surlignée par
+`SelectedRole`. Scénario S9.3. `appSelection.count` : lire le nom réel de l'objet QML qui expose la sélection (A5) ; à
+défaut, `appTools.selectionCount`.
+
+**Fichiers.** `ui/qml/ObjectBrowser.qml`, `bench/scenarios/navigateur-objets.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_captures_navigateur_objets|tst_ui_shell'` ; banc sans écran.
+
+**Preuve visuelle.** `captures.ps1 -Scenario navigateur-objets … -Lire "objectBrowser.visible=true" -Lire "appObjectTree.rowCount=6"`
+(4 couches + 2 objets) : `LU … OK`, `LU appSelection.count=1 OK` après le clic, `CAPTURES OK` ; décrire `arbre.png`,
+`selection.png`, `deplace.png`.
+
+**Interdits.** Aucune ligne de navigateur ne déclenche de redessin pendant l'écriture (banc : `cache.refreshes`
+inchangé par rapport à la référence du lot pour `court`).
+
+**Terminé quand** scénario vert, banc joint.
+
+**Étapes.**
+- [ ] **Étape 1 : scénario rouge** `navigateur-objets.json` : `waitReady` ; deux formes posées par la commande ou
+  l'outil des formes (lot 4) ; `browser.objects` ; `expect objectBrowser.visible = true` ; `expect appObjectTree.rowCount = 6` ;
+  capture `arbre.png` ; `pointer` sur le délégué `objRow4` ; `expect appSelection.count = 1` ; capture `selection.png` ;
+  glisser `objRow5` au-dessus de `objRow4` ; capture `deplace.png` ; `edit.undo`.
+- [ ] **Étape 2 : QML** (délégués nommés `objRow<n>`, n à partir de 0).
+- [ ] **Étape 3 : vert**, preuve visuelle, banc, preuve de tâche ; commit « Lot 6 : navigateur d'objet (L6-T15) ».
+
+<a id="tache-l6-t16"></a>
+### Tâche L6-T16 — Navigateur de notes
+
+**Objectif.** F-830 : texte riche propre à chaque page (`core::Page::notes`, HTML, déjà au modèle et au format
+natif), texte d'invite à nous (« Écrivez ici les notes de cette page… »), barre de mise en forme du lot 4 réutilisée
+(`TextFormatBar.qml`, lecture seule ici : elle se pose sur l'éditeur de notes par sa propriété de cible si elle en a
+une, sinon le gras, l'italique et le souligné par les raccourcis de `TextEdit`) ; l'icône `notesIcon` de la ligne
+supérieure est visible quand la page courante a des notes. Modification par `core::SetPageNotesCommand` : la frappe
+continue se fusionne en une étape (même page, moins de 2 s entre deux frappes) et n'atteint pas le cache.
+
+**Fichiers.** `core/include/actcraft/core/notesedits.h`, `core/src/notesedits.cpp`, `tests/tst_core_notesedits.cpp`,
+`ui/include/actcraft/ui/notescontroller.h`, `ui/src/notescontroller.cpp`, `tests/tst_ui_notes.cpp`,
+`ui/qml/NotesBrowser.qml`, `bench/scenarios/notes.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_core_notesedits|tst_ui_notes|tst_captures_notes'` ; banc sans
+écran.
+
+**Preuve visuelle.** `captures.ps1 -Scenario notes … -Lire "appNotes.hasNotes=true" -Lire "notesIcon.visible=true"` :
+`LU … OK`, `CAPTURES OK` ; décrire `notes-p2.png` et `p1-sans.png`.
+
+**Interdits.** `TextFormatBar.qml` n'est pas modifié (lot 4) ; aucune propriété de l'original.
+
+**Terminé quand** les quatre fonctions et le scénario passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-têtes.** `notesedits.h` :
+  ```cpp
+  #pragma once
+
+  #include <actcraft/core/undo.h>
+
+  #include <chrono>
+  #include <string>
+
+  namespace actcraft::core {
+
+  class SetPageNotesCommand final : public UndoCommand
+  {
+  public:
+      using Clock = std::chrono::steady_clock;
+      SetPageNotesCommand(int page, std::string html, Clock::time_point when = Clock::now());
+      void redo(Document& document, Changes& changes) override; // Change de page qui n'atteint pas le cache
+      void undo(Document& document, Changes& changes) override;
+      int mergeId() const noexcept override;
+      bool mergeWith(const UndoCommand& other) override; // même page et moins de kMergeWindow depuis la dernière
+      static constexpr std::chrono::milliseconds kMergeWindow{2000};
+  private:
+      int m_page;
+      std::string m_html;
+      std::string m_old;
+      Clock::time_point m_when;
+      bool m_filled = false;
+  };
+
+  } // namespace actcraft::core
+  ```
+  `notescontroller.h` : `ui::NotesController : QObject`, `QML_ELEMENT`, propriétés `document`
+  (`DocumentController*`), `html` (lecture : notes de la page courante ; écriture : `SetPageNotesCommand`), `hasNotes`
+  (vrai si le texte visible, balises retirées, n'est pas vide) ; suit `currentPageChanged` (A4) et les modifications
+  versées (A3).
+- [ ] **Étape 2 : tests rouges.** `tst_core_notesedits.cpp` : `typingMergesIntoOneStep` (trois commandes à 100 ms
+  d'écart → une étape ; une quatrième à 3 s → deux étapes) ; `notesTouchNoCache` (les `Change` rendus n'atteignent pas
+  le cache : même prédicat que L0-S3). `tst_ui_notes.cpp` : `followsTheCurrentPage` (notes « A » en page 1, « B » en
+  page 2, `html` suit la page courante) ; `hasNotesFlag` (`"<p></p>"` → faux ; `"<p>x</p>"` → vrai).
+- [ ] **Étape 3 : implémentation, QML** (`NotesBrowser.qml` : `NotesController { id: appNotes; objectName: "appNotes";
+  document: appDocument }`, `TextArea { textFormat: TextEdit.RichText }` écrit `appNotes.html` à chaque changement de
+  texte ; `notesIcon.visible: appNotes.hasNotes` posé par une `Binding` dans ce fichier), **scénario** `notes.json`
+  (page 2 créée, `browser.notes`, `typeText "Rappeler la consigne"`, `expect appNotes.hasNotes = true`, capture
+  `notes-p2.png`, `page.previous`, `expect notesIcon.visible = false`, capture `p1-sans.png`, `page.next`).
+- [ ] **Étape 4 : vert**, preuve visuelle, banc, preuve de tâche ; commit « Lot 6 : navigateur de notes (L6-T16) ».
+
+<a id="tache-l6-t17"></a>
+### Tâche L6-T17 — Étiquettes
+
+**Objectif.** F-576 : la légende d'un objet (`ObjectCommon::label`, style `labelStyle` de L6-T10) s'affiche dans une
+bulle quand le pointeur (souris ou stylet en survol) reste sur l'objet (D12 ; défaut : au survol, 400 ms, près du
+pointeur). `ui::LabelTips` trouve l'objet visible le plus haut sous le point (test de toucher du lot 3,
+`core::hitTest…`, A12 du lot 3) et rend `text`, `style` ; `LabelTip.qml` dessine la bulle (police, taille, couleur,
+contour, fond). Aucun objet masqué ni sans légende ne montre de bulle.
+
+**Fichiers.** `ui/include/actcraft/ui/labeltips.h`, `ui/src/labeltips.cpp`, `ui/qml/LabelTip.qml`,
+`tests/tst_ui_labels.cpp`, `bench/scenarios/etiquettes.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_labels|tst_captures_etiquettes'` ; banc sans écran.
+
+**Preuve visuelle.** `captures.ps1 -Scenario etiquettes … -Lire "labelTip.text=Soleil"` : `LU … OK`, `CAPTURES OK` ;
+décrire `bulle.png`.
+
+**Interdits.** Le survol ne passe pas par le routeur d'entrée et ne crée aucun trait ; la bulle n'entre pas dans le
+cache (élément QML au-dessus de la page).
+
+**Terminé quand** les quatre fonctions et le scénario passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** `labeltips.h` : `ui::LabelTips : QObject`, `QML_ELEMENT`, propriétés `document`
+  (`DocumentController*`), `text` (`QString`), `visible` (`bool`), `fontFamily`, `pointSize`, `color`, `outlineColor`,
+  `fill` (`QColor`) ; `Q_INVOKABLE void hoverAt(QPointF pagePoint)` ; `Q_INVOKABLE void leave()`.
+- [ ] **Étape 2 : test rouge** `tst_ui_labels.cpp` : `hoverShowsTheLabel` (forme légendée « Soleil » ; `hoverAt` au
+  centre → `visible`, `text` « Soleil ») ; `noLabelNoTip` (forme sans légende → pas visible) ; `hiddenObjectHasNoTip`
+  (objet légendé masqué → pas visible) ; `styleIsApplied` (style 18 pt rouge → `pointSize` 18, `color` rouge).
+- [ ] **Étape 3 : implémentation, QML** (`LabelTip.qml` : `HoverHandler` sur la zone de page, minuterie de 400 ms, point
+  converti en coordonnées de page par la vue — fonction de conversion de `PageView`, lire son nom), **scénario**
+  `etiquettes.json` (une forme posée, légende « Soleil » par `browser.properties` et l'éditeur `label`, `pointer` en
+  survol au centre de la forme, attente 600 ms, `expect labelTip.text = Soleil`, capture `bulle.png`).
+- [ ] **Étape 4 : vert**, preuve visuelle, banc, preuve de tâche ; `NOMS OK` ; commit « Lot 6 : étiquettes des objets
+  (L6-T17) ».
+
+<a id="tache-l6-t18"></a>
+### Tâche L6-T18 — Point d'étape 6a : S9 de bout en bout
+
+**Objectif.** Le scénario `reglages-gardes` joue S9 du cadrage : ancrer la palette à gauche, ajouter une couleur
+personnalisée, ouvrir le navigateur d'objet, **quitter et relancer**, tout est restauré ; une largeur de contour
+changée dans le navigateur de propriétés s'annule. Le joueur de scénarios gagne une étape `restart` : il ferme la
+fenêtre, attend l'enregistrement du profil (`appProfile.saveCount` stable), recrée le moteur QML sur le **même** dossier
+de profils et de réglages, et attend `waitReady`. Puis contrôle des talons de 6a et graphe.
+
+**Fichiers.** `bench/scenarios/reglages-gardes.json`, `bench/src/uiscenario.cpp`,
+`bench/include/actcraft/bench/uiscenario.h`, `tests/tst_bench_uiscenario.cpp`, `graphify-out/`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_bench_uiscenario|tst_captures_reglages_gardes'` ; puis preuve de
+tâche en debug **et** en release (`-Preset release`) ; captures hors écran `-Scenario tous`.
+
+**Preuve visuelle.** `captures.ps1 -Scenario reglages-gardes … -Lire "appProfile.paletteDock=left" -Lire "appColors.extraCount=1" -Lire "browserPanel.current=objects"` :
+les trois `LU … OK` **après** la ligne `RELANCE`, `PIXEL contour-annule OK`, `CAPTURES OK` ; décrire `avant.png` et
+`apres-relance.png` (même disposition).
+
+**Interdits.** L'étape `restart` n'écrit pas dans le profil réel de l'utilisateur : le joueur emploie déjà un dossier
+d'essai (`QStandardPaths::setTestModeEnabled` ou dossier de sortie) — le vérifier et le garder.
+
+**Terminé quand** N = N6 + 43 en debug et release, `TESTS OK` deux fois, S9 vert, `git -C <wt> grep -n "Talon L6 : rempli par L6-T([2-9]|1[0-7])\." -- . ':(exclude)docs/'`
+vide, `NOMS OK`, `graphify update .` commité.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** dans `tst_bench_uiscenario.cpp` :
+  ```cpp
+  void restartStepParsed()
+  {
+      const QByteArray json = R"({"name":"r","steps":[{"waitReady":true},{"restart":true},{"waitReady":true}]})";
+      QString error;
+      const auto scenario = bench::parseUiScenario(json, error); // nom réel de la fonction : lire uiscenario.h
+      QVERIFY2(scenario, qPrintable(error));
+      QCOMPARE(scenario->steps.size(), std::size_t(3));
+      QCOMPARE(scenario->steps[1].kind, bench::UiStepKind::Restart);
+  }
+  ```
+  `Restart` s'ajoute **à la fin** de l'énumération des genres d'étapes (le test `stepKindRanksFrozen` de L0-S2 fige les
+  rangs existants).
+- [ ] **Étape 2 : joueur.** Analyse de `{"restart": true}` ; exécution : ligne `RELANCE` dans la sortie, fermeture
+  propre de la fenêtre (la même voie que la fin d'un scénario), attente de 2 s au plus que `appProfile.saveCount` ne
+  bouge plus, recréation de l'application dans le même processus sur les mêmes dossiers (la même fonction que le
+  démarrage du joueur).
+- [ ] **Étape 3 : scénario** `reglages-gardes.json` : `waitReady` ; `palette.dock-left` ; `color.add #12AB34` ;
+  `browser.objects` ; un trait ; capture `avant.png` ; `restart` ; `waitReady` ; `expect appProfile.paletteDock = left` ;
+  `expect appColors.extraCount = 1` ; `expect browserPanel.current = objects` ; capture `apres-relance.png` ; puis la
+  suite de `proprietes` (sélection, largeur 12, `edit.undo`, contrôle `contour-annule`).
+- [ ] **Étape 4 : vert**, preuves (debug et release), captures `-Scenario tous` hors écran, banc sans écran.
+- [ ] **Étape 5 : contrôle des talons** (commande du critère) ; `graphify update .` ; `git add` des fichiers de la ligne
+  et de `graphify-out/` ; `NOMS OK` ; commit « Lot 6 : point d'étape 6a, réglages gardés de bout en bout (L6-T18) ».
+
+---
+
+Suite du lot : `docs/plans/2026-10-18-livraison-complete-lot6b-PLAN.md` (L6-T19 à L6-T37).
+
