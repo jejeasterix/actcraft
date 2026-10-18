@@ -324,6 +324,10 @@ void FixedPageItem::setRasterScale(double scale)
         return;
     }
     m_rasterScale = scale;
+    if (!m_pendingIds.empty()) { // la couche d'attente refait ses nœuds à la nouvelle échelle
+        ++m_pendingRevision;
+        emit pendingChanged();
+    }
     // Seuls les nœuds rastérisés suivent l'échelle, refaits en place : aucun en rendu logiciel ni sur une
     // page sans fond peint, grille ou objet peint (page du banc) ; les nœuds du prototype ne bougent jamais.
     if (m_rasterNodes.load() > 0) {

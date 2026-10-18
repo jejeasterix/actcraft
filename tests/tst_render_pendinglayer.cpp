@@ -445,6 +445,22 @@ private slots:
         QCOMPARE(f.layer->createdCount(), 3); // les deux restants n'ont pas été refaits
         f.page->setSource(nullptr, 0);        // le document meurt avant l'élément
     }
+
+    // Revue : l'échelle de rastérisation change pendant qu'un objet attend : la couche le refait (en RHI, un
+    // objet peint en attente suit l'échelle comme ceux de la scène).
+    void rasterScaleChangeRedrawsThePending()
+    {
+        Fixture f;
+        open(f, true);
+        f.page->setDeferredFolding(true);
+        f.page->appendStroke(lineAt(100));
+        const std::uint64_t revision = f.page->pendingRevision();
+        QSignalSpy pending(f.page, &render::FixedPageItem::pendingChanged);
+        f.page->setRasterScale(2.0);
+        QCOMPARE(pending.count(), 1);
+        QVERIFY(f.page->pendingRevision() > revision);
+        QVERIFY(near(at(f, 300, 100), Qt::black, 60));
+    }
 };
 
 QTEST_MAIN(TstRenderPendingLayer)

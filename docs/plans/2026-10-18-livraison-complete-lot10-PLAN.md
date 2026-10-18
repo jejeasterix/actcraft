@@ -1891,6 +1891,11 @@ démonstration est toujours là après son versement (`stroke-folded`).
 changent pas. `ui/src/uiforeigntypes.h` déclare seulement le type QML `PendingLayer` (enregistrement, pas un
 appel du cache).
 
+**Invariant d'échelle (revue de L10-T3).** Tout `setRasterScale` de la page fixe est suivi d'un versement
+(`foldPending`) dans le même tour de boucle. La page fixe fait déjà refaire les nœuds en attente à la nouvelle
+échelle (`pendingRevision` augmente, `pendingChanged`) ; le versement évite de garder, pendant la fenêtre
+d'attente, une couche refaite à chaque cran de zoom.
+
 **Fichiers.**
 - Créer : `bench/scenarios/cache-differe.json`
 - Modifier : `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/uiforeigntypes.h`,
