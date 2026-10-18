@@ -14,8 +14,20 @@ Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 namespace {
 
-const char* const kIcons[] = {"menu",        "outils",  "page-precedente", "page-suivante", "stylo",
-                              "plein-ecran", "ajuster", "quitter",         "aide",          "a-propos"};
+const char* const kIcons[] = {"menu",           "outils",    "page-precedente",
+                              "page-suivante",  "stylo",     "plein-ecran",
+                              "ajuster",        "quitter",   "aide",
+                              "a-propos",       "selection", "marqueur",
+                              "gomme",          "annuler",   "retablir",
+                              "supprimer",      "corbeille", "effacer",
+                              "deplacer",       "rotation",  "translucidite",
+                              "agrandir",       "reduire",   "rideau",
+                              "spot",           "zoom-page", "effets",
+                              "regle",          "equerre",   "rapporteur",
+                              "compas",         "origine",   "des",
+                              "calculatrice",   "horloge",   "message",
+                              "forme-reconnue", "ecriture",  "camera",
+                              "clavier",        "bureau"};
 
 // Luminance relative de WCAG 2.1 (composantes sRGB linéarisées).
 double relativeLuminance(const QColor& color)
