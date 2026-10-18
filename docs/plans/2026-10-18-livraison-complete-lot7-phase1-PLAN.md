@@ -46,9 +46,17 @@ partie de `feat/livraison-complete-b` à jour des tâches déjà mergées. Merge
    `actcraft_forbid_links(actcraft_features Qt6::Quick Qt6::Qml Qt6::QuickControls2 Qt6::Widgets)`.
    Bibliothèques du système sous `WIN32` posées d'avance (`ole32`, `oleaut32` pour L7-P8 ; `dwmapi` pour la phase 2 de
    L7-T28) : la phase 2 ne touche plus `features/CMakeLists.txt`.
+   **Pourquoi retirer `render` sans risque** : vérifié dans 7a et 7b, aucun code de `features/` de la phase 2 n'utilise
+   `render` ; le seul usage de `render` du lot 7 est `paintEquation` (`render/src/equationlayout.*`, L7-T25), appelé
+   par l'aperçu `ui/src/equationpreviewitem.*` (L7-T26, `ui/` lie déjà `render`) ; l'éditeur `features/…/equationeditor.*`
+   travaille sur l'arbre de `core/equation.*`. Si une tâche de phase 2 en avait besoin, la règle se tiendrait autrement :
+   lien `PRIVATE` vers `render` et garde-fou appliqué aux seuls en-têtes publics (aucun `#include` de Qt Quick dans
+   `features/include`, contrôlé par `git grep`).
 5. **Fichiers communs sans conflit.** `features/CMakeLists.txt` liste ses sources par
    `file(GLOB … CONFIGURE_DEPENDS)` sur `src/*.cpp` et `include/actcraft/features/*.h`, puis écarte `*_other.cpp`
-   sous Windows et `*_win.cpp` ailleurs. Raison : chaque tâche crée ses fichiers sans toucher au CMake, et aucun
+   sous Windows et `*_win.cpp` ailleurs. **Justification en une ligne : dix tâches écrites en parallèle créent chacune
+   leurs fichiers dans `features/` ; avec une liste écrite, chacune modifierait le même `CMakeLists.txt`.** Raison
+   détaillée : chaque tâche crée ses fichiers sans toucher au CMake, et aucun
    fichier source talon n'est nécessaire (un `.cpp` talon vide ferait dire `LNK4221` à `lib.exe`). Écart assumé à la
    convention des autres modules (listes écrites) ; la clôture du lot 7 peut remplacer le motif par la liste finale.
    `tests/presentation.cmake` déclare d'avance, dans L7-P0, les 16 tests de la phase 1, chacun avec un talon
@@ -64,6 +72,26 @@ partie de `feat/livraison-complete-b` à jour des tâches déjà mergées. Merge
    `PageToolsResult`), `shapefinder` (`features/…/shapefinder.h`, `features/src/shapefinder.cpp`,
    `tst_features_shapefinder`). Aucun test de cette phase ne porte sur l'annulation (pas de `…MakesOneStep` ici).
    Les noms de fonctions de test déjà nommés par 7a et 7b pour la logique pure sont repris tels quels.
+9. **Constats de L7-T0 intégrés** (rapport `docs/verifications/2026-10-18-lot7-principes.md`, commit 0be9a77 du
+   worktree `livraison-complete-b--L7-T0`, « Écarts pour l'orchestrateur » et principes P1 à P23) ; ils remplacent les
+   valeurs « à défaut » de 7a et 7b :
+   - **dés (E5)** : 1 dé à l'ouverture la première fois, puis le dernier nombre choisi (mémorisé : phase 2) ; bornes 1
+     à 5, vitesse 3 à 11 s, défaut 7 → L7-P5 ;
+   - **calculatrice (P1, P2, P3)** : affichage du calcul en cours au-dessus du résultat, deux effacements (dernière
+     saisie, tout le calcul), texte du calcul et de son résultat à poser sur la page (la pose elle-même : phase 2) →
+     L7-P5 ;
+   - **spot** : largeur du contour par défaut 10 (réglage embarqué ; mesuré 9 ; la spécification disait 15) → L7-P1 ;
+   - **outils de maths** : translucidité par défaut 100 sur 255 (réglage embarqué ; non 255) → L7-P3 ;
+   - **`shapefinder` (P16)** : classe « polygone » ajoutée ; rectangle seulement si les angles sont droits, un
+     quadrilatère approximatif devient un polygone → L7-P7 ;
+   - **reconnaissance** : délai par défaut 1 s, bornes 0 à 5 s (réglage embarqué ; la spécification disait 5 s, 1 à
+     5) → L7-P7 ;
+   - **outils par page** : la propriété de page 27 (F-591) existe ; sa lecture `.flipchart` reste en phase 2
+     (`formats/` interdit) ;
+   - **effets (N2-A6)** : 17 effets, plus « aucun » et « au hasard », identifiants et noms à nous (liste du rapport) ;
+     durée 5 à 30 dixièmes, défaut 15, effet de la page prioritaire (confirmés) → L7-P2 ;
+   - **E9 et E11** : non tranchés, la spécification s'applique ; aucun effet sur la logique pure (listes d'actions et
+     boutons : phase 2). Le zoom de page (`kRatePerSecond = 2.0`) n'est pas traité par le rapport : valeur à nous.
 
 ## Compte de tests
 
@@ -85,12 +113,12 @@ Tests déclarés par L7-P0 (talon `reserved()` → tâche qui le remplit) : `tst
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L7-P0 | Squelette de la phase 1 : dépendances de `features` (sans Qt Quick, avec `input`), sources par motif, 16 tests talons, ligne d'inclusion | — | `features/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/presentation.cmake`, `tests/tst_features_curtain.cpp`, `tests/tst_features_spotlight.cpp`, `tests/tst_features_pagetools.cpp`, `tests/tst_features_pagezoom.cpp`, `tests/tst_features_transitions.cpp`, `tests/tst_features_mathtools.cpp`, `tests/tst_features_dice.cpp`, `tests/tst_features_calculator.cpp`, `tests/tst_features_countdown.cpp`, `tests/tst_features_ticker.cpp`, `tests/tst_features_shapefinder.cpp`, `tests/tst_features_recognitionsession.cpp`, `tests/tst_features_handwriting.cpp`, `tests/tst_features_camera.cpp`, `tests/tst_features_keyboard.cpp`, `tests/tst_features_desktopwheel.cpp` | isolé | implementeur-tdd | rouge : configuration en échec `actcraft_features ne doit pas dépendre de Qt6::Quick` ; vert : `TESTS OK`, N = N1 + 16, les 16 `tst_features_*` Passed, 16 lignes `SKIP   : …reserved() Talon L7-P0`, `NOMS OK` | S10, S22, S23 (support) | #tache-l7-p0 |
 | L7-P1 | Rideau, spot et règle des outils par page (T3, T4, T6) | L7-P0 | `features/include/actcraft/features/curtain.h`, `features/src/curtain.cpp`, `features/include/actcraft/features/spotlight.h`, `features/src/spotlight.cpp`, `features/include/actcraft/features/pagetools.h`, `features/src/pagetools.cpp`, `tests/tst_features_curtain.cpp`, `tests/tst_features_spotlight.cpp`, `tests/tst_features_pagetools.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 9 passed, 0 failed, 0 skipped` (curtain), `6 passed … 0 skipped` (spotlight), `5 passed … 0 skipped` (pagetools) ; PASS de `dragFromTopUncovers`, `dragFromLeftUncovers`, `dragInsideMaskMoves`, `dragOnRimResizesToOval`, `solidSpotHidesInside`, `keepCarriesCurtainAcrossPages`, `offStopsTools`, `pageModeOverridesKeep` ; `NOMS OK` | S10 | #tache-l7-p1 |
-| L7-P2 | Calculs du zoom de page et catalogue et règles des effets (T5, T7) | L7-P0 | `features/include/actcraft/features/pagezoom.h`, `features/src/pagezoom.cpp`, `features/include/actcraft/features/transitions.h`, `features/src/transitions.cpp`, `tests/tst_features_pagezoom.cpp`, `tests/tst_features_transitions.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 6 passed, 0 failed, 0 skipped` (pagezoom), `6 passed … 0 skipped` (transitions) ; PASS de `holdZoomsInAroundThePoint`, `doubleClickFits`, `pageEffectWinsOverGlobal`, `effectPlayedWhenLeavingThePage`, `disabledWhileCurtainActive`, `durationClampedTo5To30` ; `NOMS OK` | S10, S22 | #tache-l7-p2 |
+| L7-P2 | Calculs du zoom de page et catalogue et règles des effets (T5, T7) | L7-P0 | `features/include/actcraft/features/pagezoom.h`, `features/src/pagezoom.cpp`, `features/include/actcraft/features/transitions.h`, `features/src/transitions.cpp`, `tests/tst_features_pagezoom.cpp`, `tests/tst_features_transitions.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 6 passed, 0 failed, 0 skipped` (pagezoom), `8 passed … 0 skipped` (transitions) ; PASS de `holdZoomsInAroundThePoint`, `doubleClickFits`, `catalogueHasSeventeenEffectsPlusTwo`, `randomPicksARealEffect`, `pageEffectWinsOverGlobal`, `effectPlayedWhenLeavingThePage`, `disabledWhileCurtainActive`, `durationClampedTo5To30` ; `NOMS OK` | S10, S22 | #tache-l7-p2 |
 | L7-P3 | Guides de tracé, règle et équerre (T9, T10) | L7-P0 | `features/include/actcraft/features/strokeguide.h`, `features/src/strokeguide.cpp`, `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `tests/tst_features_mathtools.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 13 passed, 0 failed, 0 skipped` (mathtools) ; PASS de `rulerSnapsNearEdge`, `rulerIgnoresFarSamples`, `strokeStaysOnTheEdgeOnceSnapped`, `setSquareHasThreeEdges`, `setSquareHypotenuseAt45` ; `NOMS OK` | S10 | #tache-l7-p3 |
 | L7-P4 | Rapporteur, compas et mémoire de l'origine XY (T11, T12, T13) | L7-P3 | `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `tests/tst_features_mathtools.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 21 passed, 0 failed, 0 skipped` (mathtools) ; PASS de `protractorArcFollowsTheRim`, `closedArcAddsTwoRadii`, `halfProtractorStopsAt180`, `compassDrawsAnArcAtItsRadius`, `fullTurnClosesTheCircle`, `radiusInCentimetres`, `originRememberedPerPage` ; `NOMS OK` | S10 | #tache-l7-p4 |
-| L7-P5 | Dés, calculatrice et compte à rebours (T14, T15, T16) | L7-P0 | `features/include/actcraft/features/dice.h`, `features/src/dice.cpp`, `features/include/actcraft/features/calculator.h`, `features/src/calculator.cpp`, `features/include/actcraft/features/countdown.h`, `features/src/countdown.cpp`, `tests/tst_features_dice.cpp`, `tests/tst_features_calculator.cpp`, `tests/tst_features_countdown.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 4 passed … 0 skipped` (dice), `6 passed … 0 skipped` (calculator), `6 passed … 0 skipped` (countdown) ; PASS de `seededRollIsReproducible`, `countClampedTo1To5`, `operatorPrecedenceLeftToRight`, `divisionByZeroIsAnError`, `percentAndSign`, `endTriggersActionOnce`, `repeatRestarts`, `pauseFreezes` ; `NOMS OK` | S10 | #tache-l7-p5 |
+| L7-P5 | Dés, calculatrice et compte à rebours (T14, T15, T16) | L7-P0 | `features/include/actcraft/features/dice.h`, `features/src/dice.cpp`, `features/include/actcraft/features/calculator.h`, `features/src/calculator.cpp`, `features/include/actcraft/features/countdown.h`, `features/src/countdown.cpp`, `tests/tst_features_dice.cpp`, `tests/tst_features_calculator.cpp`, `tests/tst_features_countdown.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 5 passed … 0 skipped` (dice), `9 passed … 0 skipped` (calculator), `6 passed … 0 skipped` (countdown) ; PASS de `seededRollIsReproducible`, `countClampedTo1To5`, `defaultIsOneDie`, `operatorPrecedenceLeftToRight`, `expressionShownAboveTheResult`, `clearEntryKeepsTheCalculation`, `pageTextHasTheCalculationAndItsResult`, `divisionByZeroIsAnError`, `percentAndSign`, `endTriggersActionOnce`, `repeatRestarts`, `pauseFreezes` ; `NOMS OK` | S10 | #tache-l7-p5 |
 | L7-P6 | Modèle du message défilant et fichier de messages (T18, T19) | L7-P0 | `features/include/actcraft/features/ticker.h`, `features/src/ticker.cpp`, `tests/tst_features_ticker.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 7 passed, 0 failed, 0 skipped` (ticker) ; PASS de `singlePassEndsHidden`, `loopRestarts`, `speedMapsToPixelsPerSecond`, `positionsAreThree`, `messageFileRoundTrip` ; `NOMS OK` | S23 | #tache-l7-p6 |
-| L7-P7 | Reconnaissance de forme `shapefinder` et session de reconnaissance (T20, minuterie de T21) | L7-P0 | `features/include/actcraft/features/shapefinder.h`, `features/src/shapefinder.cpp`, `features/include/actcraft/features/recognitionsession.h`, `features/src/recognitionsession.cpp`, `tests/tst_features_shapefinder.cpp`, `tests/tst_features_recognitionsession.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 9 passed, 0 failed, 0 skipped` (shapefinder), `4 passed … 0 skipped` (recognitionsession) ; PASS de `wobblyCircleIsACircle`, `tiltedRectangleKeepsItsCorners`, `openScribbleIsNothing`, `shortStrokeIsNothing`, `sessionFiresAfterTheDelay`, `newStrokeRestartsTheDelay` ; `NOMS OK` | S10 | #tache-l7-p7 |
+| L7-P7 | Reconnaissance de forme `shapefinder` et session de reconnaissance (T20, minuterie de T21) | L7-P0 | `features/include/actcraft/features/shapefinder.h`, `features/src/shapefinder.cpp`, `features/include/actcraft/features/recognitionsession.h`, `features/src/recognitionsession.cpp`, `tests/tst_features_shapefinder.cpp`, `tests/tst_features_recognitionsession.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 11 passed, 0 failed, 0 skipped` (shapefinder), `5 passed … 0 skipped` (recognitionsession) ; PASS de `wobblyCircleIsACircle`, `tiltedRectangleKeepsItsCorners`, `roughQuadrilateralIsAPolygon`, `pentagonIsAPolygon`, `defaultDelayIsOneSecond`, `openScribbleIsNothing`, `shortStrokeIsNothing`, `sessionFiresAfterTheDelay`, `newStrokeRestartsTheDelay` ; `NOMS OK` | S10 | #tache-l7-p7 |
 | L7-P8 | Reconnaissance d'écriture : interface, moteur d'encre de Windows (`handwriting_win.cpp`) et fil dédié en STA (T22, fil de T23) | L7-P0 | `features/include/actcraft/features/handwriting.h`, `features/src/handwriting.cpp`, `features/src/handwriting_win.cpp`, `features/src/handwriting_other.cpp`, `tests/tst_features_handwriting.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 6 passed, 0 failed, 0 skipped` (handwriting), ou `5 passed … 1 skipped` si et seulement si le SKIP est `recognizesSyntheticInk` avec « reconnaisseur absent : … » (signalé au rapport) ; PASS de `recognitionRunsOnOneDedicatedThread`, `recognitionThreadIsSingleThreadedApartment`, `factoryNeverReturnsNull` ; `NOMS OK` | S10 | #tache-l7-p8 |
 | L7-P9 | Géométrie de la caméra, disposition du clavier à l'écran, roue des outils de bureau (T28, T29, T31) | L7-P0 | `features/include/actcraft/features/camera.h`, `features/src/camera.cpp`, `features/include/actcraft/features/screenkeyboard.h`, `features/src/screenkeyboard.cpp`, `features/include/actcraft/features/desktopwheel.h`, `features/src/desktopwheel.cpp`, `tests/tst_features_camera.cpp`, `tests/tst_features_keyboard.cpp`, `tests/tst_features_desktopwheel.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 5 passed … 0 skipped` (camera), `5 passed … 0 skipped` (keyboard), `2 passed … 0 skipped` (desktopwheel) ; PASS de `clickNearFirstPointClosesThePolygon`, `freehandClosesOnRelease`, `cropOutsideIsTransparent`, `windowRectsInLogicalPixels`, `shiftTypesCapitals`, `compactLayoutHasFewerKeys`, `accentKeysTypeFrench`, `wheelIsClockwiseFromTop` ; `NOMS OK` | S10 | #tache-l7-p9 |
 
@@ -110,9 +138,9 @@ notification sans sonder). Trois agents au plus en même temps (deux selon le pr
 - **V3** : L7-P8 ‖ L7-P4 (lancée une fois L7-P3 mergée) ‖ L7-P2.
 - **V4** : L7-P5 ‖ L7-P6 ‖ L7-P9.
 
-Toute tâche de V2 à V4 peut changer de vague, sauf L7-P4 (après L7-P3) : aucun fichier commun. **L7-T0** : si son
-rapport change une constante de ce plan (vitesse du zoom, catalogue d'effets, nombre de dés à l'ouverture, E5), la
-tâche concernée la prend telle quelle avant son lancement, ou la phase 2 la corrige (une constante nommée).
+Toute tâche de V2 à V4 peut changer de vague, sauf L7-P4 (après L7-P3) : aucun fichier commun. **L7-T0** a rendu son
+rapport (décision 9) : ses valeurs sont dans les sections. Si un rapport ultérieur (amendement) en change une, son
+constante nommée se corrige dans la tâche concernée avant son lancement, ou par la phase 2.
 
 ## Couverture des scénarios du cadrage
 
@@ -520,6 +548,9 @@ nous, valeurs égales à celles de `core::PageToolsMode` pour la phase 2) ; aucu
       static constexpr double kDefaultSize = 300; // côté du cadre par défaut, unités de `area`
       static constexpr double kMinimumSize = 40;  // un cadre plus petit ne se saisit plus au doigt
       static constexpr double kRimMargin = 16;    // largeur de la bande de saisie du pourtour
+      // Largeur du contour dessiné autour du cadre (lue par la surcouche, phase 2) : 10, réglage embarqué relevé par
+      // L7-T0 (docs/verifications/2026-10-18-lot7-principes.md ; mesuré 9 ; la spécification disait 15).
+      static constexpr double kDefaultOutline = 10;
 
       explicit Spotlight(QSizeF area);
       void setArea(QSizeF area);
@@ -801,13 +832,99 @@ minuterie.
   : `m_frozenZoom = zoomAt(nowNs)` puis `m_pressed = false` ; `isDoubleClick` : vrai si le précédent appui est à
   ≤ `kDoubleClickNs` et ≤ `kDoubleClickPixels`, puis oublie ce précédent (un triple appui ne compte pas deux fois).
   Commande ciblée `-R tst_features_pagezoom` : `6 passed … 0 skipped`.
-- [ ] **Étape 3 : rouge des effets.** `tests/tst_features_transitions.cpp` (montage, `#include
-  <actcraft/features/transitions.h>`, classe `TstFeaturesTransitions`) : les six fonctions de 7a, L7-T7, étape 1, mot
-  pour mot (`catalogueStartsWithNone`, `pageEffectWinsOverGlobal`, `effectPlayedWhenLeavingThePage`,
-  `disabledWhileCurtainActive`, `unknownEffectFallsBackToNone`, `durationClampedTo5To30`). Rouge.
+- [ ] **Étape 3 : rouge des effets.** `tests/tst_features_transitions.cpp` : les six fonctions de 7a, L7-T7, étape 1,
+  avec les identifiants du catalogue de L7-T0 (`fade` → `dissolve`, `slide-left` → `slide-right`), et deux de plus :
+  ```cpp
+  #include <actcraft/features/transitions.h>
+
+  #include <QRandomGenerator>
+  #include <QSet>
+  #include <QtTest>
+
+  using namespace actcraft::features;
+
+  class TstFeaturesTransitions : public QObject
+  {
+      Q_OBJECT
+
+  private slots:
+      void catalogueStartsWithNone()
+      {
+          const auto& list = transitionCatalogue();
+          QVERIFY(list.size() >= 3);
+          QCOMPARE(list.front().id, QStringLiteral("none"));
+          for (const auto& e : list)
+              QVERIFY(!e.label.isEmpty());
+      }
+      void catalogueHasSeventeenEffectsPlusTwo()
+      {
+          // L7-T0 (docs/verifications/2026-10-18-lot7-principes.md) : 17 mouvements, plus « aucun » et « au hasard ».
+          const auto& list = transitionCatalogue();
+          QCOMPARE(list.size(), std::size_t{19});
+          QCOMPARE(list[1].id, QStringLiteral("random"));
+          QSet<QString> ids;
+          for (const auto& e : list)
+              ids.insert(e.id);
+          QCOMPARE(ids.size(), qsizetype{19}); // identifiants uniques
+      }
+      void pageEffectWinsOverGlobal()
+      {
+          TransitionSettings s;
+          s.global = QStringLiteral("dissolve");
+          QCOMPARE(effectForLeaving(s, std::string("slide-right"), NavigationKind::Next, {}), QStringLiteral("slide-right"));
+          QCOMPARE(effectForLeaving(s, std::string(), NavigationKind::Next, {}), QStringLiteral("dissolve"));
+      }
+      void effectPlayedWhenLeavingThePage()
+      {
+          TransitionSettings s; // global « none »
+          // l'effet de la page QUITTÉE compte, pas celui de la page d'arrivée
+          QCOMPARE(effectForLeaving(s, std::string("dissolve"), NavigationKind::Previous, {}), QStringLiteral("dissolve"));
+      }
+      void disabledWhileCurtainActive()
+      {
+          TransitionSettings s;
+          s.global = QStringLiteral("dissolve");
+          QCOMPARE(effectForLeaving(s, {}, NavigationKind::Next, {true, false, false}), QStringLiteral("none"));
+          QCOMPARE(effectForLeaving(s, {}, NavigationKind::Jump, {}), QStringLiteral("none"));
+      }
+      void unknownEffectFallsBackToNone()
+      {
+          TransitionSettings s;
+          s.global = QStringLiteral("does-not-exist");
+          QCOMPARE(effectForLeaving(s, {}, NavigationKind::Next, {}), QStringLiteral("none"));
+      }
+      void durationClampedTo5To30()
+      {
+          QCOMPARE(clampDurationTenths(2), 5);
+          QCOMPARE(clampDurationTenths(15), 15);
+          QCOMPARE(clampDurationTenths(99), 30);
+      }
+      void randomPicksARealEffect()
+      {
+          QRandomGenerator generator(2026);
+          for (int i = 0; i < 50; ++i) {
+              const QString id = pickEffect(QStringLiteral("random"), generator);
+              QVERIFY(id != QStringLiteral("random"));
+              QVERIFY(id != QStringLiteral("none"));
+              QVERIFY(id != QStringLiteral("does-not-exist"));
+          }
+          QCOMPARE(pickEffect(QStringLiteral("dissolve"), generator), QStringLiteral("dissolve")); // pas de tirage
+      }
+  };
+
+  QTEST_GUILESS_MAIN(TstFeaturesTransitions)
+  #include "tst_features_transitions.moc"
+  ```
+  Rouge.
 - [ ] **Étape 4 : effets.** `features/include/actcraft/features/transitions.h` = l'en-tête de 7a, L7-T7, étape 2, mot
-  pour mot, encadré par `#pragma once`, `#include <QString>`, `#include <string>`, `#include <vector>` et
-  `namespace actcraft::features { … }`. `features/src/transitions.cpp` :
+  pour mot, encadré par `#pragma once`, `#include <QRandomGenerator>`, `#include <QString>`, `#include <string>`,
+  `#include <vector>` et `namespace actcraft::features { … }`, plus :
+  ```cpp
+  // « random » : un effet du catalogue tiré à chaque changement, hors « none » et « random » ; tout autre identifiant
+  // est rendu tel quel. Appelé par le lecteur (phase 2) sur le résultat d'effectForLeaving.
+  QString pickEffect(const QString& id, QRandomGenerator& generator);
+  ```
+  `features/src/transitions.cpp` :
   ```cpp
   #include <actcraft/features/transitions.h>
 
@@ -817,18 +934,27 @@ minuterie.
 
   const std::vector<TransitionEffect>& transitionCatalogue()
   {
-      // Liste à nous (N2-A6) ; L7-T0 peut la corriger. « none » toujours en premier.
+      // Liste de L7-T0 (docs/verifications/2026-10-18-lot7-principes.md, N2-A6) : 17 mouvements relevés, plus
+      // « aucun » et « au hasard » ; identifiants et noms à nous. « none » toujours en premier, « random » ensuite.
       static const std::vector<TransitionEffect> catalogue{
-          {QStringLiteral("none"), QStringLiteral("Aucun")},
-          {QStringLiteral("fade"), QStringLiteral("Fondu")},
-          {QStringLiteral("slide-left"), QStringLiteral("Glissement vers la gauche")},
-          {QStringLiteral("slide-right"), QStringLiteral("Glissement vers la droite")},
-          {QStringLiteral("slide-up"), QStringLiteral("Glissement vers le haut")},
-          {QStringLiteral("slide-down"), QStringLiteral("Glissement vers le bas")},
-          {QStringLiteral("zoom"), QStringLiteral("Zoom")},
-          {QStringLiteral("wipe-left"), QStringLiteral("Balayage vers la gauche")},
-          {QStringLiteral("wipe-right"), QStringLiteral("Balayage vers la droite")},
-          {QStringLiteral("page-turn"), QStringLiteral("Page tournée")},
+          {QStringLiteral("none"), QStringLiteral("Sans effet")},
+          {QStringLiteral("random"), QStringLiteral("Au hasard")},
+          {QStringLiteral("dissolve"), QStringLiteral("Fondu")},
+          {QStringLiteral("corner-peel"), QStringLiteral("Coin soulevé")},
+          {QStringLiteral("box-turn"), QStringLiteral("Boîte qui tourne")},
+          {QStringLiteral("card-flip"), QStringLiteral("Carte retournée")},
+          {QStringLiteral("tiles-spin"), QStringLiteral("Carreaux")},
+          {QStringLiteral("fold-half"), QStringLiteral("Pliage")},
+          {QStringLiteral("slide-right"), QStringLiteral("Glissement")},
+          {QStringLiteral("strips-drop"), QStringLiteral("Bandes")},
+          {QStringLiteral("corner-swing"), QStringLiteral("Pivot d'angle")},
+          {QStringLiteral("spiral-out"), QStringLiteral("Tourbillon")},
+          {QStringLiteral("turn-reveal"), QStringLiteral("Dévoilement tournant")},
+          {QStringLiteral("drapes"), QStringLiteral("Tentures")},
+          {QStringLiteral("star-iris"), QStringLiteral("Étoile")},
+          {QStringLiteral("shards"), QStringLiteral("Éclats")},
+          {QStringLiteral("sweep"), QStringLiteral("Balayage")},
+          {QStringLiteral("funnel"), QStringLiteral("Entonnoir")},
       };
       return catalogue;
   }
@@ -840,7 +966,7 @@ minuterie.
       if (navigation == NavigationKind::Jump || blockers.curtainOrSpotlight || blockers.desktopAnnotation ||
           blockers.designMode)
           return none;
-      // L'effet de la page QUITTÉE prime sur l'effet global (F-640).
+      // L'effet de la page QUITTÉE prime sur l'effet global (F-640, confirmé par L7-T0).
       const QString id = leavingPageEffect.empty() ? settings.global : QString::fromStdString(leavingPageEffect);
       const auto& list = transitionCatalogue();
       const bool known =
@@ -848,9 +974,18 @@ minuterie.
       return known ? id : none;
   }
 
+  QString pickEffect(const QString& id, QRandomGenerator& generator)
+  {
+      if (id != QStringLiteral("random"))
+          return id;
+      const auto& list = transitionCatalogue(); // [0] none, [1] random, puis les 17 mouvements
+      const auto index = 2 + static_cast<std::size_t>(generator.bounded(static_cast<quint32>(list.size() - 2)));
+      return list[index].id;
+  }
+
   int clampDurationTenths(int tenths) noexcept
   {
-      return std::clamp(tenths, 5, 30); // 0,5 à 3 s (F-640)
+      return std::clamp(tenths, 5, 30); // 0,5 à 3 s (F-640, confirmé par L7-T0)
   }
 
   } // namespace actcraft::features
@@ -1052,6 +1187,9 @@ projettent sur leurs segments par une fonction partagée.
   // Échelle des graduations : 96 pixels de page par pouce (référence de l'ancien dépôt, reformulée).
   inline constexpr double kPixelsPerCentimetre = 96.0 / 2.54;
   inline constexpr double kPixelsPerInch = 96.0;
+  // Translucidité par défaut des outils de maths, sur 255 (lue par les délégués QML, phase 2) : 100, réglage embarqué
+  // relevé par L7-T0 (docs/verifications/2026-10-18-lot7-principes.md), et non 255.
+  inline constexpr int kDefaultToolOpacity = 100;
 
   enum class RulerUnit { Cm, Mm, Inch, None };
 
@@ -1296,7 +1434,17 @@ aucune minuterie ni horloge lue dans la logique (instant fourni par l'appelant).
 **Étapes.**
 
 - [ ] **Étape 1 : rouge des dés.** `tests/tst_features_dice.cpp` (montage, `#include <actcraft/features/dice.h>`,
-  classe `TstFeaturesDice`) : les quatre fonctions de 7a, L7-T14, étape 1, mot pour mot. Rouge.
+  classe `TstFeaturesDice`) : les quatre fonctions de 7a, L7-T14, étape 1, mot pour mot, plus :
+  ```cpp
+      void defaultIsOneDie()
+      {
+          // E5, L7-T0 (docs/verifications/2026-10-18-lot7-principes.md) : 1 dé au premier lancement ; vitesse 7 s.
+          const Dice d(3);
+          QCOMPARE(d.count(), 1);
+          QCOMPARE(Dice::kDefaultSeconds, 7);
+      }
+  ```
+  Rouge.
 - [ ] **Étape 2 : dés.** `features/include/actcraft/features/dice.h` :
   ```cpp
   #pragma once
@@ -1313,7 +1461,10 @@ aucune minuterie ni horloge lue dans la logique (instant fourni par l'appelant).
   public:
       static constexpr int kMinCount = 1;
       static constexpr int kMaxCount = 5;
-      static constexpr int kDefaultCount = 5; // E5 : valeur de L7-T0 ; à défaut, celle de la spécification
+      // E5, tranché par L7-T0 (docs/verifications/2026-10-18-lot7-principes.md) : 1 dé au premier lancement ; ensuite
+      // le dernier nombre choisi, mémorisé dans les réglages par le contrôleur (phase 2). Vitesse par défaut : 7 s.
+      static constexpr int kDefaultCount = 1;
+      static constexpr int kDefaultSeconds = 7;
 
       explicit Dice(quint32 seed);
       void setCount(int count) noexcept; // borné à [kMinCount, kMaxCount]
@@ -1332,7 +1483,8 @@ aucune minuterie ni horloge lue dans la logique (instant fourni par l'appelant).
   } // namespace actcraft::features
   ```
   `features/src/dice.cpp` : `roll` remplit `m_count` faces par `static_cast<int>(m_generator.bounded(1, 7))` ;
-  `total` = somme ; `animationMs` = `std::clamp(seconds, 3, 11) * 1000`. Commande ciblée `-R tst_features_dice` : vert.
+  `total` = somme ; `animationMs` = `std::clamp(seconds, 3, 11) * 1000`. Commande ciblée `-R tst_features_dice` :
+  `5 passed … 0 skipped`.
 - [ ] **Étape 3 : rouge de la calculatrice.** `tests/tst_features_calculator.cpp` (montage, classe
   `TstFeaturesCalculator`) : les cinq fonctions de 7a, L7-T15, étape 1, mot pour mot, plus :
   ```cpp
@@ -1342,6 +1494,41 @@ aucune minuterie ni horloge lue dans la logique (instant fourni par l'appelant).
           for (const char* k : {"2", "0", "0", "+", "5", "%"})
               c.press(QString::fromLatin1(k));
           QCOMPARE(c.display(), QStringLiteral("210")); // 200 + 5 % de 200
+      }
+      // P1, P2, P3 de L7-T0 (docs/verifications/2026-10-18-lot7-principes.md) : calcul affiché au-dessus du résultat,
+      // deux effacements, calcul et résultat posés sur la page.
+      void expressionShownAboveTheResult()
+      {
+          Calculator c;
+          for (const char* k : {"1", "2", "+", "3"})
+              c.press(QString::fromLatin1(k));
+          QCOMPARE(c.expression(), QStringLiteral("12 +"));
+          QCOMPARE(c.display(), QStringLiteral("3"));
+          c.press(QStringLiteral("*"));
+          QCOMPARE(c.expression(), QStringLiteral("12 + 3 ×"));
+          c.press(QStringLiteral("/")); // deux opérations de suite : la seconde remplace la première
+          QCOMPARE(c.expression(), QStringLiteral("12 + 3 ÷"));
+      }
+      void clearEntryKeepsTheCalculation()
+      {
+          Calculator c;
+          for (const char* k : {"2", "+", "5", "CE", "3", "="})
+              c.press(QString::fromLatin1(k));
+          QCOMPARE(c.display(), QStringLiteral("5"));
+          QCOMPARE(c.expression(), QStringLiteral("2 + 3 ="));
+          c.press(QStringLiteral("C"));
+          QCOMPARE(c.expression(), QString());
+          QCOMPARE(c.display(), QStringLiteral("0"));
+      }
+      void pageTextHasTheCalculationAndItsResult()
+      {
+          Calculator c;
+          QCOMPARE(c.pageText(), QStringLiteral("0"));
+          for (const char* k : {"1", ",", "5", "+", "1", "="})
+              c.press(QString::fromLatin1(k));
+          QCOMPARE(c.pageText(), QStringLiteral("1,5 + 1 = 2,5"));
+          c.press(QStringLiteral("4")); // nouveau calcul
+          QCOMPARE(c.pageText(), QStringLiteral("4"));
       }
   ```
   Rouge.
@@ -1354,18 +1541,23 @@ aucune minuterie ni horloge lue dans la logique (instant fourni par l'appelant).
   namespace actcraft::features {
 
   // Calculatrice de poche (F-286) : calcul immédiat de gauche à droite, virgule française, 12 chiffres significatifs.
-  // Touches : "0"…"9", ",", "+", "-", "*", "/", "=", "%", "±", "C", "M+", "M-", "MR", "MC".
+  // Touches : "0"…"9", ",", "+", "-", "*", "/", "=", "%", "±", "C" (tout le calcul), "CE" (dernière saisie),
+  // "M+", "M-", "MR", "MC". Principes P1 à P3 de L7-T0 (docs/verifications/2026-10-18-lot7-principes.md).
   class Calculator
   {
   public:
       void press(const QString& key);
-      QString display() const; // « Erreur » après une division par zéro ou un résultat non fini, jusqu'à « C »
+      QString display() const;    // « Erreur » après une division par zéro ou un résultat non fini, jusqu'à « C »
+      QString expression() const; // calcul en cours, montré au-dessus du résultat (P1) : « 12 + 3 × », « 2 + 3 = »
+      QString pageText() const;   // texte posé sur la page (P3) : « 1,5 + 1 = 2,5 » après « = », sinon l'affichage
 
   private:
       double entry() const;
       void showValue(double value);
       void apply();            // m_accumulator = m_accumulator <m_pending> entry()
 
+      QString m_expression;    // jetons séparés par une espace ; opérateurs affichés + − × ÷
+      bool m_done = false;     // vrai juste après « = » ou « % »
       QString m_display = QStringLiteral("0");
       double m_accumulator = 0;
       QChar m_pending;         // nul : aucune opération en attente
@@ -1384,8 +1576,13 @@ aucune minuterie ni horloge lue dans la logique (instant fourni par l'appelant).
   `-` → `acc − acc × e / 100`, sans opération → `e / 100` ; résultat affiché, plus d'opération ; « ± » : signe de
   l'affichage ; « C » : tout remis à zéro sauf la mémoire ; « M+ », « M- » : mémoire ± `entry()`, `m_newEntry = true` ;
   « MR » : affiche la mémoire ; « MC » : mémoire à 0. `showValue` : non fini → « Erreur » ; sinon
-  `QString::number(value, 'g', 12)` avec « . » remplacé par « , » ; `entry()` : l'inverse. Commande ciblée
-  `-R tst_features_calculator` : `6 passed … 0 skipped`.
+  `QString::number(value, 'g', 12)` avec « . » remplacé par « , » ; `entry()` : l'inverse. Calcul affiché : une
+  opération ajoute à `m_expression` l'affichage puis l'opérateur (`*` → « × », `/` → « ÷ », `-` → « − ») ; deux
+  opérations de suite remplacent le dernier opérateur ; l'affichage ajouté est celui d'**avant** `apply()` ; « = »
+  ajoute l'affichage puis « = » et pose `m_done` ; « % » ajoute l'affichage puis « % = » et pose `m_done` ; un chiffre après `m_done` vide `m_expression` (nouveau calcul) ;
+  « CE » remet l'affichage à « 0 » (`m_newEntry = true`) sans toucher l'accumulateur, l'opération en attente ni
+  `m_expression` ; « C » vide aussi `m_expression`. `pageText()` : `m_done` → `m_expression + " " + m_display`, sinon
+  `m_display`. Commande ciblée `-R tst_features_calculator` : `9 passed … 0 skipped`.
 - [ ] **Étape 5 : rouge du compte à rebours.** `tests/tst_features_countdown.cpp` (montage, classe
   `TstFeaturesCountdown`) : les cinq fonctions de 7a, L7-T16, étape 1, mot pour mot, plus :
   ```cpp
@@ -1619,16 +1816,42 @@ inclinées) ; un seuil global unique pour toutes les formes.
 - [ ] **Étape 1 : rouge de la forme.** `tests/tst_features_shapefinder.cpp` = le fichier de 7b, L7-T20, étape 1, avec
   trois corrections de portabilité : `#include <numbers>` et `2 * std::numbers::pi * turns * i / n` au lieu de
   `M_PI` ; `static_cast<double>(pts.size())` dans `spiralIsNothing` ; `double(k) / perSide` écrit
-  `static_cast<double>(k) / perSide`. Rouge.
+  `static_cast<double>(k) / perSide`. S'y ajoutent deux fonctions pour la classe « polygone » (P16 de L7-T0,
+  `docs/verifications/2026-10-18-lot7-principes.md` : rectangle seulement si les angles sont droits ; un quadrilatère
+  approximatif devient un polygone) :
+  ```cpp
+      void roughQuadrilateralIsAPolygon()
+      {
+          // trapèze : angles de 76° et 104°, hors de 90° ± 10°
+          const auto r = recognizeShape(noisy(polyline({{100, 100}, {300, 100}, {350, 300}, {50, 300}}, 25), 2, 8));
+          QVERIFY(r.has_value());
+          QCOMPARE(r->kind, RecognizedShape::Kind::Polygon);
+          QCOMPARE(r->corners.size(), std::size_t{4});
+      }
+      void pentagonIsAPolygon()
+      {
+          const auto r = recognizeShape(noisy(polyline({{300, 100}, {440, 200}, {390, 360}, {210, 360}, {160, 200}}, 25), 2, 9));
+          QVERIFY(r.has_value());
+          QCOMPARE(r->kind, RecognizedShape::Kind::Polygon);
+          QCOMPARE(r->corners.size(), std::size_t{5});
+      }
+  ```
+  (11 fonctions.) Rouge.
 - [ ] **Étape 2 : en-tête.** `features/include/actcraft/features/shapefinder.h` = l'en-tête de 7b, L7-T20, étape 2,
-  mot pour mot.
+  avec un seul écart : `enum class Kind { Line, Rectangle, Square, Ellipse, Circle, Triangle, Polygon };` (`Polygon`
+  ajouté en dernier ; `corners` porte alors ses sommets).
 - [ ] **Étape 3 : algorithme.** `features/src/shapefinder.cpp` = l'étape 3 de 7b, L7-T20 (fonctions internes
   nommées `resample`, `extent`, `isLine`, `closure`, `corners`, `sidesStraight`, `principalAxes`, `radialError` ; ordre
   et seuils de départ de 7b, chacun une constante nommée commentée). Pour la ligne : `corners` = les deux extrémités ;
   rectangle : `bounds` non tourné centré sur le centre de la forme, `angleDegrees` = angle du premier côté ramené dans
   ]−45, 45] ; ellipse : `bounds` = demi-axes × 2, `angleDegrees` = axe principal ramené dans ]−90, 90]. Si un tracé
-  bruité de test échoue, ajuster **le seuil** et sa raison, jamais le test. Commande ciblée
-  `-R tst_features_shapefinder` : `9 passed, 0 failed, 0 skipped`.
+  bruité de test échoue, ajuster **le seuil** et sa raison, jamais le test. **Écart à 7b (P16)** dans l'ordre de
+  décision : 3 coins et côtés droits → triangle ; 4 coins, côtés droits **et** angles à 90° ± 10° (`kRightAngleSlack
+  = 10`, raison : un trapèze dessiné à main levée ne doit pas devenir un rectangle) → rectangle ou carré ; 4 à
+  `kMaxPolygonCorners = 8` coins et côtés droits, sinon → polygone (raison : au-delà de 8, un gribouillis fermé
+  plutôt qu'un polygone voulu) ; puis l'ellipse. Le seuil des angles de 7b (± 20°) passe à ± 10° : vérifier que
+  `squareIsASquare` et `tiltedRectangleKeepsItsCorners` restent verts (leurs angles sont droits). Commande ciblée
+  `-R tst_features_shapefinder` : `11 passed, 0 failed, 0 skipped`.
 - [ ] **Étape 4 : rouge de la session.** `tests/tst_features_recognitionsession.cpp` :
   ```cpp
   #include <actcraft/features/recognitionsession.h>
@@ -1644,6 +1867,12 @@ inclinées) ; un seuil global unique pour toutes les formes.
   private slots:
       // Les trois fonctions de 7b, L7-T21, étape 1, mot pour mot :
       // sessionFiresAfterTheDelay, newStrokeRestartsTheDelay, zeroDelayIsImmediate.
+      void defaultDelayIsOneSecond()
+      {
+          // L7-T0 (docs/verifications/2026-10-18-lot7-principes.md) : délai par défaut 1 s, bornes 0 à 5 s.
+          const RecognitionSession s;
+          QCOMPARE(s.delayMs(), 1000);
+      }
       void delayClampedTo0To5000()
       {
           RecognitionSession s(9000);
@@ -1674,7 +1903,9 @@ inclinées) ; un seuil global unique pour toutes les formes.
   {
   public:
       static constexpr int kMaxDelayMs = 5000;
-      explicit RecognitionSession(int delayMs);
+      // Délai par défaut 1 s, bornes 0 à 5 s : réglage embarqué relevé par L7-T0 (la spécification disait 5 s, 1 à 5).
+      static constexpr int kDefaultDelayMs = 1000;
+      explicit RecognitionSession(int delayMs = kDefaultDelayMs);
       void setDelayMs(int delayMs) noexcept; // borné à [0, kMaxDelayMs]
       int delayMs() const noexcept;
       void addStroke(core::ObjectId id, std::int64_t nowNs);
@@ -2343,26 +2574,27 @@ au doigt et à la souris (B2), chacun vérifiant qu'aucun trait n'est versé **e
 | Tâche | Fait en phase 1 | Reste en phase 2 |
 |---|---|---|
 | L7-T3 | `Curtain`, `tst_features_curtain` (L7-P1) | `CurtainController`, `CurtainOverlay.qml`, couverture, `curtainNeverRefreshesTheCache`, `curtainBlocksTheStylus`, scénario `rideau`, `tst_captures_rideau` |
-| L7-T4 | `Spotlight`, `tst_features_spotlight` (L7-P1) | `SpotlightController` (conversion `Spotlight::Shape` ↔ `core::SpotlightShape`, mêmes valeurs, `static_assert`), `SpotlightOverlay.qml`, couverture, tests d'interface, scénario `spot` |
+| L7-T4 | `Spotlight`, `tst_features_spotlight` (L7-P1) | `SpotlightController` (conversion `Spotlight::Shape` ↔ `core::SpotlightShape`, mêmes valeurs, `static_assert`), `SpotlightOverlay.qml` (contour `Spotlight::kDefaultOutline` = 10), curseurs selon la zone (P7), couverture, tests d'interface, scénario `spot` ; **capture de la zone éclairée** vers la page, entrée du menu du spot (P8 de L7-T0 ; réutilise `cropToPolygon` de L7-P9 ; ou avec la caméra en 7b) |
 | L7-T5 | `PageZoom`, `tst_features_pagezoom` (L7-P2) | `PageZoomController` (`static_assert(PageZoom::kMinZoom == ui::kMinZoom)` et `kMaxZoom`), `PageZoomOverlay.qml`, `pageZoomRefreshesTheCacheOnceAtRelease` (exactement 1), `pageZoomLeavesTheDocumentUnchanged`, `pageZoomBlocksTheStylus` |
-| L7-T6 | `resolvePageTools` sur `PageToolsSettings`, `tst_features_pagetools` (L7-P1) | `PageToolsSettings toPageToolsSettings(const core::PagePresentation&)` dans `pagetools.*` (`PageToolsMode` → `PageToolChoice` par valeur vérifiée ; `CurtainMode::Off` et `Full` → `Curtain::Start::Full`, `Top/Bottom/Left/Right` → même côté ; `spotlightFrame`), test `curtainModeOffMeansFull` dans `tst_features_pagetools` ; `PageToolsController`, lecture `.flipchart` (`pagePresentationRead`), `pageChangeAppliesPageTools` |
+| L7-T6 | `resolvePageTools` sur `PageToolsSettings`, `tst_features_pagetools` (L7-P1) | `PageToolsSettings toPageToolsSettings(const core::PagePresentation&)` dans `pagetools.*` (`PageToolsMode` → `PageToolChoice` par valeur vérifiée ; `CurtainMode::Off` et `Full` → `Curtain::Start::Full`, `Top/Bottom/Left/Right` → même côté ; `spotlightFrame`), test `curtainModeOffMeansFull` dans `tst_features_pagetools` ; `PageToolsController`, lecture `.flipchart` (`pagePresentationRead`) **y compris la propriété de page 27** (outils de page, F-591 ; relevée par L7-T0, absente de notre documentation du format), mémorisation de la position du rideau pour la page (P9), `pageChangeAppliesPageTools` |
 | L7-T7 | catalogue, `effectForLeaving`, durée, `tst_features_transitions` (L7-P2) | `TransitionController` (effet de la page quittée lu dans `PagePresentation::transition`), `TransitionLayer.qml`, tests d'interface, lecture `.flipchart` de l'effet si L7-T0 l'établit |
-| L7-T9, L7-T10 | `StrokeGuide`, `GuideSet`, `Ruler`, `SetSquare`, `projectOnSegments` (L7-P3) | `MathToolsController` (`PageView::setSampleFilter`, tolérance = 16 px d'écran ÷ zoom, `UserState::setOpenMathTools`), `MathToolsLayer.qml`, `RulerTool.qml`, `SetSquareTool.qml`, tests d'interface, scénario `regle` |
+| L7-T9, L7-T10 | `StrokeGuide`, `GuideSet`, `Ruler`, `SetSquare`, `projectOnSegments` (L7-P3) | `MathToolsController` (`PageView::setSampleFilter`, tolérance = 16 px d'écran ÷ zoom, `UserState::setOpenMathTools`), `MathToolsLayer.qml`, `RulerTool.qml`, `SetSquareTool.qml` (translucidité `kDefaultToolOpacity` = 100 sur 255 ; curseurs par zone, P21), tests d'interface (dont « fermer la règle garde les traits », P6), scénario `regle` |
 | L7-T11, L7-T12 | `Protractor`, `arcPath`, `ArcStyle`, `Compass` (L7-P4) | délégués QML, insertion de l'arc fermé ou plein et de la croix du centre (`DocumentInsertions`), `filledArcBecomesOneShape`, `markCentreAddsACross`, `compassStrokeIsACircle` |
 | L7-T13 | `OriginMemory` (L7-P4) | alimentation depuis `PagePresentation::hasOrigin` / `origin`, `SetPagePresentationCommand` au relâché, `OriginMarker.qml`, `originSavedWithThePage` |
-| L7-T14 | `Dice`, `tst_features_dice` (L7-P5) | `DiceController`, `DicePanel.qml`, `diceTotalWrittenOnThePage`, `diceBlocksTheStylus` ; `kDefaultCount` selon E5 si L7-T0 le change |
-| L7-T15 | `Calculator`, `tst_features_calculator` (L7-P5) | `CalculatorController` (lanceur injectable, `calc.exe`), `CalculatorPanel.qml`, `systemCalculatorLaunchedOnWindows`, `calculatorBlocksTheStylus` |
-| L7-T16 | `Countdown`, `Stopwatch`, `formatHms`, `parseHms`, `tst_features_countdown` (L7-P5) | `ClockController`, `ClockPanel.qml`, `CountdownDialog.qml`, tests d'interface, scénario `compte-a-rebours` |
-| L7-T18, L7-T19 | `TickerSettings`, `TickerRun`, `tickerToJson`, `tickerFromJson`, `tst_features_ticker` (L7-P6) | `TickerController` (`QSettings` `tools/ticker`), `TickerOverlay.qml`, `TickerDialog.qml`, `tickerNeverRefreshesTheCache`, `applyKeepsTheDefault`, scénario `message` |
-| L7-T20 | **toute la tâche** (L7-P7) | rien : la marquer faite |
-| L7-T21 | `RecognitionSession` (L7-P7) ; ses tests sont dans **`tst_features_recognitionsession`**, plus dans `tst_features_shapefinder` (preuve à corriger) | `RecognitionController`, `replaceObjects` par `DocumentInsertions`, tests d'interface, scénario `reconnaissance-forme` |
+| L7-T14 | `Dice`, `tst_features_dice` (L7-P5) | `DiceController`, `DicePanel.qml`, `diceTotalWrittenOnThePage`, `diceBlocksTheStylus` ; nombre de dés et vitesse **mémorisés** dans les réglages (E5 : 1 dé au premier lancement, puis le dernier choisi), croix de fermeture (P4) |
+| L7-T15 | `Calculator`, `tst_features_calculator` (L7-P5) | `CalculatorController` (lanceur injectable, `calc.exe`), `CalculatorPanel.qml` (deux lignes : `expression()` au-dessus de `display()`, touches « C » et « CE »), **transfert du calcul sur la page** par un bouton (`pageText()` posé par `DocumentInsertions::insertText`, une étape ; glisser vers la page : 7b, P3), `systemCalculatorLaunchedOnWindows`, `calculatorBlocksTheStylus` |
+| L7-T16 | `Countdown`, `Stopwatch`, `formatHms`, `parseHms`, `tst_features_countdown` (L7-P5) | `ClockController` (actions de fin selon la spécification, E9 non tranché par L7-T0 : aucune, page suivante, page précédente ; « remettre la page dans son état enregistré » en L7-T34), `ClockPanel.qml`, `CountdownDialog.qml`, tests d'interface, scénario `compte-a-rebours` |
+| L7-T18, L7-T19 | `TickerSettings`, `TickerRun`, `tickerToJson`, `tickerFromJson`, `tst_features_ticker` (L7-P6) | `TickerController` (`QSettings` `tools/ticker`), `TickerOverlay.qml`, `TickerDialog.qml` (E11 non tranché par L7-T0 : spécification, « Essayer » et « Appliquer » qui garde et ferme), `tickerNeverRefreshesTheCache`, `applyKeepsTheDefault`, scénario `message` |
+| L7-T20 | **toute la tâche** (L7-P7), classe `Polygon` comprise (P16) | rien : la marquer faite ; L7-T21 range `RecognizedShape::Kind::Polygon` en `core::Shape` `Polygon` (ses `corners`) |
+| L7-T21 | `RecognitionSession` (L7-P7) ; ses tests sont dans **`tst_features_recognitionsession`**, plus dans `tst_features_shapefinder` (preuve à corriger) | `RecognitionController` (délai commun par défaut `RecognitionSession::kDefaultDelayMs` = 1 s, réglable de 0 à 5 s ; 7b disait 5 s, 1 à 5), `replaceObjects` par `DocumentInsertions`, tests d'interface, scénario `reconnaissance-forme` |
 | L7-T22 | **toute la tâche** (L7-P8), moteur COM compris | rien : la marquer faite |
 | L7-T23 | le fil dédié STA `HandwritingThread` ; `recognitionRunsOnOneDedicatedThread` est dans **`tst_features_handwriting`** (à retirer de la preuve de `tst_ui_presentation`) | `RecognitionController` en mode écriture qui **possède** un `HandwritingThread` (aucun autre fil ni `moveToThread` à écrire), commande grisée par `probe()`, `RecognitionAlternatives.qml`, tests d'interface |
 | L7-T26 | rien | toute la tâche (`equationeditor.*` créés par elle, pris par le motif ; `tst_features_equationeditor` à déclarer) |
 | L7-T28 | `PolygonPicker`, `FreehandPicker`, `cropToPolygon`, `normalizedRect`, `toLogicalPixels`, `windowRectsInLogicalPixels` (L7-P9) | `topLevelWindows()` dans `camera.h`, `camera_win.cpp` **et** `camera_other.cpp` (créés ensemble ; `dwmapi` déjà lié), `CameraController`, QML, tests d'interface, contrôle à l'écran |
 | L7-T29 | `ScreenKeyboard`, `tst_features_keyboard` (L7-P9) | `keyinjector_win.cpp` **et** `keyinjector_other.cpp` (ensemble), `KeyboardController`, `ScreenKeyboard.qml`, tests d'interface |
 | L7-T31 | `wheelPositions`, `WheelEntry`, `defaultWheel` ; `wheelIsClockwiseFromTop` est dans **`tst_features_desktopwheel`** (plus dans `tst_ui_desktop`) | `wheelHasNoVoteNorVendorEntry` (identifiants contre le registre des commandes), `DesktopController` (roue), `DesktopToolsWheel.qml`, `restoreClosesTheWheel`, `wheelClosesWhenTheWindowIsRestored` |
-| L7-T0 à L7-T2, L7-T8, L7-T17, L7-T24, L7-T25, L7-T27, L7-T30, L7-T32 à L7-T34 | rien | selon les amendements du socle (« Amendements pour le lot 7 ») |
+| L7-T34 | rien | en plus de 7b : **symétries autour d'un axe qui passe par l'origine XY** quand elle est active (P20 de L7-T0 ; attend le lot 3 et les symétries du lot 5) |
+| L7-T0 à L7-T2, L7-T8, L7-T17, L7-T24, L7-T25, L7-T27, L7-T30, L7-T32, L7-T33 | rien (L7-T0 : fait, rapport 0be9a77) | selon les amendements du socle (« Ce que la session B doit savoir », socle 1ffb07b) |
 
 ## Risques
 
@@ -2373,4 +2605,6 @@ au doigt et à la souris (B2), chacun vérifiant qu'aucun trait n'est versé **e
    manquer sur le poste (Windows 11 sans pack d'écriture) : `recognizesSyntheticInk` sauté et signalé.
 4. **Dix constructions complètes** (une par worktree neuf) sur une seule place de tests : la durée de la phase dépend
    d'elles plus que du code.
-5. **Constantes à confirmer par L7-T0** (vitesse du zoom, catalogue, nombre de dés) : changement local d'une constante.
+5. **Valeurs de L7-T0 lues en statique** (réglages embarqués, aucun désassemblage) : délai de reconnaissance,
+   translucidité, contour du spot, catalogue. Une observation à l'écran qui les contredirait change une constante
+   nommée, sans toucher aux tests de structure.
