@@ -122,7 +122,7 @@ Plan : `docs/plans/2026-10-18-livraison-complete-lot10-PLAN.md` (66a9300, relu e
 | id | dépend | titre | worktree | état | essais | commit | preuve rejouée |
 |---|---|---|---|---|---|---|---|
 | L0-S0 | — | réservation (fichiers vides marqués, CMake, 19 tests, crochets du lot 7) | (mergé) | terminée | 1/3 | 12be1ea, 080399f → merge b904dcf | rejoué : build 0, 113 tests listés, les 19 neufs 100 % Passed (talons en SKIP nommant leur tâche, ex. `tst_core_hittest` : `SKIP reserved() Talon L0-S : rempli par L3-T3`), `premiers-pas` `CAPTURES OK`, `NOMS OK : 391`, ligne `include(... presentation.cmake OPTIONAL)` en dernière ligne de tests/CMakeLists.txt |
-| L0-S1 | S0 | icônes des deux lots (31 SVG) | .worktrees/livraison-complete--L0-S1 | en cours | 0/3 | — | — |
+| L0-S1 | S0 | icônes des deux lots (31 SVG) | (mergé) | terminée | 1/3 | 65fb991, cfe4661 → merge 4239898 | rejoué : format 0, build 0, `iconsAreOurSvgOnA24Grid` 41 PASS (`tst_ui_theme` 63 passed, 0 failed), 113 tests ; agent : suite 113/113 puis format corrigé ; SVG simples (24 × 24, sans image intégrée) |
 | L0-S2 | S0 | joueur : touch, pinch, pointer, doubleClick, expect avec tolérance | — | à faire | 0/3 | — | — |
 | L0-S3 | S0 | modèle partagé (Equation, PagePresentation, ReplaceObjectsCommand, /we4062) | .worktrees/livraison-complete--L0-S3 | en cours | 0/3 | — | — |
 | L0-S4 | S1 | données et disposition des deux lots (62 commandes, sous-menus, F-750) | — | à faire | 0/3 | — | — |
