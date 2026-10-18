@@ -118,6 +118,16 @@ Plan : `docs/plans/2026-10-18-livraison-complete-lot10-PLAN.md` (66a9300, relu e
 | titres | — | deux titres de vidéos du corpus retirés (commande « Créer un paperboard », cadrage) ; exclusions du contrôle retirées | — | (mergé) | terminée | 1/3 | 04f883a → merge f167eb9 | signalé par L7-T0 (session B) ; suite 93/94 (même rouge BOUCLE) ; `tst_actions_*`, `tst_ui_filemenu` Passed ; `NOMS OK : 330` ; les titres restent dans l'historique public de main (correction en avant seulement) |
 | L10-C2 | C1 | contrôle `maxEventLoopGapMs` fiable sous charge (mutation : E/S sur le fil principal → rouge) ; doit être mergée **avant L0-S2** (`uiscenario.*`) | crit | .worktrees/livraison-complete--L10-C2 | en cours | 0/3 | — | — |
 
+## Reprise après le temps calme du 2026-10-18 (~22 h 30, redémarrage de l'app demandé par Jérôme)
+
+Mergé dans `feat/livraison-complete` (tête : ce commit) : lot 10 T0-T6, C1, correctif des titres ; plans socle (9b13275 + b97bc2e) et lot 3 (7f9d4a8) ; socle L0-S0 (b904dcf) et L0-S1 (4239898).
+Agents arrêtés ; travail commité en **wip** (non prouvé, peut être rouge), chacun dans son worktree `.worktrees/livraison-complete--<id>` :
+- **L0-S3** `ff01fdc` : code et tests écrits ; build vert avec `/we4062` ; 3/5 tests ciblés verts, 2 corrigés non relancés (`tst_core_model` empreinte figée → équation retirée du test ; `tst_formats_nativejson` gabarit `"hologram"`). Preuve : `scratchpad/preuve-l0s3.ps1` (sortie `scratchpad/out/preuve.txt`). À transmettre à L0-S5 : `UndoStack::push` enregistre même avec des Changes vides.
+- **L0-S6** `c799eb9` : squelette du lot 3 écrit ; preuve (`test.ps1`) lancée, arrêtée avant la fin.
+- **L10-C2** `8d3930b` : règle « fenêtre rejouée une fois » prouvée (mutation rouge 3/3, S5 vert 6/6) ; suite complète avec le test corrigé à relancer : `scratchpad/c2-fin.ps1` (refait le commit propre : défaire d'abord le wip par `git reset --soft HEAD~1`, ou adapter le script). À merger **avant L0-S2**.
+- **L10-T8** `7215925` (tête prouvée précédente a203792) : V3-3072 + `QSG_NO_DEPTH_BUFFER` ; mesures à l'écran tenues (banc 930,4 Mio, 800 % 609,1 Mio, S13 tenu) ; reste `tst_pageview` rouge à lire (`scratchpad/l10t8/pv2.ps1`), résumé à compléter (relevés après repli, écart V1), puis preuve ciblée et merge.
+**Premier geste à la reprise** : relire le handoff `~/.claude/handoffs/fd5ef06a-7b9b-46ba-a8c3-b06809fefd99.md`, puis relancer un agent par wip (L0-S3, L0-S6, L10-C2, L10-T8) en lui donnant ce paragraphe ; preuves ciblées par tâche, suite complète par l'orchestrateur après chaque vague ; ensuite V2 du socle (S7 ‖ S5 ‖ S4). Session B (`local_24731de6-05ad-4fc2-9c6a-9c2283da3a71`) : une place de tests, attend mon signal pour la 2e et « socle mergé ».
+
 ## Tâches du socle commun L0-S (plan 9b13275, mergé 1ffb07b ; relecture tour 1 : 1 bloquant, 11 importants, tous appliqués ; tour 2 en cours)
 | id | dépend | titre | worktree | état | essais | commit | preuve rejouée |
 |---|---|---|---|---|---|---|---|
