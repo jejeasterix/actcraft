@@ -2,6 +2,11 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+**Démarrage : après L0-S10.** Toutes les tâches de ce plan démarrent sur `feat/livraison-complete` **après la tâche
+L0-S10** (contrôle du socle), dernière tâche du socle commun des lots 3 et 7 (plan
+`docs/plans/2026-10-18-livraison-complete-socle-3-7-PLAN.md`, 9b13275). Aucune tâche du lot 3 ne part avant que L0-S10
+soit mergée.
+
 **But.** Version **0.4.0** (amendement 1, § 6 : lot 3 → 0.4.0, le lot 10 livre 0.3.0). Écrire, gommer, sélectionner,
 annuler, pincer pour zoomer : sélection (clic, rectangle qui touche, déplacer, huit poignées, redimensionner,
 rotation, barre d'objet), stylo et marqueur (mémoire par outil, translucidité du marqueur), gomme qui coupe et scinde
@@ -10,146 +15,151 @@ les seules annotations, Annuler / Rétablir, Supprimer, corbeille, Effacer ▸, 
 F-520 à F-524, F-528, F-541, F-951 à F-953 pour les fonctions du lot). Scénario d'acceptation du cadrage : **S6** ;
 tâche d'ouverture : **S30** ; scénarios ajoutés par ce plan : S34 à S37.
 
-**Architecture.** Tout passe par une commande nommée (`actions/`) ; un outil (`tools/`) ne voit que des interfaces
-(`tools::ToolContext`) ; toute modification du document passe par la pile de `core/`. Trois contraintes
-structurent le lot :
+**Ce que le socle a déjà posé (ne plus le faire).** Commandes et disposition des deux lots (sous-menus, barre
+d'objet, menu contextuel, raccourcis uniques, L0-S4) ; icônes (L0-S1) ; joueur de scénarios (`touch`, `pinch`,
+`pointer`, `doubleClick`, tolérance d'`expect`, L0-S2) ; modèle partagé (`ObjectKind::Equation`, `PagePresentation`,
+**`core::ReplaceObjectsCommand`** unique, C4062 en erreur, L0-S3) ; `DocumentController` : API des deux lots en corps
+vides, observateur unique `addChangeObserver` (origines `Lift`, `Drop`…), `liftObjects` **sans** `editAboutToApply`
+(L0-S5) ; en-têtes figés et talons du lot 3, `LiftLayer` exposé au QML, `UserState::openMathTools` et
+`ToolHost::user()` réels (L0-S6) ; chemin d'entrée figé de la vue : événement → `Sample` → `PointerRouter`
+(couvertures, `Route::Cover`) → filtre d'échantillons → `Pipeline` → outil actif, garde du versement sur `isBusy`,
+`finishStroke` par `cancel`, `contextMenuRequested`, `zoomAround`, `tools`, `cacheRefreshCount`, `router()` (L0-S7) ;
+coquille QML : couches et emplacements avec leurs `required property`, gestionnaires des commandes du lot 3 (L0-S9) ;
+enregistrement CMake de tous les fichiers et des **19 tests** (L0-S0). Les anciennes tâches **L3-T1, L3-T2 et L3-T17
+sont retirées** (faites par le socle).
 
-1. **Routage unique du doigt (DA-A1 de l'amendement).** Chaque contact (stylet, souris, doigt) passe par un seul
-   routeur `input::PointerRouter`, dont la politique `input::RoutingPolicy` est remplaçable : la décision (outil,
-   geste ou rien) est prise à l'appui et tenue pour tout le contact ; chaque contact est rattaché à un utilisateur
-   (un seul au lot 3) ; l'utilisateur (`tools::UserState`) porte l'outil courant, les réglages par outil et la
-   sélection. La vue (`ui::PageView`) ne décide plus rien elle-même ; le lot 11 ajoutera un utilisateur et des
-   politiques sans réécrire les outils.
+**Architecture.** Tout passe par une commande nommée (`actions/`) ; un outil (`tools/`) ne voit que des interfaces
+(`tools::ToolContext`) ; toute modification du document passe par la pile de `core/`. Deux contraintes structurent le
+lot :
+
+1. **Routage unique du doigt (DA-A1 de l'amendement).** Le routeur du socle décide à l'appui (outil, geste,
+   couverture ou rien) et tient la décision pour tout le contact ; le lot 3 écrit la politique `FullTouchPolicy`
+   (geste à deux doigts, paume, stylet qui prend la main) et le geste ; l'utilisateur (`tools::UserState`) porte l'outil
+   courant, les réglages par outil et la sélection.
 2. **Cache par son interface figée (DA11), sans redessin pendant un geste.** Le patron évident — pousser une
-   commande par mouvement de souris, fusionnée dans la pile (`mergeId`) — redessinerait tout le cache à chaque
-   mouvement (chaque `ObjectChanged` d'un objet versé redessine tout, limite de DA11, H10-8). Le lot 3 **soulève** :
-   au début d'un glissement (sélection) ou au premier contact de la gomme avec un trait, les objets visés sont
-   retirés de la page affichée hors pile (`DocumentController::liftObjects`), ce que le cache reçoit par
-   `PageCache::remove(id, emprise)` ; une **couche soulevée** (`render::LiftLayerItem`, au-dessus de la couche
-   d'attente du lot 10) les dessine pendant le geste, déplacés par une simple transformation (aucun nœud
-   reconstruit) ou recoupés par la gomme ; au relâché, `DocumentController::dropLifted` remet les originaux puis
-   exécute **une** commande par la pile, et le cache reçoit `PageCache::insert(id)` pour chaque objet soulevé encore
-   présent (`core::changesAfterLift`). Coût : un redessin au soulèvement, un au dépôt, aucun pendant le geste ;
-   mesuré par les scénarios de banc `soulever` et `gommer` (S36, H10-8 e). Aucun outil n'appelle la page fixe, la
-   couche d'attente ni la couche soulevée : prouvé par test (`tst_ui_lift`, `tst_ui_tools`, `tst_modules`).
-3. **Fichiers chauds réservés en tête de lot.** `L3-T1` pose d'un coup les commandes, menus (sous-menu « Effacer »),
-   emplacements de palette, barre d'objet, icônes, enregistrements CMake, fichiers et tests du lot (talons
-   compilables, tests sautés `QSKIP`), et les API figées de `ui::ToolHost`, `DocumentController` et `PageView`
-   (corps vides). `L3-T2` pose la coquille QML (palette, corbeille, surcouches, gestionnaires des commandes). Les
-   tâches suivantes ne remplissent que leurs propres fichiers ; deux tâches d'une même vague ne partagent aucun
-   fichier.
+   commande par mouvement, fusionnée dans la pile — redessinerait tout le cache à chaque mouvement. Le lot 3
+   **soulève** : au début d'un glissement (sélection) ou au premier contact de la gomme avec un trait, les objets visés
+   sont retirés de la page affichée hors pile (`DocumentController::liftObjects`, le cache reçoit `remove`) ; la couche
+   soulevée (`render::LiftLayerItem`) les dessine pendant le geste, déplacés par une transformation seule ou recoupés
+   par la gomme ; au relâché, `dropLifted` remet les originaux, exécute **une** commande, et le cache reçoit `insert`
+   pour chaque objet soulevé encore présent (`core::changesAfterLift`). Les demandes de redessin d'un même tour de
+   boucle sont regroupées (L3-T13) : un redessin au soulèvement, un au dépôt. Aucun outil n'appelle la page fixe, la
+   couche d'attente ni la couche soulevée (`tst_ui_lift`, `tst_ui_tools`, `tst_modules`).
 
 **Pile.** C++20, Qt 6.12 (Core, Gui, Quick, QuickControls2, Test), CMake + Ninja, MSVC 2022, PowerShell 7.
 
-**Amendement 1 du plan (relecture du 2026-10-18, « exécutable après correctifs »).** Ce qui est commun aux lots 3
-et 7 passe dans la **tâche de socle `L0-S`** (plan `docs/plans/2026-10-18-livraison-complete-socle-3-7-PLAN.md`,
-écrit à part), jouée **avant** ce lot : disposition et sous-menus, commandes des deux lots, étapes du joueur de
-scénarios (tout L3-T17), chemin d'entrée de la vue (événement → `Sample` → `PointerRouter`, couvertures des
-surcouches → filtre d'échantillons → `Pipeline` → outil actif), `isBusy` de l'outil actif pour la minuterie de
-versement, API vide de `DocumentController` (**sans** `editAboutToApply` au soulèvement), une seule
-`ReplaceObjectsCommand`, emplacements QML avec leurs `required property`, `UserState::openMathTools`. **L3-T1, L3-T2
-et L3-T17 seront amendés** (réduits à ce que le socle ne pose pas, ou retirés) quand le plan du socle sera écrit ;
-d'ici là, leurs sections restent celles de 60a4290 et ne doivent **pas** être exécutées. Les correctifs propres au
-lot 3 (B1, M1 à M4, M8, M9, mineurs 1 à 7) sont appliqués dans les sections concernées ci-dessous ; leur relevé est
-en fin de plan (« Correctifs de la relecture »).
-
-**Point de départ.** Le lot 3 démarre sur `feat/livraison-complete` **après la clôture du lot 10** (merge de
-L10-T4, L10-T6 et de L10-T7 si elle est jouée) : `FixedPageItem` en attente (`pendingCount`, `foldPending`),
-`PendingLayerItem`, `PageView::pendingLayer`, versement différé dans `requestCacheRefresh`, fabrique
-`render::createObjectNode` (L10-T2). Ce plan est écrit sur e016107 (L10-T4 non mergée) : les numéros de ligne cités
-sont indicatifs, les noms font foi. Tests au départ : **94** (fin du lot 10).
+**Historique du plan.** 60a4290 (20 tâches) → 61c03fb (correctifs de la relecture, en fin de plan) → ce texte
+(amendements du socle, 17 points, relevé en fin de plan « Amendements du socle »). Les numéros de ligne du code cités
+sont indicatifs, les noms font foi.
 
 ## Table des tâches
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
-| L3-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot (sélection, stylo, marqueur, gomme, annulation, effacer, corbeille, gestes, schéma d'entrée) | — | `docs/verifications/2026-10-18-lot3-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot3.md`) | isolé | concepteur-critique | rapport commité, relevé brut hors dépôt présent, `NOMS OK`, `git grep` des titres du corpus vide, décisions D1 à D12 écrites | S30 | #tache-l3-t0 |
-| L3-T1 | Réservation I : commandes, disposition (sous-menus, barre d'objet), icônes, fichiers et tests du lot enregistrés, API figées | — | `actions/data/commands.json`, `actions/data/layout.json`, `actions/include/actcraft/actions/layout.h`, `actions/src/layout.cpp`, `tests/tst_actions_layout.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `tests/tst_ui_commands.cpp`, `ui/qml/CommandMenu.qml`, `ui/icons/{selection,marqueur,gomme,annuler,retablir,supprimer,corbeille,effacer,deplacer,rotation,translucidite,agrandir,reduire}.svg`, `core/CMakeLists.txt`, `input/CMakeLists.txt`, `tools/CMakeLists.txt`, `render/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/core.cmake`, `tests/input.cmake`, `tests/tools.cmake`, `tests/render.cmake`, `tests/ui.cmake`, `tests/bench.cmake`, talons neufs `core/include/actcraft/core/{hittest,erasegeometry,objectedits,lift}.h`, `core/src/{hittest,erasegeometry,objectedits,lift}.cpp`, `input/include/actcraft/input/{routing,gesture}.h`, `input/src/{routing,gesture}.cpp`, `tools/include/actcraft/tools/{tool,toolcontext,userstate,toolregistry,erasertool,selecttool,selectiongeometry}.h`, `tools/src/{userstate,toolregistry,erasertool,selecttool,selectiongeometry}.cpp`, `render/include/actcraft/render/liftlayeritem.h`, `render/src/liftlayeritem.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/{toolhost,tooladapters}.cpp`, `ui/src/tooladapters.h`, `ui/qml/{SelectionOverlay,ObjectBar,TranslucencyPopup,TrashCan,PageContextMenu,ToolCursor}.qml`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, 13 tests talons `tests/tst_{core_hittest,core_erase,core_objectedits,core_lift,input_routing,input_gesture,tools_registry,tools_eraser,tools_select,render_liftlayer,render_strokeshape,ui_lift,ui_tools}.cpp`, 4 scénarios talons `bench/scenarios/{selection,corbeille,marqueur,ecrire-gommer-annuler}.json` | isolé | implementeur-tdd | `100% tests passed … out of N`, N ≥ 111, `TESTS OK`, `tst_actions_layout` (dont `submenuItems`, `objectBarRead`, `lot3EntriesDeclared`), `tst_ui_commands` (dont `submenuInMenus`), `tst_ui_shell` Passed ; `captures.ps1 -Scenario premiers-pas` hors écran `CAPTURES OK` | S6, S34, S35 | #tache-l3-t1 |
-| L3-T2 | Réservation II : coquille QML (palette, corbeille, surcouches, gestionnaires des commandes du lot) | L3-T1 | `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/ToolPalette.qml`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 111, `tst_ui_shell` Passed (dont `lot3ShellPlaceholders`, `everyLot3CommandHasAHandler`) ; `captures.ps1 -Scenario premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S34, S35 | #tache-l3-t2 |
-| L3-T3 | `core` : désignation (objet touché, rectangle qui touche) et géométrie de la gomme | L3-T1 | `core/include/actcraft/core/hittest.h`, `core/src/hittest.cpp`, `core/include/actcraft/core/erasegeometry.h`, `core/src/erasegeometry.cpp`, `tests/tst_core_hittest.cpp`, `tests/tst_core_erase.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 111, `tst_core_hittest` (dont `topmostObjectWins`, `strokeHitUsesWidthAndTolerance`, `rectangleTouchingSelects`) et `tst_core_erase` (dont `middleCutSplitsInTwo`, `sweepDoesNotSkip`) Passed | S6 | #tache-l3-t3 |
-| L3-T10 | `render` : couche soulevée `LiftLayerItem` (dessin identique à la page fixe, transformation sans reconstruction) | L3-T1 | `render/include/actcraft/render/liftlayeritem.h`, `render/src/liftlayeritem.cpp`, `tests/tst_render_liftlayer.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 111, `tst_render_liftlayer` Passed (dont `drawsLikeTheFixedPage`, `transformDoesNotRebuild`, `clearEmpties`) ; banc hors écran `content_check.ok = True` | S6 | #tache-l3-t10 |
-| L3-T4 | `core` : commandes d'édition du lot et changements vus par le cache après un soulèvement | L3-T0, L3-T1, L3-T3 | `core/include/actcraft/core/objectedits.h`, `core/src/objectedits.cpp`, `core/include/actcraft/core/lift.h`, `core/src/lift.cpp`, `tests/tst_core_objectedits.cpp`, `tests/tst_core_lift.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 111, `tst_core_objectedits` (dont `replaceStrokesKeepsRankAndIds`, `clearAnnotationsKeepsShapes`, `revertPageIsOneStep`) et `tst_core_lift` (dont `liftThenDropMoveYieldsInsertOnly`, `liftThenCancelReinserts`, `erasePiecesInsertedNoRemoveOfLifted`) Passed ; mutation de `changesAfterLift` rouge puis remise | S6, S35 | #tache-l3-t4 |
-| L3-T5 | `input` : routeur unique des contacts (politique remplaçable, utilisateur par contact) et geste à deux doigts | L3-T0, L3-T1 | `input/include/actcraft/input/sample.h`, `input/include/actcraft/input/routing.h`, `input/src/routing.cpp`, `input/include/actcraft/input/gesture.h`, `input/src/gesture.cpp`, `tests/tst_input_routing.cpp`, `tests/tst_input_gesture.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 111, `tst_input_routing` (dont `secondFingerCancelsToolAndStartsGesture`, `palmIgnoredWhileStylusDown`, `decisionHeldForWholeContact`, `policyIsReplaceable`, `simultaneousPinchDrawsNothing`, `stylusTakesOverFromFinger`) et `tst_input_gesture` (dont `pinchScalesAroundCenter`) Passed ; `tst_input` Passed | S6 | #tache-l3-t5 |
-| L3-T6 | `tools` : interface `Tool`, contexte d'outil, registre, état d'utilisateur, stylo et marqueur | L3-T0, L3-T1 | `tools/include/actcraft/tools/tool.h`, `tools/include/actcraft/tools/toolcontext.h`, `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp`, `tools/include/actcraft/tools/toolregistry.h`, `tools/src/toolregistry.cpp`, `tools/include/actcraft/tools/pentool.h`, `tools/src/pentool.cpp`, `tests/tst_pentool.cpp`, `tests/tst_tools_registry.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 111, `tst_tools_registry` (dont `builtinsRegistered`, `userKeepsSettingsPerTool`, `defaultsPerTool`) et `tst_pentool` (dont `highlighterStrokeIsTranslucentKind`, `newStrokesHaveRoundCaps`) Passed | S6, S37 | #tache-l3-t6 |
-| L3-T11 | `render` : forme du trait (bouts et jonctions ronds, courbe lissée) et marqueur translucide d'un seul tenant | L3-T0, L3-T1, L3-T2 | `render/include/actcraft/render/strokegeometry.h`, `render/src/strokegeometry.cpp`, `render/include/actcraft/render/inkitem.h`, `render/src/inkitem.cpp`, `render/src/strokerenderer.cpp`, `render/src/pagepainter.cpp`, `ui/qml/PageArea.qml`, `tests/tst_render_strokeshape.cpp`, `tests/tst_render_painter.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 111, `tst_render_strokeshape` (dont `roundCapsCoverTheDisk`, `selfCrossingHighlighterDoesNotDarken`, `twoHighlighterPassesDarken`) et `tst_render_painter` Passed ; banc hors écran `content_check.ok = True` ; à l'écran D3D11 (jeton `ecran`) `anticrenelage` `CAPTURES OK` | S37 | #tache-l3-t11 |
-| L3-T12 | `DocumentController` : soulever et déposer, Annuler / Rétablir après le trait en cours, Supprimer, Effacer, Rétablir la page | L3-T4 | `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `tests/tst_ui_document.cpp`, `tests/tst_ui_lift.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 111, `tst_ui_lift` (dont `liftRemovesThroughTheCacheInterface`, `dropInsertsLiftedObjects`, `undoWhileLiftingCancelsFirst`, `pageChangeWhileLiftingDropsFirst`, `saveWhileLiftingDropsFirst`) et `tst_ui_document` (dont `revertPageReturnsToSaved`, `revertNeverSavedEmptiesPage`, `undoAnnouncesTheEditFirst`) Passed | S6, S35 | #tache-l3-t12 |
-| L3-T17 | Joueur de scénarios : étapes `pinch` et `touch` (doigts injectés), `expect` avec tolérance | L3-T1 | `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `bench/include/actcraft/bench/injector.h`, `bench/src/injector.cpp`, `tests/tst_bench_uiscenario.cpp`, `tests/tst_bench_injector.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 111, `tst_bench_uiscenario` (dont `pinchStepParsed`, `touchStepParsed`, `expectWithTolerance`) et `tst_bench_injector` (dont `pinchDeliversTwoTouchPoints`) Passed | S6 | #tache-l3-t17 |
-| L3-T7 | `tools` : gomme (soulève chaque trait touché une fois, une commande au relâché) | L3-T3, L3-T4, L3-T6 | `tools/include/actcraft/tools/erasertool.h`, `tools/src/erasertool.cpp`, `tests/tst_tools_eraser.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 111, `tst_tools_eraser` Passed (dont `liftsEachTouchedStrokeOnce`, `nothingExecutedDuringTheGesture`, `oneCommandAtRelease`, `shapesAreNeverTouched`, `cancelRestoresEverything`) | S6 | #tache-l3-t7 |
-| L3-T8 | `tools` : sélection — désigner, rectangle qui touche, déplacer par soulèvement, déposer sur la corbeille | L3-T3, L3-T4, L3-T6 | `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/selectiongeometry.h`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 111, `tst_tools_select` Passed (dont `clickSelectsTopmost`, `rubberBandSelectsTouched`, `dragLiftsOnceAndDropsOnce`, `lockedObjectDoesNotMove`, `dropOverTrashDeletes`, `escapeCancelsDrag`) | S6, S34 | #tache-l3-t8 |
-| L3-T13 | `PageView` : gestes à deux doigts (pincer, défiler) sur le chemin d'entrée du socle, demandes de redessin regroupées par tour, outil actif occupé | L0-S, L3-T5, L3-T6 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 111, `tst_pageview` (dont `pinchZoomsAroundItsCenter`, `twoFingerPanScrolls`, `secondFingerEndsFingerStroke`, `palmIgnoredDuringStylus`, `cacheRefreshCountCounts`, `requestsOfOneTurnMakeOneRedraw`, `foldWaitsForTheActiveTool`, `latencyProbeSeesToolSamples`, `pageChangeEndsToolStroke`) et `tst_ui_drawing` Passed ; banc hors écran `content_check.ok = True` | S6 | #tache-l3-t13 |
-| L3-T9 | `tools` : sélection — huit poignées, redimensionner (proportionnel au coin), rotation, barre d'objet | L3-T8 | `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/selectiongeometry.h`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 111, `tst_tools_select` Passed (dont `eightHandlesAroundTheFrame`, `cornerHandleResizesProportionally`, `rotationAroundCenter`, `handlesHiddenWhileDragging`, `barButtonTriggersCommand`, `restrictionsHonoured`) | S34 | #tache-l3-t9 |
-| L3-T14 | `ui::ToolHost` : outils branchés (commandes, mémoire par outil gardée au redémarrage, adaptateurs d'interfaces) | L3-T2, L3-T7, L3-T8, L3-T10, L3-T12, L3-T13 | `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`, `ui/src/tooladapters.cpp`, `ui/src/penadapters.h`, `ui/src/penadapters.cpp`, `ui/qml/Main.qml`, `tests/tst_ui_tools.cpp`, `tests/tst_ui_drawing.cpp`, `tests/tst_modules.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 111, `tst_ui_tools` (dont `colorGoesToActiveTool`, `settingsSurviveRestart`, `eraseGoesThroughTheCacheInterface`, `dragGoesThroughTheCacheInterface`, `dragOfTwoObjectsCostsTwoRedraws`, `undoAfterEraseRestores`, `liftDoesNotCancelTheLiftingTool`, `pageChangeWhileDraggingClearsTheLiftLayer`, `escapeCancelsTheGesture`), `tst_modules` (dont `toolsSeeNoRenderItem`), `tst_ui_drawing` Passed ; `premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S6, S37 | #tache-l3-t14 |
-| L3-T15 | QML : cadre de sélection, poignées, barre d'objet, réglette de translucidité ; fixtures `rectangle-et-traits` et `objet-verrouille` ; scénario `selection` | L3-T9, L3-T14 | `ui/qml/SelectionOverlay.qml`, `ui/qml/ObjectBar.qml`, `ui/qml/TranslucencyPopup.qml`, `bench/src/fixtures.cpp`, `bench/scenarios/selection.json` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 111, `tst_captures_selection` Passed ; `captures.ps1 -Scenario selection` hors écran : `LU appTools.selectionCount=2 OK`, `LU appTools.handlesVisible=true OK`, `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S34 | #tache-l3-t15 |
-| L3-T16 | QML : corbeille, menu contextuel de la page, curseurs par outil ; scénarios `corbeille` et `marqueur` | L3-T14, L3-T15 | `ui/qml/TrashCan.qml`, `ui/qml/PageContextMenu.qml`, `ui/qml/ToolCursor.qml`, `bench/scenarios/corbeille.json`, `bench/scenarios/marqueur.json` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 111, `tst_captures_corbeille` et `tst_captures_marqueur` Passed ; `captures.ps1 -Scenario corbeille` puis `marqueur` hors écran `CAPTURES OK` (lectures `LU appDocument.shownObjectCount=…` d'abord) | S35, S37 | #tache-l3-t16 |
-| L3-T19 | Banc : scénarios `gommer` et `soulever` (H10-8 e), outil choisi par commande avant la mesure | L3-T14 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `docs/banc.md` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 111, `tst_bench_scenarios` (dont `eraseScenarioCrossesStrokes`, `liftScenarioDragsAnObject`) et `tst_bench_result` (dont `sevenScenariosWithFrames`) Passed ; banc hors écran : scénarios `gommer` et `soulever` présents, `cache.refreshes` relevé et dans l'attendu chiffré de S36 (`soulever` : 2 ; `gommer` : ≤ traits touchés + 1) | S36 | #tache-l3-t19 |
-| L3-T18 | Scénario S6 `ecrire-gommer-annuler` (pincement compris), rejoué à l'écran en D3D11 (H10-1) | L3-T14, L3-T15, L3-T17 | `bench/scenarios/ecrire-gommer-annuler.json` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 111, `tst_captures_ecrire_gommer_annuler` Passed ; hors écran `CAPTURES OK` (`LU appDocument.shownObjectCount=3 OK` après la gomme, `LU pageView.zoom≈1.5 OK` après le pincement) ; à l'écran D3D11 (jeton `ecran`) `CAPTURES OK`, `LU fixedPage.pendingCount=0 OK` et `LU pageView.cacheRefreshCount=<n> OK` après l'annulation du trait en attente | S6 | #tache-l3-t18 |
+| L3-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot (sélection, stylo, marqueur, gomme, annulation, effacer, corbeille, gestes, schéma d'entrée) | L0-S10 | `docs/verifications/2026-10-18-lot3-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot3.md`) | isolé | concepteur-critique | rapport commité, relevé brut hors dépôt présent, `NOMS OK`, `git grep` des titres du corpus vide, décisions D1 à D12 écrites | S30 | #tache-l3-t0 |
+| L3-T3 | `core` : désignation (objet touché, rectangle qui touche) et géométrie de la gomme | L0-S10 | `core/src/hittest.cpp`, `core/src/erasegeometry.cpp`, `tests/tst_core_hittest.cpp`, `tests/tst_core_erase.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_départ + 19, `tst_core_hittest` (dont `topmostObjectWins`, `strokeHitUsesWidthAndTolerance`, `rectangleTouchingSelects`, `equationHitsLikeText`) et `tst_core_erase` (dont `middleCutSplitsInTwo`, `sweepDoesNotSkip`) Passed, aucun `reserved` | S6 | #tache-l3-t3 |
+| L3-T10 | `render` : couche soulevée `LiftLayerItem` (dessin identique à la page fixe, transformation sans reconstruction) | L0-S10 | `render/src/liftlayeritem.cpp`, `tests/tst_render_liftlayer.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_départ + 19, `tst_render_liftlayer` Passed (dont `drawsLikeTheFixedPage`, `transformDoesNotRebuild`, `clearEmpties`) ; banc hors écran `content_check.ok = True` | S6 | #tache-l3-t10 |
+| L3-T4 | `core` : commandes d'édition du lot et changements vus par le cache après un soulèvement | L3-T0, L3-T3 | `core/src/objectedits.cpp`, `core/src/lift.cpp`, `tests/tst_core_objectedits.cpp`, `tests/tst_core_lift.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_départ + 19, `tst_core_objectedits` (dont `clearAnnotationsKeepsShapes`, `revertPageIsOneStep`) et `tst_core_lift` (dont `liftThenDropMoveYieldsInsertOnly`, `liftThenCancelReinserts`, `erasePiecesInsertedNoRemoveOfLifted`) Passed ; mutation de `changesAfterLift` rouge puis remise | S6, S35 | #tache-l3-t4 |
+| L3-T5 | `input` : politique `FullTouchPolicy` (geste à deux doigts, paume, stylet qui prend la main) et geste à deux doigts | L3-T0 | `input/src/routing.cpp` (corps de `FullTouchPolicy::decide` seulement), `input/src/gesture.cpp`, `tests/tst_input_routing.cpp`, `tests/tst_input_gesture.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_départ + 19, `tst_input_routing` (dont `secondFingerCancelsToolAndStartsGesture`, `palmIgnoredWhileStylusDown`, `stylusTakesOverFromFinger`, et les fonctions du socle `coverRouteHeldForWholeContact`, `coverLeavesTheStateAlone`, `pressRedecides` toujours vertes) et `tst_input_gesture` (dont `pinchScalesAroundCenter`) Passed | S6 | #tache-l3-t5 |
+| L3-T6 | `tools` : registre, réglages par outil de l'utilisateur, stylo et marqueur | L3-T0 | `tools/src/userstate.cpp`, `tools/src/toolregistry.cpp`, `tools/include/actcraft/tools/pentool.h`, `tools/src/pentool.cpp`, `tests/tst_pentool.cpp`, `tests/tst_tools_registry.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_départ + 19, `tst_tools_registry` (dont `builtinsRegistered`, `userKeepsSettingsPerTool`, `defaultsPerTool`, et `openMathToolsKept` du socle) et `tst_pentool` (dont `highlighterStrokeIsTranslucentKind`, `newStrokesHaveRoundCaps`) Passed | S6, S37 | #tache-l3-t6 |
+| L3-T11 | `render` : forme du trait (bouts et jonctions ronds, courbe lissée) et marqueur translucide d'un seul tenant | L3-T0 | `render/include/actcraft/render/strokegeometry.h`, `render/src/strokegeometry.cpp`, `render/include/actcraft/render/inkitem.h`, `render/src/inkitem.cpp`, `render/src/strokerenderer.cpp`, `render/src/pagepainter.cpp`, `ui/qml/PageArea.qml` (une propriété d'`InkLayer` au plus, aucune couche déplacée), `tests/tst_render_strokeshape.cpp`, `tests/tst_render_painter.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_départ + 19, `tst_render_strokeshape` (dont `roundCapsCoverTheDisk`, `selfCrossingHighlighterDoesNotDarken`, `twoHighlighterPassesDarken`) et `tst_render_painter` Passed ; banc hors écran `content_check.ok = True` ; à l'écran D3D11 (jeton `ecran`) `anticrenelage` `CAPTURES OK` | S37 | #tache-l3-t11 |
+| L3-T12 | `DocumentController` : soulever et déposer, Annuler / Rétablir après le trait en cours, Supprimer, Effacer, Rétablir la page | L3-T4 | `ui/src/documentcontroller.cpp`, `tests/tst_ui_document.cpp`, `tests/tst_ui_lift.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_départ + 19, `tst_ui_lift` (dont `liftRemovesThroughTheCacheInterface`, `dropInsertsLiftedObjects`, `undoWhileLiftingCancelsFirst`, `pageChangeWhileLiftingDropsFirst`, `saveWhileLiftingDropsFirst`) et `tst_ui_document` (dont `revertPageReturnsToSaved`, `revertNeverSavedEmptiesPage`, `undoAnnouncesTheEditFirst`, et `liftDoesNotAnnounceAnEdit` du socle) Passed | S6, S35 | #tache-l3-t12 |
+| L3-T7 | `tools` : gomme (soulève chaque trait touché une fois, une `ReplaceObjectsCommand` au relâché) | L3-T3, L3-T4, L3-T6 | `tools/src/erasertool.cpp`, `tests/tst_tools_eraser.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_départ + 19, `tst_tools_eraser` Passed (dont `liftsEachTouchedStrokeOnce`, `nothingExecutedDuringTheGesture`, `oneCommandAtRelease`, `shapesAreNeverTouched`, `cancelRestoresEverything`) | S6 | #tache-l3-t7 |
+| L3-T8 | `tools` : sélection — désigner, rectangle qui touche, déplacer par soulèvement, déposer sur la corbeille | L3-T3, L3-T4, L3-T6 | `tools/src/selecttool.cpp`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_départ + 19, `tst_tools_select` Passed (dont `clickSelectsTopmost`, `rubberBandSelectsTouched`, `dragLiftsOnceAndDropsOnce`, `lockedObjectDoesNotMove`, `dropOverTrashDeletes`, `escapeCancelsDrag`) | S6, S34 | #tache-l3-t8 |
+| L3-T9 | `tools` : sélection — huit poignées, redimensionner (proportionnel au coin), rotation, barre d'objet | L3-T8 | `tools/src/selecttool.cpp`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_départ + 19, `tst_tools_select` Passed (dont `eightHandlesAroundTheFrame`, `cornerHandleResizesProportionally`, `rotationAroundCenter`, `handlesHiddenWhileDragging`, `barButtonTriggersCommand`, `restrictionsHonoured`) | S34 | #tache-l3-t9 |
+| L3-T14 | `ui::ToolHost` : outils branchés (`activeTool`, commandes, mémoire par outil gardée au redémarrage, adaptateurs d'interfaces, Échap) | L3-T7, L3-T8, L3-T10, L3-T12 | `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`, `ui/src/tooladapters.cpp`, `ui/src/penadapters.h`, `ui/src/penadapters.cpp`, `ui/qml/Main.qml`, `tests/tst_ui_tools.cpp`, `tests/tst_ui_drawing.cpp`, `tests/tst_modules.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_départ + 19, `tst_ui_tools` (dont `colorGoesToActiveTool`, `settingsSurviveRestart`, `eraseGoesThroughTheCacheInterface`, `dragGoesThroughTheCacheInterface`, `undoAfterEraseRestores`, `liftDoesNotCancelTheLiftingTool`, `pageChangeWhileDraggingClearsTheLiftLayer`, `escapeCancelsTheGesture`, `finishStrokeCancelsTheActiveTool`, et `oneUserForNow`, `liftLayerTypeIsRegistered` du socle), `tst_modules` (dont `toolsSeeNoRenderItem`), `tst_ui_drawing` Passed ; `premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S6, S37 | #tache-l3-t14 |
+| L3-T13 | `PageView` : gestes à deux doigts (pincer, défiler), demandes de redessin regroupées par tour, outil actif de `ToolHost` occupé | L3-T5, L3-T6, L3-T14 | `ui/src/pageview.cpp`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_départ + 19, `tst_pageview` (dont `pinchZoomsAroundItsCenter`, `twoFingerPanScrolls`, `secondFingerEndsFingerStroke`, `palmIgnoredDuringStylus`, `requestsOfOneTurnMakeOneRedraw`, `foldWaitsForTheActiveTool`, `latencyProbeSeesToolSamples`, `pageChangeEndsToolStroke`) et `tst_ui_drawing` (dont `dragOfTwoObjectsCostsTwoRedraws`) Passed ; `tst_ui_inputpath` toujours vert ; banc hors écran `content_check.ok = True` | S6 | #tache-l3-t13 |
+| L3-T15 | QML : cadre de sélection, poignées, barre d'objet, réglette de translucidité ; fixtures `rectangle-et-traits` et `objet-verrouille` ; scénario `selection` | L3-T9, L3-T13, L3-T14 | `ui/qml/SelectionOverlay.qml`, `ui/qml/ObjectBar.qml`, `ui/qml/TranslucencyPopup.qml`, `bench/src/fixtures.cpp`, `bench/scenarios/selection.json` | isolé | implementeur-tdd | `TESTS OK`, N = N_départ + 19, `tst_captures_selection` Passed ; `captures.ps1 -Scenario selection` hors écran : `LU appTools.selectionCount=2 OK`, `LU appTools.handlesVisible=true OK`, trait au stylet hors du cadre versé (`LU appDocument.shownObjectCount=…`), `CAPTURES OK`, au moins une ligne `TRAIT` ; banc hors écran `content_check.ok = True` | S34 | #tache-l3-t15 |
+| L3-T19 | Banc : scénarios `gommer` et `soulever` (H10-8 e), outil choisi par commande avant la mesure | L3-T13, L3-T14 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `docs/banc.md` | isolé | implementeur-tdd | `TESTS OK`, N = N_départ + 19, `tst_bench_scenarios` (dont `eraseScenarioCrossesStrokes`, `liftScenarioDragsAnObject`) et `tst_bench_result` (dont `sevenScenariosWithFrames`) Passed ; banc hors écran : scénarios `gommer` et `soulever` présents, `cache.refreshes` dans l'attendu chiffré de S36 (`soulever` : 2 ; `gommer` : ≤ k + 1, plus le redessin du dernier trait encore en attente gommé en deux morceaux) | S36 | #tache-l3-t19 |
+| L3-T16 | QML : corbeille, menu contextuel de la page, curseurs par outil ; scénarios `corbeille` et `marqueur` | L3-T14, L3-T15 | `ui/qml/TrashCan.qml`, `ui/qml/PageContextMenu.qml`, `ui/qml/ToolCursor.qml`, `bench/scenarios/corbeille.json`, `bench/scenarios/marqueur.json` | isolé | implementeur-tdd | `TESTS OK`, N = N_départ + 19, `tst_captures_corbeille` et `tst_captures_marqueur` Passed ; `captures.ps1 -Scenario corbeille` puis `marqueur` hors écran `CAPTURES OK` (lectures `LU appDocument.shownObjectCount=…` d'abord, au moins une ligne `TRAIT` chacun) | S35, S37 | #tache-l3-t16 |
+| L3-T18 | Scénario S6 `ecrire-gommer-annuler` (pincement compris), rejoué à l'écran en D3D11 (H10-1) | L3-T13, L3-T14, L3-T15 | `bench/scenarios/ecrire-gommer-annuler.json` | isolé | implementeur-tdd | `TESTS OK`, N = N_départ + 19, `tst_captures_ecrire_gommer_annuler` Passed ; hors écran `CAPTURES OK` (`LU appDocument.shownObjectCount=3 OK` après la gomme, `LU pageView.zoom≈1.5 OK` après le pincement, lignes `TRAIT` et `PINCEMENT`) ; à l'écran D3D11 (jeton `ecran`) `CAPTURES OK`, `LU fixedPage.pendingCount=0 OK` et `LU pageView.cacheRefreshCount=<n> OK` après l'annulation du trait en attente | S6 | #tache-l3-t18 |
 
-20 tâches, un seul plan (seuil de 20 de l'amendement, § 6). Tests ctest : L3-T1 enregistre d'un coup les 17 tests du
-lot (13 unitaires, 4 de captures), talons sautés par `QSKIP` jusqu'à ce que leur tâche les remplisse : **111** dès
-L3-T1 (94 + 17), et aucune autre tâche n'en enregistre. « ≥ » est la règle. Un talon sauté ne prouve rien : chaque
-preuve nomme les fonctions de test attendues `PASS`.
+17 tâches, un seul plan. **N = N_départ + 19** : N_départ est le nombre de tests ctest relevé par L0-S0 au départ du
+socle (noté dans l'état du chantier) ; le socle a enregistré les 19 tests (dont les 17 du lot 3, talons sautés
+`QSKIP("Talon L0-S : rempli par L3-T<n>.")`) ; **aucune tâche du lot 3 n'enregistre de test**, ni n'en crée : elle
+remplit ceux du socle (suppression de `reserved()`, fonctions du socle gardées). Un `SKIP` ne prouve rien : chaque
+preuve nomme les fonctions attendues en `PASS`.
 
-Worktrees : `.worktrees/livraison-complete--L3-T<n>` (profil), tous isolés : deux tâches d'une même vague ne
-partagent aucun fichier (vérifié sur la colonne « fichiers touchés »).
+Worktrees : `.worktrees/livraison-complete--L3-T<n>`, branche `feat/livraison-complete--L3-T<n>`, issue de
+`feat/livraison-complete` à jour (L0-S10 comprise). Tous isolés : deux tâches d'une même vague ne partagent aucun
+fichier (vérifié sur la colonne « fichiers touchés »).
 
 **Écran.** L3-T11 (preuve D3D11 du lissage conservé), L3-T18 (S6 à l'écran, H10-1) et la clôture ouvrent des
 fenêtres à l'écran (D3D11) sous le jeton `ecran` : l'orchestrateur l'annonce à Jérôme d'une ligne **avant** de
 lancer chacune. Aucune autre tâche n'ouvre de fenêtre visible.
 
-## Vagues (largeur 3 au plus ; 2 places de tests pour ce lot)
+## Vagues (largeur 3 au plus ; 2 places de tests ; aucun fichier partagé dans une vague)
 
-V0 : L0-S (socle, plan à part) · V1 : L3-T0 ‖ L3-T1 · V2 : L3-T2 ‖ L3-T3 ‖ L3-T10 · V3 : L3-T4 ‖ L3-T5 ‖ L3-T6 ·
-V4 : L3-T11 ‖ L3-T12 ‖ L3-T17 · V5 : L3-T7 ‖ L3-T8 ‖ L3-T13 · V6 : L3-T9 ‖ L3-T14 · V7 : L3-T15 ‖ L3-T19 ·
-V8 : L3-T16 ‖ L3-T18. (8 vagues après le socle ; L3-T1, L3-T2, L3-T17 à amender d'après le socle, voir l'en-tête.)
+V1 : L3-T0 ‖ L3-T3 ‖ L3-T10 · V2 : L3-T4 ‖ L3-T5 ‖ L3-T6 · V3 : L3-T11 ‖ L3-T12 · V4 : L3-T7 ‖ L3-T8 ·
+V5 : L3-T9 ‖ L3-T14 · V6 : L3-T13 · V7 : L3-T15 ‖ L3-T19 · V8 : L3-T16 ‖ L3-T18.
 
-**Places.** Le jeton `tests` a 3 places sur la machine, dont **2 pour ce lot** (la seconde session, lot 7, garde la
-troisième). Une vague de 3 tâches qui construisent en a donc toujours une qui attend la notification du jeton : c'est
-prévu, l'agent attend (règle commune), il ne sonde pas. L3-T0 ne construit rien.
+**Places.** Deux constructions de front pour ce lot (la session B garde la troisième place du jeton `tests`). V1 en
+a deux (L3-T0 ne construit rien) ; V2 en a trois : la troisième attend la notification du jeton (prévu ; l'agent
+attend, il ne sonde pas). Ordre de lancement en V2 : L3-T4 (chemin critique),
+L3-T6, puis L3-T5.
 
-**L3-T0 et les autres tâches.** Les tâches de données et de mécanique (L3-T1, L3-T2, L3-T3, L3-T10, L3-T17) ne
-l'attendent pas. Les tâches de comportement (L3-T4, L3-T5, L3-T6, L3-T11, donc tout ce qui suit) l'attendent. Ses
-décisions D1 à D12 (section de L3-T0) **amendent ce plan** avant la vague V3 (relecture du plan exigée), comme au
-lot 10 ; une décision qui change une donnée de commande (raccourci, libellé, ordre de la barre d'objet) est
-appliquée par un correctif `L3-C0` (`actions/data/commands.json`, `actions/data/layout.json` seulement), joué seul
-avant V3.
+Vérification des recoupements :
+- V1 : L3-T0 (un rapport) / L3-T3 (`core/src/{hittest,erasegeometry}.cpp`, deux tests) / L3-T10 (`liftlayeritem.cpp`,
+  un test) — disjoints.
+- V2 : L3-T4 (`core/src/{objectedits,lift}.cpp`, deux tests) / L3-T5 (`input/src/{routing,gesture}.cpp`, deux tests)
+  / L3-T6 (`tools/src/{userstate,toolregistry,pentool}.cpp`, `pentool.h`, deux tests) — disjoints.
+- V3 : L3-T11 (`render/` trait et encre, `PageArea.qml`, deux tests) / L3-T12 (`documentcontroller.cpp`, deux tests) —
+  disjoints.
+- V4 : L3-T7 (`erasertool.cpp`, un test) / L3-T8 (`selecttool.cpp`, `selectiongeometry.cpp`, un test) — disjoints.
+- V5 : L3-T9 (fichiers de L3-T8, après lui) / L3-T14 (`ui/src/{toolhost,tooladapters,penadapters}`, `Main.qml`, trois
+  tests) — disjoints.
+- V6 : L3-T13 seule (`pageview.cpp`, `tst_pageview.cpp`, `tst_ui_drawing.cpp` repris de L3-T14).
+- V7 : L3-T15 (trois QML, `fixtures.cpp`, `selection.json`) / L3-T19 (`bench/` scénarios et joueur, deux tests,
+  `docs/banc.md`) — disjoints.
+- V8 : L3-T16 (trois QML, deux scénarios) / L3-T18 (un scénario) — disjoints.
+- Fichiers repris d'une vague à l'autre, tenus par « dépend de » : `tools/src/selecttool.cpp`,
+  `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp` (L3-T8 → L3-T9) ; `tests/tst_ui_drawing.cpp`
+  (L3-T14 → L3-T13) ; `bench/src/fixtures.cpp` (L3-T15 → L3-T16) ; les talons du socle → leur tâche.
 
-Fichiers partagés tenus par les dépendances : `ui/include/actcraft/ui/documentcontroller.h`,
-`ui/src/documentcontroller.cpp` (L3-T1 → L3-T12) ; `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`
-(L3-T1 → L3-T13) ; `ui/qml/Main.qml` (L3-T2 → L3-T14) ; `ui/qml/PageArea.qml` (L3-T2 → L3-T11, dépendance déclarée) ;
-`bench/src/fixtures.cpp` (L3-T15 → L3-T16) ;
-`tests/tst_ui_drawing.cpp` (L3-T13 → L3-T14) ; `tools/src/selecttool.cpp`, `selectiongeometry.*`,
-`tests/tst_tools_select.cpp` (L3-T8 → L3-T9) ; `ui/src/toolhost.cpp`, `ui/src/tooladapters.*` (talons L3-T1 →
-L3-T14) ; les talons de L3-T1 → leur tâche ; `tests/tst_ui_shell.cpp` (L3-T1 si besoin → L3-T2).
+**Pourquoi L3-T13 après L3-T14.** La branche « outil de `ToolHost` » de D-S9 du socle (minuterie de versement et
+`finishStroke` sur l'outil actif) n'est prouvable qu'une fois `ToolHost::activeTool()` rempli (L3-T14) :
+`foldWaitsForTheActiveTool` est donc en L3-T13, après L3-T14 ; `finishStrokeCancelsTheActiveTool` est en L3-T14. Le
+regroupement des redessins (L3-T13) précède les mesures qui en dépendent (L3-T19 `soulever`, L3-T15, L3-T18).
+
+**L3-T0 et les autres tâches.** Les tâches de mécanique (L3-T3, L3-T10) ne l'attendent pas. Les tâches de
+comportement (L3-T4, L3-T5, L3-T6, L3-T11, donc tout ce qui suit) l'attendent. Ses décisions D1 à D12 **amendent ce
+plan** avant la vague V2 (relecture du plan exigée). Une décision qui change une donnée de commande (raccourci,
+libellé, ordre de la barre d'objet ou du menu contextuel) est appliquée par un correctif **`L3-C0`**
+(`actions/data/commands.json`, `actions/data/layout.json` seulement), joué seul avant V2. Si D11 donne Ctrl+Maj+Z à
+Rétablir, le conflit avec `view.page-zoom` (lot 7) est refusé par `noShortcutTwice` (L0-S4) : L3-C0 tranche d'après
+F-750 et F-950 à F-953, garde Ctrl+Y si rien ne départage, et le rapporte.
+
+**Règle des `switch` (C4062 en erreur, `/we4062`, L0-S3).** Tout `switch` écrit par une tâche du lot 3 sur
+`core::ObjectKind` traite `Equation` (comme `Text` pour l'emprise et la désignation) ; tout `switch` sur
+`core::Change::Kind` traite `PageSettingsChanged` (sans effet de cache, sans redessin).
 
 ## Dépendances aux autres lots
 
-**Lot 10 (en cours).** Interface de cache inchangée (`core::PageCache`, `core::applyToCache`) ; le lot 3 en est un
-appelant de plus, par `DocumentController` seulement. Comportements dont il dépend : un objet inséré **hors fin de
-page** (dépôt d'un objet soulevé, morceaux de gomme) garde le redessin immédiat (limite de DA11) ; annuler un trait
-encore en attente ne redessine rien (`undoingAPendingStrokeRebuildsNothing`, L10-T3) ; `cacheReady` couvre cache +
-couche d'attente. La couche soulevée réutilise la fabrique `render::createObjectNode` (L10-T2) et se place
-au-dessus de `pendingLayer` (L10-T4) dans `PageArea.qml`. Reports du lot 10 tenus ici : H10-1 (S6 à l'écran en
-D3D11, annulation d'un trait en attente) en L3-T18 ; H10-4 (annuler un objet versé) mesuré par S36 ; H10-6 (forme
-du trait) tranché par L3-T0, fait par L3-T11 ; H10-8 (e) (gomme) : scénario de banc `gommer` en L3-T19 ; P10
-(regroupement automatique des annotations) et P17 (réglage du curseur du stylo) : réglages, lot 6 (H3-8). Si L10-T7
-(tuiles) est jouée, rien ne change ici : seule l'implémentation du cache change.
+**Socle L0-S (avant ce lot).** Voir l'en-tête : le lot 3 ne crée plus aucun fichier ni test, il remplit les talons du
+socle et respecte ses contrats figés (« Contrats figés par le socle » de son plan). Un en-tête figé ne change que par
+amendement du plan ; seuls des membres privés s'ajoutent dans l'en-tête de son module.
 
-**Lot 7 (seconde session, en parallèle sur `feat/livraison-complete-b`).** Fichiers chauds communs :
-`actions/data/commands.json`, `actions/data/layout.json`, `ui/qml/Main.qml`, `ui/qml/PageArea.qml`,
-`ui/qml/ToolPalette.qml`, `ui/CMakeLists.txt`, `tests/*.cmake`, `DocumentController`, `PageView`. Règle : le lot 3
-pose ses entrées en **blocs contigus** (commandes du lot 3 groupées en fin de liste, groupes de palette nommés,
-sous-menu « Effacer » dans Éditer) ; le lot qui merge le second se remet à jour sur l'autre et résout les conflits
-par juxtaposition, sans réordonner. Contrats que le lot 7 doit suivre une fois le lot 3 mergé : tout contact de doigt
-passe par `input::PointerRouter` (rideau, spot, outils de maths compris : ils deviennent des `tools::Tool` ou des
-routes de la politique) ; les outils de maths ouverts appartiennent à `tools::UserState` (champ réservé,
-DA-A1) ; « Convertir en texte » (F-202, reconnaissance) s'ajoute au menu contextuel `PageContextMenu.qml` ; la
-reconnaissance (P14) remplace des traits par une commande de la pile. Si le lot 7 merge le premier et touche
-`PageView` (entrées), L3-T13 l'absorbe (relecture du plan exigée).
+**Lot 10 (clos).** Interface de cache inchangée (`core::PageCache`, `core::applyToCache`) ; `DocumentController` en est
+le seul appelant. Comportements dont le lot dépend : un objet inséré **hors fin de page** (dépôt d'un objet soulevé,
+morceaux de gomme) garde le redessin immédiat (limite de DA11) ; annuler un trait encore en attente ne redessine rien
+(L10-T3) ; `cacheReady` couvre cache + couche d'attente. La couche soulevée réutilise `render::createObjectNode`
+(L10-T2), au-dessus de `pendingLayer` (ordre figé par L0-S9). Reports du lot 10 tenus ici : H10-1 (L3-T18) ; H10-4
+(S36) ; H10-6 (L3-T0, L3-T11) ; H10-8 (e) (L3-T19) ; P10 et P17 : réglages, lot 6 (H3-8). Si L10-T7 (tuiles) a été
+jouée, rien ne change ici.
+
+**Lot 7 (session B, `feat/livraison-complete-b`).** Plus aucun fichier chaud commun : le socle a posé les données,
+la coquille et le chemin d'entrée. Les surcouches du lot 7 (rideau, spot, zoom de page, panneaux, outils de maths)
+sont des **couvertures** (`PageView::addInputCover`, `Route::Cover` du routeur), pas des `tools::Tool` ; les guides
+de tracé passent par le filtre d'échantillons (`PageView::setSampleFilter`) ; les outils de maths ouverts vont dans
+`tools::UserState::openMathTools`, par `ToolHost::user()` ; « Convertir en texte » (F-202) est une entrée de données du
+menu contextuel (`layout.json`, `contextMenu`) ; la reconnaissance remplace des traits par `core::ReplaceObjectsCommand`.
+Le lot 3 ne touche à aucun fichier du lot 7 (`features/`, `ui/presentation.cmake`, `tests/presentation.cmake`,
+`Presentation.qml`).
 
 **Lots 5 et 6.** Les boutons de la barre d'objet hors lot 3 (menu d'édition, regroupement, avancer, reculer,
 dupliquer, points de forme : F-521) arrivent au lot 5 à leur place dans `objectBar` ; l'attribut « verrouillable »
-(F-298) est posé par le lot 6 sur les commandes des lots 1 à 5 (amendement § 1) : aucune action au lot 3 ; les
-profils (N2-6 amendée) sont livrés au lot 6 avec les outils déjà là : aucun profil à compléter au lot 3.
+(F-298) est posé par le lot 6 sur les commandes des lots 1 à 5 (amendement § 1) ; les profils (N2-6 amendée) sont
+livrés au lot 6 avec les outils déjà là : aucune action au lot 3.
 
 ## Ce que l'ancien dépôt dit déjà (relevé pour ce plan, reformulé)
 
@@ -174,9 +184,9 @@ Lu dans `C:\Users\JeromeDenis\REA - Activinspire` ; L3-T0 le confirme sur la 3.5
 
 ## Écarts au cadrage (repris à la porte de fin du lot 3)
 
-1. **Volume.** 13 tâches estimées (amendement § 6) → 20 : deux tâches de réservation (consigne de parallélisme du
-   2026-10-18), soulèvement (couche, commandes, contrôleur), routeur unique (DA-A1), forme du trait (H10-6), deux
-   tâches de banc et de joueur de scénarios.
+1. **Volume.** 13 tâches estimées (amendement § 6) → 17 dans ce plan, plus le socle commun L0-S (9 tâches, partagé
+   avec le lot 7) : soulèvement (couche, commandes, contrôleur), routeur unique (DA-A1), forme du trait (H10-6),
+   banc des gestes ; les réservations et le joueur de scénarios sont passés au socle.
 2. **S6, nombre d'Annuler.** S6 dit « trois Annuler rendent les 2 traits d'origine ». Avec une étape par action
    (P11 du lot 10 : un effacement s'annule en un pas ; la sélection n'est pas une étape), après deux traits, un
    passage de gomme et un glissement, **deux** Annuler rendent les deux traits ; un troisième retire le second trait.
@@ -212,7 +222,8 @@ Lu dans `C:\Users\JeromeDenis\REA - Activinspire` ; L3-T0 le confirme sur la 3.5
   **attendu chiffré** à la place : `soulever` → `cache.refreshes = 2` exactement (soulèvement, dépôt ; regroupement
   par tour de L3-T13), figements hors limite ≤ 2, aucun pendant le mouvement ; `gommer` → `cache.refreshes ≤ k + 1`,
   où k = nombre de traits distincts touchés (relevé par le scénario, écrit dans le JSON), figements hors limite
-  ≤ k + 1. Au-delà de l'attendu : défaut du lot 3 (tâche corrective). Dans l'attendu mais figements jugés gênants en
+  ≤ k + 1 (plus un si le dernier trait encore en attente est gommé en deux morceaux : son premier morceau n'est pas en
+  fin de page, redessin complet). Au-delà de l'attendu : défaut du lot 3 (tâche corrective). Dans l'attendu mais figements jugés gênants en
   D3D11 à la clôture : H10-8 (e) décide (tuiles, cache par groupe de couches), présenté à la porte de fin.
 - **S37 — Marqueur et mémoire par outil (lot 3).** `captures.ps1 -Scenario marqueur` : marqueur jaune de 20 par
   défaut ; un trait de marqueur qui se recoupe a une teinte uniforme à son croisement ; deux traits superposés
@@ -223,76 +234,73 @@ Lu dans `C:\Users\JeromeDenis\REA - Activinspire` ; L3-T0 le confirme sur la 3.5
 
 | Scénario | Tâches | Joué à la clôture |
 |---|---|---|
-| S6 — écrire, gommer, annuler, pincer | L3-T1, T3, T4, T5, T6, T7, T8, T10, T12, T13, T14, T17, T18 | oui : hors écran et à l'écran en D3D11 |
+| S6 — écrire, gommer, annuler, pincer | (L0-S2) L3-T3, T4, T5, T6, T7, T8, T10, T12, T13, T14, T18 | oui : hors écran et à l'écran en D3D11 |
 | S30 — tâche d'ouverture | L3-T0 | contrôlé à la relecture : rapport, relevé brut, `NOMS OK` |
-| S34 — sélection | L3-T1, T2, T8, T9, T15 | oui |
-| S35 — effacer, supprimer, corbeille | L3-T1, T2, T4, T12, T16 | oui |
+| S34 — sélection | (L0-S1, L0-S4) L3-T8, T9, T15 | oui |
+| S35 — effacer, supprimer, corbeille | (L0-S4) L3-T4, T12, T16 | oui |
 | S36 — banc des gestes | L3-T19 | oui : banc complet D3D11 plein écran |
 | S37 — marqueur et mémoire par outil | L3-T6, T11, T14, T16 | oui |
 | S13 (lot 10) — non-régression du cache | toutes les tâches de `render/ ui/` | oui : scénarios `pauses`, `cache-differe` rejoués |
 
 ## Carte des fichiers
 
-| Fichier | Responsabilité | Talon / API (L3-T1) | Rempli par |
+Tous les fichiers ci-dessous **existent** après L0-S10 (talons du socle, marqués `Talon L0-S : rempli par L3-T<n>.`,
+ou fichiers des lots précédents). Le lot 3 n'en crée aucun.
+
+| Fichier | Responsabilité | Posé par | Rempli par |
 |---|---|---|---|
-| `docs/verifications/2026-10-18-lot3-principes.md` | constats du corpus, de l'ancien dépôt et du binaire, en nos mots ; décisions D1 à D12 | — | L3-T0 |
-| `actions/data/commands.json`, `actions/data/layout.json` | 19 commandes du lot ; menus Éditer (sous-menu « Effacer »), Affichage, Outils ; palette (`outils`, `edition`) ; `objectBar` | L3-T1 | L3-T1 |
-| `actions/include/actcraft/actions/layout.h`, `actions/src/layout.cpp` | sous-menus (`MenuSpec::submenus`, jeton `>id`), `Layout::objectBar` | L3-T1 | L3-T1 |
-| `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `ui/qml/CommandMenu.qml` | menus QML avec sous-menus ; propriété `objectBar` | L3-T1 | L3-T1 |
-| `ui/icons/*.svg` (13) | icônes du lot, dessinées par nous (grille de 24 px) | L3-T1 | L3-T1 |
-| `core/include/actcraft/core/hittest.h`, `core/src/hittest.cpp` | `isAnnotation`, `objectAt`, `objectsTouching`, rectangles | talon | L3-T3 |
-| `core/include/actcraft/core/erasegeometry.h`, `core/src/erasegeometry.cpp` | `cutByDisk`, `cutBySweep`, `strokePointsOnPage` | talon | L3-T3 |
-| `core/include/actcraft/core/objectedits.h`, `core/src/objectedits.cpp` | `TransformObjectsCommand`, `RemoveObjectsCommand`, `ReplaceStrokesCommand`, `ClearPageCommand`, `ReplacePageCommand`, `SetTranslucencyCommand`, pivots | talon | L3-T4 |
-| `core/include/actcraft/core/lift.h`, `core/src/lift.cpp` | `takeObjects`, `restoreObjects`, `liftChanges`, `changesAfterLift` | talon | L3-T4 |
-| `input/include/actcraft/input/routing.h`, `input/src/routing.cpp` | `RoutingPolicy`, `FullTouchPolicy`, `PointerRouter`, `Decision` | talon | L3-T5 |
-| `input/include/actcraft/input/gesture.h`, `input/src/gesture.cpp` | `TwoFingerGesture`, `GestureStep` | talon | L3-T5 |
-| `input/include/actcraft/input/sample.h` | champs `pointer`, `user` ajoutés à la fin | — | L3-T5 |
-| `tools/include/actcraft/tools/{tool,toolcontext,userstate,toolregistry}.h`, `tools/src/{userstate,toolregistry}.cpp` | interface d'outil, contexte, utilisateur, registre | talon | L3-T6 |
-| `tools/include/actcraft/tools/pentool.h`, `tools/src/pentool.cpp` | stylo et marqueur (`Tool`, `StrokeKind`, translucidité, bouts ronds) | — | L3-T6 |
-| `tools/include/actcraft/tools/erasertool.h`, `tools/src/erasertool.cpp` | gomme | talon | L3-T7 |
-| `tools/include/actcraft/tools/{selecttool,selectiongeometry}.h`, `tools/src/{selecttool,selectiongeometry}.cpp` | sélection, cadre, poignées, barre | talon | L3-T8, L3-T9 |
-| `render/include/actcraft/render/liftlayeritem.h`, `render/src/liftlayeritem.cpp` | couche soulevée (type QML `LiftLayer`) | talon | L3-T10 |
-| `render/src/{strokegeometry,inkitem,strokerenderer,pagepainter}.cpp` | bouts ronds, courbe lissée, marqueur d'un seul tenant | — | L3-T11 |
-| `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp` | soulever, déposer, `editAboutToApply`, effacer, rétablir la page, observateur de cache | API (corps vides) | L3-T12 |
-| `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp` | routeur, gestes, `tools`, `cacheRefreshCount` | API (corps vides) | L3-T13 |
-| `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`, `ui/src/tooladapters.cpp` | `ui::ToolHost` (type QML `Tools`) et adaptateurs des interfaces d'outil | API (corps vides) | L3-T14 |
-| `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/ToolPalette.qml` | coquille : `appTools`, couches, corbeille, gestionnaires | — | L3-T2 (puis L3-T11, L3-T14) |
-| `ui/qml/SelectionOverlay.qml`, `ObjectBar.qml`, `TranslucencyPopup.qml` | cadre, poignées, barre, réglette | talon `Item {}` | L3-T15 |
-| `ui/qml/TrashCan.qml`, `PageContextMenu.qml`, `ToolCursor.qml` | corbeille, menu contextuel, curseurs | talon `Item {}` | L3-T16 |
-| `bench/src/uiscenario.cpp`, `bench/src/injector.cpp` | étapes `pinch`, `touch`, `expect` + `tolerance` | — | L3-T17 |
-| `bench/src/scenarios.cpp`, `bench/src/runner.cpp` | scénarios de banc `gommer`, `soulever` | — | L3-T19 |
-| `bench/scenarios/{selection,corbeille,marqueur,ecrire-gommer-annuler}.json` | S34, S35, S37, S6 | talon (`waitReady` seul) | L3-T15, L3-T16, L3-T18 |
-| `tests/tst_*.cpp` (13 nouveaux) | un par module neuf | talon `QSKIP` | la tâche du module |
+| `docs/verifications/2026-10-18-lot3-principes.md` | constats du corpus, de l'ancien dépôt et du binaire ; décisions D1 à D12 | — (créé) | L3-T0 |
+| `core/src/hittest.cpp`, `core/src/erasegeometry.cpp` | `isAnnotation`, `objectAt`, `objectsTouching`, rectangles ; `cutByDisk`, `cutBySweep`, `strokePointsOnPage` | L0-S6 (en-têtes figés, talons) | L3-T3 |
+| `core/src/objectedits.cpp`, `core/src/lift.cpp` | `TransformObjectsCommand`, `RemoveObjectsCommand`, `ClearPageCommand`, `ReplacePageCommand`, `SetTranslucencyCommand`, pivots ; `takeObjects`, `restoreObjects`, `liftChanges`, `changesAfterLift` | L0-S6 | L3-T4 |
+| `core/include/actcraft/core/replace.h`, `core/src/replace.cpp` | `ReplaceObjectsCommand` (gomme, reconnaissance) | L0-S3 (rempli) | — (employée par L3-T7) |
+| `input/src/routing.cpp` (corps de `FullTouchPolicy::decide`), `input/src/gesture.cpp` | politique du toucher, geste à deux doigts | L0-S6, L0-S7 (mécanisme du routeur rempli) | L3-T5 |
+| `tools/src/userstate.cpp`, `tools/src/toolregistry.cpp`, `tools/include/actcraft/tools/pentool.h`, `tools/src/pentool.cpp` | réglages par outil, registre, stylo et marqueur | L0-S6, L0-S7 (`PenTool` est déjà un `Tool`) | L3-T6 |
+| `tools/src/erasertool.cpp` | gomme | L0-S6 | L3-T7 |
+| `tools/src/selecttool.cpp`, `tools/src/selectiongeometry.cpp` | sélection, cadre, poignées, barre | L0-S6 | L3-T8, L3-T9 |
+| `render/src/liftlayeritem.cpp` | couche soulevée (type QML `LiftLayer`) | L0-S6 | L3-T10 |
+| `render/src/{strokegeometry,inkitem,strokerenderer,pagepainter}.cpp` | bouts ronds, courbe lissée, marqueur d'un seul tenant | lots 1 à 10 | L3-T11 |
+| `ui/src/documentcontroller.cpp` | soulever, déposer, `editAboutToApply`, effacer, rétablir la page | L0-S5 (API, corps vides, observateur unique) | L3-T12 |
+| `ui/src/pageview.cpp` | geste à deux doigts, demandes de redessin regroupées par tour | L0-S7 (chemin d'entrée rempli) | L3-T13 |
+| `ui/src/toolhost.cpp`, `ui/src/tooladapters.{h,cpp}`, `ui/src/penadapters.{h,cpp}`, `ui/qml/Main.qml` | `ToolHost::activeTool`, adaptateurs, commandes, mémoire par outil, Échap | L0-S6, L0-S9 | L3-T14 |
+| `ui/qml/SelectionOverlay.qml`, `ObjectBar.qml`, `TranslucencyPopup.qml`, `bench/src/fixtures.cpp` | cadre, poignées, barre, réglette ; fixtures | L0-S6 (QML à `required property`, branchés par L0-S9) | L3-T15 |
+| `ui/qml/TrashCan.qml`, `PageContextMenu.qml`, `ToolCursor.qml` | corbeille, menu contextuel (données `commands.contextMenu`), curseurs | L0-S6, L0-S9 | L3-T16 |
+| `bench/src/scenarios.cpp`, `bench/src/runner.cpp` | scénarios de banc `gommer`, `soulever` | lots 1 et 10 | L3-T19 |
+| `bench/scenarios/{selection,corbeille,marqueur,ecrire-gommer-annuler}.json` | S34, S35, S37, S6 | L0-S0 (talons) | L3-T15, L3-T16, L3-T18 |
+| `tests/tst_{core_hittest,core_erase,core_objectedits,core_lift,input_routing,input_gesture,tools_registry,tools_eraser,tools_select,render_liftlayer,render_strokeshape,ui_lift,ui_tools}.cpp` | un par module | L0-S0 (enregistrés), talons `reserved()` | la tâche du module |
 
 ## Contrats partagés entre tâches (noms figés)
 
-Tous les noms des lots 1, 2 et 10 restent figés ; on ajoute, on ne renomme pas. Les en-têtes publics du lot sont
-**créés tels quels par L3-T1** (sa section, étape 4, donne leur texte complet) ; une tâche suivante les lit dans son
-worktree, ne change pas une signature publique sans amendement du plan, et ajoute librement des membres **privés**
-dans l'en-tête de son propre module.
+Les contrats sont ceux du socle (« Contrats figés par le socle » de `docs/plans/2026-10-18-livraison-complete-socle-3-7-PLAN.md`),
+lus dans le worktree de la tâche ; les en-têtes publics du lot 3 (`hittest.h`, `erasegeometry.h`, `objectedits.h`,
+`lift.h`, `routing.h`, `gesture.h`, `tool.h`, `toolcontext.h`, `userstate.h`, `toolregistry.h`, `erasertool.h`,
+`selecttool.h`, `selectiongeometry.h`, `liftlayeritem.h`, `toolhost.h`, ajouts de `documentcontroller.h` et
+`pageview.h`) sont **figés** par L0-S5, L0-S6 et L0-S7 : seuls des membres privés s'ajoutent. Rappel des noms dont les
+tâches dépendent :
 
-- `core::PageCache`, `core::applyToCache`, `render::FixedPageItem`, `render::PendingLayerItem`, `ui::FixedPageSink`
-  : inchangés. Seul `DocumentController` appelle le cache ; aucun fichier de `tools/` n'inclut un en-tête de
-  `render/` (contrôle `toolsSeeNoRenderItem`, L3-T14).
-- Commandes (19) : `tool.select` (Échap), `tool.highlighter` (Ctrl+H), `tool.eraser` (Ctrl+E), `edit.undo` (Ctrl+Z),
-  `edit.redo` (Ctrl+Y, D11), `edit.delete` (Suppr), `edit.select-all` (Ctrl+A), `clear.annotations`,
-  `clear.objects`, `clear.grid`, `clear.background`, `clear.page`, `page.revert`, `view.trash` (cochable),
-  `object.move-free`, `object.rotate`, `object.translucency` (nombre, facultatif), `object.enlarge` (Ctrl++),
-  `object.reduce` (Ctrl+-). `object.move-free` et `object.rotate` se saisissent (glisser), ils n'ont pas de
-  gestionnaire.
-- Identifiants d'outil : `select`, `pen`, `highlighter`, `eraser` ; la commande `tool.<id>` cochée = outil courant.
-- `core::ClearKind` : `Annotations = 0`, `Objects = 1`, `Grid = 2`, `Background = 3`, `Page = 4` (argument de
-  `DocumentController::clearPage(int)`).
-- Objets QML lus par les scénarios : `appTools` (`selectionCount`, `handlesVisible`, `currentTool`, `color`,
-  `width`), `appDocument` (`shownObjectCount`, `canUndo`, `canRedo`, `fingerprint`), `pageView` (`zoom`,
-  `cacheRefreshCount`, `gestureActive`), `fixedPage` (`pendingCount`), `liftLayer` (`objectCount`), `trashCan`,
-  `selectionOverlay`, `pageContextMenu`, `toolCursor`.
-- `ToolHost::selectionFrame` : `{visible: bool, corners: [{x, y}] ×4, handles: [{x, y}] ×8, bar: [{command, icon,
-  x, y}], rubberBand: {x, y, width, height} | null, handlesVisible: bool}`, **en coordonnées de page** ; le QML les
-  place par `pageView.pageToScene`.
+- `core::ReplaceObjectsCommand(page, std::vector<ObjectReplacement>)` et `(page, removed, added)`, `addedIds()` ;
+  `core::ObjectReplacement { removed; added; }` ; `objectedits.h` **sans** `ReplaceStrokesCommand` ni
+  `StrokeReplacement`.
+- `ui::DocumentController::ChangeOrigin` (`Command`, `Undo`, `Redo`, `Stroke`, `Lift`, `Drop`), `ChangeObserver`,
+  `addChangeObserver(observer) → jeton`, `removeChangeObserver(jeton)` (remplacent `setCacheObserver`) ;
+  `liftObjects` n'émet **pas** `editAboutToApply`.
+- `input::Route` = `Tool, Gesture, Ignore, Cover` ; `PointerRouter::setCoverTest`, `release` ; `Sample::pointer`,
+  `Sample::user`.
+- `ui::PageView` : `tools`, `cacheRefreshCount`, `gestureActive`, `currentTool()`, `router()`, `zoomAround(viewPoint,
+  zoom)`, `sceneToPage`, `addInputCover`, `setSampleFilter`, signal `contextMenuRequested(viewPos)`.
+- `ui::ToolHost` (type QML `Tools`) : API de L0-S6, `user()` réel, `activeTool()` talon jusqu'à L3-T14.
+- Commandes (19 du lot 3, données de L0-S4) : `tool.select` (Échap), `tool.highlighter` (Ctrl+H), `tool.eraser`
+  (Ctrl+E), `edit.undo` (Ctrl+Z), `edit.redo` (Ctrl+Y, D11), `edit.delete` (Suppr), `edit.select-all` (Ctrl+A),
+  `clear.annotations`, `clear.objects`, `clear.grid`, `clear.background`, `clear.page`, `page.revert`, `view.trash`,
+  `object.move-free`, `object.rotate`, `object.translucency`, `object.enlarge` (Ctrl++), `object.reduce` (Ctrl+-) ;
+  `Commands::objectBar`, `Commands::contextMenu`.
+- Identifiants d'outil : `select`, `pen`, `highlighter`, `eraser`. `core::ClearKind` : `Annotations = 0`,
+  `Objects = 1`, `Grid = 2`, `Background = 3`, `Page = 4`.
+- Objets QML lus par les scénarios (L0-S9) : `appTools`, `appDocument`, `pageView`, `fixedPage`, `liftLayer`,
+  `pageOverlays`, `selectionOverlay`, `toolCursor`, `pageContextMenu`, `trashCan`.
+- `ToolHost::selectionFrame` : `{visible, corners ×4, handles ×8, bar: [{command, icon, x, y}], rubberBand | null,
+  handlesVisible}`, **en coordonnées de page**, placé par `pageView.pageToScene`.
 - Constantes : `core::kHitToleranceScreen = 6.0` ; `tools::kHandleRadiusScreen = 6.0`, `kBarButtonScreen = 24.0`,
-  `kBarGapScreen = 8.0`, `kEnlargeStep = 1.1` ; `input::kPinchDeadZone = 0.03` ; réglages par défaut :
-  `tools::defaultSettings` (D5).
+  `kBarGapScreen = 8.0`, `kEnlargeStep = 1.1` ; `input::kPinchDeadZone = 0.03` ; `tools::defaultSettings` (D5).
 
 ## Règles communes à toutes les tâches (jointes à chaque section par l'orchestrateur)
 
@@ -328,7 +336,7 @@ français terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   ```powershell
   pwsh -NoProfile -Command "Set-Location '<wt>'; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File C:\Users\JeromeDenis\.claude\scripts\jeton.ps1 -Nom tests -Proprietaire <id> -Commande 'pwsh -NoProfile -File ./scripts/test.ps1 > .tmp/test.txt 2>&1'; Select-String -Path .tmp/test.txt -Pattern 'tests passed|TESTS (OK|EN ECHEC)' | Select-Object -Last 2; Select-String -Path .tmp/test.txt -Pattern '<nom_du_test> .*Passed' | Select-Object -Last 1"
   ```
-  Attendu : `100% tests passed, 0 tests failed out of N` (N ≥ 111 dès L3-T1), `TESTS OK`, puis la ligne `Passed`
+  Attendu : `100% tests passed, 0 tests failed out of N` (N = N_départ + 19, valeur de N_départ dans l'état du chantier), `TESTS OK`, puis la ligne `Passed`
   du test nommé.
 - **Banc sans écran** (toute tâche qui touche `render/`, `input/`, `tools/` ou `ui/` ; résultat, pas une porte) :
   ```powershell
@@ -340,17 +348,24 @@ français terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 - **Preuve visuelle hors écran** (jeton `tests`) : lectures `-Lire "<objet>.<propriété>=<attendu>"` d'abord (une
   valeur lue prouve plus qu'une image), puis description des captures :
   ```powershell
-  pwsh -NoProfile -Command "Set-Location '<wt>'; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File C:\Users\JeromeDenis\.claude\scripts\jeton.ps1 -Nom tests -Proprietaire <id> -Commande 'pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario <nom> -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire ''<objet.propriété=attendu>'' > .tmp/captures.txt 2>&1'; Select-String -Path .tmp/captures.txt -Pattern '^(COMMANDE|TRAIT|TOUCHE|DOIGT|PINCEMENT|ATTENTE|PRET|FENETRE|LU|PIXEL|BORD|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16"
+  pwsh -NoProfile -Command "Set-Location '<wt>'; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File C:\Users\JeromeDenis\.claude\scripts\jeton.ps1 -Nom tests -Proprietaire <id> -Commande 'pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario <nom> -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire ''<objet.propriété=attendu>'' > .tmp/captures.txt 2>&1'; Select-String -Path .tmp/captures.txt -Pattern '^(COMMANDE|TRAIT|TOUCHE|DOIGT|PINCEMENT|POINTEUR|DOUBLECLIC|ATTENTE|PRET|FENETRE|LU|PIXEL|BORD|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16"
   ```
   Motifs d'échec : `CAPTURES EN ECHEC`, `SCENARIO EN ECHEC`, `SCENARIO INVALIDE`, toute ligne `ECART` ou `ECHEC`,
-  `FENETRE …`. Les lignes `DOIGT` et `PINCEMENT` existent après L3-T17.
+  `FENETRE …`. Les lignes `DOIGT`, `PINCEMENT`, `POINTEUR` et `DOUBLECLIC` existent depuis L0-S2.
 - **Dépôt public** : `python -I "C:/Users/JeromeDenis/REA - Activinspire/tools/controle_noms_actcraft.py" <wt>` →
   `NOMS OK` avant chaque commit qui ajoute du texte (libellés, commentaires, docs). Libellés à nous (N1-12), aucun
   nom de l'original, aucune icône d'origine.
 - **moc** ne reconnaît pas les chaînes brutes `R"(...)"` qui contiennent une apostrophe (piège L2-T10) : dans un
   test, pas d'apostrophe dans une chaîne brute (écrire `’` ou une chaîne ordinaire).
-- **Talons** : remplir un talon, c'est **remplacer** son corps (déclarations publiques de L3-T1 gardées) ; la
-  fonction `reserved()` du test talon est supprimée.
+- **Talons** (règle du socle, section « Talons » de son plan) : remplir un talon, c'est remplacer son corps,
+  retirer son marqueur `Talon L0-S : rempli par L3-T<n>.` et supprimer `reserved()` ; les fonctions du socle
+  présentes dans le même test restent et passent. Un en-tête figé ne change que par amendement du plan (membres
+  privés seulement). Aucune tâche n'enregistre ni ne crée de test : N = N_départ + 19 partout.
+- **`switch` sous `/we4062`** (C4062 en erreur, L0-S3) : tout `switch` sur `core::ObjectKind` traite `Equation`
+  (comme `Text` pour l'emprise et la désignation) ; tout `switch` sur `core::Change::Kind` traite
+  `PageSettingsChanged` (sans effet de cache).
+- **Contrôle des noms** : `git -C <wt> add <fichiers>` **avant** `NOMS OK` (le script ne lit que les fichiers
+  suivis), puis `NOMS OK` relancé **après** le commit ; les deux sorties au rapport.
 
 ---
 
@@ -467,1272 +482,23 @@ amendent le plan (tâche visée) et celles qui changent une donnée de commande 
 ---
 
 <a id="tache-l3-t1"></a>
-### Tâche L3-T1 — Réservation I : commandes, disposition, icônes, fichiers et tests du lot, API figées
+### Tâche L3-T1 — retirée (faite par le socle)
 
-**Objectif.** Poser d'un coup tout ce que les tâches du lot écriraient sinon en même temps dans les fichiers chauds :
-les 19 commandes et leur place dans les menus, la palette et la barre d'objet ; le sous-menu « Effacer » (le format
-de disposition n'a pas de sous-menu) ; les 13 icônes ; l'enregistrement CMake de tous les fichiers neufs du lot ;
-des talons compilables pour chacun ; les 17 tests du lot, sautés ; les API publiques figées (en-têtes complets,
-corps vides). Aucun comportement nouveau, hors sous-menus et `objectBar`.
-
-**Fichiers.**
-- Modifier : `actions/data/commands.json`, `actions/data/layout.json`, `actions/include/actcraft/actions/layout.h`,
-  `actions/src/layout.cpp`, `tests/tst_actions_layout.cpp`, `ui/include/actcraft/ui/commands.h`,
-  `ui/src/commands.cpp`, `tests/tst_ui_commands.cpp`, `ui/qml/CommandMenu.qml`, `core/CMakeLists.txt`,
-  `input/CMakeLists.txt`, `tools/CMakeLists.txt`, `render/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/core.cmake`,
-  `tests/input.cmake`, `tests/tools.cmake`, `tests/render.cmake`, `tests/ui.cmake`, `tests/bench.cmake`,
-  `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `ui/include/actcraft/ui/pageview.h`,
-  `ui/src/pageview.cpp`.
-- Créer (icônes) : `ui/icons/selection.svg`, `marqueur.svg`, `gomme.svg`, `annuler.svg`, `retablir.svg`,
-  `supprimer.svg`, `corbeille.svg`, `effacer.svg`, `deplacer.svg`, `rotation.svg`, `translucidite.svg`,
-  `agrandir.svg`, `reduire.svg`.
-- Créer (talons) : `core/include/actcraft/core/hittest.h`, `core/src/hittest.cpp`,
-  `core/include/actcraft/core/erasegeometry.h`, `core/src/erasegeometry.cpp`, `core/include/actcraft/core/objectedits.h`,
-  `core/src/objectedits.cpp`, `core/include/actcraft/core/lift.h`, `core/src/lift.cpp`,
-  `input/include/actcraft/input/routing.h`, `input/src/routing.cpp`, `input/include/actcraft/input/gesture.h`,
-  `input/src/gesture.cpp`, `tools/include/actcraft/tools/tool.h`, `tools/include/actcraft/tools/toolcontext.h`,
-  `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp`, `tools/include/actcraft/tools/toolregistry.h`,
-  `tools/src/toolregistry.cpp`, `tools/include/actcraft/tools/erasertool.h`, `tools/src/erasertool.cpp`,
-  `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/selectiongeometry.h`,
-  `tools/src/selectiongeometry.cpp`, `render/include/actcraft/render/liftlayeritem.h`, `render/src/liftlayeritem.cpp`,
-  `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`, `ui/src/tooladapters.cpp`,
-  `ui/qml/SelectionOverlay.qml`, `ui/qml/ObjectBar.qml`, `ui/qml/TranslucencyPopup.qml`, `ui/qml/TrashCan.qml`,
-  `ui/qml/PageContextMenu.qml`, `ui/qml/ToolCursor.qml`.
-- Créer (tests talons) : `tests/tst_core_hittest.cpp`, `tst_core_erase.cpp`, `tst_core_objectedits.cpp`,
-  `tst_core_lift.cpp`, `tst_input_routing.cpp`, `tst_input_gesture.cpp`, `tst_tools_registry.cpp`,
-  `tst_tools_eraser.cpp`, `tst_tools_select.cpp`, `tst_render_liftlayer.cpp`, `tst_render_strokeshape.cpp`,
-  `tst_ui_lift.cpp`, `tst_ui_tools.cpp` ; scénarios `bench/scenarios/selection.json`, `corbeille.json`,
-  `marqueur.json`, `ecrire-gommer-annuler.json`.
-
-**Test et commande bornée.** Commande ciblée `tst_actions_layout|tst_ui_commands|tst_ui_shell`, puis preuve de
-tâche : `100% tests passed … out of N`, **N ≥ 111**, `TESTS OK` ; fonctions `submenuItems`, `objectBarRead`,
-`lot3EntriesDeclared` (`tst_actions_layout`) et `submenuInMenus` (`tst_ui_commands`) en `PASS` ; les 17 tests neufs
-`Passed` (talons sautés). Preuve visuelle : `premiers-pas` hors écran `CAPTURES OK` (aucune régression de la
-coquille). Banc sans écran (touche `ui/`) : `content_check.ok = True`.
-
-**Interdits.** Aucun comportement d'outil (les talons ne font rien) ; ne renommer aucune commande ni aucun objet QML
-existant ; aucune icône copiée (dessin à nous, mêmes attributs que `ui/icons/stylo.svg`) ; ne pas toucher
-`ui/qml/Main.qml`, `PageArea.qml`, `ToolPalette.qml` (L3-T2).
-
-**Terminé quand.** Les 19 commandes sont déclarées et placées ; le sous-menu « Effacer » s'affiche dans Éditer
-(`submenuInMenus`) ; tous les fichiers du lot existent, compilent et sont enregistrés ; les en-têtes publics sont
-ceux de l'étape 4, mot pour mot ; N ≥ 111, `TESTS OK` ; `NOMS OK`.
-
-**Étapes.**
-- [ ] **Étape 1 : test rouge de la disposition.** Ajouter à `tests/tst_actions_layout.cpp` :
-  ```cpp
-  void submenuItems()
-  {
-      const QByteArray json = R"({"format": "actcraft-layout/1", "menus": [{"id": "edit", "label": "Éditer",
-          "items": ["edit.undo", {"submenu": "clear", "label": "Effacer", "items": ["clear.page"]}]}],
-          "palette": [], "colors": [], "penWidths": []})";
-      actions::Layout layout;
-      QString error;
-      QVERIFY2(actions::parseLayout(json, layout, error), qPrintable(error));
-      QCOMPARE(layout.menus.size(), std::size_t{1});
-      QCOMPARE(layout.menus[0].items, (QStringList{QStringLiteral("edit.undo"), QStringLiteral(">clear")}));
-      QCOMPARE(layout.menus[0].submenus.size(), std::size_t{1});
-      QCOMPARE(layout.menus[0].submenus[0].id, QStringLiteral("clear"));
-      QCOMPARE(layout.menus[0].submenus[0].label, QStringLiteral("Effacer"));
-      QCOMPARE(layout.menus[0].submenus[0].items, QStringList{QStringLiteral("clear.page")});
-  }
-  void objectBarRead()
-  {
-      const QByteArray json = R"({"format": "actcraft-layout/1", "menus": [], "palette": [], "colors": [],
-          "penWidths": [], "objectBar": ["object.enlarge", "object.reduce"]})";
-      actions::Layout layout;
-      QString error;
-      QVERIFY2(actions::parseLayout(json, layout, error), qPrintable(error));
-      QCOMPARE(layout.objectBar, (QStringList{QStringLiteral("object.enlarge"), QStringLiteral("object.reduce")}));
-  }
-  void lot3EntriesDeclared()
-  {
-      actions::CommandRegistry registry;
-      QString error;
-      QVERIFY2(registry.loadDeclarations(actions::defaultCommandsJson(), error), qPrintable(error));
-      const QStringList lot3 = {"tool.select", "tool.highlighter", "tool.eraser", "edit.undo", "edit.redo",
-                                "edit.delete", "edit.select-all", "clear.annotations", "clear.objects",
-                                "clear.grid", "clear.background", "clear.page", "page.revert", "view.trash",
-                                "object.move-free", "object.rotate", "object.translucency", "object.enlarge",
-                                "object.reduce"};
-      for (const QString& id : lot3) {
-          QVERIFY2(registry.find(id) != nullptr, qPrintable(id));
-      }
-      actions::Layout layout;
-      const QByteArray json = actions::readLayeredFile(QStringLiteral("layout.json"), QString(),
-                                                       actions::dataResourceDir());
-      QVERIFY2(actions::parseLayout(json, layout, error), qPrintable(error));
-      QVERIFY(actions::unknownCommands(layout, registry).isEmpty());
-      QCOMPARE(layout.objectBar, (QStringList{"object.move-free", "object.rotate", "object.translucency",
-                                              "object.enlarge", "object.reduce"}));
-  }
-  ```
-  (Si `tst_actions_layout.cpp` lit déjà la disposition par défaut autrement, reprendre son moyen ; les assertions
-  restent.) Commande ciblée `tst_actions_layout` → rouge (`submenus`, `objectBar` inconnus : erreur de compilation).
-- [ ] **Étape 2 : sous-menus et barre d'objet dans `actions/`.** Dans `layout.h` :
-  ```cpp
-  struct MenuSpec
-  {
-      QString id;
-      QString label;
-      QStringList items;              // identifiants, « - » (séparateur) ou « >id » (sous-menu `id` de `submenus`)
-      std::vector<MenuSpec> submenus; // lot 3 : un niveau (« Effacer ▸ »)
-  };
-  ```
-  et dans `Layout` : `QStringList objectBar; // barre d'objet de la sélection (F-521), dans l'ordre`. Dans
-  `layout.cpp` : un élément de `items` qui est un objet `{"submenu": id, "label": …, "items": [...]}` ajoute
-  `">" + id` à `items` et un `MenuSpec` à `submenus` (id vide, libellé vide, élément d'un autre type ou sous-menu
-  imbriqué : erreur « menu <n> : sous-menu invalide ») ; clé `objectBar` facultative (tableau de chaînes, sinon
-  erreur « objectBar : tableau de chaînes attendu ») ; `unknownCommands` parcourt aussi les sous-menus et
-  `objectBar`. Commande ciblée → vert.
-- [ ] **Étape 3 : données du lot.** Ajouter **en fin de** `commands` de `actions/data/commands.json`, en un bloc :
-  ```json
-      { "id": "tool.select", "label": "Sélectionner", "icon": "selection", "shortcut": "Esc", "checkable": true },
-      { "id": "tool.highlighter", "label": "Marqueur", "icon": "marqueur", "shortcut": "Ctrl+H", "checkable": true },
-      { "id": "tool.eraser", "label": "Gomme", "icon": "gomme", "shortcut": "Ctrl+E", "checkable": true },
-      { "id": "edit.undo", "label": "Annuler", "icon": "annuler", "shortcut": "Ctrl+Z" },
-      { "id": "edit.redo", "label": "Rétablir", "icon": "retablir", "shortcut": "Ctrl+Y" },
-      { "id": "edit.delete", "label": "Supprimer", "icon": "supprimer", "shortcut": "Del" },
-      { "id": "edit.select-all", "label": "Tout sélectionner", "shortcut": "Ctrl+A" },
-      { "id": "clear.annotations", "label": "Annotations", "icon": "effacer" },
-      { "id": "clear.objects", "label": "Objets" },
-      { "id": "clear.grid", "label": "Grille" },
-      { "id": "clear.background", "label": "Fond" },
-      { "id": "clear.page", "label": "Page" },
-      { "id": "page.revert", "label": "Rétablir la page" },
-      { "id": "view.trash", "label": "Corbeille du paperboard", "icon": "corbeille", "checkable": true },
-      { "id": "object.move-free", "label": "Déplacer librement", "icon": "deplacer" },
-      { "id": "object.rotate", "label": "Faire pivoter", "icon": "rotation" },
-      { "id": "object.translucency", "label": "Translucidité", "icon": "translucidite", "argument": "number", "optional": true },
-      { "id": "object.enlarge", "label": "Agrandir l'objet", "icon": "agrandir", "shortcut": "Ctrl++" },
-      { "id": "object.reduce", "label": "Réduire l'objet", "icon": "reduire", "shortcut": "Ctrl+-" }
-  ```
-  Dans `actions/data/layout.json` : menu `edit` → `["edit.undo", "edit.redo", "-", "edit.delete", "edit.select-all",
-  "-", {"submenu": "clear", "label": "Effacer", "items": ["clear.annotations", "clear.objects", "clear.grid",
-  "clear.background", "clear.page"]}, "page.revert"]` ; menu `view` → ajouter `"-", "view.trash"` en fin ; menu
-  `tools` → `["tool.select", "tool.pen", "tool.highlighter", "tool.eraser"]` ; palette : groupe `outils` →
-  `["tool.select", "tool.pen", "tool.highlighter", "tool.eraser"]`, puis un groupe
-  `{"group": "edition", "items": ["edit.undo", "edit.redo", "edit.delete"]}` juste après ; clé
-  `"objectBar": ["object.move-free", "object.rotate", "object.translucency", "object.enlarge", "object.reduce"]`.
-  Dessiner les 13 icônes (24 × 24, mêmes attributs de trait que `ui/icons/stylo.svg`, formes simples à nous :
-  flèche, surligneur biseauté, gomme, flèches courbes, croix, poubelle, balai, quatre flèches, flèche circulaire,
-  damier à moitié, loupes + et −).
-- [ ] **Étape 4 : en-têtes figés et talons.** Créer les en-têtes ci-dessous **tels quels** ; chaque `.cpp` talon
-  inclut son en-tête et définit chaque fonction déclarée par le corps le plus simple qui compile (valeur par défaut,
-  `{}`, `nullptr`, conteneur vide), précédé de `// Talon L3-T1 : rempli par L3-T<n>.`.
-
-  `core/include/actcraft/core/hittest.h` (rempli par L3-T3) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/core/model.h>
-
-  #include <optional>
-  #include <vector>
-
-  namespace actcraft::core {
-
-  // Désignation (F-210), coordonnées de page. L'appelant passe kHitToleranceScreen / zoom.
-  inline constexpr double kHitToleranceScreen = 6.0;
-
-  // Annotation (F-230) : trait de stylo, de marqueur ou d'encre révélatrice posé sur la couche supérieure.
-  bool isAnnotation(const PageObject& object) noexcept;
-  // Sélectionnable : visible (un objet verrouillé se sélectionne mais ne se déplace pas, F-210).
-  bool isSelectable(const PageObject& object) noexcept;
-  // Objet sélectionnable le plus haut (le dernier de page.objects, ordonnée par couche) touché par `point` : un trait à
-  // moins de sa demi-épaisseur + `tolerance` de sa ligne centrale (transformation appliquée) ; un autre objet, point
-  // dans son emprise (boundsOnPage) agrandie de `tolerance`.
-  std::optional<ObjectId> objectAt(const Page& page, PointF point, double tolerance);
-  // Objets sélectionnables dont l'emprise touche `rect` (bords compris), dans l'ordre de la page (D6, H3-4).
-  std::vector<ObjectId> objectsTouching(const Page& page, const RectF& rect);
-  RectF normalizedRect(PointF a, PointF b) noexcept;
-  RectF unitedRect(const RectF& a, const RectF& b) noexcept; // un rectangle 0 × 0 est neutre
-  bool rectsTouch(const RectF& a, const RectF& b) noexcept;
-
-  } // namespace actcraft::core
-  ```
-  `core/include/actcraft/core/erasegeometry.h` (L3-T3) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/core/model.h>
-
-  #include <vector>
-
-  namespace actcraft::core {
-
-  struct StrokeCut
-  {
-      std::vector<std::vector<StrokePoint>> pieces; // morceaux restants (≥ 2 points chacun), dans l'ordre du trait
-      bool touched = false;                         // le disque a retiré une partie du trait
-  };
-
-  // Gomme (F-230) : retire de la ligne centrale la partie intérieure au disque (`center`, `radius`) ; pression
-  // interpolée aux points de coupe ; un reste d'un seul point est abandonné.
-  StrokeCut cutByDisk(const std::vector<StrokePoint>& points, PointF center, double radius);
-  // Disque glissé de `from` à `to` : coupes successives à des pas d'au plus radius / 2 (aucun trait sauté).
-  StrokeCut cutBySweep(const std::vector<StrokePoint>& points, PointF from, PointF to, double radius);
-  // Points d'un objet trait en coordonnées de page (sa transformation appliquée) ; vide si ce n'est pas un trait.
-  std::vector<StrokePoint> strokePointsOnPage(const PageObject& object);
-
-  } // namespace actcraft::core
-  ```
-  `core/include/actcraft/core/objectedits.h` (L3-T4) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/core/document.h>
-  #include <actcraft/core/undo.h>
-
-  #include <cstdint>
-  #include <utility>
-  #include <vector>
-
-  namespace actcraft::core {
-
-  inline constexpr int kMergeTranslucency = 3; // famille de fusion de SetTranslucencyCommand
-
-  // Déplacer, redimensionner, faire pivoter, agrandir, réduire (F-210, F-522, F-523) : la transformation de chaque
-  // objet est composée avec `delta` (coordonnées de page, appliquée après la sienne). Changes : un ObjectChanged par
-  // objet, zone = emprise avant ∪ emprise après. Identifiants absents ignorés.
-  class TransformObjectsCommand final : public UndoCommand
-  {
-  public:
-      TransformObjectsCommand(std::size_t page, std::vector<ObjectId> ids, Transform delta);
-      void redo(Document& document, Changes& changes) override;
-      void undo(Document& document, Changes& changes) override;
-
-  private:
-      std::size_t m_page;
-      std::vector<ObjectId> m_ids;
-      Transform m_delta;
-      std::vector<std::pair<ObjectId, Transform>> m_before;
-  };
-
-  // Supprimer, corbeille (F-050, F-541). Undo : objets remis à leurs rangs d'origine (même profondeur).
-  // Changes : ObjectRemoved (zone = emprise) ; à l'annulation, ObjectInserted.
-  class RemoveObjectsCommand final : public UndoCommand
-  {
-  public:
-      RemoveObjectsCommand(std::size_t page, std::vector<ObjectId> ids);
-      void redo(Document& document, Changes& changes) override;
-      void undo(Document& document, Changes& changes) override;
-
-  private:
-      std::size_t m_page;
-      std::vector<ObjectId> m_ids;
-      std::vector<std::pair<std::size_t, PageObject>> m_removed; // rang d'origine, objet ; rangs croissants
-  };
-
-  // Gomme (F-230) : chaque trait `original` est remplacé par ses morceaux, au rang de l'original (même couche, même
-  // profondeur, même commun hormis l'identifiant et la transformation, remise à l'identité : points en coordonnées de
-  // page). Identifiants des morceaux tirés au premier redo et gardés ensuite. Aucun morceau : trait retiré.
-  // Changes : ObjectRemoved(original), puis ObjectInserted par morceau ; à l'annulation, l'inverse.
-  struct StrokeReplacement
-  {
-      ObjectId original = 0;
-      std::vector<Stroke> pieces;
-  };
-  class ReplaceStrokesCommand final : public UndoCommand
-  {
-  public:
-      ReplaceStrokesCommand(std::size_t page, std::vector<StrokeReplacement> replacements);
-      void redo(Document& document, Changes& changes) override;
-      void undo(Document& document, Changes& changes) override;
-      const std::vector<ObjectId>& pieceIds() const noexcept; // vide avant le premier redo
-
-  private:
-      std::size_t m_page;
-      std::vector<StrokeReplacement> m_replacements;
-      std::vector<PageObject> m_originals;
-      std::vector<ObjectId> m_pieceIds;
-  };
-
-  enum class ClearKind : std::uint8_t
-  {
-      Annotations = 0, // isAnnotation
-      Objects = 1,     // tout objet qui n'est pas une annotation (D8)
-      Grid = 2,        // grille remise à Grid{}
-      Background = 3,  // fond remis à Background{}
-      Page = 4,        // tout
-  };
-  // Effacer ▸ (F-130). Changes : un PageChanged (page entière) si quelque chose a changé ; rien sinon.
-  class ClearPageCommand final : public UndoCommand
-  {
-  public:
-      ClearPageCommand(std::size_t page, ClearKind kind);
-      void redo(Document& document, Changes& changes) override;
-      void undo(Document& document, Changes& changes) override;
-
-  private:
-      std::size_t m_page;
-      ClearKind m_kind;
-      Page m_before;
-  };
-
-  // Rétablir la page (F-131) : la page devient `saved` (taille, fond, grille, objets), en une étape (D9).
-  // Changes : un PageChanged (page entière).
-  class ReplacePageCommand final : public UndoCommand
-  {
-  public:
-      ReplacePageCommand(std::size_t page, Page saved);
-      void redo(Document& document, Changes& changes) override;
-      void undo(Document& document, Changes& changes) override;
-
-  private:
-      std::size_t m_page;
-      Page m_other;
-  };
-
-  // Translucidité (F-524) : 0 opaque … 255 invisible. Fusionne avec la précédente de même famille portant sur les
-  // mêmes objets (réglette glissée : une étape). Changes : ObjectChanged par objet.
-  class SetTranslucencyCommand final : public UndoCommand
-  {
-  public:
-      SetTranslucencyCommand(std::size_t page, std::vector<ObjectId> ids, std::uint8_t value);
-      void redo(Document& document, Changes& changes) override;
-      void undo(Document& document, Changes& changes) override;
-      int mergeId() const noexcept override;
-      bool mergeWith(const UndoCommand& other) override;
-
-  private:
-      std::size_t m_page;
-      std::vector<ObjectId> m_ids;
-      std::uint8_t m_value;
-      std::vector<std::pair<ObjectId, std::uint8_t>> m_before;
-  };
-
-  // Centre de l'emprise réunie des objets (pivot de la rotation et des pas de 10 %) ; page sans ces objets : (0, 0).
-  PointF selectionCenter(const Page& page, const std::vector<ObjectId>& ids);
-  Transform scalingAbout(PointF center, double sx, double sy) noexcept;
-  Transform rotationAbout(PointF center, double degrees) noexcept;
-
-  } // namespace actcraft::core
-  ```
-  `core/include/actcraft/core/lift.h` (L3-T4) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/core/model.h>
-  #include <actcraft/core/undo.h>
-
-  #include <vector>
-
-  namespace actcraft::core {
-
-  // Soulever (DA11, lot 3) : objets retirés de la page affichée le temps d'un geste, hors pile.
-  struct LiftedObject
-  {
-      std::size_t index = 0; // rang d'origine dans page.objects
-      PageObject object;
-  };
-
-  // Retire les objets `ids` présents (inconnus ignorés) ; rend leur liste dans l'ordre de la page (rangs croissants).
-  std::vector<LiftedObject> takeObjects(Page& page, const std::vector<ObjectId>& ids);
-  // Remet les objets à leurs rangs d'origine : la page redevient celle d'avant takeObjects.
-  void restoreObjects(Page& page, const std::vector<LiftedObject>& lifted);
-  // Pour le cache, au soulèvement : un ObjectRemoved par objet, zone = son emprise (boundsOnPage).
-  Changes liftChanges(std::size_t page, const std::vector<LiftedObject>& lifted);
-  // Pour le cache, au dépôt, `command` étant les changements de la commande exécutée sur la page restaurée (vide :
-  // geste annulé) ; le cache n'a plus aucun objet soulevé :
-  // - chaque objet soulevé encore présent dans `pageAfter` : un ObjectInserted (zone = emprise dans `pageAfter`) ;
-  // - aucun ObjectRemoved ni ObjectChanged d'un objet soulevé ;
-  // - tout autre changement de `command` passe tel quel, dans son ordre (morceaux de gomme : ObjectInserted).
-  Changes changesAfterLift(std::size_t page, const std::vector<LiftedObject>& lifted, const Changes& command,
-                           const Page& pageAfter);
-
-  } // namespace actcraft::core
-  ```
-  `input/include/actcraft/input/routing.h` (L3-T5) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/input/sample.h>
-
-  #include <cstdint>
-  #include <memory>
-  #include <unordered_map>
-
-  namespace actcraft::input {
-
-  using UserId = std::uint8_t;
-  inline constexpr UserId kFirstUser = 0;
-
-  enum class Route : std::uint8_t
-  {
-      Tool,    // l'outil courant de l'utilisateur reçoit les échantillons du contact
-      Gesture, // le geste à deux doigts de la vue
-      Ignore,  // rien (paume, troisième doigt)
-  };
-
-  struct RouterState
-  {
-      bool stylusDown = false; // un contact de stylet ou de souris est en cours
-      int toolTouches = 0;     // doigts en cours routés vers l'outil
-      int gestureTouches = 0;  // doigts en cours routés vers le geste
-  };
-
-  struct Decision
-  {
-      Route route = Route::Ignore;
-      UserId user = kFirstUser;
-      bool endToolContacts = false; // les doigts en cours vers l'outil passent au geste : la vue termine leur trait
-  };
-
-  // Politique de routage (DA-A1), remplaçable : décide à l'appui ; la décision vaut jusqu'au relâché.
-  class RoutingPolicy
-  {
-  public:
-      virtual ~RoutingPolicy() = default;
-      virtual Decision decide(const Sample& press, const RouterState& state) const = 0;
-  };
-
-  // Gestion complète du toucher (décision 25, N2-A5) : stylet et souris → outil ; doigt pendant un contact de stylet ou
-  // de souris → rien (paume) ; premier doigt → outil ; deuxième doigt → geste, et le premier y passe
-  // (endToolContacts) ; au-delà de deux doigts → rien. Un seul utilisateur (kFirstUser) jusqu'au lot 11.
-  class FullTouchPolicy final : public RoutingPolicy
-  {
-  public:
-      Decision decide(const Sample& press, const RouterState& state) const override;
-  };
-
-  class PointerRouter
-  {
-  public:
-      PointerRouter(); // FullTouchPolicy
-      void setPolicy(std::unique_ptr<RoutingPolicy> policy); // les contacts en cours gardent leur décision
-      // À l'appui, la politique décide et la décision est retenue pour `sample.pointer` (stylet et souris : 0) ;
-      // ensuite, la décision retenue ; au relâché, elle est rendue puis oubliée. Mouvement d'un contact inconnu : Ignore.
-      // endToolContacts : les décisions retenues des doigts routés vers l'outil passent à Gesture.
-      Decision route(const Sample& sample);
-      int gestureTouches() const noexcept;
-      void reset(); // tout contact oublié (perte de saisie)
-
-  private:
-      std::unique_ptr<RoutingPolicy> m_policy;
-      std::unordered_map<std::uint64_t, Decision> m_contacts;
-      RouterState m_state;
-  };
-
-  } // namespace actcraft::input
-  ```
-  `input/include/actcraft/input/gesture.h` (L3-T5) :
-  ```cpp
-  #pragma once
-
-  namespace actcraft::input {
-
-  struct Point2
-  {
-      double x = 0;
-      double y = 0;
-  };
-
-  // Écart relatif des deux doigts sous lequel le zoom ne bouge pas (défilement seul).
-  inline constexpr double kPinchDeadZone = 0.03;
-
-  struct GestureStep
-  {
-      Point2 anchor; // milieu des doigts à l'appui (vue) : le point de page qui s'y trouvait suit `center`
-      Point2 center; // milieu des doigts maintenant (vue)
-      double scale = 1; // écart des doigts / écart à l'appui ; 1 dans la zone morte
-  };
-
-  // Pincer et défiler à deux doigts (décision 25), pixels de vue.
-  class TwoFingerGesture
-  {
-  public:
-      void begin(Point2 a, Point2 b);
-      GestureStep update(Point2 a, Point2 b) const; // sans begin : scale 1, anchor = center = milieu
-      bool active() const noexcept;
-      void end() noexcept;
-
-  private:
-      Point2 m_anchor;
-      double m_distance = 0;
-      bool m_active = false;
-  };
-
-  } // namespace actcraft::input
-  ```
-  `tools/include/actcraft/tools/tool.h` (L3-T6) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/input/sample.h>
-
-  #include <QString>
-
-  namespace actcraft::tools {
-
-  // Un outil (DA6) : reçoit les échantillons de son utilisateur, ne voit que son ToolContext.
-  class Tool : public input::SampleSink
-  {
-  public:
-      ~Tool() override = default;
-      virtual QString id() const = 0;           // « select », « pen », « highlighter », « eraser »
-      virtual void activate() {}                // devient l'outil courant
-      virtual void deactivate() { cancel(); }   // n'est plus l'outil courant
-      virtual bool isBusy() const noexcept = 0; // un geste est en cours
-      // Termine le geste en cours proprement (changement de page, Annuler, Échap, changement d'outil) : le stylo verse
-      // son trait ; la sélection et la gomme remettent ce qu'elles ont soulevé, sans étape d'annulation.
-      virtual void cancel() = 0;
-      // Touche (Qt::Key, Qt::KeyboardModifiers) ; vrai si l'outil l'a prise.
-      virtual bool onKey(int key, int modifiers)
-      {
-          static_cast<void>(key);
-          static_cast<void>(modifiers);
-          return false;
-      }
-  };
-
-  } // namespace actcraft::tools
-  ```
-  `tools/include/actcraft/tools/toolcontext.h` (L3-T6) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/core/model.h>
-  #include <actcraft/core/undo.h>
-  #include <actcraft/tools/pentool.h>
-
-  #include <QString>
-  #include <QStringList>
-  #include <QVariant>
-
-  #include <memory>
-  #include <optional>
-  #include <vector>
-
-  namespace actcraft::tools {
-
-  class UserState;
-
-  // Le document vu par un outil : lecture de la page affichée, écriture par la pile seulement.
-  class DocumentEditor
-  {
-  public:
-      virtual ~DocumentEditor() = default;
-      virtual const core::Page& page() const = 0; // page affichée, sans les objets soulevés
-      virtual std::size_t pageIndex() const = 0;
-      virtual void execute(std::unique_ptr<core::UndoCommand> command) = 0;
-      // Soulever (DA11) : retire les objets de la page affichée hors pile (le cache en reçoit remove) et rend leurs
-      // copies, dans l'ordre de la page. Un second appel pendant le même geste ajoute aux objets soulevés.
-      virtual std::vector<core::PageObject> lift(const std::vector<core::ObjectId>& ids) = 0;
-      // Remet les objets soulevés puis exécute `command` par la pile (une étape) ; nullptr : remise sans étape.
-      virtual void drop(std::unique_ptr<core::UndoCommand> command) = 0;
-      virtual bool isLifting() const = 0;
-  };
-
-  // Couche soulevée : dessine les copies au-dessus de la page pendant le geste.
-  class LiftSurface
-  {
-  public:
-      virtual ~LiftSurface() = default;
-      virtual void show(std::vector<core::PageObject> objects) = 0; // remplace ; transformation remise à l'identité
-      virtual void setTransform(const core::Transform& extra) = 0;  // appliquée après celle de chaque objet
-      virtual void clear() = 0;
-  };
-
-  enum class HandleKind : std::uint8_t
-  {
-      TopLeft,
-      Top,
-      TopRight,
-      Right,
-      BottomRight, // proportionnelle (F-520)
-      Bottom,
-      BottomLeft,
-      Left,
-  };
-
-  struct BarSpot
-  {
-      QString command; // « object.enlarge »…
-      core::PointF center;
-  };
-
-  // Ce que la sélection montre ; l'interface le dessine (coordonnées de page).
-  struct SelectionView
-  {
-      bool visible = false;
-      std::vector<core::PointF> corners; // 4 coins : haut gauche, haut droit, bas droit, bas gauche
-      std::vector<core::PointF> handles; // 8 poignées, dans l'ordre de HandleKind
-      std::vector<BarSpot> bar;          // barre d'objet (F-521)
-      bool handlesVisible = true;        // F-528 : faux pendant un glissement
-      std::optional<core::RectF> rubberBand;
-  };
-
-  class SelectionSurface
-  {
-  public:
-      virtual ~SelectionSurface() = default;
-      virtual void show(const SelectionView& view) = 0;
-  };
-
-  class ViewInfo
-  {
-  public:
-      virtual ~ViewInfo() = default;
-      virtual double zoom() const = 0;                          // pixels d'écran par pixel de page
-      virtual bool overTrash(core::PointF pagePoint) const = 0; // F-050
-      virtual void setTrashHover(bool hover) = 0;               // flèche de la corbeille
-      virtual QStringList objectBarCommands() const = 0;        // disposition (`objectBar`)
-  };
-
-  class CommandSink
-  {
-  public:
-      virtual ~CommandSink() = default;
-      virtual bool trigger(const QString& id, const QVariant& argument) = 0;
-  };
-
-  struct ToolContext
-  {
-      DocumentEditor& document;
-      InkSurface& ink;
-      DocumentSink& strokes;
-      LiftSurface& lift;
-      SelectionSurface& selection;
-      ViewInfo& view;
-      CommandSink& commands;
-      UserState& user;
-  };
-
-  } // namespace actcraft::tools
-  ```
-  `tools/include/actcraft/tools/userstate.h` (L3-T6) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/core/model.h>
-  #include <actcraft/input/routing.h>
-
-  #include <QString>
-
-  #include <cstdint>
-  #include <map>
-  #include <vector>
-
-  namespace actcraft::tools {
-
-  struct InkSettings
-  {
-      core::Argb color = 0xFF000000u;
-      double width = 4;
-      std::uint8_t translucency = 0; // 0 opaque … 255 invisible
-  };
-
-  // Réglages par défaut (D5) : « pen » noir, 4, opaque ; « highlighter » #FFFF00, 20, 128 ; « eraser » 20 ;
-  // autre outil : ceux du stylo.
-  InkSettings defaultSettings(const QString& toolId);
-
-  // Un utilisateur (DA-A1) : outil courant, réglages par outil (F-136), sélection, outils de maths ouverts (lot 7).
-  class UserState
-  {
-  public:
-      explicit UserState(input::UserId id = input::kFirstUser);
-      input::UserId id() const noexcept;
-      const QString& currentTool() const noexcept; // « pen » au départ
-      void setCurrentTool(const QString& toolId);
-      InkSettings settings(const QString& toolId) const; // jamais réglé : defaultSettings
-      void setSettings(const QString& toolId, const InkSettings& settings);
-      const std::vector<core::ObjectId>& selection() const noexcept;
-      void setSelection(std::vector<core::ObjectId> ids);
-      const std::vector<QString>& openMathTools() const noexcept; // réservé au lot 7
-      void setOpenMathTools(std::vector<QString> ids);
-
-  private:
-      input::UserId m_id;
-      QString m_tool = QStringLiteral("pen");
-      std::map<QString, InkSettings> m_settings;
-      std::vector<core::ObjectId> m_selection;
-      std::vector<QString> m_mathTools;
-  };
-
-  } // namespace actcraft::tools
-  ```
-  `tools/include/actcraft/tools/toolregistry.h` (L3-T6) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/tools/tool.h>
-  #include <actcraft/tools/toolcontext.h>
-
-  #include <QStringList>
-
-  #include <functional>
-  #include <memory>
-  #include <utility>
-  #include <vector>
-
-  namespace actcraft::tools {
-
-  class ToolRegistry
-  {
-  public:
-      using Factory = std::function<std::unique_ptr<Tool>(ToolContext& context)>;
-      bool add(const QString& id, Factory factory); // faux : identifiant vide ou déjà pris
-      bool contains(const QString& id) const;
-      QStringList ids() const; // ordre d'ajout
-      std::unique_ptr<Tool> create(const QString& id, ToolContext& context) const; // nullptr : inconnu
-
-  private:
-      std::vector<std::pair<QString, Factory>> m_factories;
-  };
-
-  // « select », « pen », « highlighter », « eraser », dans cet ordre.
-  void registerBuiltinTools(ToolRegistry& registry);
-
-  } // namespace actcraft::tools
-  ```
-  `tools/include/actcraft/tools/erasertool.h` (L3-T7) et `selecttool.h` (L3-T8, L3-T9) :
-  ```cpp
-  // erasertool.h
-  #pragma once
-
-  #include <actcraft/tools/tool.h>
-  #include <actcraft/tools/toolcontext.h>
-
-  namespace actcraft::tools {
-
-  // Gomme (F-230) : soulève chaque annotation touchée (une fois), la recoupe dans la couche soulevée pendant le geste,
-  // dépose une ReplaceStrokesCommand au relâché.
-  class EraserTool final : public Tool
-  {
-  public:
-      explicit EraserTool(ToolContext& context);
-      QString id() const override; // « eraser »
-      void onSample(const input::Sample& sample) override;
-      bool isBusy() const noexcept override;
-      void cancel() override;
-      double radius() const; // largeur réglée de la gomme / 2, pixels de page
-
-  private:
-      ToolContext& m_context;
-  };
-
-  } // namespace actcraft::tools
-  ```
-  ```cpp
-  // selecttool.h
-  #pragma once
-
-  #include <actcraft/tools/tool.h>
-  #include <actcraft/tools/toolcontext.h>
-
-  #include <cstdint>
-
-  namespace actcraft::tools {
-
-  // Sélection (F-210, F-520 à F-528, F-541, F-050).
-  class SelectTool final : public Tool
-  {
-  public:
-      explicit SelectTool(ToolContext& context);
-      QString id() const override; // « select »
-      void activate() override;
-      void deactivate() override; // garde la sélection, masque le cadre
-      void onSample(const input::Sample& sample) override;
-      bool isBusy() const noexcept override;
-      void cancel() override;
-      bool onKey(int key, int modifiers) override; // Suppr : supprimer ; Échap : abandon du geste
-      void selectAll();
-      void clearSelection();
-      void deleteSelection(); // sans sélection : rien (F-541)
-      void enlarge();         // × kEnlargeStep autour du centre (F-523)
-      void reduce();          // ÷ kEnlargeStep
-      void setTranslucency(std::uint8_t value);
-      void refresh(); // la page a changé (annuler, page suivante) : sélection filtrée, cadre recalculé
-
-  private:
-      ToolContext& m_context;
-  };
-
-  } // namespace actcraft::tools
-  ```
-  `tools/include/actcraft/tools/selectiongeometry.h` (L3-T8, L3-T9) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/core/model.h>
-  #include <actcraft/tools/toolcontext.h>
-
-  #include <QString>
-  #include <QStringList>
-
-  #include <vector>
-
-  namespace actcraft::tools {
-
-  inline constexpr double kHandleRadiusScreen = 6.0; // poignée ronde (F-520), pixels d'écran
-  inline constexpr double kBarButtonScreen = 24.0;   // bouton carré de la barre (F-521)
-  inline constexpr double kBarGapScreen = 8.0;       // écart cadre → barre
-  inline constexpr double kEnlargeStep = 1.1;        // F-523
-
-  // Cadre (emprise réunie ; un seul objet : son cadre transformé), 8 poignées (ordre de HandleKind), barre au-dessus
-  // du cadre, replacée sous lui si elle sortirait du haut de la page (F-521). Coordonnées de page.
-  SelectionView layoutSelection(const core::Page& page, const std::vector<core::ObjectId>& ids, double zoom,
-                                const QStringList& barCommands);
-
-  enum class SelectionHitKind : std::uint8_t
-  {
-      None,
-      Inside,
-      Handle,
-      BarButton,
-  };
-  struct SelectionHit
-  {
-      SelectionHitKind kind = SelectionHitKind::None;
-      HandleKind handle = HandleKind::TopLeft;
-      QString command;
-  };
-  // Ordre d'essai : bouton de barre, poignée, intérieur du cadre.
-  SelectionHit hitSelection(const SelectionView& view, core::PointF point, double zoom);
-
-  } // namespace actcraft::tools
-  ```
-  `render/include/actcraft/render/liftlayeritem.h` (L3-T10) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/core/model.h>
-
-  #include <actcraft/render/fixedpageitem.h> // type complet exigé par moc pour la propriété fixedPage
-
-  #include <QPointer>
-  #include <QQuickItem>
-  #include <QtQml/qqmlregistration.h>
-
-  #include <vector>
-
-  namespace actcraft::render {
-
-  // Couche soulevée (lot 3, DA11) : dessine les copies des objets soulevés pendant un geste, avec les moteurs de la
-  // page fixe (createObjectNode), sous une transformation supplémentaire qui ne reconstruit aucun nœud.
-  class LiftLayerItem : public QQuickItem
-  {
-      Q_OBJECT
-      QML_NAMED_ELEMENT(LiftLayer)
-      Q_PROPERTY(actcraft::render::FixedPageItem* fixedPage READ fixedPage WRITE setFixedPage NOTIFY fixedPageChanged)
-      Q_PROPERTY(int objectCount READ objectCount NOTIFY objectsChanged)
-
-  public:
-      explicit LiftLayerItem(QQuickItem* parent = nullptr);
-      FixedPageItem* fixedPage() const noexcept;
-      void setFixedPage(FixedPageItem* page);
-      void setObjects(std::vector<core::PageObject> objects); // remplace ; transformation remise à l'identité
-      void setExtraTransform(const core::Transform& extra);
-      void clear();
-      int objectCount() const noexcept;
-      int builtCount() const noexcept; // crochet de test : nœuds d'objet construits depuis la création
-
-  signals:
-      void fixedPageChanged();
-      void objectsChanged();
-
-  protected:
-      QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData* data) override;
-
-  private:
-      QPointer<FixedPageItem> m_fixedPage;
-      std::vector<core::PageObject> m_objects;
-  };
-
-  } // namespace actcraft::render
-  ```
-  `ui/include/actcraft/ui/toolhost.h` (L3-T14) :
-  ```cpp
-  #pragma once
-
-  #include <actcraft/input/routing.h>
-  #include <actcraft/render/liftlayeritem.h> // types complets exigés par moc pour les propriétés
-  #include <actcraft/ui/commands.h>
-  #include <actcraft/ui/documentcontroller.h>
-  #include <actcraft/ui/pageview.h>
-
-  #include <QColor>
-  #include <QObject>
-  #include <QPointer>
-  #include <QRectF>
-  #include <QString>
-  #include <QVariantMap>
-  #include <QtQml/qqmlregistration.h>
-
-  #include <memory>
-
-  namespace actcraft::tools {
-  class Tool;
-  class UserState;
-  } // namespace actcraft::tools
-
-  namespace actcraft::ui {
-
-  struct ToolAdapters; // tooladapters.h
-
-  // Outils de l'utilisateur (DA6, DA-A1) : registre, état d'utilisateur, adaptateurs des interfaces d'outil,
-  // commandes du lot 3, mémoire par outil (F-136, QSettings).
-  class ToolHost : public QObject
-  {
-      Q_OBJECT
-      QML_NAMED_ELEMENT(Tools)
-      Q_PROPERTY(actcraft::ui::Commands* commands READ commands WRITE setCommands NOTIFY wiringChanged)
-      Q_PROPERTY(actcraft::ui::DocumentController* documentController READ documentController WRITE
-                     setDocumentController NOTIFY wiringChanged)
-      Q_PROPERTY(actcraft::ui::PageView* view READ view WRITE setView NOTIFY wiringChanged)
-      Q_PROPERTY(actcraft::render::LiftLayerItem* liftLayer READ liftLayer WRITE setLiftLayer NOTIFY wiringChanged)
-      Q_PROPERTY(QString currentTool READ currentTool NOTIFY currentToolChanged)
-      Q_PROPERTY(QColor color READ color NOTIFY settingsChanged)
-      Q_PROPERTY(qreal width READ width NOTIFY settingsChanged)
-      Q_PROPERTY(int selectionCount READ selectionCount NOTIFY selectionChanged)
-      Q_PROPERTY(bool handlesVisible READ handlesVisible NOTIFY selectionChanged)
-      Q_PROPERTY(QVariantMap selectionFrame READ selectionFrame NOTIFY selectionChanged)
-      Q_PROPERTY(QRectF trashArea READ trashArea WRITE setTrashArea NOTIFY trashAreaChanged) // scène
-      Q_PROPERTY(bool trashHover READ trashHover NOTIFY trashHoverChanged)
-      // Vide : réglages de l'application ; tests : chemin d'un fichier .ini.
-      Q_PROPERTY(QString settingsFile READ settingsFile WRITE setSettingsFile NOTIFY settingsFileChanged)
-
-  public:
-      explicit ToolHost(QObject* parent = nullptr);
-      ~ToolHost() override;
-
-      Commands* commands() const noexcept;
-      void setCommands(Commands* commands);
-      DocumentController* documentController() const noexcept;
-      void setDocumentController(DocumentController* controller);
-      PageView* view() const noexcept;
-      void setView(PageView* view);
-      render::LiftLayerItem* liftLayer() const noexcept;
-      void setLiftLayer(render::LiftLayerItem* layer);
-      QString currentTool() const;
-      QColor color() const;
-      qreal width() const;
-      int selectionCount() const;
-      bool handlesVisible() const;
-      QVariantMap selectionFrame() const;
-      QRectF trashArea() const noexcept;
-      void setTrashArea(const QRectF& area);
-      bool trashHover() const noexcept;
-      QString settingsFile() const;
-      void setSettingsFile(const QString& path);
-
-      // « select », « pen », « highlighter », « eraser » : outil courant de l'utilisateur 1, commande tool.<id> cochée,
-      // réglages de l'outil rendus à la vue (couleur et épaisseur de l'encre).
-      Q_INVOKABLE void activate(const QString& toolId);
-      Q_INVOKABLE void setColor(const QColor& color); // outil courant (F-134)
-      Q_INVOKABLE void setWidth(qreal width);
-      Q_INVOKABLE void selectAll();
-      Q_INVOKABLE void clearSelection();
-      Q_INVOKABLE void deleteSelection();
-      Q_INVOKABLE void enlargeSelection();
-      Q_INVOKABLE void reduceSelection();
-      Q_INVOKABLE void setSelectionTranslucency(int value);
-      Q_INVOKABLE void cancelGesture();
-
-      // Outil courant de l'utilisateur ; nullptr tant que le contrôleur, la vue et la couche ne sont pas branchés.
-      tools::Tool* activeTool(input::UserId user = input::kFirstUser) const;
-
-  signals:
-      void wiringChanged();
-      void currentToolChanged();
-      void settingsChanged();
-      void selectionChanged();
-      void trashAreaChanged();
-      void trashHoverChanged();
-      void settingsFileChanged();
-
-  private:
-      QPointer<Commands> m_commands;
-      QPointer<DocumentController> m_controller;
-      QPointer<PageView> m_view;
-      QPointer<render::LiftLayerItem> m_liftLayer;
-      QRectF m_trashArea;
-      bool m_trashHover = false;
-      QString m_settingsFile;
-  };
-
-  } // namespace actcraft::ui
-  ```
-  `ui/src/tooladapters.h` (L3-T14 ; talon : déclaration seule) :
-  ```cpp
-  #pragma once
-
-  namespace actcraft::ui {
-
-  // Adaptateurs des interfaces d'outil (tools::DocumentEditor, LiftSurface, SelectionSurface, ViewInfo, CommandSink)
-  // sur DocumentController, LiftLayerItem, ToolHost, PageView et Commands. Rempli par L3-T14.
-  struct ToolAdapters;
-
-  } // namespace actcraft::ui
-  ```
-  **Ajouts d'API aux fichiers existants** (déclarations ci-dessous, corps vides ou valeur par défaut dans le `.cpp`,
-  `// Talon L3-T1 : rempli par L3-T12.` / `L3-T13`) :
-  ```cpp
-  // documentcontroller.h — propriétés, à la suite des existantes
-  Q_PROPERTY(int shownObjectCount READ shownObjectCount NOTIFY documentChanged)
-  Q_PROPERTY(bool lifting READ isLifting NOTIFY liftingChanged)
-  Q_PROPERTY(bool canRevertPage READ canRevertPage NOTIFY documentChanged)
-  // documentcontroller.h — public, à la suite des existants
-  int shownObjectCount() const noexcept;
-  // Soulever (DA11, lot 3) : retire les objets de la page affichée hors pile et rend leurs copies ; le cache reçoit
-  // core::liftChanges. Annonce editAboutToApply avant le premier soulèvement d'un geste. Pendant un soulèvement,
-  // Enregistrer, Ouvrir et les changements de page sont refusés ou attendent le dépôt (L3-T12).
-  std::vector<core::PageObject> liftObjects(const std::vector<core::ObjectId>& ids);
-  // Remet les objets soulevés, exécute `command` par la pile (nullptr : aucune étape), et le cache reçoit
-  // core::changesAfterLift.
-  void dropLifted(std::unique_ptr<core::UndoCommand> command);
-  bool isLifting() const noexcept;
-  // Trait d'un outil d'encre avec sa translucidité (marqueur, F-225) : couche supérieure, par la pile.
-  void commitAnnotation(core::Stroke stroke, std::uint8_t translucency);
-  void deleteObjects(const std::vector<core::ObjectId>& ids);
-  Q_INVOKABLE void clearPage(int kind); // core::ClearKind (F-130)
-  Q_INVOKABLE void revertPage();        // F-131
-  bool canRevertPage() const;
-  // Tests : reçoit, après la page fixe, les mêmes appels de cache (nullptr : aucun).
-  void setCacheObserver(core::PageCache* observer);
-  // documentcontroller.h — signaux
-  // Avant Annuler, Rétablir, un soulèvement, Effacer, Rétablir la page, Supprimer : la vue termine le trait en cours
-  // et les outils leur geste (L2-T15).
-  void editAboutToApply();
-  void liftingChanged();
-  ```
-  ```cpp
-  // pageview.h — en tête : #include <actcraft/input/routing.h> ; namespace actcraft::ui { class ToolHost; } ; dans la
-  // classe, Q_MOC_INCLUDE(<actcraft/ui/toolhost.h>) (toolhost.h inclut pageview.h : inclusion circulaire évitée)
-  Q_PROPERTY(actcraft::ui::ToolHost* tools READ tools WRITE setTools NOTIFY toolsChanged)
-  Q_PROPERTY(int cacheRefreshCount READ cacheRefreshCount NOTIFY cacheUpdated)
-  Q_PROPERTY(bool gestureActive READ gestureActive NOTIFY gestureActiveChanged)
-  // public
-  ToolHost* tools() const noexcept;
-  // Posé : les échantillons routés vers l'outil vont à ToolHost::activeTool(utilisateur du contact) ; sinon, ou s'il
-  // rend nullptr, au stylo interne (lots 1 et 2, banc).
-  void setTools(ToolHost* tools);
-  int cacheRefreshCount() const noexcept; // redessins du cache terminés depuis la création (crochet S6, H10-1)
-  bool gestureActive() const noexcept;    // un geste à deux doigts est en cours
-  input::PointerRouter& router() noexcept; // tests
-  // signaux
-  void toolsChanged();
-  void gestureActiveChanged();
-  ```
-  Talons QML (`SelectionOverlay.qml`, `ObjectBar.qml`, `TranslucencyPopup.qml`, `TrashCan.qml`,
-  `PageContextMenu.qml`, `ToolCursor.qml`) : `import QtQuick` puis `Item { }` avec, pour `ToolCursor.qml`,
-  `property int cursorShape: Qt.ArrowCursor`, et pour `PageContextMenu.qml`, `function popupAt(x, y) {}`.
-- [ ] **Étape 5 : CMake.** Ajouter les sources aux modules : `core/CMakeLists.txt` (`src/hittest.cpp`,
-  `src/erasegeometry.cpp`, `src/objectedits.cpp`, `src/lift.cpp`), `input/CMakeLists.txt` (`src/routing.cpp`,
-  `src/gesture.cpp`), `tools/CMakeLists.txt` (`src/userstate.cpp`, `src/toolregistry.cpp`, `src/erasertool.cpp`,
-  `src/selecttool.cpp`, `src/selectiongeometry.cpp`), `render/CMakeLists.txt` (`src/liftlayeritem.cpp`),
-  `ui/CMakeLists.txt` (`src/toolhost.cpp`, `src/tooladapters.cpp` ; les six QML ; les 13 icônes dans `RESOURCES` ;
-  `SelectionOverlay.qml`, `ObjectBar.qml`, `TrashCan.qml`, `PageContextMenu.qml`, `TranslucencyPopup.qml` dans la
-  liste `QT_QML_SKIP_CACHEGEN` des composants qui appellent `Commands.trigger`, comme `TopBar.qml`). Tests :
-  `actcraft_add_test(tst_core_hittest SOURCES tst_core_hittest.cpp LIBS ActCraft::core)` et de même
-  `tst_core_erase`, `tst_core_objectedits`, `tst_core_lift` (`tests/core.cmake`) ; `tst_input_routing`,
-  `tst_input_gesture` (`LIBS ActCraft::input`, `tests/input.cmake`) ; `tst_tools_registry`, `tst_tools_eraser`,
-  `tst_tools_select` (`LIBS ActCraft::tools`, `tests/tools.cmake`) ; `tst_render_liftlayer`, `tst_render_strokeshape`
-  (comme `tst_render_pendinglayer`, `tests/render.cmake`) ; `tst_ui_lift`, `tst_ui_tools` (comme `tst_ui_document`,
-  `tests/ui.cmake`) ; `tst_captures_selection`, `tst_captures_corbeille`, `tst_captures_marqueur`,
-  `tst_captures_ecrire_gommer_annuler` (comme `tst_captures_anticrenelage`, `tests/bench.cmake`).
-- [ ] **Étape 6 : tests talons.** Chacun des 13 fichiers, sur ce modèle (nom de classe et de `.moc` adaptés ;
-  `QTEST_MAIN` pour `render` et `ui`, `QTEST_GUILESS_MAIN` pour `core`, `input`, `tools`) :
-  ```cpp
-  #include <QTest>
-
-  class TstCoreHittest : public QObject
-  {
-      Q_OBJECT
-
-  private slots:
-      void reserved() { QSKIP("Talon L3-T1 : rempli par L3-T3."); }
-  };
-
-  QTEST_GUILESS_MAIN(TstCoreHittest)
-  #include "tst_core_hittest.moc"
-  ```
-  Scénarios talons, sur ce modèle (nom et tâche adaptés) :
-  ```json
-  {
-    "format": "actcraft-scenario/1",
-    "name": "selection",
-    "description": "Talon (L3-T1) : rempli par L3-T15 (S34).",
-    "steps": [ {"waitReady": true} ]
-  }
-  ```
-- [ ] **Étape 7 : sous-menus à l'écran.** Test rouge dans `tests/tst_ui_commands.cpp` :
-  ```cpp
-  void submenuInMenus()
-  {
-      ui::Commands commands;
-      const QVariantList menus = commands.menus();
-      QVariantMap edit;
-      for (const QVariant& m : menus) {
-          if (m.toMap().value(QStringLiteral("id")).toString() == QLatin1String("edit")) {
-              edit = m.toMap();
-          }
-      }
-      QVERIFY(!edit.isEmpty());
-      bool found = false;
-      for (const QVariant& it : edit.value(QStringLiteral("items")).toList()) {
-          const QVariantMap item = it.toMap();
-          if (item.value(QStringLiteral("submenu")).toBool()) {
-              found = true;
-              QCOMPARE(item.value(QStringLiteral("label")).toString(), QStringLiteral("Effacer"));
-              QCOMPARE(item.value(QStringLiteral("items")).toList().size(), 5);
-          }
-      }
-      QVERIFY(found);
-      QCOMPARE(commands.objectBar().size(), 5);
-  }
-  ```
-  Puis `Commands::menus()` rend un élément `{submenu: true, id, label, items: [...]}` pour un jeton `>id` (sous-menu
-  sans commande disponible : omis, séparateurs nettoyés comme au premier niveau) ; propriété
-  `Q_PROPERTY(QVariantList objectBar READ objectBar NOTIFY layoutChanged)` → `[{id, label, icon}]` des commandes
-  disponibles de `objectBar` ; `CommandMenu.qml` dessine un `Menu` imbriqué pour un élément `submenu` (par un
-  `Instantiator` comme le premier niveau ; jamais de boucle `removeItem`, piège L1-T12). Vert.
-- [ ] **Étape 8 : preuves.** `format.ps1`, preuve de tâche (N ≥ 111), fonctions des deux tests nommés en `PASS`,
-  `premiers-pas` hors écran `CAPTURES OK`, banc sans écran, `NOMS OK`.
-- [ ] **Étape 9 : commit.**
-  ```powershell
-  git -C <wt> add actions/data/commands.json actions/data/layout.json actions/include/actcraft/actions/layout.h actions/src/layout.cpp tests/tst_actions_layout.cpp ui/include/actcraft/ui/commands.h ui/src/commands.cpp tests/tst_ui_commands.cpp ui/qml/CommandMenu.qml ui/icons core/CMakeLists.txt input/CMakeLists.txt tools/CMakeLists.txt render/CMakeLists.txt ui/CMakeLists.txt tests/core.cmake tests/input.cmake tests/tools.cmake tests/render.cmake tests/ui.cmake tests/bench.cmake core/include/actcraft/core/hittest.h core/src/hittest.cpp core/include/actcraft/core/erasegeometry.h core/src/erasegeometry.cpp core/include/actcraft/core/objectedits.h core/src/objectedits.cpp core/include/actcraft/core/lift.h core/src/lift.cpp input/include/actcraft/input/routing.h input/src/routing.cpp input/include/actcraft/input/gesture.h input/src/gesture.cpp tools/include/actcraft/tools/tool.h tools/include/actcraft/tools/toolcontext.h tools/include/actcraft/tools/userstate.h tools/src/userstate.cpp tools/include/actcraft/tools/toolregistry.h tools/src/toolregistry.cpp tools/include/actcraft/tools/erasertool.h tools/src/erasertool.cpp tools/include/actcraft/tools/selecttool.h tools/src/selecttool.cpp tools/include/actcraft/tools/selectiongeometry.h tools/src/selectiongeometry.cpp render/include/actcraft/render/liftlayeritem.h render/src/liftlayeritem.cpp ui/include/actcraft/ui/toolhost.h ui/src/toolhost.cpp ui/src/tooladapters.h ui/src/tooladapters.cpp ui/qml/SelectionOverlay.qml ui/qml/ObjectBar.qml ui/qml/TranslucencyPopup.qml ui/qml/TrashCan.qml ui/qml/PageContextMenu.qml ui/qml/ToolCursor.qml ui/include/actcraft/ui/documentcontroller.h ui/src/documentcontroller.cpp ui/include/actcraft/ui/pageview.h ui/src/pageview.cpp tests/tst_core_hittest.cpp tests/tst_core_erase.cpp tests/tst_core_objectedits.cpp tests/tst_core_lift.cpp tests/tst_input_routing.cpp tests/tst_input_gesture.cpp tests/tst_tools_registry.cpp tests/tst_tools_eraser.cpp tests/tst_tools_select.cpp tests/tst_render_liftlayer.cpp tests/tst_render_strokeshape.cpp tests/tst_ui_lift.cpp tests/tst_ui_tools.cpp bench/scenarios/selection.json bench/scenarios/corbeille.json bench/scenarios/marqueur.json bench/scenarios/ecrire-gommer-annuler.json
-  git -C <wt> diff --cached --stat
-  git -C <wt> commit -m "Lot 3 : réservation des commandes, menus, icônes, fichiers et tests du lot ; sous-menus de disposition (L3-T1)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
-  ```
+Faite par L0-S0, L0-S1, L0-S4, L0-S5, L0-S6, L0-S7 (amendement 1 du socle). Ne pas exécuter.
 
 ---
 
 <a id="tache-l3-t2"></a>
-### Tâche L3-T2 — Réservation II : coquille QML
+### Tâche L3-T2 — retirée (faite par le socle)
 
-**Objectif.** Placer dans la coquille, une fois pour toutes, ce que les tâches d'interface rempliront : l'objet
-`appTools` (type `Tools`), la couche soulevée au-dessus de la couche d'attente, la surcouche de sélection, le menu
-contextuel, le curseur d'outil, la corbeille sous la palette ; les gestionnaires des **nouvelles** commandes du lot
-et l'état actif d'Annuler, Rétablir et Rétablir la page. Les gestionnaires existants (`tool.pen`, `pen.color`,
-`pen.width`) ne changent pas ici (L3-T14).
-
-**Fichiers.** Modifier : `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/ToolPalette.qml`, `tests/tst_ui_shell.cpp`.
-
-**Test et commande bornée.** Commande ciblée `tst_ui_shell` ; preuve de tâche N ≥ 111, `TESTS OK`, fonctions
-`lot3ShellPlaceholders` et `everyLot3CommandHasAHandler` en `PASS` ; `premiers-pas` hors écran `CAPTURES OK` ;
-banc sans écran `content_check.ok = True`.
-
-**Interdits.** Ne renommer aucun `objectName` existant (lus par le banc et les scénarios) ; aucun comportement dans
-les talons QML ; ne pas toucher aux gestionnaires existants ; la couche soulevée au-dessus de `pendingLayer`
-(L10-T4) et sous `ink`.
-
-**Terminé quand.** Les objets `appTools`, `liftLayer`, `selectionOverlay`, `pageContextMenu`, `toolCursor`,
-`trashCan` existent dans la fenêtre ; chaque commande du lot sauf `object.move-free` et `object.rotate` a un
-gestionnaire ; `edit.undo` et `edit.redo` suivent `canUndo` / `canRedo`, `page.revert` suit `canRevertPage` ; S2
-inchangé.
-
-**Étapes.**
-- [ ] **Étape 1 : test rouge.** Dans `tests/tst_ui_shell.cpp`, avec le moyen qu'il a déjà de charger `Main.qml` :
-  ```cpp
-  void lot3ShellPlaceholders()
-  {
-      QQuickWindow* window = loadMainWindow(); // aide existante du test (sinon, celle qui charge Main.qml)
-      QVERIFY(window);
-      for (const char* name : {"appTools", "liftLayer", "selectionOverlay", "pageContextMenu", "toolCursor", "trashCan"}) {
-          QVERIFY2(window->findChild<QObject*>(QString::fromLatin1(name)) != nullptr, name);
-      }
-      auto* lift = window->findChild<QQuickItem*>(QStringLiteral("liftLayer"));
-      auto* ink = window->findChild<QQuickItem*>(QStringLiteral("ink"));
-      QVERIFY(lift && ink && lift->parentItem() == ink->parentItem());
-      QVERIFY(lift->z() <= ink->z());
-  }
-  void everyLot3CommandHasAHandler()
-  {
-      QQuickWindow* window = loadMainWindow();
-      auto* commands = window->findChild<ui::Commands*>();
-      QVERIFY(commands);
-      const QStringList lot3 = {"tool.select", "tool.highlighter", "tool.eraser", "edit.undo", "edit.redo",
-                                "edit.delete", "edit.select-all", "clear.annotations", "clear.objects",
-                                "clear.grid", "clear.background", "clear.page", "page.revert", "view.trash",
-                                "object.translucency", "object.enlarge", "object.reduce"};
-      for (const QString& id : lot3) {
-          QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
-      }
-  }
-  ```
-  (Nom de l'aide de chargement : celui du fichier ; l'ordre d'empilement se vérifie aussi par l'ordre des enfants si
-  `z` vaut 0 partout.) Commande ciblée → rouge.
-- [ ] **Étape 2 : `Main.qml`.** Après `appDocument` :
-  ```qml
-  Tools {
-      id: appTools
-      objectName: "appTools"
-      commands: appCommands
-      documentController: appDocument
-      view: pageArea.view
-      liftLayer: pageArea.liftLayer
-  }
-  Connections {
-      target: appDocument
-      function onEditAboutToApply() { pageArea.view.finishStroke() }
-      function onUndoChanged() { root.syncEditCommands() }
-      function onDocumentChanged() { root.syncEditCommands() }
-  }
-  function syncEditCommands() {
-      appCommands.setEnabled("edit.undo", appDocument.canUndo)
-      appCommands.setEnabled("edit.redo", appDocument.canRedo)
-      appCommands.setEnabled("page.revert", appDocument.canRevertPage)
-  }
-  ```
-  `pageArea` reçoit `tools: appTools` (propriété ajoutée à `PageArea.qml`). Gestionnaires, à la suite des existants :
-  ```qml
-  appCommands.setHandler("tool.select", function () { appTools.activate("select") })
-  appCommands.setHandler("tool.highlighter", function () { appTools.activate("highlighter") })
-  appCommands.setHandler("tool.eraser", function () { appTools.activate("eraser") })
-  appCommands.setHandler("edit.undo", function () { appDocument.undo() })
-  appCommands.setHandler("edit.redo", function () { appDocument.redo() })
-  appCommands.setHandler("edit.delete", function () { appTools.deleteSelection() })
-  appCommands.setHandler("edit.select-all", function () { appTools.selectAll() })
-  appCommands.setHandler("clear.annotations", function () { appDocument.clearPage(0) })
-  appCommands.setHandler("clear.objects", function () { appDocument.clearPage(1) })
-  appCommands.setHandler("clear.grid", function () { appDocument.clearPage(2) })
-  appCommands.setHandler("clear.background", function () { appDocument.clearPage(3) })
-  appCommands.setHandler("clear.page", function () { appDocument.clearPage(4) })
-  appCommands.setHandler("page.revert", function () { appDocument.revertPage() })
-  appCommands.setHandler("view.trash", function () { appCommands.setChecked("view.trash", !appCommands.isChecked("view.trash")) })
-  appCommands.setHandler("object.translucency", function (value) { if (value !== undefined) appTools.setSelectionTranslucency(value) })
-  appCommands.setHandler("object.enlarge", function () { appTools.enlargeSelection() })
-  appCommands.setHandler("object.reduce", function () { appTools.reduceSelection() })
-  appCommands.setChecked("view.trash", true)
-  root.syncEditCommands()
-  ```
-  (`object.translucency` sans argument ouvrira la réglette : L3-T15 le branche dans `ObjectBar.qml`.)
-- [ ] **Étape 3 : `PageArea.qml`.** Propriétés `property Tools tools: null`, `property alias liftLayer: liftLayerItem` ;
-  dans `pageContent`, entre `pendingLayer` (L10-T4) et `inkLayer` :
-  ```qml
-  LiftLayer {
-      id: liftLayerItem
-      objectName: "liftLayer"
-      anchors.fill: parent
-      fixedPage: fixedPageItem
-  }
-  ```
-  `view.tools: area.tools` ; hors de `view`, au-dessus d'elle et sous les barres de défilement :
-  `SelectionOverlay { objectName: "selectionOverlay"; anchors.fill: parent }`,
-  `ToolCursor { id: toolCursor; objectName: "toolCursor"; anchors.fill: parent }`,
-  `PageContextMenu { id: pageContextMenu; objectName: "pageContextMenu" }` ; le `HoverHandler` existant reçoit
-  `cursorShape: toolCursor.cursorShape` ; un `TapHandler { acceptedButtons: Qt.RightButton; onTapped: (point) =>
-  pageContextMenu.popupAt(point.position.x, point.position.y) }`.
-- [ ] **Étape 4 : `ToolPalette.qml`.** Propriété `required property Tools tools` (passée par `Main.qml`) ; sous le
-  `Flickable`, ancrée en bas de la palette : `TrashCan { id: trash; objectName: "trashCan"; visible:
-  paletteRoot.commands.revision >= 0 && paletteRoot.commands.isChecked("view.trash") }` (la première clause relit
-  l'état à chaque `revision`), hauteur réservée en bas du `Flickable`.
-- [ ] **Étape 5 : vert et preuves.** Commande ciblée → vert ; `format.ps1` ; preuve de tâche ; `premiers-pas` hors
-  écran ; banc sans écran ; `NOMS OK`.
-- [ ] **Étape 6 : commit.**
-  ```powershell
-  git -C <wt> add ui/qml/Main.qml ui/qml/PageArea.qml ui/qml/ToolPalette.qml tests/tst_ui_shell.cpp
-  git -C <wt> commit -m "Lot 3 : coquille QML réservée (outils, couche soulevée, surcouches, corbeille, gestionnaires) (L3-T2)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
-  ```
+Faite par L0-S9 (coquille QML). Ne pas exécuter.
 
 ---
 
 <a id="tache-l3-t3"></a>
 ### Tâche L3-T3 — `core` : désignation et géométrie de la gomme
 
-**Objectif.** Remplir `hittest.*` et `erasegeometry.*` (en-têtes figés par L3-T1) : quel objet est sous le pointeur,
+**Objectif.** Remplir `hittest.*` et `erasegeometry.*` (en-têtes figés par le socle, L0-S6) : quel objet est sous le pointeur,
 quels objets touche un rectangle, comment un disque coupe la ligne centrale d'un trait (algorithme de l'ancien
 dépôt, coupe d'une ligne brisée par un disque, réécrit par nous).
 
@@ -1740,7 +506,7 @@ dépôt, coupe d'une ligne brisée par un disque, réécrit par nous).
 `tests/tst_core_erase.cpp` ; en-têtes `core/include/actcraft/core/hittest.h`, `erasegeometry.h` : membres privés ou
 fonctions internes seulement.
 
-**Test et commande bornée.** Commande ciblée `tst_core_hittest|tst_core_erase` ; preuve de tâche N ≥ 111 ; fonctions
+**Test et commande bornée.** Commande ciblée `tst_core_hittest|tst_core_erase` ; preuve de tâche N = N_départ + 19 ; fonctions
 des deux tests en `PASS`, aucun `SKIP`.
 
 **Interdits.** Aucune dépendance à QtGui (`core/`). Pas de `std::visit` direct sur `PageObject` (passer par
@@ -1811,6 +577,18 @@ des deux tests en `PASS`, aucun `SKIP`.
           insertAtTopOfLayer(page, strokeObject(3, {{120, 300, 0.5f}, {600, 300, 0.5f}}, 4));
           const auto ids = objectsTouching(page, normalizedRect({140, 140}, {130, 310}));
           QCOMPARE(ids, (std::vector<ObjectId>{1, 3})); // touche le coin du 1 et le trait, pas le 2
+      }
+      void equationHitsLikeText()
+      {
+          // C4062 : l'équation (L0-S3) se désigne par son emprise, comme un texte.
+          Page page;
+          Equation equation;
+          equation.bounds = {100, 100, 80, 40};
+          PageObject o{equation};
+          o.common.id = 9;
+          insertAtTopOfLayer(page, o);
+          QCOMPARE(objectAt(page, {120, 120}, 0).value_or(0), ObjectId{9});
+          QCOMPARE(objectsTouching(page, normalizedRect({170, 130}, {200, 160})), (std::vector<ObjectId>{9}));
       }
       void annotationsAreTopLayerStrokes()
       {
@@ -1932,7 +710,7 @@ sans reconstruire de nœud (glisser fluide). Patron évident à **ne pas** repre
 **Fichiers.** Modifier (talons) : `render/src/liftlayeritem.cpp`, `tests/tst_render_liftlayer.cpp` ; en-tête
 `render/include/actcraft/render/liftlayeritem.h` : membres privés seulement.
 
-**Test et commande bornée.** Commande ciblée `tst_render_liftlayer` ; preuve de tâche N ≥ 111, fonctions en `PASS` ;
+**Test et commande bornée.** Commande ciblée `tst_render_liftlayer` ; preuve de tâche N = N_départ + 19, fonctions en `PASS` ;
 banc sans écran `content_check.ok = True`.
 
 **Interdits.** Ne pas modifier `fixedpageitem.*`, `pendinglayeritem.*`, `objectnodes.*` (lecture seule ; si la
@@ -1971,11 +749,9 @@ banc sans écran joint.
 <a id="tache-l3-t4"></a>
 ### Tâche L3-T4 — `core` : commandes d'édition du lot et changements vus par le cache après un soulèvement
 
-**Socle.** Le socle L0-S pose **une seule** `ReplaceObjectsCommand` (rang de l'original, identifiants stables),
-commune à la gomme et à la reconnaissance du lot 7. Quand son plan sera écrit, cette section est amendée :
-`ReplaceStrokesCommand` n'est pas écrite, ses tests (`replaceStrokesKeepsRankAndIds`,
-`erasePiecesInsertedNoRemoveOfLifted`) portent sur la commande du socle, et L3-T7 l'emploie. D'ici là, ne pas
-exécuter la partie `ReplaceStrokesCommand` de cette tâche.
+**Socle.** `ReplaceStrokesCommand` n'existe pas : la gomme dépose `core::ReplaceObjectsCommand` du socle (L0-S3,
+`core/include/actcraft/core/replace.h`, un `ObjectReplacement` par trait touché, `addedIds()`), déjà prouvée par
+`tst_core_replace`. `objectedits.h` (figé par L0-S6) n'a ni `ReplaceStrokesCommand` ni `StrokeReplacement`.
 
 **Objectif.** Remplir `objectedits.*` et `lift.*`. Invariant à tenir (le patron évident est le mauvais) : **le cache
 ne reçoit jamais `remove` ni `invalidate` d'un objet qu'il n'a plus**, et reçoit `insert` pour chaque objet soulevé
@@ -1986,7 +762,7 @@ arriverait deux fois). Les décisions D8, D9 et D10 de L3-T0 s'appliquent (amend
 **Fichiers.** Modifier (talons) : `core/src/objectedits.cpp`, `core/src/lift.cpp`, `tests/tst_core_objectedits.cpp`,
 `tests/tst_core_lift.cpp` ; en-têtes `objectedits.h`, `lift.h` : membres privés seulement.
 
-**Test et commande bornée.** Commande ciblée `tst_core_objectedits|tst_core_lift` ; preuve de tâche N ≥ 111 ;
+**Test et commande bornée.** Commande ciblée `tst_core_objectedits|tst_core_lift` ; preuve de tâche N = N_départ + 19 ;
 fonctions en `PASS` ; **mutation** : dans `changesAfterLift`, laisser passer les `ObjectChanged` des objets soulevés
 → `liftThenDropMoveYieldsInsertOnly` rouge, puis `git -C <wt> checkout -- core/src/lift.cpp`.
 
@@ -2002,6 +778,7 @@ effet ne produit aucun changement (le contrôleur ne l'empile pas). Identifiants
   #include <actcraft/core/edits.h>
   #include <actcraft/core/lift.h>
   #include <actcraft/core/objectedits.h>
+  #include <actcraft/core/replace.h>
 
   #include <QTest>
 
@@ -2090,17 +867,21 @@ effet ne produit aucun changement (le contrôleur ne l'empile pas). Identifiants
           Document doc = twoStrokes(a, b);
           auto lifted = takeObjects(doc.page(0), {a});
           restoreObjects(doc.page(0), lifted);
-          Stroke left;
-          left.points = {{100, 100, 0.5f}, {180, 100, 0.5f}};
-          Stroke right;
-          right.points = {{220, 100, 0.5f}, {300, 100, 0.5f}};
-          ReplaceStrokesCommand erase(0, {StrokeReplacement{a, {left, right}}});
+          Stroke leftStroke;
+          leftStroke.points = {{100, 100, 0.5f}, {180, 100, 0.5f}};
+          Stroke rightStroke;
+          rightStroke.points = {{220, 100, 0.5f}, {300, 100, 0.5f}};
+          PageObject left{leftStroke};
+          left.common.layer = Layer::Top;
+          PageObject right{rightStroke};
+          right.common.layer = Layer::Top;
+          ReplaceObjectsCommand erase(0, std::vector<ObjectId>{a}, std::vector<PageObject>{left, right});
           Changes command;
           erase.redo(doc, command);
           const Changes cache = changesAfterLift(0, lifted, command, doc.page(0));
           QCOMPARE(count(cache, Change::Kind::ObjectRemoved, a), 0);
-          QCOMPARE(count(cache, Change::Kind::ObjectInserted, erase.pieceIds()[0]), 1);
-          QCOMPARE(count(cache, Change::Kind::ObjectInserted, erase.pieceIds()[1]), 1);
+          QCOMPARE(count(cache, Change::Kind::ObjectInserted, erase.addedIds()[0]), 1);
+          QCOMPARE(count(cache, Change::Kind::ObjectInserted, erase.addedIds()[1]), 1);
           QCOMPARE(cache.size(), std::size_t{2});
       }
       void otherObjectsChangesPassThrough()
@@ -2150,31 +931,6 @@ effet ne produit aucun changement (le contrôleur ne l'empile pas). Identifiants
       remove.undo(doc, c);
       QCOMPARE(doc.page(0).objects[0].common.id, a);
       QCOMPARE(count(c, Change::Kind::ObjectInserted, a), 1);
-  }
-  void replaceStrokesKeepsRankAndIds()
-  {
-      ObjectId a = 0, b = 0;
-      Document doc = twoStrokes(a, b);
-      Stroke left;
-      left.points = {{100, 100, 0.5f}, {180, 100, 0.5f}};
-      Stroke right;
-      right.points = {{220, 100, 0.5f}, {300, 100, 0.5f}};
-      ReplaceStrokesCommand erase(0, {StrokeReplacement{a, {left, right}}});
-      Changes c;
-      erase.redo(doc, c);
-      const auto ids = erase.pieceIds();
-      QCOMPARE(ids.size(), std::size_t{2});
-      QCOMPARE(doc.page(0).objects.size(), std::size_t{3});
-      QCOMPARE(doc.page(0).objects[0].common.id, ids[0]); // au rang de l'original
-      QCOMPARE(doc.page(0).objects[1].common.id, ids[1]);
-      QCOMPARE(doc.page(0).objects[2].common.id, b);
-      QCOMPARE(doc.page(0).objects[0].common.layer, Layer::Top);
-      c.clear();
-      erase.undo(doc, c);
-      QCOMPARE(doc.page(0).objects[0].common.id, a);
-      c.clear();
-      erase.redo(doc, c);
-      QCOMPARE(erase.pieceIds(), ids); // mêmes identifiants au rétablissement
   }
   void clearAnnotationsKeepsShapes()
   {
@@ -2244,8 +1000,7 @@ effet ne produit aucun changement (le contrôleur ne l'empile pas). Identifiants
   Commande ciblée → rouge.
 - [ ] **Étape 2 : `objectedits.cpp`.** Chaque commande relève son état d'avant au premier `redo` ; `ObjectChanged`,
   `ObjectRemoved`, `ObjectInserted` avec `area` = `boundsOnPage` (réunion avant ∪ après pour un changement) ;
-  `ReplaceStrokesCommand::redo` tire les identifiants des morceaux par `Document::allocateId()` au premier passage
-  seulement, insère les morceaux au rang de l'original (commun recopié, identifiant et transformation remis) ;
+  (la gomme n'a pas de commande ici : `ReplaceObjectsCommand` du socle) ;
   `ClearPageCommand` garde la page entière d'avant, ne produit rien si rien ne change ; `SetTranslucencyCommand::mergeWith`
   : même famille, même page, mêmes identifiants → prend la valeur de l'autre, garde son état d'avant.
 - [ ] **Étape 3 : `lift.cpp`.** `takeObjects` : rangs relevés puis retraits du plus haut au plus bas ;
@@ -2261,33 +1016,32 @@ effet ne produit aucun changement (le contrôleur ne l'empile pas). Identifiants
 ---
 
 <a id="tache-l3-t5"></a>
-### Tâche L3-T5 — `input` : routeur unique des contacts et geste à deux doigts
+### Tâche L3-T5 — `input` : politique du toucher et geste à deux doigts
 
 **Objectif.** DA-A1 : une seule politique décide, à l'appui, où va chaque contact (outil, geste, rien) et à quel
 utilisateur il appartient ; la décision tient jusqu'au relâché. Patron évident à **ne pas** reprendre : des
 `if (pointCount() == 2)` répartis dans la vue (ce que fait `PageView::touchEvent` aujourd'hui), qui obligeraient le
 lot 11 à réécrire la vue pour chaque mode du toucher. Décision D12 de L3-T0 (seuils) appliquée.
 
-**Fichiers.** Modifier : `input/include/actcraft/input/sample.h` (deux champs à la fin) ; talons
-`input/src/routing.cpp`, `input/src/gesture.cpp`, `tests/tst_input_routing.cpp`, `tests/tst_input_gesture.cpp` ;
-en-têtes `routing.h`, `gesture.h` : membres privés seulement.
+**Socle.** `sample.h` a déjà `pointer` et `user` (L0-S7) ; le mécanisme de `PointerRouter` (décisions retenues,
+`Route::Cover` sans effet sur `RouterState`, `setCoverTest`, `release`, `endToolContacts`) est posé et rempli par
+L0-S7. L3-T5 remplit **seulement** le corps de `FullTouchPolicy::decide` (geste à deux doigts, paume, stylet qui prend
+la main) et `gesture.cpp` ; les fonctions du socle de `tst_input_routing` (`coverRouteHeldForWholeContact`,
+`coverLeavesTheStateAlone`, `pressRedecides`) restent vertes, sans modification.
+
+**Fichiers.** Modifier : `input/src/routing.cpp` (corps de `FullTouchPolicy::decide` seulement), `input/src/gesture.cpp`,
+`tests/tst_input_routing.cpp` (`reserved()` supprimé, fonctions du socle gardées), `tests/tst_input_gesture.cpp` ;
+en-têtes `routing.h`, `gesture.h` (figés) : membres privés seulement.
 
 **Test et commande bornée.** Commande ciblée `tst_input_routing|tst_input_gesture|tst_input` ; preuve de tâche
-N ≥ 111 ; fonctions en `PASS` ; `tst_input` Passed (champs ajoutés sans changer les valeurs existantes).
+N = N_départ + 19 ; fonctions en `PASS` ; `tst_input` Passed.
 
 **Interdits.** `input/` ne dépend que de `core/` (règle de modularité) ; aucune dépendance à Qt Quick ; rien dans
 `ui/` (L3-T13).
 
-**Terminé quand.** Les tests ci-dessous passent ; `sample.h` a `pointer` et `user` en fin de structure.
+**Terminé quand.** Les tests ci-dessous passent, et les fonctions du socle de `tst_input_routing` avec eux.
 
 **Étapes.**
-- [ ] **Étape 1 : champs de l'échantillon.** À la fin de `struct Sample` :
-  ```cpp
-      // Ajoutés au lot 3 (DA-A1), à la fin : contact (doigt : identifiant du point Qt + 1 ; souris et stylet : 0) et
-      // utilisateur auquel le routeur l'a rattaché.
-      std::uint64_t pointer = 0;
-      std::uint8_t user = 0;
-  ```
 - [ ] **Étape 2 : tests rouges.** `tests/tst_input_routing.cpp` :
   ```cpp
   #include <actcraft/input/routing.h>
@@ -2374,19 +1128,6 @@ N ≥ 111 ; fonctions en `PASS` ; `tst_input` Passed (champs ajoutés sans chang
           QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Move, 1)).route, Route::Tool); // garde sa décision
           QCOMPARE(router.route(s(DeviceKind::Stylus, Phase::Press)).route, Route::Ignore);
       }
-      void simultaneousPinchDrawsNothing()
-      {
-          // Deux doigts posés dans le même événement : aucun ne va à l'outil (M4 de la relecture).
-          PointerRouter router;
-          Sample a = s(DeviceKind::Touch, Phase::Press, 1);
-          Sample b = s(DeviceKind::Touch, Phase::Press, 2);
-          a.event = b.event = 7;
-          const std::vector<Decision> both = router.routeEvent({a, b});
-          QCOMPARE(both.size(), std::size_t{2});
-          QCOMPARE(both[0].route, Route::Gesture);
-          QCOMPARE(both[1].route, Route::Gesture);
-          QVERIFY(!both[0].endToolContacts && !both[1].endToolContacts);
-      }
       void stylusTakesOverFromFinger()
       {
           PointerRouter router;
@@ -2459,16 +1200,14 @@ N ≥ 111 ; fonctions en `PASS` ; `tst_input` Passed (champs ajoutés sans chang
   #include "tst_input_gesture.moc"
   ```
   Commande ciblée → rouge.
-- [ ] **Étape 2 bis : deux règles de la relecture (M4).** (a) `Sample` gagne un troisième champ en fin de
-  structure, `std::uint64_t event = 0; // numéro de l'événement d'entrée qui a porté l'échantillon (0 : inconnu)`, et
-  `PointerRouter` gagne `std::vector<Decision> routeEvent(const std::vector<Sample>& samples);` : les appuis d'un même
-  événement sont décidés **ensemble** (`RouterState` compte d'abord tous les appuis tactiles de l'événement) ; deux
-  doigts ou plus posés dans le même événement sans doigt déjà routé vers l'outil → tous au geste, aucun trait ;
-  (b) un stylet ou une souris qui appuie pendant qu'un doigt va à l'outil → `Tool` avec `endToolContacts` ; la
-  décision retenue du doigt passe à `Ignore` (son trait est terminé par la vue, la suite du contact n'écrit plus).
-  **Si le socle L0-S crée lui-même `PointerRouter` et `routing.h`**, ces deux règles, leurs deux tests et le champ
-  `event` lui reviennent : l'orchestrateur amende alors cette section (L3-T5 garde la politique `FullTouchPolicy` et
-  le geste).
+- [ ] **Étape 2 bis : les deux règles de M4.** (b) Un stylet ou une souris qui appuie pendant qu'un doigt va à
+  l'outil → `Tool` avec `endToolContacts` ; le doigt n'écrit plus. Le mécanisme de L0-S7 fait passer au geste les
+  doigts touchés par `endToolContacts` : si, sur un appui de stylet, il ne les fait pas passer à `Ignore`,
+  `stylusTakesOverFromFinger` le montre ; **s'arrêter et le rapporter** (amendement du socle, pas de changement
+  d'un en-tête figé ici). (a) Deux doigts posés dans le **même** événement : les champs figés de `Sample`
+  (`pointer`, `user`) ne disent pas l'événement d'origine ; `simultaneousPinchDrawsNothing` (et son
+  `routeEvent`) **n'est pas écrit** dans ce lot (H3-16) : un premier doigt suivi d'un second dans le même
+  événement peut verser un point ; S6 ne compte pas les objets après le pincement.
 - [ ] **Étape 3 : implémentation.** `FullTouchPolicy::decide` : `Stylus`, `Mouse`, `Other` → `Tool` ; `Touch` :
   `stylusDown` → `Ignore` ; `toolTouches + gestureTouches == 0` → `Tool` ; `toolTouches == 1 && gestureTouches == 0`
   → `Gesture` + `endToolContacts` ; `gestureTouches == 1` (un doigt resté du geste) → `Gesture` ; sinon `Ignore`.
@@ -2478,7 +1217,7 @@ N ≥ 111 ; fonctions en `PASS` ; `tst_input` Passed (champs ajoutés sans chang
   distance ; `scale = d / d0`, ramené à 1 si `|scale − 1| < kPinchDeadZone`.
 - [ ] **Étape 4 : vert, preuves, commit.**
   ```powershell
-  git -C <wt> add input/include/actcraft/input/sample.h input/src/routing.cpp input/src/gesture.cpp input/include/actcraft/input/routing.h input/include/actcraft/input/gesture.h tests/tst_input_routing.cpp tests/tst_input_gesture.cpp
+  git -C <wt> add input/src/routing.cpp input/src/gesture.cpp tests/tst_input_routing.cpp tests/tst_input_gesture.cpp
   git -C <wt> commit -m "input : routeur unique des contacts, politique remplaçable, geste à deux doigts (L3-T5)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
@@ -2492,14 +1231,18 @@ aussi de marqueur (`core::StrokeKind::Highlighter`, translucidité, F-225) ; nou
 (`core::PenCap::Round`, D2) ; réglages par défaut (D5). Patron à ne pas reprendre : une classe `HighlighterTool`
 copiée du stylo (deux chemins d'encre à tenir en parité).
 
+**Socle.** `tool.h` existe (figé) ; `PenTool` est déjà un `tools::Tool` (`id`, `isBusy`, `cancel`, L0-S7) ;
+`UserState::openMathTools` et `UserState::id()` sont réels (L0-S6) : L3-T6 remplit le reste de `userstate.cpp`, sans
+toucher `openMathToolsKept` (fonction du socle dans `tst_tools_registry`).
+
 **Fichiers.** Modifier : `tools/include/actcraft/tools/pentool.h`, `tools/src/pentool.cpp`, `tests/tst_pentool.cpp` ;
-talons `tools/src/userstate.cpp`, `tools/src/toolregistry.cpp`, `tests/tst_tools_registry.cpp` ; en-têtes
+talons `tools/src/userstate.cpp`, `tools/src/toolregistry.cpp`, `tests/tst_tools_registry.cpp` ; en-têtes figés
 `tool.h`, `toolcontext.h`, `userstate.h`, `toolregistry.h` : membres privés seulement.
 
-**Test et commande bornée.** Commande ciblée `tst_pentool|tst_tools_registry` ; preuve de tâche N ≥ 111 ;
+**Test et commande bornée.** Commande ciblée `tst_pentool|tst_tools_registry` ; preuve de tâche N = N_départ + 19 ;
 fonctions en `PASS` ; les cas existants de `tst_pentool` passent sans modification de leurs assertions.
 
-**Interdits.** `registerBuiltinTools` crée la gomme et la sélection par leurs constructeurs (talons de L3-T1) sans
+**Interdits.** `registerBuiltinTools` crée la gomme et la sélection par leurs constructeurs (talons du socle, L0-S6) sans
 toucher `erasertool.*` ni `selecttool.*` (L3-T7, L3-T8). Ne pas changer la signature de `DocumentSink::commitStroke`.
 
 **Terminé quand.** Tests ci-dessous en `PASS` ; `tst_pentool` existant vert.
@@ -2612,7 +1355,7 @@ toucher `erasertool.*` ni `selecttool.*` (L3-T7, L3-T8). Ne pas changer la signa
       }
   };
 
-  class PenTool final : public Tool
+  class PenTool final : public Tool // déjà un Tool (L0-S7) : on ajoute le genre et la translucidité
   {
   public:
       PenTool(InkSurface& ink, DocumentSink& document, core::StrokeKind kind = core::StrokeKind::Pen);
@@ -2633,7 +1376,7 @@ toucher `erasertool.*` ni `selecttool.*` (L3-T7, L3-T8). Ne pas changer la signa
   `highlighter` (`PenTool(…, StrokeKind::Highlighter)`), `eraser` (`EraserTool(context)`).
 - [ ] **Étape 3 : vert, preuves, commit.**
   ```powershell
-  git -C <wt> add tools/include/actcraft/tools/pentool.h tools/src/pentool.cpp tools/src/userstate.cpp tools/src/toolregistry.cpp tools/include/actcraft/tools/tool.h tools/include/actcraft/tools/toolcontext.h tools/include/actcraft/tools/userstate.h tools/include/actcraft/tools/toolregistry.h tests/tst_pentool.cpp tests/tst_tools_registry.cpp
+  git -C <wt> add tools/include/actcraft/tools/pentool.h tools/src/pentool.cpp tools/src/userstate.cpp tools/src/toolregistry.cpp tests/tst_pentool.cpp tests/tst_tools_registry.cpp
   git -C <wt> commit -m "tools : interface d'outil, registre, état d'utilisateur ; stylo et marqueur, bouts ronds (L3-T6)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
@@ -2656,7 +1399,7 @@ une opacité de nœud (`QSGOpacityNode`), qui a le même défaut.
 ronds, chaque recalage expliqué dans le rapport), talon `tests/tst_render_strokeshape.cpp`.
 
 **Test et commande bornée.** Commande ciblée `tst_render_strokeshape|tst_render_painter|tst_render_` ; preuve de
-tâche N ≥ 111 ; fonctions en `PASS` ; banc sans écran `content_check.ok = True` ; à l'écran D3D11 (jeton `ecran`,
+tâche N = N_départ + 19 ; fonctions en `PASS` ; banc sans écran `content_check.ok = True` ; à l'écran D3D11 (jeton `ecran`,
 annoncé) : `captures.ps1 -Scenario anticrenelage -Rendu d3d11` → `CAPTURES OK`, `BORD … OK` (le lissage du lot 10
 tient).
 
@@ -2706,7 +1449,7 @@ référence joint par l'orchestrateur, deux passages) ; le choix technique (pist
 <a id="tache-l3-t12"></a>
 ### Tâche L3-T12 — `DocumentController` : soulever et déposer, Annuler / Rétablir, Supprimer, Effacer, Rétablir la page
 
-**Objectif.** Remplir l'API posée par le socle L0-S (ou L3-T1 avant son amendement). Le contrôleur reste la
+**Objectif.** Remplir l'API posée par le socle (L0-S5 : corps vides, observateur unique `addChangeObserver`). Le contrôleur reste la
 **seule** voie vers le cache : au soulèvement,
 `core::takeObjects` sur la page affichée puis `core::liftChanges` → `applyToCache` ; au dépôt,
 `core::restoreObjects`, exécution de la commande (pile), puis `core::changesAfterLift` → `applyToCache` (et non les
@@ -2715,14 +1458,15 @@ rétablir la page, supprimer, enregistrer, ouvrir) — **jamais au soulèvement*
 trait irait à la page bornée et effacerait la branche à rétablir). Page de référence de Rétablir la page : la page
 telle qu'ouverte ou enregistrée en dernier ; jamais enregistré : page vierge de même taille (F-131, D9).
 
-**Fichiers.** Modifier : `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`,
-`tests/tst_ui_document.cpp` ; talon `tests/tst_ui_lift.cpp`.
+**Fichiers.** Modifier : `ui/src/documentcontroller.cpp`, `tests/tst_ui_document.cpp` (fonctions du socle gardées,
+dont `liftDoesNotAnnounceAnEdit`) ; talon `tests/tst_ui_lift.cpp` ; en-tête figé `documentcontroller.h` : membres
+privés seulement.
 
-**Test et commande bornée.** Commande ciblée `tst_ui_lift|tst_ui_document` ; preuve de tâche N ≥ 111 ; fonctions
+**Test et commande bornée.** Commande ciblée `tst_ui_lift|tst_ui_document` ; preuve de tâche N = N_départ + 19 ; fonctions
 en `PASS` ; mutation : au dépôt, appliquer les changements bruts de la commande → `dropInsertsLiftedObjects` rouge,
 puis remise.
 
-**Interdits.** Aucune signature publique de L3-T1 changée. Aucun appel direct à `FixedPageItem` hors de
+**Interdits.** Aucune signature publique figée (L0-S5) changée. Aucun appel direct à `FixedPageItem` hors de
 `attach()`/`applyToCache` existants. Pendant un soulèvement : `saveToUrl`, `openUrl`, `nextPage`, `pageBack`,
 `replaceDocument` déposent d'abord sans étape (`dropLifted(nullptr)`) — Enregistrer n'écrit jamais un document dont
 des objets sont soulevés.
@@ -2744,12 +1488,28 @@ des objets sont soulevés.
   using namespace actcraft;
 
   namespace {
-  struct CacheSpy final : core::PageCache
+  // Observateur unique du socle (L0-S5) : reçoit exactement les changements passés au cache, et leur origine.
+  struct CacheSpy
   {
-      std::vector<std::pair<char, core::ObjectId>> calls; // 'i' insert, 'r' remove, 'v' invalidate
-      void insert(core::ObjectId id) override { calls.emplace_back('i', id); }
-      void remove(core::ObjectId id, const core::RectF&) override { calls.emplace_back('r', id); }
-      void invalidate(core::ObjectId id, const core::CacheArea&) override { calls.emplace_back('v', id); }
+      std::vector<std::pair<char, core::ObjectId>> calls; // 'i' inséré, 'r' retiré, 'v' changé
+      std::vector<ui::DocumentController::ChangeOrigin> origins;
+      void attach(ui::DocumentController& controller)
+      {
+          controller.addChangeObserver([this](const core::Changes& changes, ui::DocumentController::ChangeOrigin origin) {
+              origins.push_back(origin);
+              for (const core::Change& c : changes) {
+                  switch (c.kind) {
+                  case core::Change::Kind::ObjectInserted: calls.emplace_back('i', c.object); break;
+                  case core::Change::Kind::ObjectRemoved: calls.emplace_back('r', c.object); break;
+                  case core::Change::Kind::ObjectChanged:
+                  case core::Change::Kind::PageChanged: calls.emplace_back('v', c.object); break;
+                  case core::Change::Kind::PageInserted:
+                  case core::Change::Kind::PageRemoved:
+                  case core::Change::Kind::PageSettingsChanged: break; // sans effet de cache (C4062)
+                  }
+              }
+          });
+      }
   };
   core::Stroke line(double y)
   {
@@ -2768,7 +1528,7 @@ des objets sont soulevés.
       {
           ui::DocumentController controller;
           CacheSpy spy;
-          controller.setCacheObserver(&spy);
+          spy.attach(controller);
           controller.commitStroke(line(100));
           const core::ObjectId id = controller.document().page(0).objects.back().common.id;
           spy.calls.clear();
@@ -2779,12 +1539,13 @@ des objets sont soulevés.
           QVERIFY(controller.isLifting());
           QCOMPARE(controller.shownObjectCount(), 0);
           QCOMPARE(spy.calls, (std::vector<std::pair<char, core::ObjectId>>{{'r', id}}));
+          QCOMPARE(spy.origins.back(), ui::DocumentController::ChangeOrigin::Lift);
       }
       void dropInsertsLiftedObjects()
       {
           ui::DocumentController controller;
           CacheSpy spy;
-          controller.setCacheObserver(&spy);
+          spy.attach(controller);
           controller.commitStroke(line(100));
           const core::ObjectId id = controller.document().page(0).objects.back().common.id;
           controller.liftObjects({id});
@@ -2792,6 +1553,7 @@ des objets sont soulevés.
           controller.dropLifted(std::make_unique<core::TransformObjectsCommand>(0, std::vector<core::ObjectId>{id},
                                                                                  core::translation(40, 0)));
           QCOMPARE(spy.calls, (std::vector<std::pair<char, core::ObjectId>>{{'i', id}}));
+          QCOMPARE(spy.origins.back(), ui::DocumentController::ChangeOrigin::Drop);
           QVERIFY(!controller.isLifting());
           QCOMPARE(controller.document().page(0).objects.back().common.transform.dx, 40.0);
           controller.undo(); // une étape
@@ -2869,82 +1631,48 @@ des objets sont soulevés.
   supérieure). Commande ciblée → rouge.
 - [ ] **Étape 2 : implémentation.** Membres privés : `std::vector<core::LiftedObject> m_lifted`,
   `std::vector<core::Page> m_savedPages` (posée par `replaceDocument` et à la fin d'un enregistrement réussi du
-  contenu affiché ; vide pour un document neuf), `core::PageCache* m_observer`. Les appels de cache passent par une
-  fonction privée unique qui applique `applyToCache` à la page fixe puis à l'observateur. `liftObjects` :
+  contenu affiché ; vide pour un document neuf). Les appels de cache passent par le `settle(changes, origin)` du socle
+  (page fixe puis observateurs), avec l'origine `Lift` au soulèvement et `Drop` au dépôt. `liftObjects` :
   **aucune annonce** (B1 : un seul utilisateur, aucun trait d'un autre outil n'est en cours ; annoncer ferait annuler
   l'outil qui soulève par L3-T14), `takeObjects`, `liftChanges`, `documentChanged`, `liftingChanged`. **Dépôt forcé
   (M2)** : `nextPage`, `pageBack`, `replaceDocument` émettent d'abord `pageAboutToChange` (déjà émis aujourd'hui),
   `saveToUrl` et `openUrl` émettent d'abord `editAboutToApply` ; l'outil y abandonne son geste (`ToolHost`, L3-T14 :
   `drop(nullptr)` et couche soulevée vidée) ; ensuite seulement, s'il reste des objets soulevés, le contrôleur les
-  dépose sans étape. Le commentaire de `liftObjects` posé par L3-T1 (« Annonce editAboutToApply… ») est corrigé dans
-  l'en-tête en conséquence. `dropLifted` : `restoreObjects`, `run(command)` si non nul, `changesAfterLift`, signaux.
+  dépose sans étape. `dropLifted` : `restoreObjects`, `run(command)` si non nul, `changesAfterLift`, signaux.
   `undo`/`redo` : `editAboutToApply`, dépôt sans étape si besoin, puis la pile. `revertPage` : `ReplacePageCommand`
   avec la page de référence (ou `core::Page` vierge de même taille). `canRevertPage` : la page affichée diffère de
   sa référence (empreinte).
 - [ ] **Étape 3 : vert, mutation, preuves, commit.**
   ```powershell
-  git -C <wt> add ui/include/actcraft/ui/documentcontroller.h ui/src/documentcontroller.cpp tests/tst_ui_document.cpp tests/tst_ui_lift.cpp
+  git -C <wt> add ui/src/documentcontroller.cpp tests/tst_ui_document.cpp tests/tst_ui_lift.cpp
   git -C <wt> commit -m "ui : soulever et déposer par l'interface de cache, édition annoncée avant le trait, effacer, rétablir la page (L3-T12)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
 ---
 
 <a id="tache-l3-t17"></a>
-### Tâche L3-T17 — Joueur de scénarios : étapes `pinch` et `touch`, `expect` avec tolérance
+### Tâche L3-T17 — retirée (faite par le socle)
 
-**Objectif.** S6 demande « un pincement à deux doigts injecté » : le joueur ne sait injecter que stylet, souris,
-touches et commandes. Ajouter deux étapes (à la fin de `UiStepKind`) et une tolérance numérique à `expect`.
-
-**Fichiers.** Modifier : `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`,
-`bench/include/actcraft/bench/injector.h`, `bench/src/injector.cpp`, `tests/tst_bench_uiscenario.cpp`,
-`tests/tst_bench_injector.cpp`.
-
-**Test et commande bornée.** Commande ciblée `tst_bench_uiscenario|tst_bench_injector` ; preuve de tâche N ≥ 111 ;
-fonctions en `PASS`.
-
-**Interdits.** Rangs existants de `UiStepKind` inchangés (ajouts à la fin) ; injection par l'API publique de Qt
-(`QWindowSystemInterface` publique, comme l'injecteur existant ; un `QPointingDevice` tactile enregistré une fois) ;
-aucune souris réelle.
-
-**Terminé quand.** Étapes lues, jouées et rapportées (`DOIGT …`, `PINCEMENT …`) ; tests en `PASS`.
-
-**Étapes.**
-- [ ] **Étape 1 : tests rouges.** `tst_bench_uiscenario` : `touchStepParsed`
-  (`{"touch": [[100, 100], [300, 100]]}` → `UiStepKind::Touch`, 2 points de page), `pinchStepParsed`
-  (`{"pinch": [500, 400], "from": 100, "to": 200, "steps": 10}` → `UiStepKind::Pinch`, centre de page, écarts en
-  pixels de vue, `steps` 10 ; `steps` absent : 12 ; `from` ≤ 0 : `SCENARIO INVALIDE`), `expectWithTolerance`
-  (`{"expect": "pageView.zoom", "value": 1.5, "tolerance": 0.01}` : 1.505 → `LU … OK`, 1.6 → `ECART`).
-  `tst_bench_injector` : `pinchDeliversTwoTouchPoints` (élément d'essai qui compte les points d'un `QTouchEvent` :
-  appui à deux points, `steps` mouvements, relâché ; écart final entre les deux points = `to` ± 1 px, milieu fixe).
-- [ ] **Étape 2 : implémentation.** `enum class UiStepKind` : ajouter `Touch` et `Pinch` à la fin (commentaire
-  « Ajoutées au lot 3 (L3-T17, S6), à la fin »). `touch` : un doigt, points de page convertis en points de fenêtre
-  comme l'étape `stroke`, intervalle de l'étape `stroke` ; ligne `DOIGT <n> points OK`. `pinch` : deux doigts
-  placés horizontalement autour du centre (converti en fenêtre), écart `from` → `to` en `steps` pas d'une image ;
-  ligne `PINCEMENT ×<to/from> OK`. `expect` : `tolerance` numérique facultative (comparaison exacte sinon, comme
-  aujourd'hui).
-- [ ] **Étape 3 : vert, preuves, commit.**
-  ```powershell
-  git -C <wt> add bench/include/actcraft/bench/uiscenario.h bench/src/uiscenario.cpp bench/include/actcraft/bench/injector.h bench/src/injector.cpp tests/tst_bench_uiscenario.cpp tests/tst_bench_injector.cpp
-  git -C <wt> commit -m "bench : étapes doigt et pincement du joueur de scénarios, tolérance des lectures (L3-T17)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
-  ```
+Faite par L0-S2 (étapes `touch`, `pinch`, `pointer`, `doubleClick`, tolérance d'`expect`). Ne pas exécuter.
 
 ---
 
 <a id="tache-l3-t7"></a>
 ### Tâche L3-T7 — `tools` : gomme
 
-**Socle.** La commande déposée au relâché est la `ReplaceObjectsCommand` du socle L0-S si elle existe (voir
-L3-T4) ; le nom `ReplaceStrokesCommand` de cette section se lit alors comme elle.
+**Socle.** La commande déposée au relâché est `core::ReplaceObjectsCommand` (L0-S3) : un `ObjectReplacement` par
+trait touché, `removed = {original}`, `added` = ses morceaux (objets traits de la couche du dessus, commun de
+l'original, transformation identité).
 
 **Objectif.** F-230 : au premier contact du disque avec une annotation, la gomme la **soulève** (une fois par trait
 et par geste) et la montre recoupée dans la couche soulevée ; elle ne touche jamais une forme, une image, un texte, ni
-une annotation déplacée hors de la couche du dessus ; au relâché, **une** `ReplaceStrokesCommand` déposée (un pas
+une annotation déplacée hors de la couche du dessus ; au relâché, **une** `ReplaceObjectsCommand` déposée (un pas
 d'annulation, P11) ; rien n'est exécuté pendant le geste. Rayon = largeur de la gomme / 2 (D4).
 
 **Fichiers.** Modifier (talons) : `tools/src/erasertool.cpp`, `tests/tst_tools_eraser.cpp` ; en-tête
 `tools/include/actcraft/tools/erasertool.h` : membres privés seulement.
 
-**Test et commande bornée.** Commande ciblée `tst_tools_eraser` ; preuve de tâche N ≥ 111 ; fonctions en `PASS`.
+**Test et commande bornée.** Commande ciblée `tst_tools_eraser` ; preuve de tâche N = N_départ + 19 ; fonctions en `PASS`.
 
 **Interdits.** Aucun en-tête de `render/` ni de `ui/` ; aucune écriture du document hors `DocumentEditor` ; aucune
 commande exécutée pendant le geste.
@@ -2961,7 +1689,7 @@ commande exécutée pendant le geste.
   - `liftsEachTouchedStrokeOnce` : deux traits horizontaux (y 100 et 200), un trait de gomme vertical de (200, 50) à
     (200, 250) en 20 mouvements : `lift` appelé 2 fois en tout, une par trait, chaque identifiant une fois.
   - `nothingExecutedDuringTheGesture` : pendant les mouvements, `executed` et `dropped` vides.
-  - `oneCommandAtRelease` : au relâché, un seul `drop` avec une `ReplaceStrokesCommand` ; page : 4 morceaux.
+  - `oneCommandAtRelease` : au relâché, un seul `drop` avec une `ReplaceObjectsCommand` ; page : 4 morceaux.
   - `shapesAreNeverTouched` : un rectangle sous le passage de la gomme : jamais soulevé, toujours dans la page.
   - `movedAnnotationIsNotErased` : un trait de la couche intermédiaire sous le passage : intact.
   - `cancelRestoresEverything` : appui, mouvements, `cancel()` : `drop(nullptr)`, empreinte d'origine.
@@ -2972,11 +1700,11 @@ commande exécutée pendant le geste.
   rayon, pas encore soulevée → `lift` (copie gardée sous forme de points de page, `core::strokePointsOnPage`) ;
   pour chaque trait soulevé, `core::cutBySweep` sur ses morceaux courants ; `LiftSurface::show` avec les morceaux
   courants (objets traits, commun de l'original, transformation identité). Au relâché : `drop` d'une
-  `ReplaceStrokesCommand` (un `StrokeReplacement` par trait soulevé et coupé ; un trait soulevé mais non coupé
-  garde un seul morceau égal à l'original) ; rien de soulevé : rien. `cancel` : `drop(nullptr)`, `LiftSurface::clear`.
+  `ReplaceObjectsCommand` (un `ObjectReplacement` par trait soulevé et coupé ; un trait soulevé mais non coupé
+  n'y figure pas : il est remis tel quel par le dépôt) ; rien de soulevé : rien. `cancel` : `drop(nullptr)`, `LiftSurface::clear`.
 - [ ] **Étape 3 : vert, preuves, commit.**
   ```powershell
-  git -C <wt> add tools/src/erasertool.cpp tools/include/actcraft/tools/erasertool.h tests/tst_tools_eraser.cpp
+  git -C <wt> add tools/src/erasertool.cpp tests/tst_tools_eraser.cpp
   git -C <wt> commit -m "tools : gomme qui soulève, recoupe et dépose les annotations en une étape (L3-T7)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
@@ -2999,7 +1727,7 @@ de base viennent de `layoutSelection` (sa forme complète, poignées et barre, e
 **Fichiers.** Modifier (talons) : `tools/src/selecttool.cpp`, `tools/src/selectiongeometry.cpp`,
 `tests/tst_tools_select.cpp` ; en-têtes `selecttool.h`, `selectiongeometry.h` : membres privés seulement.
 
-**Test et commande bornée.** Commande ciblée `tst_tools_select` ; preuve de tâche N ≥ 111 ; fonctions en `PASS`.
+**Test et commande bornée.** Commande ciblée `tst_tools_select` ; preuve de tâche N = N_départ + 19 ; fonctions en `PASS`.
 
 **Interdits.** Aucun en-tête de `render/` ni de `ui/` ; pas de commande par mouvement ; sélection rangée dans
 `UserState` (DA-A1), nulle part ailleurs.
@@ -3030,85 +1758,84 @@ de base viennent de `layoutSelection` (sa forme complète, poignées et barre, e
   transformation `translation(dx, dy)` ; cadre recalculé par `layoutSelection` translaté ; `handlesVisible = false`.
 - [ ] **Étape 3 : vert, preuves, commit.**
   ```powershell
-  git -C <wt> add tools/src/selecttool.cpp tools/src/selectiongeometry.cpp tools/include/actcraft/tools/selecttool.h tools/include/actcraft/tools/selectiongeometry.h tests/tst_tools_select.cpp
+  git -C <wt> add tools/src/selecttool.cpp tools/src/selectiongeometry.cpp tests/tst_tools_select.cpp
   git -C <wt> commit -m "tools : sélection — désigner, rectangle qui touche, déplacer par soulèvement, corbeille (L3-T8)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
 ---
 
 <a id="tache-l3-t13"></a>
-### Tâche L3-T13 — `PageView` : gestes à deux doigts, demandes de redessin regroupées, outil actif occupé
+### Tâche L3-T13 — `PageView` : gestes à deux doigts, demandes de redessin regroupées, outil actif de `ToolHost` occupé
 
-**Objectif.** Le chemin d'entrée est posé par le socle L0-S : événement → `input::Sample` → `PointerRouter`
-(couvertures des surcouches) → filtre d'échantillons → **`input::Pipeline`** (numérotation `seq`, filtre de
-doublons, sonde de latence du banc) → outil actif (`tools()->activeTool(user)`, ou le stylo interne si `tools` est
-nul ou rend nullptr). Cette tâche **vérifie** que les garde-fous du lot 10, liés jusqu'ici au stylo interne, suivent
-l'outil actif (M1) : la minuterie de versement teste `activeTool()->isBusy()` (et non `m_pen->isDrawing()`),
-`finishStroke()` appelle `activeTool()->cancel()` (le stylo y verse son trait), la sonde de latence voit les
-échantillons de l'outil routé ; si le socle ne l'a pas fait, elle le fait. Elle ajoute ensuite le geste : `Route::Gesture` → `input::TwoFingerGesture` : zoom = zoom à l'appui × `scale`, le point de page sous
-`anchor` suit `center` ; `endToolContacts` → le trait du doigt en cours est terminé (`finishTouchStroke`, versé)
-avant le geste ; `Route::Ignore` → rien (paume). La vue ne garde aucune règle propre au nombre de doigts.
-`cacheRefreshCount` compte les `notifyCacheUpdated` ; `gestureActive` suit le geste. **Demandes de redessin
-regroupées par tour (M3, règle retenue)** : toutes les demandes de redessin du cache arrivées dans un même tour de
-boucle (contrôleur : `contentChanged` répétés d'un soulèvement de plusieurs objets ou d'un dépôt) font **un seul**
-redessin : `requestCacheRefresh` pose un drapeau et poste une seule demande en file (`QMetaObject::invokeMethod`,
-`Qt::QueuedConnection`) qui appelle `scheduleUpdate` une fois ; le relancement à la fin d'un redessin
-(`m_refreshAgain`) n'est posé que par une demande arrivée **après** le départ de ce redessin. La décision 10 (« un
-trait figé n'attend pas ») tient : la demande part au tour suivant, avant l'image suivante. Les règles déjà tenues
-restent :
-`canStartStroke` (zone et surcouches, `coveredAt`), `inputBlocked`, `finishStroke` avant zoom et défilement,
-périphériques exclusifs du banc, `Qt Quick retarde les TouchUpdate` (piège L1-T8).
+**Objectif.** Le chemin d'entrée est posé et rempli par le socle (L0-S7) : événement → `Sample` → `PointerRouter`
+(couvertures) → filtre d'échantillons → `Pipeline` (numérotation `seq`, doublons, sonde) → outil actif
+(`currentTool()` : `ToolHost::activeTool(user)`, sinon le stylo interne) ; garde du versement différé sur
+`currentTool()->isBusy()`, `finishStroke()` par `cancel()`, `contextMenuRequested`, `zoomAround`,
+`cacheRefreshCount`, `router()`. Cette tâche ajoute, dans `pageview.cpp` seulement :
 
-**Fichiers.** Modifier : `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `tests/tst_pageview.cpp`,
-`tests/tst_ui_drawing.cpp`.
+1. **Le geste à deux doigts.** `Route::Gesture` (décidé par `FullTouchPolicy`, L3-T5) → `input::TwoFingerGesture` :
+   `begin` quand deux contacts de geste sont posés, `update` à chaque mouvement de l'un d'eux, zoom = zoom à l'appui
+   × `scale` appliqué par **`zoomAround`** du socle (ancre : le point de vue `center`, le point de page qui était sous
+   `anchor` y est ramené ; zoom borné comme la molette, quitte « Ajuster ») ; fin quand un des deux se relève.
+   `endToolContacts` → le trait du doigt en cours est terminé (versé) avant le geste. `gestureActive` suit le geste.
+   La vue ne garde aucune règle propre au nombre de doigts : tout vient de la décision du routeur.
+2. **Les demandes de redessin d'un même tour regroupées (M3, règle retenue).** Toutes les demandes arrivées dans un
+   même tour de boucle (les `contentChanged` répétés d'un soulèvement de plusieurs objets ou d'un dépôt) font **un
+   seul** redessin : `requestCacheRefresh` pose un drapeau et poste une seule demande en file
+   (`QMetaObject::invokeMethod`, `Qt::QueuedConnection`) qui appelle `scheduleUpdate` une fois ; le relancement de fin
+   de redessin (`m_refreshAgain`) n'est posé que par une demande arrivée **après** le départ du redessin en cours. La
+   décision 10 (« un trait figé n'attend pas ») tient : la demande part au tour suivant, avant l'image suivante.
+3. **La preuve de la branche « outil de `ToolHost` » de D-S9** (socle) : `ToolHost::activeTool()` est rempli par
+   L3-T14 ; c'est ici seulement que la minuterie de versement, la sonde de latence et le changement de page sont
+   prouvés avec l'outil de `ToolHost` (au socle, seul le stylo interne l'était).
 
-**Test et commande bornée.** Commande ciblée `tst_pageview|tst_ui_drawing` ; preuve de tâche N ≥ 111 ; fonctions en
-`PASS` (dont tous les cas existants de `tst_pageview`, inchangés) ; banc sans écran `content_check.ok = True` ;
-`premiers-pas` hors écran `CAPTURES OK`.
+**Fichiers.** Modifier : `ui/src/pageview.cpp`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp` ; en-tête
+`ui/include/actcraft/ui/pageview.h` (figé) : membres privés seulement, ce qui n'en fait pas un fichier de la tâche
+au sens des vagues (aucune autre tâche ne le touche).
 
-**Interdits.** Ne pas refaire le chemin d'entrée du socle (le compléter seulement s'il manque un garde-fou, et
-l'écrire dans le rapport). Aucun `if` sur le nombre de points tactiles hors du routeur ; pas d'activation conjointe de
-`AA_CompressHighFrequencyEvents` et `AA_CompressTabletEvents` ; ne pas toucher `toolhost.*` (L3-T14).
+**Test et commande bornée.** Commande ciblée `tst_pageview|tst_ui_drawing|tst_ui_inputpath` ; preuve de tâche
+N = N_départ + 19 ; fonctions nommées en `PASS` (dont tous les cas existants de `tst_pageview`, inchangés) ;
+`tst_ui_inputpath` toujours vert (dont `cacheRefreshCountCounts`, `foldWaitsForTheBusyTool` du socle) ; banc sans
+écran `content_check.ok = True` ; `premiers-pas` et `cache-differe` hors écran `CAPTURES OK`.
 
-**Terminé quand.** Tests ci-dessous en `PASS` ; S2 et le banc inchangés.
+**Interdits.** Ne pas refaire ni contourner le chemin d'entrée du socle ; aucun `if` sur le nombre de points tactiles
+hors du routeur ; pas d'activation conjointe de `AA_CompressHighFrequencyEvents` et `AA_CompressTabletEvents` ; ne pas
+toucher `toolhost.*`, `input/` ; tout `switch` sur `Change::Kind` traite `PageSettingsChanged` (C4062 en erreur).
+
+**Terminé quand.** Tests ci-dessous en `PASS` ; S2, `cache-differe` et le banc inchangés.
 
 **Étapes.**
-- [ ] **Étape 1 : tests rouges** (`tests/tst_pageview.cpp`, fenêtre hors écran et `QTest::touchEvent` avec un
-  `QPointingDevice` tactile créé par `QTest::createTouchDevice()`, une image laissée entre deux envois) :
+- [ ] **Étape 1 : tests rouges** (`tests/tst_pageview.cpp`, fenêtre hors écran, `QTest::touchEvent` avec un
+  `QPointingDevice` tactile de `QTest::createTouchDevice()`, une image laissée entre deux envois — piège L1-T8) :
   - `pinchZoomsAroundItsCenter` : zoom 1 ; deux doigts à (400, 300) et (600, 300) puis (300, 300) et (700, 300) :
     `zoom() == 2` (± 0,01) ; le point de page qui était sous (500, 300) y est encore (`pageToScene`, ± 1 px).
   - `twoFingerPanScrolls` : deux doigts déplacés ensemble de (0, +50) : `pan` change de 50 px de vue, zoom inchangé.
-  - `secondFingerEndsFingerStroke` : un doigt trace (3 mouvements), un deuxième se pose : un trait versé (nombre
-    d'objets + 1), puis aucun point de plus à ce trait quand les deux doigts bougent ; `gestureActive` vrai puis faux
-    au relâché des deux.
-  - `palmIgnoredDuringStylus` : stylet appuyé (filtre de la fenêtre), un doigt se pose et bouge : aucun trait de doigt,
-    zoom inchangé.
-  - `samplesGoToActiveTool` : `tools` nul → le stylo interne trace (comportement des lots 1 et 2).
-  - `cacheRefreshCountCounts` : trois fois, `requestCacheRefresh` puis **attendre sa fin** (`QTRY_COMPARE` sur
-    `cacheReady`) avant la demande suivante → `cacheRefreshCount()` + 3 (mineur 7 : trois demandes d'un même tour ne
-    font plus qu'un redessin).
-  - `requestsOfOneTurnMakeOneRedraw` : trois `requestCacheRefresh` dans le même tour, puis attente de `cacheReady` →
-    `cacheRefreshCount()` + 1 ; une demande arrivée pendant un redessin commencé → + 1 de plus (relancement gardé).
-  - `foldWaitsForTheActiveTool` : `tools` posé, outil stylo de `ToolHost` (ou doublure de `ToolHost` qui rend un
-    `tools::Tool` occupé) : appui du stylet puis **immobile 800 ms** (au-delà de `kCacheFoldIdleMs`) : aucun versement
-    (`fixedPage.pendingCount` inchangé, `cacheRefreshCount` inchangé) tant que l'outil est occupé ; relâché, puis
-    500 ms : versement.
-  - `latencyProbeSeesToolSamples` : sonde de latence posée (`setInkProbe`), dix échantillons de stylet routés vers
-    l'outil actif : la sonde en a vu dix, numéros `seq` croissants.
-  - `pageChangeEndsToolStroke` : un trait de l'outil actif en cours, `DocumentController::nextPage()` (signal
-    `pageAboutToChange`, branché à `finishStroke` dans `Main.qml`) → le trait est versé à la page qu'il quitte,
-    l'outil n'est plus occupé.
-- [ ] **Étape 2 : implémentation.** Garde-fous du lot 10 sur l'outil actif (si le socle ne les a pas posés) ;
-  regroupement des demandes de redessin ; puis le geste, sur les décisions du routeur du socle ;
-  table « contact → dernier point » pour le geste ; à `Route::Gesture`, `TwoFingerGesture::begin` quand deux contacts
-  de geste sont posés, `update` à chaque mouvement de l'un d'eux, `ViewTransform` recalculé (zoom borné comme la
-  molette, ancrage par `anchor`, quitte « Ajuster ») ; fin du geste quand un des deux se relève ;
-  `touchUngrabEvent` et `TouchCancel` : `m_router.reset()` et trait terminé.
+  - `secondFingerEndsFingerStroke` : un doigt trace (3 mouvements), un deuxième se pose : un trait versé
+    (`fixedPage->objectCount()` + 1), puis aucun point de plus à ce trait quand les deux doigts bougent ;
+    `gestureActive` vrai puis faux au relâché des deux.
+  - `palmIgnoredDuringStylus` : stylet appuyé, un doigt se pose et bouge : aucun trait de doigt, zoom inchangé.
+  - `requestsOfOneTurnMakeOneRedraw` : trois `requestCacheRefresh` dans le même tour, puis attente de `cacheReady`
+    → `cacheRefreshCount()` + 1 ; une demande arrivée pendant un redessin commencé → + 1 de plus (relancement gardé).
+  - `foldWaitsForTheActiveTool` : `PageView::setTools` sur un `ToolHost` branché (contrôleur, vue, couche, comme
+    `tst_ui_tools`), outil stylo de `ToolHost` : appui du stylet puis **immobile 800 ms** (au-delà de
+    `kCacheFoldIdleMs`) : aucun versement (`fixedPage.pendingCount` et `cacheRefreshCount` inchangés) tant que
+    l'outil est occupé ; relâché, puis 500 ms : versement.
+  - `latencyProbeSeesToolSamples` : sonde de latence posée (`setInkProbe`), outil de `ToolHost`, dix échantillons de
+    stylet : la sonde en a vu dix, numéros `seq` croissants.
+  - `pageChangeEndsToolStroke` : un trait de l'outil de `ToolHost` en cours, `DocumentController::nextPage()` (signal
+    `pageAboutToChange`, branché à `finishStroke`) → le trait est versé à la page qu'il quitte, l'outil n'est plus
+    occupé.
+  À `tests/tst_ui_drawing.cpp` (fenêtre qui charge `Main.qml`) : `dragOfTwoObjectsCostsTwoRedraws` (M3) — deux traits
+  versés, outil Sélectionner, rectangle de sélection sur les deux, glisser de 80 px : `pageView.cacheRefreshCount`
+  + 2 exactement sur tout le geste (un au soulèvement des deux, un au dépôt).
+  Commande ciblée → rouge.
+- [ ] **Étape 2 : implémentation** d'après l'objectif (regroupement d'abord, puis geste).
 - [ ] **Étape 3 : vert, preuves, commit.**
   ```powershell
-  git -C <wt> add ui/include/actcraft/ui/pageview.h ui/src/pageview.cpp tests/tst_pageview.cpp tests/tst_ui_drawing.cpp
-  git -C <wt> commit -m "ui : contacts par le routeur unique, pincer et défiler à deux doigts (L3-T13)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  git -C <wt> add ui/src/pageview.cpp ui/include/actcraft/ui/pageview.h tests/tst_pageview.cpp tests/tst_ui_drawing.cpp
+  git -C <wt> commit -m "ui : pincer et défiler à deux doigts, demandes de redessin regroupées par tour, outil actif prouvé (L3-T13)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
+  (`pageview.h` seulement s'il a changé.)
 
 ---
 
@@ -3126,10 +1853,10 @@ et toute rotation passent par le même soulèvement que le déplacement (couche 
 `TransformObjectsCommand` au relâché). Restrictions : `resizable == false` → poignées absentes ; `rotatable ==
 false` → bouton de rotation absent.
 
-**Fichiers.** Modifier : `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`,
-`tools/include/actcraft/tools/selectiongeometry.h`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp`.
+**Fichiers.** Modifier : `tools/src/selecttool.cpp`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp` ;
+en-têtes figés `selecttool.h`, `selectiongeometry.h` : membres privés seulement.
 
-**Test et commande bornée.** Commande ciblée `tst_tools_select` ; preuve de tâche N ≥ 111 ; fonctions en `PASS`
+**Test et commande bornée.** Commande ciblée `tst_tools_select` ; preuve de tâche N = N_départ + 19 ; fonctions en `PASS`
 (celles de L3-T8 comprises).
 
 **Interdits.** Comme L3-T8. Aucune signature publique changée.
@@ -3158,7 +1885,7 @@ false` → bouton de rotation absent.
   = `rotationAbout(centre, angle)`.
 - [ ] **Étape 3 : vert, preuves, commit.**
   ```powershell
-  git -C <wt> add tools/include/actcraft/tools/selecttool.h tools/src/selecttool.cpp tools/include/actcraft/tools/selectiongeometry.h tools/src/selectiongeometry.cpp tests/tst_tools_select.cpp
+  git -C <wt> add tools/src/selecttool.cpp tools/src/selectiongeometry.cpp tests/tst_tools_select.cpp
   git -C <wt> commit -m "tools : sélection — poignées, redimensionner, rotation, barre d'objet (L3-T9)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
@@ -3167,81 +1894,83 @@ false` → bouton de rotation absent.
 <a id="tache-l3-t14"></a>
 ### Tâche L3-T14 — `ui::ToolHost` : outils branchés
 
-**Objectif.** Remplir `ToolHost` et `ToolAdapters` : un `tools::ToolRegistry` (`registerBuiltinTools`), un
-`tools::UserState` (utilisateur 1), un `ToolContext` dont chaque interface est un adaptateur — `DocumentEditor` sur
-`DocumentController` (`liftObjects`, `dropLifted`, `execute`, page affichée), `LiftSurface` sur
-`render::LiftLayerItem`, `SelectionSurface` vers `selectionFrame` / `handlesVisible` (signal `selectionChanged`),
-`ViewInfo` sur `PageView` (zoom, `trashArea` en coordonnées de scène comparée au point de page passé par
-`pageToScene`, `Commands::objectBar`), `CommandSink` sur `Commands::trigger`, `InkSurface` et `DocumentSink` sur
-l'encre et le contrôleur (`ControllerSink::commitAnnotation` → `DocumentController::commitAnnotation`).
-`activate(id)` : `deactivate` de l'outil courant, création ou reprise de l'outil, commande `tool.<id>` cochée et
-les autres décochées, couleur et épaisseur de l'outil rendues à `PageView` (`inkColor`, `inkWidth`, alpha du
-marqueur). Mémoire par outil (F-136) : `setColor` / `setWidth` écrivent dans `UserState` **et** dans `QSettings`
-(`outils/<id>/couleur`, `outils/<id>/epaisseur` ; fichier `settingsFile` s'il est posé), relus à la création.
-`DocumentController::editAboutToApply` et `pageAboutToChange` → `cancel()` de l'outil courant (la sélection et la
-gomme déposent alors sans étape et vident la couche soulevée, M2) ; le soulèvement lui-même n'annonce rien (B1) ;
-`pagesChanged` → `SelectTool::refresh()`. **Échap (M9)** : la touche est le raccourci d'application de
-`tool.select` (`Main.qml`), jamais livré à `Tool::onKey` ; `activate(id)` appelle donc `cancel()` sur l'outil
-courant s'il est occupé (`isBusy`), et, si `id` est déjà l'outil courant, s'en tient là (Échap pendant un glissement =
-abandon du geste ; Échap au repos = outil Sélectionner).
-`Main.qml` : les gestionnaires `tool.pen` → `appTools.activate("pen")`, `tool.select` (Échap) →
-`appTools.activate("select")` (règle de M9 ci-dessus), `pen.color` → `appTools.setColor(color)`,
-`pen.width` → `appTools.setWidth(width)` ; `PageView` n'a plus de couleur propre quand `tools` est posé (S2 lit
-toujours `pageView.inkColor`, que `ToolHost` tient à jour).
+**Objectif.** Remplir `ToolHost` (API figée par L0-S6 ; `user()` déjà réel) et `ToolAdapters` : un
+`tools::ToolRegistry` (`registerBuiltinTools`), l'utilisateur de `user()`, un `ToolContext` dont chaque interface est
+un adaptateur — `DocumentEditor` sur `DocumentController` (`liftObjects`, `dropLifted`, `execute`, page affichée),
+`LiftSurface` sur `render::LiftLayerItem`, `SelectionSurface` vers `selectionFrame` / `handlesVisible` (signal
+`selectionChanged`), `ViewInfo` sur `PageView` (zoom, `trashArea` en coordonnées de scène comparée au point de page
+passé par `pageToScene`, `Commands::objectBar`), `CommandSink` sur `Commands::trigger`, `InkSurface` et
+`DocumentSink` sur l'encre et le contrôleur (`ControllerSink::commitAnnotation` →
+`DocumentController::commitAnnotation`). **`activeTool(user)`** rend l'outil courant de l'utilisateur (une instance
+par outil, créée à la première demande). `activate(id)` : `deactivate` de l'outil courant, création ou reprise de
+l'outil, commande `tool.<id>` cochée et les autres décochées, couleur et épaisseur de l'outil rendues à `PageView`
+(`inkColor`, `inkWidth`, alpha du marqueur). Mémoire par outil (F-136) : `setColor` / `setWidth` écrivent dans
+`UserState` **et** dans `QSettings` (`outils/<id>/couleur`, `outils/<id>/epaisseur` ; fichier `settingsFile` s'il
+est posé), relus à la création. `DocumentController::editAboutToApply` et `pageAboutToChange` → `cancel()` de l'outil
+courant (la sélection et la gomme déposent alors sans étape et vident la couche soulevée, M2) ; le soulèvement
+lui-même n'annonce rien (B1, `liftDoesNotAnnounceAnEdit` du socle) ; `pagesChanged` → `SelectTool::refresh()`.
+**Échap (M9)** : raccourci d'application de `tool.select`, jamais livré à `Tool::onKey` ; le gestionnaire de
+`Main.qml` devient `appTools.cancelGesture(); appTools.activate("select")` (`cancelGesture` abandonne le geste de
+l'outil occupé, sans effet sinon ; activer l'outil déjà courant ne fait rien) : Échap pendant un glissement =
+abandon ; au repos, outil Sélectionner. `Main.qml` : aussi `tool.pen` → `appTools.activate("pen")`, `pen.color` →
+`appTools.setColor(color)`, `pen.width` → `appTools.setWidth(width)` (les autres gestionnaires du lot 3 sont posés par
+L0-S9) ; `PageView` n'a plus de couleur propre quand `tools` est posé (S2 lit toujours `pageView.inkColor`, que
+`ToolHost` tient à jour).
 
-**Fichiers.** Modifier : `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`,
-`ui/src/tooladapters.cpp`, `ui/src/penadapters.h`, `ui/src/penadapters.cpp`, `ui/qml/Main.qml`,
-`tests/tst_ui_tools.cpp` (talon), `tests/tst_ui_drawing.cpp`, `tests/tst_modules.cpp`.
+**Fichiers.** Modifier : `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`, `ui/src/tooladapters.cpp`,
+`ui/src/penadapters.h`, `ui/src/penadapters.cpp`, `ui/qml/Main.qml`, `tests/tst_ui_tools.cpp` (talon : `reserved()`
+supprimé, `oneUserForNow` et `liftLayerTypeIsRegistered` du socle gardés), `tests/tst_ui_drawing.cpp`,
+`tests/tst_modules.cpp` ; en-tête `ui/include/actcraft/ui/toolhost.h` (figé) : membres privés seulement.
 
 **Test et commande bornée.** Commande ciblée `tst_ui_tools|tst_ui_drawing|tst_modules|tst_ui_shell` ; preuve de
-tâche N ≥ 111 ; fonctions en `PASS` ; `premiers-pas` hors écran `CAPTURES OK` ; banc sans écran
+tâche N = N_départ + 19 ; fonctions nommées en `PASS` ; `premiers-pas` hors écran `CAPTURES OK` ; banc sans écran
 `content_check.ok = True`.
 
 **Interdits.** Aucun outil ne reçoit un pointeur vers `FixedPageItem`, `PendingLayerItem`, `LiftLayerItem` ou
-`PageView` (seulement les adaptateurs) ; aucune signature publique de L3-T1 changée ; aucun réglage écrit dans le
-profil réel pendant les tests (`settingsFile` sous le dossier temporaire du test).
+`PageView` (seulement les adaptateurs) ; aucune signature publique figée changée ; aucun réglage écrit dans le profil
+réel pendant les tests (`settingsFile` sous le dossier temporaire du test) ; tout `switch` sur `ObjectKind` traite
+`Equation`, sur `Change::Kind` traite `PageSettingsChanged`.
 
 **Terminé quand.** Tests ci-dessous en `PASS` ; S2 inchangé ; banc joint.
 
 **Étapes.**
 - [ ] **Étape 1 : tests rouges.** `tests/tst_ui_tools.cpp` (fenêtre hors écran qui charge `Main.qml` comme
-  `tst_ui_drawing`, fichier de réglages dans un `QTemporaryDir`, `CacheSpy` de `tst_ui_lift` posé par
-  `appDocument.setCacheObserver`) :
+  `tst_ui_drawing`, fichier de réglages dans un `QTemporaryDir`, observateur posé par
+  `appDocument.addChangeObserver` qui note `i`/`r`/`v` par changement et l'origine) :
   - `activatingAToolChecksItsCommand` : `trigger("tool.eraser")` → `currentTool == "eraser"`, `tool.eraser` coché,
-    `tool.pen` décoché.
+    `tool.pen` décoché ; `activeTool()->id() == "eraser"`.
   - `colorGoesToActiveTool` : stylo, `trigger("pen.color", "#E53935")` ; marqueur : couleur jaune par défaut,
     `pageView.inkColor` jaune ; retour au stylo : rouge.
   - `settingsSurviveRestart` : stylo rouge 8, fenêtre détruite ; nouvelle fenêtre avec le même `settingsFile` :
     stylo rouge 8 (F-136).
-  - `eraseGoesThroughTheCacheInterface` : deux traits au stylet injecté (méthode de `tst_ui_drawing`), gomme, trait
-    de gomme qui coupe le premier : `CacheSpy` = `r(id1)` pendant le geste, puis au relâché `i(morceau1)`,
-    `i(morceau2)` ; aucun `v` ; `shownObjectCount == 3` ; `liftLayer.objectCount == 0` après le relâché.
-  - `dragGoesThroughTheCacheInterface` : sélection, glisser un trait de 80 px en 8 mouvements : `CacheSpy` = `r(id)`
-    puis `i(id)`, rien entre les deux ; `cacheRefreshCount` de la vue augmenté de 2 au plus pendant le geste.
-  - `dragOfTwoObjectsCostsTwoRedraws` (M3) : deux traits versés, rectangle de sélection sur les deux, glisser de 80 px
-    : `cacheRefreshCount` + 2 exactement sur tout le geste (un au soulèvement des deux, un au dépôt), grâce au
-    regroupement par tour de L3-T13.
+  - `eraseGoesThroughTheCacheInterface` : deux traits au stylet injecté, gomme, trait de gomme qui coupe le premier :
+    l'observateur voit `r(id1)` (origine `Lift`) pendant le geste, puis au relâché `i(morceau1)`, `i(morceau2)`
+    (origine `Drop`) ; aucun `v` ; `shownObjectCount == 3` ; `liftLayer.objectCount == 0` après le relâché.
+  - `dragGoesThroughTheCacheInterface` : sélection, glisser un trait de 80 px en 8 mouvements : `r(id)` (`Lift`) puis
+    `i(id)` (`Drop`), rien entre les deux.
   - `undoAfterEraseRestores` : après la gomme, `trigger("edit.undo")` → 2 objets, empreinte d'avant la gomme.
-  - `liftDoesNotCancelTheLiftingTool` (B1) : sélection, glisser un trait : pendant le geste `liftLayer.objectCount
-    == 1` et `appTools` toujours occupé ; au relâché l'objet est déplacé (et non perdu) ; même essai avec la gomme :
-    les morceaux sont dans la page au relâché.
+  - `liftDoesNotCancelTheLiftingTool` (B1) : sélection, glisser un trait : pendant le geste `liftLayer.objectCount ==
+    1` et l'outil toujours occupé ; au relâché l'objet est déplacé (et non perdu) ; même essai avec la gomme : les
+    morceaux sont dans la page au relâché.
   - `pageChangeWhileDraggingClearsTheLiftLayer` (M2) : pendant un glissement, `trigger("page.next")` →
     `liftLayer.objectCount == 0` aussitôt, l'objet est à sa place d'origine sur la page 1, aucune étape ajoutée ; le
     relâché qui suit ne dépose rien.
   - `escapeCancelsTheGesture` (M9) : pendant un glissement, touche Échap injectée → objet à sa place, couche vide,
     outil courant toujours `select` ; Échap au repos avec le stylo → outil `select`.
-  `tests/tst_modules.cpp` : `toolsSeeNoRenderItem` — aucun fichier de `tools/include` ni `tools/src` (lus depuis
-  `ACTCRAFT_SOURCE_DIR` ou le chemin que le test utilise déjà) ne contient `#include <actcraft/render/` ni
-  `#include <actcraft/ui/`. À `tests/tst_ui_drawing.cpp` : les cas existants passent avec `tools` posé
-  (`Main.qml`) ; ajouter `fingerStrokeStillDraws` (un doigt injecté trace avec l'outil stylo, S3 tenu).
-  Commande ciblée → rouge.
-- [ ] **Étape 2 : implémentation** d'après l'objectif ; l'outil courant est créé à la première demande, gardé par
-  identifiant (une instance par outil et par utilisateur).
+  - `finishStrokeCancelsTheActiveTool` (D-S9 du socle) : outil Sélectionner en plein glissement (outil occupé, que
+    `finishStroke` ne termine pas comme un trait) ; `pageView.finishStroke()` → l'outil reçoit `cancel()` : plus
+    occupé, couche soulevée vide, objet à sa place.
+  `tests/tst_modules.cpp` : `toolsSeeNoRenderItem` — aucun fichier de `tools/include` ni `tools/src` ne contient
+  `#include <actcraft/render/` ni `#include <actcraft/ui/`. À `tests/tst_ui_drawing.cpp` : les cas existants passent
+  avec `tools` posé (`Main.qml`) ; ajouter `fingerStrokeStillDraws` (un doigt injecté trace avec l'outil stylo, S3
+  tenu). Commande ciblée → rouge.
+- [ ] **Étape 2 : implémentation** d'après l'objectif.
 - [ ] **Étape 3 : vert, preuves, commit.**
   ```powershell
-  git -C <wt> add ui/include/actcraft/ui/toolhost.h ui/src/toolhost.cpp ui/src/tooladapters.h ui/src/tooladapters.cpp ui/src/penadapters.h ui/src/penadapters.cpp ui/qml/Main.qml tests/tst_ui_tools.cpp tests/tst_ui_drawing.cpp tests/tst_modules.cpp
-  git -C <wt> commit -m "ui : outils branchés par leurs interfaces, mémoire par outil gardée au redémarrage (L3-T14)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  git -C <wt> add ui/src/toolhost.cpp ui/include/actcraft/ui/toolhost.h ui/src/tooladapters.h ui/src/tooladapters.cpp ui/src/penadapters.h ui/src/penadapters.cpp ui/qml/Main.qml tests/tst_ui_tools.cpp tests/tst_ui_drawing.cpp tests/tst_modules.cpp
+  git -C <wt> commit -m "ui : outils branchés par leurs interfaces, mémoire par outil gardée au redémarrage, Échap (L3-T14)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
+  (`toolhost.h` seulement s'il a changé.)
 
 ---
 
@@ -3253,9 +1982,9 @@ l'objet), huit poignées rondes grises, la poignée bas droite barrée d'un trai
 icônes des commandes (F-521), rectangle élastique gris ; tout placé par `pageView.pageToScene`, réévalué sur
 `zoomChanged` et `panChanged` ; masqué quand `handlesVisible` est faux (poignées et barre) ; la surcouche **ne prend
 aucune entrée** (les clics vont à la vue, donc au routeur et à l'outil). `TranslucencyPopup.qml` : réglette 0 à 255
-ouverte par `object.translucency` sans argument (le gestionnaire de `Main.qml` l'ouvre via
-`selectionOverlay.openTranslucency()`, à ajouter ici et appelé par un gestionnaire déjà posé : si le gestionnaire
-de L3-T2 ne l'appelle pas, l'écrire dans le rapport, ne pas toucher `Main.qml`), chaque mouvement déclenchant
+ouverte par `object.translucency` sans argument (le gestionnaire posé par L0-S9 appelle
+`selectionOverlay.openTranslucency()`, que cette tâche remplit ; s'il ne l'appelle pas, l'écrire dans le rapport,
+ne pas toucher `Main.qml`), chaque mouvement déclenchant
 `object.translucency <valeur>` (une étape par fusion, L3-T4). Aspect à nous (thème `Theme`), lisible à 3:1 sur la
 page et sur le fond.
 
@@ -3266,12 +1995,19 @@ fixtures nommées, écrites par nous comme les existantes — `rectangle-et-trai
 `objet-verrouille` (un rectangle plein #808080 libre (100, 100, 100, 100) et un rectangle plein #404040 verrouillé
 (400, 100, 100, 100), `common.locked = true`). L3-T16 utilise la première.
 
-**Test et commande bornée.** Preuve de tâche N ≥ 111, `tst_captures_selection` Passed ; preuve visuelle hors écran :
+**Test et commande bornée.** Preuve de tâche N = N_départ + 19, `tst_captures_selection` Passed ; preuve visuelle hors écran :
 `-Scenario selection -Lire "appTools.selectionCount=2"` → `LU appTools.selectionCount=2 OK`, puis les captures
 décrites (cadre, poignées, barre, déplacement) ; banc sans écran.
 
-**Interdits.** Aucune entrée prise par la surcouche (`enabled: false` sur les éléments décoratifs, aucun
-`MouseArea` ni `TapHandler` sur la page) ; aucune icône d'origine ; ne pas toucher `Main.qml`, `PageArea.qml`.
+**Piège (amendement 12 du socle).** `SelectionOverlay` est une sœur de la vue posée au-dessus d'elle en
+`anchors.fill` : un gestionnaire d'appui (`TapHandler`, `DragHandler`, `PointHandler`, `MouseArea`) sur sa
+**racine** ferait que `coveredAt` (sœurs de la vue) la voie partout, et le stylet ne tracerait plus nulle part. Les
+poignées et la barre sont désignées par l'outil (`hitSelection`, L3-T9) : aucun gestionnaire n'est nécessaire ; s'il
+en faut un (info-bulle d'un bouton de barre), il va sur ce bouton seulement, à sa taille, jamais sur la racine.
+
+**Interdits.** Aucun gestionnaire d'appui sur la racine d'une surcouche ; éléments décoratifs `enabled: false` ;
+aucune icône d'origine (icônes de L0-S1) ; ne pas toucher `Main.qml`, `PageArea.qml` (les `required property` sont
+branchées par L0-S9).
 
 **Terminé quand.** Le scénario `selection` passe (`SCENARIO OK`, `CAPTURES OK`) ; captures décrites dans le rapport.
 
@@ -3293,6 +2029,22 @@ décrites (cadre, poignées, barre, déplacement) ; banc sans écran.
       {"expect": "appTools.selectionCount", "value": 1},
       {"expect": "appTools.handlesVisible", "value": true},
       {"capture": "un-trait-selectionne"},
+      {"stroke": [[700, 650], [800, 650]], "pressure": 0.5},
+      {"expect": "appTools.selectionCount", "value": 0},
+      {"command": "tool.pen"},
+      {"stroke": [[700, 680], [800, 680]], "pressure": 0.5},
+      {"waitReady": true},
+      {"expect": "appDocument.shownObjectCount", "value": 3},
+      {"command": "edit.undo"},
+      {"command": "tool.select"},
+      {"stroke": [[400, 300], [400, 300]], "pressure": 0.5},
+      {"expect": "appTools.selectionCount", "value": 1},
+      {"command": "tool.pen"},
+      {"stroke": [[700, 680], [800, 680]], "pressure": 0.5},
+      {"waitReady": true},
+      {"expect": "appDocument.shownObjectCount", "value": 3},
+      {"command": "edit.undo"},
+      {"command": "tool.select"},
       {"stroke": [[700, 600], [700, 600]], "pressure": 0.5},
       {"expect": "appTools.selectionCount", "value": 0},
       {"stroke": [[250, 250], [320, 450]], "pressure": 0.5},
@@ -3326,7 +2078,10 @@ décrites (cadre, poignées, barre, déplacement) ; banc sans écran.
     ]
   }
   ```
-  Compléments (M8) : `agrandi-deborde` — après `object.enlarge` (× 1,1 autour du centre des deux traits déplacés,
+  Piège (amendement 12) : juste après `un-trait-selectionne`, avec le cadre affiché, un trait au stylet **hors du
+  cadre** (outil Sélectionner : rectangle élastique, la sélection tombe à 0 ; outil Stylo, sélection gardée : le trait
+  est versé, 3 objets) prouve que la surcouche ne couvre pas la page ; chaque essai est annulé, et la sélection
+  reprise par un clic, pour que la suite parte du même état. Compléments (M8) : `agrandi-deborde` — après `object.enlarge` (× 1,1 autour du centre des deux traits déplacés,
   x 450 à 650, y 350 et 450, centre (550, 400)), le premier trait va de x 440 à 660 en y 345 : le point (655, 345)
   n'était pas encré avant ; `poignee-proportionnelle` — la poignée bas droite (200, 200) du rectangle libre glissée
   à (300, 250) : facteurs 2 et 1,5, le plus grand gardé, rectangle 200 × 200, donc (280, 280) gris ; sans la règle
@@ -3338,7 +2093,7 @@ décrites (cadre, poignées, barre, déplacement) ; banc sans écran.
   ajouter après `un-trait-selectionne` `{"checkPixel": "poignee", "at": [300, 300], "color": "<gris des poignées du
   thème>", "tolerance": 40}` (coin haut gauche du cadre, au zoom de la page).
 - [ ] **Étape 2 : QML.** `SelectionOverlay.qml` : `Repeater` sur `handles`, `Shape`/`Canvas` léger pour le cadre
-  (polygone de `corners`) ; `ObjectBar.qml` : `Repeater` sur `bar` (icône `appCommands.iconUrl(command)`) ;
+  (polygone de `corners`) ; **aucun gestionnaire d'appui sur la racine** (voir « Piège ») ; `ObjectBar.qml` : `Repeater` sur `bar` (icône `appCommands.iconUrl(command)`) ;
   `TranslucencyPopup.qml` : `Popup` avec `Slider` (le `PageView.inputBlocked` suit déjà les fenêtres surgissantes).
 - [ ] **Étape 3 : preuves, commit.**
   ```powershell
@@ -3351,11 +2106,16 @@ décrites (cadre, poignées, barre, déplacement) ; banc sans écran.
 <a id="tache-l3-t16"></a>
 ### Tâche L3-T16 — QML : corbeille, menu contextuel, curseurs ; scénarios `corbeille` et `marqueur`
 
+**Socle.** Les trois QML sont des talons à `required property`, déjà branchés par la coquille (L0-S9) ; `TrashCan`
+est déjà instancié dans `ToolPalette.qml` ; `PageContextMenu.qml` est ouvert par `PageView::contextMenuRequested` et
+lit les données `commands.contextMenu` (L0-S4 : `tool.select`, `tool.pen`, séparateur, `recognition.convert-to-text`,
+filtrées par plateforme ; « Convertir en texte » y est déjà) ; les icônes sont dessinées (L0-S1).
+
 **Objectif.** `TrashCan.qml` (F-050) : icône de corbeille sous la palette, flèche rouge quand `appTools.trashHover`,
 clic → `edit.delete` ; sa zone publiée dans `appTools.trashArea` (coordonnées de scène, recalculée à chaque
-changement de géométrie) ; visible selon `view.trash`. `PageContextMenu.qml` (F-202, partie) : `popupAt(x, y)` ouvre
-un menu selon `appTools.currentTool` : outil Sélectionner → « Stylo » (`tool.pen`) ; stylo ou marqueur →
-« Sélectionner » (`tool.select`) ; libellés lus des commandes. `ToolCursor.qml` (F-201) : `cursorShape` selon
+changement de géométrie) ; visible selon `view.trash`. `PageContextMenu.qml` (F-202, partie) : montre les entrées de
+`commands.contextMenu`, sauf celle de l'outil courant (avec Sélectionner, « Stylo » en premier ; avec le stylo ou le
+marqueur, « Sélectionner ») ; libellés lus des commandes. `ToolCursor.qml` (F-201) : `cursorShape` selon
 l'outil (flèche pour la sélection, croix pour le stylo ; pour le marqueur et la gomme, `Qt.BlankCursor` et un
 **cercle** de la largeur de l'outil, au zoom, sous le pointeur — F-201 : « marqueur avec cercle, gomme avec
 cercle ») ; l'indicateur de largeur existant (F-138) reste pour le stylo
@@ -3364,7 +2124,7 @@ et le marqueur. Scénarios S35 et S37.
 **Fichiers.** Modifier (talons) : `ui/qml/TrashCan.qml`, `ui/qml/PageContextMenu.qml`, `ui/qml/ToolCursor.qml`,
 `bench/scenarios/corbeille.json`, `bench/scenarios/marqueur.json`.
 
-**Test et commande bornée.** Preuve de tâche N ≥ 111, `tst_captures_corbeille` et `tst_captures_marqueur` Passed ;
+**Test et commande bornée.** Preuve de tâche N = N_départ + 19, `tst_captures_corbeille` et `tst_captures_marqueur` Passed ;
 preuves visuelles hors écran : `-Scenario corbeille -Lire "appDocument.shownObjectCount=1"`, `-Scenario marqueur
 -Lire "appTools.currentTool=pen"`, lectures d'abord, captures décrites ensuite ; banc sans écran.
 
@@ -3467,7 +2227,7 @@ scénarios existants) ; le joueur (`runner.cpp`) la déclenche par `Commands::tr
 **Fichiers.** Modifier : `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`,
 `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `docs/banc.md`.
 
-**Test et commande bornée.** Commande ciblée `tst_bench_scenarios|tst_bench_result` ; preuve de tâche N ≥ 111 ;
+**Test et commande bornée.** Commande ciblée `tst_bench_scenarios|tst_bench_result` ; preuve de tâche N = N_départ + 19 ;
 fonctions en `PASS` ; banc sans écran : `gommer` et `soulever` présents dans le JSON, `cache.refreshes` relevé,
 `content_check.ok = True`.
 
@@ -3484,7 +2244,10 @@ fonctions en `PASS` ; banc sans écran : `gommer` et `soulever` présents dans l
   qui prend **deux** objets versés de la page générée (M3 : le cas à plusieurs objets est celui qui coûtait un
   redessin par objet), puis appui sur l'un d'eux choisi par `core::objectAt` et glissement de 300 px en 2 s ; le JSON
   du scénario porte `cache.refreshes`, attendu 2). Le plan `gommer` écrit aussi dans son JSON `touched_strokes` (k),
-  pour l'attendu `cache.refreshes ≤ k + 1` de S36. `tst_bench_result` :
+  pour l'attendu `cache.refreshes ≤ k + 1` de S36. **Amendement 14** : gommer en deux morceaux le dernier trait
+  encore **en attente** (couche d'attente du lot 10) coûte un redessin complet de plus (le premier morceau n'est pas en
+  fin de page) : le scénario écrit aussi `pending_cut` (0 ou 1) et l'attendu devient `cache.refreshes ≤ k + 1 +
+  pending_cut`. `tst_bench_result` :
   `sevenScenariosWithFrames` (remplace le compte de scénarios du lot 10 : le cas existant qui compte cinq scénarios
   est **mis à jour**, la raison écrite dans le rapport).
 - [ ] **Étape 2 : implémentation**, puis `docs/banc.md` (deux paragraphes, nos mots).
@@ -3504,12 +2267,12 @@ attente, à l'écran en D3D11). Joué hors écran par `tst_captures_ecrire_gomme
 
 **Fichiers.** Modifier (talon) : `bench/scenarios/ecrire-gommer-annuler.json`.
 
-**Test et commande bornée.** Preuve de tâche N ≥ 111, `tst_captures_ecrire_gommer_annuler` Passed ; preuve visuelle
+**Test et commande bornée.** Preuve de tâche N = N_départ + 19, `tst_captures_ecrire_gommer_annuler` Passed ; preuve visuelle
 hors écran `-Scenario ecrire-gommer-annuler -Lire "appDocument.shownObjectCount=1"` (état final) ; à l'écran
 (jeton `ecran`, annoncé par l'orchestrateur) : même commande avec `-Rendu d3d11` sans `-HorsEcran` → `CAPTURES OK`.
 
-**Interdits.** Aucun fichier de code : si une étape manque au joueur ou une lecture à l'interface, l'écrire dans le
-rapport et s'arrêter (tâche corrective).
+**Interdits.** Aucun fichier de code : les étapes `pinch` et `touch` viennent du joueur du socle (L0-S2) ; si une
+étape manque au joueur ou une lecture à l'interface, l'écrire dans le rapport et s'arrêter (tâche corrective).
 
 **Terminé quand.** Hors écran et à l'écran : `SCENARIO OK`, `CAPTURES OK` ; captures décrites (deux traits, trois
 morceaux, déplacés, rendus, zoom).
@@ -3616,6 +2379,9 @@ morceaux, déplacés, rendus, zoom).
 - **H3-12** Rétablir : Ctrl+Y (D11).
 - **H3-13** Effacer ▸ Objets : tout ce qui n'est pas une annotation, couche de fond comprise (D8).
 - **H3-14** Tolérance de désignation 6 px d'écran ; seuil de glissement 3 px ; zone morte du pincement 3 %.
+- **H3-16** Deux doigts posés dans le même événement : le premier peut verser un point avant que le second ne
+  déclenche le geste (les champs figés de `Sample` ne disent pas l'événement d'origine) ; à revoir avec les modes du
+  toucher du lot 11 (amendement du socle : décision commune des appuis d'un même événement).
 - **H3-15** Les traits lus d'un `.flipchart` sont aussi lissés (D2) : le test local des miniatures (`MINIATURES OK`,
   écart médian ≤ 2,0) est rejoué à la clôture ; un dépassement devient une tâche corrective.
 
@@ -3639,13 +2405,14 @@ Jouée après la dernière vague, dans le worktree du chantier, sur `feat/livrai
 3. **Version 0.4.0** : `project(VERSION 0.4.0)` dans `CMakeLists.txt` ; `CHANGELOG.md` section `## 0.4.0 — <date>`
    (sélection, stylo et marqueur, gomme, annuler, effacer, corbeille, gestes à deux doigts) ;
    `scripts/notes-version.ps1` → `NOTES OK`.
-4. **Suites** (jeton `tests`) : `scripts/test.ps1 -Preset release` puis `scripts/test.ps1`, formes bornées, N ≥ 111
+4. **Suites** (jeton `tests`) : `scripts/test.ps1 -Preset release` puis `scripts/test.ps1`, formes bornées, N = N_départ + 19
    chacune, `TESTS OK` ; aucun test sauté hors les trois tests locaux du lot 2 (rejoués avec leurs variables :
    `ORACLE OK`, `ORACLE SYNTHETIQUE OK`, `MINIATURES OK`, H3-15) ; **aucun talon `QSKIP` restant** :
-   `git -C <wt> grep -n -E "Talon \(?L3-T1|Talon L0-S" -- tests core input tools render ui bench` → sortie vide
-   (un même marqueur dans les trois formes de talon : commentaire C++ et QML `// Talon L3-T1 …`, description JSON
-   `Talon (L3-T1) …`, `QSKIP("Talon L3-T1 …")` ; le socle pose le sien, `Talon L0-S`). Les `tst_captures_*` talons
-   passent avec `waitReady` seul : leur `Passed` ne prouve rien tant que ce contrôle n'est pas vide.
+   **règle 4 des talons du socle** : `git -C <wt> grep -n "Talon L0-S : rempli par L3-" -- . ':(exclude)docs/'` →
+   sortie vide ; pour chaque test talon rempli, `build/debug/tests/<test>.exe -functions` rend au moins une fonction
+   et aucune `reserved` ; chaque scénario talon rempli (`selection`, `corbeille`, `marqueur`,
+   `ecrire-gommer-annuler`) produit au moins une ligne `TRAIT`, `DOIGT` ou `POINTEUR` ; sur `ctest --preset debug
+   -V`, aucune ligne `SKIP   :` qui contienne `Talon L0-S`.
 5. **Captures à l'écran en D3D11** (jeton `ecran`, annoncé) : `captures.ps1 -Scenario tous -Rendu d3d11 -Sortie
    .tmp/captures-ecran` → `SCENARIO OK` chacun (dont `selection`, `corbeille`, `marqueur`,
    `ecrire-gommer-annuler`, `anticrenelage`, `cache-differe`), `CAPTURES OK` ; captures regardées et décrites.
@@ -3674,15 +2441,38 @@ Jouée après la dernière vague, dans le worktree du chantier, sur `feat/livrai
 | M2 | Dépôt forcé par le contrôleur : couche soulevée laissée pleine | corrigé : `pageAboutToChange` / `editAboutToApply` avant le dépôt forcé, l'outil abandonne son geste ; test `pageChangeWhileDraggingClearsTheLiftLayer` | L3-T12, L3-T14 |
 | M3 | Coût du soulèvement sous-estimé (un redessin par objet, `m_refreshAgain`) | corrigé : **règle retenue** — demandes de redessin d'un même tour regroupées dans `PageView` (L3-T13) ; cas à deux objets (`dragOfTwoObjectsCostsTwoRedraws`, scénario `soulever` à deux objets) ; `gommer` et `soulever` **exclus** du « 0 figement » de S13, attendus chiffrés (`soulever` : 2 redessins ; `gommer` : ≤ k + 1) | L3-T13, L3-T14, L3-T19, S36, H3-2, H3-3 |
 | M4 | Pincement : le premier doigt traçait ; stylet et doigt mêlés | corrigé : appuis d'un même événement décidés ensemble ; stylet qui prend la main ; tests `simultaneousPinchDrawsNothing`, `stylusTakesOverFromFinger` (au socle si le socle crée le routeur) | L3-T5 |
-| M5 | Talons QML sans `required property`, réglette jamais ouverte | renvoyé au socle (emplacements QML avec leurs `required property`, `openTranslucency()`) | L0-S ; L3-T1, L3-T2 à amender |
+| M5 | Talons QML sans `required property`, réglette jamais ouverte | renvoyé au socle (emplacements QML avec leurs `required property`, `openTranslucency()`) | fait par L0-S6, L0-S9 |
 | M6 | Entrées du lot 7 hors du routeur ; clic droit en conflit | renvoyé au socle (chemin d'entrée, routes des surcouches) | L0-S |
-| M7 | Travail en double avec le lot 7 (sous-menus, commande de remplacement, zoom ancré) | renvoyé au socle | L0-S ; L3-T1, L3-T4, L3-T7 à amender |
+| M7 | Travail en double avec le lot 7 (sous-menus, commande de remplacement, zoom ancré) | renvoyé au socle | fait par L0-S3, L0-S4, L0-S7 ; L3-T4, L3-T7 amendés |
 | M8 | S35 sans fixture, S34 incomplet | corrigé : `bench/src/fixtures.cpp` dans L3-T15 (`rectangle-et-traits`, `objet-verrouille`), S34 complété (poignée proportionnelle, agrandir vérifié, objet verrouillé) ; L3-T16 dépend de L3-T15 | L3-T15, L3-T16 |
 | M9 | Échap jamais livré à `Tool::onKey` | corrigé : `activate()` annule l'outil occupé ; Échap pendant un geste = abandon ; test `escapeCancelsTheGesture` | L3-T14 |
 | m1 | Dépendances : T11 et T2 sur `PageArea.qml` ; T14 sur T9 et T11 sans raison | corrigé : T11 dépend de T2 ; T14 ne dépend plus de T9 ni de T11 ; T15 dépend de T9 ; vagues V6 T9 ‖ T14, 8 vagues après le socle | table, vagues |
-| m2 | Marqueur des talons | corrigé : contrôle de clôture sur les trois formes (`Talon \(?L3-T1`, `Talon L0-S`) | clôture, étape 4 |
+| m2 | Marqueur des talons | corrigé : contrôle de clôture = règle 4 des talons du socle (`Talon L0-S : rempli par L3-`) | clôture, étape 4 |
 | m3 | S6 : `waitReady` avant le trait en attente | corrigé | L3-T18 |
 | m4 | Ctrl+Maj+Z pris par le lot 7 | corrigé : D11 garde Ctrl+Y, conflit rendu au socle si la 3.5.18 dit autre chose | L3-T0 |
 | m5 | Curseur du marqueur : cercle (F-201) | corrigé : `Qt.BlankCursor` + cercle (attendu 10) | L3-T16 |
 | m6 | `saveWhileLiftingIsRefused` testait un dépôt | corrigé : renommé et dédoublé (`pageChangeWhileLiftingDropsFirst`, `saveWhileLiftingDropsFirst`) | L3-T12 |
 | m7 | Trois demandes d'un tour → deux fins | corrigé : `cacheRefreshCountCounts` attend chaque fin ; `requestsOfOneTurnMakeOneRedraw` ajouté | L3-T13 |
+
+## Amendements du socle (plan du socle 9b13275, « Amendements pour le lot 3 », 17 points)
+
+| # | Amendement | Sort | Où |
+|---|---|---|---|
+| 1 | L3-T1 disparaît (L0-S0, S1, S4, S5, S6, S7) ; dépendances « L3-T1 » tombées | appliqué : section réduite à « retirée » ; L3-T0, L3-T3, L3-T10 en tête, après L0-S10 | table, sections |
+| 2 | L3-T2 disparaît (L0-S9) | appliqué | table, sections |
+| 3 | L3-T17 disparaît (L0-S2) ; L3-T18 n'en dépend plus | appliqué | table, sections, L3-T18 |
+| 4 | L3-T4 : `ReplaceObjectsCommand`, `addedIds()`, `replaceStrokesKeepsRankAndIds` retiré, `objectedits.h` sans `StrokeReplacement` | appliqué | L3-T4 |
+| 5 | L3-T5 : `sample.h` sort ; mécanisme du routeur posé ; L3-T5 remplit `FullTouchPolicy::decide` et `gesture.cpp` ; fonctions du socle vertes | appliqué ; M4 (a) « appuis d'un même événement » **écarté** (champs figés de `Sample` sans numéro d'événement) → H3-16 ; M4 (b) gardé avec arrêt et rapport si le mécanisme du socle ne le permet pas | L3-T5, H3-16 |
+| 6 | L3-T6 : `tool.h` existe, `PenTool` déjà un `Tool`, `openMathTools` et `id()` réels | appliqué | L3-T6 |
+| 7 | L3-T7 : `ReplaceObjectsCommand` | appliqué | L3-T7 |
+| 8 | L3-T11 : `PageArea.qml` seulement pour une propriété d'`InkLayer`, aucune couche déplacée | appliqué (fichier gardé sous cette condition) | L3-T11 |
+| 9 | L3-T12 : `addChangeObserver` (origines `Lift`, `Drop`), pas d'`editAboutToApply` au soulèvement, corps seulement | appliqué (observateur d'essai réécrit, origines vérifiées) | L3-T12 |
+| 10 | L3-T13 : chemin d'entrée posé ; garder `foldWaitsForTheActiveTool`, `latencyProbeSeesToolSamples`, `pageChangeEndsToolStroke` ; retirer `cacheRefreshCountCounts` | appliqué ; L3-T13 placée **après** L3-T14 (seul moyen de prouver la branche « outil de `ToolHost` ») ; `dragOfTwoObjectsCostsTwoRedraws` passé de L3-T14 à L3-T13 (`tst_ui_drawing`) | L3-T13, vagues |
+| 11 | L3-T14 : `user()` réel, `activeTool()` à remplir, test `finishStrokeCancelsTheActiveTool`, `Main.qml` gardé, Échap par `cancelGesture()` | appliqué | L3-T14 |
+| 12 | L3-T15 : piège du gestionnaire sur la racine de `SelectionOverlay` ; test d'un trait au stylet hors du cadre | appliqué (section « Piège », étapes ajoutées au scénario `selection`) | L3-T15 |
+| 13 | L3-T15, L3-T16 : `required property` déjà branchées, `commands.contextMenu`, `TrashCan` instancié, icônes posées | appliqué | L3-T15, L3-T16 |
+| 14 | L3-T19 : dernier trait en attente gommé en deux morceaux = un redessin de plus | appliqué (`pending_cut` dans l'attendu) | L3-T19, S36 |
+| 15 | L3-C0 : Ctrl+Maj+Z refusé par `noShortcutTwice`, tranché par F-750 et F-950 à F-953 | appliqué | vagues (« L3-T0 et les autres tâches ») |
+| 16 | « Dépendances aux autres lots » (lot 7) réécrites | appliqué | Dépendances aux autres lots |
+| 17 | 20 → 17 tâches ; N = N_départ + 19 ; vagues recalculées | appliqué : 17 tâches, 8 vagues de largeur 3 au plus | table, vagues |
+| règles | `switch` sous `/we4062` (`Equation`, `PageSettingsChanged`) ; contrôle de clôture par la règle 4 des talons | appliqué (règles communes, L3-T3 `equationHitsLikeText`, L3-T12, L3-T13, L3-T14, clôture) | — |
