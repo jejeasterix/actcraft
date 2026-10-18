@@ -140,7 +140,7 @@ Worktrees : `.worktrees/livraison-complete--L0-S<n>`, branche `feat/livraison-co
    l'état) :
    - `git -C <wt> grep -n "Talon L0-S : rempli par L3-" -- . ':(exclude)docs/'` vide à la clôture du lot 3 ;
      `"… par L7-"` vide à la clôture du lot 7 ; `"… par L0-"` vide à la fin du socle ;
-   - pour chaque test talon rempli : `build/debug/tests/<test>.exe -functions` rend au moins une fonction et aucune
+   - pour chaque test talon rempli : `build/debug/<test>.exe -functions` rend au moins une fonction et aucune
      `reserved` ;
    - pour chaque scénario talon rempli : sa capture produit au moins une ligne `TRAIT`, `DOIGT` ou `POINTEUR` (un
      `waitReady` seul ne prouve rien) ;
@@ -227,7 +227,7 @@ par PID, fils de Qt Quick (tout état lu par `updatePaintNode` écrit sur le fil
   Rouge attendu : `tests failed` ou erreur de compilation sur le nom testé ; vert : `100% tests passed`.
 - **Fonctions d'un test** :
   ```powershell
-  pwsh -NoProfile -Command "Set-Location '<wt>'; . ./scripts/dev-env.ps1; & build/debug/tests/<test>.exe -o .tmp/<test>.txt,txt; Select-String -Path .tmp/<test>.txt -Pattern '^PASS   :|^FAIL!  :|^SKIP   :|^Totals' | Select-Object -Last 40"
+  pwsh -NoProfile -Command "Set-Location '<wt>'; . ./scripts/dev-env.ps1; & build/debug/<test>.exe -o .tmp/<test>.txt,txt; Select-String -Path .tmp/<test>.txt -Pattern '^PASS   :|^FAIL!  :|^SKIP   :|^Totals' | Select-Object -Last 40"
   ```
   (chemin : celui que `ctest --preset debug -N -V -R <test>` imprime s'il diffère.)
 - **Preuve de tâche** (forme bornée du profil) :
@@ -307,7 +307,7 @@ fichier porte le marqueur de sa tâche ; `TESTS OK` ; `NOMS OK` deux fois.
 - [ ] **Étape 4 : CMake.** Sources : `core/CMakeLists.txt` (`replace`, `equation`, `hittest`, `erasegeometry`,
   `objectedits`, `lift`, en-têtes compris si le fichier les liste), `input/CMakeLists.txt` (`routing`, `gesture`),
   `tools/CMakeLists.txt` (`userstate`, `toolregistry`, `erasertool`, `selecttool`, `selectiongeometry`),
-  `render/CMakeLists.txt` (`src/liftlayeritem.cpp`, `src/equationlayout.h`, `src/equationlayout.cpp`),
+  `render/CMakeLists.txt` (`include/actcraft/render/liftlayeritem.h`, `src/liftlayeritem.cpp`, `src/equationlayout.h`, `src/equationlayout.cpp` ; l'en-tête public est listé comme ceux des autres éléments, sinon AUTOMOC et `qt_extract_metatypes` ne verront pas la classe remplie par L0-S6 — relecture tour 2),
   `ui/CMakeLists.txt` (`include/actcraft/ui/toolhost.h`, `src/toolhost.cpp`, `src/tooladapters.h`,
   `src/tooladapters.cpp` ; les sept QML ; `SelectionOverlay.qml`, `ObjectBar.qml`, `TrashCan.qml`,
   `PageContextMenu.qml`, `TranslucencyPopup.qml`, `Presentation.qml` dans la liste `QT_QML_SKIP_CACHEGEN` comme
@@ -680,8 +680,8 @@ de présentation fait l'aller-retour à l'identique ; l'équation se dessine (re
   puis vert dans `tests/tst_render_painter.cpp`, `equationDrawsTheNeutralFrame` : une page avec une équation de
   `bounds` (100, 100, 200, 80), peinte dans une `QImage` comme les autres fonctions du fichier : un pixel du bord du
   repère n'est pas la couleur du fond, un pixel hors de l'emprise l'est.
-- [ ] **Étape 9 : `switch` signalés.** C4062 est désactivé par défaut sous MSVC (et `-Wswitch` ne joue que sous
-  Clang, en CI macOS) : dans `cmake/ActCraftModule.cmake`, ajouter `/we4062` aux options MSVC de
+- [ ] **Étape 9 : `switch` signalés.** C4062 est désactivé par défaut sous MSVC (`-Wswitch`, par `-Wall`, joue sous
+  tout compilateur non MSVC, en CI macOS et Linux) : dans `cmake/ActCraftModule.cmake`, ajouter `/we4062` aux options MSVC de
   `actcraft_set_warnings`. Construire tout (`build.ps1`) : chaque erreur C4062 / `-Wswitch` sur
   `ObjectKind` ou `Change::Kind` reçoit son `case` (équation traitée comme `Text` pour l'emprise, comme un objet peint
   pour le rendu ; `PageSettingsChanged` sans effet de cache). Lister les fichiers touchés au rapport.
