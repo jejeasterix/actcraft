@@ -114,6 +114,7 @@ Plan : `docs/plans/2026-10-18-livraison-complete-lot10-PLAN.md` (66a9300, relu e
 | L10-T7 | T6 | cache par tuiles (conditionnelle) | crit | — | non requise (L10-T6 : S13 tenu) | 0/3 | — | — |
 | L10-T8 | T6 | repli H10-9 : mémoire du cache MSAA sous le budget | crit | — | à faire | 0/3 | — | — |
 | L10-T9 | T8 | images de 25 à 50 ms après reprise dans `pauses` : enquête | crit | — | à faire | 0/3 | — | — |
+| L10-C1 | T6 | correctifs de la relecture de clôture 1 (rognage de la couche d'attente, revision au changement de document, prédicat « peut attendre », expect d'anticrenelage, booléen de ScenarioPlan, RenderContext unique, connexion inutile) ; S2 (`postponeFold` en double dans pageview.cpp) reporté après L10-T8 | crit | .worktrees/livraison-complete--L10-C1 | en cours | 0/3 | — | relecture de clôture 1 : clôturable après correctifs, 0 bloquant, 1 important, 5 mineurs, 3 simplifications |
 
 ## Fin du lot 2 (étage 3.8)
 Double relecture lancée le 2026-10-17 vers 10 h 45 sur 947b446 (diff `origin/main..` : 186 commits, 150 fichiers ; L2-T22 relue à part), dans deux worktrees détachés : `livraison-complete--revue-conformite`, `livraison-complete--revue-qualite`. Relecture statique (mémoire 1,2 Go).
