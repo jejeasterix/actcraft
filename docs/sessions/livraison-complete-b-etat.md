@@ -11,7 +11,8 @@ Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.w
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
 Toutes les tâches de fond mortes. Intégrité contrôlée : aucun index.lock, fsck propre, jetons libres ; .cpp sortis pour un rouge remis dans P1, P5, P9 ; wip sains recommités (P1 742ae60, P3 4aa56a5, P7 047f5e1). Dossiers build gardés : à effacer et reconstruire à froid à la première erreur suspecte (LNK1136, fichier tronqué, ninja corrompu).
 Parallélisme réduit (demande de Jérôme « mais soit prudent », relayée par Pilote) : au plus 3 sous-agents à la fois, un seul qui construit, jusqu'aux conclusions de l'étude mémoire.
-En cours : L7-P3 (seule construction) ; brouillon de l'amendement phase 2 (livraison-complete-b--plan-p2 @ 04249b8) en relecture tour 2.
+En cours : L7-P3 (seule construction).
+Amendement phase 2 : brouillon mergé (c19cf7a, `docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md`), relu trois fois (rapports scratchpad revue-phase2-t1..t3, borne atteinte) ; nouvelle relecture obligatoire contre le socle réel à la fusion. 33 tâches (P2-A : L7-S8, T1–T19 ; P2-B : T21, T23–T34), un seul exécutable `tst_ui_lot7`, 17 points [SOCLE?], hypothèses H7-16 à H7-19 pour la porte de fin. Demande à A en attente : une ligne d'inclusion de `render/src` dans `ui/presentation.cmake` (aperçu d'équation en mode éditeur).
 
 ## Reprise après le temps calme (2026-10-18 vers 22h30, redémarrage de l'app demandé par Jérôme)
 Mergé dans `feat/livraison-complete-b` : plan phase 1 (13ebe57), L7-T0 (f0772b6), L7-P0 (d163449, graphe dfc8857).
