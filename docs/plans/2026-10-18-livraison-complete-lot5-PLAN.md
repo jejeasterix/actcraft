@@ -2,6 +2,41 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 1 (relecture tour 1)
+
+Relecture du tour 1 sur 89c1673 : 4 bloquants, 13 majeurs, 6 mineurs. Noms revérifiés contre la tête du chantier
+(`C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete`, 2b4caea, L10-T8 mergée) et contre les plans du socle et
+du lot 3 (61c03fb). Chaque défaut, et ce qui a changé (5a = ce plan, 5b = `…-lot5b-PLAN.md`) :
+
+| # | Défaut | Changement |
+|---|---|---|
+| B1 | L5-T28 en V11 alors qu'il dépend de L5-T25 (V12) | 5b : T28 en V14 avec T30 et T31 ; vagues de 5b renumérotées (V10 à V16) |
+| B2 | L5-T14 dans la vague de L5-T10 et L5-T15 dont il se sert | 5a : dépendances déclarées ; V6 = T10 ‖ T12 ‖ T15, V7 = T13 ‖ T14 ‖ T16 |
+| B3 | `TransformObjectsCommand(page, ids, Transform delta)` n'a qu'un delta (P3:701) | annexe A : `TransformEachCommand(page, TransformList)` dans `alignment.h` (une étape), remplie par L5-T6 (test `transformEachIsOneStep`) ; T10 (`connectorFollowsAlign`) et T14 s'en servent ; A7 corrigée |
+| B4 | `>align` imbriqué dans `>transform` (refusé, socle:749-750) ; `object.grow` / `object.shrink` inexistants | trois sous-menus frères ; `object.enlarge` / `object.reduce` (P3:280-281) ; `">align"` ajouté à `objectMenu` après `">transform"` (JSON et `objectMenuOrder`) |
+| M5 | L5-T1 fige données et en-têtes en parallèle de L5-T0 | T1 dépend de T0 ; V1 = T0, V2 = T1 |
+| M6 | Noms faux | `core::Change::Kind` (`core/undo.h:18`) ; `CommandRegistry::ids()` + `find()` (`commandregistry.h:68-69`) ; `DocumentTabs::count` (`Q_PROPERTY(int count READ rowCount NOTIFY countChanged)`) ; `{in}` / `{out}` / `{outdir}` définis ensemble ; origine XY = `PagePresentation::hasOrigin` / `origin` (`model.h:469-470`) |
+| M7 | Fichiers manquants | T1 : `layout.h`, `layout.cpp`, `ui/…/commands.h`, `ui/src/commands.cpp`, `ui/…/toolhost.h`, `ui/src/toolhost.cpp` (`setConnectorStyle`), `tools/…/toolcontext.h` (`SelectionView::shapePoints`) ; T18 : `SelectionOverlay.qml` ; T3 : `nativejson.cpp` et `nativeobjects.h` ; T25 : plus de `PageContextMenu.qml`, `export.page-image` mis dans `contextMenu` par T1 |
+| M8 | `parkSession` oublie la couche d'attente du lot 10 | 5b, T20 : versement forcé d'abord (`FixedPageItem::foldPending` par la vue, `pageview.h:135`), test `parkFoldsPendingFirst` ; fichier `ui/src/pageview.cpp` ajouté |
+| M9 | Trois tests de T20 vrais sans code | `switchRedrawsOnce` attend la stabilisation puis compare ; `closingModifiedAsksToSave` contrôle aussi le document vide restant ; `oneViewForAllTabs` déplacé dans `tst_ui_shell` (T21), sur la fenêtre chargée |
+| M10 | Mémoire du cache : 20 o/px depuis L10-T8, seuil non mesurable | ≈ 41,5 Mio par vue en 1920 × 1080 (contrainte 3, H5-5) ; T31 : 4 documents synthétiques fixés, `memory_delta_mb` < coût d'une vue à la taille du passage (largeur × hauteur × 20 o) |
+| M11 | Attendus non chiffrés | T18 : `objectEditMenu.visibleCommandCount=13` ; T19 : `edition.refreshes_by_gesture` ventilé, chaque valeur ≤ 1 ; T31 : `export-fond` p95 ≤ 1,2 × p95 de `stroke` du même passage |
+| M12 | S8 (T32) : `tab.next` ne crée rien ; `align.left` sur un seul groupe est sans effet | `file.new` crée l'onglet 2 ; on y colle le groupe **et** une forme, `align.left` porte sur deux objets ; l'objet seul devient la décision D6 de L5-T0 (H5-10) |
+| M13 | HTML étranger collé ou déposé | texte brut seulement (`mimeData->text()`) ; tests `pasteHtmlLoadsNothing` (T14), `droppedHtmlLoadsNothing` (T15) |
+| M14 | Convertisseur PowerPoint : injection, `Quit()` sur le PowerPoint de l'utilisateur | 5b, T29 : chemins par variables d'environnement, script en ressource (`export/resources/pptx-to-pdf.ps1`), ouverture en lecture seule sans fenêtre, fermeture de sa seule présentation, `Quit()` seulement si le script a lancé PowerPoint ; justification de `powershell.exe` écrite ; fichiers `export/CMakeLists.txt` et le script ajoutés |
+| M15 | `worksWithoutQApplication` ne prouve rien ; nom `.pdf` → `PdfFormat` | 5b, T27 : `main` explicite sous `QGuiApplication`, `QVERIFY(!qApp->inherits("QApplication"))`, Qt PrintSupport lié en `PRIVATE` ; `NativeFormat` forcé, test `nativeFormatKeptForPdfName` |
+| M16 | Remplissage d'image sur le fil principal (T12) | `QtConcurrent::run`, test `imageFillOffMainThread` |
+| M17 | N inexact | N_départ = 136 + n_B (n_B ≥ 16) ; T1 s'arrête sur un écart ; N = N_départ + 26 jusqu'à T32 ; T33 enregistre les 6 tests de captures → N final = 168 + n_B |
+| m18 | Marqueurs de talons | `Talon L5-T1 : rempli par L5-T<n>.` (C++), `Talon L5-T2 : …` (7 QML) ; T33 : `git grep "Talon L5-"` hors `docs/` vide, et chaque test du lot listé par `-functions` sans `reserved` |
+| m19 | Dépendances manquantes | T4 → T5, T10 → T4, T16 → T10 |
+| m20 | `L5-C1` déjà pris | T13 : « `L5-C<n>`, numéro suivant libre » |
+| m21 | Tests décrits sans attendus (T6, T11) | une valeur attendue par mode |
+| m22 | `hiddenObjectNotPainted` ne contrôle aucun pixel | renommé `hiddenObjectReportsAChange` ; le pixel est contrôlé par S8.3 (T18) |
+| m23 | Précisions | « Imprimer » par PDF **hors Windows** ; 6 scénarios d'interface enregistrés dans ctest par T33 (`tests/bench.cmake`, forme de `tst_captures_premiers_pas`) ; libellé « Taille d'origine » → « Taille initiale » |
+
+Points pour Jérôme, non tranchés, écrits en hypothèses à présenter à la porte du lot : H5-7 (postes gérés, AppLocker),
+H5-8 (poids de Qt PDF, PDFium, Android), H5-9 (`Qt6Widgets.dll` au démarrage), H5-10 (aligner un objet seul).
+
 **But.** Une seule PR et une seule version pour le lot (attribuée à la fusion, aucun numéro ici). Le sous-lot 5a livre
 la tâche d'ouverture, les réservations, et toute l'édition des objets : couper, copier, coller, dupliquer ; grouper ;
 organiser et couches ; transformer et aligner ; menu d'édition d'objet ; points de forme ; pot de peinture ;
@@ -23,15 +58,16 @@ verrouillage, masquage », 1 « Pages, fond, grille ») ; les symétries autour 
 
 1. **Cache par son interface figée (DA11).** Couper, coller, dupliquer, grouper, dégrouper, projeter :
    `core::ReplaceObjectsCommand` (socle L0-S3), seule commande de remplacement. Aligner, ajuster, inverser,
-   transformer : `core::TransformObjectsCommand` (lot 3, L3-T4). Glisser une copie : **soulèvement** du lot 3
+   transformer : `core::TransformEachCommand` (réservée par L5-T1 dans `alignment.h` : une transformation absolue par objet, une
+   seule étape ; `core::TransformObjectsCommand` du lot 3, L3-T4, n'applique qu'un même delta à tous). Glisser une copie : **soulèvement** du lot 3
    (`DocumentController::liftObjects` / `dropLifted`), la copie est ajoutée au dépôt. Aucune tâche n'appelle
    `FixedPageItem` ni ne contourne `core::applyToCache`. Un changement d'ordre (organiser) est une insertion hors fin
    de page : il garde le redessin immédiat du lot 10 (limite déclarée, mesurée par L5-T19).
 2. **L'export lit `core::Document`, jamais le cache.** Copie du document faite sur le fil principal, rendu par le
    peintre partagé (`render::paintPage`, DA5) sur un fil secondaire (5b).
 3. **Une seule `PageView` pour tous les onglets (5b).** Le cache MSAA coûte 36 octets par pixel (coffre
-   `04_Pieges/qt-msaa-couche-36-octets-par-pixel-et-profondeur-2d-trop-tard.md`) : 1920 × 1080 × 36 ≈ 74,6 Mo par
-   vue ; quatre onglets à une vue chacun ≈ 300 Mo. Les onglets garent leurs documents hors de la vue ; L5-T20 le
+   `04_Pieges/qt-msaa-couche-36-octets-par-pixel-et-profondeur-2d-trop-tard.md`), ramené à **20 octets par pixel**
+   par L10-T8 : 1920 × 1080 × 20 ≈ 41,5 Mio par vue ; quatre onglets à une vue chacun ≈ 166 Mio. Les onglets garent leurs documents hors de la vue ; L5-T20 le
    mesure (S8.5).
 4. **`export` est un mot réservé du C++.** Le module s'appelle `export/` (`actcraft_export`, en-têtes
    `<actcraft/export/…>`), son espace de noms `actcraft::exporting`.
@@ -53,49 +89,52 @@ font foi.
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L5-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; décisions D1 à D20 ; API A1 à A21 revérifiées | — | `docs/verifications/2026-10-18-lot5-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot5.md`) | isolé | concepteur-critique | rapport commité, `NOMS OK` après `git add`, contrôle des titres du corpus sans sortie | S8.6 | #tache-l5-t0 |
-| L5-T1 | Réservation I : commandes, disposition, icônes, CMake (modules `export/` et `print/`), 26 tests enregistrés, en-têtes figés et talons des deux sous-lots | — | `actions/data/commands.json`, `actions/data/layout.json`, `ui/icons/{couper,copier,coller,dupliquer,grouper,degrouper,organiser,aligner,transformer,verrouiller,masquer,glisser-copie,points-forme,pot-peinture,connecteur,modification-stylo,menu-objet,image,media,onglets,exporter,imprimer,importer}.svg`, `ui/CMakeLists.txt`, `CMakeLists.txt`, `core/CMakeLists.txt`, `formats/CMakeLists.txt`, `tools/CMakeLists.txt`, `export/CMakeLists.txt`, `print/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{core,formats,tools,ui}.cmake`, `tests/export.cmake`, `tests/print.cmake`, `core/include/actcraft/core/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.h`, `core/src/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.cpp`, `formats/include/actcraft/formats/clipboard.h`, `formats/src/clipboard.cpp`, `render/include/actcraft/render/imagefill.h`, `render/src/imagefill.cpp`, `tools/include/actcraft/tools/{filltool,penshapetool,connectortool}.h`, `tools/src/{filltool,penshapetool,connectortool}.cpp`, `export/include/actcraft/export/{pageexport,pdfexport,pdfimport,officeconvert}.h`, `export/src/{pageexport,pdfexport,pdfimport,officeconvert}.cpp`, `print/include/actcraft/print/printer.h`, `print/src/printer.cpp`, `ui/include/actcraft/ui/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.h`, `ui/src/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.cpp`, `ui/include/actcraft/ui/documentcontroller.h` (déclarations `parkSession` / `resumeSession` seulement), `ui/src/documentcontroller.cpp` (talons de ces deux membres seulement), 26 fichiers `tests/tst_*.cpp` de la carte, `tests/tst_actions_layout.cpp`, `core/include/actcraft/core/model.h` (champs `dragCopy`, `ConnectorCap`, `style`, `capA`, `capB`), `formats/src/nativejson.cpp` (ces champs), `tests/tst_formats_nativejson.cpp` | isolé | implementeur-tdd | build 0 avertissement ; `ctest -N` : N = N_départ + 26 ; `tst_actions_layout` Passed dont `lot5EntriesDeclared`, `objectMenuOrder` ; `tst_formats_nativejson` Passed dont `lot5FieldsRoundTrip` ; les 26 talons en SKIP nommant leur tâche ; `NOMS OK` | S8, S17 | #tache-l5-t1 |
+| L5-T1 | Réservation I : commandes, disposition, icônes, CMake (modules `export/` et `print/`), 26 tests enregistrés, en-têtes figés et talons des deux sous-lots | L5-T0 | `actions/data/commands.json`, `actions/data/layout.json`, `actions/include/actcraft/actions/layout.h`, `actions/src/layout.cpp` (liste `objectMenu`), `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp` (`objectMenu` exposé au QML comme `contextMenu`), `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp` (`setConnectorStyle` déclaré, corps talon), `tools/include/actcraft/tools/toolcontext.h` (champ `shapePoints` à la fin de `SelectionView`), `ui/icons/{couper,copier,coller,dupliquer,grouper,degrouper,organiser,aligner,transformer,verrouiller,masquer,glisser-copie,points-forme,pot-peinture,connecteur,modification-stylo,menu-objet,image,media,onglets,exporter,imprimer,importer}.svg`, `ui/CMakeLists.txt`, `CMakeLists.txt`, `core/CMakeLists.txt`, `formats/CMakeLists.txt`, `tools/CMakeLists.txt`, `export/CMakeLists.txt`, `print/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{core,formats,tools,ui}.cmake`, `tests/export.cmake`, `tests/print.cmake`, `core/include/actcraft/core/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.h`, `core/src/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.cpp`, `formats/include/actcraft/formats/clipboard.h`, `formats/src/clipboard.cpp`, `render/include/actcraft/render/imagefill.h`, `render/src/imagefill.cpp`, `tools/include/actcraft/tools/{filltool,penshapetool,connectortool}.h`, `tools/src/{filltool,penshapetool,connectortool}.cpp`, `export/include/actcraft/export/{pageexport,pdfexport,pdfimport,officeconvert}.h`, `export/src/{pageexport,pdfexport,pdfimport,officeconvert}.cpp`, `print/include/actcraft/print/printer.h`, `print/src/printer.cpp`, `ui/include/actcraft/ui/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.h`, `ui/src/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.cpp`, `ui/include/actcraft/ui/documentcontroller.h` (déclarations `parkSession` / `resumeSession` seulement), `ui/src/documentcontroller.cpp` (talons de ces deux membres seulement), 26 fichiers `tests/tst_*.cpp` de la carte, `tests/tst_actions_layout.cpp`, `core/include/actcraft/core/model.h` (champs `dragCopy`, `ConnectorCap`, `style`, `capA`, `capB`), `formats/src/nativejson.cpp` (ces champs), `tests/tst_formats_nativejson.cpp` | isolé | implementeur-tdd | build 0 avertissement ; `ctest -N` : N = N_départ + 26 ; `tst_actions_layout` Passed dont `lot5EntriesDeclared`, `objectMenuOrder` ; `tst_formats_nativejson` Passed dont `lot5FieldsRoundTrip` ; N_départ = 136 + n_B (n_B = tests apportés par la fusion du lot 7, ≥ 16) : tâche arrêtée sur un écart ; les 26 talons en SKIP nommant leur tâche ; `NOMS OK` | S8, S17 | #tache-l5-t1 |
 | L5-T2 | Réservation II : coquille QML (menu d'édition d'objet, barre d'objet complète, onglets, emplacements export, impression, import ; gestionnaires des commandes du lot) | L5-T1 | `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/ObjectBar.qml`, `ui/qml/TopBar.qml`, `ui/qml/{ObjectEditMenu,PenModifierBar,ConnectorPanel,DocumentTabBar,FileExchangeActions,PrintSetupDialog,SheetPreview}.qml` (neufs, talons), `ui/CMakeLists.txt` (bloc `QML_FILES` seulement), `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `tst_ui_shell` Passed dont `everyLot5CommandHasAHandler`, `lot5SlotsExist`, `shellLoadsWithoutQmlWarning` ; `premiers-pas` hors écran `CAPTURES OK` | S8 | #tache-l5-t2 |
-| L5-T3 | `formats` : presse-papiers d'objets (objets, ressources, groupes et connecteurs, sans perte) | L5-T0, L5-T1 | `formats/src/clipboard.cpp`, `tests/tst_formats_clipboard.cpp` | isolé | concepteur-critique | `tst_formats_clipboard` Passed (dont `roundTripKeepsEveryKind`, `resourcesTravelWithObjects`, `groupMembersTravelTogether`, `foreignPayloadRejected`) ; mutation rouge puis remise | S8, S8.1 | #tache-l5-t3 |
+| L5-T3 | `formats` : presse-papiers d'objets (objets, ressources, groupes et connecteurs, sans perte) | L5-T0, L5-T1 | `formats/src/clipboard.cpp`, `formats/src/nativejson.cpp` (lecture et écriture d'un objet sorties de l'espace de noms anonyme), `formats/src/nativeobjects.h` (neuf, interne), `tests/tst_formats_clipboard.cpp` | isolé | concepteur-critique | `tst_formats_clipboard` Passed (dont `roundTripKeepsEveryKind`, `resourcesTravelWithObjects`, `groupMembersTravelTogether`, `foreignPayloadRejected`) ; mutation rouge puis remise | S8, S8.1 | #tache-l5-t3 |
 | L5-T5 | `core` : organiser (avancer, reculer, premier plan, arrière-plan, couches) et groupes (grouper, dégrouper, groupes de groupes) | L5-T0, L5-T1 | `core/src/arrange.cpp`, `tests/tst_core_arrange.cpp` | isolé | implementeur-tdd | `tst_core_arrange` Passed (dont `forwardSwapsOneStep`, `frontKeepsRelativeOrder`, `layerChangeLandsAboveTheOthers`, `groupingIsASingleStep`, `ungroupRestoresInnerGroups`, `reorderChangesSeenByCache`) | S8, S8.2 | #tache-l5-t5 |
-| L5-T4 | `core` : copies prêtes à coller (identifiants neufs, groupes et connecteurs remappés, décalages, coller sur l'objet) | L5-T3 | `core/src/clipboardedits.cpp`, `tests/tst_core_clipboardedits.cpp` | isolé | concepteur-critique | `tst_core_clipboardedits` Passed (dont `pasteOffsetsBy20`, `duplicateOffsetsBy10AndSelectsCopy`, `copiesAreUnlockedAndUnnamed`, `groupReferencesRemapped`, `connectorEndsRemapped`, `pasteOnObjectKeepsItsLayer`, `cutIsOneStep`) ; mutation rouge puis remise | S8, S8.1 | #tache-l5-t4 |
-| L5-T6 | `core` : aligner, ajuster, taille d'origine, projeter, inverser, symétries autour de l'origine XY | L5-T0, L5-T1 | `core/src/alignment.cpp`, `tests/tst_core_alignment.cpp` | isolé | implementeur-tdd | `tst_core_alignment` Passed (dont `alignLeftUsesTheLeftmostEdge`, `alignWidthUsesTheFirstCreated`, `lockedObjectsStay`, `fitOnlyShrinksOversized`, `flipXNegatesRotation`, `mirrorXPlacesCopyAbove`, `originSymmetry`) | S8, S8.2 | #tache-l5-t6 |
-| L5-T7 | `core` : verrouiller, masquer, glisser une copie (bascules d'objet, une étape) | L5-T0, L5-T1 | `core/src/objectflags.cpp`, `tests/tst_core_objectflags.cpp` | isolé | implementeur-tdd | `tst_core_objectflags` Passed (dont `toggleLockIsOneStep`, `mixedSelectionLocksAll`, `hiddenObjectNotPainted`, `dragCopyFlagRoundTrips`) | S8.3 | #tache-l5-t7 |
+| L5-T4 | `core` : copies prêtes à coller (identifiants neufs, groupes et connecteurs remappés, décalages, coller sur l'objet) | L5-T3, L5-T5 | `core/src/clipboardedits.cpp`, `tests/tst_core_clipboardedits.cpp` | isolé | concepteur-critique | `tst_core_clipboardedits` Passed (dont `pasteOffsetsBy20`, `duplicateOffsetsBy10AndSelectsCopy`, `copiesAreUnlockedAndUnnamed`, `groupReferencesRemapped`, `connectorEndsRemapped`, `pasteOnObjectKeepsItsLayer`, `cutIsOneStep`) ; mutation rouge puis remise | S8, S8.1 | #tache-l5-t4 |
+| L5-T6 | `core` : aligner, ajuster, taille d'origine, projeter, inverser, symétries autour de l'origine XY | L5-T0, L5-T1 | `core/src/alignment.cpp`, `tests/tst_core_alignment.cpp` | isolé | implementeur-tdd | `tst_core_alignment` Passed (dont `transformEachIsOneStep`, `alignLeftUsesTheLeftmostEdge`, `alignWidthUsesTheFirstCreated`, `lockedObjectsStay`, `fitOnlyShrinksOversized`, `flipXNegatesRotation`, `mirrorXPlacesCopyAbove`, `originSymmetry`) | S8, S8.2 | #tache-l5-t6 |
+| L5-T7 | `core` : verrouiller, masquer, glisser une copie (bascules d'objet, une étape) | L5-T0, L5-T1 | `core/src/objectflags.cpp`, `tests/tst_core_objectflags.cpp` | isolé | implementeur-tdd | `tst_core_objectflags` Passed (dont `toggleLockIsOneStep`, `mixedSelectionLocksAll`, `hiddenObjectReportsAChange`, `dragCopyFlagRoundTrips`) | S8.3 | #tache-l5-t7 |
 | L5-T8 | `core` + `render` : pot de peinture (intérieur, contour, fond de page, zone d'une image avec tolérance) | L5-T0, L5-T1 | `core/src/fill.cpp`, `render/src/imagefill.cpp`, `tests/tst_core_fill.cpp` | isolé | implementeur-tdd | `tst_core_fill` Passed (dont `insideClosedShapeFills`, `onOutlineRecolorsPen`, `emptyAreaFillsBackground`, `lockedObjectsAreFilled`, `imageFloodFillTolerance5`, `fillIsOneStep`) | S8.3 | #tache-l5-t8 |
 | L5-T9 | `core` : points de forme (contour en points, déplacer un point, une étape) | L5-T0, L5-T1 | `core/src/shapepoints.cpp`, `tests/tst_core_shapepoints.cpp` | isolé | implementeur-tdd | `tst_core_shapepoints` Passed (dont `squareHasEightPoints`, `movingAPointDeformsTheShape`, `smartShapeKeepsItsSmartPoints`, `pointMoveIsOneStep`) | S8.3 | #tache-l5-t9 |
 | L5-T11 | `core` : modification de stylo (tracés géométriques produits comme annotations) | L5-T0, L5-T1 | `core/src/penmodifiers.cpp`, `tests/tst_core_penmodifiers.cpp` | isolé | implementeur-tdd | `tst_core_penmodifiers` Passed (dont `horizontalLineIgnoresVerticalMotion`, `squareHasEqualSides`, `circleClosed`, `arrowHasAHead`, `resultIsAStrokeOnTheTopLayer`) | S8.4 | #tache-l5-t11 |
-| L5-T10 | `core` : connecteurs (points d'attache, accrochage à 20 px, suivi des objets dans toute commande qui les déplace) | L5-T0, L5-T1, L5-T5, L5-T6 | `core/src/connectors.cpp`, `tests/tst_core_connectors.cpp` | isolé | concepteur-critique | `tst_core_connectors` Passed (dont `attachPointsAreShapeVertices`, `endSnapsWithin20`, `connectorFollowsTransform`, `connectorFollowsAlign`, `undoRestoresConnectorAndObject`, `deletingAnEndDetaches`) ; mutation rouge puis remise | S8.4 | #tache-l5-t10 |
-| L5-T14 | `ui` : contrôleur d'édition d'objet (presse-papiers du système, couper, copier, coller, dupliquer, supprimer, tout sélectionner, grouper, organiser, aligner, transformer, bascules) | L5-T2, L5-T4, L5-T5, L5-T6, L5-T7 | `ui/src/objectediting.cpp`, `tests/tst_ui_objectediting.cpp` | isolé | implementeur-tdd | `tst_ui_objectediting` Passed (dont `copyPasteThroughSystemClipboard`, `pasteTextFromAnotherApp`, `pasteImageFromAnotherApp`, `withoutSelectionActsOnPage`, `groupThenUndoClearsSelection`, `alignGoesThroughTransformCommand`, `cutGoesThroughReplaceCommand`) | S8, S8.1, S8.2 | #tache-l5-t14 |
-| L5-T15 | `ui` : insérer une image ou un média (fichier, glisser-déposer, décodage hors du fil principal) | L5-T2, L5-T4 | `ui/src/insertion.cpp`, `tests/tst_ui_insertion.cpp` | isolé | implementeur-tdd | `tst_ui_insertion` Passed (dont `imageFitsIn80PercentCentered`, `imageNamedAfterFile`, `decodeOffMainThread`, `mediaInsertedAtCenter`, `droppedTextBecomesText`, `insertionIsOneStep`) | S8.1 | #tache-l5-t15 |
-| L5-T12 | `tools` : outils pot de peinture et modification de stylo | L5-T8, L5-T11 | `tools/src/filltool.cpp`, `tools/src/penshapetool.cpp`, `tests/tst_tools_fill.cpp`, `tests/tst_tools_penshape.cpp` | isolé | implementeur-tdd | `tst_tools_fill` (dont `clickFillsTopmostClosedShape`, `clickOnEmptyFillsBackground`) et `tst_tools_penshape` (dont `dragDrawsAPreviewThenOneStroke`, `previewUsesTheLiftSurface`) Passed | S8.3, S8.4 | #tache-l5-t12 |
+| L5-T10 | `core` : connecteurs (points d'attache, accrochage à 20 px, suivi des objets dans toute commande qui les déplace) | L5-T0, L5-T1, L5-T4, L5-T5, L5-T6 | `core/src/connectors.cpp`, `tests/tst_core_connectors.cpp` | isolé | concepteur-critique | `tst_core_connectors` Passed (dont `attachPointsAreShapeVertices`, `endSnapsWithin20`, `connectorFollowsTransform`, `connectorFollowsAlign`, `undoRestoresConnectorAndObject`, `deletingAnEndDetaches`) ; mutation rouge puis remise | S8.4 | #tache-l5-t10 |
+| L5-T14 | `ui` : contrôleur d'édition d'objet (presse-papiers du système, couper, copier, coller, dupliquer, supprimer, tout sélectionner, grouper, organiser, aligner, transformer, bascules) | L5-T2, L5-T4, L5-T5, L5-T6, L5-T7, L5-T10, L5-T15 | `ui/src/objectediting.cpp`, `tests/tst_ui_objectediting.cpp` | isolé | implementeur-tdd | `tst_ui_objectediting` Passed (dont `copyPasteThroughSystemClipboard`, `pasteTextFromAnotherApp`, `pasteImageFromAnotherApp`, `withoutSelectionActsOnPage`, `groupThenUndoClearsSelection`, `alignGoesThroughTransformEachCommand`, `cutGoesThroughReplaceCommand`, `pasteHtmlLoadsNothing`) | S8, S8.1, S8.2 | #tache-l5-t14 |
+| L5-T15 | `ui` : insérer une image ou un média (fichier, glisser-déposer, décodage hors du fil principal) | L5-T2, L5-T4 | `ui/src/insertion.cpp`, `tests/tst_ui_insertion.cpp` | isolé | implementeur-tdd | `tst_ui_insertion` Passed (dont `imageFitsIn80PercentCentered`, `imageNamedAfterFile`, `decodeOffMainThread`, `mediaInsertedAtCenter`, `droppedTextBecomesText`, `droppedHtmlLoadsNothing`, `insertionIsOneStep`) | S8.1 | #tache-l5-t15 |
+| L5-T12 | `tools` : outils pot de peinture et modification de stylo | L5-T8, L5-T11 | `tools/src/filltool.cpp`, `tools/src/penshapetool.cpp`, `tests/tst_tools_fill.cpp`, `tests/tst_tools_penshape.cpp` | isolé | implementeur-tdd | `tst_tools_fill` (dont `clickFillsTopmostClosedShape`, `clickOnEmptyFillsBackground`) (dont `imageFillOffMainThread`) et `tst_tools_penshape` (dont `dragDrawsAPreviewThenOneStroke`, `previewUsesTheLiftSurface`) Passed | S8.3, S8.4 | #tache-l5-t12 |
 | L5-T13 | `tools` : outil connecteur (survol des points d'attache, tracé d'un objet à l'autre, une étape) | L5-T10 | `tools/src/connectortool.cpp`, `tests/tst_tools_connector.cpp` | isolé | implementeur-tdd | `tst_tools_connector` Passed (dont `hoverShowsAttachPoints`, `dragFromObjectToObjectConnects`, `releaseOnEmptyLeavesAFreeEnd`, `connectorLandsInTheUpperLayer`) | S8.4 | #tache-l5-t13 |
-| L5-T16 | `tools` : sélection — glisser une copie et édition des points de forme | L5-T4, L5-T7, L5-T9 | `tools/src/selecttool.cpp`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_selectcopy.cpp` | isolé | concepteur-critique | `tst_tools_selectcopy` Passed (dont `dragCopyLeavesTheOriginal`, `dragCopyIsOneStep`, `lockedMovesOnlyByMoveHandle`, `shapePointsModeShowsSquares`, `shapePointDragIsOneStep`) ; `tst_tools_select` (lot 3) encore vert | S8.3 | #tache-l5-t16 |
+| L5-T16 | `tools` : sélection — glisser une copie et édition des points de forme | L5-T4, L5-T7, L5-T9, L5-T10 | `tools/src/selecttool.cpp`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_selectcopy.cpp` | isolé | concepteur-critique | `tst_tools_selectcopy` Passed (dont `dragCopyLeavesTheOriginal`, `dragCopyIsOneStep`, `lockedMovesOnlyByMoveHandle`, `shapePointsModeShowsSquares`, `shapePointDragIsOneStep`) ; `tst_tools_select` (lot 3) encore vert | S8.3 | #tache-l5-t16 |
 | L5-T17 | `ui::ToolHost` : outils du lot branchés (pot de peinture, connecteur, modification de stylo, mode points de forme) et mémoire par outil | L5-T12, L5-T13, L5-T16 | `ui/src/toolhost.cpp`, `ui/src/tooladapters.cpp`, `ui/src/tooladapters.h`, `tests/tst_ui_lot5tools.cpp` | isolé | implementeur-tdd | `tst_ui_lot5tools` Passed (dont `fillToolActivatesFromCommand`, `penModifierOnlyWithInkTools`, `connectorRemembersStyle`, `escapeLeavesShapePoints`) ; banc hors écran joint | S8.3, S8.4 | #tache-l5-t17 |
-| L5-T18 | QML : menu d'édition d'objet, sous-menus, barre d'objet complète, barre de modification de stylo, panneau des connecteurs ; scénario `edition` | L5-T14, L5-T15, L5-T17 | `ui/qml/ObjectEditMenu.qml`, `ui/qml/PenModifierBar.qml`, `ui/qml/ConnectorPanel.qml`, `ui/qml/ObjectBar.qml`, `ui/qml/Main.qml` (gestionnaire `connector.style`), `bench/scenarios/edition.json`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `tst_ui_shell` Passed dont `objectMenuMatchesLayout`, `convertEntriesOnlyForAnnotations` ; `edition` hors écran `CAPTURES OK` avec `-Lire` (§ section) ; banc hors écran joint | S8, S8.2, S8.3 | #tache-l5-t18 |
-| L5-T19 | Banc : scénario `edition` (coller, grouper, aligner, organiser sur page annotée), mesuré | L5-T14, L5-T17 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp` | isolé | implementeur-tdd | `tst_bench_scenarios` Passed dont `editionScenarioListed` ; banc hors écran `-Scenario court` JSON avec la section `edition` | S8.2 | #tache-l5-t19 |
+| L5-T18 | QML : menu d'édition d'objet, sous-menus, barre d'objet complète, barre de modification de stylo, panneau des connecteurs ; scénario `edition` | L5-T14, L5-T15, L5-T17 | `ui/qml/ObjectEditMenu.qml`, `ui/qml/PenModifierBar.qml`, `ui/qml/ConnectorPanel.qml`, `ui/qml/ObjectBar.qml`, `ui/qml/Main.qml` (gestionnaire `connector.style`), `ui/qml/SelectionOverlay.qml` (carrés des points de forme), `bench/scenarios/edition.json`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `tst_ui_shell` Passed dont `objectMenuMatchesLayout`, `convertEntriesOnlyForAnnotations` ; `edition` hors écran `CAPTURES OK` avec `-Lire 'objectEditMenu.visibleCommandCount=13'` (§ section) ; banc hors écran joint | S8, S8.2, S8.3 | #tache-l5-t18 |
+| L5-T19 | Banc : scénario `edition` (coller, grouper, aligner, organiser sur page annotée), mesuré | L5-T14, L5-T17 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp` | isolé | implementeur-tdd | `tst_bench_scenarios` Passed dont `editionScenarioListed` ; banc hors écran `-Scenario court` JSON avec la section `edition` et `refreshes_by_gesture` (coller, grouper, aligner, premier plan), chaque valeur ≤ 1 | S8.2 | #tache-l5-t19 |
 
 Sous-lot 5b (`docs/plans/2026-10-18-livraison-complete-lot5b-PLAN.md`) : L5-T20 à L5-T33 (14 tâches). Lot entier :
 **34 tâches** (estimation de l'amendement : 21 + PowerPoint en images 3 ; écart expliqué au § Écarts).
 
-**N_départ** = nombre de tests ctest de `feat/livraison-complete` au départ du lot (après la fusion des lots 4 et 7),
-relevé par L5-T1 (étape 1) et noté dans l'état par l'orchestrateur. L5-T1 enregistre **les 26 tests des deux
-sous-lots** → **N = N_départ + 26** dès L5-T1 et jusqu'à la fin ; aucune autre tâche n'en enregistre.
+**N_départ** = nombre de tests ctest de `feat/livraison-complete` au départ du lot : **136 + n_B** (136 après le socle
+et les lots 3, 4 et 10 ; n_B ≥ 16 apportés par la fusion du lot 7), relevé par L5-T1 (étape 1) ; un écart arrête la
+tâche et remonte à l'orchestrateur. L5-T1 enregistre **les 26 tests des deux sous-lots** → **N = N_départ + 26**
+jusqu'à L5-T32 ; L5-T33 enregistre les 6 tests de captures des scénarios d'interface du lot → **N final =
+N_départ + 32 = 168 + n_B**.
 
 ## Vagues (largeur 3 au plus, 2 places de tests ; aucun fichier partagé dans une vague)
 
-V1 : L5-T0 ‖ L5-T1 · V2 : L5-T2 ‖ L5-T3 ‖ L5-T5 · V3 : L5-T4 ‖ L5-T6 ‖ L5-T7 · V4 : L5-T8 ‖ L5-T9 ‖ L5-T11 ·
-V5 : L5-T10 ‖ L5-T14 ‖ L5-T15 · V6 : L5-T12 ‖ L5-T13 ‖ L5-T16 · V7 : L5-T17 · V8 : L5-T18 ‖ L5-T19.
-L5-T0 ne compile rien : il ne prend pas de place de tests. Les autres tâches d'une vague de 3 se partagent les deux
+V1 : L5-T0 · V2 : L5-T1 · V3 : L5-T2 ‖ L5-T3 ‖ L5-T5 · V4 : L5-T4 ‖ L5-T6 ‖ L5-T7 · V5 : L5-T8 ‖ L5-T9 ‖ L5-T11 ·
+V6 : L5-T10 ‖ L5-T12 ‖ L5-T15 · V7 : L5-T13 ‖ L5-T14 ‖ L5-T16 · V8 : L5-T17 · V9 : L5-T18 ‖ L5-T19.
+L5-T0 ne compile rien ; L5-T1 attend ses décisions et sa revérification des API (amendement 1, défaut 5). Les autres tâches d'une vague de 3 se partagent les deux
 places (`jeton.ps1`) ; l'orchestrateur lance la suite complète une fois par vague, après les merges.
 
 Recoupements vérifiés (colonne « fichiers touchés ») :
-- V2 : T2 (QML de la coquille, `ui/CMakeLists.txt` bloc `QML_FILES`, `tst_ui_shell.cpp`) / T3 (`formats/src/clipboard.cpp`,
+- V3 : T2 (QML de la coquille, `ui/CMakeLists.txt` bloc `QML_FILES`, `tst_ui_shell.cpp`) / T3 (`formats/src/clipboard.cpp`,
   son test) / T5 (`core/src/arrange.cpp`, son test) — disjoints.
-- V3 : T4 / T6 / T7 — un `.cpp` de `core/` et son test chacun.
-- V4 : T8 (`core/src/fill.cpp`, `render/src/imagefill.cpp`, test) / T9 / T11 — disjoints.
-- V5 : T10 (`core/src/connectors.cpp`) / T14 (`ui/src/objectediting.cpp`) / T15 (`ui/src/insertion.cpp`) — disjoints.
-- V6 : T12 (`filltool.cpp`, `penshapetool.cpp`) / T13 (`connectortool.cpp`) / T16 (`selecttool.cpp`,
-  `selectiongeometry.cpp`) — disjoints.
-- V8 : T18 (QML, `edition.json`, `tst_ui_shell.cpp`) / T19 (`bench/`, `tst_bench_scenarios.cpp`) — disjoints.
+- V4 : T4 / T6 / T7 — un `.cpp` de `core/` et son test chacun.
+- V5 : T8 (`core/src/fill.cpp`, `render/src/imagefill.cpp`, test) / T9 / T11 — disjoints.
+- V6 : T10 (`core/src/connectors.cpp`) / T12 (`filltool.cpp`, `penshapetool.cpp`) / T15 (`ui/src/insertion.cpp`) —
+  disjoints.
+- V7 : T13 (`connectortool.cpp`) / T14 (`ui/src/objectediting.cpp`) / T16 (`selecttool.cpp`, `selectiongeometry.cpp`)
+  — disjoints ; T14 et T16 ont `withFollowingConnectors` (T10) et T14 a `Insertion` (T15) de la vague précédente.
+- V9 : T18 (QML, `edition.json`, `tst_ui_shell.cpp`) / T19 (`bench/`, `tst_bench_scenarios.cpp`) — disjoints.
   `bench/scenarios/edition.json` (scénario d'interface, T18) et le scénario de banc `edition` (code de `bench/src`,
   T19) sont deux choses distinctes de même nom.
 
@@ -109,21 +148,21 @@ Recoupements vérifiés (colonne « fichiers touchés ») :
 | A4 | `ui::ToolHost` (type QML `Tools`, objet `appTools`), `activate`, `selectionFrame`, `user()`, `settingsFile` | L3-T14, L0-S6, L4-T11 | T14, T17 |
 | A5 | `ui::DocumentController` : `execute`, `document()`, `liftObjects`, `dropLifted`, `isLifting`, `editAboutToApply`, `addChangeObserver` / `ChangeOrigin`, `deleteObjects`, `openUrl`, `saveToUrl`, `isModified`, `showPage` (L4-T1) ; ce lot y ajoute `parkSession` / `resumeSession` (L5-T1) | L0-S5, L3-T12, L4-T1 | T1, T14, T15, T20 |
 | A6 | `core::ReplaceObjectsCommand(page, removed, added)`, `ReplaceObjectsCommand(page, std::vector<ObjectReplacement>)`, `addedIds()` ; placement au rang du plus haut retiré, sinon sommet de la couche | L0-S3 | T4, T5, T6, T14, T15, T16 |
-| A7 | `core::TransformObjectsCommand(page, ids, transforms)`, `RemoveObjectsCommand`, `AddObjectCommand`, `SetTranslucencyCommand` | L3-T4 | T6, T10, T14 |
+| A7 | `core::TransformObjectsCommand(std::size_t page, std::vector<ObjectId> ids, Transform delta)` (un seul delta, P3:701, vérifié dans le plan du lot 3) ; `core::TransformEachCommand` (L5-T1) pour une transformation par objet ; `RemoveObjectsCommand`, `AddObjectCommand`, `SetTranslucencyCommand` | L3-T4 | T6, T10, T14 |
 | A8 | `core::objectAt`, `core::objectsTouching`, `core::kHitToleranceScreen` | L3-T3 | T8, T12, T13 |
 | A9 | `core::liftChanges`, `core::changesAfterLift`, `core::restoreObjects` (`lift.h`) | L3-T4 | T16 |
-| A10 | `core::PageCache` (`insert`, `remove`, `invalidate`), `core::applyToCache`, `core::Changes` / `Change` (`ObjectInserted`, `ObjectRemoved`, `ObjectChanged`, `PageSettingsChanged`) ; règle du lot 10 : insertion hors fin de page → redessin immédiat | lot 2, lot 10 | T5, T8, T19 |
+| A10 | `core::PageCache` (`insert`, `remove`, `invalidate`), `core::applyToCache`, `core::Changes` / `core::Change::Kind` (`ObjectInserted`, `ObjectRemoved`, `ObjectChanged`, `PageInserted`, `PageRemoved`… ; **vérifié** `core/undo.h:16-24` en tête du chantier) ; `FixedPageItem::foldPending` et la couche d'attente `render::PendingLayerItem` (lot 10, **vérifiés** `ui/include/actcraft/ui/pageview.h:60,135`) ; règle du lot 10 : insertion hors fin de page → redessin immédiat | lot 2, lot 10 | T5, T8, T19 |
 | A11 | `render::paintPage`, `render::renderPage`, `render::decodeImages`, `render::ImageLookup`, `render::PaintOptions` (**vérifié présent à 794cf84**, `render/include/actcraft/render/pagepainter.h:43-70`) | lot 2 | 5b (T23, T27) |
 | A12 | Disposition : sous-menus `{"submenu": id, "label", "items"}`, `Layout::objectBar`, `contextMenu`, `MenuSpec::submenus`, filtrage par plateforme ; format `commands.json` : `id`, `label`, `icon`, `shortcut`, `checkable`, `platforms`, `argument` (`"url"`, `"number"`, texte), `optional` (**vérifié** à 794cf84 pour `argument` et `optional`) | L0-S4 | T1, T18 |
 | A13 | Joueur de scénarios : `UiStepKind` `Pointer`, `DoubleClick`, `Touch`, `Pinch`, `expect` avec tolérance ; `typeText` | L0-S2, L4-T14 | T18, 5b |
 | A14 | `PageArea.qml` (couches `pageContent`, `pendingLayer`, `liftLayer`, `ink`, `pageOverlays`, `selectionOverlay`, `toolCursor`), `Main.qml` (`appTools`, `appCommands`), `ObjectBar.qml`, `PageContextMenu.qml` (`popupAt`) | L0-S9, L3-T15, L3-T16, L4-T2 | T2, T18 |
 | A15 | `core::pageedits` (insérer des copies de pages à identifiants neufs), `ui::PagesController` (sélection multiple, presse-papiers des pages, glisser), `PageNavigator.qml` | L4-T15, L4-T18, L4-T19 | 5b (T20, T21) |
 | A16 | Catalogue des formes et points intelligents (`core/shapegeometry.h`, `SetShapeParametersCommand`) | L4-T3, L4-T10 | T9, T10 |
-| A17 | Commandes `recognition.convert-to-shape`, `recognition.convert-to-text` (Windows), origine XY affichée et sa position (outils de maths du lot 7, `UserState::openMathTools`) | lot 7 (L7-T34, P7a:688-689) | T6, T18 |
+| A17 | Commandes `recognition.convert-to-shape`, `recognition.convert-to-text` (Windows) ; origine XY : `PagePresentation::hasOrigin` et `PagePresentation::origin` (**vérifiés** `core/include/actcraft/core/model.h:469-470` en tête du chantier, P7a:218) | lot 7 (L7-T34, P7a:688-689) | T6, T18 |
 | A18 | `ui::PageView` : `tools`, `sceneToPage`, `addInputCover`, `cacheRefreshCount` | L0-S7, L3-T13 | T15, T18, 5b |
 | A19 | `ui::PageThumbnails` : copie de page sur le fil principal, rendu sur fil secondaire | L4-T17 | 5b (T23) |
 | A20 | Copie d'un `core::Document` (valeur, ressources par clé SHA-256) ; `Page::notes` (`model.h:434`, **vérifié**) | lot 2 | T3, 5b |
-| A21 | Commandes du lot 3 déjà là : `object.grow`, `object.shrink`, `edit.delete`, `edit.select-all` (identifiants supposés) | L0-S4, L3-T14 | T1, T14 |
+| A21 | Commandes du lot 3 : `object.enlarge`, `object.reduce`, `edit.delete`, `edit.select-all` (P3:280-281, 595-596) ; registre : `CommandRegistry::find(id)`, `CommandRegistry::ids()` (**vérifiés** `actions/include/actcraft/actions/commandregistry.h:68-69`) ; le lecteur de disposition refuse un sous-menu imbriqué (socle:749-750) | L0-S4, L3-T14 | T1, T14 |
 
 ## Décisions à rendre par L5-T0 (défaut appliqué tant qu'elles ne sont pas tranchées)
 
@@ -134,7 +173,7 @@ Recoupements vérifiés (colonne « fichiers touchés ») :
 | D3 | Couper, copier, coller, dupliquer, supprimer sans sélection | agissent sur la page (F-710) : copie de la page dans le presse-papiers des pages du lot 4 (A15) |
 | D4 | Groupes | couche du groupe = la plus basse des membres ; ordre = le plus haut ; Ctrl+G bascule (grouper si ≥ 2, dégrouper si un groupe) ; Ctrl+G puis Ctrl+Z vide la sélection (`view.py:830-871`, plan comparatif ligne 25) |
 | D5 | Organiser | avancer / reculer d'un cran parmi les objets de la même couche ; premier plan / arrière-plan ; changer de couche met au sommet de la couche d'arrivée (`view.py:780-818`, F-513) |
-| D6 | Aligner | au moins 2 objets non verrouillés ; bords et centres sur l'union ; largeur, hauteur, angle, complet sur le **premier créé** (`view.py:873-937`) |
+| D6 | Aligner | au moins 2 objets non verrouillés ; bords et centres sur l'union ; largeur, hauteur, angle, complet sur le **premier créé** (`view.py:873-937`) ; **un objet seul** (ou un seul groupe) : non tranché — L5-T0 décide (sans effet, ou aligné sur la page) et le présente à Jérôme (H5-10) |
 | D7 | Ajuster, taille d'origine | ajuster seulement les objets plus grands que la page (F-536) ; taille d'origine = transformation sans échelle |
 | D8 | Projeter, inverser, symétries d'origine | inverser : retourne l'objet, angle opposé ; projeter X : copie miroir au-dessus, Y : à gauche (`view.py:939-960`) ; symétries autour de l'origine XY quand elle est affichée (P20 de L7-T0) |
 | D9 | Verrouiller, masquer, glisser une copie | verrouillé : ni déplacé ni groupé par clic, seule la poignée « Déplacer » (F-585) ; masqué : non rendu (F-586 ; mode Création au lot 6) ; glisser une copie : chaque glissement laisse l'original et dépose une copie (F-587) |
@@ -273,7 +312,7 @@ fonctions du lot (presse-papiers, dupliquer, groupes, organiser, couches, aligne
 points de forme, pot de peinture, connecteur, modification de stylo, verrouiller, masquer, glisser une copie, onglets,
 insérer une image ou un média, export, import PDF, impression, PowerPoint en images), plus les **5 constats** affectés
 au lot 5 par le tableau du § 4 de l'amendement ; trancher sur la 3.5.18 par REA ; écrire en nos mots les exigences,
-les **décisions D1 à D20** (table ci-dessus), puis **revérifier les API A1 à A21** contre le code livré par L0-S et
+les **décisions D1 à D20** (table ci-dessus, dont l'alignement d'un objet seul en D6), puis **revérifier les API A1 à A21** contre le code livré par L0-S et
 les lots 3, 4 et 7.
 
 **Sources.**
@@ -375,7 +414,10 @@ Pas de `QSKIP` sans tâche nommée.
 propre ; `NOMS OK`.
 
 **Étapes.**
-- [ ] **Étape 1 : départ.** Relever N_départ (`ctest -N`, dernière ligne) et le noter dans le rapport.
+- [ ] **Étape 1 : départ.** Relever N_départ (`ctest -N`, dernière ligne) ; attendu 136 + n_B, n_B lu dans l'état
+  (fusion du lot 7) ; écart : arrêter la tâche et le rapporter. Ajouter aussi, sans corps réel :
+  `Q_INVOKABLE void setConnectorStyle(int style);` à `ToolHost` (talon dans `toolhost.cpp`) et
+  `std::vector<core::PointF> shapePoints; // L5-T16` à la fin de `SelectionView` (`toolcontext.h`).
 - [ ] **Étape 2 : modèle.** Dans `model.h`, ajouter à `ObjectCommon` (après `locked`) :
   ```cpp
       bool dragCopy = false; // F-587 : chaque glissement dépose une copie, l'original reste
@@ -453,7 +495,7 @@ propre ; `NOMS OK`.
   { "id": "align.height", "label": "Même hauteur" },
   { "id": "align.angle", "label": "Même angle" },
   { "id": "align.all", "label": "Tout aligner sur le premier" },
-  { "id": "transform.original-size", "label": "Taille d'origine" },
+  { "id": "transform.original-size", "label": "Taille initiale" },
   { "id": "transform.fit-width", "label": "Ajuster à la largeur de la page" },
   { "id": "transform.fit-height", "label": "Ajuster à la hauteur de la page" },
   { "id": "transform.fit-page", "label": "Ajuster à la page" },
@@ -479,16 +521,18 @@ propre ; `NOMS OK`.
   { "id": "file.import-powerpoint-images", "label": "Présentation en images…", "argument": "url", "optional": true, "platforms": ["windows"] },
   { "id": "file.print", "label": "Imprimer…", "icon": "imprimer", "shortcut": "Ctrl+P" }
   ```
+  Placeholders de `{in}` / `{out}` / `{outdir}` : voir `officeconvert.h` (annexe A).
   `pen.shape` prend `free`, `horizontal`, `vertical`, `square`, `rectangle`, `circle`, `ellipse`, `arc`, `polyline`,
   `arrow`, `zigzag` (D12) ; `view.tabs` prend `top`, `bottom`, `hidden` (D14) ; `connector.style` un rang de 0 à 13.
   Un raccourci déjà pris par un lot antérieur (A21) est retiré ici et l'écart noté au rapport. Si `"argument":
   "text"` n'existe pas (A12), employer la forme que L0-S4 a posée pour `equation.edit`.
 - [ ] **Étape 4 : disposition.** Dans `actions/data/layout.json` : menu Éditer, après les entrées des lots 3 et 4 :
-  `edit.cut`, `edit.copy`, `edit.paste`, `edit.duplicate`, `"-"`, sous-menus `>transform` (« Transformer » :
-  `object.grow`, `object.shrink`, `transform.original-size`, `transform.fit-width`, `transform.fit-height`,
-  `transform.fit-page`, `"-"`, `transform.mirror-x`, `transform.mirror-y`, `transform.flip-x`, `transform.flip-y`,
-  `transform.origin-flip-x`, `transform.origin-flip-y`, `"-"`, `>align`), `>align` (« Aligner » : les 10 `align.*`
-  dans l'ordre de l'étape 3), `>arrange` (« Organiser » : `arrange.front`, `arrange.back`, `arrange.forward`,
+  `edit.cut`, `edit.copy`, `edit.paste`, `edit.duplicate`, `"-"`, puis trois sous-menus **frères** (le lecteur du
+  socle refuse un sous-menu imbriqué, socle:749-750) : `>transform` (« Transformer » : `object.enlarge`,
+  `object.reduce`, `transform.original-size`, `transform.fit-width`, `transform.fit-height`, `transform.fit-page`,
+  `"-"`, `transform.mirror-x`, `transform.mirror-y`, `transform.flip-x`, `transform.flip-y`,
+  `transform.origin-flip-x`, `transform.origin-flip-y`), `>align` (« Aligner » : les 10 `align.*` dans l'ordre de
+  l'étape 3), `>arrange` (« Organiser » : `arrange.front`, `arrange.back`, `arrange.forward`,
   `arrange.backward`, `"-"`, les trois `arrange.layer-*`) ; menu Insérer : `insert.image`, `insert.media`,
   `tool.connector` ; menu Affichage : `view.pen-modifiers`, `view.tabs` ; menu Fichier : sous-menus `>import`
   (« Importer » : `file.import-pdf`, `file.import-powerpoint-images`) et `>export` (« Exporter » : `export.pdf`,
@@ -498,12 +542,13 @@ propre ; `NOMS OK`.
   D20) :
   ```json
   "objectMenu": ["object.shape-points", "-", "edit.cut", "edit.copy", "edit.paste-onto", "edit.duplicate",
-                 "edit.delete", "-", ">transform", ">arrange", "-", "object.lock", "object.group", "object.hide",
+                 "edit.delete", "-", ">transform", ">align", ">arrange", "-", "object.lock", "object.group", "object.hide",
                  "object.drag-copy", "-", "recognition.convert-to-text", "recognition.convert-to-shape"]
   ```
-  `objectMenu` se lit par la même règle que `contextMenu` (A12) ; s'il faut l'ajouter au type de disposition,
-  `actions/include/actcraft/actions/layout.h` et `actions/src/layout.cpp` entrent dans les fichiers de la tâche
-  (écart à noter au rapport et dans la table par l'orchestrateur). Tests rouges puis verts dans
+  Le menu contextuel de la page (`contextMenu`, F-771) reçoit `export.page-image` à la suite de ses entrées.
+  `objectMenu` est ajouté à `Layout` (`layout.h`) à côté de `contextMenu`, lu par la même règle (`layout.cpp` :
+  tableau de chaînes facultatif ; `unknownCommands` le parcourt) et exposé au QML par `ui::Commands` comme
+  `contextMenu` (`commands.h`, `commands.cpp`). Tests rouges puis verts dans
   `tests/tst_actions_layout.cpp` (fabriques de registre et de disposition : celles du test existant) :
   ```cpp
   static const QStringList kLot5{
@@ -523,11 +568,13 @@ propre ; `NOMS OK`.
       QCOMPARE(kLot5.size(), 53);
       const auto registry = loadRegistry();
       QSet<QString> shortcuts;
-      for (const auto& command : registry.all()) {
-          if (command.shortcut.isEmpty())
+      for (const QString& id : registry.ids()) {
+          const actions::CommandInfo* command = registry.find(id);
+          QVERIFY(command != nullptr);
+          if (command->shortcut.isEmpty())
               continue;
-          QVERIFY2(!shortcuts.contains(command.shortcut), qPrintable(command.shortcut));
-          shortcuts.insert(command.shortcut);
+          QVERIFY2(!shortcuts.contains(command->shortcut), qPrintable(command->shortcut));
+          shortcuts.insert(command->shortcut);
       }
       for (const QString& id : kLot5)
           QVERIFY2(registry.find(id) != nullptr, qPrintable(id));
@@ -537,7 +584,7 @@ propre ; `NOMS OK`.
   {
       const auto layout = loadLayout();
       const QStringList expected{"object.shape-points", "-", "edit.cut", "edit.copy", "edit.paste-onto",
-                                 "edit.duplicate", "edit.delete", "-", ">transform", ">arrange", "-", "object.lock",
+                                 "edit.duplicate", "edit.delete", "-", ">transform", ">align", ">arrange", "-", "object.lock",
                                  "object.group", "object.hide", "object.drag-copy", "-",
                                  "recognition.convert-to-text", "recognition.convert-to-shape"};
       QCOMPARE(layout.objectMenu, expected);
@@ -568,7 +615,8 @@ propre ; `NOMS OK`.
   `export/{pageexport,pdfexport,pdfimport,officeconvert}.h`, `print/printer.h`, `ui/{objectediting,insertion,
   documenttabs,fileexchange,printcontroller}.h`, et l'ajout à `documentcontroller.h`.
 - [ ] **Étape 8 : corps talons et tests réservés.** Chaque `.cpp` neuf définit ses fonctions avec une valeur neutre
-  (`{}`, `nullptr`, `false`, objet par défaut) précédée de `// Talon L5-T1 : rempli par L5-T<n>.`. Chaque
+  (`{}`, `nullptr`, `false`, objet par défaut) précédée de `// Talon L5-T1 : rempli par L5-T<n>.` (marqueur unique,
+  cherché par L5-T33 ; les 7 QML talons de L5-T2 portent `// Talon L5-T2 : rempli par L5-T<n>.`). Chaque
   `tests/tst_*.cpp` du lot :
   ```cpp
   #include <QTest>
@@ -661,7 +709,7 @@ commit.
   `insertMedia(url)` si l'argument est donné, sinon `fileExchangeActions.chooseImage()` / `chooseMedia()` ;
   `tab.next` / `tab.previous` → `appTabs.next()` / `previous()` ; `view.tabs` → `appTabs.position = argument` ;
   `export.*`, `file.import-*` → `appExchange.<méthode>(url)` ou le dialogue de `fileExchangeActions` ; `file.print`
-  → `printSetupDialog.open()` si `Qt.platform.os === "windows"`, sinon `appExchange.printThroughPdf()`.
+  → `printSetupDialog.open()` si `Qt.platform.os === "windows"`, sinon (hors Windows) `appExchange.printThroughPdf()`.
 - [ ] **Étape 4 : talons QML** des sept fichiers neufs, enregistrés au bloc `QML_FILES` ; `ObjectBar.qml` lit la
   liste `objectBar` complète (boutons du lot inertes jusqu'à L5-T18) ; `TopBar.qml` réserve la place de
   `DocumentTabBar`.
@@ -677,11 +725,11 @@ commit.
 presse-papiers transporte des objets **sans perte** (tous les types, types inconnus compris, L2-C8) et les ressources
 qu'ils citent (images, médias), pour coller dans un autre onglet ou une autre instance d'ActCraft. Le patron évident
 (sérialiser chaque objet à la main) est le mauvais : **réutiliser le code d'objet du format natif** (`nativejson.cpp`,
-fonctions d'écriture et de lecture d'un objet ; si elles sont internes au fichier, les exposer dans un en-tête interne
-`formats/src/nativeobjects.h` — fichier ajouté à la tâche, écart au rapport) pour que le presse-papiers et
+fonctions d'écriture et de lecture d'un objet, aujourd'hui dans un espace de noms anonyme : les sortir et les
+déclarer dans l'en-tête interne neuf `formats/src/nativeobjects.h`) pour que le presse-papiers et
 l'enregistrement ne divergent jamais.
 
-**Fichiers.** `formats/src/clipboard.cpp`, `tests/tst_formats_clipboard.cpp` (et, au besoin, `formats/src/nativeobjects.h`).
+**Fichiers.** `formats/src/clipboard.cpp`, `formats/src/nativejson.cpp`, `formats/src/nativeobjects.h`, `tests/tst_formats_clipboard.cpp`.
 
 **Test et commande bornée.** Commande ciblée, motif `^(tst_formats_clipboard)$`. Fonctions :
 ```cpp
@@ -936,8 +984,8 @@ void TestArrange::reorderChangesSeenByCache()
     core::ReorderObjectsCommand command(0, ids(d, "bacde"));
     command.redo(d, changes);
     // a et b changent de rang : un retrait puis une insertion chacun, rien pour c, d, e.
-    QCOMPARE(countKind(changes, core::ChangeKind::ObjectRemoved), 2);
-    QCOMPARE(countKind(changes, core::ChangeKind::ObjectInserted), 2);
+    QCOMPARE(countKind(changes, core::Change::Kind::ObjectRemoved), 2);
+    QCOMPARE(countKind(changes, core::Change::Kind::ObjectInserted), 2);
 }
 ```
 Noms de `Changes` et de ses genres : ceux de `core/pagecache.h` (A10, à revérifier).
@@ -962,8 +1010,10 @@ modification de `replace.cpp`, `model.h`.
 
 <a id="tache-l5-t6"></a>
 
-**Objectif.** Remplir `core/src/alignment.cpp` (annexe A, `alignment.h`) selon D6, D7, D8 (`view.py:873-960`). Le
-résultat est une liste de transformations passée par l'appelant (L5-T14) à `TransformObjectsCommand` (A7) ; les copies
+**Objectif.** Remplir `core/src/alignment.cpp` (annexe A, `alignment.h`) selon D6, D7, D8 (`view.py:873-960`), et
+la commande `TransformEachCommand` (une transformation absolue par objet, une étape ; Changes : un `ObjectChanged` par
+objet, zone = union des emprises avant et après). Le résultat des fonctions est passé par l'appelant (L5-T14) à
+`TransformEachCommand` ; les copies
 miroir passent par `preparePaste` et `PasteObjectsCommand` (L5-T4).
 
 **Fichiers.** `core/src/alignment.cpp`, `tests/tst_core_alignment.cpp`.
@@ -1031,13 +1081,16 @@ void TestAlignment::originSymmetry()
     QCOMPARE(boundsWith(d, a, t[0].second).left(), 80.0); // symétrique de [300, 320] par x = 200
 }
 ```
-Les modes restants (`CenterX`, `Right`, `Top`, `CenterY`, `Bottom`, `Height`, `Angle`, `All`, `Height` et `Page` de
-l'ajustement, `OriginalSize`) ont chacun une fonction de test `align<Mode>` / `fit<Mode>` sur le même gabarit (valeurs
-attendues tirées de `view.py:873-937`) — 11 fonctions de plus, écrites à l'étape 1.
+Plus `transformEachIsOneStep` (deux objets, deux transformations, un Annuler rend les deux) et une fonction par mode
+restant, même gabarit, avec ces attendus (a = {100, 10, 50, 50} créé d'abord, b = {300, 80, 20, 20}) : `CenterX` → centre
+x de b = 200 ; `Right` → bord droit de a = 320 ; `Top` → haut de b = 10 ; `CenterY` → centre y de a = 70 ; `Bottom` →
+bas de a = 100 ; `Height` → hauteur de b = 50, haut gardé (80) ; `Angle` (a tourné de 30°) → angle de b = 30 ; `All` →
+b = taille, angle et centre de a ; ajustement `Height` (objet de 300 × 1536) → hauteur 768, largeur 150 ; `Page`
+(2048 × 1536) → 1024 × 768 ; `OriginalSize` (a agrandi de 2) → 50 × 50, centre gardé — 12 fonctions de plus.
 
 **Interdits.** Aucune commande dans ce fichier (fonctions pures) ; aucune dépendance à l'interface.
 
-**Terminé quand.** 18 fonctions en `PASS` ; commit « Lot 5 : aligner, ajuster, projeter, inverser (core) ».
+**Terminé quand.** 19 fonctions en `PASS` ; commit « Lot 5 : aligner, ajuster, projeter, inverser (core) ».
 
 **Étapes.**
 - [ ] **Étape 1** : tests rouges (7 ci-dessus + 11 modes) ; commande ciblée → rouge.
@@ -1076,7 +1129,7 @@ void TestFlags::mixedSelectionLocksAll()
     objectById(d, a).common.locked = true;
     QVERIFY(!core::flagOfAll(d.pages[0], {a, b}, core::ObjectFlag::Locked)); // la bascule posera « vrai »
 }
-void TestFlags::hiddenObjectNotPainted()
+void TestFlags::hiddenObjectReportsAChange() // le pixel est contrôlé par S8.3 (L5-T18)
 {
     auto d = blank();
     const auto a = addRect(d, {0, 0, 10, 10});
@@ -1084,7 +1137,7 @@ void TestFlags::hiddenObjectNotPainted()
     core::SetObjectFlagCommand command(0, {a}, core::ObjectFlag::Hidden, true);
     command.redo(d, changes);
     QVERIFY(!objectById(d, a).common.visible);
-    QCOMPARE(countKind(changes, core::ChangeKind::ObjectChanged), 1);
+    QCOMPARE(countKind(changes, core::Change::Kind::ObjectChanged), 1);
     core::Changes none;
     core::SetObjectFlagCommand lock(0, {a}, core::ObjectFlag::Locked, true);
     lock.redo(d, none);
@@ -1293,8 +1346,10 @@ void TestPenModifiers::resultIsAStrokeOnTheTopLayer()
     QVERIFY(!core::penShapeFromId("autre"));
 }
 ```
-Plus une fonction par tracé restant (`Vertical`, `Rectangle`, `Ellipse`, `Arc`, `Polyline`, `Zigzag`, `Free`) sur le
-même gabarit : 7 de plus.
+Plus une fonction par tracé restant, avec ces attendus (de (0, 0) à (100, 40)) : `Vertical` → dernier point
+(0, 40) ; `Rectangle` → 5 points, coin opposé (100, 40) ; `Ellipse` → ≥ 32 points, fermé, x max = 100 ; `Arc` → premier
+(0, 20) et dernier (100, 20), y min = 0 ; `Polyline` (clics (50, 0)) → {(0, 0), (50, 0), (100, 40)} ; `Zigzag` → x
+croissant, pas de 16 ; `Free` → {(0, 0), (100, 40)} — 7 de plus.
 
 **Interdits.** Fonctions pures, aucune commande ; le marqueur (`highlighter = true`) garde la translucidité du lot 3.
 
@@ -1354,7 +1409,7 @@ void TestConnectors::connectorFollowsAlign()
     const auto c = addConnectorAt(d, {200, 150}, a, {400, 300}, b);
     const auto t = core::alignTransforms(d.pages[0], {a, b}, core::AlignMode::Top);
     core::UndoStack stack;
-    stack.push(core::withFollowingConnectors(d.pages[0], 0, std::make_unique<core::TransformObjectsCommand>(0, t)), d);
+    stack.push(core::withFollowingConnectors(d.pages[0], 0, std::make_unique<core::TransformEachCommand>(0, t)), d);
     QCOMPARE(std::get<core::Connector>(objectById(d, c)).secondEnd.y, 100.0);
 }
 void TestConnectors::undoRestoresConnectorAndObject()
@@ -1381,7 +1436,7 @@ void TestConnectors::deletingAnEndDetaches()
     QCOMPARE(std::get<core::Connector>(objectById(d, c)).firstEnd, core::PointF(200, 150)); // reste en place
 }
 ```
-`TransformObjectsCommand` : signature du lot 3 (A7, à revérifier) ; `translateCommand` : aide du test qui la construit.
+`translateCommand` : aide du test qui construit `TransformObjectsCommand(page, {id}, delta)` (A7, un seul delta).
 Mutation : dans `FollowingConnectorsCommand::undo`, annuler la commande intérieure **avant** de remettre les
 connecteurs → `undoRestoresConnectorAndObject` rouge (ou vert : alors l'ordre n'importe pas et le contrat est
 simplifié dans le rapport) ; remise par `git -C <wt> checkout -- core/src/connectors.cpp`.
@@ -1409,7 +1464,9 @@ l'utilisateur courant (`appTools.user().selection`, A3, A4), construit la comman
 `DocumentController::execute` (A5) **enveloppée par `core::withFollowingConnectors`** (L5-T10) quand elle déplace,
 transforme ou retire des objets. Presse-papiers du système (`QGuiApplication::clipboard()`) : `QMimeData` avec
 `formats::kObjectsMimeType` (L5-T3) ; une seule image copiée → aussi `setImageData` ; collage d'une autre application :
-image → `Insertion` (L5-T15, même règle de taille), texte → objet texte au centre (`view.py:706-728`). Sans sélection,
+image → `Insertion` (L5-T15, même règle de taille), texte → objet texte au centre (`view.py:706-728`), **texte brut
+seulement** (`mimeData->text()`) : un HTML venu d'une autre application n'est jamais rendu ni chargé (règle
+`loadResource` de l'état du chantier). Sans sélection,
 couper / copier / coller / dupliquer / supprimer agissent sur la page (D3) par `ui::PagesController` (A15). Après
 coller et dupliquer, les copies sont sélectionnées et l'outil Sélection activé (D1, D2) ; après grouper puis Annuler,
 la sélection est vide (D4).
@@ -1463,7 +1520,7 @@ void TestObjectEditing::groupThenUndoClearsSelection()
     f.document.undo();
     QVERIFY(f.selection().empty());
 }
-void TestObjectEditing::alignGoesThroughTransformCommand()
+void TestObjectEditing::alignGoesThroughTransformEachCommand()
 {
     Fixture f(2);
     f.spy.clear();
@@ -1481,7 +1538,8 @@ void TestObjectEditing::cutGoesThroughReplaceCommand()
     QVERIFY(QGuiApplication::clipboard()->mimeData()->hasFormat(formats::kObjectsMimeType));
 }
 ```
-Plus `everyEditGoesThroughConnectorFollower` : un connecteur lié au rectangle ; pour chaque méthode qui déplace
+Plus `pasteHtmlLoadsNothing` (presse-papiers avec `text/html` citant `<img src="file:///…">` et un texte brut :
+l'objet collé porte le texte brut, aucun accès au fichier cité) et `everyEditGoesThroughConnectorFollower` : un connecteur lié au rectangle ; pour chaque méthode qui déplace
 (`align`, `transform`, `cut`), l'extrémité suit ou se détache (contrat de L5-T10).
 
 **Preuve visuelle.** Aucune ici (L5-T18). Banc sans écran joint (la tâche touche `ui/`).
@@ -1489,16 +1547,17 @@ Plus `everyEditGoesThroughConnectorFollower` : un connecteur lié au rectangle ;
 **Interdits.** Aucun accès à `FixedPageItem` ; aucune commande qui ne passe pas par `execute` ; presse-papiers
 interne au processus interdit (copier entre onglets et entre instances passe par le presse-papiers du système).
 
-**Terminé quand.** 8 fonctions en `PASS` ; `tst_ui_document` et `tst_ui_lift` (lot 3) encore verts ; banc joint ;
+**Terminé quand.** 9 fonctions en `PASS` ; `tst_ui_document` et `tst_ui_lift` (lot 3) encore verts ; banc joint ;
 commit « Lot 5 : contrôleur d'édition d'objet ».
 
 **Étapes.**
 - [ ] **Étape 1** : tests rouges ; **Étape 2** : sélection et états (`hasSelection`, bascules, `selectionIsGroup`,
   `selectionIsAnnotation`) relus à chaque `selectionChanged` de `ToolHost` et `documentChanged` ; **Étape 3** :
   presse-papiers (copier, couper, coller, coller sur l'objet, coller à un point) ; **Étape 4** : dupliquer, grouper,
-  organiser (`arrangedOrder` → `ReorderObjectsCommand`, ou `SetLayerCommand`), aligner, ajuster, inverser, projeter
+  organiser (`arrangedOrder` → `ReorderObjectsCommand`, ou `SetLayerCommand`), aligner, ajuster, inverser (par
+  `TransformEachCommand`), projeter
   (`mirrorCopies` → `preparePaste(…, 0, 0)` → `PasteObjectsCommand`), symétries d'origine (position de l'origine
-  lue par A17 ; commande inerte si l'origine n'est pas affichée), bascules (`SetObjectFlagCommand`) ; **Étape 5** :
+  : `PagePresentation::hasOrigin` / `origin` de la page affichée, A17 ; commande inerte si `hasOrigin` est faux), bascules (`SetObjectFlagCommand`) ; **Étape 5** :
   vert, banc sans écran, format, commit.
 
 ### Tâche L5-T15 — `ui` : insérer une image ou un média
@@ -1518,12 +1577,12 @@ l'objet inséré est sélectionné.
 (nom = nom de fichier sans extension), `decodeOffMainThread` (le décodage tourne hors du fil principal :
 `QThread::currentThread()` relevé par un crochet de test, ou propriété `lastDecodeOffMainThread` sur le modèle de
 `lastIoOffMainThread` du lot 2), `mediaInsertedAtCenter`, `droppedTextBecomesText` (`acceptDrop({}, "abc", {100,
-100})` → objet texte en (100, 100)), `insertionIsOneStep` (un Annuler retire l'image et la ressource n'est plus citée).
+100})` → objet texte en (100, 100)), `droppedHtmlLoadsNothing` (texte brut seulement), `insertionIsOneStep` (un Annuler retire l'image et la ressource n'est plus citée).
 
 **Interdits.** Aucun décodage sur le fil principal ; aucune lecture réseau (`QUrl` locale ou `content://`) ; ressource
 écrite telle quelle (octets d'origine), jamais réencodée.
 
-**Terminé quand.** 6 fonctions en `PASS` ; banc sans écran joint ; commit « Lot 5 : insérer une image ou un média ».
+**Terminé quand.** 7 fonctions en `PASS` ; banc sans écran joint ; commit « Lot 5 : insérer une image ou un média ».
 
 **Étapes.** Tests rouges → lecture (`DocumentController::urlFromArgument` pour l'URL, A5) et décodage en tâche de fond
 → retour sur le fil principal (`QFutureWatcher`) → commande → vert → banc → format → commit.
@@ -1533,7 +1592,7 @@ l'objet inséré est sélectionné.
 <a id="tache-l5-t12"></a>
 
 **Objectif.** Remplir `tools/src/filltool.cpp` (clic → `core::fillHitAt` avec la tolérance de désignation du lot 3
-convertie en page, puis `makeFillCommand` ou, sur une image, `render::floodFill` puis `makeImageFillCommand`, par
+convertie en page, puis `makeFillCommand` ou, sur une image, `render::floodFill` **sur un fil secondaire** puis `makeImageFillCommand`, par
 `DocumentEditor::execute`, A1) et `tools/src/penshapetool.cpp` (glisser : aperçu par la couche soulevée
 `LiftSurface::show`, aucun redessin du cache pendant le geste ; relâché : **un** `AddObjectCommand` de
 `core::penShapeStroke` ; ligne brisée : chaque clic pose un sommet, double-clic termine).
@@ -1544,7 +1603,9 @@ convertie en page, puis `makeFillCommand` ou, sur une image, `render::floodFill`
 **Test et commande bornée.** Commande ciblée, motif `^(tst_tools_fill|tst_tools_penshape)$`. Faux `ToolContext` du lot
 3 (aides de `tst_tools_select`, à revérifier) : `clickFillsTopmostClosedShape`, `clickOnEmptyFillsBackground`,
 `clickOnImageFloodFills`, `dragDrawsAPreviewThenOneStroke` (un seul `execute` au relâché), `previewUsesTheLiftSurface`
-(`show` appelé pendant le geste, `clear` au relâché, aucun `execute` avant), `polylineEndsOnDoubleClick`.
+(`show` appelé pendant le geste, `clear` au relâché, aucun `execute` avant), `polylineEndsOnDoubleClick`,
+`imageFillOffMainThread` (le remplissage d'image tourne par `QtConcurrent::run` ; la commande est poussée au retour sur
+le fil principal ; fil relevé par un crochet de test).
 
 **Interdits.** Aucun accès au document hors de `ToolContext` ; aucune commande pendant le geste.
 
@@ -1570,7 +1631,7 @@ un objet puis glisser : aperçu de la ligne par `LiftSurface::show` ; relâcher 
 
 **Interdits.** Aucune commande pendant le geste ; aucun dessin de connecteur hors du peintre partagé (le rendu des
 connecteurs existe depuis le lot 2 ; extrémités `capA`/`capB` dessinées par `render/src/pagepainter.cpp` : si le
-peintre ne les dessine pas encore, **tâche corrective `L5-C1`** ajoutée par l'orchestrateur, fichier
+peintre ne les dessine pas encore, **tâche corrective `L5-C<n>`** (numéro suivant libre) ajoutée par l'orchestrateur, fichier
 `render/src/pagepainter.cpp`, après V6).
 
 **Terminé quand.** 5 fonctions en `PASS` ; banc sans écran joint ; commit « Lot 5 : outil connecteur ».
@@ -1586,9 +1647,8 @@ est soulevé comme au lot 3, mais au dépôt l'original reste et une copie est a
 `dropLifted` reçoit une `PasteObjectsCommand` (L5-T4) au lieu d'une `TransformObjectsCommand`, l'original étant
 redéposé sans étape ; (2) **verrouillé** : seul le glissement par la poignée « Déplacer » du lot 3 le déplace ;
 (3) **mode points de forme** (activé par `object.shape-points`) : `SelectionView` montre les points
-(`core::shapePoints`) comme carrés (nouveau champ `shapePoints` à la fin de `SelectionView`, ajouté par cette tâche dans
-`selectiongeometry.cpp` seulement si l'en-tête du lot 3 le permet ; sinon dans un en-tête d'outil propre — écart au
-rapport), glisser un point → **une** `MoveShapePointCommand` au relâché, aperçu par la couche soulevée.
+(`core::shapePoints`) comme carrés (champ `shapePoints` de `SelectionView`, réservé par L5-T1 dans `toolcontext.h`, rempli ici ; dessiné par
+`SelectionOverlay.qml` en L5-T18), glisser un point → **une** `MoveShapePointCommand` au relâché, aperçu par la couche soulevée.
 
 Point délicat (`concepteur-critique`) : parité du chemin de dépôt — un dépôt normal et un dépôt de copie doivent
 laisser le cache dans le même état qu'un dépôt du lot 3 (même observateur, `ChangeOrigin::Drop`) ; la copie ne doit
@@ -1617,9 +1677,8 @@ sélection — glisser une copie et points de forme ».
 **Objectif.** Dans `ui/src/toolhost.cpp` et `ui/src/tooladapters.{h,cpp}` : inscrire « fill », « pen-shape »,
 « connector » au registre (A3) ; `activate("select-points")` = outil Sélection en mode points de forme ;
 `activate("pen-shape", argument)` seulement si l'outil courant est stylo, marqueur (ou encre révélatrice au lot 8) —
-sinon sans effet (F-221) ; `setConnectorStyle(int)` (méthode invocable ajoutée ici, gestionnaire de L5-T2 complété :
-`ui/qml/Main.qml` **n'est pas** touché, le gestionnaire `connector.style` appelle `appTools.setConnectorStyle` par
-le nom déjà écrit en commentaire — à décommenter par L5-T18) ; mémoire par outil (couleur du pot, style du connecteur,
+sinon sans effet (F-221) ; corps de `setConnectorStyle(int)` (déclarée par
+L5-T1 ; le gestionnaire QML est décommenté par L5-T18) ; mémoire par outil (couleur du pot, style du connecteur,
 tracé choisi) gardée comme celle du lot 3 (`settingsFile`) ; l'adaptateur de dépôt de `ToolHost` enveloppe la commande
 de dépôt par `core::withFollowingConnectors` (L5-T10) ; Échap quitte le mode points de forme.
 
@@ -1629,8 +1688,7 @@ de dépôt par `core::withFollowingConnectors` (L5-T10) ; Échap quitte le mode 
 `penModifierOnlyWithInkTools`, `connectorRemembersStyle` (après relance du `ToolHost` sur le même `settingsFile`),
 `escapeLeavesShapePoints`, `dropMovesLinkedConnectors` (glisser un objet relié : l'extrémité suit, une étape).
 
-**Interdits.** Aucun outil qui contourne `ToolContext` ; aucune signature publique de `ToolHost` changée hors de
-l'ajout de `setConnectorStyle`.
+**Interdits.** Aucun outil qui contourne `ToolContext` ; aucune signature publique de `ToolHost` changée.
 
 **Terminé quand.** 5 fonctions en `PASS` ; `tst_ui_tools` (lot 3) encore vert ; banc sans écran joint ; commit
 « Lot 5 : outils du lot branchés à ToolHost ».
@@ -1651,7 +1709,7 @@ défaut, ancré à droite), et le scénario d'interface `bench/scenarios/edition
 gestionnaire `connector.style` décommenté — `Main.qml` est déjà réservé par L5-T2 et n'est touché par aucune autre
 tâche de V8 : **fichier ajouté à cette tâche**.
 
-**Fichiers.** Ceux de la ligne de la table, plus `ui/qml/Main.qml` (une ligne).
+**Fichiers.** Ceux de la ligne de la table (dont `SelectionOverlay.qml` : carrés des points de forme de L5-T16).
 
 **Test et commande bornée.** `tst_ui_shell` : `objectMenuMatchesLayout` (entrées du menu = `objectMenu` filtrée par
 plateforme), `convertEntriesOnlyForAnnotations`. Commande ciblée, motif `^(tst_ui_shell)$`.
@@ -1661,10 +1719,12 @@ plateforme), `convertEntriesOnlyForAnnotations`. Commande ciblée, motif `^(tst_
 `object.shape-points`, glisser un point, `tool.connector` entre deux formes, déplacer l'une). Lectures d'abord :
 ```powershell
 New-Item -ItemType Directory -Force '<wt>/.tmp' | Out-Null
-pwsh -NoProfile -Command "Set-Location '<wt>'; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario edition -Rendu logiciel -HorsEcran -Sortie .tmp/captures-edition -Lire 'appEditing.selectionIsGroup=true' -Lire 'appDocument.canUndo=true' -Lire 'objectEditMenu.count=<n attendu>' > .tmp/captures.txt 2>&1"
+pwsh -NoProfile -Command "Set-Location '<wt>'; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario edition -Rendu logiciel -HorsEcran -Sortie .tmp/captures-edition -Lire 'appEditing.selectionIsGroup=true' -Lire 'appDocument.canUndo=true' -Lire 'objectEditMenu.visibleCommandCount=13' > .tmp/captures.txt 2>&1"
 Select-String -Path '<wt>/.tmp/captures.txt' -Pattern '^(COMMANDE|TRAIT|TOUCHE|ATTENTE|PRET|FENETRE|LU|PIXEL|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16
 ```
-Attendu : `CAPTURES OK`, chaque `LU` conforme, contrôles de pixels : couleur de remplissage dans la forme, ligne du
+`visibleCommandCount` (propriété du menu, entrées visibles hors séparateurs) vaut 13 pour un groupe sous Windows :
+points de forme, couper, copier, coller sur l'objet, dupliquer, supprimer, Transformer, Aligner, Organiser et les quatre
+bascules ; les deux « Convertir » sont cachés (pas une annotation). Attendu : `CAPTURES OK`, chaque `LU` conforme, contrôles de pixels : couleur de remplissage dans la forme, ligne du
 connecteur entre les deux formes après le déplacement. Capture à décrire : les deux groupes alignés à gauche, le menu
 d'objet ouvert, la barre d'objet complète.
 
@@ -1682,7 +1742,9 @@ le document (tout passe par les commandes).
 
 **Objectif.** Ajouter au banc un scénario `edition` : sur une page de 200 annotations, coller 20 objets, grouper,
 aligner, organiser (premier plan), pendant qu'un trait est écrit toutes les 2 s ; relever figements et reprises
-(métriques existantes) et le nombre de redessins du cache par geste (`cacheRefreshCount`, A18). Il mesure la limite
+(métriques existantes) et, **par geste**, le nombre de redessins du cache : nouvelle clé du JSON
+`edition.refreshes_by_gesture` = `{"paste": n, "group": n, "align": n, "front": n}` (différence de `cacheRefreshCount`,
+A18, autour de chaque geste ; `cache.refreshes` reste le total). Attendu : chaque valeur ≤ 1. Il mesure la limite
 déclarée (contrainte 1 : organiser = insertion hors fin de page → redessin immédiat).
 
 **Fichiers.** Ceux de la ligne de la table.
@@ -1820,6 +1882,7 @@ std::vector<ObjectId> expandGroups(const Page& page, const std::vector<ObjectId>
 ```cpp
 #pragma once
 #include <actcraft/core/model.h>
+#include <actcraft/core/undo.h>
 
 #include <utility>
 #include <vector>
@@ -1839,9 +1902,24 @@ enum class Axis : std::uint8_t
     X, // haut / bas
     Y, // gauche / droite
 };
-using TransformList = std::vector<std::pair<ObjectId, Transform>>;
+using TransformList = std::vector<std::pair<ObjectId, Transform>>; // transformation absolue de chaque objet
 
-// Transformations à passer à TransformObjectsCommand (A7) ; objets verrouillés et inchangés absents ; moins de 2 objets
+// Pose à chaque objet sa transformation, en une étape (aligner, ajuster, inverser, symétries) ; objets absents
+// ignorés. Changes : un ObjectChanged par objet modifié (zone : union des emprises avant et après).
+class TransformEachCommand final : public UndoCommand
+{
+public:
+    TransformEachCommand(std::size_t page, TransformList transforms);
+    void redo(Document& document, Changes& changes) override;
+    void undo(Document& document, Changes& changes) override;
+
+private:
+    std::size_t m_page;
+    TransformList m_transforms;
+    TransformList m_before;
+};
+
+// Transformations à passer à TransformEachCommand ; objets verrouillés et inchangés absents ; moins de 2 objets
 // non verrouillés : vide (D6).
 TransformList alignTransforms(const Page& page, const std::vector<ObjectId>& ids, AlignMode mode);
 TransformList fitTransforms(const Page& page, const std::vector<ObjectId>& ids, FitMode mode); // F-536
@@ -1852,7 +1930,7 @@ std::vector<PageObject> mirrorCopies(const Page& page, const std::vector<ObjectI
 
 } // namespace actcraft::core
 ```
-(L5-T6 adapte `TransformList` au type d'argument réel de `TransformObjectsCommand` relevé par L5-T0, A7.)
+(`TransformObjectsCommand` du lot 3 prend un seul delta pour tous les objets, A7 : d'où `TransformEachCommand`.)
 
 ### `core/include/actcraft/core/objectflags.h`
 ```cpp
@@ -2215,7 +2293,7 @@ namespace actcraft::exporting {
 struct Converter
 {
     QString program;
-    QStringList arguments; // {in} et {out} remplacés
+    QStringList arguments; // {in} (présentation), {out} (PDF attendu) et {outdir} (dossier de {out}) remplacés
     QString name;
 };
 // ACTCRAFT_OFFICE_CONVERTER (programme puis arguments séparés par « | »), puis LibreOffice, puis PowerPoint.
@@ -2335,15 +2413,16 @@ private:
   insertImageData(const QImage& image)` (collage, L5-T14), `Q_INVOKABLE bool acceptDrop(const QVariantList& urls, const
   QString& text, QPointF pagePoint)` ; signaux `busyChanged()`, `inserted(int count)`, `failed(QString message)`.
 - `documenttabs.h` — `DocumentTabs : QAbstractListModel` : propriétés `document` (`DocumentController*`),
+  `count` (`Q_PROPERTY(int count READ rowCount NOTIFY countChanged)`, `rowCount(const QModelIndex& parent = {})`),
   `currentIndex` (lecture), `position` (« top », « bottom », « hidden », lu et écrit) ; rôles `TitleRole`,
   `ModifiedRole`, `CurrentRole`, `UrlRole` ; `Q_INVOKABLE void newTab()`, `openInNewTab(const QUrl&)`,
   `activate(int)`, `bool requestClose(int)` (faux : `saveRequested(int)` émis), `closeWithoutSaving(int)`,
   `copyPagesToTab(const QVariantList& pageIndexes, int tabIndex)` (F-011 : avant la première page), `next()`,
-  `previous()` ; signaux `documentChanged`, `currentIndexChanged`, `positionChanged`, `saveRequested(int)`.
+  `previous()` ; signaux `documentChanged`, `countChanged`, `currentIndexChanged`, `positionChanged`, `saveRequested(int)`.
 - `fileexchange.h` — `FileExchange` : propriétés `document`, `tabs` (`DocumentTabs*`), `busy`, `pdfImportAvailable`
   (constante), `powerpointAvailable` (`NOTIFY converterChanged`) ; `Q_INVOKABLE void exportPdf(const QUrl&)`,
   `exportPageImage(const QUrl&)`, `importPdf(const QUrl&)`, `importPowerpointImages(const QUrl&)`,
-  `printThroughPdf()` (Android, N1-15) ; signaux `busyChanged`, `converterChanged`, `finished(QString)`,
+  `printThroughPdf()` (hors Windows, N1-15) ; signaux `busyChanged`, `converterChanged`, `finished(QString)`,
   `failed(QString)`.
 - `printcontroller.h` — `PrintController` : propriétés lues et écrites `rows`, `columns`, `frames`, `pageNumbers`,
   `range` (« all », « current », « from-to »), `from`, `to`, `copies`, `marginMm`, `gray`, `notes` (« none »,
@@ -2374,7 +2453,14 @@ Corps talons dans `documentcontroller.cpp` : `struct ParkedSession {};`, `parkSe
   livré, Windows seulement ; Android : commande absente.
 - **H5-4** (N2) — Pot de peinture sur l'intersection de formes : forme du dessus remplie tant que L5-T0 ne l'a pas
   tranché.
-- **H5-5** (N2) — Une seule vue pour tous les onglets (mémoire du cache MSAA) : changer d'onglet redessine le cache une
-  fois.
+- **H5-5** (N2) — Une seule vue pour tous les onglets (cache à 20 o/px depuis L10-T8, ≈ 41,5 Mio par vue en
+  1920 × 1080) : changer d'onglet redessine le cache une fois.
 - **H5-6** (N2) — Organiser (avancer, reculer) garde le redessin immédiat du cache (insertion hors fin de page, lot 10) :
   mesuré par le banc `edition`.
+- **H5-7** (N1, pour Jérôme) — Postes gérés (AppLocker, stratégies qui bloquent `powershell.exe` ou l'automation de
+  PowerPoint) : la conversion échoue ; proposition : une bannière d'erreur à nous, sans autre repli. Non tranché.
+- **H5-8** (N1, pour Jérôme) — Poids de Qt PDF dans l'installateur et l'APK (bibliothèque PDFium embarquée, mentions de
+  licence de PDFium à joindre) ; disponibilité sous Android non vérifiée. Non tranché.
+- **H5-9** (N1, pour Jérôme) — Qt PrintSupport tire `Qt6Widgets.dll` : chargée au démarrage sous Windows (temps mesuré
+  par L5-T27) ; à accepter, ou à charger à la demande. Non tranché.
+- **H5-10** (N1, pour Jérôme) — Aligner un objet seul (D6) : décidé par L5-T0, présenté à la porte du lot.
