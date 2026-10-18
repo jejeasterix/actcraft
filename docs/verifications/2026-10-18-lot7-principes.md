@@ -1,8 +1,8 @@
 # Lot 7 — principes confrontés (vidéos, spécification, ancien dépôt, binaire)
 
 Relevé brut (hors dépôt) : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot7.md`. Références `Vnn` :
-numéros des fiches du corpus (table hors dépôt). Constats écrits par nous. Base : N0 = <à reporter par
-l'orchestrateur> tests ctest. Tâche L7-T0, scénario S30.
+numéros des fiches du corpus (table hors dépôt). Constats écrits par nous. Base : N0 = 94 tests ctest
+(`TESTS OK`, debug, relevé par l'orchestrateur le 2026-10-18 sur `feat/livraison-complete-b`). Tâche L7-T0, scénario S30.
 
 ## Méthode et limites
 
