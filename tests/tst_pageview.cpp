@@ -1257,11 +1257,11 @@ private slots:
         QVERIFY(open(f));
         QCOMPARE(f.window.effectiveDevicePixelRatio(), 1.0);
         f.view->setProperty("cacheSamples", 4);
-        f.content->setSize(QSizeF(3000, 2000)); // page plus grande que le plafond multi-échantillonné
+        f.content->setSize(QSizeF(3500, 2000)); // page plus grande que le plafond multi-échantillonné
         f.view->setZoom(1.0);
-        QCOMPARE(f.view->cacheTextureSize(), QSize(3000, 2000));
+        QCOMPARE(f.view->cacheTextureSize(), QSize(3500, 2000));
         f.view->setZoom(8.0);
-        QCOMPARE(f.view->cacheTextureSize(), QSize(3000, 2000)); // plancher : le côté à 100 %
+        QCOMPARE(f.view->cacheTextureSize(), QSize(3500, 2000)); // plancher : le côté à 100 %
     }
 
     void singleSampledCacheKeepsTheFullCapEvenIfTheWindowIsMultisampled()

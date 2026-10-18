@@ -212,6 +212,9 @@ pixels intermédiaires de `checkEdge` (100 % → 2 dans toutes les variantes).
 |---|---|---|---|---|---|---|---|---|
 | V0 tête | **1 692,1** | **1 462,7** (658,2 / 804,5) | 1 501,3 (696,9 / 804,4) | tenu | 17,2 | 2 / 8 | 2,45 % | 41 sur 41 (9 demandes) |
 | V1 sans profondeur 2D | **1 047,4** | 866,1 (377,1 / 489,0) | 875,8 (376,8 / 498,9) | tenu | 17,2 | 2 / 8 | 2,78 % | 33 sur 34 (8 demandes) |
+| V2 plafond 2048 | **1 141,2** | 426,9 (relevé invalide : compteurs GPU à 0) | 332,5 (invalide) | tenu | 17,1 | **8** / 16 | 4,03 % | 65 sur 94 (8 demandes) |
+| **V3 V1 + 3072** | **901,6** | **624,4** (281,8 / 342,5) | 625,2 (273,9 / 351,4) | tenu | 17,0 | 4 / 12 | 2,46 % | 44 sur 44 (8 demandes) |
+| V3 V1 + 2896 | 920,0 | 584,8 (252,4 / 332,4) | 583,6 (260,3 / 323,2) | tenu | 17,1 | 4 / 12 | 2,81 % | 38 sur 38 (8 demandes) |
 | V4 sans cache (`-SansCache`) | 991,5 | 400,2 (158,2 / 242,0) | 388,1 (164,8 / 223,3) | **perdu** (`stroke`, `pauses`) | 18,2 | 2 / 2 | 25,70 % | 0 (aucune demande ; 410 entrées > 20 ms) |
 
 Constats :
@@ -223,6 +226,45 @@ Constats :
 - V4 : rendu direct à 400 % tenable (p95 `scroll` 18,2 ms ≤ 18,5), mais le passage sans cache perd S13 dans
   `stroke` et `pauses`, à 100 % ; V4 n'y couperait pas le cache. Texture libérée à l'exécution non vérifiée (V4 non
   écrite). Dernière dans l'ordre de préférence.
+- V2 seule (sans V1) reste au-dessus du budget au banc (1 141,2 Mio) et double la bande à 400 % (8 > limite 5).
+- `pauses` : aucune variante avec cache ne règle les images lentes ; les entrées en retard tombent presque toutes
+  dans les 100 ms qui suivent une demande de redessin, quel que soit le plafond (données pour L10-T9).
+
+### Variante retenue : V3, plafond 3072
+
+Règle de choix appliquée par script (`decide.py`, sortie : `CHOIX V3-3072 3072 v1`). Limite de bande à 400 % :
+⌈bande(V0) × 4096 / plafond⌉ + 1, avec bande(V0) = 2.
+
+| Variante | Banc < 1 024 | 800 % < 1 024 | S13 | p95 `scroll` ≤ 18,5 | Bande 400 % ≤ limite | Retenue |
+|---|---|---|---|---|---|---|
+| V1 (plafond 4096) | non (1 047,4) | oui | oui | oui | 2 ≤ 3 | non |
+| V3 3072 | oui (901,6) | oui (624,4) | oui | oui (17,0) | 4 ≤ 4 | **oui** |
+| V3 2896 | oui (920,0) | oui (584,8) | oui | oui (17,1) | 4 ≤ 4 | oui, plafond plus petit |
+| V2 2048 | non (1 141,2) | oui | oui | oui | 8 > 5 | non |
+
+V3 : V1 n'est pas retenue seule, et 3072 est le plus grand plafond qui tient les deux critères mémoire. Ordre de
+préférence : V1, puis V3, puis V2, puis V4.
+
+**Zoom à partir duquel l'image devient floue** (plafond ÷ côté de la page × DPR ; plancher « jamais flou ») :
+
+| Page | DPR 1, V0 (4096) | DPR 1, V3 (3072) | DPR 2, V0 | DPR 2, V3 |
+|---|---|---|---|---|
+| 1024 × 768 | 400 % | 300 % | 200 % | 150 % |
+| 1920 × 1080 | 213 % | 160 % | 107 % | au-delà de 100 % (plancher 3 840), jamais à 100 % |
+
+**Écarts au plan, écrits ici :**
+- Le plancher prend aussi le zoom d'« Ajuster » : `côté = min(4096, max(3072, côté de la page à max(1, zoom
+  d'ajustement) × DPR))`. La formule du plan (côté à 100 %) laissait floue une page de 1024 ajustée à environ 115 %
+  à DPR 2 (2 360 px demandés, plancher 2 048), contraire à l'objectif « jamais flou à l'ajustement ».
+- `PageView.cacheSamples` vaut `kCacheMsaaSamples` (4) en RHI et 1 en rendu logiciel, où `samples` est sans effet :
+  c'est ce que demande le test « cache forcé à 4 », joué en rendu logiciel. En conséquence, la garde de
+  `bench/scenarios/anticrenelage.json` (`expect pageCache.samples 4`) devient une garde de liaison vraie dans les
+  deux moteurs : `remember pageView.cacheSamples`, puis `expect pageCache.samples = ${echantillons_cache}`
+  (autorisation de l'orchestrateur, seul fichier de `bench/scenarios/` modifié).
+- V1 est écrite par l'API publique `QQuickGraphicsConfiguration::setDepthBufferFor2D(false)`, posée dans
+  `loadMainWindow` (`app/startup.cpp`) : la fenêtre de `Main.qml` est montrée au chargement mais n'est exposée qu'au
+  retour à la boucle d'événements. Mesurée avec `QSG_NO_DEPTH_BUFFER=1`, l'interrupteur documenté par Qt ; l'effet
+  de l'API est vérifié par les relevés après repli ci-dessous.
 
 ## Fichiers
 
