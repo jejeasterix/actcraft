@@ -18,6 +18,8 @@ actcraft_add_module(render
         src/fixedpageitem.cpp
         src/objectnodes.h
         src/objectnodes.cpp
+        include/actcraft/render/pendinglayeritem.h
+        src/pendinglayeritem.cpp
         include/actcraft/render/inkbuffer.h
         src/inkbuffer.cpp
         include/actcraft/render/inkitem.h

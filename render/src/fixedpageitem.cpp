@@ -83,6 +83,10 @@ void FixedPageItem::restart(Decode decode, Scope scope)
 {
     const bool redecode = decode == Decode::Force;
     const bool samePage = scope == Scope::SamePage;
+    // Lot 10 : la reconstruction met tout dans la scène ; ce qui attendait est versé (contentChanged
+    // ci-dessous fait redessiner le cache).
+    const bool hadPending = !m_pendingIds.empty();
+    m_pendingIds.clear();
     m_rebuild = true;
     m_builtCount = 0; // les nœuds affichés ne suivent plus cette page : aucun ajout « en fin de scène »
     // Redécoder seulement si le magasin ne couvre plus la page (annuler un trait ne redécode rien). Pendant
@@ -101,6 +105,9 @@ void FixedPageItem::restart(Decode decode, Scope scope)
         m_images.generate(page(), &document());
     }
     emit objectCountChanged();
+    if (hadPending) {
+        emit pendingChanged();
+    }
     emit contentChanged();
     update();
 }
@@ -166,10 +173,26 @@ void FixedPageItem::insert(core::ObjectId id)
     }
     const core::PageObject& object = shown.objects[index];
     const bool imageChanged = usesImages(object);
-    if (index + 1 == shown.objects.size() && index >= m_builtCount && !imageChanged) {
-        // Fin de page (le stylo) : le prochain updatePaintNode n'ajoute que ce nœud.
+    const bool atEnd = index + 1 == shown.objects.size();
+    const auto* strokeObject = std::get_if<core::Stroke>(&object);
+    // P8 : l'encre révélatrice rend transparents les objets sous elle : jamais en attente, redessin immédiat.
+    const bool revealer = strokeObject && strokeObject->kind == core::StrokeKind::Revealer;
+    if (atEnd && m_deferred && m_ready && !imageChanged && !revealer && !shown.grid.drawnAbove) {
+        // Lot 10 : il attend au-dessus du cache ; ni nœud dans la scène, ni redessin du cache. Limite de DA11
+        // (écart 5, H10-8) : hors fin de page, image ou grille au-dessus → redessin immédiat ci-dessous.
+        m_pendingIds.push_back(id);
         emit objectCountChanged();
-        if (std::get_if<core::Stroke>(&object)) {
+        if (strokeObject) {
+            emit strokeAppended();
+        }
+        emit pendingChanged();
+        return;
+    }
+    if (atEnd && index >= m_builtCount && !imageChanged && m_pendingIds.empty()) {
+        // Fin de page (le stylo, hors différé) : le prochain updatePaintNode n'ajoute que ce nœud. Avec des
+        // objets en attente, ce nœud passerait devant eux dans la scène : reconstruction ci-dessous.
+        emit objectCountChanged();
+        if (strokeObject) {
             emit strokeAppended();
         }
         emit contentChanged();
@@ -180,9 +203,20 @@ void FixedPageItem::insert(core::ObjectId id)
     restart(imageChanged && !m_ready ? Decode::Force : Decode::IfUncovered, Scope::SamePage);
 }
 
-// Lot 2 : reconstruction complète ; le lot « cache incrémental » visera le nœud de `id` et la zone.
-void FixedPageItem::remove(core::ObjectId, const core::RectF&)
+// Hors objets en attente : reconstruction complète (lot 2).
+void FixedPageItem::remove(core::ObjectId id, const core::RectF&)
 {
+    const auto it = std::find(m_pendingIds.begin(), m_pendingIds.end(), id);
+    if (it != m_pendingIds.end()) {
+        // Retiré avant d'être versé (annulation d'un trait récent) : le cache ne l'a jamais contenu.
+        m_pendingIds.erase(it);
+        if (pendingAreTheLastObjects()) {
+            emit objectCountChanged();
+            emit pendingChanged();
+            return;
+        }
+        // La page a changé ailleurs aussi : ce qui attend n'est plus sa queue (la couche lit par indice).
+    }
     restart(Decode::IfUncovered, Scope::SamePage);
 }
 
@@ -191,7 +225,81 @@ void FixedPageItem::invalidate(core::ObjectId id, const core::CacheArea&)
     const core::Page& shown = page();
     const std::size_t index = core::indexOf(shown, id);
     const bool imageChanged = index < shown.objects.size() && usesImages(shown.objects[index]);
+    const bool pending =
+        id != 0 && std::find(m_pendingIds.begin(), m_pendingIds.end(), id) != m_pendingIds.end();
+    if (pending && pendingAreTheLastObjects() && !imageChanged) {
+        ++m_pendingRevision; // modifié en place pendant qu'il attend : la couche le refait
+        emit pendingChanged();
+        return;
+    }
+    // Hors de l'attente, image (la couche d'attente n'a pas de magasin d'images) ou objet en attente
+    // réordonné (annoncé en ObjectChanged, undo.h n'a pas de type « réordonné ») : ce qui attend n'est plus
+    // la queue de la page ; reconstruction complète, qui verse tout.
     restart(imageChanged && !m_ready ? Decode::Force : Decode::IfUncovered, Scope::SamePage);
+}
+
+void FixedPageItem::setDeferredFolding(bool on)
+{
+    if (!on) {
+        foldPending();
+    }
+    m_deferred = on;
+}
+
+bool FixedPageItem::deferredFolding() const noexcept
+{
+    return m_deferred;
+}
+
+void FixedPageItem::foldPending()
+{
+    if (m_pendingIds.empty()) {
+        return;
+    }
+    m_pendingIds.clear(); // la prochaine synchronisation ajoute leurs nœuds à la scène (m_builtCount suit)
+    emit pendingChanged();
+    update();
+}
+
+int FixedPageItem::pendingCount() const noexcept
+{
+    return static_cast<int>(m_pendingIds.size());
+}
+
+const std::vector<core::ObjectId>& FixedPageItem::pendingIds() const noexcept
+{
+    return m_pendingIds;
+}
+
+std::uint64_t FixedPageItem::pendingRevision() const noexcept
+{
+    return m_pendingRevision;
+}
+
+std::size_t FixedPageItem::cachedObjectCount() const noexcept
+{
+    const std::size_t count = page().objects.size();
+    return count >= m_pendingIds.size() ? count - m_pendingIds.size() : 0;
+}
+
+bool FixedPageItem::forceRasterized() const noexcept
+{
+    return m_forceRasterized;
+}
+
+bool FixedPageItem::pendingAreTheLastObjects() const noexcept
+{
+    const core::Page& shown = page();
+    if (m_pendingIds.size() > shown.objects.size()) {
+        return false;
+    }
+    const std::size_t first = shown.objects.size() - m_pendingIds.size();
+    for (std::size_t k = 0; k < m_pendingIds.size(); ++k) {
+        if (shown.objects[first + k].common.id != m_pendingIds[k]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool FixedPageItem::isReady() const noexcept
@@ -210,6 +318,10 @@ void FixedPageItem::setRasterScale(double scale)
         return;
     }
     m_rasterScale = scale;
+    if (!m_pendingIds.empty()) { // la couche d'attente refait ses nœuds à la nouvelle échelle
+        ++m_pendingRevision;
+        emit pendingChanged();
+    }
     // Seuls les nœuds rastérisés suivent l'échelle, refaits en place : aucun en rendu logiciel ni sur une
     // page sans fond peint, grille ou objet peint (page du banc) ; les nœuds du prototype ne bougent jamais.
     if (m_rasterNodes.load() > 0) {
@@ -365,8 +477,10 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     m_rescale = false;
     if (m_ready) {
         // Ordre du vecteur (couche, profondeur, arbre) ; moteur du prototype s'il sait faire, sinon moteur
-        // peint.
-        for (std::size_t i = m_builtCount; i < shown.objects.size(); ++i) {
+        // peint. Lot 10 : la scène s'arrête aux objets en attente (dessinés par la couche d'attente) ; elle
+        // les ajoute quand ils sont versés.
+        const std::size_t limit = cachedObjectCount();
+        for (std::size_t i = m_builtCount; i < limit; ++i) {
             const ObjectNode made =
                 createObjectNode(shown.objects[i], i, m_registry, m_painted, context, painted);
             if (!made.root) {
@@ -382,7 +496,7 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
                 root->appendChildNode(made.root);
             }
         }
-        m_builtCount = shown.objects.size();
+        m_builtCount = limit;
     }
     m_rasterNodes.store(static_cast<int>(m_rasterSlots.size()));
     return root;
