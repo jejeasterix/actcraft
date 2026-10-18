@@ -76,7 +76,7 @@ Vérification des recoupements :
 - V14 : L6-T34 (`spelling.*`, `SpellingDialog.qml`, un test, un scénario) / L6-T35 (`helpviewer.*`, `ui/help/index.html`,
   `HelpViewer.qml`, un test) / L6-T36 (`language.*`, `actcraft_fr.ts`, `ui/CMakeLists.txt`, `app/main.cpp`, un test, un
   scénario) — disjoints.
-- Repris d'une vague à l'autre : `app/main.cpp` (L6-T5 en 6a → L6-T23 → L6-T36) ; `ShortcutBar.qml` (L6-T9 → L6-T30) ;
+- Repris d'une vague à l'autre : `app/main.cpp` (L6-T5 en 6a → L6-T23 → L6-T36) ; `ShortcutBar.qml` (L6-T9 → L6-T30) ; `SettingsPage.qml` (L6-T27 → L6-T36) ;
   `profils.json` (L6-T6 → L6-T25) ; `ui/CMakeLists.txt` (L6-T1 → L6-T32 → L6-T36) ; `Main.qml` (L6-T2 → L6-T22).
 
 **H6-6 et H6-6b.** Le téléchargement de Hunspell a l'accord écrit de Jérôme. Restent à sa décision : le dictionnaire
