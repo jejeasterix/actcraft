@@ -678,10 +678,6 @@ private slots:
         QCOMPARE(back.resources().size(), std::size_t{0});
     }
 
-    // Compatibilité ascendante (§ 1 de l'amendement 1, L2-C8) : une clé inconnue (document, page, objet, et
-    // dans un sous-objet connu : « pen », « background ») est gardée sans bruit et réécrite telle quelle. Le
-    // patron écarté (clé ignorée, comme une valeur mal formée retombe sur le défaut) relirait le même modèle
-    // et passerait un test d'empreinte : ce test-ci compare le document.json réécrit à celui lu.
     // Socle des lots 3 et 7 (S24, S31) : l'équation fait l'aller-retour, MathML gardé octet pour octet.
     void equationRoundTripKeepsMathml()
     {
@@ -797,6 +793,10 @@ private slots:
         QCOMPARE(core::fingerprint(twice), core::fingerprint(back));
     }
 
+    // Compatibilité ascendante (§ 1 de l'amendement 1, L2-C8) : une clé inconnue (document, page, objet, et
+    // dans un sous-objet connu : « pen », « background ») est gardée sans bruit et réécrite telle quelle. Le
+    // patron écarté (clé ignorée, comme une valeur mal formée retombe sur le défaut) relirait le même modèle
+    // et passerait un test d'empreinte : ce test-ci compare le document.json réécrit à celui lu.
     void unknownKeysAreKeptAndRewritten()
     {
         const core::Document rich = richdoc::richDocument();

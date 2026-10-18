@@ -168,6 +168,7 @@ void SetPagePresentationCommand::redo(Document& document, Changes& changes)
 {
     Page& page = document.page(m_page);
     m_previous = page.presentation;
+    m_value.unknownKeys = m_previous.unknownKeys; // sous-clés d'une version plus récente : gardées (L2-C8)
     if (samePresentation(m_previous, m_value)) {
         return; // déjà la valeur de la page : rien ne change
     }

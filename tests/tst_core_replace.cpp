@@ -174,6 +174,23 @@ private slots:
         QVERIFY(isLayerOrdered(page()));
     }
 
+    // Un ajout d'une autre couche inséré sous l'ancrage décale la suite du groupe : m1 (milieu), a, b, c
+    // (dessus) ; {b} → {forme du milieu, trait du dessus} donne m1, forme, a, trait, c.
+    void otherLayerBelowTheAnchorShiftsTheRest()
+    {
+        const ObjectId m1 = add(m_document, m_stack, strokeAt(5, Layer::Middle));
+        QCOMPARE(idsOf(page()), (std::vector<ObjectId>{m1, m_a, m_b, m_c}));
+        auto command = std::make_unique<ReplaceObjectsCommand>(
+            0, std::vector<ObjectId>{m_b}, std::vector<PageObject>{shapeOn(Layer::Middle), strokeAt(50)});
+        const ReplaceObjectsCommand* raw = command.get();
+        m_stack.push(m_document, std::move(command));
+        const std::vector<ObjectId> expected{m1, raw->addedIds()[0], m_a, raw->addedIds()[1], m_c};
+        QVERIFY2(idsOf(page()) == expected, qPrintable(describe(idsOf(page()))));
+        QVERIFY(isLayerOrdered(page()));
+        m_stack.undo(m_document);
+        QCOMPARE(idsOf(page()), (std::vector<ObjectId>{m1, m_a, m_b, m_c}));
+    }
+
     void absentIdIgnored()
     {
         Changes changes;
@@ -307,6 +324,21 @@ private slots:
         QVERIFY(same.empty()); // déjà la valeur de la page : rien ne change
         m_stack.undo(m_document);
         QVERIFY(isDefault(page().presentation));
+    }
+
+    // L2-C8 : une sous-clé inconnue de la présentation (version plus récente) survit à la commande.
+    void presentationKeepsUnknownKeys()
+    {
+        const std::string kept = "{\"futureSetting\":1}";
+        page().presentation.unknownKeys = kept;
+        PagePresentation p;
+        p.curtain = CurtainMode::Top;
+        m_stack.push(m_document, std::make_unique<SetPagePresentationCommand>(0, p));
+        QCOMPARE(page().presentation.curtain, CurtainMode::Top);
+        QCOMPARE(page().presentation.unknownKeys, kept);
+        m_stack.undo(m_document);
+        QCOMPARE(page().presentation.curtain, CurtainMode::Off);
+        QCOMPARE(page().presentation.unknownKeys, kept);
     }
 };
 

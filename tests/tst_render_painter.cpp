@@ -923,9 +923,6 @@ private slots:
         QVERIFY(near(render::renderPage(page, images.lookup(), 1.0).pixelColor(120, 120), Qt::red, 2));
     }
 
-    // L2-C8 : un objet d'un type inconnu est montré par un repère neutre, cadre gris pointillé d'un pixel sur
-    // sa boîte ; sans boîte lisible, rien. Aucune ressource demandée, même s'il en cite une ; une boîte
-    // démesurée ne fait ni planter ni attendre.
     // Socle des lots 3 et 7 : l'équation se dessine par le repère neutre sur sa boîte (L7-T25 la met en
     // page).
     void equationDrawsTheNeutralFrame()
@@ -951,6 +948,9 @@ private slots:
         QVERIFY(near(image.pixelColor(200, 140), Qt::white, 0)); // intérieur vide : MathML non lu
     }
 
+    // L2-C8 : un objet d'un type inconnu est montré par un repère neutre, cadre gris pointillé d'un pixel sur
+    // sa boîte ; sans boîte lisible, rien. Aucune ressource demandée, même s'il en cite une ; une boîte
+    // démesurée ne fait ni planter ni attendre.
     void unknownObjectShowsANeutralFrameAndNothingElse()
     {
         core::UnknownObject u;

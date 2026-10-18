@@ -335,6 +335,7 @@ private slots:
     void fingerprintOfElementsWithoutUnknownKeysIsUnchanged()
     {
         Page page = richPage();
+        QCOMPARE(kindOf(page.objects.back()), ObjectKind::Equation);
         page.objects.pop_back(); // l'équation de richPage() (socle des lots 3 et 7) n'existait pas à 999d548
         page.objects[0].common.actions.push_back(Action{});
         QCOMPARE(fingerprint(page), std::uint64_t{0x109437226CD48FFBull});

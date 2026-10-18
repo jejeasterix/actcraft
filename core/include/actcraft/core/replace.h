@@ -54,7 +54,8 @@ private:
 };
 
 // Réglages de présentation de la page (F-591 à F-593, F-640, F-284), en une étape. Changes : un seul
-// PageSettingsChanged (page `page`), que applyToCache ignore (aucun redessin, I3).
+// PageSettingsChanged (page `page`), que applyToCache ignore (aucun redessin, I3). Les sous-clés inconnues de
+// la page (PagePresentation::unknownKeys, L2-C8) sont gardées : celles de `value` sont ignorées.
 class SetPagePresentationCommand final : public UndoCommand
 {
 public:
