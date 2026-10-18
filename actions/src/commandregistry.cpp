@@ -30,6 +30,8 @@ bool parseArgumentKind(const QString& text, ArgumentKind& out)
         out = ArgumentKind::Color;
     } else if (text == QLatin1String("number")) {
         out = ArgumentKind::Number;
+    } else if (text == QLatin1String("text")) {
+        out = ArgumentKind::Text;
     } else if (text == QLatin1String("url")) {
         out = ArgumentKind::Url;
     } else {
@@ -115,6 +117,8 @@ bool argumentIsValid(ArgumentKind kind, const QVariant& argument)
         const QString text = argument.toString();
         return !text.isEmpty() && QUrl(text).isValid();
     }
+    case ArgumentKind::Text:
+        return argument.canConvert<QString>() && !argument.toString().trimmed().isEmpty();
     }
     return false;
 }

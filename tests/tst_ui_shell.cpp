@@ -328,13 +328,14 @@ private slots:
         QVERIFY(start(s));
         for (const char* name :
              {"topBar", "toolPalette", "pageArea", "pageIndicator", "zoomBox", "colorSwatches", "widthPicker",
-              "menu-file", "menu-view", "menu-tools", "menu-help", "button-page.next", "button-page.previous",
-              "button-tool.pen", "button-menu.main", "button-menu.tools", "button-view.fullscreen"}) {
+              "menu-file", "menu-edit", "menu-view", "menu-insert", "menu-tools", "menu-help",
+              "button-page.next", "button-page.previous", "button-tool.pen", "button-menu.main",
+              "button-menu.tools", "button-view.fullscreen"}) {
             QQuickItem* found = item(s, name);
             QVERIFY2(found && found->isVisible(), name);
         }
-        QVERIFY(!item(s, "menu-edit"));   // menu vide en lot 1 : pas affiché
-        QVERIFY(!item(s, "menu-insert")); // idem
+        // Éditer et Insérer, vides au lot 1, sont garnis par le socle des lots 3 et 7 (L0-S4) : ils
+        // s'affichent.
         QCOMPARE(indicator(s), QStringLiteral("1 / 1"));
         QCOMPARE(s.fixed->objectCount(), 0);
         // Palette à droite de la page, ligne supérieure au-dessus (F-001, F-002) ; pas de barre d'état

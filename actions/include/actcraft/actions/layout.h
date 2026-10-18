@@ -17,7 +17,8 @@ struct MenuSpec
 {
     QString id;
     QString label;
-    QStringList items;
+    QStringList items; // identifiants, « - » (séparateur) ou « >id » (sous-menu `id` de `submenus`)
+    std::vector<MenuSpec> submenus; // un seul niveau (« Éditer ▸ Effacer »)
 };
 
 // Un groupe de la palette. « couleurs » et « epaisseur » sont des groupes spéciaux, sans commandes :
@@ -36,6 +37,8 @@ struct Layout
     QHash<QString, QString> shortcuts; // id → séquence qui remplace celle de la commande ("" la retire)
     QStringList colors;                // pastilles « #RRGGBB » (F-133)
     QList<double> penWidths;           // préréglages du stylo, pixels de page (F-137)
+    QStringList objectBar;             // barre d'objet de la sélection (F-521), dans l'ordre
+    QStringList contextMenu;           // menu contextuel de la page (F-202), dans l'ordre ; "-" séparateur
 };
 
 // Tout ou rien : `out` n'est modifiée qu'en cas de succès.
@@ -44,8 +47,8 @@ bool parseLayout(const QByteArray& json, Layout& out, QString& error);
 // des deux. `usedPath` reçoit le chemin lu (vide si rien n'a été lu).
 QByteArray readLayeredFile(const QString& fileName, const QString& profileDir, const QString& resourceDir,
                            QString* usedPath = nullptr);
-// Identifiants de la disposition (menus, palette, raccourcis) que le registre ne déclare pas, sans doublon,
-// dans l'ordre de rencontre.
+// Identifiants de la disposition (menus et sous-menus, palette, raccourcis, barre d'objet, menu contextuel)
+// que le registre ne déclare pas, sans doublon, dans l'ordre de rencontre.
 QStringList unknownCommands(const Layout& layout, const CommandRegistry& registry);
 
 } // namespace actcraft::actions
