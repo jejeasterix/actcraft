@@ -53,7 +53,7 @@ font foi.
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L5-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; décisions D1 à D20 ; API A1 à A21 revérifiées | — | `docs/verifications/2026-10-18-lot5-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot5.md`) | isolé | concepteur-critique | rapport commité, `NOMS OK` après `git add`, contrôle des titres du corpus sans sortie | S8.6 | #tache-l5-t0 |
-| L5-T1 | Réservation I : commandes, disposition, icônes, CMake (modules `export/` et `print/`), 26 tests enregistrés, en-têtes figés et talons des deux sous-lots | — | `actions/data/commands.json`, `actions/data/layout.json`, `ui/icons/{couper,copier,coller,dupliquer,grouper,degrouper,organiser,aligner,transformer,verrouiller,masquer,glisser-copie,points-forme,pot-peinture,connecteur,modification-stylo,menu-objet,image,media,onglets,exporter,imprimer,importer}.svg`, `ui/CMakeLists.txt`, `CMakeLists.txt`, `core/CMakeLists.txt`, `formats/CMakeLists.txt`, `tools/CMakeLists.txt`, `export/CMakeLists.txt`, `print/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{core,formats,tools,ui}.cmake`, `tests/export.cmake`, `tests/print.cmake`, `core/include/actcraft/core/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.h`, `core/src/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.cpp`, `formats/include/actcraft/formats/clipboard.h`, `formats/src/clipboard.cpp`, `render/include/actcraft/render/imagefill.h`, `render/src/imagefill.cpp`, `tools/include/actcraft/tools/{filltool,penshapetool,connectortool}.h`, `tools/src/{filltool,penshapetool,connectortool}.cpp`, `export/include/actcraft/export/{pageexport,pdfexport,pdfimport,officeconvert}.h`, `export/src/{pageexport,pdfexport,pdfimport,officeconvert}.cpp`, `print/include/actcraft/print/printer.h`, `print/src/printer.cpp`, `ui/include/actcraft/ui/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.h`, `ui/src/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.cpp`, `ui/include/actcraft/ui/documentcontroller.h` (déclarations `parkSession` / `resumeSession` seulement), `ui/src/documentcontroller.cpp` (talons de ces deux membres seulement), 26 fichiers `tests/tst_*.cpp` de la carte, `tests/tst_actions_layout.cpp` | isolé | implementeur-tdd | build 0 avertissement ; `ctest -N` : N = N_départ + 26 ; `tst_actions_layout` Passed dont `lot5EntriesDeclared`, `objectMenuOrder` ; les 26 talons en SKIP nommant leur tâche ; `NOMS OK` | S8, S17 | #tache-l5-t1 |
+| L5-T1 | Réservation I : commandes, disposition, icônes, CMake (modules `export/` et `print/`), 26 tests enregistrés, en-têtes figés et talons des deux sous-lots | — | `actions/data/commands.json`, `actions/data/layout.json`, `ui/icons/{couper,copier,coller,dupliquer,grouper,degrouper,organiser,aligner,transformer,verrouiller,masquer,glisser-copie,points-forme,pot-peinture,connecteur,modification-stylo,menu-objet,image,media,onglets,exporter,imprimer,importer}.svg`, `ui/CMakeLists.txt`, `CMakeLists.txt`, `core/CMakeLists.txt`, `formats/CMakeLists.txt`, `tools/CMakeLists.txt`, `export/CMakeLists.txt`, `print/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{core,formats,tools,ui}.cmake`, `tests/export.cmake`, `tests/print.cmake`, `core/include/actcraft/core/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.h`, `core/src/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.cpp`, `formats/include/actcraft/formats/clipboard.h`, `formats/src/clipboard.cpp`, `render/include/actcraft/render/imagefill.h`, `render/src/imagefill.cpp`, `tools/include/actcraft/tools/{filltool,penshapetool,connectortool}.h`, `tools/src/{filltool,penshapetool,connectortool}.cpp`, `export/include/actcraft/export/{pageexport,pdfexport,pdfimport,officeconvert}.h`, `export/src/{pageexport,pdfexport,pdfimport,officeconvert}.cpp`, `print/include/actcraft/print/printer.h`, `print/src/printer.cpp`, `ui/include/actcraft/ui/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.h`, `ui/src/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.cpp`, `ui/include/actcraft/ui/documentcontroller.h` (déclarations `parkSession` / `resumeSession` seulement), `ui/src/documentcontroller.cpp` (talons de ces deux membres seulement), 26 fichiers `tests/tst_*.cpp` de la carte, `tests/tst_actions_layout.cpp`, `core/include/actcraft/core/model.h` (champs `dragCopy`, `ConnectorCap`, `style`, `capA`, `capB`), `formats/src/nativejson.cpp` (ces champs), `tests/tst_formats_nativejson.cpp` | isolé | implementeur-tdd | build 0 avertissement ; `ctest -N` : N = N_départ + 26 ; `tst_actions_layout` Passed dont `lot5EntriesDeclared`, `objectMenuOrder` ; `tst_formats_nativejson` Passed dont `lot5FieldsRoundTrip` ; les 26 talons en SKIP nommant leur tâche ; `NOMS OK` | S8, S17 | #tache-l5-t1 |
 | L5-T2 | Réservation II : coquille QML (menu d'édition d'objet, barre d'objet complète, onglets, emplacements export, impression, import ; gestionnaires des commandes du lot) | L5-T1 | `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/ObjectBar.qml`, `ui/qml/TopBar.qml`, `ui/qml/{ObjectEditMenu,PenModifierBar,ConnectorPanel,DocumentTabBar,FileExchangeActions,PrintDialog,PrintPreview}.qml` (neufs, talons), `ui/CMakeLists.txt` (bloc `QML_FILES` seulement), `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `tst_ui_shell` Passed dont `everyLot5CommandHasAHandler`, `lot5SlotsExist`, `shellLoadsWithoutQmlWarning` ; `premiers-pas` hors écran `CAPTURES OK` | S8 | #tache-l5-t2 |
 | L5-T3 | `formats` : presse-papiers d'objets (objets, ressources, groupes et connecteurs, sans perte) | L5-T0, L5-T1 | `formats/src/clipboard.cpp`, `tests/tst_formats_clipboard.cpp` | isolé | concepteur-critique | `tst_formats_clipboard` Passed (dont `roundTripKeepsEveryKind`, `resourcesTravelWithObjects`, `groupMembersTravelTogether`, `foreignPayloadRejected`) ; mutation rouge puis remise | S8, S8.1 | #tache-l5-t3 |
 | L5-T5 | `core` : organiser (avancer, reculer, premier plan, arrière-plan, couches) et groupes (grouper, dégrouper, groupes de groupes) | L5-T0, L5-T1 | `core/src/arrange.cpp`, `tests/tst_core_arrange.cpp` | isolé | implementeur-tdd | `tst_core_arrange` Passed (dont `forwardSwapsOneStep`, `frontKeepsRelativeOrder`, `layerChangeGoesOnTop`, `groupIsOneUndoStep`, `ungroupRestoresInnerGroups`, `reorderChangesSeenByCache`) | S8, S8.2 | #tache-l5-t5 |
@@ -341,3 +341,330 @@ titres du corpus sans sortie.
 
   Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
+
+### Tâche L5-T1 — Réservation I : commandes, disposition, icônes, CMake, tests, en-têtes figés
+
+<a id="tache-l5-t1"></a>
+
+**Objectif.** Poser d'un coup tous les fichiers chauds et les contrats des deux sous-lots, pour qu'aucune tâche
+suivante ne touche un fichier de liste (CMake, données, enregistrement des tests) ni un en-tête public partagé :
+commandes et disposition du lot, 23 icônes à nous, modules `export/` et `print/` vides, champs du modèle du lot
+(lus et écrits sans perte par le format natif), 26 tests enregistrés (talons `QSKIP` nommant leur tâche), en-têtes
+figés et corps talons. Aucune fonction visible : l'application se comporte comme avant, les nouvelles entrées de
+menu sont inertes (aucun gestionnaire avant L5-T2).
+
+**Fichiers.** Ceux de la ligne de la table, plus `core/include/actcraft/core/model.h` (champs du lot seulement),
+`formats/src/nativejson.cpp` (ces champs seulement), `tests/tst_formats_nativejson.cpp` (une fonction).
+
+**Test et commande bornée.**
+- `tst_actions_layout` : `lot5EntriesDeclared` (chaque commande du lot existe, une seule fois ; raccourcis uniques),
+  `objectMenuOrder` (ordre de `objectMenu` ci-dessous) ; `tst_formats_nativejson` : `lot5FieldsRoundTrip`.
+- Commande ciblée, motif `^(tst_actions_layout|tst_formats_nativejson)$` ; puis
+  `pwsh -NoProfile -Command "Set-Location '<wt>'; . ./scripts/dev-env.ps1; ctest --test-dir build/debug -N" | Select-Object -Last 1`
+  → `Total Tests: <N_départ + 26>` ; et la commande ciblée sur les 26 tests du lot : 26 tests, chacun `Passed` (un
+  `QSKIP` : Qt Test le compte réussi), chaque fichier contenant la ligne `QSKIP("réservé : L5-T<n>")`.
+
+**Preuve visuelle.** Aucune (rien de visible).
+
+**Interdits.** Aucune icône, aucun libellé, aucun nom de commande de Promethean (libellés écrits par nous).
+Aucun corps réel : un corps talon rend une valeur neutre et porte `// Talon L5-T1 : rempli par L5-T<n>.`. Ne
+modifier aucune signature publique des lots 3, 4, 7 et L0-S (seuls ajouts : `parkSession` / `resumeSession`).
+Pas de `QSKIP` sans tâche nommée.
+
+**Terminé quand.** Build 0 avertissement ; N = N_départ + 26 ; les deux tests ciblés `Passed` ; `format.ps1 -Check`
+propre ; `NOMS OK`.
+
+**Étapes.**
+- [ ] **Étape 1 : départ.** Relever N_départ (`ctest -N`, dernière ligne) et le noter dans le rapport.
+- [ ] **Étape 2 : modèle.** Dans `model.h`, ajouter à `ObjectCommon` (après `locked`) :
+  ```cpp
+      bool dragCopy = false; // F-587 : chaque glissement dépose une copie, l'original reste
+  ```
+  et, avant `struct Connector` :
+  ```cpp
+  // Extrémité d'un connecteur (F-245).
+  enum class ConnectorCap : std::uint8_t
+  {
+      None = 0,
+      Round = 1,
+      Arrow = 2,
+  };
+  ```
+  puis, à la fin de `struct Connector` :
+  ```cpp
+      std::uint8_t style = 0; // rang dans le panneau des connecteurs (0 : ligne simple), D11
+      ConnectorCap capA = ConnectorCap::None;
+      ConnectorCap capB = ConnectorCap::None;
+  ```
+  Dans `nativejson.cpp` : écrire `"dragCopy": true` seulement s'il est vrai ; `"style"`, `"capA"`, `"capB"`
+  (`"none"`, `"round"`, `"arrow"`) seulement s'ils diffèrent du défaut ; les lire avec ces défauts. Test rouge puis
+  vert dans `tst_formats_nativejson.cpp` (fabriques et aides : celles que ce test emploie déjà, à revérifier) :
+  ```cpp
+  void TestNativeJson::lot5FieldsRoundTrip()
+  {
+      core::Document document = blankDocument(1024, 768);
+      core::PageObject shape = rectangleObject({100, 100, 200, 100});
+      shape.common.dragCopy = true;
+      core::Connector link;
+      link.firstEnd = {0, 0};
+      link.secondEnd = {50, 50};
+      link.style = 3;
+      link.capA = core::ConnectorCap::Arrow;
+      link.capB = core::ConnectorCap::Round;
+      document.pages[0].objects.push_back(shape);
+      document.pages[0].objects.push_back(core::PageObject{link});
+      const core::Document back = roundTrip(document);
+      QVERIFY(back.pages[0].objects[0].common.dragCopy);
+      const auto* c = std::get_if<core::Connector>(&back.pages[0].objects[1]);
+      QVERIFY(c);
+      QCOMPARE(int(c->style), 3);
+      QCOMPARE(c->capA, core::ConnectorCap::Arrow);
+      QCOMPARE(c->capB, core::ConnectorCap::Round);
+      QCOMPARE(fingerprint(back), fingerprint(document));
+  }
+  ```
+- [ ] **Étape 3 : commandes.** Ajouter à `actions/data/commands.json`, dans cet ordre (libellés à nous) :
+  ```json
+  { "id": "edit.cut", "label": "Couper", "icon": "couper", "shortcut": "Ctrl+X" },
+  { "id": "edit.copy", "label": "Copier", "icon": "copier", "shortcut": "Ctrl+C" },
+  { "id": "edit.paste", "label": "Coller", "icon": "coller", "shortcut": "Ctrl+V" },
+  { "id": "edit.paste-onto", "label": "Coller sur l'objet" },
+  { "id": "edit.duplicate", "label": "Dupliquer", "icon": "dupliquer", "shortcut": "Ctrl+D" },
+  { "id": "object.menu", "label": "Menu de l'objet", "icon": "menu-objet" },
+  { "id": "object.group", "label": "Grouper ou dégrouper", "icon": "grouper", "shortcut": "Ctrl+G", "checkable": true },
+  { "id": "object.lock", "label": "Verrouiller", "icon": "verrouiller", "shortcut": "Ctrl+Shift+L", "checkable": true },
+  { "id": "object.hide", "label": "Masquer", "icon": "masquer", "shortcut": "Ctrl+Shift+I", "checkable": true },
+  { "id": "object.drag-copy", "label": "Glisser une copie", "icon": "glisser-copie", "shortcut": "Ctrl+Shift+J", "checkable": true },
+  { "id": "object.shape-points", "label": "Modifier les points de la forme", "icon": "points-forme", "checkable": true },
+  { "id": "arrange.front", "label": "Mettre au premier plan" },
+  { "id": "arrange.back", "label": "Mettre à l'arrière-plan" },
+  { "id": "arrange.forward", "label": "Avancer d'un cran" },
+  { "id": "arrange.backward", "label": "Reculer d'un cran" },
+  { "id": "arrange.layer-top", "label": "Vers la couche du dessus" },
+  { "id": "arrange.layer-middle", "label": "Vers la couche du milieu" },
+  { "id": "arrange.layer-bottom", "label": "Vers la couche du dessous" },
+  { "id": "align.left", "label": "Bords gauches" },
+  { "id": "align.center-x", "label": "Centres horizontaux" },
+  { "id": "align.right", "label": "Bords droits" },
+  { "id": "align.top", "label": "Bords hauts" },
+  { "id": "align.center-y", "label": "Centres verticaux" },
+  { "id": "align.bottom", "label": "Bords bas" },
+  { "id": "align.width", "label": "Même largeur" },
+  { "id": "align.height", "label": "Même hauteur" },
+  { "id": "align.angle", "label": "Même angle" },
+  { "id": "align.all", "label": "Tout aligner sur le premier" },
+  { "id": "transform.original-size", "label": "Taille d'origine" },
+  { "id": "transform.fit-width", "label": "Ajuster à la largeur de la page" },
+  { "id": "transform.fit-height", "label": "Ajuster à la hauteur de la page" },
+  { "id": "transform.fit-page", "label": "Ajuster à la page" },
+  { "id": "transform.mirror-x", "label": "Copie miroir verticale" },
+  { "id": "transform.mirror-y", "label": "Copie miroir horizontale" },
+  { "id": "transform.flip-x", "label": "Retourner de haut en bas", "shortcut": "Ctrl+Shift+X" },
+  { "id": "transform.flip-y", "label": "Retourner de gauche à droite", "shortcut": "Ctrl+Shift+Y" },
+  { "id": "transform.origin-flip-x", "label": "Symétrie par l'axe horizontal de l'origine" },
+  { "id": "transform.origin-flip-y", "label": "Symétrie par l'axe vertical de l'origine" },
+  { "id": "tool.fill", "label": "Pot de peinture", "icon": "pot-peinture", "shortcut": "Ctrl+F" },
+  { "id": "tool.connector", "label": "Connecteur", "icon": "connecteur", "shortcut": "Ctrl+Shift+C" },
+  { "id": "connector.style", "label": "Style du connecteur", "argument": "number" },
+  { "id": "view.pen-modifiers", "label": "Modification du stylo", "icon": "modification-stylo", "checkable": true },
+  { "id": "pen.shape", "label": "Tracé du stylo", "argument": "text" },
+  { "id": "insert.image", "label": "Image…", "icon": "image", "argument": "url", "optional": true },
+  { "id": "insert.media", "label": "Média…", "icon": "media", "shortcut": "Ctrl+M", "argument": "url", "optional": true },
+  { "id": "tab.next", "label": "Paperboard suivant", "shortcut": "Ctrl+Tab" },
+  { "id": "tab.previous", "label": "Paperboard précédent", "shortcut": "Ctrl+Shift+Tab" },
+  { "id": "view.tabs", "label": "Onglets des paperboards", "icon": "onglets", "argument": "text" },
+  { "id": "export.page-image", "label": "Exporter la page en image…", "icon": "exporter", "shortcut": "Ctrl+Shift+E", "argument": "url", "optional": true },
+  { "id": "export.pdf", "label": "Exporter en PDF…", "argument": "url", "optional": true },
+  { "id": "file.import-pdf", "label": "PDF…", "icon": "importer", "argument": "url", "optional": true },
+  { "id": "file.import-powerpoint-images", "label": "Présentation en images…", "argument": "url", "optional": true, "platforms": ["windows"] },
+  { "id": "file.print", "label": "Imprimer…", "icon": "imprimer", "shortcut": "Ctrl+P" }
+  ```
+  `pen.shape` prend `free`, `horizontal`, `vertical`, `square`, `rectangle`, `circle`, `ellipse`, `arc`, `polyline`,
+  `arrow`, `zigzag` (D12) ; `view.tabs` prend `top`, `bottom`, `hidden` (D14) ; `connector.style` un rang de 0 à 13.
+  Un raccourci déjà pris par un lot antérieur (A21) est retiré ici et l'écart noté au rapport. Si `"argument":
+  "text"` n'existe pas (A12), employer la forme que L0-S4 a posée pour `equation.edit`.
+- [ ] **Étape 4 : disposition.** Dans `actions/data/layout.json` : menu Éditer, après les entrées des lots 3 et 4 :
+  `edit.cut`, `edit.copy`, `edit.paste`, `edit.duplicate`, `"-"`, sous-menus `>transform` (« Transformer » :
+  `object.grow`, `object.shrink`, `transform.original-size`, `transform.fit-width`, `transform.fit-height`,
+  `transform.fit-page`, `"-"`, `transform.mirror-x`, `transform.mirror-y`, `transform.flip-x`, `transform.flip-y`,
+  `transform.origin-flip-x`, `transform.origin-flip-y`, `"-"`, `>align`), `>align` (« Aligner » : les 10 `align.*`
+  dans l'ordre de l'étape 3), `>arrange` (« Organiser » : `arrange.front`, `arrange.back`, `arrange.forward`,
+  `arrange.backward`, `"-"`, les trois `arrange.layer-*`) ; menu Insérer : `insert.image`, `insert.media`,
+  `tool.connector` ; menu Affichage : `view.pen-modifiers`, `view.tabs` ; menu Fichier : sous-menus `>import`
+  (« Importer » : `file.import-pdf`, `file.import-powerpoint-images`) et `>export` (« Exporter » : `export.pdf`,
+  `export.page-image`), puis `file.print` ; palette : `tool.fill`, `tool.connector` à la suite des outils du lot 4 ;
+  `objectBar` (F-521), à la suite des boutons des lots 3 et 4, à leur rang : `object.menu`, `object.group`,
+  `arrange.front`, `arrange.back`, `edit.duplicate`, `object.shape-points` ; nouvelle liste `objectMenu` (F-770,
+  D20) :
+  ```json
+  "objectMenu": ["object.shape-points", "-", "edit.cut", "edit.copy", "edit.paste-onto", "edit.duplicate",
+                 "edit.delete", "-", ">transform", ">arrange", "-", "object.lock", "object.group", "object.hide",
+                 "object.drag-copy", "-", "recognition.convert-to-text", "recognition.convert-to-shape"]
+  ```
+  `objectMenu` se lit par la même règle que `contextMenu` (A12) ; s'il faut l'ajouter au type de disposition,
+  `actions/include/actcraft/actions/layout.h` et `actions/src/layout.cpp` entrent dans les fichiers de la tâche
+  (écart à noter au rapport et dans la table par l'orchestrateur). Tests rouges puis verts dans
+  `tests/tst_actions_layout.cpp` (fabriques de registre et de disposition : celles du test existant) :
+  ```cpp
+  static const QStringList kLot5{
+      "edit.cut", "edit.copy", "edit.paste", "edit.paste-onto", "edit.duplicate", "object.menu", "object.group",
+      "object.lock", "object.hide", "object.drag-copy", "object.shape-points", "arrange.front", "arrange.back",
+      "arrange.forward", "arrange.backward", "arrange.layer-top", "arrange.layer-middle", "arrange.layer-bottom",
+      "align.left", "align.center-x", "align.right", "align.top", "align.center-y", "align.bottom", "align.width",
+      "align.height", "align.angle", "align.all", "transform.original-size", "transform.fit-width",
+      "transform.fit-height", "transform.fit-page", "transform.mirror-x", "transform.mirror-y", "transform.flip-x",
+      "transform.flip-y", "transform.origin-flip-x", "transform.origin-flip-y", "tool.fill", "tool.connector",
+      "connector.style", "view.pen-modifiers", "pen.shape", "insert.image", "insert.media", "tab.next",
+      "tab.previous", "view.tabs", "export.page-image", "export.pdf", "file.import-pdf",
+      "file.import-powerpoint-images", "file.print"};
+
+  void TestLayout::lot5EntriesDeclared()
+  {
+      QCOMPARE(kLot5.size(), 53);
+      const auto registry = loadRegistry();
+      QSet<QString> shortcuts;
+      for (const auto& command : registry.all()) {
+          if (command.shortcut.isEmpty())
+              continue;
+          QVERIFY2(!shortcuts.contains(command.shortcut), qPrintable(command.shortcut));
+          shortcuts.insert(command.shortcut);
+      }
+      for (const QString& id : kLot5)
+          QVERIFY2(registry.find(id) != nullptr, qPrintable(id));
+  }
+
+  void TestLayout::objectMenuOrder()
+  {
+      const auto layout = loadLayout();
+      const QStringList expected{"object.shape-points", "-", "edit.cut", "edit.copy", "edit.paste-onto",
+                                 "edit.duplicate", "edit.delete", "-", ">transform", ">arrange", "-", "object.lock",
+                                 "object.group", "object.hide", "object.drag-copy", "-",
+                                 "recognition.convert-to-text", "recognition.convert-to-shape"};
+      QCOMPARE(layout.objectMenu, expected);
+  }
+  ```
+  `kLot5` est aussi la liste de L5-T2 (même ordre).
+- [ ] **Étape 5 : icônes.** 23 SVG à nous sur la grille de 24 px, dans le style du jeu du lot 1 (traits de 2 px,
+  `currentColor`), noms de la ligne de la table ; ajoutés au bloc `RESOURCES` de `ui/CMakeLists.txt`. Le test du
+  thème du lot 1 (`iconsAreOurSvgOnA24Grid`) les couvre s'il tire ses données du dossier ; sinon ajouter les 23 lignes
+  de données à `tests/tst_ui_theme.cpp` (fichier ajouté à la tâche, écart au rapport).
+- [ ] **Étape 6 : CMake et modules.** Racine : `add_subdirectory(export)` puis `add_subdirectory(print)` après
+  `render`, avant `tools` ; options :
+  ```cmake
+  option(ACTCRAFT_PRINT "Impression par QPrinter (Windows)" ${WIN32})
+  option(ACTCRAFT_IMPORT_PDF "Import PDF par Qt PDF" OFF) # rendue automatique par L5-T22
+  ```
+  `export/CMakeLists.txt` et `print/CMakeLists.txt` suivent la forme exacte de `actcraft_add_module`
+  (`cmake/ActCraftModule.cmake`, lue avant d'écrire) : `export` = sources `src/{pageexport,pdfexport,pdfimport,
+  officeconvert}.cpp`, liens `actcraft_render actcraft_formats actcraft_core Qt6::Gui Qt6::Concurrent` (si
+  `Qt6::Concurrent` n'est pas déjà trouvé par la racine, l'ajouter au `find_package` de la racine) ; `print` =
+  `src/printer.cpp`, liens `actcraft_render actcraft_core Qt6::Gui` (Qt PrintSupport ajouté par L5-T27) ; `ui` lie
+  `actcraft_export` et `actcraft_print`. Les sources neuves de `core/`, `formats/`, `render/`, `tools/`, `ui/` entrent
+  dans leurs listes. `tests/export.cmake` et `tests/print.cmake` inclus par `tests/CMakeLists.txt` ; les 26 tests
+  déclarés par `actcraft_add_test` dans le `.cmake` de leur module.
+- [ ] **Étape 7 : en-têtes figés.** Écrire mot pour mot les en-têtes de l'annexe A (fin de ce plan), dans l'ordre :
+  `clipboardedits.h`, `arrange.h`, `alignment.h`, `objectflags.h`, `fill.h`, `shapepoints.h`, `connectors.h`,
+  `penmodifiers.h`, `printlayout.h`, `formats/clipboard.h`, `render/imagefill.h`, les trois outils,
+  `export/{pageexport,pdfexport,pdfimport,officeconvert}.h`, `print/printer.h`, `ui/{objectediting,insertion,
+  documenttabs,fileexchange,printcontroller}.h`, et l'ajout à `documentcontroller.h`.
+- [ ] **Étape 8 : corps talons et tests réservés.** Chaque `.cpp` neuf définit ses fonctions avec une valeur neutre
+  (`{}`, `nullptr`, `false`, objet par défaut) précédée de `// Talon L5-T1 : rempli par L5-T<n>.`. Chaque
+  `tests/tst_*.cpp` du lot :
+  ```cpp
+  #include <QTest>
+
+  class TestReserved : public QObject
+  {
+      Q_OBJECT
+  private slots:
+      void reserved() { QSKIP("réservé : L5-T<n>"); }
+  };
+
+  QTEST_GUILESS_MAIN(TestReserved) // QTEST_MAIN pour les tests ui, tools et print
+  #include "tst_<nom>.moc"
+  ```
+- [ ] **Étape 9 : preuves.** Commande ciblée (`^(tst_actions_layout|tst_formats_nativejson)$`), `ctest -N`
+  (N = N_départ + 26), les 26 talons `Passed`, `format.ps1 -Check`.
+- [ ] **Étape 10 : commit.** `git add` des chemins de la table (liste exacte), `NOMS OK`, puis :
+  ```powershell
+  git -C '<wt>' commit -m "Lot 5 : réservation des commandes, de la disposition, des modules export et print, des 26 tests et des en-têtes figés
+
+  Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  ```
+
+### Tâche L5-T2 — Réservation II : coquille QML
+
+<a id="tache-l5-t2"></a>
+
+**Objectif.** Poser une fois les fichiers QML chauds : les objets `appEditing` (`ObjectEditing`), `appInsertion`
+(`Insertion`), `appTabs` (`DocumentTabs`), `appExchange` (`FileExchange`), `appPrint` (`PrintController`) instanciés
+dans `Main.qml` et reliés à `appDocument` et `appTools` ; un gestionnaire par commande du lot qui appelle la méthode
+C++ correspondante (corps talons jusqu'à leur tâche) ; les emplacements `ObjectEditMenu` (ouvert par `object.menu`
+et par le clic droit sur un objet), `PenModifierBar` (à côté de la palette, visible avec `view.pen-modifiers`),
+`ConnectorPanel` (visible avec l'outil connecteur), `DocumentTabBar` (sous la ligne supérieure), `FileExchangeActions`
+(dialogues de fichiers d'export et d'import), `PrintDialog` et `PrintPreview` ; chaque fichier neuf est un talon
+minimal (`Item { id: root; visible: false }` et ses `required property`).
+
+**Fichiers.** Ceux de la ligne de la table.
+
+**Test et commande bornée.** Dans `tests/tst_ui_shell.cpp` (aides `handledCommandIds`, `loadMainWindow`,
+`findByObjectName` : celles de L0-S9, à revérifier) :
+```cpp
+void TestShell::everyLot5CommandHasAHandler()
+{
+    const QStringList lot5{ /* la liste kLot5 de L5-T1, étape 4, recopiée mot pour mot */ };
+    QCOMPARE(lot5.size(), 53);
+    const QStringList handled = handledCommandIds();
+    for (const QString& id : lot5)
+        QVERIFY2(handled.contains(id), qPrintable(id));
+}
+
+void TestShell::lot5SlotsExist()
+{
+    auto window = loadMainWindow();
+    for (const char* name : {"appEditing", "appInsertion", "appTabs", "appExchange", "appPrint", "objectEditMenu",
+                             "penModifierBar", "connectorPanel", "documentTabBar", "fileExchangeActions",
+                             "printDialog", "printPreview"})
+        QVERIFY2(findByObjectName(window.get(), name) != nullptr, name);
+}
+```
+`shellLoadsWithoutQmlWarning` (existant) reste vert. Commande ciblée, motif `^(tst_ui_shell)$`.
+
+**Preuve visuelle.** `premiers-pas` hors écran (forme bornée du profil) : `CAPTURES OK`, aucune ligne en `ECART` ; la
+capture montre la même interface qu'avant (`DocumentTabBar` invisible tant qu'un seul document est ouvert).
+
+**Interdits.** Aucun comportement réel (les gestionnaires appellent des corps talons). Ordre des couches de
+`PageArea.qml` (A14) inchangé. Aucun autre QML réécrit hors de l'ajout d'instances et de gestionnaires.
+
+**Terminé quand.** `tst_ui_shell` `Passed` (fonctions neuves comprises) ; `premiers-pas` `CAPTURES OK` ; `NOMS OK` ;
+commit.
+
+**Étapes.**
+- [ ] **Étape 1 : tests rouges** ci-dessus ; commande ciblée → rouge.
+- [ ] **Étape 2 : instances.** Dans `Main.qml`, après `appTools` :
+  ```qml
+  ObjectEditing { id: appEditing; objectName: "appEditing"; document: appDocument; tools: appTools }
+  Insertion { id: appInsertion; objectName: "appInsertion"; document: appDocument }
+  DocumentTabs { id: appTabs; objectName: "appTabs"; document: appDocument }
+  FileExchange { id: appExchange; objectName: "appExchange"; document: appDocument; tabs: appTabs }
+  PrintController { id: appPrint; objectName: "appPrint"; document: appDocument }
+  ```
+- [ ] **Étape 3 : gestionnaires.** À la suite des gestionnaires existants (forme de L0-S9, A14) : `edit.cut` →
+  `appEditing.cut()` ; `edit.copy` → `copy()` ; `edit.paste` → `paste()` ; `edit.paste-onto` → `pasteOnto()` ;
+  `edit.duplicate` → `duplicate()` ; `object.group` → `toggleGroup()` ; `object.lock` / `object.hide` /
+  `object.drag-copy` → `toggleFlag("lock" | "hide" | "drag-copy")` ; `arrange.<x>` → `arrange("<x>")` ;
+  `align.<x>` → `align("<x>")` ; `transform.<x>` → `transform("<x>")` ; `object.menu` →
+  `objectEditMenu.popupAtSelection()` ; `object.shape-points`, `tool.fill`, `tool.connector`, `pen.shape` →
+  `appTools.activate("select-points" | "fill" | "connector" | "pen-shape")` (argument passé à l'outil par L5-T17) ;
+  `connector.style` → gestionnaire vide commenté `// L5-T17` ; `view.pen-modifiers` → bascule de
+  `penModifierBar.visible` ; `insert.image` / `insert.media` → `appInsertion.insertImage(url)` /
+  `insertMedia(url)` si l'argument est donné, sinon `fileExchangeActions.chooseImage()` / `chooseMedia()` ;
+  `tab.next` / `tab.previous` → `appTabs.next()` / `previous()` ; `view.tabs` → `appTabs.position = argument` ;
+  `export.*`, `file.import-*` → `appExchange.<méthode>(url)` ou le dialogue de `fileExchangeActions` ; `file.print`
+  → `printDialog.open()` si `Qt.platform.os === "windows"`, sinon `appExchange.printThroughPdf()`.
+- [ ] **Étape 4 : talons QML** des sept fichiers neufs, enregistrés au bloc `QML_FILES` ; `ObjectBar.qml` lit la
+  liste `objectBar` complète (boutons du lot inertes jusqu'à L5-T18) ; `TopBar.qml` réserve la place de
+  `DocumentTabBar`.
+- [ ] **Étape 5 : preuves** (commande ciblée, captures `premiers-pas`), `format.ps1 -Check`.
+- [ ] **Étape 6 : commit** des chemins de la table, `NOMS OK`, message « Lot 5 : coquille QML des fonctions d'édition
+  et de fichiers » terminé par la ligne `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
