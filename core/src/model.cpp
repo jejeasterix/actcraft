@@ -257,6 +257,15 @@ void hashType(Fnv1a& h, const Connector& connector) noexcept
     h.outline(pen);
 }
 
+void hashType(Fnv1a& h, const Equation& equation) noexcept
+{
+    const auto& [bounds, mathml, pointSize, color] = equation;
+    h.rect(bounds);
+    h.text(mathml);
+    h.f64(pointSize);
+    h.u32(color);
+}
+
 void hashType(Fnv1a& h, const UnknownObject& unknown) noexcept
 {
     const auto& [type, json, bounds, hasBounds] = unknown;
@@ -337,6 +346,18 @@ ObjectKind kindOf(const PageObject& object) noexcept
     return static_cast<ObjectKind>(object.index());
 }
 
+bool isDefault(const PagePresentation& presentation) noexcept
+{
+    const auto& [tools, curtain, curtainDistance, spotlight, spotlightFrame, hasOrigin, origin, transition,
+                 unknownKeys] = presentation;
+    const auto& [frameX, frameY, frameWidth, frameHeight] = spotlightFrame;
+    const auto& [originX, originY] = origin;
+    return tools == PageToolsMode::Keep && curtain == CurtainMode::Off && curtainDistance == 0 &&
+           spotlight == SpotlightShape::Off && frameX == 0 && frameY == 0 && frameWidth == 0 &&
+           frameHeight == 0 && !hasOrigin && originX == 0 && originY == 0 && transition.empty() &&
+           unknownKeys.empty();
+}
+
 // Chaque structure est lue par une liaison structurée qui nomme tous ses champs : un champ ajouté casse la
 // compilation au lieu d'échapper à l'empreinte. Champs hachés dans l'ordre de déclaration ; pour chaque objet
 // : son type (un octet), ses propriétés communes, puis les champs de son type. Le script Python de L2-T1
@@ -346,7 +367,7 @@ static_assert(std::variant_size_v<ObjectVariant> == kObjectKindCount,
 
 std::uint64_t fingerprint(const Page& page) noexcept
 {
-    const auto& [width, height, objects, background, grid, name, notes, unknownKeys] = page;
+    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys] = page;
     Fnv1a h;
     h.f64(width);
     h.f64(height);
@@ -385,6 +406,23 @@ std::uint64_t fingerprint(const Page& page) noexcept
     }
     h.text(name);
     h.text(notes);
+    // Réglages de présentation (socle des lots 3 et 7) : seulement s'ils ne sont pas ceux par défaut, pour
+    // qu'une page qui n'en a pas garde son empreinte d'avant ; l'octet 0xA7 ouvre leur bloc, leurs sous-clés
+    // inconnues le ferment.
+    if (!isDefault(presentation)) {
+        const auto& [tools, curtain, curtainDistance, spotlight, spotlightFrame, hasOrigin, origin,
+                     transition, presentationKeys] = presentation;
+        h.byte(0xA7);
+        h.tag(tools);
+        h.tag(curtain);
+        h.f64(curtainDistance);
+        h.tag(spotlight);
+        h.rect(spotlightFrame);
+        h.boolean(hasOrigin);
+        h.point(origin);
+        h.text(transition);
+        h.text(presentationKeys);
+    }
     // Clés inconnues (L2-C8) : en fin de flux, et seulement s'il y en a, pour qu'une page qui n'en a pas
     // garde son empreinte d'avant (valeurs figées de tst_core_model). Le flux d'une page sans elles s'arrête
     // après `notes` : cette suite ne peut pas se confondre avec le flux d'une autre page.
