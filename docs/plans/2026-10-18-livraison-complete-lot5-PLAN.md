@@ -17,7 +17,7 @@ du lot 3 (61c03fb). Chaque défaut, et ce qui a changé (5a = ce plan, 5b = `…
 | M5 | L5-T1 fige données et en-têtes en parallèle de L5-T0 | T1 dépend de T0 ; V1 = T0, V2 = T1 |
 | M6 | Noms faux | `core::Change::Kind` (`core/undo.h:18`) ; `CommandRegistry::ids()` + `find()` (`commandregistry.h:68-69`) ; `DocumentTabs::count` (`Q_PROPERTY(int count READ rowCount NOTIFY countChanged)`) ; `{in}` / `{out}` / `{outdir}` définis ensemble ; origine XY = `PagePresentation::hasOrigin` / `origin` (`model.h:469-470`) |
 | M7 | Fichiers manquants | T1 : `layout.h`, `layout.cpp`, `ui/…/commands.h`, `ui/src/commands.cpp`, `ui/…/toolhost.h`, `ui/src/toolhost.cpp` (`setConnectorStyle`), `tools/…/toolcontext.h` (`SelectionView::shapePoints`) ; T18 : `SelectionOverlay.qml` ; T3 : `nativejson.cpp` et `nativeobjects.h` ; T25 : plus de `PageContextMenu.qml`, `export.page-image` mis dans `contextMenu` par T1 |
-| M8 | `parkSession` oublie la couche d'attente du lot 10 | 5b, T20 : versement forcé d'abord (`FixedPageItem::foldPending` par la vue, `pageview.h:135`), test `parkFoldsPendingFirst` ; fichier `ui/src/pageview.cpp` ajouté |
+| M8 | `parkSession` oublie la couche d'attente du lot 10 | 5b, T20 : versement forcé d'abord par la demande de redessin de la vue, qui verse les objets en attente (`FixedPageItem::foldPending`, `pageview.h:133-140`) ; `DocumentTabs` reçoit la vue (propriété `view`, annexe A) ; test `parkFoldsPendingFirst` |
 | M9 | Trois tests de T20 vrais sans code | `switchRedrawsOnce` attend la stabilisation puis compare ; `closingModifiedAsksToSave` contrôle aussi le document vide restant ; `oneViewForAllTabs` déplacé dans `tst_ui_shell` (T21), sur la fenêtre chargée |
 | M10 | Mémoire du cache : 20 o/px depuis L10-T8, seuil non mesurable | ≈ 41,5 Mio par vue en 1920 × 1080 (contrainte 3, H5-5) ; T31 : 4 documents synthétiques fixés, `memory_delta_mb` < coût d'une vue à la taille du passage (largeur × hauteur × 20 o) |
 | M11 | Attendus non chiffrés | T18 : `objectEditMenu.visibleCommandCount=13` ; T19 : `edition.refreshes_by_gesture` ventilé, chaque valeur ≤ 1 ; T31 : `export-fond` p95 ≤ 1,2 × p95 de `stroke` du même passage |
@@ -281,7 +281,7 @@ ligne `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
   (contrôle de pixels) ; Annuler remet les deux ; modification de stylo « horizontale » : un tracé oblique produit une
   annotation horizontale, effaçable à la gomme.
 - **S8.5 — Onglets** (5b) — quatre documents ouverts : la mémoire du processus ne croît pas d'une vue par onglet
-  (seuil de L5-T20) ; pages glissées d'un onglet à l'autre copiées avant la première page ; fermer un onglet modifié
+  (seuil de L5-T31) ; pages glissées d'un onglet à l'autre copiées avant la première page ; fermer un onglet modifié
   demande l'enregistrement.
 - **S8.6 — Ouverture.** Le rapport `docs/verifications/2026-10-18-lot5-principes.md` relie chaque constat du corpus
   affecté au lot à une exigence, une tâche et un scénario (ou une raison), et rend D1 à D20 et A1 à A21.
@@ -693,7 +693,7 @@ commit.
   ```qml
   ObjectEditing { id: appEditing; objectName: "appEditing"; document: appDocument; tools: appTools }
   Insertion { id: appInsertion; objectName: "appInsertion"; document: appDocument }
-  DocumentTabs { id: appTabs; objectName: "appTabs"; document: appDocument }
+  DocumentTabs { id: appTabs; objectName: "appTabs"; document: appDocument; view: <la PageView de PageArea> }
   FileExchange { id: appExchange; objectName: "appExchange"; document: appDocument; tabs: appTabs }
   PrintController { id: appPrint; objectName: "appPrint"; document: appDocument }
   ```
@@ -2414,6 +2414,8 @@ private:
   QString& text, QPointF pagePoint)` ; signaux `busyChanged()`, `inserted(int count)`, `failed(QString message)`.
 - `documenttabs.h` — `DocumentTabs : QAbstractListModel` : propriétés `document` (`DocumentController*`),
   `count` (`Q_PROPERTY(int count READ rowCount NOTIFY countChanged)`, `rowCount(const QModelIndex& parent = {})`),
+  `view` (`PageView*`, lu et écrit : la vue unique, dont la demande de redessin verse la couche d'attente avant un
+  garage),
   `currentIndex` (lecture), `position` (« top », « bottom », « hidden », lu et écrit) ; rôles `TitleRole`,
   `ModifiedRole`, `CurrentRole`, `UrlRole` ; `Q_INVOKABLE void newTab()`, `openInNewTab(const QUrl&)`,
   `activate(int)`, `bool requestClose(int)` (faux : `saveRequested(int)` émis), `closeWithoutSaving(int)`,
