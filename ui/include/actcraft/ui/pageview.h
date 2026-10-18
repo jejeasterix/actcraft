@@ -48,7 +48,9 @@ class PageView : public QQuickItem
     Q_PROPERTY(bool cacheEnabled READ cacheEnabled WRITE setCacheEnabled NOTIFY cacheEnabledChanged)
     Q_PROPERTY(QSize cacheTextureSize READ cacheTextureSize NOTIFY cacheTextureSizeChanged)
     // Échantillonnage de la texture du cache (H10-9) : seule source, liée à ShaderEffectSource.samples
-    // (PageArea.qml). kCacheMsaaSamples en RHI, 1 en rendu logiciel ; le plafond de la texture en dépend.
+    // (PageArea.qml). Fixé à l'attache à une fenêtre : kCacheMsaaSamples en RHI, 1 en rendu logiciel ; le
+    // plafond de la texture en dépend. En RHI, 1 ferait suivre l'échantillonnage de la fenêtre au cache
+    // (QSGRhiLayer : effectiveSamples <= 1 → msaaSampleCount()) : PageView ne le pose jamais.
     Q_PROPERTY(int cacheSamples READ cacheSamples WRITE setCacheSamples NOTIFY cacheSamplesChanged)
     Q_PROPERTY(bool cacheReady READ cacheReady NOTIFY cacheReadyChanged)
     Q_PROPERTY(

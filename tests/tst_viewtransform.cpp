@@ -93,6 +93,9 @@ private slots:
         // « Ajuster » au-delà de 100 % (page de 1024 à DPR 2, zoom 1,25) : nette aussi.
         const int fit = cacheMaxSide(QSizeF(1024, 768), 2.0, 4, 1.25);
         QCOMPARE(cacheTextureSize(QSizeF(1024, 768), 1.25, 2.0, fit), QSize(2560, 1920));
+        // « Ajuster » à 180 % à DPR 2 : au-dessus du plafond, le plancher suit le zoom d'ajustement.
+        QCOMPARE(cacheMaxSide(QSizeF(1024, 768), 2.0, 4, 1.8), 3687);
+        QCOMPARE(cacheTextureSize(QSizeF(1024, 768), 1.8, 2.0, 3687), QSize(3687, 2765));
         QCOMPARE(cacheMaxSide(QSizeF(8000, 6000), 1.0, 4), kMaxCacheSide); // jamais au-dessus de N1-6
     }
 

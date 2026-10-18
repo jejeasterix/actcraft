@@ -261,10 +261,34 @@ préférence : V1, puis V3, puis V2, puis V4.
   `bench/scenarios/anticrenelage.json` (`expect pageCache.samples 4`) devient une garde de liaison vraie dans les
   deux moteurs : `remember pageView.cacheSamples`, puis `expect pageCache.samples = ${echantillons_cache}`
   (autorisation de l'orchestrateur, seul fichier de `bench/scenarios/` modifié).
-- V1 est écrite par l'API publique `QQuickGraphicsConfiguration::setDepthBufferFor2D(false)`, posée dans
-  `loadMainWindow` (`app/startup.cpp`) : la fenêtre de `Main.qml` est montrée au chargement mais n'est exposée qu'au
-  retour à la boucle d'événements. Mesurée avec `QSG_NO_DEPTH_BUFFER=1`, l'interrupteur documenté par Qt ; l'effet
-  de l'API est vérifié par les relevés après repli ci-dessous.
+- V1 est écrite par `QSG_NO_DEPTH_BUFFER=1`, posé dans `applyRenderBackend` (`app/renderbackend.cpp`), en RHI
+  seulement, avant toute fenêtre : c'est exactement ce qui a été mesuré. `QSGRhiLayer` ne lit que cette variable,
+  une seule fois (`static bool depthBufferEnabled = qEnvironmentVariableIsEmpty(...)`) ; l'API
+  `QQuickGraphicsConfiguration::setDepthBufferFor2D` ne retire jamais la profondeur-stencil des couches, quel que
+  soit le moment de l'appel. Premier essai écarté pour cette raison : `setDepthBufferFor2D(false)` posé sur la
+  fenêtre dans `loadMainWindow` se relit bien à `false`, mais la tête `5231d40` mesure 1 031,7 Mio au zoom 800 %
+  posé (partagé 454,9 / privé 576,8), contre 624,4 pour V3.
+- La variable retire aussi le **stencil** : une découpe non rectangulaire (`clip` sous une rotation non multiple
+  de 90°) n'aurait plus de découpe en RHI. Aucun élément n'en dépend aujourd'hui.
+
+### Relevés après repli (tête `a203792`)
+
+2026-10-18, 21 h 51 à 21 h 56, même méthode, machine calme (aucune compilation, jeton `tests` libre, 2,68 Go
+libres).
+
+| Mesure | Tête `a203792` | V3-3072 (série) | V0 |
+|---|---|---|---|
+| Banc `all.memory_peak_bytes` | **930,4** | 901,6 | 1 692,1 |
+| Zoom 800 % posé (partagé / privé) | **609,1** (265,9 / 343,2) | 624,4 | 1 462,7 |
+| Zoom 400 % posé | 353,5 (partagé relevé à 13,3 : peu fiable) | 625,2 | 1 501,3 |
+| S13 | tenu | tenu | tenu |
+| p95 `scroll` | 17,0 ms | 17,0 | 17,2 |
+| Bande 100 / 400 / 800 % | 2 / 4 / 12 | 2 / 4 / 12 | 2 / 2 / 8 |
+| `pauses` > 25 ms ; entrées en retard après une demande | 2,83 % ; 48 sur 48 | 2,46 % ; 44 sur 44 | 2,45 % ; 41 sur 41 |
+
+Critères encore perdus au banc : `page.p95_ms`, `page.over_25ms_ratio` (antérieurs au lot 10) et
+`pauses.over_25ms_ratio` (L10-T9). Captures D3D11 de `5231d40` (même code, sauf l'interrupteur) : `anticrenelage`
+(`LU pageCache.samples=4 OK`), `cache-differe` et `premiers-pas` → `CAPTURES OK`.
 
 ## Fichiers
 

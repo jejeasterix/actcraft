@@ -1264,7 +1264,10 @@ private slots:
         QCOMPARE(f.view->cacheTextureSize(), QSize(3500, 2000)); // plancher : le côté à 100 %
     }
 
-    void singleSampledCacheKeepsTheFullCapEvenIfTheWindowIsMultisampled()
+    // cacheSamples = 1 : en RHI, le cache suivrait l'échantillonnage de la fenêtre (QSGRhiLayer : samples <=
+    // 1 → msaaSampleCount()) ; PageView ne le pose jamais en RHI. Le plafond ne lit que cacheSamples, jamais
+    // le format de la fenêtre (ici 4) : plafond complet.
+    void cacheSamplesOfOneKeepsTheFullCapWhateverTheWindowFormat()
     {
         Fixture f;
         QSurfaceFormat format = f.window.format();

@@ -118,9 +118,6 @@ PageView::PageView(QQuickItem* parent) : QQuickItem(parent)
 {
     setAcceptedMouseButtons(Qt::LeftButton);
     setAcceptTouchEvents(true);
-    // Moteur choisi avant le chargement du QML (applyRenderBackend) ; samples est sans effet en rendu
-    // logiciel.
-    m_cacheSamples = QQuickWindow::graphicsApi() != QSGRendererInterface::Software ? kCacheMsaaSamples : 1;
     m_cacheTimer.setSingleShot(true);
     m_cacheTimer.setInterval(kCacheRefreshDelayMs);
     connect(&m_cacheTimer, &QTimer::timeout, this, [this] {
@@ -579,6 +576,18 @@ void PageView::itemChange(ItemChange change, const ItemChangeData& value)
         m_filteredWindow = value.window;
         if (m_filteredWindow) {
             m_filteredWindow->installEventFilter(this);
+            // Moteur de la fenêtre (H10-9) : QQuickWindow::graphicsApi() ne renvoie jamais Software en
+            // Qt 6.12 (il suit QSGRhiSupport) ; rendererInterface()->graphicsApi() répond dès la construction
+            // de la fenêtre (même usage : tests/support/renderhost.h). samples est sans effet en rendu
+            // logiciel.
+            const int samples =
+                m_filteredWindow->rendererInterface()->graphicsApi() == QSGRendererInterface::Software
+                    ? 1
+                    : kCacheMsaaSamples;
+            if (samples != m_cacheSamples) {
+                m_cacheSamples = samples;
+                emit cacheSamplesChanged();
+            }
         }
         // Rapport de pixels connu à l'attache : sans ceci, une taille calculée avant garde l'ancienne
         // jusqu'au prochain zoom (H10-9).
