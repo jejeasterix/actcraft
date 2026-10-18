@@ -47,7 +47,7 @@ Une tâche = un worktree `C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-com
    (`.claude/chantier.md`, « Parallélisme ») ; 7a et 7b les enchaînaient toutes parce qu'elles partageaient
    `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/presentation.cmake` et `tests/tst_ui_presentation.cpp`.
    Après L7-S8, **aucune tâche ne touche plus ces quatre fichiers**, sauf L7-T2 (`tst_ui_presentation.cpp`, ses
-   fonctions), L7-T17 (`Presentation.qml`, un bloc) et L7-T32/L7-T34 (en bout de chaîne, seules). Pour cela :
+   fonctions), L7-T17 (`Presentation.qml`, au besoin), L7-T32 (`tst_ui_presentation.cpp`) et L7-T34 (`Presentation.qml`), ces deux dernières en bout de chaîne, seules. Pour cela :
    - **Une racine QML par fonction**, instanciée une fois par L7-S8 dans `Presentation.qml`, qui porte le contrôleur
      de la fonction et **ses gestionnaires de commandes** (`commands.setHandler` dans son `Component.onCompleted`).
      Les sections de 7a/7b qui disent « gestionnaire dans `Presentation.qml` » se lisent « dans la racine de la
