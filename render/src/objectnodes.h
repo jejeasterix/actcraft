@@ -6,6 +6,7 @@
 
 #include <cstddef>
 
+class QQuickWindow;
 class QSGNode;
 
 namespace actcraft::render {
@@ -25,5 +26,18 @@ struct ObjectNode
 ObjectNode createObjectNode(const core::PageObject& object, std::size_t index,
                             const RendererRegistry& registry, const PaintedRenderer& painter,
                             const RenderContext& context, const RenderContext& painted);
+
+// Contextes de createObjectNode, communs à la page fixe et à la couche d'attente : `context` pour le moteur
+// du prototype ; `painted` pour le moteur peint, le fond peint et la grille, vectoriels en rendu logiciel,
+// textures en RHI ou quand la rastérisation est forcée (décision 37). La couche d'attente passe
+// images == nullptr : aucune image n'attend (FixedPageItem::insert les fait reconstruire).
+struct NodeContexts
+{
+    RenderContext context;
+    RenderContext painted;
+};
+
+NodeContexts nodeContexts(QQuickWindow* window, bool software, const ImageStore* images, double rasterScale,
+                          bool forceRasterized);
 
 } // namespace actcraft::render

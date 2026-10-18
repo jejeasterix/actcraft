@@ -37,13 +37,13 @@ void PendingLayerItem::setFixedPage(FixedPageItem* page)
         return;
     }
     disconnect(m_pendingConnection);
-    disconnect(m_contentConnection);
     disconnect(m_readyConnection);
     m_page = page;
     m_pageSwitched = true;
     if (m_page) {
+        // Tout changement de ce que la couche lit émet pendingChanged (pendingIds, pendingRevision) ou
+        // readyChanged (isReady) ; contentChanged (redessin du cache) ne la concerne pas.
         m_pendingConnection = connect(m_page, &FixedPageItem::pendingChanged, this, [this] { update(); });
-        m_contentConnection = connect(m_page, &FixedPageItem::contentChanged, this, [this] { update(); });
         // Au prêt, la page fixe se reconstruit (avec ce qui attendait) : la couche se vide dans la même
         // image.
         m_readyConnection = connect(m_page, &FixedPageItem::readyChanged, this, [this] { update(); });
@@ -116,19 +116,14 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     }
     if (m_page && m_nodes.size() < wanted.size()) {
         const core::Page& shown = m_page->page();
-        RenderContext context;
-        context.window = window();
-        context.software = software;
-        context.images = nullptr;
-        context.rasterScale = m_page->rasterScale();
-        RenderContext painted = context;
-        painted.software = software && !m_page->forceRasterized();
+        const NodeContexts contexts =
+            nodeContexts(window(), software, nullptr, m_page->rasterScale(), m_page->forceRasterized());
         // Les objets en attente sont les derniers de la page (invariant tenu par FixedPageItem).
         const std::size_t first = shown.objects.size() - wanted.size();
         for (std::size_t k = m_nodes.size(); k < wanted.size(); ++k) {
             const std::size_t index = first + k;
-            const ObjectNode made =
-                createObjectNode(shown.objects[index], index, m_registry, m_painted, context, painted);
+            const ObjectNode made = createObjectNode(shown.objects[index], index, m_registry, m_painted,
+                                                     contexts.context, contexts.painted);
             m_nodes.emplace_back(wanted[k], made.root);
             ++m_createdCount;
             if (made.root) {

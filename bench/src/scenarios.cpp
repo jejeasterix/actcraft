@@ -124,6 +124,7 @@ ScenarioPlan pageScenario(ScenarioSet set)
     constexpr std::int64_t kZoomPeriodNs = 700'000'000;
     ScenarioPlan plan;
     plan.name = QStringLiteral("page");
+    plan.pageChecks = true;  // relevés du zoom 150 et contrôle de l'éclair (runner.cpp)
     plan.generatedPages = 2; // page 1 : images ; page 2 : images, textes et formes à chemins (moteur peint)
     const int flips = 20 / durationDivisor(set); // nombre pair : la série finit sur la page 1
     for (int i = 0; i < flips; ++i) {
