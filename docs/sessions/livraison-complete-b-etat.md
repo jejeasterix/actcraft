@@ -32,5 +32,6 @@ ouvertes : — · passées : —
 
 ## Pièges trouvés
 - Jeton `tests` : exige 3,5 Go de RAM libre ; la machine tourne autour de 2-3 Go pendant les suites de A, attente longue (une attente expirée, code 3).
-- Le dépôt contient déjà deux titres de vidéos génériques dans 7 fichiers (signalé à A par Pilote).
+- Le dépôt contenait deux titres de vidéos dans 7 fichiers : corrigé par A (f167eb9 sur feat/livraison-complete, `file.new` = « Créer un paperboard ») ; arrive ici par la fusion de phase 2 (ne pas fusionner avant le socle).
+- `tst_captures_aller_retour_natif` échoue sous charge (`BOUCLE max=… ECART`, seuil 25 ms), base comprise : pas une régression de B ; A le fiabilise.
 (voir aussi « Pièges trouvés » du chantier parent)
