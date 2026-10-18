@@ -144,7 +144,14 @@ Relecture du plan du lot 4, tour 1 (23 h 35) : pas exécutable tel quel.
 - 5 bloquants : raccourci Ctrl+Shift+S en double, argument de `text.edit-at`, `socleLayerOrder`, titres de vidéos dans `$exclus`, HTML sans garde `loadResource`.
 - 11 majeurs.
 - Rapport : `scratchpad/revue-plan-lot4.md`. Amendement statique confié à un planificateur.
-Agents en cours : plan lot 5, plan lot 6, amendement lot 4, L0-S3 (seul constructeur). En attente : L0-S4, L0-S6, L10-T8 (agent), fin de L10-C2, plan lot 6.
+Agents en cours : plan lot 5, plan lot 6, amendement lot 4, L0-S3 (seul constructeur).
+L0-S3 rendue (`56ce4b8`, graphe `2bb5fac`). **Rejouée par l'orchestrateur à 23 h 23 : verte.**
+- format 0, build 0 (`/we4062`).
+- 7 tests ciblés à code 0 : model 20, generator 12, edits 10, pagecache 7, replace 12, nativejson 31, painter 48. Les 3 fonctions nommées sont en PASS.
+- Mutation `next = r - 0 * k` : `groupOfTwoTakesTheHigherRank` FAIL (1, 3, 5, 6). Remise par `git checkout --` : 12/12.
+- 113 tests listés, worktree propre, NOMS OK 392.
+- Merge en attente de la relecture adversariale statique (en cours).
+L10-T8 : preuve ciblée lancée sous le jeton à 23 h 24 (seule construction). En attente : L0-S4, L0-S6, L10-T8 (agent), fin de L10-C2, plan lot 6.
 
 ## Tâches du socle commun L0-S (plan 9b13275, mergé 1ffb07b ; relecture tour 1 : 1 bloquant, 11 importants, tous appliqués ; tour 2 en cours)
 | id | dépend | titre | worktree | état | essais | commit | preuve rejouée |
