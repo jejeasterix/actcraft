@@ -16,6 +16,8 @@ actcraft_add_module(render
         src/imagerenderer.cpp
         include/actcraft/render/fixedpageitem.h
         src/fixedpageitem.cpp
+        src/objectnodes.h
+        src/objectnodes.cpp
         include/actcraft/render/inkbuffer.h
         src/inkbuffer.cpp
         include/actcraft/render/inkitem.h
