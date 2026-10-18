@@ -193,6 +193,8 @@ Plan du lot 6 amendé (c2d6796 : 38 tâches, 15 vagues ; nouvelles hypothèses H
 - Rejeu : format 0, build 0, ctest ciblé 20/20, talons en SKIP qui nomment leur tâche, mutation de `setOpenMathTools` rouge puis remise, `CAPTURES OK`, 113 tests, NOMS OK.
 - **V1 du socle complète** (S1, S3, S6). Suite complète de la vague lancée sous le jeton (`scratchpad/out/suite-v1.txt`).
 Relecture du plan du lot 5, tour 2 : 2 nouveaux bloquants et 6 majeurs. Rapport : `scratchpad/revue-plan-lot5-t2.md`. Amendement 2 en cours.
+**Suite complète de V1 verte** (tête cb2ad56, 00 h 34 à 00 h 52) : `100% tests passed, 0 tests failed out of 113`, `TESTS OK`. Seuls sautés, comme avant : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`.
+Plans amendés en cours de dernière relecture (tour 3) : lot 5 (5350a99) et lot 6 (e754dbe).
 V2 en préparation, écriture seule (un seul constructeur) : L0-S7 (worktree neuf à cb2ad56) et L0-S4 (reprise du wip 267b2a6 après fusion de la tête). Chacun attend mon signal pour sa preuve. L0-S5 démarre quand une place d'agent se libère.
 **Décision de A, demandée par B (L7-T26)** : pas d'inclusion privée de `render/src` depuis `ui/presentation.cmake`.
 - À la place, une API publique : `render/include/actcraft/render/equationpaint.h`, avec `EquationPaintMode { Page, Editor }`.
