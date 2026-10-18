@@ -67,6 +67,37 @@ qt_add_qml_module(actcraft_ui
         icons/quitter.svg
         icons/aide.svg
         icons/a-propos.svg
+        icons/selection.svg
+        icons/marqueur.svg
+        icons/gomme.svg
+        icons/annuler.svg
+        icons/retablir.svg
+        icons/supprimer.svg
+        icons/corbeille.svg
+        icons/effacer.svg
+        icons/deplacer.svg
+        icons/rotation.svg
+        icons/translucidite.svg
+        icons/agrandir.svg
+        icons/reduire.svg
+        icons/rideau.svg
+        icons/spot.svg
+        icons/zoom-page.svg
+        icons/effets.svg
+        icons/regle.svg
+        icons/equerre.svg
+        icons/rapporteur.svg
+        icons/compas.svg
+        icons/origine.svg
+        icons/des.svg
+        icons/calculatrice.svg
+        icons/horloge.svg
+        icons/message.svg
+        icons/forme-reconnue.svg
+        icons/ecriture.svg
+        icons/camera.svg
+        icons/clavier.svg
+        icons/bureau.svg
     SOURCES
         include/actcraft/ui/viewtransform.h
         include/actcraft/ui/pageview.h
