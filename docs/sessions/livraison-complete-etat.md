@@ -209,6 +209,12 @@ L0-S7 écrite, non construite (wip `a6c83f1`) ; preuve dans `scratchpad/preuve-L
 - Le plan du lot 3 (l. 1203-1210) dit que `routeEvent` n'est pas écrit dans ce lot (H3-16).
 - M4(b) relève de L3-T5, qui s'arrête et le rapporte si le mécanisme de L0-S7 ne fait pas passer les doigts à `Ignore`. L0-S7 teste déjà `fingerIgnoredWhileStylusToolContact`.
 - Talon de plus pour L0-S10 : `gestureActive()`.
+Plan du lot 6, tour 3 : refusé. 2 majeurs : N1, réglages et profils d'essai partagés entre les lancements ; N2, `pageView` n'est pas un identifiant QML. S'y ajoute N3, preuve du fichier INI au mauvais chemin.
+- Amendement 3 en cours.
+- Acceptation conditionnelle, sur contrôle de l'orchestrateur ; pas de tour 4.
+**Piège pour tous les lots** : dans le code QML, la vue s'atteint par `pageArea.view`. Dans les étapes de scénario et les lectures du banc, `pageView.…` est juste : le joueur trouve l'objet par son `objectName`.
+- Les plans des lots 3 et 4 écrivent en prose « placé par `pageView.pageToScene` ». L'implémenteur doit le lire comme `view.pageToScene` dans `PageArea.qml`.
+- À rappeler dans les briefs des tâches QML.
 Plans amendés en cours de dernière relecture (tour 3) : lot 5 (5350a99) et lot 6 (e754dbe).
 V2 en préparation, écriture seule (un seul constructeur) : L0-S7 (worktree neuf à cb2ad56) et L0-S4 (reprise du wip 267b2a6 après fusion de la tête). Chacun attend mon signal pour sa preuve. L0-S5 démarre quand une place d'agent se libère.
 **Décision de A, demandée par B (L7-T26)** : pas d'inclusion privée de `render/src` depuis `ui/presentation.cmake`.
