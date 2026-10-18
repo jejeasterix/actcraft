@@ -58,8 +58,8 @@ CMake + Ninja, MSVC 2022, PowerShell 7. Aucune bibliothèque tierce en 8a.
 | L8-T9 | `ui` : exécuteur d'actions — clic, clic droit, survol, mode conception, verrou de classe, garde de contact, historique des pages, actions de page et de commande | L8-T2, L8-T6, L8-T8 | `ui/include/actcraft/ui/actionrunner.h`, `ui/src/actionrunner.cpp`, `ui/include/actcraft/ui/pagehistory.h`, `ui/src/pagehistory.cpp`, `ui/src/toolhost.cpp`, `ui/qml/ActionOverlays.qml`, `tests/tst_ui_actionrunner.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_actionrunner` (dont `clickRunsEveryActionInOrder`, `dragDoesNotRun`, `rightClickSelectsWithoutRunning`, `designModeSelectsInstead`, `lockedCommandActionRefused`, `pageActionCreatesNoStep`, `objectActionIsOneStep`, `neverDuringContact`, `hiddenObjectStillClickable`, `lockedObjectStillRuns`, `historyBackAndForward`, `unsupportedActionDoesNothing`, `refusedWithoutCommands`) Passed ; banc hors écran joint | S11 | #tache-l8-t9 |
 | L8-T10 | `ui` : ouverture des liens et fichiers après confirmation (`QDesktopServices`), règles d'adresse, fichier rangé dans le document | L8-T1 | `ui/include/actcraft/ui/linklauncher.h`, `ui/src/linklauncher.cpp`, `ui/qml/LinkConfirmDialog.qml`, `tests/tst_ui_linklauncher.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_linklauncher` (dont `noOpenWithoutConfirmation`, `refusalOpensNothing`, `onlyHttpAndHttps`, `networkPathRefused`, `executableRefused`, `missingFileRefused`, `storedFileExtractedUnderASafeName`, `confirmationShowsTheFullTarget`, `openingADocumentLaunchesNothing`) Passed ; mutation (ouvrir sans attendre la réponse) rouge puis remise | S11 | #tache-l8-t10 |
 | L8-T11 | `core` + `ui` : modèle du navigateur d'actions (catégories, propriétés, appliquer à la sélection en une étape, retirer) | L8-T3, L8-T6 | `core/include/actcraft/core/actionedits.h`, `core/src/actionedits.cpp`, `ui/include/actcraft/ui/actionbrowser.h`, `ui/src/actionbrowser.cpp`, `tests/tst_ui_actionbrowser.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_actionbrowser` (dont `greyedWithoutSelection`, `categoriesInOrder`, `applyToManyIsOneStep`, `removeExistingIsOneStep`, `propertiesFollowTheAction`, `targetPickedFromThePage`, `refreshDeferredDuringContact`, `refusedWhileLocked`, `refusedWithoutCommands`) Passed | S11 | #tache-l8-t11 |
-| L8-T12 | QML : navigateur d'actions (onglet « Sélection ») ; scénario `navigateur-actions` | L8-T2, L8-T9, L8-T11 | `ui/qml/ActionBrowser.qml`, `bench/scenarios/navigateur-actions.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_captures_navigateur_actions` Passed ; `captures.ps1 -Scenario navigateur-actions` : `LU browserPanel.current=actions OK`, `LU appActionBrowser.enabled=true OK`, `LU appDocument.canUndo=true OK`, `PIXEL cible-masquee OK`, `PIXEL cible-revenue OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t12 |
-| L8-T13 | Actions glisser-déposer (F-892) : onglet, dépôt sur un objet, icône en surimpression, retrait par la corbeille ; scénario `glisser-deposer` | L8-T12 | `ui/include/actcraft/ui/dragdropactions.h`, `ui/src/dragdropactions.cpp`, `ui/qml/DragDropActions.qml`, `tests/tst_ui_dragdropactions.cpp`, `bench/scenarios/glisser-deposer.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_dragdropactions` (dont `eighteenEntriesNoVote`, `dropAssignsInOneStep`, `overlayOnlyForDragDrop`, `trashRemovesInOneStep`), `tst_captures_glisser_deposer` Passed ; `captures.ps1 -Scenario glisser-deposer` : `LU appTools.current=pen OK`, `PIXEL icone-surimpression OK`, `CAPTURES OK` | S11 | #tache-l8-t13 |
+| L8-T12 | QML : navigateur d'actions (onglet « Sélection ») ; scénario `navigateur-actions` | L8-T2, L8-T9, L8-T11 | `ui/qml/ActionBrowser.qml`, `bench/scenarios/navigateur-actions.json`, `bench/scenarios/fixtures/navigateur-actions.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_captures_navigateur_actions` Passed ; `captures.ps1 -Scenario navigateur-actions` : `LU browserPanel.current=actions OK`, `LU appActionBrowser.enabled=true OK`, `LU appDocument.canUndo=true OK`, `PIXEL cible-masquee OK`, `PIXEL cible-revenue OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t12 |
+| L8-T13 | Actions glisser-déposer (F-892) : onglet, dépôt sur un objet, icône en surimpression, retrait par la corbeille ; scénario `glisser-deposer` | L8-T12 | `ui/include/actcraft/ui/dragdropactions.h`, `ui/src/dragdropactions.cpp`, `ui/qml/DragDropActions.qml`, `tests/tst_ui_dragdropactions.cpp`, `bench/scenarios/glisser-deposer.json`, `bench/scenarios/fixtures/glisser-deposer.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_dragdropactions` (dont `eighteenEntriesNoVote`, `dropAssignsInOneStep`, `overlayOnlyForDragDrop`, `trashRemovesInOneStep`), `tst_captures_glisser_deposer` Passed ; `captures.ps1 -Scenario glisser-deposer` : `LU appTools.current=pen OK`, `PIXEL icone-surimpression OK`, `CAPTURES OK` | S11 | #tache-l8-t13 |
 | L8-T14 | `core` : règles de conteneur (F-577, F-580) : accepter, contenir, imbriquer, retour, sortie en un geste | L8-T3 | `core/include/actcraft/core/containers.h`, `core/src/containers.cpp`, `tests/tst_core_containers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_containers` (dont `anythingAcceptsInFront`, `behindIsNeverContained`, `oneObjectOnly`, `commonKeyword`, `centresWithinTolerance`, `fullyInside`, `refusedBouncesBack`, `refusedWithoutBounceStays`, `nestedTopmostWins`, `strokeDrawnInsideIsContained`, `leavingIsOneGesture`, `hiddenContainerIgnored`) Passed ; mutation de la tolérance (`<` en `<=` inversé) rouge puis remise | S11 | #tache-l8-t14 |
 | L8-T15 | `core` : limiteurs et rotation (F-578, F-579, E6) : déplacement contraint, chemin, accrochage, dimension bloquée, pivot, pas, sens, objet bloquant | L8-T3 | `core/include/actcraft/core/restrictors.h`, `core/src/restrictors.cpp`, `tests/tst_core_restrictors.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_restrictors` (dont `verticalKeepsX`, `horizontalKeepsY`, `fixedTravelZero`, `alongTrackProjects`, `jumpsOntoTrackOnPress`, `landsOnTheMark`, `fixedSizeHasNoHandles`, `clockwiseOnly`, `turnStepRounds`, `pivotOnOtherObject`, `blockerStopsAtItsEdge`) Passed ; mutation de la projection rouge puis remise | S11 | #tache-l8-t15 |
 | L8-T16 | `tools` : outil de sélection — limiteurs et rotation pendant le glisser (soulèvement), conteneurs au relâché (retour sans étape), objets bloquants, politique du mode conception ; scénario `conteneurs` | L8-T9, L8-T14, L8-T15 | `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/interactionpolicy.h`, `tests/tst_tools_interactivity.cpp`, `bench/scenarios/conteneurs.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_tools_interactivity` (dont `bounceBackDropsWithoutAStep`, `acceptedDropIsOneStep`, `verticalDragKeepsX`, `noCacheRebuildDuringDrag`, `fixedSizeShowsNoSizeHandles`, `rotationFollowsTheStep`, `designModeLiftsRestrictions`, `blockerStopsTheDrag`, `containerSignalEmitted`), `tst_tools_select` (lot 3), `tst_captures_conteneurs` Passed ; `captures.ps1 -Scenario conteneurs` : `PIXEL revenu-au-depart OK`, `LU appDocument.canUndo=false OK`, `PIXEL contenu-accepte OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t16 |
@@ -1750,6 +1750,396 @@ fichier extrait ne garde que les caractères `[A-Za-z0-9._ -]` de son nom d'orig
   la cible complète, deux boutons « Ouvrir » et « Annuler », branché sur `appLinks.confirmationNeeded`.
 - [ ] **Étape 5 : vert**, mutation rouge puis remise ; preuve de tâche ; commit « Lot 8 : ouverture des liens
   après confirmation (L8-T10) » ; `NOMS OK`.
+
+<a id="tache-l8-t11"></a>
+### Tâche L8-T11 — `core` + `ui` : modèle du navigateur d'actions
+
+**Objectif.** Le modèle de l'onglet « Sélection » du navigateur d'actions (F-850, F-851, D8-10) : liste grisée sans
+sélection (V42), catégories dans l'ordre (toutes, commande, page, objet, document), propriétés de l'action choisie
+(une ligne par paramètre du catalogue, plus « objet visé » si `target`), « Appliquer » à **tous** les objets
+sélectionnés en une étape, « Retirer les actions existantes » en une étape, objet visé choisi sur la page.
+
+**Fichiers.** `core/include/actcraft/core/actionedits.h`, `core/src/actionedits.cpp`, `ui/include/actcraft/ui/actionbrowser.h`,
+`ui/src/actionbrowser.cpp`, `tests/tst_ui_actionbrowser.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_actionbrowser`.
+
+**Interdits.** Aucune modification du document hors `DocumentController::execute` ; fermé par défaut (`commands`
+nul : refus) ; refus sous le verrou (`registry().isLocked()`) ; remise à jour regroupée, reportée pendant un contact
+(D6-5) ; aucune demande de redessin du cache (les actions ne changent aucun pixel de la page : `Change` de type
+`ObjectChanged` marqué « sans apparence », contrat de L0-S3, A20).
+
+**Terminé quand** les neuf fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : commande** `actionedits.h` (remplace le talon) :
+  ```cpp
+  #pragma once
+  #include <actcraft/core/model.h>
+  #include <actcraft/core/undo.h>
+
+  namespace actcraft::core {
+  // Remplace la liste des actions de chaque objet (liste vide : retire tout) ; une étape pour tous les objets.
+  class SetObjectActionsCommand : public UndoCommand
+  {
+  public:
+      SetObjectActionsCommand(std::size_t page, std::vector<ObjectId> ids, std::vector<Action> actions);
+      void redo(Document& document, Changes& changes) override;
+      void undo(Document& document, Changes& changes) override;
+  private:
+      std::size_t m_page;
+      std::vector<ObjectId> m_ids;
+      std::vector<Action> m_actions;
+      std::vector<std::vector<Action>> m_before;
+  };
+  } // namespace actcraft::core
+  ```
+- [ ] **Étape 2 : modèle** `actionbrowser.h` : `class ActionBrowserModel : public QAbstractListModel` (`QML_ELEMENT`),
+  propriétés `commands`, `contactActive`, `document`, `toolHost`, `category` (entier, 0 = toutes), `currentId`,
+  `parameters` (`QVariantMap`), `target` (identifiant), `enabled` (lecture seule : sélection non vide, `commands`
+  posé, pas de verrou) ; rôles `id`, `label`, `icon` ; invocables `apply()`, `removeExisting()`, `pickTarget()` (le
+  prochain clic sur la page choisit la cible, par `ToolHost`) ; signal `refused(QString)`.
+- [ ] **Étape 3 : test rouge** `tests/tst_ui_actionbrowser.cpp` (montage : `DocumentController` réel avec trois
+  formes 1, 2, 3 ; `Commands` réel ; `ToolHost` réel, A12) : `greyedWithoutSelection` (`enabled` faux, `apply()` ne
+  fait rien) ; `categoriesInOrder` (`categoryLabels()` rend « Toutes », « Commandes », « Pages », « Objets »,
+  « Document ») ; `applyToManyIsOneStep` (sélection {1, 2}, `page.next`, `apply()` : les deux objets portent l'action,
+  un seul `undo` les retire) ; `removeExistingIsOneStep` ; `propertiesFollowTheAction` (`page.goto` → `parameters`
+  contient `page`) ; `targetPickedFromThePage` (`pickTarget()` puis clic simulé sur 3 → `target == 3`) ;
+  `refreshDeferredDuringContact` (`contactActive` vrai : `modelReset` n'est pas émis avant la retombée) ;
+  `refusedWhileLocked` ; `refusedWithoutCommands`. Code sur le patron des tests de `tst_ui_propertymodel`
+  (L6-T12), `QSignalSpy` sur `modelReset` et `refused`.
+- [ ] **Étape 4 : rouge.** **Étape 5 : code.** **Étape 6 : vert** ; preuve de tâche ; commit « Lot 8 : modèle du
+  navigateur d'actions (L8-T11) » ; `NOMS OK`.
+
+<a id="tache-l8-t12"></a>
+### Tâche L8-T12 — QML : navigateur d'actions ; scénario `navigateur-actions`
+
+**Objectif.** L'onglet `actions` (F-850) : liste des catégories, liste des actions avec icônes, zone des propriétés
+repliée au départ et ouverte par « + » (V17), boutons « Appliquer » et « Retirer les actions existantes » ;
+scénario S11.2.
+
+**Fichiers.** `ui/qml/ActionBrowser.qml`, `bench/scenarios/navigateur-actions.json`,
+`bench/scenarios/fixtures/navigateur-actions.json` (document d'essai synthétique, forme native, deux pages, un rond
+`objectName` de lecture `cible`).
+
+**Test et commande bornée.** `tst_captures_navigateur_actions` (`-R tst_captures_navigateur_actions`).
+
+**Preuve visuelle.** Lectures d'abord : `LU browserPanel.current=actions OK`, `LU appActionBrowser.enabled=true OK`,
+`LU appDocument.canUndo=true OK`, puis `PIXEL cible-masquee OK`, `PIXEL cible-revenue OK`, `CAPTURES OK` ; décrire la
+capture `navigateur` (onglet ouvert, propriétés dépliées).
+
+**Interdits.** `pageArea.view` dans le QML ; aucun texte de l'original ; un gestionnaire réel remplace chaque talon
+de `ActionBrowser.qml`.
+
+**Terminé quand** le scénario passe hors écran et `tst_captures_navigateur_actions` passe.
+
+**Étapes.**
+- [ ] **Étape 1 : scénario** (remplace le talon) :
+  ```json
+  {
+    "format": "actcraft-scenario/1",
+    "name": "navigateur-actions",
+    "description": "S11.2 : liste grisée sans sélection ; une action « page suivante » appliquée à un rond ; le clic sur le rond passe à la page 2 ; retirer les actions : le clic ne fait plus rien.",
+    "steps": [
+      {"fixture": "document", "path": "bench/scenarios/fixtures/navigateur-actions.json"},
+      {"waitReady": true},
+      {"command": "browser.actions"},
+      {"expect": "browserPanel.current", "value": "actions"},
+      {"expect": "appActionBrowser.enabled", "value": false},
+      {"pointer": [[300, 300]], "space": "page"},
+      {"expect": "appActionBrowser.enabled", "value": true},
+      {"command": "action.apply", "argument": "page.next"},
+      {"expect": "appDocument.canUndo", "value": true},
+      {"capture": "navigateur"},
+      {"command": "tool.select"},
+      {"pointer": [[300, 300]], "space": "page"},
+      {"waitReady": true},
+      {"expect": "pageIndicator.text", "value": "2 / 2"},
+      {"command": "page.previous"},
+      {"pointer": [[300, 300]], "space": "page", "button": "right"},
+      {"command": "action.remove"},
+      {"pointer": [[300, 300]], "space": "page"},
+      {"waitReady": true},
+      {"expect": "pageIndicator.text", "value": "1 / 2"},
+      {"checkPixel": "cible-masquee", "at": [300, 300], "color": "#E53935", "tolerance": 40},
+      {"checkPixel": "cible-revenue", "at": [600, 300], "color": "#FFFFFF", "tolerance": 8},
+      {"capture": "fin"}
+    ]
+  }
+  ```
+  (`action.apply` avec argument = identifiant d'action : l'argument texte est la voie des scénarios ; le bouton du
+  QML appelle `appActionBrowser.apply()` ; noms des étapes `fixture` et `pointer` : A26, à suivre tels que relevés
+  par L8-T0.)
+- [ ] **Étape 2 : rouge** (talon) : `SCENARIO EN ECHEC` à `browserPanel.current`.
+- [ ] **Étape 3 : QML** `ActionBrowser.qml` : `ComboBox` des catégories (`appActionBrowser.categoryLabels()`),
+  `ListView` sur `appActionBrowser`, section des propriétés (`visible: expanded`, bouton « + »), éditeurs par type de
+  paramètre (nombre, angle, texte, adresse, fichier, page), boutons ; gestionnaires `browser.actions` (ouvre l'onglet),
+  `action.apply` (argument facultatif : `currentId`), `action.remove`, `action.pick-target`.
+- [ ] **Étape 4 : vert** ; preuve visuelle ; banc hors écran ; commit « Lot 8 : navigateur d'actions (L8-T12) ».
+
+<a id="tache-l8-t13"></a>
+### Tâche L8-T13 — Actions glisser-déposer (F-892) ; scénario `glisser-deposer`
+
+**Objectif.** L'onglet « Glisser-déposer » (D8-11) : 18 icônes ; une icône déposée sur un objet lui donne l'action
+(`dragDrop = true`) en une étape ; l'icône est dessinée en surimpression (surcouche QML, jamais dans le cache) ; un
+clic sur l'objet exécute l'action (L8-T9) ; l'icône glissée vers la corbeille retire l'action en une étape.
+
+**Fichiers.** `ui/include/actcraft/ui/dragdropactions.h`, `ui/src/dragdropactions.cpp`, `ui/qml/DragDropActions.qml`,
+`tests/tst_ui_dragdropactions.cpp`, `bench/scenarios/glisser-deposer.json`,
+`bench/scenarios/fixtures/glisser-deposer.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_dragdropactions|tst_captures_glisser_deposer'`.
+
+**Preuve visuelle.** `LU appTools.current=pen OK`, `PIXEL icone-surimpression OK`, `CAPTURES OK` ; décrire la capture
+`surimpression`.
+
+**Interdits.** Aucun dessin dans le cache ; dépôt par `SetObjectActionsCommand` (L8-T11) ; liste lue dans le
+catalogue (`dragDropList()`), jamais recopiée.
+
+**Terminé quand** les quatre fonctions et le scénario passent.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** `tests/tst_ui_dragdropactions.cpp` : `eighteenEntriesNoVote` (`rowCount() == 18`) ;
+  `dropAssignsInOneStep` (`dropOn(objectId, "command.tool.pen")` : l'objet porte une action `dragDrop`, un `undo`
+  la retire) ; `overlayOnlyForDragDrop` (`overlayIcons()` ne liste que les objets dont une action a `dragDrop`) ;
+  `trashRemovesInOneStep` (`dropOnTrash(objectId)`).
+- [ ] **Étape 2 : code** (`DragDropActions` : `QAbstractListModel`, `QML_ELEMENT`, `commands`, `document`,
+  `Q_INVOKABLE bool dropOn(quint64, QString)`, `Q_INVOKABLE bool dropOnTrash(quint64)`, `Q_INVOKABLE QVariantList overlayIcons()`).
+- [ ] **Étape 3 : QML** `DragDropActions.qml` (grille d'icônes `Drag.active`) ; `ActionOverlays.qml` dessine les
+  icônes de `overlayIcons()` au coin haut droit de chaque objet, placé par `view.pageToScene` (dans `PageArea.qml`,
+  `pageArea.view` ailleurs).
+- [ ] **Étape 4 : scénario** : fixture (un rectangle), `{"command": "browser.actions"}`, dépôt de l'icône du stylo sur
+  le rectangle (étape `pointer` de glisser d'un objet QML vers la page, A26), `checkPixel` `icone-surimpression` au coin
+  du rectangle, clic sur le rectangle, `{"expect": "appTools.current", "value": "pen"}`, capture `surimpression`.
+- [ ] **Étape 5 : vert** ; banc hors écran ; commit « Lot 8 : actions glisser-déposer (L8-T13) » ; `NOMS OK`.
+
+<a id="tache-l8-t14"></a>
+### Tâche L8-T14 — `core` : règles de conteneur
+
+**Objectif.** Logique pure du conteneur (D8-6, F-577, F-580) : qui peut être contenu, le verdict au relâché, les
+contenus d'un conteneur. Le patron évident est le mauvais : décider sur la position avant le glisser ou ignorer
+l'ordre de superposition (un objet **derrière** le conteneur ne doit jamais être contenu).
+
+**Fichiers.** `core/include/actcraft/core/containers.h`, `core/src/containers.cpp`, `tests/tst_core_containers.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_core_containers`. Mutation : comparer la distance des centres
+avec `>` au lieu de `<=` → `centresWithinTolerance` rouge, remise par `git checkout -- core/src/containers.cpp`.
+
+**Interdits.** QtCore seulement ; aucune modification du document ; mots-clés lus de `ObjectCommon::keywords` (A21) ;
+noms à nous (pas de nom composé de l'original).
+
+**Terminé quand** les douze fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** (remplace le talon) :
+  ```cpp
+  #pragma once
+  #include <actcraft/core/model.h>
+
+  #include <vector>
+
+  namespace actcraft::core {
+  enum class DropOutcome { Free, Contained, BounceBack };
+  struct DropResult
+  {
+      DropOutcome outcome = DropOutcome::Free;
+      ObjectId container = 0;
+      bool chime = false; // son de confirmation à jouer (L8-T25)
+  };
+  // Vrai si `candidate` est devant `container` : couche plus haute, ou même couche et plus haut dans l'ordre.
+  bool isInFront(const Page& page, ObjectId candidate, ObjectId container);
+  bool accepts(const PageObject& container, const PageObject& candidate);
+  bool fits(const PageObject& container, const PageObject& candidate); // règle FitRule, en coordonnées de page
+  // Verdict au relâché ; `moved` est déjà à sa position de dépôt dans `page`. Le conteneur visible le plus haut
+  // dans la superposition qui accepte et contient l'emporte (imbrication). Refusé par tous et l'un d'eux sous le
+  // point de dépôt a `bounceBack` : BounceBack.
+  DropResult resolveDrop(const Page& page, const std::vector<ObjectId>& moved);
+  std::vector<ObjectId> containedIn(const Page& page, ObjectId container);
+  } // namespace actcraft::core
+  ```
+- [ ] **Étape 2 : test rouge** `tests/tst_core_containers.cpp` :
+  ```cpp
+  #include <actcraft/core/containers.h>
+
+  #include <QtTest>
+
+  using namespace actcraft::core;
+
+  class TstCoreContainers : public QObject
+  {
+      Q_OBJECT
+      static PageObject box(ObjectId id, RectF r, Layer layer = Layer::Middle)
+      {
+          Shape s;
+          s.bounds = r;
+          PageObject o{s};
+          o.common.id = id;
+          o.common.layer = layer;
+          return o;
+      }
+      // Panier 1 (0,0,200,200) accepte « fruit » ; pomme 2 et carotte 3 de 40 × 40.
+      static Page basket(bool bounce = true)
+      {
+          Page p;
+          PageObject b = box(1, {0, 0, 200, 200});
+          b.common.container.accepts = Accepts::Keywords;
+          b.common.container.keywords = {"fruit"};
+          b.common.container.bounceBack = bounce;
+          PageObject apple = box(2, {80, 80, 40, 40});
+          apple.common.keywords = {"fruit"};
+          PageObject carrot = box(3, {80, 80, 40, 40});
+          carrot.common.keywords = {"légume"};
+          p.objects = {b, apple, carrot};
+          return p;
+      }
+  private slots:
+      void anythingAcceptsInFront()
+      {
+          Page p = basket();
+          p.objects[0].common.container.accepts = Accepts::Anything;
+          QCOMPARE(resolveDrop(p, {3}).outcome, DropOutcome::Contained);
+      }
+      void behindIsNeverContained()
+      {
+          Page p = basket();
+          std::swap(p.objects[0], p.objects[1]); // la pomme passe derrière le panier
+          QVERIFY(!isInFront(p, 2, 1));
+          QVERIFY(resolveDrop(p, {2}).outcome != DropOutcome::Contained);
+      }
+      void oneObjectOnly()
+      {
+          Page p = basket();
+          p.objects[0].common.container.accepts = Accepts::OneObject;
+          p.objects[0].common.container.object = 3;
+          QCOMPARE(resolveDrop(p, {3}).outcome, DropOutcome::Contained);
+          QCOMPARE(resolveDrop(p, {2}).outcome, DropOutcome::BounceBack);
+      }
+      void commonKeyword()
+      {
+          const Page p = basket();
+          QCOMPARE(resolveDrop(p, {2}).outcome, DropOutcome::Contained);
+          QCOMPARE(resolveDrop(p, {2}).container, ObjectId(1));
+      }
+      void centresWithinTolerance()
+      {
+          Page p = basket();
+          p.objects[1] = box(2, {80 + 9, 80, 40, 40}); // centre à 9 px du centre du panier
+          p.objects[1].common.keywords = {"fruit"};
+          QCOMPARE(resolveDrop(p, {2}).outcome, DropOutcome::Contained);
+          p.objects[1] = box(2, {80 + 11, 80, 40, 40});
+          p.objects[1].common.keywords = {"fruit"};
+          QCOMPARE(resolveDrop(p, {2}).outcome, DropOutcome::BounceBack);
+      }
+      void fullyInside()
+      {
+          Page p = basket();
+          p.objects[0].common.container.fit = FitRule::FullyInside;
+          p.objects[1] = box(2, {150, 150, 40, 40});
+          p.objects[1].common.keywords = {"fruit"};
+          QCOMPARE(resolveDrop(p, {2}).outcome, DropOutcome::Contained);
+          p.objects[1] = box(2, {180, 180, 40, 40});
+          p.objects[1].common.keywords = {"fruit"};
+          QCOMPARE(resolveDrop(p, {2}).outcome, DropOutcome::BounceBack);
+      }
+      void refusedBouncesBack() { QCOMPARE(resolveDrop(basket(), {3}).outcome, DropOutcome::BounceBack); }
+      void refusedWithoutBounceStays() { QCOMPARE(resolveDrop(basket(false), {3}).outcome, DropOutcome::Free); }
+      void nestedTopmostWins()
+      {
+          Page p = basket();
+          PageObject inner = box(4, {60, 60, 80, 80});
+          inner.common.container.accepts = Accepts::Anything;
+          p.objects.insert(p.objects.begin() + 1, inner); // au-dessus du panier, sous la pomme
+          QCOMPARE(resolveDrop(p, {2}).container, ObjectId(4));
+      }
+      void strokeDrawnInsideIsContained()
+      {
+          Page p = basket();
+          p.objects[0].common.container.accepts = Accepts::Anything;
+          Stroke s;
+          s.points = {{90, 90, 0.5f}, {110, 110, 0.5f}};
+          PageObject o{s};
+          o.common.id = 5;
+          o.common.layer = Layer::Top;
+          p.objects.push_back(o);
+          const auto inside = containedIn(p, 1);
+          QVERIFY(std::find(inside.begin(), inside.end(), ObjectId(5)) != inside.end());
+      }
+      void leavingIsOneGesture()
+      {
+          Page p = basket();
+          p.objects[1] = box(2, {500, 500, 40, 40}); // pomme sortie du panier en un glisser
+          p.objects[1].common.keywords = {"fruit"};
+          QCOMPARE(resolveDrop(p, {2}).outcome, DropOutcome::Free);
+      }
+      void hiddenContainerIgnored()
+      {
+          Page p = basket();
+          p.objects[0].common.visible = false;
+          QCOMPARE(resolveDrop(p, {3}).outcome, DropOutcome::Free);
+      }
+  };
+
+  QTEST_MAIN(TstCoreContainers)
+  #include "tst_core_containers.moc"
+  ```
+- [ ] **Étape 3 : rouge.** **Étape 4 : code** : boîtes par `boundsOnPage` (A10) ; centres comparés à la tolérance
+  du conteneur ; « derrière » = rang de couche plus bas, ou même couche et indice plus petit ; conteneurs parcourus
+  du plus haut au plus bas ; `chime` = `container.chime` du gagnant.
+- [ ] **Étape 5 : vert**, mutation rouge puis remise ; commit « Lot 8 : règles de conteneur (L8-T14) » ; `NOMS OK`.
+
+<a id="tache-l8-t15"></a>
+### Tâche L8-T15 — `core` : limiteurs et rotation
+
+**Objectif.** Logique pure des limiteurs (D8-7, F-578, F-579, E6) : position permise pendant un glisser, saut sur le
+chemin à l'appui, accrochage au dépôt, poignées de dimension, angle permis (sens et pas), pivot, arrêt au bord d'un
+objet bloquant (D7 de L8-T0 ; défaut : arrêt au bord).
+
+**Fichiers.** `core/include/actcraft/core/restrictors.h`, `core/src/restrictors.cpp`, `tests/tst_core_restrictors.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_core_restrictors`. Mutation : rendre le point de départ au lieu
+du projeté dans `projectOnTrack` → `alongTrackProjects` rouge, remise par `git checkout -- core/src/restrictors.cpp`.
+
+**Interdits.** QtCore seulement ; aucune modification du document ; noms à nous.
+
+**Terminé quand** les onze fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** (remplace le talon) :
+  ```cpp
+  #pragma once
+  #include <actcraft/core/model.h>
+
+  #include <vector>
+
+  namespace actcraft::core {
+  // Déplacement permis de l'objet, depuis sa position de départ, pour un déplacement voulu `wanted` (page).
+  PointF allowedTravel(const Page& page, const PageObject& object, PointF wanted);
+  // Point du chemin (Travel::AlongTrack) le plus proche de `point` ; `point` si pas de chemin.
+  PointF projectOnTrack(const Page& page, const PageObject& object, PointF point);
+  // Position du centre après accrochage (magnet), ou `dropped` si l'objet n'accroche pas.
+  PointF landingPoint(const Page& page, const PageObject& object, PointF dropped);
+  bool sizeHandlesShown(const PageObject& object) noexcept;            // faux si dimension bloquée (E6)
+  double allowedTurn(const PageObject& object, double fromDegrees, double wantedDegrees) noexcept;
+  PointF pivotOf(const Page& page, const PageObject& object);           // page
+  // Déplacement réduit pour que la boîte des objets `moving` ne passe sur aucun objet bloquant.
+  PointF stopAtBlockers(const Page& page, const std::vector<ObjectId>& moving, PointF wanted);
+  } // namespace actcraft::core
+  ```
+- [ ] **Étape 2 : test rouge** `tests/tst_core_restrictors.cpp`, même montage que L8-T14 (forme 1 de 40 × 40 en
+  (100, 100)) : `verticalKeepsX` (`allowedTravel` de (30, 50) en `Travel::Vertical` → (0, 50)) ;
+  `horizontalKeepsY` → (30, 0) ; `fixedTravelZero` → (0, 0) ; `alongTrackProjects` (chemin = trait 2 de (0, 300) à
+  (400, 300) ; `projectOnTrack` de (200, 250) → (200, 300)) ; `jumpsOntoTrackOnPress` (centre de la forme projeté
+  sur le trait dès l'appui : `projectOnTrack(page, o, centre)` = (120, 300)) ; `landsOnTheMark` (`magnet` vrai,
+  `Mark::TopLeft` d'un conteneur sous le point → le coin haut gauche de la forme se pose sur celui du conteneur) ;
+  `fixedSizeHasNoHandles` (`resizable` faux → `sizeHandlesShown` faux) ; `clockwiseOnly` (`Turning::Clockwise` :
+  de 10° à 0° → 10°, de 10° à 30° → 30°) ; `turnStepRounds` (pas 45 : 50° → 45°, 70° → 90°) ;
+  `pivotOnOtherObject` (`Mark::OtherObject` → centre de l'objet 3) ; `blockerStopsAtItsEdge` (forme bloquante 4 en
+  (200, 100, 40, 40) : un déplacement voulu de (+150, 0) s'arrête à (+60, 0), bord contre bord). Chaque fonction :
+  `QCOMPARE` sur les composantes arrondies (`qRound`).
+- [ ] **Étape 3 : rouge.** **Étape 4 : code** (projection sur chaque segment de la polyligne en coordonnées de page ;
+  pas arrondi au plus proche ; sens : refus de l'angle qui va dans l'autre sens ; arrêt : plus grand facteur t ∈ [0, 1]
+  sans recouvrement, par dichotomie sur 16 pas).
+- [ ] **Étape 5 : vert**, mutation rouge puis remise ; commit « Lot 8 : limiteurs et rotation (L8-T15) » ; `NOMS OK`.
 
 > **État de rédaction (rapport intermédiaire).** Les sections L8-T1 à L8-T19 et le plan de 8b (`…-lot8b-PLAN.md`, L8-T20 à L8-T34) restent à écrire. Table, vagues, règles, API, talons, scénarios, hypothèses et L8-T0 font foi dès maintenant.
 ## Décisions appliquées (tranchées par ce plan ; L8-T0 peut les amender)
