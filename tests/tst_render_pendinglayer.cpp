@@ -308,6 +308,37 @@ private slots:
         f.page->appendStroke(lineAt(100));
         QCOMPARE(f.page->pendingCount(), 0); // il doit passer sous la grille : dans la scène
     }
+
+    // Revue M2 : un trait en attente modifié en place (couleur), puis invalidate : seule la couche change ;
+    // ni reconstruction, ni redessin du cache, et la nouvelle couleur est à l'écran.
+    void pendingStrokeChangedInPlaceRebuildsNothing()
+    {
+        Fixture f;
+        open(f, true);
+        core::Document d;
+        f.page->setSource(&d, 0);
+        QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 5000));
+        f.page->setDeferredFolding(true);
+        core::PageObject stroke = lineAt(300);
+        stroke.common.id = d.allocateId();
+        stroke.common.layer = core::Layer::Top;
+        const core::ObjectId id = stroke.common.id;
+        core::insertAtTopOfLayer(d.page(0), std::move(stroke));
+        f.page->insert(id);
+        QVERIFY(near(at(f, 300, 300), Qt::black, 60));
+        const int rebuilds = f.page->rebuildCount();
+        QSignalSpy content(f.page, &render::FixedPageItem::contentChanged);
+        auto* changed = std::get_if<core::Stroke>(&d.page(0).objects.back());
+        QVERIFY(changed);
+        changed->color = 0xFF1E88E5u;
+        f.page->invalidate(id, core::RectF{100, 296, 400, 8});
+        QCOMPARE(content.count(), 0);
+        QCOMPARE(f.page->pendingCount(), 1);
+        const QColor now = at(f, 300, 300);
+        QVERIFY2(near(now, QColor(0x1E, 0x88, 0xE5), 60), qPrintable(now.name()));
+        QCOMPARE(f.page->rebuildCount(), rebuilds);
+        f.page->setSource(nullptr, 0); // le document meurt avant l'élément
+    }
 };
 
 QTEST_MAIN(TstRenderPendingLayer)
