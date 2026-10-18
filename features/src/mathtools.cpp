@@ -51,8 +51,9 @@ input::Sample movedTo(const input::Sample& sample, QPointF point)
 
 // Projection sur le bord le plus proche de `edges`, s'il est à moins de `tolerance`. Avec `seized`, l'index
 // de ce bord y est noté (saisie) ; sans, rien n'est noté (requête pure de project()).
-std::optional<input::Sample> snapToEdge(const std::vector<QLineF>& edges, const input::Sample& sample,
-                                        double tolerance, int* seized = nullptr)
+std::optional<input::Sample> projectOnNearestEdge(const std::vector<QLineF>& edges,
+                                                  const input::Sample& sample, double tolerance,
+                                                  int* seized = nullptr)
 {
     const SegmentHit hit = projectOnSegments(edges, QPointF(sample.x, sample.y));
     if (hit.index < 0 || hit.distance > tolerance) {
@@ -158,12 +159,12 @@ RulerUnit Ruler::bottomUnit() const noexcept
 
 std::optional<input::Sample> Ruler::project(const input::Sample& sample, double tolerance) const
 {
-    return snapToEdge(edges(), sample, tolerance);
+    return projectOnNearestEdge(edges(), sample, tolerance);
 }
 
 std::optional<input::Sample> Ruler::capture(const input::Sample& sample, double tolerance)
 {
-    return snapToEdge(edges(), sample, tolerance, &m_edge);
+    return projectOnNearestEdge(edges(), sample, tolerance, &m_edge);
 }
 
 input::Sample Ruler::follow(const input::Sample& sample)
@@ -196,12 +197,12 @@ int SetSquare::displayAngle() const noexcept
 
 std::optional<input::Sample> SetSquare::project(const input::Sample& sample, double tolerance) const
 {
-    return snapToEdge(edges(), sample, tolerance);
+    return projectOnNearestEdge(edges(), sample, tolerance);
 }
 
 std::optional<input::Sample> SetSquare::capture(const input::Sample& sample, double tolerance)
 {
-    return snapToEdge(edges(), sample, tolerance, &m_edge);
+    return projectOnNearestEdge(edges(), sample, tolerance, &m_edge);
 }
 
 input::Sample SetSquare::follow(const input::Sample& sample)
