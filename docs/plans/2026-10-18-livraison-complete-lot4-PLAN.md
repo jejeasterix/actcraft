@@ -2,6 +2,29 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 3 (relecture tour 3, 2026-10-19)
+
+Relecture de 12bf522 (dernier tour) : un majeur (M1) et six mineurs (m1 à m6) ; ils finissent la correction de N3,
+N5 et N10. Les paragraphes « Amendement 3 » priment sur les amendements 1 et 2.
+
+- **M1 (4b, L4-T21).** `editingLoadsNoExternalResource` échouait même avec un code juste : `toHtml()` commence par un
+  DOCTYPE qui cite `http://www.w3.org/…`, et les images de fond passent aussi par `loadResource`. → l'attendu devient
+  « ni `file:`, ni `exemple.invalid`, ni `hote/` » et « appelé seulement pour des URL de l'entrée ».
+- **m1 (4b, L4-T21).** Le test reçoit aussi la forme CSS `<p style="background-image:url(file://hote/v.png)">`.
+- **m2.** Plus d'`appDocument` dans le branchement de `gridOverlay` : `area.documentController` (section
+  « Amendement 1 », défaut 8, et commentaire de `refresh()` dans l'en-tête de `GridOverlayItem`, recopié par L4-T1).
+- **m3 (L4-T1).** `tests/tst_actions_layout.cpp:9` fait `using namespace actcraft::actions;` : `Layout` et
+  `parseLayout` s'écrivent sans préfixe dans `contextMenuAcceptsSubmenus`.
+- **m4 (L4-T1, L4-T17, L4-T29).** `renderCount` compte les rendus **terminés**, revenus d'un fil secondaire. → L4-T1
+  ajoute à la fin de l'en-tête `PageThumbnails` `Q_PROPERTY(int launchCount …)` et `int launchCount() const
+  noexcept;` (rendus lancés, compté sur le fil principal) ; L4-T17 le remplit ; le banc compte `during_contact` sur
+  les hausses de `launchCount` entre un appui et son relâché.
+- **m5 (table, L4-T1).** `objectBarAndContextMenu` (`tst_ui_commands`) et `defaultLayoutMatchesLotOne`
+  (`tst_actions_layout`), amendés, entrent dans la colonne de preuve.
+- **m6 → D19 (L4-T0).** Place du groupe `formes-texte` : en fin de palette ou juste après `outils`. L4-T1 applique la
+  recommandation (en fin) ; si D19 tranche autrement, correctif `L4-C0` (`layout.json`) et liste attendue de
+  `defaultLayoutMatchesLotOne` amendée en conséquence.
+
 ## Amendement 2 (relecture tour 2, 2026-10-18)
 
 Relecture de 860d7a0 : aucun bloquant, 5 majeurs (N1 à N5), 8 mineurs (N6 à N13). Citations revérifiées sur la tête
@@ -83,7 +106,7 @@ Les sections des tâches portent chacune un paragraphe « Amendement 1 » : il p
 8. **La surcouche de grille n'était jamais prévenue** : `PageSettingsChanged` n'atteint pas `FixedPageItem`
    (`presentationChangeRedrawsNothing`). → `GridOverlayItem` perd `setPage(const core::Page*)` (pointeur brut qui
    pend) et `pageChanged()` ; il reçoit `fixedPage` (lecture de la page par `FixedPageItem::page()`, amendement 2) et
-   `Q_INVOKABLE refresh()`, appelée par `PageArea.qml` sur `appDocument.pageContentChanged(index)` de la page
+   `Q_INVOKABLE refresh()`, appelée par `PageArea.qml` sur `area.documentController.pageContentChanged(index)` de la page
    affichée. Changé : en-tête de L4-T1, L4-T2, L4-T7 (test `refreshRereadsTheGrid`).
 9. **Menus.** (a) `insert` : entrées ajoutées **en fin**, `insert.date-time` et `insert.equation` gardés
    (`lot7EntriesPlaced`) ; (b) `tools` suit F-750 : `tool.text-vertical` en fin du sous-menu `other-tools`
@@ -183,8 +206,8 @@ code livré et l'écart amende ce plan, comme au lot 10. Les numéros de ligne s
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
-| L4-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; API des lots 3, 7 et L0-S revérifiées | — | `docs/verifications/2026-10-18-lot4-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot4.md`) | isolé | concepteur-critique | rapport commité, relevé brut hors dépôt présent, décisions D1 à D18 et table A1 à A14 écrites, `NOMS OK` (plan ajouté à l'index avant le contrôle), `git grep` des titres du corpus vide (exclusions lues hors dépôt), N3 et n_B relevés | S30 | #tache-l4-t0 |
-| L4-T1 | Réservation I : commandes, disposition (`contextMenu` étendu aux sous-menus), icônes, champs du modèle, CMake, 23 tests enregistrés, en-têtes figés et talons des deux sous-lots | — | `actions/data/commands.json`, `actions/data/layout.json`, `actions/include/actcraft/actions/layout.h`, `actions/src/layout.cpp`, `tests/tst_actions_layout.cpp`, `tests/tst_actions_registry.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `tests/tst_ui_commands.cpp`, `tests/tst_ui_theme.cpp`, `ui/icons/{forme,texte,texte-vertical,grille,grille-masquer,aimant,createur-grille,navigateurs,page-avant,page-apres,page-couper,page-copier,page-coller,page-dupliquer,page-supprimer,fond,allonger,zones,gras,italique,souligne,exposant,indice,aligner-gauche,centrer,aligner-droite,interligne-plus,interligne-moins,retrait-plus,retrait-moins,puces,symboles,taille-plus,taille-moins}.svg`, `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `tests/tst_core_model.cpp`, `core/CMakeLists.txt`, `tools/CMakeLists.txt`, `render/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/core.cmake`, `tests/formats.cmake`, `tests/render.cmake`, `tests/tools.cmake`, `tests/ui.cmake`, `tests/bench.cmake`, talons `core/include/actcraft/core/{shapegeometry,shapeedits,gridsnap,pagesettings,pageedits,textedits,pagezones}.h`, `core/src/{shapegeometry,shapeedits,gridsnap,pagesettings,pageedits,textedits,pagezones}.cpp`, `tools/include/actcraft/tools/{shapetool,texttool}.h`, `tools/src/{shapetool,texttool}.cpp`, `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp`, `tools/include/actcraft/tools/toolcontext.h`, `tools/src/toolregistry.cpp`, `render/include/actcraft/render/gridoverlayitem.h`, `render/src/gridoverlayitem.cpp`, `ui/include/actcraft/ui/{pagethumbnails,pagescontroller,pageoptions,textediting}.h`, `ui/src/{pagethumbnails,pagescontroller,pageoptions,textediting}.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `tests/tst_ui_document.cpp`, 16 tests talons `tests/tst_{core_shapes,core_gridsnap,core_pagesettings,core_pageedits,core_textedits,core_zones,formats_lot4,render_gridoverlay,render_verticaltext,tools_shape,tools_text,ui_shapes,ui_pagesettings,ui_pagethumbnails,ui_pages,ui_text}.cpp`, 7 scénarios talons `bench/scenarios/{formes,grille,texte,navigateur-pages,page-allongee-zones,texte-vertical,formes-texte-pages-grille}.json` | isolé | implementeur-tdd | `100% tests passed, 0 tests failed out of 136` (136 + n_B si le lot 7 a fusionné), `TESTS OK`, `tst_actions_layout` (dont `contextMenuAcceptsSubmenus`, `toolsMenuFollowsF750` amendé, `lot7EntriesPlaced`), `tst_actions_registry` (dont `lot4EntriesDeclared`, `editAtArgumentOptional`, `noShortcutTwice` du socle), `tst_ui_commands` (dont `contextMenuWithSubmenu`), `tst_ui_theme` (`iconsAreOurSvgOnA24Grid` : 34 lignes neuves en `PASS`), `tst_core_model` (dont `lot4FieldsKeepOldFingerprints`), `tst_ui_document` (dont `pageContentChangedNamesThePage`, `showPageShowsIt`) Passed ; `premiers-pas` hors écran `CAPTURES OK` | S7, S15, S16 | #tache-l4-t1 |
+| L4-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; API des lots 3, 7 et L0-S revérifiées | — | `docs/verifications/2026-10-18-lot4-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot4.md`) | isolé | concepteur-critique | rapport commité, relevé brut hors dépôt présent, décisions D1 à D19 et table A1 à A14 écrites, `NOMS OK` (plan ajouté à l'index avant le contrôle), `git grep` des titres du corpus vide (exclusions lues hors dépôt), N3 et n_B relevés | S30 | #tache-l4-t0 |
+| L4-T1 | Réservation I : commandes, disposition (`contextMenu` étendu aux sous-menus), icônes, champs du modèle, CMake, 23 tests enregistrés, en-têtes figés et talons des deux sous-lots | — | `actions/data/commands.json`, `actions/data/layout.json`, `actions/include/actcraft/actions/layout.h`, `actions/src/layout.cpp`, `tests/tst_actions_layout.cpp`, `tests/tst_actions_registry.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `tests/tst_ui_commands.cpp`, `tests/tst_ui_theme.cpp`, `ui/icons/{forme,texte,texte-vertical,grille,grille-masquer,aimant,createur-grille,navigateurs,page-avant,page-apres,page-couper,page-copier,page-coller,page-dupliquer,page-supprimer,fond,allonger,zones,gras,italique,souligne,exposant,indice,aligner-gauche,centrer,aligner-droite,interligne-plus,interligne-moins,retrait-plus,retrait-moins,puces,symboles,taille-plus,taille-moins}.svg`, `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `tests/tst_core_model.cpp`, `core/CMakeLists.txt`, `tools/CMakeLists.txt`, `render/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/core.cmake`, `tests/formats.cmake`, `tests/render.cmake`, `tests/tools.cmake`, `tests/ui.cmake`, `tests/bench.cmake`, talons `core/include/actcraft/core/{shapegeometry,shapeedits,gridsnap,pagesettings,pageedits,textedits,pagezones}.h`, `core/src/{shapegeometry,shapeedits,gridsnap,pagesettings,pageedits,textedits,pagezones}.cpp`, `tools/include/actcraft/tools/{shapetool,texttool}.h`, `tools/src/{shapetool,texttool}.cpp`, `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp`, `tools/include/actcraft/tools/toolcontext.h`, `tools/src/toolregistry.cpp`, `render/include/actcraft/render/gridoverlayitem.h`, `render/src/gridoverlayitem.cpp`, `ui/include/actcraft/ui/{pagethumbnails,pagescontroller,pageoptions,textediting}.h`, `ui/src/{pagethumbnails,pagescontroller,pageoptions,textediting}.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `tests/tst_ui_document.cpp`, 16 tests talons `tests/tst_{core_shapes,core_gridsnap,core_pagesettings,core_pageedits,core_textedits,core_zones,formats_lot4,render_gridoverlay,render_verticaltext,tools_shape,tools_text,ui_shapes,ui_pagesettings,ui_pagethumbnails,ui_pages,ui_text}.cpp`, 7 scénarios talons `bench/scenarios/{formes,grille,texte,navigateur-pages,page-allongee-zones,texte-vertical,formes-texte-pages-grille}.json` | isolé | implementeur-tdd | `100% tests passed, 0 tests failed out of 136` (136 + n_B si le lot 7 a fusionné), `TESTS OK`, `tst_actions_layout` (dont `contextMenuAcceptsSubmenus`, `toolsMenuFollowsF750` amendé, `defaultLayoutMatchesLotOne` amendé, `lot7EntriesPlaced`), `tst_actions_registry` (dont `lot4EntriesDeclared`, `editAtArgumentOptional`, `noShortcutTwice` du socle), `tst_ui_commands` (dont `contextMenuWithSubmenu`, `objectBarAndContextMenu` amendé), `tst_ui_theme` (`iconsAreOurSvgOnA24Grid` : 34 lignes neuves en `PASS`), `tst_core_model` (dont `lot4FieldsKeepOldFingerprints`), `tst_ui_document` (dont `pageContentChangedNamesThePage`, `showPageShowsIt`) Passed ; `premiers-pas` hors écran `CAPTURES OK` | S7, S15, S16 | #tache-l4-t1 |
 | L4-T2 | Réservation II : coquille QML (panneau des navigateurs, palette des formes, barre de texte, surcouches de page, gestionnaires des commandes du lot) | L4-T1 | `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/PageContextMenu.qml`, `ui/qml/CommandMenu.qml` (si le délégué de sous-menu y manque), `ui/qml/{BrowserPanel,PageNavigator,ShapePalette,TextFormatBar,TextEditor,VerticalTextBar,GridDesigner,BackgroundDialog,PageExtensionHandle,PageZonesOverlay}.qml`, `ui/CMakeLists.txt`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = 136 + n_B, `tst_ui_shell` (dont `lot4ShellPlaceholders`, `everyLot4CommandHasAHandler`, `socleLayerOrder` amendé selon D17, `editAtHandlerParsesItsText`) Passed ; `premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S7, S15, S16 | #tache-l4-t2 |
 | L4-T3 | `core` : catalogue des formes, boîte tracée (coin, centre, carré), lignes, points intelligents, commande de paramètres | L4-T0, L4-T1 | `core/include/actcraft/core/shapegeometry.h`, `core/src/shapegeometry.cpp`, `core/include/actcraft/core/shapeedits.h`, `core/src/shapeedits.cpp`, `tests/tst_core_shapes.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_core_shapes` Passed (dont `catalogOrderAndDefault`, `dragFromCornerAndCenter`, `squarePresetsStaySquare`, `linePresetsConstrained`, `arrowHeadSmartPointBounded`, `setParametersIsOneStepAndRebuilds`) | S7, S7.1 | #tache-l4-t3 |
 | L4-T4 | `core` : réglages de page (grille, fond, extension) et contrat de `Change` ignoré par le cache | L4-T0, L4-T1 | `core/include/actcraft/core/pagesettings.h`, `core/src/pagesettings.cpp`, `tests/tst_core_pagesettings.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_core_pagesettings` (dont `gridAboveChangeIsIgnoredByTheCache` — `PageSettingsChanged` du socle —, `gridBelowChangeRedrawsOnce`, `extendStepsByTenPercentOfBase`, `threeUndosRestoreTheHeight`, `designerChangesMerge`) Passed ; mutation de `gridDrawsUnderObjects` rouge puis remise | S7.2, S15 | #tache-l4-t4 |
@@ -222,7 +245,7 @@ prévu, l'agent attend, il ne sonde pas. L4-T0 ne construit rien.
 
 **L4-T0 et les autres tâches.** L4-T1 (données, mécanique) et L4-T6 (sérialisation à nos noms) ne l'attendent pas
 pour leur contenu ; toutes les tâches de comportement l'attendent (V2 commence quand V1 est finie). Ses décisions
-D1 à D18 et sa table A1 à A14 **amendent ce plan et celui de 4b** avant V2 (relecture du plan exigée). Une décision
+D1 à D19 et sa table A1 à A14 **amendent ce plan et celui de 4b** avant V2 (relecture du plan exigée). Une décision
 qui change une donnée de commande (raccourci, libellé, ordre de la palette des formes) passe par un correctif
 `L4-C0` (`actions/data/commands.json`, `actions/data/layout.json` seulement), joué seul avant V2. Une API supposée
 qui diffère du code livré (A1 à A14) amende la section de la tâche qui l'emploie.
@@ -345,7 +368,7 @@ Lu dans `C:\Users\JeromeDenis\REA - Activinspire` ; L4-T0 le complète par le co
 
 | Fichier | Responsabilité | Talon / API (L4-T1) | Rempli par |
 |---|---|---|---|
-| `docs/verifications/2026-10-18-lot4-principes.md` | constats, décisions D1 à D18, table A1 à A14, N3 | — | L4-T0 |
+| `docs/verifications/2026-10-18-lot4-principes.md` | constats, décisions D1 à D19, table A1 à A14, N3 | — | L4-T0 |
 | `actions/data/commands.json`, `layout.json` | 47 commandes du lot ; menus Insérer (sous-menu « Page », en fin), Outils (`other-tools`), Affichage ; palette ; `contextMenu` | L4-T1 | L4-T1 |
 | `actions/…/layout.h`, `actions/src/layout.cpp` | `Layout::contextMenu` accepte les sous-menus | L4-T1 | L4-T1 |
 | `core/…/model.h`, `core/src/model.cpp` | `Shape::preset`, `Shape::parameters`, `Text::vertical`, `Page::baseHeight` ; empreinte | L4-T1 | L4-T1 (zones : L4-T27) |
@@ -490,7 +513,7 @@ lot (formes, palette, points intelligents, texte, barre de mise en forme, texte 
 navigateurs, navigateur de pages, menu de page, fond de page, grille, accrochage, page allongée, zones), plus les
 **8 constats** affectés au lot 4 par le tableau du § 4 de l'amendement (1 « Interface et profils », 3 « Stylo,
 formes, couleurs », 1 « Texte et reconnaissance », 3 « Pages, fond, grille ») et les écarts **E1, E2, E10, E12** ;
-trancher sur la 3.5.18 par REA ; écrire en nos mots les exigences, les **décisions D1 à D18**, puis **revérifier
+trancher sur la 3.5.18 par REA ; écrire en nos mots les exigences, les **décisions D1 à D19**, puis **revérifier
 les API A1 à A14** contre le code livré par les lots 3, L0-S (et 7 s'il a fusionné).
 
 **Décisions à rendre** (chacune : valeur retenue et source, ou « non tranché » → hypothèse de niveau 1) :
@@ -541,6 +564,12 @@ les API A1 à A14** contre le code livré par les lots 3, L0-S (et 7 s'il a fusi
   raccourci ; *raison :* la palette et le menu y suffisent, et toute combinaison Ctrl+lettre libre reste disponible
   pour les lots 5 et 6 ; si la 3.5.18 en a un libre chez nous, correctif `L4-C0` (`commands.json` seul) avec
   `noShortcutTwice` vert.
+- **D19 (amendement 3)** — Place du groupe de palette `formes-texte` : en fin de palette, ou juste après `outils`
+  (avant `edition`, posé par le socle). *Recommandation :* en fin de palette ; *raison :* la règle des blocs contigus
+  avec le lot 7 (entrées du lot 4 en fin, « le second qui fusionne juxtapose sans réordonner ») évite un conflit avec
+  les groupes `edition` et `presentation` du socle, et `defaultLayoutMatchesLotOne` n'a qu'un élément à ajouter en
+  fin. Si la 3.5.18 montre formes et texte à côté des outils de dessin et que la proximité compte pour Jérôme : après
+  `outils`, par `L4-C0` (`layout.json`) et la liste attendue amendée. L4-T1 applique la recommandation.
 
 **Sources.**
 - Corpus : `C:\Users\JeromeDenis\REA - Activinspire\docs\videos-tanguay\README.md` (« Principes absents »,
@@ -575,7 +604,7 @@ pwsh -NoProfile -Command "`$f = 'C:\Users\JeromeDenis\REA - Activinspire\docs\vi
 `exclus-controle-titres.txt` (hors dépôt, facultatif, un titre par ligne, UTF-8). Si la commande sort un fichier
 parce qu'un titre est aussi un libellé courant à nous, la tâche réécrit d'abord notre texte ; si le mot est
 inévitable, elle ajoute le titre à ce fichier hors dépôt et le note dans le relevé brut. Décisions à rendre : D1 à
-**D18** (D6 et D8 étendues, D17 et D18 ajoutées). À la table A, vérifier en plus : `ArgumentKind::Text` et la clé
+**D19** (D6 et D8 étendues, D17 et D18 ajoutées). À la table A, vérifier en plus : `ArgumentKind::Text` et la clé
 `"optional"` (L0-S4), `Layout::contextMenu` (L0-S4), `PageSettingsChanged` (L0-S3), `addChangeObserver` (L0-S5),
 `socleLayerOrder` (L0-S9), `stepKindRanksFrozen` (L0-S2), l'état d'un contact publié par `input::PointerRouter` ou
 `PageView` (pour L4-T17), les chemins de dépôt forcé d'un soulèvement dans `DocumentController` (pour L4-T21), et
@@ -587,7 +616,7 @@ code. Ne modifier ni `samples/` ni les fiches du corpus (seul `exclus-controle-t
 dépôt). Pas d'observation à l'écran sans annonce.
 
 **Terminé quand.** Le rapport a une ligne par constat (principe → exigence en nos mots → tâche du lot 4 →
-scénario, ou raison et lot destinataire), une section « Décisions » D1 à D18, une section « API » A1 à A14
+scénario, ou raison et lot destinataire), une section « Décisions » D1 à D19, une section « API » A1 à A14
 (conforme, ou écart : signature réelle et tâche à amender), et la valeur **N3** (`ctest --preset debug -N` sur
 `feat/livraison-complete` à jour : `Total Tests: <N3>`) ; le relevé brut existe et est cité ; `NOMS OK` ; la commande
 des titres ne sort rien ; le rapport de tâche liste pour l'orchestrateur les amendements (tâche visée), les
@@ -695,6 +724,7 @@ couleurs).** Prime sur les étapes ci-dessous.
   les 4 premières entrées de `contextMenu()` sous Windows, et les 2 premières sous Android, sont celles du socle ;
   commentaire « amendement 1 du lot 4 : entrées du menu de page ajoutées en fin ».
 - Palette : le groupe `{"group": "formes-texte", "items": ["tool.shape", "tool.text"]}` va **en fin** de `palette`
+  (recommandation de D19, amendement 3 ; `L4-C0` si D19 tranche « après `outils` »)
   (et non après `outils`) ; `defaultLayoutMatchesLotOne` (`tests/tst_actions_layout.cpp`) reçoit
   `QStringLiteral("formes-texte")` en fin de sa liste attendue de groupes, avec le même commentaire.
 - `contextMenuAcceptsSubmenus` s'écrit avec `parseLayout(json, layout, error)` (`layout.h:42`) ; `lot4EntriesDeclared`
@@ -731,9 +761,9 @@ amendés : `objectBarAndContextMenu`, `defaultLayoutMatchesLotOne`, `toolsMenuFo
       const QByteArray json = R"({"format": "actcraft-layout/1", "menus": [], "palette": [], "colors": [],
           "penWidths": [], "contextMenu": ["tool.select", "-", {"submenu": "page-insert", "label": "Insérer une page",
           "items": ["page.insert-before", "page.insert-after"]}]})";
-      actions::Layout layout;
+      Layout layout; // using namespace actcraft::actions (tst_actions_layout.cpp:9)
       QString error;
-      QVERIFY2(actions::parseLayout(json, layout, error), qPrintable(error));
+      QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
       QCOMPARE(layout.contextMenu, (QStringList{QStringLiteral("tool.select"), QStringLiteral("-"), QStringLiteral(">page-insert")}));
       QCOMPARE(layout.contextSubmenus.size(), std::size_t{1});
       QCOMPARE(layout.contextSubmenus.front().items, (QStringList{QStringLiteral("page.insert-before"), QStringLiteral("page.insert-after")}));
@@ -1290,7 +1320,8 @@ amendés : `objectBarAndContextMenu`, `defaultLayoutMatchesLotOne`, `toolsMenuFo
       FixedPageItem* fixedPage() const noexcept;
       void setFixedPage(FixedPageItem* page); // fil principal
       // La grille de la page affichée a pu changer (PageSettingsChanged n'atteint pas la page fixe) : relue au
-      // prochain rendu. Appelée par PageArea.qml sur appDocument.pageContentChanged de la page affichée.
+      // prochain rendu. Appelée par PageArea.qml sur area.documentController.pageContentChanged de la page
+      // affichée.
       Q_INVOKABLE void refresh();
       qreal zoom() const noexcept;
       void setZoom(qreal zoom);
@@ -1414,6 +1445,8 @@ amendés : `objectBarAndContextMenu`, `defaultLayoutMatchesLotOne`, `toolsMenuFo
       Q_PROPERTY(int pendingCount READ pendingCount NOTIFY renderingChanged)
       Q_PROPERTY(int renderCount READ renderCount NOTIFY renderingChanged)
       Q_PROPERTY(double lastCopyMs READ lastCopyMs NOTIFY renderingChanged) // fil principal, dernier rendu
+      // Amendement 3 : rendus lancés (compté sur le fil principal au lancement) ; renderCount compte les terminés.
+      Q_PROPERTY(int launchCount READ launchCount NOTIFY renderingChanged)
 
   public:
       static constexpr int kSettleMs = 400;
@@ -1441,6 +1474,7 @@ amendés : `objectBarAndContextMenu`, `defaultLayoutMatchesLotOne`, `toolsMenuFo
       int pendingCount() const noexcept;
       int renderCount() const noexcept;
       double lastCopyMs() const noexcept;
+      int launchCount() const noexcept; // amendement 3
       QImage image(int page) const; // dernière image rendue ; nulle avant le premier rendu
       Q_INVOKABLE void refreshAll();
 

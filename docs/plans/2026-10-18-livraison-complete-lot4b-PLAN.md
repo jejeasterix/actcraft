@@ -2,6 +2,15 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 3 (relecture tour 3, 2026-10-19)
+
+Liste complète (M1, m1 à m6) : plan 4a, section « Amendement 3 ». Ce qui change ici :
+- **M1** et **m1** (L4-T21) : attendus de `editingLoadsNoExternalResource` réécrits (le DOCTYPE de `toHtml()` cite
+  `http://www.w3.org/…` ; les images de fond passent aussi par `loadResource`) ; forme CSS `background-image` ajoutée.
+- **m4** (L4-T17, L4-T29) : `launchCount` (posé par L4-T1) compte les rendus lancés ; `during_contact` se compte sur
+  lui, plus sur `renderCount`.
+- **m6** : place du groupe `formes-texte` = D19 de L4-T0 ; décisions D1 à D19.
+
 ## Amendement 2 (relecture tour 2, 2026-10-18)
 
 Liste complète des défauts N1 à N13 : plan 4a, section « Amendement 2 ». Ce qui change ici :
@@ -31,7 +40,7 @@ La liste complète des défauts et des changements est dans le plan 4a, section 
 - **L4-T27** : `SetPageZonesCommand` émet `PageSettingsChanged` (L0-S3) ; `pagezones.*` et `core/CMakeLists.txt`
   réservés par L4-T1.
 - **L4-T29** : attendus chiffrés du banc (défaut 16).
-- **Clôture** : règle 4 des talons du socle (défaut 14) ; attendus chiffrés ; décisions D1 à D18.
+- **Clôture** : règle 4 des talons du socle (défaut 14) ; attendus chiffrés ; décisions D1 à D19.
 
 **But.** Fin du lot 4, version **0.5.0** : panneau des navigateurs et navigateur de pages (miniatures à jour,
 sélection multiple, réordonner, insérer, couper / copier / coller / dupliquer / supprimer des pages), menu de page,
@@ -43,7 +52,7 @@ API supposées A1 à A14 (à revérifier à l'ouverture, L4-T0), contrats et nom
 hypothèses H4-1 à H4-10. Rien n'y est répété ici.
 
 **Point de départ.** Le point d'étape de 4a est passé : V1 à V6 fusionnées dans `feat/livraison-complete`, talons
-restants ceux de 4b seulement, N = 136 + n_B. Les décisions D1 à D18 de L4-T0 ont amendé les deux plans.
+restants ceux de 4b seulement, N = 136 + n_B. Les décisions D1 à D19 de L4-T0 ont amendé les deux plans.
 
 ## Table des tâches
 
@@ -398,7 +407,9 @@ zéro (`beginResetModel`, toutes les pages marquées) sur **tout** `PageInserted
 l'observateur (`DocumentController::addChangeObserver`, D-S7), même si le nombre de pages ne change pas (un
 déplacement retire puis insère). Test de plus : `moveRerendersShiftedRows` (trois pages rendues, `MovePagesCommand`
 de la page 2 en tête : après `2 × kSettleMs`, `image(0)` est la miniature de l'ancienne page 2 et `renderCount` a
-monté de 3).
+monté de 3). **Amendement 3 (m4)** : `launchCount` (en-tête de L4-T1) monte d'un à chaque rendu lancé, sur le fil
+principal, au moment du lancement ; `postponedDuringContact` vérifie en plus que `launchCount` ne bouge pas entre
+l'appui et le relâché.
 
 **Objectif.** Remplir `PageThumbnails` et `ThumbnailItem` (en-tête de L4-T1). **Le patron évident est le mauvais** :
 appeler `render::thumbnailPng` sur le fil principal à chaque `pageContentChanged` figerait l'écriture (rendu du
@@ -540,9 +551,11 @@ F-601 : avant elle), `duplicateSelection` (`InsertPagesCommand` après la derni�
   (`QTextTableCellFormat`), par `QTextCursor::setBlockFormat`, `QTextFrame::setFrameFormat` et
   `QTextTableCell::setFormat`. Seul ce HTML entre dans `textDocument`. Test `editingLoadsNoExternalResource` : texte dont le HTML a
   `<img src="file://hote/partage/x.png">`, `<img src="http://exemple.invalid/y.png">`, un lien, et (amendement 2)
-  `<table background="file://hote/z.png"><tr><td background="file://hote/w.png">a</td></tr></table>` ; après `beginAt`,
-  le HTML du `TextEdit` ne contient ni `file:` ni `http` ; le compteur de `loadResource` du document d'analyse a été
-  appelé au plus pour ces deux URL et a rendu `QVariant()` ; le texte visible est gardé.
+  `<table background="file://hote/z.png"><tr><td background="file://hote/w.png">a</td></tr></table>`, et
+  (amendement 3) `<p style="background-image:url(file://hote/v.png)">b</p>` ; après `beginAt`, le HTML du
+  `TextEdit` ne contient ni `file:`, ni `exemple.invalid`, ni `hote/` (amendement 3 : pas « ni `http` », le DOCTYPE
+  de `toHtml()` cite `http://www.w3.org/…`) ; le compteur de `loadResource` du document d'analyse n'a été appelé
+  que pour des URL de l'entrée et a toujours rendu `QVariant()` ; le texte visible est gardé.
 - **Dépôt forcé.** Tout chemin de `DocumentController` qui dépose un soulèvement sans geste de l'outil
   (enregistrer, annuler, refaire, changer de page, remplacer le document ; liste relevée par L4-T0, A6) doit émettre
   `editAboutToApply` **avant** le dépôt ; s'il ne le fait pas, cette tâche l'ajoute dans `ui/src/documentcontroller.cpp`
@@ -1156,8 +1169,9 @@ separation-zone [512, 384]` (couleur des tirets) ; `capture zones` ; `remember a
 **Amendement 1 (défaut 16).** Les rendus de miniatures sont comptés **dans la fenêtre mesurée** (pas après) :
 `thumbnails.renders` ≥ 1 entre le premier et le dernier échantillon de la mesure, `thumbnails.during_contact = 0`
 (aucun rendu lancé pendant un contact). **Amendement 2 (N10)** : source de `during_contact` — le banc lit
-`appThumbnails.renderCount` à chaque appui et à chaque relâché injectés ; `during_contact` = somme des hausses de
-`renderCount` entre un appui et son relâché ; écrit dans le JSON (`thumbnails.during_contact`) par
+`appThumbnails.launchCount` (amendement 3 : rendus **lancés** ; `renderCount` compte les terminés, revenus d'un fil
+secondaire) à chaque appui et à chaque relâché injectés ; `during_contact` = somme des hausses de `launchCount` entre
+un appui et son relâché ; écrit dans le JSON (`thumbnails.during_contact`) par
 `bench/src/runner.cpp` et lu par `bench/src/result.cpp`. Variante sur `pauses` : le scénario rejoue les traits de `pauses`, panneau
 ouvert, pour que les rendus tombent dans les pauses ; ses figements sont comparés à `pauses` sans panneau, dans le
 même JSON. Ces attendus sont écrits dans `docs/banc.md`.
@@ -1271,5 +1285,5 @@ Jouée après V12, dans le worktree du chantier, sur `feat/livraison-complete` �
    worktree du chantier → sortie vide.
 9. **Graphe** : `graphify update .`, commit de `graphify-out/`.
 10. **PR du lot** (étage 4) et **porte de fin du lot 4** : release 0.5.0 proposée (publiée seulement sur go écrit) ;
-    S7, S7.1 à S7.5, S15, S16 ; écarts 1 à 6 du plan 4a ; hypothèses H4-1 à H4-11 ; décisions D1 à D18 de L4-T0 ;
+    S7, S7.1 à S7.5, S15, S16 ; écarts 1 à 6 du plan 4a ; hypothèses H4-1 à H4-11 ; décisions D1 à D19 de L4-T0 ;
     réalisation libre signalée (miniatures peintes par un élément C++) ; reports aux lots 5, 6, 7 et 11.
