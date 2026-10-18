@@ -79,7 +79,8 @@ vague suivante ne part pas ; l'écart est rendu à la tâche fautive.
      « talons des contrôleurs de `ui/src/` ») : les motifs nommés remplacent ces talons, pour la raison `LNK4221`.
    - **Tous les tests du lot déclarés par L7-S8** dans `tests/presentation.cmake`, chacun talon `reserved()` sauté :
      le compte est figé dès L7-S8 (« = », pas « ≥ »). Les chemins d'inclusion privés dont les tâches auront
-     besoin (`ui/src` pour les contrôleurs et `DocumentInsertions`, `render/src` pour `equationlayout.h`) sont posés
+     besoin (`ui/src` pour les contrôleurs et `DocumentInsertions` ; `render/src` pour le seul test du module `render`,
+     `tst_render_equation`) sont posés
      dans ces déclarations, une fois pour toutes (revue B1).
 2. **Talons du lot 7.** Marqueur unique `Talon L7-S8 : rempli par L7-T<n>.` (commentaire C++ ou QML, champ
    `description` d'un scénario, texte du `QSKIP` de `reserved()`), sur le modèle de la règle d'honnêteté du socle
@@ -181,8 +182,11 @@ vague suivante ne part pas ; l'écart est rendu à la tâche fautive.
    **Exceptions nommées**, et seulement elles : `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`,
    `tests/support/flipchartwriter.h`, `tests/tst_formats_flipchart.cpp` (L7-T1 réduite, socle « Disparaissent » 2 ;
    L7-T6) ; `core/include/actcraft/core/equation.h` et `core/src/equation.cpp` pour l'**arbre** d'équation seulement
-   (L7-T24 ; `struct Equation` du modèle inchangée) ; `render/src/equationlayout.h`, `render/src/equationlayout.cpp`
-   (L7-T25). **[SOCLE?]** : que ces fichiers existent, soient enregistrés, et ce que L0-S3 y a mis.
+   (L7-T24 ; `struct Equation` du modèle inchangée) ; `render/src/equationlayout.h`, `render/src/equationlayout.cpp`,
+   le nouvel en-tête public `render/include/actcraft/render/equationpaint.h`, la seule ligne de cet en-tête dans
+   `render/CMakeLists.txt`, et `tests/tst_render_painter.cpp` (L7-T25, décision de A : un module ne voit d'un autre
+   que `<module>/include/actcraft/<module>/`). L0-S3 est mergée (be2e5de) : `render/src/equationlayout.h` y déclare
+   `paintEquation(QPainter&, const core::Equation&)` (ligne 10, privée) ; le reste est à relire à la fusion.
 8. **Commandes.** Les commandes du lot sont dans `actions/data/commands.json` (L0-S4) ; B n'en ajoute aucune. Les
    actions neuves de L7-T0 sans commande au socle (mémoriser le rideau pour la page, P9 ; capturer la zone du spot,
    P8 ; poser le calcul sur la page, P3) sont des entrées du **menu propre** de la surcouche ou des boutons du
@@ -262,7 +266,7 @@ vague suivante ne part pas ; l'écart est rendu à la tâche fautive.
 | L7-T21 | Reconnaissance de forme II : contrôleur (délai 1 s, 0 à 5), trait remplacé par la forme en une étape, polygone, scénario | lot P2-A | `ui/src/recognitioncontroller.h`, `ui/src/recognitioncontroller.cpp`, `ui/qml/RecognitionAlternatives.qml`, `tests/tst_ui_recognition.cpp`, `bench/scenarios/reconnaissance-forme.json` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_recognition` PASS de `recognizedStrokeMakesOneStep`, `fillOptionFillsTheShape`, `roughQuadrilateralBecomesAPolygonShape`, `controllerDelayIsTheSessionDefault` ; `tst_captures_reconnaissance_forme` Passed ; banc hors écran joint | S10 | #tache-l7-t21 |
 | L7-T23 | Reconnaissance d'écriture II : mode écriture qui possède un `HandwritingThread`, mot → texte en une étape, alternatives couverture, commande grisée, absente d'Android | L7-T21 | `ui/src/recognitioncontroller.h`, `ui/src/recognitioncontroller.cpp`, `ui/qml/RecognitionAlternatives.qml`, `tests/tst_ui_recognition.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_recognition` PASS de `handwritingMakesOneStep` (ou SKIP « reconnaisseur absent », signalé), `handwritingDisabledWithExplanation`, `handwritingAbsentOnAndroid`, `controllerOwnsOneHandwritingThread`, `clickOutsideValidatesTheText`, `eachWordBecomesItsOwnText`, `alternativesBlockTheStylus(stylet)`, `(doigt)`, `(souris)` ; banc hors écran joint | S10 | #tache-l7-t23 |
 | L7-T24 | Équation I (F-301) : arbre et MathML (17 modèles) | lot P2-A | `core/include/actcraft/core/equation.h`, `core/src/equation.cpp`, `tests/tst_core_equation.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_core_equation` 0 skipped, PASS de `templatesRoundTrip` (17 lignes de données), `unknownElementKeptVerbatim`, `entitiesDecoded`, `malformedIsAnErrorNotACrash`, `nonAsciiRawKeptVerbatim` ; `git grep "Talon L0-S : rempli par L7-T24"` vide | S24 | #tache-l7-t24 |
-| L7-T25 | Équation II : mise en page et dessin | L7-T24 | `render/src/equationlayout.h`, `render/src/equationlayout.cpp`, `tests/tst_render_equation.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_render_equation` 0 skipped, PASS de `fractionIsTallerThanItsParts`, `superscriptIsRaised`, `rootCoversItsContent`, `malformedDrawsTheNeutralFrame`, `paintedMatchesSoftware`, `paintFromTwoThreads`, `fixedPageDrawsTheEquation`, `editorModeDrawsPlaceholderAndCursor`, `pageDrawsNoPlaceholder` ; `git grep "Talon L0-S : rempli par L7-T25"` vide ; banc hors écran joint | S24 | #tache-l7-t25 |
+| L7-T25 | Équation II : mise en page et dessin, en-tête public `equationpaint.h` (modes `Page` et `Editor`) | L7-T24 | `render/include/actcraft/render/equationpaint.h`, `render/CMakeLists.txt` (la ligne de l'en-tête public dans la liste, et elle seule), `render/src/equationlayout.h`, `render/src/equationlayout.cpp`, `tests/tst_render_equation.cpp`, `tests/tst_render_painter.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_render_equation` 0 skipped, PASS de `fractionIsTallerThanItsParts`, `superscriptIsRaised`, `rootCoversItsContent`, `malformedDrawsTheNeutralFrame`, `paintedMatchesSoftware`, `paintFromTwoThreads`, `fixedPageDrawsTheEquation`, `editorModeDrawsPlaceholderAndCursor`, `pageDrawsNoPlaceholder` ; `tst_render_painter` PASS de ses fonctions existantes et de `pageModeIsUnchanged`, `editorModeShowsAnEmptyBox` ; `git grep "Talon L0-S : rempli par L7-T25"` vide ; banc hors écran joint | S24 | #tache-l7-t25 |
 | L7-T26 | Équation III : éditeur à modèles, palettes du rapport, aperçu, insertion | L7-T25 | `features/include/actcraft/features/equationeditor.h`, `features/src/equationeditor.cpp`, `tests/tst_features_equationeditor.cpp`, `ui/src/equationcontroller.h`, `ui/src/equationcontroller.cpp`, `ui/src/equationpreviewitem.h`, `ui/src/equationpreviewitem.cpp`, `ui/qml/EquationEditor.qml`, `tests/tst_ui_equation.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_features_equationeditor` 0 skipped, PASS de `fractionTemplateThenTwoDigits`, `backspaceLeavesAPlaceholder`, `arrowsWalkTheTree`, `everyTemplateHasAPaletteEntry` ; `tst_ui_equation` PASS de `insertEquationIsUndoneAtOnce`, `insertedEquationHasNoEditorMark`, `incompleteEquationIsRefused`, `editorHasItsOwnKeys`, `previewMatchesThePageWithoutMarks`, `equationEditorBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` | S24 | #tache-l7-t26 |
 | L7-T27 | Équation IV : réédition, aller-retour, `.flipchart`, scénario S24 | L7-T26, L7-T1 | `ui/src/equationcontroller.h`, `ui/src/equationcontroller.cpp`, `ui/qml/EquationEditor.qml`, `tests/tst_ui_equation.cpp`, `bench/scenarios/equation.json` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_equation` PASS de `editKeepsTheId`, `equationRoundTripIdentical`, `untouchedEquationKeepsItsBytes`, `flipchartEquationIsDrawn` ; `tst_captures_equation` Passed ; captures `equation` hors écran `LU documentController.fingerprint=${avant} OK` | S24 | #tache-l7-t27 |
 | L7-T28 | Caméra (F-275, bureau) : liste des fenêtres (`camera_win.cpp`, `camera_other.cpp`), contrôleur, surcouche et palette couvertures | lot P2-A | `features/include/actcraft/features/camera.h`, `features/src/camera_win.cpp`, `features/src/camera_other.cpp`, `ui/src/cameracontroller.h`, `ui/src/cameracontroller.cpp`, `ui/qml/CameraOverlay.qml`, `ui/qml/CameraPalette.qml`, `tests/tst_ui_camera.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_camera` 0 skipped, PASS de `captureToPageAddsOneImage`, `captureToNewPageAddsAPage`, `captureToClipboard`, `cameraAbsentOnAndroid`, `emptyGrabShowsAMessage`, `captureAreaKeptForTheNextCapture`, `topLevelWindowsListsOurWindow`, `cameraWindowTakesEveryPointer(stylet)`, `(doigt)`, `(souris)` ; banc hors écran joint ; contrôle à l'écran annoncé (jeton `ecran`) | S10 | #tache-l7-t28 |
@@ -302,7 +306,9 @@ touche pas) ; `tst_ui_transitions.cpp` (T7 → T8) ;
 `tst_ui_desktop.cpp` (T30 → T31 → T34) ; `tst_ui_presentation.cpp` (S8 → T2 → T32) ; `clockcontroller.*`,
 `tst_ui_clock.cpp`, `ClockPanel.qml`, `CountdownDialog.qml` (T16 → T34) ; `calculatorcontroller.*`,
 `CalculatorPanel.qml`, `tst_ui_calculator.cpp` (T15 → T32) ; `RecognitionAlternatives.qml`, `EquationEditor.qml`,
-`DesktopAnnotation.qml` (→ T34) ; fichiers créés en talon par L7-S8 → leur tâche. Dans une vague, la tâche
+`DesktopAnnotation.qml` (→ T34) ; fichiers créés en talon par L7-S8 → leur tâche. `render/CMakeLists.txt`, `render/include/actcraft/render/equationpaint.h`,
+`tests/tst_render_painter.cpp` : L7-T25 seule (aucune autre tâche ne les touche ; sa voisine de V13, L7-T23, touche
+`recognitioncontroller.*`, `RecognitionAlternatives.qml`, `tst_ui_recognition.cpp`). Dans une vague, la tâche
 `concepteur-critique` part la première (sa revue adversariale chevauche la vague suivante). Une tâche peut avancer
 d'une vague si ses dépendances sont mergées et qu'elle ne recoupe pas sa voisine.
 
@@ -1341,13 +1347,40 @@ L0-S3) ; preuve : `git -C '<wt>' grep -n "Talon L0-S : rempli par L7-T24" -- . '
 remplacer le repère par la mise en page en gardant `malformedDrawsTheNeutralFrame` ; `tst_render_equation` déclaré par
 L7-S8, avec `render/src` en inclusion privée (L7-S8, étape 10 : `layoutEquation` s'y lit) ; les formes ajoutées
 par L7-T24 se dessinent (une ligne de données chacune dans `paintedMatchesSoftware`). **S'ajoute** (décision de
-l'orchestrateur, revue tour 3, I3) : un **paramètre explicite de dessin**, `enum class EquationPaintMode { Page,
-Editor }`, dernier paramètre de `paintEquation` avec `Page` par défaut (le peintre de page de L0-S3 ne le passe pas :
-inchangé). En mode `Editor` seulement, la case marquée `class="actcraft-placeholder"` se dessine en cadre pointillé
+l'orchestrateur, revue tour 3, I3 ; forme décidée par A) : un **en-tête public neuf**
+`render/include/actcraft/render/equationpaint.h` :
+```cpp
+#pragma once
+
+#include <actcraft/core/model.h>
+
+class QPainter;
+
+namespace actcraft::render {
+
+// Dessin d'une équation (F-301). Page : le rendu de la page et de l'impression. Editor : en plus, les cases vides et
+// le curseur de l'éditeur (marques actcraft-placeholder et actcraft-cursor du MathML).
+enum class EquationPaintMode { Page, Editor };
+
+void paintEquation(QPainter& painter, const core::Equation& equation, EquationPaintMode mode = EquationPaintMode::Page);
+
+} // namespace actcraft::render
+```
+La déclaration privée de `render/src/equationlayout.h` (ligne 10 à be2e5de) est **retirée** ; `equationlayout.h` ne
+garde que la mise en page (`EquationBox`, `layoutEquation`) ; les appels du peintre (`pagepainter.cpp`,
+`paintedrenderer.cpp`) incluent l'en-tête public et passent par lui en mode `Page` (argument par défaut : leur texte
+ne change pas, seule la ligne d'inclusion change si elle nommait `equationlayout.h` — à lire ; ces deux fichiers
+s'ajoutent alors à la ligne de la tâche avant lancement). `render/CMakeLists.txt` : la seule ligne
+`include/actcraft/render/equationpaint.h` ajoutée à la liste, à côté de `pagepainter.h`. En mode `Editor` seulement, la case marquée `class="actcraft-placeholder"` se dessine en cadre pointillé
 et la case marquée `class="actcraft-cursor"` se dessine surlignée. En mode `Page`, un `<mrow/>` vide, marqué ou non,
 ne dessine rien, et les marques sont ignorées. Tests : `editorModeDrawsPlaceholderAndCursor` ;
 `pageDrawsNoPlaceholder` (rendu de page de `<mfrac><mrow/><mrow/></mfrac>`, avec et sans marques : aucun pixel non
-blanc hors de la barre de fraction). **Talon du socle** :
+blanc hors de la barre de fraction). Dans `tests/tst_render_painter.cpp` (décision de A) : `pageModeIsUnchanged`
+(pour les équations du test existant `equationDrawsTheNeutralFrame` et une fraction complète, l'image de
+`paintObjectLocal` est identique pixel à pixel à celle de `paintEquation(…, EquationPaintMode::Page)` et à celle
+d'avant la tâche, relevée à l'étape rouge) ; `editorModeShowsAnEmptyBox` (`<mfrac><mrow class="actcraft-placeholder"/>
+<mrow/></mfrac>` en mode `Editor` : au moins un pixel du pointillé dans la case vide ; le même en mode `Page` : aucun).
+**Talon du socle** :
 retirer `// Talon L0-S : rempli par L7-T25.` de `render/src/equationlayout.cpp` (et de `equationlayout.h` s'il y est) ;
 preuve : `git -C '<wt>' grep -n "Talon L0-S : rempli par L7-T25" -- . ':(exclude)docs/'` vide. **Test.**
 `-R 'tst_render_equation|tst_render_painter'`.
@@ -1360,14 +1393,11 @@ preuve : `git -C '<wt>' grep -n "Talon L0-S : rempli par L7-T25" -- . ':(exclude
 tests d'interface dans `tst_ui_equation`. **S'ajoute** (L7-T0) : palettes de l'éditeur par catégorie, en nos mots
 (fractions, racines, indices et exposants, au-dessus et au-dessous, accents, délimiteurs, grands opérateurs,
 intégrales, matrices, fonctions, relations, lettres grecques) ; **aperçu en mode éditeur** (revue tour 3, I3) :
-`EquationPreview` appelle `paintEquation(…, EquationPaintMode::Editor)` (L7-T25). `paintEquation` est déclaré dans
-`render/src/equationlayout.h`, privé à `render`, et `ui/CMakeLists.txt` est interdit à B : l'aperçu exige une ligne
-`target_include_directories(actcraft_ui PRIVATE ${PROJECT_SOURCE_DIR}/render/src)` dans `ui/presentation.cmake`,
-au-delà des deux listes, donc **l'accord de A** (« À vérifier », point 14), obtenu à la relecture de fusion ; avec
-l'accord, L7-S8 pose la ligne ; sans lui, l'aperçu passe par `render::paintObjectLocal` (public, mode `Page`, sans
-cases ni curseur), écart rapporté. `previewMatchesThePageWithoutMarks` (l'image de l'aperçu d'une fraction complète,
-sans marque, est identique pixel à pixel à celle de `render::paintObjectLocal` sur le même `core::Equation`, et
-diffère de celle du repère neutre d'un MathML mal formé) ; **aucune marque ne fuit dans le document** (revues tours
+`EquationPreview` n'inclut que `<actcraft/render/equationpaint.h>` (L7-T25) et appelle
+`paintEquation(…, EquationPaintMode::Editor)` ; aucun en-tête de `render/src` dans `ui/` (`git grep -n
+"equationlayout.h" -- ui/` vide). `previewMatchesThePageWithoutMarks` (l'image de l'aperçu d'une fraction complète,
+sans marque, est identique pixel à pixel à celle de `paintEquation(…, EquationPaintMode::Page)` sur le même
+`core::Equation`, et diffère de celle du repère neutre d'un MathML mal formé) ; **aucune marque ne fuit dans le document** (revues tours
 2 et 3) : l'éditeur retire `actcraft-cursor` et `actcraft-placeholder` à l'insertion,
 `insertedEquationHasNoEditorMark` (fraction saisie, curseur dans le dénominateur, « OK » : le `mathml` de l'objet
 inséré ne contient aucune des deux marques) ; **une équation incomplète est refusée** (H7-19) :
@@ -1513,8 +1543,10 @@ un écart amende la section concernée (relecture exigée).
 7. **`core`** (L0-S3) : `Equation`, `PagePresentation` (champs de P7a:209-220, `spotlightFrame`, `unknownKeys`),
    `PageToolsMode`, `CurtainMode`, `SpotlightShape` (valeurs), `ReplaceObjectsCommand`, `ObjectReplacement`,
    `SetPagePresentationCommand` (`replace.h`), forme d'un polygone dans `core::Shape`, `ImageObject` et ressources.
-8. **Fichiers d'équation** : `core/equation.*`, `render/src/equationlayout.*` créés, enregistrés, contenu de L0-S3,
-   marqueur éventuel `Talon L0-S : rempli par L7-T24/T25` ; `tst_core_equation.cpp`, `tst_render_equation.cpp`
+8. **Fichiers d'équation** (L0-S3 mergée, be2e5de) : `core/equation.*`, `render/src/equationlayout.*` créés et
+   enregistrés ; à relire sur la branche fusionnée : contenu exact, marqueurs `Talon L0-S : rempli par L7-T24/T25`,
+   déclaration privée de `paintEquation` (ligne 10 de `equationlayout.h` à be2e5de) et ses inclusions dans
+   `pagepainter.cpp` et `paintedrenderer.cpp` (L7-T25) ; `tst_core_equation.cpp`, `tst_render_equation.cpp`
    présents ou non (L7-S8, étape 7).
 9. **`ToolHost`** : `user()`, `UserState::setOpenMathTools` (nom, type), couleur du stylo lisible depuis QML (L7-T12),
    `activeTool()` et identifiants des outils du lot 3 (L7-T34).
@@ -1530,9 +1562,8 @@ un écart amende la section concernée (relecture exigée).
 13. **Aides d'injection** : forme du stylet de test retenue par L0-S7 (`tst_ui_inputpath`), à reprendre dans
     `presentationharness.h`.
 14. **Peintre de l'équation** : `render::paintObjectLocal` dessine un `core::Equation` en appelant `paintEquation`
-    sans mode (L0-S3 : le mode `Page` par défaut de L7-T25 garde ce code inchangé) ; accord de A pour la ligne
-    `target_include_directories(actcraft_ui PRIVATE …/render/src)` de `ui/presentation.cmake` (aperçu en mode
-    `Editor`, L7-T26), à demander à la relecture de fusion, avant L7-S8.
+    (L0-S3, be2e5de) ; après L7-T25, par l'en-tête public `equationpaint.h` en mode `Page` (décision de A) ; place de
+    la ligne de l'en-tête dans `render/CMakeLists.txt`.
 15. **Exécutable unique** : inscription statique des classes dans un exécutable (pas une bibliothèque statique :
     aucun risque d'objet écarté par l'éditeur de liens) ; attributs que pose `QTEST_MAIN` sous Qt 6.12, à reprendre
     dans `tst_ui_lot7_main.cpp`.
