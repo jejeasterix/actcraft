@@ -58,11 +58,11 @@ code livré et l'écart amende ce plan, comme au lot 10. Les numéros de ligne s
 | L4-T5 | `core` : accrochage à la grille (intersection la plus proche, coin bas gauche, ligne de base d'un texte) | L4-T0, L4-T1 | `core/include/actcraft/core/gridsnap.h`, `core/src/gridsnap.cpp`, `tests/tst_core_gridsnap.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_core_gridsnap` Passed (dont `nearestOnNormalGrid`, `onlySnappingLevelsCount`, `invisibleGridStillSnaps`, `snapDisabledReturnsNothing`, `bottomLeftCornerLandsOnCrossing`, `textUsesItsBaseline`, `diagonalGridCrossings`) | S7, S7.2 | #tache-l4-t5 |
 | L4-T6 | `formats` : natif — préréglage et paramètres des formes, texte de haut en bas, hauteur d'origine de la page | L4-T1 | `formats/src/nativejson.cpp`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_formats_lot4` Passed (dont `presetAndParametersRoundTrip`, `defaultsAreOmitted`, `verticalTextRoundTrip`, `baseHeightRoundTrip`, `olderFileReadsWithDefaults`), `tst_formats_nativejson` et `tst_formats_nativefile` Passed | S7, S15, S16 | #tache-l4-t6 |
 | L4-T7 | `render` : grille du dessus en surcouche `GridOverlayItem`, retirée de la scène du cache ; trait différé sur page à grille du dessus | L4-T1, L4-T2 | `render/include/actcraft/render/gridoverlayitem.h`, `render/src/gridoverlayitem.cpp`, `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `ui/qml/PageArea.qml`, `tests/tst_render_gridoverlay.cpp`, `tests/tst_render_pendinglayer.cpp`, `tests/tst_render_fixedpage.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_render_gridoverlay` (dont `drawsOnlyTheGridAbove`, `hidingTheGridAboveRebuildsNoCache`, `sharpOnePixelLines`), `tst_render_pendinglayer` (dont `strokeOnGridAbovePageIsDeferred`), `tst_render_fixedpage` Passed ; banc hors écran `content_check.ok = True` | S7.2, S7.5 | #tache-l4-t7 |
-| L4-T8 | `tools` : outil Forme (aperçu par la couche soulevée, coin ou centre, carré, Maj, accrochage, clic simple sans forme) | L4-T3, L4-T5 | `tools/include/actcraft/tools/shapetool.h`, `tools/src/shapetool.cpp`, `tests/tst_tools_shape.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_shape` Passed (dont `dragPreviewsWithoutExecuting`, `releaseExecutesOneAdd`, `singleClickAddsNothing`, `fromCenterSetting`, `shiftKeepsSquare`, `snapsPressAndRelease`, `cancelClearsThePreview`, `unfilledChoiceHonoured`) | S7, S7.1 | #tache-l4-t8 |
+| L4-T8 | `tools` : outil des formes (aperçu par la couche soulevée, coin ou centre, carré, Maj, accrochage, clic simple sans forme) | L4-T3, L4-T5 | `tools/include/actcraft/tools/shapetool.h`, `tools/src/shapetool.cpp`, `tests/tst_tools_shape.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_shape` Passed (dont `dragPreviewsWithoutExecuting`, `releaseExecutesOneAdd`, `singleClickAddsNothing`, `fromCenterSetting`, `shiftKeepsSquare`, `snapsPressAndRelease`, `cancelClearsThePreview`, `unfilledChoiceHonoured`) | S7, S7.1 | #tache-l4-t8 |
 | L4-T9 | `tools` : sélection — accrochage au dépôt (coin bas gauche, ligne de base) | L4-T5 | `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/selectiongeometry.h`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_select` Passed (dont `dropSnapsBottomLeftCorner`, `noSnapWithoutGridSnap`, `snapDragRefreshesTheCacheTwice`, tests du lot 3 inchangés) | S7, S7.2 | #tache-l4-t9 |
 | L4-T13 | Réglages de grille : contrôleur de page (masquer, accrocher, créateur à niveaux), boîte du créateur, scénario `grille` | L4-T2, L4-T4, L4-T7 | `ui/include/actcraft/ui/pageoptions.h`, `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `ui/qml/GridDesigner.qml`, `bench/scenarios/grille.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `hideGridAboveRefreshesNoCache`, `hideGridBelowRefreshesOnce`, `snapToggleFollowsThePage`, `addRemoveResetLevels`, `designerSessionMakesASingleStep`), `tst_captures_grille` Passed ; `captures.ps1 -Scenario grille` hors écran : `LU appPageSettings.gridVisible=false OK`, `LU pageView.cacheRefreshCount=${avant} OK`, `CAPTURES OK` | S7.2 | #tache-l4-t13 |
 | L4-T10 | `tools` : sélection — points intelligents d'une forme (affichés, glissés, une étape) | L4-T3, L4-T9 | `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/selectiongeometry.h`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp`, `ui/qml/SelectionOverlay.qml` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_select` Passed (dont `smartPointsShownForArrow`, `smartPointDragLiftsOnceAndDropsOneStep`, `noSmartPointForReadShapes`) ; banc hors écran joint | S7.1 | #tache-l4-t10 |
-| L4-T11 | `ui::ToolHost` : outil Forme branché (choix, remplissage, coin ou centre, mémoire), contour des préréglages, points intelligents dans le cadre | L4-T2, L4-T8 | `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`, `ui/src/tooladapters.cpp`, `tests/tst_ui_shapes.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_shapes` Passed (dont `shapeToolActivatesWithPalette`, `presetChoiceSurvivesRestart`, `outlineOfEveryPreset`, `smartPointsInSelectionFrame`, `shapeGoesThroughTheCacheInterface`) ; banc hors écran joint | S7, S7.1 | #tache-l4-t11 |
+| L4-T11 | `ui::ToolHost` : outil des formes branché (choix, remplissage, coin ou centre, mémoire), contour des préréglages, points intelligents dans le cadre | L4-T2, L4-T8 | `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`, `ui/src/tooladapters.cpp`, `tests/tst_ui_shapes.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_shapes` Passed (dont `shapeToolActivatesWithPalette`, `presetChoiceSurvivesRestart`, `outlineOfEveryPreset`, `smartPointsInSelectionFrame`, `shapeGoesThroughTheCacheInterface`) ; banc hors écran joint | S7, S7.1 | #tache-l4-t11 |
 | L4-T12 | QML : palette des formes (nuancier, formes, sans remplissage, coin ou centre), curseur à miniature ; scénario `formes` | L4-T10, L4-T11 | `ui/qml/ShapePalette.qml`, `ui/qml/ToolCursor.qml`, `bench/scenarios/formes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_formes` Passed ; `captures.ps1 -Scenario formes` hors écran : `LU appTools.currentTool=shape OK`, `LU appDocument.shownObjectCount=2 OK`, `PIXEL rectangle-contour OK`, `CAPTURES OK` ; banc hors écran joint | S7.1 | #tache-l4-t12 |
 | L4-T14 | Banc et joueur : scénarios de banc `forme-page-annotee` et `grille-dessus` ; étape `typeText` du joueur | L4-T7, L4-T11 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `docs/banc.md` | isolé | implementeur-tdd | `TESTS OK`, `tst_bench_scenarios` (dont `shapeOnAnnotatedPageScenario`, `gridAboveScenarioDrawsStrokes`), `tst_bench_result` (dont `lot4ScenariosWithFrames`), `tst_bench_uiscenario` (dont `typeTextStepParsed`) Passed ; banc hors écran : scénarios `forme-page-annotee` et `grille-dessus` présents, `cache.refreshes` relevé (`grille-dessus` : 0 pendant les traits) | S7.5 | #tache-l4-t14 |
 
@@ -425,7 +425,7 @@ correctifs `L4-C0` et `L4-C1`, et la tâche « principes » éventuelle (titre, 
   ```
   Pour chaque fiche retenue : numéro `Vnn` (colonne « # » du `README.md`) et principe observé, en une phrase à nous.
 - [ ] **Étape 2 : relever l'ancien dépôt.** Dans `C:\Users\JeromeDenis\REA - Activinspire` :
-  `graphify query "outil forme tracé carré ligne"`, `graphify query "outil texte barre de mise en forme"`,
+  `graphify query "outil des formes tracé carré ligne"`, `graphify query "outil texte barre de mise en forme"`,
   `graphify query "navigateur de pages vignettes réordonner"`, `graphify query "grille accrochage niveaux"` ;
   confirmer ou corriger le § « Ce que l'ancien dépôt dit déjà ».
 - [ ] **Étape 3 : REA statique.** Palette des formes (liste, ordre, défaut, remplissage), points intelligents,
@@ -443,7 +443,7 @@ correctifs `L4-C0` et `L4-C1`, et la tâche « principes » éventuelle (titre, 
 
   | # | Principe (nos mots) | Source | Exigence pour ActCraft | Tâche | Scénario | Écart, raison ou lot destinataire |
   |---|---|---|---|---|---|---|
-  | P1 | Un simple clic avec l'outil Forme ne pose aucune forme | ancien dépôt (outil Forme), Vnn… | aucune forme sous 3 px d'écran | L4-T8 | S7.1 | — |
+  | P1 | Un simple clic avec l'outil des formes ne pose aucune forme | ancien dépôt (outil des formes), Vnn… | aucune forme sous 3 px d'écran | L4-T8 | S7.1 | — |
   | … | | | | | | |
 
   ## Décisions
@@ -955,7 +955,7 @@ signature publique des lots 1 à 3, 10 et L0-S (ajouts seulement, à la fin). Au
 
   namespace actcraft::tools {
 
-  // Outil Forme (F-240, F-241) : aperçu par la couche soulevée, une AddObjectCommand au relâché.
+  // Outil des formes (F-240, F-241) : aperçu par la couche soulevée, une AddObjectCommand au relâché.
   class ShapeTool final : public Tool
   {
   public:
@@ -2210,7 +2210,7 @@ miniatures et le peintre partagé dessinent toujours la grille du dessus (inchan
 ---
 
 <a id="tache-l4-t8"></a>
-### Tâche L4-T8 — `tools` : outil Forme
+### Tâche L4-T8 — `tools` : outil des formes
 
 **Objectif.** Remplir `ShapeTool` (en-tête de L4-T1) : à l'appui, point accroché (`core::nearestGridPoint` si la
 grille de la page accroche) ; au mouvement, aperçu par `ToolContext::lift.show({objet})` — **aucune** commande
@@ -2390,7 +2390,7 @@ seul (F-241, P1). Réglages : `user.shapeSettings()` (préréglage, remplissage,
 - [ ] **Étape 4 : commit.**
   ```powershell
   git -C <wt> add tools/include/actcraft/tools/shapetool.h tools/src/shapetool.cpp tests/tst_tools_shape.cpp
-  git -C <wt> commit -m "tools : outil Forme, aperçu sans redessin du cache, une étape au relâché (L4-T8)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  git -C <wt> commit -m "tools : outil des formes, aperçu sans redessin du cache, une étape au relâché (L4-T8)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
 ---
@@ -2546,7 +2546,7 @@ point intelligent seulement hors des huit poignées).
 ---
 
 <a id="tache-l4-t11"></a>
-### Tâche L4-T11 — `ui::ToolHost` : outil Forme branché
+### Tâche L4-T11 — `ui::ToolHost` : outil des formes branché
 
 **Objectif.** Remplir les ajouts de L4-T1 à `ToolHost` : `chooseShape` (préréglage connu seulement, active
 « shape », commande `tool.shape` cochée), `setShapeFilled`, `setShapeFillColor`, `setShapeFromCenter`, propriétés
@@ -2579,7 +2579,7 @@ dans le même `QSettings` que la mémoire par outil du lot 3 (clés `tools/shape
 - [ ] **Étape 4 : commit.**
   ```powershell
   git -C <wt> add ui/src/toolhost.cpp ui/src/tooladapters.h ui/src/tooladapters.cpp tests/tst_ui_shapes.cpp
-  git -C <wt> commit -m "ui : outil Forme branché, réglages gardés, contours de la palette (L4-T11)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  git -C <wt> commit -m "ui : outil des formes branché, réglages gardés, contours de la palette (L4-T11)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
 ---
