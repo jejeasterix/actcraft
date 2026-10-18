@@ -40,6 +40,8 @@ en Direct3D 11, mesuré au banc ; la grille reste nette (règle de rendu relevé
 | L10-T4 | Vue : versement différé (inactivité, plafond, zoom), couche d'attente branchée, scénario `cache-differe` | L10-T1, L10-T3, L10-T5 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/uiforeigntypes.h`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_verdict.cpp`, `tests/tst_bench_result.cpp`, `bench/scenarios/cache-differe.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 94, `tst_pageview` (dont `strokeWaitsAboveTheCacheUntilIdle`, `wheelPostponesTheFold`, `hoverDoesNotPostponeTheFold`), `tst_ui_drawing` (dont `deferredStrokeStaysVisibleThroughTheFold`), `tst_captures_cache_differe`, `tst_bench_verdict`, `tst_bench_result` (dont `deferredFoldShowsInTheResult`) Passed ; `captures.ps1 -Scenario cache-differe` hors écran `CAPTURES OK` ; banc hors écran : `stroke` → `cache.refreshes = 0`, `stroke-folded` OK ; à l'écran D3D11 (jeton `ecran`) : `BORD trait-en-attente OK`, puis `ECART` sous `kMsaaSamples = 1` seule | S13 | #tache-l10-t4 |
 | L10-T6 | Mesure S13 : trois passages D3D11 plein écran encadrés par la référence, condition « machine calme », décision tuiles | L10-T4 | `docs/mesures/AAAA-MM-JJ-cache-incremental.md` (date du passage) | isolé | concepteur-critique | 3 passages D3D11 plein écran consécutifs du lot 10 : `freeze_over_limit = 0` et `resume_over_limit = 0` sur les 5 scénarios ; référence avant et après ; RAM libre relevée à chaque passage ; résumé commité ; décision écrite sur L10-T7 | S13 | #tache-l10-t6 |
 | L10-T7 | (Conditionnelle) Cache par tuiles : seules les tuiles touchées par les objets versés sont redessinées | L10-T6 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `tests/tst_render_pendinglayer.cpp`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `docs/mesures/AAAA-MM-JJ-cache-incremental.md` | isolé | concepteur-critique | jouée seulement si L10-T6 l'exige ; `TESTS OK`, N ≥ 94, `tst_pageview` (dont `foldRefreshesOnlyTheTouchedTiles`) Passed ; mesure S13 de L10-T6 rejouée et tenue | S13 | #tache-l10-t7 |
+| L10-T8 | Repli H10-9 : mémoire du cache multi-échantillonné sous le budget (zoom 800 % et banc) | L10-T6 | `ui/include/actcraft/ui/viewtransform.h`, `ui/src/viewtransform.cpp`, `ui/src/pageview.cpp`, `tests/tst_viewtransform.cpp`, `tests/tst_pageview.cpp`, `docs/mesures/2026-10-18-cache-incremental.md` (section « Repli H10-9 ») | isolé | concepteur-critique | `TESTS OK`, N ≥ 94, `tst_viewtransform` (dont `msaaCacheSideStaysUnderTheBudget`) et `tst_pageview` Passed ; à l'écran D3D11 (jeton `ecran`) : zoom 800 % posé, total (GPU dédié + partagé + privé, même relevé) < 1 Gio ; banc D3D11 : `all.memory_peak_bytes` < 1 024 Mio ; `anticrenelage` `CAPTURES OK` | S13, S33 | #tache-l10-t8 |
+| L10-T9 | Images de 25 à 50 ms après une reprise dans `pauses` : enquête, correction si la cause est dans le lot 10 | L10-T8 | selon la cause ; au départ aucun (instrumentation hors dépôt) ; `docs/mesures/2026-10-18-cache-incremental.md` (section « Images > 25 ms de pauses ») | isolé | concepteur-critique | cause établie par mesure (instants comparés aux fenêtres de redessin, au versement, au GC QML, au pilote) ; si corrigée : `TESTS OK`, 3 passages D3D11 du lot 10 avec `pauses.over_25ms_ratio` ≤ 1 % et S13 toujours tenu ; sinon hypothèse écrite pour Jérôme | S13 | #tache-l10-t9 |
 
 8 tâches, dont une conditionnelle (L10-T7), un seul plan. Tests ctest ajoutés : L10-T5 +1
 (`tst_captures_anticrenelage`), L10-T3 +1 (`tst_render_pendinglayer`), L10-T4 +1 (`tst_captures_cache_differe`) :
@@ -55,7 +57,7 @@ l'annonce à Jérôme d'une ligne **avant** de lancer chacune. Aucune autre tâc
 
 ## Vagues (parallélisme 2 au plus)
 
-V1 : L10-T0 ‖ L10-T1 · V2 : L10-T2 ‖ L10-T5 · V3 : L10-T3 · V4 : L10-T4 · V5 : L10-T6 · V6 : L10-T7 (si exigée).
+V1 : L10-T0 ‖ L10-T1 · V2 : L10-T2 ‖ L10-T5 · V3 : L10-T3 · V4 : L10-T4 · V5 : L10-T6 · V6 : L10-T7 (si exigée ; **non requise**, L10-T6) · V7 : L10-T8 · V8 : L10-T9 (amendement 2, après L10-T6).
 
 Fichiers partagés tenus par les dépendances : `ui/qml/PageArea.qml` et `tests/bench.cmake` (L10-T5 → L10-T4 →
 L10-T7) ; `render/src/fixedpageitem.cpp` et `render/CMakeLists.txt` (L10-T2 → L10-T3 → L10-T7) ;
@@ -2602,6 +2604,70 @@ pixel est un défaut : test de pixels sur une frontière de tuile).
   ```
 
 ---
+
+<a id="tache-l10-t8"></a>
+### Tâche L10-T8 — Repli H10-9 : mémoire du cache multi-échantillonné (amendement 2)
+
+**Pourquoi (mesure L10-T6, `docs/mesures/2026-10-18-cache-incremental.md`).** S13 est tenu, mais au zoom 800 % posé le
+lot 10 monte à 1 261,5 Mio (GPU partagé 586,8 + privé 674,7) contre 387,9 Mio pour la base, et le banc perd
+`all.memory_peak_bytes` aux trois passages (1 653 à 1 723 Mio sur `scroll`, zoom 400 %, contre 696-710). La mémoire
+partagée saute de 115 à 587 Mio quand le zoom se pose : c'est la texture du cache à 4096 px de côté en MSAA 4×
+(`samples ≤ 1` d'un `ShaderEffectSource` suit la fenêtre : on ne peut pas couper le MSAA du cache seul, H10-9).
+
+**Objectif.** Ramener sous le budget, sans perdre S13 ni S33 : total < 1 Gio au zoom 800 % posé et
+`all.memory_peak_bytes` < 1 024 Mio au banc D3D11. Seule l'implémentation change (DA11) : aucun appelant de
+`cacheTextureSize` ni de l'interface de cache.
+
+**Décision de L10-T6, à éprouver d'abord.** Plafond `kMaxCacheSide` abaissé quand l'échantillonnage de la fenêtre
+est > 1. Étape 1 obligatoire : **mesurer avant d'écrire** trois plafonds (2048, 2896, 3072) sous MSAA 4×, au zoom
+400 % et 800 % posés (même scénario temporaire que l'étape 4 bis de L10-T6, `.tmp/zoom800.json`, plus un
+`.tmp/zoom400.json`), en relevant (a) le total mémoire, (b) la netteté : `checkEdge` d'un trait diagonal à 400 % et
+800 % (bande de pixels intermédiaires, comparée au lot 2 sans MSAA et au plafond 4096), (c) le temps d'un redessin
+complet (`cacheRefreshRequested` → `scheduledUpdateCompleted`). Plafond retenu : le plus grand qui tient le budget.
+Si aucun ne tient le budget avec une netteté au moins égale à celle du lot 2 (sans MSAA, 4096) à 400 %, **ne pas
+écrire** : rapporter à l'orchestrateur (piste : cache limité à la zone visible au-delà d'un zoom, nouvelle tâche).
+
+**Fichiers.** `ui/include/actcraft/ui/viewtransform.h` (plafond sous MSAA, nommé, commenté avec la mesure),
+`ui/src/viewtransform.cpp`, `ui/src/pageview.cpp` (lecture de l'échantillonnage effectif de la fenêtre :
+`QQuickWindow::format().samples()` ou équivalent public, une fois, à l'attache de la fenêtre), `tests/tst_viewtransform.cpp`
+(dont `msaaCacheSideStaysUnderTheBudget` : côté × côté × échantillons × 4 octets ≤ budget nommé),
+`tests/tst_pageview.cpp` (la vue applique le plafond sous MSAA, et 4096 sans MSAA), section « Repli H10-9 » du résumé.
+
+**Test et commande bornée.** Rouge d'abord (`msaaCacheSideStaysUnderTheBudget` inconnu → erreur), puis preuve de
+tâche : `scripts/test.ps1` sous le jeton `tests` → `TESTS OK`, N ≥ 94 ; à l'écran sous le jeton `ecran` : étape 4 bis
+de L10-T6 rejouée sur la tête de la tâche (total < 1 Gio), un passage `bench.ps1 -Rendu d3d11 -SansConstruire`
+(`all.memory_peak_bytes` < 1 024 Mio, S13 tenu sur ce passage), `captures.ps1 -Scenario anticrenelage` D3D11
+`CAPTURES OK` (S33). `NOMS OK`.
+
+**Interdits.** Aucune API privée de Qt. Aucun changement de `PendingLayerItem`, `FixedPageItem`, `DocumentController`,
+`tools/`, `core/`. Remise d'une mutation par `Copy-Item` : remettre `LastWriteTime = Get-Date` (ninja ne recompile pas
+sinon).
+
+**Terminé quand.** Tests et preuves ci-dessus verts ; la section « Repli H10-9 » du résumé donne la table des trois
+plafonds (mémoire, netteté, temps de redessin), le plafond retenu et sa raison, et les relevés après repli ; H10-9
+mise à jour dans ce plan (repli appliqué) ; commit.
+
+<a id="tache-l10-t9"></a>
+### Tâche L10-T9 — Images de 25 à 50 ms après une reprise dans `pauses` (amendement 2)
+
+**Pourquoi.** L10-T6 : `pauses.over_25ms_ratio` perdu par le lot 10 à P3 (1,04 %) et P4 (3,19 %), tenu par la base
+(0 %) ; intervalles **actifs** de 25 à 50 ms, souvent la deuxième image après une reprise, classés « autre » sauf un ;
+retards d'injection de 17 et 34 ms à ces passages. S13 ne les compte pas, mais le budget de fluidité oui.
+
+**Objectif.** Établir la cause par mesure, sur la tête après L10-T8 (le repli change le coût du MSAA) : instants des
+images lentes comparés aux fenêtres de redessin (`raw.cache_request_ns`, `raw.cache_updated_ns`), au versement
+(`pendingChanged` à 0), à la reprise du stylet, au temps de synchronisation et de rendu du fil de rendu (journal
+`qt.scenegraph.time.renderloop` hors dépôt), et à la résolution MSAA. Corriger si la cause est dans le code du
+lot 10 ; sinon, hypothèse pour Jérôme avec la mesure.
+
+**Fichiers.** Instrumentation hors dépôt (scratchpad ou `.tmp/`, jamais commitée). Si correction : fichiers du lot 10
+touchés, nommés dans le rapport avant d'écrire, sous les interdits de L10-T4 ; tests rouges d'abord.
+
+**Test et commande bornée.** Trois passages `bench.ps1 -Rendu d3d11 -SansConstruire` consécutifs (jeton `ecran`) :
+`pauses.over_25ms_ratio` ≤ 1 % et S13 tenu aux trois, si correction ; `TESTS OK` sous le jeton `tests`. Sans
+correction : la section du résumé, avec la cause mesurée ou les pistes écartées.
+
+**Terminé quand.** Section « Images > 25 ms de pauses » du résumé écrite (cause, mesure, décision) ; commit.
 
 ## Hypothèses à revoir (porte de fin du lot 10)
 
