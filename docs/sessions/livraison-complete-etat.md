@@ -174,6 +174,9 @@ Relectures rendues :
 **L0-S3 mergée** (be2e5de, graphe a390e33).
 - Conflit du graphe résolu avec `--ours` (graphe propre du chantier), puis `graphify update .` : 4 163 nœuds, sans refus.
 - **Règle désormais** : au merge d'une tâche, garder `graphify-out/` du chantier, puis mettre à jour. Ne jamais prendre la version de la branche : l'union du pilote de fusion réintroduit des nœuds périmés.
+Plan du lot 4 amendé une deuxième fois (12bf522) ; tour 3 de relecture en cours.
+Relecture du plan du lot 6, tour 1 : 1 bloquant, 15 majeurs. Rapport : `scratchpad/revue-plan-lot6.md`. Amendement 1 en cours.
+**Nouvelle question pour Jérôme, H6-6b** : licence de Hunspell, MPL 1.1 (recommandé) ou LGPL en lien dynamique ; la décision 34 dit « LGPL, liés dynamiquement ». Elle n'est nécessaire qu'à V12 du lot 6.
 L0-S6 relancé (seul constructeur) : fusion de la tête du chantier d'abord, à cause de `/we4062` et d'`Equation`. Suite complète de V1 après le merge de L0-S6.
 **H6-6, accord de Jérôme (2026-10-18, message direct)** : « téléchargement de Hunspell, tu as mon accord ».
 - L6-T32 est débloquée pour Hunspell 1.7.2.
