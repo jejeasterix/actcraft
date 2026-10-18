@@ -54,7 +54,7 @@ font foi.
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L5-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; décisions D1 à D20 ; API A1 à A21 revérifiées | — | `docs/verifications/2026-10-18-lot5-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot5.md`) | isolé | concepteur-critique | rapport commité, `NOMS OK` après `git add`, contrôle des titres du corpus sans sortie | S8.6 | #tache-l5-t0 |
 | L5-T1 | Réservation I : commandes, disposition, icônes, CMake (modules `export/` et `print/`), 26 tests enregistrés, en-têtes figés et talons des deux sous-lots | — | `actions/data/commands.json`, `actions/data/layout.json`, `ui/icons/{couper,copier,coller,dupliquer,grouper,degrouper,organiser,aligner,transformer,verrouiller,masquer,glisser-copie,points-forme,pot-peinture,connecteur,modification-stylo,menu-objet,image,media,onglets,exporter,imprimer,importer}.svg`, `ui/CMakeLists.txt`, `CMakeLists.txt`, `core/CMakeLists.txt`, `formats/CMakeLists.txt`, `tools/CMakeLists.txt`, `export/CMakeLists.txt`, `print/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{core,formats,tools,ui}.cmake`, `tests/export.cmake`, `tests/print.cmake`, `core/include/actcraft/core/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.h`, `core/src/{clipboardedits,arrange,alignment,objectflags,fill,shapepoints,connectors,penmodifiers,printlayout}.cpp`, `formats/include/actcraft/formats/clipboard.h`, `formats/src/clipboard.cpp`, `render/include/actcraft/render/imagefill.h`, `render/src/imagefill.cpp`, `tools/include/actcraft/tools/{filltool,penshapetool,connectortool}.h`, `tools/src/{filltool,penshapetool,connectortool}.cpp`, `export/include/actcraft/export/{pageexport,pdfexport,pdfimport,officeconvert}.h`, `export/src/{pageexport,pdfexport,pdfimport,officeconvert}.cpp`, `print/include/actcraft/print/printer.h`, `print/src/printer.cpp`, `ui/include/actcraft/ui/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.h`, `ui/src/{objectediting,insertion,documenttabs,fileexchange,printcontroller}.cpp`, `ui/include/actcraft/ui/documentcontroller.h` (déclarations `parkSession` / `resumeSession` seulement), `ui/src/documentcontroller.cpp` (talons de ces deux membres seulement), 26 fichiers `tests/tst_*.cpp` de la carte, `tests/tst_actions_layout.cpp`, `core/include/actcraft/core/model.h` (champs `dragCopy`, `ConnectorCap`, `style`, `capA`, `capB`), `formats/src/nativejson.cpp` (ces champs), `tests/tst_formats_nativejson.cpp` | isolé | implementeur-tdd | build 0 avertissement ; `ctest -N` : N = N_départ + 26 ; `tst_actions_layout` Passed dont `lot5EntriesDeclared`, `objectMenuOrder` ; `tst_formats_nativejson` Passed dont `lot5FieldsRoundTrip` ; les 26 talons en SKIP nommant leur tâche ; `NOMS OK` | S8, S17 | #tache-l5-t1 |
-| L5-T2 | Réservation II : coquille QML (menu d'édition d'objet, barre d'objet complète, onglets, emplacements export, impression, import ; gestionnaires des commandes du lot) | L5-T1 | `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/ObjectBar.qml`, `ui/qml/TopBar.qml`, `ui/qml/{ObjectEditMenu,PenModifierBar,ConnectorPanel,DocumentTabBar,FileExchangeActions,PrintDialog,SheetPreview}.qml` (neufs, talons), `ui/CMakeLists.txt` (bloc `QML_FILES` seulement), `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `tst_ui_shell` Passed dont `everyLot5CommandHasAHandler`, `lot5SlotsExist`, `shellLoadsWithoutQmlWarning` ; `premiers-pas` hors écran `CAPTURES OK` | S8 | #tache-l5-t2 |
+| L5-T2 | Réservation II : coquille QML (menu d'édition d'objet, barre d'objet complète, onglets, emplacements export, impression, import ; gestionnaires des commandes du lot) | L5-T1 | `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/ObjectBar.qml`, `ui/qml/TopBar.qml`, `ui/qml/{ObjectEditMenu,PenModifierBar,ConnectorPanel,DocumentTabBar,FileExchangeActions,PrintSetupDialog,SheetPreview}.qml` (neufs, talons), `ui/CMakeLists.txt` (bloc `QML_FILES` seulement), `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `tst_ui_shell` Passed dont `everyLot5CommandHasAHandler`, `lot5SlotsExist`, `shellLoadsWithoutQmlWarning` ; `premiers-pas` hors écran `CAPTURES OK` | S8 | #tache-l5-t2 |
 | L5-T3 | `formats` : presse-papiers d'objets (objets, ressources, groupes et connecteurs, sans perte) | L5-T0, L5-T1 | `formats/src/clipboard.cpp`, `tests/tst_formats_clipboard.cpp` | isolé | concepteur-critique | `tst_formats_clipboard` Passed (dont `roundTripKeepsEveryKind`, `resourcesTravelWithObjects`, `groupMembersTravelTogether`, `foreignPayloadRejected`) ; mutation rouge puis remise | S8, S8.1 | #tache-l5-t3 |
 | L5-T5 | `core` : organiser (avancer, reculer, premier plan, arrière-plan, couches) et groupes (grouper, dégrouper, groupes de groupes) | L5-T0, L5-T1 | `core/src/arrange.cpp`, `tests/tst_core_arrange.cpp` | isolé | implementeur-tdd | `tst_core_arrange` Passed (dont `forwardSwapsOneStep`, `frontKeepsRelativeOrder`, `layerChangeGoesOnTop`, `groupingIsASingleStep`, `ungroupRestoresInnerGroups`, `reorderChangesSeenByCache`) | S8, S8.2 | #tache-l5-t5 |
 | L5-T4 | `core` : copies prêtes à coller (identifiants neufs, groupes et connecteurs remappés, décalages, coller sur l'objet) | L5-T3 | `core/src/clipboardedits.cpp`, `tests/tst_core_clipboardedits.cpp` | isolé | concepteur-critique | `tst_core_clipboardedits` Passed (dont `pasteOffsetsBy20`, `duplicateOffsetsBy10AndSelectsCopy`, `copiesAreUnlockedAndUnnamed`, `groupReferencesRemapped`, `connectorEndsRemapped`, `pasteOnObjectKeepsItsLayer`, `cutIsOneStep`) ; mutation rouge puis remise | S8, S8.1 | #tache-l5-t4 |
@@ -285,7 +285,7 @@ les lots 3, 4 et 7.
 - Ancien dépôt : `app/actcraft/canvas/view.py` (685-960 : presse-papiers, dupliquer, organiser, groupes, aligner,
   inverser, projeter), `canvas/editmenus.py` (175-200 : menus Transformer, Aligner, Organiser), `canvas/items.py`
   (801 : tracés des connecteurs), `canvas/page.py` (90 : connecteurs qui suivent), `ui/doc_tabs.py`,
-  `ui/main_window.py` (798-810 import PDF, 1275-1320 export et impression), `ui/print_dialog.py` ; graphe :
+  `ui/main_window.py` (798-810 import PDF, 1275-1320 export et impression) et la boîte d'impression de son dossier `ui/` ; graphe :
   `graphify query "…"` lancé **dans** `C:\Users\JeromeDenis\REA - Activinspire`.
 - Format : `docs\re\format-flipchart.md` (§ 6, § 7) — notre documentation (groupes, connecteurs, verrou, masquage).
 - Binaire : skill `reverse-engineer-anything` sur `C:\Program Files\Activ Software\Inspire\`, **en statique
@@ -602,7 +602,7 @@ dans `Main.qml` et reliés à `appDocument` et `appTools` ; un gestionnaire par 
 C++ correspondante (corps talons jusqu'à leur tâche) ; les emplacements `ObjectEditMenu` (ouvert par `object.menu`
 et par le clic droit sur un objet), `PenModifierBar` (à côté de la palette, visible avec `view.pen-modifiers`),
 `ConnectorPanel` (visible avec l'outil connecteur), `DocumentTabBar` (sous la ligne supérieure), `FileExchangeActions`
-(dialogues de fichiers d'export et d'import), `PrintDialog` et `SheetPreview` ; chaque fichier neuf est un talon
+(dialogues de fichiers d'export et d'import), `PrintSetupDialog` et `SheetPreview` ; chaque fichier neuf est un talon
 minimal (`Item { id: root; visible: false }` et ses `required property`).
 
 **Fichiers.** Ceux de la ligne de la table.
@@ -624,7 +624,7 @@ void TestShell::lot5SlotsExist()
     auto window = loadMainWindow();
     for (const char* name : {"appEditing", "appInsertion", "appTabs", "appExchange", "appPrint", "objectEditMenu",
                              "penModifierBar", "connectorPanel", "documentTabBar", "fileExchangeActions",
-                             "printDialog", "sheetPreview"})
+                             "printSetupDialog", "sheetPreview"})
         QVERIFY2(findByObjectName(window.get(), name) != nullptr, name);
 }
 ```
@@ -661,7 +661,7 @@ commit.
   `insertMedia(url)` si l'argument est donné, sinon `fileExchangeActions.chooseImage()` / `chooseMedia()` ;
   `tab.next` / `tab.previous` → `appTabs.next()` / `previous()` ; `view.tabs` → `appTabs.position = argument` ;
   `export.*`, `file.import-*` → `appExchange.<méthode>(url)` ou le dialogue de `fileExchangeActions` ; `file.print`
-  → `printDialog.open()` si `Qt.platform.os === "windows"`, sinon `appExchange.printThroughPdf()`.
+  → `printSetupDialog.open()` si `Qt.platform.os === "windows"`, sinon `appExchange.printThroughPdf()`.
 - [ ] **Étape 4 : talons QML** des sept fichiers neufs, enregistrés au bloc `QML_FILES` ; `ObjectBar.qml` lit la
   liste `objectBar` complète (boutons du lot inertes jusqu'à L5-T18) ; `TopBar.qml` réserve la place de
   `DocumentTabBar`.
