@@ -182,6 +182,19 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
         }
         return true;
     }
+    if (o.contains(QStringLiteral("checkEdge"))) {
+        step.kind = UiStepKind::CheckEdge;
+        step.name = o.value(QStringLiteral("checkEdge")).toString();
+        step.minIntermediate = o.value(QStringLiteral("minIntermediate")).toInt(0);
+        step.maxIntermediate = o.value(QStringLiteral("maxIntermediate")).toInt(-1);
+        step.minInk = o.value(QStringLiteral("minInk")).toInt(0);
+        if (step.name.isEmpty() || !readPoint(o.value(QStringLiteral("from")), step.at) ||
+            !readPoint(o.value(QStringLiteral("to")), step.to)) {
+            why = QStringLiteral("contrôle de bord invalide (checkEdge, from, to)");
+            return false;
+        }
+        return true;
+    }
     if (o.contains(QStringLiteral("expect"))) {
         step.kind = UiStepKind::Expect;
         if (!splitTarget(o.value(QStringLiteral("expect")).toString(), step.target, step.property) ||
@@ -701,6 +714,37 @@ bool UiScenarioPlayer::checkPixel(const UiStep& step, QStringList& report)
     return ok;
 }
 
+// L10-T5 (S33) : pixels intermédiaires, un à un, le long d'un segment de page (fond blanc, encre noire,
+// marge 24 par canal) ; image du moment, comme checkPixel. Jamais de moyenne 3 × 3 ici : elle donne du gris
+// même sur un bord crénelé (constat L2-C11).
+bool UiScenarioPlayer::checkEdge(const UiStep& step, QStringList& report)
+{
+    ui::PageView* v = view();
+    const QImage image = m_window->grabWindow();
+    int count = -1;
+    int ink = -1;
+    if (v && !image.isNull()) {
+        const qreal dpr = m_window->devicePixelRatio();
+        const QPoint from = sceneToImage(v->pageToScene(step.at), dpr);
+        const QPoint to = sceneToImage(v->pageToScene(step.to), dpr);
+        count = countIntermediatePixels(image, from, to, QColor(Qt::white), QColor(Qt::black), 24);
+        ink = countInkPixels(image, from, to, QColor(Qt::black), 24);
+    }
+    const bool ok = count >= step.minIntermediate &&
+                    (step.maxIntermediate < 0 || count <= step.maxIntermediate) && ink >= step.minInk;
+    const QString expected =
+        step.maxIntermediate < 0
+            ? QStringLiteral("≥ %1").arg(step.minIntermediate)
+            : QStringLiteral("%1 à %2").arg(step.minIntermediate).arg(step.maxIntermediate);
+    report << QStringLiteral("BORD %1 %2 (intermédiaires %3, attendu %4 ; encre %5, au moins %6)")
+                  .arg(step.name, ok ? QStringLiteral("OK") : QStringLiteral("ECART"))
+                  .arg(count)
+                  .arg(expected)
+                  .arg(ink)
+                  .arg(step.minInk);
+    return ok;
+}
+
 bool UiScenarioPlayer::expand(const QString& text, QString& out, QString& why) const
 {
     QString result;
@@ -956,6 +1000,8 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
     }
     case UiStepKind::CheckPixel:
         return checkPixel(step, report);
+    case UiStepKind::CheckEdge:
+        return checkEdge(step, report);
     case UiStepKind::Expect:
         return read(step, report);
     case UiStepKind::Fixture:

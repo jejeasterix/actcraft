@@ -4,6 +4,8 @@
 #include <QDir>
 #include <QFile>
 #include <QImage>
+#include <QPainter>
+#include <QPen>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -117,6 +119,37 @@ private slots:
                                               QStringLiteral("zoom-800"), QStringLiteral("retour-100")}));
         QCOMPARE(captureFileName(QStringLiteral("direct3d11"), QStringLiteral("mi-trait")),
                  QStringLiteral("direct3d11-mi-trait.png"));
+    }
+
+    // L10-T5 : un bord crénelé n'a aucun pixel intermédiaire sur une ligne qui le traverse ; un bord lissé en
+    // a. Une moyenne 3 x 3 (sampleColor, checkPixel) donnerait du gris dans les deux cas : elle ne les
+    // distingue pas.
+    void intermediatePixelsTellAliasedFromSmooth()
+    {
+        QImage aliased(40, 40, QImage::Format_RGB32);
+        aliased.fill(Qt::white);
+        QImage smooth = aliased;
+        {
+            QPainter p(&aliased);
+            p.setRenderHint(QPainter::Antialiasing, false);
+            p.setPen(QPen(Qt::black, 6));
+            p.drawLine(QPointF(5, 5), QPointF(35, 35));
+        }
+        {
+            QPainter p(&smooth);
+            p.setRenderHint(QPainter::Antialiasing, true);
+            p.setPen(QPen(Qt::black, 6));
+            p.drawLine(QPointF(5, 5), QPointF(35, 35));
+        }
+        const QPoint from(0, 20);
+        const QPoint to(39, 20);
+        QCOMPARE(countIntermediatePixels(aliased, from, to, Qt::white, Qt::black, 24), 0);
+        QVERIFY(countIntermediatePixels(smooth, from, to, Qt::white, Qt::black, 24) >= 2);
+        QCOMPARE(countIntermediatePixels(QImage(), from, to, Qt::white, Qt::black, 24), -1);
+        QCOMPARE(countIntermediatePixels(aliased, from, QPoint(40, 20), Qt::white, Qt::black, 24), -1);
+        QVERIFY(countInkPixels(aliased, from, to, Qt::black, 24) >= 1); // la ligne croise le trait
+        QCOMPARE(countInkPixels(aliased, QPoint(0, 0), QPoint(0, 39), Qt::black, 24), 0);
+        QCOMPARE(countInkPixels(QImage(), from, to, Qt::black, 24), -1);
     }
 };
 

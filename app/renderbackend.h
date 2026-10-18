@@ -13,6 +13,9 @@ enum class RenderBackend
     Software,
 };
 
+inline constexpr int kMsaaSamples =
+    4; // L10-T5 : échantillonnage multiple en RHI (lissage des traits, constat L2-C11)
+
 // Lit `--rendu <auto|d3d11|logiciel>` dans les arguments ; retourne false si la valeur est inconnue.
 bool parseRenderBackend(const QStringList& args, RenderBackend& out, QString& error);
 

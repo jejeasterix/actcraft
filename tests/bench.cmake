@@ -115,6 +115,18 @@ set_tests_properties(tst_captures_premiers_pas PROPERTIES
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
 
+# Scénario S33 (traits lissés, grille nette), hors écran en rendu logiciel : le peintre lisse déjà ; prouve
+# l'étape checkEdge et la lecture de pageCache.samples. La preuve D3D11 se joue à l'écran (L10-T5, clôture).
+add_test(NAME tst_captures_anticrenelage
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/anticrenelage.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-anticrenelage)
+set_tests_properties(tst_captures_anticrenelage PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
 # Scénario d'acceptation S5 (aller-retour natif), hors écran en rendu logiciel : document de 3 pages écrit par la
 # fixture sous le dossier de sortie, enregistré hors du fil principal (sonde de boucle), fermé, rouvert.
 add_test(NAME tst_captures_aller_retour_natif

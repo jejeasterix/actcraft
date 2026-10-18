@@ -51,6 +51,7 @@ Item {
                 hideSource: view.cacheEnabled
                 live: false
                 textureSize: view.cacheTextureSize
+                samples: 4 // L10-T5 : texture du cache lissée en RHI (sans effet en rendu logiciel)
                 onScheduledUpdateCompleted: view.notifyCacheUpdated()
             }
 

@@ -453,6 +453,34 @@ private slots:
         QVERIFY(QString::fromUtf8(index.readAll()).contains(QStringLiteral("en échec")));
     }
 
+    // L10-T5 (S33) : contrôle de bord, pixels comptés un à un le long d'un segment de page.
+    void checkEdgeStepIsParsed()
+    {
+        const QByteArray json = R"({"format": "actcraft-scenario/1", "name": "x", "steps": [
+            {"checkEdge": "bord", "from": [380, 400], "to": [440, 400], "minIntermediate": 2}]})";
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseUiScenario(json, s, error), qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{1});
+        const UiStep& step = s.steps[0];
+        QVERIFY(step.kind == UiStepKind::CheckEdge);
+        QCOMPARE(step.name, QStringLiteral("bord"));
+        QCOMPARE(step.at, QPointF(380, 400));
+        QCOMPARE(step.to, QPointF(440, 400));
+        QCOMPARE(step.minIntermediate, 2);
+        QCOMPARE(step.maxIntermediate, -1); // sans plafond
+        QCOMPARE(step.minInk, 0);
+        const QByteArray full = R"({"format": "actcraft-scenario/1", "name": "x", "steps": [
+            {"checkEdge": "g", "from": [1, 2], "to": [1, 9], "minIntermediate": 0, "maxIntermediate": 0,
+             "minInk": 1}]})";
+        QVERIFY2(parseUiScenario(full, s, error), qPrintable(error));
+        QCOMPARE(s.steps[0].maxIntermediate, 0);
+        QCOMPARE(s.steps[0].minInk, 1);
+        const QByteArray bad = R"({"format": "actcraft-scenario/1", "name": "x", "steps": [
+            {"checkEdge": "bord", "from": [380, 400]}]})";
+        QVERIFY(!parseUiScenario(bad, s, error));
+    }
+
     // Étapes de L2-T20 (S5) : fixture, attente d'une propriété, sonde de boucle, mémoire, archive.
     void newStepsAreParsed()
     {

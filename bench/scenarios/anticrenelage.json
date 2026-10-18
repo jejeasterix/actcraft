@@ -1,0 +1,29 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "anticrenelage",
+  "description": "S33 : trait noir diagonal lissé quand il vient d'être tracé, après son versement au cache et au zoom 300 % ; grille nette ; texture du cache multi-échantillonnée.",
+  "steps": [
+    {"waitReady": true},
+    {"expect": "pageCache.samples", "value": 4},
+    {"fixture": "grille", "path": "${SORTIE}/grille.actcraft"},
+    {"command": "file.open", "argument": "${SORTIE}/grille.actcraft"},
+    {"waitFor": "pageIndicator.text", "value": "1 / 1", "timeoutMs": 10000},
+    {"command": "view.zoom", "argument": 100},
+    {"waitReady": true},
+    {"checkEdge": "grille-nette", "from": [100, 40], "to": [100, 90], "minIntermediate": 0, "maxIntermediate": 0, "minInk": 1},
+    {"capture": "grille"},
+    {"command": "pen.color", "argument": "#000000"},
+    {"command": "pen.width", "argument": 8},
+    {"stroke": [[300, 300], [500, 500]], "pressure": 0.5},
+    {"waitReady": true},
+    {"checkEdge": "trait-diagonal", "from": [370, 400], "to": [430, 400], "minIntermediate": 2},
+    {"capture": "trait"},
+    {"wait": 800},
+    {"waitReady": true},
+    {"checkEdge": "trait-verse", "from": [370, 400], "to": [430, 400], "minIntermediate": 2},
+    {"command": "view.zoom", "argument": 300},
+    {"waitReady": true},
+    {"checkEdge": "trait-zoom", "from": [385, 400], "to": [415, 400], "minIntermediate": 2},
+    {"capture": "trait-zoom"}
+  ]
+}
