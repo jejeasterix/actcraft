@@ -166,7 +166,10 @@ Plans écrits, non relus :
 - lot 5 : 34 tâches, 5a et 5b (89c1673) ;
 - lot 6 : 38 tâches, 6a et 6b (809919b). H6-6 demande à Jérôme d'approuver le téléchargement de Hunspell et d'un dictionnaire, avant V12 du lot 6.
 Plan du lot 4 amendé en 860d7a0 (5 bloquants et 11 majeurs appliqués ; D6, D8, D17 et D18 renvoyés à L4-T0). Sa branche part d'avant f167eb9 : les titres qu'elle voit encore ne sont pas sur la branche du chantier.
-Relectures en cours : plan du lot 5 (tour 1), plan du lot 4 (tour 2), plan du lot 6 (tour 1). En attente : L0-S4, L0-S6, L10-T8 (agent), fin de L10-C2, plan lot 6.
+Relectures en cours : plan du lot 5 (tour 1), plan du lot 4 (tour 2), plan du lot 6 (tour 1).
+**H6-6, accord de Jérôme (2026-10-18, message direct)** : « téléchargement de Hunspell, tu as mon accord ».
+- L6-T32 est débloquée pour Hunspell 1.7.2.
+- Le dictionnaire français (Grammalecte, MPL 2.0), prévu dans la même hypothèse, n'est pas nommé dans la réponse. Je le traite comme couvert par H6-6 et le signale à Jérôme ; à reconfirmer à la porte du lot 6 s'il le refuse. En attente : L0-S4, L0-S6, L10-T8 (agent), fin de L10-C2, plan lot 6.
 
 ## Tâches du socle commun L0-S (plan 9b13275, mergé 1ffb07b ; relecture tour 1 : 1 bloquant, 11 importants, tous appliqués ; tour 2 en cours)
 | id | dépend | titre | worktree | état | essais | commit | preuve rejouée |
