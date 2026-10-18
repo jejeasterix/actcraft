@@ -74,9 +74,12 @@ partie de `feat/livraison-complete-b` à jour des tâches déjà mergées. Merge
    et non `spotFrame` de la version antérieure du socle, contrôlé `NOMS OK`) : `spotlightFrame` (champ des bornes du spot, ici dans `PageToolsSettings` et
    `PageToolsResult`), `shapefinder` (`features/…/shapefinder.h`, `features/src/shapefinder.cpp`,
    `tst_features_shapefinder`). Aucun test de cette phase ne porte sur l'annulation (pas de `…MakesOneStep` ici).
-   Les noms de fonctions de test déjà nommés par 7a et 7b pour la logique pure sont repris tels quels.
-9. **Constats de L7-T0 intégrés** (rapport `docs/verifications/2026-10-18-lot7-principes.md`, commit 0be9a77 du
-   worktree `livraison-complete-b--L7-T0`, « Écarts pour l'orchestrateur » et principes P1 à P23) ; ils remplacent les
+   Les noms de fonctions de test déjà nommés par 7a et 7b pour la logique pure sont repris tels quels, **sauf un** :
+   `unavailableOffWindows` (7b, L7-T22) disparaît, fondu dans `factoryNeverReturnsNull` (L7-P8). Raison : sous
+   Windows il ne prouvait rien (`QSKIP` dans 7b) ; sa vérification « hors de Windows, jamais de moteur » est gardée
+   telle quelle dans `factoryNeverReturnsNull`, qui prouve en plus « jamais nul » sur toutes les plateformes.
+9. **Constats de L7-T0 intégrés** (rapport `docs/verifications/2026-10-18-lot7-principes.md`, mergé dans
+   `feat/livraison-complete-b` par f0772b6, dernière version d16edb5 ; « Écarts pour l'orchestrateur » et principes P1 à P23) ; ils remplacent les
    valeurs « à défaut » de 7a et 7b :
    - **dés (E5)** : 1 dé à l'ouverture la première fois, puis le dernier nombre choisi (mémorisé : phase 2) ; bornes 1
      à 5, vitesse 3 à 11 s, défaut 7 → L7-P5 ;
@@ -2301,10 +2304,23 @@ bloquante du fil appelant (`wait` hors destruction, `BlockingQueuedConnection`).
   `std::lround`, converti en `LONG`), `VARIANT` `VT_ARRAY | VT_I4`, `IInkDisp::CreateStroke` ; `get_Strokes` ;
   `IInkRecognizer::CreateRecognizerContext` ; `putref_Strokes` ; `Recognize` ; `get_TopString` ;
   `AlternatesFromSelection(0, -1, 10, …)` puis, pour chaque alternative (`get_Count`, `Item`), son texte lu **par
-  `IDispatch`** : `GetIDsOfNames` sur `L"String"` puis `Invoke` en `DISPATCH_PROPERTYGET` (l'accesseur C++ direct de
-  cette propriété porte un nom refusé par le contrôle des noms : ne jamais l'écrire, ni en code ni en commentaire ;
-  cas permis tranché dans les règles communes, « Contrôle des noms » : le code ne contient que `GetIDsOfNames`,
-  `Invoke`, `DISPATCH_PROPERTYGET`, `DISPPARAMS`, `VARIANT` et la chaîne `L"String"`, tous contrôlés `NOMS OK`) ;
+  `IDispatch`** en `DISPATCH_PROPERTYGET` (l'accesseur C++ direct de cette propriété porte un nom refusé par le
+  contrôle des noms : ne jamais l'écrire, ni en code ni en commentaire ; cas permis tranché dans les règles communes,
+  « Contrôle des noms »). **Voie à préférer** : `Invoke(DISPID_InkRecoAlternate_String, IID_NULL,
+  LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &params, &result, nullptr, nullptr)` avec le DISPID fixé par `msinkaut.h`
+  (SDK 10.0.26100), sans recherche à l'exécution. **Repli** si ce DISPID manque au SDK du poste : recherche par nom,
+  avec un tableau modifiable (le littéral `L"String"` passé directement à `GetIDsOfNames` ne compile pas sous
+  `/permissive-`, C2440) :
+  ```cpp
+  wchar_t name[] = L"String";
+  LPOLESTR names[] = {name};
+  DISPID dispid = DISPID_UNKNOWN;
+  const HRESULT found = alternate->GetIDsOfNames(IID_NULL, names, 1, LOCALE_USER_DEFAULT, &dispid);
+  ```
+  Exemples d'identifiants de cette voie, tous contrôlés `NOMS OK` par la relecture : `Invoke`, `GetIDsOfNames`,
+  `DISPATCH_PROPERTYGET`, `DISPID_InkRecoAlternate_String`, `DISPPARAMS`, `VARIANT`, `VariantInit`, `VariantClear`,
+  `VT_BSTR`, `bstrVal`, `IID_NULL`, `DISPID`, `DISPID_UNKNOWN`, `LOCALE_USER_DEFAULT` ; le contrôle des noms reste
+  la preuve, après `git add`) ;
   doublons retirés, meilleur texte en premier ;
   `BSTR` libérés (`SysFreeString`), `SAFEARRAY` détruits, interfaces par `Microsoft::WRL::ComPtr`. Toute erreur COM
   → liste vide (jamais d'exception ni d'arrêt). `QString::fromWCharArray(bstr, static_cast<qsizetype>(SysStringLen(bstr)))`.
@@ -2606,8 +2622,7 @@ au doigt et à la souris (B2), chacun vérifiant qu'aucun trait n'est versé **e
 | L7-T28 | `PolygonPicker`, `FreehandPicker`, `cropToPolygon`, `normalizedRect`, `toLogicalPixels`, `windowRectsInLogicalPixels` (L7-P9) | `topLevelWindows()` dans `camera.h`, `camera_win.cpp` **et** `camera_other.cpp` (créés ensemble ; `dwmapi` déjà lié), `CameraController`, QML, tests d'interface, contrôle à l'écran |
 | L7-T29 | `ScreenKeyboard`, `tst_features_keyboard` (L7-P9) | `keyinjector_win.cpp` **et** `keyinjector_other.cpp` (ensemble), `KeyboardController`, `ScreenKeyboard.qml`, tests d'interface |
 | L7-T31 | `wheelPositions`, `WheelEntry`, `defaultWheel` ; `wheelIsClockwiseFromTop` est dans **`tst_features_desktopwheel`** (plus dans `tst_ui_desktop`) | `wheelHasNoVoteNorVendorEntry` (identifiants contre le registre des commandes), `DesktopController` (roue), `DesktopToolsWheel.qml`, `restoreClosesTheWheel`, `wheelClosesWhenTheWindowIsRestored` |
-| L7-T34 | rien | en plus de 7b : **symétries autour d'un axe qui passe par l'origine XY** quand elle est active (P20 de L7-T0 ; attend le lot 3 et les symétries du lot 5) |
-| L7-T0 à L7-T2, L7-T17, L7-T24, L7-T25, L7-T27, L7-T30, L7-T32, L7-T33 | rien (L7-T0 : fait, rapport 0be9a77) | selon les amendements du socle (« Ce que la session B doit savoir », socle 1ffb07b) |
+| L7-T0 à L7-T2, L7-T17, L7-T24, L7-T25, L7-T27, L7-T30, L7-T32 à L7-T34 | rien (L7-T0 : fait, rapport mergé f0772b6, dernière version d16edb5 ; ses symétries autour de l'origine, P20, sont versées au lot 5 et ne reviennent pas à L7-T34) | selon les amendements du socle (« Ce que la session B doit savoir », socle 1ffb07b) |
 
 ## Risques
 
