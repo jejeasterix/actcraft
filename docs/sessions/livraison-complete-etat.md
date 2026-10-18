@@ -215,6 +215,15 @@ Plan du lot 6, tour 3 : refusé. 2 majeurs : N1, réglages et profils d'essai pa
 **Piège pour tous les lots** : dans le code QML, la vue s'atteint par `pageArea.view`. Dans les étapes de scénario et les lectures du banc, `pageView.…` est juste : le joueur trouve l'objet par son `objectName`.
 - Les plans des lots 3 et 4 écrivent en prose « placé par `pageView.pageToScene` ». L'implémenteur doit le lire comme `view.pageToScene` dans `PageArea.qml`.
 - À rappeler dans les briefs des tâches QML.
+**Plans des lots 5 et 6 acceptés et mergés.**
+- Lot 5 : 8b9395e, merge 5937349.
+- Lot 6 : b50daf0, merge 5373f04.
+- Les deux ont eu 3 amendements, et le texte des derniers majeurs a été contrôlé par l'orchestrateur.
+- Contrôles : 144 titres, 0 trouvé ; NOMS OK 429 ; aucun `pageView.` dans le QML du lot 6.
+- Hypothèses à présenter aux portes des lots : H5-7 à H5-10, H6-1, H6-7 à H6-10.
+- Décisions de Jérôme encore ouvertes : H6-6 (dictionnaire) et H6-6b (licence de Hunspell).
+Plans écrits à l'avance, en cours : lot 8 (`.worktrees/livraison-complete--plan-lot8`) et lot 11 (`…--plan-lot11`).
+Le lot 9, confrontation du produit fini aux vidéos, sera planifié à son tour.
 Plans amendés en cours de dernière relecture (tour 3) : lot 5 (5350a99) et lot 6 (e754dbe).
 V2 en préparation, écriture seule (un seul constructeur) : L0-S7 (worktree neuf à cb2ad56) et L0-S4 (reprise du wip 267b2a6 après fusion de la tête). Chacun attend mon signal pour sa preuve. L0-S5 démarre quand une place d'agent se libère.
 **Décision de A, demandée par B (L7-T26)** : pas d'inclusion privée de `render/src` depuis `ui/presentation.cmake`.
