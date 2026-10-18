@@ -51,6 +51,11 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     const bool software = window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
     // Logiciel : racine de transformation (identité), comme la page fixe (piège du moteur logiciel 6.12).
     QSGNode* root = old ? old : (software ? new QSGTransformNode : new QSGNode);
+    if (!old) {
+        // Graphe recréé (couche remise dans une fenêtre, scène invalidée) : les anciens nœuds ont été
+        // détruits avec lui ; tout ce qui attend est à reposer.
+        m_nodes.clear();
+    }
     // Tant que la page fixe redécode (reconstruction avec images, autre page), elle garde ses anciens nœuds,
     // sans les objets qui attendaient : la couche garde les siens jusqu'au prêt (readyChanged), sinon ils
     // disparaîtraient de l'écran.

@@ -377,6 +377,22 @@ private slots:
         QCOMPARE(f.layer->builtCount(), 0);
         f.page->setSource(nullptr, 0); // le document meurt avant l'élément
     }
+
+    // Revue m1 : la couche retirée de la fenêtre puis remise perd son nœud (updatePaintNode reçoit old nul) :
+    // elle redessine ce qui attend, au lieu de croire ses anciens nœuds encore posés.
+    void layerPutBackInTheWindowRedrawsThePending()
+    {
+        Fixture f;
+        open(f, true);
+        f.page->setDeferredFolding(true);
+        f.page->appendStroke(lineAt(100));
+        QVERIFY(near(at(f, 300, 100), Qt::black, 60));
+        f.layer->setParentItem(nullptr);
+        QVERIFY(near(at(f, 300, 100), Qt::white, 8));
+        f.layer->setParentItem(f.window.contentItem());
+        QVERIFY(near(at(f, 300, 100), Qt::black, 60));
+        QCOMPARE(f.layer->builtCount(), 1);
+    }
 };
 
 QTEST_MAIN(TstRenderPendingLayer)
