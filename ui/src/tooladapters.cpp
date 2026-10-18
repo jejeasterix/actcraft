@@ -1,3 +1,3 @@
 #include "tooladapters.h"
 
-// Talon L0-S : rempli par L0-S6.
+// Talon L0-S : rempli par L3-T14.
