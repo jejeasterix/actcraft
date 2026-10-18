@@ -38,7 +38,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T0 | — | docs/verifications/2026-10-18-lot7-principes.md ; hors dépôt REA docs/re/lots/lot7.md | supprimé | terminée, mergée (f0772b6), graphe efee804 | 3 | d16edb5 | NOMS OK 333, git grep du rapport vide, relevé présent, revue : 4 importants corrigés |
 | L7-P0 | amendement relu | voir ligne L7-P0 du plan phase 1 | supprimé | terminée, mergée (d163449), graphe dfc8857 | 1 | 2747662 | rejeu : 110 tests, `TESTS OK`, 16 tst_features Passed ; fin de tests/CMakeLists.txt identique au socle (md5) |
 | L7-P1 | L7-P0 | voir ligne L7-P1 du plan phase 1 | .worktrees/livraison-complete-b--L7-P1 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 742ae60 | — |
-| L7-P3 | L7-P0 | voir ligne L7-P3 du plan phase 1 | .worktrees/livraison-complete-b--L7-P3 (base 3866a4b + fusion dfc8857) | reprise (concepteur-critique), seule construction en cours | 2 | wip 4aa56a5 | — |
+| L7-P3 | L7-P0 | voir ligne L7-P3 du plan phase 1 | .worktrees/livraison-complete-b--L7-P3 (base 3866a4b + fusion dfc8857) | essai 2 : revue « corriger, peu » (sens de l'angle, mutant rotation, snapPreview sans effet de bord) | 2 | 9ca48ba | — |
 | L7-P7 | L7-P0 | voir ligne L7-P7 du plan phase 1 | .worktrees/livraison-complete-b--L7-P7 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 047f5e1 | — |
 | L7-P8 | L7-P0 | voir ligne L7-P8 du plan phase 1 | .worktrees/livraison-complete-b--L7-P8 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 0755a06 | — |
 | L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | supprimé | terminée, mergée (827f028), graphe c606f05 | 2 | df41743 | rejeu : 110 tests `TESTS OK`, Totals 10 (pagezoom) et 12 (transitions) ; rouge vu sur ee87059 (3 échecs) |
@@ -58,6 +58,9 @@ toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · doub
 
 - L7-P2 : 4 tests en plus gardés (Totals 10 pagezoom, 12 transitions au lieu de 8 et 10) ; le déplacement sous le seuil de panoramique n'est plus perdu (écart au plan).
 - L7-P0 : revue statique « accepter » (3 mineurs sans effet : `\.` dans le motif CMake, 3 lignes au lieu d'une dans tests/CMakeLists.txt, préfixe `feat:` des messages).
+
+- L7-P3 : angle affiché en sens trigonométrique, comme la référence Python (le plan l. 1273 disait l'inverse) ; vaut aussi pour rapporteur et compas (L7-P4).
+- Revue statique des wip P7/P8 (scratchpad revue-wip-p7-p8.md) à transmettre aux agents de reprise : P7 géométrie rendue non vérifiée, `major`/`minor` macros ; P8 commentaires COM hors `_win.cpp`, receveur local dans les tests.
 
 ## À reporter en phase 2 (de L7-T0)
 Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrateur » de `docs/verifications/2026-10-18-lot7-principes.md` : T3/T6 (position du rideau par page, propriété 27), T4 (capture de la zone, curseurs, contour 10), T9–T11 (curseurs par zone, translucidité 100), T12 (mine à la couleur du stylo), T14 (1 dé, mémorisé), T15 (transfert sur la page), T16/T19 (H7-14, H7-15), T20 (polygone), T21 (délai 1 s), T24–T27 (palettes d'équation). P20 (symétries autour de l'origine) → lot 5.
