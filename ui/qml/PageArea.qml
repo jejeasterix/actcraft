@@ -24,6 +24,7 @@ Item {
         content: pageContent
         fixedPage: fixedPageItem
         ink: inkLayer
+        pendingLayer: pendingLayerItem
         documentController: area.documentController
         // Branché dès la création de la vue (un bloc Connections ne l'est qu'en fin de composant).
         onCacheRefreshRequested: cache.scheduleUpdate()
@@ -54,6 +55,15 @@ Item {
                 // = kMsaaSamples (app/renderbackend.h) ; attendu par bench/scenarios/anticrenelage.json.
                 samples: 4 // L10-T5 : texture du cache lissée en RHI (sans effet en rendu logiciel)
                 onScheduledUpdateCompleted: view.notifyCacheUpdated()
+            }
+
+            // Lot 10 : objets ajoutés depuis le dernier redessin du cache, dessinés au-dessus de lui. Sœur du
+            // cache, jamais enfant de la page fixe : hideSource la cacherait avec elle.
+            PendingLayer {
+                id: pendingLayerItem
+                objectName: "pendingLayer"
+                anchors.fill: parent
+                fixedPage: fixedPageItem
             }
 
             InkLayer {

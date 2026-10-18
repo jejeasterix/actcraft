@@ -72,13 +72,32 @@ private slots:
         const QJsonObject raw = pauses.value("raw").toObject();
         const QJsonArray requests = raw.value("cache_request_ns").toArray();
         const QJsonArray updates = raw.value("cache_updated_ns").toArray();
-        // Lot 2 : un redessin par trait de « pauses », 4 en court ; au moins 3 exigés (la fin du dernier peut
-        // tomber après la fenêtre). L10-T4 abaisse ce minimum à 2 (versement différé, reprise k = 0 exclue).
-        QVERIFY2(cache.value("refreshes").toInt() >= 3, "un redessin par trait attendu (ancien cache)");
-        QVERIFY(requests.size() >= 3);
-        QVERIFY(updates.size() >= 3);
+        // L10-T4 : versement différé. En court, 4 traits ; la reprise k = 0 tombe à 500 ms tout juste et
+        // relance la minuterie, la reprise k = 1 (524 ms) fait verser. En debug, ce redessin du cache en
+        // rendu logiciel (environ 300 ms, fumée du 2026-10-18) retarde le relâché du trait suivant et ramène
+        // la pause k = 2 (548 ms prévus) sous le délai : seul ce premier versement est garanti. Le garde du
+        // différé, sans minutage, est deferredFoldShowsInTheResult.
+        QVERIFY2(cache.value("refreshes").toInt() >= 1, "au moins un versement attendu dans pauses");
+        QVERIFY(requests.size() >= 1);
+        QVERIFY(updates.size() >= 1);
         for (qsizetype i = 1; i < requests.size(); ++i) {
             QVERIFY(requests.at(i).toDouble() >= requests.at(i - 1).toDouble());
+        }
+    }
+
+    // L10-T4 : aucun redessin du cache pendant « stroke » (pauses de 60 ms en court, sous le délai
+    // d'inactivité), et au moins un objet a attendu au-dessus du cache dans « pauses ».
+    void deferredFoldShowsInTheResult()
+    {
+        const QJsonArray scenarios = m_root.value("scenarios").toArray();
+        QCOMPARE(scenarios.at(0).toObject().value("cache").toObject().value("refreshes").toInt(), 0);
+        QVERIFY(scenarios.at(4).toObject().value("cache").toObject().value("pending_max").toInt() >= 1);
+        // Revue de L10-T4 : « zoom », « scroll » et « page » ne tracent rien ; ce qui attendait à la fin du
+        // scénario précédent est versé avant leur mesure (Runner::setLevel) et n'y paraît pas.
+        for (qsizetype i = 1; i <= 3; ++i) {
+            const QJsonObject scenario = scenarios.at(i).toObject();
+            QVERIFY2(scenario.value("cache").toObject().value("pending_max").toInt() == 0,
+                     qPrintable(scenario.value("name").toString()));
         }
     }
 
@@ -120,7 +139,7 @@ private slots:
         const QJsonObject check = m_root.value("content_check").toObject();
         QVERIFY(check.value("ok").toBool());
         const QJsonArray checks = check.value("checks").toArray();
-        QCOMPARE(checks.size(), 4);
+        QCOMPARE(checks.size(), 5); // L10-T4 : stroke-folded
         for (const QJsonValue& c : checks) {
             QVERIFY2(c.toObject().value("ok").toBool(), qPrintable(c.toObject().value("name").toString()));
         }

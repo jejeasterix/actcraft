@@ -2,6 +2,7 @@
 
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/render/pendinglayeritem.h>
 
 #include <QtQml/qqmlregistration.h>
 
@@ -20,6 +21,14 @@ struct InkLayerForeign
     Q_GADGET
     QML_FOREIGN(actcraft::render::InkItem)
     QML_NAMED_ELEMENT(InkLayer)
+};
+
+// Lot 10 : couche d'attente, au-dessus du cache (PageArea.qml).
+struct PendingLayerForeign
+{
+    Q_GADGET
+    QML_FOREIGN(actcraft::render::PendingLayerItem)
+    QML_NAMED_ELEMENT(PendingLayer)
 };
 
 } // namespace actcraft::ui

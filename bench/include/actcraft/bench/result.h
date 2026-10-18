@@ -67,6 +67,7 @@ struct ScenarioResult
     // core::monotonicNowNs()), pour attribuer un figement ou une reprise à un redessin du cache.
     std::vector<std::int64_t> cacheRequestNs;
     std::vector<std::int64_t> cacheUpdatedNs;
+    int pendingMax = 0; // L10-T4 : plus grand FixedPageItem::pendingCount pendant le scénario
 };
 
 struct BenchResult

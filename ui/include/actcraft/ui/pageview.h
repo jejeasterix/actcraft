@@ -3,6 +3,7 @@
 #include <actcraft/core/inkprobe.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/render/pendinglayeritem.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/viewtransform.h>
 
@@ -50,6 +51,9 @@ class PageView : public QQuickItem
     Q_PROPERTY(
         actcraft::render::FixedPageItem* fixedPage READ fixedPage WRITE setFixedPage NOTIFY fixedPageChanged)
     Q_PROPERTY(actcraft::render::InkItem* ink READ ink WRITE setInk NOTIFY inkChanged)
+    // Lot 10 : couche d'attente au-dessus du cache. Branchée et cache actif : la page fixe est en différé.
+    Q_PROPERTY(actcraft::render::PendingLayerItem* pendingLayer READ pendingLayer WRITE setPendingLayer NOTIFY
+                   pendingLayerChanged)
     Q_PROPERTY(actcraft::ui::DocumentController* documentController READ documentController WRITE
                    setDocumentController NOTIFY documentControllerChanged)
     Q_PROPERTY(QColor inkColor READ inkColor WRITE setInkColor NOTIFY penChanged)
@@ -68,6 +72,14 @@ public:
     void setFixedPage(render::FixedPageItem* page);
     render::InkItem* ink() const noexcept;
     void setInk(render::InkItem* ink);
+    // Lot 10 (DA11) : couche d'attente branchée, qui regarde la page fixe de la vue, et cache actif, un objet
+    // ajouté en fin de page attend au-dessus du cache ; il y est versé après kCacheFoldIdleMs sans entrée qui
+    // agit (un survol ne compte pas), dès kCacheFoldMaxPending objets en attente, et à tout redessin du cache
+    // (requestCacheRefresh : zoom, page, reconstruction). Sans couche (ou couche détruite, ou couche d'une
+    // autre page fixe), ou sans cache : comportement du lot 2. Une page fixe remplacée quitte le différé.
+    render::PendingLayerItem* pendingLayer() const noexcept;
+    void setPendingLayer(render::PendingLayerItem* layer);
+    bool foldTimerActive() const noexcept; // crochet de test
     DocumentController* documentController() const noexcept;
     // Posé : le stylo verse ses traits au document par la pile du contrôleur (ControllerSink), qui doit
     // montrer la même page fixe que la vue. Sinon : dans la page interne de la page fixe (banc, tests).
@@ -90,7 +102,8 @@ public:
     bool cacheEnabled() const noexcept;
     void setCacheEnabled(bool enabled);
     QSize cacheTextureSize() const noexcept;
-    // Vrai quand la texture du cache correspond à la page et au zoom courants (toujours vrai sans cache).
+    // Vrai quand ce qui est affiché (texture du cache et couche d'attente) correspond à la page et au zoom
+    // courants (toujours vrai sans cache) ; un objet qui attend son versement ne le rend pas faux.
     bool cacheReady() const noexcept;
     const ViewTransform& viewTransform() const noexcept;
     QColor inkColor() const noexcept;
@@ -112,6 +125,9 @@ public:
 
     Q_INVOKABLE void fitPage();
     // Demande un redessin du cache (QML : cache.scheduleUpdate()) ; sans cache, « prêt » tout de suite.
+    // Lot 10 : verse d'abord les objets en attente (FixedPageItem::foldPending), dans le même tour de boucle
+    // que la demande : la synchronisation suivante photographie une scène qui les contient pendant que la
+    // couche d'attente ne les dessine plus. Un objet inséré après la demande attend le versement suivant.
     // La demande part toujours tout de suite (un trait figé n'attend pas, décision 10). Si elle arrive
     // pendant un redessin, la fin de celui-ci en relance un autre : cacheReady ne redevient vrai qu'après un
     // redessin commencé après la dernière demande. Une demande perdue (QML pas encore branché) est rattrapée
@@ -139,6 +155,7 @@ signals:
     void cacheUpdated();
     void fixedPageChanged();
     void inkChanged();
+    void pendingLayerChanged();
     void documentControllerChanged();
     void strokeFrozen();
     void penChanged();
@@ -174,6 +191,11 @@ private:
     bool coveredAt(QPointF viewPos) const;
     // Termine le trait d'un doigt (deuxième doigt, annulation) par un relâché au dernier point connu.
     void finishTouchStroke();
+    // Lot 10 : différé posé sur la page fixe quand le cache est actif et une couche d'attente branchée.
+    void updateDeferral();
+    void onPendingChanged();
+    // Une entrée qui agit relance la minuterie du versement, si elle court.
+    void postponeFold();
 
     render::FixedPageItem* m_fixedPage = nullptr;
     render::InkItem* m_ink = nullptr;
@@ -187,6 +209,10 @@ private:
     std::unique_ptr<input::Pipeline> m_pipeline;
     QMetaObject::Connection m_readyConnection;
     QMetaObject::Connection m_contentConnection; // contentChanged de la page fixe : redessin du cache
+    QMetaObject::Connection m_pendingConnection; // pendingChanged de la page fixe : minuterie, plafond
+    QPointer<render::PendingLayerItem> m_pendingLayer;
+    QMetaObject::Connection m_layerPageConnection;      // la couche change de page fixe : différé revu
+    QMetaObject::Connection m_layerDestroyedConnection; // la couche détruite : différé levé
     QPointer<QQuickWindow> m_filteredWindow; // variante B : le stylet est capté par un filtre sur la fenêtre
 
     QQuickItem* m_content = nullptr;
@@ -201,6 +227,7 @@ private:
     bool m_refreshAgain = false;    // une demande est arrivée pendant ce redessin : en refaire un à sa fin
     QSize m_cacheTextureSize;
     QTimer m_cacheTimer;
+    QTimer m_foldTimer; // lot 10 : versement après kCacheFoldIdleMs sans entrée qui agit
     QList<const QInputDevice*> m_exclusive;
     QColor m_inkColor = Qt::black;
     qreal m_inkWidth = kDefaultInkWidth;
