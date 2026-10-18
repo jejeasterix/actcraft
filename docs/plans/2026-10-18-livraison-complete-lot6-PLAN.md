@@ -2,6 +2,46 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 1 (relecture tour 1)
+
+Relecture du plan sur `809919b` : 1 bloquant, 15 majeurs, 8 mineurs, tous appliqués dans 6a et 6b. **Cet amendement
+fait autorité** ; chaque section touchée porte en fin de section un bloc « Amendement 1 », qui l'emporte sur le texte
+qui le précède. Noms vérifiés à la tête du chantier (`.worktrees/livraison-complete`, `8189906` : L10-T8 et L0-S3
+mergées) et à la tête du plan du lot 5 (`0112b7f`).
+
+| # | Constat | Correction | Où |
+|---|---|---|---|
+| 1 | `Commands::setEnabled` compare à l'état filtré par le verrou (`ui/src/commands.cpp:267-273`) : une commande désactivée pendant le verrou serait vue active au déverrouillage | registre : `isOwnEnabled(id)` (état propre, sans le verrou) ; `Commands::setEnabled` compare à cet état | L6-T3 (registre), L6-T31 (`commands.cpp`, test `disabledDuringLockStaysDisabled`) |
+| 2 | garde de contact mal nommée | `ui::PageView::contactActive` / `contactActiveChanged` (L4-T17) ; toutes les propriétés « pendant un contact » du lot s'appellent `contactActive` | A6, L6-T5, L6-T7, L6-T12, L6-T14, L6-T20, L6-T22 |
+| 3 | contrôleurs du lot 6 qui contournent le verrou (`execute` direct) | chaque contrôleur qui modifie le document lit `commands->registry().isLocked()` et refuse ; un test `refusedWhileLocked` par contrôleur, une voie par contrôleur rejouée dans `everyLot6ControllerRefuses` | L6-T9, L6-T12, L6-T14, L6-T16, L6-T20, L6-T31 |
+| 4 | gestionnaires talons dans `Main.qml` : ordre des `Component.onCompleted` indéfini | le gestionnaire talon d'une commande est posé **dans le fichier QML où sa tâche propriétaire écrira le vrai** (table de L6-T2) | L6-T2 et chaque tâche QML |
+| 5 | talon `PaletteFrame` masqué → palette invisible | talon visible, à la taille de son contenu | L6-T2 |
+| 6 | preuve de L6-T6 inatteignable | `profile.activate` géré en C++ par `ProfileController` (L6-T5, `Commands::setNativeHandler`) ; L6-T6 passe en V5, après L6-T7 | L6-T5, L6-T6, vagues |
+| 7 | section L6-T8 corrompue | réécrite | L6-T8 |
+| 8 | identifiant de profil importé non validé (chemin) | `^[a-z0-9-]+$` vérifié dans `load`, `save`, `saveAs`, `importFrom`, `activate` ; test `importRejectsPathId`, `pathLikeIdRefused` | L6-T4, L6-T5 |
+| 9 | confirmation d'un raccourci étranger sans paramètres | signal `confirmationNeeded(id, path, arguments)` ; test `confirmationShowsPathAndArguments` | L6-T29 |
+| 10 | notes réécrites à chaque changement de page | valeur identique ignorée, garde « chargement » ; test `switchingPageCreatesNoStep` | L6-T16 |
+| 11 | mode conception pendant un contact ; miniatures et export | bascule différée jusqu'au relâché ; `showHiddenTranslucent` réservé au rendu à l'écran ; tests `toggleDeferredDuringContact`, `thumbnailsNeverShowHidden` | L6-T22 |
+| 12 | vignettes de ressources rendues pendant un contact | même garde que L4-T17 ; test `thumbnailsPostponedDuringContact` | L6-T20 |
+| 13 | scénarios qui écriraient dans le registre Windows réel | `Preferences` emploie `QSettings()` (format par défaut) ; le joueur de captures et le banc posent `QSettings::setDefaultFormat(IniFormat)` et `QSettings::setPath(IniFormat, UserScope, <sortie>/reglages)` avant tout objet ; test `defaultConstructorFollowsTheDefaultFormat` | L6-T5 (`bench/captures/main.cpp`, `bench/app/main.cpp`) |
+| 14 | noms de l'original écrits dans `tst_ui_profiles.cpp` | liste lue hors dépôt (`ACTCRAFT_REFERENCE_NAMES`), test sauté et signalé sans elle | L6-T6 |
+| 15 | `SetObjectPropertiesCommand` réimplémente couche, visibilité, verrou, translucidité | délégués à `SetLayerCommand`, `SetObjectFlagCommand` (lot 5) et `SetTranslucencyCommand` (lot 3) ; test `layerVisibleLockedTranslucencyAreDelegated`, `delegatedEditsUseTheLotCommands` | L6-T11, L6-T12 |
+| 16 | licence de Hunspell (LGPL en statique contraire à la décision 34) | deux options écrites, MPL 1.1 recommandée, **décision de Jérôme H6-6b** | D6-9, H6-6b, L6-T32 |
+| 17 | PBKDF2 sur le fil principal | calcul sur `QThreadPool`, itérations réglables (1 000 dans les tests) ; test `hashingOffTheMainThread` | L6-T31 |
+| 18 | message signé ambigu ; `.bat` et `.cmd` | message HMAC = tableau JSON compact `[path, arguments, toolTip]` ; `.bat`, `.cmd` refusés en lancement direct ; tests `signatureIsUnambiguous`, `batAndCmdRefused` | L6-T29 |
+| 19 | `packaging/qt-autorises.txt` contient déjà `Qt6Network` | fichier retiré de L6-T31 | L6-T31 |
+| 20 | `ArgumentKind::Text` absent de la table A | A22 (L0-S4) | table A |
+| 21 | `noShortcutTwice` est dans `tst_actions_registry` | preuve et commande ciblée de L6-T1 corrigées | L6-T1 |
+| 22 | `Theme.qml` est un singleton à `tailleIcone` en lecture seule | `tailleIcone` rendu modifiable et **lié** au profil par `PaletteFrame.qml` ; aucun `iconPixels` dans `Theme` | L6-T7 |
+| 23 | L6-P1, L6-P2 enregistreront des tests | N = N6 + 43 + p | compteur |
+| 24 | L6-T17 dépend de L6-T13 (éditeur `label`) | dépendance ajoutée | table |
+
+Table A : A3, A6, A9, A10, A11 réécrites avec les noms réels ; A21 (6b) aussi ; A22 et A23 ajoutées. L6-T14 n'a plus
+de repli vers L6-T11 (A9 existe). L6-T9 et L6-T19 réutilisent `formats::resourcesFor` et `encodeClipboard`.
+
+Hypothèses (H6-1 à H6-10) : écrites dans « Hypothèses pour Jérôme », posées à la porte de fin du lot ; H6-6
+(dictionnaire) et H6-6b (licence) dès maintenant, car L6-T32 en dépend.
+
 **But.** Version **0.7.0** (amendement 1, § 6), livrée à la fin du sous-lot 6b
 (`docs/plans/2026-10-18-livraison-complete-lot6b-PLAN.md`) : une seule PR, une seule version pour le lot. Le
 sous-lot 6a livre la tâche d'ouverture, les réservations, les attributs « verrouillable » et « restreignable » des
@@ -601,6 +641,10 @@ reprise de l'original ni du clone Python ; aucun libellé de l'original (N1-12) 
 - [ ] **Étape 9 : commit.** `git -C <wt> add` de chaque fichier de la ligne (chemins explicites ; jamais `-A`),
   `git -C <wt> diff --cached --stat` relu ; `NOMS OK` ; commit « Lot 6 : réservations, commandes et icônes (L6-T1) ».
 
+**Amendement 1 (L6-T1).** `noShortcutTwice` vit dans `tst_actions_registry` : commande ciblée
+`-R 'tst_actions_layout|tst_actions_registry|tst_ui_theme|tst_ui_commands'`. Les entrées `"argument": "text"`
+supposent `ArgumentKind::Text` (A22, L0-S4) : s'il manque au départ de la tâche, s'arrêter et le rendre au rapport.
+
 <a id="tache-l6-t2"></a>
 ### Tâche L6-T2 — Coquille QML du lot
 
@@ -696,6 +740,34 @@ ses tests existants, `shellLoadsWithoutQmlWarning` compris.
 - [ ] **Étape 6 : vert.** `-R tst_ui_shell` vert ; preuve de tâche ; preuve visuelle `premiers-pas` ; banc sans écran.
 - [ ] **Étape 7 : commit.** `git add` des fichiers de la ligne ; `NOMS OK` ; commit « Lot 6 : coquille QML et
   gestionnaires (L6-T2) ».
+
+**Amendement 1 (L6-T2).** Points 4 et 5.
+- **Gestionnaires talons** : aucun dans `Main.qml`. Chaque gestionnaire talon est posé dans le `Component.onCompleted`
+  du fichier QML où la tâche propriétaire écrira le vrai, pour qu'un seul fichier pose le gestionnaire d'une
+  commande : `palette.*` → `PaletteFrame.qml` (L6-T7) ; `color.*` → `ExtendedColors.qml` (L6-T8) ; `browser.*` →
+  `BrowserPanel.qml` (définitif, L6-T2) ; `shortcutbar.insert` → `ShortcutBar.qml` (L6-T9) ; `profile.*` sauf
+  `profile.activate` → `ProfileEditor.qml` (L6-T25) ; `profile.activate` → aucun (C++, L6-T5) ; `mode.design` →
+  `Main.qml` (L6-T22 l'y remplace) ; `view.dashboard` → `Dashboard.qml` (L6-T23) ; `file.recent-clear` →
+  `SaveSummaryDialog.qml` (L6-T24) ; `resources.*` → `ResourceBrowser.qml` (L6-T21) ; `launcher.*` →
+  `LaunchersPage.qml` (L6-T30) ; `classroom.*` → `ClassroomLockDialog.qml` (L6-T31) ; `spell.check` →
+  `SpellingDialog.qml` (L6-T34) ; `help.contents` → `HelpViewer.qml` (L6-T35) ; `settings.language` →
+  `SettingsPage.qml` (L6-T36). Ces talons QML sont instanciés une fois par `Main.qml`, ce qui exécute leur
+  `Component.onCompleted`. `everyLot6CommandHasAHandler` exclut `profile.activate` jusqu'à L6-T5 (marqueur de talon
+  dans le test, retiré par L6-T5 si L6-T5 est mergée avant, sinon par L6-T18).
+- **Talon de `PaletteFrame.qml`** visible, à la taille de la palette qu'il enveloppe :
+  ```qml
+  // Talon L6 : rempli par L6-T7.
+  import QtQuick
+
+  Item {
+      objectName: "paletteFrame"
+      default property alias content: holder.data
+      implicitWidth: holder.childrenRect.width
+      implicitHeight: holder.childrenRect.height
+      Item { id: holder; anchors.fill: parent }
+  }
+  ```
+  `Main.qml` garde l'ancrage actuel de la palette sur `paletteFrame` (à droite).
 
 <a id="tache-l6-t3"></a>
 ### Tâche L6-T3 — `actions` : attributs « verrouillable » et « restreignable », porte du verrou
@@ -856,6 +928,11 @@ déclare explicitement `lockable` et `restrictable`.
 - [ ] **Étape 6 : commit.** `git add` des quatre fichiers ; `NOMS OK` ; commit « Lot 6 : commandes verrouillables et
   restreignables, porte du verrou dans le registre (L6-T3) ». La mutation se fait après ce commit, la remise par
   `git checkout --`.
+
+**Amendement 1 (L6-T3).** Point 1 : ajouter au registre
+`bool isOwnEnabled(const QString& id) const; // état posé par setEnabled, sans le verrou ; faux si inconnue`
+et le test `ownStateSurvivesTheLock` (verrou posé, `setEnabled("a.b", false)` : `isOwnEnabled` faux ; verrou levé :
+`isEnabled` faux ; `setEnabled(true)` : `isOwnEnabled` vrai, et `isEnabled` faux tant que le verrou est posé).
 
 <a id="tache-l6-t4"></a>
 ### Tâche L6-T4 — `actions` : modèle de profil et magasin
@@ -1190,6 +1267,22 @@ l'original.
 - [ ] **Étape 7 : commit.** `git add` des cinq fichiers ; `NOMS OK` ; commit « Lot 6 : profils à nous et leur magasin
   (L6-T4) ».
 
+**Amendement 1 (L6-T4).** Point 8 : `ProfileStore` refuse tout identifiant hors `^[a-z0-9-]+$` dans `load`, `save`,
+`saveAs`, `remove`, `reset`, `exportTo` et `importFrom` (un fichier importé dont `id` vaut `..\..\x` est refusé, rien
+n'est écrit) ; test `importRejectsPathId` :
+```cpp
+void importRejectsPathId()
+{
+    auto s = store();
+    QString error;
+    const QString file = m_user.filePath(QStringLiteral("mauvais.json"));
+    QVERIFY(writeFile(file, R"({"format":"actcraft-profile-export/1","profile":{"format":"actcraft-profile/1","id":"..\\..\\x","label":"X"},"layout":null})"));
+    QVERIFY(!s.importFrom(file, error));
+    QVERIFY(!error.isEmpty());
+    QCOMPARE(QDir(m_user.path()).entryList(QDir::Files), QStringList{QStringLiteral("mauvais.json")});
+}
+```
+
 <a id="tache-l6-t5"></a>
 ### Tâche L6-T5 — `ui` : réglages du poste et contrôleur de profil
 
@@ -1518,6 +1611,19 @@ contact ; ne pas modifier `commands.*` (A1 suffit).
 - [ ] **Étape 7 : commit.** `git add` des six fichiers ; `NOMS OK` ; commit « Lot 6 : réglages du poste et profil
   courant, enregistrement implicite hors écriture (L6-T5) ».
 
+**Amendement 1 (L6-T5).** Points 2, 6, 8, 13.
+- Propriété `contactActive` (et non `inputActive`), liée par L6-T7 à `PageView::contactActive` (A6).
+- `Commands` gagne `void setNativeHandler(const QString& id, actions::CommandRegistry::Handler handler);` gardé à
+  travers `reload()` (table de gestionnaires C++ à côté de `m_handlers`) ; `ProfileController` y enregistre
+  `profile.activate` (argument texte = identifiant). Test `activateCommandIsNative` : `commands.trigger("profile.activate", "en-classe")`
+  sans QML → `currentId` vaut `en-classe`.
+- `activate` refuse un identifiant hors `^[a-z0-9-]+$` (test `pathLikeIdRefused`).
+- `Preferences()` construit `QSettings()` (format par défaut : jamais `NativeFormat` explicite). `bench/captures/main.cpp`
+  et `bench/app/main.cpp`, avant de créer quoi que ce soit : `QStandardPaths::setTestModeEnabled(true)`,
+  `QSettings::setDefaultFormat(QSettings::IniFormat)`, `QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, <dossier de sortie>/reglages)`.
+  Test `defaultConstructorFollowsTheDefaultFormat` : format par défaut INI et chemin temporaire posés dans le test →
+  `Preferences().setLanguage("fr")` écrit un fichier sous ce chemin.
+
 <a id="tache-l6-t6"></a>
 ### Tâche L6-T6 — Cinq profils fournis, à nos noms
 
@@ -1657,6 +1763,12 @@ non déclaré est **retiré** et listé au rapport (le lot 8 l'ajoutera).
 - [ ] **Étape 6 : commit.** `git add` des sept fichiers ; `NOMS OK` ; contrôle des titres du corpus vide ; commit
   « Lot 6 : cinq profils fournis à nos noms (L6-T6) ».
 
+**Amendement 1 (L6-T6).** Points 6 et 14. Dépend aussi de L6-T7 (groupe « profil » de la palette), vague V5.
+`profile.activate` est géré en C++ (L6-T5). `namesAreOurs` lit la liste des noms de l'original **hors dépôt** :
+variable `ACTCRAFT_REFERENCE_NAMES` = chemin d'un fichier texte écrit par l'orchestrateur sous
+`C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot6-noms-profils.txt` (un nom par ligne) ; sans elle, le test est
+sauté et le rapport le dit. Aucun de ces noms n'est écrit dans le dépôt.
+
 <a id="tache-l6-t7"></a>
 ### Tâche L6-T7 — Palette : ancrage, réduite, épinglée, taille des icônes
 
@@ -1763,6 +1875,14 @@ bloc posé par L6-T2 pour cette tâche (fichier hors de la ligne : la liaison s'
 - [ ] **Étape 5 : vert**, preuve visuelle, banc sans écran, preuve de tâche.
 - [ ] **Étape 6 : commit** « Lot 6 : palette ancrable, flottante, réduite, épinglée ; taille des icônes (L6-T7) ».
 
+**Amendement 1 (L6-T7).** Points 2, 4, 22.
+- `Theme.qml` (singleton) : `readonly property int tailleIcone: 24` devient `property int tailleIcone: 24` ; aucune
+  propriété `iconPixels` n'y est ajoutée. `PaletteFrame.qml` pose
+  `Binding { target: Theme; property: "tailleIcone"; value: appProfile.iconPixels }` et
+  `Binding { target: appProfile; property: "contactActive"; value: pageView.contactActive }`.
+- Les icônes lisent déjà `Theme.tailleIcone` : remplacer seulement les tailles d'icônes écrites en dur, s'il en reste.
+- Les gestionnaires `palette.*` remplacent ceux du talon, dans `PaletteFrame.qml`.
+
 <a id="tache-l6-t8"></a>
 ### Tâche L6-T8 — Palette de couleurs étendue et copieur de couleur
 
@@ -1858,6 +1978,8 @@ clic ; aucune capture par mouvement de pointeur.
 - [ ] **Étape 6 : vert**, preuve visuelle, banc sans écran, preuve de tâche ; commit « Lot 6 : palette de couleurs
   étendue et copieur de couleur (L6-T8) ».
 
+**Amendement 1 (L6-T8).** Section réécrite (point 7). Les gestionnaires `color.*` sont dans `ExtendedColors.qml`.
+
 <a id="tache-l6-t9"></a>
 ### Tâche L6-T9 — Barre de raccourcis : historique des outils, objets glissés
 
@@ -1942,6 +2064,13 @@ bouton n'est pas une ressource (navigateur de ressources : L6-T21).
   `shortcutbar.insert` réservée à l'ajout par menu contextuel ; clic → `insert`).
 - [ ] **Étape 4 : vert**, banc sans écran, preuve de tâche ; commit « Lot 6 : barre de raccourcis, historique et
   objets glissés (L6-T9) ».
+
+**Amendement 1 (L6-T9).** Points 3 et A10.
+- Un bouton d'objet garde `encodeClipboard(ClipboardPayload{objets, resourcesFor(document, objets)})` en Base64 dans
+  `shortcutObjects` ; `insert` le relit par `decodeClipboard`, donne des identifiants neufs et ajoute les ressources
+  manquantes, puis une seule commande (la même voie que le collage du lot 5).
+- `insert` et `addObjects` rendent faux, sans rien exécuter, quand `commands->registry().isLocked()` ; test
+  `refusedWhileLocked`.
 
 <a id="tache-l6-t10"></a>
 ### Tâche L6-T10 — `core` + `formats` : mots-clés, description de page, style d'étiquette
@@ -2136,6 +2265,13 @@ faux → `sliderDragMergesIntoOneStep` rouge, remise par `git checkout --`.
   `git -C <wt> checkout -- core/src/propertyedits.cpp`) ; preuve de tâche.
 - [ ] **Étape 4 : commit** « Lot 6 : commandes de propriétés d'objet et de page, une étape (L6-T11) ».
 
+**Amendement 1 (L6-T11).** Point 15. `ObjectProperty::Layer`, `Visible`, `Locked` et `Translucency` restent lisibles par
+`readProperty`, mais ne sont **pas** écrits par `SetObjectPropertiesCommand` : `bool isDelegated(ObjectProperty)` rend
+vrai pour eux, et `redo` d'une commande sur une propriété déléguée ne change rien (`Changes` vide). Le modèle (L6-T12)
+emploie `core::SetLayerCommand`, `core::SetObjectFlagCommand` (`Hidden`, `Locked`) et `core::SetTranslucencyCommand`
+(A9, A23). Le test `layerChangeMovesTheObject` est remplacé par `layerVisibleLockedTranslucencyAreDelegated`
+(`isDelegated` vrai pour les quatre, faux pour les autres ; `redo` sans effet sur une déléguée).
+
 <a id="tache-l6-t12"></a>
 ### Tâche L6-T12 — `ui` : modèle du navigateur de propriétés
 
@@ -2236,6 +2372,14 @@ aucune demande de redessin du cache (un changement de sélection ne touche pas l
   inchangé après trois changements de sélection).
 - [ ] **Étape 3 : rouge, implémentation, vert** ; banc sans écran ; preuve de tâche.
 - [ ] **Étape 4 : commit** « Lot 6 : modèle du navigateur de propriétés (L6-T12) ».
+
+**Amendement 1 (L6-T12).** Points 2, 3, 15.
+- Propriété `contactActive` (liée à `pageView.contactActive`).
+- Propriété `commands` (`Commands*`) : `setValue` rend faux quand le verrou est posé (test `refusedWhileLocked`).
+- `setValue` sur `layer`, `visible`, `locked`, `translucency` exécute `SetLayerCommand`, `SetObjectFlagCommand` ou
+  `SetTranslucencyCommand` (test `delegatedEditsUseTheLotCommands` : chaque édition ajoute une étape et relit la
+  valeur ; un glisser de translucidité fait une étape si `SetTranslucencyCommand` fusionne, A23, sinon le rapport le
+  note).
 
 <a id="tache-l6-t13"></a>
 ### Tâche L6-T13 — QML : navigateur de propriétés ; scénario `proprietes`
@@ -2371,6 +2515,14 @@ reportées pendant un contact (D6-5).
 - [ ] **Étape 3 : rouge, implémentation, vert** ; banc sans écran ; preuve de tâche ; commit « Lot 6 : modèle du
   navigateur d'objet (L6-T14) ».
 
+**Amendement 1 (L6-T14).** Points 2, 3, A9. Plus de repli vers L6-T11 :
+- glisser dans une même couche → `core::ReorderObjectsCommand(page, nouvelOrdre)` ;
+- glisser vers une autre couche → `core::SetLayerCommand` (l'objet arrive au sommet de la couche visée : une étape ;
+  la position exacte dans la couche d'arrivée est hors de ce lot, à trancher par L6-T0, D10) ;
+- colonnes masqué et verrouillé → `core::SetObjectFlagCommand(page, {id}, ObjectFlag::Hidden|Locked, valeur)`.
+Propriétés `contactActive` et `commands` ; `move`, `setHidden`, `setLocked` rendent faux sous verrou (test
+`refusedWhileLocked`).
+
 <a id="tache-l6-t15"></a>
 ### Tâche L6-T15 — QML : navigateur d'objet ; scénario `navigateur-objets`
 
@@ -2473,6 +2625,11 @@ continue se fusionne en une étape (même page, moins de 2 s entre deux frappes)
   `notes-p2.png`, `page.previous`, `expect notesIcon.visible = false`, capture `p1-sans.png`, `page.next`).
 - [ ] **Étape 4 : vert**, preuve visuelle, banc, preuve de tâche ; commit « Lot 6 : navigateur de notes (L6-T16) ».
 
+**Amendement 1 (L6-T16).** Points 3 et 10. `NotesController` ignore une valeur identique au texte courant et pose une
+garde « chargement » pendant qu'il recharge le texte d'une page (le `TextArea` qui se remplit n'exécute rien) ; test
+`switchingPageCreatesNoStep` (trois changements de page sans frappe : `canUndo` faux, document non modifié). Propriété
+`commands` : écrire `html` sous verrou ne change rien (test `refusedWhileLocked`).
+
 <a id="tache-l6-t17"></a>
 ### Tâche L6-T17 — Étiquettes
 
@@ -2508,6 +2665,9 @@ cache (élément QML au-dessus de la page).
   survol au centre de la forme, attente 600 ms, `expect labelTip.text = Soleil`, capture `bulle.png`).
 - [ ] **Étape 4 : vert**, preuve visuelle, banc, preuve de tâche ; `NOMS OK` ; commit « Lot 6 : étiquettes des objets
   (L6-T17) ».
+
+**Amendement 1 (L6-T17).** Dépend aussi de L6-T13 : le scénario saisit la légende par l'éditeur `label` du navigateur
+de propriétés.
 
 <a id="tache-l6-t18"></a>
 ### Tâche L6-T18 — Point d'étape 6a : S9 de bout en bout
@@ -2560,6 +2720,11 @@ vide, `NOMS OK`, `graphify update .` commité.
 - [ ] **Étape 4 : vert**, preuves (debug et release), captures `-Scenario tous` hors écran, banc sans écran.
 - [ ] **Étape 5 : contrôle des talons** (commande du critère) ; `graphify update .` ; `git add` des fichiers de la ligne
   et de `graphify-out/` ; `NOMS OK` ; commit « Lot 6 : point d'étape 6a, réglages gardés de bout en bout (L6-T18) ».
+
+**Amendement 1 (L6-T18).** Le joueur emploie le dossier de réglages INI posé par L6-T5 : vérifier, avant et après
+`reglages-gardes`, que `HKCU\Software\ActCraft` n'a gagné aucune valeur
+(`Get-ItemProperty -Path 'HKCU:\Software\ActCraft\*' -ErrorAction SilentlyContinue` identique). Contrôle des talons :
+inclure le marqueur de `everyLot6CommandHasAHandler` posé par L6-T2.
 
 ---
 
