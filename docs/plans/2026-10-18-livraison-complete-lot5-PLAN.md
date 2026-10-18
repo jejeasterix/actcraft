@@ -668,3 +668,734 @@ commit.
 - [ ] **Étape 5 : preuves** (commande ciblée, captures `premiers-pas`), `format.ps1 -Check`.
 - [ ] **Étape 6 : commit** des chemins de la table, `NOMS OK`, message « Lot 5 : coquille QML des fonctions d'édition
   et de fichiers » terminé par la ligne `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+
+### Tâche L5-T3 — `formats` : presse-papiers d'objets
+
+<a id="tache-l5-t3"></a>
+
+**Objectif.** Remplir `formats/src/clipboard.cpp` (contrat figé : annexe A, `clipboard.h`). La charge utile du
+presse-papiers transporte des objets **sans perte** (tous les types, types inconnus compris, L2-C8) et les ressources
+qu'ils citent (images, médias), pour coller dans un autre onglet ou une autre instance d'ActCraft. Le patron évident
+(sérialiser chaque objet à la main) est le mauvais : **réutiliser le code d'objet du format natif** (`nativejson.cpp`,
+fonctions d'écriture et de lecture d'un objet ; si elles sont internes au fichier, les exposer dans un en-tête interne
+`formats/src/nativeobjects.h` — fichier ajouté à la tâche, écart au rapport) pour que le presse-papiers et
+l'enregistrement ne divergent jamais.
+
+**Fichiers.** `formats/src/clipboard.cpp`, `tests/tst_formats_clipboard.cpp` (et, au besoin, `formats/src/nativeobjects.h`).
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_formats_clipboard)$`. Fonctions :
+```cpp
+void TestClipboard::roundTripKeepsEveryKind()
+{
+    // Un objet de chaque type d'ObjectKind (Shape, Image, Stroke, Line, Text, Media, Group, Connector, Unknown).
+    formats::ClipboardPayload payload = sampleOfEveryKind(); // aide du test : fabrique à nous
+    const auto back = formats::decodeClipboard(formats::encodeClipboard(payload));
+    QVERIFY(back);
+    QCOMPARE(back->objects.size(), payload.objects.size());
+    for (std::size_t i = 0; i < payload.objects.size(); ++i)
+        QCOMPARE(objectFingerprint(back->objects[i]), objectFingerprint(payload.objects[i]));
+}
+void TestClipboard::resourcesTravelWithObjects()
+{
+    core::Document document = documentWithImage(); // une ImageObject et sa ressource PNG
+    const auto resources = formats::resourcesFor(document, document.pages[0].objects);
+    QCOMPARE(resources.size(), std::size_t(1));
+    formats::ClipboardPayload payload{document.pages[0].objects, resources};
+    const auto back = formats::decodeClipboard(formats::encodeClipboard(payload));
+    QVERIFY(back);
+    QCOMPARE(back->resources, resources);
+}
+void TestClipboard::groupMembersTravelTogether()
+{
+    // Le format ne remappe rien : identifiants et références du groupe identiques après l'aller-retour.
+    formats::ClipboardPayload payload = groupOfTwo();
+    const auto back = formats::decodeClipboard(formats::encodeClipboard(payload));
+    QVERIFY(back);
+    const auto* group = std::get_if<core::Group>(&back->objects.back());
+    QVERIFY(group);
+    QCOMPARE(group->members, (std::vector<core::ObjectId>{payload.objects[0].common.id, payload.objects[1].common.id}));
+}
+void TestClipboard::foreignPayloadRejected()
+{
+    QVERIFY(!formats::decodeClipboard(QByteArray("{\"format\":\"autre/1\",\"objects\":[]}")));
+    QVERIFY(!formats::decodeClipboard(QByteArray("pas du json")));
+    // Ressource citée absente, ou octets qui ne correspondent pas à leur clé SHA-256 : refusée.
+    QVERIFY(!formats::decodeClipboard(payloadWithWrongResourceKey()));
+}
+```
+Mutation : dans `encodeClipboard`, ne plus écrire les ressources → `resourcesTravelWithObjects` rouge ; remise par
+`git -C <wt> checkout -- formats/src/clipboard.cpp` ; vert.
+
+**Preuve visuelle.** Aucune.
+
+**Interdits.** Aucun champ d'objet écrit autrement que par le code du format natif. Ressources en base64 dans le JSON
+(pas de chemin de fichier). Pas de QtGui dans `formats/` (CMake le refuse).
+
+**Terminé quand.** 4 fonctions en `PASS` ; mutation rouge puis remise ; `tst_formats_nativejson` encore vert ;
+`NOMS OK` ; commit « Lot 5 : presse-papiers d'objets sans perte (formats) ».
+
+**Étapes.**
+- [ ] **Étape 1** : tests rouges ci-dessus (aides de fabrique écrites dans le test) ; commande ciblée → rouge.
+- [ ] **Étape 2** : `encodeClipboard` : objet JSON `{"format": "actcraft-objects/1", "objects": [ … objets écrits par
+  le code natif … ], "resources": { clé: base64 }}`, `QJsonDocument::Compact`.
+- [ ] **Étape 3** : `decodeClipboard` : contrôle du format, lecture des objets par le code natif, contrôle de chaque
+  ressource (SHA-256 des octets = clé, `QCryptographicHash::Sha256`), refus sinon ; `resourcesFor` parcourt les clés
+  citées (`ImageObject`, `Media.placeholder`, `Media.media`).
+- [ ] **Étape 4** : commande ciblée → vert ; mutation ; `format.ps1 -Check`.
+- [ ] **Étape 5** : commit (chemins explicites, `NOMS OK` après `git add`).
+
+### Tâche L5-T4 — `core` : copies prêtes à coller
+
+<a id="tache-l5-t4"></a>
+
+**Objectif.** Remplir `core/src/clipboardedits.cpp` (annexe A, `clipboardedits.h`). Point délicat, d'où le
+`concepteur-critique` : `ReplaceObjectsCommand` (A6) **ignore** l'identifiant porté par un ajout et tire les siens au
+premier `redo()` ; un groupe collé cite ses membres et un connecteur ses objets **par identifiant**. Le patron évident
+(poser des identifiants neufs avant d'ajouter) casse donc les références. Contrat : `preparePaste` remplace les
+identifiants par des rangs provisoires 1..n et remappe les références vers ces rangs ; `PasteObjectsCommand` exécute un
+`ReplaceObjectsCommand({}, prepared)` puis réécrit, dans la page, les références de rang en identifiant réel
+(`addedIds()[rang - 1]`) ; au redo suivant, mêmes identifiants (ils sont gardés par la commande intérieure), même
+réécriture. Les références ne changent aucun pixel : aucun `Change` en plus.
+
+**Fichiers.** `core/src/clipboardedits.cpp`, `tests/tst_core_clipboardedits.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_core_clipboardedits)$`. Fonctions (document de test : une
+page 1024 × 768, aides `addRect`, `addStroke`, `addGroup`, `addConnector` écrites dans le test) :
+```cpp
+void TestClipboardEdits::pasteOffsetsBy20()
+{
+    core::Document d = blank();
+    const auto a = addRect(d, {100, 100, 50, 50});
+    auto prepared = core::preparePaste(core::closureForCopy(d.pages[0], {a}), core::kPasteOffset, core::kPasteOffset);
+    core::UndoStack stack;
+    stack.push(std::make_unique<core::PasteObjectsCommand>(0, std::move(prepared)), d);
+    QCOMPARE(d.pages[0].objects.size(), std::size_t(2));
+    QCOMPARE(boundsOf(d.pages[0].objects[1]).topLeft(), core::PointF(120, 120));
+    stack.undo(d);
+    QCOMPARE(d.pages[0].objects.size(), std::size_t(1));
+}
+void TestClipboardEdits::duplicateOffsetsBy10AndSelectsCopy()
+{
+    core::Document d = blank();
+    const auto a = addRect(d, {100, 100, 50, 50});
+    auto command = core::makeDuplicateCommand(d.pages[0], 0, {a});
+    core::PasteObjectsCommand* raw = command.get();
+    core::UndoStack stack;
+    stack.push(std::move(command), d);
+    QCOMPARE(raw->addedIds().size(), std::size_t(1));
+    QCOMPARE(boundsOf(objectById(d, raw->addedIds()[0])).topLeft(), core::PointF(110, 110));
+}
+void TestClipboardEdits::copiesAreUnlockedAndUnnamed()
+{
+    core::Document d = blank();
+    const auto a = addRect(d, {0, 0, 10, 10});
+    objectById(d, a).common.locked = true;
+    objectById(d, a).common.name = "étiquette";
+    const auto copies = core::preparePaste(core::closureForCopy(d.pages[0], {a}), 0, 0);
+    QVERIFY(!copies[0].common.locked);
+    QVERIFY(copies[0].common.name.empty());
+}
+void TestClipboardEdits::groupReferencesRemapped()
+{
+    core::Document d = blank();
+    const auto a = addRect(d, {0, 0, 10, 10});
+    const auto b = addRect(d, {20, 0, 10, 10});
+    const auto g = addGroup(d, {a, b});
+    core::UndoStack stack;
+    stack.push(std::make_unique<core::PasteObjectsCommand>(0, core::preparePaste(core::closureForCopy(d.pages[0], {g}), 20, 20)), d);
+    const auto& group = std::get<core::Group>(d.pages[0].objects.back());
+    QCOMPARE(group.members.size(), std::size_t(2));
+    for (core::ObjectId member : group.members) {
+        QVERIFY(member != a && member != b);
+        QVERIFY(hasObject(d, member));
+    }
+    stack.undo(d);
+    stack.redo(d); // mêmes identifiants, références toujours justes
+    const auto& again = std::get<core::Group>(d.pages[0].objects.back());
+    QVERIFY(hasObject(d, again.members[0]) && hasObject(d, again.members[1]));
+}
+void TestClipboardEdits::connectorEndsRemapped()
+{
+    // Connecteur entre a et b, copié avec a seulement : objectA remappé vers la copie de a, objectB remis à 0.
+    core::Document d = blank();
+    const auto a = addRect(d, {0, 0, 10, 10});
+    const auto b = addRect(d, {100, 0, 10, 10});
+    const auto c = addConnector(d, a, b);
+    core::UndoStack stack;
+    stack.push(std::make_unique<core::PasteObjectsCommand>(0, core::preparePaste(core::closureForCopy(d.pages[0], {a, c}), 20, 20)), d);
+    const auto& link = std::get<core::Connector>(d.pages[0].objects.back());
+    QVERIFY(link.objectA != a && hasObject(d, link.objectA));
+    QCOMPARE(link.objectB, core::ObjectId(0));
+}
+void TestClipboardEdits::pasteOnObjectKeepsItsLayer()
+{
+    core::Document d = blank();
+    const auto a = addRect(d, {0, 0, 10, 10}, core::Layer::Top);
+    const auto target = addRect(d, {200, 200, 100, 100}, core::Layer::Bottom);
+    const auto copies = core::preparePasteOnto(core::closureForCopy(d.pages[0], {a}), objectById(d, target));
+    QCOMPARE(copies[0].common.layer, core::Layer::Bottom);
+    QCOMPARE(boundsOf(copies[0]).center(), core::PointF(250, 250));
+}
+void TestClipboardEdits::cutIsOneStep()
+{
+    core::Document d = blank();
+    const auto a = addRect(d, {0, 0, 10, 10});
+    const auto b = addStroke(d);
+    core::UndoStack stack;
+    stack.push(core::makeCutCommand(d.pages[0], 0, {a, b}), d);
+    QVERIFY(d.pages[0].objects.empty());
+    stack.undo(d);
+    QCOMPARE(d.pages[0].objects.size(), std::size_t(2));
+}
+```
+Noms des membres de `UndoStack` (`push`, `undo`, `redo`) et des aides de rect : ceux de `core/undo.h` et du modèle (A6,
+A20, à revérifier). Mutation : dans `PasteObjectsCommand::redo`, sauter la réécriture des références →
+`groupReferencesRemapped` rouge ; remise par `git -C <wt> checkout -- core/src/clipboardedits.cpp` ; vert.
+
+**Interdits.** Aucune autre commande d'ajout que `ReplaceObjectsCommand` (via `PasteObjectsCommand`) ; aucun
+`allocateId` appelé ici ; `makeCutCommand` rend un `ReplaceObjectsCommand(page, ids élargis par expandGroups, {})` ;
+aucune modification de `replace.cpp`.
+
+**Terminé quand.** 7 fonctions en `PASS` ; mutation rouge puis remise ; `tst_core_replace` encore vert ; commit
+« Lot 5 : copies prêtes à coller, références remappées (core) ».
+
+**Étapes.**
+- [ ] **Étape 1** : tests rouges ; commande ciblée → rouge.
+- [ ] **Étape 2** : `closureForCopy` : `expandGroups` (livré par L5-T5, vague V2, avant cette tâche) ; ordre de la
+  page ; connecteurs : lien gardé si l'objet est emporté, sinon 0.
+- [ ] **Étape 3** : `preparePaste` : ordre membres, groupes (du plus intérieur au plus extérieur), connecteurs ;
+  identifiants → rangs ; références remappées ; `translate` de chaque transformation de (dx, dy) ; nom vidé, verrou ôté.
+  `preparePasteOnto` : centre de l'union sur le centre de la cible, couche de la cible.
+- [ ] **Étape 4** : `PasteObjectsCommand` : intérieur `ReplaceObjectsCommand(page, {}, prepared)` ; après
+  `m_inner->redo`, `m_ids = addedIds()` puis réécriture des références dans la page ; `undo` = `m_inner->undo`.
+  `makeDuplicateCommand` = `preparePaste(closure, kDuplicateOffset, kDuplicateOffset)`.
+- [ ] **Étape 5** : vert, mutation, format, commit.
+
+### Tâche L5-T5 — `core` : organiser, couches et groupes
+
+<a id="tache-l5-t5"></a>
+
+**Objectif.** Remplir `core/src/arrange.cpp` (annexe A, `arrange.h`) selon D4 et D5 (`view.py:780-871`).
+
+**Fichiers.** `core/src/arrange.cpp`, `tests/tst_core_arrange.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_core_arrange)$`. Fonctions (page : a, b, c, d sur la couche
+du milieu dans cet ordre, e sur celle du dessus) :
+```cpp
+void TestArrange::forwardSwapsOneStep()
+{
+    auto d = pageABCDE();
+    QCOMPARE(core::arrangedOrder(d.pages[0], {id(d, 'b')}, core::ArrangeMove::Forward), ids(d, "acbde"));
+}
+void TestArrange::frontKeepsRelativeOrder()
+{
+    auto d = pageABCDE();
+    QCOMPARE(core::arrangedOrder(d.pages[0], {id(d, 'a'), id(d, 'b')}, core::ArrangeMove::Front), ids(d, "cdabe"));
+    QCOMPARE(core::arrangedOrder(d.pages[0], {id(d, 'd')}, core::ArrangeMove::Back), ids(d, "dabce"));
+}
+void TestArrange::layerChangeGoesOnTop()
+{
+    auto d = pageABCDE();
+    core::UndoStack stack;
+    stack.push(std::make_unique<core::SetLayerCommand>(0, std::vector{id(d, 'a')}, core::Layer::Top), d);
+    QCOMPARE(objectById(d, id(d, 'a')).common.layer, core::Layer::Top);
+    QCOMPARE(d.pages[0].objects.back().common.id, id(d, 'a')); // au sommet de la couche du dessus
+    stack.undo(d);
+    QCOMPARE(ordered(d), ids(d, "abcde"));
+}
+void TestArrange::groupIsOneUndoStep()
+{
+    auto d = pageABCDE();
+    core::UndoStack stack;
+    stack.push(core::makeGroupCommand(d.pages[0], 0, {id(d, 'a'), id(d, 'e')}), d);
+    const auto& g = std::get<core::Group>(d.pages[0].objects.back());
+    QCOMPARE(g.members.size(), std::size_t(2));
+    QCOMPARE(d.pages[0].objects.back().common.layer, core::Layer::Middle); // la plus basse des membres (D4)
+    QCOMPARE(core::topLevelGroupOf(d.pages[0], id(d, 'a')), d.pages[0].objects.back().common.id);
+    stack.undo(d);
+    QCOMPARE(d.pages[0].objects.size(), std::size_t(5));
+    QVERIFY(core::makeGroupCommand(d.pages[0], 0, {id(d, 'a')}) == nullptr);
+}
+void TestArrange::ungroupRestoresInnerGroups()
+{
+    auto d = pageABCDE();
+    core::UndoStack stack;
+    stack.push(core::makeGroupCommand(d.pages[0], 0, {id(d, 'a'), id(d, 'b')}), d);
+    const auto inner = d.pages[0].objects.back().common.id;
+    stack.push(core::makeGroupCommand(d.pages[0], 0, {inner, id(d, 'c')}), d);
+    const auto outer = d.pages[0].objects.back().common.id;
+    stack.push(core::makeUngroupCommand(d.pages[0], 0, {outer}), d);
+    QVERIFY(hasObject(d, inner));
+    QVERIFY(!hasObject(d, outer));
+    QCOMPARE(core::expandGroups(d.pages[0], {inner}), (std::vector{id(d, 'a'), id(d, 'b'), inner}));
+}
+void TestArrange::reorderChangesSeenByCache()
+{
+    auto d = pageABCDE();
+    core::Changes changes;
+    core::ReorderObjectsCommand command(0, ids(d, "bacde"));
+    command.redo(d, changes);
+    // a et b changent de rang : un retrait puis une insertion chacun, rien pour c, d, e.
+    QCOMPARE(countKind(changes, core::ChangeKind::ObjectRemoved), 2);
+    QCOMPARE(countKind(changes, core::ChangeKind::ObjectInserted), 2);
+}
+```
+Noms de `Changes` et de ses genres : ceux de `core/pagecache.h` (A10, à revérifier).
+
+**Interdits.** Grouper et dégrouper passent par `ReplaceObjectsCommand` (A6), jamais par une commande à eux ; aucune
+modification de `replace.cpp`, `model.h`.
+
+**Terminé quand.** 6 fonctions en `PASS` ; commit « Lot 5 : organiser, couches et groupes (core) ».
+
+**Étapes.**
+- [ ] **Étape 1** : tests rouges (aides `pageABCDE`, `id`, `ids`, `ordered`, `countKind` dans le test).
+- [ ] **Étape 2** : `arrangedOrder` : pour chaque couche, membres d'un groupe choisi ajoutés à la sélection
+  (`expandGroups`), puis l'algorithme de `view.py:788-806` (avant / arrière par échange avec le voisin non choisi ;
+  premier plan = reste + choisis ; arrière-plan = choisis + reste) ; les autres couches gardent leur ordre.
+- [ ] **Étape 3** : `ReorderObjectsCommand` (ancien ordre gardé au premier redo) ; `SetLayerCommand` ; groupes
+  (`makeGroupCommand` = `ReplaceObjectsCommand(page, {}, {groupe})`, groupe sur la couche la plus basse des membres ;
+  `makeUngroupCommand` = `ReplaceObjectsCommand(page, groupes, {})`) ; `topLevelGroupOf`, `expandGroups` (parcours des
+  `Group::members`, protégé contre un cycle : un identifiant déjà vu est ignoré — fichiers lus d'une autre source).
+- [ ] **Étape 4** : vert, format, commit.
+
+### Tâche L5-T6 — `core` : aligner, ajuster, projeter, inverser, symétries d'origine
+
+<a id="tache-l5-t6"></a>
+
+**Objectif.** Remplir `core/src/alignment.cpp` (annexe A, `alignment.h`) selon D6, D7, D8 (`view.py:873-960`). Le
+résultat est une liste de transformations passée par l'appelant (L5-T14) à `TransformObjectsCommand` (A7) ; les copies
+miroir passent par `preparePaste` et `PasteObjectsCommand` (L5-T4).
+
+**Fichiers.** `core/src/alignment.cpp`, `tests/tst_core_alignment.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_core_alignment)$`. Fonctions :
+```cpp
+void TestAlignment::alignLeftUsesTheLeftmostEdge()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 10, 50, 50});
+    const auto b = addRect(d, {300, 80, 20, 20});
+    const auto t = core::alignTransforms(d.pages[0], {a, b}, core::AlignMode::Left);
+    QCOMPARE(t.size(), std::size_t(1)); // a ne bouge pas
+    QCOMPARE(boundsWith(d, b, t[0].second).left(), 100.0);
+}
+void TestAlignment::alignWidthUsesTheFirstCreated()
+{
+    auto d = blank();
+    const auto a = addRect(d, {0, 0, 80, 40});  // créé d'abord
+    const auto b = addRect(d, {200, 0, 20, 20});
+    const auto t = core::alignTransforms(d.pages[0], {b, a}, core::AlignMode::Width);
+    QCOMPARE(boundsWith(d, b, t[0].second).width(), 80.0);
+    QCOMPARE(boundsWith(d, b, t[0].second).left(), 200.0); // bord gauche gardé
+}
+void TestAlignment::lockedObjectsStay()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 0, 10, 10});
+    const auto b = addRect(d, {300, 0, 10, 10});
+    objectById(d, b).common.locked = true;
+    QVERIFY(core::alignTransforms(d.pages[0], {a, b}, core::AlignMode::Left).empty()); // moins de 2 non verrouillés
+}
+void TestAlignment::fitOnlyShrinksOversized()
+{
+    auto d = blank(); // 1024 × 768
+    const auto big = addRect(d, {0, 0, 2048, 300});
+    const auto small = addRect(d, {0, 400, 100, 100});
+    const auto t = core::fitTransforms(d.pages[0], {big, small}, core::FitMode::Width);
+    QCOMPARE(t.size(), std::size_t(1));
+    QCOMPARE(boundsWith(d, big, t[0].second).width(), 1024.0);
+    QCOMPARE(boundsWith(d, big, t[0].second).height(), 150.0); // proportions gardées
+}
+void TestAlignment::flipXNegatesRotation()
+{
+    auto d = blank();
+    const auto a = addRotatedRect(d, {100, 100, 60, 20}, 30.0);
+    const auto t = core::flipTransforms(d.pages[0], {a}, core::Axis::X);
+    QCOMPARE(rotationOf(t[0].second), -30.0);
+    QCOMPARE(boundsWith(d, a, t[0].second).center(), boundsOf(objectById(d, a)).center());
+}
+void TestAlignment::mirrorXPlacesCopyAbove()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 300, 60, 40});
+    const auto copies = core::mirrorCopies(d.pages[0], {a}, core::Axis::X);
+    QCOMPARE(copies.size(), std::size_t(1));
+    QCOMPARE(boundsOf(copies[0]).bottom(), 300.0); // bord contre bord, au-dessus
+    QCOMPARE(boundsOf(copies[0]).left(), 100.0);
+}
+void TestAlignment::originSymmetry()
+{
+    auto d = blank();
+    const auto a = addRect(d, {300, 100, 20, 20});
+    const auto t = core::originFlipTransforms(d.pages[0], {a}, core::Axis::Y, {200, 0});
+    QCOMPARE(boundsWith(d, a, t[0].second).left(), 80.0); // symétrique de [300, 320] par x = 200
+}
+```
+Les modes restants (`CenterX`, `Right`, `Top`, `CenterY`, `Bottom`, `Height`, `Angle`, `All`, `Height` et `Page` de
+l'ajustement, `OriginalSize`) ont chacun une fonction de test `align<Mode>` / `fit<Mode>` sur le même gabarit (valeurs
+attendues tirées de `view.py:873-937`) — 11 fonctions de plus, écrites à l'étape 1.
+
+**Interdits.** Aucune commande dans ce fichier (fonctions pures) ; aucune dépendance à l'interface.
+
+**Terminé quand.** 18 fonctions en `PASS` ; commit « Lot 5 : aligner, ajuster, projeter, inverser (core) ».
+
+**Étapes.**
+- [ ] **Étape 1** : tests rouges (7 ci-dessus + 11 modes) ; commande ciblée → rouge.
+- [ ] **Étape 2** : emprise en page de chaque objet (fonction d'emprise du lot 3 ou du modèle, A8) ; union ; règles
+  de `view.py` traduites en transformations (translation, échelle autour du centre, rotation).
+- [ ] **Étape 3** : inverser = échelle −1 sur l'axe autour du centre, angle opposé ; symétrie d'origine = réflexion
+  par l'axe passant par l'origine ; copies miroir = copie de l'objet, inversée, translatée bord contre bord.
+- [ ] **Étape 4** : vert, format, commit.
+
+### Tâche L5-T7 — `core` : verrouiller, masquer, glisser une copie
+
+<a id="tache-l5-t7"></a>
+
+**Objectif.** Remplir `core/src/objectflags.cpp` (annexe A, `objectflags.h`) selon D9.
+
+**Fichiers.** `core/src/objectflags.cpp`, `tests/tst_core_objectflags.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_core_objectflags)$`. Fonctions :
+```cpp
+void TestFlags::toggleLockIsOneStep()
+{
+    auto d = blank();
+    const auto a = addRect(d, {0, 0, 10, 10});
+    const auto b = addRect(d, {20, 0, 10, 10});
+    core::UndoStack stack;
+    stack.push(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{a, b}, core::ObjectFlag::Locked, true), d);
+    QVERIFY(core::flagOfAll(d.pages[0], {a, b}, core::ObjectFlag::Locked));
+    stack.undo(d);
+    QVERIFY(!objectById(d, a).common.locked && !objectById(d, b).common.locked);
+}
+void TestFlags::mixedSelectionLocksAll()
+{
+    auto d = blank();
+    const auto a = addRect(d, {0, 0, 10, 10});
+    const auto b = addRect(d, {20, 0, 10, 10});
+    objectById(d, a).common.locked = true;
+    QVERIFY(!core::flagOfAll(d.pages[0], {a, b}, core::ObjectFlag::Locked)); // la bascule posera « vrai »
+}
+void TestFlags::hiddenObjectNotPainted()
+{
+    auto d = blank();
+    const auto a = addRect(d, {0, 0, 10, 10});
+    core::Changes changes;
+    core::SetObjectFlagCommand command(0, {a}, core::ObjectFlag::Hidden, true);
+    command.redo(d, changes);
+    QVERIFY(!objectById(d, a).common.visible);
+    QCOMPARE(countKind(changes, core::ChangeKind::ObjectChanged), 1);
+    core::Changes none;
+    core::SetObjectFlagCommand lock(0, {a}, core::ObjectFlag::Locked, true);
+    lock.redo(d, none);
+    QVERIFY(none.empty()); // verrouiller ne change aucun pixel : aucun redessin
+}
+void TestFlags::dragCopyFlagRoundTrips()
+{
+    auto d = blank();
+    const auto a = addRect(d, {0, 0, 10, 10});
+    core::UndoStack stack;
+    stack.push(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{a}, core::ObjectFlag::DragCopy, true), d);
+    QVERIFY(objectById(d, a).common.dragCopy);
+    stack.undo(d);
+    QVERIFY(!objectById(d, a).common.dragCopy);
+}
+```
+
+**Interdits.** Aucun `Change` pour `Locked` et `DragCopy` ; aucune modification de `model.h` (champ posé par L5-T1).
+
+**Terminé quand.** 4 fonctions en `PASS` ; commit « Lot 5 : verrouiller, masquer, glisser une copie (core) ».
+
+**Étapes.**
+- [ ] **Étape 1** : tests rouges ; **Étape 2** : commande (valeurs d'avant gardées au premier redo) et `flagOfAll` ;
+  **Étape 3** : vert, format, commit.
+
+### Tâche L5-T8 — `core` + `render` : pot de peinture
+
+<a id="tache-l5-t8"></a>
+
+**Objectif.** Remplir `core/src/fill.cpp` et `render/src/imagefill.cpp` (annexe A) selon D10 (F-235, plan comparatif
+ligne 17 : intérieur, contour, fond ; objets verrouillés remplis comme l'original).
+
+**Fichiers.** `core/src/fill.cpp`, `render/src/imagefill.cpp`, `tests/tst_core_fill.cpp` (le test lie `actcraft_render`
+pour `floodFill` : déclaration de `tests/core.cmake` posée ainsi par L5-T1).
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_core_fill)$`. Fonctions :
+```cpp
+void TestFill::insideClosedShapeFills()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 200, 100});
+    const auto hit = core::fillHitAt(d.pages[0], {200, 150}, 3.0);
+    QCOMPARE(hit.target, core::FillTarget::ShapeInside);
+    QCOMPARE(hit.object, a);
+}
+void TestFill::onOutlineRecolorsPen()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 200, 100});
+    QCOMPARE(core::fillHitAt(d.pages[0], {100, 150}, 3.0).target, core::FillTarget::Outline);
+    const auto s = addStroke(d, {{400, 400}, {500, 400}});
+    QCOMPARE(core::fillHitAt(d.pages[0], {450, 401}, 3.0).object, s);
+}
+void TestFill::emptyAreaFillsBackground()
+{
+    auto d = blank();
+    core::UndoStack stack;
+    const auto hit = core::fillHitAt(d.pages[0], {10, 10}, 3.0);
+    QCOMPARE(hit.target, core::FillTarget::PageBackground);
+    stack.push(core::makeFillCommand(d.pages[0], 0, hit, 0xFF336699u), d);
+    QCOMPARE(backgroundColor(d.pages[0]), core::Argb(0xFF336699u));
+}
+void TestFill::lockedObjectsAreFilled()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 200, 100});
+    objectById(d, a).common.locked = true;
+    QCOMPARE(core::fillHitAt(d.pages[0], {200, 150}, 3.0).object, a);
+}
+void TestFill::imageFloodFillTolerance5()
+{
+    QImage image(10, 10, QImage::Format_ARGB32);
+    image.fill(QColor(200, 200, 200));
+    image.setPixelColor(9, 9, QColor(200, 200, 230)); // écart de 30 sur 255 ≈ 12 % : hors tolérance 5
+    const QImage out = render::floodFill(image, {0, 0}, 0xFFFF0000u, core::kDefaultImageFillTolerance);
+    QCOMPARE(out.pixelColor(5, 5), QColor(255, 0, 0));
+    QCOMPARE(out.pixelColor(9, 9), QColor(200, 200, 230));
+}
+void TestFill::fillIsOneStep()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 200, 100});
+    core::UndoStack stack;
+    stack.push(core::makeFillCommand(d.pages[0], 0, core::fillHitAt(d.pages[0], {200, 150}, 3.0), 0xFF00FF00u), d);
+    QCOMPARE(fillColorOf(objectById(d, a)), core::Argb(0xFF00FF00u));
+    stack.undo(d);
+    QVERIFY(fillColorOf(objectById(d, a)) != core::Argb(0xFF00FF00u));
+}
+```
+
+**Interdits.** `core/src/fill.cpp` sans QtGui (le remplissage d'image est dans `render/`) ; intersection de formes :
+défaut H5-4 (forme du dessus) tant que L5-T0 ne l'a pas tranché ; le remplissage de fond passe par la commande de fond
+du lot 4 (`pagesettings.h`, L4-T4, à revérifier) et ne redessine que le fond.
+
+**Terminé quand.** 6 fonctions en `PASS` ; commit « Lot 5 : pot de peinture (core, render) ».
+
+**Étapes.**
+- [ ] **Étape 1** : tests rouges ; **Étape 2** : `fillHitAt` (objets du dessus vers le dessous ; forme fermée :
+  point dans un chemin fermé ; contour : distance au chemin ≤ tolérance + demi-épaisseur ; sinon fond) ;
+  **Étape 3** : `makeFillCommand` (remplissage plein : `Fill` du modèle ; contour : `Outline.color`), une étape ;
+  `makeImageFillCommand` (ressource neuve, clé SHA-256) ; **Étape 4** : `floodFill` (file de pixels, 4-connexe,
+  écart par canal ≤ tolérance × 255 / 100) ; **Étape 5** : vert, format, commit.
+
+### Tâche L5-T9 — `core` : points de forme
+
+<a id="tache-l5-t9"></a>
+
+**Objectif.** Remplir `core/src/shapepoints.cpp` (annexe A) selon D13 (F-527). Une forme intelligente du lot 4 (A16)
+garde ses points dédiés : ses points de forme sont ceux de son contour calculé, et déplacer l'un d'eux la fait
+**polygone** (elle perd ses paramètres, comme l'original quand on déforme une forme libre ; à confirmer par L5-T0).
+
+**Fichiers.** `core/src/shapepoints.cpp`, `tests/tst_core_shapepoints.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_core_shapepoints)$`. Fonctions :
+```cpp
+void TestShapePoints::squareHasEightPoints()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 100, 100});
+    const auto points = core::shapePoints(objectById(d, a));
+    QCOMPARE(points.size(), std::size_t(8));
+    QVERIFY(contains(points, {100, 100}) && contains(points, {150, 100}) && contains(points, {200, 200}));
+}
+void TestShapePoints::movingAPointDeformsTheShape()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 100, 100});
+    core::UndoStack stack;
+    stack.push(std::make_unique<core::MoveShapePointCommand>(0, a, 0, core::PointF(80, 60)), d);
+    QVERIFY(contains(core::shapePoints(objectById(d, a)), {80, 60}));
+    QCOMPARE(boundsOf(objectById(d, a)).top(), 60.0);
+}
+void TestShapePoints::smartShapeKeepsItsSmartPoints()
+{
+    auto d = blank();
+    const auto star = addSmartShape(d, "star"); // préréglage du lot 4 (A16)
+    QVERIFY(!core::shapePoints(objectById(d, star)).empty());
+    QVERIFY(!smartPointsOf(objectById(d, star)).empty()); // tant qu'aucun point de forme n'a bougé
+}
+void TestShapePoints::pointMoveIsOneStep()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 100, 100});
+    const auto before = objectFingerprint(objectById(d, a));
+    core::UndoStack stack;
+    stack.push(std::make_unique<core::MoveShapePointCommand>(0, a, 3, core::PointF(250, 250)), d);
+    stack.undo(d);
+    QCOMPARE(objectFingerprint(objectById(d, a)), before);
+}
+```
+
+**Interdits.** Aucune modification de `shapegeometry.*` (lot 4) ; la commande garde contour, remplissage, couche, nom,
+verrou ; un objet verrouillé refuse la commande (redo sans effet, aucun `Change`).
+
+**Terminé quand.** 4 fonctions en `PASS` ; commit « Lot 5 : points de forme (core) ».
+
+**Étapes.**
+- [ ] **Étape 1** : tests rouges ; **Étape 2** : `shapePoints` (chemins de `Shape::paths` passés en page par la
+  transformation ; sommets puis milieux) ; **Étape 3** : `MoveShapePointCommand` (point remis en coordonnées de
+  l'objet par l'inverse de la transformation ; milieu déplacé = nouveau sommet inséré ; forme passée au genre
+  polygone) ; **Étape 4** : vert, format, commit.
+
+### Tâche L5-T11 — `core` : modification de stylo
+
+<a id="tache-l5-t11"></a>
+
+**Objectif.** Remplir `core/src/penmodifiers.cpp` (annexe A) selon D12 (F-221). Le tracé produit est une annotation
+(couche du dessus), donc effaçable en partie par la gomme du lot 3.
+
+**Fichiers.** `core/src/penmodifiers.cpp`, `tests/tst_core_penmodifiers.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_core_penmodifiers)$`. Fonctions :
+```cpp
+void TestPenModifiers::horizontalLineIgnoresVerticalMotion()
+{
+    const auto p = core::penShapePoints(core::PenShape::Horizontal, {10, 10}, {200, 90});
+    QCOMPARE(p.front().y, 10.0);
+    QCOMPARE(p.back(), core::PointF(200, 10));
+}
+void TestPenModifiers::squareHasEqualSides()
+{
+    const auto p = core::penShapePoints(core::PenShape::Square, {0, 0}, {100, 40});
+    QCOMPARE(p.size(), std::size_t(5)); // fermé
+    QCOMPARE(p[2], core::PointF(100, 100)); // côté = la plus grande des deux dimensions
+}
+void TestPenModifiers::circleClosed()
+{
+    const auto p = core::penShapePoints(core::PenShape::Circle, {0, 0}, {100, 100});
+    QVERIFY(p.size() >= 32);
+    QCOMPARE(p.front(), p.back());
+}
+void TestPenModifiers::arrowHasAHead()
+{
+    const auto p = core::penShapePoints(core::PenShape::Arrow, {0, 0}, {100, 0});
+    QVERIFY(p.size() >= 5); // fût, puis deux branches de la pointe en un seul tracé
+}
+void TestPenModifiers::resultIsAStrokeOnTheTopLayer()
+{
+    core::Outline pen;
+    pen.color = 0xFF0000FFu;
+    pen.width = 4;
+    const auto object = core::penShapeStroke({{0, 0}, {10, 0}}, pen, false);
+    QVERIFY(std::get_if<core::Stroke>(&object));
+    QCOMPARE(object.common.layer, core::Layer::Top);
+    QCOMPARE(core::penShapeFromId("zigzag"), std::optional(core::PenShape::Zigzag));
+    QVERIFY(!core::penShapeFromId("autre"));
+}
+```
+Plus une fonction par tracé restant (`Vertical`, `Rectangle`, `Ellipse`, `Arc`, `Polyline`, `Zigzag`, `Free`) sur le
+même gabarit : 7 de plus.
+
+**Interdits.** Fonctions pures, aucune commande ; le marqueur (`highlighter = true`) garde la translucidité du lot 3.
+
+**Terminé quand.** 12 fonctions en `PASS` ; commit « Lot 5 : tracés de la modification de stylo (core) ».
+
+**Étapes.**
+- [ ] **Étape 1** : tests rouges ; **Étape 2** : un générateur par tracé (cercle et ellipse : 64 segments ; arc :
+  demi-ellipse inscrite ; zigzag : pas de 16 unités ; flèche : pointe de 20 unités à ±30°) ; **Étape 3** :
+  `penShapeStroke` avec le genre d'annotation stylo ou marqueur du modèle ; **Étape 4** : vert, format, commit.
+
+### Tâche L5-T10 — `core` : connecteurs et leur suivi
+
+<a id="tache-l5-t10"></a>
+
+**Objectif.** Remplir `core/src/connectors.cpp` (annexe A) selon D11. Point délicat, d'où le `concepteur-critique` :
+**parité de tous les chemins qui déplacent un objet** (glisser par soulèvement, aligner, ajuster, inverser, points de
+forme, poignées du lot 3, supprimer, couper, annuler, rétablir). Le patron évident — recalculer les connecteurs au
+dessin, ou dans chaque outil — est le mauvais : il diverge d'un chemin à l'autre et ne s'annule pas. Contrat :
+`withFollowingConnectors` enveloppe la commande ; **L5-T14 et L5-T16 enveloppent chacune de leurs commandes**, et
+L5-T17 enveloppe le dépôt du lot 3 (`dropLifted`) par l'adaptateur de `ToolHost` ; un test de L5-T14 vérifie que
+chaque commande d'édition de `ObjectEditing` passe par l'enveloppe.
+
+**Fichiers.** `core/src/connectors.cpp`, `tests/tst_core_connectors.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_core_connectors)$`. Fonctions :
+```cpp
+void TestConnectors::attachPointsAreShapeVertices()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 100, 50});
+    const auto points = core::attachPoints(objectById(d, a));
+    QCOMPARE(points.size(), std::size_t(4));
+    QVERIFY(contains(points, {200, 150}));
+}
+void TestConnectors::endSnapsWithin20()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 100, 50});
+    QCOMPARE(core::snapConnectorEnd(d.pages[0], {215, 160})->object, a); // à 18 du coin (200, 150)
+    QVERIFY(!core::snapConnectorEnd(d.pages[0], {240, 160}));
+}
+void TestConnectors::connectorFollowsTransform()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 100, 50});
+    const auto b = addRect(d, {400, 100, 100, 50});
+    const auto c = addConnectorAt(d, {200, 150}, a, {400, 100}, b);
+    core::UndoStack stack;
+    stack.push(core::withFollowingConnectors(d.pages[0], 0, translateCommand(a, 50, 0)), d);
+    QCOMPARE(std::get<core::Connector>(objectById(d, c)).firstEnd, core::PointF(250, 150));
+}
+void TestConnectors::connectorFollowsAlign()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 100, 50});
+    const auto b = addRect(d, {400, 300, 100, 50});
+    const auto c = addConnectorAt(d, {200, 150}, a, {400, 300}, b);
+    const auto t = core::alignTransforms(d.pages[0], {a, b}, core::AlignMode::Top);
+    core::UndoStack stack;
+    stack.push(core::withFollowingConnectors(d.pages[0], 0, std::make_unique<core::TransformObjectsCommand>(0, t)), d);
+    QCOMPARE(std::get<core::Connector>(objectById(d, c)).secondEnd.y, 100.0);
+}
+void TestConnectors::undoRestoresConnectorAndObject()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 100, 50});
+    const auto c = addConnectorAt(d, {200, 150}, a, {600, 600}, 0);
+    const auto before = fingerprint(d);
+    core::UndoStack stack;
+    stack.push(core::withFollowingConnectors(d.pages[0], 0, translateCommand(a, 30, 30)), d);
+    stack.undo(d);
+    QCOMPARE(fingerprint(d), before);
+    stack.redo(d);
+    QCOMPARE(std::get<core::Connector>(objectById(d, c)).firstEnd, core::PointF(230, 180));
+}
+void TestConnectors::deletingAnEndDetaches()
+{
+    auto d = blank();
+    const auto a = addRect(d, {100, 100, 100, 50});
+    const auto c = addConnectorAt(d, {200, 150}, a, {600, 600}, 0);
+    core::UndoStack stack;
+    stack.push(core::withFollowingConnectors(d.pages[0], 0, core::makeCutCommand(d.pages[0], 0, {a})), d);
+    QCOMPARE(std::get<core::Connector>(objectById(d, c)).objectA, core::ObjectId(0));
+    QCOMPARE(std::get<core::Connector>(objectById(d, c)).firstEnd, core::PointF(200, 150)); // reste en place
+}
+```
+`TransformObjectsCommand` : signature du lot 3 (A7, à revérifier) ; `translateCommand` : aide du test qui la construit.
+Mutation : dans `FollowingConnectorsCommand::undo`, annuler la commande intérieure **avant** de remettre les
+connecteurs → `undoRestoresConnectorAndObject` rouge (ou vert : alors l'ordre n'importe pas et le contrat est
+simplifié dans le rapport) ; remise par `git -C <wt> checkout -- core/src/connectors.cpp`.
+
+**Interdits.** Aucun calcul de connecteur au dessin ; aucune modification de `objectedits.cpp` (lot 3) ni de
+`replace.cpp` ; position relative d'attache gardée par l'indice du point d'attache (pas par une distance).
+
+**Terminé quand.** 6 fonctions en `PASS` ; mutation jouée ; commit « Lot 5 : connecteurs qui suivent leurs objets
+(core) ».
+
+**Étapes.**
+- [ ] **Étape 1** : tests rouges ; **Étape 2** : `attachPoints`, `snapConnectorEnd`, `makeConnector` ;
+  **Étape 3** : `FollowingConnectorsCommand` : au premier redo, garder les connecteurs liés aux objets de la page
+  avant la commande ; redo intérieur ; pour chaque connecteur lié, extrémité recalculée (indice du point d'attache le
+  plus proche avant, appliqué à l'objet après) ou détachée si l'objet n'est plus là ; un `ObjectChanged` par
+  connecteur modifié ; undo : connecteurs remis, puis undo intérieur ; **Étape 4** : `withFollowingConnectors` ;
+  **Étape 5** : vert, mutation, format, commit.
