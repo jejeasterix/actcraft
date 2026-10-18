@@ -463,7 +463,7 @@ pas proposée.
 ### Tâche L6-T27 — Onglet paramètres (F-930, F-935)
 
 **Objectif.** `ui::SettingsSchema` décrit, en données à nous, les sections de F-930 **des fonctions incluses** (aucune
-section du vote) : Outil horloge, Effets (F-935), Objets de paperboard, Langue (L6-T36), Réseau (L6-T28, Windows),
+section du vote) : Horloge, Effets (F-935), Objets de paperboard, Langue (L6-T36), Réseau (L6-T28, Windows),
 Orthographe (L6-T34), Outils, Saisie, Enregistrements (lot 8 : section déclarée, réglages lus par le lot 8), Profil et
 ressources, Paperboard, Multimédia (lot 8), Mode conception (L6-T22). Chaque réglage : clé, libellé à nous, type,
 défaut (F-930 ; D de L6-T0), bornes, **magasin** (`profile` : `appProfile.setting(section, clé)` ; `workstation` : la
@@ -496,4 +496,384 @@ stylo s'il existe, sinon publié pour le lot 11 et noté). E4 : taille de page p
 - [ ] **Étape 3 : implémentation, QML, vert**, preuve de tâche ; contrôle des titres du corpus ; commit « Lot 6 : onglet
   paramètres (L6-T27) ».
 
-<!-- suite -->
+<a id="tache-l6-t28"></a>
+### Tâche L6-T28 — Trousseau de Windows et réglages réseau
+
+**Objectif.** D6-8 : `ui::SecretStore` range un secret sous un nom (`ActCraft/<nom>`) dans le Gestionnaire
+d'identification de Windows (`CredWriteW`, `CredReadW`, `CredDeleteW`, type `CRED_TYPE_GENERIC`, persistance
+`CRED_PERSIST_LOCAL_MACHINE` : propre au poste) ; ailleurs, `available()` est faux. `ui::NetworkSettings` (F-930,
+réseau, Windows) : hôte, port, compte du mandataire dans `QSettings` (`network/proxy-host`, `network/proxy-port`,
+`network/proxy-user`), mot de passe dans le trousseau, appliqués par `QNetworkProxy::setApplicationProxy` au démarrage
+et à chaque changement ; aucun mandataire par défaut. `NetworkPage.qml` : formulaire, chargé par l'onglet paramètres
+(section Réseau, Windows seulement).
+
+**Fichiers.** `ui/include/actcraft/ui/secretstore.h`, `ui/src/secretstore_win.cpp`, `ui/src/secretstore_other.cpp`,
+`ui/include/actcraft/ui/networksettings.h`, `ui/src/networksettings.cpp`, `tests/tst_ui_network.cpp`,
+`ui/qml/NetworkPage.qml`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_network`.
+
+**Interdits.** Le mot de passe n'est jamais écrit dans `QSettings`, un journal ou un message ; aucun `#ifdef` hors des
+fichiers `*_win` / `*_other` (DA10) ; les tests nettoient leurs secrets (`remove`) même en échec (`cleanup()`).
+
+**Terminé quand** les six fonctions passent (sous Windows ; `unavailableOffWindows` s'exécute partout, les autres
+`QSKIP` hors Windows avec la raison).
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** `secretstore.h` :
+  ```cpp
+  #pragma once
+
+  #include <QByteArray>
+  #include <QString>
+
+  #include <optional>
+
+  namespace actcraft::ui {
+
+  // Secrets propres au poste (D6-8). Windows : Gestionnaire d'identification ; ailleurs : indisponible.
+  class SecretStore
+  {
+  public:
+      static bool available();
+      static bool write(const QString& name, const QByteArray& secret);
+      static std::optional<QByteArray> read(const QString& name);
+      static bool remove(const QString& name);
+  };
+
+  } // namespace actcraft::ui
+  ```
+  `networksettings.h` : `ui::NetworkSettings : QObject`, `QML_ELEMENT`, propriétés `host`, `port`, `user`, `available`,
+  `Q_INVOKABLE void setPassword(QString)`, `Q_INVOKABLE void apply()`, `Q_INVOKABLE void clear()` ; constructeur de test
+  qui prend un `Preferences*`.
+- [ ] **Étape 2 : test rouge** : `secretRoundTrip` (nom `essai-<uuid>`) ; `secretAbsentIsEmpty` ; `proxyApplied` (hôte
+  `proxy.test`, port 3128 → `QNetworkProxy::applicationProxy()` les reprend) ; `passwordNeverInSettings` (après
+  `setPassword("s3cret")`, aucune valeur de `Preferences::allKeys()` ne contient `s3cret`) ; `noProxyByDefault`
+  (`QNetworkProxy::NoProxy`) ; `unavailableOffWindows` (sous Windows : `available()` vrai ; ailleurs : faux).
+- [ ] **Étape 3 : implémentation** (`secretstore_win.cpp` : `#include <windows.h>`, `#include <wincred.h>`, lien
+  `advapi32` — ajouter `target_link_libraries(actcraft_ui PRIVATE advapi32)` **seulement** si l'édition de liens
+  échoue : alors le noter, c'est un fichier CMake hors de la ligne et l'orchestrateur amende), QML, **vert**, preuve
+  de tâche ; commit « Lot 6 : trousseau du poste et réglages réseau (L6-T28) ».
+
+<a id="tache-l6-t29"></a>
+### Tâche L6-T29 — Raccourcis vers des programmes : modèle, signature, lancement
+
+**Objectif.** F-920 et N1-A6 : un raccourci (programme ou fichier, paramètres, info-bulle) est gardé dans le profil
+(`launchers`), donc transportable ; il est **signé** par HMAC-SHA256 (`QMessageAuthenticationCode`) avec une clé de
+32 octets propre au poste, créée au premier usage et rangée dans le trousseau (L6-T28). Au lancement, une signature qui
+ne vérifie pas (profil venu d'un autre poste, ou chemin ou paramètres modifiés à la main) demande une confirmation :
+refusée, rien n'est lancé ; acceptée, le raccourci est signé à nouveau. Le chemin est affiché à la création.
+Lancement : `QProcess::startDetached(programme, paramètres)` pour un exécutable, `QDesktopServices::openUrl` pour un
+fichier. Programme d'essai `launcher_probe` : écrit le fichier dont le chemin est son premier argument, puis sort.
+
+**Fichiers.** `ui/include/actcraft/ui/launchers.h`, `ui/src/launchers.cpp`, `tests/launcher_probe.cpp`,
+`tests/tst_ui_launchers.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_launchers` (le test trouve `launcher_probe.exe` à côté de lui).
+
+**Interdits.** Jamais de lancement sans signature valide ni confirmation ; aucune interprétation par un shell
+(`cmd /c` interdit : arguments passés en liste) ; aucun raccourci sous Android (commandes déclarées Windows).
+
+**Terminé quand** les huit fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : programme d'essai** `tests/launcher_probe.cpp` :
+  ```cpp
+  #include <cstdio>
+
+  int main(int argc, char** argv)
+  {
+      if (argc < 2)
+          return 2;
+      std::FILE* f = std::fopen(argv[1], "wb");
+      if (!f)
+          return 1;
+      std::fputs("lance", f);
+      std::fclose(f);
+      return 0;
+  }
+  ```
+- [ ] **Étape 2 : en-tête** : `ui::Launchers : QObject`, `QML_ELEMENT`, `profile` (`ProfileController*`), `entries`
+  (`QVariantList` [{id, path, arguments, toolTip, trusted}]) ; `Q_INVOKABLE QString add(path, arguments, toolTip)`,
+  `Q_INVOKABLE bool remove(id)`, `Q_INVOKABLE int run(id)` (0 lancé, 1 confirmation demandée par le signal
+  `confirmationNeeded(id, path)`, 2 échec), `Q_INVOKABLE bool confirm(id, bool accepted)` ; `static QByteArray
+  signatureOf(path, arguments, key)`.
+- [ ] **Étape 3 : test rouge** `tst_ui_launchers.cpp` : `addShowsThePath` ; `runStartsTheProgram` (fichier témoin
+  sous un dossier temporaire créé en moins de 5 s) ; `signedOnThisWorkstation` ; `foreignSignatureAsksFirst`
+  (signature remplacée dans le profil → `run` rend 1, aucun fichier) ; `refusedForeignRunsNothing` ;
+  `acceptedForeignIsResigned` (confirmé → lancé, puis `run` rend 0 sans demander) ; `removeDeletes` ;
+  `tamperedArgumentsAskAgain` (paramètres modifiés dans le profil → 1). Hors Windows : `QSKIP("raccourcis : Windows seulement")`.
+- [ ] **Étape 4 : implémentation, vert**, preuve de tâche ; commit « Lot 6 : raccourcis vers des programmes signés par
+  poste (L6-T29) ».
+
+<a id="tache-l6-t30"></a>
+### Tâche L6-T30 — Raccourcis vers des programmes : barre et onglet ; scénario S20
+
+**Objectif.** F-142 et E3 (place tranchée par L6-T0, D4 ; défaut : bouton d'édition en bas de la barre de raccourcis,
+visible si la palette n'est ni réduite ni réduite au maximum) : les raccourcis s'affichent comme boutons de la barre
+(`launcherButton<n>`, info-bulle) ; `LaunchersPage.qml` (onglet de l'éditeur de profils, Windows) : liste, ajouter
+(choix du fichier, chemin affiché, paramètres, info-bulle), retirer ; boîte de confirmation d'un raccourci étranger.
+S20 de bout en bout.
+
+**Fichiers.** `ui/qml/LaunchersPage.qml`, `ui/qml/ShortcutBar.qml`, `bench/scenarios/raccourcis-programmes.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_captures_raccourcis_programmes|tst_ui_shortcutbar|tst_ui_shell'`.
+
+**Preuve visuelle.** `captures.ps1 -Scenario raccourcis-programmes … -Lire "launcherButton0.toolTip=Programme d'essai"` :
+`LU … OK`, puis `Test-Path .tmp/temoin-1.txt` vrai et `Test-Path .tmp/temoin-2.txt` faux, `CAPTURES OK` ; décrire
+`barre.png`, `confirmation.png`. Sous Android (captures de l'APK, fin de lot) : commande d'édition absente.
+
+**Interdits.** Le scénario n'écrit que sous `.tmp/` ; il lance seulement `launcher_probe`.
+
+**Terminé quand** le scénario est vert.
+
+**Étapes.**
+- [ ] **Étape 1 : scénario rouge** : `waitReady` ; `launcher.edit` ; ajout du raccourci vers
+  `build/debug/tests/launcher_probe.exe` avec l'argument `.tmp/temoin-1.txt` et l'info-bulle « Programme d'essai » (par
+  le gestionnaire de commande avec arguments, sans dialogue de fichier) ; capture `barre.png` ; clic sur
+  `launcherButton0` ; attente 2 s ; puis le profil d'un « autre poste » (fichier d'essai écrit par le scénario sous
+  `.tmp/`, signature fausse, argument `.tmp/temoin-2.txt`) importé par `profile.import` et activé ; clic sur son
+  bouton ; capture `confirmation.png` ; refus ; retrait du premier raccourci ; `expect shortcutBar.launcherCount = 0`.
+- [ ] **Étape 2 : QML**, **vert**, preuve visuelle, preuve de tâche ; commit « Lot 6 : raccourcis vers des programmes
+  dans la barre et l'éditeur (L6-T30) ».
+
+<a id="tache-l6-t31"></a>
+### Tâche L6-T31 — Mode classe protégé (F-298) ; scénario S19
+
+**Objectif.** D6-7 et N1-A5 : `ui::ClassroomLock` — aucun mot de passe par défaut ; au premier `classroom.lock`, la
+boîte demande de créer un mot de passe (deux saisies) ; empreinte PBKDF2-SHA256 (`QPasswordDigestor::deriveKeyPbkdf2`,
+200 000 itérations, 32 octets) avec un sel aléatoire de 16 octets (`QRandomGenerator::system()`), gardés en Base64
+dans `classroom/hash`, `classroom/salt`, `classroom/iterations` ; état `classroom/locked` gardé ; verrouiller =
+`CommandRegistry::setLocked(true)` (porte de L6-T3) par `Commands::setLocked` ; déverrouiller demande le mot de
+passe, comparé en temps constant. `classroom.password` change le mot de passe (l'ancien d'abord). Oubli : procédure
+dans l'aide (supprimer les clés `classroom/*`). `Commands` gagne `locked` (propriété), `setLocked`, `lockedCount`
+(nombre de commandes grisées par le verrou, pour les scénarios). `QtNetwork` ajouté à la liste autorisée des paquets.
+
+**Fichiers.** `ui/include/actcraft/ui/classroomlock.h`, `ui/src/classroomlock.cpp`, `ui/include/actcraft/ui/commands.h`,
+`ui/src/commands.cpp`, `tests/tst_ui_classroomlock.cpp`, `ui/qml/ClassroomLockDialog.qml`,
+`bench/scenarios/classe-protegee.json`, `packaging/qt-autorises.txt`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_classroomlock|tst_ui_commands|tst_actions_lockable|tst_captures_classe_protegee'`.
+
+**Preuve visuelle.** `captures.ps1 -Scenario classe-protegee … -Lire "appClassroom.locked=true"` : `LU … OK`,
+`LU appCommands.lockedCount>0 OK` (si le joueur ne lit pas `>`, lire la valeur exacte relevée et l'écrire), `CAPTURES OK` ;
+décrire `verrouille.png` (menus grisés) et `deverrouille.png`.
+
+**Interdits.** Aucun mot de passe en clair nulle part (réglages, journal, capture) ; aucune voie QML qui rouvre une
+commande verrouillée (le registre décide) ; aucun mot de passe par défaut.
+
+**Terminé quand** les huit fonctions et le scénario passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** : `ui::ClassroomLock : QObject`, `QML_ELEMENT`, `commands` (`Commands*`), `preferences`
+  (`Preferences*`), `locked` (bool), `hasPassword` (bool) ; `Q_INVOKABLE bool createPassword(QString, QString)`,
+  `Q_INVOKABLE bool lock()`, `Q_INVOKABLE bool unlock(QString)`, `Q_INVOKABLE bool changePassword(QString, QString)` ;
+  `static constexpr int kIterations = 200000`.
+- [ ] **Étape 2 : test rouge** `tst_ui_classroomlock.cpp` : `firstLockCreatesThePassword` ; `everyLockableGreyed`
+  (pour chaque commande disponible : `isEnabled` faux ⇔ `lockable`) ; `wrongPasswordKeepsTheLock` ;
+  `rightPasswordUnlocks` ; `lockSurvivesRestart` (nouvel objet sur le même INI → `locked`, commandes grisées) ;
+  `passwordNeverStoredInClear` (aucune valeur de `allKeys()` ne contient le mot de passe ni son Base64) ;
+  `saltDiffersPerPassword` ; `qmlCannotBypass` (`Commands::setEnabled(id, true)` sur une verrouillable pendant le
+  verrou → `trigger` faux).
+- [ ] **Étape 3 : implémentation** (`Commands::setLocked` appelle `m_registry.setLocked` puis `bumpState()` ;
+  `lockedCount` compte les commandes disponibles `lockable`), `packaging/qt-autorises.txt` (ligne `Qt6Network`),
+  QML, **scénario** `classe-protegee.json` (`classroom.lock` → création « essai-1234 » deux fois, `expect
+  appClassroom.locked = true`, capture `verrouille.png`, déverrouiller avec « faux » → toujours verrouillé, avec le bon →
+  libre, capture `deverrouille.png`, verrouiller à nouveau, `restart`, `expect appClassroom.locked = true`).
+- [ ] **Étape 4 : vert**, preuve visuelle, preuve de tâche, `scripts/verifier-licences.ps1` (`LICENCES OK` ou son motif
+  réel) ; commit « Lot 6 : mode classe protégé par mot de passe (L6-T31) ».
+
+<a id="tache-l6-t32"></a>
+### Tâche L6-T32 — Orthographe I : Hunspell et dictionnaire
+
+**Objectif.** D6-9 : compiler Hunspell 1.7.2 dans `third_party/hunspell` (bibliothèque statique, sans ses outils), sous
+Windows (MSVC, `/W4 /WX` **désactivés pour la cible tierce seulement**), macOS (CI) et Android (presets
+`android-arm64`, `android-x86_64`) ; dictionnaire français de Grammalecte (variante « classique », MPL 2.0) dans
+`third_party/dictionaries/fr`, intégré aux ressources de `ui` (`:/actcraft/dictionaries/fr.aff`, `fr.dic`) et copié dans
+un dossier lisible par Hunspell au premier usage (Hunspell lit des chemins de fichiers). Notices dans
+`THIRD_PARTY_NOTICES.md` (Hunspell sous LGPL 2.1 au choix de sa triple licence ; dictionnaire sous MPL 2.0).
+
+**Fichiers.** Ceux de la ligne L6-T32.
+
+**Test et commande bornée.** Commande ciblée `-R tst_core_spellcheck` (lié, toujours talon) ; preuve de tâche ;
+construction Android : `pwsh -NoProfile -File ./scripts/paquet-android.ps1 > .tmp/apk.txt 2>&1; Select-String -Path .tmp/apk.txt -Pattern 'APK OK|ECHEC' | Select-Object -Last 1`
+(ou, si la chaîne locale manque, push d'une branche `essai-ci/lot6-hunspell` et lecture du job `android`, puis
+suppression de la branche).
+
+**Interdits.** **Aucun téléchargement sans l'accord écrit de Jérôme (H6-6), relayé par l'orchestrateur.** Sources prises
+au dépôt officiel, version étiquetée, archive vérifiée par sa somme SHA-256 notée au rapport ; décompression dans un
+dossier neuf sous `.tmp/`, puis copie des seuls fichiers sources (`src/hunspell/*.{cxx,hxx,h}`, licences) ; aucun script
+du paquet exécuté.
+
+**Terminé quand** Windows et Android construisent, `TESTS OK`, notices écrites.
+
+**Étapes.**
+- [ ] **Étape 1 : accord** — vérifier dans le fichier d'état que l'accord H6-6 est écrit ; sinon, s'arrêter et le
+  rendre au rapport.
+- [ ] **Étape 2 : sources** (archive de la version 1.7.2 et dictionnaire), somme SHA-256 relevée, fichiers copiés.
+- [ ] **Étape 3 : CMake** : `third_party/hunspell/CMakeLists.txt` (`add_library(hunspell STATIC …)`,
+  `target_compile_definitions(hunspell PUBLIC HUNSPELL_STATIC)`, avertissements de la cible ramenés au niveau par défaut) ;
+  `CMakeLists.txt` racine : `add_subdirectory(third_party/hunspell)` à côté de miniz ; `core/CMakeLists.txt` :
+  `target_link_libraries(actcraft_core PRIVATE hunspell)` ; `ui/CMakeLists.txt` : ressources du dictionnaire.
+- [ ] **Étape 4 : construire** (debug, release, Android), preuve de tâche, `NOMS OK` ; commit « Lot 6 : Hunspell et
+  dictionnaire français en bibliothèques tierces (L6-T32) ».
+
+<a id="tache-l6-t33"></a>
+### Tâche L6-T33 — Orthographe II : vérificateur
+
+**Objectif.** F-297 dans `core` : parcourir les pages depuis la première, les objets texte dans l'ordre des couches
+(du fond vers le dessus) puis de profondeur, extraire les mots du texte riche (balises retirées, apostrophes et traits
+d'union gardés dans le mot), demander au moteur (`SpellEngine`, interface ; `HunspellEngine` dans
+`hunspellengine.cpp`) s'ils sont justes ; règles d'ignorance (D5 ; défauts F-930 : majuscule initiale, MAJUSCULES,
+chiffres, casse mixte, adresses — toutes non ; mots répétés signalés — oui) ; « ignorer », « ignorer toujours » (liste de
+la session), « ajouter au dictionnaire » (dictionnaire de l'utilisateur, un mot par ligne, fichier passé par l'appelant),
+« remplacer » par une commande d'édition de texte du lot 4 (une étape).
+
+**Fichiers.** `core/include/actcraft/core/spellcheck.h`, `core/src/spellcheck.cpp`, `core/src/hunspellengine.cpp`,
+`tests/tst_core_spellcheck.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_core_spellcheck`.
+
+**Interdits.** QtCore seulement ; le dictionnaire de l'utilisateur n'est jamais écrit dans `third_party/`.
+
+**Terminé quand** les huit fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** `spellcheck.h` : `struct SpellRules { bool ignoreCapitalized = false, ignoreUppercase =
+  false, ignoreDigits = false, ignoreMixedCase = false, ignoreAddresses = false, flagRepeated = true; };`
+  `class SpellEngine { public: virtual ~SpellEngine() = default; virtual bool isCorrect(const std::string&) = 0;
+  virtual std::vector<std::string> suggest(const std::string&) = 0; virtual void addWord(const std::string&) = 0; };`
+  `std::unique_ptr<SpellEngine> makeHunspellEngine(const std::string& affPath, const std::string& dicPath);`
+  `struct SpellHit { int page; ObjectId object; std::size_t start; std::size_t length; std::string word; bool repeated; };`
+  `class SpellChecker { public: SpellChecker(SpellEngine&, SpellRules); std::optional<SpellHit> next(const Document&);
+  void ignore(); void ignoreAlways(const std::string&); void restart(); std::unique_ptr<UndoCommand> replace(const
+  Document&, const SpellHit&, const std::string&) const; };`
+- [ ] **Étape 2 : test rouge** (moteur réel sur le dictionnaire de L6-T32, copié dans un dossier temporaire ; document
+  de 2 pages, « bonjour mosieur » en page 2) : `findsTheMisspelledWord` (`mosieur`, page index 1) ;
+  `suggestsTheCorrection` (« monsieur » parmi les suggestions) ; `walksPagesFromTheFirst` ; `ignoreAlwaysSkipsTheWord` ;
+  `userDictionaryKept` ; `repeatedWordsFlagged` (« le le ») ; `replaceIsUndoneAtOnce` ; `htmlTagsAreNotWords` (`<b>`).
+- [ ] **Étape 3 : implémentation, vert**, preuve de tâche ; commit « Lot 6 : vérificateur d'orthographe (L6-T33) ».
+
+<a id="tache-l6-t34"></a>
+### Tâche L6-T34 — Orthographe III : boîte, F7 ; scénario S21
+
+**Objectif.** `ui::Spelling` relie `SpellChecker` au document : `spell.check` (F7) part de la première page ; à chaque
+mot, la page qui le contient devient la page courante et le mot est surligné ; `SpellingDialog.qml` : mot en rouge,
+suggestions, champ de remplacement, boutons ignorer, ignorer toujours, ajouter au dictionnaire, remplacer, remplacer
+tout, fermer ; message de fin (« Vérification terminée »). Dictionnaire de l'utilisateur :
+`<AppDataLocation>/dictionnaire-utilisateur.txt` (réglage de la section Orthographe, L6-T27).
+
+**Fichiers.** `ui/include/actcraft/ui/spelling.h`, `ui/src/spelling.cpp`, `tests/tst_ui_spelling.cpp`,
+`ui/qml/SpellingDialog.qml`, `bench/scenarios/orthographe.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_spelling|tst_captures_orthographe'`.
+
+**Preuve visuelle.** `captures.ps1 -Scenario orthographe … -Lire "spellingDialog.word=mosieur" -Lire "spellingDialog.suggestion0=monsieur"` :
+`LU … OK`, `LU appSpelling.finished=true OK`, `CAPTURES OK` ; décrire `mot.png` (page 2, mot surligné) et `fin.png`.
+
+**Interdits.** La vérification ne change pas la page en cours d'écriture (elle attend la fin du contact) ; aucun texte
+de l'original.
+
+**Terminé quand** les deux fonctions et le scénario passent.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** `tst_ui_spelling.cpp` : `showsThePageOfTheWord` ; `endMessage`.
+- [ ] **Étape 2 : implémentation et QML** (`Spelling { id: appSpelling; objectName: "appSpelling"; document: appDocument }`),
+  **scénario** (document synthétique de 2 pages, texte « bonjour mosieur » en page 2 et un mot « exemplle » ignoré
+  toujours ; `spell.check` ; `expect spellingDialog.word = mosieur` ; capture `mot.png` ; remplacer ; texte relu
+  « bonjour monsieur » ; ignorer toujours « exemplle » ; `expect appSpelling.finished = true` ; capture `fin.png`).
+- [ ] **Étape 3 : vert**, preuve visuelle, preuve de tâche ; commit « Lot 6 : vérification de l'orthographe (L6-T34) ».
+
+<a id="tache-l6-t35"></a>
+### Tâche L6-T35 — Lecteur d'aide hors ligne
+
+**Objectif.** D6-10 : `help.contents` (F1) ouvre `HelpViewer.qml` sur la page de l'outil courant
+(`qrc:/actcraft/help/<outil>.html` si elle existe, sinon `index.html`) ; liens internes suivis, liens `http(s)` ouverts
+par le navigateur du système, aucun chargement réseau dans le lecteur ; `ui/help/index.html` écrit par nous (sommaire
+des fonctions et procédure « mot de passe de la classe oublié »). Les autres pages arrivent au lot 11 (amendement 1,
+§ 2.2).
+
+**Fichiers.** `ui/include/actcraft/ui/helpviewer.h`, `ui/src/helpviewer.cpp`, `ui/help/index.html`,
+`tests/tst_ui_help.cpp`, `ui/qml/HelpViewer.qml`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_help`.
+
+**Interdits.** Aucun texte, image ni capture de l'aide d'ActivInspire (dépôt public) ; aucun moteur web.
+
+**Terminé quand** les cinq fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** : `ui::HelpViewer : QObject`, `QML_ELEMENT`, `source` (`QUrl`), `html` (`QString`),
+  `Q_INVOKABLE void openFor(QString toolId)`, `Q_INVOKABLE void follow(QUrl link)`.
+- [ ] **Étape 2 : test rouge** : `indexLoads` ; `currentToolPageOrIndex` (`tool.pen` sans page → index) ;
+  `noNetworkUrl` (`follow("https://…")` ne change pas `source`, émet `externalLink`) ; `internalLinkFollows` ;
+  `textsAreOurs` (aucune des chaînes « ActivInspire », « Promethean », « ExpressPoll » dans `index.html`).
+- [ ] **Étape 3 : implémentation, page d'index, QML** (`TextArea { readOnly: true; textFormat: TextEdit.RichText }`),
+  **vert**, preuve de tâche ; contrôle des titres du corpus ; commit « Lot 6 : lecteur d'aide hors ligne (L6-T35) ».
+
+<a id="tache-l6-t36"></a>
+### Tâche L6-T36 — Langue ; scénario `aide-langue`
+
+**Objectif.** D6-11 : `qt_add_translations(actcraft_ui TS_FILES i18n/actcraft_fr.ts …)` (fichier `.ts` produit par
+`lupdate` sur les sources et le QML ; français livré : traduction identité) ; `ui::Language` : langues disponibles (les
+`.qm` des ressources), réglage `workstation/language` (L6-T5), application au démarrage par `QTranslator` installé dans
+`app/main.cpp` **avant** le chargement du QML ; un changement annonce le redémarrage (message) et ne recharge rien. Le
+scénario couvre aussi F1 (S9.11).
+
+**Fichiers.** `ui/include/actcraft/ui/language.h`, `ui/src/language.cpp`, `ui/i18n/actcraft_fr.ts`, `ui/CMakeLists.txt`,
+`app/main.cpp`, `tests/tst_ui_language.cpp`, `bench/scenarios/aide-langue.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_language|tst_captures_aide_langue'`.
+
+**Preuve visuelle.** `captures.ps1 -Scenario aide-langue … -Lire "helpViewer.visible=true" -Lire "appPreferences.language=fr"` :
+`LU … OK`, `CAPTURES OK` ; décrire `aide.png`.
+
+**Interdits.** Aucune traduction automatique livrée ; la pseudo-langue de contrôle est au lot 11 (S29).
+
+**Terminé quand** les cinq fonctions et le scénario passent.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** : `systemLanguageByDefault` ; `unknownFallsBackToFrench` ; `settingWritten` ;
+  `restartAnnounced` (signal `restartNeeded`) ; `translatorInstalledAtStart` (fonction `Language::install(QCoreApplication&,
+  Preferences&)` rend vrai pour `fr`).
+- [ ] **Étape 2 : implémentation**, `ui/CMakeLists.txt` (appel `qt_add_translations`, `lupdate` cible `update_translations`),
+  `app/main.cpp`, **scénario** (`help.contents` → `expect helpViewer.visible = true` → capture `aide.png` → Échap →
+  `settings.language fr` → `expect appPreferences.language = fr`).
+- [ ] **Étape 3 : vert**, preuve visuelle, preuve de tâche ; commit « Lot 6 : textes traduisibles et réglage de la langue
+  (L6-T36) ».
+
+<a id="tache-l6-t37"></a>
+### Tâche L6-T37 — Contrôle du lot
+
+**Objectif.** Clore le lot 6 : talons vides, suites debug et release, captures de tous les scénarios hors écran puis à
+l'écran en D3D11 (jeton `ecran`, annoncé à Jérôme d'une ligne), banc complet D3D11 plein écran (porte de
+non-régression de DA7 : tout critère tenu par la référence l'est encore, sinon tâche de correction avant clôture),
+installateur et APK, version **0.7.0** (`project(VERSION)`), section 0.7.0 de `CHANGELOG.md` (en français, à nous),
+mesure de fin de lot commitée, graphe.
+
+**Fichiers.** `CMakeLists.txt`, `CHANGELOG.md`, `docs/mesures/2026-10-20-lot6-fin.md`, `graphify-out/`.
+
+**Test et commande bornée.** Preuve de tâche en debug puis `-Preset release` ; captures `-Scenario tous` hors écran,
+puis à l'écran (`-Rendu d3d11`, sans `-HorsEcran`) ; banc `pwsh -NoProfile -File ./scripts/bench.ps1` (forme bornée du
+profil) ; `scripts/paquet.ps1` (`PAQUET OK`), `scripts/paquet-android.ps1` (`APK OK`).
+
+**Preuve visuelle.** Toutes les lignes `LU` des scénarios du lot en `OK` ; décrire les captures à l'écran de
+`reglages-gardes` (S9), `classe-protegee` (S19), `raccourcis-programmes` (S20), `orthographe` (S21) ; capture de l'APK sur
+l'émulateur : `launcher.edit` absent des menus.
+
+**Interdits.** Aucune publication (release sous go écrit seulement) ; fermer par PID ce qui a été lancé.
+
+**Terminé quand** le critère de la ligne L6-T37 est tenu.
+
+**Étapes.**
+- [ ] **Étape 1 : talons** : `git -C <wt> grep -n "Talon L6 : rempli par" -- . ':(exclude)docs/'` vide ;
+  `ctest --preset debug -V | Select-String 'SKIP   :.*Talon L6'` vide.
+- [ ] **Étape 2 : suites** debug et release (`TESTS OK` deux fois, N = N6 + 43).
+- [ ] **Étape 3 : captures** hors écran puis à l'écran ; **banc** plein écran ; résultats résumés dans
+  `docs/mesures/2026-10-20-lot6-fin.md` (chiffres, comparaison à la référence en vigueur, aucune capture commitée).
+- [ ] **Étape 4 : paquets** et taille ajoutée (Hunspell, dictionnaire, QtNetwork) rapportée (N1-A10).
+- [ ] **Étape 5 : version et notes** : `project(ActCraft VERSION 0.7.0 …)`, section `## 0.7.0` de `CHANGELOG.md`
+  (navigateurs, propriétés, profils, réglages, classe protégée, orthographe, aide).
+- [ ] **Étape 6 : graphe et commit** : `graphify update .` ; `git add` des fichiers de la ligne ; `NOMS OK` ; contrôle
+  des titres du corpus ; commit « Lot 6 : contrôle du lot, version 0.7.0 (L6-T37) ».
+
