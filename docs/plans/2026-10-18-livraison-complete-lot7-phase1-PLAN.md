@@ -5,7 +5,8 @@
 **Ce que c'est.** Un amendement aux plans du lot 7 (`docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md`, dit
 « 7a », et `docs/plans/2026-10-18-livraison-complete-lot7b-PLAN.md`, dit « 7b »). Il extrait des tâches `L7-T*` la
 **logique pure** de `features/`, testée par Qt Test sans écran, en tâches `L7-P<n>` exécutables **avant le socle
-L0-S**. Il ne réécrit pas 7a ni 7b : la phase 2 (après la fusion du socle) les amendera en tenant compte de ce qui est
+L0-S**. Il ne réécrit pas 7a ni 7b, à une exception près, décidée par l'orchestrateur : les identifiants d'effets du
+scénario de L7-T8 (7a, « Test et commande bornée » et « Preuve visuelle ») suivent le catalogue de L7-P2. Pour le reste, la phase 2 (après la fusion du socle) les amendera en tenant compte de ce qui est
 fait ici (section « Ce que la phase 2 reprend »).
 
 **Autorités, dans l'ordre.** (1) `docs/sessions/livraison-complete-b-brief.md`, section « Phase 1 » ; (2) l'addendum 1
@@ -28,7 +29,9 @@ partie de `feat/livraison-complete-b` à jour des tâches déjà mergées. Merge
    et une ligne ajoutée **en dernière ligne** de `tests/CMakeLists.txt`, juste après
    `include(${CMAKE_CURRENT_SOURCE_DIR}/app.cmake)`, exactement :
    `include(${CMAKE_CURRENT_SOURCE_DIR}/presentation.cmake OPTIONAL)` (addendum 1, point 3 ; le socle écrit la même
-   ligne au même endroit). Ce plan lui-même est le seul autre fichier ajouté (par le planificateur).
+   ligne au même endroit, **précédée d'un commentaire** : le conflit de `tests/CMakeLists.txt` est donc **attendu** à
+   la fusion de la phase 2, et se résout en gardant le commentaire du socle et une seule ligne d'inclusion ; le brief
+   impose ici la ligne seule). Ce plan lui-même est le seul autre fichier ajouté (par le planificateur).
 2. **Fichiers interdits** : `core/`, `render/`, `formats/`, `ui/` (dont `ui/icons/*` et `ui/CMakeLists.txt`),
    `actions/`, `bench/`, `app/`, `input/`, `tools/`, tous les autres `CMakeLists.txt`, `tests/{core,input,tools,render,ui,bench,actions,formats,flipchart,app,verifications}.cmake`,
    tout test qui n'est pas `tests/tst_features_*.cpp`. Lire ces fichiers est permis.
@@ -88,7 +91,8 @@ partie de `feat/livraison-complete-b` à jour des tâches déjà mergées. Merge
      5) → L7-P7 ;
    - **outils par page** : la propriété de page 27 (F-591) existe ; sa lecture `.flipchart` reste en phase 2
      (`formats/` interdit) ;
-   - **effets (N2-A6)** : 17 effets, plus « aucun » et « au hasard », identifiants et noms à nous (liste du rapport) ;
+   - **effets (N2-A6)** : 16 mouvements, plus « aucun » et « au hasard », soit 18 entrées, identifiants et noms à nous
+     (liste du rapport ; L7-T0 a relevé 17 mouvements, dont un à nom de marque, écarté : décision de l'orchestrateur) ;
      durée 5 à 30 dixièmes, défaut 15, effet de la page prioritaire (confirmés) → L7-P2 ;
    - **E9 et E11** : non tranchés, la spécification s'applique ; aucun effet sur la logique pure (listes d'actions et
      boutons : phase 2). Le zoom de page (`kRatePerSecond = 2.0`) n'est pas traité par le rapport : valeur à nous.
@@ -112,15 +116,15 @@ Tests déclarés par L7-P0 (talon `reserved()` → tâche qui le remplit) : `tst
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L7-P0 | Squelette de la phase 1 : dépendances de `features` (sans Qt Quick, avec `input`), sources par motif, 16 tests talons, ligne d'inclusion | — | `features/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/presentation.cmake`, `tests/tst_features_curtain.cpp`, `tests/tst_features_spotlight.cpp`, `tests/tst_features_pagetools.cpp`, `tests/tst_features_pagezoom.cpp`, `tests/tst_features_transitions.cpp`, `tests/tst_features_mathtools.cpp`, `tests/tst_features_dice.cpp`, `tests/tst_features_calculator.cpp`, `tests/tst_features_countdown.cpp`, `tests/tst_features_ticker.cpp`, `tests/tst_features_shapefinder.cpp`, `tests/tst_features_recognitionsession.cpp`, `tests/tst_features_handwriting.cpp`, `tests/tst_features_camera.cpp`, `tests/tst_features_keyboard.cpp`, `tests/tst_features_desktopwheel.cpp` | isolé | implementeur-tdd | rouge : configuration en échec `actcraft_features ne doit pas dépendre de Qt6::Quick` ; vert : `TESTS OK`, N = N1 + 16, les 16 `tst_features_*` Passed, 16 lignes `SKIP   : …reserved() Talon L7-P0`, `NOMS OK` | S10, S22, S23 (support) | #tache-l7-p0 |
-| L7-P1 | Rideau, spot et règle des outils par page (T3, T4, T6) | L7-P0 | `features/include/actcraft/features/curtain.h`, `features/src/curtain.cpp`, `features/include/actcraft/features/spotlight.h`, `features/src/spotlight.cpp`, `features/include/actcraft/features/pagetools.h`, `features/src/pagetools.cpp`, `tests/tst_features_curtain.cpp`, `tests/tst_features_spotlight.cpp`, `tests/tst_features_pagetools.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 9 passed, 0 failed, 0 skipped` (curtain), `6 passed … 0 skipped` (spotlight), `5 passed … 0 skipped` (pagetools) ; PASS de `dragFromTopUncovers`, `dragFromLeftUncovers`, `dragInsideMaskMoves`, `dragOnRimResizesToOval`, `solidSpotHidesInside`, `keepCarriesCurtainAcrossPages`, `offStopsTools`, `pageModeOverridesKeep` ; `NOMS OK` | S10 | #tache-l7-p1 |
-| L7-P2 | Calculs du zoom de page et catalogue et règles des effets (T5, T7) | L7-P0 | `features/include/actcraft/features/pagezoom.h`, `features/src/pagezoom.cpp`, `features/include/actcraft/features/transitions.h`, `features/src/transitions.cpp`, `tests/tst_features_pagezoom.cpp`, `tests/tst_features_transitions.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 6 passed, 0 failed, 0 skipped` (pagezoom), `8 passed … 0 skipped` (transitions) ; PASS de `holdZoomsInAroundThePoint`, `doubleClickFits`, `catalogueHasSeventeenEffectsPlusTwo`, `randomPicksARealEffect`, `pageEffectWinsOverGlobal`, `effectPlayedWhenLeavingThePage`, `disabledWhileCurtainActive`, `durationClampedTo5To30` ; `NOMS OK` | S10, S22 | #tache-l7-p2 |
+| L7-P1 | Rideau, spot et règle des outils par page (T3, T4, T6) | L7-P0 | `features/include/actcraft/features/curtain.h`, `features/src/curtain.cpp`, `features/include/actcraft/features/spotlight.h`, `features/src/spotlight.cpp`, `features/include/actcraft/features/pagetools.h`, `features/src/pagetools.cpp`, `tests/tst_features_curtain.cpp`, `tests/tst_features_spotlight.cpp`, `tests/tst_features_pagetools.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 11 passed, 0 failed, 0 skipped` (curtain), `8 passed … 0 skipped` (spotlight), `7 passed … 0 skipped` (pagetools) ; PASS de `dragFromTopUncovers`, `dragFromLeftUncovers`, `dragInsideMaskMoves`, `dragOnRimResizesToOval`, `solidSpotHidesInside`, `keepCarriesCurtainAcrossPages`, `offStopsTools`, `pageModeOverridesKeep` ; `NOMS OK` | S10 | #tache-l7-p1 |
+| L7-P2 | Calculs du zoom de page et catalogue et règles des effets (T5, T7) | L7-P0 | `features/include/actcraft/features/pagezoom.h`, `features/src/pagezoom.cpp`, `features/include/actcraft/features/transitions.h`, `features/src/transitions.cpp`, `tests/tst_features_pagezoom.cpp`, `tests/tst_features_transitions.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 8 passed, 0 failed, 0 skipped` (pagezoom), `10 passed … 0 skipped` (transitions) ; PASS de `holdZoomsInAroundThePoint`, `doubleClickFits`, `catalogueHasSixteenEffectsPlusTwo`, `randomPicksARealEffect`, `pageEffectWinsOverGlobal`, `effectPlayedWhenLeavingThePage`, `disabledWhileCurtainActive`, `durationClampedTo5To30` ; `NOMS OK` | S10, S22 | #tache-l7-p2 |
 | L7-P3 | Guides de tracé, règle et équerre (T9, T10) | L7-P0 | `features/include/actcraft/features/strokeguide.h`, `features/src/strokeguide.cpp`, `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `tests/tst_features_mathtools.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 13 passed, 0 failed, 0 skipped` (mathtools) ; PASS de `rulerSnapsNearEdge`, `rulerIgnoresFarSamples`, `strokeStaysOnTheEdgeOnceSnapped`, `setSquareHasThreeEdges`, `setSquareHypotenuseAt45` ; `NOMS OK` | S10 | #tache-l7-p3 |
-| L7-P4 | Rapporteur, compas et mémoire de l'origine XY (T11, T12, T13) | L7-P3 | `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `tests/tst_features_mathtools.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 21 passed, 0 failed, 0 skipped` (mathtools) ; PASS de `protractorArcFollowsTheRim`, `closedArcAddsTwoRadii`, `halfProtractorStopsAt180`, `compassDrawsAnArcAtItsRadius`, `fullTurnClosesTheCircle`, `radiusInCentimetres`, `originRememberedPerPage` ; `NOMS OK` | S10 | #tache-l7-p4 |
-| L7-P5 | Dés, calculatrice et compte à rebours (T14, T15, T16) | L7-P0 | `features/include/actcraft/features/dice.h`, `features/src/dice.cpp`, `features/include/actcraft/features/calculator.h`, `features/src/calculator.cpp`, `features/include/actcraft/features/countdown.h`, `features/src/countdown.cpp`, `tests/tst_features_dice.cpp`, `tests/tst_features_calculator.cpp`, `tests/tst_features_countdown.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 5 passed … 0 skipped` (dice), `9 passed … 0 skipped` (calculator), `6 passed … 0 skipped` (countdown) ; PASS de `seededRollIsReproducible`, `countClampedTo1To5`, `defaultIsOneDie`, `operatorPrecedenceLeftToRight`, `expressionShownAboveTheResult`, `clearEntryKeepsTheCalculation`, `pageTextHasTheCalculationAndItsResult`, `divisionByZeroIsAnError`, `percentAndSign`, `endTriggersActionOnce`, `repeatRestarts`, `pauseFreezes` ; `NOMS OK` | S10 | #tache-l7-p5 |
-| L7-P6 | Modèle du message défilant et fichier de messages (T18, T19) | L7-P0 | `features/include/actcraft/features/ticker.h`, `features/src/ticker.cpp`, `tests/tst_features_ticker.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 7 passed, 0 failed, 0 skipped` (ticker) ; PASS de `singlePassEndsHidden`, `loopRestarts`, `speedMapsToPixelsPerSecond`, `positionsAreThree`, `messageFileRoundTrip` ; `NOMS OK` | S23 | #tache-l7-p6 |
-| L7-P7 | Reconnaissance de forme `shapefinder` et session de reconnaissance (T20, minuterie de T21) | L7-P0 | `features/include/actcraft/features/shapefinder.h`, `features/src/shapefinder.cpp`, `features/include/actcraft/features/recognitionsession.h`, `features/src/recognitionsession.cpp`, `tests/tst_features_shapefinder.cpp`, `tests/tst_features_recognitionsession.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 11 passed, 0 failed, 0 skipped` (shapefinder), `5 passed … 0 skipped` (recognitionsession) ; PASS de `wobblyCircleIsACircle`, `tiltedRectangleKeepsItsCorners`, `roughQuadrilateralIsAPolygon`, `pentagonIsAPolygon`, `defaultDelayIsOneSecond`, `openScribbleIsNothing`, `shortStrokeIsNothing`, `sessionFiresAfterTheDelay`, `newStrokeRestartsTheDelay` ; `NOMS OK` | S10 | #tache-l7-p7 |
-| L7-P8 | Reconnaissance d'écriture : interface, moteur d'encre de Windows (`handwriting_win.cpp`) et fil dédié en STA (T22, fil de T23) | L7-P0 | `features/include/actcraft/features/handwriting.h`, `features/src/handwriting.cpp`, `features/src/handwriting_win.cpp`, `features/src/handwriting_other.cpp`, `tests/tst_features_handwriting.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 6 passed, 0 failed, 0 skipped` (handwriting), ou `5 passed … 1 skipped` si et seulement si le SKIP est `recognizesSyntheticInk` avec « reconnaisseur absent : … » (signalé au rapport) ; PASS de `recognitionRunsOnOneDedicatedThread`, `recognitionThreadIsSingleThreadedApartment`, `factoryNeverReturnsNull` ; `NOMS OK` | S10 | #tache-l7-p8 |
-| L7-P9 | Géométrie de la caméra, disposition du clavier à l'écran, roue des outils de bureau (T28, T29, T31) | L7-P0 | `features/include/actcraft/features/camera.h`, `features/src/camera.cpp`, `features/include/actcraft/features/screenkeyboard.h`, `features/src/screenkeyboard.cpp`, `features/include/actcraft/features/desktopwheel.h`, `features/src/desktopwheel.cpp`, `tests/tst_features_camera.cpp`, `tests/tst_features_keyboard.cpp`, `tests/tst_features_desktopwheel.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 5 passed … 0 skipped` (camera), `5 passed … 0 skipped` (keyboard), `2 passed … 0 skipped` (desktopwheel) ; PASS de `clickNearFirstPointClosesThePolygon`, `freehandClosesOnRelease`, `cropOutsideIsTransparent`, `windowRectsInLogicalPixels`, `shiftTypesCapitals`, `compactLayoutHasFewerKeys`, `accentKeysTypeFrench`, `wheelIsClockwiseFromTop` ; `NOMS OK` | S10 | #tache-l7-p9 |
+| L7-P4 | Rapporteur, compas et mémoire de l'origine XY (T11, T12, T13) | L7-P3 | `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `tests/tst_features_mathtools.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 22 passed, 0 failed, 0 skipped` (mathtools) ; PASS de `protractorArcFollowsTheRim`, `closedArcAddsTwoRadii`, `halfProtractorStopsAt180`, `compassDrawsAnArcAtItsRadius`, `fullTurnClosesTheCircle`, `radiusInCentimetres`, `originRememberedPerPage` ; `NOMS OK` | S10 | #tache-l7-p4 |
+| L7-P5 | Dés, calculatrice et compte à rebours (T14, T15, T16) | L7-P0 | `features/include/actcraft/features/dice.h`, `features/src/dice.cpp`, `features/include/actcraft/features/calculator.h`, `features/src/calculator.cpp`, `features/include/actcraft/features/countdown.h`, `features/src/countdown.cpp`, `tests/tst_features_dice.cpp`, `tests/tst_features_calculator.cpp`, `tests/tst_features_countdown.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 7 passed … 0 skipped` (dice), `11 passed … 0 skipped` (calculator), `8 passed … 0 skipped` (countdown) ; PASS de `seededRollIsReproducible`, `countClampedTo1To5`, `defaultIsOneDie`, `operatorPrecedenceLeftToRight`, `expressionShownAboveTheResult`, `clearEntryKeepsTheCalculation`, `pageTextHasTheCalculationAndItsResult`, `divisionByZeroIsAnError`, `percentAndSign`, `endTriggersActionOnce`, `repeatRestarts`, `pauseFreezes` ; `NOMS OK` | S10 | #tache-l7-p5 |
+| L7-P6 | Modèle du message défilant et fichier de messages (T18, T19) | L7-P0 | `features/include/actcraft/features/ticker.h`, `features/src/ticker.cpp`, `tests/tst_features_ticker.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 9 passed, 0 failed, 0 skipped` (ticker) ; PASS de `singlePassEndsHidden`, `loopRestarts`, `speedMapsToPixelsPerSecond`, `positionsAreThree`, `messageFileRoundTrip` ; `NOMS OK` | S23 | #tache-l7-p6 |
+| L7-P7 | Reconnaissance de forme `shapefinder` et session de reconnaissance (T20, minuterie de T21) | L7-P0 | `features/include/actcraft/features/shapefinder.h`, `features/src/shapefinder.cpp`, `features/include/actcraft/features/recognitionsession.h`, `features/src/recognitionsession.cpp`, `tests/tst_features_shapefinder.cpp`, `tests/tst_features_recognitionsession.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 13 passed, 0 failed, 0 skipped` (shapefinder), `7 passed … 0 skipped` (recognitionsession) ; PASS de `wobblyCircleIsACircle`, `tiltedRectangleKeepsItsCorners`, `roughQuadrilateralIsAPolygon`, `pentagonIsAPolygon`, `defaultDelayIsOneSecond`, `openScribbleIsNothing`, `shortStrokeIsNothing`, `sessionFiresAfterTheDelay`, `newStrokeRestartsTheDelay` ; `NOMS OK` | S10 | #tache-l7-p7 |
+| L7-P8 | Reconnaissance d'écriture : interface, moteur d'encre de Windows (`handwriting_win.cpp`) et fil dédié en STA (T22, fil de T23) | L7-P0 | `features/include/actcraft/features/handwriting.h`, `features/src/handwriting.cpp`, `features/src/handwriting_win.cpp`, `features/src/handwriting_other.cpp`, `tests/tst_features_handwriting.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N1 + 16 ; `Totals: 7 passed, 0 failed, 0 skipped` (handwriting, sous Windows), ou `6 passed … 1 skipped` si et seulement si le SKIP est `recognizesSyntheticInk` avec « reconnaisseur absent : … » (signalé au rapport) ; PASS de `recognitionRunsOnOneDedicatedThread`, `recognitionThreadIsSingleThreadedApartment`, `factoryNeverReturnsNull` ; `NOMS OK` | S10 | #tache-l7-p8 |
+| L7-P9 | Géométrie de la caméra, disposition du clavier à l'écran, roue des outils de bureau (T28, T29, T31) | L7-P0 | `features/include/actcraft/features/camera.h`, `features/src/camera.cpp`, `features/include/actcraft/features/screenkeyboard.h`, `features/src/screenkeyboard.cpp`, `features/include/actcraft/features/desktopwheel.h`, `features/src/desktopwheel.cpp`, `tests/tst_features_camera.cpp`, `tests/tst_features_keyboard.cpp`, `tests/tst_features_desktopwheel.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N1 + 16 ; `Totals: 7 passed … 0 skipped` (camera), `7 passed … 0 skipped` (keyboard), `4 passed … 0 skipped` (desktopwheel) ; PASS de `clickNearFirstPointClosesThePolygon`, `freehandClosesOnRelease`, `cropOutsideIsTransparent`, `windowRectsInLogicalPixels`, `shiftTypesCapitals`, `compactLayoutHasFewerKeys`, `accentKeysTypeFrench`, `wheelIsClockwiseFromTop` ; `NOMS OK` | S10 | #tache-l7-p9 |
 
 10 tâches, un seul lot. Aucune preuve visuelle : aucune tâche ne change l'interface (logique sans écran).
 
@@ -129,16 +133,19 @@ Tests déclarés par L7-P0 (talon `reserved()` → tâche qui le remplit) : `tst
 Après L7-P0, les tâches ne partagent aucun fichier, sauf L7-P3 → L7-P4 (`mathtools.h`, `mathtools.cpp`,
 `tst_features_mathtools.cpp`), tenu par « dépend de ». Chaque agent écrit dans son worktree ; **toute construction,
 suite ou test passe par le jeton `tests`** (une à la fois dans la session ; un agent qui attend le jeton attend sa
-notification sans sonder). Trois agents au plus en même temps (deux selon le profil si la machine peine) :
+notification sans sonder). **Deux tâches à la fois au plus** (profil `.claude/chantier.md`, « Parallélisme », qui fait
+autorité), et une seule construction à la fois sous le jeton, toujours :
 
-- **V1** : L7-P0, seule (tout le reste s'appuie sur ses fichiers CMake). Peut tourner à côté de L7-T0 (sans
-  construction).
-- **V2** : L7-P3 ‖ L7-P7 ‖ L7-P1 (les deux `concepteur-critique` les plus longues d'abord, pour que leur revue
-  adversariale chevauche la vague suivante).
-- **V3** : L7-P8 ‖ L7-P4 (lancée une fois L7-P3 mergée) ‖ L7-P2.
-- **V4** : L7-P5 ‖ L7-P6 ‖ L7-P9.
+- **V1** : L7-P0, seule (tout le reste s'appuie sur ses fichiers CMake).
+- **V2** : L7-P3 ‖ L7-P7 (les deux `concepteur-critique` les plus longues d'abord, pour que leur revue adversariale
+  chevauche la vague suivante).
+- **V3** : L7-P8 ‖ L7-P1.
+- **V4** : L7-P4 (L7-P3 mergée) ‖ L7-P2.
+- **V5** : L7-P5 ‖ L7-P6.
+- **V6** : L7-P9.
 
-Toute tâche de V2 à V4 peut changer de vague, sauf L7-P4 (après L7-P3) : aucun fichier commun. **L7-T0** a rendu son
+Toute tâche de V2 à V6 peut changer de vague, sauf L7-P4 (après le merge de L7-P3) : aucun fichier commun ; une vague
+ne compte jamais plus de deux tâches. **L7-T0** a rendu son
 rapport (décision 9) : ses valeurs sont dans les sections. Si un rapport ultérieur (amendement) en change une, son
 constante nommée se corrige dans la tâche concernée avant son lancement, ou par la phase 2.
 
@@ -205,7 +212,8 @@ s'y substituent :
   ```powershell
   pwsh -NoProfile -Command "Set-Location '<wt>'; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File C:\Users\JeromeDenis\.claude\scripts\jeton.ps1 -Nom tests -Proprietaire livraison-complete-b/<id> -Commande '. ./scripts/dev-env.ps1; cmake --build --preset debug *> .tmp/build.txt; ctest --preset debug -R ''<motif>'' -V *> .tmp/ctest.txt'; Select-String -Path .tmp/build.txt,.tmp/ctest.txt -Pattern 'error C|error:|FAIL!  :|SKIP   :|Totals:|tests passed|tests failed|No tests were found' | Select-Object -Last 12"
   ```
-  Rouge attendu : `error C…` / `error:` sur le nom testé, ou `FAIL!  :`. Vert attendu : une ligne `Totals: <k> passed,
+  Rouge attendu : `error C…` / `error:` sur le nom testé, ou `FAIL!  :`. Vert attendu (k = nombre de fonctions de la
+  classe **+ 2** : Qt Test compte toujours `initTestCase` et `cleanupTestCase`) : une ligne `Totals: <k> passed,
   0 failed, 0 skipped` par test du motif (k de la table), `100% tests passed`. Le nom d'une fonction se lit par
   `Select-String -Path .tmp/ctest.txt -Pattern 'PASS   : .*<fonction>\(\)'`.
   Jamais de `|` sur la sortie du jeton (le jeton en meurt) : on lit les fichiers après.
@@ -222,7 +230,11 @@ s'y substituent :
   `python -I "C:\Users\JeromeDenis\REA - Activinspire\tools\controle_noms_actcraft.py" '<wt>'` → dernière ligne
   `NOMS OK`. Le préfixe `m_` est retiré avant la comparaison : un membre `m_<nom>` peut être refusé alors que
   `<nom>` seul, nom de Qt, passe (vu : le membre de la taille de page de `OriginMemory`). Un nom refusé se renomme ;
-  il ne se contourne pas.
+  il ne se contourne pas. **Seul cas permis, tranché** : un nom d'une API tierce imposée (SDK de Windows) homonyme d'un
+  nom d'Inspire — vu : l'accesseur de la propriété `String` d'une alternative d'écriture (L7-P8). C'est un faux
+  positif ; on ne l'écrit pas (ni code ni commentaire) et on passe par une voie de l'API qui ne l'écrit pas (ici
+  `IDispatch`, identifiant obtenu par son nom à l'exécution). Le contrôle reste appliqué tel quel, sans exception
+  dans l'outil : ce n'est pas un contournement, aucun identifiant refusé n'entre dans le dépôt.
 - **Commit** : `git -C '<wt>' add` de chaque fichier de la ligne, nommé (jamais `-A`, `--all`, `.`), relire
   `git -C '<wt>' diff --cached --stat` (aucun fichier hors de la ligne), puis
   `git -C '<wt>' commit -m "<message de la section>" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"`.
@@ -265,7 +277,8 @@ restent) ; aucun autre fichier CMake ; aucune autre ligne de `tests/CMakeLists.t
   actcraft_forbid_links(actcraft_features Qt6::Quick Qt6::Qml Qt6::QuickControls2 Qt6::Widgets)
   ```
   puis, sous le jeton : `-Commande '. ./scripts/dev-env.ps1; cmake --preset debug *> .tmp/configure.txt'` et
-  `Select-String -Path .tmp/configure.txt -Pattern 'ne doit pas dépendre'`. Attendu :
+  `Select-String -Path .tmp/configure.txt -Pattern 'ne doit pas d'` (motif sans accent : la sortie redirigée peut ne
+  pas être en UTF-8). Attendu :
   `actcraft_features ne doit pas dépendre de Qt6::Quick (règle de modularité, voir docs/BRIEF.md)`.
 - [ ] **Étape 3 : `features/CMakeLists.txt` complet** (remplace tout le fichier) :
   ```cmake
@@ -521,7 +534,7 @@ nous, valeurs égales à celles de `core::PageToolsMode` pour la phase 2) ; aucu
 
   } // namespace actcraft::features
   ```
-  Commande ciblée `-R tst_features_curtain` : `Totals: 9 passed, 0 failed, 0 skipped`.
+  Commande ciblée `-R tst_features_curtain` : `Totals: 11 passed, 0 failed, 0 skipped` (9 fonctions + 2).
 - [ ] **Étape 3 : rouge du spot.** `tests/tst_features_spotlight.cpp` : montage du rideau (`#include
   <actcraft/features/spotlight.h>`, `#include <QtTest>`, `using namespace actcraft::features;`, classe
   `TstFeaturesSpotlight`, `QTEST_GUILESS_MAIN`, `#include "tst_features_spotlight.moc"`) et, comme fonctions, les six
@@ -586,7 +599,7 @@ nous, valeurs égales à celles de `core::PageToolsMode` pour la phase 2) ; aucu
   `point - m_last` puis `keepInside()` ; `Left` : `left = min(point.x, right − kMinimumSize)`, `Right` :
   `right = max(point.x, left + kMinimumSize)`, idem `Top`/`Bottom` ; `m_last = point`. `release` : `Grab::None`.
   Vérifier à la main sur les six tests : `dragOnRimResizesToOval` saisit le côté droit (650 = 500 + 150) avant le
-  masque. Commande ciblée `-R tst_features_spotlight` : `6 passed … 0 skipped`.
+  masque. Commande ciblée `-R tst_features_spotlight` : `8 passed … 0 skipped`.
 - [ ] **Étape 5 : rouge de la règle par page.** `tests/tst_features_pagetools.cpp` :
   ```cpp
   #include <actcraft/features/pagetools.h>
@@ -831,7 +844,7 @@ minuterie.
   true` et `m_frozenZoom = m_startZoom` (zoom annulé) ; en panoramique, `m_panDelta += point − m_lastPoint` ; `release`
   : `m_frozenZoom = zoomAt(nowNs)` puis `m_pressed = false` ; `isDoubleClick` : vrai si le précédent appui est à
   ≤ `kDoubleClickNs` et ≤ `kDoubleClickPixels`, puis oublie ce précédent (un triple appui ne compte pas deux fois).
-  Commande ciblée `-R tst_features_pagezoom` : `6 passed … 0 skipped`.
+  Commande ciblée `-R tst_features_pagezoom` : `8 passed … 0 skipped`.
 - [ ] **Étape 3 : rouge des effets.** `tests/tst_features_transitions.cpp` : les six fonctions de 7a, L7-T7, étape 1,
   avec les identifiants du catalogue de L7-T0 (`fade` → `dissolve`, `slide-left` → `slide-right`), et deux de plus :
   ```cpp
@@ -856,16 +869,17 @@ minuterie.
           for (const auto& e : list)
               QVERIFY(!e.label.isEmpty());
       }
-      void catalogueHasSeventeenEffectsPlusTwo()
+      void catalogueHasSixteenEffectsPlusTwo()
       {
-          // L7-T0 (docs/verifications/2026-10-18-lot7-principes.md) : 17 mouvements, plus « aucun » et « au hasard ».
+          // L7-T0 (docs/verifications/2026-10-18-lot7-principes.md) : 16 mouvements retenus (17 relevés, l'effet à nom
+          // de marque écarté), plus « aucun » et « au hasard ».
           const auto& list = transitionCatalogue();
-          QCOMPARE(list.size(), std::size_t{19});
+          QCOMPARE(list.size(), std::size_t{18});
           QCOMPARE(list[1].id, QStringLiteral("random"));
           QSet<QString> ids;
           for (const auto& e : list)
               ids.insert(e.id);
-          QCOMPARE(ids.size(), qsizetype{19}); // identifiants uniques
+          QCOMPARE(ids.size(), qsizetype{18}); // identifiants uniques
       }
       void pageEffectWinsOverGlobal()
       {
@@ -934,8 +948,9 @@ minuterie.
 
   const std::vector<TransitionEffect>& transitionCatalogue()
   {
-      // Liste de L7-T0 (docs/verifications/2026-10-18-lot7-principes.md, N2-A6) : 17 mouvements relevés, plus
-      // « aucun » et « au hasard » ; identifiants et noms à nous. « none » toujours en premier, « random » ensuite.
+      // Liste de L7-T0 (docs/verifications/2026-10-18-lot7-principes.md, N2-A6) : 16 mouvements retenus (17 relevés,
+      // l'effet à nom de marque écarté), plus « aucun » et « au hasard » ; identifiants et noms à nous. « none »
+      // toujours en premier, « random » ensuite : 18 entrées.
       static const std::vector<TransitionEffect> catalogue{
           {QStringLiteral("none"), QStringLiteral("Sans effet")},
           {QStringLiteral("random"), QStringLiteral("Au hasard")},
@@ -978,7 +993,7 @@ minuterie.
   {
       if (id != QStringLiteral("random"))
           return id;
-      const auto& list = transitionCatalogue(); // [0] none, [1] random, puis les 17 mouvements
+      const auto& list = transitionCatalogue(); // [0] none, [1] random, puis les 16 mouvements
       const auto index = 2 + static_cast<std::size_t>(generator.bounded(static_cast<quint32>(list.size() - 2)));
       return list[index].id;
   }
@@ -1079,7 +1094,7 @@ projettent sur leurs segments par une fonction partagée.
           QCOMPARE(out.phase, input::Phase::Press);
       }
   ```
-  (13 fonctions.) Rouge.
+  (11 fonctions, donc `Totals: 13`.) Rouge.
 - [ ] **Étape 2 : guides.** `features/include/actcraft/features/strokeguide.h` = l'en-tête de 7a, L7-T9, étape 2, mot
   pour mot, avec ce contrat de `snapPreview` en commentaire : « rien pendant un trait guidé ; ne change jamais le
   guide saisi ». `features/src/strokeguide.cpp` :
@@ -1127,10 +1142,7 @@ projettent sur leurs segments par une fonction partagée.
                   result = *snapped;
               }
           }
-          // Le guide retenu doit garder SON bord : on le re-saisit en dernier s'il n'était pas le dernier essayé.
-          if (m_active)
-              result = m_active->capture(sample, m_tolerance).value_or(result);
-          return result;
+          return result; // chaque guide garde le bord de son propre capture() : rien à re-saisir
       }
       case input::Phase::Move:
           return m_active ? m_active->follow(sample) : sample;
@@ -1169,7 +1181,7 @@ projettent sur leurs segments par une fonction partagée.
 
   } // namespace actcraft::features
   ```
-  (La re-saisie finale est nécessaire parce que `capture` mémorise le bord saisi dans chaque guide essayé.)
+  (Chaque guide mémorise le bord saisi par son propre `capture` ; seul `m_active` est suivi ensuite.)
 - [ ] **Étape 3 : règle et équerre.** `features/include/actcraft/features/mathtools.h` :
   ```cpp
   #pragma once
@@ -1278,7 +1290,7 @@ L7-P3).
 (ajouts seulement). Patron à **ne pas** reprendre : l'angle balayé calculé par différence d'`atan2` brute (saut de
 360° au passage de ±180°) ; un `sweptDegrees` qui compte le sens (le test attend une valeur positive).
 
-**Terminé quand.** `Totals: 21 passed, 0 failed, 0 skipped`, preuve, `NOMS OK`, commit.
+**Terminé quand.** `Totals: 22 passed, 0 failed, 0 skipped` (20 fonctions + 2), preuve, `NOMS OK`, commit.
 
 **Étapes.**
 
@@ -1410,7 +1422,8 @@ L7-P3).
       std::map<std::size_t, QPointF> m_origins;
   };
   ```
-  Corps évidents dans `mathtools.cpp`. Commande ciblée `-R tst_features_mathtools` : `21 passed, 0 failed, 0 skipped`.
+  Corps évidents dans `mathtools.cpp`. Commande ciblée `-R tst_features_mathtools` : `22 passed, 0 failed, 0 skipped`
+  (20 fonctions + 2).
 - [ ] **Étape 5 : preuves et commit.** `format.ps1`, preuve de tâche, `NOMS OK`, commit
   « Lot 7, phase 1 : rapporteur, compas et origine XY par page (T11 à T13) (L7-P4) ».
 
@@ -1484,7 +1497,7 @@ aucune minuterie ni horloge lue dans la logique (instant fourni par l'appelant).
   ```
   `features/src/dice.cpp` : `roll` remplit `m_count` faces par `static_cast<int>(m_generator.bounded(1, 7))` ;
   `total` = somme ; `animationMs` = `std::clamp(seconds, 3, 11) * 1000`. Commande ciblée `-R tst_features_dice` :
-  `5 passed … 0 skipped`.
+  `7 passed … 0 skipped`.
 - [ ] **Étape 3 : rouge de la calculatrice.** `tests/tst_features_calculator.cpp` (montage, classe
   `TstFeaturesCalculator`) : les cinq fonctions de 7a, L7-T15, étape 1, mot pour mot, plus :
   ```cpp
@@ -1582,7 +1595,8 @@ aucune minuterie ni horloge lue dans la logique (instant fourni par l'appelant).
   ajoute l'affichage puis « = » et pose `m_done` ; « % » ajoute l'affichage puis « % = » et pose `m_done` ; un chiffre après `m_done` vide `m_expression` (nouveau calcul) ;
   « CE » remet l'affichage à « 0 » (`m_newEntry = true`) sans toucher l'accumulateur, l'opération en attente ni
   `m_expression` ; « C » vide aussi `m_expression`. `pageText()` : `m_done` → `m_expression + " " + m_display`, sinon
-  `m_display`. Commande ciblée `-R tst_features_calculator` : `9 passed … 0 skipped`.
+  `m_display`. « = » remet aussi `m_newEntry` à vrai (le chiffre suivant commence un nouveau calcul : « 4 », jamais
+  « 2,54 »). Commande ciblée `-R tst_features_calculator` : `11 passed … 0 skipped`.
 - [ ] **Étape 5 : rouge du compte à rebours.** `tests/tst_features_countdown.cpp` (montage, classe
   `TstFeaturesCountdown`) : les cinq fonctions de 7a, L7-T16, étape 1, mot pour mot, plus :
   ```cpp
@@ -1676,7 +1690,7 @@ en fonction du temps, lecture et écriture du fichier `actcraft-ticker/1` (64 Ki
 **Interdits.** Règles communes ; le texte reste une `QString` brute (jamais interprétée en texte riche) ; fichier
 refusé au-delà de 64 Kio **avant** l'analyse JSON.
 
-**Terminé quand.** `Totals: 7 passed, 0 failed, 0 skipped`, preuve, `NOMS OK`, commit.
+**Terminé quand.** `Totals: 9 passed, 0 failed, 0 skipped`, preuve, `NOMS OK`, commit.
 
 **Étapes.**
 
@@ -1788,7 +1802,7 @@ refusé au-delà de 64 Kio **avant** l'analyse JSON.
   `QJsonDocument::fromJson` (erreur ou pas un objet → rien), `format` différent de `actcraft-ticker/1` → rien ;
   `TickerRun` : durée `qRound((écran + texte) / vitesse × 1000)` (0 si vitesse ≤ 0) ; `xAt` : temps ramené à
   `elapsed % durée` en boucle, borné à la durée sinon, puis `écran − vitesse × temps / 1000`. Commande ciblée
-  `-R tst_features_ticker` : `7 passed, 0 failed, 0 skipped`.
+  `-R tst_features_ticker` : `9 passed, 0 failed, 0 skipped`.
 - [ ] **Étape 3 : preuves et commit.** `format.ps1`, preuve de tâche, `NOMS OK`, talon absent, commit
   « Lot 7, phase 1 : modèle du message défilant et fichier de messages (T18, T19) (L7-P6) ».
 
@@ -1836,7 +1850,7 @@ inclinées) ; un seuil global unique pour toutes les formes.
           QCOMPARE(r->corners.size(), std::size_t{5});
       }
   ```
-  (11 fonctions.) Rouge.
+  (11 fonctions, donc `Totals: 13`.) Rouge.
 - [ ] **Étape 2 : en-tête.** `features/include/actcraft/features/shapefinder.h` = l'en-tête de 7b, L7-T20, étape 2,
   avec un seul écart : `enum class Kind { Line, Rectangle, Square, Ellipse, Circle, Triangle, Polygon };` (`Polygon`
   ajouté en dernier ; `corners` porte alors ses sommets).
@@ -1848,10 +1862,11 @@ inclinées) ; un seuil global unique pour toutes les formes.
   bruité de test échoue, ajuster **le seuil** et sa raison, jamais le test. **Écart à 7b (P16)** dans l'ordre de
   décision : 3 coins et côtés droits → triangle ; 4 coins, côtés droits **et** angles à 90° ± 10° (`kRightAngleSlack
   = 10`, raison : un trapèze dessiné à main levée ne doit pas devenir un rectangle) → rectangle ou carré ; 4 à
-  `kMaxPolygonCorners = 8` coins et côtés droits, sinon → polygone (raison : au-delà de 8, un gribouillis fermé
-  plutôt qu'un polygone voulu) ; puis l'ellipse. Le seuil des angles de 7b (± 20°) passe à ± 10° : vérifier que
+  `kMaxPolygonCorners = 6` coins et côtés droits → polygone (raison : un coin est un virage ≥ 55° ; l'angle extérieur
+  d'un polygone de 7 côtés ou plus est sous 55°, ses sommets ne sont pas des coins : la borne suit le seuil des coins
+  et change avec lui) ; puis l'ellipse. Le seuil des angles de 7b (± 20°) passe à ± 10° : vérifier que
   `squareIsASquare` et `tiltedRectangleKeepsItsCorners` restent verts (leurs angles sont droits). Commande ciblée
-  `-R tst_features_shapefinder` : `11 passed, 0 failed, 0 skipped`.
+  `-R tst_features_shapefinder` : `13 passed, 0 failed, 0 skipped`.
 - [ ] **Étape 4 : rouge de la session.** `tests/tst_features_recognitionsession.cpp` :
   ```cpp
   #include <actcraft/features/recognitionsession.h>
@@ -1947,7 +1962,7 @@ le même fil**. Patron à **ne pas** reprendre : `QtConcurrent::run` ou `QThread
 l'autre) ; COM initialisé sur le fil principal ; reconnaisseur créé sur un fil et utilisé sur un autre ; attente
 bloquante du fil appelant (`wait` hors destruction, `BlockingQueuedConnection`). Pas de `Q_OBJECT`.
 
-**Terminé quand.** `Totals: 6 passed, 0 failed, 0 skipped` (ou `5 passed, 0 failed, 1 skipped` avec le seul
+**Terminé quand.** Sous Windows, `Totals: 7 passed, 0 failed, 0 skipped` (ou `6 passed, 0 failed, 1 skipped` avec le seul
 `recognizesSyntheticInk` sauté pour « reconnaisseur absent : … », signalé au rapport) ; preuve ; `NOMS OK` ; commit.
 
 **Étapes.**
@@ -2027,13 +2042,8 @@ bloquante du fil appelant (`wait` hors destruction, `BlockingQueuedConnection`).
           QVERIFY(r != nullptr);
           if (!r->available())
               QVERIFY(!r->status().isEmpty());
-      }
-      void unavailableOffWindows()
-      {
   #ifndef Q_OS_WIN
-          QVERIFY(!makeHandwritingRecognizer()->available());
-  #else
-          QVERIFY(true); // sous Windows : voir recognizesSyntheticInk
+          QVERIFY(!r->available()); // hors de Windows, jamais de moteur (reprend unavailableOffWindows de 7b)
   #endif
       }
       void recognitionRunsOnOneDedicatedThread()
@@ -2070,7 +2080,7 @@ bloquante du fil appelant (`wait` hors destruction, `BlockingQueuedConnection`).
           const std::lock_guard lock(log->mutex);
           QVERIFY(log->sta);
   #else
-          QVERIFY(true); // pas de COM hors de Windows
+          QSKIP("Pas de COM hors de Windows : l'appartement ne se vérifie que sous Windows (preuve locale).");
   #endif
       }
       void unavailableReplyCarriesTheExplanation()
@@ -2292,14 +2302,16 @@ bloquante du fil appelant (`wait` hors destruction, `BlockingQueuedConnection`).
   `IInkRecognizer::CreateRecognizerContext` ; `putref_Strokes` ; `Recognize` ; `get_TopString` ;
   `AlternatesFromSelection(0, -1, 10, …)` puis, pour chaque alternative (`get_Count`, `Item`), son texte lu **par
   `IDispatch`** : `GetIDsOfNames` sur `L"String"` puis `Invoke` en `DISPATCH_PROPERTYGET` (l'accesseur C++ direct de
-  cette propriété porte un nom refusé par le contrôle des noms : ne jamais l'écrire, ni en code ni en commentaire) ;
+  cette propriété porte un nom refusé par le contrôle des noms : ne jamais l'écrire, ni en code ni en commentaire ;
+  cas permis tranché dans les règles communes, « Contrôle des noms » : le code ne contient que `GetIDsOfNames`,
+  `Invoke`, `DISPATCH_PROPERTYGET`, `DISPPARAMS`, `VARIANT` et la chaîne `L"String"`, tous contrôlés `NOMS OK`) ;
   doublons retirés, meilleur texte en premier ;
   `BSTR` libérés (`SysFreeString`), `SAFEARRAY` détruits, interfaces par `Microsoft::WRL::ComPtr`. Toute erreur COM
   → liste vide (jamais d'exception ni d'arrêt). `QString::fromWCharArray(bstr, static_cast<qsizetype>(SysStringLen(bstr)))`.
   Si `/W4 /WX /permissive-` refuse un en-tête du SDK : le rapporter (ne pas désactiver d'avertissement sans
   l'accord de l'orchestrateur).
-- [ ] **Étape 5 : vert.** Commande ciblée `-R tst_features_handwriting` : `Totals: 6 passed, 0 failed, 0 skipped`, ou
-  `5 passed, 0 failed, 1 skipped` avec `SKIP   : TstFeaturesHandwriting::recognizesSyntheticInk() reconnaisseur absent : …`
+- [ ] **Étape 5 : vert.** Commande ciblée `-R tst_features_handwriting` (Windows) : `Totals: 7 passed, 0 failed,
+  0 skipped`, ou `6 passed, 0 failed, 1 skipped` avec `SKIP   : TstFeaturesHandwriting::recognizesSyntheticInk() reconnaisseur absent : …`
   (rapporter la ligne).
 - [ ] **Étape 6 : preuves et commit.** `format.ps1`, preuve de tâche, `NOMS OK`, talon absent ; vérifier
   `git -C '<wt>' grep -n "CoInitializeEx\|windows.h\|msinkaut" -- features` : seulement `handwriting_win.cpp` ;
@@ -2394,7 +2406,7 @@ la roue ; libellés à nous.
   `features/src/camera.cpp` : `cropToPolygon` : boîte `polygon.boundingRect().toAlignedRect() & screen.rect()`,
   `QImage out(boîte.size(), QImage::Format_ARGB32_Premultiplied)`, `out.fill(Qt::transparent)`, `QPainter` avec
   anticrénelage, `QPainterPath` du polygone translaté de `-boîte.topLeft()`, `setClipPath`, `drawImage(-boîte.topLeft(),
-  screen)` ; `normalizedRect` : `QRectF(a, b).normalized()`. Commande ciblée `-R tst_features_camera` : `5 passed …
+  screen)` ; `normalizedRect` : `QRectF(a, b).normalized()`. Commande ciblée `-R tst_features_camera` : `7 passed …
   0 skipped`.
 - [ ] **Étape 3 : rouge du clavier.** `tests/tst_features_keyboard.cpp` (montage, classe `TstFeaturesKeyboard`) : les
   quatre fonctions de 7b, L7-T29, étape 1, mot pour mot, plus :
@@ -2470,7 +2482,7 @@ la roue ; libellés à nous.
   `Qt::Key_Backspace` ; `enter` → `Qt::Key_Return` ; `space` → `" "`, `Qt::Key_Space` ; un caractère : en
   majuscule si `m_shift || m_caps` (`toUpper()`), puis `m_shift = false` ; `key` = `static_cast<Qt::Key>(c.unicode())`
   pour `c = text[0].toUpper()` si `c.unicode() < 0x100` (les touches Latin-1 de Qt valent leur majuscule : `Key_A`,
-  `Key_Eacute`, `Key_Ccedilla`…), sinon `Qt::Key_unknown`. Commande ciblée `-R tst_features_keyboard` : `5 passed …
+  `Key_Eacute`, `Key_Ccedilla`…), sinon `Qt::Key_unknown`. Commande ciblée `-R tst_features_keyboard` : `7 passed …
   0 skipped`.
 - [ ] **Étape 5 : rouge de la roue.** `tests/tst_features_desktopwheel.cpp` :
   ```cpp
@@ -2577,7 +2589,8 @@ au doigt et à la souris (B2), chacun vérifiant qu'aucun trait n'est versé **e
 | L7-T4 | `Spotlight`, `tst_features_spotlight` (L7-P1) | `SpotlightController` (conversion `Spotlight::Shape` ↔ `core::SpotlightShape`, mêmes valeurs, `static_assert`), `SpotlightOverlay.qml` (contour `Spotlight::kDefaultOutline` = 10), curseurs selon la zone (P7), couverture, tests d'interface, scénario `spot` ; **capture de la zone éclairée** vers la page, entrée du menu du spot (P8 de L7-T0 ; réutilise `cropToPolygon` de L7-P9 ; ou avec la caméra en 7b) |
 | L7-T5 | `PageZoom`, `tst_features_pagezoom` (L7-P2) | `PageZoomController` (`static_assert(PageZoom::kMinZoom == ui::kMinZoom)` et `kMaxZoom`), `PageZoomOverlay.qml`, `pageZoomRefreshesTheCacheOnceAtRelease` (exactement 1), `pageZoomLeavesTheDocumentUnchanged`, `pageZoomBlocksTheStylus` |
 | L7-T6 | `resolvePageTools` sur `PageToolsSettings`, `tst_features_pagetools` (L7-P1) | `PageToolsSettings toPageToolsSettings(const core::PagePresentation&)` dans `pagetools.*` (`PageToolsMode` → `PageToolChoice` par valeur vérifiée ; `CurtainMode::Off` et `Full` → `Curtain::Start::Full`, `Top/Bottom/Left/Right` → même côté ; `spotlightFrame`), test `curtainModeOffMeansFull` dans `tst_features_pagetools` ; `PageToolsController`, lecture `.flipchart` (`pagePresentationRead`) **y compris la propriété de page 27** (outils de page, F-591 ; relevée par L7-T0, absente de notre documentation du format), mémorisation de la position du rideau pour la page (P9), `pageChangeAppliesPageTools` |
-| L7-T7 | catalogue, `effectForLeaving`, durée, `tst_features_transitions` (L7-P2) | `TransitionController` (effet de la page quittée lu dans `PagePresentation::transition`), `TransitionLayer.qml`, tests d'interface, lecture `.flipchart` de l'effet si L7-T0 l'établit |
+| L7-T7 | catalogue de 18 entrées (16 mouvements, `none`, `random`), `effectForLeaving`, `pickEffect`, durée, `tst_features_transitions` (L7-P2) | `TransitionController` (effet de la page quittée lu dans `PagePresentation::transition`, puis `pickEffect` pour `random`), `TransitionLayer.qml` (un mouvement par identifiant du catalogue), tests d'interface avec les identifiants du catalogue (`dissolve`, `slide-right` ; plus `fade` ni `slide-left`), lecture `.flipchart` de l'effet si L7-T0 l'établit |
+| L7-T8 | rien | identifiants du scénario `effets` **déjà amendés dans 7a** (`view.page-effect dissolve`, `page.effect slide-right`, lecture `transition.played=dissolve`) ; `PageEffectsPicker.qml` : un délégué par entrée du catalogue (18) |
 | L7-T9, L7-T10 | `StrokeGuide`, `GuideSet`, `Ruler`, `SetSquare`, `projectOnSegments` (L7-P3) | `MathToolsController` (`PageView::setSampleFilter`, tolérance = 16 px d'écran ÷ zoom, `UserState::setOpenMathTools`), `MathToolsLayer.qml`, `RulerTool.qml`, `SetSquareTool.qml` (translucidité `kDefaultToolOpacity` = 100 sur 255 ; curseurs par zone, P21), tests d'interface (dont « fermer la règle garde les traits », P6), scénario `regle` |
 | L7-T11, L7-T12 | `Protractor`, `arcPath`, `ArcStyle`, `Compass` (L7-P4) | délégués QML, insertion de l'arc fermé ou plein et de la croix du centre (`DocumentInsertions`), `filledArcBecomesOneShape`, `markCentreAddsACross`, `compassStrokeIsACircle` |
 | L7-T13 | `OriginMemory` (L7-P4) | alimentation depuis `PagePresentation::hasOrigin` / `origin`, `SetPagePresentationCommand` au relâché, `OriginMarker.qml`, `originSavedWithThePage` |
@@ -2594,7 +2607,7 @@ au doigt et à la souris (B2), chacun vérifiant qu'aucun trait n'est versé **e
 | L7-T29 | `ScreenKeyboard`, `tst_features_keyboard` (L7-P9) | `keyinjector_win.cpp` **et** `keyinjector_other.cpp` (ensemble), `KeyboardController`, `ScreenKeyboard.qml`, tests d'interface |
 | L7-T31 | `wheelPositions`, `WheelEntry`, `defaultWheel` ; `wheelIsClockwiseFromTop` est dans **`tst_features_desktopwheel`** (plus dans `tst_ui_desktop`) | `wheelHasNoVoteNorVendorEntry` (identifiants contre le registre des commandes), `DesktopController` (roue), `DesktopToolsWheel.qml`, `restoreClosesTheWheel`, `wheelClosesWhenTheWindowIsRestored` |
 | L7-T34 | rien | en plus de 7b : **symétries autour d'un axe qui passe par l'origine XY** quand elle est active (P20 de L7-T0 ; attend le lot 3 et les symétries du lot 5) |
-| L7-T0 à L7-T2, L7-T8, L7-T17, L7-T24, L7-T25, L7-T27, L7-T30, L7-T32, L7-T33 | rien (L7-T0 : fait, rapport 0be9a77) | selon les amendements du socle (« Ce que la session B doit savoir », socle 1ffb07b) |
+| L7-T0 à L7-T2, L7-T17, L7-T24, L7-T25, L7-T27, L7-T30, L7-T32, L7-T33 | rien (L7-T0 : fait, rapport 0be9a77) | selon les amendements du socle (« Ce que la session B doit savoir », socle 1ffb07b) |
 
 ## Risques
 

@@ -1509,13 +1509,14 @@ pendant une transition (mesure jouée à la clôture à l'écran, S22).
 **Fichiers.** Voir la table (ligne L7-T8).
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_presentation|tst_captures_effets'`, preuve de tâche (N ≥ N0 +
-10), banc sans écran, preuve visuelle `-Scenario effets -Lire "transition.played=fade"`.
+10), banc sans écran, preuve visuelle `-Scenario effets -Lire "transition.played=dissolve"`.
 
-**Preuve visuelle.** `bench/scenarios/effets.json` : `view.page-effect` `fade` ; `page.next` ; `wait` 600 ;
+**Preuve visuelle.** `bench/scenarios/effets.json` : `view.page-effect` `dissolve` ; `page.next` ; `wait` 600 ;
 capture `fondu-milieu` pendant l'effet (attente de 750 ms à partir du déclenchement pour la durée par défaut, 1,5 s) ;
-`waitReady` ; `expect` `pageIndicator.text` `2 / 2`, `transition.played` `fade` ; `page.effect` `slide-left` sur la
-page 2, `page.previous` : `transition.played` `slide-left` ; capture `glissement`. Décrire : deux pages mêlées à
-moitié, puis l'ancienne page qui sort par la gauche.
+`waitReady` ; `expect` `pageIndicator.text` `2 / 2`, `transition.played` `dissolve` ; `page.effect` `slide-right` sur
+la page 2, `page.previous` : `transition.played` `slide-right` ; capture `glissement`. Décrire : deux pages mêlées à
+moitié, puis l'ancienne page poussée vers la droite par la nouvelle. (Identifiants du catalogue de L7-T0, amendement
+« phase 1 », L7-P2 : `fade` devient `dissolve`, `slide-left` devient `slide-right`.)
 
 **Interdits.** Aucune image ni libellé de l'original dans les vignettes ; aperçus dessinés en QML.
 
