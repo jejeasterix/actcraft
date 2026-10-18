@@ -311,7 +311,7 @@ private slots:
 
     // Revue M2 : un trait en attente modifié en place (couleur), puis invalidate : seule la couche change ;
     // ni reconstruction, ni redessin du cache, et la nouvelle couleur est à l'écran.
-    void pendingStrokeChangedInPlaceRebuildsNothing()
+    void pendingStrokeEditedWhileWaitingRebuildsNothing()
     {
         Fixture f;
         open(f, true);
