@@ -70,7 +70,7 @@ font foi.
 | L5-T13 | `tools` : outil connecteur (survol des points d'attache, tracé d'un objet à l'autre, une étape) | L5-T10 | `tools/src/connectortool.cpp`, `tests/tst_tools_connector.cpp` | isolé | implementeur-tdd | `tst_tools_connector` Passed (dont `hoverShowsAttachPoints`, `dragFromObjectToObjectConnects`, `releaseOnEmptyLeavesAFreeEnd`, `connectorGoesOnTopLayer`) | S8.4 | #tache-l5-t13 |
 | L5-T16 | `tools` : sélection — glisser une copie et édition des points de forme | L5-T4, L5-T7, L5-T9 | `tools/src/selecttool.cpp`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_selectcopy.cpp` | isolé | concepteur-critique | `tst_tools_selectcopy` Passed (dont `dragCopyLeavesTheOriginal`, `dragCopyIsOneStep`, `lockedMovesOnlyByMoveHandle`, `shapePointsModeShowsSquares`, `shapePointDragIsOneStep`) ; `tst_tools_select` (lot 3) encore vert | S8.3 | #tache-l5-t16 |
 | L5-T17 | `ui::ToolHost` : outils du lot branchés (pot de peinture, connecteur, modification de stylo, mode points de forme) et mémoire par outil | L5-T12, L5-T13, L5-T16 | `ui/src/toolhost.cpp`, `ui/src/tooladapters.cpp`, `ui/src/tooladapters.h`, `tests/tst_ui_lot5tools.cpp` | isolé | implementeur-tdd | `tst_ui_lot5tools` Passed (dont `fillToolActivatesFromCommand`, `penModifierOnlyWithInkTools`, `connectorRemembersStyle`, `escapeLeavesShapePoints`) ; banc hors écran joint | S8.3, S8.4 | #tache-l5-t17 |
-| L5-T18 | QML : menu d'édition d'objet, sous-menus, barre d'objet complète, barre de modification de stylo, panneau des connecteurs ; scénario `edition` | L5-T14, L5-T15, L5-T17 | `ui/qml/ObjectEditMenu.qml`, `ui/qml/PenModifierBar.qml`, `ui/qml/ConnectorPanel.qml`, `ui/qml/ObjectBar.qml`, `bench/scenarios/edition.json`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `tst_ui_shell` Passed dont `objectMenuMatchesLayout`, `convertEntriesOnlyForAnnotations` ; `edition` hors écran `CAPTURES OK` avec `-Lire` (§ section) ; banc hors écran joint | S8, S8.2, S8.3 | #tache-l5-t18 |
+| L5-T18 | QML : menu d'édition d'objet, sous-menus, barre d'objet complète, barre de modification de stylo, panneau des connecteurs ; scénario `edition` | L5-T14, L5-T15, L5-T17 | `ui/qml/ObjectEditMenu.qml`, `ui/qml/PenModifierBar.qml`, `ui/qml/ConnectorPanel.qml`, `ui/qml/ObjectBar.qml`, `ui/qml/Main.qml` (gestionnaire `connector.style`), `bench/scenarios/edition.json`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `tst_ui_shell` Passed dont `objectMenuMatchesLayout`, `convertEntriesOnlyForAnnotations` ; `edition` hors écran `CAPTURES OK` avec `-Lire` (§ section) ; banc hors écran joint | S8, S8.2, S8.3 | #tache-l5-t18 |
 | L5-T19 | Banc : scénario `edition` (coller, grouper, aligner, organiser sur page annotée), mesuré | L5-T14, L5-T17 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp` | isolé | implementeur-tdd | `tst_bench_scenarios` Passed dont `editionScenarioListed` ; banc hors écran `-Scenario court` JSON avec la section `edition` | S8.2 | #tache-l5-t19 |
 
 Sous-lot 5b (`docs/plans/2026-10-18-livraison-complete-lot5b-PLAN.md`) : L5-T20 à L5-T33 (14 tâches). Lot entier :
@@ -1399,3 +1399,300 @@ simplifié dans le rapport) ; remise par `git -C <wt> checkout -- core/src/conne
   plus proche avant, appliqué à l'objet après) ou détachée si l'objet n'est plus là ; un `ObjectChanged` par
   connecteur modifié ; undo : connecteurs remis, puis undo intérieur ; **Étape 4** : `withFollowingConnectors` ;
   **Étape 5** : vert, mutation, format, commit.
+
+### Tâche L5-T14 — `ui` : contrôleur d'édition d'objet
+
+<a id="tache-l5-t14"></a>
+
+**Objectif.** Remplir `ui/src/objectediting.cpp` (annexe A, `objectediting.h`) : chaque méthode lit la sélection de
+l'utilisateur courant (`appTools.user().selection`, A3, A4), construit la commande `core` du lot et la passe à
+`DocumentController::execute` (A5) **enveloppée par `core::withFollowingConnectors`** (L5-T10) quand elle déplace,
+transforme ou retire des objets. Presse-papiers du système (`QGuiApplication::clipboard()`) : `QMimeData` avec
+`formats::kObjectsMimeType` (L5-T3) ; une seule image copiée → aussi `setImageData` ; collage d'une autre application :
+image → `Insertion` (L5-T15, même règle de taille), texte → objet texte au centre (`view.py:706-728`). Sans sélection,
+couper / copier / coller / dupliquer / supprimer agissent sur la page (D3) par `ui::PagesController` (A15). Après
+coller et dupliquer, les copies sont sélectionnées et l'outil Sélection activé (D1, D2) ; après grouper puis Annuler,
+la sélection est vide (D4).
+
+**Fichiers.** `ui/src/objectediting.cpp`, `tests/tst_ui_objectediting.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_ui_objectediting)$`. Contrôleur et `ToolHost` sans fenêtre
+quand c'est possible, sinon page fixe hors écran comme `tst_ui_document` ; observateur espion `addChangeObserver` (A5) :
+```cpp
+void TestObjectEditing::copyPasteThroughSystemClipboard()
+{
+    Fixture f; // DocumentController + ToolHost + ObjectEditing, une page, un rectangle sélectionné
+    f.editing.copy();
+    QVERIFY(QGuiApplication::clipboard()->mimeData()->hasFormat(formats::kObjectsMimeType));
+    f.editing.paste();
+    QCOMPARE(f.objectCount(), 2);
+    QCOMPARE(f.selection().size(), std::size_t(1));
+    QVERIFY(f.selection()[0] != f.firstId());
+    f.document.undo();
+    QCOMPARE(f.objectCount(), 1);
+}
+void TestObjectEditing::pasteTextFromAnotherApp()
+{
+    Fixture f;
+    QGuiApplication::clipboard()->setText(QStringLiteral("bonjour"));
+    f.editing.paste();
+    QVERIFY(f.lastObjectIs<core::Text>());
+}
+void TestObjectEditing::pasteImageFromAnotherApp()
+{
+    Fixture f;
+    QImage big(4000, 100, QImage::Format_ARGB32);
+    big.fill(Qt::red);
+    QGuiApplication::clipboard()->setImage(big);
+    f.editing.paste();
+    QTRY_VERIFY(f.lastObjectIs<core::ImageObject>()); // décodage hors du fil principal (L5-T15)
+    QVERIFY(f.lastBounds().width() <= 1024 * 0.8 + 0.5);
+}
+void TestObjectEditing::withoutSelectionActsOnPage()
+{
+    Fixture f;
+    f.clearSelection();
+    f.editing.duplicate(); // D3 : duplique la page
+    QCOMPARE(f.document.pageCount(), 2);
+}
+void TestObjectEditing::groupThenUndoClearsSelection()
+{
+    Fixture f(2); // deux rectangles sélectionnés
+    f.editing.toggleGroup();
+    QVERIFY(f.editing.selectionIsGroup());
+    f.document.undo();
+    QVERIFY(f.selection().empty());
+}
+void TestObjectEditing::alignGoesThroughTransformCommand()
+{
+    Fixture f(2);
+    f.spy.clear();
+    f.editing.align(QStringLiteral("left"));
+    QCOMPARE(f.spy.lastOrigin(), ui::DocumentController::ChangeOrigin::Command);
+    QVERIFY(f.spy.has('v')); // ObjectChanged : la transformation passe par la pile, pas par la vue
+}
+void TestObjectEditing::cutGoesThroughReplaceCommand()
+{
+    Fixture f;
+    f.spy.clear();
+    f.editing.cut();
+    QVERIFY(f.spy.has('r'));
+    QCOMPARE(f.objectCount(), 0);
+    QVERIFY(QGuiApplication::clipboard()->mimeData()->hasFormat(formats::kObjectsMimeType));
+}
+```
+Plus `everyEditGoesThroughConnectorFollower` : un connecteur lié au rectangle ; pour chaque méthode qui déplace
+(`align`, `transform`, `cut`), l'extrémité suit ou se détache (contrat de L5-T10).
+
+**Preuve visuelle.** Aucune ici (L5-T18). Banc sans écran joint (la tâche touche `ui/`).
+
+**Interdits.** Aucun accès à `FixedPageItem` ; aucune commande qui ne passe pas par `execute` ; presse-papiers
+interne au processus interdit (copier entre onglets et entre instances passe par le presse-papiers du système).
+
+**Terminé quand.** 8 fonctions en `PASS` ; `tst_ui_document` et `tst_ui_lift` (lot 3) encore verts ; banc joint ;
+commit « Lot 5 : contrôleur d'édition d'objet ».
+
+**Étapes.**
+- [ ] **Étape 1** : tests rouges ; **Étape 2** : sélection et états (`hasSelection`, bascules, `selectionIsGroup`,
+  `selectionIsAnnotation`) relus à chaque `selectionChanged` de `ToolHost` et `documentChanged` ; **Étape 3** :
+  presse-papiers (copier, couper, coller, coller sur l'objet, coller à un point) ; **Étape 4** : dupliquer, grouper,
+  organiser (`arrangedOrder` → `ReorderObjectsCommand`, ou `SetLayerCommand`), aligner, ajuster, inverser, projeter
+  (`mirrorCopies` → `preparePaste(…, 0, 0)` → `PasteObjectsCommand`), symétries d'origine (position de l'origine
+  lue par A17 ; commande inerte si l'origine n'est pas affichée), bascules (`SetObjectFlagCommand`) ; **Étape 5** :
+  vert, banc sans écran, format, commit.
+
+### Tâche L5-T15 — `ui` : insérer une image ou un média
+
+<a id="tache-l5-t15"></a>
+
+**Objectif.** Remplir `ui/src/insertion.cpp` (annexe A, `insertion.h`) selon D19 : lecture et décodage du fichier sur
+un fil secondaire (`QtConcurrent::run`), ressource à clé SHA-256, image ramenée à 80 % de la page au plus, centrée,
+couche du milieu, nommée d'après le fichier ; média : objet `Media` au centre avec l'image d'espace réservé (lecture au
+lot 8) ; dépôt de fichiers et de texte (F-664) ; une étape par insertion (`ReplaceObjectsCommand({}, {objet})`, A6) ;
+l'objet inséré est sélectionné.
+
+**Fichiers.** `ui/src/insertion.cpp`, `tests/tst_ui_insertion.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_ui_insertion)$`. Fonctions : `imageFitsIn80PercentCentered`
+(PNG 2000 × 1000 écrit sous `QTemporaryDir` → emprise 819,2 × 409,6 centrée sur (512, 384)), `imageNamedAfterFile`
+(nom = nom de fichier sans extension), `decodeOffMainThread` (le décodage tourne hors du fil principal :
+`QThread::currentThread()` relevé par un crochet de test, ou propriété `lastDecodeOffMainThread` sur le modèle de
+`lastIoOffMainThread` du lot 2), `mediaInsertedAtCenter`, `droppedTextBecomesText` (`acceptDrop({}, "abc", {100,
+100})` → objet texte en (100, 100)), `insertionIsOneStep` (un Annuler retire l'image et la ressource n'est plus citée).
+
+**Interdits.** Aucun décodage sur le fil principal ; aucune lecture réseau (`QUrl` locale ou `content://`) ; ressource
+écrite telle quelle (octets d'origine), jamais réencodée.
+
+**Terminé quand.** 6 fonctions en `PASS` ; banc sans écran joint ; commit « Lot 5 : insérer une image ou un média ».
+
+**Étapes.** Tests rouges → lecture (`DocumentController::urlFromArgument` pour l'URL, A5) et décodage en tâche de fond
+→ retour sur le fil principal (`QFutureWatcher`) → commande → vert → banc → format → commit.
+
+### Tâche L5-T12 — `tools` : pot de peinture et modification de stylo
+
+<a id="tache-l5-t12"></a>
+
+**Objectif.** Remplir `tools/src/filltool.cpp` (clic → `core::fillHitAt` avec la tolérance de désignation du lot 3
+convertie en page, puis `makeFillCommand` ou, sur une image, `render::floodFill` puis `makeImageFillCommand`, par
+`DocumentEditor::execute`, A1) et `tools/src/penshapetool.cpp` (glisser : aperçu par la couche soulevée
+`LiftSurface::show`, aucun redessin du cache pendant le geste ; relâché : **un** `AddObjectCommand` de
+`core::penShapeStroke` ; ligne brisée : chaque clic pose un sommet, double-clic termine).
+
+**Fichiers.** `tools/src/filltool.cpp`, `tools/src/penshapetool.cpp`, `tests/tst_tools_fill.cpp`,
+`tests/tst_tools_penshape.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_tools_fill|tst_tools_penshape)$`. Faux `ToolContext` du lot
+3 (aides de `tst_tools_select`, à revérifier) : `clickFillsTopmostClosedShape`, `clickOnEmptyFillsBackground`,
+`clickOnImageFloodFills`, `dragDrawsAPreviewThenOneStroke` (un seul `execute` au relâché), `previewUsesTheLiftSurface`
+(`show` appelé pendant le geste, `clear` au relâché, aucun `execute` avant), `polylineEndsOnDoubleClick`.
+
+**Interdits.** Aucun accès au document hors de `ToolContext` ; aucune commande pendant le geste.
+
+**Terminé quand.** Les deux tests `Passed` (6 fonctions en `PASS`) ; banc sans écran joint ; commit « Lot 5 : outils
+pot de peinture et modification de stylo ».
+
+**Étapes.** Tests rouges → `FillTool` → `PenShapeTool` → vert → banc → format → commit.
+
+### Tâche L5-T13 — `tools` : outil connecteur
+
+<a id="tache-l5-t13"></a>
+
+**Objectif.** Remplir `tools/src/connectortool.cpp` : au survol, les points d'attache de l'objet sous le pointeur
+(`core::attachPoints`) sont montrés par la surcouche d'outil (carré de 13 px, plan comparatif ligne 19) ; presser sur
+un objet puis glisser : aperçu de la ligne par `LiftSurface::show` ; relâcher : `snapConnectorEnd` à chaque bout, puis
+**un** `AddObjectCommand(makeConnector(…, style))` ; un bout sans objet reste libre.
+
+**Fichiers.** `tools/src/connectortool.cpp`, `tests/tst_tools_connector.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_tools_connector)$` : `hoverShowsAttachPoints`,
+`dragFromObjectToObjectConnects` (`objectA` et `objectB` posés), `releaseOnEmptyLeavesAFreeEnd`,
+`connectorGoesOnTopLayer`, `styleIsUsed` (`setStyle(5)` → `Connector::style == 5`).
+
+**Interdits.** Aucune commande pendant le geste ; aucun dessin de connecteur hors du peintre partagé (le rendu des
+connecteurs existe depuis le lot 2 ; extrémités `capA`/`capB` dessinées par `render/src/pagepainter.cpp` : si le
+peintre ne les dessine pas encore, **tâche corrective `L5-C1`** ajoutée par l'orchestrateur, fichier
+`render/src/pagepainter.cpp`, après V6).
+
+**Terminé quand.** 5 fonctions en `PASS` ; banc sans écran joint ; commit « Lot 5 : outil connecteur ».
+
+**Étapes.** Tests rouges → survol et surcouche → glisser et aperçu → relâché → vert → banc → format → commit.
+
+### Tâche L5-T16 — `tools` : sélection, glisser une copie et points de forme
+
+<a id="tache-l5-t16"></a>
+
+**Objectif.** Dans `tools/src/selecttool.cpp` (lot 3) : (1) **glisser une copie** (D9) : un objet à `dragCopy` vrai
+est soulevé comme au lot 3, mais au dépôt l'original reste et une copie est ajoutée à la position de dépôt —
+`dropLifted` reçoit une `PasteObjectsCommand` (L5-T4) au lieu d'une `TransformObjectsCommand`, l'original étant
+redéposé sans étape ; (2) **verrouillé** : seul le glissement par la poignée « Déplacer » du lot 3 le déplace ;
+(3) **mode points de forme** (activé par `object.shape-points`) : `SelectionView` montre les points
+(`core::shapePoints`) comme carrés (nouveau champ `shapePoints` à la fin de `SelectionView`, ajouté par cette tâche dans
+`selectiongeometry.cpp` seulement si l'en-tête du lot 3 le permet ; sinon dans un en-tête d'outil propre — écart au
+rapport), glisser un point → **une** `MoveShapePointCommand` au relâché, aperçu par la couche soulevée.
+
+Point délicat (`concepteur-critique`) : parité du chemin de dépôt — un dépôt normal et un dépôt de copie doivent
+laisser le cache dans le même état qu'un dépôt du lot 3 (même observateur, `ChangeOrigin::Drop`) ; la copie ne doit
+pas laisser l'original soulevé.
+
+**Fichiers.** `tools/src/selecttool.cpp`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_selectcopy.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_tools_selectcopy|tst_tools_select)$` :
+`dragCopyLeavesTheOriginal`, `dragCopyIsOneStep` (un Annuler retire la copie, l'original n'a pas bougé),
+`lockedMovesOnlyByMoveHandle`, `shapePointsModeShowsSquares` (8 pour un carré), `shapePointDragIsOneStep` ; et tout
+`tst_tools_select` (lot 3) vert. Mutation : déposer l'original par une transformation (comme un glissement normal)
+quand `dragCopy` est vrai → `dragCopyLeavesTheOriginal` rouge ; remise par
+`git -C <wt> checkout -- tools/src/selecttool.cpp`.
+
+**Interdits.** Aucune signature publique du lot 3 changée ; aucun redessin du cache pendant un glissement.
+
+**Terminé quand.** Les deux tests `Passed` ; mutation rouge puis remise ; banc sans écran joint ; commit « Lot 5 :
+sélection — glisser une copie et points de forme ».
+
+**Étapes.** Tests rouges → dépôt de copie → verrou → mode points de forme → vert → mutation → banc → format → commit.
+
+### Tâche L5-T17 — `ui::ToolHost` : outils du lot branchés
+
+<a id="tache-l5-t17"></a>
+
+**Objectif.** Dans `ui/src/toolhost.cpp` et `ui/src/tooladapters.{h,cpp}` : inscrire « fill », « pen-shape »,
+« connector » au registre (A3) ; `activate("select-points")` = outil Sélection en mode points de forme ;
+`activate("pen-shape", argument)` seulement si l'outil courant est stylo, marqueur (ou encre révélatrice au lot 8) —
+sinon sans effet (F-221) ; `setConnectorStyle(int)` (méthode invocable ajoutée ici, gestionnaire de L5-T2 complété :
+`ui/qml/Main.qml` **n'est pas** touché, le gestionnaire `connector.style` appelle `appTools.setConnectorStyle` par
+le nom déjà écrit en commentaire — à décommenter par L5-T18) ; mémoire par outil (couleur du pot, style du connecteur,
+tracé choisi) gardée comme celle du lot 3 (`settingsFile`) ; l'adaptateur de dépôt de `ToolHost` enveloppe la commande
+de dépôt par `core::withFollowingConnectors` (L5-T10) ; Échap quitte le mode points de forme.
+
+**Fichiers.** `ui/src/toolhost.cpp`, `ui/src/tooladapters.cpp`, `ui/src/tooladapters.h`, `tests/tst_ui_lot5tools.cpp`.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_ui_lot5tools)$` : `fillToolActivatesFromCommand`,
+`penModifierOnlyWithInkTools`, `connectorRemembersStyle` (après relance du `ToolHost` sur le même `settingsFile`),
+`escapeLeavesShapePoints`, `dropMovesLinkedConnectors` (glisser un objet relié : l'extrémité suit, une étape).
+
+**Interdits.** Aucun outil qui contourne `ToolContext` ; aucune signature publique de `ToolHost` changée hors de
+l'ajout de `setConnectorStyle`.
+
+**Terminé quand.** 5 fonctions en `PASS` ; `tst_ui_tools` (lot 3) encore vert ; banc sans écran joint ; commit
+« Lot 5 : outils du lot branchés à ToolHost ».
+
+**Étapes.** Tests rouges → inscription → activation et mémoire → enveloppe de dépôt → vert → banc → format → commit.
+
+### Tâche L5-T18 — QML : menu d'édition d'objet, barre d'objet, barres du lot ; scénario `edition`
+
+<a id="tache-l5-t18"></a>
+
+**Objectif.** Remplir `ObjectEditMenu.qml` (liste `objectMenu` de la disposition, A12 ; sous-menus Transformer et
+Organiser ; entrées « Convertir » visibles seulement si `appEditing.selectionIsAnnotation`, et « Convertir en texte »
+seulement sous Windows ; bascules cochées selon `selectionLocked`, `selectionIsGroup`, `selectionHidden`,
+`selectionDragCopy` ; ouvert par `object.menu`, par le bouton de la barre d'objet et par le clic droit sur un objet),
+les boutons du lot dans `ObjectBar.qml` (actifs), `PenModifierBar.qml` (barre verticale à côté de la palette, un bouton
+par tracé de D12, recliquer revient au trait libre), `ConnectorPanel.qml` (panneau des 14 styles, ligne simple par
+défaut, ancré à droite), et le scénario d'interface `bench/scenarios/edition.json` (S8.2, S8.3) ; dans `Main.qml`, le
+gestionnaire `connector.style` décommenté — `Main.qml` est déjà réservé par L5-T2 et n'est touché par aucune autre
+tâche de V8 : **fichier ajouté à cette tâche**.
+
+**Fichiers.** Ceux de la ligne de la table, plus `ui/qml/Main.qml` (une ligne).
+
+**Test et commande bornée.** `tst_ui_shell` : `objectMenuMatchesLayout` (entrées du menu = `objectMenu` filtrée par
+plateforme), `convertEntriesOnlyForAnnotations`. Commande ciblée, motif `^(tst_ui_shell)$`.
+
+**Preuve visuelle.** Scénario `edition` (pas : poser trois formes par `tool.shape`, sélectionner, `object.group`,
+`edit.duplicate`, `align.left`, `arrange.front`, `object.lock`, glissement refusé, `tool.fill` dans une forme,
+`object.shape-points`, glisser un point, `tool.connector` entre deux formes, déplacer l'une). Lectures d'abord :
+```powershell
+New-Item -ItemType Directory -Force '<wt>/.tmp' | Out-Null
+pwsh -NoProfile -Command "Set-Location '<wt>'; pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario edition -Rendu logiciel -HorsEcran -Sortie .tmp/captures-edition -Lire 'appEditing.selectionIsGroup=true' -Lire 'appDocument.canUndo=true' -Lire 'objectEditMenu.count=<n attendu>' > .tmp/captures.txt 2>&1"
+Select-String -Path '<wt>/.tmp/captures.txt' -Pattern '^(COMMANDE|TRAIT|TOUCHE|ATTENTE|PRET|FENETRE|LU|PIXEL|CAPTURE) |^SCENARIO |CAPTURES (OK|EN ECHEC)' | Select-Object -Last 16
+```
+Attendu : `CAPTURES OK`, chaque `LU` conforme, contrôles de pixels : couleur de remplissage dans la forme, ligne du
+connecteur entre les deux formes après le déplacement. Capture à décrire : les deux groupes alignés à gauche, le menu
+d'objet ouvert, la barre d'objet complète.
+
+**Interdits.** Aucun texte de l'aide d'origine ; icônes du lot 1 et de L5-T1 seulement ; aucun JavaScript qui modifie
+le document (tout passe par les commandes).
+
+**Terminé quand.** `tst_ui_shell` `Passed` ; `edition` `CAPTURES OK` ; banc sans écran joint ; `NOMS OK` ; commit
+« Lot 5 : menu d'édition d'objet, barre d'objet, barres du lot ».
+
+**Étapes.** Tests rouges → menu → barre d'objet → barres → scénario → lectures et captures → banc → format → commit.
+
+### Tâche L5-T19 — Banc : scénario `edition`
+
+<a id="tache-l5-t19"></a>
+
+**Objectif.** Ajouter au banc un scénario `edition` : sur une page de 200 annotations, coller 20 objets, grouper,
+aligner, organiser (premier plan), pendant qu'un trait est écrit toutes les 2 s ; relever figements et reprises
+(métriques existantes) et le nombre de redessins du cache par geste (`cacheRefreshCount`, A18). Il mesure la limite
+déclarée (contrainte 1 : organiser = insertion hors fin de page → redessin immédiat).
+
+**Fichiers.** Ceux de la ligne de la table.
+
+**Test et commande bornée.** Commande ciblée, motif `^(tst_bench_scenarios)$` : `editionScenarioListed` ; puis banc
+sans écran (`-Scenario court` inclut `edition`) : la ligne de verdict et le JSON avec la section `edition`.
+
+**Interdits.** Aucune mesure en `debug` présentée comme preuve de fluidité ; le verdict est un résultat, pas une porte.
+
+**Terminé quand.** Test `Passed` ; JSON joint (section `edition` présente, `content_check.ok = True`) ; commit « Lot 5 :
+scénario de banc edition ».
+
+**Étapes.** Test rouge → scénario dans `scenarios.cpp` et branchement dans `runner.cpp` → vert → banc → commit.
