@@ -194,6 +194,21 @@ Plan du lot 6 amendé (c2d6796 : 38 tâches, 15 vagues ; nouvelles hypothèses H
 - **V1 du socle complète** (S1, S3, S6). Suite complète de la vague lancée sous le jeton (`scratchpad/out/suite-v1.txt`).
 Relecture du plan du lot 5, tour 2 : 2 nouveaux bloquants et 6 majeurs. Rapport : `scratchpad/revue-plan-lot5-t2.md`. Amendement 2 en cours.
 **Suite complète de V1 verte** (tête cb2ad56, 00 h 34 à 00 h 52) : `100% tests passed, 0 tests failed out of 113`, `TESTS OK`. Seuls sautés, comme avant : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`.
+L0-S5 écrite, non construite (wip `c89ffff`). Preuve prête : `.tmp/preuve-L0-S5.ps1` du worktree. Mutation : `ChangeOrigin::Stroke` remplacé par `Command`.
+Découvertes à transmettre :
+- **À B, avec « socle mergé »** : `replaceDocument`, `loadGeneratedFirstPage` et `loadGeneratedPages` ne passent pas par `applyToCache`, donc l'observateur n'est pas appelé. Le lot 7 doit écouter `pagesChanged` ou `documentChanged`.
+- **Au lot 3, amendement** : le commentaire de `editAboutToApply`, copié du plan du lot 3, cite « un soulèvement », ce qui contredit B1 et la documentation de `liftObjects`.
+**L0-S4, rejeu rouge** (16f323b, 01 h 03).
+- Le QML ne se charge plus : `CommandMenu is instantiated recursively`. Conséquences : `tst_ui_shell` 17 FAIL, `tst_ui_filemenu` rouge, `premiers-pas` EN ECHEC.
+- `unreadableProfileLayoutFallsBackToResource` : 6 menus au lieu de 4.
+- `format -Check` à 1.
+- La mutation `noShortcutTwice`, elle, est rouge comme attendu.
+- Renvoyé à l'agent, qui est le seul constructeur : composant `CommandSubmenu.qml` à un niveau. Essai 2/3.
+L0-S7 écrite, non construite (wip `a6c83f1`) ; preuve dans `scratchpad/preuve-L0-S7.ps1`.
+- Question de l'agent : l'amendement 5 du lot 3 confie au socle `routeEvent`, `Sample::event`, et le passage du doigt à `Ignore` quand le stylet appuie (M4, P3:2469). Ni L0-S6 ni L0-S7 ne les portent. **Tranché par A : rien n'est ajouté au socle.**
+- Le plan du lot 3 (l. 1203-1210) dit que `routeEvent` n'est pas écrit dans ce lot (H3-16).
+- M4(b) relève de L3-T5, qui s'arrête et le rapporte si le mécanisme de L0-S7 ne fait pas passer les doigts à `Ignore`. L0-S7 teste déjà `fingerIgnoredWhileStylusToolContact`.
+- Talon de plus pour L0-S10 : `gestureActive()`.
 Plans amendés en cours de dernière relecture (tour 3) : lot 5 (5350a99) et lot 6 (e754dbe).
 V2 en préparation, écriture seule (un seul constructeur) : L0-S7 (worktree neuf à cb2ad56) et L0-S4 (reprise du wip 267b2a6 après fusion de la tête). Chacun attend mon signal pour sa preuve. L0-S5 démarre quand une place d'agent se libère.
 **Décision de A, demandée par B (L7-T26)** : pas d'inclusion privée de `render/src` depuis `ui/presentation.cmake`.
