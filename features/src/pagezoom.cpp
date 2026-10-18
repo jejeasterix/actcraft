@@ -36,9 +36,12 @@ bool PageZoom::move(QPointF viewPoint, std::int64_t /*nowNs*/)
             m_frozenZoom = m_startZoom; // le zoom en cours est annulé
         }
     }
-    if (m_panning)
+    if (m_panning) {
+        // m_lastPoint reste sur l'appui tant que le seuil n'est pas franchi : le premier delta couvre tout le
+        // chemin
         m_panDelta += viewPoint - m_lastPoint;
-    m_lastPoint = viewPoint;
+        m_lastPoint = viewPoint;
+    }
     return m_panning;
 }
 
@@ -55,12 +58,13 @@ void PageZoom::release(std::int64_t nowNs)
         return;
     m_frozenZoom = zoomAt(nowNs);
     m_pressed = false;
+    m_panning = false;
 }
 
 double PageZoom::zoomAt(std::int64_t nowNs) const noexcept
 {
     if (!m_pressed || m_panning)
-        return m_frozenZoom;
+        return std::clamp(m_frozenZoom, kMinZoom, kMaxZoom);
     const double seconds = static_cast<double>(nowNs - m_pressNs) / 1e9;
     const double exponent = m_direction == Direction::In ? seconds : -seconds;
     return std::clamp(m_startZoom * std::pow(kRatePerSecond, exponent), kMinZoom, kMaxZoom);

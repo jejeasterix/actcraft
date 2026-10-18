@@ -30,6 +30,17 @@ private slots:
         for (const auto& e : list)
             ids.insert(e.id);
         QCOMPARE(ids.size(), qsizetype{18}); // identifiants uniques
+        const QStringList expected{
+            QStringLiteral("none"),        QStringLiteral("random"),       QStringLiteral("dissolve"),
+            QStringLiteral("corner-peel"), QStringLiteral("box-turn"),     QStringLiteral("card-flip"),
+            QStringLiteral("tiles-spin"),  QStringLiteral("fold-half"),    QStringLiteral("slide-right"),
+            QStringLiteral("strips-drop"), QStringLiteral("corner-swing"), QStringLiteral("spiral-out"),
+            QStringLiteral("turn-reveal"), QStringLiteral("drapes"),       QStringLiteral("star-iris"),
+            QStringLiteral("shards"),      QStringLiteral("sweep"),        QStringLiteral("funnel")};
+        QStringList actual; // liste exacte du rapport L7-T0, dans l'ordre
+        for (const auto& e : list)
+            actual.append(e.id);
+        QCOMPARE(actual, expected);
     }
     void pageEffectWinsOverGlobal()
     {
@@ -67,13 +78,20 @@ private slots:
     }
     void randomPicksARealEffect()
     {
-        QRandomGenerator generator(2026);
-        for (int i = 0; i < 50; ++i) {
+        QSet<QString> catalogueIds;
+        for (const auto& e : transitionCatalogue())
+            catalogueIds.insert(e.id);
+        QSet<QString> seen;
+        for (quint32 seed = 1; seed <= 50; ++seed) {
+            QRandomGenerator generator(seed);
             const QString id = pickEffect(QStringLiteral("random"), generator);
+            QVERIFY(catalogueIds.contains(id));
             QVERIFY(id != QStringLiteral("random"));
             QVERIFY(id != QStringLiteral("none"));
-            QVERIFY(id != QStringLiteral("does-not-exist"));
+            seen.insert(id);
         }
+        QVERIFY(seen.size() >= 2); // le tirage varie
+        QRandomGenerator generator(2026);
         QCOMPARE(pickEffect(QStringLiteral("dissolve"), generator),
                  QStringLiteral("dissolve")); // pas de tirage
     }
