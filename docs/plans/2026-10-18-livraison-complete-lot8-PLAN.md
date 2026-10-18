@@ -427,10 +427,21 @@ outils qui déclenchent les actions (défaut : sélection seule) ; **D4** objet 
 action qui part quand même (V103) ; **D5** objet masqué cliquable (V40, V42 ; le clone fait l'inverse) ; **D6** E6 ;
 **D7** sens de « bloquer » (arrêt au bord, ou refus du dépôt) ; **D8** pas de rotation par défaut, pivot « première
 ligne de texte » ; **D9** liste du glisser-déposer hors vote (18) ; **D10** messages et refus de la diffusion protégée
-(V58), commandes de chacune des quatre interdictions (identifiants de la caméra compris, A29) ; **D11** enregistreur
+(V58), commandes de chacune des quatre interdictions (identifiants de la caméra compris : voir « D10 — noms de la caméra » ci-dessous) ; **D11** enregistreur
 d'écran (V43), formats ; **D12** cadre web : image fixe, glisser du texte, comportement sous le rideau (N1-A3) ;
 **D13** second média à côté du premier (V126) ; **D14** GIF animé (V57, V66) ; **D15** objet Flash : repère seulement
 (N1-A15) ; **D16** conteneur recouvert par une image (V39).
+
+**D10 — noms de la caméra (contradiction consignée, non tranchée par ce plan).** Le plan du lot 7 déclare cinq
+commandes `tool.camera-area`, `tool.camera-polygon`, `tool.camera-freehand`, `tool.camera-window`,
+`tool.camera-screen` (`…-lot7-PLAN.md`, session B, l. 690-694) ; le plan du lot 6 (L6-T3, D6-7) écrit `camera.*`
+pour les déclarer restreignables et dans les préfixes de la barre de raccourcis (`lot6-PLAN.md:998-1004,2161`), tout
+en disant « identifiants réels relus dans le fichier ». L8-T0 relève les identifiants **réellement déclarés** dans
+`actions/data/commands.json` à la tête du chantier et les écrit au rapport. **Recommandation** : retenir ceux du lot 7
+(`tool.camera-*`), parce que c'est le lot qui crée ces commandes et que le lot 6 renvoie lui-même au fichier ; la
+diffusion protégée (L8-T31, L8-T32) vise alors le préfixe `tool.camera-`, et un correctif `L8-C0` corrige le préfixe
+de la barre de raccourcis si L6-T9 a codé `camera.` en dur. La décision revient à l'orchestrateur, sur le rapport de
+L8-T0.
 
 **Étapes.**
 - [ ] **Étape 1 : corpus.** Lire `C:\Users\JeromeDenis\REA - Activinspire\docs\videos-tanguay\README.md` (« Principes
@@ -462,6 +473,1283 @@ d'écran (V43), formats ; **D12** cadre web : image fixe, glisser du texte, comp
 - [ ] **Étape 8 : contrôles et commit.** `git -C <wt> add docs/verifications/2026-10-21-lot8-principes.md` ;
   `NOMS OK` ; contrôles des titres et des paperboards vides ; commit « Lot 8 : principes confrontés, décisions et API
   revérifiées (L8-T0) ».
+
+<a id="tache-l8-t1"></a>
+### Tâche L8-T1 — Réservation 8a : tests, fichiers neufs, commandes et disposition du lot, icônes
+
+**Objectif.** Poser en une fois ce que les tâches de 8a se partageraient : enregistrement CMake des fichiers neufs de
+8a (créés vides et marqués), des 16 tests unitaires et des 5 tests de captures de 8a (talons `QSKIP`) ; déclaration
+dans `commands.json` des commandes des **deux** sous-lots ; leur place dans `layout.json` ; 19 icônes à nous. Après
+L8-T1, aucune tâche de 8a ne touche un `CMakeLists.txt`, un `tests/*.cmake` ni `commands.json` (8b : L8-T21).
+
+**Fichiers.** Ceux de la ligne L8-T1. Lire d'abord les `CMakeLists.txt` et `tests/*.cmake` pour reprendre leur forme
+exacte (`actcraft_add_module`, `actcraft_add_test(<nom> SOURCES … LIBS …)`, entrées `add_test` des
+`tst_captures_*` de `tests/bench.cmake`, bloc `RESOURCES` de `qt_add_qml_module`).
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_actions_layout|tst_actions_registry|tst_actions_lockable|tst_ui_theme'`,
+puis preuve de tâche : `100% tests passed … out of N` avec **N = N8 + 21**, `TESTS OK` ; les 21 tests neufs passent
+en `SKIP` nommant leur tâche (`ctest --preset debug -V -R 'tst_(core_containers|ui_actionrunner|captures_conteneurs)' | Select-String 'SKIP   :'`
+montre `Talon L8 : rempli par L8-T14.`, etc.).
+
+**Preuve visuelle.** `captures.ps1 -Scenario premiers-pas -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire "pageIndicator.text=1 / 2"` :
+`LU pageIndicator.text=1 / 2 OK`, `CAPTURES OK` (rien ne change à l'écran).
+
+**Interdits.** Aucun comportement : un `.cpp` talon ne contient que le marqueur ; un en-tête talon ne contient que sa
+garde, son espace de noms et le marqueur. Aucune icône reprise de l'original ni du clone Python ; aucun libellé de
+l'original (N1-12) ; aucun raccourci en double ; aucun identifiant de commande déjà déclaré redéclaré (si
+`browser.actions` existe déjà, le garder tel quel).
+
+**Terminé quand** N = N8 + 21, `TESTS OK`, `tst_actions_layout` passe `lot8EntriesDeclared` et `lot8AttributesDeclared`,
+`tst_actions_registry` passe `noShortcutTwice`, `tst_actions_lockable` passe `everyCommandDeclaresBoth`, `tst_ui_theme`
+passe `iconsAreOurSvgOnA24Grid` avec les 19 nouvelles lignes, `NOMS OK`.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** — ajouter à `tests/tst_actions_layout.cpp` :
+  ```cpp
+  void lot8EntriesDeclared()
+  {
+      actions::CommandRegistry registry;
+      QString error;
+      QVERIFY2(registry.loadDeclarations(actions::defaultCommandsJson(), error), qPrintable(error));
+      const QStringList ids = {
+          QStringLiteral("tool.reveal-ink"),      QStringLiteral("browser.actions"),
+          QStringLiteral("action.apply"),         QStringLiteral("action.remove"),
+          QStringLiteral("action.pick-target"),   QStringLiteral("link.file"),
+          QStringLiteral("link.website"),         QStringLiteral("page.history-back"),
+          QStringLiteral("page.history-forward"), QStringLiteral("media.sound-controller"),
+          QStringLiteral("record.sound"),         QStringLiteral("record.screen-full"),
+          QStringLiteral("record.screen-area"),   QStringLiteral("record.pause"),
+          QStringLiteral("record.stop"),          QStringLiteral("record.cancel"),
+          QStringLiteral("insert.web-frame"),     QStringLiteral("webframe.back"),
+          QStringLiteral("webframe.forward"),     QStringLiteral("webframe.reload"),
+          QStringLiteral("webframe.snapshot"),    QStringLiteral("webframe.unblock"),
+          QStringLiteral("file.publish"),
+      };
+      for (const QString& id : ids)
+          QVERIFY2(registry.find(id), qPrintable(id));
+      QCOMPARE(registry.find(QStringLiteral("tool.reveal-ink"))->shortcut, QStringLiteral("Ctrl+Shift+M"));
+      QCOMPARE(registry.find(QStringLiteral("record.sound"))->shortcut, QStringLiteral("Ctrl+Shift+R"));
+      QCOMPARE(registry.find(QStringLiteral("record.screen-full"))->platforms,
+               actions::Platforms(actions::Platform::Windows));
+      QCOMPARE(registry.find(QStringLiteral("record.screen-area"))->platforms,
+               actions::Platforms(actions::Platform::Windows));
+      QVERIFY(registry.find(QStringLiteral("media.sound-controller"))->checkable);
+  }
+  void lot8AttributesDeclared()
+  {
+      actions::CommandRegistry registry;
+      QString error;
+      QVERIFY(registry.loadDeclarations(actions::defaultCommandsJson(), error));
+      // Navigation et écoute restent libres sous le verrou de classe ; diffuser enregistre : restreignable.
+      for (const char* id : {"page.history-back", "page.history-forward", "media.sound-controller"})
+          QVERIFY2(!registry.find(QString::fromLatin1(id))->lockable, id);
+      for (const char* id : {"tool.reveal-ink", "action.apply", "action.remove", "link.file", "link.website",
+                             "record.sound", "record.screen-full", "insert.web-frame", "file.publish"})
+          QVERIFY2(registry.find(QString::fromLatin1(id))->lockable, id);
+      QVERIFY(registry.find(QStringLiteral("file.publish"))->restrictable);
+      QVERIFY(!registry.find(QStringLiteral("tool.reveal-ink"))->restrictable);
+  }
+  ```
+- [ ] **Étape 2 : rouge.** Commande ciblée `-R tst_actions_layout` : `FAIL!  : TstActionsLayout::lot8EntriesDeclared`
+  (`tool.reveal-ink`).
+- [ ] **Étape 3 : commandes.** Ajouter à la fin du tableau `commands` de `actions/data/commands.json`, en un bloc
+  contigu « lot 8 », même forme que les entrées existantes (chaque entrée déclare `lockable` et `restrictable`) :
+  ```json
+  { "id": "tool.reveal-ink", "label": "Encre révélatrice", "icon": "encre-revelatrice", "shortcut": "Ctrl+Shift+M", "checkable": true, "lockable": true, "restrictable": false },
+  { "id": "browser.actions", "label": "Navigateur d'actions", "icon": "actions", "checkable": true, "lockable": true, "restrictable": false },
+  { "id": "action.apply", "label": "Appliquer l'action", "icon": "action-objet", "lockable": true, "restrictable": false },
+  { "id": "action.remove", "label": "Retirer les actions", "icon": "action-objet", "lockable": true, "restrictable": false },
+  { "id": "action.pick-target", "label": "Choisir l'objet visé", "icon": "action-objet", "lockable": true, "restrictable": false },
+  { "id": "link.file", "label": "Lien vers un fichier…", "icon": "lien-fichier", "shortcut": "Ctrl+L", "argument": "url", "optional": true, "lockable": true, "restrictable": false },
+  { "id": "link.website", "label": "Lien vers un site…", "icon": "lien-site", "argument": "text", "optional": true, "lockable": true, "restrictable": false },
+  { "id": "page.history-back", "label": "Page vue avant", "icon": "historique-precedent", "lockable": false, "restrictable": false },
+  { "id": "page.history-forward", "label": "Page vue après", "icon": "historique-suivant", "lockable": false, "restrictable": false },
+  { "id": "media.sound-controller", "label": "Lecteur de sons", "icon": "lecteur-sons", "checkable": true, "lockable": false, "restrictable": false },
+  { "id": "record.sound", "label": "Enregistrer du son", "icon": "enregistrer-son", "shortcut": "Ctrl+Shift+R", "lockable": true, "restrictable": false },
+  { "id": "record.screen-full", "label": "Enregistrer tout l'écran", "icon": "enregistrer-ecran", "platforms": ["windows"], "lockable": true, "restrictable": false },
+  { "id": "record.screen-area", "label": "Enregistrer une zone de l'écran", "icon": "enregistrer-zone", "platforms": ["windows"], "lockable": true, "restrictable": false },
+  { "id": "record.pause", "label": "Pause de l'enregistrement", "icon": "enregistrer-son", "lockable": true, "restrictable": false },
+  { "id": "record.stop", "label": "Arrêter l'enregistrement", "icon": "enregistrer-son", "lockable": false, "restrictable": false },
+  { "id": "record.cancel", "label": "Abandonner l'enregistrement", "icon": "enregistrer-son", "lockable": false, "restrictable": false },
+  { "id": "insert.web-frame", "label": "Cadre web…", "icon": "cadre-web", "lockable": true, "restrictable": false },
+  { "id": "webframe.back", "label": "Page web précédente", "icon": "cadre-web", "lockable": false, "restrictable": false },
+  { "id": "webframe.forward", "label": "Page web suivante", "icon": "cadre-web", "lockable": false, "restrictable": false },
+  { "id": "webframe.reload", "label": "Recharger le cadre", "icon": "cadre-web", "lockable": false, "restrictable": false },
+  { "id": "webframe.snapshot", "label": "Poser une image du cadre", "icon": "cadre-web", "lockable": true, "restrictable": true },
+  { "id": "webframe.unblock", "label": "Débloquer le contenu du cadre", "icon": "cadre-web", "lockable": true, "restrictable": false },
+  { "id": "file.publish", "label": "Diffuser en protégé…", "icon": "diffuser", "lockable": true, "restrictable": true }
+  ```
+  `record.stop` et `record.cancel` restent libres : on doit toujours pouvoir arrêter un enregistrement (N1-A16).
+  `webframe.snapshot` est restreignable (copie d'un contenu, D10 de L8-T0). Si `browser.actions` existe déjà
+  (L4-T19), retirer sa ligne de ce bloc et ajouter seulement `lockable` et `restrictable` s'ils manquent.
+- [ ] **Étape 4 : disposition.** `actions/data/layout.json` : menu Insérer, sous-menu « Lien » (`link.file`,
+  `link.website`, `insert.web-frame`) ; menu Outils : `tool.reveal-ink` après le marqueur, sous-menu « Enregistreurs »
+  (`record.sound`, `record.screen-full`, `record.screen-area`), `media.sound-controller` ; menu Fichier :
+  `file.publish` après « Enregistrer sous » ; palette : `tool.reveal-ink` dans le groupe du stylo ; barre d'objet :
+  `action.apply`, `action.remove` ; la sous-ligne de navigation : `page.history-back`, `page.history-forward`.
+- [ ] **Étape 5 : icônes.** 19 SVG à nous, grille de 24 px, trait du `Theme` (même gabarit que les icônes du lot 6) ;
+  une ligne par icône dans les données de `iconsAreOurSvgOnA24Grid` (`tests/tst_ui_theme.cpp`).
+- [ ] **Étape 6 : fichiers talons.** Chaque en-tête talon :
+  ```cpp
+  #pragma once
+  // Talon L8 : rempli par L8-T14.
+  namespace actcraft::core {
+  } // namespace actcraft::core
+  ```
+  (espace de noms du module, tâche de la table des talons ci-dessous) ; chaque `.cpp` talon : une ligne
+  `// Talon L8 : rempli par L8-T<n>.` ; `actions/data/object-actions.json` talon :
+  `{"format": "actcraft-object-actions/1", "description": "Talon L8 : rempli par L8-T6.", "actions": []}` ; chaque
+  scénario talon :
+  ```json
+  {"format": "actcraft-scenario/1", "name": "conteneurs", "description": "Talon L8 : rempli par L8-T16.", "steps": [{"waitReady": true}]}
+  ```
+  Table des talons : `interactivity.*` → L8-T3 ; `actions/objectactions.*`, `object-actions.json` → L8-T6 ;
+  `core/objectactions.h`, `objectactions_geometry.cpp` → L8-T7 ; `objectactions_edit.cpp` → L8-T8 ; `actionedits.*`,
+  `actionbrowser.*` → L8-T11 ; `actionrunner.*`, `pagehistory.*` → L8-T9 ; `linklauncher.*` → L8-T10 ;
+  `dragdropactions.*` → L8-T13 ; `containers.*` → L8-T14 ; `restrictors.*` → L8-T15 ; `interactionpolicy.h` → L8-T16 ;
+  `interactivityprops.*` → L8-T17 ; `revealinktool.*` → L8-T18. Scénarios : `navigateur-actions` → L8-T12,
+  `glisser-deposer` → L8-T13, `conteneurs` → L8-T16, `encre-revelatrice` → L8-T18, `interactivite` → L8-T19.
+- [ ] **Étape 7 : tests talons.** Pour chaque test (tâche propriétaire = celle de la ligne de la table qui le cite) :
+  ```cpp
+  #include <QtTest>
+
+  class TstCoreContainers : public QObject
+  {
+      Q_OBJECT
+  private slots:
+      void reserved() { QSKIP("Talon L8 : rempli par L8-T14."); }
+  };
+
+  QTEST_MAIN(TstCoreContainers)
+  #include "tst_core_containers.moc"
+  ```
+  Enregistrement : `tests/core.cmake` (`tst_core_interactivity`, `tst_core_objectactions`, `tst_core_objectactions_edit`,
+  `tst_core_containers`, `tst_core_restrictors`), `tests/formats.cmake` (`tst_formats_interactivity`),
+  `tests/flipchart.cmake` (`tst_formats_flipchart_interactivity`, `tst_formats_samples_interactivity`),
+  `tests/actions.cmake` (`tst_actions_objectactions`), `tests/tools.cmake` (`tst_tools_interactivity`),
+  `tests/render.cmake` (`tst_render_reveal`), `tests/ui.cmake` (`tst_ui_actionrunner`, `tst_ui_linklauncher`,
+  `tst_ui_actionbrowser`, `tst_ui_dragdropactions`, `tst_ui_interactivityprops`), `tests/bench.cmake` (les 5
+  `tst_captures_*` de 8a, même forme que `tst_captures_premiers_pas`). 16 + 5 = **21**.
+- [ ] **Étape 8 : vert.** Commande ciblée, puis preuve de tâche : N = N8 + 21, `TESTS OK` ; `premiers-pas`.
+- [ ] **Étape 9 : contrôles et commit.** `git -C <wt> add` des fichiers de la ligne (nommés, jamais `-A`) ; `NOMS OK` ;
+  contrôle des titres vide ; commit « Lot 8 : réservation de 8a, commandes du lot, icônes (L8-T1) ».
+
+<a id="tache-l8-t2"></a>
+### Tâche L8-T2 — Coquille QML du lot
+
+**Objectif.** Poser les emplacements QML des deux sous-lots et un gestionnaire **talon** par commande du lot, chacun
+dans le fichier où sa tâche propriétaire écrira le vrai (règle du lot 6, amendement 1, point 4) ; rendre l'onglet
+`actions` du panneau actif (il était grisé depuis le lot 6, A15).
+
+**Fichiers.** `ui/qml/Main.qml` (instances : `ActionRunner { id: appActionRunner; objectName: "appActionRunner"; commands: appCommands; contactActive: pageArea.view.contactActive }`,
+`LinkLauncher { id: appLinks; objectName: "appLinks" }`, `ActionBrowserModel { id: appActionBrowser; objectName: "appActionBrowser"; commands: appCommands; contactActive: pageArea.view.contactActive }`,
+`DragDropActions { id: appDragDrop; objectName: "appDragDrop"; commands: appCommands }` — types déclarés en talon
+par L8-T1 dans `ui/`, enregistrés en QML par `QML_ELEMENT` dans leur tâche ; tant que le type n'existe pas, l'instance
+est un `QtObject { objectName: "appActionRunner" }` marqué talon), `ui/qml/BrowserPanel.qml` (onglet `actions` actif,
+contenu `ActionBrowser`), `ui/qml/PageArea.qml` (dans `pageOverlays`, sous le rideau : `ActionOverlays { z: 5 }`,
+`MediaLayer { z: 4 }`, `WebFrameLayer { z: 3 }`), les 12 fichiers QML neufs de la ligne (racine `Item` visible
+faux, `objectName` = nom du fichier en minuscule initiale, marqueur `// Talon L8 : rempli par L8-T<n>.`),
+`tests/tst_ui_shell.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_shell` ; fonctions `lot8ShellPlaceholders`,
+`everyLot8CommandHasAHandler`, `actionsTabEnabled` en `PASS`.
+
+**Preuve visuelle.** `premiers-pas` hors écran : `CAPTURES OK` ; banc hors écran `content_check.ok = True` (les
+surcouches vides ne changent aucun pixel).
+
+**Interdits.** Dans le QML, la vue est `pageArea.view` (jamais `pageView.`) ; aucune surcouche dans le cache ; aucun
+comportement (les gestionnaires talons ne font que `console.info("Talon L8 : rempli par L8-T<n>.")`).
+
+**Terminé quand** les trois fonctions passent et `tst_ui_shell` reste vert en entier.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** dans `tests/tst_ui_shell.cpp` (même montage `Shell`, `start`, réglages d'essai du lot 6,
+  amendement 3, N1) :
+  ```cpp
+  void lot8ShellPlaceholders()
+  {
+      Shell shell;
+      QVERIFY(shell.start());
+      for (const char* name : {"appActionRunner", "appLinks", "appActionBrowser", "appDragDrop", "actionOverlays",
+                               "mediaLayer", "webFrameLayer", "soundController", "recorderPalette",
+                               "recordingIndicator", "linkDialog", "linkConfirmDialog", "webFrameDialog",
+                               "publishDialog", "actionBrowser", "dragDropActions"})
+          QVERIFY2(shell.find(QString::fromLatin1(name)), name);
+  }
+  void everyLot8CommandHasAHandler()
+  {
+      Shell shell;
+      QVERIFY(shell.start());
+      for (const char* id : {"tool.reveal-ink", "browser.actions", "action.apply", "action.remove",
+                             "action.pick-target", "link.file", "link.website", "page.history-back",
+                             "page.history-forward", "media.sound-controller", "record.sound", "record.pause",
+                             "record.stop", "record.cancel", "insert.web-frame", "webframe.back",
+                             "webframe.forward", "webframe.reload", "webframe.snapshot", "webframe.unblock",
+                             "file.publish"})
+          QVERIFY2(shell.commands()->registry().hasHandler(QString::fromLatin1(id)), id);
+  #ifdef Q_OS_WIN
+      QVERIFY(shell.commands()->registry().hasHandler(QStringLiteral("record.screen-full")));
+      QVERIFY(shell.commands()->registry().hasHandler(QStringLiteral("record.screen-area")));
+  #endif
+  }
+  void actionsTabEnabled()
+  {
+      Shell shell;
+      QVERIFY(shell.start());
+      QObject* panel = shell.find(QStringLiteral("browserPanel"));
+      QVERIFY(panel);
+      QVERIFY(QMetaObject::invokeMethod(panel, "showTab", Q_ARG(QVariant, QStringLiteral("actions"))));
+      QCOMPARE(panel->property("current").toString(), QStringLiteral("actions"));
+      QVERIFY(shell.find(QStringLiteral("actionBrowser"))->property("enabled").toBool());
+  }
+  ```
+  (`Shell::find`, `Shell::commands()` : aides du test existant, A7 ; `showTab` : fonction de `BrowserPanel.qml` posée
+  par L4-T19, A15 — si son nom diffère, suivre le nom réel relevé par L8-T0.)
+- [ ] **Étape 2 : rouge** : `FAIL!  : TstUiShell::lot8ShellPlaceholders()` (`appActionRunner`).
+- [ ] **Étape 3 : QML.** Écrire les instances, l'onglet, les trois surcouches dans `pageOverlays` et les 12 fichiers ;
+  dans chaque fichier propriétaire, `Component.onCompleted: appCommands.setHandler("<id>", function(a) { console.info("Talon L8 : rempli par L8-T<n>.") })`
+  pour ses commandes (table : `tool.reveal-ink` → `ActionOverlays.qml` puis L8-T18 ; `browser.actions`,
+  `action.*` → `ActionBrowser.qml` ; `page.history-*` → `ActionOverlays.qml` ; `link.*` → `LinkDialog.qml` ;
+  `media.sound-controller` → `SoundController.qml` ; `record.*` → `RecorderPalette.qml` ; `insert.web-frame`,
+  `webframe.*` → `WebFrameLayer.qml` ; `file.publish` → `PublishDialog.qml`).
+- [ ] **Étape 4 : vert** : commande ciblée ; `premiers-pas` ; banc hors écran.
+- [ ] **Étape 5 : contrôles et commit** « Lot 8 : coquille QML du lot (L8-T2) » ; `NOMS OK` ; titres vides ;
+  `git -C <wt> grep -n "pageView\." -- ui/qml` vide.
+
+<a id="tache-l8-t3"></a>
+### Tâche L8-T3 — `core` : modèle de l'interactivité
+
+**Objectif.** Ajouter au modèle, en une fois pour les deux sous-lots, les champs de l'interactivité, avec trois
+invariants : (1) un document sans ces champs garde **exactement** son empreinte ; (2) les booléens du lot 2
+(`movable`, `rotatable`) et les modes neufs disent la même chose ; (3) `UnknownObject` reste le dernier type. Le
+patron évident est le mauvais : remplacer les booléens par les modes casserait la lecture des `.flipchart` et les
+outils du lot 3 qui lisent `movable` ; ajouter le cadre web après `UnknownObject` casserait `kindOf`.
+
+**Fichiers.** `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/include/actcraft/core/interactivity.h`,
+`core/src/interactivity.cpp`, `tests/tst_core_interactivity.cpp`, `tests/tst_core_model.cpp`. Si
+`tests/support/richdocument.h` déstructure `ObjectCommon` ou `Action` (A25 : `richDocumentFillsEveryField`), il est
+ajouté à la tâche par l'orchestrateur avant le lancement.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_core_interactivity|tst_core_model|tst_formats_nativejson|tst_formats_nativefile'`
+; fonctions de la ligne en `PASS` ; mutation : retirer l'appel à `normalize` dans `setTravel` → `fixedTravelMeansNotMovable`
+rouge, remise par `git checkout -- core/src/interactivity.cpp`.
+
+**Interdits.** QtCore seulement (`core/`) ; aucun nom composé de l'original (ni les noms de propriétés de déplacement, d'accrochage, de type d'encre ou
+d'options de média du format : les noms de ce plan sont à nous) ; aucun `default:` dans un `switch` sur `ObjectKind` (`/we4062`) ; ne pas toucher à
+`formats/` (L8-T4) ni au rendu.
+
+**Terminé quand** les fonctions passent, les tests du format natif restent verts sans changer leurs fichiers de
+référence (`writerMatchesTheReference`), et `NOMS OK`.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** `tests/tst_core_interactivity.cpp` (remplace le talon) :
+  ```cpp
+  #include <actcraft/core/interactivity.h>
+  #include <actcraft/core/model.h>
+
+  #include <QtTest>
+
+  using namespace actcraft::core;
+
+  class TstCoreInteractivity : public QObject
+  {
+      Q_OBJECT
+      static Document oneShape()
+      {
+          Document d = Document::withOnePage(1024, 768);
+          PageObject o{Shape{}};
+          o.common.id = 7;
+          d.pages[0].objects.push_back(o);
+          return d;
+      }
+  private slots:
+      void defaultsChangeNoFingerprint()
+      {
+          const Document d = oneShape();
+          const auto before = fingerprint(d);
+          Document e = d;
+          e.pages[0].objects[0].common.container = ContainerRule{};
+          e.pages[0].objects[0].common.restrictions = Restrictions{};
+          e.broadcast = BroadcastRules{};
+          QCOMPARE(fingerprint(e), before);
+          e.pages[0].objects[0].common.container.accepts = Accepts::Anything;
+          QVERIFY(fingerprint(e) != before);
+          e.pages[0].objects[0].common.container.accepts = Accepts::Nothing;
+          QCOMPARE(fingerprint(e), before);
+      }
+      void fixedTravelMeansNotMovable()
+      {
+          Restrictions r;
+          setTravel(r, Travel::Fixed);
+          QVERIFY(!r.movable);
+          setTravel(r, Travel::Vertical);
+          QVERIFY(r.movable);
+          Restrictions fromFile;
+          fromFile.movable = false; // lu d'un fichier du lot 2
+          normalize(fromFile);
+          QCOMPARE(fromFile.travel, Travel::Fixed);
+      }
+      void fixedTurningMeansNotRotatable()
+      {
+          Restrictions r;
+          setTurning(r, Turning::Fixed);
+          QVERIFY(!r.rotatable);
+          setTurning(r, Turning::Clockwise);
+          QVERIFY(r.rotatable);
+          Restrictions fromFile;
+          fromFile.rotatable = false;
+          normalize(fromFile);
+          QCOMPARE(fromFile.turning, Turning::Fixed);
+      }
+      void webFrameKindBeforeUnknown()
+      {
+          QCOMPARE(static_cast<int>(ObjectKind::WebFrame), 9);
+          QCOMPARE(static_cast<int>(ObjectKind::Unknown), 10);
+          QCOMPARE(kObjectKindCount, std::size_t(11));
+          PageObject w{WebFrame{}};
+          QCOMPARE(kindOf(w), ObjectKind::WebFrame);
+          PageObject u{UnknownObject{}};
+          QCOMPARE(kindOf(u), ObjectKind::Unknown);
+      }
+      void actionKeepsFlipchartFields()
+      {
+          Action a;
+          a.kind = ActionKind::OnObject;
+          a.sourceType = 28;
+          a.command = 184;
+          a.target = 9;
+          QVERIFY(a.catalogId.empty());
+          QVERIFY(!isSupported(a));
+          a.catalogId = "object.toggle-hidden";
+          QVERIFY(isSupported(a));
+          QCOMPARE(a.command, 184); // jamais réécrit
+      }
+      void broadcastDefaultsAllowEverything()
+      {
+          const BroadcastRules b;
+          QVERIFY(b.isDefault());
+          QVERIFY(!b.noCopy && !b.noSave && !b.noPrint && !b.noCamera);
+          QVERIFY(b.author.empty());
+      }
+  };
+
+  QTEST_MAIN(TstCoreInteractivity)
+  #include "tst_core_interactivity.moc"
+  ```
+  (`Document::withOnePage` et `fingerprint` : fonctions existantes de `model.h` ; si leurs noms diffèrent, suivre
+  ceux de `tst_core_model.cpp`.)
+- [ ] **Étape 2 : rouge** : erreur de compilation `ContainerRule` inconnu.
+- [ ] **Étape 3 : modèle** (`model.h`) — dans `Restrictions`, après les trois booléens :
+  ```cpp
+  // Lot 8 (F-578, F-579, D8-7). Les booléens restent la source du « bloqué » : interactivity.h les tient d'accord.
+  Travel travel = Travel::Free;
+  ObjectId track = 0;            // objet trait ou ligne suivi (Travel::AlongTrack)
+  Turning turning = Turning::Free;
+  double turnStep = 0;           // degrés ; 0 : continu
+  Mark pivot = Mark::Center;
+  PointF pivotPoint;             // Mark::Point, coordonnées de l'objet
+  ObjectId pivotObject = 0;      // Mark::OtherObject
+  bool blocksOthers = false;
+  bool magnet = false;           // l'objet se pose sur `magnetMark` du dernier conteneur ou de `magnetPoint`
+  Mark magnetMark = Mark::Center;
+  PointF magnetPoint;
+  ```
+  avant `Restrictions`, les énumérations `Travel { Free, Vertical, Horizontal, AlongTrack, Fixed }`,
+  `Turning { Free, Clockwise, CounterClockwise, Fixed }`, `Mark { Center, TopLeft, Top, TopRight, Right, BottomRight,
+  Bottom, BottomLeft, Left, FirstTextLine, Point, OtherObject }` (`std::uint8_t`, valeurs dans cet ordre à partir de
+  0). Après `Restrictions` :
+  ```cpp
+  enum class Accepts : std::uint8_t { Nothing = 0, Anything = 1, OneObject = 2, Keywords = 3 };
+  enum class FitRule : std::uint8_t { CentresMatch = 0, FullyInside = 1 };
+  // Conteneur (F-577, F-580, D8-6).
+  struct ContainerRule
+  {
+      Accepts accepts = Accepts::Nothing;
+      ObjectId object = 0;               // Accepts::OneObject
+      std::vector<std::string> keywords; // Accepts::Keywords
+      FitRule fit = FitRule::CentresMatch;
+      double tolerance = 10;             // pixels de page (centres)
+      bool bounceBack = false;           // retour si non contenu
+      bool chime = false;                // son de confirmation
+      std::string chimeSound;            // clé de ressource du son
+  };
+  ```
+  `Action` gagne `std::string catalogId; std::string parameters; bool dragDrop = false;` ; `ObjectCommon` gagne
+  `ContainerRule container;` ; `Media` gagne `bool controlsHidden = false; bool aspectLocked = false; bool
+  clearBackground = false; bool wrapText = false;` ; nouveau type, avant `UnknownObject` :
+  ```cpp
+  // Cadre web (F-302, S27) : code HTML saisi, ou adresse ; jamais chargé sans la politique de L8-T29.
+  struct WebFrame
+  {
+      RectF bounds;
+      std::string html;
+      std::string address;
+  };
+  ```
+  `ObjectKind::WebFrame = 9`, `Unknown = 10`, `kObjectKindCount = 11`, `WebFrame` dans `ObjectVariant` juste avant
+  `UnknownObject` ; `Document` gagne :
+  ```cpp
+  // Diffusion protégée (F-680, S18) : courtoisie sur un format ouvert (N1-A4).
+  struct BroadcastRules
+  {
+      bool noCopy = false;
+      bool noSave = false;
+      bool noPrint = false;
+      bool noCamera = false;
+      std::string author; // informations de l'auteur, jamais affichées aux utilisateurs
+      bool isDefault() const noexcept { return !noCopy && !noSave && !noPrint && !noCamera && author.empty(); }
+  };
+  ```
+  et le membre `BroadcastRules broadcast;`.
+- [ ] **Étape 4 : `interactivity.h` / `.cpp`** :
+  ```cpp
+  #pragma once
+  #include <actcraft/core/model.h>
+
+  namespace actcraft::core {
+  void setTravel(Restrictions& r, Travel t) noexcept;   // movable = t != Fixed
+  void setTurning(Restrictions& r, Turning t) noexcept; // rotatable = t != Fixed
+  void normalize(Restrictions& r) noexcept;             // booléen faux → mode Fixed ; mode Fixed → booléen faux
+  bool isDefault(const Restrictions& r) noexcept;       // ne regarde que les champs du lot 8
+  bool isDefault(const ContainerRule& c) noexcept;
+  bool isSupported(const Action& a) noexcept;           // catalogId non vide
+  } // namespace actcraft::core
+  ```
+  Corps : affectations directes ; `isDefault(Restrictions)` compare chaque champ du lot 8 à `Restrictions{}`.
+- [ ] **Étape 5 : empreinte** (`model.cpp`) : `hashType(Fnv1a&, const WebFrame&)` (bounds, html, address) ; pour un
+  objet, un bloc ouvert par l'octet `0xB8` en **fin** de flux de l'objet, seulement si `!isDefault(restrictions)`,
+  `!isDefault(container)`, une action a `catalogId`, `parameters` ou `dragDrop`, ou une option de média du lot 8 est
+  vraie ; pour le document, un bloc `0xB9` en fin de flux seulement si `!broadcast.isDefault()` (même patron que
+  `PagePresentation`, octet `0xA7`, `model.cpp:410-415`). `static_assert` du variant mis à jour ; `kindOf` suit.
+- [ ] **Étape 6 : `tst_core_model`** : ajouter `lot8FieldsKeepOldFingerprints` (l'empreinte du document riche de
+  référence, calculée avant et après avoir posé tous les champs du lot 8 à leur défaut, est identique) ;
+  `unknownObjectIsTheLastKind` mis à jour (11 types).
+- [ ] **Étape 7 : vert**, mutation rouge puis remise ; preuve de tâche.
+- [ ] **Étape 8 : contrôles et commit** « Lot 8 : modèle de l'interactivité (L8-T3) » ; `NOMS OK`.
+
+<a id="tache-l8-t4"></a>
+### Tâche L8-T4 — `formats` : format natif des champs de l'interactivité
+
+**Objectif.** Écrire et relire sans perte, dans `actcraft-document/1`, les champs de L8-T3 ; valeurs par défaut
+omises ; une clé omise retirée des inconnues à la lecture (règle de L4-T6 et L6-T10, A25) ; fichier plus ancien lu
+avec les défauts ; fichier plus récent : clés inconnues d'une action gardées.
+
+**Fichiers.** `formats/src/nativejson.cpp`, `tests/tst_formats_interactivity.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_formats_interactivity|tst_formats_nativejson|tst_formats_nativefile'`.
+Mutation : ne plus omettre `container` à sa valeur par défaut → `defaultsAreOmitted` rouge, remise par
+`git checkout -- formats/src/nativejson.cpp`.
+
+**Interdits.** QtCore seulement ; clés en anglais, en `kebab-case` comme au lot 6 (`catalog-id`, `drag-drop`,
+`bounce-back`, `blocks-others`, `turn-step`, `controls-hidden`, `aspect-locked`, `clear-background`, `wrap-text`,
+`no-copy`, `no-save`, `no-print`, `no-camera`) ; type d'objet `"web-frame"` ; ne pas régénérer le fichier de référence
+`tests/data/nativejson/richdocument.json` (il ne contient aucun champ du lot 8 : il doit rester identique octet pour
+octet).
+
+**Terminé quand** les neuf fonctions passent et `tst_formats_nativejson` reste vert sans changer de référence.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** `tests/tst_formats_interactivity.cpp` :
+  ```cpp
+  #include <actcraft/core/interactivity.h>
+  #include <actcraft/formats/nativejson.h>
+
+  #include <QJsonDocument>
+  #include <QJsonObject>
+  #include <QtTest>
+
+  using namespace actcraft;
+
+  class TstFormatsInteractivity : public QObject
+  {
+      Q_OBJECT
+      static core::Document base()
+      {
+          core::Document d = core::Document::withOnePage(1024, 768);
+          core::PageObject o{core::Shape{}};
+          o.common.id = 1;
+          d.pages[0].objects.push_back(o);
+          return d;
+      }
+      static core::Document roundTrip(const core::Document& d)
+      {
+          QString error;
+          const QByteArray json = formats::writeDocumentJson(d);
+          core::Document back;
+          [&] { QVERIFY2(formats::readDocumentJson(json, back, error), qPrintable(error)); }();
+          return back;
+      }
+  private slots:
+      void actionRoundTrip()
+      {
+          core::Document d = base();
+          core::Action a;
+          a.catalogId = "page.goto";
+          a.parameters = R"({"page":3})";
+          a.dragDrop = true;
+          d.pages[0].objects[0].common.actions.push_back(a);
+          const auto back = roundTrip(d);
+          QCOMPARE(core::fingerprint(back), core::fingerprint(d));
+          QCOMPARE(back.pages[0].objects[0].common.actions[0].catalogId, std::string("page.goto"));
+      }
+      void containerRoundTrip()
+      {
+          core::Document d = base();
+          auto& c = d.pages[0].objects[0].common.container;
+          c.accepts = core::Accepts::Keywords;
+          c.keywords = {"fruit"};
+          c.fit = core::FitRule::FullyInside;
+          c.bounceBack = true;
+          QCOMPARE(core::fingerprint(roundTrip(d)), core::fingerprint(d));
+      }
+      void restrictorsRoundTrip()
+      {
+          core::Document d = base();
+          auto& r = d.pages[0].objects[0].common.restrictions;
+          core::setTravel(r, core::Travel::AlongTrack);
+          r.track = 4;
+          core::setTurning(r, core::Turning::Clockwise);
+          r.turnStep = 45;
+          r.blocksOthers = true;
+          QCOMPARE(core::fingerprint(roundTrip(d)), core::fingerprint(d));
+      }
+      void mediaOptionsRoundTrip()
+      {
+          core::Document d = base();
+          core::Media m;
+          m.controlsHidden = true;
+          m.aspectLocked = true;
+          m.clearBackground = true;
+          core::PageObject o{m};
+          o.common.id = 2;
+          d.pages[0].objects.push_back(o);
+          QCOMPARE(core::fingerprint(roundTrip(d)), core::fingerprint(d));
+      }
+      void webFrameRoundTrip()
+      {
+          core::Document d = base();
+          core::WebFrame w;
+          w.bounds = {10, 10, 300, 200};
+          w.html = "<p>essai</p>";
+          core::PageObject o{w};
+          o.common.id = 3;
+          d.pages[0].objects.push_back(o);
+          const auto back = roundTrip(d);
+          QCOMPARE(core::kindOf(back.pages[0].objects[1]), core::ObjectKind::WebFrame);
+          QCOMPARE(core::fingerprint(back), core::fingerprint(d));
+      }
+      void broadcastRoundTrip()
+      {
+          core::Document d = base();
+          d.broadcast.noCopy = true;
+          d.broadcast.noPrint = true;
+          QCOMPARE(core::fingerprint(roundTrip(d)), core::fingerprint(d));
+      }
+      void defaultsAreOmitted()
+      {
+          const QByteArray json = formats::writeDocumentJson(base());
+          for (const char* key : {"container", "catalog-id", "drag-drop", "travel", "turning", "blocks-others",
+                                  "broadcast", "controls-hidden"})
+              QVERIFY2(!json.contains(key), key);
+      }
+      void olderFileReadsWithDefaults()
+      {
+          const QByteArray json = formats::writeDocumentJson(base()); // forme du lot 2 : aucun champ du lot 8
+          core::Document back;
+          QString error;
+          QVERIFY(formats::readDocumentJson(json, back, error));
+          QVERIFY(core::isDefault(back.pages[0].objects[0].common.container));
+          QVERIFY(back.broadcast.isDefault());
+          QVERIFY(back.pages[0].objects[0].unknownKeys.empty());
+      }
+      void unknownActionKeyKept()
+      {
+          core::Document d = base();
+          core::Action a;
+          a.catalogId = "page.next";
+          d.pages[0].objects[0].common.actions.push_back(a);
+          QByteArray json = formats::writeDocumentJson(d);
+          json.replace("\"catalog-id\"", "\"future-key\":42,\"catalog-id\"");
+          core::Document back;
+          QString error;
+          QVERIFY(formats::readDocumentJson(json, back, error));
+          QVERIFY(formats::writeDocumentJson(back).contains("\"future-key\":42"));
+      }
+  };
+
+  QTEST_MAIN(TstFormatsInteractivity)
+  #include "tst_formats_interactivity.moc"
+  ```
+  (`writeDocumentJson` / `readDocumentJson` : noms publics du format natif relevés dans `formats/nativejson.h` ; si
+  différents, suivre ceux de `tst_formats_nativejson.cpp`.)
+- [ ] **Étape 2 : rouge** : `actionRoundTrip` échoue (empreintes différentes : `catalog-id` non écrit).
+- [ ] **Étape 3 : écriture.** `actionJson` (`nativejson.cpp:517-526`) : `catalog-id`, `parameters` (objet JSON
+  inséré tel quel s'il se lit, sinon chaîne), `drag-drop` si vrais ou non vides ; `writeCommon` : `restrictions`
+  gagne `travel`, `track`, `turning`, `turn-step`, `pivot`, `pivot-point`, `pivot-object`, `blocks-others`,
+  `magnet`, `magnet-mark`, `magnet-point` hors défaut (noms d'énumération en `kebab-case` : `free`, `vertical`,
+  `horizontal`, `along-track`, `fixed`, `clockwise`, `counter-clockwise`, marques `center`, `top-left`…,
+  `first-text-line`, `point`, `other-object`) ; `container` (objet) si `!isDefault` ; média : quatre booléens si
+  vrais ; `"web-frame"` : `bounds`, `html`, `address` ; document : `broadcast` si `!isDefault()`.
+- [ ] **Étape 4 : lecture** symétrique, `normalize(restrictions)` après lecture, clés omises retirées des inconnues
+  (gabarits `KnownKeys` : ajouter les clés du lot 8 au gabarit d'objet et d'action, puisqu'un objet vierge ne les
+  écrit pas).
+- [ ] **Étape 5 : vert**, mutation rouge puis remise ; preuve de tâche.
+- [ ] **Étape 6 : commit** « Lot 8 : format natif de l'interactivité (L8-T4) » ; `NOMS OK`.
+
+<a id="tache-l8-t5"></a>
+### Tâche L8-T5 — `formats` : lecteur `.flipchart` de l'interactivité
+
+**Objectif.** Le lecteur du lot 2 garde les actions et trois booléens ; il gagne : (a) une table **écrite à la main**
+des numéros de commande et d'action du format vers nos identifiants (`catalogId`), à partir des numéros relevés par
+L8-T0 (D1) — au minimum 184 → `object.toggle-hidden`, l'action de navigation vers `page.goto` (avec `{"page":n}`),
+l'ouverture externe (270) vers `document.open-file` ; (b) les modes de déplacement, de rotation, le pivot,
+l'accrochage, le blocage et le conteneur (valeurs de D2) ; (c) le trait de type d'encre 2 en `StrokeKind::Revealer`
+(déjà lu, `flipchart.cpp:821-822` : à vérifier) ; (d) les options de média (propriétés de l'objet média, D2).
+
+**Fichiers.** `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/support/flipchartwriter.h`,
+`tests/tst_formats_flipchart_interactivity.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_formats_flipchart|tst_formats_oracle_synth'` (le motif prend
+aussi `tst_formats_flipchart_interactivity`).
+
+**Interdits.** Aucun nom de l'original comme identifiant : les constantes de `flipchartids.h` gardent la forme
+existante (nombres et noms à nous, par exemple `kTravelProperty`, `kContainerAccepts`) ; aucune table copiée de
+`_schema.py` (générée depuis le binaire) ; aucun paperboard réel dans un test (documents écrits par
+`flipchartwriter.h`) ; une action dont le numéro n'est pas dans la table garde `catalogId` vide, sans avertissement
+bloquant.
+
+**Terminé quand** les sept fonctions passent, `tst_formats_flipchart` et `tst_formats_oracle_synth` restent verts,
+`NOMS OK`, contrôle des paperboards vide.
+
+**Étapes.**
+- [ ] **Étape 1 : écrivain.** Étendre `tests/support/flipchartwriter.h` (lot 7) : propriétés communes numérotées
+  13 à 31, 37, 44, 45 (valeurs de D2) et nœud d'action frère avec type, cible et numéro de commande — mêmes aides que
+  celles du lot 7 (`mathmlObjectBecomesEquation`).
+- [ ] **Étape 2 : test rouge** `tests/tst_formats_flipchart_interactivity.cpp` : fonctions
+  `toggleHiddenMapsToOurId` (un rond suivi d'une action sur objet de commande 184 visant une étiquette : l'action du
+  rond a `catalogId == "object.toggle-hidden"` et `target` = identifiant de l'étiquette), `unknownCommandKeptWithoutId`
+  (commande 9999 : action gardée, `catalogId` vide, `command == 9999`), `travelModesKept` (mode « vertical » lu :
+  `travel == Travel::Vertical`, `movable` vrai ; mode « non » : `Travel::Fixed`, `movable` faux),
+  `containerRead` (« mots-clés », mot « fruit », retour vrai), `revealInkRead` (type d'encre 2 :
+  `StrokeKind::Revealer`, couche du dessus), `mediaOptionsRead` (commandes masquées, aspect gardé),
+  `noNameOfTheOriginal` (lit `formats/src/flipchartids.h` depuis `ACTCRAFT_SOURCE_DIR` et vérifie qu'aucune ligne
+  ajoutée par ce lot ne contient un identifiant au préfixe `As` ou `kAs` : `QRegularExpression("\\bk?As[A-Z]")`
+  ne trouve rien). Chaque test construit le fichier par l'écrivain, le lit par `formats::readFlipchart` (A23) et
+  compare les champs.
+- [ ] **Étape 3 : rouge** : `toggleHiddenMapsToOurId` échoue (`catalogId` vide).
+- [ ] **Étape 4 : table et lecture.** Dans `flipchartids.h`, la table `kCommandToCatalog` (paires nombre → chaîne) ;
+  dans `actionFrom` (`flipchart.cpp:667-719`), `catalogId` et `parameters` remplis ; dans la lecture des communs
+  (`flipchart.cpp:998-1002`), modes et conteneur, puis `core::normalize(restrictions)`.
+- [ ] **Étape 5 : vert** ; `tst_formats_flipchart` et `tst_formats_oracle_synth` verts ; preuve de tâche.
+- [ ] **Étape 6 : contrôles et commit** « Lot 8 : lecteur .flipchart de l'interactivité (L8-T5) » ; `NOMS OK` ;
+  contrôle des paperboards vide.
+
+<a id="tache-l8-t6"></a>
+### Tâche L8-T6 — `actions` : catalogue des actions d'objet
+
+**Objectif.** Écrire le catalogue à nous (D8-1) et son chargeur : quatre catégories (`command`, `page`, `object`,
+`document`), libellés en français à nous, paramètres typés, drapeau `drag-drop` des entrées de l'onglet F-892 ;
+aucune action de vote. Une entrée de catégorie `command` (et toute entrée qui délègue à une commande) nomme une
+commande **déclarée** du registre ; une commande absente du registre (services en ligne de Promethean, vote) n'a pas
+d'entrée (H8-1).
+
+**Fichiers.** `actions/data/object-actions.json`, `actions/include/actcraft/actions/objectactions.h`,
+`actions/src/objectactions.cpp`, `tests/tst_actions_objectactions.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_actions_objectactions`.
+
+**Interdits.** Aucun libellé de l'original recopié (N1-12 : « Encre révélatrice », jamais le nom de l'original) ;
+QtCore seulement ; pas de QML.
+
+**Terminé quand** les six fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** `objectactions.h` (remplace le talon) :
+  ```cpp
+  #pragma once
+  #include <QByteArray>
+  #include <QList>
+  #include <QString>
+
+  namespace actcraft::actions {
+  enum class ActionCategory { Command, Page, Object, Document };
+  struct ActionParameter
+  {
+      QString name;     // clé dans l'objet JSON des paramètres de core::Action
+      QString type;     // "number", "angle", "text", "url", "file", "page", "translucency"
+      double minimum = 0;
+      double maximum = 0; // 0 : sans borne
+  };
+  struct ObjectActionInfo
+  {
+      QString id;       // identifiant à nous, porté par core::Action::catalogId
+      ActionCategory category = ActionCategory::Command;
+      QString label;
+      QString icon;
+      QString command;  // commande du registre déclenchée ; vide : exécutée par le moteur de core/ (L8-T7, L8-T8)
+      bool target = false;   // vise un objet (choisi par le sélecteur ; défaut : l'objet cliqué)
+      bool dragDrop = false; // proposée dans l'onglet glisser-déposer (F-892)
+      QList<ActionParameter> parameters;
+  };
+  class ObjectActionCatalog
+  {
+  public:
+      bool load(const QByteArray& json, QString& error);
+      const ObjectActionInfo* find(const QString& id) const;
+      QList<const ObjectActionInfo*> inCategory(ActionCategory category) const;
+      QList<const ObjectActionInfo*> dragDropList() const;
+      qsizetype size() const noexcept { return m_actions.size(); }
+  private:
+      QList<ObjectActionInfo> m_actions;
+  };
+  QByteArray defaultObjectActionsJson(); // actions/data/object-actions.json, ressource intégrée
+  } // namespace actcraft::actions
+  ```
+- [ ] **Étape 2 : test rouge** `tests/tst_actions_objectactions.cpp` :
+  ```cpp
+  #include <actcraft/actions/commandregistry.h>
+  #include <actcraft/actions/objectactions.h>
+
+  #include <QSet>
+  #include <QtTest>
+
+  using namespace actcraft::actions;
+
+  class TstActionsObjectActions : public QObject
+  {
+      Q_OBJECT
+      ObjectActionCatalog m_catalog;
+      CommandRegistry m_registry;
+  private slots:
+      void initTestCase()
+      {
+          QString error;
+          QVERIFY2(m_catalog.load(defaultObjectActionsJson(), error), qPrintable(error));
+          QVERIFY2(m_registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+      }
+      void fourCategoriesNoVote()
+      {
+          for (auto c : {ActionCategory::Command, ActionCategory::Page, ActionCategory::Object, ActionCategory::Document})
+              QVERIFY(!m_catalog.inCategory(c).isEmpty());
+          for (const auto* a : m_catalog.inCategory(ActionCategory::Command))
+              QVERIFY2(!a->id.contains(QStringLiteral("vote")) && !a->id.contains(QStringLiteral("poll")),
+                       qPrintable(a->id));
+      }
+      void everyCommandActionNamesARegisteredCommand()
+      {
+          for (auto c : {ActionCategory::Command, ActionCategory::Page, ActionCategory::Object, ActionCategory::Document})
+              for (const auto* a : m_catalog.inCategory(c))
+                  if (!a->command.isEmpty())
+                      QVERIFY2(m_registry.find(a->command), qPrintable(a->id + QStringLiteral(" → ") + a->command));
+      }
+      void parametersAreTyped()
+      {
+          const QSet<QString> types = {QStringLiteral("number"), QStringLiteral("angle"), QStringLiteral("text"),
+                                       QStringLiteral("url"),    QStringLiteral("file"),  QStringLiteral("page"),
+                                       QStringLiteral("translucency")};
+          const auto* gotoPage = m_catalog.find(QStringLiteral("page.goto"));
+          QVERIFY(gotoPage);
+          QCOMPARE(gotoPage->parameters.size(), 1);
+          QCOMPARE(gotoPage->parameters[0].type, QStringLiteral("page"));
+          for (auto c : {ActionCategory::Command, ActionCategory::Page, ActionCategory::Object, ActionCategory::Document})
+              for (const auto* a : m_catalog.inCategory(c))
+                  for (const auto& p : a->parameters)
+                      QVERIFY2(types.contains(p.type), qPrintable(a->id));
+      }
+      void dragDropListHasEighteen()
+      {
+          QCOMPARE(m_catalog.dragDropList().size(), 18); // F-892 sans ses deux entrées de vote (D9)
+          QVERIFY(m_catalog.find(QStringLiteral("command.tool.pen"))->dragDrop);
+      }
+      void labelsAreOurs()
+      {
+          QVERIFY(m_catalog.find(QStringLiteral("command.tool.reveal-ink")));
+          QCOMPARE(m_catalog.find(QStringLiteral("command.tool.reveal-ink"))->label, QStringLiteral("Encre révélatrice"));
+          QVERIFY(!m_catalog.find(QStringLiteral("command.planet")));
+      }
+      void idsAreUnique()
+      {
+          QSet<QString> seen;
+          for (auto c : {ActionCategory::Command, ActionCategory::Page, ActionCategory::Object, ActionCategory::Document})
+              for (const auto* a : m_catalog.inCategory(c))
+                  QVERIFY2(!seen.contains(a->id), qPrintable(a->id)), seen.insert(a->id);
+      }
+  };
+
+  QTEST_MAIN(TstActionsObjectActions)
+  #include "tst_actions_objectactions.moc"
+  ```
+- [ ] **Étape 3 : rouge** : `fourCategoriesNoVote` échoue (catalogue talon vide).
+- [ ] **Étape 4 : données.** `object-actions.json` (`"format": "actcraft-object-actions/1"`). Forme d'une entrée :
+  ```json
+  { "id": "page.goto", "category": "page", "label": "Aller à la page", "icon": "action-objet", "command": "page.goto", "parameters": [ { "name": "page", "type": "page", "minimum": 1 } ] }
+  ```
+  Contenu : **commande** — une entrée `command.<id>` par commande déclarée du registre qui a un sens au clic (outils,
+  navigateurs, présentation, maths, nouveaux documents, plein écran, annuler, rétablir, mode conception, lecteur de
+  sons, enregistreurs, quitter…) ; **page** — `page.goto`, `page.clear`, `page.copy`, `page.cut`,
+  `page.duplicate-next`, `page.duplicate-previous`, `page.duplicate-last`, `page.first`, `page.last`,
+  `page.insert-after`, `page.insert-before`, `page.next`, `page.previous`, `page.history-back`,
+  `page.history-forward`, `page.reset`, `page.background` (chacune nomme sa commande, A19 ; une commande absente
+  retire l'entrée et la liste au rapport) ; **objet** (exécutées par le moteur, `command` vide, `target` vrai) —
+  `object.angle` (`angle`), `object.angle-step` (`angle`), `object.place-<a>` et `object.size-<a>` (`number` :
+  largeur), `object.size-step-<a>` (`number` : facteur), `object.stretch-<a>` (`number`, `number`),
+  `object.stretch-step-<a>` pour les neuf ancrages `top-left`, `top`, `top-right`, `left`, `center`, `right`,
+  `bottom-left`, `bottom`, `bottom-right`, `object.place-step` (`number` dx, dy), `object.mirror-x`,
+  `object.mirror-y`, `object.flip-x`, `object.flip-y`, `object.original-size`, `object.fit-height`,
+  `object.fit-page`, `object.fit-width`, `object.align-<a>` (les dix alignements du lot 5), `object.forward`,
+  `object.backward`, `object.front`, `object.back`, `object.layer-top`, `object.layer-middle`, `object.layer-bottom`,
+  `object.toggle-hidden`, `object.toggle-locked`, `object.toggle-group`, `object.translucency` (`translucency`),
+  `object.more-translucent`, `object.less-translucent`, `object.add-text` (`text`), `object.set-text` (`text`),
+  `object.text-value` (`number`), `object.new-text` (`text`), `object.extract-text`, `object.clear-annotations`,
+  `object.clear-background`, `object.clear-grid`, `object.clear-objects`, `object.copy`, `object.cut`,
+  `object.paste`, `object.delete`, `object.duplicate`, `object.select-all` ; **document** —
+  `document.open-file` (`file`), `document.open-website` (`url`), `document.play-sound` (`file` ; lecteur du
+  sous-lot 8b). Onglet glisser-déposer (`"drag-drop": true`) : sélection, stylo, marqueur, gomme, texte, formes, pot
+  de peinture, navigateur de notes, page suivante, page précédente, première page, dernière page, rideau, rétablir la
+  page, règle, rapporteur, compas, accrochage à la grille (18, liste de D9).
+- [ ] **Étape 5 : chargeur** (`objectactions.cpp`) : `QJsonDocument`, format vérifié, refus d'un `id` en double ou
+  d'une catégorie inconnue (message « action n (id) : … »), ressource `:/actcraft/actions/object-actions.json`
+  (même mécanisme que `defaultCommandsJson`).
+- [ ] **Étape 6 : vert** ; preuve de tâche ; commit « Lot 8 : catalogue des actions d'objet (L8-T6) » ; `NOMS OK`.
+
+<a id="tache-l8-t7"></a>
+### Tâche L8-T7 — `core` : moteur des actions d'objet I (géométrie)
+
+**Objectif.** Une fonction pure de `core/` transforme une action d'objet de géométrie en **une** commande
+d'annulation sur sa cible, en respectant les limiteurs de la cible (un objet à rotation bloquée ne tourne pas ; à
+dimension bloquée, ne change pas de taille ; à déplacement bloqué, ne bouge pas).
+
+**Fichiers.** `core/include/actcraft/core/objectactions.h`, `core/src/objectactions_geometry.cpp`,
+`tests/tst_core_objectactions.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_core_objectactions` (le motif prend aussi
+`tst_core_objectactions_edit`, encore talon). Mutation : inverser le signe de l'angle incrémentiel →
+`incrementNegativeIsCounterClockwise` rouge, remise par `git checkout -- core/src/objectactions_geometry.cpp`.
+
+**Interdits.** QtCore seulement ; aucune modification directe du document (tout passe par la commande rendue) ;
+déléguer à `TransformObjectsCommand` (A10) plutôt que d'écrire une commande de plus.
+
+**Terminé quand** les neuf fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** (remplace le talon) :
+  ```cpp
+  #pragma once
+  #include <actcraft/core/model.h>
+  #include <actcraft/core/undo.h>
+
+  #include <memory>
+  #include <string>
+
+  namespace actcraft::core {
+  struct ActionContext
+  {
+      std::size_t page = 0;
+      ObjectId source = 0;  // objet cliqué, porteur de l'action
+      ObjectId target = 0;  // cible ; 0 : l'objet cliqué
+      double pageWidth = 1024;
+      double pageHeight = 768;
+  };
+  // Commande d'annulation qui exécute l'action d'objet `id` (catalogue, L8-T6) avec ses paramètres (objet JSON
+  // compact) ; nullptr si l'identifiant est inconnu, la cible absente, ou si l'action ne change rien.
+  std::unique_ptr<UndoCommand> objectActionCommand(const Document& document, const std::string& id,
+                                                   const std::string& parameters, const ActionContext& context);
+  bool isGeometryAction(const std::string& id) noexcept;
+  bool isEditAction(const std::string& id) noexcept; // L8-T8
+  } // namespace actcraft::core
+  ```
+- [ ] **Étape 2 : test rouge** `tests/tst_core_objectactions.cpp` :
+  ```cpp
+  #include <actcraft/core/interactivity.h>
+  #include <actcraft/core/objectactions.h>
+
+  #include <QtTest>
+  #include <cmath>
+
+  using namespace actcraft::core;
+
+  class TstCoreObjectActions : public QObject
+  {
+      Q_OBJECT
+      static Document page()
+      {
+          Document d = Document::withOnePage(1024, 768);
+          Shape s;
+          s.bounds = {0, 0, 100, 50};
+          PageObject o{s};
+          o.common.id = 1;
+          o.common.transform = Transform::translation(200, 100);
+          d.pages[0].objects.push_back(o);
+          return d;
+      }
+      static Document after(Document d, const char* id, const char* params)
+      {
+          auto c = objectActionCommand(d, id, params, ActionContext{0, 1, 0, 1024, 768});
+          [&] { QVERIFY2(c, id); }();
+          Changes changes;
+          c->redo(d, changes);
+          return d;
+      }
+      static RectF box(const Document& d) { return boundsOnPage(d.pages[0].objects[0]); }
+      static double angleOf(const Document& d) { return d.pages[0].objects[0].common.transform.rotationDegrees(); }
+  private slots:
+      void angleSetsAbsoluteRotation()
+      {
+          QCOMPARE(qRound(angleOf(after(after(page(), "object.angle", R"({"angle":30})"), "object.angle",
+                                        R"({"angle":30})"))), 30);
+      }
+      void incrementNegativeIsCounterClockwise()
+      {
+          QCOMPARE(qRound(angleOf(after(page(), "object.angle-step", R"({"angle":-15})"))), -15);
+      }
+      void placeCenterUsesThePage()
+      {
+          const RectF b = box(after(page(), "object.place-center", "{}"));
+          QCOMPARE(qRound(b.x + b.width / 2), 512);
+          QCOMPARE(qRound(b.y + b.height / 2), 384);
+      }
+      void sizeKeepsProportions()
+      {
+          const RectF b = box(after(page(), "object.size-top-left", R"({"width":200})"));
+          QCOMPARE(qRound(b.width), 200);
+          QCOMPARE(qRound(b.height), 100);
+          QCOMPARE(qRound(b.x), 200); // ancrage en haut à gauche gardé
+      }
+      void stretchDoesNot()
+      {
+          const RectF b = box(after(page(), "object.stretch-center", R"({"width":200,"height":50})"));
+          QCOMPARE(qRound(b.width), 200);
+          QCOMPARE(qRound(b.height), 50);
+      }
+      void nineAnchors()
+      {
+          for (const char* a : {"top-left", "top", "top-right", "left", "center", "right", "bottom-left", "bottom",
+                                "bottom-right"}) {
+              const std::string id = std::string("object.place-") + a;
+              QVERIFY2(objectActionCommand(page(), id, "{}", ActionContext{0, 1, 0, 1024, 768}), a);
+          }
+      }
+      void mirrorIsOneStep()
+      {
+          Document d = page();
+          auto c = objectActionCommand(d, "object.mirror-x", "{}", ActionContext{0, 1, 0, 1024, 768});
+          QVERIFY(c);
+          Changes changes;
+          c->redo(d, changes);
+          c->undo(d, changes);
+          QCOMPARE(fingerprint(d), fingerprint(page()));
+      }
+      void fixedRestrictorsAreRespected()
+      {
+          Document d = page();
+          setTurning(d.pages[0].objects[0].common.restrictions, Turning::Fixed);
+          setTravel(d.pages[0].objects[0].common.restrictions, Travel::Fixed);
+          QVERIFY(!objectActionCommand(d, "object.angle", R"({"angle":30})", ActionContext{0, 1, 0, 1024, 768}));
+          QVERIFY(!objectActionCommand(d, "object.place-center", "{}", ActionContext{0, 1, 0, 1024, 768}));
+      }
+      void unknownIdReturnsNull()
+      {
+          QVERIFY(!objectActionCommand(page(), "object.nothing", "{}", ActionContext{0, 1, 0, 1024, 768}));
+          QVERIFY(!objectActionCommand(page(), "object.angle", "{}", ActionContext{0, 99, 0, 1024, 768}));
+      }
+  };
+
+  QTEST_MAIN(TstCoreObjectActions)
+  #include "tst_core_objectactions.moc"
+  ```
+  (`Transform::translation`, `rotationDegrees`, `boundsOnPage`, `Changes` : noms de `model.h`, `edits.h`, `undo.h` ;
+  suivre les noms réels s'ils diffèrent, relevés par L8-T0.)
+- [ ] **Étape 3 : rouge** (talon : `objectActionCommand` non défini → erreur d'édition des liens).
+- [ ] **Étape 4 : moteur.** Table `identifiant → fonction` (un `std::unordered_map<std::string, Builder>` local) ;
+  chaque fonction calcule la nouvelle transformation de la cible (rotation autour du pivot de la cible, D8-7 ; ancrage
+  sur la boîte englobante en coordonnées de page) puis rend `std::make_unique<TransformObjectsCommand>(page, {target},
+  delta)` ; refus si le limiteur correspondant est bloqué ; `isGeometryAction` lit la même table.
+- [ ] **Étape 5 : vert**, mutation rouge puis remise ; preuve de tâche ; commit « Lot 8 : moteur des actions
+  d'objet, géométrie (L8-T7) » ; `NOMS OK`.
+
+<a id="tache-l8-t8"></a>
+### Tâche L8-T8 — `core` : moteur des actions d'objet II (édition)
+
+**Objectif.** Compléter `objectActionCommand` pour les actions d'édition (`isEditAction`), chacune en **une** étape,
+en déléguant aux commandes des lots 3 et 5 : superposition (`ReorderObjectsCommand`), couches (`SetLayerCommand`),
+masquer et verrouiller (`SetObjectFlagCommand`), translucidité (`SetTranslucencyCommand`, bornée 0 à 255, ± 32 par
+pas), effacements (`ClearPageCommand`), suppression, duplication, couper, coller (`ReplaceObjectsCommand`), textes.
+
+**Fichiers.** `core/src/objectactions_edit.cpp`, `tests/tst_core_objectactions_edit.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_core_objectactions`.
+
+**Interdits.** Aucun HTML reçu écrit dans un texte (D8-5) : « ajouter », « modifier », « nouveau » échappent le
+texte (`QString::toHtmlEscaped`) ; « valeur arithmétique » n'agit que si le texte entier et la valeur sont des nombres
+(`5` puis `-2` donne `3`) ; copier, couper et coller passent par le presse-papiers du lot 5 (A18) **hors** `core/`
+: le moteur rend pour eux `nullptr` et l'exécuteur (L8-T9) déclenche les commandes `edit.*` sur la cible
+sélectionnée ; ne pas toucher à `objectactions.h` sauf pour un commentaire.
+
+**Terminé quand** les neuf fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** `tests/tst_core_objectactions_edit.cpp`, même montage que L8-T7 (une forme 1 et un
+  texte 2 contenant `5`) : `toggleHiddenTwiceRestores` (deux exécutions rendent `visible` à vrai, deux étapes) ;
+  `toggleHiddenDelegatesToObjectFlags` (`dynamic_cast<SetObjectFlagCommand*>(c.get())` non nul) ;
+  `textValueArithmetic` (texte « 5 », valeur −2 → « 3 ») ; `textValueNonNumericUnchanged` (texte « cinq » → `nullptr`) ;
+  `addTextIsPlainEscaped` (texte « <b>x</b> » ajouté : le HTML du texte contient `&lt;b&gt;`) ;
+  `extractTextOneObjectPerWord` (texte « un deux trois » → une commande qui ajoute trois objets texte) ;
+  `translucencyClamped` (valeur 300 → 255 ; « moins translucide » à 0 → `nullptr`) ;
+  `clearAnnotationsOnlyTopStrokes` (un trait de la couche du dessus et une forme : seul le trait part) ;
+  `everyEditIsOneStep` (pour chaque identifiant d'édition du catalogue rendu non nul : `redo` puis `undo` rendent
+  l'empreinte de départ). Code de chaque fonction sur le patron de `mirrorIsOneStep` (L8-T7).
+- [ ] **Étape 2 : rouge.** **Étape 3 : moteur** (seconde table, `isEditAction`). **Étape 4 : vert** ; preuve de
+  tâche ; commit « Lot 8 : moteur des actions d'objet, édition (L8-T8) » ; `NOMS OK`.
+
+<a id="tache-l8-t9"></a>
+### Tâche L8-T9 — `ui` : exécuteur d'actions
+
+**Objectif.** Déclencher les actions au clic (D8-2, D8-3) sans contourner le verrou ni la garde de contact :
+`ui::ActionRunner` reçoit du `ToolHost` les appuis et relâchés de l'outil de sélection ; un clic (relâché à moins de
+4 px, sans glisser) sur un objet qui porte une action exécute ses actions dans l'ordre ; un glisser est rendu à
+l'outil de sélection ; le clic droit sélectionne ; en mode conception (réglage « désactiver les actions », A23),
+l'outil de sélection reçoit tout. Le patron évident est le mauvais : exécuter dans le gestionnaire d'appui (la
+garde de contact est encore vraie, et un glisser commencerait par une action).
+
+**Fichiers.** `ui/include/actcraft/ui/actionrunner.h`, `ui/src/actionrunner.cpp`, `ui/include/actcraft/ui/pagehistory.h`,
+`ui/src/pagehistory.cpp`, `ui/src/toolhost.cpp`, `ui/qml/ActionOverlays.qml`, `tests/tst_ui_actionrunner.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_actionrunner|tst_ui_tools|tst_tools_select'` ; banc hors
+écran joint.
+
+**Interdits.** Aucune action pendant un contact ; une action de catégorie `command` passe par
+`Commands::registry().trigger` (verrou et diffusion protégée compris) ; une action `document.*` passe par
+`LinkLauncher::request` (jamais d'ouverture directe) ; une action d'objet passe par `objectActionCommand` puis
+`DocumentController::execute` ; aucun redessin du cache demandé par l'exécuteur ; dans le QML, `pageArea.view`.
+
+**Terminé quand** les treize fonctions passent et `tst_ui_tools`, `tst_tools_select` restent verts.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** :
+  ```cpp
+  #pragma once
+  #include <actcraft/actions/objectactions.h>
+  #include <actcraft/core/model.h>
+
+  #include <QObject>
+  #include <QPointF>
+  #include <QPointer>
+  #include <QtQml/qqmlregistration.h>
+
+  namespace actcraft::ui {
+  class Commands;
+  class DocumentController;
+  class LinkLauncher;
+  class PageHistory;
+  class ActionRunner : public QObject
+  {
+      Q_OBJECT
+      QML_ELEMENT
+      Q_PROPERTY(actcraft::ui::Commands* commands READ commands WRITE setCommands NOTIFY commandsChanged)
+      Q_PROPERTY(bool contactActive READ contactActive WRITE setContactActive NOTIFY contactActiveChanged)
+      Q_PROPERTY(QObject* document READ document WRITE setDocument NOTIFY documentChanged)
+      Q_PROPERTY(QObject* designMode READ designMode WRITE setDesignMode NOTIFY designModeChanged)
+      Q_PROPERTY(actcraft::ui::LinkLauncher* links READ links WRITE setLinks NOTIFY linksChanged)
+      Q_PROPERTY(bool hovering READ hovering NOTIFY hoveringChanged) // curseur d'action (F-890)
+  public:
+      explicit ActionRunner(QObject* parent = nullptr);
+      // Appelés par ToolHost quand l'outil courant est la sélection ; rendent vrai si l'échantillon est pris.
+      bool press(QPointF pagePoint, Qt::MouseButton button);
+      bool move(QPointF pagePoint);    // au-delà de 4 px : rend faux et laisse le glisser à l'outil
+      bool release(QPointF pagePoint); // exécute, une fois contactActive retombé (file d'attente d'un tour)
+      Q_INVOKABLE void hover(QPointF pagePoint);
+      // … accesseurs des propriétés
+  signals:
+      void actionRefused(const QString& reason); // verrou, diffusion protégée, action non prise en charge
+      void commandsChanged();
+      void contactActiveChanged();
+      void documentChanged();
+      void designModeChanged();
+      void linksChanged();
+      void hoveringChanged();
+  };
+  } // namespace actcraft::ui
+  ```
+  `PageHistory` : `void visited(int page)`, `int back()`, `int forward()` (−1 si rien), pile bornée à 100, une
+  navigation par l'historique n'est pas réinscrite (D8-12).
+- [ ] **Étape 2 : test rouge** `tests/tst_ui_actionrunner.cpp` (montage : `DocumentController` réel, `Commands`
+  réel, faux `LinkLauncher` par son ouvreur injectable, `DesignMode` réel ; document : rond 1 portant
+  `object.toggle-hidden` visant l'étiquette 2) — fonctions de la ligne de la table :
+  `clickRunsEveryActionInOrder` (deux actions : la seconde voit l'effet de la première),
+  `dragDoesNotRun` (appui, déplacement de 10 px, relâché : l'étiquette reste visible, `press`/`move` rendent faux
+  après 4 px), `rightClickSelectsWithoutRunning`, `designModeSelectsInstead`, `lockedCommandActionRefused`
+  (`registry().setLocked(true)` : action `command.tool.pen` refusée, `actionRefused` émis),
+  `pageActionCreatesNoStep` (`page.next` : `canUndo` inchangé), `objectActionIsOneStep` (un `undo` rend l'empreinte),
+  `neverDuringContact` (relâché pendant que `contactActive` est vrai : rien ; à la retombée : exécution),
+  `hiddenObjectStillClickable` (D5), `lockedObjectStillRuns` (D4), `historyBackAndForward`,
+  `unsupportedActionDoesNothing` (`catalogId` vide : rien, `actionRefused`), `refusedWithoutCommands`.
+- [ ] **Étape 3 : rouge.** **Étape 4 : exécuteur et `ToolHost`** : `ToolHost::setActionRunner(ActionRunner*)` ;
+  dans l'aiguillage des échantillons, si l'outil courant est la sélection, l'appui va d'abord à `press`, les
+  déplacements à `move` tant qu'il les prend, le relâché à `release` ; sinon l'outil reçoit l'appui retenu puis les
+  suivants (aucun échantillon perdu). `ActionOverlays.qml` : cadre rouge à nous sur les objets d'action quand
+  `appDesign.highlightActions` est vrai, curseur `Qt.PointingHandCursor` quand `appActionRunner.hovering`.
+- [ ] **Étape 5 : vert** ; banc hors écran ; preuve de tâche ; commit « Lot 8 : exécuteur d'actions (L8-T9) ».
+
+<a id="tache-l8-t10"></a>
+### Tâche L8-T10 — `ui` : ouverture des liens et des fichiers après confirmation
+
+**Objectif.** Seul chemin vers `QDesktopServices::openUrl` pour le contenu d'un document (D8-4) : valider la cible,
+demander la confirmation, n'ouvrir qu'après « oui ».
+
+**Fichiers.** `ui/include/actcraft/ui/linklauncher.h`, `ui/src/linklauncher.cpp`, `ui/qml/LinkConfirmDialog.qml`,
+`tests/tst_ui_linklauncher.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_linklauncher`. Mutation : appeler l'ouvreur dans `request`
+au lieu d'`answer` → `noOpenWithoutConfirmation` rouge, remise par `git checkout -- ui/src/linklauncher.cpp`.
+
+**Interdits.** Aucun `QProcess` ; aucun chemin réseau ; aucun exécutable ; aucune ouverture sans réponse ; le
+fichier extrait ne garde que les caractères `[A-Za-z0-9._ -]` de son nom d'origine.
+
+**Terminé quand** les neuf fonctions passent et la mutation a été vue rouge.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** :
+  ```cpp
+  #pragma once
+  #include <QObject>
+  #include <QUrl>
+  #include <QtQml/qqmlregistration.h>
+
+  #include <functional>
+
+  namespace actcraft::ui {
+  class LinkLauncher : public QObject
+  {
+      Q_OBJECT
+      QML_ELEMENT
+  public:
+      enum Kind { Website, File, StoredFile, SystemMedia };
+      Q_ENUM(Kind)
+      using Opener = std::function<bool(const QUrl&)>;
+      explicit LinkLauncher(QObject* parent = nullptr);
+      void setOpener(Opener opener); // tests ; défaut : QDesktopServices::openUrl
+      // Valide la cible ; émet confirmationNeeded (jeton) ou refused (motif). N'ouvre jamais.
+      Q_INVOKABLE void request(const QString& target, int kind);
+      // Pour un fichier rangé dans le document : octets, nom d'origine, clé du document.
+      void requestStored(const QByteArray& bytes, const QString& originalName, const QString& documentKey);
+      Q_INVOKABLE void answer(int token, bool accepted); // seul point qui ouvre
+      static QString refusalFor(const QUrl& url, int kind); // vide : acceptée
+  signals:
+      void confirmationNeeded(const QString& shownTarget, int token);
+      void refused(const QString& reason);
+      void opened(const QUrl& url);
+  };
+  } // namespace actcraft::ui
+  ```
+- [ ] **Étape 2 : test rouge** `tests/tst_ui_linklauncher.cpp` :
+  ```cpp
+  #include <actcraft/ui/linklauncher.h>
+
+  #include <QSignalSpy>
+  #include <QTemporaryDir>
+  #include <QtTest>
+
+  using actcraft::ui::LinkLauncher;
+
+  class TstUiLinkLauncher : public QObject
+  {
+      Q_OBJECT
+      QList<QUrl> m_opened;
+      void fake(LinkLauncher& l)
+      {
+          m_opened.clear();
+          l.setOpener([this](const QUrl& u) { m_opened << u; return true; });
+      }
+  private slots:
+      void noOpenWithoutConfirmation()
+      {
+          LinkLauncher l;
+          fake(l);
+          QSignalSpy ask(&l, &LinkLauncher::confirmationNeeded);
+          l.request(QStringLiteral("https://example.org/"), LinkLauncher::Website);
+          QCOMPARE(ask.size(), 1);
+          QVERIFY(m_opened.isEmpty());
+          l.answer(ask[0][1].toInt(), true);
+          QCOMPARE(m_opened.size(), 1);
+          l.answer(ask[0][1].toInt(), true); // un jeton ne sert qu'une fois
+          QCOMPARE(m_opened.size(), 1);
+      }
+      void refusalOpensNothing()
+      {
+          LinkLauncher l;
+          fake(l);
+          QSignalSpy ask(&l, &LinkLauncher::confirmationNeeded);
+          l.request(QStringLiteral("https://example.org/"), LinkLauncher::Website);
+          l.answer(ask[0][1].toInt(), false);
+          QVERIFY(m_opened.isEmpty());
+      }
+      void onlyHttpAndHttps()
+      {
+          for (const char* u : {"ftp://example.org/", "javascript:alert(1)", "file:///C:/x.txt", "mailto:a@b.c"})
+              QVERIFY2(!LinkLauncher::refusalFor(QUrl(QString::fromLatin1(u)), LinkLauncher::Website).isEmpty(), u);
+          QVERIFY(LinkLauncher::refusalFor(QUrl(QStringLiteral("http://example.org/")), LinkLauncher::Website).isEmpty());
+      }
+      void networkPathRefused()
+      {
+          QVERIFY(!LinkLauncher::refusalFor(QUrl::fromLocalFile(QStringLiteral("//serveur/partage/a.pdf")),
+                                            LinkLauncher::File).isEmpty());
+          QVERIFY(!LinkLauncher::refusalFor(QUrl(QStringLiteral("file://serveur/partage/a.pdf")), LinkLauncher::File)
+                       .isEmpty());
+      }
+      void executableRefused()
+      {
+          QTemporaryDir dir;
+          for (const char* ext : {"exe", "bat", "cmd", "com", "msi", "ps1", "vbs", "js", "lnk", "scr"}) {
+              const QString path = dir.filePath(QStringLiteral("a.") + QString::fromLatin1(ext));
+              QFile f(path);
+              QVERIFY(f.open(QIODevice::WriteOnly));
+              f.close();
+              QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(), ext);
+          }
+      }
+      void missingFileRefused()
+      {
+          QVERIFY(!LinkLauncher::refusalFor(QUrl::fromLocalFile(QStringLiteral("C:/nulle-part/a.pdf")),
+                                            LinkLauncher::File).isEmpty());
+      }
+      void storedFileExtractedUnderASafeName()
+      {
+          LinkLauncher l;
+          fake(l);
+          QSignalSpy ask(&l, &LinkLauncher::confirmationNeeded);
+          l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("..\\..\\a<b>.pdf"), QStringLiteral("doc1"));
+          QCOMPARE(ask.size(), 1);
+          const QString shown = ask[0][0].toString();
+          QVERIFY(shown.endsWith(QStringLiteral("ab.pdf")));
+          QVERIFY(!shown.contains(QStringLiteral("..")));
+      }
+      void confirmationShowsTheFullTarget()
+      {
+          LinkLauncher l;
+          fake(l);
+          QSignalSpy ask(&l, &LinkLauncher::confirmationNeeded);
+          l.request(QStringLiteral("https://example.org/chemin?q=1"), LinkLauncher::Website);
+          QCOMPARE(ask[0][0].toString(), QStringLiteral("https://example.org/chemin?q=1"));
+      }
+      void openingADocumentLaunchesNothing()
+      {
+          // Aucun appel sans request : un document ouvert n'appelle jamais request (L8-T19 le rejoue de bout en bout).
+          LinkLauncher l;
+          fake(l);
+          QCoreApplication::processEvents();
+          QVERIFY(m_opened.isEmpty());
+      }
+  };
+
+  QTEST_MAIN(TstUiLinkLauncher)
+  #include "tst_ui_linklauncher.moc"
+  ```
+- [ ] **Étape 3 : rouge.** **Étape 4 : code** : jetons croissants gardés dans un `QHash<int, QUrl>` retiré à la
+  réponse ; ouvreur par défaut `QDesktopServices::openUrl` (seule occurrence pour le contenu d'un document) ;
+  extraction sous `QStandardPaths::writableLocation(TempLocation)/actcraft-<clé>/` ; `LinkConfirmDialog.qml` montre
+  la cible complète, deux boutons « Ouvrir » et « Annuler », branché sur `appLinks.confirmationNeeded`.
+- [ ] **Étape 5 : vert**, mutation rouge puis remise ; preuve de tâche ; commit « Lot 8 : ouverture des liens
+  après confirmation (L8-T10) » ; `NOMS OK`.
 
 > **État de rédaction (rapport intermédiaire).** Les sections L8-T1 à L8-T19 et le plan de 8b (`…-lot8b-PLAN.md`, L8-T20 à L8-T34) restent à écrire. Table, vagues, règles, API, talons, scénarios, hypothèses et L8-T0 font foi dès maintenant.
 ## Décisions appliquées (tranchées par ce plan ; L8-T0 peut les amender)
@@ -713,10 +2001,21 @@ outils qui déclenchent les actions (défaut : sélection seule) ; **D4** objet 
 action qui part quand même (V103) ; **D5** objet masqué cliquable (V40, V42 ; le clone fait l'inverse) ; **D6** E6 ;
 **D7** sens de « bloquer » (arrêt au bord, ou refus du dépôt) ; **D8** pas de rotation par défaut, pivot « première
 ligne de texte » ; **D9** liste du glisser-déposer hors vote (18) ; **D10** messages et refus de la diffusion protégée
-(V58), commandes de chacune des quatre interdictions (identifiants de la caméra compris, A29) ; **D11** enregistreur
+(V58), commandes de chacune des quatre interdictions (identifiants de la caméra compris : voir « D10 — noms de la caméra » ci-dessous) ; **D11** enregistreur
 d'écran (V43), formats ; **D12** cadre web : image fixe, glisser du texte, comportement sous le rideau (N1-A3) ;
 **D13** second média à côté du premier (V126) ; **D14** GIF animé (V57, V66) ; **D15** objet Flash : repère seulement
 (N1-A15) ; **D16** conteneur recouvert par une image (V39).
+
+**D10 — noms de la caméra (contradiction consignée, non tranchée par ce plan).** Le plan du lot 7 déclare cinq
+commandes `tool.camera-area`, `tool.camera-polygon`, `tool.camera-freehand`, `tool.camera-window`,
+`tool.camera-screen` (`…-lot7-PLAN.md`, session B, l. 690-694) ; le plan du lot 6 (L6-T3, D6-7) écrit `camera.*`
+pour les déclarer restreignables et dans les préfixes de la barre de raccourcis (`lot6-PLAN.md:998-1004,2161`), tout
+en disant « identifiants réels relus dans le fichier ». L8-T0 relève les identifiants **réellement déclarés** dans
+`actions/data/commands.json` à la tête du chantier et les écrit au rapport. **Recommandation** : retenir ceux du lot 7
+(`tool.camera-*`), parce que c'est le lot qui crée ces commandes et que le lot 6 renvoie lui-même au fichier ; la
+diffusion protégée (L8-T31, L8-T32) vise alors le préfixe `tool.camera-`, et un correctif `L8-C0` corrige le préfixe
+de la barre de raccourcis si L6-T9 a codé `camera.` en dur. La décision revient à l'orchestrateur, sur le rapport de
+L8-T0.
 
 **Étapes.**
 - [ ] **Étape 1 : corpus.** Lire `C:\Users\JeromeDenis\REA - Activinspire\docs\videos-tanguay\README.md` (« Principes
