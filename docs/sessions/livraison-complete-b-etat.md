@@ -11,7 +11,7 @@ Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.w
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
 Toutes les tâches de fond mortes. Intégrité contrôlée : aucun index.lock, fsck propre, jetons libres ; .cpp sortis pour un rouge remis dans P1, P5, P9 ; wip sains recommités (P1 742ae60, P3 4aa56a5, P7 047f5e1). Dossiers build gardés : à effacer et reconstruire à froid à la première erreur suspecte (LNK1136, fichier tronqué, ninja corrompu).
 Parallélisme réduit (demande de Jérôme « mais soit prudent », relayée par Pilote) : au plus 3 sous-agents à la fois, un seul qui construit, jusqu'aux conclusions de l'étude mémoire.
-En cours : L7-P3 (seule construction).
+En cours : L7-P4 et L7-P7 (constructions une à une par le verrou B).
 Amendement phase 2 : brouillon mergé (c19cf7a, `docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md`), relu trois fois (rapports scratchpad revue-phase2-t1..t3, borne atteinte) ; nouvelle relecture obligatoire contre le socle réel à la fusion. 33 tâches (P2-A : L7-S8, T1–T19 ; P2-B : T21, T23–T34), un seul exécutable `tst_ui_lot7`, 17 points [SOCLE?], hypothèses H7-16 à H7-19 pour la porte de fin. Demande à A en attente : une ligne d'inclusion de `render/src` dans `ui/presentation.cmake` (aperçu d'équation en mode éditeur).
 
 ## Reprise après le temps calme (2026-10-18 vers 22h30, redémarrage de l'app demandé par Jérôme)
@@ -38,9 +38,10 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T0 | — | docs/verifications/2026-10-18-lot7-principes.md ; hors dépôt REA docs/re/lots/lot7.md | supprimé | terminée, mergée (f0772b6), graphe efee804 | 3 | d16edb5 | NOMS OK 333, git grep du rapport vide, relevé présent, revue : 4 importants corrigés |
 | L7-P0 | amendement relu | voir ligne L7-P0 du plan phase 1 | supprimé | terminée, mergée (d163449), graphe dfc8857 | 1 | 2747662 | rejeu : 110 tests, `TESTS OK`, 16 tst_features Passed ; fin de tests/CMakeLists.txt identique au socle (md5) |
 | L7-P1 | L7-P0 | voir ligne L7-P1 du plan phase 1 | .worktrees/livraison-complete-b--L7-P1 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 742ae60 | — |
-| L7-P3 | L7-P0 | voir ligne L7-P3 du plan phase 1 | .worktrees/livraison-complete-b--L7-P3 (base 3866a4b + fusion dfc8857) | essai 2 : revue « corriger, peu » (sens de l'angle, mutant rotation, snapPreview sans effet de bord) | 2 | 9ca48ba | — |
-| L7-P7 | L7-P0 | voir ligne L7-P7 du plan phase 1 | .worktrees/livraison-complete-b--L7-P7 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 047f5e1 | — |
+| L7-P3 | L7-P0 | voir ligne L7-P3 du plan phase 1 | supprimé | terminée, mergée (28a3334), graphe 85e9148 | 2 | 65047e0 | rejeu : 110 tests `TESTS OK`, Totals 13, `NOMS OK` ; 7 mutants tués ; revue adversariale « corriger, peu » appliquée |
+| L7-P7 | L7-P0 | voir ligne L7-P7 du plan phase 1 | .worktrees/livraison-complete-b--L7-P7 (base 3866a4b + fusion dfc8857) | reprise (concepteur-critique) avec la revue statique du wip | 2 | wip 047f5e1 | — |
 | L7-P8 | L7-P0 | voir ligne L7-P8 du plan phase 1 | .worktrees/livraison-complete-b--L7-P8 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 0755a06 | — |
+| L7-P4 | L7-P3 | voir ligne L7-P4 du plan phase 1 | .worktrees/livraison-complete-b--L7-P4 (base 85e9148) | en cours (concepteur-critique) | 1 | — | — |
 | L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | supprimé | terminée, mergée (827f028), graphe c606f05 | 2 | df41743 | rejeu : 110 tests `TESTS OK`, Totals 10 (pagezoom) et 12 (transitions) ; rouge vu sur ee87059 (3 échecs) |
 | L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | .worktrees/livraison-complete-b--L7-P5 (base dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 87c7abd | — |
 | L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | .worktrees/livraison-complete-b--L7-P6 (base dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 783c2da | — |
