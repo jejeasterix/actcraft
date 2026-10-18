@@ -39,7 +39,9 @@ qt_add_qml_module(actcraft_ui
         qml/ToolPalette.qml
         qml/PageArea.qml
         qml/CommandButton.qml
+        qml/CommandEntry.qml
         qml/CommandMenu.qml
+        qml/CommandSubmenu.qml
         qml/ColorSwatches.qml
         qml/WidthPicker.qml
         qml/ItemHighlight.qml
