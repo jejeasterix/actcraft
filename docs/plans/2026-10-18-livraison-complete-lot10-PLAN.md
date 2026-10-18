@@ -774,8 +774,9 @@ d'attente, dessinés directement) **et** à la texture du cache (`ShaderEffectSo
 grille, texture peinte sans lissage, doit rester nette (point 2).
 
 **Patron à ne pas reprendre.** Le cache seul multi-échantillonné (le plus simple) : l'encre et la couche d'attente
-resteraient crénelées, et un trait changerait d'aspect à son versement. L'échantillonnage de la fenêtre seule ne
-suffit pas non plus : la texture du cache ne l'hérite pas. Et ne pas juger le lissage par `checkPixel` : sa moyenne
+resteraient crénelées, et un trait changerait d'aspect à son versement. La texture du cache hérite, elle,
+du MSAA de la fenêtre (`samples ≤ 1` suit la fenêtre, constaté à L10-T5, H10-9) : `samples: 4` reste écrit pour le
+repli « fenêtre à 1, cache à 4 » (H10-5), où il garde le trait versé lissé. Et ne pas juger le lissage par `checkPixel` : sa moyenne
 3 × 3 donne des gris même sur un bord crénelé (c'est ce qui a trompé L2-C11) ; la preuve compte des pixels un à un
 sur une ligne qui traverse un bord **diagonal** (un bord crénelé n'y a aucun pixel intermédiaire).
 
