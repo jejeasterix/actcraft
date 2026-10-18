@@ -25,7 +25,8 @@ F-265, F-270, F-275, F-280 à F-286, F-290, F-291, F-294, F-295, F-296, F-299, F
 F-592, F-593, F-640, F-750 (entrées du lot).
 
 **Architecture.** Trois couches, qui ne touchent ni aux outils existants ni au cache :
-1. **Logique pure dans `features/`** (QtCore + `core` + `input`, sans QtGui ni Qt Quick) : géométrie du rideau et du
+1. **Logique dans `features/`** (dépend de `core`, `actions`, `render` et `input` : QtCore et QtGui, **sans Qt
+   Quick**) : géométrie du rideau et du
    spot, zoom continu, outils de page, catalogue d'effets, outils de maths et **guides de tracé**, dés,
    calculatrice, compte à rebours, message défilant, reconnaissance de forme, sessions de reconnaissance, modèle
    d'édition d'équation, clavier. Tout y est testé sans écran.
@@ -33,6 +34,9 @@ F-592, F-593, F-640, F-750 (entrées du lot).
    fichier propre au lot 7) qui relient la logique aux commandes et au document.
 3. **Surcouches et panneaux QML** (`ui/qml/*.qml` du lot 7), posés dans deux emplacements réservés par `L7-T2` :
    `pageOverlays` (dans la page, suit le zoom et le défilement) et `presentationLayer` (au-dessus de la fenêtre).
+   Chaque surcouche et chaque panneau qui prend des entrées est **déclaré comme couverture**
+   (`PageView::addInputCover`, posé par le socle L0-S) : `coveredAt` le consulte pour le stylet, le doigt et la
+   souris, et rien ne trace dessous.
    Rideau, spot, zoom de page, outils de maths, message défilant et effets sont des **surcouches** : ils ne
    redessinent pas le cache de la page (prouvé par `QSignalSpy` sur `PageView::cacheRefreshRequested` et par
    `cache.refreshes` du banc). Les outils de maths sont des **aides, pas du contenu** : ils ont leurs propres
@@ -40,7 +44,7 @@ F-592, F-593, F-640, F-750 (entrées du lot).
    gestes du lot 3 — c'est ainsi que la référence Python les réalise (`app/actcraft/extras/mathtools.py`, en-tête :
    éléments posés au-dessus de la page, ignorés à l'enregistrement, interactions par un filtre propre). Seule l'encre
    qu'ils guident entre au document, par le stylo existant, à travers un **filtre d'échantillons** de la vue
-   (`PageView::setSampleFilter`, réservé par `L7-T2`) : le stylo n'est pas modifié.
+   (`PageView::setSampleFilter`, posé par le socle L0-S, appliqué dans `PageView::handlePointer`) : le stylo n'est pas modifié.
 
 Les nouveaux objets de page (équation, image de caméra, texte de date, de dés ou d'écriture, forme reconnue) entrent
 par la pile d'annulation (`core::AddObjectCommand`, `core::ReplaceObjectsCommand` de `L7-T1`) et donc par l'interface
@@ -53,24 +57,24 @@ de cache figée (`core::PageCache`, DA11) : aucun appel direct au rendu.
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L7-T0 | Ouverture : vidéos, REA, spécification et ancien dépôt confrontés au lot 7 ; écarts E5, E9, E11 tranchés | — | `docs/verifications/AAAA-MM-JJ-lot7-principes.md` (date d'exécution) ; hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot7.md` | isolé | concepteur-critique | rapport commité, relevé brut hors dépôt présent, `NOMS OK`, `git grep` des titres du corpus vide, N0 (tests de la base) relevé | S30 | #tache-l7-t0 |
-| L7-T1 | Réservation I (données et modèle) : commandes du lot, argument texte, type « équation », réglages de présentation de la page, remplacement annulable, format natif et `.flipchart` | — | `actions/data/commands.json`, `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `tests/tst_actions_registry.cpp`, `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/src/edits.cpp`, `core/include/actcraft/core/replace.h`, `core/src/replace.cpp`, `core/include/actcraft/core/equation.h`, `core/src/equation.cpp`, `core/CMakeLists.txt`, `tests/tst_core_model.cpp`, `formats/src/nativejson.cpp`, `tests/tst_formats_nativejson.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/support/flipchartwriter.h`, `tests/tst_formats_flipchart.cpp`, `render/src/pagepainter.cpp`, `render/src/paintedrenderer.cpp`, `render/src/equationlayout.h`, `render/src/equationlayout.cpp`, `render/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/presentation.cmake`, `tests/tst_core_presentation.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 1, `tst_core_presentation` Passed (dont `replaceIsOneUndoStep`, `fingerprintUnchangedWithoutPresentation`), `tst_formats_nativejson` Passed (dont `equationRoundTripKeepsMathml`, `presentationRoundTrip`), `tst_formats_flipchart` Passed (dont `mathmlObjectBecomesEquation`), `tst_actions_registry` Passed (dont `textArgument`) | S24, S10 | #tache-l7-t1 |
-| L7-T2 | Réservation II (interface) : sous-menus de la disposition, menus et palette du lot, emplacements de surcouches, filtre d'échantillons, zoom autour d'un point, API d'insertion du contrôleur, étapes de scénario `pointer` et `doubleClick` | L7-T1 | `actions/data/layout.json`, `actions/include/actcraft/actions/layout.h`, `actions/src/layout.cpp`, `tests/tst_actions_layout.cpp`, `ui/src/commands.cpp`, `ui/qml/CommandMenu.qml`, `tests/tst_ui_commands.cpp`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `ui/qml/PageArea.qml`, `ui/qml/Main.qml`, `ui/qml/Presentation.qml`, `ui/qml/FloatingPanel.qml`, `ui/CMakeLists.txt`, `ui/presentation.cmake`, `features/CMakeLists.txt`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `tests/presentation.cmake`, `tests/tst_ui_presentation.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 2, `tst_ui_presentation` Passed (dont `overlaySlotsExist`, `sampleFilterReachesThePen`, `insertTextIsOneUndoStep`, `zoomAroundKeepsThePointStill`), `tst_actions_layout` (dont `submenuParsed`), `tst_ui_commands` (dont `submenuFilteredByPlatform`), `tst_bench_uiscenario` (dont `pointerStepParsed`) Passed ; banc hors écran joint ; `captures.ps1 -Scenario premiers-pas` hors écran `CAPTURES OK` | S10 | #tache-l7-t2 |
-| L7-T3 | Rideau (F-265) : store opaque, tirage depuis les quatre bords, couleur, bascule Ctrl+R, sans redessin du cache | L7-T0, L7-T2 | `features/include/actcraft/features/curtain.h`, `features/src/curtain.cpp`, `features/CMakeLists.txt`, `ui/src/curtaincontroller.h`, `ui/src/curtaincontroller.cpp`, `ui/qml/CurtainOverlay.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/rideau.svg`, `tests/tst_features_curtain.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake`, `bench/scenarios/rideau.json` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 4, `tst_features_curtain` Passed (dont `dragFromTopUncovers`, `dragFromLeftUncovers`), `tst_ui_presentation` (dont `curtainNeverRefreshesTheCache`), `tst_captures_rideau` Passed ; `captures.ps1 -Scenario rideau` hors écran : `LU curtain.coverage=…` puis `PIXEL` couvert / découvert OK ; banc hors écran joint | S10 | #tache-l7-t3 |
-| L7-T4 | Spot (F-270) : quatre formes, déplacer et redimensionner, sans redessin du cache | L7-T3 | `features/include/actcraft/features/spotlight.h`, `features/src/spotlight.cpp`, `features/CMakeLists.txt`, `ui/src/spotlightcontroller.h`, `ui/src/spotlightcontroller.cpp`, `ui/qml/SpotlightOverlay.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/spot.svg`, `tests/tst_features_spotlight.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake`, `bench/scenarios/spot.json` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 6, `tst_features_spotlight` Passed (dont `dragInsideMaskMoves`, `dragOnRimResizesToOval`, `solidSpotHidesInside`), `tst_ui_presentation` (dont `spotlightNeverRefreshesTheCache`), `tst_captures_spot` Passed ; banc hors écran joint | S10 | #tache-l7-t4 |
-| L7-T5 | Zoom de page (F-260) : appui long gauche = zoom avant continu, droit = zoom arrière, glisser = panoramique, double-clic = ajuster | L7-T2 | `features/include/actcraft/features/pagezoom.h`, `features/src/pagezoom.cpp`, `features/CMakeLists.txt`, `ui/src/pagezoomcontroller.h`, `ui/src/pagezoomcontroller.cpp`, `ui/qml/PageZoomOverlay.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/zoom-page.svg`, `tests/tst_features_pagezoom.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 7, `tst_features_pagezoom` Passed (dont `holdZoomsInAroundThePoint`, `doubleClickFits`), `tst_ui_presentation` (dont `pageZoomRefreshesTheCacheOnceAtRelease`, `pageZoomLeavesTheDocumentUnchanged`) ; banc hors écran joint | S10 | #tache-l7-t5 |
+| L7-T1 | Réservation I (données et modèle) : commandes du lot, argument texte, type « équation », réglages de présentation de la page, remplacement annulable, format natif et `.flipchart` | — | `actions/data/commands.json`, `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `tests/tst_actions_registry.cpp`, `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/src/edits.cpp`, `core/include/actcraft/core/replace.h`, `core/src/replace.cpp`, `core/include/actcraft/core/equation.h`, `core/src/equation.cpp`, `core/CMakeLists.txt`, `tests/tst_core_model.cpp`, `formats/src/nativejson.cpp`, `tests/tst_formats_nativejson.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/support/flipchartwriter.h`, `tests/tst_formats_flipchart.cpp`, `render/src/pagepainter.cpp`, `render/src/paintedrenderer.cpp`, `render/src/equationlayout.h`, `render/src/equationlayout.cpp`, `render/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/presentation.cmake`, `tests/tst_core_presentation.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 1, `tst_core_presentation` Passed (dont `replaceIsUndoneAtOnce`, `fingerprintUnchangedWithoutPresentation`), `tst_formats_nativejson` Passed (dont `equationRoundTripKeepsMathml`, `presentationRoundTrip`), `tst_formats_flipchart` Passed (dont `mathmlObjectBecomesEquation`), `tst_actions_registry` Passed (dont `textArgument`) | S24, S10 | #tache-l7-t1 |
+| L7-T2 | Réservation II (interface) : sous-menus de la disposition, menus et palette du lot, emplacements de surcouches, filtre d'échantillons, zoom autour d'un point, API d'insertion du contrôleur, étapes de scénario `pointer` et `doubleClick` | L7-T1 | `actions/data/layout.json`, `actions/include/actcraft/actions/layout.h`, `actions/src/layout.cpp`, `tests/tst_actions_layout.cpp`, `ui/src/commands.cpp`, `ui/qml/CommandMenu.qml`, `tests/tst_ui_commands.cpp`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `ui/qml/PageArea.qml`, `ui/qml/Main.qml`, `ui/qml/Presentation.qml`, `ui/qml/FloatingPanel.qml`, `ui/CMakeLists.txt`, `ui/presentation.cmake`, `features/CMakeLists.txt`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `tests/presentation.cmake`, `tests/tst_ui_presentation.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 2, `tst_ui_presentation` Passed (dont `overlaySlotsExist`, `sampleFilterReachesThePen`, `insertTextIsUndoneAtOnce`, `zoomAroundKeepsThePointStill`), `tst_actions_layout` (dont `submenuParsed`), `tst_ui_commands` (dont `submenuFilteredByPlatform`), `tst_bench_uiscenario` (dont `pointerStepParsed`) Passed ; banc hors écran joint ; `captures.ps1 -Scenario premiers-pas` hors écran `CAPTURES OK` | S10 | #tache-l7-t2 |
+| L7-T3 | Rideau (F-265) : store opaque, tirage depuis les quatre bords, couleur, bascule Ctrl+R, sans redessin du cache | L7-T0, L7-T2 | `features/include/actcraft/features/curtain.h`, `features/src/curtain.cpp`, `features/CMakeLists.txt`, `ui/src/curtaincontroller.h`, `ui/src/curtaincontroller.cpp`, `ui/qml/CurtainOverlay.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/rideau.svg`, `tests/tst_features_curtain.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake`, `bench/scenarios/rideau.json` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 4, `tst_features_curtain` Passed (dont `dragFromTopUncovers`, `dragFromLeftUncovers`), `tst_ui_presentation` (dont `curtainNeverRefreshesTheCache`), `tst_captures_rideau` Passed ; `captures.ps1 -Scenario rideau` hors écran : `LU curtain.coverage=…` puis `PIXEL` couvert / découvert OK ; banc hors écran joint ; `tst_ui_presentation` (dont `curtainBlocksTheStylus`) | S10 | #tache-l7-t3 |
+| L7-T4 | Spot (F-270) : quatre formes, déplacer et redimensionner, sans redessin du cache | L7-T3 | `features/include/actcraft/features/spotlight.h`, `features/src/spotlight.cpp`, `features/CMakeLists.txt`, `ui/src/spotlightcontroller.h`, `ui/src/spotlightcontroller.cpp`, `ui/qml/SpotlightOverlay.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/spot.svg`, `tests/tst_features_spotlight.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake`, `bench/scenarios/spot.json` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 6, `tst_features_spotlight` Passed (dont `dragInsideMaskMoves`, `dragOnRimResizesToOval`, `solidSpotHidesInside`), `tst_ui_presentation` (dont `spotlightNeverRefreshesTheCache`), `tst_captures_spot` Passed ; banc hors écran joint ; `tst_ui_presentation` (dont `spotlightBlocksTheStylus`) | S10 | #tache-l7-t4 |
+| L7-T5 | Zoom de page (F-260) : appui long gauche = zoom avant continu, droit = zoom arrière, glisser = panoramique, double-clic = ajuster | L7-T2 | `features/include/actcraft/features/pagezoom.h`, `features/src/pagezoom.cpp`, `features/CMakeLists.txt`, `ui/src/pagezoomcontroller.h`, `ui/src/pagezoomcontroller.cpp`, `ui/qml/PageZoomOverlay.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/zoom-page.svg`, `tests/tst_features_pagezoom.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 7, `tst_features_pagezoom` Passed (dont `holdZoomsInAroundThePoint`, `doubleClickFits`), `tst_ui_presentation` (dont `pageZoomRefreshesTheCacheOnceAtRelease`, `pageZoomLeavesTheDocumentUnchanged`) ; banc hors écran joint ; `tst_ui_presentation` (dont `pageZoomBlocksTheStylus`) | S10 | #tache-l7-t5 |
 | L7-T6 | Outils de page par page (F-591, F-592, F-593) : « comme avant », rideau, spot, désactivés ; mode et distance du rideau, mode et cadre du spot ; lecture des réglages de page des `.flipchart` | L7-T3, L7-T4 | `features/include/actcraft/features/pagetools.h`, `features/src/pagetools.cpp`, `features/CMakeLists.txt`, `ui/src/pagetoolscontroller.h`, `ui/src/pagetoolscontroller.cpp`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/support/flipchartwriter.h`, `tests/tst_formats_flipchart.cpp`, `tests/tst_features_pagetools.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 8, `tst_features_pagetools` Passed (dont `keepCarriesCurtainAcrossPages`, `offStopsTools`, `pageModeOverridesKeep`), `tst_formats_flipchart` (dont `pagePresentationRead`), `tst_ui_presentation` (dont `pageChangeAppliesPageTools`) | S10 | #tache-l7-t6 |
-| L7-T7 | Effets de changement de page (F-640) I : catalogue, effet global et par page, durée, règles de désactivation, lecteur d'effets en surcouche | L7-T0, L7-T6 | `features/include/actcraft/features/transitions.h`, `features/src/transitions.cpp`, `features/CMakeLists.txt`, `ui/src/transitioncontroller.h`, `ui/src/transitioncontroller.cpp`, `ui/qml/TransitionLayer.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/tst_features_transitions.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 9, `tst_features_transitions` Passed (dont `pageEffectWinsOverGlobal`, `effectPlayedWhenLeavingThePage`, `disabledWhileCurtainActive`, `durationClampedTo5To30`), `tst_ui_presentation` (dont `transitionDoesNotRefreshTheCacheBeforeTheEnd`) ; banc hors écran joint | S22 | #tache-l7-t7 |
-| L7-T8 | Effets (F-640) II : navigateur d'effets, banc `effets` (chaque effet mesuré), scénario de captures | L7-T7 | `ui/qml/TransitionBrowser.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/effets.svg`, `bench/scenarios/effets.json`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 10, `tst_captures_effets` Passed, `tst_ui_presentation` (dont `browserListsEveryEffect`) ; banc hors écran : `-Scenario court` joint + `captures.ps1 -Scenario effets` `LU transition.played=…` | S22 | #tache-l7-t8 |
-| L7-T9 | Règle (F-280) et guides de tracé : déplacer, allonger, tourner (angle affiché), stylo accroché au bord, unités | L7-T2 | `features/include/actcraft/features/strokeguide.h`, `features/src/strokeguide.cpp`, `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `features/CMakeLists.txt`, `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/MathToolsLayer.qml`, `ui/qml/RulerTool.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/regle.svg`, `tests/tst_features_mathtools.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake`, `bench/scenarios/regle.json` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 12, `tst_features_mathtools` Passed (dont `rulerSnapsNearEdge`, `rulerIgnoresFarSamples`, `strokeStaysOnTheEdgeOnceSnapped`), `tst_ui_presentation` (dont `rulerGuidesThePenWithoutChangingIt`, `mathToolIsNotSaved`), `tst_captures_regle` Passed ; banc hors écran joint | S10 | #tache-l7-t9 |
+| L7-T7 | Effets de changement de page (F-640) I : catalogue, effet global et par page, durée, règles de désactivation, lecteur d'effets en surcouche | L7-T0, L7-T6 | `features/include/actcraft/features/transitions.h`, `features/src/transitions.cpp`, `features/CMakeLists.txt`, `ui/src/transitioncontroller.h`, `ui/src/transitioncontroller.cpp`, `ui/qml/TransitionLayer.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/tst_features_transitions.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 9, `tst_features_transitions` Passed (dont `pageEffectWinsOverGlobal`, `effectPlayedWhenLeavingThePage`, `disabledWhileCurtainActive`, `durationClampedTo5To30`), `tst_ui_presentation` (dont `transitionDoesNotRefreshTheCacheBeforeTheEnd`, `snapshotShowsAPendingStroke`, `fastRepeatLosesNoPage`) ; banc hors écran joint | S22 | #tache-l7-t7 |
+| L7-T8 | Effets (F-640) II : navigateur d'effets, banc `effets` (chaque effet mesuré), scénario de captures | L7-T7 | `ui/qml/EffectPicker.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/effets.svg`, `bench/scenarios/effets.json`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 10, `tst_captures_effets` Passed, `tst_ui_presentation` (dont `browserListsEveryEffect`) ; banc hors écran : `-Scenario court` joint + `captures.ps1 -Scenario effets` `LU transition.played=…` | S22 | #tache-l7-t8 |
+| L7-T9 | Règle (F-280) et guides de tracé : déplacer, allonger, tourner (angle affiché), stylo accroché au bord, unités | L7-T2 | `features/include/actcraft/features/strokeguide.h`, `features/src/strokeguide.cpp`, `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `features/CMakeLists.txt`, `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/MathToolsLayer.qml`, `ui/qml/RulerTool.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/regle.svg`, `tests/tst_features_mathtools.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake`, `bench/scenarios/regle.json` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 12, `tst_features_mathtools` Passed (dont `rulerSnapsNearEdge`, `rulerIgnoresFarSamples`, `strokeStaysOnTheEdgeOnceSnapped`), `tst_ui_presentation` (dont `rulerGuidesThePenWithoutChangingIt`, `mathToolIsNotSaved`), `tst_captures_regle` Passed ; banc hors écran joint ; `tst_ui_presentation` (dont `syntheticReleaseStaysOnTheGuide`, `rulerBlocksTheStylus`) | S10 | #tache-l7-t9 |
 | L7-T10 | Équerre (F-283) : trois bords guides, angle, déplacer, tourner, redimensionner | L7-T9 | `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/SetSquareTool.qml`, `ui/qml/MathToolsLayer.qml`, `ui/presentation.cmake`, `ui/icons/equerre.svg`, `tests/tst_features_mathtools.cpp`, `tests/tst_ui_presentation.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 12, `tst_features_mathtools` (dont `setSquareHasThreeEdges`, `setSquareHypotenuseAt45`) ; banc hors écran joint | S10 | #tache-l7-t10 |
 | L7-T11 | Rapporteur (F-281) : complet ou demi, arc, arc fermé, arc plein, angle affiché | L7-T10 | `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/ProtractorTool.qml`, `ui/qml/MathToolsLayer.qml`, `ui/presentation.cmake`, `ui/icons/rapporteur.svg`, `tests/tst_features_mathtools.cpp`, `tests/tst_ui_presentation.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 12, `tst_features_mathtools` (dont `protractorArcFollowsTheRim`, `closedArcAddsTwoRadii`, `halfProtractorStopsAt180`) ; banc hors écran joint | S10 | #tache-l7-t11 |
 | L7-T12 | Compas (F-282) : pointe, bras, rayon, arc ou cercle tracé avec le stylo, rayon et angle affichés | L7-T11 | `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/CompassTool.qml`, `ui/qml/MathToolsLayer.qml`, `ui/presentation.cmake`, `ui/icons/compas.svg`, `tests/tst_features_mathtools.cpp`, `tests/tst_ui_presentation.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 12, `tst_features_mathtools` (dont `compassDrawsAnArcAtItsRadius`, `fullTurnClosesTheCircle`) ; banc hors écran joint | S10 | #tache-l7-t12 |
-| L7-T13 | Origine XY (F-284) : point déplaçable, mémoire par page, bascule (le pivot de rotation attend le lot 3 : `L7-T34`) | L7-T12 | `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/XyOriginTool.qml`, `ui/qml/MathToolsLayer.qml`, `ui/presentation.cmake`, `ui/icons/origine.svg`, `tests/tst_features_mathtools.cpp`, `tests/tst_ui_presentation.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 12, `tst_features_mathtools` (dont `originRememberedPerPage`), `tst_ui_presentation` (dont `originSavedWithThePage`) | S10 | #tache-l7-t13 |
-| L7-T14 | Dés (F-285, E5) : 1 à 5 dés, vitesse, lancer animé, total écrit sur la page | L7-T2, L7-T0 | `features/include/actcraft/features/dice.h`, `features/src/dice.cpp`, `features/CMakeLists.txt`, `ui/src/dicecontroller.h`, `ui/src/dicecontroller.cpp`, `ui/qml/DicePanel.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/des.svg`, `tests/tst_features_dice.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 13, `tst_features_dice` Passed (dont `seededRollIsReproducible`, `countClampedTo1To5`), `tst_ui_presentation` (dont `diceTotalWrittenOnThePage`) | S10 | #tache-l7-t14 |
-| L7-T15 | Calculatrice (F-286) : la nôtre par défaut, calculatrice du système ou programme choisi (Windows) | L7-T2 | `features/include/actcraft/features/calculator.h`, `features/src/calculator.cpp`, `features/CMakeLists.txt`, `ui/src/calculatorcontroller.h`, `ui/src/calculatorcontroller.cpp`, `ui/qml/CalculatorPanel.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/calculatrice.svg`, `tests/tst_features_calculator.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 14, `tst_features_calculator` Passed (dont `operatorPrecedenceLeftToRight`, `divisionByZeroIsAnError`, `percentAndSign`) | S10 | #tache-l7-t15 |
-| L7-T16 | Horloge et compte à rebours (F-290, E9) : analogique, numérique, les deux, pause, minuterie, compte à rebours, répéter, action de fin | L7-T2, L7-T0 | `features/include/actcraft/features/countdown.h`, `features/src/countdown.cpp`, `features/CMakeLists.txt`, `ui/src/clockcontroller.h`, `ui/src/clockcontroller.cpp`, `ui/qml/ClockPanel.qml`, `ui/qml/CountdownDialog.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/horloge.svg`, `tests/tst_features_countdown.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake`, `bench/scenarios/compte-a-rebours.json` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 16, `tst_features_countdown` Passed (dont `endTriggersActionOnce`, `repeatRestarts`, `pauseFreezes`), `tst_captures_compte_a_rebours` Passed (`LU pageIndicator.text=2 / 2` après 3 s) | S10 | #tache-l7-t16 |
-| L7-T17 | Date et heure (F-300) et navigateur web (F-299) | L7-T2 | `ui/src/presentationcommands.h`, `ui/src/presentationcommands.cpp`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/tst_ui_presentation.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 16, `tst_ui_presentation` (dont `dateTimeInsertsOneText`, `webBrowserOpensTheHomeUrl`) | S10 | #tache-l7-t17 |
-| L7-T18 | Message défilant (F-291) I : modèle, surcouche animée sur le fil de rendu, position, boucle, vitesse, pause ; banc pendant le défilement | L7-T2 | `features/include/actcraft/features/ticker.h`, `features/src/ticker.cpp`, `features/CMakeLists.txt`, `ui/src/tickercontroller.h`, `ui/src/tickercontroller.cpp`, `ui/qml/TickerOverlay.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/tst_features_ticker.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 17, `tst_features_ticker` Passed (dont `singlePassEndsHidden`, `loopRestarts`, `speedMapsToPixelsPerSecond`), `tst_ui_presentation` (dont `tickerNeverRefreshesTheCache`) ; banc hors écran avec message en boucle joint | S23 | #tache-l7-t18 |
+| L7-T13 | Origine XY (F-284) : point déplaçable, mémoire par page, bascule (le pivot de rotation attend le lot 3 : `L7-T34`) | L7-T12 | `features/include/actcraft/features/mathtools.h`, `features/src/mathtools.cpp`, `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/OriginMarker.qml`, `ui/qml/MathToolsLayer.qml`, `ui/presentation.cmake`, `ui/icons/origine.svg`, `tests/tst_features_mathtools.cpp`, `tests/tst_ui_presentation.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 12, `tst_features_mathtools` (dont `originRememberedPerPage`), `tst_ui_presentation` (dont `originSavedWithThePage`) | S10 | #tache-l7-t13 |
+| L7-T14 | Dés (F-285, E5) : 1 à 5 dés, vitesse, lancer animé, total écrit sur la page | L7-T2, L7-T0 | `features/include/actcraft/features/dice.h`, `features/src/dice.cpp`, `features/CMakeLists.txt`, `ui/src/dicecontroller.h`, `ui/src/dicecontroller.cpp`, `ui/qml/DicePanel.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/des.svg`, `tests/tst_features_dice.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 13, `tst_features_dice` Passed (dont `seededRollIsReproducible`, `countClampedTo1To5`), `tst_ui_presentation` (dont `diceTotalWrittenOnThePage`) ; `tst_ui_presentation` (dont `diceBlocksTheStylus`) | S10 | #tache-l7-t14 |
+| L7-T15 | Calculatrice (F-286) : la nôtre par défaut, calculatrice du système ou programme choisi (Windows) | L7-T2 | `features/include/actcraft/features/calculator.h`, `features/src/calculator.cpp`, `features/CMakeLists.txt`, `ui/src/calculatorcontroller.h`, `ui/src/calculatorcontroller.cpp`, `ui/qml/CalculatorPanel.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/calculatrice.svg`, `tests/tst_features_calculator.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 14, `tst_features_calculator` Passed (dont `operatorPrecedenceLeftToRight`, `divisionByZeroIsAnError`, `percentAndSign`) ; `tst_ui_presentation` (dont `calculatorBlocksTheStylus`) | S10 | #tache-l7-t15 |
+| L7-T16 | Horloge et compte à rebours (F-290, E9) : analogique, numérique, les deux, pause, minuterie, compte à rebours, répéter, action de fin | L7-T2, L7-T0 | `features/include/actcraft/features/countdown.h`, `features/src/countdown.cpp`, `features/CMakeLists.txt`, `ui/src/clockcontroller.h`, `ui/src/clockcontroller.cpp`, `ui/qml/ClockPanel.qml`, `ui/qml/CountdownDialog.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/horloge.svg`, `tests/tst_features_countdown.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake`, `bench/scenarios/compte-a-rebours.json` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 16, `tst_features_countdown` Passed (dont `endTriggersActionOnce`, `repeatRestarts`, `pauseFreezes`), `tst_captures_compte_a_rebours` Passed (`LU pageIndicator.text=2 / 2` après 3 s) ; `tst_ui_presentation` (dont `clockBlocksTheStylus`) | S10 | #tache-l7-t16 |
+| L7-T17 | Date et heure (F-300) et navigateur web (F-299) | L7-T2 | `ui/src/presentationcommands.h`, `ui/src/presentationcommands.cpp`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/tst_ui_presentation.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 16, `tst_ui_presentation` (dont `dateTimeInsertsOneText`, `webBrowserOpensTheHomeUrl`) ; `webBrowserRefusesOtherSchemes` | S10 | #tache-l7-t17 |
+| L7-T18 | Message défilant (F-291) I : modèle, surcouche animée sur le fil de rendu, position, boucle, vitesse, pause ; banc pendant le défilement | L7-T2 | `features/include/actcraft/features/ticker.h`, `features/src/ticker.cpp`, `features/CMakeLists.txt`, `ui/src/tickercontroller.h`, `ui/src/tickercontroller.cpp`, `ui/qml/TickerOverlay.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/tst_features_ticker.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 17, `tst_features_ticker` Passed (dont `singlePassEndsHidden`, `loopRestarts`, `speedMapsToPixelsPerSecond`), `tst_ui_presentation` (dont `tickerNeverRefreshesTheCache`) ; banc hors écran avec message en boucle joint ; `tst_ui_presentation` (dont `tickerBlocksTheStylus`) | S23 | #tache-l7-t18 |
 | L7-T19 | Message défilant (F-291, E11) II : fenêtre d'édition (texte, police, couleur, ombre, fond, position, boucle, vitesse), « appliquer » = défaut gardé, enregistrer et charger des messages | L7-T18, L7-T0 | `ui/qml/TickerDialog.qml`, `ui/src/tickercontroller.h`, `ui/src/tickercontroller.cpp`, `features/include/actcraft/features/ticker.h`, `features/src/ticker.cpp`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/message.svg`, `tests/tst_features_ticker.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake`, `bench/scenarios/message.json` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 18, `tst_features_ticker` (dont `messageFileRoundTrip`), `tst_captures_message` Passed, `tst_ui_presentation` (dont `applyKeepsTheDefault`) | S23 | #tache-l7-t19 |
 
 20 tâches dans ce sous-lot (15 dans 7b, voir son plan). **N0** = nombre de tests ctest de la base
@@ -210,7 +214,7 @@ Tous les noms des lots 1, 2 et 10 restent figés ; on ajoute, on ne renomme pas.
       CurtainMode curtain = CurtainMode::Off;
       double curtainDistance = 0;          // pixels de page depuis le bord
       SpotlightShape spotlight = SpotlightShape::Off;
-      RectF spotlightBounds;               // vide : cadre par défaut
+      RectF spotlightFrame;               // vide : cadre par défaut
       bool hasOrigin = false; PointF origin; // origine XY mémorisée (F-284)
       std::string transition;              // identifiant d'effet propre à la page ; vide : effet global
   };
@@ -222,7 +226,7 @@ Tous les noms des lots 1, 2 et 10 restent figés ; on ajoute, on ne renomme pas.
   PagePresentation value)` : une étape.
 - `formats` (L7-T1) : objet natif `{"type": "equation", "bounds": [...], "mathml": "<math>…</math>", "pointSize": n,
   "color": "#AARRGGBB"}` ; page : clé `"presentation"` écrite seulement si `!isDefault(...)`, sous-clés `tools`,
-  `curtain`, `curtainDistance`, `spotlight`, `spotlightBounds`, `origin`, `transition` (noms anglais à nous).
+  `curtain`, `curtainDistance`, `spotlight`, `spotlightFrame`, `origin`, `transition` (noms anglais à nous).
 - `ui` (L7-T2) :
   ```cpp
   // PageView
@@ -286,6 +290,14 @@ boucle). S'y ajoutent, pour le lot 7 :
   d'écriture ; toutes les autres pour le reste. Code propre à Windows dans des fichiers `*_win.cpp` seulement.
 - **Surcouche = aucun redessin du cache** : toute tâche de surcouche a un test `QSignalSpy` sur
   `PageView::cacheRefreshRequested` (0 émission pendant l'usage, sauf mention contraire écrite dans sa section).
+- **Stylet sous une surcouche ou un panneau** : toute surcouche ou tout panneau qui prend des entrées est déclaré
+  couverture (`PageView::addInputCover`, socle L0-S) à son ouverture et retiré à sa fermeture. Sa tâche a un test
+  `…BlocksTheStylus` qui injecte des `QTabletEvent` (`TabletPress`, `TabletMove`, `TabletRelease`, périphérique
+  stylet) au-dessus de la surcouche, par l'injecteur du banc (`bench/src/injector.cpp`) ou celui des tests existants
+  (`tests/tst_ui_drawing.cpp`, `tests/tst_pageview.cpp` : le lire et le reprendre). Attendu : **aucun trait versé**
+  (nombre d'objets de la page inchangé, encre vide) et, si la surcouche se manipule au stylet, l'effet attendu (bord
+  tiré, outil déplacé, bouton pressé). La souris seule ne prouve rien : le stylet est pris par le filtre de la
+  fenêtre avant les éléments QML.
 - **Commande ciblée** (rouge, vert d'un seul test) :
   ```powershell
   pwsh -NoProfile -Command "Set-Location '<wt>'; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File C:\Users\JeromeDenis\.claude\scripts\jeton.ps1 -Nom tests -Proprietaire <id> -Commande '. ./scripts/dev-env.ps1; cmake --build --preset debug *> .tmp/build.txt; ctest --preset debug -R ''<motif>'' --output-on-failure *> .tmp/ctest.txt'; Select-String -Path .tmp/build.txt,.tmp/ctest.txt -Pattern 'error|tests passed|tests failed|No tests were found' | Select-Object -Last 4"
@@ -453,9 +465,9 @@ fait l'aller-retour à l'identique ; un `.flipchart` synthétique avec un objet 
 **Étapes.**
 
 - [ ] **Étape 1 : relever l'empreinte de référence.** Avant tout changement, dans `<wt>` (commande ciblée sur
-  `tst_core_model`), noter la valeur de `fingerprint(page générée du banc)` affichée par `tst_core_model` (ou, à
-  défaut, ajouter temporairement un `qInfo()` et la relever, puis retirer la ligne). Elle devient la constante
-  `kBenchPageFingerprint` du test de l'étape 2.
+  `tst_core_model`), relever la valeur de `fingerprint(generatePage())` (`core/include/actcraft/core/generator.h:55`)
+  par un `qInfo()` temporaire, puis retirer la ligne. Elle devient `inline constexpr std::uint64_t
+  kBenchPageFingerprint` en tête de `tests/tst_core_presentation.cpp` (étape 2).
 - [ ] **Étape 2 : test rouge du modèle.** Créer `tests/tst_core_presentation.cpp` :
   ```cpp
   #include <actcraft/core/document.h>
@@ -490,14 +502,14 @@ fait l'aller-retour à l'identique ; un `.flipchart` synthétique avec un objet 
       }
       void fingerprintUnchangedWithoutPresentation()
       {
-          Page page; // page vierge : l'empreinte d'avant L7-T1 est celle relevée à l'étape 1 pour le banc
-          const auto before = fingerprint(page);
-          page.presentation = PagePresentation{};
-          QCOMPARE(fingerprint(page), before);
+          // Valeurs d'AVANT la tâche (constantes figées) : rouge si l'ajout de PagePresentation change l'empreinte.
+          QCOMPARE(fingerprint(Page{}), std::uint64_t{0xB59B2DE2A9B3C823ull}); // tests/tst_core_model.cpp:191
+          QCOMPARE(fingerprint(generatePage()), kBenchPageFingerprint);        // relevée à l'étape 1
+          Page page;
           page.presentation.transition = "fade";
-          QVERIFY(fingerprint(page) != before);
+          QVERIFY(fingerprint(page) != std::uint64_t{0xB59B2DE2A9B3C823ull});
       }
-      void replaceIsOneUndoStep()
+      void replaceIsUndoneAtOnce()
       {
           Document doc;
           UndoStack stack;
@@ -522,7 +534,7 @@ fait l'aller-retour à l'identique ; un `.flipchart` synthétique avec un objet 
           QCOMPARE(kindOf(doc.page(0).objects[0]), ObjectKind::Stroke);
           QCOMPARE(doc.page(0).objects[0].common.id, strokeId);
       }
-      void setPagePresentationIsOneUndoStep()
+      void setPagePresentationIsUndoneAtOnce()
       {
           Document doc;
           UndoStack stack;
@@ -793,10 +805,10 @@ un sous-menu est un **ajout** (un élément objet dans `items`), un fichier sans
   void sampleFilterReachesThePen();  // filtre qui décale x de +50 : un trait injecté de (100,100) à (200,100) donne
                                      // un trait versé dont le premier point est (150,100) ; filtre vide : (100,100)
   void zoomAroundKeepsThePointStill(); // zoomAround(QPointF(300,200), 2.0) : sceneToPage(300,200) inchangé (±0,5)
-  void insertTextIsOneUndoStep();    // insertText("12", {100,100,80,40}) : 1 objet Text de plus, couche
+  void insertTextIsUndoneAtOnce();    // insertText("12", {100,100,80,40}) : 1 objet Text de plus, couche
                                      // intermédiaire ; undo : retiré ; l'id rendu est non nul
   void strokeObserverSeesEveryStroke(); // 2 traits injectés : l'observateur reçoit 2 identifiants, ceux des traits
-  void replaceObjectsIsOneUndoStep(); // via le contrôleur : 1 trait → 1 forme ; undo rend le trait
+  void replaceObjectsIsUndoneAtOnce(); // via le contrôleur : 1 trait → 1 forme ; undo rend le trait
   ```
   Déclarer dans `tests/presentation.cmake` :
   ```cmake
@@ -1081,6 +1093,10 @@ l'ouverture et un tirage complet) ; captures conformes ; `NOMS OK`.
   endif()
   ```
   (`presentation.cmake` est inclus après `bench.cmake` : `_bench_env_offscreen` y est défini.)
+- [ ] **Étape avant la preuve : stylet sous la surcouche.** `curtainBlocksTheStylus` dans `tst_ui_presentation.cpp` : des
+  `QTabletEvent` injectés (règle commune « Stylet sous une surcouche ou un panneau ») ; rideau fermé : stylet au milieu du store → aucun trait ; stylet
+  sur le bord haut tiré jusqu'au milieu → `coverage` 0,5, aucun trait ; stylet dans la moitié découverte → un trait
+  versé (la couverture est le store, pas la page entière).
 - [ ] **Étape 7 : preuves et commit.** `format.ps1`, preuve de tâche, banc sans écran, preuve visuelle, `NOMS OK` ;
   `git -C <wt> add` de chaque fichier de la ligne L7-T3 de la table, puis commit
   « Lot 7 : rideau (F-265), sans redessin du cache (L7-T3) » terminé par la ligne `Co-Authored-By`.
@@ -1180,6 +1196,10 @@ centre du spot, noir à 20 px du bord de la page ; `pointer` qui déplace le spo
 - [ ] **Étape 4 : test d'interface et scénario.** `spotlightNeverRefreshesTheCache` dans `tst_ui_presentation.cpp`
   (spy à 0 après ouverture, déplacement, redimensionnement ; `curtain.active` faux après ouverture du spot) ;
   `bench/scenarios/spot.json` ; `tst_captures_spot` dans `tests/presentation.cmake` (bloc de L7-T3, autre nom).
+- [ ] **Étape avant la preuve : stylet sous la surcouche.** `spotlightBlocksTheStylus` dans `tst_ui_presentation.cpp` : des
+  `QTabletEvent` injectés (règle commune « Stylet sous une surcouche ou un panneau ») ; spot rond : stylet glissé dans le masque → spot déplacé, aucun trait ;
+  stylet au centre du spot (zone visible) → un trait versé ; cache plein : stylet sur le cache → cache déplacé, aucun
+  trait.
 - [ ] **Étape 5 : preuves et commit.** Comme L7-T3 ; message « Lot 7 : spot (F-270), sans redessin du cache (L7-T4) ».
 
 <a id="tache-l7-t5"></a>
@@ -1199,7 +1219,7 @@ pendant l'appui, une seule fois au relâché.
 le mode (la surcouche saisit tout événement de pointeur sur la page tant que le mode est actif).
 
 **Terminé quand.** Tests verts, dont `pageZoomRefreshesTheCacheOnceAtRelease` (spy = 0 pendant 600 ms de maintien,
-puis ≤ 1 après le relâché) et `pageZoomLeavesTheDocumentUnchanged` (empreinte identique) ; `NOMS OK`.
+puis exactement 1 après le relâché, la fin de zoom de la vue) et `pageZoomLeavesTheDocumentUnchanged` (empreinte identique) ; `NOMS OK`.
 
 **Étapes.**
 
@@ -1255,7 +1275,8 @@ puis ≤ 1 après le relâché) et `pageZoomLeavesTheDocumentUnchanged` (emprein
   `Presentation.qml` : gestionnaire `view.page-zoom` (bascule, `setChecked`). `ui/presentation.cmake`,
   `ui/icons/zoom-page.svg`.
 - [ ] **Étape 4 : tests d'interface.** `pageZoomRefreshesTheCacheOnceAtRelease`, `pageZoomLeavesTheDocumentUnchanged`,
-  `pageZoomBlocksThePen` (un appui maintenu en mode zoom ne verse aucun trait) dans `tst_ui_presentation.cpp`, avec
+  `pageZoomBlocksTheStylus` (mode actif : la surcouche couvre toute la page ; un appui **au stylet** maintenu, par
+  `QTabletEvent`, zoome et ne verse aucun trait ; même chose à la souris et au doigt) dans `tst_ui_presentation.cpp`, avec
   l'étape `pointer` par l'injecteur du banc ou des `QMouseEvent` envoyés à la fenêtre.
 - [ ] **Étape 5 : preuves et commit.** Preuve de tâche, banc sans écran, `NOMS OK` ; commit « Lot 7 : zoom de page
   (F-260) (L7-T5) ».
@@ -1323,7 +1344,7 @@ et avertissement de lecture, jamais d'échec.
       PagePresentation p;
       p.tools = PageToolsMode::Spotlight;
       p.spotlight = SpotlightShape::Square;
-      p.spotlightBounds = {10, 20, 200, 100};
+      p.spotlightFrame = {10, 20, 200, 100};
       const auto next = resolvePageTools({true, SpotlightShape::Off}, p);
       QVERIFY(!next.curtain);
       QCOMPARE(next.spotlight, SpotlightShape::Square);
@@ -1359,7 +1380,7 @@ et avertissement de lecture, jamais d'échec.
   spot, l'origine XY (et, si L7-T0 en a établi le codage, l'effet propre à la page — sinon L7-T7) ; le lecteur rend
   ces valeurs dans `Page::presentation`. Numéros de propriétés de la page : ceux de notre documentation
   (`docs/re/format-flipchart.md`, liste des propriétés de la page) recopiés à la main dans `flipchartids.h` sous des
-  noms à nous (`kPageCurtainMode`, `kPageCurtainDistance`, `kPageSpotlightMode`, `kPageSpotlightBounds`,
+  noms à nous (`kPageCurtainMode`, `kPageCurtainDistance`, `kPageSpotShape`, `kPageSpotFrame`,
   `kPageOrigin`) ; codage des valeurs relevé par L7-T0.
 - [ ] **Étape 5 : preuves et commit.** Preuve de tâche, banc sans écran, `NOMS OK` ; commit « Lot 7 : outils de
   présentation par page et leur lecture .flipchart (F-591 à F-593) (L7-T6) ».
@@ -1379,11 +1400,12 @@ animation sur le fil de rendu ; le cache n'est pas redessiné par l'effet.
 **Test et commande bornée.** Commande ciblée `-R 'tst_features_transitions|tst_ui_presentation'`, preuve de tâche
 (N ≥ N0 + 9), banc sans écran.
 
-**Interdits.** Aucun `grabToImage` (asynchrone, lent) : l'instantané est un `ShaderEffectSource` `live: false` de la
-texture du cache déjà à jour (`pageArea.view` → objet `pageCache`) figé **avant** le changement de page par
-`scheduleUpdate()` attendu une image. Pas de nuanceur exotique : opacité, translation, échelle, découpe (`clip`) et
-au plus un nuanceur de fondu compilé par `qsb` (Qt Shader Tools, installé). Aucune boucle JavaScript par image : les
-animations sont des `Animator` (fil de rendu).
+**Interdits.** Aucun `grabToImage` (asynchrone, lent). L'instantané est un `ShaderEffectSource` (`live: false`) dont la
+**source est `pageContent`** (page fixe, cache, couche d'attente et encre : un trait de moins de 500 ms, encore en
+attente au-dessus du cache, doit y figurer), mis à jour par `scheduleUpdate()` et attendu jusqu'à son signal
+`scheduledUpdateCompleted` **avant** le changement de page. Aucun nuanceur : opacité, translation, échelle et découpe
+(`clip`) seulement (le fondu est une opacité). Aucune boucle JavaScript par image : les animations sont des `Animator`
+(fil de rendu).
 
 **Terminé quand.** Tests verts, dont `pageEffectWinsOverGlobal`, `effectPlayedWhenLeavingThePage`,
 `disabledWhileCurtainActive`, `durationClampedTo5To30`, `transitionDoesNotRefreshTheCacheBeforeTheEnd` (le seul
@@ -1455,13 +1477,19 @@ redessin du cache est celui que la vue fait déjà pour la nouvelle page) ; `NOM
   `ShaderEffectSource` d'instantané posé au-dessus de `pageArea`, dans `presentation.layer`, et un `ParallelAnimation`
   d'`Animator` par effet ; déroulé : (1) figer l'instantané (une image), (2) changer de page par la commande
   d'origine, (3) jouer l'effet sur l'instantané pendant `durationTenths × 100` ms, (4) retirer l'instantané. Dans
-  `Presentation.qml`, les gestionnaires `page.next` et `page.previous` **ne sont pas remplacés** : le contrôleur
-  s'abonne à `Commands.triggered` et, si un effet doit jouer, fige l'instantané au signal
-  `DocumentController::pageAboutToChange` (le changement a déjà lieu ; l'instantané est celui de la page quittée, prêt
-  depuis la dernière image). Gestionnaires `view.page-effect`, `view.page-effect-duration`, `page.effect`
+  `Presentation.qml`, les gestionnaires `page.next` et `page.previous` sont **enveloppés** : `Presentation.qml` les
+  repose (`commands.setHandler`) après ceux de `Main.qml:249-250` (par `Qt.callLater` dans `Component.onCompleted`,
+  l'ordre des `onCompleted` n'étant pas garanti) avec une fonction qui appelle `transition.navigate(kind)`. Sans effet à
+  jouer, elle appelle aussitôt `documentController.nextPage()` ou `pageBack()` (les corps actuels de `Main.qml`) ; avec
+  un effet, elle fige l'instantané de `pageContent`, attend `scheduledUpdateCompleted`, puis change de page et joue
+  l'effet. Un nouvel appui pendant un effet termine l'effet en cours et enchaîne : aucune page sautée ni perdue. Gestionnaires `view.page-effect`, `view.page-effect-duration`, `page.effect`
   (`setPagePresentation` avec le champ `transition`).
 - [ ] **Étape 4 : tests d'interface.** `transitionDoesNotRefreshTheCacheBeforeTheEnd`, `noEffectWhenNone` (aucun
-  instantané créé), `effectPlayedOnNext` (`played` = l'effet attendu) dans `tst_ui_presentation.cpp`.
+  instantané créé), `effectPlayedOnNext` (`played` = l'effet attendu), `pageNextIsWrapped` (le gestionnaire de
+  `page.next` est celui de la présentation après le chargement), `snapshotShowsAPendingStroke` (un trait injecté
+  moins de 500 ms avant `page.next`, encore en attente au-dessus du cache : l'image de l'instantané, lue par
+  `grabToImage` dans le test seulement, a l'encre du trait) et `fastRepeatLosesNoPage` (trois `page.next` pendant un
+  effet de 1,5 s : page 4 affichée) dans `tst_ui_presentation.cpp`.
 - [ ] **Étape 5 : lecture `.flipchart` de l'effet par page.** Si L7-T0 a établi le codage de l'effet propre à la page
   et que L7-T6 ne l'a pas lu : l'ajouter ici (`formats/src/flipchart.cpp`, `formats/src/flipchartids.h`,
   `tests/support/flipchartwriter.h`, `tests/tst_formats_flipchart.cpp`, test `pageTransitionRead`) — ces quatre
@@ -1499,7 +1527,7 @@ moitié, puis l'ancienne page qui sort par la gauche.
 - [ ] **Étape 1 : test rouge.** `browserListsEveryEffect` et `browserChoiceSetsTheGlobalEffect` dans
   `tst_ui_presentation.cpp` (ouvrir par `view.page-effects`, compter les délégués d'objectName `effect-<id>`,
   cliquer le deuxième, `Terminé` : réglage global égal à son identifiant).
-- [ ] **Étape 2 : navigateur.** `ui/qml/TransitionBrowser.qml` (`FloatingPanel` ; `GridView` sur
+- [ ] **Étape 2 : navigateur.** `ui/qml/EffectPicker.qml` (`FloatingPanel` ; `GridView` sur
   `TransitionController.catalogue` (liste `{id, label}` exposée par le contrôleur) ; vignette = deux rectangles de
   couleurs à nous animés par le même composant que `TransitionLayer`) ; gestionnaire `view.page-effects` dans
   `Presentation.qml` ; `ui/presentation.cmake`, `ui/icons/effets.svg`.
@@ -1530,7 +1558,10 @@ preuve de tâche (N ≥ N0 + 12), banc sans écran, preuve visuelle `-Scenario r
 `checkPixel` encre à (500, 400) et page à (500, 395) ; capture `regle-trait`. Décrire : règle graduée, trait droit
 collé à son bord.
 
-**Interdits.** Ne pas modifier `tools/pentool.*`, ni la vue (le filtre est posé par L7-T2). La règle n'est jamais
+**Interdits.** Ne pas modifier `tools/pentool.*`, ni la vue. Le filtre est posé par le socle L0-S :
+`PageView::setSampleFilter`, appliqué dans `PageView::handlePointer` (`ui/src/pageview.cpp:359-375`) à chaque
+échantillon avant le pipeline, et gardé pour les relâchés synthétisés de `finishStroke` et de la fin du contact du
+doigt (`pageview.cpp:383-391`, `545`) : un trait guidé coupé par un changement de page ou de zoom finit sur le guide. La règle n'est jamais
 écrite dans le document ni dans les miniatures (`mathToolIsNotSaved` : empreinte inchangée après ouverture,
 déplacement et fermeture de la règle). Pas de dépendance à la sélection.
 
@@ -1684,9 +1715,12 @@ déplacement et fermeture de la règle). Pas de dépendance à la sélection.
   presentation.commands }`. **`MathToolsLayer.qml` reçoit `property Commands commands` et pose lui-même les
   gestionnaires `math.*`** (ici `math.ruler`) : L7-T10 à L7-T13 n'ont pas à toucher `Presentation.qml`.
   `ui/presentation.cmake`, `ui/icons/regle.svg`.
-- [ ] **Étape 5 : tests d'interface et scénario.** `rulerGuidesThePenWithoutChangingIt` (trait injecté presque le
+- [ ] **Étape 5 : tests d'interface et scénario.** `rulerGuidesThePenWithoutChangingIt` (trait **au stylet**, `QTabletEvent`, injecté presque le
   long du bord : tous les points du trait versé ont y = 400 ± 0,5 ; la règle fermée, le même trait garde ses y
-  d'origine) et `mathToolIsNotSaved` dans `tst_ui_presentation.cpp` ; `bench/scenarios/regle.json`,
+  d'origine) `mathToolIsNotSaved`, `syntheticReleaseStaysOnTheGuide` (trait guidé interrompu par `page.next` avant le relâché :
+  le dernier point du trait versé est sur le bord, y = 400 ± 0,5) et `rulerBlocksTheStylus` (stylet sur le corps de la
+  règle : règle déplacée, aucun trait ; stylet dans la bande de 16 pixels hors du corps, le long du bord : trait guidé)
+  dans `tst_ui_presentation.cpp` ; `bench/scenarios/regle.json`,
   `tst_captures_regle` dans `tests/presentation.cmake`.
 - [ ] **Étape 6 : preuves et commit.** Preuve de tâche, banc sans écran, preuve visuelle, `NOMS OK` ; commit « Lot 7 :
   règle et guides de tracé (F-280) (L7-T9) ».
@@ -1731,7 +1765,8 @@ comme la règle ; ses trois bords guident le stylo ; angle affiché ; graduation
 - [ ] **Étape 3 : contrôleur et délégué.** `openSetSquare()` dans `MathToolsController` ; `ui/qml/SetSquareTool.qml` ;
   délégué choisi dans `MathToolsLayer.qml`, qui pose aussi le gestionnaire `math.set-square` (règle de L7-T9 :
   `Presentation.qml` n'est pas touché par T10 à T13). `ui/presentation.cmake`, `ui/icons/equerre.svg`.
-- [ ] **Étape 4 : test d'interface.** `setSquareGuidesThePen` dans `tst_ui_presentation.cpp`.
+- [ ] **Étape 4 : test d'interface.** `setSquareGuidesThePen` dans `tst_ui_presentation.cpp` (trait au stylet
+  injecté par `QTabletEvent`, qui passe par `handlePointer` et le filtre ; relâché synthétisé sur le bord).
 - [ ] **Étape 5 : preuves et commit.** Commit « Lot 7 : équerre (F-283) (L7-T10) ».
 
 <a id="tache-l7-t11"></a>
@@ -1789,7 +1824,8 @@ jamais par le stylo modifié.
   rapporteur en style fermé ou plein, le contrôleur ajoute l'objet par `insertObject` (fermé : `core::Line` des deux
   rayons ; plein : `core::Shape` `Path` rempli) ; `ui/qml/ProtractorTool.qml` ; `MathToolsLayer.qml` ;
   `ui/presentation.cmake` ; `ui/icons/rapporteur.svg`.
-- [ ] **Étape 4 : test d'interface.** `filledArcBecomesOneShape` (style plein : un trait guidé + une forme, ou la forme
+- [ ] **Étape 4 : test d'interface.** `filledArcBecomesOneShape` (trait au stylet injecté par `QTabletEvent`, chemin
+  `handlePointer` et filtre ; style plein : un trait guidé + une forme, ou la forme
   seule si L7-T0 établit que l'original remplace le trait — trancher sur le relevé) dans `tst_ui_presentation.cpp`.
 - [ ] **Étape 5 : preuves et commit.** Commit « Lot 7 : rapporteur (F-281) (L7-T11) ».
 
@@ -1850,7 +1886,8 @@ réinitialiser la longueur, fermer. La gomme près de la mine attend le lot 3 (`
 - [ ] **Étape 3 : contrôleur et délégué.** `openCompass()` ; « marquer le centre » par `insertObject` (deux
   `core::Line` en croix de 12 pixels, ou une ligne à quatre points) ; `ui/qml/CompassTool.qml` (dessin à nous) ;
   `MathToolsLayer.qml` ; `ui/presentation.cmake` ; `ui/icons/compas.svg`.
-- [ ] **Étape 4 : test d'interface.** `markCentreAddsACross`, `compassStrokeIsACircle` dans `tst_ui_presentation.cpp`.
+- [ ] **Étape 4 : test d'interface.** `markCentreAddsACross`, `compassStrokeIsACircle` dans `tst_ui_presentation.cpp` (traits au stylet
+  injectés par `QTabletEvent`, chemin `handlePointer` et filtre).
 - [ ] **Étape 5 : preuves et commit.** Commit « Lot 7 : compas (F-282) (L7-T12) ».
 
 <a id="tache-l7-t13"></a>
@@ -1879,7 +1916,7 @@ rotation des objets sélectionnés autour de ce point attend le lot 3 (`L7-T34`)
 - [ ] **Étape 2 : logique.** `struct OriginMemory` dans `mathtools.h/.cpp` (lecture depuis `core::PagePresentation`,
   défaut = centre).
 - [ ] **Étape 3 : contrôleur et délégué.** `MathToolsController::originVisible`, `origin` (suivi de la page
-  affichée), `moveOrigin(QPointF)` → `DocumentController::setPagePresentation` au relâché ; `ui/qml/XyOriginTool.qml`
+  affichée), `moveOrigin(QPointF)` → `DocumentController::setPagePresentation` au relâché ; `ui/qml/OriginMarker.qml`
   (croix et cercle à nous) ; gestionnaire `math.xy-origin` (bascule + `setChecked`) dans `MathToolsLayer.qml` ;
   `ui/presentation.cmake` ; `ui/icons/origine.svg`.
 - [ ] **Étape 4 : preuves et commit.** Commit « Lot 7 : origine XY mémorisée par page (F-284) (L7-T13) ».
@@ -1950,6 +1987,9 @@ libellé copié de la boîte d'origine.
   `Presentation.qml` ; `ui/presentation.cmake` ; `ui/icons/des.svg`.
 - [ ] **Étape 4 : test d'interface.** `diceTotalWrittenOnThePage` (graine fixée, roll, écrire : un `Text` dont le HTML
   contient le total ; une étape d'annulation).
+- [ ] **Étape avant la preuve : stylet sous la surcouche.** `diceBlocksTheStylus` dans `tst_ui_presentation.cpp` : des
+  `QTabletEvent` injectés (règle commune « Stylet sous une surcouche ou un panneau ») ; stylet sur « Lancer » → lancer démarré, aucun trait ; stylet sur la barre de titre → panneau
+  déplacé, aucun trait ; stylet hors du panneau → un trait versé.
 - [ ] **Étape 5 : preuves et commit.** Commit « Lot 7 : dés (F-285) (L7-T14) ».
 
 <a id="tache-l7-t15"></a>
@@ -2020,6 +2060,8 @@ faux dans `tst_ui_presentation`).
   `ui/icons/calculatrice.svg`.
 - [ ] **Étape 4 : test d'interface.** `systemCalculatorLaunchedOnWindows` (faux lanceur : appelé avec `calc.exe` en
   mode 1 sous Windows ; sous une autre plateforme le mode 1 retombe sur le nôtre).
+- [ ] **Étape avant la preuve : stylet sous la surcouche.** `calculatorBlocksTheStylus` dans `tst_ui_presentation.cpp` : des
+  `QTabletEvent` injectés (règle commune « Stylet sous une surcouche ou un panneau ») ; stylet sur la touche « 7 » → affichage `7`, aucun trait sur la page.
 - [ ] **Étape 5 : preuves et commit.** Commit « Lot 7 : calculatrice (F-286) (L7-T15) ».
 
 <a id="tache-l7-t16"></a>
@@ -2109,6 +2151,9 @@ verts ; `NOMS OK`.
   existe et est affichée) et `repeatAddsBlankPages` (répéter : après deux fins, 3 pages) dans
   `tst_ui_presentation.cpp` (temps injecté au contrôleur par une propriété de test `clockNowOffsetMs`) ;
   `bench/scenarios/compte-a-rebours.json`, `tst_captures_compte_a_rebours`.
+- [ ] **Étape avant la preuve : stylet sous la surcouche.** `clockBlocksTheStylus` dans `tst_ui_presentation.cpp` : des
+  `QTabletEvent` injectés (règle commune « Stylet sous une surcouche ou un panneau ») ; stylet sur le bouton de pause → pause basculée, aucun trait ; stylet sur un coin → panneau
+  agrandi en gardant ses proportions, aucun trait.
 - [ ] **Étape 5 : preuves et commit.** Commit « Lot 7 : horloge, minuterie et compte à rebours (F-290) (L7-T16) ».
 
 <a id="tache-l7-t17"></a>
@@ -2117,7 +2162,8 @@ verts ; `NOMS OK`.
 **Objectif.** `insert.date-time` pose sur la page affichée la date et l'heure courantes en texte (format long
 français : « samedi 18 octobre 2026, 14:05 », `QLocale(QLocale::French)`), couche intermédiaire, une étape.
 `tool.web-browser` ouvre l'adresse d'accueil dans le navigateur du système (`QDesktopServices::openUrl`) ; adresse
-d'accueil = page du projet par défaut (N2-A11), réglable (`QSettings` `tools/webHome`).
+d'accueil = page du projet par défaut (N2-A11), réglable (`QSettings` `tools/webHome`). Seules les adresses `http` et `https` sont ouvertes : une adresse réglée
+d'un autre schéma (`file:`, `javascript:`, chemin réseau) est refusée avec un message (`webBrowserRefusesOtherSchemes`).
 
 **Fichiers.** Voir la table (ligne L7-T17).
 
@@ -2202,6 +2248,9 @@ saisi par l'utilisateur et chargé de fichiers : jamais de texte riche (règle d
   `ui/presentation.cmake`.
 - [ ] **Étape 4 : test d'interface.** `tickerNeverRefreshesTheCache` (spy à 0 pendant 1 s de défilement ; un trait au
   stylet pendant le défilement est versé normalement) ; `rightClickStopsTheLoop`.
+- [ ] **Étape avant la preuve : stylet sous la surcouche.** `tickerBlocksTheStylus` dans `tst_ui_presentation.cpp` : des
+  `QTabletEvent` injectés (règle commune « Stylet sous une surcouche ou un panneau ») ; message en boucle ; stylet sur la bande du message → aucun trait ; stylet sous la bande → un
+  trait versé, le message continue.
 - [ ] **Étape 5 : preuves et commit.** Preuve de tâche, banc sans écran, `NOMS OK` ; commit « Lot 7 : message
   défilant sur le fil de rendu (F-291) (L7-T18) ».
 

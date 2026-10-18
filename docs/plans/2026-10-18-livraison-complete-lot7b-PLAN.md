@@ -17,23 +17,23 @@ seulement) ; contrôle du lot ; fusion avec le lot 3 ; fonctions qui en dépende
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
-| L7-T20 | Reconnaissance de forme I (F-296) : algorithme à nous (ligne, rectangle, carré, ellipse, cercle, triangle, rectangle incliné ; sinon rien) | L7-T19 | `features/include/actcraft/features/shaperecognizer.h`, `features/src/shaperecognizer.cpp`, `features/CMakeLists.txt`, `tests/tst_features_shaperecognizer.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 19, `tst_features_shaperecognizer` Passed (dont `wobblyCircleIsACircle`, `tiltedRectangleKeepsItsCorners`, `openScribbleIsNothing`, `shortStrokeIsNothing`) | S10 | #tache-l7-t20 |
-| L7-T21 | Reconnaissance de forme II : mode, délai, trait remplacé par la forme en une étape, remplissage facultatif, conversion des derniers traits ; scénario de banc `reconnaissance` | L7-T20 | `features/include/actcraft/features/recognitionsession.h`, `features/src/recognitionsession.cpp`, `features/CMakeLists.txt`, `ui/src/recognitioncontroller.h`, `ui/src/recognitioncontroller.cpp`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/forme-reconnue.svg`, `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `tests/tst_bench_scenarios.cpp`, `bench/scenarios/reconnaissance-forme.json`, `tests/tst_features_shaperecognizer.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 20, `tst_features_shaperecognizer` (dont `sessionFiresAfterTheDelay`, `newStrokeRestartsTheDelay`), `tst_ui_presentation` (dont `recognizedStrokeBecomesAShapeInOneStep`, `fillOptionFillsTheShape`), `tst_bench_scenarios` (dont `recognitionScenarioListed`), `tst_captures_reconnaissance_forme` Passed ; banc hors écran : scénario `reconnaissance` présent, `cache.refreshes` relevé | S10 | #tache-l7-t21 |
+| L7-T20 | Reconnaissance de forme I (F-296) : algorithme à nous (ligne, rectangle, carré, ellipse, cercle, triangle, rectangle incliné ; sinon rien) | — (talons posés par L0-S) | `features/include/actcraft/features/shapefinder.h`, `features/src/shapefinder.cpp`, `features/CMakeLists.txt`, `tests/tst_features_shapefinder.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 19, `tst_features_shapefinder` Passed (dont `wobblyCircleIsACircle`, `tiltedRectangleKeepsItsCorners`, `openScribbleIsNothing`, `shortStrokeIsNothing`) | S10 | #tache-l7-t20 |
+| L7-T21 | Reconnaissance de forme II : mode, délai, trait remplacé par la forme en une étape, remplissage facultatif, conversion des derniers traits | L7-T20 | `features/include/actcraft/features/recognitionsession.h`, `features/src/recognitionsession.cpp`, `features/CMakeLists.txt`, `ui/src/recognitioncontroller.h`, `ui/src/recognitioncontroller.cpp`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/forme-reconnue.svg`, `bench/scenarios/reconnaissance-forme.json`, `tests/tst_features_shapefinder.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 20, `tst_features_shapefinder` (dont `sessionFiresAfterTheDelay`, `newStrokeRestartsTheDelay`), `tst_ui_presentation` (dont `recognizedStrokeBecomesAShapeInOneStep`, `fillOptionFillsTheShape`), `tst_captures_reconnaissance_forme` Passed ; banc hors écran joint | S10 | #tache-l7-t21 |
 | L7-T22 | Reconnaissance d'écriture I (F-295, Windows) : moteur d'encre du système par COM, reconnaisseur français préféré, alternatives ; indisponible = explication | L7-T21 | `features/include/actcraft/features/handwriting.h`, `features/src/handwriting.cpp`, `features/src/handwriting_win.cpp`, `features/src/handwriting_other.cpp`, `features/CMakeLists.txt`, `tests/tst_features_handwriting.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 21, `tst_features_handwriting` Passed (dont `unavailableOffWindows` ou `recognizesSyntheticInk`, sauté et signalé `QSKIP` si le reconnaisseur manque) | S10 | #tache-l7-t22 |
-| L7-T23 | Reconnaissance d'écriture II : mode Ctrl+Shift+H, délai 1 à 5 s, mot → texte (couche intermédiaire) en une étape, alternatives, commande grisée si indisponible, absente d'Android | L7-T22 | `ui/src/recognitioncontroller.h`, `ui/src/recognitioncontroller.cpp`, `ui/qml/RecognitionAlternatives.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/ecriture.svg`, `tests/tst_ui_presentation.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 21, `tst_ui_presentation` (dont `handwritingBecomesTextInOneStep` (sauté et signalé sans reconnaisseur), `handwritingDisabledWithExplanation`, `handwritingAbsentOnAndroid`) | S10 | #tache-l7-t23 |
-| L7-T24 | Équation I (F-301) : modèle d'arbre et MathML (lecture, écriture canonique, éléments inconnus gardés) | L7-T23 | `core/include/actcraft/core/equation.h`, `core/src/equation.cpp`, `tests/tst_core_equation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 22, `tst_core_equation` Passed (dont `templatesRoundTrip`, `unknownElementKeptVerbatim`, `entitiesDecoded`, `malformedIsAnErrorNotACrash`, `untouchedEquationKeepsItsBytes`) | S24 | #tache-l7-t24 |
-| L7-T25 | Équation II : mise en page et dessin (fraction, puissance, indice, racines, parenthèses, grands opérateurs, matrice) par le peintre partagé ; objet versé au cache par l'interface figée | L7-T24 | `render/src/equationlayout.h`, `render/src/equationlayout.cpp`, `tests/tst_render_equation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 23, `tst_render_equation` Passed (dont `fractionIsTallerThanItsParts`, `superscriptIsRaised`, `rootCoversItsContent`, `malformedDrawsTheNeutralFrame`, `paintedMatchesSoftware`) ; banc hors écran joint | S24 | #tache-l7-t25 |
-| L7-T26 | Équation III : éditeur à modèles (curseur dans l'arbre, modèles, saisie, effacement, flèches), aperçu, insérer | L7-T25 | `features/include/actcraft/features/equationeditor.h`, `features/src/equationeditor.cpp`, `features/CMakeLists.txt`, `ui/src/equationcontroller.h`, `ui/src/equationcontroller.cpp`, `ui/src/equationpreviewitem.h`, `ui/src/equationpreviewitem.cpp`, `ui/qml/EquationEditor.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/tst_features_equationeditor.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 24, `tst_features_equationeditor` Passed (dont `fractionTemplateThenTwoDigits`, `backspaceLeavesAPlaceholder`, `arrowsWalkTheTree`), `tst_ui_presentation` (dont `insertEquationIsOneUndoStep`) | S24 | #tache-l7-t26 |
-| L7-T27 | Équation IV : rééditer par `equation.edit <id>` (même identifiant), aller-retour `.actcraft`, `.flipchart` synthétique affiché, scénario S24 | L7-T26 | `ui/src/equationcontroller.h`, `ui/src/equationcontroller.cpp`, `ui/qml/EquationEditor.qml`, `bench/scenarios/equation.json`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 25, `tst_ui_presentation` (dont `editKeepsTheId`, `equationRoundTripIdentical`, `flipchartEquationIsDrawn`), `tst_captures_equation` Passed ; `captures.ps1 -Scenario equation` hors écran `LU documentController.fingerprint=${avant}` après aller-retour | S24 | #tache-l7-t27 |
-| L7-T28 | Caméra (F-275, bureau) : zone, point par point, main levée, fenêtre, écran entier ; vers la page, une nouvelle page, le presse-papiers | L7-T27 | `features/include/actcraft/features/camera.h`, `features/src/camera.cpp`, `features/src/camera_win.cpp`, `features/src/camera_other.cpp`, `features/CMakeLists.txt`, `ui/src/cameracontroller.h`, `ui/src/cameracontroller.cpp`, `ui/qml/CameraOverlay.qml`, `ui/qml/CameraPalette.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/camera.svg`, `tests/tst_features_camera.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 26, `tst_features_camera` Passed (dont `clickNearFirstPointClosesThePolygon`, `freehandClosesOnRelease`, `cropOutsideIsTransparent`), `tst_ui_presentation` (dont `captureToPageAddsOneImage`, `captureToNewPageAddsAPage`, `captureToClipboard`, `cameraAbsentOnAndroid`) ; banc hors écran joint | S10 | #tache-l7-t28 |
-| L7-T29 | Clavier à l'écran (F-294, bureau) : le nôtre, déplaçable, standard ou étendu, nombre de touches ; vers le champ de texte actif ou une autre application (Windows) | L7-T28 | `features/include/actcraft/features/screenkeyboard.h`, `features/src/screenkeyboard.cpp`, `features/src/keyinjector_win.cpp`, `features/src/keyinjector_other.cpp`, `features/CMakeLists.txt`, `ui/src/keyboardcontroller.h`, `ui/src/keyboardcontroller.cpp`, `ui/qml/ScreenKeyboard.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/clavier.svg`, `tests/tst_features_keyboard.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 27, `tst_features_keyboard` Passed (dont `shiftTypesCapitals`, `compactLayoutHasFewerKeys`, `accentKeysTypeFrench`), `tst_ui_presentation` (dont `keyboardTypesIntoTheFocusedField`, `keyboardWindowNeverTakesFocus`) | S10 | #tache-l7-t29 |
-| L7-T30 | Annotation de bureau (F-070, F-071, bureau) : paperboard transparent au-dessus du bureau, stylo de la palette, clics qui traversent sur demande ; fond « capture du bureau » et « superposition du bureau » | L7-T29 | `ui/src/desktopcontroller.h`, `ui/src/desktopcontroller.cpp`, `ui/qml/DesktopAnnotation.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/bureau.svg`, `tests/tst_ui_desktop.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 28, `tst_ui_desktop` Passed (dont `annotationWindowIsTransparentAndOnTop`, `strokeGoesToTheDesktopPaperboard`, `passThroughMakesTheWindowTransparentForInput`, `desktopCaptureBecomesTheBackground`, `overlayBackgroundIsNotSaved`) ; banc hors écran joint | S10 | #tache-l7-t30 |
+| L7-T23 | Reconnaissance d'écriture II : mode Ctrl+Shift+H, délai 1 à 5 s, mot → texte (couche intermédiaire) en une étape, alternatives, commande grisée si indisponible, absente d'Android | L7-T22 | `ui/src/recognitioncontroller.h`, `ui/src/recognitioncontroller.cpp`, `ui/qml/RecognitionAlternatives.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/ecriture.svg`, `tests/tst_ui_presentation.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 21, `tst_ui_presentation` (dont `handwritingBecomesTextInOneStep` (sauté et signalé sans reconnaisseur), `handwritingDisabledWithExplanation`, `handwritingAbsentOnAndroid`) ; `tst_ui_presentation` (dont `recognitionRunsOnOneDedicatedThread` : deux reconnaissances factices sur le même fil, différent du fil principal) | S10 | #tache-l7-t23 |
+| L7-T24 | Équation I (F-301) : modèle d'arbre et MathML (lecture, écriture canonique, éléments inconnus gardés) | — (talons posés par L0-S) | `core/include/actcraft/core/equation.h`, `core/src/equation.cpp`, `tests/tst_core_equation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 22, `tst_core_equation` Passed (dont `templatesRoundTrip`, `unknownElementKeptVerbatim`, `entitiesDecoded`, `malformedIsAnErrorNotACrash`, `nonAsciiRawKeptVerbatim`) | S24 | #tache-l7-t24 |
+| L7-T25 | Équation II : mise en page et dessin (fraction, puissance, indice, racines, parenthèses, grands opérateurs, matrice) par le peintre partagé ; objet versé au cache par l'interface figée | L7-T24 | `render/src/equationlayout.h`, `render/src/equationlayout.cpp`, `tests/tst_render_equation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 23, `tst_render_equation` Passed (dont `fractionIsTallerThanItsParts`, `superscriptIsRaised`, `rootCoversItsContent`, `malformedDrawsTheNeutralFrame`, `paintedMatchesSoftware`, `paintFromTwoThreads`, `fixedPageDrawsTheEquation`) ; banc hors écran joint | S24 | #tache-l7-t25 |
+| L7-T26 | Équation III : éditeur à modèles (curseur dans l'arbre, modèles, saisie, effacement, flèches), aperçu, insérer | L7-T25 | `features/include/actcraft/features/equationeditor.h`, `features/src/equationeditor.cpp`, `features/CMakeLists.txt`, `ui/src/equationcontroller.h`, `ui/src/equationcontroller.cpp`, `ui/src/equationpreviewitem.h`, `ui/src/equationpreviewitem.cpp`, `ui/qml/EquationEditor.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/tst_features_equationeditor.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 24, `tst_features_equationeditor` Passed (dont `fractionTemplateThenTwoDigits`, `backspaceLeavesAPlaceholder`, `arrowsWalkTheTree`), `tst_ui_presentation` (dont `insertEquationIsUndoneAtOnce`, `editorHasItsOwnKeys`) | S24 | #tache-l7-t26 |
+| L7-T27 | Équation IV : rééditer par `equation.edit <id>` (même identifiant), aller-retour `.actcraft`, `.flipchart` synthétique affiché, scénario S24 | L7-T26 | `ui/src/equationcontroller.h`, `ui/src/equationcontroller.cpp`, `ui/qml/EquationEditor.qml`, `bench/scenarios/equation.json`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 25, `tst_ui_presentation` (dont `editKeepsTheId`, `equationRoundTripIdentical`, `untouchedEquationKeepsItsBytes`, `flipchartEquationIsDrawn`), `tst_captures_equation` Passed ; `captures.ps1 -Scenario equation` hors écran `LU documentController.fingerprint=${avant}` après aller-retour | S24 | #tache-l7-t27 |
+| L7-T28 | Caméra (F-275, bureau) : zone, point par point, main levée, fenêtre, écran entier ; vers la page, une nouvelle page, le presse-papiers | L7-T2 (talons posés par L0-S) | `features/include/actcraft/features/camera.h`, `features/src/camera.cpp`, `features/src/camera_win.cpp`, `features/src/camera_other.cpp`, `features/CMakeLists.txt`, `ui/src/cameracontroller.h`, `ui/src/cameracontroller.cpp`, `ui/qml/CameraOverlay.qml`, `ui/qml/CameraPalette.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/camera.svg`, `tests/tst_features_camera.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 26, `tst_features_camera` Passed (dont `clickNearFirstPointClosesThePolygon`, `freehandClosesOnRelease`, `cropOutsideIsTransparent`), `tst_ui_presentation` (dont `captureToPageAddsOneImage`, `captureToNewPageAddsAPage`, `captureToClipboard`, `cameraAbsentOnAndroid`, `emptyGrabShowsAMessage`), `tst_features_camera` (dont `windowRectsInLogicalPixels`) ; banc hors écran joint | S10 | #tache-l7-t28 |
+| L7-T29 | Clavier à l'écran (F-294, bureau) : le nôtre, déplaçable, standard ou étendu, nombre de touches ; vers le champ de texte actif ou une autre application (Windows) | L7-T28 | `features/include/actcraft/features/screenkeyboard.h`, `features/src/screenkeyboard.cpp`, `features/src/keyinjector_win.cpp`, `features/src/keyinjector_other.cpp`, `features/CMakeLists.txt`, `ui/src/keyboardcontroller.h`, `ui/src/keyboardcontroller.cpp`, `ui/qml/ScreenKeyboard.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/clavier.svg`, `tests/tst_features_keyboard.cpp`, `tests/tst_ui_presentation.cpp`, `tests/presentation.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 27, `tst_features_keyboard` Passed (dont `shiftTypesCapitals`, `compactLayoutHasFewerKeys`, `accentKeysTypeFrench`), `tst_ui_presentation` (dont `keyboardTypesIntoTheFocusedField`, `keyboardWindowNeverTakesFocus`, `keyboardBlocksTheStylus`) | S10 | #tache-l7-t29 |
+| L7-T30 | Annotation de bureau (F-070, F-071, bureau) : paperboard transparent au-dessus du bureau, stylo de la palette, clics qui traversent sur demande ; fond « capture du bureau » et « superposition du bureau » | L7-T29 | `ui/src/desktopcontroller.h`, `ui/src/desktopcontroller.cpp`, `ui/qml/DesktopAnnotation.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `ui/icons/bureau.svg`, `tests/tst_ui_desktop.cpp`, `tests/presentation.cmake`, `app/main.cpp` (repli de la transparence seulement) | isolé | concepteur-critique | `TESTS OK`, N ≥ N0 + 28, `tst_ui_desktop` Passed (dont `annotationWindowIsTransparentAndAbove`, `strokeGoesToTheDesktopPaperboard`, `passThroughMakesTheWindowTransparentForInput`, `desktopCaptureBecomesTheBackground`, `liveDesktopBackgroundIsNotSaved`) ; banc hors écran joint | S10 | #tache-l7-t30 |
 | L7-T31 | Outils de bureau (F-080, bureau) : fenêtre réduite, icône flottante toujours devant, roue d'outils (sens horaire depuis le haut) et anneaux secondaires | L7-T30 | `features/include/actcraft/features/desktopwheel.h`, `features/src/desktopwheel.cpp`, `features/CMakeLists.txt`, `ui/src/desktopcontroller.h`, `ui/src/desktopcontroller.cpp`, `ui/qml/DesktopToolsWheel.qml`, `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/tst_ui_desktop.cpp` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 28, `tst_ui_desktop` (dont `wheelIsClockwiseFromTop`, `restoreClosesTheWheel`, `wheelClosesWhenTheWindowIsRestored`, `wheelHasNoVoteNorVendorEntry`) | S10 | #tache-l7-t31 |
 | L7-T32 | Contrôle du lot : chaque commande a son gestionnaire, menus Android sans les commandes de bureau, scénario de bout en bout `presentation` (S10), liste des épinglages pour les profils du lot 6 | L7-T31 | `tests/tst_ui_presentation.cpp`, `bench/scenarios/presentation.json`, `tests/presentation.cmake`, `docs/verifications/AAAA-MM-JJ-lot7-epinglages.md` | isolé | implementeur-tdd | `TESTS OK`, N ≥ N0 + 29, `tst_ui_presentation` (dont `everyLot7CommandHasAHandler`, `androidMenusHaveNoDesktopCommand`), `tst_captures_presentation` Passed ; `captures.ps1 -Scenario presentation` hors écran `CAPTURES OK` | S10 | #tache-l7-t32 |
 | L7-T33 | Fusion : `feat/livraison-complete` (lot 3 livré) fusionnée dans `feat/livraison-complete-b`, conflits des points réservés résolus, suites rejouées | L7-T32 et **livraison du lot 3 dans `feat/livraison-complete`** | fichiers en conflit (liste attendue : section de la tâche) ; `graphify-out/` | partagé | concepteur-critique | merge sans marqueur restant (`git -C <wt> grep -n '^<<<<<<<\|^>>>>>>>'` vide) ; suite debug et release `TESTS OK`, N ≥ (tests du lot 3 à sa livraison) + 29 ; captures hors écran de tous les scénarios du dépôt `CAPTURES OK` ; `NOMS OK` ; `graphify update .` commité | S10, S22, S23, S24 (rejoués) | #tache-l7-t33 |
-| L7-T34 | Après fusion du lot 3 : origine XY = pivot de rotation, convertir en forme ou en texte la sélection, double-clic sur une équation, « rétablir la page » en fin de compte à rebours, guides pour le marqueur et la gomme, clics qui traversent avec l'outil de sélection | L7-T33 | `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/MathToolsLayer.qml`, `ui/src/recognitioncontroller.h`, `ui/src/recognitioncontroller.cpp`, `ui/src/equationcontroller.h`, `ui/src/equationcontroller.cpp`, `ui/src/clockcontroller.h`, `ui/src/clockcontroller.cpp`, `ui/src/desktopcontroller.h`, `ui/src/desktopcontroller.cpp`, `ui/qml/Presentation.qml`, `tests/tst_ui_presentation.cpp`, `tests/tst_ui_desktop.cpp` (et, si la fusion l'exige, les seuls points d'accroche du lot 3 que la section nomme) | isolé | concepteur-critique | `TESTS OK`, N ≥ celui de L7-T33, `tst_ui_presentation` (dont `rotationPivotsOnTheOrigin`, `convertSelectionToShape`, `convertSelectionToText` (sauté sans reconnaisseur), `doubleClickEditsTheEquation`, `countdownCanRevertThePage`, `markerFollowsTheRuler`, `eraserFollowsTheCompass`), `tst_ui_desktop` (dont `selectToolPassesClicksThrough`) ; banc hors écran joint | S10, S24 | #tache-l7-t34 |
+| L7-T34 | Après fusion du lot 3 : origine XY = pivot de rotation, convertir en forme ou en texte la sélection, double-clic sur une équation, « rétablir la page » en fin de compte à rebours, guides pour le marqueur et la gomme, clics qui traversent avec l'outil de sélection | L7-T33 | `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/MathToolsLayer.qml`, `ui/src/recognitioncontroller.h`, `ui/src/recognitioncontroller.cpp`, `ui/src/equationcontroller.h`, `ui/src/equationcontroller.cpp`, `ui/src/clockcontroller.h`, `ui/src/clockcontroller.cpp`, `ui/src/desktopcontroller.h`, `ui/src/desktopcontroller.cpp`, `ui/qml/Presentation.qml`, `tests/tst_ui_presentation.cpp`, `tests/tst_ui_desktop.cpp`, `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp` (et, si la fusion l'exige, les seuls points d'accroche du lot 3 que la section nomme) | isolé | concepteur-critique | `TESTS OK`, N ≥ celui de L7-T33, `tst_ui_presentation` (dont `rotationPivotsOnTheOrigin`, `convertSelectionToShape`, `convertSelectionToText` (sauté sans reconnaisseur), `doubleClickEditsTheEquation`, `countdownCanRevertThePage`, `markerFollowsTheRuler`, `eraserFollowsTheCompass`), `tst_ui_desktop` (dont `selectToolPassesClicksThrough`), `tst_bench_scenarios` (dont `recognitionScenarioListed`), `tst_bench_result` Passed ; banc hors écran : scénario `reconnaissance` présent, `cache.refreshes` relevé | S10, S24 | #tache-l7-t34 |
 
-15 tâches dans ce sous-lot. Tests ajoutés en 7b : `tst_features_shaperecognizer`, `tst_captures_reconnaissance_forme`,
+15 tâches dans ce sous-lot. Tests ajoutés en 7b : `tst_features_shapefinder`, `tst_captures_reconnaissance_forme`,
 `tst_features_handwriting`, `tst_core_equation`, `tst_render_equation`, `tst_features_equationeditor`,
 `tst_captures_equation`, `tst_features_camera`, `tst_features_keyboard`, `tst_ui_desktop`,
 `tst_captures_presentation` : **N0 + 29** à la fin de L7-T32 (N0 + 18 en fin de 7a).
@@ -49,7 +49,9 @@ V20 : L7-T20 · V21 : L7-T21 · V22 : L7-T22 · V23 : L7-T23 · V24 : L7-T24 · 
 V27 : L7-T27 · V28 : L7-T28 · V29 : L7-T29 · V30 : L7-T30 · V31 : L7-T31 · V32 : L7-T32 · V33 : L7-T33 (attend
 le lot 3) · V34 : L7-T34.
 
-Les tâches de 7b sont en chaîne : chacune touche `ui/qml/Presentation.qml`, `ui/presentation.cmake`,
+L7-T20, L7-T24 et L7-T28 ne dépendent plus de la tâche qui les précède (talons posés par L0-S : fichiers déclarés
+d'avance) ; l'ordre ci-dessus reste le défaut, l'orchestrateur peut les avancer. Les autres tâches de 7b sont en
+chaîne : chacune touche `ui/qml/Presentation.qml`, `ui/presentation.cmake`,
 `tests/presentation.cmake` ou `features/CMakeLists.txt`, et une seule construit à la fois. Une tâche sans
 construction peut accompagner chaque vague si l'orchestrateur en a une (relecture d'une tâche précédente, rapport).
 
@@ -58,7 +60,7 @@ construction peut accompagner chaque vague si l'orchestrateur en a une (relectur
 - **Lot 10** (dans la base de `feat/livraison-complete-b`) : interface de cache figée et versement différé
   (`PendingLayerItem`) ; `pageOverlays` est posé **au-dessus** de la couche d'attente (L7-T2) ; reconnaissance et
   équation insèrent ou remplacent des objets par la pile, donc par l'interface figée ; le remplacement d'un trait déjà
-  versé garde le redessin immédiat (limite déclarée de DA11, écart 5 du lot 10) : L7-T21 le **mesure** par le
+  versé garde le redessin immédiat (limite déclarée de DA11, écart 5 du lot 10) : L7-T34 le **mesure** par le
   scénario de banc `reconnaissance` demandé par le lot 10.
 - **Lot 3** : L7-T33 attend sa livraison dans `feat/livraison-complete` ; L7-T34 utilise sa sélection, sa rotation,
   son marqueur, sa gomme, sa commande de rétablissement de page. Aucune autre tâche n'en dépend.
@@ -79,10 +81,10 @@ construction peut accompagner chaque vague si l'orchestrateur en a une (relectur
 
 | Fichier | Responsabilité | Tâche |
 |---|---|---|
-| `features/…/shaperecognizer.h`, `features/src/shaperecognizer.cpp` | `recognizeShape(points)` à nous | L7-T20 |
+| `features/…/shapefinder.h`, `features/src/shapefinder.cpp` | `recognizeShape(points)` à nous | L7-T20 |
 | `features/…/recognitionsession.h`, `features/src/recognitionsession.cpp` | traits regroupés, délai, déclenchement | L7-T21 |
 | `ui/src/recognitioncontroller.*` | modes forme et écriture, remplacement par `replaceObjects`, alternatives | L7-T21, L7-T23, L7-T34 |
-| `bench/…/scenarios.h`, `bench/src/scenarios.cpp` | scénario de banc `reconnaissance` | L7-T21 |
+| `bench/…/scenarios.h`, `bench/src/scenarios.cpp` | scénario de banc `reconnaissance` | L7-T34 |
 | `features/…/handwriting.h`, `features/src/handwriting.cpp`, `features/src/handwriting_win.cpp` | interface du reconnaisseur ; moteur COM de Windows | L7-T22 |
 | `core/…/equation.h`, `core/src/equation.cpp` | arbre d'équation, MathML (fichiers réservés vides par L7-T1) | L7-T24 |
 | `render/src/equationlayout.h`, `render/src/equationlayout.cpp` | mise en page et dessin (fichiers réservés par L7-T1 avec le repère neutre) | L7-T25 |
@@ -107,7 +109,7 @@ principaux (analyse en composantes principales des points) et l'écart radial no
 
 **Fichiers.** Voir la table (ligne L7-T20).
 
-**Test et commande bornée.** Commande ciblée `-R tst_features_shaperecognizer`, preuve de tâche (N ≥ N0 + 19).
+**Test et commande bornée.** Commande ciblée `-R tst_features_shapefinder`, preuve de tâche (N ≥ N0 + 19).
 
 **Interdits.** Aucun code, constante ni seuil recopiés d'un logiciel tiers ; les seuils sont les nôtres, choisis sur
 nos tracés synthétiques et écrits avec leur raison dans le code. Pas de QtGui (QPointF, QRectF de QtCore seulement).
@@ -116,10 +118,10 @@ nos tracés synthétiques et écrits avec leur raison dans le code. Pas de QtGui
 
 **Étapes.**
 
-- [ ] **Étape 1 : test rouge.** `tests/tst_features_shaperecognizer.cpp` (tracés synthétiques générés dans le test,
+- [ ] **Étape 1 : test rouge.** `tests/tst_features_shapefinder.cpp` (tracés synthétiques générés dans le test,
   bruit de ± 3 pixels par `QRandomGenerator(1234)`) :
   ```cpp
-  #include <actcraft/features/shaperecognizer.h>
+  #include <actcraft/features/shapefinder.h>
 
   #include <QRandomGenerator>
   #include <QtTest>
@@ -160,7 +162,7 @@ nos tracés synthétiques et écrits avec leur raison dans le code. Pas de QtGui
   }
   } // namespace
 
-  class TstFeaturesShapeRecognizer : public QObject
+  class TstFeaturesShapeFinder : public QObject
   {
       Q_OBJECT
   private slots:
@@ -220,11 +222,11 @@ nos tracés synthétiques et écrits avec leur raison dans le code. Pas de QtGui
       }
   };
 
-  QTEST_GUILESS_MAIN(TstFeaturesShapeRecognizer)
-  #include "tst_features_shaperecognizer.moc"
+  QTEST_GUILESS_MAIN(TstFeaturesShapeFinder)
+  #include "tst_features_shapefinder.moc"
   ```
-  Déclarer `tst_features_shaperecognizer` (`LIBS ActCraft::features`).
-- [ ] **Étape 2 : en-tête.** `features/include/actcraft/features/shaperecognizer.h` :
+  Déclarer `tst_features_shapefinder` (`LIBS ActCraft::features`).
+- [ ] **Étape 2 : en-tête.** `features/include/actcraft/features/shapefinder.h` :
   ```cpp
   #pragma once
 
@@ -250,7 +252,7 @@ nos tracés synthétiques et écrits avec leur raison dans le code. Pas de QtGui
 
   } // namespace actcraft::features
   ```
-- [ ] **Étape 3 : algorithme.** `features/src/shaperecognizer.cpp`, en fonctions internes nommées : `resample`
+- [ ] **Étape 3 : algorithme.** `features/src/shapefinder.cpp`, en fonctions internes nommées : `resample`
   (64 points à pas constant le long du trait), `extent` (diagonale de la boîte ; < 16 pixels → rien), `isLine`
   (distance maximale à la corde ≤ 4 % de la corde et corde ≥ 85 % de la longueur), `closure` (distance entre le premier
   et le dernier point ≤ 20 % de la longueur ; sinon rien, la ligne mise à part), `corners` (angle de virage cumulé sur
@@ -271,29 +273,28 @@ nos tracés synthétiques et écrits avec leur raison dans le code. Pas de QtGui
 convertit les formes au relâché, auquel cas le délai des formes est 0), un trait reconnu est **remplacé** par la
 forme, couche intermédiaire, en **une** étape (`replaceObjects`) ; option « remplir les formes reconnues » (défaut
 non ; remplissage de la couleur du contour, ou d'une autre couleur choisie). `recognition.convert-to-shape` convertit
-les derniers traits non reconnus de la session (la conversion de la sélection vient en L7-T34). Scénario de banc
-`reconnaissance` (demandé par le lot 10, écart 5).
+les derniers traits non reconnus de la session (la conversion de la sélection vient en L7-T34). Le scénario de banc
+`reconnaissance` (demandé par le lot 10, écart 5) est joué en L7-T34, après la fusion : il touche
+`bench/src/scenarios.cpp` et les tests de compte des scénarios, que le lot 3 modifie aussi.
 
 **Fichiers.** Voir la table (ligne L7-T21).
 
-**Test et commande bornée.** Commande ciblée `-R 'tst_features_shaperecognizer|tst_ui_presentation|tst_bench_scenarios|tst_captures_reconnaissance_forme'`,
-preuve de tâche (N ≥ N0 + 20), banc sans écran (scénario `reconnaissance` présent dans le JSON, `cache.refreshes`
-relevé), preuve visuelle `-Scenario reconnaissance-forme -Lire "recognition.lastKind=circle"`.
+**Test et commande bornée.** Commande ciblée `-R 'tst_features_shapefinder|tst_ui_presentation|tst_captures_reconnaissance_forme'`,
+preuve de tâche (N ≥ N0 + 20), banc sans écran, preuve visuelle `-Scenario reconnaissance-forme -Lire "recognition.lastKind=circle"`.
 
 **Preuve visuelle.** `bench/scenarios/reconnaissance-forme.json` : `tool.shape-recognition` ; `stroke` d'un cercle à
 main levée (40 points) ; `wait` délai + 300 ms ; `waitReady` ; `expect` `recognition.lastKind` `circle` ;
 `checkPixel` encre sur le cercle idéal et page au centre ; capture `cercle-reconnu`. Décrire : cercle net à la place
 du tracé.
 
-**Interdits.** Ne pas toucher au stylo ni à la vue. `bench/src/scenarios.cpp` et `bench/include/actcraft/bench/scenarios.h`
-sont **partagés avec le lot 3** : y ajouter seulement la fonction du scénario et sa ligne dans `allScenarios`, en fin
-de liste, et le consigner pour L7-T33 (point de fusion).
+**Interdits.** Ne pas toucher au stylo ni à la vue. Ne rien modifier sous `bench/` hors de
+`bench/scenarios/reconnaissance-forme.json` (le scénario de banc vient en L7-T34).
 
-**Terminé quand.** Tests nommés verts ; JSON du banc avec `reconnaissance` ; `NOMS OK`.
+**Terminé quand.** Tests nommés verts ; JSON du banc joint ; `NOMS OK`.
 
 **Étapes.**
 
-- [ ] **Étape 1 : test rouge de la session.** Dans `tests/tst_features_shaperecognizer.cpp` :
+- [ ] **Étape 1 : test rouge de la session.** Dans `tests/tst_features_shapefinder.cpp` :
   ```cpp
   void sessionFiresAfterTheDelay()
   {
@@ -335,17 +336,9 @@ de liste, et le consigner pour L7-T33 (point de fusion).
 - [ ] **Étape 4 : tests d'interface.** `recognizedStrokeBecomesAShapeInOneStep` (cercle injecté, délai 0 par la
   propriété : un `Shape` `Ellipse`, plus de trait ; un Annuler rend le trait), `fillOptionFillsTheShape`,
   `unrecognizedStrokeStays`, `modeOffLeavesStrokes` dans `tst_ui_presentation.cpp`.
-- [ ] **Étape 5 : scénario de banc.** Test rouge `recognitionScenarioListed` dans `tests/tst_bench_scenarios.cpp`
-  (`allScenarios` contient `reconnaissance` ; ses étapes tracent un cercle puis attendent le délai + 300 ms) ;
-  `ScenarioPlan recognitionScenario(ScenarioSet)` dans `bench/…/scenarios.h` et `bench/src/scenarios.cpp`, sur le
-  modèle du scénario `pauses` du lot 10 (lire `pausesScenario` et reprendre sa forme), qui active la reconnaissance par
-  la commande `tool.shape-recognition` avant le premier trait ; ajout en **fin** de `allScenarios`. Les tests existants
-  qui comptent les scénarios (`fiveScenariosWithFrames` du lot 10) sont mis à jour en comprenant pourquoi ils
-  changent (un scénario de plus), jamais affaiblis.
-- [ ] **Étape 6 : captures et commit.** `bench/scenarios/reconnaissance-forme.json`,
+- [ ] **Étape 5 : captures et commit.** `bench/scenarios/reconnaissance-forme.json`,
   `tst_captures_reconnaissance_forme` dans `tests/presentation.cmake` ; preuve de tâche, banc sans écran, preuve
-  visuelle, `NOMS OK` ; commit « Lot 7 : reconnaissance de forme, mode, remplacement annulable et scénario de banc
-  (F-296) (L7-T21) ».
+  visuelle, `NOMS OK` ; commit « Lot 7 : reconnaissance de forme, mode et remplacement annulable (F-296) (L7-T21) ».
 
 <a id="tache-l7-t22"></a>
 ### Tâche L7-T22 — Reconnaissance d'écriture I : moteur de Windows (F-295)
@@ -423,7 +416,8 @@ la CI de la PR finale) ; `NOMS OK`.
   (`CLSID_InkRecognizers`, `IInkRecognizers`, `IInkRecognizer::get_Languages`, `CLSID_InkDisp`,
   `IInkDisp::CreateStroke` avec un `SAFEARRAY` de `LONG`, `IInkRecognizerContext::Recognize`,
   `IInkRecognitionResult::get_TopString`, `AlternatesFromSelection`), toutes les interfaces libérées
-  (`Microsoft::WRL::ComPtr`).
+  (`Microsoft::WRL::ComPtr`). Identifiants COM par `__uuidof(InkRecognizers)`, `__uuidof(IInkRecognizers)`, etc.
+  (MSVC), ou par `msinkaut_i.c` du SDK Windows compilé avec le fichier : `CLSID_InkRecognizers` seul ne se lie pas.
 - [ ] **Étape 3 : preuves et commit.** Preuve de tâche, `NOMS OK` ; commit « Lot 7 : reconnaissance d'écriture par le
   moteur d'encre de Windows (F-295) (L7-T22) ».
 
@@ -435,7 +429,9 @@ la CI de la PR finale) ; `NOMS OK`.
 intermédiaire, police par défaut N2-3, taille déduite de la hauteur des traits) en une étape ; un petit bouton
 « alternatives » à côté du texte propose les autres lectures (choisir = remplacer le texte, une étape). Moteur
 indisponible : commande grisée (`setEnabled(false)`), info-bulle = `status()`. Absente d'Android (plateformes de L7-T1).
-La reconnaissance tourne **hors du fil principal** (`QtConcurrent::run` ou fil dédié ; COM initialisé sur ce fil).
+La reconnaissance tourne **hors du fil principal**, sur **un `QThread` dédié**, créé une fois et gardé : COM y est
+initialisé en appartement unique (STA) à son démarrage et libéré à son arrêt. `QtConcurrent::run` est exclu : le pool
+ne garantit pas le même fil d'un appel à l'autre, et un objet COM d'appartement unique ne passe pas d'un fil à l'autre.
 
 **Fichiers.** Voir la table (ligne L7-T23).
 
@@ -452,7 +448,8 @@ La reconnaissance tourne **hors du fil principal** (`QtConcurrent::run` ou fil d
 - [ ] **Étape 1 : test rouge.** Les quatre tests dans `tst_ui_presentation.cpp`, avec un reconnaisseur factice
   injecté par une propriété de test du contrôleur (`setRecognizerForTest`) qui rend `{"bonjour", "bonjours"}`.
 - [ ] **Étape 2 : code.** Mode écriture dans `RecognitionController` (exclusif avec le mode forme : activer l'un
-  désactive l'autre), file vers un fil secondaire, retour par signal sur le fil principal, `replaceObjects(ids,
+  désactive l'autre), objet travailleur déplacé sur le `QThread` dédié (`moveToThread`), appels par signal en file, retour par signal sur
+  le fil principal, fil arrêté proprement à la destruction du contrôleur (`quit()` puis `wait()`), `replaceObjects(ids,
   {texte})` ; `ui/qml/RecognitionAlternatives.qml` (liste flottante près du dernier texte reconnu) ; gestionnaires
   `tool.handwriting` dans `Presentation.qml` ; `ui/presentation.cmake` ; `ui/icons/ecriture.svg`.
 - [ ] **Étape 3 : preuves et commit.** Preuve de tâche, banc sans écran, `NOMS OK` ; commit « Lot 7 : mode de
@@ -547,14 +544,17 @@ reçus). Pas de QtGui.
           QString error;
           QVERIFY(!parseMathml(s, error).has_value());
       }
-      void untouchedEquationKeepsItsBytes()
+      void nonAsciiRawKeptVerbatim()
       {
-          Equation e;
-          e.mathml = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\">  <mn>1</mn></math>";
-          const std::string before = e.mathml;
+          const std::string in = "<math><mi>α</mi><menclose notation=\"box\"><mi>é</mi><mo>&#x2264;</mo></menclose>"
+                                 "<mi>ü</mi></math>";
           QString error;
-          QVERIFY(parseMathml(e.mathml, error).has_value()); // lire pour dessiner ne réécrit rien
-          QCOMPARE(e.mathml, before);
+          const auto tree = parseMathml(in, error);
+          QVERIFY2(tree.has_value(), qPrintable(error));
+          const std::string out = toMathml(*tree);
+          QVERIFY(out.find("<menclose notation=\"box\"><mi>é</mi><mo>&#x2264;</mo></menclose>") != std::string::npos);
+          QVERIFY(out.find("<mi>ü</mi>") != std::string::npos);
+          QVERIFY(out.find("<mi>α</mi>") != std::string::npos);
       }
   };
 
@@ -596,8 +596,12 @@ reçus). Pas de QtGui.
   `core/src/equation.cpp` : lecteur récursif sur `QXmlStreamReader` (éléments reconnus : `math`, `mrow`, `mi`, `mn`,
   `mo`, `mtext`, `mfrac`, `msup`, `msub`, `msubsup`, `msqrt`, `mroot`, `munderover`, `munder`, `mover`, `mtable`,
   `mtr`, `mtd`, et `mspace`/`mstyle` lus comme `Raw`), arité contrôlée (`mfrac` : 2 enfants, etc. ; sinon erreur),
-  tout autre élément → `Raw` dont le texte est la sous-chaîne d'origine (positions `characterOffset` de début et de
-  fin) ; écrivain canonique sur `QXmlStreamWriter` sans indentation.
+  tout autre élément → `Raw` dont le texte est la sous-chaîne d'origine. Méthode : le texte UTF-8 est d'abord converti
+  en `QString` (UTF-16) et c'est cette `QString` qui est donnée au lecteur ; `characterOffset()` compte alors des
+  unités de cette chaîne, **après** le jeton lu. Début de l'élément = valeur relevée **avant** le `readNext()` qui rend
+  son `StartElement` (fin du jeton précédent ; un blanc éventuel est un jeton `Characters` à part) ; fin = valeur
+  relevée après son `EndElement` ; la tranche `QString::mid(début, fin − début)` est reconvertie par `toUtf8()`,
+  jamais découpée dans les octets UTF-8 d'origine. Entités et caractères non ASCII restent tels qu'écrits ; écrivain canonique sur `QXmlStreamWriter` sans indentation.
 - [ ] **Étape 3 : preuves et commit.** Preuve de tâche, `NOMS OK` ; commit « Lot 7 : équation, arbre et MathML lus et
   écrits sans perte (F-301) (L7-T24) ».
 
@@ -619,7 +623,8 @@ créés et déclarés par L7-T1 (`paintEquation` qui dessine le repère neutre) 
 **Test et commande bornée.** Commande ciblée `-R tst_render_equation`, preuve de tâche (N ≥ N0 + 23), banc sans écran.
 
 **Interdits.** Aucune police ni glyphe de l'original ; police du système (N2-3) ; le MathML est relu à chaque dessin
-seulement si l'arbre mis en cache (clé : `std::hash` du texte) a changé — pas de relecture par image.
+seulement si l'arbre mis en cache (clé : `std::hash` du texte) a changé — pas de relecture par image. Ce cache est partagé par les fils des miniatures et des exports (peintre
+partagé, DA5) : il est protégé par un `QMutex` (ou `thread_local`), test `paintFromTwoThreads`.
 
 **Terminé quand.** Tests nommés verts ; `paintedMatchesSoftware` (même image à 2 niveaux près par les deux chemins) ;
 `NOMS OK`.
@@ -631,7 +636,10 @@ seulement si l'arbre mis en cache (clé : `std::hash` du texte) a changé — pa
   d'une fraction : hauteur > 1,8 × hauteur d'un chiffre), `superscriptIsRaised` (ligne de base de l'exposant au-dessus
   de celle de la base), `rootCoversItsContent` (largeur de la racine > largeur du contenu + 0,5 em),
   `fractionBarIsDrawn` (une ligne de pixels sombres à mi-hauteur sur la largeur de la fraction),
-  `malformedDrawsTheNeutralFrame` (même image que `paintUnknown` sur la même boîte), `paintedMatchesSoftware`.
+  `malformedDrawsTheNeutralFrame` (même image que `paintUnknown` sur la même boîte), `paintedMatchesSoftware`,
+  `paintFromTwoThreads` (deux `QtConcurrent::run` dessinent la même équation 200 fois chacun : images identiques,
+  aucune erreur), `fixedPageDrawsTheEquation` (page fixe hors écran avec une équation : pixels sombres dans sa boîte ;
+  l'équation est visible dès cette tâche, pas seulement à L7-T27).
   Déclarer `tst_render_equation` (`LIBS ActCraft::render`).
 - [ ] **Étape 2 : code.** `render/src/equationlayout.h` : `struct EquationBox { double width, ascent, descent; …
   enfants placés }`, `EquationBox layoutEquation(const core::EquationNode&, const QFont&)`, `void paintEquation(QPainter&,
@@ -647,7 +655,9 @@ seulement si l'arbre mis en cache (clé : `std::hash` du texte) a changé — pa
 puissance, indice, racine carrée, racine n-ième, parenthèses, valeur absolue, somme, intégrale, matrice 2 × 2,
 lettres grecques, opérateurs ±, ×, ÷, ≤, ≥, ≠, ∞), saisie au clavier dans la case courante, effacement, flèches pour
 passer d'une case à l'autre, aperçu dessiné par `paintEquation`, « OK » insère l'équation (couche intermédiaire, au
-centre de la vue, une étape), « Annuler » ferme.
+centre de la vue, une étape), « Annuler » ferme. Sous Android (et sur tout écran sans clavier physique), le panneau porte **ses propres touches**
+(chiffres, lettres courantes, opérateurs, effacement, flèches) et un `TextInput` caché qui prend le focus quand on
+touche l'aperçu, pour faire paraître le clavier du système ; les deux voies appellent `type()`.
 
 **Fichiers.** Voir la table (ligne L7-T26).
 
@@ -720,7 +730,9 @@ centre de la vue, une étape), « Annuler » ferme.
   `documentController->insertObject(core::Equation{…})`, `cancel()`) ; `ui/qml/EquationEditor.qml`
   (`FloatingPanel` : palettes, aperçu, OK, Annuler ; frappe au clavier vers `type`) ; gestionnaire `insert.equation`
   dans `Presentation.qml` ; `ui/presentation.cmake`.
-- [ ] **Étape 4 : test d'interface.** `insertEquationIsOneUndoStep` dans `tst_ui_presentation.cpp`.
+- [ ] **Étape 4 : tests d'interface.** `insertEquationIsUndoneAtOnce` et `editorHasItsOwnKeys` (modèle fraction, puis
+  les touches du panneau « 1 », flèche droite, « 2 » cliquées : même MathML que la frappe au clavier ; le `TextInput`
+  caché existe et prend le focus au toucher de l'aperçu) dans `tst_ui_presentation.cpp`.
 - [ ] **Étape 5 : preuves et commit.** Preuve de tâche, banc sans écran, `NOMS OK` ; commit « Lot 7 : éditeur
   d'équations à modèles (F-301) (L7-T26) ».
 
@@ -750,7 +762,11 @@ verts ; `NOMS OK`.
 
 **Étapes.**
 
-- [ ] **Étape 1 : tests rouges.** Les trois tests dans `tst_ui_presentation.cpp` (le `.flipchart` synthétique est
+- [ ] **Étape 1 : tests rouges.** Les quatre tests dans `tst_ui_presentation.cpp` — dont
+  `untouchedEquationKeepsItsBytes` : une équation au MathML non canonique (`xmlns`, blancs, entité `&#x3B1;`)
+  enregistrée en `.actcraft`, rouverte, puis ouverte dans l'éditeur et fermée par « Annuler », puis par « OK » sans
+  modification : `mathml` identique octet pour octet à l'entrée dans les trois cas (seule une modification réécrit la
+  forme canonique) ; le `.flipchart` synthétique est
   écrit par `tests/support/flipchartwriter.h` avec l'objet MathML de L7-T1, ouvert par `documentController.openUrl` ;
   un pixel sombre dans la boîte de l'équation).
 - [ ] **Étape 2 : code.** `EquationController::edit(quint64 id)`, `accept()` en mode réédition ; gestionnaire
@@ -781,7 +797,11 @@ ligne de commande de scénario, image posée sur la page (lecture `LU`), fermetu
 **Interdits.** Code propre à Windows (énumération des fenêtres : `EnumWindows`, `IsWindowVisible`,
 `DwmGetWindowAttribute`) dans `features/src/camera_win.cpp` seulement, construit sous `WIN32`. Aucune capture réelle
 dans les tests automatiques (image injectée). La fenêtre de sélection ne reste jamais ouverte sans moyen de sortie :
-Échap la ferme.
+Échap la ferme. `QScreen::grabWindow(0)` peut rendre une image vide (Wayland, macOS sans autorisation d'enregistrer
+l'écran) : image vide → message en français, aucune fenêtre de sélection (test `emptyGrabShowsAMessage`).
+`DwmGetWindowAttribute(DWMWA_EXTENDED_FRAME_BOUNDS)` rend des pixels physiques : les rectangles de fenêtres sont
+divisés par le `devicePixelRatio` de leur écran avant usage (fonction pure `toLogicalPixels`, test
+`windowRectsInLogicalPixels` dans `tst_features_camera`).
 
 **Terminé quand.** Tests nommés verts ; `cameraAbsentOnAndroid` (menus filtrés sous `Platform::Android` sans les cinq
 commandes) ; `NOMS OK`.
@@ -904,8 +924,13 @@ automatiques (injecteur remplaçable). Aucune frappe n'est journalisée.
   tests) ; `ui/qml/ScreenKeyboard.qml` (`Window` aux trois drapeaux, touches dessinées par nous) ; gestionnaire
   `tool.keyboard` ; `ui/presentation.cmake` ; `ui/icons/clavier.svg`.
 - [ ] **Étape 4 : tests d'interface.** `keyboardTypesIntoTheFocusedField` (un `TextField` de test a le focus : trois
-  touches → son texte), `keyboardWindowNeverTakesFocus` (drapeau présent, `QGuiApplication::focusWindow()` inchangée
-  après un appui), `keyboardAbsentOnAndroid`.
+  touches → son texte), `keyboardWindowNeverTakesFocus` (hors écran : drapeau `Qt::WindowDoesNotAcceptFocus` présent dans
+  `flags()` de la fenêtre et `QGuiApplication::focusObject()` inchangé après un appui ; que Windows ne lui donne
+  vraiment pas le focus se prouve à l'écran, à la clôture), `keyboardAbsentOnAndroid`.
+- [ ] **Étape avant la preuve : stylet sur le clavier.** `keyboardBlocksTheStylus` dans `tst_ui_presentation.cpp` :
+  des `QTabletEvent` (règle commune « Stylet sous une surcouche ou un panneau » du plan 7a) envoyés à la fenêtre du
+  clavier sur une touche : le caractère arrive au champ de test, aucun trait sur la page ; le clavier posé au-dessus de
+  la page est déclaré couverture tant qu'il est ouvert.
 - [ ] **Étape 5 : preuves et commit.** Preuve de tâche, banc sans écran, `NOMS OK` ; commit « Lot 7 : clavier à
   l'écran écrit par nous (F-294) (L7-T29) ».
 
@@ -924,11 +949,19 @@ du bureau en fond de la page affichée, ressource du document, une étape) et «
 transparent sur le bureau vivant, non enregistré) — commandes `page.background-desktop-capture` et
 `page.background-desktop-overlay` déclarées par L7-T1.
 
+**Transparence en Direct3D 11.** Une fenêtre Qt Quick n'est transparente que si sa surface a un canal alpha.
+`DesktopController` crée lui-même la fenêtre d'annotation (`QQmlComponent` → `QQuickWindow`), lui donne un
+`QSurfaceFormat` à `alphaBufferSize = 8` par `setFormat` **avant** `create()` et `show()`, et `setColor(Qt::transparent)`.
+Si le contrôle à l'écran montre un fond noir (format par fenêtre ignoré par le moteur), repli :
+`QQuickWindow::setDefaultAlphaBuffer(true)` dans `app/main.cpp`, **avant** la création de toute fenêtre ; il touche
+alors aussi la fenêtre principale : banc D3D11 plein écran A/B avant et après, sous le jeton `ecran`, résultat dans le
+rapport ; un critère du banc perdu arrête la tâche (rapport à l'orchestrateur).
+
 **Fichiers.** Voir la table (ligne L7-T30).
 
 **Test et commande bornée.** Commande ciblée `-R tst_ui_desktop`, preuve de tâche (N ≥ N0 + 28), banc sans écran.
 Contrôle à l'écran (jeton `ecran`, annoncé) : fenêtre ouverte 3 s, capture de l'écran principal montrant le bureau à
-travers, fermeture par PID.
+travers (un fond noir est un échec : repli de la section « Transparence »), fermeture par PID.
 
 **Interdits.** Aucune modification de `Main.qml`, `PageArea.qml` (réutilisé tel quel dans la fenêtre d'annotation).
 Le paperboard du bureau n'est pas le document ouvert.
@@ -938,13 +971,13 @@ Le paperboard du bureau n'est pas le document ouvert.
 **Étapes.**
 
 - [ ] **Étape 1 : test rouge.** `tests/tst_ui_desktop.cpp` (montage de `tst_ui_presentation`) :
-  `annotationWindowIsTransparentAndOnTop` (drapeaux, `color` transparente), `strokeGoesToTheDesktopPaperboard` (un trait
+  `annotationWindowIsTransparentAndAbove` (drapeaux, `color` transparente), `strokeGoesToTheDesktopPaperboard` (un trait
   injecté dans la fenêtre d'annotation : un objet de plus dans **son** document, aucun dans le document ouvert),
   `passThroughMakesTheWindowTransparentForInput`, `desktopCaptureBecomesTheBackground` (image injectée : fond de la
-  page = ressource PNG, une étape), `overlayBackgroundIsNotSaved` (enregistrer : fond d'origine dans le fichier),
+  page = ressource PNG, une étape), `liveDesktopBackgroundIsNotSaved` (enregistrer : fond d'origine dans le fichier),
   `transitionsBlockedWhileAnnotating`. Déclarer `tst_ui_desktop` dans `tests/presentation.cmake`.
 - [ ] **Étape 2 : code.** `ui/src/desktopcontroller.h/.cpp` (`DesktopController` : `annotating`, `passThrough`,
-  `desktopDocument` (`DocumentController*` possédé), `captureBackground()`, `overlayBackground` (bool), image
+  `desktopDocument` (`DocumentController*` possédé), `captureBackground()`, `liveDesktopBackground` (bool), image
   injectable pour les tests) ; `ui/qml/DesktopAnnotation.qml` (`Window` sans cadre, transparente, `PageArea` à
   l'intérieur, `documentController: desktop.desktopDocument`, `view.inkColor`/`inkWidth` liés à ceux de la vue
   principale, bouton de passage, bouton de fermeture) ; gestionnaires `desktop.annotate`,
@@ -1106,6 +1139,8 @@ du lot 3 les comportements du lot 7 qui en dépendent :
 5. **Guides (F-280 à F-283)** : le marqueur suit les bords comme le stylo ; la gomme suit la mine du compas.
 6. **Annotation de bureau (F-070)** : avec l'outil de sélection, les clics traversent vers le bureau (passage
    automatique ; le bouton de L7-T30 reste).
+7. **Scénario de banc `reconnaissance`** (lot 10, écart 5), sorti de L7-T21 parce qu'il touche des fichiers du banc
+   modifiés aussi par le lot 3.
 
 **Fichiers.** Voir la table (ligne L7-T34). Les noms des API du lot 3 ne sont pas connus à l'écriture de ce plan : les
 localiser **d'abord** par le graphe (`graphify query "rotation de la sélection poignée pivot"`, `graphify query
@@ -1132,6 +1167,14 @@ suites du lot 3 vertes sans modification ; `NOMS OK`.
   `markerFollowsTheRuler` : outil marqueur du lot 3, règle ouverte, trait presque le long du bord : tous les points à
   y = 400 ± 0,5.
 - [ ] **Étape 3 : brancher.** Un comportement à la fois, test vert après chacun.
+- [ ] **Étape 3 bis : scénario de banc `reconnaissance`.** Test rouge `recognitionScenarioListed` dans `tests/tst_bench_scenarios.cpp`
+  (`allScenarios` contient `reconnaissance` ; ses étapes tracent un cercle puis attendent le délai + 300 ms) ;
+  `ScenarioPlan recognitionScenario(ScenarioSet)` dans `bench/…/scenarios.h` et `bench/src/scenarios.cpp`, sur le
+  modèle du scénario `pauses` du lot 10 (lire `pausesScenario` et reprendre sa forme), qui active la reconnaissance par
+  la commande `tool.shape-recognition` avant le premier trait ; ajout en **fin** de `allScenarios`. Les tests existants
+  qui comptent les scénarios (`fiveScenariosWithFrames` du lot 10, `tests/tst_bench_result.cpp:51`, et ceux que le lot 3
+  a modifiés) sont mis à jour en comprenant pourquoi ils
+  changent (un scénario de plus), jamais affaiblis.
 - [ ] **Étape 4 : preuves et commit.** Preuve de tâche, banc sans écran, `NOMS OK` ; commit « Lot 7 : fonctions qui
   dépendent du lot 3 (pivot sur l'origine, conversions, double-clic, rétablissement, guides) (L7-T34) ».
 
@@ -1181,10 +1224,11 @@ Après L7-T34, sur la tête de `feat/livraison-complete-b` :
    tout critère tenu par la référence doit l'être encore. **S22** : un passage par effet du catalogue
    (`view.page-effect <id>` puis `page.next` en boucle pendant le scénario), aucune image au-delà de la limite.
    **S23** : banc avec un message défilant en boucle, aucune reprise hors limite. **Reconnaissance** : scénario du banc
-   `reconnaissance` (L7-T21), résultat rapporté (limite de DA11 : redessin immédiat). Résumé commité dans
+   `reconnaissance` (L7-T34), résultat rapporté (limite de DA11 : redessin immédiat). Résumé commité dans
    `docs/mesures/AAAA-MM-JJ-lot7-presentation.md`.
 4. **Captures (DA8)** à l'écran en D3D11 : `presentation`, `rideau`, `spot`, `regle`, `effets`, `compte-a-rebours`,
-   `message`, `reconnaissance-forme`, `equation`, et ceux des lots précédents.
+   `message`, `reconnaissance-forme`, `equation`, et ceux des lots précédents ; clavier à l'écran : un champ d'une
+   autre application de test garde le focus pendant trois frappes au stylet injecté.
 5. **Paquets** : installateur (`PAQUET OK`, `INSTALLATEUR OK`) et APK (`APK OK`, `ANDROID OK` sur l'émulateur, capture
    des menus : aucune commande de bureau ni d'écriture) ; croissance des tailles rapportée (N1-A10).
 6. **`CHANGELOG.md`** : section du lot rédigée **sans numéro** (« À venir — présentation et outils ») ; le numéro est
