@@ -2,6 +2,52 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 2 (relecture tour 2, 2026-10-18)
+
+Relecture de 860d7a0 : aucun bloquant, 5 majeurs (N1 à N5), 8 mineurs (N6 à N13). Citations revérifiées sur la tête
+du chantier (`.worktrees/livraison-complete`, 2b4caea). D6, D8, D17 et D18 restent à L4-T0. Les paragraphes
+« Amendement 2 » des sections priment sur « Amendement 1 ».
+
+**Majeurs.**
+- **N1.** `objectBarAndContextMenu` (socle, L0-S4 étape 6, `tests/tst_ui_commands.cpp`) attend 4 entrées de
+  `contextMenu()` sous Windows et 2 sous Android ; L4-T1 en ajoute 14. → L4-T1 l'amende : il vérifie que les 4
+  premières entrées (Windows) et les 2 premières (Android) sont inchangées, avec le commentaire « amendement 1 du
+  lot 4 : entrées du menu de page ajoutées en fin ».
+- **N2.** `defaultLayoutMatchesLotOne` (`tests/tst_actions_layout.cpp`) compare la liste exacte des groupes de
+  palette ; `formes-texte` placé « après `outils` » tombait entre `outils` et `edition` (socle). → groupe
+  `formes-texte` **en fin de palette** ; L4-T1 ajoute `formes-texte` en fin de la liste attendue, avec commentaire.
+- **N3.** Branchement QML de `gridOverlay`. L'identifiant de la page fixe est `fixedPageItem` (`PageArea.qml`, l'élément
+  `FixedPage`) ; `fixedPage` est l'alias de la racine. L'objet du document dans `PageArea.qml` est
+  `area.documentController`, pas `appDocument` ; la vue a l'identifiant `view`. → `fixedPage: fixedPageItem`,
+  `zoom: view.zoom`, `Connections { target: area.documentController; function onPageContentChanged(index) { if (index
+  === area.documentController.currentIndex) gridOverlay.refresh() } }`. La page se lit par
+  `FixedPageItem::page()` (`fixedpageitem.h:46`) ; `sourcePage()` (`:55`) rend un indice. Changé : en-tête de
+  `GridOverlayItem` (L4-T1), L4-T2, L4-T7, section « Amendement 1 ».
+- **N4.** `git add` incomplets : `ui/qml/CommandMenu.qml` (L4-T2), `ui/src/documentcontroller.cpp` (L4-T21),
+  `tests/tst_ui_theme.cpp` (L4-T19) ajoutés aux commandes de commit, « si modifié » pour les deux premiers.
+- **N5.** `safeTextHtml` laissait passer `QTextFormat::BackgroundImageUrl` (`<table background="file://…">`,
+  `<td background=…>`). → la propriété est retirée des formats de bloc, de cadre (dont tableau) et de cellule ; le cas
+  entre dans `editingLoadsNoExternalResource` (L4-T21).
+
+**Mineurs.**
+- **N6.** Section L4-T4 : « Dans les deux cas », `tst_core_pagecache` dans `-R`, fichiers `undo.h` et `pagecache.cpp`,
+  `git add` de ces fichiers → retirés.
+- **N7.** Phrase « N = 136 + n_B devient N = 136 + n_B » (remplacement aveugle) → réécrite dans les deux plans.
+- **N8.** « Les trois tests nommés » → « les six tests de la commande ciblée » (L4-T1, « Terminé quand » et étape 9).
+- **N9.** Plus de numéro de ligne pour le fichier d'état : la règle est citée par son texte (« **Sécurité** :
+  `QTextDocument::setHtml`… ») et N3 par la ligne L0-S0 de son tableau (« 113 tests listés »).
+- **N10.** `thumbnails.during_contact` reçoit une source : le banc lit `appThumbnails.renderCount` à chaque appui et
+  à chaque relâché ; `during_contact` = somme des hausses entre un appui et son relâché (L4-T29).
+- **N11.** L4-T26 dépend de L4-T21 (fichier partagé `ui/src/documentcontroller.cpp`) : dépendance ajoutée (V8 → V9,
+  les vagues ne changent pas).
+- **N12.** n_B relevé de nouveau si le lot 7 fusionne en cours de lot : l'orchestrateur relance `ctest --preset debug
+  -N` sur la base à jour et écrit le nouveau N dans le fichier d'état ; toute tâche lancée ensuite prouve avec lui
+  (point d'étape de 4a, clôture de 4b, règle « Preuve de tâche »).
+- **N13.** `contextMenuAcceptsSubmenus` appelait `Layout::fromJson`, qui n'existe pas : l'API est
+  `parseLayout(json, layout, error)` (`actions/include/actcraft/actions/layout.h:42`) ; JSON aligné sur
+  `contextMenuRead` du socle (`colors`, `penWidths`). De même, `unknownCommands(layout, registry)` est une fonction
+  libre (`lot4EntriesDeclared`).
+
 ## Amendement 1 (relecture tour 1, 2026-10-18)
 
 Relecture du plan sur 2014b18 ; références revérifiées sur `feat/livraison-complete` (c34ec77 pour les plans,
@@ -23,8 +69,7 @@ Les sections des tâches portent chacune un paragraphe « Amendement 1 » : il p
 4. **Titres de vidéos dans `$exclus`.** → la liste d'exclusion n'est plus dans le dépôt : la commande de L4-T0 la lit
    dans `C:\Users\JeromeDenis\REA - Activinspire\docs\videos-tanguay\exclus-controle-titres.txt` (hors dépôt,
    facultatif, un titre par ligne).
-5. **HTML chargé sans garde.** Règle du fichier d'état (`docs/sessions/livraison-complete-etat.md:295`, et non
-   `:289`) : tout HTML de document passe par un `QTextDocument` dont `loadResource` est neutralisé (garde de L2-T11,
+5. **HTML chargé sans garde.** Règle du fichier d'état (la règle « **Sécurité** : `QTextDocument::setHtml` charge les ressources citées… » du fichier d'état (`docs/sessions/livraison-complete-etat.md`)) : tout HTML de document passe par un `QTextDocument` dont `loadResource` est neutralisé (garde de L2-T11,
    `render/src/pagepainter.cpp:71`). → L4-T21 charge un HTML **assaini** (test `editingLoadsNoExternalResource`),
    L4-T23 n'affecte jamais `text` en texte riche sans lui. Règle ajoutée aux règles communes.
 
@@ -37,7 +82,7 @@ Les sections des tâches portent chacune un paragraphe « Amendement 1 » : il p
    `SetPageZonesCommand` émettent `PageSettingsChanged`. Règle `/we4062` ajoutée aux règles communes.
 8. **La surcouche de grille n'était jamais prévenue** : `PageSettingsChanged` n'atteint pas `FixedPageItem`
    (`presentationChangeRedrawsNothing`). → `GridOverlayItem` perd `setPage(const core::Page*)` (pointeur brut qui
-   pend) et `pageChanged()` ; il reçoit `fixedPage` (lecture de la page par `FixedPageItem::sourcePage()`) et
+   pend) et `pageChanged()` ; il reçoit `fixedPage` (lecture de la page par `FixedPageItem::page()`, amendement 2) et
    `Q_INVOKABLE refresh()`, appelée par `PageArea.qml` sur `appDocument.pageContentChanged(index)` de la page
    affichée. Changé : en-tête de L4-T1, L4-T2, L4-T7 (test `refreshRereadsTheGrid`).
 9. **Menus.** (a) `insert` : entrées ajoutées **en fin**, `insert.date-time` et `insert.equation` gardés
@@ -53,9 +98,9 @@ Les sections des tâches portent chacune un paragraphe « Amendement 1 » : il p
 12. **Texte édité pendant un dépôt forcé** (4b) : un dépôt forcé du soulèvement (enregistrer, annuler, changer de
     page) n'émettait pas `editAboutToApply`. → L4-T21 valide le texte avant tout dépôt forcé ; tests
     `saveDuringEditCommitsFirst`, `undoDuringEditCommitsFirst`, `pageChangeDuringEditCommitsFirst`.
-13. **N exact.** N = **136** (113 + 23 ; 113 = tests listés après L0-S0, `docs/sessions/livraison-complete-etat.md:152`,
+13. **N exact.** N = **136** (113 + 23 ; 113 = « 113 tests listés », ligne L0-S0 du tableau du fichier d'état,
     à confirmer par L4-T0), puis **136 + n_B** si le lot 7 a fusionné (n_B = tests enregistrés par le lot 7, relevé par
-    L4-T0 après L7-T33). « N = 136 + n_B » devient « N = 136 + n_B » dans les deux plans.
+    L4-T0 après L7-T33). L'ancienne règle « N au moins égal à N3 + 23 » est remplacée partout par « N = 136 + n_B ».
 14. **Règle 4 des talons** (plan du socle, `:1412-1413`) reprise à la clôture : `-functions` sans `reserved`, au moins
     une ligne `TRAIT`, `POINTEUR` ou `TEXTE` par scénario rempli, aucun `SKIP` « Talon » dans `ctest -V`.
 15. **Raccourcis pendant la frappe** (non vérifié par la relecture) : Ctrl+I et Ctrl+B restent liés à `page.insert-after`
@@ -157,7 +202,7 @@ code livré et l'écart amende ce plan, comme au lot 10. Les numéros de ligne s
 15 tâches dans ce sous-lot (16 dans 4b : 31 pour le lot). Tests ctest : L4-T1 enregistre d'un coup les **23** tests des
 deux sous-lots (16 unitaires, 7 de captures), talons `QSKIP` jusqu'à ce que leur tâche les remplisse : **N3 + 23**
 dès L4-T1, où N3 est le nombre de tests au départ du lot. **Amendement 1 : N3 = 113** (fin du lot 3 et de L0-S,
-état `:152`), donc **N = 136** dès L4-T1 ; si le lot 7 a fusionné (L7-T33), **N = 136 + n_B** (n_B relevé par L4-T0,
+ligne L0-S0 du fichier d'état), donc **N = 136** dès L4-T1 ; si le lot 7 a fusionné (L7-T33), **N = 136 + n_B** (n_B relevé par L4-T0,
 étape 6). Aucune autre tâche n'en enregistre. N est exact : un écart se signale, il ne se couvre pas par « ≥ ». Un talon sauté ne prouve rien : chaque preuve nomme les fonctions attendues `PASS`.
 
 Worktrees : `.worktrees/livraison-complete--L4-T<n>` (profil), tous isolés : deux tâches d'une même vague ne
@@ -382,7 +427,7 @@ les déclarations publiques de L4-T1 (la fonction `reserved()` du test talon est
 - **Amendement 1 — énumérations** : tout `switch` sur `core::ObjectKind` traite `Equation` (comme `Text` pour
   l'emprise et la désignation) ; tout `switch` sur `core::Change::Kind` traite `PageSettingsChanged` (sans effet de
   cache). C4062 est une erreur (`/we4062`, L0-S3) : un `switch` incomplet échoue en local comme en CI.
-- **Amendement 1 — HTML de document** (`docs/sessions/livraison-complete-etat.md:295`) : jamais `setHtml`, ni
+- **Amendement 1 — HTML de document** (la règle « **Sécurité** : `QTextDocument::setHtml` charge les ressources citées… » du fichier d'état (`docs/sessions/livraison-complete-etat.md`)) : jamais `setHtml`, ni
   `TextEdit.RichText` / `Text.RichText`, sur un HTML venu d'un document sans passer par un `QTextDocument` dont
   `loadResource` est neutralisé (garde de L2-T11, `render/src/pagepainter.cpp:71`) ou par un HTML assaini (L4-T21).
   Un `<img src="file://hôte/…">` d'un `.flipchart` déclencherait une requête SMB.
@@ -409,7 +454,8 @@ les déclarations publiques de L4-T1 (la fonction `reserved()` du test talon est
   ```powershell
   pwsh -NoProfile -Command "Set-Location '<wt>'; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File C:\Users\JeromeDenis\.claude\scripts\jeton.ps1 -Nom tests -Proprietaire <id> -Commande 'pwsh -NoProfile -File ./scripts/test.ps1 > .tmp/test.txt 2>&1'; Select-String -Path .tmp/test.txt -Pattern 'tests passed|TESTS (OK|EN ECHEC)' | Select-Object -Last 2; Select-String -Path .tmp/test.txt -Pattern '<nom_du_test> .*Passed' | Select-Object -Last 1"
   ```
-  Attendu : `100% tests passed, 0 tests failed out of N` (N = 136 + n_B dès L4-T1, amendement 1 § 13), `TESTS OK`, puis la ligne
+  Attendu : `100% tests passed, 0 tests failed out of N` (N = 136 + n_B dès L4-T1, amendement 1 § 13 ; n_B relevé de nouveau par l'orchestrateur si le lot 7 fusionne en
+  cours de lot, amendement 2), `TESTS OK`, puis la ligne
   `Passed` du test nommé.
 - **Banc sans écran** (toute tâche qui touche `render/`, `input/`, `tools/` ou `ui/` ; résultat, pas porte) : la
   commande et la lecture du JSON du plan du lot 3 (« Banc sans écran »), avec `-Proprietaire <id>`. Attendu :
@@ -644,6 +690,18 @@ couleurs).** Prime sur les étapes ci-dessous.
   L0-S3) ».
 - Preuve : N = **136** (136 + n_B si le lot 7 a fusionné).
 
+**Amendement 2 (N1, N2, N8, N13).**
+- `objectBarAndContextMenu` (`tests/tst_ui_commands.cpp`, socle) est amendé : au lieu du compte exact, il vérifie que
+  les 4 premières entrées de `contextMenu()` sous Windows, et les 2 premières sous Android, sont celles du socle ;
+  commentaire « amendement 1 du lot 4 : entrées du menu de page ajoutées en fin ».
+- Palette : le groupe `{"group": "formes-texte", "items": ["tool.shape", "tool.text"]}` va **en fin** de `palette`
+  (et non après `outils`) ; `defaultLayoutMatchesLotOne` (`tests/tst_actions_layout.cpp`) reçoit
+  `QStringLiteral("formes-texte")` en fin de sa liste attendue de groupes, avec le même commentaire.
+- `contextMenuAcceptsSubmenus` s'écrit avec `parseLayout(json, layout, error)` (`layout.h:42`) ; `lot4EntriesDeclared`
+  appelle la fonction libre `unknownCommands(layout, registry)`.
+- Ces trois tests du socle et du lot 1 sont amendés, pas contournés : la cause (entrées ajoutées en fin) est écrite
+  dans le commentaire.
+
 **Objectif.** Poser d'un coup tout ce que les tâches des deux sous-lots partagent, pour qu'aucune vague n'écrive
 ensuite dans un fichier chaud en même temps qu'une autre : les 47 commandes et leur disposition (`contextMenu`
 étendu compris), 34 icônes à nous, les champs du modèle (avec leur empreinte), les enregistrements CMake, les 23 tests
@@ -659,7 +717,8 @@ de tâche (N = 136 + n_B, `TESTS OK`), puis `premiers-pas` hors écran (`-Lire "
 **Interdits.** Aucun comportement dans un talon (valeur par défaut seulement). Aucune modification d'une
 signature publique des lots 1 à 3, 10 et L0-S (ajouts seulement, à la fin). Aucune icône copiée.
 
-**Terminé quand.** Les trois tests nommés passent avec leurs fonctions neuves ; les 23 tests du lot sont listés par
+**Terminé quand.** Les six tests de la commande ciblée passent avec leurs fonctions neuves (et les tests du socle
+amendés : `objectBarAndContextMenu`, `defaultLayoutMatchesLotOne`, `toolsMenuFollowsF750`) ; les 23 tests du lot sont listés par
 `ctest -N` (16 talons `SKIP`, 7 scénarios réduits à `waitReady` qui passent) ; N = 136 + n_B ; `TESTS OK` ;
 `premiers-pas` passe ; `NOMS OK`.
 
@@ -669,12 +728,15 @@ signature publique des lots 1 à 3, 10 et L0-S (ajouts seulement, à la fin). Au
   // tests/tst_actions_layout.cpp
   void contextMenuAcceptsSubmenus()
   {
-      const auto layout = actcraft::actions::Layout::fromJson(QByteArrayLiteral(
-          R"({"format": "actcraft-layout/1", "menus": [], "palette": [], "contextMenu": ["tool.select", "-", {"submenu": "page-insert", "label": "Insérer une page", "items": ["page.insert-before", "page.insert-after"]}]})"));
-      QVERIFY(layout.has_value());
-      QCOMPARE(layout->contextMenu, (QStringList{QStringLiteral("tool.select"), QStringLiteral("-"), QStringLiteral(">page-insert")}));
-      QCOMPARE(layout->contextSubmenus.size(), std::size_t{1});
-      QCOMPARE(layout->contextSubmenus.front().items, (QStringList{QStringLiteral("page.insert-before"), QStringLiteral("page.insert-after")}));
+      const QByteArray json = R"({"format": "actcraft-layout/1", "menus": [], "palette": [], "colors": [],
+          "penWidths": [], "contextMenu": ["tool.select", "-", {"submenu": "page-insert", "label": "Insérer une page",
+          "items": ["page.insert-before", "page.insert-after"]}]})";
+      actions::Layout layout;
+      QString error;
+      QVERIFY2(actions::parseLayout(json, layout, error), qPrintable(error));
+      QCOMPARE(layout.contextMenu, (QStringList{QStringLiteral("tool.select"), QStringLiteral("-"), QStringLiteral(">page-insert")}));
+      QCOMPARE(layout.contextSubmenus.size(), std::size_t{1});
+      QCOMPARE(layout.contextSubmenus.front().items, (QStringList{QStringLiteral("page.insert-before"), QStringLiteral("page.insert-after")}));
   }
   // tests/tst_actions_registry.cpp
   void lot4EntriesDeclared()
@@ -685,7 +747,7 @@ signature publique des lots 1 à 3, 10 et L0-S (ajouts seulement, à la fin). Au
           QVERIFY2(registry.contains(QString::fromLatin1(id)), id);
       const auto layout = loadBuiltinLayout();
       QVERIFY(layout.contextMenu.contains(QStringLiteral(">page-insert")));
-      QVERIFY(layout.unknownCommands(registry).isEmpty());
+      QVERIFY(unknownCommands(layout, registry).isEmpty()); // fonction libre (layout.h)
   }
   void editAtArgumentOptional()
   {
@@ -761,7 +823,7 @@ signature publique des lots 1 à 3, 10 et L0-S (ajouts seulement, à la fin). Au
   "label": "Page", "items": ["page.insert-before", "page.insert-after"]}` ; menu `tools` → `tool.text-vertical` en fin
   du sous-menu `other-tools`, rien d'autre ; menu `view` → ajouter `"-",
   "view.browsers", "view.page-extension"` en fin ; palette : groupe `{"group": "formes-texte", "items":
-  ["tool.shape", "tool.text"]}` après le groupe `outils` ; clé `contextMenu` du socle : ses 4 entrées gardées, puis
+  ["tool.shape", "tool.text"]}` **en fin de palette** (amendement 2, N2) ; clé `contextMenu` du socle : ses 4 entrées gardées, puis
   `"-", {"submenu": "page-insert", "label": "Insérer une page", "items": ["page.insert-before", "page.insert-after"]}, "-", "page.background", "grid.designer", "grid.hide", "grid.snap", "-", "page.cut", "page.copy", "page.paste", "page.duplicate", "page.delete"`.
 - [ ] **Étape 4 : icônes.** Dessiner les 34 fichiers de la table (24 × 24, mêmes attributs de trait que
   `ui/icons/stylo.svg`), formes simples à nous : triangle et cercle superposés (`forme`), « T » (`texte`), « T » sur
@@ -1220,7 +1282,7 @@ signature publique des lots 1 à 3, 10 et L0-S (ajouts seulement, à la fin). Au
       QML_NAMED_ELEMENT(GridOverlay)
       Q_PROPERTY(qreal zoom READ zoom WRITE setZoom NOTIFY zoomChanged)
       Q_PROPERTY(int rebuildCount READ rebuildCount NOTIFY rebuilt) // tests
-      // Amendement 1 : la page est lue par la page fixe (FixedPageItem::sourcePage), jamais par un pointeur gardé.
+      // Amendements 1 et 2 : la page est lue par la page fixe (FixedPageItem::page()), jamais par un pointeur gardé.
       Q_PROPERTY(actcraft::render::FixedPageItem* fixedPage READ fixedPage WRITE setFixedPage NOTIFY fixedPageChanged)
 
   public:
@@ -1668,7 +1730,7 @@ signature publique des lots 1 à 3, 10 et L0-S (ajouts seulement, à la fin). Au
   (`QTEST_MAIN` pour les tests de `render/` et `ui/` ; nom de classe, de `.moc` et tâche adaptés.) Chacun des 7
   scénarios : `{"format": "actcraft-scenario/1", "name": "<nom>", "description": "Talon L4-T1 : rempli par
   L4-T<n>.", "steps": [{"waitReady": true}]}`.
-- [ ] **Étape 9 : preuves.** `format.ps1`, commande ciblée, preuve de tâche (N = 136 + n_B), fonctions des trois tests
+- [ ] **Étape 9 : preuves.** `format.ps1`, commande ciblée, preuve de tâche (N = 136 + n_B), fonctions des six tests
   nommés en `PASS`, `premiers-pas` hors écran `CAPTURES OK`, `git add` des fichiers, `NOMS OK`.
 - [ ] **Étape 10 : commit** (chemins explicites, la liste de la table), puis `NOMS OK` relancé.
   ```powershell
@@ -1684,8 +1746,9 @@ signature publique des lots 1 à 3, 10 et L0-S (ajouts seulement, à la fin). Au
 `tests/tst_ui_shell.cpp`) est amendé, avec ce commentaire au-dessus de la liste : « Amendement 1 du lot 4 : la grille
 du dessus sort de la scène du cache (L4-T7) ; rang fixé par D17. » Liste attendue selon D17 : recommandé
 `fixedPage, pageCache, pendingLayer, liftLayer, ink, gridOverlay, pageOverlays` ; autre choix de D17 : `…, liftLayer,
-gridOverlay, ink, pageOverlays`. `gridOverlay` reçoit `fixedPage: fixedPage` et une `Connections` sur `appDocument` :
-`function onPageContentChanged(index) { if (index === appDocument.currentIndex) gridOverlay.refresh() }`
+gridOverlay, ink, pageOverlays`. `gridOverlay` reçoit `fixedPage: fixedPageItem` et une `Connections` (amendement 2)
+`{ target: area.documentController; function onPageContentChanged(index) { if (index ===
+area.documentController.currentIndex) gridOverlay.refresh() } }`
 (L4-T7 n'a plus à toucher `PageArea.qml`). `PageContextMenu.qml` lit **une seule liste**, `commands.contextMenu`
 (socle) ; il reçoit le délégué de sous-menu s'il ne l'a pas (`CommandMenu.qml`, même délégué que les menus).
 Gestionnaire de `text.edit-at` dans `Main.qml` : fonction `editAtArgument(arg)` (`"x;y;v"` → `{x, y, vertical}`,
@@ -1776,7 +1839,7 @@ banc sans écran.
   fonction vide `open()` (`GridDesigner`, `BackgroundDialog`) et une propriété `property string side: "left"`
   (`BrowserPanel`).
 - [ ] **Étape 4 : `PageArea.qml`.** Dans `page`, au rang de D17 (recommandé : juste après `ink`) : `GridOverlay {
-  id: gridOverlay; objectName: "gridOverlay"; anchors.fill: parent; zoom: pageView.zoom; fixedPage: fixedPage }` et
+  id: gridOverlay; objectName: "gridOverlay"; anchors.fill: parent; zoom: view.zoom; fixedPage: fixedPageItem }` et
   sa `Connections` (amendement 1) ; dans `pageOverlays` :
   `PageZonesOverlay { objectName: "pageZones"; anchors.fill: parent }` et `PageExtensionHandle { objectName:
   "pageExtensionHandle" }` ; à côté de `selectionOverlay` : `TextEditor { objectName: "textEditor" }`. La
@@ -1789,6 +1852,7 @@ banc sans écran.
 - [ ] **Étape 7 : commit.**
   ```powershell
   git -C <wt> add ui/qml/Main.qml ui/qml/PageArea.qml ui/qml/ToolPalette.qml ui/qml/PageContextMenu.qml ui/qml/BrowserPanel.qml ui/qml/PageNavigator.qml ui/qml/ShapePalette.qml ui/qml/TextFormatBar.qml ui/qml/TextEditor.qml ui/qml/VerticalTextBar.qml ui/qml/GridDesigner.qml ui/qml/BackgroundDialog.qml ui/qml/PageExtensionHandle.qml ui/qml/PageZonesOverlay.qml ui/CMakeLists.txt tests/tst_ui_shell.cpp
+  git -C <wt> add ui/qml/CommandMenu.qml   # seulement si modifié (délégué de sous-menu, amendement 2)
   git -C <wt> commit -m "Lot 4 : coquille QML des formes, du texte, des navigateurs et de la grille (L4-T2)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
@@ -1968,14 +2032,13 @@ qui n'est plus dans le cache (L4-T7). Contrat : une grille du dessous qui change
 **Contrat A13 (amendement 1, défaut 7).** Le socle a posé `Change::Kind::PageSettingsChanged` (L0-S3, D-S5),
 ignoré par `applyToCache`. `SetGridCommand` l'émet pour toute grille qui ne dessine rien sous les objets avant comme
 après ; **rien** n'est ajouté à `undo.h` ni à `pagecache.cpp` (`PageOverlayChanged` n'existe pas) ; `undo.h`,
-`pagecache.cpp` et `tst_core_pagecache.cpp` ne sont pas touchés par cette tâche. Dans les deux cas, `DocumentController::settle`
+`pagecache.cpp` et `tst_core_pagecache.cpp` ne sont pas touchés par cette tâche. `DocumentController::settle`
 émet `pageContentChanged` pour ce changement (contrat de L4-T1 : « objet ou page »).
 
 **Fichiers.** `core/include/actcraft/core/pagesettings.h`, `core/src/pagesettings.cpp`,
-`core/include/actcraft/core/undo.h`, `core/src/pagecache.cpp`, `tests/tst_core_pagesettings.cpp`,
-`tests/tst_core_pagecache.cpp`.
+`tests/tst_core_pagesettings.cpp` (amendement 2, N6).
 
-**Test et commande bornée.** Commande ciblée `-R 'tst_core_pagesettings|tst_core_pagecache'` ; fonctions
+**Test et commande bornée.** Commande ciblée `-R tst_core_pagesettings` ; fonctions
 `gridAboveChangeIsIgnoredByTheCache`, `gridBelowChangeRedrawsOnce`, `extendStepsByTenPercentOfBase`,
 `threeUndosRestoreTheHeight`, `designerChangesMerge` en `PASS` ; mutation ; preuve de tâche.
 
@@ -2099,7 +2162,6 @@ après ; **rien** n'est ajouté à `undo.h` ni à `pagecache.cpp` (`PageOverlayC
 - [ ] **Étape 5 : preuve de tâche, commit.**
   ```powershell
   git -C <wt> add core/include/actcraft/core/pagesettings.h core/src/pagesettings.cpp tests/tst_core_pagesettings.cpp
-  git -C <wt> add core/include/actcraft/core/undo.h core/src/pagecache.cpp tests/tst_core_pagecache.cpp   # seulement si modifiés (contrat A13)
   git -C <wt> commit -m "core : réglages de page (grille, fond, extension), grille du dessus ignorée par le cache (L4-T4)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
@@ -2350,7 +2412,8 @@ facultatives ajoutées). Ne pas toucher au lecteur `.flipchart` (L4-T24).
 ### Tâche L4-T7 — `render` : grille du dessus en surcouche, retirée du cache
 
 **Amendement 1 (défaut 8, amendement 4).** Le prédicat est `canWait(page, object)`
-(`render/src/fixedpageitem.cpp:60-64`, appelé en `:194` et `:246`) : retirer `!page.grid.drawnAbove` en gardant les
+(`render/src/fixedpageitem.cpp:60-64`, appelé en `:194` et `:246`) ; la page se lit par `FixedPageItem::page()`
+(`fixedpageitem.h:46`, amendement 2) : retirer `!page.grid.drawnAbove` en gardant les
 images et l'encre révélatrice ; mettre à jour les commentaires `:57-59` et `:251` (« grille au-dessus » n'est plus une
 cause). L'en-tête de `GridOverlayItem` (L4-T1, amendé) porte déjà `fixedPage` et `refresh()` ; `PageArea.qml` les
 branche déjà (L4-T2). `PageSettingsChanged` n'atteint pas `FixedPageItem` (`presentationChangeRedrawsNothing`) :
@@ -2369,7 +2432,7 @@ donc la page par la page fixe : `GridOverlayItem` reçoit une propriété
 `Q_PROPERTY(actcraft::render::FixedPageItem* fixedPage READ fixedPage WRITE setFixedPage NOTIFY fixedPageChanged)`
 (posée par l'en-tête de L4-T1, amendement 1), se branche sur le signal de changement de source et sur le signal de
 contenu de `FixedPageItem` (existants, ou ajoutés à la fin de son en-tête), et relit la grille de la page affichée.
-`PageArea.qml` a déjà `fixedPage: fixedPage` et la `Connections` qui appelle `refresh()` (L4-T2) ; n'y toucher
+`PageArea.qml` a déjà `fixedPage: fixedPageItem` et la `Connections` qui appelle `refresh()` (L4-T2) ; n'y toucher
 que s'ils manquent.
 
 **Fichiers.** Ceux de la ligne L4-T7 de la table (`ui/qml/PageArea.qml` : une ligne).
@@ -2960,7 +3023,9 @@ Joué après V6, dans le worktree du chantier, avant de lancer 4b.
 2. **Suite** (jeton `tests`) : `scripts/test.ps1`, forme bornée, N = 136 + n_B, `TESTS OK` ; talons restants : ceux
    de 4b seulement (`git -C <wt> grep -n "Talon L4-T1" -- . ':(exclude)docs/'` ne cite que des tâches de 4b) ;
    règle 4 des talons du socle (amendement 1, défaut 14) pour les talons remplis en 4a : `-functions` de chaque test
-   rempli sans `reserved`, aucun `SKIP` « Talon » dans `ctest -V` hors tests de 4b.
+   rempli sans `reserved`, aucun `SKIP` « Talon » dans `ctest -V` hors tests de 4b. Si le lot 7 a fusionné depuis
+   L4-T0, n_B est relevé de nouveau (`ctest --preset debug -N` sur la base à jour), le nouveau N est écrit dans le
+   fichier d'état et sert à toute preuve suivante (amendement 2, N12).
 3. **Captures hors écran** : `formes`, `grille`, `premiers-pas`, `selection` (lot 3), `cache-differe` (lot 10) →
    `CAPTURES OK`.
 4. **Banc hors écran** : `forme-page-annotee`, `grille-dessus` relevés ; résultat noté dans le fichier d'état.

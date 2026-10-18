@@ -2,10 +2,20 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 2 (relecture tour 2, 2026-10-18)
+
+Liste complète des défauts N1 à N13 : plan 4a, section « Amendement 2 ». Ce qui change ici :
+- **N4** : `git add` de `ui/src/documentcontroller.cpp` (L4-T21, si modifié) et de `tests/tst_ui_theme.cpp` (L4-T19).
+- **N5** : `safeTextHtml` retire aussi `QTextFormat::BackgroundImageUrl` des formats de bloc, de cadre et de cellule ;
+  cas ajouté à `editingLoadsNoExternalResource`.
+- **N7** : phrase de N réécrite. **N9** : règle de sécurité du fichier d'état citée par son texte.
+- **N10** : source de `thumbnails.during_contact` (L4-T29). **N11** : L4-T26 dépend de L4-T21. **N12** : n_B relevé de
+  nouveau si le lot 7 fusionne en cours de lot (clôture).
+
 ## Amendement 1 (relecture tour 1, 2026-10-18)
 
 La liste complète des défauts et des changements est dans le plan 4a, section « Amendement 1 ». Ce qui change ici :
-- **N = 136 + n_B** partout (défaut 13), au lieu de « N = 136 + n_B ».
+- **N = 136 + n_B** partout (défaut 13), à la place de l'ancienne règle « N au moins égal à N3 + 23 ».
 - **L4-T17** : `contactActive` (en-tête `pageview.h` figé par L0-S7 : dériver de l'état du routeur s'il est publié,
   sinon ajout en fin d'en-tête signalé) ; remise à zéro sur tout `PageInserted` ou `PageRemoved`, test
   `moveRerendersShiftedRows` (défaut 11).
@@ -47,7 +57,7 @@ restants ceux de 4b seulement, N = 136 + n_B. Les décisions D1 à D18 de L4-T0 
 | L4-T22 | `tools` : outils Texte et Texte de haut en bas | L4-T1 | `tools/include/actcraft/tools/texttool.h`, `tools/src/texttool.cpp`, `tests/tst_tools_text.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_text` Passed (dont `pressAsksToEditAt`, `verticalToolSaysVertical`, `deactivateCommits`, `neverBusy`) | S7.3, S16 | #tache-l4-t22 |
 | L4-T19 | QML : panneau des navigateurs (icônes, ancrage, Ctrl+B, largeur) et navigateur de pages ; scénario `navigateur-pages` | L4-T17, L4-T18 | `ui/qml/BrowserPanel.qml`, `ui/qml/PageNavigator.qml`, `ui/icons/{nav-ressources,nav-objets,nav-notes,nav-proprietes,nav-actions}.svg`, `ui/CMakeLists.txt`, `tests/tst_ui_theme.cpp`, `bench/scenarios/navigateur-pages.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_navigateur_pages` Passed, `tst_ui_theme` (`iconsAreOurSvgOnA24Grid` : 5 lignes neuves en `PASS`) ; `captures.ps1 -Scenario navigateur-pages` hors écran : `LU browserPanel.visible=true OK`, `LU appPages.selection=[0,1] OK`, `LU appDocument.pageCount=5 OK`, `CAPTURES OK` ; banc hors écran joint | S7.4 | #tache-l4-t19 |
 | L4-T24 | Texte de haut en bas I : rendu (colonne d'un caractère) et lecture `.flipchart` | L4-T0, L4-T6 | `render/src/pagepainter.cpp`, `render/src/paintedrenderer.cpp`, `tests/tst_render_verticaltext.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_render_verticaltext` (dont `lettersStackOneUnderAnother`, `boldIsKept`, `sameInPainterAndTexture`), `tst_formats_lot4` (dont `flipchartVerticalTextRead`) Passed ; `tst_formats_oracle_synth` Passed ; banc hors écran joint | S16 | #tache-l4-t24 |
-| L4-T26 | Page allongée : poignée, commande, une étape par clic ; scénario S15 (partie 1) | L4-T4, L4-T13, L4-T17 | `ui/qml/PageExtensionHandle.qml`, `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `ui/src/documentcontroller.cpp`, `ui/src/pageview.cpp`, `bench/scenarios/page-allongee-zones.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `extendPageThreeTimes`, `extendKeepsTheCurrentTool`, `viewFollowsTheNewHeight`), `tst_captures_page_allongee_zones` Passed ; captures hors écran : `LU appPageSettings.pageHeight=998.4 OK`, `LU pageExtensionHandle.atPageBottom=true OK`, `LU appTools.currentTool=pen OK`, `LU appPageSettings.pageHeight=768 OK`, `CAPTURES OK` ; banc hors écran joint | S15 | #tache-l4-t26 |
+| L4-T26 | Page allongée : poignée, commande, une étape par clic ; scénario S15 (partie 1) | L4-T4, L4-T13, L4-T17, L4-T21 | `ui/qml/PageExtensionHandle.qml`, `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `ui/src/documentcontroller.cpp`, `ui/src/pageview.cpp`, `bench/scenarios/page-allongee-zones.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `extendPageThreeTimes`, `extendKeepsTheCurrentTool`, `viewFollowsTheNewHeight`), `tst_captures_page_allongee_zones` Passed ; captures hors écran : `LU appPageSettings.pageHeight=998.4 OK`, `LU pageExtensionHandle.atPageBottom=true OK`, `LU appTools.currentTool=pen OK`, `LU appPageSettings.pageHeight=768 OK`, `CAPTURES OK` ; banc hors écran joint | S15 | #tache-l4-t26 |
 | L4-T20 | Menu de page appliqué aux pages sélectionnées ; boîte « Fond de la page » (E2) | L4-T19, L4-T26 | `ui/qml/PageContextMenu.qml`, `ui/qml/BackgroundDialog.qml`, `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `bench/scenarios/navigateur-pages.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `backgroundColorIsOneStep`, `backgroundGradient`, `backgroundRefreshesOnce`), `tst_captures_navigateur_pages` Passed ; captures hors écran : `LU backgroundDialog.visible=false OK`, `PIXEL fond-jaune OK`, `CAPTURES OK` | S7.4 | #tache-l4-t20 |
 | L4-T23 | QML : éditeur de texte et barre de mise en forme ; scénario `texte` | L4-T21, L4-T22 | `ui/qml/TextEditor.qml`, `ui/qml/TextFormatBar.qml`, `bench/scenarios/texte.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_texte` Passed ; captures hors écran : `LU appText.active=true OK`, `TEXTE Bonjour OK`, `LU appText.bold=true OK`, `LU browserPanel.visible=false OK` (Ctrl+B pendant la frappe, D8), `LU appDocument.shownObjectCount=1 OK`, `CAPTURES OK` ; banc hors écran joint | S7.3 | #tache-l4-t23 |
 | L4-T27 | Zones de page I : modèle, commande, natif (et `.flipchart` si D11 l'a relevé) | L4-T0, L4-T24 | `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/include/actcraft/core/pagezones.h`, `core/src/pagezones.cpp`, `tests/tst_core_zones.cpp`, `formats/src/nativejson.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_core_zones` (dont `zonesKeepOldFingerprints`, `setZonesIsOneStep`, `zonesChangeIsIgnoredByTheCache`, `zonesAreBounded`), `tst_formats_lot4` (dont `zonesRoundTrip`) Passed | S15 | #tache-l4-t27 |
@@ -70,7 +80,7 @@ Fichiers partagés tenus par les dépendances : `ui/src/pageoptions.cpp`, `tests
 (L4-T13 → L4-T26 → L4-T20 → L4-T28) ; `bench/scenarios/navigateur-pages.json` (L4-T19 → L4-T20) ;
 `bench/scenarios/page-allongee-zones.json` (L4-T26 → L4-T28) ; `ui/src/textediting.cpp`, `tests/tst_ui_text.cpp`
 (L4-T21 → L4-T25) ; `tests/tst_formats_lot4.cpp`, `formats/src/flipchart.cpp`, `flipchartids.h` (L4-T6 → L4-T24 →
-L4-T27) ; `formats/src/nativejson.cpp` (L4-T6 → L4-T27) ; `ui/src/pageview.cpp` (L4-T17 → L4-T26) ; `ui/src/documentcontroller.cpp` (L4-T21 → L4-T26, amendement 1) ;
+L4-T27) ; `formats/src/nativejson.cpp` (L4-T6 → L4-T27) ; `ui/src/pageview.cpp` (L4-T17 → L4-T26) ; `ui/src/documentcontroller.cpp` (L4-T21 → L4-T26, dépendance déclarée par l'amendement 2) ;
 `tests/tst_ui_theme.cpp` (L4-T1 → L4-T19) ;
 `bench/src/scenarios.cpp`, `runner.cpp`, `tst_bench_*` (L4-T14 → L4-T29) ; `ui/CMakeLists.txt` (L4-T2 → L4-T19).
 Vérifié vague par vague : aucun fichier commun à deux tâches d'une même vague.
@@ -525,8 +535,12 @@ F-601 : avant elle), `duplicateSelection` (`InsertPagesCommand` après la derni�
   Fonction libre de `textediting.cpp`, `QString safeTextHtml(const QString& html)` : parse dans un `QTextDocument`
   dérivé local dont `loadResource` rend `QVariant()` (même garde que L2-T11, `render/src/pagepainter.cpp:71`), retire
   tout fragment d'image (`QTextImageFormat`) dont le nom n'est pas une URL `data:`, retire les ancres, puis rend
-  `toHtml()`. Seul ce HTML entre dans `textDocument`. Test `editingLoadsNoExternalResource` : texte dont le HTML a
-  `<img src="file://hote/partage/x.png">`, `<img src="http://exemple.invalid/y.png">` et un lien ; après `beginAt`,
+  `toHtml()`. **Amendement 2 (N5)** : retire aussi `QTextFormat::BackgroundImageUrl` de chaque format de bloc
+  (`QTextBlockFormat`), de cadre et de tableau (`QTextFrameFormat`, `QTextTableFormat`) et de cellule
+  (`QTextTableCellFormat`), par `QTextCursor::setBlockFormat`, `QTextFrame::setFrameFormat` et
+  `QTextTableCell::setFormat`. Seul ce HTML entre dans `textDocument`. Test `editingLoadsNoExternalResource` : texte dont le HTML a
+  `<img src="file://hote/partage/x.png">`, `<img src="http://exemple.invalid/y.png">`, un lien, et (amendement 2)
+  `<table background="file://hote/z.png"><tr><td background="file://hote/w.png">a</td></tr></table>` ; après `beginAt`,
   le HTML du `TextEdit` ne contient ni `file:` ni `http` ; le compteur de `loadResource` du document d'analyse a été
   appelé au plus pour ces deux URL et a rendu `QVariant()` ; le texte visible est gardé.
 - **Dépôt forcé.** Tout chemin de `DocumentController` qui dépose un soulèvement sans geste de l'outil
@@ -663,6 +677,7 @@ preuve de tâche.
 - [ ] **Étape 4 : commit.**
   ```powershell
   git -C <wt> add ui/include/actcraft/ui/textediting.h ui/src/textediting.cpp tests/tst_ui_text.cpp
+  git -C <wt> add ui/src/documentcontroller.cpp   # seulement si modifié (dépôt forcé, amendement 2)
   git -C <wt> commit -m "ui : édition du texte soulevé, une étape à la validation, barre de mise en forme (L4-T21)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
@@ -774,7 +789,7 @@ alors ajoutés à la tâche par l'amendement de L4-T0) ; `expect appPages.select
   `ui/CMakeLists.txt`). **Étape 3 : vert**, preuve visuelle, banc sans écran, preuve de tâche.
 - [ ] **Étape 4 : commit.**
   ```powershell
-  git -C <wt> add ui/qml/BrowserPanel.qml ui/qml/PageNavigator.qml ui/icons/nav-ressources.svg ui/icons/nav-objets.svg ui/icons/nav-notes.svg ui/icons/nav-proprietes.svg ui/icons/nav-actions.svg ui/CMakeLists.txt bench/scenarios/navigateur-pages.json
+  git -C <wt> add ui/qml/BrowserPanel.qml ui/qml/PageNavigator.qml ui/icons/nav-ressources.svg ui/icons/nav-objets.svg ui/icons/nav-notes.svg ui/icons/nav-proprietes.svg ui/icons/nav-actions.svg ui/CMakeLists.txt tests/tst_ui_theme.cpp bench/scenarios/navigateur-pages.json
   git -C <wt> commit -m "ui : panneau des navigateurs et navigateur de pages ; scénario navigateur-pages (L4-T19)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
@@ -1140,7 +1155,10 @@ separation-zone [512, 384]` (couleur des tirets) ; `capture zones` ; `remember a
 
 **Amendement 1 (défaut 16).** Les rendus de miniatures sont comptés **dans la fenêtre mesurée** (pas après) :
 `thumbnails.renders` ≥ 1 entre le premier et le dernier échantillon de la mesure, `thumbnails.during_contact = 0`
-(aucun rendu lancé pendant un contact). Variante sur `pauses` : le scénario rejoue les traits de `pauses`, panneau
+(aucun rendu lancé pendant un contact). **Amendement 2 (N10)** : source de `during_contact` — le banc lit
+`appThumbnails.renderCount` à chaque appui et à chaque relâché injectés ; `during_contact` = somme des hausses de
+`renderCount` entre un appui et son relâché ; écrit dans le JSON (`thumbnails.during_contact`) par
+`bench/src/runner.cpp` et lu par `bench/src/result.cpp`. Variante sur `pauses` : le scénario rejoue les traits de `pauses`, panneau
 ouvert, pour que les rendus tombent dans les pauses ; ses figements sont comparés à `pauses` sans panneau, dans le
 même JSON. Ces attendus sont écrits dans `docs/banc.md`.
 
@@ -1230,7 +1248,9 @@ Jouée après V12, dans le worktree du chantier, sur `feat/livraison-complete` �
    talon restant** : `git -C <wt> grep -n "Talon L4-T1" -- . ':(exclude)docs/'` → sortie vide ; **règle 4 des talons**
    du socle (amendement 1, défaut 14) : chaque test du lot lancé avec `-functions` ne liste pas `reserved` ; chaque
    scénario rempli sort au moins une ligne `TRAIT`, `POINTEUR` ou `TEXTE` ; `ctest --preset debug -V` ne contient
-   aucun `SKIP` dont le message commence par « Talon ».
+   aucun `SKIP` dont le message commence par « Talon ». Si le lot 7 a fusionné depuis L4-T0, n_B est relevé de
+   nouveau (`ctest --preset debug -N`) et le nouveau N, écrit dans le fichier d'état, sert aux suites (amendement 2,
+   N12).
 5. **Captures à l'écran en D3D11** (jeton `ecran`, annoncé) : `captures.ps1 -Scenario tous -Rendu d3d11 -Sortie
    .tmp/captures-ecran` → `SCENARIO OK` chacun (dont `formes`, `grille`, `texte`, `navigateur-pages`,
    `page-allongee-zones`, `texte-vertical`, `formes-texte-pages-grille`, et ceux des lots 1 à 3 et 10), `CAPTURES OK` ;
