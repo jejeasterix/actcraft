@@ -188,6 +188,12 @@ Plan du lot 5 amendé (da1e999 : 34 tâches, 16 vagues, H5-7 à H5-10). Tour 2 d
 - 144 titres contrôlés, 0 trouvé ; NOMS OK 425.
 - D19 (place du groupe `formes-texte`) renvoyée à L4-T0.
 Plan du lot 6 amendé (c2d6796 : 38 tâches, 15 vagues ; nouvelles hypothèses H6-9 « procédure de déblocage publique » et H6-10 « mesure du PBKDF2 sur le Dell 3510 »). Tour 2 de relecture en cours.
+**L0-S6 terminée et mergée.**
+- Commit propre 986fd8a (code identique à l'arbre prouvé 02e5348), merge 0299bf3, graphe cb2ad56 à 4 459 nœuds.
+- Rejeu : format 0, build 0, ctest ciblé 20/20, talons en SKIP qui nomment leur tâche, mutation de `setOpenMathTools` rouge puis remise, `CAPTURES OK`, 113 tests, NOMS OK.
+- **V1 du socle complète** (S1, S3, S6). Suite complète de la vague lancée sous le jeton (`scratchpad/out/suite-v1.txt`).
+Relecture du plan du lot 5, tour 2 : 2 nouveaux bloquants et 6 majeurs. Rapport : `scratchpad/revue-plan-lot5-t2.md`. Amendement 2 en cours.
+V2 en préparation, écriture seule (un seul constructeur) : L0-S7 (worktree neuf à cb2ad56) et L0-S4 (reprise du wip 267b2a6 après fusion de la tête). Chacun attend mon signal pour sa preuve. L0-S5 démarre quand une place d'agent se libère.
 **Décision de A, demandée par B (L7-T26)** : pas d'inclusion privée de `render/src` depuis `ui/presentation.cmake`.
 - À la place, une API publique : `render/include/actcraft/render/equationpaint.h`, avec `EquationPaintMode { Page, Editor }`.
 - Elle est posée par L7-T25, dont le contrat est amendé par B.
