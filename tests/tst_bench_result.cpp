@@ -47,18 +47,38 @@ private slots:
         }
     }
 
-    // L2-T23 : quatrième scénario, « page » (changements de page par commandes nommées).
-    void fourScenariosWithFrames()
+    // L2-T23 : « page » ; L10-T1 : « pauses » (reprises après le délai d'inactivité du cache).
+    void fiveScenariosWithFrames()
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
-        QCOMPARE(scenarios.size(), 4);
+        QCOMPARE(scenarios.size(), 5);
         const QStringList names{QStringLiteral("stroke"), QStringLiteral("zoom"), QStringLiteral("scroll"),
-                                QStringLiteral("page")};
-        for (qsizetype i = 0; i < 4; ++i) {
+                                QStringLiteral("page"), QStringLiteral("pauses")};
+        for (qsizetype i = 0; i < 5; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);
             QVERIFY(s.value("frames").toObject().value("active").toInt() > 0);
+        }
+    }
+
+    // L10-T1 : instants des demandes de redessin du cache et de leurs fins, par scénario. Implémentation du
+    // lot 2 : au moins un redessin par trait de « pauses » (4 en court).
+    void cacheRefreshesAreRecorded()
+    {
+        const QJsonObject pauses = m_root.value("scenarios").toArray().at(4).toObject();
+        const QJsonObject cache = pauses.value("cache").toObject();
+        QVERIFY(cache.contains("refreshes"));
+        const QJsonObject raw = pauses.value("raw").toObject();
+        const QJsonArray requests = raw.value("cache_request_ns").toArray();
+        const QJsonArray updates = raw.value("cache_updated_ns").toArray();
+        // Lot 2 : un redessin par trait de « pauses », 4 en court ; au moins 3 exigés (la fin du dernier peut
+        // tomber après la fenêtre). L10-T4 abaisse ce minimum à 2 (versement différé, reprise k = 0 exclue).
+        QVERIFY2(cache.value("refreshes").toInt() >= 3, "un redessin par trait attendu (ancien cache)");
+        QVERIFY(requests.size() >= 3);
+        QVERIFY(updates.size() >= 3);
+        for (qsizetype i = 1; i < requests.size(); ++i) {
+            QVERIFY(requests.at(i).toDouble() >= requests.at(i - 1).toDouble());
         }
     }
 

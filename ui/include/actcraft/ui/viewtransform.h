@@ -14,7 +14,12 @@ inline constexpr double kZoomStep = 1.15;             // par cran de molette (d�
 inline constexpr double kViewMargin = 32.0;           // marge de la page bornée dans la vue (décision 16)
 inline constexpr double kScrollPixelsPerNotch = 60.0; // défilement par cran
 inline constexpr int kCacheRefreshDelayMs = 150;      // N2-4
-inline constexpr int kMaxCacheSide = 4096;            // N1-6
+// Lot 10 (DA11) : un objet ajouté en fin de page attend au-dessus du cache ; le cache le prend à son prochain
+// redessin, au plus tard après kCacheFoldIdleMs sans entrée, ou dès kCacheFoldMaxPending objets en attente
+// (H10-2 : valeurs de départ, réglées par le banc).
+inline constexpr int kCacheFoldIdleMs = 500;
+inline constexpr int kCacheFoldMaxPending = 128;
+inline constexpr int kMaxCacheSide = 4096; // N1-6
 
 // Vue → page : page = (vue − pan) / zoom.
 struct ViewTransform

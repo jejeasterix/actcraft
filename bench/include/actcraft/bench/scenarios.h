@@ -66,7 +66,14 @@ ScenarioPlan scrollScenario(ScenarioSet set);
 // Changements de page à 500 ms d'écart (complet : 20, court : 4) en alternance page.next / page.previous,
 // puis page.next, view.zoom 150 et view.fit à 700 ms d'écart sur la page peinte (L2-T23).
 ScenarioPlan pageScenario(ScenarioSet set);
-std::vector<ScenarioPlan> allScenarios(ScenarioSet set); // stroke, zoom, scroll, page
+// Lot 10 (DA11) : décalage de la reprise d'un trait à l'autre, après le délai d'inactivité du cache.
+inline constexpr std::int64_t kPausesStepNs = 8'000'000;
+// Traits séparés par ui::kCacheFoldIdleMs + k × kPausesStepNs (complet : 10 traits de 0,5 s, pause après le
+// trait k : k = 0 à 8 ; court : 4 traits de 0,2 s, 3k pour k = 0 à 2) : chaque reprise tombe dans la fenêtre
+// du redessin différé du cache. Page du banc rechargée avant (generatedPages = 1 : page de 300 objets, sans
+// éléments peints).
+ScenarioPlan pausesScenario(ScenarioSet set);
+std::vector<ScenarioPlan> allScenarios(ScenarioSet set); // stroke, zoom, scroll, page, pauses
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();
 // Point du trait de démonstration déjà tracé à la capture « mi-trait ».

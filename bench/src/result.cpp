@@ -126,14 +126,20 @@ QJsonObject scenarioJson(const ScenarioResult& s)
         {"interval_class", classes(iv.classes)},
         {"input_ns", relative(s.frames.inputNs, s.startNs)},
         {"freeze_ns", relative(s.frames.freezeNs, s.startNs)},
+        {"cache_request_ns", relative(s.cacheRequestNs, s.startNs)},
+        {"cache_updated_ns", relative(s.cacheUpdatedNs, s.startNs)},
         {"latency_seq", latencySeq},
         {"latency_total_ms", s.latency ? doubles(s.latency->totalMs) : QJsonArray()},
         {"latency_planned_to_sync_ms", s.latency ? doubles(s.latency->plannedToSyncMs) : QJsonArray()},
         {"latency_sync_to_swap_ms", s.latency ? doubles(s.latency->syncToSwapMs) : QJsonArray()},
     };
-    return {{"name", s.name},   {"exposure_lost", s.exposureLost},
-            {"frames", frames}, {"latency", latency},
-            {"input", input},   {"memory", memory},
+    return {{"name", s.name},
+            {"exposure_lost", s.exposureLost},
+            {"frames", frames},
+            {"latency", latency},
+            {"input", input},
+            {"memory", memory},
+            {"cache", QJsonObject{{"refreshes", static_cast<double>(s.cacheRequestNs.size())}}},
             {"raw", raw}};
 }
 

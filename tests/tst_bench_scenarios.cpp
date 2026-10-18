@@ -119,11 +119,54 @@ private slots:
     void allScenariosInOrder()
     {
         const auto plans = bench::allScenarios(bench::ScenarioSet::Court);
-        QCOMPARE(plans.size(), std::size_t{4}); // L2-T23 : scénario « page » ajouté en dernier
+        QCOMPARE(plans.size(), std::size_t{5}); // L2-T23 : « page » ; L10-T1 : « pauses », en dernier
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
         QCOMPARE(plans[3].name, QStringLiteral("page"));
+        QCOMPARE(plans[4].name, QStringLiteral("pauses"));
+    }
+
+    // L10-T1 (DA11) : chaque reprise tombe après le délai d'inactivité du cache, décalée de 0 à 64 ms (court
+    // : 0 à 48), pour tomber dans la fenêtre du redessin différé ; page du banc rechargée (300 objets).
+    void pausesResumeInsideTheFoldWindow()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan plan = bench::pausesScenario(set);
+            QCOMPARE(plan.name, QStringLiteral("pauses"));
+            QCOMPARE(plan.generatedPages, 1);
+            QCOMPARE(plan.zoom, 1.0);
+            std::vector<std::int64_t> pauses;
+            std::int64_t lastRelease = -1;
+            for (const auto& in : plan.inputs) {
+                QVERIFY(!core::hitsWitness({in.pagePos.x(), in.pagePos.y()}, 16.0));
+                QCOMPARE(in.measured, in.kind != InputKind::TabletRelease);
+                if (in.kind == InputKind::TabletPress && lastRelease >= 0) {
+                    pauses.push_back(in.offsetNs - lastRelease);
+                }
+                if (in.kind == InputKind::TabletRelease) {
+                    lastRelease = in.offsetNs;
+                }
+            }
+            const std::size_t strokes = set == bench::ScenarioSet::Court ? 4 : 10;
+            QCOMPARE(pauses.size(), strokes - 1);
+            const std::int64_t idleNs = std::int64_t{ui::kCacheFoldIdleMs} * 1'000'000;
+            for (std::int64_t p : pauses) {
+                QVERIFY(p >= idleNs);
+                QVERIFY(p <= idleNs + 64'000'000);
+            }
+            // k = 0 : l'appui tombe à l'instant du versement et relance la minuterie ; il ne mesure rien de
+            // sûr. Seules les reprises k >= 1 jugent le versement (L10-T6).
+            QCOMPARE(pauses.front(), idleNs);
+            QVERIFY(pauses.back() - pauses.front() >= 40'000'000); // la fenêtre du versement est balayée
+        }
+    }
+
+    void pausesComesAfterTheOthersWithoutChangingThem()
+    {
+        const auto plans = bench::allScenarios(bench::ScenarioSet::Complet);
+        QCOMPARE(plans[0].inputs.size(), bench::strokeScenario(bench::ScenarioSet::Complet).inputs.size());
+        QCOMPARE(plans[4].inputs.size(), std::size_t{10 * 100});
     }
 
     // L2-T23 : changements de page à intervalle fixe par commandes nommées (aucun événement posté, aucune
