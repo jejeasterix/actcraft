@@ -188,6 +188,10 @@ Plan du lot 5 amendé (da1e999 : 34 tâches, 16 vagues, H5-7 à H5-10). Tour 2 d
 - 144 titres contrôlés, 0 trouvé ; NOMS OK 425.
 - D19 (place du groupe `formes-texte`) renvoyée à L4-T0.
 Plan du lot 6 amendé (c2d6796 : 38 tâches, 15 vagues ; nouvelles hypothèses H6-9 « procédure de déblocage publique » et H6-10 « mesure du PBKDF2 sur le Dell 3510 »). Tour 2 de relecture en cours.
+**Décision de A, demandée par B (L7-T26)** : pas d'inclusion privée de `render/src` depuis `ui/presentation.cmake`.
+- À la place, une API publique : `render/include/actcraft/render/equationpaint.h`, avec `EquationPaintMode { Page, Editor }`.
+- Elle est posée par L7-T25, dont le contrat est amendé par B.
+- Raison : règle de modularité des en-têtes publics.
 Hors dépôt, à écrire par l'orchestrateur avant L6-T6 : `REA - Activinspire\docs\re\lots\lot6-noms-profils.txt`.
 Relecture du plan du lot 6, tour 1 : 1 bloquant, 15 majeurs. Rapport : `scratchpad/revue-plan-lot6.md`. Amendement 1 en cours.
 **Nouvelle question pour Jérôme, H6-6b** : licence de Hunspell, MPL 1.1 (recommandé) ou LGPL en lien dynamique ; la décision 34 dit « LGPL, liés dynamiquement ». Elle n'est nécessaire qu'à V12 du lot 6.
