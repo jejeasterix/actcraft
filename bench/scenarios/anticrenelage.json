@@ -1,7 +1,7 @@
 {
   "format": "actcraft-scenario/1",
   "name": "anticrenelage",
-  "description": "S33 : trait noir diagonal lissé quand il vient d'être tracé, après son versement au cache et au zoom 300 % ; grille nette ; texture du cache multi-échantillonnée.",
+  "description": "S33 : trait noir diagonal lissé quand il vient d'être tracé, après son versement au cache et au zoom 300 % ; grille nette ; texture du cache multi-échantillonnée. La valeur attendue de pageCache.samples (4) est kMsaaSamples (app/renderbackend.h) et samples du cache (ui/qml/PageArea.qml) : les changer ensemble.",
   "steps": [
     {"waitReady": true},
     {"expect": "pageCache.samples", "value": 4},
