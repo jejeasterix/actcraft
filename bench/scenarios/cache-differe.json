@@ -1,0 +1,31 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "cache-differe",
+  "description": "Lot 10 : trois traits attendent au-dessus du cache, restent visibles, sont versés après l'inactivité et y restent ; un zoom verse aussi. trait-en-attente est dessiné par la couche d'attente, dans la fenêtre, hors cache : en Direct3D 11, il prouve l'échantillonnage multiple de la fenêtre (kMsaaSamples, app/renderbackend.h).",
+  "steps": [
+    {"waitReady": true},
+    {"command": "pen.color", "argument": "#000000"},
+    {"command": "pen.width", "argument": 8},
+    {"stroke": [[300, 300], [700, 300]], "pressure": 0.5},
+    {"stroke": [[300, 400], [700, 400]], "pressure": 0.5},
+    {"stroke": [[300, 450], [500, 650]], "pressure": 0.5},
+    {"expect": "fixedPage.pendingCount", "value": 3},
+    {"checkPixel": "attente-1", "at": [500, 300], "color": "#000000", "tolerance": 60},
+    {"checkPixel": "attente-2", "at": [500, 400], "color": "#000000", "tolerance": 60},
+    {"checkEdge": "trait-en-attente", "from": [370, 550], "to": [430, 550], "minIntermediate": 2, "minInk": 8},
+    {"capture": "en-attente"},
+    {"waitFor": "fixedPage.pendingCount", "value": 0, "timeoutMs": 5000},
+    {"waitReady": true},
+    {"checkPixel": "verse-1", "at": [500, 300], "color": "#000000", "tolerance": 60},
+    {"checkPixel": "verse-2", "at": [500, 400], "color": "#000000", "tolerance": 60},
+    {"checkEdge": "trait-verse", "from": [370, 550], "to": [430, 550], "minIntermediate": 2, "minInk": 8},
+    {"capture": "verses"},
+    {"stroke": [[300, 200], [700, 200]], "pressure": 0.5},
+    {"expect": "fixedPage.pendingCount", "value": 1},
+    {"command": "view.zoom", "argument": 150},
+    {"waitReady": true},
+    {"expect": "fixedPage.pendingCount", "value": 0},
+    {"checkPixel": "verse-au-zoom", "at": [500, 200], "color": "#000000", "tolerance": 60},
+    {"capture": "zoom"}
+  ]
+}

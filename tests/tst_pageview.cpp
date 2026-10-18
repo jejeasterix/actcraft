@@ -2,9 +2,13 @@
 #include <actcraft/core/model.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/render/pendinglayeritem.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/viewtransform.h>
 
+#include <QElapsedTimer>
+#include <QMouseEvent>
 #include <QPointingDevice>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -187,6 +191,39 @@ void cachedStroke(CachedFixture& f, QPointF from, QPointF to)
         send(QEvent::TabletMove, from + (to - from) * i / 4.0, Qt::LeftButton);
     }
     send(QEvent::TabletRelease, to, Qt::NoButton);
+}
+
+// Lot 10 : vue avec cache ET couche d'attente (sœur du cache, jamais enfant de la page fixe) ; la page fixe
+// passe en différé.
+struct PendingFixture
+{
+    CachedFixture cached;
+    actcraft::render::PendingLayerItem* layer = nullptr;
+};
+
+bool openPending(PendingFixture& f, QPointingDevice* stylus)
+{
+    if (!openCached(f.cached, stylus)) {
+        return false;
+    }
+    f.layer = new actcraft::render::PendingLayerItem;
+    f.layer->setSize(f.cached.fixed->size());
+    f.layer->setParentItem(f.cached.fixed->parentItem());
+    f.layer->setFixedPage(f.cached.fixed);
+    f.cached.view->setPendingLayer(f.layer);
+    return f.cached.fixed->deferredFolding();
+}
+
+// Trait horizontal de 21 points de (100, y) à (500, y), largeur 4.
+actcraft::core::Stroke line(double y)
+{
+    actcraft::core::Stroke s;
+    s.baseWidth = 4;
+    s.color = 0xFF000000u;
+    for (int i = 0; i <= 20; ++i) {
+        s.points.push_back(actcraft::core::StrokePoint{100.0 + 20.0 * i, y, 0.5f});
+    }
+    return s;
 }
 
 const actcraft::core::Stroke& lastStroke(const DrawFixture& f)
@@ -795,6 +832,169 @@ private slots:
         }
         QVERIFY(f.view->cacheReady());
         QCOMPARE(requested.count(), 1);
+    }
+
+    // Lot 10 (DA11) : avec une couche d'attente, un trait n'est versé au cache qu'après l'inactivité.
+    void strokeWaitsAboveTheCacheUntilIdle()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        QSignalSpy requested(f.cached.view, &PageView::cacheRefreshRequested);
+        cachedStroke(f.cached, QPointF(300, 200), QPointF(500, 260));
+        QTRY_COMPARE(f.cached.fixed->pendingCount(), 1);
+        QCOMPARE(requested.count(), 0);
+        QVERIFY(f.cached.view->cacheReady()); // l'affichage (cache + attente) est juste
+        QVERIFY(f.cached.view->foldTimerActive());
+        QTRY_COMPARE_WITH_TIMEOUT(requested.count(), 1, kCacheFoldIdleMs + 2000);
+        QCOMPARE(f.cached.fixed->pendingCount(), 0); // versé par la demande elle-même
+    }
+
+    void inputPostponesTheFold()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        QSignalSpy requested(f.cached.view, &PageView::cacheRefreshRequested);
+        cachedStroke(f.cached, QPointF(300, 200), QPointF(500, 260));
+        QTest::qWait(kCacheFoldIdleMs * 6 / 10);
+        cachedStroke(f.cached, QPointF(300, 300), QPointF(500, 360));
+        QTest::qWait(kCacheFoldIdleMs * 6 / 10);
+        QCOMPARE(requested.count(), 0); // 1,2 délai depuis le premier trait, 0,6 depuis le second
+        QTRY_COMPARE_WITH_TIMEOUT(requested.count(), 1, kCacheFoldIdleMs + 2000);
+        QCOMPARE(f.cached.fixed->pendingCount(), 0);
+    }
+
+    // Molette et clavier repoussent aussi le versement (une entrée, quelle qu'elle soit).
+    void wheelPostponesTheFold()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        QSignalSpy requested(f.cached.view, &PageView::cacheRefreshRequested);
+        f.cached.fixed->appendStroke(line(100));
+        QVERIFY(f.cached.view->foldTimerActive());
+        QTest::qWait(kCacheFoldIdleMs * 6 / 10);
+        QWheelEvent event(QPointF(500, 300), f.cached.window.mapToGlobal(QPointF(500, 300)), QPoint(),
+                          QPoint(0, -120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+        QCoreApplication::sendEvent(&f.cached.window, &event);
+        QTest::qWait(kCacheFoldIdleMs * 6 / 10);
+        QCOMPARE(requested.count(), 0); // 1,2 délai depuis le trait, 0,6 depuis la molette
+        QTest::keyClick(&f.cached.window, Qt::Key_Shift);
+        QTest::qWait(kCacheFoldIdleMs * 6 / 10);
+        QCOMPARE(requested.count(), 0); // 0,6 délai depuis la touche
+        QTRY_COMPARE_WITH_TIMEOUT(requested.count(), 1, kCacheFoldIdleMs + 2000);
+        QCOMPARE(f.cached.fixed->pendingCount(), 0);
+    }
+
+    // Un survol (stylet tenu près du tableau, souris qui passe) ne repousse pas le versement.
+    void hoverDoesNotPostponeTheFold()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        QSignalSpy requested(f.cached.view, &PageView::cacheRefreshRequested);
+        f.cached.fixed->appendStroke(line(100));
+        QElapsedTimer clock;
+        clock.start();
+        while (requested.count() == 0 && clock.elapsed() < kCacheFoldIdleMs + 2000) {
+            const QPointF at(400.0 + static_cast<double>(clock.elapsed() % 50), 300.0);
+            QTabletEvent hover(QEvent::TabletMove, f.cached.stylus, at, f.cached.window.mapToGlobal(at), 0.0,
+                               0, 0, 0, 0, 0, Qt::NoModifier, Qt::NoButton, Qt::NoButton);
+            QCoreApplication::sendEvent(&f.cached.window, &hover);
+            QMouseEvent move(QEvent::MouseMove, at, at, f.cached.window.mapToGlobal(at), Qt::NoButton,
+                             Qt::NoButton, Qt::NoModifier);
+            QCoreApplication::sendEvent(&f.cached.window, &move);
+            QTest::qWait(20);
+        }
+        QCOMPARE(requested.count(), 1);                    // versé malgré les survols
+        QVERIFY(clock.elapsed() < kCacheFoldIdleMs + 500); // et à l'heure, pas repoussé
+        QCOMPARE(f.cached.fixed->pendingCount(), 0);
+    }
+
+    void zoomFoldsThePending()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        cachedStroke(f.cached, QPointF(300, 200), QPointF(500, 260));
+        QTRY_COMPARE(f.cached.fixed->pendingCount(), 1);
+        QSignalSpy requested(f.cached.view, &PageView::cacheRefreshRequested);
+        f.cached.view->setZoom(2.0);
+        QCOMPARE(requested.count(), 1);
+        QCOMPARE(f.cached.fixed->pendingCount(), 0);
+        QVERIFY(!f.cached.view->foldTimerActive());
+    }
+
+    // Invariant d'échelle (revue de L10-T3) : tout setRasterScale de la page fixe est suivi d'un versement
+    // dans le même tour de boucle, par chacun de ses chemins (zoom posé, ajustement, page redimensionnée, fin
+    // d'un zoom à la molette). Versé hors de la demande de redessin (minuterie d'inactivité seule, fin du
+    // redessin), la couche d'attente serait refaite à chaque échelle, hors de la texture redessinée.
+    void everyRasterScaleChangeFoldsInTheSameTurn()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        actcraft::render::FixedPageItem* fixed = f.cached.fixed;
+        // Zoom posé.
+        fixed->appendStroke(line(100));
+        QCOMPARE(fixed->pendingCount(), 1);
+        double scale = fixed->rasterScale();
+        f.cached.view->setZoom(2.0);
+        QVERIFY(!qFuzzyCompare(fixed->rasterScale(), scale));
+        QCOMPARE(fixed->pendingCount(), 0);
+        // Ajustement.
+        fixed->appendStroke(line(120));
+        QCOMPARE(fixed->pendingCount(), 1);
+        scale = fixed->rasterScale();
+        f.cached.view->fitPage();
+        QVERIFY(!qFuzzyCompare(fixed->rasterScale(), scale));
+        QCOMPARE(fixed->pendingCount(), 0);
+        // Page redimensionnée : « Ajuster » suit.
+        fixed->appendStroke(line(140));
+        QCOMPARE(fixed->pendingCount(), 1);
+        scale = fixed->rasterScale();
+        f.cached.view->content()->setSize(QSizeF(2048, 1536));
+        QVERIFY(!qFuzzyCompare(fixed->rasterScale(), scale));
+        QCOMPARE(fixed->pendingCount(), 0);
+        // Fin d'un zoom à la molette (minuterie du redessin, après le dernier cran).
+        fixed->appendStroke(line(160));
+        QCOMPARE(fixed->pendingCount(), 1);
+        scale = fixed->rasterScale();
+        const QPointF pos(500, 300);
+        QWheelEvent event(pos, f.cached.window.mapToGlobal(pos), QPoint(), QPoint(0, 120), Qt::NoButton,
+                          Qt::ControlModifier, Qt::NoScrollPhase, false);
+        QCoreApplication::sendEvent(&f.cached.window, &event);
+        QCOMPARE(fixed->pendingCount(), 1); // zoom en cours : l'échelle n'a pas bougé, rien n'est versé
+        QElapsedTimer clock;
+        clock.start();
+        while (qFuzzyCompare(fixed->rasterScale(), scale) && clock.elapsed() < 3000) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 1);
+        }
+        QVERIFY(!qFuzzyCompare(fixed->rasterScale(), scale));
+        QCOMPARE(fixed->pendingCount(), 0); // versé dans le tour même où l'échelle a changé
+        QVERIFY(!f.cached.view->foldTimerActive());
+    }
+
+    void tooManyPendingFoldAtOnce()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        QSignalSpy requested(f.cached.view, &PageView::cacheRefreshRequested);
+        for (int i = 0; i < kCacheFoldMaxPending - 1; ++i) {
+            f.cached.fixed->appendStroke(line(10.0 + i)); // page interne : insert, donc attente
+        }
+        QCOMPARE(requested.count(), 0);
+        QCOMPARE(f.cached.fixed->pendingCount(), kCacheFoldMaxPending - 1);
+        f.cached.fixed->appendStroke(line(400));
+        QCOMPARE(requested.count(), 1);
+        QCOMPARE(f.cached.fixed->pendingCount(), 0);
+    }
+
+    void withoutCacheNothingWaits()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        f.cached.view->setCacheEnabled(false);
+        QVERIFY(!f.cached.fixed->deferredFolding());
+        f.cached.fixed->appendStroke(line(100));
+        QCOMPARE(f.cached.fixed->pendingCount(), 0);
+        f.cached.view->setCacheEnabled(true);
+        QVERIFY(f.cached.fixed->deferredFolding());
     }
 
     void contentResizeRefitsAndEmitsScroll()

@@ -84,6 +84,33 @@ bool takesPressAt(const QQuickItem* item, QPointF scenePos)
                        [scenePos](const QQuickItem* child) { return takesPressAt(child, scenePos); });
 }
 
+// Lot 10 : une entrée qui agit (appui, relâché, mouvement en contact, molette, appui de touche) repousse le
+// versement ; un survol non (stylet tenu près du tableau, souris sur une barre), sinon il ne partirait qu'au
+// plafond.
+bool postponesFold(const QEvent& event)
+{
+    switch (event.type()) {
+    case QEvent::TabletPress:
+    case QEvent::TabletRelease:
+    case QEvent::MouseButtonPress:
+    case QEvent::MouseButtonRelease:
+    case QEvent::Wheel:
+    case QEvent::KeyPress:
+    case QEvent::TouchBegin:
+    case QEvent::TouchUpdate:
+    case QEvent::TouchEnd:
+        return true;
+    case QEvent::TabletMove: {
+        const auto& tablet = static_cast<const QTabletEvent&>(event);
+        return tablet.buttons() != Qt::NoButton || tablet.pressure() > 0;
+    }
+    case QEvent::MouseMove:
+        return static_cast<const QMouseEvent&>(event).buttons() != Qt::NoButton;
+    default:
+        return false;
+    }
+}
+
 } // namespace
 
 PageView::PageView(QQuickItem* parent) : QQuickItem(parent)
@@ -95,6 +122,18 @@ PageView::PageView(QQuickItem* parent) : QQuickItem(parent)
     connect(&m_cacheTimer, &QTimer::timeout, this, [this] {
         updateCacheTextureSize();
         requestCacheRefresh();
+    });
+    m_foldTimer.setSingleShot(true);
+    m_foldTimer.setTimerType(Qt::PreciseTimer); // la reprise de « pauses » vise la fin du délai à 8 ms près
+    m_foldTimer.setInterval(kCacheFoldIdleMs);
+    connect(&m_foldTimer, &QTimer::timeout, this, [this] {
+        if (m_pen && m_pen->isDrawing()) {
+            m_foldTimer.start(); // jamais pendant un trait
+            return;
+        }
+        if (m_fixedPage && m_fixedPage->pendingCount() > 0) {
+            requestCacheRefresh(); // verse et redessine, hors de l'écriture
+        }
     });
 }
 
@@ -181,6 +220,7 @@ void PageView::setCacheEnabled(bool enabled)
         return;
     }
     m_cacheEnabled = enabled;
+    updateDeferral();
     emit cacheEnabledChanged();
     requestCacheRefresh();
 }
@@ -215,6 +255,13 @@ void PageView::fitPage()
 
 void PageView::requestCacheRefresh()
 {
+    // Lot 10 : tout redessin verse, dans le même tour que la demande (jamais à sa fin : un objet inséré entre
+    // la demande et la synchronisation suivante ne serait alors ni dans le cache ni dans la couche
+    // d'attente).
+    m_foldTimer.stop();
+    if (m_fixedPage) {
+        m_fixedPage->foldPending();
+    }
     if (!m_cacheEnabled) {
         m_refreshInFlight = false;
         m_refreshAgain = false;
@@ -255,6 +302,7 @@ void PageView::setFixedPage(render::FixedPageItem* page)
     }
     disconnect(m_readyConnection);
     disconnect(m_contentConnection);
+    disconnect(m_pendingConnection);
     m_fixedPage = page;
     if (m_fixedPage) {
         // Page prête (premier dessin, images décodées) ou contenu changé (trait inséré, annulation, autre
@@ -266,9 +314,67 @@ void PageView::setFixedPage(render::FixedPageItem* page)
         };
         m_readyConnection = connect(m_fixedPage, &render::FixedPageItem::readyChanged, this, refresh);
         m_contentConnection = connect(m_fixedPage, &render::FixedPageItem::contentChanged, this, refresh);
+        // Lot 10 : un objet mis en attente (ou retiré pendant qu'il attend) n'émet que pendingChanged.
+        m_pendingConnection =
+            connect(m_fixedPage, &render::FixedPageItem::pendingChanged, this, &PageView::onPendingChanged);
     }
+    updateDeferral();
     rebuildPen();
     emit fixedPageChanged();
+}
+
+render::PendingLayerItem* PageView::pendingLayer() const noexcept
+{
+    return m_pendingLayer;
+}
+
+void PageView::setPendingLayer(render::PendingLayerItem* layer)
+{
+    if (layer == m_pendingLayer) {
+        return;
+    }
+    m_pendingLayer = layer;
+    updateDeferral();
+    emit pendingLayerChanged();
+}
+
+bool PageView::foldTimerActive() const noexcept
+{
+    return m_foldTimer.isActive();
+}
+
+void PageView::updateDeferral()
+{
+    const bool deferred = m_cacheEnabled && !m_pendingLayer.isNull();
+    if (m_fixedPage) {
+        if (!deferred && m_fixedPage->pendingCount() > 0) {
+            requestCacheRefresh(); // ce qui attendait passe au cache avant que la couche ne serve plus
+        }
+        m_fixedPage->setDeferredFolding(deferred);
+    }
+    if (!deferred) {
+        m_foldTimer.stop();
+    }
+}
+
+void PageView::onPendingChanged()
+{
+    if (!m_fixedPage || m_fixedPage->pendingCount() == 0) {
+        m_foldTimer.stop();
+        return;
+    }
+    if (m_fixedPage->pendingCount() >= kCacheFoldMaxPending) {
+        requestCacheRefresh(); // plafond : versé tout de suite (H10-3)
+        return;
+    }
+    m_foldTimer.start();
+}
+
+void PageView::postponeFold()
+{
+    if (m_foldTimer.isActive()) {
+        m_foldTimer.start();
+    }
 }
 
 render::InkItem* PageView::ink() const noexcept
@@ -358,6 +464,9 @@ void PageView::rebuildPen()
 
 bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
 {
+    if (postponesFold(event)) {
+        postponeFold();
+    }
     if (!m_pipeline) {
         return false;
     }
@@ -432,6 +541,9 @@ void PageView::itemChange(ItemChange change, const ItemChangeData& value)
 
 bool PageView::eventFilter(QObject* watched, QEvent* event)
 {
+    if (postponesFold(*event)) {
+        postponeFold(); // lot 10 : rien n'est pris ni filtré de plus pour autant
+    }
     const QEvent::Type type = event->type();
     if (type == QEvent::TabletPress || type == QEvent::TabletMove || type == QEvent::TabletRelease) {
         auto* tablet = static_cast<QTabletEvent*>(event);
@@ -647,6 +759,7 @@ bool PageView::acceptsDevice(const QInputDevice* device) const
 
 void PageView::wheelEvent(QWheelEvent* event)
 {
+    postponeFold();
     if (!acceptsDevice(event->pointingDevice())) {
         event->ignore();
         return;

@@ -139,7 +139,8 @@ QJsonObject scenarioJson(const ScenarioResult& s)
             {"latency", latency},
             {"input", input},
             {"memory", memory},
-            {"cache", QJsonObject{{"refreshes", static_cast<double>(s.cacheRequestNs.size())}}},
+            {"cache", QJsonObject{{"refreshes", static_cast<double>(s.cacheRequestNs.size())},
+                                  {"pending_max", s.pendingMax}}},
             {"raw", raw}};
 }
 

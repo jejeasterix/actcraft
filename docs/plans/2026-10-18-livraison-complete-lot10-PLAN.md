@@ -1922,10 +1922,15 @@ touchés).
 
 **Interdits.** Aucun changement de `DocumentController`, `penadapters.*`, `tools/`, `core/`. `oneCacheRenderPerStroke`
 et les autres tests du cache de `tst_pageview` restent tels quels (sans couche d'attente : comportement du lot 2).
-Deux tests existants changent, avec leur raison : `benchRunReadsItsTargetsAt1366x768` (`tst_bench_verdict`) compte
-cinq contrôles de contenu au lieu de quatre (`stroke-folded` ajouté par le plan) ; `cacheRefreshesAreRecorded`
-(`tst_bench_result`, L10-T1) exige au moins 2 redessins dans `pauses` au lieu de 3 (versement différé : un par
-reprise k ≥ 1, la reprise k = 0 relançant la minuterie), le commentaire du test le dit.
+Trois tests existants changent, avec leur raison : `benchRunReadsItsTargetsAt1366x768` (`tst_bench_verdict`) et
+`contentCheckPasses` (`tst_bench_result`, oublié par la première version de ce plan, relevé à L10-T4) comptent cinq
+contrôles de contenu au lieu de quatre (`stroke-folded` ajouté par le plan) ; `cacheRefreshesAreRecorded`
+(`tst_bench_result`, L10-T1) exige au moins 1 redessin dans `pauses` au lieu de 3 : versement différé, la reprise
+k = 0 tombe à 500 ms tout juste et relance la minuterie, la reprise k = 1 (524 ms) fait verser ; en debug, ce
+redessin du cache en rendu logiciel (≈ 300 ms, fumée du 2026-10-18 : demande à 1 391 ms, fin à 1 693 ms) retarde le
+relâché du trait suivant (1 700 ms au lieu de 1 609) et ramène la pause k = 2 (548 ms prévus) à ≈ 457 ms, sous le
+délai : seul le premier versement est garanti. Le commentaire du test le dit ; `deferredFoldShowsInTheResult` (sans
+minutage) reste le garde principal du différé.
 
 **Terminé quand.** Preuve verte, captures décrites, MSAA de la fenêtre prouvé à l'écran (vert, puis rouge sous
 `kMsaaSamples = 1` seule), JSON du banc joint, commit fait.
@@ -2326,7 +2331,7 @@ struct PendingLayerForeign
   sa signature dans le fichier et s'y conformer). Dans `tests/tst_bench_verdict.cpp`,
   `benchRunReadsItsTargetsAt1366x768` : `std::size_t{5}` au lieu de `{4}` (commentaire : `// L10-T4 :
   stroke-folded`). Dans `tests/tst_bench_result.cpp`, `cacheRefreshesAreRecorded` : les trois minimums passent de 3
-  à 2, commentaire « L10-T4 : versement différé, un redessin par reprise k ≥ 1 (4 traits en court) ». Et un
+  à 1 (raison : « Interdits » ci-dessus) ; `contentCheckPasses` compte 5 contrôles. Et un
   contrôle sans minutage :
 
 ```cpp

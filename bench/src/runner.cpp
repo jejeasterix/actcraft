@@ -234,6 +234,10 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     const auto updated = QObject::connect(m_view, &ui::PageView::cacheUpdated, m_view, [&cacheUpdates] {
         cacheUpdates.push_back(core::monotonicNowNs());
     });
+    // L10-T4 : objets en attente au-dessus du cache (versement différé).
+    const auto pendingWatch =
+        QObject::connect(m_fixed, &render::FixedPageItem::pendingChanged, m_view,
+                         [this, &s] { s.pendingMax = std::max(s.pendingMax, m_fixed->pendingCount()); });
     int viewChanges = 0; // la molette postée a-t-elle atteint la vue ?
     const auto zoomed =
         QObject::connect(m_view, &ui::PageView::zoomChanged, m_view, [&viewChanges] { ++viewChanges; });
@@ -331,6 +335,7 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     QObject::disconnect(frozen);
     QObject::disconnect(requested);
     QObject::disconnect(updated);
+    QObject::disconnect(pendingWatch);
     s.cacheRequestNs = std::move(cacheRequests);
     s.cacheUpdatedNs = std::move(cacheUpdates);
     QObject::disconnect(zoomed);
@@ -419,7 +424,7 @@ void saveCaptures(const QString& dirPath, const QString& graphicsApi, const QLis
 
 void Runner::runDemo(BenchResult& result)
 {
-    // Séquence non mesurée (décision 31) : captures en mémoire, 4 contrôles, PNG seulement avec --captures.
+    // Séquence non mesurée (décision 31) : captures en mémoire, 5 contrôles, PNG seulement avec --captures.
     const auto must = [&](const char* step, const std::function<bool()>& condition, int timeoutMs) {
         if (!waitFor(condition, timeoutMs)) {
             result.invalidReasons << QStringLiteral("error: demo %1").arg(QLatin1String(step));
@@ -454,6 +459,12 @@ void Runner::runDemo(BenchResult& result)
     must("cache not ready after stroke", cacheReady, 10000); // trait figé dans le cache
     waitMs(100);
     const QImage endStroke = m_window->grabWindow();
+    // Lot 10 : le trait de démonstration attend au-dessus du cache, puis y est versé ; il doit y être encore.
+    must(
+        "stroke not folded", [this] { return m_fixed->pendingCount() == 0 && m_view->cacheReady(); },
+        ui::kCacheFoldIdleMs + 5000);
+    waitMs(100);
+    const QImage folded = m_window->grabWindow();
 
     m_view->setZoom(8.0);
     must("cache not ready at zoom 800", cacheReady, 10000);
@@ -477,6 +488,7 @@ void Runner::runDemo(BenchResult& result)
         checkColor(QStringLiteral("witness-stroke"), back100, at(w.strokeProbe),
                    QColor::fromRgba(w.strokeColor), kWitnessTolerance),
         checkColor(QStringLiteral("ink-mid-stroke"), midStroke, inkPixel, QColor(Qt::black), kInkTolerance),
+        checkColor(QStringLiteral("stroke-folded"), folded, inkPixel, QColor(Qt::black), kInkTolerance),
     };
 
     if (!m_options.capturesDir.isEmpty()) {
