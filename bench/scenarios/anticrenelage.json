@@ -18,14 +18,14 @@
     {"command": "pen.width", "argument": 8},
     {"stroke": [[300, 300], [500, 500]], "pressure": 0.5},
     {"waitReady": true},
-    {"checkEdge": "trait-diagonal", "from": [370, 400], "to": [430, 400], "minIntermediate": 2},
+    {"checkEdge": "trait-diagonal", "from": [370, 400], "to": [430, 400], "minIntermediate": 2, "minInk": 8},
     {"capture": "trait"},
     {"wait": 800},
     {"waitReady": true},
-    {"checkEdge": "trait-verse", "from": [370, 400], "to": [430, 400], "minIntermediate": 2},
+    {"checkEdge": "trait-verse", "from": [370, 400], "to": [430, 400], "minIntermediate": 2, "minInk": 8},
     {"command": "view.zoom", "argument": 300},
     {"waitReady": true},
-    {"checkEdge": "trait-zoom", "from": [385, 400], "to": [415, 400], "minIntermediate": 2},
+    {"checkEdge": "trait-zoom", "from": [385, 400], "to": [415, 400], "minIntermediate": 2, "minInk": 24},
     {"capture": "trait-zoom"}
   ]
 }
