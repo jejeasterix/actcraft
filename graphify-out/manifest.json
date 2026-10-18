@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "features/CMakeLists.txt": {
-    "mtime": 1792333660.137461,
-    "ast_hash": "8b6e4f0226e7a099371c53e7f90b6aa1",
+    "mtime": 1792349203.9087856,
+    "ast_hash": "441335493e6979a2fc0682ede8a43518",
     "semantic_hash": ""
   },
   "formats/CMakeLists.txt": {
@@ -935,8 +935,8 @@
     "semantic_hash": ""
   },
   "tests/CMakeLists.txt": {
-    "mtime": 1792333663.1158366,
-    "ast_hash": "cb848d9ce55a3e748b183332c14d2630",
+    "mtime": 1792349203.9138129,
+    "ast_hash": "9b3fc84232c8af675e4fe59a3838a127",
     "semantic_hash": ""
   },
   "tools/CMakeLists.txt": {
@@ -1645,8 +1645,8 @@
     "semantic_hash": ""
   },
   "docs/plans/2026-10-18-livraison-complete-lot7-phase1-PLAN.md": {
-    "mtime": 1792338789.4329298,
-    "ast_hash": "726bd5336151e1ccd67db9844376d032",
+    "mtime": 1792339790.2381656,
+    "ast_hash": "5ec227195b14dad12d8e4779296148db",
     "semantic_hash": ""
   },
   "docs/plans/2026-10-18-livraison-complete-lot7b-PLAN.md": {
@@ -1660,13 +1660,93 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792338022.933381,
-    "ast_hash": "ddaf39df440c3eb097c419e7ab0cd6fd",
+    "mtime": 1792346209.7996938,
+    "ast_hash": "2873a49005c7bace348f6ff4d09dc616",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
     "mtime": 1792338935.3717299,
     "ast_hash": "bd2c6d2d13b8893f2855cb82f039f666",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_calculator.cpp": {
+    "mtime": 1792349203.9208047,
+    "ast_hash": "ae8b0fbc23fc49d8e51f49703b06d339",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_camera.cpp": {
+    "mtime": 1792349203.9228058,
+    "ast_hash": "37bfb0b0c82bd3e29b9ab2df106b3aea",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_countdown.cpp": {
+    "mtime": 1792349203.9264455,
+    "ast_hash": "c3fc2bc61a46dee84e55d4d9785dd290",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_curtain.cpp": {
+    "mtime": 1792349203.92844,
+    "ast_hash": "8415f01c33c546a07f6aff1954d42e54",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_desktopwheel.cpp": {
+    "mtime": 1792349203.929439,
+    "ast_hash": "adb5d96f043743c0e750ad283a2880a5",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_dice.cpp": {
+    "mtime": 1792349203.9324386,
+    "ast_hash": "ec274ad3cce63ab187af7d5c197f54df",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_handwriting.cpp": {
+    "mtime": 1792349203.9364378,
+    "ast_hash": "4b5b3282e8cd6b66b97b4c61f9cde836",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_keyboard.cpp": {
+    "mtime": 1792349203.937327,
+    "ast_hash": "dd16a1f36866ab70826894a995b1f3e1",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_mathtools.cpp": {
+    "mtime": 1792349203.944044,
+    "ast_hash": "9492cba6d0c710f4d676a88cf7f3edf2",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_pagetools.cpp": {
+    "mtime": 1792349203.9450502,
+    "ast_hash": "82781f51371777fb6184bb299866898d",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_pagezoom.cpp": {
+    "mtime": 1792349203.9470425,
+    "ast_hash": "f16559d452a996f4c1ad73206da777b9",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_recognitionsession.cpp": {
+    "mtime": 1792349203.9498134,
+    "ast_hash": "c592aee70c0d033d069d4db331777115",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_shapefinder.cpp": {
+    "mtime": 1792349203.9518366,
+    "ast_hash": "73ed157b1378ead38300b129b44e8b31",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_spotlight.cpp": {
+    "mtime": 1792349203.9518366,
+    "ast_hash": "a2e87d05e204cf44ade4c1091eff2045",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_ticker.cpp": {
+    "mtime": 1792349203.9562721,
+    "ast_hash": "68d6e989d8b3bacfda7f3a82a38dbcc5",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_transitions.cpp": {
+    "mtime": 1792349203.9607306,
+    "ast_hash": "cd0d0d0bd7691352a2166993504cc4d0",
     "semantic_hash": ""
   }
 }
