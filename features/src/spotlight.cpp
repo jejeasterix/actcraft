@@ -88,7 +88,8 @@ bool Spotlight::press(QPointF point)
     if (best->distance <= kRimMargin) {
         m_grab = best->grab;
     } else {
-        // Cache plein comme spot : le pourtour est testé d'abord, l'intérieur ne se saisit qu'ailleurs.
+        // Décision : pour un cache plein comme pour un spot, le pourtour l'emporte sur l'intérieur (il est
+        // testé d'abord) ; l'intérieur d'un cache plein ne déplace que hors de la bande du pourtour.
         const bool inside = f.contains(point);
         if (inside == hidesInside())
             m_grab = Grab::Move;
