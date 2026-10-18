@@ -144,4 +144,356 @@ trois tâches attendent l'accord, la clôture L6-T37 aussi (S21 est un scénario
    ne rend plus que des tâches de 6b à la fin de 6a, et rien à la fin du lot ; sur la sortie de
    `ctest --preset debug -V`, aucune ligne `SKIP   :` qui contienne `Talon L6`.
 
+## Sections des tâches
+
+<a id="tache-l6-t19"></a>
+### Tâche L6-T19 — `formats` : fragment de ressource
+
+**Objectif.** D6-14 : une ressource ajoutée à la bibliothèque est un `.actcraft` d'**une page** qui ne contient que
+les objets choisis et les seules ressources qu'ils référencent (images par empreinte). Écrire un fragment depuis un
+document, le relire, et préparer son insertion (identifiants neufs, ressources à ajouter au document cible). Le patron
+évident est le mauvais : écrire le document entier puis supprimer les pages et objets en trop garderait toutes les
+ressources du document (taille, fuite de contenu d'un autre cours).
+
+**Fichiers.** `formats/include/actcraft/formats/fragment.h`, `formats/src/fragment.cpp`, `tests/tst_formats_fragment.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_formats_fragment|tst_formats_nativefile'`.
+
+**Interdits.** QtCore seulement (`formats/` sans QtGui) ; réutiliser l'écrivain et le lecteur natifs (aucun second
+format) ; un objet de type inconnu reste gardé tel quel (L2-C8).
+
+**Terminé quand** les cinq fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** `fragment.h` :
+  ```cpp
+  #pragma once
+
+  #include <actcraft/core/model.h>
+
+  #include <QIODevice>
+  #include <QString>
+
+  #include <optional>
+  #include <vector>
+
+  namespace actcraft::formats {
+
+  struct Fragment
+  {
+      core::Page page;          // une page qui ne contient que les objets du fragment
+      core::Document resources; // document porteur des seules ressources référencées (même type que le natif)
+  };
+
+  // Écrit un .actcraft d'une page avec les objets `objects` de la page `page` de `document`.
+  bool writeFragment(const core::Document& document, int page, const std::vector<core::ObjectId>& objects,
+                     QIODevice& out, QString& error);
+  std::optional<Fragment> readFragment(QIODevice& in, QString& error); // refuse un fichier de plus d'une page
+  // Objets prêts à insérer : identifiants neufs pris dans `target`, ressources manquantes copiées dans `target`.
+  std::vector<core::PageObject> prepareInsertion(const Fragment& fragment, core::Document& target);
+
+  } // namespace actcraft::formats
+  ```
+  Le type qui porte les ressources (`core::Document` ou une table de ressources) : celui du lecteur natif du lot 2 ;
+  lire `formats/include/actcraft/formats/` et adapter **ce seul membre**, en le notant au rapport.
+- [ ] **Étape 2 : test rouge** `tst_formats_fragment.cpp` (document de 2 pages, une image A en page 1, une image B en
+  page 2, un trait et une forme en page 1) : `objectsAndResourcesRoundTrip` (fragment du trait et de l'image A, relu :
+  deux objets, mêmes empreintes d'objet) ; `onlyReferencedResourcesAreWritten` (archive du fragment : `resources/` ne
+  contient que l'empreinte de A) ; `insertGivesFreshIdentifiers` (`prepareInsertion` dans le document d'origine :
+  identifiants absents de toutes ses pages ; la ressource A n'est pas dupliquée) ; `unknownObjectKept` (un objet de
+  type inconnu dans le fragment : relu, réécrit à l'identique) ; `notAFragmentRefused` (un `.actcraft` de 2 pages →
+  `std::nullopt`, message).
+- [ ] **Étape 3 : implémentation, vert, preuve de tâche** ; commit « Lot 6 : fragments de ressource au format natif
+  (L6-T19) ».
+
+<a id="tache-l6-t20"></a>
+### Tâche L6-T20 — `ui` : bibliothèque de ressources
+
+**Objectif.** `ui::ResourceLibrary` (F-810 à F-813, F-772) : trois racines (D6-14 : mes ressources, ressources
+partagées, autre dossier), arborescence des dossiers, éléments d'un dossier (fragments `.actcraft`, images `.png`
+`.jpg` `.svg`), compteur, liste ou grille, petite ou grande taille (réglages du profil), recherche par nom de fichier
+et par mots-clés (lus dans les fragments, L6-T10) sur un **fil secondaire, annulable** (principe du corpus contraire à
+la fluidité : jamais d'indexation bloquante, amendement 1, § 4), vignettes rendues sur `QThreadPool` par le peintre
+partagé (A13) et mises en cache dans `<AppCacheLocation>/vignettes/<empreinte>.png`, renommer, supprimer, créer un
+dossier, ajouter la sélection (`Ressource<N>.actcraft`, N = premier libre), insérer un élément dans la page courante
+(image → commande d'insertion du lot 5, A11 ; fragment → `prepareInsertion` puis une commande d'ajout, une étape).
+
+**Fichiers.** `ui/include/actcraft/ui/resourcelibrary.h`, `ui/src/resourcelibrary.cpp`, `tests/tst_ui_resources.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_resources` ; banc sans écran.
+
+**Interdits.** Aucun accès disque sur le fil principal pendant un contact ; aucun pack de l'original ; aucune recherche
+en ligne ; suppression = `QFile::moveToTrash` quand la plateforme le permet, sinon suppression après confirmation
+(la commande QML demande la confirmation).
+
+**Terminé quand** les neuf fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** : `ui::ResourceLibrary : QAbstractListModel`, `QML_ELEMENT` ; propriétés `document`
+  (`DocumentController*`), `profile` (`ProfileController*`), `root` (`mine`, `shared`, `other`), `folder` (chemin
+  courant), `folders` (`QVariantList` [{path, name, depth}]), `itemCount`, `searching` (bool), `thumbnailsRendered`
+  (int, tests) ; rôles `name`, `path`, `kind` (`fragment`, `image`), `thumbnail` (URL `file:` du cache ou vide) ;
+  `Q_INVOKABLE` `setRoot`, `setOtherFolder(QUrl)`, `openFolder(path)`, `search(text, byName, byKeywords)`,
+  `cancelSearch()`, `rename(path, newName)`, `remove(path)`, `createFolder(name)`, `QString addSelection()`,
+  `bool insert(path, QPointF pagePoint)` ; fonctions statiques `mineRoot()`, `sharedRoot()`.
+- [ ] **Étape 2 : test rouge** (`QStandardPaths::setTestModeEnabled(true)` ; racines dans un dossier temporaire par
+  `setRootPathsForTests`) : `threeRoots` ; `foldersListed` ; `itemsOfAFolder` (2 images et 1 fragment → `itemCount` 3,
+  genres justes) ; `thumbnailsOffTheMainThread` (rendu sur un fil dont l'identifiant diffère du fil principal,
+  enregistré par le test ; `thumbnailsRendered` atteint 3) ; `searchByNameAndKeywords` (fragment aux mots-clés
+  « soleil ») ; `searchIsCancellable` (200 fichiers, `search` puis `cancelSearch` → `searching` faux en moins de
+  200 ms) ; `renameAndDelete` ; `addSelectionCreatesTheNextName` (`Ressource1.actcraft`, puis `Ressource2.actcraft`) ;
+  `insertImageAndFragment` (deux insertions → deux étapes d'annulation, objets présents).
+- [ ] **Étape 3 : implémentation, vert, banc, preuve de tâche** ; commit « Lot 6 : bibliothèque de ressources (L6-T20) ».
+
+<a id="tache-l6-t21"></a>
+### Tâche L6-T21 — QML : navigateur de ressources ; scénario `ressources`
+
+**Objectif.** `ResourceBrowser.qml` : moitié haute (trois boutons de racine, chemin, bouton « … », recherche, arbre des
+dossiers, menu des dossiers : nouveau, renommer, supprimer) ; moitié basse (compteur, vignettes ou liste, menu des
+éléments : insérer, renommer, retirer ; bouton tampon). Insertion : glisser une vignette sur la page (point de dépôt),
+double-clic (centre de la page), `resources.insert`. Tampon (D13) : tant qu'il est actif, chaque clic sur la page
+insère une copie de l'élément choisi (la page est une couverture d'entrée du navigateur pendant le tampon, A7).
+Ajout : glisser la sélection de la page sur un dossier ou sur la moitié basse → `addSelection`. Destinations
+« Mes ressources » et « Ressources partagées » ajoutées à la capture de la caméra du lot 7 (A17, H7-3).
+
+**Fichiers.** `ui/qml/ResourceBrowser.qml`, `bench/scenarios/ressources.json`, fichier de la caméra du lot 7 (A17).
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_captures_ressources|tst_ui_shell'` ; banc sans écran.
+
+**Preuve visuelle.** `captures.ps1 -Scenario ressources … -Lire "appResources.itemCount=1" -Lire "appDocument.shownObjectCount=4"` :
+`LU … OK`, `CAPTURES OK` ; décrire `bibliotheque.png`, `insere.png`, `tampon.png`.
+
+**Interdits.** Le tampon ne trace jamais de trait ; aucune ressource de l'original ; aucun nom de paperboard réel dans
+les éléments d'essai.
+
+**Terminé quand** le scénario est vert et le banc joint.
+
+**Étapes.**
+- [ ] **Étape 1 : scénario rouge** `ressources.json` : `waitReady` ; une forme posée et sélectionnée ;
+  `browser.resources` ; `resources.mine` ; `resources.add` ; `expect appResources.itemCount = 1` ; capture
+  `bibliotheque.png` ; `page.next` (page neuve) ; `resources.insert <chemin de Ressource1.actcraft>` ; capture
+  `insere.png` ; `resources.stamp` ; trois clics injectés sur la page ; `expect appDocument.shownObjectCount = 4` ;
+  capture `tampon.png` ; `resources.stamp`.
+- [ ] **Étape 2 : QML** (`ResourceLibrary { id: appResources; objectName: "appResources"; document: appDocument;
+  profile: appProfile }`, gestionnaires `resources.*`).
+- [ ] **Étape 3 : caméra.** Dans le fichier relevé (A17), ajouter les deux destinations ; leur action appelle
+  `appResources.setRoot(...)` puis l'enregistrement de l'image capturée dans le dossier courant de cette racine.
+- [ ] **Étape 4 : vert**, preuve visuelle, banc, preuve de tâche ; commit « Lot 6 : navigateur de ressources (L6-T21) ».
+
+<a id="tache-l6-t22"></a>
+### Tâche L6-T22 — Mode conception (F-560)
+
+**Objectif.** D6-12 : `ui::DesignMode` porte la bascule (`mode.design`, F2, icône de la ligne supérieure) et neuf
+réglages, tous vrais par défaut (F-560 ; D11 de L6-T0 fait foi) : objets verrouillés modifiables (`editLocked`),
+objets masqués affichés (`showHidden`, en translucide à 40 %), actions mises en évidence (`highlightActions`),
+actions et glisser-une-copie désactivés (`disableActions`), restrictions désactivées (`disableRestrictions`), objets
+bloquants désactivés (`disableBlockers`), accrochage désactivé (`disableSnap`), interaction du bureau désactivée
+(`disableDesktop`), astuces affichées (`showTips`) ; effets de changement de page suspendus. Effets branchés dans ce
+lot : `editLocked` (outil de sélection, A21), `showHidden` (peintre partagé, option de rendu, A20), effets de page
+(A18), `disableSnap` (accrochage des outils du lot 4, par l'option de page lue par `ToolHost`). Les autres sont
+publiés (propriétés) pour le lot 8. Réglages gardés dans le profil (section `design-mode`).
+
+**Fichiers.** `ui/include/actcraft/ui/designmode.h`, `ui/src/designmode.cpp`, `tests/tst_ui_designmode.cpp`,
+`ui/src/toolhost.cpp`, `render/include/actcraft/render/pagepainter.h`, `render/src/pagepainter.cpp`,
+`ui/qml/Main.qml`, `bench/scenarios/mode-creation.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_designmode|tst_render_painter|tst_tools_select|tst_captures_mode_creation'` ;
+banc sans écran.
+
+**Preuve visuelle.** `captures.ps1 -Scenario mode-creation … -Lire "appDesign.active=true"` : `LU … OK`,
+`PIXEL masque-visible OK` (le centre d'un objet masqué est teinté), `CAPTURES OK` ; décrire `conception.png`,
+`normal.png`.
+
+**Interdits.** Le mode ne modifie aucun objet (verrouillé et masqué restent des drapeaux du document) ; un objet
+masqué dessiné en mode conception change le cache : basculer le mode redessine **une** fois, jamais pendant
+l'écriture.
+
+**Terminé quand** les six fonctions passent et le scénario est vert.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** : `ui::DesignMode : QObject`, `QML_ELEMENT`, `active` (bool, lié à `mode.design`), les neuf
+  propriétés booléennes ci-dessus, `profile` (`ProfileController*` : lecture et écriture de la section
+  `design-mode`), signal `effectsChanged`.
+- [ ] **Étape 2 : test rouge** `tst_ui_designmode.cpp` : `toggleIsCheckable` (`trigger("mode.design")` → `active`,
+  coche) ; `nineSettingsWithDefaults` ; `lockedObjectMovesWhileDesigning` (objet verrouillé : glisser de l'outil de
+  sélection sans effet, puis avec `active` → déplacé, une étape) ; `hiddenObjectsDrawnTranslucent` (peintre partagé
+  avec l'option : pixel au centre d'un objet masqué ≠ fond ; sans l'option : = fond) ; `transitionsSuspended`
+  (propriété du lot 7 relevée, A18, fausse quand `active`) ; `settingsPublishedForLot8` (les quatre propriétés
+  d'actions et de restrictions existent et suivent `active`).
+- [ ] **Étape 3 : implémentation** (option `showHiddenTranslucent` ajoutée aux options de `paintPage`, défaut faux ;
+  `ToolHost` consulte `DesignMode::editLocked()` avant de refuser un objet verrouillé ; `Main.qml` : instance
+  `DesignMode { id: appDesign; objectName: "appDesign"; profile: appProfile }`, liaisons vers la vue, les effets de page
+  et l'accrochage), **scénario** `mode-creation.json` (une forme masquée par `browser.properties`, `mode.design`,
+  contrôle `masque-visible`, capture `conception.png`, `mode.design`, capture `normal.png`).
+- [ ] **Étape 4 : vert**, preuve visuelle, banc, preuve de tâche ; commit « Lot 6 : mode conception (L6-T22) ».
+
+<a id="tache-l6-t23"></a>
+### Tâche L6-T23 — Tableau d'accueil
+
+**Objectif.** F-090 sans les entrées exclues (vote, services en ligne de Promethean) et avec les seuls imports
+retenus (PDF, N1-A8) : fenêtre d'accueil devant la fenêtre principale au démarrage (désactivable par une case,
+`appPreferences.dashboardAtStart`), rouvrable par `view.dashboard` (F11) ; colonne gauche : Paperboards, Annoter le
+bureau (commande du lot 7, absente d'Android), Réglages (`profile.edit`), Aide (`help.contents`) ; panneau
+Paperboards : créer, ouvrir, importer un PDF (commande du lot 5), puis les documents récents (L6-T24) en vignettes
+(miniature du fichier natif, `thumbnails/page-1.png`, lue hors du fil principal). Le tableau ne s'ouvre au démarrage
+que lancé par `app/main.cpp` (propriété `appShowDashboard` posée là) : jamais dans le joueur de captures ni le banc.
+
+**Fichiers.** `ui/qml/Dashboard.qml`, `app/main.cpp`, `bench/scenarios/tableau-de-bord.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_captures_tableau_de_bord|tst_ui_shell'`.
+
+**Preuve visuelle.** `captures.ps1 -Scenario tableau-de-bord … -Lire "dashboard.visible=true" -Lire "dashboard.recentCount=2"` :
+`LU … OK`, `LU appDocument.pageCount=3 OK`, `CAPTURES OK` ; décrire `accueil.png`.
+
+**Interdits.** Aucun nom ni texte de l'original (pas de « Dashboard » visible : « Accueil ») ; aucun réseau.
+
+**Terminé quand** le scénario est vert.
+
+**Étapes.**
+- [ ] **Étape 1 : scénario rouge** `tableau-de-bord.json` : `waitReady` ; deux documents d'essai synthétiques (3 et 1
+  pages) écrits sous `.tmp/` par `file.save-as` puis fermés, ce qui les met dans les récents ; `view.dashboard` ;
+  `expect dashboard.visible = true` ; `expect dashboard.recentCount = 2` ; capture `accueil.png` ; clic sur
+  `recent0` ; `expect appDocument.pageCount = 3` ; `expect dashboard.visible = false`.
+- [ ] **Étape 2 : QML et `app/main.cpp`** (propriété de contexte `appShowDashboard` vraie dans l'application
+  seulement ; `Dashboard.qml` ouvert au démarrage si `appShowDashboard && appPreferences.dashboardAtStart` ;
+  délégués `recent<n>` ; gestionnaire `view.dashboard`).
+- [ ] **Étape 3 : vert**, preuve visuelle, preuve de tâche ; contrôle des titres du corpus ; commit « Lot 6 : tableau
+  d'accueil (L6-T23) ».
+
+<a id="tache-l6-t24"></a>
+### Tâche L6-T24 — Documents récents et résumé à l'enregistrement
+
+**Objectif.** `ui::RecentDocuments` : liste du poste (`workstation/recent-documents`, D6-1), dix au plus, le dernier
+ouvert ou enregistré en tête, fichiers locaux absents cachés (une URL `content://` est gardée : son existence ne se teste
+pas), vidée par `file.recent-clear` ; sous-menu « Documents récents » du menu Fichier (entrées dynamiques qui appellent
+`file.open <url>`) ; résumé à l'enregistrement (réglage `document/summary-on-save` du profil, faux par défaut,
+F-930 section Paperboard) : boîte qui donne le nom, le nombre de pages, d'objets, de ressources et la taille du
+fichier, après la fin de l'enregistrement (A16).
+
+**Fichiers.** `ui/include/actcraft/ui/recentdocuments.h`, `ui/src/recentdocuments.cpp`, `tests/tst_ui_recents.cpp`,
+`ui/qml/SaveSummaryDialog.qml`, `ui/qml/FileActions.qml`, `ui/qml/CommandMenu.qml`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_recents|tst_ui_files|tst_ui_shell'`.
+
+**Interdits.** Le résumé se calcule sur le modèle en mémoire, pas en relisant le fichier ; aucun chemin d'essai réel
+dans les tests (dossiers temporaires).
+
+**Terminé quand** les six fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** : `ui::RecentDocuments : QObject`, `QML_ELEMENT`, `preferences` (`Preferences*`), `entries`
+  (`QVariantList` [{url, name, when}]), `count` ; `Q_INVOKABLE` `note(QUrl)`, `clear()`, `QVariantMap summary(DocumentController*, QUrl)`
+  (`pages`, `objects`, `resources`, `bytes`) ; `static constexpr int kMax = 10`.
+- [ ] **Étape 2 : test rouge** `tst_ui_recents.cpp` : `openedFileGoesFirst`, `boundedToTen`, `missingFilesHidden`,
+  `contentUrlsKept`, `clearEmptiesTheList`, `summaryCountsPagesAndObjects` (document de 2 pages et 3 objets).
+- [ ] **Étape 3 : implémentation et QML** (`FileActions.qml` appelle `appRecents.note(url)` à la fin d'une ouverture et
+  d'un enregistrement, puis ouvre `SaveSummaryDialog` si le réglage est vrai ; `CommandMenu.qml` insère, après
+  `file.open`, un sous-menu dynamique « Documents récents » quand `appRecents.count > 0`).
+- [ ] **Étape 4 : vert**, preuve de tâche ; commit « Lot 6 : documents récents et résumé (L6-T24) ».
+
+<a id="tache-l6-t25"></a>
+### Tâche L6-T25 — Éditeur de profils, choix du profil, onglet format
+
+**Objectif.** F-123 : `profile.choose` ouvre `ProfileChooser.qml` (liste `appProfile.profiles`, un clic active et
+ferme). F-882 : `profile.edit` ouvre `ProfileEditor.qml` : en haut, liste du profil courant (changer l'active) et
+boutons importer, enregistrer, enregistrer sous, supprimer (grisé pour un profil fourni), revenir à l'origine (profil
+fourni modifié) ; quatre onglets : Format (`FormatPage.qml`, ci-dessous), Commandes (L6-T26), Raccourcis vers des
+programmes (L6-T30, Windows), Paramètres (L6-T27) ; bouton « Terminé » (enregistre). F-900, onglet Format : taille
+des icônes (16 à 32), palette (ancrage, 8/16/24 couleurs, épinglée, réduite, réduite au maximum), navigateurs (côté,
+épinglés, visibles), corbeille visible, plein écran au démarrage.
+
+**Fichiers.** `ui/qml/ProfileChooser.qml`, `ui/qml/ProfileEditor.qml`, `ui/qml/FormatPage.qml`,
+`tests/tst_ui_profileeditor.cpp`, `bench/scenarios/profils.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_profileeditor|tst_captures_profils|tst_ui_shell'`.
+
+**Preuve visuelle.** `captures.ps1 -Scenario profils … -Lire "appProfile.currentId=mon-profil"` : `LU … OK`,
+`CAPTURES OK` ; décrire `editeur.png`, `format.png`.
+
+**Interdits.** Tout passe par les commandes `profile.*` et les setters de `appProfile` ; aucun accès disque en QML.
+
+**Terminé quand** les cinq fonctions et le scénario passent.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** `tst_ui_profileeditor.cpp` (montage QML de `tst_ui_shell`) : `chooserActivatesAndCloses`,
+  `saveAsCreatesAUserProfile` (`profile.save-as "mon-profil"` → dans `profiles`, `builtin` faux),
+  `deleteRefusedForBuiltin` (bouton grisé, commande sans effet), `resetRestoresTheBuiltin`, `formatPageEditsTheProfile`
+  (réglette des icônes → `appProfile.iconPixels`).
+- [ ] **Étape 2 : QML** et gestionnaires `profile.*` (`profile.import` et `profile.export` : `FileDialog` si sans
+  argument, sinon l'URL ; `profile.save-as` sans argument : champ de nom).
+- [ ] **Étape 3 : scénario** : ajouter à la fin de `profils.json` : `profile.edit` ; capture `editeur.png` ;
+  `profile.save-as "mon-profil"` ; onglet Format ; capture `format.png` ; `expect appProfile.currentId = mon-profil`.
+- [ ] **Étape 4 : vert**, preuve visuelle, preuve de tâche ; commit « Lot 6 : éditeur de profils et onglet format
+  (L6-T25) ».
+
+<a id="tache-l6-t26"></a>
+### Tâche L6-T26 — Onglet commandes (F-910)
+
+**Objectif.** `ui::LayoutEditor` lit la disposition effective (profil, sinon défaut ; A1), présente à gauche toutes
+les commandes disponibles sur la plateforme par catégorie (préfixe de l'identifiant), à droite une cible (palette
+principale, barre d'objet, menu contextuel, chaque menu) et son contenu ordonné, séparateurs et sous-menus compris ;
+ajouter, retirer, monter, descendre, insérer un séparateur ; « Terminé » écrit **seulement**
+`<dossier du profil>/layout.json` (jamais `actions/data/layout.json`), puis `Commands::reload()`. Le patron évident est
+le mauvais : réécrire la disposition entière à partir du seul contenu affiché perdrait les clés que l'éditeur ne
+connaît pas ; on part du JSON effectif et on ne remplace que la liste de la cible.
+
+**Fichiers.** `ui/include/actcraft/ui/layouteditor.h`, `ui/src/layouteditor.cpp`, `tests/tst_ui_layouteditor.cpp`,
+`ui/qml/CommandsPage.qml`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_layouteditor|tst_ui_commands|tst_actions_layout'`.
+
+**Interdits.** Le fichier de disposition par défaut n'est jamais écrit ; une commande absente de la plateforme n'est
+pas proposée.
+
+**Terminé quand** les huit fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** : `ui::LayoutEditor : QObject`, `QML_ELEMENT`, `commands` (`Commands*`), `profile`
+  (`ProfileController*`), `targets` (`QVariantList` [{id, label}]), `target`, `items` (`QVariantList` du contenu de la
+  cible), `catalog` (`QVariantList` [{id, label, icon, category}]) ; `Q_INVOKABLE` `add(id)`, `removeAt(i)`,
+  `moveUp(i)`, `moveDown(i)`, `addSeparator()`, `bool apply()`.
+- [ ] **Étape 2 : test rouge** `tst_ui_layouteditor.cpp` : `targetsListed`, `addAppendsToTheTarget`, `moveUpAndDown`,
+  `separatorAllowed`, `writesTheProfileLayoutOnly` (fichier écrit dans `store().directory(id)`, empreinte du fichier de
+  ressources inchangée), `defaultLayoutUntouched`, `reloadShowsTheChange` (`Commands::palette()` contient la commande
+  ajoutée), `unavailableCommandsHidden` (plateforme Android : `launcher.edit` absent du catalogue).
+- [ ] **Étape 3 : implémentation, QML** (`CommandsPage.qml` : deux listes, quatre boutons), **vert**, preuve de tâche ;
+  commit « Lot 6 : onglet commandes de l'éditeur de profils (L6-T26) ».
+
+<a id="tache-l6-t27"></a>
+### Tâche L6-T27 — Onglet paramètres (F-930, F-935)
+
+**Objectif.** `ui::SettingsSchema` décrit, en données à nous, les sections de F-930 **des fonctions incluses** (aucune
+section du vote) : Outil horloge, Effets (F-935), Objets de paperboard, Langue (L6-T36), Réseau (L6-T28, Windows),
+Orthographe (L6-T34), Outils, Saisie, Enregistrements (lot 8 : section déclarée, réglages lus par le lot 8), Profil et
+ressources, Paperboard, Multimédia (lot 8), Mode conception (L6-T22). Chaque réglage : clé, libellé à nous, type,
+défaut (F-930 ; D de L6-T0), bornes, **magasin** (`profile` : `appProfile.setting(section, clé)` ; `workstation` : la
+clé `QSettings` déjà employée par le lot 7, A19 — reprise telle quelle, jamais dupliquée). P2 du lot 10 : trois
+réglages de qualité du rendu (haute qualité, haute qualité pendant l'écriture — faux par défaut —, haute qualité
+pendant l'édition d'objets — défaut de D14) ; P10 : regroupement automatique des traits (faux par défaut ; lu par le
+stylo s'il existe, sinon publié pour le lot 11 et noté). E4 : taille de page par défaut (`defaults/page-size`, D6-13).
+`SettingsPage.qml` : sections à gauche, réglages à droite, éditeurs par type.
+
+**Fichiers.** `ui/include/actcraft/ui/settingsschema.h`, `ui/src/settingsschema.cpp`, `tests/tst_ui_settingsschema.cpp`,
+`ui/qml/SettingsPage.qml`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_settingsschema`.
+
+**Interdits.** Aucun libellé de l'original ; aucune section du vote ; aucune clé `QSettings` neuve en `camelCase`.
+
+**Terminé quand** les huit fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** : `ui::SettingsSchema : QObject`, `QML_ELEMENT`, `profile` (`ProfileController*`),
+  `preferences` (`Preferences*`), `sections` (`QVariantList` [{id, label, platforms}]) ;
+  `Q_INVOKABLE QVariantList entries(section)` ([{key, label, type, defaultValue, min, max, choices, store}]),
+  `Q_INVOKABLE QVariant value(section, key)`, `Q_INVOKABLE void setValue(section, key, value)` ; table statique des
+  réglages dans `settingsschema.cpp`.
+- [ ] **Étape 2 : test rouge** : `sectionsOfIncludedFunctionsOnly`, `noVoteSection`, `defaultsFromTheSpecification`
+  (horloge : chiffres oui, aiguille des secondes oui, 24 h non ; effets : largeur du spot 15, vitesse du rideau 15 ;
+  objets : tolérance de centrage 10), `lot7KeysReused` (les clés du lot 7 de A19 apparaissent avec `store:
+  workstation` et la même clé), `profileOrWorkstationStore`, `renderQualityThreeSettings`, `autoGroupDefaultsOff`,
+  `defaultPageSize` (« 1024x768 »).
+- [ ] **Étape 3 : implémentation, QML, vert**, preuve de tâche ; contrôle des titres du corpus ; commit « Lot 6 : onglet
+  paramètres (L6-T27) ».
+
 <!-- suite -->
