@@ -1,0 +1,176 @@
+# Mesure S13 du cache incrémental (lot 10, L10-T6) — machine de développement
+
+**Ce n'est pas une machine de référence.** Dell Latitude 5450 (Intel Core Ultra 5 125U, puce graphique Intel
+intégrée), écran principal 1920 × 1080 à 60 Hz, Windows 11, 15,5 Go de mémoire. Passages joués le 2026-10-18 de
+15 h 39 à 15 h 51, en plein écran sur l'écran principal, Direct3D 11, cache actif, preset `release`, par
+`scripts/bench.ps1 -Rendu d3d11 -SansConstruire` sous le jeton `ecran`. Le verdict est un résultat, pas une porte
+(décision 35 du cadrage `docs/specs/2026-10-14-livraison-complete-cadrage.md`).
+
+- **Référence** : `15d76d0` (merge de L10-T1 : ancien cache, banc à cinq scénarios), worktree de mesure détaché.
+- **Lot 10** : `05da054` (tête de `feat/livraison-complete` après le merge de L10-T4 : versement différé, couche
+  d'attente, MSAA 4× de L10-T5).
+- Ordre joué : référence → lot 10 → lot 10 → lot 10 → référence, sans passage écarté. Les cinq passages sont valides
+  (`valid_for_measurement`, contrôles de contenu réussis) ; aucun n'a été rejoué, ni par `bench.ps1` ni à la main.
+
+## Verdict S13 : tenu
+
+Sur les trois passages du lot 10, `freeze_over_limit = 0` et `resume_over_limit = 0` dans les cinq scénarios, dont
+`pauses`. La référence, elle, garde un figement hors limite dans `stroke` à chacun de ses deux passages (43,9 et
+50,3 ms), tous deux pendant un redessin du cache. **Décision sur L10-T7 : non requise** (machine calme, S13 tenu).
+
+Le verdict global du banc reste « BUDGET DEPASSE » pour les cinq passages, pour des raisons hors S13 (voir
+« Critères perdus hors S13 »).
+
+## Condition « machine calme »
+
+Règle de Jérôme du 2026-10-18 : l'état présent de la machine vaut « machine calme » ; le seuil de 4 Go libres ne
+s'applique plus. Relevé avant chaque passage : mémoire libre (`Win32_OperatingSystem`), charge du processeur
+(compteur `Win32_PerfFormattedData_PerfOS_Processor`, trois lectures), compilations en cours (`cl.exe`,
+`ninja.exe`, `link.exe`), état des jetons.
+
+| Passage | Heure | RAM libre | Processeur (3 lectures) | Compilations | Jeton `tests` | Jeton `ecran` avant prise |
+|---|---|---|---|---|---|---|
+| P1 référence | 15:39:51 | 3,04 Go | 67 % (71, 63, 68) | aucune | libre | libre |
+| P2 lot 10 | 15:41:20 | 3,01 Go | 28 % (28, 29, 27) | aucune | libre | libre |
+| P3 lot 10 | 15:42:38 | 3,21 Go | 27 % (25, 25, 32) | aucune | libre | libre |
+| P4 lot 10 | 15:44:01 | 3,11 Go | 66 % (80, 68, 51) | aucune | libre | libre |
+| P5 référence | 15:45:27 | 2,76 Go | 84 % (85, 84, 82) | aucune | libre | libre |
+| 4 bis référence | 15:50:02 | 2,68 Go | 36 % (34, 38, 35) | aucune | libre | libre |
+| 4 bis lot 10 | 15:50:30 | 2,48 Go | 48 % (48, 49, 48) | aucune | libre | libre |
+
+Aucune compilation d'une autre session n'a tourné : aucune attente. La charge du processeur lue par ce compteur
+est haute sans compilation ; pendant P1, la somme des processus visibles relevée par leur temps processeur était
+d'environ 14 % (non expliqué : la lecture WMI elle-même compte peut-être). Les retards d'injection de `pauses`
+montent à 17 et 34 ms aux passages P3 et P4 : la machine n'était pas parfaitement stable pendant ces deux passages.
+
+## Table par passage et par scénario
+
+Images/s · p95 (ms) · images > 25 ms · figements hors limite (max ms) · reprises hors limite (max ms) ·
+`cache.refreshes` · `cache.pending_max` (absent du banc de la référence) · latence p50 / p95 (ms) · pic mémoire du
+scénario, privée / GPU (Mio). Limite d'un figement ou d'une reprise : 2,5 périodes = 41,65 ms.
+
+| Passage | Scénario | img/s | p95 | > 25 ms | figements | reprises | redessins | attente max | latence | mémoire |
+|---|---|---|---|---|---|---|---|---|---|---|
+| P1 réf. | stroke | 60,0 | 17,0 | 0,00 % | **1** (43,9) | 0 (16,8) | 10 | — | 10,2 / 17,7 | 341 / 171 |
+| | zoom | 60,0 | 17,4 | 0,00 % | 0 | 0 | 1 | — | — | 331 / 171 |
+| | scroll | 60,0 | 17,0 | 0,00 % | 0 | 0 | 0 | — | — | 444 / 266 |
+| | page | 45,4 | 106,6 | 45,45 % | 0 | 0 | 23 | — | — | 565 / 270 |
+| | pauses | 60,1 | 17,1 | 0,00 % | 0 (30,1) | 0 (16,3) | 10 | — | 10,3 / 17,7 | 613 / 211 |
+| P2 lot 10 | stroke | 60,0 | 16,9 | 0,00 % | 0 (17,6) | 0 (17,0) | 0 | 10 | 9,9 / 17,4 | 478 / 267 |
+| | zoom | 60,0 | 17,0 | 0,00 % | 0 | 0 | 0 | 0 | — | 439 / 289 |
+| | scroll | 60,0 | 16,9 | 0,28 % | 0 | 0 | 0 | 0 | — | 939 / 784 |
+| | page | 36,2 | 76,7 | 53,19 % | 0 | 0 | 23 | 0 | — | 768 / 412 |
+| | pauses | 60,1 | 16,9 | 0,68 % | 0 (17,9) | 0 (15,3) | 8 | 2 | 10,2 / 17,3 | 755 / 316 |
+| P3 lot 10 | stroke | 60,0 | 17,0 | 0,00 % | 0 (17,4) | 0 (18,8) | 0 | 10 | 10,2 / 17,5 | 487 / 256 |
+| | zoom | 60,0 | 17,0 | 0,00 % | 0 | 0 | 0 | 0 | — | 426 / 276 |
+| | scroll | 60,0 | 17,0 | 0,28 % | 0 | 0 | 0 | 0 | — | 925 / 728 |
+| | page | 55,3 | 92,8 | 45,79 % | 0 | 0 | 23 | 0 | — | 693 / 415 |
+| | pauses | 60,0 | 17,0 | 1,04 % | 0 (17,8) | 0 (16,9) | 8 | 2 | 10,1 / 17,8 | 749 / 320 |
+| P4 lot 10 | stroke | 60,1 | 17,1 | 0,00 % | 0 (17,9) | 0 (24,2) | 0 | 10 | 10,0 / 17,5 | 477 / 267 |
+| | zoom | 60,0 | 17,1 | 0,00 % | 0 | 0 | 1 | 0 | — | 439 / 289 |
+| | scroll | 60,0 | 17,0 | 0,00 % | 0 | 0 | 0 | 0 | — | 938 / 752 |
+| | page | 37,5 | 106,2 | 53,61 % | 0 | 0 | 23 | 0 | — | 721 / 400 |
+| | pauses | 60,0 | 17,2 | 3,19 % | 0 (18,3) | 0 (41,1) | 9 | 1 | 11,1 / 20,7 | 771 / 376 |
+| P5 réf. | stroke | 60,0 | 17,0 | 0,11 % | **1** (50,3) | 0 (18,2) | 10 | — | 10,1 / 17,6 | 340 / 160 |
+| | zoom | 60,0 | 17,2 | 0,00 % | 0 | 0 | 0 | — | — | 315 / 155 |
+| | scroll | 60,0 | 17,0 | 0,00 % | 0 | 0 | 0 | — | — | 428 / 268 |
+| | page | 49,5 | 81,7 | 38,30 % | 0 | 0 | 23 | — | — | 564 / 270 |
+| | pauses | 60,1 | 17,0 | 0,00 % | 0 (38,2) | 0 (17,5) | 10 | — | 10,6 / 17,9 | 579 / 211 |
+
+Pic mémoire du banc (`memory_peak_bytes`, privée + GPU du scénario le plus haut, budget 1 024 Mio) : référence 835 et
+834 Mio (`page`) ; lot 10 1 723, 1 653 et 1 690 Mio (`scroll`).
+
+Dans `stroke`, le lot 10 ne redessine pas le cache : les dix traits restent en attente (`pending_max = 10`) et sont
+versés au premier zoom du scénario suivant. La reprise de 41,1 ms de `pauses` au passage P4 est la toute première
+du scénario (k = 0) : sous la limite de 0,55 ms.
+
+## Attribution des figements et reprises hors limite
+
+Méthode de l'étape 3 du plan : fenêtre de redessin = de chaque `raw.cache_request_ns` à la première
+`raw.cache_updated_ns` qui la suit ; un intervalle F ou R hors limite (bornes `raw.swap_ns[k-1]`, `raw.swap_ns[k]`)
+qui recoupe une fenêtre est classé « redessin ». Les durées sont recalculées depuis `raw` comme
+`bench/src/stats.cpp` (`classifyIntervals`) ; le recomptage retrouve exactement les compteurs du banc et la
+classification de `raw.interval_class` sur `stroke`, `zoom`, `scroll` et `pauses` (sur `page`, 65 à 85 intervalles
+diffèrent, sans aucun F ni R hors limite d'un côté comme de l'autre).
+
+| Passage | Intervalle | Durée | Fenêtre de redessin recoupée | Cause |
+|---|---|---|---|---|
+| P1 réf. | `stroke`, F k = 457, 8 665,8 → 8 709,7 ms | 43,9 ms | 8 675,4 → 8 710,1 ms | redessin du cache |
+| P5 réf. | `stroke`, F k = 456, 8 667,1 → 8 717,4 ms | 50,3 ms | 8 675,2 → 8 718,0 ms | redessin du cache |
+
+Lot 10 : aucun figement ni reprise hors limite à attribuer.
+
+**Versement dans `pauses`** (reprises k ≥ 1, jugé seulement si le max des retards d'injection et de réception reste
+sous 8 ms) :
+
+| Passage | Retards max (inj. / réc.) | Reprises jugées | Recoupant un redessin | Hors limite | Reprise jugée max |
+|---|---|---|---|---|---|
+| P1 réf. | 2,46 / 2,50 ms | 8 | 0 | 0 | 16,3 ms |
+| P2 lot 10 | 3,30 / 3,36 ms | 4 | 3 (15,3 ; 3,4 ; 3,2 ms) | 0 | 15,3 ms |
+| P3 lot 10 | 17,32 / 17,39 ms : **hors fenêtre** | (5) | (3) | (0) | (16,9 ms) |
+| P4 lot 10 | 33,95 / 34,05 ms : **hors fenêtre** | (3) | (3) | (0) | (20,3 ms) |
+| P5 réf. | 2,81 / 2,97 ms | 8 | 1 (8,5 ms) | 0 | 17,5 ms |
+
+Au seul passage du lot 10 dans la fenêtre (P2), le versement tombe sur trois reprises sur quatre et aucune ne
+dépasse 15,3 ms : le redessin différé ne se voit pas à la reprise.
+
+## Décision sur L10-T7 : non requise
+
+Machine calme (règle du 2026-10-18), S13 tenu sur les trois passages du lot 10, aucun figement ni reprise hors limite
+attribué à un redessin du cache. Ni les tuiles (L10-T7) ni le cache par groupe de couches ne sont requis par cette
+mesure. H10-2 (500 ms, 128 objets) : aucun réglage demandé par la mesure.
+
+## Étape 4 bis : mémoire au zoom 800 % posé (H10-9)
+
+Scénario temporaire `.tmp/zoom800.json` (`waitReady`, `view.zoom` 800, `waitReady`, attente 3 000 ms, `capture`)
+joué par `build/release/actcraft-captures.exe --scenario .tmp/zoom800.json --rendu d3d11 --taille 1280x800 --sortie
+.tmp/zoom800`, sous le jeton `ecran`, référence puis lot 10. Relevés toutes les 500 ms : mémoire GPU dédiée et
+partagée du processus (compteurs « GPU Process Memory », instances `pid_<pid>_*`) et `PrivateMemorySize64`.
+
+**Rejouée une fois.** Le premier essai (15:47) n'a pas tenu la cadence : `Get-Counter` attend 1 s par lecture, le
+premier relevé est arrivé à 5,6 s et les suivants toutes les secondes. Le second essai lit les mêmes compteurs par
+`System.Diagnostics.PerformanceCounter` (quelques millisecondes par lecture) : 10 et 13 relevés à 500 ms. Les deux
+essais donnent le même plateau (lot 10 : 1 261,6 puis 1 261,5 Mio).
+
+| Version | Pic dédié | Pic partagé | Pic privé | Pic total au même relevé |
+|---|---|---|---|---|
+| Référence `15d76d0` | 0 Mio | 161,5 Mio | 226,4 Mio | **387,9 Mio** |
+| Lot 10 `05da054` | 0 Mio | 586,8 Mio | 674,7 Mio | **1 261,5 Mio** |
+
+Sur le lot 10, la mémoire partagée passe de 115 à 587 Mio quand le zoom 800 % est posé, puis reste à ce plateau
+pendant les 3 s d'attente. La puce intégrée n'a pas de mémoire dédiée.
+
+**Décision H10-9 : repli requis** (1 261,5 Mio > 1 Gio). Repli choisi : **plafond de la texture du cache
+(`kMaxCacheSide`) abaissé sous MSAA**. Raisons :
+- le dépassement suit la texture du cache multi-échantillonnée : il apparaît au zoom posé, quand la texture atteint
+  sa taille maximale ;
+- l'autre repli (fenêtre à 1, cache à 4) garde le MSAA 4× du cache. Il ne libère que les tampons multi-échantillonnés
+  de la fenêtre : environ 64 Mio en 1920 × 1080, estimés, non mesurés. Il faut en libérer 238 pour revenir sous
+  1 Gio ;
+- le banc va dans le même sens : le scénario `scroll` (zoom 400 %) monte à 1 653-1 723 Mio sur le lot 10, contre
+  696-710 Mio à la référence. On suppose la même cause (texture du cache à fort zoom), sans l'avoir vérifié.
+
+Coût à mesurer dans la tâche de repli : netteté au-delà du zoom où le nouveau plafond est atteint ; pic au zoom
+800 % posé et `memory_peak_bytes` du banc repassés sous 1 Gio. Tâche à écrire par l'orchestrateur.
+
+## Critères perdus hors S13
+
+- **`all.memory_peak_bytes`** : perdu par le lot 10 aux trois passages (1 653 à 1 723 Mio, `scroll`), tenu par la
+  référence (834-835 Mio). Relève du repli de H10-9 ci-dessus.
+- **`pauses.over_25ms_ratio`** : perdu par le lot 10 à P3 (1,04 %) et P4 (3,19 %), tenu par la référence (0 %).
+  Ce sont des intervalles **actifs** de 25 à 50 ms, que S13 ne compte pas : 2 à P2 (33,4 et 50,4 ms), 3 à P3, 9 à
+  P4 (souvent la deuxième image après une reprise). Par la même règle de recouvrement, tous sont classés « autre »
+  sauf un (P4, k = 185, 44,9 ms, « redessin »). P3 et P4 ont des retards d'injection de 17 et 34 ms. La cause n'est
+  pas établie : **à rapporter à l'orchestrateur** (tâche de correction ou d'enquête, hors tuiles).
+- **`page`** : images/s, p95 et images > 25 ms dépassés aux cinq passages, référence comprise (H2b-5, H2b-7).
+  Antérieur au lot 10.
+
+## Fichiers
+
+Dans `bench/results/` des deux worktrees (ignoré par git) :
+- référence : `2026-10-18_154013-Dell-Inc-Latitude-5450-direct3d11.json` (P1),
+  `2026-10-18_154548-…-direct3d11.json` (P5) ;
+- lot 10 : `2026-10-18_154133-…` (P2), `2026-10-18_154250-…` (P3), `2026-10-18_154415-…` (P4), `-direct3d11.json`.
+
+Le worktree de référence est supprimé après la mesure ; ses deux fichiers de résultat sont copiés avant dans
+`bench/results/reference-15d76d0/` du worktree du lot 10 (ignoré par git).
