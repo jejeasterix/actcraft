@@ -484,7 +484,7 @@ les API A1 à A14** contre le code livré par les lots 3, L0-S (et 7 s'il a fusi
 - D14 — Menu de page (F-771) : entrées et ordre de la 3.5.18 pour les fonctions du lot.
 - D15 — Fond de page (F-610, E2) : un bouton « Terminé » ou appliquer puis valider ; options du lot 4 (couleur,
   dégradé, image) ; les autres (capture, superposition de bureau) au lot 7.
-- D16 — E10 : taille personnalisée d'un nouveau paperboard (pixels ou hauteurs de page) ; correctif `L4-C1` si la
+- D16 — E10 : taille personnalisée d'un paperboard neuf (pixels ou hauteurs de page) ; correctif `L4-C1` si la
   3.5.18 diffère de F-700.
 - **D17 (amendement 1)** — Encre en cours et grille du dessus : la couche `ink` (trait en cours) est au-dessus de
   `gridOverlay` si celle-ci suit `liftLayer` ; le trait passe alors sous la grille au relâché et change d'aspect.
