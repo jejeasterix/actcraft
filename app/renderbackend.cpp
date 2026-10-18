@@ -2,6 +2,7 @@
 
 #include <QQuickWindow>
 #include <QSGRendererInterface>
+#include <QSurfaceFormat>
 
 bool parseRenderBackend(const QStringList& args, RenderBackend& out, QString& error)
 {
@@ -34,6 +35,13 @@ bool parseRenderBackend(const QStringList& args, RenderBackend& out, QString& er
 
 void applyRenderBackend(RenderBackend backend)
 {
+    if (backend != RenderBackend::Software) {
+        // Traits lissés en RHI comme en rendu logiciel (L10-T5) : la fenêtre (encre, couche d'attente) est
+        // multi-échantillonnée ; la texture du cache l'est par ShaderEffectSource.samples (PageArea.qml).
+        QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+        format.setSamples(kMsaaSamples);
+        QSurfaceFormat::setDefaultFormat(format);
+    }
     switch (backend) {
     case RenderBackend::Auto:
         break;

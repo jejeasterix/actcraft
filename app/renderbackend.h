@@ -13,6 +13,11 @@ enum class RenderBackend
     Software,
 };
 
+// L10-T5 : échantillonnage multiple en RHI (lissage des traits, constat L2-C11). Même valeur, à changer
+// ensemble : `samples` du cache (ui/qml/PageArea.qml) et l'attente `pageCache.samples` de
+// bench/scenarios/anticrenelage.json.
+inline constexpr int kMsaaSamples = 4;
+
 // Lit `--rendu <auto|d3d11|logiciel>` dans les arguments ; retourne false si la valeur est inconnue.
 bool parseRenderBackend(const QStringList& args, RenderBackend& out, QString& error);
 

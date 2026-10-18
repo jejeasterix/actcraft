@@ -43,6 +43,9 @@ enum class UiStepKind : std::uint8_t
     MaxEventLoopGap, // {"maxEventLoopGapMs": 25} — arrête la sonde, compare le plus long intervalle
     Remember,        // {"remember": "objet.propriété", "as": "nom"} — valeur de ${nom} ensuite
     ArchiveContains, // {"archive": "<chemin>", "contains": ["document.json", "resources/", …]} — préfixes
+    // Ajoutée au lot 10 (L10-T5, S33), à la fin.
+    CheckEdge, // {"checkEdge": "nom", "from": [x, y], "to": [x, y], "minIntermediate": 2, "maxIntermediate":
+               // 0, "minInk": 1}
 };
 
 struct UiStep
@@ -63,6 +66,10 @@ struct UiStep
     QString value;      // attendue, en texte (propertyText)
     QString path;       // Fixture, ArchiveContains
     QStringList values; // ArchiveContains : préfixes d'entrées attendus
+    QPointF to;         // CheckEdge : fin du segment (début : at)
+    int minIntermediate = 0;
+    int maxIntermediate = -1; // -1 : sans plafond
+    int minInk = 0;           // pixels d'encre exigés sur le segment (contrôle positif d'un contrôle négatif)
 };
 
 struct UiScenario
@@ -81,7 +88,7 @@ bool parseReadSpec(const QString& text, UiStep& out);
 QString propertyText(const QVariant& value);
 
 // Joue un scénario sur une fenêtre Qt Quick (DA8). Une ligne de rapport par étape : COMMANDE, TRAIT, TOUCHE,
-// ATTENTE, PRET, CAPTURE, PIXEL, LU, FIXTURE, BOUCLE, MEMO, ARCHIVE. Chaque étape d'action contrôle son
+// ATTENTE, PRET, CAPTURE, PIXEL, LU, FIXTURE, BOUCLE, MEMO, ARCHIVE, BORD. Chaque étape d'action contrôle son
 // résultat, jamais « OK » sur le seul envoi : COMMANDE exige le retour vrai de runCommand ; TRAIT, postés à
 // la fenêtre (le filtre de la PageView les y attend, variante B), exige un trait figé par la vue ; TOUCHE
 // exige l'appui accepté par un raccourci non ambigu ou par un élément actif (repli sinon : la commande nommée
@@ -138,6 +145,7 @@ private:
     bool stroke(const UiStep& step, QStringList& report);
     bool key(const UiStep& step, QStringList& report);
     bool checkPixel(const UiStep& step, QStringList& report);
+    bool checkEdge(const UiStep& step, QStringList& report);
     bool fixture(const UiStep& step, QStringList& report);
     bool waitFor(const UiStep& step, QStringList& report);
     bool watchEventLoop(QStringList& report);

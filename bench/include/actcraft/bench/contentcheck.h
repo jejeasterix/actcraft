@@ -20,6 +20,16 @@ QColor sampleColor(const QImage& image, QPoint pixel);
 QPoint sceneToImage(QPointF scenePoint, qreal devicePixelRatio);
 ContentCheck checkColor(const QString& name, const QImage& image, QPoint pixel, QColor expected,
                         int tolerance);
+// L10-T5 : pixels de la ligne [from, to] (tracé de Bresenham, extrémités comprises) dont la couleur n'est ni
+// à `margin` près du fond ni à `margin` près de l'encre, par canal : bords lissés. -1 si l'image est vide ou
+// si un point sort de l'image. Les seuils des scénarios (au moins 2 intermédiaires) supposent un bord à 45° :
+// le motif d'échantillonnage 4× est tourné, si bien qu'un bord lissé presque vertical ou horizontal peut n'en
+// donner aucun sur la ligne qui le traverse (faux rouge possible) ; les traits de contrôle sont diagonaux.
+int countIntermediatePixels(const QImage& image, QPoint from, QPoint to, QColor background, QColor ink,
+                            int margin);
+// Pixels de la même ligne à `margin` près de l'encre : contrôle positif (le segment croise bien un trait ou
+// une ligne de grille). -1 dans les mêmes cas.
+int countInkPixels(const QImage& image, QPoint from, QPoint to, QColor ink, int margin);
 // mi-trait, fin-trait, zoom-800, retour-100
 QStringList captureSteps();
 QString captureFileName(const QString& graphicsApi, const QString& step);

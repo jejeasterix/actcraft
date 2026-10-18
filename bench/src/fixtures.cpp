@@ -18,6 +18,8 @@ namespace actcraft::bench {
 namespace {
 
 constexpr QLatin1StringView kThreePages("trois-pages");
+// L10-T5 (S33) : page blanche à grille visible, lignes noires d'un pixel.
+constexpr QLatin1StringView kGrid("grille");
 // S4 en CI (L2-T21) : paperboard .flipchart de notre écrivain de tests (deux pages, fond dégradé, forme
 // verte, fond image rouge en page 2), écrit octet pour octet. Jamais réencodé en .actcraft : il doit passer
 // par le lecteur .flipchart à l'ouverture (document sans fichier, avertissements de lecture).
@@ -85,6 +87,23 @@ bool buildThreePages(const QString& path, QString& error)
     return !archive.isEmpty() && formats::writeUrl(QUrl::fromLocalFile(path), archive, &error);
 }
 
+// L10-T5 : une page blanche à grille visible (un niveau, pas de 32, lignes noires pleines), pour vérifier que
+// le lissage des traits ne touche pas la grille (lignes d'un pixel, nettes, comme la référence).
+bool buildGrid(const QString& path, QString& error)
+{
+    std::vector<core::Page> pages(1);
+    core::GridLevel level;
+    level.spacingX = 32;
+    level.spacingY = 32;
+    level.color = 0xFF000000u;
+    pages[0].grid.visible = true;
+    pages[0].grid.levels.push_back(level);
+    core::Document document(std::move(pages));
+    document.setTitle("Grille");
+    const QByteArray archive = formats::encodeActcraft(document, {}, &error);
+    return !archive.isEmpty() && formats::writeUrl(QUrl::fromLocalFile(path), archive, &error);
+}
+
 bool buildSyntheticFlipchart(const QString& path, QString& error)
 {
     return formats::writeUrl(QUrl::fromLocalFile(path), fctest::sampleFlipchart(), &error);
@@ -100,6 +119,7 @@ struct FixtureEntry
 constexpr FixtureEntry kFixtures[] = {
     {kThreePages, buildThreePages},
     {kSyntheticFlipchart, buildSyntheticFlipchart},
+    {kGrid, buildGrid},
 };
 
 } // namespace

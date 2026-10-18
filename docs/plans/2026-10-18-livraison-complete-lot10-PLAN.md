@@ -37,7 +37,7 @@ en Direct3D 11, mesuré au banc ; la grille reste nette (règle de rendu relevé
 | L10-T2 | `render` : fabrique de nœuds d'objet partagée (refonte sans changement de comportement) | — | `render/src/objectnodes.h`, `render/src/objectnodes.cpp`, `render/src/fixedpageitem.cpp`, `render/CMakeLists.txt` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 91, `tst_render_fixedpage` et `tst_render_painted` Passed ; mutation de `wrapped` rouge puis remise ; banc hors écran `content_check.ok = True` | S13 | #tache-l10-t2 |
 | L10-T5 | Anticrénelage en Direct3D 11 (MSAA 4× fenêtre et cache) ; étape `checkEdge` du joueur ; grille nette | L10-T0 | `app/renderbackend.h`, `app/renderbackend.cpp`, `tests/tst_renderbackend.cpp`, `ui/qml/PageArea.qml`, `bench/include/actcraft/bench/contentcheck.h`, `bench/src/contentcheck.cpp`, `tests/tst_bench_content.cpp`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `bench/src/fixtures.cpp`, `bench/scenarios/anticrenelage.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 92, `tst_renderbackend`, `tst_bench_content`, `tst_bench_uiscenario`, `tst_captures_anticrenelage` Passed ; à l'écran D3D11 (jeton `ecran`) : `BORD trait-diagonal OK`, `BORD grille-nette OK`, `LU pageCache.samples=4 OK` ; banc A/B D3D11 avant / après | S33 | #tache-l10-t5 |
 | L10-T3 | Page fixe : objets en attente hors de la scène du cache ; couche d'attente `PendingLayerItem` | L10-T0, L10-T2 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `render/include/actcraft/render/pendinglayeritem.h`, `render/src/pendinglayeritem.cpp`, `render/CMakeLists.txt`, `tests/render.cmake`, `tests/tst_render_pendinglayer.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 92, `tst_render_pendinglayer` Passed (dont `foldShowsTheSameImage`, `undoingAPendingStrokeRebuildsNothing`, `pendingStrokeMovedToTheFrontFoldsEverything`, `revealerStrokeIsNeverDeferred`), `tst_render_fixedpage` Passed ; banc hors écran `content_check.ok = True` | S13 | #tache-l10-t3 |
-| L10-T4 | Vue : versement différé (inactivité, plafond, zoom), couche d'attente branchée, scénario `cache-differe` | L10-T1, L10-T3, L10-T5 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/uiforeigntypes.h`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_verdict.cpp`, `tests/tst_bench_result.cpp`, `bench/scenarios/cache-differe.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 94, `tst_pageview` (dont `strokeWaitsAboveTheCacheUntilIdle`, `wheelPostponesTheFold`, `hoverDoesNotPostponeTheFold`), `tst_ui_drawing` (dont `deferredStrokeStaysVisibleThroughTheFold`), `tst_captures_cache_differe`, `tst_bench_verdict`, `tst_bench_result` (dont `deferredFoldShowsInTheResult`) Passed ; `captures.ps1 -Scenario cache-differe` hors écran `CAPTURES OK` ; banc hors écran : `stroke` → `cache.refreshes = 0`, `stroke-folded` OK | S13 | #tache-l10-t4 |
+| L10-T4 | Vue : versement différé (inactivité, plafond, zoom), couche d'attente branchée, scénario `cache-differe` | L10-T1, L10-T3, L10-T5 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/uiforeigntypes.h`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_verdict.cpp`, `tests/tst_bench_result.cpp`, `bench/scenarios/cache-differe.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 94, `tst_pageview` (dont `strokeWaitsAboveTheCacheUntilIdle`, `wheelPostponesTheFold`, `hoverDoesNotPostponeTheFold`), `tst_ui_drawing` (dont `deferredStrokeStaysVisibleThroughTheFold`), `tst_captures_cache_differe`, `tst_bench_verdict`, `tst_bench_result` (dont `deferredFoldShowsInTheResult`) Passed ; `captures.ps1 -Scenario cache-differe` hors écran `CAPTURES OK` ; banc hors écran : `stroke` → `cache.refreshes = 0`, `stroke-folded` OK ; à l'écran D3D11 (jeton `ecran`) : `BORD trait-en-attente OK`, puis `ECART` sous `kMsaaSamples = 1` seule | S13 | #tache-l10-t4 |
 | L10-T6 | Mesure S13 : trois passages D3D11 plein écran encadrés par la référence, condition « machine calme », décision tuiles | L10-T4 | `docs/mesures/AAAA-MM-JJ-cache-incremental.md` (date du passage) | isolé | concepteur-critique | 3 passages D3D11 plein écran consécutifs du lot 10 : `freeze_over_limit = 0` et `resume_over_limit = 0` sur les 5 scénarios ; référence avant et après ; RAM libre relevée à chaque passage ; résumé commité ; décision écrite sur L10-T7 | S13 | #tache-l10-t6 |
 | L10-T7 | (Conditionnelle) Cache par tuiles : seules les tuiles touchées par les objets versés sont redessinées | L10-T6 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `tests/tst_render_pendinglayer.cpp`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `docs/mesures/AAAA-MM-JJ-cache-incremental.md` | isolé | concepteur-critique | jouée seulement si L10-T6 l'exige ; `TESTS OK`, N ≥ 94, `tst_pageview` (dont `foldRefreshesOnlyTheTouchedTiles`) Passed ; mesure S13 de L10-T6 rejouée et tenue | S13 | #tache-l10-t7 |
 
@@ -49,7 +49,8 @@ ajoutés par la tâche et par celles dont elle dépend ; « ≥ » est la règle
 Worktrees : `.worktrees/livraison-complete--L10-T<n>` (profil), tous isolés : deux tâches d'une même vague ne
 partagent aucun fichier (vérifié sur la colonne « fichiers touchés »).
 
-**Écran.** L10-T5 et L10-T6 ouvrent des fenêtres à l'écran (D3D11) sous le jeton `ecran` : l'orchestrateur
+**Écran.** L10-T4 (preuve du MSAA de la fenêtre, revue de L10-T5), L10-T5 et L10-T6 ouvrent des fenêtres à
+l'écran (D3D11) sous le jeton `ecran` : l'orchestrateur
 l'annonce à Jérôme d'une ligne **avant** de lancer chacune. Aucune autre tâche n'ouvre de fenêtre visible.
 
 ## Vagues (parallélisme 2 au plus)
@@ -773,8 +774,9 @@ d'attente, dessinés directement) **et** à la texture du cache (`ShaderEffectSo
 grille, texture peinte sans lissage, doit rester nette (point 2).
 
 **Patron à ne pas reprendre.** Le cache seul multi-échantillonné (le plus simple) : l'encre et la couche d'attente
-resteraient crénelées, et un trait changerait d'aspect à son versement. L'échantillonnage de la fenêtre seule ne
-suffit pas non plus : la texture du cache ne l'hérite pas. Et ne pas juger le lissage par `checkPixel` : sa moyenne
+resteraient crénelées, et un trait changerait d'aspect à son versement. La texture du cache hérite, elle,
+du MSAA de la fenêtre (`samples ≤ 1` suit la fenêtre, constaté à L10-T5, H10-9) : `samples: 4` reste écrit pour le
+repli « fenêtre à 1, cache à 4 » (H10-5), où il garde le trait versé lissé. Et ne pas juger le lissage par `checkPixel` : sa moyenne
 3 × 3 donne des gris même sur un bord crénelé (c'est ce qui a trompé L2-C11) ; la preuve compte des pixels un à un
 sur une ligne qui traverse un bord **diagonal** (un bord crénelé n'y a aucun pixel intermédiaire).
 
@@ -805,6 +807,8 @@ Ne pas lisser la grille. Rien de changé en rendu logiciel.
 
 **Terminé quand.** Preuve verte ; rouge D3D11 vu sur la base puis vert sur la tâche, à l'écran ; banc A/B rapporté
 (avec la condition « machine calme ») ; JSON du banc sans écran joint ; commit fait.
+
+**Garde des ouvertures (ajoutée après la tâche, e08f55d).** `tst_bench_uiscenario::committedScenariosWaitForEveryOpen` exige `{"waitFor": "documentController.busy", "value": false}` juste après chaque `{"command": "file.open"}` d'un scénario commité (la lecture est hors du fil principal ; l'ancien document reste « prêt » jusqu'au retour). Il ne voit que cette forme : une ouverture par une touche (`{"key": "Ctrl+O"}`) ou par le dialogue y échapperait (aucune aujourd'hui).
 
 **Étapes.**
 
@@ -916,12 +920,12 @@ Ne pas lisser la grille. Rien de changé en rendu logiciel.
   `samples: 4 // L10-T5 : texture du cache lissée en RHI (sans effet en rendu logiciel)`.
   Mémoire (H10-9) : la texture du cache va jusqu'à 4096 px de côté au zoom 800 % ; multi-échantillonnée 4×, elle
   coûte de + 192 à + 384 Mio selon le pilote, à ajouter au pic du lot 1 (473-698 Mo) sous le budget de 1 Gio. Le
-  pic mémoire GPU du scénario `zoom` est relevé à l'étape 10. **Repli** s'il dépasse le budget ou gagne plus de
-  200 Mio sur la base : échantillons selon la taille de la texture,
-  `samples: view.cacheTextureSize.width * view.cacheTextureSize.height <= 2048 * 2048 ? 4 : 1` (lissé jusqu'à
-  2048², net au-delà, aux forts zooms où le crénelage se voit le moins). **1 et non 0** : d'après la documentation
-  de Qt, `samples: 0` suit l'échantillonnage de la fenêtre (4 ici) et n'économiserait rien. Puis A/B rejoué, avec
-  le gain vérifié au pic mémoire GPU du scénario `zoom`.
+  pic mémoire GPU du scénario `zoom` est relevé à l'étape 10. **Pas de repli par `samples`** (revue I2, H10-9) :
+  `samples ≤ 1` d'un `ShaderEffectSource` suit l'échantillonnage de la fenêtre (`QSGRhiLayer::grab` :
+  `effectiveSamples <= 1` → `msaaSampleCount()`, lu dans la branche dev de Qt, non vérifié sur 6.12 ; constaté à
+  l'écran par L10-T5 : cache à `samples: 1`, fenêtre 4×, trait versé lissé). Aucun réglage public ne coupe le MSAA
+  du cache tant que la fenêtre l'a : le repli `? 4 : 1` d'abord écrit ici est **retiré**. Replis possibles et
+  mesure au zoom 800 % posé : H10-9 et L10-T6.
 
 - [ ] **Étape 7 : compte de pixels et étape `checkEdge`.** Dans `bench/include/actcraft/bench/contentcheck.h` :
 
@@ -1901,6 +1905,15 @@ cache-differe -Rendu logiciel -HorsEcran` → `LU fixedPage.pendingCount=3 OK` p
 OK`, `PIXEL … OK`, `BORD trait-en-attente OK`, `CAPTURES OK`. Banc sans écran : `stroke … cache={"refreshes":0,…}`
 (aucun redessin pendant les traits du scénario `stroke`, dont les pauses font 60 ms en court), `pauses`
 `pending_max ≥ 1`, `content_check.ok = True` avec `stroke-folded`.
+**MSAA de la fenêtre (reporté de L10-T5, revue I1).** À L10-T5, le trait contrôlé est déjà versé au cache au
+moment du contrôle : aucun `BORD` n'y prouve l'échantillonnage de la fenêtre (seul `tst_renderbackend` vérifie la
+demande faite à Qt). Ici `trait-en-attente` est dessiné par la couche d'attente, dans la fenêtre, hors cache. À
+l'écran en D3D11 (jeton `ecran`, construction release) : `captures.ps1 -Scenario cache-differe -Rendu d3d11
+-Preset release -SansConstruire` → `BORD trait-en-attente OK` ; puis mutation de `kMsaaSamples` à 1 **seule** dans
+`app/renderbackend.h` (cache toujours à `samples: 4`), reconstruction release, même commande → `BORD
+trait-en-attente ECART (intermédiaires 0 …)` (le joueur s'arrête au premier écart) ; remise par `git -C <wt>
+checkout -- app/renderbackend.h`, reconstruction, vert. Le fichier muté n'est pas commité (pas dans les fichiers
+touchés).
 
 **Interdits.** Aucun changement de `DocumentController`, `penadapters.*`, `tools/`, `core/`. `oneCacheRenderPerStroke`
 et les autres tests du cache de `tst_pageview` restent tels quels (sans couche d'attente : comportement du lot 2).
@@ -1909,7 +1922,8 @@ cinq contrôles de contenu au lieu de quatre (`stroke-folded` ajouté par le pla
 (`tst_bench_result`, L10-T1) exige au moins 2 redessins dans `pauses` au lieu de 3 (versement différé : un par
 reprise k ≥ 1, la reprise k = 0 relançant la minuterie), le commentaire du test le dit.
 
-**Terminé quand.** Preuve verte, captures décrites, JSON du banc joint, commit fait.
+**Terminé quand.** Preuve verte, captures décrites, MSAA de la fenêtre prouvé à l'écran (vert, puis rouge sous
+`kMsaaSamples = 1` seule), JSON du banc joint, commit fait.
 
 **Étapes.**
 
@@ -2338,13 +2352,13 @@ struct PendingLayerForeign
     {"expect": "fixedPage.pendingCount", "value": 3},
     {"checkPixel": "attente-1", "at": [500, 300], "color": "#000000", "tolerance": 60},
     {"checkPixel": "attente-2", "at": [500, 400], "color": "#000000", "tolerance": 60},
-    {"checkEdge": "trait-en-attente", "from": [370, 550], "to": [430, 550], "minIntermediate": 2},
+    {"checkEdge": "trait-en-attente", "from": [370, 550], "to": [430, 550], "minIntermediate": 2, "minInk": 8},
     {"capture": "en-attente"},
     {"waitFor": "fixedPage.pendingCount", "value": 0, "timeoutMs": 5000},
     {"waitReady": true},
     {"checkPixel": "verse-1", "at": [500, 300], "color": "#000000", "tolerance": 60},
     {"checkPixel": "verse-2", "at": [500, 400], "color": "#000000", "tolerance": 60},
-    {"checkEdge": "trait-verse", "from": [370, 550], "to": [430, 550], "minIntermediate": 2},
+    {"checkEdge": "trait-verse", "from": [370, 550], "to": [430, 550], "minIntermediate": 2, "minInk": 8},
     {"capture": "verses"},
     {"stroke": [[300, 200], [700, 200]], "pressure": 0.5},
     {"expect": "fixedPage.pendingCount", "value": 1},
@@ -2366,7 +2380,8 @@ struct PendingLayerForeign
 - [ ] **Étape 8 : vert.** `format.ps1`, preuve de tâche (`tst_pageview`, `tst_ui_drawing`, `tst_captures_cache_differe`,
   `tst_bench_verdict`), preuve visuelle hors écran (`-Scenario cache-differe`, `-Lire fixedPage.pendingCount=0`),
   captures `en-attente` et `verses` décrites (mêmes traits, mêmes bords), banc sans écran (lignes `cache=` de chaque
-  scénario jointes).
+  scénario jointes). Puis, à l'écran en D3D11, la preuve du MSAA de la fenêtre (vert, rouge sous `kMsaaSamples = 1`
+  seule, remise : « Test et commande bornée »).
 
 - [ ] **Étape 9 : commit.**
   ```powershell
@@ -2415,7 +2430,8 @@ calme » de chaque passage (jeton, RAM libre, compilations), la table par passag
 > 25 ms, figements et reprises hors limite avec leurs maximums, `cache.refreshes`, `cache.pending_max`, latence
 p50/p95, pic mémoire), le verdict S13 (**tenu**, **non tenu** ou **non jugé** — machine chargée), l'attribution de
 chaque figement ou reprise hors limite (instant comparé à `raw.cache_request_ns` : redessin du cache ou autre
-cause), et la **décision sur L10-T7** ; worktree de référence supprimé.
+cause), la **décision sur L10-T7**, le pic mémoire au zoom 800 % posé (base, lot 10) et la décision de repli
+de H10-9 (étape 4 bis) ; worktree de référence supprimé.
 
 **Étapes.**
 
@@ -2438,6 +2454,18 @@ cause), et la **décision sur L10-T7** ; worktree de référence supprimé.
   s'il est choisi, l'orchestrateur l'écrit (relecture du plan exigée). Hors
   limite attribué à autre chose → rapporté à l'orchestrateur (tâche de correction à écrire, hors tuiles). Machine
   chargée → **non jugé**, L10-T7 non jouée, mesure à refaire à la clôture.
+- [ ] **Étape 4 bis : mémoire du MSAA au zoom 800 % posé (H10-9, revue I2 de L10-T5).** Le scénario `zoom` du banc
+  ne pose pas la page à 800 % (mesure A/B de l'orchestrateur sur ce scénario : GPU 164 → 297 Mo, processus 333 →
+  465 Mo, p95 17,0 ms des deux côtés). Sous le jeton `ecran`, machine calme relevée, pour la référence puis le lot
+  10 : un scénario temporaire `.tmp/zoom800.json` (non commité : `waitReady`, `{"command": "view.zoom",
+  "argument": 800}`, `waitReady`, `{"wait": 3000}` pour la stabilité, `capture`) joué par
+  `build/release/actcraft-captures.exe --scenario .tmp/zoom800.json --rendu d3d11 --taille 1280x800 --sortie
+  .tmp/zoom800` (après `. ./scripts/dev-env.ps1`) ; pendant qu'il tourne, toutes les 500 ms, `Get-Counter
+  "\GPU Process Memory(pid_<pid>*)\Dedicated Usage"` et `"…\Shared Usage"` et `(Get-Process -Id <pid>).PrivateMemorySize64` ;
+  rapporter le pic de chacun, base contre lot 10. **Décision** : si, sur le lot 10, le total (pic GPU dédié +
+  partagé et mémoire privée du processus, au même relevé) dépasse 1 Gio, un repli de H10-9 est requis (plafond
+  `kMaxCacheSide` abaissé sous MSAA, ou fenêtre à 1 et cache à 4), choisi et justifié dans le résumé, tâche
+  écrite par l'orchestrateur ; sinon, aucun repli.
 - [ ] **Étape 5 : écrire le résumé** `docs/mesures/AAAA-MM-JJ-cache-incremental.md` sur le modèle de
   `docs/mesures/2026-10-17-lot2-document.md` (en-tête « Ce n'est pas une machine de référence », machine, régime du
   banc : résultat, pas une porte, décision 35), avec les éléments du critère « terminé ». Le tableau « Résumé du banc
@@ -2582,7 +2610,9 @@ pixel est un défaut : test de pixels sur une frontière de tuile).
 - **H10-4 — Annuler un objet déjà versé** redessine tout le cache tout de suite (comportement du lot 2) ; annuler un
   objet encore en attente ne coûte rien. Mesuré au lot 3 (S6, annulation branchée).
 - **H10-5 — MSAA 4×** de la fenêtre et du cache : coût mesuré sur la puce Intel intégrée de la machine de
-  développement ; sur le Dell 3510, inconnu (mesure hors porte, décision 0087). **Repli** si le MSAA y coûte trop :
+  développement ; sur le Dell 3510, inconnu (mesure hors porte, décision 0087). Le MSAA s'applique aussi en
+  `Auto` (macOS, Android : moteur RHI par défaut de Qt ; `applyRenderBackend` ne l'écarte qu'en rendu logiciel) :
+  coût non mesuré là non plus. **Repli** si le MSAA y coûte trop :
   encre vive sans lissage et lissage au relâché (le trait versé est lissé), comme la référence le fait par défaut,
   qui abaisse la qualité du rendu pendant l'écriture et la rétablit ensuite (L10-T0, P2).
 - **H10-6 — Forme du trait de la référence** (courbe lissée, bouts et jonctions ronds) : hors lot 10 ; transmise au
@@ -2599,9 +2629,16 @@ pixel est un défaut : test de pixels sur une frontière de tuile).
   remplace après son délai des traits déjà versés (P14 : redessin complet, scénario de banc « reconnaissance » au
   lot 7). S7 et S8 ne sont que des captures. Hors limite : tuiles (L10-T7) ou cache par groupe de couches (P15,
   décision de L10-T6), ou tâche du lot concerné.
-- **H10-9 — Mémoire du MSAA** : texture du cache jusqu'à 4096 px de côté (zoom 800 %), + 192 à + 384 Mio selon le
-  pilote, sur un pic du lot 1 de 473 à 698 Mo et un budget de 1 Gio ; relevée à L10-T5 (pic GPU de `zoom`) ; repli
-  écrit à L10-T5, étape 6 (échantillons du cache selon la taille de la texture : 4 sous 2048², 1 au-dessus ; 0 suivrait la fenêtre).
+- **H10-9 — Mémoire du MSAA** : texture du cache jusqu'à 4096 px de côté (`kMaxCacheSide`, zoom 800 %), + 192 à
+  + 384 Mio selon le pilote, sur un pic du lot 1 de 473 à 698 Mo et un budget de 1 Gio. **Aucun réglage public ne
+  coupe le MSAA du cache tant que la fenêtre l'a** : `samples ≤ 1` d'un `ShaderEffectSource` suit l'échantillonnage
+  de la fenêtre (`QSGRhiLayer::grab` : `effectiveSamples <= 1` → `msaaSampleCount()`, lu dans la branche dev de Qt,
+  non vérifié sur 6.12 ; constaté à L10-T5 : cache à `samples: 1`, fenêtre 4×, trait versé lissé à l'écran en
+  D3D11). Le repli `? 4 : 1` d'abord écrit à L10-T5 est **retiré**. Replis possibles : plafond de la texture du
+  cache abaissé sous MSAA (`kMaxCacheSide`), ou fenêtre à 1 et cache à 4 (= repli de H10-5). Mesure A/B de
+  l'orchestrateur (scénario `zoom` du banc, D3D11) : mémoire GPU 164 → 297 Mo, processus 333 → 465 Mo, p95 17,0 ms
+  des deux côtés ; ce scénario ne pose pas la page à 800 % : le pic au zoom 800 % posé est mesuré à L10-T6, qui
+  décide du repli.
 - **H10-10 — Rendu pendant le zoom** : ce que montre la référence pendant un zoom (flou puis net, ou net tout de
   suite) n'est ni décrit dans le corpus ni relevé dans le binaire (L10-T0, P13). ActCraft garde son comportement
   (texture du cache agrandie pendant le geste, redessinée nette à la fin) ; à observer sur la référence au lot 7

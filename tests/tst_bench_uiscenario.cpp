@@ -453,6 +453,78 @@ private slots:
         QVERIFY(QString::fromUtf8(index.readAll()).contains(QStringLiteral("en échec")));
     }
 
+    // L10-T5 (S33) : contrôle de bord, pixels comptés un à un le long d'un segment de page.
+    void checkEdgeStepIsParsed()
+    {
+        const QByteArray json = R"({"format": "actcraft-scenario/1", "name": "x", "steps": [
+            {"checkEdge": "bord", "from": [380, 400], "to": [440, 400], "minIntermediate": 2}]})";
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseUiScenario(json, s, error), qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{1});
+        const UiStep& step = s.steps[0];
+        QVERIFY(step.kind == UiStepKind::CheckEdge);
+        QCOMPARE(step.name, QStringLiteral("bord"));
+        QCOMPARE(step.at, QPointF(380, 400));
+        QCOMPARE(step.to, QPointF(440, 400));
+        QCOMPARE(step.minIntermediate, 2);
+        QCOMPARE(step.maxIntermediate, -1); // sans plafond
+        QCOMPARE(step.minInk, 0);
+        const QByteArray full = R"({"format": "actcraft-scenario/1", "name": "x", "steps": [
+            {"checkEdge": "g", "from": [1, 2], "to": [1, 9], "minIntermediate": 0, "maxIntermediate": 0,
+             "minInk": 1}]})";
+        QVERIFY2(parseUiScenario(full, s, error), qPrintable(error));
+        QCOMPARE(s.steps[0].maxIntermediate, 0);
+        QCOMPARE(s.steps[0].minInk, 1);
+        const QByteArray bad = R"({"format": "actcraft-scenario/1", "name": "x", "steps": [
+            {"checkEdge": "bord", "from": [380, 400]}]})";
+        QVERIFY(!parseUiScenario(bad, s, error));
+    }
+
+    // L10-T5 : file.open lit le fichier hors du fil principal ; jusqu'au retour (busy vrai), le document du
+    // lancement reste affiché et « prêt ». Toute autre attente peut être satisfaite par l'ancien document :
+    // anticrenelage attendait « 1 / 1 », déjà vrai au lancement, et contrôlait la grille sur la page vierge
+    // (busy vrai, titre « Sans titre » relevés au contrôle, 2 fois sur 4 à l'écran). Chaque ouverture d'un
+    // scénario commité est donc suivie de l'attente de busy = false.
+    void committedScenariosWaitForEveryOpen()
+    {
+        const QDir root(QStringLiteral(ACTCRAFT_TESTS_DIR "/../bench/scenarios"));
+        QStringList paths;
+        for (const QString& sub : {QStringLiteral("."), QStringLiteral("local")}) {
+            const QDir folder(root.filePath(sub));
+            const QStringList names = folder.entryList({QStringLiteral("*.json")}, QDir::Files, QDir::Name);
+            for (const QString& name : names) {
+                paths << folder.filePath(name);
+            }
+        }
+        QVERIFY(paths.size() >= 5);
+        int opens = 0;
+        for (const QString& path : paths) {
+            QFile file(path);
+            QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(path));
+            UiScenario s;
+            QString error;
+            QVERIFY2(parseUiScenario(file.readAll(), s, error),
+                     qPrintable(path + QStringLiteral(" : ") + error));
+            for (std::size_t i = 0; i < s.steps.size(); ++i) {
+                if (s.steps[i].kind != UiStepKind::Command ||
+                    s.steps[i].command != QStringLiteral("file.open")) {
+                    continue;
+                }
+                ++opens;
+                const bool waits = i + 1 < s.steps.size() && s.steps[i + 1].kind == UiStepKind::WaitFor &&
+                                   s.steps[i + 1].target == QStringLiteral("documentController") &&
+                                   s.steps[i + 1].property == QStringLiteral("busy") &&
+                                   s.steps[i + 1].value == QStringLiteral("false");
+                QVERIFY2(waits, qPrintable(QStringLiteral("%1, étape %2 : file.open sans attente de "
+                                                          "documentController.busy = false")
+                                               .arg(path)
+                                               .arg(i + 1)));
+            }
+        }
+        QVERIFY(opens >= 4);
+    }
+
     // Étapes de L2-T20 (S5) : fixture, attente d'une propriété, sonde de boucle, mémoire, archive.
     void newStepsAreParsed()
     {
