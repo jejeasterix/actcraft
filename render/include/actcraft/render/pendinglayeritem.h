@@ -46,6 +46,7 @@ private:
     PaintedRenderer m_painted;
     std::vector<std::pair<core::ObjectId, QSGNode*>> m_nodes; // fil de rendu ; nœud nul : rien à dessiner
     std::uint64_t m_builtRevision = 0;
+    bool m_pageSwitched = false; // posé par setFixedPage, remis par la synchronisation (fil principal bloqué)
     std::atomic<int> m_builtCount{0};
 };
 

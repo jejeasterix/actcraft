@@ -393,6 +393,29 @@ private slots:
         QVERIFY(near(at(f, 300, 100), Qt::black, 60));
         QCOMPARE(f.layer->builtCount(), 1);
     }
+
+    // Revue m4 : la couche passe à une autre page fixe : elle refait tout, même quand les identifiants en
+    // attente coïncident (chaque page interne compte les siens à partir du même nombre).
+    void switchingPageRebuildsTheLayer()
+    {
+        Fixture f;
+        open(f, true);
+        auto* other = new render::FixedPageItem;
+        other->setSize(QSizeF(640, 480));
+        other->setParentItem(f.window.contentItem());
+        other->setVisible(false); // seule la couche dessine ses objets en attente
+        other->setPage(core::Page{});
+        QVERIFY(QTest::qWaitFor([&] { return other->isReady(); }, 5000));
+        f.page->setDeferredFolding(true);
+        other->setDeferredFolding(true);
+        f.page->appendStroke(lineAt(100));
+        other->appendStroke(lineAt(200));
+        QVERIFY(f.page->pendingIds() == other->pendingIds()); // mêmes identifiants : le piège
+        QVERIFY(near(at(f, 300, 100), Qt::black, 60));
+        f.layer->setFixedPage(other);
+        QVERIFY(near(at(f, 300, 100), Qt::white, 8));
+        QVERIFY(near(at(f, 300, 200), Qt::black, 60));
+    }
 };
 
 QTEST_MAIN(TstRenderPendingLayer)

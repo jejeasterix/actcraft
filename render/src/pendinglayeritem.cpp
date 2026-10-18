@@ -8,6 +8,18 @@
 
 namespace actcraft::render {
 
+namespace {
+// Retire et détruit tous les nœuds posés par la couche.
+void clearNodes(QSGNode* root, std::vector<std::pair<core::ObjectId, QSGNode*>>& nodes)
+{
+    while (QSGNode* child = root->firstChild()) {
+        root->removeChildNode(child);
+        delete child;
+    }
+    nodes.clear();
+}
+} // namespace
+
 PendingLayerItem::PendingLayerItem(QQuickItem* parent)
     : QQuickItem(parent), m_registry(RendererRegistry::withDefaults())
 {
@@ -28,6 +40,7 @@ void PendingLayerItem::setFixedPage(FixedPageItem* page)
     disconnect(m_contentConnection);
     disconnect(m_readyConnection);
     m_page = page;
+    m_pageSwitched = true;
     if (m_page) {
         m_pendingConnection = connect(m_page, &FixedPageItem::pendingChanged, this, [this] { update(); });
         m_contentConnection = connect(m_page, &FixedPageItem::contentChanged, this, [this] { update(); });
@@ -56,6 +69,12 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         // détruits avec lui ; tout ce qui attend est à reposer.
         m_nodes.clear();
     }
+    if (m_pageSwitched) {
+        // Autre page fixe : ses objets en attente n'ont rien de commun avec les nœuds posés, même à
+        // identifiants égaux (chaque document compte les siens).
+        clearNodes(root, m_nodes);
+        m_pageSwitched = false;
+    }
     // Tant que la page fixe redécode (reconstruction avec images, autre page), elle garde ses anciens nœuds,
     // sans les objets qui attendaient : la couche garde les siens jusqu'au prêt (readyChanged), sinon ils
     // disparaîtraient de l'écran.
@@ -65,6 +84,13 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     static const std::vector<core::ObjectId> none;
     const std::vector<core::ObjectId>& wanted = m_page ? m_page->pendingIds() : none;
     const std::uint64_t revision = m_page ? m_page->pendingRevision() : 0;
+    if (m_page && wanted.size() > m_page->page().objects.size()) {
+        // Invariant rompu (FixedPageItem le tient : ne doit pas arriver) : ne rien dessiner plutôt que lire
+        // hors de la page.
+        clearNodes(root, m_nodes);
+        m_builtCount.store(0);
+        return root;
+    }
     // Les nœuds déjà posés restent s'ils sont le début de ce qui attend (traits ajoutés un à un) ; sinon
     // (versement, retrait, modification en place) la couche refait tout.
     bool keep = revision == m_builtRevision && m_nodes.size() <= wanted.size();
@@ -72,11 +98,7 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         keep = m_nodes[i].first == wanted[i];
     }
     if (!keep) {
-        while (QSGNode* child = root->firstChild()) {
-            root->removeChildNode(child);
-            delete child;
-        }
-        m_nodes.clear();
+        clearNodes(root, m_nodes);
         m_builtRevision = revision;
     }
     if (m_page && m_nodes.size() < wanted.size()) {
