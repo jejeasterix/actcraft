@@ -37,7 +37,7 @@ en Direct3D 11, mesuré au banc ; la grille reste nette (règle de rendu relevé
 | L10-T2 | `render` : fabrique de nœuds d'objet partagée (refonte sans changement de comportement) | — | `render/src/objectnodes.h`, `render/src/objectnodes.cpp`, `render/src/fixedpageitem.cpp`, `render/CMakeLists.txt` | isolé | implementeur-tdd | `TESTS OK`, N ≥ 91, `tst_render_fixedpage` et `tst_render_painted` Passed ; mutation de `wrapped` rouge puis remise ; banc hors écran `content_check.ok = True` | S13 | #tache-l10-t2 |
 | L10-T5 | Anticrénelage en Direct3D 11 (MSAA 4× fenêtre et cache) ; étape `checkEdge` du joueur ; grille nette | L10-T0 | `app/renderbackend.h`, `app/renderbackend.cpp`, `tests/tst_renderbackend.cpp`, `ui/qml/PageArea.qml`, `bench/include/actcraft/bench/contentcheck.h`, `bench/src/contentcheck.cpp`, `tests/tst_bench_content.cpp`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `bench/src/fixtures.cpp`, `bench/scenarios/anticrenelage.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 92, `tst_renderbackend`, `tst_bench_content`, `tst_bench_uiscenario`, `tst_captures_anticrenelage` Passed ; à l'écran D3D11 (jeton `ecran`) : `BORD trait-diagonal OK`, `BORD grille-nette OK`, `LU pageCache.samples=4 OK` ; banc A/B D3D11 avant / après | S33 | #tache-l10-t5 |
 | L10-T3 | Page fixe : objets en attente hors de la scène du cache ; couche d'attente `PendingLayerItem` | L10-T0, L10-T2 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `render/include/actcraft/render/pendinglayeritem.h`, `render/src/pendinglayeritem.cpp`, `render/CMakeLists.txt`, `tests/render.cmake`, `tests/tst_render_pendinglayer.cpp` | isolé | concepteur-critique | `TESTS OK`, N ≥ 92, `tst_render_pendinglayer` Passed (dont `foldShowsTheSameImage`, `undoingAPendingStrokeRebuildsNothing`, `pendingStrokeMovedToTheFrontFoldsEverything`, `revealerStrokeIsNeverDeferred`), `tst_render_fixedpage` Passed ; banc hors écran `content_check.ok = True` | S13 | #tache-l10-t3 |
-| L10-T4 | Vue : versement différé (inactivité, plafond, zoom), couche d'attente branchée, scénario `cache-differe` | L10-T1, L10-T3, L10-T5 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/uiforeigntypes.h`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_verdict.cpp`, `tests/tst_bench_result.cpp`, `bench/scenarios/cache-differe.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 94, `tst_pageview` (dont `strokeWaitsAboveTheCacheUntilIdle`, `wheelPostponesTheFold`, `hoverDoesNotPostponeTheFold`), `tst_ui_drawing` (dont `deferredStrokeStaysVisibleThroughTheFold`), `tst_captures_cache_differe`, `tst_bench_verdict`, `tst_bench_result` (dont `deferredFoldShowsInTheResult`) Passed ; `captures.ps1 -Scenario cache-differe` hors écran `CAPTURES OK` ; banc hors écran : `stroke` → `cache.refreshes = 0`, `stroke-folded` OK | S13 | #tache-l10-t4 |
+| L10-T4 | Vue : versement différé (inactivité, plafond, zoom), couche d'attente branchée, scénario `cache-differe` | L10-T1, L10-T3, L10-T5 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/src/uiforeigntypes.h`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_verdict.cpp`, `tests/tst_bench_result.cpp`, `bench/scenarios/cache-differe.json`, `tests/bench.cmake` | isolé | concepteur-critique | `TESTS OK`, N ≥ 94, `tst_pageview` (dont `strokeWaitsAboveTheCacheUntilIdle`, `wheelPostponesTheFold`, `hoverDoesNotPostponeTheFold`), `tst_ui_drawing` (dont `deferredStrokeStaysVisibleThroughTheFold`), `tst_captures_cache_differe`, `tst_bench_verdict`, `tst_bench_result` (dont `deferredFoldShowsInTheResult`) Passed ; `captures.ps1 -Scenario cache-differe` hors écran `CAPTURES OK` ; banc hors écran : `stroke` → `cache.refreshes = 0`, `stroke-folded` OK ; à l'écran D3D11 (jeton `ecran`) : `BORD trait-en-attente OK`, puis `ECART` sous `kMsaaSamples = 1` seule | S13 | #tache-l10-t4 |
 | L10-T6 | Mesure S13 : trois passages D3D11 plein écran encadrés par la référence, condition « machine calme », décision tuiles | L10-T4 | `docs/mesures/AAAA-MM-JJ-cache-incremental.md` (date du passage) | isolé | concepteur-critique | 3 passages D3D11 plein écran consécutifs du lot 10 : `freeze_over_limit = 0` et `resume_over_limit = 0` sur les 5 scénarios ; référence avant et après ; RAM libre relevée à chaque passage ; résumé commité ; décision écrite sur L10-T7 | S13 | #tache-l10-t6 |
 | L10-T7 | (Conditionnelle) Cache par tuiles : seules les tuiles touchées par les objets versés sont redessinées | L10-T6 | `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `tests/tst_render_pendinglayer.cpp`, `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `ui/qml/PageArea.qml`, `tests/tst_pageview.cpp`, `tests/tst_ui_drawing.cpp`, `docs/mesures/AAAA-MM-JJ-cache-incremental.md` | isolé | concepteur-critique | jouée seulement si L10-T6 l'exige ; `TESTS OK`, N ≥ 94, `tst_pageview` (dont `foldRefreshesOnlyTheTouchedTiles`) Passed ; mesure S13 de L10-T6 rejouée et tenue | S13 | #tache-l10-t7 |
 
@@ -49,7 +49,8 @@ ajoutés par la tâche et par celles dont elle dépend ; « ≥ » est la règle
 Worktrees : `.worktrees/livraison-complete--L10-T<n>` (profil), tous isolés : deux tâches d'une même vague ne
 partagent aucun fichier (vérifié sur la colonne « fichiers touchés »).
 
-**Écran.** L10-T5 et L10-T6 ouvrent des fenêtres à l'écran (D3D11) sous le jeton `ecran` : l'orchestrateur
+**Écran.** L10-T4 (preuve du MSAA de la fenêtre, revue de L10-T5), L10-T5 et L10-T6 ouvrent des fenêtres à
+l'écran (D3D11) sous le jeton `ecran` : l'orchestrateur
 l'annonce à Jérôme d'une ligne **avant** de lancer chacune. Aucune autre tâche n'ouvre de fenêtre visible.
 
 ## Vagues (parallélisme 2 au plus)
@@ -1901,6 +1902,15 @@ cache-differe -Rendu logiciel -HorsEcran` → `LU fixedPage.pendingCount=3 OK` p
 OK`, `PIXEL … OK`, `BORD trait-en-attente OK`, `CAPTURES OK`. Banc sans écran : `stroke … cache={"refreshes":0,…}`
 (aucun redessin pendant les traits du scénario `stroke`, dont les pauses font 60 ms en court), `pauses`
 `pending_max ≥ 1`, `content_check.ok = True` avec `stroke-folded`.
+**MSAA de la fenêtre (reporté de L10-T5, revue I1).** À L10-T5, le trait contrôlé est déjà versé au cache au
+moment du contrôle : aucun `BORD` n'y prouve l'échantillonnage de la fenêtre (seul `tst_renderbackend` vérifie la
+demande faite à Qt). Ici `trait-en-attente` est dessiné par la couche d'attente, dans la fenêtre, hors cache. À
+l'écran en D3D11 (jeton `ecran`, construction release) : `captures.ps1 -Scenario cache-differe -Rendu d3d11
+-Preset release -SansConstruire` → `BORD trait-en-attente OK` ; puis mutation de `kMsaaSamples` à 1 **seule** dans
+`app/renderbackend.h` (cache toujours à `samples: 4`), reconstruction release, même commande → `BORD
+trait-en-attente ECART (intermédiaires 0 …)` (le joueur s'arrête au premier écart) ; remise par `git -C <wt>
+checkout -- app/renderbackend.h`, reconstruction, vert. Le fichier muté n'est pas commité (pas dans les fichiers
+touchés).
 
 **Interdits.** Aucun changement de `DocumentController`, `penadapters.*`, `tools/`, `core/`. `oneCacheRenderPerStroke`
 et les autres tests du cache de `tst_pageview` restent tels quels (sans couche d'attente : comportement du lot 2).
@@ -1909,7 +1919,8 @@ cinq contrôles de contenu au lieu de quatre (`stroke-folded` ajouté par le pla
 (`tst_bench_result`, L10-T1) exige au moins 2 redessins dans `pauses` au lieu de 3 (versement différé : un par
 reprise k ≥ 1, la reprise k = 0 relançant la minuterie), le commentaire du test le dit.
 
-**Terminé quand.** Preuve verte, captures décrites, JSON du banc joint, commit fait.
+**Terminé quand.** Preuve verte, captures décrites, MSAA de la fenêtre prouvé à l'écran (vert, puis rouge sous
+`kMsaaSamples = 1` seule), JSON du banc joint, commit fait.
 
 **Étapes.**
 
@@ -2338,13 +2349,13 @@ struct PendingLayerForeign
     {"expect": "fixedPage.pendingCount", "value": 3},
     {"checkPixel": "attente-1", "at": [500, 300], "color": "#000000", "tolerance": 60},
     {"checkPixel": "attente-2", "at": [500, 400], "color": "#000000", "tolerance": 60},
-    {"checkEdge": "trait-en-attente", "from": [370, 550], "to": [430, 550], "minIntermediate": 2},
+    {"checkEdge": "trait-en-attente", "from": [370, 550], "to": [430, 550], "minIntermediate": 2, "minInk": 8},
     {"capture": "en-attente"},
     {"waitFor": "fixedPage.pendingCount", "value": 0, "timeoutMs": 5000},
     {"waitReady": true},
     {"checkPixel": "verse-1", "at": [500, 300], "color": "#000000", "tolerance": 60},
     {"checkPixel": "verse-2", "at": [500, 400], "color": "#000000", "tolerance": 60},
-    {"checkEdge": "trait-verse", "from": [370, 550], "to": [430, 550], "minIntermediate": 2},
+    {"checkEdge": "trait-verse", "from": [370, 550], "to": [430, 550], "minIntermediate": 2, "minInk": 8},
     {"capture": "verses"},
     {"stroke": [[300, 200], [700, 200]], "pressure": 0.5},
     {"expect": "fixedPage.pendingCount", "value": 1},
@@ -2366,7 +2377,8 @@ struct PendingLayerForeign
 - [ ] **Étape 8 : vert.** `format.ps1`, preuve de tâche (`tst_pageview`, `tst_ui_drawing`, `tst_captures_cache_differe`,
   `tst_bench_verdict`), preuve visuelle hors écran (`-Scenario cache-differe`, `-Lire fixedPage.pendingCount=0`),
   captures `en-attente` et `verses` décrites (mêmes traits, mêmes bords), banc sans écran (lignes `cache=` de chaque
-  scénario jointes).
+  scénario jointes). Puis, à l'écran en D3D11, la preuve du MSAA de la fenêtre (vert, rouge sous `kMsaaSamples = 1`
+  seule, remise : « Test et commande bornée »).
 
 - [ ] **Étape 9 : commit.**
   ```powershell
