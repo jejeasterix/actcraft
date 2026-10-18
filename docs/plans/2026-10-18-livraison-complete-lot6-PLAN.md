@@ -2,6 +2,53 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 3 (relecture tour 3)
+
+Relecture sur `e754dbe` : 2 majeurs (N1, N2), 1 mineur qui fait échouer une preuve (N3), 5 mineurs (n1 à n5), tous
+appliqués. **Cet amendement fait autorité**, puis l'amendement 2, puis l'amendement 1, puis le texte d'origine. Noms
+vérifiés à la tête du chantier (`014d3b5`) : `ui/qml/PageArea.qml:9-10,19-20` (`objectName: "pageArea"`,
+`property alias view: view`, `PageView { id: view; objectName: "pageView" }`), `ui/qml/Main.qml:118-119`
+(`PageArea { id: pageArea }`), `app/startup.h` (`StartupOptions`, `loadMainWindow`), `scripts/captures.ps1:57-64`
+(`--sortie <Sortie>/<scénario>-<rendu>`), `bench/captures/main.cpp:67-70,106`, `bench/app/main.cpp:48-62`,
+`tests/tst_ui_shell.cpp` (`Shell`, `start`, `post`).
+
+- **N1 — Réglages et profils d'essai propres à chaque lancement (L6-T5, L6-T7, L6-T25).**
+  - `app/startup.h` : `StartupOptions` gagne `QString profileRoot; // vide : <AppConfigLocation>/profiles` ;
+    `loadMainWindow` le pose en propriété initiale `profileRoot` ; `Main.qml` déclare `property string profileRoot: ""`
+    et instancie `ProfileController { …; userRoot: root.profileRoot }` (vide = défaut).
+  - Joueur (`bench/captures/main.cpp`) : au lancement, **avant** tout objet, `QDir(<sortie>/reglages).removeRecursively()`
+    et `QDir(<sortie>/profils).removeRecursively()`, puis `QSettings::setDefaultFormat(QSettings::IniFormat)`,
+    `QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, <sortie>/reglages)`, et
+    `startup.profileRoot = <sortie>/profils`. `<sortie>` est propre au scénario et au rendu (`captures.ps1:57-64`) :
+    deux scénarios, deux worktrees ou deux lancements ne partagent rien. L'étape `restart` (L6-T18) ne vide **rien** :
+    elle relance dans le même processus pour prouver la persistance.
+  - Banc (`bench/app/main.cpp`) : `defaultDir` calculé **avant** `loadMainWindow` (n5), puis la même chose avec
+    `<defaultDir>/reglages` et `<defaultDir>/profils`.
+  - Tests qui chargent `Main.qml` (`tst_ui_shell`, `tst_ui_filemenu`, `tst_ui_drawing`, `tst_app_open`,
+    `tst_bench_verdict`) : dans `initTestCase`, `QSettings::setDefaultFormat(QSettings::IniFormat)` et
+    `QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settings.path())` (`QTemporaryDir m_settings`),
+    et un `profileRoot` temporaire passé à `loadMainWindow` (`StartupOptions`) ou en propriété initiale ; ces cinq
+    fichiers et `app/startup.*` sont ajoutés à L6-T5.
+  - Même consigne dans `tst_ui_palette` (L6-T7) et `tst_ui_profileeditor` (L6-T25).
+- **N2 — `pageView` n'est pas un identifiant QML.** Dans le code et les liaisons QML des deux plans, l'identifiant `pageView` devient
+  `pageArea.view` (`pageArea.view.contactActive`, `pageArea.view.addInputCover(…)`). Les étapes de scénario et les
+  lectures du banc gardent l'identifiant `pageView` (objet trouvé par son `objectName`) ; à l'écriture de cet amendement, les plans
+  n'en contenaient aucune. `lot6ControllersWired` (L6-T18) injecte un appui par `post` et exige `contactActive` vrai
+  sur `appProfile`, `appProperties`, `appObjectTree` et `appNotes`, puis faux après le relâché.
+- **N3 — Fichier INI cherché au bon endroit.** `Get-ChildItem -Recurse .tmp/captures/reglages-gardes-logiciel/reglages -Filter ActCraft-Captures.ini`
+  (organisation `ActCraft`, application `ActCraft-Captures`) ; pour les captures de L6-T37, même forme, un dossier
+  `<scénario>-<rendu>` par scénario.
+- **n1** — Les montages de test de L6-T12, L6-T14, L6-T16 et L6-T20 posent un `ui::Commands` réel par `setCommands`
+  (fermé par défaut : sans lui, leurs tests de modification seraient rouges) ; seuls `refusedWithoutCommands` le laissent nul.
+- **n2** — `importRejectsPathId` : `m_user` placé sous `<racine>/a/b` (`QTemporaryDir` racine), liste récursive de la
+  racine (`QDirIterator(…, QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden, QDirIterator::Subdirectories)`)
+  comparée avant et après l'import.
+- **n3** — `ProfileController::start()` n'est appelé que par `componentComplete` (instance QML) ou explicitement par
+  le constructeur de test ; jamais sur un changement de `commands` ou de `preferences`. Test
+  `startsOnceFromComponentComplete` (compteur de démarrages = 1).
+- **n4** — Section L6-T5 remise à jour (fichiers, commande, « Terminé quand », étape 5).
+- **n5** — Banc : `defaultDir` avant `loadMainWindow`.
+
 ## Amendement 2 (relecture tour 2)
 
 Relecture sur `c2d6796` : 19 défauts sur 24 corrigés, 4 en partie (repris ici), le n° 16 ouvert (décision de Jérôme
@@ -13,7 +60,7 @@ lot 5 (`5350a99` : noms de A9 et A10 inchangés).
 
 | # | Constat | Correction | Où |
 |---|---|---|---|
-| B1 | les instances QML ne lient pas `commands` aux contrôleurs : le verrou n'agit pas dans l'application | chaque instance reçoit `commands: appCommands` et, s'il en a une, `contactActive: pageView.contactActive` ; **fermé par défaut** : un contrôleur dont `commands` est nul refuse toute modification (test `refusedWithoutCommands` par contrôleur) ; test `lot6ControllersWired` dans `tst_ui_shell` | L6-T9, L6-T12 à L6-T16, L6-T18, L6-T20, L6-T21, L6-T37 |
+| B1 | les instances QML ne lient pas `commands` aux contrôleurs : le verrou n'agit pas dans l'application | chaque instance reçoit `commands: appCommands` et, s'il en a une, `contactActive: pageArea.view.contactActive` ; **fermé par défaut** : un contrôleur dont `commands` est nul refuse toute modification (test `refusedWithoutCommands` par contrôleur) ; test `lot6ControllersWired` dans `tst_ui_shell` | L6-T9, L6-T12 à L6-T16, L6-T18, L6-T20, L6-T21, L6-T37 |
 | M1 | `Preferences` et `ProfileController` créés dans `app/main.cpp`, alors que `appCommands` est une instance QML et que le joueur, le banc et `tst_app_open` passent par `loadMainWindow` | les deux sont **créables en QML** et instanciés dans `Main.qml` à côté de `appCommands` (`Preferences { id: appPreferences }`, `ProfileController { id: appProfile; commands: appCommands; preferences: appPreferences }`) ; `app/main.cpp` retiré de L6-T5 ; test `createdFromQml` | L6-T5, L6-T23, L6-T36 |
 | M2 | marqueur de `profile.activate` sans propriétaire | `tests/tst_ui_shell.cpp` donné à L6-T5, qui retire l'exclusion | L6-T2, L6-T5 |
 | M3 | « six fichiers » faux | fichiers nommés, non comptés | L6-T5 |
@@ -110,7 +157,7 @@ mandataire, Test), CMake + Ninja, MSVC 2022, PowerShell 7. Bibliothèque tierce 
 | L6-T2 | Coquille QML du lot : emplacements de la palette, de la barre de raccourcis, des quatre navigateurs, des fenêtres du lot ; gestionnaires des commandes | L6-T1 | `ui/qml/Main.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/BrowserPanel.qml`, `ui/qml/TopBar.qml`, `ui/qml/{PaletteFrame,ShortcutBar,ExtendedColors,ColorLoupe,ObjectBrowser,PropertyBrowser,PropertyEditor,NotesBrowser,ResourceBrowser,LabelTip,Dashboard,ProfileChooser,ProfileEditor,FormatPage,CommandsPage,LaunchersPage,SettingsPage,NetworkPage,ClassroomLockDialog,SpellingDialog,HelpViewer,SaveSummaryDialog}.qml`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N6 + 43, `tst_ui_shell` (dont `lot6ShellPlaceholders`, `everyLot6CommandHasAHandler`, `browserTabsInOrder`) Passed ; `premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S9 | #tache-l6-t2 |
 | L6-T3 | `actions` : attributs `lockable` et `restrictable`, porte du verrou dans le registre ; remplis pour toutes les commandes présentes (lots 1 à 5, 7, socle) | L6-T1 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `actions/data/commands.json`, `tests/tst_actions_lockable.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_actions_lockable` Passed (dont `attributesRead`, `lockGreysOnlyLockable`, `lockedTriggerCallsNothing`, `enableCannotBypassTheLock`, `everyCommandDeclaresBoth`, `fileAndQuitStayFree`, `ownStateSurvivesTheLock`), `tst_actions_registry` Passed ; mutation de la porte (`isEnabled` sans le verrou) rouge puis remise | S19 | #tache-l6-t3 |
 | L6-T4 | `actions` : modèle de profil `actcraft-profile/1` et magasin (fournis, utilisateur, enregistrer sous, supprimer, réinitialiser, exporter, importer) | L6-T1 | `actions/include/actcraft/actions/profile.h`, `actions/src/profile.cpp`, `actions/include/actcraft/actions/profilestore.h`, `actions/src/profilestore.cpp`, `tests/tst_actions_profile.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_actions_profile` Passed (dont `roundTripKeepsEveryField`, `unknownKeysKept`, `majorVersionRefused`, `iconPixelsClamped`, `builtinFirstThenUser`, `userCopyShadowsBuiltin`, `resetRemovesTheUserCopy`, `builtinCannotBeRemoved`, `saveIsAtomic`, `exportImportRoundTrip`, `importNeverOverwrites`, `importRejectsPathId`) | S9, S9.7 | #tache-l6-t4 |
-| L6-T5 | `ui` : réglages du poste (`Preferences`, QSettings) et `ProfileController` (profil courant, enregistrement implicite différé hors contact, dossier de disposition) | L6-T3, L6-T4 | `ui/include/actcraft/ui/preferences.h`, `ui/src/preferences.cpp`, `ui/include/actcraft/ui/profilecontroller.h`, `ui/src/profilecontroller.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `ui/qml/Main.qml`, `bench/captures/main.cpp`, `bench/app/main.cpp`, `tests/tst_ui_preferences.cpp`, `tests/tst_ui_shell.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_preferences` Passed (dont `keysAreOurs`, `currentProfileRestored`, `implicitSaveIsDebounced`, `noSaveDuringContact`, `activateSwitchesTheLayoutDir`, `brokenProfileFallsBack`, `settingDefaultsComeFromTheSchema`, `activateCommandIsNative`, `pathLikeIdRefused`, `defaultConstructorFollowsTheDefaultFormat`, `createdFromQml`), `tst_ui_shell` (dont `everyLot6CommandHasAHandler` sans exclusion) Passed | S9, S9.7 | #tache-l6-t5 |
+| L6-T5 | `ui` : réglages du poste (`Preferences`, QSettings) et `ProfileController` (profil courant, enregistrement implicite différé hors contact, dossier de disposition) | L6-T3, L6-T4 | `ui/include/actcraft/ui/preferences.h`, `ui/src/preferences.cpp`, `ui/include/actcraft/ui/profilecontroller.h`, `ui/src/profilecontroller.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `ui/qml/Main.qml`, `app/startup.h`, `app/startup.cpp`, `bench/captures/main.cpp`, `bench/app/main.cpp`, `tests/tst_ui_preferences.cpp`, `tests/tst_ui_shell.cpp`, `tests/tst_ui_filemenu.cpp`, `tests/tst_ui_drawing.cpp`, `tests/tst_app_open.cpp`, `tests/tst_bench_verdict.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_preferences` Passed (dont `keysAreOurs`, `currentProfileRestored`, `implicitSaveIsDebounced`, `noSaveDuringContact`, `activateSwitchesTheLayoutDir`, `brokenProfileFallsBack`, `settingDefaultsComeFromTheSchema`, `activateCommandIsNative`, `pathLikeIdRefused`, `defaultConstructorFollowsTheDefaultFormat`, `createdFromQml`, `startsOnceFromComponentComplete`), `tst_ui_shell` (dont `everyLot6CommandHasAHandler` sans exclusion) Passed | S9, S9.7 | #tache-l6-t5 |
 | L6-T6 | Cinq profils fournis, à nos noms, avec les épinglages du lot 7 et du lot 8 annoncé | L6-T4, L6-T5, L6-T7 | `actions/data/profiles/{en-classe,preparation,lecture-ecriture,calcul-geometrie,son-image}.json`, `tests/tst_ui_profiles.cpp`, `bench/scenarios/profils.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_profiles` (dont `fiveBuiltinsInOrder`, `pinnedCommandsExist`, `pinnedFilteredByPlatform`, `namesAreOurs`, `preparationOpensThePageBrowser`), `tst_captures_profils` Passed ; `captures.ps1 -Scenario profils` : `LU appProfile.currentId=calcul-geometrie OK`, `CAPTURES OK` | S9.7, S32 | #tache-l6-t6 |
 | L6-T7 | Palette : ancrage (4 bords, flottante), réduite, réduite au maximum, épinglée (repli au retrait du pointeur), taille des icônes 16 à 32 ; persistance | L6-T2, L6-T5 | `ui/qml/PaletteFrame.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/Theme.qml`, `tests/tst_ui_palette.cpp`, `bench/scenarios/palette.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_palette` (dont `dockFollowsTheProfile`, `dragToCenterFloats`, `collapsedShowsFirstRowOnly`, `fullCollapseHidesShortcuts`, `unpinnedHidesAfterLeave`, `iconPixelsScaleEveryIcon`), `tst_captures_palette` Passed ; `captures.ps1 -Scenario palette` : `LU appProfile.paletteDock=left OK`, `LU toolPalette.x=0 OK`, `CAPTURES OK` ; banc hors écran joint | S9, S9.1 | #tache-l6-t7 |
 | L6-T8 | Palette de couleurs étendue (6 × 6), copieur de couleur, boîte de couleur, couleurs ajoutées gardées ; 8, 16 ou 24 pastilles | L6-T2, L6-T5 | `ui/include/actcraft/ui/colorpalette.h`, `ui/src/colorpalette.cpp`, `ui/qml/ExtendedColors.qml`, `ui/qml/ColorLoupe.qml`, `ui/qml/ColorSwatches.qml`, `tests/tst_ui_colors.cpp`, `bench/scenarios/couleurs.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_colors` (dont `extendedGridIsSixBySix`, `addedColorIsKept`, `duplicatesIgnored`, `swatchCountFollowsTheProfile`, `loupeSamplesOnceOnOpen`), `tst_captures_couleurs` Passed ; `captures.ps1 -Scenario couleurs` : `LU appColors.extraCount=1 OK`, `PIXEL pastille-ajoutee OK`, `CAPTURES OK` | S9, S9.2 | #tache-l6-t8 |
@@ -149,7 +196,7 @@ Vérification des recoupements (colonne « fichiers touchés ») :
 - V1 : L6-T0 (`docs/verifications/`) / L6-T1 (CMake, données, icônes, talons) — disjoints.
 - V2 : L6-T2 (QML de la coquille, `tst_ui_shell.cpp`) / L6-T3 (`commandregistry.*`, `commands.json`,
   `tst_actions_lockable.cpp`) / L6-T4 (`profile.*`, `profilestore.*`, `tst_actions_profile.cpp`) — disjoints.
-- V3 : L6-T5 (`preferences.*`, `profilecontroller.*`, `commands.*`, `Main.qml`, `bench/captures/main.cpp`, `bench/app/main.cpp`, `tst_ui_preferences.cpp`, `tst_ui_shell.cpp`) / L6-T10 (`model.*`,
+- V3 : L6-T5 (`preferences.*`, `profilecontroller.*`, `commands.*`, `Main.qml`, `app/startup.*`, `bench/captures/main.cpp`, `bench/app/main.cpp`, `tst_ui_preferences.cpp`, `tst_ui_shell.cpp`, `tst_ui_filemenu.cpp`, `tst_ui_drawing.cpp`, `tst_app_open.cpp`, `tst_bench_verdict.cpp`) / L6-T10 (`model.*`,
   `nativejson.cpp`, deux tests) / L6-T14 (`objecttree.*`, un test) — disjoints.
 - V4 : L6-T7 (`PaletteFrame.qml`, `ToolPalette.qml`, `Theme.qml`, un test, `palette.json`) / L6-T11 (`propertyedits.*`,
   un test) / L6-T15 (`ObjectBrowser.qml`, `navigateur-objets.json`) — disjoints.
@@ -1321,6 +1368,9 @@ void importRejectsPathId()
 et la même liste pour `QFileInfo(m_user.path()).dir()` (le parent), et vérifie après l'import que les deux sont
 identiques.
 
+**Amendement 3 (L6-T4).** n2 : dans `importRejectsPathId`, créer `QTemporaryDir root`, un `ProfileStore` dont la racine
+utilisateur est `root.path() + "/a/b"`, et comparer la liste récursive de `root` avant et après l'import.
+
 <a id="tache-l6-t5"></a>
 ### Tâche L6-T5 — `ui` : réglages du poste et contrôleur de profil
 
@@ -1330,17 +1380,16 @@ enregistrement implicite différé de 500 ms et **jamais pendant un contact**, D
 recharge la disposition par `Commands::setProfileDir`, A1). Le patron évident est le mauvais : enregistrer à chaque
 setter écrirait sur disque pendant un glisser de palette ou de réglette, sur le fil principal.
 
-**Fichiers.** `ui/include/actcraft/ui/preferences.h`, `ui/src/preferences.cpp`,
-`ui/include/actcraft/ui/profilecontroller.h`, `ui/src/profilecontroller.cpp`, `app/main.cpp`,
-`tests/tst_ui_preferences.cpp`.
+**Fichiers.** Ceux de la ligne L6-T5 de la table (amendements 2 et 3 compris) ; `app/main.cpp` n'en fait plus partie.
 
-**Test et commande bornée.** Commande ciblée `-R tst_ui_preferences` ; sept fonctions en `PASS` ; banc sans écran.
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_preferences|tst_ui_shell|tst_ui_filemenu|tst_ui_drawing|tst_app_open|tst_bench_verdict'` ; les fonctions de la ligne L6-T5 de la table en `PASS` ; banc sans écran.
 
 **Interdits.** Aucune clé `QSettings` en `camelCase` (D6-1) ; aucun accès disque sur le fil principal pendant un
 contact.
 
-**Terminé quand** les sept fonctions passent ; `app/main.cpp` crée les deux objets et les expose (`appPreferences`,
-`appProfile`) ; au démarrage, le profil courant est relu ou, à défaut, `preparation`.
+**Terminé quand** les fonctions de la ligne L6-T5 de la table passent ; `Main.qml` instancie `appPreferences` et
+`appProfile` (amendement 2) avec `userRoot: root.profileRoot` (amendement 3) ; au démarrage, le profil courant est relu
+ou, à défaut, `preparation` ; aucun test ni scénario n'écrit dans les réglages ou les profils réels.
 
 **Étapes.**
 - [ ] **Étape 1 : en-têtes.** `preferences.h` :
@@ -1640,11 +1689,9 @@ contact.
   `m_saveTimer` (simple, 500 ms) ; à l'échéance, si `m_contactActive`, ne rien faire (le relâché relancera) ; sinon
   `saveNow()` : `store.save(m_profile)`, `++m_saveCount`, `saved()`. `setContactActive(false)` relance la minuterie si
   `m_dirty`. Le profil fourni modifié devient une copie utilisateur (le magasin s'en charge).
-- [ ] **Étape 5 : branchement.** `app/main.cpp` : après la création de `Commands`, créer `Preferences` puis
-  `ProfileController` (racine utilisateur `QStandardPaths::writableLocation(AppConfigLocation) + "/profiles"`),
-  `start()`, exposer `appPreferences` et `appProfile` comme les autres objets de l'application (même voie que
-  `appCommands` : propriétés de contexte ou initialisation des propriétés requises, lire le fichier). `Main.qml` sera
-  relié à `contactActive` par L6-T7 (tâche QML) : ne pas toucher au QML ici.
+- [ ] **Étape 5 : branchement.** Dans `Main.qml`, à côté de `appCommands` : `Preferences { id: appPreferences }` et
+  `ProfileController { id: appProfile; commands: appCommands; preferences: appPreferences; userRoot: root.profileRoot }`
+  (amendements 2 et 3) ; `app/main.cpp` n'est pas touché. La liaison de `contactActive` est posée par L6-T7.
 - [ ] **Étape 6 : vert** (`-R 'tst_ui_preferences|tst_ui_commands'`), preuve de tâche, banc sans écran.
 - [ ] **Étape 7 : commit.** `git add` des fichiers de la ligne L6-T5 de la table, nommés un par un ; `NOMS OK` ; commit « Lot 6 : réglages du poste et profil
   courant, enregistrement implicite hors écriture (L6-T5) ».
@@ -1675,6 +1722,10 @@ contact.
 - `bench/captures/main.cpp` et `bench/app/main.cpp` : `QGuiApplication::setOrganizationName("ActCraft")` avant les
   réglages ; dossier INI = `<sortie>/reglages` pour le joueur, `<dossier des résultats du banc>/reglages` pour le banc
   (le dossier par défaut que passe `resolveOutputPath`).
+
+**Amendement 3 (L6-T5).** N1, n3, n5 : voir l'amendement 3 en tête (fichiers, `StartupOptions::profileRoot`, dossiers
+d'essai du joueur, du banc et des cinq tests qui chargent `Main.qml`, `start()` par `componentComplete` seul). Test
+neuf `startsOnceFromComponentComplete`.
 
 <a id="tache-l6-t6"></a>
 ### Tâche L6-T6 — Cinq profils fournis, à nos noms
@@ -1836,7 +1887,7 @@ maximum = barre de raccourcis masquée (F-032) ; désépinglée et ancrée = rep
 `Theme.iconPixels` (F-034). Tout passe par `appProfile` (persistance F-033, L6-T5). Gestionnaires des commandes
 `palette.*`. `Main.qml` relie `appProfile.contactActive` à la garde de contact de la vue (A6) — une ligne, dans le
 bloc posé par L6-T2 pour cette tâche (fichier hors de la ligne : la liaison s'écrit dans `PaletteFrame.qml` par un
-`Binding { target: appProfile; property: "contactActive"; value: pageView.contactActive }`).
+`Binding { target: appProfile; property: "contactActive"; value: pageArea.view.contactActive }`).
 
 **Fichiers.** `ui/qml/PaletteFrame.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/Theme.qml`, `tests/tst_ui_palette.cpp`,
 `bench/scenarios/palette.json`.
@@ -1847,7 +1898,7 @@ bloc posé par L6-T2 pour cette tâche (fichier hors de la ligne : la liaison s'
 `LU … OK` (deux lignes), `CAPTURES OK` ; décrire `gauche.png`, `reduite.png`, `repliee.png`, `icones-32.png`.
 
 **Interdits.** La palette flottante ne recouvre pas la page sans être déclarée couverture d'entrée
-(`pageView.addInputCover(paletteFrame)`, A7) ; aucune animation qui redessine la page (règle 4 de fluidité :
+(`pageArea.view.addInputCover(paletteFrame)`, A7) ; aucune animation qui redessine la page (règle 4 de fluidité :
 `opacity` et `x` seulement, sur la palette) ; aucun accès disque en QML.
 
 **Terminé quand** les six fonctions passent, le scénario est vert et le banc sans écran est joint.
@@ -1935,9 +1986,13 @@ bloc posé par L6-T2 pour cette tâche (fichier hors de la ligne : la liaison s'
 - `Theme.qml` (singleton) : `readonly property int tailleIcone: 24` devient `property int tailleIcone: 24` ; aucune
   propriété `iconPixels` n'y est ajoutée. `PaletteFrame.qml` pose
   `Binding { target: Theme; property: "tailleIcone"; value: appProfile.iconPixels }` et
-  `Binding { target: appProfile; property: "contactActive"; value: pageView.contactActive }`.
+  `Binding { target: appProfile; property: "contactActive"; value: pageArea.view.contactActive }`.
 - Les icônes lisent déjà `Theme.tailleIcone` : remplacer seulement les tailles d'icônes écrites en dur, s'il en reste.
 - Les gestionnaires `palette.*` remplacent ceux du talon, dans `PaletteFrame.qml`.
+
+**Amendement 3 (L6-T7).** N1 : `tst_ui_palette` pose, dans `initTestCase`, le format INI et son chemin dans un
+`QTemporaryDir`, et charge `Main.qml` avec un `profileRoot` temporaire. N2 : les liaisons s'écrivent
+`value: pageArea.view.contactActive`.
 
 <a id="tache-l6-t8"></a>
 ### Tâche L6-T8 — Palette de couleurs étendue et copieur de couleur
@@ -2434,7 +2489,7 @@ aucune demande de redessin du cache (un changement de sélection ne touche pas l
 - [ ] **Étape 4 : commit** « Lot 6 : modèle du navigateur de propriétés (L6-T12) ».
 
 **Amendement 1 (L6-T12).** Points 2, 3, 15.
-- Propriété `contactActive` (liée à `pageView.contactActive`).
+- Propriété `contactActive` (liée à `pageArea.view.contactActive`).
 - Propriété `commands` (`Commands*`) : `setValue` rend faux quand le verrou est posé (test `refusedWhileLocked`).
 - `setValue` sur `layer`, `visible`, `locked`, `translucency` exécute `SetLayerCommand`, `SetObjectFlagCommand` ou
   `SetTranslucencyCommand` (test `delegatedEditsUseTheLotCommands` : chaque édition ajoute une étape et relit la
@@ -2445,11 +2500,14 @@ aucune demande de redessin du cache (un changement de sélection ne touche pas l
 `Q_PROPERTY(bool editable READ editable NOTIFY editableChanged)` : vraie si `commands` est posé et que le verrou n'est
 pas posé ; recalculée sur `Commands::stateChanged` (test `editableFollowsTheLock`).
 
+**Amendement 3 (L6-T12).** n1 : le montage du test pose `model.setCommands(&commands)` avec un `ui::Commands` réel ;
+seul `refusedWithoutCommands` le laisse nul.
+
 <a id="tache-l6-t13"></a>
 ### Tâche L6-T13 — QML : navigateur de propriétés ; scénario `proprietes`
 
 **Objectif.** `PropertyBrowser.qml` : `ListView` sur une instance `PropertyModel { id: appProperties; objectName:
-"appProperties"; document: appDocument; tools: appTools; contactActive: pageView.contactActive }`, sections repliables
+"appProperties"; document: appDocument; tools: appTools; contactActive: pageArea.view.contactActive }`, sections repliables
 (`section.property: "section"`, en-tête cliquable qui replie), titre `appProperties.title` ; `PropertyEditor.qml` :
 délégué qui choisit l'éditeur par `editor` (`TextField`, `SpinBox` réel, pastille + `ColorDialog`, `Slider` qui appelle
 `setValue` à chaque pas — la fusion de L6-T11 en fait une étape —, `ComboBox`, `Switch`, éditeur de mots-clés séparés
@@ -2481,7 +2539,7 @@ la page), `trait.png` (sections d'un trait), `epais.png`, `annule.png`.
   de propriétés (L6-T13) ».
 
 **Amendement 2 (L6-T13).** B1, m5 : l'instance s'écrit
-`PropertyModel { id: appProperties; objectName: "appProperties"; document: appDocument; tools: appTools; commands: appCommands; contactActive: pageView.contactActive }` ;
+`PropertyModel { id: appProperties; objectName: "appProperties"; document: appDocument; tools: appTools; commands: appCommands; contactActive: pageArea.view.contactActive }` ;
 chaque éditeur porte `enabled: appProperties.editable` (ou `readOnly: !appProperties.editable` pour un champ).
 
 <a id="tache-l6-t14"></a>
@@ -2594,11 +2652,13 @@ Propriétés `contactActive` et `commands` ; `move`, `setHidden`, `setLocked` re
 **Amendement 2 (L6-T14).** B1 : sans `commands`, `move`, `setHidden` et `setLocked` rendent faux (test
 `refusedWithoutCommands`).
 
+**Amendement 3 (L6-T14).** n1 : même règle, `tree.setCommands(&commands)` dans le montage.
+
 <a id="tache-l6-t15"></a>
 ### Tâche L6-T15 — QML : navigateur d'objet ; scénario `navigateur-objets`
 
 **Objectif.** `ObjectBrowser.qml` : `ListView` sur `ObjectTreeModel { id: appObjectTree; objectName: "appObjectTree";
-document: appDocument; tools: appTools; contactActive: pageView.contactActive }` ; ligne de couche en gras, ligne d'objet
+document: appDocument; tools: appTools; contactActive: pageArea.view.contactActive }` ; ligne de couche en gras, ligne d'objet
 indentée avec icône du genre, nom, deux colonnes à icônes (`nav-objets-masque.svg`, `nav-objets-verrou.svg`) ; clic →
 `select`, Ctrl+clic → ajout ; glisser vertical → `move` (fantôme d'insertion) ; ligne sélectionnée surlignée par
 `SelectedRole`. Scénario S9.3. `appSelection.count` : lire le nom réel de l'objet QML qui expose la sélection (A5) ; à
@@ -2626,7 +2686,7 @@ inchangé par rapport à la référence du lot pour `court`).
 - [ ] **Étape 3 : vert**, preuve visuelle, banc, preuve de tâche ; commit « Lot 6 : navigateur d'objet (L6-T15) ».
 
 **Amendement 2 (L6-T15).** B1 : l'instance s'écrit
-`ObjectTreeModel { id: appObjectTree; objectName: "appObjectTree"; document: appDocument; tools: appTools; commands: appCommands; contactActive: pageView.contactActive }`.
+`ObjectTreeModel { id: appObjectTree; objectName: "appObjectTree"; document: appDocument; tools: appTools; commands: appCommands; contactActive: pageArea.view.contactActive }`.
 
 <a id="tache-l6-t16"></a>
 ### Tâche L6-T16 — Navigateur de notes
@@ -2707,8 +2767,10 @@ garde « chargement » pendant qu'il recharge le texte d'une page (le `TextArea`
 **Amendement 2 (L6-T16).** B1, m5, m9 : `NotesController` gagne `commands` (`Commands*`), `contactActive` (remise à
 jour reportée pendant un contact, comme les autres navigateurs) et `editable` (même règle que `PropertyModel`) ; sans
 `commands`, écrire `html` ne change rien (test `refusedWithoutCommands`) ; test `editableFollowsTheLock`. L'instance
-s'écrit `NotesController { id: appNotes; objectName: "appNotes"; document: appDocument; commands: appCommands; contactActive: pageView.contactActive }`
+s'écrit `NotesController { id: appNotes; objectName: "appNotes"; document: appDocument; commands: appCommands; contactActive: pageArea.view.contactActive }`
 et le `TextArea` porte `readOnly: !appNotes.editable`.
+
+**Amendement 3 (L6-T16).** n1 : même règle, `notes.setCommands(&commands)` dans le montage de `tst_ui_notes`.
 
 <a id="tache-l6-t17"></a>
 ### Tâche L6-T17 — Étiquettes
@@ -2803,23 +2865,34 @@ vide, `NOMS OK`, `graphify update .` commité.
 
 **Amendement 1 (L6-T18).** Le joueur emploie le dossier de réglages INI posé par L6-T5 : vérifier après
 `reglages-gardes` que le fichier INI existe sous le dossier de réglages d'essai
-(`Get-ChildItem -Recurse .tmp/captures/reglages -Filter *.ini` rend au moins un fichier, `ActCraft/ActCraft.ini`). Contrôle des talons :
+(`Get-ChildItem -Recurse .tmp/captures/reglages-gardes-logiciel/reglages -Filter ActCraft-Captures.ini` rend un fichier, `ActCraft/ActCraft-Captures.ini`). Contrôle des talons :
 inclure le marqueur de `everyLot6CommandHasAHandler` posé par L6-T2.
 
 **Amendement 2 (L6-T18).** B1, m6. `tests/tst_ui_shell.cpp` gagne :
 ```cpp
 void lot6ControllersWired()
 {
-    auto* root = loadMain();
+    Shell s;
+    QVERIFY(start(s)); // montage du fichier (loadMainWindow, profileRoot temporaire : amendement 3)
     for (const char* name : {"appProperties", "appObjectTree", "appNotes", "appShortcuts"}) {
-        QObject* o = root->findChild<QObject*>(QString::fromLatin1(name));
+        QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
         QVERIFY2(o, name);
         QVERIFY2(o->property("commands").value<QObject*>() != nullptr, name);
     }
+    // N2 : contactActive suit pageArea.view.contactActive dans l'application.
+    const QStringList followers = {QStringLiteral("appProfile"), QStringLiteral("appProperties"),
+                                   QStringLiteral("appObjectTree"), QStringLiteral("appNotes")};
+    const QPointF a = s.view->mapToScene(QPointF(s.view->width() / 2, s.view->height() / 2));
+    post(s, QEvent::TabletPress, a, Qt::LeftButton);
+    for (const QString& name : followers)
+        QTRY_VERIFY2(s.window->findChild<QObject*>(name)->property("contactActive").toBool(), qPrintable(name));
+    post(s, QEvent::TabletRelease, a, Qt::NoButton);
+    for (const QString& name : followers)
+        QTRY_VERIFY2(!s.window->findChild<QObject*>(name)->property("contactActive").toBool(), qPrintable(name));
 }
 ```
 (`appResources` y est ajouté par L6-T37.) Preuve des réglages d'essai : après le scénario,
-`Get-ChildItem -Recurse .tmp/captures/reglages -Filter *.ini` rend au moins un fichier.
+`Get-ChildItem -Recurse .tmp/captures/reglages-gardes-logiciel/reglages -Filter ActCraft-Captures.ini` rend un fichier (N3).
 
 ---
 

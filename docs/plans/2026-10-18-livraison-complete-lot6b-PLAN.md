@@ -6,8 +6,8 @@
 d'accueil, documents récents et résumé, éditeur de profils (choix du profil, onglets format, commandes, paramètres),
 trousseau et réseau, raccourcis vers des programmes, mode classe protégé, orthographe, lecteur d'aide, langue, contrôle
 du lot. Le sous-lot 6a (`docs/plans/2026-10-18-livraison-complete-lot6-PLAN.md`) est fait : ses décisions D6-1 à D6-14,
-ses hypothèses H6-1 à H6-10, sa table A1 à A23 et sa règle des talons valent ici, ainsi que ses **amendements 2
-(relecture tour 2) et 1 (relecture tour 1)**, qui font autorité, dans cet ordre, sur les sections de 6b comme sur
+ses hypothèses H6-1 à H6-10, sa table A1 à A23 et sa règle des talons valent ici, ainsi que ses **amendements 3
+(relecture tour 3), 2 (relecture tour 2) et 1 (relecture tour 1)**, qui font autorité, dans cet ordre, sur les sections de 6b comme sur
 celles de 6a ; les fichiers et les 43 tests de 6b sont
 déjà réservés par L6-T1, les emplacements QML posés par L6-T2. Exigences de 6b : F-090, F-123, F-142, F-297, F-298,
 F-560, F-760 (lecteur), F-772, F-810 à F-813, F-882, F-900, F-910, F-920, F-930 (sections des fonctions incluses,
@@ -254,7 +254,7 @@ en ligne ; suppression = `QFile::moveToTrash` quand la plateforme le permet, sin
 - [ ] **Étape 3 : implémentation, vert, banc, preuve de tâche** ; commit « Lot 6 : bibliothèque de ressources (L6-T20) ».
 
 **Amendement 1 (L6-T20).** Points 2, 3, 12.
-- Propriétés `contactActive` (liée à `pageView.contactActive`) et `commands` (`Commands*`).
+- Propriétés `contactActive` (liée à `pageArea.view.contactActive`) et `commands` (`Commands*`).
 - Vignettes : aucun rendu lancé pendant un contact ; les demandes s'accumulent et partent au relâché (même garde que
   `PageThumbnails`, L4-T17). Test `thumbnailsPostponedDuringContact` (`contactActive` vrai, trois éléments ouverts :
   `thumbnailsRendered` inchangé ; faux : 3).
@@ -262,6 +262,9 @@ en ligne ; suppression = `QFile::moveToTrash` quand la plateforme le permet, sin
 
 **Amendement 2 (L6-T20).** B1 : propriété `commands` (`Commands*`) ; sans elle, `insert`, `addSelection`, `rename`,
 `remove` et `createFolder` rendent faux (test `refusedWithoutCommands`) ; `contactActive` reçu de l'instance (L6-T21).
+
+**Amendement 3 (L6-T20).** n1 : le montage de `tst_ui_resources` pose `library.setCommands(&commands)` avec un
+`ui::Commands` réel ; seul `refusedWithoutCommands` le laisse nul.
 
 <a id="tache-l6-t21"></a>
 ### Tâche L6-T21 — QML : navigateur de ressources ; scénario `ressources`
@@ -301,7 +304,7 @@ les éléments d'essai.
 **Amendement 1 (L6-T21).** Les gestionnaires `resources.*` remplacent ceux du talon, dans `ResourceBrowser.qml`.
 
 **Amendement 2 (L6-T21).** B1 : l'instance s'écrit
-`ResourceLibrary { id: appResources; objectName: "appResources"; document: appDocument; profile: appProfile; commands: appCommands; contactActive: pageView.contactActive }`.
+`ResourceLibrary { id: appResources; objectName: "appResources"; document: appDocument; profile: appProfile; commands: appCommands; contactActive: pageArea.view.contactActive }`.
 
 <a id="tache-l6-t22"></a>
 ### Tâche L6-T22 — Mode conception (F-560)
@@ -351,7 +354,7 @@ l'écriture.
 - [ ] **Étape 4 : vert**, preuve visuelle, banc, preuve de tâche ; commit « Lot 6 : mode conception (L6-T22) ».
 
 **Amendement 1 (L6-T22).** Points 2, 4, 11, A21.
-- Bascule pendant un contact (`pageView.contactActive` vrai) : l'état demandé est gardé et appliqué au relâché, avec
+- Bascule pendant un contact (`pageArea.view.contactActive` vrai) : l'état demandé est gardé et appliqué au relâché, avec
   son seul redessin. Test `toggleDeferredDuringContact`.
 - `showHiddenTranslucent` n'est passé qu'au rendu de la page à l'écran : les miniatures (L4-T17) et l'export (lot 5)
   appellent le peintre avec les options par défaut. Test `thumbnailsNeverShowHidden` (mode actif, miniature d'une
@@ -472,6 +475,10 @@ des icônes (16 à 32), palette (ancrage, 8/16/24 couleurs, épinglée, réduite
 
 **Amendement 1 (L6-T25).** Les gestionnaires `profile.*` (sauf `profile.activate`, C++ depuis L6-T5) remplacent ceux du
 talon dans `ProfileEditor.qml`.
+
+**Amendement 3 (L6-T25).** N1 : `tst_ui_profileeditor` pose, dans `initTestCase`, le format INI et son chemin dans un
+`QTemporaryDir`, et charge `Main.qml` avec un `profileRoot` temporaire ; le scénario `profils` crée `mon-profil` dans
+`<sortie>/profils`, vidé à chaque lancement du joueur.
 
 <a id="tache-l6-t26"></a>
 ### Tâche L6-T26 — Onglet commandes (F-910)
@@ -985,8 +992,8 @@ l'émulateur : `launcher.edit` absent des menus.
 - [ ] **Étape 6 : graphe et commit** : `graphify update .` ; `git add` des fichiers de la ligne ; `NOMS OK` ; contrôle
   des titres du corpus ; commit « Lot 6 : contrôle du lot, version 0.7.0 (L6-T37) ».
 
-**Amendement 1 (L6-T37).** N = N6 + 43 + p (tâches de principes). Réglages d'essai : `Get-ChildItem -Recurse .tmp/captures/reglages -Filter *.ini`
-rend au moins un fichier après les captures (amendement 2, m6).
+**Amendement 1 (L6-T37).** N = N6 + 43 + p (tâches de principes). Réglages d'essai : `Get-ChildItem -Recurse .tmp/captures -Filter ActCraft-Captures.ini`
+rend un fichier par dossier `<scénario>-<rendu>` joué (amendement 3, N3).
 
 **Amendement 2 (L6-T37).** B1 : ajouter `appResources` à la liste de `lot6ControllersWired` dans `tests/tst_ui_shell.cpp`
 (fichier ajouté à la ligne) ; la preuve exige `PASS   : TstUiShell::lot6ControllersWired()`.
