@@ -375,8 +375,8 @@
     "semantic_hash": ""
   },
   "bench/src/runner.cpp": {
-    "mtime": 1792322649.0208714,
-    "ast_hash": "1fbd0b1dea62fb604069b1e634854abb",
+    "mtime": 1792327035.9081514,
+    "ast_hash": "d380f623ca5151c1a0542926c91b477e",
     "semantic_hash": ""
   },
   "bench/src/scenarios.cpp": {
@@ -690,8 +690,8 @@
     "semantic_hash": ""
   },
   "tests/tst_bench_result.cpp": {
-    "mtime": 1792323929.3342133,
-    "ast_hash": "7bd23538b075a1a2e9519cac7b6bca0c",
+    "mtime": 1792326976.9314957,
+    "ast_hash": "1134e386281e146bb829bcde2b4fc0ec",
     "semantic_hash": ""
   },
   "tests/tst_bench_scenarios.cpp": {
@@ -730,8 +730,8 @@
     "semantic_hash": ""
   },
   "tests/tst_pageview.cpp": {
-    "mtime": 1792322656.953909,
-    "ast_hash": "8d810cd9c8d2dfba2a76d4a6acfcc53b",
+    "mtime": 1792327039.1126957,
+    "ast_hash": "722fc7192ea0ef8abc03dbbc8c26de32",
     "semantic_hash": ""
   },
   "tests/tst_pentool.cpp": {
@@ -780,8 +780,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_drawing.cpp": {
-    "mtime": 1792322657.9132566,
-    "ast_hash": "a335d161fc8c08cd0e65511be1756482",
+    "mtime": 1792327039.5043404,
+    "ast_hash": "6f299827afce6fde67c55250304abd43",
     "semantic_hash": ""
   },
   "tests/tst_viewtransform.cpp": {
@@ -810,8 +810,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/pageview.h": {
-    "mtime": 1792322288.031997,
-    "ast_hash": "3576ea2abdc370a8ad251243ece24faf",
+    "mtime": 1792328126.051153,
+    "ast_hash": "2aa570388fcc8ccf7f409eb16e967a63",
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/viewtransform.h": {
@@ -820,8 +820,8 @@
     "semantic_hash": ""
   },
   "ui/src/pageview.cpp": {
-    "mtime": 1792324137.1474893,
-    "ast_hash": "f5f763f934e41e9c5d29788f5bdb282f",
+    "mtime": 1792328126.0404103,
+    "ast_hash": "84e23963a9197a2a57326d1d9de6f4dd",
     "semantic_hash": ""
   },
   "ui/src/penadapters.cpp": {
@@ -1595,8 +1595,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/cache-differe.json": {
-    "mtime": 1792322288.2840905,
-    "ast_hash": "53b76ee77cc1daad0150f49861029f52",
+    "mtime": 1792326976.9314957,
+    "ast_hash": "c6629fa84a84a7e9eca18be1a8e235b7",
     "semantic_hash": ""
   },
   "render/include/actcraft/render/pendinglayeritem.h": {
