@@ -47,6 +47,9 @@ private slots:
         QCOMPARE(guides.filter(at(300, 405, input::Phase::Press)).y, 400.0);
         QCOMPARE(guides.filter(at(500, 360, input::Phase::Move)).y, 400.0); // loin du bord : reste dessus
         QCOMPARE(guides.filter(at(900, 420, input::Phase::Move)).x, 800.0); // borné à la longueur
+        // À 5 px du bord bas (y = 480), à 75 du bord haut : un guide re-saisi à chaque échantillon
+        // y sauterait.
+        QCOMPARE(guides.filter(at(500, 475, input::Phase::Move)).y, 400.0);
         QCOMPARE(guides.filter(at(600, 380, input::Phase::Release)).y, 400.0);
         QCOMPARE(guides.filter(at(300, 300, input::Phase::Press)).y, 300.0); // nouvel appui loin : libre
     }
@@ -133,10 +136,12 @@ private slots:
         s.timestampNs = 42;
         s.seq = 7;
         const auto out = guides.filter(s);
+        QCOMPARE(out.y, 400.0); // projeté : sans lui, un filtre qui ne fait rien passerait le reste
         QCOMPARE(out.pressure, 0.25f);
         QCOMPARE(out.timestampNs, std::int64_t{42});
         QCOMPARE(out.seq, std::uint64_t{7});
         QCOMPARE(out.phase, input::Phase::Press);
+        QCOMPARE(out.device, input::DeviceKind::Stylus);
     }
 };
 
