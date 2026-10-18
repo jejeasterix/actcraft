@@ -8,5 +8,17 @@ actcraft_add_module(core
         src/undo.cpp
         src/edits.cpp
         src/pagecache.cpp
+        include/actcraft/core/replace.h
+        src/replace.cpp
+        include/actcraft/core/equation.h
+        src/equation.cpp
+        include/actcraft/core/hittest.h
+        src/hittest.cpp
+        include/actcraft/core/erasegeometry.h
+        src/erasegeometry.cpp
+        include/actcraft/core/objectedits.h
+        src/objectedits.cpp
+        include/actcraft/core/lift.h
+        src/lift.cpp
     DEPENDS
         Qt6::Core)
