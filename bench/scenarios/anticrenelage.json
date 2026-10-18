@@ -1,10 +1,11 @@
 {
   "format": "actcraft-scenario/1",
   "name": "anticrenelage",
-  "description": "S33 : trait noir diagonal lissé quand il vient d'être tracé (en attente au-dessus du cache : fixedPage.pendingCount = 1), après son versement au cache (pendingCount = 0) et au zoom 300 % ; grille nette. L'attente pageCache.samples = 4 est une garde de constante : elle relit la propriété samples du cache (ui/qml/PageArea.qml), égale à kMsaaSamples (app/renderbackend.h), à changer ensemble ; elle ne prouve pas l'échantillonnage multiple. La preuve à l'écran, en Direct3D 11, est checkEdge (trait-diagonal, trait-verse, trait-zoom).",
+  "description": "S33 : trait noir diagonal lissé quand il vient d'être tracé (en attente au-dessus du cache : fixedPage.pendingCount = 1), après son versement au cache (pendingCount = 0) et au zoom 300 % ; grille nette. L'attente pageCache.samples = pageView.cacheSamples est une garde de liaison, vraie dans les deux moteurs (L10-T8 : 4 en Direct3D 11, 1 en rendu logiciel) : elle relit la propriété samples du cache (ui/qml/PageArea.qml), liée à PageView.cacheSamples (kCacheMsaaSamples, ui/include/actcraft/ui/viewtransform.h, = kMsaaSamples, app/renderbackend.h) ; elle ne prouve pas l'échantillonnage multiple. La preuve à l'écran, en Direct3D 11, est checkEdge (trait-diagonal, trait-verse, trait-zoom).",
   "steps": [
     {"waitReady": true},
-    {"expect": "pageCache.samples", "value": 4},
+    {"remember": "pageView.cacheSamples", "as": "echantillons_cache"},
+    {"expect": "pageCache.samples", "value": "${echantillons_cache}"},
     {"fixture": "grille", "path": "${SORTIE}/grille.actcraft"},
     {"command": "file.open", "argument": "${SORTIE}/grille.actcraft"},
     {"waitFor": "documentController.busy", "value": false, "timeoutMs": 10000},

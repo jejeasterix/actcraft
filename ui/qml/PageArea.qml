@@ -52,9 +52,11 @@ Item {
                 hideSource: view.cacheEnabled
                 live: false
                 textureSize: view.cacheTextureSize
-                // = kMsaaSamples (app/renderbackend.h) ; relu par bench/scenarios/anticrenelage.json (garde de
-                // constante, pas une preuve du MSAA : celle-ci est checkEdge, à l'écran).
-                samples: 4 // L10-T5 : texture du cache lissée en RHI (sans effet en rendu logiciel)
+                // = kCacheMsaaSamples en RHI, 1 en rendu logiciel (PageView.cacheSamples) ; relu par
+                // bench/scenarios/anticrenelage.json (garde de liaison, pas une preuve du MSAA : celle-ci est
+                // checkEdge, à l'écran). L10-T5 : texture du cache lissée en RHI ; H10-9 : son plafond suit cet
+                // échantillonnage.
+                samples: view.cacheSamples
                 onScheduledUpdateCompleted: view.notifyCacheUpdated()
             }
 

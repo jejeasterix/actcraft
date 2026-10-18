@@ -2810,6 +2810,16 @@ ou pistes écartées, décision) et commitée.
   l'orchestrateur (scénario `zoom` du banc, D3D11) : mémoire GPU 164 → 297 Mo, processus 333 → 465 Mo, p95 17,0 ms
   des deux côtés ; ce scénario ne pose pas la page à 800 % : le pic au zoom 800 % posé est mesuré à L10-T6, qui
   décide du repli.
+  **Tranchée par L10-T8 (repli V3, `docs/mesures/2026-10-18-cache-incremental.md`, « Repli H10-9 »)** :
+  `QSG_NO_DEPTH_BUFFER=1` posé dans `applyRenderBackend` (RHI seulement) : les couches perdent leur
+  profondeur-stencil multi-échantillonnée (− 597 Mio au zoom 800 % posé). `QSGRhiLayer` ne lit que cette
+  variable, une seule fois ; l'API `setDepthBufferFor2D` ne retire jamais la profondeur-stencil des couches, quel
+  que soit le moment de l'appel. La variable retire aussi le stencil : une découpe non rectangulaire (`clip` sous
+  une rotation non multiple de 90°) n'aurait plus de découpe en RHI ; aucune aujourd'hui. Et plafond de la texture du cache abaissé à 3072
+  (`kMaxMsaaCacheSide`) quand le cache est multi-échantillonné (`PageView.cacheSamples`, jamais l'échantillonnage de
+  la fenêtre), jamais sous le côté de la page à 100 % ni à l'ajustement. Mesuré : banc 1 692,1 → 901,6 Mio, zoom
+  800 % posé 1 462,7 → 624,4 Mio, S13 tenu, p95 `scroll` 17,0 ms ; flou au-delà de 300 % (page de 1024, DPR 1) au lieu
+  de 400 %. Constat : sur cette puce intégrée, la mémoire partagée est comptée aussi dans la mémoire privée.
 - **H10-10 — Rendu pendant le zoom** : ce que montre la référence pendant un zoom (flou puis net, ou net tout de
   suite) n'est ni décrit dans le corpus ni relevé dans le binaire (L10-T0, P13). ActCraft garde son comportement
   (texture du cache agrandie pendant le geste, redessinée nette à la fin) ; à observer sur la référence au lot 7
