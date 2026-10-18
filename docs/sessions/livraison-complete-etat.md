@@ -222,6 +222,14 @@ Plan du lot 6, tour 3 : refusé. 2 majeurs : N1, réglages et profils d'essai pa
 - Contrôles : 144 titres, 0 trouvé ; NOMS OK 429 ; aucun `pageView.` dans le QML du lot 6.
 - Hypothèses à présenter aux portes des lots : H5-7 à H5-10, H6-1, H6-7 à H6-10.
 - Décisions de Jérôme encore ouvertes : H6-6 (dictionnaire) et H6-6b (licence de Hunspell).
+**L0-S4 terminée et mergée.**
+- Commit propre ef3f757, merge d13dc35, graphe f557599.
+- Preuve rejouée par mon script (tête prouvée 4ffb39c, code identique au commit) : 6 tests ciblés verts, tst_ui_shell 19/19, mutation `noShortcutTwice` rouge, CAPTURES OK, 113 tests listés.
+- Titres : 0 sur 144 après le dernier libellé. NOMS OK 431.
+- Essais : 2/3.
+Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
+Plan du lot 8a écrit en partie (53a290e : 20 tâches en 8a, 15 en 8b) ; l'agent continue.
+**Nouvelle décision pour Jérôme, H8-6** : télécharger Qt Multimedia (avec FFmpeg) et Qt WebView. Elle n'est nécessaire qu'au début du lot 8b.
 Plans écrits à l'avance, en cours : lot 8 (`.worktrees/livraison-complete--plan-lot8`) et lot 11 (`…--plan-lot11`).
 Le lot 9, confrontation du produit fini aux vidéos, sera planifié à son tour.
 Plans amendés en cours de dernière relecture (tour 3) : lot 5 (5350a99) et lot 6 (e754dbe).
