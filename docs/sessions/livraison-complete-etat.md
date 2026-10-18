@@ -116,6 +116,21 @@ Plan : `docs/plans/2026-10-18-livraison-complete-lot10-PLAN.md` (66a9300, relu e
 | L10-T9 | T8 | images de 25 à 50 ms après reprise dans `pauses` : enquête | crit | — | étape 1 faite (analyse : le versement du cache MSAA bloque le fil principal 20-45 ms après sa paire d'images ; corrélation établie, mécanisme non ; scripts `scratchpad/l10t9/`) ; étape 2 après L10-T8 (règle « jugé » à changer : calme mesuré hors des 100 ms après un redessin) | 0/3 | — | — |
 | L10-C1 | T6 | correctifs de la relecture de clôture 1 (rognage de la couche d'attente, revision au changement de document, prédicat « peut attendre », expect d'anticrenelage, booléen de ScenarioPlan, RenderContext unique, connexion inutile) ; S2 (`postponeFold` en double dans pageview.cpp) reporté après L10-T8 | crit | .worktrees/livraison-complete--L10-C1 | en cours | 0/3 | — | relecture de clôture 1 : clôturable après correctifs, 0 bloquant, 1 important, 5 mineurs, 3 simplifications |
 
+## Tâches du socle commun L0-S (plan 9b13275, mergé 1ffb07b ; relecture tour 1 : 1 bloquant, 11 importants, tous appliqués ; tour 2 en cours)
+| id | dépend | titre | worktree | état | essais | commit | preuve rejouée |
+|---|---|---|---|---|---|---|---|
+| L0-S0 | — | réservation (fichiers vides marqués, CMake, 19 tests, crochets du lot 7) | .worktrees/livraison-complete--L0-S0 | en cours | 0/3 | — | — |
+| L0-S1 | S0 | icônes des deux lots (31 SVG) | — | à faire | 0/3 | — | — |
+| L0-S2 | S0 | joueur : touch, pinch, pointer, doubleClick, expect avec tolérance | — | à faire | 0/3 | — | — |
+| L0-S3 | S0 | modèle partagé (Equation, PagePresentation, ReplaceObjectsCommand, /we4062) | — | à faire | 0/3 | — | — |
+| L0-S4 | S1 | données et disposition des deux lots (62 commandes, sous-menus, F-750) | — | à faire | 0/3 | — | — |
+| L0-S5 | S3 | DocumentController : API des deux lots, observateur unique | — | à faire | 0/3 | — | — |
+| L0-S6 | S0 | squelette du lot 3 (en-têtes figés, talons, LiftLayer QML) | — | à faire | 0/3 | — | — |
+| L0-S7 | S6 | chemin d'entrée figé (couvertures, filtre, Pipeline, isBusy) | — | à faire | 0/3 | — | — |
+| L0-S9 | S4,S5,S7 | coquille QML (couches, emplacements, Presentation.qml) | — | à faire | 0/3 | — | — |
+| L0-S10 | tout | contrôle du socle (debug + release, talons comptés, graphe) | — | à faire | 0/3 | — | — |
+Vagues : V0 S0 · V1 S3 ‖ S6 ‖ S1 · V2 S7 ‖ S5 ‖ S4 · V3 S9 ‖ S2 · V4 S10 (2 constructions de front ; B a la 3e place). L0-S8 → session B.
+
 ## Fin du lot 2 (étage 3.8)
 Double relecture lancée le 2026-10-17 vers 10 h 45 sur 947b446 (diff `origin/main..` : 186 commits, 150 fichiers ; L2-T22 relue à part), dans deux worktrees détachés : `livraison-complete--revue-conformite`, `livraison-complete--revue-qualite`. Relecture statique (mémoire 1,2 Go).
 - **Qualité** (tour 1) : 0 bloquant ; 2 imp. (trait en cours perdu à la fin d'une ouverture, `documentcontroller.cpp:480-496` ; 4 empreintes complètes sur le fil principal, `:472/:481/:498/:547`) + 4 min. (file du pool non vidée, couleur transparente d'image synthétique écran ≠ miniature, refus « occupé » muet pendant un enregistrement, miniatures extraites puis jetées) ; connus confirmés : couplage par libellé, `withKeyColor` en double, `restart(true)`, copie à l'Enregistrer, écriture en place du banc ; écarté : `UndoStack::push` sans effet (appelant filtré) ; 3 `simplification` (`synthesisKey`, `UndoStack::pushExecuted`, refus « en cours » commun). Non vérifié : L2-C8 jamais compilé par Clang (CI de la PR).
