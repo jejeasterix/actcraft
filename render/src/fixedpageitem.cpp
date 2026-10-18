@@ -182,7 +182,7 @@ void FixedPageItem::insert(core::ObjectId id)
         // (écart 5, H10-8) : hors fin de page, image ou grille au-dessus → redessin immédiat ci-dessous.
         m_pendingIds.push_back(id);
         emit objectCountChanged();
-        if (std::get_if<core::Stroke>(&object)) {
+        if (strokeObject) {
             emit strokeAppended();
         }
         emit pendingChanged();
@@ -192,7 +192,7 @@ void FixedPageItem::insert(core::ObjectId id)
         // Fin de page (le stylo, hors différé) : le prochain updatePaintNode n'ajoute que ce nœud. Avec des
         // objets en attente, ce nœud passerait devant eux dans la scène : reconstruction ci-dessous.
         emit objectCountChanged();
-        if (std::get_if<core::Stroke>(&object)) {
+        if (strokeObject) {
             emit strokeAppended();
         }
         emit contentChanged();
@@ -222,25 +222,19 @@ void FixedPageItem::remove(core::ObjectId id, const core::RectF&)
 
 void FixedPageItem::invalidate(core::ObjectId id, const core::CacheArea&)
 {
-    if (id != 0 && std::find(m_pendingIds.begin(), m_pendingIds.end(), id) != m_pendingIds.end()) {
-        const core::Page& shown = page();
-        const std::size_t at = core::indexOf(shown, id);
-        const bool image = at < shown.objects.size() && usesImages(shown.objects[at]);
-        // Image (la couche d'attente n'a pas de magasin d'images) ou objet qui n'est plus en queue : tout
-        // reconstruire.
-        if (pendingAreTheLastObjects() && !image) {
-            ++m_pendingRevision; // modifié en place pendant qu'il attend : la couche le refait
-            emit pendingChanged();
-            return;
-        }
-        // Réordonné pendant qu'il attend (annoncé en ObjectChanged, undo.h n'a pas de type « réordonné ») :
-        // ce qui attend n'est plus la queue de la page ; reconstruction complète, qui verse tout.
-        restart(Decode::IfUncovered, Scope::SamePage);
-        return;
-    }
     const core::Page& shown = page();
     const std::size_t index = core::indexOf(shown, id);
     const bool imageChanged = index < shown.objects.size() && usesImages(shown.objects[index]);
+    const bool pending =
+        id != 0 && std::find(m_pendingIds.begin(), m_pendingIds.end(), id) != m_pendingIds.end();
+    if (pending && pendingAreTheLastObjects() && !imageChanged) {
+        ++m_pendingRevision; // modifié en place pendant qu'il attend : la couche le refait
+        emit pendingChanged();
+        return;
+    }
+    // Hors de l'attente, image (la couche d'attente n'a pas de magasin d'images) ou objet en attente
+    // réordonné (annoncé en ObjectChanged, undo.h n'a pas de type « réordonné ») : ce qui attend n'est plus
+    // la queue de la page ; reconstruction complète, qui verse tout.
     restart(imageChanged && !m_ready ? Decode::Force : Decode::IfUncovered, Scope::SamePage);
 }
 
