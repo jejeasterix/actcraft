@@ -11,15 +11,17 @@ l'orchestrateur> tests ctest. Tâche L7-T0, scénario S30.
 - **Binaire.** En statique seulement : réglages par défaut embarqués dans l'exécutable, traductions françaises,
   chaînes et symboles. Le serveur d'analyse habituel n'a pas répondu ; aucun désassemblage, aucune observation à
   l'écran. Ce qui l'exigerait est marqué « non tranché » : la spécification s'applique.
-- **Ancien dépôt.** Spécification et documentation de rétro-ingénierie lues. Requêtes du graphe et relecture du code
-  Python des outils **non faites** (limite de la tâche) : les six constats du plan restent non revérifiés.
+- **Ancien dépôt.** Spécification, documentation de rétro-ingénierie, code Python des outils
+  (`app/actcraft/extras/`, `canvas/recognition.py`, `canvas/transitions.py`) et son graphe (les cinq requêtes du
+  plan : elles ne renvoient que rideau, spot et effets ; outils de maths, reconnaissance et horloge ne sortent
+  pas du graphe et ont été lus directement).
 
 ## Écarts tranchés
 
 | # | Sujet | Valeur retenue pour ActCraft | Source (statique) | Tâche |
 |---|---|---|---|---|
-| E5 | Nombre de dés à l'ouverture | **1 dé** au premier lancement, puis le dernier nombre choisi (mémorisé dans les réglages) ; bornes 1 à 5, vitesse 3 à 11 s, défaut 7 | réglage par défaut embarqué : 1, bornes 1 à 5 ; la fenêtre réécrit le réglage à chaque changement (déduit) ; V127 (quatre dés, compatible avec une valeur mémorisée). Le défaut 5 de la spécification est le maximum. Reste inconnu : décalage entre rang de la liste et nombre | L7-T14 |
-| E9 | Actions de l'horloge en fin de délai | **non tranché : spécification appliquée** (aucune action, aller à la page d'après, à la page d'avant, remettre la page dans son état enregistré) | la liste est construite par le code (une action = une chaîne, supposé : un nom de commande) ; aucune ressource ne la liste ; rien ne relie le rideau à cette liste (V83 ambiguë) | L7-T16 |
+| E5 | Nombre de dés à l'ouverture | **1 dé** au premier lancement, puis le dernier nombre choisi (mémorisé dans les réglages) ; bornes 1 à 5, vitesse 3 à 11 s, défaut 7 | réglage par défaut embarqué : 1, bornes 1 à 5 ; la fenêtre réécrit le réglage à chaque changement (déduit) ; V127 (quatre dés, compatible avec une valeur mémorisée) ; ancien dépôt : un dé à l'ouverture, observé sur l'original (`app/actcraft/extras/dice.py:18`). Le défaut 5 de la spécification est le maximum. Reste inconnu : décalage entre rang de la liste et nombre | L7-T14 |
+| E9 | Actions de l'horloge en fin de délai | **non tranché : spécification appliquée** (aucune action, aller à la page d'après, à la page d'avant, remettre la page dans son état enregistré) | la liste est construite par le code (une action = une chaîne, supposé : un nom de commande) ; aucune ressource ne la liste ; rien ne relie le rideau à cette liste (V83 ambiguë) ; l'ancien dépôt garde les quatre actions de la spécification (`app/actcraft/extras/timer.py:17`) | L7-T16 |
 | E11 | Validation du message défilant | **non tranché : spécification appliquée** (un bouton d'essai, et un bouton qui garde le message comme défaut et ferme la boîte) | les boutons de la boîte ne sont pas lisibles en statique ; V131 entend un autre libellé, sans effet sur le comportement | L7-T19 |
 
 ## Effets de page retenus (N2-A6)
@@ -72,6 +74,20 @@ prise en charge MathML de la bibliothèque d'équations). Confirme la réservati
 
 Palettes de l'éditeur d'origine : non relevées une à une ; le jeu ci-dessus est le nôtre.
 
+## Constats du plan sur l'ancien dépôt (§ « Ce que l'ancien dépôt dit déjà »)
+
+| # | Constat du plan | Verdict | Preuve |
+|---|---|---|---|
+| 1 | Outils de maths = aides hors du document ; accrochage à 16 pixels d'écran ; 1 cm = 96 / 2,54 pixels de page | confirmé | `app/actcraft/extras/mathtools.py:1-9`, `:22-25` |
+| 2 | Rideau et spot = surcouches avec leur modèle (couverture par bord ; cadre redimensionnable en ovale ou rectangle) | confirmé ; précision : contour du spot mesuré à 9 px sur l'original, proche du réglage embarqué (10), pas de la spécification (15) | `app/actcraft/extras/curtain.py:1-4`, `:22-30` ; `app/actcraft/extras/spotlight.py:1-6`, `:41-58` |
+| 3 | Reconnaissance de forme : ligne, rectangle ou carré, ellipse ou cercle, triangle | confirmé pour la référence Python ; **corrigé** par V107 (classe polygone, P16) | `app/actcraft/canvas/recognition.py:1-6`, `:21` |
+| 4 | Écriture : moteur d'encre de Windows par COM, français préféré, meilleur texte puis alternatives ; commande grisée sinon | confirmé | `app/actcraft/canvas/recognition.py:170-215`, `:240` |
+| 5 | Réglages de page lus des `.flipchart` : rideau (mode, distance), spot (mode, cadre), origine, effet propre à la page | confirmé : propriétés de page 12, 13, 16, 18, 29, 30 ; **précision** : la propriété 27 (outils de page, F-591) existe dans le schéma mais manque à notre documentation du format ; le lecteur Python ne lit aucune de ces propriétés | `app/actcraft/io/_schema.py` (page) ; `docs/re/format-flipchart.md:157` |
+| 6 | Clavier à l'écran : la référence lance celui du système ; le nôtre sera écrit par nous | confirmé | `app/actcraft/extras/keyboard.py:1` |
+
+Effets : la référence Python n'en a que cinq, plus aucun et au hasard (`app/actcraft/canvas/transitions.py:13-21`),
+avec des noms repris de l'original ; notre catalogue (17) et nos noms la remplacent.
+
 ## Principes
 
 | # | Principe (nos mots) | Source | Exigence pour ActCraft | Tâche | Scénario | Écart, raison ou lot destinataire |
@@ -108,5 +124,6 @@ Palettes de l'éditeur d'origine : non relevées une à une ; le jeu ci-dessus e
 - L7-T4 : capture de la zone éclairée (P8) ; largeur du contour par défaut 10 et non 15 (réglage embarqué).
 - L7-T9 à L7-T13 : translucidité des outils par défaut 100 et non 255 (réglage embarqué).
 - L7-T20 : classe polygone (P16). L7-T34 : symétries autour de l'origine (P20).
+- L7-T6 : lire aussi la propriété de page 27 (outils de page, F-591), absente de notre documentation du format.
 - 7b, reconnaissance : délai par défaut 1 s, bornes 0 à 5 (réglage embarqué) contre 5 s, 1 à 5 (spécification).
 Vers d'autres lots : moteur des effets par défaut logiciel (lot 6, réglages) ; onglet du bureau (lot 2).
