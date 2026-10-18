@@ -1,4 +1,5 @@
 #include <actcraft/bench/scenarios.h>
+#include <actcraft/ui/viewtransform.h>
 
 #include <algorithm>
 #include <cmath>
@@ -148,9 +149,44 @@ ScenarioPlan pageScenario(ScenarioSet set)
     return plan;
 }
 
+ScenarioPlan pausesScenario(ScenarioSet set)
+{
+    const bool court = set == ScenarioSet::Court;
+    const int strokes = court ? 4 : 10;
+    const int samples = court ? 40 : 100; // 0,2 s ou 0,5 s à 200 points/s
+    const std::int64_t idleNs = std::int64_t{ui::kCacheFoldIdleMs} * 1'000'000;
+    ScenarioPlan plan;
+    plan.name = QStringLiteral("pauses");
+    plan.zoom = 1.0;
+    plan.generatedPages = 1;
+    std::int64_t start = 0;
+    for (int k = 0; k < strokes; ++k) {
+        for (int i = 0; i < samples; ++i) {
+            const double u = static_cast<double>(i) / (samples - 1);
+            PlannedInput in;
+            in.offsetNs = start + i * kStylusPeriodNs;
+            in.kind = i == 0             ? InputKind::TabletPress
+                      : i == samples - 1 ? InputKind::TabletRelease
+                                         : InputKind::TabletMove;
+            // Même zone centrale que « stroke » (hors des témoins et de la bande de démonstration).
+            in.pagePos =
+                QPointF(220.0 + 584.0 * u, 170.0 + 44.0 * k + 20.0 * std::sin(2 * std::numbers::pi * 2 * u));
+            in.pressure = in.kind == InputKind::TabletRelease
+                              ? 0.0f
+                              : static_cast<float>(0.5 + 0.4 * std::sin(2 * std::numbers::pi * u));
+            in.measured = in.kind != InputKind::TabletRelease;
+            plan.inputs.push_back(in);
+        }
+        const int step = court ? 3 * k : k;
+        start += (samples - 1) * kStylusPeriodNs + idleNs + step * kPausesStepNs;
+    }
+    return plan;
+}
+
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
 {
-    return {strokeScenario(set), zoomScenario(set), scrollScenario(set), pageScenario(set)};
+    return {strokeScenario(set), zoomScenario(set), scrollScenario(set), pageScenario(set),
+            pausesScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()

@@ -52,6 +52,10 @@ Après « page prête » (images générées, premier cache dessiné) et 2 s de 
 | `zoom` | 100 → 800 → 25 → 100 % en 6 s, molette fine Ctrl à 120 Hz | 100 % |
 | `scroll` | aller-retour vertical puis horizontal en 6 s | 400 %, page calée en haut à gauche |
 | `page` | 20 changements de page à 500 ms d'écart (page suivante, précédente…), puis page suivante, zoom posé à 150 % et ajustement à 700 ms d'écart | 100 %, document de deux pages générées |
+| `pauses` (lot 10) | 10 traits (4 en court) séparés par le délai d'inactivité du cache (500 ms) plus 0 à 64 ms (0 à 48 ms en court) | 100 %, page du banc rechargée |
+
+Le scénario `pauses` fait tomber chaque reprise du stylet dans la fenêtre du redessin différé du cache. Champs
+`cache.refreshes`, `raw.cache_request_ns`, `raw.cache_updated_ns` : redessins du cache pendant chaque scénario.
 
 Le scénario `page` charge d'abord un document de deux pages générées (`DocumentController::loadGeneratedPages(2,
 true)`) : 30 images chacune, et sur la page 2, 20 textes et 20 formes à chemins dessinés par le moteur peint

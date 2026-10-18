@@ -226,6 +226,14 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     std::vector<std::int64_t> freezes;
     const auto frozen = QObject::connect(m_view, &ui::PageView::strokeFrozen, m_view,
                                          [&freezes] { freezes.push_back(core::monotonicNowNs()); });
+    std::vector<std::int64_t> cacheRequests;
+    std::vector<std::int64_t> cacheUpdates;
+    const auto requested =
+        QObject::connect(m_view, &ui::PageView::cacheRefreshRequested, m_view,
+                         [&cacheRequests] { cacheRequests.push_back(core::monotonicNowNs()); });
+    const auto updated = QObject::connect(m_view, &ui::PageView::cacheUpdated, m_view, [&cacheUpdates] {
+        cacheUpdates.push_back(core::monotonicNowNs());
+    });
     int viewChanges = 0; // la molette postée a-t-elle atteint la vue ?
     const auto zoomed =
         QObject::connect(m_view, &ui::PageView::zoomChanged, m_view, [&viewChanges] { ++viewChanges; });
@@ -321,6 +329,10 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
 
     exposure.stop();
     QObject::disconnect(frozen);
+    QObject::disconnect(requested);
+    QObject::disconnect(updated);
+    s.cacheRequestNs = std::move(cacheRequests);
+    s.cacheUpdatedNs = std::move(cacheUpdates);
     QObject::disconnect(zoomed);
     QObject::disconnect(panned);
     m_view->setInkProbe(nullptr);
@@ -613,8 +625,9 @@ BenchResult Runner::run(QQuickWindow* window)
         std::optional<std::pair<int, int>> atZoom;
         bool zoomSeen = false;
         const auto zoomWatch =
-            QObject::connect(m_view, &ui::PageView::zoomChanged, m_view, [this, &atZoom, &zoomSeen] {
-                if (!zoomSeen && std::abs(m_view->zoom() - 1.5) < 1e-9) {
+            QObject::connect(m_view, &ui::PageView::zoomChanged, m_view, [this, &atZoom, &zoomSeen, &plan] {
+                if (plan.name == QLatin1String("page") && !zoomSeen &&
+                    std::abs(m_view->zoom() - 1.5) < 1e-9) {
                     zoomSeen = true;
                     // Relevé seulement si la page peinte est prête et dessinée : sinon sa reconstruction au
                     // prêt gonflerait le compte (-1 : non mesuré).
@@ -629,7 +642,7 @@ BenchResult Runner::run(QQuickWindow* window)
             result.invalidReasons << QStringLiteral("error: injection incomplete in %1").arg(plan.name);
             break;
         }
-        if (plan.generatedPages > 0) {
+        if (plan.name == QLatin1String("page")) {
             if (atZoom) {
                 result.pageRebuildsDuringZoom = m_fixed->rebuildCount() - atZoom->first;
                 result.pageRasterizationsDuringZoom = m_fixed->rasterizationCount() - atZoom->second;

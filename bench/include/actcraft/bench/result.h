@@ -53,7 +53,7 @@ struct RefreshPeriod
 
 struct ScenarioResult
 {
-    QString name;             // stroke | zoom | scroll
+    QString name;             // stroke | zoom | scroll | page | pauses
     std::int64_t startNs = 0; // origine des séries brutes
     FrameSeries frames;
     IntervalStats intervals;
@@ -63,6 +63,10 @@ struct ScenarioResult
     MemorySummary memory;
     bool exposureLost = false;
     ReleaseCoverage releases; // tracé seulement
+    // L10-T1 : PageView::cacheRefreshRequested et cacheUpdated pendant le scénario (horloge
+    // core::monotonicNowNs()), pour attribuer un figement ou une reprise à un redessin du cache.
+    std::vector<std::int64_t> cacheRequestNs;
+    std::vector<std::int64_t> cacheUpdatedNs;
 };
 
 struct BenchResult
