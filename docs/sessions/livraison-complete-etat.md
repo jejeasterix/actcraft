@@ -133,7 +133,12 @@ Message de Jérôme relayé par Pilote : reprendre « mais soit prudent ». Cons
 Contrôle d'intégrité (23 h 05) : aucun `index.lock`, `fsck` propre, aucun fichier tronqué ni rempli de zéros, aucun jeton orphelin. Aucun build n'était en écriture au redémarrage (dernières écritures 20 h 16 à 22 h 18).
 Wip recommités (non prouvés) : L0-S3 `3aad439`, L0-S4 `267b2a6` (non construit), L0-S6 `1881750`, L10-C2 `4bd0dc0` (suite de fin jamais jouée : le jeton attendait la RAM), L10-T8 `2c0934e` (résumé seulement ; code = a203792).
 Perdu : rien de code ; les plans 5 et 6 n'avaient rien écrit ; les deux relectures statiques étaient en cours.
-Relancés (4) : relecture plan lot 4, relecture statique L10-T8, plan lot 5, L0-S3 (seul constructeur). En attente : L0-S4, L0-S6, L10-T8 (agent), fin de L10-C2, plan lot 6.
+Relancés (4) : relecture plan lot 4, relecture statique L10-T8, plan lot 5, L0-S3 (seul constructeur).
+Relecture statique L10-T8 rendue (23 h 20) : **mergeable après correctifs**.
+- 1 blocker : `pageview.cpp:123`, `QQuickWindow::graphicsApi()` ne renvoie jamais `Software`, d'où le rouge de `tst_pageview`.
+- 1 majeur : le terme « ajustement » du plancher n'est pas testé.
+- 5 mineurs : nom de test contraire à Qt, raison de la variable fausse (les couches ne lisent que `QSG_NO_DEPTH_BUFFER`), stencil retiré aussi, `static_assert` des constantes, modèle 20 o/px.
+L'agent L10-T8 a été relancé à la place de la relecture finie : il écrit les correctifs sans construire et attend mon signal pour sa preuve ciblée. La note du coffre `04_Pieges/qt-msaa-couche-…` est corrigée (cause exacte, stencil, `rendererInterface()`). En attente : L0-S4, L0-S6, L10-T8 (agent), fin de L10-C2, plan lot 6.
 
 ## Tâches du socle commun L0-S (plan 9b13275, mergé 1ffb07b ; relecture tour 1 : 1 bloquant, 11 importants, tous appliqués ; tour 2 en cours)
 | id | dépend | titre | worktree | état | essais | commit | preuve rejouée |
