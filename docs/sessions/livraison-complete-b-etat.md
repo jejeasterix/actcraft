@@ -40,7 +40,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-P3 | L7-P0 | voir ligne L7-P3 du plan phase 1 | .worktrees/livraison-complete-b--L7-P3 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 4aa56a5 | — |
 | L7-P7 | L7-P0 | voir ligne L7-P7 du plan phase 1 | .worktrees/livraison-complete-b--L7-P7 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 047f5e1 | — |
 | L7-P8 | L7-P0 | voir ligne L7-P8 du plan phase 1 | .worktrees/livraison-complete-b--L7-P8 (base 3866a4b + fusion dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 0755a06 | — |
-| L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | .worktrees/livraison-complete-b--L7-P2 (base dfc8857) | rendue (ee87059) ; rejeu de l'orchestrateur relancé après le redémarrage | 1 | ee87059 | — |
+| L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | .worktrees/livraison-complete-b--L7-P2 (base dfc8857) | essai 2 (implementeur-tdd) : revue statique « corriger » (Totals 10/12, tests non discriminants, panning, zoomAt borné, delta sous seuil) | 2 | ee87059 | — |
 | L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | .worktrees/livraison-complete-b--L7-P5 (base dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 87c7abd | — |
 | L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | .worktrees/livraison-complete-b--L7-P6 (base dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 783c2da | — |
 | L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | .worktrees/livraison-complete-b--L7-P9 (base dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 59d3107 | — |
@@ -54,6 +54,9 @@ toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · doub
 - L7-P8 : test renforcé (barrière contre l'attente bloquante, appartement à la destruction et à la création), 7 fonctions.
 - L7-P1 : cache plein, pourtour avant intérieur.
 - L7-P0 : talons formatés par clang-format (le plan les donnait non formatés).
+
+- L7-P2 : 4 tests en plus gardés (Totals 10 pagezoom, 12 transitions au lieu de 8 et 10) ; le déplacement sous le seuil de panoramique n'est plus perdu (écart au plan).
+- L7-P0 : revue statique « accepter » (3 mineurs sans effet : `\.` dans le motif CMake, 3 lignes au lieu d'une dans tests/CMakeLists.txt, préfixe `feat:` des messages).
 
 ## À reporter en phase 2 (de L7-T0)
 Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrateur » de `docs/verifications/2026-10-18-lot7-principes.md` : T3/T6 (position du rideau par page, propriété 27), T4 (capture de la zone, curseurs, contour 10), T9–T11 (curseurs par zone, translucidité 100), T12 (mine à la couleur du stylo), T14 (1 dé, mémorisé), T15 (transfert sur la page), T16/T19 (H7-14, H7-15), T20 (polygone), T21 (délai 1 s), T24–T27 (palettes d'équation). P20 (symétries autour de l'origine) → lot 5.
