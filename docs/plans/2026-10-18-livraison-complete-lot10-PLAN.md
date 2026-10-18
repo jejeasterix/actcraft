@@ -917,12 +917,12 @@ Ne pas lisser la grille. Rien de changé en rendu logiciel.
   `samples: 4 // L10-T5 : texture du cache lissée en RHI (sans effet en rendu logiciel)`.
   Mémoire (H10-9) : la texture du cache va jusqu'à 4096 px de côté au zoom 800 % ; multi-échantillonnée 4×, elle
   coûte de + 192 à + 384 Mio selon le pilote, à ajouter au pic du lot 1 (473-698 Mo) sous le budget de 1 Gio. Le
-  pic mémoire GPU du scénario `zoom` est relevé à l'étape 10. **Repli** s'il dépasse le budget ou gagne plus de
-  200 Mio sur la base : échantillons selon la taille de la texture,
-  `samples: view.cacheTextureSize.width * view.cacheTextureSize.height <= 2048 * 2048 ? 4 : 1` (lissé jusqu'à
-  2048², net au-delà, aux forts zooms où le crénelage se voit le moins). **1 et non 0** : d'après la documentation
-  de Qt, `samples: 0` suit l'échantillonnage de la fenêtre (4 ici) et n'économiserait rien. Puis A/B rejoué, avec
-  le gain vérifié au pic mémoire GPU du scénario `zoom`.
+  pic mémoire GPU du scénario `zoom` est relevé à l'étape 10. **Pas de repli par `samples`** (revue I2, H10-9) :
+  `samples ≤ 1` d'un `ShaderEffectSource` suit l'échantillonnage de la fenêtre (`QSGRhiLayer::grab` :
+  `effectiveSamples <= 1` → `msaaSampleCount()`, lu dans la branche dev de Qt, non vérifié sur 6.12 ; constaté à
+  l'écran par L10-T5 : cache à `samples: 1`, fenêtre 4×, trait versé lissé). Aucun réglage public ne coupe le MSAA
+  du cache tant que la fenêtre l'a : le repli `? 4 : 1` d'abord écrit ici est **retiré**. Replis possibles et
+  mesure au zoom 800 % posé : H10-9 et L10-T6.
 
 - [ ] **Étape 7 : compte de pixels et étape `checkEdge`.** Dans `bench/include/actcraft/bench/contentcheck.h` :
 
@@ -2427,7 +2427,8 @@ calme » de chaque passage (jeton, RAM libre, compilations), la table par passag
 > 25 ms, figements et reprises hors limite avec leurs maximums, `cache.refreshes`, `cache.pending_max`, latence
 p50/p95, pic mémoire), le verdict S13 (**tenu**, **non tenu** ou **non jugé** — machine chargée), l'attribution de
 chaque figement ou reprise hors limite (instant comparé à `raw.cache_request_ns` : redessin du cache ou autre
-cause), et la **décision sur L10-T7** ; worktree de référence supprimé.
+cause), la **décision sur L10-T7**, le pic mémoire au zoom 800 % posé (base, lot 10) et la décision de repli
+de H10-9 (étape 4 bis) ; worktree de référence supprimé.
 
 **Étapes.**
 
@@ -2450,6 +2451,18 @@ cause), et la **décision sur L10-T7** ; worktree de référence supprimé.
   s'il est choisi, l'orchestrateur l'écrit (relecture du plan exigée). Hors
   limite attribué à autre chose → rapporté à l'orchestrateur (tâche de correction à écrire, hors tuiles). Machine
   chargée → **non jugé**, L10-T7 non jouée, mesure à refaire à la clôture.
+- [ ] **Étape 4 bis : mémoire du MSAA au zoom 800 % posé (H10-9, revue I2 de L10-T5).** Le scénario `zoom` du banc
+  ne pose pas la page à 800 % (mesure A/B de l'orchestrateur sur ce scénario : GPU 164 → 297 Mo, processus 333 →
+  465 Mo, p95 17,0 ms des deux côtés). Sous le jeton `ecran`, machine calme relevée, pour la référence puis le lot
+  10 : un scénario temporaire `.tmp/zoom800.json` (non commité : `waitReady`, `{"command": "view.zoom",
+  "argument": 800}`, `waitReady`, `{"wait": 3000}` pour la stabilité, `capture`) joué par
+  `build/release/actcraft-captures.exe --scenario .tmp/zoom800.json --rendu d3d11 --taille 1280x800 --sortie
+  .tmp/zoom800` (après `. ./scripts/dev-env.ps1`) ; pendant qu'il tourne, toutes les 500 ms, `Get-Counter
+  "\GPU Process Memory(pid_<pid>*)\Dedicated Usage"` et `"…\Shared Usage"` et `(Get-Process -Id <pid>).PrivateMemorySize64` ;
+  rapporter le pic de chacun, base contre lot 10. **Décision** : si, sur le lot 10, le total (pic GPU dédié +
+  partagé et mémoire privée du processus, au même relevé) dépasse 1 Gio, un repli de H10-9 est requis (plafond
+  `kMaxCacheSide` abaissé sous MSAA, ou fenêtre à 1 et cache à 4), choisi et justifié dans le résumé, tâche
+  écrite par l'orchestrateur ; sinon, aucun repli.
 - [ ] **Étape 5 : écrire le résumé** `docs/mesures/AAAA-MM-JJ-cache-incremental.md` sur le modèle de
   `docs/mesures/2026-10-17-lot2-document.md` (en-tête « Ce n'est pas une machine de référence », machine, régime du
   banc : résultat, pas une porte, décision 35), avec les éléments du critère « terminé ». Le tableau « Résumé du banc
@@ -2611,9 +2624,16 @@ pixel est un défaut : test de pixels sur une frontière de tuile).
   remplace après son délai des traits déjà versés (P14 : redessin complet, scénario de banc « reconnaissance » au
   lot 7). S7 et S8 ne sont que des captures. Hors limite : tuiles (L10-T7) ou cache par groupe de couches (P15,
   décision de L10-T6), ou tâche du lot concerné.
-- **H10-9 — Mémoire du MSAA** : texture du cache jusqu'à 4096 px de côté (zoom 800 %), + 192 à + 384 Mio selon le
-  pilote, sur un pic du lot 1 de 473 à 698 Mo et un budget de 1 Gio ; relevée à L10-T5 (pic GPU de `zoom`) ; repli
-  écrit à L10-T5, étape 6 (échantillons du cache selon la taille de la texture : 4 sous 2048², 1 au-dessus ; 0 suivrait la fenêtre).
+- **H10-9 — Mémoire du MSAA** : texture du cache jusqu'à 4096 px de côté (`kMaxCacheSide`, zoom 800 %), + 192 à
+  + 384 Mio selon le pilote, sur un pic du lot 1 de 473 à 698 Mo et un budget de 1 Gio. **Aucun réglage public ne
+  coupe le MSAA du cache tant que la fenêtre l'a** : `samples ≤ 1` d'un `ShaderEffectSource` suit l'échantillonnage
+  de la fenêtre (`QSGRhiLayer::grab` : `effectiveSamples <= 1` → `msaaSampleCount()`, lu dans la branche dev de Qt,
+  non vérifié sur 6.12 ; constaté à L10-T5 : cache à `samples: 1`, fenêtre 4×, trait versé lissé à l'écran en
+  D3D11). Le repli `? 4 : 1` d'abord écrit à L10-T5 est **retiré**. Replis possibles : plafond de la texture du
+  cache abaissé sous MSAA (`kMaxCacheSide`), ou fenêtre à 1 et cache à 4 (= repli de H10-5). Mesure A/B de
+  l'orchestrateur (scénario `zoom` du banc, D3D11) : mémoire GPU 164 → 297 Mo, processus 333 → 465 Mo, p95 17,0 ms
+  des deux côtés ; ce scénario ne pose pas la page à 800 % : le pic au zoom 800 % posé est mesuré à L10-T6, qui
+  décide du repli.
 - **H10-10 — Rendu pendant le zoom** : ce que montre la référence pendant un zoom (flou puis net, ou net tout de
   suite) n'est ni décrit dans le corpus ni relevé dans le binaire (L10-T0, P13). ActCraft garde son comportement
   (texture du cache agrandie pendant le geste, redessinée nette à la fin) ; à observer sur la référence au lot 7
