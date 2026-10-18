@@ -6,7 +6,8 @@
 d'accueil, documents récents et résumé, éditeur de profils (choix du profil, onglets format, commandes, paramètres),
 trousseau et réseau, raccourcis vers des programmes, mode classe protégé, orthographe, lecteur d'aide, langue, contrôle
 du lot. Le sous-lot 6a (`docs/plans/2026-10-18-livraison-complete-lot6-PLAN.md`) est fait : ses décisions D6-1 à D6-14,
-ses hypothèses H6-1 à H6-8, sa table A1 à A16 et sa règle des talons valent ici ; les fichiers et les 43 tests de 6b sont
+ses hypothèses H6-1 à H6-10, sa table A1 à A23 et sa règle des talons valent ici, ainsi que son **amendement 1
+(relecture tour 1)**, qui fait autorité sur les sections de 6b comme sur celles de 6a ; les fichiers et les 43 tests de 6b sont
 déjà réservés par L6-T1, les emplacements QML posés par L6-T2. Exigences de 6b : F-090, F-123, F-142, F-297, F-298,
 F-560, F-760 (lecteur), F-772, F-810 à F-813, F-882, F-900, F-910, F-920, F-930 (sections des fonctions incluses,
 langue, réseau), F-935. Scénarios : S9.6, S9.7, S9.8, S9.9, S9.11, S9.12 (sous-scénarios de S9 posés par 6a), **S19**,
@@ -20,30 +21,30 @@ langue, réseau), F-935. Scénarios : S9.6, S9.7, S9.8, S9.9, S9.11, S9.12 (sous
 | A18 | effets de changement de page du lot 7 : propriété ou réglage qui les suspend (`presentation/transition`) | lot 7 | L6-T22 | oui |
 | A19 | réglages du lot 7 gardés par `QSettings` : `tools/ticker`, `tools/calculator`, `tools/webHome`, `presentation/transition`, réglages des outils de maths | lot 7 | L6-T27 | oui |
 | A20 | peintre partagé : options de rendu de `paintPage` (objets masqués) et `render/include/actcraft/render/pagepainter.h` | lots 2, L0-S3 | L6-T22 | oui |
-| A21 | `ui::ToolHost` : règle « objet verrouillé non déplaçable » de l'outil de sélection | lot 3 | L6-T22 | oui |
+| A21 | règle « objet verrouillé non déplaçable » : drapeau `ObjectFlag::Locked` posé par `object.lock` (lot 5, `core/objectflags.h`) et lu par l'outil de sélection ; fichier exact du test du verrou (`tools/src/selecttool.cpp` ou `ui/src/toolhost.cpp`) relevé par L6-T0 | lots 3 et 5 | L6-T22 | oui |
 
 ## Table des tâches
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L6-T19 | `formats` : fragment de ressource (objets d'une page et leurs ressources, en `.actcraft` d'une page) | L6-T18 | `formats/include/actcraft/formats/fragment.h`, `formats/src/fragment.cpp`, `tests/tst_formats_fragment.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_formats_fragment` Passed (dont `objectsAndResourcesRoundTrip`, `onlyReferencedResourcesAreWritten`, `insertGivesFreshIdentifiers`, `unknownObjectKept`, `notAFragmentRefused`) | S9.6 | #tache-l6-t19 |
-| L6-T20 | `ui` : `ResourceLibrary` (trois racines, dossiers, éléments, vignettes et recherche hors du fil principal, renommer, supprimer, ajouter) | L6-T19 | `ui/include/actcraft/ui/resourcelibrary.h`, `ui/src/resourcelibrary.cpp`, `tests/tst_ui_resources.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_resources` Passed (dont `threeRoots`, `foldersListed`, `itemsOfAFolder`, `thumbnailsOffTheMainThread`, `searchByNameAndKeywords`, `searchIsCancellable`, `renameAndDelete`, `addSelectionCreatesTheNextName`, `insertImageAndFragment`) ; banc hors écran joint | S9.6 | #tache-l6-t20 |
+| L6-T20 | `ui` : `ResourceLibrary` (trois racines, dossiers, éléments, vignettes et recherche hors du fil principal, renommer, supprimer, ajouter) | L6-T19 | `ui/include/actcraft/ui/resourcelibrary.h`, `ui/src/resourcelibrary.cpp`, `tests/tst_ui_resources.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_resources` Passed (dont `threeRoots`, `foldersListed`, `itemsOfAFolder`, `thumbnailsOffTheMainThread`, `searchByNameAndKeywords`, `searchIsCancellable`, `renameAndDelete`, `addSelectionCreatesTheNextName`, `insertImageAndFragment`, `thumbnailsPostponedDuringContact`, `refusedWhileLocked`) ; banc hors écran joint | S9.6 | #tache-l6-t20 |
 | L6-T21 | QML : navigateur de ressources, insertion (glisser, double-clic, tampon), ajout à la bibliothèque, destinations de la caméra ; scénario `ressources` | L6-T20 | `ui/qml/ResourceBrowser.qml`, `bench/scenarios/ressources.json`, fichier QML de la caméra du lot 7 (A17 : chemin relevé par L6-T0, écrit dans cette ligne par l'amendement du plan) | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_ressources` Passed ; `captures.ps1 -Scenario ressources` : `LU appResources.itemCount=1 OK`, `LU appDocument.shownObjectCount=4 OK` (une copie + trois tampons), `CAPTURES OK` ; banc hors écran joint | S9.6 | #tache-l6-t21 |
-| L6-T22 | Mode conception (F-560) : bascule F2, neuf réglages, effets sur les lots livrés | L6-T18 | `ui/include/actcraft/ui/designmode.h`, `ui/src/designmode.cpp`, `tests/tst_ui_designmode.cpp`, `ui/src/toolhost.cpp`, `render/include/actcraft/render/pagepainter.h`, `render/src/pagepainter.cpp`, `ui/qml/Main.qml`, `bench/scenarios/mode-creation.json` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_designmode` Passed (dont `toggleIsCheckable`, `nineSettingsWithDefaults`, `lockedObjectMovesWhileDesigning`, `hiddenObjectsDrawnTranslucent`, `transitionsSuspended`, `settingsPublishedForLot8`), `tst_render_painter` Passed ; `captures.ps1 -Scenario mode-creation` : `LU appDesign.active=true OK`, `PIXEL masque-visible OK`, `CAPTURES OK` ; banc hors écran joint | S9.8 | #tache-l6-t22 |
+| L6-T22 | Mode conception (F-560) : bascule F2, neuf réglages, effets sur les lots livrés | L6-T18 | `ui/include/actcraft/ui/designmode.h`, `ui/src/designmode.cpp`, `tests/tst_ui_designmode.cpp`, `ui/src/toolhost.cpp`, `render/include/actcraft/render/pagepainter.h`, `render/src/pagepainter.cpp`, `ui/qml/Main.qml`, `bench/scenarios/mode-creation.json` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_designmode` Passed (dont `toggleIsCheckable`, `nineSettingsWithDefaults`, `lockedObjectMovesWhileDesigning`, `hiddenObjectsDrawnTranslucent`, `transitionsSuspended`, `settingsPublishedForLot8`, `toggleDeferredDuringContact`, `thumbnailsNeverShowHidden`), `tst_render_painter` Passed ; `captures.ps1 -Scenario mode-creation` : `LU appDesign.active=true OK`, `PIXEL masque-visible OK`, `CAPTURES OK` ; banc hors écran joint | S9.8 | #tache-l6-t22 |
 | L6-T23 | Tableau d'accueil (F-090) : créer, ouvrir, importer un PDF, documents récents, annoter le bureau, réglages, aide ; au démarrage (désactivable), F11 | L6-T24, L6-T25 | `ui/qml/Dashboard.qml`, `app/main.cpp`, `bench/scenarios/tableau-de-bord.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_tableau_de_bord` Passed ; `captures.ps1 -Scenario tableau-de-bord` : `LU dashboard.visible=true OK`, `LU dashboard.recentCount=2 OK`, `LU appDocument.pageCount=3 OK` après l'ouverture du premier, `CAPTURES OK` | S9.9 | #tache-l6-t23 |
 | L6-T24 | Documents récents (liste du poste, menu Fichier) et résumé à l'enregistrement | L6-T18 | `ui/include/actcraft/ui/recentdocuments.h`, `ui/src/recentdocuments.cpp`, `tests/tst_ui_recents.cpp`, `ui/qml/SaveSummaryDialog.qml`, `ui/qml/FileActions.qml`, `ui/qml/CommandMenu.qml` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_recents` Passed (dont `openedFileGoesFirst`, `boundedToTen`, `missingFilesHidden`, `contentUrlsKept`, `clearEmptiesTheList`, `summaryCountsPagesAndObjects`) | S9.9 | #tache-l6-t24 |
 | L6-T25 | Éditeur de profils : choix du profil (F-123), fenêtre (F-882 : liste, importer, enregistrer, enregistrer sous, supprimer, réinitialiser), onglet format (F-900) | L6-T18 | `ui/qml/ProfileChooser.qml`, `ui/qml/ProfileEditor.qml`, `ui/qml/FormatPage.qml`, `tests/tst_ui_profileeditor.cpp`, `bench/scenarios/profils.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_profileeditor` (dont `chooserActivatesAndCloses`, `saveAsCreatesAUserProfile`, `deleteRefusedForBuiltin`, `resetRestoresTheBuiltin`, `formatPageEditsTheProfile`), `tst_captures_profils` Passed ; `captures.ps1 -Scenario profils` : `LU appProfile.currentId=mon-profil OK`, `CAPTURES OK` | S9.7 | #tache-l6-t25 |
 | L6-T26 | Onglet commandes (F-910) : toutes les commandes, cibles (palette, barre d'objet, menus), ajouter, retirer, monter, descendre, séparateur ; `layout.json` du profil | L6-T25 | `ui/include/actcraft/ui/layouteditor.h`, `ui/src/layouteditor.cpp`, `tests/tst_ui_layouteditor.cpp`, `ui/qml/CommandsPage.qml` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_layouteditor` Passed (dont `targetsListed`, `addAppendsToTheTarget`, `moveUpAndDown`, `separatorAllowed`, `writesTheProfileLayoutOnly`, `defaultLayoutUntouched`, `reloadShowsTheChange`, `unavailableCommandsHidden`) | S9.7 | #tache-l6-t26 |
 | L6-T27 | Onglet paramètres (F-930, F-935) : sections des fonctions incluses, valeurs par défaut, magasin de chaque réglage (profil ou poste), P2 et P10 du lot 10, E4 | L6-T25 | `ui/include/actcraft/ui/settingsschema.h`, `ui/src/settingsschema.cpp`, `tests/tst_ui_settingsschema.cpp`, `ui/qml/SettingsPage.qml` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_settingsschema` Passed (dont `sectionsOfIncludedFunctionsOnly`, `noVoteSection`, `defaultsFromTheSpecification`, `lot7KeysReused`, `profileOrWorkstationStore`, `renderQualityThreeSettings`, `autoGroupDefaultsOff`, `defaultPageSize`) | S9.7, S9.12 | #tache-l6-t27 |
 | L6-T28 | Trousseau de Windows (`CredWriteW`/`CredReadW`) et réglages réseau (mandataire, port, compte) | L6-T18 | `ui/include/actcraft/ui/secretstore.h`, `ui/src/secretstore_win.cpp`, `ui/src/secretstore_other.cpp`, `ui/include/actcraft/ui/networksettings.h`, `ui/src/networksettings.cpp`, `tests/tst_ui_network.cpp`, `ui/qml/NetworkPage.qml` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_network` Passed (dont `secretRoundTrip`, `secretAbsentIsEmpty`, `proxyApplied`, `passwordNeverInSettings`, `noProxyByDefault`, `unavailableOffWindows`) | S9.12 | #tache-l6-t28 |
-| L6-T29 | Raccourcis vers des programmes : modèle dans le profil, signature HMAC par clé du poste, lancement, confirmation d'un raccourci étranger ; programme d'essai | L6-T28 | `ui/include/actcraft/ui/launchers.h`, `ui/src/launchers.cpp`, `tests/launcher_probe.cpp`, `tests/tst_ui_launchers.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_launchers` Passed (dont `addShowsThePath`, `runStartsTheProgram`, `signedOnThisWorkstation`, `foreignSignatureAsksFirst`, `refusedForeignRunsNothing`, `acceptedForeignIsResigned`, `removeDeletes`, `tamperedArgumentsAskAgain`) | S20 | #tache-l6-t29 |
+| L6-T29 | Raccourcis vers des programmes : modèle dans le profil, signature HMAC par clé du poste, lancement, confirmation d'un raccourci étranger ; programme d'essai | L6-T28 | `ui/include/actcraft/ui/launchers.h`, `ui/src/launchers.cpp`, `tests/launcher_probe.cpp`, `tests/tst_ui_launchers.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_launchers` Passed (dont `addShowsThePath`, `runStartsTheProgram`, `signedOnThisWorkstation`, `foreignSignatureAsksFirst`, `refusedForeignRunsNothing`, `acceptedForeignIsResigned`, `removeDeletes`, `tamperedArgumentsAskAgain`, `confirmationShowsPathAndArguments`, `signatureIsUnambiguous`, `batAndCmdRefused`) | S20 | #tache-l6-t29 |
 | L6-T30 | Raccourcis vers des programmes : boutons de la barre de raccourcis, onglet d'édition (F-920, F-142, E3) ; scénario S20 | L6-T29 | `ui/qml/LaunchersPage.qml`, `ui/qml/ShortcutBar.qml`, `bench/scenarios/raccourcis-programmes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_raccourcis_programmes` Passed ; `captures.ps1 -Scenario raccourcis-programmes` : `LU launcherButton0.toolTip=Programme d'essai OK`, fichier témoin présent après le clic, absent après le refus, `CAPTURES OK` | S20 | #tache-l6-t30 |
-| L6-T31 | Mode classe protégé (F-298) : mot de passe créé au premier verrouillage, PBKDF2-SHA256 avec sel, verrou du registre, état gardé ; scénario S19 | L6-T18 | `ui/include/actcraft/ui/classroomlock.h`, `ui/src/classroomlock.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `tests/tst_ui_classroomlock.cpp`, `ui/qml/ClassroomLockDialog.qml`, `bench/scenarios/classe-protegee.json`, `packaging/qt-autorises.txt` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_classroomlock` Passed (dont `firstLockCreatesThePassword`, `everyLockableGreyed`, `wrongPasswordKeepsTheLock`, `rightPasswordUnlocks`, `lockSurvivesRestart`, `passwordNeverStoredInClear`, `saltDiffersPerPassword`, `qmlCannotBypass`) ; `captures.ps1 -Scenario classe-protegee` : `LU appClassroom.locked=true OK`, `LU appCommands.lockedCount>0 OK`, `CAPTURES OK` | S19 | #tache-l6-t31 |
-| L6-T32 | Orthographe I : Hunspell 1.7.2 et dictionnaire français dans `third_party/`, licences, construction Windows et Android | L6-T18, **accord de Jérôme (H6-6)** | `third_party/hunspell/` (sources de la version), `third_party/hunspell/CMakeLists.txt`, `third_party/dictionaries/fr/{fr.aff,fr.dic,LICENSE.txt}`, `CMakeLists.txt`, `core/CMakeLists.txt`, `ui/CMakeLists.txt`, `THIRD_PARTY_NOTICES.md` | isolé | implementeur-tdd | `TESTS OK` ; `tst_core_spellcheck` compile et lie Hunspell (talon toujours `SKIP`) ; construction `android-x86_64` `BUILD OK` (ou CI de la branche d'essai) ; `NOMS OK` (`third_party/` exclu par le contrôle) | S21 | #tache-l6-t32 |
+| L6-T31 | Mode classe protégé (F-298) : mot de passe créé au premier verrouillage, PBKDF2-SHA256 avec sel, verrou du registre, état gardé ; scénario S19 | L6-T18, L6-T9, L6-T12, L6-T14, L6-T16, L6-T20 | `ui/include/actcraft/ui/classroomlock.h`, `ui/src/classroomlock.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `tests/tst_ui_classroomlock.cpp`, `ui/qml/ClassroomLockDialog.qml`, `bench/scenarios/classe-protegee.json` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_classroomlock` Passed (dont `firstLockCreatesThePassword`, `everyLockableGreyed`, `wrongPasswordKeepsTheLock`, `rightPasswordUnlocks`, `lockSurvivesRestart`, `passwordNeverStoredInClear`, `saltDiffersPerPassword`, `qmlCannotBypass`, `disabledDuringLockStaysDisabled`, `everyLot6ControllerRefuses`, `hashingOffTheMainThread`) ; `captures.ps1 -Scenario classe-protegee` : `LU appClassroom.locked=true OK`, `LU appCommands.lockedCount>0 OK`, `CAPTURES OK` | S19 | #tache-l6-t31 |
+| L6-T32 | Orthographe I : Hunspell 1.7.2 et dictionnaire français dans `third_party/`, licences, construction Windows et Android | L6-T18, **décisions de Jérôme H6-6 (dictionnaire) et H6-6b (licence)** | `third_party/hunspell/` (sources de la version), `third_party/hunspell/CMakeLists.txt`, `third_party/dictionaries/fr/{fr.aff,fr.dic,LICENSE.txt}`, `CMakeLists.txt`, `core/CMakeLists.txt`, `ui/CMakeLists.txt`, `THIRD_PARTY_NOTICES.md` | isolé | implementeur-tdd | `TESTS OK` ; `tst_core_spellcheck` compile et lie Hunspell (talon toujours `SKIP`) ; construction `android-x86_64` `BUILD OK` (ou CI de la branche d'essai) ; `NOMS OK` (`third_party/` exclu par le contrôle) | S21 | #tache-l6-t32 |
 | L6-T33 | Orthographe II : vérificateur dans `core` (parcours des pages, mots des textes, règles d'ignorance, dictionnaire de l'utilisateur) | L6-T32 | `core/include/actcraft/core/spellcheck.h`, `core/src/spellcheck.cpp`, `core/src/hunspellengine.cpp`, `tests/tst_core_spellcheck.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_core_spellcheck` Passed (dont `findsTheMisspelledWord`, `suggestsTheCorrection`, `walksPagesFromTheFirst`, `ignoreAlwaysSkipsTheWord`, `userDictionaryKept`, `repeatedWordsFlagged`, `replaceIsUndoneAtOnce`, `htmlTagsAreNotWords`) | S21 | #tache-l6-t33 |
 | L6-T34 | Orthographe III : boîte de vérification, F7, page affichée pendant le parcours ; scénario S21 | L6-T33 | `ui/include/actcraft/ui/spelling.h`, `ui/src/spelling.cpp`, `tests/tst_ui_spelling.cpp`, `ui/qml/SpellingDialog.qml`, `bench/scenarios/orthographe.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_spelling` (dont `showsThePageOfTheWord`, `endMessage`), `tst_captures_orthographe` Passed ; `captures.ps1 -Scenario orthographe` : `LU spellingDialog.word=mosieur OK`, `LU spellingDialog.suggestion0=monsieur OK`, `LU appSpelling.finished=true OK`, `CAPTURES OK` | S21 | #tache-l6-t34 |
 | L6-T35 | Lecteur d'aide hors ligne : F1 sur la page de l'outil courant, index, liens internes | L6-T18 | `ui/include/actcraft/ui/helpviewer.h`, `ui/src/helpviewer.cpp`, `ui/help/index.html`, `tests/tst_ui_help.cpp`, `ui/qml/HelpViewer.qml` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_help` Passed (dont `indexLoads`, `currentToolPageOrIndex`, `noNetworkUrl`, `internalLinkFollows`, `textsAreOurs`) | S9.11 | #tache-l6-t35 |
-| L6-T36 | Langue : traductions préparées (`qt_add_translations`), réglage de la langue, appliqué au redémarrage ; scénario `aide-langue` | L6-T35 | `ui/include/actcraft/ui/language.h`, `ui/src/language.cpp`, `ui/i18n/actcraft_fr.ts`, `ui/CMakeLists.txt`, `app/main.cpp`, `tests/tst_ui_language.cpp`, `bench/scenarios/aide-langue.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_language` (dont `systemLanguageByDefault`, `unknownFallsBackToFrench`, `settingWritten`, `restartAnnounced`, `translatorInstalledAtStart`), `tst_captures_aide_langue` Passed ; `captures.ps1 -Scenario aide-langue` : `LU helpViewer.visible=true OK`, `LU appPreferences.language=fr OK`, `CAPTURES OK` | S9.11 | #tache-l6-t36 |
+| L6-T36 | Langue : traductions préparées (`qt_add_translations`), réglage de la langue, appliqué au redémarrage ; scénario `aide-langue` | L6-T35 | `ui/include/actcraft/ui/language.h`, `ui/src/language.cpp`, `ui/i18n/actcraft_fr.ts`, `ui/CMakeLists.txt`, `app/main.cpp`, `ui/qml/SettingsPage.qml`, `tests/tst_ui_language.cpp`, `bench/scenarios/aide-langue.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_language` (dont `systemLanguageByDefault`, `unknownFallsBackToFrench`, `settingWritten`, `restartAnnounced`, `translatorInstalledAtStart`), `tst_captures_aide_langue` Passed ; `captures.ps1 -Scenario aide-langue` : `LU helpViewer.visible=true OK`, `LU appPreferences.language=fr OK`, `CAPTURES OK` | S9.11 | #tache-l6-t36 |
 | L6-T37 | Contrôle du lot : talons, suites debug et release, captures et banc à l'écran (jeton `ecran`), paquets, version 0.7.0, `CHANGELOG.md`, graphe | L6-T19 à L6-T36 | `CMakeLists.txt`, `CHANGELOG.md`, `docs/mesures/2026-10-20-lot6-fin.md`, `graphify-out/` | partagé | implementeur-tdd | debug et release `TESTS OK`, N = N6 + 43 ; aucun talon « Talon L6 » hors `docs/` ; captures `-Scenario tous` hors écran puis à l'écran D3D11 `CAPTURES OK` ; banc complet D3D11 plein écran (jeton `ecran`) sans régression des critères de la référence ; `PAQUET OK`, `APK OK` ; `NOMS OK` ; contrôle des titres du corpus vide ; `graphify update .` commité | S9, S19, S20, S21 | #tache-l6-t37 |
 
 19 tâches dans ce sous-lot (38 pour le lot). Aucune tâche n'enregistre de test : L6-T1 l'a fait (N = N6 + 43).
@@ -78,8 +79,11 @@ Vérification des recoupements :
 - Repris d'une vague à l'autre : `app/main.cpp` (L6-T5 en 6a → L6-T23 → L6-T36) ; `ShortcutBar.qml` (L6-T9 → L6-T30) ;
   `profils.json` (L6-T6 → L6-T25) ; `ui/CMakeLists.txt` (L6-T1 → L6-T32 → L6-T36) ; `Main.qml` (L6-T2 → L6-T22).
 
-**Accord H6-6.** Si Jérôme n'a pas répondu quand V12 démarre, L6-T32 sort de V12, L6-T33 de V13 et L6-T34 de V14 ; ces
-trois tâches attendent l'accord, la clôture L6-T37 aussi (S21 est un scénario du lot). Les autres vagues continuent.
+**H6-6 et H6-6b.** Le téléchargement de Hunspell a l'accord écrit de Jérôme. Restent à sa décision : le dictionnaire
+de Grammalecte (H6-6) et l'option de licence de Hunspell (H6-6b : MPL 1.1 recommandée, ou LGPL 2.1 en lien
+dynamique ; plan 6a, « Hypothèses pour Jérôme »). Tant que l'un des deux manque quand V12 démarre, L6-T32 sort de V12,
+L6-T33 de V13 et L6-T34 de V14 ; ces trois tâches attendent, la clôture L6-T37 aussi (S21 est un scénario du lot). Les
+autres vagues continuent.
 
 (Recopiées du plan 6a pour que chaque section se suffise avec elles.)
 
@@ -206,6 +210,9 @@ format) ; un objet de type inconnu reste gardé tel quel (L2-C8).
 - [ ] **Étape 3 : implémentation, vert, preuve de tâche** ; commit « Lot 6 : fragments de ressource au format natif
   (L6-T19) ».
 
+**Amendement 1 (L6-T19).** Les ressources écrites dans le fragment sont celles que rend
+`formats::resourcesFor(document, objets)` (A10, lot 5) : aucun second calcul des ressources référencées.
+
 <a id="tache-l6-t20"></a>
 ### Tâche L6-T20 — `ui` : bibliothèque de ressources
 
@@ -245,6 +252,13 @@ en ligne ; suppression = `QFile::moveToTrash` quand la plateforme le permet, sin
   `insertImageAndFragment` (deux insertions → deux étapes d'annulation, objets présents).
 - [ ] **Étape 3 : implémentation, vert, banc, preuve de tâche** ; commit « Lot 6 : bibliothèque de ressources (L6-T20) ».
 
+**Amendement 1 (L6-T20).** Points 2, 3, 12.
+- Propriétés `contactActive` (liée à `pageView.contactActive`) et `commands` (`Commands*`).
+- Vignettes : aucun rendu lancé pendant un contact ; les demandes s'accumulent et partent au relâché (même garde que
+  `PageThumbnails`, L4-T17). Test `thumbnailsPostponedDuringContact` (`contactActive` vrai, trois éléments ouverts :
+  `thumbnailsRendered` inchangé ; faux : 3).
+- `insert` et `addSelection` refusent sous verrou (test `refusedWhileLocked`).
+
 <a id="tache-l6-t21"></a>
 ### Tâche L6-T21 — QML : navigateur de ressources ; scénario `ressources`
 
@@ -279,6 +293,8 @@ les éléments d'essai.
 - [ ] **Étape 3 : caméra.** Dans le fichier relevé (A17), ajouter les deux destinations ; leur action appelle
   `appResources.setRoot(...)` puis l'enregistrement de l'image capturée dans le dossier courant de cette racine.
 - [ ] **Étape 4 : vert**, preuve visuelle, banc, preuve de tâche ; commit « Lot 6 : navigateur de ressources (L6-T21) ».
+
+**Amendement 1 (L6-T21).** Les gestionnaires `resources.*` remplacent ceux du talon, dans `ResourceBrowser.qml`.
 
 <a id="tache-l6-t22"></a>
 ### Tâche L6-T22 — Mode conception (F-560)
@@ -327,6 +343,16 @@ l'écriture.
   contrôle `masque-visible`, capture `conception.png`, `mode.design`, capture `normal.png`).
 - [ ] **Étape 4 : vert**, preuve visuelle, banc, preuve de tâche ; commit « Lot 6 : mode conception (L6-T22) ».
 
+**Amendement 1 (L6-T22).** Points 2, 4, 11, A21.
+- Bascule pendant un contact (`pageView.contactActive` vrai) : l'état demandé est gardé et appliqué au relâché, avec
+  son seul redessin. Test `toggleDeferredDuringContact`.
+- `showHiddenTranslucent` n'est passé qu'au rendu de la page à l'écran : les miniatures (L4-T17) et l'export (lot 5)
+  appellent le peintre avec les options par défaut. Test `thumbnailsNeverShowHidden` (mode actif, miniature d'une
+  page à objet masqué : pixel au centre de l'objet = fond).
+- Le gestionnaire `mode.design` remplace celui du talon dans `Main.qml`.
+- Verrou : le refus de déplacer un objet `Locked` vit dans le fichier relevé par L6-T0 (A21) ; si ce n'est pas
+  `ui/src/toolhost.cpp`, l'orchestrateur amende la ligne avant la vague.
+
 <a id="tache-l6-t23"></a>
 ### Tâche L6-T23 — Tableau d'accueil
 
@@ -360,6 +386,9 @@ que lancé par `app/main.cpp` (propriété `appShowDashboard` posée là) : jama
 - [ ] **Étape 3 : vert**, preuve visuelle, preuve de tâche ; contrôle des titres du corpus ; commit « Lot 6 : tableau
   d'accueil (L6-T23) ».
 
+**Amendement 1 (L6-T23).** Le gestionnaire `view.dashboard` remplace celui du talon dans `Dashboard.qml`. Le joueur de
+captures ne pose pas `appShowDashboard` : le scénario ouvre l'accueil par `view.dashboard`.
+
 <a id="tache-l6-t24"></a>
 ### Tâche L6-T24 — Documents récents et résumé à l'enregistrement
 
@@ -390,6 +419,8 @@ dans les tests (dossiers temporaires).
   d'un enregistrement, puis ouvre `SaveSummaryDialog` si le réglage est vrai ; `CommandMenu.qml` insère, après
   `file.open`, un sous-menu dynamique « Documents récents » quand `appRecents.count > 0`).
 - [ ] **Étape 4 : vert**, preuve de tâche ; commit « Lot 6 : documents récents et résumé (L6-T24) ».
+
+**Amendement 1 (L6-T24).** Le gestionnaire `file.recent-clear` remplace celui du talon dans `SaveSummaryDialog.qml`.
 
 <a id="tache-l6-t25"></a>
 ### Tâche L6-T25 — Éditeur de profils, choix du profil, onglet format
@@ -425,6 +456,9 @@ des icônes (16 à 32), palette (ancrage, 8/16/24 couleurs, épinglée, réduite
   `profile.save-as "mon-profil"` ; onglet Format ; capture `format.png` ; `expect appProfile.currentId = mon-profil`.
 - [ ] **Étape 4 : vert**, preuve visuelle, preuve de tâche ; commit « Lot 6 : éditeur de profils et onglet format
   (L6-T25) ».
+
+**Amendement 1 (L6-T25).** Les gestionnaires `profile.*` (sauf `profile.activate`, C++ depuis L6-T5) remplacent ceux du
+talon dans `ProfileEditor.qml`.
 
 <a id="tache-l6-t26"></a>
 ### Tâche L6-T26 — Onglet commandes (F-910)
@@ -606,6 +640,14 @@ fichier. Programme d'essai `launcher_probe` : écrit le fichier dont le chemin e
 - [ ] **Étape 4 : implémentation, vert**, preuve de tâche ; commit « Lot 6 : raccourcis vers des programmes signés par
   poste (L6-T29) ».
 
+**Amendement 1 (L6-T29).** Points 9 et 18.
+- Signal `confirmationNeeded(QString id, QString path, QStringList arguments)` : la boîte montre le chemin **et** les
+  paramètres. Test `confirmationShowsPathAndArguments` (raccourci étranger `msiexec` avec `/i http://exemple.test/x.msi` :
+  les deux paramètres sont dans le signal).
+- Message signé : `QJsonDocument(QJsonArray{path, QJsonArray(arguments), toolTip}).toJson(QJsonDocument::Compact)` ;
+  test `signatureIsUnambiguous` (`["a b", []]` et `["a", ["b"]]` donnent deux signatures différentes).
+- `.bat` et `.cmd` (casse ignorée) refusés en lancement direct : `run` rend 2 avec un message ; test `batAndCmdRefused`.
+
 <a id="tache-l6-t30"></a>
 ### Tâche L6-T30 — Raccourcis vers des programmes : barre et onglet ; scénario S20
 
@@ -636,6 +678,8 @@ S20 de bout en bout.
   bouton ; capture `confirmation.png` ; refus ; retrait du premier raccourci ; `expect shortcutBar.launcherCount = 0`.
 - [ ] **Étape 2 : QML**, **vert**, preuve visuelle, preuve de tâche ; commit « Lot 6 : raccourcis vers des programmes
   dans la barre et l'éditeur (L6-T30) ».
+
+**Amendement 1 (L6-T30).** Les gestionnaires `launcher.*` remplacent ceux du talon dans `LaunchersPage.qml`.
 
 <a id="tache-l6-t31"></a>
 ### Tâche L6-T31 — Mode classe protégé (F-298) ; scénario S19
@@ -683,15 +727,31 @@ commande verrouillée (le registre décide) ; aucun mot de passe par défaut.
 - [ ] **Étape 4 : vert**, preuve visuelle, preuve de tâche, `scripts/verifier-licences.ps1` (`LICENCES OK` ou son motif
   réel) ; commit « Lot 6 : mode classe protégé par mot de passe (L6-T31) ».
 
+**Amendement 1 (L6-T31).** Points 1, 3, 17, 19.
+- `packaging/qt-autorises.txt` contient déjà `Qt6Network` : retiré de la tâche (étape 3 sans lui).
+- `Commands::setEnabled` compare à `m_registry.isOwnEnabled(id)` (posé par L6-T3), plus à `isEnabled`. Test
+  `disabledDuringLockStaysDisabled` : verrou posé ; `setEnabled("edit.undo", false)` ; déverrouiller →
+  `isEnabled("edit.undo")` faux.
+- Test `everyLot6ControllerRefuses` : verrou posé, une voie par contrôleur — `PropertyModel::setValue`,
+  `ObjectTreeModel::move`, `setHidden`, `setLocked`, `NotesController::setHtml`, `ShortcutBar::insert`,
+  `ResourceLibrary::insert`, `addSelection` — aucune étape d'annulation ajoutée, document non modifié.
+- PBKDF2 hors du fil principal : `createPassword`, `unlock` et `changePassword` lancent le calcul sur
+  `QThreadPool::globalInstance()` et rendent le résultat par signal (`passwordCreated(bool)`, `unlocked(bool)`) ;
+  constructeur de test `ClassroomLock(int iterations, QObject* parent)` (1 000 itérations dans les tests ;
+  `kIterations` = 200 000 dans l'application). Test `hashingOffTheMainThread` (identifiant du fil du calcul ≠ fil
+  principal). Mesure sur le Dell 3510 : hypothèse H6-10.
+- Procédure « mot de passe oublié » publique dans l'aide : hypothèse H6-9.
+
 <a id="tache-l6-t32"></a>
 ### Tâche L6-T32 — Orthographe I : Hunspell et dictionnaire
 
-**Objectif.** D6-9 : compiler Hunspell 1.7.2 dans `third_party/hunspell` (bibliothèque statique, sans ses outils), sous
+**Objectif.** D6-9 : compiler Hunspell 1.7.2 dans `third_party/hunspell` (sans ses outils ; bibliothèque statique avec l'option MPL 1.1,
+partagée avec l'option LGPL 2.1 — décision de Jérôme H6-6b), sous
 Windows (MSVC, `/W4 /WX` **désactivés pour la cible tierce seulement**), macOS (CI) et Android (presets
 `android-arm64`, `android-x86_64`) ; dictionnaire français de Grammalecte (variante « classique », MPL 2.0) dans
 `third_party/dictionaries/fr`, intégré aux ressources de `ui` (`:/actcraft/dictionaries/fr.aff`, `fr.dic`) et copié dans
 un dossier lisible par Hunspell au premier usage (Hunspell lit des chemins de fichiers). Notices dans
-`THIRD_PARTY_NOTICES.md` (Hunspell sous LGPL 2.1 au choix de sa triple licence ; dictionnaire sous MPL 2.0).
+`THIRD_PARTY_NOTICES.md` (Hunspell sous l'option de sa triple licence choisie en H6-6b ; dictionnaire sous MPL 2.0).
 
 **Fichiers.** Ceux de la ligne L6-T32.
 
@@ -700,7 +760,8 @@ construction Android : `pwsh -NoProfile -File ./scripts/paquet-android.ps1 > .tm
 (ou, si la chaîne locale manque, push d'une branche `essai-ci/lot6-hunspell` et lecture du job `android`, puis
 suppression de la branche).
 
-**Interdits.** **Aucun téléchargement sans l'accord écrit de Jérôme (H6-6), relayé par l'orchestrateur.** Sources prises
+**Interdits.** **Le téléchargement de Hunspell a l'accord écrit de Jérôme ; le dictionnaire et l'option de licence attendent ses
+décisions H6-6 et H6-6b.** Sources prises
 au dépôt officiel, version étiquetée, archive vérifiée par sa somme SHA-256 notée au rapport ; décompression dans un
 dossier neuf sous `.tmp/`, puis copie des seuls fichiers sources (`src/hunspell/*.{cxx,hxx,h}`, licences) ; aucun script
 du paquet exécuté.
@@ -708,8 +769,8 @@ du paquet exécuté.
 **Terminé quand** Windows et Android construisent, `TESTS OK`, notices écrites.
 
 **Étapes.**
-- [ ] **Étape 1 : accord** — vérifier dans le fichier d'état que l'accord H6-6 est écrit ; sinon, s'arrêter et le
-  rendre au rapport.
+- [ ] **Étape 1 : décisions** — vérifier dans le fichier d'état que H6-6 (dictionnaire) et H6-6b (licence) sont
+  tranchées ; sinon, s'arrêter et le rendre au rapport.
 - [ ] **Étape 2 : sources** (archive de la version 1.7.2 et dictionnaire), somme SHA-256 relevée, fichiers copiés.
 - [ ] **Étape 3 : CMake** : `third_party/hunspell/CMakeLists.txt` (`add_library(hunspell STATIC …)`,
   `target_compile_definitions(hunspell PUBLIC HUNSPELL_STATIC)`, avertissements de la cible ramenés au niveau par défaut) ;
@@ -717,6 +778,15 @@ du paquet exécuté.
   `target_link_libraries(actcraft_core PRIVATE hunspell)` ; `ui/CMakeLists.txt` : ressources du dictionnaire.
 - [ ] **Étape 4 : construire** (debug, release, Android), preuve de tâche, `NOMS OK` ; commit « Lot 6 : Hunspell et
   dictionnaire français en bibliothèques tierces (L6-T32) ».
+
+**Amendement 1 (L6-T32).** Point 16 et H6-6b. Selon la décision de Jérôme :
+- **MPL 1.1** (recommandée) : `add_library(hunspell STATIC …)` comme écrit ; notice « Hunspell, MPL 1.1 (une des
+  trois licences proposées par ses auteurs) » ; fichier de licence MPL 1.1 copié dans `third_party/hunspell/`.
+- **LGPL 2.1 en lien dynamique** : `add_library(hunspell SHARED …)` ; `hunspell.dll` déployée à côté de
+  `actcraft.exe` par `scripts/paquet.ps1`, `libhunspell.so` dans l'APK ; `scripts/verifier-licences.ps1` l'accepte ;
+  la ligne de la tâche gagne alors `scripts/paquet.ps1`, `scripts/paquet-android.ps1`,
+  `scripts/verifier-licences.ps1` et `packaging/windows/actcraft.iss` (amendement de l'orchestrateur).
+Sans décision, la tâche ne commence pas.
 
 <a id="tache-l6-t33"></a>
 ### Tâche L6-T33 — Orthographe II : vérificateur
@@ -784,6 +854,8 @@ de l'original.
   « bonjour monsieur » ; ignorer toujours « exemplle » ; `expect appSpelling.finished = true` ; capture `fin.png`).
 - [ ] **Étape 3 : vert**, preuve visuelle, preuve de tâche ; commit « Lot 6 : vérification de l'orthographe (L6-T34) ».
 
+**Amendement 1 (L6-T34).** Le gestionnaire `spell.check` remplace celui du talon dans `SpellingDialog.qml`.
+
 <a id="tache-l6-t35"></a>
 ### Tâche L6-T35 — Lecteur d'aide hors ligne
 
@@ -810,6 +882,8 @@ des fonctions et procédure « mot de passe de la classe oublié »). Les autres
   `textsAreOurs` (aucune des chaînes « ActivInspire », « Promethean », « ExpressPoll » dans `index.html`).
 - [ ] **Étape 3 : implémentation, page d'index, QML** (`TextArea { readOnly: true; textFormat: TextEdit.RichText }`),
   **vert**, preuve de tâche ; contrôle des titres du corpus ; commit « Lot 6 : lecteur d'aide hors ligne (L6-T35) ».
+
+**Amendement 1 (L6-T35).** Le gestionnaire `help.contents` remplace celui du talon dans `HelpViewer.qml`.
 
 <a id="tache-l6-t36"></a>
 ### Tâche L6-T36 — Langue ; scénario `aide-langue`
@@ -841,6 +915,9 @@ scénario couvre aussi F1 (S9.11).
   `settings.language fr` → `expect appPreferences.language = fr`).
 - [ ] **Étape 3 : vert**, preuve visuelle, preuve de tâche ; commit « Lot 6 : textes traduisibles et réglage de la langue
   (L6-T36) ».
+
+**Amendement 1 (L6-T36).** Le gestionnaire `settings.language` remplace celui du talon dans `SettingsPage.qml`
+(fichier ajouté à la ligne).
 
 <a id="tache-l6-t37"></a>
 ### Tâche L6-T37 — Contrôle du lot
@@ -877,3 +954,5 @@ l'émulateur : `launcher.edit` absent des menus.
 - [ ] **Étape 6 : graphe et commit** : `graphify update .` ; `git add` des fichiers de la ligne ; `NOMS OK` ; contrôle
   des titres du corpus ; commit « Lot 6 : contrôle du lot, version 0.7.0 (L6-T37) ».
 
+**Amendement 1 (L6-T37).** N = N6 + 43 + p (tâches de principes). Vérifier que `HKCU\Software\ActCraft` n'a gagné aucune
+valeur pendant les scénarios (point 13).
