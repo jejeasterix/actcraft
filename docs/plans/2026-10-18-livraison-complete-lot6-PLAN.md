@@ -1496,4 +1496,718 @@ contact ; ne pas modifier `commands.*` (A1 suffit).
 - [ ] **Étape 7 : commit.** `git add` des six fichiers ; `NOMS OK` ; commit « Lot 6 : réglages du poste et profil
   courant, enregistrement implicite hors écriture (L6-T5) ».
 
+<a id="tache-l6-t6"></a>
+### Tâche L6-T6 — Cinq profils fournis, à nos noms
+
+**Objectif.** Écrire les cinq profils de D6-2 (usage et disposition de l'original, nos noms et nos contenus ; D1 de
+L6-T0 fait foi pour ce que chacun ouvre, épingle et règle), avec les épinglages du lot 7 lus dans le fichier de
+L7-T32 (`docs/verifications/*-lot7-epinglages.md`, A15). Scénario `profils` : activer chaque profil par
+`profile.activate`.
+
+**Fichiers.** `actions/data/profiles/{en-classe,preparation,lecture-ecriture,calcul-geometrie,son-image}.json`,
+`tests/tst_ui_profiles.cpp`, `bench/scenarios/profils.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_profiles|tst_captures_profils'` ; preuve de tâche.
+
+**Preuve visuelle.** `captures.ps1 -Scenario profils -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire "appProfile.currentId=calcul-geometrie"` :
+`LU appProfile.currentId=calcul-geometrie OK`, `CAPTURES OK` ; décrire `preparation.png` (navigateur de pages ouvert à
+gauche) et `calcul-geometrie.png` (groupe « profil » de la palette avec les outils de maths).
+
+**Interdits.** Aucun nom de profil de l'original (« Au tableau », « Création », « Langues », « Mathématiques »,
+« Médias » restent hors du dépôt, sauf comme renvoi F-880 dans ce plan) ; aucune commande inventée : un épinglage
+non déclaré est **retiré** et listé au rapport (le lot 8 l'ajoutera).
+
+**Terminé quand** les cinq fonctions passent et le scénario est vert.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** `tests/tst_ui_profiles.cpp` :
+  ```cpp
+  #include <actcraft/actions/commandregistry.h>
+  #include <actcraft/actions/profilestore.h>
+  #include <actcraft/ui/profilecontroller.h>
+
+  #include <QtTest>
+
+  using namespace actcraft;
+
+  class TstUiProfiles : public QObject
+  {
+      Q_OBJECT
+      static actions::ProfileStore builtins()
+      {
+          return actions::ProfileStore(QString(), QStringLiteral(":/actcraft/actions/profiles"),
+                                       ui::ProfileController::builtinOrder());
+      }
+  private slots:
+      void fiveBuiltinsInOrder()
+      {
+          QCOMPARE(builtins().ids(), (QStringList{QStringLiteral("en-classe"), QStringLiteral("preparation"),
+                                                  QStringLiteral("lecture-ecriture"), QStringLiteral("calcul-geometrie"),
+                                                  QStringLiteral("son-image")}));
+      }
+      void pinnedCommandsExist()
+      {
+          actions::CommandRegistry registry;
+          QString error;
+          QVERIFY(registry.loadDeclarations(actions::defaultCommandsJson(), error));
+          auto store = builtins();
+          for (const QString& id : store.ids()) {
+              const auto p = store.load(id, error);
+              QVERIFY2(p, qPrintable(error));
+              QVERIFY2(!p->label.isEmpty(), qPrintable(id));
+              for (const QString& command : p->pinned)
+                  QVERIFY2(registry.find(command), qPrintable(id + QStringLiteral(" : ") + command));
+          }
+      }
+      void pinnedFilteredByPlatform()
+      {
+          actions::CommandRegistry registry;
+          QString error;
+          QVERIFY(registry.loadDeclarations(actions::defaultCommandsJson(), error));
+          auto store = builtins();
+          int filtered = 0;
+          for (const QString& id : store.ids())
+              for (const QString& command : store.load(id, error)->pinned)
+                  if (!registry.isAvailable(command, actions::Platform::Android))
+                      ++filtered;
+          QVERIFY(filtered >= 1); // au moins le clavier à l'écran ou la reconnaissance d'écriture
+      }
+      void namesAreOurs()
+      {
+          auto store = builtins();
+          QString error;
+          const QStringList theirs = {QStringLiteral("au tableau"), QStringLiteral("création"),
+                                      QStringLiteral("langues"), QStringLiteral("mathématiques"),
+                                      QStringLiteral("médias")};
+          for (const QString& id : store.ids())
+              QVERIFY2(!theirs.contains(store.load(id, error)->label.toLower()), qPrintable(id));
+      }
+      void preparationOpensThePageBrowser()
+      {
+          QString error;
+          const auto p = builtins().load(QStringLiteral("preparation"), error);
+          QVERIFY(p->browsers.visible);
+          QCOMPARE(p->browsers.current, QStringLiteral("pages"));
+          QVERIFY(p->browsers.pinned);
+          QCOMPARE(p->palette.swatches, 24);
+          const auto c = builtins().load(QStringLiteral("en-classe"), error);
+          QVERIFY(c->fitPage);
+          QVERIFY(!c->browsers.visible);
+          QVERIFY(c->trashVisible);
+      }
+  };
+
+  QTEST_MAIN(TstUiProfiles)
+  #include "tst_ui_profiles.moc"
+  ```
+- [ ] **Étape 2 : rouge** (`-R tst_ui_profiles`) : `preparationOpensThePageBrowser` échoue (talons).
+- [ ] **Étape 3 : données.** Exemple complet de `preparation.json` (les quatre autres sur la même forme, valeurs de
+  D6-2 et de D1) :
+  ```json
+  {
+    "format": "actcraft-profile/1",
+    "id": "preparation",
+    "label": "Préparer un cours",
+    "icon-pixels": 24,
+    "palette": { "dock": "right", "collapsed": false, "shortcuts-hidden": false, "pinned": true, "swatches": 24 },
+    "browsers": { "visible": true, "side": "left", "pinned": true, "current": "pages", "width": 240 },
+    "fit-page": false,
+    "trash-visible": true,
+    "pinned": [],
+    "settings": { "defaults": { "page-size": "1024x768" } }
+  }
+  ```
+  `en-classe` : `fit-page` vrai, navigateurs masqués, `pinned` = `browser.resources` puis les commandes de
+  présentation de la liste de L7-T32 (`present.*`, `view.page-zoom`, `tool.clock` selon la liste) ; `lecture-ecriture` :
+  clavier à l'écran, reconnaissance d'écriture, message défilant (identifiants du lot 7), `spell.check` ;
+  `calcul-geometrie` : `math.*`, `tool.dice`, `tool.calculator` ; `son-image` : `camera.*` du lot 7 et `insert.image`
+  (lot 5, A11). Les quatre profils autres que `preparation` : `fit-page` vrai, navigateurs masqués, corbeille visible,
+  `swatches` 16.
+- [ ] **Étape 4 : scénario** `bench/scenarios/profils.json` : `waitReady` ; pour chaque profil :
+  `{"command": "profile.activate", "argument": "<id>"}`, `{"expect": "appProfile.currentId", "equals": "<id>"}`,
+  capture `<id>.png` ; terminer sur `calcul-geometrie`. Forme des étapes : celle du joueur (A14), relue dans
+  `bench/scenarios/premiers-pas.json` ; description en français sans marqueur de talon.
+- [ ] **Étape 5 : vert** (commande ciblée), preuve visuelle, preuve de tâche.
+- [ ] **Étape 6 : commit.** `git add` des sept fichiers ; `NOMS OK` ; contrôle des titres du corpus vide ; commit
+  « Lot 6 : cinq profils fournis à nos noms (L6-T6) ».
+
+<a id="tache-l6-t7"></a>
+### Tâche L6-T7 — Palette : ancrage, réduite, épinglée, taille des icônes
+
+**Objectif.** `PaletteFrame.qml` enveloppe la palette : ancrée à gauche, à droite, en haut, en bas, ou flottante
+(F-030 ; glisser sa barre de titre vers le centre la rend flottante, vers un bord l'y ancre) ; barre de titre à trois
+icônes (F-031 : menu d'options avec les ancrages, réduire, épingler) ; réduite = première rangée seulement ; réduite au
+maximum = barre de raccourcis masquée (F-032) ; désépinglée et ancrée = repli dans la marge quand le pointeur s'en
+éloigne, retour au survol (délai de D7, défaut 600 ms) ; taille des icônes 16 à 32 appliquée à toute la fenêtre par
+`Theme.iconPixels` (F-034). Tout passe par `appProfile` (persistance F-033, L6-T5). Gestionnaires des commandes
+`palette.*`. `Main.qml` relie `appProfile.inputActive` à la garde de contact de la vue (A6) — une ligne, dans le
+bloc posé par L6-T2 pour cette tâche (fichier hors de la ligne : la liaison s'écrit dans `PaletteFrame.qml` par un
+`Binding { target: appProfile; property: "inputActive"; value: pageView.inputActive }`).
+
+**Fichiers.** `ui/qml/PaletteFrame.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/Theme.qml`, `tests/tst_ui_palette.cpp`,
+`bench/scenarios/palette.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_palette|tst_captures_palette|tst_ui_shell'` ; banc sans écran.
+
+**Preuve visuelle.** `captures.ps1 -Scenario palette … -Lire "appProfile.paletteDock=left" -Lire "toolPalette.x=0"` :
+`LU … OK` (deux lignes), `CAPTURES OK` ; décrire `gauche.png`, `reduite.png`, `repliee.png`, `icones-32.png`.
+
+**Interdits.** La palette flottante ne recouvre pas la page sans être déclarée couverture d'entrée
+(`pageView.addInputCover(paletteFrame)`, A7) ; aucune animation qui redessine la page (règle 4 de fluidité :
+`opacity` et `x` seulement, sur la palette) ; aucun accès disque en QML.
+
+**Terminé quand** les six fonctions passent, le scénario est vert et le banc sans écran est joint.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge** `tests/tst_ui_palette.cpp` : montage QML de `tst_ui_shell` (charger `Main.qml`, objets
+  de l'application réels, profil dans un dossier temporaire par `QStandardPaths::setTestModeEnabled(true)`), fonctions :
+  ```cpp
+  void dockFollowsTheProfile()
+  {
+      auto* root = loadMain();
+      auto* palette = root->findChild<QQuickItem*>(QStringLiteral("toolPalette"));
+      appProfile()->setPaletteDock(QStringLiteral("left"));
+      QTRY_COMPARE(palette->mapToScene(QPointF(0, 0)).x(), 0.0);
+      appProfile()->setPaletteDock(QStringLiteral("right"));
+      QTRY_COMPARE(palette->mapToScene(QPointF(palette->width(), 0)).x(), double(window()->width()));
+  }
+  void dragToCenterFloats()
+  {
+      auto* root = loadMain();
+      auto* title = root->findChild<QQuickItem*>(QStringLiteral("paletteTitle"));
+      const QPoint from = title->mapToScene(QPointF(title->width() / 2, title->height() / 2)).toPoint();
+      const QPoint to(window()->width() / 2, window()->height() / 2);
+      QTest::mousePress(window(), Qt::LeftButton, {}, from);
+      QTest::mouseMove(window(), to);
+      QTest::mouseRelease(window(), Qt::LeftButton, {}, to);
+      QCOMPARE(appProfile()->paletteDock(), QStringLiteral("floating"));
+  }
+  void collapsedShowsFirstRowOnly()
+  {
+      auto* root = loadMain();
+      appProfile()->setPaletteCollapsed(true);
+      auto* rows = root->findChild<QQuickItem*>(QStringLiteral("paletteRows"));
+      QTRY_COMPARE(rows->property("shownRows").toInt(), 1);
+  }
+  void fullCollapseHidesShortcuts()
+  {
+      auto* root = loadMain();
+      appProfile()->setShortcutsHidden(true);
+      QTRY_VERIFY(!root->findChild<QQuickItem*>(QStringLiteral("shortcutBar"))->isVisible());
+  }
+  void unpinnedHidesAfterLeave()
+  {
+      auto* root = loadMain();
+      appProfile()->setPaletteDock(QStringLiteral("right"));
+      appProfile()->setPalettePinned(false);
+      QTest::mouseMove(window(), QPoint(10, window()->height() / 2));
+      auto* frame = root->findChild<QQuickItem*>(QStringLiteral("paletteFrame"));
+      QTRY_VERIFY_WITH_TIMEOUT(frame->property("folded").toBool(), 3000);
+      QTest::mouseMove(window(), QPoint(window()->width() - 2, window()->height() / 2));
+      QTRY_VERIFY_WITH_TIMEOUT(!frame->property("folded").toBool(), 3000);
+  }
+  void iconPixelsScaleEveryIcon()
+  {
+      auto* root = loadMain();
+      appProfile()->setIconPixels(32);
+      const auto buttons = root->findChildren<QQuickItem*>(QStringLiteral("commandIcon"));
+      QVERIFY(!buttons.isEmpty());
+      for (auto* icon : buttons)
+          QTRY_COMPARE(icon->width(), 32.0);
+  }
+  ```
+  (`loadMain`, `appProfile`, `window` : aides du fichier, sur le modèle de `tst_ui_shell.cpp`. Si `CommandButton.qml`
+  ne nomme pas son image `commandIcon`, lui donner ce nom fait partie de la tâche — fichier `ui/qml/CommandButton.qml`
+  ajouté à la ligne par amendement si besoin, signalé au rapport.)
+- [ ] **Étape 2 : rouge.**
+- [ ] **Étape 3 : QML.** `Theme.qml` : `property int iconPixels: appProfile ? appProfile.iconPixels : 24`, utilisé par
+  toutes les tailles d'icônes (remplacer les constantes `24` des icônes par `Theme.iconPixels`). `PaletteFrame.qml` :
+  `property bool folded`, ancrage par états (`left`, `right`, `top`, `bottom`, `floating`) lus de
+  `appProfile.paletteDock`, barre `paletteTitle` (glisser : `DragHandler` ; relâché à moins de 48 px d'un bord → ce
+  bord, sinon `floating` + `appProfile.paletteFloat`), menu d'options (`CommandMenu` des commandes `palette.*`),
+  `HoverHandler` + `Timer` (600 ms) pour le repli, `Behavior on x` (120 ms). `ToolPalette.qml` : `paletteRows` avec
+  `shownRows` (1 si `appProfile.paletteCollapsed`), groupe « profil » final = `appProfile.pinned` filtré par
+  `appCommands.isAvailable`, `shortcutBar.visible = !appProfile.shortcutsHidden && !appProfile.paletteCollapsed`. Les
+  gestionnaires `palette.*` (dans `PaletteFrame.qml`, `Component.onCompleted`) appellent les setters de `appProfile` ;
+  `palette.collapse`, `palette.collapse-full`, `palette.pin` tiennent leur coche par `appCommands.setChecked`.
+- [ ] **Étape 4 : scénario** `palette.json` : `waitReady` ; `palette.dock-left` ; `expect appProfile.paletteDock = left` ;
+  capture `gauche.png` ; `palette.collapse` ; capture `reduite.png` ; `palette.collapse` ; `palette.pin` (désépingle) ;
+  `pointer` déplacé loin de la palette, attente 1 s ; `expect paletteFrame.folded = true` ; capture `repliee.png` ;
+  `palette.icon-size 32` ; capture `icones-32.png`.
+- [ ] **Étape 5 : vert**, preuve visuelle, banc sans écran, preuve de tâche.
+- [ ] **Étape 6 : commit** « Lot 6 : palette ancrable, flottante, réduite, épinglée ; taille des icônes (L6-T7) ».
+
+<a id="tache-l6-t8"></a>
+### Tâche L6-T8 — Palette de couleurs étendue et copieur de couleur
+
+**Objectif.** Clic droit sur une pastille (F-135) : grille étendue de 6 × 6 couleurs (contenu de D6, défaut : six
+teintes × six clartés calculées par nous), avec deux boutons : copieur de couleur (une loupe suit le pointeur dans la
+fenêtre et montre la couleur visée ; un clic l'ajoute) et boîte de couleur (`QtQuick.Dialogs.ColorDialog`). La couleur
+choisie devient la couleur du stylo et s'ajoute à la palette (`appProfile.addColor`), sans doublon ; nombre de
+pastilles 8, 16 ou 24 (F-900, profil). `ui::ColorPalette` (C++) calcule la grille, la liste affichée et
+l'échantillonnage de la loupe : **une seule** capture de la fenêtre à l'ouverture du copieur (`QQuickWindow::grabWindow`),
+lue ensuite au pixel — jamais une capture par mouvement.
+
+**Fichiers.** `ui/include/actcraft/ui/colorpalette.h`, `ui/src/colorpalette.cpp`, `ui/qml/ExtendedColors.qml`,
+`ui/qml/ColorLoupe.qml`, `ui/qml/ColorSwatches.qml`, `tests/tst_ui_colors.cpp`, `bench/scenarios/couleurs.json`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_colors|tst_captures_couleurs'` ; banc sans écran.
+
+**Preuve visuelle.** `captures.ps1 -Scenario couleurs … -Lire "appColors.extraCount=1"` : `LU appColors.extraCount=1 OK`,
+`PIXEL pastille-ajoutee OK` (la dernière pastille a la couleur ajoutée), `CAPTURES OK` ; décrire `etendue.png`,
+`loupe.png`.
+
+**Interdits.** Le copieur est une couverture d'entrée tant qu'il est ouvert (A7) : aucun trait n'est tracé par son
+clic ; aucune capture par mouvement de pointeur.
+
+**Terminé quand** les cinq fonctions passent, scénario vert, banc joint.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** `colorpalette.h` :
+  ```cpp
+  #pragma once
+
+  #include <QColor>
+  #include <QImage>
+  #include <QObject>
+  #include <QStringList>
+  #include <QtQml/qqmlregistration.h>
+
+  namespace actcraft::ui {
+
+  class ProfileController;
+
+  class ColorPalette : public QObject
+  {
+      Q_OBJECT
+      QML_ELEMENT // instancié par ColorSwatches.qml (aucun fichier de l'application touché)
+      Q_PROPERTY(ProfileController* profile MEMBER m_profile NOTIFY changed)
+      Q_PROPERTY(QStringList baseColors MEMBER m_base NOTIFY changed) // liée à appCommands.colors
+      Q_PROPERTY(QStringList swatches READ swatches NOTIFY changed)   // pastilles affichées (8, 16 ou 24)
+      Q_PROPERTY(QStringList extended READ extended CONSTANT)         // 36 couleurs « #RRGGBB »
+      Q_PROPERTY(int extraCount READ extraCount NOTIFY changed)
+  public:
+      explicit ColorPalette(QObject* parent = nullptr);
+      static QStringList extendedGrid(); // 6 teintes × 6 clartés, ligne par ligne
+      QStringList swatches() const;      // couleurs de base puis ajoutées, tronquées au nombre du profil
+      QStringList extended() const;
+      int extraCount() const;
+      Q_INVOKABLE void add(const QString& color); // vers le profil, sans doublon (casse ignorée)
+      // Copieur : une capture à l'ouverture, puis lecture au pixel.
+      void setSnapshot(QImage image);
+      Q_INVOKABLE void beginPick(); // demande la capture à la fenêtre (signal snapshotRequested)
+      Q_INVOKABLE QString colorAt(int x, int y) const; // vide hors image
+      int snapshotCount() const noexcept;
+  signals:
+      void changed();
+      void snapshotRequested();
+  private:
+      QStringList m_base;
+      ProfileController* m_profile = nullptr;
+      QImage m_snapshot;
+      int m_snapshots = 0;
+  };
+
+  } // namespace actcraft::ui
+  ```
+- [ ] **Étape 2 : test rouge** `tst_ui_colors.cpp` : `extendedGridIsSixBySix` (36 couleurs distinctes, valides) ;
+  `addedColorIsKept` (`add("#12AB34")` → `extraCount` 1, présent dans `appProfile.extraColors`, relu par un second
+  `ProfileController` sur le même dossier après `saveNow()`) ; `duplicatesIgnored` (`add("#12ab34")` deux fois et une
+  couleur de base → `extraCount` 1) ; `swatchCountFollowsTheProfile` (`setSwatches(8)` → 8 pastilles ; 24 → 24 quand
+  il y a assez de couleurs ; une valeur 10 → 16) ; `loupeSamplesOnceOnOpen` (`setSnapshot` d'une image 4 × 4 rouge a- [ ] **Étape 3 : rouge, puis implémentation** (`extendedGrid` : teintes 0, 60, 120, 180, 240, 300 ; clartés 0,15 à
+  0,90 par pas de 0,15 ; `QColor::fromHslF`). `ColorPalette` est créable en QML (aucun fichier de l'application
+  touché) : `ColorSwatches.qml` l'instancie avec `profile: appProfile` et `baseColors: appCommands.colors` ; il
+  s'abonne à `profileChanged` de son profil pour émettre `changed`.
+mplacer le constructeur par un constructeur par défaut et des propriétés `profile`
+  (`ProfileController*`) et `baseColors` (`QStringList`, liée à `appCommands.colors`).
+- [ ] **Étape 4 : QML.** `ColorSwatches.qml` : instance `ColorPalette { id: appColors; objectName: "appColors" }`,
+  pastilles de `appColors.swatches`, clic droit → `extendedColors.open()`. `ExtendedColors.qml` : grille 6 × 6, deux
+  boutons (`color.pick`, `color.dialog`). `ColorLoupe.qml` : sur `color.pick`, `window.grabWindow` → `setSnapshot`, loupe
+  de 7 × 7 pixels agrandis qui suit le pointeur, clic → `pen.color` + `appColors.add`, puis fermeture ; couverture
+  d'entrée tant qu'ouverte. Gestionnaires `color.more`, `color.pick`, `color.dialog`, `color.add`.
+- [ ] **Étape 5 : scénario** `couleurs.json` : `waitReady` ; clic droit injecté sur la première pastille ; capture
+  `etendue.png` ; `color.add #12AB34` ; `expect appColors.extraCount = 1` ; contrôle `pastille-ajoutee` (pixel du centre
+  de la dernière pastille = `#12AB34`, tolérance 8) ; `color.pick` ; capture `loupe.png` ; touche Échap.
+- [ ] **Étape 6 : vert**, preuve visuelle, banc sans écran, preuve de tâche ; commit « Lot 6 : palette de couleurs
+  étendue et copieur de couleur (L6-T8) ».
+
+<a id="tache-l6-t9"></a>
+### Tâche L6-T9 — Barre de raccourcis : historique des outils, objets glissés
+
+**Objectif.** Troisième colonne de la palette (F-140) : chaque outil ou fonction déclenché **hors palette** (menu,
+raccourci clavier) s'y ajoute en tête, 8 au plus, sans doublon (`appProfile.pushRecentTool`) ; un clic le relance.
+F-141 : déposer sur la barre un objet ou un groupe sélectionné crée un bouton à son image ; chaque clic insère une copie
+au centre de la page active, **en une étape d'annulation**. Les objets du bouton sont gardés dans le profil
+(`shortcutObjects`) par la sérialisation du presse-papiers du lot 5 (A10).
+
+**Fichiers.** `ui/include/actcraft/ui/shortcutbar.h`, `ui/src/shortcutbar.cpp`, `ui/qml/ShortcutBar.qml`,
+`tests/tst_ui_shortcutbar.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_shortcutbar` ; banc sans écran.
+
+**Interdits.** Pas de copie du document entier ; l'insertion passe par `DocumentController::execute` (A4) d'**une**
+commande (`core::ReplaceObjectsCommand` sans objets retirés, A12, ou la commande d'ajout groupée du lot 5) ; le
+bouton n'est pas une ressource (navigateur de ressources : L6-T21).
+
+**Terminé quand** les six fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** `shortcutbar.h` :
+  ```cpp
+  #pragma once
+
+  #include <QObject>
+  #include <QVariantList>
+  #include <QtQml/qqmlregistration.h>
+
+  namespace actcraft::ui {
+
+  class Commands;
+  class DocumentController;
+  class ProfileController;
+
+  class ShortcutBar : public QObject
+  {
+      Q_OBJECT
+      QML_ELEMENT
+      Q_PROPERTY(ProfileController* profile MEMBER m_profile NOTIFY changed)
+      Q_PROPERTY(Commands* commands READ commands WRITE setCommands NOTIFY changed)
+      Q_PROPERTY(DocumentController* document MEMBER m_document NOTIFY changed)
+      Q_PROPERTY(QVariantList buttons READ buttons NOTIFY changed) // [{kind: "tool"|"object", id, label, icon}]
+  public:
+      explicit ShortcutBar(QObject* parent = nullptr);
+      Commands* commands() const noexcept;
+      void setCommands(Commands* commands); // écoute Commands::triggered
+      QVariantList buttons() const;
+      // Appelé par la palette quand elle déclenche une commande : celle-là n'entre pas dans l'historique.
+      Q_INVOKABLE void notePaletteTrigger(const QString& id);
+      // F-141 : objets sélectionnés de la page courante → bouton ; rend son identifiant.
+      Q_INVOKABLE QString addObjects(const QList<quint64>& objectIds);
+      Q_INVOKABLE bool insert(const QString& buttonId); // copie au centre de la page active, une étape
+      Q_INVOKABLE void removeButton(const QString& buttonId);
+  signals:
+      void changed();
+  private:
+      void onTriggered(const QString& id);
+      ProfileController* m_profile = nullptr;
+      Commands* m_commands = nullptr;
+      DocumentController* m_document = nullptr;
+      QString m_lastPaletteTrigger;
+  };
+
+  } // namespace actcraft::ui
+  ```
+  Règle de l'historique : une commande entre si elle est un outil ou une fonction (identifiant commençant par
+  `tool.`, `present.`, `math.`, `desktop.`, `camera.`, `record.`, `view.page-zoom`), si elle n'est pas dans la
+  palette par défaut, et si elle ne vient pas de la palette (`notePaletteTrigger` posé juste avant).
+- [ ] **Étape 2 : test rouge** `tst_ui_shortcutbar.cpp` (`DocumentController` réel, `Commands` réel, profil temporaire) :
+  `outOfPaletteToolIsRecorded` (déclencher `present.curtain` — ou la première commande de présentation du lot 7 hors
+  palette — par `Commands::trigger` : `buttons[0].id` = elle) ; `paletteToolIsNotRecorded` (`notePaletteTrigger("tool.pen")`
+  puis `trigger("tool.pen")` : rien) ; `historyIsBoundedAndMovesToFront` (10 outils → 8 ; rejouer le 5ᵉ → en tête,
+  toujours 8) ; `droppedObjectBecomesAButton` (un trait ajouté, `addObjects({id})` → bouton `kind: "object"`, profil
+  `shortcutObjects` non vide après `saveNow`) ; `clickInsertsACopyAtTheCenter` (`insert(button)` : la page compte un
+  objet de plus, nouvel identifiant, centre de sa boîte au centre de la page à 0,5 px près) ;
+  `insertIsUndoneAtOnce` (`insert` puis un Annuler du document : nombre d'objets d'avant).
+- [ ] **Étape 3 : rouge, implémentation** (sérialisation des objets par l'API du lot 5, A10 ; à défaut, par
+  `formats::` du format natif d'une page temporaire — à décider sur la signature réelle relevée par L6-T0, noté au
+  rapport), **QML** `ShortcutBar.qml` (colonne de `CommandButton` pour `kind: "tool"`, vignette pour `kind: "object"`,
+  `DropArea` qui accepte la sélection glissée de la page — signal de glisser de la sélection du lot 5, sinon commande
+  `shortcutbar.insert` réservée à l'ajout par menu contextuel ; clic → `insert`).
+- [ ] **Étape 4 : vert**, banc sans écran, preuve de tâche ; commit « Lot 6 : barre de raccourcis, historique et
+  objets glissés (L6-T9) ».
+
+<a id="tache-l6-t10"></a>
+### Tâche L6-T10 — `core` + `formats` : mots-clés, description de page, style d'étiquette
+
+**Objectif.** Ajouter au modèle les champs de F-570 et F-576 absents (vérifié sur `794cf84` :
+`core/include/actcraft/core/model.h:170-182` n'a que `name` et `label`) : `ObjectCommon::keywords`
+(`std::vector<std::string>`), `ObjectCommon::labelStyle` (`LabelStyle` : police, taille, couleur, contour, fond),
+`Page::keywords`, `Page::description`. Format natif : clés neuves, **omises** à la valeur par défaut, relues sans perte ;
+empreinte (`fingerprint`) : les champs n'y entrent qu'en fin de flux **et** s'ils diffèrent du défaut, pour qu'une page
+sans eux garde son empreinte (même règle que les clés inconnues de L2-C8). Le patron évident est le mauvais : ajouter
+les champs au milieu du flux de l'empreinte changerait toutes les empreintes des tests et de l'oracle.
+
+**Fichiers.** `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `formats/src/nativejson.cpp`,
+`tests/tst_core_model.cpp`, `tests/tst_formats_lot6.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_core_model|tst_formats_lot6|tst_formats_nativejson|tst_formats_nativefile'`.
+
+**Interdits.** Aucun nom de propriété de l'original (`NOMS OK`) ; aucune lecture `.flipchart` changée (les mots-clés
+des `.flipchart` sont hors de ce lot, à noter au rapport si L6-T0 les demande).
+
+**Terminé quand** les fonctions passent et les tests de format existants sont inchangés et verts.
+
+**Étapes.**
+- [ ] **Étape 1 : modèle.** Dans `model.h`, avant `ObjectCommon` :
+  ```cpp
+  // Style de la légende d'un objet (F-576), écrit par nous. Valeurs par défaut = pas de clé dans le fichier.
+  struct LabelStyle
+  {
+      std::string fontFamily; // vide : police de l'interface
+      double pointSize = 12;
+      std::uint32_t color = 0xFF000000; // ARGB
+      PenStyle outline = PenStyle::None;
+      std::uint32_t outlineColor = 0xFF000000;
+      std::uint32_t fill = 0x00000000; // transparent
+      bool operator==(const LabelStyle&) const = default;
+  };
+  ```
+  Dans `ObjectCommon`, après `label` : `LabelStyle labelStyle;` et `std::vector<std::string> keywords;`. Dans `Page`,
+  après `notes` : `std::string description;` et `std::vector<std::string> keywords;`. Si `PenStyle` n'a pas de valeur
+  `None` (lire l'énumération), employer sa valeur « aucun trait » réelle et le noter.
+- [ ] **Étape 2 : tests rouges.** `tst_core_model.cpp` :
+  ```cpp
+  void lot6FieldsKeepOldFingerprints()
+  {
+      core::Page page = samplePage(); // aide existante du fichier, sinon une page avec un trait et une forme
+      const auto before = core::fingerprint(page);
+      page.description.clear();
+      page.keywords.clear();
+      QCOMPARE(core::fingerprint(page), before);
+      page.keywords = {"soleil"};
+      QVERIFY(core::fingerprint(page) != before);
+      page.keywords.clear();
+      page.objects.front().common().labelStyle.pointSize = 18;
+      QVERIFY(core::fingerprint(page) != before);
+  }
+  ```
+  (accès à `ObjectCommon` d'un `PageObject` : lire `model.h` pour le nom réel, `common()` ou membre.)
+  `tst_formats_lot6.cpp` (remplace le talon) : `keywordsRoundTrip`, `pageDescriptionRoundTrip`, `labelStyleRoundTrip`
+  (document → `nativejson` écriture → lecture → mêmes valeurs et même empreinte), `defaultsAreOmitted` (JSON écrit d'une
+  page sans ces champs : aucune des clés `keywords`, `description`, `label-style`), `olderFileReadsWithDefaults` (JSON
+  d'un objet sans ces clés : valeurs par défaut, aucun avertissement de lecture). Fonctions d'écriture et de lecture :
+  celles qu'emploie déjà `tst_formats_nativejson.cpp` (les relire).
+- [ ] **Étape 3 : rouge, implémentation.** `model.cpp` : à la fin du flux de `fingerprint`, après les clés inconnues
+  et seulement si non vide ou différent du défaut, un octet de marque (`0x6A`) puis les champs, dans un ordre fixé ;
+  `nativejson.cpp` : clés `keywords` (tableau de chaînes), `description` (page), `label-style`
+  (`{ "font", "size", "color", "outline", "outline-color", "fill" }`, couleurs en `#AARRGGBB`), chacune omise à sa valeur
+  par défaut, et **retirée des clés inconnues** à la lecture (sinon elle serait réécrite deux fois).
+- [ ] **Étape 4 : vert** (commande ciblée), preuve de tâche.
+- [ ] **Étape 5 : commit** « Lot 6 : mots-clés, description de page, style d'étiquette (L6-T10) ».
+
+<a id="tache-l6-t11"></a>
+### Tâche L6-T11 — `core` : commandes de propriétés
+
+**Objectif.** D6-6 : `SetObjectPropertiesCommand` applique une même modification à un ou plusieurs objets (une
+étape), garde chaque ancienne valeur pour Annuler, fusionne les modifications successives d'une même propriété sur les
+mêmes objets (glisser d'une réglette), et émet des `Change` justes (A12) : nom, mots-clés, légende et son style
+n'atteignent pas le cache ; couche, translucidité, contour, remplissage, position, visibilité le redessinent ;
+`SetPagePropertiesCommand` pour la page (nom, description, mots-clés : sans cache ; largeur, hauteur : `PageChanged`).
+Le patron évident est le mauvais : une commande par propriété et par objet ferait N étapes d'annulation pour une
+sélection de N objets, et une étape par pas de réglette.
+
+**Fichiers.** `core/include/actcraft/core/propertyedits.h`, `core/src/propertyedits.cpp`, `tests/tst_core_propertyedits.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_core_propertyedits` ; mutation : `mergeWith` qui rend toujours
+faux → `sliderDragMergesIntoOneStep` rouge, remise par `git checkout --`.
+
+**Interdits.** QtCore seulement ; aucune propriété qui n'existe pas au modèle (F-577 à F-580, F-582 : lot 8).
+
+**Terminé quand** les sept fonctions passent et la mutation a été vue rouge.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** `propertyedits.h` :
+  ```cpp
+  #pragma once
+
+  #include <actcraft/core/model.h>
+  #include <actcraft/core/undo.h>
+
+  #include <string>
+  #include <variant>
+  #include <vector>
+
+  namespace actcraft::core {
+
+  // Propriétés modifiables par le navigateur de propriétés (F-570 à F-576, F-581).
+  enum class ObjectProperty : std::uint8_t
+  {
+      Name,
+      Keywords,
+      Label,
+      LabelStyle,
+      Layer,
+      Translucency,
+      Visible,
+      Locked,
+      OutlineStyle,
+      OutlineColor,
+      OutlineWidth,
+      FillStyle,
+      FillColor,
+      Left,
+      Top,
+      Width,
+      Height,
+      Angle,
+      Mirrored,
+  };
+  bool propertyTouchesTheCache(ObjectProperty property) noexcept;
+
+  using PropertyValue =
+      std::variant<std::string, std::vector<std::string>, double, bool, std::uint32_t, Layer, PenStyle, FillKind,
+                   LabelStyle>;
+
+  class SetObjectPropertiesCommand final : public UndoCommand
+  {
+  public:
+      // `page` : index de page ; `objects` : identifiants ; la valeur est la même pour tous.
+      SetObjectPropertiesCommand(int page, std::vector<ObjectId> objects, ObjectProperty property, PropertyValue value);
+      void redo(Document& document, Changes& changes) override;
+      void undo(Document& document, Changes& changes) override;
+      int mergeId() const noexcept override; // constant propre à cette commande
+      bool mergeWith(const UndoCommand& other) override; // même page, mêmes objets, même propriété
+  private:
+      int m_page;
+      std::vector<ObjectId> m_objects;
+      ObjectProperty m_property;
+      PropertyValue m_value;
+      std::vector<PropertyValue> m_old; // une par objet, remplie au premier redo
+  };
+
+  enum class PageProperty : std::uint8_t
+  {
+      Name,
+      Description,
+      Keywords,
+      Width,
+      Height,
+  };
+
+  class SetPagePropertiesCommand final : public UndoCommand
+  {
+  public:
+      SetPagePropertiesCommand(int page, PageProperty property, PropertyValue value);
+      void redo(Document& document, Changes& changes) override;
+      void undo(Document& document, Changes& changes) override;
+      int mergeId() const noexcept override;
+      bool mergeWith(const UndoCommand& other) override;
+  private:
+      int m_page;
+      PageProperty m_property;
+      PropertyValue m_value;
+      PropertyValue m_old;
+  };
+
+  // Valeur courante, pour le modèle du navigateur (L6-T12) ; std::nullopt si la propriété ne s'applique pas.
+  std::optional<PropertyValue> readProperty(const PageObject& object, ObjectProperty property);
+
+  } // namespace actcraft::core
+  ```
+  Position, taille, angle et miroir se lisent et s'écrivent par la transformation (`Transform`) et la boîte de l'objet
+  (fonction de boîte du lot 3, `hittest.h`, A12 du lot 3) : la valeur affichée est celle de la boîte transformée.
+- [ ] **Étape 2 : test rouge** `tst_core_propertyedits.cpp` (document de 1 page, deux formes et un trait, `UndoStack`
+  de `undo.h`) : `oneStepForManyObjects` (outline width 12 sur les deux formes → `stack.count()` + 1, les deux à 12) ;
+  `undoRestoresEachOldValue` (largeurs 2 et 5 avant → après Annuler, 2 et 5) ; `sliderDragMergesIntoOneStep`
+  (translucidité 10, 20, 30 poussées de suite → une étape, valeur 30, Annuler → valeur d'origine) ;
+  `differentPropertyDoesNotMerge` (translucidité puis visibilité → deux étapes) ; `nameOnlyChangeSparesTheCache`
+  (les `Change` rendus par `push` pour `Name`, `Keywords`, `Label`, `LabelStyle` : aucun n'est d'un genre qui atteint le
+  cache — même prédicat que `presentationTouchesNoCache` de L0-S3) ; `layerChangeMovesTheObject` (couche `Top` → l'objet
+  est rangé en tête de la couche du dessus, `Change` de redessin présent) ; `pageWidthChangeIsOneStep` (largeur 1024 →
+  1280 → une étape, `PageChanged`, Annuler → 1024).
+- [ ] **Étape 3 : rouge, implémentation, vert** ; mutation de `mergeWith` (après un commit vert ; remise par
+  `git -C <wt> checkout -- core/src/propertyedits.cpp`) ; preuve de tâche.
+- [ ] **Étape 4 : commit** « Lot 6 : commandes de propriétés d'objet et de page, une étape (L6-T11) ».
+
+<a id="tache-l6-t12"></a>
+### Tâche L6-T12 — `ui` : modèle du navigateur de propriétés
+
+**Objectif.** `ui::PropertyModel` : liste à deux colonnes groupée en sections repliables (F-840) selon la sélection
+(A5) : rien de sélectionné → propriétés de la page (F-583 : Identification, Page) ; un objet → sections de son type
+(D9 ; défaut : Identification, Apparence, Contour pour trait, forme, ligne, connecteur ; Remplissage pour forme ;
+Position pour tous ; Étiquette pour tous ; Divers pour forme, ligne, image) ; plusieurs objets → seules les propriétés
+communes, valeur affichée si elle est la même pour tous, sinon vide. Éditeurs typés (`text`, `number`, `color`,
+`slider`, `choice`, `bool`, `keywords`). `setValue(row, value)` exécute **une** commande de L6-T11 par le
+`DocumentController` (A4). Remise à jour regroupée et reportée pendant un contact (D6-5).
+
+**Fichiers.** `ui/include/actcraft/ui/propertymodel.h`, `ui/src/propertymodel.cpp`, `tests/tst_ui_propertymodel.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_propertymodel` ; banc sans écran.
+
+**Interdits.** Le modèle ne modifie jamais le document hors d'une commande ; aucune remise à jour pendant un contact ;
+aucune demande de redessin du cache (un changement de sélection ne touche pas la page).
+
+**Terminé quand** les sept fonctions passent.
+
+**Étapes.**
+- [ ] **Étape 1 : en-tête** `propertymodel.h` :
+  ```cpp
+  #pragma once
+
+  #include <QAbstractListModel>
+  #include <QTimer>
+  #include <QtQml/qqmlregistration.h>
+
+  namespace actcraft::ui {
+
+  class DocumentController;
+  class ToolHost;
+
+  class PropertyModel : public QAbstractListModel
+  {
+      Q_OBJECT
+      QML_ELEMENT
+      Q_PROPERTY(DocumentController* document READ document WRITE setDocument NOTIFY sourcesChanged)
+      Q_PROPERTY(ToolHost* tools READ tools WRITE setTools NOTIFY sourcesChanged)
+      Q_PROPERTY(QString title READ title NOTIFY refreshed) // « Page », « Trait », « Forme », « 3 objets »…
+      Q_PROPERTY(bool inputActive MEMBER m_inputActive NOTIFY inputActiveChanged)
+      Q_PROPERTY(int refreshCount READ refreshCount NOTIFY refreshed)
+  public:
+      enum Role
+      {
+          SectionRole = Qt::UserRole + 1, // identifiant de section : identification, appearance, outline, fill,
+                                          // position, label, misc, page
+          SectionLabelRole,
+          KeyRole,     // identifiant de la propriété (kebab-case)
+          LabelRole,   // libellé français
+          EditorRole,  // text, number, color, slider, choice, bool, keywords
+          ValueRole,   // QVariant ; invalide si les objets diffèrent
+          ChoicesRole, // QStringList pour « choice »
+          MinRole,
+          MaxRole,
+      };
+      explicit PropertyModel(QObject* parent = nullptr);
+      int rowCount(const QModelIndex& parent = {}) const override;
+      QVariant data(const QModelIndex& index, int role) const override;
+      QHash<int, QByteArray> roleNames() const override;
+      Q_INVOKABLE bool setValue(int row, const QVariant& value);
+      Q_INVOKABLE int rowOf(const QString& key) const; // -1 si absente
+      DocumentController* document() const noexcept;
+      void setDocument(DocumentController* document); // addChangeObserver (A3)
+      ToolHost* tools() const noexcept;
+      void setTools(ToolHost* tools);                 // selectionChanged (A5)
+      QString title() const;
+      int refreshCount() const noexcept;
+  signals:
+      void sourcesChanged();
+      void refreshed();
+      void inputActiveChanged();
+  private:
+      void requestRefresh(); // regroupe : un seul refresh() par tour de boucle, rien pendant un contact
+      void refresh();
+      struct Row;
+      std::vector<Row> m_rows;
+      DocumentController* m_document = nullptr;
+      ToolHost* m_tools = nullptr;
+      QTimer m_timer;
+      bool m_inputActive = false;
+      bool m_pending = false;
+      int m_refreshes = 0;
+      QString m_title;
+  };
+
+  } // namespace actcraft::ui
+  ```
+- [ ] **Étape 2 : test rouge** `tst_ui_propertymodel.cpp` (`DocumentController` et `ToolHost` réels, document de test
+  avec un trait et deux formes) : `pageWhenNothingSelected` (`title` « Page », clés `name`, `description`, `keywords`,
+  `width`, `height`) ; `sectionsOfAStroke` (sélection du trait : sections `identification`, `appearance`, `outline`,
+  `position`, `label`, pas `fill`) ; `sectionsOfAShape` (`fill` présent) ; `commonValuesOnly` (deux formes de largeurs
+  différentes : `ValueRole` de `outline-width` invalide ; même couleur : valeur présente) ; `editGoesThroughTheUndoStack`
+  (`setValue(rowOf("outline-width"), 12)` → `canUndo`, une étape, valeur relue 12) ; `refreshIsDeferredDuringContact`
+  (`inputActive` vrai, trois modifications du document → `refreshCount` inchangé ; faux → +1 seulement) ;
+  `noCacheRefreshOnSelectionChange` (compteur de redessins du cache de la vue, `cacheRefreshCount` posé par L0-S7,
+  inchangé après trois changements de sélection).
+- [ ] **Étape 3 : rouge, implémentation, vert** ; banc sans écran ; preuve de tâche.
+- [ ] **Étape 4 : commit** « Lot 6 : modèle du navigateur de propriétés (L6-T12) ».
+
 <!-- suite -->
