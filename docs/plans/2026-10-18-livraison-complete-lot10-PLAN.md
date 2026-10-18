@@ -2608,7 +2608,9 @@ pixel est un défaut : test de pixels sur une frontière de tuile).
 - **H10-4 — Annuler un objet déjà versé** redessine tout le cache tout de suite (comportement du lot 2) ; annuler un
   objet encore en attente ne coûte rien. Mesuré au lot 3 (S6, annulation branchée).
 - **H10-5 — MSAA 4×** de la fenêtre et du cache : coût mesuré sur la puce Intel intégrée de la machine de
-  développement ; sur le Dell 3510, inconnu (mesure hors porte, décision 0087). **Repli** si le MSAA y coûte trop :
+  développement ; sur le Dell 3510, inconnu (mesure hors porte, décision 0087). Le MSAA s'applique aussi en
+  `Auto` (macOS, Android : moteur RHI par défaut de Qt ; `applyRenderBackend` ne l'écarte qu'en rendu logiciel) :
+  coût non mesuré là non plus. **Repli** si le MSAA y coûte trop :
   encre vive sans lissage et lissage au relâché (le trait versé est lissé), comme la référence le fait par défaut,
   qui abaisse la qualité du rendu pendant l'écriture et la rétablit ensuite (L10-T0, P2).
 - **H10-6 — Forme du trait de la référence** (courbe lissée, bouts et jonctions ronds) : hors lot 10 ; transmise au
