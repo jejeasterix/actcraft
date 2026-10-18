@@ -1240,7 +1240,7 @@
       "source_location": "L595",
       "_origin": "ast",
       "id": "variant",
-      "community": 99,
+      "community": 34,
       "norm_label": "variant"
     },
     {
@@ -5140,7 +5140,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_core_include_actcraft_core_model_h",
-      "community": 99,
+      "community": 34,
       "norm_label": "model.h"
     },
     {
@@ -5150,7 +5150,7 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "core_model_solidfill",
-      "community": 99,
+      "community": 34,
       "norm_label": "solidfill()"
     },
     {
@@ -5160,7 +5160,7 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "core_include_actcraft_core_model_h_fill",
-      "community": 99,
+      "community": 34,
       "norm_label": "fill"
     },
     {
@@ -5170,7 +5170,7 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "core_include_actcraft_core_model_h_argb",
-      "community": 99,
+      "community": 34,
       "norm_label": "argb"
     },
     {
@@ -5180,7 +5180,7 @@
       "source_location": "L273",
       "_origin": "ast",
       "id": "core_model_strokewidthat",
-      "community": 99,
+      "community": 34,
       "norm_label": "strokewidthat()"
     },
     {
@@ -5190,7 +5190,7 @@
       "source_location": "L352",
       "_origin": "ast",
       "id": "core_model_objectvariant",
-      "community": 99,
+      "community": 34,
       "norm_label": "objectvariant()"
     },
     {
@@ -5200,7 +5200,7 @@
       "source_location": "L362",
       "_origin": "ast",
       "id": "core_model_body",
-      "community": 99,
+      "community": 34,
       "norm_label": "body()"
     },
     {
@@ -5210,7 +5210,7 @@
       "source_location": "L362",
       "_origin": "ast",
       "id": "core_include_actcraft_core_model_h_pageobject",
-      "community": 99,
+      "community": 34,
       "norm_label": "pageobject"
     },
     {
@@ -5220,7 +5220,7 @@
       "source_location": "L381",
       "_origin": "ast",
       "id": "core_model_gridline",
-      "community": 99,
+      "community": 34,
       "norm_label": "gridline()"
     },
     {
@@ -7074,6 +7074,36 @@
       "norm_label": "namespace"
     },
     {
+      "label": "mathtools.h",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/mathtools.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "features_mathtools",
+      "community": 226,
+      "norm_label": "mathtools.h"
+    },
+    {
+      "label": "center()",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/mathtools.h",
+      "source_location": "L42",
+      "_origin": "ast",
+      "id": "features_mathtools_center",
+      "community": 226,
+      "norm_label": "center()"
+    },
+    {
+      "label": "QPointF",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/mathtools.h",
+      "source_location": "L42",
+      "_origin": "ast",
+      "id": "features_include_actcraft_features_mathtools_h_qpointf",
+      "community": 226,
+      "norm_label": "qpointf"
+    },
+    {
       "label": "pagezoom.h",
       "file_type": "code",
       "source_file": "features/include/actcraft/features/pagezoom.h",
@@ -7101,6 +7131,36 @@
       "_origin": "ast",
       "id": "features_include_actcraft_features_pagezoom_h_namespace",
       "community": 235,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "strokeguide.h",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/strokeguide.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "features_strokeguide",
+      "community": 237,
+      "norm_label": "strokeguide.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/strokeguide.h",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "features_strokeguide_actcraft",
+      "community": 237,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/strokeguide.h",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "features_include_actcraft_features_strokeguide_h_namespace",
+      "community": 237,
       "norm_label": "namespace"
     },
     {
@@ -7152,6 +7212,286 @@
       "id": "src_features_moduleid",
       "community": 14,
       "norm_label": "moduleid()"
+    },
+    {
+      "label": "mathtools.cpp",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_mathtools",
+      "community": 234,
+      "norm_label": "mathtools.cpp"
+    },
+    {
+      "label": "rotated()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "src_mathtools_rotated",
+      "community": 234,
+      "norm_label": "rotated()"
+    },
+    {
+      "label": "QPointF",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "features_src_mathtools_cpp_qpointf",
+      "community": 234,
+      "norm_label": "qpointf"
+    },
+    {
+      "label": "wholeDegrees()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "src_mathtools_wholedegrees",
+      "community": 234,
+      "norm_label": "wholedegrees()"
+    },
+    {
+      "label": "projectOnSegment()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L30",
+      "_origin": "ast",
+      "id": "src_mathtools_projectonsegment",
+      "community": 234,
+      "norm_label": "projectonsegment()"
+    },
+    {
+      "label": "QLineF",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L30",
+      "_origin": "ast",
+      "id": "features_src_mathtools_cpp_qlinef",
+      "community": 234,
+      "norm_label": "qlinef"
+    },
+    {
+      "label": "movedTo()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L44",
+      "_origin": "ast",
+      "id": "src_mathtools_movedto",
+      "community": 234,
+      "norm_label": "movedto()"
+    },
+    {
+      "label": "Sample",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L44",
+      "_origin": "ast",
+      "id": "features_src_mathtools_cpp_sample",
+      "community": 234,
+      "norm_label": "sample"
+    },
+    {
+      "label": "projectOnNearestEdge()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L54",
+      "_origin": "ast",
+      "id": "src_mathtools_projectonnearestedge",
+      "community": 234,
+      "norm_label": "projectonnearestedge()"
+    },
+    {
+      "label": "optional",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L54",
+      "_origin": "ast",
+      "id": "features_src_mathtools_cpp_optional",
+      "community": 234,
+      "norm_label": "optional"
+    },
+    {
+      "label": "vector",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L54",
+      "_origin": "ast",
+      "id": "features_src_mathtools_cpp_vector",
+      "community": 234,
+      "norm_label": "vector"
+    },
+    {
+      "label": "followEdge()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L70",
+      "_origin": "ast",
+      "id": "src_mathtools_followedge",
+      "community": 234,
+      "norm_label": "followedge()"
+    },
+    {
+      "label": "projectOnSegments()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L81",
+      "_origin": "ast",
+      "id": "src_mathtools_projectonsegments",
+      "community": 234,
+      "norm_label": "projectonsegments()"
+    },
+    {
+      "label": "SegmentHit",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L81",
+      "_origin": "ast",
+      "id": "segmenthit",
+      "community": 234,
+      "norm_label": "segmenthit"
+    },
+    {
+      "label": "setFrame()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L99",
+      "_origin": "ast",
+      "id": "src_mathtools_setframe",
+      "community": 234,
+      "norm_label": "setframe()"
+    },
+    {
+      "label": "center()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L107",
+      "_origin": "ast",
+      "id": "src_mathtools_center",
+      "community": 234,
+      "norm_label": "center()"
+    },
+    {
+      "label": "length()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L112",
+      "_origin": "ast",
+      "id": "src_mathtools_length",
+      "community": 234,
+      "norm_label": "length()"
+    },
+    {
+      "label": "width()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L117",
+      "_origin": "ast",
+      "id": "src_mathtools_width",
+      "community": 47,
+      "norm_label": "width()"
+    },
+    {
+      "label": "angleDegrees()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L122",
+      "_origin": "ast",
+      "id": "src_mathtools_angledegrees",
+      "community": 234,
+      "norm_label": "angledegrees()"
+    },
+    {
+      "label": "edges()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L127",
+      "_origin": "ast",
+      "id": "src_mathtools_edges",
+      "community": 234,
+      "norm_label": "edges()"
+    },
+    {
+      "label": "displayAngle()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L139",
+      "_origin": "ast",
+      "id": "src_mathtools_displayangle",
+      "community": 234,
+      "norm_label": "displayangle()"
+    },
+    {
+      "label": "setUnits()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L144",
+      "_origin": "ast",
+      "id": "src_mathtools_setunits",
+      "community": 234,
+      "norm_label": "setunits()"
+    },
+    {
+      "label": "RulerUnit",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L144",
+      "_origin": "ast",
+      "id": "rulerunit",
+      "community": 234,
+      "norm_label": "rulerunit"
+    },
+    {
+      "label": "topUnit()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L150",
+      "_origin": "ast",
+      "id": "src_mathtools_topunit",
+      "community": 234,
+      "norm_label": "topunit()"
+    },
+    {
+      "label": "bottomUnit()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L155",
+      "_origin": "ast",
+      "id": "src_mathtools_bottomunit",
+      "community": 234,
+      "norm_label": "bottomunit()"
+    },
+    {
+      "label": "project()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L160",
+      "_origin": "ast",
+      "id": "src_mathtools_project",
+      "community": 234,
+      "norm_label": "project()"
+    },
+    {
+      "label": "capture()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L165",
+      "_origin": "ast",
+      "id": "src_mathtools_capture",
+      "community": 234,
+      "norm_label": "capture()"
+    },
+    {
+      "label": "follow()",
+      "file_type": "code",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L170",
+      "_origin": "ast",
+      "id": "src_mathtools_follow",
+      "community": 234,
+      "norm_label": "follow()"
     },
     {
       "label": "pagezoom.cpp",
@@ -7302,6 +7642,116 @@
       "id": "src_pagezoom_isdoubleclick",
       "community": 228,
       "norm_label": "isdoubleclick()"
+    },
+    {
+      "label": "strokeguide.cpp",
+      "file_type": "code",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_strokeguide",
+      "community": 226,
+      "norm_label": "strokeguide.cpp"
+    },
+    {
+      "label": "add()",
+      "file_type": "code",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "src_strokeguide_add",
+      "community": 226,
+      "norm_label": "add()"
+    },
+    {
+      "label": "StrokeGuide",
+      "file_type": "code",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "strokeguide",
+      "community": 226,
+      "norm_label": "strokeguide"
+    },
+    {
+      "label": "remove()",
+      "file_type": "code",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "src_strokeguide_remove",
+      "community": 226,
+      "norm_label": "remove()"
+    },
+    {
+      "label": "setTolerance()",
+      "file_type": "code",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L23",
+      "_origin": "ast",
+      "id": "src_strokeguide_settolerance",
+      "community": 226,
+      "norm_label": "settolerance()"
+    },
+    {
+      "label": "nearest()",
+      "file_type": "code",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L28",
+      "_origin": "ast",
+      "id": "src_strokeguide_nearest",
+      "community": 226,
+      "norm_label": "nearest()"
+    },
+    {
+      "label": "Sample",
+      "file_type": "code",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L28",
+      "_origin": "ast",
+      "id": "features_src_strokeguide_cpp_sample",
+      "community": 226,
+      "norm_label": "sample"
+    },
+    {
+      "label": "filter()",
+      "file_type": "code",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L46",
+      "_origin": "ast",
+      "id": "src_strokeguide_filter",
+      "community": 226,
+      "norm_label": "filter()"
+    },
+    {
+      "label": "guiding()",
+      "file_type": "code",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L79",
+      "_origin": "ast",
+      "id": "src_strokeguide_guiding",
+      "community": 226,
+      "norm_label": "guiding()"
+    },
+    {
+      "label": "snapPreview()",
+      "file_type": "code",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L84",
+      "_origin": "ast",
+      "id": "src_strokeguide_snappreview",
+      "community": 226,
+      "norm_label": "snappreview()"
+    },
+    {
+      "label": "optional",
+      "file_type": "code",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L84",
+      "_origin": "ast",
+      "id": "features_src_strokeguide_cpp_optional",
+      "community": 226,
+      "norm_label": "optional"
     },
     {
       "label": "transitions.cpp",
@@ -7590,7 +8040,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_formats_include_actcraft_formats_objectstream_h",
-      "community": 99,
+      "community": 34,
       "norm_label": "objectstream.h"
     },
     {
@@ -7600,7 +8050,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "formats_objectstream_flipchart",
-      "community": 99,
+      "community": 34,
       "norm_label": "flipchart()"
     },
     {
@@ -7610,7 +8060,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "formats_include_actcraft_formats_objectstream_h_namespace",
-      "community": 99,
+      "community": 34,
       "norm_label": "namespace"
     },
     {
@@ -9700,7 +10150,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_formats_src_nativejson_cpp",
-      "community": 129,
+      "community": 196,
       "norm_label": "nativejson.cpp"
     },
     {
@@ -9720,7 +10170,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "string_view",
-      "community": 129,
+      "community": 196,
       "norm_label": "string_view"
     },
     {
@@ -9960,7 +10410,7 @@
       "source_location": "L322",
       "_origin": "ast",
       "id": "src_nativejson_followsvariantorder",
-      "community": 129,
+      "community": 196,
       "norm_label": "followsvariantorder()"
     },
     {
@@ -9970,7 +10420,7 @@
       "source_location": "L337",
       "_origin": "ast",
       "id": "src_nativejson_latin1",
-      "community": 129,
+      "community": 196,
       "norm_label": "latin1()"
     },
     {
@@ -9980,7 +10430,7 @@
       "source_location": "L337",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_qstring",
-      "community": 129,
+      "community": 196,
       "norm_label": "qstring"
     },
     {
@@ -9990,7 +10440,7 @@
       "source_location": "L342",
       "_origin": "ast",
       "id": "src_nativejson_nametext",
-      "community": 129,
+      "community": 196,
       "norm_label": "nametext()"
     },
     {
@@ -10010,7 +10460,7 @@
       "source_location": "L348",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_optional",
-      "community": 122,
+      "community": 160,
       "norm_label": "optional"
     },
     {
@@ -10020,7 +10470,7 @@
       "source_location": "L360",
       "_origin": "ast",
       "id": "src_nativejson_str",
-      "community": 129,
+      "community": 196,
       "norm_label": "str()"
     },
     {
@@ -10040,7 +10490,7 @@
       "source_location": "L366",
       "_origin": "ast",
       "id": "src_nativejson_colortext",
-      "community": 129,
+      "community": 196,
       "norm_label": "colortext()"
     },
     {
@@ -10050,7 +10500,7 @@
       "source_location": "L366",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_argb",
-      "community": 129,
+      "community": 196,
       "norm_label": "argb"
     },
     {
@@ -10060,7 +10510,7 @@
       "source_location": "L372",
       "_origin": "ast",
       "id": "src_nativejson_idvalue",
-      "community": 129,
+      "community": 196,
       "norm_label": "idvalue()"
     },
     {
@@ -10070,7 +10520,7 @@
       "source_location": "L372",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_objectid",
-      "community": 122,
+      "community": 154,
       "norm_label": "objectid"
     },
     {
@@ -10140,7 +10590,7 @@
       "source_location": "L390",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_vector",
-      "community": 122,
+      "community": 154,
       "norm_label": "vector"
     },
     {
@@ -10150,7 +10600,7 @@
       "source_location": "L401",
       "_origin": "ast",
       "id": "src_nativejson_transformjson",
-      "community": 129,
+      "community": 196,
       "norm_label": "transformjson()"
     },
     {
@@ -10160,7 +10610,7 @@
       "source_location": "L401",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_transform",
-      "community": 129,
+      "community": 149,
       "norm_label": "transform"
     },
     {
@@ -10170,7 +10620,7 @@
       "source_location": "L407",
       "_origin": "ast",
       "id": "src_nativejson_outlinejson",
-      "community": 129,
+      "community": 196,
       "norm_label": "outlinejson()"
     },
     {
@@ -10190,7 +10640,7 @@
       "source_location": "L407",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_outline",
-      "community": 129,
+      "community": 196,
       "norm_label": "outline"
     },
     {
@@ -10200,7 +10650,7 @@
       "source_location": "L417",
       "_origin": "ast",
       "id": "src_nativejson_filljson",
-      "community": 129,
+      "community": 196,
       "norm_label": "filljson()"
     },
     {
@@ -10210,7 +10660,7 @@
       "source_location": "L417",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_fill",
-      "community": 129,
+      "community": 196,
       "norm_label": "fill"
     },
     {
@@ -10250,7 +10700,7 @@
       "source_location": "L460",
       "_origin": "ast",
       "id": "src_nativejson_actionjson",
-      "community": 129,
+      "community": 196,
       "norm_label": "actionjson()"
     },
     {
@@ -10260,7 +10710,7 @@
       "source_location": "L460",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_action",
-      "community": 122,
+      "community": 149,
       "norm_label": "action"
     },
     {
@@ -10270,7 +10720,7 @@
       "source_location": "L471",
       "_origin": "ast",
       "id": "src_nativejson_writecommon",
-      "community": 129,
+      "community": 196,
       "norm_label": "writecommon()"
     },
     {
@@ -10280,7 +10730,7 @@
       "source_location": "L471",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_objectcommon",
-      "community": 122,
+      "community": 149,
       "norm_label": "objectcommon"
     },
     {
@@ -10430,7 +10880,7 @@
       "source_location": "L627",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_pageobject",
-      "community": 122,
+      "community": 149,
       "norm_label": "pageobject"
     },
     {
@@ -10630,7 +11080,7 @@
       "source_location": "L758",
       "_origin": "ast",
       "id": "src_nativejson_unknownmembers",
-      "community": 129,
+      "community": 149,
       "norm_label": "unknownmembers()"
     },
     {
@@ -10640,7 +11090,7 @@
       "source_location": "L776",
       "_origin": "ast",
       "id": "src_nativejson_unknownkeysof",
-      "community": 129,
+      "community": 149,
       "norm_label": "unknownkeysof()"
     },
     {
@@ -10740,7 +11190,7 @@
       "source_location": "L820",
       "_origin": "ast",
       "id": "src_nativejson_reader_readelement",
-      "community": 122,
+      "community": 149,
       "norm_label": ".readelement()"
     },
     {
@@ -10750,7 +11200,7 @@
       "source_location": "L820",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_qjsonvalue",
-      "community": 122,
+      "community": 154,
       "norm_label": "qjsonvalue"
     },
     {
@@ -10820,7 +11270,7 @@
       "source_location": "L923",
       "_origin": "ast",
       "id": "src_nativejson_reader_readid",
-      "community": 122,
+      "community": 154,
       "norm_label": ".readid()"
     },
     {
@@ -10830,7 +11280,7 @@
       "source_location": "L939",
       "_origin": "ast",
       "id": "src_nativejson_reader_readnumbers",
-      "community": 122,
+      "community": 154,
       "norm_label": ".readnumbers()"
     },
     {
@@ -10840,7 +11290,7 @@
       "source_location": "L964",
       "_origin": "ast",
       "id": "src_nativejson_reader_readpairs",
-      "community": 122,
+      "community": 154,
       "norm_label": ".readpairs()"
     },
     {
@@ -10910,7 +11360,7 @@
       "source_location": "L1076",
       "_origin": "ast",
       "id": "src_nativejson_readaction",
-      "community": 122,
+      "community": 149,
       "norm_label": "readaction()"
     },
     {
@@ -10920,7 +11370,7 @@
       "source_location": "L1089",
       "_origin": "ast",
       "id": "src_nativejson_readcommon",
-      "community": 122,
+      "community": 149,
       "norm_label": "readcommon()"
     },
     {
@@ -10950,7 +11400,7 @@
       "source_location": "L1258",
       "_origin": "ast",
       "id": "src_nativejson_blankobject",
-      "community": 122,
+      "community": 149,
       "norm_label": "blankobject()"
     },
     {
@@ -10960,7 +11410,7 @@
       "source_location": "L1271",
       "_origin": "ast",
       "id": "src_nativejson_readbox",
-      "community": 122,
+      "community": 154,
       "norm_label": "readbox()"
     },
     {
@@ -10970,7 +11420,7 @@
       "source_location": "L1300",
       "_origin": "ast",
       "id": "src_nativejson_readunknown",
-      "community": 122,
+      "community": 149,
       "norm_label": "readunknown()"
     },
     {
@@ -10980,7 +11430,7 @@
       "source_location": "L1316",
       "_origin": "ast",
       "id": "src_nativejson_readobject",
-      "community": 122,
+      "community": 149,
       "norm_label": "readobject()"
     },
     {
@@ -11020,7 +11470,7 @@
       "source_location": "L1409",
       "_origin": "ast",
       "id": "src_nativejson_majorversion",
-      "community": 129,
+      "community": 196,
       "norm_label": "majorversion()"
     },
     {
@@ -11040,7 +11490,7 @@
       "source_location": "L1438",
       "_origin": "ast",
       "id": "src_nativejson_describe",
-      "community": 129,
+      "community": 196,
       "norm_label": "describe()"
     },
     {
@@ -11050,7 +11500,7 @@
       "source_location": "L1438",
       "_origin": "ast",
       "id": "resourcefailure",
-      "community": 129,
+      "community": 196,
       "norm_label": "resourcefailure"
     },
     {
@@ -12060,7 +12510,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_input_src_qtevents_cpp",
-      "community": 179,
+      "community": 42,
       "norm_label": "qtevents.cpp"
     },
     {
@@ -15149,7 +15599,7 @@
       "source_file": "render/src/pagepainter.cpp",
       "source_location": "L380",
       "_origin": "ast",
-      "id": "qlinef",
+      "id": "render_src_pagepainter_cpp_qlinef",
       "community": 78,
       "norm_label": "qlinef"
     },
@@ -17502,7 +17952,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_support_flipchartwriter_h",
-      "community": 178,
+      "community": 148,
       "norm_label": "flipchartwriter.h"
     },
     {
@@ -17512,7 +17962,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "support_flipchartwriter_fctest",
-      "community": 178,
+      "community": 148,
       "norm_label": "fctest()"
     },
     {
@@ -17522,7 +17972,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_support_flipchartwriter_h_namespace",
-      "community": 178,
+      "community": 148,
       "norm_label": "namespace"
     },
     {
@@ -17532,7 +17982,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "support_flipchartwriter_container",
-      "community": 178,
+      "community": 148,
       "norm_label": "container()"
     },
     {
@@ -17542,7 +17992,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "tests_support_flipchartwriter_h_qbytearray",
-      "community": 178,
+      "community": 148,
       "norm_label": "qbytearray"
     },
     {
@@ -17552,7 +18002,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "std",
-      "community": 178,
+      "community": 148,
       "norm_label": "std"
     },
     {
@@ -17562,7 +18012,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "support_flipchartwriter_writenode",
-      "community": 178,
+      "community": 148,
       "norm_label": "writenode()"
     },
     {
@@ -17572,7 +18022,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "bytes",
-      "community": 178,
+      "community": 148,
       "norm_label": "bytes"
     },
     {
@@ -17582,7 +18032,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "tests_support_flipchartwriter_h_node",
-      "community": 178,
+      "community": 148,
       "norm_label": "node"
     },
     {
@@ -17592,7 +18042,7 @@
       "source_location": "L317",
       "_origin": "ast",
       "id": "support_flipchartwriter_samplemp3",
-      "community": 178,
+      "community": 148,
       "norm_label": "samplemp3()"
     },
     {
@@ -17602,7 +18052,7 @@
       "source_location": "L329",
       "_origin": "ast",
       "id": "support_flipchartwriter_sampleflipchart",
-      "community": 178,
+      "community": 148,
       "norm_label": "sampleflipchart()"
     },
     {
@@ -17612,7 +18062,7 @@
       "source_location": "L493",
       "_origin": "ast",
       "id": "support_flipchartwriter_synth",
-      "community": 178,
+      "community": 148,
       "norm_label": "synth()"
     },
     {
@@ -17622,7 +18072,7 @@
       "source_location": "L513",
       "_origin": "ast",
       "id": "support_flipchartwriter_pivot",
-      "community": 178,
+      "community": 148,
       "norm_label": "pivot()"
     },
     {
@@ -17632,7 +18082,7 @@
       "source_location": "L513",
       "_origin": "ast",
       "id": "obj",
-      "community": 178,
+      "community": 148,
       "norm_label": "obj"
     },
     {
@@ -17642,7 +18092,7 @@
       "source_location": "L521",
       "_origin": "ast",
       "id": "support_flipchartwriter_ink",
-      "community": 178,
+      "community": 148,
       "norm_label": "ink()"
     },
     {
@@ -17652,7 +18102,7 @@
       "source_location": "L521",
       "_origin": "ast",
       "id": "tests_support_flipchartwriter_h_qint32",
-      "community": 178,
+      "community": 148,
       "norm_label": "qint32"
     },
     {
@@ -17662,7 +18112,7 @@
       "source_location": "L521",
       "_origin": "ast",
       "id": "tests_support_flipchartwriter_h_qrgb",
-      "community": 178,
+      "community": 148,
       "norm_label": "qrgb"
     },
     {
@@ -17672,7 +18122,7 @@
       "source_location": "L550",
       "_origin": "ast",
       "id": "support_flipchartwriter_box",
-      "community": 178,
+      "community": 148,
       "norm_label": "box()"
     },
     {
@@ -17682,7 +18132,7 @@
       "source_location": "L654",
       "_origin": "ast",
       "id": "support_flipchartwriter_fillsandpens",
-      "community": 178,
+      "community": 148,
       "norm_label": "fillsandpens()"
     },
     {
@@ -17692,7 +18142,7 @@
       "source_location": "L774",
       "_origin": "ast",
       "id": "support_flipchartwriter_nesting",
-      "community": 178,
+      "community": 148,
       "norm_label": "nesting()"
     },
     {
@@ -17702,7 +18152,7 @@
       "source_location": "L807",
       "_origin": "ast",
       "id": "support_flipchartwriter_unreadparents",
-      "community": 178,
+      "community": 148,
       "norm_label": "unreadparents()"
     },
     {
@@ -17712,7 +18162,7 @@
       "source_location": "L849",
       "_origin": "ast",
       "id": "support_flipchartwriter_twogrids",
-      "community": 178,
+      "community": 148,
       "norm_label": "twogrids()"
     },
     {
@@ -17722,7 +18172,7 @@
       "source_location": "L884",
       "_origin": "ast",
       "id": "support_flipchartwriter_fonts",
-      "community": 178,
+      "community": 148,
       "norm_label": "fonts()"
     },
     {
@@ -17732,7 +18182,7 @@
       "source_location": "L921",
       "_origin": "ast",
       "id": "support_flipchartwriter_media",
-      "community": 178,
+      "community": 148,
       "norm_label": "media()"
     },
     {
@@ -21302,7 +21752,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_core_model_cpp",
-      "community": 99,
+      "community": 34,
       "norm_label": "tst_core_model.cpp"
     },
     {
@@ -22456,10 +22906,40 @@
       "norm_label": "tst_features_mathtools.cpp"
     },
     {
+      "label": "at()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_at",
+      "community": 226,
+      "norm_label": "at()"
+    },
+    {
+      "label": "Sample",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_cpp_sample",
+      "community": 226,
+      "norm_label": "sample"
+    },
+    {
+      "label": "Phase",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_cpp_phase",
+      "community": 226,
+      "norm_label": "phase"
+    },
+    {
       "label": "TstFeaturesMathTools",
       "file_type": "code",
       "source_file": "tests/tst_features_mathtools.cpp",
-      "source_location": "L4",
+      "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_features_mathtools_tstfeaturesmathtools",
       "community": 226,
@@ -22469,7 +22949,7 @@
       "label": ".private()",
       "file_type": "code",
       "source_file": "tests/tst_features_mathtools.cpp",
-      "source_location": "L6",
+      "source_location": "L23",
       "_origin": "ast",
       "id": "tests_tst_features_mathtools_tstfeaturesmathtools_private",
       "community": 226,
@@ -22479,11 +22959,111 @@
       "label": "Q_OBJECT",
       "file_type": "code",
       "source_file": "tests/tst_features_mathtools.cpp",
-      "source_location": "L6",
+      "source_location": "L23",
       "_origin": "ast",
       "id": "tests_tst_features_mathtools_cpp_q_object",
       "community": 226,
       "norm_label": "q_object"
+    },
+    {
+      "label": ".rulerIgnoresFarSamples()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L34",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_tstfeaturesmathtools_rulerignoresfarsamples",
+      "community": 226,
+      "norm_label": ".rulerignoresfarsamples()"
+    },
+    {
+      "label": ".strokeStaysOnTheEdgeOnceSnapped()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L40",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_tstfeaturesmathtools_strokestaysontheedgeoncesnapped",
+      "community": 226,
+      "norm_label": ".strokestaysontheedgeoncesnapped()"
+    },
+    {
+      "label": ".rotatedRulerProjects()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L61",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_tstfeaturesmathtools_rotatedrulerprojects",
+      "community": 226,
+      "norm_label": ".rotatedrulerprojects()"
+    },
+    {
+      "label": ".angleDisplayedInWholeDegrees()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L69",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_tstfeaturesmathtools_angledisplayedinwholedegrees",
+      "community": 226,
+      "norm_label": ".angledisplayedinwholedegrees()"
+    },
+    {
+      "label": ".centimetreScale()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L81",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_tstfeaturesmathtools_centimetrescale",
+      "community": 226,
+      "norm_label": ".centimetrescale()"
+    },
+    {
+      "label": ".setSquareHasThreeEdges()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L82",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_tstfeaturesmathtools_setsquarehasthreeedges",
+      "community": 226,
+      "norm_label": ".setsquarehasthreeedges()"
+    },
+    {
+      "label": ".setSquareHypotenuseAt45()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L93",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_tstfeaturesmathtools_setsquarehypotenuseat45",
+      "community": 226,
+      "norm_label": ".setsquarehypotenuseat45()"
+    },
+    {
+      "label": ".guideSetPicksTheNearestGuide()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L109",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_tstfeaturesmathtools_guidesetpicksthenearestguide",
+      "community": 226,
+      "norm_label": ".guidesetpicksthenearestguide()"
+    },
+    {
+      "label": ".snapPreviewIsQuietWhileGuiding()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L139",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_tstfeaturesmathtools_snappreviewisquietwhileguiding",
+      "community": 226,
+      "norm_label": ".snappreviewisquietwhileguiding()"
+    },
+    {
+      "label": ".sampleKeepsItsOtherFields()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L159",
+      "_origin": "ast",
+      "id": "tests_tst_features_mathtools_tstfeaturesmathtools_samplekeepsitsotherfields",
+      "community": 226,
+      "norm_label": ".samplekeepsitsotherfields()"
     },
     {
       "label": "tst_features_pagetools.cpp",
@@ -22932,7 +23512,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_formats_bamboo_cpp",
-      "community": 136,
+      "community": 148,
       "norm_label": "tst_formats_bamboo.cpp"
     },
     {
@@ -22942,7 +23522,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_zlibofzeros",
-      "community": 136,
+      "community": 148,
       "norm_label": "zlibofzeros()"
     },
     {
@@ -22952,7 +23532,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_cpp_qbytearray",
-      "community": 136,
+      "community": 148,
       "norm_label": "qbytearray"
     },
     {
@@ -22962,7 +23542,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_cpp_qint64",
-      "community": 136,
+      "community": 148,
       "norm_label": "qint64"
     },
     {
@@ -22972,7 +23552,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo",
-      "community": 136,
+      "community": 148,
       "norm_label": "tstformatsbamboo"
     },
     {
@@ -22982,7 +23562,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_private",
-      "community": 136,
+      "community": 148,
       "norm_label": ".private()"
     },
     {
@@ -22992,7 +23572,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_cpp_q_object",
-      "community": 136,
+      "community": 148,
       "norm_label": "q_object"
     },
     {
@@ -23002,7 +23582,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_nestedcontainerisanentry",
-      "community": 136,
+      "community": 148,
       "norm_label": ".nestedcontainerisanentry()"
     },
     {
@@ -23012,7 +23592,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_namesareutf16",
-      "community": 136,
+      "community": 148,
       "norm_label": ".namesareutf16()"
     },
     {
@@ -23022,7 +23602,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_refusesbadortruncateddata",
-      "community": 136,
+      "community": 148,
       "norm_label": ".refusesbadortruncateddata()"
     },
     {
@@ -23032,7 +23612,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_sizemismatchisanerror",
-      "community": 136,
+      "community": 148,
       "norm_label": ".sizemismatchisanerror()"
     },
     {
@@ -23042,7 +23622,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_oversizedentryisrefusedwithoutallocating",
-      "community": 136,
+      "community": 148,
       "norm_label": ".oversizedentryisrefusedwithoutallocating()"
     },
     {
@@ -23052,7 +23632,7 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_zlibbombstayswithintheannouncedsize",
-      "community": 136,
+      "community": 148,
       "norm_label": ".zlibbombstayswithintheannouncedsize()"
     },
     {
@@ -23062,7 +23642,7 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_decompressionstopsattheannouncedsize",
-      "community": 136,
+      "community": 148,
       "norm_label": ".decompressionstopsattheannouncedsize()"
     },
     {
@@ -23072,7 +23652,7 @@
       "source_location": "L164",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_indexkeepstreeorderandreferences",
-      "community": 136,
+      "community": 148,
       "norm_label": ".indexkeepstreeorderandreferences()"
     },
     {
@@ -23082,7 +23662,7 @@
       "source_location": "L186",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_indexerrorsarereported_data",
-      "community": 136,
+      "community": 148,
       "norm_label": ".indexerrorsarereported_data()"
     },
     {
@@ -23092,7 +23672,7 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_indexerrorsarereported",
-      "community": 136,
+      "community": 148,
       "norm_label": ".indexerrorsarereported()"
     },
     {
@@ -24802,7 +25382,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_formats_oracle_synth_cpp",
-      "community": 178,
+      "community": 83,
       "norm_label": "tst_formats_oracle_synth.cpp"
     },
     {
@@ -24812,7 +25392,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_findpython",
-      "community": 178,
+      "community": 83,
       "norm_label": "findpython()"
     },
     {
@@ -24822,7 +25402,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_cpp_qstring",
-      "community": 178,
+      "community": 83,
       "norm_label": "qstring"
     },
     {
@@ -24832,7 +25412,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_referenceroot",
-      "community": 178,
+      "community": 83,
       "norm_label": "referenceroot()"
     },
     {
@@ -24842,7 +25422,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_sortbylayer",
-      "community": 178,
+      "community": 83,
       "norm_label": "sortbylayer()"
     },
     {
@@ -24852,7 +25432,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_cpp_qjsonobject",
-      "community": 178,
+      "community": 83,
       "norm_label": "qjsonobject"
     },
     {
@@ -24862,7 +25442,7 @@
       "source_location": "L131",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_namedgap",
-      "community": 178,
+      "community": 83,
       "norm_label": "namedgap"
     },
     {
@@ -24872,7 +25452,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_namedgap_file",
-      "community": 178,
+      "community": 83,
       "norm_label": "file"
     },
     {
@@ -24882,7 +25462,7 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_namedgap_name",
-      "community": 178,
+      "community": 83,
       "norm_label": "name"
     },
     {
@@ -24892,7 +25472,7 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_cpp_qstringlist",
-      "community": 178,
+      "community": 83,
       "norm_label": "qstringlist"
     },
     {
@@ -24902,7 +25482,7 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_namedgap_warnings",
-      "community": 178,
+      "community": 83,
       "norm_label": "warnings"
     },
     {
@@ -24912,7 +25492,7 @@
       "source_location": "L157",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_applygap",
-      "community": 178,
+      "community": 83,
       "norm_label": "applygap()"
     },
     {
@@ -24922,7 +25502,7 @@
       "source_location": "L220",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_collectfeatures",
-      "community": 178,
+      "community": 83,
       "norm_label": "collectfeatures()"
     },
     {
@@ -24932,7 +25512,7 @@
       "source_location": "L220",
       "_origin": "ast",
       "id": "qset",
-      "community": 178,
+      "community": 83,
       "norm_label": "qset"
     },
     {
@@ -24942,7 +25522,7 @@
       "source_location": "L310",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_collectwritten",
-      "community": 178,
+      "community": 83,
       "norm_label": "collectwritten()"
     },
     {
@@ -24952,7 +25532,7 @@
       "source_location": "L310",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_cpp_qbytearray",
-      "community": 178,
+      "community": 83,
       "norm_label": "qbytearray"
     },
     {
@@ -24962,7 +25542,7 @@
       "source_location": "L357",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_tstformatsoraclesynth",
-      "community": 178,
+      "community": 83,
       "norm_label": "tstformatsoraclesynth"
     },
     {
@@ -24972,7 +25552,7 @@
       "source_location": "L359",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_cpp_q_object",
-      "community": 178,
+      "community": 83,
       "norm_label": "q_object"
     },
     {
@@ -24982,7 +25562,7 @@
       "source_location": "L361",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_tstformatsoraclesynth_public",
-      "community": 178,
+      "community": 83,
       "norm_label": "public"
     },
     {
@@ -24992,7 +25572,7 @@
       "source_location": "L365",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_tstformatsoraclesynth_syntheticflipchartsmatchthepythonreader",
-      "community": 178,
+      "community": 83,
       "norm_label": ".syntheticflipchartsmatchthepythonreader()"
     },
     {
@@ -25002,7 +25582,7 @@
       "source_location": "L481",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_synth_main",
-      "community": 178,
+      "community": 83,
       "norm_label": "main()"
     },
     {
@@ -25812,7 +26392,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "tests_tst_pageview_passedon_eventfilter",
-      "community": 101,
+      "community": 37,
       "norm_label": ".eventfilter()"
     },
     {
@@ -25822,7 +26402,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "tests_tst_pageview_cpp_qevent",
-      "community": 101,
+      "community": 37,
       "norm_label": "qevent"
     },
     {
@@ -34062,7 +34642,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_ui_include_actcraft_ui_appinfo_h",
-      "community": 234,
+      "community": 101,
       "norm_label": "appinfo.h"
     },
     {
@@ -34072,7 +34652,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "ui_appinfo_actcraft",
-      "community": 234,
+      "community": 101,
       "norm_label": "actcraft()"
     },
     {
@@ -34082,7 +34662,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "ui_include_actcraft_ui_appinfo_h_namespace",
-      "community": 234,
+      "community": 101,
       "norm_label": "namespace"
     },
     {
@@ -34122,7 +34702,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_ui_include_actcraft_ui_documentcontroller_h",
-      "community": 101,
+      "community": 236,
       "norm_label": "documentcontroller.h"
     },
     {
@@ -34132,7 +34712,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "ui_documentcontroller_actcraft",
-      "community": 101,
+      "community": 236,
       "norm_label": "actcraft()"
     },
     {
@@ -34142,7 +34722,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "ui_include_actcraft_ui_documentcontroller_h_namespace",
-      "community": 101,
+      "community": 236,
       "norm_label": "namespace"
     },
     {
@@ -39646,6 +40226,476 @@
       "norm_label": "risques"
     },
     {
+      "label": "2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement",
+      "community": 122,
+      "norm_label": "2026-10-18-livraison-complete-lot7-phase2-amendement.md"
+    },
+    {
+      "label": "Livraison compl\u00e8te \u2014 lot 7 \u00ab Pr\u00e9sentation et outils \u00bb \u2014 amendement \u00ab phase 2 \u00bb (apr\u00e8s le socle) \u2014 plan d'ex\u00e9cution",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "community": 122,
+      "norm_label": "livraison complete \u2014 lot 7 \u00ab presentation et outils \u00bb \u2014 amendement \u00ab phase 2 \u00bb (apres le socle) \u2014 plan d'execution"
+    },
+    {
+      "label": "D\u00e9cisions de cet amendement",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L50",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_d\u00e9cisions_de_cet_amendement",
+      "community": 122,
+      "norm_label": "decisions de cet amendement"
+    },
+    {
+      "label": "Compte de tests",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L214",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_compte_de_tests",
+      "community": 122,
+      "norm_label": "compte de tests"
+    },
+    {
+      "label": "Table des t\u00e2ches \u2014 lot P2-A (L7-S8, L7-T1 \u00e0 L7-T19)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L235",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_table_des_t\u00e2ches_lot_p2_a_l7_s8_l7_t1_\u00e0_l7_t19",
+      "community": 122,
+      "norm_label": "table des taches \u2014 lot p2-a (l7-s8, l7-t1 a l7-t19)"
+    },
+    {
+      "label": "Table des t\u00e2ches \u2014 lot P2-B (L7-T21, L7-T23 \u00e0 L7-T34)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L262",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_table_des_t\u00e2ches_lot_p2_b_l7_t21_l7_t23_\u00e0_l7_t34",
+      "community": 122,
+      "norm_label": "table des taches \u2014 lot p2-b (l7-t21, l7-t23 a l7-t34)"
+    },
+    {
+      "label": "Vagues (deux t\u00e2ches \u00e0 la fois au plus ; le code s'\u00e9crit en parall\u00e8le, les constructions passent une \u00e0 une)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L285",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_vagues_deux_t\u00e2ches_\u00e0_la_fois_au_plus_le_code_s_\u00e9crit_en_parall\u00e8le_les_constructions_passent_une_\u00e0_une",
+      "community": 122,
+      "norm_label": "vagues (deux taches a la fois au plus ; le code s'ecrit en parallele, les constructions passent une a une)"
+    },
+    {
+      "label": "Couverture des sc\u00e9narios du cadrage",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L318",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_couverture_des_sc\u00e9narios_du_cadrage",
+      "community": 122,
+      "norm_label": "couverture des scenarios du cadrage"
+    },
+    {
+      "label": "R\u00e8gles communes \u00e0 toutes les t\u00e2ches (\u00e0 joindre \u00e0 chaque section)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L328",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_r\u00e8gles_communes_\u00e0_toutes_les_t\u00e2ches_\u00e0_joindre_\u00e0_chaque_section",
+      "community": 122,
+      "norm_label": "regles communes a toutes les taches (a joindre a chaque section)"
+    },
+    {
+      "label": "T\u00e2ches",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L397",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "community": 122,
+      "norm_label": "taches"
+    },
+    {
+      "label": "T\u00e2che L7-S8 \u2014 Squelette du lot 7 (ancienne L0-S8)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L400",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_s8_squelette_du_lot_7_ancienne_l0_s8",
+      "community": 122,
+      "norm_label": "tache l7-s8 \u2014 squelette du lot 7 (ancienne l0-s8)"
+    },
+    {
+      "label": "Lecture des sections amend\u00e9es (lot P2-A et P2-B)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L983",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_lecture_des_sections_amend\u00e9es_lot_p2_a_et_p2_b",
+      "community": 122,
+      "norm_label": "lecture des sections amendees (lot p2-a et p2-b)"
+    },
+    {
+      "label": "T\u00e2che L7-T1 \u2014 Objet MathML des `.flipchart` lu en \u00e9quation (7a:437-737, r\u00e9duite)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L992",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t1_objet_mathml_des_flipchart_lu_en_\u00e9quation_7a_437_737_r\u00e9duite",
+      "community": 122,
+      "norm_label": "tache l7-t1 \u2014 objet mathml des `.flipchart` lu en equation (7a:437-737, reduite)"
+    },
+    {
+      "label": "T\u00e2che L7-T2 \u2014 Insertions du lot, panneau flottant couverture (7a:739-906, r\u00e9duite)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1009",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t2_insertions_du_lot_panneau_flottant_couverture_7a_739_906_r\u00e9duite",
+      "community": 122,
+      "norm_label": "tache l7-t2 \u2014 insertions du lot, panneau flottant couverture (7a:739-906, reduite)"
+    },
+    {
+      "label": "T\u00e2che L7-T3 \u2014 Rideau (7a:908-1103)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1056",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t3_rideau_7a_908_1103",
+      "community": 122,
+      "norm_label": "tache l7-t3 \u2014 rideau (7a:908-1103)"
+    },
+    {
+      "label": "T\u00e2che L7-T4 \u2014 Spot (7a:1105-1204)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1078",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t4_spot_7a_1105_1204",
+      "community": 122,
+      "norm_label": "tache l7-t4 \u2014 spot (7a:1105-1204)"
+    },
+    {
+      "label": "T\u00e2che L7-T5 \u2014 Zoom de page (7a:1206-1283)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1099",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t5_zoom_de_page_7a_1206_1283",
+      "community": 122,
+      "norm_label": "tache l7-t5 \u2014 zoom de page (7a:1206-1283)"
+    },
+    {
+      "label": "T\u00e2che L7-T6 \u2014 Outils de page par page (7a:1285-1387)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1114",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t6_outils_de_page_par_page_7a_1285_1387",
+      "community": 122,
+      "norm_label": "tache l7-t6 \u2014 outils de page par page (7a:1285-1387)"
+    },
+    {
+      "label": "T\u00e2che L7-T7 \u2014 Effets de changement de page I (7a:1389-1500)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1163",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t7_effets_de_changement_de_page_i_7a_1389_1500",
+      "community": 122,
+      "norm_label": "tache l7-t7 \u2014 effets de changement de page i (7a:1389-1500)"
+    },
+    {
+      "label": "T\u00e2che L7-T8 \u2014 Effets II : navigateur, sc\u00e9nario (7a:1502-1541)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1179",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t8_effets_ii_navigateur_sc\u00e9nario_7a_1502_1541",
+      "community": 122,
+      "norm_label": "tache l7-t8 \u2014 effets ii : navigateur, scenario (7a:1502-1541)"
+    },
+    {
+      "label": "T\u00e2che L7-T9 \u2014 R\u00e8gle et guides de trac\u00e9 (7a:1543-1728)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1190",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t9_r\u00e8gle_et_guides_de_trac\u00e9_7a_1543_1728",
+      "community": 122,
+      "norm_label": "tache l7-t9 \u2014 regle et guides de trace (7a:1543-1728)"
+    },
+    {
+      "label": "T\u00e2che L7-T10 \u2014 \u00c9querre (7a:1730-1772)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1209",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t10_\u00e9querre_7a_1730_1772",
+      "community": 122,
+      "norm_label": "tache l7-t10 \u2014 equerre (7a:1730-1772)"
+    },
+    {
+      "label": "T\u00e2che L7-T11 \u2014 Rapporteur (7a:1774-1832)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1216",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t11_rapporteur_7a_1774_1832",
+      "community": 122,
+      "norm_label": "tache l7-t11 \u2014 rapporteur (7a:1774-1832)"
+    },
+    {
+      "label": "T\u00e2che L7-T12 \u2014 Compas (7a:1834-1893)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1225",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t12_compas_7a_1834_1893",
+      "community": 122,
+      "norm_label": "tache l7-t12 \u2014 compas (7a:1834-1893)"
+    },
+    {
+      "label": "T\u00e2che L7-T13 \u2014 Origine XY (7a:1895-1924)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1235",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t13_origine_xy_7a_1895_1924",
+      "community": 122,
+      "norm_label": "tache l7-t13 \u2014 origine xy (7a:1895-1924)"
+    },
+    {
+      "label": "T\u00e2che L7-T14 \u2014 D\u00e9s (7a:1926-1995)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1244",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t14_d\u00e9s_7a_1926_1995",
+      "community": 122,
+      "norm_label": "tache l7-t14 \u2014 des (7a:1926-1995)"
+    },
+    {
+      "label": "T\u00e2che L7-T15 \u2014 Calculatrice (7a:1997-2067)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1255",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t15_calculatrice_7a_1997_2067",
+      "community": 122,
+      "norm_label": "tache l7-t15 \u2014 calculatrice (7a:1997-2067)"
+    },
+    {
+      "label": "T\u00e2che L7-T16 \u2014 Horloge et compte \u00e0 rebours (7a:2069-2159)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1266",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t16_horloge_et_compte_\u00e0_rebours_7a_2069_2159",
+      "community": 122,
+      "norm_label": "tache l7-t16 \u2014 horloge et compte a rebours (7a:2069-2159)"
+    },
+    {
+      "label": "T\u00e2che L7-T17 \u2014 Date et heure, navigateur web (7a:2161-2187)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1277",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t17_date_et_heure_navigateur_web_7a_2161_2187",
+      "community": 122,
+      "norm_label": "tache l7-t17 \u2014 date et heure, navigateur web (7a:2161-2187)"
+    },
+    {
+      "label": "T\u00e2che L7-T18 \u2014 Message d\u00e9filant I (7a:2189-2257)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1286",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t18_message_d\u00e9filant_i_7a_2189_2257",
+      "community": 122,
+      "norm_label": "tache l7-t18 \u2014 message defilant i (7a:2189-2257)"
+    },
+    {
+      "label": "T\u00e2che L7-T19 \u2014 Message d\u00e9filant II (7a:2259-2293)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1294",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t19_message_d\u00e9filant_ii_7a_2259_2293",
+      "community": 122,
+      "norm_label": "tache l7-t19 \u2014 message defilant ii (7a:2259-2293)"
+    },
+    {
+      "label": "T\u00e2che L7-T21 \u2014 Reconnaissance de forme II (7b:269-342)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1304",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t21_reconnaissance_de_forme_ii_7b_269_342",
+      "community": 122,
+      "norm_label": "tache l7-t21 \u2014 reconnaissance de forme ii (7b:269-342)"
+    },
+    {
+      "label": "T\u00e2che L7-T23 \u2014 Reconnaissance d'\u00e9criture II (7b:425-457)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1319",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t23_reconnaissance_d_\u00e9criture_ii_7b_425_457",
+      "community": 122,
+      "norm_label": "tache l7-t23 \u2014 reconnaissance d'ecriture ii (7b:425-457)"
+    },
+    {
+      "label": "T\u00e2che L7-T24 \u2014 \u00c9quation I : arbre et MathML (7b:459-607)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1331",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t24_\u00e9quation_i_arbre_et_mathml_7b_459_607",
+      "community": 122,
+      "norm_label": "tache l7-t24 \u2014 equation i : arbre et mathml (7b:459-607)"
+    },
+    {
+      "label": "T\u00e2che L7-T25 \u2014 \u00c9quation II : mise en page et dessin (7b:609-650)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1344",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t25_\u00e9quation_ii_mise_en_page_et_dessin_7b_609_650",
+      "community": 122,
+      "norm_label": "tache l7-t25 \u2014 equation ii : mise en page et dessin (7b:609-650)"
+    },
+    {
+      "label": "T\u00e2che L7-T26 \u2014 \u00c9quation III : \u00e9diteur \u00e0 mod\u00e8les (7b:652-738)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1389",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t26_\u00e9quation_iii_\u00e9diteur_\u00e0_mod\u00e8les_7b_652_738",
+      "community": 122,
+      "norm_label": "tache l7-t26 \u2014 equation iii : editeur a modeles (7b:652-738)"
+    },
+    {
+      "label": "T\u00e2che L7-T27 \u2014 \u00c9quation IV (7b:740-777)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1410",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t27_\u00e9quation_iv_7b_740_777",
+      "community": 122,
+      "norm_label": "tache l7-t27 \u2014 equation iv (7b:740-777)"
+    },
+    {
+      "label": "T\u00e2che L7-T28 \u2014 Cam\u00e9ra (7b:779-863)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1420",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t28_cam\u00e9ra_7b_779_863",
+      "community": 122,
+      "norm_label": "tache l7-t28 \u2014 camera (7b:779-863)"
+    },
+    {
+      "label": "T\u00e2che L7-T29 \u2014 Clavier \u00e0 l'\u00e9cran (7b:865-936)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1436",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t29_clavier_\u00e0_l_\u00e9cran_7b_865_936",
+      "community": 122,
+      "norm_label": "tache l7-t29 \u2014 clavier a l'ecran (7b:865-936)"
+    },
+    {
+      "label": "T\u00e2che L7-T30 \u2014 Annotation de bureau (7b:938-988)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1447",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t30_annotation_de_bureau_7b_938_988",
+      "community": 122,
+      "norm_label": "tache l7-t30 \u2014 annotation de bureau (7b:938-988)"
+    },
+    {
+      "label": "T\u00e2che L7-T31 \u2014 Outils de bureau (7b:990-1021)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1461",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t31_outils_de_bureau_7b_990_1021",
+      "community": 122,
+      "norm_label": "tache l7-t31 \u2014 outils de bureau (7b:990-1021)"
+    },
+    {
+      "label": "T\u00e2che L7-T32 \u2014 Contr\u00f4le du lot (7b:1023-1063)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1469",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t32_contr\u00f4le_du_lot_7b_1023_1063",
+      "community": 122,
+      "norm_label": "tache l7-t32 \u2014 controle du lot (7b:1023-1063)"
+    },
+    {
+      "label": "T\u00e2che L7-T33 \u2014 Fusion avec le lot 3 (7b:1065-1126)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1486",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t33_fusion_avec_le_lot_3_7b_1065_1126",
+      "community": 122,
+      "norm_label": "tache l7-t33 \u2014 fusion avec le lot 3 (7b:1065-1126)"
+    },
+    {
+      "label": "T\u00e2che L7-T34 \u2014 Apr\u00e8s fusion du lot 3 (7b:1128-1179)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1494",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t34_apr\u00e8s_fusion_du_lot_3_7b_1128_1179",
+      "community": 122,
+      "norm_label": "tache l7-t34 \u2014 apres fusion du lot 3 (7b:1128-1179)"
+    },
+    {
+      "label": "Hypoth\u00e8ses ajout\u00e9es (porte de fin du lot 7)",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1510",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_hypoth\u00e8ses_ajout\u00e9es_porte_de_fin_du_lot_7",
+      "community": 122,
+      "norm_label": "hypotheses ajoutees (porte de fin du lot 7)"
+    },
+    {
+      "label": "\u00c0 v\u00e9rifier contre le socle r\u00e9el \u00e0 la fusion",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1526",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_\u00e0_v\u00e9rifier_contre_le_socle_r\u00e9el_\u00e0_la_fusion",
+      "community": 122,
+      "norm_label": "a verifier contre le socle reel a la fusion"
+    },
+    {
+      "label": "Risques",
+      "file_type": "document",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1575",
+      "_origin": "ast",
+      "id": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_risques",
+      "community": 122,
+      "norm_label": "risques"
+    },
+    {
       "label": "2026-10-18-livraison-complete-lot7b-PLAN.md",
       "file_type": "document",
       "source_file": "docs/plans/2026-10-18-livraison-complete-lot7b-PLAN.md",
@@ -40229,7 +41279,7 @@
       "label": "Reprise apr\u00e8s le temps calme (2026-10-18 vers 22h30, red\u00e9marrage de l'app demand\u00e9 par J\u00e9r\u00f4me)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L16",
+      "source_location": "L17",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_reprise_apr\u00e8s_le_temps_calme_2026_10_18_vers_22h30_red\u00e9marrage_de_l_app_demand\u00e9_par_j\u00e9r\u00f4me",
       "community": 211,
@@ -40239,7 +41289,7 @@
       "label": "R\u00e9f\u00e9rence",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L27",
+      "source_location": "L28",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_r\u00e9f\u00e9rence",
       "community": 211,
@@ -40249,7 +41299,7 @@
       "label": "Compteurs",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L30",
+      "source_location": "L31",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_compteurs",
       "community": 211,
@@ -40259,7 +41309,7 @@
       "label": "T\u00e2ches",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L33",
+      "source_location": "L34",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_t\u00e2ches",
       "community": 211,
@@ -40269,7 +41319,7 @@
       "label": "Termin\u00e9 quand",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L48",
+      "source_location": "L49",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_termin\u00e9_quand",
       "community": 211,
@@ -40279,7 +41329,7 @@
       "label": "\u00c9carts accept\u00e9s en phase 1",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L51",
+      "source_location": "L52",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_\u00e9carts_accept\u00e9s_en_phase_1",
       "community": 211,
@@ -40289,7 +41339,7 @@
       "label": "\u00c0 reporter en phase 2 (de L7-T0)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L61",
+      "source_location": "L65",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_\u00e0_reporter_en_phase_2_de_l7_t0",
       "community": 211,
@@ -40299,7 +41349,7 @@
       "label": "Portes",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L64",
+      "source_location": "L68",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_portes",
       "community": 211,
@@ -40309,7 +41359,7 @@
       "label": "Pi\u00e8ges trouv\u00e9s",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L67",
+      "source_location": "L71",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_pi\u00e8ges_trouv\u00e9s",
       "community": 211,
@@ -58908,14 +59958,57 @@
       "target": "features_include_actcraft_features_features_h_namespace"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/mathtools.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "features_mathtools",
+      "target": "features_include_actcraft_features_mathtools_h_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/mathtools.h",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "features_mathtools",
+      "target": "features_mathtools_center",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/mathtools.h",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "features_mathtools",
+      "target": "strokeguide",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/mathtools.h",
+      "source_location": "L42",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "features_mathtools_center",
+      "target": "features_include_actcraft_features_mathtools_h_qpointf",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "features/include/actcraft/features/pagezoom.h",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "features_pagezoom",
-      "target": "features_pagezoom_actcraft",
-      "confidence_score": 1.0
+      "target": "features_pagezoom_actcraft"
     },
     {
       "relation": "references",
@@ -58924,8 +60017,29 @@
       "source_location": "L7",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "features_pagezoom_actcraft",
-      "target": "features_include_actcraft_features_pagezoom_h_namespace",
+      "target": "features_include_actcraft_features_pagezoom_h_namespace"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/strokeguide.h",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "features_strokeguide",
+      "target": "features_strokeguide_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/strokeguide.h",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "features_strokeguide_actcraft",
+      "target": "features_include_actcraft_features_strokeguide_h_namespace",
       "confidence_score": 1.0
     },
     {
@@ -58934,9 +60048,9 @@
       "source_file": "features/include/actcraft/features/transitions.h",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "features_transitions",
-      "target": "features_transitions_actcraft",
-      "confidence_score": 1.0
+      "target": "features_transitions_actcraft"
     },
     {
       "relation": "imports",
@@ -58945,9 +60059,9 @@
       "source_file": "features/include/actcraft/features/transitions.h",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "features_transitions",
-      "target": "qrandomgenerator",
-      "confidence_score": 1.0
+      "target": "qrandomgenerator"
     },
     {
       "relation": "references",
@@ -58956,9 +60070,9 @@
       "source_location": "L9",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "features_transitions_actcraft",
-      "target": "features_include_actcraft_features_transitions_h_namespace",
-      "confidence_score": 1.0
+      "target": "features_include_actcraft_features_transitions_h_namespace"
     },
     {
       "relation": "contains",
@@ -58973,12 +60087,773 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L122",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_angledegrees",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L155",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_bottomunit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L203",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_capture",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L107",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_center",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L193",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_displayangle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L185",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_edges",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L208",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_follow",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L70",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_followedge",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L112",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_length",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_movedto",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L198",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_project",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L54",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_projectonnearestedge",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_projectonsegment",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L81",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_projectonsegments",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_rotated",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L178",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_setframe",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L144",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_setunits",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L150",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_topunit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_wholedegrees",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L117",
+      "weight": 1.0,
+      "source": "src_mathtools",
+      "target": "src_mathtools_width",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L132",
+      "weight": 1.0,
+      "source": "src_mathtools_edges",
+      "target": "src_mathtools_rotated",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "parameter_type",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "src_mathtools_rotated",
+      "target": "features_src_mathtools_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L107",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_mathtools_center",
+      "target": "features_src_mathtools_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L132",
+      "weight": 1.0,
+      "source": "src_mathtools_edges",
+      "target": "features_src_mathtools_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "src_mathtools_followedge",
+      "target": "features_src_mathtools_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L44",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_movedto",
+      "target": "features_src_mathtools_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "src_mathtools_projectonnearestedge",
+      "target": "features_src_mathtools_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L30",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_projectonsegment",
+      "target": "features_src_mathtools_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L81",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_projectonsegments",
+      "target": "features_src_mathtools_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L178",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_setframe",
+      "target": "features_src_mathtools_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L141",
+      "weight": 1.0,
+      "source": "src_mathtools_displayangle",
+      "target": "src_mathtools_wholedegrees",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "src_mathtools_followedge",
+      "target": "src_mathtools_projectonsegment",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L30",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_projectonsegment",
+      "target": "features_src_mathtools_cpp_qlinef",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L85",
+      "weight": 1.0,
+      "source": "src_mathtools_projectonsegments",
+      "target": "src_mathtools_projectonsegment",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "generic_arg",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L185",
+      "weight": 1.0,
+      "source": "src_mathtools_edges",
+      "target": "features_src_mathtools_cpp_qlinef",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L70",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "source": "src_mathtools_followedge",
+      "target": "features_src_mathtools_cpp_qlinef",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L54",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "source": "src_mathtools_projectonnearestedge",
+      "target": "features_src_mathtools_cpp_qlinef",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L81",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "source": "src_mathtools_projectonsegments",
+      "target": "features_src_mathtools_cpp_qlinef",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "src_mathtools_followedge",
+      "target": "src_mathtools_movedto",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L44",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_movedto",
+      "target": "features_src_mathtools_cpp_sample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L65",
+      "weight": 1.0,
+      "source": "src_mathtools_projectonnearestedge",
+      "target": "src_mathtools_movedto",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L203",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_capture",
+      "target": "features_src_mathtools_cpp_sample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L208",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_follow",
+      "target": "features_src_mathtools_cpp_sample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L70",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_followedge",
+      "target": "features_src_mathtools_cpp_sample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L198",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_project",
+      "target": "features_src_mathtools_cpp_sample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L54",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_projectonnearestedge",
+      "target": "features_src_mathtools_cpp_sample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L167",
+      "weight": 1.0,
+      "source": "src_mathtools_capture",
+      "target": "src_mathtools_projectonnearestedge",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L162",
+      "weight": 1.0,
+      "source": "src_mathtools_project",
+      "target": "src_mathtools_projectonnearestedge",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L54",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_mathtools_projectonnearestedge",
+      "target": "features_src_mathtools_cpp_optional",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L54",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_projectonnearestedge",
+      "target": "features_src_mathtools_cpp_vector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "src_mathtools_projectonnearestedge",
+      "target": "src_mathtools_projectonsegments",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L203",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_mathtools_capture",
+      "target": "features_src_mathtools_cpp_optional",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L198",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_mathtools_project",
+      "target": "features_src_mathtools_cpp_optional",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L185",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_mathtools_edges",
+      "target": "features_src_mathtools_cpp_vector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L70",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_followedge",
+      "target": "features_src_mathtools_cpp_vector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L81",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_projectonsegments",
+      "target": "features_src_mathtools_cpp_vector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L172",
+      "weight": 1.0,
+      "source": "src_mathtools_follow",
+      "target": "src_mathtools_followedge",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L81",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_mathtools_projectonsegments",
+      "target": "segmenthit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "C:/Users/JeromeDenis/ActCraft/.worktrees/livraison-complete--L10-T4/ui/src/pageview.cpp",
+      "source_location": "L739",
+      "weight": 1.0,
+      "source": "src_pageview_scrollpositionx",
+      "target": "src_mathtools_width"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "C:/Users/JeromeDenis/ActCraft/.worktrees/livraison-complete--L10-T4/ui/src/pageview.cpp",
+      "source_location": "L734",
+      "weight": 1.0,
+      "source": "src_pageview_scrollsizex",
+      "target": "src_mathtools_width"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "C:/Users/JeromeDenis/ActCraft/.worktrees/livraison-complete--L10-T4/ui/src/pageview.cpp",
+      "source_location": "L756",
+      "weight": 1.0,
+      "source": "src_pageview_scrollto",
+      "target": "src_mathtools_width"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "C:/Users/JeromeDenis/ActCraft/.worktrees/livraison-complete--L10-T4/ui/src/pageview.cpp",
+      "source_location": "L190",
+      "weight": 1.0,
+      "source": "src_pageview_setzoom",
+      "target": "src_mathtools_width"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "C:/Users/JeromeDenis/ActCraft/.worktrees/prototype-mesure/tests/tst_qt_verifications.cpp",
+      "source_location": "L184",
+      "weight": 1.0,
+      "source": "tests_tst_qt_verifications_colorpainteritem_updatepaintnode",
+      "target": "src_mathtools_width"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "C:/Users/JeromeDenis/ActCraft/.worktrees/prototype-mesure/tests/tst_qt_verifications.cpp",
+      "source_location": "L84",
+      "weight": 1.0,
+      "source": "tests_tst_qt_verifications_geometryitem_updatepaintnode",
+      "target": "src_mathtools_width"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "C:/Users/JeromeDenis/ActCraft/.worktrees/prototype-mesure/tests/tst_qt_verifications.cpp",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "tests_tst_qt_verifications_painteritem_updatepaintnode",
+      "target": "src_mathtools_width"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L167",
+      "weight": 1.0,
+      "source": "src_mathtools_capture",
+      "target": "src_mathtools_edges",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L172",
+      "weight": 1.0,
+      "source": "src_mathtools_follow",
+      "target": "src_mathtools_edges",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L162",
+      "weight": 1.0,
+      "source": "src_mathtools_project",
+      "target": "src_mathtools_edges",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L144",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_mathtools_setunits",
+      "target": "rulerunit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L155",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_mathtools_bottomunit",
+      "target": "rulerunit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/mathtools.cpp",
+      "source_location": "L150",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_mathtools_topunit",
+      "target": "rulerunit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L73",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom",
-      "target": "src_pagezoom_anchor",
-      "confidence_score": 1.0
+      "target": "src_pagezoom_anchor"
     },
     {
       "relation": "contains",
@@ -58986,9 +60861,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L88",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom",
-      "target": "src_pagezoom_isdoubleclick",
-      "confidence_score": 1.0
+      "target": "src_pagezoom_isdoubleclick"
     },
     {
       "relation": "contains",
@@ -58996,9 +60871,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L28",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom",
-      "target": "src_pagezoom_move",
-      "confidence_score": 1.0
+      "target": "src_pagezoom_move"
     },
     {
       "relation": "contains",
@@ -59006,9 +60881,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom",
-      "target": "src_pagezoom_pagezoom",
-      "confidence_score": 1.0
+      "target": "src_pagezoom_pagezoom"
     },
     {
       "relation": "contains",
@@ -59016,9 +60891,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L48",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom",
-      "target": "src_pagezoom_pandelta",
-      "confidence_score": 1.0
+      "target": "src_pagezoom_pandelta"
     },
     {
       "relation": "contains",
@@ -59026,9 +60901,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L78",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom",
-      "target": "src_pagezoom_panning",
-      "confidence_score": 1.0
+      "target": "src_pagezoom_panning"
     },
     {
       "relation": "contains",
@@ -59036,9 +60911,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom",
-      "target": "src_pagezoom_press",
-      "confidence_score": 1.0
+      "target": "src_pagezoom_press"
     },
     {
       "relation": "contains",
@@ -59046,9 +60921,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L83",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom",
-      "target": "src_pagezoom_pressed",
-      "confidence_score": 1.0
+      "target": "src_pagezoom_pressed"
     },
     {
       "relation": "contains",
@@ -59056,9 +60931,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L55",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom",
-      "target": "src_pagezoom_release",
-      "confidence_score": 1.0
+      "target": "src_pagezoom_release"
     },
     {
       "relation": "contains",
@@ -59066,9 +60941,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom",
-      "target": "src_pagezoom_setzoom",
-      "confidence_score": 1.0
+      "target": "src_pagezoom_setzoom"
     },
     {
       "relation": "contains",
@@ -59076,9 +60951,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L64",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom",
-      "target": "src_pagezoom_zoomat",
-      "confidence_score": 1.0
+      "target": "src_pagezoom_zoomat"
     },
     {
       "relation": "calls",
@@ -59098,9 +60973,9 @@
       "source_location": "L16",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_pagezoom_press",
-      "target": "direction",
-      "confidence_score": 1.0
+      "target": "direction"
     },
     {
       "relation": "references",
@@ -59109,9 +60984,9 @@
       "source_location": "L16",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_pagezoom_press",
-      "target": "features_src_pagezoom_cpp_int64_t",
-      "confidence_score": 1.0
+      "target": "features_src_pagezoom_cpp_int64_t"
     },
     {
       "relation": "references",
@@ -59120,9 +60995,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom_press",
-      "target": "features_src_pagezoom_cpp_qpointf",
-      "confidence_score": 1.0
+      "target": "features_src_pagezoom_cpp_qpointf"
     },
     {
       "relation": "references",
@@ -59131,9 +61006,9 @@
       "source_location": "L73",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_pagezoom_anchor",
-      "target": "features_src_pagezoom_cpp_qpointf",
-      "confidence_score": 1.0
+      "target": "features_src_pagezoom_cpp_qpointf"
     },
     {
       "relation": "references",
@@ -59142,9 +61017,9 @@
       "source_location": "L88",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_pagezoom_isdoubleclick",
-      "target": "features_src_pagezoom_cpp_qpointf",
-      "confidence_score": 1.0
+      "target": "features_src_pagezoom_cpp_qpointf"
     },
     {
       "relation": "references",
@@ -59153,9 +61028,9 @@
       "source_location": "L28",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_pagezoom_move",
-      "target": "features_src_pagezoom_cpp_qpointf",
-      "confidence_score": 1.0
+      "target": "features_src_pagezoom_cpp_qpointf"
     },
     {
       "relation": "references",
@@ -59164,9 +61039,9 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L48",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom_pandelta",
-      "target": "features_src_pagezoom_cpp_qpointf",
-      "confidence_score": 1.0
+      "target": "features_src_pagezoom_cpp_qpointf"
     },
     {
       "relation": "references",
@@ -59175,9 +61050,9 @@
       "source_location": "L88",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_pagezoom_isdoubleclick",
-      "target": "features_src_pagezoom_cpp_int64_t",
-      "confidence_score": 1.0
+      "target": "features_src_pagezoom_cpp_int64_t"
     },
     {
       "relation": "references",
@@ -59186,9 +61061,9 @@
       "source_location": "L28",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_pagezoom_move",
-      "target": "features_src_pagezoom_cpp_int64_t",
-      "confidence_score": 1.0
+      "target": "features_src_pagezoom_cpp_int64_t"
     },
     {
       "relation": "references",
@@ -59197,9 +61072,9 @@
       "source_location": "L55",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_pagezoom_release",
-      "target": "features_src_pagezoom_cpp_int64_t",
-      "confidence_score": 1.0
+      "target": "features_src_pagezoom_cpp_int64_t"
     },
     {
       "relation": "references",
@@ -59208,9 +61083,9 @@
       "source_location": "L64",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_pagezoom_zoomat",
-      "target": "features_src_pagezoom_cpp_int64_t",
-      "confidence_score": 1.0
+      "target": "features_src_pagezoom_cpp_int64_t"
     },
     {
       "relation": "calls",
@@ -59219,8 +61094,188 @@
       "source_file": "features/src/pagezoom.cpp",
       "source_location": "L59",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_pagezoom_release",
-      "target": "src_pagezoom_zoomat",
+      "target": "src_pagezoom_zoomat"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "src_strokeguide",
+      "target": "src_strokeguide_add",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "src_strokeguide",
+      "target": "src_strokeguide_filter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L79",
+      "weight": 1.0,
+      "source": "src_strokeguide",
+      "target": "src_strokeguide_guiding",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "src_strokeguide",
+      "target": "src_strokeguide_nearest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "src_strokeguide",
+      "target": "src_strokeguide_remove",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "src_strokeguide",
+      "target": "src_strokeguide_settolerance",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L84",
+      "weight": 1.0,
+      "source": "src_strokeguide",
+      "target": "src_strokeguide_snappreview",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "src_strokeguide",
+      "target": "strokeguide",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_strokeguide_add",
+      "target": "strokeguide",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_strokeguide_remove",
+      "target": "strokeguide",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools",
+      "target": "strokeguide",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L55",
+      "weight": 1.0,
+      "source": "src_strokeguide_filter",
+      "target": "src_strokeguide_nearest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L28",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_strokeguide_nearest",
+      "target": "features_src_strokeguide_cpp_sample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L89",
+      "weight": 1.0,
+      "source": "src_strokeguide_snappreview",
+      "target": "src_strokeguide_nearest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L46",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_strokeguide_filter",
+      "target": "features_src_strokeguide_cpp_sample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L84",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_strokeguide_snappreview",
+      "target": "features_src_strokeguide_cpp_sample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/strokeguide.cpp",
+      "source_location": "L84",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_strokeguide_snappreview",
+      "target": "features_src_strokeguide_cpp_optional",
       "confidence_score": 1.0
     },
     {
@@ -59229,9 +61284,9 @@
       "source_file": "features/src/transitions.cpp",
       "source_location": "L60",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_transitions",
-      "target": "src_transitions_clampdurationtenths",
-      "confidence_score": 1.0
+      "target": "src_transitions_clampdurationtenths"
     },
     {
       "relation": "contains",
@@ -59239,9 +61294,9 @@
       "source_file": "features/src/transitions.cpp",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_transitions",
-      "target": "src_transitions_effectforleaving",
-      "confidence_score": 1.0
+      "target": "src_transitions_effectforleaving"
     },
     {
       "relation": "contains",
@@ -59249,9 +61304,9 @@
       "source_file": "features/src/transitions.cpp",
       "source_location": "L51",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_transitions",
-      "target": "src_transitions_pickeffect",
-      "confidence_score": 1.0
+      "target": "src_transitions_pickeffect"
     },
     {
       "relation": "references",
@@ -59260,9 +61315,9 @@
       "source_location": "L35",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_transitions_effectforleaving",
-      "target": "features_src_transitions_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_transitions_cpp_qstring"
     },
     {
       "relation": "references",
@@ -59271,9 +61326,9 @@
       "source_location": "L35",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_transitions_effectforleaving",
-      "target": "features_src_transitions_cpp_string",
-      "confidence_score": 1.0
+      "target": "features_src_transitions_cpp_string"
     },
     {
       "relation": "references",
@@ -59282,9 +61337,9 @@
       "source_location": "L35",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_transitions_effectforleaving",
-      "target": "navigationkind",
-      "confidence_score": 1.0
+      "target": "navigationkind"
     },
     {
       "relation": "references",
@@ -59293,9 +61348,9 @@
       "source_location": "L35",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_transitions_effectforleaving",
-      "target": "transitionblockers",
-      "confidence_score": 1.0
+      "target": "transitionblockers"
     },
     {
       "relation": "references",
@@ -59304,9 +61359,9 @@
       "source_location": "L35",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_transitions_effectforleaving",
-      "target": "transitionsettings",
-      "confidence_score": 1.0
+      "target": "transitionsettings"
     },
     {
       "relation": "calls",
@@ -59381,9 +61436,9 @@
       "source_location": "L51",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_transitions_pickeffect",
-      "target": "features_src_transitions_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_transitions_cpp_qstring"
     },
     {
       "relation": "references",
@@ -59392,9 +61447,9 @@
       "source_location": "L51",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_transitions_pickeffect",
-      "target": "qrandomgenerator",
-      "confidence_score": 1.0
+      "target": "qrandomgenerator"
     },
     {
       "relation": "calls",
@@ -59414,9 +61469,9 @@
       "source_file": "tests/tst_render_painted.cpp",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_render_painted_cpp",
-      "target": "qrandomgenerator",
-      "confidence_score": 1.0
+      "target": "qrandomgenerator"
     },
     {
       "relation": "imports",
@@ -59425,9 +61480,9 @@
       "source_file": "tests/tst_render_painter.cpp",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_render_painter_cpp",
-      "target": "qrandomgenerator",
-      "confidence_score": 1.0
+      "target": "qrandomgenerator"
     },
     {
       "relation": "imports",
@@ -59436,9 +61491,9 @@
       "source_file": "tests/tst_features_transitions.cpp",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_transitions",
-      "target": "qrandomgenerator",
-      "confidence_score": 1.0
+      "target": "qrandomgenerator"
     },
     {
       "relation": "calls",
@@ -77222,17 +79277,6 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "render/src/pagepainter.cpp",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_render_src_pagepainter_cpp",
-      "target": "qlinef"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "render/src/pagepainter.cpp",
       "source_location": "L15",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -77260,6 +79304,17 @@
       "confidence_score": 1.0,
       "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_render_src_pagepainter_cpp",
       "target": "qtextformat"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "render/src/pagepainter.cpp",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_render_src_pagepainter_cpp",
+      "target": "render_src_pagepainter_cpp_qlinef",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -79108,9 +81163,9 @@
       "source_file": "render/src/pagepainter.cpp",
       "source_location": "L380",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_pagepainter_clip",
-      "target": "qlinef"
+      "target": "render_src_pagepainter_cpp_qlinef",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -79130,9 +81185,9 @@
       "source_location": "L411",
       "weight": 1.0,
       "context": "generic_arg",
-      "confidence_score": 1.0,
       "source": "src_pagepainter_gridlines",
-      "target": "qlinef"
+      "target": "render_src_pagepainter_cpp_qlinef",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -91163,11 +93218,161 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools",
+      "target": "tests_tst_features_mathtools_at",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
       "source_location": "L4",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "tests_tst_features_mathtools",
       "target": "tests_tst_features_mathtools_tstfeaturesmathtools"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "tests_tst_features_mathtools_at",
+      "target": "tests_tst_features_mathtools_cpp_phase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "tests_tst_features_mathtools_at",
+      "target": "tests_tst_features_mathtools_cpp_sample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L119",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools_guidesetpicksthenearestguide",
+      "target": "tests_tst_features_mathtools_at",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools_private",
+      "target": "tests_tst_features_mathtools_at",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L65",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools_rotatedrulerprojects",
+      "target": "tests_tst_features_mathtools_at",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools_rulerignoresfarsamples",
+      "target": "tests_tst_features_mathtools_at",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L165",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools_samplekeepsitsotherfields",
+      "target": "tests_tst_features_mathtools_at",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L98",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools_setsquarehypotenuseat45",
+      "target": "tests_tst_features_mathtools_at",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L147",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools_snappreviewisquietwhileguiding",
+      "target": "tests_tst_features_mathtools_at",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools_strokestaysontheedgeoncesnapped",
+      "target": "tests_tst_features_mathtools_at",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L69",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools",
+      "target": "tests_tst_features_mathtools_tstfeaturesmathtools_angledisplayedinwholedegrees",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L81",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools",
+      "target": "tests_tst_features_mathtools_tstfeaturesmathtools_centimetrescale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L109",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools",
+      "target": "tests_tst_features_mathtools_tstfeaturesmathtools_guidesetpicksthenearestguide",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -91178,6 +93383,76 @@
       "confidence_score": 1.0,
       "source": "tests_tst_features_mathtools_tstfeaturesmathtools",
       "target": "tests_tst_features_mathtools_tstfeaturesmathtools_private"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L61",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools",
+      "target": "tests_tst_features_mathtools_tstfeaturesmathtools_rotatedrulerprojects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L34",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools",
+      "target": "tests_tst_features_mathtools_tstfeaturesmathtools_rulerignoresfarsamples",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L159",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools",
+      "target": "tests_tst_features_mathtools_tstfeaturesmathtools_samplekeepsitsotherfields",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L82",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools",
+      "target": "tests_tst_features_mathtools_tstfeaturesmathtools_setsquarehasthreeedges",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L93",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools",
+      "target": "tests_tst_features_mathtools_tstfeaturesmathtools_setsquarehypotenuseat45",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L139",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools",
+      "target": "tests_tst_features_mathtools_tstfeaturesmathtools_snappreviewisquietwhileguiding",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_mathtools.cpp",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "tests_tst_features_mathtools_tstfeaturesmathtools",
+      "target": "tests_tst_features_mathtools_tstfeaturesmathtools_strokestaysontheedgeoncesnapped",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -91237,9 +93512,9 @@
       "source_file": "tests/tst_features_pagezoom.cpp",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_pagezoom_tstfeaturespagezoom",
-      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_clampedtoviewlimits",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_clampedtoviewlimits"
     },
     {
       "relation": "method",
@@ -91247,9 +93522,9 @@
       "source_file": "tests/tst_features_pagezoom.cpp",
       "source_location": "L57",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_pagezoom_tstfeaturespagezoom",
-      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_doubleclickfits",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_doubleclickfits"
     },
     {
       "relation": "method",
@@ -91257,9 +93532,9 @@
       "source_file": "tests/tst_features_pagezoom.cpp",
       "source_location": "L38",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_pagezoom_tstfeaturespagezoom",
-      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_dragturnsintopan",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_dragturnsintopan"
     },
     {
       "relation": "method",
@@ -91267,9 +93542,9 @@
       "source_file": "tests/tst_features_pagezoom.cpp",
       "source_location": "L81",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_pagezoom_tstfeaturespagezoom",
-      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_pandeltaisconsumed",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_pandeltaisconsumed"
     },
     {
       "relation": "method",
@@ -91287,9 +93562,9 @@
       "source_file": "tests/tst_features_pagezoom.cpp",
       "source_location": "L73",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_pagezoom_tstfeaturespagezoom",
-      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_releasefreezesthezoom",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_releasefreezesthezoom"
     },
     {
       "relation": "method",
@@ -91297,9 +93572,9 @@
       "source_file": "tests/tst_features_pagezoom.cpp",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_pagezoom_tstfeaturespagezoom",
-      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_rightbuttonzoomsout",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_rightbuttonzoomsout"
     },
     {
       "relation": "method",
@@ -91307,9 +93582,9 @@
       "source_file": "tests/tst_features_pagezoom.cpp",
       "source_location": "L97",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_pagezoom_tstfeaturespagezoom",
-      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_tripleclickcountsonlyonce",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_pagezoom_tstfeaturespagezoom_tripleclickcountsonlyonce"
     },
     {
       "relation": "references",
@@ -91453,9 +93728,9 @@
       "source_file": "tests/tst_features_transitions.cpp",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_transitions",
-      "target": "qset",
-      "confidence_score": 1.0
+      "target": "qset"
     },
     {
       "relation": "contains",
@@ -91473,9 +93748,9 @@
       "source_file": "tests/tst_features_transitions.cpp",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_transitions_tstfeaturestransitions",
-      "target": "tests_tst_features_transitions_tstfeaturestransitions_cataloguehassixteeneffectsplustwo",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_transitions_tstfeaturestransitions_cataloguehassixteeneffectsplustwo"
     },
     {
       "relation": "method",
@@ -91483,9 +93758,9 @@
       "source_file": "tests/tst_features_transitions.cpp",
       "source_location": "L98",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_transitions_tstfeaturestransitions",
-      "target": "tests_tst_features_transitions_tstfeaturestransitions_desktopannotationanddesignmodeblock",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_transitions_tstfeaturestransitions_desktopannotationanddesignmodeblock"
     },
     {
       "relation": "method",
@@ -91493,9 +93768,9 @@
       "source_file": "tests/tst_features_transitions.cpp",
       "source_location": "L60",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_transitions_tstfeaturestransitions",
-      "target": "tests_tst_features_transitions_tstfeaturestransitions_disabledwhilecurtainactive",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_transitions_tstfeaturestransitions_disabledwhilecurtainactive"
     },
     {
       "relation": "method",
@@ -91503,9 +93778,9 @@
       "source_file": "tests/tst_features_transitions.cpp",
       "source_location": "L73",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_transitions_tstfeaturestransitions",
-      "target": "tests_tst_features_transitions_tstfeaturestransitions_durationclampedto5to30",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_transitions_tstfeaturestransitions_durationclampedto5to30"
     },
     {
       "relation": "method",
@@ -91513,9 +93788,9 @@
       "source_file": "tests/tst_features_transitions.cpp",
       "source_location": "L53",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_transitions_tstfeaturestransitions",
-      "target": "tests_tst_features_transitions_tstfeaturestransitions_effectplayedwhenleavingthepage",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_transitions_tstfeaturestransitions_effectplayedwhenleavingthepage"
     },
     {
       "relation": "method",
@@ -91523,9 +93798,9 @@
       "source_file": "tests/tst_features_transitions.cpp",
       "source_location": "L45",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_transitions_tstfeaturestransitions",
-      "target": "tests_tst_features_transitions_tstfeaturestransitions_pageeffectwinsoverglobal",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_transitions_tstfeaturestransitions_pageeffectwinsoverglobal"
     },
     {
       "relation": "method",
@@ -91543,9 +93818,9 @@
       "source_file": "tests/tst_features_transitions.cpp",
       "source_location": "L105",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_transitions_tstfeaturestransitions",
-      "target": "tests_tst_features_transitions_tstfeaturestransitions_randomisaknownidentifier",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_transitions_tstfeaturestransitions_randomisaknownidentifier"
     },
     {
       "relation": "method",
@@ -91553,9 +93828,9 @@
       "source_file": "tests/tst_features_transitions.cpp",
       "source_location": "L79",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_transitions_tstfeaturestransitions",
-      "target": "tests_tst_features_transitions_tstfeaturestransitions_randompicksarealeffect",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_transitions_tstfeaturestransitions_randompicksarealeffect"
     },
     {
       "relation": "method",
@@ -91563,9 +93838,9 @@
       "source_file": "tests/tst_features_transitions.cpp",
       "source_location": "L67",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_transitions_tstfeaturestransitions",
-      "target": "tests_tst_features_transitions_tstfeaturestransitions_unknowneffectfallsbacktonone",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_transitions_tstfeaturestransitions_unknowneffectfallsbacktonone"
     },
     {
       "relation": "references",
@@ -125056,6 +127331,466 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L214",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_compte_de_tests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L318",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_couverture_des_sc\u00e9narios_du_cadrage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L50",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_d\u00e9cisions_de_cet_amendement",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1510",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_hypoth\u00e8ses_ajout\u00e9es_porte_de_fin_du_lot_7",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1575",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_risques",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L328",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_r\u00e8gles_communes_\u00e0_toutes_les_t\u00e2ches_\u00e0_joindre_\u00e0_chaque_section",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L235",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_table_des_t\u00e2ches_lot_p2_a_l7_s8_l7_t1_\u00e0_l7_t19",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L262",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_table_des_t\u00e2ches_lot_p2_b_l7_t21_l7_t23_\u00e0_l7_t34",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L397",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L285",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_vagues_deux_t\u00e2ches_\u00e0_la_fois_au_plus_le_code_s_\u00e9crit_en_parall\u00e8le_les_constructions_passent_une_\u00e0_une",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1526",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_\u00e0_v\u00e9rifier_contre_le_socle_r\u00e9el_\u00e0_la_fusion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L983",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_lecture_des_sections_amend\u00e9es_lot_p2_a_et_p2_b",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L400",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_s8_squelette_du_lot_7_ancienne_l0_s8",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1209",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t10_\u00e9querre_7a_1730_1772",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1216",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t11_rapporteur_7a_1774_1832",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1225",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t12_compas_7a_1834_1893",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1235",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t13_origine_xy_7a_1895_1924",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1244",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t14_d\u00e9s_7a_1926_1995",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1255",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t15_calculatrice_7a_1997_2067",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1266",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t16_horloge_et_compte_\u00e0_rebours_7a_2069_2159",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1277",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t17_date_et_heure_navigateur_web_7a_2161_2187",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1286",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t18_message_d\u00e9filant_i_7a_2189_2257",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1294",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t19_message_d\u00e9filant_ii_7a_2259_2293",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L992",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t1_objet_mathml_des_flipchart_lu_en_\u00e9quation_7a_437_737_r\u00e9duite",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1304",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t21_reconnaissance_de_forme_ii_7b_269_342",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1319",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t23_reconnaissance_d_\u00e9criture_ii_7b_425_457",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1331",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t24_\u00e9quation_i_arbre_et_mathml_7b_459_607",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1344",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t25_\u00e9quation_ii_mise_en_page_et_dessin_7b_609_650",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1389",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t26_\u00e9quation_iii_\u00e9diteur_\u00e0_mod\u00e8les_7b_652_738",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1410",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t27_\u00e9quation_iv_7b_740_777",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1420",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t28_cam\u00e9ra_7b_779_863",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1436",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t29_clavier_\u00e0_l_\u00e9cran_7b_865_936",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1009",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t2_insertions_du_lot_panneau_flottant_couverture_7a_739_906_r\u00e9duite",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1447",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t30_annotation_de_bureau_7b_938_988",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1461",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t31_outils_de_bureau_7b_990_1021",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1469",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t32_contr\u00f4le_du_lot_7b_1023_1063",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1486",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t33_fusion_avec_le_lot_3_7b_1065_1126",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1494",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t34_apr\u00e8s_fusion_du_lot_3_7b_1128_1179",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1056",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t3_rideau_7a_908_1103",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1078",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t4_spot_7a_1105_1204",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1099",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t5_zoom_de_page_7a_1206_1283",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1114",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t6_outils_de_page_par_page_7a_1285_1387",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1163",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t7_effets_de_changement_de_page_i_7a_1389_1500",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1179",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t8_effets_ii_navigateur_sc\u00e9nario_7a_1502_1541",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
+      "source_location": "L1190",
+      "weight": 1.0,
+      "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2ches",
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_t\u00e2che_l7_t9_r\u00e8gle_et_guides_de_trac\u00e9_7a_1543_1728",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "docs/plans/2026-10-18-livraison-complete-lot7b-PLAN.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -125609,9 +128344,9 @@
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "sessions_livraison_complete_b_etat_\u00e9tat_livraison_complete_b",
-      "target": "sessions_livraison_complete_b_etat_red\u00e9marrage_du_pc_2026_10_18_vers_22h53_cause_probable_m\u00e9moire",
-      "confidence_score": 1.0
+      "target": "sessions_livraison_complete_b_etat_red\u00e9marrage_du_pc_2026_10_18_vers_22h53_cause_probable_m\u00e9moire"
     },
     {
       "relation": "contains",
@@ -125619,9 +128354,9 @@
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "sessions_livraison_complete_b_etat_\u00e9tat_livraison_complete_b",
-      "target": "sessions_livraison_complete_b_etat_reprise_apr\u00e8s_le_temps_calme_2026_10_18_vers_22h30_red\u00e9marrage_de_l_app_demand\u00e9_par_j\u00e9r\u00f4me",
-      "confidence_score": 1.0
+      "target": "sessions_livraison_complete_b_etat_reprise_apr\u00e8s_le_temps_calme_2026_10_18_vers_22h30_red\u00e9marrage_de_l_app_demand\u00e9_par_j\u00e9r\u00f4me"
     },
     {
       "relation": "contains",
@@ -125669,9 +128404,9 @@
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
       "source_location": "L51",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "sessions_livraison_complete_b_etat_\u00e9tat_livraison_complete_b",
-      "target": "sessions_livraison_complete_b_etat_\u00e9carts_accept\u00e9s_en_phase_1",
-      "confidence_score": 1.0
+      "target": "sessions_livraison_complete_b_etat_\u00e9carts_accept\u00e9s_en_phase_1"
     },
     {
       "relation": "contains",
@@ -126435,5 +129170,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "827f028a2c1525b53747b99f7ca95aec3a932314"
+  "built_at_commit": "28a3334ea9be4cb54dcaa2ed1f6ec1953769f1ee"
 }
