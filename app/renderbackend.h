@@ -14,8 +14,8 @@ enum class RenderBackend
 };
 
 // L10-T5 : échantillonnage multiple en RHI (lissage des traits, constat L2-C11). Même valeur, à changer
-// ensemble : `samples` du cache (ui/qml/PageArea.qml) et l'attente `pageCache.samples` de
-// bench/scenarios/anticrenelage.json.
+// ensemble : kCacheMsaaSamples (ui/include/actcraft/ui/viewtransform.h, porté au cache par
+// PageView.cacheSamples) et l'attente de bench/scenarios/anticrenelage.json.
 inline constexpr int kMsaaSamples = 4;
 
 // Lit `--rendu <auto|d3d11|logiciel>` dans les arguments ; retourne false si la valeur est inconnue.

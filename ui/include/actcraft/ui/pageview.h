@@ -47,6 +47,9 @@ class PageView : public QQuickItem
     Q_PROPERTY(QPointF pan READ pan WRITE setPan NOTIFY panChanged)
     Q_PROPERTY(bool cacheEnabled READ cacheEnabled WRITE setCacheEnabled NOTIFY cacheEnabledChanged)
     Q_PROPERTY(QSize cacheTextureSize READ cacheTextureSize NOTIFY cacheTextureSizeChanged)
+    // Échantillonnage de la texture du cache (H10-9) : seule source, liée à ShaderEffectSource.samples
+    // (PageArea.qml). kCacheMsaaSamples en RHI, 1 en rendu logiciel ; le plafond de la texture en dépend.
+    Q_PROPERTY(int cacheSamples READ cacheSamples WRITE setCacheSamples NOTIFY cacheSamplesChanged)
     Q_PROPERTY(bool cacheReady READ cacheReady NOTIFY cacheReadyChanged)
     Q_PROPERTY(
         actcraft::render::FixedPageItem* fixedPage READ fixedPage WRITE setFixedPage NOTIFY fixedPageChanged)
@@ -102,6 +105,8 @@ public:
     bool cacheEnabled() const noexcept;
     void setCacheEnabled(bool enabled);
     QSize cacheTextureSize() const noexcept;
+    int cacheSamples() const noexcept;
+    void setCacheSamples(int samples); // borné à 1 au moins
     // Vrai quand ce qui est affiché (texture du cache et couche d'attente) correspond à la page et au zoom
     // courants (toujours vrai sans cache) ; un objet qui attend son versement ne le rend pas faux.
     bool cacheReady() const noexcept;
@@ -150,6 +155,7 @@ signals:
     void panChanged();
     void cacheEnabledChanged();
     void cacheTextureSizeChanged();
+    void cacheSamplesChanged();
     void cacheReadyChanged();
     void cacheRefreshRequested();
     void cacheUpdated();
@@ -226,6 +232,7 @@ private:
     bool m_refreshInFlight = false; // un redessin du cache est demandé et pas encore terminé
     bool m_refreshAgain = false;    // une demande est arrivée pendant ce redessin : en refaire un à sa fin
     QSize m_cacheTextureSize;
+    int m_cacheSamples = 1;
     QTimer m_cacheTimer;
     QTimer m_foldTimer; // lot 10 : versement après kCacheFoldIdleMs sans entrée qui agit
     QList<const QInputDevice*> m_exclusive;

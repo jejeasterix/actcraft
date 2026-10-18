@@ -80,6 +80,22 @@ private slots:
         QCOMPARE(cacheTextureSize(QSizeF(1024, 768), 3.0, 2.0), QSize(4096, 3072));
     }
 
+    void multisampledCacheCapKeepsHundredPercentAndFitSharp()
+    {
+        QCOMPARE(cacheMaxSide(QSizeF(1024, 768), 1.0, 1), kMaxCacheSide);
+        QCOMPARE(cacheMaxSide(QSizeF(1024, 768), 1.0, 4), kMaxMsaaCacheSide);
+        QCOMPARE(cacheTextureSize(QSizeF(1024, 768), 8.0, 1.0, cacheMaxSide(QSizeF(1024, 768), 1.0, 4)),
+                 QSize(3072, 2304));
+        // Page de 1920 à DPR 2 : jamais sous le côté à 100 %.
+        const int big = cacheMaxSide(QSizeF(1920, 1080), 2.0, 4);
+        QCOMPARE(cacheTextureSize(QSizeF(1920, 1080), 1.0, 2.0, big), QSize(3840, 2160));
+        QCOMPARE(cacheTextureSize(QSizeF(1920, 1080), 8.0, 2.0, big), QSize(3840, 2160));
+        // « Ajuster » au-delà de 100 % (page de 1024 à DPR 2, zoom 1,25) : nette aussi.
+        const int fit = cacheMaxSide(QSizeF(1024, 768), 2.0, 4, 1.25);
+        QCOMPARE(cacheTextureSize(QSizeF(1024, 768), 1.25, 2.0, fit), QSize(2560, 1920));
+        QCOMPARE(cacheMaxSide(QSizeF(8000, 6000), 1.0, 4), kMaxCacheSide); // jamais au-dessus de N1-6
+    }
+
     void scrollAxisCoversPageAndMargins()
     {
         const ScrollAxis fits = scrollAxis(10, 1000, 500);

@@ -6,6 +6,7 @@
 
 #include <QFile>
 #include <QQmlApplicationEngine>
+#include <QQuickGraphicsConfiguration>
 #include <QQuickWindow>
 #include <QTemporaryDir>
 #include <QTest>
@@ -56,6 +57,15 @@ private slots:
         QVERIFY(doc);
         QTRY_COMPARE_WITH_TIMEOUT(doc->pageCount(), 3, 10000);
         QCOMPARE(doc->title(), QStringLiteral("trois"));
+    }
+
+    void mainWindowHasNoDepthBufferFor2D() // H10-9 (L10-T8)
+    {
+        QVERIFY(QQuickGraphicsConfiguration().isDepthBufferEnabledFor2D()); // défaut de Qt
+        QQmlApplicationEngine engine;
+        QQuickWindow* window = loadMainWindow(engine, StartupOptions{});
+        QVERIFY(window);
+        QVERIFY(!window->graphicsConfiguration().isDepthBufferEnabledFor2D());
     }
 };
 

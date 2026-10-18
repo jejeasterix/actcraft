@@ -165,6 +165,65 @@ Coût à mesurer dans la tâche de repli : netteté au-delà du zoom où le nouv
 - **`page`** : images/s, p95 et images > 25 ms dépassés aux cinq passages, référence comprise (H2b-5, H2b-7).
   Antérieur au lot 10.
 
+## Repli H10-9 (L10-T8)
+
+### Modèle et prédictions, écrits avant la mesure
+
+Texture du cache multi-échantillonnée 4× (`QSGRhiLayer`) : couleur multi-échantillonnée 16 o, profondeur-stencil
+multi-échantillonnée 16 o, texture résolue 4 o, soit 36 o par pixel ; 20 o sans profondeur-stencil. À 4096 × 3072
+(12,58 Mpx) : 432 Mio, ou 240 Mio sans profondeur-stencil. Si la mémoire partagée est comptée aussi dans la mémoire
+privée (question ouverte de l'étape 4 bis), chaque Mio gagné sur la texture compte deux fois dans le total.
+
+| Variante | Texture à 800 % | Prédiction 800 % posé | Prédiction banc (`scroll`, 400 %) | Netteté prédite |
+|---|---|---|---|---|
+| V0 tête, plafond 4096 | 4096 × 3072, 432 Mio | ≈ 1 300 Mio (fenêtre 1920 × 1080 au lieu de 1280 × 800 : + 35 à 70 Mio) | 1 650 à 1 720 Mio | base |
+| V1 sans profondeur 2D | 4096 × 3072, 240 Mio si la profondeur-stencil disparaît | − 192 à − 384 Mio, sinon ≈ 0 | − 192 à − 384 Mio : reste > 1 024 | = V0 |
+| V2 plafond 2048 | 2048 × 1536, 108 Mio | − 324 à − 648 Mio : < 1 Gio | 1 000 à 1 400 Mio : incertain | bande ≈ 2 × V0 à 400 % |
+| V3 V1 + 3072 / 2896 | 135 / 120 Mio sans profondeur, 243 / 216 avec | entre V1 et V2 | entre V1 et V2 | bande ≈ 1,3 à 1,4 × V0 |
+| V4 cache coupé | aucune | ≈ référence (≈ 400 Mio) | bas ; coût d'image du rendu direct inconnu | nette (rendu direct) |
+
+Prédiction propre à V1 : `QSGRhiLayer` garde peut-être sa profondeur-stencil, nécessaire au découpage par stencil ;
+gain alors nul.
+
+### Méthode
+
+Worktree de L10-T8, preset `release`, 2026-10-18 de 16 h 44 à 18 h, Direct3D 11, plein écran 1920 × 1080. Par
+variante, sous le jeton `ecran` : un passage `bench.ps1 -Rendu d3d11 -SansConstruire`, puis le zoom 400 % et le zoom
+800 % posés. Scénario de zoom (temporaire, `.tmp/zoom<Z>.json`, `actcraft-captures --taille plein-ecran`) : trait noir
+de 8 px tracé à 100 % de (462, 334) à (562, 434), versé au cache, `checkEdge` de (496, 384) à (528, 384) à 100 %, zoom
+posé, attente 3 s, `checkEdge` au zoom posé. Mémoire relevée toutes les 500 ms (`PerformanceCounter`, « GPU Process
+Memory » et `PrivateMemorySize64`) ; le total est pris au même relevé. Relevé « machine calme » avant chaque passage
+(`calme.ps1`) ; une attente de 141 s pour une compilation de L10-C1 avant V1.
+- V0 : tête `d5832c3`. V1 : même binaire, `QSG_NO_DEPTH_BUFFER=1`, l'interrupteur documenté de
+  `QQuickGraphicsConfiguration::setDepthBufferFor2D` (valeur par défaut de la configuration). V4 : même binaire,
+  `-SansCache` et `--sans-cache` (plan : coût d'image du rendu direct à 400 %).
+- V2, V3 : mutation locale de `PageView::updateCacheTextureSize` (plafond lu dans une variable d'environnement,
+  plancher « jamais flou »), remise à zéro par `git checkout --` après la série.
+- Colonnes `pauses` (demande de l'orchestrateur, L10-T9) : `over_25ms_ratio`, et nombre d'entrées dont
+  `latency_planned_to_sync_ms` dépasse 20 ms et dont l'heure prévue tombe dans les 100 ms qui suivent un
+  `raw.cache_request_ns`.
+
+### Table des variantes
+
+Mémoire en Mio. Banc : `all.memory_peak_bytes`. Zoom posé : pic du total, partagé / privé au même relevé. Bande :
+pixels intermédiaires de `checkEdge` (100 % → 2 dans toutes les variantes).
+
+| Variante | Banc | 800 % (partagé / privé) | 400 % (partagé / privé) | S13 | p95 `scroll` | Bande 400 / 800 | `pauses` > 25 ms | Entrées > 20 ms après demande |
+|---|---|---|---|---|---|---|---|---|
+| V0 tête | **1 692,1** | **1 462,7** (658,2 / 804,5) | 1 501,3 (696,9 / 804,4) | tenu | 17,2 | 2 / 8 | 2,45 % | 41 sur 41 (9 demandes) |
+| V1 sans profondeur 2D | **1 047,4** | 866,1 (377,1 / 489,0) | 875,8 (376,8 / 498,9) | tenu | 17,2 | 2 / 8 | 2,78 % | 33 sur 34 (8 demandes) |
+| V4 sans cache (`-SansCache`) | 991,5 | 400,2 (158,2 / 242,0) | 388,1 (164,8 / 223,3) | **perdu** (`stroke`, `pauses`) | 18,2 | 2 / 2 | 25,70 % | 0 (aucune demande ; 410 entrées > 20 ms) |
+
+Constats :
+- **La mémoire partagée est aussi comptée dans la mémoire privée** : de V0 à V1, le partagé baisse de 281 Mio et le
+  privé de 316 Mio au zoom 800 %. Chaque Mio de texture gagné compte deux fois dans le total.
+- **V1 retire bien la profondeur-stencil des couches** : − 597 Mio au total à 800 %, plus que les 192 Mio prédits
+  pour le seul cache (la fenêtre et ses autres couches en perdent aussi). Netteté inchangée. Mais le banc reste à
+  1 047,4 Mio : V1 seule n'est pas retenue (critère < 1 024 Mio).
+- V4 : rendu direct à 400 % tenable (p95 `scroll` 18,2 ms ≤ 18,5), mais le passage sans cache perd S13 dans
+  `stroke` et `pauses`, à 100 % ; V4 n'y couperait pas le cache. Texture libérée à l'exécution non vérifiée (V4 non
+  écrite). Dernière dans l'ordre de préférence.
+
 ## Fichiers
 
 Dans `bench/results/` des deux worktrees (ignoré par git) :

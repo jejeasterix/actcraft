@@ -8,6 +8,7 @@
 
 #include <QMouseEvent>
 #include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QTabletEvent>
 #include <QTouchEvent>
 #include <QWheelEvent>
@@ -117,6 +118,9 @@ PageView::PageView(QQuickItem* parent) : QQuickItem(parent)
 {
     setAcceptedMouseButtons(Qt::LeftButton);
     setAcceptTouchEvents(true);
+    // Moteur choisi avant le chargement du QML (applyRenderBackend) ; samples est sans effet en rendu
+    // logiciel.
+    m_cacheSamples = QQuickWindow::graphicsApi() != QSGRendererInterface::Software ? kCacheMsaaSamples : 1;
     m_cacheTimer.setSingleShot(true);
     m_cacheTimer.setInterval(kCacheRefreshDelayMs);
     connect(&m_cacheTimer, &QTimer::timeout, this, [this] {
@@ -228,6 +232,23 @@ void PageView::setCacheEnabled(bool enabled)
 QSize PageView::cacheTextureSize() const noexcept
 {
     return m_cacheTextureSize;
+}
+
+int PageView::cacheSamples() const noexcept
+{
+    return m_cacheSamples;
+}
+
+void PageView::setCacheSamples(int samples)
+{
+    samples = std::max(1, samples);
+    if (samples == m_cacheSamples) {
+        return;
+    }
+    m_cacheSamples = samples;
+    emit cacheSamplesChanged();
+    updateCacheTextureSize();
+    requestCacheRefresh();
 }
 
 bool PageView::cacheReady() const noexcept
@@ -559,6 +580,9 @@ void PageView::itemChange(ItemChange change, const ItemChangeData& value)
         if (m_filteredWindow) {
             m_filteredWindow->installEventFilter(this);
         }
+        // Rapport de pixels connu à l'attache : sans ceci, une taille calculée avant garde l'ancienne
+        // jusqu'au prochain zoom (H10-9).
+        updateCacheTextureSize();
     }
 }
 
@@ -885,7 +909,11 @@ void PageView::onContentSizeChanged(QSizeF oldPage)
 void PageView::updateCacheTextureSize()
 {
     const qreal dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
-    const QSize s = ui::cacheTextureSize(pageSize(), m_transform.zoom, dpr);
+    const QSizeF page = pageSize();
+    // H10-9 : plafond selon l'échantillonnage du cache, jamais celui de la fenêtre ; ni flou à 100 % ni à
+    // l'ajustement.
+    const int maxSide = ui::cacheMaxSide(page, dpr, m_cacheSamples, ui::fitPage(size(), page).zoom);
+    const QSize s = ui::cacheTextureSize(page, m_transform.zoom, dpr, maxSide);
     if (s != m_cacheTextureSize) {
         m_cacheTextureSize = s;
         emit cacheTextureSizeChanged();
