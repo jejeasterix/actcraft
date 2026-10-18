@@ -41,7 +41,6 @@ protected:
 private:
     QPointer<FixedPageItem> m_page;
     QMetaObject::Connection m_pendingConnection;
-    QMetaObject::Connection m_contentConnection;
     QMetaObject::Connection m_readyConnection;
     RendererRegistry m_registry;
     PaintedRenderer m_painted;
