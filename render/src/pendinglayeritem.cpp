@@ -26,10 +26,14 @@ void PendingLayerItem::setFixedPage(FixedPageItem* page)
     }
     disconnect(m_pendingConnection);
     disconnect(m_contentConnection);
+    disconnect(m_readyConnection);
     m_page = page;
     if (m_page) {
         m_pendingConnection = connect(m_page, &FixedPageItem::pendingChanged, this, [this] { update(); });
         m_contentConnection = connect(m_page, &FixedPageItem::contentChanged, this, [this] { update(); });
+        // Au prêt, la page fixe se reconstruit (avec ce qui attendait) : la couche se vide dans la même
+        // image.
+        m_readyConnection = connect(m_page, &FixedPageItem::readyChanged, this, [this] { update(); });
     }
     update();
     emit fixedPageChanged();
@@ -47,6 +51,12 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     const bool software = window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
     // Logiciel : racine de transformation (identité), comme la page fixe (piège du moteur logiciel 6.12).
     QSGNode* root = old ? old : (software ? new QSGTransformNode : new QSGNode);
+    // Tant que la page fixe redécode (reconstruction avec images, autre page), elle garde ses anciens nœuds,
+    // sans les objets qui attendaient : la couche garde les siens jusqu'au prêt (readyChanged), sinon ils
+    // disparaîtraient de l'écran.
+    if (m_page && !m_page->isReady()) {
+        return root;
+    }
     static const std::vector<core::ObjectId> none;
     const std::vector<core::ObjectId>& wanted = m_page ? m_page->pendingIds() : none;
     const std::uint64_t revision = m_page ? m_page->pendingRevision() : 0;

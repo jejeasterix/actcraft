@@ -339,6 +339,44 @@ private slots:
         QCOMPARE(f.page->rebuildCount(), rebuilds);
         f.page->setSource(nullptr, 0); // le document meurt avant l'élément
     }
+
+    // Revue M1 : une reconstruction qui redécode (image insérée en fin de page pendant qu'un trait attend)
+    // vide l'attente, et la page fixe garde ses anciens nœuds jusqu'au prêt. La couche garde les siens
+    // jusque-là, sinon le trait disparaît de l'écran ; au prêt, la scène l'a et la couche est vide.
+    void pendingStrokeStaysVisibleWhileAnImageDecodes()
+    {
+        Fixture f;
+        open(f, true);
+        core::Document d;
+        f.page->setSource(&d, 0);
+        QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 5000));
+        f.page->setDeferredFolding(true);
+        core::PageObject stroke = lineAt(300);
+        stroke.common.id = d.allocateId();
+        stroke.common.layer = core::Layer::Top;
+        const core::ObjectId strokeId = stroke.common.id;
+        core::insertAtTopOfLayer(d.page(0), std::move(stroke));
+        f.page->insert(strokeId);
+        QCOMPARE(f.page->pendingCount(), 1);
+        QVERIFY(near(at(f, 300, 300), Qt::black, 60));
+        core::ImageObject picture;
+        picture.bounds = core::RectF{400, 20, 200, 100};
+        picture.sourceWidth = 2048;
+        picture.sourceHeight = 2048;
+        core::PageObject image = picture;
+        image.common.id = d.allocateId();
+        image.common.layer = core::Layer::Top;
+        const core::ObjectId imageId = image.common.id;
+        core::insertAtTopOfLayer(d.page(0), std::move(image));
+        f.page->insert(imageId);
+        QCOMPARE(f.page->pendingCount(), 0);
+        QVERIFY(!f.page->isReady()); // sinon la capture suivante ne prouverait rien
+        QVERIFY2(near(at(f, 300, 300), Qt::black, 60), "trait en attente invisible pendant le décodage");
+        QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 20000));
+        QVERIFY(near(at(f, 300, 300), Qt::black, 60));
+        QCOMPARE(f.layer->builtCount(), 0);
+        f.page->setSource(nullptr, 0); // le document meurt avant l'élément
+    }
 };
 
 QTEST_MAIN(TstRenderPendingLayer)
