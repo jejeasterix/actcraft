@@ -945,38 +945,38 @@
     "semantic_hash": ""
   },
   "ui/CMakeLists.txt": {
-    "mtime": 1792354490.85111,
-    "ast_hash": "c23de5d38b7aebe2a686139a5a97321f",
+    "mtime": 1792366403.5891757,
+    "ast_hash": "2deae76dec81305c6d01b6a9a90c309d",
     "semantic_hash": ""
   },
   "actions/data/commands.json": {
-    "mtime": 1792340672.177037,
-    "ast_hash": "4d5c7f16d0169e6f6911a1bacc35f6a7",
+    "mtime": 1792366403.5572789,
+    "ast_hash": "0f793b8302b367d6849df00dc024db19",
     "semantic_hash": ""
   },
   "actions/data/layout.json": {
-    "mtime": 1792151008.1206307,
-    "ast_hash": "953234c6aa72c01ecf3b4a1a79ddb841",
+    "mtime": 1792366403.5572789,
+    "ast_hash": "8ac6c2b5fadad15f2b51d205ef65aab8",
     "semantic_hash": ""
   },
   "actions/include/actcraft/actions/commandregistry.h": {
-    "mtime": 1792077510.0300558,
-    "ast_hash": "16230f098e3751b9f0b1bb19df9f679a",
+    "mtime": 1792366403.564842,
+    "ast_hash": "682eb866d3fc89e08ca639ed6dbbaa65",
     "semantic_hash": ""
   },
   "actions/include/actcraft/actions/layout.h": {
-    "mtime": 1792009453.147107,
-    "ast_hash": "79d5b7618a908dcd0682fe25cc2e6f62",
+    "mtime": 1792366403.567713,
+    "ast_hash": "e781449baeb42cb7b0c4bcc978c6c0fc",
     "semantic_hash": ""
   },
   "actions/src/commandregistry.cpp": {
-    "mtime": 1792077510.035055,
-    "ast_hash": "7d5b67121f826956ed7e1adb6cb2d90d",
+    "mtime": 1792366403.569245,
+    "ast_hash": "d0419795d37d01832d4ac3d59a97a98e",
     "semantic_hash": ""
   },
   "actions/src/layout.cpp": {
-    "mtime": 1792009453.1481085,
-    "ast_hash": "cded8766dc3b3277ef53e585f41b3a65",
+    "mtime": 1792366403.5737915,
+    "ast_hash": "cf36dc2a0eb486c413ef01583b30a580",
     "semantic_hash": ""
   },
   "bench/captures/main.cpp": {
@@ -1065,13 +1065,13 @@
     "semantic_hash": ""
   },
   "tests/tst_actions_layout.cpp": {
-    "mtime": 1792009453.1501098,
-    "ast_hash": "df44caa971fb751707d3b7a004b880a8",
+    "mtime": 1792366403.5737915,
+    "ast_hash": "c3854df35290a403c2fc5136569724fe",
     "semantic_hash": ""
   },
   "tests/tst_actions_registry.cpp": {
-    "mtime": 1792077510.04006,
-    "ast_hash": "cf536abc42c4d4a4d287b551d60a55f5",
+    "mtime": 1792366403.5781305,
+    "ast_hash": "f27c7a6d3721b77fdfcb9f19811fbd02",
     "semantic_hash": ""
   },
   "tests/tst_bench_uiscenario.cpp": {
@@ -1090,8 +1090,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_commands.cpp": {
-    "mtime": 1792045023.7490034,
-    "ast_hash": "06ac7e80b7969f0379928f1ba498dd34",
+    "mtime": 1792366403.5781305,
+    "ast_hash": "532432b13af5f5117dd1eea5c9db300e",
     "semantic_hash": ""
   },
   "tests/tst_ui_document.cpp": {
@@ -1105,8 +1105,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_shell.cpp": {
-    "mtime": 1792090696.8404725,
-    "ast_hash": "e63e99f78dd2d2eb5800d7552af40f11",
+    "mtime": 1792366403.5842268,
+    "ast_hash": "635bbaa3361d8fa0597c5f68b8d11680",
     "semantic_hash": ""
   },
   "tests/tst_ui_theme.cpp": {
@@ -1120,8 +1120,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/commands.h": {
-    "mtime": 1792012875.7654696,
-    "ast_hash": "e0bd59bba94cc37d05fdba0a535c0c11",
+    "mtime": 1792366403.5940402,
+    "ast_hash": "489fa99f453b7babd17a4da7a17e5704",
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/documentcontroller.h": {
@@ -1135,8 +1135,8 @@
     "semantic_hash": ""
   },
   "ui/src/commands.cpp": {
-    "mtime": 1792045023.7647765,
-    "ast_hash": "35aed331f701da8721ac4f18f9dda286",
+    "mtime": 1792366403.6068306,
+    "ast_hash": "5b1fcb1face4ac55609991a14a502102",
     "semantic_hash": ""
   },
   "ui/src/documentcontroller.cpp": {
@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1792362656.7326412,
-    "ast_hash": "6d8a6234911a7ac47b30ed83039c2d88",
+    "mtime": 1792365332.6454787,
+    "ast_hash": "1dc075fb733e0f32a2a8f4e20a550432",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -2087,6 +2087,26 @@
   "docs/plans/2026-10-18-livraison-complete-lot4b-PLAN.md": {
     "mtime": 1792362298.654076,
     "ast_hash": "f364cf51fa36b2466f3076f004727727",
+    "semantic_hash": ""
+  },
+  "docs/plans/2026-10-18-livraison-complete-lot5-PLAN.md": {
+    "mtime": 1792365065.697708,
+    "ast_hash": "447219f10aaef9cca96efb186ff806fd",
+    "semantic_hash": ""
+  },
+  "docs/plans/2026-10-18-livraison-complete-lot5b-PLAN.md": {
+    "mtime": 1792365065.7017102,
+    "ast_hash": "8aafcc35e8c4d8f4c5b892159094a6ad",
+    "semantic_hash": ""
+  },
+  "docs/plans/2026-10-18-livraison-complete-lot6-PLAN.md": {
+    "mtime": 1792365143.8692214,
+    "ast_hash": "dad2faaef49583501f0f120e6adb9987",
+    "semantic_hash": ""
+  },
+  "docs/plans/2026-10-18-livraison-complete-lot6b-PLAN.md": {
+    "mtime": 1792365143.8728244,
+    "ast_hash": "ae03096ac2a27189bb1f35e86a86a97b",
     "semantic_hash": ""
   }
 }
