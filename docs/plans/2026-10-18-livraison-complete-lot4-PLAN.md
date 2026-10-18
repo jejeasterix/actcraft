@@ -177,7 +177,7 @@ prévu, l'agent attend, il ne sonde pas. L4-T0 ne construit rien.
 
 **L4-T0 et les autres tâches.** L4-T1 (données, mécanique) et L4-T6 (sérialisation à nos noms) ne l'attendent pas
 pour leur contenu ; toutes les tâches de comportement l'attendent (V2 commence quand V1 est finie). Ses décisions
-D1 à D16 et sa table A1 à A14 **amendent ce plan et celui de 4b** avant V2 (relecture du plan exigée). Une décision
+D1 à D18 et sa table A1 à A14 **amendent ce plan et celui de 4b** avant V2 (relecture du plan exigée). Une décision
 qui change une donnée de commande (raccourci, libellé, ordre de la palette des formes) passe par un correctif
 `L4-C0` (`actions/data/commands.json`, `actions/data/layout.json` seulement), joué seul avant V2. Une API supposée
 qui diffère du code livré (A1 à A14) amende la section de la tâche qui l'emploie.
@@ -300,7 +300,7 @@ Lu dans `C:\Users\JeromeDenis\REA - Activinspire` ; L4-T0 le complète par le co
 
 | Fichier | Responsabilité | Talon / API (L4-T1) | Rempli par |
 |---|---|---|---|
-| `docs/verifications/2026-10-18-lot4-principes.md` | constats, décisions D1 à D16, table A1 à A14, N3 | — | L4-T0 |
+| `docs/verifications/2026-10-18-lot4-principes.md` | constats, décisions D1 à D18, table A1 à A14, N3 | — | L4-T0 |
 | `actions/data/commands.json`, `layout.json` | 47 commandes du lot ; menus Insérer (sous-menu « Page », en fin), Outils (`other-tools`), Affichage ; palette ; `contextMenu` | L4-T1 | L4-T1 |
 | `actions/…/layout.h`, `actions/src/layout.cpp` | `Layout::contextMenu` accepte les sous-menus | L4-T1 | L4-T1 |
 | `core/…/model.h`, `core/src/model.cpp` | `Shape::preset`, `Shape::parameters`, `Text::vertical`, `Page::baseHeight` ; empreinte | L4-T1 | L4-T1 (zones : L4-T27) |
@@ -444,7 +444,7 @@ lot (formes, palette, points intelligents, texte, barre de mise en forme, texte 
 navigateurs, navigateur de pages, menu de page, fond de page, grille, accrochage, page allongée, zones), plus les
 **8 constats** affectés au lot 4 par le tableau du § 4 de l'amendement (1 « Interface et profils », 3 « Stylo,
 formes, couleurs », 1 « Texte et reconnaissance », 3 « Pages, fond, grille ») et les écarts **E1, E2, E10, E12** ;
-trancher sur la 3.5.18 par REA ; écrire en nos mots les exigences, les **décisions D1 à D16**, puis **revérifier
+trancher sur la 3.5.18 par REA ; écrire en nos mots les exigences, les **décisions D1 à D18**, puis **revérifier
 les API A1 à A14** contre le code livré par les lots 3, L0-S (et 7 s'il a fusionné).
 
 **Décisions à rendre** (chacune : valeur retenue et source, ou « non tranché » → hypothèse de niveau 1) :
