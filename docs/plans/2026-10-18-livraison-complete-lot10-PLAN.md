@@ -808,6 +808,8 @@ Ne pas lisser la grille. Rien de changé en rendu logiciel.
 **Terminé quand.** Preuve verte ; rouge D3D11 vu sur la base puis vert sur la tâche, à l'écran ; banc A/B rapporté
 (avec la condition « machine calme ») ; JSON du banc sans écran joint ; commit fait.
 
+**Garde des ouvertures (ajoutée après la tâche, e08f55d).** `tst_bench_uiscenario::committedScenariosWaitForEveryOpen` exige `{"waitFor": "documentController.busy", "value": false}` juste après chaque `{"command": "file.open"}` d'un scénario commité (la lecture est hors du fil principal ; l'ancien document reste « prêt » jusqu'au retour). Il ne voit que cette forme : une ouverture par une touche (`{"key": "Ctrl+O"}`) ou par le dialogue y échapperait (aucune aujourd'hui).
+
 **Étapes.**
 
 - [ ] **Étape 1 : test du format de surface.** Dans `tests/tst_renderbackend.cpp`, ajouter
