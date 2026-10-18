@@ -8,6 +8,17 @@ Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 
+## Reprise après le temps calme (2026-10-18 vers 22h30, redémarrage de l'app demandé par Jérôme)
+Mergé dans `feat/livraison-complete-b` : plan phase 1 (13ebe57), L7-T0 (f0772b6), L7-P0 (d163449, graphe dfc8857).
+Tous les sous-agents et constructions de B sont arrêtés ; chaque worktree L7-P a un commit (final pour P2, wip pour les autres), rien n'existe seulement en mémoire.
+Outils de la session (copie hors scratchpad, non suivie) : `C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b\.tmp\outils-b` — `consignes-P.md` (consignes communes des tâches L7-P), `b-jeton.ps1` (verrou à une place pour B, puis jeton), `rejeu.ps1` (suite + Totals de tests nommés).
+Premier geste à la reprise :
+1. Relire ce fichier, `consignes-P.md`, et le dossier des addendums de A (`C:\Users\JEROME~1\AppData\Local\Temp\claude\C--Users-JeromeDenis-ActCraft\fd5ef06a-7b9b-46ba-a8c3-b06809fefd99\scratchpad\brief-b-addendum-*.md`).
+2. `jeton.ps1 -Nom tests -Etat` (les places de PID mort se reprennent seules).
+3. Rejouer L7-P2 (ee87059, `.worktrees/livraison-complete-b--L7-P2`) : `b-jeton.ps1 -Proprietaire livraison-complete-b/L7-P2-rejeu -Commande "pwsh -NoProfile -File '<outils>\rejeu.ps1' -Tache L7-P2 -Tests tst_features_pagezoom,tst_features_transitions"`, lire `.tmp/rejeu.txt` et `.tmp/rejeu-*.txt` (Totals 8 et 10), puis merge `--no-ff`, graphe.
+4. Relancer un agent par tâche wip (P1 implementeur-tdd, P3/P7/P8 concepteur-critique, P5/P6/P9 implementeur-tdd), chacun dans son worktree : « reprends depuis ton commit wip ; rouge à montrer (construction sans tes .cpp), vert, suite par `b-jeton.ps1`, `NOMS OK`, nouveau commit (pas d'amend) », avec les consignes communes (chemins du scratchpad à remplacer par `C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b\.tmp\outils-b`). Une seule place de tests pour B jusqu'au message de A pour la 2e.
+5. Après le merge de L7-P3 : lancer L7-P4 (worktree neuf depuis la branche du chantier).
+
 ## Référence
 Rapide : N0 = N1 = 94 tests, `TESTS OK` (debug, 2026-10-18, worktree du chantier @ e367657).
 
@@ -20,14 +31,14 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | amendement phase 1 | — | docs/plans/2026-10-18-livraison-complete-lot7-phase1-PLAN.md | chantier (partagé) | terminé : accepté au tour 2, mineurs appliqués (13ebe57) ; 10 tâches L7-P0…P9, vagues P0 · P3‖P7 · P8‖P1 · P4‖P2 · P5‖P6 · P9 | 1 | 13ebe57 | relecture t1 (2 B, 2 I corrigés), t2 accepter |
 | L7-T0 | — | docs/verifications/2026-10-18-lot7-principes.md ; hors dépôt REA docs/re/lots/lot7.md | supprimé | terminée, mergée (f0772b6), graphe efee804 | 3 | d16edb5 | NOMS OK 333, git grep du rapport vide, relevé présent, revue : 4 importants corrigés |
 | L7-P0 | amendement relu | voir ligne L7-P0 du plan phase 1 | supprimé | terminée, mergée (d163449), graphe dfc8857 | 1 | 2747662 | rejeu : 110 tests, `TESTS OK`, 16 tst_features Passed ; fin de tests/CMakeLists.txt identique au socle (md5) |
-| L7-P1 | L7-P0 | voir ligne L7-P1 du plan phase 1 | .worktrees/livraison-complete-b--L7-P1 (base 3866a4b + fusion dfc8857) | temps 2 en cours (implementeur-tdd) : temps 1 fini | 1 | — | — |
-| L7-P3 | L7-P0 | voir ligne L7-P3 du plan phase 1 | .worktrees/livraison-complete-b--L7-P3 (base 3866a4b + fusion dfc8857) | temps 2 en cours (concepteur-critique) : temps 1 fini | 1 | — | — |
-| L7-P7 | L7-P0 | voir ligne L7-P7 du plan phase 1 | .worktrees/livraison-complete-b--L7-P7 (base 3866a4b + fusion dfc8857) | temps 2 en cours (concepteur-critique) : temps 1 fini | 1 | — | — |
-| L7-P8 | L7-P0 | voir ligne L7-P8 du plan phase 1 | .worktrees/livraison-complete-b--L7-P8 (base 3866a4b + fusion dfc8857) | temps 2 en cours (concepteur-critique) : temps 1 fini | 1 | — | — |
-| L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | .worktrees/livraison-complete-b--L7-P2 (base dfc8857) | en cours (implementeur-tdd) | 1 | — | — |
-| L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | .worktrees/livraison-complete-b--L7-P5 (base dfc8857) | en cours (implementeur-tdd) | 1 | — | — |
-| L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | .worktrees/livraison-complete-b--L7-P6 (base dfc8857) | en cours (implementeur-tdd) | 1 | — | — |
-| L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | .worktrees/livraison-complete-b--L7-P9 (base dfc8857) | en cours (implementeur-tdd) | 1 | — | — |
+| L7-P1 | L7-P0 | voir ligne L7-P1 du plan phase 1 | .worktrees/livraison-complete-b--L7-P1 (base 3866a4b + fusion dfc8857) | wip commité, NON prouvé (agent arrêté au temps calme) | 1 | wip 3f8a29a | — |
+| L7-P3 | L7-P0 | voir ligne L7-P3 du plan phase 1 | .worktrees/livraison-complete-b--L7-P3 (base 3866a4b + fusion dfc8857) | wip commité, NON prouvé (agent arrêté au temps calme) | 1 | wip a052c75 | — |
+| L7-P7 | L7-P0 | voir ligne L7-P7 du plan phase 1 | .worktrees/livraison-complete-b--L7-P7 (base 3866a4b + fusion dfc8857) | wip commité, NON prouvé (agent arrêté au temps calme) | 1 | wip a4f7108 | — |
+| L7-P8 | L7-P0 | voir ligne L7-P8 du plan phase 1 | .worktrees/livraison-complete-b--L7-P8 (base 3866a4b + fusion dfc8857) | wip commité, NON prouvé (agent arrêté au temps calme) | 1 | wip 0755a06 | — |
+| L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | .worktrees/livraison-complete-b--L7-P2 (base dfc8857) | rendue par l'agent (TESTS OK 110, NOMS OK) — rejeu de l'orchestrateur NON fait (interrompu) | 1 | ee87059 | — |
+| L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | .worktrees/livraison-complete-b--L7-P5 (base dfc8857) | wip commité, NON prouvé (agent arrêté au temps calme) | 1 | wip 87c7abd | — |
+| L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | .worktrees/livraison-complete-b--L7-P6 (base dfc8857) | wip commité, NON prouvé (agent arrêté au temps calme) | 1 | wip 783c2da | — |
+| L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | .worktrees/livraison-complete-b--L7-P9 (base dfc8857) | wip commité, NON prouvé (agent arrêté au temps calme) | 1 | wip 59d3107 | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
