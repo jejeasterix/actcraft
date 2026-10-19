@@ -1,10 +1,29 @@
+#include "objectnodes.h"
+
 #include <actcraft/render/liftlayeritem.h>
 
-// Talon L0-S : rempli par L3-T10.
+#include <QMatrix4x4>
+#include <QQuickWindow>
+#include <QSGRendererInterface>
+#include <QSGTransformNode>
+#include <QTransform>
+
+#include <utility>
 
 namespace actcraft::render {
 
-LiftLayerItem::LiftLayerItem(QQuickItem* parent) : QQuickItem(parent) {}
+namespace {
+QMatrix4x4 matrixOf(const core::Transform& t)
+{
+    return QMatrix4x4(QTransform(t.m11, t.m12, t.m21, t.m22, t.dx, t.dy));
+}
+} // namespace
+
+LiftLayerItem::LiftLayerItem(QQuickItem* parent)
+    : QQuickItem(parent), m_registry(RendererRegistry::withDefaults())
+{
+    setFlag(ItemHasContents);
+}
 
 FixedPageItem* LiftLayerItem::fixedPage() const noexcept
 {
@@ -13,31 +32,91 @@ FixedPageItem* LiftLayerItem::fixedPage() const noexcept
 
 void LiftLayerItem::setFixedPage(FixedPageItem* page)
 {
+    if (page == m_fixedPage) {
+        return;
+    }
     m_fixedPage = page;
+    m_rebuild = true; // autre contexte (échelle de rastérisation, chemin forcé) : les nœuds sont à refaire
+    update();
+    emit fixedPageChanged();
 }
 
-void LiftLayerItem::setObjects(std::vector<core::PageObject>)
+void LiftLayerItem::setObjects(std::vector<core::PageObject> objects)
 {
-    static_cast<void>(m_objects);
+    m_objects = std::move(objects);
+    m_extra = core::Transform{};
+    m_rebuild = true;
+    update();
+    emit objectsChanged();
 }
 
-void LiftLayerItem::setExtraTransform(const core::Transform&) {}
+void LiftLayerItem::setExtraTransform(const core::Transform& extra)
+{
+    // Matrice seule : la synchronisation la pose sur la racine ; aucun nœud d'objet n'est refait.
+    m_extra = extra;
+    update();
+}
 
-void LiftLayerItem::clear() {}
+void LiftLayerItem::clear()
+{
+    m_objects.clear();
+    m_extra = core::Transform{};
+    m_rebuild = true;
+    update();
+    emit objectsChanged();
+}
 
 int LiftLayerItem::objectCount() const noexcept
 {
-    return 0;
+    return static_cast<int>(m_objects.size());
 }
 
 int LiftLayerItem::builtCount() const noexcept
 {
-    return 0;
+    return m_builtCount.load();
 }
 
+// Fil de rendu, fil principal bloqué : les copies, la matrice et le contexte de la page fixe sont lus tels
+// que le fil principal les a laissés.
 QSGNode* LiftLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
 {
-    return old;
+    // Racine de transformation dans les deux chemins : sa matrice est la transformation supplémentaire (en
+    // logiciel, c'est aussi la racine qu'exige le piège des nœuds ajoutés sous une racine déjà rendue).
+    auto* root = old ? static_cast<QSGTransformNode*>(old) : new QSGTransformNode;
+    if (m_rebuild || !old) {
+        // Graphe recréé (old nul) : les anciens nœuds sont partis avec lui ; sinon on les retire ici.
+        while (QSGNode* child = root->firstChild()) {
+            root->removeChildNode(child);
+            delete child;
+        }
+        if (!m_objects.empty()) {
+            const bool software =
+                window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
+            // Contexte de la page fixe (échelle de rastérisation, chemin forcé), comme la couche d'attente :
+            // mêmes moteurs, même rendu. Sans magasin d'images (images == nullptr) : celui de la page fixe
+            // (FixedPageItem::m_images) est privé, rangé par indice de page et régénéré quand l'objet soulevé
+            // quitte la page ; une image soulevée est donc dessinée par le repère du peintre pendant le geste
+            // (point ouvert de L3-T8).
+            const FixedPageItem* page = m_fixedPage.data();
+            const double scale = page ? page->rasterScale() : 1.0;
+            const bool forced = page != nullptr && page->forceRasterized();
+            const NodeContexts contexts = nodeContexts(window(), software, nullptr, scale, forced);
+            for (std::size_t i = 0; i < m_objects.size(); ++i) {
+                const ObjectNode made = createObjectNode(m_objects[i], i, m_registry, m_painted,
+                                                         contexts.context, contexts.painted);
+                if (made.root) {
+                    root->appendChildNode(made.root); // ordre du vecteur, comme la page fixe
+                    ++m_builtCount;
+                }
+            }
+        }
+        m_rebuild = false;
+    }
+    const QMatrix4x4 matrix = matrixOf(m_extra);
+    if (root->matrix() != matrix) {
+        root->setMatrix(matrix);
+    }
+    return root;
 }
 
 } // namespace actcraft::render
