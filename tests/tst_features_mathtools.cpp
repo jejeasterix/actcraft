@@ -1,7 +1,10 @@
 #include <actcraft/features/mathtools.h>
 #include <actcraft/features/strokeguide.h>
 
+#include <QtMath>
 #include <QtTest>
+
+#include <cmath>
 
 using namespace actcraft;
 using namespace actcraft::features;
@@ -173,6 +176,165 @@ private slots:
         QCOMPARE(out.seq, std::uint64_t{7});
         QCOMPARE(out.phase, input::Phase::Press);
         QCOMPARE(out.device, input::DeviceKind::Stylus);
+    }
+    void protractorArcFollowsTheRim()
+    {
+        Protractor p;
+        p.setFrame(QPointF(500, 500), 200, 0, Protractor::Kind::Full);          // centre, rayon, angle, forme
+        QVERIFY(!p.capture(at(600, 500, input::Phase::Press), 16).has_value()); // loin du pourtour : rien
+        const auto s = p.capture(at(705, 500, input::Phase::Press), 16);
+        QVERIFY(s.has_value());
+        QCOMPARE(qRound(std::hypot(s->x - 500, s->y - 500)), 200);
+        const auto f = p.follow(at(500, 300, input::Phase::Move));
+        QCOMPARE(qRound(std::hypot(f.x - 500, f.y - 500)), 200);
+        QCOMPARE(qRound(p.sweptDegrees()), 90);
+        // Passé le rayon gauche (où atan2 saute de 180 à -180), à 50 px du pourtour, dehors puis dedans, le
+        // trait suit le cercle saisi à l'appui (une re-saisie par échantillon le lâcherait), et l'angle
+        // cumulé continue (une différence d'atan2 brute entre l'angle actuel et celui du départ retomberait à
+        // 90).
+        const auto g = p.follow(at(250, 500, input::Phase::Move));
+        QCOMPARE(qRound(g.x), 300);
+        QCOMPARE(qRound(g.y), 500);
+        QCOMPARE(qRound(p.sweptDegrees()), 180);
+        const auto b = p.follow(at(500, 650, input::Phase::Move));
+        QCOMPARE(qRound(std::hypot(b.x - 500, b.y - 500)), 200);
+        QCOMPARE(qRound(p.sweptDegrees()), 270);
+    }
+    void halfProtractorStopsAt180()
+    {
+        Protractor p;
+        p.setFrame(QPointF(500, 500), 200, 0, Protractor::Kind::Half); // demi-disque au-dessus du diamètre
+        QVERIFY(!p.capture(at(500, 705, input::Phase::Press), 16).has_value()); // sous le diamètre : rien
+        // Passé sous le diamètre, le trait reste au bout le plus proche (le gauche), l'angle reste 180 :
+        // borné par un simple clamp dans [-180, 0], l'angle local 153 deviendrait 0, et le trait sauterait au
+        // bout droit.
+        QVERIFY(p.capture(at(705, 500, input::Phase::Press), 16).has_value()); // bout droit
+        QCOMPARE(qRound(p.follow(at(500, 250, input::Phase::Move)).y), 300);
+        QCOMPARE(qRound(p.sweptDegrees()), 90);
+        const auto end = p.follow(at(300, 600, input::Phase::Move));
+        QCOMPARE(qRound(end.x), 300);
+        QCOMPARE(qRound(end.y), 500);
+        QCOMPARE(qRound(p.sweptDegrees()), 180);
+        // Un demi-tour d'un seul pas, puis un retour de 10° : 170, jamais plus de 180 (un pas de -180° ramené
+        // à +180° donnerait 190).
+        QVERIFY(p.capture(at(705, 500, input::Phase::Press), 16).has_value());
+        p.follow(at(250, 500, input::Phase::Move));
+        const double back = qDegreesToRadians(-170.0);
+        p.follow(at(500 + 200 * std::cos(back), 500 + 200 * std::sin(back), input::Phase::Move));
+        QCOMPARE(qRound(p.sweptDegrees()), 170);
+        // Tourné de -90 (sens trigonométrique à l'écran) : le demi-disque est à gauche, l'angle s'affiche 90.
+        p.setFrame(QPointF(500, 500), 200, -90, Protractor::Kind::Half);
+        QVERIFY(!p.capture(at(705, 500, input::Phase::Press), 16).has_value());
+        QVERIFY(p.capture(at(295, 500, input::Phase::Press), 16).has_value());
+        QCOMPARE(p.displayAngle(), 90);
+    }
+    void closedArcAddsTwoRadii()
+    {
+        const auto path = arcPath(QPointF(0, 0), 100, 0, 90, ArcStyle::Closed);
+        QCOMPARE(path.front(), QPointF(0, 0));
+        QCOMPARE(path.back(), QPointF(0, 0));
+        // Le premier rayon va du centre au point saisi sur le rapporteur : startDegrees() est un angle de
+        // page, comme ceux d'arcPath (un angle compté dans l'autre sens partirait du point symétrique, en
+        // bas).
+        Protractor p;
+        p.setFrame(QPointF(0, 0), 100, 0, Protractor::Kind::Full);
+        const auto s = p.capture(at(50, -87, input::Phase::Press), 16); // vers -60° : en haut à droite
+        QVERIFY(s.has_value());
+        const auto fromRim = arcPath(QPointF(0, 0), 100, p.startDegrees(), 90, ArcStyle::Closed);
+        QCOMPARE(fromRim[1].toPoint(), QPoint(qRound(s->x), qRound(s->y)));
+    }
+    void compassDrawsAnArcAtItsRadius()
+    {
+        Compass c;
+        c.setPivot(QPointF(400, 400));
+        c.setRadius(150);
+        c.setAngle(0); // mine à (550, 400)
+        // Sur le cercle mais loin de la mine : rien (c'est la mine qui saisit le stylo, pas le cercle).
+        QVERIFY(!c.capture(at(400, 550, input::Phase::Press), 16).has_value());
+        QVERIFY(c.capture(at(553, 402, input::Phase::Press), 16).has_value());
+        const auto f = c.follow(at(400, 200, input::Phase::Move));
+        QCOMPARE(qRound(std::hypot(f.x - 400, f.y - 400)), 150);
+        // La mine a suivi le stylo vers le haut de l'écran : 90 en sens trigonométrique (270 sinon).
+        QCOMPARE(c.displayAngle(), 90);
+        QCOMPARE(c.pencil().toPoint(), QPoint(400, 250));
+    }
+    void fullTurnClosesTheCircle()
+    {
+        Compass c;
+        c.setPivot(QPointF(0, 0));
+        c.setRadius(100);
+        c.capture(at(100, 0, input::Phase::Press), 16);
+        for (int d = 10; d <= 400; d += 10)
+            c.follow(at(100 * std::cos(qDegreesToRadians(double(d))),
+                        100 * std::sin(qDegreesToRadians(double(d))), input::Phase::Move));
+        QVERIFY(c.sweptDegrees() >= 360);
+        QVERIFY(c.closedCircle());
+    }
+    void radiusInCentimetres()
+    {
+        Compass c;
+        c.setRadius(kPixelsPerCentimetre * 3);
+        QCOMPARE(c.radiusText(), QStringLiteral("3,0 cm"));
+        c.setRadius(5); // borné : 20 au moins, 2000 au plus
+        QCOMPARE(c.radius(), Compass::kMinRadius);
+        c.setRadius(5000);
+        QCOMPARE(c.radius(), Compass::kMaxRadius);
+    }
+    void filledArcIsClosedOnTheCentre()
+    {
+        const auto path = arcPath(QPointF(10, 20), 50, 0, 90, ArcStyle::Filled);
+        QCOMPARE(path.front(), QPointF(10, 20));
+        QCOMPARE(path.back(), QPointF(10, 20));
+        QCOMPARE(path.size(), std::size_t{48}); // centre + 46 points de l'arc (pas de 2°) + centre
+        QCOMPARE(arcPath(QPointF(10, 20), 50, 0, 90, ArcStyle::Arc).size(), std::size_t{46}); // sans centre
+        // Balayage négatif (vers le haut à l'écran) : autant de pas, compté sur sa valeur absolue.
+        const auto up = arcPath(QPointF(10, 20), 50, 0, -90, ArcStyle::Filled);
+        QCOMPARE(up.size(), std::size_t{48});
+        QCOMPARE(up[up.size() - 2].toPoint(), QPoint(10, -30));
+    }
+    void compassClosesOnItsFirstPoint()
+    {
+        Compass c;
+        c.setPivot(QPointF(0, 0));
+        c.setRadius(100);
+        const auto first = c.capture(at(100, 0, input::Phase::Press), 16);
+        QVERIFY(first.has_value());
+        input::Sample last;
+        for (int d = 10; d <= 370; d += 10)
+            last = c.follow(at(100 * std::cos(qDegreesToRadians(double(d))),
+                               100 * std::sin(qDegreesToRadians(double(d))), input::Phase::Move));
+        QVERIFY(c.closedCircle());
+        QCOMPARE(last.x, first->x); // fermé exactement sur le premier point
+        QCOMPARE(last.y, first->y);
+        // Dans l'autre sens (vers le haut à l'écran) : le balayage, négatif, se lit positif et ferme aussi le
+        // cercle (un « ≥ 360 » sur l'angle signé ne le fermerait jamais).
+        Compass up;
+        up.setPivot(QPointF(0, 0));
+        up.setRadius(100);
+        QVERIFY(up.capture(at(100, 0, input::Phase::Press), 16).has_value());
+        for (int d = -10; d >= -370; d -= 10)
+            last = up.follow(at(100 * std::cos(qDegreesToRadians(double(d))),
+                                100 * std::sin(qDegreesToRadians(double(d))), input::Phase::Move));
+        QCOMPARE(qRound(up.sweptDegrees()), 370);
+        QVERIFY(up.closedCircle());
+        QCOMPARE(last.x, first->x);
+        QCOMPARE(last.y, first->y);
+    }
+    void originRememberedPerPage()
+    {
+        OriginMemory m(QSizeF(1000, 800));
+        m.set(0, QPointF(100, 100));
+        m.set(1, QPointF(300, 200));
+        QCOMPARE(m.at(0), QPointF(100, 100));
+        QCOMPARE(m.at(1), QPointF(300, 200));
+        QVERIFY(!m.has(2));
+        QCOMPARE(m.at(2), QPointF(500, 400)); // défaut : centre de la page
+        m.forget(1);
+        QVERIFY(!m.has(1));
+        QCOMPARE(m.at(1), QPointF(500, 400)); // oubliée : de nouveau le centre
+        m.setPageSize(QSizeF(600, 400));
+        QCOMPARE(m.at(2), QPointF(300, 200)); // le défaut suit la taille de la page
+        QCOMPARE(m.at(0), QPointF(100, 100)); // une origine posée ne bouge pas
     }
 };
 
