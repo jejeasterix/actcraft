@@ -41,12 +41,12 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-P1 | L7-P0 | voir ligne L7-P1 du plan phase 1 | supprimé | terminée, mergée | 2 | c9fb98d | rejeu : 110 tests `TESTS OK`, Totals 11/8/7 ; 7 mutants rouges |
 | L7-P3 | L7-P0 | voir ligne L7-P3 du plan phase 1 | supprimé | terminée, mergée (28a3334), graphe 85e9148 | 2 | 65047e0 | rejeu : 110 tests `TESTS OK`, Totals 13, `NOMS OK` ; 7 mutants tués ; revue adversariale « corriger, peu » appliquée |
 | L7-P7 | L7-P0 | voir ligne L7-P7 du plan phase 1 | supprimé | terminée, mergée (ad52605), graphe 30b9c8b | 3 | 6038df0 | rejeu : 110 tests `TESTS OK`, Totals 13 et 7 ; 8 mutants rouges ; 2 revues adversariales appliquées |
-| L7-P8 | L7-P0 | voir ligne L7-P8 du plan phase 1 | .worktrees/livraison-complete-b--L7-P8 (base 3866a4b + fusion dfc8857) | essai 3 : revue finale « corriger » (assertion sur les alternatives IDispatch) | 3 | 91080f1 | — |
+| L7-P8 | L7-P0 | voir ligne L7-P8 du plan phase 1 | supprimé | terminée, mergée | 3 | 2302dc6 | rejeu : 110 tests `TESTS OK`, Totals 7 sans SKIP (reconnaisseur français du poste), grep COM limité à handwriting_win.cpp, `NOMS OK` ; mutants QThreadPool et alternatives vides rouges ; P8-m6 (reconnaisseur muet → échec, pas SKIP) consigné |
 | L7-P4 | L7-P3 | voir ligne L7-P4 du plan phase 1 | supprimé | terminée, mergée | 1 | 55f45e6 | rejeu : 110 tests `TESTS OK`, Totals 22, `NOMS OK` ; revue adversariale appliquée (essai 2) |
 | L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | supprimé | terminée, mergée (827f028), graphe c606f05 | 2 | df41743 | rejeu : 110 tests `TESTS OK`, Totals 10 (pagezoom) et 12 (transitions) ; rouge vu sur ee87059 (3 échecs) |
-| L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | .worktrees/livraison-complete-b--L7-P5 (base dfc8857) | reprise (implementeur-tdd) | 2 | wip 87c7abd | — |
+| L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | .worktrees/livraison-complete-b--L7-P5 (base dfc8857) | rendue (Totals 7/11/8, 6 mutants) ; rejeu en cours | 2 | e5f5874 | — |
 | L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | .worktrees/livraison-complete-b--L7-P6 (base dfc8857) | reprise (implementeur-tdd), rouge en file | 2 | wip 783c2da | — |
-| L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | .worktrees/livraison-complete-b--L7-P9 (base dfc8857) | arrêtée (redémarrage du PC 22h53) ; wip sain, NON prouvé ; reprise une par une, P3 d'abord | 2 | wip 59d3107 | — |
+| L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | .worktrees/livraison-complete-b--L7-P9 (base dfc8857) | reprise (implementeur-tdd) | 2 | wip 59d3107 | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
