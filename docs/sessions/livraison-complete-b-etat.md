@@ -13,7 +13,7 @@ Toutes les tâches de fond mortes. Intégrité contrôlée : aucun index.lock, f
 Parallélisme réduit (demande de Jérôme « mais soit prudent », relayée par Pilote) : au plus 3 sous-agents à la fois, un seul qui construit, jusqu'aux conclusions de l'étude mémoire.
 Suite de la branche du chantier après P0+P2+P3+P7 : 110 tests `TESTS OK` (aucune collision entre tâches). En cours : P1, P5, P8 reprises (constructions une à une par le verrou B). Restent P6 et P9.
 - Sous forte charge, `tst_bench_verdict` (chien de garde 300 s) et `tst_bench_result` ont aussi échoué une fois (vu par P7) ; `tst_captures_aller_retour_natif` échoue souvent : le rejeu le relance seul pour trancher.
-Amendement phase 2 : brouillon mergé (c19cf7a, `docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md`), relu trois fois (rapports scratchpad revue-phase2-t1..t3, borne atteinte) ; nouvelle relecture obligatoire contre le socle réel à la fusion. 33 tâches (P2-A : L7-S8, T1–T19 ; P2-B : T21, T23–T34), un seul exécutable `tst_ui_lot7`, 17 points [SOCLE?], hypothèses H7-16 à H7-19 pour la porte de fin. Demande à A en attente : une ligne d'inclusion de `render/src` dans `ui/presentation.cmake` (aperçu d'équation en mode éditeur).
+Amendement phase 2 : `docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md` @ 141411d, confronté au socle réel et relu trois fois contre lui (scratchpad revue-phase2-socle-t1..t3, borne atteinte, derniers correctifs appliqués sans 4e tour) ; 33 tâches (P2-A : L7-S8, T1–T19 ; P2-B : T21, T23–T34) ; exécutable unique `tst_ui_lot7` ; N_F = 129 puis 158 après L7-S8 ; démarre quand L7-P0 à P9 sont toutes mergées et la suite du chantier verte.
 
 ## Reprise après le temps calme (2026-10-18 vers 22h30, redémarrage de l'app demandé par Jérôme)
 Mergé dans `feat/livraison-complete-b` : plan phase 1 (13ebe57), L7-T0 (f0772b6), L7-P0 (d163449, graphe dfc8857).
@@ -30,7 +30,7 @@ Premier geste à la reprise :
 Rapide : N0 = N1 = 94 tests, `TESTS OK` (debug, 2026-10-18, worktree du chantier @ e367657).
 
 ## Compteurs
-relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 et mineurs corrigés en bf8c930) · relecture amendement phase 1 : 2/3 · vagues sans progrès 0/2
+relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 et mineurs corrigés en bf8c930) · relecture amendement phase 1 : 2/3 · relecture amendement phase 2 (brouillon) : 3/3 · relecture contre le socle réel : 3/3 · vagues sans progrès 0/2
 
 ## Tâches
 | id | dépend | fichiers touchés | worktree | état | essais | dernier commit vert | preuve rejouée |
