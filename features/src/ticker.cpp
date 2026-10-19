@@ -23,8 +23,7 @@ QString colorToText(const QColor& color)
 
 QColor colorFromText(const QJsonValue& value, const QColor& fallback)
 {
-    if (!value.isString())
-    {
+    if (!value.isString()) {
         return fallback;
     }
     const QColor color = QColor::fromString(value.toString());
@@ -40,12 +39,10 @@ double TickerSettings::pixelsPerSecond(int speed) noexcept
 
 TickerSettings::Position TickerSettings::positionFromText(const QString& text) noexcept
 {
-    if (text == QLatin1String("center"))
-    {
+    if (text == QLatin1String("center")) {
         return Position::Center;
     }
-    if (text == QLatin1String("bottom"))
-    {
+    if (text == QLatin1String("bottom")) {
         return Position::Bottom;
     }
     return Position::Top;
@@ -53,8 +50,7 @@ TickerSettings::Position TickerSettings::positionFromText(const QString& text) n
 
 QString TickerSettings::positionToText(Position position)
 {
-    switch (position)
-    {
+    switch (position) {
     case Position::Center:
         return QStringLiteral("center");
     case Position::Bottom:
@@ -68,8 +64,7 @@ QString TickerSettings::positionToText(Position position)
 TickerRun::TickerRun(double screenWidth, double textWidth, double pixelsPerSecond, bool loop)
     : m_screenWidth(screenWidth), m_pixelsPerSecond(pixelsPerSecond), m_loop(loop), m_durationMs(0)
 {
-    if (pixelsPerSecond > 0.0)
-    {
+    if (pixelsPerSecond > 0.0) {
         m_durationMs = qRound((screenWidth + textWidth) / pixelsPerSecond * 1000.0);
     }
 }
@@ -82,16 +77,11 @@ int TickerRun::durationMs() const noexcept
 double TickerRun::xAt(std::int64_t elapsedMs) const noexcept
 {
     std::int64_t t = std::max<std::int64_t>(elapsedMs, 0);
-    if (m_durationMs <= 0)
-    {
+    if (m_durationMs <= 0) {
         t = 0;
-    }
-    else if (m_loop)
-    {
+    } else if (m_loop) {
         t %= m_durationMs;
-    }
-    else
-    {
+    } else {
         t = std::min<std::int64_t>(t, m_durationMs);
     }
     return m_screenWidth - m_pixelsPerSecond * static_cast<double>(t) / 1000.0;
@@ -122,19 +112,16 @@ QByteArray tickerToJson(const TickerSettings& settings)
 
 std::optional<TickerSettings> tickerFromJson(const QByteArray& data)
 {
-    if (data.size() > kMaxTickerFileBytes)
-    {
+    if (data.size() > kMaxTickerFileBytes) {
         return std::nullopt; // refusé avant toute analyse
     }
     QJsonParseError error;
     const QJsonDocument doc = QJsonDocument::fromJson(data, &error);
-    if (error.error != QJsonParseError::NoError || !doc.isObject())
-    {
+    if (error.error != QJsonParseError::NoError || !doc.isObject()) {
         return std::nullopt;
     }
     const QJsonObject o = doc.object();
-    if (o.value(QStringLiteral("format")).toString() != kFormat)
-    {
+    if (o.value(QStringLiteral("format")).toString() != kFormat) {
         return std::nullopt;
     }
 

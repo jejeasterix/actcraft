@@ -43,8 +43,9 @@ class TickerRun
 {
 public:
     TickerRun(double screenWidth, double textWidth, double pixelsPerSecond, bool loop);
-    int durationMs() const noexcept;                        // (écran + texte) / vitesse
-    double xAt(std::int64_t elapsedMs) const noexcept;      // de screenWidth à -textWidth ; en boucle, modulo la durée
+    int durationMs() const noexcept; // (écran + texte) / vitesse
+    double
+    xAt(std::int64_t elapsedMs) const noexcept; // de screenWidth à -textWidth ; en boucle, modulo la durée
     bool finishedAt(std::int64_t elapsedMs) const noexcept; // jamais en boucle
 
 private:
@@ -55,7 +56,8 @@ private:
 };
 
 inline constexpr qsizetype kMaxTickerFileBytes = 64 * 1024;
-QByteArray tickerToJson(const TickerSettings& settings);              // format « actcraft-ticker/1 »
-std::optional<TickerSettings> tickerFromJson(const QByteArray& data); // rien si trop gros, illisible ou autre format
+QByteArray tickerToJson(const TickerSettings& settings); // format « actcraft-ticker/1 »
+std::optional<TickerSettings>
+tickerFromJson(const QByteArray& data); // rien si trop gros, illisible ou autre format
 
 } // namespace actcraft::features

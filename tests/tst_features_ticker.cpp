@@ -1,10 +1,10 @@
-#include <QtTest>
-
 #include "actcraft/features/ticker.h"
 
+#include <QtTest>
+
+using actcraft::features::tickerFromJson;
 using actcraft::features::TickerRun;
 using actcraft::features::TickerSettings;
-using actcraft::features::tickerFromJson;
 using actcraft::features::tickerToJson;
 
 class TstFeaturesTicker : public QObject
@@ -33,7 +33,8 @@ private slots:
     }
     void positionsAreThree()
     {
-        QCOMPARE(TickerSettings::positionFromText(QStringLiteral("bottom")), TickerSettings::Position::Bottom);
+        QCOMPARE(TickerSettings::positionFromText(QStringLiteral("bottom")),
+                 TickerSettings::Position::Bottom);
         QCOMPARE(TickerSettings::positionFromText(QStringLiteral("?")), TickerSettings::Position::Top);
     }
     void messageFileRoundTrip()
@@ -61,8 +62,8 @@ private slots:
     }
     void unknownKeysAreIgnored()
     {
-        const auto s =
-            tickerFromJson(R"({"format": "actcraft-ticker/1", "text": "Bonjour", "inconnue": 3, "speed": 99})");
+        const auto s = tickerFromJson(
+            R"({"format": "actcraft-ticker/1", "text": "Bonjour", "inconnue": 3, "speed": 99})");
         QVERIFY(s.has_value());
         QCOMPARE(s->text, QStringLiteral("Bonjour"));
         QCOMPARE(s->speed, 10);                               // borné
