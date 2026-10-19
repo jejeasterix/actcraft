@@ -57,6 +57,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T4 | L7-T2 | voir ligne L7-T4 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T4 (base 0c0b0e2) | en cours (implementeur-tdd), V4 | 1 | — | — |
 | L7-T10 | L7-T9 | voir ligne L7-T10 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T10 (base 0c0b0e2) | mergée : rejeu TESTS OK 158/158, mathtools Totals 18 (0 skipped), 4 mutants un par construction ; Repeater → ListModel ; banc BUDGET DEPASSE (résultat) | 1 | d9b6b36 | dd7f2f2 (graphe 2ca164f) |
 | L7-T5 | L7-S8 | voir ligne L7-T5 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T5 (base e8d01f0) | en cours (implementeur-tdd), V5 | 1 | — | — |
+| L7-T11 | L7-T10, L7-T2 | voir ligne L7-T11 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T11 (base c3d3ed1) | en cours (concepteur-critique), V5 | 1 | — | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
