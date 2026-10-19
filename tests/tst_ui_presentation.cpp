@@ -577,6 +577,13 @@ private slots:
         } else {
             QVERIFY2(activeMidway, "barre saisie pendant le trait");
         }
+        // Sur le corps, sans gestionnaire : seule la couverture retient le trait (sous la barre, la saisie du
+        // DragHandler annule aussi le trait de la souris : sans ce second trait, la ligne souris ne
+        // prouverait rien).
+        const QPointF bodyFrom = panel->mapToScene(QPointF(30, 70));
+        presentationharness::strokeAt(main.window(), pointer, bodyFrom, bodyFrom + QPointF(120, 30));
+        QTest::qWait(50);
+        QCOMPARE(main.pageObjectCount(), before);
         QVERIFY(QMetaObject::invokeMethod(panel, "close"));
         QVERIFY(!panel->isVisible());
         presentationharness::strokeAt(main.window(), pointer, from, to);
