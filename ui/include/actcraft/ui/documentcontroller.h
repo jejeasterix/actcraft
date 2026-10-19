@@ -1,6 +1,7 @@
 #pragma once
 
 #include <actcraft/core/document.h>
+#include <actcraft/core/lift.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/render/fixedpageitem.h>
@@ -181,8 +182,8 @@ signals:
     void lastIoChanged();
     void loadFinished(bool ok, const QString& message);
     void saveFinished(bool ok, const QString& message);
-    // Avant Annuler, Rétablir, un soulèvement, Effacer, Rétablir la page, Supprimer : la vue termine le trait
-    // en cours et les outils leur geste (L2-T15).
+    // Avant Annuler, Rétablir, Effacer, Rétablir la page, Supprimer : la vue termine le trait en cours et les
+    // outils leur geste (L2-T15).
     void editAboutToApply();
     void liftingChanged();
 
@@ -243,6 +244,29 @@ private:
     };
     std::vector<ObserverEntry> m_observers;
     int m_lastObserverToken = 0;
+
+    // Lot 3 (L3-T12) : soulèvement et page de référence de Rétablir la page.
+    // Dépôt forcé (M2) : ce qui reste soulevé après l'annonce d'une édition revient sans étape.
+    void dropRemaining();
+    // Objets soulevés d'un document remplacé depuis (replaceDocument direct) : oubliés, liftingChanged.
+    void forgetStaleLift();
+    // Page de la référence pour la page affichée ; nullptr : jamais enregistrée ni ouverte (page vierge, D9).
+    const core::Page* savedPage() const;
+    std::vector<core::LiftedObject> m_lifted; // page affichée, ordre de la page
+    std::uint64_t m_liftGeneration = 0;       // m_generation au soulèvement
+    // Document tel qu'ouvert ou enregistré en dernier (D9), valable pour la génération m_referenceGeneration.
+    // Partagé avec la copie que le fil d'écriture a enregistrée : aucune copie de plus sur le fil principal.
+    std::shared_ptr<const core::Document> m_reference;
+    std::uint64_t m_referenceGeneration = 0;
+    // canRevertPage, relue à chaque documentChanged (Main.qml) : une empreinte de page par révision.
+    struct RevertCheck
+    {
+        bool valid = false;
+        std::uint64_t revision = 0;
+        std::size_t page = 0;
+        bool answer = false;
+    };
+    mutable RevertCheck m_revertCheck;
 };
 
 } // namespace actcraft::ui

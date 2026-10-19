@@ -1,6 +1,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
+#include <actcraft/core/objectedits.h>
 #include <actcraft/core/pagecache.h>
 #include <actcraft/core/replace.h>
 #include <actcraft/render/fixedpageitem.h>
@@ -13,6 +14,7 @@
 #include <QSizeF>
 #include <QString>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QUrl>
 #include <QtQml/qqmlextensionplugin.h>
@@ -99,6 +101,14 @@ struct ObserverSpy
             });
     }
 };
+
+// Enregistre dans `path` et attend la fin de l'écriture ; vrai si elle a réussi.
+bool saveAndWait(ui::DocumentController& controller, const QString& path)
+{
+    QSignalSpy saved(&controller, &ui::DocumentController::saveFinished);
+    controller.saveToUrl(QUrl::fromLocalFile(path));
+    return saved.wait(10000) && saved.first().first().toBool();
+}
 
 } // namespace
 
@@ -659,6 +669,184 @@ private slots:
         QCOMPARE(edit.count(), 0);
         controller.liftObjects({id});
         QCOMPARE(edit.count(), 0);
+    }
+
+    // Rétablir la page (F-131, D9) : la page telle qu'enregistrée en dernier, ou telle qu'ouverte.
+    void revertPageReturnsToSaved()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        ui::DocumentController controller;
+        controller.commitStroke(redStroke());
+        const QString path = dir.filePath(QStringLiteral("a.actcraft"));
+        QVERIFY(saveAndWait(controller, path));
+        const QString saved = controller.fingerprintText();
+        QVERIFY(!controller.canRevertPage()); // la page est celle du fichier
+        controller.commitStroke(redStroke());
+        QVERIFY(controller.canRevertPage());
+        controller.revertPage();
+        QCOMPARE(controller.fingerprintText(), saved);
+        QCOMPARE(controller.shownObjectCount(), 1); // le trait enregistré reste : pas une page vierge
+        QVERIFY(controller.canUndo());
+        QVERIFY(!controller.canRevertPage());
+        // Ouvert et jamais réenregistré : la page telle qu'ouverte.
+        ui::DocumentController opened;
+        QSignalSpy loaded(&opened, &ui::DocumentController::loadFinished);
+        opened.openUrl(QUrl::fromLocalFile(path));
+        QVERIFY(loaded.wait(10000));
+        QCOMPARE(loaded.first().first().toBool(), true);
+        const QString atOpening = opened.fingerprintText();
+        QCOMPARE(opened.shownObjectCount(), 1);
+        QVERIFY(!opened.canRevertPage());
+        opened.commitStroke(redStroke());
+        opened.revertPage();
+        QCOMPARE(opened.fingerprintText(), atOpening);
+        QCOMPARE(opened.shownObjectCount(), 1);
+    }
+
+    // Jamais enregistré : page vierge de même taille (D9). « Nouveau » après un enregistrement : la référence
+    // de l'ancien document ne vaut plus.
+    void revertNeverSavedEmptiesPage()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(800, 600);
+        controller.commitStroke(redStroke());
+        controller.commitStroke(redStroke());
+        QVERIFY(controller.canRevertPage());
+        controller.revertPage();
+        QCOMPARE(controller.shownObjectCount(), 0);
+        QCOMPARE(controller.pageSize(), QSizeF(800, 600));
+        QVERIFY(controller.canUndo());
+        QVERIFY(!controller.canRevertPage());
+        controller.undo(); // une étape
+        QCOMPARE(controller.shownObjectCount(), 2);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QVERIFY(saveAndWait(controller, dir.filePath(QStringLiteral("a.actcraft"))));
+        controller.newDocument(800, 600);
+        controller.commitStroke(redStroke());
+        controller.revertPage();
+        QCOMPARE(controller.shownObjectCount(), 0);
+    }
+
+    // D9 (L3-T0, amendement de l'orchestrateur) : une étape, et le document reste modifié, même quand la page
+    // redevient celle du fichier (la pile n'est pas remontée jusqu'à l'état propre).
+    void revertPageLeavesTheDocumentModified()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        ui::DocumentController controller;
+        controller.commitStroke(redStroke());
+        QVERIFY(saveAndWait(controller, dir.filePath(QStringLiteral("a.actcraft"))));
+        QVERIFY(!controller.isModified());
+        controller.commitStroke(redStroke());
+        QSignalSpy undoSpy(&controller, &ui::DocumentController::undoChanged);
+        controller.revertPage();
+        QCOMPARE(controller.shownObjectCount(), 1); // contenu du fichier
+        QVERIFY(controller.isModified());
+        QCOMPARE(controller.property("modified").toBool(), true);
+        QCOMPARE(undoSpy.count(), 1);
+        QVERIFY(!controller.canRedo());
+        controller.undo(); // une seule étape : le second trait revient
+        QCOMPARE(controller.shownObjectCount(), 2);
+        QVERIFY(controller.canUndo()); // les traits restent annulables
+    }
+
+    // L2-T15 : editAboutToApply avant toute édition qui n'est pas un trait, avant le mouvement de la pile ;
+    // jamais au soulèvement ni au dépôt (B1).
+    void undoAnnouncesTheEditFirst()
+    {
+        ui::DocumentController controller;
+        QStringList log;
+        connect(&controller, &ui::DocumentController::editAboutToApply, &controller,
+                [&log] { log << QStringLiteral("edit"); });
+        connect(&controller, &ui::DocumentController::undoChanged, &controller,
+                [&log] { log << QStringLiteral("undo"); });
+        const QStringList announced{QStringLiteral("edit"), QStringLiteral("undo")};
+        controller.commitStroke(redStroke());
+        controller.commitStroke(redStroke());
+        log.clear();
+        controller.undo();
+        QCOMPARE(log, announced);
+        log.clear();
+        controller.redo();
+        QCOMPARE(log, announced);
+        log.clear();
+        controller.revertPage(); // jamais enregistré : page vierge
+        QCOMPARE(log, announced);
+        controller.undo();
+        const core::ObjectId first = controller.document().page(0).objects.front().common.id;
+        log.clear();
+        controller.deleteObjects({first});
+        QCOMPARE(log, announced);
+        QCOMPARE(controller.shownObjectCount(), 1);
+        log.clear();
+        controller.clearPage(static_cast<int>(core::ClearKind::Annotations));
+        QCOMPARE(log, announced);
+        QCOMPARE(controller.shownObjectCount(), 0);
+        controller.commitStroke(redStroke());
+        const core::ObjectId id = controller.document().page(0).objects.back().common.id;
+        log.clear();
+        controller.liftObjects({id});
+        QVERIFY(log.isEmpty());
+        controller.dropLifted(std::make_unique<core::TransformObjectsCommand>(
+            0, std::vector<core::ObjectId>{id}, core::translation(10, 0)));
+        QCOMPARE(log, QStringList{QStringLiteral("undo")});
+
+        // La vue termine son trait à l'annonce (Main.qml : finishStroke) : Annuler annule ce trait, et la
+        // branche à rétablir reste entière.
+        ui::DocumentController view;
+        view.commitStroke(redStroke());
+        const core::ObjectId kept = view.document().page(0).objects.front().common.id;
+        bool inProgress = true;
+        connect(&view, &ui::DocumentController::editAboutToApply, &view, [&] {
+            if (inProgress) {
+                inProgress = false;
+                view.commitStroke(redStroke());
+            }
+        });
+        view.undo();
+        QVERIFY(!inProgress);
+        QCOMPARE(view.shownObjectCount(), 1);
+        QCOMPARE(view.document().page(0).objects.front().common.id, kept);
+        QVERIFY(view.canRedo());
+    }
+
+    // Effacer ▸ Annotations (F-130) : les traits partent, la forme ajoutée par la pile reste ; une étape.
+    void clearPageAnnotations()
+    {
+        ui::DocumentController controller;
+        controller.commitStroke(redStroke());
+        controller.commitStroke(redStroke());
+        controller.execute(std::make_unique<core::AddObjectCommand>(0, topSquare()));
+        controller.clearPage(static_cast<int>(core::ClearKind::Annotations));
+        QCOMPARE(controller.shownObjectCount(), 1);
+        QVERIFY(std::holds_alternative<core::Shape>(controller.document().page(0).objects[0]));
+        controller.clearPage(99); // inconnu : rien
+        QCOMPARE(controller.shownObjectCount(), 1);
+        controller.undo();
+        QCOMPARE(controller.shownObjectCount(), 3);
+    }
+
+    // Marqueur (F-225, L3-T6) : le trait arrive opaque, sa translucidité à part ; le document la garde, en
+    // une étape d'annulation d'origine Stroke, sur la couche supérieure.
+    void highlighterKeepsItsTranslucency()
+    {
+        ui::DocumentController controller;
+        ObserverSpy spy;
+        spy.attach(controller);
+        controller.commitAnnotation(redStroke(), 128);
+        QCOMPARE(controller.shownObjectCount(), 1);
+        const core::PageObject& object = controller.document().page(0).objects.back();
+        QCOMPARE(static_cast<int>(object.common.translucency), 128);
+        QVERIFY(object.common.layer == core::Layer::Top);
+        QVERIFY(std::get<core::Stroke>(object).color == 0xFFE53935u); // couleur gardée opaque
+        QCOMPARE(spy.origins.size(), std::size_t{1});
+        QCOMPARE(static_cast<int>(spy.origins[0]), static_cast<int>(Origin::Stroke));
+        QVERIFY(controller.canUndo());
+        controller.undo();
+        QCOMPARE(controller.shownObjectCount(), 0);
+        QVERIFY(!controller.canUndo());
     }
 
     void registeredInQml()
