@@ -188,6 +188,13 @@ private slots:
         const auto f = p.follow(at(500, 300, input::Phase::Move));
         QCOMPARE(qRound(std::hypot(f.x - 500, f.y - 500)), 200);
         QCOMPARE(qRound(p.sweptDegrees()), 90);
+        // Vers le haut de l'écran, le balayage signé est négatif (repère de page) : repris tel quel par
+        // arcPath, l'arc plein couvre le quart tracé, au-dessus du centre, et non son symétrique.
+        QCOMPARE(qRound(p.signedSweptDegrees()), -90);
+        const auto sector =
+            arcPath(QPointF(500, 500), 200, p.startDegrees(), p.signedSweptDegrees(), ArcStyle::Filled);
+        QCOMPARE(sector[sector.size() - 2].toPoint(), QPoint(500, 300)); // fin de l'arc : le point suivi
+        QVERIFY(sector[sector.size() / 2].y() < 500);                    // milieu de l'arc : au-dessus
         // Passé le rayon gauche (où atan2 saute de 180 à -180), à 50 px du pourtour, dehors puis dedans, le
         // trait suit le cercle saisi à l'appui (une re-saisie par échantillon le lâcherait), et l'angle
         // cumulé continue (une différence d'atan2 brute entre l'angle actuel et celui du départ retomberait à
@@ -199,6 +206,13 @@ private slots:
         const auto b = p.follow(at(500, 650, input::Phase::Move));
         QCOMPARE(qRound(std::hypot(b.x - 500, b.y - 500)), 200);
         QCOMPARE(qRound(p.sweptDegrees()), 270);
+        // À travers un GuideSet : le pourtour est trouvé par project() (guide le plus proche), saisi, suivi.
+        GuideSet guides;
+        guides.add(&p);
+        guides.setTolerance(16);
+        QCOMPARE(qRound(guides.filter(at(500, 295, input::Phase::Press)).y), 300); // 5 px hors du pourtour
+        QVERIFY(guides.guiding());
+        QCOMPARE(qRound(guides.filter(at(650, 500, input::Phase::Move)).x), 700); // 50 px dedans : ramené
     }
     void halfProtractorStopsAt180()
     {
@@ -215,6 +229,12 @@ private slots:
         QCOMPARE(qRound(end.x), 300);
         QCOMPARE(qRound(end.y), 500);
         QCOMPARE(qRound(p.sweptDegrees()), 180);
+        // Sous le diamètre côté droit (angle local 22) : le bout droit, le plus proche, et l'angle revient à
+        // 0.
+        const auto right = p.follow(at(650, 560, input::Phase::Move));
+        QCOMPARE(qRound(right.x), 700);
+        QCOMPARE(qRound(right.y), 500);
+        QCOMPARE(qRound(p.sweptDegrees()), 0);
         // Un demi-tour d'un seul pas, puis un retour de 10° : 170, jamais plus de 180 (un pas de -180° ramené
         // à +180° donnerait 190).
         QVERIFY(p.capture(at(705, 500, input::Phase::Press), 16).has_value());
@@ -227,6 +247,13 @@ private slots:
         QVERIFY(!p.capture(at(705, 500, input::Phase::Press), 16).has_value());
         QVERIFY(p.capture(at(295, 500, input::Phase::Press), 16).has_value());
         QCOMPARE(p.displayAngle(), 90);
+        // Suivi dans le repère tourné : le bout « droit » du diamètre est en haut, l'autre en bas.
+        const auto top = p.follow(at(500, 250, input::Phase::Move));
+        QCOMPARE(qRound(top.x), 500);
+        QCOMPARE(qRound(top.y), 300);
+        const auto bottom = p.follow(at(600, 650, input::Phase::Move)); // à droite, plus près du bout bas
+        QCOMPARE(qRound(bottom.x), 500);
+        QCOMPARE(qRound(bottom.y), 700);
     }
     void closedArcAddsTwoRadii()
     {
@@ -257,6 +284,15 @@ private slots:
         // La mine a suivi le stylo vers le haut de l'écran : 90 en sens trigonométrique (270 sinon).
         QCOMPARE(c.displayAngle(), 90);
         QCOMPARE(c.pencil().toPoint(), QPoint(400, 250));
+        // Mine tournée : c'est sa position courante qui saisit, plus celle de l'angle 0, y compris à travers
+        // un GuideSet (project(), guide le plus proche).
+        QVERIFY(!c.capture(at(553, 402, input::Phase::Press), 16).has_value());
+        GuideSet guides;
+        guides.add(&c);
+        guides.setTolerance(16);
+        QCOMPARE(qRound(guides.filter(at(404, 252, input::Phase::Press)).y), 250);
+        QVERIFY(guides.guiding());
+        QCOMPARE(qRound(guides.filter(at(600, 400, input::Phase::Move)).x), 550); // ramené sur le cercle
     }
     void fullTurnClosesTheCircle()
     {
@@ -291,6 +327,15 @@ private slots:
         const auto up = arcPath(QPointF(10, 20), 50, 0, -90, ArcStyle::Filled);
         QCOMPARE(up.size(), std::size_t{48});
         QCOMPARE(up[up.size() - 2].toPoint(), QPoint(10, -30));
+        // 5° : 3 pas, arrondis au-dessus (une troncature en ferait 2), jusqu'à 5° exactement.
+        const auto fiveDegrees = arcPath(QPointF(0, 0), 100, 0, 5, ArcStyle::Arc);
+        QCOMPARE(fiveDegrees.size(), std::size_t{4});
+        QCOMPARE(fiveDegrees.back().toPoint(), QPoint(100, 9));
+        // Balayage nul : un pas quand même, deux points au départ, sans division par zéro.
+        const auto zero = arcPath(QPointF(0, 0), 100, 30, 0, ArcStyle::Arc);
+        QCOMPARE(zero.size(), std::size_t{2});
+        QVERIFY(std::isfinite(zero.back().x()) && std::isfinite(zero.back().y()));
+        QCOMPARE(zero.back().toPoint(), QPoint(87, 50));
     }
     void compassClosesOnItsFirstPoint()
     {
@@ -327,6 +372,7 @@ private slots:
         m.set(1, QPointF(300, 200));
         QCOMPARE(m.at(0), QPointF(100, 100));
         QCOMPARE(m.at(1), QPointF(300, 200));
+        QVERIFY(m.has(0));
         QVERIFY(!m.has(2));
         QCOMPARE(m.at(2), QPointF(500, 400)); // défaut : centre de la page
         m.forget(1);

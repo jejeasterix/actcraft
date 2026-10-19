@@ -299,6 +299,11 @@ double Protractor::sweptDegrees() const noexcept
     return std::abs(m_swept); // le sens du trait ne compte pas : l'échelle lit un angle positif
 }
 
+double Protractor::signedSweptDegrees() const noexcept
+{
+    return m_swept;
+}
+
 double Protractor::startDegrees() const noexcept
 {
     return m_startDegrees;

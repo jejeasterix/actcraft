@@ -112,6 +112,9 @@ public:
     void setFrame(QPointF center, double radius, double angleDegrees, Kind kind);
     int displayAngle() const noexcept;    // comme Ruler::displayAngle()
     double sweptDegrees() const noexcept; // valeur absolue de l'angle cumulé depuis la saisie
+    // Angle cumulé avec son sens, dans le repère de page : négatif vers le haut de l'écran (sens
+    // trigonométrique). arcPath(centre, rayon, startDegrees(), signedSweptDegrees(), …) suit le trait.
+    double signedSweptDegrees() const noexcept;
     double startDegrees() const noexcept; // angle de page du point saisi (repère d'arcPath)
     std::optional<input::Sample> project(const input::Sample& sample, double tolerance) const override;
     std::optional<input::Sample> capture(const input::Sample& sample, double tolerance) override;
