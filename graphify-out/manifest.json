@@ -1710,8 +1710,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_mathtools.cpp": {
-    "mtime": 1792366261.183378,
-    "ast_hash": "8b488a26ef68c15b9318b93f24c54acd",
+    "mtime": 1792381567.548175,
+    "ast_hash": "054a7413d4cdc376492911b608dc4193",
     "semantic_hash": ""
   },
   "tests/tst_features_pagetools.cpp": {
@@ -1770,8 +1770,8 @@
     "semantic_hash": ""
   },
   "features/include/actcraft/features/mathtools.h": {
-    "mtime": 1792366261.1716626,
-    "ast_hash": "f32a579c84ec4032ed53986e09b8a09e",
+    "mtime": 1792381567.539661,
+    "ast_hash": "82bed6a3f0ac394f24db01c1d6f3f4b9",
     "semantic_hash": ""
   },
   "features/include/actcraft/features/strokeguide.h": {
@@ -1780,8 +1780,8 @@
     "semantic_hash": ""
   },
   "features/src/mathtools.cpp": {
-    "mtime": 1792366261.1716626,
-    "ast_hash": "cdee5c5fe66473e9192afe81564881e0",
+    "mtime": 1792381567.5436609,
+    "ast_hash": "3277f4549dcde28a8551ad1646b21536",
     "semantic_hash": ""
   },
   "features/src/strokeguide.cpp": {
