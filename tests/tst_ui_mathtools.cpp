@@ -79,6 +79,37 @@ void stylusPath(const MainWindow& w, std::initializer_list<QPointF> pagePoints, 
     QCoreApplication::processEvents();
 }
 
+// Un temps d'un pointeur (appui, déplacement, relâché), injecté comme presentationharness::strokeAt.
+void pointerStep(QQuickWindow* window, Pointer pointer, QEvent::Type phase, QPointF at)
+{
+    switch (pointer) {
+    case Pointer::Stylus:
+        presentationharness::sendTablet(window, phase, at);
+        break;
+    case Pointer::Finger:
+        // Séquence temporaire : livrée à la fin de l'instruction, comme dans presentationharness::strokeAt.
+        if (phase == QEvent::TabletPress) {
+            QTest::touchEvent(window, presentationharness::touchDevice()).press(0, at.toPoint());
+        } else if (phase == QEvent::TabletMove) {
+            QTest::touchEvent(window, presentationharness::touchDevice()).move(0, at.toPoint());
+        } else {
+            QTest::touchEvent(window, presentationharness::touchDevice()).release(0, at.toPoint());
+        }
+        presentationharness::settleTouch();
+        break;
+    case Pointer::Mouse:
+        if (phase == QEvent::TabletPress) {
+            QTest::mousePress(window, Qt::LeftButton, Qt::NoModifier, at.toPoint());
+        } else if (phase == QEvent::TabletMove) {
+            QTest::mouseMove(window, at.toPoint());
+        } else {
+            QTest::mouseRelease(window, Qt::LeftButton, Qt::NoModifier, at.toPoint());
+        }
+        break;
+    }
+    QCoreApplication::processEvents();
+}
+
 const actcraft::core::Stroke* lastStroke(const actcraft::core::Page& page)
 {
     return page.objects.empty() ? nullptr : std::get_if<actcraft::core::Stroke>(&page.objects.back());
@@ -287,8 +318,18 @@ private slots:
         QVERIFY(tools);
         const Frame f = frameOf(*tools, 0);
         const int before = w.pageObjectCount();
-        presentationharness::strokeAt(w.window(), pointer, scene(w, QPointF(f.cx - 62, f.cy)),
-                                      scene(w, QPointF(f.cx - 62, f.cy - 60)));
+        // Un seul geste : encre lue d'abord sous le seuil de glisser (sans couverture, la vue prendrait
+        // l'appui et le stylo dessinerait ; le gestionnaire de la règle ne la lui reprend qu'au-delà du seuil),
+        // puis glisser jusqu'au bout.
+        const QPointF from = scene(w, QPointF(f.cx - 62, f.cy));
+        const QPointF to = scene(w, QPointF(f.cx - 62, f.cy - 60));
+        pointerStep(w.window(), pointer, QEvent::TabletPress, from);
+        pointerStep(w.window(), pointer, QEvent::TabletMove, from + QPointF(0, -2));
+        QCOMPARE(w.pageView()->ink()->pointCount(), std::size_t{0});
+        for (int k = 1; k <= 8; ++k) {
+            pointerStep(w.window(), pointer, QEvent::TabletMove, from + (to - from) * (k / 8.0));
+        }
+        pointerStep(w.window(), pointer, QEvent::TabletRelease, to);
         QTRY_VERIFY2(qAbs(frameOf(*tools, 0).cy - (f.cy - 60)) <= 2, "règle déplacée par son gestionnaire");
         QTest::qWait(50);
         QCOMPARE(w.pageObjectCount(), before);
