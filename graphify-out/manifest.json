@@ -1660,8 +1660,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792364125.9539678,
-    "ast_hash": "17994c046358688916aa88358196db6f",
+    "mtime": 1792377337.7931578,
+    "ast_hash": "4fb6b011df1256f9e8ce2ccf5a87d5c6",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -1725,13 +1725,13 @@
     "semantic_hash": ""
   },
   "tests/tst_features_recognitionsession.cpp": {
-    "mtime": 1792349203.9498134,
-    "ast_hash": "c592aee70c0d033d069d4db331777115",
+    "mtime": 1792379687.1946845,
+    "ast_hash": "8110de1fadb50365eda5df2114b3f193",
     "semantic_hash": ""
   },
   "tests/tst_features_shapefinder.cpp": {
-    "mtime": 1792349203.9518366,
-    "ast_hash": "73ed157b1378ead38300b129b44e8b31",
+    "mtime": 1792379687.1976867,
+    "ast_hash": "4f845fed2cff4790275cf831ba37a9ec",
     "semantic_hash": ""
   },
   "tests/tst_features_spotlight.cpp": {
@@ -1792,6 +1792,26 @@
   "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md": {
     "mtime": 1792362735.927339,
     "ast_hash": "3e613e573834969a8afcae2f75eb463b",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/recognitionsession.h": {
+    "mtime": 1792379687.184161,
+    "ast_hash": "a9d4d6360355ec9e18b967d6d8f23cb3",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/shapefinder.h": {
+    "mtime": 1792379687.1871684,
+    "ast_hash": "d8bac2b1412445e83a173919cfbb26d2",
+    "semantic_hash": ""
+  },
+  "features/src/recognitionsession.cpp": {
+    "mtime": 1792379687.1891682,
+    "ast_hash": "c636fc9b53d87c3f1214d7b5615c961d",
+    "semantic_hash": ""
+  },
+  "features/src/shapefinder.cpp": {
+    "mtime": 1792379687.1911685,
+    "ast_hash": "b05bc780d4e0eb083983f06e5573056a",
     "semantic_hash": ""
   }
 }
