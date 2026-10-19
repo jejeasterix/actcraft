@@ -251,7 +251,11 @@ private slots:
         QVERIFY(tools);
         const Frame f = frameOf(*tools, 0);
         QQuickWindow* window = w.window();
-        const auto hoverAt = [&](QPointF page) { QTest::mouseMove(window, scene(w, page).toPoint()); };
+        // Deux déplacements : le second relit le curseur une fois le survol du premier livré aux gestionnaires.
+        const auto hoverAt = [&](QPointF page) {
+            QTest::mouseMove(window, scene(w, page).toPoint());
+            QTest::mouseMove(window, scene(w, page).toPoint() + QPoint(1, 0));
+        };
         hoverAt(QPointF(f.cx - 62, f.cy));
         QTRY_COMPARE(window->cursor().shape(), Qt::SizeAllCursor);
         hoverAt(QPointF(f.left() + 24 + 30, f.cy));

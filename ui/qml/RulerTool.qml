@@ -43,10 +43,10 @@ Item {
         id: scale
         anchors.fill: parent
         renderStrategy: Canvas.Cooperative
-        property string topUnit: ruler.frame.topUnit || "none"
-        property string bottomUnit: ruler.frame.bottomUnit || "none"
-        onTopUnitChanged: requestPaint()
-        onBottomUnitChanged: requestPaint()
+        property string upperUnit: ruler.frame.topUnit || "none"
+        property string lowerUnit: ruler.frame.bottomUnit || "none"
+        onUpperUnitChanged: requestPaint()
+        onLowerUnitChanged: requestPaint()
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
         onPaint: {
@@ -56,8 +56,8 @@ Item {
             ctx.fillStyle = "#33404d"
             ctx.lineWidth = 1
             ctx.font = "10px sans-serif"
-            drawEdge(ctx, topUnit, true)
-            drawEdge(ctx, bottomUnit, false)
+            drawEdge(ctx, upperUnit, true)
+            drawEdge(ctx, lowerUnit, false)
         }
         function drawEdge(ctx, unit, top) {
             if (unit === "none")
