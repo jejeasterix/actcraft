@@ -30,8 +30,8 @@ public:
 std::unique_ptr<HandwritingRecognizer> makePlatformHandwritingRecognizer();
 // Jamais nul : la réalisation de la plateforme, sinon « indisponible » avec son explication.
 std::unique_ptr<HandwritingRecognizer> makeHandwritingRecognizer();
-// Appartement COM du fil courant : Windows, CoInitializeEx en appartement unique ; ailleurs, rien.
-// Vrai si leaveRecognitionApartment() doit être appelé sur ce même fil.
+// Appartement COM du fil courant : sous Windows, initialisation de COM en appartement unique ; ailleurs,
+// rien. Vrai si leaveRecognitionApartment() doit être appelé sur ce même fil.
 bool enterRecognitionApartment();
 void leaveRecognitionApartment();
 

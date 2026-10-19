@@ -84,11 +84,15 @@ std::vector<LANGID> languagesOf(IInkRecognizer* recognizer)
         !languages.value().parray)
         return out;
     SAFEARRAY* array = languages.value().parray;
-    VARTYPE type = VT_EMPTY;
+    const auto readable = [](VARTYPE t) { return t == VT_I2 || t == VT_UI2 || t == VT_I4 || t == VT_UI4; };
+    // Type des éléments : celui que porte le VARIANT d'abord (vu sur un poste Windows 11 : VT_ARRAY | VT_I2),
+    // celui du tableau ensuite (SafeArrayGetVartype échoue sur un tableau créé sans FADF_HAVEVARTYPE).
+    VARTYPE type = static_cast<VARTYPE>(languages.value().vt & VT_TYPEMASK);
+    if (!readable(type) && (FAILED(SafeArrayGetVartype(array, &type)) || !readable(type)))
+        return out;
     LONG lower = 0;
     LONG upper = -1;
-    if (FAILED(SafeArrayGetVartype(array, &type)) || FAILED(SafeArrayGetLBound(array, 1, &lower)) ||
-        FAILED(SafeArrayGetUBound(array, 1, &upper)))
+    if (FAILED(SafeArrayGetLBound(array, 1, &lower)) || FAILED(SafeArrayGetUBound(array, 1, &upper)))
         return out;
     for (LONG i = lower; i <= upper; ++i) {
         if (type == VT_I2 || type == VT_UI2) {

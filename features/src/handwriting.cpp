@@ -38,7 +38,7 @@ std::unique_ptr<HandwritingRecognizer> makeHandwritingRecognizer()
 }
 
 // Un seul fil, le même pour toutes les demandes : un objet COM d'appartement unique ne sert que sur le fil
-// qui l'a créé, et CoUninitialize doit suivre CoInitializeEx sur ce même fil. Un pool (QThreadPool,
+// qui l'a créé, et la sortie de COM suit son entrée sur ce même fil. Un pool (QThreadPool,
 // QtConcurrent) ne le garantit pas d'une demande à l'autre.
 HandwritingThread::HandwritingThread(Factory factory) : m_factory(std::move(factory)), m_context(new QObject)
 {

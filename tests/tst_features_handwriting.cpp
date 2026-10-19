@@ -10,6 +10,12 @@
 #include <vector>
 
 #ifdef Q_OS_WIN
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <objbase.h> // test seulement (pas du code livré) : type d'appartement COM du fil
 #endif
 
@@ -117,12 +123,15 @@ private slots:
     {
         auto log = std::make_shared<ThreadLog>();
         log->gateOpen = false; // fermée avant le démarrage du fil : la création attend aussi
-        HandwritingThread thread([log] { return std::make_unique<FakeRecognizer>(log, true); });
         std::vector<QThread*> callbackThreads;
         int replies = 0;
+        // Receveur propre au test, détruit après le fil : une réponse restée en file part avec lui, jamais
+        // livrée dans un autre test (les rappels écrivent dans cette pile).
+        QObject receiver;
+        HandwritingThread thread([log] { return std::make_unique<FakeRecognizer>(log, true); });
         const InkStrokes ink{{{0, 0}, {0, 10}}};
         for (int i = 0; i < 2; ++i)
-            thread.recognize(ink, this, [&](const RecognitionReply& reply) {
+            thread.recognize(ink, &receiver, [&](const RecognitionReply& reply) {
                 QCOMPARE(reply.texts.value(0), QStringLiteral("bonjour"));
                 callbackThreads.push_back(QThread::currentThread());
                 ++replies;
@@ -151,13 +160,11 @@ private slots:
 #ifdef Q_OS_WIN
         auto log = std::make_shared<ThreadLog>();
         {
-            HandwritingThread thread([log] { return std::make_unique<FakeRecognizer>(log, true); });
             bool done = false;
-            thread.recognize(
-                InkStrokes{
-                    { {0, 0},
-                      {5, 5} }},
-                this, [&](const RecognitionReply&) { done = true; });
+            QObject receiver; // détruit après le fil
+            HandwritingThread thread([log] { return std::make_unique<FakeRecognizer>(log, true); });
+            const InkStrokes ink{{ {0, 0}, {5, 5} }};
+            thread.recognize(ink, &receiver, [&](const RecognitionReply&) { done = true; });
             QTRY_VERIFY(done);
             const std::lock_guard lock(log->mutex);
             QCOMPARE(log->threads.size(), std::size_t{2}); // création + une reconnaissance
@@ -173,9 +180,10 @@ private slots:
     void unavailableReplyCarriesTheExplanation()
     {
         auto log = std::make_shared<ThreadLog>();
-        HandwritingThread thread([log] { return std::make_unique<FakeRecognizer>(log, false); });
         std::optional<RecognitionReply> got;
-        thread.probe(this, [&](const RecognitionReply& reply) { got = reply; });
+        QObject receiver; // détruit après le fil
+        HandwritingThread thread([log] { return std::make_unique<FakeRecognizer>(log, false); });
+        thread.probe(&receiver, [&](const RecognitionReply& reply) { got = reply; });
         QTRY_VERIFY(got.has_value());
         QVERIFY(!got->available);
         QVERIFY(!got->status.isEmpty());
@@ -183,15 +191,16 @@ private slots:
     }
     void recognizesSyntheticInk()
     {
-        HandwritingThread thread; // vrai reconnaisseur, sur le fil STA
         std::optional<RecognitionReply> probe;
-        thread.probe(this, [&](const RecognitionReply& reply) { probe = reply; });
+        std::optional<RecognitionReply> got;
+        QObject receiver;         // détruit après le fil
+        HandwritingThread thread; // vrai reconnaisseur, sur le fil STA
+        thread.probe(&receiver, [&](const RecognitionReply& reply) { probe = reply; });
         QTRY_VERIFY_WITH_TIMEOUT(probe.has_value(), 10000); // premier chargement du moteur d'encre
         if (!probe->available)
             QSKIP(qPrintable(QStringLiteral("reconnaisseur absent : ") + probe->status));
         // « l » : un trait vertical ; le contenu n'est pas comparé (S10), seulement la forme du résultat
-        std::optional<RecognitionReply> got;
-        thread.recognize(InkStrokes{{{100, 100}, {100, 140}, {100, 180}}}, this,
+        thread.recognize(InkStrokes{{{100, 100}, {100, 140}, {100, 180}}}, &receiver,
                          [&](const RecognitionReply& reply) { got = reply; });
         QTRY_VERIFY_WITH_TIMEOUT(got.has_value(), 10000);
         QVERIFY(!got->texts.isEmpty());
