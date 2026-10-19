@@ -2,12 +2,13 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
-Brouillon relu trois fois (tours 1 à 3, rapports revue-phase2-t1..t3) ; nouvelle relecture obligatoire contre le socle réel à la fusion.
+Brouillon relu trois fois (tours 1 à 3, rapports revue-phase2-t1..t3), puis confronté au socle réel le 2026-10-19 ; relecture exigée de cette confrontation avant exécution.
 
-**Statut : BROUILLON.** Écrit avant que le socle L0-S (exécuté par la session A sur `feat/livraison-complete`) soit
-mergé. Il sera **revu contre le socle réel à la fusion**, puis relu (hook `relire-plan.js`) avant toute exécution.
-Chaque point qui dépend d'un code du socle non encore vérifiable porte la marque **[SOCLE?]** ; la liste complète est
-en fin de plan (« À vérifier contre le socle réel à la fusion »).
+**Statut : confronté au socle réel.** Le socle est mergé et fusionné dans `feat/livraison-complete-b` (131f790,
+depuis `feat/livraison-complete` @ e7c6713). Les 17 points « [SOCLE?] » du brouillon sont levés par lecture du code
+fusionné : chacun porte « vérifié : … (fichier:ligne) » ou la correction faite (section « Vérifié contre le socle
+réel », en fin de plan). Les quatre points de A (état du chantier, « Socle fusionné ») sont intégrés (décision 13).
+Relecture exigée (hook `relire-plan.js`) avant toute exécution.
 
 **Ce que c'est.** Un amendement aux plans du lot 7 : `docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md` (« 7a »)
 et `docs/plans/2026-10-18-livraison-complete-lot7b-PLAN.md` (« 7b »). Il **ne les réécrit pas** : pour chaque tâche
@@ -87,9 +88,16 @@ vague suivante ne part pas ; l'écart est rendu à la tâche fautive.
    (socle:131-153). La tâche propriétaire supprime le marqueur et `reserved()`. Contrôle de clôture du lot :
    `git -C <wt> grep -n "Talon L7-S8 : rempli par" -- . ':(exclude)docs/'` vide, et
    `git -C <wt> grep -n "Talon L0-S : rempli par L7-" -- . ':(exclude)docs/'` vide (talons du lot 7 posés par le
-   socle, s'il y en a : **[SOCLE?]** `core/equation.*`, `render/src/equationlayout.*`).
+   socle). Vérifié : trois lignes sur la branche fusionnée — `core/include/actcraft/core/equation.h:2` et
+   `core/src/equation.cpp:2` (`… par L7-T24.`, retirées par L7-T24), `render/src/equationlayout.cpp:1`
+   (`… par L7-T25.`, retirée par L7-T25) ; chaque tâche le prouve par son `git grep` vide.
 3. **Racines et emplacements** (posés par L7-S8). `Presentation.qml` ne pose **que** `parent` (aucun `anchors`) :
-   la racine décide de sa géométrie (revue M2). Dans `pageOverlays` (coordonnées de page : la surcouche suit le zoom
+   la racine décide de sa géométrie (revue M2). La racine de `Presentation.qml` est un **`QtObject`** (socle L0-S9,
+   `ui/qml/Presentation.qml:7-12` : `layer` est une propriété FINAL de `Item`) avec `default property list<QtObject>
+   data` : les racines du lot y sont déclarées et posées par `parent: presentation.layer` ou
+   `parent: presentation.pageOverlays`, jamais comme enfants visuels de `presentation` (point 2 de A). Les racines
+   sans parent (`PerPageTools`, `OtherToolsHost`, les trois racines à fenêtre propre) sont des `Item` non visuels de
+   `data`. Dans `pageOverlays` (coordonnées de page : la surcouche suit le zoom
    et le défilement), la racine écrit elle-même `anchors.fill: parent` ; dans `presentation.layer`, elle garde les
    liaisons de 7a (alignement sur `pageArea` par `mapToItem`) ou la taille propre du panneau. **Empilement** : chaque
    racine reçoit un `z` explicite dans `Presentation.qml` (revue, tour 2, mineur 9), sans dépendre de l'ordre de
@@ -154,8 +162,10 @@ vague suivante ne part pas ; l'écart est rendu à la tâche fautive.
    « `CameraOverlay.qml` est une fenêtre » se lisent « la fenêtre est le `Component` de la racine
    `CameraOverlay.qml` » (de même pour `ScreenKeyboard.qml` et `DesktopAnnotation.qml`).
 5. **Couvertures (B2, socle « Changent » 5).** Toute surcouche ou tout panneau qui prend l'entrée appelle
-   `pageArea.view.addInputCover(<item>)` à son ouverture et `removeInputCover` à sa fermeture **[SOCLE?]** (signature
-   `addInputCover(QQuickItem*)`, accessible en QML depuis `pageArea.view`). `FloatingPanel.qml` le fait pour tous les
+   `pageArea.view.addInputCover(<item>)` à son ouverture et `removeInputCover` à sa fermeture (vérifié : `Q_INVOKABLE void
+   addInputCover(QQuickItem* cover)` et `removeInputCover`, `ui/include/actcraft/ui/pageview.h:181-182` ; `view`
+   alias de `PageArea`, `ui/qml/PageArea.qml:10` ; `coveredAt` respecte visibilité, activité et `contains`,
+   `ui/src/pageview.cpp:724-727`). `FloatingPanel.qml` le fait pour tous les
    panneaux (L7-T2). Chaque tâche a son test `<fonction>BlocksTheStylus` **à données**, trois lignes `stylet`
    (`QTabletEvent`), `doigt` (`QTouchEvent`), `souris` (`QMouseEvent`), injectées sous la surcouche par les aides de
    `tests/support/presentationharness.h` (L7-S8) ; attendu : nombre d'objets de la page inchangé, encre vide,
@@ -191,8 +201,10 @@ vague suivante ne part pas ; l'écart est rendu à la tâche fautive.
    actions neuves de L7-T0 sans commande au socle (mémoriser le rideau pour la page, P9 ; capturer la zone du spot,
    P8 ; poser le calcul sur la page, P3) sont des entrées du **menu propre** de la surcouche ou des boutons du
    panneau ; leur effet passe par une commande d'annulation nommée de `core` (`SetPagePresentationCommand`,
-   `AddObjectCommand`) via `DocumentInsertions`, une étape. **[SOCLE?]** Si L0-S4 a posé une commande pour l'une
-   d'elles, la tâche l'utilise et branche son gestionnaire dans sa racine.
+   `AddObjectCommand`) via `DocumentInsertions`, une étape. Vérifié : `actions/data/commands.json` (85 commandes)
+   n'a aucune commande pour P8, P9 ni P3 ; les identifiants du lot cités par ce plan y sont tous (dont
+   `view.page-effects`, `page.tools-mode`, `page.curtain-mode`, `page.curtain-distance`, `page.spotlight-mode`,
+   `present.curtain-color`, `desktop.restore`).
 9. **Valeurs de L7-T0 déjà dans la logique** (phase 1, décision 9) : rien à refaire côté `features/` ; les tâches
    d'interface les **lisent** par leurs constantes nommées (`Spotlight::kDefaultOutline`, `kDefaultToolOpacity`,
    `RecognitionSession::kDefaultDelayMs`, catalogue de `transitions.h`, `Dice` à 1 dé) et ne les recopient jamais.
@@ -207,16 +219,33 @@ vague suivante ne part pas ; l'écart est rendu à la tâche fautive.
     (L0-S9), il reste à prouver les racines ; `presentationLoadsWithoutQmlWarning` est retiré (revue, mineur 2 :
     `shellLoadsWithoutQmlWarning` du socle charge le même `Main.qml`, racines comprises) ; talons des contrôleurs
     remplacés par des motifs (décision 1) ; le glisser du calcul vers la page (P3) va à L7-T32 (revue M6).
-13. **Deux lots** (plus de 20 tâches) : **P2-A** = L7-S8, L7-T1 à L7-T19 (20 tâches, ancien 7a) ; **P2-B** = L7-T21,
+13. **Points de A après la fusion du socle** (état du chantier, « Socle fusionné », 2026-10-19) :
+    - **Observateur et chargements** : `replaceDocument`, `loadGeneratedFirstPage`, `loadGeneratedPages`
+      (`ui/include/actcraft/ui/documentcontroller.h:86-103`) ne passent pas par `applyToCache` et n'appellent pas
+      l'observateur. Tout contrôleur du lot qui suit le document par `addChangeObserver` écoute **aussi**
+      `pagesChanged` et `documentChanged` (`documentcontroller.h:172`, `:176`) et y relit son état (outils de page,
+      origine, session de reconnaissance, effet de la page) : règle commune, et tests nommés dans L7-T6, L7-T13 et
+      L7-T21.
+    - **Racine `QtObject`** de `Presentation.qml` : décision 3.
+    - **Démontage** : tout QML neuf protège ses accès à `commands` (et à `documentController`, `tools`, `pageArea`),
+      nuls pendant le démontage (`if (!root.commands) return` dans les gestionnaires, `root.commands ? … : …` dans
+      les liaisons) ; `tst_ui_shell::shellLoadsWithoutQmlWarning` (`tests/tst_ui_shell.cpp:845`,
+      `QTest::failOnWarning`) échoue sur tout avertissement QML : il fait partie de la preuve de chaque tâche qui
+      touche un QML (suite complète).
+    - **Injection** : étapes de scénario `touch`, `pinch`, `pointer`, `doubleClick` jouées par
+      `QTest::createTouchDevice` et `QTest::touchEvent` (un `QTouchEvent` posté n'atteint pas Qt Quick) ; `expect`
+      accepte `tolerance` (`bench/src/uiscenario.cpp:214`, `:243-244`) ; les aides de test du lot font de même
+      (`tests/support/presentationharness.h`, L7-S8, étape 6).
+14. **Deux lots** (plus de 20 tâches) : **P2-A** = L7-S8, L7-T1 à L7-T19 (20 tâches, ancien 7a) ; **P2-B** = L7-T21,
     L7-T23 à L7-T34 (13 tâches, ancien 7b). Un seul fichier, à la demande de l'orchestrateur ; les lots s'exécutent
     l'un après l'autre.
 
 ## Compte de tests
 
-- **N_F** = nombre de tests ctest de `feat/livraison-complete-b` juste après la fusion du socle, relevé par
-  l'orchestrateur et inscrit dans l'état. Attendu : **N_F = N_départ + 19 (socle) + 16 (phase 1)**, soit 129 si
-  N_départ = 94 **[SOCLE?]** (N_départ et tout test ajouté par A depuis : à relever, pas à supposer).
-- **L7-S8 déclare 29 tests** : **N = N_F + 29** pour L7-S8 et **toutes** les tâches suivantes jusqu'à L7-T32
+- **N_F** = nombre de tests ctest de `feat/livraison-complete-b` juste après la fusion du socle : **N_F = 129** =
+  113 (suite de A sur `feat/livraison-complete`, debug et release 113/113) + 16 (phase 1) ; à confirmer par la suite
+  de l'orchestrateur en cours sur 131f790 (inscrite dans l'état ; une autre valeur remplace 129 partout).
+- **L7-S8 déclare 29 tests** : **N = N_F + 29 = 158** pour L7-S8 et **toutes** les tâches suivantes jusqu'à L7-T32
   (« = »). n_B = 16 + 29 = **45**.
 - Les 29 : 17 entrées ctest d'interface, toutes servies par l'exécutable unique `tst_ui_lot7` (décision 1) —
   `tst_ui_presentation` (L7-S8, L7-T2, L7-T32), `tst_ui_curtain` (T3),
@@ -238,18 +267,18 @@ vague suivante ne part pas ; l'écart est rendu à la tâche fautive.
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L7-S8 | Squelette du lot 7 (ancienne L0-S8) : `Presentation.qml` et 17 racines, 10 QML talons, `ui/presentation.cmake` aux noms figés, `DocumentInsertions` (en-tête figé, corps talon), aides de test, 29 tests et 9 scénarios talons | fusion du socle dans `feat/livraison-complete-b` | `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/presentation.cmake`, `ui/src/presentationdocument.h`, `ui/src/presentationdocument.cpp`, `ui/qml/{CurtainOverlay,SpotlightOverlay,PageZoomOverlay,PerPageTools,TransitionLayer,PageEffectsPicker,MathToolsLayer,DicePanel,CalculatorPanel,ClockPanel,TickerOverlay,RecognitionAlternatives,EquationEditor,CameraOverlay,ScreenKeyboard,DesktopAnnotation,OtherToolsHost}.qml`, `ui/qml/{FloatingPanel,RulerTool,SetSquareTool,ProtractorTool,CompassTool,OriginMarker,CountdownDialog,TickerDialog,CameraPalette,DesktopToolsWheel}.qml`, `tests/support/presentationharness.h`, `tests/support/lot7registry.h`, `tests/tst_ui_lot7_main.cpp`, `tests/tst_ui_{presentation,curtain,spotlight,pagezoom,pagetools,transitions,mathtools,dice,calculator,clock,othertools,ticker,recognition,equation,camera,keyboard,desktop}.cpp`, `tests/tst_core_equation.cpp`, `tests/tst_render_equation.cpp`, `tests/tst_features_equationeditor.cpp`, `bench/scenarios/{rideau,spot,effets,regle,compte-a-rebours,message,reconnaissance-forme,equation,presentation}.json` | isolé | concepteur-critique | `TESTS OK`, **N = N_F + 29**, les 29 tests neufs Passed ; 20 lignes `SKIP   : …reserved() Talon L7-S8 : rempli par L7-T<n>.` (16 classes de `tst_ui_lot7` hors `presentation`, 3 de logique, et le `reserved()` de `tst_ui_presentation`, pour L7-T2) ; `tst_ui_presentation` : PASS de `lot7RootsExist` ; 9 `tst_captures_*` Passed (`waitReady`) ; `premiers-pas` hors écran `CAPTURES OK` (`LU pageIndicator.text=1 / 2 OK`) ; `NOMS OK` après `git add` et après le commit | S10, S22, S23, S24 (support) | #tache-l7-s8 |
 | L7-T1 | Objet MathML des `.flipchart` lu en équation (reste de L7-T1) | L7-S8 | `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/support/flipchartwriter.h`, `tests/tst_formats_flipchart.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_formats_flipchart` Passed, PASS de `mathmlObjectBecomesEquation` | S24 | #tache-l7-t1 |
-| L7-T2 | Insertions du lot (`DocumentInsertions`), panneau flottant couverture, observateur des traits | L7-S8 | `ui/src/presentationdocument.cpp`, `ui/qml/FloatingPanel.qml`, `tests/tst_ui_presentation.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_presentation` 0 skipped, PASS de `insertTextIsUndoneAtOnce`, `insertObjectOnNewPageIsUndoneAtOnce`, `replaceObjectsIsUndoneAtOnce`, `setPagePresentationIsUndoneAtOnce`, `changeObserverSeesEveryStroke`, `floatingPanelIsACover(stylet)`, `(doigt)`, `(souris)`, `coveredStylusLeavesFingersFree` ; banc hors écran joint | S10 | #tache-l7-t2 |
+| L7-T2 | Insertions du lot (`DocumentInsertions`), panneau flottant couverture, observateur des traits | L7-S8 | `ui/src/presentationdocument.cpp`, `ui/qml/FloatingPanel.qml`, `tests/tst_ui_presentation.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_presentation` 0 skipped, PASS de `insertTextIsUndoneAtOnce`, `insertObjectOnNewPageIsUndoneAtOnce`, `replaceObjectsIsUndoneAtOnce`, `setPagePresentationIsUndoneAtOnce`, `insertImageIsUndoneAtOnce`, `changeObserverSeesEveryStroke`, `replacedDocumentIsSignalled`, `floatingPanelIsACover(stylet)`, `(doigt)`, `(souris)`, `coveredStylusLeavesFingersFree` ; banc hors écran joint | S10 | #tache-l7-t2 |
 | L7-T3 | Rideau (F-265) : contrôleur, surcouche couverture, scénario | L7-S8 | `ui/src/curtaincontroller.h`, `ui/src/curtaincontroller.cpp`, `ui/qml/CurtainOverlay.qml`, `tests/tst_ui_curtain.cpp`, `bench/scenarios/rideau.json` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_curtain` 0 skipped, PASS de `curtainNeverRefreshesTheCache`, `curtainBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` ; `tst_captures_rideau` Passed ; captures `rideau` hors écran `LU curtain.coverage=…` puis `PIXEL` couvert et découvert OK ; banc hors écran joint | S10 | #tache-l7-t3 |
 | L7-T4 | Spot (F-270) : contrôleur, surcouche (contour 10, curseurs par zone), capture de la zone éclairée | L7-T2 | `ui/src/spotlightcontroller.h`, `ui/src/spotlightcontroller.cpp`, `ui/qml/SpotlightOverlay.qml`, `tests/tst_ui_spotlight.cpp`, `bench/scenarios/spot.json` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_spotlight` 0 skipped, PASS de `spotlightNeverRefreshesTheCache`, `spotlightBlocksTheStylus(stylet)`, `(doigt)`, `(souris)`, `spotlightOutlineIsTheDefault`, `spotlightCursorFollowsTheZone`, `spotlightCaptureIsUndoneAtOnce` ; `tst_captures_spot` Passed ; banc hors écran joint | S10 | #tache-l7-t4 |
 | L7-T5 | Zoom de page (F-260) : contrôleur sur `zoomAround`, surcouche couverture (appui long droit compris) | L7-S8 | `ui/src/pagezoomcontroller.h`, `ui/src/pagezoomcontroller.cpp`, `ui/qml/PageZoomOverlay.qml`, `tests/tst_ui_pagezoom.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_pagezoom` 0 skipped, PASS de `pageZoomRefreshesTheCacheOnceAtRelease` (exactement 1), `pageZoomLeavesTheDocumentUnchanged`, `pageZoomBlocksTheStylus(stylet)`, `(doigt)`, `(souris)`, `rightHoldIsTakenByTheCover` ; banc hors écran joint | S10 | #tache-l7-t5 |
-| L7-T6 | Outils de page par page (F-591 à F-593) : conversion depuis `PagePresentation`, contrôleur, lecture `.flipchart` (propriétés codées 12, 16, 27, 30 seulement pour les valeurs établies par une source indépendante, sinon H7-16), mémoriser le rideau pour la page | L7-T1, L7-T2, L7-T3, L7-T4 | `features/include/actcraft/features/pagetools.h`, `features/src/pagetools.cpp`, `tests/tst_features_pagetools.cpp`, `ui/src/pagetoolscontroller.h`, `ui/src/pagetoolscontroller.cpp`, `ui/qml/PerPageTools.qml`, `ui/qml/CurtainOverlay.qml` (entrée « Mémoriser pour cette page » du menu du rideau), `tests/tst_ui_pagetools.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/support/flipchartwriter.h`, `tests/tst_formats_flipchart.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_features_pagetools` 0 skipped dont PASS de `curtainModeOffMeansFull`, `conversionKeepsEveryValue` ; `tst_formats_flipchart` PASS de `pagePresentationRead` (propriétés 13, 18, 29 et valeurs établies des propriétés codées seulement), et de `pageToolsPropertyRead` si et seulement si au moins une valeur de la propriété 27 est établie (sinon fonction absente, H7-16 au rapport) ; `tst_ui_pagetools` PASS de `pageChangeAppliesPageTools`, `rememberCurtainIsUndoneAtOnce` ; banc hors écran joint | S10 | #tache-l7-t6 |
+| L7-T6 | Outils de page par page (F-591 à F-593) : conversion depuis `PagePresentation`, contrôleur, lecture `.flipchart` (propriétés codées 12, 16, 27, 30 seulement pour les valeurs établies par une source indépendante, sinon H7-16), mémoriser le rideau pour la page | L7-T1, L7-T2, L7-T3, L7-T4 | `features/include/actcraft/features/pagetools.h`, `features/src/pagetools.cpp`, `tests/tst_features_pagetools.cpp`, `ui/src/pagetoolscontroller.h`, `ui/src/pagetoolscontroller.cpp`, `ui/qml/PerPageTools.qml`, `ui/qml/CurtainOverlay.qml` (entrée « Mémoriser pour cette page » du menu du rideau), `tests/tst_ui_pagetools.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/support/flipchartwriter.h`, `tests/tst_formats_flipchart.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_features_pagetools` 0 skipped dont PASS de `curtainModeOffMeansFull`, `conversionKeepsEveryValue` ; `tst_formats_flipchart` PASS de `pagePresentationRead` (propriétés 13, 18, 29 et valeurs établies des propriétés codées seulement), et de `pageToolsPropertyRead` si et seulement si au moins une valeur de la propriété 27 est établie (sinon fonction absente, H7-16 au rapport) ; `tst_ui_pagetools` PASS de `pageChangeAppliesPageTools`, `openedDocumentAppliesPageTools`, `rememberCurtainIsUndoneAtOnce` ; banc hors écran joint | S10 | #tache-l7-t6 |
 | L7-T7 | Effets de changement de page I (F-640) : lecteur en surcouche, effet de la page quittée, enveloppe de `page.next` et `page.previous` | L7-T3 | `ui/src/transitioncontroller.h`, `ui/src/transitioncontroller.cpp`, `ui/qml/TransitionLayer.qml`, `tests/tst_ui_transitions.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_transitions` 0 skipped, PASS de `transitionDoesNotRefreshTheCacheBeforeTheEnd`, `snapshotShowsAPendingStroke`, `fastRepeatLosesNoPage`, `noEffectWhenNone`, `pageEffectReadFromThePresentation`, `noEffectWhileCurtainActive` ; banc hors écran joint | S22 | #tache-l7-t7 |
 | L7-T8 | Effets II : navigateur `PageEffectsPicker.qml` (18 entrées), scénario `effets` | L7-T7, L7-T2 | `ui/qml/PageEffectsPicker.qml`, `tests/tst_ui_transitions.cpp`, `bench/scenarios/effets.json` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_transitions` PASS de `browserListsEveryEffect` (18 délégués), `browserChoiceSetsTheGlobalEffect`, `pageEffectsPickerBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` ; `tst_captures_effets` Passed ; captures `effets` hors écran `LU transition.played=dissolve OK` | S22 | #tache-l7-t8 |
 | L7-T9 | Règle (F-280) : contrôleur des outils de maths sur `setSampleFilter`, couche, curseurs par zone, translucidité 100 | L7-S8 | `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/MathToolsLayer.qml`, `ui/qml/RulerTool.qml`, `tests/tst_ui_mathtools.cpp`, `bench/scenarios/regle.json` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_mathtools` 0 skipped, PASS de `rulerGuidesThePenWithoutChangingIt`, `syntheticReleaseStaysOnTheGuide`, `mathToolIsNotSaved`, `closingTheRulerKeepsTheStroke`, `openToolsKeptInTheUserState`, `mathToolOpacityIsTheDefault`, `mathToolCursorFollowsTheZone`, `rulerBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` ; `tst_captures_regle` Passed ; banc hors écran joint | S10 | #tache-l7-t9 |
 | L7-T10 | Équerre (F-283) : délégué et guidage | L7-T9 | `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/MathToolsLayer.qml`, `ui/qml/SetSquareTool.qml`, `tests/tst_ui_mathtools.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_mathtools` PASS de `setSquareGuidesThePen`, `setSquareOpacityIsTheDefault`, `setSquareCursorFollowsTheZone`, `setSquareBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` ; banc hors écran joint | S10 | #tache-l7-t10 |
 | L7-T11 | Rapporteur (F-281) : délégué, rotation, arc fermé ou plein inséré | L7-T10, L7-T2 | `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/MathToolsLayer.qml`, `ui/qml/ProtractorTool.qml`, `tests/tst_ui_mathtools.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_mathtools` PASS de `filledArcBecomesOneShape`, `closedArcIsUndoneAtOnce`, `protractorTurnsByItsHandle`, `protractorOpacityIsTheDefault`, `protractorCursorFollowsTheZone`, `protractorBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` ; banc hors écran joint | S10 | #tache-l7-t11 |
 | L7-T12 | Compas (F-282) : délégué, mine à la couleur du stylo, croix du centre | L7-T11 | `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/MathToolsLayer.qml`, `ui/qml/CompassTool.qml`, `tests/tst_ui_mathtools.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_mathtools` PASS de `markCentreAddsACross`, `compassStrokeIsACircle`, `compassLeadTakesThePenColour`, `compassOpacityIsTheDefault`, `compassCursorFollowsTheZone`, `compassBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` ; banc hors écran joint | S10 | #tache-l7-t12 |
-| L7-T13 | Origine XY (F-284) : marqueur, mémoire par page dans `PagePresentation` | L7-T12 | `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/MathToolsLayer.qml`, `ui/qml/OriginMarker.qml`, `tests/tst_ui_mathtools.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_mathtools` PASS de `originSavedWithThePage`, `originMoveIsUndoneAtOnce`, `originMarkerOpacityIsTheDefault`, `originMarkerBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` | S10 | #tache-l7-t13 |
+| L7-T13 | Origine XY (F-284) : marqueur, mémoire par page dans `PagePresentation` | L7-T12 | `ui/src/mathtoolscontroller.h`, `ui/src/mathtoolscontroller.cpp`, `ui/qml/MathToolsLayer.qml`, `ui/qml/OriginMarker.qml`, `tests/tst_ui_mathtools.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_mathtools` PASS de `originSavedWithThePage`, `originMoveIsUndoneAtOnce`, `originReadFromAnOpenedDocument`, `originMarkerOpacityIsTheDefault`, `originMarkerBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` | S10 | #tache-l7-t13 |
 | L7-T14 | Dés (F-285, E5) : panneau, total écrit, nombre et vitesse mémorisés | L7-T2 | `ui/src/dicecontroller.h`, `ui/src/dicecontroller.cpp`, `ui/qml/DicePanel.qml`, `tests/tst_ui_dice.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_dice` 0 skipped, PASS de `diceTotalWrittenOnThePage`, `oneDieTheFirstTime`, `diceCountAndSpeedRemembered`, `dicePanelClosesByItsCross`, `diceBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` | S10 | #tache-l7-t14 |
 | L7-T15 | Calculatrice (F-286) : panneau à deux lignes, deux effacements, calcul posé sur la page | L7-T2 | `ui/src/calculatorcontroller.h`, `ui/src/calculatorcontroller.cpp`, `ui/qml/CalculatorPanel.qml`, `tests/tst_ui_calculator.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_calculator` 0 skipped, PASS de `systemCalculatorLaunchedOnWindows`, `panelShowsTheCalculationAboveTheResult`, `clearEntryAndClearAllAreTwoKeys`, `calculationToPageIsUndoneAtOnce`, `calculatorBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` | S10 | #tache-l7-t15 |
 | L7-T16 | Horloge et compte à rebours (F-290, H7-14) : panneau, boîte, actions de fin, scénario | L7-T2 | `ui/src/clockcontroller.h`, `ui/src/clockcontroller.cpp`, `ui/qml/ClockPanel.qml`, `ui/qml/CountdownDialog.qml`, `tests/tst_ui_clock.cpp`, `bench/scenarios/compte-a-rebours.json` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_clock` 0 skipped, PASS de `countdownEndGoesToNextPage`, `endActionsAreTheThreeOfThisLot`, `clockBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` ; `tst_captures_compte_a_rebours` Passed (`LU pageIndicator.text=2 / 2 OK` après 3 s) | S10 | #tache-l7-t16 |
@@ -263,7 +292,7 @@ vague suivante ne part pas ; l'écart est rendu à la tâche fautive.
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
-| L7-T21 | Reconnaissance de forme II : contrôleur (délai 1 s, 0 à 5), trait remplacé par la forme en une étape, polygone, scénario | lot P2-A | `ui/src/recognitioncontroller.h`, `ui/src/recognitioncontroller.cpp`, `ui/qml/RecognitionAlternatives.qml`, `tests/tst_ui_recognition.cpp`, `bench/scenarios/reconnaissance-forme.json` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_recognition` PASS de `recognizedStrokeMakesOneStep`, `fillOptionFillsTheShape`, `roughQuadrilateralBecomesAPolygonShape`, `controllerDelayIsTheSessionDefault` ; `tst_captures_reconnaissance_forme` Passed ; banc hors écran joint | S10 | #tache-l7-t21 |
+| L7-T21 | Reconnaissance de forme II : contrôleur (délai 1 s, 0 à 5), trait remplacé par la forme en une étape, polygone, scénario | lot P2-A | `ui/src/recognitioncontroller.h`, `ui/src/recognitioncontroller.cpp`, `ui/qml/RecognitionAlternatives.qml`, `tests/tst_ui_recognition.cpp`, `bench/scenarios/reconnaissance-forme.json` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_recognition` PASS de `recognizedStrokeMakesOneStep`, `fillOptionFillsTheShape`, `roughQuadrilateralBecomesAPolygonShape`, `controllerDelayIsTheSessionDefault`, `sessionResetsOnAnOpenedDocument` ; `tst_captures_reconnaissance_forme` Passed ; banc hors écran joint | S10 | #tache-l7-t21 |
 | L7-T23 | Reconnaissance d'écriture II : mode écriture qui possède un `HandwritingThread`, mot → texte en une étape, alternatives couverture, commande grisée, absente d'Android | L7-T21 | `ui/src/recognitioncontroller.h`, `ui/src/recognitioncontroller.cpp`, `ui/qml/RecognitionAlternatives.qml`, `tests/tst_ui_recognition.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_recognition` PASS de `handwritingMakesOneStep` (ou SKIP « reconnaisseur absent », signalé), `handwritingDisabledWithExplanation`, `handwritingAbsentOnAndroid`, `controllerOwnsOneHandwritingThread`, `clickOutsideValidatesTheText`, `eachWordBecomesItsOwnText`, `alternativesBlockTheStylus(stylet)`, `(doigt)`, `(souris)` ; banc hors écran joint | S10 | #tache-l7-t23 |
 | L7-T24 | Équation I (F-301) : arbre et MathML (17 modèles) | lot P2-A | `core/include/actcraft/core/equation.h`, `core/src/equation.cpp`, `tests/tst_core_equation.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_core_equation` 0 skipped, PASS de `templatesRoundTrip` (17 lignes de données), `unknownElementKeptVerbatim`, `entitiesDecoded`, `malformedIsAnErrorNotACrash`, `nonAsciiRawKeptVerbatim` ; `git grep "Talon L0-S : rempli par L7-T24"` vide | S24 | #tache-l7-t24 |
 | L7-T25 | Équation II : mise en page et dessin, en-tête public `equationpaint.h` (modes `Page` et `Editor`) | L7-T24 | `render/include/actcraft/render/equationpaint.h`, `render/CMakeLists.txt` (la ligne de l'en-tête public dans la liste, et elle seule), `render/src/equationlayout.h`, `render/src/equationlayout.cpp`, `tests/tst_render_equation.cpp`, `tests/tst_render_painter.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_render_equation` 0 skipped, PASS de `fractionIsTallerThanItsParts`, `superscriptIsRaised`, `rootCoversItsContent`, `malformedDrawsTheNeutralFrame`, `paintedMatchesSoftware`, `paintFromTwoThreads`, `fixedPageDrawsTheEquation`, `editorModeDrawsPlaceholderAndCursor`, `pageDrawsNoPlaceholder` ; `tst_render_painter` PASS de ses fonctions existantes et de `pageModeIsUnchanged`, `editorModeShowsAnEmptyBox` ; `git grep "Talon L0-S : rempli par L7-T25"` vide ; banc hors écran joint | S24 | #tache-l7-t25 |
@@ -348,6 +377,10 @@ qu'elles ne contredisent pas. S'y ajoutent ou s'y substituent :
   `Presentation.qml` ni la racine d'une autre fonction.
 - **Couverture** (décision 5) : `<fonction>BlocksTheStylus` à données (`stylet`, `doigt`, `souris`), aides de
   `tests/support/presentationharness.h` ; aucun trait versé **et** effet du gestionnaire lu.
+- **Signaux du document** (décision 13, point 1 de A) : un contrôleur qui suit le document par `addChangeObserver`
+  écoute aussi `pagesChanged` et `documentChanged`.
+- **Démontage** (décision 13, point 3 de A) : chaque QML neuf protège ses accès à `commands`, `documentController`,
+  `tools`, `pageArea` (nuls au démontage) ; `shellLoadsWithoutQmlWarning` reste vert dans la suite.
 - **Exécutable d'interface unique** (décision 1) : dans le `tst_ui_<fonction>.cpp` de la tâche, tout est dans un
   `namespace { … }` anonyme (ou `static`) ; seule la ligne `ACTCRAFT_LOT7_TEST` est hors de lui ; aucun objet Qt de
   portée fichier. Une erreur de lien qui nomme le fichier d'une autre tâche : s'arrêter et la rapporter.
@@ -460,7 +493,8 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
       {
           presentationharness::MainWindow main;
           QVERIFY(main.window() != nullptr);
-          auto* presentation = main.window()->findChild<QQuickItem*>(QStringLiteral("presentation"));
+          // QtObject, pas un Item (socle L0-S9).
+          QObject* presentation = main.window()->findChild<QObject*>(QStringLiteral("presentation"));
           QVERIFY(presentation != nullptr);
           const char* roots[] = {"curtainRoot",      "spotlightRoot", "pageZoomRoot",    "pageToolsRoot",
                                  "transitionRoot",   "effectsRoot",   "mathToolsRoot",   "diceRoot",
@@ -507,8 +541,11 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
   #include "tst_ui_presentation.moc"
   ```
   Commande ciblée `-R 'tst_ui_presentation'` → rouge (cible `tst_ui_lot7` inconnue, ou fichier manquant).
-- [ ] **Étape 3 : `DocumentInsertions`.** `ui/src/presentationdocument.h` : signatures identiques à S8a (D-S8 du
-  socle) ; seul ajout, `#include <cstddef>` pour `std::size_t` :
+- [ ] **Étape 3 : `DocumentInsertions`.** `ui/src/presentationdocument.h` : signatures de S8a (D-S8 du socle), deux
+  écarts : `#include <cstddef>` pour `std::size_t`, et `addResource` **remplacé** par `insertImage` — vérifié :
+  `DocumentController::document()` est `const` (`documentcontroller.h:76`) et le contrôleur n'a aucune méthode de
+  ressource ; seule une commande (`redo(core::Document&, …)`) peut appeler `core::Document::addResource`
+  (`core/include/actcraft/core/document.h:66`) :
   ```cpp
   #pragma once
 
@@ -534,7 +571,9 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
       core::ObjectId insertObject(core::PageObject object);          // page affichée, une étape ; 0 si refusé
       core::ObjectId insertObjectOnNewPage(core::PageObject object); // page ajoutée en fin, affichée ; une étape
       core::ObjectId insertText(const QString& plainText, const QRectF& bounds); // couche intermédiaire, une étape
-      std::string addResource(QByteArray data, std::string extension);
+      // Image d'une ressource neuve (caméra, capture du spot) : ressource ajoutée et objet inséré en une étape (une
+      // commande locale dont redo() appelle core::Document::addResource, puis insère l'objet).
+      core::ObjectId insertImage(QByteArray data, std::string extension, core::ImageObject image, bool onNewPage);
       // core::ReplaceObjectsCommand, un groupe ; identifiants des ajouts.
       std::vector<core::ObjectId> replaceObjects(std::vector<core::ObjectId> removed,
                                                  std::vector<core::PageObject> added);
@@ -551,9 +590,10 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
   `ui/src/presentationdocument.cpp` : `#include "presentationdocument.h"`, `// Talon L7-S8 : rempli par L7-T2.`, puis les
   corps les plus simples : constructeur qui pose `m_controller`, `return 0;` (identifiants), `return {};` (chaîne,
   vecteur), corps vide pour `setPagePresentation` (paramètre marqué `[[maybe_unused]]`), `return nullptr;`,
-  `return 0;` pour `shownIndex` (sans conversion : aucun avertissement `-Wconversion`). **[SOCLE?]** les noms
-  `core::ObjectId`, `core::PageObject`, `core::PagePresentation`, `core::Page` dans `model.h` après L0-S3 ; sinon, le
-  contrat suit le socle et l'écart est rapporté.
+  `return 0;` pour `shownIndex` (sans conversion : aucun avertissement `-Wconversion`). Vérifié : `core::ObjectId`,
+  `core::PageObject`, `core::PagePresentation` (`model.h:462-474`), `core::ImageObject` (`model.h:236`), `core::Page`
+  dans `core/include/actcraft/core/model.h` ; `shownIndex()` rendra `static_cast<std::size_t>(m_controller.currentIndex())`
+  (`documentcontroller.h:66`, `int`) en L7-T2.
 - [ ] **Étape 4 : QML talons.** Les 17 racines (décision 3), contenu de la décision 4 mot pour mot, marqueur de leur
   tâche ; `PerPageTools.qml`, `TransitionLayer.qml`, `PageEffectsPicker.qml` avec leurs propriétés de lecture en
   plus ; `CameraOverlay.qml`, `ScreenKeyboard.qml`, `DesktopAnnotation.qml` (décision 4 bis) avec `visible: false`
@@ -582,8 +622,9 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
       }
   }
   ```
-- [ ] **Étape 5 : `Presentation.qml`.** Remplacer le contenu posé par L0-S9 en gardant ses six propriétés **mot pour
-  mot** (lire le fichier mergé ; si L0-S9 a écrit autre chose que socle:1330-1346, garder le sien et le rapporter).
+- [ ] **Étape 5 : `Presentation.qml`.** Remplacer le contenu posé par L0-S9 en gardant **mot pour mot** sa racine
+  `QtObject`, sa propriété `default property list<QtObject> data` et ses six propriétés (vérifié :
+  `ui/qml/Presentation.qml:12-21` sur 131f790 ; son commentaire, l. 4-11, se résume dans celui ci-dessous).
   Seul `parent` est posé (aucun `anchors`, décision 3) ; les trois racines à fenêtre propre n'ont pas de `parent`
   (décision 4 bis) :
   ```qml
@@ -593,8 +634,11 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
   // Racine des fonctions du lot 7 : une racine par fonction (contrôleur, surcouche ou panneau, gestionnaires de
   // commandes). Une surcouche qui prend l'entrée se déclare couverture : pageArea.view.addInputCover(<item>).
   // Seul le parent est posé ici : chaque racine décide de sa géométrie. Après L7-S8, ce fichier ne change plus.
-  Item {
+  // Racine QtObject et non Item : la propriété `layer` figée par le socle est une propriété FINAL de Item. Les racines
+  // sont déclarées dans `data` et posées par `parent:` ; jamais enfants visuels de cette racine.
+  QtObject {
       id: presentation
+      default property list<QtObject> data
       property Commands commands: null
       property DocumentController documentController: null
       property Tools tools: null
@@ -691,23 +735,38 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
       QTest::newRow("souris") << Pointer::Mouse;
   }
 
+  // Périphériques construits comme ceux de tests/tst_ui_inputpath.cpp:220-224 (socle L0-S7) ; jamais
+  // d'enregistrement par QWindowSystemInterface (API privée).
   inline const QPointingDevice* stylusDevice()
   {
-      // Même périphérique que tests/tst_pageview.cpp : le lire et reprendre sa construction (identifiant, type
-      // Stylus, pointeur Pen). Jamais d enregistrement par QWindowSystemInterface (API privée).
-      static const QPointingDevice device(QStringLiteral("stylet de test"), 1001, QInputDevice::DeviceType::Stylus,
-                                          QPointingDevice::PointerType::Pen, QInputDevice::Capability::Position |
-                                              QInputDevice::Capability::Pressure,
-                                          1, 3);
+      static const QPointingDevice device(QStringLiteral("tst-ui-lot7-stylus"), 5171, QInputDevice::DeviceType::Stylus,
+                                          QPointingDevice::PointerType::Pen,
+                                          QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1,
+                                          3);
       return &device;
   }
 
+  inline QPointingDevice* touchDevice()
+  {
+      static QPointingDevice* device = QTest::createTouchDevice();
+      return device;
+  }
+
+  // Comme tst_ui_inputpath.cpp:141-150 : bouton changé à l'appui et au relâché, aucun au déplacement.
   inline void sendTablet(QQuickWindow* window, QEvent::Type type, QPointF point)
   {
       const Qt::MouseButtons buttons = type == QEvent::TabletRelease ? Qt::NoButton : Qt::LeftButton;
-      QTabletEvent event(type, stylusDevice(), point, window->mapToGlobal(point), type == QEvent::TabletRelease ? 0.0 : 0.6,
-                         0.0f, 0.0f, 0.0f, 0.0, 0.0f, Qt::NoModifier, Qt::LeftButton, buttons);
+      const Qt::MouseButton changed = type == QEvent::TabletMove ? Qt::NoButton : Qt::LeftButton;
+      QTabletEvent event(type, stylusDevice(), point, window->mapToGlobal(point), buttons ? 0.5 : 0.0, 0, 0, 0, 0, 0,
+                         Qt::NoModifier, changed, buttons);
       QCoreApplication::sendEvent(window, &event);
+  }
+
+  // Qt Quick retarde et compresse les TouchUpdate jusqu'à l'image suivante (tst_ui_inputpath.cpp:171-176) : une image
+  // entre deux étapes.
+  inline void settleTouch()
+  {
+      QTest::qWait(50);
   }
 
   inline void strokeAt(QQuickWindow* window, Pointer pointer, QPointF from, QPointF to, int steps = 8)
@@ -721,15 +780,16 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
           }
           sendTablet(window, QEvent::TabletRelease, to);
           break;
-      case Pointer::Finger: {
-          static QPointingDevice* touch = QTest::createTouchDevice();
-          QTest::touchEvent(window, touch).press(0, from.toPoint(), window);
+      case Pointer::Finger:
+          QTest::touchEvent(window, touchDevice()).press(0, from.toPoint());
+          settleTouch();
           for (int i = 1; i <= steps; ++i) {
-              QTest::touchEvent(window, touch).move(0, at(i).toPoint(), window);
+              QTest::touchEvent(window, touchDevice()).move(0, at(i).toPoint());
+              settleTouch();
           }
-          QTest::touchEvent(window, touch).release(0, to.toPoint(), window);
+          QTest::touchEvent(window, touchDevice()).release(0, to.toPoint());
+          settleTouch();
           break;
-      }
       case Pointer::Mouse:
           QTest::mousePress(window, Qt::LeftButton, Qt::NoModifier, from.toPoint());
           for (int i = 1; i <= steps; ++i) {
@@ -748,9 +808,8 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
 
   Q_DECLARE_METATYPE(presentationharness::Pointer)
   ```
-  Si `tests/tst_pageview.cpp` ou un test du socle (`tst_ui_inputpath`) a déjà une aide d'injection du stylet, la
-  **reprendre** plutôt que ce constructeur de périphérique (qui doit, lui, être relu contre Qt 6.12 :
-  **[SOCLE?]** forme exacte retenue par L0-S7 dans `tst_ui_inputpath`).
+  Vérifié : la forme est celle de `tests/tst_ui_inputpath.cpp` (stylet l. 141-160 et 220-223, doigt l. 171-187 et
+  224, souris l. 162-169), copiée et non incluse (les aides de ce test sont locales à son fichier).
 - [ ] **Étape 7 : exécutable d'interface unique et tests talons** (décision 1, revue M5).
   `tests/support/lot7registry.h` :
   ```cpp
@@ -790,10 +849,14 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
   #include "support/lot7registry.h"
 
   #include <QGuiApplication>
+  #include <QtQml/QQmlExtensionPlugin>
   #include <QtTest>
 
   #include <cstdio>
   #include <vector>
+
+  // Module QML statique, comme tests/tst_ui_shell.cpp:30 : une fois pour tout l'exécutable.
+  Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
   // Exécutable unique des tests d'interface du lot 7 : tst_ui_lot7 <clé> [options de Qt Test].
   int main(int argc, char** argv)
@@ -818,7 +881,7 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
   }
   ```
   (`QTEST_MAIN` pose aussi des attributs d'application : les relire dans `qtest.h` de Qt 6.12 et reprendre ceux qui
-  s'appliquent à `QGuiApplication` ; point de Qt, à vérifier à la construction, liste « À vérifier », point 15.)
+  s'appliquent à `QGuiApplication` ; point de Qt, à vérifier à la construction, section « Vérifié contre le socle réel », point 15.)
   Les 16 `tests/tst_ui_<fonction>.cpp` hors `tst_ui_presentation`, sur ce modèle (classe, clé et
   `.moc` adaptés) :
   ```cpp
@@ -846,9 +909,8 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
   `dice` T14, `calculator` T15, `clock` T16, `othertools` T17, `ticker` T18, `recognition` T21, `equation` T26,
   `camera` T28, `keyboard` T29, `desktop` T30. `tst_core_equation.cpp` (T24), `tst_render_equation.cpp` (T25),
   `tst_features_equationeditor.cpp` (T26) : exécutables à eux, modèle du socle (`QTEST_GUILESS_MAIN` pour `core` et
-  `features`, `QTEST_MAIN` pour `render`). **[SOCLE?]** Si L0-S3 a déjà créé `tst_core_equation.cpp` ou
-  `tst_render_equation.cpp` (talons « attendent L0-S3 », socle:1483), ne pas les recréer : les retirer de la ligne et
-  de cette étape, garder leur déclaration du socle, et diminuer le compte d'autant (N = N_F + 29 − k, rapporté).
+  `features`, `QTEST_MAIN` pour `render`). Vérifié : ni `tests/tst_core_equation.cpp` ni `tests/tst_render_equation.cpp`
+  n'existent sur 131f790 : L7-S8 les crée (k = 0).
 - [ ] **Étape 8 : scénarios talons.** Les 9 `bench/scenarios/<nom>.json`, sur le modèle exact d'un scénario talon du
   socle (`bench/scenarios/selection.json`, L0-S0 : le lire et reprendre ses clés), avec `"name": "<nom>"` et
   `"description": "Talon L7-S8 : rempli par L7-T<n> (S<k>)."` — `rideau` T3 (S10), `spot` T4 (S10), `effets` T8
@@ -887,8 +949,8 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
       qml/ScreenKeyboard.qml
       qml/DesktopAnnotation.qml
       qml/DesktopToolsWheel.qml)
-  # Composants chargés depuis leur source, comme TopBar.qml (C4702 des appels à Commands.trigger).
-  set_source_files_properties(${ACTCRAFT_UI_LOT7_QML} PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)
+  # Pas de QT_QML_SKIP_CACHEGEN : le socle tait C4702 dans le C++ de qmlcachegen de tous les QML du module, ceux du
+  # lot 7 compris (ui/CMakeLists.txt, bloc « MSVC, C4702 »).
 
   # Sources C++ du lot par noms exacts : chaque tâche crée son contrôleur, CMake le voit à la construction suivante
   # (CONFIGURE_DEPENDS) ; aucun .cpp talon vide (LNK4221). Seuls ces noms sont pris, jamais un fichier du socle.
@@ -913,10 +975,12 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
       ${CMAKE_CURRENT_SOURCE_DIR}/src/keyboardcontroller.*
       ${CMAKE_CURRENT_SOURCE_DIR}/src/desktopcontroller.*)
   ```
-  **[SOCLE?]** Le crochet du socle fait `set(ACTCRAFT_UI_LOT7_SOURCES "")` **avant** l'`include` (socle:316-322) :
-  `file(GLOB …)` remplace la valeur, c'est voulu. Vérifier que `qt_add_qml_module` reçoit des chemins absolus sans
-  erreur (sinon : `list(TRANSFORM … REPLACE "^${CMAKE_CURRENT_SOURCE_DIR}/" "")`) et que les fichiers de la liste
-  `SKIP_CACHEGEN` du socle ne sont pas repris ici.
+  Vérifié : `ui/CMakeLists.txt:27-29` (`set(… "")` puis `include(… OPTIONAL)` avant `qt_add_qml_module`, l. 31),
+  `${ACTCRAFT_UI_LOT7_QML}` en fin de `QML_FILES` (l. 60), `${ACTCRAFT_UI_LOT7_SOURCES}` en fin de `SOURCES`
+  (l. 123), `ActCraft::features` lié (l. 147), `/wd4702` sur le C++ de qmlcachegen de tous les QML du module
+  (l. 132-140, après `qt_add_qml_module` : il voit les QML du lot) ; `file(GLOB …)` remplace la valeur vide, c'est
+  voulu. Reste à la construction de L7-S8 (point de CMake, pas du socle) : chemins absolus dans `SOURCES` acceptés
+  (sinon `list(TRANSFORM … REPLACE "^${CMAKE_CURRENT_SOURCE_DIR}/" "")`).
 - [ ] **Étape 10 : `tests/presentation.cmake`.** À la suite des 16 lignes de la phase 1 (inchangées) :
   ```cmake
   # Phase 2 (L7-S8) : tests d'interface, de logique de l'équation et de captures du lot 7, déclarés ici seulement ;
@@ -963,8 +1027,10 @@ marqueur de sa tâche ; `lot7RootsExist` en `PASS` ; `shellLoadsWithoutQmlWarnin
   L'environnement des 17 entrées est lu sur `tst_ui_shell` (`get_test_property`, même portée de répertoire) : il suit
   le socle sans copie ; si la propriété revient vide (`NOTFOUND`), s'arrêter et le rapporter. `LIBS` de `tst_ui_lot7` : alignés sur `tst_ui_shell` dans `tests/ui.cmake` (relu à la
   fusion) ; `tst_render_equation` : aligné sur `tst_render_painter` dans `tests/render.cmake` (le lire).
-  `_bench_env_offscreen` est posé par `tests/bench.cmake`, inclus avant ce fichier (même portée) : **[SOCLE?]** ordre
-  des `include` de `tests/CMakeLists.txt` après la fusion. `ui/src` en inclusion du test : `DocumentInsertions`
+  `_bench_env_offscreen` est posé par `tests/bench.cmake` (l. 8), inclus avant ce fichier — vérifié :
+  `tests/CMakeLists.txt:42-47` (`ui.cmake`, `bench.cmake`, `app.cmake`, puis `presentation.cmake` en dernière
+  ligne) ; `tst_ui_shell` : `tests/ui.cmake:33-36` (`app/startup.cpp`, `Qt6::Quick ActCraft::ui actcraft_uiplugin`,
+  inclusion de `app`). `ui/src` en inclusion du test : `DocumentInsertions`
   (L7-T2), contrôleurs construits par les tests (L7-T14, L7-T15, L7-T23, …) ; `render/src` : `layoutEquation`
   (L7-T25). Côté `ui/` (bibliothèque), aucune inclusion de `render/src` n'est nécessaire : voir L7-T26.
 - [ ] **Étape 11 : vert et preuves.** Commande ciblée → vert (16 entrées `tst_ui_*` du lot en `SKIP` nommé,
@@ -1001,8 +1067,8 @@ propriété 52 : utiliser ces identifiants, et `docs/re/format-flipchart.md:254`
 **Fichiers.** Ligne de la table. **Test.** Commande ciblée `-R 'tst_formats_flipchart'` (rouge puis vert, PASS de
 `mathmlObjectBecomesEquation`), preuve de tâche. **Interdits.** Tout `formats/` hors des quatre fichiers ; ne pas
 toucher `nativejson.cpp` (L0-S3). **Terminé quand.** PASS nommé, N = N_F + 29, `TESTS OK`, `NOMS OK`.
-**Étapes.** (1) Base et premier passage. (2) 7a, étape 8, test rouge. (3) Code de 7a, étape 8 ; **[SOCLE?]** nom et
-champs de `core::Equation` lus dans `model.h` mergé. (4) Vert, `format.ps1`, preuve, `NOMS OK`, commit
+**Étapes.** (1) Base et premier passage. (2) 7a, étape 8, test rouge. (3) Code de 7a, étape 8 ; vérifié : `core::Equation`
+= `bounds`, `mathml`, `pointSize`, `color` (`core/include/actcraft/core/model.h:337-343`). (4) Vert, `format.ps1`, preuve, `NOMS OK`, commit
 « Lot 7 : objet MathML des paperboards lu en équation (L7-T1) ».
 
 <a id="tache-l7-t2"></a>
@@ -1025,7 +1091,7 @@ une couverture. `concepteur-critique` : le patron évident (appeler `DocumentCon
 l'invariant « une action = une étape d'annulation » et l'ordre des `Change` vus par le cache.
 **Fichiers.** Ligne de la table. **Test.** Commande ciblée `-R 'tst_ui_presentation|tst_ui_document|tst_ui_inputpath'`.
 **Interdits.** `documentcontroller.*` (socle) : on n'y ajoute rien ; si `execute()` ou `document()` ne sont pas
-publics **[SOCLE?]**, s'arrêter et le rapporter. **Terminé quand.** PASS des neuf fonctions de la table, 0 skipped.
+publics, s'arrêter et le rapporter (vérifié publics : `documentcontroller.h:76`, `:79`). **Terminé quand.** PASS des fonctions de la table, 0 skipped.
 **Étapes.**
 - [ ] **Étape 1 : tests rouges** dans `tests/tst_ui_presentation.cpp` (retirer `reserved()`), avec
   `presentationharness::MainWindow` et un `DocumentInsertions insertions(*controller)` sur le contrôleur de la fenêtre :
@@ -1033,10 +1099,15 @@ publics **[SOCLE?]**, s'arrêter et le rapporter. **Terminé quand.** PASS des n
   `Text` ; `undo` : compte de départ) ; `insertObjectOnNewPageIsUndoneAtOnce` (une forme : pages + 1, page affichée =
   dernière, un objet ; un seul `undo` rend pages et affichage de départ) ; `replaceObjectsIsUndoneAtOnce` (un trait
   injecté au stylet → `replaceObjects({id}, {forme})` : un id rendu, le trait absent ; `undo` : le trait revient au même
-  rang) ; `setPagePresentationIsUndoneAtOnce` (`curtain = Top`, `curtainDistance = 120` : relu sur `shownPage()` ;
+  rang) ; `insertImageIsUndoneAtOnce` (une image PNG de 8 × 8 : un `ImageObject` de plus dont `resource` est non vide
+  et présente dans `document().resources()` ; `undo` : objet retiré) ; `setPagePresentationIsUndoneAtOnce` (`curtain = Top`, `curtainDistance = 120` : relu sur `shownPage()` ;
   `undo` : valeur par défaut ; aucun `cacheRefreshRequested`, I3) ; `changeObserverSeesEveryStroke` (observateur
-  ajouté par `addChangeObserver` : deux traits au stylet → deux appels d'origine `Stroke` avec les identifiants des
-  traits **[SOCLE?]** signature de `ChangeObserver` et nom de l'origine) ; `floatingPanelIsACover` (à données : un
+  ajouté par `addChangeObserver` : deux traits au stylet → deux appels d'origine `ChangeOrigin::Stroke` dont les
+  `core::Changes` portent chacun un `Change` de genre `ObjectInserted` avec l'identifiant du trait — vérifié :
+  `ChangeObserver = std::function<void(const core::Changes& applied, ChangeOrigin origin)>`,
+  `documentcontroller.h:145-161` ; `Change::Kind`, `Change::object`, `core/include/actcraft/core/undo.h:16-30`) ;
+  `replacedDocumentIsSignalled` (point 1 de A : après `loadGeneratedFirstPage`, l'observateur n'est pas appelé et
+  `documentChanged` est émis une fois ; preuve de la règle « écouter aussi les signaux ») ; `floatingPanelIsACover` (à données : un
   `FloatingPanel` de 200 × 120 ouvert sur la page, trait sous lui → compte inchangé et `DragHandler` de la barre
   `active` pendant le trait souris et doigt, panneau déplacé au stylet ; panneau fermé → le même trait est versé) ;
   `coveredStylusLeavesFingersFree` (stylet appuyé sur le panneau, un doigt trace hors du panneau → trait versé).
@@ -1044,9 +1115,12 @@ publics **[SOCLE?]**, s'arrêter et le rapporter. **Terminé quand.** PASS des n
 - [ ] **Étape 2 : code.** `presentationdocument.cpp` : marqueur retiré ; `insertObject` et `insertText` par
   `core::AddObjectCommand` sur `shownIndex()` ; `insertObjectOnNewPage` par la commande composée ; `replaceObjects` par
   `core::ReplaceObjectsCommand` (un `core::ObjectReplacement` qui retire `removed` et ajoute `added` en un groupe,
-  `addedIds()` après `redo()`) **[SOCLE?]** forme exacte de `ObjectReplacement` ; `setPagePresentation` par
-  `core::SetPagePresentationCommand(shownIndex(), value)` ; `addResource` par l'API de ressources du document existante
-  (lire `core/…/document.h`). `FloatingPanel.qml` : texte de 7a, plus `Component.onCompleted` et `onVisibleChanged` qui appellent
+  `addedIds()` après `redo()`) — vérifié : `ObjectReplacement { removed; added; }` et le constructeur « un groupe »
+  `ReplaceObjectsCommand(page, removed, added)`, `core/include/actcraft/core/replace.h:14-42` ; `setPagePresentation`
+  par `core::SetPagePresentationCommand(shownIndex(), value)` (`replace.h:59-64`) ; `insertImage` par une commande
+  locale au fichier (`redo` : `document.addResource(data, extension)`, clé dans `image.resource`, puis insertion de
+  l'objet, sur une page neuve si `onNewPage` ; `undo` : retrait de l'objet, et de la page s'il l'a ajoutée ; la
+  ressource reste, clé SHA-256 sans effet visible, `model.h:235`). `FloatingPanel.qml` : texte de 7a, plus `Component.onCompleted` et `onVisibleChanged` qui appellent
   `pageArea.view.addInputCover(panel)` / `removeInputCover(panel)` quand `pageArea` est posé (un panneau visible
   dès sa création s'enregistre aussi ; `floatingPanelIsACover` ouvre un panneau déjà visible à sa création).
 - [ ] **Étape 3 : vert et preuves.** Commande ciblée verte, `format.ps1`, preuve, banc sans écran, `NOMS OK`, commit
@@ -1084,8 +1158,8 @@ phase 1) : `SpotlightController` convertit `Spotlight::Shape` ↔ `core::Spotlig
 `static_assert` par valeur) ; contour par défaut **`Spotlight::kDefaultOutline` (10)**, jamais 15 en dur ; curseur selon
 la zone (`HoverHandler.cursorShape` : `Qt::SizeAllCursor` à l'intérieur, curseur de redimensionnement sur le bord) ;
 **capture de la zone éclairée** depuis le menu propre du spot : `QQuickItem::grabToImage` de la zone de page sous le
-spot, découpe par `cropToPolygon` (L7-P9), insertion d'un `core::ImageObject` par `DocumentInsertions::insertObject`
-(une étape) **[SOCLE?]** champ image de `ImageObject` et `addResource`.
+spot, découpe par `cropToPolygon` (L7-P9), image codée en PNG et insérée par `DocumentInsertions::insertImage`
+(une étape ; vérifié : `ImageObject::resource`, `model.h:236-247`).
 
 **Objectif.** Spot à quatre formes, couverture, contour 10, curseurs par zone, capture vers la page. **Fichiers.**
 Ligne. **Test.** `-R 'tst_ui_spotlight|tst_captures_spot'`. **Interdits.** Aucun `Spotlight` recréé.
@@ -1100,7 +1174,8 @@ Ligne. **Test.** `-R 'tst_ui_spotlight|tst_captures_spot'`. **Interdits.** Aucun
 
 **Garde.** Étapes 3, 4, 5. **Disparaît.** Étapes 1 et 2 (L7-P2) ; `zoomAround` et `sceneToPage` existent (L0-S7).
 **S'ajoute** (socle « Changent » 6) : `static_assert(PageZoom::kMinZoom == ui::kMinZoom)` et `kMaxZoom` dans
-`pagezoomcontroller.cpp` **[SOCLE?]** nom des bornes de la vue ; l'appui long droit est pris par la couverture du zoom
+`pagezoomcontroller.cpp` (vérifié : `ui::kMinZoom = 0.25`, `ui::kMaxZoom = 8.0`,
+`ui/include/actcraft/ui/viewtransform.h:12-13`) ; l'appui long droit est pris par la couverture du zoom
 (test de couverture direct au clic droit, socle D-S1) : `rightHoldIsTakenByTheCover` (zoom actif, appui droit tenu
 600 ms par `QTest::mousePress` bouton droit : zoom diminué, `contextMenuRequested` non émis) ;
 `pageZoomRefreshesTheCacheOnceAtRelease` : **exactement** 1 émission.
@@ -1150,7 +1225,10 @@ L7-T0 P9 et constat 5 ; L7-T7 étape 5 déplacée ici) :
 - **Mémoriser le rideau pour la page** (P9) : entrée « Mémoriser pour cette page » du menu propre du rideau (décision
   8), qui pose `curtain` et `curtainDistance` courants par `DocumentInsertions::setPagePresentation` (une étape) ;
   `rememberCurtainIsUndoneAtOnce` (rideau tiré de 120 px depuis le haut, mémoriser : relu `Top`, 120 ; `undo` : défaut).
-- Sous-clés inconnues de `"presentation"` : rien à faire (gardées par `unknownKeys`, socle « Changent » 7).
+- Sous-clés inconnues de `"presentation"` : rien à faire (gardées par `unknownKeys`, `model.h:473`).
+- Point 1 de A : `PerPageTools` applique aussi les outils de page sur `pagesChanged` et `documentChanged` ;
+  `openedDocumentAppliesPageTools` (document de deux pages chargé par `replaceDocument`, première page en mode rideau :
+  le rideau est actif sans aucun appel de l'observateur).
 
 **Objectif.** Les outils de page suivent la page, lus et mémorisés. `concepteur-critique` : parité de deux chemins
 (lecture `.flipchart` et natif) sur la même structure. **Test.** `-R 'tst_features_pagetools|tst_formats_flipchart|tst_ui_pagetools'`.
@@ -1193,8 +1271,10 @@ catalogue (18) ; le panneau est un `FloatingPanel` (couverture). **Test.** `-R '
 racine), 5, 6. **Disparaît.** Étapes 1 et 2 (L7-P3 : `StrokeGuide`, `GuideSet`, `Ruler`, `projectOnSegments`).
 **S'ajoute.** `MathToolsController` branche `GuideSet::filter` sur `PageView::setSampleFilter` (tolérance = 16 px
 d'écran ÷ zoom ; relâchés synthétisés filtrés depuis le dernier point brut, socle « Changent » 8) et range les outils
-ouverts par `ToolHost::user().setOpenMathTools` (`ToolHost*` reçu de la racine, `tools`) **[SOCLE?]** nom exact de
-`setOpenMathTools` et type de l'élément rangé ; translucidité par défaut `kDefaultToolOpacity` (100 sur 255, L7-T0) ;
+ouverts par `ToolHost::user().setOpenMathTools` (`ToolHost*` reçu de la racine, `tools`) — vérifié :
+`tools::UserState& user(input::UserId = kFirstUser)`, `ui/include/actcraft/ui/toolhost.h:92` ;
+`void setOpenMathTools(std::vector<QString> ids)`, `tools/include/actcraft/tools/userstate.h:39` (identifiants des
+commandes `math.*`) ; translucidité par défaut `kDefaultToolOpacity` (100 sur 255, L7-T0) ;
 curseurs par zone (P21) : déplacer au centre, tourner à l'extrémité, allonger au bout ; **fermer la règle garde les
 traits** (P6) ; chaque outil est une couverture **hors de son bord guide** (`containmentMask` : le stylo se pose sur le
 bord extérieur, 7a étape 4).
@@ -1226,7 +1306,7 @@ translucidité, couverture. **Test.** `-R 'tst_ui_mathtools'`. **Étapes.** (1) 
 
 **Garde.** Étapes 3, 4, 5. **Disparaît.** Étapes 1 et 2 (L7-P4, `Compass`). **S'ajoute** (P5) : quand la pointe du
 stylo approche du porte-mine (rayon de capture du guide), une mine apparaît **à la couleur du stylo** (`tools` lu :
-couleur courante du stylo **[SOCLE?]** propriété exposée par `Tools`/`ToolHost`) : `compassLeadTakesThePenColour`
+couleur de l'outil courant, vérifié : `Q_PROPERTY(QColor color …)` de `Tools`, `toolhost.h:42`) : `compassLeadTakesThePenColour`
 (stylo rouge, survol au stylet du porte-mine : élément `compassLead` visible, `color` = rouge) ; croix du centre par
 `insertObject` ; couverture. **Test.** `-R 'tst_ui_mathtools'`. **Étapes.** (1) Tests rouges. (2) 7a étape 3 et la
 mine. (3) Preuves, commit de 7a.
@@ -1236,7 +1316,8 @@ mine. (3) Preuves, commit de 7a.
 
 **Garde.** Étapes 3, 4. **Disparaît.** Étapes 1 et 2 (L7-P4, `OriginMemory`). **S'ajoute.** `OriginMemory` alimentée
 depuis `PagePresentation::hasOrigin` / `origin` au changement de page ; au relâché du marqueur,
-`DocumentInsertions::setPagePresentation` (une étape : `originMoveIsUndoneAtOnce`) ; `OriginMarker.qml` (nom imposé)
+`DocumentInsertions::setPagePresentation` (une étape : `originMoveIsUndoneAtOnce`) ; mémoire relue sur
+`documentChanged` (point 1 de A) : `originReadFromAnOpenedDocument` ; `OriginMarker.qml` (nom imposé)
 couverture. Les symétries autour de l'origine (P20) vont au lot 5 : rien ici ni en L7-T34. **Test.**
 `-R 'tst_ui_mathtools'`. **Étapes.** (1) Tests rouges. (2) 7a étape 3. (3) Preuves, commit de 7a étape 4.
 
@@ -1309,8 +1390,9 @@ boîte en `FloatingPanel`. **Test.** `-R 'tst_ui_ticker|tst_captures_message'`. 
 `tst_features_shapefinder` : preuve corrigée) ; dépendance à L7-T20 (faite). **S'ajoute.** Délai commun
 `RecognitionSession::kDefaultDelayMs` (1 s), réglable de 0 à 5 s (L7-T0 ; 7b disait 5 s, 1 à 5) : 0 = au relâché,
 **supposé** (non déterminable en statique, à revoir à la porte) ; l'original ne convertit pas au relâché par défaut ;
-`RecognizedShape::Kind::Polygon` rangé en `core::Shape` polygone (ses `corners`) **[SOCLE?]** forme d'un polygone dans
-`core::Shape` ; remplacement par `DocumentInsertions::replaceObjects` ; traits suivis par `addChangeObserver`
+`RecognizedShape::Kind::Polygon` rangé en `core::Shape` de genre `ShapeKind::Polygon`, ses sommets dans
+`Shape::polygon` (vérifié : `model.h:200-212`) ; session remise à zéro sur `documentChanged` (point 1 de A :
+`sessionResetsOnAnOpenedDocument`) ; remplacement par `DocumentInsertions::replaceObjects` ; traits suivis par `addChangeObserver`
 (origine `Stroke`). Noms : `recognizedStrokeMakesOneStep` (au lieu de `…BecomesAShapeInOneStep`).
 **Test.** `-R 'tst_ui_recognition|tst_captures_reconnaissance_forme'`. **Étapes.** (1) Tests rouges (7b étape 4 et
 ajouts). (2) 7b étape 3 dans la racine. (3) 7b étape 5 (talon remplacé), preuves, commit.
@@ -1330,8 +1412,8 @@ pause → deux objets `Text`) ; alternatives en `FloatingPanel`
 <a id="tache-l7-t24"></a>
 ### Tâche L7-T24 — Équation I : arbre et MathML (7b:459-607)
 
-**Garde.** Étapes 1 à 3. **Change.** Fichiers créés et enregistrés par le socle **[SOCLE?]** (`core/equation.*` de
-L0-S3 : y ajouter l'arbre sans toucher à `struct Equation` ni au repère neutre) ; `tst_core_equation` déclaré par
+**Garde.** Étapes 1 à 3. **Change.** Fichiers créés et enregistrés par le socle (vérifié : `core/equation.*` de
+L0-S3 ne portent que le marqueur, l. 2 ; y écrire l'arbre sans toucher à `struct Equation`, `model.h:337-343`) ; `tst_core_equation` déclaré par
 L7-S8. **S'ajoute** (L7-T0, « Modèles d'équation retenus ») : `templatesRoundTrip` à 17 lignes de données, les 10
 formes du rapport (`fraction`, `power`, `subscript`, `square-root`, `nth-root`, `parentheses`, `sum`, `integral`,
 `matrix-2x2`, `greek`) plus les 7 proposées (valeur absolue, matrices 1 × 2, 2 × 1 et 3 × 3, intégrales double et
@@ -1343,7 +1425,9 @@ L0-S3) ; preuve : `git -C '<wt>' grep -n "Talon L0-S : rempli par L7-T24" -- . '
 <a id="tache-l7-t25"></a>
 ### Tâche L7-T25 — Équation II : mise en page et dessin (7b:609-650)
 
-**Garde.** Étapes 1 à 3. **Change.** `render/src/equationlayout.*` créés par L0-S3 avec le repère neutre **[SOCLE?]** :
+**Garde.** Étapes 1 à 3. **Change.** `render/src/equationlayout.*` créés par L0-S3 avec le repère neutre (vérifié :
+déclaration privée `paintEquation(QPainter&, const core::Equation&)`, `render/src/equationlayout.h:10` ; marqueur
+`render/src/equationlayout.cpp:1`) :
 remplacer le repère par la mise en page en gardant `malformedDrawsTheNeutralFrame` ; `tst_render_equation` déclaré par
 L7-S8, avec `render/src` en inclusion privée (L7-S8, étape 10 : `layoutEquation` s'y lit) ; les formes ajoutées
 par L7-T24 se dessinent (une ligne de données chacune dans `paintedMatchesSoftware`). **S'ajoute** (décision de
@@ -1367,11 +1451,13 @@ void paintEquation(QPainter& painter, const core::Equation& equation, EquationPa
 } // namespace actcraft::render
 ```
 La déclaration privée de `render/src/equationlayout.h` (ligne 10 à be2e5de) est **retirée** ; `equationlayout.h` ne
-garde que la mise en page (`EquationBox`, `layoutEquation`) ; les appels du peintre (`pagepainter.cpp`,
-`paintedrenderer.cpp`) incluent l'en-tête public et passent par lui en mode `Page` (argument par défaut : leur texte
-ne change pas, seule la ligne d'inclusion change si elle nommait `equationlayout.h` — à lire ; ces deux fichiers
-s'ajoutent alors à la ligne de la tâche avant lancement). `render/CMakeLists.txt` : la seule ligne
-`include/actcraft/render/equationpaint.h` ajoutée à la liste, à côté de `pagepainter.h`. En mode `Editor` seulement, la case marquée `class="actcraft-placeholder"` se dessine en cadre pointillé
+garde que la mise en page (`EquationBox`, `layoutEquation`) et **inclut** `<actcraft/render/equationpaint.h>`.
+Vérifié : seul `render/src/pagepainter.cpp:1` inclut `equationlayout.h` ; `paintedrenderer.cpp` ne l'inclut pas. Par
+cette inclusion, `pagepainter.cpp` voit la déclaration publique et appelle `paintEquation` en mode `Page` (argument
+par défaut) **sans être modifié** : ni `pagepainter.cpp` ni `paintedrenderer.cpp` n'entrent dans les fichiers de la
+tâche. `render/CMakeLists.txt` : la seule ligne
+`include/actcraft/render/equationpaint.h` ajoutée à la liste, juste avant `src/equationlayout.h` (vérifié :
+`render/CMakeLists.txt:27-32`). En mode `Editor` seulement, la case marquée `class="actcraft-placeholder"` se dessine en cadre pointillé
 et la case marquée `class="actcraft-cursor"` se dessine surlignée. En mode `Page`, un `<mrow/>` vide, marqué ou non,
 ne dessine rien, et les marques sont ignorées. Tests : `editorModeDrawsPlaceholderAndCursor` ;
 `pageDrawsNoPlaceholder` (rendu de page de `<mfrac><mrow/><mrow/></mfrac>`, avec et sans marques : aucun pixel non
@@ -1476,8 +1562,8 @@ cet endroit par `DocumentInsertions::insertText` (une étape) : `calculationDrag
 la souris jusqu'à (300, 200) de page : un `Text` de plus dont les bornes contiennent ce point ; `undo` : retiré),
 dans `tst_ui_calculator`. `everyInputPanelIsACover` : chaque racine visible qui prend l'entrée (liste de la décision 3, sauf
 `PerPageTools`, `OtherToolsHost`, fenêtres propres) est une couverture déclarée quand elle est ouverte
-**[SOCLE?]** moyen de lire les couvertures déclarées (`PageView` en expose-t-il la liste ? sinon : un trait au stylet
-sous chacune, compte inchangé) ; contrôle des talons de la décision 2 (deux `git grep` vides) et règle 4 du socle
+— vérifié : `PageView` n'expose pas la liste (`m_covers` privé, `pageview.cpp:725`) ; le test injecte donc un trait
+au stylet sous chacune, ouverte : compte inchangé ; contrôle des talons de la décision 2 (deux `git grep` vides) et règle 4 du socle
 (`tst_ui_lot7.exe <clé> -functions` pour chacune des 17 clés et `<test>.exe -functions` pour les autres : au
 moins une fonction, aucune `reserved` ; une ligne `TRAIT`, `DOIGT` ou `POINTEUR` par scénario rempli). **Test.**
 `-R 'tst_ui_presentation|tst_captures_presentation'`.
@@ -1500,8 +1586,9 @@ données (socle « Changent » 11) : la tâche branche seulement ses gestionnair
 `DesktopAnnotation.qml`, `MathToolsLayer.qml`) et ne touche pas `Presentation.qml` (revue M3) ; « rétablir la page »
 devient la quatrième action de fin : `endActionsAreTheThreeOfThisLot` est **remplacé** par
 `endActionsAreTheFourOfTheSpecification` (revue M4), écrit dans le rapport ; les points
-d'accroche du lot 3 sont connus par leurs noms (contrats figés du socle) : `ToolHost::activeTool()`, outils `marker`
-et `eraser` **[SOCLE?]** identifiants ; guides du marqueur et de la gomme par le même filtre d'échantillons (le filtre
+d'accroche du lot 3 sont connus par leurs noms (contrats figés du socle) : `ToolHost::activeTool()` (`toolhost.h:91`), outils
+d'identifiants `highlighter` (le marqueur) et `eraser` (vérifié : `tools/include/actcraft/tools/tool.h:14`,
+`erasertool.h:14`) ; guides du marqueur et de la gomme par le même filtre d'échantillons (le filtre
 est en amont de l'outil actif, socle D-S1 : rien à changer dans `pageview.*`). Les symétries autour de l'origine
 (P20) restent au lot 5.
 
@@ -1523,54 +1610,70 @@ est en amont de l'outil actif, socle D-S1 : rien à changer dans `pageview.*`). 
   dessine pour un `<mrow/>` vide (`pageDrawsNoPlaceholder`) ; l'éditeur refuse d'insérer une équation incomplète
   (`incompleteEquationIsRefused`). Question de spécification, à trancher à la porte.
 
-## À vérifier contre le socle réel à la fusion
+## Vérifié contre le socle réel (feat/livraison-complete-b @ 131f790)
 
-Chaque point se vérifie sur `feat/livraison-complete-b` après la fusion du socle, **avant** de relire ce plan ;
-un écart amende la section concernée (relecture exigée).
+Lu dans le code fusionné, sans construction. Chaque point du brouillon : « vérifié : … (fichier:ligne) » ou la
+correction faite. Ce qui relève de Qt ou de CMake et non du socle reste à prouver par la construction de la tâche
+nommée.
 
-1. **N_F** : relevé (attendu N_départ + 19 + 16) ; tests ajoutés par A depuis le plan du socle.
-2. **Crochet de `ui/`** : `set(ACTCRAFT_UI_LOT7_QML "")`, `set(ACTCRAFT_UI_LOT7_SOURCES "")` puis
-   `include(… presentation.cmake OPTIONAL)` **avant** `qt_add_qml_module`, listes ajoutées en fin de `QML_FILES` et
-   `SOURCES` ; chemins absolus acceptés (`file(GLOB)` de L7-S8) ; `ActCraft::features` lié à `actcraft_ui`.
-3. **`Presentation.qml`** : six propriétés exactes, aucun enfant ; instance `presentation` dans `Main.qml` avec
-   `tools: appTools` et `pageOverlays: pageArea.pageOverlays` ; `presentationLayer` (`z: 50`).
-4. **`PageArea`** : alias `presentationSlot`, `pageOverlays`, `view` accessibles en QML depuis une racine ; `view`
-   expose `addInputCover`, `removeInputCover` en `Q_INVOKABLE` (ou équivalent appelable depuis QML).
-5. **`PageView`** : signatures de `setSampleFilter` (type du filtre), `zoomAround`, `sceneToPage`, bornes de zoom
-   (`ui::kMinZoom`, `kMaxZoom`), `cacheRefreshRequested`, `cacheRefreshCount`, `contextMenuRequested`.
-6. **`DocumentController`** : `execute()` et `document()` publics ; `addChangeObserver`, `ChangeObserver`,
-   `ChangeOrigin` (valeur pour un trait : `Stroke`) ; `shownIndex` ou équivalent (`currentIndex`).
-7. **`core`** (L0-S3) : `Equation`, `PagePresentation` (champs de P7a:209-220, `spotlightFrame`, `unknownKeys`),
-   `PageToolsMode`, `CurtainMode`, `SpotlightShape` (valeurs), `ReplaceObjectsCommand`, `ObjectReplacement`,
-   `SetPagePresentationCommand` (`replace.h`), forme d'un polygone dans `core::Shape`, `ImageObject` et ressources.
-8. **Fichiers d'équation** (L0-S3 mergée, be2e5de) : `core/equation.*`, `render/src/equationlayout.*` créés et
-   enregistrés ; à relire sur la branche fusionnée : contenu exact, marqueurs `Talon L0-S : rempli par L7-T24/T25`,
-   déclaration privée de `paintEquation` (ligne 10 de `equationlayout.h` à be2e5de) et ses inclusions dans
-   `pagepainter.cpp` et `paintedrenderer.cpp` (L7-T25) ; `tst_core_equation.cpp`, `tst_render_equation.cpp`
-   présents ou non (L7-S8, étape 7).
-9. **`ToolHost`** : `user()`, `UserState::setOpenMathTools` (nom, type), couleur du stylo lisible depuis QML (L7-T12),
-   `activeTool()` et identifiants des outils du lot 3 (L7-T34).
-10. **Commandes** (L0-S4) : bloc du lot 7 de `commands.json` (identifiants cités par 7a/7b et ce plan :
-    `present.curtain`, `present.spotlight-*`, `view.page-zoom`, `view.page-effect`, `page.effect`, `math.*`,
-    `tool.dice`, `tool.calculator`, `tool.clock`, `tool.ticker`, `tool.web-browser`, `insert.date-time`,
-    `insert.equation`, `equation.edit`, `tool.shape-recognition`, `tool.handwriting`, `recognition.convert-to-*`,
-    `tool.camera-*`, `tool.keyboard`, `desktop.*`) ; présence éventuelle de commandes pour P8, P9, P3 (décision 8).
-11. **Talons du socle** : ses QML du lot 3 (`SelectionOverlay` posé `anchors.fill` au-dessus de la vue) ne couvrent
-    pas `presentationSlot` ; `coveredAt` voit les couvertures déclarées et respecte `containmentMask`.
-12. **Ordre des `include` de `tests/CMakeLists.txt`** : `bench.cmake` avant `presentation.cmake`
-    (`_bench_env_offscreen`) ; forme de déclaration de `tst_ui_shell` (`app/startup.cpp`, `actcraft_uiplugin`).
-13. **Aides d'injection** : forme du stylet de test retenue par L0-S7 (`tst_ui_inputpath`), à reprendre dans
-    `presentationharness.h`.
-14. **Peintre de l'équation** : `render::paintObjectLocal` dessine un `core::Equation` en appelant `paintEquation`
-    (L0-S3, be2e5de) ; après L7-T25, par l'en-tête public `equationpaint.h` en mode `Page` (décision de A) ; place de
-    la ligne de l'en-tête dans `render/CMakeLists.txt`.
-15. **Exécutable unique** : inscription statique des classes dans un exécutable (pas une bibliothèque statique :
-    aucun risque d'objet écarté par l'éditeur de liens) ; attributs que pose `QTEST_MAIN` sous Qt 6.12, à reprendre
-    dans `tst_ui_lot7_main.cpp`.
-16. **Fenêtres créées à la demande** : `Component` dont la racine est une `Window`, `createObject(null)` gardé par une propriété, et
-    `beginCreate` puis format de la `QQuickWindow` avant `completeCreate` (bureau) sous Qt 6.12, hors écran.
-17. **Noms** : `NOMS OK` sur la branche fusionnée ; noms neufs de ce plan (`PerPageTools.qml`,
-    `OtherToolsHost.qml`, tests `tst_ui_*`, fonctions de test) repassés au contrôle après `git add`.
+1. **N_F** — vérifié par A : 113 tests sur `feat/livraison-complete` (debug et release 113/113, état du chantier,
+   « Socle fusionné ») ; N_F = 113 + 16 = **129**, à confirmer par la suite de l'orchestrateur ; N = 158 après L7-S8.
+2. **Crochet de `ui/`** — vérifié : `ui/CMakeLists.txt:27-29` (deux `set(… "")`, `include(… OPTIONAL)` avant
+   `qt_add_qml_module`, l. 31), listes en fin de `QML_FILES` (l. 60) et de `SOURCES` (l. 123), `ActCraft::features`
+   lié (l. 147). **Correction** : `QT_QML_SKIP_CACHEGEN` retiré de `ui/presentation.cmake` (le socle tait C4702 pour
+   tout le C++ de qmlcachegen du module, l. 126-140). Chemins absolus de `file(GLOB)` : à la construction de L7-S8.
+3. **`Presentation.qml`** — vérifié avec correction : racine **`QtObject`** (`ui/qml/Presentation.qml:12`, `layer`
+   FINAL de `Item`), `default property list<QtObject> data` (l. 14), six propriétés (l. 15-20) ; instance dans
+   `ui/qml/Main.qml:254-262` avec `tools: appTools`, `pageOverlays: pageArea.pageOverlays`,
+   `layer: presentationLayer` ; `presentationLayer` `z: 50` (l. 248-253). Décision 3, étape 5 de L7-S8 et
+   `lot7RootsExist` (`findChild<QObject*>`) corrigés.
+4. **`PageArea`** — vérifié : alias `view`, `pageOverlays`, `presentationSlot`, propriétés `tools`, `commands`
+   (`ui/qml/PageArea.qml:10-19`) ; `addInputCover`, `removeInputCover` `Q_INVOKABLE` (`pageview.h:181-182`).
+5. **`PageView`** — vérifié : `SampleFilter = std::function<input::Sample(const input::Sample&)>` (`pageview.h:84`),
+   `setSampleFilter` (l. 185), `zoomAround` et `sceneToPage` `Q_INVOKABLE` (l. 188-189), `cacheRefreshRequested`
+   (l. 199), `cacheRefreshCount` (l. 80, 175), `contextMenuRequested` (l. 211) ; bornes `ui::kMinZoom = 0.25`,
+   `kMaxZoom = 8.0` (`viewtransform.h:12-13`).
+6. **`DocumentController`** — vérifié : `document()` (l. 76) et `execute()` (l. 79) publics ; `ChangeOrigin::Stroke`
+   (l. 145-153), `ChangeObserver = std::function<void(const core::Changes&, ChangeOrigin)>`, `addChangeObserver`
+   (l. 160-162) ; pas de `shownIndex` : `currentIndex()` (l. 66, `int`). **Corrections** : test de L7-T2 sur
+   `Change::object` ; `pagesChanged` et `documentChanged` écoutés (point 1 de A, décision 13) ; `addResource`
+   remplacé par `insertImage` (pas d'accès en écriture au document, l. 76).
+7. **`core`** — vérifié : `Equation` (`model.h:337-343`), `PageToolsMode`, `CurtainMode`, `SpotlightShape`
+   (l. 438-461, valeurs du contrat), `PagePresentation` avec `spotlightFrame`, `hasOrigin`, `origin`, `transition`,
+   `unknownKeys` (l. 462-474), `ObjectReplacement`, `ReplaceObjectsCommand`, `addedIds`, `SetPagePresentationCommand`
+   (`replace.h:14-64`), polygone = `ShapeKind::Polygon` et `Shape::polygon` (`model.h:200-212`, L7-T21 corrigée),
+   `ImageObject::resource` (l. 236-247), `Document::addResource` (`document.h:66`).
+8. **Fichiers d'équation** — vérifié : `core/equation.*` et `render/src/equationlayout.*` enregistrés
+   (`render/CMakeLists.txt:31-32`) ; marqueurs : trois lignes (décision 2) ; `paintEquation` privé
+   (`render/src/equationlayout.h:10`) ; seul `render/src/pagepainter.cpp:1` inclut `equationlayout.h`
+   (`paintedrenderer.cpp` non) : L7-T25 corrigée (inclusion de l'en-tête public dans `equationlayout.h`, peintres
+   inchangés) ; `tst_core_equation.cpp`, `tst_render_equation.cpp` absents (k = 0).
+9. **`ToolHost`** — vérifié : `user()` (`toolhost.h:92`), `activeTool()` (l. 91), couleur `Q_PROPERTY(QColor color)`
+   (l. 42), type QML `Tools` (l. 34) ; `UserState::setOpenMathTools(std::vector<QString>)` (`userstate.h:39`) ;
+   outils `highlighter`, `eraser` (`tool.h:14`, `erasertool.h:14`).
+10. **Commandes** — vérifié : 85 commandes dans `actions/data/commands.json`, tous les identifiants du lot cités ici
+    présents ; aucune pour P8, P9, P3 (décision 8 maintenue).
+11. **Talons du lot 3 et couvertures** — vérifié : `SelectionOverlay.qml` n'a aucun gestionnaire d'appui (talon du
+    lot 3) : il ne prend pas l'entrée au-dessus de `presentationSlot` ; `coveredAt` : visible, actif,
+    `contains(mapFromScene)` (`pageview.cpp:724-727`). Le piège de L3-T15 (gestionnaire sur la racine) reste à
+    surveiller à la fusion du lot 3 (L7-T33).
+12. **Ordre des `include`** — vérifié : `tests/CMakeLists.txt:42-47` (`ui`, `bench`, `app`, puis `presentation` en
+    dernier) ; `_bench_env_offscreen` (`tests/bench.cmake:8`) ; `tst_ui_shell` (`tests/ui.cmake:33-36`) ;
+    `tst_ui_inputpath` (`tests/ui.cmake:64-66`).
+13. **Aides d'injection** — vérifié avec correction : forme de `tests/tst_ui_inputpath.cpp` (stylet l. 141-160,
+    220-223 ; doigt par `QTest::createTouchDevice` et `QTest::touchEvent` avec une image entre deux étapes, l. 171-187
+    et 224 ; souris l. 162-169) reprise dans `presentationharness.h` (L7-S8, étape 6) ; scénarios : `expect` avec
+    `tolerance` (`bench/src/uiscenario.cpp:214`, `:243-244`, point 4 de A).
+14. **Peintre de l'équation** — vérifié : `pagepainter.cpp` appelle `paintEquation` par `equationlayout.h`
+    (l. 1) ; ligne de l'en-tête public à poser avant `src/equationlayout.h` (`render/CMakeLists.txt:27-32`) ;
+    décision de A appliquée (L7-T25, L7-T26).
+15. **Exécutable unique** — point de Qt et de l'éditeur de liens, non du socle : `Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)`
+    à reprendre une fois dans `tst_ui_lot7_main.cpp` (comme `tests/tst_ui_shell.cpp:30`) ; attributs de
+    `QTEST_MAIN` : à la construction de L7-S8.
+16. **Fenêtres créées à la demande** — point de Qt, non du socle : à prouver par L7-T28, L7-T29, L7-T30 (hors écran,
+    puis contrôle à l'écran annoncé de L7-T28 et L7-T30).
+17. **Noms** — `NOMS OK` sur la branche fusionnée (contrôle de ce commit, 356 fichiers suivis) ; noms neufs des
+    tâches repassés au contrôle après `git add` par chaque tâche.
 
 ## Risques
 
@@ -1588,5 +1691,5 @@ un écart amende la section concernée (relecture exigée).
 4. **Couverture et `containmentMask`** : une surcouche qui couvre toute la page (rideau, spot) et ne restreint pas sa forme
    couvre toute la page ; chaque `…BlocksTheStylus` doit avoir son pendant « hors de la surcouche, le trait est
    versé » (piège de L3-T15, socle « Amendements », 12).
-5. **Brouillon** : écrit sans le code du socle ; les dix-sept points ci-dessus peuvent changer des signatures, des
-   chemins ou le compte. Aucune tâche ne part avant la revue de ce plan contre le socle mergé.
+5. **Points de Qt non prouvés** (points 15 et 16 ci-dessus) : ils ne dépendent plus du socle mais de la
+   construction ; L7-S8, L7-T28, L7-T29 et L7-T30 les prouvent ou rapportent l'écart.
