@@ -2,6 +2,7 @@
 
 #include <actcraft/core/model.h>
 #include <actcraft/input/sample.h>
+#include <actcraft/tools/tool.h>
 
 #include <cstdint>
 
@@ -26,8 +27,9 @@ public:
 };
 
 // Stylo : appui → trait en cours ; déplacements → points ; relâché → trait versé au document puis encre
-// vidée, dans le même tour de boucle (décision 10). Un trait de moins de 2 points n'est pas versé.
-class PenTool final : public input::SampleSink
+// vidée, dans le même tour de boucle (décision 10). Un trait de moins de 2 points n'est pas versé. Outil
+// « pen » (socle L0-S7) : occupé pendant un trait ; cancel() verse le trait en cours.
+class PenTool final : public Tool
 {
 public:
     PenTool(InkSurface& ink, DocumentSink& document);
@@ -38,6 +40,9 @@ public:
     double baseWidth() const noexcept;
     bool isDrawing() const noexcept;
 
+    QString id() const override;
+    bool isBusy() const noexcept override;
+    void cancel() override;
     void onSample(const input::Sample& sample) override;
 
 private:
