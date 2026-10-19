@@ -303,6 +303,41 @@ private slots:
         QCOMPARE(sink.lastTranslucency, 127);
     }
 
+    // L3-T13 (H3-17) : abandon oublie le trait en cours (rien de versé, encre vidée) ; cancel verse toujours.
+    // Par défaut, Tool::abandon fait cancel : la sélection et la gomme y abandonnent déjà sans étape.
+    void abandonCommitsNothingCancelStillCommits()
+    {
+        Log log;
+        FakeInk ink(log);
+        FakeDocument document(log);
+        tools::PenTool pen(ink, document);
+        pressAndMove(pen);
+        QVERIFY(pen.isBusy());
+        pen.abandon();
+        QVERIFY(!pen.isBusy());
+        QVERIFY(document.strokes.empty());
+        QCOMPARE(log.calls.back(), std::string("clear"));
+        pen.abandon();                               // sans trait : rien
+        pen.onSample(make(Phase::Move, 8, 0, 2));    // la suite du contact n'écrit plus
+        pen.onSample(make(Phase::Release, 8, 0, 3)); // ni ne verse
+        QVERIFY(document.strokes.empty());
+        pressAndMove(pen);
+        pen.cancel();
+        QCOMPARE(document.strokes.size(), std::size_t{1});
+
+        struct Counting final : tools::Tool
+        {
+            int cancels = 0;
+            QString id() const override { return QStringLiteral("essai"); }
+            bool isBusy() const noexcept override { return false; }
+            void cancel() override { ++cancels; }
+            void onSample(const input::Sample&) override {}
+        };
+        Counting other;
+        other.abandon();
+        QCOMPARE(other.cancels, 1);
+    }
+
     // La translucidité d'un trait est celle de son appui, comme sa couleur : changée en plein trait, elle
     // vaut pour le suivant (l'encre vive et le trait versé restent d'accord).
     void translucencyIsTakenAtThePress()

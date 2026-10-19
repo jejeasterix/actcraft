@@ -58,6 +58,7 @@ public:
     QString id() const override; // « pen » ou « highlighter »
     bool isBusy() const noexcept override;
     void cancel() override;
+    void abandon() override; // trait en cours oublié, encre vidée, rien de versé
     void onSample(const input::Sample& sample) override;
 
 private:

@@ -80,6 +80,16 @@ void PenTool::cancel()
     }
 }
 
+void PenTool::abandon()
+{
+    if (!m_drawing) {
+        return;
+    }
+    m_drawing = false;
+    m_current = core::Stroke{};
+    m_ink.clear();
+}
+
 void PenTool::onSample(const input::Sample& sample)
 {
     switch (sample.phase) {
