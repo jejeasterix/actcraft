@@ -27,7 +27,7 @@ Premier geste à la reprise :
 5. Après le merge de L7-P3 : lancer L7-P4 (worktree neuf depuis la branche du chantier).
 
 ## Référence
-Rapide (phase 2) : N_F = 129 tests `TESTS OK` (socle + phase 1, 2026-10-19). Avant le socle : N0 = N1 = 94 tests, `TESTS OK` (debug, 2026-10-18, worktree du chantier @ e367657).
+Rapide (phase 2) : 158 tests `TESTS OK` après L7-S8 ; N_F = 129 tests `TESTS OK` (socle + phase 1, 2026-10-19). Avant le socle : N0 = N1 = 94 tests, `TESTS OK` (debug, 2026-10-18, worktree du chantier @ e367657).
 
 ## Compteurs
 relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 et mineurs corrigés en bf8c930) · relecture amendement phase 1 : 2/3 · relecture amendement phase 2 (brouillon) : 3/3 · relecture contre le socle réel : 3/3 · vagues sans progrès 0/2
@@ -47,7 +47,9 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | supprimé | terminée, mergée | 2 | e5f5874 | rejeu : 110 tests `TESTS OK`, Totals 7/11/8, `NOMS OK` ; 6 mutants rouges |
 | L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | supprimé | terminée, mergée (33e9b1a), graphe ea055dd | 2 | 5c2fd21 | rejeu : 110 tests `TESTS OK`, Totals 9, `NOMS OK` ; mutants rouges |
 | L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | supprimé | terminée, mergée (aef50b8), graphe cd73acb | 2 | a65e9b2 | rejeu : Totals 7/7/4, `NOMS OK` ; suite 108/110 sous charge, `tst_ui_files` et `tst_captures_aller_retour_natif` verts relancés seuls (P9 ne touche que features/) |
-| L7-S8 | phase 1 mergée | voir ligne L7-S8 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-S8 (base bd4631a) | rendue (158/158 `TESTS OK` selon l'agent, `lot7RootsExist` rouge puis vert, 3 mutants) ; rejeu et revue adversariale en cours | 1 | df1b5cb | — |
+| L7-S8 | phase 1 mergée | voir ligne L7-S8 de l'amendement phase 2 | supprimé | terminée, mergée (0dfd461), graphe 44e8871 | 2 | 9f1604c | rejeu : 158 tests `TESTS OK`, talons `SKIP … Talon L7-S8 : rempli par L7-T<n>`, `NOMS OK` ; revue adversariale appliquée (essai 2) |
+| L7-T1 | L7-S8 | voir ligne L7-T1 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T1 (base 44e8871) | en cours (implementeur-tdd), V2 | 1 | — | — |
+| L7-T2 | L7-S8 | voir ligne L7-T2 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T2 (base 44e8871) | en cours (concepteur-critique), V2 | 1 | — | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
