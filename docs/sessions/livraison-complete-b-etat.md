@@ -2,7 +2,7 @@
 
 Statut : en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
 Gabarit : lots (lot 7 du chantier `livraison-complete`, exécuté en parallèle du lot 3)
-Étage : 3, phase 1 (logique pure du lot 7, avant le socle commun) — plan : docs/plans/2026-10-18-livraison-complete-lot7-phase1-PLAN.md ; N attendu en fin de phase 1 = 94 + 16 = 110
+Étage : 3, entrée de la phase 2 (socle fusionné : 131f790, depuis feat/livraison-complete @ e7c6713) ; phase 1 (logique pure du lot 7, avant le socle commun) — plan : docs/plans/2026-10-18-livraison-complete-lot7-phase1-PLAN.md ; N attendu en fin de phase 1 = 94 + 16 = 110
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branche : feat/livraison-complete-b   Base : feat/livraison-complete @ 7bb551c (+ merge du plan du lot 7 bf8c930 → 2d76ba6)
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
@@ -50,6 +50,13 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
+
+## Socle fusionné (2026-10-19, message de A) — points à reporter dans l'amendement de phase 2
+1. L0-S5 : `replaceDocument`, `loadGeneratedFirstPage`, `loadGeneratedPages` ne passent pas par `applyToCache` ; l'observateur (`addChangeObserver`) n'est pas appelé : le lot 7 écoute aussi `pagesChanged` ou `documentChanged`.
+2. L0-S9 : la racine de `Presentation.qml` est un `QtObject` (conflit de `layer` avec `Item.layer` FINAL) ; les surcouches se posent par `parent: presentation.layer` ou `parent: presentation.pageOverlays`, jamais comme enfants visuels directs.
+3. Démontage QML : tout QML neuf protège ses accès à `commands` (null au démontage) ; `tst_ui_shell::shellLoadsWithoutQmlWarning` échoue sur tout avertissement QML.
+4. L0-S2 : étapes `touch`, `pinch`, `pointer`, `doubleClick` par `QTest::createTouchDevice`/`QTest::touchEvent` (un `QTouchEvent` posté n'atteint pas Qt Quick) ; `expect` accepte `tolerance` ; C++ de qmlcachegen de `actcraft_ui` en `/wd4702`.
+Preuve de A : debug et release 113/113 ; talons « par L7- » : 3 lignes (equation.h, equation.cpp, equationlayout.cpp). N attendu ici : 113 + 16 = 129.
 
 ## Écarts acceptés en phase 1
 - L7-P3 : assertions ajoutées dans `guideSetPicksTheNearestGuide` (ordre inversé) et exercice de `SetSquare::follow`, Totals inchangés ; règle « le plus proche » du plan maintenue contre la référence Python.
