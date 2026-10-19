@@ -55,7 +55,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T9 | L7-S8 | voir ligne L7-T9 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T9 (base 7877179) | mergée : rejeu 157/158 (tst_pageview rouge sous charge, vert seul), mathtools Totals 12 (0 skipped) ; revue : 4 importants corrigés à l'essai 2, test de la sélection reporté en L7-T34 ; couverture au bord extérieur (lettre du contrat, décision orchestrateur) | 2 | c85e866 | e373edb (graphe 319d88c) |
 | suite V3 | L7-T3, L7-T9 | branche du chantier à 0c0b0e2 | — | TESTS OK 158/158 (2e passage ; 1er : LNK2001 AUTOMOC, timestamp ui supprimés) | 2 | — | — |
 | L7-T4 | L7-T2 | voir ligne L7-T4 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T4 (base 0c0b0e2) | en cours (implementeur-tdd), V4 | 1 | — | — |
-| L7-T10 | L7-T9 | voir ligne L7-T10 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T10 (base 0c0b0e2) | rendue d9b6b36 (158 TESTS OK, mathtools 18/18, 4 mutants un par construction, Repeater remplacé par ListModel) ; rejeu en cours | 1 | d9b6b36 | — |
+| L7-T10 | L7-T9 | voir ligne L7-T10 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T10 (base 0c0b0e2) | mergée : rejeu TESTS OK 158/158, mathtools Totals 18 (0 skipped), 4 mutants un par construction ; Repeater → ListModel ; banc BUDGET DEPASSE (résultat) | 1 | d9b6b36 | dd7f2f2 (graphe 2ca164f) |
 | L7-T5 | L7-S8 | voir ligne L7-T5 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T5 (base e8d01f0) | en cours (implementeur-tdd), V5 | 1 | — | — |
 
 ## Terminé quand
