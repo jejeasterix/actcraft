@@ -81,13 +81,6 @@ Item {
             }
         }
 
-        // Curseur selon la zone : tout déplacer à l'intérieur de la partie saisissable, redimensionner sur le bord.
-        HoverHandler {
-            id: hover
-            objectName: "spotlightHover"
-            cursorShape: hover.hovered ? spotlightController.cursorAt(hover.point.position) : Qt.ArrowCursor
-        }
-
         // Tous périphériques (stylet, doigt, souris). Le store ne saisit que dans sa zone saisissable
         // (Spotlight.press) ; ailleurs le geste traverse vers la page.
         PointHandler {
@@ -127,6 +120,19 @@ Item {
             acceptedDevices: PointerDevice.TouchScreen | PointerDevice.Stylus
             longPressThreshold: 0.7
             onLongPressed: spotMenu.popup(store, point.position.x, point.position.y)
+        }
+    }
+
+    // Curseur selon la zone : tout déplacer sur la partie qui déplace, redimensionner sur le bord, flèche ailleurs.
+    // Sœur du store, sans masque de saisie : le survol se lit partout, seul l'appui est limité à la zone saisissable.
+    Item {
+        objectName: "spotlightHoverZone"
+        anchors.fill: parent
+        visible: spotlightController.active
+        HoverHandler {
+            id: hover
+            objectName: "spotlightHover"
+            cursorShape: hover.hovered ? spotlightController.cursorAt(hover.point.position) : Qt.ArrowCursor
         }
     }
 
