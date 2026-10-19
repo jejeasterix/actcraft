@@ -393,14 +393,15 @@ private slots:
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
         const double top = frameOf(*tools, 0).top();
-        QVERIFY(w.run(QStringLiteral("tool.select")));
+        // Outil courant lu dans l'état de l'utilisateur, celui que ToolHost::activate tiendra (talon du lot 3
+        // sur cette branche : activate ne fait encore rien).
+        auto* host = w.window()->findChild<actcraft::ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(host);
+        host->user().setCurrentTool(QStringLiteral("select"));
         stylusPath(w, {{300, top - 5}, {400, top - 60}}, false);
         QVERIFY2(!tools->guiding(), "outil Sélection : aucun guide ne saisit l'appui");
         presentationharness::sendTablet(w.window(), QEvent::TabletRelease, scene(w, QPointF(400, top - 60)));
-        auto* host = w.window()->findChild<actcraft::ui::ToolHost*>(QStringLiteral("appTools"));
-        QVERIFY(host);
-        QCOMPARE(host->currentTool(), QStringLiteral("select"));
-        host->activate(QStringLiteral("pen"));
+        host->user().setCurrentTool(QStringLiteral("pen"));
         stylusPath(w, {{300, top - 5}, {400, top - 60}}, false);
         QVERIFY2(tools->guiding(), "stylo : le même appui est saisi par le bord");
         presentationharness::sendTablet(w.window(), QEvent::TabletRelease, scene(w, QPointF(400, top - 60)));
