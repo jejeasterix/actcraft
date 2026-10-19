@@ -228,24 +228,49 @@ int DocumentController::shownObjectCount() const noexcept
 
 // B1 : aucune annonce. editAboutToApply ferait abandonner son geste à l'outil qui soulève (L3-T14), et un
 // seul utilisateur ne trace aucun trait pendant qu'il soulève. Hors pile : ni révision, ni étape.
+// Contrat de tools::DocumentEditor::lift : un second appel pendant le même soulèvement AJOUTE aux objets
+// soulevés (la gomme soulève chaque trait à son premier contact). Les objets déjà soulevés restent hors de la
+// page et du cache. Les remettre à chaque appel (L3-C5) rendait au cache les traits que la gomme recoupait ;
+// elle les soulevait de nouveau au contact suivant (au banc : 792 traits soulevés pour 24 touchés).
 std::vector<core::PageObject> DocumentController::liftObjects(const std::vector<core::ObjectId>& ids)
 {
-    dropRemaining(); // un soulèvement à la fois : le précédent revient sans étape
-    std::vector<core::LiftedObject> lifted = core::takeObjects(m_document.page(m_current), ids);
-    if (lifted.empty()) {
+    forgetStaleLift();
+    core::Page& page = m_document.page(m_current);
+    std::vector<core::ObjectId> fresh; // demandés, dans la page, pas encore soulevés
+    for (const core::ObjectId id : ids) {
+        if (core::indexOf(page, id) < page.objects.size() &&
+            std::find(fresh.begin(), fresh.end(), id) == fresh.end()) {
+            fresh.push_back(id);
+        }
+    }
+    if (fresh.empty()) {
         return {};
     }
-    std::vector<core::PageObject> copies;
-    copies.reserve(lifted.size());
-    for (const core::LiftedObject& l : lifted) {
-        copies.push_back(l.object);
+    const bool wasLifting = !m_lifted.empty();
+    // Une seule liste aux rangs de la page entière (ceux qu'attend restoreObjects) : les objets déjà soulevés
+    // reviennent un instant dans la page, sans changement pour le cache, puis tous sont repris ensemble.
+    std::vector<core::ObjectId> all = fresh;
+    for (const core::LiftedObject& l : m_lifted) {
+        all.push_back(l.object.common.id);
     }
-    const core::Changes changes = core::liftChanges(m_current, lifted);
-    m_lifted = std::move(lifted); // avant settle : un observateur voit isLifting()
+    core::restoreObjects(page, m_lifted);
+    m_lifted = core::takeObjects(page, all); // avant settle : un observateur voit isLifting()
+    std::vector<core::LiftedObject> added;
+    std::vector<core::PageObject> copies;
+    for (const core::LiftedObject& l : m_lifted) {
+        if (std::find(fresh.begin(), fresh.end(), l.object.common.id) != fresh.end()) {
+            added.push_back(l);
+            copies.push_back(l.object);
+        }
+    }
+    const core::Changes changes =
+        core::liftChanges(m_current, added); // le cache n'a plus que ceux-là à retirer
     m_liftGeneration = m_generation;
     settle(changes, ChangeOrigin::Lift);
     emit documentChanged();
-    emit liftingChanged();
+    if (!wasLifting) {
+        emit liftingChanged();
+    }
     return copies;
 }
 
