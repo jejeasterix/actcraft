@@ -280,3 +280,16 @@ voir « Limites connues »).
    ```
 8. Renvoyer le dossier `bench/results/` (JSON), les dernières lignes notées, le dossier `captures/` s'il existe,
    et la sortie de l'étape 7.
+
+### `gommer` et `soulever` (L3-T19, H10-8 e, S36)
+
+Deux scénarios jouent un outil choisi **par commande avant la mesure** (`ScenarioPlan::toolCommand`, appelée par
+`runCommand` de la fenêtre, puis `tool.pen` après). `gommer` : 24 annotations (couche supérieure) sont posées puis
+versées dans le cache avant la mesure, parce que les traits de la page générée sont sur la couche du milieu et que
+la gomme n'agit que sur les annotations ; un zigzag du stylo les croise toutes (`cache.touched_strokes` = k,
+`cache.pending_cut` = 0 : aucun trait n'attend). Attendu S36 : `cache.refreshes` ≤ k + 1 + `pending_cut`.
+`soulever` : rectangle de sélection tiré depuis la marge gauche de la vue (la page générée est dense : aucun point
+libre dans la zone centrale), puis appui sur un objet pris et glissement de 300 px en 2 s ; attendu :
+`cache.refreshes` = 2. Chaque scénario relève aussi `cache.rebuilds` et `cache.decodes` (reconstructions et
+décodages d'images de la page fixe), et `soulever` écrit `cache.lifted_objects`, le nombre d'objets que son rectangle prend (de 2 à 8). `cache.touched_strokes` de `gommer` est le k réel : 24 annotations touchées. Premier relevé de ce poste (debug, rendu logiciel, jeu court) : `gommer` 3 redessins ; `soulever` 2 redessins, mais 2 décodages d'images et 2 reconstructions pendant le soulèvement. Ils sont hors du critère « 0 figement » de S13. Mesures de ce poste seulement
+(décision 0125) : rien n'est mesuré sur le Dell, la tablette ni le MacBook.

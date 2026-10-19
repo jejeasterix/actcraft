@@ -53,7 +53,7 @@ struct RefreshPeriod
 
 struct ScenarioResult
 {
-    QString name;             // stroke | zoom | scroll | page | pauses
+    QString name;             // stroke | zoom | scroll | page | pauses | gommer | soulever
     std::int64_t startNs = 0; // origine des séries brutes
     FrameSeries frames;
     IntervalStats intervals;
@@ -68,6 +68,14 @@ struct ScenarioResult
     std::vector<std::int64_t> cacheRequestNs;
     std::vector<std::int64_t> cacheUpdatedNs;
     int pendingMax = 0; // L10-T4 : plus grand FixedPageItem::pendingCount pendant le scénario
+    // L3-T19 : relevés de « gommer » (k, 1 si le dernier trait en attente est gommé en deux morceaux) ; -1 :
+    // sans objet. Reconstructions complètes et décodages d'images de la page fixe pendant le scénario (un
+    // soulèvement qui redécode les images des synthétiques s'y voit) ; -1 : non relevés.
+    int touchedStrokes = -1;
+    int pendingCut = -1;
+    int liftedObjects = -1; // « soulever » : objets pris par le rectangle de sélection
+    int rebuilds = -1;
+    int decodes = -1;
 };
 
 struct BenchResult

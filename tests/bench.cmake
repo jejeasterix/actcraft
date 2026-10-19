@@ -72,8 +72,11 @@ add_test(NAME tst_bench_smoke
         -P ${CMAKE_CURRENT_SOURCE_DIR}/run_bench_smoke.cmake)
 # Délai : 25-29 s en debug sur machine calme ; 50 s déjà sous charge modérée, plus de 60 s avec des compilations
 # en parallèle. 300 s (≥ 10 × la durée calme) : le délai ne sert qu'à détecter un blocage, pas à mesurer.
+# L3-T19 : le smoke joue aussi gommer et soulever, dont chaque redessin du cache coûte des centaines de ms en debug
+# logiciel. Seul : environ 60 s ; sous la charge de la suite complète en parallèle : plus de 300 s (relevé le
+# 2026-10-19, Timeout à 300,39 s). Le fichier JSON qu'il écrit alimente tst_bench_result et tst_bench_summary.
 set_tests_properties(tst_bench_smoke PROPERTIES
-    TIMEOUT 300
+    TIMEOUT 1800
     ENVIRONMENT "${_bench_env_offscreen}"
     FIXTURES_REQUIRED bench_smoke_clean
     FIXTURES_SETUP bench_smoke_json)

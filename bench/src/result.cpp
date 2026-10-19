@@ -133,15 +133,27 @@ QJsonObject scenarioJson(const ScenarioResult& s)
         {"latency_planned_to_sync_ms", s.latency ? doubles(s.latency->plannedToSyncMs) : QJsonArray()},
         {"latency_sync_to_swap_ms", s.latency ? doubles(s.latency->syncToSwapMs) : QJsonArray()},
     };
-    return {{"name", s.name},
-            {"exposure_lost", s.exposureLost},
-            {"frames", frames},
-            {"latency", latency},
-            {"input", input},
-            {"memory", memory},
-            {"cache", QJsonObject{{"refreshes", static_cast<double>(s.cacheRequestNs.size())},
-                                  {"pending_max", s.pendingMax}}},
-            {"raw", raw}};
+    QJsonObject cache{{"refreshes", static_cast<double>(s.cacheRequestNs.size())},
+                      {"pending_max", s.pendingMax}};
+    if (s.touchedStrokes >= 0) {
+        cache.insert(QStringLiteral("touched_strokes"), s.touchedStrokes);
+    }
+    if (s.liftedObjects >= 0) {
+        cache.insert(QStringLiteral("lifted_objects"), s.liftedObjects);
+    }
+    if (s.pendingCut >= 0) {
+        cache.insert(QStringLiteral("pending_cut"), s.pendingCut);
+    }
+    if (s.rebuilds >= 0) {
+        cache.insert(QStringLiteral("rebuilds"), s.rebuilds);
+    }
+    if (s.decodes >= 0) {
+        cache.insert(QStringLiteral("decodes"), s.decodes);
+    }
+    return {{"name", s.name},   {"exposure_lost", s.exposureLost},
+            {"frames", frames}, {"latency", latency},
+            {"input", input},   {"memory", memory},
+            {"cache", cache},   {"raw", raw}};
 }
 
 } // namespace
