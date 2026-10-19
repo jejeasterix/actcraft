@@ -47,19 +47,53 @@ private slots:
         }
     }
 
-    // L2-T23 : « page » ; L10-T1 : « pauses » (reprises après le délai d'inactivité du cache).
-    void fiveScenariosWithFrames()
+    // L2-T23 : « page » ; L10-T1 : « pauses » (reprises après le délai d'inactivité du cache) ; L3-T19 :
+    // « gommer » et « soulever ». Remplace fiveScenariosWithFrames : le banc compte sept scénarios, non plus
+    // cinq (les cinq premiers gardent leur rang).
+    void sevenScenariosWithFrames()
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
-        QCOMPARE(scenarios.size(), 5);
-        const QStringList names{QStringLiteral("stroke"), QStringLiteral("zoom"), QStringLiteral("scroll"),
-                                QStringLiteral("page"), QStringLiteral("pauses")};
-        for (qsizetype i = 0; i < 5; ++i) {
+        QCOMPARE(scenarios.size(), 7);
+        const QStringList names{QStringLiteral("stroke"),  QStringLiteral("zoom"),   QStringLiteral("scroll"),
+                                QStringLiteral("page"),    QStringLiteral("pauses"), QStringLiteral("gommer"),
+                                QStringLiteral("soulever")};
+        for (qsizetype i = 0; i < 7; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);
-            QVERIFY(s.value("frames").toObject().value("active").toInt() > 0);
+            // « gommer » et « soulever » (L3-T19) : sous charge (suite complète en parallèle, debug
+            // logiciel), chaque redessin du cache dure des centaines de ms et le fil principal ne présente
+            // que 3 images pendant tout « gommer » : toutes ses entrées tombent avant la première, aucun
+            // intervalle n'est actif (relevé le 2026-10-19 : 3 images, classes « II », 136 entrées). Au
+            // repos, et dans le banc hors écran de la preuve, ils ont des intervalles actifs ; ici seules les
+            // images comptent.
+            if (i < 5) {
+                QVERIFY(s.value("frames").toObject().value("active").toInt() > 0);
+            }
         }
+    }
+
+    // L3-T19 (S36) : redessins du cache de « gommer » (<= k + 1 + pending_cut) et de « soulever » (2 : un au
+    // soulèvement, un au dépôt, les redessins d'un même tour regroupés par PageView, L3-T13).
+    void eraseAndLiftCacheRefreshes()
+    {
+        const QJsonArray scenarios = m_root.value("scenarios").toArray();
+        const QJsonObject erase = scenarios.at(5).toObject().value("cache").toObject();
+        const int k = erase.value("touched_strokes").toInt(-1);
+        QVERIFY2(k >= 20, qPrintable(QString::number(k)));
+        QCOMPARE(erase.value("pending_cut").toInt(-1), 0);
+        const int refreshes = erase.value("refreshes").toInt(-1);
+        QVERIFY2(refreshes >= 1 && refreshes <= k + 1 + erase.value("pending_cut").toInt(),
+                 qPrintable(QString::number(refreshes)));
+        const QJsonObject lift = scenarios.at(6).toObject().value("cache").toObject();
+        // 2 au repos (release : 2 mesurés) ; sous charge (suite complète en parallèle, debug logiciel : un
+        // redessin dure environ 300 ms), la demande du dépôt tombe pendant le redessin du soulèvement et est
+        // fusionnée avec lui (PageView, m_refreshAgain) : un seul signal de demande. L'attendu de S36 est
+        // donc une borne haute (2) ; l'exactitude de 2 est vérifiée par le banc hors écran de la preuve.
+        const int liftRefreshes = lift.value("refreshes").toInt(-1);
+        QVERIFY2(liftRefreshes >= 1 && liftRefreshes <= 2, qPrintable(QString::number(liftRefreshes)));
+        const int lifted = lift.value("lifted_objects").toInt(-1);
+        QVERIFY2(lifted >= 2 && lifted <= 8, qPrintable(QString::number(lifted)));
     }
 
     // L10-T1 : instants des demandes de redessin du cache et de leurs fins, par scénario. Implémentation du

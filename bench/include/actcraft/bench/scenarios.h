@@ -46,7 +46,7 @@ enum class ScenarioSet
 
 struct ScenarioPlan
 {
-    QString name;         // stroke | zoom | scroll | page | pauses
+    QString name;         // stroke | zoom | scroll | page | pauses | gommer | soulever
     double zoom = 1.0;    // niveau imposé avant la mesure (décision 17)
     bool topLeft = false; // page calée en haut à gauche (défilement) ; sinon position par défaut
     // > 0 : document de `generatedPages` pages générées chargé avant la mesure
@@ -55,6 +55,17 @@ struct ScenarioPlan
     // Relevés propres au scénario « page » (L2-T23) : reconstructions et rastérisations de la page fixe au
     // zoom 150, éclair blanc au changement de page (runner.cpp). Lus par ce booléen, jamais par le nom.
     bool pageChecks = false;
+    // L3-T19 : commande nommée d'outil appelée par le joueur avant la mesure (« tool.eraser », « tool.select
+    // »), puis « tool.pen » après elle ; vide : l'outil en place (stylo) reste.
+    QString toolCommand;
+    // Annotations (couche supérieure) posées par le joueur sur la page chargée et versées dans le cache avant
+    // la mesure, en points de page. Les traits de la page générée sont sur la couche du milieu : la gomme ne
+    // les touche pas, il faut donc des annotations pour que le passage de gomme coupe quelque chose.
+    std::vector<std::vector<QPointF>> seedStrokes;
+    // Relevés écrits dans le JSON (cache.touched_strokes, cache.pending_cut) ; -1 : non applicable.
+    int touchedStrokes = -1; // k : annotations que le passage de gomme touche
+    int liftedObjects = -1;  // soulever : objets que le rectangle de sélection prend (2 à 8)
+    int pendingCut = -1;     // 1 si le dernier trait encore en attente est gommé en deux morceaux
     std::vector<PlannedInput> inputs;
 };
 
@@ -76,7 +87,16 @@ inline constexpr std::int64_t kPausesStepNs = 8'000'000;
 // du redessin différé du cache. Page du banc rechargée avant (generatedPages = 1 : page de 300 objets, sans
 // éléments peints).
 ScenarioPlan pausesScenario(ScenarioSet set);
-std::vector<ScenarioPlan> allScenarios(ScenarioSet set); // stroke, zoom, scroll, page, pauses
+// L3-T19 (H10-8 e, S36). Gomme : 24 annotations horizontales posées et versées avant la mesure, puis un
+// zigzag du stylo qui les croise toutes (gomme de largeur réglée par défaut, 50 px de page). Aucun trait
+// n'attend au-dessus du cache : pending_cut = 0.
+inline constexpr double kEraserRadiusPage = 25.0;
+ScenarioPlan eraseScenario(ScenarioSet set);
+// Soulèvement : rectangle de sélection qui prend deux objets de la page générée, puis appui sur l'un d'eux et
+// glissement de 300 px en 2 s (complet ; ÷ 5 en court). Page du banc rechargée.
+ScenarioPlan liftScenario(ScenarioSet set);
+// stroke, zoom, scroll, page, pauses, gommer, soulever
+std::vector<ScenarioPlan> allScenarios(ScenarioSet set);
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();
 // Point du trait de démonstration déjà tracé à la capture « mi-trait ».
