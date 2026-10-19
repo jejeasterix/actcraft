@@ -253,6 +253,11 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
   - Cause 2 : un `QTouchEvent` posté directement contourne le suivi des points actifs (`point is not in activePoints`), et Qt Quick ne reçoit pas le pincement.
   - **Décision de A** : les gestes passent par l'API publique de Qt Test (`QTest::createTouchDevice`, `QTest::touchEvent`, avec des identifiants distincts), dans `actcraft_benchui`, qui lie déjà `Qt6::Test`. Le banc livré (`actcraft_bench`) ne lie pas Qt Test. L'injecteur garde le calcul des séquences.
   - Essais : 1/3. Candidat au coffre (`QTouchEvent` posté sans les points actifs).
+- **L0-S9, wip d6ab0a4** : compilation réparée. Le C4702 venait du `visible` de `TrashCan` dans `ToolPalette.qml` (`fromVariant<int/bool>`), corrigé par `/wd4702` sur les seuls sources générés par qmlcachegen. Mutation rouge. Captures, banc et NOMS OK.
+  - Restent :
+    - avertissements de fermeture de `CommandEntry.qml` (défaut de L0-S4, `commands` null au démontage) ; autorisé dans la ligne de L0-S9 ;
+    - `pageAreaWithoutToolsDraws`, dont le montage n'avait pas de document : on lui pose un `DocumentController` réel.
+  - **Écart accepté** : la racine de `Presentation.qml` est un `QtObject`, car la propriété `layer` du contrat entre en conflit avec `Item.layer`, qui est FINAL. Le lot 7 pose ses surcouches avec `parent: presentation.layer`. **À transmettre à B avec « socle mergé ».**
 - **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
