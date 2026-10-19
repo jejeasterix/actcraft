@@ -97,10 +97,10 @@ Item {
                 }
                 if (!started) {
                     started = true
-                    holding = curtainController.press(root.mapFromScene(point.scenePressPosition))
+                    holding = curtainController.press(root.mapFromItem(null, point.scenePressPosition))
                 }
                 if (holding) {
-                    curtainController.move(root.mapFromScene(point.scenePosition))
+                    curtainController.move(root.mapFromItem(null, point.scenePosition))
                 }
             }
             onActiveChanged: {
