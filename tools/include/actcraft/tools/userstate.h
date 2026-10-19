@@ -18,7 +18,7 @@ struct InkSettings
     std::uint8_t translucency = 0; // 0 opaque … 255 invisible
 };
 
-// Réglages par défaut (D5) : « pen » noir, 4, opaque ; « highlighter » #FFFF00, 20, 128 ; « eraser » 20 ;
+// Réglages par défaut (D5) : « pen » noir, 4, opaque ; « highlighter » #FFFF00, 20, 127 ; « eraser » 50 ;
 // autre outil : ceux du stylo.
 InkSettings defaultSettings(const QString& toolId);
 
