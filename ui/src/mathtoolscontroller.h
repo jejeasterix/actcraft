@@ -17,12 +17,12 @@
 
 namespace actcraft::ui {
 
-// Outils de maths ouverts dans la fenêtre (F-280 ; équerre, rapporteur, compas, origine : L7-T10 à L7-T13). Une
-// aide, pas un contenu : rien n'est écrit dans le document. Leurs bords guident l'encre par le filtre
-// d'échantillons de la vue (PageView::setSampleFilter), appliqué avant le Pipeline, relâchés synthétisés compris
-// (à partir du dernier point brut) : le stylo reçoit des échantillons déjà posés sur le bord et verse son trait
-// comme tout trait ; ni le stylo ni la vue ne savent qu'une règle existe. Par fenêtre, pas par page : les outils
-// restent en changeant de page. Coordonnées de page.
+// Outils de maths ouverts dans la fenêtre (F-280 ; équerre, rapporteur, compas, origine : L7-T10 à L7-T13).
+// Une aide, pas un contenu : rien n'est écrit dans le document. Leurs bords guident l'encre par le filtre
+// d'échantillons de la vue (PageView::setSampleFilter), appliqué avant le Pipeline, relâchés synthétisés
+// compris (à partir du dernier point brut) : le stylo reçoit des échantillons déjà posés sur le bord et verse
+// son trait comme tout trait ; ni le stylo ni la vue ne savent qu'une règle existe. Par fenêtre, pas par page
+// : les outils restent en changeant de page. Coordonnées de page.
 class MathToolsController : public QObject
 {
     Q_OBJECT
@@ -52,16 +52,18 @@ public:
     static int defaultOpacity() noexcept;
     qreal guideBand() const noexcept;
 
-    // Règle au centre de la page (longueur 600, largeur 80, angle 0 ; une suivante décalée de 24) ; son index.
+    // Règle au centre de la page (longueur 600, largeur 80, angle 0 ; une suivante décalée de 24) ; son
+    // index.
     Q_INVOKABLE int openRuler();
     // Ferme l'outil : les traits déjà versés restent (ils sont au document, l'outil n'en possède aucun).
     Q_INVOKABLE void close(int index);
     Q_INVOKABLE void setFrame(int index, QPointF center, qreal length, qreal thickness, qreal angle);
-    // Unités des deux bords : « cm », « mm », « inch », « none » ; gardées pour la règle suivante (QSettings).
+    // Unités des deux bords : « cm », « mm », « inch », « none » ; gardées pour la règle suivante
+    // (QSettings).
     Q_INVOKABLE void setUnits(int index, const QString& top, const QString& bottom);
     Q_INVOKABLE void setShowAngle(int index, bool on);
-    // kind, command, centerX, centerY, length, thickness, angle, displayAngle, topUnit, bottomUnit, showAngle ;
-    // vide hors des bornes.
+    // kind, command, centerX, centerY, length, thickness, angle, displayAngle, topUnit, bottomUnit, showAngle
+    // ; vide hors des bornes.
     Q_INVOKABLE QVariantMap toolAt(int index) const;
     // Point d'accroche sous `pagePoint` (cercle du survol) : {snapped, x, y} ; aucun changement d'état.
     Q_INVOKABLE QVariantMap snapAt(QPointF pagePoint) const;

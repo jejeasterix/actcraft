@@ -34,7 +34,8 @@ MathToolsController* mathTools(const MainWindow& w)
 
 actcraft::ui::DocumentController* documentController(const MainWindow& w)
 {
-    return w.window() ? w.window()->findChild<actcraft::ui::DocumentController*>(QStringLiteral("documentController"))
+    return w.window() ? w.window()->findChild<actcraft::ui::DocumentController*>(
+                            QStringLiteral("documentController"))
                       : nullptr;
 }
 
@@ -103,8 +104,8 @@ class TstUiMathTools : public QObject
     Q_OBJECT
 
 private slots:
-    // Le stylo reçoit des échantillons déjà posés sur le bord (filtre de la vue, avant le Pipeline) ; la règle
-    // fermée, le même trait garde ses y d'origine : le stylo lui-même n'a pas changé.
+    // Le stylo reçoit des échantillons déjà posés sur le bord (filtre de la vue, avant le Pipeline) ; la
+    // règle fermée, le même trait garde ses y d'origine : le stylo lui-même n'a pas changé.
     void rulerGuidesThePenWithoutChangingIt()
     {
         MainWindow w;
@@ -153,7 +154,8 @@ private slots:
         QTRY_COMPARE(doc->document().page(0).objects.size(), before + 1);
         const actcraft::core::Stroke* stroke = lastStroke(doc->document().page(0));
         QVERIFY(stroke);
-        QVERIFY2(qAbs(stroke->points.back().y - top) <= 0.5, "dernier point (relâché synthétisé) sur le bord");
+        QVERIFY2(qAbs(stroke->points.back().y - top) <= 0.5,
+                 "dernier point (relâché synthétisé) sur le bord");
         QVERIFY(qAbs(stroke->points.back().x - 600) <= 0.5);
         QVERIFY(allOnLine(*stroke, top));
         QCOMPARE(tools->count(), 1); // par fenêtre : la règle reste en changeant de page
@@ -251,7 +253,8 @@ private slots:
         QVERIFY(tools);
         const Frame f = frameOf(*tools, 0);
         QQuickWindow* window = w.window();
-        // Deux déplacements : le second relit le curseur une fois le survol du premier livré aux gestionnaires.
+        // Deux déplacements : le second relit le curseur une fois le survol du premier livré aux
+        // gestionnaires.
         const auto hoverAt = [&](QPointF page) {
             QTest::mouseMove(window, scene(w, page).toPoint());
             QTest::mouseMove(window, scene(w, page).toPoint() + QPoint(1, 0));
@@ -272,8 +275,8 @@ private slots:
 
     void rulerBlocksTheStylus_data() { presentationharness::addPointerRows(); }
 
-    // Appui sur le corps, loin des bords guides : la règle bouge, rien n'est versé. Pendant : le même pointeur
-    // dans la bande d'un bord, dehors puis dedans, verse un trait guidé.
+    // Appui sur le corps, loin des bords guides : la règle bouge, rien n'est versé. Pendant : le même
+    // pointeur dans la bande d'un bord, dehors puis dedans, verse un trait guidé.
     void rulerBlocksTheStylus()
     {
         QFETCH(Pointer, pointer);
@@ -303,7 +306,8 @@ private slots:
         QTRY_COMPARE(w.pageObjectCount(), before + 2);
         const actcraft::core::Stroke* inside = lastStroke(w);
         QVERIFY(inside);
-        QVERIFY2(allOnLine(*inside, moved.top()), "bande intérieure (hors couverture) : trait versé et guidé");
+        QVERIFY2(allOnLine(*inside, moved.top()),
+                 "bande intérieure (hors couverture) : trait versé et guidé");
     }
 };
 

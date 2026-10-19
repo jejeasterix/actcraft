@@ -234,8 +234,9 @@ QVariantMap MathToolsController::snapAt(QPointF pagePoint) const
     if (!snapped) {
         return QVariantMap{{QStringLiteral("snapped"), false}};
     }
-    return QVariantMap{
-        {QStringLiteral("snapped"), true}, {QStringLiteral("x"), snapped->x}, {QStringLiteral("y"), snapped->y}};
+    return QVariantMap{{QStringLiteral("snapped"), true},
+                       {QStringLiteral("x"), snapped->x},
+                       {QStringLiteral("y"), snapped->y}};
 }
 
 bool MathToolsController::valid(int index) const noexcept
@@ -254,7 +255,8 @@ void MathToolsController::updateFilter()
     }
     if (wanted) {
         // Chaque échantillon de la voie Tool, avant le Pipeline : appui, déplacements et relâché (naturel ou
-        // synthétisé par la vue au dernier point brut). Le guide saisi à l'appui garde le trait jusqu'au relâché.
+        // synthétisé par la vue au dernier point brut). Le guide saisi à l'appui garde le trait jusqu'au
+        // relâché.
         m_view->setSampleFilter([this](const input::Sample& sample) { return m_guides.filter(sample); });
     } else {
         m_view->setSampleFilter({});
