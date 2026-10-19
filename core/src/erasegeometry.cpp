@@ -84,14 +84,17 @@ StrokeCut cutByDisk(const std::vector<StrokePoint>& points, PointF center, doubl
     return result;
 }
 
-StrokeCut cutBySweep(const std::vector<StrokePoint>& points, PointF from, PointF to, double radius)
+StrokeCut cutBySweep(const std::vector<StrokePoint>& points, PointF from, PointF to, double radius,
+                     bool includeFrom)
 {
     const double distance = std::hypot(to.x - from.x, to.y - from.y);
-    const int steps = radius > 0 ? std::max(1, static_cast<int>(std::ceil(distance / (radius / 2)))) : 1;
+    int steps = 0; // geste immobile : un seul centre (s = 0)
+    if (distance > 0)
+        steps = radius > 0 ? std::max(1, static_cast<int>(std::ceil(distance / (radius / 2)))) : 1;
     std::vector<std::vector<StrokePoint>> pieces{points};
     bool touched = false;
-    for (int s = 0; s <= steps; ++s) {
-        const double t = static_cast<double>(s) / steps;
+    for (int s = includeFrom ? 0 : 1; s <= steps; ++s) {
+        const double t = steps > 0 ? static_cast<double>(s) / steps : 0.0;
         const PointF center{from.x + t * (to.x - from.x), from.y + t * (to.y - from.y)};
         std::vector<std::vector<StrokePoint>> next;
         for (const auto& piece : pieces) {
