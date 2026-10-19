@@ -53,7 +53,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | suite V2 | L7-T1, L7-T2 | branche du chantier à b78afad | — | TESTS OK 158/158 (fin de la vague 2) | 1 | — | — |
 | L7-T3 | L7-S8 | voir ligne L7-T3 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T3 (base 7877179) | mergée : rejeu TESTS OK 158/158, curtain Totals 6 (0 skipped), captures rideau OK ; banc BUDGET DEPASSE (résultat) | 1 | 4e08495 | 8622ebb (graphe a5320e9) |
 | L7-T9 | L7-S8 | voir ligne L7-T9 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T9 (base 7877179) | mergée : rejeu 157/158 (tst_pageview rouge sous charge, vert seul), mathtools Totals 12 (0 skipped) ; revue : 4 importants corrigés à l'essai 2, test de la sélection reporté en L7-T34 ; couverture au bord extérieur (lettre du contrat, décision orchestrateur) | 2 | c85e866 | e373edb (graphe 319d88c) |
-| suite V3 | L7-T3, L7-T9 | branche du chantier à 0c0b0e2 | — | en cours | 1 | — | — |
+| suite V3 | L7-T3, L7-T9 | branche du chantier à 0c0b0e2 | — | TESTS OK 158/158 (2e passage ; 1er : LNK2001 AUTOMOC, timestamp ui supprimés) | 2 | — | — |
 | L7-T4 | L7-T2 | voir ligne L7-T4 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T4 (base 0c0b0e2) | en cours (implementeur-tdd), V4 | 1 | — | — |
 | L7-T10 | L7-T9 | voir ligne L7-T10 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T10 (base 0c0b0e2) | en cours (implementeur-tdd), V4 | 1 | — | — |
 
