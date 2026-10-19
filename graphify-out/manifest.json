@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1792386116.9180727,
-    "ast_hash": "fa3ec39325ceba6fe4ff680030f05d3e",
+    "mtime": 1792395862.8407335,
+    "ast_hash": "250b27e40166d5a4356536842d1d79d5",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -1705,13 +1705,13 @@
     "semantic_hash": ""
   },
   "core/src/erasegeometry.cpp": {
-    "mtime": 1792362711.2688842,
-    "ast_hash": "906fd312533df67b766e698066fc6518",
+    "mtime": 1792397330.489343,
+    "ast_hash": "b84d030915e0f7370b2ec7f3967afaa4",
     "semantic_hash": ""
   },
   "core/src/hittest.cpp": {
-    "mtime": 1792362711.2728772,
-    "ast_hash": "d3304c6f25f99b54e83b98f39fc254b5",
+    "mtime": 1792397330.4933739,
+    "ast_hash": "bf9fcff81300be51ba6b5c219f4c96fc",
     "semantic_hash": ""
   },
   "core/src/lift.cpp": {
@@ -1770,13 +1770,13 @@
     "semantic_hash": ""
   },
   "tests/tst_core_erase.cpp": {
-    "mtime": 1792344769.110708,
-    "ast_hash": "53266521b2862bfcbf34beeb951498c8",
+    "mtime": 1792397330.498501,
+    "ast_hash": "93966ae858fe5dabce51673e6d281dc2",
     "semantic_hash": ""
   },
   "tests/tst_core_hittest.cpp": {
-    "mtime": 1792344769.110708,
-    "ast_hash": "50e893df4faecd3a6a16eed4ad593db4",
+    "mtime": 1792397330.5032425,
+    "ast_hash": "ce9170f0239cbdab6a69ee1b8b095ac8",
     "semantic_hash": ""
   },
   "tests/tst_core_lift.cpp": {
@@ -2127,6 +2127,11 @@
   "docs/plans/2026-10-18-livraison-complete-lot8b-PLAN.md": {
     "mtime": 1792372343.3016987,
     "ast_hash": "32d46c93ef92230828ff6435da877efb",
+    "semantic_hash": ""
+  },
+  "docs/verifications/2026-10-18-lot3-principes.md": {
+    "mtime": 1792393418.499359,
+    "ast_hash": "03ae8eb1ee4cc779176c45a4d067bc63",
     "semantic_hash": ""
   }
 }
