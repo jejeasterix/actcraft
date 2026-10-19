@@ -85,6 +85,9 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 - `selectionIsNotGuided` (L7-T9, revue) : le guide de la règle est réservé au stylo (`kGuidedTool = "pen"`), mais non testable avant le lot 3 : `ToolHost::activate` et `UserState::setCurrentTool` sont des talons. À ajouter avec `markerFollowsTheRuler`, `eraserFollowsTheCompass`.
 - Constat L7-T9, hors périmètre : la commande `tool.pen` de `Main.qml:292` coche la commande sans activer le stylo (talon du lot 3 ?) : à revoir à la fusion.
 
+## Arrêt du PC (annonce de Jérôme du 2026-10-19 vers 20 h 05, relayée par Pilote 2)
+« Organise le travail pour faire une pause à 5h30 du matin au plus tard demain car je dois prendre mon PC et je pars à 5h45 du matin. » Après 04 h 30 le 20/10 : rien de long lancé. À 05 h 15 : rien en cours, tout commité, point de reprise exact ici. Rappels de session posés à 04 h 27 et 05 h 03. Heure de reprise inconnue.
+
 ## Portes
 ouvertes : — · passées : —
 
