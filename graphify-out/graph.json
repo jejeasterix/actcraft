@@ -410,7 +410,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_layout",
-      "community": 53,
+      "community": 288,
       "norm_label": "layout.cpp"
     },
     {
@@ -509,8 +509,8 @@
       "source_file": "actions/src/layout.cpp",
       "source_location": "L79",
       "_origin": "ast",
-      "id": "layout",
-      "community": 53,
+      "id": "actions_src_layout_cpp_layout",
+      "community": 288,
       "norm_label": "layout"
     },
     {
@@ -540,7 +540,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "src_layout_unknowncommands",
-      "community": 53,
+      "community": 288,
       "norm_label": "unknowncommands()"
     },
     {
@@ -5040,7 +5040,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_bench_src_verdict_cpp",
-      "community": 112,
+      "community": 124,
       "norm_label": "verdict.cpp"
     },
     {
@@ -5100,7 +5100,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_verdict_istablet",
-      "community": 112,
+      "community": 124,
       "norm_label": "istablet()"
     },
     {
@@ -5110,7 +5110,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "inputkind",
-      "community": 112,
+      "community": 124,
       "norm_label": "inputkind"
     },
     {
@@ -5190,7 +5190,7 @@
       "source_location": "L182",
       "_origin": "ast",
       "id": "src_verdict_measurerefreshperiodns",
-      "community": 112,
+      "community": 124,
       "norm_label": "measurerefreshperiodns()"
     },
     {
@@ -5200,7 +5200,7 @@
       "source_location": "L182",
       "_origin": "ast",
       "id": "bench_src_verdict_cpp_int64_t",
-      "community": 112,
+      "community": 124,
       "norm_label": "int64_t"
     },
     {
@@ -5210,7 +5210,7 @@
       "source_location": "L182",
       "_origin": "ast",
       "id": "bench_src_verdict_cpp_vector",
-      "community": 112,
+      "community": 124,
       "norm_label": "vector"
     },
     {
@@ -5220,7 +5220,7 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "src_verdict_sequencematchesplan",
-      "community": 112,
+      "community": 124,
       "norm_label": "sequencematchesplan()"
     },
     {
@@ -5230,7 +5230,7 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "bench_src_verdict_cpp_plannedinput",
-      "community": 112,
+      "community": 124,
       "norm_label": "plannedinput"
     },
     {
@@ -5240,7 +5240,7 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "receivedsamples",
-      "community": 112,
+      "community": 124,
       "norm_label": "receivedsamples"
     },
     {
@@ -5250,7 +5250,7 @@
       "source_location": "L213",
       "_origin": "ast",
       "id": "src_verdict_releasecoverage",
-      "community": 112,
+      "community": 124,
       "norm_label": "releasecoverage()"
     },
     {
@@ -5260,7 +5260,7 @@
       "source_location": "L213",
       "_origin": "ast",
       "id": "bench_src_verdict_cpp_syncrecord",
-      "community": 112,
+      "community": 124,
       "norm_label": "syncrecord"
     },
     {
@@ -5270,7 +5270,7 @@
       "source_location": "L256",
       "_origin": "ast",
       "id": "src_verdict_referencerefreshperiod",
-      "community": 112,
+      "community": 124,
       "norm_label": "referencerefreshperiod()"
     },
     {
@@ -5280,7 +5280,7 @@
       "source_location": "L256",
       "_origin": "ast",
       "id": "refreshperiod",
-      "community": 112,
+      "community": 124,
       "norm_label": "refreshperiod"
     },
     {
@@ -8354,6 +8354,26 @@
       "norm_label": "namespace"
     },
     {
+      "label": "camera.h",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/camera.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "features_camera",
+      "community": 331,
+      "norm_label": "camera.h"
+    },
+    {
+      "label": "closed()",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/camera.h",
+      "source_location": "L19",
+      "_origin": "ast",
+      "id": "features_camera_closed",
+      "community": 331,
+      "norm_label": "closed()"
+    },
+    {
       "label": "countdown.h",
       "file_type": "code",
       "source_file": "features/include/actcraft/features/countdown.h",
@@ -8404,13 +8424,43 @@
       "norm_label": "dragging()"
     },
     {
+      "label": "desktopwheel.h",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/desktopwheel.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "features_desktopwheel",
+      "community": 323,
+      "norm_label": "desktopwheel.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/desktopwheel.h",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "features_desktopwheel_actcraft",
+      "community": 323,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/desktopwheel.h",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "features_include_actcraft_features_desktopwheel_h_namespace",
+      "community": 323,
+      "norm_label": "namespace"
+    },
+    {
       "label": "dice.h",
       "file_type": "code",
       "source_file": "features/include/actcraft/features/dice.h",
       "source_location": "L1",
       "_origin": "ast",
       "id": "features_dice",
-      "community": 230,
+      "community": 305,
       "norm_label": "dice.h"
     },
     {
@@ -8420,7 +8470,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "features_dice_actcraft",
-      "community": 230,
+      "community": 305,
       "norm_label": "actcraft()"
     },
     {
@@ -8430,7 +8480,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "features_include_actcraft_features_dice_h_namespace",
-      "community": 230,
+      "community": 305,
       "norm_label": "namespace"
     },
     {
@@ -8500,7 +8550,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "features_mathtools",
-      "community": 307,
+      "community": 241,
       "norm_label": "mathtools.h"
     },
     {
@@ -8510,7 +8560,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "features_mathtools_center",
-      "community": 307,
+      "community": 241,
       "norm_label": "center()"
     },
     {
@@ -8520,7 +8570,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "features_include_actcraft_features_mathtools_h_qpointf",
-      "community": 307,
+      "community": 241,
       "norm_label": "qpointf"
     },
     {
@@ -8530,7 +8580,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "features_mathtools_displayangle",
-      "community": 307,
+      "community": 241,
       "norm_label": "displayangle()"
     },
     {
@@ -8621,6 +8671,36 @@
       "_origin": "ast",
       "id": "features_include_actcraft_features_recognitionsession_h_namespace",
       "community": 251,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "screenkeyboard.h",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/screenkeyboard.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "features_screenkeyboard",
+      "community": 325,
+      "norm_label": "screenkeyboard.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/screenkeyboard.h",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "features_screenkeyboard_actcraft",
+      "community": 325,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/screenkeyboard.h",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "features_include_actcraft_features_screenkeyboard_h_namespace",
+      "community": 325,
       "norm_label": "namespace"
     },
     {
@@ -8770,7 +8850,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "features_transitions",
-      "community": 230,
+      "community": 305,
       "norm_label": "transitions.h"
     },
     {
@@ -8780,7 +8860,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "features_transitions_actcraft",
-      "community": 230,
+      "community": 305,
       "norm_label": "actcraft()"
     },
     {
@@ -8790,7 +8870,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "features_include_actcraft_features_transitions_h_namespace",
-      "community": 230,
+      "community": 305,
       "norm_label": "namespace"
     },
     {
@@ -8912,6 +8992,176 @@
       "id": "src_calculator_press",
       "community": 256,
       "norm_label": "press()"
+    },
+    {
+      "label": "camera.cpp",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_camera",
+      "community": 331,
+      "norm_label": "camera.cpp"
+    },
+    {
+      "label": "click()",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "src_camera_click",
+      "community": 331,
+      "norm_label": "click()"
+    },
+    {
+      "label": "QPointF",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "features_src_camera_cpp_qpointf",
+      "community": 331,
+      "norm_label": "qpointf"
+    },
+    {
+      "label": "closed()",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "src_camera_closed",
+      "community": 331,
+      "norm_label": "closed()"
+    },
+    {
+      "label": "polygon()",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L29",
+      "_origin": "ast",
+      "id": "src_camera_polygon",
+      "community": 331,
+      "norm_label": "polygon()"
+    },
+    {
+      "label": "QPolygonF",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L29",
+      "_origin": "ast",
+      "id": "qpolygonf",
+      "community": 331,
+      "norm_label": "qpolygonf"
+    },
+    {
+      "label": "clear()",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L34",
+      "_origin": "ast",
+      "id": "src_camera_clear",
+      "community": 331,
+      "norm_label": "clear()"
+    },
+    {
+      "label": "press()",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L40",
+      "_origin": "ast",
+      "id": "src_camera_press",
+      "community": 331,
+      "norm_label": "press()"
+    },
+    {
+      "label": "move()",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L46",
+      "_origin": "ast",
+      "id": "src_camera_move",
+      "community": 331,
+      "norm_label": "move()"
+    },
+    {
+      "label": "release()",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L53",
+      "_origin": "ast",
+      "id": "src_camera_release",
+      "community": 331,
+      "norm_label": "release()"
+    },
+    {
+      "label": "cropToPolygon()",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L77",
+      "_origin": "ast",
+      "id": "src_camera_croptopolygon",
+      "community": 331,
+      "norm_label": "croptopolygon()"
+    },
+    {
+      "label": "QImage",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L77",
+      "_origin": "ast",
+      "id": "features_src_camera_cpp_qimage",
+      "community": 331,
+      "norm_label": "qimage"
+    },
+    {
+      "label": "normalizedRect()",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L94",
+      "_origin": "ast",
+      "id": "src_camera_normalizedrect",
+      "community": 331,
+      "norm_label": "normalizedrect()"
+    },
+    {
+      "label": "QRectF",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L94",
+      "_origin": "ast",
+      "id": "features_src_camera_cpp_qrectf",
+      "community": 331,
+      "norm_label": "qrectf"
+    },
+    {
+      "label": "toLogicalPixels()",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L99",
+      "_origin": "ast",
+      "id": "src_camera_tologicalpixels",
+      "community": 331,
+      "norm_label": "tologicalpixels()"
+    },
+    {
+      "label": "QRect",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L99",
+      "_origin": "ast",
+      "id": "features_src_camera_cpp_qrect",
+      "community": 331,
+      "norm_label": "qrect"
+    },
+    {
+      "label": "qreal",
+      "file_type": "code",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L99",
+      "_origin": "ast",
+      "id": "features_src_camera_cpp_qreal",
+      "community": 331,
+      "norm_label": "qreal"
     },
     {
       "label": "countdown.cpp",
@@ -9212,6 +9462,66 @@
       "id": "src_curtain_coverage",
       "community": 289,
       "norm_label": "coverage()"
+    },
+    {
+      "label": "desktopwheel.cpp",
+      "file_type": "code",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_desktopwheel",
+      "community": 332,
+      "norm_label": "desktopwheel.cpp"
+    },
+    {
+      "label": "wheelPositions()",
+      "file_type": "code",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "src_desktopwheel_wheelpositions",
+      "community": 332,
+      "norm_label": "wheelpositions()"
+    },
+    {
+      "label": "vector",
+      "file_type": "code",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "features_src_desktopwheel_cpp_vector",
+      "community": 332,
+      "norm_label": "vector"
+    },
+    {
+      "label": "QPointF",
+      "file_type": "code",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "features_src_desktopwheel_cpp_qpointf",
+      "community": 332,
+      "norm_label": "qpointf"
+    },
+    {
+      "label": "defaultWheel()",
+      "file_type": "code",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L22",
+      "_origin": "ast",
+      "id": "src_desktopwheel_defaultwheel",
+      "community": 332,
+      "norm_label": "defaultwheel()"
+    },
+    {
+      "label": "WheelEntry",
+      "file_type": "code",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L22",
+      "_origin": "ast",
+      "id": "wheelentry",
+      "community": 332,
+      "norm_label": "wheelentry"
     },
     {
       "label": "dice.cpp",
@@ -10220,7 +10530,7 @@
       "source_location": "L162",
       "_origin": "ast",
       "id": "src_mathtools_width",
-      "community": 169,
+      "community": 47,
       "norm_label": "width()"
     },
     {
@@ -10660,7 +10970,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_pagezoom_pagezoom",
-      "community": 233,
+      "community": 228,
       "norm_label": "pagezoom()"
     },
     {
@@ -10892,6 +11202,166 @@
       "id": "src_recognitionsession_clear",
       "community": 248,
       "norm_label": "clear()"
+    },
+    {
+      "label": "screenkeyboard.cpp",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_screenkeyboard",
+      "community": 333,
+      "norm_label": "screenkeyboard.cpp"
+    },
+    {
+      "label": "commandLabel()",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "src_screenkeyboard_commandlabel",
+      "community": 333,
+      "norm_label": "commandlabel()"
+    },
+    {
+      "label": "QString",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "features_src_screenkeyboard_cpp_qstring",
+      "community": 333,
+      "norm_label": "qstring"
+    },
+    {
+      "label": "addCharacters()",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "src_screenkeyboard_addcharacters",
+      "community": 333,
+      "norm_label": "addcharacters()"
+    },
+    {
+      "label": "vector",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "features_src_screenkeyboard_cpp_vector",
+      "community": 333,
+      "norm_label": "vector"
+    },
+    {
+      "label": "KeyCap",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "keycap",
+      "community": 333,
+      "norm_label": "keycap"
+    },
+    {
+      "label": "addCommand()",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L30",
+      "_origin": "ast",
+      "id": "src_screenkeyboard_addcommand",
+      "community": 333,
+      "norm_label": "addcommand()"
+    },
+    {
+      "label": "buildKeys()",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "src_screenkeyboard_buildkeys",
+      "community": 333,
+      "norm_label": "buildkeys()"
+    },
+    {
+      "label": "Layout",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "features_src_screenkeyboard_cpp_layout",
+      "community": 333,
+      "norm_label": "layout"
+    },
+    {
+      "label": "ScreenKeyboard()",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L59",
+      "_origin": "ast",
+      "id": "src_screenkeyboard_screenkeyboard",
+      "community": 333,
+      "norm_label": "screenkeyboard()"
+    },
+    {
+      "label": "setLayout()",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L61",
+      "_origin": "ast",
+      "id": "src_screenkeyboard_setlayout",
+      "community": 333,
+      "norm_label": "setlayout()"
+    },
+    {
+      "label": "layout()",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "src_screenkeyboard_layout",
+      "community": 333,
+      "norm_label": "layout()"
+    },
+    {
+      "label": "shifted()",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L78",
+      "_origin": "ast",
+      "id": "src_screenkeyboard_shifted",
+      "community": 333,
+      "norm_label": "shifted()"
+    },
+    {
+      "label": "capsLocked()",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L83",
+      "_origin": "ast",
+      "id": "src_screenkeyboard_capslocked",
+      "community": 333,
+      "norm_label": "capslocked()"
+    },
+    {
+      "label": "press()",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L88",
+      "_origin": "ast",
+      "id": "src_screenkeyboard_press",
+      "community": 333,
+      "norm_label": "press()"
+    },
+    {
+      "label": "KeyOutput",
+      "file_type": "code",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L88",
+      "_origin": "ast",
+      "id": "keyoutput",
+      "community": 333,
+      "norm_label": "keyoutput"
     },
     {
       "label": "shapefinder.cpp",
@@ -11850,7 +12320,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_transitions",
-      "community": 230,
+      "community": 138,
       "norm_label": "transitions.cpp"
     },
     {
@@ -11860,7 +12330,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_transitions_effectforleaving",
-      "community": 230,
+      "community": 138,
       "norm_label": "effectforleaving()"
     },
     {
@@ -11870,7 +12340,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "features_src_transitions_cpp_qstring",
-      "community": 230,
+      "community": 138,
       "norm_label": "qstring"
     },
     {
@@ -11880,7 +12350,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "transitionsettings",
-      "community": 230,
+      "community": 138,
       "norm_label": "transitionsettings"
     },
     {
@@ -11890,7 +12360,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "features_src_transitions_cpp_string",
-      "community": 230,
+      "community": 138,
       "norm_label": "string"
     },
     {
@@ -11900,7 +12370,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "navigationkind",
-      "community": 230,
+      "community": 138,
       "norm_label": "navigationkind"
     },
     {
@@ -11910,7 +12380,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "transitionblockers",
-      "community": 230,
+      "community": 138,
       "norm_label": "transitionblockers"
     },
     {
@@ -11920,7 +12390,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_transitions_pickeffect",
-      "community": 230,
+      "community": 138,
       "norm_label": "pickeffect()"
     },
     {
@@ -11930,7 +12400,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "qrandomgenerator",
-      "community": 230,
+      "community": 305,
       "norm_label": "qrandomgenerator"
     },
     {
@@ -11940,7 +12410,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "src_transitions_clampdurationtenths",
-      "community": 230,
+      "community": 138,
       "norm_label": "clampdurationtenths()"
     },
     {
@@ -12470,7 +12940,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_flipchart_limitexceeded",
-      "community": 135,
+      "community": 146,
       "norm_label": "limitexceeded"
     },
     {
@@ -12490,7 +12960,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_flipchart_limitexceeded_message",
-      "community": 135,
+      "community": 146,
       "norm_label": "message"
     },
     {
@@ -12600,7 +13070,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "src_flipchart_polylineof",
-      "community": 131,
+      "community": 146,
       "norm_label": "polylineof()"
     },
     {
@@ -12610,7 +13080,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "formats_src_flipchart_cpp_polyline",
-      "community": 131,
+      "community": 146,
       "norm_label": "polyline"
     },
     {
@@ -12620,7 +13090,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "formats_src_flipchart_cpp_value",
-      "community": 131,
+      "community": 146,
       "norm_label": "value"
     },
     {
@@ -12630,7 +13100,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "src_flipchart_polylinesof",
-      "community": 131,
+      "community": 146,
       "norm_label": "polylinesof()"
     },
     {
@@ -12640,7 +13110,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "formats_src_flipchart_cpp_vector",
-      "community": 131,
+      "community": 146,
       "norm_label": "vector"
     },
     {
@@ -12660,7 +13130,7 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "src_flipchart_isusablepagesize",
-      "community": 146,
+      "community": 135,
       "norm_label": "isusablepagesize()"
     },
     {
@@ -12670,7 +13140,7 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "formats_src_flipchart_cpp_sizef",
-      "community": 146,
+      "community": 135,
       "norm_label": "sizef"
     },
     {
@@ -13210,7 +13680,7 @@
       "source_location": "L499",
       "_origin": "ast",
       "id": "src_flipchart_reader_readpage",
-      "community": 146,
+      "community": 135,
       "norm_label": ".readpage()"
     },
     {
@@ -13220,7 +13690,7 @@
       "source_location": "L499",
       "_origin": "ast",
       "id": "formats_src_flipchart_cpp_page",
-      "community": 146,
+      "community": 135,
       "norm_label": "page"
     },
     {
@@ -13280,7 +13750,7 @@
       "source_location": "L721",
       "_origin": "ast",
       "id": "src_flipchart_reader_applypagefill",
-      "community": 146,
+      "community": 135,
       "norm_label": ".applypagefill()"
     },
     {
@@ -13490,7 +13960,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "formats_src_flipchartdump_cpp_qstring",
-      "community": 83,
+      "community": 169,
       "norm_label": "qstring"
     },
     {
@@ -13720,7 +14190,7 @@
       "source_location": "L227",
       "_origin": "ast",
       "id": "src_flipchartdump_text",
-      "community": 83,
+      "community": 169,
       "norm_label": "text()"
     },
     {
@@ -13730,7 +14200,7 @@
       "source_location": "L227",
       "_origin": "ast",
       "id": "formats_src_flipchartdump_cpp_qjsonvalue",
-      "community": 83,
+      "community": 169,
       "norm_label": "qjsonvalue"
     },
     {
@@ -13740,7 +14210,7 @@
       "source_location": "L237",
       "_origin": "ast",
       "id": "src_flipchartdump_compare",
-      "community": 83,
+      "community": 169,
       "norm_label": "compare()"
     },
     {
@@ -13750,7 +14220,7 @@
       "source_location": "L237",
       "_origin": "ast",
       "id": "formats_src_flipchartdump_cpp_qstringlist",
-      "community": 83,
+      "community": 169,
       "norm_label": "qstringlist"
     },
     {
@@ -13790,7 +14260,7 @@
       "source_location": "L335",
       "_origin": "ast",
       "id": "src_flipchartdump_comparecanonical",
-      "community": 83,
+      "community": 169,
       "norm_label": "comparecanonical()"
     },
     {
@@ -15980,7 +16450,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "src_objectstream_pointsof",
-      "community": 151,
+      "community": 142,
       "norm_label": "pointsof()"
     },
     {
@@ -16070,7 +16540,7 @@
       "source_location": "L392",
       "_origin": "ast",
       "id": "src_objectstream_find",
-      "community": 151,
+      "community": 142,
       "norm_label": "find()"
     },
     {
@@ -17060,7 +17530,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l10_t4_render_include_actcraft_render_fixedpageitem_h",
-      "community": 156,
+      "community": 2,
       "norm_label": "fixedpageitem.h"
     },
     {
@@ -17070,7 +17540,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "render_fixedpageitem_actcraft",
-      "community": 156,
+      "community": 2,
       "norm_label": "actcraft()"
     },
     {
@@ -17080,7 +17550,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "render_include_actcraft_render_fixedpageitem_h_namespace",
-      "community": 156,
+      "community": 2,
       "norm_label": "namespace"
     },
     {
@@ -17390,7 +17860,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_render_include_actcraft_render_painternode_h",
-      "community": 290,
+      "community": 103,
       "norm_label": "painternode.h"
     },
     {
@@ -17400,7 +17870,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "render_painternode_actcraft",
-      "community": 290,
+      "community": 103,
       "norm_label": "actcraft()"
     },
     {
@@ -17410,7 +17880,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "render_include_actcraft_render_painternode_h_namespace",
-      "community": 290,
+      "community": 103,
       "norm_label": "namespace"
     },
     {
@@ -17540,7 +18010,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_render_include_actcraft_render_strokerenderer_h",
-      "community": 156,
+      "community": 320,
       "norm_label": "strokerenderer.h"
     },
     {
@@ -17550,7 +18020,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "render_strokerenderer_actcraft",
-      "community": 156,
+      "community": 320,
       "norm_label": "actcraft()"
     },
     {
@@ -17560,7 +18030,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "render_include_actcraft_render_strokerenderer_h_namespace",
-      "community": 156,
+      "community": 320,
       "norm_label": "namespace"
     },
     {
@@ -18110,7 +18580,7 @@
       "source_location": "L383",
       "_origin": "ast",
       "id": "src_fixedpageitem_rescalerasternodes",
-      "community": 165,
+      "community": 301,
       "norm_label": "rescalerasternodes()"
     },
     {
@@ -18120,7 +18590,7 @@
       "source_location": "L383",
       "_origin": "ast",
       "id": "render_src_fixedpageitem_cpp_rendercontext",
-      "community": 165,
+      "community": 301,
       "norm_label": "rendercontext"
     },
     {
@@ -18180,7 +18650,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_render_src_imagecolor_cpp",
-      "community": 286,
+      "community": 78,
       "norm_label": "imagecolor.cpp"
     },
     {
@@ -18190,7 +18660,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_imagecolor_withoutcolortable",
-      "community": 286,
+      "community": 78,
       "norm_label": "withoutcolortable()"
     },
     {
@@ -18200,7 +18670,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "render_src_imagecolor_cpp_qimage",
-      "community": 286,
+      "community": 78,
       "norm_label": "qimage"
     },
     {
@@ -18210,7 +18680,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_imagecolor_withkeycolor",
-      "community": 286,
+      "community": 78,
       "norm_label": "withkeycolor()"
     },
     {
@@ -18220,7 +18690,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "render_src_imagecolor_cpp_argb",
-      "community": 286,
+      "community": 78,
       "norm_label": "argb"
     },
     {
@@ -18830,7 +19300,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "qsgflatcolormaterial",
-      "community": 280,
+      "community": 268,
       "norm_label": "qsgflatcolormaterial"
     },
     {
@@ -18930,7 +19400,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "qsggeometrynode",
-      "community": 280,
+      "community": 268,
       "norm_label": "qsggeometrynode"
     },
     {
@@ -19240,7 +19710,7 @@
       "source_location": "L214",
       "_origin": "ast",
       "id": "src_inkitem_beginstroke",
-      "community": 44,
+      "community": 280,
       "norm_label": "beginstroke()"
     },
     {
@@ -19250,7 +19720,7 @@
       "source_location": "L214",
       "_origin": "ast",
       "id": "render_src_inkitem_cpp_argb",
-      "community": 44,
+      "community": 280,
       "norm_label": "argb"
     },
     {
@@ -19540,7 +20010,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_render_src_nodes_cpp",
-      "community": 280,
+      "community": 268,
       "norm_label": "nodes.cpp"
     },
     {
@@ -19550,7 +20020,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_nodes_toqcolor",
-      "community": 280,
+      "community": 268,
       "norm_label": "toqcolor()"
     },
     {
@@ -19570,7 +20040,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "render_src_nodes_cpp_argb",
-      "community": 280,
+      "community": 268,
       "norm_label": "argb"
     },
     {
@@ -19620,7 +20090,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_render_src_nodes_h",
-      "community": 280,
+      "community": 268,
       "norm_label": "nodes.h"
     },
     {
@@ -19630,7 +20100,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_nodes_actcraft",
-      "community": 280,
+      "community": 268,
       "norm_label": "actcraft()"
     },
     {
@@ -19640,7 +20110,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "render_src_nodes_h_namespace",
-      "community": 280,
+      "community": 268,
       "norm_label": "namespace"
     },
     {
@@ -19950,7 +20420,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_qpainter",
-      "community": 231,
+      "community": 286,
       "norm_label": "qpainter"
     },
     {
@@ -19960,7 +20430,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_qrectf",
-      "community": 201,
+      "community": 286,
       "norm_label": "qrectf"
     },
     {
@@ -19970,7 +20440,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_pagepainter_isolatedtextdocument",
-      "community": 303,
+      "community": 201,
       "norm_label": "isolatedtextdocument"
     },
     {
@@ -19980,7 +20450,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "src_pagepainter_isolatedtextdocument_isolatedtextdocument",
-      "community": 303,
+      "community": 201,
       "norm_label": ".isolatedtextdocument()"
     },
     {
@@ -19990,7 +20460,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "src_pagepainter_isolatedtextdocument_loadresource",
-      "community": 303,
+      "community": 201,
       "norm_label": ".loadresource()"
     },
     {
@@ -20000,7 +20470,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_qvariant",
-      "community": 303,
+      "community": 201,
       "norm_label": "qvariant"
     },
     {
@@ -20010,7 +20480,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_qurl",
-      "community": 303,
+      "community": 201,
       "norm_label": "qurl"
     },
     {
@@ -20020,7 +20490,7 @@
       "source_location": "L87",
       "_origin": "ast",
       "id": "src_pagepainter_isolatedtextdocument_m_images",
-      "community": 303,
+      "community": 201,
       "norm_label": "m_images"
     },
     {
@@ -20040,7 +20510,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_qstring",
-      "community": 303,
+      "community": 201,
       "norm_label": "qstring"
     },
     {
@@ -20080,7 +20550,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_pagepainter_rectof",
-      "community": 201,
+      "community": 286,
       "norm_label": "rectof()"
     },
     {
@@ -20090,7 +20560,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_rectf",
-      "community": 201,
+      "community": 286,
       "norm_label": "rectf"
     },
     {
@@ -20130,7 +20600,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "src_pagepainter_brushof",
-      "community": 201,
+      "community": 231,
       "norm_label": "brushof()"
     },
     {
@@ -20140,7 +20610,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "qbrush",
-      "community": 201,
+      "community": 231,
       "norm_label": "qbrush"
     },
     {
@@ -20150,7 +20620,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_fill",
-      "community": 201,
+      "community": 231,
       "norm_label": "fill"
     },
     {
@@ -20170,7 +20640,7 @@
       "source_location": "L170",
       "_origin": "ast",
       "id": "qpainterpath",
-      "community": 231,
+      "community": 331,
       "norm_label": "qpainterpath"
     },
     {
@@ -20210,7 +20680,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "src_pagepainter_paintstroke",
-      "community": 231,
+      "community": 286,
       "norm_label": "paintstroke()"
     },
     {
@@ -20220,7 +20690,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_stroke",
-      "community": 231,
+      "community": 286,
       "norm_label": "stroke"
     },
     {
@@ -20440,7 +20910,7 @@
       "source_location": "L565",
       "_origin": "ast",
       "id": "src_pagepainter_paintunknown",
-      "community": 231,
+      "community": 286,
       "norm_label": "paintunknown()"
     },
     {
@@ -20450,7 +20920,7 @@
       "source_location": "L565",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_unknownobject",
-      "community": 231,
+      "community": 286,
       "norm_label": "unknownobject"
     },
     {
@@ -20550,7 +21020,7 @@
       "source_location": "L626",
       "_origin": "ast",
       "id": "src_pagepainter_paintobjectlocal",
-      "community": 231,
+      "community": 286,
       "norm_label": "paintobjectlocal()"
     },
     {
@@ -20560,7 +21030,7 @@
       "source_location": "L626",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_pageobject",
-      "community": 231,
+      "community": 286,
       "norm_label": "pageobject"
     },
     {
@@ -20570,7 +21040,7 @@
       "source_location": "L656",
       "_origin": "ast",
       "id": "src_pagepainter_paintobject",
-      "community": 231,
+      "community": 286,
       "norm_label": "paintobject()"
     },
     {
@@ -20650,7 +21120,7 @@
       "source_location": "L744",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_qbytearray",
-      "community": 303,
+      "community": 201,
       "norm_label": "qbytearray"
     },
     {
@@ -20670,7 +21140,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_paintedrenderer_imagesof",
-      "community": 165,
+      "community": 157,
       "norm_label": "imagesof()"
     },
     {
@@ -20690,7 +21160,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_pageobject",
-      "community": 165,
+      "community": 157,
       "norm_label": "pageobject"
     },
     {
@@ -20700,7 +21170,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_imagestore",
-      "community": 165,
+      "community": 157,
       "norm_label": "imagestore"
     },
     {
@@ -20710,7 +21180,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_paintedrenderer_picturebackgroundof",
-      "community": 165,
+      "community": 157,
       "norm_label": "picturebackgroundof()"
     },
     {
@@ -20780,7 +21250,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_qpainter",
-      "community": 157,
+      "community": 165,
       "norm_label": "qpainter"
     },
     {
@@ -21040,7 +21510,7 @@
       "source_location": "L231",
       "_origin": "ast",
       "id": "src_paintedrenderer_usespaintedrenderer",
-      "community": 301,
+      "community": 2,
       "norm_label": "usespaintedrenderer()"
     },
     {
@@ -21880,7 +22350,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_render_src_strokerenderer_cpp",
-      "community": 290,
+      "community": 268,
       "norm_label": "strokerenderer.cpp"
     },
     {
@@ -21930,7 +22400,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_strokerenderer_strokepainternode_paint",
-      "community": 45,
+      "community": 290,
       "norm_label": ".paint()"
     },
     {
@@ -21940,7 +22410,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "render_src_strokerenderer_cpp_qpainter",
-      "community": 45,
+      "community": 290,
       "norm_label": "qpainter"
     },
     {
@@ -22742,7 +23212,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_support_flipchartwriter_h",
-      "community": 124,
+      "community": 148,
       "norm_label": "flipchartwriter.h"
     },
     {
@@ -22752,7 +23222,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "support_flipchartwriter_fctest",
-      "community": 124,
+      "community": 148,
       "norm_label": "fctest()"
     },
     {
@@ -22762,7 +23232,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_support_flipchartwriter_h_namespace",
-      "community": 124,
+      "community": 148,
       "norm_label": "namespace"
     },
     {
@@ -22772,7 +23242,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "support_flipchartwriter_container",
-      "community": 124,
+      "community": 148,
       "norm_label": "container()"
     },
     {
@@ -22782,7 +23252,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "tests_support_flipchartwriter_h_qbytearray",
-      "community": 124,
+      "community": 148,
       "norm_label": "qbytearray"
     },
     {
@@ -22792,7 +23262,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "std",
-      "community": 124,
+      "community": 148,
       "norm_label": "std"
     },
     {
@@ -22802,7 +23272,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "support_flipchartwriter_writenode",
-      "community": 124,
+      "community": 148,
       "norm_label": "writenode()"
     },
     {
@@ -22812,7 +23282,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "bytes",
-      "community": 124,
+      "community": 148,
       "norm_label": "bytes"
     },
     {
@@ -22822,7 +23292,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "tests_support_flipchartwriter_h_node",
-      "community": 124,
+      "community": 148,
       "norm_label": "node"
     },
     {
@@ -22832,7 +23302,7 @@
       "source_location": "L317",
       "_origin": "ast",
       "id": "support_flipchartwriter_samplemp3",
-      "community": 124,
+      "community": 148,
       "norm_label": "samplemp3()"
     },
     {
@@ -22842,7 +23312,7 @@
       "source_location": "L329",
       "_origin": "ast",
       "id": "support_flipchartwriter_sampleflipchart",
-      "community": 124,
+      "community": 148,
       "norm_label": "sampleflipchart()"
     },
     {
@@ -22852,7 +23322,7 @@
       "source_location": "L493",
       "_origin": "ast",
       "id": "support_flipchartwriter_synth",
-      "community": 124,
+      "community": 148,
       "norm_label": "synth()"
     },
     {
@@ -22862,7 +23332,7 @@
       "source_location": "L513",
       "_origin": "ast",
       "id": "support_flipchartwriter_pivot",
-      "community": 124,
+      "community": 148,
       "norm_label": "pivot()"
     },
     {
@@ -22872,7 +23342,7 @@
       "source_location": "L513",
       "_origin": "ast",
       "id": "obj",
-      "community": 124,
+      "community": 148,
       "norm_label": "obj"
     },
     {
@@ -22882,7 +23352,7 @@
       "source_location": "L521",
       "_origin": "ast",
       "id": "support_flipchartwriter_ink",
-      "community": 124,
+      "community": 148,
       "norm_label": "ink()"
     },
     {
@@ -22892,7 +23362,7 @@
       "source_location": "L521",
       "_origin": "ast",
       "id": "tests_support_flipchartwriter_h_qint32",
-      "community": 124,
+      "community": 148,
       "norm_label": "qint32"
     },
     {
@@ -22902,7 +23372,7 @@
       "source_location": "L521",
       "_origin": "ast",
       "id": "tests_support_flipchartwriter_h_qrgb",
-      "community": 124,
+      "community": 148,
       "norm_label": "qrgb"
     },
     {
@@ -22912,7 +23382,7 @@
       "source_location": "L550",
       "_origin": "ast",
       "id": "support_flipchartwriter_box",
-      "community": 124,
+      "community": 148,
       "norm_label": "box()"
     },
     {
@@ -22922,7 +23392,7 @@
       "source_location": "L654",
       "_origin": "ast",
       "id": "support_flipchartwriter_fillsandpens",
-      "community": 124,
+      "community": 148,
       "norm_label": "fillsandpens()"
     },
     {
@@ -22932,7 +23402,7 @@
       "source_location": "L774",
       "_origin": "ast",
       "id": "support_flipchartwriter_nesting",
-      "community": 124,
+      "community": 148,
       "norm_label": "nesting()"
     },
     {
@@ -22942,7 +23412,7 @@
       "source_location": "L807",
       "_origin": "ast",
       "id": "support_flipchartwriter_unreadparents",
-      "community": 124,
+      "community": 148,
       "norm_label": "unreadparents()"
     },
     {
@@ -22952,7 +23422,7 @@
       "source_location": "L849",
       "_origin": "ast",
       "id": "support_flipchartwriter_twogrids",
-      "community": 124,
+      "community": 148,
       "norm_label": "twogrids()"
     },
     {
@@ -22962,7 +23432,7 @@
       "source_location": "L884",
       "_origin": "ast",
       "id": "support_flipchartwriter_fonts",
-      "community": 124,
+      "community": 148,
       "norm_label": "fonts()"
     },
     {
@@ -22972,7 +23442,7 @@
       "source_location": "L921",
       "_origin": "ast",
       "id": "support_flipchartwriter_media",
-      "community": 124,
+      "community": 148,
       "norm_label": "media()"
     },
     {
@@ -23072,7 +23542,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_support_peakmemory_h",
-      "community": 305,
+      "community": 114,
       "norm_label": "peakmemory.h"
     },
     {
@@ -23082,7 +23552,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "support_peakmemory_peakmemorybytes",
-      "community": 305,
+      "community": 114,
       "norm_label": "peakmemorybytes()"
     },
     {
@@ -23092,7 +23562,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "tests_support_peakmemory_h_qint64",
-      "community": 305,
+      "community": 114,
       "norm_label": "qint64"
     },
     {
@@ -23102,7 +23572,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_tests_support_renderhost_h",
-      "community": 23,
+      "community": 312,
       "norm_label": "renderhost.h"
     },
     {
@@ -23112,7 +23582,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "support_renderhost_renderhostitem",
-      "community": 23,
+      "community": 312,
       "norm_label": "renderhostitem()"
     },
     {
@@ -23122,7 +23592,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "tests_support_renderhost_h_class",
-      "community": 23,
+      "community": 312,
       "norm_label": "class"
     },
     {
@@ -23132,7 +23602,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "support_renderhost_colornear",
-      "community": 23,
+      "community": 312,
       "norm_label": "colornear()"
     },
     {
@@ -23142,7 +23612,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "tests_support_renderhost_h_qcolor",
-      "community": 23,
+      "community": 312,
       "norm_label": "qcolor"
     },
     {
@@ -23372,7 +23842,7 @@
       "source_location": "L264",
       "_origin": "ast",
       "id": "tests_tst_actions_layout_tstactionslayout_unknowncommandsarelistedonce",
-      "community": 53,
+      "community": 288,
       "norm_label": ".unknowncommandsarelistedonce()"
     },
     {
@@ -23962,7 +24432,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_tests_tst_bench_json_cpp",
-      "community": 196,
+      "community": 159,
       "norm_label": "tst_bench_json.cpp"
     },
     {
@@ -23972,7 +24442,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_bench_json_ms",
-      "community": 196,
+      "community": 159,
       "norm_label": "ms()"
     },
     {
@@ -23982,7 +24452,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_bench_json_cpp_int64_t",
-      "community": 196,
+      "community": 159,
       "norm_label": "int64_t"
     },
     {
@@ -23992,7 +24462,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_bench_json_sample",
-      "community": 196,
+      "community": 159,
       "norm_label": "sample()"
     },
     {
@@ -24002,7 +24472,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_bench_json_cpp_benchresult",
-      "community": 196,
+      "community": 159,
       "norm_label": "benchresult"
     },
     {
@@ -24012,7 +24482,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "tests_tst_bench_json_tstbenchjson",
-      "community": 196,
+      "community": 159,
       "norm_label": "tstbenchjson"
     },
     {
@@ -24022,7 +24492,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "tests_tst_bench_json_tstbenchjson_private",
-      "community": 196,
+      "community": 159,
       "norm_label": ".private()"
     },
     {
@@ -24032,7 +24502,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "tests_tst_bench_json_cpp_q_object",
-      "community": 196,
+      "community": 159,
       "norm_label": "q_object"
     },
     {
@@ -24052,7 +24522,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "tests_tst_bench_json_tstbenchjson_toplevelkeys",
-      "community": 196,
+      "community": 159,
       "norm_label": ".toplevelkeys()"
     },
     {
@@ -24062,7 +24532,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "tests_tst_bench_json_tstbenchjson_scenariosandrawseries",
-      "community": 196,
+      "community": 159,
       "norm_label": ".scenariosandrawseries()"
     },
     {
@@ -24072,7 +24542,7 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "tests_tst_bench_json_tstbenchjson_framesexposeresumeandinvalidperiod",
-      "community": 196,
+      "community": 159,
       "norm_label": ".framesexposeresumeandinvalidperiod()"
     },
     {
@@ -24082,7 +24552,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "tests_tst_bench_json_tstbenchjson_nohostorusername",
-      "community": 196,
+      "community": 159,
       "norm_label": ".nohostorusername()"
     },
     {
@@ -24092,7 +24562,7 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "tests_tst_bench_json_tstbenchjson_writecreatesfolders",
-      "community": 196,
+      "community": 159,
       "norm_label": ".writecreatesfolders()"
     },
     {
@@ -25692,7 +26162,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l10_t4_tests_tst_bench_verdict_cpp",
-      "community": 112,
+      "community": 196,
       "norm_label": "tst_bench_verdict.cpp"
     },
     {
@@ -25742,7 +26212,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_strokes",
-      "community": 112,
+      "community": 124,
       "norm_label": "strokes()"
     },
     {
@@ -25752,7 +26222,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_cpp_vector",
-      "community": 112,
+      "community": 124,
       "norm_label": "vector"
     },
     {
@@ -25762,7 +26232,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_cpp_plannedinput",
-      "community": 112,
+      "community": 124,
       "norm_label": "plannedinput"
     },
     {
@@ -25772,7 +26242,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_cpp_int64_t",
-      "community": 112,
+      "community": 124,
       "norm_label": "int64_t"
     },
     {
@@ -25782,7 +26252,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_receivedinorder",
-      "community": 112,
+      "community": 124,
       "norm_label": "receivedinorder()"
     },
     {
@@ -25792,7 +26262,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_cpp_pair",
-      "community": 112,
+      "community": 124,
       "norm_label": "pair"
     },
     {
@@ -25802,7 +26272,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_cpp_uint64_t",
-      "community": 112,
+      "community": 124,
       "norm_label": "uint64_t"
     },
     {
@@ -25812,7 +26282,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_app",
-      "community": 112,
+      "community": 196,
       "norm_label": "app"
     },
     {
@@ -25822,7 +26292,7 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_cpp_qqmlapplicationengine",
-      "community": 112,
+      "community": 196,
       "norm_label": "qqmlapplicationengine"
     },
     {
@@ -25832,7 +26302,7 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_app_engine",
-      "community": 112,
+      "community": 196,
       "norm_label": "engine"
     },
     {
@@ -25842,7 +26312,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_cpp_qquickwindow",
-      "community": 112,
+      "community": 196,
       "norm_label": "qquickwindow"
     },
     {
@@ -25852,7 +26322,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_app_window",
-      "community": 112,
+      "community": 196,
       "norm_label": "window"
     },
     {
@@ -25862,7 +26332,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_cpp_pageview",
-      "community": 112,
+      "community": 196,
       "norm_label": "pageview"
     },
     {
@@ -25872,7 +26342,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_app_view",
-      "community": 112,
+      "community": 196,
       "norm_label": "view"
     },
     {
@@ -25882,7 +26352,7 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_start",
-      "community": 112,
+      "community": 196,
       "norm_label": "start()"
     },
     {
@@ -25892,7 +26362,7 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_runbench",
-      "community": 112,
+      "community": 196,
       "norm_label": "runbench()"
     },
     {
@@ -25902,7 +26372,7 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_cpp_benchoptions",
-      "community": 112,
+      "community": 196,
       "norm_label": "benchoptions"
     },
     {
@@ -25912,7 +26382,7 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_describechecks",
-      "community": 112,
+      "community": 196,
       "norm_label": "describechecks()"
     },
     {
@@ -25922,7 +26392,7 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_cpp_qstring",
-      "community": 112,
+      "community": 196,
       "norm_label": "qstring"
     },
     {
@@ -26042,7 +26512,7 @@
       "source_location": "L316",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_refreshperiodisthemedianinterval",
-      "community": 112,
+      "community": 124,
       "norm_label": ".refreshperiodisthemedianinterval()"
     },
     {
@@ -26052,7 +26522,7 @@
       "source_location": "L329",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_toofewframesgivenorefreshperiod",
-      "community": 112,
+      "community": 124,
       "norm_label": ".toofewframesgivenorefreshperiod()"
     },
     {
@@ -26062,7 +26532,7 @@
       "source_location": "L342",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_sequencemustmatchtheinjectorindex",
-      "community": 112,
+      "community": 124,
       "norm_label": ".sequencemustmatchtheinjectorindex()"
     },
     {
@@ -26082,7 +26552,7 @@
       "source_location": "L417",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_onesyncbetweenisenoughtocheck",
-      "community": 112,
+      "community": 124,
       "norm_label": ".onesyncbetweenisenoughtocheck()"
     },
     {
@@ -26092,7 +26562,7 @@
       "source_location": "L437",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_releasereceivedwiththenextpressisnotchecked",
-      "community": 112,
+      "community": 124,
       "norm_label": ".releasereceivedwiththenextpressisnotchecked()"
     },
     {
@@ -26102,7 +26572,7 @@
       "source_location": "L454",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_refreshreferenceisthescreen",
-      "community": 112,
+      "community": 124,
       "norm_label": ".refreshreferenceisthescreen()"
     },
     {
@@ -26152,7 +26622,7 @@
       "source_location": "L554",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_postedwheelreachesthepageview",
-      "community": 112,
+      "community": 196,
       "norm_label": ".postedwheelreachesthepageview()"
     },
     {
@@ -26162,7 +26632,7 @@
       "source_location": "L588",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_realstrokesmatchtheirframes",
-      "community": 112,
+      "community": 124,
       "norm_label": ".realstrokesmatchtheirframes()"
     },
     {
@@ -26172,7 +26642,7 @@
       "source_location": "L663",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_benchrunreadsitstargetsat1366x768",
-      "community": 112,
+      "community": 196,
       "norm_label": ".benchrunreadsitstargetsat1366x768()"
     },
     {
@@ -26182,7 +26652,7 @@
       "source_location": "L679",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_offscreenfullscreengetsthefixedsize",
-      "community": 112,
+      "community": 196,
       "norm_label": ".offscreenfullscreengetsthefixedsize()"
     },
     {
@@ -26202,7 +26672,7 @@
       "source_location": "L701",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_benchtargetsarevisibleintheshell",
-      "community": 112,
+      "community": 196,
       "norm_label": ".benchtargetsarevisibleintheshell()"
     },
     {
@@ -28369,7 +28839,7 @@
       "label": "TstFeaturesCamera",
       "file_type": "code",
       "source_file": "tests/tst_features_camera.cpp",
-      "source_location": "L4",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "tests_tst_features_camera_tstfeaturescamera",
       "community": 331,
@@ -28379,7 +28849,7 @@
       "label": ".private()",
       "file_type": "code",
       "source_file": "tests/tst_features_camera.cpp",
-      "source_location": "L6",
+      "source_location": "L11",
       "_origin": "ast",
       "id": "tests_tst_features_camera_tstfeaturescamera_private",
       "community": 331,
@@ -28389,11 +28859,51 @@
       "label": "Q_OBJECT",
       "file_type": "code",
       "source_file": "tests/tst_features_camera.cpp",
-      "source_location": "L6",
+      "source_location": "L11",
       "_origin": "ast",
       "id": "tests_tst_features_camera_cpp_q_object",
       "community": 331,
       "norm_label": "q_object"
+    },
+    {
+      "label": ".freehandClosesOnRelease()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_camera.cpp",
+      "source_location": "L26",
+      "_origin": "ast",
+      "id": "tests_tst_features_camera_tstfeaturescamera_freehandclosesonrelease",
+      "community": 331,
+      "norm_label": ".freehandclosesonrelease()"
+    },
+    {
+      "label": ".cropOutsideIsTransparent()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_camera.cpp",
+      "source_location": "L37",
+      "_origin": "ast",
+      "id": "tests_tst_features_camera_tstfeaturescamera_cropoutsideistransparent",
+      "community": 331,
+      "norm_label": ".cropoutsideistransparent()"
+    },
+    {
+      "label": ".rectangleNormalized()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_camera.cpp",
+      "source_location": "L47",
+      "_origin": "ast",
+      "id": "tests_tst_features_camera_tstfeaturescamera_rectanglenormalized",
+      "community": 331,
+      "norm_label": ".rectanglenormalized()"
+    },
+    {
+      "label": ".windowRectsInLogicalPixels()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_camera.cpp",
+      "source_location": "L52",
+      "_origin": "ast",
+      "id": "tests_tst_features_camera_tstfeaturescamera_windowrectsinlogicalpixels",
+      "community": 331,
+      "norm_label": ".windowrectsinlogicalpixels()"
     },
     {
       "label": "tst_features_countdown.cpp",
@@ -28619,7 +29129,7 @@
       "label": "TstFeaturesDesktopWheel",
       "file_type": "code",
       "source_file": "tests/tst_features_desktopwheel.cpp",
-      "source_location": "L4",
+      "source_location": "L10",
       "_origin": "ast",
       "id": "tests_tst_features_desktopwheel_tstfeaturesdesktopwheel",
       "community": 332,
@@ -28629,7 +29139,7 @@
       "label": ".private()",
       "file_type": "code",
       "source_file": "tests/tst_features_desktopwheel.cpp",
-      "source_location": "L6",
+      "source_location": "L12",
       "_origin": "ast",
       "id": "tests_tst_features_desktopwheel_tstfeaturesdesktopwheel_private",
       "community": 332,
@@ -28639,11 +29149,21 @@
       "label": "Q_OBJECT",
       "file_type": "code",
       "source_file": "tests/tst_features_desktopwheel.cpp",
-      "source_location": "L6",
+      "source_location": "L12",
       "_origin": "ast",
       "id": "tests_tst_features_desktopwheel_cpp_q_object",
       "community": 332,
       "norm_label": "q_object"
+    },
+    {
+      "label": ".defaultWheelUsesDesktopAndToolCommands()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_desktopwheel.cpp",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "tests_tst_features_desktopwheel_tstfeaturesdesktopwheel_defaultwheelusesdesktopandtoolcommands",
+      "community": 332,
+      "norm_label": ".defaultwheelusesdesktopandtoolcommands()"
     },
     {
       "label": "tst_features_dice.cpp",
@@ -29099,7 +29619,7 @@
       "label": "TstFeaturesKeyboard",
       "file_type": "code",
       "source_file": "tests/tst_features_keyboard.cpp",
-      "source_location": "L4",
+      "source_location": "L7",
       "_origin": "ast",
       "id": "tests_tst_features_keyboard_tstfeatureskeyboard",
       "community": 333,
@@ -29109,7 +29629,7 @@
       "label": ".private()",
       "file_type": "code",
       "source_file": "tests/tst_features_keyboard.cpp",
-      "source_location": "L6",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "tests_tst_features_keyboard_tstfeatureskeyboard_private",
       "community": 333,
@@ -29119,11 +29639,51 @@
       "label": "Q_OBJECT",
       "file_type": "code",
       "source_file": "tests/tst_features_keyboard.cpp",
-      "source_location": "L6",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "tests_tst_features_keyboard_cpp_q_object",
       "community": 333,
       "norm_label": "q_object"
+    },
+    {
+      "label": ".capsLockStays()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_keyboard.cpp",
+      "source_location": "L21",
+      "_origin": "ast",
+      "id": "tests_tst_features_keyboard_tstfeatureskeyboard_capslockstays",
+      "community": 333,
+      "norm_label": ".capslockstays()"
+    },
+    {
+      "label": ".compactLayoutHasFewerKeys()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_keyboard.cpp",
+      "source_location": "L29",
+      "_origin": "ast",
+      "id": "tests_tst_features_keyboard_tstfeatureskeyboard_compactlayouthasfewerkeys",
+      "community": 333,
+      "norm_label": ".compactlayouthasfewerkeys()"
+    },
+    {
+      "label": ".accentKeysTypeFrench()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_keyboard.cpp",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "tests_tst_features_keyboard_tstfeatureskeyboard_accentkeystypefrench",
+      "community": 333,
+      "norm_label": ".accentkeystypefrench()"
+    },
+    {
+      "label": ".everyKeyHasALabel()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_keyboard.cpp",
+      "source_location": "L42",
+      "_origin": "ast",
+      "id": "tests_tst_features_keyboard_tstfeatureskeyboard_everykeyhasalabel",
+      "community": 333,
+      "norm_label": ".everykeyhasalabel()"
     },
     {
       "label": "tst_features_mathtools.cpp",
@@ -29472,7 +30032,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_tst_features_pagezoom",
-      "community": 233,
+      "community": 228,
       "norm_label": "tst_features_pagezoom.cpp"
     },
     {
@@ -29482,7 +30042,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "tests_tst_features_pagezoom_tstfeaturespagezoom",
-      "community": 233,
+      "community": 228,
       "norm_label": "tstfeaturespagezoom"
     },
     {
@@ -29492,7 +30052,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "tests_tst_features_pagezoom_tstfeaturespagezoom_private",
-      "community": 233,
+      "community": 228,
       "norm_label": ".private()"
     },
     {
@@ -29502,7 +30062,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "tests_tst_features_pagezoom_cpp_q_object",
-      "community": 233,
+      "community": 228,
       "norm_label": "q_object"
     },
     {
@@ -29512,7 +30072,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_features_pagezoom_tstfeaturespagezoom_rightbuttonzoomsout",
-      "community": 233,
+      "community": 228,
       "norm_label": ".rightbuttonzoomsout()"
     },
     {
@@ -29522,7 +30082,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "tests_tst_features_pagezoom_tstfeaturespagezoom_clampedtoviewlimits",
-      "community": 233,
+      "community": 228,
       "norm_label": ".clampedtoviewlimits()"
     },
     {
@@ -29532,7 +30092,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "tests_tst_features_pagezoom_tstfeaturespagezoom_dragturnsintopan",
-      "community": 233,
+      "community": 228,
       "norm_label": ".dragturnsintopan()"
     },
     {
@@ -29542,7 +30102,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "tests_tst_features_pagezoom_tstfeaturespagezoom_doubleclickfits",
-      "community": 233,
+      "community": 228,
       "norm_label": ".doubleclickfits()"
     },
     {
@@ -29552,7 +30112,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "tests_tst_features_pagezoom_tstfeaturespagezoom_releasefreezesthezoom",
-      "community": 233,
+      "community": 228,
       "norm_label": ".releasefreezesthezoom()"
     },
     {
@@ -29562,7 +30122,7 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "tests_tst_features_pagezoom_tstfeaturespagezoom_pandeltaisconsumed",
-      "community": 233,
+      "community": 228,
       "norm_label": ".pandeltaisconsumed()"
     },
     {
@@ -29572,7 +30132,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "tests_tst_features_pagezoom_tstfeaturespagezoom_tripleclickcountsonlyonce",
-      "community": 233,
+      "community": 228,
       "norm_label": ".tripleclickcountsonlyonce()"
     },
     {
@@ -30102,7 +30662,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_tst_features_transitions",
-      "community": 230,
+      "community": 305,
       "norm_label": "tst_features_transitions.cpp"
     },
     {
@@ -30112,7 +30672,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_tstfeaturestransitions",
-      "community": 230,
+      "community": 138,
       "norm_label": "tstfeaturestransitions"
     },
     {
@@ -30122,7 +30682,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_tstfeaturestransitions_private",
-      "community": 230,
+      "community": 138,
       "norm_label": ".private()"
     },
     {
@@ -30132,7 +30692,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_cpp_q_object",
-      "community": 230,
+      "community": 138,
       "norm_label": "q_object"
     },
     {
@@ -30142,7 +30702,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_tstfeaturestransitions_cataloguehassixteeneffectsplustwo",
-      "community": 230,
+      "community": 138,
       "norm_label": ".cataloguehassixteeneffectsplustwo()"
     },
     {
@@ -30152,7 +30712,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_tstfeaturestransitions_pageeffectwinsoverglobal",
-      "community": 230,
+      "community": 138,
       "norm_label": ".pageeffectwinsoverglobal()"
     },
     {
@@ -30162,7 +30722,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_tstfeaturestransitions_effectplayedwhenleavingthepage",
-      "community": 230,
+      "community": 138,
       "norm_label": ".effectplayedwhenleavingthepage()"
     },
     {
@@ -30172,7 +30732,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_tstfeaturestransitions_disabledwhilecurtainactive",
-      "community": 230,
+      "community": 138,
       "norm_label": ".disabledwhilecurtainactive()"
     },
     {
@@ -30182,7 +30742,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_tstfeaturestransitions_unknowneffectfallsbacktonone",
-      "community": 230,
+      "community": 138,
       "norm_label": ".unknowneffectfallsbacktonone()"
     },
     {
@@ -30192,7 +30752,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_tstfeaturestransitions_durationclampedto5to30",
-      "community": 230,
+      "community": 138,
       "norm_label": ".durationclampedto5to30()"
     },
     {
@@ -30202,7 +30762,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_tstfeaturestransitions_randompicksarealeffect",
-      "community": 230,
+      "community": 138,
       "norm_label": ".randompicksarealeffect()"
     },
     {
@@ -30212,7 +30772,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_tstfeaturestransitions_desktopannotationanddesignmodeblock",
-      "community": 230,
+      "community": 138,
       "norm_label": ".desktopannotationanddesignmodeblock()"
     },
     {
@@ -30222,7 +30782,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "tests_tst_features_transitions_tstfeaturestransitions_randomisaknownidentifier",
-      "community": 230,
+      "community": 138,
       "norm_label": ".randomisaknownidentifier()"
     },
     {
@@ -30232,7 +30792,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_formats_bamboo_cpp",
-      "community": 299,
+      "community": 136,
       "norm_label": "tst_formats_bamboo.cpp"
     },
     {
@@ -30242,7 +30802,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_zlibofzeros",
-      "community": 299,
+      "community": 136,
       "norm_label": "zlibofzeros()"
     },
     {
@@ -30252,7 +30812,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_cpp_qbytearray",
-      "community": 299,
+      "community": 136,
       "norm_label": "qbytearray"
     },
     {
@@ -30262,7 +30822,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_cpp_qint64",
-      "community": 299,
+      "community": 136,
       "norm_label": "qint64"
     },
     {
@@ -30272,7 +30832,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo",
-      "community": 299,
+      "community": 136,
       "norm_label": "tstformatsbamboo"
     },
     {
@@ -30282,7 +30842,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_private",
-      "community": 299,
+      "community": 136,
       "norm_label": ".private()"
     },
     {
@@ -30292,7 +30852,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_cpp_q_object",
-      "community": 299,
+      "community": 136,
       "norm_label": "q_object"
     },
     {
@@ -30302,7 +30862,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_nestedcontainerisanentry",
-      "community": 299,
+      "community": 136,
       "norm_label": ".nestedcontainerisanentry()"
     },
     {
@@ -30312,7 +30872,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_namesareutf16",
-      "community": 299,
+      "community": 136,
       "norm_label": ".namesareutf16()"
     },
     {
@@ -30322,7 +30882,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_refusesbadortruncateddata",
-      "community": 299,
+      "community": 136,
       "norm_label": ".refusesbadortruncateddata()"
     },
     {
@@ -30332,7 +30892,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_sizemismatchisanerror",
-      "community": 299,
+      "community": 136,
       "norm_label": ".sizemismatchisanerror()"
     },
     {
@@ -30342,7 +30902,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_oversizedentryisrefusedwithoutallocating",
-      "community": 299,
+      "community": 136,
       "norm_label": ".oversizedentryisrefusedwithoutallocating()"
     },
     {
@@ -30352,7 +30912,7 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_zlibbombstayswithintheannouncedsize",
-      "community": 299,
+      "community": 136,
       "norm_label": ".zlibbombstayswithintheannouncedsize()"
     },
     {
@@ -30362,7 +30922,7 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_decompressionstopsattheannouncedsize",
-      "community": 299,
+      "community": 136,
       "norm_label": ".decompressionstopsattheannouncedsize()"
     },
     {
@@ -30382,7 +30942,7 @@
       "source_location": "L186",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_indexerrorsarereported_data",
-      "community": 299,
+      "community": 136,
       "norm_label": ".indexerrorsarereported_data()"
     },
     {
@@ -30392,7 +30952,7 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "tests_tst_formats_bamboo_tstformatsbamboo_indexerrorsarereported",
-      "community": 299,
+      "community": 136,
       "norm_label": ".indexerrorsarereported()"
     },
     {
@@ -30402,7 +30962,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_formats_dump_cpp",
-      "community": 83,
+      "community": 169,
       "norm_label": "tst_formats_dump.cpp"
     },
     {
@@ -30412,7 +30972,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_handbuiltdocument",
-      "community": 83,
+      "community": 169,
       "norm_label": "handbuiltdocument()"
     },
     {
@@ -30422,7 +30982,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_cpp_document",
-      "community": 83,
+      "community": 169,
       "norm_label": "document"
     },
     {
@@ -30432,7 +30992,7 @@
       "source_location": "L233",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_parse",
-      "community": 83,
+      "community": 169,
       "norm_label": "parse()"
     },
     {
@@ -30442,7 +31002,7 @@
       "source_location": "L233",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_cpp_qjsonobject",
-      "community": 83,
+      "community": 169,
       "norm_label": "qjsonobject"
     },
     {
@@ -30452,7 +31012,7 @@
       "source_location": "L243",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_expectedexport",
-      "community": 83,
+      "community": 169,
       "norm_label": "expectedexport()"
     },
     {
@@ -30462,7 +31022,7 @@
       "source_location": "L268",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_tstformatsdump",
-      "community": 83,
+      "community": 169,
       "norm_label": "tstformatsdump"
     },
     {
@@ -30472,7 +31032,7 @@
       "source_location": "L270",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_tstformatsdump_private",
-      "community": 83,
+      "community": 169,
       "norm_label": ".private()"
     },
     {
@@ -30482,7 +31042,7 @@
       "source_location": "L270",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_cpp_q_object",
-      "community": 83,
+      "community": 169,
       "norm_label": "q_object"
     },
     {
@@ -30502,7 +31062,7 @@
       "source_location": "L337",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_tstformatsdump_comparisonreadsvaluesnotjsontext",
-      "community": 83,
+      "community": 169,
       "norm_label": ".comparisonreadsvaluesnotjsontext()"
     },
     {
@@ -30512,7 +31072,7 @@
       "source_location": "L347",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_tstformatsdump_comparisontoleratestinynumericdifferences",
-      "community": 83,
+      "community": 169,
       "norm_label": ".comparisontoleratestinynumericdifferences()"
     },
     {
@@ -30522,7 +31082,7 @@
       "source_location": "L371",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_tstformatsdump_comparisonstopsatthelimit",
-      "community": 83,
+      "community": 169,
       "norm_label": ".comparisonstopsatthelimit()"
     },
     {
@@ -30532,7 +31092,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_formats_flipchart_cpp",
-      "community": 305,
+      "community": 148,
       "norm_label": "tst_formats_flipchart.cpp"
     },
     {
@@ -31942,7 +32502,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_formats_objectstream_cpp",
-      "community": 124,
+      "community": 148,
       "norm_label": "tst_formats_objectstream.cpp"
     },
     {
@@ -32092,7 +32652,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_formats_oracle_cpp",
-      "community": 83,
+      "community": 311,
       "norm_label": "tst_formats_oracle.cpp"
     },
     {
@@ -32102,7 +32662,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_tstformatsoracle",
-      "community": 83,
+      "community": 311,
       "norm_label": "tstformatsoracle"
     },
     {
@@ -32112,7 +32672,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_cpp_q_object",
-      "community": 83,
+      "community": 311,
       "norm_label": "q_object"
     },
     {
@@ -32122,7 +32682,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_tstformatsoracle_public",
-      "community": 83,
+      "community": 311,
       "norm_label": "public"
     },
     {
@@ -32132,7 +32692,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_tstformatsoracle_everysamplematchesthepythonreader",
-      "community": 83,
+      "community": 311,
       "norm_label": ".everysamplematchesthepythonreader()"
     },
     {
@@ -32142,7 +32702,7 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "tests_tst_formats_oracle_main",
-      "community": 83,
+      "community": 311,
       "norm_label": "main()"
     },
     {
@@ -34592,7 +35152,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_painternode",
-      "community": 290,
+      "community": 103,
       "norm_label": "painternode"
     },
     {
@@ -34602,7 +35162,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "qsgrendernode",
-      "community": 290,
+      "community": 103,
       "norm_label": "qsgrendernode"
     },
     {
@@ -34612,7 +35172,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_painternode_painternode",
-      "community": 290,
+      "community": 103,
       "norm_label": ".painternode()"
     },
     {
@@ -34622,7 +35182,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_cpp_qquickwindow",
-      "community": 290,
+      "community": 103,
       "norm_label": "qquickwindow"
     },
     {
@@ -34632,7 +35192,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_cpp_qrectf",
-      "community": 290,
+      "community": 103,
       "norm_label": "qrectf"
     },
     {
@@ -34652,7 +35212,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_painternode_render",
-      "community": 290,
+      "community": 103,
       "norm_label": ".render()"
     },
     {
@@ -34662,7 +35222,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_cpp_renderstate",
-      "community": 290,
+      "community": 103,
       "norm_label": "renderstate"
     },
     {
@@ -34672,7 +35232,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_painternode_changedstates",
-      "community": 290,
+      "community": 103,
       "norm_label": ".changedstates()"
     },
     {
@@ -34682,7 +35242,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_cpp_stateflags",
-      "community": 290,
+      "community": 103,
       "norm_label": "stateflags"
     },
     {
@@ -34692,7 +35252,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_painternode_flags",
-      "community": 290,
+      "community": 103,
       "norm_label": ".flags()"
     },
     {
@@ -34702,7 +35262,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_cpp_renderingflags",
-      "community": 290,
+      "community": 103,
       "norm_label": "renderingflags"
     },
     {
@@ -34712,7 +35272,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_painternode_rect",
-      "community": 290,
+      "community": 103,
       "norm_label": ".rect()"
     },
     {
@@ -34722,7 +35282,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_painternode_setcolor",
-      "community": 290,
+      "community": 103,
       "norm_label": ".setcolor()"
     },
     {
@@ -34732,7 +35292,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_painternode_m_window",
-      "community": 290,
+      "community": 103,
       "norm_label": "m_window"
     },
     {
@@ -34742,7 +35302,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_painternode_m_rect",
-      "community": 290,
+      "community": 103,
       "norm_label": "m_rect"
     },
     {
@@ -34752,7 +35312,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_painternode_m_color",
-      "community": 290,
+      "community": 103,
       "norm_label": "m_color"
     },
     {
@@ -35972,7 +36532,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_tests_tst_render_ink_software_cpp",
-      "community": 28,
+      "community": 312,
       "norm_label": "tst_render_ink_software.cpp"
     },
     {
@@ -35982,7 +36542,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_pointat",
-      "community": 28,
+      "community": 233,
       "norm_label": "pointat()"
     },
     {
@@ -35992,7 +36552,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_strokepoint",
-      "community": 28,
+      "community": 233,
       "norm_label": "strokepoint"
     },
     {
@@ -36002,7 +36562,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_midsegment",
-      "community": 28,
+      "community": 233,
       "norm_label": "midsegment()"
     },
     {
@@ -36012,7 +36572,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_qpoint",
-      "community": 28,
+      "community": 233,
       "norm_label": "qpoint"
     },
     {
@@ -36182,7 +36742,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_spyitem_updatepaintnode",
-      "community": 28,
+      "community": 327,
       "norm_label": ".updatepaintnode()"
     },
     {
@@ -36192,7 +36752,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_qsgnode",
-      "community": 28,
+      "community": 327,
       "norm_label": "qsgnode"
     },
     {
@@ -36202,7 +36762,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_updatepaintnodedata",
-      "community": 28,
+      "community": 327,
       "norm_label": "updatepaintnodedata"
     },
     {
@@ -36222,7 +36782,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware",
-      "community": 28,
+      "community": 233,
       "norm_label": "tstrenderinksoftware"
     },
     {
@@ -36232,7 +36792,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_private",
-      "community": 28,
+      "community": 233,
       "norm_label": ".private()"
     },
     {
@@ -36242,7 +36802,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_q_object",
-      "community": 28,
+      "community": 233,
       "norm_label": "q_object"
     },
     {
@@ -36252,7 +36812,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_appendingleavesdistantfrozenblocksalone",
-      "community": 28,
+      "community": 233,
       "norm_label": ".appendingleavesdistantfrozenblocksalone()"
     },
     {
@@ -36262,7 +36822,7 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_crossingstrokespaintonlyneartherepaintedarea",
-      "community": 28,
+      "community": 233,
       "norm_label": ".crossingstrokespaintonlyneartherepaintedarea()"
     },
     {
@@ -36272,7 +36832,7 @@
       "source_location": "L210",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_transformeditempaintsatitsplace",
-      "community": 28,
+      "community": 233,
       "norm_label": ".transformeditempaintsatitsplace()"
     },
     {
@@ -36282,7 +36842,7 @@
       "source_location": "L246",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_diagonalsquarecapsarenotclipped",
-      "community": 28,
+      "community": 233,
       "norm_label": ".diagonalsquarecapsarenotclipped()"
     },
     {
@@ -36292,7 +36852,7 @@
       "source_location": "L274",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_reinserteditemredrawsitsink",
-      "community": 28,
+      "community": 233,
       "norm_label": ".reinserteditemredrawsitsink()"
     },
     {
@@ -36302,7 +36862,7 @@
       "source_location": "L296",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_clearremovestheink",
-      "community": 28,
+      "community": 233,
       "norm_label": ".clearremovestheink()"
     },
     {
@@ -36832,7 +37392,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_render_painted_cpp",
-      "community": 106,
+      "community": 299,
       "norm_label": "tst_render_painted.cpp"
     },
     {
@@ -36882,7 +37442,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "tests_tst_render_painted_hostiletext",
-      "community": 106,
+      "community": 299,
       "norm_label": "hostiletext()"
     },
     {
@@ -36892,7 +37452,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_qstring",
-      "community": 106,
+      "community": 299,
       "norm_label": "qstring"
     },
     {
@@ -36902,7 +37462,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "tests_tst_render_painted_pngof",
-      "community": 106,
+      "community": 299,
       "norm_label": "pngof()"
     },
     {
@@ -36912,7 +37472,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_qbytearray",
-      "community": 106,
+      "community": 299,
       "norm_label": "qbytearray"
     },
     {
@@ -36952,7 +37512,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_function",
-      "community": 106,
+      "community": 303,
       "norm_label": "function"
     },
     {
@@ -36962,7 +37522,7 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "tests_tst_render_painted_isred",
-      "community": 106,
+      "community": 299,
       "norm_label": "isred()"
     },
     {
@@ -36972,7 +37532,7 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_qcolor",
-      "community": 106,
+      "community": 299,
       "norm_label": "qcolor"
     },
     {
@@ -36982,7 +37542,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "tests_tst_render_painted_isblue",
-      "community": 106,
+      "community": 299,
       "norm_label": "isblue()"
     },
     {
@@ -37012,7 +37572,7 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "tests_tst_render_painted_nodehostitem",
-      "community": 106,
+      "community": 303,
       "norm_label": "nodehostitem"
     },
     {
@@ -37022,7 +37582,7 @@
       "source_location": "L131",
       "_origin": "ast",
       "id": "tests_tst_render_painted_nodehostitem_nodehostitem",
-      "community": 106,
+      "community": 303,
       "norm_label": ".nodehostitem()"
     },
     {
@@ -37032,7 +37592,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_qsgnode",
-      "community": 106,
+      "community": 303,
       "norm_label": "qsgnode"
     },
     {
@@ -37042,7 +37602,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "tests_tst_render_painted_nodehostitem_build",
-      "community": 106,
+      "community": 303,
       "norm_label": "build"
     },
     {
@@ -37052,7 +37612,7 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_imagestore",
-      "community": 106,
+      "community": 299,
       "norm_label": "imagestore"
     },
     {
@@ -37072,7 +37632,7 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "tests_tst_render_painted_nodehostitem_rasterized",
-      "community": 106,
+      "community": 303,
       "norm_label": "rasterized"
     },
     {
@@ -37082,7 +37642,7 @@
       "source_location": "L138",
       "_origin": "ast",
       "id": "tests_tst_render_painted_nodehostitem_updatepaintnode",
-      "community": 106,
+      "community": 303,
       "norm_label": ".updatepaintnode()"
     },
     {
@@ -37092,7 +37652,7 @@
       "source_location": "L138",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_updatepaintnodedata",
-      "community": 106,
+      "community": 303,
       "norm_label": "updatepaintnodedata"
     },
     {
@@ -37102,7 +37662,7 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "tests_tst_render_painted_hostfixture",
-      "community": 106,
+      "community": 303,
       "norm_label": "hostfixture"
     },
     {
@@ -37112,7 +37672,7 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_qquickwindow",
-      "community": 106,
+      "community": 303,
       "norm_label": "qquickwindow"
     },
     {
@@ -37122,7 +37682,7 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "tests_tst_render_painted_hostfixture_window",
-      "community": 106,
+      "community": 303,
       "norm_label": "window"
     },
     {
@@ -37132,7 +37692,7 @@
       "source_location": "L159",
       "_origin": "ast",
       "id": "tests_tst_render_painted_hostfixture_host",
-      "community": 106,
+      "community": 303,
       "norm_label": "host"
     },
     {
@@ -37142,7 +37702,7 @@
       "source_location": "L162",
       "_origin": "ast",
       "id": "tests_tst_render_painted_openhost",
-      "community": 106,
+      "community": 299,
       "norm_label": "openhost()"
     },
     {
@@ -37182,7 +37742,7 @@
       "source_location": "L191",
       "_origin": "ast",
       "id": "tests_tst_render_painted_tstrenderpainted_open",
-      "community": 106,
+      "community": 353,
       "norm_label": ".open()"
     },
     {
@@ -37192,7 +37752,7 @@
       "source_location": "L191",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_fixture",
-      "community": 106,
+      "community": 353,
       "norm_label": "fixture"
     },
     {
@@ -37202,7 +37762,7 @@
       "source_location": "L191",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_page",
-      "community": 106,
+      "community": 353,
       "norm_label": "page"
     },
     {
@@ -37282,7 +37842,7 @@
       "source_location": "L327",
       "_origin": "ast",
       "id": "tests_tst_render_painted_tstrenderpainted_backgroundliesonwhitepage",
-      "community": 106,
+      "community": 299,
       "norm_label": ".backgroundliesonwhitepage()"
     },
     {
@@ -37372,7 +37932,7 @@
       "source_location": "L636",
       "_origin": "ast",
       "id": "tests_tst_render_painted_tstrenderpainted_paintednodekeepsitsimages",
-      "community": 106,
+      "community": 299,
       "norm_label": ".paintednodekeepsitsimages()"
     },
     {
@@ -42882,7 +43442,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "tests_tst_viewtransform_tstviewtransform_scrollaxiscoverspageandmargins",
-      "community": 169,
+      "community": 39,
       "norm_label": ".scrollaxiscoverspageandmargins()"
     },
     {
@@ -45842,7 +46402,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "ui_src_pageview_cpp_qpointf",
-      "community": 138,
+      "community": 36,
       "norm_label": "qpointf"
     },
     {
@@ -45852,7 +46412,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_pageview_ispresshandler",
-      "community": 138,
+      "community": 36,
       "norm_label": "ispresshandler()"
     },
     {
@@ -45862,7 +46422,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "ui_src_pageview_cpp_qobject",
-      "community": 138,
+      "community": 36,
       "norm_label": "qobject"
     },
     {
@@ -45872,7 +46432,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_pageview_takesleftbuttonitself",
-      "community": 138,
+      "community": 36,
       "norm_label": "takesleftbuttonitself()"
     },
     {
@@ -45882,7 +46442,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "ui_src_pageview_cpp_qquickitem",
-      "community": 138,
+      "community": 36,
       "norm_label": "qquickitem"
     },
     {
@@ -45892,7 +46452,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_pageview_takespress",
-      "community": 138,
+      "community": 36,
       "norm_label": "takespress()"
     },
     {
@@ -45902,7 +46462,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "src_pageview_takespressat",
-      "community": 138,
+      "community": 36,
       "norm_label": "takespressat()"
     },
     {
@@ -45912,7 +46472,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "src_pageview_postponesfold",
-      "community": 275,
+      "community": 36,
       "norm_label": "postponesfold()"
     },
     {
@@ -45922,7 +46482,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "ui_src_pageview_cpp_qevent",
-      "community": 275,
+      "community": 36,
       "norm_label": "qevent"
     },
     {
@@ -45982,7 +46542,7 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "src_pageview_pageview",
-      "community": 138,
+      "community": 36,
       "norm_label": "pageview()"
     },
     {
@@ -45992,7 +46552,7 @@
       "source_location": "L169",
       "_origin": "ast",
       "id": "src_pageview_content",
-      "community": 138,
+      "community": 36,
       "norm_label": "content()"
     },
     {
@@ -46012,7 +46572,7 @@
       "source_location": "L207",
       "_origin": "ast",
       "id": "src_pageview_zoom",
-      "community": 169,
+      "community": 47,
       "norm_label": "zoom()"
     },
     {
@@ -46022,7 +46582,7 @@
       "source_location": "L207",
       "_origin": "ast",
       "id": "ui_src_pageview_cpp_qreal",
-      "community": 169,
+      "community": 47,
       "norm_label": "qreal"
     },
     {
@@ -46042,7 +46602,7 @@
       "source_location": "L226",
       "_origin": "ast",
       "id": "src_pageview_pan",
-      "community": 138,
+      "community": 36,
       "norm_label": "pan()"
     },
     {
@@ -46082,7 +46642,7 @@
       "source_location": "L255",
       "_origin": "ast",
       "id": "src_pageview_cachetexturesize",
-      "community": 36,
+      "community": 47,
       "norm_label": "cachetexturesize()"
     },
     {
@@ -46092,7 +46652,7 @@
       "source_location": "L255",
       "_origin": "ast",
       "id": "ui_src_pageview_cpp_qsize",
-      "community": 36,
+      "community": 47,
       "norm_label": "qsize"
     },
     {
@@ -46252,7 +46812,7 @@
       "source_location": "L441",
       "_origin": "ast",
       "id": "src_pageview_postponefold",
-      "community": 275,
+      "community": 36,
       "norm_label": "postponefold()"
     },
     {
@@ -46372,7 +46932,7 @@
       "source_location": "L533",
       "_origin": "ast",
       "id": "src_pageview_handlepointer",
-      "community": 275,
+      "community": 36,
       "norm_label": "handlepointer()"
     },
     {
@@ -46382,7 +46942,7 @@
       "source_location": "L567",
       "_origin": "ast",
       "id": "src_pageview_pushtotool",
-      "community": 287,
+      "community": 36,
       "norm_label": "pushtotool()"
     },
     {
@@ -46392,7 +46952,7 @@
       "source_location": "L576",
       "_origin": "ast",
       "id": "src_pageview_finishstroke",
-      "community": 47,
+      "community": 36,
       "norm_label": "finishstroke()"
     },
     {
@@ -46402,7 +46962,7 @@
       "source_location": "L599",
       "_origin": "ast",
       "id": "src_pageview_mousepressevent",
-      "community": 275,
+      "community": 36,
       "norm_label": "mousepressevent()"
     },
     {
@@ -46412,7 +46972,7 @@
       "source_location": "L599",
       "_origin": "ast",
       "id": "ui_src_pageview_cpp_qmouseevent",
-      "community": 275,
+      "community": 36,
       "norm_label": "qmouseevent"
     },
     {
@@ -46422,7 +46982,7 @@
       "source_location": "L619",
       "_origin": "ast",
       "id": "src_pageview_mousemoveevent",
-      "community": 275,
+      "community": 36,
       "norm_label": "mousemoveevent()"
     },
     {
@@ -46432,7 +46992,7 @@
       "source_location": "L624",
       "_origin": "ast",
       "id": "src_pageview_mousereleaseevent",
-      "community": 275,
+      "community": 36,
       "norm_label": "mousereleaseevent()"
     },
     {
@@ -46442,7 +47002,7 @@
       "source_location": "L630",
       "_origin": "ast",
       "id": "src_pageview_event",
-      "community": 275,
+      "community": 36,
       "norm_label": "event()"
     },
     {
@@ -46452,7 +47012,7 @@
       "source_location": "L635",
       "_origin": "ast",
       "id": "src_pageview_itemchange",
-      "community": 36,
+      "community": 47,
       "norm_label": "itemchange()"
     },
     {
@@ -46462,7 +47022,7 @@
       "source_location": "L635",
       "_origin": "ast",
       "id": "itemchangedata",
-      "community": 36,
+      "community": 47,
       "norm_label": "itemchangedata"
     },
     {
@@ -46472,7 +47032,7 @@
       "source_location": "L664",
       "_origin": "ast",
       "id": "src_pageview_eventfilter",
-      "community": 275,
+      "community": 36,
       "norm_label": "eventfilter()"
     },
     {
@@ -46482,7 +47042,7 @@
       "source_location": "L703",
       "_origin": "ast",
       "id": "src_pageview_canstartstroke",
-      "community": 275,
+      "community": 36,
       "norm_label": "canstartstroke()"
     },
     {
@@ -46492,7 +47052,7 @@
       "source_location": "L709",
       "_origin": "ast",
       "id": "src_pageview_coveredat",
-      "community": 138,
+      "community": 36,
       "norm_label": "coveredat()"
     },
     {
@@ -46502,7 +47062,7 @@
       "source_location": "L731",
       "_origin": "ast",
       "id": "src_pageview_touchevent",
-      "community": 275,
+      "community": 36,
       "norm_label": "touchevent()"
     },
     {
@@ -46512,7 +47072,7 @@
       "source_location": "L731",
       "_origin": "ast",
       "id": "qtouchevent",
-      "community": 275,
+      "community": 36,
       "norm_label": "qtouchevent"
     },
     {
@@ -46522,7 +47082,7 @@
       "source_location": "L761",
       "_origin": "ast",
       "id": "src_pageview_touchungrabevent",
-      "community": 275,
+      "community": 36,
       "norm_label": "touchungrabevent()"
     },
     {
@@ -46532,7 +47092,7 @@
       "source_location": "L767",
       "_origin": "ast",
       "id": "src_pageview_finishtouchstroke",
-      "community": 275,
+      "community": 36,
       "norm_label": "finishtouchstroke()"
     },
     {
@@ -46572,7 +47132,7 @@
       "source_location": "L806",
       "_origin": "ast",
       "id": "src_pageview_inkwidth",
-      "community": 169,
+      "community": 47,
       "norm_label": "inkwidth()"
     },
     {
@@ -46582,7 +47142,7 @@
       "source_location": "L811",
       "_origin": "ast",
       "id": "src_pageview_setinkwidth",
-      "community": 169,
+      "community": 47,
       "norm_label": "setinkwidth()"
     },
     {
@@ -46612,7 +47172,7 @@
       "source_location": "L838",
       "_origin": "ast",
       "id": "src_pageview_scrollsizex",
-      "community": 169,
+      "community": 47,
       "norm_label": "scrollsizex()"
     },
     {
@@ -46622,7 +47182,7 @@
       "source_location": "L843",
       "_origin": "ast",
       "id": "src_pageview_scrollpositionx",
-      "community": 169,
+      "community": 47,
       "norm_label": "scrollpositionx()"
     },
     {
@@ -46632,7 +47192,7 @@
       "source_location": "L848",
       "_origin": "ast",
       "id": "src_pageview_scrollsizey",
-      "community": 169,
+      "community": 39,
       "norm_label": "scrollsizey()"
     },
     {
@@ -46642,7 +47202,7 @@
       "source_location": "L853",
       "_origin": "ast",
       "id": "src_pageview_scrollpositiony",
-      "community": 169,
+      "community": 47,
       "norm_label": "scrollpositiony()"
     },
     {
@@ -46662,7 +47222,7 @@
       "source_location": "L874",
       "_origin": "ast",
       "id": "src_pageview_pagetoscene",
-      "community": 138,
+      "community": 36,
       "norm_label": "pagetoscene()"
     },
     {
@@ -46702,7 +47262,7 @@
       "source_location": "L884",
       "_origin": "ast",
       "id": "src_pageview_acceptsdevice",
-      "community": 275,
+      "community": 36,
       "norm_label": "acceptsdevice()"
     },
     {
@@ -46742,7 +47302,7 @@
       "source_location": "L903",
       "_origin": "ast",
       "id": "src_pageview_currenttool",
-      "community": 138,
+      "community": 36,
       "norm_label": "currenttool()"
     },
     {
@@ -46752,7 +47312,7 @@
       "source_location": "L903",
       "_origin": "ast",
       "id": "ui_src_pageview_cpp_tool",
-      "community": 138,
+      "community": 36,
       "norm_label": "tool"
     },
     {
@@ -46782,7 +47342,7 @@
       "source_location": "L929",
       "_origin": "ast",
       "id": "src_pageview_addinputcover",
-      "community": 138,
+      "community": 36,
       "norm_label": "addinputcover()"
     },
     {
@@ -46792,7 +47352,7 @@
       "source_location": "L938",
       "_origin": "ast",
       "id": "src_pageview_removeinputcover",
-      "community": 138,
+      "community": 36,
       "norm_label": "removeinputcover()"
     },
     {
@@ -46842,7 +47402,7 @@
       "source_location": "L974",
       "_origin": "ast",
       "id": "src_pageview_scenetopage",
-      "community": 138,
+      "community": 36,
       "norm_label": "scenetopage()"
     },
     {
@@ -47362,7 +47922,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_toolhost_width",
-      "community": 169,
+      "community": 47,
       "norm_label": "width()"
     },
     {
@@ -47772,7 +48332,7 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "src_viewtransform_scrollaxis",
-      "community": 169,
+      "community": 39,
       "norm_label": "scrollaxis()"
     },
     {
@@ -57526,9 +58086,9 @@
       "source_file": "actions/src/layout.cpp",
       "source_location": "L1",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "layout",
-      "target": "src_layout"
+      "source": "src_layout",
+      "target": "actions_src_layout_cpp_layout",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -57694,6 +58254,17 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "actions/src/layout.cpp",
+      "source_location": "L79",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_layout_parselayout",
+      "target": "actions_src_layout_cpp_layout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "actions/src/layout.cpp",
       "source_location": "L36",
       "weight": 1.0,
       "context": "parameter_type",
@@ -57711,17 +58282,6 @@
       "confidence_score": 1.0,
       "source": "src_layout_parselayout",
       "target": "actions_src_layout_cpp_qstring"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "source_file": "actions/src/layout.cpp",
-      "source_location": "L36",
-      "weight": 1.0,
-      "context": "parameter_type",
-      "confidence_score": 1.0,
-      "source": "src_layout_parselayout",
-      "target": "layout"
     },
     {
       "relation": "calls",
@@ -57848,34 +58408,12 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "actions/src/layout.cpp",
-      "source_location": "L136",
+      "source_location": "L193",
       "weight": 1.0,
       "context": "parameter_type",
-      "confidence_score": 1.0,
-      "source": "layout",
-      "target": "src_layout_unknowncommands"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "tests/tst_actions_layout.cpp",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "layout",
-      "target": "tests_tst_actions_layout"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "ui/include/actcraft/ui/commands.h",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "layout",
-      "target": "ui_commands"
+      "source": "src_layout_unknowncommands",
+      "target": "actions_src_layout_cpp_layout",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -77228,6 +77766,27 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/camera.h",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "features_camera",
+      "target": "features_camera_closed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/camera.h",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "features_camera",
+      "target": "qpolygonf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "features/include/actcraft/features/countdown.h",
       "source_location": "L7",
       "weight": 1.0,
@@ -77255,6 +77814,27 @@
       "confidence_score": 1.0,
       "source": "features_curtain",
       "target": "features_curtain_dragging"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/desktopwheel.h",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "features_desktopwheel",
+      "target": "features_desktopwheel_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/desktopwheel.h",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "features_desktopwheel_actcraft",
+      "target": "features_include_actcraft_features_desktopwheel_h_namespace",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -77471,6 +78051,27 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/screenkeyboard.h",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "features_screenkeyboard",
+      "target": "features_screenkeyboard_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/screenkeyboard.h",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "features_screenkeyboard_actcraft",
+      "target": "features_include_actcraft_features_screenkeyboard_h_namespace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "features/include/actcraft/features/shapefinder.h",
       "source_location": "L9",
       "weight": 1.0,
@@ -77537,9 +78138,9 @@
       "source_file": "features/include/actcraft/features/ticker.h",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "features_ticker",
-      "target": "features_ticker_actcraft",
-      "confidence_score": 1.0
+      "target": "features_ticker_actcraft"
     },
     {
       "relation": "contains",
@@ -77547,9 +78148,9 @@
       "source_file": "features/include/actcraft/features/ticker.h",
       "source_location": "L42",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "features_ticker",
-      "target": "features_ticker_tickerrun",
-      "confidence_score": 1.0
+      "target": "features_ticker_tickerrun"
     },
     {
       "relation": "references",
@@ -77558,9 +78159,9 @@
       "source_location": "L10",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "features_ticker_actcraft",
-      "target": "features_include_actcraft_features_ticker_h_namespace",
-      "confidence_score": 1.0
+      "target": "features_include_actcraft_features_ticker_h_namespace"
     },
     {
       "relation": "references",
@@ -77569,9 +78170,9 @@
       "source_location": "L42",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "features_ticker_tickerrun",
-      "target": "features_include_actcraft_features_ticker_h_class",
-      "confidence_score": 1.0
+      "target": "features_include_actcraft_features_ticker_h_class"
     },
     {
       "relation": "contains",
@@ -77859,6 +78460,304 @@
       "confidence_score": 1.0,
       "source": "src_calculator_apply",
       "target": "src_calculator_press"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "src_camera",
+      "target": "qpainterpath",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "src_camera",
+      "target": "src_camera_clear",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "src_camera",
+      "target": "src_camera_click",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L61",
+      "weight": 1.0,
+      "source": "src_camera",
+      "target": "src_camera_closed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L77",
+      "weight": 1.0,
+      "source": "src_camera",
+      "target": "src_camera_croptopolygon",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "src_camera",
+      "target": "src_camera_move",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L94",
+      "weight": 1.0,
+      "source": "src_camera",
+      "target": "src_camera_normalizedrect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "src_camera",
+      "target": "src_camera_polygon",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "src_camera",
+      "target": "src_camera_press",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "src_camera",
+      "target": "src_camera_release",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L99",
+      "weight": 1.0,
+      "source": "src_camera",
+      "target": "src_camera_tologicalpixels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_camera_click",
+      "target": "features_src_camera_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L46",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_camera_move",
+      "target": "features_src_camera_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L94",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_camera_normalizedrect",
+      "target": "features_src_camera_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L40",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_camera_press",
+      "target": "features_src_camera_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L66",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_camera_polygon",
+      "target": "qpolygonf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "render/src/pagepainter.cpp",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l0_s3_render_src_pagepainter_cpp",
+      "target": "qpolygonf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "render/src/shaperenderer.cpp",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_render_src_shaperenderer_cpp",
+      "target": "qpolygonf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L77",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_camera_croptopolygon",
+      "target": "qpolygonf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_features_camera.cpp",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "tests_tst_features_camera_tstfeaturescamera_cropoutsideistransparent",
+      "target": "qpolygonf"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "src_camera_press",
+      "target": "src_camera_clear",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L77",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_camera_croptopolygon",
+      "target": "features_src_camera_cpp_qimage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_features_camera.cpp",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "tests_tst_features_camera_tstfeaturescamera_cropoutsideistransparent",
+      "target": "src_camera_croptopolygon"
+    },
+    {
+      "relation": "references",
+      "context": "return_type",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L94",
+      "weight": 1.0,
+      "source": "src_camera_normalizedrect",
+      "target": "features_src_camera_cpp_qrectf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "return_type",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L99",
+      "weight": 1.0,
+      "source": "src_camera_tologicalpixels",
+      "target": "features_src_camera_cpp_qrectf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L99",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_camera_tologicalpixels",
+      "target": "features_src_camera_cpp_qreal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/camera.cpp",
+      "source_location": "L99",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_camera_tologicalpixels",
+      "target": "features_src_camera_cpp_qrect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_features_camera.cpp",
+      "source_location": "L54",
+      "weight": 1.0,
+      "source": "tests_tst_features_camera_tstfeaturescamera_windowrectsinlogicalpixels",
+      "target": "src_camera_tologicalpixels"
     },
     {
       "relation": "contains",
@@ -78277,6 +79176,92 @@
       "confidence_score": 1.0,
       "source": "src_curtain_covered",
       "target": "features_src_curtain_cpp_qrectf"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "src_desktopwheel",
+      "target": "src_desktopwheel_defaultwheel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "src_desktopwheel",
+      "target": "src_desktopwheel_wheelpositions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "source": "src_desktopwheel_wheelpositions",
+      "target": "features_src_desktopwheel_cpp_qpointf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_desktopwheel_wheelpositions",
+      "target": "features_src_desktopwheel_cpp_vector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_features_desktopwheel.cpp",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "tests_tst_features_desktopwheel_tstfeaturesdesktopwheel_private",
+      "target": "src_desktopwheel_wheelpositions"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L22",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_desktopwheel_defaultwheel",
+      "target": "features_src_desktopwheel_cpp_vector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/desktopwheel.cpp",
+      "source_location": "L22",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "source": "src_desktopwheel_defaultwheel",
+      "target": "wheelentry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_features_desktopwheel.cpp",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "tests_tst_features_desktopwheel_tstfeaturesdesktopwheel_defaultwheelusesdesktopandtoolcommands",
+      "target": "src_desktopwheel_defaultwheel"
     },
     {
       "relation": "contains",
@@ -81649,6 +82634,315 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "src_screenkeyboard",
+      "target": "src_screenkeyboard_addcharacters",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "src_screenkeyboard",
+      "target": "src_screenkeyboard_addcommand",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "src_screenkeyboard",
+      "target": "src_screenkeyboard_buildkeys",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L83",
+      "weight": 1.0,
+      "source": "src_screenkeyboard",
+      "target": "src_screenkeyboard_capslocked",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "src_screenkeyboard",
+      "target": "src_screenkeyboard_commandlabel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "src_screenkeyboard",
+      "target": "src_screenkeyboard_layout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "src_screenkeyboard",
+      "target": "src_screenkeyboard_press",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "src_screenkeyboard",
+      "target": "src_screenkeyboard_screenkeyboard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L61",
+      "weight": 1.0,
+      "source": "src_screenkeyboard",
+      "target": "src_screenkeyboard_setlayout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L78",
+      "weight": 1.0,
+      "source": "src_screenkeyboard",
+      "target": "src_screenkeyboard_shifted",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "src_screenkeyboard_addcommand",
+      "target": "src_screenkeyboard_commandlabel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L9",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_screenkeyboard_commandlabel",
+      "target": "features_src_screenkeyboard_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "parameter_type",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "src_screenkeyboard_addcharacters",
+      "target": "features_src_screenkeyboard_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L30",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_screenkeyboard_addcommand",
+      "target": "features_src_screenkeyboard_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "parameter_type",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "src_screenkeyboard_press",
+      "target": "features_src_screenkeyboard_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L24",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_screenkeyboard_addcharacters",
+      "target": "features_src_screenkeyboard_cpp_vector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L24",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "source": "src_screenkeyboard_addcharacters",
+      "target": "keycap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "src_screenkeyboard_buildkeys",
+      "target": "src_screenkeyboard_addcharacters",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L30",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_screenkeyboard_addcommand",
+      "target": "features_src_screenkeyboard_cpp_vector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L35",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_screenkeyboard_buildkeys",
+      "target": "features_src_screenkeyboard_cpp_vector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L30",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "source": "src_screenkeyboard_addcommand",
+      "target": "keycap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L35",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "source": "src_screenkeyboard_buildkeys",
+      "target": "keycap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "src_screenkeyboard_buildkeys",
+      "target": "src_screenkeyboard_addcommand",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L35",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_screenkeyboard_buildkeys",
+      "target": "features_src_screenkeyboard_cpp_layout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "src_screenkeyboard_setlayout",
+      "target": "src_screenkeyboard_buildkeys",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L59",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_screenkeyboard_screenkeyboard",
+      "target": "features_src_screenkeyboard_cpp_layout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L61",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_screenkeyboard_setlayout",
+      "target": "features_src_screenkeyboard_cpp_layout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_features_keyboard.cpp",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "tests_tst_features_keyboard_tstfeatureskeyboard_compactlayouthasfewerkeys",
+      "target": "src_screenkeyboard_screenkeyboard"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/screenkeyboard.cpp",
+      "source_location": "L88",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_screenkeyboard_press",
+      "target": "keyoutput",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "features/src/shapefinder.cpp",
       "source_location": "L304",
       "weight": 1.0,
@@ -83856,9 +85150,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker",
-      "target": "src_ticker_colorfromtext",
-      "confidence_score": 1.0
+      "target": "src_ticker_colorfromtext"
     },
     {
       "relation": "contains",
@@ -83866,9 +85160,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker",
-      "target": "src_ticker_colortotext",
-      "confidence_score": 1.0
+      "target": "src_ticker_colortotext"
     },
     {
       "relation": "contains",
@@ -83876,9 +85170,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L72",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker",
-      "target": "src_ticker_durationms",
-      "confidence_score": 1.0
+      "target": "src_ticker_durationms"
     },
     {
       "relation": "contains",
@@ -83886,9 +85180,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L90",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker",
-      "target": "src_ticker_finishedat",
-      "confidence_score": 1.0
+      "target": "src_ticker_finishedat"
     },
     {
       "relation": "contains",
@@ -83896,9 +85190,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker",
-      "target": "src_ticker_pixelspersecond",
-      "confidence_score": 1.0
+      "target": "src_ticker_pixelspersecond"
     },
     {
       "relation": "contains",
@@ -83906,9 +85200,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L40",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker",
-      "target": "src_ticker_positionfromtext",
-      "confidence_score": 1.0
+      "target": "src_ticker_positionfromtext"
     },
     {
       "relation": "contains",
@@ -83916,9 +85210,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L51",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker",
-      "target": "src_ticker_positiontotext",
-      "confidence_score": 1.0
+      "target": "src_ticker_positiontotext"
     },
     {
       "relation": "contains",
@@ -83926,9 +85220,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L113",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker",
-      "target": "src_ticker_tickerfromjson",
-      "confidence_score": 1.0
+      "target": "src_ticker_tickerfromjson"
     },
     {
       "relation": "contains",
@@ -83936,9 +85230,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L64",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker",
-      "target": "src_ticker_tickerrun",
-      "confidence_score": 1.0
+      "target": "src_ticker_tickerrun"
     },
     {
       "relation": "contains",
@@ -83946,9 +85240,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L95",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker",
-      "target": "src_ticker_tickertojson",
-      "confidence_score": 1.0
+      "target": "src_ticker_tickertojson"
     },
     {
       "relation": "contains",
@@ -83956,9 +85250,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L77",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker",
-      "target": "src_ticker_xat",
-      "confidence_score": 1.0
+      "target": "src_ticker_xat"
     },
     {
       "relation": "references",
@@ -83967,9 +85261,9 @@
       "source_location": "L19",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_colortotext",
-      "target": "features_src_ticker_cpp_qcolor",
-      "confidence_score": 1.0
+      "target": "features_src_ticker_cpp_qcolor"
     },
     {
       "relation": "references",
@@ -83978,9 +85272,9 @@
       "source_location": "L19",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_colortotext",
-      "target": "features_src_ticker_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_ticker_cpp_qstring"
     },
     {
       "relation": "calls",
@@ -83989,9 +85283,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L102",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker_tickertojson",
-      "target": "src_ticker_colortotext",
-      "confidence_score": 1.0
+      "target": "src_ticker_colortotext"
     },
     {
       "relation": "references",
@@ -84000,9 +85294,9 @@
       "source_location": "L40",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_positionfromtext",
-      "target": "features_src_ticker_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_ticker_cpp_qstring"
     },
     {
       "relation": "references",
@@ -84011,9 +85305,9 @@
       "source_location": "L51",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_positiontotext",
-      "target": "features_src_ticker_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_ticker_cpp_qstring"
     },
     {
       "relation": "references",
@@ -84022,9 +85316,9 @@
       "source_location": "L24",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_colorfromtext",
-      "target": "features_src_ticker_cpp_qcolor",
-      "confidence_score": 1.0
+      "target": "features_src_ticker_cpp_qcolor"
     },
     {
       "relation": "references",
@@ -84033,9 +85327,9 @@
       "source_location": "L24",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_colorfromtext",
-      "target": "features_src_ticker_cpp_qjsonvalue",
-      "confidence_score": 1.0
+      "target": "features_src_ticker_cpp_qjsonvalue"
     },
     {
       "relation": "calls",
@@ -84044,9 +85338,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L132",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker_tickerfromjson",
-      "target": "src_ticker_colorfromtext",
-      "confidence_score": 1.0
+      "target": "src_ticker_colorfromtext"
     },
     {
       "relation": "references",
@@ -84055,9 +85349,9 @@
       "source_location": "L40",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_positionfromtext",
-      "target": "position",
-      "confidence_score": 1.0
+      "target": "position"
     },
     {
       "relation": "calls",
@@ -84066,9 +85360,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L137",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker_tickerfromjson",
-      "target": "src_ticker_positionfromtext",
-      "confidence_score": 1.0
+      "target": "src_ticker_positionfromtext"
     },
     {
       "relation": "references",
@@ -84077,9 +85371,9 @@
       "source_location": "L51",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_positiontotext",
-      "target": "position",
-      "confidence_score": 1.0
+      "target": "position"
     },
     {
       "relation": "calls",
@@ -84088,9 +85382,9 @@
       "source_file": "features/src/ticker.cpp",
       "source_location": "L107",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_ticker_tickertojson",
-      "target": "src_ticker_positiontotext",
-      "confidence_score": 1.0
+      "target": "src_ticker_positiontotext"
     },
     {
       "relation": "references",
@@ -84099,9 +85393,9 @@
       "source_location": "L77",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_xat",
-      "target": "features_src_ticker_cpp_int64_t",
-      "confidence_score": 1.0
+      "target": "features_src_ticker_cpp_int64_t"
     },
     {
       "relation": "references",
@@ -84110,9 +85404,9 @@
       "source_location": "L90",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_finishedat",
-      "target": "features_src_ticker_cpp_int64_t",
-      "confidence_score": 1.0
+      "target": "features_src_ticker_cpp_int64_t"
     },
     {
       "relation": "references",
@@ -84121,9 +85415,9 @@
       "source_location": "L95",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_tickertojson",
-      "target": "features_src_ticker_cpp_qbytearray",
-      "confidence_score": 1.0
+      "target": "features_src_ticker_cpp_qbytearray"
     },
     {
       "relation": "references",
@@ -84132,9 +85426,9 @@
       "source_location": "L95",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_tickertojson",
-      "target": "tickersettings",
-      "confidence_score": 1.0
+      "target": "tickersettings"
     },
     {
       "relation": "calls",
@@ -84154,9 +85448,9 @@
       "source_location": "L113",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_tickerfromjson",
-      "target": "features_src_ticker_cpp_qbytearray",
-      "confidence_score": 1.0
+      "target": "features_src_ticker_cpp_qbytearray"
     },
     {
       "relation": "references",
@@ -84165,9 +85459,9 @@
       "source_location": "L113",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_ticker_tickerfromjson",
-      "target": "tickersettings",
-      "confidence_score": 1.0
+      "target": "tickersettings"
     },
     {
       "relation": "references",
@@ -84176,9 +85470,9 @@
       "source_location": "L113",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_ticker_tickerfromjson",
-      "target": "features_src_ticker_cpp_optional",
-      "confidence_score": 1.0
+      "target": "features_src_ticker_cpp_optional"
     },
     {
       "relation": "calls",
@@ -118980,11 +120274,51 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "tests/tst_features_camera.cpp",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "tests_tst_features_camera_tstfeaturescamera",
+      "target": "tests_tst_features_camera_tstfeaturescamera_cropoutsideistransparent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_camera.cpp",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "tests_tst_features_camera_tstfeaturescamera",
+      "target": "tests_tst_features_camera_tstfeaturescamera_freehandclosesonrelease",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_camera.cpp",
       "source_location": "L6",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "tests_tst_features_camera_tstfeaturescamera",
       "target": "tests_tst_features_camera_tstfeaturescamera_private"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_camera.cpp",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "tests_tst_features_camera_tstfeaturescamera",
+      "target": "tests_tst_features_camera_tstfeaturescamera_rectanglenormalized",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_camera.cpp",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "tests_tst_features_camera_tstfeaturescamera",
+      "target": "tests_tst_features_camera_tstfeaturescamera_windowrectsinlogicalpixels",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -119198,6 +120532,16 @@
       "confidence_score": 1.0,
       "source": "tests_tst_features_desktopwheel",
       "target": "tests_tst_features_desktopwheel_tstfeaturesdesktopwheel"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_desktopwheel.cpp",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "tests_tst_features_desktopwheel_tstfeaturesdesktopwheel",
+      "target": "tests_tst_features_desktopwheel_tstfeaturesdesktopwheel_defaultwheelusesdesktopandtoolcommands",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -119892,6 +121236,46 @@
       "confidence_score": 1.0,
       "source": "tests_tst_features_keyboard",
       "target": "tests_tst_features_keyboard_tstfeatureskeyboard"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_keyboard.cpp",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "tests_tst_features_keyboard_tstfeatureskeyboard",
+      "target": "tests_tst_features_keyboard_tstfeatureskeyboard_accentkeystypefrench",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_keyboard.cpp",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "tests_tst_features_keyboard_tstfeatureskeyboard",
+      "target": "tests_tst_features_keyboard_tstfeatureskeyboard_capslockstays",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_keyboard.cpp",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "tests_tst_features_keyboard_tstfeatureskeyboard",
+      "target": "tests_tst_features_keyboard_tstfeatureskeyboard_compactlayouthasfewerkeys",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_keyboard.cpp",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "tests_tst_features_keyboard_tstfeatureskeyboard",
+      "target": "tests_tst_features_keyboard_tstfeatureskeyboard_everykeyhasalabel",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -121378,9 +122762,9 @@
       "source_file": "tests/tst_features_ticker.cpp",
       "source_location": "L72",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_ticker_tstfeaturesticker",
-      "target": "tests_tst_features_ticker_tstfeaturesticker_loopneverfinishes",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_ticker_tstfeaturesticker_loopneverfinishes"
     },
     {
       "relation": "method",
@@ -121388,9 +122772,9 @@
       "source_file": "tests/tst_features_ticker.cpp",
       "source_location": "L28",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_ticker_tstfeaturesticker",
-      "target": "tests_tst_features_ticker_tstfeaturesticker_looprestarts",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_ticker_tstfeaturesticker_looprestarts"
     },
     {
       "relation": "method",
@@ -121398,9 +122782,9 @@
       "source_file": "tests/tst_features_ticker.cpp",
       "source_location": "L40",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_ticker_tstfeaturesticker",
-      "target": "tests_tst_features_ticker_tstfeaturesticker_messagefileroundtrip",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_ticker_tstfeaturesticker_messagefileroundtrip"
     },
     {
       "relation": "method",
@@ -121408,9 +122792,9 @@
       "source_file": "tests/tst_features_ticker.cpp",
       "source_location": "L34",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_ticker_tstfeaturesticker",
-      "target": "tests_tst_features_ticker_tstfeaturesticker_positionsarethree",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_ticker_tstfeaturesticker_positionsarethree"
     },
     {
       "relation": "method",
@@ -121428,9 +122812,9 @@
       "source_file": "tests/tst_features_ticker.cpp",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_ticker_tstfeaturesticker",
-      "target": "tests_tst_features_ticker_tstfeaturesticker_singlepassendshidden",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_ticker_tstfeaturesticker_singlepassendshidden"
     },
     {
       "relation": "method",
@@ -121438,9 +122822,9 @@
       "source_file": "tests/tst_features_ticker.cpp",
       "source_location": "L63",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_ticker_tstfeaturesticker",
-      "target": "tests_tst_features_ticker_tstfeaturesticker_unknownkeysareignored",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_ticker_tstfeaturesticker_unknownkeysareignored"
     },
     {
       "relation": "references",
@@ -164532,9 +165916,9 @@
       "source_file": "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md",
       "source_location": "L1724",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_livraison_compl\u00e8te_lot_7_pr\u00e9sentation_et_outils_amendement_phase_2_apr\u00e8s_le_socle_plan_d_ex\u00e9cution",
-      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_v\u00e9rifi\u00e9_contre_le_socle_r\u00e9el_feat_livraison_complete_b_131f790",
-      "confidence_score": 1.0
+      "target": "plans_2026_10_18_livraison_complete_lot7_phase2_amendement_v\u00e9rifi\u00e9_contre_le_socle_r\u00e9el_feat_livraison_complete_b_131f790"
     },
     {
       "relation": "contains",
@@ -166302,9 +167686,9 @@
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
       "source_location": "L54",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "sessions_livraison_complete_b_etat_\u00e9tat_livraison_complete_b",
-      "target": "sessions_livraison_complete_b_etat_socle_fusionn\u00e9_2026_10_19_message_de_a_points_\u00e0_reporter_dans_l_amendement_de_phase_2",
-      "confidence_score": 1.0
+      "target": "sessions_livraison_complete_b_etat_socle_fusionn\u00e9_2026_10_19_message_de_a_points_\u00e0_reporter_dans_l_amendement_de_phase_2"
     },
     {
       "relation": "contains",
@@ -167138,5 +168522,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "33e9b1ae64a3630bb95ab54274de2c7b81031417"
+  "built_at_commit": "aef50b8847713c409600308c9cbd80877e64dd6f"
 }

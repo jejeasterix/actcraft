@@ -2275,8 +2275,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_camera.cpp": {
-    "mtime": 1792349203.9228058,
-    "ast_hash": "37bfb0b0c82bd3e29b9ab2df106b3aea",
+    "mtime": 1792397405.1949894,
+    "ast_hash": "69b472a4ad66c111f47a5469b579b6e3",
     "semantic_hash": ""
   },
   "tests/tst_features_countdown.cpp": {
@@ -2290,8 +2290,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_desktopwheel.cpp": {
-    "mtime": 1792349203.929439,
-    "ast_hash": "adb5d96f043743c0e750ad283a2880a5",
+    "mtime": 1792397405.2002711,
+    "ast_hash": "aa482c3fe719f131cd307df177b97c7c",
     "semantic_hash": ""
   },
   "tests/tst_features_dice.cpp": {
@@ -2305,8 +2305,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_keyboard.cpp": {
-    "mtime": 1792349203.937327,
-    "ast_hash": "dd16a1f36866ab70826894a995b1f3e1",
+    "mtime": 1792397405.203015,
+    "ast_hash": "ecee5614760eba01c559b18f1342838e",
     "semantic_hash": ""
   },
   "tests/tst_features_mathtools.cpp": {
@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792393615.577727,
-    "ast_hash": "d409f70158e20ec837724ff94936c2a9",
+    "mtime": 1792396122.828194,
+    "ast_hash": "bb1a38e886345af3c60aac2a7cc03f46",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2392,6 +2392,36 @@
   "features/src/ticker.cpp": {
     "mtime": 1792395637.9825444,
     "ast_hash": "39b4404bdd690ffbba88d6722f352415",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/camera.h": {
+    "mtime": 1792397405.1786516,
+    "ast_hash": "919b8fdcb10867bb365228e23999ebb7",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/desktopwheel.h": {
+    "mtime": 1792397405.1810026,
+    "ast_hash": "3ef043809a5585adabea4e86aa630d04",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/screenkeyboard.h": {
+    "mtime": 1792397405.183532,
+    "ast_hash": "82765f64ac63b82c975153f4a496f702",
+    "semantic_hash": ""
+  },
+  "features/src/camera.cpp": {
+    "mtime": 1792397405.186717,
+    "ast_hash": "57ee6a488e37604af61077c269cf0d8d",
+    "semantic_hash": ""
+  },
+  "features/src/desktopwheel.cpp": {
+    "mtime": 1792397405.1896856,
+    "ast_hash": "6b4ae5dc388dc64705d7226272417148",
+    "semantic_hash": ""
+  },
+  "features/src/screenkeyboard.cpp": {
+    "mtime": 1792397405.192176,
+    "ast_hash": "9c76e549f46a72b269b2e3b9dd0b236d",
     "semantic_hash": ""
   }
 }
