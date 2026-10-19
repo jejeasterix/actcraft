@@ -2340,8 +2340,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_ticker.cpp": {
-    "mtime": 1792349203.9562721,
-    "ast_hash": "68d6e989d8b3bacfda7f3a82a38dbcc5",
+    "mtime": 1792395637.9865842,
+    "ast_hash": "68e3206b0e42843ffee6e35745b58d44",
     "semantic_hash": ""
   },
   "tests/tst_features_transitions.cpp": {
@@ -2360,8 +2360,8 @@
     "semantic_hash": ""
   },
   "docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md": {
-    "mtime": 1792362735.927339,
-    "ast_hash": "3e613e573834969a8afcae2f75eb463b",
+    "mtime": 1792393481.2947626,
+    "ast_hash": "0ecb58a2386455622435ac68dc5ad59f",
     "semantic_hash": ""
   },
   "docs/plans/2026-10-18-livraison-complete-lot7b-PLAN.md": {
@@ -2375,13 +2375,23 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792385045.9956255,
-    "ast_hash": "980be21d5373e4d2bc9ff247f4a7ab33",
+    "mtime": 1792393615.577727,
+    "ast_hash": "d409f70158e20ec837724ff94936c2a9",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
     "mtime": 1792338935.3717299,
     "ast_hash": "bd2c6d2d13b8893f2855cb82f039f666",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/ticker.h": {
+    "mtime": 1792395637.9795444,
+    "ast_hash": "87bd1ba3433708bd68da0c6587e4166c",
+    "semantic_hash": ""
+  },
+  "features/src/ticker.cpp": {
+    "mtime": 1792395637.9825444,
+    "ast_hash": "39b4404bdd690ffbba88d6722f352415",
     "semantic_hash": ""
   }
 }
