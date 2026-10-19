@@ -313,7 +313,12 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
   - Règle de l'orchestrateur : un échec de ces tests est rejoué seul ; s'il passe, la tâche est verte.
   - **Correctif à faire avant la clôture du lot 3** : rendre ces tests robustes à la charge (`RUN_SERIAL`, délais, ou mesures relatives).- **L3-T10 mergée** (8416c62, merge fd79896). Les tests du banc rejoués seuls passent 3/3. **V1 du lot 3 complète** (T0, T3, T10).
 - **V2 du lot 3 lancée** (worktrees à c40d726) : L3-T4 construit ; L3-T5 et L3-T6 écrivent sans construire.
-- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
+- **L3-T5, décision de A (M4 b)** : le routeur, déjà mergé, ne faisait pas passer à `Ignore` les doigts retenus quand un stylet appuie avec `endToolContacts`. Il les faisait passer à `Gesture` (`routing.cpp:64-69`), et c'est la vue qui oubliait le doigt avant l'appui (`pageview.cpp:683-685`).
+  - Option retenue : L3-T5 corrige la branche du routeur. Un appui de stylet ou de souris qui porte `endToolContacts` fait passer les doigts à `Ignore` ; l'appui d'un doigt les fait toujours passer à `Gesture`. Raison : la décision vit dans la politique (modes du toucher du lot 11), et un test la prouve.
+  - **Reporté à L3-T13** :
+    - retirer le `finishTouchStroke()` placé avant `handlePointer` (`pageview.cpp:683-685`) ;
+    - H3-17 : le trait au doigt est abandonné quand le deuxième doigt arrive. Or `finishTouchStroke()` appelle `cancel()`, qui verse le trait selon le contrat de `PenTool` : à corriger pour qu'il ne verse rien (`secondFingerEndsFingerStroke`).
+- **Session Pilote archivée** (message de B) : plus aucun relais. Toute question à Jérôme passe directement par cette session.- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
 - **V2 du socle mergée** (L0-S5 et L0-S7). La suite complète de V2 tourne sous le jeton (`scratchpad/out/suite-v2.txt`). L0-S9 est en cours, V3. L0-S2 attend le merge de L10-C2, qui passe après la suite de V2.
