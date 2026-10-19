@@ -7,6 +7,19 @@
 
 namespace actcraft::render {
 
+NodeContexts nodeContexts(QQuickWindow* window, bool software, const ImageStore* images, double rasterScale,
+                          bool forceRasterized)
+{
+    NodeContexts out;
+    out.context.window = window;
+    out.context.software = software;
+    out.context.images = images;
+    out.context.rasterScale = rasterScale;
+    out.painted = out.context;
+    out.painted.software = software && !forceRasterized;
+    return out;
+}
+
 namespace {
 // Transformation et translucidité de l'objet par des nœuds parents, quel que soit son moteur : aucun moteur
 // ne les applique lui-même (sinon double transformation).

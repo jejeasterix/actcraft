@@ -14,6 +14,7 @@
 #include <QQmlEngine>
 #include <QQuickWindow>
 #include <QSignalSpy>
+#include <QSurfaceFormat>
 #include <QTabletEvent>
 #include <QTest>
 #include <QTouchEvent>
@@ -1227,6 +1228,55 @@ private slots:
         wheel(f, QPointF(640, 400), QPoint(0, 120), Qt::ControlModifier, &synthetic);
         QVERIFY(f.view->zoom() > before);
         f.view->setExclusiveDevices({});
+    }
+
+    // H10-9 (L10-T8) : le plafond de la texture du cache suit l'échantillonnage DU CACHE
+    // (PageView.cacheSamples, lié à ShaderEffectSource.samples), jamais celui de la fenêtre. Lu par la
+    // propriété, comme PageArea.qml.
+    void cacheSamplesDefaultFollowsTheRenderer()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        QCOMPARE(f.view->property("cacheSamples").toInt(), 1); // tests en rendu logiciel : pas de MSAA
+    }
+
+    void multisampledCacheIsCappedAtHighZoom()
+    {
+        Fixture f; // fenêtre sans multi-échantillonnage : seul le cache l'est
+        QVERIFY(open(f));
+        QCOMPARE(f.window.effectiveDevicePixelRatio(), 1.0);
+        f.view->setProperty("cacheSamples", 4);
+        f.view->setZoom(8.0);
+        QCOMPARE(f.view->cacheTextureSize(), QSize(3072, 2304));
+        QCOMPARE(f.view->property("cacheSamples").toInt(), 4);
+    }
+
+    void multisampledCacheIsNeverBlurredAtHundredPercent()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        QCOMPARE(f.window.effectiveDevicePixelRatio(), 1.0);
+        f.view->setProperty("cacheSamples", 4);
+        f.content->setSize(QSizeF(3500, 2000)); // page plus grande que le plafond multi-échantillonné
+        f.view->setZoom(1.0);
+        QCOMPARE(f.view->cacheTextureSize(), QSize(3500, 2000));
+        f.view->setZoom(8.0);
+        QCOMPARE(f.view->cacheTextureSize(), QSize(3500, 2000)); // plancher : le côté à 100 %
+    }
+
+    // cacheSamples = 1 : en RHI, le cache suivrait l'échantillonnage de la fenêtre (QSGRhiLayer : samples <=
+    // 1 → msaaSampleCount()) ; PageView ne le pose jamais en RHI. Le plafond ne lit que cacheSamples, jamais
+    // le format de la fenêtre (ici 4) : plafond complet.
+    void cacheSamplesOfOneKeepsTheFullCapWhateverTheWindowFormat()
+    {
+        Fixture f;
+        QSurfaceFormat format = f.window.format();
+        format.setSamples(4);
+        f.window.setFormat(format);
+        QVERIFY(open(f));
+        f.view->setProperty("cacheSamples", 1);
+        f.view->setZoom(8.0);
+        QCOMPARE(f.view->cacheTextureSize(), QSize(4096, 3072));
     }
 };
 

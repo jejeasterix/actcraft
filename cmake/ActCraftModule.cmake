@@ -3,7 +3,9 @@
 # Avertissements traités comme erreurs, sur tous les compilateurs.
 function(actcraft_set_warnings target)
     if(MSVC)
-        target_compile_options(${target} PRIVATE /W4 /WX /permissive- /utf-8 /Zc:__cplusplus)
+        # /we4062 : switch sur une énumération sans tous ses cas (désactivé par défaut sous MSVC ; -Wswitch
+        # ailleurs) en erreur, en local comme en CI.
+        target_compile_options(${target} PRIVATE /W4 /WX /we4062 /permissive- /utf-8 /Zc:__cplusplus)
     else()
         target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror)
     endif()

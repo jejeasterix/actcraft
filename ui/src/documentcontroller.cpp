@@ -167,11 +167,16 @@ core::Changes DocumentController::run(std::unique_ptr<core::UndoCommand> command
 
 void DocumentController::execute(std::unique_ptr<core::UndoCommand> command)
 {
+    executeAs(std::move(command), ChangeOrigin::Command);
+}
+
+void DocumentController::executeAs(std::unique_ptr<core::UndoCommand> command, ChangeOrigin origin)
+{
     const core::Changes changes = run(std::move(command));
     if (changes.empty()) {
-        return; // sans effet : ni pile, ni signal
+        return; // sans effet : ni pile, ni signal, ni observateur
     }
-    notifyState(settle(changes));
+    notifyState(settle(changes, origin));
 }
 
 // Lot 3 (annuler ou rétablir pendant un trait) : terminer le trait en cours AVANT m_undo.undo / m_undo.redo.
@@ -182,7 +187,7 @@ void DocumentController::undo()
         return;
     }
     ++m_revision;
-    notifyState(settle(m_undo.undo(m_document)));
+    notifyState(settle(m_undo.undo(m_document), ChangeOrigin::Undo));
 }
 
 void DocumentController::redo()
@@ -191,17 +196,98 @@ void DocumentController::redo()
         return;
     }
     ++m_revision;
-    notifyState(settle(m_undo.redo(m_document)));
+    notifyState(settle(m_undo.redo(m_document), ChangeOrigin::Redo));
 }
 
 void DocumentController::commitStroke(core::Stroke stroke)
 {
     core::PageObject object = std::move(stroke);
     object.common.layer = core::Layer::Top; // F-510 : les annotations vont sur la couche supérieure
-    execute(std::make_unique<core::AddObjectCommand>(m_current, std::move(object)));
+    executeAs(std::make_unique<core::AddObjectCommand>(m_current, std::move(object)), ChangeOrigin::Stroke);
 }
 
-bool DocumentController::settle(const core::Changes& changes)
+int DocumentController::shownObjectCount() const noexcept
+{
+    return static_cast<int>(m_document.page(m_current).objects.size());
+}
+
+// Talon L0-S : rempli par L3-T12.
+std::vector<core::PageObject> DocumentController::liftObjects(const std::vector<core::ObjectId>& ids)
+{
+    static_cast<void>(ids);
+    return {};
+}
+
+// Talon L0-S : rempli par L3-T12.
+void DocumentController::dropLifted(std::unique_ptr<core::UndoCommand> command)
+{
+    static_cast<void>(command);
+}
+
+// Talon L0-S : rempli par L3-T12.
+bool DocumentController::isLifting() const noexcept
+{
+    return false;
+}
+
+// Talon L0-S : rempli par L3-T12.
+void DocumentController::commitAnnotation(core::Stroke stroke, std::uint8_t translucency)
+{
+    static_cast<void>(stroke);
+    static_cast<void>(translucency);
+}
+
+// Talon L0-S : rempli par L3-T12.
+void DocumentController::deleteObjects(const std::vector<core::ObjectId>& ids)
+{
+    static_cast<void>(ids);
+}
+
+// Talon L0-S : rempli par L3-T12.
+void DocumentController::clearPage(int kind)
+{
+    static_cast<void>(kind);
+}
+
+// Talon L0-S : rempli par L3-T12.
+void DocumentController::revertPage() {}
+
+// Talon L0-S : rempli par L3-T12.
+bool DocumentController::canRevertPage() const
+{
+    return false;
+}
+
+int DocumentController::addChangeObserver(ChangeObserver observer)
+{
+    const int token = ++m_lastObserverToken;
+    m_observers.push_back(ObserverEntry{token, std::move(observer)});
+    return token;
+}
+
+void DocumentController::removeChangeObserver(int token)
+{
+    std::erase_if(m_observers, [token](const ObserverEntry& entry) { return entry.token == token; });
+}
+
+void DocumentController::notifyObservers(const core::Changes& changes, ChangeOrigin origin)
+{
+    if (m_observers.empty()) {
+        return;
+    }
+    // Copie : un observateur peut en ajouter ou en retirer un pendant l'appel. Un retiré n'est plus appelé,
+    // même plus loin dans cette diffusion ; un ajouté attend la suivante.
+    const std::vector<ObserverEntry> observers = m_observers;
+    for (const ObserverEntry& entry : observers) {
+        const bool kept = std::any_of(m_observers.begin(), m_observers.end(),
+                                      [&entry](const ObserverEntry& o) { return o.token == entry.token; });
+        if (kept && entry.call) {
+            entry.call(changes, origin);
+        }
+    }
+}
+
+bool DocumentController::settle(const core::Changes& changes, ChangeOrigin origin)
 {
     const bool pages = std::any_of(changes.begin(), changes.end(), [](const core::Change& c) {
         return c.kind == core::Change::Kind::PageInserted || c.kind == core::Change::Kind::PageRemoved;
@@ -210,6 +296,9 @@ bool DocumentController::settle(const core::Changes& changes)
     core::PageCache& cache =
         m_fixed ? static_cast<core::PageCache&>(*m_fixed) : static_cast<core::PageCache&>(none);
     const std::optional<std::size_t> shown = core::applyToCache(changes, m_current, cache);
+    // Observateur unique (D-S7) : exactement ces changements, après la page fixe et avant le recalage
+    // ci-dessous (currentIndex() vaut encore l'indice passé à applyToCache).
+    notifyObservers(changes, origin);
     if (!shown || *shown != m_current) {
         // Page affichée retirée (même indice, borné au nombre de pages) ou déplacée par un ajout ou un
         // retrait placé avant elle : la page fixe la relit à son indice.
@@ -288,7 +377,7 @@ void DocumentController::nextPage()
     if (changes.empty()) {
         return;
     }
-    settle(changes); // ajout après la page affichée : rien pour son cache
+    settle(changes, ChangeOrigin::Command); // ajout après la page affichée : rien pour son cache
     m_current = added;
     attach();
     notifyState(true); // un seul pagesChanged, la nouvelle page déjà montrée

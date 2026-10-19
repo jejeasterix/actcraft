@@ -461,6 +461,68 @@ private slots:
         QVERIFY(f.page->pendingRevision() > revision);
         QVERIFY(near(at(f, 300, 100), Qt::black, 60));
     }
+
+    // Revue de clôture du lot 10 : la même page fixe change de document pendant qu'un trait attend, puis un
+    // objet de même identifiant (chaque document compte les siens) attend dans le nouveau document avant la
+    // synchronisation suivante. La couche ne garde pas le nœud de l'ancien document : elle le refait.
+    void sourceChangeWithTheSameIdRebuildsTheLayer()
+    {
+        Fixture f;
+        open(f, true);
+        core::Document first;
+        core::Document second;
+        f.page->setSource(&first, 0);
+        QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 5000));
+        f.page->setDeferredFolding(true);
+        const auto pend = [&f](core::Document& d, double atY) {
+            core::PageObject stroke = lineAt(atY);
+            stroke.common.id = d.allocateId();
+            stroke.common.layer = core::Layer::Top;
+            const core::ObjectId id = stroke.common.id;
+            core::insertAtTopOfLayer(d.page(0), std::move(stroke));
+            f.page->insert(id);
+            return id;
+        };
+        const core::ObjectId earlier = pend(first, 100);
+        QVERIFY(near(at(f, 300, 100), Qt::black, 60));
+        QCOMPARE(f.layer->createdCount(), 1);
+        f.page->setSource(&second, 0);
+        QVERIFY(f.page->isReady());           // page sans image : le magasin la couvre, rien à décoder
+        QCOMPARE(pend(second, 200), earlier); // même identifiant : le piège
+        QCOMPARE(f.page->pendingCount(), 1);
+        QVERIFY(near(at(f, 300, 200), Qt::black, 60));
+        QVERIFY(near(at(f, 300, 100), Qt::white, 8));
+        QCOMPARE(f.layer->createdCount(), 2);
+        f.page->setSource(nullptr, 0); // les documents meurent avant l'élément
+    }
+
+    // Revue de clôture du lot 10 : un trait en attente devenu encre révélatrice (modifié en place) ne peut
+    // plus attendre (insert l'exclut, P8) : invalidate le verse par une reconstruction, comme insert.
+    void pendingStrokeTurnedRevealerFoldsEverything()
+    {
+        Fixture f;
+        open(f, true);
+        core::Document d;
+        f.page->setSource(&d, 0);
+        QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 5000));
+        f.page->setDeferredFolding(true);
+        core::PageObject stroke = lineAt(300);
+        stroke.common.id = d.allocateId();
+        stroke.common.layer = core::Layer::Top;
+        const core::ObjectId id = stroke.common.id;
+        core::insertAtTopOfLayer(d.page(0), std::move(stroke));
+        f.page->insert(id);
+        QCOMPARE(f.page->pendingCount(), 1);
+        QSignalSpy content(f.page, &render::FixedPageItem::contentChanged);
+        auto* changed = std::get_if<core::Stroke>(&d.page(0).objects.back());
+        QVERIFY(changed);
+        changed->kind = core::StrokeKind::Revealer;
+        f.page->invalidate(id, core::RectF{100, 296, 400, 8});
+        QCOMPARE(f.page->pendingCount(), 0);
+        QCOMPARE(f.page->cachedObjectCount(), std::size_t{1});
+        QCOMPARE(content.count(), 1);
+        f.page->setSource(nullptr, 0); // le document meurt avant l'élément
+    }
 };
 
 QTEST_MAIN(TstRenderPendingLayer)

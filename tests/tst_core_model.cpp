@@ -1,4 +1,5 @@
 #include <actcraft/core/clock.h>
+#include <actcraft/core/generator.h>
 #include <actcraft/core/model.h>
 
 #include <QTest>
@@ -9,6 +10,10 @@
 #include <variant>
 
 using namespace actcraft::core;
+
+// Empreinte de la page générée du banc (generatePage(kDefaultSeed)) relevée avant le socle des lots 3 et 7 :
+// valeur figée de tst_core_generator (kExpectedFingerprint, fingerprintIsPinned), verte sur b904dcf.
+constexpr std::uint64_t kBenchPageFingerprint = 0x3551EB2438FDFDC1ull;
 
 class TstCoreModel : public QObject
 {
@@ -61,6 +66,10 @@ private:
         Connector connector;
         connector.secondEnd = {100, 100};
         page.objects.emplace_back(connector);
+        Equation equation;
+        equation.bounds = {0, 0, 100, 40};
+        equation.mathml = "<math><mn>1</mn></math>";
+        page.objects.emplace_back(equation);
         page.grid.levels.push_back(GridLevel{});
         return page;
     }
@@ -77,7 +86,43 @@ private slots:
         QCOMPARE(kindOf(page.objects[5]), ObjectKind::Media);
         QCOMPARE(kindOf(page.objects[6]), ObjectKind::Group);
         QCOMPARE(kindOf(page.objects[7]), ObjectKind::Connector);
+        QCOMPARE(kindOf(page.objects[8]), ObjectKind::Equation);
         QCOMPARE(std::variant_size_v<ObjectVariant>, kObjectKindCount);
+    }
+
+    // Socle des lots 3 et 7 : l'équation prend le rang 8, avant le type inconnu, toujours le dernier.
+    void equationKindIsBeforeUnknown()
+    {
+        QCOMPARE(static_cast<int>(ObjectKind::Equation), 8);
+        QCOMPARE(static_cast<int>(ObjectKind::Unknown), 9);
+        QCOMPARE(kObjectKindCount, std::size_t{10});
+        PageObject o{Equation{RectF{0, 0, 100, 40}, "<math><mn>1</mn></math>", 24, 0xFF000000u}};
+        QCOMPARE(kindOf(o), ObjectKind::Equation);
+    }
+
+    void defaultPresentationIsDefault()
+    {
+        QVERIFY(isDefault(PagePresentation{}));
+        PagePresentation p;
+        p.curtain = CurtainMode::Top;
+        QVERIFY(!isDefault(p));
+        PagePresentation kept;
+        kept.unknownKeys = "{\"future\":1}";
+        QVERIFY(!isDefault(kept)); // une sous-clé gardée doit être réécrite
+    }
+
+    // I1 : une page sans réglages de présentation garde son empreinte d'avant ; un réglage y entre.
+    void fingerprintUnchangedWithoutPresentation()
+    {
+        Page page = generatePage(kDefaultSeed);
+        QCOMPARE(fingerprint(page), kBenchPageFingerprint);
+        page.presentation.transition = "fade";
+        QVERIFY(fingerprint(page) != kBenchPageFingerprint);
+        const std::uint64_t withTransition = fingerprint(page);
+        page.presentation.unknownKeys = "{\"future\":1}";
+        QVERIFY(fingerprint(page) != withTransition);
+        page.presentation = PagePresentation{};
+        QCOMPARE(fingerprint(page), kBenchPageFingerprint);
     }
 
     void pageObjectKeepsVariantAccessAndCommonProperties()
@@ -290,6 +335,8 @@ private slots:
     void fingerprintOfElementsWithoutUnknownKeysIsUnchanged()
     {
         Page page = richPage();
+        QCOMPARE(kindOf(page.objects.back()), ObjectKind::Equation);
+        page.objects.pop_back(); // l'équation de richPage() (socle des lots 3 et 7) n'existait pas à 999d548
         page.objects[0].common.actions.push_back(Action{});
         QCOMPARE(fingerprint(page), std::uint64_t{0x109437226CD48FFBull});
     }

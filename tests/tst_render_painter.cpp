@@ -923,6 +923,31 @@ private slots:
         QVERIFY(near(render::renderPage(page, images.lookup(), 1.0).pixelColor(120, 120), Qt::red, 2));
     }
 
+    // Socle des lots 3 et 7 : l'équation se dessine par le repère neutre sur sa boîte (L7-T25 la met en
+    // page).
+    void equationDrawsTheNeutralFrame()
+    {
+        core::Equation e;
+        e.bounds = {100, 100, 200, 80};
+        e.mathml = "<math><mn>1</mn></math>";
+        const core::PageObject o = e;
+        QVERIFY(render::usesPaintedRenderer(o));
+        core::Page page;
+        page.objects.push_back(o);
+        const QImage image = render::renderPage(page, kNoImages, 1.0);
+        // Bord haut (y = 100, à cheval sur les lignes 99 et 100) : des tirets, pas la couleur du fond.
+        int marked = 0;
+        for (int x = 105; x < 295; ++x) {
+            marked += (!near(image.pixelColor(x, 99), Qt::white, 25) ||
+                       !near(image.pixelColor(x, 100), Qt::white, 25))
+                          ? 1
+                          : 0;
+        }
+        QVERIFY2(marked > 40, qPrintable(QString::number(marked)));
+        QVERIFY(near(image.pixelColor(50, 50), Qt::white, 0));   // hors de l'emprise : le fond
+        QVERIFY(near(image.pixelColor(200, 140), Qt::white, 0)); // intérieur vide : MathML non lu
+    }
+
     // L2-C8 : un objet d'un type inconnu est montré par un repère neutre, cadre gris pointillé d'un pixel sur
     // sa boîte ; sans boîte lisible, rien. Aucune ressource demandée, même s'il en cite une ; une boîte
     // démesurée ne fait ni planter ni attendre.

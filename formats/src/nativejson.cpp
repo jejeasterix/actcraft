@@ -170,6 +170,8 @@ constexpr std::string_view enumName(ObjectKind value) noexcept
         return "group";
     case ObjectKind::Connector:
         return "connector";
+    case ObjectKind::Equation:
+        return "equation";
     case ObjectKind::Unknown: // le nom est celui du fichier (UnknownObject::type), jamais un nom d'ici
         return {};
     }
@@ -251,6 +253,57 @@ constexpr std::string_view enumName(GridLine value) noexcept
     return {};
 }
 
+constexpr std::string_view enumName(PageToolsMode value) noexcept
+{
+    switch (value) {
+    case PageToolsMode::Keep:
+        return "keep";
+    case PageToolsMode::Curtain:
+        return "curtain";
+    case PageToolsMode::Spotlight:
+        return "spotlight";
+    case PageToolsMode::Off:
+        return "off";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(CurtainMode value) noexcept
+{
+    switch (value) {
+    case CurtainMode::Off:
+        return "off";
+    case CurtainMode::Top:
+        return "top";
+    case CurtainMode::Bottom:
+        return "bottom";
+    case CurtainMode::Left:
+        return "left";
+    case CurtainMode::Right:
+        return "right";
+    case CurtainMode::Full:
+        return "full";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(SpotlightShape value) noexcept
+{
+    switch (value) {
+    case SpotlightShape::Off:
+        return "off";
+    case SpotlightShape::Circle:
+        return "circle";
+    case SpotlightShape::Square:
+        return "square";
+    case SpotlightShape::SolidCircle:
+        return "solid-circle";
+    case SpotlightShape::SolidSquare:
+        return "solid-square";
+    }
+    return {};
+}
+
 template <typename E> struct Named
 {
     E value;
@@ -300,6 +353,9 @@ constexpr auto kPatterns = namesOf<ImagePattern>();
 constexpr auto kStrokeKinds = namesOf<StrokeKind>();
 constexpr auto kGridPatterns = namesOf<GridPattern>();
 constexpr auto kGridLines = namesOf<GridLine>();
+constexpr auto kToolsModes = namesOf<PageToolsMode>();
+constexpr auto kCurtainModes = namesOf<CurtainMode>();
+constexpr auto kSpotlightShapes = namesOf<SpotlightShape>();
 
 // Un nom ou une valeur en double : la relecture rendrait une autre valeur que celle écrite.
 template <typename E, std::size_t N> constexpr bool distinct(const std::array<Named<E>, N>& table)
@@ -316,7 +372,8 @@ template <typename E, std::size_t N> constexpr bool distinct(const std::array<Na
 static_assert(distinct(kLayers) && distinct(kPenStyles) && distinct(kPenCaps) && distinct(kPenJoins) &&
                   distinct(kFillKinds) && distinct(kGradients) && distinct(kActionKinds) &&
                   distinct(kObjectKinds) && distinct(kShapeKinds) && distinct(kPatterns) &&
-                  distinct(kStrokeKinds) && distinct(kGridPatterns) && distinct(kGridLines),
+                  distinct(kStrokeKinds) && distinct(kGridPatterns) && distinct(kGridLines) &&
+                  distinct(kToolsModes) && distinct(kCurtainModes) && distinct(kSpotlightShapes),
               "document.json : nom ou valeur d'énumération en double");
 
 constexpr bool followsVariantOrder()
@@ -621,6 +678,15 @@ void writeBody(QJsonObject& j, const Connector& connector)
     j.insert(u"pen"_s, outlineJson(pen));
 }
 
+void writeBody(QJsonObject& j, const Equation& equation)
+{
+    const auto& [bounds, mathml, pointSize, color] = equation;
+    j.insert(u"bounds"_s, rectJson(bounds));
+    j.insert(u"mathml"_s, str(mathml)); // texte gardé tel quel, jamais interprété
+    j.insert(u"pointSize"_s, pointSize);
+    j.insert(u"color"_s, colorText(color));
+}
+
 // Jamais appelé : objectJson écrit un objet inconnu tel quel (std::visit exige un écrivain par type).
 void writeBody(QJsonObject&, const UnknownObject&) {}
 
@@ -679,9 +745,27 @@ QJsonObject gridJson(const Grid& grid)
                        {u"levels"_s, list}};
 }
 
+// Réglages de présentation : toutes les sous-clés, « origin » seulement si elle est mémorisée ; les sous-clés
+// inconnues gardées (L2-C8) s'y ajoutent.
+QJsonObject presentationJson(const PagePresentation& presentation)
+{
+    const auto& [tools, curtain, curtainDistance, spotlight, spotlightFrame, hasOrigin, origin, transition,
+                 unknownKeys] = presentation;
+    QJsonObject j{{u"tools"_s, nameText(tools)},
+                  {u"curtain"_s, nameText(curtain)},
+                  {u"curtainDistance"_s, curtainDistance},
+                  {u"spotlight"_s, nameText(spotlight)},
+                  {u"spotlightFrame"_s, rectJson(spotlightFrame)},
+                  {u"transition"_s, str(transition)}};
+    if (hasOrigin) {
+        j.insert(u"origin"_s, pointJson(origin));
+    }
+    return withKept(j, unknownKeys);
+}
+
 QJsonObject pageJson(const Page& page)
 {
-    const auto& [width, height, objects, background, grid, name, notes, unknownKeys] = page;
+    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys] = page;
     QJsonObject j;
     j.insert(u"width"_s, width);
     j.insert(u"height"_s, height);
@@ -690,6 +774,9 @@ QJsonObject pageJson(const Page& page)
     const auto& [fill, image] = background;
     j.insert(u"background"_s, QJsonObject{{u"fill"_s, fillJson(fill)}, {u"image"_s, str(image)}});
     j.insert(u"grid"_s, gridJson(grid));
+    if (!isDefault(presentation)) {
+        j.insert(u"presentation"_s, presentationJson(presentation)); // absente : réglages par défaut
+    }
     QJsonArray list;
     for (const PageObject& object : objects) {
         list.append(objectJson(object));
@@ -745,6 +832,7 @@ struct KnownKeys
 {
     std::array<QJsonObject, kObjectKindCount> objects; // Unknown : vide, jamais consulté
     QJsonObject page;
+    QJsonObject presentation; // toutes les sous-clés, « origin » comprise
     QJsonObject action;
     QJsonObject run;
     QJsonObject level;
@@ -1222,6 +1310,15 @@ void readBody(Reader& r, const QJsonObject& j, Text& textObject)
     }
 }
 
+void readBody(Reader& r, const QJsonObject& j, Equation& equation)
+{
+    auto& [bounds, mathml, pointSize, color] = equation;
+    bounds = r.readRect(j, u"bounds", bounds);
+    mathml = r.readString(j, u"mathml");
+    pointSize = r.readNumber(j, u"pointSize", pointSize);
+    color = r.readColor(j, u"color", color);
+}
+
 void readBody(Reader& r, const QJsonObject& j, Media& mediaObject)
 {
     auto& [bounds, placeholder, media, fileName, playOnOpen, loop] = mediaObject;
@@ -1370,11 +1467,41 @@ Grid readGrid(Reader& r, const QJsonObject& j)
     return grid;
 }
 
+// Clé « presentation » de la page ; absente (objet vide) : réglages par défaut. Ses sous-clés inconnues
+// vont à PagePresentation::unknownKeys, réécrites avec elle.
+PagePresentation readPresentation(Reader& r, const QJsonObject& j)
+{
+    PagePresentation presentation;
+    if (j.isEmpty()) {
+        return presentation;
+    }
+    auto& [tools, curtain, curtainDistance, spotlight, spotlightFrame, hasOrigin, origin, transition,
+           unknownKeys] = presentation;
+    unknownKeys = unknownKeysOf(j, r.known->presentation);
+    tools = r.readEnum(kToolsModes, j, u"tools", tools);
+    curtain = r.readEnum(kCurtainModes, j, u"curtain", curtain);
+    curtainDistance = r.readNumber(j, u"curtainDistance", curtainDistance);
+    spotlight = r.readEnum(kSpotlightShapes, j, u"spotlight", spotlight);
+    spotlightFrame = r.readRect(j, u"spotlightFrame", spotlightFrame);
+    if (const std::optional<std::array<double, 2>> a = r.readFixed<2>(j, u"origin")) {
+        hasOrigin = true;
+        origin = PointF{(*a)[0], (*a)[1]};
+    }
+    transition = r.readString(j, u"transition");
+    return presentation;
+}
+
 Page readPage(Reader& r, const QJsonObject& j)
 {
     Page page;
-    auto& [width, height, objects, background, grid, name, notes, unknownKeys] = page;
-    unknownKeys = unknownKeysOf(j, r.known->page);
+    auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys] = page;
+    // « presentation » est lue par readPresentation, qui garde ses sous-clés inconnues ; hors des clés
+    // inconnues de la page : pageJson(Page{}) ne l'écrit pas, elle y serait gardée en double et réécrite même
+    // remise aux réglages par défaut.
+    QJsonObject pageKeys = j;
+    pageKeys.remove(u"presentation"_s);
+    unknownKeys = unknownKeysOf(pageKeys, r.known->page);
+    presentation = readPresentation(r, r.readChild(j, u"presentation"));
     width = r.readNumber(j, u"width", width);
     height = r.readNumber(j, u"height", height);
     name = r.readString(j, u"name");
@@ -1494,6 +1621,9 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
         }
     }
     known.page = pageJson(Page{});
+    PagePresentation everyPresentationKey;
+    everyPresentationKey.hasOrigin = true;
+    known.presentation = presentationJson(everyPresentationKey);
     known.action = actionJson(Action{});
     known.run = runJson(TextSpan{});
     known.level = gridLevelJson(GridLevel{});

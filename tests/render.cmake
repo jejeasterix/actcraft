@@ -36,3 +36,11 @@ set_tests_properties(tst_render_painted_density PROPERTIES ENVIRONMENT "${_paint
 actcraft_add_test(tst_render_pendinglayer
     SOURCES tst_render_pendinglayer.cpp
     LIBS ActCraft::render Qt6::Quick)
+
+actcraft_add_test(tst_render_liftlayer
+    SOURCES tst_render_liftlayer.cpp
+    LIBS ActCraft::render Qt6::Quick)
+
+actcraft_add_test(tst_render_strokeshape
+    SOURCES tst_render_strokeshape.cpp
+    LIBS ActCraft::render Qt6::Quick)

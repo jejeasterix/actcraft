@@ -312,3 +312,45 @@ set_tests_properties(tst_captures_ouvrir_flipchart_synthetique PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
+# Scénarios du lot 3 (S34, S35, S37, S6), talons du socle : remplis par L3-T15, L3-T16, L3-T18.
+
+add_test(NAME tst_captures_selection
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/selection.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-selection)
+set_tests_properties(tst_captures_selection PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
+add_test(NAME tst_captures_corbeille
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/corbeille.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-corbeille)
+set_tests_properties(tst_captures_corbeille PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
+add_test(NAME tst_captures_marqueur
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/marqueur.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-marqueur)
+set_tests_properties(tst_captures_marqueur PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
+add_test(NAME tst_captures_ecrire_gommer_annuler
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/ecrire-gommer-annuler.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-ecrire-gommer-annuler)
+set_tests_properties(tst_captures_ecrire_gommer_annuler PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")

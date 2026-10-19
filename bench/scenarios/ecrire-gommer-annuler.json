@@ -1,0 +1,6 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "ecrire-gommer-annuler",
+  "description": "Talon L0-S : rempli par L3-T18 (S6).",
+  "steps": [ {"waitReady": true} ]
+}

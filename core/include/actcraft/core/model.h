@@ -192,9 +192,10 @@ enum class ObjectKind : std::uint8_t
     Media = 5,
     Group = 6,
     Connector = 7,
-    Unknown = 8, // type que cette version ne connaît pas (UnknownObject) ; toujours le dernier
+    Equation = 8,
+    Unknown = 9, // type que cette version ne connaît pas (UnknownObject) ; toujours le dernier
 };
-inline constexpr std::size_t kObjectKindCount = 9;
+inline constexpr std::size_t kObjectKindCount = 10;
 
 enum class ShapeKind : std::uint8_t
 {
@@ -331,6 +332,16 @@ struct Connector
     Outline pen;
 };
 
+// Équation (F-301) : MathML gardé tel quel, jamais interprété au socle ; dessinée par un repère neutre sur
+// `bounds` (coordonnées de l'objet) jusqu'à sa mise en page (lot 7).
+struct Equation
+{
+    RectF bounds;
+    std::string mathml;
+    double pointSize = 24;
+    Argb color = 0xFF000000u;
+};
+
 // Objet d'un type que cette version ne connaît pas (fichier d'une version plus récente, L2-C8) : gardé tel
 // quel et réécrit à l'identique ; montré par un repère neutre ; jamais modifié par cette version. `json` :
 // l'objet JSON lu, toutes ses clés (« type » compris), en texte UTF-8 compact, que formats/ seul interprète.
@@ -345,7 +356,7 @@ struct UnknownObject
 };
 
 using ObjectVariant =
-    std::variant<Shape, ImageObject, Stroke, Line, Text, Media, Group, Connector, UnknownObject>;
+    std::variant<Shape, ImageObject, Stroke, Line, Text, Media, Group, Connector, Equation, UnknownObject>;
 
 // Objet de page : le variant de son type (std::get_if, std::get, index() marchent tels quels) et ses
 // propriétés communes. Ne pas appeler std::visit dessus : passer par body().
@@ -422,6 +433,49 @@ struct Background
     std::string image;
 };
 
+// Réglages de présentation propres à la page (F-591 à F-593, F-640, F-284) : outils de page à l'ouverture,
+// rideau, projecteur, origine XY, effet de transition. Aucun ne change un pixel du contenu fixe (cache).
+enum class PageToolsMode : std::uint8_t
+{
+    Keep = 0,
+    Curtain = 1,
+    Spotlight = 2,
+    Off = 3,
+};
+enum class CurtainMode : std::uint8_t
+{
+    Off = 0,
+    Top = 1,
+    Bottom = 2,
+    Left = 3,
+    Right = 4,
+    Full = 5,
+};
+enum class SpotlightShape : std::uint8_t
+{
+    Off = 0,
+    Circle = 1,
+    Square = 2,
+    SolidCircle = 3,
+    SolidSquare = 4,
+};
+struct PagePresentation
+{
+    PageToolsMode tools = PageToolsMode::Keep;
+    CurtainMode curtain = CurtainMode::Off;
+    double curtainDistance = 0; // pixels de page depuis le bord
+    SpotlightShape spotlight = SpotlightShape::Off;
+    RectF spotlightFrame; // vide : cadre par défaut
+    bool hasOrigin = false;
+    PointF origin;          // origine XY mémorisée (F-284)
+    std::string transition; // identifiant d'effet propre à la page ; vide : effet global
+    // Sous-clés inconnues de "presentation", JSON compact, réécrites telles quelles (L2-C8).
+    std::string unknownKeys;
+};
+// Vrai : rien à écrire, rien dans l'empreinte. Faux dès qu'un champ diffère de son défaut ou qu'une sous-clé
+// inconnue est gardée.
+bool isDefault(const PagePresentation& presentation) noexcept;
+
 // Objets dans l'ordre de dessin, rangés par couche : le dernier est au premier plan.
 struct Page
 {
@@ -432,6 +486,7 @@ struct Page
     Grid grid;
     std::string name;
     std::string notes;
+    PagePresentation presentation;
     // Clés de la page que cette version ne connaît pas (comme PageObject::unknownKeys) ; vide : aucune.
     std::string unknownKeys;
 };
@@ -440,7 +495,9 @@ struct Page
 // dans un ordre fixé, réels par leur motif binaire IEEE 754, textes par leurs octets UTF-8 précédés de leur
 // longueur). Les clés inconnues (unknownKeys, L2-C8) de la page et de ses objets n'y entrent qu'en fin de
 // flux et s'il y en a, celles d'une action, d'une ligne de texte ou d'un niveau de grille avec l'élément :
-// une page qui n'en a pas garde son empreinte d'avant L2-C8.
+// une page qui n'en a pas garde son empreinte d'avant L2-C8. Les réglages de présentation n'y entrent que
+// s'ils ne sont pas ceux par défaut (isDefault), en fin de flux avant les clés inconnues : une page sans eux
+// garde son empreinte d'avant le socle des lots 3 et 7.
 std::uint64_t fingerprint(const Page& page) noexcept;
 
 } // namespace actcraft::core

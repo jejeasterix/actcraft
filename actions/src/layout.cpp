@@ -31,6 +31,49 @@ bool readStringList(const QJsonValue& value, QStringList& out)
     return true;
 }
 
+enum class ItemsStatus
+{
+    Ok,
+    Invalid,        // pas un tableau, ou élément d'un type inattendu
+    InvalidSubmenu, // sous-menu mal formé ou imbriqué
+};
+
+// Éléments d'un menu : identifiants, « - » ou objets `{"submenu", "label", "items"}`. `submenus` nul : on est
+// déjà dans un sous-menu, où un objet est refusé (un seul niveau).
+ItemsStatus readMenuItems(const QJsonValue& value, QStringList& items, std::vector<MenuSpec>* submenus)
+{
+    items.clear();
+    if (value.isUndefined()) {
+        return ItemsStatus::Ok;
+    }
+    if (!value.isArray()) {
+        return ItemsStatus::Invalid;
+    }
+    for (const QJsonValue& item : value.toArray()) {
+        if (item.isString()) {
+            items << item.toString();
+            continue;
+        }
+        if (!submenus) {
+            return ItemsStatus::InvalidSubmenu;
+        }
+        if (!item.isObject()) {
+            return ItemsStatus::Invalid;
+        }
+        const QJsonObject o = item.toObject();
+        MenuSpec sub;
+        sub.id = o.value(QStringLiteral("submenu")).toString();
+        sub.label = o.value(QStringLiteral("label")).toString();
+        if (sub.id.isEmpty() || sub.label.isEmpty() ||
+            readMenuItems(o.value(QStringLiteral("items")), sub.items, nullptr) != ItemsStatus::Ok) {
+            return ItemsStatus::InvalidSubmenu;
+        }
+        items << QStringLiteral(">") + sub.id;
+        submenus->push_back(std::move(sub));
+    }
+    return ItemsStatus::Ok;
+}
+
 } // namespace
 
 bool parseLayout(const QByteArray& json, Layout& out, QString& error)
@@ -58,7 +101,13 @@ bool parseLayout(const QByteArray& json, Layout& out, QString& error)
             error = QStringLiteral("menu %1 : id ou label manquant").arg(i + 1);
             return false;
         }
-        if (!readStringList(o.value(QStringLiteral("items")), menu.items)) {
+        const ItemsStatus status =
+            readMenuItems(o.value(QStringLiteral("items")), menu.items, &menu.submenus);
+        if (status == ItemsStatus::InvalidSubmenu) {
+            error = QStringLiteral("menu %1 : sous-menu invalide").arg(i + 1);
+            return false;
+        }
+        if (status != ItemsStatus::Ok) {
             error = QStringLiteral("menu %1 (%2) : items invalides").arg(i + 1).arg(menu.id);
             return false;
         }
@@ -107,6 +156,14 @@ bool parseLayout(const QByteArray& json, Layout& out, QString& error)
         layout.penWidths << value;
     }
 
+    for (const char* key : {"objectBar", "contextMenu"}) {
+        QStringList& target = key[0] == 'o' ? layout.objectBar : layout.contextMenu;
+        if (!readStringList(root.value(QLatin1String(key)), target)) {
+            error = QStringLiteral("%1 : tableau de chaînes attendu").arg(QLatin1String(key));
+            return false;
+        }
+    }
+
     out = std::move(layout);
     return true;
 }
@@ -144,8 +201,21 @@ QStringList unknownCommands(const Layout& layout, const CommandRegistry& registr
     };
     for (const MenuSpec& menu : layout.menus) {
         for (const QString& id : menu.items) {
-            check(id);
+            if (!id.startsWith(QLatin1Char('>'))) { // « >id » désigne un sous-menu, pas une commande
+                check(id);
+            }
         }
+        for (const MenuSpec& submenu : menu.submenus) {
+            for (const QString& id : submenu.items) {
+                check(id);
+            }
+        }
+    }
+    for (const QString& id : layout.objectBar) {
+        check(id);
+    }
+    for (const QString& id : layout.contextMenu) {
+        check(id);
     }
     for (const PaletteGroup& group : layout.palette) {
         for (const QString& id : group.items) {

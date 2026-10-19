@@ -4,6 +4,8 @@
 #include <QJSEngine>
 #include <QStandardPaths>
 
+#include <algorithm>
+
 namespace actcraft::ui {
 
 namespace {
@@ -104,39 +106,87 @@ void Commands::bumpState()
     emit stateChanged();
 }
 
+QVariantList Commands::menuItems(const QStringList& tokens,
+                                 const std::vector<actions::MenuSpec>* submenus) const
+{
+    QVariantList items;
+    bool pendingSeparator = false;
+    for (const QString& token : tokens) {
+        if (token == QLatin1String("-")) {
+            pendingSeparator = !items.isEmpty();
+            continue;
+        }
+        QVariantMap entry;
+        if (token.startsWith(QLatin1Char('>'))) {
+            if (!submenus) {
+                continue;
+            }
+            const QString subId = token.mid(1);
+            const auto spec = std::find_if(submenus->cbegin(), submenus->cend(),
+                                           [&](const actions::MenuSpec& s) { return s.id == subId; });
+            if (spec == submenus->cend()) {
+                continue;
+            }
+            const QVariantList subItems = menuItems(spec->items, nullptr);
+            if (subItems.isEmpty()) {
+                continue; // aucune commande disponible sur cette plateforme : sous-menu omis
+            }
+            entry = QVariantMap{{QStringLiteral("submenu"), true},
+                                {QStringLiteral("id"), spec->id},
+                                {QStringLiteral("label"), spec->label},
+                                {QStringLiteral("items"), subItems}};
+        } else {
+            if (!isAvailable(token)) {
+                continue;
+            }
+            const actions::CommandInfo* info = m_registry.find(token);
+            entry = QVariantMap{{QStringLiteral("id"), token},
+                                {QStringLiteral("label"), label(token)},
+                                {QStringLiteral("shortcut"), shortcut(token)},
+                                {QStringLiteral("checkable"), info->checkable},
+                                {QStringLiteral("separator"), false}};
+        }
+        if (pendingSeparator) {
+            items.append(QVariantMap{{QStringLiteral("separator"), true}});
+            pendingSeparator = false;
+        }
+        items.append(entry);
+    }
+    return items;
+}
+
 QVariantList Commands::menus() const
 {
     QVariantList out;
     for (const actions::MenuSpec& menu : m_layout.menus) {
-        QVariantList items;
-        bool pendingSeparator = false;
-        for (const QString& id : menu.items) {
-            if (id == QLatin1String("-")) {
-                pendingSeparator = !items.isEmpty();
-                continue;
-            }
-            if (!isAvailable(id)) {
-                continue;
-            }
-            if (pendingSeparator) {
-                items.append(QVariantMap{{QStringLiteral("separator"), true}});
-                pendingSeparator = false;
-            }
-            const actions::CommandInfo* info = m_registry.find(id);
-            items.append(QVariantMap{{QStringLiteral("id"), id},
-                                     {QStringLiteral("label"), label(id)},
-                                     {QStringLiteral("shortcut"), shortcut(id)},
-                                     {QStringLiteral("checkable"), info->checkable},
-                                     {QStringLiteral("separator"), false}});
-        }
+        const QVariantList items = menuItems(menu.items, &menu.submenus);
         if (items.isEmpty()) {
-            continue; // menu vide (lot 1 : Éditer, Insérer) : pas affiché
+            continue; // menu vide : pas affiché
         }
         out.append(QVariantMap{{QStringLiteral("id"), menu.id},
                                {QStringLiteral("label"), menu.label},
                                {QStringLiteral("items"), items}});
     }
     return out;
+}
+
+QVariantList Commands::objectBar() const
+{
+    QVariantList out;
+    for (const QString& id : m_layout.objectBar) {
+        if (!isAvailable(id)) {
+            continue;
+        }
+        out.append(QVariantMap{{QStringLiteral("id"), id},
+                               {QStringLiteral("label"), label(id)},
+                               {QStringLiteral("icon"), iconUrl(id)}});
+    }
+    return out;
+}
+
+QVariantList Commands::contextMenu() const
+{
+    return menuItems(m_layout.contextMenu, nullptr);
 }
 
 QVariantList Commands::palette() const

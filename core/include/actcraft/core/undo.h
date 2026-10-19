@@ -23,6 +23,7 @@ struct Change
         PageInserted,
         PageRemoved,
         PageChanged,
+        PageSettingsChanged, // réglages de la page (présentation) : aucun pixel du cache ne change
     };
     Kind kind;
     std::size_t page;

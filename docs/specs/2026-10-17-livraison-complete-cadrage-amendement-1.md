@@ -165,7 +165,7 @@ s'applique.
 | E7 | Question attachée à une page sans contenu | V139 | — | non tranché : vote exclu |
 | E8 | Bouton de vote dans la palette par défaut | V65 | — | non tranché : vote exclu, aucun bouton |
 | E9 | Actions possibles de l'horloge en fin de délai | V83 | 7 | F-290 |
-| E10 | Taille personnalisée d'un nouveau paperboard : en pixels, ou en nombre de hauteurs de page | V23 | 4 | F-700 (lot 2) ; corrigé au lot 4 si la 3.5.18 diffère |
+| E10 | Taille personnalisée d'un paperboard neuf : en pixels, ou en nombre de hauteurs de page | V23 | 4 | F-700 (lot 2) ; corrigé au lot 4 si la 3.5.18 diffère |
 | E11 | Bouton de validation du message défilant | V75, V131 | 7 | F-291 |
 | E12 | Emplacement de la commande qui allonge la page | V50 | 4 | F-301 |
 

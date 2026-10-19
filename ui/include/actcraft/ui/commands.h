@@ -10,6 +10,8 @@
 #include <QVariant>
 #include <QtQml/qqmlregistration.h>
 
+#include <vector>
+
 namespace actcraft::ui {
 
 // Pont QML du registre de commandes (DA1) : déclarations et disposition lues au démarrage ; menus, palette et
@@ -21,6 +23,8 @@ class Commands : public QObject
     QML_ELEMENT
     Q_PROPERTY(QVariantList menus READ menus NOTIFY layoutChanged)
     Q_PROPERTY(QVariantList palette READ palette NOTIFY layoutChanged)
+    Q_PROPERTY(QVariantList objectBar READ objectBar NOTIFY layoutChanged)
+    Q_PROPERTY(QVariantList contextMenu READ contextMenu NOTIFY layoutChanged)
     Q_PROPERTY(QVariantList shortcuts READ shortcuts NOTIFY layoutChanged)
     Q_PROPERTY(QStringList colors READ colors NOTIFY layoutChanged)
     Q_PROPERTY(QVariantList penWidths READ penWidths NOTIFY layoutChanged)
@@ -37,9 +41,14 @@ public:
     // Relit déclarations et disposition ; garde les gestionnaires posés.
     Q_INVOKABLE void reload();
 
-    // [{id, label, items: [{id, label, shortcut, checkable, separator: false} | {separator: true}]}] ; menus
-    // sans commande disponible omis ; séparateurs jamais en tête, en fin ni doublés.
+    // [{id, label, items: [{id, label, shortcut, checkable, separator: false} | {separator: true} |
+    // {submenu: true, id, label, items: […]}]}] ; menus et sous-menus sans commande disponible omis ;
+    // séparateurs jamais en tête, en fin ni doublés.
     QVariantList menus() const;
+    // [{id, label, icon}] des commandes disponibles de la barre d'objet, dans l'ordre.
+    QVariantList objectBar() const;
+    // Menu contextuel de la page : mêmes éléments qu'un menu (séparateurs nettoyés comme au premier niveau).
+    QVariantList contextMenu() const;
     // [{group, items: [{id, label, icon, checkable}]}] ; « couleurs » et « epaisseur » gardés sans items.
     QVariantList palette() const;
     // [{id, sequence}] des commandes disponibles qui ont un raccourci.
@@ -69,6 +78,8 @@ signals:
     void triggered(const QString& id, const QVariant& argument);
 
 private:
+    // Éléments d'un menu : `submenus` nul = pas de sous-menu possible (sous-menu lui-même, menu contextuel).
+    QVariantList menuItems(const QStringList& tokens, const std::vector<actions::MenuSpec>* submenus) const;
     void bindHandler(const QString& id);
     void bumpState();
 

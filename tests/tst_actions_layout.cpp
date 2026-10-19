@@ -118,15 +118,147 @@ private slots:
         for (const PaletteGroup& group : layout.palette) {
             groups << group.group;
         }
+        // Socle des lots 3 et 7 (L0-S4) : la palette gagne les groupes « edition » et « presentation » après
+        // « outils ». Les cinq premiers groupes, ceux du lot 1, ne bougent pas.
         QCOMPARE(groups, (QStringList{QStringLiteral("commandes"), QStringLiteral("pages"),
                                       QStringLiteral("couleurs"), QStringLiteral("epaisseur"),
-                                      QStringLiteral("outils")}));
+                                      QStringLiteral("outils"), QStringLiteral("edition"),
+                                      QStringLiteral("presentation")}));
         QCOMPARE(layout.colors.size(), qsizetype{16});
         QCOMPARE(layout.colors.first(), QStringLiteral("#E53935"));
         QCOMPARE(layout.penWidths, (QList<double>{2, 4, 6, 8}));
         CommandRegistry registry;
         QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
         QCOMPARE(unknownCommands(layout, registry), QStringList{});
+    }
+
+    void submenuItems()
+    {
+        const QByteArray json = R"({"format": "actcraft-layout/1", "menus": [{"id": "edit", "label": "Éditer",
+            "items": ["edit.undo", {"submenu": "clear", "label": "Effacer", "items": ["clear.page"]}]}],
+            "palette": [], "colors": [], "penWidths": []})";
+        Layout layout;
+        QString error;
+        QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
+        QCOMPARE(layout.menus.size(), std::size_t{1});
+        QCOMPARE(layout.menus[0].items, (QStringList{QStringLiteral("edit.undo"), QStringLiteral(">clear")}));
+        QCOMPARE(layout.menus[0].submenus.size(), std::size_t{1});
+        QCOMPARE(layout.menus[0].submenus[0].id, QStringLiteral("clear"));
+        QCOMPARE(layout.menus[0].submenus[0].label, QStringLiteral("Effacer"));
+        QCOMPARE(layout.menus[0].submenus[0].items, QStringList{QStringLiteral("clear.page")});
+    }
+
+    void objectBarRead()
+    {
+        const QByteArray json = R"({"format": "actcraft-layout/1", "menus": [], "palette": [], "colors": [],
+            "penWidths": [], "objectBar": ["object.enlarge", "object.reduce"]})";
+        Layout layout;
+        QString error;
+        QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
+        QCOMPARE(layout.objectBar,
+                 (QStringList{QStringLiteral("object.enlarge"), QStringLiteral("object.reduce")}));
+    }
+
+    void contextMenuRead()
+    {
+        const QByteArray json = R"({"format": "actcraft-layout/1", "menus": [], "palette": [], "colors": [],
+            "penWidths": [], "contextMenu": ["tool.select", "-", "tool.pen"]})";
+        Layout layout;
+        QString error;
+        QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
+        QCOMPARE(layout.contextMenu, (QStringList{QStringLiteral("tool.select"), QStringLiteral("-"),
+                                                  QStringLiteral("tool.pen")}));
+    }
+
+    void nestedSubmenuRefused()
+    {
+        const QByteArray json =
+            R"({"format": "actcraft-layout/1", "menus": [{"id": "m", "label": "M", "items": [
+            {"submenu": "a", "label": "A", "items": [{"submenu": "b", "label": "B", "items": []}]}]}],
+            "palette": [], "colors": [], "penWidths": []})";
+        Layout layout;
+        QString error;
+        QVERIFY(!parseLayout(json, layout, error));
+        QVERIFY(error.contains(QStringLiteral("sous-menu")));
+    }
+
+    void lot3EntriesDeclared()
+    {
+        CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        const QStringList lot3 = {
+            "tool.select",         "tool.highlighter", "tool.eraser",      "edit.undo",
+            "edit.redo",           "edit.delete",      "edit.select-all",  "clear.annotations",
+            "clear.objects",       "clear.grid",       "clear.background", "clear.page",
+            "page.revert",         "view.trash",       "object.move-free", "object.rotate",
+            "object.translucency", "object.enlarge",   "object.reduce"};
+        for (const QString& id : lot3) {
+            QVERIFY2(registry.find(id) != nullptr, qPrintable(id));
+        }
+        Layout layout;
+        const QByteArray json = readLayeredFile(QStringLiteral("layout.json"), QString(), dataResourceDir());
+        QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
+        QVERIFY(unknownCommands(layout, registry).isEmpty());
+        QCOMPARE(layout.objectBar, (QStringList{"object.move-free", "object.rotate", "object.translucency",
+                                                "object.enlarge", "object.reduce"}));
+        QCOMPARE(layout.contextMenu,
+                 (QStringList{"tool.select", "tool.pen", "-", "recognition.convert-to-text"}));
+    }
+
+    void lot7EntriesPlaced()
+    {
+        CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        Layout layout;
+        const QByteArray json = readLayeredFile(QStringLiteral("layout.json"), QString(), dataResourceDir());
+        QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
+        QVERIFY(unknownCommands(layout, registry).isEmpty());
+        const auto menu = [&](const QString& id) -> const MenuSpec* {
+            for (const MenuSpec& m : layout.menus) {
+                if (m.id == id) {
+                    return &m;
+                }
+            }
+            return nullptr;
+        };
+        const MenuSpec* tools = menu(QStringLiteral("tools"));
+        const MenuSpec* view = menu(QStringLiteral("view"));
+        const MenuSpec* insert = menu(QStringLiteral("insert"));
+        QVERIFY(tools && view && insert);
+        QStringList submenuIds;
+        for (const MenuSpec& s : tools->submenus) {
+            submenuIds << s.id;
+        }
+        QCOMPARE(submenuIds, (QStringList{"spot", "camera", "math", "other-tools"}));
+        QVERIFY(view->items.contains(QStringLiteral("view.page-zoom")));
+        QVERIFY(view->items.contains(QStringLiteral("view.page-effects")));
+        QVERIFY(insert->items.contains(QStringLiteral("insert.date-time")));
+        QVERIFY(insert->items.contains(QStringLiteral("insert.equation")));
+        QStringList groups;
+        for (const PaletteGroup& g : layout.palette) {
+            groups << g.group;
+        }
+        QVERIFY(groups.contains(QStringLiteral("presentation")));
+    }
+
+    void toolsMenuFollowsF750()
+    {
+        Layout layout;
+        QString error;
+        const QByteArray json = readLayeredFile(QStringLiteral("layout.json"), QString(), dataResourceDir());
+        QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
+        for (const MenuSpec& m : layout.menus) {
+            if (m.id == QLatin1String("tools")) {
+                QCOMPARE(m.items, (QStringList{"desktop.annotate", "desktop.tools", "-", "tool.pen",
+                                               "tool.highlighter", "tool.eraser", "-", "tool.handwriting",
+                                               "tool.shape-recognition", "-", "present.curtain", ">spot",
+                                               ">camera", ">math", ">other-tools"}));
+                return;
+            }
+        }
+        QFAIL("menu tools absent");
     }
 
     void unknownCommandsAreListedOnce()

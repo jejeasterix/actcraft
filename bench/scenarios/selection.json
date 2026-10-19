@@ -1,0 +1,6 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "selection",
+  "description": "Talon L0-S : rempli par L3-T15 (S34).",
+  "steps": [ {"waitReady": true} ]
+}

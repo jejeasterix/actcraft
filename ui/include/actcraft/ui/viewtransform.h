@@ -5,6 +5,7 @@
 #include <QSize>
 #include <QSizeF>
 #include <Qt>
+#include <QtGlobal>
 
 namespace actcraft::ui {
 
@@ -20,6 +21,18 @@ inline constexpr int kCacheRefreshDelayMs = 150;      // N2-4
 inline constexpr int kCacheFoldIdleMs = 500;
 inline constexpr int kCacheFoldMaxPending = 128;
 inline constexpr int kMaxCacheSide = 4096; // N1-6
+// H10-9 (L10-T8) : texture du cache multi-échantillonnée plafonnée plus bas. Sous MSAA 4× et profondeur
+// coupée (QSG_NO_DEPTH_BUFFER, app/renderbackend.cpp), une couche garde la couleur multi-échantillonnée et la
+// texture résolue : (4 + 1) × 4 = 20 octets par pixel ; 36 avec la profondeur-stencil multi-échantillonnée.
+// Échantillonnage du cache en RHI = kMsaaSamples (app/renderbackend.h, static_assert dans app/main.cpp).
+inline constexpr int kCacheMsaaSamples = 4;
+inline constexpr int kMaxMsaaCacheSide = 3072;
+static_assert((kCacheMsaaSamples + 1) * 4 * qint64(kMaxMsaaCacheSide) * (kMaxMsaaCacheSide * 3 / 4) <=
+                  qint64(160) * 1024 * 1024,
+              "texture d'une page 4:3 au plafond, profondeur coupée : 160 Mio au plus (135 Mio)");
+static_assert((2 * kCacheMsaaSamples + 1) * 4 * qint64(kMaxMsaaCacheSide) * (kMaxMsaaCacheSide * 3 / 4) <=
+                  qint64(256) * 1024 * 1024,
+              "même texture si la profondeur-stencil revenait : 256 Mio au plus (243 Mio)");
 
 // Vue → page : page = (vue − pan) / zoom.
 struct ViewTransform
@@ -44,6 +57,11 @@ ViewTransform fitPage(QSizeF view, QSizeF page, double margin = kViewMargin);
 QPointF wheelScrollDelta(QPoint angleDelta, QPoint pixelDelta, Qt::KeyboardModifiers modifiers);
 // Taille de la texture du cache : page × zoom × rapport de pixels, plus grand côté plafonné (décision 7).
 QSize cacheTextureSize(QSizeF page, double zoom, double devicePixelRatio, int maxSide = kMaxCacheSide);
+// Plafond du côté de la texture du cache (H10-9) : kMaxCacheSide si `cacheSamples` <= 1 (rendu logiciel ; en
+// RHI, 1 ferait suivre l'échantillonnage de la fenêtre au cache et PageView ne le pose jamais) ; sinon
+// kMaxMsaaCacheSide, jamais sous le côté de la page à max(100 %, `sharpZoom`) : ni flou à 100 % ni à
+// l'ajustement (`sharpZoom` = zoom d'« Ajuster »).
+int cacheMaxSide(QSizeF page, double devicePixelRatio, int cacheSamples, double sharpZoom = 1.0);
 
 // Barre de défilement d'un axe (F-022) : taille et position en fraction de l'étendue (page zoomée + 2
 // marges), comme ScrollBar.size et ScrollBar.position de Qt Quick Controls.

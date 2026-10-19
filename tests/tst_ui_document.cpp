@@ -1,6 +1,8 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
+#include <actcraft/core/pagecache.h>
+#include <actcraft/core/replace.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/documentcontroller.h>
 
@@ -9,11 +11,13 @@
 #include <QRegularExpression>
 #include <QSignalSpy>
 #include <QSizeF>
+#include <QString>
 #include <QStringList>
 #include <QTest>
 #include <QUrl>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -35,6 +39,66 @@ core::Stroke redStroke()
     s.color = 0xFFE53935u;
     return s;
 }
+
+// Forme de la couche des traits (couche supérieure) : remplacer un trait par elle la garde à son rang.
+core::PageObject topSquare()
+{
+    core::Shape shape;
+    shape.kind = core::ShapeKind::Rectangle;
+    shape.bounds = core::RectF{150, 150, 80, 80};
+    shape.pen.width = 4;
+    core::PageObject object = shape;
+    object.common.layer = core::Layer::Top;
+    return object;
+}
+
+using Origin = ui::DocumentController::ChangeOrigin;
+
+// Un seul observateur (D-S7) : ni setCacheObserver (lot 3) ni setStrokeObserver (lot 7) gardés à côté.
+template <typename T>
+constexpr bool hasCacheObserverHook = requires(T& controller) { controller.setCacheObserver(nullptr); };
+template <typename T>
+constexpr bool hasStrokeObserverHook = requires(T& controller) { controller.setStrokeObserver(nullptr); };
+static_assert(!hasCacheObserverHook<ui::DocumentController>);
+static_assert(!hasStrokeObserverHook<ui::DocumentController>);
+
+// Cache espion : les appels que core::applyToCache lui envoie, dans l'ordre.
+class RecordingCache final : public core::PageCache
+{
+public:
+    void insert(core::ObjectId id) override { calls << QStringLiteral("insert %1").arg(id); }
+    void remove(core::ObjectId id, const core::RectF&) override
+    {
+        calls << QStringLiteral("remove %1").arg(id);
+    }
+    void invalidate(core::ObjectId id, const core::CacheArea&) override
+    {
+        calls << QStringLiteral("invalidate %1").arg(id);
+    }
+    QStringList calls;
+};
+
+// Observateur comme les espions des lots 3 à 5 : rejoue ce qu'il reçoit sur un cache espion par
+// core::applyToCache(changes, currentIndex(), espion), et garde les changements bruts et leur origine.
+struct ObserverSpy
+{
+    RecordingCache cache;
+    std::vector<core::Changes> received;
+    std::vector<Origin> origins;
+    std::vector<int> shownDuringCall; // currentIndex() pendant l'appel
+    int token = 0;
+
+    void attach(ui::DocumentController& controller)
+    {
+        token =
+            controller.addChangeObserver([this, &controller](const core::Changes& applied, Origin origin) {
+                received.push_back(applied);
+                origins.push_back(origin);
+                shownDuringCall.push_back(controller.currentIndex());
+                core::applyToCache(applied, static_cast<std::size_t>(controller.currentIndex()), cache);
+            });
+    }
+};
 
 } // namespace
 
@@ -431,6 +495,170 @@ private slots:
         QCOMPARE(modified.count(), 0);
         controller.newDocument(800, 600);
         QVERIFY(!controller.isModified()); // remplacement : propre
+    }
+
+    // Observateur unique (L0-S5, D-S7) : il reçoit exactement les changements passés à core::applyToCache.
+    void observerGetsTheCacheChanges()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        ObserverSpy spy;
+        spy.attach(controller);
+        controller.commitStroke(redStroke());
+        const core::ObjectId id = controller.document().page(0).objects[0].common.id;
+        QCOMPARE(spy.cache.calls, QStringList{QStringLiteral("insert %1").arg(id)});
+        controller.undo();
+        QCOMPARE(spy.cache.calls,
+                 (QStringList{QStringLiteral("insert %1").arg(id), QStringLiteral("remove %1").arg(id)}));
+        QCOMPARE(spy.received.size(), std::size_t{2});
+        // Page insérée avant la page affichée : l'observateur est appelé avant le recalage, avec l'indice
+        // que la page fixe a reçu (sinon son espion ne rejouerait pas les mêmes appels).
+        controller.execute(std::make_unique<core::AddPageCommand>(0, 1024, 768));
+        QCOMPARE(spy.shownDuringCall.back(), 0);
+        QCOMPARE(controller.currentIndex(), 1);
+        controller.commitStroke(redStroke());
+        const core::ObjectId second = controller.document().page(1).objects[0].common.id;
+        QCOMPARE(spy.cache.calls.back(), QStringLiteral("insert %1").arg(second));
+    }
+
+    void observerSeesTheOrigin()
+    {
+        ui::DocumentController controller; // sans page fixe : l'observateur est appelé quand même
+        ObserverSpy spy;
+        spy.attach(controller);
+        controller.commitStroke(redStroke());
+        controller.execute(std::make_unique<core::AddObjectCommand>(0, topSquare()));
+        controller.undo();
+        controller.redo();
+        controller.nextPage(); // page ajoutée par la pile
+        const std::vector<Origin> expected{Origin::Stroke, Origin::Command, Origin::Undo, Origin::Redo,
+                                           Origin::Command};
+        QCOMPARE(spy.origins.size(), expected.size());
+        for (std::size_t i = 0; i < expected.size(); ++i) {
+            QCOMPARE(static_cast<int>(spy.origins[i]), static_cast<int>(expected[i]));
+        }
+    }
+
+    void removedObserverIsSilent()
+    {
+        ui::DocumentController controller;
+        QStringList log;
+        const int first = controller.addChangeObserver(
+            [&log](const core::Changes&, Origin) { log << QStringLiteral("a"); });
+        const int second = controller.addChangeObserver(
+            [&log](const core::Changes&, Origin) { log << QStringLiteral("b"); });
+        QVERIFY(first > 0);
+        QVERIFY(second > 0);
+        QVERIFY(first != second);
+        controller.commitStroke(redStroke());
+        QCOMPARE(log, (QStringList{QStringLiteral("a"), QStringLiteral("b")})); // ordre d'ajout
+        controller.removeChangeObserver(first);
+        controller.commitStroke(redStroke());
+        controller.undo();
+        QCOMPARE(log, (QStringList{QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("b"),
+                                   QStringLiteral("b")}));
+        controller.removeChangeObserver(second);
+        controller.redo();
+        QCOMPARE(log.size(), 4);
+        // Un observateur qui se retire pendant son appel : appelé une fois, la diffusion continue sans lui.
+        int self = 0;
+        self = controller.addChangeObserver([&log, &controller, &self](const core::Changes&, Origin) {
+            log << QStringLiteral("c");
+            controller.removeChangeObserver(self);
+        });
+        QVERIFY(self > second);
+        controller.commitStroke(redStroke());
+        controller.commitStroke(redStroke());
+        QCOMPARE(log.size(), 5);
+        QCOMPARE(log.back(), QStringLiteral("c"));
+    }
+
+    // Remplacer un trait du milieu (règle du lot 10) : ni le retrait ni l'insertion hors fin de page
+    // n'attendent, le cache est redessiné tout de suite ; l'annulation aussi.
+    void replaceInTheMiddleIsNotDeferred()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        QTRY_VERIFY(fixed.isReady());
+        fixed.setDeferredFolding(true);
+        controller.commitStroke(redStroke());
+        controller.commitStroke(redStroke());
+        controller.commitStroke(redStroke());
+        QCOMPARE(fixed.pendingCount(), 3); // en fin de page : ils attendent au-dessus du cache
+        fixed.foldPending();
+        QCOMPARE(fixed.pendingCount(), 0);
+        const core::ObjectId middle = controller.document().page(0).objects[1].common.id;
+        QSignalSpy content(&fixed, &render::FixedPageItem::contentChanged);
+        controller.execute(std::make_unique<core::ReplaceObjectsCommand>(
+            0, std::vector<core::ObjectId>{middle}, std::vector<core::PageObject>{topSquare()}));
+        QCOMPARE(fixed.pendingCount(), 0);
+        QVERIFY(content.count() >= 1);
+        QCOMPARE(controller.shownObjectCount(), 3);
+        controller.undo();
+        QCOMPARE(fixed.pendingCount(), 0);
+        QCOMPARE(controller.document().page(0).objects[1].common.id, middle);
+    }
+
+    // Réglages de présentation (I3) : par la pile, sans redessin du cache, mais transmis à l'observateur.
+    void presentationChangeRedrawsNothing()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        QTRY_VERIFY(fixed.isReady());
+        ObserverSpy spy;
+        spy.attach(controller);
+        QSignalSpy content(&fixed, &render::FixedPageItem::contentChanged);
+        QSignalSpy document(&controller, &ui::DocumentController::documentChanged);
+        // La valeur de la page : aucun changement, donc ni pile ni observateur (run filtre avant la pile).
+        controller.execute(std::make_unique<core::SetPagePresentationCommand>(0, core::PagePresentation{}));
+        QVERIFY(!controller.canUndo());
+        QVERIFY(spy.received.empty());
+        QCOMPARE(document.count(), 0);
+        core::PagePresentation presentation;
+        presentation.hasOrigin = true;
+        presentation.origin = core::PointF{120, 80};
+        controller.execute(std::make_unique<core::SetPagePresentationCommand>(0, presentation));
+        QCOMPARE(content.count(), 0);
+        QVERIFY(spy.cache.calls.isEmpty());
+        QCOMPARE(document.count(), 1);
+        QVERIFY(controller.canUndo());
+        // L'observateur reçoit le changement brut, que le cache ignore (un observateur fait de cache ne le
+        // verrait jamais).
+        QCOMPARE(spy.received.size(), std::size_t{1});
+        QCOMPARE(spy.received[0].size(), std::size_t{1});
+        QVERIFY(spy.received[0][0].kind == core::Change::Kind::PageSettingsChanged);
+        QCOMPARE(static_cast<int>(spy.origins[0]), static_cast<int>(Origin::Command));
+    }
+
+    void shownObjectCountCounts()
+    {
+        ui::DocumentController controller;
+        QCOMPARE(controller.shownObjectCount(), 0);
+        controller.commitStroke(redStroke());
+        controller.commitStroke(redStroke());
+        QCOMPARE(controller.shownObjectCount(), 2);
+        QCOMPARE(controller.property("shownObjectCount").toInt(), 2);
+        controller.nextPage();
+        QCOMPARE(controller.shownObjectCount(), 0); // page affichée seulement
+    }
+
+    // B1 du lot 3 : soulever n'annonce pas d'édition (l'outil qui soulève ne s'annule pas lui-même). Le corps
+    // est un talon au socle ; l'assertion reste vraie quand L3-T12 le remplit.
+    void liftDoesNotAnnounceAnEdit()
+    {
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        const core::ObjectId id = controller.document().page(0).objects[0].common.id;
+        QSignalSpy edit(&controller, &ui::DocumentController::editAboutToApply);
+        controller.liftObjects({});
+        QCOMPARE(edit.count(), 0);
+        controller.liftObjects({id});
+        QCOMPARE(edit.count(), 0);
     }
 
     void registeredInQml()

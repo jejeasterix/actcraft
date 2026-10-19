@@ -134,6 +134,36 @@ private slots:
         QCOMPARE(document.strokes.size(), std::size_t{1});
         QVERIFY(pen.isDrawing());
     }
+
+    // Socle (L0-S7, D-S9) : le stylo vu comme un outil. La vue garde le versement différé sur isBusy() et
+    // termine un geste par cancel().
+    void penIsATool()
+    {
+        Log log;
+        FakeInk ink(log);
+        FakeDocument document(log);
+        tools::PenTool pen(ink, document);
+        tools::Tool& tool = pen;
+        QCOMPARE(tool.id(), QStringLiteral("pen"));
+        QVERIFY(!tool.isBusy());
+        tool.cancel(); // sans trait : rien
+        QVERIFY(log.calls.empty());
+        tool.onSample(make(Phase::Press, 0, 0, 0));
+        QVERIFY(tool.isBusy());
+        tool.onSample(make(Phase::Move, 4, 0, 1));
+        QVERIFY(tool.isBusy());
+        tool.cancel(); // verse le trait en cours, tel quel
+        QVERIFY(!tool.isBusy());
+        QCOMPARE(document.strokes.size(), std::size_t{1});
+        QCOMPARE(document.strokes[0].points.size(), std::size_t{2});
+        QCOMPARE(log.calls.back(), std::string("clear"));
+        tool.onSample(make(Phase::Move, 8, 0, 2)); // la suite du contact n'écrit plus
+        QCOMPARE(document.strokes.size(), std::size_t{1});
+        tool.onSample(make(Phase::Press, 0, 5, 3));
+        tool.onSample(make(Phase::Release, 6, 5, 4));
+        QVERIFY(!tool.isBusy()); // le relâché termine aussi
+        QCOMPARE(document.strokes.size(), std::size_t{2});
+    }
 };
 
 QTEST_GUILESS_MAIN(TstPenTool)

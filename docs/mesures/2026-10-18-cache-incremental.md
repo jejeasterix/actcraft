@@ -165,6 +165,131 @@ Coût à mesurer dans la tâche de repli : netteté au-delà du zoom où le nouv
 - **`page`** : images/s, p95 et images > 25 ms dépassés aux cinq passages, référence comprise (H2b-5, H2b-7).
   Antérieur au lot 10.
 
+## Repli H10-9 (L10-T8)
+
+### Modèle et prédictions, écrits avant la mesure
+
+Texture du cache multi-échantillonnée 4× (`QSGRhiLayer`) : couleur multi-échantillonnée 16 o, profondeur-stencil
+multi-échantillonnée 16 o, texture résolue 4 o, soit 36 o par pixel ; 20 o sans profondeur-stencil. À 4096 × 3072
+(12,58 Mpx) : 432 Mio, ou 240 Mio sans profondeur-stencil. Si la mémoire partagée est comptée aussi dans la mémoire
+privée (question ouverte de l'étape 4 bis), chaque Mio gagné sur la texture compte deux fois dans le total.
+
+| Variante | Texture à 800 % | Prédiction 800 % posé | Prédiction banc (`scroll`, 400 %) | Netteté prédite |
+|---|---|---|---|---|
+| V0 tête, plafond 4096 | 4096 × 3072, 432 Mio | ≈ 1 300 Mio (fenêtre 1920 × 1080 au lieu de 1280 × 800 : + 35 à 70 Mio) | 1 650 à 1 720 Mio | base |
+| V1 sans profondeur 2D | 4096 × 3072, 240 Mio si la profondeur-stencil disparaît | − 192 à − 384 Mio, sinon ≈ 0 | − 192 à − 384 Mio : reste > 1 024 | = V0 |
+| V2 plafond 2048 | 2048 × 1536, 108 Mio | − 324 à − 648 Mio : < 1 Gio | 1 000 à 1 400 Mio : incertain | bande ≈ 2 × V0 à 400 % |
+| V3 V1 + 3072 / 2896 | 135 / 120 Mio sans profondeur, 243 / 216 avec | entre V1 et V2 | entre V1 et V2 | bande ≈ 1,3 à 1,4 × V0 |
+| V4 cache coupé | aucune | ≈ référence (≈ 400 Mio) | bas ; coût d'image du rendu direct inconnu | nette (rendu direct) |
+
+Prédiction propre à V1 : `QSGRhiLayer` garde peut-être sa profondeur-stencil, nécessaire au découpage par stencil ;
+gain alors nul.
+
+### Méthode
+
+Worktree de L10-T8, preset `release`, 2026-10-18 de 16 h 44 à 18 h, Direct3D 11, plein écran 1920 × 1080. Par
+variante, sous le jeton `ecran` : un passage `bench.ps1 -Rendu d3d11 -SansConstruire`, puis le zoom 400 % et le zoom
+800 % posés. Scénario de zoom (temporaire, `.tmp/zoom<Z>.json`, `actcraft-captures --taille plein-ecran`) : trait noir
+de 8 px tracé à 100 % de (462, 334) à (562, 434), versé au cache, `checkEdge` de (496, 384) à (528, 384) à 100 %, zoom
+posé, attente 3 s, `checkEdge` au zoom posé. Mémoire relevée toutes les 500 ms (`PerformanceCounter`, « GPU Process
+Memory » et `PrivateMemorySize64`) ; le total est pris au même relevé. Relevé « machine calme » avant chaque passage
+(`calme.ps1`) ; une attente de 141 s pour une compilation de L10-C1 avant V1.
+- V0 : tête `d5832c3`. V1 : même binaire, `QSG_NO_DEPTH_BUFFER=1`, l'interrupteur documenté de
+  `QQuickGraphicsConfiguration::setDepthBufferFor2D` (valeur par défaut de la configuration). V4 : même binaire,
+  `-SansCache` et `--sans-cache` (plan : coût d'image du rendu direct à 400 %).
+- V2, V3 : mutation locale de `PageView::updateCacheTextureSize` (plafond lu dans une variable d'environnement,
+  plancher « jamais flou »), remise à zéro par `git checkout --` après la série.
+- Colonnes `pauses` (demande de l'orchestrateur, L10-T9) : `over_25ms_ratio`, et nombre d'entrées dont
+  `latency_planned_to_sync_ms` dépasse 20 ms et dont l'heure prévue tombe dans les 100 ms qui suivent un
+  `raw.cache_request_ns`.
+
+### Table des variantes
+
+Mémoire en Mio. Banc : `all.memory_peak_bytes`. Zoom posé : pic du total, partagé / privé au même relevé. Bande :
+pixels intermédiaires de `checkEdge` (100 % → 2 dans toutes les variantes).
+
+| Variante | Banc | 800 % (partagé / privé) | 400 % (partagé / privé) | S13 | p95 `scroll` | Bande 400 / 800 | `pauses` > 25 ms | Entrées > 20 ms après demande |
+|---|---|---|---|---|---|---|---|---|
+| V0 tête | **1 692,1** | **1 462,7** (658,2 / 804,5) | 1 501,3 (696,9 / 804,4) | tenu | 17,2 | 2 / 8 | 2,45 % | 41 sur 41 (9 demandes) |
+| V1 sans profondeur 2D | **1 047,4** | 866,1 (377,1 / 489,0) | 875,8 (376,8 / 498,9) | tenu | 17,2 | 2 / 8 | 2,78 % | 33 sur 34 (8 demandes) |
+| V2 plafond 2048 | **1 141,2** | 426,9 (relevé invalide : compteurs GPU à 0) | 332,5 (invalide) | tenu | 17,1 | **8** / 16 | 4,03 % | 65 sur 94 (8 demandes) |
+| **V3 V1 + 3072** | **901,6** | **624,4** (281,8 / 342,5) | 625,2 (273,9 / 351,4) | tenu | 17,0 | 4 / 12 | 2,46 % | 44 sur 44 (8 demandes) |
+| V3 V1 + 2896 | 920,0 | 584,8 (252,4 / 332,4) | 583,6 (260,3 / 323,2) | tenu | 17,1 | 4 / 12 | 2,81 % | 38 sur 38 (8 demandes) |
+| V4 sans cache (`-SansCache`) | 991,5 | 400,2 (158,2 / 242,0) | 388,1 (164,8 / 223,3) | **perdu** (`stroke`, `pauses`) | 18,2 | 2 / 2 | 25,70 % | 0 (aucune demande ; 410 entrées > 20 ms) |
+
+Constats :
+- **La mémoire partagée est aussi comptée dans la mémoire privée** : de V0 à V1, le partagé baisse de 281 Mio et le
+  privé de 316 Mio au zoom 800 %. Chaque Mio de texture gagné compte deux fois dans le total.
+- **V1 retire bien la profondeur-stencil des couches** : − 597 Mio au total à 800 %, plus que les 192 Mio prédits
+  pour le seul cache (la fenêtre et ses autres couches en perdent aussi). Netteté inchangée. Mais le banc reste à
+  1 047,4 Mio : V1 seule n'est pas retenue (critère < 1 024 Mio).
+- V4 : rendu direct à 400 % tenable (p95 `scroll` 18,2 ms ≤ 18,5), mais le passage sans cache perd S13 dans
+  `stroke` et `pauses`, à 100 % ; V4 n'y couperait pas le cache. Texture libérée à l'exécution non vérifiée (V4 non
+  écrite). Dernière dans l'ordre de préférence.
+- V2 seule (sans V1) reste au-dessus du budget au banc (1 141,2 Mio) et double la bande à 400 % (8 > limite 5).
+- `pauses` : aucune variante avec cache ne règle les images lentes ; les entrées en retard tombent presque toutes
+  dans les 100 ms qui suivent une demande de redessin, quel que soit le plafond (données pour L10-T9).
+
+### Variante retenue : V3, plafond 3072
+
+Règle de choix appliquée par script (`decide.py`, sortie : `CHOIX V3-3072 3072 v1`). Limite de bande à 400 % :
+⌈bande(V0) × 4096 / plafond⌉ + 1, avec bande(V0) = 2.
+
+| Variante | Banc < 1 024 | 800 % < 1 024 | S13 | p95 `scroll` ≤ 18,5 | Bande 400 % ≤ limite | Retenue |
+|---|---|---|---|---|---|---|
+| V1 (plafond 4096) | non (1 047,4) | oui | oui | oui | 2 ≤ 3 | non |
+| V3 3072 | oui (901,6) | oui (624,4) | oui | oui (17,0) | 4 ≤ 4 | **oui** |
+| V3 2896 | oui (920,0) | oui (584,8) | oui | oui (17,1) | 4 ≤ 4 | oui, plafond plus petit |
+| V2 2048 | non (1 141,2) | oui | oui | oui | 8 > 5 | non |
+
+V3 : V1 n'est pas retenue seule, et 3072 est le plus grand plafond qui tient les deux critères mémoire. Ordre de
+préférence : V1, puis V3, puis V2, puis V4.
+
+**Zoom à partir duquel l'image devient floue** (plafond ÷ côté de la page × DPR ; plancher « jamais flou ») :
+
+| Page | DPR 1, V0 (4096) | DPR 1, V3 (3072) | DPR 2, V0 | DPR 2, V3 |
+|---|---|---|---|---|
+| 1024 × 768 | 400 % | 300 % | 200 % | 150 % |
+| 1920 × 1080 | 213 % | 160 % | 107 % | au-delà de 100 % (plancher 3 840), jamais à 100 % |
+
+**Écarts au plan, écrits ici :**
+- Le plancher prend aussi le zoom d'« Ajuster » : `côté = min(4096, max(3072, côté de la page à max(1, zoom
+  d'ajustement) × DPR))`. La formule du plan (côté à 100 %) laissait floue une page de 1024 ajustée à environ 115 %
+  à DPR 2 (2 360 px demandés, plancher 2 048), contraire à l'objectif « jamais flou à l'ajustement ».
+- `PageView.cacheSamples` vaut `kCacheMsaaSamples` (4) en RHI et 1 en rendu logiciel, où `samples` est sans effet :
+  c'est ce que demande le test « cache forcé à 4 », joué en rendu logiciel. En conséquence, la garde de
+  `bench/scenarios/anticrenelage.json` (`expect pageCache.samples 4`) devient une garde de liaison vraie dans les
+  deux moteurs : `remember pageView.cacheSamples`, puis `expect pageCache.samples = ${echantillons_cache}`
+  (autorisation de l'orchestrateur, seul fichier de `bench/scenarios/` modifié).
+- V1 est écrite par `QSG_NO_DEPTH_BUFFER=1`, posé dans `applyRenderBackend` (`app/renderbackend.cpp`), en RHI
+  seulement, avant toute fenêtre : c'est exactement ce qui a été mesuré. `QSGRhiLayer` ne lit que cette variable,
+  une seule fois (`static bool depthBufferEnabled = qEnvironmentVariableIsEmpty(...)`) ; l'API
+  `QQuickGraphicsConfiguration::setDepthBufferFor2D` ne retire jamais la profondeur-stencil des couches, quel que
+  soit le moment de l'appel. Premier essai écarté pour cette raison : `setDepthBufferFor2D(false)` posé sur la
+  fenêtre dans `loadMainWindow` se relit bien à `false`, mais la tête `5231d40` mesure 1 031,7 Mio au zoom 800 %
+  posé (partagé 454,9 / privé 576,8), contre 624,4 pour V3.
+- La variable retire aussi le **stencil** : une découpe non rectangulaire (`clip` sous une rotation non multiple
+  de 90°) n'aurait plus de découpe en RHI. Aucun élément n'en dépend aujourd'hui.
+
+### Relevés après repli (tête `a203792`)
+
+2026-10-18, 21 h 51 à 21 h 56, même méthode, machine calme (aucune compilation, jeton `tests` libre, 2,68 Go
+libres).
+
+| Mesure | Tête `a203792` | V3-3072 (série) | V0 |
+|---|---|---|---|
+| Banc `all.memory_peak_bytes` | **930,4** | 901,6 | 1 692,1 |
+| Zoom 800 % posé (partagé / privé) | **609,1** (265,9 / 343,2) | 624,4 | 1 462,7 |
+| Zoom 400 % posé | 353,5 (partagé relevé à 13,3 : peu fiable) | 625,2 | 1 501,3 |
+| S13 | tenu | tenu | tenu |
+| p95 `scroll` | 17,0 ms | 17,0 | 17,2 |
+| Bande 100 / 400 / 800 % | 2 / 4 / 12 | 2 / 4 / 12 | 2 / 2 / 8 |
+| `pauses` > 25 ms ; entrées en retard après une demande | 2,83 % ; 48 sur 48 | 2,46 % ; 44 sur 44 | 2,45 % ; 41 sur 41 |
+
+Critères encore perdus au banc : `page.p95_ms`, `page.over_25ms_ratio` (antérieurs au lot 10) et
+`pauses.over_25ms_ratio` (L10-T9). Captures D3D11 de `5231d40` (même code, sauf l'interrupteur) : `anticrenelage`
+(`LU pageCache.samples=4 OK`), `cache-differe` et `premiers-pas` → `CAPTURES OK`.
+
 ## Fichiers
 
 Dans `bench/results/` des deux worktrees (ignoré par git) :

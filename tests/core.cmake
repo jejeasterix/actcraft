@@ -23,3 +23,23 @@ actcraft_add_test(tst_core_edits
 actcraft_add_test(tst_core_pagecache
     SOURCES tst_core_pagecache.cpp
     LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_replace
+    SOURCES tst_core_replace.cpp
+    LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_hittest
+    SOURCES tst_core_hittest.cpp
+    LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_erase
+    SOURCES tst_core_erase.cpp
+    LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_objectedits
+    SOURCES tst_core_objectedits.cpp
+    LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_lift
+    SOURCES tst_core_lift.cpp
+    LIBS ActCraft::core)

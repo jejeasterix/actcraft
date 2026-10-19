@@ -52,6 +52,17 @@ bool usesImages(const core::PageObject& object)
 {
     return std::get_if<core::ImageObject>(&object) || std::get_if<core::Media>(&object);
 }
+
+// Lot 10 : l'objet peut attendre au-dessus du cache (mis en attente par insert, gardé en attente par
+// invalidate). Ni image (la couche d'attente n'a pas de magasin), ni encre révélatrice (P8 : elle rend
+// transparents les objets sous elle, redessin immédiat), ni page à grille dessinée au-dessus des objets.
+// Limite de DA11 (écart 5, H10-8) : sinon, redessin immédiat (reconstruction).
+bool canWait(const core::Page& page, const core::PageObject& object)
+{
+    const auto* stroke = std::get_if<core::Stroke>(&object);
+    const bool revealer = stroke && stroke->kind == core::StrokeKind::Revealer;
+    return !usesImages(object) && !revealer && !page.grid.drawnAbove;
+}
 } // namespace
 
 FixedPageItem::FixedPageItem(QQuickItem* parent)
@@ -87,6 +98,11 @@ void FixedPageItem::restart(Decode decode, Scope scope)
     // ci-dessous fait redessiner le cache).
     const bool hadPending = !m_pendingIds.empty();
     m_pendingIds.clear();
+    if (hadPending) {
+        // La couche d'attente garde ses nœuds tant que les identifiants concordent ; un autre document
+        // (setSource, setPage) réattribue les mêmes : la révision les lui fait refaire.
+        ++m_pendingRevision;
+    }
     m_rebuild = true;
     m_builtCount = 0; // les nœuds affichés ne suivent plus cette page : aucun ajout « en fin de scène »
     // Redécoder seulement si le magasin ne couvre plus la page (annuler un trait ne redécode rien). Pendant
@@ -175,11 +191,10 @@ void FixedPageItem::insert(core::ObjectId id)
     const bool imageChanged = usesImages(object);
     const bool atEnd = index + 1 == shown.objects.size();
     const auto* strokeObject = std::get_if<core::Stroke>(&object);
-    // P8 : l'encre révélatrice rend transparents les objets sous elle : jamais en attente, redessin immédiat.
-    const bool revealer = strokeObject && strokeObject->kind == core::StrokeKind::Revealer;
-    if (atEnd && m_deferred && m_ready && !imageChanged && !revealer && !shown.grid.drawnAbove) {
+    if (atEnd && m_deferred && m_ready && canWait(shown, object)) {
         // Lot 10 : il attend au-dessus du cache ; ni nœud dans la scène, ni redessin du cache. Limite de DA11
-        // (écart 5, H10-8) : hors fin de page, image ou grille au-dessus → redessin immédiat ci-dessous.
+        // (écart 5, H10-8) : hors fin de page, ou objet qui ne peut pas attendre → redessin immédiat
+        // ci-dessous.
         m_pendingIds.push_back(id);
         emit objectCountChanged();
         if (strokeObject) {
@@ -227,14 +242,16 @@ void FixedPageItem::invalidate(core::ObjectId id, const core::CacheArea&)
     const bool imageChanged = index < shown.objects.size() && usesImages(shown.objects[index]);
     const bool pending =
         id != 0 && std::find(m_pendingIds.begin(), m_pendingIds.end(), id) != m_pendingIds.end();
-    if (pending && pendingAreTheLastObjects() && !imageChanged) {
+    // index est valide ici : un objet en attente en queue de page y est.
+    if (pending && pendingAreTheLastObjects() && canWait(shown, shown.objects[index])) {
         ++m_pendingRevision; // modifié en place pendant qu'il attend : la couche le refait
         emit pendingChanged();
         return;
     }
-    // Hors de l'attente, image (la couche d'attente n'a pas de magasin d'images) ou objet en attente
-    // réordonné (annoncé en ObjectChanged, undo.h n'a pas de type « réordonné ») : ce qui attend n'est plus
-    // la queue de la page ; reconstruction complète, qui verse tout.
+    // Hors de l'attente, objet qui ne peut plus attendre (canWait : image, encre révélatrice, grille
+    // au-dessus), ou objet en attente réordonné (annoncé en ObjectChanged, undo.h n'a pas de type
+    // « réordonné ») : ce qui attend n'est plus la queue de la page ; reconstruction complète, qui verse
+    // tout, comme insert.
     restart(imageChanged && !m_ready ? Decode::Force : Decode::IfUncovered, Scope::SamePage);
 }
 
@@ -406,14 +423,10 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     // Logiciel : racine de transformation (identité). Sous une racine QSGNode nue déjà rendue, le moteur
     // logiciel de Qt 6.12 peint les nœuds ajoutés sans la transformation de l'élément (voir InkItem).
     QSGNode* root = old ? old : (software ? new QSGTransformNode : new QSGNode);
-    RenderContext context;
-    context.window = window();
-    context.software = software;
-    context.images = &m_images;
-    context.rasterScale = m_rasterScale;
-    // Moteur peint, fond peint et grille : vectoriels en rendu logiciel, textures en RHI (décision 37).
-    RenderContext painted = context;
-    painted.software = software && !m_forceRasterized;
+    const NodeContexts contexts =
+        nodeContexts(window(), software, &m_images, m_rasterScale, m_forceRasterized);
+    const RenderContext& context = contexts.context;
+    const RenderContext& painted = contexts.painted;
     const bool rasterized = !painted.software;
     const core::Page& shown = page();
     if (m_rebuild || !old) {

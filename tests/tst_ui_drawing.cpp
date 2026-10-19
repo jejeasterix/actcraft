@@ -291,6 +291,50 @@ private slots:
                  "trait inséré pendant la demande absent");
     }
 
+    // Revue de clôture du lot 10 : un trait qui sort de la page vers la marge (vue « Ajuster ») n'y est pas
+    // dessiné par la couche d'attente, rognée à la page comme le cache (sourceRect vide : le rectangle de la
+    // page). Le pixel de la marge sous le trait reste le fond de la marge pendant l'attente et après le
+    // versement : rien n'y apparaît ni n'y disparaît. L'encre en cours (InkLayer, non rognée depuis le lot 2)
+    // n'est pas changée : elle déborde sur la marge pendant le tracé (relevé : noir sur la marge), comme au
+    // lot 2 ; son pixel est relevé (qInfo), pas exigé.
+    void pendingStrokeIsClippedToThePage()
+    {
+        App app;
+        QVERIFY(start(app, true));
+        const double zoom = app.view->zoom();
+        const double pageWidth = app.fixed->width();
+        const qreal y = 400;
+        // 14 pixels de vue à droite de la page : dans la marge d'« Ajuster » (kViewMargin = 32 au moins).
+        const QPointF outside(pageWidth + 14 / zoom, y);
+        const QColor margin = pixelAtPage(app, outside);
+        QVERIFY2(!colorNear(margin, QColor(Qt::black), 60), "marge déjà noire");
+        const QPointF from(pageWidth - 120, y);
+        const QPointF to(pageWidth + 28 / zoom, y);
+        post(app, QEvent::TabletPress, from, 0.7, Qt::LeftButton, Qt::LeftButton);
+        for (int i = 1; i <= 50; ++i) {
+            post(app, QEvent::TabletMove, from + (to - from) * (i / 50.0), 0.7, Qt::NoButton, Qt::LeftButton);
+        }
+        QTRY_VERIFY_WITH_TIMEOUT(app.ink->pointCount() >= 50, 3000);
+        const QColor inking = pixelAtPage(app, outside);
+        qInfo("encre en cours sur la marge : %s (fond de la marge %s)", qPrintable(inking.name()),
+              qPrintable(margin.name()));
+        post(app, QEvent::TabletRelease, to, 0.0, Qt::LeftButton, Qt::NoButton);
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->pendingCount(), 1, 3000);
+        const QColor waiting = pixelAtPage(app, outside);
+        QVERIFY2(
+            colorNear(waiting, margin, 8),
+            qPrintable(
+                QStringLiteral("en attente : %1 sur la marge (fond %2)").arg(waiting.name(), margin.name())));
+        QTRY_VERIFY_WITH_TIMEOUT(app.fixed->pendingCount() == 0 && app.view->cacheReady(),
+                                 ui::kCacheFoldIdleMs + 5000);
+        const QColor folded = pixelAtPage(app, outside);
+        QVERIFY2(colorNear(folded, margin, 8),
+                 qPrintable(
+                     QStringLiteral("versé : %1 sur la marge (fond %2)").arg(folded.name(), margin.name())));
+        QVERIFY2(colorNear(pixelAtPage(app, QPointF(pageWidth - 60, y)), QColor(Qt::black), 60),
+                 "trait absent de la page");
+    }
+
     void mouseLeftButtonDraws()
     {
         App app;

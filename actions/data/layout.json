@@ -2,10 +2,17 @@
   "format": "actcraft-layout/1",
   "menus": [
     { "id": "file", "label": "Fichier", "items": ["file.new", "file.new-screen", "file.new-1024x768", "file.new-1152x864", "file.new-1280x1024", "file.new-custom", "-", "file.open", "-", "file.save", "file.save-as", "-", "file.close", "-", "file.quit"] },
-    { "id": "edit", "label": "Éditer", "items": [] },
-    { "id": "view", "label": "Affichage", "items": ["view.fullscreen", "-", "page.previous", "page.next", "-", "view.fit"] },
-    { "id": "insert", "label": "Insérer", "items": [] },
-    { "id": "tools", "label": "Outils", "items": ["tool.pen"] },
+    { "id": "edit", "label": "Éditer", "items": ["edit.undo", "edit.redo", "-", "edit.delete", "edit.select-all", "-",
+      { "submenu": "clear", "label": "Effacer", "items": ["clear.annotations", "clear.objects", "clear.grid", "clear.background", "clear.page"] },
+      "page.revert"] },
+    { "id": "view", "label": "Affichage", "items": ["view.fullscreen", "-", "page.previous", "page.next", "-", "view.fit", "-", "view.page-zoom", "view.page-effects", "-", "view.trash"] },
+    { "id": "insert", "label": "Insérer", "items": ["insert.date-time", "insert.equation"] },
+    { "id": "tools", "label": "Outils", "items": ["desktop.annotate", "desktop.tools", "-", "tool.pen", "tool.highlighter", "tool.eraser", "-",
+      "tool.handwriting", "tool.shape-recognition", "-", "present.curtain",
+      { "submenu": "spot", "label": "Spot", "items": ["present.spotlight-circle", "present.spotlight-square", "present.spotlight-solid-circle", "present.spotlight-solid-square"] },
+      { "submenu": "camera", "label": "Caméra", "items": ["tool.camera-area", "tool.camera-polygon", "tool.camera-freehand", "tool.camera-window", "tool.camera-screen"] },
+      { "submenu": "math", "label": "Outils de maths", "items": ["math.ruler", "math.protractor", "math.set-square", "math.compass", "math.xy-origin", "tool.dice", "tool.calculator"] },
+      { "submenu": "other-tools", "label": "Autres outils", "items": ["tool.keyboard", "tool.clock", "tool.ticker", "tool.web-browser"] }] },
     { "id": "help", "label": "Aide", "items": ["help.website", "-", "help.about"] }
   ],
   "palette": [
@@ -13,8 +20,12 @@
     { "group": "pages", "items": ["page.previous", "page.next"] },
     { "group": "couleurs" },
     { "group": "epaisseur" },
-    { "group": "outils", "items": ["tool.pen"] }
+    { "group": "outils", "items": ["tool.select", "tool.pen", "tool.highlighter", "tool.eraser"] },
+    { "group": "edition", "items": ["edit.undo", "edit.redo", "edit.delete"] },
+    { "group": "presentation", "items": ["present.curtain", "present.spotlight-circle", "view.page-zoom", "math.ruler", "tool.clock"] }
   ],
+  "objectBar": ["object.move-free", "object.rotate", "object.translucency", "object.enlarge", "object.reduce"],
+  "contextMenu": ["tool.select", "tool.pen", "-", "recognition.convert-to-text"],
   "shortcuts": {},
   "colors": [
     "#E53935", "#FB8C00", "#FDD835", "#43A047",

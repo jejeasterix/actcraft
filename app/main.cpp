@@ -2,6 +2,7 @@
 #include "startup.h"
 
 #include <actcraft/formats/urlio.h>
+#include <actcraft/ui/viewtransform.h>
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -12,6 +13,9 @@
 #include <cstring>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
+
+// Échantillonnage de la fenêtre et du cache (H10-9) : à changer ensemble.
+static_assert(kMsaaSamples == actcraft::ui::kCacheMsaaSamples);
 
 int main(int argc, char* argv[])
 {

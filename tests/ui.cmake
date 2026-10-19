@@ -52,3 +52,15 @@ actcraft_add_test(tst_ui_filemenu
     SOURCES tst_ui_filemenu.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS Qt6::Quick Qt6::Gui ActCraft::ui ActCraft::formats actcraft_uiplugin)
 target_include_directories(tst_ui_filemenu PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_lift
+    SOURCES tst_ui_lift.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+actcraft_add_test(tst_ui_tools
+    SOURCES tst_ui_tools.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+actcraft_add_test(tst_ui_inputpath
+    SOURCES tst_ui_inputpath.cpp
+    LIBS ActCraft::ui Qt6::Quick actcraft_uiplugin)

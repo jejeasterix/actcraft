@@ -1,0 +1,6 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "corbeille",
+  "description": "Talon L0-S : rempli par L3-T16 (S35).",
+  "steps": [ {"waitReady": true} ]
+}

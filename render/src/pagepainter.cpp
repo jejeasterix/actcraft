@@ -1,3 +1,5 @@
+#include "equationlayout.h"
+
 #include <actcraft/render/imagecolor.h>
 #include <actcraft/render/imagesynth.h>
 #include <actcraft/render/objectrenderer.h>
@@ -643,6 +645,8 @@ void paintObjectLocal(QPainter& p, const core::PageObject& object, const ImageLo
     } else if (const auto* c = std::get_if<core::Connector>(&object)) {
         p.setPen(penOf(c->pen));
         p.drawLine(QPointF(c->firstEnd.x, c->firstEnd.y), QPointF(c->secondEnd.x, c->secondEnd.y));
+    } else if (const auto* e = std::get_if<core::Equation>(&object)) {
+        paintEquation(p, *e);
     } else if (const auto* u = std::get_if<core::UnknownObject>(&object)) {
         paintUnknown(p, *u);
     }

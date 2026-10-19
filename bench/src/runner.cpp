@@ -649,8 +649,7 @@ BenchResult Runner::run(QQuickWindow* window)
         bool zoomSeen = false;
         const auto zoomWatch =
             QObject::connect(m_view, &ui::PageView::zoomChanged, m_view, [this, &atZoom, &zoomSeen, &plan] {
-                if (plan.name == QLatin1String("page") && !zoomSeen &&
-                    std::abs(m_view->zoom() - 1.5) < 1e-9) {
+                if (plan.pageChecks && !zoomSeen && std::abs(m_view->zoom() - 1.5) < 1e-9) {
                     zoomSeen = true;
                     // Relevé seulement si la page peinte est prête et dessinée : sinon sa reconstruction au
                     // prêt gonflerait le compte (-1 : non mesuré).
@@ -665,7 +664,7 @@ BenchResult Runner::run(QQuickWindow* window)
             result.invalidReasons << QStringLiteral("error: injection incomplete in %1").arg(plan.name);
             break;
         }
-        if (plan.name == QLatin1String("page")) {
+        if (plan.pageChecks) {
             if (atZoom) {
                 result.pageRebuildsDuringZoom = m_fixed->rebuildCount() - atZoom->first;
                 result.pageRasterizationsDuringZoom = m_fixed->rasterizationCount() - atZoom->second;

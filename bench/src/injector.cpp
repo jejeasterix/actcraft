@@ -2,11 +2,37 @@
 #include <actcraft/core/clock.h>
 
 #include <QCoreApplication>
+#include <QElapsedTimer>
+#include <QEventLoop>
 #include <QTabletEvent>
+#include <QTimer>
 #include <QWheelEvent>
 #include <QWindow>
 
+#include <algorithm>
+
 namespace actcraft::bench {
+
+namespace {
+
+constexpr int kGestureSubdivisions = 16; // déplacements émis entre deux points d'un geste
+constexpr int kFrameMs = 16; // une image : Qt Quick retarde les mises à jour tactiles jusqu'à elle
+
+// Attend `ms` en laissant tourner la boucle ; jamais moins (un minuteur précis peut partir en avance).
+void pauseMs(int ms)
+{
+    QElapsedTimer clock;
+    clock.start();
+    const qint64 totalNs = static_cast<qint64>(ms) * 1'000'000;
+    while (clock.nsecsElapsed() < totalNs) {
+        QEventLoop loop;
+        const int rest = std::max(1, ms - static_cast<int>(clock.elapsed()));
+        QTimer::singleShot(rest, Qt::PreciseTimer, &loop, [&loop] { loop.quit(); });
+        loop.exec();
+    }
+}
+
+} // namespace
 
 Injector::Injector(QWindow* target, PageToScene pageToScene, QObject* parent)
     : QObject(parent), m_target(target), m_pageToScene(std::move(pageToScene))
@@ -145,6 +171,69 @@ QEvent* Injector::makeEvent(const PlannedInput& input) const
     }
     return new QTabletEvent(type, m_stylus.get(), scene, m_target->mapToGlobal(scene), input.pressure, 0, 0,
                             0, 0, 0, input.modifiers, button, buttons);
+}
+
+QPointF Injector::scenePoint(QPointF point, PointSpace space) const
+{
+    return space == PointSpace::Page ? m_pageToScene(point) : point;
+}
+
+bool Injector::touchPath(const std::vector<QPointF>& points, const FingerSink& sink, PointSpace space)
+{
+    if (points.empty() || !sink) {
+        return false;
+    }
+    sink(GesturePhase::Press, {scenePoint(points.front(), space)});
+    for (std::size_t i = 1; i < points.size(); ++i) {
+        const QPointF from = scenePoint(points[i - 1], space);
+        const QPointF to = scenePoint(points[i], space);
+        for (int k = 1; k <= kGestureSubdivisions; ++k) {
+            sink(GesturePhase::Move, {from + (to - from) * (k / static_cast<double>(kGestureSubdivisions))});
+        }
+    }
+    pauseMs(kFrameMs); // la dernière mise à jour est traitée avant le relâché
+    sink(GesturePhase::Release, {scenePoint(points.back(), space)});
+    return true;
+}
+
+bool Injector::pinch(QPointF center, double from, double to, int steps, const FingerSink& sink,
+                     PointSpace space)
+{
+    if (!(from > 0.0) || !(to > 0.0) || steps < 1 || !sink) {
+        return false;
+    }
+    const QPointF middle = scenePoint(center, space);
+    const auto fingers = [middle](double spread) {
+        return std::vector<QPointF>{middle - QPointF(spread / 2.0, 0.0), middle + QPointF(spread / 2.0, 0.0)};
+    };
+    sink(GesturePhase::Press, fingers(from));
+    for (int k = 1; k <= steps; ++k) {
+        pauseMs(kFrameMs);
+        sink(GesturePhase::Move, fingers(from + (to - from) * (k / static_cast<double>(steps))));
+    }
+    sink(GesturePhase::Release, fingers(to));
+    return true;
+}
+
+bool Injector::pointerPath(const std::vector<QPointF>& points, const PointerSink& sink, int holdMs,
+                           PointSpace space)
+{
+    if (points.empty() || holdMs < 0 || !sink) {
+        return false;
+    }
+    sink(GesturePhase::Press, scenePoint(points.front(), space));
+    for (std::size_t i = 1; i < points.size(); ++i) {
+        const QPointF from = scenePoint(points[i - 1], space);
+        const QPointF to = scenePoint(points[i], space);
+        for (int k = 1; k <= kGestureSubdivisions; ++k) {
+            sink(GesturePhase::Move, from + (to - from) * (k / static_cast<double>(kGestureSubdivisions)));
+        }
+    }
+    if (holdMs > 0) {
+        pauseMs(holdMs);
+    }
+    sink(GesturePhase::Release, scenePoint(points.back(), space));
+    return true;
 }
 
 } // namespace actcraft::bench

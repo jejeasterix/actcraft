@@ -28,6 +28,10 @@ actcraft_add_module(render
         src/pagepainter.cpp
         include/actcraft/render/paintedrenderer.h
         src/paintedrenderer.cpp
+        src/equationlayout.h
+        src/equationlayout.cpp
+        include/actcraft/render/liftlayeritem.h
+        src/liftlayeritem.cpp
     DEPENDS
         ActCraft::core Qt6::Quick)
 

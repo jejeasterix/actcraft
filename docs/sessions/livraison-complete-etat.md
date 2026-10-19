@@ -83,7 +83,7 @@ Lot 2b (plan `docs/plans/2026-10-15-livraison-complete-lot2b-PLAN.md` ; vagues V
 | L2-T15 | T14 | ui : DocumentController sur document et pile | crit | (mergé) | terminée | 1/3 | aadf390 → merge (voir log) | rejoué : 60/60 TESTS OK (tst_ui_document, tst_pageview, tst_ui_shell, tst_bench_uiscenario, tst_captures_premiers_pas Passed) ; `captures.ps1 -Scenario premiers-pas -Rendu logiciel -HorsEcran` : `PIXEL trait-conserve OK`, `LU pageIndicator.text=1 / 2 OK`, plein écran aller-retour OK, `SCENARIO OK`, `CAPTURES OK` ; capture `02-trait` (agent) : page 1024×768 à 90 %, « 1 / 1 », trait rouge net, rouge coché ; `NOMS OK`. 6 tests du relais remplacés (prévu par le plan, étape 1). Écarts acceptés : commande sans effet non empilée (`Executed`), pas de `pageAboutToChange` après coup dans undo/redo, page générée renumérotée, `tests/data/uiscenario/fenetre.qml` +2 lignes (autorisé). Revue : 0 bloquant, 0 imp., 4 min. corrigés (4 mutations désormais rouges : `undoChanged`, borne d'indice, détache au destructeur, vue après contrôleur détruit ; taille et état modifié gardés par `loadGeneratedFirstPage` ; commentaires) ; rejoué 60/60 TESTS OK. Interruption : limite d'API hebdomadaire de l'agent, reprise sur demande de Jérôme |
 | L2-T16 | T15 | ui : taille de page, barres, échelle | impl | (mergé) | terminée | 1/3 | 085b1ac → merge (voir log) | rejoué : 60/60 TESTS OK (tst_pageview Passed, 37 cas) ; `captures.ps1 -Scenario premiers-pas` : `SCENARIO OK`, `CAPTURES OK` ; `NOMS OK`. Fluidité : `continuousZoomSetsTheRasterScaleOnlyAtTheEnd` (échelle posée une fois, à la fin) et `contentResizeDuringWheelZoomKeepsTheFinalRasterScale` (rouge par mutation). Banc hors écran (agent) : deux modes connus, non comparé |
 | L2-T17 | T6,T9,T11,T15 | ui : ouvrir, enregistrer, nouveau, fermer | crit | (mergé) | terminée | 1/3 | 6ffdc62 → merge (voir log) | rejoué : 61/61 TESTS OK (tst_ui_files Passed, 24 cas), `NOMS OK : 298 fichiers`. Revue : 1 bloquant + 3 imp. + 3 min., tous corrigés avec rouges vus (10 tests) et 13 mutations : `modified` faux ⇔ écran = fichier (sinon modifié jusqu'au prochain enregistrement), ouverture refusée si le document change pendant la lecture, `.flipchart` refusé à l'écriture (toute casse) et `.actcraft` ajouté à un fichier local sans extension, échecs testés, contrôleur détruit pendant une E/S, nom décodé une fois, `lastError` effacé au succès, dossier par défaut créé seulement par `defaultFolderUrl(true)` (à appeler par le dialogue de L2-T18). Miniatures décodées à 640 px. **Fluidité, pour le lot cache** : copie du document à l'Enregistrer sur le fil principal = 13-34 ms (release, 5 000 traits de 50 points) → partage copie-sur-écriture |
-| L2-T18 | T3,T16,T17 | QML : menu Fichier, dialogues, bandeau | impl | (mergé) | terminée | 1/3 | 8ba58a2 → merge (voir log) | rejoué : 62/62 TESTS OK (tst_ui_filemenu 13 cas, tst_ui_shell, tst_ui_files Passed) ; captures refaites par l'orchestrateur AVEC polices (`QT_QPA_FONTDIR`) : menu Fichier — 11 entrées en 4 groupes (Nouveau paperboard Ctrl+N, quatre tailles, Taille personnalisée…, Ouvrir… Ctrl+O, Enregistrer Ctrl+S, Enregistrer sous… Ctrl+Shift+S, Fermer le paperboard Ctrl+W, Quitter Ctrl+Q), libellés et raccourcis alignés ; bandeau — sombre en haut de la page, « 1 avertissement de lecture : page 203 : objet de genre 460 non lu (nœud 216) », bouton « Fermer », contraste AA testé sur pixels rendus. « Paperboard » gardé (N1-12). Mutations : 8 tuées (ciblées sur `tst_ui_filemenu`). Texte brut partout (`messagesAreShownAsPlainText`). Banc (agent) : `content_check.ok`, deux modes connus |
+| L2-T18 | T3,T16,T17 | QML : menu Fichier, dialogues, bandeau | impl | (mergé) | terminée | 1/3 | 8ba58a2 → merge (voir log) | rejoué : 62/62 TESTS OK (tst_ui_filemenu 13 cas, tst_ui_shell, tst_ui_files Passed) ; captures refaites par l'orchestrateur AVEC polices (`QT_QPA_FONTDIR`) : menu Fichier — 11 entrées en 4 groupes (Créer un paperboard Ctrl+N, quatre tailles, Taille personnalisée…, Ouvrir… Ctrl+O, Enregistrer Ctrl+S, Enregistrer sous… Ctrl+Shift+S, Fermer le paperboard Ctrl+W, Quitter Ctrl+Q), libellés et raccourcis alignés ; bandeau — sombre en haut de la page, « 1 avertissement de lecture : page 203 : objet de genre 460 non lu (nœud 216) », bouton « Fermer », contraste AA testé sur pixels rendus. « Paperboard » gardé (N1-12). Mutations : 8 tuées (ciblées sur `tst_ui_filemenu`). Texte brut partout (`messagesAreShownAsPlainText`). Banc (agent) : `content_check.ok`, deux modes connus |
 | L2-T19 | T18 | ouvrir le fichier passé au lancement | impl | (mergé) | terminée | 1/3 | 21a3e62 → merge 4f1b6bd | rejoué : 63/63 TESTS OK, tst_app_open Passed, `NOMS OK : 305 fichiers` ; rouge vu (C3861 `openFileArgument` introuvable) ; diff : 5 fichiers de la table, aucun test retiré. Code repris du plan. Non fait (plan ne le demande pas) : lancement réel ; `startup.cpp` compilé aussi dans des cibles de test et de banc |
 | L2-T20 | T18 | joueur de scénarios, S5 `aller-retour-natif` | crit | (mergé) | terminée | 1/3 | 8ec2014 → merge 16db45c | après corrections (9b5df8b) : rejoué 64/64 TESTS OK, `BOUCLE max=6 ms OK`, `PIXEL trait-efface OK`, `SCENARIO OK`, `CAPTURES OK`, `NOMS OK` ; contrôle négatif rouge sans `file.close` (agent) ; avant corrections : rejoué : 64/64 TESTS OK (debug), tst_bench_uiscenario (53 fonctions) et tst_captures_aller_retour_natif Passed ; `captures.ps1 -Scenario aller-retour-natif -Rendu logiciel -HorsEcran` : `BOUCLE max=7 ms OK`, `lastIoOffMainThread=true OK` ×2, `ARCHIVE … OK`, fingerprint `16dc08833725aa43 OK`, 3 `PIXEL … OK`, `3 / 3 OK`, `SCENARIO OK`, `CAPTURES OK` ; `NOMS OK : 308 fichiers`. Capture `02-relu-page-2` (orchestrateur) : rectangle bleu à contour noir, « Bonjour » à droite, « 2 / 3 », palette et barre lisibles. Décision : sonde armée après le `frameSwapped` de l'image en attente (≤ 1 s), seuil 25 ms. 11 mutations rouges (agent). À surveiller : 1 passage sur 16 à `BOUCLE max=55 ms` en debug juste après la suite complète. Écart : lecture finale `3 / 3` (le `1 / 3` du plan est faux). Hors périmètre : encoches du trait relu à chaque subdivision. Revue : 0 bloquant, 1 imp. (pixel `trait-relu` sans contrôle que la page a été vidée → contrôle négatif `trait-efface`) + 1 min. (messages de `badNewStepsAreRefused`) renvoyés ; consignés : instabilité non reproduite (12/12 au repos, 5/5 sous 14 processus, 6-9 ms ; 55 ms attribué à la pression mémoire ; remède s'il revient : enregistrement de chauffe + meilleur de deux), étape `archive` qui lit tout chemin, UNC compris (même surface que `file.open`), `actcraft-captures` lit la disposition du vrai profil (`commands.cpp:13`, hors diff) ; 3 constats `simplification` pour la fin de lot (`expandOrFail`, classe `EventLoopProbe`, table nom → fixture et constantes `SORTIE`/`SAMPLES`). Sonde prouvée par le relecteur : E/S sur le fil principal → `BOUCLE max=88/109/117 ms ECART` 3/3 |
 | L2-T21 | T10,T19,T20 | S4 : miniatures, scénarios d'ouverture | crit | (mergé avec L2-C7) | terminée | 1/3 | a939e38 (rebasée : 76a7ce3, da6fee7, 8af514a) → merge 999d548 | rejoué avec L2-C7 : 91/91 TESTS OK ; S4 local `MINIATURES OK : 124 pages, médiane 0.74, 2 au-dessus de 7` (`CONNUE SOUS 7` : une page connue à 6,78 ; même page à 7,35 dans d'autres passages : écart non déterministe d'un passage à l'autre, toujours dans `--connues`) ; `captures.ps1 -Scenario local/ouvrir-flipchart` `SCENARIO OK`, `CAPTURES OK` ; `NOMS OK : 312 fichiers`. Revue : 2 imp. + 3 min. corrigés (pages hors mesure en échec, critère k ≤ 3 prouvé, `*` limité à une page, rendu et `--comparaisons` bornés) ; 4 `simplification` pour la fin de lot. Commande locale : `--pages-attendues 124` |
@@ -104,7 +104,7 @@ Lot 2b (plan `docs/plans/2026-10-15-livraison-complete-lot2b-PLAN.md` ; vagues V
 Plan : `docs/plans/2026-10-18-livraison-complete-lot10-PLAN.md` (66a9300, relu en 3 tours, prêt) — fichiers touchés exacts et preuves : table du plan. Vagues : V1 T0 ‖ T1 · V2 T2 ‖ T5 · V3 T3 · V4 T4 · V5 T6 · V6 T7 (si exigée). Version 0.3.0 (amendement 1, § 6). Écarts 1-6, hypothèses H10-1 à H10-9.
 | id | dépend | zone | agent | worktree | état | essais | dernier commit vert | preuve rejouée |
 |----|--------|------|-------|----------|------|--------|---------------------|----------------|
-| L10-T0 | — | ouverture : vidéos, REA et ancien dépôt confrontés au lot | crit | (mergé) | terminée | 1/3 | ac9a753 → merge 0a2fb70 | note `docs/verifications/2026-10-18-lot10-principes.md` (P1-P18, nos mots, références `Vnn`), relevé brut hors dépôt présent, `NOMS OK : 320 fichiers` (rejoué). Serveur `rea` indisponible : binaire en statique (chaînes). Écarts versés au plan (12b9af9) : encre révélatrice exclue du différé (L10-T3), limites de DA11 (formes sous annotations, grille au-dessus, gomme, reconnaissance), H10-10, replis de L10-T6. Hors périmètre : `render/` ignore `StrokeKind` (révélateur et marqueur lus d'un fichier dessinés comme un trait ordinaire) ; libellé « Nouveau paperboard » à revoir (N1-12) |
+| L10-T0 | — | ouverture : vidéos, REA et ancien dépôt confrontés au lot | crit | (mergé) | terminée | 1/3 | ac9a753 → merge 0a2fb70 | note `docs/verifications/2026-10-18-lot10-principes.md` (P1-P18, nos mots, références `Vnn`), relevé brut hors dépôt présent, `NOMS OK : 320 fichiers` (rejoué). Serveur `rea` indisponible : binaire en statique (chaînes). Écarts versés au plan (12b9af9) : encre révélatrice exclue du différé (L10-T3), limites de DA11 (formes sous annotations, grille au-dessus, gomme, reconnaissance), H10-10, replis de L10-T6. Hors périmètre : `render/` ignore `StrokeKind` (révélateur et marqueur lus d'un fichier dessinés comme un trait ordinaire) ; libellé de la commande de création revu le 2026-10-18 (« Créer un paperboard », N1-12) |
 | L10-T1 | — | banc : scénario `pauses`, redessins du cache relevés | impl | (mergé) | terminée | 1/3 | c714c56 → merge 15d76d0 | rejoué : 91/91 `TESTS OK` ; `tst_bench_smoke`, `tst_bench_result`, `tst_bench_scenarios` 3 passages verts ; banc hors écran : `pauses` présent (4 figements, attendus avant le versement différé), `cache.refreshes` stroke 10, zoom 0, scroll 0, page 7, pauses 4 ; `content_check.ok = True` ; `NOMS OK : 320 fichiers`. Agent : 1 échec isolé de `tst_bench_result` au premier passage sous charge (déjà vu au lot 2), non reproduit |
 | L10-T2 | — | render : fabrique de nœuds d'objet partagée (refonte) | impl | (mergé) | terminée | 1/3 | 316dd04 → merge 78c6dbd | agent : `tst_render_fixedpage`, `tst_render_painted`, `tst_render_painted_density` 3/3, mutation de `wrapped` (`setOpacity(1.0)`) rouge puis remise, banc hors écran `content_check.ok = True`, `NOMS OK : 322 fichiers`, aucun test modifié (diff de `tests/` vide). Suite complète 89/91 sous charge (`tst_pageview` 33 s, `tst_bench_result`) ; rejoués seuls par l'orchestrateur : `tst_bench_smoke`+`tst_bench_result` 3/3, `tst_pageview` 3/3 (37 fonctions, 8 s). Commit fait par l'orchestrateur (agent à court de tours) |
 | L10-T5 | T0 | anticrénelage D3D11 (MSAA 4×), `checkEdge`, grille nette (S33) | crit | (mergé) | terminée | 1/3 | 5c5145a → merge 407dae9 | rejoué : 92/92 `TESTS OK` ; `anticrenelage` hors écran ×3 et D3D11 à l'écran ×1 : `LU pageCache.samples=4 OK`, `BORD grille-nette OK (encre 1)`, `BORD trait-diagonal/verse/zoom OK (intermédiaires 2)` ; `NOMS OK : 323`. **A/B D3D11** base 02f6fd1 / tâche ×2 : p95 stroke/zoom/scroll 17,0 ms des deux côtés, GPU du `zoom` 164 → 297 Mo, processus 333 → 465 Mo (total ≈ 760 Mo < 1 Gio). Agent : rouge D3D11 par mutation sans MSAA ; intermittence de `grille-nette` = attente du scénario (ouverture en cours), corrigée + test `committedScenariosWaitForEveryOpen`. Revue : 0 bloquant, 2 imp. (MSAA de la fenêtre non prouvé → preuve reportée à L10-T4 ; H10-9 : `samples ≤ 1` suit la fenêtre, repli à refaire, pic à zoom 800 % posé à mesurer en L10-T6) + 5 min. → 8 correctifs (minInk 8/24, seuil à 45° documenté, liens vers `kMsaaSamples`, plan : preuve fenêtre en L10-T4, H10-9 et L10-T6 étape 4 bis, H10-5) ; rejeu final : 4 tests ciblés Passed, `anticrenelage` hors écran `CAPTURES OK` (encre 13 ≥ 8, 33 ≥ 24), format OK, `NOMS OK : 323` |
@@ -113,8 +113,212 @@ Plan : `docs/plans/2026-10-18-livraison-complete-lot10-PLAN.md` (66a9300, relu e
 | L10-T6 | T4 | mesure S13 (3 passages D3D11, A/B, machine calme), décision tuiles | crit | (mergé) | terminée | 1/3 | 135899f → merge 6e2838e | S13 **tenu** : 3 passages D3D11 du lot 10, figements et reprises hors limite 0 sur les 5 scénarios ; référence 15d76d0 : 1 figement stroke par passage (redessin). **L10-T7 non requise.** Zoom 800 % posé : 1 261,5 Mio (lot 10) contre 387,9 (base) → **repli H10-9 requis** (L10-T8). Hors S13 : `all.memory_peak_bytes` perdu (1,65-1,72 Go sur scroll), `pauses.over_25ms_ratio` perdu à P3/P4 (1,04 %, 3,19 %) → L10-T9 (enquête). Résumé `docs/mesures/2026-10-18-cache-incremental.md` |
 | L10-T7 | T6 | cache par tuiles (conditionnelle) | crit | — | non requise (L10-T6 : S13 tenu) | 0/3 | — | — |
 | L10-T8 | T6 | repli H10-9 : mémoire du cache MSAA sous le budget (5 variantes mesurées avant d'écrire) | crit | .worktrees/livraison-complete--L10-T8 | en cours | 0/3 | — | — |
-| L10-T9 | T8 | images de 25 à 50 ms après reprise dans `pauses` : enquête | crit | — | étape 1 (analyse des JSON) en cours | 0/3 | — | — |
-| L10-C1 | T6 | correctifs de la relecture de clôture 1 (rognage de la couche d'attente, revision au changement de document, prédicat « peut attendre », expect d'anticrenelage, booléen de ScenarioPlan, RenderContext unique, connexion inutile) ; S2 (`postponeFold` en double dans pageview.cpp) reporté après L10-T8 | crit | .worktrees/livraison-complete--L10-C1 | en cours | 0/3 | — | relecture de clôture 1 : clôturable après correctifs, 0 bloquant, 1 important, 5 mineurs, 3 simplifications |
+| L10-T9 | T8 | images de 25 à 50 ms après reprise dans `pauses` : enquête | crit | — | étape 1 faite (analyse : le versement du cache MSAA bloque le fil principal 20-45 ms après sa paire d'images ; corrélation établie, mécanisme non ; scripts `scratchpad/l10t9/`) ; étape 2 après L10-T8 (règle « jugé » à changer : calme mesuré hors des 100 ms après un redessin) | 0/3 | — | — |
+| L10-C1 | T6 | correctifs de la relecture de clôture 1 | crit | (mergé) | terminée | 1/3 | 1cb15b4, 86b2571 → merge c2e21e6 | rejoué : `cache-differe` et `anticrenelage` `CAPTURES OK` (pendingCount 1 puis 0), `NOMS OK : 328` ; suite 93/94 : seul `tst_captures_aller_retour_natif` rouge (`BOUCLE max=66 ms ECART`, seuil 25), aussi rouge sur la branche des titres (= base) et seul (82 ms) sous la charge de la machine (`tst_ui_filemenu` 210 s) → contrôle fragile sous charge, pas une régression ; L10-C2 |
+| titres | — | deux titres de vidéos du corpus retirés (commande « Créer un paperboard », cadrage) ; exclusions du contrôle retirées | — | (mergé) | terminée | 1/3 | 04f883a → merge f167eb9 | signalé par L7-T0 (session B) ; suite 93/94 (même rouge BOUCLE) ; `tst_actions_*`, `tst_ui_filemenu` Passed ; `NOMS OK : 330` ; les titres restent dans l'historique public de main (correction en avant seulement) |
+| L10-C2 | C1 | contrôle `maxEventLoopGapMs` fiable sous charge (mutation : E/S sur le fil principal → rouge) ; doit être mergée **avant L0-S2** (`uiscenario.*`) | crit | .worktrees/livraison-complete--L10-C2 | en cours | 0/3 | — | — |
+
+## Reprise après le temps calme du 2026-10-18 (~22 h 30, redémarrage de l'app demandé par Jérôme)
+
+Mergé dans `feat/livraison-complete` (tête : ce commit) : lot 10 T0-T6, C1, correctif des titres ; plans socle (9b13275 + b97bc2e) et lot 3 (7f9d4a8) ; socle L0-S0 (b904dcf) et L0-S1 (4239898).
+Agents arrêtés ; travail commité en **wip** (non prouvé, peut être rouge), chacun dans son worktree `.worktrees/livraison-complete--<id>` :
+- **L0-S3** `ff01fdc` : code et tests écrits ; build vert avec `/we4062` ; 3/5 tests ciblés verts, 2 corrigés non relancés (`tst_core_model` empreinte figée → équation retirée du test ; `tst_formats_nativejson` gabarit `"hologram"`). Preuve : `scratchpad/preuve-l0s3.ps1` (sortie `scratchpad/out/preuve.txt`). À transmettre à L0-S5 : `UndoStack::push` enregistre même avec des Changes vides.
+- **L0-S6** `c799eb9` : squelette du lot 3 écrit ; preuve (`test.ps1`) lancée, arrêtée avant la fin.
+- **L10-C2** `8d3930b` : règle « fenêtre rejouée une fois » prouvée (mutation rouge 3/3, S5 vert 6/6) ; suite complète avec le test corrigé à relancer : `scratchpad/c2-fin.ps1` (refait le commit propre : défaire d'abord le wip par `git reset --soft HEAD~1`, ou adapter le script). À merger **avant L0-S2**.
+- **L10-T8** `7215925` (tête prouvée précédente a203792) : V3-3072 + `QSG_NO_DEPTH_BUFFER` ; mesures à l'écran tenues (banc 930,4 Mio, 800 % 609,1 Mio, S13 tenu) ; reste `tst_pageview` rouge à lire (`scratchpad/l10t8/pv2.ps1`), résumé à compléter (relevés après repli, écart V1), puis preuve ciblée et merge.
+**Premier geste à la reprise** : relire le handoff `~/.claude/handoffs/fd5ef06a-7b9b-46ba-a8c3-b06809fefd99.md`, puis relancer un agent par wip (L0-S3, L0-S6, L10-C2, L10-T8) en lui donnant ce paragraphe ; preuves ciblées par tâche, suite complète par l'orchestrateur après chaque vague ; ensuite V2 du socle (S7 ‖ S5 ‖ S4). Session B (`local_24731de6-05ad-4fc2-9c6a-9c2283da3a71`) : une place de tests, attend mon signal pour la 2e et « socle mergé ».
+
+## Reprise après le redémarrage du poste (2026-10-18, 22 h 50, cause probable : mémoire)
+Message de Jérôme relayé par Pilote : reprendre « mais soit prudent ». Consigne de Pilote : au plus 4 sous-agents à la fois, un seul qui construit, relectures et plans d'abord, jusqu'aux conclusions de son étude mémoire.
+Contrôle d'intégrité (23 h 05) : aucun `index.lock`, `fsck` propre, aucun fichier tronqué ni rempli de zéros, aucun jeton orphelin. Aucun build n'était en écriture au redémarrage (dernières écritures 20 h 16 à 22 h 18).
+Wip recommités (non prouvés) : L0-S3 `3aad439`, L0-S4 `267b2a6` (non construit), L0-S6 `1881750`, L10-C2 `4bd0dc0` (suite de fin jamais jouée : le jeton attendait la RAM), L10-T8 `2c0934e` (résumé seulement ; code = a203792).
+Perdu : rien de code ; les plans 5 et 6 n'avaient rien écrit ; les deux relectures statiques étaient en cours.
+Relancés (4) : relecture plan lot 4, relecture statique L10-T8, plan lot 5, L0-S3 (seul constructeur).
+Relecture statique L10-T8 rendue (23 h 20) : **mergeable après correctifs**.
+- 1 blocker : `pageview.cpp:123`, `QQuickWindow::graphicsApi()` ne renvoie jamais `Software`, d'où le rouge de `tst_pageview`.
+- 1 majeur : le terme « ajustement » du plancher n'est pas testé.
+- 5 mineurs : nom de test contraire à Qt, raison de la variable fausse (les couches ne lisent que `QSG_NO_DEPTH_BUFFER`), stencil retiré aussi, `static_assert` des constantes, modèle 20 o/px.
+L'agent L10-T8 a été relancé à la place de la relecture finie : il écrit les correctifs sans construire et attend mon signal pour sa preuve ciblée. La note du coffre `04_Pieges/qt-msaa-couche-…` est corrigée (cause exacte, stencil, `rendererInterface()`).
+L10-T8 : correctifs écrits, wip `ae13b71`, non construits. La preuve ciblée attend la place de construction : `scratchpad/l10t8/preuve-ciblee.ps1` sous le jeton, journal `scratchpad/l10t8/preuve/journal.txt`.
+Relecture du plan du lot 4, tour 1 (23 h 35) : pas exécutable tel quel.
+- 5 bloquants : raccourci Ctrl+Shift+S en double, argument de `text.edit-at`, `socleLayerOrder`, titres de vidéos dans `$exclus`, HTML sans garde `loadResource`.
+- 11 majeurs.
+- Rapport : `scratchpad/revue-plan-lot4.md`. Amendement statique confié à un planificateur.
+Agents en cours : plan lot 5, plan lot 6, amendement lot 4, L0-S3 (seul constructeur).
+L0-S3 rendue (`56ce4b8`, graphe `2bb5fac`). **Rejouée par l'orchestrateur à 23 h 23 : verte.**
+- format 0, build 0 (`/we4062`).
+- 7 tests ciblés à code 0 : model 20, generator 12, edits 10, pagecache 7, replace 12, nativejson 31, painter 48. Les 3 fonctions nommées sont en PASS.
+- Mutation `next = r - 0 * k` : `groupOfTwoTakesTheHigherRank` FAIL (1, 3, 5, 6). Remise par `git checkout --` : 12/12.
+- 113 tests listés, worktree propre, NOMS OK 392.
+- Merge en attente de la relecture adversariale statique (en cours).
+L10-T8 : preuve ciblée lancée sous le jeton à 23 h 24 (seule construction).
+**L10-T8 terminée et mergée** (c6f9fe7 → merge d365a72). Preuve rejouée verte :
+- build 0 ; tst_pageview 53, tst_viewtransform 12, tst_renderbackend 9.
+- Mutation de l'ajustement : rouge (3072 au lieu de 3687), puis remise.
+- Captures en logiciel : anticrenelage (samples=1) et cache-differe OK. Capture anticrenelage OK en D3D11 (samples=4), sous le jeton `ecran`.
+- format OK, NOMS OK, titres 0 sur 144.
+- Graphe reconstruit par `--force` (bbea758), après refus de la garde anti-réduction : le graphe de base était pollué par des nœuds `document` d'autres worktrees. Perte : 7 nœuds `document` légitimes (CHANGELOG, plans, cadrage), à recréer par une extraction sémantique. Piège ajouté à `04_Pieges/rebase-du-graphe-graphify-noeuds-en-trop.md`.
+- Suite complète de la vague : à lancer par l'orchestrateur après le merge de L0-S3.
+L0-S3 : relecture adversariale « mergeable après correctifs ».
+- Défauts : 1 blocker (S31 de `tst_formats_nativefile` avec un type `"equation"` devenu connu), 1 majeur (pas de marge sur l'emprise de l'équation), 4 mineurs.
+- Correctifs `d45fbfd` (graphe `942d782`). Second rejeu en cours : 8 tests, mutation `++next`.
+Plans écrits, non relus :
+- lot 5 : 34 tâches, 5a et 5b (89c1673) ;
+- lot 6 : 38 tâches, 6a et 6b (809919b). H6-6 demande à Jérôme d'approuver le téléchargement de Hunspell et d'un dictionnaire, avant V12 du lot 6.
+Plan du lot 4 amendé en 860d7a0 (5 bloquants et 11 majeurs appliqués ; D6, D8, D17 et D18 renvoyés à L4-T0). Sa branche part d'avant f167eb9 : les titres qu'elle voit encore ne sont pas sur la branche du chantier.
+Relectures en cours : plan du lot 5 (tour 1), plan du lot 4 (tour 2), plan du lot 6 (tour 1).
+Relectures rendues :
+- Plan du lot 4, tour 2 : 0 bloquant, 5 majeurs. Rapport `scratchpad/revue-plan-lot4-t2.md`, amendement 2 en cours.
+  - **N2 concerne aussi L0-S4** : `defaultLayoutMatchesLotOne` compare la liste exacte des groupes de palette, et un groupe ajouté par le socle doit l'amender. À transmettre à l'agent de L0-S4.
+- Plan du lot 5, tour 1 : 4 bloquants, 13 majeurs. Rapport `scratchpad/revue-plan-lot5.md`, amendement 1 en cours.
+**L0-S3 mergée** (be2e5de, graphe a390e33).
+- Conflit du graphe résolu avec `--ours` (graphe propre du chantier), puis `graphify update .` : 4 163 nœuds, sans refus.
+- **Règle désormais** : au merge d'une tâche, garder `graphify-out/` du chantier, puis mettre à jour. Ne jamais prendre la version de la branche : l'union du pilote de fusion réintroduit des nœuds périmés.
+Plan du lot 4 amendé une deuxième fois (12bf522). Tour 3 de relecture, le dernier (compteur 3/3) :
+- 10 corrigés sur 13, 3 partiels.
+- 1 majeur neuf : M1, le test `editingLoadsNoExternalResource` ne peut pas passer à cause du DOCTYPE `http`. Correction de deux lignes.
+- 6 mineurs.
+Amendement 3 confié au planificateur. **Acceptation conditionnelle** : je contrôle moi-même le texte de M1 ; il n'y aura pas de tour 4.
+**À transmettre à L0-S4** (2 points des relectures du lot 4) :
+- `defaultLayoutMatchesLotOne` compare la liste exacte des groupes de palette : l'amender si le socle ajoute `edition` et `presentation`.
+- Le test `contextMenuRead` du plan du socle (`socle:720-727`) écrit `actions::Layout` et `actions::parseLayout`. Ces noms ne se résolvent pas dans `tst_actions_layout.cpp` (`using namespace actcraft::actions;`).
+Plan du lot 5 amendé (da1e999 : 34 tâches, 16 vagues, H5-7 à H5-10). Tour 2 de relecture en cours.
+**Plan du lot 4 accepté et mergé** (b60826b → merge b7add35).
+- Amendement 3 appliqué ; texte de M1 contrôlé par l'orchestrateur (`lot4b:553-558`) : il est juste.
+- 144 titres contrôlés, 0 trouvé ; NOMS OK 425.
+- D19 (place du groupe `formes-texte`) renvoyée à L4-T0.
+Plan du lot 6 amendé (c2d6796 : 38 tâches, 15 vagues ; nouvelles hypothèses H6-9 « procédure de déblocage publique » et H6-10 « mesure du PBKDF2 sur le Dell 3510 »). Tour 2 de relecture en cours.
+**L0-S6 terminée et mergée.**
+- Commit propre 986fd8a (code identique à l'arbre prouvé 02e5348), merge 0299bf3, graphe cb2ad56 à 4 459 nœuds.
+- Rejeu : format 0, build 0, ctest ciblé 20/20, talons en SKIP qui nomment leur tâche, mutation de `setOpenMathTools` rouge puis remise, `CAPTURES OK`, 113 tests, NOMS OK.
+- **V1 du socle complète** (S1, S3, S6). Suite complète de la vague lancée sous le jeton (`scratchpad/out/suite-v1.txt`).
+Relecture du plan du lot 5, tour 2 : 2 nouveaux bloquants et 6 majeurs. Rapport : `scratchpad/revue-plan-lot5-t2.md`. Amendement 2 en cours.
+**Suite complète de V1 verte** (tête cb2ad56, 00 h 34 à 00 h 52) : `100% tests passed, 0 tests failed out of 113`, `TESTS OK`. Seuls sautés, comme avant : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`.
+L0-S5 écrite, non construite (wip `c89ffff`). Preuve prête : `.tmp/preuve-L0-S5.ps1` du worktree. Mutation : `ChangeOrigin::Stroke` remplacé par `Command`.
+Découvertes à transmettre :
+- **À B, avec « socle mergé »** : `replaceDocument`, `loadGeneratedFirstPage` et `loadGeneratedPages` ne passent pas par `applyToCache`, donc l'observateur n'est pas appelé. Le lot 7 doit écouter `pagesChanged` ou `documentChanged`.
+- **Au lot 3, amendement** : le commentaire de `editAboutToApply`, copié du plan du lot 3, cite « un soulèvement », ce qui contredit B1 et la documentation de `liftObjects`.
+**L0-S4, rejeu rouge** (16f323b, 01 h 03).
+- Le QML ne se charge plus : `CommandMenu is instantiated recursively`. Conséquences : `tst_ui_shell` 17 FAIL, `tst_ui_filemenu` rouge, `premiers-pas` EN ECHEC.
+- `unreadableProfileLayoutFallsBackToResource` : 6 menus au lieu de 4.
+- `format -Check` à 1.
+- La mutation `noShortcutTwice`, elle, est rouge comme attendu.
+- Renvoyé à l'agent, qui est le seul constructeur : composant `CommandSubmenu.qml` à un niveau. Essai 2/3.
+L0-S7 écrite, non construite (wip `a6c83f1`) ; preuve dans `scratchpad/preuve-L0-S7.ps1`.
+- Question de l'agent : l'amendement 5 du lot 3 confie au socle `routeEvent`, `Sample::event`, et le passage du doigt à `Ignore` quand le stylet appuie (M4, P3:2469). Ni L0-S6 ni L0-S7 ne les portent. **Tranché par A : rien n'est ajouté au socle.**
+- Le plan du lot 3 (l. 1203-1210) dit que `routeEvent` n'est pas écrit dans ce lot (H3-16).
+- M4(b) relève de L3-T5, qui s'arrête et le rapporte si le mécanisme de L0-S7 ne fait pas passer les doigts à `Ignore`. L0-S7 teste déjà `fingerIgnoredWhileStylusToolContact`.
+- Talon de plus pour L0-S10 : `gestureActive()`.
+Plan du lot 6, tour 3 : refusé. 2 majeurs : N1, réglages et profils d'essai partagés entre les lancements ; N2, `pageView` n'est pas un identifiant QML. S'y ajoute N3, preuve du fichier INI au mauvais chemin.
+- Amendement 3 en cours.
+- Acceptation conditionnelle, sur contrôle de l'orchestrateur ; pas de tour 4.
+**Piège pour tous les lots** : dans le code QML, la vue s'atteint par `pageArea.view`. Dans les étapes de scénario et les lectures du banc, `pageView.…` est juste : le joueur trouve l'objet par son `objectName`.
+- Les plans des lots 3 et 4 écrivent en prose « placé par `pageView.pageToScene` ». L'implémenteur doit le lire comme `view.pageToScene` dans `PageArea.qml`.
+- À rappeler dans les briefs des tâches QML.
+**Plans des lots 5 et 6 acceptés et mergés.**
+- Lot 5 : 8b9395e, merge 5937349.
+- Lot 6 : b50daf0, merge 5373f04.
+- Les deux ont eu 3 amendements, et le texte des derniers majeurs a été contrôlé par l'orchestrateur.
+- Contrôles : 144 titres, 0 trouvé ; NOMS OK 429 ; aucun `pageView.` dans le QML du lot 6.
+- Hypothèses à présenter aux portes des lots : H5-7 à H5-10, H6-1, H6-7 à H6-10.
+- Décisions de Jérôme encore ouvertes : H6-6 (dictionnaire) et H6-6b (licence de Hunspell).
+**L0-S4 terminée et mergée.**
+- Commit propre ef3f757, merge d13dc35, graphe f557599.
+- Preuve rejouée par mon script (tête prouvée 4ffb39c, code identique au commit) : 6 tests ciblés verts, tst_ui_shell 19/19, mutation `noShortcutTwice` rouge, CAPTURES OK, 113 tests listés.
+- Titres : 0 sur 144 après le dernier libellé. NOMS OK 431.
+- Essais : 2/3.
+Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
+**2026-10-19, vers 02 h 10.**
+- **L0-S7 : preuve ROUGE, renvoyée à l'agent.**
+  - `coverHandlerGetsThePress` compte 5 appuis au lieu de 1 après `tabletStroke`, `tst_ui_inputpath.cpp:277`. L'échec reste après la remise de la mutation.
+  - Le reste est vert : construction ; 7 tests rouges sous mutation ; captures premiers-pas et cache-differe ; format ; NOMS OK 425.
+  - Banc logiciel hors écran : BUDGET DEPASSE, informatif.
+  - Essais : 1/3.
+- **L0-S5** : j'ai fusionné la tête 27ec7ba dans la branche, sans conflit (f2a141d). Preuve `.tmp/preuve-L0-S5.ps1` relue (un fichier par test), lancée sous le jeton (`scratchpad/out/preuve-l0s5.txt`).
+- **Plan du lot 11** (86faccc, 31 tâches) : relecture tour 1 refusée, 2 bloquants et 16 majeurs (`scratchpad/revue-plan-lot11.md`) ; amendement 1 en cours.
+  - **Décision de A sur les API privées** : le lot 11 n'ajoute aucun usage d'API privée de Qt, ni dans le code livré ni dans le joueur. Le banc garde son lien existant à `Qt6::GuiPrivate` pour les touches.
+  - Voies publiques retenues : `QPointingDevice` public avec `postEvent` ; `QApplicationStateChangeEvent` par `sendEvent`.
+- **L10-C2 mergée** : 8643413, merge 5ebdec5, graphe e8323a8.
+  - Rejeu (tête 742be31) : 113/113, TESTS OK ; tst_bench_uiscenario 56/56 ; mutation de la reprise coupée, 2 tests rouges ; remise propre ; NOMS OK.
+  - Graphe : 117 nœuds `document` de plus, tous issus des plans des lots 8 et 11, aucun d'un autre worktree.
+- **L0-S2 lancée en écriture seule** (worktree à e8323a8). Elle attend mon signal pour construire.
+- **L0-S9 bloquée à la construction** : C4702 sous `/WX` dans le code AOT de `ToolPalette.qml`.
+  - Cause : `QJSEngine::fromPrimitiveValue<T>` (`qjsengine.h:96-112`) enchaîne des `if constexpr` sans `else`. Qt protège `fromVariant` contre ce même avertissement, mais pas cette fonction. Candidat au coffre une fois corrigé.
+  - **Décisions de A** :
+    - `/wd4702` sur les seuls sources générés par qmlcachegen pour `actcraft_ui`, sous MSVC, avec la cause en commentaire. `ui/CMakeLists.txt` entre dans L0-S9.
+    - `CommandMenu.qml:47` (`menu.commands` lu à la destruction, défaut de L0-S4) est corrigé par L0-S9 (`menu ? menu.commands : null`), sans masquage dans le test.
+    - Le scénario `pauses` cité par le plan n'existe pas : il est retiré de la preuve de L0-S9.
+- **L0-S2, rejeu 1 ROUGE** (tête 73dc57c) : tst_bench_uiscenario 71 passed, 2 failed ; suite à 112/113.
+  - Cause 1 : `QLatin1String` reçoit des littéraux UTF-8 non ASCII (`±`, `×`), donc la comparaison échoue toujours.
+  - Cause 2 : un `QTouchEvent` posté directement contourne le suivi des points actifs (`point is not in activePoints`), et Qt Quick ne reçoit pas le pincement.
+  - **Décision de A** : les gestes passent par l'API publique de Qt Test (`QTest::createTouchDevice`, `QTest::touchEvent`, avec des identifiants distincts), dans `actcraft_benchui`, qui lie déjà `Qt6::Test`. Le banc livré (`actcraft_bench`) ne lie pas Qt Test. L'injecteur garde le calcul des séquences.
+  - Essais : 1/3. Candidat au coffre (`QTouchEvent` posté sans les points actifs).
+- **L0-S9, wip d6ab0a4** : compilation réparée. Le C4702 venait du `visible` de `TrashCan` dans `ToolPalette.qml` (`fromVariant<int/bool>`), corrigé par `/wd4702` sur les seuls sources générés par qmlcachegen. Mutation rouge. Captures, banc et NOMS OK.
+  - Restent :
+    - avertissements de fermeture de `CommandEntry.qml` (défaut de L0-S4, `commands` null au démontage) ; autorisé dans la ligne de L0-S9 ;
+    - `pageAreaWithoutToolsDraws`, dont le montage n'avait pas de document : on lui pose un `DocumentController` réel.
+  - **Écart accepté** : la racine de `Presentation.qml` est un `QtObject`, car la propriété `layer` du contrat entre en conflit avec `Item.layer`, qui est FINAL. Le lot 7 pose ses surcouches avec `parent: presentation.layer`. **À transmettre à B avec « socle mergé ».**
+- **L0-S2 mergée** (0691607), **L0-S9 mergée** (3450380). L0-S10 est joué par l'orchestrateur (`scratchpad/l0s10.ps1`, journal `scratchpad/out/l0s10/journal.txt`) : suites debug et release, talons, captures `tous`, banc et noms.
+- Coffre : deux pièges ajoutés dans `04_Pieges/` et à la carte (toucher posté hors du suivi des points actifs ; C4702 de qmlcachegen sous `/WX`). Ne pas recopier ici le nom de fichier de la première note : le contrôle des noms y lit un nom composé de l'original.
+- **L0-S10, socle contrôlé** (orchestrateur, tête ccfb6a5, journal `scratchpad/out/l0s10/journal.txt`) :
+  - suites : debug 113/113 TESTS OK, release 113/113 TESTS OK ; N = N_départ + 19 = 113 ;
+  - talons : `L0-` aucun ; `L3-` 45 lignes dans 38 fichiers, dont 8 dans `ui/src/documentcontroller.cpp` (le plan visait de l'ordre de 35) ; `L7-` 3 lignes (`equation.h`, `equation.cpp`, `equationlayout.cpp`). **Ces comptes sont la référence des clôtures des lots 3 et 7** ;
+  - `QSKIP` hors talons : 5, tous antérieurs au socle (`tst_bench_memory`, `tst_formats_nativejson` référence, `tst_formats_oracle`, deux dans `tst_formats_oracle_synth`) ;
+  - captures `tous` hors écran, en logiciel : 9 SCENARIO OK, CAPTURES OK ;
+  - banc logiciel hors écran : `content_check.ok = True`, BUDGET DEPASSE (informatif) ;
+  - NOMS OK 435, après correction d'une ligne de ce fichier qui citait le nom de fichier d'une note du coffre.
+- **Socle mergé.** Message « socle mergé » envoyé à B, avec la note de L0-S5 et l'écart de `Presentation.qml`. Prochaine étape : le lot 3, en amendant d'abord le commentaire d'`editAboutToApply`.
+- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
+- **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
+  - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
+- **V2 du socle mergée** (L0-S5 et L0-S7). La suite complète de V2 tourne sous le jeton (`scratchpad/out/suite-v2.txt`). L0-S9 est en cours, V3. L0-S2 attend le merge de L10-C2, qui passe après la suite de V2.
+- **Plan du lot 11 mergé** (9c21260, amendements 7292f49 et 7ffdb07). Accepté au tour 3, sous condition : j'ai contrôlé moi-même les lignes. Plus aucun `reg query` ; assertion `QSettings probe` ; `tst_app_versioninfo` à part ; aucune API privée ; mode réel du flux de release interdit. Titres : 0.
+- **Plan du lot 8 mergé** (67dcaeb, amendements e72110b et 3f8ad9c). Accepté au tour 3, sous condition : j'ai contrôlé moi-même les lignes. Plus de lecture `menuItem-`, `appCommands.` ni `appDocument.` ; `platforms: []` n'est cité que comme défaut ; aucune API privée ; Gradle sans démon ; `ACTCRAFT_SOURCE_DIR` posée par L8-T1. Titres : 0.
+  - **Décision de A sur la liste blanche des liens (D8-4)**, fermée.
+    - Exclus : `svg`, `doc`, `xls`, `ppt`, `rtf`, et tout format à macros.
+    - Admis :
+      - documents : `pdf`, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`, `txt` ;
+      - images : `png`, `jpg`, `jpeg`, `gif`, `bmp` ;
+      - sons : `wav`, `mp3`, `ogg`, `m4a` ;
+      - vidéos : `mp4`, `webm`, `avi`, `mov`, `wmv`.
+- **Suite complète de V2** (tête d307e6b) : 111 sur 113.
+  - Échecs : `tst_bench_result` (piège connu : `tst_bench_smoke` sous charge) et `tst_captures_aller_retour_natif` (`BOUCLE max=26 ms ECART`, seuil 25 ms).
+  - Rejeu seul sous le jeton : 4 sur 4 verts (`scratchpad/out/echecs-v2.txt`).
+  - Verdict : instabilité due à la charge, pas une régression. C'est exactement ce que corrige L10-C2 (fenêtre de boucle rejouée une fois).
+- **L10-C2** : j'ai fusionné la tête 67dcaeb dans la branche (742be31), sans fichier commun. Rejeu lancé sous le jeton (`scratchpad/rejeu-l10c2.ps1`) : suite complète, `tst_bench_uiscenario`, puis une mutation qui coupe la reprise unique (`eventLoopGapIsRetriedOnce` doit rougir). Merge avant L0-S2.
+- **À reporter à toute construction d'APK** (M13) : `org.gradle.daemon=false` dans `paquet-android.ps1`, sinon la commande ne rend pas la main et garde le jeton (piège déjà vu, § Pièges).
+Plan du lot 8a écrit en partie (53a290e : 20 tâches en 8a, 15 en 8b) ; l'agent continue.
+**Nouvelle décision pour Jérôme, H8-6** : télécharger Qt Multimedia (avec FFmpeg) et Qt WebView. Elle n'est nécessaire qu'au début du lot 8b.
+Plans écrits à l'avance, en cours : lot 8 (`.worktrees/livraison-complete--plan-lot8`) et lot 11 (`…--plan-lot11`).
+Le lot 9, confrontation du produit fini aux vidéos, sera planifié à son tour.
+Plans amendés en cours de dernière relecture (tour 3) : lot 5 (5350a99) et lot 6 (e754dbe).
+V2 en préparation, écriture seule (un seul constructeur) : L0-S7 (worktree neuf à cb2ad56) et L0-S4 (reprise du wip 267b2a6 après fusion de la tête). Chacun attend mon signal pour sa preuve. L0-S5 démarre quand une place d'agent se libère.
+**Décision de A, demandée par B (L7-T26)** : pas d'inclusion privée de `render/src` depuis `ui/presentation.cmake`.
+- À la place, une API publique : `render/include/actcraft/render/equationpaint.h`, avec `EquationPaintMode { Page, Editor }`.
+- Elle est posée par L7-T25, dont le contrat est amendé par B.
+- Raison : règle de modularité des en-têtes publics.
+Hors dépôt, à écrire par l'orchestrateur avant L6-T6 : `REA - Activinspire\docs\re\lots\lot6-noms-profils.txt`.
+Relecture du plan du lot 6, tour 1 : 1 bloquant, 15 majeurs. Rapport : `scratchpad/revue-plan-lot6.md`. Amendement 1 en cours.
+**Nouvelle question pour Jérôme, H6-6b** : licence de Hunspell, MPL 1.1 (recommandé) ou LGPL en lien dynamique ; la décision 34 dit « LGPL, liés dynamiquement ». Elle n'est nécessaire qu'à V12 du lot 6.
+L0-S6 relancé (seul constructeur) : fusion de la tête du chantier d'abord, à cause de `/we4062` et d'`Equation`. Suite complète de V1 après le merge de L0-S6.
+**H6-6, accord de Jérôme (2026-10-18, message direct)** : « téléchargement de Hunspell, tu as mon accord ».
+- L6-T32 est débloquée pour Hunspell 1.7.2.
+- Le dictionnaire français (Grammalecte, MPL 2.0), prévu dans la même hypothèse, n'est pas nommé dans la réponse. Je le traite comme couvert par H6-6 et le signale à Jérôme ; à reconfirmer à la porte du lot 6 s'il le refuse. En attente : L0-S4, L0-S6, L10-T8 (agent), fin de L10-C2, plan lot 6.
+
+## Tâches du socle commun L0-S (plan 9b13275, mergé 1ffb07b ; relecture tour 1 : 1 bloquant, 11 importants, tous appliqués ; tour 2 en cours)
+| id | dépend | titre | worktree | état | essais | commit | preuve rejouée |
+|---|---|---|---|---|---|---|---|
+| L0-S0 | — | réservation (fichiers vides marqués, CMake, 19 tests, crochets du lot 7) | (mergé) | terminée | 1/3 | 12be1ea, 080399f → merge b904dcf | rejoué : build 0, 113 tests listés, les 19 neufs 100 % Passed (talons en SKIP nommant leur tâche, ex. `tst_core_hittest` : `SKIP reserved() Talon L0-S : rempli par L3-T3`), `premiers-pas` `CAPTURES OK`, `NOMS OK : 391`, ligne `include(... presentation.cmake OPTIONAL)` en dernière ligne de tests/CMakeLists.txt |
+| L0-S1 | S0 | icônes des deux lots (31 SVG) | (mergé) | terminée | 1/3 | 65fb991, cfe4661 → merge 4239898 | rejoué : format 0, build 0, `iconsAreOurSvgOnA24Grid` 41 PASS (`tst_ui_theme` 63 passed, 0 failed), 113 tests ; agent : suite 113/113 puis format corrigé ; SVG simples (24 × 24, sans image intégrée) |
+| L0-S2 | S0 | joueur : touch, pinch, pointer, doubleClick, expect avec tolérance | (mergé) | terminée | 2/3 | 17df0e0 → merge 0691607, graphe ec82955 | 1er rejeu rouge (QLatin1String sur UTF-8 ; toucher posté hors suivi) ; 2e rejeu (tête 3b7363a) : uiscenario 73/73, injector 12/12, mutation tolérance rouge, suite 113/113 TESTS OK, CAPTURES OK, API privée vide, NOMS OK ; titres 0. Note : l'agent a construit une fois sans le jeton |
+| L0-S3 | S0 | modèle partagé (Equation, PagePresentation, ReplaceObjectsCommand, /we4062) | (mergé) | terminée | 2/3 | 56ce4b8, d45fbfd → merge be2e5de, graphe a390e33 | rejoué 2 fois ; 2e rejeu (d45fbfd) : build 0 ; 8 tests verts (replace 14, model 20, nativejson 31, painter 48, nativefile 50, generator 12, edits 10, pagecache 7) ; mutation `++next` rouge, `k = 0` rouge au 1er rejeu ; 113 tests listés ; NOMS OK. Relecture adversariale : 1 blocker et 1 majeur corrigés |
+| L0-S4 | S1 | données et disposition des deux lots (62 commandes, sous-menus, F-750) | — | à faire | 0/3 | — | — |
+| L0-S5 | S3 | DocumentController : API des deux lots, observateur unique | (mergé) | terminée | 1/3 | ca1e4f5 → merge e80eb9a, graphe 055a697 | preuve rejouée sous jeton (tête f2a141d) : tst_ui_document 32/32, tst_ui_drawing 11, tst_ui_shell 19 ; 7 nommées PASS ; mutation Stroke→Command rouge (observerSeesTheOrigin) ; CAPTURES OK ; NOMS OK 431 ; titres 0 |
+| L0-S6 | S0 | squelette du lot 3 (en-têtes figés, talons, LiftLayer QML) | .worktrees/livraison-complete--L0-S6 | en cours | 0/3 | — | — |
+| L0-S7 | S6 | chemin d'entrée figé (couvertures, filtre, Pipeline, isBusy) | (mergé) | terminée | 2/3 | c66f5a4 → merge 96ff121, graphe d307e6b | 1er rejeu rouge (aide tablet() du test : LeftButton aux déplacements → 5 appuis), corrigé dans le test ; 2e rejeu (tête 000710d) : tst_ui_inputpath 19/19, routing, pentool, pageview 53, drawing, input, shell ; mutation 7 rouges ; captures OK ; banc logiciel DEPASSE informatif ; NOMS OK 431 ; titres 0 |
+| L0-S9 | S4,S5,S7 | coquille QML (couches, emplacements, Presentation.qml) | (mergé) | terminée | 3/3 | 04ba795 → merge 3450380, graphe 5d474e1 | rejeu (tête cf6b035) : suite 113/113 TESTS OK, tst_ui_shell 25/25, 6 nommées PASS, mutation liftLayer rouge, captures premiers-pas et cache-differe OK, banc content_check OK, NOMS OK ; /wd4702 ciblé ; démontage de CommandMenu/Entry/Submenu protégé ; Presentation en QtObject |
+| L0-S10 | tout | contrôle du socle (debug + release, talons comptés, graphe) | (chantier) | terminée | 1/3 | graphe du socle | debug et release 113/113 TESTS OK ; talons L0 0, L3 45 lignes/38 fichiers, L7 3 ; QSKIP hors talons 5 (antérieurs) ; captures tous OK ; banc content_check OK ; NOMS OK |
+Vagues : V0 S0 · V1 S3 ‖ S6 ‖ S1 · V2 S7 ‖ S5 ‖ S4 · V3 S9 ‖ S2 · V4 S10 (2 constructions de front ; B a la 3e place). L0-S8 → session B.
 
 ## Fin du lot 2 (étage 3.8)
 Double relecture lancée le 2026-10-17 vers 10 h 45 sur 947b446 (diff `origin/main..` : 186 commits, 150 fichiers ; L2-T22 relue à part), dans deux worktrees détachés : `livraison-complete--revue-conformite`, `livraison-complete--revue-qualite`. Relecture statique (mémoire 1,2 Go).
@@ -232,7 +436,7 @@ ouvertes : — · passées : **porte de fin du lot 2** (2026-10-17, PR #4 mergé
 
 **Condition « machine calme » (2026-10-18, réponse de Jérôme relayée mot pour mot par la session Pilote)** : « Pour la session livraison complète, la machine ne sera jamais aussi calme, rien d'autre ne tourne. Si la ram n'est pas suffisante, ça veut dire que le seuil est trop haut ». Application : le seuil de 4 Go libres ne s'applique plus ; l'état présent de la machine vaut « machine calme » pour L10-T6 et la clôture du lot 10, et les passages sont jugés (jamais « non jugé » pour la seule RAM). La RAM libre et la charge restent relevées avant chaque passage, et la mesure A/B encadrée par la référence reste exigée.
 
-**Parallélisation (2026-10-18, go de Jérôme relayé mot pour mot par la session Pilote)** : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre » (le go porte sur l'organisation, pas sur merge ni release). A : vagues jusqu'à 3 de large, revues statiques à côté. B : plans des lots 3 et 7 écrits en parallèle (worktrees `livraison-complete--plan-lot3` et `--plan-lot7`), relus avant exécution. C : le lot 7 est exécuté par une seconde session orchestratrice (chantier `livraison-complete-b`, branche `feat/livraison-complete-b`, 1 place de tests ; ce chantier en garde 2), lancée par la session Pilote sur le brief que j'écris une fois le plan du lot 7 relu ; tâche de réservation des fichiers chauds en tête de chaque lot ; fusion dans `feat/livraison-complete` en fin de lot. Ordre des lots : 10, puis 3 ‖ 7.
+**Parallélisation (2026-10-18, go de Jérôme relayé mot pour mot par la session Pilote)** : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre » (le go porte sur l'organisation, pas sur merge ni release). A : vagues jusqu'à 3 de large, revues statiques à côté. B : plans des lots 3 et 7 écrits en parallèle (worktrees `livraison-complete--plan-lot3` et `--plan-lot7`), relus avant exécution. C : le lot 7 est exécuté par une seconde session orchestratrice (chantier `livraison-complete-b`, branche `feat/livraison-complete-b`, 1 place de tests ; ce chantier en garde 2), lancée par la session Pilote sur le brief que j'écris une fois le plan du lot 7 relu ; tâche de réservation des fichiers chauds en tête de chaque lot ; fusion dans `feat/livraison-complete` en fin de lot. Ordre des lots : 10, puis 3 ‖ 7. **Mise en œuvre (2026-10-18)** : socle commun L0-S planifié (aa621f1, en relecture ; L0-S8 « squelette du lot 7 » passé à B) ; session B préparée : branche `feat/livraison-complete-b` (7bb551c + plan du lot 7 → 2d76ba6), worktree `.worktrees/livraison-complete-b`, chantier `livraison-complete-b` inscrit, état et brief `docs/sessions/livraison-complete-b-{etat,brief}.md` (204196f) ; phase 1 de B = logique pure du lot 7 dans `features/` avant le socle. Plan du lot 4 écrit à l'avance (2014b18, 31 tâches, 4a/4b), à relire après le socle. Session B lancée à 16 h 34 par la session Pilote ; lui écrire par `SendMessage` à `local_24731de6-05ad-4fc2-9c6a-9c2283da3a71` (ses messages entrants passent par la messagerie de Claude Desktop) ; addendum 1 au brief : `scratchpad/brief-b-addendum-1.md`. Relecture du socle : 1 bloquant, 11 importants → correction en cours (L0-S0 ajoutée, chemin ≈ 9 h).
 
 ## Pièges trouvés
 - `controle_noms_actcraft.py` ne lit que les fichiers **suivis par git** (`git ls-files`, ligne 143 de l'outil) : un fichier neuf non ajouté passe toujours. Lancé avant le commit, il a rendu `NOMS OK` sur le plan du lot 7 alors que 8 identifiants étaient refusés (2026-10-18, corrigé en bf8c930). Règle : `git add` d'abord, contrôle ensuite, à rappeler dans chaque brief.

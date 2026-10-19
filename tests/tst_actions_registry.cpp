@@ -1,5 +1,6 @@
 #include <actcraft/actions/commandregistry.h>
 
+#include <QHash>
 #include <QSysInfo>
 #include <QTest>
 #include <QUrl>
@@ -191,7 +192,9 @@ private slots:
                                    QStringLiteral("pen.width"),          QStringLiteral("menu.main"),
                                    QStringLiteral("menu.tools"),         QStringLiteral("help.website"),
                                    QStringLiteral("help.about")};
-        QCOMPARE(r.ids(), expected);
+        // Les 23 commandes du lot 1 ouvrent le fichier, dans cet ordre ; les lots 3 et 7 (L0-S4) suivent.
+        QCOMPARE(r.ids().mid(0, expected.size()), expected);
+        QCOMPARE(r.ids().size(), expected.size() + 62);
         QCOMPARE(r.find(QStringLiteral("view.fullscreen"))->shortcut, QStringLiteral("F5"));
         QVERIFY(r.find(QStringLiteral("view.fullscreen"))->checkable);
         QVERIFY(r.find(QStringLiteral("pen.width"))->argument == ArgumentKind::Number);
@@ -205,6 +208,101 @@ private slots:
         QCOMPARE(r.find(QStringLiteral("file.save"))->shortcut, QStringLiteral("Ctrl+S"));
         QCOMPARE(r.find(QStringLiteral("file.save-as"))->shortcut, QStringLiteral("Ctrl+Shift+S"));
         QCOMPARE(r.find(QStringLiteral("file.close"))->shortcut, QStringLiteral("Ctrl+W"));
+    }
+
+    void textArgument()
+    {
+        CommandRegistry r;
+        QString error;
+        QVERIFY(r.loadDeclarations(
+            R"({"format":"actcraft-commands/1","commands":[{"id":"a.b","label":"L","argument":"text"}]})",
+            error));
+        QCOMPARE(r.find(QStringLiteral("a.b"))->argument, ArgumentKind::Text);
+        QVERIFY(argumentIsValid(ArgumentKind::Text, QVariant(QStringLiteral("fade"))));
+        QVERIFY(!argumentIsValid(ArgumentKind::Text, QVariant(QStringLiteral("  "))));
+        QVERIFY(!argumentIsValid(ArgumentKind::Text, QVariant()));
+    }
+
+    void lot7CommandsDeclared()
+    {
+        CommandRegistry r;
+        QString error;
+        QVERIFY2(r.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        const QStringList lot7 = {"view.page-zoom",
+                                  "view.page-effects",
+                                  "view.page-effect",
+                                  "view.page-effect-duration",
+                                  "page.effect",
+                                  "page.tools-mode",
+                                  "page.curtain-mode",
+                                  "page.curtain-distance",
+                                  "page.spotlight-mode",
+                                  "present.curtain",
+                                  "present.curtain-color",
+                                  "present.spotlight-circle",
+                                  "present.spotlight-square",
+                                  "present.spotlight-solid-circle",
+                                  "present.spotlight-solid-square",
+                                  "math.ruler",
+                                  "math.set-square",
+                                  "math.protractor",
+                                  "math.compass",
+                                  "math.xy-origin",
+                                  "tool.dice",
+                                  "tool.calculator",
+                                  "tool.clock",
+                                  "tool.ticker",
+                                  "tool.web-browser",
+                                  "insert.date-time",
+                                  "insert.equation",
+                                  "equation.edit",
+                                  "tool.shape-recognition",
+                                  "tool.handwriting",
+                                  "recognition.convert-to-shape",
+                                  "recognition.convert-to-text",
+                                  "tool.camera-area",
+                                  "tool.camera-polygon",
+                                  "tool.camera-freehand",
+                                  "tool.camera-window",
+                                  "tool.camera-screen",
+                                  "tool.keyboard",
+                                  "desktop.annotate",
+                                  "desktop.tools",
+                                  "desktop.restore",
+                                  "page.background-desktop-capture",
+                                  "page.background-desktop-overlay"};
+        QCOMPARE(lot7.size(), qsizetype{43});
+        for (const QString& id : lot7) {
+            QVERIFY2(r.find(id) != nullptr, qPrintable(id));
+        }
+        QVERIFY(!r.isAvailable(QStringLiteral("tool.handwriting"), Platform::Android));
+        QVERIFY(!r.isAvailable(QStringLiteral("tool.handwriting"), Platform::MacOS));
+        QVERIFY(r.isAvailable(QStringLiteral("tool.handwriting"), Platform::Windows));
+        QVERIFY(!r.isAvailable(QStringLiteral("tool.camera-area"), Platform::Android));
+        for (const Platform p : {Platform::Windows, Platform::Android, Platform::MacOS, Platform::Linux}) {
+            QVERIFY(r.isAvailable(QStringLiteral("present.curtain"), p));
+        }
+    }
+
+    void noShortcutTwice()
+    {
+        // QtCore seulement ici : séquences comparées en texte, sans espaces ni casse (pas de QKeySequence).
+        CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        QHash<QString, QString> seen; // raccourci normalisé → commande
+        for (const QString& id : registry.ids()) {
+            const QString shortcut = registry.find(id)->shortcut.trimmed().toLower();
+            if (shortcut.isEmpty()) {
+                continue;
+            }
+            QVERIFY2(!seen.contains(shortcut),
+                     qPrintable(shortcut + QStringLiteral(" : ") + seen.value(shortcut) +
+                                QStringLiteral(" et ") + id));
+            seen.insert(shortcut, id);
+        }
+        // Raccourcis écrits en QML (H-S5) : un seul Shortcut, Main.qml:226, instancié depuis
+        // Commands.shortcuts ; aucune séquence littérale à ajouter à ce test.
     }
 
     void optionalArgumentMayBeAbsent()

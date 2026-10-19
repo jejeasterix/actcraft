@@ -18,7 +18,7 @@ l'enregistrement par le sélecteur du système sur Android.
 - Fichiers `.flipchart` : lecture des pages, des objets, des images et des miniatures. Ce qui ne peut pas être lu
   est écarté sans bloquer l'ouverture. Un `.flipchart` n'est jamais réécrit : « Enregistrer » propose un nom en
   `.actcraft`.
-- Menu Fichier : Nouveau paperboard (taille de l'écran, 1024 × 768, 1152 × 864, 1280 × 1024 ou taille
+- Menu Fichier : Créer un paperboard (taille de l'écran, 1024 × 768, 1152 × 864, 1280 × 1024 ou taille
   personnalisée), Ouvrir, Enregistrer, Enregistrer sous, Fermer le paperboard et Quitter.
 - « Enregistrer les modifications ? » avant Nouveau, Ouvrir, Fermer et Quitter quand le paperboard a changé
   depuis son dernier enregistrement.

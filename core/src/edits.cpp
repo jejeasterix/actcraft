@@ -81,6 +81,9 @@ RectF localBounds(const PageObject& object) noexcept
         box.add(c->firstEnd);
         box.add(c->secondEnd);
         margin = c->pen.width / 2;
+    } else if (const auto* e = std::get_if<Equation>(&object)) {
+        box.addRect(e->bounds);
+        margin = 1; // repère d'un pixel (render/) : son anticrénelage déborde de la boîte
     } else if (const auto* u = std::get_if<UnknownObject>(&object); u && u->hasBounds) {
         box.addRect(u->bounds);
         margin = 1; // repère d'un pixel (render/) : son anticrénelage déborde de la boîte
