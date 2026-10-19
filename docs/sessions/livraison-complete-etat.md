@@ -271,7 +271,29 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
 - **Lot 3 lancé, V1** : L3-T0 (ouverture), L3-T3 (le seul qui construit) et L3-T10 (écriture seule), dans des worktrees à 4c49f69. Règles communes : `scratchpad/regles-lot3.md`. L'amendement du commentaire d'`editAboutToApply` passera dans le brief de L3-T12.
 - **L3-T10, décisions de A** : les membres privés de `liftlayeritem.h` sont autorisés (le plan les permet, l. 710-711). Une image soulevée est dessinée par le repère du peintre pendant le geste (`images = nullptr` : `FixedPageItem::m_images` est privé). **Point ouvert de L3-T8** : vérifier qu'une image déplacée reste dessinée ; sinon, correctif d'accès au magasin d'images.
 - **Accord A-B (L7-T2)** : B ajoute un signal `documentReplaced()`, émis par `replaceDocument`, `loadGeneratedFirstPage` et `loadGeneratedPages` (ligne `emit` séparée en fin de fonction, signal en fin de bloc `signals:`), ainsi que `Document::removeResource(key)`. Il n'y a que des ajouts. Seule L3-T12 touche `documentcontroller.cpp` côté lot 3 : **le dire dans son brief** (ne pas toucher ces trois fonctions ; un conflit d'ajout éventuel à la fusion L7-T33 se règle en gardant les deux côtés).
-- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
+- **L3-T0 mergée** (2f979d1) : `docs/verifications/2026-10-18-lot3-principes.md`, avec D1 à D12 ; titres 0 ; NOMS OK 436. **Amendements à reporter dans chaque brief** (table « Ce qui amende le plan » du rapport) :
+  - **L3-C0** (correctif neuf, petit) : `object.enlarge` passe à Ctrl+= dans `actions/data/commands.json`. À lancer après L3-T3 (un seul constructeur à la fois).
+  - **L3-T4** :
+    - `ClearKind::Objects` et `Page` épargnent les verrouillés ;
+    - `Grid` est annulable ;
+    - `Background` retire le fond seul ;
+    - `ReplacePageCommand` fait une étape et laisse le document modifié.
+  - **L3-T5** : un trait au doigt est abandonné quand le deuxième doigt arrive (H3-17).
+  - **L3-T6** : gomme `width = 50` ; marqueur `translucency = 127`. Il faut aussi corriger le commentaire de `userstate.h`, qui dit « 20 » et « 128 » (en-tête figé : amendement autorisé, commentaire seulement).
+  - **L3-T7** : la gomme saute les objets verrouillés.
+  - **L3-T8** :
+    - le glissement part à 2 px ;
+    - Maj+clic ou Ctrl+clic bascule un objet ; un rectangle tracé avec l'une de ces touches ajoute à la sélection ;
+    - un objet saisi sans être sélectionné se déplace, puis reste non sélectionné ;
+    - point ouvert : une image doit rester dessinée pendant qu'on la soulève (décision de L3-T10).
+  - **L3-T9** :
+    - rotation par la barre seulement ; Maj tourne par pas de 15° ;
+    - la barre se place au-dessus du cadre, au-dessous faute de place, à droite si le cadre est plus haut que large ;
+    - pour une sélection multiple, le cadre réunit les objets et ne pivote pas.
+  - **L3-T11** : lissage et bouts ronds s'appliquent aussi aux traits lus.
+  - **L3-T12** : Rétablir la page laisse le document modifié. S'y ajoutent l'amendement du commentaire d'`editAboutToApply` et l'accord A-B (ne pas toucher `replaceDocument` ni les deux `loadGenerated*`).
+  - **L3-T14** : Annuler et Rétablir vident la sélection. Une couleur choisie sous Sélectionner ou sous la gomme va au dernier outil d'encre et le réactive.
+  - **Hypothèses** : H3-9 corrigée (gomme 50), H3-14 corrigée (2 px), H3-17 nouvelle (niveau 1), H3-18 nouvelle (niveau 2 : zoom et défilement à deux doigts actifs par défaut, alors que l'original les coupe). Elles vont à la porte de fin.- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
 - **V2 du socle mergée** (L0-S5 et L0-S7). La suite complète de V2 tourne sous le jeton (`scratchpad/out/suite-v2.txt`). L0-S9 est en cours, V3. L0-S2 attend le merge de L10-C2, qui passe après la suite de V2.
