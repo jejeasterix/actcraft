@@ -123,16 +123,21 @@ Item {
         }
     }
 
-    // Curseur selon la zone : tout déplacer sur la partie qui déplace, redimensionner sur le bord, flèche ailleurs.
-    // Sœur du store, sans masque de saisie : le survol se lit partout, seul l'appui est limité à la zone saisissable.
+    // Curseur selon la zone : déplacer sur la partie qui déplace, redimensionner sur le bord, flèche ailleurs.
+    // Posée dans l'emplacement de présentation, au-dessus des couches de page : le survol que la couche des outils de
+    // maths prend sur toute la page n'atteint pas une couche placée dessous. Sans masque de saisie : le survol se lit
+    // partout, seul l'appui est limité à la zone saisissable. Elle ne prend aucun appui.
     Item {
+        id: hoverZone
         objectName: "spotlightHoverZone"
+        parent: root.pageArea ? root.pageArea.presentationSlot : null
         anchors.fill: parent
         visible: spotlightController.active
         HoverHandler {
             id: hover
             objectName: "spotlightHover"
-            cursorShape: hover.hovered ? spotlightController.cursorAt(hover.point.position) : Qt.ArrowCursor
+            cursorShape: hover.hovered ? spotlightController.cursorAt(root.mapFromItem(hoverZone, hover.point.position))
+                                       : Qt.ArrowCursor
         }
     }
 
