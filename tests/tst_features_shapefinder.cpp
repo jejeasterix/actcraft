@@ -64,6 +64,26 @@ bool sameCorners(const std::vector<QPointF>& got, const std::vector<QPointF>& dr
            std::all_of(drawn.begin(), drawn.end(),
                        [&](QPointF p) { return distanceToNearest(p, got) < tolerance; });
 }
+// Coins rendus dans l'ordre attendu, chacun à moins de 8 pixels du sien.
+bool cornersInOrder(const std::vector<QPointF>& got, const std::vector<QPointF>& expected)
+{
+    if (got.size() != expected.size())
+        return false;
+    for (std::size_t k = 0; k < got.size(); ++k)
+        if (std::hypot(got[k].x() - expected[k].x(), got[k].y() - expected[k].y()) >= 8)
+            return false;
+    return true;
+}
+bool closeTo(QPointF a, QPointF b, double tolerance)
+{
+    return std::hypot(a.x() - b.x(), a.y() - b.y()) < tolerance;
+}
+// Le même tracé, parcouru dans l'autre sens.
+std::vector<QPointF> reversed(std::vector<QPointF> pts)
+{
+    std::reverse(pts.begin(), pts.end());
+    return pts;
+}
 } // namespace
 
 class TstFeaturesShapeFinder : public QObject
@@ -75,6 +95,11 @@ private slots:
         const auto r = recognizeShape(noisy({{100, 100}, {200, 150}, {300, 200}, {400, 250}}, 2, 1));
         QVERIFY(r.has_value());
         QCOMPARE(r->kind, RecognizedShape::Kind::Line);
+        // Extrémités dans le sens du tracé ; angle atan(1/2) = 26,57°.
+        QCOMPARE(r->corners.size(), std::size_t{2});
+        QVERIFY(closeTo(r->corners[0], {100, 100}, 4));
+        QVERIFY(closeTo(r->corners[1], {400, 250}, 4));
+        QVERIFY(std::abs(r->angleDegrees - 26.57) < 2);
     }
     void wobblyCircleIsACircle()
     {
@@ -82,6 +107,18 @@ private slots:
         QVERIFY(r.has_value());
         QCOMPARE(r->kind, RecognizedShape::Kind::Circle);
         QVERIFY(std::abs(r->bounds.width() - 200) < 12);
+        QVERIFY(closeTo(r->bounds.center(), {300, 300}, 5));
+        // Fermeture imparfaite : la main repasse au-delà du départ (1,15 tour), ou s'arrête avant (0,9 tour).
+        const auto over = recognizeShape(noisy(ellipse({300, 300}, 100, 100, 0, 92, 1.15), 3, 13));
+        QVERIFY(over.has_value());
+        QCOMPARE(over->kind, RecognizedShape::Kind::Circle);
+        const auto gap = recognizeShape(noisy(ellipse({300, 300}, 100, 100, 0, 72, 0.9), 3, 14));
+        QVERIFY(gap.has_value());
+        QCOMPARE(gap->kind, RecognizedShape::Kind::Circle);
+        // Tracé dans l'autre sens : un tour à rebours reste un tour.
+        const auto back = recognizeShape(reversed(noisy(ellipse({300, 300}, 100, 100, 0, 80), 3, 15)));
+        QVERIFY(back.has_value());
+        QCOMPARE(back->kind, RecognizedShape::Kind::Circle);
     }
     void tiltedEllipseKeepsItsAngle()
     {
@@ -89,6 +126,11 @@ private slots:
         QVERIFY(r.has_value());
         QCOMPARE(r->kind, RecognizedShape::Kind::Ellipse);
         QVERIFY(std::abs(r->angleDegrees - 30) < 6);
+        // Cadre non tourné : grand axe en largeur (2 × 150), petit axe en hauteur (2 × 70), centré sur
+        // l'ellipse.
+        QVERIFY(std::abs(r->bounds.width() - 300) < 10);
+        QVERIFY(std::abs(r->bounds.height() - 140) < 10);
+        QVERIFY(closeTo(r->bounds.center(), {300, 300}, 5));
         // Inclinée à 45° : sa boîte englobante est carrée. Classer par la boîte et le rapport de ses côtés en
         // ferait un cercle d'angle 0 ; les axes principaux disent ellipse, 45°.
         const auto r45 = recognizeShape(noisy(ellipse({300, 300}, 150, 70, 45, 90), 2, 10));
@@ -104,7 +146,8 @@ private slots:
         QCOMPARE(r->kind, RecognizedShape::Kind::Square);
         QVERIFY(std::abs(r->bounds.width() - 200) < 8);
         QVERIFY(std::abs(r->bounds.height() - 200) < 8);
-        QVERIFY(sameCorners(r->corners, drawn));
+        // Haut gauche, haut droit, bas droit, bas gauche : l'ordre du tracé.
+        QVERIFY(cornersInOrder(r->corners, drawn));
     }
     void tiltedRectangleKeepsItsCorners()
     {
@@ -118,7 +161,9 @@ private slots:
         QVERIFY(std::abs(r->angleDegrees - 26.57) < 3);
         QVERIFY(std::abs(r->bounds.width() - 223.6) < 8);
         QVERIFY(std::abs(r->bounds.height() - 111.8) < 8);
-        QVERIFY(sameCorners(r->corners, drawn));
+        QVERIFY(closeTo(r->bounds.center(), {275, 200}, 5));
+        // Haut gauche, haut droit, bas droit, bas gauche dans le repère de la forme : ici l'ordre du tracé.
+        QVERIFY(cornersInOrder(r->corners, drawn));
         // Le même, commencé au milieu d'un grand côté : son premier côté est un petit côté (116,57°, un quart
         // de tour de plus) ; largeur et hauteur s'échangent pour rendre le même cadre.
         const auto rMid = recognizeShape(
@@ -128,7 +173,7 @@ private slots:
         QVERIFY(std::abs(rMid->angleDegrees - 26.57) < 3);
         QVERIFY(std::abs(rMid->bounds.width() - 223.6) < 8);
         QVERIFY(std::abs(rMid->bounds.height() - 111.8) < 8);
-        QVERIFY(sameCorners(rMid->corners, drawn));
+        QVERIFY(cornersInOrder(rMid->corners, drawn));
         // 200 × 100 incliné à 45° : boîte englobante carrée. Classer par la boîte et le rapport de ses côtés
         // en ferait un carré ; le rapport des côtés du tracé dit rectangle.
         const std::vector<QPointF> drawn45{{265, 194}, {406, 335}, {335, 406}, {194, 265}};
@@ -164,6 +209,17 @@ private slots:
         QCOMPARE(r->kind, RecognizedShape::Kind::Polygon);
         QCOMPARE(r->corners.size(), std::size_t{5});
         QVERIFY(sameCorners(r->corners, drawn));
+        // Tracé dans l'autre sens : ses coins tournent tous à rebours, il reste convexe.
+        const auto back = recognizeShape(reversed(noisy(polyline(drawn, 25), 2, 16)));
+        QVERIFY(back.has_value());
+        QCOMPARE(back->kind, RecognizedShape::Kind::Polygon);
+        QVERIFY(sameCorners(back->corners, drawn));
+        // Un « L » fermé est concave (un coin tourne à rebours) : polygone convexe seulement, donc rien.
+        QVERIFY(
+            !recognizeShape(
+                 noisy(polyline({{100, 100}, {300, 100}, {300, 180}, {180, 180}, {180, 300}, {100, 300}}, 25),
+                       2, 17))
+                 .has_value());
     }
     void openScribbleIsNothing()
     {
@@ -179,6 +235,14 @@ private slots:
                      (pts[i] - QPointF(300, 300)) *
                          (0.4 + 0.6 * static_cast<double>(i) / static_cast<double>(pts.size()));
         QVERIFY(!recognizeShape(pts).has_value());
+        // Deux tours presque ronds (rayon de 90 à 100) : l'ellipse s'ajusterait, mais une forme fermée fait
+        // un seul tour.
+        auto twice = ellipse({300, 300}, 100, 100, 0, 160, 2.0);
+        for (std::size_t i = 0; i < twice.size(); ++i)
+            twice[i] = QPointF(300, 300) +
+                       (twice[i] - QPointF(300, 300)) *
+                           (0.9 + 0.1 * static_cast<double>(i) / static_cast<double>(twice.size()));
+        QVERIFY(!recognizeShape(twice).has_value());
     }
     void shortStrokeIsNothing() { QVERIFY(!recognizeShape({{10, 10}, {14, 12}}).has_value()); }
 };
