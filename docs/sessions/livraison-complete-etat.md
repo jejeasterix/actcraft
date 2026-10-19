@@ -14,7 +14,7 @@ objectifs. Ajoute la release .exe et la release .apk ». Objectifs = `docs/BRIEF
 Périmètre : étape 3 (lecteur `.flipchart` C++, format natif ouvert) ; étape 4 (interface et tous les outils et
 fonctions, un module à la fois, référence de comportement = application Python et docs de l'ancien dépôt) ;
 release Windows `.exe` (installateur) ; release Android `.apk`.
-Étape 2 (mesures Dell 3510 / MacBook M1) : **Dell retiré** par décision de Jérôme (2026-10-19, voir plus bas, coffre 0125) ; MacBook M1 : procédure proposée, sans rien bloquer. Mesure de la machine de
+Étape 2 (mesures Dell 3510 / MacBook M1) : **retirée en entier** par décision de Jérôme (2026-10-19, voir plus bas, coffre 0125). Mesure de la machine de
 développement : `docs/mesures/2026-10-13-prototype-mesure.md` (budget tenu sauf 1 figement sur 10, H-mes-1).
 Ajout (Jérôme, 2026-10-14) : « À la fin, étudie chaque vidéo de la chaîne https://www.youtube.com/@YouNadineTanguay/videos, confronte les principes de fonctionnement avec ce que tu as produit et corrige en conséquence » → dernier lot du chantier. Corpus préparé dès maintenant par un sous-agent indépendant dans `REA - Activinspire\docs\videos-tanguay` (hors dépôt public). Consigne : déléguer à des sous-agents pour ne pas encombrer le contexte. Jérôme a fermé ses autres travaux (jetons libres).
 Contexte de la demande : Jérôme a vu le prototype de mesure et attendait une interface (« aucune interface »).
@@ -301,6 +301,7 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
     - L11-T15 : APK de banc et essai sur l'émulateur ; retirer la procédure tablette pour Jérôme et `docs/banc-tablette.md`, ou réduire ce fichier à l'émulateur ;
     - L11-T30, porte de fin du lot 10, et toute clôture : aucune procédure Dell ;
     - L6-T* : l'hypothèse H6-10 (mesure du PBKDF2 sur le Dell 3510) devient une mesure sur ce poste.
+  - **MacBook M1 retiré aussi** : à la question du Pilote (« Veux-tu la retirer aussi ? »), Jérôme a répondu « Oui », relayé mot pour mot. Plus aucune mesure sur une machine de référence ; `scripts/bench.sh --rendu tous` n'est plus proposé à Jérôme (il reste joué par la CI macOS s'il y figure).
   - Une décision qui retire du travail ne demande pas de go écrit dans cette session : je l'applique, et je la rappellerai à la porte de fin.
 - **Pilote, information (08 h 37)** : il a arrêté deux boucles d'attente non bornées sur `tasks/bc7jt87bw.output` (PID 19952 et 15164), sans doute lancées par un agent. **Règle des briefs** : toute boucle d'attente en fond est bornée, et aucun agent ne surveille une sortie (jeton au premier plan).- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
