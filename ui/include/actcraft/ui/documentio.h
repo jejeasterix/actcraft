@@ -2,11 +2,13 @@
 
 #include <actcraft/core/document.h>
 
+#include <QByteArray>
 #include <QString>
 #include <QStringList>
 #include <QUrl>
 
 #include <cstdint>
+#include <functional>
 
 namespace actcraft::ui {
 
@@ -40,6 +42,12 @@ struct SaveOutcome
 // atomique (fichier local) ou en une passe (content://). `snapshot` est une copie à soi : jamais le document
 // affiché.
 SaveOutcome saveDocument(const core::Document& snapshot, const QUrl& url);
+// Tests seulement (L3-C4) : écrivain des octets d'un enregistrement, appelé par saveDocument à la place de
+// formats::writeUrl, sur le fil de l'écriture ; vide (défaut) : formats::writeUrl. L'application ne le pose
+// jamais. Il prouve sans chronomètre que le fil principal n'attend jamais l'écriture : un écrivain d'essai
+// qui ne finit que si le fil principal le libère (tst_ui_files). Posé hors de tout enregistrement en cours.
+using ArchiveWriter = std::function<bool(const QUrl& url, const QByteArray& archive, QString* error)>;
+void setArchiveWriterForTests(ArchiveWriter writer);
 // Cible d'un enregistrement : un .flipchart (toute casse) est refusé (URL vide, `error` dit pourquoi ;
 // décision 18 : il ne se réécrit jamais) ; un fichier local sans l'extension .actcraft la reçoit (jamais un
 // fichier d'un autre format écrasé) ; une URL content:// est gardée telle quelle (le fournisseur nomme).

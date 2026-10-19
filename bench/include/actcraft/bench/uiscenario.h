@@ -46,7 +46,9 @@ enum class UiStepKind : std::uint8_t
     // La charge de la machine ne se reproduit pas ; un blocage du fil principal par l'étape jouée (E/S
     // synchrone), si (L10-C2). Les étapes de la fenêtre doivent donc pouvoir être rejouées.
     WatchEventLoop,  // {"watchEventLoop": true} — démarre la sonde de la boucle du fil principal
-    MaxEventLoopGap, // {"maxEventLoopGapMs": 25} — arrête la sonde, compare le plus long intervalle
+    MaxEventLoopGap, // {"maxEventLoopGapMs": 25} — arrête la sonde, compare le plus long intervalle ;
+                     // "informative": true — l'écart est écrit (« HORS SEUIL … (informatif) »), jamais jugé
+                     // ni rejoué (S5, L3-C4 : une preuve sans chronomètre garde l'invariant, tst_ui_files)
     Remember,        // {"remember": "objet.propriété", "as": "nom"} — valeur de ${nom} ensuite
     ArchiveContains, // {"archive": "<chemin>", "contains": ["document.json", "resources/", …]} — préfixes
     // Ajoutée au lot 10 (L10-T5, S33), à la fin.
@@ -91,6 +93,8 @@ struct UiStep
     bool windowSpace = false;                // Pointer, DoubleClick : points en fenêtre plutôt qu'en page
     std::optional<double>
         valueTolerance; // Expect : écart admis, valeur numérique ; absent : comparaison exacte
+    // Ajouté par L3-C4. MaxEventLoopGap : mesure écrite, l'écart au seuil ne fait pas échouer le scénario.
+    bool informative = false;
 };
 
 struct UiScenario

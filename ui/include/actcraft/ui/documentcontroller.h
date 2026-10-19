@@ -49,8 +49,10 @@ class DocumentController : public QObject
     Q_PROPERTY(QStringList warnings READ warnings NOTIFY warningsChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
     Q_PROPERTY(QString suggestedFileName READ suggestedFileName NOTIFY titleChanged)
-    // Vrai si la dernière lecture ou écriture a tourné hors du fil principal (S5 la lit ; mutation : écriture
-    // synchrone → faux).
+    // Vrai si la dernière lecture ou écriture a tourné hors du fil principal (S5 la lit). Faux seulement si
+    // elle a tourné SUR le fil principal : un fil principal qui attend une écriture faite sur un fil
+    // secondaire le laisse vrai. Cette attente-là se prouve sans ce drapeau (tst_ui_files,
+    // saveNeverWaitsForTheWriterOnTheMainThread).
     Q_PROPERTY(bool lastIoOffMainThread READ lastIoOffMainThread NOTIFY lastIoChanged)
     Q_PROPERTY(int shownObjectCount READ shownObjectCount NOTIFY documentChanged)
     Q_PROPERTY(bool lifting READ isLifting NOTIFY liftingChanged)
