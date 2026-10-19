@@ -44,7 +44,8 @@ std::vector<KeyCap> buildKeys(ScreenKeyboard::Layout layout)
     addCharacters(keys, row++, QStringLiteral("azertyuiop"));
     addCharacters(keys, row++, QStringLiteral("qsdfghjklm"));
     addCommand(keys, row, QStringLiteral("shift"), 1.5);
-    addCharacters(keys, row, layout == Layout::Compact ? QStringLiteral("wxcvbn") : QStringLiteral("wxcvbn,;:!"));
+    addCharacters(keys, row,
+                  layout == Layout::Compact ? QStringLiteral("wxcvbn") : QStringLiteral("wxcvbn,;:!"));
     addCommand(keys, row++, QStringLiteral("backspace"), 1.5);
     if (layout != Layout::Compact)
         addCommand(keys, row, QStringLiteral("caps"), 1.5);
@@ -55,11 +56,7 @@ std::vector<KeyCap> buildKeys(ScreenKeyboard::Layout layout)
 
 } // namespace
 
-ScreenKeyboard::ScreenKeyboard(Layout layout)
-    : m_layout(layout)
-    , m_keys(buildKeys(layout))
-{
-}
+ScreenKeyboard::ScreenKeyboard(Layout layout) : m_layout(layout), m_keys(buildKeys(layout)) {}
 
 void ScreenKeyboard::setLayout(Layout layout)
 {
@@ -90,7 +87,8 @@ bool ScreenKeyboard::capsLocked() const noexcept
 
 KeyOutput ScreenKeyboard::press(const QString& id)
 {
-    const bool present = std::any_of(m_keys.begin(), m_keys.end(), [&](const KeyCap& cap) { return cap.id == id; });
+    const bool present =
+        std::any_of(m_keys.begin(), m_keys.end(), [&](const KeyCap& cap) { return cap.id == id; });
     if (!present)
         return {};
     if (id == QLatin1String("shift")) {

@@ -99,7 +99,8 @@ QRectF normalizedRect(QPointF a, QPointF b)
 QRectF toLogicalPixels(const QRect& physical, qreal devicePixelRatio)
 {
     const qreal ratio = devicePixelRatio > 0 ? devicePixelRatio : 1;
-    return QRectF(physical.x() / ratio, physical.y() / ratio, physical.width() / ratio, physical.height() / ratio);
+    return QRectF(physical.x() / ratio, physical.y() / ratio, physical.width() / ratio,
+                  physical.height() / ratio);
 }
 
 } // namespace actcraft::features

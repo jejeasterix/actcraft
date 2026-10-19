@@ -28,8 +28,8 @@ private slots:
 
     void compactLayoutHasFewerKeys()
     {
-        QVERIFY(ScreenKeyboard(ScreenKeyboard::Layout::Compact).keys().size()
-                < ScreenKeyboard(ScreenKeyboard::Layout::Extended).keys().size());
+        QVERIFY(ScreenKeyboard(ScreenKeyboard::Layout::Compact).keys().size() <
+                ScreenKeyboard(ScreenKeyboard::Layout::Extended).keys().size());
     }
 
     void accentKeysTypeFrench()
@@ -41,7 +41,8 @@ private slots:
 
     void everyKeyHasALabel()
     {
-        for (auto layout : {ScreenKeyboard::Layout::Compact, ScreenKeyboard::Layout::Standard, ScreenKeyboard::Layout::Extended}) {
+        for (auto layout : {ScreenKeyboard::Layout::Compact, ScreenKeyboard::Layout::Standard,
+                            ScreenKeyboard::Layout::Extended}) {
             const ScreenKeyboard k(layout);
             for (const auto& cap : k.keys()) {
                 QVERIFY(!cap.id.isEmpty());

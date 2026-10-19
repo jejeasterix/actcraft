@@ -21,7 +21,9 @@ std::vector<QPointF> wheelPositions(int count, double radius)
 
 std::vector<WheelEntry> defaultWheel()
 {
-    auto command = [](const char* id, const QString& label) { return WheelEntry{QString::fromLatin1(id), label, {}}; };
+    auto command = [](const char* id, const QString& label) {
+        return WheelEntry{QString::fromLatin1(id), label, {}};
+    };
     return {
         command("desktop.restore", QStringLiteral("Revenir à ActCraft")),
         WheelEntry{QString(),

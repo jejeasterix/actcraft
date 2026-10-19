@@ -10,7 +10,8 @@ namespace actcraft::features {
 
 inline constexpr double kClosePixels = 10; // un clic à moins de 10 px du premier point ferme le polygone
 
-// Capture point par point (F-275) : chaque clic ajoute un sommet ; un clic près du premier (3 sommets au moins) ferme.
+// Capture point par point (F-275) : chaque clic ajoute un sommet ; un clic près du premier (3 sommets au
+// moins) ferme.
 class PolygonPicker
 {
 public:

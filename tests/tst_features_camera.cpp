@@ -1,9 +1,8 @@
 #include <actcraft/features/camera.h>
 
-#include <QtTest>
-
 #include <QColor>
 #include <QImage>
+#include <QtTest>
 
 using namespace actcraft::features;
 

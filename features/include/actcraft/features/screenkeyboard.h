@@ -25,7 +25,12 @@ struct KeyOutput
 class ScreenKeyboard
 {
 public:
-    enum class Layout { Compact, Standard, Extended };
+    enum class Layout
+    {
+        Compact,
+        Standard,
+        Extended
+    };
     explicit ScreenKeyboard(Layout layout);
     void setLayout(Layout layout);
     Layout layout() const noexcept;
