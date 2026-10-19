@@ -1,0 +1,6 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "equation",
+  "description": "Talon L7-S8 : rempli par L7-T27 (S24).",
+  "steps": [ {"waitReady": true} ]
+}

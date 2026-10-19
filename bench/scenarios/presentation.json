@@ -1,0 +1,6 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "presentation",
+  "description": "Talon L7-S8 : rempli par L7-T32 (S10).",
+  "steps": [ {"waitReady": true} ]
+}

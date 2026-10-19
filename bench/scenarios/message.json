@@ -1,0 +1,6 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "message",
+  "description": "Talon L7-S8 : rempli par L7-T19 (S23).",
+  "steps": [ {"waitReady": true} ]
+}
