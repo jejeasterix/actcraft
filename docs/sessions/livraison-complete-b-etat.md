@@ -81,6 +81,10 @@ Preuve de A : debug et release 113/113 ; talons « par L7- » : 3 lignes (equati
 ## À reporter en phase 2 (de L7-T0)
 Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrateur » de `docs/verifications/2026-10-18-lot7-principes.md` : T3/T6 (position du rideau par page, propriété 27), T4 (capture de la zone, curseurs, contour 10), T9–T11 (curseurs par zone, translucidité 100), T12 (mine à la couleur du stylo), T14 (1 dé, mémorisé), T15 (transfert sur la page), T16/T19 (H7-14, H7-15), T20 (polygone), T21 (délai 1 s), T24–T27 (palettes d'équation). P20 (symétries autour de l'origine) → lot 5.
 
+## À faire en L7-T34 (après la fusion du lot 3)
+- `selectionIsNotGuided` (L7-T9, revue) : le guide de la règle est réservé au stylo (`kGuidedTool = "pen"`), mais non testable avant le lot 3 : `ToolHost::activate` et `UserState::setCurrentTool` sont des talons. À ajouter avec `markerFollowsTheRuler`, `eraserFollowsTheCompass`.
+- Constat L7-T9, hors périmètre : la commande `tool.pen` de `Main.qml:292` coche la commande sans activer le stylo (talon du lot 3 ?) : à revoir à la fusion.
+
 ## Portes
 ouvertes : — · passées : —
 
