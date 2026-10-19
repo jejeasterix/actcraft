@@ -3,17 +3,21 @@
 
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/tools/tool.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/viewtransform.h>
 
+#include <QDir>
 #include <QElapsedTimer>
 #include <QKeyEvent>
 #include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QTabletEvent>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
 
@@ -67,6 +71,8 @@ class TstUiDrawing : public QObject
 
 private:
     std::unique_ptr<QPointingDevice> m_stylus;
+    QPointingDevice* m_touch = nullptr;
+    QTemporaryDir m_settingsDir;
 
     void post(App& app, QEvent::Type type, QPointF page, qreal pressure, Qt::MouseButton button,
               Qt::MouseButtons buttons)
@@ -155,6 +161,14 @@ private:
 private slots:
     void initTestCase()
     {
+        // Main.qml porte ToolHost (réglages par outil) : jamais le profil réel.
+        QVERIFY(m_settingsDir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+        const QSettings probe;
+        QVERIFY2(QDir::fromNativeSeparators(probe.fileName()).startsWith(m_settingsDir.path()),
+                 qPrintable(probe.fileName()));
+        m_touch = QTest::createTouchDevice();
         m_stylus = std::make_unique<QPointingDevice>(
             QStringLiteral("tst-ui-stylus"), 5150, QInputDevice::DeviceType::Stylus,
             QPointingDevice::PointerType::Pen,
@@ -346,6 +360,24 @@ private slots:
             QTest::mouseMove(app.window, a + (b - a) * i / 10);
         }
         QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, b);
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), 301, 3000);
+    }
+
+    // S3 tenu avec ToolHost posé (Main.qml) : un doigt trace avec l'outil stylo de l'utilisateur.
+    void fingerStrokeStillDraws()
+    {
+        App app;
+        QVERIFY(start(app, true));
+        QVERIFY(app.view->tools());
+        QVERIFY(app.view->currentTool());
+        QCOMPARE(app.view->currentTool()->id(), QStringLiteral("pen"));
+        const QPoint a = app.view->pageToScene(QPointF(300, 600)).toPoint();
+        const QPoint b = app.view->pageToScene(QPointF(500, 600)).toPoint();
+        QTest::touchEvent(app.window, m_touch).press(0, a);
+        for (int i = 1; i <= 10; ++i) {
+            QTest::touchEvent(app.window, m_touch).move(0, a + (b - a) * i / 10);
+        }
+        QTest::touchEvent(app.window, m_touch).release(0, b);
         QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), 301, 3000);
     }
 };
