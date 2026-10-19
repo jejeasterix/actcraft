@@ -245,6 +245,7 @@ std::vector<core::PageObject> DocumentController::liftObjects(const std::vector<
     m_liftGeneration = m_generation;
     settle(changes, ChangeOrigin::Lift);
     emit documentChanged();
+    emit canRevertPageChanged();
     emit liftingChanged();
     return copies;
 }
@@ -270,6 +271,7 @@ void DocumentController::dropLifted(std::unique_ptr<core::UndoCommand> command)
     }
     if (commandChanges.empty()) {
         emit documentChanged(); // dépôt sans étape : la pile n'a pas bougé
+        emit canRevertPageChanged();
     } else {
         notifyState(pages);
     }
@@ -423,6 +425,7 @@ void DocumentController::notifyState(bool pages)
         emit pagesChanged();
     }
     emit documentChanged();
+    emit canRevertPageChanged();
     emit undoChanged();
     updateModified();
 }
@@ -785,6 +788,9 @@ void DocumentController::saveToUrl(const QUrl& url)
                     emit self.titleChanged();
                 }
                 self.updateModified(); // le document n'a pas changé : ni documentChanged, ni undoChanged
+                // La référence de « Rétablir la page » vient de changer : canRevertPage est renotifié
+                // (Main.qml relit l'entrée), mais pas documentChanged : le document affiché n'a pas changé.
+                emit self.canRevertPageChanged();
             }
             qCInfo(lcDocument, "ACTCRAFT ENREGISTRE %s", qPrintable(fingerprintHex(outcome.fingerprint)));
             emit self.saveFinished(true, QString());

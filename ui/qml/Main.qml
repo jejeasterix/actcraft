@@ -88,6 +88,7 @@ Window {
         }
         function onUndoChanged() { root.syncEditCommands() }
         function onDocumentChanged() { root.syncEditCommands() }
+        function onCanRevertPageChanged() { root.syncEditCommands() }
     }
     function syncEditCommands() {
         appCommands.setEnabled("edit.undo", appDocument.canUndo)
