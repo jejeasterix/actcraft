@@ -945,8 +945,8 @@
     "semantic_hash": ""
   },
   "ui/CMakeLists.txt": {
-    "mtime": 1792366403.5891757,
-    "ast_hash": "2deae76dec81305c6d01b6a9a90c309d",
+    "mtime": 1792383735.2975683,
+    "ast_hash": "b361f78fe6b9f97d58aeb2c67a180494",
     "semantic_hash": ""
   },
   "actions/data/commands.json": {
@@ -1105,8 +1105,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_shell.cpp": {
-    "mtime": 1792366403.5842268,
-    "ast_hash": "635bbaa3361d8fa0597c5f68b8d11680",
+    "mtime": 1792383735.2955737,
+    "ast_hash": "a9a355ae23cfe2da279d0126a0eb25ae",
     "semantic_hash": ""
   },
   "tests/tst_ui_theme.cpp": {
@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1792380613.639177,
-    "ast_hash": "e54f6555401252e50feae20073f5ed88",
+    "mtime": 1792382821.9048877,
+    "ast_hash": "d9c3fe3c2110c3aed3f2e2422ec09168",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
