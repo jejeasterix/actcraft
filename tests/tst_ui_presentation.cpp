@@ -14,6 +14,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QQmlComponent>
+#include <QQmlContext>
 #include <QQmlEngine>
 #include <QSignalSpy>
 #include <QtTest>
@@ -96,27 +97,37 @@ void stylusStroke(const presentationharness::MainWindow& main, QPointF from, QPo
 }
 
 // Panneau flottant de 200 × 120 posé sur la couche des panneaux, visible dès sa création, sa barre de titre
-// centrée sur le point de page (400, 300).
-QQuickItem* openPanel(const presentationharness::MainWindow& main)
+// centrée sur le point de page (400, 300). `declared` : la zone de page est liée dans la déclaration du
+// panneau (comme dans une racine du lot), sinon posée après sa création (setProperty, changement notifié).
+QQuickItem* openPanel(const presentationharness::MainWindow& main, bool declared = false)
 {
-    QQmlComponent component(qmlEngine(main.window()));
-    component.setData("import QtQuick\n"
-                      "import ActCraft.Ui\n"
-                      "FloatingPanel { width: 200; height: 120; title: \"Essai\" }\n",
-                      QUrl());
     QQuickItem* layer = main.item(QStringLiteral("presentationLayer"));
     QQuickItem* area = main.item(QStringLiteral("pageArea"));
     if (!layer || !area) {
         return nullptr;
     }
-    auto* panel = qobject_cast<QQuickItem*>(component.beginCreate(qmlContext(main.window())));
+    QQmlComponent component(qmlEngine(main.window()));
+    component.setData(
+        declared ? "import QtQuick\n"
+                   "import ActCraft.Ui\n"
+                   "FloatingPanel { width: 200; height: 120; title: \"Essai\"; pageArea: panelArea }\n"
+                 : "import QtQuick\n"
+                   "import ActCraft.Ui\n"
+                   "FloatingPanel { width: 200; height: 120; title: \"Essai\" }\n",
+        QUrl());
+    // Contexte propre au panneau (détruit avec la couche) : il porte la zone de page de la liaison.
+    auto* context = new QQmlContext(qmlContext(main.window()), layer);
+    context->setContextProperty(QStringLiteral("panelArea"), area);
+    auto* panel = qobject_cast<QQuickItem*>(component.beginCreate(context));
     if (!panel) {
         qWarning("%s", qPrintable(component.errorString()));
         return nullptr;
     }
     panel->setParent(layer);
     panel->setParentItem(layer);
-    panel->setProperty("pageArea", QVariant::fromValue(area));
+    if (!declared) {
+        panel->setProperty("pageArea", QVariant::fromValue(area));
+    }
     const QPointF titleCentre = main.pageView()->pageToScene(QPointF(400, 300));
     panel->setPosition(layer->mapFromScene(titleCentre - QPointF(100, 22)));
     component.completeCreate();
@@ -259,6 +270,13 @@ private slots:
         const auto* plain = std::get_if<core::Text>(&core::body(*findObject(shown(*controller), escaped)));
         QVERIFY(plain != nullptr);
         QVERIFY(QString::fromStdString(plain->html).contains(QStringLiteral("a&lt;b&gt;&amp;")));
+        // Page affichée d'indice 1 : le texte y va, pas sur la page 0.
+        QVERIFY(startOnSecondOfThree(*controller));
+        const std::size_t first = controller->document().page(0).objects.size();
+        const core::ObjectId second = insertions.insertText(QStringLiteral("34"), QRectF(100, 100, 80, 40));
+        QVERIFY(second != 0);
+        QVERIFY(findObject(controller->document().page(1), second) != nullptr);
+        QCOMPARE(controller->document().page(0).objects.size(), first);
     }
 
     // Page ajoutée en fin et objet posé dessus : une seule étape (le patron « nextPage() puis insertObject »
@@ -347,6 +365,65 @@ private slots:
         QCOMPARE(controller->currentIndex(), 2);
     }
 
+    // L'observateur sert une fois : annulé, rétabli, puis annulé depuis la page rétablie, on reste à la page
+    // recalée par le contrôleur (indice 2), jamais à la page de départ.
+    void secondUndoAfterRedoDoesNotReturn()
+    {
+        presentationharness::MainWindow main;
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        QVERIFY(startOnSecondOfThree(*controller));
+        DocumentInsertions insertions(*controller);
+        QVERIFY(insertions.insertObjectOnNewPage(squareShape()) != 0);
+        controller->undo();
+        QTest::qWait(50);
+        QCOMPARE(controller->currentIndex(), 1);
+        controller->redo();
+        QCOMPARE(controller->pageCount(), 4);
+        QCOMPARE(controller->currentIndex(), 1);
+        controller->nextPage();
+        controller->nextPage();
+        QCOMPARE(controller->currentIndex(), 3);
+        controller->undo();
+        QTest::qWait(50);
+        QCOMPARE(controller->pageCount(), 3);
+        QCOMPARE(controller->currentIndex(), 2);
+    }
+
+    // Le retour attend la fin de l'annulation : un observateur appelé après celui du retour lit encore
+    // l'indice passé au cache (la page retirée), et aucun changement de page ne part pendant l'annulation.
+    void returnWaitsForTheEndOfTheUndo()
+    {
+        std::vector<int> seen;
+        bool undoing = false;
+        int changesDuringUndo = 0;
+        presentationharness::MainWindow main;
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        QVERIFY(startOnSecondOfThree(*controller));
+        DocumentInsertions insertions(*controller);
+        QVERIFY(insertions.insertObjectOnNewPage(squareShape()) != 0);
+        const int token = controller->addChangeObserver(
+            [&seen, controller](const core::Changes&, DocumentController::ChangeOrigin origin) {
+                if (origin == DocumentController::ChangeOrigin::Undo) {
+                    seen.push_back(controller->currentIndex());
+                }
+            });
+        const QMetaObject::Connection aboutToChange =
+            QObject::connect(controller, &DocumentController::pageAboutToChange, controller,
+                             [&undoing, &changesDuringUndo] { changesDuringUndo += undoing ? 1 : 0; });
+        undoing = true;
+        controller->undo();
+        undoing = false;
+        controller->removeChangeObserver(token);
+        QObject::disconnect(aboutToChange);
+        QCOMPARE(seen.size(), std::size_t{1});
+        QCOMPARE(seen.front(), 3);
+        QCOMPARE(changesDuringUndo, 0);
+        QTest::qWait(50);
+        QCOMPARE(controller->currentIndex(), 1);
+    }
+
     // Remplacement : un groupe, une étape ; l'annulation rend le trait à son rang.
     void replaceObjectsIsUndoneAtOnce()
     {
@@ -372,6 +449,15 @@ private slots:
         QVERIFY(findObject(shown(*controller), ids.front()) == nullptr);
         QCOMPARE(core::indexOf(shown(*controller), stroke), rank);
         QTRY_COMPARE(main.pageObjectCount(), before + 1);
+        // Page affichée d'indice 1 : le remplacement vise ses objets, pas ceux de la page 0.
+        QVERIFY(startOnSecondOfThree(*controller));
+        const core::ObjectId generated = controller->document().page(1).objects.front().common.id;
+        std::vector<core::PageObject> shape;
+        shape.push_back(squareShape());
+        const std::vector<core::ObjectId> onSecond = insertions.replaceObjects({generated}, std::move(shape));
+        QCOMPARE(onSecond.size(), std::size_t{1});
+        QVERIFY(findObject(controller->document().page(1), generated) == nullptr);
+        QVERIFY(findObject(controller->document().page(1), onSecond.front()) != nullptr);
     }
 
     // Image d'une ressource neuve : ressource et objet en une étape ; l'annulation retire la ressource
@@ -416,22 +502,22 @@ private slots:
         QVERIFY(findObject(shown(*controller), again) == nullptr);
         QVERIFY(findObject(shown(*controller), id) != nullptr);
         QVERIFY(controller->document().resource(key) != nullptr);
-        // Sur une page neuve : page et ressource retirées ensemble, retour à la page de départ.
+        // Sur une page neuve, depuis la page d'indice 1 sur 3 (depuis la page 0, le recalage du contrôleur y
+        // ramènerait seul) : page et ressource retirées ensemble, retour à la page de départ.
+        QVERIFY(startOnSecondOfThree(*controller));
         const QByteArray other = pngOf(QColor(30, 30, 200));
         const std::string otherKey = core::sha256Hex(other);
-        const int pages = controller->pageCount();
-        const int start = controller->currentIndex();
         const core::ObjectId onNew = insertions.insertImage(other, "png", image, true);
         QVERIFY(onNew != 0);
-        QCOMPARE(controller->pageCount(), pages + 1);
-        QCOMPARE(controller->currentIndex(), pages);
+        QCOMPARE(controller->pageCount(), 4);
+        QCOMPARE(controller->currentIndex(), 3);
+        QVERIFY(findObject(controller->document().page(3), onNew) != nullptr);
         QVERIFY(controller->document().resource(otherKey) != nullptr);
         controller->undo();
         QTest::qWait(50);
-        QCOMPARE(controller->pageCount(), pages);
-        QCOMPARE(controller->currentIndex(), start);
+        QCOMPARE(controller->pageCount(), 3);
+        QCOMPARE(controller->currentIndex(), 1);
         QVERIFY(controller->document().resource(otherKey) == nullptr);
-        QVERIFY(controller->document().resource(key) != nullptr);
     }
 
     // Réglages de présentation de la page affichée : une étape, aucun redessin du cache (I3).
@@ -458,6 +544,11 @@ private slots:
         QVERIFY(!controller->canUndo());
         QTest::qWait(50);
         QCOMPARE(refreshes.count(), 0);
+        // Page affichée d'indice 1 : ses réglages changent, pas ceux de la page 0.
+        QVERIFY(startOnSecondOfThree(*controller));
+        insertions.setPagePresentation(value);
+        QVERIFY(controller->document().page(1).presentation.curtain == core::CurtainMode::Top);
+        QVERIFY(controller->document().page(0).presentation.curtain == core::CurtainMode::Off);
     }
 
     // Observateur des modifications (D-S7) : chaque trait, origine Stroke, avec son identifiant.
@@ -559,7 +650,7 @@ private slots:
         QFETCH(Pointer, pointer);
         presentationharness::MainWindow main;
         QVERIFY(main.window() != nullptr);
-        QQuickItem* panel = openPanel(main);
+        QQuickItem* panel = openPanel(main, true);
         QVERIFY(panel != nullptr);
         QObject* drag = panel->findChild<QObject*>(QStringLiteral("floatingPanelDrag"));
         QVERIFY(drag != nullptr);

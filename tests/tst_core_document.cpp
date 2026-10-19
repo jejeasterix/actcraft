@@ -228,6 +228,26 @@ private slots:
         QVERIFY(fingerprint(a) != fingerprint(b));
     }
 
+    // L7-T2 : retirer une ressource ajoutée rend l'empreinte d'avant ; les autres restent ; une clé absente
+    // est sans effet.
+    void removedResourceLeavesTheFingerprintUnchanged()
+    {
+        Document d;
+        const std::string kept = d.addResource(QByteArray("garde"), "png");
+        const std::uint64_t before = fingerprint(d);
+        const std::string added = d.addResource(QByteArray("retiree"), "jpg");
+        QVERIFY(fingerprint(d) != before);
+        d.removeResource(added);
+        QVERIFY(d.resource(added) == nullptr);
+        QVERIFY(d.resource(kept) != nullptr);
+        QCOMPARE(d.resources().size(), std::size_t{1});
+        QCOMPARE(fingerprint(d), before);
+        d.removeResource(added); // déjà retirée
+        d.removeResource(std::string(64, '0'));
+        QCOMPARE(d.resources().size(), std::size_t{1});
+        QCOMPARE(fingerprint(d), before);
+    }
+
     // Minuscules ASCII seulement, quelle que soit la locale du processus.
     void extensionIsLoweredInAscii()
     {

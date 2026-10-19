@@ -193,18 +193,27 @@ private:
 };
 
 // Retour à la page de départ quand l'insertion sur une page neuve est annulée (revue contre le socle, tour 2,
-// M3). Observateur à usage unique : il ne garde que des valeurs, le contrôleur et la cellule de son jeton
-// (aucune référence vers DocumentInsertions), et se retire à son premier Undo qui retire `added`. Il ne
-// ramène que si la page retirée était la page affichée (pendant l'appel, currentIndex() est encore l'indice
-// passé au cache) ; la navigation est différée (le recalage du contrôleur, après l'appel, l'écraserait) et
-// bornée (pageBack ne fait que reculer). Un document remplacé retire l'observateur (documentReplaced, jamais
-// documentChanged : émis après chaque trait).
+// M3). Observateur à usage unique : il ne garde que des valeurs, le contrôleur et la cellule de son état
+// (jeton, connexion ; aucune référence vers DocumentInsertions), et se retire à son premier Undo qui retire
+// `added`. Il ne ramène que si la page retirée était la page affichée (pendant l'appel, currentIndex() est
+// encore l'indice passé au cache). La navigation est différée : pendant la diffusion, les observateurs
+// suivants doivent lire l'indice passé au cache (contrat de addChangeObserver), et pageBack() émettrait
+// pageAboutToChange au milieu de l'annulation (un trait en cours y serait versé, effaçant la branche à
+// rétablir). Elle est bornée (pageBack ne fait que reculer). Un document remplacé retire l'observateur
+// (documentReplaced, jamais documentChanged : émis après chaque trait) ; retiré sur Undo, il coupe aussi
+// cette connexion.
+struct ReturnWatch
+{
+    int token = 0;
+    QMetaObject::Connection replaced;
+};
+
 void watchReturn(DocumentController& controller, std::size_t start, std::size_t added)
 {
-    auto token = std::make_shared<int>(0);
-    *token = controller.addChangeObserver([&controller, start, added,
-                                           token](const core::Changes& applied,
-                                                  DocumentController::ChangeOrigin origin) {
+    auto watch = std::make_shared<ReturnWatch>();
+    watch->token = controller.addChangeObserver([&controller, start, added,
+                                                 watch](const core::Changes& applied,
+                                                        DocumentController::ChangeOrigin origin) {
         if (origin != DocumentController::ChangeOrigin::Undo) {
             return;
         }
@@ -215,7 +224,8 @@ void watchReturn(DocumentController& controller, std::size_t start, std::size_t 
             return;
         }
         const bool wasShown = static_cast<std::size_t>(controller.currentIndex()) == added;
-        controller.removeChangeObserver(*token);
+        QObject::disconnect(watch->replaced);
+        controller.removeChangeObserver(watch->token);
         if (!wasShown) {
             return;
         }
@@ -225,9 +235,9 @@ void watchReturn(DocumentController& controller, std::size_t start, std::size_t 
             }
         });
     });
-    QObject::connect(
+    watch->replaced = QObject::connect(
         &controller, &DocumentController::documentReplaced, &controller,
-        [&controller, token] { controller.removeChangeObserver(*token); }, Qt::SingleShotConnection);
+        [&controller, watch] { controller.removeChangeObserver(watch->token); }, Qt::SingleShotConnection);
 }
 
 // La page ajoutée (la dernière) est affichée par la seule voie publique : nextPage(), qui n'ajoute une page
