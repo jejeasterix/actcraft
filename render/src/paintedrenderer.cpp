@@ -242,7 +242,12 @@ bool usesPaintedRenderer(const core::PageObject& object) noexcept
         return s->kind == core::ShapeKind::Path;
     }
     if (const auto* st = std::get_if<core::Stroke>(&object)) {
-        return st->kind != core::StrokeKind::Pen || st->cap != core::PenCap::Square;
+        // Trait translucide (alpha de la couleur ou translucidité de l'objet), marqueur, encre révélatrice :
+        // texture d'un seul drawPath. Sur une géométrie de triangles qui se recouvrent, sous une couleur à
+        // alpha ou un QSGOpacityNode, il foncerait à chaque jonction et à chaque croisement (D3, L3-T11).
+        // Stylo opaque : géométrie, bouts carrés du prototype ou forme ronde (appendRoundStrokeTriangles).
+        return st->kind != core::StrokeKind::Pen || object.common.translucency != 0 ||
+               (st->color >> 24) != 0xFFu;
     }
     return false;
 }

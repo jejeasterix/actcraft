@@ -69,12 +69,14 @@ private:
         return stroke;
     }
 
-    // Bouts ronds : moteur peint (usesPaintedRenderer), donc un nœud rastérisé par trait sous
-    // setForceRasterized.
+    // Marqueur à bouts ronds : moteur peint (usesPaintedRenderer), donc un nœud rastérisé par trait sous
+    // setForceRasterized. Amendé par L3-T11 : un stylo à bouts ronds passe désormais par la géométrie ; le
+    // marqueur (opaque ici, la couleur du test est gardée) reste au moteur peint.
     static core::Stroke roundLineAt(double y)
     {
         core::Stroke stroke = lineAt(y);
         stroke.cap = core::PenCap::Round;
+        stroke.kind = core::StrokeKind::Highlighter;
         return stroke;
     }
 
