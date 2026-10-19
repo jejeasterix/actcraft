@@ -32,43 +32,83 @@ téléchargement : **sans l'accord écrit de Jérôme, L8-T20 ne commence pas**,
 pose la question dès la fin de L8-T0, avec les tailles relevées. Les tâches de 8b qui n'en dépendent pas (L8-T22,
 L8-T23, L8-T31, L8-T32, L8-T33) peuvent avancer, après une réservation réduite (ci-dessous).
 
-**Repli sans accord** (écrit ici, appliqué par l'orchestrateur sans autre amendement si Jérôme refuse ou ne répond
-pas avant la fin de 8a) :
+<a id="repli-sans-accord"></a>
+**Repli sans accord (amendement 1, B3)** — appliqué par l'orchestrateur, sans autre amendement, si Jérôme refuse H8-6
+ou ne répond pas avant la fin de 8a. À chaque étape, le registre se charge et la suite reste verte.
 
-- médias ouverts par **l'application du système**, après confirmation (N2-9 ; `LinkLauncher::SystemMedia`, L8-T10) :
-  un clic sur un son ou une vidéo demande la confirmation puis ouvre le fichier extrait ; « lecture auto » ne vaut
-  jamais (D8-4) ; aucun lecteur de sons intégré ;
-- **pas d'enregistreur** de son ni d'écran : `record.*` sont retirés des menus par la déclaration de plateformes
-  (`"platforms": []` dans un correctif `L8-C1` de `commands.json`) ;
-- **pas de cadre web** : `insert.web-frame` et `webframe.*` retirés de même ; un cadre web lu d'un fichier est montré
-  par son repère neutre et réécrit à l'identique (règle L2-C8 appliquée au type connu) ;
-- tâches gardées : L8-T21 (réservation réduite : 7 tests — `tst_ui_linkdialogs`, `tst_ui_mediainsert`,
-  `tst_ui_mediaitems`, `tst_core_broadcast`, `tst_ui_broadcast`, `tst_captures_liens`,
-  `tst_captures_diffusion_protegee` ; **N = N8 + 28**), L8-T22, L8-T23, L8-T25 réduite (clic sur un média → confirmation
-  système ; GIF animé gardé, `AnimatedImage` de Qt Quick n'a pas besoin de Qt Multimedia), L8-T31, L8-T32, L8-T33
-  (épinglages sans enregistreurs), L8-T34 ; tâches retirées : L8-T20, L8-T24, L8-T26 à L8-T30 ;
-- hypothèses présentées à la porte : F-292, F-293, F-302 et le lecteur intégré de F-552 restent dus (décision 0100) et
-  reviennent dès l'accord, par un amendement de ce plan.
+1. **`L8-C1` — correctif de retrait** (ligne de la table, joué seul, avant `L8-T21r`) :
+   - `actions/data/commands.json` : **suppression** des 13 entrées `media.sound-controller`, `record.sound`,
+     `record.screen-full`, `record.screen-area`, `record.pause`, `record.stop`, `record.cancel`, `insert.web-frame`,
+     `webframe.back`, `webframe.forward`, `webframe.reload`, `webframe.snapshot`, `webframe.unblock` — jamais
+     `"platforms": []`, que `loadDeclarations` refuse (`actions/src/commandregistry.cpp:174-176`) ;
+     `actions/data/layout.json` : leurs places (sous-menu « Enregistreurs », « Cadre web… » du sous-menu « Lien »,
+     lecteur de sons) ; `actions/data/object-actions.json` : les entrées `command.*` qui les nomment (sinon
+     `everyCommandActionNamesARegisteredCommand` rougit) ;
+   - **même commit** : `lot8EntriesDeclared` (les 13 identifiants sortent de la liste, ainsi que le contrôle de
+     plateforme des `record.screen-*` et le contrôle `checkable` du lecteur de sons), `lot8AttributesDeclared`
+     (`record.sound` et `insert.web-frame` sortent des verrouillables, `media.sound-controller` des libres),
+     `everyLot8CommandHasAHandler` et `lot8ShellPlaceholders` (les 13 identifiants et `soundController`,
+     `recorderPalette`, `recordingIndicator`, `webFrameLayer`, `webFrameDialog` sortent) ;
+   - **talons orphelins** : `ui/qml/SoundController.qml`, `ui/qml/RecorderPalette.qml`, `ui/qml/RecordingIndicator.qml`,
+     `ui/qml/WebFrameLayer.qml`, `ui/qml/WebFrameDialog.qml` sont **supprimés** (`git rm`), avec leurs instances
+     (`ui/qml/PageArea.qml`, `ui/qml/Main.qml`) et leurs lignes de `ui/CMakeLists.txt` ; aucun gestionnaire
+     « indisponible » n'est gardé (les commandes n'existent plus) ; les icônes restent (dessins à nous) ; les fichiers
+     de 8b des tâches retirées ne sont jamais créés (`L8-T21r` ne les pose pas) ;
+   - preuve : `tst_actions_layout`, `tst_actions_registry`, `tst_actions_lockable`, `tst_actions_objectactions`,
+     `tst_ui_shell` Passed ; `TESTS OK`, N = N8 + 21 ; `captures.ps1 -Scenario premiers-pas` `CAPTURES OK` ;
+     `git -C <wt> grep -n -E "Talon L8 : rempli par L8-T(2[4-9]|30)\." -- . ':(exclude)docs/'` vide.
+2. **`L8-T21r`** — réservation réduite (ligne de la table) : 7 tests, **N = N8 + 28**, aucun module `media`.
+3. **Tâches gardées** : L8-T22, L8-T23, L8-T31, L8-T32 telles quelles ; **L8-T25r** et **L8-T33r** (lignes de la
+   table) ; L8-T34 avec N = N8 + 28 et les seuls scénarios gardés. **Retirées** : L8-T20, L8-T21, L8-T24, L8-T26 à
+   L8-T30.
+4. **Vagues du repli** : V10r : L8-C1 · V11r : L8-T21r · V12r : L8-T22 ‖ L8-T31 · V13r : L8-T23 ‖ L8-T33r ·
+   V14r : L8-T25r · V15r : L8-T32 · V16r : L8-T34 (une seule tâche par vague touche `Main.qml` : T22, T23, T25r, T32).
+5. **Hypothèse présentée à la porte** : F-292, F-293, F-302 et le lecteur intégré de F-552 restent dus (décision 0100)
+   et reviennent dès l'accord, par un amendement de ce plan ; le son de confirmation des conteneurs n'est pas joué
+   (aucun lecteur intégré ; rien n'est confié au système sans clic).
 
 ## Table des tâches
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L8-T20 | Installation de Qt Multimedia et Qt WebView (Windows, Android) — **porte H8-6** ; CI, licences, notices | L8-T19, accord H8-6 | `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `CLAUDE.md`, `packaging/qt-autorises.txt`, `THIRD_PARTY_NOTICES.md`, `docs/verifications/2026-10-22-lot8-modules.md` | isolé | implementeur-tdd | accord de Jérôme cité ; `Test-Path` des dossiers `lib/cmake/Qt6Multimedia` et `lib/cmake/Qt6WebView` des trois kits ; `scripts/verifier-licences.ps1` sans écart ; rapport des tailles (installateur, APK, avant et après) commité ; `TESTS OK` inchangé | S25, S26, S27 | #tache-l8-t20 |
-| L8-T21 | Réservation 8b : module `media`, options `ACTCRAFT_MEDIA` et `ACTCRAFT_WEBFRAME`, 16 tests enregistrés, fichiers neufs de 8b (talons marqués) | L8-T20 | `CMakeLists.txt`, `media/CMakeLists.txt`, `core/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{media,core,ui,bench}.cmake`, talons : `media/include/actcraft/media/{player,soundrecorder,displayrecorder}.h`, `media/src/{player,soundrecorder,displayrecorder_win,displayrecorder_other}.cpp`, `core/include/actcraft/core/broadcast.h`, `core/src/broadcast.cpp`, `ui/include/actcraft/ui/{linkdialogs,mediainsert,mediaitems,recorders,webpolicy,webframeitem,broadcastgate}.h`, `ui/src/{linkdialogs,mediainsert,mediaitems,recorders,webpolicy,webframeitem,broadcastgate}.cpp`, 11 tests talons `tests/tst_{ui_linkdialogs,ui_mediainsert,media_player,ui_mediaitems,media_soundrecorder,media_displayrecorder,ui_recorders,ui_webpolicy,ui_webframe,core_broadcast,ui_broadcast}.cpp`, 5 scénarios talons `bench/scenarios/{liens,medias,enregistreurs,cadre-web,diffusion-protegee}.json` | isolé | implementeur-tdd | `100% tests passed … out of N`, N = N8 + 37, `TESTS OK` ; 16 tests neufs `SKIP` nommant leur tâche ; `tst_modules` Passed (ordre des modules : `media` après `core` et avant `ui`) ; construction Android `APK OK` ; `NOMS OK` | S18, S25, S26, S27 | #tache-l8-t21 |
-| L8-T22 | Dialogues de liens (F-550, F-551) : fichier ou site, quatre formes de lien, stockage externe ou dans le document ; scénario `liens` | L8-T21 | `ui/include/actcraft/ui/linkdialogs.h`, `ui/src/linkdialogs.cpp`, `ui/qml/LinkDialog.qml`, `tests/tst_ui_linkdialogs.cpp`, `bench/scenarios/liens.json`, `bench/scenarios/fixtures/liens.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_linkdialogs` (dont `textFormCreatesATextObject`, `existingObjectGetsTheAction`, `storedFileBecomesAResource`, `externalPathKeptAsIs`, `commandLineArgumentsNeverPassed`, `websiteNeedsHttpOrHttps`, `oneStep`), `tst_captures_liens` Passed ; `captures.ps1 -Scenario liens` : `LU linkConfirmDialog.visible=true OK`, `LU appLinks.openedCount=0 OK`, `CAPTURES OK` | S11 | #tache-l8-t22 |
-| L8-T23 | Insertion des médias : son ou vidéo depuis un fichier ou les ressources, image d'espace réservé, action de lecture, second média à côté du premier | L8-T21 | `ui/include/actcraft/ui/mediainsert.h`, `ui/src/mediainsert.cpp`, `tests/tst_ui_mediainsert.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_mediainsert` (dont `soundBecomesAPlaceholderWithAPlayAction`, `videoKeepsItsAspect`, `secondMediaGoesBesideTheFirst`, `resourceDropInsertsInOneStep`, `flashShowsOnlyItsPlaceholder`, `refusedWhileLocked`) Passed | S25 | #tache-l8-t23 |
+| L8-T21 | Réservation 8b : module `media`, options `ACTCRAFT_MEDIA` et `ACTCRAFT_WEBFRAME`, 16 tests enregistrés, fichiers neufs de 8b (talons marqués) | L8-T20 | `CMakeLists.txt`, `media/CMakeLists.txt`, `core/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{media,core,ui,bench}.cmake`, talons : `media/include/actcraft/media/{player,soundrecorder,displayrecorder}.h`, `media/src/{player,soundrecorder,displayrecorder_win,displayrecorder_other}.cpp`, `core/include/actcraft/core/broadcast.h`, `core/src/broadcast.cpp`, `ui/include/actcraft/ui/{linkdialogs,mediainsert,mediaitems,recorders,webpolicy,webframeitem,broadcastgate}.h`, `ui/src/{linkdialogs,mediainsert,mediaitems,recorders,webpolicy,webframeitem,broadcastgate}.cpp`, 11 tests talons `tests/tst_{ui_linkdialogs,ui_mediainsert,media_player,ui_mediaitems,media_soundrecorder,media_displayrecorder,ui_recorders,ui_webpolicy,ui_webframe,core_broadcast,ui_broadcast}.cpp`, 5 scénarios talons `bench/scenarios/{liens,medias,enregistreurs,cadre-web,diffusion-protegee}.json` | isolé | implementeur-tdd | `100% tests passed … out of N`, N = N8 + 37, `TESTS OK` ; 16 tests neufs `SKIP` nommant leur tâche ; `tst_modules` Passed (ordre des modules : `media` après `core` et avant `ui`) ; construction Android `APK OK` sous `GRADLE_OPTS=-Dorg.gradle.daemon=false` (la commande rend la main moins de 60 s après `APK OK`) ; `NOMS OK` | S18, S25, S26, S27 | #tache-l8-t21 |
+| L8-T22 | Dialogues de liens (F-550, F-551) : fichier ou site, quatre formes de lien, stockage externe ou dans le document ; scénario `liens` | L8-T21 | `ui/include/actcraft/ui/linkdialogs.h`, `ui/src/linkdialogs.cpp`, `ui/qml/LinkDialog.qml`, `ui/qml/Main.qml`, `tests/tst_ui_linkdialogs.cpp`, `bench/scenarios/liens.json`, `bench/scenarios/fixtures/liens.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_linkdialogs` (dont `textFormCreatesATextObject`, `existingObjectGetsTheAction`, `storedFileBecomesAResource`, `externalPathKeptAsIs`, `commandLineArgumentsNeverPassed`, `websiteNeedsHttpOrHttps`, `oneStep`), `tst_captures_liens` Passed ; `captures.ps1 -Scenario liens` : `LU linkConfirmDialog.visible=true OK`, `LU appLinks.openedCount=0 OK`, `CAPTURES OK` | S11 | #tache-l8-t22 |
+| L8-T23 | Insertion des médias : son ou vidéo depuis un fichier ou les ressources, image d'espace réservé, action de lecture, second média à côté du premier | L8-T21 | `ui/include/actcraft/ui/mediainsert.h`, `ui/src/mediainsert.cpp`, `ui/qml/Main.qml`, `tests/tst_ui_mediainsert.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_mediainsert` (dont `soundBecomesAPlaceholderWithAPlayAction`, `videoKeepsItsAspect`, `secondMediaGoesBesideTheFirst`, `resourceDropInsertsInOneStep`, `flashShowsOnlyItsPlaceholder`, `refusedWhileLocked`) Passed | S25 | #tache-l8-t23 |
 | L8-T24 | `media` : lecteur intégré (deux pistes, formats lus par Qt Multimedia, repli vers l'application du système) | L8-T21 | `media/include/actcraft/media/player.h`, `media/src/player.cpp`, `tests/tst_media_player.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_media_player` (dont `wavPlaysAndPositionAdvances`, `twoTracksAtOnce`, `secondSoundOnTrackOneReplacesTheFirst`, `unreadableFallsBackToTheSystem`, `fallbackNeedsConfirmation`, `neverOnTheRenderThread`, `stopAllOnDocumentClose`) Passed | S25 | #tache-l8-t24 |
-| L8-T25 | QML : médias sur la page (vidéo dans son cadre au-dessus du cache, lecteur de sons, GIF animé, options F-582, son de confirmation des conteneurs) ; scénario `medias` ; banc | L8-T16, L8-T23, L8-T24 | `ui/include/actcraft/ui/mediaitems.h`, `ui/src/mediaitems.cpp`, `ui/qml/MediaLayer.qml`, `ui/qml/SoundController.qml`, `tests/tst_ui_mediaitems.cpp`, `bench/scenarios/medias.json`, `bench/scenarios/fixtures/medias.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_mediaitems` (dont `videoIsAboveTheCache`, `videoNeverEntersTheCache`, `controlsHiddenOption`, `loopOption`, `playOnOpenOnlyInternal`, `gifAnimates`, `chimePlaysOnAcceptedDrop`, `soundControllerToggles`), `tst_captures_medias` Passed ; `captures.ps1 -Scenario medias` : `LU soundController.position>0 OK`, `PIXEL gif-image-2 OK`, `CAPTURES OK` ; banc hors écran joint (vidéo jouée pendant l'écriture) | S25 | #tache-l8-t25 |
-| L8-T26 | `media` : enregistreur de son (F-293) : WAV, icône de lecture posée sur la page, permission du micro sous Android | L8-T24 | `media/include/actcraft/media/soundrecorder.h`, `media/src/soundrecorder.cpp`, `android/AndroidManifest.xml`, `tests/tst_media_soundrecorder.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_media_soundrecorder` (dont `writesAWav`, `pauseAndResume`, `stopPlacesAPlayIconOnThePage`, `cancelLeavesNothing`, `refusedPermissionDisablesWithAMessage`, `indicatorStateFollows`) Passed ; `APK OK` ; essai Android `ANDROID OK` | S26 | #tache-l8-t26 |
+| L8-T25 | QML : médias sur la page (vidéo dans son cadre au-dessus du cache, lecteur de sons, GIF animé, options F-582, son de confirmation des conteneurs) ; scénario `medias` ; banc | L8-T16, L8-T23, L8-T24 | `ui/include/actcraft/ui/mediaitems.h`, `ui/src/mediaitems.cpp`, `ui/qml/MediaLayer.qml`, `ui/qml/SoundController.qml`, `ui/qml/Main.qml`, `tests/tst_ui_mediaitems.cpp`, `bench/scenarios/medias.json`, `bench/scenarios/fixtures/medias.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_mediaitems` (dont `videoIsAboveTheCache`, `videoNeverEntersTheCache`, `controlsHiddenOption`, `loopOption`, `playOnOpenOnlyInternal`, `gifAnimates`, `chimePlaysOnAcceptedDrop`, `soundControllerToggles`), `tst_captures_medias` Passed ; `captures.ps1 -Scenario medias` : `waitFor` interne `soundController.playing` vrai, `LU soundController.visible=true OK` (état final), `PIXEL gif-image-2 OK`, `CAPTURES OK` ; banc hors écran joint (vidéo jouée pendant l'écriture) | S25 | #tache-l8-t25 |
+| L8-T26 | `media` : enregistreur de son (F-293) : WAV, icône de lecture posée sur la page, permission du micro sous Android | L8-T24 | `media/include/actcraft/media/soundrecorder.h`, `media/src/soundrecorder.cpp`, `android/AndroidManifest.xml`, `tests/tst_media_soundrecorder.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_media_soundrecorder` (dont `writesAWav`, `pauseAndResume`, `stopPlacesAPlayIconOnThePage`, `cancelLeavesNothing`, `refusedPermissionDisablesWithAMessage`, `indicatorStateFollows`) Passed ; `APK OK` (même règle `GRADLE_OPTS`) ; essai Android `ANDROID OK` | S26 | #tache-l8-t26 |
 | L8-T27 | `media` : enregistreur d'écran (F-292, Windows) : plein écran ou zone, MP4, pause, arrêt, abandon | L8-T24 | `media/include/actcraft/media/displayrecorder.h`, `media/src/displayrecorder_win.cpp`, `media/src/displayrecorder_other.cpp`, `tests/tst_media_displayrecorder.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_media_displayrecorder` (dont `fullScreenFiveSeconds`, `areaIsCropped`, `pauseExcludesThePause`, `cancelDeletesTheFile`, `notBuiltOutsideWindows`) Passed (sous Windows ; ailleurs `SKIP` « Windows seulement ») | S26 | #tache-l8-t27 |
-| L8-T28 | Enregistreurs : palettes, indicateur toujours visible, mention à la première utilisation, réapparition de la palette (V43), réglages « Enregistrements » ; scénario `enregistreurs` ; banc | L8-T26, L8-T27 | `ui/include/actcraft/ui/recorders.h`, `ui/src/recorders.cpp`, `ui/qml/RecorderPalette.qml`, `ui/qml/RecordingIndicator.qml`, `tests/tst_ui_recorders.cpp`, `bench/scenarios/enregistreurs.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_recorders` (dont `indicatorVisibleWhileRecording`, `firstUseShowsTheNotice`, `hiddenPaletteComesBackOnRestart`, `settingsSectionRead`, `stopAlwaysAvailableUnderTheLock`), `tst_captures_enregistreurs` Passed ; `captures.ps1 -Scenario enregistreurs` : `LU recordingIndicator.visible=true OK`, `LU appRecorders.lastDurationMs>=4500 OK`, `CAPTURES OK` ; banc hors écran joint (écriture pendant l'enregistrement) | S26 | #tache-l8-t28 |
+| L8-T28 | Enregistreurs : palettes, indicateur toujours visible, mention à la première utilisation, réapparition de la palette (V43), réglages « Enregistrements » ; scénario `enregistreurs` ; banc | L8-T26, L8-T27 | `ui/include/actcraft/ui/recorders.h`, `ui/src/recorders.cpp`, `ui/qml/RecorderPalette.qml`, `ui/qml/RecordingIndicator.qml`, `tests/tst_ui_recorders.cpp`, `bench/scenarios/enregistreurs.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_recorders` (dont `indicatorVisibleWhileRecording`, `firstUseShowsTheNotice`, `hiddenPaletteComesBackOnRestart`, `settingsSectionRead`, `stopAlwaysAvailableUnderTheLock`), `tst_captures_enregistreurs` Passed ; `captures.ps1 -Scenario enregistreurs` : `expect` interne `recordingIndicator.visible` vrai pendant, `LU recordingIndicator.visible=false OK`, `LU appRecorders.lastDurationOk=true OK` (état final), `CAPTURES OK` ; banc hors écran joint (écriture pendant l'enregistrement) | S26 | #tache-l8-t28 |
 | L8-T29 | `ui` : politique de contenu du cadre web (N1-A3) : JavaScript coupé, aucun `file://` hors des ressources du document, aucun chemin réseau, contenu distant d'un document reçu bloqué jusqu'au déblocage de la page | L8-T21 | `ui/include/actcraft/ui/webpolicy.h`, `ui/src/webpolicy.cpp`, `tests/tst_ui_webpolicy.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_webpolicy` (dont `javascriptOffByDefault`, `fileOutsideResourcesRefused`, `fileInsideResourcesAllowed`, `networkPathRefused`, `remoteBlockedInAReceivedDocument`, `unblockIsPerPageAndDocument`, `typedAddressIsNotReceived`, `htmlIsNeverPassedToQTextDocumentWithoutTheGuard`) Passed ; mutation (déblocage pour tout le document) rouge puis remise | S27 | #tache-l8-t29 |
-| L8-T30 | Cadre web : saisie du code, vue redimensionnable, précédent, suivant, recharger, image fixe, repère de blocage, repère neutre dans les miniatures et les exports ; scénario `cadre-web` | L8-T29 | `ui/include/actcraft/ui/webframeitem.h`, `ui/src/webframeitem.cpp`, `ui/qml/WebFrameLayer.qml`, `ui/qml/WebFrameDialog.qml`, `render/src/pagepainter.cpp`, `app/main.cpp`, `tests/tst_ui_webframe.cpp`, `bench/scenarios/cadre-web.json`, `bench/scenarios/fixtures/cadre-web.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_webframe` (dont `insertFromTypedHtml`, `resizeIsOneStep`, `receivedRemoteFrameSendsNoRequest`, `unblockThenRequestReachesTheServer`, `otherPageStaysBlocked`, `snapshotPlacesAnImage`, `roundTripKeepsTheFrame`, `paintedAsANeutralFrame`), `tst_render_painter`, `tst_captures_cadre_web` Passed ; `captures.ps1 -Scenario cadre-web` : `LU webFrameLayer.count=1 OK`, `LU webFrameLayer.blockedCount=1 OK`, `CAPTURES OK` | S27 | #tache-l8-t30 |
+| L8-T30 | Cadre web : saisie du code, vue redimensionnable, précédent, suivant, recharger, image fixe, repère de blocage, repère neutre dans les miniatures et les exports ; scénario `cadre-web` | L8-T29 | `ui/include/actcraft/ui/webframeitem.h`, `ui/src/webframeitem.cpp`, `ui/qml/WebFrameLayer.qml`, `ui/qml/WebFrameDialog.qml`, `app/main.cpp`, `bench/captures/main.cpp`, `bench/app/main.cpp`, `tests/tst_ui_webframe.cpp`, `bench/scenarios/cadre-web.json`, `bench/scenarios/fixtures/cadre-web.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_webframe` (dont `insertFromTypedHtml`, `resizeIsOneStep`, `receivedRemoteFrameSendsNoRequest`, `unblockThenRequestReachesTheServer`, `otherPageStaysBlocked`, `snapshotPlacesAnImage`, `roundTripKeepsTheFrame`, `paintedAsANeutralFrame`), `tst_render_painter`, `tst_captures_cadre_web` Passed ; `captures.ps1 -Scenario cadre-web` : `LU webFrameLayer.count=1 OK`, `LU webFrameLayer.blockedCount=1 OK`, `CAPTURES OK` | S27 | #tache-l8-t30 |
 | L8-T31 | `core` + QML : diffusion protégée I — règles, copie protégée écrite dans un **nouveau** fichier, boîte « Diffuser en protégé » | L8-T21 | `core/include/actcraft/core/broadcast.h`, `core/src/broadcast.cpp`, `ui/qml/PublishDialog.qml`, `tests/tst_core_broadcast.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_broadcast` (dont `publishedCopyCarriesTheRules`, `originalIsUntouched`, `rulesApplyToTheAuthorToo`, `defaultRulesAreOmitted`, `categoryOfEveryRestrictableCommand`) Passed | S18 | #tache-l8-t31 |
-| L8-T32 | Diffusion protégée II — porte dans le registre (`restrictable`), messages de refus, glisser vers les ressources refusé, actions toujours actives ; scénario `diffusion-protegee` | L8-T31 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `ui/include/actcraft/ui/broadcastgate.h`, `ui/src/broadcastgate.cpp`, `ui/src/resourcelibrary.cpp`, `tests/tst_ui_broadcast.cpp`, `bench/scenarios/diffusion-protegee.json`, `bench/scenarios/fixtures/diffusion-protegee.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_broadcast` (dont `restrictedCommandsGreyed`, `triggerShowsTheRefusal`, `enableCannotBypassTheRestriction`, `lockAndRestrictionCombine`, `resourceDragRefused`, `pageActionStillRuns`, `rulesFollowTheOpenDocument`), `tst_actions_lockable`, `tst_ui_resources`, `tst_captures_diffusion_protegee` Passed ; mutation (`isEnabled` sans la restriction) rouge puis remise ; `captures.ps1 -Scenario diffusion-protegee` : `LU appBroadcast.active=true OK`, `LU appCommands.enabled.edit.copy=false OK`, `CAPTURES OK` | S18 | #tache-l8-t32 |
+| L8-T32 | Diffusion protégée II — porte dans le registre (`restrictable`), messages de refus, glisser vers les ressources refusé, actions toujours actives ; scénario `diffusion-protegee` | L8-T31 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `ui/include/actcraft/ui/broadcastgate.h`, `ui/src/broadcastgate.cpp`, `ui/src/resourcelibrary.cpp`, `ui/qml/Main.qml`, `tests/tst_ui_broadcast.cpp`, `bench/scenarios/diffusion-protegee.json`, `bench/scenarios/fixtures/diffusion-protegee.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_broadcast` (dont `restrictedCommandsGreyed`, `triggerShowsTheRefusal`, `enableCannotBypassTheRestriction`, `lockAndRestrictionCombine`, `resourceDragRefused`, `pageActionStillRuns`, `rulesFollowTheOpenDocument`), `tst_actions_lockable`, `tst_ui_resources`, `tst_captures_diffusion_protegee` Passed ; mutation (`isEnabled` sans la restriction) rouge puis remise ; `captures.ps1 -Scenario diffusion-protegee` : `LU appBroadcast.active=true OK`, `LU menuItem-edit.copy.enabled=false OK`, `CAPTURES OK` | S18 | #tache-l8-t32 |
 | L8-T33 | Profil « Son et image » : épinglages du lot 8 (règle de l'amendement 1, § 1) ; liste des épinglages | L8-T21 | `actions/data/profiles/son-image.json`, `docs/verifications/2026-10-23-lot8-epinglages.md`, `tests/tst_ui_profiles.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_profiles` (dont `pinnedCommandsExist`, `pinnedFilteredByPlatform`, `soundAndImagePinsLot8`) Passed | S32 | #tache-l8-t33 |
-| L8-T34 | Contrôle du lot : talons vides, suites debug et release, captures hors écran puis à l'écran, banc D3D11 plein écran, paquets, version 0.9.0, notes, mesure de fin de lot, graphe | L8-T20 à L8-T33 | `CMakeLists.txt`, `CHANGELOG.md`, `docs/mesures/2026-10-24-lot8-fin.md`, `graphify-out/` | partagé | implementeur-tdd | `TESTS OK` en debug et en release, N = N8 + 37 (+ p) ; `CAPTURES OK` hors écran et à l'écran (jeton `ecran`) ; banc `BUDGET TENU` ou tout critère de la référence tenu (porte de non-régression) ; `PAQUET OK`, `APK OK` ; tailles des paquets rapportées ; règle 4 des talons ; contrôle d'occurrences ; `NOMS OK` ; `graphify update .` commité | S11, S18, S25, S26, S27 | #tache-l8-t34 |
+| L8-T34 | Contrôle du lot : talons vides, suites debug et release, captures hors écran puis à l'écran, banc D3D11 plein écran, paquets, version 0.9.0, notes, mesure de fin de lot, graphe | L8-T20 à L8-T33 | `CMakeLists.txt`, `CHANGELOG.md`, `docs/mesures/2026-10-24-lot8-fin.md`, `tests/tst_ui_shell.cpp`, `graphify-out/` | partagé | implementeur-tdd | `TESTS OK` en debug et en release, N = N8 + 37 (+ p) ; `tst_ui_shell` (dont `lot8bControllersWired`) Passed ; `CAPTURES OK` hors écran et à l'écran (jeton `ecran`) ; banc `BUDGET TENU` ou tout critère de la référence tenu (porte de non-régression) ; `PAQUET OK`, `APK OK` (sous `GRADLE_OPTS=-Dorg.gradle.daemon=false`, main rendue < 60 s) ; tailles des paquets rapportées ; règle 4 des talons ; contrôle d'occurrences ; `NOMS OK` ; `graphify update .` commité | S11, S18, S25, S26, S27 | #tache-l8-t34 |
+| L8-C1 | Repli seulement : retrait des commandes sans moteur, tests amendés dans le même commit, talons orphelins supprimés | L8-T19, refus ou silence sur H8-6 | `actions/data/commands.json`, `actions/data/layout.json`, `actions/data/object-actions.json`, `tests/tst_actions_layout.cpp`, `tests/tst_ui_shell.cpp`, `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/{SoundController,RecorderPalette,RecordingIndicator,WebFrameLayer,WebFrameDialog}.qml` (supprimés), `ui/CMakeLists.txt` | isolé | implementeur-tdd | `TESTS OK`, N = N8 + 21 ; `tst_actions_layout` (dont `lot8EntriesDeclared`, `lot8AttributesDeclared`), `tst_actions_registry`, `tst_actions_lockable`, `tst_actions_objectactions`, `tst_ui_shell` (dont `everyLot8CommandHasAHandler`, `lot8ShellPlaceholders`) Passed ; `premiers-pas` `CAPTURES OK` ; aucun talon de tâche retirée ; `NOMS OK` | S11 | #repli-sans-accord |
+| L8-T21r | Repli seulement : réservation réduite de 8b (7 tests, sans module `media`) | L8-T19, L8-C1 | `core/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{core,ui,bench}.cmake`, talons : `core/include/actcraft/core/broadcast.h`, `core/src/broadcast.cpp`, `ui/include/actcraft/ui/{linkdialogs,mediainsert,mediaitems,broadcastgate}.h`, `ui/src/{linkdialogs,mediainsert,mediaitems,broadcastgate}.cpp`, 5 tests talons `tests/tst_{ui_linkdialogs,ui_mediainsert,ui_mediaitems,core_broadcast,ui_broadcast}.cpp`, 2 scénarios talons `bench/scenarios/{liens,diffusion-protegee}.json` | isolé | implementeur-tdd | `100% tests passed … out of N`, N = N8 + 28, `TESTS OK` ; 7 tests neufs `SKIP` nommant leur tâche (L8-T22, L8-T23, L8-T25r, L8-T31, L8-T32) ; aucun dossier `media/` ; `APK OK` sous `GRADLE_OPTS=-Dorg.gradle.daemon=false` (main rendue < 60 s) ; `NOMS OK` | S11, S18 | #repli-sans-accord |
+| L8-T25r | Repli seulement : médias sur la page sans lecteur intégré (espace réservé, GIF animé, clic → application du système après confirmation) | L8-T16, L8-T21r, L8-T23 | `ui/include/actcraft/ui/mediaitems.h`, `ui/src/mediaitems.cpp`, `ui/qml/MediaLayer.qml`, `ui/qml/Main.qml`, `tests/tst_ui_mediaitems.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_mediaitems` (dont `clickAsksTheSystemWithConfirmation`, `playOnOpenNeverLaunches`, `gifAnimates`, `placeholderOnlyInTheCache`, `refusedWithoutCommands`) Passed ; banc hors écran joint | S11 | #repli-sans-accord |
+| L8-T33r | Repli seulement : profil « Son et image », épinglages sans enregistreurs ni cadre web | L8-T21r | `actions/data/profiles/son-image.json`, `docs/verifications/2026-10-23-lot8-epinglages.md`, `tests/tst_ui_profiles.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_profiles` (dont `pinnedCommandsExist`, `soundAndImagePinsLot8` sur `link.file`, `link.website`, `insert.media`) Passed | S32 | #repli-sans-accord |
+
+
+### Amendement 1 (relecture du tour 1)
+
+Mêmes constats et même autorité que l'amendement 1 de 8a (table complète dans `…-lot8-PLAN.md`, sous la table des
+tâches). Propres à 8b :
+
+| # | Correction dans 8b | Où |
+|---|---|---|
+| B2 | `broadcast()` / `setBroadcast` de la classe `Document` | L8-T31 |
+| B3 | repli réécrit : `L8-C1` (retrait et tests dans le même commit, talons orphelins supprimés), lignes `L8-T21r`, `L8-T25r`, `L8-T33r`, vagues du repli | « Porte H8-6 », table |
+| M1, M4 | `menuItem-edit.copy.enabled` ; `appBroadcast`, `appRecorders` posés par leur tâche ; états intermédiaires en `expect` interne, état final en `-Lire` | L8-T25, L8-T28, L8-T32 |
+| M2 | `Main.qml` : L8-T22 (V12), L8-T23 (V13), L8-T25 (V14), L8-T32 (V15) ; `appRecorders` dans `RecorderPalette.qml`, `appWebFrames` dans `WebFrameLayer.qml` ; `lot8bControllersWired` (L8-T34) | lignes, sections |
+| M7 | réglages d'essai, `QStandardPaths::setTestModeEnabled` | « Commandes propres à 8b » |
+| M10 | `QtWebView::initialize()` dans les trois `main` ; `main` propre à `tst_ui_webframe` ; saut nommé hors écran | L8-T30 |
+| M11 | `GRADLE_OPTS=-Dorg.gradle.daemon=false`, main rendue < 60 s, `java.exe` du worktree comptés | « Commandes propres à 8b », L8-T21, L8-T21r, L8-T26, L8-T34 |
+| m7 | garde HTML sur les fichiers du cadre | L8-T29 |
+| m12 | `tool.camera-*` | L8-T31 |
+| m14 | `pagepainter.cpp` retiré de L8-T30 (repère posé par L8-T3) | L8-T30, vagues |
 
 15 tâches dans ce sous-lot. Tests ctest : L8-T21 enregistre les **16** tests de 8b (11 unitaires, 5 de captures) :
 **N = N8 + 37** dès L8-T21 (N8 + 37 + p avec `L8-P1`) ; sans l'accord H8-6, **N8 + 28** (repli ci-dessus).
@@ -79,20 +119,32 @@ V10 : L8-T20 (porte H8-6) · V11 : L8-T21 · V12 : L8-T22 ‖ L8-T24 ‖ L8-T29 
 V14 : L8-T25 ‖ L8-T27 ‖ L8-T30 · V15 : L8-T28 ‖ L8-T32 ‖ L8-T33 · V16 : L8-T34.
 
 Vérification des recoupements :
-- V12 : L8-T22 (`linkdialogs.*`, `LinkDialog.qml`, un test, `liens.json` et son document) / L8-T24 (`media/player.*`,
+- V12 : L8-T22 (`linkdialogs.*`, `LinkDialog.qml`, `Main.qml`, un test, `liens.json` et son document) / L8-T24 (`media/player.*`,
   un test) / L8-T29 (`webpolicy.*`, un test) — disjoints.
-- V13 : L8-T23 (`mediainsert.*`, un test) / L8-T26 (`soundrecorder.*`, `AndroidManifest.xml`, un test) / L8-T31
+- V13 : L8-T23 (`mediainsert.*`, `Main.qml`, un test) / L8-T26 (`soundrecorder.*`, `AndroidManifest.xml`, un test) / L8-T31
   (`core/broadcast.*`, `PublishDialog.qml`, un test) — disjoints.
-- V14 : L8-T25 (`mediaitems.*`, `MediaLayer.qml`, `SoundController.qml`, un test, `medias.json`) / L8-T27
-  (`displayrecorder*`, un test) / L8-T30 (`webframeitem.*`, `WebFrameLayer.qml`, `WebFrameDialog.qml`, `pagepainter.cpp`,
+- V14 : L8-T25 (`mediaitems.*`, `MediaLayer.qml`, `SoundController.qml`, `Main.qml`, un test, `medias.json`) / L8-T27
+  (`displayrecorder*`, un test) / L8-T30 (`webframeitem.*`, `WebFrameLayer.qml`, `WebFrameDialog.qml`, `app/main.cpp`, `bench/captures/main.cpp`, `bench/app/main.cpp`,
   un test, `cadre-web.json`) — disjoints.
 - V15 : L8-T28 (`recorders.*`, `RecorderPalette.qml`, `RecordingIndicator.qml`, un test, `enregistreurs.json`) /
-  L8-T32 (`commandregistry.*`, `broadcastgate.*`, `resourcelibrary.cpp`, un test, `diffusion-protegee.json`) / L8-T33
+  L8-T32 (`commandregistry.*`, `broadcastgate.*`, `resourcelibrary.cpp`, `Main.qml`, un test, `diffusion-protegee.json`) / L8-T33
   (`son-image.json`, rapport d'épinglages, `tst_ui_profiles.cpp`) — disjoints.
-- Repris d'une vague à l'autre, tenus par « dépend de » : talons de L8-T21 → leur tâche ; `pagepainter.cpp` (L8-T18 en
-  8a → L8-T30) ; `commandregistry.*` (L6-T3 → L8-T32).
+- Repris d'une vague à l'autre, tenus par « dépend de » : talons de L8-T21 → leur tâche ; `pagepainter.cpp` (L8-T3 → L8-T18, en 8a ; L8-T30 n'y touche plus) ; `commandregistry.*` (L6-T3 → L8-T32).
 
 **Places.** Comme en 8a. L8-T20 ne construit que pour la vérification finale. Chemin critique : V12 L8-T24, V14 L8-T25.
+
+## Commandes propres à 8b (amendement 1)
+
+- **Réglages d'essai (M7)** : la règle de 8a (« Commandes de preuve communes ») vaut pour les tests de 8b qu'elle
+  nomme, avec `QStandardPaths::setTestModeEnabled(true)` pour les enregistreurs (dossier des enregistrements).
+- **APK (M11)** : toute construction d'APK (L8-T21, L8-T21r, L8-T26, L8-T34) se fait ainsi :
+  ```powershell
+  pwsh -NoProfile -Command "Set-Location '<wt>'; `$env:GRADLE_OPTS='-Dorg.gradle.daemon=false'; `$t0=Get-Date; pwsh -NoProfile -File ./scripts/paquet-android.ps1 *> .tmp/apk.txt; `$t1=Get-Date; Select-String -Path .tmp/apk.txt -Pattern 'APK OK|ERREUR|FAILED' | Select-Object -Last 2; 'duree apres APK OK (s) : ' + [int](`$t1 - (Get-Item .tmp/apk.txt).LastWriteTime).TotalSeconds; @(Get-CimInstance Win32_Process -Filter \"Name='java.exe'\" | Where-Object { `$_.CommandLine -like '*<wt>*' }).Count"
+  ```
+  Attendu : `APK OK`, la commande rend la main moins de 60 s après `APK OK`, et **0** `java.exe` dont la ligne de
+  commande contient le worktree (les autres `java.exe` du poste ne comptent pas).
+- **Tests qui chargent `Main.qml`** : `lot8bControllersWired` va dans `tst_ui_shell` (forme de `tests/ui.cmake:33-36`
+  déjà en place) ; aucun test neuf de 8b ne charge `Main.qml`.
 
 ## Sections des tâches
 
@@ -169,6 +221,10 @@ inchangé pour `core/`.
   `tst_ui_broadcast`), `tests/bench.cmake` (5 captures). 11 + 5 = **16**.
 - [ ] **Étape 4 : vert** ; `APK OK` ; commit « Lot 8 : réservation de 8b, module media (L8-T21) » ; `NOMS OK`.
 
+**Amendement 1 (L8-T21).** M11 : construction de l'APK par la commande de « Commandes propres à 8b ». m7 : `tst_ui_webpolicy`
+est enregistré avec `ENVIRONMENT ACTCRAFT_SOURCE_DIR=${CMAKE_SOURCE_DIR}`. M10 : `tst_ui_webframe` est enregistré avec
+son propre `main` (pas de `QTEST_MAIN`, voir L8-T30).
+
 <a id="tache-l8-t22"></a>
 ### Tâche L8-T22 — Dialogues de liens
 
@@ -203,6 +259,9 @@ la capture `confirmation`.
   `appLinks.openedCount` 0, capture `confirmation`.
 - [ ] **Étape 4 : vert** ; commit « Lot 8 : dialogues de liens (L8-T22) » ; `NOMS OK` ; titres vides.
 
+**Amendement 1 (L8-T22).** M2 : `ui/qml/Main.qml` gagne
+`LinkDialogs { id: appLinkDialogs; objectName: "appLinkDialogs"; commands: appCommands; document: appDocument; toolHost: appTools; links: appLinks }`.
+
 <a id="tache-l8-t23"></a>
 ### Tâche L8-T23 — Insertion des médias
 
@@ -225,6 +284,9 @@ première image sur `QThreadPool`.
   vidéo : sautée avec `QSKIP("ACTCRAFT_MEDIA absent")` si le module manque, jamais « Talon »).
 - [ ] **Étape 2 : code** `MediaInsert::insertFile(QUrl)`, `insertResource(QString key)` ; placement : à droite du
   dernier média de la page, sinon au centre. **Étape 3 : vert** ; commit « Lot 8 : insertion des médias (L8-T23) ».
+
+**Amendement 1 (L8-T23).** M2 : `ui/qml/Main.qml` gagne
+`MediaInsert { id: appMediaInsert; objectName: "appMediaInsert"; commands: appCommands; document: appDocument }`.
 
 <a id="tache-l8-t24"></a>
 ### Tâche L8-T24 — `media` : lecteur intégré
@@ -299,8 +361,7 @@ d'un fichier par le système ; GIF animé par `AnimatedImage` (V57, D14) ; son d
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_mediaitems|tst_captures_medias'` ; banc hors écran joint,
 puis banc D3D11 à l'écran en fin de lot (L8-T34) avec la vidéo qui joue (S25 : aucune régression des critères).
 
-**Preuve visuelle.** `LU soundController.position>0 OK` (lecture `-Lire "soundController.position>0"` si le lecteur
-du joueur accepte la comparaison ; sinon `waitFor` sur `soundController.playing` vrai, A26), `PIXEL gif-image-2 OK`,
+**Preuve visuelle.** `waitFor` interne sur `soundController.playing` vrai (jamais en `-Lire`), puis en `-Lire` l'état final `LU soundController.visible=true OK`, `PIXEL gif-image-2 OK`,
 `CAPTURES OK` ; décrire les captures `video`, `lecteur`, `gif`.
 
 **Interdits.** Aucun dessin de la vidéo dans le cache ni dans les miniatures (espace réservé seulement) ; aucune
@@ -318,6 +379,11 @@ dans le QML.
   images à nous) ; clic sur le son, `waitFor` `soundController.playing` vrai ; clic sur la vidéo, trait au stylet
   pendant la lecture (`stroke`), `checkPixel` du trait ; `wait` 600, `checkPixel` `gif-image-2` ; captures.
 - [ ] **Étape 4 : vert** ; banc ; commit « Lot 8 : médias sur la page (L8-T25) » ; `NOMS OK`.
+
+**Amendement 1 (L8-T25).** M2 : `ui/qml/Main.qml` gagne
+`MediaItems { id: appMediaItems; objectName: "appMediaItems"; document: appDocument; contactActive: pageArea.view.contactActive; links: appLinks }`
+(le `media::Player` appartient à `MediaItems`). M4 : `soundController.playing` lu par un `waitFor` interne ; en
+`-Lire`, `soundController.visible=true`. M7 : réglages d'essai.
 
 <a id="tache-l8-t26"></a>
 ### Tâche L8-T26 — `media` : enregistreur de son
@@ -341,6 +407,9 @@ fonctions qui enregistrent ; `refusedPermissionDisablesWithAMessage` passe parto
 
 **Étapes.** Test rouge `tests/tst_media_soundrecorder.cpp` : `writesAWav` (en-tête RIFF/WAVE, durée ≥ 2,5 s pour 3 s) ; `pauseAndResume` (la pause n'entre pas dans la durée) ; `stopPlacesAPlayIconOnThePage` (rappel d'insertion appelé une fois) ; `cancelLeavesNothing` (aucun fichier, aucun rappel) ; `refusedPermissionDisablesWithAMessage` ; `indicatorStateFollows` (`recording` vrai pendant, faux après) ; code ; manifeste ; vert ; `APK OK` ; commit « Lot 8 : enregistreur
 de son (L8-T26) » ; `NOMS OK`.
+
+**Amendement 1 (L8-T26).** M11 : APK par la commande de « Commandes propres à 8b ». M7 : réglages d'essai et
+`QStandardPaths::setTestModeEnabled(true)`.
 
 <a id="tache-l8-t27"></a>
 ### Tâche L8-T27 — `media` : enregistreur d'écran (Windows)
@@ -380,8 +449,7 @@ fait réapparaître une palette masquée (V43) ; réglages de la section « Enre
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_recorders|tst_captures_enregistreurs'` ; banc hors écran
 joint (écriture au stylet pendant un enregistrement de son).
 
-**Preuve visuelle.** `LU recordingIndicator.visible=true OK`, `LU appRecorders.lastDurationMs>=4500 OK` (ou `waitFor`,
-A26), `CAPTURES OK` ; décrire les captures `indicateur` et `icone-son`.
+**Preuve visuelle.** `expect` interne `recordingIndicator.visible` vrai pendant l'enregistrement (jamais en `-Lire`), puis en `-Lire` l'état final `LU recordingIndicator.visible=false OK`, `LU appRecorders.lastDurationOk=true OK` (durée 5 s ± 0,5), `CAPTURES OK` ; décrire les captures `indicateur` et `icone-son`.
 
 **Interdits.** Aucun enregistrement sans indicateur ; aucun enregistrement démarré par un document ou une action sans
 clic de l'utilisateur (une action `command.record.sound` reste un clic) ; `pageArea.view` dans le QML.
@@ -391,6 +459,12 @@ clic de l'utilisateur (une action `command.record.sound` reste un clic) ; `pageA
 **Étapes.** Test rouge `tests/tst_ui_recorders.cpp` : `indicatorVisibleWhileRecording` ; `firstUseShowsTheNotice` (mention une seule fois, gardée dans les réglages d'essai) ; `hiddenPaletteComesBackOnRestart` (V43) ; `settingsSectionRead` (dossier et format lus de la section « Enregistrements ») ; `stopAlwaysAvailableUnderTheLock` ; code et QML ; scénario `enregistreurs.json` (son de 3 s : indicateur visible, icône posée ;
 sous Windows, zone de 5 s : indicateur visible pendant toute la durée, fichier de 5 s ± 0,5) ; vert ; banc ; commit
 « Lot 8 : palettes et indicateur des enregistreurs (L8-T28) » ; `NOMS OK` ; titres vides.
+
+**Amendement 1 (L8-T28).** M1, M2 : l'instance est posée **dans `RecorderPalette.qml`** (fichier de la tâche, aucune autre
+tâche de V15 n'y touche) : `Recorders { id: appRecorders; objectName: "appRecorders"; commands: appCommands; document: appDocument; mediaInsert: appMediaInsert }`
+; propriété `lastDurationOk` (vrai si la dernière durée est dans 5 s ± 0,5). M4 : indicateur lu pendant par un
+`expect` interne ; en `-Lire`, `recordingIndicator.visible=false` et `appRecorders.lastDurationOk=true`. M7 :
+réglages d'essai (mention « une seule fois »).
 
 <a id="tache-l8-t29"></a>
 ### Tâche L8-T29 — `ui` : politique de contenu du cadre web
@@ -503,12 +577,15 @@ session) dont un cadre embarque du distant l'ouvre bloqué ; le HTML d'un cadre 
       }
       void htmlIsNeverPassedToQTextDocumentWithoutTheGuard()
       {
-          // Lecture du source par ACTCRAFT_SOURCE_DIR (posé par actcraft_add_test, comme pour noNameOfTheOriginal).
-          QFile f(qEnvironmentVariable("ACTCRAFT_SOURCE_DIR") + QStringLiteral("/ui/src/webpolicy.cpp"));
-          QVERIFY(f.open(QIODevice::ReadOnly));
-          const QString source = QString::fromUtf8(f.readAll());
-          QVERIFY(!source.contains(QStringLiteral("setHtml")));
-          QVERIFY(!source.contains(QStringLiteral("RichText")));
+          // m7 : balaye les fichiers qui manient le HTML d'un cadre (écrits par L8-T30) ; rouge dès qu'un setHtml ou un
+          // Text.RichText y apparaît (mutation de L8-T30). ACTCRAFT_SOURCE_DIR : posé à l'enregistrement par L8-T21.
+          for (const char* rel : {"/ui/src/webframeitem.cpp", "/ui/qml/WebFrameLayer.qml", "/ui/qml/WebFrameDialog.qml"}) {
+              QFile f(qEnvironmentVariable("ACTCRAFT_SOURCE_DIR") + QString::fromLatin1(rel));
+              QVERIFY2(f.open(QIODevice::ReadOnly), rel);
+              const QString source = QString::fromUtf8(f.readAll());
+              QVERIFY2(!source.contains(QStringLiteral("setHtml")), rel);
+              QVERIFY2(!source.contains(QStringLiteral("RichText")), rel);
+          }
       }
   };
 
@@ -520,6 +597,10 @@ session) dont un cadre embarque du distant l'ouvre bloqué ; le HTML d'un cadre 
 - [ ] **Étape 3 : code** (chemins comparés après `QDir::cleanPath` et `QFileInfo::canonicalFilePath` ; schémas permis :
   `file` local dans le dossier, `http`, `https`, `about:blank`, `data:` d'images seulement ; tout le reste refusé).
 - [ ] **Étape 4 : vert**, mutation rouge puis remise ; commit « Lot 8 : politique de contenu du cadre web (L8-T29) ».
+
+**Amendement 1 (L8-T29).** m7 : `htmlIsNeverPassedToQTextDocumentWithoutTheGuard` balaye `ui/src/webframeitem.cpp`,
+`ui/qml/WebFrameLayer.qml` et `ui/qml/WebFrameDialog.qml` (talons à L8-T29, écrits par L8-T30) ; L8-T30 joue la
+mutation (un `setHtml` ajouté dans `webframeitem.cpp` → rouge, remise par `git checkout --`).
 
 <a id="tache-l8-t30"></a>
 ### Tâche L8-T30 — Cadre web ; scénario `cadre-web`
@@ -556,10 +637,32 @@ dessin de la vue dans le cache ; `pageArea.view` dans le QML.
   `paintedAsANeutralFrame` (`paintPage` : cadre dessiné, aucun contenu web) ; sans moteur (`ACTCRAFT_WEBFRAME`
   faux) : `QSKIP("ACTCRAFT_WEBFRAME absent")` dans les fonctions qui montrent une vue.
 - [ ] **Étape 2 : code** (`WebFrameItems` : modèle des cadres de la page, `blockedCount`, `count` ; `WebFrameLayer.qml` ;
-  `WebFrameDialog.qml` ; `paintWebFrame` dans `pagepainter.cpp`, branche du `switch` sur `ObjectKind`, sans `default:`).
+  `WebFrameDialog.qml` ) ; le repère neutre de `paintPage` est posé par L8-T3 (chaîne de `get_if` de `paintObjectLocal`) : L8-T30 ne touche pas au peintre.
 - [ ] **Étape 3 : scénario** `cadre-web.json` (fixture : HTML local d'essai à nous ; puis un document « reçu » pointant
   vers une adresse locale) ; lectures ; captures.
 - [ ] **Étape 4 : vert** ; banc hors écran ; commit « Lot 8 : cadre web (L8-T30) » ; `NOMS OK`.
+
+**Amendement 1 (L8-T30).**
+- **M10.** `QtWebView::initialize()` est appelé avant `QGuiApplication` dans `app/main.cpp`, `bench/captures/main.cpp`
+  et `bench/app/main.cpp` (tous trois dans la ligne), sous `#if ACTCRAFT_WEBFRAME`. `tst_ui_webframe` a son propre
+  `main` :
+  ```cpp
+  int main(int argc, char** argv)
+  {
+  #if ACTCRAFT_WEBFRAME
+      QtWebView::initialize();
+  #endif
+      QGuiApplication app(argc, argv);
+      TstUiWebFrame test;
+      return QTest::qExec(&test, argc, argv);
+  }
+  ```
+  Hors écran (`QT_QPA_PLATFORM=offscreen`), si la vue native ne se crée pas : `QSKIP("moteur web indisponible hors écran")`
+  dans les seules fonctions qui montrent une vue ; `receivedRemoteFrameSendsNoRequest`, `otherPageStaysBlocked`,
+  `roundTripKeepsTheFrame` et `paintedAsANeutralFrame` ne dépendent pas de la vue et ne sautent jamais.
+- **M2.** L'instance `WebFrameItems { id: appWebFrames; objectName: "appWebFrames"; document: appDocument }` est posée
+  dans `WebFrameLayer.qml` (fichier de la tâche), pas dans `Main.qml`.
+- **m14, B1.** `paintedAsANeutralFrame` vérifie le repère posé par L8-T3 ; L8-T30 ne touche pas à `pagepainter.cpp`.
 
 <a id="tache-l8-t31"></a>
 ### Tâche L8-T31 — Diffusion protégée I : règles et copie protégée
@@ -576,7 +679,7 @@ intact, ouvert, sans règles ; les règles valent aussi pour l'auteur ; table de
 
 **Interdits.** `core/` sans `actions/` : la table des catégories est une fonction pure de `core/` sur des
 identifiants (`restrictionFor(std::string_view id)`) ; aucun chiffrement (N1-A4) ; identifiants de la caméra :
-ceux retenus par l'orchestrateur sur D10 de L8-T0 (recommandation : préfixe `tool.camera-`).
+`tool.camera-*`, préfixe `tool.camera-` (D10, arbitré par l'orchestrateur).
 
 **Terminé quand** les cinq fonctions passent.
 
@@ -599,12 +702,15 @@ ceux retenus par l'orchestrateur sur D10 de L8-T0 (recommandation : préfixe `to
   ```
 - [ ] **Étape 2 : test rouge** `tests/tst_core_broadcast.cpp` : `publishedCopyCarriesTheRules` ;
   `originalIsUntouched` (empreinte de la source inchangée) ; `rulesApplyToTheAuthorToo` (aucune exception d'auteur
-  dans `forbids`) ; `defaultRulesAreOmitted` (`published(d, BroadcastRules{})` : `broadcast.isDefault()`) ;
+  dans `forbids`) ; `defaultRulesAreOmitted` (`published(d, BroadcastRules{})` : `broadcast().isDefault()`) ;
   `categoryOfEveryRestrictableCommand` (lit `actions/data/commands.json` par `QFINDTESTDATA` ou
   `ACTCRAFT_SOURCE_DIR` : chaque commande `"restrictable": true` a une catégorie, et chaque identifiant de la table a
   `"restrictable": true`).
 - [ ] **Étape 3 : code** ; `PublishDialog.qml` et gestionnaire `file.publish` (chemin choisi par la boîte de fichiers,
   ou argument dans les scénarios). **Étape 4 : vert** ; commit « Lot 8 : diffusion protégée, règles (L8-T31) ».
+
+**Amendement 1 (L8-T31).** B2 : les règles passent par `Document::broadcast()` et `setBroadcast` (L8-T3) ;
+`published` copie le document et appelle `setBroadcast`. m12 : identifiants de la caméra `tool.camera-*` (D10 arbitré).
 
 <a id="tache-l8-t32"></a>
 ### Tâche L8-T32 — Diffusion protégée II : porte du registre ; scénario `diffusion-protegee`
@@ -620,8 +726,7 @@ les actions de page et d'objet continuent (V58) ; ouvrir un autre document sans 
 Mutation : retirer le terme de la restriction d'`isEnabled` → `restrictedCommandsGreyed` et
 `enableCannotBypassTheRestriction` rouges, remise par `git checkout -- actions/src/commandregistry.cpp`.
 
-**Preuve visuelle.** `LU appBroadcast.active=true OK`, `LU appCommands.enabled.edit.copy=false OK` (forme de lecture
-d'un état de commande relevée par L8-T0 ; à défaut, `expect` sur l'entrée de menu), `CAPTURES OK` ; décrire la capture
+**Preuve visuelle.** `LU appBroadcast.active=true OK`, `LU menuItem-edit.copy.enabled=false OK` (`ui/qml/CommandEntry.qml:15`), `CAPTURES OK` ; décrire la capture
 `refus`.
 
 **Interdits.** Aucune voie de contournement : les contrôleurs du lot 6 et les actions passent par le registre (une
@@ -644,6 +749,10 @@ aucun texte de l'original dans les messages.
   refus, glisser vers les ressources → refus, clic sur le rond → `pageIndicator.text` « 2 / 2 ».
 - [ ] **Étape 6 : vert**, mutation rouge puis remise ; commit « Lot 8 : diffusion protégée, porte du registre
   (L8-T32) » ; `NOMS OK`.
+
+**Amendement 1 (L8-T32).** M1, M2 : `ui/qml/Main.qml` gagne
+`BroadcastGate { id: appBroadcast; objectName: "appBroadcast"; commands: appCommands; document: appDocument }` ;
+lecture de l'état d'une commande : `menuItem-edit.copy.enabled` (`ui/qml/CommandEntry.qml:15`). M7 : réglages d'essai.
 
 <a id="tache-l8-t33"></a>
 ### Tâche L8-T33 — Profil « Son et image » : épinglages du lot 8
@@ -700,6 +809,13 @@ de l'APK sur l'émulateur : `record.screen-*` absents des menus.
   (actions, conteneurs, limiteurs, liens, encre révélatrice, médias, enregistreurs, cadre web, diffusion protégée).
 - [ ] **Étape 7 : graphe et commit** : `graphify update .` ; `git add` des fichiers de la ligne ; `NOMS OK` ; titres
   et paperboards vides ; commit « Lot 8 : contrôle du lot, version 0.9.0 (L8-T34) ».
+
+**Amendement 1 (L8-T34).** M2 : `tests/tst_ui_shell.cpp` gagne `lot8bControllersWired`, même forme que
+`lot8ControllersWired` (L8-T19), sur `appLinkDialogs` (`actcraft::ui::LinkDialogs`), `appMediaInsert`
+(`actcraft::ui::MediaInsert`), `appMediaItems` (`actcraft::ui::MediaItems`), `appBroadcast`
+(`actcraft::ui::BroadcastGate`), `appRecorders` (`actcraft::ui::Recorders`), `appWebFrames`
+(`actcraft::ui::WebFrameItems`) — dans le repli, les quatre premiers seulement. M11 : APK par la commande de
+« Commandes propres à 8b ».
 
 ## Couverture (relecture de 8b)
 

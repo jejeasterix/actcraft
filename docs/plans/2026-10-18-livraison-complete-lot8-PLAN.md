@@ -49,23 +49,68 @@ CMake + Ninja, MSVC 2022, PowerShell 7. Aucune bibliothèque tierce en 8a.
 | L8-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; API A1 à A30 revérifiées ; N8 relevé ; poids des moteurs web mesuré | — | `docs/verifications/2026-10-21-lot8-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot8.md`) | isolé | concepteur-critique | rapport commité ; relevé brut hors dépôt présent ; décisions D1 à D16 et table A1 à A30 écrites ; une ligne par constat ; `git grep` des titres du corpus vide ; `NOMS OK` ; N8 relevé | S30 | #tache-l8-t0 |
 | L8-T1 | Réservation 8a : 21 tests enregistrés, fichiers neufs de 8a (talons marqués), commandes et disposition des **deux** sous-lots, icônes | — | `actions/data/commands.json`, `actions/data/layout.json`, `actions/CMakeLists.txt`, `core/CMakeLists.txt`, `formats/CMakeLists.txt`, `tools/CMakeLists.txt`, `render/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{actions,core,formats,flipchart,tools,render,ui,bench}.cmake`, `tests/tst_actions_layout.cpp`, `tests/tst_ui_theme.cpp`, `ui/icons/{actions,encre-revelatrice,lien-fichier,lien-site,action-objet,action-glisser,conteneur,limiteur,rotation,historique-precedent,historique-suivant,son,video,lecteur-sons,enregistrer-son,enregistrer-ecran,enregistrer-zone,cadre-web,diffuser}.svg`, talons : `actions/data/object-actions.json`, `actions/include/actcraft/actions/objectactions.h`, `actions/src/objectactions.cpp`, `core/include/actcraft/core/{interactivity,objectactions,actionedits,containers,restrictors}.h`, `core/src/{interactivity,objectactions_geometry,objectactions_edit,actionedits,containers,restrictors}.cpp`, `tools/include/actcraft/tools/{revealinktool,interactionpolicy}.h`, `tools/src/revealinktool.cpp`, `ui/include/actcraft/ui/{actionrunner,linklauncher,actionbrowser,dragdropactions,pagehistory,interactivityprops}.h`, `ui/src/{actionrunner,linklauncher,actionbrowser,dragdropactions,pagehistory,interactivityprops}.cpp`, 21 tests talons `tests/tst_{core_interactivity,formats_interactivity,formats_flipchart_interactivity,actions_objectactions,core_objectactions,core_objectactions_edit,ui_actionrunner,ui_linklauncher,ui_actionbrowser,ui_dragdropactions,core_containers,core_restrictors,tools_interactivity,ui_interactivityprops,render_reveal,formats_samples_interactivity}.cpp` et 5 scénarios talons `bench/scenarios/{navigateur-actions,glisser-deposer,conteneurs,encre-revelatrice,interactivite}.json` | isolé | implementeur-tdd | `100% tests passed … out of N`, N = N8 + 21, `TESTS OK` ; `tst_actions_layout` (dont `lot8EntriesDeclared`, `lot8AttributesDeclared`) et `tst_actions_registry` (dont `noShortcutTwice`) Passed ; 21 tests neufs `SKIP` nommant leur tâche ; `premiers-pas` hors écran `CAPTURES OK` ; `NOMS OK` | S11, S18, S25, S26, S27 | #tache-l8-t1 |
 | L8-T2 | Coquille QML du lot (8a et 8b) : onglet `actions`, surcouches de la page, emplacements des fenêtres du lot ; un gestionnaire par commande du lot | L8-T1 | `ui/qml/Main.qml`, `ui/qml/BrowserPanel.qml`, `ui/qml/PageArea.qml`, `ui/qml/{ActionBrowser,DragDropActions,ActionOverlays,LinkConfirmDialog,LinkDialog,MediaLayer,SoundController,RecorderPalette,RecordingIndicator,WebFrameLayer,WebFrameDialog,PublishDialog}.qml`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N8 + 21 ; `tst_ui_shell` (dont `lot8ShellPlaceholders`, `everyLot8CommandHasAHandler`, `actionsTabEnabled`) Passed ; `premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S11 | #tache-l8-t2 |
-| L8-T3 | `core` : modèle de l'interactivité pour les deux sous-lots (action à nous, conteneur, limiteurs, rotation, options de média, cadre web, restrictions de diffusion) ; empreintes inchangées sans ces champs | L8-T0, L8-T1 | `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/include/actcraft/core/interactivity.h`, `core/src/interactivity.cpp`, `tests/tst_core_interactivity.cpp`, `tests/tst_core_model.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_interactivity` (dont `defaultsChangeNoFingerprint`, `fixedTravelMeansNotMovable`, `fixedTurningMeansNotRotatable`, `webFrameKindBeforeUnknown`, `actionKeepsFlipchartFields`, `broadcastDefaultsAllowEverything`) et `tst_core_model` (dont `lot8FieldsKeepOldFingerprints`) Passed ; `NOMS OK` (aucun nom composé de l'original) | S11, S18, S25, S27 | #tache-l8-t3 |
+| L8-T3 | `core` : modèle de l'interactivité pour les deux sous-lots (action à nous, conteneur, limiteurs, rotation, options de média, cadre web, restrictions de diffusion) ; empreintes inchangées sans ces champs | L8-T0, L8-T1 | `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/include/actcraft/core/interactivity.h`, `core/src/interactivity.cpp`, `core/include/actcraft/core/document.h`, `core/src/document.cpp`, `formats/src/nativejson.cpp`, `render/src/pagepainter.cpp`, `tests/tst_core_interactivity.cpp`, `tests/tst_core_model.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_interactivity` (dont `defaultsChangeNoFingerprint`, `fixedTravelMeansNotMovable`, `fixedTurningMeansNotRotatable`, `webFrameKindBeforeUnknown`, `actionKeepsFlipchartFields`, `broadcastDefaultsAllowEverything`, `unknownObjectFingerprintUnchanged`) et `tst_core_model` (dont `lot8FieldsKeepOldFingerprints`) Passed ; `NOMS OK` (aucun nom composé de l'original) | S11, S18, S25, S27 | #tache-l8-t3 |
 | L8-T4 | `formats` : format natif des champs de L8-T3, sans perte, valeurs par défaut omises, clés inconnues gardées | L8-T3 | `formats/src/nativejson.cpp`, `tests/tst_formats_interactivity.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_formats_interactivity` (dont `actionRoundTrip`, `containerRoundTrip`, `restrictorsRoundTrip`, `mediaOptionsRoundTrip`, `webFrameRoundTrip`, `broadcastRoundTrip`, `defaultsAreOmitted`, `olderFileReadsWithDefaults`, `unknownActionKeyKept`), `tst_formats_nativejson` Passed | S11, S18, S27 | #tache-l8-t4 |
 | L8-T5 | `formats` : lecteur `.flipchart` — actions vers notre catalogue (table écrite à la main), limiteurs en modes, rotation, conteneurs, options de média, encre révélatrice ; écrivain synthétique étendu | L8-T3 | `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/support/flipchartwriter.h`, `tests/tst_formats_flipchart_interactivity.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_formats_flipchart_interactivity` (dont `toggleHiddenMapsToOurId`, `unknownCommandKeptWithoutId`, `travelModesKept`, `containerRead`, `revealInkRead`, `mediaOptionsRead`, `noNameOfTheOriginal`), `tst_formats_flipchart`, `tst_formats_oracle_synth` Passed | S11 | #tache-l8-t5 |
 | L8-T6 | `actions` : catalogue des actions d'objet (données à nous, quatre catégories, sans vote) et son chargeur | L8-T1 | `actions/data/object-actions.json`, `actions/include/actcraft/actions/objectactions.h`, `actions/src/objectactions.cpp`, `tests/tst_actions_objectactions.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_actions_objectactions` (dont `fourCategoriesNoVote`, `everyCommandActionNamesARegisteredCommand`, `parametersAreTyped`, `dragDropListHasEighteen`, `labelsAreOurs`, `idsAreUnique`) Passed | S11 | #tache-l8-t6 |
 | L8-T7 | `core` : moteur des actions d'objet I — géométrie (angle, angle incrémentiel, placer, dimensionner et étirer depuis neuf ancrages, refléter, inverser, taille d'origine, ajuster) | L8-T3 | `core/include/actcraft/core/objectactions.h`, `core/src/objectactions_geometry.cpp`, `tests/tst_core_objectactions.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_objectactions` (dont `angleSetsAbsoluteRotation`, `incrementNegativeIsCounterClockwise`, `placeCenterUsesThePage`, `sizeKeepsProportions`, `stretchDoesNot`, `nineAnchors`, `mirrorIsOneStep`, `fixedRestrictorsAreRespected`, `unknownIdReturnsNull`) Passed ; mutation du signe de l'incrément rouge puis remise | S11 | #tache-l8-t7 |
 | L8-T8 | `core` : moteur des actions d'objet II — superposition, couches, masquer, verrouiller, translucidité, textes (ajouter, modifier, valeur arithmétique, nouveau, extraire), effacements, copier, couper, coller, dupliquer, supprimer | L8-T7 | `core/src/objectactions_edit.cpp`, `tests/tst_core_objectactions_edit.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_objectactions_edit` (dont `toggleHiddenTwiceRestores`, `toggleHiddenDelegatesToObjectFlags`, `textValueArithmetic`, `textValueNonNumericUnchanged`, `addTextIsPlainEscaped`, `extractTextOneObjectPerWord`, `translucencyClamped`, `clearAnnotationsOnlyTopStrokes`, `everyEditIsOneStep`) Passed | S11 | #tache-l8-t8 |
-| L8-T9 | `ui` : exécuteur d'actions — clic, clic droit, survol, mode conception, verrou de classe, garde de contact, historique des pages, actions de page et de commande | L8-T2, L8-T6, L8-T8 | `ui/include/actcraft/ui/actionrunner.h`, `ui/src/actionrunner.cpp`, `ui/include/actcraft/ui/pagehistory.h`, `ui/src/pagehistory.cpp`, `ui/src/toolhost.cpp`, `ui/qml/ActionOverlays.qml`, `tests/tst_ui_actionrunner.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_actionrunner` (dont `clickRunsEveryActionInOrder`, `dragDoesNotRun`, `rightClickSelectsWithoutRunning`, `designModeSelectsInstead`, `lockedCommandActionRefused`, `pageActionCreatesNoStep`, `objectActionIsOneStep`, `neverDuringContact`, `hiddenObjectStillClickable`, `lockedObjectStillRuns`, `historyBackAndForward`, `unsupportedActionDoesNothing`, `refusedWithoutCommands`) Passed ; banc hors écran joint | S11 | #tache-l8-t9 |
-| L8-T10 | `ui` : ouverture des liens et fichiers après confirmation (`QDesktopServices`), règles d'adresse, fichier rangé dans le document | L8-T1, L8-T2 | `ui/include/actcraft/ui/linklauncher.h`, `ui/src/linklauncher.cpp`, `ui/qml/LinkConfirmDialog.qml`, `tests/tst_ui_linklauncher.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_linklauncher` (dont `noOpenWithoutConfirmation`, `refusalOpensNothing`, `onlyHttpAndHttps`, `networkPathRefused`, `executableRefused`, `missingFileRefused`, `storedFileExtractedUnderASafeName`, `confirmationShowsTheFullTarget`, `openingADocumentLaunchesNothing`) Passed ; mutation (ouvrir sans attendre la réponse) rouge puis remise | S11 | #tache-l8-t10 |
-| L8-T11 | `core` + `ui` : modèle du navigateur d'actions (catégories, propriétés, appliquer à la sélection en une étape, retirer) | L8-T3, L8-T6 | `core/include/actcraft/core/actionedits.h`, `core/src/actionedits.cpp`, `ui/include/actcraft/ui/actionbrowser.h`, `ui/src/actionbrowser.cpp`, `tests/tst_ui_actionbrowser.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_actionbrowser` (dont `greyedWithoutSelection`, `categoriesInOrder`, `applyToManyIsOneStep`, `removeExistingIsOneStep`, `propertiesFollowTheAction`, `targetPickedFromThePage`, `refreshDeferredDuringContact`, `refusedWhileLocked`, `refusedWithoutCommands`) Passed | S11 | #tache-l8-t11 |
-| L8-T12 | QML : navigateur d'actions (onglet « Sélection ») ; scénario `navigateur-actions` | L8-T2, L8-T9, L8-T11 | `ui/qml/ActionBrowser.qml`, `bench/scenarios/navigateur-actions.json`, `bench/scenarios/fixtures/navigateur-actions.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_captures_navigateur_actions` Passed ; `captures.ps1 -Scenario navigateur-actions` : `LU browserPanel.current=actions OK`, `LU appActionBrowser.enabled=true OK`, `LU appDocument.canUndo=true OK`, `PIXEL cible-masquee OK`, `PIXEL cible-revenue OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t12 |
-| L8-T13 | Actions glisser-déposer (F-892) : onglet, dépôt sur un objet, icône en surimpression, retrait par la corbeille ; scénario `glisser-deposer` | L8-T12 | `ui/include/actcraft/ui/dragdropactions.h`, `ui/src/dragdropactions.cpp`, `ui/qml/DragDropActions.qml`, `tests/tst_ui_dragdropactions.cpp`, `bench/scenarios/glisser-deposer.json`, `bench/scenarios/fixtures/glisser-deposer.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_dragdropactions` (dont `eighteenEntriesNoVote`, `dropAssignsInOneStep`, `overlayOnlyForDragDrop`, `trashRemovesInOneStep`), `tst_captures_glisser_deposer` Passed ; `captures.ps1 -Scenario glisser-deposer` : `LU appTools.current=pen OK`, `PIXEL icone-surimpression OK`, `CAPTURES OK` | S11 | #tache-l8-t13 |
-| L8-T14 | `core` : règles de conteneur (F-577, F-580) : accepter, contenir, imbriquer, retour, sortie en un geste | L8-T3 | `core/include/actcraft/core/containers.h`, `core/src/containers.cpp`, `tests/tst_core_containers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_containers` (dont `anythingAcceptsInFront`, `behindIsNeverContained`, `oneObjectOnly`, `commonKeyword`, `centresWithinTolerance`, `fullyInside`, `refusedBouncesBack`, `refusedWithoutBounceStays`, `nestedTopmostWins`, `strokeDrawnInsideIsContained`, `leavingIsOneGesture`, `hiddenContainerIgnored`) Passed ; mutation de la tolérance (`<` en `<=` inversé) rouge puis remise | S11 | #tache-l8-t14 |
+| L8-T9 | `ui` : exécuteur d'actions — clic, clic droit, survol, mode conception, verrou de classe, garde de contact, historique des pages, actions de page et de commande | L8-T2, L8-T6, L8-T8, L8-T10, L8-T18 | `ui/include/actcraft/ui/actionrunner.h`, `ui/src/actionrunner.cpp`, `ui/include/actcraft/ui/pagehistory.h`, `ui/src/pagehistory.cpp`, `ui/src/toolhost.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/qml/Main.qml`, `ui/qml/ActionOverlays.qml`, `tests/tst_ui_actionrunner.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_actionrunner` (dont `clickRunsEveryActionInOrder`, `dragDoesNotRun`, `rightClickSelectsWithoutRunning`, `designModeSelectsInstead`, `lockedCommandActionRefused`, `pageActionCreatesNoStep`, `objectActionIsOneStep`, `neverDuringContact`, `hiddenObjectStillClickable`, `lockedObjectStillRuns`, `historyBackAndForward`, `unsupportedActionDoesNothing`, `documentOpenLaunchesNothing`, `refusedWithoutCommands`) Passed ; banc hors écran joint | S11 | #tache-l8-t9 |
+| L8-T10 | `ui` : ouverture des liens et fichiers après confirmation (`QDesktopServices`), règles d'adresse, fichier rangé dans le document | L8-T1, L8-T2 | `ui/include/actcraft/ui/linklauncher.h`, `ui/src/linklauncher.cpp`, `ui/qml/LinkConfirmDialog.qml`, `ui/qml/Main.qml`, `tests/tst_ui_linklauncher.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_linklauncher` (dont `noOpenWithoutConfirmation`, `refusalOpensNothing`, `onlyHttpAndHttps`, `networkPathRefused`, `executableRefused`, `upperCaseExecutableRefused`, `trailingDotRefused`, `htaRefused`, `missingFileRefused`, `storedFileExtractedUnderASafeName`, `confirmationShowsTheFullTarget`) Passed ; mutation (ouvrir sans attendre la réponse) rouge puis remise | S11 | #tache-l8-t10 |
+| L8-T11 | `core` + `ui` : modèle du navigateur d'actions (catégories, propriétés, appliquer à la sélection en une étape, retirer) | L8-T3, L8-T6 | `core/include/actcraft/core/actionedits.h`, `core/src/actionedits.cpp`, `ui/include/actcraft/ui/actionbrowser.h`, `ui/src/actionbrowser.cpp`, `ui/qml/Main.qml`, `tests/tst_ui_actionbrowser.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_actionbrowser` (dont `greyedWithoutSelection`, `categoriesInOrder`, `applyToManyIsOneStep`, `removeExistingIsOneStep`, `propertiesFollowTheAction`, `targetPickedFromThePage`, `refreshDeferredDuringContact`, `refusedWhileLocked`, `refusedWithoutCommands`) Passed | S11 | #tache-l8-t11 |
+| L8-T12 | QML : navigateur d'actions (onglet « Sélection ») ; scénario `navigateur-actions` | L8-T2, L8-T9, L8-T11 | `ui/qml/ActionBrowser.qml`, `bench/scenarios/navigateur-actions.json`, `bench/scenarios/fixtures/navigateur-actions.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_captures_navigateur_actions` Passed ; `captures.ps1 -Scenario navigateur-actions` : `LU browserPanel.current=actions OK`, `LU appActionBrowser.enabled=true OK`, `LU documentController.canUndo=true OK`, `PIXEL page-2-affichee OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t12 |
+| L8-T13 | Actions glisser-déposer (F-892) : onglet, dépôt sur un objet, icône en surimpression, retrait par la corbeille ; scénario `glisser-deposer` | L8-T12 | `ui/include/actcraft/ui/dragdropactions.h`, `ui/src/dragdropactions.cpp`, `ui/qml/DragDropActions.qml`, `ui/qml/ActionOverlays.qml`, `ui/qml/Main.qml`, `tests/tst_ui_dragdropactions.cpp`, `bench/scenarios/glisser-deposer.json`, `bench/scenarios/fixtures/glisser-deposer.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_dragdropactions` (dont `eighteenEntriesNoVote`, `dropAssignsInOneStep`, `overlayOnlyForDragDrop`, `trashRemovesInOneStep`), `tst_captures_glisser_deposer` Passed ; `captures.ps1 -Scenario glisser-deposer` : `LU appTools.currentTool=pen OK`, `PIXEL icone-surimpression OK`, `CAPTURES OK` | S11 | #tache-l8-t13 |
+| L8-T14 | `core` : règles de conteneur (F-577, F-580) : accepter, contenir, imbriquer, retour, sortie en un geste | L8-T3 | `core/include/actcraft/core/containers.h`, `core/src/containers.cpp`, `tests/tst_core_containers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_containers` (dont `anythingAcceptsInFront`, `behindIsNeverContained`, `oneObjectOnly`, `commonKeyword`, `centresWithinTolerance`, `fullyInside`, `refusedBouncesBack`, `refusedWithoutBounceStays`, `nestedTopmostWins`, `strokeDrawnInsideIsContained`, `leavingIsOneGesture`, `hiddenContainerIgnored`) Passed ; mutation : distance des centres comparée avec `>` au lieu de `<=` rouge puis remise | S11 | #tache-l8-t14 |
 | L8-T15 | `core` : limiteurs et rotation (F-578, F-579, E6) : déplacement contraint, chemin, accrochage, dimension bloquée, pivot, pas, sens, objet bloquant | L8-T3 | `core/include/actcraft/core/restrictors.h`, `core/src/restrictors.cpp`, `tests/tst_core_restrictors.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_restrictors` (dont `verticalKeepsX`, `horizontalKeepsY`, `fixedTravelZero`, `alongTrackProjects`, `jumpsOntoTrackOnPress`, `landsOnTheMark`, `fixedSizeHasNoHandles`, `clockwiseOnly`, `turnStepRounds`, `pivotOnOtherObject`, `blockerStopsAtItsEdge`) Passed ; mutation de la projection rouge puis remise | S11 | #tache-l8-t15 |
-| L8-T16 | `tools` : outil de sélection — limiteurs et rotation pendant le glisser (soulèvement), conteneurs au relâché (retour sans étape), objets bloquants, politique du mode conception ; scénario `conteneurs` | L8-T9, L8-T14, L8-T15 | `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/interactionpolicy.h`, `tests/tst_tools_interactivity.cpp`, `bench/scenarios/conteneurs.json`, `bench/scenarios/fixtures/conteneurs.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_tools_interactivity` (dont `bounceBackDropsWithoutAStep`, `acceptedDropIsOneStep`, `verticalDragKeepsX`, `noCacheRebuildDuringDrag`, `fixedSizeShowsNoSizeHandles`, `rotationFollowsTheStep`, `designModeLiftsRestrictions`, `blockerStopsTheDrag`, `containerSignalEmitted`), `tst_tools_select` (lot 3), `tst_captures_conteneurs` Passed ; `captures.ps1 -Scenario conteneurs` : `PIXEL revenu-au-depart OK`, `LU appDocument.canUndo=false OK`, `PIXEL contenu-accepte OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t16 |
+| L8-T16 | `tools` : outil de sélection — limiteurs et rotation pendant le glisser (soulèvement), conteneurs au relâché (retour sans étape), objets bloquants, politique du mode conception ; scénario `conteneurs` | L8-T9, L8-T14, L8-T15 | `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/interactionpolicy.h`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/qml/Main.qml`, `tests/tst_tools_interactivity.cpp`, `bench/scenarios/conteneurs.json`, `bench/scenarios/fixtures/conteneurs.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_tools_interactivity` (dont `bounceBackDropsWithoutAStep`, `acceptedDropIsOneStep`, `verticalDragKeepsX`, `noCacheRebuildDuringDrag`, `fixedSizeShowsNoSizeHandles`, `rotationFollowsTheStep`, `designModeLiftsRestrictions`, `blockerStopsTheDrag`, `containerSignalEmitted`), `tst_tools_select` (lot 3), `tst_captures_conteneurs` Passed ; `captures.ps1 -Scenario conteneurs` : `PIXEL revenu-au-depart OK`, `expect` interne `documentController.canUndo` faux après le retour (jamais en `-Lire`), `LU documentController.canUndo=true OK` (état final), `PIXEL contenu-accepte OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t16 |
 | L8-T17 | `ui` : sections de propriétés Actions, Conteneur, Rotation, Limiteurs, Multimédia (F-577 à F-579, F-582) dans le navigateur de propriétés | L8-T3, L8-T11 | `ui/include/actcraft/ui/interactivityprops.h`, `ui/src/interactivityprops.cpp`, `ui/src/propertymodel.cpp`, `tests/tst_ui_interactivityprops.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_interactivityprops` (dont `fiveSectionsInOrder`, `multimediaOnlyForMedia`, `editIsOneStep`, `fixedTravelGreysTheTrack`, `keywordsFromLot6`, `refusedWhileLocked`), `tst_ui_propertymodel` Passed ; banc hors écran joint | S11 | #tache-l8-t17 |
-| L8-T18 | Encre révélatrice (F-255) : outil, découpe de la couche du dessus (logiciel et RHI), redessin immédiat ; scénario `encre-revelatrice` | L8-T1, L8-T2 | `tools/include/actcraft/tools/revealinktool.h`, `tools/src/revealinktool.cpp`, `render/src/pagepainter.cpp`, `render/src/fixedpageitem.cpp`, `tests/tst_render_reveal.cpp`, `bench/scenarios/encre-revelatrice.json`, `bench/scenarios/fixtures/encre-revelatrice.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_render_reveal` (dont `revealsMiddleLayer`, `onlyTopObjectsBelowIt`, `objectAboveItStays`, `noOwnPaint`, `movingMovesTheHole`, `revealStrokeIsNotDeferred`, `softwareAndRhiAgree`), `tst_captures_encre_revelatrice` Passed ; `captures.ps1 -Scenario encre-revelatrice` : `LU appTools.current=reveal-ink OK`, `PIXEL fond-revele OK`, `PIXEL dessus-garde OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t18 |
-| L8-T19 | Point d'étape 8a : S11 synthétique `interactivite` de bout en bout ; S11 local sur le paperboard réel n° 13 ; talons de 8a ; contrôles de sécurité ; graphe | L8-T4, L8-T5, L8-T10, L8-T12, L8-T13, L8-T16 à L8-T18 | `bench/scenarios/interactivite.json`, `bench/scenarios/fixtures/interactivite.json`, `tests/tst_formats_samples_interactivity.cpp`, `graphify-out/` | partagé | implementeur-tdd | `TESTS OK`, N = N8 + 21 ; `tst_captures_interactivite` Passed ; `captures.ps1 -Scenario interactivite` : `PIXEL etiquette-masquee OK`, `PIXEL etiquette-revenue OK`, `PIXEL revenu-hors-conteneur OK`, `CAPTURES OK` ; localement `tst_formats_samples_interactivity` Passed (sinon `SKIP` « ACTCRAFT_SAMPLES_DIR absent », jamais « Talon ») ; talons « rempli par L8-T2 » à « par L8-T18 » absents ; contrôle d'occurrences de `QDesktopServices` conforme ; `NOMS OK` ; `graphify update .` commité | S11 | #tache-l8-t19 |
+| L8-T18 | Encre révélatrice (F-255) : outil, découpe de la couche du dessus (logiciel et RHI), redessin immédiat ; scénario `encre-revelatrice` | L8-T1, L8-T2 | `tools/include/actcraft/tools/revealinktool.h`, `tools/src/revealinktool.cpp`, `render/src/pagepainter.cpp`, `render/src/fixedpageitem.cpp`, `ui/qml/ActionOverlays.qml`, `tests/tst_render_reveal.cpp`, `bench/scenarios/encre-revelatrice.json`, `bench/scenarios/fixtures/encre-revelatrice.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_render_reveal` (dont `revealsMiddleLayer`, `onlyTopObjectsBelowIt`, `objectAboveItStays`, `noOwnPaint`, `movingMovesTheHole`, `revealStrokeIsNotDeferred`, `softwareAndRhiAgree`), `tst_captures_encre_revelatrice` Passed ; `captures.ps1 -Scenario encre-revelatrice` : `LU appTools.currentTool=reveal-ink OK`, `PIXEL fond-revele OK`, `PIXEL dessus-garde OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t18 |
+| L8-T19 | Point d'étape 8a : S11 synthétique `interactivite` de bout en bout ; S11 local sur le paperboard réel n° 13 ; talons de 8a ; contrôles de sécurité ; graphe | L8-T4, L8-T5, L8-T10, L8-T12, L8-T13, L8-T16 à L8-T18 | `bench/scenarios/interactivite.json`, `bench/scenarios/fixtures/interactivite.json`, `tests/tst_formats_samples_interactivity.cpp`, `tests/tst_ui_shell.cpp`, `graphify-out/` | partagé | implementeur-tdd | `TESTS OK`, N = N8 + 21 ; `tst_captures_interactivite` et `tst_ui_shell` (dont `lot8ControllersWired`) Passed ; `captures.ps1 -Scenario interactivite` : `PIXEL etiquette-masquee OK`, `PIXEL etiquette-revenue OK`, `PIXEL revenu-hors-conteneur OK`, `CAPTURES OK` ; localement `tst_formats_samples_interactivity` Passed (sinon `SKIP` « ACTCRAFT_SAMPLES_DIR absent », jamais « Talon ») ; talons « rempli par L8-T2 » à « par L8-T18 » absents ; contrôle d'occurrences de `QDesktopServices` conforme ; `NOMS OK` ; `graphify update .` commité | S11 | #tache-l8-t19 |
+
+
+### Amendement 1 (relecture du tour 1)
+
+Relecture sur `0d78cac` (rapport `revue-plan-lot8.md`, code confronté à `c2e4af9`) : 3 bloquants, 12 majeurs,
+14 mineurs, tous appliqués dans 8a et 8b. **Cet amendement fait autorité** sur le texte d'origine ; les sections
+touchées sont corrigées en place et portent un paragraphe « Amendement 1 ». Arbitrages de l'orchestrateur appliqués :
+B3 (repli complet), M2 (chaîne `Main.qml`), M7 (réglages d'essai), M11 (Gradle), M12, m1, m12, leçon du lot 11.
+
+| # | Constat | Correction | Où |
+|---|---|---|---|
+| B1 | `ObjectKind::WebFrame` casse `formats/` hors de la ligne de L8-T3 | `nativejson.cpp` (strict nécessaire) et `pagepainter.cpp` (repère neutre) ajoutés à L8-T3 | ligne et section L8-T3 |
+| B2 | `Document` est une classe (`document.h`) | `document.h`, `document.cpp` à L8-T3 ; `broadcast()` / `setBroadcast` ; tests en `Document d(w, h)`, `d.page(0)` ; A1b | L8-T3, L8-T4, L8-T7, A1b ; 8b L8-T31 |
+| B3 | repli H8-6 qui casse le registre | `L8-C1`, `L8-T21r`, `L8-T25r`, `L8-T33r`, sort des talons | 8b, « Porte H8-6 » et table |
+| M1 | `objectName` faux | `documentController.canUndo`, `appTools.currentTool`, `menuItem-edit.copy.enabled`, `appBroadcast` et `appRecorders` posés par leur tâche | L8-T12, T13, T16, T18 ; 8b T28, T32 |
+| M2 | `Main.qml` sans propriétaire après L8-T2 | `Main.qml` à L8-T10 (V3), L8-T11 (V5), L8-T9 (V6), L8-T16 (V7), L8-T13 (V8) ; 8b : L8-T22 (V12), L8-T23 (V13), L8-T25 (V14), L8-T32 (V15) ; `lot8ControllersWired` (L8-T19) et `lot8bControllersWired` (L8-T34) vérifient `className()` | lignes et sections |
+| M3 | outil initial = stylo | `tool.select` puis `expect appTools.currentTool = select` en tête des scénarios de L8-T12, T13, T16 | sections |
+| M4 | états intermédiaires en `-Lire` | `expect` interne ; en `-Lire`, l'état final seulement | L8-T16 ; 8b T25, T28 |
+| M5 | `InteractionPolicy` jamais branchée | interface complète posée par L8-T1 ; adaptateur `DesignModePolicy` et `toolhost.*`, `Main.qml` à L8-T16 | L8-T1, L8-T16 |
+| M6 | liste noire insuffisante | liste blanche sans casse après retrait des points et espaces finaux ; trois tests neufs | D8-4, L8-T10 |
+| M7 | réglages d'essai absents | règle commune avec contrôle `QSettings probe` | « Commandes de preuve communes » |
+| M8 | `Totals` faux de 2 | k = fonctions écrites + 2 | « Commandes de preuve communes » |
+| M9 | gestionnaire de `tool.reveal-ink` posé trop tard | posé par L8-T18 dans `ActionOverlays.qml` (ligne) | L8-T2, L8-T18 |
+| M10 | `QtWebView::initialize()` absent du joueur, du banc et du test | `bench/captures/main.cpp`, `bench/app/main.cpp` à L8-T30 ; `main` propre à `tst_ui_webframe` ; `QSKIP` « moteur web indisponible hors écran » | 8b L8-T30 |
+| M11 | Gradle sans `daemon=false` | `GRADLE_OPTS=-Dorg.gradle.daemon=false`, main rendue < 60 s après `APK OK`, `java.exe` du worktree comptés | 8b « Commandes propres à 8b », T21, T21r, T26, T34 |
+| M12 | nom de l'original en clair | retiré ; renvoi aux fichiers hors dépôt | L8-T0 |
+| m1 | doublon 2349-2645 | supprimé (une seule ancre `tache-l8-t0`) | fin du plan |
+| m2 | mutation de L8-T14 contradictoire | celle de la section (`>` au lieu de `<=`) | ligne L8-T14 |
+| m3 | `page.clear`, `page.reset` | `clear.page`, `page.revert` | L8-T6, A19 |
+| m4 | `QVERIFY2(...), …` | deux instructions dans un bloc | L8-T6 |
+| m5 | mutation sur un appel absent | `r.movable = true` | L8-T3 |
+| m6 | empreinte des objets inconnus déplacée | code stable `kUnknownKindTag`, test `unknownObjectFingerprintUnchanged` | L8-T3 |
+| m7 | deux tests jamais rouges | `documentOpenLaunchesNothing` (L8-T9) ; le garde HTML balaye les fichiers du cadre (8b L8-T29) | L8-T9, L8-T10 ; 8b T29 |
+| m8 | pixels de L8-T12 sans preuve | `page-2-affichee` | L8-T12 |
+| m9 | API du format natif | `documentToJson`, `documentFromJson` par deux aides | L8-T4 |
+| m10 | `Transform::translation`, `rotationDegrees` absents | aides locales `translated`, `rotationOf` | L8-T7 |
+| m11 | `LIBS` de `tst_formats_samples_interactivity` | `tests/ui.cmake` et ses `LIBS` dès L8-T1 | L8-T1 |
+| m12 | D10 non reporté ; `L8-C0` trop étroit | arbitrage `tool.camera-*` écrit ; `L8-C0` ouvert à tout préfixe codé en dur | L8-T0, « L8-T0 et les autres tâches » |
+| m13 | renvoi A23 faux | A4 | L8-T5 |
+| m14 | `switch` dans `pagepainter.cpp` | chaîne de `get_if` ; repère posé par L8-T3, L8-T30 ne touche plus au peintre | 8b L8-T30 |
+
+**Vagues après l'amendement** (inchangées ; recoupements revérifiés avec les fichiers ajoutés) : `Main.qml` n'est que
+dans L8-T2 (V2), L8-T10 (V3), L8-T11 (V5), L8-T9 (V6), L8-T16 (V7), L8-T13 (V8) ; `toolhost.*` dans L8-T9 (V6) et
+L8-T16 (V7) ; `ActionOverlays.qml` dans L8-T2 (V2), L8-T18 (V5), L8-T9 (V6), L8-T13 (V8) ; `nativejson.cpp` dans L8-T3
+(V2) puis L8-T4 (V3) ; `pagepainter.cpp` dans L8-T3 (V2) puis L8-T18 (V5).
 
 20 tâches dans ce sous-lot (15 dans 8b : 35 pour le lot, plus `L8-P1` si L8-T0 en propose une, amendement 1, § 4 :
 « lot 8 + 1 »). Tests ctest : L8-T1 enregistre d'un coup les **21** tests de 8a (16 unitaires, 5 de captures),
@@ -113,7 +158,7 @@ d'abord (V2 : L8-T3 ; V4 : L8-T7 ; V5 : L8-T8).
 **L8-T0 et les autres tâches.** L8-T1 (données, mécanique) ne l'attend pas ; toutes les tâches de comportement
 l'attendent (V2 commence quand V1 est finie). Ses décisions D1 à D16 et sa table A1 à A30 **amendent ce plan et celui
 de 8b** avant V2 (relecture du plan exigée). Une décision qui change une donnée de commande (raccourci, libellé, ordre)
-passe par un correctif `L8-C0` (`actions/data/commands.json`, `actions/data/layout.json` seulement), joué seul avant
+passe par un correctif `L8-C0` (`actions/data/commands.json`, `actions/data/layout.json`, et tout fichier qui code en dur un identifiant ou un préfixe de commande, dont le préfixe `camera.` de la barre de raccourcis de L6-T9, `ui/src/shortcutbar.cpp`), joué seul avant
 V2. Une API supposée qui diffère du code livré amende la section de la tâche qui l'emploie.
 
 ## Commandes de preuve communes
@@ -130,7 +175,7 @@ V2. Une API supposée qui diffère du code livré amende la section de la tâche
   pwsh -NoProfile -Command "Set-Location '<wt>'; . ./scripts/dev-env.ps1; & build/debug/tests/<test>.exe -o .tmp/<test>.txt,txt; Select-String -Path .tmp/<test>.txt -Pattern '^PASS   :|^FAIL!  :|^SKIP   :|^Totals' | Select-Object -Last 40"
   ```
   Attendu pour un talon rempli : chaque fonction nommée par la table en `PASS`, aucun `SKIP`,
-  `Totals: <k> passed, 0 failed, 0 skipped`, k égal au nombre de fonctions écrites dans la section.
+  `Totals: <k> passed, 0 failed, 0 skipped`, k = nombre de fonctions écrites dans la section **+ 2** (QtTest compte aussi `initTestCase` et `cleanupTestCase`).
   Liste des fonctions sans les lancer : `& build/debug/tests/<test>.exe -functions` ; un talon y montre `reserved()`,
   un test rempli ne la montre plus (règle 4 des talons, ci-dessous).
 - **Preuve de tâche** (forme bornée du profil, sous le jeton) :
@@ -177,6 +222,26 @@ V2. Une API supposée qui diffère du code livré amende la section de la tâche
   par `git -C <wt> checkout -- <fichier>` (jamais par `Copy-Item`), et la commande ciblée rejouée verte.
 - **Tests de captures** qui dépendent d'une plateforme (rendu D3D11, enregistreur d'écran) : garde
   `#ifdef Q_OS_WIN` ou `QSKIP("Windows seulement")` dans la fonction, jamais « Talon ».
+- **Réglages d'essai (amendement 1, M7).** Tout test du lot qui crée un `ToolHost`, un `Preferences`, un `DesignMode`,
+  un enregistreur à « première utilisation », ou qui charge `Main.qml`, pose dans `initTestCase` :
+  ```cpp
+  QSettings::setDefaultFormat(QSettings::IniFormat);
+  QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settings.path()); // QTemporaryDir m_settings
+  QStandardPaths::setTestModeEnabled(true); // si le test lit AppData (enregistreurs, extraction de fichiers)
+  // … à la fin d'initTestCase :
+  QSettings probe;
+  QCOMPARE(probe.format(), QSettings::IniFormat);
+  QVERIFY(probe.fileName().startsWith(m_settings.path()));
+  ```
+  Aucun contrôle par `reg query`. Tests concernés : `tst_ui_actionrunner`, `tst_ui_actionbrowser`,
+  `tst_ui_dragdropactions`, `tst_ui_interactivityprops`, `tst_tools_interactivity` (s'il monte un `ToolHost`),
+  `tst_formats_samples_interactivity`, `tst_ui_shell` (déjà réglé au lot 6) ; en 8b, `tst_ui_mediaitems`,
+  `tst_ui_recorders`, `tst_media_soundrecorder`, `tst_ui_webframe`, `tst_ui_broadcast`.
+- **Tests qui chargent `Main.qml` (leçon du lot 11).** Ils sont enregistrés avec `app/startup.cpp` dans `SOURCES`, le
+  dossier `app` en inclusion et `actcraft_uiplugin` dans `LIBS`, sur la forme de `tests/ui.cmake:33-36`. Dans ce lot,
+  seul `tst_ui_shell` (existant, déjà enregistré ainsi) charge `Main.qml` : `lot8ControllersWired` (L8-T19) et
+  `lot8bControllersWired` (L8-T34) y vont. Un test neuf qui en aurait besoin est enregistré ainsi par L8-T1 ou L8-T21,
+  jamais par une autre tâche.
 
 ## Décisions appliquées (tranchées par ce plan ; L8-T0 peut les amender)
 
@@ -204,8 +269,7 @@ V2. Une API supposée qui diffère du code livré amende la section de la tâche
   `document.open-file` ou `document.open-website`, ou un média confié à l'application du système (N2-9) passe par
   `ui::LinkLauncher` : il **demande toujours une confirmation** (boîte à nous qui montre l'adresse ou le chemin
   complet) puis appelle `QDesktopServices::openUrl`. Règles d'adresse : site = `http` ou `https` seulement ; fichier
-  = chemin local existant, jamais un chemin réseau (`\\hôte\…`, `file://hôte/…`, SMB), jamais un exécutable
-  (`.exe`, `.bat`, `.cmd`, `.com`, `.msi`, `.ps1`, `.vbs`, `.js`, `.lnk`, `.scr`) — un fichier refusé affiche son
+  = chemin local existant, jamais un chemin réseau (`\\hôte\…`, `file://hôte/…`, SMB), seulement une extension de la **liste blanche** (arrêtée par L8-T0 ; défaut : `pdf`, `txt`, `rtf`, `odt`, `ods`, `odp`, `doc`, `docx`, `xls`, `xlsx`, `ppt`, `pptx`, `png`, `jpg`, `jpeg`, `gif`, `bmp`, `svg`, `webp`, `mp3`, `wav`, `ogg`, `m4a`, `wma`, `mp4`, `m4v`, `mov`, `avi`, `wmv`, `webm`, `mkv`, `actcraft`, `flipchart`), comparée sans tenir compte de la casse **après retrait des points et espaces finaux** du nom (Windows les retire : `a.exe.` est `a.exe`) ; tout le reste est refusé, `.hta`, `.wsf`, `.url`, `.lnk`, `.jar`, `.msc`, `.chm`, `.cpl`, `.reg`, `.scf`, `.appref-ms` compris — un fichier refusé affiche son
   motif ; fichier rangé dans le document (« stocker dans le paperboard ») : extrait dans un dossier temporaire propre
   au document, sous son nom d'origine assaini, puis confirmé. **Un fichier d'un `.flipchart` ne lance rien tout
   seul** : ni à l'ouverture, ni à l'affichage d'une page, ni par « lecture auto » ; la lecture automatique d'un média
@@ -279,6 +343,7 @@ V2. Une API supposée qui diffère du code livré amende la section de la tâche
 | # | API | Lot qui la pose | Employée par | À revérifier |
 |---|---|---|---|---|
 | A1 | `core::Action { kind, sourceType, command, target, resource, unknownKeys }`, `ActionKind { Other, Navigate, OpenExternal, OnObject }`, `Restrictions { movable, resizable, rotatable }`, `ObjectCommon::actions`, `StrokeKind::Revealer`, `core::Media`, `ObjectKind` (Equation 8, Unknown 9, `kObjectKindCount` 10), `UnknownObject` | lot 2, L2-C8, L0-S3 | L8-T3 à L8-T5 | non (vérifié sur `5373f04`, `model.h:143-359`) |
+| A1b | `core::Document` est une **classe** (`core/include/actcraft/core/document.h:34-77`) : constructeur `Document(w, h)`, `page(i)`, `pageCount()`, membres privés ; `fingerprint(const Document&)` dans `core/src/document.cpp:232` (fonction `mix`, sans flux `Fnv1a`) ; formats : `documentToJson`, `documentFromJson(QJsonObject, ResourceLoader, …)` (`formats/include/actcraft/formats/nativejson.h:29,78`) | lot 2 | L8-T3, L8-T4, L8-T7, L8-T31 | oui (lu à la relecture du tour 1 sur `c2e4af9`) |
 | A2 | `canWait(page, object)` refuse images, encre révélatrice, grille du dessus | lot 10 | L8-T18 | non (vérifié, `render/src/fixedpageitem.cpp:55-64`) |
 | A3 | `paintPage`, `paintObject`, `paintObjectLocal`, `paintStroke` : l'encre révélatrice y est dessinée comme un trait ordinaire | lot 2, L0-S3 | L8-T18 | non (vérifié, `render/src/pagepainter.cpp:193-213,626-723`) |
 | A4 | lecteur `.flipchart` : actions 22 à 28, 50, 463 lues et rattachées au dernier objet (`formats/src/flipchart.cpp:562-568,614-621`, `actionFrom` 667-719) ; communs lus : visible, verrou, trois booléens (998-1002) ; conteneurs et limiteurs non lus | lot 2 | L8-T5 | non (vérifié) |
@@ -296,7 +361,7 @@ V2. Une API supposée qui diffère du code livré amende la section de la tâche
 | A16 | `core::ObjectFlag { Locked, Hidden, DragCopy }`, `SetObjectFlagCommand`, `ReorderObjectsCommand`, `SetLayerCommand`, `arrangedOrder` | lot 5 | L8-T8 | oui |
 | A17 | `core::SetTranslucencyCommand` | lot 3 | L8-T8 | oui |
 | A18 | presse-papiers d'objets (`formats::encodeClipboard`, `decodeClipboard`, `resourcesFor`) ; commandes `edit.copy`, `edit.cut`, `edit.paste`, `edit.duplicate`, `edit.delete` | lot 5 | L8-T6, L8-T8 | oui |
-| A19 | commandes de page : `page.first`, `page.last`, `page.goto`, `page.insert-after`, `page.insert-before`, `page.duplicate`, `page.clear`, `page.reset`, `page.copy`, `page.cut`, `page.background` | lots 3 et 4 | L8-T6, L8-T9 | oui |
+| A19 | commandes de page : `page.first`, `page.last`, `page.goto`, `page.insert-after`, `page.insert-before`, `page.duplicate`, `clear.page`, `page.revert`, `page.copy`, `page.cut`, `page.background` | lots 3 et 4 | L8-T6, L8-T9 | oui |
 | A20 | `core::ReplaceObjectsCommand`, contrat de `Change` | L0-S3 | L8-T8, L8-T11 | oui |
 | A21 | mots-clés d'objet (`ObjectCommon::keywords`, L6-T10) | lot 6 | L8-T14, L8-T17 | oui |
 | A22 | `ui::PropertyModel` (sections, éditeurs, `setValue`), `core::SetObjectPropertiesCommand` | L6-T11, L6-T12 | L8-T17 | oui |
@@ -413,8 +478,7 @@ Rien d'autre.
 **Test et commande bornée.** Aucun code : preuve = rapport commité, `Test-Path` du relevé brut, `NOMS OK`, contrôles
 des titres du corpus et des paperboards réels vides.
 
-**Interdits.** Aucun nom de classe, de propriété ni de fichier de l'original dans le dépôt (le nom de l'original de
-l'encre révélatrice compris) ; aucun titre, aucune citation, aucune capture du corpus ; aucun nom de paperboard réel ;
+**Interdits.** Aucun nom de classe, de propriété ni de fichier de l'original dans le dépôt (le nom de l'original de l'encre révélatrice compris : il n'est lu que dans les fichiers hors dépôt de `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\`, jamais écrit dans le dépôt) ; aucun titre, aucune citation, aucune capture du corpus ; aucun nom de paperboard réel ;
 observation à l'écran seulement après avoir prévenu Jérôme ; aucun téléchargement (H8-6) ; ne pas modifier ce plan.
 
 **Terminé quand** le rapport contient la table principe → exigence → tâche → scénario (ou raison) pour chaque
@@ -432,7 +496,7 @@ d'écran (V43), formats ; **D12** cadre web : image fixe, glisser du texte, comp
 **D13** second média à côté du premier (V126) ; **D14** GIF animé (V57, V66) ; **D15** objet Flash : repère seulement
 (N1-A15) ; **D16** conteneur recouvert par une image (V39).
 
-**D10 — noms de la caméra (contradiction consignée, non tranchée par ce plan).** Le plan du lot 7 déclare cinq
+**D10 — noms de la caméra (arbitrée par l'orchestrateur à la relecture du tour 1 : `tool.camera-*`).** Le plan du lot 7 déclare cinq
 commandes `tool.camera-area`, `tool.camera-polygon`, `tool.camera-freehand`, `tool.camera-window`,
 `tool.camera-screen` (`…-lot7-PLAN.md`, session B, l. 690-694) ; le plan du lot 6 (L6-T3, D6-7) écrit `camera.*`
 pour les déclarer restreignables et dans les préfixes de la barre de raccourcis (`lot6-PLAN.md:998-1004,2161`), tout
@@ -440,14 +504,13 @@ en disant « identifiants réels relus dans le fichier ». L8-T0 relève les ide
 `actions/data/commands.json` à la tête du chantier et les écrit au rapport. **Recommandation** : retenir ceux du lot 7
 (`tool.camera-*`), parce que c'est le lot qui crée ces commandes et que le lot 6 renvoie lui-même au fichier ; la
 diffusion protégée (L8-T31, L8-T32) vise alors le préfixe `tool.camera-`, et un correctif `L8-C0` corrige le préfixe
-de la barre de raccourcis si L6-T9 a codé `camera.` en dur. La décision revient à l'orchestrateur, sur le rapport de
-L8-T0.
+de la barre de raccourcis si L6-T9 a codé `camera.` en dur. **Arbitrage** : les identifiants du lot 7, `tool.camera-*`, sont retenus ; L8-T0 vérifie seulement qu'ils sont déclarés et relève tout préfixe `camera.` codé en dur, corrigé par `L8-C0`.
 
 **Étapes.**
 - [ ] **Étape 1 : corpus.** Lire `C:\Users\JeromeDenis\REA - Activinspire\docs\videos-tanguay\README.md` (« Principes
   absents », « Écarts avec la spec », synthèse « Conteneurs ») ; ouvrir chaque fiche citée ; principes en nos mots dans
   le relevé brut.
-- [ ] **Étape 2 : spécification et ancien dépôt.** `graphify query "actions conteneurs limiteurs encre magique médias"`
+- [ ] **Étape 2 : spécification et ancien dépôt.** `graphify query "actions conteneurs limiteurs encre révélatrice médias"`
   dans `C:\Users\JeromeDenis\REA - Activinspire` ; le graphe relie mal ces fichiers : lire ensuite
   `app/actcraft/ui/browsers/actions.py`, `app/actcraft/ui/browsers/hooks.py`, `app/actcraft/canvas/items.py`
   (découpe de l'encre, l. 197-221 et 353-410), `app/actcraft/canvas/page.py:114-124`, `app/actcraft/canvas/view.py:228-249,391-400`,
@@ -606,7 +669,7 @@ passe `iconsAreOurSvgOnA24Grid` avec les 19 nouvelles lignes, `NOMS OK`.
   Table des talons : `interactivity.*` → L8-T3 ; `actions/objectactions.*`, `object-actions.json` → L8-T6 ;
   `core/objectactions.h`, `objectactions_geometry.cpp` → L8-T7 ; `objectactions_edit.cpp` → L8-T8 ; `actionedits.*`,
   `actionbrowser.*` → L8-T11 ; `actionrunner.*`, `pagehistory.*` → L8-T9 ; `linklauncher.*` → L8-T10 ;
-  `dragdropactions.*` → L8-T13 ; `containers.*` → L8-T14 ; `restrictors.*` → L8-T15 ; `interactionpolicy.h` → L8-T16 ;
+  `dragdropactions.*` → L8-T13 ; `containers.*` → L8-T14 ; `restrictors.*` → L8-T15 ; `interactionpolicy.h` : posé **complet** par L8-T1 (les trois fonctions virtuelles pures de L8-T16, étape 1, sans comportement ni marqueur) ; son adaptateur côté `ui/` est à L8-T16 ;
   `interactivityprops.*` → L8-T17 ; `revealinktool.*` → L8-T18. Scénarios : `navigateur-actions` → L8-T12,
   `glisser-deposer` → L8-T13, `conteneurs` → L8-T16, `encre-revelatrice` → L8-T18, `interactivite` → L8-T19.
 - [ ] **Étape 7 : tests talons.** Pour chaque test (tâche propriétaire = celle de la ligne de la table qui le cite) :
@@ -625,7 +688,7 @@ passe `iconsAreOurSvgOnA24Grid` avec les 19 nouvelles lignes, `NOMS OK`.
   ```
   Enregistrement : `tests/core.cmake` (`tst_core_interactivity`, `tst_core_objectactions`, `tst_core_objectactions_edit`,
   `tst_core_containers`, `tst_core_restrictors`), `tests/formats.cmake` (`tst_formats_interactivity`),
-  `tests/flipchart.cmake` (`tst_formats_flipchart_interactivity`, `tst_formats_samples_interactivity`),
+  `tests/flipchart.cmake` (`tst_formats_flipchart_interactivity`), `tests/ui.cmake` (`tst_formats_samples_interactivity`, `LIBS` `actcraft_formats`, `actcraft_tools`, `actcraft_ui`, variable `ACTCRAFT_SAMPLES_DIR` transmise par `ENVIRONMENT`),
   `tests/actions.cmake` (`tst_actions_objectactions`), `tests/tools.cmake` (`tst_tools_interactivity`),
   `tests/render.cmake` (`tst_render_reveal`), `tests/ui.cmake` (`tst_ui_actionrunner`, `tst_ui_linklauncher`,
   `tst_ui_actionbrowser`, `tst_ui_dragdropactions`, `tst_ui_interactivityprops`), `tests/bench.cmake` (les 5
@@ -633,6 +696,12 @@ passe `iconsAreOurSvgOnA24Grid` avec les 19 nouvelles lignes, `NOMS OK`.
 - [ ] **Étape 8 : vert.** Commande ciblée, puis preuve de tâche : N = N8 + 21, `TESTS OK` ; `premiers-pas`.
 - [ ] **Étape 9 : contrôles et commit.** `git -C <wt> add` des fichiers de la ligne (nommés, jamais `-A`) ; `NOMS OK` ;
   contrôle des titres vide ; commit « Lot 8 : réservation de 8a, commandes du lot, icônes (L8-T1) ».
+
+**Amendement 1 (L8-T1).** M5 : `tools/include/actcraft/tools/interactionpolicy.h` est posé **complet** (le code de
+L8-T16, étape 1), seule exception à « un en-tête talon ne contient que le marqueur ». m11 : `tst_formats_samples_interactivity`
+est enregistré dans `tests/ui.cmake` avec ses `LIBS` (`actcraft_formats`, `actcraft_tools`, `actcraft_ui`). Leçon du
+lot 11 : aucun test neuf de 8a ne charge `Main.qml` ; si l'un en avait besoin, il serait enregistré ici avec
+`app/startup.cpp`, `app` en inclusion et `actcraft_uiplugin` (forme de `tests/ui.cmake:33-36`).
 
 <a id="tache-l8-t2"></a>
 ### Tâche L8-T2 — Coquille QML du lot
@@ -708,7 +777,7 @@ comportement (les gestionnaires talons ne font que `console.info("Talon L8 : rem
 - [ ] **Étape 2 : rouge** : `FAIL!  : TstUiShell::lot8ShellPlaceholders()` (`appActionRunner`).
 - [ ] **Étape 3 : QML.** Écrire les instances, l'onglet, les trois surcouches dans `pageOverlays` et les 12 fichiers ;
   dans chaque fichier propriétaire, `Component.onCompleted: appCommands.setHandler("<id>", function(a) { console.info("Talon L8 : rempli par L8-T<n>.") })`
-  pour ses commandes (table : `tool.reveal-ink` → gestionnaire générique des outils du lot 3, qui active l'outil `reveal-ink` du registre d'outils (A24) ; s'il n'existe pas, talon dans `ActionOverlays.qml` rempli par L8-T9, jamais par L8-T18 ; `browser.actions`,
+  pour ses commandes (table : `tool.reveal-ink` → `ActionOverlays.qml`, rempli par L8-T18 ; `browser.actions`,
   `action.*` → `ActionBrowser.qml` ; `page.history-*` → `ActionOverlays.qml` ; `link.*` → `LinkDialog.qml` ;
   `media.sound-controller` → `SoundController.qml` ; `record.*` → `RecorderPalette.qml` ; `insert.web-frame`,
   `webframe.*` → `WebFrameLayer.qml` ; `file.publish` → `PublishDialog.qml`).
@@ -731,12 +800,11 @@ outils du lot 3 qui lisent `movable` ; ajouter le cadre web après `UnknownObjec
 ajouté à la tâche par l'orchestrateur avant le lancement.
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_core_interactivity|tst_core_model|tst_formats_nativejson|tst_formats_nativefile'`
-; fonctions de la ligne en `PASS` ; mutation : retirer l'appel à `normalize` dans `setTravel` → `fixedTravelMeansNotMovable`
+; fonctions de la ligne en `PASS` ; mutation : remplacer `r.movable = t != Travel::Fixed` par `r.movable = true` dans `setTravel` → `fixedTravelMeansNotMovable`
 rouge, remise par `git checkout -- core/src/interactivity.cpp`.
 
 **Interdits.** QtCore seulement (`core/`) ; aucun nom composé de l'original (ni les noms de propriétés de déplacement, d'accrochage, de type d'encre ou
-d'options de média du format : les noms de ce plan sont à nous) ; aucun `default:` dans un `switch` sur `ObjectKind` (`/we4062`) ; ne pas toucher à
-`formats/` (L8-T4) ni au rendu.
+d'options de média du format : les noms de ce plan sont à nous) ; aucun `default:` dans un `switch` sur `ObjectKind` (`/we4062`) ; dans `formats/src/nativejson.cpp`, seulement ce qu'exige la compilation (B1) : l'entrée `"web-frame"` de `kObjectKinds`, un `writeBody` et un `readBody` vides pour `WebFrame`, le `case ObjectKind::WebFrame` du `switch` de `enumName` (le contenu est à L8-T4) ; dans `render/src/pagepainter.cpp`, le repère neutre du cadre web (une branche `get_if<WebFrame>` de la chaîne de `paintObjectLocal`, `:651`, comme `paintUnknown`) ; rien d'autre hors de `core/`.
 
 **Terminé quand** les fonctions passent, les tests du format natif restent verts sans changer leurs fichiers de
 référence (`writerMatchesTheReference`), et `NOMS OK`.
@@ -756,10 +824,10 @@ référence (`writerMatchesTheReference`), et `NOMS OK`.
       Q_OBJECT
       static Document oneShape()
       {
-          Document d = Document::withOnePage(1024, 768);
+          Document d(1024, 768);
           PageObject o{Shape{}};
           o.common.id = 7;
-          d.pages[0].objects.push_back(o);
+          d.page(0).objects.push_back(o);
           return d;
       }
   private slots:
@@ -768,13 +836,13 @@ référence (`writerMatchesTheReference`), et `NOMS OK`.
           const Document d = oneShape();
           const auto before = fingerprint(d);
           Document e = d;
-          e.pages[0].objects[0].common.container = ContainerRule{};
-          e.pages[0].objects[0].common.restrictions = Restrictions{};
-          e.broadcast = BroadcastRules{};
+          e.page(0).objects[0].common.container = ContainerRule{};
+          e.page(0).objects[0].common.restrictions = Restrictions{};
+          e.setBroadcast(BroadcastRules{});
           QCOMPARE(fingerprint(e), before);
-          e.pages[0].objects[0].common.container.accepts = Accepts::Anything;
+          e.page(0).objects[0].common.container.accepts = Accepts::Anything;
           QVERIFY(fingerprint(e) != before);
-          e.pages[0].objects[0].common.container.accepts = Accepts::Nothing;
+          e.page(0).objects[0].common.container.accepts = Accepts::Nothing;
           QCOMPARE(fingerprint(e), before);
       }
       void fixedTravelMeansNotMovable()
@@ -811,6 +879,16 @@ référence (`writerMatchesTheReference`), et `NOMS OK`.
           PageObject u{UnknownObject{}};
           QCOMPARE(kindOf(u), ObjectKind::Unknown);
       }
+      void unknownObjectFingerprintUnchanged()
+      {
+          // m6 : kindOf est haché (model.cpp:376) ; Unknown passe de 9 à 10. L'empreinte hache pour UnknownObject le
+          // code stable 9 (constante kUnknownKindTag) : la valeur relevée avant L8-T3 (étape 1 bis) ne change pas.
+          Document d(1024, 768);
+          PageObject u{UnknownObject{}};
+          u.common.id = 3;
+          d.page(0).objects.push_back(u);
+          QCOMPARE(fingerprint(d), kFingerprintBeforeLot8);
+      }
       void actionKeepsFlipchartFields()
       {
           Action a;
@@ -836,8 +914,7 @@ référence (`writerMatchesTheReference`), et `NOMS OK`.
   QTEST_MAIN(TstCoreInteractivity)
   #include "tst_core_interactivity.moc"
   ```
-  (`Document::withOnePage` et `fingerprint` : fonctions existantes de `model.h` ; si leurs noms diffèrent, suivre
-  ceux de `tst_core_model.cpp`.)
+  (`core::Document` est une classe de `core/include/actcraft/core/document.h:34-77` : constructeur `Document(w, h)`, `page(i)`, `pageCount()` ; `fingerprint(const Document&)` est dans `core/src/document.cpp:232` ; A1b.)
 - [ ] **Étape 2 : rouge** : erreur de compilation `ContainerRule` inconnu.
 - [ ] **Étape 3 : modèle** (`model.h`) — dans `Restrictions`, après les trois booléens :
   ```cpp
@@ -887,7 +964,7 @@ référence (`writerMatchesTheReference`), et `NOMS OK`.
   };
   ```
   `ObjectKind::WebFrame = 9`, `Unknown = 10`, `kObjectKindCount = 11`, `WebFrame` dans `ObjectVariant` juste avant
-  `UnknownObject` ; `Document` gagne :
+  `UnknownObject` ; `model.h` gagne aussi (la structure seule ; le membre va dans la classe `Document`, `document.h`) :
   ```cpp
   // Diffusion protégée (F-680, S18) : courtoisie sur un format ouvert (N1-A4).
   struct BroadcastRules
@@ -900,7 +977,7 @@ référence (`writerMatchesTheReference`), et `NOMS OK`.
       bool isDefault() const noexcept { return !noCopy && !noSave && !noPrint && !noCamera && author.empty(); }
   };
   ```
-  et le membre `BroadcastRules broadcast;`.
+  ; la classe `core::Document` (`document.h`) gagne `const BroadcastRules& broadcast() const noexcept` et `void setBroadcast(BroadcastRules rules)` (membre privé `m_broadcast`).
 - [ ] **Étape 4 : `interactivity.h` / `.cpp`** :
   ```cpp
   #pragma once
@@ -919,13 +996,28 @@ référence (`writerMatchesTheReference`), et `NOMS OK`.
 - [ ] **Étape 5 : empreinte** (`model.cpp`) : `hashType(Fnv1a&, const WebFrame&)` (bounds, html, address) ; pour un
   objet, un bloc ouvert par l'octet `0xB8` en **fin** de flux de l'objet, seulement si `!isDefault(restrictions)`,
   `!isDefault(container)`, une action a `catalogId`, `parameters` ou `dragDrop`, ou une option de média du lot 8 est
-  vraie ; pour le document, un bloc `0xB9` en fin de flux seulement si `!broadcast.isDefault()` (même patron que
+  vraie ; pour le document, dans `fingerprint(const Document&)` (`core/src/document.cpp:232`), les règles mélangées par `mix` en fin, seulement si `!broadcast().isDefault()` (même patron que
   `PagePresentation`, octet `0xA7`, `model.cpp:410-415`). `static_assert` du variant mis à jour ; `kindOf` suit.
 - [ ] **Étape 6 : `tst_core_model`** : ajouter `lot8FieldsKeepOldFingerprints` (l'empreinte du document riche de
   référence, calculée avant et après avoir posé tous les champs du lot 8 à leur défaut, est identique) ;
   `unknownObjectIsTheLastKind` mis à jour (11 types).
 - [ ] **Étape 7 : vert**, mutation rouge puis remise ; preuve de tâche.
 - [ ] **Étape 8 : contrôles et commit** « Lot 8 : modèle de l'interactivité (L8-T3) » ; `NOMS OK`.
+
+**Amendement 1 (L8-T3).**
+- **B1.** La ligne gagne `formats/src/nativejson.cpp` et `render/src/pagepainter.cpp`, pour le strict nécessaire à la
+  compilation et au repère neutre du cadre web (voir « Interdits ») ; L8-T4 écrit le contenu du format.
+- **B2.** La ligne gagne `core/include/actcraft/core/document.h` et `core/src/document.cpp` : `BroadcastRules` est une
+  structure de `model.h`, portée par la classe `Document` (`broadcast()`, `setBroadcast`), mélangée en fin de
+  `fingerprint(const Document&)` seulement hors défaut. Les tests emploient `Document d(1024, 768)` et `d.page(0)`.
+  `Document e = d;` suppose la classe copiable : si elle ne l'est pas, `defaultsChangeNoFingerprint` construit deux
+  documents identiques au lieu de copier.
+- **m5.** Mutation : `r.movable = true` dans `setTravel` → `fixedTravelMeansNotMovable` rouge.
+- **m6.** Invariant (1) précisé : `kindOf` étant haché (`model.cpp:376`), l'empreinte hache pour `UnknownObject` une
+  constante stable `kUnknownKindTag = 9`, et `WebFrame` prend le code 10 dans le hachage ; **étape 1 bis**, avant toute
+  modification : calculer à la tête l'empreinte du document d'`unknownObjectFingerprintUnchanged` (lancement unique du
+  test avec un `qDebug`, non commité) et l'écrire dans le test en constante `kFingerprintBeforeLot8` (type de
+  `fingerprint`).
 
 <a id="tache-l8-t4"></a>
 ### Tâche L8-T4 — `formats` : format natif des champs de l'interactivité
@@ -963,20 +1055,29 @@ octet).
   class TstFormatsInteractivity : public QObject
   {
       Q_OBJECT
+      // m9 : API réelle du format natif (nativejson.h:29, :78) ; chargeur de ressources vide.
+      static QByteArray toJson(const core::Document& d)
+      {
+          return QJsonDocument(formats::documentToJson(d)).toJson(QJsonDocument::Compact);
+      }
+      static bool fromJson(const QByteArray& json, core::Document& out, QString& error)
+      {
+          return formats::documentFromJson(QJsonDocument::fromJson(json).object(), formats::ResourceLoader{}, out, error);
+      }
       static core::Document base()
       {
-          core::Document d = core::Document::withOnePage(1024, 768);
+          core::Document d(1024, 768);
           core::PageObject o{core::Shape{}};
           o.common.id = 1;
-          d.pages[0].objects.push_back(o);
+          d.page(0).objects.push_back(o);
           return d;
       }
       static core::Document roundTrip(const core::Document& d)
       {
           QString error;
-          const QByteArray json = formats::writeDocumentJson(d);
+          const QByteArray json = toJson(d);
           core::Document back;
-          [&] { QVERIFY2(formats::readDocumentJson(json, back, error), qPrintable(error)); }();
+          [&] { QVERIFY2(fromJson(json, back, error), qPrintable(error)); }();
           return back;
       }
   private slots:
@@ -987,15 +1088,15 @@ octet).
           a.catalogId = "page.goto";
           a.parameters = R"({"page":3})";
           a.dragDrop = true;
-          d.pages[0].objects[0].common.actions.push_back(a);
+          d.page(0).objects[0].common.actions.push_back(a);
           const auto back = roundTrip(d);
           QCOMPARE(core::fingerprint(back), core::fingerprint(d));
-          QCOMPARE(back.pages[0].objects[0].common.actions[0].catalogId, std::string("page.goto"));
+          QCOMPARE(back.page(0).objects[0].common.actions[0].catalogId, std::string("page.goto"));
       }
       void containerRoundTrip()
       {
           core::Document d = base();
-          auto& c = d.pages[0].objects[0].common.container;
+          auto& c = d.page(0).objects[0].common.container;
           c.accepts = core::Accepts::Keywords;
           c.keywords = {"fruit"};
           c.fit = core::FitRule::FullyInside;
@@ -1005,7 +1106,7 @@ octet).
       void restrictorsRoundTrip()
       {
           core::Document d = base();
-          auto& r = d.pages[0].objects[0].common.restrictions;
+          auto& r = d.page(0).objects[0].common.restrictions;
           core::setTravel(r, core::Travel::AlongTrack);
           r.track = 4;
           core::setTurning(r, core::Turning::Clockwise);
@@ -1022,7 +1123,7 @@ octet).
           m.clearBackground = true;
           core::PageObject o{m};
           o.common.id = 2;
-          d.pages[0].objects.push_back(o);
+          d.page(0).objects.push_back(o);
           QCOMPARE(core::fingerprint(roundTrip(d)), core::fingerprint(d));
       }
       void webFrameRoundTrip()
@@ -1033,55 +1134,56 @@ octet).
           w.html = "<p>essai</p>";
           core::PageObject o{w};
           o.common.id = 3;
-          d.pages[0].objects.push_back(o);
+          d.page(0).objects.push_back(o);
           const auto back = roundTrip(d);
-          QCOMPARE(core::kindOf(back.pages[0].objects[1]), core::ObjectKind::WebFrame);
+          QCOMPARE(core::kindOf(back.page(0).objects[1]), core::ObjectKind::WebFrame);
           QCOMPARE(core::fingerprint(back), core::fingerprint(d));
       }
       void broadcastRoundTrip()
       {
           core::Document d = base();
-          d.broadcast.noCopy = true;
-          d.broadcast.noPrint = true;
+          core::BroadcastRules rules;
+          rules.noCopy = true;
+          rules.noPrint = true;
+          d.setBroadcast(rules);
           QCOMPARE(core::fingerprint(roundTrip(d)), core::fingerprint(d));
       }
       void defaultsAreOmitted()
       {
-          const QByteArray json = formats::writeDocumentJson(base());
+          const QByteArray json = toJson(base());
           for (const char* key : {"container", "catalog-id", "drag-drop", "travel", "turning", "blocks-others",
                                   "broadcast", "controls-hidden"})
               QVERIFY2(!json.contains(key), key);
       }
       void olderFileReadsWithDefaults()
       {
-          const QByteArray json = formats::writeDocumentJson(base()); // forme du lot 2 : aucun champ du lot 8
+          const QByteArray json = toJson(base()); // forme du lot 2 : aucun champ du lot 8
           core::Document back;
           QString error;
-          QVERIFY(formats::readDocumentJson(json, back, error));
-          QVERIFY(core::isDefault(back.pages[0].objects[0].common.container));
-          QVERIFY(back.broadcast.isDefault());
-          QVERIFY(back.pages[0].objects[0].unknownKeys.empty());
+          QVERIFY(fromJson(json, back, error));
+          QVERIFY(core::isDefault(back.page(0).objects[0].common.container));
+          QVERIFY(back.broadcast().isDefault());
+          QVERIFY(back.page(0).objects[0].unknownKeys.empty());
       }
       void unknownActionKeyKept()
       {
           core::Document d = base();
           core::Action a;
           a.catalogId = "page.next";
-          d.pages[0].objects[0].common.actions.push_back(a);
-          QByteArray json = formats::writeDocumentJson(d);
+          d.page(0).objects[0].common.actions.push_back(a);
+          QByteArray json = toJson(d);
           json.replace("\"catalog-id\"", "\"future-key\":42,\"catalog-id\"");
           core::Document back;
           QString error;
-          QVERIFY(formats::readDocumentJson(json, back, error));
-          QVERIFY(formats::writeDocumentJson(back).contains("\"future-key\":42"));
+          QVERIFY(fromJson(json, back, error));
+          QVERIFY(toJson(back).contains("\"future-key\":42"));
       }
   };
 
   QTEST_MAIN(TstFormatsInteractivity)
   #include "tst_formats_interactivity.moc"
   ```
-  (`writeDocumentJson` / `readDocumentJson` : noms publics du format natif relevés dans `formats/nativejson.h` ; si
-  différents, suivre ceux de `tst_formats_nativejson.cpp`.)
+  (`documentToJson`, `documentFromJson` : API réelle de `formats/include/actcraft/formats/nativejson.h` ; si la signature de `documentFromJson` diffère des deux aides ci-dessus, ce sont les aides qui suivent l'en-tête, pas les tests.)
 - [ ] **Étape 2 : rouge** : `actionRoundTrip` échoue (empreintes différentes : `catalog-id` non écrit).
 - [ ] **Étape 3 : écriture.** `actionJson` (`nativejson.cpp:517-526`) : `catalog-id`, `parameters` (objet JSON
   inséré tel quel s'il se lit, sinon chaîne), `drag-drop` si vrais ou non vides ; `writeCommon` : `restrictions`
@@ -1134,7 +1236,7 @@ bloquant.
   `StrokeKind::Revealer`, couche du dessus), `mediaOptionsRead` (commandes masquées, aspect gardé),
   `noNameOfTheOriginal` (lit `formats/src/flipchartids.h` depuis `ACTCRAFT_SOURCE_DIR` et vérifie qu'aucune ligne
   ajoutée par ce lot ne contient un identifiant au préfixe `As` ou `kAs` : `QRegularExpression("\\bk?As[A-Z]")`
-  ne trouve rien). Chaque test construit le fichier par l'écrivain, le lit par `formats::readFlipchart` (A23) et
+  ne trouve rien). Chaque test construit le fichier par l'écrivain, le lit par la fonction de lecture du `.flipchart` (A4 ; nom exact relevé dans `formats/include/actcraft/formats/`) et
   compare les champs.
 - [ ] **Étape 3 : rouge** : `toggleHiddenMapsToOurId` échoue (`catalogId` vide).
 - [ ] **Étape 4 : table et lecture.** Dans `flipchartids.h`, la table `kCommandToCatalog` (paires nombre → chaîne) ;
@@ -1272,7 +1374,7 @@ QtCore seulement ; pas de QML.
           QSet<QString> seen;
           for (auto c : {ActionCategory::Command, ActionCategory::Page, ActionCategory::Object, ActionCategory::Document})
               for (const auto* a : m_catalog.inCategory(c))
-                  QVERIFY2(!seen.contains(a->id), qPrintable(a->id)), seen.insert(a->id);
+                  { QVERIFY2(!seen.contains(a->id), qPrintable(a->id)); seen.insert(a->id); }
       }
   };
 
@@ -1286,10 +1388,10 @@ QtCore seulement ; pas de QML.
   ```
   Contenu : **commande** — une entrée `command.<id>` par commande déclarée du registre qui a un sens au clic (outils,
   navigateurs, présentation, maths, nouveaux documents, plein écran, annuler, rétablir, mode conception, lecteur de
-  sons, enregistreurs, quitter…) ; **page** — `page.goto`, `page.clear`, `page.copy`, `page.cut`,
+  sons, enregistreurs, quitter…) ; **page** — `page.goto`, `clear.page`, `page.copy`, `page.cut`,
   `page.duplicate-next`, `page.duplicate-previous`, `page.duplicate-last`, `page.first`, `page.last`,
   `page.insert-after`, `page.insert-before`, `page.next`, `page.previous`, `page.history-back`,
-  `page.history-forward`, `page.reset`, `page.background` (chacune nomme sa commande, A19 ; une commande absente
+  `page.history-forward`, `page.revert`, `page.background` (chacune nomme sa commande, A19 ; une commande absente
   retire l'entrée et la liste au rapport) ; **objet** (exécutées par le moteur, `command` vide, `target` vrai) —
   `object.angle` (`angle`), `object.angle-step` (`angle`), `object.place-<a>` et `object.size-<a>` (`number` :
   largeur), `object.size-step-<a>` (`number` : facteur), `object.stretch-<a>` (`number`, `number`),
@@ -1368,18 +1470,23 @@ déléguer à `TransformObjectsCommand` (A10) plutôt que d'écrire une commande
 
   using namespace actcraft::core;
 
+  // m10 : Transform n'a ni translation() ni rotationDegrees() ; deux aides locales, écrites d'après les champs de
+  // `struct Transform` (model.h), relus avant d'écrire le test.
+  static Transform translated(double x, double y);
+  static double rotationOf(const Transform& t); // degrés, d'après les termes de rotation de la matrice
+
   class TstCoreObjectActions : public QObject
   {
       Q_OBJECT
       static Document page()
       {
-          Document d = Document::withOnePage(1024, 768);
+          Document d(1024, 768);
           Shape s;
           s.bounds = {0, 0, 100, 50};
           PageObject o{s};
           o.common.id = 1;
-          o.common.transform = Transform::translation(200, 100);
-          d.pages[0].objects.push_back(o);
+          o.common.transform = translated(200, 100);
+          d.page(0).objects.push_back(o);
           return d;
       }
       static Document after(Document d, const char* id, const char* params)
@@ -1390,8 +1497,8 @@ déléguer à `TransformObjectsCommand` (A10) plutôt que d'écrire une commande
           c->redo(d, changes);
           return d;
       }
-      static RectF box(const Document& d) { return boundsOnPage(d.pages[0].objects[0]); }
-      static double angleOf(const Document& d) { return d.pages[0].objects[0].common.transform.rotationDegrees(); }
+      static RectF box(const Document& d) { return boundsOnPage(d.page(0).objects[0]); }
+      static double angleOf(const Document& d) { return rotationOf(d.page(0).objects[0].common.transform); }
   private slots:
       void angleSetsAbsoluteRotation()
       {
@@ -1442,8 +1549,8 @@ déléguer à `TransformObjectsCommand` (A10) plutôt que d'écrire une commande
       void fixedRestrictorsAreRespected()
       {
           Document d = page();
-          setTurning(d.pages[0].objects[0].common.restrictions, Turning::Fixed);
-          setTravel(d.pages[0].objects[0].common.restrictions, Travel::Fixed);
+          setTurning(d.page(0).objects[0].common.restrictions, Turning::Fixed);
+          setTravel(d.page(0).objects[0].common.restrictions, Travel::Fixed);
           QVERIFY(!objectActionCommand(d, "object.angle", R"({"angle":30})", ActionContext{0, 1, 0, 1024, 768}));
           QVERIFY(!objectActionCommand(d, "object.place-center", "{}", ActionContext{0, 1, 0, 1024, 768}));
       }
@@ -1457,7 +1564,7 @@ déléguer à `TransformObjectsCommand` (A10) plutôt que d'écrire une commande
   QTEST_MAIN(TstCoreObjectActions)
   #include "tst_core_objectactions.moc"
   ```
-  (`Transform::translation`, `rotationDegrees`, `boundsOnPage`, `Changes` : noms de `model.h`, `edits.h`, `undo.h` ;
+  (`translated` et `rotationOf` : aides locales du test, m10 ; `boundsOnPage` (`core/include/actcraft/core/edits.h:22`), `Changes` : noms de `model.h`, `edits.h`, `undo.h` ;
   suivre les noms réels s'ils diffèrent, relevés par L8-T0.)
 - [ ] **Étape 3 : rouge** (talon : `objectActionCommand` non défini → erreur d'édition des liens).
 - [ ] **Étape 4 : moteur.** Table `identifiant → fonction` (un `std::unordered_map<std::string, Builder>` local) ;
@@ -1590,6 +1697,28 @@ garde de contact est encore vraie, et un glisser commencerait par une action).
   `appDesign.highlightActions` est vrai, curseur `Qt.PointingHandCursor` quand `appActionRunner.hovering`.
 - [ ] **Étape 5 : vert** ; banc hors écran ; preuve de tâche ; commit « Lot 8 : exécuteur d'actions (L8-T9) ».
 
+**Amendement 1 (L8-T9).**
+- **M2.** `ui/qml/Main.qml` : le talon `QtObject { objectName: "appActionRunner" }` devient
+  `ActionRunner { id: appActionRunner; objectName: "appActionRunner"; commands: appCommands; contactActive: pageArea.view.contactActive; document: appDocument; designMode: appDesign; links: appLinks }`,
+  et `Component.onCompleted: appTools.setActionRunner(appActionRunner)` (`ToolHost::setActionRunner`, déclaré dans
+  `ui/include/actcraft/ui/toolhost.h`). `appLinks` est réel depuis L8-T10 (V3).
+- **m7.** Fonction neuve `documentOpenLaunchesNothing` (remplace `openingADocumentLaunchesNothing` de L8-T10, qui ne
+  pouvait pas être rouge) :
+  ```cpp
+  void documentOpenLaunchesNothing()
+  {
+      // Document « reçu » : un rond portant document.open-website vers https://example.org/ et un média playOnOpen.
+      m_controller.replaceDocument(linkedDocument()); // aide du test ; replaceDocument : A8
+      QSignalSpy ask(m_links, &actcraft::ui::LinkLauncher::confirmationNeeded);
+      QTest::qWait(500);
+      QCOMPARE(ask.size(), 0);
+      QCOMPARE(m_openerCalls, 0); // faux ouvreur posé par setOpener
+  }
+  ```
+  Mutation : appeler `request` pour chaque lien de la page à l'affichage → rouge, remise par `git checkout --`.
+- **M9.** Dépend aussi de L8-T18 (`ActionOverlays.qml`, V5) et de L8-T10 (`appLinks`, V3).
+- **M7.** Réglages d'essai de « Commandes de preuve communes » (le test monte un `ToolHost`).
+
 <a id="tache-l8-t10"></a>
 ### Tâche L8-T10 — `ui` : ouverture des liens et des fichiers après confirmation
 
@@ -1602,8 +1731,8 @@ demander la confirmation, n'ouvrir qu'après « oui ».
 **Test et commande bornée.** Commande ciblée `-R tst_ui_linklauncher`. Mutation : appeler l'ouvreur dans `request`
 au lieu d'`answer` → `noOpenWithoutConfirmation` rouge, remise par `git checkout -- ui/src/linklauncher.cpp`.
 
-**Interdits.** Aucun `QProcess` ; aucun chemin réseau ; aucun exécutable ; aucune ouverture sans réponse ; le
-fichier extrait ne garde que les caractères `[A-Za-z0-9._ -]` de son nom d'origine.
+**Interdits.** Aucun `QProcess` ; aucun chemin réseau ; aucune extension hors de la liste blanche (D8-4) ; aucune ouverture sans réponse ; le
+fichier extrait ne garde que les caractères `[A-Za-z0-9._ -]` de son nom d'origine, puis perd ses points et espaces finaux ; l'extension est contrôlée après ce retrait.
 
 **Terminé quand** les neuf fonctions passent et la mutation a été vue rouge.
 
@@ -1700,13 +1829,42 @@ fichier extrait ne garde que les caractères `[A-Za-z0-9._ -]` de son nom d'orig
       void executableRefused()
       {
           QTemporaryDir dir;
-          for (const char* ext : {"exe", "bat", "cmd", "com", "msi", "ps1", "vbs", "js", "lnk", "scr"}) {
+          for (const char* ext : {"exe", "bat", "cmd", "com", "msi", "ps1", "vbs", "js", "lnk", "scr", "hta", "wsf",
+                                  "url", "jar", "msc", "chm", "cpl", "reg", "scf", "appref-ms"}) {
               const QString path = dir.filePath(QStringLiteral("a.") + QString::fromLatin1(ext));
               QFile f(path);
               QVERIFY(f.open(QIODevice::WriteOnly));
               f.close();
               QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(), ext);
           }
+      }
+      void upperCaseExecutableRefused()
+      {
+          QTemporaryDir dir;
+          const QString path = dir.filePath(QStringLiteral("A.EXE"));
+          QFile f(path);
+          QVERIFY(f.open(QIODevice::WriteOnly));
+          f.close();
+          QVERIFY(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty());
+      }
+      void trailingDotRefused()
+      {
+          QTemporaryDir dir;
+          for (const char* name : {"a.exe.", "a.exe ", "a.hta. ."}) {
+              const QString path = dir.filePath(QString::fromLatin1(name));
+              QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(), name);
+          }
+      }
+      void htaRefused()
+      {
+          LinkLauncher l;
+          fake(l);
+          QSignalSpy refused(&l, &LinkLauncher::refused);
+          QSignalSpy ask(&l, &LinkLauncher::confirmationNeeded);
+          l.requestStored(QByteArray("<script>"), QStringLiteral("cours.hta"), QStringLiteral("doc1"));
+          QCOMPARE(refused.size(), 1);
+          QCOMPARE(ask.size(), 0); // refusé avant même la confirmation
+          QVERIFY(m_opened.isEmpty());
       }
       void missingFileRefused()
       {
@@ -1732,14 +1890,6 @@ fichier extrait ne garde que les caractères `[A-Za-z0-9._ -]` de son nom d'orig
           l.request(QStringLiteral("https://example.org/chemin?q=1"), LinkLauncher::Website);
           QCOMPARE(ask[0][0].toString(), QStringLiteral("https://example.org/chemin?q=1"));
       }
-      void openingADocumentLaunchesNothing()
-      {
-          // Aucun appel sans request : un document ouvert n'appelle jamais request (L8-T19 le rejoue de bout en bout).
-          LinkLauncher l;
-          fake(l);
-          QCoreApplication::processEvents();
-          QVERIFY(m_opened.isEmpty());
-      }
   };
 
   QTEST_MAIN(TstUiLinkLauncher)
@@ -1751,6 +1901,11 @@ fichier extrait ne garde que les caractères `[A-Za-z0-9._ -]` de son nom d'orig
   la cible complète, deux boutons « Ouvrir » et « Annuler », branché sur `appLinks.confirmationNeeded`.
 - [ ] **Étape 5 : vert**, mutation rouge puis remise ; preuve de tâche ; commit « Lot 8 : ouverture des liens
   après confirmation (L8-T10) » ; `NOMS OK`.
+
+**Amendement 1 (L8-T10).** M2 : `ui/qml/Main.qml` — le talon `appLinks` devient `LinkLauncher { id: appLinks; objectName: "appLinks" }`,
+et `LinkConfirmDialog` est lié à `appLinks.confirmationNeeded`. M6 : liste blanche (D8-4), tests
+`upperCaseExecutableRefused`, `trailingDotRefused`, `htaRefused` ; `refusalFor` retire les points et espaces finaux
+avant de comparer l'extension, sans casse. m7 : `openingADocumentLaunchesNothing` retiré (voir L8-T9).
 
 <a id="tache-l8-t11"></a>
 ### Tâche L8-T11 — `core` + `ui` : modèle du navigateur d'actions
@@ -1812,6 +1967,10 @@ nul : refus) ; refus sous le verrou (`registry().isLocked()`) ; remise à jour r
 - [ ] **Étape 4 : rouge.** **Étape 5 : code.** **Étape 6 : vert** ; preuve de tâche ; commit « Lot 8 : modèle du
   navigateur d'actions (L8-T11) » ; `NOMS OK`.
 
+**Amendement 1 (L8-T11).** M2 : `ui/qml/Main.qml` — le talon devient
+`ActionBrowserModel { id: appActionBrowser; objectName: "appActionBrowser"; commands: appCommands; contactActive: pageArea.view.contactActive; document: appDocument; toolHost: appTools }`.
+M7 : réglages d'essai (le test monte un `ToolHost`).
+
 <a id="tache-l8-t12"></a>
 ### Tâche L8-T12 — QML : navigateur d'actions ; scénario `navigateur-actions`
 
@@ -1826,7 +1985,7 @@ scénario S11.2.
 **Test et commande bornée.** `tst_captures_navigateur_actions` (`-R tst_captures_navigateur_actions`).
 
 **Preuve visuelle.** Lectures d'abord : `LU browserPanel.current=actions OK`, `LU appActionBrowser.enabled=true OK`,
-`LU appDocument.canUndo=true OK`, puis `PIXEL cible-masquee OK`, `PIXEL cible-revenue OK`, `CAPTURES OK` ; décrire la
+`LU documentController.canUndo=true OK`, puis `PIXEL page-2-affichee OK`, `CAPTURES OK` ; décrire la
 capture `navigateur` (onglet ouvert, propriétés dépliées).
 
 **Interdits.** `pageArea.view` dans le QML ; aucun texte de l'original ; un gestionnaire réel remplace chaque talon
@@ -1847,23 +2006,23 @@ de `ActionBrowser.qml`.
       {"command": "browser.actions"},
       {"expect": "browserPanel.current", "value": "actions"},
       {"expect": "appActionBrowser.enabled", "value": false},
+      {"command": "tool.select"},
+      {"expect": "appTools.currentTool", "value": "select"},
       {"pointer": [[300, 300]], "space": "page"},
       {"expect": "appActionBrowser.enabled", "value": true},
       {"command": "action.apply", "argument": "page.next"},
-      {"expect": "appDocument.canUndo", "value": true},
+      {"expect": "documentController.canUndo", "value": true},
       {"capture": "navigateur"},
-      {"command": "tool.select"},
       {"pointer": [[300, 300]], "space": "page"},
       {"waitReady": true},
       {"expect": "pageIndicator.text", "value": "2 / 2"},
+      {"checkPixel": "page-2-affichee", "at": [600, 300], "color": "#1E88E5", "tolerance": 40},
       {"command": "page.previous"},
       {"pointer": [[300, 300]], "space": "page", "button": "right"},
       {"command": "action.remove"},
       {"pointer": [[300, 300]], "space": "page"},
       {"waitReady": true},
       {"expect": "pageIndicator.text", "value": "1 / 2"},
-      {"checkPixel": "cible-masquee", "at": [300, 300], "color": "#E53935", "tolerance": 40},
-      {"checkPixel": "cible-revenue", "at": [600, 300], "color": "#FFFFFF", "tolerance": 8},
       {"capture": "fin"}
     ]
   }
@@ -1878,6 +2037,10 @@ de `ActionBrowser.qml`.
   `action.apply` (argument facultatif : `currentId`), `action.remove`, `action.pick-target`.
 - [ ] **Étape 4 : vert** ; preuve visuelle ; banc hors écran ; commit « Lot 8 : navigateur d'actions (L8-T12) ».
 
+**Amendement 1 (L8-T12).** M3 : le scénario choisit la sélection d'abord (l'outil initial est le stylo). m8 : les deux
+pixels du rond, qui ne prouvaient rien, sont remplacés par `page-2-affichee` : le document d'essai a, en page 2, un
+rectangle bleu `#1E88E5` en (600, 300). M1 : `documentController.canUndo`.
+
 <a id="tache-l8-t13"></a>
 ### Tâche L8-T13 — Actions glisser-déposer (F-892) ; scénario `glisser-deposer`
 
@@ -1891,7 +2054,7 @@ clic sur l'objet exécute l'action (L8-T9) ; l'icône glissée vers la corbeille
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_dragdropactions|tst_captures_glisser_deposer'`.
 
-**Preuve visuelle.** `LU appTools.current=pen OK`, `PIXEL icone-surimpression OK`, `CAPTURES OK` ; décrire la capture
+**Preuve visuelle.** `LU appTools.currentTool=pen OK`, `PIXEL icone-surimpression OK`, `CAPTURES OK` ; décrire la capture
 `surimpression`.
 
 **Interdits.** Aucun dessin dans le cache ; dépôt par `SetObjectActionsCommand` (L8-T11) ; liste lue dans le
@@ -1909,10 +2072,15 @@ catalogue (`dragDropList()`), jamais recopiée.
 - [ ] **Étape 3 : QML** `DragDropActions.qml` (grille d'icônes `Drag.active`) ; `ActionOverlays.qml` dessine les
   icônes de `overlayIcons()` au coin haut droit de chaque objet, placé par `view.pageToScene` (dans `PageArea.qml`,
   `pageArea.view` ailleurs).
-- [ ] **Étape 4 : scénario** : fixture (un rectangle), `{"command": "browser.actions"}`, dépôt de l'icône du stylo sur
+- [ ] **Étape 4 : scénario** : fixture (un rectangle), `{"command": "tool.select"}`, `{"expect": "appTools.currentTool", "value": "select"}`, `{"command": "browser.actions"}`, dépôt de l'icône du stylo sur
   le rectangle (étape `pointer` de glisser d'un objet QML vers la page, A26), `checkPixel` `icone-surimpression` au coin
-  du rectangle, clic sur le rectangle, `{"expect": "appTools.current", "value": "pen"}`, capture `surimpression`.
+  du rectangle, clic sur le rectangle, `{"expect": "appTools.currentTool", "value": "pen"}`, capture `surimpression`.
 - [ ] **Étape 5 : vert** ; banc hors écran ; commit « Lot 8 : actions glisser-déposer (L8-T13) » ; `NOMS OK`.
+
+**Amendement 1 (L8-T13).** M2 : `ui/qml/Main.qml` — le talon devient
+`DragDropActions { id: appDragDrop; objectName: "appDragDrop"; commands: appCommands; document: appDocument }` ;
+`ui/qml/ActionOverlays.qml` (icônes en surimpression) entre dans la ligne (V8 : seule). M3 : `select` vérifié avant le
+clic sur le rectangle, `pen` après.
 
 <a id="tache-l8-t14"></a>
 ### Tâche L8-T14 — `core` : règles de conteneur
@@ -2162,7 +2330,7 @@ mauvais : corriger la position **après** le dépôt (une étape de plus, un red
 **Test et commande bornée.** Commande ciblée `-R 'tst_tools_interactivity|tst_tools_select|tst_captures_conteneurs'` ;
 banc hors écran joint.
 
-**Preuve visuelle.** `PIXEL revenu-au-depart OK`, `LU appDocument.canUndo=false OK` (après le retour), `PIXEL contenu-accepte OK`,
+**Preuve visuelle.** `PIXEL revenu-au-depart OK`, `expect` interne `documentController.canUndo` faux après le retour (jamais en `-Lire`, qui lit l'état final), `LU documentController.canUndo=true OK` (état final), `PIXEL contenu-accepte OK`,
 `CAPTURES OK` ; décrire les captures `retour` et `contenu`.
 
 **Interdits.** `tools/` ne connaît pas `ui/` : la politique du mode conception arrive par l'interface
@@ -2173,7 +2341,7 @@ confirmation est émis (`containerAccepted(ObjectId container, bool chime)`), le
 **Terminé quand** les neuf fonctions passent, `tst_tools_select` reste vert, le scénario passe hors écran.
 
 **Étapes.**
-- [ ] **Étape 1 : interface** `interactionpolicy.h` (remplace le talon) :
+- [ ] **Étape 1 : interface** `interactionpolicy.h` (posée telle quelle par L8-T1 ; rappel) :
   ```cpp
   #pragma once
 
@@ -2200,12 +2368,20 @@ confirmation est émis (`containerAccepted(ObjectId container, bool chime)`), le
   `chime` vrai).
 - [ ] **Étape 3 : rouge.** **Étape 4 : code** dans `selecttool.cpp` (déplacement, poignées de `selectiongeometry`
   inchangées hors masquage des poignées de dimension).
-- [ ] **Étape 5 : scénario** `conteneurs.json` (fixture : panier « fruit » avec retour, pomme, carotte) : glisser la
+- [ ] **Étape 5 : scénario** `conteneurs.json` (fixture : panier « fruit » avec retour, pomme, carotte) : en tête, `{"command": "tool.select"}` puis `{"expect": "appTools.currentTool", "value": "select"}` ; glisser la
   carotte dans le panier (`pointer` en trois points, `space: page`), `waitReady`, `checkPixel` `revenu-au-depart` à sa
-  place d'origine, `expect` `appDocument.canUndo` faux, capture `retour` ; glisser la pomme, `checkPixel`
-  `contenu-accepte` dans le panier, `expect` `appDocument.canUndo` vrai, capture `contenu`.
+  place d'origine, `expect` interne `documentController.canUndo` faux, capture `retour` ; glisser la pomme, `checkPixel`
+  `contenu-accepte` dans le panier, `expect` `documentController.canUndo` vrai, capture `contenu`.
 - [ ] **Étape 6 : vert** ; banc hors écran ; commit « Lot 8 : sélection, limiteurs et conteneurs (L8-T16) » ;
   `NOMS OK`.
+
+**Amendement 1 (L8-T16).** M5 : la ligne gagne `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp` et
+`ui/qml/Main.qml`. Dans `toolhost.cpp`, l'adaptateur `DesignModePolicy` (classe interne) traduit les réglages publiés
+de `DesignMode` (A23) vers `tools::InteractionPolicy` et `ToolHost` appelle `SelectTool::setInteractionPolicy` ;
+propriété neuve `ToolHost::designMode` (`QObject*`), liée dans `Main.qml` : `appTools.designMode: appDesign` (forme de
+liaison relevée par L8-T0 : propriété de l'instance ou `Binding`). Preuve ajoutée : `lot8ControllersWired` (L8-T19)
+vérifie `appTools.designMode` non nul. M3 et M4 : sélection d'abord ; `canUndo` faux lu par un `expect` interne, état
+final vrai en `-Lire`.
 
 <a id="tache-l8-t17"></a>
 ### Tâche L8-T17 — `ui` : sections de propriétés de l'interactivité
@@ -2255,7 +2431,7 @@ RHI de la page fixe (le cache est un dessin du peintre partagé : la découpe y 
 banc hors écran joint ; mutation : découper aussi les objets placés **au-dessus** du trait → `objectAboveItStays`
 rouge, remise par `git checkout -- render/src/pagepainter.cpp`.
 
-**Preuve visuelle.** `LU appTools.current=reveal-ink OK`, `PIXEL fond-revele OK`, `PIXEL dessus-garde OK`, `CAPTURES OK` ;
+**Preuve visuelle.** `LU appTools.currentTool=reveal-ink OK`, `PIXEL fond-revele OK`, `PIXEL dessus-garde OK`, `CAPTURES OK` ;
 décrire la capture `revelation`.
 
 **Interdits.** Ne pas changer `canWait` ; aucun nom de l'original (« encre révélatrice », jamais son nom d'origine) ;
@@ -2278,14 +2454,17 @@ H8-4) ; épinglage : l'outil rejoint `activate("pen-shape", …)` du lot 5 (A24)
   `QImage` transparent, chaque encre révélatrice visible appliquée en `CompositionMode_DestinationOut` aux objets du
   dessus qui la précèdent, puis le calque composé ; seulement si la page contient une encre révélatrice : aucun coût
   ajouté sinon). **Étape 4 : outil** (`RevealInkTool` : mêmes échantillons que le stylo, `StrokeKind::Revealer`,
-  `Layer::Top`, aperçu vivant en contour translucide) et commande `tool.reveal-ink` (activée par le gestionnaire générique
-  des outils, A24, ou par celui de L8-T9 : L8-T18 n'édite aucun QML).
+  `Layer::Top`, aperçu vivant en contour translucide) et commande `tool.reveal-ink` (gestionnaire réel posé par L8-T18 dans
+  `ActionOverlays.qml` : il active l'outil `reveal-ink` du registre d'outils, A24).
 - [ ] **Étape 5 : scénario** : fixture (image verte, rectangle rouge du dessus), `{"command": "tool.reveal-ink"}`,
-  `{"expect": "appTools.current", "value": "reveal-ink"}`, `{"stroke": [[50, 100], [150, 100]], "pressure": 0.5}`,
+  `{"expect": "appTools.currentTool", "value": "reveal-ink"}`, `{"stroke": [[50, 100], [150, 100]], "pressure": 0.5}`,
   `waitReady`, `checkPixel` `fond-revele` sous le trait (vert), `checkPixel` `dessus-garde` hors du trait (rouge),
   capture `revelation`.
 - [ ] **Étape 6 : vert**, mutation rouge puis remise ; banc hors écran ; commit « Lot 8 : encre révélatrice
   (L8-T18) » ; `NOMS OK`.
+
+**Amendement 1 (L8-T18).** M9 : la ligne gagne `ui/qml/ActionOverlays.qml` ; L8-T18 y pose le gestionnaire réel de
+`tool.reveal-ink` (V5 n'a pas d'autre QML ; L8-T9 vient en V6).
 
 <a id="tache-l8-t19"></a>
 ### Tâche L8-T19 — Point d'étape 8a
@@ -2326,6 +2505,31 @@ rapport), jamais par son nom ; sorties sous `.tmp/` ; aucune capture du paperboa
 - [ ] **Étape 4 : suites** debug (`TESTS OK`, N = N8 + 21) ; `graphify update .` ; commit « Lot 8 : point d'étape 8a
   (L8-T19) ».
 
+**Amendement 1 (L8-T19).** M2 : `tests/tst_ui_shell.cpp` entre dans la ligne, avec :
+```cpp
+void lot8ControllersWired()
+{
+    Shell shell;
+    QVERIFY(shell.start());
+    const QList<QPair<const char*, const char*>> expected = {
+        {"appActionRunner", "actcraft::ui::ActionRunner"},
+        {"appLinks", "actcraft::ui::LinkLauncher"},
+        {"appActionBrowser", "actcraft::ui::ActionBrowserModel"},
+        {"appDragDrop", "actcraft::ui::DragDropActions"},
+    };
+    for (const auto& [name, cls] : expected) {
+        QObject* o = shell.find(QString::fromLatin1(name));
+        QVERIFY2(o, name);
+        QCOMPARE(QByteArray(o->metaObject()->className()), QByteArray(cls));
+    }
+    QObject* runner = shell.find(QStringLiteral("appActionRunner"));
+    for (const char* p : {"commands", "document", "designMode", "links"})
+        QVERIFY2(runner->property(p).value<QObject*>(), p);
+    QVERIFY(shell.find(QStringLiteral("appTools"))->property("designMode").value<QObject*>());
+}
+```
+(`appTools` : `objectName` réel de l'hôte des outils relevé par L8-T0, M1.)
+
 ## Couverture (relecture de 8a)
 
 | Exigence ou constat | Tâches |
@@ -2344,302 +2548,3 @@ rapport), jamais par son nom ; sorties sous `.tmp/` ; aucune capture du paperboa
 | V39 (conteneur recouvert) | L8-T0 (D16), L8-T16 |
 | P8 du lot 10 | L8-T18 |
 | Sécurité (liens, fichiers, HTML) | L8-T8, L8-T10, L8-T19 |
-
-
-## Décisions appliquées (tranchées par ce plan ; L8-T0 peut les amender)
-
-- **D8-1 — Une action = un identifiant de notre catalogue.** Le modèle garde `core::Action` du lot 2 (lu des
-  `.flipchart` : `kind`, `sourceType`, `command`, `target`, `resource`, `unknownKeys`) et gagne trois champs :
-  `catalogId` (identifiant à nous, en anglais à points, par exemple `page.next`, `object.toggle-hidden`,
-  `command.tool.pen`, `document.open-website`), `parameters` (objet JSON compact : numéro de page, angle, texte,
-  URL…) et `dragDrop` (action posée par l'onglet « Glisser-déposer », F-892). Le catalogue est une **donnée** à nous,
-  `actions/data/object-actions.json` (`actcraft-object-actions/1`), quatre catégories : `command`, `page`, `object`,
-  `document` ; **aucune action de vote** (amendement 1, § 1). Une action de catégorie `command` porte l'identifiant
-  d'une commande du registre et s'exécute par `CommandRegistry::trigger` : le verrou de classe (D6-7) et la diffusion
-  protégée (8b) s'y appliquent sans code de plus. Une action d'un `.flipchart` dont le numéro de commande n'est pas
-  dans notre table de correspondance (écrite à la main, L8-T5) garde `catalogId` vide : elle est conservée, affichée
-  « action non prise en charge » dans le navigateur, et ne fait rien au clic.
-- **D8-2 — Déclenchement (F-890).** Un clic (appui puis relâché à moins de 4 px de l'appui, sans glisser) sur un
-  objet qui porte une action déclenche **toutes** ses actions dans l'ordre, au relâché, hors mode conception, avec
-  l'outil de sélection ; le clic droit sélectionne sans déclencher ; au survol, le curseur change. Avec un autre outil
-  que la sélection : défaut à trancher par L8-T0 (décision **D3** ci-dessous ; défaut du plan : seule la sélection
-  déclenche, les autres outils écrivent par-dessus, comme la référence en Python). Une action ne s'exécute jamais
-  pendant un contact : elle part au relâché, quand `contactActive` est faux.
-- **D8-3 — Exécution par la pile d'annulation.** Une action d'objet ou de page qui modifie le document produit **une**
-  commande d'annulation (`DocumentController::execute`) ; « Annuler » la défait en une étape. Les actions de
-  navigation (page suivante, historique) ne modifient pas le document et ne créent aucune étape.
-- **D8-4 — Liens et fichiers : jamais sans confirmation.** Un lien vers un site (F-551), un fichier (F-550), une action
-  `document.open-file` ou `document.open-website`, ou un média confié à l'application du système (N2-9) passe par
-  `ui::LinkLauncher` : il **demande toujours une confirmation** (boîte à nous qui montre l'adresse ou le chemin
-  complet) puis appelle `QDesktopServices::openUrl`. Règles d'adresse : site = `http` ou `https` seulement ; fichier
-  = chemin local existant, jamais un chemin réseau (`\\hôte\…`, `file://hôte/…`, SMB), jamais un exécutable
-  (`.exe`, `.bat`, `.cmd`, `.com`, `.msi`, `.ps1`, `.vbs`, `.js`, `.lnk`, `.scr`) — un fichier refusé affiche son
-  motif ; fichier rangé dans le document (« stocker dans le paperboard ») : extrait dans un dossier temporaire propre
-  au document, sous son nom d'origine assaini, puis confirmé. **Un fichier d'un `.flipchart` ne lance rien tout
-  seul** : ni à l'ouverture, ni à l'affichage d'une page, ni par « lecture auto » ; la lecture automatique d'un média
-  ne vaut que pour le lecteur intégré (8b), jamais pour l'application du système.
-- **D8-5 — HTML de document.** Toute ressource HTML (texte d'un objet, cadre web, aide) suit la règle de l'état du
-  chantier : « Tout rendu de HTML de document passe par un `QTextDocument` dont `loadResource` est neutralisé
-  (L2-T11). Règle pour les lots suivants (outil texte, lot 4 ; export) : jamais `setHtml`/`Text.RichText` sur du
-  contenu de document sans ce garde. » Les actions « Ajouter du texte », « Modifier le texte », « Nouvel objet de
-  texte » et « Extraire le texte » (L8-T8) écrivent du texte brut échappé, jamais du HTML reçu ; le cadre web (8b) a
-  sa propre politique (N1-A3), plus stricte.
-- **D8-6 — Conteneurs (F-577, F-580).** Logique pure dans `core/containers.*` : au relâché d'un glisser, le contenu
-  candidat (devant le conteneur : couche plus haute, ou même couche et plus haut dans la superposition) est
-  « contenu » s'il satisfait la règle (`Anything`, objet précis, mot-clé commun) et la condition (entièrement contenu,
-  ou centres alignés à 10 px près, réglable). Sinon, si « retour si non contenu » est vrai, le glisser est **annulé**
-  : les objets soulevés reviennent à leur place, **aucune étape** d'annulation, aucun redessin du cache autre que la
-  fin du soulèvement. Conteneurs imbriqués : le plus haut dans la superposition qui accepte l'emporte. Signal de
-  confirmation : émis (`containerAccepted`, son `acceptSound`), le son est lu par le lecteur intégré au sous-lot 8b.
-- **D8-7 — Limiteurs et rotation (F-578, F-579, E6).** Logique pure dans `core/restrictors.*` : déplacement libre,
-  vertical, horizontal, le long d'un chemin (projection sur la polyligne d'un objet trait ou ligne), ou bloqué ;
-  accrochage à un point (centre, coins, côtés, point précis) ; dimension libre ou bloquée (« bloqué » = E6, tranché
-  par L8-T0, défaut : aucune poignée de dimension) ; rotation libre, sens horaire, anti-horaire, bloquée, pas
-  d'incrément, pivot (centre, autre point, autre objet) ; objet bloquant (un autre objet glissé s'arrête à son bord).
-  Les booléens du lot 2 (`Restrictions::movable`, `resizable`, `rotatable`) restent la source du « bloqué » : un mode
-  « bloqué » les met à faux, tout autre mode à vrai (invariant testé par L8-T3). L'outil de sélection les applique
-  **pendant** le glisser, sur les objets soulevés (lot 3) : aucun redessin du cache pendant l'écriture.
-- **D8-8 — Encre révélatrice (F-255).** Outil `tool.reveal-ink` (Ctrl+Maj+M), variante du stylo qui pose un
-  `core::Stroke` de genre `StrokeKind::Revealer` sur la couche du dessus. Rendu : partout où passe le trait, les
-  objets de la couche du dessus placés **sous** lui dans la superposition deviennent transparents (découpe), les
-  couches intermédiaire, inférieure et le fond restent. Réalisation retenue (décision 0100, complément, à signaler
-  au rapport de lot) : pendant le tracé, le trait vivant est montré comme un contour translucide neutre (aucune
-  découpe en direct) ; au relâché, le trait est versé et le cache redessiné **tout de suite** — le prédicat `canWait`
-  du lot 10 le refuse déjà (images et encre révélatrice non différées) et ce plan ne le change pas. Le navigateur
-  d'objet le liste ; on peut le sélectionner, le déplacer (la découpe suit), le supprimer.
-- **D8-9 — Mode conception (F-560, L6-T22).** Ses réglages « mettre en évidence les actions » (cadre rouge à nous sur
-  les objets d'action, surcouche QML hors cache), « désactiver les actions et glisser une copie », « désactiver les
-  restrictions d'objet », « désactiver les objets bloquants » sont lus par l'exécuteur d'actions (L8-T9) et par
-  l'outil de sélection (L8-T16) à travers une interface (`tools::InteractionPolicy`) : `tools/` ne connaît pas `ui/`.
-- **D8-10 — Navigateur d'actions (F-850, F-851).** Onglet `actions` du panneau des navigateurs (posé grisé par le lot 6,
-  A8) : catégorie, liste des actions du catalogue, propriétés de l'action, « Appliquer » à tous les objets
-  sélectionnés en **une** étape (`core::SetObjectActionsCommand`), « Retirer les actions existantes ». Le modèle se
-  regroupe et se reporte pendant un contact, comme les navigateurs du lot 6 (D6-5).
-- **D8-11 — Glisser-déposer (F-892).** Une icône de l'onglet déposée sur un objet lui donne l'action correspondante
-  (`dragDrop = true`) en une étape ; l'icône de l'action est dessinée en surimpression, dans une surcouche QML
-  au-dessus de la page (jamais dans le cache) ; glisser cette icône vers la corbeille retire l'action. Liste à nous,
-  sans les deux entrées de vote.
-- **D8-12 — Historique des pages.** Les actions « historique précédent / suivant » lisent un historique des pages
-  affichées tenu par `ui::PageHistory` (pile bornée à 100, navigation par historique non réinscrite).
-
-## Sécurité (rappel pour chaque tâche)
-
-- `QDesktopServices::openUrl` n'est appelé **que** par `ui::LinkLauncher::confirmAndOpen`, après la confirmation ; un
-  test (`noOpenWithoutConfirmation`) remplace l'ouvreur par un faux et compte les appels ; le contrôle d'occurrences
-  (section « Sécurité : contrôle d'occurrences ») le vérifie en L8-T19 et L8-T34.
-- Un `.flipchart` ou un `.actcraft` ouvert ne lance rien : aucun lien, fichier, média par l'application du système,
-  ni cadre web distant, sans un clic de l'utilisateur **et** une confirmation.
-- Toute ressource HTML : règle `loadResource` de l'état du chantier, citée en D8-5 par son texte.
-- Aucun chemin de fichier lu d'un document n'est passé à un interpréteur ni à `QProcess`.
-
-## Cache (règles du lot 10)
-
-- Actions, conteneurs, limiteurs : aucun redessin du cache pendant un contact ; une action part au relâché ; un retour
-  hors conteneur annule le soulèvement sans étape.
-- Un déplacement passe par le **soulèvement** du lot 3 (objets soulevés au-dessus du cache pendant le glisser).
-- Encre révélatrice : `canWait` inchangé (images et encre révélatrice non différées) ; test `revealStrokeIsNotDeferred`
-  (L8-T18).
-- Surimpressions (cadre rouge du mode conception, icônes des actions glisser-déposer, repère « action non prise en
-  charge ») : surcouches QML au-dessus de la page, jamais dans le cache.
-
-## API supposées (posées par les lots précédents ; chacune **à revérifier par L8-T0** sauf mention « vérifié »)
-
-| # | API | Lot qui la pose | Employée par | À revérifier |
-|---|---|---|---|---|
-| A1 | `core::Action { kind, sourceType, command, target, resource, unknownKeys }`, `ActionKind { Other, Navigate, OpenExternal, OnObject }`, `Restrictions { movable, resizable, rotatable }`, `ObjectCommon::actions`, `StrokeKind::Revealer`, `core::Media`, `ObjectKind` (Equation 8, Unknown 9, `kObjectKindCount` 10), `UnknownObject` | lot 2, L2-C8, L0-S3 | L8-T3 à L8-T5 | non (vérifié sur `5373f04`, `model.h:143-359`) |
-| A2 | `canWait(page, object)` refuse images, encre révélatrice, grille du dessus | lot 10 | L8-T18 | non (vérifié, `render/src/fixedpageitem.cpp:55-64`) |
-| A3 | `paintPage`, `paintObject`, `paintObjectLocal`, `paintStroke` : l'encre révélatrice y est dessinée comme un trait ordinaire | lot 2, L0-S3 | L8-T18 | non (vérifié, `render/src/pagepainter.cpp:193-213,626-723`) |
-| A4 | lecteur `.flipchart` : actions 22 à 28, 50, 463 lues et rattachées au dernier objet (`formats/src/flipchart.cpp:562-568,614-621`, `actionFrom` 667-719) ; communs lus : visible, verrou, trois booléens (998-1002) ; conteneurs et limiteurs non lus | lot 2 | L8-T5 | non (vérifié) |
-| A5 | écrivain synthétique `tests/support/flipchartwriter.h` | lot 7 | L8-T5 | oui |
-| A6 | `actions::CommandRegistry` : `loadDeclarations`, `find`, `isEnabled`, `trigger`, `setLocked`, `isLocked`, `isOwnEnabled` ; `CommandInfo::lockable` (défaut vrai), `restrictable` (défaut faux) | lot 1, L6-T3 | L8-T1, L8-T6, L8-T9, 8b | oui (absents de `5373f04`) |
-| A7 | `ui::Commands` (`registry()`, `setNativeHandler`, `stateChanged`) ; instance QML `appCommands` ; contrôleurs « fermés par défaut » (`commands` nul : refus) | lot 1, L6-T5, amendement 2 du lot 6 (B1) | L8-T9, L8-T11, L8-T17 | oui |
-| A8 | `ui::DocumentController::execute(std::unique_ptr<core::UndoCommand>)`, `document()`, `currentPageIndex()`, `currentPageChanged`, `addChangeObserver`, `ChangeOrigin` (`Lift`, `Drop`) | L0-S5, lot 2 | L8-T9, L8-T11, L8-T13, L8-T16 | oui |
-| A9 | soulèvement : `DocumentController::liftObjects(std::vector<core::ObjectId>)` (copies retirées de la page affichée, le cache reçoit `remove`, sans `editAboutToApply`) et `dropLifted(std::unique_ptr<core::UndoCommand>)` (`nullptr` : dépôt sans étape) | lot 3 | L8-T16 | oui |
-| A10 | `core::TransformObjectsCommand(std::size_t page, std::vector<ObjectId>, …)` | lot 3 | L8-T7, L8-T16 | oui |
-| A11 | outil de sélection : `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, `tools/src/selectiongeometry.cpp` | lot 3 | L8-T16 | oui |
-| A12 | `ui::ToolHost` (`ui/src/toolhost.cpp`) : `user()`, `activeTool()`, `setSelection(QList<quint64>)`, `selectionChanged` | L0-S6, lot 3 | L8-T9 | oui |
-| A13 | garde de contact `ui::PageView::contactActive` / `contactActiveChanged` (L4-T17) ; en QML `pageArea.view.contactActive` | lot 4 | L8-T9, L8-T11, L8-T16 | oui |
-| A14 | `pageArea.view.addInputCover(QQuickItem*)`, `removeInputCover` ; emplacement `pageOverlays` (rideau z 10, spot z 20, outils de maths z 30) | L0-S7, L0-S9, lot 7 | L8-T2, L8-T9 | oui |
-| A15 | `BrowserPanel.qml` : `current` (`pages`, `resources`, `objects`, `notes`, `properties`, `actions`) ; onglet `actions` grisé par le lot 6 | L4-T19, L6-T2 | L8-T2, L8-T12 | oui |
-| A16 | `core::ObjectFlag { Locked, Hidden, DragCopy }`, `SetObjectFlagCommand`, `ReorderObjectsCommand`, `SetLayerCommand`, `arrangedOrder` | lot 5 | L8-T8 | oui |
-| A17 | `core::SetTranslucencyCommand` | lot 3 | L8-T8 | oui |
-| A18 | presse-papiers d'objets (`formats::encodeClipboard`, `decodeClipboard`, `resourcesFor`) ; commandes `edit.copy`, `edit.cut`, `edit.paste`, `edit.duplicate`, `edit.delete` | lot 5 | L8-T6, L8-T8 | oui |
-| A19 | commandes de page : `page.first`, `page.last`, `page.goto`, `page.insert-after`, `page.insert-before`, `page.duplicate`, `page.clear`, `page.reset`, `page.copy`, `page.cut`, `page.background` | lots 3 et 4 | L8-T6, L8-T9 | oui |
-| A20 | `core::ReplaceObjectsCommand`, contrat de `Change` | L0-S3 | L8-T8, L8-T11 | oui |
-| A21 | mots-clés d'objet (`ObjectCommon::keywords`, L6-T10) | lot 6 | L8-T14, L8-T17 | oui |
-| A22 | `ui::PropertyModel` (sections, éditeurs, `setValue`), `core::SetObjectPropertiesCommand` | L6-T11, L6-T12 | L8-T17 | oui |
-| A23 | mode conception `ui::DesignMode` et ses réglages (actions et glisser une copie désactivés, restrictions désactivées, objets bloquants désactivés, actions mises en évidence) | L6-T22 | L8-T9, L8-T16 | oui |
-| A24 | stylo : `tools::PenTool`, mémoire par outil, `activate("pen-shape", …)` (encre révélatrice annoncée par le lot 5) ; registre `tools::ToolRegistry` | lots 3 et 5 | L8-T18 | oui |
-| A25 | `formats/src/nativejson.cpp` : `writeCommon` (`restrictions{move,size,rotate}`, `actions[]`), `KnownKeys`, `readUnknown`, `followsVariantOrder` | lots 2, 6, socle | L8-T3, L8-T4 | non pour les noms (vérifié, `nativejson.cpp:379-390,528-548,693-712,831-841,1397-1430`) ; oui pour les ajouts du lot 6 |
-| A26 | joueur de scénarios : étapes `pointer` (appui, glisser, relâché, clic droit), `typeText`, `drag` vers un objet QML, `restart` (L6-T18) | lot 1, L0-S2, L4-T14, L6-T18 | L8-T12, L8-T13, L8-T16, L8-T18, L8-T19 | oui |
-| A27 | corbeille sous la palette (dépôt d'un élément glissé) | lot 3 | L8-T13 | oui |
-| A28 | navigateur d'objet `ui::ObjectTreeModel` | L6-T14 | L8-T18 | oui |
-| A29 | commandes du lot 7 : `tool.camera-area`, `tool.camera-polygon`, `tool.camera-freehand`, `tool.camera-window`, `tool.camera-screen` (le plan du lot 6 écrit `camera.*` : à trancher par L8-T0), `present.curtain`, `math.ruler`, `math.protractor`, `math.compass` ; ouvreur injectable de `tool.web-browser` (`ui/src/presentationcommands.*`, `QDesktopServices::openUrl`) ; épinglages `docs/verifications/*-lot7-epinglages.md` | lot 7 | L8-T6, L8-T19, 8b | oui |
-| A30 | réglages publiés du lot 6 : sections « Enregistrements » et « Multimédia » (`ui/settingsschema.h`, L6-T27) ; bibliothèque de ressources `ui::ResourceLibrary` (L6-T20) | lot 6 | 8b | oui |
-
-## Talons : règle d'honnêteté
-
-1. **Marqueur unique** `Talon L8 : rempli par <tâche>.` — en commentaire C++ dans chaque `.h`/`.cpp` talon, en
-   commentaire QML dans chaque `.qml` talon, dans le champ `description` de chaque scénario JSON talon, et comme texte
-   du `QSKIP` de chaque test talon : `QSKIP("Talon L8 : rempli par L8-T14.");`.
-2. Un test talon n'a qu'une fonction sautée, `reserved()` ; la tâche propriétaire la supprime et ajoute les siennes.
-3. Compteur : N = N8 + 21 dès L8-T1 (N8 + 37 dès L8-T21) ; chaque preuve donne N exact **et** les fonctions attendues
-   en `PASS`.
-4. Contrôle (L8-T19 pour 8a, L8-T34 pour le lot) : `& build/debug/tests/<test>.exe -functions` ne montre `reserved`
-   pour aucun test du sous-lot ; `git -C <wt> grep -n "Talon L8 : rempli par" -- . ':(exclude)docs/'` ne rend plus
-   que des tâches de 8b à la fin de 8a, et rien à la fin du lot ; sur `ctest --preset debug -V`, aucune ligne
-   `SKIP   :` qui contienne `Talon` (restent permis : « ACTCRAFT_SAMPLES_DIR absent », « Windows seulement », et les
-   sauts déjà connus des tests d'oracle).
-
-## Sécurité : contrôle d'occurrences (L8-T19, L8-T34)
-
-`git -C <wt> grep -n -E "QDesktopServices|openUrlExternally" -- core formats actions tools render ui app media features`
-ne rend que : `ui/src/linklauncher.cpp` (ouvreur des liens du document, après confirmation), `ui/src/presentationcommands.cpp`
-(navigateur web du lot 7, adresse d'accueil réglée par l'utilisateur, jamais tirée d'un document), `ui/qml/AboutDialog.qml`
-et `ui/qml/Main.qml` (page du projet, adresse fixe). Toute autre ligne refuse la tâche.
-
-## Scénarios
-
-Scénarios servis par le lot : **S11** (cadrage), **S18**, **S25**, **S26**, **S27** (amendement 1), **S30**
-(ouverture), **S32** (préparé : épinglages du profil « Son et image »). Sous-scénarios de S11 posés par ce plan, joués
-sur des documents synthétiques écrits par nos tests (jamais un paperboard réel dans le dépôt) :
-
-- **S11.1 — Action d'objet.** Un rond porte l'action « masquer ou afficher » visant une étiquette : un clic avec la
-  sélection masque l'étiquette (pixels), un second la réaffiche ; un glisser du rond ne déclenche rien ; Annuler
-  défait le dernier masquage en une étape ; en mode conception, le clic sélectionne le rond.
-- **S11.2 — Navigateur d'actions.** Sans sélection, la liste est grisée ; un objet sélectionné, catégorie « Page »,
-  action « page suivante », Appliquer : un clic sur l'objet passe à la page 2 ; « retirer les actions » : le clic ne
-  fait plus rien.
-- **S11.3 — Glisser-déposer.** L'icône « Stylo » déposée sur un objet : l'icône s'affiche en surimpression ; un clic
-  sur l'objet active le stylo ; l'icône glissée vers la corbeille retire l'action.
-- **S11.4 — Conteneur.** Un panier accepte les objets de mot-clé « fruit », retour si non contenu : une pomme déposée
-  dedans y reste (une étape) ; une carotte (« légume ») revient à sa place, aucune étape ; un objet derrière le panier
-  n'est jamais contenu.
-- **S11.5 — Limiteurs.** Un objet limité « verticalement » glissé en diagonale garde son X ; un objet à dimension
-  bloquée n'a pas de poignée de dimension ; une rotation au pas de 45° s'arrête sur un multiple de 45.
-- **S11.6 — Encre révélatrice.** Une image sous un rectangle de la couche du dessus : un trait d'encre révélatrice
-  sur le rectangle révèle l'image (pixels) ; un rectangle posé ensuite au-dessus reste opaque ; déplacer le trait
-  déplace la zone révélée.
-- **S11.7 — Lien.** Un objet lié à `https://example.org/` : le clic affiche la confirmation avec l'adresse complète ;
-  refuser n'ouvre rien ; accepter appelle l'ouvreur une fois (faux ouvreur des tests) ; à l'ouverture d'un document
-  dont un objet porte un lien et un média « lecture auto », rien ne s'ouvre.
-- **S11 local.** Le paperboard réel n° 13 de `samples/` (lu hors dépôt, jamais nommé) : un clic sur un rond rouge
-  masque puis réaffiche l'étiquette visée ; un objet déposé hors de son conteneur revient à sa place. Test
-  `tst_formats_samples_interactivity`, sauté sans `ACTCRAFT_SAMPLES_DIR`.
-
-| Scénario | Tâches (8a et 8b) |
-|---|---|
-| S11 | L8-T1 à L8-T19 |
-| S11.1 | L8-T3 à L8-T9, L8-T19 |
-| S11.2 | L8-T6, L8-T11, L8-T12 |
-| S11.3 | L8-T13 |
-| S11.4 | L8-T14, L8-T16, L8-T17 |
-| S11.5 | L8-T15, L8-T16, L8-T17 |
-| S11.6 | L8-T18 |
-| S11.7 | L8-T10, L8-T19 ; dialogues : L8-T22 |
-| S18 | L8-T3, L8-T4, L8-T31, L8-T32 |
-| S25 | L8-T3, L8-T4, L8-T20, L8-T23 à L8-T25 |
-| S26 | L8-T20, L8-T26 à L8-T28 |
-| S27 | L8-T3, L8-T4, L8-T20, L8-T29, L8-T30 |
-| S30 | L8-T0 |
-| S32 (préparé) | L8-T33 |
-
-## Hypothèses pour Jérôme (créées par ce plan)
-
-- **H8-1** Catalogue d'actions à nous, sans les 8 actions de vote ni les 2 entrées de vote du glisser-déposer ; une
-  action de commande déclenche une commande d'ActCraft ; une commande que nous n'avons pas (services en ligne de
-  Promethean) n'a pas d'action.
-- **H8-2** Seule la sélection déclenche les actions (défaut, D3 de L8-T0) ; avec le stylo, on écrit par-dessus.
-- **H8-3** Toute ouverture d'un site, d'un fichier ou d'un média par l'application du système demande une
-  confirmation, à chaque fois ; exécutables et chemins réseau refusés, même confirmés. Écart voulu avec la référence.
-- **H8-4** Encre révélatrice : contour translucide pendant le tracé, découpe au relâché (décision 0100, complément).
-- **H8-5** Conteneur : retour instantané à la place de départ, sans animation ni étape d'annulation.
-- **H8-6** Téléchargement des modules Qt Multimedia (avec FFmpeg) et Qt WebView pour Windows et Android, par
-  aqtinstall depuis les miroirs de Qt (absents de `C:\Qt\6.12.0\msvc2022_64`, vérifié le 2026-10-19) : **accord de
-  Jérôme à demander** avant L8-T20 ; taille ajoutée aux paquets rapportée (N1-A10). Sans accord : médias par
-  l'application du système après confirmation (N2-9), enregistreurs et cadre web absents, 8b replanifié.
-- **H8-7** Poids du cadre web (N1-A3) mesuré par L8-T0 puis L8-T20 ; F-302 derrière l'option `ACTCRAFT_WEBFRAME`.
-
-H8-6 est posée dès la fin de L8-T0 ; les autres à la porte de fin du lot 8.
-
-## Sections des tâches
-
-<a id="tache-l8-t0"></a>
-### Tâche L8-T0 — Ouverture : vidéos, REA et ancien dépôt confrontés au lot
-
-**Objectif.** Appliquer la règle de la tâche d'ouverture (amendement 1, § 4, points 1 à 6 ; décisions 0100 et 0121)
-au lot 8, sur le modèle de `docs/verifications/2026-10-18-lot10-principes.md` : relever dans le corpus les principes
-des fonctions du lot (14 constats de l'amendement, 17 en séparant les sous-puces, V39 en plus) et ceux de la
-spécification ; trancher sur la 3.5.18, par REA en statique, les points « à élucider » de l'amendement (F-680 : V58 ;
-F-292 : V43 ; F-302 : V63 ; F-552 : V126, V57) et l'écart **E6** ; revérifier A1 à A30 ; relever **N8** ; estimer le
-poids des modules du sous-lot 8b.
-
-**Fichiers.** Créer `docs/verifications/2026-10-21-lot8-principes.md`. Hors dépôt, créer
-`C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot8.md` (relevé brut, même forme que `lot7.md` et `lot10.md`).
-Rien d'autre.
-
-**Test et commande bornée.** Aucun code : preuve = rapport commité, `Test-Path` du relevé brut, `NOMS OK`, contrôles
-des titres du corpus et des paperboards réels vides.
-
-**Interdits.** Aucun nom de classe, de propriété ni de fichier de l'original dans le dépôt (le nom de l'original de
-l'encre révélatrice compris) ; aucun titre, aucune citation, aucune capture du corpus ; aucun nom de paperboard réel ;
-observation à l'écran seulement après avoir prévenu Jérôme ; aucun téléchargement (H8-6) ; ne pas modifier ce plan.
-
-**Terminé quand** le rapport contient la table principe → exigence → tâche → scénario (ou raison) pour chaque
-constat ; D1 à D16 tranchées ou « non tranchées » avec le défaut du plan ; la table A1 à A30 ; N8 comparé à
-N6 + 43 + p6 ; les tailles des modules ; au plus une tâche de principes proposée (`L8-P1`).
-
-Décisions à trancher : **D1** correspondance des numéros de commande et d'action du format vers notre catalogue ;
-**D2** valeurs des modes de déplacement, de rotation, de pivot, d'accrochage et de conteneur dans le format ; **D3**
-outils qui déclenchent les actions (défaut : sélection seule) ; **D4** objet verrouillé : clic qui le traverse (V28),
-action qui part quand même (V103) ; **D5** objet masqué cliquable (V40, V42 ; le clone fait l'inverse) ; **D6** E6 ;
-**D7** sens de « bloquer » (arrêt au bord, ou refus du dépôt) ; **D8** pas de rotation par défaut, pivot « première
-ligne de texte » ; **D9** liste du glisser-déposer hors vote (18) ; **D10** messages et refus de la diffusion protégée
-(V58), commandes de chacune des quatre interdictions (identifiants de la caméra compris : voir « D10 — noms de la caméra » ci-dessous) ; **D11** enregistreur
-d'écran (V43), formats ; **D12** cadre web : image fixe, glisser du texte, comportement sous le rideau (N1-A3) ;
-**D13** second média à côté du premier (V126) ; **D14** GIF animé (V57, V66) ; **D15** objet Flash : repère seulement
-(N1-A15) ; **D16** conteneur recouvert par une image (V39).
-
-**D10 — noms de la caméra (contradiction consignée, non tranchée par ce plan).** Le plan du lot 7 déclare cinq
-commandes `tool.camera-area`, `tool.camera-polygon`, `tool.camera-freehand`, `tool.camera-window`,
-`tool.camera-screen` (`…-lot7-PLAN.md`, session B, l. 690-694) ; le plan du lot 6 (L6-T3, D6-7) écrit `camera.*`
-pour les déclarer restreignables et dans les préfixes de la barre de raccourcis (`lot6-PLAN.md:998-1004,2161`), tout
-en disant « identifiants réels relus dans le fichier ». L8-T0 relève les identifiants **réellement déclarés** dans
-`actions/data/commands.json` à la tête du chantier et les écrit au rapport. **Recommandation** : retenir ceux du lot 7
-(`tool.camera-*`), parce que c'est le lot qui crée ces commandes et que le lot 6 renvoie lui-même au fichier ; la
-diffusion protégée (L8-T31, L8-T32) vise alors le préfixe `tool.camera-`, et un correctif `L8-C0` corrige le préfixe
-de la barre de raccourcis si L6-T9 a codé `camera.` en dur. La décision revient à l'orchestrateur, sur le rapport de
-L8-T0.
-
-**Étapes.**
-- [ ] **Étape 1 : corpus.** Lire `C:\Users\JeromeDenis\REA - Activinspire\docs\videos-tanguay\README.md` (« Principes
-  absents », « Écarts avec la spec », synthèse « Conteneurs ») ; ouvrir chaque fiche citée ; principes en nos mots dans
-  le relevé brut.
-- [ ] **Étape 2 : spécification et ancien dépôt.** `graphify query "actions conteneurs limiteurs encre magique médias"`
-  dans `C:\Users\JeromeDenis\REA - Activinspire` ; le graphe relie mal ces fichiers : lire ensuite
-  `app/actcraft/ui/browsers/actions.py`, `app/actcraft/ui/browsers/hooks.py`, `app/actcraft/canvas/items.py`
-  (découpe de l'encre, l. 197-221 et 353-410), `app/actcraft/canvas/page.py:114-124`, `app/actcraft/canvas/view.py:228-249,391-400`,
-  `app/actcraft/io/flipchart_reader.py:212-221,453-458,557-558,600-652` ; `docs/spec/fonctionnalites.md` (F-255,
-  F-292, F-293, F-302, F-550 à F-552, F-577 à F-582, F-680, F-850, F-851, F-890 à F-892) ;
-  `docs/re/format-flipchart.md` § 4.2, § 6, § 7.2, § 7.6.
-- [ ] **Étape 3 : REA en statique.** Skill `reverse-engineer-anything` sur `C:\Program Files\Activ Software\Inspire\` :
-  énumérations de D2, numéros de D1, chaînes des refus (D10), réglages des enregistrements (D11). Serveur
-  indisponible : le noter, garder les défauts.
-- [ ] **Étape 4 : API.** Dans le worktree : `graphify query "DocumentController liftObjects dropLifted TransformObjectsCommand"`,
-  `graphify query "SelectTool ToolHost selection handles rotation"`, `graphify query "PropertyModel DesignMode contactActive"`,
-  `graphify query "CommandRegistry lockable restrictable camera"`, puis lecture des en-têtes ; remplir A1 à A30.
-- [ ] **Étape 5 : N8.**
-  ```powershell
-  pwsh -NoProfile -Command "Set-Location 'C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete--L8-T0'; New-Item -ItemType Directory -Force .tmp | Out-Null; . ./scripts/dev-env.ps1; cmake --preset debug *> .tmp/cfg.txt; ctest --preset debug -N | Select-String 'Total Tests'"
-  ```
-  Attendu : `Total Tests: <N8>`.
-- [ ] **Étape 6 : tailles.** Sans télécharger : `python -m aqt list-qt windows desktop --modules 6.12.0 win64_msvc2022_64`
-  et `python -m aqt list-qt windows desktop --archives 6.12.0 win64_msvc2022_64 qtmultimedia qtwebview` ; moteur de
-  Qt WebView 6.12 sous Windows (WebView2 du système ou WebEngine) ; tailles et dépendances au rapport.
-- [ ] **Étape 7 : rapport** (en-tête, méthode et limites, constats, D1 à D16, A, N8, tailles, `L8-P1`, écarts pour
-  l'orchestrateur).
-- [ ] **Étape 8 : contrôles et commit.** `git -C <wt> add docs/verifications/2026-10-21-lot8-principes.md` ;
-  `NOMS OK` ; contrôles des titres et des paperboards vides ; commit « Lot 8 : principes confrontés, décisions et API
-  revérifiées (L8-T0) ».
-
-
