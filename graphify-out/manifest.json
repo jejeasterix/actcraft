@@ -2455,8 +2455,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/regle.json": {
-    "mtime": 1792406200.470965,
-    "ast_hash": "d041444a9c05456db4259fb664d92e80",
+    "mtime": 1792437291.5188367,
+    "ast_hash": "131aa113945582cd8e3e58352243f47a",
     "semantic_hash": ""
   },
   "bench/scenarios/rideau.json": {
@@ -2540,8 +2540,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_mathtools.cpp": {
-    "mtime": 1792406200.5127766,
-    "ast_hash": "50241dbeccd60a0244e2a4d927761e6e",
+    "mtime": 1792437291.5218124,
+    "ast_hash": "601d541b9d5137775e56289195d26a0c",
     "semantic_hash": ""
   },
   "tests/tst_ui_othertools.cpp": {
@@ -2602,6 +2602,16 @@
   "ui/src/curtaincontroller.h": {
     "mtime": 1792437202.7367785,
     "ast_hash": "299dadea4d0947baf4c6d33b67297afe",
+    "semantic_hash": ""
+  },
+  "ui/src/mathtoolscontroller.cpp": {
+    "mtime": 1792437291.5218124,
+    "ast_hash": "dfdb0a9f7d593e5f3838669a2290f926",
+    "semantic_hash": ""
+  },
+  "ui/src/mathtoolscontroller.h": {
+    "mtime": 1792437291.5218124,
+    "ast_hash": "05320689ef6724d57769a9ef61f6bd31",
     "semantic_hash": ""
   }
 }
