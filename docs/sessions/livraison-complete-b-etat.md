@@ -48,8 +48,8 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | supprimé | terminée, mergée (33e9b1a), graphe ea055dd | 2 | 5c2fd21 | rejeu : 110 tests `TESTS OK`, Totals 9, `NOMS OK` ; mutants rouges |
 | L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | supprimé | terminée, mergée (aef50b8), graphe cd73acb | 2 | a65e9b2 | rejeu : Totals 7/7/4, `NOMS OK` ; suite 108/110 sous charge, `tst_ui_files` et `tst_captures_aller_retour_natif` verts relancés seuls (P9 ne touche que features/) |
 | L7-S8 | phase 1 mergée | voir ligne L7-S8 de l'amendement phase 2 | supprimé | terminée, mergée (0dfd461), graphe 44e8871 | 2 | 9f1604c | rejeu : 158 tests `TESTS OK`, talons `SKIP … Talon L7-S8 : rempli par L7-T<n>`, `NOMS OK` ; revue adversariale appliquée (essai 2) |
-| L7-T1 | L7-S8 | voir ligne L7-T1 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T1 (base 44e8871) | en cours (implementeur-tdd), V2 | 1 | — | — |
-| L7-T2 | L7-S8 | voir ligne L7-T2 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T2 (base 44e8871) | en cours (concepteur-critique), V2 | 1 | — | — |
+| L7-T1 | L7-S8 | voir ligne L7-T1 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T1 (base 44e8871) | mergée : rejeu 157/158 (tst_bench_result rouge sous charge, vert seul), Totals 26 | 1 | 0c07ced | 6d0f999 (graphe f8e4678) |
+| L7-T2 | L7-S8 | voir ligne L7-T2 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T2 (base 44e8871) | essai 2 (revue : 3 mutants passent la suite, tests à ajouter), V2 | 2 | — | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
