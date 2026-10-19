@@ -45,8 +45,8 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-P4 | L7-P3 | voir ligne L7-P4 du plan phase 1 | supprimé | terminée, mergée | 1 | 55f45e6 | rejeu : 110 tests `TESTS OK`, Totals 22, `NOMS OK` ; revue adversariale appliquée (essai 2) |
 | L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | supprimé | terminée, mergée (827f028), graphe c606f05 | 2 | df41743 | rejeu : 110 tests `TESTS OK`, Totals 10 (pagezoom) et 12 (transitions) ; rouge vu sur ee87059 (3 échecs) |
 | L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | supprimé | terminée, mergée | 2 | e5f5874 | rejeu : 110 tests `TESTS OK`, Totals 7/11/8, `NOMS OK` ; 6 mutants rouges |
-| L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | .worktrees/livraison-complete-b--L7-P6 (base dfc8857) | reprise (implementeur-tdd), rouge en file | 2 | wip 783c2da | — |
-| L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | .worktrees/livraison-complete-b--L7-P9 (base dfc8857) | reprise (implementeur-tdd) | 2 | wip 59d3107 | — |
+| L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | supprimé | terminée, mergée (33e9b1a), graphe ea055dd | 2 | 5c2fd21 | rejeu : 110 tests `TESTS OK`, Totals 9, `NOMS OK` ; mutants rouges |
+| L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | .worktrees/livraison-complete-b--L7-P9 (base dfc8857) | rendue (Totals 7/7/4, 8 mutants) ; rejeu en cours | 2 | a65e9b2 | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
@@ -57,7 +57,7 @@ toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · doub
 3. Démontage QML : tout QML neuf protège ses accès à `commands` (null au démontage) ; `tst_ui_shell::shellLoadsWithoutQmlWarning` échoue sur tout avertissement QML.
 4. L0-S2 : étapes `touch`, `pinch`, `pointer`, `doubleClick` par `QTest::createTouchDevice`/`QTest::touchEvent` (un `QTouchEvent` posté n'atteint pas Qt Quick) ; `expect` accepte `tolerance` ; C++ de qmlcachegen de `actcraft_ui` en `/wd4702`.
 5. Accord de A (L7-T2) : `documentReplaced` et `Document::removeResource` restent dans L7-T2 (lot 3 : seule L3-T12 touche `documentcontroller.cpp`, hors des trois fonctions). Règles : chaque `emit documentReplaced();` sur sa propre ligne à la fin des trois fonctions, sans réindenter ni déplacer de code voisin ; signal déclaré à la fin du bloc `signals:` de `documentcontroller.h`. À reporter dans l'amendement.
-Preuve de A : debug et release 113/113 ; talons « par L7- » : 3 lignes (equation.h, equation.cpp, equationlayout.cpp). N attendu ici : 113 + 16 = 129.
+Preuve de A : debug et release 113/113 ; talons « par L7- » : 3 lignes (equation.h, equation.cpp, equationlayout.cpp). N attendu ici : 113 + 16 = 129 — confirmé : suite debug du chantier après fusion 129/129 `TESTS OK` (2e passe ; la 1re a échoué sur `qmlimportscanner` de `tst_ui_lift` sans message, passager), `NOMS OK` 487 fichiers.
 
 ## Écarts acceptés en phase 1
 - L7-P3 : assertions ajoutées dans `guideSetPicksTheNearestGuide` (ordre inversé) et exercice de `SetSquare::follow`, Totals inchangés ; règle « le plus proche » du plan maintenue contre la référence Python.
