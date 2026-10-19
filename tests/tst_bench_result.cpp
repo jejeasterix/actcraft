@@ -106,6 +106,11 @@ private slots:
     // plus 7) ; sans prêt relevé, tout serait actif de la première commande à la fin. Il faut donc un
     // intervalle au repos après la première commande : un changement au moins (le zoom posé a 700 ms) finit
     // avant la commande suivante, même en debug sous charge (relevé : 1 sur 12 intervalles, 111 s de banc).
+    // L3-C3 : faux sous une charge plus forte (suites en parallèle, 2026-10-19 : 126 intervalles actifs sur
+    // 127, aucun au repos) : chaque changement durait plus que l'écart des commandes et le dernier dépassait
+    // la fin de la mesure. Le runner attend désormais le prêt du dernier changement, puis deux images :
+    // l'intervalle qui suit est au repos quelle que soit la charge, et reste actif si aucun prêt n'est
+    // relevé.
     void pageChangesAreActiveUntilShown()
     {
         const QJsonObject page = m_root.value("scenarios").toArray().at(3).toObject();

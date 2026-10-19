@@ -335,6 +335,27 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
             invalidReasons << QStringLiteral("error: commands incomplete in %1").arg(plan.name);
         }
     }
+    // Fin du dernier changement (L3-C3) : la mesure attend le prêt qui ferme sa fenêtre (relevé par
+    // noteShown), puis deux images, avant les 150 ms. Sans cela, un changement plus long que ces 150 ms
+    // (debug, machine chargée) restait ouvert jusqu'à la fin de la mesure : aucun intervalle au repos après
+    // la première commande (tst_bench_result, pageChangesAreActiveUntilShown, rouge sous charge). Sans prêt
+    // relevé, l'attente va au plafond et la fenêtre reste ouverte, comme avant.
+    if (!commands.empty()) {
+        std::int64_t awaited = -1; // dernière commande jouée qui attend un prêt
+        for (std::size_t i = 0; i < commands.size(); ++i) {
+            if (commandRun[i] >= 0 && commandAwaits[i]) {
+                awaited = commandRun[i];
+            }
+        }
+        const bool closed =
+            awaited < 0 ||
+            waitFor([&shownNs, awaited] { return !shownNs.empty() && shownNs.back() >= awaited; },
+                    kPageShownTimeoutMs);
+        if (closed) {
+            const std::size_t swaps = m_recorder->swapNs().size();
+            waitFor([this, swaps] { return m_recorder->swapNs().size() >= swaps + 2; }, 5000);
+        }
+    }
     waitMs(150); // dernières images : figement, redessin du cache
     m_recorder->end();
     QObject::disconnect(pump);

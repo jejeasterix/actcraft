@@ -39,6 +39,12 @@ actcraft_add_test(tst_bench_verdict
     SOURCES tst_bench_verdict.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick)
 target_include_directories(tst_bench_verdict PRIVATE ${PROJECT_SOURCE_DIR}/app)
+# Chien de garde de Qt Test : 300 s par fonction par défaut (QTEST_FUNCTION_TIMEOUT). Les fonctions qui jouent le
+# vrai banc (runBench) le dépassaient sous charge : abandon par qFatal (« Test function timed out »), rien dans la
+# sortie de ctest, échec 397 s après le départ (L3-C3 ; même signature reproduite avec un chien de 15 s). 259 s
+# seul, 355 s sous charge pour tout l'exécutable : 1200 s par fonction et 1800 s en tout ne détectent qu'un blocage.
+set_property(TEST tst_bench_verdict APPEND PROPERTY ENVIRONMENT "QTEST_FUNCTION_TIMEOUT=1200000")
+set_tests_properties(tst_bench_verdict PROPERTIES TIMEOUT 1800)
 
 actcraft_add_test(tst_bench_content
     SOURCES tst_bench_content.cpp
