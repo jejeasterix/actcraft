@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1792395862.8407335,
-    "ast_hash": "250b27e40166d5a4356536842d1d79d5",
+    "mtime": 1792397517.739024,
+    "ast_hash": "373100bae199c7cb3db68fc021c9bae1",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -1750,8 +1750,8 @@
     "semantic_hash": ""
   },
   "render/include/actcraft/render/liftlayeritem.h": {
-    "mtime": 1792362711.3049161,
-    "ast_hash": "3f29f0023335cd5d18f442ab00f460d8",
+    "mtime": 1792397607.130006,
+    "ast_hash": "82c59b3508197018cd71f0fbc3b02d65",
     "semantic_hash": ""
   },
   "render/src/equationlayout.cpp": {
@@ -1765,8 +1765,8 @@
     "semantic_hash": ""
   },
   "render/src/liftlayeritem.cpp": {
-    "mtime": 1792362711.3074229,
-    "ast_hash": "18d9d51a53792df1251c510915cd2608",
+    "mtime": 1792397607.132198,
+    "ast_hash": "d11e2030cfc368a08d70a1e040f7a919",
     "semantic_hash": ""
   },
   "tests/tst_core_erase.cpp": {
@@ -1805,8 +1805,8 @@
     "semantic_hash": ""
   },
   "tests/tst_render_liftlayer.cpp": {
-    "mtime": 1792344769.1263537,
-    "ast_hash": "83d2245b81191f1f709cd3c179e70a43",
+    "mtime": 1792397607.1357708,
+    "ast_hash": "87f6b582fe4b8306b1fdcaef01e4540c",
     "semantic_hash": ""
   },
   "tests/tst_render_strokeshape.cpp": {
