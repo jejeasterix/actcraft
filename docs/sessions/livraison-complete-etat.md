@@ -241,6 +241,8 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
 - **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
+- **V2 du socle mergée** (L0-S5 et L0-S7). La suite complète de V2 tourne sous le jeton (`scratchpad/out/suite-v2.txt`). L0-S9 est en cours, V3. L0-S2 attend le merge de L10-C2, qui passe après la suite de V2.
+- Plans : lot 11 refusé au tour 2 (4 majeurs, `revue-plan-lot11-t2.md`), amendement 2 en cours, tour 3 = acceptation conditionnelle. Lot 8 refusé au tour 1 (3 bloquants, 12 majeurs), amendement 1 en cours.
 - **À reporter à toute construction d'APK** (M13) : `org.gradle.daemon=false` dans `paquet-android.ps1`, sinon la commande ne rend pas la main et garde le jeton (piège déjà vu, § Pièges).
 Plan du lot 8a écrit en partie (53a290e : 20 tâches en 8a, 15 en 8b) ; l'agent continue.
 **Nouvelle décision pour Jérôme, H8-6** : télécharger Qt Multimedia (avec FFmpeg) et Qt WebView. Elle n'est nécessaire qu'au début du lot 8b.
@@ -268,10 +270,10 @@ L0-S6 relancé (seul constructeur) : fusion de la tête du chantier d'abord, à 
 | L0-S2 | S0 | joueur : touch, pinch, pointer, doubleClick, expect avec tolérance | — | à faire | 0/3 | — | — |
 | L0-S3 | S0 | modèle partagé (Equation, PagePresentation, ReplaceObjectsCommand, /we4062) | (mergé) | terminée | 2/3 | 56ce4b8, d45fbfd → merge be2e5de, graphe a390e33 | rejoué 2 fois ; 2e rejeu (d45fbfd) : build 0 ; 8 tests verts (replace 14, model 20, nativejson 31, painter 48, nativefile 50, generator 12, edits 10, pagecache 7) ; mutation `++next` rouge, `k = 0` rouge au 1er rejeu ; 113 tests listés ; NOMS OK. Relecture adversariale : 1 blocker et 1 majeur corrigés |
 | L0-S4 | S1 | données et disposition des deux lots (62 commandes, sous-menus, F-750) | — | à faire | 0/3 | — | — |
-| L0-S5 | S3 | DocumentController : API des deux lots, observateur unique | — | à faire | 0/3 | — | — |
+| L0-S5 | S3 | DocumentController : API des deux lots, observateur unique | (mergé) | terminée | 1/3 | ca1e4f5 → merge e80eb9a, graphe 055a697 | preuve rejouée sous jeton (tête f2a141d) : tst_ui_document 32/32, tst_ui_drawing 11, tst_ui_shell 19 ; 7 nommées PASS ; mutation Stroke→Command rouge (observerSeesTheOrigin) ; CAPTURES OK ; NOMS OK 431 ; titres 0 |
 | L0-S6 | S0 | squelette du lot 3 (en-têtes figés, talons, LiftLayer QML) | .worktrees/livraison-complete--L0-S6 | en cours | 0/3 | — | — |
-| L0-S7 | S6 | chemin d'entrée figé (couvertures, filtre, Pipeline, isBusy) | — | à faire | 0/3 | — | — |
-| L0-S9 | S4,S5,S7 | coquille QML (couches, emplacements, Presentation.qml) | — | à faire | 0/3 | — | — |
+| L0-S7 | S6 | chemin d'entrée figé (couvertures, filtre, Pipeline, isBusy) | (mergé) | terminée | 2/3 | c66f5a4 → merge 96ff121, graphe d307e6b | 1er rejeu rouge (aide tablet() du test : LeftButton aux déplacements → 5 appuis), corrigé dans le test ; 2e rejeu (tête 000710d) : tst_ui_inputpath 19/19, routing, pentool, pageview 53, drawing, input, shell ; mutation 7 rouges ; captures OK ; banc logiciel DEPASSE informatif ; NOMS OK 431 ; titres 0 |
+| L0-S9 | S4,S5,S7 | coquille QML (couches, emplacements, Presentation.qml) | `--L0-S9` (à d307e6b) | en cours | 0/3 | — | — |
 | L0-S10 | tout | contrôle du socle (debug + release, talons comptés, graphe) | — | à faire | 0/3 | — | — |
 Vagues : V0 S0 · V1 S3 ‖ S6 ‖ S1 · V2 S7 ‖ S5 ‖ S4 · V3 S9 ‖ S2 · V4 S10 (2 constructions de front ; B a la 3e place). L0-S8 → session B.
 
