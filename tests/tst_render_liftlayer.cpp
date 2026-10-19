@@ -1,13 +1,17 @@
+#include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/liftlayeritem.h>
 
+#include <QBuffer>
+#include <QByteArray>
 #include <QImage>
 #include <QQuickWindow>
 #include <QSignalSpy>
 #include <QTest>
 
 #include <cstdlib>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -17,6 +21,9 @@ namespace {
 
 const QColor kRed(0xE5, 0x39, 0x35);
 const QColor kBlue(0x1E, 0x3A, 0xE5);
+const QColor kOrange(0xFF, 0x80, 0x00); // ressource PNG
+const QColor kGreen(0x2E, 0x7D, 0x32);  // image synthétique de la page fixe
+const QColor kAmber(0xFF, 0xB3, 0x00);  // image synthétique soulevée
 
 bool near(QColor a, QColor b, int tolerance)
 {
@@ -60,6 +67,48 @@ core::PageObject greenLine()
     l.pen.width = 6;
     core::PageObject object = l;
     object.common.id = 3;
+    return object;
+}
+
+// PNG uni de 32 × 32 : octets d'une ressource de document.
+QByteArray solidPng(const QColor& color)
+{
+    QImage image(32, 32, QImage::Format_ARGB32);
+    image.fill(color);
+    QByteArray png;
+    QBuffer buffer(&png);
+    buffer.open(QIODevice::WriteOnly);
+    if (!image.save(&buffer, "PNG")) {
+        png.clear(); // ressource illisible : les tests le verraient au pixel (repère du peintre)
+    }
+    return png;
+}
+
+// Image à ressource (clé du document) en (100, 100), 120 × 90 : centre en (160, 145).
+core::PageObject resourceImage(const std::string& key)
+{
+    core::ImageObject im;
+    im.bounds = core::RectF{100, 100, 120, 90};
+    im.sourceWidth = 32;
+    im.sourceHeight = 32;
+    im.resource = key;
+    core::PageObject object = im;
+    object.common.id = 7;
+    return object;
+}
+
+// Image synthétique (ressource vide) unie de la couleur donnée.
+core::PageObject syntheticImage(const core::RectF& bounds, core::Argb color, core::ObjectId id)
+{
+    core::ImageObject im;
+    im.bounds = bounds;
+    im.sourceWidth = 64;
+    im.sourceHeight = 64;
+    im.pattern = core::ImagePattern::SolidCenter;
+    im.colorA = color;
+    im.colorB = color;
+    core::PageObject object = im;
+    object.common.id = id;
     return object;
 }
 
@@ -276,6 +325,111 @@ private slots:
         QVERIFY(near(image.pixelColor(220, 220), kBlue, 8));
         QVERIFY(near(image.pixelColor(110, 110), Qt::white, 8));
         QCOMPARE(f.layer->builtCount(), 1);
+    }
+
+    // L3-C1 : une image à ressource soulevée est dessinée par la couche avec le magasin de la page fixe, au
+    // pixel près comme la page fixe la dessinait, dès la première image après setObjects et pendant tout le
+    // geste. Sans magasin (images == nullptr, défaut relevé par L3-T8) : repère d'image illisible du peintre.
+    // La page fixe lit ensuite un document SANS les octets de la ressource (clé absente : couverte, rien
+    // n'est redécodé) : une couche qui décoderait l'image une seconde fois, même sur place, n'aurait rien à
+    // décoder.
+    void liftedResourceImageIsDrawn()
+    {
+        core::Document decoded;
+        const std::string key = decoded.addResource(solidPng(kOrange), "png");
+        decoded.page(0).objects.push_back(resourceImage(key));
+        core::Document bare(std::vector<core::Page>{decoded.page(0)}); // même page, aucune ressource
+        QVERIFY(bare.resource(key) == nullptr);
+        Fixture f; // après les documents : la page fixe meurt avant eux
+        open(f);
+        f.page->setSource(&decoded, 0);
+        QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 5000));
+        const int decodes = f.page->decodeCount();
+        f.page->setSource(&bare, 0);
+        QVERIFY(f.page->isReady());
+        const QImage before = f.window.grabWindow();
+        QVERIFY2(near(before.pixelColor(160, 145), kOrange, 8),
+                 qPrintable(before.pixelColor(160, 145).name()));
+        QCOMPARE(f.page->decodeCount(), decodes); // la page fixe dessine l'image de son magasin
+        // Soulever comme DocumentController : l'objet quitte la page, le cache l'apprend par remove.
+        core::Page& shown = bare.page(0);
+        const core::PageObject lifted = shown.objects[0];
+        shown.objects.erase(shown.objects.begin());
+        f.page->remove(lifted.common.id, core::RectF{100, 100, 120, 90});
+        QVERIFY(near(at(f, 160, 145), Qt::white, 8));
+        QCOMPARE(f.page->decodeCount(), decodes); // une ressource ne quitte pas le magasin au soulèvement
+        QVERIFY(f.page->isReady());
+        const int rebuilds = f.page->rebuildCount();
+        f.layer->setObjects({lifted});
+        const QImage during = f.window.grabWindow();
+        QVERIFY2(near(during.pixelColor(160, 145), kOrange, 8),
+                 qPrintable(during.pixelColor(160, 145).name()));
+        const QString difference = firstDifference(before, during);
+        QVERIFY2(difference.isEmpty(), qPrintable(difference));
+        QCOMPARE(f.page->rebuildCount(), rebuilds); // la couche ne reconstruit pas la page fixe
+        QCOMPARE(f.page->decodeCount(), decodes);
+        QCOMPARE(f.layer->builtCount(), 1);
+        // Pendant le glissement : l'image suit la transformation, sans nœud refait.
+        f.layer->setExtraTransform(core::translation(200, 0));
+        const QImage moved = f.window.grabWindow();
+        QVERIFY2(near(moved.pixelColor(360, 145), kOrange, 8), qPrintable(moved.pixelColor(360, 145).name()));
+        QVERIFY(near(moved.pixelColor(160, 145), Qt::white, 8));
+        QCOMPARE(f.layer->builtCount(), 1);
+        QCOMPARE(f.page->decodeCount(), decodes);
+    }
+
+    // L3-C1 : le magasin de la page fixe range les images synthétiques par INDICE de page ; la couche a ses
+    // propres indices. Le patron de la page fixe repris tel quel (magasin passé pour tout objet) poserait ici
+    // l'image de l'objet 0 de la page (verte) à la place de l'image soulevée (ambre).
+    void liftedSyntheticImageIsNotLookedUpByIndex()
+    {
+        Fixture f;
+        open(f);
+        f.page->setPage(pageWith({syntheticImage(core::RectF{20, 20, 100, 100}, 0xFF2E7D32u, 8)}));
+        QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 5000));
+        QVERIFY(near(at(f, 70, 70), kGreen, 8));
+        f.layer->setObjects({syntheticImage(core::RectF{300, 200, 120, 120}, 0xFFFFB300u, 9)});
+        const QColor center = at(f, 360, 260);
+        QVERIFY2(near(center, kAmber, 8), qPrintable(center.name()));
+    }
+
+    // L3-C1 : au dépôt, l'image revient dans la page fixe à l'image suivante, sans passer par une page qui ne
+    // l'a pas : le magasin la couvre encore (clé de ressource), insert ne relance aucun décodage et la page
+    // reste prête. Le patron craint par L3-T8 (insert qui redécode toute image ajoutée) garderait l'ancienne
+    // scène, sans l'image, jusqu'au prêt : pixel blanc à l'image qui suit le dépôt, couche déjà vidée.
+    void droppedImageDoesNotBlink()
+    {
+        core::Document d;
+        const std::string key = d.addResource(solidPng(kOrange), "png");
+        d.page(0).objects.push_back(resourceImage(key));
+        d.page(0).objects.push_back(blueRectangle()); // dépôt hors fin de page, comme un vrai soulèvement
+        Fixture f;
+        open(f);
+        f.page->setSource(&d, 0);
+        QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 5000));
+        const QImage before = f.window.grabWindow();
+        QVERIFY2(near(before.pixelColor(160, 145), kOrange, 8),
+                 qPrintable(before.pixelColor(160, 145).name()));
+        const int decodes = f.page->decodeCount();
+        core::Page& shown = d.page(0);
+        const core::PageObject lifted = shown.objects[0];
+        shown.objects.erase(shown.objects.begin());
+        f.page->remove(lifted.common.id, core::RectF{100, 100, 120, 90});
+        f.layer->setObjects({lifted});
+        const QImage gesture = f.window.grabWindow(); // geste en cours : page fixe sans l'image
+        QVERIFY(!gesture.isNull());
+        QCOMPARE(f.page->decodeCount(), decodes);
+        // Déposer comme DocumentController : l'objet revient à son rang, la couche se vide, le cache
+        // l'apprend par insert, dans le même tour.
+        shown.objects.insert(shown.objects.begin(), lifted);
+        f.layer->clear();
+        f.page->insert(lifted.common.id);
+        QVERIFY(f.page->isReady());
+        const QImage after = f.window.grabWindow();
+        QVERIFY2(near(after.pixelColor(160, 145), kOrange, 8), qPrintable(after.pixelColor(160, 145).name()));
+        const QString difference = firstDifference(before, after);
+        QVERIFY2(difference.isEmpty(), qPrintable(difference));
+        QCOMPARE(f.page->decodeCount(), decodes);
     }
 };
 
