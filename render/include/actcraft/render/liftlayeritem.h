@@ -2,11 +2,14 @@
 
 #include <actcraft/core/model.h>
 #include <actcraft/render/fixedpageitem.h> // type complet exigé par moc pour la propriété fixedPage
+#include <actcraft/render/objectrenderer.h>
+#include <actcraft/render/paintedrenderer.h>
 
 #include <QPointer>
 #include <QQuickItem>
 #include <QtQml/qqmlregistration.h>
 
+#include <atomic>
 #include <vector>
 
 namespace actcraft::render {
@@ -41,6 +44,11 @@ protected:
 private:
     QPointer<FixedPageItem> m_fixedPage;
     std::vector<core::PageObject> m_objects;
+    RendererRegistry m_registry; // mêmes moteurs que la page fixe (withDefaults)
+    PaintedRenderer m_painted;
+    core::Transform m_extra; // fil principal ; lu par la synchronisation
+    bool m_rebuild = false;  // fil principal : setObjects, clear, setFixedPage
+    std::atomic<int> m_builtCount{0};
 };
 
 } // namespace actcraft::render
