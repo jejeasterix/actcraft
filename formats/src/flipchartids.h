@@ -33,6 +33,7 @@ inline constexpr quint16 kTextAction = 50;       // action sur un texte
 inline constexpr quint16 kConnectorObject = 52;  // connecteur entre deux objets
 inline constexpr quint16 kTagObject = 53;        // étiquette (légende) d'un objet
 inline constexpr quint16 kMediaObject = 253;     // son ou vidéo
+inline constexpr quint16 kMathMlObject = 460;    // équation (MathML brut)
 inline constexpr quint16 kLaunchAction = 463;    // action : lancer une mini-application
 } // namespace kind
 
@@ -204,6 +205,11 @@ inline constexpr quint16 kSlanted = 10;
 inline constexpr quint16 kUnderlined = 11;
 inline constexpr quint16 kStruckThrough = 12;
 } // namespace runKeys
+
+// Équation (type 460) : le MathML est une chaîne, gardée telle quelle.
+namespace mathMlKeys {
+inline constexpr quint16 kMathMl = 52;
+} // namespace mathMlKeys
 
 // Actions (§ 7.6) : commande et cible selon le genre.
 namespace actionKeys {

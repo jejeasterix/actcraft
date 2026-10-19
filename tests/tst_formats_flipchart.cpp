@@ -383,6 +383,27 @@ private slots:
         QVERIFY(core::hasUniqueIds(r.document));
     }
 
+    // Objet MathML (type 460, propriété 52) : une équation dont `mathml` garde le texte brut (L7-T1). Sans
+    // cette propriété il n'y a rien à lire : l'objet reste non lu, comme avant.
+    void mathmlObjectBecomesEquation()
+    {
+        const QString mathml = u"<math><mfrac><mi>&#x3B1;</mi><mn>2</mn></mfrac></math>"_s;
+        const auto r = formats::flipchart::readFlipchart(
+            onePage(Node(103, 2, 102, {Node(110, 460, 111), Node(112, 460, 113)}),
+                    {Entry(u"111.io"_s, fctest::synth::mathmlObject(111, mathml, 0, 0, 120, 40).stream()),
+                     Entry(u"113.io"_s, Obj(460, 113).userRect(7, 0, 0, 10, 10).stream())}));
+        QVERIFY2(r.ok, qPrintable(r.error));
+        const auto& objects = r.document.page(0).objects;
+        QCOMPARE(objects.size(), std::size_t{1}); // la formule sans MathML reste non lue
+        QCOMPARE(core::kindOf(objects[0]), core::ObjectKind::Equation);
+        const auto& equation = as<core::Equation>(objects[0]);
+        QCOMPARE(equation.mathml, mathml.toStdString());
+        QCOMPARE(equation.bounds.width, 120.0);
+        QCOMPARE(equation.bounds.height, 40.0);
+        QCOMPARE(r.warnings.size(), 1);
+        QVERIFY2(r.warnings.first().contains(u"460"_s), qPrintable(r.warnings.join(u'\n')));
+    }
+
     // Comme la référence (L2-C4) : une action qui suit un objet non lu (formule) lui revient et disparaît
     // avec lui, sans autre avertissement que « non lu » ; elle n'est pas rattachée à l'objet lu qui précède.
     void actionAfterAnUnreadObjectGoesWithIt()
