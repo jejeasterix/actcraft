@@ -14,7 +14,7 @@ objectifs. Ajoute la release .exe et la release .apk ». Objectifs = `docs/BRIEF
 Périmètre : étape 3 (lecteur `.flipchart` C++, format natif ouvert) ; étape 4 (interface et tous les outils et
 fonctions, un module à la fois, référence de comportement = application Python et docs de l'ancien dépôt) ;
 release Windows `.exe` (installateur) ; release Android `.apk`.
-Étape 2 (mesures Dell 3510 / MacBook M1) : attend Jérôme, ne bloque pas le chantier. Mesure de la machine de
+Étape 2 (mesures Dell 3510 / MacBook M1) : **Dell retiré** par décision de Jérôme (2026-10-19, voir plus bas, coffre 0125) ; MacBook M1 : procédure proposée, sans rien bloquer. Mesure de la machine de
 développement : `docs/mesures/2026-10-13-prototype-mesure.md` (budget tenu sauf 1 figement sur 10, H-mes-1).
 Ajout (Jérôme, 2026-10-14) : « À la fin, étudie chaque vidéo de la chaîne https://www.youtube.com/@YouNadineTanguay/videos, confronte les principes de fonctionnement avec ce que tu as produit et corrige en conséquence » → dernier lot du chantier. Corpus préparé dès maintenant par un sous-agent indépendant dans `REA - Activinspire\docs\videos-tanguay` (hors dépôt public). Consigne : déléguer à des sous-agents pour ne pas encombrer le contexte. Jérôme a fermé ses autres travaux (jetons libres).
 Contexte de la demande : Jérôme a vu le prototype de mesure et attendait une interface (« aucune interface »).
@@ -293,7 +293,16 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
   - **L3-T11** : lissage et bouts ronds s'appliquent aussi aux traits lus.
   - **L3-T12** : Rétablir la page laisse le document modifié. S'y ajoutent l'amendement du commentaire d'`editAboutToApply` et l'accord A-B (ne pas toucher `replaceDocument` ni les deux `loadGenerated*`).
   - **L3-T14** : Annuler et Rétablir vident la sélection. Une couleur choisie sous Sélectionner ou sous la gomme va au dernier outil d'encre et le réactive.
-  - **Hypothèses** : H3-9 corrigée (gomme 50), H3-14 corrigée (2 px), H3-17 nouvelle (niveau 1), H3-18 nouvelle (niveau 2 : zoom et défilement à deux doigts actifs par défaut, alors que l'original les coupe). Elles vont à la porte de fin.- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
+  - **Hypothèses** : H3-9 corrigée (gomme 50), H3-14 corrigée (2 px), H3-17 nouvelle (niveau 1), H3-18 nouvelle (niveau 2 : zoom et défilement à deux doigts actifs par défaut, alors que l'original les coupe). Elles vont à la porte de fin.- **Décision de Jérôme (2026-10-19, vers 09 h 15)**, donnée dans la session pilote et relayée mot pour mot par le Pilote : « Supprime les tests sur Dell et sur tablette. Je ne les ferai pas. » Coffre : `02_Decisions/0125`.
+  - Plus de mesure sur le Dell 3510 (étape 2), plus d'essai sur tablette réelle (N1-11, H11-1 retirée).
+  - Le banc reste joué sur ce poste : hors écran en logiciel, à l'écran en D3D11 aux clôtures. Les essais Android restent faits sur l'émulateur, avec une mesure indicative.
+  - Les rapports présentent les verdicts de fluidité comme valables sur ce poste seulement.
+  - **À appliquer dans les briefs** :
+    - L11-T15 : APK de banc et essai sur l'émulateur ; retirer la procédure tablette pour Jérôme et `docs/banc-tablette.md`, ou réduire ce fichier à l'émulateur ;
+    - L11-T30, porte de fin du lot 10, et toute clôture : aucune procédure Dell ;
+    - L6-T* : l'hypothèse H6-10 (mesure du PBKDF2 sur le Dell 3510) devient une mesure sur ce poste.
+  - Une décision qui retire du travail ne demande pas de go écrit dans cette session : je l'applique, et je la rappellerai à la porte de fin.
+- **Pilote, information (08 h 37)** : il a arrêté deux boucles d'attente non bornées sur `tasks/bc7jt87bw.output` (PID 19952 et 15164), sans doute lancées par un agent. **Règle des briefs** : toute boucle d'attente en fond est bornée, et aucun agent ne surveille une sortie (jeton au premier plan).- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
 - **V2 du socle mergée** (L0-S5 et L0-S7). La suite complète de V2 tourne sous le jeton (`scratchpad/out/suite-v2.txt`). L0-S9 est en cours, V3. L0-S2 attend le merge de L10-C2, qui passe après la suite de V2.
