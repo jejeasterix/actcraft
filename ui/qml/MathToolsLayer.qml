@@ -1,9 +1,11 @@
 import QtQuick
 import ActCraft.Ui
 
-// Outils de maths (F-280 règle, F-283 équerre ; L7-T11 à L7-T13 y ajoutent leurs délégués) : contrôleur, délégués en coordonnées de
-// page (cette couche remplit pageOverlays), cercle d'accroche du survol, gestionnaires des commandes math.*. Les
-// outils ne dessinent aucune encre : le stylo verse le trait, guidé par le filtre d'échantillons du contrôleur.
+// Outils de maths (F-280 règle, F-283 équerre, F-281 rapporteur ; L7-T12, L7-T13 y ajoutent leurs délégués) :
+// contrôleur, délégués en coordonnées de page (cette couche remplit pageOverlays), cercle d'accroche du survol,
+// gestionnaires des commandes math.*. Les outils ne dessinent aucune encre : le stylo verse le trait, guidé par
+// le filtre d'échantillons du contrôleur ; le rapporteur fermé ou plein fait ajouter ensuite ses rayons ou son
+// secteur au document par le contrôleur.
 Item {
     id: root
     property Commands commands: null
@@ -18,6 +20,7 @@ Item {
         objectName: "mathTools"
         view: root.pageArea ? root.pageArea.view : null
         toolHost: root.tools
+        documentController: root.documentController
     }
 
     // Un modèle par outil, tenu par les signaux du contrôleur : ouvrir ou fermer un outil crée ou retire son seul
@@ -35,7 +38,8 @@ Item {
             id: slot
             required property int index
             required property string kind
-            sourceComponent: slot.kind === "setSquare" ? squareTool : rulerTool
+            sourceComponent: slot.kind === "setSquare" ? squareTool
+                                                       : (slot.kind === "protractor" ? protractorTool : rulerTool)
             Component {
                 id: rulerTool
                 RulerTool {
@@ -47,6 +51,14 @@ Item {
             Component {
                 id: squareTool
                 SetSquareTool {
+                    controller: mathTools
+                    toolIndex: slot.index
+                    pageView: root.pageArea ? root.pageArea.view : null
+                }
+            }
+            Component {
+                id: protractorTool
+                ProtractorTool {
                     controller: mathTools
                     toolIndex: slot.index
                     pageView: root.pageArea ? root.pageArea.view : null
@@ -93,5 +105,6 @@ Item {
             return
         root.commands.setHandler("math.ruler", function () { mathTools.openRuler() })
         root.commands.setHandler("math.set-square", function () { mathTools.openSetSquare() })
+        root.commands.setHandler("math.protractor", function () { mathTools.openProtractor() })
     }
 }

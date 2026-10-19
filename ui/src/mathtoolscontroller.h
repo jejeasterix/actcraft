@@ -1,7 +1,9 @@
 #pragma once
 
+#include <actcraft/core/model.h>
 #include <actcraft/features/mathtools.h>
 #include <actcraft/features/strokeguide.h>
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
@@ -13,23 +15,31 @@
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
+#include <cstddef>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace actcraft::ui {
 
-// Outils de maths ouverts dans la fenêtre (F-280 ; équerre, rapporteur, compas, origine : L7-T10 à L7-T13).
-// Une aide, pas un contenu : rien n'est écrit dans le document. Leurs bords guident l'encre par le filtre
+// Outils de maths ouverts dans la fenêtre (F-280 règle, F-283 équerre, F-281 rapporteur ; compas, origine :
+// L7-T12, L7-T13). L'outil n'est jamais écrit dans le document. Leurs bords guident l'encre par le filtre
 // d'échantillons de la vue (PageView::setSampleFilter), appliqué avant le Pipeline, relâchés synthétisés
 // compris (à partir du dernier point brut) : le stylo reçoit des échantillons déjà posés sur le bord et verse
-// son trait comme tout trait ; ni le stylo ni la vue ne savent qu'une règle existe. Par fenêtre, pas par page
-// : les outils restent en changeant de page. Coordonnées de page.
+// son trait comme tout trait ; ni le stylo ni la vue ne savent qu'une règle existe. Rapporteur en style
+// « arc fermé » ou « arc plein » : une fois le trait guidé versé par le stylo (inchangé, l'arc seul), le
+// contrôleur ajoute les deux rayons (core::Line) ou le secteur rempli (core::Shape Path) par
+// DocumentInsertions::insertObject, une étape d'annulation à elle seule ; jamais par le stylo ni par le
+// filtre. Par fenêtre, pas par page : les outils restent en changeant de page. Coordonnées de page.
 class MathToolsController : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(actcraft::ui::PageView* view READ view WRITE setView NOTIFY viewChanged)
     Q_PROPERTY(actcraft::ui::ToolHost* toolHost READ toolHost WRITE setToolHost NOTIFY toolHostChanged)
+    // Document où le rapporteur ajoute ses rayons ou son secteur ; nul : il n'ajoute rien.
+    Q_PROPERTY(actcraft::ui::DocumentController* documentController READ documentController WRITE
+                   setDocumentController NOTIFY documentControllerChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     // Augmente à chaque changement de cadre ou de réglage d'un outil : les délégués relisent toolAt().
     Q_PROPERTY(int revision READ revision NOTIFY revisionChanged)
@@ -41,6 +51,9 @@ class MathToolsController : public QObject
     // bout fixe.
     Q_PROPERTY(qreal minimumLength READ minimumLength CONSTANT)
     Q_PROPERTY(qreal maximumLength READ maximumLength CONSTANT)
+    // Bornes du rayon d'un rapporteur, pixels de page.
+    Q_PROPERTY(qreal minimumRadius READ minimumRadius CONSTANT)
+    Q_PROPERTY(qreal maximumRadius READ maximumRadius CONSTANT)
 
 public:
     static constexpr double kSnapScreenPixels = 16;
@@ -52,30 +65,45 @@ public:
     void setView(PageView* view);
     ToolHost* toolHost() const noexcept;
     void setToolHost(ToolHost* host);
+    DocumentController* documentController() const noexcept;
+    void setDocumentController(DocumentController* controller);
     int count() const noexcept;
     int revision() const noexcept;
     static int defaultOpacity() noexcept;
     qreal guideBand() const noexcept;
     static qreal minimumLength() noexcept;
     static qreal maximumLength() noexcept;
+    static qreal minimumRadius() noexcept;
+    static qreal maximumRadius() noexcept;
 
     // Règle au centre de la page (longueur 600, largeur 80, angle 0 ; une suivante décalée de 24) ; son
     // index.
     Q_INVOKABLE int openRuler();
     // Équerre au centre de la page (côté 300, angle 0 : côtés de l'angle droit vers +x et +y) ; son index.
     Q_INVOKABLE int openSetSquare();
+    // Rapporteur centré sur la page (rayon 200, angle 0) ; forme et style d'arc du dernier choix (QSettings
+    // mathtools/protractor ; défaut : complet, arc seul) ; son index.
+    Q_INVOKABLE int openProtractor();
     // Ferme l'outil : les traits déjà versés restent (ils sont au document, l'outil n'en possède aucun).
     Q_INVOKABLE void close(int index);
     // Règle : centre, longueur, largeur, angle. Équerre : `center` est le sommet de l'angle droit, `length`
-    // le côté, `thickness` est ignorée.
+    // le côté, `thickness` est ignorée. Rapporteur : `center` est le centre du cercle, `length` le rayon,
+    // `thickness` est ignorée.
     Q_INVOKABLE void setFrame(int index, QPointF center, qreal length, qreal thickness, qreal angle);
     // Unités des deux bords : « cm », « mm », « inch », « none » ; gardées pour la règle suivante
     // (QSettings).
     Q_INVOKABLE void setUnits(int index, const QString& top, const QString& bottom);
     Q_INVOKABLE void setShowAngle(int index, bool on);
-    // kind (« ruler » ou « setSquare »), command, centerX, centerY, length, thickness, angle, displayAngle,
-    // topUnit, bottomUnit, showAngle ; vide hors des bornes. Équerre : centre = sommet de l'angle droit,
-    // length = thickness = côté.
+    // Rapporteur : « full » (360°) ou « half » (180°, au-dessus du diamètre à l'angle 0) ; gardé pour le
+    // suivant.
+    Q_INVOKABLE void setProtractorShape(int index, const QString& shape);
+    // Rapporteur : « arc » (le trait seul), « closed » (trait + deux rayons), « filled » (trait + secteur
+    // rempli de la couleur du trait) ; gardé pour le suivant.
+    Q_INVOKABLE void setArcStyle(int index, const QString& style);
+    // kind (« ruler », « setSquare » ou « protractor »), command, centerX, centerY, length, thickness, angle,
+    // displayAngle, topUnit, bottomUnit, showAngle ; vide hors des bornes. Équerre : centre = sommet de
+    // l'angle droit, length = thickness = côté. Rapporteur : centre du cercle, length = thickness = rayon, et
+    // shape, arcStyle, swept (angle balayé par le trait guidé en cours ou le dernier, degrés entiers).
     Q_INVOKABLE QVariantMap toolAt(int index) const;
     // Point d'accroche sous `pagePoint` (cercle du survol) : {snapped, x, y} ; aucun changement d'état.
     Q_INVOKABLE QVariantMap snapAt(QPointF pagePoint) const;
@@ -83,6 +111,7 @@ public:
 signals:
     void viewChanged();
     void toolHostChanged();
+    void documentControllerChanged();
     void countChanged();
     void revisionChanged();
     void guideBandChanged();
@@ -92,17 +121,46 @@ signals:
     void toolClosed(int index);
 
 private:
+    // Rapporteur vu par GuideSet : le guide de features, plus la marque « saisi au dernier appui » (GuideSet
+    // ne dit pas quel guide tient le trait).
+    class ArcGuide final : public features::StrokeGuide
+    {
+    public:
+        features::Protractor protractor;
+        bool seized = false;
+        std::optional<input::Sample> project(const input::Sample& sample, double tolerance) const override;
+        std::optional<input::Sample> capture(const input::Sample& sample, double tolerance) override;
+        input::Sample follow(const input::Sample& sample) override;
+    };
+
     struct Entry
     {
         QString command; // identifiant de la commande qui l'ouvre (UserState::setOpenMathTools)
-        std::unique_ptr<features::Ruler> ruler; // exactement l'un des deux
+        std::unique_ptr<features::Ruler> ruler; // exactement l'un des trois
         std::unique_ptr<features::SetSquare> square;
-        QPointF vertex;   // équerre : sommet de l'angle droit
-        double side = 0;  // équerre : côté
-        double angle = 0; // équerre : degrés
+        std::unique_ptr<ArcGuide> protractor;
+        QPointF vertex;   // équerre : sommet de l'angle droit ; rapporteur : centre
+        double side = 0;  // équerre : côté ; rapporteur : rayon
+        double angle = 0; // équerre, rapporteur : degrés
+        features::Protractor::Kind shape = features::Protractor::Kind::Full;
+        features::ArcStyle arcStyle = features::ArcStyle::Arc;
+        int sweptShown = 0; // rapporteur : angle balayé publié par toolAt() (degrés entiers)
         bool showAngle = true;
         features::StrokeGuide* guide() const noexcept;
         const char* settingsGroup() const noexcept;
+    };
+
+    // Rayons ou secteur à ajouter : armé au relâché guidé par un rapporteur fermé ou plein, complété par le
+    // trait que le stylo verse aussitôt (observateur du document), inséré ensuite.
+    struct PendingArc
+    {
+        QPointF center;
+        double radius = 0;
+        double start = 0; // degrés de page (repère de features::arcPath)
+        double sweep = 0; // avec son sens
+        features::ArcStyle style = features::ArcStyle::Arc;
+        core::ObjectId stroke = 0; // trait versé par le stylo : couleur et épaisseur lues à l'insertion
+        std::size_t page = 0;
     };
 
     bool valid(int index) const noexcept;
@@ -113,12 +171,21 @@ private:
     // sélection, le marqueur et la gomme passent tels quels (marqueur et gomme : L7-T34).
     bool guidesTool(input::UserId user) const;
     input::Sample guide(const input::Sample& sample);
+    // Rapporteur qui tient le trait (saisi à l'appui), sinon nul.
+    Entry* seizedProtractor() noexcept;
+    static void applyProtractorFrame(Entry& entry);
+    static void storeProtractorChoice(const Entry& entry);
+    void watchStrokes();
+    void insertArc(const PendingArc& arc);
     void syncTolerance();
     void storeOpenTools();
     void touch();
 
     QPointer<PageView> m_view;
     QPointer<ToolHost> m_toolHost;
+    QPointer<DocumentController> m_document;
+    int m_strokeObserver = 0;
+    std::optional<PendingArc> m_pendingArc;
     QMetaObject::Connection m_zoomConnection;
     bool m_filterInstalled = false;
     std::vector<Entry> m_tools;

@@ -12,10 +12,13 @@
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QColor>
 #include <QCursor>
 #include <QSignalSpy>
+#include <QtMath>
 #include <QtTest>
 
+#include <cmath>
 #include <cstddef>
 #include <initializer_list>
 #include <variant>
@@ -63,10 +66,9 @@ QPointF scene(const MainWindow& w, QPointF page)
     return w.pageView()->pageToScene(page);
 }
 
-// Trait au stylet le long de `pagePoints` (repère de page), quatre déplacements par segment.
-void stylusPath(const MainWindow& w, std::initializer_list<QPointF> pagePoints, bool release = true)
+// Trait au stylet le long de `points` (repère de page), quatre déplacements par segment.
+void stylusPath(const MainWindow& w, const std::vector<QPointF>& points, bool release = true)
 {
-    const std::vector<QPointF> points(pagePoints);
     presentationharness::sendTablet(w.window(), QEvent::TabletPress, scene(w, points.front()));
     for (std::size_t i = 1; i < points.size(); ++i) {
         for (int k = 1; k <= 4; ++k) {
@@ -78,6 +80,11 @@ void stylusPath(const MainWindow& w, std::initializer_list<QPointF> pagePoints, 
         presentationharness::sendTablet(w.window(), QEvent::TabletRelease, scene(w, points.back()));
     }
     QCoreApplication::processEvents();
+}
+
+void stylusPath(const MainWindow& w, std::initializer_list<QPointF> pagePoints, bool release = true)
+{
+    stylusPath(w, std::vector<QPointF>(pagePoints), release);
 }
 
 // Un temps d'un pointeur (appui, déplacement, relâché), injecté comme presentationharness::strokeAt.
@@ -166,6 +173,89 @@ bool allOnColumn(const actcraft::core::Stroke& stroke, double x)
         }
     }
     return !stroke.points.empty();
+}
+
+// Rapporteur ouvert, lu du contrôleur : centre, rayon, angle.
+struct Dial
+{
+    double cx = 0;
+    double cy = 0;
+    double radius = 0;
+    double angle = 0;
+    QPointF centre() const { return {cx, cy}; }
+};
+
+Dial dialOf(const MathToolsController& tools, int index)
+{
+    const QVariantMap m = tools.toolAt(index);
+    return {m.value(QStringLiteral("centerX")).toDouble(), m.value(QStringLiteral("centerY")).toDouble(),
+            m.value(QStringLiteral("length")).toDouble(), m.value(QStringLiteral("angle")).toDouble()};
+}
+
+// Point de page à `degrees` (repère de page, y vers le bas) et à `fromRim` pixels du pourtour (positif :
+// dehors).
+QPointF onDial(const Dial& d, double degrees, double fromRim)
+{
+    const double rad = qDegreesToRadians(degrees);
+    return {d.cx + (d.radius + fromRim) * std::cos(rad), d.cy + (d.radius + fromRim) * std::sin(rad)};
+}
+
+// Points de `from` à `to` degrés, un tous les 10°, à `fromRim` du pourtour.
+std::vector<QPointF> rimPath(const Dial& d, double from, double to, double fromRim)
+{
+    std::vector<QPointF> points;
+    const int steps = std::max(1, qRound(std::abs(to - from) / 10));
+    for (int i = 0; i <= steps; ++i) {
+        points.push_back(onDial(d, from + (to - from) * i / steps, fromRim));
+    }
+    return points;
+}
+
+bool onRim(double x, double y, const Dial& d)
+{
+    return qAbs(std::hypot(x - d.cx, y - d.cy) - d.radius) <= 0.5;
+}
+
+bool allOnRim(const actcraft::core::Stroke& stroke, const Dial& d)
+{
+    for (const auto& point : stroke.points) {
+        if (!onRim(point.x, point.y, d)) {
+            return false;
+        }
+    }
+    return !stroke.points.empty();
+}
+
+bool samePoint(double x, double y, double ex, double ey)
+{
+    return qAbs(x - ex) <= 0.5 && qAbs(y - ey) <= 0.5;
+}
+
+const actcraft::core::Page& shownPage(const actcraft::ui::DocumentController& doc)
+{
+    return doc.document().page(static_cast<std::size_t>(doc.currentIndex()));
+}
+
+// Dernier objet du type T de la page (le plus haut), sinon nul.
+template <typename T> const T* lastOf(const actcraft::core::Page& page)
+{
+    for (auto it = page.objects.rbegin(); it != page.objects.rend(); ++it) {
+        if (const T* found = std::get_if<T>(&actcraft::core::body(*it))) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+template <typename T> int countOf(const actcraft::core::Page& page)
+{
+    int n = 0;
+    for (const auto& object : page.objects) {
+        if (std::get_if<T>(&actcraft::core::body(object))) {
+            ++n;
+        }
+    }
+    return n;
 }
 
 class TstUiMathTools : public QObject
@@ -579,8 +669,262 @@ private slots:
             QTRY_COMPARE(menu.count(), 1);
             QTest::keyClick(w.window(), Qt::Key_Escape);
         }
-    }
-};
+
+        // F-281, arc plein : le stylo verse son trait guidé tel quel (l'arc seul, sur le pourtour, à sa
+        // couleur) ; le contrôleur ajoute ensuite une seule forme, le secteur rempli de la couleur du trait,
+        // par DocumentInsertions. Le stylo n'est jamais modifié : aucun point du trait au centre.
+        void filledArcBecomesOneShape()
+        {
+            MainWindow w;
+            QVERIFY(w.window());
+            w.pageView()->setInkColor(QColor(0x22, 0x66, 0xAA)); // pas le noir par défaut
+            QVERIFY(w.run(QStringLiteral("math.protractor")));
+            MathToolsController* tools = mathTools(w);
+            QVERIFY(tools);
+            actcraft::ui::DocumentController* doc = documentController(w);
+            QVERIFY(doc);
+            QCOMPARE(tools->count(), 1);
+            QCOMPARE(tools->toolAt(0).value(QStringLiteral("kind")).toString(), QStringLiteral("protractor"));
+            tools->setArcStyle(0, QStringLiteral("filled"));
+            QCOMPARE(tools->toolAt(0).value(QStringLiteral("arcStyle")).toString(), QStringLiteral("filled"));
+            const Dial d = dialOf(*tools, 0);
+            const int before = w.pageObjectCount();
+            const int shapesBefore = countOf<actcraft::core::Shape>(shownPage(*doc));
+            stylusPath(w, rimPath(d, -90, 0, 6)); // haut → droite : un quart de tour dans la bande extérieure
+            QTRY_COMPARE(w.pageObjectCount(), before + 2);
+            QTest::qWait(50);
+            QCOMPARE(w.pageObjectCount(), before + 2);
+            const actcraft::core::Page& page = shownPage(*doc);
+            QCOMPARE(countOf<actcraft::core::Shape>(page), shapesBefore + 1);
+            const auto* stroke = lastOf<actcraft::core::Stroke>(page);
+            QVERIFY(stroke);
+            QVERIFY2(allOnRim(*stroke, d), "le trait du stylo est l'arc seul, sur le pourtour");
+            QVERIFY2(stroke->color != 0xFF000000u, "le trait a la couleur de l'encre");
+            const auto* sector = lastOf<actcraft::core::Shape>(page);
+            QVERIFY(sector);
+            QVERIFY(sector->kind == actcraft::core::ShapeKind::Path);
+            QCOMPARE(sector->paths.size(), std::size_t{1});
+            QVERIFY(!sector->open);
+            QVERIFY(sector->brush.kind == actcraft::core::FillKind::Solid);
+            QCOMPARE(sector->brush.color, stroke->color);
+            const auto& outline = sector->paths.front();
+            QVERIFY(outline.size() >= 4);
+            QVERIFY2(samePoint(outline.front().x, outline.front().y, d.cx, d.cy) &&
+                         samePoint(outline.back().x, outline.back().y, d.cx, d.cy),
+                     "secteur : du centre au centre");
+            for (std::size_t i = 1; i + 1 < outline.size(); ++i) {
+                QVERIFY2(onRim(outline[i].x, outline[i].y, d), "secteur : son arc sur le pourtour");
+            }
+            QVERIFY2(
+                samePoint(outline[1].x, outline[1].y, stroke->points.front().x, stroke->points.front().y),
+                "secteur : l'arc part du début du trait");
+            const auto& end = outline[outline.size() - 2];
+            QVERIFY2(samePoint(end.x, end.y, stroke->points.back().x, stroke->points.back().y),
+                     "secteur : l'arc finit à la fin du trait");
+            QCOMPARE(tools->toolAt(0).value(QStringLiteral("swept")).toInt(), 90);
+        }
+
+        // Arc fermé : le trait guidé, puis les deux rayons d'un seul objet, ajoutés en une étape après lui.
+        // Une annulation retire les deux rayons, et seulement eux ; la suivante, le trait du stylo.
+        void closedArcIsUndoneAtOnce()
+        {
+            MainWindow w;
+            QVERIFY(w.window());
+            QVERIFY(w.run(QStringLiteral("math.protractor")));
+            MathToolsController* tools = mathTools(w);
+            QVERIFY(tools);
+            actcraft::ui::DocumentController* doc = documentController(w);
+            QVERIFY(doc);
+            tools->setArcStyle(0, QStringLiteral("closed"));
+            const Dial d = dialOf(*tools, 0);
+            const int before = w.pageObjectCount();
+            const int linesBefore = countOf<actcraft::core::Line>(shownPage(*doc));
+            stylusPath(w, rimPath(d, -90, 0, 6));
+            QTRY_COMPARE(w.pageObjectCount(), before + 2);
+            QTest::qWait(50);
+            QCOMPARE(w.pageObjectCount(), before + 2);
+            {
+                const actcraft::core::Page& page = shownPage(*doc);
+                QCOMPARE(countOf<actcraft::core::Line>(page), linesBefore + 1);
+                const auto* stroke = lastOf<actcraft::core::Stroke>(page);
+                QVERIFY(stroke);
+                QVERIFY2(allOnRim(*stroke, d), "le trait du stylo est l'arc seul");
+                const auto* radii = lastOf<actcraft::core::Line>(page);
+                QVERIFY(radii);
+                QCOMPARE(radii->points.size(), std::size_t{3});
+                QVERIFY2(samePoint(radii->points[0].x, radii->points[0].y, stroke->points.front().x,
+                                   stroke->points.front().y),
+                         "premier rayon : au début de l'arc");
+                QVERIFY2(samePoint(radii->points[1].x, radii->points[1].y, d.cx, d.cy),
+                         "les rayons passent au centre");
+                QVERIFY2(samePoint(radii->points[2].x, radii->points[2].y, stroke->points.back().x,
+                                   stroke->points.back().y),
+                         "second rayon : à la fin de l'arc");
+                QCOMPARE(radii->pen.color, stroke->color);
+            }
+            doc->undo();
+            QTRY_COMPARE(w.pageObjectCount(), before + 1);
+            {
+                const actcraft::core::Page& page = shownPage(*doc);
+                QCOMPARE(countOf<actcraft::core::Line>(page), linesBefore);
+                const auto* stroke = lastOf<actcraft::core::Stroke>(page);
+                QVERIFY(stroke);
+                QVERIFY2(allOnRim(*stroke, d), "une annulation : les deux rayons partent, l'arc reste");
+            }
+            doc->undo();
+            QTRY_COMPARE(w.pageObjectCount(), before);
+            doc->redo();
+            doc->redo();
+            QTRY_COMPARE(w.pageObjectCount(), before + 2);
+            QCOMPARE(countOf<actcraft::core::Line>(shownPage(*doc)), linesBefore + 1);
+        }
+
+        // P21 : glisser la poignée d'un quart de tour autour du centre tourne le rapporteur de 90° ; le
+        // centre ne bouge pas, rien n'est versé.
+        void protractorTurnsByItsHandle()
+        {
+            MainWindow w;
+            QVERIFY(w.window());
+            QVERIFY(w.run(QStringLiteral("math.protractor")));
+            MathToolsController* tools = mathTools(w);
+            QVERIFY(tools);
+            QQuickItem* item = w.item(QStringLiteral("protractorTool"));
+            QQuickItem* handle = w.item(QStringLiteral("protractorHandle"));
+            QVERIFY(item);
+            QVERIFY(handle);
+            QVERIFY(qAbs(item->rotation()) < 1e-6);
+            const Dial d = dialOf(*tools, 0);
+            const int before = w.pageObjectCount();
+            const QPointF c = scene(w, d.centre());
+            const QPointF h = handle->mapToScene(QPointF(handle->width() / 2, handle->height() / 2));
+            const double reach = std::hypot(h.x() - c.x(), h.y() - c.y());
+            const double a0 = std::atan2(h.y() - c.y(), h.x() - c.x());
+            QVERIFY(reach > 20);
+            pointerStep(w.window(), Pointer::Stylus, QEvent::TabletPress, h);
+            QPointF last = h;
+            for (int k = 1; k <= 12; ++k) {
+                const double a = a0 + qDegreesToRadians(90.0) * k / 12;
+                last = c + QPointF(reach * std::cos(a), reach * std::sin(a));
+                pointerStep(w.window(), Pointer::Stylus, QEvent::TabletMove, last);
+            }
+            pointerStep(w.window(), Pointer::Stylus, QEvent::TabletRelease, last);
+            QTRY_VERIFY2(qAbs(item->rotation() - 90) <= 1, "rotation lue 90 ± 1");
+            const Dial turned = dialOf(*tools, 0);
+            QVERIFY(qAbs(turned.angle - 90) <= 1);
+            QVERIFY2(samePoint(turned.cx, turned.cy, d.cx, d.cy), "le centre ne bouge pas");
+            QTest::qWait(50);
+            QCOMPARE(w.pageObjectCount(), before);
+            QCOMPARE(w.pageView()->ink()->pointCount(), std::size_t{0});
+        }
+
+        // Translucidité du corps : kDefaultToolOpacity (100 sur 255), jamais opaque.
+        void protractorOpacityIsTheDefault()
+        {
+            MainWindow w;
+            QVERIFY(w.window());
+            QVERIFY(w.run(QStringLiteral("math.protractor")));
+            QQuickItem* body = w.item(QStringLiteral("protractorBody"));
+            QVERIFY(body);
+            QVERIFY(qAbs(body->opacity() - actcraft::features::kDefaultToolOpacity / 255.0) < 1e-6);
+            QVERIFY(body->opacity() < 1.0);
+        }
+
+        // Déplacer sur le disque, tourner à la poignée, changer le rayon le long du pourtour intérieur ; ni
+        // dans la bande extérieure du pourtour (au stylo), ni hors du disque.
+        void protractorCursorFollowsTheZone()
+        {
+            MainWindow w;
+            QVERIFY(w.window());
+            QVERIFY(w.run(QStringLiteral("math.protractor")));
+            MathToolsController* tools = mathTools(w);
+            QVERIFY(tools);
+            QQuickItem* handle = w.item(QStringLiteral("protractorHandle"));
+            QVERIFY(handle);
+            const Dial d = dialOf(*tools, 0);
+            QQuickWindow* window = w.window();
+            const auto hoverScene = [&](QPointF at) {
+                QTest::mouseMove(window, at.toPoint());
+                QTest::mouseMove(window, at.toPoint() + QPoint(1, 0));
+            };
+            const auto hoverAt = [&](QPointF page) { hoverScene(scene(w, page)); };
+            hoverAt(QPointF(d.cx - d.radius / 2, d.cy + 20));
+            QTRY_COMPARE(window->cursor().shape(), Qt::SizeAllCursor);
+            hoverScene(handle->mapToScene(QPointF(handle->width() / 2, handle->height() / 2)));
+            QTRY_COMPARE(window->cursor().shape(), Qt::CrossCursor);
+            hoverAt(onDial(d, 180, -6));
+            QTRY_COMPARE(window->cursor().shape(), Qt::SizeFDiagCursor);
+            hoverAt(onDial(d, 180, 6)); // bande extérieure du pourtour : rien à saisir
+            QTRY_VERIFY(window->cursor().shape() != Qt::SizeFDiagCursor);
+            QVERIFY(window->cursor().shape() != Qt::SizeAllCursor);
+            QVERIFY(window->cursor().shape() != Qt::CrossCursor);
+            hoverAt(onDial(d, 180, 60)); // hors du rapporteur
+            QTRY_VERIFY(window->cursor().shape() != Qt::SizeAllCursor);
+            QVERIFY(window->cursor().shape() != Qt::SizeFDiagCursor);
+        }
+
+        void protractorBlocksTheStylus_data()
+        {
+            presentationharness::addPointerRows();
+        }
+
+        // Appui sur le corps (le disque) : le rapporteur bouge, rien n'est versé. Pendant : le même pointeur
+        // dans la bande extérieure du pourtour verse un arc guidé ; dans la bande intérieure, le rayon change
+        // et rien n'est versé.
+        void protractorBlocksTheStylus()
+        {
+            QFETCH(Pointer, pointer);
+            MainWindow w;
+            QVERIFY(w.window());
+            QVERIFY(w.run(QStringLiteral("math.protractor")));
+            MathToolsController* tools = mathTools(w);
+            QVERIFY(tools);
+            const Dial d = dialOf(*tools, 0);
+            const int before = w.pageObjectCount();
+            // Un seul geste : encre lue d'abord sous le seuil de glisser, puis glisser jusqu'au bout.
+            const QPointF from = scene(w, QPointF(d.cx - d.radius / 2, d.cy + 20));
+            const QPointF to = scene(w, QPointF(d.cx - d.radius / 2, d.cy - 40));
+            pointerStep(w.window(), pointer, QEvent::TabletPress, from);
+            pointerStep(w.window(), pointer, QEvent::TabletMove, from + QPointF(0, -2));
+            QCOMPARE(w.pageView()->ink()->pointCount(), std::size_t{0});
+            for (int k = 1; k <= 8; ++k) {
+                pointerStep(w.window(), pointer, QEvent::TabletMove, from + (to - from) * (k / 8.0));
+            }
+            pointerStep(w.window(), pointer, QEvent::TabletRelease, to);
+            QTRY_VERIFY2(qAbs(dialOf(*tools, 0).cy - (d.cy - 60)) <= 2,
+                         "rapporteur déplacé par son gestionnaire");
+            QTest::qWait(50);
+            QCOMPARE(w.pageObjectCount(), before);
+            QCOMPARE(w.pageView()->ink()->pointCount(), std::size_t{0});
+
+            const Dial moved = dialOf(*tools, 0);
+            presentationharness::strokeAt(w.window(), pointer, scene(w, onDial(moved, -100, 6)),
+                                          scene(w, onDial(moved, -80, 6)));
+            QTRY_COMPARE(w.pageObjectCount(), before + 1);
+            const actcraft::core::Stroke* outside = lastStroke(w);
+            QVERIFY(outside);
+            QVERIFY2(allOnRim(*outside, moved), "bande extérieure : arc versé et guidé");
+            // Bande intérieure : sur le corps, donc couverte ; le pourtour suit le pointeur.
+            presentationharness::strokeAt(w.window(), pointer, scene(w, onDial(moved, 180, -8)),
+                                          scene(w, onDial(moved, 180, 32)));
+            QTRY_VERIFY2(qAbs(dialOf(*tools, 0).radius - (moved.radius + 40)) <= 2,
+                         "bande intérieure : le rayon change");
+            QTest::qWait(50);
+            QCOMPARE(w.pageObjectCount(), before + 1);
+            if (pointer == Pointer::Mouse) {
+                // Comme pour la règle : le clic droit, que la vue teste par sa couverture, discrimine.
+                QSignalSpy menu(w.pageView(), &actcraft::ui::PageView::contextMenuRequested);
+                const Dial now = dialOf(*tools, 0);
+                QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier,
+                                  scene(w, QPointF(now.cx - now.radius / 2, now.cy + 20)).toPoint());
+                QTest::qWait(50);
+                QCOMPARE(menu.count(), 0);
+                QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier,
+                                  scene(w, onDial(now, 0, 60)).toPoint());
+                QTRY_COMPARE(menu.count(), 1);
+                QTest::keyClick(w.window(), Qt::Key_Escape);
+            }
+        }
+    };
 
 } // namespace
 
