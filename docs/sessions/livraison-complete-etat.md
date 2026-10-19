@@ -318,6 +318,7 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
   - **Reporté à L3-T13** :
     - retirer le `finishTouchStroke()` placé avant `handlePointer` (`pageview.cpp:683-685`) ;
     - H3-17 : le trait au doigt est abandonné quand le deuxième doigt arrive. Or `finishTouchStroke()` appelle `cancel()`, qui verse le trait selon le contrat de `PenTool` : à corriger pour qu'il ne verse rien (`secondFingerEndsFingerStroke`).
+- **H3-19 (nouvelle, niveau 2)** : un stylet posé pendant un pincement va à l'outil, et les doigts du geste restent au geste. C'est le comportement actuel, gardé par A ; à revoir avec les modes du toucher du lot 11. Les commentaires de `routing.h` sont amendés par L3-T5 (commentaires seulement).
 - **Session Pilote archivée** (message de B) : plus aucun relais. Toute question à Jérôme passe directement par cette session.- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
