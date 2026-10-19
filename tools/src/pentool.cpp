@@ -29,6 +29,23 @@ bool PenTool::isDrawing() const noexcept
     return m_drawing;
 }
 
+QString PenTool::id() const
+{
+    return QStringLiteral("pen");
+}
+
+bool PenTool::isBusy() const noexcept
+{
+    return m_drawing;
+}
+
+void PenTool::cancel()
+{
+    if (m_drawing) {
+        finish(); // versé tel quel (2 points au moins), encre vidée
+    }
+}
+
 void PenTool::onSample(const input::Sample& sample)
 {
     switch (sample.phase) {

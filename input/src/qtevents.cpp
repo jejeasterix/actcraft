@@ -60,6 +60,8 @@ std::optional<Sample> sampleFromEvent(const QEvent& event, QPointF pagePos, std:
             return std::nullopt; // deux doigts et plus : gestes (lot 3), jamais un trait
         }
         sample.device = DeviceKind::Touch;
+        // 0 est le stylet et la souris : un doigt n'y tombe jamais (routeur, décision par contact).
+        sample.pointer = static_cast<std::uint64_t>(touch.points().constFirst().id()) + 1;
         sample.phase = event.type() == QEvent::TouchBegin    ? Phase::Press
                        : event.type() == QEvent::TouchUpdate ? Phase::Move
                                                              : Phase::Release;
