@@ -85,13 +85,7 @@ Item {
         HoverHandler {
             id: hover
             objectName: "spotlightHover"
-            cursorShape: Qt.ArrowCursor
-            onPointChanged: cursorShape = spotlightController.cursorAt(point.position)
-            onHoveredChanged: {
-                if (!hovered) {
-                    cursorShape = Qt.ArrowCursor
-                }
-            }
+            cursorShape: hover.hovered ? spotlightController.cursorAt(hover.point.position) : Qt.ArrowCursor
         }
 
         // Tous périphériques (stylet, doigt, souris). Le store ne saisit que dans sa zone saisissable

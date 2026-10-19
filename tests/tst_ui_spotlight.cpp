@@ -171,14 +171,14 @@ private slots:
         QQuickItem* root = main.item(QStringLiteral("spotlightRoot"));
         QVERIFY(root != nullptr);
         QVERIFY(main.run(QStringLiteral("present.spotlight-solid-circle")));
-        auto* hover = root->findChild<QObject*>(QStringLiteral("spotlightHover"));
-        QVERIFY(hover != nullptr);
+        QVERIFY(root->findChild<QObject*>(QStringLiteral("spotlightHover")) != nullptr);
+        // Deux déplacements : le second relit le curseur une fois le survol du premier livré (comme
+        // tst_ui_mathtools).
         const auto cursorAfterHoverAt = [&](QPointF pagePoint) {
             QTest::mouseMove(main.window(), inWindow(main, pagePoint).toPoint());
-            QTest::qWait(60);
             QTest::mouseMove(main.window(), inWindow(main, pagePoint + QPointF(1, 0)).toPoint());
             QTest::qWait(60);
-            return hover->property("cursorShape").toInt();
+            return static_cast<int>(main.window()->cursor().shape());
         };
 
         const int center = cursorAfterHoverAt(QPointF(500, 384));
@@ -211,9 +211,9 @@ private slots:
         QCOMPARE(imageCount(*controller), 0);
         const std::size_t resources = controller->document().resources().size();
 
-        bool started = false;
-        QVERIFY(QMetaObject::invokeMethod(root, "captureLit", Q_RETURN_ARG(bool, started)));
-        QVERIFY(started);
+        QVariant started;
+        QVERIFY(QMetaObject::invokeMethod(root, "captureLit", Q_RETURN_ARG(QVariant, started)));
+        QVERIFY(started.toBool());
         QTRY_COMPARE_WITH_TIMEOUT(imageCount(*controller), 1, 10000);
         QTRY_COMPARE_WITH_TIMEOUT(main.pageObjectCount(), strokes + 1, 5000);
         QCOMPARE(controller->document().resources().size(), resources + 1);
