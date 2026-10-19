@@ -32,6 +32,17 @@ avant `tous`, L11-T19, L11-T20, L11-T30), **M8** (réglages d'essai des tests de
 - m17 : chemin du rapport des épinglages du lot 7 résolu par L11-T0 (L11-T27) ;
 - m18 : L11-T25 s'arrête et rend la main si H6-6b n'est pas tranchée.
 
+## Amendement 2 (relecture tour 2)
+
+La table des constats N1 à N4 et n1 à n6 est dans l'amendement 2 du plan de 11a ; elle fait autorité. Pour 11b :
+- **N1** : la règle des réglages d'essai de 11a (assertion `QSettings probe` à la fin d'`initTestCase`, mutation qui
+  retire `setDefaultFormat`) s'applique à `tst_ui_updatechecker`, `tst_ui_shortcuts`, `tst_ui_accessibility`,
+  `tst_ui_lockall`, `tst_ui_profilesall` ; le contrôle `reg query` n'existe plus.
+- **N3** : formes d'enregistrement de R1 (11a) : `tst_ui_updatechecker`, `tst_ui_shortcuts`, `tst_ui_accessibility`,
+  `tst_ui_lockall` et `tst_ui_profilesall` en **F1** (`Main.qml`, forme de `tests/ui.cmake:33-36`) ;
+  `tst_ui_helppages` et `tst_ui_pseudolocale` en F2 ; `tst_app_notices` et `tst_app_versioninfo` en F6.
+- **N4** : le contrôle des API privées (lignes ajoutées depuis la base de la tâche) vaut pour L11-T19 (joueur).
+
 ## Table des tâches (11b)
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |

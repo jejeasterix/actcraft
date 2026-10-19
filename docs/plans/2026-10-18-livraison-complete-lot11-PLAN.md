@@ -14,14 +14,14 @@ et une seule version (1.0.0) pour les deux sous-lots, comme les lots 2 et 6.
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L11-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; écarts tranchés ; API A1 à A21 revérifiées ; N11 relevé | — | `docs/verifications/2026-10-19-lot11-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot11.md`) | isolé | concepteur-critique | rapport commité ; relevé brut hors dépôt présent ; D11-1 à D11-16 confirmées ou amendées ; table A remplie ; `Total Tests: <N11>` ; contrôle des titres du corpus vide ; `NOMS OK` | S30 | #tache-l11-t0 |
 | L11-T1 | Réservation : 32 tests enregistrés (talons `QSKIP`), fichiers neufs des deux sous-lots (talons marqués), commandes et disposition du lot, icônes | — | `actions/data/commands.json`, `actions/data/layout.json`, `input/CMakeLists.txt`, `tools/CMakeLists.txt`, `ui/CMakeLists.txt`, `bench/app/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{input,tools,ui,app,bench}.cmake`, les 32 fichiers de test de la liste R1, les talons de la liste R2, les 11 scénarios de la liste R3, `ui/icons/{toucher,deux-utilisateurs,mises-a-jour,reprise}.svg` | isolé | implementeur-tdd | `TESTS OK`, N = N11 + 32, 32 talons `SKIP` nommés ; `(git -C <wt> grep -l "// Talon L11" -- '*.h' '*.cpp' ':!tests/').Count` = 22 (R2) | S28, S29, S3.1 à S3.5 (réservation) | #tache-l11-t1 |
-| L11-T2 | Joueur de scénarios : étapes `parallel`, `resize`, `appState`, `longPress`, `visibleTexts`, `expectChanged` (voies publiques de Qt seulement) | L11-T1 | `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `bench/include/actcraft/bench/injector.h`, `bench/src/injector.cpp`, `tests/tst_bench_uiscenario.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_bench_uiscenario` : `parallelStepParsed`, `resizeStepParsed`, `appStateStepParsed`, `longPressStepParsed`, `visibleTextsStepParsed`, `expectChangedStepParsed`, `parallelInterleavesTwoDevices` en `PASS` ; aucun symbole privé de Qt nouveau (`git -C <wt> diff main -- bench/ \| Select-String 'QWindowSystemInterface\|_p\.h'` vide) | S28, S29, S3.2, S3.3, S3.4 | #tache-l11-t2 |
+| L11-T2 | Joueur de scénarios : étapes `parallel`, `resize`, `appState`, `longPress`, `visibleTexts`, `expectChanged` (voies publiques de Qt seulement) | L11-T1 | `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `bench/include/actcraft/bench/injector.h`, `bench/src/injector.cpp`, `tests/tst_bench_uiscenario.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_bench_uiscenario` : `parallelStepParsed`, `resizeStepParsed`, `appStateStepParsed`, `longPressStepParsed`, `visibleTextsStepParsed`, `expectChangedStepParsed`, `parallelInterleavesTwoDevices` en `PASS` ; aucun symbole privé de Qt ajouté (`git -C <wt> diff feat/livraison-complete...HEAD -- bench/ tests/ \| Select-String '^\+(?!\+\+).*(QWindowSystemInterface\|qpa/\|_p\.h\|GuiPrivate)'` vide) | S28, S29, S3.2, S3.3, S3.4 | #tache-l11-t2 |
 | L11-T3 | Coquille QML du lot : instances des contrôleurs, emplacements (deuxième palette, menu du toucher, menu au doigt, bandeau de reprise, boîte des mises à jour), gestionnaires talons | L11-T1 | `ui/qml/Main.qml`, `ui/qml/TopBar.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/{SecondPalette,TouchModeMenu,FingerMenu,RecoveryBanner,UpdateDialog}.qml`, `ui/include/actcraft/ui/{touchmode,dualmode,layoutmetrics,lifecycle,documentportal,updatechecker}.h`, `ui/src/{touchmode,dualmode,layoutmetrics,lifecycle,documentportal,updatechecker}.cpp`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_shell` : `lot11SlotsPresent`, `lot11ControllersWired` en `PASS` ; banc sans écran joint | S28, S29, S3.1 à S3.4 | #tache-l11-t3 |
 | L11-T4 | `input` : quatre politiques du toucher, outil imposé au doigt, appuis d'un même événement décidés ensemble (H3-16), champ `Sample::deviceId` | L11-T0, L11-T1 | `input/include/actcraft/input/touchmodes.h`, `input/src/touchmodes.cpp`, `input/include/actcraft/input/routing.h`, `input/src/routing.cpp`, `input/include/actcraft/input/sample.h`, `tests/tst_input_touchmodes.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_input_touchmodes` : 9 fonctions en `PASS` (dont `sameEventTwoFingersGoToGesture`, `noGestureOutsideFullMode`) ; mutation rouge puis remise | S28 | #tache-l11-t4 |
 | L11-T5 | `PageView` : politique remplaçable, utilisateur transmis à l'hôte d'outils, `Sample::deviceId` rempli, appuis groupés, fin des contacts, appui long signalé, ancre au redimensionnement | L11-T2, L11-T4 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `tests/tst_ui_pageinput.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_pageinput` : 9 fonctions en `PASS` (dont `decisionUserReachesTheView`, `finishContactsKeepsTheStroke`, `resizeEndsTheContact`) ; mutation rouge puis remise ; `tst_ui_shell`, `tst_ui_drawing` toujours `Passed` ; banc sans écran joint | S28, S3.2, S3.3, S3.4 | #tache-l11-t5 |
 | L11-T6 | Réglage du mode du toucher (F-930) : contrôleur, commande `touch.mode`, menu, réglage du poste, changement différé hors contact ; scénario `modes-toucher` | L11-T3, L11-T5 | `ui/include/actcraft/ui/touchmode.h`, `ui/src/touchmode.cpp`, `ui/qml/TouchModeMenu.qml`, `tests/tst_ui_touchmode.cpp`, `bench/scenarios/modes-toucher.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_touchmode` 6 fonctions `PASS` ; `tst_captures_modes_toucher` Passed ; `LU appTouchMode.mode=full OK`, `CAPTURES OK` | S28 | #tache-l11-t6 |
-| L11-T7 | Second utilisateur I : politique à deux utilisateurs (schéma d'entrée D11-2), gestes suspendus, un `UserState` par utilisateur | L11-T4 | `input/include/actcraft/input/twouserpolicy.h`, `input/src/twouserpolicy.cpp`, `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `tests/tst_input_twousers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_input_twousers` 8 fonctions `PASS` (dont `noGestureInDualMode`, `eachUserKeepsItsTool`, `secondUserReceivesInDualMode`) ; mutation rouge puis remise | S28 | #tache-l11-t7 |
+| L11-T7 | Second utilisateur I : politique à deux utilisateurs (schéma d'entrée D11-2), gestes suspendus, un `UserState` par utilisateur | L11-T4 | `input/include/actcraft/input/twouserpolicy.h`, `input/src/twouserpolicy.cpp`, `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `input/include/actcraft/input/routing.h`, `tests/tst_input_twousers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_input_twousers` 7 fonctions `PASS` (dont `noGestureInDualMode`, `eachUserKeepsItsTool`) ; test enregistré en F4 (lie `ActCraft::ui`) ; mutation rouge puis remise | S28 | #tache-l11-t7 |
 | L11-T8 | Second utilisateur II : sélection propre, objet tenu inaccessible à l'autre, outils de maths par utilisateur | L11-T7 | `tools/include/actcraft/tools/grabs.h`, `tools/src/grabs.cpp`, `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, fichiers des outils de maths du lot 7 relevés par L11-T0 (A11, écrits dans cette ligne par l'orchestrateur), `tests/tst_tools_twousers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_tools_twousers` 6 fonctions `PASS` (dont `heldObjectRefusedToTheOther`, `rulerBelongsToItsUser`) ; `tst_tools_select` toujours `Passed` | S28 | #tache-l11-t8 |
-| L11-T9 | Deux utilisateurs III : attribut `opensDialog`, commandes à boîte refusées au second, mode à deux utilisateurs (F-110, F-303), deuxième palette ; scénario S28 `deux-utilisateurs` | L11-T3, L11-T6, L11-T8, L11-T10 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `actions/data/commands.json`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `ui/include/actcraft/ui/dualmode.h`, `ui/src/dualmode.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/qml/Main.qml`, `ui/qml/SecondPalette.qml`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `tests/tst_ui_secondpalette.cpp`, `bench/scenarios/deux-utilisateurs.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_secondpalette` 7 fonctions `PASS`, `tst_bench_uiscenario` : `commandStepCarriesTheUser` `PASS` ; `tst_captures_deux_utilisateurs` Passed ; `LU appDualMode.active=false OK`, deux `PIXEL … OK` de couleurs différentes, zoom inchangé en mode allumé (`expect pageView.zoom = ${z0}`) puis `CHANGE pageView.zoom OK` éteint, `CAPTURES OK` | S28 | #tache-l11-t9 |
+| L11-T9 | Deux utilisateurs III : attribut `opensDialog`, commandes à boîte refusées au second, mode à deux utilisateurs (F-110, F-303), deuxième palette ; scénario S28 `deux-utilisateurs` | L11-T3, L11-T6, L11-T8, L11-T10 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `actions/data/commands.json`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `ui/include/actcraft/ui/dualmode.h`, `ui/src/dualmode.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/qml/Main.qml`, `ui/qml/SecondPalette.qml`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `tests/tst_ui_secondpalette.cpp`, `bench/scenarios/deux-utilisateurs.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_secondpalette` 8 fonctions `PASS` (dont `secondUserReceivesInDualMode`), `tst_bench_uiscenario` : `commandStepCarriesTheUser` `PASS` ; `tst_captures_deux_utilisateurs` Passed ; `LU appDualMode.active=false OK`, deux `PIXEL … OK` de couleurs différentes, zoom inchangé en mode allumé (`expect pageView.zoom = ${z0}`) puis `CHANGE pageView.zoom OK` éteint, `CAPTURES OK` | S28 | #tache-l11-t9 |
 | L11-T10 | Tablette I : mise en page étroite (navigateurs en tiroir, palette repliable, ligne supérieure en débordement), cibles tactiles de 48 dp | L11-T2, L11-T3 | `ui/include/actcraft/ui/layoutmetrics.h`, `ui/src/layoutmetrics.cpp`, `ui/qml/Main.qml`, `ui/qml/Theme.qml`, `ui/qml/PaletteFrame.qml`, `ui/qml/BrowserPanel.qml`, `tests/tst_ui_narrowlayout.cpp`, `bench/scenarios/tablette-etroite.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_narrowlayout` 6 fonctions `PASS` (dont `everyTargetAtLeast48dp`) ; `tst_captures_tablette_etroite` Passed (déclaration ctest inchangée, 1280 × 800 au départ) ; `LU appLayout.narrow=false OK` (lecture finale, après le retour en 1280 × 800), `CAPTURES OK` ; banc sans écran joint | S3.1 | #tache-l11-t10 |
 | L11-T11 | Tablette II : rotation de l'écran (ancre, contact terminé), clavier logiciel (curseur de texte gardé au-dessus) ; essai sur l'émulateur de tablette | L11-T5, L11-T10, L11-T14 | `ui/include/actcraft/ui/keyboardinset.h`, `ui/src/keyboardinset.cpp`, `ui/qml/PageArea.qml`, `tests/tst_ui_orientation.cpp`, `bench/scenarios/rotation-clavier.json`, `scripts/essai-android-tablette.ps1` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_orientation` 5 fonctions `PASS` ; `tst_captures_rotation_clavier` Passed ; `ANDROID TABLETTE OK` | S3.2 | #tache-l11-t11 |
 | L11-T12 | Tablette III : menus et palette au doigt (appui long → menu de l'objet ou de la page ; libellé d'un bouton par appui long ; rangées de 48 dp) | L11-T3, L11-T5, L11-T10 | `ui/include/actcraft/ui/fingermenus.h`, `ui/src/fingermenus.cpp`, `ui/qml/FingerMenu.qml`, `ui/qml/CommandMenu.qml`, `ui/qml/ToolPalette.qml`, `tests/tst_ui_fingermenus.cpp`, `bench/scenarios/au-doigt.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_fingermenus` 6 fonctions `PASS` ; `tst_captures_au_doigt` Passed ; `LU fingerMenu.visible=true OK`, `CAPTURES OK` | S3.3 | #tache-l11-t12 |
@@ -47,7 +47,7 @@ touchées sont corrigées en place. Noms vérifiés par la relecture à la tête
 | M5 | `Sample::deviceId` absent quand L11-T7 compile | champ ajouté par L11-T4 (V2) | L11-T4, L11-T5 |
 | M6 | `userReachesTheToolHost` impossible avant deux `UserState` | L11-T5 prouve la transmission (`lastContactUser`) ; L11-T7 prouve la réception (`secondUserReceivesInDualMode`) | L11-T5, L11-T7 |
 | M7 | l'utilisateur n'atteint pas les gestionnaires QML | gestionnaires `(argument, user)`, `appTools.setColor(color, user)` ; `Main.qml` et `toolhost.*` à L11-T9 | L11-T3, L11-T9 |
-| M8 | réglages d'essai limités aux tests qui chargent `Main.qml` | règle étendue à tout test qui crée un objet à réglages ; contrôle `reg query` | commandes communes |
+| M8 | réglages d'essai limités aux tests qui chargent `Main.qml` | règle étendue à tout test qui crée un objet à réglages ; contrôle `reg query`, remplacé par l'assertion `QSettings probe` de l'amendement 2 (N1) | commandes communes |
 | M9 | dossier de reprise du joueur non posé | `StartupOptions::recoveryDir`, joueur, `Main.qml` dans L11-T13 | L11-T13 |
 | M10 | comptes de talons impossibles | `git grep -l "// Talon L11" -- '*.h' '*.cpp' ':!tests/'` = 22 ; fin : exclusion de `docs/`, `graphify-out/`, `tst_ui_shell.cpp` ; marqueur construit | L11-T1, L11-T16, L11-T30 |
 | M11 | `Totals` faux (`initTestCase`, `cleanupTestCase`) | k = fonctions nommées + 2 + fonctions existantes | commandes communes |
@@ -68,6 +68,24 @@ touchées sont corrigées en place. Noms vérifiés par la relecture à la tête
 | m10 | `pm clear` ne retire pas les permissions | `content delete --uri`, vérifié par L11-T0 | L11-T14 |
 | m11 | AVD sans nom | `actcraft-tablette`, taille au rapport | L11-T11 |
 | m12 à m18 | 11b | voir l'amendement de 11b | 11b |
+
+## Amendement 2 (relecture tour 2)
+
+Relecture sur `7292f49` : 4 majeurs (N1 à N4) et 6 mineurs, tous appliqués en place dans 11a et 11b. **Cet amendement
+fait autorité**, puis l'amendement 1, puis le texte d'origine.
+
+| # | Constat | Correction | Où |
+|---|---|---|---|
+| N1 | le contrôle `reg query HKCU\Software\ActCraft` ne voit pas les écritures des tests (aucun `setOrganizationName` sous `tests/`) et lit les vrais réglages de Jérôme | contrôle retiré ; assertion de fin d'`initTestCase` dans chaque test de la règle (`QSettings probe; QCOMPARE(probe.format(), QSettings::IniFormat); QVERIFY(probe.fileName().startsWith(m_settings.path()));`) ; une mutation par tâche concernée qui retire `setDefaultFormat` et rend ce test rouge | commandes communes (réglages d'essai) |
+| N2 | `secondUserReceivesInDualMode` emploie `PageView::setRoutingPolicy` (L11-T5, même vague) et une vue, dans un test `input` sans écran | fonction déplacée dans `tst_ui_secondpalette` (L11-T9, V5), qui passe à 8 fonctions ; `tst_input_twousers` revient à 7 et lie `ActCraft::ui` (il crée un `ui::ToolHost`) | R1, L11-T7, L11-T9 |
+| N3 | les tests qui chargent `Main.qml` ne se lient pas sans `app/startup.cpp`, le dossier `app` et `actcraft_uiplugin` | colonne « sources et bibliothèques » dans R1 ; formes F1 à F7 ; L11-T1 enregistre ces tests sur la forme de `tests/ui.cmake:33-36` | R1, L11-T1, 11b |
+| N4 | la preuve « aucune API privée nouvelle » lisait le contexte de `git diff` et toute la branche | lignes ajoutées seulement, depuis la base de la tâche : `git -C <wt> diff feat/livraison-complete...HEAD -- bench/ tests/ \| Select-String '^\+(?!\+\+).*(QWindowSystemInterface\|qpa/\|_p\.h\|GuiPrivate)'` vide | commandes communes, L11-T2 |
+| n1 | `appTools.setTool` n'existe pas | `appTools.activate(<outil>, user)` (lot 3 : `appTools.activate("pen")`) | L11-T9 |
+| n2 | l'outil de l'utilisateur 2 n'est jamais choisi dans S28 ; outil de départ d'un `UserState` neuf non dit | `{"command": "tool.pen", "user": 1}` avant ses réglages ; un `UserState` neuf commence au stylo (`pen`, ou valeur tranchée par L11-T0) | L11-T7, L11-T9 |
+| n3 | `routing.h` absent de la ligne de L11-T7 | ajouté ; condition « si L11-T4 ne l'a pas fait » retirée | L11-T7 |
+| n4 | « Cinq étapes nouvelles » | « Six » | L11-T2 |
+| n5 | `recoveryDir` vide dans les tests qui chargent `Main.qml` | `recoveryDir` temporaire dans `StartupOptions` et `QStandardPaths::setTestModeEnabled(true)` dans la règle | commandes communes |
+| n6 | `Get-Process java` voit les Java des autres sessions | seuls les `java.exe` dont la ligne de commande contient le worktree sont comptés | L11-T14 |
 
 L'identifiant `L11-C0` est réservé au correctif de données qui suit L11-T0 (même règle qu'au lot 6) : il ne touche que
 `actions/data/commands.json` et `actions/data/layout.json` et se joue seul avant V2.
@@ -109,24 +127,47 @@ testé par la CI.
 jusqu'à leur tâche (le test `tst_app_version` existant, `tests/app.cmake:4-5`, qui lance `actcraft --version`, est
 gardé ; le test unitaire de version du lot s'appelle donc `tst_app_versioninfo`) :
 
-| # | test | tâche | | # | test | tâche |
-|---|---|---|---|---|---|---|
-| 1 | `tst_input_touchmodes` | L11-T4 | | 17 | `tst_app_notices` | L11-T25 |
-| 2 | `tst_ui_pageinput` | L11-T5 | | 18 | `tst_ui_lockall` | L11-T26 |
-| 3 | `tst_ui_touchmode` | L11-T6 | | 19 | `tst_ui_profilesall` | L11-T27 |
-| 4 | `tst_input_twousers` | L11-T7 | | 20 | `tst_app_versioninfo` | L11-T28 |
-| 5 | `tst_tools_twousers` | L11-T8 | | 21 | `tst_ui_helppages` | L11-T17, L11-T18 |
-| 6 | `tst_ui_secondpalette` | L11-T9 | | 22 | `tst_captures_modes_toucher` | L11-T6 |
-| 7 | `tst_ui_narrowlayout` | L11-T10 | | 23 | `tst_captures_deux_utilisateurs` | L11-T9 |
-| 8 | `tst_ui_orientation` | L11-T11 | | 24 | `tst_captures_tablette_etroite` | L11-T10 |
-| 9 | `tst_ui_fingermenus` | L11-T12 | | 25 | `tst_captures_rotation_clavier` | L11-T11 |
-| 10 | `tst_ui_lifecycle` | L11-T13 | | 26 | `tst_captures_au_doigt` | L11-T12 |
-| 11 | `tst_ui_documentportal` | L11-T14 | | 27 | `tst_captures_cycle_de_vie` | L11-T13 |
-| 12 | `tst_bench_resultsdir` | L11-T15 | | 28 | `tst_captures_aide_complete` | L11-T18 |
-| 13 | `tst_ui_pseudolocale` | L11-T19 | | 29 | `tst_captures_pseudo_langue` | L11-T19 (activé par L11-T20) |
-| 14 | `tst_ui_updatechecker` | L11-T21 | | 30 | `tst_captures_mises_a_jour` | L11-T22 |
-| 15 | `tst_ui_shortcuts` | L11-T23 | | 31 | `tst_captures_classe_protegee_complete` | L11-T26 |
-| 16 | `tst_ui_accessibility` | L11-T24 | | 32 | `tst_captures_profils_complets` | L11-T27 |
+| # | test | tâche | sources et bibliothèques | | # | test | tâche | sources et bibliothèques |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `tst_input_touchmodes` | L11-T4 | F3 | | 17 | `tst_app_notices` | L11-T25 | F6 |
+| 2 | `tst_ui_pageinput` | L11-T5 | F1 | | 18 | `tst_ui_lockall` | L11-T26 | F1 |
+| 3 | `tst_ui_touchmode` | L11-T6 | F1 | | 19 | `tst_ui_profilesall` | L11-T27 | F1 |
+| 4 | `tst_input_twousers` | L11-T7 | F4 | | 20 | `tst_app_versioninfo` | L11-T28 | F6 |
+| 5 | `tst_tools_twousers` | L11-T8 | F5 | | 21 | `tst_ui_helppages` | L11-T17, L11-T18 | F2 |
+| 6 | `tst_ui_secondpalette` | L11-T9 | F1 | | 22 | `tst_captures_modes_toucher` | L11-T6 | F8 |
+| 7 | `tst_ui_narrowlayout` | L11-T10 | F1 | | 23 | `tst_captures_deux_utilisateurs` | L11-T9 | F8 |
+| 8 | `tst_ui_orientation` | L11-T11 | F1 | | 24 | `tst_captures_tablette_etroite` | L11-T10 | F8 |
+| 9 | `tst_ui_fingermenus` | L11-T12 | F1 | | 25 | `tst_captures_rotation_clavier` | L11-T11 | F8 |
+| 10 | `tst_ui_lifecycle` | L11-T13 | F1 | | 26 | `tst_captures_au_doigt` | L11-T12 | F8 |
+| 11 | `tst_ui_documentportal` | L11-T14 | F2 | | 27 | `tst_captures_cycle_de_vie` | L11-T13 | F8 |
+| 12 | `tst_bench_resultsdir` | L11-T15 | F7 | | 28 | `tst_captures_aide_complete` | L11-T18 | F8 |
+| 13 | `tst_ui_pseudolocale` | L11-T19 | F2 | | 29 | `tst_captures_pseudo_langue` | L11-T19 (activé par L11-T20) | F8 |
+| 14 | `tst_ui_updatechecker` | L11-T21 | F1 | | 30 | `tst_captures_mises_a_jour` | L11-T22 | F8 |
+| 15 | `tst_ui_shortcuts` | L11-T23 | F1 | | 31 | `tst_captures_classe_protegee_complete` | L11-T26 | F8 |
+| 16 | `tst_ui_accessibility` | L11-T24 | F1 | | 32 | `tst_captures_profils_complets` | L11-T27 | F8 |
+
+**Formes d'enregistrement (amendement 2, N3).** Lues dans `tests/*.cmake` à la tête du chantier (`27ec7ba`) :
+- **F1 — charge `Main.qml`** (forme de `tst_ui_shell`, `tests/ui.cmake:33-36`), dans `tests/ui.cmake` :
+  ```cmake
+  actcraft_add_test(<test>
+      SOURCES <test>.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+      LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+  target_include_directories(<test> PRIVATE ${PROJECT_SOURCE_DIR}/app)
+  ```
+- **F2 — `ui` sans `Main.qml`** : `SOURCES <test>.cpp` et `LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin`
+  (forme de `tst_ui_about`), dans `tests/ui.cmake`.
+- **F3 — `input`** : `LIBS ActCraft::input Qt6::Gui` (forme de `tst_input_routing`), dans `tests/input.cmake`,
+  `QTEST_GUILESS_MAIN`.
+- **F4 — `input` avec l'hôte d'outils** : `LIBS ActCraft::input ActCraft::ui Qt6::Gui`, dans `tests/input.cmake`,
+  `QTEST_MAIN` (`eachUserKeepsItsTool` crée un `ui::ToolHost`).
+- **F5 — `tools`** : forme des tests `tst_tools_*` de `tests/tools.cmake`, plus `ActCraft::ui` si le test crée un
+  `ToolHost`.
+- **F6 — `app`** : `LIBS ActCraft::ui`, définitions `ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}"` (et, pour
+  `tst_app_versioninfo`, `ACTCRAFT_VERSION_CODE=${ACTCRAFT_VERSION_CODE}`), dans `tests/app.cmake`.
+- **F7 — `bench`** : forme de `tst_bench_uiscenario` dans `tests/bench.cmake`.
+- **F8 — captures** : forme de `tst_captures_premiers_pas` (`tests/bench.cmake:107-112`), décrite ci-dessous.
+Une tâche qui découvre un besoin de plus (source, bibliothèque, définition) ajoute le fichier `tests/<module>.cmake`
+concerné à sa ligne, sans recoupement dans sa vague, et le dit au rapport.
 
 Un test de captures est un `add_test(NAME tst_captures_<nom> …)` dans `tests/bench.cmake`, sur le modèle de
 `tst_captures_premiers_pas` (`tests/bench.cmake:107-112`) ; son scénario talon (R3) ne contient que `waitReady` et
@@ -241,13 +282,20 @@ la section de la tâche qui l'emploie.
   rapport (jamais commité).
 - **Réglages d'essai** (amendement 3 du lot 6) : le joueur et le banc écrivent leurs réglages dans un fichier INI propre
   au lancement (`<sortie>/reglages`, profils sous `<sortie>/profils`) ; **tout test** qui crée un `Preferences`, un
-  `ProfileController`, un `ClassroomLock`, un `RecentDocuments`, un `UpdateChecker` ou un `TouchModeController`, ou
-  qui charge `Main.qml`, pose
+  `ProfileController`, un `ClassroomLock`, un `RecentDocuments`, un `UpdateChecker`, un `TouchModeController` ou un
+  `LifecycleKeeper`, ou qui charge `Main.qml`, pose dans `initTestCase` : `QStandardPaths::setTestModeEnabled(true)`,
   `QSettings::setDefaultFormat(QSettings::IniFormat)` et `QSettings::setPath(QSettings::IniFormat,
-  QSettings::UserScope, m_settings.path())` (`QTemporaryDir m_settings`) dans `initTestCase`, et un `profileRoot`
-  temporaire. Jamais le registre Windows réel, jamais les réglages de Jérôme. Contrôle à chaque preuve de tâche :
-  `reg query HKCU\Software\ActCraft /s > .tmp/reg-avant.txt 2>&1` avant, la même commande vers `.tmp/reg-apres.txt`
-  après, puis `Compare-Object (Get-Content .tmp/reg-avant.txt) (Get-Content .tmp/reg-apres.txt)` : sortie vide.
+  QSettings::UserScope, m_settings.path())` (`QTemporaryDir m_settings`), et, s'il charge `Main.qml`, un `profileRoot`
+  et un `recoveryDir` temporaires dans `StartupOptions` (amendement 2, n5). Jamais le registre Windows réel, jamais les
+  réglages de Jérôme, jamais le vrai dossier de reprise. **Preuve (amendement 2, N1)** : `initTestCase` se termine par
+  ```cpp
+  QSettings probe;
+  QCOMPARE(probe.format(), QSettings::IniFormat);
+  QVERIFY(probe.fileName().startsWith(m_settings.path()));
+  ```
+  et chaque tâche qui écrit ou remplit un tel test joue une mutation : retirer l'appel à `setDefaultFormat` de
+  `initTestCase` → la commande ciblée montre `initTestCase` en `FAIL!` ; remise par `git -C <wt> checkout -- <test>` ;
+  vert.
 - **Émulateur** : scripts de ce plan bâtis sur `scripts/android-commun.ps1` (appels adb bornés, arrêt par les
   processus tenus, jamais par nom) ; même règle que `scripts/essai-android-fichiers.ps1` : refus de démarrer si le port
   de l'essai est occupé ; sorties sous `.tmp/`.
@@ -255,6 +303,10 @@ la section de la tâche qui l'emploie.
   `git -C <wt> checkout -- <fichier>` (jamais par `Copy-Item`), et la commande ciblée rejouée verte.
 - **API de Qt** (arbitrage M1 de l'orchestrateur) : aucune API privée de Qt nouvelle, ni dans le code livré ni dans
   le joueur. Le banc garde son lien existant à `Qt6::GuiPrivate` pour les touches ; le lot 11 n'en ajoute aucun usage.
+  Contrôle (amendement 2, N4), sur les seules lignes **ajoutées** depuis la base de la tâche ; sortie vide attendue :
+  ```powershell
+  git -C <wt> diff feat/livraison-complete...HEAD -- bench/ tests/ | Select-String '^\+(?!\+\+).*(QWindowSystemInterface|qpa/|_p\.h|GuiPrivate)'
+  ```
 - **`NOMS OK`** (après `git add`, avant chaque commit) :
   ```powershell
   python -I "C:\Users\JeromeDenis\REA - Activinspire\tools\controle_noms_actcraft.py" "<wt>" | Select-Object -Last 1
@@ -442,10 +494,11 @@ L11-T<n>. », et `(git -C <wt> grep -l "// Talon L11" -- '*.h' '*.cpp' ':!tests/
   QTEST_GUILESS_MAIN(TstInputTouchModes)
   #include "tst_input_touchmodes.moc"
   ```
-  `QTEST_MAIN` pour les tests `tst_ui_*` (comme `tst_ui_shell`), `QTEST_GUILESS_MAIN` pour `input`, `tools`, `app` et
-  `bench`.
+  `QTEST_MAIN` pour les tests `tst_ui_*` (comme `tst_ui_shell`) et pour `tst_input_twousers` (F4),
+  `QTEST_GUILESS_MAIN` pour les autres tests `input`, `tools`, `app` et `bench`.
 - [ ] **Étape 2 : enregistrement.** Dans `tests/{input,tools,ui,app,bench}.cmake`, un `actcraft_add_test(<nom> …)` par
-  test unitaire (forme de `tests/CMakeLists.txt:2-16`), et un `add_test(NAME tst_captures_<nom> …)` par test de captures
+  test unitaire, sur la forme F1 à F7 que lui donne la colonne « sources et bibliothèques » de R1 (fonction de
+  `tests/CMakeLists.txt:2-16` ; F1 = forme de `tests/ui.cmake:33-36`), et un `add_test(NAME tst_captures_<nom> …)` par test de captures
   (forme de `tests/bench.cmake:107-112`), scénario R3 correspondant.
 - [ ] **Étape 3 : talons de sources.** Chaque en-tête R2 reçoit les déclarations écrites dans la section de sa tâche
   (signatures recopiées telles quelles) ; chaque `.cpp` définit chaque fonction par le corps le plus simple qui compile,
@@ -461,7 +514,7 @@ L11-T<n>. », et `(git -C <wt> grep -l "// Talon L11" -- '*.h' '*.cpp' ':!tests/
 <a id="tache-l11-t2"></a>
 ### Tâche L11-T2 — Joueur de scénarios : étapes du lot
 
-**Objectif.** Cinq étapes nouvelles du joueur (`actcraft-captures`), analysées et jouées :
+**Objectif.** Six étapes nouvelles du joueur (`actcraft-captures`), analysées et jouées :
 - `{"parallel": [{"device": 1, "kind": "stylus"|"touch"|"mouse", "points": [[x, y], …]}, …], "pressure": 0.5}` :
   plusieurs contacts injectés **entrelacés** (appuis, puis mouvements alternés, puis relâchés), chacun avec son
   appareil ; points en coordonnées de **page**, comme `stroke` ; un `QPointingDevice` **public** par numéro, créé à la
@@ -494,7 +547,8 @@ L11-T<n>. », et `(git -C <wt> grep -l "// Talon L11" -- '*.h' '*.cpp' ':!tests/
 injectent des événements, comme `touch`) ; aucune API privée de Qt nouvelle (`QWindowSystemInterface`, en-têtes
 `*_p.h`).
 
-**Terminé quand** les sept fonctions nouvelles et toutes les anciennes passent.
+**Terminé quand** les sept fonctions nouvelles et toutes les anciennes passent, et le contrôle des API privées
+(commandes communes, N4) sort vide.
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge** (ajouté à `tests/tst_bench_uiscenario.cpp`, sur le modèle de `touchStepParsed`) :
@@ -956,19 +1010,20 @@ private:
     mutable std::uint64_t m_firstStylus = 0; // 0 : aucun vu
 };
 ```
-`RouterState` gagne `bool stylusDownByUser[2]` (au lieu d'un seul booléen pour cette politique ; `stylusDown` reste
-pour les autres) — à écrire dans `routing.h` **par L11-T4 s'il n'est pas déjà mergé, sinon ici** ; la tâche vérifie
-qu'aucune autre ne l'a déjà fait (`git -C <wt> log -p input/include/actcraft/input/routing.h`).
+`RouterState` gagne `bool stylusDownByUser[2] = {false, false};` (au lieu d'un seul booléen pour cette politique ;
+`stylusDown` reste pour les autres), écrit **par cette tâche** dans `input/include/actcraft/input/routing.h` (L11-T4,
+mergée en V2, n'y touche plus ; ni L11-T5 ni L11-T10 n'y touchent en V3). `ToolHost::setDualUsers(bool)` (créneau
+ajouté ici, appelé par `DualMode` en L11-T9) crée le second `UserState` ; **un `UserState` neuf commence au stylo**
+(`pen`, ou la valeur tranchée par L11-T0 ; amendement 2, n2).
 
-**Fichiers.** Ceux de la ligne de la table (et `input/include/actcraft/input/routing.h` si le champ manque, dans ce cas
-la tâche le signale : L11-T4 est mergée, aucun recoupement dans la vague V3).
+**Fichiers.** Ceux de la ligne de la table. Enregistrement de `tst_input_twousers` : forme F4 (R1).
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_input_twousers|tst_input_'`.
 
 **Interdits.** Aucun changement à `FullTouchPolicy` ni aux trois politiques de L11-T4 ; aucune boîte de dialogue ni
 QML ici.
 
-**Terminé quand** les 8 fonctions passent et la mutation est vue rouge.
+**Terminé quand** les 7 fonctions passent et la mutation est vue rouge.
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge** `tst_input_twousers.cpp` : `mouseIsFirstUser` ; `secondStylusIsSecondUser` (deux appuis
@@ -977,10 +1032,9 @@ QML ici.
   l'utilisateur 0 → `Tool` puis `Ignore`, jamais `Gesture`) ; `palmOfOneUserOnly` (stylet de l'utilisateur 0 posé ;
   doigt dans l'aire de l'utilisateur 1 → `Tool`, utilisateur 1) ; `eachUserKeepsItsTool` (`ToolHost` : `user(0)`
   stylo rouge, `user(1)` gomme ; relus distincts) ; `singleUserWhenOff` (`ToolHost::user(1)` sans mode → même objet que
-  `user(0)`) ; `secondUserReceivesInDualMode` (`ToolHost::setDualUsers(true)`, créneau ajouté par cette tâche et appelé
-  par `DualMode` en L11-T9 ; vue chargée, `TwoUserPolicy` posée par `PageView::setRoutingPolicy` ; un appui de stylet
-  de l'appareil 22 après un de l'appareil 11 atteint l'outil d'essai de `user(1)` et pas celui de `user(0)`, compteurs
-  des deux outils d'essai).
+  `user(0)`). `eachUserKeepsItsTool` allume `setDualUsers(true)` et vérifie d'abord que `user(1)` neuf est au stylo.
+  (« L'utilisateur 1 reçoit, l'utilisateur 0 rien » est prouvé par `secondUserReceivesInDualMode`, dans L11-T9 :
+  amendement 2, N2.)
 - [ ] **Étape 2 : implémentation.**
 - [ ] **Étape 3 : mutation** : faire rendre `Gesture` au deuxième doigt → `noGestureInDualMode` rouge ;
   `git -C <wt> checkout -- input/src/twouserpolicy.cpp` ; vert.
@@ -1036,7 +1090,7 @@ dans la ligne par l'orchestrateur avant le lancement.
 **Gestionnaires et utilisateur (amendement 1, M7).** `Commands::trigger(id, argument, user)` appelle le gestionnaire
 JS avec `(argument, user)` ; dans `Main.qml`, les gestionnaires des outils et du stylo passent l'utilisateur :
 `pen.color` → `appTools.setColor(color, user)`, `pen.width` → `appTools.setWidth(width, user)`, `tool.*` →
-`appTools.setTool(<outil>, user)` ; `ToolHost` (instance `appTools`) gagne ces surcharges (`user` = 0 par défaut :
+`appTools.activate(<outil>, user)` (forme du lot 3 : `appTools.activate("pen")`) ; `ToolHost` (instance `appTools`) gagne ces surcharges (`user` = 0 par défaut :
 les appels existants ne changent pas). `DualMode` appelle `ToolHost::setDualUsers(bool)` (L11-T7).
 
 **Fichiers.** Ceux de la ligne de la table.
@@ -1049,7 +1103,7 @@ couleurs, deux épaisseurs ; deuxième palette à gauche).
 
 **Interdits.** Aucune voie QML qui contourne `trigger` pour le second ; aucune personnalisation de la deuxième palette.
 
-**Terminé quand** les 7 fonctions et le scénario passent.
+**Terminé quand** les 8 fonctions et le scénario passent.
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge** `tst_ui_secondpalette.cpp` : `opensDialogParsed` (`file.open` vrai, `pen.color` faux) ;
@@ -1057,7 +1111,10 @@ couleurs, deux épaisseurs ; deuxième palette à gauche).
   écrite dans le test, `help.check-updates` compris (sa boîte arrive en L11-T22) — `opensDialog` vrai) ; `secondUserCannotOpenADialog` (`trigger("file.open", {}, 1)` faux,
   signal émis) ; `firstUserStillCan` ; `toggleSetsTheTwoUserPolicy` ; `offRestoresTheTouchMode` (mode `pen`, deux
   utilisateurs allumé puis éteint → politique du stylo) ; `pinchZoomsOnlyWhenOff` (pincement injecté : échelle
-  inchangée en mode allumé, changée éteint).
+  inchangée en mode allumé, changée éteint) ; `secondUserReceivesInDualMode` (déplacé de L11-T7, amendement 2, N2 :
+  `Main.qml` chargé (F1), `users.dual` allumé, donc `ToolHost::setDualUsers(true)` et `TwoUserPolicy` posée par
+  `PageView::setRoutingPolicy` ; un appui de stylet de l'appareil 22 après un de l'appareil 11 atteint l'outil d'essai
+  de `user(1)` et pas celui de `user(0)` — compteurs des deux outils d'essai).
 - [ ] **Étape 2 : implémentation**, données, QML.
 - [ ] **Étape 3 : scénario** `bench/scenarios/deux-utilisateurs.json` (S28, première partie) :
   ```json
@@ -1070,8 +1127,10 @@ couleurs, deux épaisseurs ; deuxième palette à gauche).
       {"command": "users.dual"},
       {"expect": "appDualMode.active", "value": true},
       {"expect": "secondPalette.visible", "value": true},
+      {"command": "tool.pen"},
       {"command": "pen.color", "argument": "#E53935"},
       {"command": "pen.width", "argument": 8},
+      {"command": "tool.pen", "user": 1},
       {"command": "pen.color", "argument": "#1E88E5", "user": 1},
       {"command": "pen.width", "argument": 2, "user": 1},
       {"parallel": [
@@ -1313,7 +1372,9 @@ retire pas les permissions gardées par le système ; voie vérifiée par L11-T0
   d'`androiddeployqt` : `$env:GRADLE_OPTS = '-Dorg.gradle.daemon=false'` (A24) ; preuve : `Measure-Command` de
   `pwsh -NoProfile -File ./scripts/paquet-android.ps1 > .tmp/apk.txt 2>&1`, la commande rend la main moins de 60 s
   après la ligne `APK OK` (horodatage de la ligne relevé par `(Get-Item .tmp/apk.txt).LastWriteTime`) ; aucun
-  processus `java` laissé par l'essai (`Get-Process java` avant et après, PID comparés).
+  `java.exe` de ce worktree laissé par l'essai — seuls ceux dont la ligne de commande contient le worktree sont
+  comptés, sortie vide attendue après la commande :
+  `Get-CimInstance Win32_Process -Filter "Name='java.exe'" | Where-Object CommandLine -like '*<wt>*'`.
 - [ ] **Étape 1 : test rouge** `tst_ui_documentportal.cpp` (bureau ; JNI remplacé par une interface
   `PermissionBackend` injectée, factice dans le test) : `contentUrlKeptOnAdd` ; `localFileNeedsNoPermission` ;
   `lostPermissionRemovesTheEntry` (signal émis avec le nom affiché, pas l'URL) ; `forgetReleases` ;
