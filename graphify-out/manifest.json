@@ -470,8 +470,8 @@
     "semantic_hash": ""
   },
   "input/include/actcraft/input/sample.h": {
-    "mtime": 1792010264.029091,
-    "ast_hash": "f28fb053382a270134dd04f0304eb4ce",
+    "mtime": 1792370245.1753914,
+    "ast_hash": "2d49235c93b187233b098eec46105c30",
     "semantic_hash": ""
   },
   "input/src/input.cpp": {
@@ -485,8 +485,8 @@
     "semantic_hash": ""
   },
   "input/src/qtevents.cpp": {
-    "mtime": 1792010264.0320933,
-    "ast_hash": "cf587e7db8b3c06e2edbd122aa1fba6a",
+    "mtime": 1792370245.1832395,
+    "ast_hash": "2f93674990a4db33d98f1ad5c3c018ed",
     "semantic_hash": ""
   },
   "render/include/actcraft/render/fixedpageitem.h": {
@@ -735,8 +735,8 @@
     "semantic_hash": ""
   },
   "tests/tst_pentool.cpp": {
-    "mtime": 1792000400.4586172,
-    "ast_hash": "2dccbfc704c0c188c30640f4de1095b2",
+    "mtime": 1792370245.1874654,
+    "ast_hash": "b30b261955d57357c9538c4839aa6477",
     "semantic_hash": ""
   },
   "tests/tst_qt_verifications.cpp": {
@@ -790,8 +790,8 @@
     "semantic_hash": ""
   },
   "tools/include/actcraft/tools/pentool.h": {
-    "mtime": 1792000400.5581386,
-    "ast_hash": "0a598086faba2f9668b86dbde04e0f5d",
+    "mtime": 1792370245.1874654,
+    "ast_hash": "e7732b954b960c57dd04b485404d33b9",
     "semantic_hash": ""
   },
   "tools/include/actcraft/tools/tools.h": {
@@ -800,8 +800,8 @@
     "semantic_hash": ""
   },
   "tools/src/pentool.cpp": {
-    "mtime": 1792000400.5758283,
-    "ast_hash": "294ebdeec5b560a20465b07c110b49c0",
+    "mtime": 1792370245.1874654,
+    "ast_hash": "ccb7ad733250f7bf7eee4245b6b54538",
     "semantic_hash": ""
   },
   "tools/src/tools.cpp": {
@@ -810,8 +810,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/pageview.h": {
-    "mtime": 1792359054.060313,
-    "ast_hash": "d1ee4af645ac0c413107d54925ad8db8",
+    "mtime": 1792370245.1874654,
+    "ast_hash": "ebd799b6e92bc32524f6599cce850c38",
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/viewtransform.h": {
@@ -820,8 +820,8 @@
     "semantic_hash": ""
   },
   "ui/src/pageview.cpp": {
-    "mtime": 1792359054.0811882,
-    "ast_hash": "969c8c02b6b82c8a91b494312121aa49",
+    "mtime": 1792370245.200453,
+    "ast_hash": "50759c4fd9d6ce075de256938f836431",
     "semantic_hash": ""
   },
   "ui/src/penadapters.cpp": {
@@ -1095,8 +1095,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_document.cpp": {
-    "mtime": 1792127537.2841532,
-    "ast_hash": "3579847ae4ba850e325957b888665c23",
+    "mtime": 1792369951.1587012,
+    "ast_hash": "1cf1247cb2ee49b8f37650ed50ada721",
     "semantic_hash": ""
   },
   "tests/tst_ui_police.cpp": {
@@ -1125,8 +1125,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/documentcontroller.h": {
-    "mtime": 1792244107.2315996,
-    "ast_hash": "5e30b330d76f05c5ae76ba91e15bdade",
+    "mtime": 1792369951.1607196,
+    "ast_hash": "d7e2050eb7647f5edc0ae71ddf062970",
     "semantic_hash": ""
   },
   "ui/src/appinfo.cpp": {
@@ -1140,8 +1140,8 @@
     "semantic_hash": ""
   },
   "ui/src/documentcontroller.cpp": {
-    "mtime": 1792244107.235728,
-    "ast_hash": "5079fd888f54047c6978c2fed29c4494",
+    "mtime": 1792369951.1607196,
+    "ast_hash": "361ae7bcf3b87c22311e1b994da674b2",
     "semantic_hash": ""
   },
   ".github/workflows/release.yml": {
@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1792365332.6454787,
-    "ast_hash": "1dc075fb733e0f32a2a8f4e20a550432",
+    "mtime": 1792369020.220641,
+    "ast_hash": "9546da8c27c6554924a46d45ed2f09df",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -1745,8 +1745,8 @@
     "semantic_hash": ""
   },
   "input/src/routing.cpp": {
-    "mtime": 1792362711.2989118,
-    "ast_hash": "813000e78d8b739ab0fc9ad5e991f40e",
+    "mtime": 1792370245.1862574,
+    "ast_hash": "a20efe00b84374f0d405e15f29bece6c",
     "semantic_hash": ""
   },
   "render/include/actcraft/render/liftlayeritem.h": {
@@ -1800,8 +1800,8 @@
     "semantic_hash": ""
   },
   "tests/tst_input_routing.cpp": {
-    "mtime": 1792344769.1243577,
-    "ast_hash": "620d5b8c1a156c73cd893e796a237e2d",
+    "mtime": 1792370245.1874654,
+    "ast_hash": "9c3f2a13e465da797cfa26a32e2d4a1f",
     "semantic_hash": ""
   },
   "tests/tst_render_liftlayer.cpp": {
@@ -1830,8 +1830,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_inputpath.cpp": {
-    "mtime": 1792344769.1345553,
-    "ast_hash": "54048088d5fbae654af1cf41bd364b46",
+    "mtime": 1792370245.1874654,
+    "ast_hash": "aa464dbb726138a7c17836338706c423",
     "semantic_hash": ""
   },
   "tests/tst_ui_lift.cpp": {
