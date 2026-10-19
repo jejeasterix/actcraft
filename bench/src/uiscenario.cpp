@@ -287,6 +287,11 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             why = QStringLiteral("seuil de boucle invalide (de 1 à %1 ms)").arg(kLoopGapMaxMs);
             return false;
         }
+        if (o.contains(QStringLiteral("informative")) && !o.value(QStringLiteral("informative")).isBool()) {
+            why = QStringLiteral("seuil de boucle invalide (informative : true ou false)");
+            return false;
+        }
+        step.informative = o.value(QStringLiteral("informative")).toBool(false);
         return true;
     }
     if (o.contains(QStringLiteral("remember"))) {
@@ -1213,6 +1218,14 @@ bool UiScenarioPlayer::maxEventLoopGap(const UiStep& step, QStringList& report)
     m_loopProbe.reset();
     if (max <= step.ms) {
         report << QStringLiteral("BOUCLE max=%1 ms OK").arg(max);
+        return true;
+    }
+    // Mesure informative (L3-C4, S5) : écrite, ni jugée ni rejouée ; sans « ECART », motif d'échec de ctest.
+    // L'invariant qu'elle surveillait (le fil principal n'attend jamais l'écriture) est prouvé sans
+    // chronomètre par tst_ui_files ; à l'écran, l'orchestrateur juge la mesure aux clôtures.
+    if (step.informative) {
+        report
+            << QStringLiteral("BOUCLE max=%1 ms HORS SEUIL (seuil %2 ms, informatif)").arg(max).arg(step.ms);
         return true;
     }
     // Reprise unique (L10-C2) : la charge de la machine allonge un intervalle au hasard, un blocage du fil
