@@ -16,6 +16,7 @@ constexpr double kDefaultThickness = 80;
 constexpr double kNextOffset = 24; // une règle de plus s'ouvre décalée, pas sur la précédente
 constexpr double kMinLength = 120;
 constexpr double kMaxLength = 4000;
+const char* const kGuidedTool = "pen"; // tools::PenTool::id()
 const char* const kRulerGroup = "mathtools/ruler";
 
 QString unitName(features::RulerUnit unit)
@@ -116,6 +117,21 @@ int MathToolsController::defaultOpacity() noexcept
     return features::kDefaultToolOpacity;
 }
 
+qreal MathToolsController::minimumLength() noexcept
+{
+    return kMinLength;
+}
+
+qreal MathToolsController::maximumLength() noexcept
+{
+    return kMaxLength;
+}
+
+bool MathToolsController::guiding() const noexcept
+{
+    return m_guiding;
+}
+
 qreal MathToolsController::guideBand() const noexcept
 {
     const qreal zoom = m_view ? m_view->zoom() : 1.0;
@@ -158,6 +174,7 @@ void MathToolsController::close(int index)
     // Retiré des guides avant d'être détruit : un trait guidé en cours finit libre, rien n'est effacé.
     auto it = m_tools.begin() + index;
     m_guides.remove(it->ruler.get());
+    updateGuiding();
     m_tools.erase(it);
     updateFilter();
     storeOpenTools();
@@ -257,11 +274,36 @@ void MathToolsController::updateFilter()
         // Chaque échantillon de la voie Tool, avant le Pipeline : appui, déplacements et relâché (naturel ou
         // synthétisé par la vue au dernier point brut). Le guide saisi à l'appui garde le trait jusqu'au
         // relâché.
-        m_view->setSampleFilter([this](const input::Sample& sample) { return m_guides.filter(sample); });
+        m_view->setSampleFilter([this](const input::Sample& sample) { return guide(sample); });
     } else {
         m_view->setSampleFilter({});
     }
     m_filterInstalled = wanted;
+}
+
+bool MathToolsController::guidesTool(input::UserId user) const
+{
+    // Sans hôte d'outils (annotation de bureau), la vue n'a que son stylo.
+    return !m_toolHost || m_toolHost->user(user).currentTool() == QLatin1String(kGuidedTool);
+}
+
+input::Sample MathToolsController::guide(const input::Sample& sample)
+{
+    if (!guidesTool(sample.user)) {
+        return sample;
+    }
+    const input::Sample out = m_guides.filter(sample);
+    updateGuiding();
+    return out;
+}
+
+void MathToolsController::updateGuiding()
+{
+    const bool now = m_guides.guiding();
+    if (now != m_guiding) {
+        m_guiding = now;
+        emit guidingChanged();
+    }
 }
 
 void MathToolsController::syncTolerance()

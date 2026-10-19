@@ -13,6 +13,7 @@
 #include <actcraft/ui/toolhost.h>
 
 #include <QCursor>
+#include <QSignalSpy>
 #include <QtTest>
 
 #include <cstddef>
@@ -156,10 +157,28 @@ private slots:
         QVERIFY(qAbs(guided->points.front().x - 300) <= 0.5);
         QVERIFY(qAbs(guided->points.back().x - 700) <= 0.5);
 
+        // Tolérance de 16 px d'écran ÷ zoom : à 12 px de page du bord, libre au zoom 2 (24 px d'écran), guidé
+        // au zoom 0,5 (6 px d'écran).
+        for (const qreal zoom : {2.0, 0.5}) {
+            const QPointF anchor = w.pageView()->mapFromScene(scene(w, QPointF(500, top)));
+            w.pageView()->zoomAround(anchor, zoom);
+            QTRY_VERIFY(qAbs(w.pageView()->zoom() - zoom) < 1e-6);
+            const int count = w.pageObjectCount();
+            stylusPath(w, {{450, top - 12}, {550, top - 12}});
+            QTRY_COMPARE(w.pageObjectCount(), count + 1);
+            const actcraft::core::Stroke* atZoom = lastStroke(w);
+            QVERIFY(atZoom);
+            if (zoom > 1) {
+                QVERIFY2(qAbs(atZoom->points.front().y - (top - 12)) <= 0.5, "zoom 2 : 24 px d'écran, trait libre");
+            } else {
+                QVERIFY2(allOnLine(*atZoom, top), "zoom 0,5 : 6 px d'écran, trait guidé");
+            }
+        }
+
         tools->close(0);
         QCOMPARE(tools->count(), 0);
         stylusPath(w, {{300, top - 4}, {400, top - 1}, {500, top + 2}, {600, top + 3}, {700, top + 3}});
-        QTRY_COMPARE(w.pageObjectCount(), before + 2);
+        QTRY_COMPARE(w.pageObjectCount(), before + 4);
         const actcraft::core::Stroke* unguided = lastStroke(w);
         QVERIFY(unguided);
         QVERIFY2(qAbs(unguided->points.front().y - (top - 4)) <= 0.5, "règle fermée : y d'origine au départ");
@@ -296,7 +315,7 @@ private slots:
         QTRY_COMPARE(window->cursor().shape(), Qt::CrossCursor);
         hoverAt(QPointF(f.left() + 10, f.cy));
         QTRY_COMPARE(window->cursor().shape(), Qt::SizeHorCursor);
-        hoverAt(QPointF(f.cx - 62, f.top() + 4)); // bande du bord guide : rien à saisir
+        hoverAt(QPointF(f.cx - 62, f.top() - 4)); // bande extérieure du bord guide : rien à saisir
         QTRY_VERIFY(window->cursor().shape() != Qt::SizeHorCursor);
         QVERIFY(window->cursor().shape() != Qt::SizeAllCursor);
         QVERIFY(window->cursor().shape() != Qt::CrossCursor);
@@ -342,13 +361,50 @@ private slots:
         const actcraft::core::Stroke* outside = lastStroke(w);
         QVERIFY(outside);
         QVERIFY2(allOnLine(*outside, moved.top()), "bande extérieure : trait versé et guidé");
+        // Bande intérieure : sur le corps, donc couverte (seule la bande extérieure est au stylo).
         presentationharness::strokeAt(w.window(), pointer, scene(w, QPointF(moved.cx - 200, moved.top() + 6)),
-                                      scene(w, QPointF(moved.cx + 200, moved.top() + 6)));
-        QTRY_COMPARE(w.pageObjectCount(), before + 2);
-        const actcraft::core::Stroke* inside = lastStroke(w);
-        QVERIFY(inside);
-        QVERIFY2(allOnLine(*inside, moved.top()),
-                 "bande intérieure (hors couverture) : trait versé et guidé");
+                                      scene(w, QPointF(moved.cx - 100, moved.top() + 6)));
+        QTRY_VERIFY2(qAbs(frameOf(*tools, 0).cx - (moved.cx + 100)) <= 2, "bande intérieure : la règle bouge");
+        QTest::qWait(50);
+        QCOMPARE(w.pageObjectCount(), before + 1);
+        if (pointer == Pointer::Mouse) {
+            // L'appui gauche de la souris sur la règle n'atteint pas la vue, couverture ou non (constaté sous
+            // mutation) : le clic droit, que la vue teste par sa couverture (menu contextuel), discrimine.
+            QSignalSpy menu(w.pageView(), &actcraft::ui::PageView::contextMenuRequested);
+            const Frame now = frameOf(*tools, 0);
+            QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier,
+                              scene(w, QPointF(now.cx - 62, now.cy)).toPoint());
+            QTest::qWait(50);
+            QCOMPARE(menu.count(), 0);
+            QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier,
+                              scene(w, QPointF(now.cx - 62, now.top() - 40)).toPoint());
+            QTRY_COMPARE(menu.count(), 1);
+            QTest::keyClick(w.window(), Qt::Key_Escape);
+        }
+    }
+
+    // Les guides ne valent que pour le stylo : l'appui de l'outil Sélection près du bord n'est saisi par aucun
+    // guide (son rectangle ne se réduirait sinon qu'à un segment du bord).
+    void selectionIsNotGuided()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.ruler")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        const double top = frameOf(*tools, 0).top();
+        QVERIFY(w.run(QStringLiteral("tool.select")));
+        stylusPath(w, {{300, top - 5}, {400, top - 60}}, false);
+        QVERIFY2(!tools->guiding(), "outil Sélection : aucun guide ne saisit l'appui");
+        presentationharness::sendTablet(w.window(), QEvent::TabletRelease, scene(w, QPointF(400, top - 60)));
+        auto* host = w.window()->findChild<actcraft::ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(host);
+        QCOMPARE(host->currentTool(), QStringLiteral("select"));
+        host->activate(QStringLiteral("pen"));
+        stylusPath(w, {{300, top - 5}, {400, top - 60}}, false);
+        QVERIFY2(tools->guiding(), "stylo : le même appui est saisi par le bord");
+        presentationharness::sendTablet(w.window(), QEvent::TabletRelease, scene(w, QPointF(400, top - 60)));
+        QTRY_VERIFY(!tools->guiding());
     }
 };
 

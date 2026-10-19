@@ -4,8 +4,9 @@ import ActCraft.Ui
 
 // Règle (F-280), délégué de MathToolsLayer, en coordonnées de page : corps translucide, graduations, zones de
 // saisie (déplacer au centre, tourner à l'extrémité, allonger au bout), angle, menu. Elle ne dessine aucune
-// encre et n'entre jamais au document. Couverture de la vue hors de ses bandes de bord : le stylo posé à moins
-// de guideBand d'un bord va au stylo, guidé par le contrôleur ; posé plus loin dans le corps, il saisit la règle.
+// encre et n'entre jamais au document. Le corps entier est une couverture de la vue : posé sur lui, tout pointeur
+// saisit la règle ; le stylo se pose sur la bande extérieure d'un bord (moins de guideBand), et son trait y est
+// guidé par le contrôleur.
 Item {
     id: ruler
     objectName: "rulerTool"
@@ -14,7 +15,6 @@ Item {
     property PageView pageView: null
     readonly property var frame: controller && controller.revision >= 0 ? controller.toolAt(toolIndex) : ({})
     readonly property real zoom: pageView ? Math.max(pageView.zoom, 0.01) : 1
-    readonly property real band: controller ? Math.max(0, Math.min(controller.guideBand, height / 2 - 8)) : 16
     readonly property real tipLength: Math.min(24, width / 6)
     readonly property real endLength: Math.min(60, width / 5)
     property var grab: null
@@ -25,7 +25,6 @@ Item {
     height: frame.thickness || 0
     rotation: frame.angle || 0
     transformOrigin: Item.Center
-    containmentMask: coverZone
 
     Rectangle {
         id: body
@@ -84,7 +83,7 @@ Item {
         }
     }
 
-    // Zone de saisie : curseur et geste propres ; jamais dans les bandes de bord (hors de coverZone).
+    // Zone de saisie : curseur et geste propres, sur toute la largeur du corps.
     component Zone: Item {
         id: zone
         property var owner: null
@@ -107,23 +106,16 @@ Item {
         }
     }
 
-    Item {
-        id: coverZone
-        objectName: "rulerCover"
-        y: ruler.band
-        width: ruler.width
-        height: Math.max(0, ruler.height - 2 * ruler.band)
-        Zone { objectName: "rulerTipLeft"; owner: ruler; kind: "length-left"; cursorShape: Qt.SizeHorCursor
-            x: 0; width: ruler.tipLength }
-        Zone { objectName: "rulerEndLeft"; owner: ruler; kind: "rotate"; cursorShape: Qt.CrossCursor
-            x: ruler.tipLength; width: ruler.endLength }
-        Zone { objectName: "rulerMoveZone"; owner: ruler; kind: "move"; cursorShape: Qt.SizeAllCursor
-            x: ruler.tipLength + ruler.endLength; width: Math.max(0, ruler.width - 2 * x) }
-        Zone { objectName: "rulerEndRight"; owner: ruler; kind: "rotate"; cursorShape: Qt.CrossCursor
-            x: ruler.width - ruler.tipLength - ruler.endLength; width: ruler.endLength }
-        Zone { objectName: "rulerTipRight"; owner: ruler; kind: "length-right"; cursorShape: Qt.SizeHorCursor
-            x: ruler.width - ruler.tipLength; width: ruler.tipLength }
-    }
+    Zone { objectName: "rulerTipLeft"; owner: ruler; kind: "length-left"; cursorShape: Qt.SizeHorCursor
+        x: 0; width: ruler.tipLength }
+    Zone { objectName: "rulerEndLeft"; owner: ruler; kind: "rotate"; cursorShape: Qt.CrossCursor
+        x: ruler.tipLength; width: ruler.endLength }
+    Zone { objectName: "rulerMoveZone"; owner: ruler; kind: "move"; cursorShape: Qt.SizeAllCursor
+        x: ruler.tipLength + ruler.endLength; width: Math.max(0, ruler.width - 2 * x) }
+    Zone { objectName: "rulerEndRight"; owner: ruler; kind: "rotate"; cursorShape: Qt.CrossCursor
+        x: ruler.width - ruler.tipLength - ruler.endLength; width: ruler.endLength }
+    Zone { objectName: "rulerTipRight"; owner: ruler; kind: "length-right"; cursorShape: Qt.SizeHorCursor
+        x: ruler.width - ruler.tipLength; width: ruler.tipLength }
 
     Text {
         objectName: "rulerAngle"
@@ -215,7 +207,7 @@ Item {
             const fy = g.cy - sign * uy * g.length / 2
             const along = sign * ((p.x - fx) * ux + (p.y - fy) * uy)
             const k = g.length - sign * ((g.px - fx) * ux + (g.py - fy) * uy)
-            const length = Math.max(120, along + k) // borne basse du contrôleur (kMinLength)
+            const length = Math.min(controller.maximumLength, Math.max(controller.minimumLength, along + k))
             controller.setFrame(toolIndex, Qt.point(fx + sign * ux * length / 2, fy + sign * uy * length / 2),
                                 length, g.thickness, g.angle)
         }
