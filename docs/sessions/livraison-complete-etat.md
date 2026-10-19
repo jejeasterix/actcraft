@@ -228,6 +228,20 @@ Plan du lot 6, tour 3 : refusé. 2 majeurs : N1, réglages et profils d'essai pa
 - Titres : 0 sur 144 après le dernier libellé. NOMS OK 431.
 - Essais : 2/3.
 Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
+**2026-10-19, vers 02 h 10.**
+- **L0-S7 : preuve ROUGE, renvoyée à l'agent.**
+  - `coverHandlerGetsThePress` compte 5 appuis au lieu de 1 après `tabletStroke`, `tst_ui_inputpath.cpp:277`. L'échec reste après la remise de la mutation.
+  - Le reste est vert : construction ; 7 tests rouges sous mutation ; captures premiers-pas et cache-differe ; format ; NOMS OK 425.
+  - Banc logiciel hors écran : BUDGET DEPASSE, informatif.
+  - Essais : 1/3.
+- **L0-S5** : j'ai fusionné la tête 27ec7ba dans la branche, sans conflit (f2a141d). Preuve `.tmp/preuve-L0-S5.ps1` relue (un fichier par test), lancée sous le jeton (`scratchpad/out/preuve-l0s5.txt`).
+- **Plan du lot 11** (86faccc, 31 tâches) : relecture tour 1 refusée, 2 bloquants et 16 majeurs (`scratchpad/revue-plan-lot11.md`) ; amendement 1 en cours.
+  - **Décision de A sur les API privées** : le lot 11 n'ajoute aucun usage d'API privée de Qt, ni dans le code livré ni dans le joueur. Le banc garde son lien existant à `Qt6::GuiPrivate` pour les touches.
+  - Voies publiques retenues : `QPointingDevice` public avec `postEvent` ; `QApplicationStateChangeEvent` par `sendEvent`.
+- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
+- **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
+  - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
+- **À reporter à toute construction d'APK** (M13) : `org.gradle.daemon=false` dans `paquet-android.ps1`, sinon la commande ne rend pas la main et garde le jeton (piège déjà vu, § Pièges).
 Plan du lot 8a écrit en partie (53a290e : 20 tâches en 8a, 15 en 8b) ; l'agent continue.
 **Nouvelle décision pour Jérôme, H8-6** : télécharger Qt Multimedia (avec FFmpeg) et Qt WebView. Elle n'est nécessaire qu'au début du lot 8b.
 Plans écrits à l'avance, en cours : lot 8 (`.worktrees/livraison-complete--plan-lot8`) et lot 11 (`…--plan-lot11`).
