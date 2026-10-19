@@ -304,6 +304,11 @@ bool FixedPageItem::forceRasterized() const noexcept
     return m_forceRasterized;
 }
 
+const ImageStore& FixedPageItem::images() const noexcept
+{
+    return m_images;
+}
+
 bool FixedPageItem::pendingAreTheLastObjects() const noexcept
 {
     const core::Page& shown = page();

@@ -82,6 +82,10 @@ public:
     // s'arrête là à chaque synchronisation (updatePaintNode) ; la couche d'attente dessine les suivants.
     std::size_t cachedObjectCount() const noexcept;
     bool forceRasterized() const noexcept; // crochet de test lu par la couche d'attente (même chemin RHI)
+    // Magasin des images décodées de la page affichée, en lecture (L3-C1) : la couche soulevée y cherche
+    // par clé les images à ressource de ses copies, sans second décodage. Lecture sûre depuis le fil de rendu
+    // (ImageStore). Les images synthétiques y sont rangées par indice de cette page.
+    const ImageStore& images() const noexcept;
     // Vrai quand les images sont prêtes et les nœuds construits à la prochaine image. Tant qu'il est faux
     // après un changement de page, l'élément garde les nœuds de la page précédente (pas d'éclair blanc,
     // L2-T23).

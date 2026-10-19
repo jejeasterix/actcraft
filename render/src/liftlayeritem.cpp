@@ -9,6 +9,7 @@
 #include <QTransform>
 
 #include <utility>
+#include <variant>
 
 namespace actcraft::render {
 
@@ -16,6 +17,15 @@ namespace {
 QMatrix4x4 matrixOf(const core::Transform& t)
 {
     return QMatrix4x4(QTransform(t.m11, t.m12, t.m21, t.m22, t.dx, t.dy));
+}
+
+// Objet dont les images se cherchent par CLÉ dans le magasin de la page fixe (ressource, vignette de média) :
+// tout objet sauf l'image synthétique, que le magasin range par indice de PAGE (ImageStore::objectImage) ;
+// les indices de la couche ne sont pas ceux de la page. Sans magasin, le peintre la synthétise lui-même.
+bool imagesByKey(const core::PageObject& object)
+{
+    const auto* image = std::get_if<core::ImageObject>(&object);
+    return image == nullptr || !image->resource.empty();
 }
 } // namespace
 
@@ -93,15 +103,18 @@ QSGNode* LiftLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
             const bool software =
                 window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
             // Contexte de la page fixe (échelle de rastérisation, chemin forcé), comme la couche d'attente :
-            // mêmes moteurs, même rendu. Sans magasin d'images (images == nullptr) : celui de la page fixe
-            // (FixedPageItem::m_images) est privé, rangé par indice de page et régénéré quand l'objet soulevé
-            // quitte la page ; une image soulevée est donc dessinée par le repère du peintre pendant le geste
-            // (point ouvert de L3-T8).
+            // mêmes moteurs, même rendu. Magasin de la page fixe (L3-C1) : il range les ressources par clé et
+            // ne les oublie qu'à un nouveau décodage, que le soulèvement d'une image à ressource ne lance pas
+            // (ImageStore::covers) ; l'image soulevée y est déjà décodée. Ni second décodage, ni copie du
+            // magasin. Image synthétique : sans magasin (imagesByKey).
             const FixedPageItem* page = m_fixedPage.data();
             const double scale = page ? page->rasterScale() : 1.0;
             const bool forced = page != nullptr && page->forceRasterized();
-            const NodeContexts contexts = nodeContexts(window(), software, nullptr, scale, forced);
+            const ImageStore* store = page ? &page->images() : nullptr;
+            const NodeContexts byKey = nodeContexts(window(), software, store, scale, forced);
+            const NodeContexts unkeyed = nodeContexts(window(), software, nullptr, scale, forced);
             for (std::size_t i = 0; i < m_objects.size(); ++i) {
+                const NodeContexts& contexts = imagesByKey(m_objects[i]) ? byKey : unkeyed;
                 const ObjectNode made = createObjectNode(m_objects[i], i, m_registry, m_painted,
                                                          contexts.context, contexts.painted);
                 if (made.root) {
