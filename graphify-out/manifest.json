@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792396122.828194,
-    "ast_hash": "bb1a38e886345af3c60aac2a7cc03f46",
+    "mtime": 1792402100.5937173,
+    "ast_hash": "9818c650e1e4a2d266bd63878947426c",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2422,6 +2422,176 @@
   "features/src/screenkeyboard.cpp": {
     "mtime": 1792397405.192176,
     "ast_hash": "9c76e549f46a72b269b2e3b9dd0b236d",
+    "semantic_hash": ""
+  },
+  "bench/scenarios/compte-a-rebours.json": {
+    "mtime": 1792406200.4538233,
+    "ast_hash": "02e31bc37111fa9c0acacc01928bdd0f",
+    "semantic_hash": ""
+  },
+  "bench/scenarios/effets.json": {
+    "mtime": 1792406200.4587185,
+    "ast_hash": "8d9e6fbb2d83fdb977ec3d1b4c3bcc54",
+    "semantic_hash": ""
+  },
+  "bench/scenarios/equation.json": {
+    "mtime": 1792406200.460376,
+    "ast_hash": "14b89d5ced8eb01e4a782b539fe44035",
+    "semantic_hash": ""
+  },
+  "bench/scenarios/message.json": {
+    "mtime": 1792406200.4636045,
+    "ast_hash": "d63ca6bc727b33b214834f2b67d8cd44",
+    "semantic_hash": ""
+  },
+  "bench/scenarios/presentation.json": {
+    "mtime": 1792406200.4636045,
+    "ast_hash": "a9ce56d8cd9a300c2672472e4f8eb6c0",
+    "semantic_hash": ""
+  },
+  "bench/scenarios/reconnaissance-forme.json": {
+    "mtime": 1792406200.4636045,
+    "ast_hash": "036a36d6d37e98e162c8a983915bdcb8",
+    "semantic_hash": ""
+  },
+  "bench/scenarios/regle.json": {
+    "mtime": 1792406200.470965,
+    "ast_hash": "d041444a9c05456db4259fb664d92e80",
+    "semantic_hash": ""
+  },
+  "bench/scenarios/rideau.json": {
+    "mtime": 1792406200.4725113,
+    "ast_hash": "49998fb1fcb613e4d4738cd36e2b447f",
+    "semantic_hash": ""
+  },
+  "bench/scenarios/spot.json": {
+    "mtime": 1792406200.4725113,
+    "ast_hash": "7db54efd86eb7f19e222697a0c553360",
+    "semantic_hash": ""
+  },
+  "tests/support/lot7registry.h": {
+    "mtime": 1792406200.4821088,
+    "ast_hash": "8fbc7b1c637e45f9eac11c6c140edcb6",
+    "semantic_hash": ""
+  },
+  "tests/support/presentationharness.h": {
+    "mtime": 1792406200.4864366,
+    "ast_hash": "2761e02edd6e4c7b25ca723e89f6c134",
+    "semantic_hash": ""
+  },
+  "tests/tst_core_equation.cpp": {
+    "mtime": 1792406200.4884436,
+    "ast_hash": "527daffa0e7abced38fdfd601d066b18",
+    "semantic_hash": ""
+  },
+  "tests/tst_features_equationeditor.cpp": {
+    "mtime": 1792406200.4911745,
+    "ast_hash": "0c4cfa5f559c556456ebb1e695f33313",
+    "semantic_hash": ""
+  },
+  "tests/tst_render_equation.cpp": {
+    "mtime": 1792406200.4931872,
+    "ast_hash": "58e9f64a51a6f5522c720f2f81a4e016",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_calculator.cpp": {
+    "mtime": 1792406200.496034,
+    "ast_hash": "4a605e7bcffa2a760fb8558e557f2d40",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_camera.cpp": {
+    "mtime": 1792406200.496034,
+    "ast_hash": "63941ab5dce1e4b877fc5af8b02cb914",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_clock.cpp": {
+    "mtime": 1792406200.4995184,
+    "ast_hash": "1d45dda808507a36e744f89397de23bd",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_curtain.cpp": {
+    "mtime": 1792406200.5015318,
+    "ast_hash": "1c278e8c98eb9f749dbff0db029b50fc",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_desktop.cpp": {
+    "mtime": 1792406200.5015318,
+    "ast_hash": "d449226c599bd11486b9a7227bae2c4f",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_dice.cpp": {
+    "mtime": 1792406200.5015318,
+    "ast_hash": "1fd7ab472c0fdcb0c912ffedd2fd4373",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_equation.cpp": {
+    "mtime": 1792406200.5015318,
+    "ast_hash": "2c596e865b00af2bdf96515e505b36ff",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_keyboard.cpp": {
+    "mtime": 1792406200.5085564,
+    "ast_hash": "54a0264a0da6807a9be89778cd3d8ab8",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_lot7_main.cpp": {
+    "mtime": 1792406200.5114293,
+    "ast_hash": "41980ee1f0dc15f6650d2546ec2bff45",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_mathtools.cpp": {
+    "mtime": 1792406200.5127766,
+    "ast_hash": "50241dbeccd60a0244e2a4d927761e6e",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_othertools.cpp": {
+    "mtime": 1792406200.5127766,
+    "ast_hash": "72c809c7635767c888b03e33c2cc56f4",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_pagetools.cpp": {
+    "mtime": 1792406200.5127766,
+    "ast_hash": "96280ce374b52ab59522f64e837a79e7",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_pagezoom.cpp": {
+    "mtime": 1792406200.518417,
+    "ast_hash": "83171b4f5b3a029e2523f060f3cfc234",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_presentation.cpp": {
+    "mtime": 1792406200.518417,
+    "ast_hash": "32ec99ef1c467c9b86daaffcab40eb00",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_recognition.cpp": {
+    "mtime": 1792406200.5216348,
+    "ast_hash": "5ac4aae661d800f778dd4e061f33ccb1",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_spotlight.cpp": {
+    "mtime": 1792406200.5216348,
+    "ast_hash": "99a0286bcb9e3df037bc8bd2bebd568b",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_ticker.cpp": {
+    "mtime": 1792406200.5236406,
+    "ast_hash": "3bbe91ec389f0b69dc54277d5ab07592",
+    "semantic_hash": ""
+  },
+  "tests/tst_ui_transitions.cpp": {
+    "mtime": 1792406200.5259755,
+    "ast_hash": "474e28ea57b9a2d31ec859b9533ef765",
+    "semantic_hash": ""
+  },
+  "ui/src/presentationdocument.cpp": {
+    "mtime": 1792406200.5666673,
+    "ast_hash": "6a7085c008723494204465d5ee06cd05",
+    "semantic_hash": ""
+  },
+  "ui/src/presentationdocument.h": {
+    "mtime": 1792406200.5666673,
+    "ast_hash": "e622dc579c21c0eca1049ad21c6faa6c",
     "semantic_hash": ""
   }
 }
