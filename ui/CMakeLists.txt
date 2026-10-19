@@ -123,6 +123,22 @@ qt_add_qml_module(actcraft_ui
         ${ACTCRAFT_UI_LOT7_SOURCES})
 
 # Le code d'enregistrement QML généré inclut les en-têtes par leur seul nom : d'où le dossier privé.
+# MSVC, C4702 (code inatteignable) dans les sources C++ que qmlcachegen produit : le code généré instancie
+# QJSEngine::fromVariant / fromPrimitiveValue (QtQml/qjsengine.h, l. 96-112), dont les chaînes de `if constexpr` avec
+# `return` laissent du code inatteignable pour tout type donné ; Qt protège fromVariant par QT_WARNING_PUSH, pas cette
+# fonction. Avec /WX (avertissements = erreurs), n'importe quel QML qui lit une propriété de type primitif peut le
+# déclencher (premier cas : ToolPalette.qml, `visible` du TrashCan). Défaut de Qt : on le tait seulement pour ces sources
+# générés, jamais pour le reste du module.
+if(MSVC)
+    get_target_property(_actcraft_ui_qml actcraft_ui QT_QML_MODULE_QML_FILES)
+    foreach(_qml IN LISTS _actcraft_ui_qml)
+        get_filename_component(_name "${_qml}" NAME_WE)
+        set_source_files_properties(
+            "${CMAKE_CURRENT_BINARY_DIR}/.rcc/qmlcache/actcraft_ui_qml_${_name}_qml.cpp"
+            PROPERTIES COMPILE_OPTIONS /wd4702)
+    endforeach()
+endif()
+
 target_include_directories(actcraft_ui
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/actcraft/ui ${CMAKE_CURRENT_SOURCE_DIR}/src)

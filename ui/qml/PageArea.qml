@@ -9,6 +9,16 @@ Item {
     objectName: "pageArea"
     property alias view: view
     property alias fixedPage: fixedPageItem
+    // Lot 3 : outils de l'utilisateur ; null pour une annotation de bureau (lot 7), où la zone dessine sans eux.
+    property Tools tools: null
+    property Commands commands: null
+    // Emplacements des lots 3 et 7 (ordre des couches figé par le socle).
+    property alias liftLayer: liftLayerItem
+    property alias pageOverlays: pageOverlaysItem
+    property alias presentationSlot: presentationSlotItem
+    property alias selectionOverlay: selectionOverlayItem
+    // Nombre de demandes de menu contextuel reçues de la vue (espion des tests).
+    property int contextMenuRequestCount: 0
     property bool cacheEnabled: true
     property bool inputBlocked: false
     // Document ouvert : le stylo y verse ses traits par la pile (L2-T15).
@@ -26,6 +36,12 @@ Item {
         ink: inkLayer
         pendingLayer: pendingLayerItem
         documentController: area.documentController
+        tools: area.tools
+        // Clic droit non couvert : la vue le signale (aucun TapHandler de clic droit ici).
+        onContextMenuRequested: viewPos => {
+            area.contextMenuRequestCount += 1
+            pageContextMenu.popupAt(viewPos.x, viewPos.y)
+        }
         // Branché dès la création de la vue (un bloc Connections ne l'est qu'en fin de composant).
         onCacheRefreshRequested: cache.scheduleUpdate()
 
@@ -72,6 +88,14 @@ Item {
                 fixedPage: fixedPageItem
             }
 
+            // Lot 3 : objets soulevés pendant un geste, au-dessus de la couche d'attente, sous l'encre.
+            LiftLayer {
+                id: liftLayerItem
+                objectName: "liftLayer"
+                anchors.fill: parent
+                fixedPage: fixedPageItem
+            }
+
             // Encre en cours : non rognée (règle du lot 2, inchangée) ; elle déborde sur la marge pendant le
             // tracé, le trait figé est rogné à la page (cache et couche d'attente).
             InkLayer {
@@ -79,12 +103,45 @@ Item {
                 objectName: "ink"
                 anchors.fill: parent
             }
+
+            // Lot 7 : surcouches en coordonnées de page (outils de maths, origine XY, spot, rideau de la page), au
+            // dessus de l'encre et de la couche d'attente ; jamais dans la scène que le cache photographie. Une
+            // surcouche qui prend l'entrée se déclare couverture (view.addInputCover).
+            Item {
+                id: pageOverlaysItem
+                objectName: "pageOverlays"
+                anchors.fill: parent
+            }
         }
+    }
+
+    // Lot 3 : sélection (cadre, poignées, barre d'objet) ; sœur de la vue, jamais dessous. Ses gestionnaires d'appui
+    // vont sur les poignées et la barre seulement, pas sur sa racine (le stylet hors du cadre doit être versé).
+    SelectionOverlay {
+        id: selectionOverlayItem
+        objectName: "selectionOverlay"
+        anchors.fill: parent
+        tools: area.tools
+        view: view
+        visible: area.tools !== null
+    }
+    ToolCursor {
+        id: toolCursor
+        objectName: "toolCursor"
+        anchors.fill: parent
+        tools: area.tools
+    }
+    // Lot 7 : surcouches en coordonnées de la zone (au-dessus de la sélection, sous les barres de défilement).
+    Item {
+        id: presentationSlotItem
+        objectName: "presentationSlot"
+        anchors.fill: parent
     }
 
     // Indicateur de largeur (F-138) : cercle de la taille et de la couleur du trait sous le pointeur.
     HoverHandler {
         id: hover
+        cursorShape: toolCursor.cursorShape
     }
     Rectangle {
         objectName: "widthIndicator"
@@ -140,5 +197,11 @@ Item {
         position: view.scrollPositionY
         onPositionChanged: if (pressed) view.scrollTo(view.scrollPositionX, position)
         onPressedChanged: if (!pressed) position = Qt.binding(() => view.scrollPositionY)
+    }
+
+    PageContextMenu {
+        id: pageContextMenu
+        objectName: "pageContextMenu"
+        commands: area.commands
     }
 }

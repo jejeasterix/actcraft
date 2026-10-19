@@ -15,7 +15,7 @@ Menu {
         model: menu.spec.items || []
         delegate: CommandEntry {
             required property var modelData
-            commands: menu.commands
+            commands: menu ? menu.commands : null
             payload: JSON.stringify(modelData)
         }
         onObjectAdded: (index, object) => menu.insertItem(index, object)

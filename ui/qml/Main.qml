@@ -67,6 +67,27 @@ Window {
         onPageAboutToChange: pageArea.view.finishStroke()
     }
 
+    // Outils de l'utilisateur (lot 3) : branchés à la vue, à la couche soulevée et aux commandes.
+    Tools {
+        id: appTools
+        objectName: "appTools"
+        commands: appCommands
+        documentController: appDocument
+        view: pageArea.view
+        liftLayer: pageArea.liftLayer
+    }
+    Connections {
+        target: appDocument
+        function onEditAboutToApply() { pageArea.view.finishStroke() }
+        function onUndoChanged() { root.syncEditCommands() }
+        function onDocumentChanged() { root.syncEditCommands() }
+    }
+    function syncEditCommands() {
+        appCommands.setEnabled("edit.undo", appDocument.canUndo)
+        appCommands.setEnabled("edit.redo", appDocument.canRedo)
+        appCommands.setEnabled("page.revert", appDocument.canRevertPage)
+    }
+
     // Pilotage sans souris (actcraft-captures, tests) : même chemin que les boutons.
     function runCommand(id, argument) {
         return appCommands.trigger(id, argument)
@@ -122,6 +143,8 @@ Window {
             cacheEnabled: root.cacheEnabled
             inputBlocked: root.openPopups > 0
             documentController: appDocument
+            tools: appTools
+            commands: appCommands
         }
 
         ToolPalette {
@@ -130,6 +153,7 @@ Window {
             Layout.preferredWidth: Theme.largeurPalette
             commands: appCommands
             view: pageArea.view
+            tools: appTools
         }
     }
 
@@ -220,6 +244,23 @@ Window {
         }
     }
 
+    // Lot 7 : surcouches plein cadre et panneaux flottants (rideau, spot, message défilant, dés, horloge…).
+    Item {
+        id: presentationLayer
+        objectName: "presentationLayer"
+        anchors.fill: parent
+        z: 50
+    }
+    Presentation {
+        objectName: "presentation"
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        pageArea: pageArea
+        pageOverlays: pageArea.pageOverlays
+        layer: presentationLayer
+    }
+
     // Raccourcis de la disposition (commande, ou remplacement du profil).
     Instantiator {
         model: appCommands.shortcuts
@@ -251,11 +292,35 @@ Window {
         appCommands.setHandler("tool.pen", function () { appCommands.setChecked("tool.pen", true) })
         appCommands.setHandler("pen.color", function (color) { pageArea.view.inkColor = color })
         appCommands.setHandler("pen.width", function (width) { pageArea.view.inkWidth = width })
+        appCommands.setHandler("tool.select", function () { appTools.activate("select") })
+        appCommands.setHandler("tool.highlighter", function () { appTools.activate("highlighter") })
+        appCommands.setHandler("tool.eraser", function () { appTools.activate("eraser") })
+        appCommands.setHandler("edit.undo", function () { appDocument.undo() })
+        appCommands.setHandler("edit.redo", function () { appDocument.redo() })
+        appCommands.setHandler("edit.delete", function () { appTools.deleteSelection() })
+        appCommands.setHandler("edit.select-all", function () { appTools.selectAll() })
+        appCommands.setHandler("clear.annotations", function () { appDocument.clearPage(0) })
+        appCommands.setHandler("clear.objects", function () { appDocument.clearPage(1) })
+        appCommands.setHandler("clear.grid", function () { appDocument.clearPage(2) })
+        appCommands.setHandler("clear.background", function () { appDocument.clearPage(3) })
+        appCommands.setHandler("clear.page", function () { appDocument.clearPage(4) })
+        appCommands.setHandler("page.revert", function () { appDocument.revertPage() })
+        appCommands.setHandler("view.trash", function () { appCommands.setChecked("view.trash", !appCommands.isChecked("view.trash")) })
+        appCommands.setHandler("object.translucency", function (value) {
+            if (value === undefined)
+                pageArea.selectionOverlay.openTranslucency()
+            else
+                appTools.setSelectionTranslucency(value)
+        })
+        appCommands.setHandler("object.enlarge", function () { appTools.enlargeSelection() })
+        appCommands.setHandler("object.reduce", function () { appTools.reduceSelection() })
         appCommands.setHandler("menu.main", function () { mainMenu.popup() })
         appCommands.setHandler("menu.tools", function () { toolsMenu.popup() })
         appCommands.setHandler("help.about", function () { aboutDialog.open() })
         appCommands.setHandler("help.website", function () { Qt.openUrlExternally(AppInfo.projectUrl) })
         appCommands.setChecked("tool.pen", true) // F-200 : le stylo est l'outil de départ
+        appCommands.setChecked("view.trash", true)
+        root.syncEditCommands()
         if (root.generatedPage)
             appDocument.loadGeneratedFirstPage()
     }

@@ -44,7 +44,7 @@ Menu {
             DelegateChoice {
                 roleValue: "item"
                 CommandEntry {
-                    commands: menu.commands
+                    commands: menu ? menu.commands : null
                 }
             }
         }

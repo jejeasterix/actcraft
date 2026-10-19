@@ -13,16 +13,16 @@ MenuItem {
     readonly property bool isSeparator: entryData.separator === true
     readonly property string commandId: isSeparator ? "" : entryData.id
     objectName: isSeparator ? "menuSeparator" : "menuItem-" + commandId
-    text: isSeparator ? "" : commands.label(commandId)
-    enabled: !isSeparator && commands.revision >= 0 && commands.isEnabled(commandId)
+    text: isSeparator || !commands ? "" : commands.label(commandId)
+    enabled: !isSeparator && commands && commands.revision >= 0 && commands.isEnabled(commandId)
     checkable: !isSeparator && entryData.checkable === true
-    checked: !isSeparator && commands.revision >= 0 && commands.isChecked(commandId)
+    checked: !isSeparator && commands && commands.revision >= 0 && commands.isChecked(commandId)
     implicitHeight: isSeparator ? 9 : Theme.tailleBouton
     // Le clic bascule la coche localement : on rend la main au registre.
     onToggled: checked = Qt.binding(function () {
-        return !entry.isSeparator && commands.revision >= 0 && commands.isChecked(entry.commandId)
+        return !entry.isSeparator && commands && commands.revision >= 0 && commands.isChecked(entry.commandId)
     })
-    onTriggered: if (!isSeparator) commands.trigger(commandId)
+    onTriggered: if (!isSeparator && commands) commands.trigger(commandId)
     background: ItemHighlight {
         control: entry
     }
@@ -50,7 +50,7 @@ MenuItem {
                 color: entry.enabled ? Theme.texte : Theme.texteDesactive
             }
             Label {
-                text: entry.isSeparator ? "" : commands.shortcut(entry.commandId)
+                text: entry.isSeparator || !commands ? "" : commands.shortcut(entry.commandId)
                 font.pixelSize: Theme.taillePolice
                 color: entry.enabled ? Theme.texteDiscret : Theme.texteDesactive
             }
