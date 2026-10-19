@@ -238,6 +238,16 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
 - **Plan du lot 11** (86faccc, 31 tâches) : relecture tour 1 refusée, 2 bloquants et 16 majeurs (`scratchpad/revue-plan-lot11.md`) ; amendement 1 en cours.
   - **Décision de A sur les API privées** : le lot 11 n'ajoute aucun usage d'API privée de Qt, ni dans le code livré ni dans le joueur. Le banc garde son lien existant à `Qt6::GuiPrivate` pour les touches.
   - Voies publiques retenues : `QPointingDevice` public avec `postEvent` ; `QApplicationStateChangeEvent` par `sendEvent`.
+- **L10-C2 mergée** : 8643413, merge 5ebdec5, graphe e8323a8.
+  - Rejeu (tête 742be31) : 113/113, TESTS OK ; tst_bench_uiscenario 56/56 ; mutation de la reprise coupée, 2 tests rouges ; remise propre ; NOMS OK.
+  - Graphe : 117 nœuds `document` de plus, tous issus des plans des lots 8 et 11, aucun d'un autre worktree.
+- **L0-S2 lancée en écriture seule** (worktree à e8323a8). Elle attend mon signal pour construire.
+- **L0-S9 bloquée à la construction** : C4702 sous `/WX` dans le code AOT de `ToolPalette.qml`.
+  - Cause : `QJSEngine::fromPrimitiveValue<T>` (`qjsengine.h:96-112`) enchaîne des `if constexpr` sans `else`. Qt protège `fromVariant` contre ce même avertissement, mais pas cette fonction. Candidat au coffre une fois corrigé.
+  - **Décisions de A** :
+    - `/wd4702` sur les seuls sources générés par qmlcachegen pour `actcraft_ui`, sous MSVC, avec la cause en commentaire. `ui/CMakeLists.txt` entre dans L0-S9.
+    - `CommandMenu.qml:47` (`menu.commands` lu à la destruction, défaut de L0-S4) est corrigé par L0-S9 (`menu ? menu.commands : null`), sans masquage dans le test.
+    - Le scénario `pauses` cité par le plan n'existe pas : il est retiré de la preuve de L0-S9.
 - **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
