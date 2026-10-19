@@ -46,6 +46,8 @@ struct ThreadLog
     std::vector<QThread*> threads; // fil de la création, puis de chaque reconnaissance
     std::size_t staCalls = 0;      // appels (création compris) faits dans un appartement unique
     bool staWhenDestroyed = false; // appartement unique encore ouvert à la destruction du reconnaisseur
+    bool destroyedOnCreationThread =
+        false;                 // détruit sur le fil de sa création, qui n'est pas le fil principal
     bool gateOpen = true;      // faux : la création et chaque reconnaissance attendent que le test l'ouvre
     bool gateTimedOut = false; // vrai si un appel a attendu la barrière en vain
 };
@@ -55,15 +57,20 @@ class FakeRecognizer final : public HandwritingRecognizer
 {
 public:
     FakeRecognizer(std::shared_ptr<ThreadLog> log, bool isAvailable)
-        : m_log(std::move(log)), m_available(isAvailable)
+        : m_log(std::move(log)), m_available(isAvailable), m_createdOn(QThread::currentThread())
     {
         noteCall();
     }
     ~FakeRecognizer() override
     {
+        QThread* const here = QThread::currentThread();
+        const bool onCreationThread = here == m_createdOn && here != QCoreApplication::instance()->thread();
 #ifdef Q_OS_WIN
         const bool inApartment = currentThreadIsSta();
+#endif
         const std::lock_guard lock(m_log->mutex);
+        m_log->destroyedOnCreationThread = onCreationThread;
+#ifdef Q_OS_WIN
         m_log->staWhenDestroyed = inApartment;
 #endif
     }
@@ -99,6 +106,7 @@ private:
 
     std::shared_ptr<ThreadLog> m_log;
     bool m_available;
+    QThread* m_createdOn; // fil de la création
 };
 
 } // namespace
@@ -169,9 +177,12 @@ private slots:
             const std::lock_guard lock(log->mutex);
             QCOMPARE(log->threads.size(), std::size_t{2}); // création + une reconnaissance
             QCOMPARE(log->staCalls, log->threads.size());  // l'une et l'autre dans l'appartement unique
+            QCOMPARE(log->threads.front(), static_cast<QThread*>(&thread)); // créé sur le fil dédié
         }
-        // Fil arrêté : le reconnaisseur a été détruit sur son fil, avant la sortie de l'appartement.
+        // Fil arrêté : le reconnaisseur a été détruit sur le fil de sa création (le fil dédié), avant la
+        // sortie de l'appartement.
         const std::lock_guard lock(log->mutex);
+        QVERIFY(log->destroyedOnCreationThread);
         QVERIFY(log->staWhenDestroyed);
 #else
         QSKIP("Pas de COM hors de Windows : l'appartement ne se vérifie que sous Windows (preuve locale).");
@@ -203,7 +214,12 @@ private slots:
         thread.recognize(InkStrokes{{{100, 100}, {100, 140}, {100, 180}}}, &receiver,
                          [&](const RecognitionReply& reply) { got = reply; });
         QTRY_VERIFY_WITH_TIMEOUT(got.has_value(), 10000);
-        QVERIFY(!got->texts.isEmpty());
+        // Meilleur texte et au moins une alternative (lue par IDispatch) ; 1 + 10 alternatives au plus. Un
+        // moteur présent qui ne rend rien échoue ici, sans SKIP : le seul saut permis est « reconnaisseur
+        // absent ».
+        const QString seen = QStringLiteral("textes : ") + got->texts.join(QStringLiteral(" / "));
+        QVERIFY2(got->texts.size() >= 2, qPrintable(seen));
+        QVERIFY2(got->texts.size() <= 11, qPrintable(seen));
         QStringList copy = got->texts;
         QCOMPARE(copy.removeDuplicates(), qsizetype{0});
     }

@@ -90,19 +90,25 @@ std::vector<LANGID> languagesOf(IInkRecognizer* recognizer)
     VARTYPE type = static_cast<VARTYPE>(languages.value().vt & VT_TYPEMASK);
     if (!readable(type) && (FAILED(SafeArrayGetVartype(array, &type)) || !readable(type)))
         return out;
+    // SafeArrayGetElement copie la taille d'élément du tableau : elle doit être celle du type annoncé, sinon
+    // la lecture déborderait la variable de destination.
+    const bool lcids = type == VT_I4 || type == VT_UI4;
+    const std::size_t expectedSize = lcids ? sizeof(LONG) : sizeof(SHORT);
+    if (static_cast<std::size_t>(SafeArrayGetElemsize(array)) != expectedSize)
+        return out;
     LONG lower = 0;
     LONG upper = -1;
     if (FAILED(SafeArrayGetLBound(array, 1, &lower)) || FAILED(SafeArrayGetUBound(array, 1, &upper)))
         return out;
     for (LONG i = lower; i <= upper; ++i) {
-        if (type == VT_I2 || type == VT_UI2) {
-            SHORT language = 0;
-            if (SUCCEEDED(SafeArrayGetElement(array, &i, &language)))
-                out.push_back(static_cast<LANGID>(language));
-        } else if (type == VT_I4 || type == VT_UI4) {
+        if (lcids) {
             LONG lcid = 0;
             if (SUCCEEDED(SafeArrayGetElement(array, &i, &lcid)))
                 out.push_back(LANGIDFROMLCID(static_cast<LCID>(lcid)));
+        } else {
+            SHORT language = 0;
+            if (SUCCEEDED(SafeArrayGetElement(array, &i, &language)))
+                out.push_back(static_cast<LANGID>(language));
         }
     }
     return out;
