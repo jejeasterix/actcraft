@@ -270,8 +270,8 @@
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/injector.h": {
-    "mtime": 1792000398.8765376,
-    "ast_hash": "3af51d56a66c874034d12c58f2a3b24c",
+    "mtime": 1792382685.9813733,
+    "ast_hash": "5425ddf181ffb5aeaf1204a608185d23",
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/machineinfo.h": {
@@ -345,8 +345,8 @@
     "semantic_hash": ""
   },
   "bench/src/injector.cpp": {
-    "mtime": 1792000398.9652078,
-    "ast_hash": "99183ae3ddaae52c1349cfc77d202a88",
+    "mtime": 1792382685.989382,
+    "ast_hash": "9196a656471b7ed9fe98606e54938364",
     "semantic_hash": ""
   },
   "bench/src/machineinfo.cpp": {
@@ -670,8 +670,8 @@
     "semantic_hash": ""
   },
   "tests/tst_bench_injector.cpp": {
-    "mtime": 1792000400.393528,
-    "ast_hash": "022113ac0e203e3b56fe1cbe66ea7a22",
+    "mtime": 1792382686.0003817,
+    "ast_hash": "4a98f9730936155b85e467541e8d30a7",
     "semantic_hash": ""
   },
   "tests/tst_bench_json.cpp": {
@@ -985,8 +985,8 @@
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/uiscenario.h": {
-    "mtime": 1792376530.710906,
-    "ast_hash": "ee03c960d829de48c9cc0d7ca06197d0",
+    "mtime": 1792382685.9863732,
+    "ast_hash": "396f9e26781174039320a3ea3faff96a",
     "semantic_hash": ""
   },
   "bench/scenarios/premiers-pas.json": {
@@ -995,8 +995,8 @@
     "semantic_hash": ""
   },
   "bench/src/uiscenario.cpp": {
-    "mtime": 1792376530.7190738,
-    "ast_hash": "fd042b2f7f42baf281490b6ff8ea7fd1",
+    "mtime": 1792382685.9943888,
+    "ast_hash": "d57f7ed43e50d3d0310316259e788437",
     "semantic_hash": ""
   },
   "core/include/actcraft/core/document.h": {
@@ -1075,8 +1075,8 @@
     "semantic_hash": ""
   },
   "tests/tst_bench_uiscenario.cpp": {
-    "mtime": 1792376530.7231054,
-    "ast_hash": "2f0afe41479612ba796d111b2342e8be",
+    "mtime": 1792382686.0034614,
+    "ast_hash": "3b2b6d98bc20edc1c0c33774ee0efcec",
     "semantic_hash": ""
   },
   "tests/tst_core_document.cpp": {
@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1792372653.6817474,
-    "ast_hash": "7cdd13bb77dc1ba3affb67b069582bf1",
+    "mtime": 1792380613.639177,
+    "ast_hash": "e54f6555401252e50feae20073f5ed88",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
