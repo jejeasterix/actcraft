@@ -874,6 +874,39 @@ private slots:
         QVERIFY2(loopMax(report.last()) >= 250 &&
                      report.last().contains(QLatin1String("ECART (seuil 100 ms)")),
                  qPrintable(report.join(QLatin1Char('\n'))));
+        // Le blocage se reproduit à la reprise : la fenêtre est rejouée une fois, pas davantage (L10-C2).
+        QCOMPARE(report.filter(QStringLiteral("BOUCLE sonde démarrée")).size(), 2);
+    }
+
+    // Discriminant (L10-C2) : un écart qui ne se reproduit pas (la charge de la machine ; ici, un blocage à
+    // la première mesure seulement) est repris une fois, seuil entier, et passe, sans « ECART » dans le
+    // rapport (motif d'échec de ctest). Sous l'ancienne règle, un plus long intervalle comparé une seule
+    // fois, ce scénario échouait. Un blocage reproduit échoue toujours :
+    // eventLoopProbeSeesABlockedMainThread.
+    void eventLoopGapIsRetriedOnce()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        int starts = 0;
+        f.player->setLineSink([&f, &starts](const QString& line) {
+            if (line.startsWith(QStringLiteral("BOUCLE sonde démarrée")) && ++starts == 1) {
+                QTimer::singleShot(100, f.window, [] { QThread::msleep(250); });
+            }
+        });
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("reprise", "[{\"watchEventLoop\":true},{\"wait\":400},"
+                                                    " {\"maxEventLoopGapMs\":100}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(starts, 2);
+        QVERIFY2(report.size() == 6 && loopMax(report.at(2)) >= 250 &&
+                     report.at(2).endsWith(
+                         QStringLiteral(" ms au-dessus du seuil (100 ms) : fenêtre rejouée une fois")),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(report.filter(QStringLiteral("ECART")).isEmpty(),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(loopMax(report.last()) < 100 && report.last().endsWith(QLatin1String(" ms OK")),
+                 qPrintable(report.last()));
     }
 
     // Discriminant : un blocage juste avant la comparaison, sans tour de boucle entre les deux (ici, la

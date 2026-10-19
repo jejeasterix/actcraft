@@ -37,8 +37,12 @@ enum class UiStepKind : std::uint8_t
     CheckPixel, // {"checkPixel": "nom", "at": [x, y], "color": "#rrggbb", "tolerance": 48}
     Expect,     // {"expect": "objet.propriété", "value": …}
     // Ajoutées au lot 2 (L2-T20, S5), à la fin : les rangs ci-dessus ne changent pas.
-    Fixture,         // {"fixture": "trois-pages", "path": "${SORTIE}/a.actcraft"} — sous le dossier de sortie
-    WaitFor,         // {"waitFor": "objet.propriété", "value": …, "timeoutMs": 10000} — 1 ms à 2 min
+    Fixture, // {"fixture": "trois-pages", "path": "${SORTIE}/a.actcraft"} — sous le dossier de sortie
+    WaitFor, // {"waitFor": "objet.propriété", "value": …, "timeoutMs": 10000} — 1 ms à 2 min
+    // Fenêtre de boucle : de « watchEventLoop » à « maxEventLoopGapMs ». Plus long intervalle au-dessus du
+    // seuil : la fenêtre est rejouée une fois, seuil entier, et n'échoue (ECART) que si l'écart se reproduit.
+    // La charge de la machine ne se reproduit pas ; un blocage du fil principal par l'étape jouée (E/S
+    // synchrone), si (L10-C2). Les étapes de la fenêtre doivent donc pouvoir être rejouées.
     WatchEventLoop,  // {"watchEventLoop": true} — démarre la sonde de la boucle du fil principal
     MaxEventLoopGap, // {"maxEventLoopGapMs": 25} — arrête la sonde, compare le plus long intervalle
     Remember,        // {"remember": "objet.propriété", "as": "nom"} — valeur de ${nom} ensuite
@@ -168,6 +172,8 @@ private:
     KeyDelivery m_keyDelivery;
     QHash<QString, QString> m_memory;            // « remember » : nom → valeur
     std::unique_ptr<EventLoopProbe> m_loopProbe; // sonde de boucle armée par « watchEventLoop »
+    bool m_loopRetryAvailable = false;           // fenêtre de boucle pas encore rejouée (play)
+    bool m_loopRetryAsked = false;               // écart à la première mesure : play rejoue la fenêtre
 };
 
 } // namespace actcraft::bench

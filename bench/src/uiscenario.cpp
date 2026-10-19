@@ -880,11 +880,22 @@ bool UiScenarioPlayer::maxEventLoopGap(const UiStep& step, QStringList& report)
     }
     const qint64 max = m_loopProbe->stop();
     m_loopProbe.reset();
-    const bool ok = max <= step.ms;
-    report << QStringLiteral("BOUCLE max=%1 ms %2")
-                  .arg(max)
-                  .arg(ok ? QStringLiteral("OK") : QStringLiteral("ECART (seuil %1 ms)").arg(step.ms));
-    return ok;
+    if (max <= step.ms) {
+        report << QStringLiteral("BOUCLE max=%1 ms OK").arg(max);
+        return true;
+    }
+    // Reprise unique (L10-C2) : la charge de la machine allonge un intervalle au hasard, un blocage du fil
+    // principal par l'étape jouée revient à chaque passage. Le seuil reste entier ; la première mesure
+    // au-dessus est écrite sans « ECART » (motif d'échec de ctest), la seconde échoue.
+    if (m_loopRetryAvailable) {
+        m_loopRetryAsked = true;
+        report << QStringLiteral("BOUCLE max=%1 ms au-dessus du seuil (%2 ms) : fenêtre rejouée une fois")
+                      .arg(max)
+                      .arg(step.ms);
+        return false;
+    }
+    report << QStringLiteral("BOUCLE max=%1 ms ECART (seuil %2 ms)").arg(max).arg(step.ms);
+    return false;
 }
 
 bool UiScenarioPlayer::remember(const UiStep& step, QStringList& report)
@@ -1040,14 +1051,34 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
         return false;
     }
     bool ok = true;
-    for (const UiStep& step : scenario.steps) {
+    const std::size_t none = scenario.steps.size();
+    std::size_t window = none; // dernière « watchEventLoop » de la fenêtre de boucle ouverte
+    bool retried = false;
+    std::size_t i = 0;
+    while (i < scenario.steps.size()) {
+        const UiStep& step = scenario.steps[i];
+        if (step.kind == UiStepKind::WatchEventLoop) {
+            window = i;
+        }
+        m_loopRetryAvailable = window != none && !retried;
+        m_loopRetryAsked = false;
         const qsizetype before = report.size();
         const bool stepOk = runStep(step, report);
         emitFrom(report, before); // au fil de l'eau : la ligne sort avant l'étape suivante
+        if (m_loopRetryAsked) {
+            retried = true;
+            i = window; // la fenêtre est rejouée depuis sa « watchEventLoop », une fois
+            continue;
+        }
         if (!stepOk) {
             ok = false;
             break;
         }
+        if (step.kind == UiStepKind::MaxEventLoopGap) {
+            window = none;
+            retried = false;
+        }
+        ++i;
     }
     QFile index(QDir(outputDir).filePath(QStringLiteral("index.md")));
     if (index.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
