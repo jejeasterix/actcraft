@@ -1660,8 +1660,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792382229.0339282,
-    "ast_hash": "f3d2498d71f44142e751dac917d53ac5",
+    "mtime": 1792382863.0226393,
+    "ast_hash": "b694f828d3bd0074de8bb8a5e7257e7f",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -1700,8 +1700,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_handwriting.cpp": {
-    "mtime": 1792349203.9364378,
-    "ast_hash": "4b5b3282e8cd6b66b97b4c61f9cde836",
+    "mtime": 1792384382.0090854,
+    "ast_hash": "f969e6d38e5a86f4be455846eef31da5",
     "semantic_hash": ""
   },
   "tests/tst_features_keyboard.cpp": {
@@ -1842,6 +1842,26 @@
   "features/src/spotlight.cpp": {
     "mtime": 1792382785.6172643,
     "ast_hash": "29f8e8ce34219590cb144155d183eb10",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/handwriting.h": {
+    "mtime": 1792384381.9975157,
+    "ast_hash": "b7ef3aeebb9260453f099178809ec2ee",
+    "semantic_hash": ""
+  },
+  "features/src/handwriting.cpp": {
+    "mtime": 1792384381.9975157,
+    "ast_hash": "13b80b6a05ad3b3393d6e40d4417be5b",
+    "semantic_hash": ""
+  },
+  "features/src/handwriting_other.cpp": {
+    "mtime": 1792384381.9975157,
+    "ast_hash": "89966c5bd2da0e67dfd1ae8f4601c1e4",
+    "semantic_hash": ""
+  },
+  "features/src/handwriting_win.cpp": {
+    "mtime": 1792384382.0070934,
+    "ast_hash": "2d8a1187e7759c51b35c30ab2bb445bf",
     "semantic_hash": ""
   }
 }
