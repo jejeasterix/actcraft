@@ -6,6 +6,7 @@
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/toolhost.h>
 
 #include <QImage>
 #include <QPointingDevice>
@@ -13,8 +14,11 @@
 #include <QQmlComponent>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QRegularExpression>
+#include <QSettings>
 #include <QStringList>
 #include <QTabletEvent>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
 
@@ -304,6 +308,8 @@ class TstUiShell : public QObject
 
 private:
     std::unique_ptr<QPointingDevice> m_stylus;
+    // Réglages des outils (ToolHost) : jamais dans le vrai registre.
+    QTemporaryDir m_settingsDir;
 
     void post(Shell& s, QEvent::Type type, QPointF scene, Qt::MouseButtons buttons)
     {
@@ -316,6 +322,9 @@ private:
 private slots:
     void initTestCase()
     {
+        QVERIFY(m_settingsDir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
         m_stylus = std::make_unique<QPointingDevice>(
             QStringLiteral("tst-ui-shell-stylus"), 5170, QInputDevice::DeviceType::Stylus,
             QPointingDevice::PointerType::Pen,
@@ -710,6 +719,133 @@ private slots:
             }
         }
         QVERIFY2(failures.isEmpty(), qPrintable(failures.join(QLatin1Char('\n'))));
+    }
+
+    // ---- Socle 3-7 (L0-S9) : ordre des couches, emplacements, gestionnaires ----
+
+    // L'ordre des enfants fait l'empilement (z à 0 partout) : page fixe, cache, couche d'attente, couche
+    // soulevée (lot 3), encre, surcouches de page (lot 7).
+    void socleLayerOrder()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QQuickItem* page = item(s, "page");
+        QVERIFY(page);
+        QStringList names;
+        for (QQuickItem* child : page->childItems()) {
+            names << child->objectName();
+            QCOMPARE(child->z(), 0.0);
+        }
+        QCOMPARE(names,
+                 (QStringList{"fixedPage", "pageCache", "pendingLayer", "liftLayer", "ink", "pageOverlays"}));
+    }
+
+    void socleSlotsExist()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name : {"appTools", "selectionOverlay", "toolCursor", "presentationSlot",
+                                 "pageContextMenu", "trashCan", "presentationLayer", "presentation"}) {
+            const QString objectName = QString::fromLatin1(name);
+            QVERIFY2(s.window->findChild<QObject*>(objectName) != nullptr ||
+                         findItem(s.window->contentItem(), objectName),
+                     name);
+        }
+        QQuickItem* selection = item(s, "selectionOverlay");
+        QQuickItem* cursor = item(s, "toolCursor");
+        QQuickItem* slot = item(s, "presentationSlot");
+        QVERIFY(selection && cursor && slot);
+        const QList<QQuickItem*> siblings = s.view->parentItem()->childItems();
+        QVERIFY(siblings.indexOf(s.view) < siblings.indexOf(selection));
+        QVERIFY(siblings.indexOf(selection) < siblings.indexOf(slot));
+        // La couche de présentation couvre la fenêtre, au-dessus de tout le reste.
+        QQuickItem* layer = item(s, "presentationLayer");
+        QVERIFY(layer);
+        QCOMPARE(layer->z(), 50.0);
+        QVERIFY(s.window->findChild<ui::ToolHost*>(QStringLiteral("appTools")));
+    }
+
+    void everyLot3CommandHasAHandler()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>();
+        QVERIFY(commands);
+        const QStringList lot3 = {"tool.select",     "tool.highlighter",  "tool.eraser",
+                                  "edit.undo",       "edit.redo",         "edit.delete",
+                                  "edit.select-all", "clear.annotations", "clear.objects",
+                                  "clear.grid",      "clear.background",  "clear.page",
+                                  "page.revert",     "view.trash",        "object.translucency",
+                                  "object.enlarge",  "object.reduce"};
+        for (const QString& id : lot3) {
+            QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
+        }
+    }
+
+    // Le clic droit n'est plus un TapHandler : la vue émet contextMenuRequested et la zone ouvre le menu.
+    // Espion : PageArea compte les demandes (contextMenuRequestCount) juste avant d'appeler popupAt.
+    void contextMenuOpensFromTheView()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QQuickItem* area = item(s, "pageArea");
+        QVERIFY(area);
+        QCOMPARE(area->property("contextMenuRequestCount").toInt(), 0);
+        emit s.view->contextMenuRequested(QPointF(10, 10));
+        QCOMPARE(area->property("contextMenuRequestCount").toInt(), 1);
+    }
+
+    // Annotation de bureau (lot 7) : PageArea sans Tools ni Commands dessine encore.
+    void pageAreaWithoutToolsDraws()
+    {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nimport ActCraft.Ui\nPageArea { width: 800; height: 600 }\n",
+                          QUrl());
+        QQuickWindow window;
+        window.resize(800, 600);
+        std::unique_ptr<QObject> created(component.create());
+        QVERIFY2(created, qPrintable(component.errorString()));
+        auto* area = qobject_cast<QQuickItem*>(created.get());
+        QVERIFY(area);
+        area->setParentItem(window.contentItem());
+        // Document réel et vide : sans lui, la zone n'a aucune page (tools reste à null, c'est l'objet du
+        // test).
+        auto* controller = new ui::DocumentController(&window);
+        QVERIFY(area->setProperty("documentController", QVariant::fromValue(controller)));
+        controller->setFixedPage(area->property("fixedPage").value<render::FixedPageItem*>());
+        controller->newDocument(1024, 768);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(area->property("tools").value<QObject*>() == nullptr);
+        auto* view = area->property("view").value<ui::PageView*>();
+        auto* fixed = area->property("fixedPage").value<render::FixedPageItem*>();
+        QVERIFY(view && fixed);
+        QVERIFY(QTest::qWaitFor([&] { return fixed->isReady() && view->cacheReady(); }, 10000));
+        const QPointF a = view->pageToScene(QPointF(300, 400));
+        const QPointF b = view->pageToScene(QPointF(700, 400));
+        const auto post = [&](QEvent::Type type, QPointF scene, Qt::MouseButtons buttons) {
+            QCoreApplication::postEvent(&window,
+                                        new QTabletEvent(type, m_stylus.get(), scene,
+                                                         window.mapToGlobal(scene), buttons ? 0.5 : 0.0, 0, 0,
+                                                         0, 0, 0, Qt::NoModifier, Qt::LeftButton, buttons));
+        };
+        post(QEvent::TabletPress, a, Qt::LeftButton);
+        for (int i = 1; i <= 10; ++i) {
+            post(QEvent::TabletMove, a + (b - a) * i / 10, Qt::LeftButton);
+        }
+        post(QEvent::TabletRelease, b, Qt::NoButton);
+        QTRY_COMPARE_WITH_TIMEOUT(fixed->objectCount(), 1, 3000);
+    }
+
+    // Aucun avertissement QML (propriété requise absente, type inconnu, liaison nulle...), au chargement
+    // comme à la fermeture de la fenêtre.
+    void shellLoadsWithoutQmlWarning()
+    {
+        QTest::failOnWarning(QRegularExpression(QStringLiteral("qrc:.*\\.qml")));
+        Shell s;
+        QVERIFY(start(s));
+        QTest::qWait(200);
     }
 };
 
