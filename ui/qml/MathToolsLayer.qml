@@ -1,7 +1,7 @@
 import QtQuick
 import ActCraft.Ui
 
-// Outils de maths (F-280 ; L7-T10 à L7-T13 y ajoutent leurs délégués) : contrôleur, délégués en coordonnées de
+// Outils de maths (F-280 règle, F-283 équerre ; L7-T11 à L7-T13 y ajoutent leurs délégués) : contrôleur, délégués en coordonnées de
 // page (cette couche remplit pageOverlays), cercle d'accroche du survol, gestionnaires des commandes math.*. Les
 // outils ne dessinent aucune encre : le stylo verse le trait, guidé par le filtre d'échantillons du contrôleur.
 Item {
@@ -20,13 +20,38 @@ Item {
         toolHost: root.tools
     }
 
+    // Un modèle par outil, tenu par les signaux du contrôleur : ouvrir ou fermer un outil crée ou retire son seul
+    // délégué (un Repeater sur le nombre recréerait tous les délégués, règles et équerres, à chaque changement).
+    ListModel { id: slots }
+    Connections {
+        target: mathTools
+        function onToolOpened(index, kind) { slots.insert(index, { kind: kind }) }
+        function onToolClosed(index) { slots.remove(index) }
+    }
+
     Repeater {
-        model: mathTools.count
-        delegate: RulerTool {
+        model: slots
+        delegate: Loader {
+            id: slot
             required property int index
-            controller: mathTools
-            toolIndex: index
-            pageView: root.pageArea ? root.pageArea.view : null
+            required property string kind
+            sourceComponent: slot.kind === "setSquare" ? squareTool : rulerTool
+            Component {
+                id: rulerTool
+                RulerTool {
+                    controller: mathTools
+                    toolIndex: slot.index
+                    pageView: root.pageArea ? root.pageArea.view : null
+                }
+            }
+            Component {
+                id: squareTool
+                SetSquareTool {
+                    controller: mathTools
+                    toolIndex: slot.index
+                    pageView: root.pageArea ? root.pageArea.view : null
+                }
+            }
         }
     }
 
@@ -67,5 +92,6 @@ Item {
         if (!root.commands)
             return
         root.commands.setHandler("math.ruler", function () { mathTools.openRuler() })
+        root.commands.setHandler("math.set-square", function () { mathTools.openSetSquare() })
     }
 }
