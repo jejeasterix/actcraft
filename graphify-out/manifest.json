@@ -1660,8 +1660,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792377337.7931578,
-    "ast_hash": "4fb6b011df1256f9e8ce2ccf5a87d5c6",
+    "mtime": 1792382229.0339282,
+    "ast_hash": "f3d2498d71f44142e751dac917d53ac5",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -1685,8 +1685,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_curtain.cpp": {
-    "mtime": 1792349203.92844,
-    "ast_hash": "8415f01c33c546a07f6aff1954d42e54",
+    "mtime": 1792382785.620291,
+    "ast_hash": "b0a3ff101b4dd56a351ebf16c9ed197a",
     "semantic_hash": ""
   },
   "tests/tst_features_desktopwheel.cpp": {
@@ -1715,8 +1715,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_pagetools.cpp": {
-    "mtime": 1792349203.9450502,
-    "ast_hash": "82781f51371777fb6184bb299866898d",
+    "mtime": 1792382785.6232827,
+    "ast_hash": "cb746c05f4660745f66810dd86028465",
     "semantic_hash": ""
   },
   "tests/tst_features_pagezoom.cpp": {
@@ -1735,8 +1735,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_spotlight.cpp": {
-    "mtime": 1792349203.9518366,
-    "ast_hash": "a2e87d05e204cf44ade4c1091eff2045",
+    "mtime": 1792382785.626278,
+    "ast_hash": "1ea255c8e03248bb595a71a833126949",
     "semantic_hash": ""
   },
   "tests/tst_features_ticker.cpp": {
@@ -1812,6 +1812,36 @@
   "features/src/shapefinder.cpp": {
     "mtime": 1792379687.1911685,
     "ast_hash": "b05bc780d4e0eb083983f06e5573056a",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/curtain.h": {
+    "mtime": 1792382785.605631,
+    "ast_hash": "3fe7d50299a0b8a58c2b9e29885e6457",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/pagetools.h": {
+    "mtime": 1792382785.6086345,
+    "ast_hash": "4b9e95598cf077c72b5d92d898b9bd39",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/spotlight.h": {
+    "mtime": 1792382785.6106358,
+    "ast_hash": "668e2123025f6ad770f0a968c883a588",
+    "semantic_hash": ""
+  },
+  "features/src/curtain.cpp": {
+    "mtime": 1792382785.6131477,
+    "ast_hash": "3cc28192fc51cfd853a191d18b3e84e0",
+    "semantic_hash": ""
+  },
+  "features/src/pagetools.cpp": {
+    "mtime": 1792382785.615231,
+    "ast_hash": "be43f2947a2fa93f667a58e060f3746a",
+    "semantic_hash": ""
+  },
+  "features/src/spotlight.cpp": {
+    "mtime": 1792382785.6172643,
+    "ast_hash": "29f8e8ce34219590cb144155d183eb10",
     "semantic_hash": ""
   }
 }
