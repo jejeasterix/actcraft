@@ -303,7 +303,15 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
     - L6-T* : l'hypothèse H6-10 (mesure du PBKDF2 sur le Dell 3510) devient une mesure sur ce poste.
   - **MacBook M1 retiré aussi** : à la question du Pilote (« Veux-tu la retirer aussi ? »), Jérôme a répondu « Oui », relayé mot pour mot. Plus aucune mesure sur une machine de référence ; `scripts/bench.sh --rendu tous` n'est plus proposé à Jérôme (il reste joué par la CI macOS s'il y figure).
   - Une décision qui retire du travail ne demande pas de go écrit dans cette session : je l'applique, et je la rappellerai à la porte de fin.
-- **Pilote, information (08 h 37)** : il a arrêté deux boucles d'attente non bornées sur `tasks/bc7jt87bw.output` (PID 19952 et 15164), sans doute lancées par un agent. **Règle des briefs** : toute boucle d'attente en fond est bornée, et aucun agent ne surveille une sortie (jeton au premier plan).- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
+- **Pilote, information (08 h 37)** : il a arrêté deux boucles d'attente non bornées sur `tasks/bc7jt87bw.output` (PID 19952 et 15164), sans doute lancées par un agent. **Règle des briefs** : toute boucle d'attente en fond est bornée, et aucun agent ne surveille une sortie (jeton au premier plan).- **L3-T3 mergée** (9ec3587, merge 378e8d3, graphe e1b0437).
+  - Rejeu : tst_core_hittest 7/7, tst_core_erase 8/8, 6 fonctions nommées en PASS, mutation de la gomme rouge, NOMS OK, titres 0.
+  - Suite : 112/113. tst_bench_verdict a échoué sans sortie après 397 s sous charge ; rejoué seul, il passe en 259 s.
+- **L3-T10, preuve** (tête 01d5025) :
+  - tout est vert : 7 fonctions nommées, deux mutations rouges, content_check OK, format, NOMS OK ;
+  - sauf la suite, 112/113 : tst_bench_result a échoué (dépendance de tst_bench_smoke). Rejeu seul lancé.
+- **Instabilité récurrente des tests du banc sous charge** : suite de V2, L3-T3, L3-T10 (`tst_bench_verdict`, `tst_bench_smoke` puis `tst_bench_result`, `tst_captures_aller_retour_natif`). Chaque fois, un rejeu seul passe.
+  - Règle de l'orchestrateur : un échec de ces tests est rejoué seul ; s'il passe, la tâche est verte.
+  - **Correctif à faire avant la clôture du lot 3** : rendre ces tests robustes à la charge (`RUN_SERIAL`, délais, ou mesures relatives).- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
 - **V2 du socle mergée** (L0-S5 et L0-S7). La suite complète de V2 tourne sous le jeton (`scratchpad/out/suite-v2.txt`). L0-S9 est en cours, V3. L0-S2 attend le merge de L10-C2, qui passe après la suite de V2.
