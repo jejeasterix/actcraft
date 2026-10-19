@@ -106,9 +106,9 @@ void EraserTool::sweep(core::PointF from, core::PointF to, bool first)
         return;
 
     // Pas d'au plus r / 2 (comme core::cutBySweep). Le centre `from` est celui du segment précédent (ou du
-    // geste, pour le premier) : il n'est recoupé que pour le premier segment. core::cutByDisk compte un
-    // point sur le cercle comme intérieur : recouper un morceau avec le même disque effacerait le bout qu'il
-    // vient de laisser sur ce cercle (constaté, à signaler à L3-T3).
+    // geste, pour le premier) : il n'est recoupé que pour le premier segment. core::cutByDisk compte le
+    // cercle dehors (L3-C6) : recouper un morceau avec le même disque ne raccourcirait pas le bout qu'il
+    // vient de laisser sur ce cercle ; ce serait une coupe redondante, à l'arrondi près.
     const double distance = std::hypot(to.x - from.x, to.y - from.y);
     const int steps = r > 0 ? std::max(1, static_cast<int>(std::ceil(distance / (r / 2)))) : 1;
     std::vector<core::PointF> centers;

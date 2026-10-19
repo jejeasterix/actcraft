@@ -472,6 +472,37 @@ private slots:
         QVERIFY(!pageHas(rig.doc, tiny));
         QCOMPARE(strokeCount(rig.doc), std::size_t{2});
     }
+
+    void verticesOnTheCircleLeaveTwoPieces()
+    {
+        // Constat de S6 (L3-C6) : trait y = 300 de x 200 à 600 en 16 sous-segments de 25 px, gomme de rayon
+        // 25 passée en x = 400 de y 260 à 340 par mouvements de 10 px ; au centre (400, 300), les sommets 375
+        // et 425 sont pile sur le cercle. Les deux morceaux restent : [200, 375] et [425, 600].
+        Rig rig;
+        core::Stroke stroke;
+        for (int x = 200; x <= 600; x += 25)
+            stroke.points.push_back({static_cast<double>(x), 300, 0.5f});
+        stroke.baseWidth = 3;
+        core::PageObject object{stroke};
+        const core::ObjectId id = object.common.id = rig.doc.allocateId();
+        object.common.layer = core::Layer::Top;
+        core::insertAtTopOfLayer(rig.doc.page(0), object);
+
+        drag(rig.tool, line({400, 260}, {400, 340}, 8));
+        QCOMPARE(rig.editor.dropped.size(), std::size_t{1});
+        QVERIFY(!pageHas(rig.doc, id));
+        QCOMPARE(strokeCount(rig.doc), std::size_t{4}); // 2 morceaux + les deux traits du banc
+        std::vector<std::pair<double, double>> spans;
+        for (const core::PageObject& o : rig.doc.page(0).objects) {
+            const auto* s = std::get_if<core::Stroke>(&core::body(o));
+            if (s && !s->points.empty() && s->points.front().y == 300)
+                spans.emplace_back(s->points.front().x, s->points.back().x);
+        }
+        std::sort(spans.begin(), spans.end());
+        QCOMPARE(spans.size(), std::size_t{2});
+        QVERIFY(qAbs(spans[0].first - 200) < 1e-9 && qAbs(spans[0].second - 375) < 1e-9);
+        QVERIFY(qAbs(spans[1].first - 425) < 1e-9 && qAbs(spans[1].second - 600) < 1e-9);
+    }
 };
 
 QTEST_GUILESS_MAIN(TstToolsEraser)
