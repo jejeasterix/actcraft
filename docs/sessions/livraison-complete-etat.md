@@ -311,7 +311,9 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
   - sauf la suite, 112/113 : tst_bench_result a échoué (dépendance de tst_bench_smoke). Rejeu seul lancé.
 - **Instabilité récurrente des tests du banc sous charge** : suite de V2, L3-T3, L3-T10 (`tst_bench_verdict`, `tst_bench_smoke` puis `tst_bench_result`, `tst_captures_aller_retour_natif`). Chaque fois, un rejeu seul passe.
   - Règle de l'orchestrateur : un échec de ces tests est rejoué seul ; s'il passe, la tâche est verte.
-  - **Correctif à faire avant la clôture du lot 3** : rendre ces tests robustes à la charge (`RUN_SERIAL`, délais, ou mesures relatives).- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
+  - **Correctif à faire avant la clôture du lot 3** : rendre ces tests robustes à la charge (`RUN_SERIAL`, délais, ou mesures relatives).- **L3-T10 mergée** (8416c62, merge fd79896). Les tests du banc rejoués seuls passent 3/3. **V1 du lot 3 complète** (T0, T3, T10).
+- **V2 du lot 3 lancée** (worktrees à c40d726) : L3-T4 construit ; L3-T5 et L3-T6 écrivent sans construire.
+- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
 - **V2 du socle mergée** (L0-S5 et L0-S7). La suite complète de V2 tourne sous le jeton (`scratchpad/out/suite-v2.txt`). L0-S9 est en cours, V3. L0-S2 attend le merge de L10-C2, qui passe après la suite de V2.
