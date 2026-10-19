@@ -35,6 +35,9 @@ target_include_directories(tst_ui_lot7 PRIVATE ${PROJECT_SOURCE_DIR}/app ${PROJE
 actcraft_set_warnings(tst_ui_lot7)
 # Même environnement que les tests d'interface du socle, lu et non recopié (tests/ui.cmake inclus avant).
 get_test_property(tst_ui_shell ENVIRONMENT _lot7_env)
+if(NOT _lot7_env)
+    message(FATAL_ERROR "tst_ui_shell : environnement introuvable (tests/ui.cmake), les 17 tests du lot 7 n'en ont pas")
+endif()
 foreach(_key IN LISTS _lot7_ui_keys)
     add_test(NAME tst_ui_${_key} COMMAND tst_ui_lot7 ${_key})
     set_tests_properties(tst_ui_${_key} PROPERTIES ENVIRONMENT "${_lot7_env}")
@@ -45,16 +48,19 @@ actcraft_add_test(tst_render_equation SOURCES tst_render_equation.cpp LIBS ActCr
 target_include_directories(tst_render_equation PRIVATE ${PROJECT_SOURCE_DIR}/render/src)
 actcraft_add_test(tst_features_equationeditor SOURCES tst_features_equationeditor.cpp LIBS ActCraft::features)
 
-foreach(_lot7_scenario IN ITEMS rideau spot effets regle compte-a-rebours message reconnaissance-forme equation
-                                presentation)
-    string(REPLACE "-" "_" _lot7_test "${_lot7_scenario}")
-    add_test(NAME tst_captures_${_lot7_test}
-        COMMAND $<TARGET_FILE:actcraft-captures>
-            --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/${_lot7_scenario}.json
-            --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-${_lot7_scenario})
-    set_tests_properties(tst_captures_${_lot7_test} PROPERTIES
-        TIMEOUT 300
-        ENVIRONMENT "${_bench_env_offscreen}"
-        PASS_REGULAR_EXPRESSION "SCENARIO OK"
-        FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
-endforeach()
+# Captures : seulement avec le banc (actcraft-captures), comme tests/bench.cmake.
+if(TARGET actcraft-captures)
+    foreach(_lot7_scenario IN ITEMS rideau spot effets regle compte-a-rebours message reconnaissance-forme equation
+                                    presentation)
+        string(REPLACE "-" "_" _lot7_test "${_lot7_scenario}")
+        add_test(NAME tst_captures_${_lot7_test}
+            COMMAND $<TARGET_FILE:actcraft-captures>
+                --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/${_lot7_scenario}.json
+                --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-${_lot7_scenario})
+        set_tests_properties(tst_captures_${_lot7_test} PROPERTIES
+            TIMEOUT 300
+            ENVIRONMENT "${_bench_env_offscreen}"
+            PASS_REGULAR_EXPRESSION "SCENARIO OK"
+            FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+    endforeach()
+endif()

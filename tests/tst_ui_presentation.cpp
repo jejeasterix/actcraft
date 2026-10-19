@@ -27,7 +27,11 @@ private slots:
         for (const char* name : roots) {
             QObject* root = main.window()->findChild<QObject*>(QString::fromLatin1(name));
             QVERIFY2(root != nullptr, name);
-            QVERIFY2(root->property("commands").value<QObject*>() != nullptr, name);
+            // Les quatre liaisons posées par Presentation.qml (décision 4).
+            for (const char* bound : {"commands", "documentController", "tools", "pageArea"}) {
+                QVERIFY2(root->property(bound).value<QObject*>() != nullptr,
+                         qPrintable(QStringLiteral("%1.%2").arg(QLatin1String(name), QLatin1String(bound))));
+            }
         }
         auto* overlays = main.window()->findChild<QQuickItem*>(QStringLiteral("pageOverlays"));
         QVERIFY(overlays != nullptr);

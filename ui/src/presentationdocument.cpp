@@ -4,7 +4,10 @@
 
 namespace actcraft::ui {
 
-DocumentInsertions::DocumentInsertions(DocumentController& controller) : m_controller(controller) {}
+DocumentInsertions::DocumentInsertions(DocumentController& controller) : m_controller(controller)
+{
+    static_cast<void>(m_controller); // lu par L7-T2 ; d'ici là, Clang taxerait le champ d'inutilisé (-Werror)
+}
 
 core::ObjectId DocumentInsertions::insertObject([[maybe_unused]] core::PageObject object)
 {

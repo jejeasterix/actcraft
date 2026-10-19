@@ -2,7 +2,8 @@
 
 // Registre des classes de test d'interface du lot 7 : un fichier par fonction, un seul exécutable
 // (tst_ui_lot7). Chaque fichier inscrit sa classe sous une clé ; le main choisit la classe par sa première
-// option.
+// option. Pas d'initMain() (convention de QTEST_MAIN) : ce main ne l'appelle pas ; réglages globaux dans
+// initTestCase().
 #include <QObject>
 
 #include <functional>
