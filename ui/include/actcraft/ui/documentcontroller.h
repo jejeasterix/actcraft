@@ -56,7 +56,7 @@ class DocumentController : public QObject
     Q_PROPERTY(bool lastIoOffMainThread READ lastIoOffMainThread NOTIFY lastIoChanged)
     Q_PROPERTY(int shownObjectCount READ shownObjectCount NOTIFY documentChanged)
     Q_PROPERTY(bool lifting READ isLifting NOTIFY liftingChanged)
-    Q_PROPERTY(bool canRevertPage READ canRevertPage NOTIFY documentChanged)
+    Q_PROPERTY(bool canRevertPage READ canRevertPage NOTIFY canRevertPageChanged)
 
 public:
     explicit DocumentController(QObject* parent = nullptr);
@@ -177,6 +177,7 @@ signals:
     void titleChanged();
     void fileUrlChanged();
     void documentChanged();
+    void canRevertPageChanged(); // avec documentChanged, et à la fin d'un enregistrement (référence changée)
     void undoChanged();
     void busyChanged();
     void warningsChanged();

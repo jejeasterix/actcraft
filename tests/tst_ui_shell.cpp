@@ -795,6 +795,43 @@ private slots:
         QCOMPARE(area->property("contextMenuRequestCount").toInt(), 1);
     }
 
+    // L3-T16 : le menu contextuel montre les entrées de la disposition sauf celle de l'outil courant.
+    void contextMenuSkipsTheCurrentTool()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* menu = s.window->findChild<QObject*>(QStringLiteral("pageContextMenu"));
+        QVERIFY(menu);
+        const auto ids = [menu] {
+            QVariant entries;
+            if (!QMetaObject::invokeMethod(menu, "visibleEntries", Q_RETURN_ARG(QVariant, entries))) {
+                return QStringList{QStringLiteral("<invocation refusée>")};
+            }
+            QStringList out;
+            for (const QVariant& entry : entries.toList()) {
+                const QVariantMap map = entry.toMap();
+                out.append(map.value(QStringLiteral("separator")).toBool()
+                               ? QStringLiteral("-")
+                               : map.value(QStringLiteral("id")).toString());
+            }
+            return out;
+        };
+        QVERIFY(run(s, QStringLiteral("tool.pen")));
+        const QStringList withPen = ids();
+        QVERIFY(withPen.contains(QStringLiteral("tool.select")));
+        QVERIFY(!withPen.contains(QStringLiteral("tool.pen")));
+        QVERIFY(run(s, QStringLiteral("tool.select")));
+        const QStringList withSelect = ids();
+        QCOMPARE(withSelect.value(0), QStringLiteral("tool.pen"));
+        QVERIFY(!withSelect.contains(QStringLiteral("tool.select")));
+        // Jamais de séparateur doublé ni de queue (celui de tête est exclu par le premier contrôle).
+        QVERIFY(withSelect.last() != QStringLiteral("-"));
+        for (qsizetype i = 1; i < withSelect.size(); ++i) {
+            QVERIFY(
+                !(withSelect.at(i) == QStringLiteral("-") && withSelect.at(i - 1) == QStringLiteral("-")));
+        }
+    }
+
     // Annotation de bureau (lot 7) : PageArea sans Tools ni Commands dessine encore.
     void pageAreaWithoutToolsDraws()
     {

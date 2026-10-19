@@ -704,6 +704,22 @@ private slots:
         QCOMPARE(opened.shownObjectCount(), 1);
     }
 
+    // L3-T16 : la référence de « Rétablir la page » change à la fin d'un enregistrement ; Main.qml relit
+    // canRevertPage à documentChanged : le signal doit donc partir à ce moment-là, sinon l'entrée reste
+    // active.
+    void revertPageRenotifiedAtEndOfSave()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        ui::DocumentController controller;
+        controller.commitStroke(redStroke());
+        QVERIFY(controller.canRevertPage());
+        QSignalSpy changed(&controller, &ui::DocumentController::canRevertPageChanged);
+        QVERIFY(saveAndWait(controller, dir.filePath(QStringLiteral("a.actcraft"))));
+        QVERIFY(changed.count() >= 1);
+        QVERIFY(!controller.canRevertPage());
+    }
+
     // Jamais enregistré : page vierge de même taille (D9). « Nouveau » après un enregistrement : la référence
     // de l'ancien document ne vaut plus.
     void revertNeverSavedEmptiesPage()
