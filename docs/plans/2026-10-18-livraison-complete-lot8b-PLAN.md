@@ -29,8 +29,7 @@ l'installation) :
 L8-T20 télécharge les modules Qt Multimedia (avec le moteur FFmpeg qu'il embarque) et Qt WebView, pour Windows et
 pour Android (`android_arm64_v8a`, `android_x86_64`), par aqtinstall depuis les miroirs de Qt. C'est un
 téléchargement : **sans l'accord écrit de Jérôme, L8-T20 ne commence pas**, comme L6-T32 attend H6-6. L'orchestrateur
-pose la question dès la fin de L8-T0, avec les tailles relevées. Les tâches de 8b qui n'en dépendent pas (L8-T22,
-L8-T23, L8-T31, L8-T32, L8-T33) peuvent avancer, après une réservation réduite (ci-dessous).
+pose la question dès la fin de L8-T0, avec les tailles relevées. Sans accord, le repli ci-dessous s'applique en entier ; aucune tâche de 8b n'avance avant lui.
 
 <a id="repli-sans-accord"></a>
 **Repli sans accord (amendement 1, B3)** — appliqué par l'orchestrateur, sans autre amendement, si Jérôme refuse H8-6
@@ -56,9 +55,9 @@ ou ne répond pas avant la fin de 8a. À chaque étape, le registre se charge et
      de 8b des tâches retirées ne sont jamais créés (`L8-T21r` ne les pose pas) ;
    - preuve : `tst_actions_layout`, `tst_actions_registry`, `tst_actions_lockable`, `tst_actions_objectactions`,
      `tst_ui_shell` Passed ; `TESTS OK`, N = N8 + 21 ; `captures.ps1 -Scenario premiers-pas` `CAPTURES OK` ;
-     `git -C <wt> grep -n -E "Talon L8 : rempli par L8-T(2[4-9]|30)\." -- . ':(exclude)docs/'` vide.
+     `L8-C1` réécrit aussi le marqueur de `ui/qml/MediaLayer.qml` (gardé par le repli) en `// Talon L8 : rempli par L8-T25r.` ; `git -C <wt> grep -n -E "Talon L8 : rempli par L8-T(2[4-9]|30)\." -- . ':(exclude)docs/'` vide.
 2. **`L8-T21r`** — réservation réduite (ligne de la table) : 7 tests, **N = N8 + 28**, aucun module `media`.
-3. **Tâches gardées** : L8-T22, L8-T23, L8-T31, L8-T32 telles quelles ; **L8-T25r** et **L8-T33r** (lignes de la
+3. **Tâches gardées** : L8-T22, L8-T23, L8-T31, L8-T32 telles quelles, en lisant `L8-T21r` pour `L8-T21` dans leur colonne « dépend de » ; **L8-T25r** et **L8-T33r** (lignes de la
    table) ; L8-T34 avec N = N8 + 28 et les seuls scénarios gardés. **Retirées** : L8-T20, L8-T21, L8-T24, L8-T26 à
    L8-T30.
 4. **Vagues du repli** : V10r : L8-C1 · V11r : L8-T21r · V12r : L8-T22 ‖ L8-T31 · V13r : L8-T23 ‖ L8-T33r ·
@@ -83,10 +82,10 @@ ou ne répond pas avant la fin de 8a. À chaque étape, le registre se charge et
 | L8-T29 | `ui` : politique de contenu du cadre web (N1-A3) : JavaScript coupé, aucun `file://` hors des ressources du document, aucun chemin réseau, contenu distant d'un document reçu bloqué jusqu'au déblocage de la page | L8-T21 | `ui/include/actcraft/ui/webpolicy.h`, `ui/src/webpolicy.cpp`, `tests/tst_ui_webpolicy.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_webpolicy` (dont `javascriptOffByDefault`, `fileOutsideResourcesRefused`, `fileInsideResourcesAllowed`, `networkPathRefused`, `remoteBlockedInAReceivedDocument`, `unblockIsPerPageAndDocument`, `typedAddressIsNotReceived`, `htmlIsNeverPassedToQTextDocumentWithoutTheGuard`) Passed ; mutation (déblocage pour tout le document) rouge puis remise | S27 | #tache-l8-t29 |
 | L8-T30 | Cadre web : saisie du code, vue redimensionnable, précédent, suivant, recharger, image fixe, repère de blocage, repère neutre dans les miniatures et les exports ; scénario `cadre-web` | L8-T29 | `ui/include/actcraft/ui/webframeitem.h`, `ui/src/webframeitem.cpp`, `ui/qml/WebFrameLayer.qml`, `ui/qml/WebFrameDialog.qml`, `app/main.cpp`, `bench/captures/main.cpp`, `bench/app/main.cpp`, `tests/tst_ui_webframe.cpp`, `bench/scenarios/cadre-web.json`, `bench/scenarios/fixtures/cadre-web.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_webframe` (dont `insertFromTypedHtml`, `resizeIsOneStep`, `receivedRemoteFrameSendsNoRequest`, `unblockThenRequestReachesTheServer`, `otherPageStaysBlocked`, `snapshotPlacesAnImage`, `roundTripKeepsTheFrame`, `paintedAsANeutralFrame`), `tst_render_painter`, `tst_captures_cadre_web` Passed ; `captures.ps1 -Scenario cadre-web` : `LU webFrameLayer.count=1 OK`, `LU webFrameLayer.blockedCount=1 OK`, `CAPTURES OK` | S27 | #tache-l8-t30 |
 | L8-T31 | `core` + QML : diffusion protégée I — règles, copie protégée écrite dans un **nouveau** fichier, boîte « Diffuser en protégé » | L8-T21 | `core/include/actcraft/core/broadcast.h`, `core/src/broadcast.cpp`, `ui/qml/PublishDialog.qml`, `tests/tst_core_broadcast.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_broadcast` (dont `publishedCopyCarriesTheRules`, `originalIsUntouched`, `rulesApplyToTheAuthorToo`, `defaultRulesAreOmitted`, `categoryOfEveryRestrictableCommand`) Passed | S18 | #tache-l8-t31 |
-| L8-T32 | Diffusion protégée II — porte dans le registre (`restrictable`), messages de refus, glisser vers les ressources refusé, actions toujours actives ; scénario `diffusion-protegee` | L8-T31 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `ui/include/actcraft/ui/broadcastgate.h`, `ui/src/broadcastgate.cpp`, `ui/src/resourcelibrary.cpp`, `ui/qml/Main.qml`, `tests/tst_ui_broadcast.cpp`, `bench/scenarios/diffusion-protegee.json`, `bench/scenarios/fixtures/diffusion-protegee.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_broadcast` (dont `restrictedCommandsGreyed`, `triggerShowsTheRefusal`, `enableCannotBypassTheRestriction`, `lockAndRestrictionCombine`, `resourceDragRefused`, `pageActionStillRuns`, `rulesFollowTheOpenDocument`), `tst_actions_lockable`, `tst_ui_resources`, `tst_captures_diffusion_protegee` Passed ; mutation (`isEnabled` sans la restriction) rouge puis remise ; `captures.ps1 -Scenario diffusion-protegee` : `LU appBroadcast.active=true OK`, `LU menuItem-edit.copy.enabled=false OK`, `CAPTURES OK` | S18 | #tache-l8-t32 |
+| L8-T32 | Diffusion protégée II — porte dans le registre (`restrictable`), messages de refus, glisser vers les ressources refusé, actions toujours actives ; scénario `diffusion-protegee` | L8-T31 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `ui/include/actcraft/ui/broadcastgate.h`, `ui/src/broadcastgate.cpp`, `ui/src/resourcelibrary.cpp`, `ui/qml/Main.qml`, `tests/tst_ui_broadcast.cpp`, `bench/scenarios/diffusion-protegee.json`, `bench/scenarios/fixtures/diffusion-protegee.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_broadcast` (dont `restrictedCommandsGreyed`, `triggerShowsTheRefusal`, `enableCannotBypassTheRestriction`, `lockAndRestrictionCombine`, `resourceDragRefused`, `pageActionStillRuns`, `rulesFollowTheOpenDocument`, `propertiesFollowTheRules`), `tst_actions_lockable`, `tst_ui_resources`, `tst_captures_diffusion_protegee` Passed ; mutation (`isEnabled` sans la restriction) rouge puis remise ; `captures.ps1 -Scenario diffusion-protegee` : `LU appBroadcast.active=true OK`, `LU appBroadcast.copyRestricted=true OK`, `LU appBroadcast.printRestricted=true OK`, `CAPTURES OK` | S18 | #tache-l8-t32 |
 | L8-T33 | Profil « Son et image » : épinglages du lot 8 (règle de l'amendement 1, § 1) ; liste des épinglages | L8-T21 | `actions/data/profiles/son-image.json`, `docs/verifications/2026-10-23-lot8-epinglages.md`, `tests/tst_ui_profiles.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_profiles` (dont `pinnedCommandsExist`, `pinnedFilteredByPlatform`, `soundAndImagePinsLot8`) Passed | S32 | #tache-l8-t33 |
 | L8-T34 | Contrôle du lot : talons vides, suites debug et release, captures hors écran puis à l'écran, banc D3D11 plein écran, paquets, version 0.9.0, notes, mesure de fin de lot, graphe | L8-T20 à L8-T33 | `CMakeLists.txt`, `CHANGELOG.md`, `docs/mesures/2026-10-24-lot8-fin.md`, `tests/tst_ui_shell.cpp`, `graphify-out/` | partagé | implementeur-tdd | `TESTS OK` en debug et en release, N = N8 + 37 (+ p) ; `tst_ui_shell` (dont `lot8bControllersWired`) Passed ; `CAPTURES OK` hors écran et à l'écran (jeton `ecran`) ; banc `BUDGET TENU` ou tout critère de la référence tenu (porte de non-régression) ; `PAQUET OK`, `APK OK` (sous `GRADLE_OPTS=-Dorg.gradle.daemon=false`, main rendue < 60 s) ; tailles des paquets rapportées ; règle 4 des talons ; contrôle d'occurrences ; `NOMS OK` ; `graphify update .` commité | S11, S18, S25, S26, S27 | #tache-l8-t34 |
-| L8-C1 | Repli seulement : retrait des commandes sans moteur, tests amendés dans le même commit, talons orphelins supprimés | L8-T19, refus ou silence sur H8-6 | `actions/data/commands.json`, `actions/data/layout.json`, `actions/data/object-actions.json`, `tests/tst_actions_layout.cpp`, `tests/tst_ui_shell.cpp`, `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/{SoundController,RecorderPalette,RecordingIndicator,WebFrameLayer,WebFrameDialog}.qml` (supprimés), `ui/CMakeLists.txt` | isolé | implementeur-tdd | `TESTS OK`, N = N8 + 21 ; `tst_actions_layout` (dont `lot8EntriesDeclared`, `lot8AttributesDeclared`), `tst_actions_registry`, `tst_actions_lockable`, `tst_actions_objectactions`, `tst_ui_shell` (dont `everyLot8CommandHasAHandler`, `lot8ShellPlaceholders`) Passed ; `premiers-pas` `CAPTURES OK` ; aucun talon de tâche retirée ; `NOMS OK` | S11 | #repli-sans-accord |
+| L8-C1 | Repli seulement : retrait des commandes sans moteur, tests amendés dans le même commit, talons orphelins supprimés | L8-T19, refus ou silence sur H8-6 | `actions/data/commands.json`, `actions/data/layout.json`, `actions/data/object-actions.json`, `tests/tst_actions_layout.cpp`, `tests/tst_ui_shell.cpp`, `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/MediaLayer.qml` (marqueur réécrit), `ui/qml/{SoundController,RecorderPalette,RecordingIndicator,WebFrameLayer,WebFrameDialog}.qml` (supprimés), `ui/CMakeLists.txt` | isolé | implementeur-tdd | `TESTS OK`, N = N8 + 21 ; `tst_actions_layout` (dont `lot8EntriesDeclared`, `lot8AttributesDeclared`), `tst_actions_registry`, `tst_actions_lockable`, `tst_actions_objectactions`, `tst_ui_shell` (dont `everyLot8CommandHasAHandler`, `lot8ShellPlaceholders`) Passed ; `premiers-pas` `CAPTURES OK` ; aucun talon de tâche retirée ; `NOMS OK` | S11 | #repli-sans-accord |
 | L8-T21r | Repli seulement : réservation réduite de 8b (7 tests, sans module `media`) | L8-T19, L8-C1 | `core/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{core,ui,bench}.cmake`, talons : `core/include/actcraft/core/broadcast.h`, `core/src/broadcast.cpp`, `ui/include/actcraft/ui/{linkdialogs,mediainsert,mediaitems,broadcastgate}.h`, `ui/src/{linkdialogs,mediainsert,mediaitems,broadcastgate}.cpp`, 5 tests talons `tests/tst_{ui_linkdialogs,ui_mediainsert,ui_mediaitems,core_broadcast,ui_broadcast}.cpp`, 2 scénarios talons `bench/scenarios/{liens,diffusion-protegee}.json` | isolé | implementeur-tdd | `100% tests passed … out of N`, N = N8 + 28, `TESTS OK` ; 7 tests neufs `SKIP` nommant leur tâche (L8-T22, L8-T23, L8-T25r, L8-T31, L8-T32) ; aucun dossier `media/` ; `APK OK` sous `GRADLE_OPTS=-Dorg.gradle.daemon=false` (main rendue < 60 s) ; `NOMS OK` | S11, S18 | #repli-sans-accord |
 | L8-T25r | Repli seulement : médias sur la page sans lecteur intégré (espace réservé, GIF animé, clic → application du système après confirmation) | L8-T16, L8-T21r, L8-T23 | `ui/include/actcraft/ui/mediaitems.h`, `ui/src/mediaitems.cpp`, `ui/qml/MediaLayer.qml`, `ui/qml/Main.qml`, `tests/tst_ui_mediaitems.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_mediaitems` (dont `clickAsksTheSystemWithConfirmation`, `playOnOpenNeverLaunches`, `gifAnimates`, `placeholderOnlyInTheCache`, `refusedWithoutCommands`) Passed ; banc hors écran joint | S11 | #repli-sans-accord |
 | L8-T33r | Repli seulement : profil « Son et image », épinglages sans enregistreurs ni cadre web | L8-T21r | `actions/data/profiles/son-image.json`, `docs/verifications/2026-10-23-lot8-epinglages.md`, `tests/tst_ui_profiles.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_profiles` (dont `pinnedCommandsExist`, `soundAndImagePinsLot8` sur `link.file`, `link.website`, `insert.media`) Passed | S32 | #repli-sans-accord |
@@ -101,7 +100,7 @@ tâches). Propres à 8b :
 |---|---|---|
 | B2 | `broadcast()` / `setBroadcast` de la classe `Document` | L8-T31 |
 | B3 | repli réécrit : `L8-C1` (retrait et tests dans le même commit, talons orphelins supprimés), lignes `L8-T21r`, `L8-T25r`, `L8-T33r`, vagues du repli | « Porte H8-6 », table |
-| M1, M4 | `menuItem-edit.copy.enabled` ; `appBroadcast`, `appRecorders` posés par leur tâche ; états intermédiaires en `expect` interne, état final en `-Lire` | L8-T25, L8-T28, L8-T32 |
+| M1, M4 | `appBroadcast.copyRestricted` (amendement 2, N1) ; `appBroadcast`, `appRecorders` posés par leur tâche ; états intermédiaires en `expect` interne, état final en `-Lire` | L8-T25, L8-T28, L8-T32 |
 | M2 | `Main.qml` : L8-T22 (V12), L8-T23 (V13), L8-T25 (V14), L8-T32 (V15) ; `appRecorders` dans `RecorderPalette.qml`, `appWebFrames` dans `WebFrameLayer.qml` ; `lot8bControllersWired` (L8-T34) | lignes, sections |
 | M7 | réglages d'essai, `QStandardPaths::setTestModeEnabled` | « Commandes propres à 8b » |
 | M10 | `QtWebView::initialize()` dans les trois `main` ; `main` propre à `tst_ui_webframe` ; saut nommé hors écran | L8-T30 |
@@ -109,6 +108,19 @@ tâches). Propres à 8b :
 | m7 | garde HTML sur les fichiers du cadre | L8-T29 |
 | m12 | `tool.camera-*` | L8-T31 |
 | m14 | `pagepainter.cpp` retiré de L8-T30 (repère posé par L8-T3) | L8-T30, vagues |
+
+
+### Amendement 2 (relecture du tour 2)
+
+Même autorité que l'amendement 2 de 8a (table complète dans `…-lot8-PLAN.md`). Propres à 8b :
+
+| # | Correction dans 8b | Où |
+|---|---|---|
+| N1 | `appBroadcast.copyRestricted` et `printRestricted` en `Q_PROPERTY`, lus par le scénario ; aucune commande refusée déclenchée ; plus de `menuItem-…` | ligne et section L8-T32 |
+| H | `ACTCRAFT_SOURCE_DIR` en définition de compilation pour `tst_ui_webpolicy` et `tst_core_broadcast` | L8-T21, L8-T29, L8-T31 |
+| mineur 1 | marqueur de `MediaLayer.qml` réécrit par `L8-C1` | repli, ligne L8-C1 |
+| mineur 2 | phrase contradictoire supprimée ; `L8-T21r` lu pour `L8-T21` | « Porte H8-6 », repli |
+| mineur 4 | compte des `GradleDaemon` créés depuis `$t0` | « Commandes propres à 8b » |
 
 15 tâches dans ce sous-lot. Tests ctest : L8-T21 enregistre les **16** tests de 8b (11 unitaires, 5 de captures) :
 **N = N8 + 37** dès L8-T21 (N8 + 37 + p avec `L8-P1`) ; sans l'accord H8-6, **N8 + 28** (repli ci-dessus).
@@ -139,10 +151,9 @@ Vérification des recoupements :
   nomme, avec `QStandardPaths::setTestModeEnabled(true)` pour les enregistreurs (dossier des enregistrements).
 - **APK (M11)** : toute construction d'APK (L8-T21, L8-T21r, L8-T26, L8-T34) se fait ainsi :
   ```powershell
-  pwsh -NoProfile -Command "Set-Location '<wt>'; `$env:GRADLE_OPTS='-Dorg.gradle.daemon=false'; `$t0=Get-Date; pwsh -NoProfile -File ./scripts/paquet-android.ps1 *> .tmp/apk.txt; `$t1=Get-Date; Select-String -Path .tmp/apk.txt -Pattern 'APK OK|ERREUR|FAILED' | Select-Object -Last 2; 'duree apres APK OK (s) : ' + [int](`$t1 - (Get-Item .tmp/apk.txt).LastWriteTime).TotalSeconds; @(Get-CimInstance Win32_Process -Filter \"Name='java.exe'\" | Where-Object { `$_.CommandLine -like '*<wt>*' }).Count"
+  pwsh -NoProfile -Command "Set-Location '<wt>'; `$env:GRADLE_OPTS='-Dorg.gradle.daemon=false'; `$t0=Get-Date; pwsh -NoProfile -File ./scripts/paquet-android.ps1 *> .tmp/apk.txt; `$t1=Get-Date; Select-String -Path .tmp/apk.txt -Pattern 'APK OK|ERREUR|FAILED' | Select-Object -Last 2; 'duree apres APK OK (s) : ' + [int](`$t1 - (Get-Item .tmp/apk.txt).LastWriteTime).TotalSeconds; 'GradleDaemon depuis t0 : ' + @(Get-CimInstance Win32_Process | Where-Object { `$_.CommandLine -like '*GradleDaemon*' -and `$_.CreationDate -gt `$t0 }).Count; 'java du worktree : ' + @(Get-CimInstance Win32_Process -Filter \"Name='java.exe'\" | Where-Object { `$_.CommandLine -like '*<wt>*' }).Count"
   ```
-  Attendu : `APK OK`, la commande rend la main moins de 60 s après `APK OK`, et **0** `java.exe` dont la ligne de
-  commande contient le worktree (les autres `java.exe` du poste ne comptent pas).
+  Attendu : `APK OK`, la commande rend la main moins de 60 s après `APK OK`, **0** processus dont la ligne de commande contient `GradleDaemon` et créé depuis `$t0`, et **0** `java.exe` dont la ligne de commande contient le worktree (un démon Gradle lancé depuis `~/.gradle` n'a pas le worktree dans sa ligne : c'est le premier compte qui le voit).
 - **Tests qui chargent `Main.qml`** : `lot8bControllersWired` va dans `tst_ui_shell` (forme de `tests/ui.cmake:33-36`
   déjà en place) ; aucun test neuf de 8b ne charge `Main.qml`.
 
@@ -222,8 +233,13 @@ inchangé pour `core/`.
 - [ ] **Étape 4 : vert** ; `APK OK` ; commit « Lot 8 : réservation de 8b, module media (L8-T21) » ; `NOMS OK`.
 
 **Amendement 1 (L8-T21).** M11 : construction de l'APK par la commande de « Commandes propres à 8b ». m7 : `tst_ui_webpolicy`
-est enregistré avec `ENVIRONMENT ACTCRAFT_SOURCE_DIR=${CMAKE_SOURCE_DIR}`. M10 : `tst_ui_webframe` est enregistré avec
+reçoit la définition de compilation `ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}"` (amendement 2, H ; patron d'`ACTCRAFT_TESTS_DIR`, `tests/bench.cmake:104`), comme `tst_core_broadcast`. M10 : `tst_ui_webframe` est enregistré avec
 son propre `main` (pas de `QTEST_MAIN`, voir L8-T30).
+
+**Amendement 2 (L8-T21).** H : `tst_ui_webpolicy` et `tst_core_broadcast` reçoivent la définition de compilation
+`ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}"` (`target_compile_definitions`, dans `tests/ui.cmake` et `tests/core.cmake`) ;
+dans le repli, `L8-T21r` la pose pour `tst_core_broadcast`. N2 : 8b n'ajoute aucun fichier QML (les 12 sont déclarés
+par L8-T1).
 
 <a id="tache-l8-t22"></a>
 ### Tâche L8-T22 — Dialogues de liens
@@ -578,9 +594,9 @@ session) dont un cadre embarque du distant l'ouvre bloqué ; le HTML d'un cadre 
       void htmlIsNeverPassedToQTextDocumentWithoutTheGuard()
       {
           // m7 : balaye les fichiers qui manient le HTML d'un cadre (écrits par L8-T30) ; rouge dès qu'un setHtml ou un
-          // Text.RichText y apparaît (mutation de L8-T30). ACTCRAFT_SOURCE_DIR : posé à l'enregistrement par L8-T21.
+          // Text.RichText y apparaît (mutation de L8-T30). ACTCRAFT_SOURCE_DIR : définition de compilation posée par L8-T21.
           for (const char* rel : {"/ui/src/webframeitem.cpp", "/ui/qml/WebFrameLayer.qml", "/ui/qml/WebFrameDialog.qml"}) {
-              QFile f(qEnvironmentVariable("ACTCRAFT_SOURCE_DIR") + QString::fromLatin1(rel));
+              QFile f(QStringLiteral(ACTCRAFT_SOURCE_DIR) + QString::fromLatin1(rel));
               QVERIFY2(f.open(QIODevice::ReadOnly), rel);
               const QString source = QString::fromUtf8(f.readAll());
               QVERIFY2(!source.contains(QStringLiteral("setHtml")), rel);
@@ -712,6 +728,9 @@ identifiants (`restrictionFor(std::string_view id)`) ; aucun chiffrement (N1-A4)
 **Amendement 1 (L8-T31).** B2 : les règles passent par `Document::broadcast()` et `setBroadcast` (L8-T3) ;
 `published` copie le document et appelle `setBroadcast`. m12 : identifiants de la caméra `tool.camera-*` (D10 arbitré).
 
+**Amendement 2 (L8-T31).** H : `categoryOfEveryRestrictableCommand` lit
+`QStringLiteral(ACTCRAFT_SOURCE_DIR) + "/actions/data/commands.json"` (définition posée par L8-T21 ou L8-T21r).
+
 <a id="tache-l8-t32"></a>
 ### Tâche L8-T32 — Diffusion protégée II : porte du registre ; scénario `diffusion-protegee`
 
@@ -726,7 +745,7 @@ les actions de page et d'objet continuent (V58) ; ouvrir un autre document sans 
 Mutation : retirer le terme de la restriction d'`isEnabled` → `restrictedCommandsGreyed` et
 `enableCannotBypassTheRestriction` rouges, remise par `git checkout -- actions/src/commandregistry.cpp`.
 
-**Preuve visuelle.** `LU appBroadcast.active=true OK`, `LU menuItem-edit.copy.enabled=false OK` (`ui/qml/CommandEntry.qml:15`), `CAPTURES OK` ; décrire la capture
+**Preuve visuelle.** `LU appBroadcast.active=true OK`, `LU appBroadcast.copyRestricted=true OK`, `LU appBroadcast.printRestricted=true OK` (amendement 2, N1), `CAPTURES OK` ; décrire la capture
 `refus`.
 
 **Interdits.** Aucune voie de contournement : les contrôleurs du lot 6 et les actions passent par le registre (une
@@ -745,14 +764,26 @@ aucun texte de l'original dans les messages.
 - [ ] **Étape 3 : test rouge puis vert** `tests/tst_ui_broadcast.cpp` : `restrictedCommandsGreyed` (`edit.copy`, `file.print` : `isEnabled` faux) ; `triggerShowsTheRefusal` (message émis, gestionnaire non appelé) ; `enableCannotBypassTheRestriction` ; `lockAndRestrictionCombine` (verrou levé, restriction tenue) ; `resourceDragRefused` ; `pageActionStillRuns` (action `page.next` d'un objet : la page change) ; `rulesFollowTheOpenDocument` (document sans règles ouvert : tout revient).
 - [ ] **Étape 4 : ressources** : `ResourceLibrary::addSelection` refuse quand `noCopy` (message).
 - [ ] **Étape 5 : scénario** `diffusion-protegee.json` (fixture : document protégé « copie » et « impression », un rond
-  portant `page.next`) : `expect` `appBroadcast.active` vrai, `command` `edit.copy` → refus, `command` `file.print` →
-  refus, glisser vers les ressources → refus, clic sur le rond → `pageIndicator.text` « 2 / 2 ».
+  portant `page.next`) : `expect` `appBroadcast.active` vrai, `expect` `appBroadcast.copyRestricted` vrai, `expect` `appBroadcast.printRestricted` vrai — **aucune** étape `command` sur une commande refusée (le joueur écrirait `COMMANDE … ECHEC`) ; le refus et le glisser vers les ressources sont prouvés par `tst_ui_broadcast` —, clic sur le rond → `pageIndicator.text` « 2 / 2 ».
 - [ ] **Étape 6 : vert**, mutation rouge puis remise ; commit « Lot 8 : diffusion protégée, porte du registre
   (L8-T32) » ; `NOMS OK`.
 
 **Amendement 1 (L8-T32).** M1, M2 : `ui/qml/Main.qml` gagne
 `BroadcastGate { id: appBroadcast; objectName: "appBroadcast"; commands: appCommands; document: appDocument }` ;
-lecture de l'état d'une commande : `menuItem-edit.copy.enabled` (`ui/qml/CommandEntry.qml:15`). M7 : réglages d'essai.
+lecture de l'état : propriétés `appBroadcast.copyRestricted` et `appBroadcast.printRestricted` (amendement 2, N1). M7 : réglages d'essai.
+
+**Amendement 2 (L8-T32).** N1 : `ui::BroadcastGate` expose
+```cpp
+Q_PROPERTY(bool active READ active NOTIFY rulesChanged)
+Q_PROPERTY(bool copyRestricted READ copyRestricted NOTIFY rulesChanged)
+Q_PROPERTY(bool saveRestricted READ saveRestricted NOTIFY rulesChanged)
+Q_PROPERTY(bool printRestricted READ printRestricted NOTIFY rulesChanged)
+Q_PROPERTY(bool cameraRestricted READ cameraRestricted NOTIFY rulesChanged)
+```
+calculées de `document()->broadcast()` ; `tst_ui_broadcast` ajoute `propertiesFollowTheRules` (document protégé « copie »
+et « impression » : `copyRestricted` et `printRestricted` vrais, `saveRestricted` faux ; document sans règles : tout
+faux). Le scénario ne lit que ces propriétés ; aucune lecture `menuItem-…` ni `button-…` (`splitTarget` coupe au
+premier point, `bench/src/uiscenario.cpp:75-83`) et aucune étape `command` sur une commande refusée.
 
 <a id="tache-l8-t33"></a>
 ### Tâche L8-T33 — Profil « Son et image » : épinglages du lot 8

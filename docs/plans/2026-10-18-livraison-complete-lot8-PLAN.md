@@ -47,7 +47,7 @@ CMake + Ninja, MSVC 2022, PowerShell 7. Aucune bibliothèque tierce en 8a.
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L8-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; API A1 à A30 revérifiées ; N8 relevé ; poids des moteurs web mesuré | — | `docs/verifications/2026-10-21-lot8-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot8.md`) | isolé | concepteur-critique | rapport commité ; relevé brut hors dépôt présent ; décisions D1 à D16 et table A1 à A30 écrites ; une ligne par constat ; `git grep` des titres du corpus vide ; `NOMS OK` ; N8 relevé | S30 | #tache-l8-t0 |
-| L8-T1 | Réservation 8a : 21 tests enregistrés, fichiers neufs de 8a (talons marqués), commandes et disposition des **deux** sous-lots, icônes | — | `actions/data/commands.json`, `actions/data/layout.json`, `actions/CMakeLists.txt`, `core/CMakeLists.txt`, `formats/CMakeLists.txt`, `tools/CMakeLists.txt`, `render/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{actions,core,formats,flipchart,tools,render,ui,bench}.cmake`, `tests/tst_actions_layout.cpp`, `tests/tst_ui_theme.cpp`, `ui/icons/{actions,encre-revelatrice,lien-fichier,lien-site,action-objet,action-glisser,conteneur,limiteur,rotation,historique-precedent,historique-suivant,son,video,lecteur-sons,enregistrer-son,enregistrer-ecran,enregistrer-zone,cadre-web,diffuser}.svg`, talons : `actions/data/object-actions.json`, `actions/include/actcraft/actions/objectactions.h`, `actions/src/objectactions.cpp`, `core/include/actcraft/core/{interactivity,objectactions,actionedits,containers,restrictors}.h`, `core/src/{interactivity,objectactions_geometry,objectactions_edit,actionedits,containers,restrictors}.cpp`, `tools/include/actcraft/tools/{revealinktool,interactionpolicy}.h`, `tools/src/revealinktool.cpp`, `ui/include/actcraft/ui/{actionrunner,linklauncher,actionbrowser,dragdropactions,pagehistory,interactivityprops}.h`, `ui/src/{actionrunner,linklauncher,actionbrowser,dragdropactions,pagehistory,interactivityprops}.cpp`, 21 tests talons `tests/tst_{core_interactivity,formats_interactivity,formats_flipchart_interactivity,actions_objectactions,core_objectactions,core_objectactions_edit,ui_actionrunner,ui_linklauncher,ui_actionbrowser,ui_dragdropactions,core_containers,core_restrictors,tools_interactivity,ui_interactivityprops,render_reveal,formats_samples_interactivity}.cpp` et 5 scénarios talons `bench/scenarios/{navigateur-actions,glisser-deposer,conteneurs,encre-revelatrice,interactivite}.json` | isolé | implementeur-tdd | `100% tests passed … out of N`, N = N8 + 21, `TESTS OK` ; `tst_actions_layout` (dont `lot8EntriesDeclared`, `lot8AttributesDeclared`) et `tst_actions_registry` (dont `noShortcutTwice`) Passed ; 21 tests neufs `SKIP` nommant leur tâche ; `premiers-pas` hors écran `CAPTURES OK` ; `NOMS OK` | S11, S18, S25, S26, S27 | #tache-l8-t1 |
+| L8-T1 | Réservation 8a : 21 tests enregistrés, fichiers neufs de 8a (talons marqués), commandes et disposition des **deux** sous-lots, icônes | — | `actions/data/commands.json`, `actions/data/layout.json`, `actions/CMakeLists.txt`, `core/CMakeLists.txt`, `formats/CMakeLists.txt`, `tools/CMakeLists.txt`, `render/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{actions,core,formats,flipchart,tools,render,ui,bench}.cmake`, `tests/tst_actions_layout.cpp`, `tests/tst_ui_theme.cpp`, `ui/icons/{actions,encre-revelatrice,lien-fichier,lien-site,action-objet,action-glisser,conteneur,limiteur,rotation,historique-precedent,historique-suivant,son,video,lecteur-sons,enregistrer-son,enregistrer-ecran,enregistrer-zone,cadre-web,diffuser}.svg`, talons : `actions/data/object-actions.json`, `actions/include/actcraft/actions/objectactions.h`, `actions/src/objectactions.cpp`, `core/include/actcraft/core/{interactivity,objectactions,actionedits,containers,restrictors}.h`, `core/src/{interactivity,objectactions_geometry,objectactions_edit,actionedits,containers,restrictors}.cpp`, `tools/include/actcraft/tools/{revealinktool,interactionpolicy}.h`, `tools/src/revealinktool.cpp`, `ui/include/actcraft/ui/{actionrunner,linklauncher,actionbrowser,dragdropactions,pagehistory,interactivityprops}.h`, `ui/src/{actionrunner,linklauncher,actionbrowser,dragdropactions,pagehistory,interactivityprops}.cpp`, `ui/qml/{ActionBrowser,DragDropActions,ActionOverlays,LinkConfirmDialog,LinkDialog,MediaLayer,SoundController,RecorderPalette,RecordingIndicator,WebFrameLayer,WebFrameDialog,PublishDialog}.qml` (talons, déclarés dans `QML_FILES` de `ui/CMakeLists.txt`), 21 tests talons `tests/tst_{core_interactivity,formats_interactivity,formats_flipchart_interactivity,actions_objectactions,core_objectactions,core_objectactions_edit,ui_actionrunner,ui_linklauncher,ui_actionbrowser,ui_dragdropactions,core_containers,core_restrictors,tools_interactivity,ui_interactivityprops,render_reveal,formats_samples_interactivity}.cpp` et 5 scénarios talons `bench/scenarios/{navigateur-actions,glisser-deposer,conteneurs,encre-revelatrice,interactivite}.json` | isolé | implementeur-tdd | `100% tests passed … out of N`, N = N8 + 21, `TESTS OK` ; `tst_actions_layout` (dont `lot8EntriesDeclared`, `lot8AttributesDeclared`) et `tst_actions_registry` (dont `noShortcutTwice`) Passed ; 21 tests neufs `SKIP` nommant leur tâche ; `premiers-pas` hors écran `CAPTURES OK` ; `NOMS OK` | S11, S18, S25, S26, S27 | #tache-l8-t1 |
 | L8-T2 | Coquille QML du lot (8a et 8b) : onglet `actions`, surcouches de la page, emplacements des fenêtres du lot ; un gestionnaire par commande du lot | L8-T1 | `ui/qml/Main.qml`, `ui/qml/BrowserPanel.qml`, `ui/qml/PageArea.qml`, `ui/qml/{ActionBrowser,DragDropActions,ActionOverlays,LinkConfirmDialog,LinkDialog,MediaLayer,SoundController,RecorderPalette,RecordingIndicator,WebFrameLayer,WebFrameDialog,PublishDialog}.qml`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N8 + 21 ; `tst_ui_shell` (dont `lot8ShellPlaceholders`, `everyLot8CommandHasAHandler`, `actionsTabEnabled`) Passed ; `premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S11 | #tache-l8-t2 |
 | L8-T3 | `core` : modèle de l'interactivité pour les deux sous-lots (action à nous, conteneur, limiteurs, rotation, options de média, cadre web, restrictions de diffusion) ; empreintes inchangées sans ces champs | L8-T0, L8-T1 | `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/include/actcraft/core/interactivity.h`, `core/src/interactivity.cpp`, `core/include/actcraft/core/document.h`, `core/src/document.cpp`, `formats/src/nativejson.cpp`, `render/src/pagepainter.cpp`, `tests/tst_core_interactivity.cpp`, `tests/tst_core_model.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_interactivity` (dont `defaultsChangeNoFingerprint`, `fixedTravelMeansNotMovable`, `fixedTurningMeansNotRotatable`, `webFrameKindBeforeUnknown`, `actionKeepsFlipchartFields`, `broadcastDefaultsAllowEverything`, `unknownObjectFingerprintUnchanged`) et `tst_core_model` (dont `lot8FieldsKeepOldFingerprints`) Passed ; `NOMS OK` (aucun nom composé de l'original) | S11, S18, S25, S27 | #tache-l8-t3 |
 | L8-T4 | `formats` : format natif des champs de L8-T3, sans perte, valeurs par défaut omises, clés inconnues gardées | L8-T3 | `formats/src/nativejson.cpp`, `tests/tst_formats_interactivity.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_formats_interactivity` (dont `actionRoundTrip`, `containerRoundTrip`, `restrictorsRoundTrip`, `mediaOptionsRoundTrip`, `webFrameRoundTrip`, `broadcastRoundTrip`, `defaultsAreOmitted`, `olderFileReadsWithDefaults`, `unknownActionKeyKept`), `tst_formats_nativejson` Passed | S11, S18, S27 | #tache-l8-t4 |
@@ -56,7 +56,7 @@ CMake + Ninja, MSVC 2022, PowerShell 7. Aucune bibliothèque tierce en 8a.
 | L8-T7 | `core` : moteur des actions d'objet I — géométrie (angle, angle incrémentiel, placer, dimensionner et étirer depuis neuf ancrages, refléter, inverser, taille d'origine, ajuster) | L8-T3 | `core/include/actcraft/core/objectactions.h`, `core/src/objectactions_geometry.cpp`, `tests/tst_core_objectactions.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_objectactions` (dont `angleSetsAbsoluteRotation`, `incrementNegativeIsCounterClockwise`, `placeCenterUsesThePage`, `sizeKeepsProportions`, `stretchDoesNot`, `nineAnchors`, `mirrorIsOneStep`, `fixedRestrictorsAreRespected`, `unknownIdReturnsNull`) Passed ; mutation du signe de l'incrément rouge puis remise | S11 | #tache-l8-t7 |
 | L8-T8 | `core` : moteur des actions d'objet II — superposition, couches, masquer, verrouiller, translucidité, textes (ajouter, modifier, valeur arithmétique, nouveau, extraire), effacements, copier, couper, coller, dupliquer, supprimer | L8-T7 | `core/src/objectactions_edit.cpp`, `tests/tst_core_objectactions_edit.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_core_objectactions_edit` (dont `toggleHiddenTwiceRestores`, `toggleHiddenDelegatesToObjectFlags`, `textValueArithmetic`, `textValueNonNumericUnchanged`, `addTextIsPlainEscaped`, `extractTextOneObjectPerWord`, `translucencyClamped`, `clearAnnotationsOnlyTopStrokes`, `everyEditIsOneStep`) Passed | S11 | #tache-l8-t8 |
 | L8-T9 | `ui` : exécuteur d'actions — clic, clic droit, survol, mode conception, verrou de classe, garde de contact, historique des pages, actions de page et de commande | L8-T2, L8-T6, L8-T8, L8-T10, L8-T18 | `ui/include/actcraft/ui/actionrunner.h`, `ui/src/actionrunner.cpp`, `ui/include/actcraft/ui/pagehistory.h`, `ui/src/pagehistory.cpp`, `ui/src/toolhost.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/qml/Main.qml`, `ui/qml/ActionOverlays.qml`, `tests/tst_ui_actionrunner.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_actionrunner` (dont `clickRunsEveryActionInOrder`, `dragDoesNotRun`, `rightClickSelectsWithoutRunning`, `designModeSelectsInstead`, `lockedCommandActionRefused`, `pageActionCreatesNoStep`, `objectActionIsOneStep`, `neverDuringContact`, `hiddenObjectStillClickable`, `lockedObjectStillRuns`, `historyBackAndForward`, `unsupportedActionDoesNothing`, `documentOpenLaunchesNothing`, `refusedWithoutCommands`) Passed ; banc hors écran joint | S11 | #tache-l8-t9 |
-| L8-T10 | `ui` : ouverture des liens et fichiers après confirmation (`QDesktopServices`), règles d'adresse, fichier rangé dans le document | L8-T1, L8-T2 | `ui/include/actcraft/ui/linklauncher.h`, `ui/src/linklauncher.cpp`, `ui/qml/LinkConfirmDialog.qml`, `ui/qml/Main.qml`, `tests/tst_ui_linklauncher.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_linklauncher` (dont `noOpenWithoutConfirmation`, `refusalOpensNothing`, `onlyHttpAndHttps`, `networkPathRefused`, `executableRefused`, `upperCaseExecutableRefused`, `trailingDotRefused`, `htaRefused`, `missingFileRefused`, `storedFileExtractedUnderASafeName`, `confirmationShowsTheFullTarget`) Passed ; mutation (ouvrir sans attendre la réponse) rouge puis remise | S11 | #tache-l8-t10 |
+| L8-T10 | `ui` : ouverture des liens et fichiers après confirmation (`QDesktopServices`), règles d'adresse, fichier rangé dans le document | L8-T1, L8-T2 | `ui/include/actcraft/ui/linklauncher.h`, `ui/src/linklauncher.cpp`, `ui/qml/LinkConfirmDialog.qml`, `ui/qml/Main.qml`, `tests/tst_ui_linklauncher.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_linklauncher` (dont `noOpenWithoutConfirmation`, `refusalOpensNothing`, `onlyHttpAndHttps`, `networkPathRefused`, `executableRefused`, `upperCaseExecutableRefused`, `trailingDotRefused`, `htaRefused`, `upperCasePdfAccepted`, `trailingDotPdfAccepted`, `svgRefused`, `missingFileRefused`, `storedFileExtractedUnderASafeName`, `confirmationShowsTheFullTarget`) Passed ; mutations (ouvrir sans attendre la réponse ; comparaison des extensions sensible à la casse → `upperCasePdfAccepted`) rouges puis remises | S11 | #tache-l8-t10 |
 | L8-T11 | `core` + `ui` : modèle du navigateur d'actions (catégories, propriétés, appliquer à la sélection en une étape, retirer) | L8-T3, L8-T6 | `core/include/actcraft/core/actionedits.h`, `core/src/actionedits.cpp`, `ui/include/actcraft/ui/actionbrowser.h`, `ui/src/actionbrowser.cpp`, `ui/qml/Main.qml`, `tests/tst_ui_actionbrowser.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_actionbrowser` (dont `greyedWithoutSelection`, `categoriesInOrder`, `applyToManyIsOneStep`, `removeExistingIsOneStep`, `propertiesFollowTheAction`, `targetPickedFromThePage`, `refreshDeferredDuringContact`, `refusedWhileLocked`, `refusedWithoutCommands`) Passed | S11 | #tache-l8-t11 |
 | L8-T12 | QML : navigateur d'actions (onglet « Sélection ») ; scénario `navigateur-actions` | L8-T2, L8-T9, L8-T11 | `ui/qml/ActionBrowser.qml`, `bench/scenarios/navigateur-actions.json`, `bench/scenarios/fixtures/navigateur-actions.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_captures_navigateur_actions` Passed ; `captures.ps1 -Scenario navigateur-actions` : `LU browserPanel.current=actions OK`, `LU appActionBrowser.enabled=true OK`, `LU documentController.canUndo=true OK`, `PIXEL page-2-affichee OK`, `CAPTURES OK` ; banc hors écran joint | S11 | #tache-l8-t12 |
 | L8-T13 | Actions glisser-déposer (F-892) : onglet, dépôt sur un objet, icône en surimpression, retrait par la corbeille ; scénario `glisser-deposer` | L8-T12 | `ui/include/actcraft/ui/dragdropactions.h`, `ui/src/dragdropactions.cpp`, `ui/qml/DragDropActions.qml`, `ui/qml/ActionOverlays.qml`, `ui/qml/Main.qml`, `tests/tst_ui_dragdropactions.cpp`, `bench/scenarios/glisser-deposer.json`, `bench/scenarios/fixtures/glisser-deposer.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_dragdropactions` (dont `eighteenEntriesNoVote`, `dropAssignsInOneStep`, `overlayOnlyForDragDrop`, `trashRemovesInOneStep`), `tst_captures_glisser_deposer` Passed ; `captures.ps1 -Scenario glisser-deposer` : `LU appTools.currentTool=pen OK`, `PIXEL icone-surimpression OK`, `CAPTURES OK` | S11 | #tache-l8-t13 |
@@ -80,7 +80,7 @@ B3 (repli complet), M2 (chaîne `Main.qml`), M7 (réglages d'essai), M11 (Gradle
 | B1 | `ObjectKind::WebFrame` casse `formats/` hors de la ligne de L8-T3 | `nativejson.cpp` (strict nécessaire) et `pagepainter.cpp` (repère neutre) ajoutés à L8-T3 | ligne et section L8-T3 |
 | B2 | `Document` est une classe (`document.h`) | `document.h`, `document.cpp` à L8-T3 ; `broadcast()` / `setBroadcast` ; tests en `Document d(w, h)`, `d.page(0)` ; A1b | L8-T3, L8-T4, L8-T7, A1b ; 8b L8-T31 |
 | B3 | repli H8-6 qui casse le registre | `L8-C1`, `L8-T21r`, `L8-T25r`, `L8-T33r`, sort des talons | 8b, « Porte H8-6 » et table |
-| M1 | `objectName` faux | `documentController.canUndo`, `appTools.currentTool`, `menuItem-edit.copy.enabled`, `appBroadcast` et `appRecorders` posés par leur tâche | L8-T12, T13, T16, T18 ; 8b T28, T32 |
+| M1 | `objectName` faux | `documentController.canUndo`, `appTools.currentTool`, `appBroadcast.copyRestricted` (amendement 2, N1), `appBroadcast` et `appRecorders` posés par leur tâche | L8-T12, T13, T16, T18 ; 8b T28, T32 |
 | M2 | `Main.qml` sans propriétaire après L8-T2 | `Main.qml` à L8-T10 (V3), L8-T11 (V5), L8-T9 (V6), L8-T16 (V7), L8-T13 (V8) ; 8b : L8-T22 (V12), L8-T23 (V13), L8-T25 (V14), L8-T32 (V15) ; `lot8ControllersWired` (L8-T19) et `lot8bControllersWired` (L8-T34) vérifient `className()` | lignes et sections |
 | M3 | outil initial = stylo | `tool.select` puis `expect appTools.currentTool = select` en tête des scénarios de L8-T12, T13, T16 | sections |
 | M4 | états intermédiaires en `-Lire` | `expect` interne ; en `-Lire`, l'état final seulement | L8-T16 ; 8b T25, T28 |
@@ -112,6 +112,25 @@ dans L8-T2 (V2), L8-T10 (V3), L8-T11 (V5), L8-T9 (V6), L8-T16 (V7), L8-T13 (V8) 
 L8-T16 (V7) ; `ActionOverlays.qml` dans L8-T2 (V2), L8-T18 (V5), L8-T9 (V6), L8-T13 (V8) ; `nativejson.cpp` dans L8-T3
 (V2) puis L8-T4 (V3) ; `pagepainter.cpp` dans L8-T3 (V2) puis L8-T18 (V5).
 
+
+### Amendement 2 (relecture du tour 2)
+
+Relecture sur `e72110b` (rapport `revue-plan-lot8-t2.md`) : 4 majeurs, 6 mineurs, tous appliqués dans 8a et 8b. **Cet
+amendement fait autorité**, puis l'amendement 1, puis le texte d'origine.
+
+| # | Constat | Correction | Où |
+|---|---|---|---|
+| N1 | `menuItem-edit.copy.enabled` illisible (`splitTarget` coupe au premier point) ; l'étape `command` d'une commande refusée écrit `ECHEC` | `BroadcastGate` expose `copyRestricted`, `printRestricted` (et `saveRestricted`, `cameraRestricted`) en `Q_PROPERTY` ; le scénario les lit et ne déclenche aucune commande refusée ; plus aucune lecture `menuItem-…` ni `button-…` à identifiant pointé | 8b L8-T32 (ligne, section) ; cellule M1 de l'amendement 1 |
+| N2 | 12 QML neufs non déclarés au module | L8-T1 les pose en talons et les ajoute à `QML_FILES` de `ui/CMakeLists.txt` (forme retenue) | ligne et section L8-T1, L8-T2 |
+| M6 | deux tests de la liste blanche jamais rouges | fichiers réels créés ; témoins `A.PDF`, `cours.pdf.` ; mutation « sensible à la casse » ; `svgRefused` | ligne et section L8-T10 |
+| H | `ACTCRAFT_SOURCE_DIR` n'existe pas | définition de compilation (patron d'`ACTCRAFT_TESTS_DIR`), posée par L8-T1 pour son test et par L8-T21 / L8-T21r pour ceux de 8b | L8-T1, L8-T5 ; 8b L8-T21, L8-T29, L8-T31 |
+| mineur 1 | preuve de `L8-C1` rouge (talon de `MediaLayer.qml`) | `L8-C1` réécrit le marqueur en « rempli par L8-T25r. » ; `MediaLayer.qml` dans sa ligne | 8b repli, ligne L8-C1 |
+| mineur 2 | phrase de 8b:33 contradictoire | supprimée ; « dans le repli, `L8-T21` se lit `L8-T21r` » | 8b « Porte H8-6 », repli point 3 |
+| mineur 3 | `replaceDocument` à un argument | trois arguments (`documentcontroller.h:86`) | L8-T9 |
+| mineur 4 | compte des `java.exe` sans objet | compte des processus `GradleDaemon` créés depuis `$t0`, plus les `java.exe` du worktree | 8b « Commandes propres à 8b » |
+| mineur 5 | recoupements non mis à jour | réécrits d'après la table | « Vagues » |
+| mineur 6 | liste blanche trop large | liste fermée de l'orchestrateur dans D8-4 | D8-4, L8-T10 |
+
 20 tâches dans ce sous-lot (15 dans 8b : 35 pour le lot, plus `L8-P1` si L8-T0 en propose une, amendement 1, § 4 :
 « lot 8 + 1 »). Tests ctest : L8-T1 enregistre d'un coup les **21** tests de 8a (16 unitaires, 5 de captures),
 talons `QSKIP` jusqu'à ce que leur tâche les remplisse : **N8 + 21** dès L8-T1, où N8 est le nombre de tests au départ
@@ -132,23 +151,30 @@ chantier).
 V1 : L8-T0 ‖ L8-T1 · V2 : L8-T2 ‖ L8-T3 ‖ L8-T6 · V3 : L8-T4 ‖ L8-T5 ‖ L8-T10 · V4 : L8-T7 ‖ L8-T14 ‖ L8-T15 ·
 V5 : L8-T8 ‖ L8-T11 ‖ L8-T18 · V6 : L8-T9 ‖ L8-T17 · V7 : L8-T12 ‖ L8-T16 · V8 : L8-T13 · V9 : L8-T19 · puis 8b.
 
-Vérification des recoupements (colonne « fichiers touchés ») :
-- V1 : L8-T0 (`docs/verifications/`) / L8-T1 (CMake, `tests/*.cmake`, données, icônes, talons) — disjoints.
-- V2 : L8-T2 (QML de la coquille, `tst_ui_shell.cpp`) / L8-T3 (`model.*`, `interactivity.*`, deux tests) / L8-T6
+Vérification des recoupements (colonne « fichiers touchés » ; réécrite par l'amendement 2, mineur 5) :
+- V1 : L8-T0 (`docs/verifications/`) / L8-T1 (CMake, `tests/*.cmake`, données, icônes, talons C++ et les 12 talons QML)
+  — disjoints.
+- V2 : L8-T2 (`Main.qml`, `BrowserPanel.qml`, `PageArea.qml`, contenu des 12 QML posés par L8-T1, `tst_ui_shell.cpp`) /
+  L8-T3 (`model.*`, `document.*`, `interactivity.*`, `nativejson.cpp`, `pagepainter.cpp`, deux tests) / L8-T6
   (`object-actions.json`, `objectactions.*` d'`actions/`, un test) — disjoints.
-- V3 : L8-T4 (`nativejson.cpp`, un test) / L8-T5 (`flipchart.cpp`, `flipchartids.h`, un test) / L8-T10
-  (`linklauncher.*`, `LinkConfirmDialog.qml`, un test) — disjoints.
+- V3 : L8-T4 (`nativejson.cpp`, un test) / L8-T5 (`flipchart.cpp`, `flipchartids.h`, `flipchartwriter.h`, un test) /
+  L8-T10 (`linklauncher.*`, `LinkConfirmDialog.qml`, `Main.qml`, un test) — disjoints.
 - V4 : L8-T7 (`core/objectactions.h`, `objectactions_geometry.cpp`, un test) / L8-T14 (`containers.*`, un test) /
   L8-T15 (`restrictors.*`, un test) — disjoints.
-- V5 : L8-T8 (`objectactions_edit.cpp`, un test) / L8-T11 (`actionedits.*`, `actionbrowser.*`, un test) / L8-T18
-  (`revealinktool.*`, `pagepainter.cpp`, `fixedpageitem.cpp`, un test, un scénario) — disjoints.
-- V6 : L8-T9 (`actionrunner.*`, `pagehistory.*`, `toolhost.cpp`, `ActionOverlays.qml`, un test) / L8-T17
-  (`interactivityprops.*`, `propertymodel.cpp`, un test) — disjoints.
-- V7 : L8-T12 (`ActionBrowser.qml`, un scénario) / L8-T16 (`selecttool.*`, `interactionpolicy.h`, un test, un
-  scénario) — disjoints.
-- Fichiers repris d'une vague à l'autre, tenus par « dépend de » : talons de L8-T1 → leur tâche ; QML des
-  emplacements (L8-T2 → leur tâche) ; `core/objectactions.h` (L8-T7 → L8-T8) ; `tools/interactionpolicy.h` (talon
-  L8-T1 → L8-T16 ; L8-T9 l'inclut sans le modifier : il lit la politique par l'interface déjà déclarée par L8-T1).
+- V5 : L8-T8 (`objectactions_edit.cpp`, un test) / L8-T11 (`actionedits.*`, `actionbrowser.*`, `Main.qml`, un test) /
+  L8-T18 (`revealinktool.*`, `pagepainter.cpp`, `fixedpageitem.cpp`, `ActionOverlays.qml`, un test, un scénario et son
+  document) — disjoints.
+- V6 : L8-T9 (`actionrunner.*`, `pagehistory.*`, `toolhost.h`, `toolhost.cpp`, `ActionOverlays.qml`, `Main.qml`, un
+  test) / L8-T17 (`interactivityprops.*`, `propertymodel.cpp`, un test) — disjoints.
+- V7 : L8-T12 (`ActionBrowser.qml`, un scénario et son document) / L8-T16 (`selecttool.*`, `interactionpolicy.h`,
+  `toolhost.h`, `toolhost.cpp`, `Main.qml`, un test, un scénario et son document) — disjoints.
+- V8 : L8-T13 seule (`dragdropactions.*`, `DragDropActions.qml`, `ActionOverlays.qml`, `Main.qml`, un test, un
+  scénario et son document). V9 : L8-T19 seule.
+- Fichiers repris d'une vague à l'autre : talons de L8-T1 → leur tâche ; QML des emplacements (talon L8-T1 → L8-T2 →
+  leur tâche) ; `core/objectactions.h` (L8-T7 → L8-T8) ; `nativejson.cpp` (L8-T3 → L8-T4) ; `pagepainter.cpp` (L8-T3 →
+  L8-T18) ; `Main.qml` (L8-T2 → L8-T10 → L8-T11 → L8-T9 → L8-T16 → L8-T13) ; `toolhost.*` (L8-T9 → L8-T16) ;
+  `ActionOverlays.qml` (L8-T2 → L8-T18 → L8-T9 → L8-T13) ; `interactionpolicy.h` (complet dès L8-T1 ; L8-T16 le
+  rappelle sans le changer ; L8-T9 ne l'inclut pas).
 
 **Places.** Le jeton `tests` a 3 places, dont **2 pour ce lot** (décision 0121 : les revues statiques tournent à côté).
 Une vague de 3 tâches qui construisent en a toujours une qui attend la notification du jeton : c'est prévu, l'agent
@@ -269,7 +295,7 @@ V2. Une API supposée qui diffère du code livré amende la section de la tâche
   `document.open-file` ou `document.open-website`, ou un média confié à l'application du système (N2-9) passe par
   `ui::LinkLauncher` : il **demande toujours une confirmation** (boîte à nous qui montre l'adresse ou le chemin
   complet) puis appelle `QDesktopServices::openUrl`. Règles d'adresse : site = `http` ou `https` seulement ; fichier
-  = chemin local existant, jamais un chemin réseau (`\\hôte\…`, `file://hôte/…`, SMB), seulement une extension de la **liste blanche** (arrêtée par L8-T0 ; défaut : `pdf`, `txt`, `rtf`, `odt`, `ods`, `odp`, `doc`, `docx`, `xls`, `xlsx`, `ppt`, `pptx`, `png`, `jpg`, `jpeg`, `gif`, `bmp`, `svg`, `webp`, `mp3`, `wav`, `ogg`, `m4a`, `wma`, `mp4`, `m4v`, `mov`, `avi`, `wmv`, `webm`, `mkv`, `actcraft`, `flipchart`), comparée sans tenir compte de la casse **après retrait des points et espaces finaux** du nom (Windows les retire : `a.exe.` est `a.exe`) ; tout le reste est refusé, `.hta`, `.wsf`, `.url`, `.lnk`, `.jar`, `.msc`, `.chm`, `.cpl`, `.reg`, `.scf`, `.appref-ms` compris — un fichier refusé affiche son
+  = chemin local existant, jamais un chemin réseau (`\\hôte\…`, `file://hôte/…`, SMB), seulement une extension de la **liste blanche** (**fermée**, arbitrage de l'orchestrateur au tour 2 de relecture — documents : `pdf`, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`, `txt` ; images : `png`, `jpg`, `jpeg`, `gif`, `bmp` ; sons : `wav`, `mp3`, `ogg`, `m4a` ; vidéos : `mp4`, `webm`, `avi`, `mov`, `wmv` ; **exclus** : `svg` (ses scripts s'exécutent dans le navigateur), `doc`, `xls`, `ppt` (macros), `rtf` (objets incorporés) et tout format à macros, `docm`, `xlsm`, `pptm`, `dotm`, `xltm`, `potm`, `ppsm`…), comparée sans tenir compte de la casse **après retrait des points et espaces finaux** du nom (Windows les retire : `a.exe.` est `a.exe`) ; tout le reste est refusé, `.hta`, `.wsf`, `.url`, `.lnk`, `.jar`, `.msc`, `.chm`, `.cpl`, `.reg`, `.scf`, `.appref-ms` compris — un fichier refusé affiche son
   motif ; fichier rangé dans le document (« stocker dans le paperboard ») : extrait dans un dossier temporaire propre
   au document, sous son nom d'origine assaini, puis confirmé. **Un fichier d'un `.flipchart` ne lance rien tout
   seul** : ni à l'ouverture, ni à l'affichage d'une page, ni par « lecture auto » ; la lecture automatique d'un média
@@ -703,6 +729,18 @@ est enregistré dans `tests/ui.cmake` avec ses `LIBS` (`actcraft_formats`, `actc
 lot 11 : aucun test neuf de 8a ne charge `Main.qml` ; si l'un en avait besoin, il serait enregistré ici avec
 `app/startup.cpp`, `app` en inclusion et `actcraft_uiplugin` (forme de `tests/ui.cmake:33-36`).
 
+**Amendement 2 (L8-T1).**
+- **N2.** L8-T1 crée les 12 fichiers QML du lot en talons (racine `Item { visible: false; objectName: "<nom en
+  minuscule initiale>" }`, commentaire `// Talon L8 : rempli par L8-T<n>.` de la table de L8-T2) et les déclare dans
+  la liste `QML_FILES` de `qt_add_qml_module(actcraft_ui …)` (`ui/CMakeLists.txt:31-50`). **Forme retenue : la liste
+  `QML_FILES` existante**, la plus simple (un seul fichier, déjà dans la ligne ; pas de `ui/interactivity.cmake`).
+  L8-T2 les remplit sans toucher à CMake ; `L8-C1` (repli) retire leurs lignes de la même liste.
+- **H.** `ACTCRAFT_SOURCE_DIR` est une **définition de compilation**, sur le patron d'`ACTCRAFT_TESTS_DIR`
+  (`tests/bench.cmake:104`) : `target_compile_definitions(tst_formats_flipchart_interactivity PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")`
+  dans `tests/flipchart.cmake` ; le test l'emploie par `QStringLiteral(ACTCRAFT_SOURCE_DIR)`. Pas de variable
+  d'environnement dans `actcraft_add_test`. Preuve ajoutée : `premiers-pas` `CAPTURES OK` avec les 12 talons déclarés
+  (le module se charge).
+
 <a id="tache-l8-t2"></a>
 ### Tâche L8-T2 — Coquille QML du lot
 
@@ -784,6 +822,9 @@ comportement (les gestionnaires talons ne font que `console.info("Talon L8 : rem
 - [ ] **Étape 4 : vert** : commande ciblée ; `premiers-pas` ; banc hors écran.
 - [ ] **Étape 5 : contrôles et commit** « Lot 8 : coquille QML du lot (L8-T2) » ; `NOMS OK` ; titres vides ;
   `git -C <wt> grep -n "pageView\." -- ui/qml` vide.
+
+**Amendement 2 (L8-T2).** N2 : les 12 fichiers QML existent et sont déclarés au module depuis L8-T1 ; L8-T2 en écrit le
+contenu (emplacements, gestionnaires talons) et ne touche à aucun fichier CMake.
 
 <a id="tache-l8-t3"></a>
 ### Tâche L8-T3 — `core` : modèle de l'interactivité
@@ -1234,7 +1275,7 @@ bloquant.
   `travel == Travel::Vertical`, `movable` vrai ; mode « non » : `Travel::Fixed`, `movable` faux),
   `containerRead` (« mots-clés », mot « fruit », retour vrai), `revealInkRead` (type d'encre 2 :
   `StrokeKind::Revealer`, couche du dessus), `mediaOptionsRead` (commandes masquées, aspect gardé),
-  `noNameOfTheOriginal` (lit `formats/src/flipchartids.h` depuis `ACTCRAFT_SOURCE_DIR` et vérifie qu'aucune ligne
+  `noNameOfTheOriginal` (lit `formats/src/flipchartids.h` depuis `ACTCRAFT_SOURCE_DIR` (définition de compilation posée par L8-T1, patron d'`ACTCRAFT_TESTS_DIR`) et vérifie qu'aucune ligne
   ajoutée par ce lot ne contient un identifiant au préfixe `As` ou `kAs` : `QRegularExpression("\\bk?As[A-Z]")`
   ne trouve rien). Chaque test construit le fichier par l'écrivain, le lit par la fonction de lecture du `.flipchart` (A4 ; nom exact relevé dans `formats/include/actcraft/formats/`) et
   compare les champs.
@@ -1245,6 +1286,9 @@ bloquant.
 - [ ] **Étape 5 : vert** ; `tst_formats_flipchart` et `tst_formats_oracle_synth` verts ; preuve de tâche.
 - [ ] **Étape 6 : contrôles et commit** « Lot 8 : lecteur .flipchart de l'interactivité (L8-T5) » ; `NOMS OK` ;
   contrôle des paperboards vide.
+
+**Amendement 2 (L8-T5).** H : `noNameOfTheOriginal` ouvre `QStringLiteral(ACTCRAFT_SOURCE_DIR) + "/formats/src/flipchartids.h"`
+(définition de compilation posée par L8-T1).
 
 <a id="tache-l8-t6"></a>
 ### Tâche L8-T6 — `actions` : catalogue des actions d'objet
@@ -1708,7 +1752,9 @@ garde de contact est encore vraie, et un glisser commencerait par une action).
   void documentOpenLaunchesNothing()
   {
       // Document « reçu » : un rond portant document.open-website vers https://example.org/ et un média playOnOpen.
-      m_controller.replaceDocument(linkedDocument()); // aide du test ; replaceDocument : A8
+      // replaceDocument(core::Document, const QUrl& fileUrl, const QString& title) : documentcontroller.h:86
+      m_controller.replaceDocument(linkedDocument(), QUrl::fromLocalFile(m_dir.filePath(QStringLiteral("recu.actcraft"))),
+                                   QStringLiteral("recu")); // linkedDocument, m_dir : aides du test
       QSignalSpy ask(m_links, &actcraft::ui::LinkLauncher::confirmationNeeded);
       QTest::qWait(500);
       QCOMPARE(ask.size(), 0);
@@ -1718,6 +1764,10 @@ garde de contact est encore vraie, et un glisser commencerait par une action).
   Mutation : appeler `request` pour chaque lien de la page à l'affichage → rouge, remise par `git checkout --`.
 - **M9.** Dépend aussi de L8-T18 (`ActionOverlays.qml`, V5) et de L8-T10 (`appLinks`, V3).
 - **M7.** Réglages d'essai de « Commandes de preuve communes » (le test monte un `ToolHost`).
+
+**Amendement 2 (L8-T9).** Mineur 3 : `replaceDocument` prend trois arguments (`core::Document`, `const QUrl&`,
+`const QString&`, `ui/include/actcraft/ui/documentcontroller.h:86`) ; le code de `documentOpenLaunchesNothing` est
+corrigé en place.
 
 <a id="tache-l8-t10"></a>
 ### Tâche L8-T10 — `ui` : ouverture des liens et des fichiers après confirmation
@@ -1830,7 +1880,8 @@ fichier extrait ne garde que les caractères `[A-Za-z0-9._ -]` de son nom d'orig
       {
           QTemporaryDir dir;
           for (const char* ext : {"exe", "bat", "cmd", "com", "msi", "ps1", "vbs", "js", "lnk", "scr", "hta", "wsf",
-                                  "url", "jar", "msc", "chm", "cpl", "reg", "scf", "appref-ms"}) {
+                                  "url", "jar", "msc", "chm", "cpl", "reg", "scf", "appref-ms", "doc", "xls",
+                                  "ppt", "rtf", "docm", "xlsm", "pptm"}) {
               const QString path = dir.filePath(QStringLiteral("a.") + QString::fromLatin1(ext));
               QFile f(path);
               QVERIFY(f.open(QIODevice::WriteOnly));
@@ -1847,11 +1898,51 @@ fichier extrait ne garde que les caractères `[A-Za-z0-9._ -]` de son nom d'orig
           f.close();
           QVERIFY(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty());
       }
+      void upperCasePdfAccepted()
+      {
+          // Témoin accepté : rouge si la comparaison des extensions devient sensible à la casse (mutation demandée).
+          QTemporaryDir dir;
+          const QString path = dir.filePath(QStringLiteral("A.PDF"));
+          QFile f(path);
+          QVERIFY(f.open(QIODevice::WriteOnly));
+          f.close();
+          QCOMPARE(LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File), QString());
+      }
       void trailingDotRefused()
       {
+          // Les fichiers existent : Windows résout « a.exe. » et « a.exe  » en « a.exe ». Seul le retrait des points et
+          // espaces finaux avant la comparaison refuse ces noms ; la règle « fichier absent » ne les attrape pas.
           QTemporaryDir dir;
-          for (const char* name : {"a.exe.", "a.exe ", "a.hta. ."}) {
+          for (const char* real : {"a.exe", "a.hta"}) {
+              QFile f(dir.filePath(QString::fromLatin1(real)));
+              QVERIFY(f.open(QIODevice::WriteOnly));
+              f.close();
+          }
+          for (const char* asked : {"a.exe.", "a.exe ", "a.hta. ."}) {
+              const QString path = dir.filePath(QString::fromLatin1(asked));
+              QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(), asked);
+          }
+      }
+      void trailingDotPdfAccepted()
+      {
+          // Témoin accepté : « cours.pdf. » désigne « cours.pdf », qui existe ; l'existence se teste sur le nom après
+          // retrait des points et espaces finaux.
+          QTemporaryDir dir;
+          QFile f(dir.filePath(QStringLiteral("cours.pdf")));
+          QVERIFY(f.open(QIODevice::WriteOnly));
+          f.close();
+          QCOMPARE(LinkLauncher::refusalFor(QUrl::fromLocalFile(dir.filePath(QStringLiteral("cours.pdf."))),
+                                            LinkLauncher::File),
+                   QString());
+      }
+      void svgRefused()
+      {
+          QTemporaryDir dir;
+          for (const char* name : {"dessin.svg", "dessin.SVG"}) {
               const QString path = dir.filePath(QString::fromLatin1(name));
+              QFile f(path);
+              QVERIFY(f.open(QIODevice::WriteOnly));
+              f.close();
               QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(), name);
           }
       }
@@ -1906,6 +1997,17 @@ fichier extrait ne garde que les caractères `[A-Za-z0-9._ -]` de son nom d'orig
 et `LinkConfirmDialog` est lié à `appLinks.confirmationNeeded`. M6 : liste blanche (D8-4), tests
 `upperCaseExecutableRefused`, `trailingDotRefused`, `htaRefused` ; `refusalFor` retire les points et espaces finaux
 avant de comparer l'extension, sans casse. m7 : `openingADocumentLaunchesNothing` retiré (voir L8-T9).
+
+**Amendement 2 (L8-T10).** M6 (suite) et mineur 6 :
+- liste blanche **fermée**, écrite dans D8-4 (aucun renvoi à L8-T0) ;
+- `trailingDotRefused` crée `a.exe` et `a.hta`, puis interroge `a.exe.`, `a.exe ` et `a.hta. .` : seul le retrait
+  des points et espaces finaux les refuse ;
+- témoins acceptés `upperCasePdfAccepted` (`A.PDF`) et `trailingDotPdfAccepted` (`cours.pdf.` pour `cours.pdf`
+  créé) ; `refusalFor` teste l'existence sur le nom **après** retrait ;
+- `svgRefused` (`dessin.svg`, `dessin.SVG`) ; `doc`, `xls`, `ppt`, `rtf`, `docm`, `xlsm`, `pptm` ajoutés à
+  `executableRefused` ;
+- mutation de plus : comparaison des extensions sensible à la casse → `upperCasePdfAccepted` rouge, remise par
+  `git -C <wt> checkout -- ui/src/linklauncher.cpp`.
 
 <a id="tache-l8-t11"></a>
 ### Tâche L8-T11 — `core` + `ui` : modèle du navigateur d'actions
