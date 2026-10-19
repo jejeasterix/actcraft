@@ -1660,8 +1660,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792382863.0226393,
-    "ast_hash": "b694f828d3bd0074de8bb8a5e7257e7f",
+    "mtime": 1792384440.9865901,
+    "ast_hash": "cbd21ba24c0945d6f4a288c2694eb9a0",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -1670,8 +1670,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_calculator.cpp": {
-    "mtime": 1792349203.9208047,
-    "ast_hash": "ae8b0fbc23fc49d8e51f49703b06d339",
+    "mtime": 1792384829.751081,
+    "ast_hash": "338712119ee97c6dbf4eba4057f7945f",
     "semantic_hash": ""
   },
   "tests/tst_features_camera.cpp": {
@@ -1680,8 +1680,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_countdown.cpp": {
-    "mtime": 1792349203.9264455,
-    "ast_hash": "c3fc2bc61a46dee84e55d4d9785dd290",
+    "mtime": 1792384829.7546377,
+    "ast_hash": "b50d599c6687847b404a46f087246a8a",
     "semantic_hash": ""
   },
   "tests/tst_features_curtain.cpp": {
@@ -1695,8 +1695,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_dice.cpp": {
-    "mtime": 1792349203.9324386,
-    "ast_hash": "ec274ad3cce63ab187af7d5c197f54df",
+    "mtime": 1792384829.7588425,
+    "ast_hash": "e560fe4560376d8eea780e9154d5ec14",
     "semantic_hash": ""
   },
   "tests/tst_features_handwriting.cpp": {
@@ -1862,6 +1862,36 @@
   "features/src/handwriting_win.cpp": {
     "mtime": 1792384382.0070934,
     "ast_hash": "2d8a1187e7759c51b35c30ab2bb445bf",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/calculator.h": {
+    "mtime": 1792384829.7245338,
+    "ast_hash": "eac989dcde2dc3d6fa21aeda93c71b79",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/countdown.h": {
+    "mtime": 1792384829.7290497,
+    "ast_hash": "80df75f19644d6009d155b34f9bce0e1",
+    "semantic_hash": ""
+  },
+  "features/include/actcraft/features/dice.h": {
+    "mtime": 1792384829.738212,
+    "ast_hash": "057703fe79de7ffdaf61e88f632f045a",
+    "semantic_hash": ""
+  },
+  "features/src/calculator.cpp": {
+    "mtime": 1792384829.7422254,
+    "ast_hash": "b5f0f06a3bb87fb1957680dc37334696",
+    "semantic_hash": ""
+  },
+  "features/src/countdown.cpp": {
+    "mtime": 1792384829.7452295,
+    "ast_hash": "cbbf17e6658eb720575b2ea4090c10d9",
+    "semantic_hash": ""
+  },
+  "features/src/dice.cpp": {
+    "mtime": 1792384829.747054,
+    "ast_hash": "d491a4a7965d6257cd7e2e20cf786f31",
     "semantic_hash": ""
   }
 }

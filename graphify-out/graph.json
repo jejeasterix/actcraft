@@ -120,7 +120,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_commandregistry_parseargumentkind",
-      "community": 208,
+      "community": 88,
       "norm_label": "parseargumentkind()"
     },
     {
@@ -140,7 +140,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "argumentkind",
-      "community": 208,
+      "community": 88,
       "norm_label": "argumentkind"
     },
     {
@@ -150,7 +150,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_commandregistry_platformbit",
-      "community": 206,
+      "community": 88,
       "norm_label": "platformbit()"
     },
     {
@@ -160,7 +160,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "actions_src_commandregistry_cpp_platforms",
-      "community": 206,
+      "community": 88,
       "norm_label": "platforms"
     },
     {
@@ -200,7 +200,7 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_commandregistry_argumentisvalid",
-      "community": 208,
+      "community": 88,
       "norm_label": "argumentisvalid()"
     },
     {
@@ -210,7 +210,7 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "actions_src_commandregistry_cpp_qvariant",
-      "community": 208,
+      "community": 88,
       "norm_label": "qvariant"
     },
     {
@@ -220,7 +220,7 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "src_commandregistry_loaddeclarations",
-      "community": 206,
+      "community": 88,
       "norm_label": "loaddeclarations()"
     },
     {
@@ -230,7 +230,7 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "actions_src_commandregistry_cpp_qbytearray",
-      "community": 206,
+      "community": 152,
       "norm_label": "qbytearray"
     },
     {
@@ -240,7 +240,7 @@
       "source_location": "L194",
       "_origin": "ast",
       "id": "src_commandregistry_declare",
-      "community": 206,
+      "community": 88,
       "norm_label": "declare()"
     },
     {
@@ -250,7 +250,7 @@
       "source_location": "L194",
       "_origin": "ast",
       "id": "commandinfo",
-      "community": 206,
+      "community": 88,
       "norm_label": "commandinfo"
     },
     {
@@ -400,7 +400,7 @@
       "source_location": "L301",
       "_origin": "ast",
       "id": "src_commandregistry_defaultcommandsjson",
-      "community": 206,
+      "community": 152,
       "norm_label": "defaultcommandsjson()"
     },
     {
@@ -510,7 +510,7 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "commandregistry",
-      "community": 203,
+      "community": 53,
       "norm_label": "commandregistry"
     },
     {
@@ -1530,7 +1530,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_bench_include_actcraft_bench_recorder_h",
-      "community": 30,
+      "community": 206,
       "norm_label": "recorder.h"
     },
     {
@@ -1540,7 +1540,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "bench_recorder_actcraft",
-      "community": 30,
+      "community": 206,
       "norm_label": "actcraft()"
     },
     {
@@ -1550,7 +1550,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "bench_include_actcraft_bench_recorder_h_namespace",
-      "community": 30,
+      "community": 206,
       "norm_label": "namespace"
     },
     {
@@ -7044,6 +7044,66 @@
       "norm_label": "clear()"
     },
     {
+      "label": "calculator.h",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/calculator.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "features_calculator",
+      "community": 269,
+      "norm_label": "calculator.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/calculator.h",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "features_calculator_actcraft",
+      "community": 269,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/calculator.h",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "features_include_actcraft_features_calculator_h_namespace",
+      "community": 269,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "countdown.h",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/countdown.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "features_countdown",
+      "community": 270,
+      "norm_label": "countdown.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/countdown.h",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "features_countdown_actcraft",
+      "community": 270,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/countdown.h",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "features_include_actcraft_features_countdown_h_namespace",
+      "community": 270,
+      "norm_label": "namespace"
+    },
+    {
       "label": "curtain.h",
       "file_type": "code",
       "source_file": "features/include/actcraft/features/curtain.h",
@@ -7062,6 +7122,36 @@
       "id": "features_curtain_dragging",
       "community": 264,
       "norm_label": "dragging()"
+    },
+    {
+      "label": "dice.h",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/dice.h",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "features_dice",
+      "community": 233,
+      "norm_label": "dice.h"
+    },
+    {
+      "label": "actcraft()",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/dice.h",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "features_dice_actcraft",
+      "community": 233,
+      "norm_label": "actcraft()"
+    },
+    {
+      "label": "namespace",
+      "file_type": "code",
+      "source_file": "features/include/actcraft/features/dice.h",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "features_include_actcraft_features_dice_h_namespace",
+      "community": 233,
+      "norm_label": "namespace"
     },
     {
       "label": "features.h",
@@ -7374,6 +7464,286 @@
       "norm_label": "namespace"
     },
     {
+      "label": "calculator.cpp",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_calculator",
+      "community": 256,
+      "norm_label": "calculator.cpp"
+    },
+    {
+      "label": "operatorSymbol()",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "src_calculator_operatorsymbol",
+      "community": 256,
+      "norm_label": "operatorsymbol()"
+    },
+    {
+      "label": "QString",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "features_src_calculator_cpp_qstring",
+      "community": 256,
+      "norm_label": "qstring"
+    },
+    {
+      "label": "QChar",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "features_src_calculator_cpp_qchar",
+      "community": 256,
+      "norm_label": "qchar"
+    },
+    {
+      "label": "digitCount()",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L25",
+      "_origin": "ast",
+      "id": "src_calculator_digitcount",
+      "community": 256,
+      "norm_label": "digitcount()"
+    },
+    {
+      "label": "display()",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L37",
+      "_origin": "ast",
+      "id": "src_calculator_display",
+      "community": 256,
+      "norm_label": "display()"
+    },
+    {
+      "label": "expression()",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L42",
+      "_origin": "ast",
+      "id": "src_calculator_expression",
+      "community": 256,
+      "norm_label": "expression()"
+    },
+    {
+      "label": "pageText()",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L47",
+      "_origin": "ast",
+      "id": "src_calculator_pagetext",
+      "community": 256,
+      "norm_label": "pagetext()"
+    },
+    {
+      "label": "entry()",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L52",
+      "_origin": "ast",
+      "id": "src_calculator_entry",
+      "community": 256,
+      "norm_label": "entry()"
+    },
+    {
+      "label": "showValue()",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L59",
+      "_origin": "ast",
+      "id": "src_calculator_showvalue",
+      "community": 256,
+      "norm_label": "showvalue()"
+    },
+    {
+      "label": "apply()",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L72",
+      "_origin": "ast",
+      "id": "src_calculator_apply",
+      "community": 256,
+      "norm_label": "apply()"
+    },
+    {
+      "label": "press()",
+      "file_type": "code",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L95",
+      "_origin": "ast",
+      "id": "src_calculator_press",
+      "community": 256,
+      "norm_label": "press()"
+    },
+    {
+      "label": "countdown.cpp",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_countdown",
+      "community": 214,
+      "norm_label": "countdown.cpp"
+    },
+    {
+      "label": "start()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "src_countdown_start",
+      "community": 214,
+      "norm_label": "start()"
+    },
+    {
+      "label": "int64_t",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "features_src_countdown_cpp_int64_t",
+      "community": 214,
+      "norm_label": "int64_t"
+    },
+    {
+      "label": "pause()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L22",
+      "_origin": "ast",
+      "id": "src_countdown_pause",
+      "community": 214,
+      "norm_label": "pause()"
+    },
+    {
+      "label": "resume()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L30",
+      "_origin": "ast",
+      "id": "src_countdown_resume",
+      "community": 214,
+      "norm_label": "resume()"
+    },
+    {
+      "label": "reset()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L38",
+      "_origin": "ast",
+      "id": "src_countdown_reset",
+      "community": 214,
+      "norm_label": "reset()"
+    },
+    {
+      "label": "setRepeat()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L44",
+      "_origin": "ast",
+      "id": "src_countdown_setrepeat",
+      "community": 214,
+      "norm_label": "setrepeat()"
+    },
+    {
+      "label": "repeat()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L49",
+      "_origin": "ast",
+      "id": "src_countdown_repeat",
+      "community": 214,
+      "norm_label": "repeat()"
+    },
+    {
+      "label": "running()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L54",
+      "_origin": "ast",
+      "id": "src_countdown_running",
+      "community": 214,
+      "norm_label": "running()"
+    },
+    {
+      "label": "paused()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L59",
+      "_origin": "ast",
+      "id": "src_countdown_paused",
+      "community": 214,
+      "norm_label": "paused()"
+    },
+    {
+      "label": "remainingSeconds()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L64",
+      "_origin": "ast",
+      "id": "src_countdown_remainingseconds",
+      "community": 214,
+      "norm_label": "remainingseconds()"
+    },
+    {
+      "label": "poll()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L70",
+      "_origin": "ast",
+      "id": "src_countdown_poll",
+      "community": 214,
+      "norm_label": "poll()"
+    },
+    {
+      "label": "elapsedSeconds()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L107",
+      "_origin": "ast",
+      "id": "src_countdown_elapsedseconds",
+      "community": 214,
+      "norm_label": "elapsedseconds()"
+    },
+    {
+      "label": "formatHms()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L115",
+      "_origin": "ast",
+      "id": "src_countdown_formathms",
+      "community": 214,
+      "norm_label": "formathms()"
+    },
+    {
+      "label": "QString",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L115",
+      "_origin": "ast",
+      "id": "features_src_countdown_cpp_qstring",
+      "community": 214,
+      "norm_label": "qstring"
+    },
+    {
+      "label": "parseHms()",
+      "file_type": "code",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L124",
+      "_origin": "ast",
+      "id": "src_countdown_parsehms",
+      "community": 214,
+      "norm_label": "parsehms()"
+    },
+    {
       "label": "curtain.cpp",
       "file_type": "code",
       "source_file": "features/src/curtain.cpp",
@@ -7512,6 +7882,96 @@
       "id": "src_curtain_coverage",
       "community": 261,
       "norm_label": "coverage()"
+    },
+    {
+      "label": "dice.cpp",
+      "file_type": "code",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_dice",
+      "community": 267,
+      "norm_label": "dice.cpp"
+    },
+    {
+      "label": "Dice()",
+      "file_type": "code",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "src_dice_dice",
+      "community": 267,
+      "norm_label": "dice()"
+    },
+    {
+      "label": "quint32",
+      "file_type": "code",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "features_src_dice_cpp_quint32",
+      "community": 267,
+      "norm_label": "quint32"
+    },
+    {
+      "label": "setCount()",
+      "file_type": "code",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "src_dice_setcount",
+      "community": 267,
+      "norm_label": "setcount()"
+    },
+    {
+      "label": "count()",
+      "file_type": "code",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "src_dice_count",
+      "community": 267,
+      "norm_label": "count()"
+    },
+    {
+      "label": "roll()",
+      "file_type": "code",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L20",
+      "_origin": "ast",
+      "id": "src_dice_roll",
+      "community": 267,
+      "norm_label": "roll()"
+    },
+    {
+      "label": "vector",
+      "file_type": "code",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L20",
+      "_origin": "ast",
+      "id": "features_src_dice_cpp_vector",
+      "community": 267,
+      "norm_label": "vector"
+    },
+    {
+      "label": "total()",
+      "file_type": "code",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L33",
+      "_origin": "ast",
+      "id": "src_dice_total",
+      "community": 267,
+      "norm_label": "total()"
+    },
+    {
+      "label": "animationMs()",
+      "file_type": "code",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L38",
+      "_origin": "ast",
+      "id": "src_dice_animationms",
+      "community": 267,
+      "norm_label": "animationms()"
     },
     {
       "label": "features.cpp",
@@ -8430,7 +8890,7 @@
       "source_location": "L162",
       "_origin": "ast",
       "id": "src_mathtools_width",
-      "community": 103,
+      "community": 47,
       "norm_label": "width()"
     },
     {
@@ -10480,7 +10940,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_flipchart_limitexceeded",
-      "community": 135,
+      "community": 146,
       "norm_label": "limitexceeded"
     },
     {
@@ -10500,7 +10960,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_flipchart_limitexceeded_message",
-      "community": 135,
+      "community": 146,
       "norm_label": "message"
     },
     {
@@ -11120,7 +11580,7 @@
       "source_location": "L384",
       "_origin": "ast",
       "id": "src_flipchart_chargeitems",
-      "community": 135,
+      "community": 146,
       "norm_label": "chargeitems()"
     },
     {
@@ -11130,7 +11590,7 @@
       "source_location": "L384",
       "_origin": "ast",
       "id": "formats_src_flipchart_cpp_size_t",
-      "community": 135,
+      "community": 146,
       "norm_label": "size_t"
     },
     {
@@ -11500,7 +11960,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "formats_src_flipchartdump_cpp_qstring",
-      "community": 198,
+      "community": 83,
       "norm_label": "qstring"
     },
     {
@@ -12620,7 +13080,7 @@
       "source_location": "L372",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_objectid",
-      "community": 242,
+      "community": 196,
       "norm_label": "objectid"
     },
     {
@@ -12630,7 +13090,7 @@
       "source_location": "L377",
       "_origin": "ast",
       "id": "src_nativejson_pointjson",
-      "community": 154,
+      "community": 196,
       "norm_label": "pointjson()"
     },
     {
@@ -12640,7 +13100,7 @@
       "source_location": "L377",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_qjsonarray",
-      "community": 154,
+      "community": 196,
       "norm_label": "qjsonarray"
     },
     {
@@ -12650,7 +13110,7 @@
       "source_location": "L377",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_pointf",
-      "community": 154,
+      "community": 242,
       "norm_label": "pointf"
     },
     {
@@ -12660,7 +13120,7 @@
       "source_location": "L383",
       "_origin": "ast",
       "id": "src_nativejson_rectjson",
-      "community": 154,
+      "community": 196,
       "norm_label": "rectjson()"
     },
     {
@@ -12670,7 +13130,7 @@
       "source_location": "L383",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_rectf",
-      "community": 154,
+      "community": 196,
       "norm_label": "rectf"
     },
     {
@@ -12680,7 +13140,7 @@
       "source_location": "L390",
       "_origin": "ast",
       "id": "src_nativejson_pairsjson",
-      "community": 154,
+      "community": 242,
       "norm_label": "pairsjson()"
     },
     {
@@ -12730,7 +13190,7 @@
       "source_location": "L407",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_qjsonobject",
-      "community": 196,
+      "community": 149,
       "norm_label": "qjsonobject"
     },
     {
@@ -12810,7 +13270,7 @@
       "source_location": "L460",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_action",
-      "community": 242,
+      "community": 196,
       "norm_label": "action"
     },
     {
@@ -12830,7 +13290,7 @@
       "source_location": "L471",
       "_origin": "ast",
       "id": "formats_src_nativejson_cpp_objectcommon",
-      "community": 242,
+      "community": 196,
       "norm_label": "objectcommon"
     },
     {
@@ -13050,7 +13510,7 @@
       "source_location": "L708",
       "_origin": "ast",
       "id": "src_nativejson_hexdigit",
-      "community": 259,
+      "community": 196,
       "norm_label": "hexdigit()"
     },
     {
@@ -13059,8 +13519,8 @@
       "source_file": "formats/src/nativejson.cpp",
       "source_location": "L708",
       "_origin": "ast",
-      "id": "qchar",
-      "community": 259,
+      "id": "formats_src_nativejson_cpp_qchar",
+      "community": 196,
       "norm_label": "qchar"
     },
     {
@@ -13180,7 +13640,7 @@
       "source_location": "L758",
       "_origin": "ast",
       "id": "src_nativejson_unknownmembers",
-      "community": 196,
+      "community": 149,
       "norm_label": "unknownmembers()"
     },
     {
@@ -13190,7 +13650,7 @@
       "source_location": "L776",
       "_origin": "ast",
       "id": "src_nativejson_unknownkeysof",
-      "community": 196,
+      "community": 149,
       "norm_label": "unknownkeysof()"
     },
     {
@@ -13290,7 +13750,7 @@
       "source_location": "L820",
       "_origin": "ast",
       "id": "src_nativejson_reader_readelement",
-      "community": 242,
+      "community": 149,
       "norm_label": ".readelement()"
     },
     {
@@ -13370,7 +13830,7 @@
       "source_location": "L923",
       "_origin": "ast",
       "id": "src_nativejson_reader_readid",
-      "community": 242,
+      "community": 149,
       "norm_label": ".readid()"
     },
     {
@@ -13460,7 +13920,7 @@
       "source_location": "L1076",
       "_origin": "ast",
       "id": "src_nativejson_readaction",
-      "community": 242,
+      "community": 149,
       "norm_label": "readaction()"
     },
     {
@@ -13470,7 +13930,7 @@
       "source_location": "L1089",
       "_origin": "ast",
       "id": "src_nativejson_readcommon",
-      "community": 242,
+      "community": 149,
       "norm_label": "readcommon()"
     },
     {
@@ -14390,7 +14850,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_input_include_actcraft_input_pipeline_h",
-      "community": 30,
+      "community": 206,
       "norm_label": "pipeline.h"
     },
     {
@@ -14400,7 +14860,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "input_pipeline_actcraft",
-      "community": 30,
+      "community": 206,
       "norm_label": "actcraft()"
     },
     {
@@ -14410,7 +14870,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "input_include_actcraft_input_pipeline_h_namespace",
-      "community": 30,
+      "community": 206,
       "norm_label": "namespace"
     },
     {
@@ -14490,7 +14950,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_input_src_pipeline_cpp",
-      "community": 30,
+      "community": 238,
       "norm_label": "pipeline.cpp"
     },
     {
@@ -14500,7 +14960,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_pipeline_accept",
-      "community": 30,
+      "community": 238,
       "norm_label": "accept()"
     },
     {
@@ -14510,7 +14970,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "input_src_pipeline_cpp_sample",
-      "community": 30,
+      "community": 238,
       "norm_label": "sample"
     },
     {
@@ -14520,7 +14980,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_pipeline_reset",
-      "community": 30,
+      "community": 238,
       "norm_label": "reset()"
     },
     {
@@ -14530,7 +14990,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_pipeline_pipeline",
-      "community": 30,
+      "community": 238,
       "norm_label": "pipeline()"
     },
     {
@@ -14540,7 +15000,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "input_src_pipeline_cpp_samplesink",
-      "community": 30,
+      "community": 238,
       "norm_label": "samplesink"
     },
     {
@@ -14550,7 +15010,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_pipeline_setprobe",
-      "community": 30,
+      "community": 238,
       "norm_label": "setprobe()"
     },
     {
@@ -14560,7 +15020,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "input_src_pipeline_cpp_inkprobe",
-      "community": 30,
+      "community": 238,
       "norm_label": "inkprobe"
     },
     {
@@ -14570,7 +15030,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_pipeline_resetsequence",
-      "community": 30,
+      "community": 238,
       "norm_label": "resetsequence()"
     },
     {
@@ -14580,7 +15040,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "input_src_pipeline_cpp_uint64_t",
-      "community": 30,
+      "community": 238,
       "norm_label": "uint64_t"
     },
     {
@@ -14590,7 +15050,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_pipeline_nextsequence",
-      "community": 30,
+      "community": 238,
       "norm_label": "nextsequence()"
     },
     {
@@ -14600,7 +15060,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_pipeline_push",
-      "community": 30,
+      "community": 238,
       "norm_label": "push()"
     },
     {
@@ -14610,7 +15070,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_input_src_qtevents_cpp",
-      "community": 179,
+      "community": 42,
       "norm_label": "qtevents.cpp"
     },
     {
@@ -14860,7 +15320,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_render_include_actcraft_render_inkitem_h",
-      "community": 30,
+      "community": 206,
       "norm_label": "inkitem.h"
     },
     {
@@ -14870,7 +15330,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "render_inkitem_actcraft",
-      "community": 30,
+      "community": 206,
       "norm_label": "actcraft()"
     },
     {
@@ -14880,7 +15340,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "render_include_actcraft_render_inkitem_h_namespace",
-      "community": 30,
+      "community": 206,
       "norm_label": "namespace"
     },
     {
@@ -14950,7 +15410,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_render_include_actcraft_render_paintedrenderer_h",
-      "community": 267,
+      "community": 156,
       "norm_label": "paintedrenderer.h"
     },
     {
@@ -14960,7 +15420,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "render_paintedrenderer_actcraft",
-      "community": 267,
+      "community": 156,
       "norm_label": "actcraft()"
     },
     {
@@ -14970,7 +15430,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "render_include_actcraft_render_paintedrenderer_h_namespace",
-      "community": 267,
+      "community": 156,
       "norm_label": "namespace"
     },
     {
@@ -14980,7 +15440,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_render_include_actcraft_render_painternode_h",
-      "community": 28,
+      "community": 100,
       "norm_label": "painternode.h"
     },
     {
@@ -14990,7 +15450,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "render_painternode_actcraft",
-      "community": 28,
+      "community": 100,
       "norm_label": "actcraft()"
     },
     {
@@ -15000,7 +15460,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "render_include_actcraft_render_painternode_h_namespace",
-      "community": 28,
+      "community": 100,
       "norm_label": "namespace"
     },
     {
@@ -15620,7 +16080,7 @@
       "source_location": "L366",
       "_origin": "ast",
       "id": "src_fixedpageitem_rescalerasternodes",
-      "community": 125,
+      "community": 165,
       "norm_label": "rescalerasternodes()"
     },
     {
@@ -15630,7 +16090,7 @@
       "source_location": "L366",
       "_origin": "ast",
       "id": "render_src_fixedpageitem_cpp_rendercontext",
-      "community": 125,
+      "community": 165,
       "norm_label": "rendercontext"
     },
     {
@@ -15690,7 +16150,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_render_src_imagecolor_cpp",
-      "community": 240,
+      "community": 255,
       "norm_label": "imagecolor.cpp"
     },
     {
@@ -15700,7 +16160,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_imagecolor_withoutcolortable",
-      "community": 240,
+      "community": 255,
       "norm_label": "withoutcolortable()"
     },
     {
@@ -15710,7 +16170,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "render_src_imagecolor_cpp_qimage",
-      "community": 240,
+      "community": 255,
       "norm_label": "qimage"
     },
     {
@@ -15720,7 +16180,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_imagecolor_withkeycolor",
-      "community": 240,
+      "community": 255,
       "norm_label": "withkeycolor()"
     },
     {
@@ -15730,7 +16190,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "render_src_imagecolor_cpp_argb",
-      "community": 240,
+      "community": 255,
       "norm_label": "argb"
     },
     {
@@ -16340,7 +16800,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "qsgflatcolormaterial",
-      "community": 38,
+      "community": 51,
       "norm_label": "qsgflatcolormaterial"
     },
     {
@@ -16360,7 +16820,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "render_src_inkitem_cpp_qcolor",
-      "community": 51,
+      "community": 38,
       "norm_label": "qcolor"
     },
     {
@@ -16440,7 +16900,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "qsggeometrynode",
-      "community": 100,
+      "community": 58,
       "norm_label": "qsggeometrynode"
     },
     {
@@ -16460,7 +16920,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_inkitem_inkblocknode_inkblocknode",
-      "community": 51,
+      "community": 38,
       "norm_label": ".inkblocknode()"
     },
     {
@@ -16470,7 +16930,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "render_src_inkitem_cpp_strokepoint",
-      "community": 213,
+      "community": 38,
       "norm_label": "strokepoint"
     },
     {
@@ -16480,7 +16940,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_inkitem_inkblocknode_appendfrom",
-      "community": 213,
+      "community": 38,
       "norm_label": ".appendfrom()"
     },
     {
@@ -16490,7 +16950,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "render_src_inkitem_cpp_span",
-      "community": 213,
+      "community": 38,
       "norm_label": "span"
     },
     {
@@ -16540,7 +17000,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "render_src_inkitem_cpp_vector",
-      "community": 213,
+      "community": 38,
       "norm_label": "vector"
     },
     {
@@ -16570,7 +17030,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "src_inkitem_inkblockpainternode",
-      "community": 213,
+      "community": 38,
       "norm_label": "inkblockpainternode"
     },
     {
@@ -16580,7 +17040,7 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "src_inkitem_inkblockpainternode_inkblockpainternode",
-      "community": 51,
+      "community": 38,
       "norm_label": ".inkblockpainternode()"
     },
     {
@@ -16590,7 +17050,7 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "render_src_inkitem_cpp_qquickwindow",
-      "community": 51,
+      "community": 38,
       "norm_label": "qquickwindow"
     },
     {
@@ -16600,7 +17060,7 @@
       "source_location": "L130",
       "_origin": "ast",
       "id": "src_inkitem_inkblockpainternode_appendfrom",
-      "community": 213,
+      "community": 38,
       "norm_label": ".appendfrom()"
     },
     {
@@ -16610,7 +17070,7 @@
       "source_location": "L130",
       "_origin": "ast",
       "id": "render_src_inkitem_cpp_rectf",
-      "community": 213,
+      "community": 38,
       "norm_label": "rectf"
     },
     {
@@ -16620,7 +17080,7 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "src_inkitem_inkblockpainternode_paint",
-      "community": 213,
+      "community": 38,
       "norm_label": ".paint()"
     },
     {
@@ -16630,7 +17090,7 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "render_src_inkitem_cpp_qpainter",
-      "community": 213,
+      "community": 38,
       "norm_label": "qpainter"
     },
     {
@@ -16640,7 +17100,7 @@
       "source_location": "L179",
       "_origin": "ast",
       "id": "src_inkitem_inkblockpainternode_segmentreach",
-      "community": 213,
+      "community": 38,
       "norm_label": ".segmentreach()"
     },
     {
@@ -16650,7 +17110,7 @@
       "source_location": "L179",
       "_origin": "ast",
       "id": "render_src_inkitem_cpp_qrectf",
-      "community": 213,
+      "community": 38,
       "norm_label": "qrectf"
     },
     {
@@ -16660,7 +17120,7 @@
       "source_location": "L187",
       "_origin": "ast",
       "id": "src_inkitem_inkblockpainternode_paintrun",
-      "community": 213,
+      "community": 38,
       "norm_label": ".paintrun()"
     },
     {
@@ -16670,7 +17130,7 @@
       "source_location": "L196",
       "_origin": "ast",
       "id": "src_inkitem_inkblockpainternode_m_color",
-      "community": 213,
+      "community": 38,
       "norm_label": "m_color"
     },
     {
@@ -16680,7 +17140,7 @@
       "source_location": "L197",
       "_origin": "ast",
       "id": "src_inkitem_inkblockpainternode_m_basewidth",
-      "community": 213,
+      "community": 38,
       "norm_label": "m_basewidth"
     },
     {
@@ -16690,7 +17150,7 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "src_inkitem_inkblockpainternode_m_maxhalf",
-      "community": 213,
+      "community": 38,
       "norm_label": "m_maxhalf"
     },
     {
@@ -16700,7 +17160,7 @@
       "source_location": "L199",
       "_origin": "ast",
       "id": "src_inkitem_inkblockpainternode_m_points",
-      "community": 213,
+      "community": 38,
       "norm_label": "m_points"
     },
     {
@@ -16780,7 +17240,7 @@
       "source_location": "L228",
       "_origin": "ast",
       "id": "src_inkitem_clear",
-      "community": 213,
+      "community": 38,
       "norm_label": "clear()"
     },
     {
@@ -16880,7 +17340,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_render_src_nodes_cpp",
-      "community": 38,
+      "community": 58,
       "norm_label": "nodes.cpp"
     },
     {
@@ -16960,7 +17420,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_render_src_nodes_h",
-      "community": 100,
+      "community": 58,
       "norm_label": "nodes.h"
     },
     {
@@ -16970,7 +17430,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_nodes_actcraft",
-      "community": 100,
+      "community": 58,
       "norm_label": "actcraft()"
     },
     {
@@ -16980,7 +17440,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "render_src_nodes_h_namespace",
-      "community": 100,
+      "community": 58,
       "norm_label": "namespace"
     },
     {
@@ -17100,7 +17560,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l10_t4_render_src_objectnodes_h",
-      "community": 253,
+      "community": 172,
       "norm_label": "objectnodes.h"
     },
     {
@@ -17110,7 +17570,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_objectnodes_actcraft",
-      "community": 253,
+      "community": 172,
       "norm_label": "actcraft()"
     },
     {
@@ -17120,7 +17580,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "render_src_objectnodes_h_namespace",
-      "community": 253,
+      "community": 172,
       "norm_label": "namespace"
     },
     {
@@ -17260,7 +17720,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_qpainter",
-      "community": 78,
+      "community": 240,
       "norm_label": "qpainter"
     },
     {
@@ -17270,7 +17730,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_qrectf",
-      "community": 256,
+      "community": 240,
       "norm_label": "qrectf"
     },
     {
@@ -17340,7 +17800,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_pagepainter_withouttrailingspaces",
-      "community": 78,
+      "community": 241,
       "norm_label": "withouttrailingspaces()"
     },
     {
@@ -17360,7 +17820,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "src_pagepainter_color",
-      "community": 78,
+      "community": 241,
       "norm_label": "color()"
     },
     {
@@ -17370,7 +17830,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_qcolor",
-      "community": 78,
+      "community": 240,
       "norm_label": "qcolor"
     },
     {
@@ -17380,7 +17840,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_argb",
-      "community": 78,
+      "community": 241,
       "norm_label": "argb"
     },
     {
@@ -17390,7 +17850,7 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "src_pagepainter_rectof",
-      "community": 256,
+      "community": 240,
       "norm_label": "rectof()"
     },
     {
@@ -17400,7 +17860,7 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_rectf",
-      "community": 256,
+      "community": 240,
       "norm_label": "rectf"
     },
     {
@@ -17440,7 +17900,7 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "src_pagepainter_brushof",
-      "community": 256,
+      "community": 78,
       "norm_label": "brushof()"
     },
     {
@@ -17450,7 +17910,7 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "qbrush",
-      "community": 256,
+      "community": 78,
       "norm_label": "qbrush"
     },
     {
@@ -17460,7 +17920,7 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_fill",
-      "community": 256,
+      "community": 78,
       "norm_label": "fill"
     },
     {
@@ -17510,7 +17970,7 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "src_pagepainter_drawpolyline",
-      "community": 78,
+      "community": 241,
       "norm_label": "drawpolyline()"
     },
     {
@@ -17520,7 +17980,7 @@
       "source_location": "L191",
       "_origin": "ast",
       "id": "src_pagepainter_paintstroke",
-      "community": 78,
+      "community": 241,
       "norm_label": "paintstroke()"
     },
     {
@@ -17530,7 +17990,7 @@
       "source_location": "L191",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_stroke",
-      "community": 78,
+      "community": 241,
       "norm_label": "stroke"
     },
     {
@@ -17590,7 +18050,7 @@
       "source_location": "L296",
       "_origin": "ast",
       "id": "src_pagepainter_painttext",
-      "community": 78,
+      "community": 241,
       "norm_label": "painttext()"
     },
     {
@@ -17600,7 +18060,7 @@
       "source_location": "L296",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_text",
-      "community": 78,
+      "community": 241,
       "norm_label": "text"
     },
     {
@@ -17750,7 +18210,7 @@
       "source_location": "L563",
       "_origin": "ast",
       "id": "src_pagepainter_paintunknown",
-      "community": 78,
+      "community": 240,
       "norm_label": "paintunknown()"
     },
     {
@@ -17760,7 +18220,7 @@
       "source_location": "L563",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_unknownobject",
-      "community": 78,
+      "community": 240,
       "norm_label": "unknownobject"
     },
     {
@@ -17810,7 +18270,7 @@
       "source_location": "L589",
       "_origin": "ast",
       "id": "src_pagepainter_size",
-      "community": 78,
+      "community": 241,
       "norm_label": "size()"
     },
     {
@@ -17860,7 +18320,7 @@
       "source_location": "L624",
       "_origin": "ast",
       "id": "src_pagepainter_paintobjectlocal",
-      "community": 78,
+      "community": 240,
       "norm_label": "paintobjectlocal()"
     },
     {
@@ -17870,7 +18330,7 @@
       "source_location": "L624",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_pageobject",
-      "community": 78,
+      "community": 240,
       "norm_label": "pageobject"
     },
     {
@@ -17880,7 +18340,7 @@
       "source_location": "L652",
       "_origin": "ast",
       "id": "src_pagepainter_paintobject",
-      "community": 78,
+      "community": 240,
       "norm_label": "paintobject()"
     },
     {
@@ -17990,7 +18450,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_decodedimages",
-      "community": 165,
+      "community": 157,
       "norm_label": "decodedimages"
     },
     {
@@ -18030,7 +18490,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_page",
-      "community": 125,
+      "community": 165,
       "norm_label": "page"
     },
     {
@@ -18040,7 +18500,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_paintedrenderer_paintedobjectnode",
-      "community": 165,
+      "community": 157,
       "norm_label": "paintedobjectnode"
     },
     {
@@ -18050,7 +18510,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_paintedrenderer_paintedobjectnode_paintedobjectnode",
-      "community": 165,
+      "community": 157,
       "norm_label": ".paintedobjectnode()"
     },
     {
@@ -18060,7 +18520,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_qquickwindow",
-      "community": 165,
+      "community": 157,
       "norm_label": "qquickwindow"
     },
     {
@@ -18080,7 +18540,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_paintedrenderer_paintedobjectnode_paint",
-      "community": 165,
+      "community": 157,
       "norm_label": ".paint()"
     },
     {
@@ -18090,7 +18550,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_qpainter",
-      "community": 165,
+      "community": 157,
       "norm_label": "qpainter"
     },
     {
@@ -18100,7 +18560,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "src_paintedrenderer_paintedobjectnode_m_object",
-      "community": 165,
+      "community": 157,
       "norm_label": "m_object"
     },
     {
@@ -18110,7 +18570,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_paintedrenderer_paintedobjectnode_m_images",
-      "community": 165,
+      "community": 157,
       "norm_label": "m_images"
     },
     {
@@ -18150,7 +18610,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "src_paintedrenderer_paintedpagenode_paint",
-      "community": 240,
+      "community": 157,
       "norm_label": ".paint()"
     },
     {
@@ -18190,7 +18650,7 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "src_paintedrenderer_withoutobjects",
-      "community": 125,
+      "community": 165,
       "norm_label": "withoutobjects()"
     },
     {
@@ -18210,7 +18670,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_qsgnode",
-      "community": 125,
+      "community": 165,
       "norm_label": "qsgnode"
     },
     {
@@ -18260,7 +18720,7 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "src_paintedrenderer_pagerect",
-      "community": 125,
+      "community": 165,
       "norm_label": "pagerect()"
     },
     {
@@ -18270,7 +18730,7 @@
       "source_location": "L147",
       "_origin": "ast",
       "id": "src_paintedrenderer_rasterizepage",
-      "community": 125,
+      "community": 165,
       "norm_label": "rasterizepage()"
     },
     {
@@ -18280,7 +18740,7 @@
       "source_location": "L147",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_imagelookup",
-      "community": 125,
+      "community": 165,
       "norm_label": "imagelookup"
     },
     {
@@ -18310,7 +18770,7 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "src_paintedrenderer_overwhite",
-      "community": 125,
+      "community": 165,
       "norm_label": "overwhite()"
     },
     {
@@ -18320,7 +18780,7 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_qcolor",
-      "community": 125,
+      "community": 165,
       "norm_label": "qcolor"
     },
     {
@@ -18330,7 +18790,7 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_argb",
-      "community": 125,
+      "community": 165,
       "norm_label": "argb"
     },
     {
@@ -18350,7 +18810,7 @@
       "source_location": "L231",
       "_origin": "ast",
       "id": "src_paintedrenderer_usespaintedrenderer",
-      "community": 165,
+      "community": 172,
       "norm_label": "usespaintedrenderer()"
     },
     {
@@ -18380,7 +18840,7 @@
       "source_location": "L267",
       "_origin": "ast",
       "id": "render_src_paintedrenderer_cpp_rendercontext",
-      "community": 125,
+      "community": 165,
       "norm_label": "rendercontext"
     },
     {
@@ -18390,7 +18850,7 @@
       "source_location": "L282",
       "_origin": "ast",
       "id": "src_paintedrenderer_backgroundispainted",
-      "community": 125,
+      "community": 165,
       "norm_label": "backgroundispainted()"
     },
     {
@@ -18400,7 +18860,7 @@
       "source_location": "L288",
       "_origin": "ast",
       "id": "src_paintedrenderer_createbackgroundnode",
-      "community": 125,
+      "community": 165,
       "norm_label": "createbackgroundnode()"
     },
     {
@@ -18410,7 +18870,7 @@
       "source_location": "L315",
       "_origin": "ast",
       "id": "src_paintedrenderer_creategridnode",
-      "community": 125,
+      "community": 165,
       "norm_label": "creategridnode()"
     },
     {
@@ -18530,7 +18990,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_painternode_setrect",
-      "community": 45,
+      "community": 157,
       "norm_label": "setrect()"
     },
     {
@@ -19190,7 +19650,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_render_src_strokerenderer_cpp",
-      "community": 100,
+      "community": 58,
       "norm_label": "strokerenderer.cpp"
     },
     {
@@ -19200,7 +19660,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_strokerenderer_strokepainternode",
-      "community": 100,
+      "community": 268,
       "norm_label": "strokepainternode"
     },
     {
@@ -19210,7 +19670,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_strokerenderer_strokepainternode_strokepainternode",
-      "community": 100,
+      "community": 268,
       "norm_label": ".strokepainternode()"
     },
     {
@@ -19220,7 +19680,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "render_src_strokerenderer_cpp_qquickwindow",
-      "community": 100,
+      "community": 268,
       "norm_label": "qquickwindow"
     },
     {
@@ -19230,7 +19690,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "render_src_strokerenderer_cpp_stroke",
-      "community": 100,
+      "community": 268,
       "norm_label": "stroke"
     },
     {
@@ -19240,7 +19700,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_strokerenderer_strokepainternode_paint",
-      "community": 100,
+      "community": 268,
       "norm_label": ".paint()"
     },
     {
@@ -19250,7 +19710,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "render_src_strokerenderer_cpp_qpainter",
-      "community": 100,
+      "community": 268,
       "norm_label": "qpainter"
     },
     {
@@ -19260,7 +19720,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_strokerenderer_strokepainternode_m_stroke",
-      "community": 100,
+      "community": 268,
       "norm_label": "m_stroke"
     },
     {
@@ -20412,7 +20872,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_tests_support_renderhost_h",
-      "community": 238,
+      "community": 23,
       "norm_label": "renderhost.h"
     },
     {
@@ -20422,7 +20882,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "support_renderhost_renderhostitem",
-      "community": 238,
+      "community": 23,
       "norm_label": "renderhostitem()"
     },
     {
@@ -20432,7 +20892,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "tests_support_renderhost_h_class",
-      "community": 238,
+      "community": 23,
       "norm_label": "class"
     },
     {
@@ -20442,7 +20902,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "support_renderhost_colornear",
-      "community": 238,
+      "community": 23,
       "norm_label": "colornear()"
     },
     {
@@ -20452,7 +20912,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "tests_support_renderhost_h_qcolor",
-      "community": 238,
+      "community": 23,
       "norm_label": "qcolor"
     },
     {
@@ -20742,7 +21202,7 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "tests_tst_actions_registry_tstactionsregistry_argumentvalidation",
-      "community": 208,
+      "community": 88,
       "norm_label": ".argumentvalidation()"
     },
     {
@@ -20762,7 +21222,7 @@
       "source_location": "L175",
       "_origin": "ast",
       "id": "tests_tst_actions_registry_tstactionsregistry_defaultcommandsfiledeclareslotone",
-      "community": 206,
+      "community": 152,
       "norm_label": ".defaultcommandsfiledeclareslotone()"
     },
     {
@@ -24689,7 +25149,7 @@
       "label": "TstFeaturesCalculator",
       "file_type": "code",
       "source_file": "tests/tst_features_calculator.cpp",
-      "source_location": "L4",
+      "source_location": "L7",
       "_origin": "ast",
       "id": "tests_tst_features_calculator_tstfeaturescalculator",
       "community": 202,
@@ -24699,7 +25159,7 @@
       "label": ".private()",
       "file_type": "code",
       "source_file": "tests/tst_features_calculator.cpp",
-      "source_location": "L6",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "tests_tst_features_calculator_tstfeaturescalculator_private",
       "community": 202,
@@ -24709,11 +25169,91 @@
       "label": "Q_OBJECT",
       "file_type": "code",
       "source_file": "tests/tst_features_calculator.cpp",
-      "source_location": "L6",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "tests_tst_features_calculator_cpp_q_object",
       "community": 202,
       "norm_label": "q_object"
+    },
+    {
+      "label": ".decimalComma()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L19",
+      "_origin": "ast",
+      "id": "tests_tst_features_calculator_tstfeaturescalculator_decimalcomma",
+      "community": 202,
+      "norm_label": ".decimalcomma()"
+    },
+    {
+      "label": ".divisionByZeroIsAnError()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L26",
+      "_origin": "ast",
+      "id": "tests_tst_features_calculator_tstfeaturescalculator_divisionbyzeroisanerror",
+      "community": 202,
+      "norm_label": ".divisionbyzeroisanerror()"
+    },
+    {
+      "label": ".percentAndSign()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "tests_tst_features_calculator_tstfeaturescalculator_percentandsign",
+      "community": 202,
+      "norm_label": ".percentandsign()"
+    },
+    {
+      "label": ".memoryKeys()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L44",
+      "_origin": "ast",
+      "id": "tests_tst_features_calculator_tstfeaturescalculator_memorykeys",
+      "community": 202,
+      "norm_label": ".memorykeys()"
+    },
+    {
+      "label": ".percentOfASum()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L51",
+      "_origin": "ast",
+      "id": "tests_tst_features_calculator_tstfeaturescalculator_percentofasum",
+      "community": 202,
+      "norm_label": ".percentofasum()"
+    },
+    {
+      "label": ".expressionShownAboveTheResult()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L60",
+      "_origin": "ast",
+      "id": "tests_tst_features_calculator_tstfeaturescalculator_expressionshownabovetheresult",
+      "community": 202,
+      "norm_label": ".expressionshownabovetheresult()"
+    },
+    {
+      "label": ".clearEntryKeepsTheCalculation()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L72",
+      "_origin": "ast",
+      "id": "tests_tst_features_calculator_tstfeaturescalculator_clearentrykeepsthecalculation",
+      "community": 202,
+      "norm_label": ".clearentrykeepsthecalculation()"
+    },
+    {
+      "label": ".pageTextHasTheCalculationAndItsResult()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L83",
+      "_origin": "ast",
+      "id": "tests_tst_features_calculator_tstfeaturescalculator_pagetexthasthecalculationanditsresult",
+      "community": 202,
+      "norm_label": ".pagetexthasthecalculationanditsresult()"
     },
     {
       "label": "tst_features_camera.cpp",
@@ -24769,7 +25309,7 @@
       "label": "TstFeaturesCountdown",
       "file_type": "code",
       "source_file": "tests/tst_features_countdown.cpp",
-      "source_location": "L4",
+      "source_location": "L7",
       "_origin": "ast",
       "id": "tests_tst_features_countdown_tstfeaturescountdown",
       "community": 214,
@@ -24779,7 +25319,7 @@
       "label": ".private()",
       "file_type": "code",
       "source_file": "tests/tst_features_countdown.cpp",
-      "source_location": "L6",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "tests_tst_features_countdown_tstfeaturescountdown_private",
       "community": 214,
@@ -24789,11 +25329,61 @@
       "label": "Q_OBJECT",
       "file_type": "code",
       "source_file": "tests/tst_features_countdown.cpp",
-      "source_location": "L6",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "tests_tst_features_countdown_cpp_q_object",
       "community": 214,
       "norm_label": "q_object"
+    },
+    {
+      "label": ".repeatRestarts()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L21",
+      "_origin": "ast",
+      "id": "tests_tst_features_countdown_tstfeaturescountdown_repeatrestarts",
+      "community": 214,
+      "norm_label": ".repeatrestarts()"
+    },
+    {
+      "label": ".pauseFreezes()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L30",
+      "_origin": "ast",
+      "id": "tests_tst_features_countdown_tstfeaturescountdown_pausefreezes",
+      "community": 214,
+      "norm_label": ".pausefreezes()"
+    },
+    {
+      "label": ".formatHmsRoundTrip()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L39",
+      "_origin": "ast",
+      "id": "tests_tst_features_countdown_tstfeaturescountdown_formathmsroundtrip",
+      "community": 214,
+      "norm_label": ".formathmsroundtrip()"
+    },
+    {
+      "label": ".stopwatchCountsUp()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L45",
+      "_origin": "ast",
+      "id": "tests_tst_features_countdown_tstfeaturescountdown_stopwatchcountsup",
+      "community": 214,
+      "norm_label": ".stopwatchcountsup()"
+    },
+    {
+      "label": ".latePollFiresOnce()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L51",
+      "_origin": "ast",
+      "id": "tests_tst_features_countdown_tstfeaturescountdown_latepollfiresonce",
+      "community": 214,
+      "norm_label": ".latepollfiresonce()"
     },
     {
       "label": "tst_features_curtain.cpp",
@@ -24969,7 +25559,7 @@
       "label": "TstFeaturesDice",
       "file_type": "code",
       "source_file": "tests/tst_features_dice.cpp",
-      "source_location": "L4",
+      "source_location": "L7",
       "_origin": "ast",
       "id": "tests_tst_features_dice_tstfeaturesdice",
       "community": 223,
@@ -24979,7 +25569,7 @@
       "label": ".private()",
       "file_type": "code",
       "source_file": "tests/tst_features_dice.cpp",
-      "source_location": "L6",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "tests_tst_features_dice_tstfeaturesdice_private",
       "community": 223,
@@ -24989,11 +25579,51 @@
       "label": "Q_OBJECT",
       "file_type": "code",
       "source_file": "tests/tst_features_dice.cpp",
-      "source_location": "L6",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "tests_tst_features_dice_cpp_q_object",
       "community": 223,
       "norm_label": "q_object"
+    },
+    {
+      "label": ".countClampedTo1To5()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_dice.cpp",
+      "source_location": "L19",
+      "_origin": "ast",
+      "id": "tests_tst_features_dice_tstfeaturesdice_countclampedto1to5",
+      "community": 223,
+      "norm_label": ".countclampedto1to5()"
+    },
+    {
+      "label": ".totalIsTheSum()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_dice.cpp",
+      "source_location": "L27",
+      "_origin": "ast",
+      "id": "tests_tst_features_dice_tstfeaturesdice_totalisthesum",
+      "community": 223,
+      "norm_label": ".totalisthesum()"
+    },
+    {
+      "label": ".speedClampedTo3To11()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_dice.cpp",
+      "source_location": "L40",
+      "_origin": "ast",
+      "id": "tests_tst_features_dice_tstfeaturesdice_speedclampedto3to11",
+      "community": 223,
+      "norm_label": ".speedclampedto3to11()"
+    },
+    {
+      "label": ".defaultIsOneDie()",
+      "file_type": "code",
+      "source_file": "tests/tst_features_dice.cpp",
+      "source_location": "L46",
+      "_origin": "ast",
+      "id": "tests_tst_features_dice_tstfeaturesdice_defaultisonedie",
+      "community": 223,
+      "norm_label": ".defaultisonedie()"
     },
     {
       "label": "tst_features_handwriting.cpp",
@@ -26702,7 +27332,7 @@
       "source_location": "L286",
       "_origin": "ast",
       "id": "tests_tst_formats_dump_tstformatsdump_dumpfollowstherules",
-      "community": 83,
+      "community": 135,
       "norm_label": ".dumpfollowstherules()"
     },
     {
@@ -28102,7 +28732,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_formats_objectstream_cpp",
-      "community": 142,
+      "community": 148,
       "norm_label": "tst_formats_objectstream.cpp"
     },
     {
@@ -28852,7 +29482,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_tests_tst_input_cpp",
-      "community": 30,
+      "community": 208,
       "norm_label": "tst_input.cpp"
     },
     {
@@ -28862,7 +29492,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "tests_tst_input_recordingsink",
-      "community": 30,
+      "community": 208,
       "norm_label": "recordingsink"
     },
     {
@@ -28872,7 +29502,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "tests_tst_input_cpp_vector",
-      "community": 30,
+      "community": 208,
       "norm_label": "vector"
     },
     {
@@ -28882,7 +29512,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "tests_tst_input_cpp_sample",
-      "community": 30,
+      "community": 208,
       "norm_label": "sample"
     },
     {
@@ -28892,7 +29522,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "tests_tst_input_recordingsink_samples",
-      "community": 30,
+      "community": 208,
       "norm_label": "samples"
     },
     {
@@ -28902,7 +29532,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "tests_tst_input_recordingsink_onsample",
-      "community": 30,
+      "community": 208,
       "norm_label": ".onsample()"
     },
     {
@@ -28912,7 +29542,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "tests_tst_input_recordingprobe",
-      "community": 30,
+      "community": 208,
       "norm_label": "recordingprobe"
     },
     {
@@ -28922,7 +29552,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "inkprobe",
-      "community": 30,
+      "community": 206,
       "norm_label": "inkprobe"
     },
     {
@@ -28932,7 +29562,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "tests_tst_input_cpp_pair",
-      "community": 30,
+      "community": 208,
       "norm_label": "pair"
     },
     {
@@ -28942,7 +29572,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "tests_tst_input_cpp_uint64_t",
-      "community": 30,
+      "community": 208,
       "norm_label": "uint64_t"
     },
     {
@@ -28952,7 +29582,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "tests_tst_input_cpp_int64_t",
-      "community": 30,
+      "community": 208,
       "norm_label": "int64_t"
     },
     {
@@ -28962,7 +29592,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "tests_tst_input_recordingprobe_received",
-      "community": 30,
+      "community": 208,
       "norm_label": "received"
     },
     {
@@ -28972,7 +29602,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "tests_tst_input_recordingprobe_samplereceived",
-      "community": 30,
+      "community": 208,
       "norm_label": ".samplereceived()"
     },
     {
@@ -28982,7 +29612,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_tst_input_recordingprobe_samplessynced",
-      "community": 30,
+      "community": 208,
       "norm_label": ".samplessynced()"
     },
     {
@@ -29322,7 +29952,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "tests_tst_pageview_passedon_eventfilter",
-      "community": 37,
+      "community": 101,
       "norm_label": ".eventfilter()"
     },
     {
@@ -29332,7 +29962,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "tests_tst_pageview_cpp_qevent",
-      "community": 37,
+      "community": 101,
       "norm_label": "qevent"
     },
     {
@@ -30452,7 +31082,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "qsgrendernode",
-      "community": 28,
+      "community": 100,
       "norm_label": "qsgrendernode"
     },
     {
@@ -30462,7 +31092,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_painternode_painternode",
-      "community": 103,
+      "community": 100,
       "norm_label": ".painternode()"
     },
     {
@@ -30472,7 +31102,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_cpp_qquickwindow",
-      "community": 103,
+      "community": 100,
       "norm_label": "qquickwindow"
     },
     {
@@ -30482,7 +31112,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_cpp_qrectf",
-      "community": 103,
+      "community": 100,
       "norm_label": "qrectf"
     },
     {
@@ -31052,7 +31682,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_tests_tst_render_engines_cpp",
-      "community": 238,
+      "community": 23,
       "norm_label": "tst_render_engines.cpp"
     },
     {
@@ -31102,7 +31732,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_tst_render_engines_shape",
-      "community": 238,
+      "community": 23,
       "norm_label": "shape()"
     },
     {
@@ -31112,7 +31742,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_tst_render_engines_cpp_shapekind",
-      "community": 238,
+      "community": 23,
       "norm_label": "shapekind"
     },
     {
@@ -31122,7 +31752,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_tst_render_engines_cpp_rectf",
-      "community": 238,
+      "community": 23,
       "norm_label": "rectf"
     },
     {
@@ -31132,7 +31762,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_tst_render_engines_cpp_argb",
-      "community": 238,
+      "community": 23,
       "norm_label": "argb"
     },
     {
@@ -31232,7 +31862,7 @@
       "source_location": "L147",
       "_origin": "ast",
       "id": "tests_tst_render_engines_tstrenderengines_shapesrenderinsoftware",
-      "community": 238,
+      "community": 23,
       "norm_label": ".shapesrenderinsoftware()"
     },
     {
@@ -31832,7 +32462,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_pointat",
-      "community": 28,
+      "community": 213,
       "norm_label": "pointat()"
     },
     {
@@ -31842,7 +32472,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_strokepoint",
-      "community": 28,
+      "community": 213,
       "norm_label": "strokepoint"
     },
     {
@@ -31852,7 +32482,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_midsegment",
-      "community": 28,
+      "community": 213,
       "norm_label": "midsegment()"
     },
     {
@@ -31862,7 +32492,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_qpoint",
-      "community": 28,
+      "community": 213,
       "norm_label": "qpoint"
     },
     {
@@ -32032,7 +32662,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_spyitem_updatepaintnode",
-      "community": 28,
+      "community": 271,
       "norm_label": ".updatepaintnode()"
     },
     {
@@ -32042,7 +32672,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_qsgnode",
-      "community": 28,
+      "community": 271,
       "norm_label": "qsgnode"
     },
     {
@@ -32052,7 +32682,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_updatepaintnodedata",
-      "community": 28,
+      "community": 271,
       "norm_label": "updatepaintnodedata"
     },
     {
@@ -32072,7 +32702,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware",
-      "community": 28,
+      "community": 213,
       "norm_label": "tstrenderinksoftware"
     },
     {
@@ -32082,7 +32712,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_private",
-      "community": 28,
+      "community": 213,
       "norm_label": ".private()"
     },
     {
@@ -32092,7 +32722,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_q_object",
-      "community": 28,
+      "community": 213,
       "norm_label": "q_object"
     },
     {
@@ -32102,7 +32732,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_appendingleavesdistantfrozenblocksalone",
-      "community": 28,
+      "community": 213,
       "norm_label": ".appendingleavesdistantfrozenblocksalone()"
     },
     {
@@ -32112,7 +32742,7 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_crossingstrokespaintonlyneartherepaintedarea",
-      "community": 28,
+      "community": 213,
       "norm_label": ".crossingstrokespaintonlyneartherepaintedarea()"
     },
     {
@@ -32122,7 +32752,7 @@
       "source_location": "L210",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_transformeditempaintsatitsplace",
-      "community": 28,
+      "community": 213,
       "norm_label": ".transformeditempaintsatitsplace()"
     },
     {
@@ -32132,7 +32762,7 @@
       "source_location": "L246",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_diagonalsquarecapsarenotclipped",
-      "community": 28,
+      "community": 213,
       "norm_label": ".diagonalsquarecapsarenotclipped()"
     },
     {
@@ -32142,7 +32772,7 @@
       "source_location": "L274",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_reinserteditemredrawsitsink",
-      "community": 28,
+      "community": 213,
       "norm_label": ".reinserteditemredrawsitsink()"
     },
     {
@@ -32152,7 +32782,7 @@
       "source_location": "L296",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_tstrenderinksoftware_clearremovestheink",
-      "community": 28,
+      "community": 213,
       "norm_label": ".clearremovestheink()"
     },
     {
@@ -32172,7 +32802,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_pt",
-      "community": 20,
+      "community": 259,
       "norm_label": "pt()"
     },
     {
@@ -32182,7 +32812,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_cpp_strokepoint",
-      "community": 20,
+      "community": 259,
       "norm_label": "strokepoint"
     },
     {
@@ -32362,7 +32992,7 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_syncprobe",
-      "community": 20,
+      "community": 125,
       "norm_label": "syncprobe"
     },
     {
@@ -32372,7 +33002,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_syncprobe_syncprobe",
-      "community": 20,
+      "community": 125,
       "norm_label": ".syncprobe()"
     },
     {
@@ -32382,7 +33012,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "atomic_bool",
-      "community": 20,
+      "community": 125,
       "norm_label": "atomic_bool"
     },
     {
@@ -32392,7 +33022,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_syncprobe_samplereceived",
-      "community": 20,
+      "community": 125,
       "norm_label": ".samplereceived()"
     },
     {
@@ -32402,7 +33032,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_cpp_uint64_t",
-      "community": 20,
+      "community": 125,
       "norm_label": "uint64_t"
     },
     {
@@ -32412,7 +33042,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_cpp_int64_t",
-      "community": 20,
+      "community": 125,
       "norm_label": "int64_t"
     },
     {
@@ -32422,7 +33052,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_syncprobe_samplessynced",
-      "community": 20,
+      "community": 125,
       "norm_label": ".samplessynced()"
     },
     {
@@ -32432,7 +33062,7 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_syncprobe_snapshot",
-      "community": 20,
+      "community": 125,
       "norm_label": ".snapshot()"
     },
     {
@@ -32442,7 +33072,7 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_syncprobe_allduringsync",
-      "community": 20,
+      "community": 125,
       "norm_label": ".allduringsync()"
     },
     {
@@ -32452,7 +33082,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_cpp_mutex",
-      "community": 20,
+      "community": 125,
       "norm_label": "mutex"
     },
     {
@@ -32462,7 +33092,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_syncprobe_m_mutex",
-      "community": 20,
+      "community": 125,
       "norm_label": "m_mutex"
     },
     {
@@ -32472,7 +33102,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_syncprobe_m_synced",
-      "community": 20,
+      "community": 125,
       "norm_label": "m_synced"
     },
     {
@@ -32482,7 +33112,7 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_syncprobe_m_allduringsync",
-      "community": 20,
+      "community": 125,
       "norm_label": "m_allduringsync"
     },
     {
@@ -32492,7 +33122,7 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_tstrenderinkbuffer",
-      "community": 20,
+      "community": 259,
       "norm_label": "tstrenderinkbuffer"
     },
     {
@@ -32502,7 +33132,7 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_tstrenderinkbuffer_private",
-      "community": 20,
+      "community": 259,
       "norm_label": ".private()"
     },
     {
@@ -32512,7 +33142,7 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_cpp_q_object",
-      "community": 20,
+      "community": 259,
       "norm_label": "q_object"
     },
     {
@@ -32522,7 +33152,7 @@
       "source_location": "L157",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_tstrenderinkbuffer_blockssharetheirjoint",
-      "community": 20,
+      "community": 259,
       "norm_label": ".blockssharetheirjoint()"
     },
     {
@@ -32532,7 +33162,7 @@
       "source_location": "L171",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_tstrenderinkbuffer_onlythelastblockisdirtyafteranadd",
-      "community": 20,
+      "community": 259,
       "norm_label": ".onlythelastblockisdirtyafteranadd()"
     },
     {
@@ -32542,7 +33172,7 @@
       "source_location": "L185",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_tstrenderinkbuffer_newblockisdirtyfromitsindex",
-      "community": 20,
+      "community": 259,
       "norm_label": ".newblockisdirtyfromitsindex()"
     },
     {
@@ -32552,7 +33182,7 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_tstrenderinkbuffer_clearemptiesandflags",
-      "community": 20,
+      "community": 259,
       "norm_label": ".clearemptiesandflags()"
     },
     {
@@ -32562,7 +33192,7 @@
       "source_location": "L212",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_tstrenderinkbuffer_blockboundscovertheblock",
-      "community": 20,
+      "community": 259,
       "norm_label": ".blockboundscovertheblock()"
     },
     {
@@ -32582,7 +33212,7 @@
       "source_location": "L264",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_tstrenderinkbuffer_rhiblockmaterialsnevershareabatch",
-      "community": 20,
+      "community": 259,
       "norm_label": ".rhiblockmaterialsnevershareabatch()"
     },
     {
@@ -32592,7 +33222,7 @@
       "source_location": "L300",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_tstrenderinkbuffer_rhirefillstheblocksofafreshroot",
-      "community": 20,
+      "community": 259,
       "norm_label": ".rhirefillstheblocksofafreshroot()"
     },
     {
@@ -32632,7 +33262,7 @@
       "source_location": "L434",
       "_origin": "ast",
       "id": "tests_tst_render_inkbuffer_tstrenderinkbuffer_probereportslastsyncedsequence",
-      "community": 20,
+      "community": 125,
       "norm_label": ".probereportslastsyncedsequence()"
     },
     {
@@ -34462,7 +35092,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_tests_tst_ui_commands_cpp",
-      "community": 46,
+      "community": 34,
       "norm_label": "tst_ui_commands.cpp"
     },
     {
@@ -34472,7 +35102,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_menulabels",
-      "community": 46,
+      "community": 34,
       "norm_label": "menulabels()"
     },
     {
@@ -34482,7 +35112,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_cpp_qstringlist",
-      "community": 46,
+      "community": 34,
       "norm_label": "qstringlist"
     },
     {
@@ -34492,7 +35122,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "commands",
-      "community": 46,
+      "community": 34,
       "norm_label": "commands"
     },
     {
@@ -34502,7 +35132,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_itemids",
-      "community": 46,
+      "community": 34,
       "norm_label": "itemids()"
     },
     {
@@ -34512,7 +35142,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_cpp_qvariant",
-      "community": 46,
+      "community": 34,
       "norm_label": "qvariant"
     },
     {
@@ -34522,7 +35152,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_writefile",
-      "community": 46,
+      "community": 34,
       "norm_label": "writefile()"
     },
     {
@@ -34532,7 +35162,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_cpp_qstring",
-      "community": 46,
+      "community": 34,
       "norm_label": "qstring"
     },
     {
@@ -34542,7 +35172,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_cpp_qbytearray",
-      "community": 46,
+      "community": 34,
       "norm_label": "qbytearray"
     },
     {
@@ -34552,7 +35182,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_tstuicommands",
-      "community": 46,
+      "community": 34,
       "norm_label": "tstuicommands"
     },
     {
@@ -34562,7 +35192,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_cpp_q_object",
-      "community": 46,
+      "community": 34,
       "norm_label": "q_object"
     },
     {
@@ -34572,7 +35202,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_tstuicommands_private",
-      "community": 46,
+      "community": 34,
       "norm_label": "private"
     },
     {
@@ -34582,7 +35212,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_tstuicommands_inittestcase",
-      "community": 46,
+      "community": 34,
       "norm_label": ".inittestcase()"
     },
     {
@@ -34592,7 +35222,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_tstuicommands_defaultmenushideemptyones",
-      "community": 46,
+      "community": 34,
       "norm_label": ".defaultmenushideemptyones()"
     },
     {
@@ -34602,7 +35232,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_tstuicommands_palettecolorsandwidths",
-      "community": 46,
+      "community": 34,
       "norm_label": ".palettecolorsandwidths()"
     },
     {
@@ -34612,7 +35242,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_tstuicommands_everydeclarediconexists",
-      "community": 46,
+      "community": 34,
       "norm_label": ".everydeclarediconexists()"
     },
     {
@@ -34622,7 +35252,7 @@
       "source_location": "L116",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_tstuicommands_profilelayoutoverridesresource",
-      "community": 46,
+      "community": 34,
       "norm_label": ".profilelayoutoverridesresource()"
     },
     {
@@ -34632,7 +35262,7 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_tstuicommands_unreadableprofilelayoutfallsbacktoresource",
-      "community": 46,
+      "community": 34,
       "norm_label": ".unreadableprofilelayoutfallsbacktoresource()"
     },
     {
@@ -34642,7 +35272,7 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_tstuicommands_triggerreachestheqmlhandler",
-      "community": 46,
+      "community": 34,
       "norm_label": ".triggerreachestheqmlhandler()"
     },
     {
@@ -34652,7 +35282,7 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_tstuicommands_reloadkeepscheckedstates",
-      "community": 46,
+      "community": 34,
       "norm_label": ".reloadkeepscheckedstates()"
     },
     {
@@ -34662,7 +35292,7 @@
       "source_location": "L195",
       "_origin": "ast",
       "id": "tests_tst_ui_commands_tstuicommands_statechangesbumprevision",
-      "community": 46,
+      "community": 34,
       "norm_label": ".statechangesbumprevision()"
     },
     {
@@ -37692,7 +38322,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l10_t4_ui_include_actcraft_ui_pageview_h",
-      "community": 30,
+      "community": 206,
       "norm_label": "pageview.h"
     },
     {
@@ -37702,7 +38332,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "ui_pageview_actcraft",
-      "community": 30,
+      "community": 206,
       "norm_label": "actcraft()"
     },
     {
@@ -37712,7 +38342,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "ui_include_actcraft_ui_pageview_h_namespace",
-      "community": 30,
+      "community": 206,
       "norm_label": "namespace"
     },
     {
@@ -39272,7 +39902,7 @@
       "source_location": "L228",
       "_origin": "ast",
       "id": "src_pageview_cachetexturesize",
-      "community": 47,
+      "community": 36,
       "norm_label": "cachetexturesize()"
     },
     {
@@ -39282,7 +39912,7 @@
       "source_location": "L228",
       "_origin": "ast",
       "id": "ui_src_pageview_cpp_qsize",
-      "community": 47,
+      "community": 36,
       "norm_label": "qsize"
     },
     {
@@ -39662,7 +40292,7 @@
       "source_location": "L627",
       "_origin": "ast",
       "id": "src_pageview_touchevent",
-      "community": 179,
+      "community": 42,
       "norm_label": "touchevent()"
     },
     {
@@ -39672,7 +40302,7 @@
       "source_location": "L627",
       "_origin": "ast",
       "id": "qtouchevent",
-      "community": 179,
+      "community": 42,
       "norm_label": "qtouchevent"
     },
     {
@@ -39682,7 +40312,7 @@
       "source_location": "L658",
       "_origin": "ast",
       "id": "src_pageview_touchungrabevent",
-      "community": 179,
+      "community": 42,
       "norm_label": "touchungrabevent()"
     },
     {
@@ -39692,7 +40322,7 @@
       "source_location": "L664",
       "_origin": "ast",
       "id": "src_pageview_finishtouchstroke",
-      "community": 179,
+      "community": 42,
       "norm_label": "finishtouchstroke()"
     },
     {
@@ -39882,7 +40512,7 @@
       "source_location": "L783",
       "_origin": "ast",
       "id": "qwheelevent",
-      "community": 24,
+      "community": 36,
       "norm_label": "qwheelevent"
     },
     {
@@ -48365,9 +48995,9 @@
       "source_location": "L595",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "flipchart_main_writesynthetic",
-      "target": "bench_flipchart_main_cpp_variant",
-      "confidence_score": 1.0
+      "target": "bench_flipchart_main_cpp_variant"
     },
     {
       "relation": "calls",
@@ -49890,9 +50520,9 @@
       "source_location": "L42",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "src_gpumemory_win_d3d11gpumemory",
-      "target": "bench_src_gpumemory_win_cpp_comptr",
-      "confidence_score": 1.0
+      "target": "bench_src_gpumemory_win_cpp_comptr"
     },
     {
       "relation": "references",
@@ -49975,9 +50605,9 @@
       "source_location": "L22",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_gpumemory_win_d3d11gpumemory_d3d11gpumemory",
-      "target": "bench_src_gpumemory_win_cpp_comptr",
-      "confidence_score": 1.0
+      "target": "bench_src_gpumemory_win_cpp_comptr"
     },
     {
       "relation": "references",
@@ -50923,9 +51553,9 @@
       "source_file": "bench/src/recorder.cpp",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_bench_src_recorder_cpp",
-      "target": "qthread",
-      "confidence_score": 1.0
+      "target": "qthread"
     },
     {
       "relation": "contains",
@@ -55206,9 +55836,9 @@
       "source_file": "features/include/actcraft/features/handwriting.h",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "features_handwriting",
-      "target": "qobject",
-      "confidence_score": 1.0
+      "target": "qobject"
     },
     {
       "relation": "inherits",
@@ -62814,12 +63444,86 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/calculator.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "features_calculator",
+      "target": "features_calculator_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/calculator.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "features_calculator_actcraft",
+      "target": "features_include_actcraft_features_calculator_h_namespace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/countdown.h",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "features_countdown",
+      "target": "features_countdown_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/countdown.h",
+      "source_location": "L7",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "features_countdown_actcraft",
+      "target": "features_include_actcraft_features_countdown_h_namespace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "features/include/actcraft/features/curtain.h",
       "source_location": "L31",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "features_curtain",
       "target": "features_curtain_dragging"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/dice.h",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "features_dice",
+      "target": "features_dice_actcraft",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/dice.h",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "features_dice",
+      "target": "qrandomgenerator",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/include/actcraft/features/dice.h",
+      "source_location": "L7",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "features_dice_actcraft",
+      "target": "features_include_actcraft_features_dice_h_namespace",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -62848,9 +63552,9 @@
       "source_file": "features/include/actcraft/features/handwriting.h",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "features_handwriting",
-      "target": "features_handwriting_actcraft",
-      "confidence_score": 1.0
+      "target": "features_handwriting_actcraft"
     },
     {
       "relation": "imports",
@@ -62859,9 +63563,9 @@
       "source_file": "features/include/actcraft/features/handwriting.h",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "features_handwriting",
-      "target": "qthread",
-      "confidence_score": 1.0
+      "target": "qthread"
     },
     {
       "relation": "references",
@@ -62870,9 +63574,9 @@
       "source_location": "L14",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "features_handwriting_actcraft",
-      "target": "features_include_actcraft_features_handwriting_h_namespace",
-      "confidence_score": 1.0
+      "target": "features_include_actcraft_features_handwriting_h_namespace"
     },
     {
       "relation": "imports",
@@ -63099,6 +63803,512 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "src_calculator",
+      "target": "src_calculator_apply",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "src_calculator",
+      "target": "src_calculator_digitcount",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "src_calculator",
+      "target": "src_calculator_display",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "src_calculator",
+      "target": "src_calculator_entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "src_calculator",
+      "target": "src_calculator_expression",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "src_calculator",
+      "target": "src_calculator_operatorsymbol",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "src_calculator",
+      "target": "src_calculator_pagetext",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L95",
+      "weight": 1.0,
+      "source": "src_calculator",
+      "target": "src_calculator_press",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "src_calculator",
+      "target": "src_calculator_showvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_calculator_operatorsymbol",
+      "target": "features_src_calculator_cpp_qchar",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_calculator_operatorsymbol",
+      "target": "features_src_calculator_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L147",
+      "weight": 1.0,
+      "source": "src_calculator_press",
+      "target": "src_calculator_operatorsymbol",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L25",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_calculator_digitcount",
+      "target": "features_src_calculator_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L37",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_calculator_display",
+      "target": "features_src_calculator_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L42",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_calculator_expression",
+      "target": "features_src_calculator_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L47",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_calculator_pagetext",
+      "target": "features_src_calculator_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L95",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_calculator_press",
+      "target": "features_src_calculator_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "src_calculator_press",
+      "target": "features_src_calculator_cpp_qchar",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L130",
+      "weight": 1.0,
+      "source": "src_calculator_press",
+      "target": "src_calculator_digitcount",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L74",
+      "weight": 1.0,
+      "source": "src_calculator_apply",
+      "target": "src_calculator_entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L151",
+      "weight": 1.0,
+      "source": "src_calculator_press",
+      "target": "src_calculator_entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "src_calculator_apply",
+      "target": "src_calculator_showvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L191",
+      "weight": 1.0,
+      "source": "src_calculator_press",
+      "target": "src_calculator_showvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/calculator.cpp",
+      "source_location": "L153",
+      "weight": 1.0,
+      "source": "src_calculator_press",
+      "target": "src_calculator_apply",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L107",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_elapsedseconds",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L115",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_formathms",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L124",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_parsehms",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L91",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_pause",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_paused",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L70",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_poll",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_remainingseconds",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_repeat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_reset",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L99",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_resume",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L54",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_running",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_setrepeat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L83",
+      "weight": 1.0,
+      "source": "src_countdown",
+      "target": "src_countdown_start",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L83",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_countdown_start",
+      "target": "features_src_countdown_cpp_int64_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L107",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_countdown_elapsedseconds",
+      "target": "features_src_countdown_cpp_int64_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L91",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_countdown_pause",
+      "target": "features_src_countdown_cpp_int64_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L70",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_countdown_poll",
+      "target": "features_src_countdown_cpp_int64_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L64",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_countdown_remainingseconds",
+      "target": "features_src_countdown_cpp_int64_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L38",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_countdown_reset",
+      "target": "features_src_countdown_cpp_int64_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L99",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_countdown_resume",
+      "target": "features_src_countdown_cpp_int64_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L115",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_countdown_formathms",
+      "target": "features_src_countdown_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "tests_tst_features_countdown_tstfeaturescountdown_formathmsroundtrip",
+      "target": "src_countdown_formathms"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/countdown.cpp",
+      "source_location": "L124",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_countdown_parsehms",
+      "target": "features_src_countdown_cpp_qstring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "tests_tst_features_countdown_tstfeaturescountdown_formathmsroundtrip",
+      "target": "src_countdown_parsehms"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "features/src/curtain.cpp",
       "source_location": "L112",
       "weight": 1.0,
@@ -63266,6 +64476,88 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "src_dice",
+      "target": "src_dice_animationms",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "src_dice",
+      "target": "src_dice_count",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "src_dice",
+      "target": "src_dice_dice",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "src_dice",
+      "target": "src_dice_roll",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "src_dice",
+      "target": "src_dice_setcount",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "src_dice",
+      "target": "src_dice_total",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "source": "src_dice_dice",
+      "target": "features_src_dice_cpp_quint32",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "features/src/dice.cpp",
+      "source_location": "L20",
+      "weight": 1.0,
+      "context": "return_type",
+      "source": "src_dice_roll",
+      "target": "features_src_dice_cpp_vector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "features/src/features.cpp",
       "source_location": "L5",
       "weight": 1.0,
@@ -63279,9 +64571,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L49",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting",
-      "target": "src_handwriting_handwritingthread",
-      "confidence_score": 1.0
+      "target": "src_handwriting_handwritingthread"
     },
     {
       "relation": "contains",
@@ -63289,9 +64581,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L32",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting",
-      "target": "src_handwriting_makehandwritingrecognizer",
-      "confidence_score": 1.0
+      "target": "src_handwriting_makehandwritingrecognizer"
     },
     {
       "relation": "contains",
@@ -63299,9 +64591,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L80",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting",
-      "target": "src_handwriting_post",
-      "confidence_score": 1.0
+      "target": "src_handwriting_post"
     },
     {
       "relation": "contains",
@@ -63309,9 +64601,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L75",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting",
-      "target": "src_handwriting_probe",
-      "confidence_score": 1.0
+      "target": "src_handwriting_probe"
     },
     {
       "relation": "contains",
@@ -63319,9 +64611,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L70",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting",
-      "target": "src_handwriting_recognize",
-      "confidence_score": 1.0
+      "target": "src_handwriting_recognize"
     },
     {
       "relation": "contains",
@@ -63329,9 +64621,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L56",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting",
-      "target": "src_handwriting_run",
-      "confidence_score": 1.0
+      "target": "src_handwriting_run"
     },
     {
       "relation": "contains",
@@ -63339,9 +64631,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting",
-      "target": "src_handwriting_unavailablerecognizer",
-      "confidence_score": 1.0
+      "target": "src_handwriting_unavailablerecognizer"
     },
     {
       "relation": "contains",
@@ -63349,9 +64641,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting",
-      "target": "src_handwriting_unavailabletext",
-      "confidence_score": 1.0
+      "target": "src_handwriting_unavailabletext"
     },
     {
       "relation": "references",
@@ -63360,9 +64652,9 @@
       "source_location": "L21",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailablerecognizer",
-      "target": "features_src_handwriting_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_qstring"
     },
     {
       "relation": "inherits",
@@ -63370,9 +64662,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailablerecognizer",
-      "target": "features_src_handwriting_other_cpp_handwritingrecognizer",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_other_cpp_handwritingrecognizer"
     },
     {
       "relation": "method",
@@ -63380,9 +64672,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailablerecognizer",
-      "target": "src_handwriting_unavailablerecognizer_available",
-      "confidence_score": 1.0
+      "target": "src_handwriting_unavailablerecognizer_available"
     },
     {
       "relation": "defines",
@@ -63391,9 +64683,9 @@
       "source_location": "L21",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailablerecognizer",
-      "target": "src_handwriting_unavailablerecognizer_m_why",
-      "confidence_score": 1.0
+      "target": "src_handwriting_unavailablerecognizer_m_why"
     },
     {
       "relation": "method",
@@ -63401,9 +64693,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailablerecognizer",
-      "target": "src_handwriting_unavailablerecognizer_recognize",
-      "confidence_score": 1.0
+      "target": "src_handwriting_unavailablerecognizer_recognize"
     },
     {
       "relation": "method",
@@ -63411,9 +64703,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailablerecognizer",
-      "target": "src_handwriting_unavailablerecognizer_status",
-      "confidence_score": 1.0
+      "target": "src_handwriting_unavailablerecognizer_status"
     },
     {
       "relation": "method",
@@ -63421,9 +64713,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailablerecognizer",
-      "target": "src_handwriting_unavailablerecognizer_unavailablerecognizer",
-      "confidence_score": 1.0
+      "target": "src_handwriting_unavailablerecognizer_unavailablerecognizer"
     },
     {
       "relation": "references",
@@ -63432,9 +64724,9 @@
       "source_location": "L14",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailablerecognizer_unavailablerecognizer",
-      "target": "features_src_handwriting_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_qstring"
     },
     {
       "relation": "references",
@@ -63443,9 +64735,9 @@
       "source_location": "L17",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailablerecognizer_status",
-      "target": "features_src_handwriting_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_qstring"
     },
     {
       "relation": "references",
@@ -63454,9 +64746,9 @@
       "source_location": "L24",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailabletext",
-      "target": "features_src_handwriting_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_qstring"
     },
     {
       "relation": "calls",
@@ -63465,9 +64757,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L86",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_post",
-      "target": "src_handwriting_unavailablerecognizer_available",
-      "confidence_score": 1.0
+      "target": "src_handwriting_unavailablerecognizer_available"
     },
     {
       "relation": "calls",
@@ -63476,9 +64768,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L86",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_post",
-      "target": "src_handwriting_unavailablerecognizer_status",
-      "confidence_score": 1.0
+      "target": "src_handwriting_unavailablerecognizer_status"
     },
     {
       "relation": "references",
@@ -63487,9 +64779,9 @@
       "source_location": "L18",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailablerecognizer_recognize",
-      "target": "features_src_handwriting_cpp_inkstrokes",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_inkstrokes"
     },
     {
       "relation": "references",
@@ -63498,9 +64790,9 @@
       "source_location": "L18",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_unavailablerecognizer_recognize",
-      "target": "features_src_handwriting_cpp_qstringlist",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_qstringlist"
     },
     {
       "relation": "references",
@@ -63509,9 +64801,9 @@
       "source_location": "L80",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_handwriting_post",
-      "target": "features_src_handwriting_cpp_inkstrokes",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_inkstrokes"
     },
     {
       "relation": "references",
@@ -63520,9 +64812,9 @@
       "source_location": "L70",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_recognize",
-      "target": "features_src_handwriting_cpp_inkstrokes",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_inkstrokes"
     },
     {
       "relation": "calls",
@@ -63531,9 +64823,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L37",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_makehandwritingrecognizer",
-      "target": "src_handwriting_unavailabletext",
-      "confidence_score": 1.0
+      "target": "src_handwriting_unavailabletext"
     },
     {
       "relation": "calls",
@@ -63542,9 +64834,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L61",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_run",
-      "target": "src_handwriting_unavailabletext",
-      "confidence_score": 1.0
+      "target": "src_handwriting_unavailabletext"
     },
     {
       "relation": "references",
@@ -63553,9 +64845,9 @@
       "source_location": "L32",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_makehandwritingrecognizer",
-      "target": "features_src_handwriting_cpp_unique_ptr",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_unique_ptr"
     },
     {
       "relation": "references",
@@ -63564,9 +64856,9 @@
       "source_location": "L32",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_handwriting_makehandwritingrecognizer",
-      "target": "features_src_handwriting_other_cpp_handwritingrecognizer",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_other_cpp_handwritingrecognizer"
     },
     {
       "relation": "calls",
@@ -63586,9 +64878,9 @@
       "source_location": "L43",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_handwritingthread",
-      "target": "factory",
-      "confidence_score": 1.0
+      "target": "factory"
     },
     {
       "relation": "calls",
@@ -63597,9 +64889,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L88",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_post",
-      "target": "src_handwriting_recognize",
-      "confidence_score": 1.0
+      "target": "src_handwriting_recognize"
     },
     {
       "relation": "references",
@@ -63608,9 +64900,9 @@
       "source_location": "L70",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_recognize",
-      "target": "callback",
-      "confidence_score": 1.0
+      "target": "callback"
     },
     {
       "relation": "references",
@@ -63619,9 +64911,9 @@
       "source_location": "L70",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_recognize",
-      "target": "features_src_handwriting_cpp_qobject",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_qobject"
     },
     {
       "relation": "references",
@@ -63630,9 +64922,9 @@
       "source_location": "L80",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_post",
-      "target": "features_src_handwriting_cpp_qobject",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_qobject"
     },
     {
       "relation": "references",
@@ -63641,9 +64933,9 @@
       "source_location": "L75",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_probe",
-      "target": "features_src_handwriting_cpp_qobject",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_qobject"
     },
     {
       "relation": "references",
@@ -63652,9 +64944,9 @@
       "source_location": "L80",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_post",
-      "target": "callback",
-      "confidence_score": 1.0
+      "target": "callback"
     },
     {
       "relation": "references",
@@ -63663,9 +64955,9 @@
       "source_location": "L75",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_probe",
-      "target": "callback",
-      "confidence_score": 1.0
+      "target": "callback"
     },
     {
       "relation": "calls",
@@ -63674,9 +64966,9 @@
       "source_file": "features/src/handwriting.cpp",
       "source_location": "L77",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_probe",
-      "target": "src_handwriting_post",
-      "confidence_score": 1.0
+      "target": "src_handwriting_post"
     },
     {
       "relation": "references",
@@ -63685,9 +64977,9 @@
       "source_location": "L80",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_post",
-      "target": "features_src_handwriting_cpp_optional",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_cpp_optional"
     },
     {
       "relation": "contains",
@@ -63695,9 +64987,9 @@
       "source_file": "features/src/handwriting_other.cpp",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_other",
-      "target": "src_handwriting_other_enterrecognitionapartment",
-      "confidence_score": 1.0
+      "target": "src_handwriting_other_enterrecognitionapartment"
     },
     {
       "relation": "contains",
@@ -63705,9 +64997,9 @@
       "source_file": "features/src/handwriting_other.cpp",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_other",
-      "target": "src_handwriting_other_leaverecognitionapartment",
-      "confidence_score": 1.0
+      "target": "src_handwriting_other_leaverecognitionapartment"
     },
     {
       "relation": "contains",
@@ -63715,9 +65007,9 @@
       "source_file": "features/src/handwriting_other.cpp",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_other",
-      "target": "src_handwriting_other_makeplatformhandwritingrecognizer",
-      "confidence_score": 1.0
+      "target": "src_handwriting_other_makeplatformhandwritingrecognizer"
     },
     {
       "relation": "references",
@@ -63726,9 +65018,9 @@
       "source_location": "L6",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_handwriting_other_makeplatformhandwritingrecognizer",
-      "target": "features_src_handwriting_other_cpp_handwritingrecognizer",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_other_cpp_handwritingrecognizer"
     },
     {
       "relation": "references",
@@ -63737,9 +65029,9 @@
       "source_location": "L6",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_other_makeplatformhandwritingrecognizer",
-      "target": "features_src_handwriting_other_cpp_unique_ptr",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_other_cpp_unique_ptr"
     },
     {
       "relation": "references",
@@ -63748,9 +65040,9 @@
       "source_location": "L222",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_makeplatformhandwritingrecognizer",
-      "target": "features_src_handwriting_other_cpp_handwritingrecognizer",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_other_cpp_handwritingrecognizer"
     },
     {
       "relation": "inherits",
@@ -63758,9 +65050,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L157",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer",
-      "target": "features_src_handwriting_other_cpp_handwritingrecognizer",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_other_cpp_handwritingrecognizer"
     },
     {
       "relation": "inherits",
@@ -63768,9 +65060,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L56",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer",
-      "target": "features_src_handwriting_other_cpp_handwritingrecognizer",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_other_cpp_handwritingrecognizer"
     },
     {
       "relation": "imports",
@@ -63779,9 +65071,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "features_src_handwriting_win_cpp_vector",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_vector"
     },
     {
       "relation": "contains",
@@ -63789,9 +65081,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L124",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_addstroke",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_addstroke"
     },
     {
       "relation": "contains",
@@ -63799,9 +65091,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L146",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_alternatetext",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_alternatetext"
     },
     {
       "relation": "contains",
@@ -63809,9 +65101,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L259",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_enterrecognitionapartment",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_enterrecognitionapartment"
     },
     {
       "relation": "contains",
@@ -63819,9 +65111,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_frombstr",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_frombstr"
     },
     {
       "relation": "contains",
@@ -63829,9 +65121,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L117",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_hasfrench",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_hasfrench"
     },
     {
       "relation": "contains",
@@ -63839,9 +65131,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L79",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_languagesof",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_languagesof"
     },
     {
       "relation": "contains",
@@ -63849,9 +65141,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L266",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_leaverecognitionapartment",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_leaverecognitionapartment"
     },
     {
       "relation": "contains",
@@ -63859,9 +65151,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L222",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_makeplatformhandwritingrecognizer",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_makeplatformhandwritingrecognizer"
     },
     {
       "relation": "contains",
@@ -63869,9 +65161,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L41",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_ownedbstr",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedbstr"
     },
     {
       "relation": "contains",
@@ -63879,9 +65171,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L57",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_ownedvariant",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedvariant"
     },
     {
       "relation": "contains",
@@ -63889,9 +65181,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L72",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_tohimetric",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_tohimetric"
     },
     {
       "relation": "contains",
@@ -63899,9 +65191,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L157",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win",
-      "target": "src_handwriting_win_windowsinkrecognizer",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_windowsinkrecognizer"
     },
     {
       "relation": "calls",
@@ -63910,9 +65202,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L154",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_alternatetext",
-      "target": "src_handwriting_win_frombstr",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_frombstr"
     },
     {
       "relation": "references",
@@ -63921,9 +65213,9 @@
       "source_location": "L35",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_frombstr",
-      "target": "bstr",
-      "confidence_score": 1.0
+      "target": "bstr"
     },
     {
       "relation": "references",
@@ -63932,9 +65224,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_frombstr",
-      "target": "features_src_handwriting_win_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_qstring"
     },
     {
       "relation": "calls",
@@ -63943,9 +65235,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L50",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedbstr_text",
-      "target": "src_handwriting_win_frombstr",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_frombstr"
     },
     {
       "relation": "references",
@@ -63954,9 +65246,9 @@
       "source_location": "L146",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_alternatetext",
-      "target": "features_src_handwriting_win_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_qstring"
     },
     {
       "relation": "references",
@@ -63965,9 +65257,9 @@
       "source_location": "L50",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedbstr_text",
-      "target": "features_src_handwriting_win_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_qstring"
     },
     {
       "relation": "references",
@@ -63976,9 +65268,9 @@
       "source_location": "L217",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer",
-      "target": "features_src_handwriting_win_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_qstring"
     },
     {
       "relation": "references",
@@ -63987,9 +65279,9 @@
       "source_location": "L165",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer_status",
-      "target": "features_src_handwriting_win_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_qstring"
     },
     {
       "relation": "references",
@@ -63998,9 +65290,9 @@
       "source_location": "L160",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer_windowsinkrecognizer",
-      "target": "features_src_handwriting_win_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_qstring"
     },
     {
       "relation": "references",
@@ -64009,9 +65301,9 @@
       "source_location": "L53",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedbstr",
-      "target": "bstr",
-      "confidence_score": 1.0
+      "target": "bstr"
     },
     {
       "relation": "references",
@@ -64020,9 +65312,9 @@
       "source_location": "L49",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedbstr_out",
-      "target": "bstr",
-      "confidence_score": 1.0
+      "target": "bstr"
     },
     {
       "relation": "defines",
@@ -64031,9 +65323,9 @@
       "source_location": "L53",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedbstr",
-      "target": "src_handwriting_win_ownedbstr_m_text",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedbstr_m_text"
     },
     {
       "relation": "method",
@@ -64041,9 +65333,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L49",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedbstr",
-      "target": "src_handwriting_win_ownedbstr_out",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedbstr_out"
     },
     {
       "relation": "references",
@@ -64052,9 +65344,9 @@
       "source_location": "L46",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedbstr_ownedbstr",
-      "target": "src_handwriting_win_ownedbstr",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedbstr"
     },
     {
       "relation": "method",
@@ -64062,9 +65354,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L50",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedbstr",
-      "target": "src_handwriting_win_ownedbstr_text",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedbstr_text"
     },
     {
       "relation": "calls",
@@ -64073,9 +65365,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L253",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_makeplatformhandwritingrecognizer",
-      "target": "src_handwriting_win_ownedbstr_text",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedbstr_text"
     },
     {
       "relation": "calls",
@@ -64084,9 +65376,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L201",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer_recognize",
-      "target": "src_handwriting_win_ownedbstr_text",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedbstr_text"
     },
     {
       "relation": "references",
@@ -64095,9 +65387,9 @@
       "source_location": "L69",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedvariant",
-      "target": "features_src_handwriting_win_cpp_variant",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_variant"
     },
     {
       "relation": "defines",
@@ -64106,9 +65398,9 @@
       "source_location": "L69",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedvariant",
-      "target": "src_handwriting_win_ownedvariant_m_value",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedvariant_m_value"
     },
     {
       "relation": "method",
@@ -64116,9 +65408,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L65",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedvariant",
-      "target": "src_handwriting_win_ownedvariant_out",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedvariant_out"
     },
     {
       "relation": "references",
@@ -64127,9 +65419,9 @@
       "source_location": "L62",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedvariant_ownedvariant",
-      "target": "src_handwriting_win_ownedvariant",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedvariant"
     },
     {
       "relation": "calls",
@@ -64138,9 +65430,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L130",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_addstroke",
-      "target": "src_handwriting_win_ownedvariant_out",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedvariant_out"
     },
     {
       "relation": "calls",
@@ -64149,9 +65441,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L151",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_alternatetext",
-      "target": "src_handwriting_win_ownedvariant_out",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedvariant_out"
     },
     {
       "relation": "calls",
@@ -64160,9 +65452,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L83",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_languagesof",
-      "target": "src_handwriting_win_ownedvariant_out",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedvariant_out"
     },
     {
       "relation": "calls",
@@ -64171,9 +65463,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L252",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_makeplatformhandwritingrecognizer",
-      "target": "src_handwriting_win_ownedvariant_out",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedvariant_out"
     },
     {
       "relation": "references",
@@ -64182,9 +65474,9 @@
       "source_location": "L65",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_ownedvariant_out",
-      "target": "features_src_handwriting_win_cpp_variant",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_variant"
     },
     {
       "relation": "calls",
@@ -64193,9 +65485,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L200",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer_recognize",
-      "target": "src_handwriting_win_ownedvariant_out",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_ownedvariant_out"
     },
     {
       "relation": "calls",
@@ -64204,9 +65496,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L136",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_addstroke",
-      "target": "src_handwriting_win_tohimetric",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_tohimetric"
     },
     {
       "relation": "references",
@@ -64215,9 +65507,9 @@
       "source_location": "L72",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_tohimetric",
-      "target": "long",
-      "confidence_score": 1.0
+      "target": "long"
     },
     {
       "relation": "references",
@@ -64226,9 +65518,9 @@
       "source_location": "L79",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_languagesof",
-      "target": "features_src_handwriting_win_cpp_vector",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_vector"
     },
     {
       "relation": "references",
@@ -64237,9 +65529,9 @@
       "source_location": "L79",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_languagesof",
-      "target": "iinkrecognizer",
-      "confidence_score": 1.0
+      "target": "iinkrecognizer"
     },
     {
       "relation": "references",
@@ -64248,9 +65540,9 @@
       "source_location": "L79",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_languagesof",
-      "target": "langid",
-      "confidence_score": 1.0
+      "target": "langid"
     },
     {
       "relation": "calls",
@@ -64259,9 +65551,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L238",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_makeplatformhandwritingrecognizer",
-      "target": "src_handwriting_win_languagesof",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_languagesof"
     },
     {
       "relation": "references",
@@ -64270,9 +65562,9 @@
       "source_location": "L124",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_addstroke",
-      "target": "features_src_handwriting_win_cpp_vector",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_vector"
     },
     {
       "relation": "references",
@@ -64281,9 +65573,9 @@
       "source_location": "L117",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_hasfrench",
-      "target": "features_src_handwriting_win_cpp_vector",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_vector"
     },
     {
       "relation": "references",
@@ -64292,9 +65584,9 @@
       "source_location": "L117",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_hasfrench",
-      "target": "langid",
-      "confidence_score": 1.0
+      "target": "langid"
     },
     {
       "relation": "references",
@@ -64303,9 +65595,9 @@
       "source_location": "L216",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer",
-      "target": "iinkrecognizer",
-      "confidence_score": 1.0
+      "target": "iinkrecognizer"
     },
     {
       "relation": "references",
@@ -64314,9 +65606,9 @@
       "source_location": "L160",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer_windowsinkrecognizer",
-      "target": "iinkrecognizer",
-      "confidence_score": 1.0
+      "target": "iinkrecognizer"
     },
     {
       "relation": "calls",
@@ -64325,9 +65617,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L241",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_makeplatformhandwritingrecognizer",
-      "target": "src_handwriting_win_hasfrench",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_hasfrench"
     },
     {
       "relation": "references",
@@ -64336,9 +65628,9 @@
       "source_location": "L124",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_addstroke",
-      "target": "features_src_handwriting_win_cpp_qpointf",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_qpointf"
     },
     {
       "relation": "references",
@@ -64347,9 +65639,9 @@
       "source_location": "L124",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_addstroke",
-      "target": "iinkdisp",
-      "confidence_score": 1.0
+      "target": "iinkdisp"
     },
     {
       "relation": "calls",
@@ -64358,9 +65650,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L177",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer_recognize",
-      "target": "src_handwriting_win_addstroke",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_addstroke"
     },
     {
       "relation": "references",
@@ -64369,9 +65661,9 @@
       "source_location": "L146",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_alternatetext",
-      "target": "iinkrecognitionalternate",
-      "confidence_score": 1.0
+      "target": "iinkrecognitionalternate"
     },
     {
       "relation": "calls",
@@ -64380,9 +65672,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L210",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer_recognize",
-      "target": "src_handwriting_win_alternatetext",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_alternatetext"
     },
     {
       "relation": "references",
@@ -64391,9 +65683,9 @@
       "source_location": "L216",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer",
-      "target": "features_src_handwriting_win_cpp_comptr",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_comptr"
     },
     {
       "relation": "method",
@@ -64401,9 +65693,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L164",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer",
-      "target": "src_handwriting_win_windowsinkrecognizer_available",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_windowsinkrecognizer_available"
     },
     {
       "relation": "defines",
@@ -64412,9 +65704,9 @@
       "source_location": "L216",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer",
-      "target": "src_handwriting_win_windowsinkrecognizer_m_engine",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_windowsinkrecognizer_m_engine"
     },
     {
       "relation": "defines",
@@ -64423,9 +65715,9 @@
       "source_location": "L217",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer",
-      "target": "src_handwriting_win_windowsinkrecognizer_m_name",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_windowsinkrecognizer_m_name"
     },
     {
       "relation": "method",
@@ -64433,9 +65725,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L167",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer",
-      "target": "src_handwriting_win_windowsinkrecognizer_recognize",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_windowsinkrecognizer_recognize"
     },
     {
       "relation": "method",
@@ -64443,9 +65735,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L165",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer",
-      "target": "src_handwriting_win_windowsinkrecognizer_status",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_windowsinkrecognizer_status"
     },
     {
       "relation": "method",
@@ -64453,9 +65745,9 @@
       "source_file": "features/src/handwriting_win.cpp",
       "source_location": "L160",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer",
-      "target": "src_handwriting_win_windowsinkrecognizer_windowsinkrecognizer",
-      "confidence_score": 1.0
+      "target": "src_handwriting_win_windowsinkrecognizer_windowsinkrecognizer"
     },
     {
       "relation": "references",
@@ -64464,9 +65756,9 @@
       "source_location": "L160",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer_windowsinkrecognizer",
-      "target": "features_src_handwriting_win_cpp_comptr",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_comptr"
     },
     {
       "relation": "references",
@@ -64475,9 +65767,9 @@
       "source_location": "L167",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer_recognize",
-      "target": "features_src_handwriting_win_cpp_inkstrokes",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_inkstrokes"
     },
     {
       "relation": "references",
@@ -64486,9 +65778,9 @@
       "source_location": "L167",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_windowsinkrecognizer_recognize",
-      "target": "features_src_handwriting_win_cpp_qstringlist",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_qstringlist"
     },
     {
       "relation": "references",
@@ -64497,9 +65789,9 @@
       "source_location": "L222",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_handwriting_win_makeplatformhandwritingrecognizer",
-      "target": "features_src_handwriting_win_cpp_unique_ptr",
-      "confidence_score": 1.0
+      "target": "features_src_handwriting_win_cpp_unique_ptr"
     },
     {
       "relation": "contains",
@@ -78078,9 +79370,9 @@
       "source_location": "L708",
       "weight": 1.0,
       "context": "parameter_type",
-      "confidence_score": 1.0,
       "source": "src_nativejson_hexdigit",
-      "target": "qchar"
+      "target": "formats_src_nativejson_cpp_qchar",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -84211,9 +85503,9 @@
       "source_file": "render/src/imagestore.cpp",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_render_src_imagestore_cpp",
-      "target": "qthread",
-      "confidence_score": 1.0
+      "target": "qthread"
     },
     {
       "relation": "contains",
@@ -96188,9 +97480,9 @@
       "source_file": "tests/tst_bench_uiscenario.cpp",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l10_t4_tests_tst_bench_uiscenario_cpp",
-      "target": "qthread",
-      "confidence_score": 1.0
+      "target": "qthread"
     },
     {
       "relation": "imports",
@@ -100488,6 +101780,86 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "tests_tst_features_calculator_tstfeaturescalculator",
+      "target": "tests_tst_features_calculator_tstfeaturescalculator_clearentrykeepsthecalculation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "tests_tst_features_calculator_tstfeaturescalculator",
+      "target": "tests_tst_features_calculator_tstfeaturescalculator_decimalcomma",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "tests_tst_features_calculator_tstfeaturescalculator",
+      "target": "tests_tst_features_calculator_tstfeaturescalculator_divisionbyzeroisanerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "tests_tst_features_calculator_tstfeaturescalculator",
+      "target": "tests_tst_features_calculator_tstfeaturescalculator_expressionshownabovetheresult",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "tests_tst_features_calculator_tstfeaturescalculator",
+      "target": "tests_tst_features_calculator_tstfeaturescalculator_memorykeys",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L83",
+      "weight": 1.0,
+      "source": "tests_tst_features_calculator_tstfeaturescalculator",
+      "target": "tests_tst_features_calculator_tstfeaturescalculator_pagetexthasthecalculationanditsresult",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "tests_tst_features_calculator_tstfeaturescalculator",
+      "target": "tests_tst_features_calculator_tstfeaturescalculator_percentandsign",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_calculator.cpp",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "tests_tst_features_calculator_tstfeaturescalculator",
+      "target": "tests_tst_features_calculator_tstfeaturescalculator_percentofasum",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_calculator.cpp",
       "source_location": "L6",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -100550,11 +101922,61 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "tests_tst_features_countdown_tstfeaturescountdown",
+      "target": "tests_tst_features_countdown_tstfeaturescountdown_formathmsroundtrip",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "tests_tst_features_countdown_tstfeaturescountdown",
+      "target": "tests_tst_features_countdown_tstfeaturescountdown_latepollfiresonce",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "tests_tst_features_countdown_tstfeaturescountdown",
+      "target": "tests_tst_features_countdown_tstfeaturescountdown_pausefreezes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_countdown.cpp",
       "source_location": "L6",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "tests_tst_features_countdown_tstfeaturescountdown",
       "target": "tests_tst_features_countdown_tstfeaturescountdown_private"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "tests_tst_features_countdown_tstfeaturescountdown",
+      "target": "tests_tst_features_countdown_tstfeaturescountdown_repeatrestarts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_countdown.cpp",
+      "source_location": "L45",
+      "weight": 1.0,
+      "source": "tests_tst_features_countdown_tstfeaturescountdown",
+      "target": "tests_tst_features_countdown_tstfeaturescountdown_stopwatchcountsup",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -100723,11 +102145,51 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "tests/tst_features_dice.cpp",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "tests_tst_features_dice_tstfeaturesdice",
+      "target": "tests_tst_features_dice_tstfeaturesdice_countclampedto1to5",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_dice.cpp",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "tests_tst_features_dice_tstfeaturesdice",
+      "target": "tests_tst_features_dice_tstfeaturesdice_defaultisonedie",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_dice.cpp",
       "source_location": "L6",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "tests_tst_features_dice_tstfeaturesdice",
       "target": "tests_tst_features_dice_tstfeaturesdice_private"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_dice.cpp",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "tests_tst_features_dice_tstfeaturesdice",
+      "target": "tests_tst_features_dice_tstfeaturesdice_speedclampedto3to11",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/tst_features_dice.cpp",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "tests_tst_features_dice_tstfeaturesdice",
+      "target": "tests_tst_features_dice_tstfeaturesdice_totalisthesum",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -100747,9 +102209,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting",
-      "target": "condition_variable",
-      "confidence_score": 1.0
+      "target": "condition_variable"
     },
     {
       "relation": "imports",
@@ -100758,9 +102220,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting",
-      "target": "tests_tst_features_handwriting_cpp_mutex",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_cpp_mutex"
     },
     {
       "relation": "imports",
@@ -100769,9 +102231,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting",
-      "target": "tests_tst_features_handwriting_cpp_vector",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_cpp_vector"
     },
     {
       "relation": "contains",
@@ -100779,9 +102241,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L32",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting",
-      "target": "tests_tst_features_handwriting_currentthreadissta",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_currentthreadissta"
     },
     {
       "relation": "contains",
@@ -100789,9 +102251,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L56",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting",
-      "target": "tests_tst_features_handwriting_fakerecognizer",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer"
     },
     {
       "relation": "contains",
@@ -100799,9 +102261,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L42",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting",
-      "target": "tests_tst_features_handwriting_threadlog",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_threadlog"
     },
     {
       "relation": "contains",
@@ -100820,9 +102282,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L69",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer_fakerecognizer",
-      "target": "tests_tst_features_handwriting_currentthreadissta",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_currentthreadissta"
     },
     {
       "relation": "calls",
@@ -100831,9 +102293,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L100",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer_notecall",
-      "target": "tests_tst_features_handwriting_currentthreadissta",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_currentthreadissta"
     },
     {
       "relation": "references",
@@ -100842,9 +102304,9 @@
       "source_location": "L107",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer",
-      "target": "tests_tst_features_handwriting_threadlog",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_threadlog"
     },
     {
       "relation": "references",
@@ -100853,9 +102315,9 @@
       "source_location": "L59",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer_fakerecognizer",
-      "target": "tests_tst_features_handwriting_threadlog",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_threadlog"
     },
     {
       "relation": "references",
@@ -100864,9 +102326,9 @@
       "source_location": "L45",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "condition_variable",
-      "confidence_score": 1.0
+      "target": "condition_variable"
     },
     {
       "relation": "references",
@@ -100875,9 +102337,9 @@
       "source_location": "L46",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "qthread",
-      "confidence_score": 1.0
+      "target": "qthread"
     },
     {
       "relation": "references",
@@ -100886,9 +102348,9 @@
       "source_location": "L44",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "tests_tst_features_handwriting_cpp_mutex",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_cpp_mutex"
     },
     {
       "relation": "references",
@@ -100897,9 +102359,9 @@
       "source_location": "L47",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "tests_tst_features_handwriting_cpp_size_t",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_cpp_size_t"
     },
     {
       "relation": "references",
@@ -100908,9 +102370,9 @@
       "source_location": "L46",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "tests_tst_features_handwriting_cpp_vector",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_cpp_vector"
     },
     {
       "relation": "defines",
@@ -100919,9 +102381,9 @@
       "source_location": "L49",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "tests_tst_features_handwriting_threadlog_destroyedoncreationthread",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_threadlog_destroyedoncreationthread"
     },
     {
       "relation": "defines",
@@ -100930,9 +102392,9 @@
       "source_location": "L51",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "tests_tst_features_handwriting_threadlog_gateopen",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_threadlog_gateopen"
     },
     {
       "relation": "defines",
@@ -100941,9 +102403,9 @@
       "source_location": "L45",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "tests_tst_features_handwriting_threadlog_gateopened",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_threadlog_gateopened"
     },
     {
       "relation": "defines",
@@ -100952,9 +102414,9 @@
       "source_location": "L52",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "tests_tst_features_handwriting_threadlog_gatetimedout",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_threadlog_gatetimedout"
     },
     {
       "relation": "defines",
@@ -100963,9 +102425,9 @@
       "source_location": "L44",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "tests_tst_features_handwriting_threadlog_mutex",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_threadlog_mutex"
     },
     {
       "relation": "defines",
@@ -100974,9 +102436,9 @@
       "source_location": "L47",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "tests_tst_features_handwriting_threadlog_stacalls",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_threadlog_stacalls"
     },
     {
       "relation": "defines",
@@ -100985,9 +102447,9 @@
       "source_location": "L48",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "tests_tst_features_handwriting_threadlog_stawhendestroyed",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_threadlog_stawhendestroyed"
     },
     {
       "relation": "defines",
@@ -100996,9 +102458,9 @@
       "source_location": "L46",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_threadlog",
-      "target": "tests_tst_features_handwriting_threadlog_threads",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_threadlog_threads"
     },
     {
       "relation": "imports",
@@ -101007,9 +102469,9 @@
       "source_file": "tests/tst_render_images.cpp",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_render_images_cpp",
-      "target": "qthread",
-      "confidence_score": 1.0
+      "target": "qthread"
     },
     {
       "relation": "imports",
@@ -101018,9 +102480,9 @@
       "source_file": "tests/tst_render_painter.cpp",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_render_painter_cpp",
-      "target": "qthread",
-      "confidence_score": 1.0
+      "target": "qthread"
     },
     {
       "relation": "imports",
@@ -101029,9 +102491,9 @@
       "source_file": "tests/tst_ui_files.cpp",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_ui_files_cpp",
-      "target": "qthread",
-      "confidence_score": 1.0
+      "target": "qthread"
     },
     {
       "relation": "imports",
@@ -101040,9 +102502,9 @@
       "source_file": "ui/src/documentio.cpp",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_ui_src_documentio_cpp",
-      "target": "qthread",
-      "confidence_score": 1.0
+      "target": "qthread"
     },
     {
       "relation": "references",
@@ -101051,9 +102513,9 @@
       "source_location": "L109",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer",
-      "target": "qthread",
-      "confidence_score": 1.0
+      "target": "qthread"
     },
     {
       "relation": "references",
@@ -101062,9 +102524,9 @@
       "source_location": "L107",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer",
-      "target": "tests_tst_features_handwriting_cpp_shared_ptr",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_cpp_shared_ptr"
     },
     {
       "relation": "method",
@@ -101072,9 +102534,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L80",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer",
-      "target": "tests_tst_features_handwriting_fakerecognizer_available",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_available"
     },
     {
       "relation": "references",
@@ -101083,9 +102545,9 @@
       "source_location": "L77",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer_fakerecognizer",
-      "target": "tests_tst_features_handwriting_fakerecognizer",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer"
     },
     {
       "relation": "defines",
@@ -101094,9 +102556,9 @@
       "source_location": "L108",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer",
-      "target": "tests_tst_features_handwriting_fakerecognizer_m_available",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_m_available"
     },
     {
       "relation": "defines",
@@ -101105,9 +102567,9 @@
       "source_location": "L109",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer",
-      "target": "tests_tst_features_handwriting_fakerecognizer_m_createdon",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_m_createdon"
     },
     {
       "relation": "defines",
@@ -101116,9 +102578,9 @@
       "source_location": "L107",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer",
-      "target": "tests_tst_features_handwriting_fakerecognizer_m_log",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_m_log"
     },
     {
       "relation": "method",
@@ -101126,9 +102588,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L95",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer",
-      "target": "tests_tst_features_handwriting_fakerecognizer_notecall",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_notecall"
     },
     {
       "relation": "method",
@@ -101136,9 +102598,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L85",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer",
-      "target": "tests_tst_features_handwriting_fakerecognizer_recognize",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_recognize"
     },
     {
       "relation": "method",
@@ -101146,9 +102608,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L81",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer",
-      "target": "tests_tst_features_handwriting_fakerecognizer_status",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_status"
     },
     {
       "relation": "references",
@@ -101157,9 +102619,9 @@
       "source_location": "L59",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer_fakerecognizer",
-      "target": "tests_tst_features_handwriting_cpp_shared_ptr",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_cpp_shared_ptr"
     },
     {
       "relation": "calls",
@@ -101168,9 +102630,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L62",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer_fakerecognizer",
-      "target": "tests_tst_features_handwriting_fakerecognizer_notecall",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_notecall"
     },
     {
       "relation": "calls",
@@ -101179,9 +102641,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L124",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_tstfeatureshandwriting_private",
-      "target": "tests_tst_features_handwriting_fakerecognizer_available",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_available"
     },
     {
       "relation": "references",
@@ -101190,9 +102652,9 @@
       "source_location": "L81",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer_status",
-      "target": "tests_tst_features_handwriting_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_cpp_qstring"
     },
     {
       "relation": "calls",
@@ -101201,9 +102663,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L125",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_tstfeatureshandwriting_private",
-      "target": "tests_tst_features_handwriting_fakerecognizer_status",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_status"
     },
     {
       "relation": "references",
@@ -101212,9 +102674,9 @@
       "source_location": "L85",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer_recognize",
-      "target": "tests_tst_features_handwriting_cpp_inkstrokes",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_cpp_inkstrokes"
     },
     {
       "relation": "references",
@@ -101223,9 +102685,9 @@
       "source_location": "L85",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer_recognize",
-      "target": "tests_tst_features_handwriting_cpp_qstringlist",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_cpp_qstringlist"
     },
     {
       "relation": "calls",
@@ -101234,9 +102696,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L87",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_fakerecognizer_recognize",
-      "target": "tests_tst_features_handwriting_fakerecognizer_notecall",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_notecall"
     },
     {
       "relation": "calls",
@@ -101245,9 +102707,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L142",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_tstfeatureshandwriting_recognitionrunsononededicatedthread",
-      "target": "tests_tst_features_handwriting_fakerecognizer_recognize",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_recognize"
     },
     {
       "relation": "calls",
@@ -101256,9 +102718,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L175",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_tstfeatureshandwriting_recognitionthreadissinglethreadedapartment",
-      "target": "tests_tst_features_handwriting_fakerecognizer_recognize",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_recognize"
     },
     {
       "relation": "calls",
@@ -101267,9 +102729,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L214",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_tstfeatureshandwriting_recognizessyntheticink",
-      "target": "tests_tst_features_handwriting_fakerecognizer_recognize",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_fakerecognizer_recognize"
     },
     {
       "relation": "method",
@@ -101287,9 +102749,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L130",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_tstfeatureshandwriting",
-      "target": "tests_tst_features_handwriting_tstfeatureshandwriting_recognitionrunsononededicatedthread",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_tstfeatureshandwriting_recognitionrunsononededicatedthread"
     },
     {
       "relation": "method",
@@ -101297,9 +102759,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L166",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_tstfeatureshandwriting",
-      "target": "tests_tst_features_handwriting_tstfeatureshandwriting_recognitionthreadissinglethreadedapartment",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_tstfeatureshandwriting_recognitionthreadissinglethreadedapartment"
     },
     {
       "relation": "method",
@@ -101307,9 +102769,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L203",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_tstfeatureshandwriting",
-      "target": "tests_tst_features_handwriting_tstfeatureshandwriting_recognizessyntheticink",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_tstfeatureshandwriting_recognizessyntheticink"
     },
     {
       "relation": "method",
@@ -101317,9 +102779,9 @@
       "source_file": "tests/tst_features_handwriting.cpp",
       "source_location": "L191",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_features_handwriting_tstfeatureshandwriting",
-      "target": "tests_tst_features_handwriting_tstfeatureshandwriting_unavailablereplycarriestheexplanation",
-      "confidence_score": 1.0
+      "target": "tests_tst_features_handwriting_tstfeatureshandwriting_unavailablereplycarriestheexplanation"
     },
     {
       "relation": "references",
@@ -138291,5 +139753,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "310c81224fce1598cdf92d934f69caa9518672f7"
+  "built_at_commit": "092c21343e09a77c1fa4d5b5eb0f5bd583cc03c3"
 }
