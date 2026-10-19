@@ -1,6 +1,15 @@
 {
   "format": "actcraft-scenario/1",
   "name": "regle",
-  "description": "Talon L7-S8 : rempli par L7-T9 (S10).",
-  "steps": [ {"waitReady": true} ]
+  "description": "Règle (F-280, S10) : ouverte au centre de la page (bord haut à y = 344), un trait au stylet posé à 4 pixels du bord puis tiré vers le milieu de la règle reste collé au bord ; la règle n'est pas au document.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "math.ruler"},
+    {"expect": "mathTools.count", "value": 1},
+    {"stroke": [[300, 348], [400, 384], [700, 384]]},
+    {"waitReady": true},
+    {"checkPixel": "trait-sur-le-bord", "at": [500, 342.5], "color": "#000000"},
+    {"checkPixel": "milieu-de-la-regle-sans-encre", "at": [420, 384], "color": "#ffffff"},
+    {"capture": "regle-trait"}
+  ]
 }
