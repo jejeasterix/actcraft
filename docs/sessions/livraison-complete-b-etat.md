@@ -85,8 +85,9 @@ ouvertes : — · passées : —
 
 ## Pièges trouvés
 - Qt (à porter au coffre, 04_Pieges) : une propriété par défaut déclarée dans un fichier QML ne sert qu'aux objets écrits là où le type est utilisé (ici `Main.qml`) ; dans le fichier lui-même, assigner par nom (`data: [ … ]`). Erreur vue : `Cannot assign to non-existent default property` (L7-S8).
-- CI Clang à surveiller : `-Wunused-private-field` possible sur `m_controller` du talon `ui/src/presentationdocument.cpp` jusqu'à L7-T2.
-- Consignes communes de la phase 2 : scratchpad `consignes-T.md` (verrou B, tests instables sous charge à relancer seuls : `tst_captures_aller_retour_natif`, `tst_ui_files`, `tst_pageview`, `tst_bench_verdict`).
+- CI Clang : `-Wunused-private-field` sur `m_controller` du talon `ui/src/presentationdocument.cpp` levé par L7-T2 (mergée).
+- Qt/CMake (à porter au coffre, 04_Pieges) : un en-tête `QML_ELEMENT` créé après un premier build n'est pas vu par AUTOMOC (`CurtainController is not a type`) ; remède : supprimer `build/debug/ui/actcraft_ui_autogen/timestamp` (L7-T3). QML : `Item.mapFromScene` absent, utiliser `mapFromItem(null, p)` (L7-T3).
+- Consignes communes de la phase 2 : scratchpad `consignes-T.md` (verrou B, tests instables sous charge à relancer seuls : `tst_captures_aller_retour_natif`, `tst_ui_files`, `tst_pageview`, `tst_bench_verdict`, `tst_bench_result`).
 - Places de tests : 2e place accordée par Pilote le 2026-10-18 vers 22h (Jérôme lui a laissé la manœuvre) ; A reste prioritaire, retour à une place dès qu'A en a besoin.
 - Parallélisme (demande de rythme de Pilote, consigne de Jérôme dans la tâche planifiée) : 4 agents écrivent en parallèle, les constructions passent une à une par le jeton ; consignes communes : scratchpad `consignes-P.md` (temps 1 sans P0, temps 2 après merge de P0).
 - Jeton `tests` : exige 3,5 Go de RAM libre ; la machine tourne autour de 2-3 Go pendant les suites de A, attente longue (une attente expirée, code 3).
