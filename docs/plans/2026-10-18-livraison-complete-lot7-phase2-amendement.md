@@ -228,12 +228,15 @@ vague suivante ne part pas ; l'écart est rendu à la tâche fautive.
       l'observateur. **Jamais** déduire un remplacement de `documentChanged` : il part après **chaque**
       modification, trait compris (`ui/src/documentcontroller.cpp:311-316`, `notifyState` ; `:202-206`,
       `commitStroke` → `executeAs`) — revue contre le socle, tour 1, B1. Décision de l'orchestrateur : **L7-T2 ajoute à
-      `DocumentController` un signal dédié `documentReplaced()`**, émis seulement par `replaceDocument`,
-      `loadGeneratedFirstPage` et `loadGeneratedPages`. Les contrôleurs qui relisent leur état au chargement
+      `DocumentController` un signal dédié `documentReplaced()`**, émis à la fin de `replaceDocument` et de
+      `loadGeneratedFirstPage` ; `loadGeneratedPages`, `newDocument` et le retour réussi d'`openUrl` passent par
+      `replaceDocument` (`documentcontroller.cpp:453`, `:363`, `:578`) et le reçoivent sans autre ligne. Les contrôleurs qui relisent leur état au chargement
       (outils de page L7-T6, origine L7-T13, session de reconnaissance L7-T21) écoutent `documentReplaced`, et
       chacun a son test « un trait ne remet rien à zéro ». **Fichier du socle** : `documentcontroller.*` (interdit
-      à B, décision 7) reçoit cet **ajout seulement** — une déclaration de signal et trois `emit`, aucune ligne
-      existante modifiée ; l'orchestrateur le signale à A avant L7-T2 (le lot 3 peut toucher `documentcontroller.*` :
+      à B, décision 7) reçoit cet **ajout seulement** — une déclaration de signal et deux `emit`, aucune ligne
+      existante modifiée ; **accord de A donné**, ajouts gardés dans L7-T2, avec ses règles : chaque
+      `emit documentReplaced();` sur sa propre ligne à la fin de sa fonction, sans réindenter ni déplacer de code
+      voisin ; le signal déclaré à la fin du bloc `signals:` de `documentcontroller.h` ; l'orchestrateur le signale à A avant L7-T2 (le lot 3 peut toucher `documentcontroller.*` :
       conflit d'ajout possible à la fusion L7-T33).
     - **Racine `QtObject`** de `Presentation.qml` : décision 3.
     - **Démontage** : tout QML neuf protège ses accès à `commands` (et à `documentController`, `tools`, `pageArea`),
@@ -276,7 +279,7 @@ vague suivante ne part pas ; l'écart est rendu à la tâche fautive.
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L7-S8 | Squelette du lot 7 (ancienne L0-S8) : `Presentation.qml` et 17 racines, 10 QML talons, `ui/presentation.cmake` aux noms figés, `DocumentInsertions` (en-tête figé, corps talon), aides de test, 29 tests et 9 scénarios talons | fusion du socle dans `feat/livraison-complete-b` ; L7-P0 à L7-P9 toutes mergées | `ui/qml/Presentation.qml`, `ui/presentation.cmake`, `tests/presentation.cmake`, `ui/src/presentationdocument.h`, `ui/src/presentationdocument.cpp`, `ui/qml/{CurtainOverlay,SpotlightOverlay,PageZoomOverlay,PerPageTools,TransitionLayer,PageEffectsPicker,MathToolsLayer,DicePanel,CalculatorPanel,ClockPanel,TickerOverlay,RecognitionAlternatives,EquationEditor,CameraOverlay,ScreenKeyboard,DesktopAnnotation,OtherToolsHost}.qml`, `ui/qml/{FloatingPanel,RulerTool,SetSquareTool,ProtractorTool,CompassTool,OriginMarker,CountdownDialog,TickerDialog,CameraPalette,DesktopToolsWheel}.qml`, `tests/support/presentationharness.h`, `tests/support/lot7registry.h`, `tests/tst_ui_lot7_main.cpp`, `tests/tst_ui_{presentation,curtain,spotlight,pagezoom,pagetools,transitions,mathtools,dice,calculator,clock,othertools,ticker,recognition,equation,camera,keyboard,desktop}.cpp`, `tests/tst_core_equation.cpp`, `tests/tst_render_equation.cpp`, `tests/tst_features_equationeditor.cpp`, `bench/scenarios/{rideau,spot,effets,regle,compte-a-rebours,message,reconnaissance-forme,equation,presentation}.json` | isolé | concepteur-critique | `TESTS OK`, **N = N_F + 29**, les 29 tests neufs Passed ; 20 lignes `SKIP   : …reserved() Talon L7-S8 : rempli par L7-T<n>.` (16 classes de `tst_ui_lot7` hors `presentation`, 3 de logique, et le `reserved()` de `tst_ui_presentation`, pour L7-T2) ; `tst_ui_presentation` : PASS de `lot7RootsExist` ; 9 `tst_captures_*` Passed (`waitReady`) ; `premiers-pas` hors écran `CAPTURES OK` (`LU pageIndicator.text=1 / 2 OK`) ; `NOMS OK` après `git add` et après le commit | S10, S22, S23, S24 (support) | #tache-l7-s8 |
 | L7-T1 | Objet MathML des `.flipchart` lu en équation (reste de L7-T1) | L7-S8 | `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/support/flipchartwriter.h`, `tests/tst_formats_flipchart.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_formats_flipchart` Passed, PASS de `mathmlObjectBecomesEquation` | S24 | #tache-l7-t1 |
-| L7-T2 | Insertions du lot (`DocumentInsertions`), panneau flottant couverture, observateur des traits, signal `documentReplaced`, retrait de ressource à l'annulation | L7-S8 | `ui/src/presentationdocument.cpp`, `ui/qml/FloatingPanel.qml`, `tests/tst_ui_presentation.cpp`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp` (ajout seulement : signal `documentReplaced`), `core/include/actcraft/core/document.h`, `core/src/document.cpp` (ajout seulement : `removeResource`) | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_presentation` 0 skipped, PASS de `insertTextIsUndoneAtOnce`, `insertObjectOnNewPageIsUndoneAtOnce`, `replaceObjectsIsUndoneAtOnce`, `setPagePresentationIsUndoneAtOnce`, `insertImageIsUndoneAtOnce`, `changeObserverSeesEveryStroke`, `loadEmitsDocumentReplaced`, `strokeDoesNotEmitDocumentReplaced`, `insertReadsIdsOnlyWhenApplied`, `floatingPanelIsACover(stylet)`, `(doigt)`, `(souris)`, `coveredStylusLeavesFingersFree` ; banc hors écran joint | S10 | #tache-l7-t2 |
+| L7-T2 | Insertions du lot (`DocumentInsertions`), panneau flottant couverture, observateur des traits, signal `documentReplaced`, retrait de ressource à l'annulation | L7-S8 | `ui/src/presentationdocument.cpp`, `ui/qml/FloatingPanel.qml`, `tests/tst_ui_presentation.cpp`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp` (ajout seulement : signal `documentReplaced`), `core/include/actcraft/core/document.h`, `core/src/document.cpp` (ajout seulement : `removeResource`) | isolé | concepteur-critique | `TESTS OK`, N = N_F + 29, `tst_ui_presentation` 0 skipped, PASS de `insertTextIsUndoneAtOnce`, `insertObjectOnNewPageIsUndoneAtOnce`, `replaceObjectsIsUndoneAtOnce`, `setPagePresentationIsUndoneAtOnce`, `insertImageIsUndoneAtOnce`, `changeObserverSeesEveryStroke`, `loadEmitsDocumentReplaced`, `strokeDoesNotEmitDocumentReplaced`, `insertReadsIdsOnlyWhenApplied`, `undoAfterNavigatingAwayKeepsThePage`, `twoNewPageInsertionsUndoInOrder`, `replacedDocumentForgetsTheReturnPage`, `floatingPanelIsACover(stylet)`, `(doigt)`, `(souris)`, `coveredStylusLeavesFingersFree` ; banc hors écran joint | S10 | #tache-l7-t2 |
 | L7-T3 | Rideau (F-265) : contrôleur, surcouche couverture, scénario | L7-S8 | `ui/src/curtaincontroller.h`, `ui/src/curtaincontroller.cpp`, `ui/qml/CurtainOverlay.qml`, `tests/tst_ui_curtain.cpp`, `bench/scenarios/rideau.json` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_curtain` 0 skipped, PASS de `curtainNeverRefreshesTheCache`, `curtainBlocksTheStylus(stylet)`, `(doigt)`, `(souris)` ; `tst_captures_rideau` Passed ; captures `rideau` hors écran `LU curtain.coverage=…` puis `PIXEL` couvert et découvert OK ; banc hors écran joint | S10 | #tache-l7-t3 |
 | L7-T4 | Spot (F-270) : contrôleur, surcouche (contour 10, curseurs par zone), capture de la zone éclairée | L7-T2 | `ui/src/spotlightcontroller.h`, `ui/src/spotlightcontroller.cpp`, `ui/qml/SpotlightOverlay.qml`, `tests/tst_ui_spotlight.cpp`, `bench/scenarios/spot.json` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_spotlight` 0 skipped, PASS de `spotlightNeverRefreshesTheCache`, `spotlightBlocksTheStylus(stylet)`, `(doigt)`, `(souris)`, `spotlightOutlineIsTheDefault`, `spotlightCursorFollowsTheZone`, `spotlightCaptureIsUndoneAtOnce` ; `tst_captures_spot` Passed ; banc hors écran joint | S10 | #tache-l7-t4 |
 | L7-T5 | Zoom de page (F-260) : contrôleur sur `zoomAround`, surcouche couverture (appui long droit compris) | L7-S8 | `ui/src/pagezoomcontroller.h`, `ui/src/pagezoomcontroller.cpp`, `ui/qml/PageZoomOverlay.qml`, `tests/tst_ui_pagezoom.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N_F + 29, `tst_ui_pagezoom` 0 skipped, PASS de `pageZoomRefreshesTheCacheOnceAtRelease` (exactement 1), `pageZoomLeavesTheDocumentUnchanged`, `pageZoomBlocksTheStylus(stylet)`, `(doigt)`, `(souris)`, `rightHoldIsTakenByTheCover` ; banc hors écran joint | S10 | #tache-l7-t5 |
@@ -1125,15 +1128,22 @@ fin et objet en **une** étape, commande composée locale au fichier, page affic
 une couverture. `concepteur-critique` : le patron évident (appeler `DocumentController` puis bricoler l'étape) casse
 l'invariant « une action = une étape d'annulation » et l'ordre des `Change` vus par le cache.
 **Fichiers.** Ligne de la table. **Test.** Commande ciblée `-R 'tst_ui_presentation|tst_ui_document|tst_ui_inputpath'`.
-**Interdits.** `documentcontroller.*` (socle) : on n'y ajoute rien ; si `execute()` ou `document()` ne sont pas
-publics, s'arrêter et le rapporter (vérifié publics : `documentcontroller.h:76`, `:79`). **Terminé quand.** PASS des fonctions de la table, 0 skipped.
+**Interdits.** `documentcontroller.*` et `core/document.*` : les ajouts de la décision 7 seulement, aucune ligne
+existante modifiée (`execute()` et `document()` publics : `documentcontroller.h:76`, `:79`). **Terminé quand.** PASS des fonctions de la table, 0 skipped.
 **Étapes.**
 - [ ] **Étape 1 : tests rouges** dans `tests/tst_ui_presentation.cpp` (retirer `reserved()`), avec
   `presentationharness::MainWindow` et un `DocumentInsertions insertions(*controller)` sur le contrôleur de la fenêtre :
   `insertTextIsUndoneAtOnce` (`insertText("12", {100,100,80,40})` : id non nul, `pageObjectCount()` + 1, objet
   `Text` ; `undo` : compte de départ) ; `insertObjectOnNewPageIsUndoneAtOnce` (document de **3 pages**
   (`loadGeneratedPages(3)`), page **2 sur 3** affichée par `nextPage()` ; une forme : pages = 4, page affichée = 4,
-  un objet ; un seul `undo` : 3 pages, puis `QTRY_COMPARE(currentIndex(), 1)` — page de départ) ; `replaceObjectsIsUndoneAtOnce` (un trait
+  un objet ; un seul `undo` : 3 pages, puis `QTRY_COMPARE(currentIndex(), 1)` — page de départ) ;
+  `undoAfterNavigatingAwayKeepsThePage` (même départ, insertion, retour manuel à la page 1 par `pageBack()` répété,
+  puis `undo` : 3 pages, la page affichée reste la page 1 — `QTest::qWait(50)` puis `QCOMPARE(currentIndex(), 0)`,
+  aucun gel) ; `twoNewPageInsertionsUndoInOrder` (départ page 2 sur 3, deux insertions sur une nouvelle page de
+  suite : 5 pages, page 5 affichée ; `undo` : page 4 affichée ; `undo` : page 2 affichée) ;
+  `replacedDocumentForgetsTheReturnPage` (une insertion sur une nouvelle page, puis `newDocument` (« Nouveau ») avant
+  l'annulation ; dans le nouveau document, `loadGeneratedPages(3)`, page 3, `nextPage()` puis `undo` : la page
+  affichée est celle que fixe le socle, jamais l'ancien indice de départ) ; `replaceObjectsIsUndoneAtOnce` (un trait
   injecté au stylet → `replaceObjects({id}, {forme})` : un id rendu, le trait absent ; `undo` : le trait revient au même
   rang) ; `insertImageIsUndoneAtOnce` (une image PNG de 8 × 8 : un `ImageObject` de plus dont `resource` est non vide
   et présente dans `document().resources()` ; `undo` : objet retiré, clé absente de `document().resources()`,
@@ -1145,8 +1155,9 @@ publics, s'arrêter et le rapporter (vérifié publics : `documentcontroller.h:7
   `core::Changes` portent chacun un `Change` de genre `ObjectInserted` avec l'identifiant du trait — vérifié :
   `ChangeObserver = std::function<void(const core::Changes& applied, ChangeOrigin origin)>`,
   `documentcontroller.h:145-161` ; `Change::Kind`, `Change::object`, `core/include/actcraft/core/undo.h:16-30`) ;
-  `loadEmitsDocumentReplaced` (`QSignalSpy` sur `documentReplaced` : `loadGeneratedFirstPage`, `loadGeneratedPages(3)`
-  et `replaceDocument` l'émettent une fois chacun, et l'observateur n'est pas appelé) ;
+  `loadEmitsDocumentReplaced` (`QSignalSpy` sur `documentReplaced`, remis à zéro avant chacun :
+  `loadGeneratedFirstPage`, `loadGeneratedPages(3)` et `replaceDocument` l'émettent **exactement une fois** chacun —
+  `QCOMPARE(spy.count(), 1)` — et l'observateur n'est pas appelé) ;
   `strokeDoesNotEmitDocumentReplaced` (un trait au stylet, `undo`, `redo`, `insertText` : `documentReplaced` jamais
   émis, alors que `documentChanged` l'est) ; `insertReadsIdsOnlyWhenApplied` (`replaceObjects` sur des identifiants
   absents et aucun ajout : vecteur vide rendu, aucun plantage, pile inchangée) ; `floatingPanelIsACover` (à données : un
@@ -1154,27 +1165,47 @@ publics, s'arrêter et le rapporter (vérifié publics : `documentcontroller.h:7
   `active` pendant le trait souris et doigt, panneau déplacé au stylet ; panneau fermé → le même trait est versé) ;
   `coveredStylusLeavesFingersFree` (stylet appuyé sur le panneau, un doigt trace hors du panneau → trait versé).
   Commande ciblée → rouge.
-- [ ] **Étape 2 : code.** `documentcontroller.h` : `void documentReplaced();` ajouté à la fin des `signals:`, avec son
-  commentaire ; `documentcontroller.cpp` : `emit documentReplaced();` à la fin de `replaceDocument`,
-  `loadGeneratedFirstPage` et `loadGeneratedPages` (après leur `notifyState`) — trois lignes ajoutées, aucune modifiée
+- [ ] **Étape 2 : code.** `documentcontroller.h` : `void documentReplaced();` déclaré **à la fin du bloc
+  `signals:`**, avec son commentaire (règle de A) ; `documentcontroller.cpp` : `emit documentReplaced();` **sur sa
+  propre ligne, à la fin** de `replaceDocument` et de `loadGeneratedFirstPage` (après leur `notifyState`), sans
+  réindenter ni déplacer de code voisin — deux lignes ajoutées, aucune modifiée ; pas de troisième dans
+  `loadGeneratedPages`, qui finit par `replaceDocument` (`documentcontroller.cpp:453` : il serait émis deux fois)
   (`git -C '<wt>' diff --stat` et `diff` relus : seulement des `+`). `presentationdocument.cpp` : marqueur retiré ;
-  **identifiants lus seulement si la commande est entrée dans la pile** (revue, m4) : `execute()` détruit une commande
-  sans changement (`documentcontroller.cpp:161-164`) ; garder un pointeur brut avant le `std::move`, comparer
-  `core::fingerprint(document())` avant et après, et ne lire `id()` ou `addedIds()` que s'il a changé (sinon rendre 0
-  ou vide sans toucher au pointeur) ; `insertObject` et `insertText` par
+  **identifiants écrits par la commande elle-même** (revue contre le socle, tour 2, m1) : `execute()` détruit une
+  commande sans changement (`documentcontroller.cpp:161-164`), donc aucun pointeur vers elle n'est lu après ; chaque
+  commande locale du fichier reçoit à sa construction un `std::shared_ptr` vers une cellule (identifiants ajoutés),
+  qu'elle remplit dans `redo()` ; `DocumentInsertions` lit la cellule après `execute()` (vide si rien n'a été
+  appliqué). Pour `AddObjectCommand` et `ReplaceObjectsCommand` du socle, une enveloppe locale (commande du fichier
+  qui délègue `redo`/`undo` à la commande du socle et copie `id()` ou `addedIds()` dans la cellule à la fin de son
+  `redo`). Aucune empreinte du document sur le fil principal (règle du socle, L2-C9,
+  `documentcontroller.cpp:549-550`) ; `insertObject` et `insertText` par
   `core::AddObjectCommand` sur `shownIndex()` ; `insertObjectOnNewPage` par la commande composée, puis affichage de
   la page ajoutée par la seule **voie publique** : `nextPage()` répété jusqu'à `currentIndex() == pageCount() - 1`
   (`show()` est privée, `documentcontroller.h:210` ; `nextPage` n'ajoute une page que sur la dernière,
-  `core/include/actcraft/core/document.h`, `nextPageIndex` : la boucle s'arrête avant) ; `DocumentInsertions`
-  retient l'indice de départ et, par un observateur (`addChangeObserver`, origine `Undo`, `Change` `PageRemoved` de
-  cette page), revient à la page de départ par `pageBack()` répété, **différé** à la boucle d'événements
-  (`QTimer::singleShot(0, &controller, …)` : jamais de navigation pendant l'appel de l'observateur) ; `replaceObjects` par
+  `documentcontroller.cpp:369-372` : la boucle s'arrête avant). **Retour à la page de départ à l'annulation**
+  (revue contre le socle, tour 2, M3) — état dans `presentationdocument.cpp` seulement (fonctions et types de portée
+  fichier ; l'en-tête figé n'a qu'un membre) :
+  - un **observateur à usage unique par insertion**, posé par `addChangeObserver` juste après l'`execute` qui a
+    réussi, qui ne capture que des **valeurs** (indice de départ `start`, indice de la page ajoutée `added`) et qui
+    se retire lui-même (`removeChangeObserver(token)`, `documentcontroller.h:159-162`) à son premier `Undo` qui
+    retire `added` ;
+  - il ne ramène l'utilisateur **que si la page retirée était la page affichée** au moment de l'appel :
+    `change.kind == PageRemoved && change.page == added && change.page == currentIndex()` (pendant l'appel,
+    `currentIndex()` vaut encore l'indice passé au cache, `documentcontroller.h:156-158`) ; sinon il se retire sans
+    naviguer ;
+  - la navigation est **différée** (`QTimer::singleShot(0, &controller, …)`, jamais pendant l'appel : le recalage
+    `m_current = …` de `documentcontroller.cpp:305` l'écraserait) et **bornée** :
+    `while (controller.currentIndex() > start) controller.pageBack();` (`pageBack()` ne fait que reculer ; arrêt
+    garanti) ;
+  - tous les observateurs en attente sont **retirés sur `documentReplaced`** (une connexion de portée fichier, par
+    contrôleur) ; `replaceObjects` par
   `core::ReplaceObjectsCommand` (un `core::ObjectReplacement` qui retire `removed` et ajoute `added` en un groupe,
   `addedIds()` après `redo()`) — vérifié : `ObjectReplacement { removed; added; }` et le constructeur « un groupe »
   `ReplaceObjectsCommand(page, removed, added)`, `core/include/actcraft/core/replace.h:14-42` ; `setPagePresentation`
   par `core::SetPagePresentationCommand(shownIndex(), value)` (`replace.h:59-64`) ; `insertImage` par une commande
-  locale au fichier (`redo` : `document.addResource(data, extension)`, clé dans `image.resource`, puis insertion de
-  l'objet, sur une page neuve si `onNewPage` ; `undo` : retrait de l'objet, de la page s'il l'a ajoutée, et de la
+  locale au fichier (`redo` : vérifier d'abord que l'objet peut être inséré — identifiant disponible, page cible
+  existante —, sinon ne rien faire et ne rendre aucun `Change` ; puis `document.addResource(data, extension)`, clé
+  dans `image.resource`, puis insertion de l'objet, sur une page neuve si `onNewPage` ; `undo` : retrait de l'objet, de la page s'il l'a ajoutée, et de la
   ressource **si sa clé était absente avant `redo`**, par `core::Document::removeResource(key)`). **Voie retenue**
   (revue contre le socle, M2), la plus petite après lecture : l'empreinte inclut toutes les ressources
   (`core/src/document.cpp:240-246`) et l'écriture native toutes aussi (`formats/src/nativejson.cpp:1585-1588`,
@@ -1292,8 +1323,11 @@ L7-T0 P9 et constat 5 ; L7-T7 étape 5 déplacée ici) :
 - Décision 13 : `PerPageTools` applique les outils de page au changement de page (7a, étape 3) et sur
   `documentReplaced` (L7-T2), jamais sur `documentChanged` ; `openedDocumentAppliesPageTools` (document de deux pages
   chargé par `replaceDocument`, première page en mode rideau : le rideau est actif sans aucun appel de
-  l'observateur) ; `strokeKeepsTheLiveCurtain` (rideau tiré à 300 px sans le mémoriser, puis un trait au stylet hors
-  du rideau : la distance vivante reste 300 px).
+  l'observateur) ; `strokeKeepsTheLiveCurtain` (revue contre le socle, tour 2, M4 : la page porte un rideau
+  **mémorisé** — `PageToolsMode::Curtain`, `CurtainMode::Top`, distance 120, posé par `setPagePresentation` — ; le
+  rideau est tiré à 300 px sans le mémoriser, puis un trait au stylet hors du rideau : la distance vivante reste
+  300 px ; si `PerPageTools` réappliquait les outils sur `documentChanged`, elle reviendrait à 120 et le test serait
+  rouge).
 
 **Objectif.** Les outils de page suivent la page, lus et mémorisés. `concepteur-critique` : parité de deux chemins
 (lecture `.flipchart` et natif) sur la même structure. **Test.** `-R 'tst_features_pagetools|tst_formats_flipchart|tst_ui_pagetools'`.
@@ -1382,8 +1416,9 @@ mine. (3) Preuves, commit de 7a.
 **Garde.** Étapes 3, 4. **Disparaît.** Étapes 1 et 2 (L7-P4, `OriginMemory`). **S'ajoute.** `OriginMemory` alimentée
 depuis `PagePresentation::hasOrigin` / `origin` au changement de page ; au relâché du marqueur,
 `DocumentInsertions::setPagePresentation` (une étape : `originMoveIsUndoneAtOnce`) ; mémoire relue sur
-`documentReplaced` (décision 13) : `originReadFromAnOpenedDocument` ; `strokeKeepsTheOrigin` (origine déplacée puis un
-trait : l'origine affichée ne bouge pas) ; `OriginMarker.qml` (nom imposé)
+`documentReplaced` (décision 13) : `originReadFromAnOpenedDocument` ; `strokeKeepsTheOrigin` (non-régression seulement :
+origine déplacée, mémorisée au relâché, puis un trait : l'origine affichée ne bouge pas ; il ne peut pas distinguer
+`documentReplaced` de `documentChanged`, `originReadFromAnOpenedDocument` le fait) ; `OriginMarker.qml` (nom imposé)
 couverture. Les symétries autour de l'origine (P20) vont au lot 5 : rien ici ni en L7-T34. **Test.**
 `-R 'tst_ui_mathtools'`. **Étapes.** (1) Tests rouges. (2) 7a étape 3. (3) Preuves, commit de 7a étape 4.
 
@@ -1742,8 +1777,9 @@ nommée.
     `QTEST_MAIN` : à la construction de L7-S8.
 16. **Fenêtres créées à la demande** — point de Qt, non du socle : à prouver par L7-T28, L7-T29, L7-T30 (hors écran,
     puis contrôle à l'écran annoncé de L7-T28 et L7-T30).
-17. **Noms** — `NOMS OK` sur la branche fusionnée (contrôle de 97c3185 : l'outil affiche « NOMS OK : 487 fichiers », son propre compte des fichiers qu'il lit, pas
-    le nombre de fichiers suivis par git) ; noms neufs des
+17. **Noms** — `NOMS OK` sur la branche fusionnée (sortie de l'outil `controle_noms_actcraft.py`, hors dépôt, lancé sur 97c3185 et sur 9fa81bd : « NOMS OK : 487
+    fichiers », son propre compte des fichiers qu'il lit, pas le nombre de fichiers suivis par git ; la valeur se
+    relit en relançant l'outil, elle n'est pas écrite dans le dépôt) ; noms neufs des
     tâches repassés au contrôle après `git add` par chaque tâche.
 
 ## Risques
