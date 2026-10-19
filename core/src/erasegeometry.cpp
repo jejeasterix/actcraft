@@ -13,11 +13,18 @@ StrokePoint lerp(const StrokePoint& a, const StrokePoint& b, double t) noexcept
             static_cast<float>(a.pressure + t * (static_cast<double>(b.pressure) - a.pressure))};
 }
 
+// Convention du bord (L3-C6) : le cercle est DEHORS. La gomme ne retire que la partie du trait strictement
+// intérieure au disque (|p - c| < r) ; un contact sans longueur (sommet ou extrémité pile sur le cercle,
+// segment tangent) ne coupe pas et ne touche pas le trait. Le même critère strict vaut pour un point
+// (`insideDisk` : `<`) et pour un segment (intervalle ouvert ]ta, tb[ où |p(t) - c|² < r², donc
+// `disc > 0` et `ta < tb`). Pourquoi dehors : chaque coupe retire une longueur non nulle, donc un contact
+// exact (coordonnées entières) donne les mêmes morceaux que la limite d'un contact manqué d'un demi-pixel,
+// et recouper un morceau dont le bout est sur le cercle ne le raccourcit pas (à l'arrondi près).
 bool insideDisk(const StrokePoint& p, PointF c, double r) noexcept
 {
     const double dx = p.x - c.x;
     const double dy = p.y - c.y;
-    return dx * dx + dy * dy <= r * r;
+    return dx * dx + dy * dy < r * r;
 }
 
 void closePiece(std::vector<StrokePoint>& current, std::vector<std::vector<StrokePoint>>& pieces)
@@ -34,6 +41,9 @@ StrokeCut cutByDisk(const std::vector<StrokePoint>& points, PointF center, doubl
     StrokeCut result;
     if (points.empty())
         return result;
+    // `current` : morceau ouvert, vide tant que le parcours est dans le disque. Il n'est ouvert, fermé ou
+    // abandonné que d'après l'intervalle intérieur de chaque segment, jamais d'après un sommet seul : un
+    // sommet pile sur le cercle ne peut donc ni faire perdre le morceau ouvert, ni retarder le suivant.
     std::vector<StrokePoint> current;
     if (!insideDisk(points[0], center, radius))
         current.push_back(points[0]);
@@ -45,6 +55,13 @@ StrokeCut cutByDisk(const std::vector<StrokePoint>& points, PointF center, doubl
         const double dx = p1.x - p0.x;
         const double dy = p1.y - p0.y;
         const double a = dx * dx + dy * dy;
+        if (!(a > 0)) { // segment de longueur nulle : retiré si son point est intérieur
+            if (!insideDisk(p1, center, radius))
+                current.push_back(p1);
+            else
+                result.touched = true;
+            continue;
+        }
         const double fx = p0.x - center.x;
         const double fy = p0.y - center.y;
         const double b = fx * dx + fy * dy;
@@ -52,29 +69,27 @@ StrokeCut cutByDisk(const std::vector<StrokePoint>& points, PointF center, doubl
         double ta = 0;
         double tb = 0;
         bool crosses = false;
-        if (a > 0) {
-            const double disc = b * b - a * c;
-            if (disc > 0) {
-                const double root = std::sqrt(disc);
-                ta = std::max(0.0, (-b - root) / a);
-                tb = std::min(1.0, (-b + root) / a);
-                crosses = ta < tb;
-            }
+        const double disc = b * b - a * c;
+        if (disc > 0) {
+            const double root = std::sqrt(disc);
+            ta = std::max(0.0, (-b - root) / a);
+            tb = std::min(1.0, (-b + root) / a);
+            crosses = ta < tb;
         }
         if (!crosses) {
-            if (!insideDisk(p1, center, radius))
-                current.push_back(p1);
-            else
-                result.touched = true;
+            // Segment entier hors du disque ouvert. Aucun morceau ouvert : le segment précédent est sorti
+            // pile en p0, sur le cercle ; le morceau suivant commence là.
+            if (current.empty())
+                current.push_back(p0);
+            current.push_back(p1);
             continue;
         }
         result.touched = true;
-        if (ta > 0) {
+        if (ta > 0)
             current.push_back(lerp(p0, p1, ta));
-            closePiece(current, result.pieces);
-        } else {
-            current.clear(); // p0 était intérieur : aucun morceau ouvert
-        }
+        // ta == 0 : p0 est intérieur (aucun morceau ouvert) ou sur le cercle (le morceau ouvert finit en p0,
+        // point d'entrée) ; dans les deux cas on ferme, on n'abandonne jamais le morceau ouvert.
+        closePiece(current, result.pieces);
         if (tb < 1) {
             current.push_back(lerp(p0, p1, tb));
             current.push_back(p1);
