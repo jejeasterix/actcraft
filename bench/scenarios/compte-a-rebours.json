@@ -1,0 +1,6 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "compte-a-rebours",
+  "description": "Talon L7-S8 : rempli par L7-T16 (S10).",
+  "steps": [ {"waitReady": true} ]
+}
