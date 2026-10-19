@@ -47,6 +47,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | supprimé | terminée, mergée | 2 | e5f5874 | rejeu : 110 tests `TESTS OK`, Totals 7/11/8, `NOMS OK` ; 6 mutants rouges |
 | L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | supprimé | terminée, mergée (33e9b1a), graphe ea055dd | 2 | 5c2fd21 | rejeu : 110 tests `TESTS OK`, Totals 9, `NOMS OK` ; mutants rouges |
 | L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | supprimé | terminée, mergée (aef50b8), graphe cd73acb | 2 | a65e9b2 | rejeu : Totals 7/7/4, `NOMS OK` ; suite 108/110 sous charge, `tst_ui_files` et `tst_captures_aller_retour_natif` verts relancés seuls (P9 ne touche que features/) |
+| L7-S8 | phase 1 mergée | voir ligne L7-S8 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-S8 (base bd4631a) | en cours (concepteur-critique), vague V1 seule | 1 | — | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
@@ -79,6 +80,7 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 ouvertes : — · passées : —
 
 ## Pièges trouvés
+- Consignes communes de la phase 2 : scratchpad `consignes-T.md` (verrou B, tests instables sous charge à relancer seuls : `tst_captures_aller_retour_natif`, `tst_ui_files`, `tst_pageview`, `tst_bench_verdict`).
 - Places de tests : 2e place accordée par Pilote le 2026-10-18 vers 22h (Jérôme lui a laissé la manœuvre) ; A reste prioritaire, retour à une place dès qu'A en a besoin.
 - Parallélisme (demande de rythme de Pilote, consigne de Jérôme dans la tâche planifiée) : 4 agents écrivent en parallèle, les constructions passent une à une par le jeton ; consignes communes : scratchpad `consignes-P.md` (temps 1 sans P0, temps 2 après merge de P0).
 - Jeton `tests` : exige 3,5 Go de RAM libre ; la machine tourne autour de 2-3 Go pendant les suites de A, attente longue (une attente expirée, code 3).
