@@ -2,7 +2,7 @@
 
 Statut : en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
 Gabarit : lots (lot 7 du chantier `livraison-complete`, exécuté en parallèle du lot 3)
-Étage : 3, entrée de la phase 2 (socle fusionné : 131f790, depuis feat/livraison-complete @ e7c6713) ; phase 1 (logique pure du lot 7, avant le socle commun) — plan : docs/plans/2026-10-18-livraison-complete-lot7-phase1-PLAN.md ; N attendu en fin de phase 1 = 94 + 16 = 110
+Étage : 3, phase 1 terminée (L7-P0 à P9 mergées, cd73acb) ; entrée de la phase 2 (socle fusionné : 131f790, depuis feat/livraison-complete @ e7c6713) ; phase 1 (logique pure du lot 7, avant le socle commun) — plan : docs/plans/2026-10-18-livraison-complete-lot7-phase1-PLAN.md ; N attendu en fin de phase 1 = 94 + 16 = 110
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branche : feat/livraison-complete-b   Base : feat/livraison-complete @ 7bb551c (+ merge du plan du lot 7 bf8c930 → 2d76ba6)
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
@@ -46,7 +46,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | supprimé | terminée, mergée (827f028), graphe c606f05 | 2 | df41743 | rejeu : 110 tests `TESTS OK`, Totals 10 (pagezoom) et 12 (transitions) ; rouge vu sur ee87059 (3 échecs) |
 | L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | supprimé | terminée, mergée | 2 | e5f5874 | rejeu : 110 tests `TESTS OK`, Totals 7/11/8, `NOMS OK` ; 6 mutants rouges |
 | L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | supprimé | terminée, mergée (33e9b1a), graphe ea055dd | 2 | 5c2fd21 | rejeu : 110 tests `TESTS OK`, Totals 9, `NOMS OK` ; mutants rouges |
-| L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | .worktrees/livraison-complete-b--L7-P9 (base dfc8857) | rendue (Totals 7/7/4, 8 mutants) ; rejeu en cours | 2 | a65e9b2 | — |
+| L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | supprimé | terminée, mergée (aef50b8), graphe cd73acb | 2 | a65e9b2 | rejeu : Totals 7/7/4, `NOMS OK` ; suite 108/110 sous charge, `tst_ui_files` et `tst_captures_aller_retour_natif` verts relancés seuls (P9 ne touche que features/) |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
