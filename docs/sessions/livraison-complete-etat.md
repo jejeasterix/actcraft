@@ -259,8 +259,15 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
     - `pageAreaWithoutToolsDraws`, dont le montage n'avait pas de document : on lui pose un `DocumentController` réel.
   - **Écart accepté** : la racine de `Presentation.qml` est un `QtObject`, car la propriété `layer` du contrat entre en conflit avec `Item.layer`, qui est FINAL. Le lot 7 pose ses surcouches avec `parent: presentation.layer`. **À transmettre à B avec « socle mergé ».**
 - **L0-S2 mergée** (0691607), **L0-S9 mergée** (3450380). L0-S10 est joué par l'orchestrateur (`scratchpad/l0s10.ps1`, journal `scratchpad/out/l0s10/journal.txt`) : suites debug et release, talons, captures `tous`, banc et noms.
-- Coffre : `04_Pieges/qt-touchevent-poste-hors-du-suivi-des-points-actifs.md` et `04_Pieges/qt-qmlcachegen-c4702-fromprimitivevalue-sous-wx.md`, ajoutés à la carte.
-- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
+- Coffre : deux pièges ajoutés dans `04_Pieges/` et à la carte (toucher posté hors du suivi des points actifs ; C4702 de qmlcachegen sous `/WX`). Ne pas recopier ici le nom de fichier de la première note : le contrôle des noms y lit un nom composé de l'original.
+- **L0-S10, socle contrôlé** (orchestrateur, tête ccfb6a5, journal `scratchpad/out/l0s10/journal.txt`) :
+  - suites : debug 113/113 TESTS OK, release 113/113 TESTS OK ; N = N_départ + 19 = 113 ;
+  - talons : `L0-` aucun ; `L3-` 45 lignes dans 38 fichiers, dont 8 dans `ui/src/documentcontroller.cpp` (le plan visait de l'ordre de 35) ; `L7-` 3 lignes (`equation.h`, `equation.cpp`, `equationlayout.cpp`). **Ces comptes sont la référence des clôtures des lots 3 et 7** ;
+  - `QSKIP` hors talons : 5, tous antérieurs au socle (`tst_bench_memory`, `tst_formats_nativejson` référence, `tst_formats_oracle`, deux dans `tst_formats_oracle_synth`) ;
+  - captures `tous` hors écran, en logiciel : 9 SCENARIO OK, CAPTURES OK ;
+  - banc logiciel hors écran : `content_check.ok = True`, BUDGET DEPASSE (informatif) ;
+  - NOMS OK 435, après correction d'une ligne de ce fichier qui citait le nom de fichier d'une note du coffre.
+- **Socle mergé.** Message « socle mergé » envoyé à B, avec la note de L0-S5 et l'écart de `Presentation.qml`. Prochaine étape : le lot 3, en amendant d'abord le commentaire d'`editAboutToApply`.- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
 - **V2 du socle mergée** (L0-S5 et L0-S7). La suite complète de V2 tourne sous le jeton (`scratchpad/out/suite-v2.txt`). L0-S9 est en cours, V3. L0-S2 attend le merge de L10-C2, qui passe après la suite de V2.
@@ -309,7 +316,7 @@ L0-S6 relancé (seul constructeur) : fusion de la tête du chantier d'abord, à 
 | L0-S6 | S0 | squelette du lot 3 (en-têtes figés, talons, LiftLayer QML) | .worktrees/livraison-complete--L0-S6 | en cours | 0/3 | — | — |
 | L0-S7 | S6 | chemin d'entrée figé (couvertures, filtre, Pipeline, isBusy) | (mergé) | terminée | 2/3 | c66f5a4 → merge 96ff121, graphe d307e6b | 1er rejeu rouge (aide tablet() du test : LeftButton aux déplacements → 5 appuis), corrigé dans le test ; 2e rejeu (tête 000710d) : tst_ui_inputpath 19/19, routing, pentool, pageview 53, drawing, input, shell ; mutation 7 rouges ; captures OK ; banc logiciel DEPASSE informatif ; NOMS OK 431 ; titres 0 |
 | L0-S9 | S4,S5,S7 | coquille QML (couches, emplacements, Presentation.qml) | (mergé) | terminée | 3/3 | 04ba795 → merge 3450380, graphe 5d474e1 | rejeu (tête cf6b035) : suite 113/113 TESTS OK, tst_ui_shell 25/25, 6 nommées PASS, mutation liftLayer rouge, captures premiers-pas et cache-differe OK, banc content_check OK, NOMS OK ; /wd4702 ciblé ; démontage de CommandMenu/Entry/Submenu protégé ; Presentation en QtObject |
-| L0-S10 | tout | contrôle du socle (debug + release, talons comptés, graphe) | — | à faire | 0/3 | — | — |
+| L0-S10 | tout | contrôle du socle (debug + release, talons comptés, graphe) | (chantier) | terminée | 1/3 | graphe du socle | debug et release 113/113 TESTS OK ; talons L0 0, L3 45 lignes/38 fichiers, L7 3 ; QSKIP hors talons 5 (antérieurs) ; captures tous OK ; banc content_check OK ; NOMS OK |
 Vagues : V0 S0 · V1 S3 ‖ S6 ‖ S1 · V2 S7 ‖ S5 ‖ S4 · V3 S9 ‖ S2 · V4 S10 (2 constructions de front ; B a la 3e place). L0-S8 → session B.
 
 ## Fin du lot 2 (étage 3.8)
