@@ -63,8 +63,12 @@ Window {
         objectName: "documentController"
         fixedPage: pageArea.fixedPage
         // Page suivante pendant un trait (PgDown, télécommande, doigt sur le bouton) : le trait se termine et
-        // reste sur sa page.
-        onPageAboutToChange: pageArea.view.finishStroke()
+        // reste sur sa page. L'outil abandonne d'abord son geste (M2) : sans cela, le relâché synthétisé par
+        // finishStroke terminerait un glissement de la sélection par un déplacement.
+        onPageAboutToChange: {
+            appTools.cancelGesture()
+            pageArea.view.finishStroke()
+        }
     }
 
     // Outils de l'utilisateur (lot 3) : branchés à la vue, à la couche soulevée et aux commandes.
@@ -78,7 +82,10 @@ Window {
     }
     Connections {
         target: appDocument
-        function onEditAboutToApply() { pageArea.view.finishStroke() }
+        function onEditAboutToApply() {
+            appTools.cancelGesture()
+            pageArea.view.finishStroke()
+        }
         function onUndoChanged() { root.syncEditCommands() }
         function onDocumentChanged() { root.syncEditCommands() }
     }
@@ -289,10 +296,15 @@ Window {
         appCommands.setHandler("view.zoom", function (percent) { pageArea.view.zoom = percent / 100 })
         appCommands.setHandler("page.next", function () { appDocument.nextPage() })
         appCommands.setHandler("page.previous", function () { appDocument.pageBack() })
-        appCommands.setHandler("tool.pen", function () { appCommands.setChecked("tool.pen", true) })
-        appCommands.setHandler("pen.color", function (color) { pageArea.view.inkColor = color })
-        appCommands.setHandler("pen.width", function (width) { pageArea.view.inkWidth = width })
-        appCommands.setHandler("tool.select", function () { appTools.activate("select") })
+        appCommands.setHandler("tool.pen", function () { appTools.activate("pen") })
+        // La vue n'a plus de couleur propre : appTools la tient à jour (inkColor, inkWidth).
+        appCommands.setHandler("pen.color", function (color) { appTools.setColor(color) })
+        appCommands.setHandler("pen.width", function (width) { appTools.setWidth(width) })
+        // Échap (M9) : abandon du geste en cours ; au repos, outil Sélectionner. Jamais livré à l'outil.
+        appCommands.setHandler("tool.select", function () {
+            appTools.cancelGesture()
+            appTools.activate("select")
+        })
         appCommands.setHandler("tool.highlighter", function () { appTools.activate("highlighter") })
         appCommands.setHandler("tool.eraser", function () { appTools.activate("eraser") })
         appCommands.setHandler("edit.undo", function () { appDocument.undo() })
