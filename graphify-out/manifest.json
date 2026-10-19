@@ -985,8 +985,8 @@
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/uiscenario.h": {
-    "mtime": 1792305545.1184702,
-    "ast_hash": "927d0afa19421cea523117c2537969e8",
+    "mtime": 1792376530.710906,
+    "ast_hash": "ee03c960d829de48c9cc0d7ca06197d0",
     "semantic_hash": ""
   },
   "bench/scenarios/premiers-pas.json": {
@@ -995,8 +995,8 @@
     "semantic_hash": ""
   },
   "bench/src/uiscenario.cpp": {
-    "mtime": 1792305545.1283698,
-    "ast_hash": "bf5c8461074359fb313754f2a8925c22",
+    "mtime": 1792376530.7190738,
+    "ast_hash": "fd042b2f7f42baf281490b6ff8ea7fd1",
     "semantic_hash": ""
   },
   "core/include/actcraft/core/document.h": {
@@ -1075,8 +1075,8 @@
     "semantic_hash": ""
   },
   "tests/tst_bench_uiscenario.cpp": {
-    "mtime": 1792305545.1429622,
-    "ast_hash": "d8865d190ad22f400e6261c911ddf1b8",
+    "mtime": 1792376530.7231054,
+    "ast_hash": "2f0afe41479612ba796d111b2342e8be",
     "semantic_hash": ""
   },
   "tests/tst_core_document.cpp": {
@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1792369020.220641,
-    "ast_hash": "9546da8c27c6554924a46d45ed2f09df",
+    "mtime": 1792372653.6817474,
+    "ast_hash": "7cdd13bb77dc1ba3affb67b069582bf1",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -2107,6 +2107,26 @@
   "docs/plans/2026-10-18-livraison-complete-lot6b-PLAN.md": {
     "mtime": 1792365143.8728244,
     "ast_hash": "ae03096ac2a27189bb1f35e86a86a97b",
+    "semantic_hash": ""
+  },
+  "docs/plans/2026-10-18-livraison-complete-lot11-PLAN.md": {
+    "mtime": 1792370702.406481,
+    "ast_hash": "d215801ee676e86cdf564dd9e3ebc653",
+    "semantic_hash": ""
+  },
+  "docs/plans/2026-10-18-livraison-complete-lot11b-PLAN.md": {
+    "mtime": 1792370702.4114761,
+    "ast_hash": "b0296e55062c769b84ebf868c1e405bc",
+    "semantic_hash": ""
+  },
+  "docs/plans/2026-10-18-livraison-complete-lot8-PLAN.md": {
+    "mtime": 1792372343.2977376,
+    "ast_hash": "bbccee03558a08148c30f42d1a27c097",
+    "semantic_hash": ""
+  },
+  "docs/plans/2026-10-18-livraison-complete-lot8b-PLAN.md": {
+    "mtime": 1792372343.3016987,
+    "ast_hash": "32d46c93ef92230828ff6435da877efb",
     "semantic_hash": ""
   }
 }
