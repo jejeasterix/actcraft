@@ -185,6 +185,11 @@ signals:
     // en cours et les outils leur geste (L2-T15).
     void editAboutToApply();
     void liftingChanged();
+    // Lot 7 (L7-T2) : le document entier a été remplacé (ouverture, « Nouveau », page ou document du banc),
+    // hors de la pile ; jamais après une modification par la pile (trait, annuler, rétablir). Un état lu du
+    // document (page de retour, outils de la page, origine, reconnaissance) se relit ici, jamais sur
+    // documentChanged, émis après chaque modification.
+    void documentReplaced();
 
 private:
     void setBusy(bool busy);

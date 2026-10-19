@@ -64,6 +64,9 @@ public:
     // Clé = SHA-256 des octets en hexadécimal minuscule (64 caractères) ; même contenu, même clé, une seule
     // copie.
     std::string addResource(QByteArray data, std::string extension);
+    // Retire la ressource `key` ; sans effet si la clé est inconnue. Annulation d'une insertion qui l'a
+    // ajoutée (L7-T2) : l'appelant s'assure qu'aucun objet ne la cite plus.
+    void removeResource(const std::string& key);
     // nullptr si la clé est inconnue.
     const Resource* resource(const std::string& key) const noexcept;
     const std::map<std::string, Resource>& resources() const noexcept;
