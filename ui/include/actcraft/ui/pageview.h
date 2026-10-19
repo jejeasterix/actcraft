@@ -1,6 +1,7 @@
 #pragma once
 
 #include <actcraft/core/inkprobe.h>
+#include <actcraft/input/gesture.h>
 #include <actcraft/input/routing.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
@@ -15,6 +16,7 @@
 #include <QTimer>
 #include <QtQml/qqmlregistration.h>
 
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -249,6 +251,24 @@ private:
     void onPendingChanged();
     // Une entrée qui agit relance la minuterie du versement, si elle court.
     void postponeFold();
+    // L3-T13 : un contact du geste à deux doigts (pointer 0 : place libre ; un doigt vaut identifiant + 1).
+    struct GestureContact
+    {
+        std::uint64_t pointer = 0;
+        QPointF viewPos;
+    };
+    // endToolContacts du routeur : le doigt qui écrit passe au geste (trait abandonné, H3-17) ou cède la main
+    // au stylet ou à la souris (trait terminé là où il était, M4 b).
+    void endToolContacts(const input::Decision& decision);
+    void
+    terminateTouchStroke(); // relâché au dernier point brut du doigt, puis cancel() si l'outil reste occupé
+    void abandonTouchStroke(); // Tool::abandon : rien n'est versé
+    bool onGestureSample(const input::Sample& sample, QPointF viewPos);
+    bool addGestureContact(std::uint64_t pointer, QPointF viewPos); // faux : le geste a ses deux contacts
+    void applyGesture();
+    void endGesture(); // annulation, saisie volée : contacts du geste oubliés, au routeur aussi
+    // M3 : les demandes de redessin suivantes de ce tour sont couvertes par celle qui vient de partir.
+    void holdRequestsOfThisTurn();
 
     render::FixedPageItem* m_fixedPage = nullptr;
     render::InkItem* m_ink = nullptr;
@@ -298,6 +318,13 @@ private:
     QPointF m_lastTouchPagePoint;     // dernier point brut du doigt qui trace, en coordonnées de page
     QPointF
         m_lastRawPagePoint; // dernier point brut routé vers l'outil (avant le filtre), coordonnées de page
+    QPointF m_lastTouchViewPoint; // même point, en coordonnées de vue (le doigt qui passe au geste y est)
+    std::array<GestureContact, 2> m_gestureContacts;
+    input::TwoFingerGesture m_gesture;
+    qreal m_gestureZoom = 1.0;      // zoom au début du geste
+    QPointF m_gesturePage;          // point de page sous l'ancre du geste, ramené sous le milieu des doigts
+    bool m_gestureMoved = false;    // un contact du geste a bougé dans l'événement en cours
+    bool m_refreshThisTurn = false; // M3 : un redessin est parti dans ce tour et n'a pas encore commencé
 };
 
 } // namespace actcraft::ui

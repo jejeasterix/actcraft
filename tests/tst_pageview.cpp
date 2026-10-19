@@ -2,26 +2,33 @@
 #include <actcraft/core/model.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/render/liftlayeritem.h>
 #include <actcraft/render/pendinglayeritem.h>
+#include <actcraft/tools/tool.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/toolhost.h>
 #include <actcraft/ui/viewtransform.h>
 
+#include <QDir>
 #include <QElapsedTimer>
 #include <QMouseEvent>
 #include <QPointingDevice>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickWindow>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QSurfaceFormat>
 #include <QTabletEvent>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QTouchEvent>
 #include <QWheelEvent>
 
 #include <memory>
 #include <variant>
+#include <vector>
 
 using namespace actcraft::ui;
 
@@ -251,6 +258,52 @@ bool onOneLine(const actcraft::core::Stroke& stroke)
     return true;
 }
 
+// L3-T13 : vue avec cache, couche d'attente, contrôleur et outils de l'utilisateur (ToolHost branché comme
+// dans Main.qml : contrôleur, vue, couche soulevée). Détruits dans l'ordre inverse : outils, contrôleur, vue.
+struct HostFixture
+{
+    PendingFixture pending;
+    DocumentController controller;
+    ToolHost host;
+};
+
+bool openHost(HostFixture& f, QPointingDevice* stylus, const QString& settingsFile)
+{
+    if (!openPending(f.pending, stylus)) {
+        return false;
+    }
+    CachedFixture& c = f.pending.cached;
+    f.controller.setFixedPage(c.fixed);
+    c.view->setDocumentController(&f.controller);
+    auto* lift = new actcraft::render::LiftLayerItem;
+    lift->setSize(c.fixed->size());
+    lift->setParentItem(c.fixed->parentItem());
+    f.host.setSettingsFile(settingsFile);
+    f.host.setDocumentController(&f.controller);
+    f.host.setView(c.view);
+    f.host.setLiftLayer(lift);
+    c.view->setTools(&f.host);
+    for (int i = 0; i < 5 && !c.view->cacheReady(); ++i) {
+        c.view->notifyCacheUpdated();
+    }
+    return c.view->cacheReady() && f.host.activeTool() && c.view->currentTool() == f.host.activeTool();
+}
+
+// Politique d'essai (modes du toucher du lot 11) : un stylet ou la souris qui appuie pendant le trait d'un
+// doigt ne prend rien ; le reste comme FullTouchPolicy. La vue doit suivre la décision, sans règle à elle.
+class FingerKeepsThePen final : public actcraft::input::RoutingPolicy
+{
+public:
+    actcraft::input::Decision decide(const actcraft::input::Sample& press,
+                                     const actcraft::input::RouterState& state) const override
+    {
+        if (press.device != actcraft::input::DeviceKind::Touch && state.toolTouches > 0) {
+            return actcraft::input::Decision{}; // Ignore
+        }
+        return actcraft::input::FullTouchPolicy{}.decide(press, state);
+    }
+};
+
 } // namespace
 
 class TstPageView : public QObject
@@ -259,10 +312,18 @@ class TstPageView : public QObject
 
 private:
     std::unique_ptr<QPointingDevice> m_stylus;
+    QTemporaryDir m_settingsDir;
 
 private slots:
     void initTestCase()
     {
+        // ToolHost lit et écrit des réglages par outil : jamais le profil réel.
+        QVERIFY(m_settingsDir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+        const QSettings probe;
+        QVERIFY2(QDir::fromNativeSeparators(probe.fileName()).startsWith(m_settingsDir.path()),
+                 qPrintable(probe.fileName()));
         m_stylus = std::make_unique<QPointingDevice>(
             QStringLiteral("tst-pageview-stylus"), 5160, QInputDevice::DeviceType::Stylus,
             QPointingDevice::PointerType::Pen,
@@ -367,26 +428,30 @@ private slots:
         QTest::touchEvent(&f.window, screen).move(0, QPoint(500, 200));
         QTest::touchEvent(&f.window, screen).release(0, QPoint(500, 200));
         QTRY_COMPARE(f.fixed->objectCount(), 1);
+        const std::size_t firstPoints = lastStroke(f).points.size(); // déplacements compressés : 2 ou 3
         // Deux doigts posés ensemble : un geste (lot 3), jamais un trait.
         QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 400)).press(1, QPoint(600, 400));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 400)).move(1, QPoint(650, 400));
         QTest::touchEvent(&f.window, screen).release(0, QPoint(350, 400)).release(1, QPoint(650, 400));
         QTest::qWait(50);
         QCOMPARE(f.fixed->objectCount(), 1);
-        // Un deuxième doigt posé pendant le trait du premier le termine (son début est gardé) ; ensuite, ni
-        // le deuxième doigt, ni les deux ensemble, ni le premier resté seul ne dessinent.
+        // Un deuxième doigt posé pendant le trait du premier pose un geste. Amendé par L3-T13 (H3-17) : le
+        // trait du premier est abandonné, rien n'est versé (avant, son début était versé : 2 objets, 2
+        // points) ; ensuite, ni le deuxième doigt, ni les deux ensemble, ni le premier resté seul ne
+        // dessinent.
         QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 500));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 500));
         QTest::touchEvent(&f.window, screen).stationary(0).press(1, QPoint(600, 500));
-        QTRY_COMPARE(f.fixed->objectCount(), 2);
+        QTRY_VERIFY(f.view->gestureActive());
+        QCOMPARE(f.fixed->objectCount(), 1);
         QTest::touchEvent(&f.window, screen).stationary(0).move(1, QPoint(650, 500));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 500)).move(1, QPoint(700, 500));
         QTest::touchEvent(&f.window, screen).stationary(0).release(1, QPoint(700, 500));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(450, 500));
         QTest::touchEvent(&f.window, screen).release(0, QPoint(450, 500));
         QTest::qWait(50);
-        QCOMPARE(f.fixed->objectCount(), 2);
-        QCOMPARE(lastStroke(f).points.size(), std::size_t{2}); // appui et déplacement du premier doigt
+        QCOMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(lastStroke(f).points.size(), firstPoints); // le trait du premier passage, inchangé
     }
 
     void fingerThenStylusMakeTwoSeparateStrokes()
@@ -758,6 +823,9 @@ private slots:
         QVERIFY(open(f));
         QSignalSpy refresh(f.view, &PageView::cacheRefreshRequested);
         f.view->requestCacheRefresh();
+        // Amendé par L3-T13 (M3) : une demande du même tour serait couverte par ce redessin, pas encore
+        // commencé ; la seconde arrive donc au tour suivant, pendant le premier redessin.
+        QCoreApplication::processEvents();
         f.view->requestCacheRefresh(); // pendant le premier redessin : émise tout de suite quand même
         QCOMPARE(refresh.count(), 2);
         f.view->notifyCacheUpdated(); // fin d'un redessin peut-être antérieur à la seconde demande
@@ -1277,6 +1345,323 @@ private slots:
         f.view->setProperty("cacheSamples", 1);
         f.view->setZoom(8.0);
         QCOMPARE(f.view->cacheTextureSize(), QSize(4096, 3072));
+    }
+
+    // L3-T13 (pincer) : zoom 1, deux doigts écartés du double autour de (500, 300) : zoom 2, et le point de
+    // page qui était sous le milieu des doigts y est encore.
+    void pinchZoomsAroundItsCenter()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->setZoom(1.0);
+        QPointingDevice* screen = QTest::createTouchDevice();
+        const QPointF center(500, 300);
+        const QPointF pagePoint = f.view->sceneToPage(center);
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(400, 300)).press(1, QPoint(600, 300));
+        QTRY_VERIFY(f.view->gestureActive());
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(300, 300)).move(1, QPoint(700, 300));
+        QTRY_VERIFY_WITH_TIMEOUT(qAbs(f.view->zoom() - 2.0) < 0.01, 3000);
+        const QPointF seen = f.view->pageToScene(pagePoint);
+        QVERIFY2(qAbs(seen.x() - center.x()) <= 1.0 && qAbs(seen.y() - center.y()) <= 1.0,
+                 qPrintable(QStringLiteral("%1, %2").arg(seen.x()).arg(seen.y())));
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(300, 300)).release(1, QPoint(700, 300));
+        QTRY_VERIFY(!f.view->gestureActive());
+        QCOMPARE(f.fixed->objectCount(), 0);
+    }
+
+    // L3-T13 (défiler) : deux doigts déplacés ensemble de (0, +50) : la page suit de 50 px, zoom inchangé.
+    void twoFingerPanScrolls()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->setZoom(2.0);
+        const QPointF pan = f.view->pan();
+        QPointingDevice* screen = QTest::createTouchDevice();
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(400, 300)).press(1, QPoint(600, 300));
+        QTRY_VERIFY(f.view->gestureActive());
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 350)).move(1, QPoint(600, 350));
+        QTRY_VERIFY_WITH_TIMEOUT(qAbs(f.view->pan().y() - (pan.y() + 50)) < 0.5, 3000);
+        QCOMPARE(f.view->pan().x(), pan.x());
+        QCOMPARE(f.view->zoom(), 2.0);
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(400, 350)).release(1, QPoint(600, 350));
+        QTRY_VERIFY(!f.view->gestureActive());
+        QCOMPARE(f.fixed->objectCount(), 0);
+    }
+
+    // H3-17 (L3-T13) : le deuxième doigt pose un geste ; le trait du premier est abandonné, rien n'est versé
+    // ni annulable, et les doigts du geste n'écrivent plus. Le patron écarté (finishTouchStroke : relâché
+    // puis cancel(), qui verse) donnerait un objet et une étape d'annulation.
+    void secondFingerEndsFingerStroke()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        DocumentController controller;
+        controller.setFixedPage(f.fixed);
+        f.view->setDocumentController(&controller);
+        QVERIFY(!controller.canUndo());
+        QPointingDevice* screen = QTest::createTouchDevice();
+        QSignalSpy gesture(f.view, &PageView::gestureActiveChanged);
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 200));
+        settleTouch();
+        for (int i = 1; i <= 3; ++i) {
+            QTest::touchEvent(&f.window, screen).move(0, QPoint(300 + 40 * i, 200));
+            settleTouch();
+        }
+        QVERIFY(f.view->currentTool()->isBusy());
+        QVERIFY(f.view->ink()->pointCount() >= 2);
+        QTest::touchEvent(&f.window, screen).stationary(0).press(1, QPoint(600, 400));
+        QTRY_VERIFY(f.view->gestureActive());
+        QVERIFY(!f.view->currentTool()->isBusy());
+        QCOMPARE(f.view->ink()->pointCount(), std::size_t{0});
+        QCOMPARE(f.fixed->objectCount(), 0);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{0});
+        QVERIFY(!controller.canUndo());
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(380, 220)).move(1, QPoint(640, 420));
+        settleTouch();
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 240)).move(1, QPoint(660, 440));
+        settleTouch();
+        QCOMPARE(f.view->ink()->pointCount(), std::size_t{0});
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(400, 240)).release(1, QPoint(660, 440));
+        QTRY_VERIFY(!f.view->gestureActive());
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 0);
+        QVERIFY(!controller.canUndo());
+        QCOMPARE(gesture.count(), 2);
+    }
+
+    // Paume pendant un trait du stylet : un ou deux doigts ne tracent rien et ne font aucun geste.
+    void palmIgnoredDuringStylus()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        const qreal zoom = f.view->zoom();
+        const QPointF pan = f.view->pan();
+        QPointingDevice* screen = QTest::createTouchDevice();
+        tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton);
+        tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100)).press(1, QPoint(500, 100));
+        settleTouch();
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(250, 150)).move(1, QPoint(650, 150));
+        settleTouch();
+        QVERIFY(!f.view->gestureActive());
+        tablet(f, QEvent::TabletMove, QPointF(400, 300), Qt::LeftButton);
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(250, 150)).release(1, QPoint(650, 150));
+        settleTouch();
+        tablet(f, QEvent::TabletRelease, QPointF(450, 300), Qt::NoButton);
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(lastStroke(f).points.size(), std::size_t{4}); // 300 à 450, aucun point de doigt
+        QVERIFY(onOneLine(lastStroke(f)));
+        QCOMPARE(f.view->zoom(), zoom);
+        QCOMPARE(f.view->pan(), pan);
+    }
+
+    // H3-19 : un stylet posé pendant un pincement va à l'outil ; les doigts du geste restent au geste.
+    void stylusDuringPinchGoesToTheTool()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->setZoom(1.0);
+        QPointingDevice* screen = QTest::createTouchDevice();
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(400, 300)).press(1, QPoint(600, 300));
+        QTRY_VERIFY(f.view->gestureActive());
+        tabletStroke(f, QPointF(300, 450), QPointF(500, 450));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+        QVERIFY(f.view->gestureActive());
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(300, 300)).move(1, QPoint(700, 300));
+        QTRY_VERIFY_WITH_TIMEOUT(f.view->zoom() > 1.5, 3000);
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(300, 300)).release(1, QPoint(700, 300));
+        QTRY_VERIFY(!f.view->gestureActive());
+        QCOMPARE(f.fixed->objectCount(), 1);
+    }
+
+    // Amendement 1 de L3-T13 : la vue suit la décision du routeur quand un stylet appuie. Ici la politique
+    // laisse le doigt écrire : son trait n'est pas coupé. Le patron écarté (la vue terminait le trait du
+    // doigt avant tout appui du stylet) le couperait à deux points.
+    void viewFollowsTheRouterWhenTheStylusPresses()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        f.view->router().setPolicy(std::make_unique<FingerKeepsThePen>());
+        QPointingDevice* screen = QTest::createTouchDevice();
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100));
+        settleTouch();
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 100));
+        settleTouch();
+        tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton); // ignoré par la politique
+        tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
+        tablet(f, QEvent::TabletRelease, QPointF(400, 300), Qt::NoButton);
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 100));
+        settleTouch();
+        QTest::touchEvent(&f.window, screen).release(0, QPoint(450, 100));
+        QTRY_COMPARE(f.fixed->objectCount(), 1);
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 1);
+        QCOMPARE(lastStroke(f).points.size(), std::size_t{4}); // 300, 350, 400, 450 : d'un seul tenant
+        QVERIFY(onOneLine(lastStroke(f)));
+    }
+
+    // Amendement 1 de L3-T13 : quand le stylet prend la main, le doigt retenu (Ignore au routeur) ne verse
+    // plus rien ; même son annulation ne coupe pas le trait du stylet. Le trait du doigt est terminé à
+    // l'appui.
+    void heldFingerPoursNothingAfterTheStylusTakesOver()
+    {
+        DrawFixture f;
+        QVERIFY(openDrawing(f, m_stylus.get()));
+        QPointingDevice* screen = QTest::createTouchDevice();
+        QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100));
+        settleTouch();
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 100));
+        settleTouch();
+        tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton);
+        QTRY_COMPARE(f.fixed->objectCount(), 1); // trait du doigt terminé là où il était
+        QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 100));
+        settleTouch();
+        tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
+        QTouchEvent cancel(QEvent::TouchCancel, screen);
+        QCoreApplication::sendEvent(f.view, &cancel);
+        tablet(f, QEvent::TabletMove, QPointF(400, 300), Qt::LeftButton);
+        tablet(f, QEvent::TabletRelease, QPointF(450, 300), Qt::NoButton);
+        QTRY_COMPARE(f.fixed->objectCount(), 2);
+        QTest::qWait(50);
+        QCOMPARE(f.fixed->objectCount(), 2);
+        const auto& finger = std::get<actcraft::core::Stroke>(f.fixed->page().objects[0]);
+        const auto& stylus = std::get<actcraft::core::Stroke>(f.fixed->page().objects[1]);
+        QCOMPARE(finger.points.size(), std::size_t{2});
+        QCOMPARE(stylus.points.size(), std::size_t{4}); // 300 à 450 : ni coupé ni mêlé
+        QVERIFY(onOneLine(stylus));
+    }
+
+    // M3 (L3-T13) : trois demandes d'un même tour font un seul redessin, parti tout de suite ; une demande
+    // arrivée pendant un redessin commencé (tour suivant) en fait relancer un à sa fin. Sans regroupement :
+    // trois demandes émises et une relance à la fin du premier.
+    void requestsOfOneTurnMakeOneRedraw()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        QCoreApplication::processEvents(); // les demandes de l'ouverture sont d'un tour passé
+        QSignalSpy requested(f.view, &PageView::cacheRefreshRequested);
+        const int start = f.view->cacheRefreshCount();
+        f.view->requestCacheRefresh();
+        f.view->requestCacheRefresh();
+        f.view->requestCacheRefresh();
+        QCOMPARE(requested.count(), 1);
+        QVERIFY(!f.view->cacheReady());
+        f.view->notifyCacheUpdated();
+        QVERIFY(f.view->cacheReady());
+        QCOMPARE(f.view->cacheRefreshCount(), start + 1);
+        QCOMPARE(requested.count(), 1);
+        f.view->requestCacheRefresh();
+        QCOMPARE(requested.count(), 2);
+        QCoreApplication::processEvents(); // le redessin est parti
+        f.view->requestCacheRefresh();
+        QCOMPARE(requested.count(), 3);
+        f.view->notifyCacheUpdated(); // fin d'un redessin commencé avant la dernière demande : relance
+        QVERIFY(!f.view->cacheReady());
+        QCOMPARE(f.view->cacheRefreshCount(), start + 1);
+        QCOMPARE(requested.count(), 4);
+        f.view->notifyCacheUpdated();
+        QVERIFY(f.view->cacheReady());
+        QCOMPARE(f.view->cacheRefreshCount(), start + 2);
+    }
+
+    // D-S9, branche « outil de ToolHost » : le stylo de ToolHost occupé (stylet immobile plus longtemps que
+    // le délai) retient le versement. Le stylo interne, lui, n'écrit pas : une garde sur lui laisserait
+    // verser.
+    void foldWaitsForTheActiveTool()
+    {
+        HostFixture f;
+        QVERIFY(openHost(f, m_stylus.get(), m_settingsDir.filePath(QStringLiteral("fold.ini"))));
+        CachedFixture& c = f.pending.cached;
+        QCOMPARE(c.view->currentTool()->id(), QStringLiteral("pen"));
+        cachedStroke(c, QPointF(300, 200), QPointF(500, 260));
+        QTRY_COMPARE(c.fixed->pendingCount(), 1);
+        QSignalSpy requested(c.view, &PageView::cacheRefreshRequested);
+        const int refreshes = c.view->cacheRefreshCount();
+        const auto send = [&c](QEvent::Type type, QPointF scene, Qt::MouseButtons buttons) {
+            QTabletEvent event(type, c.stylus, scene, c.window.mapToGlobal(scene), buttons ? 0.5 : 0.0, 0, 0,
+                               0, 0, 0, Qt::NoModifier, Qt::LeftButton, buttons);
+            QCoreApplication::sendEvent(&c.window, &event);
+        };
+        send(QEvent::TabletPress, QPointF(300, 400), Qt::LeftButton);
+        QVERIFY(f.host.activeTool()->isBusy());
+        QTest::qWait(800);
+        QCOMPARE(c.fixed->pendingCount(), 1);
+        QCOMPARE(requested.count(), 0);
+        QCOMPARE(c.view->cacheRefreshCount(), refreshes);
+        send(QEvent::TabletRelease, QPointF(300, 400), Qt::NoButton);
+        QVERIFY(!f.host.activeTool()->isBusy());
+        QTRY_COMPARE_WITH_TIMEOUT(requested.count(), 1, kCacheFoldIdleMs + 2000);
+        QCOMPARE(c.fixed->pendingCount(), 0);
+    }
+
+    // D-S9 : le Pipeline reste devant l'outil de ToolHost. Dix échantillons du stylet : la sonde les voit
+    // tous, numérotés dans l'ordre, et c'est le stylo de ToolHost qui trace.
+    void latencyProbeSeesToolSamples()
+    {
+        class Probe final : public actcraft::core::InkProbe
+        {
+        public:
+            std::vector<std::uint64_t> seqs; // fil principal seulement
+            void sampleReceived(std::uint64_t seq, std::int64_t) override { seqs.push_back(seq); }
+            void samplesSynced(std::uint64_t, std::int64_t) override {} // fil de rendu : rien de partagé
+        };
+        HostFixture f;
+        QVERIFY(openHost(f, m_stylus.get(), m_settingsDir.filePath(QStringLiteral("probe.ini"))));
+        CachedFixture& c = f.pending.cached;
+        Probe probe;
+        c.view->setInkProbe(&probe);
+        c.view->resetInputSequence(0);
+        const auto send = [&c](QEvent::Type type, QPointF scene, Qt::MouseButtons buttons) {
+            QTabletEvent event(type, c.stylus, scene, c.window.mapToGlobal(scene), buttons ? 0.5 : 0.0, 0, 0,
+                               0, 0, 0, Qt::NoModifier, Qt::LeftButton, buttons);
+            QCoreApplication::sendEvent(&c.window, &event);
+        };
+        send(QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton);
+        QVERIFY(f.host.activeTool()->isBusy());
+        for (int i = 1; i <= 8; ++i) {
+            send(QEvent::TabletMove, QPointF(300 + 20.0 * i, 300), Qt::LeftButton);
+        }
+        send(QEvent::TabletRelease, QPointF(480, 300), Qt::NoButton);
+        QVERIFY(!f.host.activeTool()->isBusy());
+        c.view->setInkProbe(nullptr);
+        QCOMPARE(probe.seqs.size(), std::size_t{10});
+        for (std::size_t i = 1; i < probe.seqs.size(); ++i) {
+            QVERIFY(probe.seqs[i] > probe.seqs[i - 1]);
+        }
+        QTRY_COMPARE(f.controller.document().page(0).objects.size(), std::size_t{1});
+    }
+
+    // D-S9 : un trait de l'outil de ToolHost en cours, page suivante (pageAboutToChange branché à
+    // finishStroke, comme dans Main.qml) : le trait est versé à la page qu'il quitte, l'outil n'est plus
+    // occupé, et la suite du contact n'écrit pas sur la nouvelle page.
+    void pageChangeEndsToolStroke()
+    {
+        HostFixture f;
+        QVERIFY(openHost(f, m_stylus.get(), m_settingsDir.filePath(QStringLiteral("page.ini"))));
+        CachedFixture& c = f.pending.cached;
+        QObject::connect(&f.controller, &DocumentController::pageAboutToChange, c.view,
+                         &PageView::finishStroke);
+        const auto send = [&c](QEvent::Type type, QPointF scene, Qt::MouseButtons buttons) {
+            QTabletEvent event(type, c.stylus, scene, c.window.mapToGlobal(scene), buttons ? 0.5 : 0.0, 0, 0,
+                               0, 0, 0, Qt::NoModifier, Qt::LeftButton, buttons);
+            QCoreApplication::sendEvent(&c.window, &event);
+        };
+        send(QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton);
+        send(QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
+        send(QEvent::TabletMove, QPointF(400, 300), Qt::LeftButton);
+        QVERIFY(f.host.activeTool()->isBusy());
+        f.controller.nextPage();
+        QVERIFY(!f.host.activeTool()->isBusy());
+        QCOMPARE(f.controller.currentIndex(), 1);
+        QCOMPARE(f.controller.document().page(0).objects.size(), std::size_t{1});
+        QCOMPARE(f.controller.document().page(1).objects.size(), std::size_t{0});
+        send(QEvent::TabletMove, QPointF(450, 300), Qt::LeftButton);
+        send(QEvent::TabletRelease, QPointF(500, 300), Qt::NoButton);
+        QTest::qWait(50);
+        QCOMPARE(f.controller.document().page(1).objects.size(), std::size_t{0});
+        QCOMPARE(f.controller.document().page(0).objects.size(), std::size_t{1});
     }
 };
 
