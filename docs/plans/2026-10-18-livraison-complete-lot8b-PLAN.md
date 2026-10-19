@@ -221,7 +221,7 @@ première image sur `QThreadPool`.
 **Terminé quand** les six fonctions passent.
 
 **Étapes.**
-- [ ] **Étape 1 : test rouge** (fonctions de la ligne ; WAV de 0,5 s écrit par le test, en-tête RIFF à la main ;
+- [ ] **Étape 1 : test rouge** `tests/tst_ui_mediainsert.cpp` : `soundBecomesAPlaceholderWithAPlayAction` (un WAV inséré : un `core::Media` portant `document.play-sound`, une étape) ; `videoKeepsItsAspect` (vidéo 16:9 : boîte au même rapport) ; `secondMediaGoesBesideTheFirst` (le second à droite du premier, sans recouvrement) ; `resourceDropInsertsInOneStep` ; `flashShowsOnlyItsPlaceholder` (`.swf` : espace réservé, aucune action de lecture) ; `refusedWhileLocked` ( WAV de 0,5 s écrit par le test, en-tête RIFF à la main ;
   vidéo : sautée avec `QSKIP("ACTCRAFT_MEDIA absent")` si le module manque, jamais « Talon »).
 - [ ] **Étape 2 : code** `MediaInsert::insertFile(QUrl)`, `insertResource(QString key)` ; placement : à droite du
   dernier média de la page, sinon au centre. **Étape 3 : vert** ; commit « Lot 8 : insertion des médias (L8-T23) ».
@@ -310,7 +310,7 @@ dans le QML.
 **Terminé quand** les huit fonctions et le scénario passent, et le JSON du banc est joint.
 
 **Étapes.**
-- [ ] **Étape 1 : test rouge** `tests/tst_ui_mediaitems.cpp` (fonctions de la ligne ; `videoNeverEntersTheCache` :
+- [ ] **Étape 1 : test rouge** `tests/tst_ui_mediaitems.cpp` : `videoIsAboveTheCache` (l'élément vidéo est enfant de `pageOverlays`, au-dessus de la page fixe) ; `videoNeverEntersTheCache` ; `controlsHiddenOption` (commandes invisibles si `controlsHidden`) ; `loopOption` (fin de lecture : reprise) ; `playOnOpenOnlyInternal` (`playOnOpen` démarre le lecteur intégré à l'affichage de la page ; jamais `LinkLauncher`) ; `gifAnimates` (deux images différentes à 600 ms d'écart) ; `chimePlaysOnAcceptedDrop` (`containerAccepted` avec `chime` : piste 2 lancée) ; `soundControllerToggles` (`media.sound-controller` montre puis masque le lecteur) ( `videoNeverEntersTheCache` :
   `QSignalSpy` sur la demande de redessin de la page fixe pendant 2 s de lecture → 0).
 - [ ] **Étape 2 : code** (`MediaItems` : modèle des médias visibles de la page courante, regroupé, reporté pendant un
   contact ; `MediaLayer.qml` ; `SoundController.qml`).
@@ -339,7 +339,7 @@ ressource ; indicateur d'enregistrement toujours visible (L8-T28).
 **Terminé quand** les six fonctions passent (entrée audio absente : `QSKIP("aucune entrée audio")` dans les seules
 fonctions qui enregistrent ; `refusedPermissionDisablesWithAMessage` passe partout par une permission simulée).
 
-**Étapes.** Test rouge (fonctions de la ligne) ; code ; manifeste ; vert ; `APK OK` ; commit « Lot 8 : enregistreur
+**Étapes.** Test rouge `tests/tst_media_soundrecorder.cpp` : `writesAWav` (en-tête RIFF/WAVE, durée ≥ 2,5 s pour 3 s) ; `pauseAndResume` (la pause n'entre pas dans la durée) ; `stopPlacesAPlayIconOnThePage` (rappel d'insertion appelé une fois) ; `cancelLeavesNothing` (aucun fichier, aucun rappel) ; `refusedPermissionDisablesWithAMessage` ; `indicatorStateFollows` (`recording` vrai pendant, faux après) ; code ; manifeste ; vert ; `APK OK` ; commit « Lot 8 : enregistreur
 de son (L8-T26) » ; `NOMS OK`.
 
 <a id="tache-l8-t27"></a>
@@ -362,7 +362,7 @@ annoncée d'une ligne à Jérôme) ; aucun envoi ; aucun fichier hors `.tmp/`.
 **Terminé quand** les cinq fonctions passent sous Windows ; `fullScreenFiveSeconds` : fichier présent, durée 5 s ± 0,5
 (lue par `QMediaPlayer::duration`).
 
-**Étapes.** Test rouge ; code ; vert ; commit « Lot 8 : enregistreur d'écran (L8-T27) » ; `NOMS OK`.
+**Étapes.** Test rouge `tests/tst_media_displayrecorder.cpp` : `fullScreenFiveSeconds` ; `areaIsCropped` (zone de 320 × 240 : images du fichier à cette taille) ; `pauseExcludesThePause` (5 s dont 2 s de pause : durée 3 s ± 0,5) ; `cancelDeletesTheFile` ; `notBuiltOutsideWindows` (hors Windows, `isAvailable()` faux) ; code ; vert ; commit « Lot 8 : enregistreur d'écran (L8-T27) » ; `NOMS OK`.
 
 <a id="tache-l8-t28"></a>
 ### Tâche L8-T28 — Enregistreurs : palettes, indicateur, mention ; scénario `enregistreurs`
@@ -388,7 +388,7 @@ clic de l'utilisateur (une action `command.record.sound` reste un clic) ; `pageA
 
 **Terminé quand** les cinq fonctions et le scénario passent.
 
-**Étapes.** Test rouge ; code et QML ; scénario `enregistreurs.json` (son de 3 s : indicateur visible, icône posée ;
+**Étapes.** Test rouge `tests/tst_ui_recorders.cpp` : `indicatorVisibleWhileRecording` ; `firstUseShowsTheNotice` (mention une seule fois, gardée dans les réglages d'essai) ; `hiddenPaletteComesBackOnRestart` (V43) ; `settingsSectionRead` (dossier et format lus de la section « Enregistrements ») ; `stopAlwaysAvailableUnderTheLock` ; code et QML ; scénario `enregistreurs.json` (son de 3 s : indicateur visible, icône posée ;
 sous Windows, zone de 5 s : indicateur visible pendant toute la durée, fichier de 5 s ± 0,5) ; vert ; banc ; commit
 « Lot 8 : palettes et indicateur des enregistreurs (L8-T28) » ; `NOMS OK` ; titres vides.
 
@@ -637,7 +637,7 @@ aucun texte de l'original dans les messages.
 - [ ] **Étape 2 : porte** `ui::BroadcastGate` (`QML_ELEMENT`, `appBroadcast`, `commands`, `document`) : à chaque
   document ouvert, calcule l'ensemble des identifiants restreints par `core::restrictionFor` et `forbids`, l'envoie
   au registre ; propriété `active` ; message de refus.
-- [ ] **Étape 3 : test rouge puis vert** `tests/tst_ui_broadcast.cpp` (fonctions de la ligne).
+- [ ] **Étape 3 : test rouge puis vert** `tests/tst_ui_broadcast.cpp` : `restrictedCommandsGreyed` (`edit.copy`, `file.print` : `isEnabled` faux) ; `triggerShowsTheRefusal` (message émis, gestionnaire non appelé) ; `enableCannotBypassTheRestriction` ; `lockAndRestrictionCombine` (verrou levé, restriction tenue) ; `resourceDragRefused` ; `pageActionStillRuns` (action `page.next` d'un objet : la page change) ; `rulesFollowTheOpenDocument` (document sans règles ouvert : tout revient).
 - [ ] **Étape 4 : ressources** : `ResourceLibrary::addSelection` refuse quand `noCopy` (message).
 - [ ] **Étape 5 : scénario** `diffusion-protegee.json` (fixture : document protégé « copie » et « impression », un rond
   portant `page.next`) : `expect` `appBroadcast.active` vrai, `command` `edit.copy` → refus, `command` `file.print` →
