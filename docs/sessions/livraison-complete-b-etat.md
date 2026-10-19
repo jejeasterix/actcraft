@@ -56,6 +56,7 @@ toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · doub
 2. L0-S9 : la racine de `Presentation.qml` est un `QtObject` (conflit de `layer` avec `Item.layer` FINAL) ; les surcouches se posent par `parent: presentation.layer` ou `parent: presentation.pageOverlays`, jamais comme enfants visuels directs.
 3. Démontage QML : tout QML neuf protège ses accès à `commands` (null au démontage) ; `tst_ui_shell::shellLoadsWithoutQmlWarning` échoue sur tout avertissement QML.
 4. L0-S2 : étapes `touch`, `pinch`, `pointer`, `doubleClick` par `QTest::createTouchDevice`/`QTest::touchEvent` (un `QTouchEvent` posté n'atteint pas Qt Quick) ; `expect` accepte `tolerance` ; C++ de qmlcachegen de `actcraft_ui` en `/wd4702`.
+5. Accord de A (L7-T2) : `documentReplaced` et `Document::removeResource` restent dans L7-T2 (lot 3 : seule L3-T12 touche `documentcontroller.cpp`, hors des trois fonctions). Règles : chaque `emit documentReplaced();` sur sa propre ligne à la fin des trois fonctions, sans réindenter ni déplacer de code voisin ; signal déclaré à la fin du bloc `signals:` de `documentcontroller.h`. À reporter dans l'amendement.
 Preuve de A : debug et release 113/113 ; talons « par L7- » : 3 lignes (equation.h, equation.cpp, equationlayout.cpp). N attendu ici : 113 + 16 = 129.
 
 ## Écarts acceptés en phase 1
