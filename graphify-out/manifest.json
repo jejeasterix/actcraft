@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792414608.2257657,
-    "ast_hash": "2bbcd7f146e65d53efd0d2cd575973ca",
+    "mtime": 1792433171.9019501,
+    "ast_hash": "a9602d8d0ad56603fd62db7dcc184280",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2460,8 +2460,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/rideau.json": {
-    "mtime": 1792406200.4725113,
-    "ast_hash": "49998fb1fcb613e4d4738cd36e2b447f",
+    "mtime": 1792437202.7180457,
+    "ast_hash": "ced9304eea5936f5344f5a2fa5e2864c",
     "semantic_hash": ""
   },
   "bench/scenarios/spot.json": {
@@ -2510,8 +2510,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_curtain.cpp": {
-    "mtime": 1792406200.5015318,
-    "ast_hash": "1c278e8c98eb9f749dbff0db029b50fc",
+    "mtime": 1792437202.7180457,
+    "ast_hash": "2bd6af379276879c2aa28e14c445532b",
     "semantic_hash": ""
   },
   "tests/tst_ui_desktop.cpp": {
@@ -2592,6 +2592,16 @@
   "ui/src/presentationdocument.h": {
     "mtime": 1792406200.5666673,
     "ast_hash": "e622dc579c21c0eca1049ad21c6faa6c",
+    "semantic_hash": ""
+  },
+  "ui/src/curtaincontroller.cpp": {
+    "mtime": 1792437202.7357662,
+    "ast_hash": "d684490f951d37559cb3b93d3817ec12",
+    "semantic_hash": ""
+  },
+  "ui/src/curtaincontroller.h": {
+    "mtime": 1792437202.7367785,
+    "ast_hash": "299dadea4d0947baf4c6d33b67297afe",
     "semantic_hash": ""
   }
 }
