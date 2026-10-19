@@ -242,7 +242,8 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
 - **V2 du socle mergée** (L0-S5 et L0-S7). La suite complète de V2 tourne sous le jeton (`scratchpad/out/suite-v2.txt`). L0-S9 est en cours, V3. L0-S2 attend le merge de L10-C2, qui passe après la suite de V2.
-- Plans : lot 11 refusé au tour 2 (4 majeurs, `revue-plan-lot11-t2.md`), amendement 2 en cours, tour 3 = acceptation conditionnelle. Lot 8 refusé au tour 1 (3 bloquants, 12 majeurs), amendement 1 en cours.
+- **Plan du lot 11 mergé** (9c21260, amendements 7292f49 et 7ffdb07). Accepté au tour 3, sous condition : j'ai contrôlé moi-même les lignes. Plus aucun `reg query` ; assertion `QSettings probe` ; `tst_app_versioninfo` à part ; aucune API privée ; mode réel du flux de release interdit. Titres : 0.
+- Plans : lot 8 refusé au tour 1 (3 bloquants, 12 majeurs), amendement 1 en cours.
 - **À reporter à toute construction d'APK** (M13) : `org.gradle.daemon=false` dans `paquet-android.ps1`, sinon la commande ne rend pas la main et garde le jeton (piège déjà vu, § Pièges).
 Plan du lot 8a écrit en partie (53a290e : 20 tâches en 8a, 15 en 8b) ; l'agent continue.
 **Nouvelle décision pour Jérôme, H8-6** : télécharger Qt Multimedia (avec FFmpeg) et Qt WebView. Elle n'est nécessaire qu'au début du lot 8b.
