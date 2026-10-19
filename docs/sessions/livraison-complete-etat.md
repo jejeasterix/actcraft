@@ -243,7 +243,19 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
 - **V2 du socle mergée** (L0-S5 et L0-S7). La suite complète de V2 tourne sous le jeton (`scratchpad/out/suite-v2.txt`). L0-S9 est en cours, V3. L0-S2 attend le merge de L10-C2, qui passe après la suite de V2.
 - **Plan du lot 11 mergé** (9c21260, amendements 7292f49 et 7ffdb07). Accepté au tour 3, sous condition : j'ai contrôlé moi-même les lignes. Plus aucun `reg query` ; assertion `QSettings probe` ; `tst_app_versioninfo` à part ; aucune API privée ; mode réel du flux de release interdit. Titres : 0.
-- Plans : lot 8 refusé au tour 1 (3 bloquants, 12 majeurs), amendement 1 en cours.
+- **Plan du lot 8 mergé** (67dcaeb, amendements e72110b et 3f8ad9c). Accepté au tour 3, sous condition : j'ai contrôlé moi-même les lignes. Plus de lecture `menuItem-`, `appCommands.` ni `appDocument.` ; `platforms: []` n'est cité que comme défaut ; aucune API privée ; Gradle sans démon ; `ACTCRAFT_SOURCE_DIR` posée par L8-T1. Titres : 0.
+  - **Décision de A sur la liste blanche des liens (D8-4)**, fermée.
+    - Exclus : `svg`, `doc`, `xls`, `ppt`, `rtf`, et tout format à macros.
+    - Admis :
+      - documents : `pdf`, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`, `txt` ;
+      - images : `png`, `jpg`, `jpeg`, `gif`, `bmp` ;
+      - sons : `wav`, `mp3`, `ogg`, `m4a` ;
+      - vidéos : `mp4`, `webm`, `avi`, `mov`, `wmv`.
+- **Suite complète de V2** (tête d307e6b) : 111 sur 113.
+  - Échecs : `tst_bench_result` (piège connu : `tst_bench_smoke` sous charge) et `tst_captures_aller_retour_natif` (`BOUCLE max=26 ms ECART`, seuil 25 ms).
+  - Rejeu seul sous le jeton : 4 sur 4 verts (`scratchpad/out/echecs-v2.txt`).
+  - Verdict : instabilité due à la charge, pas une régression. C'est exactement ce que corrige L10-C2 (fenêtre de boucle rejouée une fois).
+- **L10-C2** : j'ai fusionné la tête 67dcaeb dans la branche (742be31), sans fichier commun. Rejeu lancé sous le jeton (`scratchpad/rejeu-l10c2.ps1`) : suite complète, `tst_bench_uiscenario`, puis une mutation qui coupe la reprise unique (`eventLoopGapIsRetriedOnce` doit rougir). Merge avant L0-S2.
 - **À reporter à toute construction d'APK** (M13) : `org.gradle.daemon=false` dans `paquet-android.ps1`, sinon la commande ne rend pas la main et garde le jeton (piège déjà vu, § Pièges).
 Plan du lot 8a écrit en partie (53a290e : 20 tâches en 8a, 15 en 8b) ; l'agent continue.
 **Nouvelle décision pour Jérôme, H8-6** : télécharger Qt Multimedia (avec FFmpeg) et Qt WebView. Elle n'est nécessaire qu'au début du lot 8b.
