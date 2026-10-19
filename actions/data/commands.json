@@ -41,7 +41,7 @@
     { "id": "object.move-free", "label": "Déplacer librement", "icon": "deplacer" },
     { "id": "object.rotate", "label": "Faire pivoter", "icon": "rotation" },
     { "id": "object.translucency", "label": "Translucidité", "icon": "translucidite", "argument": "number", "optional": true },
-    { "id": "object.enlarge", "label": "Agrandir l'objet", "icon": "agrandir", "shortcut": "Ctrl++" },
+    { "id": "object.enlarge", "label": "Agrandir l'objet", "icon": "agrandir", "shortcut": "Ctrl+=" },
     { "id": "object.reduce", "label": "Réduire l'objet", "icon": "reduire", "shortcut": "Ctrl+-" },
     { "id": "view.page-zoom", "label": "Zoom de page", "icon": "zoom-page", "shortcut": "Ctrl+Shift+Z", "checkable": true },
     { "id": "view.page-effects", "label": "Effets de changement de page…", "icon": "effets" },
