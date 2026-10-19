@@ -356,6 +356,7 @@ void DocumentController::replaceDocument(core::Document document, const QUrl& fi
     setWarnings({});
     setLastError({});
     notifyState(false);
+    emit documentReplaced();
 }
 
 void DocumentController::newDocument(double width, double height)
@@ -413,6 +414,7 @@ void DocumentController::loadGeneratedFirstPage()
         attach();
     }
     notifyState(pageSize() != shownSize);
+    emit documentReplaced();
 }
 
 void DocumentController::loadGeneratedPages(int count, bool painted)

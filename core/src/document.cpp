@@ -157,6 +157,11 @@ std::string Document::addResource(QByteArray data, std::string extension)
     return key;
 }
 
+void Document::removeResource(const std::string& key)
+{
+    m_resources.erase(key);
+}
+
 void Document::setResourceUnknownKeys(const std::string& key, std::string keys)
 {
     if (const auto it = m_resources.find(key); it != m_resources.end()) {
