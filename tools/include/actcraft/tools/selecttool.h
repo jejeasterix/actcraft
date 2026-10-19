@@ -39,18 +39,26 @@ private:
         Pressed,    // appui posé, seuil de glissement pas franchi
         RubberBand, // rectangle élastique en cours
         Dragging,   // objets soulevés, couche soulevée déplacée
+        Resizing,   // objets soulevés, poignée glissée (F-520)
+        Rotating,   // objets soulevés, bouton de rotation glissé (F-522)
     };
     enum class Grab : std::uint8_t
     {
         None,
-        Band, // appui dans le vide (ou avec Maj/Ctrl) : rectangle
-        Drag, // appui sur un objet ou dans le cadre : déplacement
+        Band,     // appui dans le vide (ou avec Maj/Ctrl) : rectangle
+        Drag,     // appui sur un objet ou dans le cadre : déplacement
+        FreeMove, // bouton « déplacer librement » : déplace même un objet verrouillé ou limité
+        Handle,   // poignée : redimensionner
+        Rotate,   // bouton de rotation
+        Command,  // autre bouton de la barre : un clic le déclenche
     };
 
     void press(const input::Sample& sample);
     void move(const input::Sample& sample);
     void release(const input::Sample& sample);
-    void beginDrag();
+    void beginDrag(bool force);
+    void beginTransform(State kind);
+    core::Transform gestureTransform(core::PointF point) const;
     void updateDrag(core::PointF point);
     void endDrag(core::PointF point, bool cancelled);
     void showBand(core::PointF point);
@@ -70,6 +78,8 @@ private:
     std::vector<core::ObjectId> m_grabbed; // objets visés par le glissement
     std::vector<core::ObjectId> m_lifted;  // objets effectivement soulevés
     SelectionView m_frame;                 // cadre de la sélection au soulèvement
+    HandleKind m_handle = HandleKind::TopLeft; // poignée saisie
+    QString m_command;                         // bouton de barre saisi
     bool m_trashHover = false;
     int m_modifiers = 0;
 };

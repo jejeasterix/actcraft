@@ -1,5 +1,6 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
+#include <actcraft/core/hittest.h>
 #include <actcraft/core/lift.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/tools/selectiongeometry.h>
@@ -133,7 +134,12 @@ public:
     double zoom() const override { return scale; }
     bool overTrash(core::PointF p) const override { return p.x > 1000; }
     void setTrashHover(bool hover) override { hovers.push_back(hover); }
-    QStringList objectBarCommands() const override { return {}; }
+    QStringList objectBarCommands() const override
+    {
+        return {QStringLiteral("object.move-free"), QStringLiteral("object.rotate"),
+                QStringLiteral("object.translucency"), QStringLiteral("object.enlarge"),
+                QStringLiteral("object.reduce")};
+    }
 };
 
 class FakeInk final : public tools::InkSurface
@@ -153,7 +159,12 @@ public:
 class FakeCommands final : public tools::CommandSink
 {
 public:
-    bool trigger(const QString&, const QVariant&) override { return false; }
+    QStringList triggered;
+    bool trigger(const QString& id, const QVariant&) override
+    {
+        triggered.push_back(id);
+        return true;
+    }
 };
 
 core::PageObject rectangle(core::ObjectId id, double x, double y, double w, double h)
@@ -218,7 +229,49 @@ struct Rig
     }
     void holdShift(bool on) { tool.onKey(Qt::Key_Shift, on ? int(Qt::ShiftModifier) : 0); }
     void holdCtrl(bool on) { tool.onKey(Qt::Key_Control, on ? int(Qt::ControlModifier) : 0); }
+
+    // Une seule page-objet : 1 = (x, y, w, h), sélectionné ; le cadre est publié.
+    void only(double x, double y, double w, double h)
+    {
+        editor.document.page(0).objects.clear();
+        editor.document.page(0).objects.push_back(rectangle(1, x, y, w, h));
+        user.setSelection({1});
+        tool.refresh();
+    }
+    core::PageObject& first() { return editor.document.page(0).objects[0]; }
+    core::PointF handle(tools::HandleKind kind) const
+    {
+        return selection.last().handles[static_cast<std::size_t>(kind)];
+    }
+    core::PointF barSpot(const QString& command) const
+    {
+        for (const tools::BarSpot& spot : selection.last().bar) {
+            if (spot.command == command) {
+                return spot.center;
+            }
+        }
+        return {-1e9, -1e9};
+    }
+    core::RectF bounds1() const { return core::boundsOnPage(*editor.find(1)); }
 };
+
+bool closeTo(double a, double b, double tolerance = 0.01)
+{
+    return std::abs(a - b) <= tolerance;
+}
+bool closeRect(const core::RectF& r, double x, double y, double w, double h)
+{
+    return closeTo(r.x, x) && closeTo(r.y, y) && closeTo(r.width, w) && closeTo(r.height, h);
+}
+double angleOf(const core::Transform& t)
+{
+    return std::atan2(t.m12, t.m11) * 180.0 / 3.14159265358979323846;
+}
+// Point à `degrees` (sens de core::rotation) de `from` autour de `center`.
+core::PointF around(core::PointF center, core::PointF from, double degrees)
+{
+    return core::rotationAbout(center, degrees).map(from);
+}
 
 const std::vector<core::ObjectId> none;
 
@@ -457,6 +510,285 @@ private slots:
         QCOMPARE(r.editor.find(1)->common.transform.dy, 100.0);
         QVERIFY(r.editor.find(3)->common.transform.isIdentity());       // 3 n'a pas bougé
         QCOMPARE(r.user.selection(), (std::vector<core::ObjectId>{3})); // 1 reste non sélectionné
+    }
+
+    void eightHandlesAroundTheFrame()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        const tools::SelectionView& v = r.selection.last();
+        const std::vector<core::PointF> expected{{100, 100}, {200, 100}, {300, 100}, {300, 150},
+                                                 {300, 200}, {200, 200}, {100, 200}, {100, 150}};
+        QCOMPARE(v.handles.size(), expected.size());
+        for (std::size_t i = 0; i < expected.size(); ++i) {
+            QVERIFY2(closeTo(v.handles[i].x, expected[i].x) && closeTo(v.handles[i].y, expected[i].y),
+                     qPrintable(QString::number(i)));
+        }
+        QCOMPARE(v.bar.size(), std::size_t(5));
+        for (const tools::BarSpot& spot : v.bar) {
+            QVERIFY(spot.center.y < 100);
+        }
+        QVERIFY(v.handlesVisible);
+    }
+
+    void barMovesBelowWhenItWouldLeaveThePage()
+    {
+        Rig r;
+        r.only(100, 5, 200, 100);
+        QCOMPARE(r.selection.last().bar.size(), std::size_t(5));
+        for (const tools::BarSpot& spot : r.selection.last().bar) {
+            QVERIFY(spot.center.y > 105);
+        }
+    }
+
+    void barGoesToTheRightOfATallFrame()
+    {
+        Rig r;
+        r.only(100, 100, 50, 200); // plus haut que large
+        QCOMPARE(r.selection.last().bar.size(), std::size_t(5));
+        for (const tools::BarSpot& spot : r.selection.last().bar) {
+            QVERIFY(spot.center.x > 150);
+            QVERIFY(spot.center.y >= 100 && spot.center.y <= 300);
+        }
+        r.only(100, 100, 200, 50); // plus large que haut : au-dessus
+        for (const tools::BarSpot& spot : r.selection.last().bar) {
+            QVERIFY(spot.center.y < 100);
+        }
+    }
+
+    void cornerHandleResizesProportionally()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        r.drag(300, 200, 400, 220, 4); // facteurs 1,5 et 1,2 : le plus grand gagne
+        QVERIFY(closeRect(r.bounds1(), 100, 100, 300, 150));
+        QCOMPARE(r.editor.calls.back(), std::string("drop:Transform"));
+    }
+
+    void topLeftCornerResizesFreely()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        r.drag(100, 100, 50, 70, 4); // le coin bas droit reste fixe
+        QVERIFY(closeRect(r.bounds1(), 50, 70, 250, 130));
+    }
+
+    void sideHandleStretches()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        r.drag(300, 150, 350, 190, 4); // un seul axe
+        QVERIFY(closeRect(r.bounds1(), 100, 100, 250, 100));
+    }
+
+    void resizeNeverFlipsTheObject()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        r.drag(300, 150, 0, 150, 4); // jusqu'au-delà du côté opposé
+        const core::RectF b = r.bounds1();
+        QVERIFY(b.width > 0.5 && b.width < 1.5);
+        QVERIFY(closeTo(b.x, 100));
+        QVERIFY(r.editor.find(1)->common.transform.m11 > 0);
+    }
+
+    void rotatedObjectResizesAlongItsOwnAxes()
+    {
+        Rig r;
+        r.only(100, 100, 100, 100);
+        r.first().common.transform = core::rotationAbout({150, 150}, 90);
+        r.tool.refresh();
+        // Poignée droite du cadre pivoté : en bas de la page (150, 200). Glisser vers le bas étire.
+        const core::PointF grip = r.handle(tools::HandleKind::Right);
+        QVERIFY(closeTo(grip.x, 150) && closeTo(grip.y, 200));
+        r.drag(grip.x, grip.y, 150, 250, 4);
+        QVERIFY(closeRect(r.bounds1(), 100, 100, 100, 150));
+    }
+
+    void rotationAroundCenter()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        const core::PointF center{200, 150};
+        const core::PointF grip = r.barSpot(QStringLiteral("object.rotate"));
+        r.press(grip.x, grip.y);
+        for (const double turn : {30.0, 60.0, 90.0}) {
+            const core::PointF p = around(center, grip, turn);
+            r.move(p.x, p.y);
+        }
+        const core::PointF end = around(center, grip, 90);
+        r.release(end.x, end.y);
+        QCOMPARE(r.editor.executes, 0);
+        QCOMPARE(r.editor.drops, 1);
+        QCOMPARE(r.editor.calls.back(), std::string("drop:Transform"));
+        const core::Transform t = r.editor.find(1)->common.transform;
+        QVERIFY(std::abs(angleOf(t) - 90.0) < 0.5);
+        const core::PointF mapped = t.map(center);
+        QVERIFY(closeTo(mapped.x, 200, 0.5) && closeTo(mapped.y, 150, 0.5)); // le centre ne bouge pas
+    }
+
+    void shiftSnapsRotationToFifteenDegrees()
+    {
+        const std::vector<std::pair<double, double>> cases{{97.0, 90.0}, {20.0, 15.0}, {-40.0, -45.0}};
+        for (const auto& [turn, expected] : cases) {
+            Rig r;
+            r.only(100, 100, 200, 100);
+            const core::PointF center{200, 150};
+            const core::PointF grip = r.barSpot(QStringLiteral("object.rotate"));
+            r.holdShift(true);
+            r.press(grip.x, grip.y);
+            const core::PointF p = around(center, grip, turn);
+            r.move(p.x, p.y);
+            r.release(p.x, p.y);
+            r.holdShift(false);
+            QVERIFY2(std::abs(angleOf(r.editor.find(1)->common.transform) - expected) < 0.01,
+                     qPrintable(QString::number(turn)));
+        }
+    }
+
+    void rotationIsOnlyThroughTheBar()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        // Glisser hors de la barre, hors des poignées, dans le vide : jamais de rotation.
+        r.drag(500, 500, 560, 520, 4);
+        QVERIFY(r.editor.find(1)->common.transform.isIdentity());
+        QCOMPARE(r.editor.lifts, 0);
+    }
+
+    void singleRotatedFrameTurnsButMultipleDoesNot()
+    {
+        Rig r;
+        r.editor.document.page(0).objects[0].common.transform = core::rotationAbout({150, 150}, 45);
+        const tools::SelectionView one = tools::layoutSelection(r.editor.page(), {1}, 1.0, {});
+        QVERIFY(std::abs(one.corners[1].y - one.corners[0].y) > 1.0); // le cadre pivote
+        QVERIFY(closeTo(one.corners[0].x, 150) && closeTo(one.corners[0].y, 150 - 50 * std::sqrt(2.0)));
+        const tools::SelectionView many = tools::layoutSelection(r.editor.page(), {1, 3}, 1.0, {});
+        QCOMPARE(many.corners[0].y, many.corners[1].y); // emprise réunie, jamais pivotée
+        QCOMPARE(many.corners[1].x, many.corners[2].x);
+        QCOMPARE(many.corners[0].x, many.corners[3].x);
+        const core::RectF united = core::unitedRect(core::boundsOnPage(r.editor.page().objects[0]),
+                                                    core::boundsOnPage(r.editor.page().objects[2]));
+        QCOMPARE(many.corners[0].x, united.x);
+        QCOMPARE(many.corners[2].y, united.y + united.height);
+    }
+
+    void handlesHiddenWhileDragging()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        QVERIFY(r.selection.last().handlesVisible);
+        r.press(300, 200);
+        r.move(330, 210);
+        r.move(360, 220);
+        QVERIFY(!r.selection.last().handlesVisible);
+        r.release(360, 220);
+        QVERIFY(r.selection.last().handlesVisible);
+    }
+
+    void barButtonTriggersCommand()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        const core::PointF button = r.barSpot(QStringLiteral("object.enlarge"));
+        r.click(button.x, button.y);
+        QCOMPARE(r.commands.triggered, (QStringList{QStringLiteral("object.enlarge")}));
+        QCOMPARE(r.editor.lifts, 0);
+        QCOMPARE(r.editor.executes, 0);
+        QCOMPARE(r.user.selection(), (std::vector<core::ObjectId>{1}));
+        QVERIFY(!r.tool.isBusy());
+    }
+
+    void restrictionsHonoured()
+    {
+        {
+            Rig r; // non redimensionnable : plus de poignées, la barre reste
+            r.only(100, 100, 200, 100);
+            r.first().common.restrictions.resizable = false;
+            r.tool.refresh();
+            QVERIFY(r.selection.last().handles.empty());
+            QCOMPARE(r.selection.last().bar.size(), std::size_t(5));
+        }
+        {
+            Rig r; // non pivotable : plus de bouton de rotation
+            r.only(100, 100, 200, 100);
+            r.first().common.restrictions.rotatable = false;
+            r.tool.refresh();
+            QCOMPARE(r.selection.last().handles.size(), std::size_t(8));
+            QCOMPARE(r.selection.last().bar.size(), std::size_t(4));
+            QVERIFY(r.barSpot(QStringLiteral("object.rotate")).x < -1e8);
+        }
+        {
+            Rig r; // verrouillé : « déplacer librement » le déplace quand même
+            r.only(100, 100, 200, 100);
+            r.first().common.locked = true;
+            r.tool.refresh();
+            const core::PointF grip = r.barSpot(QStringLiteral("object.move-free"));
+            r.drag(grip.x, grip.y, grip.x + 100, grip.y, 5);
+            QCOMPARE(r.editor.calls.back(), std::string("drop:Transform"));
+            QVERIFY(closeTo(r.editor.find(1)->common.transform.dx, 100.0));
+        }
+    }
+
+    void lockedObjectNeitherResizesNorRotates()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        r.first().common.locked = true;
+        r.tool.refresh();
+        QVERIFY(r.selection.last().handles.empty());
+        QVERIFY(r.barSpot(QStringLiteral("object.rotate")).x < -1e8);
+        r.drag(300, 200, 400, 220, 4);
+        QCOMPARE(r.editor.lifts, 0);
+        QVERIFY(r.editor.find(1)->common.transform.isIdentity());
+    }
+
+    void escapeCancelsResize()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        r.press(300, 200);
+        r.move(350, 210);
+        r.move(400, 220);
+        QVERIFY(r.tool.isBusy());
+        QVERIFY(r.tool.onKey(Qt::Key_Escape, 0));
+        QCOMPARE(r.editor.calls.back(), std::string("drop:null"));
+        QVERIFY(r.editor.find(1)->common.transform.isIdentity());
+        QCOMPARE(r.editor.executes, 0);
+        QVERIFY(!r.tool.isBusy());
+    }
+
+    void resizeLiftsOnceAndDropsOnce()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        r.click(300, 200); // un clic sur une poignée ne soulève rien
+        QCOMPARE(r.editor.lifts, 0);
+        QCOMPARE(r.editor.drops, 0);
+        r.drag(300, 200, 400, 220, 5);
+        QCOMPARE(r.editor.lifts, 1);
+        QCOMPARE(r.editor.executes, 0);
+        QCOMPARE(r.editor.drops, 1);
+        QCOMPARE(r.lift.shows, 1);
+        QCOMPARE(r.lift.transforms, 5);
+        QCOMPARE(r.lift.clears, 1);
+        QCOMPARE(r.user.selection(), (std::vector<core::ObjectId>{1}));
+        QVERIFY(!r.tool.isBusy());
+    }
+
+    void handleGrabRadiusIsInScreenPixels()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        for (const double zoom : {1.0, 2.0}) {
+            const tools::SelectionView v = tools::layoutSelection(r.editor.page(), {1}, zoom, {});
+            const double inside = 5.5 / zoom;  // 5,5 px d'écran : saisi
+            const double outside = 7.0 / zoom; // 7 px d'écran : non
+            QCOMPARE(int(tools::hitSelection(v, {300 + inside, 200}, zoom).kind),
+                     int(tools::SelectionHitKind::Handle));
+            QVERIFY(tools::hitSelection(v, {300 + outside, 200}, zoom).kind !=
+                    tools::SelectionHitKind::Handle);
+        }
     }
 };
 

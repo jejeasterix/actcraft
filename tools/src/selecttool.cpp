@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <numbers>
 #include <optional>
 #include <utility>
 
@@ -20,6 +21,50 @@ namespace {
 // Glissement : au-delà de 2 px d'écran (D6, P27) ; un clic ne soulève rien.
 constexpr double kDragThresholdScreen = 2.0;
 constexpr int kExtendModifiers = Qt::ShiftModifier | Qt::ControlModifier;
+constexpr double kSnapStepDegrees = 15.0; // rotation avec Maj
+constexpr double kMinExtent = 1.0; // plus petite largeur ou hauteur d'un redimensionnement (pixels de page)
+
+double toDegrees(double radians) noexcept
+{
+    return radians * 180.0 / std::numbers::pi;
+}
+
+// Signe horizontal (-1 gauche, +1 droite, 0 aucun) et vertical (-1 haut, +1 bas) d'une poignée.
+int horizontalSign(HandleKind handle) noexcept
+{
+    switch (handle) {
+    case HandleKind::TopLeft:
+    case HandleKind::BottomLeft:
+    case HandleKind::Left:
+        return -1;
+    case HandleKind::TopRight:
+    case HandleKind::BottomRight:
+    case HandleKind::Right:
+        return 1;
+    case HandleKind::Top:
+    case HandleKind::Bottom:
+        return 0;
+    }
+    return 0;
+}
+
+int verticalSign(HandleKind handle) noexcept
+{
+    switch (handle) {
+    case HandleKind::TopLeft:
+    case HandleKind::Top:
+    case HandleKind::TopRight:
+        return -1;
+    case HandleKind::BottomLeft:
+    case HandleKind::Bottom:
+    case HandleKind::BottomRight:
+        return 1;
+    case HandleKind::Left:
+    case HandleKind::Right:
+        return 0;
+    }
+    return 0;
+}
 
 bool contains(const std::vector<core::ObjectId>& ids, core::ObjectId id)
 {
@@ -104,6 +149,8 @@ void SelectTool::cancel()
         showFrame(); // le cadre sans rectangle
         return;
     case State::Dragging:
+    case State::Resizing:
+    case State::Rotating:
         endDrag(m_start, true);
         return;
     }
@@ -221,6 +268,29 @@ void SelectTool::press(const input::Sample& sample)
     const double zoom = m_context.view.zoom();
     const std::optional<core::ObjectId> hit = core::objectAt(page, m_start, core::kHitToleranceScreen / zoom);
     const std::vector<core::ObjectId> selection = m_context.user.selection();
+    if (!selection.empty()) { // barre et poignées passent avant tout, même avec Maj ou Ctrl
+        const SelectionView grabFrame =
+            layoutSelection(page, selection, zoom, m_context.view.objectBarCommands());
+        const SelectionHit grabbed = hitSelection(grabFrame, m_start, zoom);
+        if (grabbed.kind == SelectionHitKind::BarButton) {
+            m_command = grabbed.command;
+            if (m_command == QStringLiteral("object.rotate")) {
+                m_grab = Grab::Rotate;
+            } else if (m_command == QStringLiteral("object.move-free")) {
+                m_grab = Grab::FreeMove;
+                m_grabbed = selection;
+                m_dragSelection = true;
+            } else {
+                m_grab = Grab::Command;
+            }
+            return;
+        }
+        if (grabbed.kind == SelectionHitKind::Handle) {
+            m_grab = Grab::Handle;
+            m_handle = grabbed.handle;
+            return;
+        }
+    }
     if ((m_modifiers & kExtendModifiers) != 0) {
         if (hit) { // Maj ou Ctrl + clic : bascule (P26)
             std::vector<core::ObjectId> next = selection;
@@ -268,32 +338,45 @@ void SelectTool::move(const input::Sample& sample)
         if (!(distance > kDragThresholdScreen)) {
             return;
         }
-        if (m_grab == Grab::Band) {
+        switch (m_grab) {
+        case Grab::Band:
             m_state = State::RubberBand;
-        } else if (m_grab == Grab::Drag) {
-            beginDrag();
-            if (m_state != State::Dragging) {
-                m_grab = Grab::None; // rien de déplaçable : le geste ne fait plus rien
-                return;
-            }
-        } else {
+            break;
+        case Grab::Drag:
+            beginDrag(false);
+            break;
+        case Grab::FreeMove:
+            beginDrag(true);
+            break;
+        case Grab::Handle:
+            beginTransform(State::Resizing);
+            break;
+        case Grab::Rotate:
+            beginTransform(State::Rotating);
+            break;
+        case Grab::None:
+        case Grab::Command:
+            return;
+        }
+        if (m_state == State::Pressed) {
+            m_grab = Grab::None; // rien à faire bouger : le geste ne fait plus rien
             return;
         }
     }
-    if (m_state == State::Dragging) {
-        updateDrag(point);
-    } else if (m_state == State::RubberBand) {
+    if (m_state == State::RubberBand) {
         showBand(point);
+    } else {
+        updateDrag(point);
     }
 }
 
-void SelectTool::beginDrag()
+void SelectTool::beginDrag(bool force)
 {
     const core::Page& page = m_context.document.page();
     std::vector<core::ObjectId> ids;
     for (const core::ObjectId id : m_grabbed) {
         const std::size_t index = core::indexOf(page, id);
-        if (index != page.objects.size() && movable(page.objects[index])) {
+        if (index != page.objects.size() && (force || movable(page.objects[index]))) {
             ids.push_back(id);
         }
     }
@@ -307,22 +390,96 @@ void SelectTool::beginDrag()
     m_state = State::Dragging;
 }
 
+void SelectTool::beginTransform(State kind)
+{
+    const core::Page& page = m_context.document.page();
+    std::vector<core::ObjectId> ids;
+    for (const core::ObjectId id : m_context.user.selection()) {
+        const std::size_t index = core::indexOf(page, id);
+        if (index == page.objects.size()) {
+            continue;
+        }
+        const core::ObjectCommon& common = page.objects[index].common;
+        const bool allowed =
+            !common.locked &&
+            (kind == State::Resizing ? common.restrictions.resizable : common.restrictions.rotatable); // P28
+        if (allowed) {
+            ids.push_back(id);
+        }
+    }
+    m_frame = layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {});
+    if (ids.empty() || m_frame.corners.size() != 4 ||
+        (kind == State::Resizing && m_frame.handles.size() != 8)) {
+        return;
+    }
+    m_lifted = ids;
+    std::vector<core::PageObject> copies = m_context.document.lift(ids);
+    m_context.lift.show(std::move(copies));
+    m_state = kind;
+}
+
+// Transformation du geste en cours, en coordonnées de page, appliquée après celle des objets.
+core::Transform SelectTool::gestureTransform(core::PointF point) const
+{
+    if (m_state == State::Rotating) {
+        const core::PointF center{(m_frame.corners[0].x + m_frame.corners[2].x) / 2,
+                                  (m_frame.corners[0].y + m_frame.corners[2].y) / 2};
+        double delta = toDegrees(std::atan2(point.y - center.y, point.x - center.x)) -
+                       toDegrees(std::atan2(m_start.y - center.y, m_start.x - center.x));
+        if ((m_modifiers & Qt::ShiftModifier) != 0) {
+            delta = std::round(delta / kSnapStepDegrees) * kSnapStepDegrees;
+        }
+        return core::rotationAbout(center, delta);
+    }
+    if (m_state == State::Resizing) {
+        const std::vector<core::PointF>& c = m_frame.corners;
+        const double width = std::hypot(c[1].x - c[0].x, c[1].y - c[0].y);
+        const double height = std::hypot(c[3].x - c[0].x, c[3].y - c[0].y);
+        if (!(width > 0) || !(height > 0)) {
+            return core::Transform{};
+        }
+        // Axes du cadre (ceux de la page tant que l'objet n'a pas pivoté).
+        const core::PointF u{(c[1].x - c[0].x) / width, (c[1].y - c[0].y) / width};
+        const core::PointF v{(c[3].x - c[0].x) / height, (c[3].y - c[0].y) / height};
+        const std::size_t grabbedIndex = static_cast<std::size_t>(m_handle);
+        const core::PointF grabbed = m_frame.handles[grabbedIndex];
+        const core::PointF anchor = m_frame.handles[(grabbedIndex + 4) % 8]; // le côté opposé reste fixe
+        const core::PointF rel{grabbed.x + point.x - m_start.x - anchor.x,
+                               grabbed.y + point.y - m_start.y - anchor.y};
+        const int sh = horizontalSign(m_handle);
+        const int sv = verticalSign(m_handle);
+        double sx = sh == 0 ? 1.0 : std::max(sh * (rel.x * u.x + rel.y * u.y), kMinExtent) / width;
+        double sy = sv == 0 ? 1.0 : std::max(sv * (rel.x * v.x + rel.y * v.y), kMinExtent) / height;
+        if (m_handle == HandleKind::BottomRight) { // seule poignée qui garde les proportions
+            sx = sy = std::max(sx, sy);
+        }
+        const core::Transform scale = core::scalingAbout(anchor, sx, sy);
+        const double angle = toDegrees(std::atan2(u.y, u.x));
+        if (std::abs(angle) < 1e-9) {
+            return scale;
+        }
+        return core::compose(core::compose(core::rotationAbout(anchor, -angle), scale),
+                             core::rotationAbout(anchor, angle));
+    }
+    return core::translation(point.x - m_start.x, point.y - m_start.y);
+}
+
 void SelectTool::updateDrag(core::PointF point)
 {
-    const double dx = point.x - m_start.x;
-    const double dy = point.y - m_start.y;
-    m_context.lift.setTransform(core::translation(dx, dy));
-    const bool over = m_context.view.overTrash(point);
-    if (over != m_trashHover) {
-        m_trashHover = over;
-        m_context.view.setTrashHover(over);
+    const core::Transform delta = gestureTransform(point);
+    m_context.lift.setTransform(delta);
+    if (m_state == State::Dragging) {
+        const bool over = m_context.view.overTrash(point);
+        if (over != m_trashHover) {
+            m_trashHover = over;
+            m_context.view.setTrashHover(over);
+        }
     }
     SelectionView view = m_frame;
     view.handlesVisible = false; // F-528
-    if (m_dragSelection) {
+    if (m_dragSelection || m_state != State::Dragging) {
         for (core::PointF& corner : view.corners) {
-            corner.x += dx;
-            corner.y += dy;
+            corner = delta.map(corner);
         }
     }
     publish(view);
@@ -330,10 +487,9 @@ void SelectTool::updateDrag(core::PointF point)
 
 void SelectTool::endDrag(core::PointF point, bool cancelled)
 {
-    const double dx = point.x - m_start.x;
-    const double dy = point.y - m_start.y;
+    const core::Transform delta = gestureTransform(point);
     const std::size_t page = m_context.document.pageIndex();
-    const bool trash = !cancelled && m_context.view.overTrash(point);
+    const bool trash = m_state == State::Dragging && !cancelled && m_context.view.overTrash(point);
     if (trash) {
         std::vector<core::ObjectId> selection = m_context.user.selection();
         selection.erase(std::remove_if(selection.begin(), selection.end(),
@@ -341,11 +497,10 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
                         selection.end());
         m_context.document.drop(std::make_unique<core::RemoveObjectsCommand>(page, m_lifted));
         m_context.user.setSelection(std::move(selection));
-    } else if (cancelled || (dx == 0 && dy == 0)) {
+    } else if (cancelled || delta.isIdentity()) {
         m_context.document.drop(nullptr);
     } else {
-        m_context.document.drop(
-            std::make_unique<core::TransformObjectsCommand>(page, m_lifted, core::translation(dx, dy)));
+        m_context.document.drop(std::make_unique<core::TransformObjectsCommand>(page, m_lifted, delta));
     }
     m_context.lift.clear();
     if (m_trashHover) {
@@ -371,6 +526,13 @@ void SelectTool::release(const input::Sample& sample)
     case State::Idle:
         return;
     case State::Pressed:
+        if (m_grab == Grab::Command) {
+            const QString command = m_command;
+            reset();
+            m_context.commands.trigger(command, {});
+            showFrame();
+            return;
+        }
         if (m_grab == Grab::Drag && m_pendingSelect != 0) {
             m_context.user.setSelection({m_pendingSelect});
         } else if (m_grab == Grab::Band && !m_additive) {
@@ -393,6 +555,8 @@ void SelectTool::release(const input::Sample& sample)
         break;
     }
     case State::Dragging:
+    case State::Resizing:
+    case State::Rotating:
         endDrag(point, false);
         return;
     }
@@ -418,6 +582,7 @@ void SelectTool::reset() noexcept
     m_pendingSelect = 0;
     m_dragSelection = false;
     m_additive = false;
+    m_command.clear();
     m_base.clear();
     m_grabbed.clear();
     m_lifted.clear();
