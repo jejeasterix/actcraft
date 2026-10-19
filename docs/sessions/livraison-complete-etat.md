@@ -267,7 +267,8 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
   - captures `tous` hors écran, en logiciel : 9 SCENARIO OK, CAPTURES OK ;
   - banc logiciel hors écran : `content_check.ok = True`, BUDGET DEPASSE (informatif) ;
   - NOMS OK 435, après correction d'une ligne de ce fichier qui citait le nom de fichier d'une note du coffre.
-- **Socle mergé.** Message « socle mergé » envoyé à B, avec la note de L0-S5 et l'écart de `Presentation.qml`. Prochaine étape : le lot 3, en amendant d'abord le commentaire d'`editAboutToApply`.- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
+- **Socle mergé.** Message « socle mergé » envoyé à B, avec la note de L0-S5 et l'écart de `Presentation.qml`. Prochaine étape : le lot 3, en amendant d'abord le commentaire d'`editAboutToApply`.
+- **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
 - **V2 du socle mergée** (L0-S5 et L0-S7). La suite complète de V2 tourne sous le jeton (`scratchpad/out/suite-v2.txt`). L0-S9 est en cours, V3. L0-S2 attend le merge de L10-C2, qui passe après la suite de V2.
