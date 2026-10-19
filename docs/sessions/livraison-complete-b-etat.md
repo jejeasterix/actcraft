@@ -44,7 +44,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-P8 | L7-P0 | voir ligne L7-P8 du plan phase 1 | supprimé | terminée, mergée | 3 | 2302dc6 | rejeu : 110 tests `TESTS OK`, Totals 7 sans SKIP (reconnaisseur français du poste), grep COM limité à handwriting_win.cpp, `NOMS OK` ; mutants QThreadPool et alternatives vides rouges ; P8-m6 (reconnaisseur muet → échec, pas SKIP) consigné |
 | L7-P4 | L7-P3 | voir ligne L7-P4 du plan phase 1 | supprimé | terminée, mergée | 1 | 55f45e6 | rejeu : 110 tests `TESTS OK`, Totals 22, `NOMS OK` ; revue adversariale appliquée (essai 2) |
 | L7-P2 | L7-P0 | voir ligne L7-P2 du plan phase 1 | supprimé | terminée, mergée (827f028), graphe c606f05 | 2 | df41743 | rejeu : 110 tests `TESTS OK`, Totals 10 (pagezoom) et 12 (transitions) ; rouge vu sur ee87059 (3 échecs) |
-| L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | .worktrees/livraison-complete-b--L7-P5 (base dfc8857) | rendue (Totals 7/11/8, 6 mutants) ; rejeu en cours | 2 | e5f5874 | — |
+| L7-P5 | L7-P0 | voir ligne L7-P5 du plan phase 1 | supprimé | terminée, mergée | 2 | e5f5874 | rejeu : 110 tests `TESTS OK`, Totals 7/11/8, `NOMS OK` ; 6 mutants rouges |
 | L7-P6 | L7-P0 | voir ligne L7-P6 du plan phase 1 | .worktrees/livraison-complete-b--L7-P6 (base dfc8857) | reprise (implementeur-tdd), rouge en file | 2 | wip 783c2da | — |
 | L7-P9 | L7-P0 | voir ligne L7-P9 du plan phase 1 | .worktrees/livraison-complete-b--L7-P9 (base dfc8857) | reprise (implementeur-tdd) | 2 | wip 59d3107 | — |
 
