@@ -15,24 +15,41 @@ L'exécutant de chaque tâche lit ces sections du plan de 11a avant la sienne.
 porte de fin (L11-T30). Aucune tâche ne crée de tag, ne pousse de tag, n'écrit dans une release GitHub ni ne crée le
 fichier go (`<git-common-dir>/chantiers/go-action-finale`).
 
+## Amendement 1 (relecture tour 1)
+
+La table complète des constats est dans l'amendement 1 du plan de 11a ; elle fait autorité. Constats appliqués ici,
+corrigés en place : **B1** (`tst_app_versioninfo`, L11-T28), **B2** (point 7 de L11-T29 supprimé, interdit du
+`workflow_dispatch` réel), **M14** (`commands.lockedCount`, L11-T26), **M15** (`appUpdates.start()` et
+`startCalledOnceByTheShell`, L11-T22), **M16** (`bench/scenarios/controle/pseudo-langue.json`, `ACTCRAFT_UPDATES_URL`
+avant `tous`, L11-T19, L11-T20, L11-T30), **M8** (réglages d'essai des tests de 11b : règle commune de 11a),
+**M10** (comptes de talons, L11-T30), et les mineurs :
+- m7 : `tst_ui_accessibility` pose `ACTCRAFT_UPDATES_URL` dans `initTestCase` (L11-T24) ;
+- m12 : `#include <actcraft/ui/preferences.h>` dans `updatechecker.h` (L11-T21) ;
+- m13 : fixture `same.json` retirée (L11-T21) ;
+- m14 : `ENVIRONMENT` qui garde `_bench_env_offscreen` (L11-T22) ;
+- m15 : aucun nom de l'original en clair dans le test des pages d'aide ; la liste est lue hors dépôt (L11-T17) ;
+- m16 : `app/CMakeLists.txt:26-35`, `ACTCRAFT_SOURCE_DIR`, `versionCodeFollowsTheVersion` (L11-T28) ;
+- m17 : chemin du rapport des épinglages du lot 7 résolu par L11-T0 (L11-T27) ;
+- m18 : L11-T25 s'arrête et rend la main si H6-6b n'est pas tranchée.
+
 ## Table des tâches (11b)
 
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L11-T17 | Pages d'aide I : une page par outil des lots 1 à 5 (liste H1), écrites par nous | L11-T16 | `ui/help/<id>.html` pour chaque identifiant de la liste H1 (écrite dans cette ligne par l'orchestrateur après L11-T0), `ui/CMakeLists.txt`, `tests/tst_ui_helppages.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_helppages` : 6 fonctions `PASS` (dont `pagesOfLots1To5Exist`, `textsAreOurs`) ; `NOMS OK` ; contrôle des titres du corpus vide | S29 | #tache-l11-t17 |
 | L11-T18 | Pages d'aide II : outils des lots 6 à 11 (liste H2), pages de procédure, index complet ; scénario `aide-complete` | L11-T17 | `ui/help/<id>.html` pour chaque identifiant de la liste H2, `ui/help/{index,raccourcis,deux-utilisateurs,modes-toucher,reprise,mises-a-jour,profils,mot-de-passe-oublie}.html`, `ui/CMakeLists.txt`, `tests/tst_ui_helppages.cpp`, `bench/scenarios/aide-complete.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_helppages` 9 fonctions `PASS` (dont `everyToolHasAPage`) ; `tst_captures_aide_complete` Passed ; `LU helpViewer.visible=true OK`, `CAPTURES OK` | S29 | #tache-l11-t18 |
-| L11-T19 | Pseudo-langue de contrôle : génération au build des tests, chargement par le joueur, scénario `pseudo-langue` (liste des chaînes non marquées) | L11-T16 | `scripts/pseudo-langue.py`, `tests/ui.cmake`, `tests/bench.cmake`, `ui/include/actcraft/ui/language.h`, `ui/src/language.cpp`, `bench/captures/main.cpp`, `scripts/captures.ps1`, `tests/tst_ui_pseudolocale.cpp`, `bench/scenarios/pseudo-langue.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_pseudolocale` 5 fonctions `PASS` ; scénario joué : `TEXTES OK <n>` ou liste `TEXTE ECART` écrite au rapport | S29 | #tache-l11-t19 |
+| L11-T19 | Pseudo-langue de contrôle : génération au build des tests, chargement par le joueur, scénario `pseudo-langue` (liste des chaînes non marquées) | L11-T16 | `scripts/pseudo-langue.py`, `tests/ui.cmake`, `tests/bench.cmake`, `ui/include/actcraft/ui/language.h`, `ui/src/language.cpp`, `bench/captures/main.cpp`, `scripts/captures.ps1`, `tests/tst_ui_pseudolocale.cpp`, `bench/scenarios/controle/pseudo-langue.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_pseudolocale` 5 fonctions `PASS` ; scénario joué : `TEXTES OK <n>` ou liste `TEXTE ECART` écrite au rapport | S29 | #tache-l11-t19 |
 | L11-T20 | Chaînes non traduisibles corrigées (liste de L11-T19), `actcraft_fr.ts` mis à jour, test de captures activé | L11-T19 | fichiers QML et C++ listés par le rapport de L11-T19 (`TEXTE ECART`, écrits dans cette ligne par l'orchestrateur), `ui/i18n/actcraft_fr.ts`, `tests/bench.cmake` | partagé | implementeur-tdd | `TESTS OK` ; `tst_captures_pseudo_langue` Passed ; `TEXTES OK <n>` à chaque étape `visibleTexts` ; `tst_ui_language` toujours `Passed` | S29 | #tache-l11-t20 |
-| L11-T21 | Recherche de mises à jour I (F-760, F-930) : `UpdateChecker`, comparaison SemVer, aucune requête au démarrage par défaut, mandataire du lot 6 | L11-T16 | `ui/include/actcraft/ui/updatechecker.h`, `ui/src/updatechecker.cpp`, `tests/tst_ui_updatechecker.cpp`, `tests/data/updates/{newer,same,draft,prerelease}.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_updatechecker` 7 fonctions `PASS` (dont `noRequestAtStartByDefault`, `semverComparison`) ; mutation rouge puis remise | S29 | #tache-l11-t21 |
-| L11-T22 | Recherche de mises à jour II : boîte, menu Aide, réglage « au démarrage » ; scénario `mises-a-jour` contre une réponse simulée | L11-T21 | `ui/qml/UpdateDialog.qml`, `ui/qml/SettingsPage.qml`, `bench/scenarios/mises-a-jour.json`, `tests/bench.cmake` | isolé | implementeur-tdd | `TESTS OK` ; `tst_captures_mises_a_jour` Passed ; `LU appUpdates.requestCount=0 OK` avant la commande, `LU appUpdates.latestVersion=9.9.9 OK`, `CAPTURES OK` | S29 | #tache-l11-t22 |
+| L11-T21 | Recherche de mises à jour I (F-760, F-930) : `UpdateChecker`, comparaison SemVer, aucune requête au démarrage par défaut, mandataire du lot 6 | L11-T16 | `ui/include/actcraft/ui/updatechecker.h`, `ui/src/updatechecker.cpp`, `tests/tst_ui_updatechecker.cpp`, `tests/data/updates/{newer,draft,prerelease}.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_updatechecker` 7 fonctions `PASS` (dont `noRequestAtStartByDefault`, `semverComparison`) ; mutation rouge puis remise | S29 | #tache-l11-t21 |
+| L11-T22 | Recherche de mises à jour II : boîte, menu Aide, réglage « au démarrage » ; scénario `mises-a-jour` contre une réponse simulée | L11-T21 | `ui/qml/UpdateDialog.qml`, `ui/qml/SettingsPage.qml`, `bench/scenarios/mises-a-jour.json`, `tests/bench.cmake`, `tests/tst_ui_updatechecker.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_captures_mises_a_jour` Passed ; `tst_ui_updatechecker` : `startCalledOnceByTheShell` `PASS` (8 fonctions) ; `LU appUpdates.requestCount=0 OK` avant la commande, `LU appUpdates.latestVersion=9.9.9 OK`, `CAPTURES OK` | S29 | #tache-l11-t22 |
 | L11-T23 | Raccourcis clavier restants (F-950 à F-953) : table complète, aucun doublon, aucun raccourci pendant la saisie | L11-T18, L11-T20 | `actions/data/commands.json`, `tests/tst_ui_shortcuts.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_shortcuts` 4 fonctions `PASS` ; `tst_actions_registry` (`noShortcutTwice`) toujours `Passed` | S2.1 | #tache-l11-t23 |
 | L11-T24 | Accessibilité : contrastes WCAG AA et focus visible dans toutes les boîtes et en mise en page étroite, noms accessibles des boutons | L11-T20 | `tests/tst_ui_accessibility.cpp`, `tests/support/wcag.h`, fichiers QML corrigés listés par le rapport de la tâche (écrits dans cette ligne par l'orchestrateur à la fin de l'étape 2) | partagé | implementeur-tdd | `TESTS OK` ; `tst_ui_accessibility` 4 fonctions `PASS` ; `tst_ui_shell` (`renderedColorsMeetWcagAa`, `keyboardFocusIsVisible`) toujours `Passed` | S2.2 | #tache-l11-t24 |
-| L11-T25 | Licences tierces : `THIRD_PARTY_NOTICES.md` complet (Qt et ses modules, Qt PDF et PDFium, Qt Multimedia et FFmpeg, Hunspell selon H6-6b, dictionnaire, miniz, runtime MSVC), textes des licences, contrôle des bibliothèques non Qt | L11-T16 | `THIRD_PARTY_NOTICES.md`, `LICENSES/*.txt` (textes SPDX cités), `scripts/verifier-licences.ps1`, `packaging/qt-autorises.txt`, `packaging/autres-autorises.txt`, `tests/tst_app_notices.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_app_notices` 4 fonctions `PASS` ; `LICENCES OK` sur le dossier déployé et sur l'APK | S1.1 | #tache-l11-t25 |
-| L11-T26 | S19 rejoué sur toutes les commandes des lots 1 à 11 : attributs déclarés partout, verrou exact, scénario `classe-protegee-complete` | L11-T9, L11-T23 | `actions/data/commands.json`, `tests/tst_ui_lockall.cpp`, `bench/scenarios/classe-protegee-complete.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_lockall` 5 fonctions `PASS` ; `tst_captures_classe_protegee_complete` Passed ; `LU appCommands.lockedCount=<K> OK` (K exact, calculé des données) ; mot de passe absent de l'INI | S19 | #tache-l11-t26 |
+| L11-T25 | Licences tierces : `THIRD_PARTY_NOTICES.md` complet (Qt et ses modules, Qt PDF et PDFium, Qt Multimedia et FFmpeg, Hunspell selon H6-6b, dictionnaire, miniz, runtime MSVC), textes des licences, contrôle des bibliothèques non Qt | L11-T16, **décision de Jérôme H6-6b** (sinon arrêt) | `THIRD_PARTY_NOTICES.md`, `LICENSES/*.txt` (textes SPDX cités), `scripts/verifier-licences.ps1`, `packaging/qt-autorises.txt`, `packaging/autres-autorises.txt`, `tests/tst_app_notices.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_app_notices` 4 fonctions `PASS` ; `LICENCES OK` sur le dossier déployé et sur l'APK | S1.1 | #tache-l11-t25 |
+| L11-T26 | S19 rejoué sur toutes les commandes des lots 1 à 11 : attributs déclarés partout, verrou exact, scénario `classe-protegee-complete` | L11-T9, L11-T23 | `actions/data/commands.json`, `tests/tst_ui_lockall.cpp`, `bench/scenarios/classe-protegee-complete.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_lockall` 5 fonctions `PASS` ; `tst_captures_classe_protegee_complete` Passed ; `LU commands.lockedCount=<K> OK` (K exact, calculé des données) ; mot de passe absent de l'INI | S19 | #tache-l11-t26 |
 | L11-T27 | S32 : les cinq profils de bout en bout (épinglages des lots 7 et 8, navigateurs et réglages, filtre d'Android) ; scénario `profils-complets` | L11-T9, L11-T20 | `actions/data/profiles/{en-classe,preparation,lecture-ecriture,calcul-geometrie,son-image}.json`, `actions/include/actcraft/actions/profile.h`, `actions/src/profile.cpp`, `tests/tst_ui_profilesall.cpp`, `bench/scenarios/profils-complets.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_profilesall` 5 fonctions `PASS` ; `tst_captures_profils_complets` Passed ; pour chaque profil `LU appProfile.currentId=<id> OK` ; `tst_ui_profiles` (`namesAreOurs` en `PASS`) toujours `Passed` | S32 | #tache-l11-t27 |
-| L11-T28 | Version 1.0.0 (`versionCode` 10000), section 1.0.0 de `CHANGELOG.md`, guide de démarrage dans `README.md`, notes de version | L11-T17 à L11-T27 | `CMakeLists.txt`, `CHANGELOG.md`, `README.md`, `tests/app.cmake`, `tests/tst_app_version.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_app_version` 4 fonctions `PASS` ; `Get-ActCraftVersionCode` = `10000` ; `NOTES OK` ; `NOMS OK` ; contrôle des titres du corpus vide | S14 | #tache-l11-t28 |
-| L11-T29 | Paquets 1.0.0 et S14 : installateur et APK locaux, essais, flux de release en essai à blanc sur la CI, mode réel sans tag refusé — release prête | L11-T28 | `scripts/paquet.ps1`, `docs/verifications/2026-10-22-lot11-release-prete.md` | partagé | implementeur-tdd | `PAQUET OK : …ActCraft-1.0.0-setup.exe`, `INSTALLATEUR OK`, `APK OK`, `LICENCES OK` ×2, `ANDROID OK`, `ANDROID FICHIERS OK` ; run d'essai : `APK NON PUBLIABLE`, `NOTES OK`, `SHA256SUMS.txt`, aucune release ; run réel sans tag : échec avec son message ; branche d'essai supprimée | S14 | #tache-l11-t29 |
-| L11-T30 | Clôture du lot et porte de fin : suites, captures et banc à l'écran (jeton `ecran`), S13 rejoué, talons nuls, graphe, mesures et procédures pour Jérôme, go demandé | L11-T29 | `tests/tst_ui_shell.cpp`, `docs/mesures/2026-10-22-lot11-fin.md`, `docs/verifications/2026-10-22-lot11-porte.md`, `graphify-out/` | partagé | implementeur-tdd | debug et release `TESTS OK`, N = N11 + 32 ; `git grep "Talon L11"` vide ; `captures.ps1 -Scenario tous -Rendu d3d11` `CAPTURES OK` ; banc D3D11 plein écran × 3 : verdict et 0 figement ; rapport de porte commité | S14, S13, S2, S3 | #tache-l11-t30 |
+| L11-T28 | Version 1.0.0 (`versionCode` 10000), section 1.0.0 de `CHANGELOG.md`, guide de démarrage dans `README.md`, notes de version | L11-T17 à L11-T27 | `CMakeLists.txt`, `CHANGELOG.md`, `README.md`, `tests/app.cmake`, `tests/tst_app_versioninfo.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_app_versioninfo` 4 fonctions `PASS`, `tst_app_version` (`--version`) toujours `Passed` ; `Get-ActCraftVersionCode` = `10000` ; `NOTES OK` ; `NOMS OK` ; contrôle des titres du corpus vide | S14 | #tache-l11-t28 |
+| L11-T29 | Paquets 1.0.0 et S14 : installateur et APK locaux, essais, flux de release en essai à blanc sur la CI, mode réel sans tag refusé — release prête | L11-T28 | `scripts/paquet.ps1`, `docs/verifications/2026-10-22-lot11-release-prete.md` | partagé | implementeur-tdd | `PAQUET OK : …ActCraft-1.0.0-setup.exe`, `INSTALLATEUR OK`, `APK OK`, `LICENCES OK` ×2, `ANDROID OK`, `ANDROID FICHIERS OK` ; run d'essai : `APK NON PUBLIABLE`, `NOTES OK`, `SHA256SUMS.txt`, `SECRETS ABSENTS` et `CONTROLE OK` du job `controle-mode-reel`, aucune release ; branche d'essai supprimée ; aucun `gh workflow run release.yml -f mode=reel` | S14 | #tache-l11-t29 |
+| L11-T30 | Clôture du lot et porte de fin : suites, captures et banc à l'écran (jeton `ecran`), S13 rejoué, talons nuls, graphe, mesures et procédures pour Jérôme, go demandé | L11-T29 | `tests/tst_ui_shell.cpp`, `docs/mesures/2026-10-22-lot11-fin.md`, `docs/verifications/2026-10-22-lot11-porte.md`, `graphify-out/` | partagé | implementeur-tdd | debug et release `TESTS OK`, N = N11 + 32 ; `git -C <wt> grep -l "Talon L11" -- . ':!docs/' ':!graphify-out/' ':!tests/tst_ui_shell.cpp'` vide ; `captures.ps1 -Scenario tous -Rendu d3d11` `CAPTURES OK` ; banc D3D11 plein écran × 3 : verdict et 0 figement ; rapport de porte commité | S14, S13, S2, S3 | #tache-l11-t30 |
 
 ## Vagues de 11b (largeur 3 au plus ; aucun fichier partagé dans une vague)
 
@@ -44,7 +61,7 @@ Vérification des recoupements :
   `tests/ui.cmake`, `tests/bench.cmake`, `language.*`, `bench/captures/main.cpp`, `captures.ps1`, un test, un scénario)
   / L11-T21 (`updatechecker.*`, un test, `tests/data/updates/`) — disjoints.
 - V9 : L11-T18 (`ui/help/` H2 et procédures, `ui/CMakeLists.txt`, `tst_ui_helppages.cpp`, un scénario) / L11-T22
-  (`UpdateDialog.qml`, `SettingsPage.qml`, un scénario, `tests/bench.cmake`) / L11-T25 (`THIRD_PARTY_NOTICES.md`,
+  (`UpdateDialog.qml`, `SettingsPage.qml`, un scénario, `tests/bench.cmake`, `tst_ui_updatechecker.cpp` repris de L11-T21) / L11-T25 (`THIRD_PARTY_NOTICES.md`,
   `LICENSES/`, `verifier-licences.ps1`, `packaging/`, un test) — disjoints. `tests/bench.cmake` : L11-T19 (V8) puis
   L11-T22 (V9), tenu par la vague.
 - V10 et V11 : tâches à fichiers larges (QML), seules dans leur vague, worktree `partagé`.
@@ -162,8 +179,7 @@ aucune ressource distante ; aucun nom de l'original (termes de N1-12) ; aucun ti
       }
       void textsAreOurs()
       {
-          QStringList forbidden = {QStringLiteral("ActivInspire"), QStringLiteral("Promethean"),
-                                   QStringLiteral("ExpressPoll"), QStringLiteral("Encre magique")};
+          QStringList forbidden = {QStringLiteral("ActivInspire"), QStringLiteral("Promethean")};
           const QString names = qEnvironmentVariable("ACTCRAFT_REFERENCE_NAMES");
           if (!names.isEmpty()) {
               QFile f(names);
@@ -187,9 +203,10 @@ aucune ressource distante ; aucun nom de l'original (termes de N1-12) ; aucun ti
   QTEST_MAIN(TstUiHelpPages)
   #include "tst_ui_helppages.moc"
   ```
-  La preuve exige `textsAreOurs` en `PASS` **avec** `ACTCRAFT_REFERENCE_NAMES` posée par l'orchestrateur (fichier hors
-  dépôt de L6-T6, `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot6-noms-profils.txt`, complété par L11-T0
-  des noms d'outils de l'original dans `lot11-noms.txt`).
+  La preuve exige `textsAreOurs` en `PASS` **avec** `ACTCRAFT_REFERENCE_NAMES` posée par l'orchestrateur vers le
+  fichier hors dépôt `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot11-noms.txt` (écrit par L11-T0 : les noms
+  de `lot6-noms-profils.txt` et ceux des outils et des produits de l'original, un par ligne). Aucun de ces noms n'est
+  écrit dans le dépôt : le test n'en garde en clair que les deux noms de la marque.
 - [ ] **Étape 2 : rouge vu.**
 - [ ] **Étape 3 : pages.** Une page par identifiant H1, gabarit commun à nous :
   ```html
@@ -265,7 +282,7 @@ fenêtre principale, le menu Fichier ouvert, et trois boîtes (À propos, taille
 **Test et commande bornée.** Commande ciblée `-R tst_ui_pseudolocale` ; puis le scénario par `captures.ps1` (le test
 `tst_captures_pseudo_langue` reste désactivé jusqu'à L11-T20).
 
-**Preuve visuelle.** `captures.ps1 -Scenario pseudo-langue -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Traduction build/debug/i18n/actcraft_xx.qm -Lire "appPreferences.language=fr"` :
+**Preuve visuelle.** `captures.ps1 -Scenario controle/pseudo-langue -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Traduction build/debug/i18n/actcraft_xx.qm -Lire "appPreferences.language=fr"` :
 lignes `TEXTES OK <n>` ou `TEXTES EN ECART <k>` et leurs `TEXTE ECART` ; la liste entière est recopiée au rapport,
 regroupée par fichier source (recherche du texte dans `ui/`, `features/`, `app/` par `git grep -n -F`).
 
@@ -281,7 +298,8 @@ aucune correction de chaîne ici (c'est L11-T20).
   forme marquée) ; `installFileInstallsTheTranslator` ; `notShippedInResources` (`QFile::exists(":/i18n/actcraft_xx.qm")`
   faux, et aucune entrée `xx` dans `Language::available()`).
 - [ ] **Étape 2 : script, CMake, `language.*`, joueur, `captures.ps1`.**
-- [ ] **Étape 3 : scénario** `pseudo-langue.json` : `waitReady` ; `{"visibleTexts": "pseudo", "ignore": ["pageIndicator", "zoomLabel"]}` ;
+- [ ] **Étape 3 : scénario** `bench/scenarios/controle/pseudo-langue.json` (sous-dossier que `-Scenario tous` ne prend
+  pas ; déclaration ctest de L11-T1 à ce chemin) : `waitReady` ; `{"visibleTexts": "pseudo", "ignore": ["pageIndicator", "zoomLabel"]}` ;
   capture `principale` ; menu Fichier ouvert (`pointer` sur son titre, coordonnées de fenêtre relevées sur la capture
   `principale`) ; `visibleTexts` ; capture `menu-fichier` ; Échap ; `help.about` ; `visibleTexts` ; capture `a-propos` ;
   Échap ; boîte de taille de page (commande relevée dans `commands.json`) ; `visibleTexts` ; Échap ; boîte des réglages ;
@@ -296,7 +314,7 @@ aucune correction de chaîne ici (c'est L11-T20).
 (C++) ; une chaîne qui vient des données (`commands.json`, profils) passe par `QT_TRANSLATE_NOOP` à la lecture ou par un
 contexte de traduction des données (forme retenue écrite au rapport) ; `ui/i18n/actcraft_fr.ts` régénéré par la cible
 `update_translations` (L6-T36) ; `DISABLED` retiré de `tst_captures_pseudo_langue` dans `tests/bench.cmake` (avec
-l'argument `--traduction` vers le `.qm` de build).
+l'argument `--traduction` vers le `.qm` de build et le scénario `bench/scenarios/controle/pseudo-langue.json`).
 
 **Fichiers.** Ceux de la ligne de la table (liste exacte écrite par l'orchestrateur depuis le rapport de L11-T19).
 
@@ -326,14 +344,14 @@ l'argument `--traduction` vers le `.qm` de build).
 // ui/include/actcraft/ui/updatechecker.h
 #pragma once
 
+#include <actcraft/ui/preferences.h>
+
 #include <QNetworkAccessManager>
 #include <QObject>
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
 namespace actcraft::ui {
-
-class Preferences;
 
 class UpdateChecker : public QObject
 {
@@ -383,7 +401,7 @@ réseau ou JSON illisible → `Failed`. Le mandataire de `NetworkSettings` (A16)
 ```json
 {"tag_name": "v9.9.9", "html_url": "https://github.com/jejeasterix/actcraft/releases/tag/v9.9.9", "draft": false, "prerelease": false}
 ```
-`same.json` (`v1.0.0`), `draft.json` (`v9.9.9`, `"draft": true`), `prerelease.json` (`v9.9.9`, `"prerelease": true`).
+`draft.json` (`v9.9.9`, `"draft": true`), `prerelease.json` (`v9.9.9`, `"prerelease": true`).
 
 **Test et commande bornée.** Commande ciblée `-R tst_ui_updatechecker` ; « fonctions d'un test ».
 
@@ -412,8 +430,13 @@ réglage est faux ; aucun téléchargement ; aucun envoi d'identifiant.
 appelle `appUpdates.check()`, montre l'état (recherche, à jour, version plus récente avec son numéro, échec), bouton
 « Voir la version » (`Qt.openUrlExternally(appUpdates.releasePage)`), bouton « Fermer ». `SettingsPage.qml` : case
 « Rechercher les mises à jour au démarrage » liée à `appUpdates.checkAtStart` (Windows seulement). `tests/bench.cmake` :
-`ENVIRONMENT "ACTCRAFT_UPDATES_URL=file:///${CMAKE_SOURCE_DIR}/tests/data/updates/newer.json"` sur
-`tst_captures_mises_a_jour`.
+`ENVIRONMENT "${_bench_env_offscreen};ACTCRAFT_UPDATES_URL=file:///${PROJECT_SOURCE_DIR}/tests/data/updates/newer.json"`
+sur `tst_captures_mises_a_jour` (la liste `_bench_env_offscreen`, `tests/bench.cmake:8-10`, est gardée : sans elle la
+fenêtre s'ouvrirait à l'écran). Démarrage : `UpdateDialog.qml` porte `Component.onCompleted: appUpdates.start()`
+(un seul appel, au chargement de la coquille) ; sans lui, la case « au démarrage » ne ferait rien. Fonction ajoutée à
+`tests/tst_ui_updatechecker.cpp` : `startCalledOnceByTheShell` (`Main.qml` chargé, réglages d'essai en INI temporaire
+avec `updates/check-at-start=true` et `ACTCRAFT_UPDATES_URL` vers `newer.json` → `requestCount == 1` ; même montage
+avec `false` → 0).
 
 **Fichiers.** Ceux de la ligne de la table.
 
@@ -426,7 +449,7 @@ avec `$env:ACTCRAFT_UPDATES_URL` posé comme dans `tests/bench.cmake` : `LU appU
 **Interdits.** Aucun clic sur « Voir la version » dans le scénario (il ouvrirait le navigateur) ; aucune boîte au
 démarrage.
 
-**Terminé quand** le scénario passe.
+**Terminé quand** le scénario et `startCalledOnceByTheShell` passent.
 
 **Étapes.**
 - [ ] **Étape 1 : scénario** `mises-a-jour.json` : `waitReady` ; `expect appUpdates.requestCount = 0` (S29 : aucune
@@ -487,7 +510,9 @@ change la disposition Windows en largeur ≥ 960.
 **Terminé quand** les 4 fonctions passent et `tst_ui_shell` reste `Passed`.
 
 **Étapes.**
-- [ ] **Étape 1 : test** `tst_ui_accessibility.cpp` : `everyDialogMeetsAa` (pour chaque commande `opensDialog`
+- [ ] **Étape 1 : test** `tst_ui_accessibility.cpp` (dans `initTestCase` : réglages d'essai en INI temporaire, et
+  `qputenv("ACTCRAFT_UPDATES_URL", <URL file: de tests/data/updates/newer.json>)` : la boîte des mises à jour ne fait
+  aucune requête réseau) : `everyDialogMeetsAa` (pour chaque commande `opensDialog`
   disponible sous Windows (L11-T9) : déclencher, attendre la boîte, rendre la fenêtre par `grabWindow`, pour chaque
   `Text` visible comparer la couleur du texte au pixel de fond relevé à côté de son rectangle) ;
   `focusVisibleInEveryDialog` (Tab parcourt chaque contrôle ; l'élément focalisé montre l'anneau de `Theme`, forme de
@@ -526,6 +551,10 @@ licence SPDX) : toute bibliothèque absente → `LICENCES EN ECHEC : <noms>`.
 `pwsh -NoProfile -File ./scripts/verifier-licences.ps1 -Apk build/paquet/ActCraft-<version>-arm64-v8a.apk`
 (`LICENCES OK` les deux fois).
 
+**Préalable (H6-6b, amendement 1, m18).** Si la décision de Jérôme H6-6b (licence de Hunspell) n'est pas écrite dans
+le fichier d'état du chantier, la tâche s'arrête **avant toute écriture**, le signale à l'orchestrateur et rend la
+main ; aucune licence supposée.
+
 **Interdits.** Aucun texte de licence inventé (textes SPDX officiels) ; aucun module Qt sous GPL seule ; aucune
 affirmation juridique (N1-8 : non validé par un juriste, dit dans le fichier).
 
@@ -547,6 +576,9 @@ affirmation juridique (N1-8 : non validé par un juriste, dit dans le fichier).
 <a id="tache-l11-t26"></a>
 ### Tâche L11-T26 — S19 rejoué sur toutes les commandes
 
+**Objet lu.** L'instance `Commands` de `Main.qml` a `objectName: "commands"` (`ui/qml/Main.qml:56-58`) : le
+joueur la lit sous ce nom (`commands.lockedCount`), jamais sous son `id` `appCommands`.
+
 **Objectif.** S19 (amendement 1, § 7), rejoué sur les commandes des lots 1 à 11 : chaque entrée de `commands.json`
 déclare **explicitement** `lockable` et `restrictable` (aucune valeur par défaut tacite) ; sous verrou, exactement les
 commandes `lockable` disponibles sur la plateforme sont grisées ; le compte est exact ; le verrou survit au
@@ -556,8 +588,8 @@ relancement ; le mot de passe n'est jamais en clair dans les réglages.
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_lockall|tst_captures_classe_protegee_complete|tst_ui_classroomlock'`.
 
-**Preuve visuelle.** `captures.ps1 -Scenario classe-protegee-complete -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire "appCommands.lockedCount=<K>"` :
-`LU appCommands.lockedCount=<K> OK`, `RELANCE`, `LU appClassroom.locked=true OK`, `CAPTURES OK` ; décrire
+**Preuve visuelle.** `captures.ps1 -Scenario classe-protegee-complete -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire "commands.lockedCount=<K>"` :
+`LU commands.lockedCount=<K> OK`, `RELANCE`, `LU appClassroom.locked=true OK`, `CAPTURES OK` ; décrire
 `verrouille.png` ; puis, mot de passe absent de l'INI du lancement (sortie vide attendue) :
 ```powershell
 Get-ChildItem -Recurse .tmp/captures/classe-protegee-complete-logiciel/reglages -Filter *.ini | Select-String -SimpleMatch -Pattern 'essai-1234','ZXNzYWktMTIzNA=='
@@ -579,9 +611,9 @@ dans l'original ou par une règle du lot 6) ; aucun mot de passe d'essai autre q
   `lockedCountMatchesTheData` (affichée par `qInfo`), écrit dans le scénario.
 - [ ] **Étape 3 : scénario** `classe-protegee-complete.json` (forme de `classe-protegee.json`, L6-T31, avec ses
   `waitFor`) : `classroom.lock` → création « essai-1234 » deux fois → `waitFor appClassroom.hasPassword = true` →
-  `expect appClassroom.locked = true` → `expect appCommands.lockedCount = <K>` → capture `verrouille` → mauvais mot de
+  `expect appClassroom.locked = true` → `expect commands.lockedCount = <K>` → capture `verrouille` → mauvais mot de
   passe → `waitFor appClassroom.busy = false` → `expect appClassroom.locked = true` → `{"restart": true}` →
-  `waitReady` → `expect appClassroom.locked = true` → `expect appCommands.lockedCount = <K>` → bon mot de passe →
+  `waitReady` → `expect appClassroom.locked = true` → `expect commands.lockedCount = <K>` → bon mot de passe →
   `waitFor appClassroom.locked = false`.
 - [ ] **Étape 4 : vert**, preuve visuelle et contrôle de l'INI, preuve de tâche ; commit « Lot 11 : mode classe protégé
   rejoué sur toutes les commandes (L11-T26) ».
@@ -616,7 +648,8 @@ retirée du profil et listée au rapport ; aucune commande Windows seule dans la
   `browsersAndSettingsApplied` (valeurs du profil relues dans `Preferences` et l'état du panneau) ;
   `noAndroidAbsentCommandOnAndroid` (`layoutForPlatform(…, Platform::Android)` ne contient aucune commande dont
   `platforms` exclut Android) ; `lot7And8PinsPresent` (liste des épinglages des lots 7 et 8 relevée dans
-  `docs/verifications/AAAA-MM-JJ-lot7-epinglages.md` et l'équivalent du lot 8, recopiée dans le test).
+  le rapport des épinglages du lot 7, dont L11-T0 écrit le chemin réel — ou « absent : liste lue dans les profils du
+  lot 7 » —, et son équivalent du lot 8, recopiée dans le test).
 - [ ] **Étape 2 : implémentation** et corrections des profils.
 - [ ] **Étape 3 : scénario** `profils-complets.json` : `waitReady` ; pour chaque profil : `command profile.activate
   <id>` → `expect appProfile.currentId = <id>` → `expect toolPalette.pinnedCount = <n>` (n calculé par le test, écrit
@@ -629,7 +662,7 @@ retirée du profil et listée au rapport ; aucune commande Windows seule dans la
 ### Tâche L11-T28 — Version 1.0.0, `CHANGELOG.md`, `README.md`
 
 **Objectif.** D11-16 ; décision 31 du cadrage ; décision 14 (guide de démarrage).
-- `CMakeLists.txt` : `VERSION 1.0.0` (le `versionCode` en découle, `CMakeLists.txt:26-35`) ;
+- `CMakeLists.txt` : `VERSION 1.0.0` (le `versionCode` en découle, règle de `app/CMakeLists.txt:26-35`) ;
 - `CHANGELOG.md` : section `## 1.0.0 — <date de la tâche>` en tête, en français, pour un enseignant : ce que le lot 11
   apporte (toucher, deux utilisateurs, tablette, reprise, aide, mises à jour, accessibilité), puis un paragraphe
   « Depuis la 0.1.0 » qui résume les sections précédentes sans les recopier ;
@@ -637,9 +670,10 @@ retirée du profil et listée au rapport ; aucune commande Windows seule dans la
   N1-4), sous Android (APK, autoriser l'installation depuis cette source), premiers pas (écrire, page suivante,
   enregistrer), F1, modes du toucher, deux utilisateurs, où sont les réglages, reprise après interruption, rechercher
   les mises à jour ; aucune capture de l'original ;
-- `tests/tst_app_version.cpp` et `tests/app.cmake` (définition `ACTCRAFT_VERSION_CODE` passée au test).
+- `tests/tst_app_versioninfo.cpp` et `tests/app.cmake` (définitions `ACTCRAFT_VERSION_CODE` et `ACTCRAFT_SOURCE_DIR`
+  passées au test) ; le test `tst_app_version` existant (`tests/app.cmake:4-5`, `actcraft --version`) est gardé.
 
-**Test et commande bornée.** Commande ciblée `-R tst_app_version` ; puis
+**Test et commande bornée.** Commande ciblée `-R tst_app_version` (attrape `tst_app_version` et `tst_app_versioninfo`) ; puis
 ```powershell
 pwsh -NoProfile -Command "Set-Location '<wt>'; . ./scripts/version-projet.ps1; Get-ActCraftVersion; Get-ActCraftVersionCode"
 pwsh -NoProfile -File ./scripts/notes-version.ps1 -Version 1.0.0 -Sortie .tmp/notes-1.0.0.md
@@ -649,28 +683,29 @@ Attendu : `1.0.0`, `10000`, `NOTES OK : .tmp/notes-1.0.0.md`.
 **Interdits.** Aucun tag ; aucune mention d'une release publiée ; aucun nom de l'original hors du nom du format
 `.flipchart` ; aucun nom de paperboard réel ; aucun titre de vidéo.
 
-**Terminé quand** les 4 fonctions passent, `10000`, `NOTES OK`, `NOMS OK`, contrôle des titres du corpus vide.
+**Terminé quand** les 4 fonctions de `tst_app_versioninfo` passent, `tst_app_version` aussi, `10000`, `NOTES OK`, `NOMS OK`, contrôle des titres du corpus vide.
 
 **Étapes.**
-- [ ] **Étape 1 : test rouge** `tst_app_version.cpp` :
+- [ ] **Étape 1 : test rouge** `tst_app_versioninfo.cpp` :
   ```cpp
   #include <actcraft/ui/appinfo.h>
 
   #include <QFile>
   #include <QtTest>
 
-  class TstAppVersion : public QObject
+  class TstAppVersionInfo : public QObject
   {
       Q_OBJECT
   private slots:
       void versionIs100() { QCOMPARE(actcraft::ui::AppInfo().version(), QStringLiteral("1.0.0")); }
       void versionCodeIs10000() { QCOMPARE(ACTCRAFT_VERSION_CODE, 10000); }
-      void versionCodeRuleIsMonotonic()
+      void versionCodeFollowsTheVersion()
       {
-          auto code = [](int major, int minor, int patch) { return major * 10000 + minor * 100 + patch; };
-          QVERIFY(code(0, 9, 0) < code(0, 10, 0));
-          QVERIFY(code(0, 10, 0) < code(1, 0, 0));
-          QCOMPARE(code(1, 0, 0), ACTCRAFT_VERSION_CODE);
+          const QStringList parts = actcraft::ui::AppInfo().version().split(QLatin1Char('.'));
+          QCOMPARE(parts.size(), 3);
+          const int expected = parts[0].toInt() * 10000 + parts[1].toInt() * 100 + parts[2].toInt();
+          QCOMPARE(ACTCRAFT_VERSION_CODE, expected);
+          QVERIFY(ACTCRAFT_VERSION_CODE > 1000); // 0.10.0 → 1000 : la mise à jour par-dessus passe
       }
       void changelogStartsWithTheVersion()
       {
@@ -683,8 +718,8 @@ Attendu : `1.0.0`, `10000`, `NOTES OK : .tmp/notes-1.0.0.md`.
       }
   };
 
-  QTEST_GUILESS_MAIN(TstAppVersion)
-  #include "tst_app_version.moc"
+  QTEST_GUILESS_MAIN(TstAppVersionInfo)
+  #include "tst_app_versioninfo.moc"
   ```
   `AppInfo` : `ui/include/actcraft/ui/appinfo.h` (vérifié à `5373f04`, `version()` rend un `QString`) ; si son
   constructeur demande des arguments, reprendre la forme réelle.
@@ -716,26 +751,26 @@ Attendu : `1.0.0`, `10000`, `NOTES OK : .tmp/notes-1.0.0.md`.
    `git -C <wt> push origin HEAD:refs/heads/essai-ci/release-lot11` ; puis
    `gh run list --branch essai-ci/release-lot11 --workflow release.yml --limit 1` ; `gh run watch <id>` ;
    `gh run view <id> --log > .tmp/release-essai.txt` ;
-   `Select-String -Path .tmp/release-essai.txt -Pattern 'APK NON PUBLIABLE|NOTES OK|SHA256SUMS|SECRETS ABSENTS|ActCraft-1\.0\.0-(setup\.exe|arm64-v8a\.apk)' | Select-Object -Last 12`
-   → les cinq motifs présents (le job qui prouve que le mode réel sans secrets échoue rend `SECRETS ABSENTS`).
-7. Mode réel sans tag : `gh workflow run release.yml --ref essai-ci/release-lot11 -f mode=reel` ; `gh run watch` du run
-   créé → **échec attendu**, message relevé dans le journal (`SECRETS ABSENTS` ou le refus du tag) et recopié au
-   rapport.
-8. Aucune release créée : `gh release list --limit 5` (lecture) → aucune entrée `v1.0.0`.
-9. `git -C <wt> push origin --delete essai-ci/release-lot11`.
+   `Select-String -Path .tmp/release-essai.txt -Pattern 'APK NON PUBLIABLE|NOTES OK|SHA256SUMS|SECRETS ABSENTS|CONTROLE OK|ActCraft-1\.0\.0-(setup\.exe|arm64-v8a\.apk)' | Select-Object -Last 14`
+   → tous les motifs présents ; `SECRETS ABSENTS` et `CONTROLE OK` viennent du job `controle-mode-reel`
+   (`release.yml:110-147`) : c'est la preuve de S14 que le mode réel, sans secrets, échoue avec son message.
+7. Aucune release créée : `gh release list --limit 5` (lecture) → aucune entrée `v1.0.0`.
+8. `git -C <wt> push origin --delete essai-ci/release-lot11`.
 
 **Interdits.** **Aucun tag** (`git tag`, `git push … v1.0.0`, `--tags`, `--follow-tags`) ; aucune commande
-`gh release create|edit|upload|delete` ; aucun appel d'API en écriture sur les releases ou les tags ; aucune création du
+`gh release create|edit|upload|delete` ; aucun appel d'API en écriture sur les releases ou les tags ; aucun
+`gh workflow run release.yml -f mode=reel` (le job `secrets` référence l'environnement `release`, que GitHub créerait
+alors sans la règle des tags `v*`) ; aucune création du
 fichier go ; aucun secret lu, posé ni affiché ; aucun téléversement de paquet ; aucun paquet distribué hors du poste.
 
-**Terminé quand** les neuf points sont verts (le 7 en échec attendu) et le rapport `…-release-prete.md` est commité :
+**Terminé quand** les huit points sont verts et le rapport `…-release-prete.md` est commité :
 noms, tailles et SHA-256 des deux paquets locaux, numéros des runs, lignes relevées.
 
 **Étapes.**
 - [ ] **Étape 1 :** contrôle du greffon TLS dans `scripts/paquet.ps1` ; essai rouge (renommer temporairement le dossier
   `tls` du déploiement de `build/` → `PAQUET EN ECHEC : greffon TLS absent`), remise en place, `PAQUET OK`.
 - [ ] **Étape 2 :** points 1 à 5.
-- [ ] **Étape 3 :** points 6 à 9.
+- [ ] **Étape 3 :** points 6 à 8.
 - [ ] **Étape 4 :** rapport ; `git add scripts/paquet.ps1 docs/verifications/2026-10-22-lot11-release-prete.md` ;
   `NOMS OK` ; commit « Lot 11 : paquets 1.0.0 et flux de release essayé à blanc (L11-T29) ».
 
@@ -745,15 +780,20 @@ noms, tailles et SHA-256 des deux paquets locaux, numéros des runs, lignes rele
 **Objectif.** Contrôle du lot 11 sur le worktree du chantier, à jour de `main`, avant la PR ; préparer la porte de fin :
 release prête, go demandé. Passe de fluidité finale (décision 14).
 
-**Fichiers.** `tests/tst_ui_shell.cpp` (`lot11StubsGone` : aucun marqueur `Talon L11` dans le dépôt, liste R2
-complète), `docs/mesures/2026-10-22-lot11-fin.md`, `docs/verifications/2026-10-22-lot11-porte.md`, `graphify-out/`.
+**Fichiers.** `tests/tst_ui_shell.cpp` (`lot11StubsGone` : aucun marqueur dans les sources, les tests et les
+scénarios, liste R2 complète ; le marqueur est construit dans le test, `QStringLiteral("Talon ") + QStringLiteral("L11")`,
+pour que le test ne se compte pas lui-même), `docs/mesures/2026-10-22-lot11-fin.md`, `docs/verifications/2026-10-22-lot11-porte.md`, `graphify-out/`.
 
 **Commandes.**
 1. Suites : `pwsh -NoProfile -File ./scripts/test.ps1 -Preset release` puis `pwsh -NoProfile -File ./scripts/test.ps1`
-   (formes bornées) → `TESTS OK` deux fois, `out of <N11 + 32>`, aucun `SKIP` de talon ; `git grep -n "Talon L11"` vide.
+   (formes bornées) → `TESTS OK` deux fois, `out of <N11 + 32>`, aucun `SKIP` de talon ;
+   `git -C <wt> grep -l "Talon L11" -- . ':!docs/' ':!graphify-out/' ':!tests/tst_ui_shell.cpp'` vide.
 2. Jeton `ecran` (annoncé à Jérôme d'une ligne : « captures et banc à l'écran principal pendant ≈ 20 min ») :
+   `$env:ACTCRAFT_UPDATES_URL = 'file:///<wt avec des barres obliques>/tests/data/updates/newer.json'` **avant**
    `pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario tous -Rendu d3d11 -Sortie .tmp/captures-ecran > .tmp/captures-ecran.txt 2>&1`
-   → `CAPTURES OK` (le scénario `pseudo-langue` avec `-Traduction` à part, et `mises-a-jour` avec la variable d'essai).
+   → `CAPTURES OK` (`tous` ne prend pas `bench/scenarios/controle/` ; aucune requête vers l'API réelle) ; puis
+   `pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario controle/pseudo-langue -Rendu d3d11 -Traduction build/debug/i18n/actcraft_xx.qm -Sortie .tmp/captures-ecran-pseudo > .tmp/captures-ecran-pseudo.txt 2>&1`
+   → `TEXTES OK`, `CAPTURES OK`.
 3. Banc complet D3D11 plein écran, trois passages (S13 rejoué) :
    `pwsh -NoProfile -File ./scripts/bench.ps1 > .tmp/bench-<i>.txt 2>&1` ; verdicts, figements et reprises relevés ;
    comparaison à la référence de fin du lot précédent (`docs/mesures/`) : tout critère tenu par la référence l'est

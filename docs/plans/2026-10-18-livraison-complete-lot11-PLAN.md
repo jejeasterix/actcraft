@@ -13,22 +13,61 @@ et une seule version (1.0.0) pour les deux sous-lots, comme les lots 2 et 6.
 | id | titre | dépend de | fichiers touchés | worktree | subagent | preuve | scénario | section |
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L11-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; écarts tranchés ; API A1 à A21 revérifiées ; N11 relevé | — | `docs/verifications/2026-10-19-lot11-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot11.md`) | isolé | concepteur-critique | rapport commité ; relevé brut hors dépôt présent ; D11-1 à D11-16 confirmées ou amendées ; table A remplie ; `Total Tests: <N11>` ; contrôle des titres du corpus vide ; `NOMS OK` | S30 | #tache-l11-t0 |
-| L11-T1 | Réservation : 32 tests enregistrés (talons `QSKIP`), fichiers neufs des deux sous-lots (talons marqués), commandes et disposition du lot, icônes | — | `actions/data/commands.json`, `actions/data/layout.json`, `input/CMakeLists.txt`, `tools/CMakeLists.txt`, `ui/CMakeLists.txt`, `bench/app/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{input,tools,ui,app,bench}.cmake`, les 32 fichiers de test de la liste R1, les talons de la liste R2, les 11 scénarios de la liste R3, `ui/icons/{toucher,deux-utilisateurs,mises-a-jour,reprise}.svg` | isolé | implementeur-tdd | `TESTS OK`, N = N11 + 32, 32 talons `SKIP` nommés ; `git grep -c "Talon L11"` = nombre de R2 | S28, S29, S3.1 à S3.5 (réservation) | #tache-l11-t1 |
-| L11-T2 | Joueur de scénarios : étapes `parallel`, `resize`, `appState`, `longPress`, `visibleTexts` | L11-T1 | `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_bench_uiscenario` : `parallelStepParsed`, `resizeStepParsed`, `appStateStepParsed`, `longPressStepParsed`, `visibleTextsStepParsed`, `parallelInterleavesTwoDevices` en `PASS` | S28, S29, S3.2, S3.3, S3.4 | #tache-l11-t2 |
-| L11-T3 | Coquille QML du lot : instances des contrôleurs, emplacements (deuxième palette, menu du toucher, menu au doigt, bandeau de reprise, boîte des mises à jour), gestionnaires talons | L11-T1 | `ui/qml/Main.qml`, `ui/qml/TopBar.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/{SecondPalette,TouchModeMenu,FingerMenu,RecoveryBanner,UpdateDialog}.qml`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_shell` : `lot11SlotsPresent`, `lot11ControllersWired` en `PASS` ; banc sans écran joint | S28, S29, S3.1 à S3.4 | #tache-l11-t3 |
-| L11-T4 | `input` : quatre politiques du toucher, outil imposé au doigt, appuis d'un même événement décidés ensemble (H3-16) | L11-T0, L11-T1 | `input/include/actcraft/input/touchmodes.h`, `input/src/touchmodes.cpp`, `input/include/actcraft/input/routing.h`, `input/src/routing.cpp`, `tests/tst_input_touchmodes.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_input_touchmodes` : 9 fonctions en `PASS` (dont `sameEventTwoFingersGoToGesture`, `noGestureOutsideFullMode`) ; mutation rouge puis remise | S28 | #tache-l11-t4 |
-| L11-T5 | `PageView` : politique remplaçable, utilisateur transmis à l'hôte d'outils, `Sample::deviceId`, appuis groupés, fin des contacts, appui long signalé, ancre au redimensionnement | L11-T2, L11-T4 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `input/include/actcraft/input/sample.h`, `tests/tst_ui_pageinput.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_pageinput` : 9 fonctions en `PASS` (dont `userReachesTheToolHost`, `finishContactsKeepsTheStroke`, `resizeEndsTheContact`) ; mutation rouge puis remise ; `tst_ui_shell`, `tst_ui_drawing` toujours `Passed` ; banc sans écran joint | S28, S3.2, S3.3, S3.4 | #tache-l11-t5 |
+| L11-T1 | Réservation : 32 tests enregistrés (talons `QSKIP`), fichiers neufs des deux sous-lots (talons marqués), commandes et disposition du lot, icônes | — | `actions/data/commands.json`, `actions/data/layout.json`, `input/CMakeLists.txt`, `tools/CMakeLists.txt`, `ui/CMakeLists.txt`, `bench/app/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{input,tools,ui,app,bench}.cmake`, les 32 fichiers de test de la liste R1, les talons de la liste R2, les 11 scénarios de la liste R3, `ui/icons/{toucher,deux-utilisateurs,mises-a-jour,reprise}.svg` | isolé | implementeur-tdd | `TESTS OK`, N = N11 + 32, 32 talons `SKIP` nommés ; `(git -C <wt> grep -l "// Talon L11" -- '*.h' '*.cpp' ':!tests/').Count` = 22 (R2) | S28, S29, S3.1 à S3.5 (réservation) | #tache-l11-t1 |
+| L11-T2 | Joueur de scénarios : étapes `parallel`, `resize`, `appState`, `longPress`, `visibleTexts`, `expectChanged` (voies publiques de Qt seulement) | L11-T1 | `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `bench/include/actcraft/bench/injector.h`, `bench/src/injector.cpp`, `tests/tst_bench_uiscenario.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_bench_uiscenario` : `parallelStepParsed`, `resizeStepParsed`, `appStateStepParsed`, `longPressStepParsed`, `visibleTextsStepParsed`, `expectChangedStepParsed`, `parallelInterleavesTwoDevices` en `PASS` ; aucun symbole privé de Qt nouveau (`git -C <wt> diff main -- bench/ \| Select-String 'QWindowSystemInterface\|_p\.h'` vide) | S28, S29, S3.2, S3.3, S3.4 | #tache-l11-t2 |
+| L11-T3 | Coquille QML du lot : instances des contrôleurs, emplacements (deuxième palette, menu du toucher, menu au doigt, bandeau de reprise, boîte des mises à jour), gestionnaires talons | L11-T1 | `ui/qml/Main.qml`, `ui/qml/TopBar.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/{SecondPalette,TouchModeMenu,FingerMenu,RecoveryBanner,UpdateDialog}.qml`, `ui/include/actcraft/ui/{touchmode,dualmode,layoutmetrics,lifecycle,documentportal,updatechecker}.h`, `ui/src/{touchmode,dualmode,layoutmetrics,lifecycle,documentportal,updatechecker}.cpp`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_shell` : `lot11SlotsPresent`, `lot11ControllersWired` en `PASS` ; banc sans écran joint | S28, S29, S3.1 à S3.4 | #tache-l11-t3 |
+| L11-T4 | `input` : quatre politiques du toucher, outil imposé au doigt, appuis d'un même événement décidés ensemble (H3-16), champ `Sample::deviceId` | L11-T0, L11-T1 | `input/include/actcraft/input/touchmodes.h`, `input/src/touchmodes.cpp`, `input/include/actcraft/input/routing.h`, `input/src/routing.cpp`, `input/include/actcraft/input/sample.h`, `tests/tst_input_touchmodes.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_input_touchmodes` : 9 fonctions en `PASS` (dont `sameEventTwoFingersGoToGesture`, `noGestureOutsideFullMode`) ; mutation rouge puis remise | S28 | #tache-l11-t4 |
+| L11-T5 | `PageView` : politique remplaçable, utilisateur transmis à l'hôte d'outils, `Sample::deviceId` rempli, appuis groupés, fin des contacts, appui long signalé, ancre au redimensionnement | L11-T2, L11-T4 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `tests/tst_ui_pageinput.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_pageinput` : 9 fonctions en `PASS` (dont `decisionUserReachesTheView`, `finishContactsKeepsTheStroke`, `resizeEndsTheContact`) ; mutation rouge puis remise ; `tst_ui_shell`, `tst_ui_drawing` toujours `Passed` ; banc sans écran joint | S28, S3.2, S3.3, S3.4 | #tache-l11-t5 |
 | L11-T6 | Réglage du mode du toucher (F-930) : contrôleur, commande `touch.mode`, menu, réglage du poste, changement différé hors contact ; scénario `modes-toucher` | L11-T3, L11-T5 | `ui/include/actcraft/ui/touchmode.h`, `ui/src/touchmode.cpp`, `ui/qml/TouchModeMenu.qml`, `tests/tst_ui_touchmode.cpp`, `bench/scenarios/modes-toucher.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_touchmode` 6 fonctions `PASS` ; `tst_captures_modes_toucher` Passed ; `LU appTouchMode.mode=full OK`, `CAPTURES OK` | S28 | #tache-l11-t6 |
-| L11-T7 | Second utilisateur I : politique à deux utilisateurs (schéma d'entrée D11-2), gestes suspendus, un `UserState` par utilisateur | L11-T4 | `input/include/actcraft/input/twouserpolicy.h`, `input/src/twouserpolicy.cpp`, `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `tests/tst_input_twousers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_input_twousers` 7 fonctions `PASS` (dont `noGestureInDualMode`, `eachUserKeepsItsTool`) ; mutation rouge puis remise | S28 | #tache-l11-t7 |
+| L11-T7 | Second utilisateur I : politique à deux utilisateurs (schéma d'entrée D11-2), gestes suspendus, un `UserState` par utilisateur | L11-T4 | `input/include/actcraft/input/twouserpolicy.h`, `input/src/twouserpolicy.cpp`, `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `tests/tst_input_twousers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_input_twousers` 8 fonctions `PASS` (dont `noGestureInDualMode`, `eachUserKeepsItsTool`, `secondUserReceivesInDualMode`) ; mutation rouge puis remise | S28 | #tache-l11-t7 |
 | L11-T8 | Second utilisateur II : sélection propre, objet tenu inaccessible à l'autre, outils de maths par utilisateur | L11-T7 | `tools/include/actcraft/tools/grabs.h`, `tools/src/grabs.cpp`, `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, fichiers des outils de maths du lot 7 relevés par L11-T0 (A11, écrits dans cette ligne par l'orchestrateur), `tests/tst_tools_twousers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_tools_twousers` 6 fonctions `PASS` (dont `heldObjectRefusedToTheOther`, `rulerBelongsToItsUser`) ; `tst_tools_select` toujours `Passed` | S28 | #tache-l11-t8 |
-| L11-T9 | Deux utilisateurs III : attribut `opensDialog`, commandes à boîte refusées au second, mode à deux utilisateurs (F-110, F-303), deuxième palette ; scénario S28 `deux-utilisateurs` | L11-T3, L11-T6, L11-T8 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `actions/data/commands.json`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `ui/include/actcraft/ui/dualmode.h`, `ui/src/dualmode.cpp`, `ui/qml/SecondPalette.qml`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `tests/tst_ui_secondpalette.cpp`, `bench/scenarios/deux-utilisateurs.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_secondpalette` 7 fonctions `PASS`, `tst_bench_uiscenario` : `commandStepCarriesTheUser` `PASS` ; `tst_captures_deux_utilisateurs` Passed ; `LU appDualMode.active=true OK`, deux `PIXEL … OK` de couleurs différentes, `CAPTURES OK` | S28 | #tache-l11-t9 |
-| L11-T10 | Tablette I : mise en page étroite (navigateurs en tiroir, palette repliable, ligne supérieure en débordement), cibles tactiles de 48 dp | L11-T3 | `ui/include/actcraft/ui/layoutmetrics.h`, `ui/src/layoutmetrics.cpp`, `ui/qml/Main.qml`, `ui/qml/Theme.qml`, `ui/qml/PaletteFrame.qml`, `ui/qml/BrowserPanel.qml`, `tests/tst_ui_narrowlayout.cpp`, `bench/scenarios/tablette-etroite.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_narrowlayout` 6 fonctions `PASS` (dont `everyTargetAtLeast48dp`) ; `tst_captures_tablette_etroite` Passed ; `LU appLayout.narrow=true OK`, `CAPTURES OK` ; banc sans écran joint | S3.1 | #tache-l11-t10 |
-| L11-T11 | Tablette II : rotation de l'écran (ancre, contact terminé), clavier logiciel (curseur de texte gardé au-dessus) ; essai sur l'émulateur de tablette | L11-T5, L11-T10 | `ui/include/actcraft/ui/keyboardinset.h`, `ui/src/keyboardinset.cpp`, `ui/qml/PageArea.qml`, `tests/tst_ui_orientation.cpp`, `bench/scenarios/rotation-clavier.json`, `scripts/essai-android-tablette.ps1` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_orientation` 5 fonctions `PASS` ; `tst_captures_rotation_clavier` Passed ; `ANDROID TABLETTE OK` | S3.2 | #tache-l11-t11 |
+| L11-T9 | Deux utilisateurs III : attribut `opensDialog`, commandes à boîte refusées au second, mode à deux utilisateurs (F-110, F-303), deuxième palette ; scénario S28 `deux-utilisateurs` | L11-T3, L11-T6, L11-T8, L11-T10 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `actions/data/commands.json`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `ui/include/actcraft/ui/dualmode.h`, `ui/src/dualmode.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/qml/Main.qml`, `ui/qml/SecondPalette.qml`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `tests/tst_ui_secondpalette.cpp`, `bench/scenarios/deux-utilisateurs.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_secondpalette` 7 fonctions `PASS`, `tst_bench_uiscenario` : `commandStepCarriesTheUser` `PASS` ; `tst_captures_deux_utilisateurs` Passed ; `LU appDualMode.active=false OK`, deux `PIXEL … OK` de couleurs différentes, zoom inchangé en mode allumé (`expect pageView.zoom = ${z0}`) puis `CHANGE pageView.zoom OK` éteint, `CAPTURES OK` | S28 | #tache-l11-t9 |
+| L11-T10 | Tablette I : mise en page étroite (navigateurs en tiroir, palette repliable, ligne supérieure en débordement), cibles tactiles de 48 dp | L11-T2, L11-T3 | `ui/include/actcraft/ui/layoutmetrics.h`, `ui/src/layoutmetrics.cpp`, `ui/qml/Main.qml`, `ui/qml/Theme.qml`, `ui/qml/PaletteFrame.qml`, `ui/qml/BrowserPanel.qml`, `tests/tst_ui_narrowlayout.cpp`, `bench/scenarios/tablette-etroite.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_narrowlayout` 6 fonctions `PASS` (dont `everyTargetAtLeast48dp`) ; `tst_captures_tablette_etroite` Passed (déclaration ctest inchangée, 1280 × 800 au départ) ; `LU appLayout.narrow=false OK` (lecture finale, après le retour en 1280 × 800), `CAPTURES OK` ; banc sans écran joint | S3.1 | #tache-l11-t10 |
+| L11-T11 | Tablette II : rotation de l'écran (ancre, contact terminé), clavier logiciel (curseur de texte gardé au-dessus) ; essai sur l'émulateur de tablette | L11-T5, L11-T10, L11-T14 | `ui/include/actcraft/ui/keyboardinset.h`, `ui/src/keyboardinset.cpp`, `ui/qml/PageArea.qml`, `tests/tst_ui_orientation.cpp`, `bench/scenarios/rotation-clavier.json`, `scripts/essai-android-tablette.ps1` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_orientation` 5 fonctions `PASS` ; `tst_captures_rotation_clavier` Passed ; `ANDROID TABLETTE OK` | S3.2 | #tache-l11-t11 |
 | L11-T12 | Tablette III : menus et palette au doigt (appui long → menu de l'objet ou de la page ; libellé d'un bouton par appui long ; rangées de 48 dp) | L11-T3, L11-T5, L11-T10 | `ui/include/actcraft/ui/fingermenus.h`, `ui/src/fingermenus.cpp`, `ui/qml/FingerMenu.qml`, `ui/qml/CommandMenu.qml`, `ui/qml/ToolPalette.qml`, `tests/tst_ui_fingermenus.cpp`, `bench/scenarios/au-doigt.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_fingermenus` 6 fonctions `PASS` ; `tst_captures_au_doigt` Passed ; `LU fingerMenu.visible=true OK`, `CAPTURES OK` | S3.3 | #tache-l11-t12 |
-| L11-T13 | Tablette IV : cycle de vie — copie de reprise à la mise en arrière-plan, reprise sans perte au retour ou au relancement ; essai sur l'émulateur | L11-T2, L11-T3, L11-T5 | `ui/include/actcraft/ui/lifecycle.h`, `ui/src/lifecycle.cpp`, `ui/qml/RecoveryBanner.qml`, `tests/tst_ui_lifecycle.cpp`, `bench/scenarios/cycle-de-vie.json`, `scripts/essai-android-cycle.ps1` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_lifecycle` 7 fonctions `PASS` (dont `processKilledInBackgroundLosesNothing`) ; `tst_captures_cycle_de_vie` Passed ; `ANDROID CYCLE OK` | S3.4 | #tache-l11-t13 |
-| L11-T14 | Tablette V : portail de documents — permissions gardées des `content://`, documents récents, image et PDF par le portail ; essai sur l'émulateur | L11-T0, L11-T1 | `ui/include/actcraft/ui/documentportal.h`, `ui/src/documentportal.cpp`, `ui/src/recentdocuments.cpp`, `tests/tst_ui_documentportal.cpp`, `scripts/essai-android-portail.ps1` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_documentportal` 6 fonctions `PASS` ; `tst_ui_recents` toujours `Passed` ; `ANDROID PORTAIL OK` | S5.1 | #tache-l11-t14 |
-| L11-T15 | Mesure sur la tablette : APK de banc séparé, lancement et relevé par adb, procédure exacte pour Jérôme | L11-T1 | `bench/app/CMakeLists.txt`, `bench/app/main.cpp`, `bench/app/android/AndroidManifest.xml`, `scripts/paquet-banc-android.ps1`, `scripts/banc-android.ps1`, `docs/banc-tablette.md`, `tests/tst_bench_resultsdir.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_bench_resultsdir` 4 fonctions `PASS` ; `APK BANC OK` ; sur l'émulateur `MESURE INDICATIVE` puis `BUDGET TENU` ou `BUDGET DEPASSE` | S3.5 | #tache-l11-t15 |
-| L11-T16 | Point d'étape 11a : suites debug et release, scénarios de 11a, APK et essais Android (S3, S5, tablette, cycle, portail), talons restants comptés, graphe | L11-T2 à L11-T15 | `tests/tst_ui_shell.cpp`, `docs/verifications/2026-10-21-lot11a-etape.md`, `graphify-out/` | partagé | implementeur-tdd | debug et release `TESTS OK`, N = N11 + 32 ; `git grep "Talon L11"` = talons de 11b seulement ; `APK OK`, `ANDROID OK`, `ANDROID FICHIERS OK`, `ANDROID TABLETTE OK`, `ANDROID CYCLE OK`, `ANDROID PORTAIL OK` | S28, S3, S5, S3.1 à S3.5 | #tache-l11-t16 |
+| L11-T13 | Tablette IV : cycle de vie — copie de reprise à la mise en arrière-plan, reprise sans perte au retour ou au relancement ; essai sur l'émulateur | L11-T2, L11-T3, L11-T5, L11-T9, L11-T14 | `ui/include/actcraft/ui/lifecycle.h`, `ui/src/lifecycle.cpp`, `ui/qml/RecoveryBanner.qml`, `ui/qml/Main.qml`, `app/startup.h`, `app/startup.cpp`, `app/main.cpp`, `bench/captures/main.cpp`, `tests/tst_ui_lifecycle.cpp`, `bench/scenarios/cycle-de-vie.json`, `scripts/essai-android-cycle.ps1` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_lifecycle` 7 fonctions `PASS` (dont `processKilledInBackgroundLosesNothing`) ; `tst_captures_cycle_de_vie` Passed ; `ANDROID CYCLE OK` | S3.4 | #tache-l11-t13 |
+| L11-T14 | Tablette V : portail de documents — permissions gardées des `content://`, documents récents, image et PDF par le portail ; essai sur l'émulateur ; démon Gradle coupé dans `paquet-android.ps1` | L11-T0, L11-T1, L11-T3 | `ui/include/actcraft/ui/documentportal.h`, `ui/src/documentportal.cpp`, `ui/src/recentdocuments.cpp`, `tests/tst_ui_documentportal.cpp`, `scripts/essai-android-portail.ps1`, `scripts/paquet-android.ps1` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_documentportal` 6 fonctions `PASS` ; `tst_ui_recents` toujours `Passed` ; `paquet-android.ps1 > .tmp/apk.txt 2>&1` rend la main moins de 60 s après `APK OK` ; `ANDROID PORTAIL OK` | S5.1 | #tache-l11-t14 |
+| L11-T15 | Mesure sur la tablette : APK de banc séparé, lancement et relevé par adb, procédure exacte pour Jérôme | L11-T1, L11-T14 | `bench/app/CMakeLists.txt`, `bench/app/main.cpp`, `bench/app/android/AndroidManifest.xml`, `scripts/paquet-banc-android.ps1`, `scripts/banc-android.ps1`, `docs/banc-tablette.md`, `tests/tst_bench_resultsdir.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_bench_resultsdir` 4 fonctions `PASS` ; `APK BANC OK` ; sur l'émulateur `MESURE INDICATIVE` puis `BUDGET TENU` ou `BUDGET DEPASSE` | S3.5 | #tache-l11-t15 |
+| L11-T16 | Point d'étape 11a : suites debug et release, scénarios de 11a, APK et essais Android (S3, S5, tablette, cycle, portail), talons restants comptés, graphe | L11-T2 à L11-T15 | `tests/tst_ui_shell.cpp`, `docs/verifications/2026-10-21-lot11a-etape.md`, `graphify-out/` | partagé | implementeur-tdd | debug et release `TESTS OK`, N = N11 + 32 ; `git -C <wt> grep -l "Talon L11" -- . ':!docs/' ':!graphify-out/' ':!tests/tst_ui_shell.cpp'` = fichiers de 11b seulement ; `APK OK`, `ANDROID OK`, `ANDROID FICHIERS OK`, `ANDROID TABLETTE OK`, `ANDROID CYCLE OK`, `ANDROID PORTAIL OK` | S28, S3, S5, S3.1 à S3.5 | #tache-l11-t16 |
+
+## Amendement 1 (relecture tour 1)
+
+Relecture sur `86faccc` : 2 bloquants, 16 majeurs, 18 mineurs, tous appliqués dans 11a et 11b, sous les arbitrages de
+l'orchestrateur (M1, B2, mineurs 3, 15 et 18). **Cet amendement fait autorité** sur le texte d'origine ; les sections
+touchées sont corrigées en place. Noms vérifiés par la relecture à la tête du chantier (`27ec7ba`).
+
+| # | Constat | Correction | Où |
+|---|---|---|---|
+| B1 | `tst_app_version` existe déjà (`tests/app.cmake:4-5`) | test unitaire renommé `tst_app_versioninfo` ; l'ancien est gardé ; N = N11 + 32 | R1, L11-T1, L11-T28 |
+| B2 | `workflow_dispatch` « reel » créerait l'environnement `release` sans protection | point 7 de L11-T29 supprimé ; interdit « aucun `gh workflow run release.yml -f mode=reel` » ; preuve lue dans le run d'essai (`SECRETS ABSENTS`, `CONTROLE OK`) | L11-T29 |
+| M1 | API privées dans le joueur | `QPointingDevice` public et `postEvent` pour `parallel` ; `QApplicationStateChangeEvent` par `sendEvent(qApp)` pour `appState` ; repli `applyState` ; vérification A22 dans L11-T0 ; règle commune « aucune API privée nouvelle » | commandes communes, A22, L11-T0, L11-T2, L11-T13 |
+| M2 | `-Lire "appLayout.portrait=true"` lu après la fin en paysage | `-Lire …=false` ; `expect` après le `resize` | L11-T11 |
+| M3 | `-Lire` ne passe rien au scénario ; ctest en 1280 × 800 | scénario qui fait ses deux `resize`, un seul passage | L11-T10 |
+| M4 | `pageView.scale` toujours 1 | `pageView.zoom`, `remember`, `expectChanged` (étape ajoutée à L11-T2) | L11-T2, L11-T9 |
+| M5 | `Sample::deviceId` absent quand L11-T7 compile | champ ajouté par L11-T4 (V2) | L11-T4, L11-T5 |
+| M6 | `userReachesTheToolHost` impossible avant deux `UserState` | L11-T5 prouve la transmission (`lastContactUser`) ; L11-T7 prouve la réception (`secondUserReceivesInDualMode`) | L11-T5, L11-T7 |
+| M7 | l'utilisateur n'atteint pas les gestionnaires QML | gestionnaires `(argument, user)`, `appTools.setColor(color, user)` ; `Main.qml` et `toolhost.*` à L11-T9 | L11-T3, L11-T9 |
+| M8 | réglages d'essai limités aux tests qui chargent `Main.qml` | règle étendue à tout test qui crée un objet à réglages ; contrôle `reg query` | commandes communes |
+| M9 | dossier de reprise du joueur non posé | `StartupOptions::recoveryDir`, joueur, `Main.qml` dans L11-T13 | L11-T13 |
+| M10 | comptes de talons impossibles | `git grep -l "// Talon L11" -- '*.h' '*.cpp' ':!tests/'` = 22 ; fin : exclusion de `docs/`, `graphify-out/`, `tst_ui_shell.cpp` ; marqueur construit | L11-T1, L11-T16, L11-T30 |
+| M11 | `Totals` faux (`initTestCase`, `cleanupTestCase`) | k = fonctions nommées + 2 + fonctions existantes | commandes communes |
+| M12 | `run-as` refusé à un APK release | dossier propre externe, `adb pull` | A21, L11-T15 |
+| M13 | démon Gradle qui bloque après `APK OK` | `GRADLE_OPTS=-Dorg.gradle.daemon=false` dans les deux scripts, preuve < 60 s | L11-T14, L11-T15 |
+| M14 | `appCommands` n'est pas un `objectName` | `commands.lockedCount` | 11b, L11-T26 |
+| M15 | `appUpdates.start()` jamais appelé | `Component.onCompleted: appUpdates.start()` ; `startCalledOnceByTheShell` | 11b, L11-T22 |
+| M16 | `-Scenario tous` échoue et contacte l'API réelle | `bench/scenarios/controle/pseudo-langue.json` ; `ACTCRAFT_UPDATES_URL` posée avant `tous` | R3, 11b (L11-T19, L11-T20, L11-T30) |
+| m1 | forme de `parseUiScenario` | forme réelle à trois arguments ; `contacts` en fin de `UiStep` | L11-T2 |
+| m2 | `injector.*` absent ; journal sans API ; espace des points | fichiers ajoutés ; `Injector::eventLog()` ; points de page | L11-T2 |
+| m3 | noms faux | `tool.shape` + `shape.choose`, `appTools.selectionCount` | L11-T6 |
+| m4 | `pageView.inkTool` absent | `appTools.currentTool` | L11-T12 |
+| m5 | fichiers R2 et montage de L11-T3 | 12 fichiers ajoutés ; `Shell s; QVERIFY(start(s));` | L11-T3 |
+| m6 | `uiscenario.h` absent de L11-T9 | ajouté | L11-T9 |
+| m7 | `help.check-updates` non marqué ; requête réseau en L11-T24 | nommé dans `everyDialogCommandMarked` ; `ACTCRAFT_UPDATES_URL` dans `tst_ui_accessibility` | L11-T9, 11b (L11-T24) |
+| m8 | `paletteLabel` sans `objectName` | posé par L11-T12 | L11-T12 |
+| m9 | `--journal-empreinte` hors fichiers | `app/main.cpp`, `app/startup.*` à L11-T13 | L11-T13 |
+| m10 | `pm clear` ne retire pas les permissions | `content delete --uri`, vérifié par L11-T0 | L11-T14 |
+| m11 | AVD sans nom | `actcraft-tablette`, taille au rapport | L11-T11 |
+| m12 à m18 | 11b | voir l'amendement de 11b | 11b |
 
 L'identifiant `L11-C0` est réservé au correctif de données qui suit L11-T0 (même règle qu'au lot 6) : il ne touche que
 `actions/data/commands.json` et `actions/data/layout.json` et se joue seul avant V2.
@@ -67,14 +106,15 @@ testé par la CI.
 ## Liste de réservation (L11-T1)
 
 **R1 — 32 tests enregistrés** (21 unitaires, 11 de captures), tous talons `QSKIP("Talon L11 : rempli par L11-T<n>.")`
-jusqu'à leur tâche :
+jusqu'à leur tâche (le test `tst_app_version` existant, `tests/app.cmake:4-5`, qui lance `actcraft --version`, est
+gardé ; le test unitaire de version du lot s'appelle donc `tst_app_versioninfo`) :
 
 | # | test | tâche | | # | test | tâche |
 |---|---|---|---|---|---|---|
 | 1 | `tst_input_touchmodes` | L11-T4 | | 17 | `tst_app_notices` | L11-T25 |
 | 2 | `tst_ui_pageinput` | L11-T5 | | 18 | `tst_ui_lockall` | L11-T26 |
 | 3 | `tst_ui_touchmode` | L11-T6 | | 19 | `tst_ui_profilesall` | L11-T27 |
-| 4 | `tst_input_twousers` | L11-T7 | | 20 | `tst_app_version` | L11-T28 |
+| 4 | `tst_input_twousers` | L11-T7 | | 20 | `tst_app_versioninfo` | L11-T28 |
 | 5 | `tst_tools_twousers` | L11-T8 | | 21 | `tst_ui_helppages` | L11-T17, L11-T18 |
 | 6 | `tst_ui_secondpalette` | L11-T9 | | 22 | `tst_captures_modes_toucher` | L11-T6 |
 | 7 | `tst_ui_narrowlayout` | L11-T10 | | 23 | `tst_captures_deux_utilisateurs` | L11-T9 |
@@ -101,7 +141,9 @@ L11-T<n>.`) : `input/include/actcraft/input/touchmodes.h`, `input/src/touchmodes
 `ui/src/{touchmode,dualmode,layoutmetrics,keyboardinset,fingermenus,lifecycle,documentportal,updatechecker}.cpp`.
 Les en-têtes posent les signatures de leur section (contrat figé) ; un écart découvert à l'exécution amende la section.
 
-**R3 — scénarios talons** : `bench/scenarios/{modes-toucher,deux-utilisateurs,tablette-etroite,rotation-clavier,au-doigt,cycle-de-vie,aide-complete,pseudo-langue,mises-a-jour,classe-protegee-complete,profils-complets}.json`.
+**R3 — scénarios talons** : `bench/scenarios/{modes-toucher,deux-utilisateurs,tablette-etroite,rotation-clavier,au-doigt,cycle-de-vie,aide-complete,mises-a-jour,classe-protegee-complete,profils-complets}.json`
+et `bench/scenarios/controle/pseudo-langue.json` (sous-dossier que `captures.ps1 -Scenario tous` ne prend pas, comme
+`local/` ; joué à part avec `-Traduction`) ; la déclaration ctest de `tst_captures_pseudo_langue` vise ce chemin.
 
 **R4 — commandes du lot** (ajoutées à `actions/data/commands.json`, libellés à nous, `lockable` et `restrictable`
 renseignés, `opensDialog` ajouté par L11-T9) :
@@ -124,20 +166,24 @@ puis 11b (son plan).
 
 Vérification des recoupements (colonne « fichiers touchés ») :
 - V1 : `docs/verifications/` / données, CMake, talons — disjoints.
-- V2 : L11-T2 (`uiscenario.*`, `tst_bench_uiscenario.cpp`) / L11-T3 (QML de la coquille, `tst_ui_shell.cpp`) / L11-T4
-  (`touchmodes.*`, `routing.*`, `tst_input_touchmodes.cpp`) — disjoints. L11-T4 attend L11-T0 (V1 finie).
-- V3 : L11-T5 (`pageview.*`, `sample.h`, `tst_ui_pageinput.cpp`) / L11-T7 (`twouserpolicy.*`, `userstate.*`,
+- V2 : L11-T2 (`uiscenario.*`, `injector.*`, `tst_bench_uiscenario.cpp`) / L11-T3 (QML de la coquille, en-têtes et
+  sources R2 de `ui/`, `tst_ui_shell.cpp`) / L11-T4 (`touchmodes.*`, `routing.*`, `sample.h`, `tst_input_touchmodes.cpp`)
+  — disjoints. L11-T4 attend L11-T0 (V1 finie).
+- V3 : L11-T5 (`pageview.*`, `tst_ui_pageinput.cpp`) / L11-T7 (`twouserpolicy.*`, `userstate.*`,
   `toolhost.*`, `tst_input_twousers.cpp`) / L11-T10 (`layoutmetrics.*`, `Main.qml`, `Theme.qml`, `PaletteFrame.qml`,
   `BrowserPanel.qml`, un test, un scénario) — disjoints.
 - V4 : L11-T6 (`touchmode.*`, `TouchModeMenu.qml`, un test, un scénario) / L11-T8 (`grabs.*`, `selecttool.*`, fichiers
-  des outils de maths, un test) / L11-T14 (`documentportal.*`, `recentdocuments.cpp`, un test, un script) — disjoints.
-- V5 : L11-T9 (`commandregistry.*`, `commands.json`, `commands.*`, `dualmode.*`, `SecondPalette.qml`, `uiscenario.cpp`,
-  `tst_bench_uiscenario.cpp`, un test, un scénario) / L11-T11 (`keyboardinset.*`, `PageArea.qml`, un test, un scénario, un script) / L11-T15 (`bench/app/*`,
+  des outils de maths, un test) / L11-T14 (`documentportal.*`, `recentdocuments.cpp`, un test, un script, `paquet-android.ps1`) — disjoints.
+- V5 : L11-T9 (`commandregistry.*`, `commands.json`, `commands.*`, `dualmode.*`, `toolhost.*`, `Main.qml`, `SecondPalette.qml`,
+  `uiscenario.*`, `tst_bench_uiscenario.cpp`, un test, un scénario) / L11-T11 (`keyboardinset.*`, `PageArea.qml`, un test, un scénario, un script) / L11-T15 (`bench/app/*`,
   deux scripts, `docs/banc-tablette.md`, un test) — disjoints.
 - V6 : L11-T12 (`fingermenus.*`, `FingerMenu.qml`, `CommandMenu.qml`, `ToolPalette.qml`, un test, un scénario) /
-  L11-T13 (`lifecycle.*`, `RecoveryBanner.qml`, un test, un scénario, un script) — disjoints.
+  L11-T13 (`lifecycle.*`, `RecoveryBanner.qml`, `Main.qml`, `app/startup.*`, `app/main.cpp`, `bench/captures/main.cpp`,
+  un test, un scénario, un script) — disjoints.
 - Fichiers repris d'une vague à l'autre, tenus par « dépend de » : talons de L11-T1 → leur tâche ; `commands.json`
-  (L11-T1 → L11-C0 → L11-T9) ; `uiscenario.cpp` (L11-T2 → L11-T9) ; `ToolPalette.qml` (L11-T3 → L11-T12) ; `Main.qml` (L11-T3 → L11-T10) ; QML des
+  (L11-T1 → L11-C0 → L11-T9) ; `uiscenario.cpp` (L11-T2 → L11-T9) ; `ToolPalette.qml` (L11-T3 → L11-T12) ; `Main.qml` (L11-T3 → L11-T10 → L11-T9 → L11-T13) ; R2 de `ui/` (L11-T3 → L11-T6, L11-T9, L11-T10,
+  L11-T13, L11-T14, L11-T21) ; `toolhost.*` (L11-T7 → L11-T9) ; `paquet-android.ps1` (L11-T14, puis employé par
+  L11-T11, L11-T13, L11-T15, L11-T16) ; QML des
   emplacements (L11-T3 → leur tâche) ; `pageview.*` (L11-T5 seul).
 
 Worktrees : `.worktrees/livraison-complete--L11-T<n>`, branche `feat/livraison-complete--L11-T<n>`, issue de
@@ -168,8 +214,10 @@ la section de la tâche qui l'emploie.
   ```powershell
   pwsh -NoProfile -Command "Set-Location '<wt>'; . ./scripts/dev-env.ps1; & build/debug/tests/<test>.exe -o .tmp/<test>.txt,txt; Select-String -Path .tmp/<test>.txt -Pattern '^PASS   :|^FAIL!  :|^SKIP   :|^Totals' | Select-Object -Last 40"
   ```
-  Attendu pour un talon rempli : chaque fonction nommée par la section en `PASS`, aucun `SKIP`,
-  `Totals: <k> passed, 0 failed, 0 skipped`, k = nombre de fonctions de la section (exact).
+  Attendu pour un talon rempli : chaque fonction nommée par la section en `PASS`, aucun `FAIL!`, aucun `SKIP`,
+  `Totals: <k> passed, 0 failed, 0 skipped`, avec k = fonctions nommées par la section + 2 (`initTestCase` et
+  `cleanupTestCase`, que Qt Test compte toujours), plus les fonctions déjà présentes si le fichier existait
+  (`tst_bench_uiscenario`, `tst_ui_shell`) : k exact, relevé avant la tâche et écrit au rapport.
 - **Preuve de tâche** (forme bornée du profil, sous le jeton) :
   ```powershell
   pwsh -NoProfile -Command "Set-Location '<wt>'; New-Item -ItemType Directory -Force .tmp | Out-Null; pwsh -NoProfile -File C:\Users\JeromeDenis\.claude\scripts\jeton.ps1 -Nom tests -Proprietaire <id> -Commande 'pwsh -NoProfile -File ./scripts/test.ps1 > .tmp/test.txt 2>&1'; Select-String -Path .tmp/test.txt -Pattern 'tests passed|TESTS (OK|EN ECHEC)' | Select-Object -Last 2; Select-String -Path .tmp/test.txt -Pattern '<nom_du_test> .*Passed' | Select-Object -Last 1"
@@ -192,15 +240,21 @@ la section de la tâche qui l'emploie.
   Attendu : `BUDGET TENU` ou `BUDGET DEPASSE` (jamais `MESURE INVALIDE`) ; nom du JSON de `bench/results/` joint au
   rapport (jamais commité).
 - **Réglages d'essai** (amendement 3 du lot 6) : le joueur et le banc écrivent leurs réglages dans un fichier INI propre
-  au lancement (`<sortie>/reglages`, profils sous `<sortie>/profils`) ; un test qui charge `Main.qml` pose
+  au lancement (`<sortie>/reglages`, profils sous `<sortie>/profils`) ; **tout test** qui crée un `Preferences`, un
+  `ProfileController`, un `ClassroomLock`, un `RecentDocuments`, un `UpdateChecker` ou un `TouchModeController`, ou
+  qui charge `Main.qml`, pose
   `QSettings::setDefaultFormat(QSettings::IniFormat)` et `QSettings::setPath(QSettings::IniFormat,
   QSettings::UserScope, m_settings.path())` (`QTemporaryDir m_settings`) dans `initTestCase`, et un `profileRoot`
-  temporaire. Jamais le registre Windows réel, jamais les réglages de Jérôme.
+  temporaire. Jamais le registre Windows réel, jamais les réglages de Jérôme. Contrôle à chaque preuve de tâche :
+  `reg query HKCU\Software\ActCraft /s > .tmp/reg-avant.txt 2>&1` avant, la même commande vers `.tmp/reg-apres.txt`
+  après, puis `Compare-Object (Get-Content .tmp/reg-avant.txt) (Get-Content .tmp/reg-apres.txt)` : sortie vide.
 - **Émulateur** : scripts de ce plan bâtis sur `scripts/android-commun.ps1` (appels adb bornés, arrêt par les
   processus tenus, jamais par nom) ; même règle que `scripts/essai-android-fichiers.ps1` : refus de démarrer si le port
   de l'essai est occupé ; sorties sous `.tmp/`.
 - **Mutations** : la mutation demandée est faite dans le fichier, prouvée rouge par la commande ciblée, puis remise par
   `git -C <wt> checkout -- <fichier>` (jamais par `Copy-Item`), et la commande ciblée rejouée verte.
+- **API de Qt** (arbitrage M1 de l'orchestrateur) : aucune API privée de Qt nouvelle, ni dans le code livré ni dans
+  le joueur. Le banc garde son lien existant à `Qt6::GuiPrivate` pour les touches ; le lot 11 n'en ajoute aucun usage.
 - **`NOMS OK`** (après `git add`, avant chaque commit) :
   ```powershell
   python -I "C:\Users\JeromeDenis\REA - Activinspire\tools\controle_noms_actcraft.py" "<wt>" | Select-Object -Last 1
@@ -285,7 +339,10 @@ hors dépôt.
 | A18 | menu d'édition d'objet et menu de page (`ui/qml/PageContextMenu.qml`, menu d'objet du lot 5) | 5373f04 (`PageContextMenu.qml`) ; lot 5 | L11-T12 |
 | A19 | outil texte : rectangle du curseur en coordonnées de page | lot 4 | L11-T11 |
 | A20 | `app/startup.h` (`StartupOptions`, `profileRoot`, `loadMainWindow`) | amendement 3 du lot 6 | L11-T13 |
-| A21 | `bench/app/main.cpp` (dossier des résultats `defaultDir`, options) | 5373f04 ; L6 (`defaultDir` avant `loadMainWindow`) | L11-T15 |
+| A21 | `bench/app/main.cpp` (dossier des résultats `defaultDir`, options) ; sous Android, dossier propre externe `/sdcard/Android/data/io.github.jejeasterix.actcraft.banc/files` (lisible par `adb pull` sans `run-as`) | 5373f04 ; L6 (`defaultDir` avant `loadMainWindow`) | L11-T15 |
+| A22 | un `QApplicationStateChangeEvent` envoyé par `QCoreApplication::sendEvent(qApp, &ev)` atteint les filtres d'événements posés sur `qApp`, et la plateforme (Windows, Android) envoie cet événement à `qApp` quand l'état change | `QtGui/qevent.h:1029-1038` (classe publique) ; envoi par la plateforme non vérifié | L11-T2, L11-T13 |
+| A23 | étape `remember` du joueur (`{"remember": "<objet>.<propriété>", "as": "<nom>"}`) et substitution `${<nom>}` dans `expect` | `bench/src/uiscenario.cpp` (clés `remember`, `as` présentes à `5373f04`) ; forme de L0-S2 | L11-T2, L11-T9 |
+| A24 | coupure du démon Gradle lancé par `androiddeployqt` (`GRADLE_OPTS=-Dorg.gradle.daemon=false`) | piège de l'état du chantier (rejeu figé 2 h 30 après `APK OK`) | L11-T14, L11-T15 |
 
 ---
 
@@ -332,7 +389,14 @@ des titres du corpus est vide.
   `graphify query "CommandRegistry lockable restrictable platforms"`, `graphify query "HelpViewer Language ClassroomLock ProfileController"`,
   `graphify query "uiscenario steps touch pinch restart"` ; lire les en-têtes cités ; remplir la table A (conforme, ou
   signature réelle et section à amender). Relever la forme des clés de `actions/data/commands.json` et la déclaration
-  d'un test de captures (`tests/bench.cmake`).
+  d'un test de captures (`tests/bench.cmake`). Vérifier aussi : **A22** (un `QApplicationStateChangeEvent` envoyé à
+  `qApp` atteint un filtre posé sur `qApp`, et la plateforme envoie cet événement à `qApp` sous Windows et sous Android ;
+  sinon, le repli `applyState` de L11-T13 s'applique et la section est amendée) ; A23 ; A24 ; la voie de retrait d'un
+  document pour `essai-android-portail.ps1` (`adb shell content delete --uri <uri>`) ; le nom de `shape.choose` et de
+  son argument « rectangle » (lot 4) ; la forme de la valeur de `appTools.currentTool` (lot 3) ; le chemin réel du
+  rapport des épinglages du lot 7 (11b, L11-T27 ; ou « absent : liste lue dans les profils du lot 7 ») ; écrire dans
+  le relevé hors dépôt `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot11-noms.txt` les noms de l'original à
+  refuser dans les textes (ceux de `lot6-noms-profils.txt` et ceux des outils), un par ligne, jamais dans le dépôt.
 - [ ] **Étape 5 : N11.**
   ```powershell
   pwsh -NoProfile -Command "Set-Location 'C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete--L11-T0'; New-Item -ItemType Directory -Force .tmp | Out-Null; . ./scripts/dev-env.ps1; cmake --preset debug *> .tmp/cfg.txt; ctest --preset debug -N | Select-String 'Total Tests'"
@@ -361,7 +425,7 @@ commandes R4 et leurs entrées de disposition, et les quatre icônes à nous ; a
 grille de `ui/icons/`) ; aucune autre tâche n'enregistre de test.
 
 **Terminé quand** N = N11 + 32, `TESTS OK`, chaque talon unitaire rend `SKIP   :` avec « Talon L11 : rempli par
-L11-T<n>. », et `git grep -c "Talon L11"` compte les talons R2.
+L11-T<n>. », et `(git -C <wt> grep -l "// Talon L11" -- '*.h' '*.cpp' ':!tests/').Count` vaut 22 (les fichiers R2).
 
 **Étapes.**
 - [ ] **Étape 1 : talon de test** (modèle pour les 21 unitaires ; un fichier par test de R1, classe `Tst<NomCamel>`) :
@@ -390,7 +454,7 @@ L11-T<n>. », et `git grep -c "Talon L11"` compte les talons R2.
   le menu Affichage de `actions/data/layout.json`, `help.check-updates` dans le menu Aide ; icônes
   `ui/icons/{toucher,deux-utilisateurs,mises-a-jour,reprise}.svg`.
 - [ ] **Étape 5 : vert.** Preuve de tâche : `100% tests passed, 0 tests failed out of <N11 + 32>`, `TESTS OK`. Puis
-  « fonctions d'un test » sur `tst_input_touchmodes`, `tst_ui_lifecycle`, `tst_app_version` : `SKIP` attendu.
+  « fonctions d'un test » sur `tst_input_touchmodes`, `tst_ui_lifecycle`, `tst_app_versioninfo` : `SKIP` attendu.
 - [ ] **Étape 6 : commit.** `git add` des chemins de la ligne (liste nommée) ; `NOMS OK` ; contrôle des titres du corpus
   vide ; commit « Lot 11 : réservation des tests, des fichiers et des commandes (L11-T1) ».
 
@@ -400,11 +464,19 @@ L11-T<n>. », et `git grep -c "Talon L11"` compte les talons R2.
 **Objectif.** Cinq étapes nouvelles du joueur (`actcraft-captures`), analysées et jouées :
 - `{"parallel": [{"device": 1, "kind": "stylus"|"touch"|"mouse", "points": [[x, y], …]}, …], "pressure": 0.5}` :
   plusieurs contacts injectés **entrelacés** (appuis, puis mouvements alternés, puis relâchés), chacun avec son
-  appareil ; un appareil de pointage factice par numéro, enregistré une fois (`QWindowSystemInterface::registerInputDevice`,
-  API privée de QtGui, à revérifier) ; ligne `PARALLELE <n> contacts OK|ECHEC`.
+  appareil ; points en coordonnées de **page**, comme `stroke` ; un `QPointingDevice` **public** par numéro, créé à la
+  première utilisation par son constructeur (`systemId` = 6000 + n, `QPointingDeviceUniqueId::fromNumericId(n)`), ou
+  `QTest::createTouchDevice()` pour un doigt ; événements postés par `QCoreApplication::postEvent`, comme `postTablet`
+  (`bench/src/injector.cpp`) ; aucun enregistrement auprès de la plateforme ; ligne `PARALLELE <n> contacts OK|ECHEC`.
+  Journal : `Injector::setLogging(bool)` et `QStringList Injector::eventLog() const` (« P1 », « M1 », « R1 » : phase et
+  numéro d'appareil de chaque événement posté).
 - `{"resize": [w, h]}` : la fenêtre prend la taille logique donnée (rotation simulée) ; ligne `TAILLE <w>x<h> OK`.
-- `{"appState": "suspended"|"hidden"|"inactive"|"active"}` : état de l'application simulé
-  (`QWindowSystemInterface::handleApplicationStateChanged`, à revérifier) ; ligne `ETAT <état> OK`.
+- `{"appState": "suspended"|"hidden"|"inactive"|"active"}` : état de l'application simulé par la voie publique
+  `QApplicationStateChangeEvent ev(state); QCoreApplication::sendEvent(qApp, &ev);` (A22) ; repli si L11-T0 montre que
+  la plateforme ne passe pas par `qApp` : appel de `appLifecycle.applyState(state)` (L11-T13) ; ligne
+  `ETAT <état> OK`.
+- `{"expectChanged": "<objet>.<propriété>", "from": "${<nom>}"}` : écart si la valeur lue est égale à la valeur
+  retenue par `remember` (A23) ; ligne `CHANGE <objet>.<propriété> OK|ECART`.
 - `{"longPress": [x, y], "kind": "touch"|"mouse", "holdMs": 600, "space": "page"|"window"}` : appui tenu sans mouvement,
   puis relâché ; ligne `APPUI LONG OK`.
 - `{"visibleTexts": "pseudo", "marks": ["⟦", "⟧"], "ignore": ["pageIndicator"]}` : parcourt les éléments visibles de
@@ -412,15 +484,17 @@ L11-T<n>. », et `git grep -c "Talon L11"` compte les talons R2.
   `TEXTE ECART <objectName ou classe> "<texte>"` par texte non vide qui n'est pas encadré des marques (chiffres seuls
   et éléments ignorés exclus), puis `TEXTES OK <n>` ou `TEXTES EN ECART <k>` (étape en écart s'il y en a).
 
-**Fichiers.** `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`.
+**Fichiers.** `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`,
+`bench/include/actcraft/bench/injector.h`, `bench/src/injector.cpp`, `tests/tst_bench_uiscenario.cpp`.
 
 **Test et commande bornée.** Commande ciblée `-R tst_bench_uiscenario` ; « fonctions d'un test » sur
 `tst_bench_uiscenario`.
 
 **Interdits.** Aucune étape existante changée ; aucun appel de commande de l'application depuis ces étapes (elles
-injectent des événements, comme `touch`).
+injectent des événements, comme `touch`) ; aucune API privée de Qt nouvelle (`QWindowSystemInterface`, en-têtes
+`*_p.h`).
 
-**Terminé quand** les six fonctions nouvelles et toutes les anciennes passent.
+**Terminé quand** les sept fonctions nouvelles et toutes les anciennes passent.
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge** (ajouté à `tests/tst_bench_uiscenario.cpp`, sur le modèle de `touchStepParsed`) :
@@ -428,25 +502,27 @@ injectent des événements, comme `touch`).
   void parallelStepParsed()
   {
       const QByteArray json = R"({"name":"p","steps":[{"parallel":[{"device":1,"kind":"stylus","points":[[10,10],[50,10]]},{"device":2,"kind":"touch","points":[[10,90],[50,90]]}]}]})";
-      const auto scenario = actcraft::bench::parseUiScenario(json);
-      QVERIFY(scenario.ok);
+      actcraft::bench::UiScenario scenario;
+      QString error;
+      QVERIFY2(actcraft::bench::parseUiScenario(json, scenario, error), qPrintable(error));
       QCOMPARE(scenario.steps.size(), 1);
       QCOMPARE(scenario.steps[0].kind, actcraft::bench::UiStepKind::Parallel);
       QCOMPARE(scenario.steps[0].contacts.size(), 2);
       QCOMPARE(scenario.steps[0].contacts[1].device, 2);
   }
   void resizeStepParsed();       // {"resize":[800,1280]} → UiStepKind::Resize, size == QSize(800, 1280)
-  void appStateStepParsed();     // {"appState":"suspended"} → UiStepKind::AppState, Qt::ApplicationSuspended ; "zzz" → ok faux
+  void appStateStepParsed();     // {"appState":"suspended"} → UiStepKind::AppState, Qt::ApplicationSuspended ; "zzz" → parseUiScenario rend faux
   void longPressStepParsed();    // {"longPress":[100,100],"holdMs":600} → UiStepKind::LongPress, holdMs 600, kind touch par défaut
   void visibleTextsStepParsed(); // marques par défaut ⟦ ⟧ ; "ignore" lu
-  void parallelInterleavesTwoDevices(); // ordre des événements produits : P1 P2 M1 M2 … R1 R2 (journal de l'injecteur)
+  void expectChangedStepParsed(); // {"expectChanged":"pageView.zoom","from":"${z0}"} → UiStepKind::ExpectChanged
+  void parallelInterleavesTwoDevices(); // Injector::eventLog() : P1 P2 M1 M2 … R1 R2
   ```
-  Noms `parseUiScenario`, `UiStepKind`, `steps` : ceux de `bench/include/actcraft/bench/uiscenario.h` (A12) ; s'ils
-  diffèrent, reprendre les noms réels.
+  Forme réelle : `bool parseUiScenario(const QByteArray& json, UiScenario& out, QString& error)`
+  (`bench/include/actcraft/bench/uiscenario.h`) ; le champ `contacts` est ajouté **à la fin** de `UiStep`.
 - [ ] **Étape 2 : rouge vu** (commande ciblée : `tests failed`).
-- [ ] **Étape 3 : implémentation.** `UiStepKind::{Parallel, Resize, AppState, LongPress, VisibleTexts}` ; structure
-  `UiContact{int device; QString kind; QList<QPointF> points;}` ; analyse ; exécution (injection par le même chemin que
-  `touch` et `stroke`, appareils factices enregistrés à la première utilisation) ; lignes de sortie ci-dessus.
+- [ ] **Étape 3 : implémentation.** `UiStepKind::{Parallel, Resize, AppState, LongPress, VisibleTexts, ExpectChanged}` ; structure
+  `UiContact{int device; QString kind; QList<QPointF> points;}` ; analyse ; exécution (injection par `Injector`, même chemin que
+  `touch` et `stroke` ; un `QPointingDevice` public par numéro, créé à la première utilisation) ; lignes de sortie ci-dessus.
 - [ ] **Étape 4 : vert**, « fonctions d'un test » (`Totals` sans échec ni saut), preuve de tâche.
 - [ ] **Étape 5 : commit** « Lot 11 : étapes du joueur pour le toucher, la rotation et les textes (L11-T2) ».
 
@@ -454,7 +530,7 @@ injectent des événements, comme `touch`).
 ### Tâche L11-T3 — Coquille QML du lot
 
 **Objectif.** Poser une fois les instances et les emplacements du lot, pour que les vagues suivantes n'écrivent plus
-dans `Main.qml` (sauf L11-T10) : dans `Main.qml`, à côté de `appCommands` et `appPreferences` (L6-T5) :
+dans `Main.qml` (sauf L11-T10, L11-T9 et L11-T13, dans cet ordre de vagues) : dans `Main.qml`, à côté de `appCommands` et `appPreferences` (L6-T5) :
 ```qml
 TouchModeController { id: appTouchMode; objectName: "appTouchMode"; commands: appCommands; preferences: appPreferences; view: pageArea.view }
 DualMode { id: appDualMode; objectName: "appDualMode"; commands: appCommands; view: pageArea.view }
@@ -468,7 +544,10 @@ emplacements `SecondPalette { visible: appDualMode.active }` (bord gauche), `Rec
 fichier QML où sa tâche écrira le vrai** (règle de l'amendement 1 du lot 6).
 
 **Fichiers.** `ui/qml/Main.qml`, `ui/qml/TopBar.qml`, `ui/qml/ToolPalette.qml`,
-`ui/qml/{SecondPalette,TouchModeMenu,FingerMenu,RecoveryBanner,UpdateDialog}.qml`, `tests/tst_ui_shell.cpp`.
+`ui/qml/{SecondPalette,TouchModeMenu,FingerMenu,RecoveryBanner,UpdateDialog}.qml`,
+`ui/include/actcraft/ui/{touchmode,dualmode,layoutmetrics,lifecycle,documentportal,updatechecker}.h`,
+`ui/src/{touchmode,dualmode,layoutmetrics,lifecycle,documentportal,updatechecker}.cpp` (propriétés déclarées et
+corps talons gardés, marqueur inchangé), `tests/tst_ui_shell.cpp`.
 
 **Test et commande bornée.** Commande ciblée `-R tst_ui_shell` ; « fonctions d'un test » sur `tst_ui_shell`.
 
@@ -485,24 +564,25 @@ liaison ci-dessus) ; aucune modification de `PageArea.qml`.
   ```cpp
   void lot11SlotsPresent()
   {
-      Shell shell;
-      QVERIFY(shell.start());
+      Shell s;
+      QVERIFY(start(s));
       for (const char* name : {"appTouchMode", "appDualMode", "appLayout", "appLifecycle", "appPortal", "appUpdates",
                                "secondPalette", "recoveryBanner", "fingerMenu", "touchModeMenu", "updateDialog"})
-          QVERIFY2(shell.find(name) != nullptr, name);
-      QCOMPARE(shell.find("secondPalette")->property("visible").toBool(), false);
+          QVERIFY2(find(s, name) != nullptr, name);
+      QCOMPARE(find(s, "secondPalette")->property("visible").toBool(), false);
   }
   void lot11ControllersWired()
   {
-      Shell shell;
-      QVERIFY(shell.start());
-      QVERIFY(shell.find("appTouchMode")->property("commands").value<QObject*>() != nullptr);
-      QVERIFY(shell.find("appTouchMode")->property("view").value<QObject*>() == shell.find("pageView"));
-      QVERIFY(shell.find("appDualMode")->property("view").value<QObject*>() == shell.find("pageView"));
-      QVERIFY(shell.find("appLifecycle")->property("document").value<QObject*>() != nullptr);
+      Shell s;
+      QVERIFY(start(s));
+      QVERIFY(find(s, "appTouchMode")->property("commands").value<QObject*>() != nullptr);
+      QVERIFY(find(s, "appTouchMode")->property("view").value<QObject*>() == find(s, "pageView"));
+      QVERIFY(find(s, "appDualMode")->property("view").value<QObject*>() == find(s, "pageView"));
+      QVERIFY(find(s, "appLifecycle")->property("document").value<QObject*>() != nullptr);
   }
   ```
-  `Shell::find` : nom réel du montage (A4) ; s'il n'existe pas, `shell.window()->findChild<QObject*>(name)`.
+  Montage réel (`tests/tst_ui_shell.cpp:32-55`) : `Shell s; QVERIFY(start(s));` ; aide locale du test
+  `static QObject* find(Shell& s, const char* name) { return s.window->findChild<QObject*>(QString::fromLatin1(name)); }`.
 - [ ] **Étape 2 : rouge vu**, puis **implémentation** (types C++ des talons R2 exposés à QML par `QML_ELEMENT`, propriétés
   déclarées dans leurs en-têtes ; instances et emplacements ci-dessus).
 - [ ] **Étape 3 : vert**, preuve visuelle, banc sans écran, preuve de tâche ; commit « Lot 11 : coquille QML du lot
@@ -516,7 +596,11 @@ liaison ci-dessus) ; aucune modification de `PageArea.qml`.
 doigts posés ensemble → tous deux au geste en mode `full`).
 
 **Fichiers.** `input/include/actcraft/input/touchmodes.h`, `input/src/touchmodes.cpp`,
-`input/include/actcraft/input/routing.h`, `input/src/routing.cpp`, `tests/tst_input_touchmodes.cpp`.
+`input/include/actcraft/input/routing.h`, `input/src/routing.cpp`, `input/include/actcraft/input/sample.h`,
+`tests/tst_input_touchmodes.cpp`.
+
+**Champ ajouté (amendement 1, M5).** `std::uint64_t deviceId = 0; // QPointingDevice::uniqueId, rempli par la vue
+(L11-T5)` ajouté **en dernier** dans `input::Sample` ; aucun autre changement de `sample.h`. L11-T7 l'emploie dès V3.
 
 **Contrat (en-tête figé).**
 ```cpp
@@ -717,11 +801,12 @@ seul (les tests du lot 3 restent verts) ; aucune allocation par échantillon dan
 `pageview.cpp` de son côté) :
 1. `void setRoutingPolicy(std::unique_ptr<input::RoutingPolicy> policy)` (C++) : remplace la politique du routeur ; les
    contacts en cours gardent leur décision ;
-2. `Sample::deviceId` (`std::uint64_t`, ajouté **en dernier** dans `sample.h`) rempli depuis
+2. `Sample::deviceId` (champ posé par L11-T4) rempli depuis
    `QPointingDevice::uniqueId().numericId()` (à défaut `systemId()`) ;
 3. appuis d'un même `QTouchEvent` envoyés ensemble à `PointerRouter::routePresses` ;
 4. la décision porte l'utilisateur : les échantillons vont à `ToolHost::user(decision.user)` ; `fingerTool` `Pen` ou
-   `Select` fait agir l'outil imposé pour ce contact, sans changer l'outil courant ;
+   `Select` fait agir l'outil imposé pour ce contact, sans changer l'outil courant ; lecture
+   `int lastContactUser() const` (utilisateur de la dernière décision d'appui, pour les tests) ;
 5. `Q_INVOKABLE void finishContacts()` : chaque contact en cours se termine comme un relâché à sa dernière position
    (trait gardé), le routeur est remis à zéro ;
 6. signal `touchHeld(QPointF pagePoint, QPointF windowPoint, int user)` : un doigt routé vers l'outil, immobile
@@ -729,8 +814,7 @@ seul (les tests du lot 3 restent verts) ; aucune allocation par échantillon dan
 7. au redimensionnement de la vue : le point de page au centre reste au centre (D11-10), et un contact en cours est
    terminé par `finishContacts()`.
 
-**Fichiers.** `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `input/include/actcraft/input/sample.h`,
-`tests/tst_ui_pageinput.cpp`.
+**Fichiers.** `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `tests/tst_ui_pageinput.cpp`.
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_pageinput|tst_ui_shell|tst_ui_drawing'` ; « fonctions d'un
 test » sur `tst_ui_pageinput`.
@@ -750,8 +834,9 @@ est joint (pas de recul de la latence d'encre au-delà du bruit du banc ; chiffr
   - `deviceIdFilled` : deux `QPointingDevice` de test (`QPointingDevice(…, uniqueId 11)` et `22`) ; les échantillons
     relevés par un `SampleSink` espion portent `deviceId` 11 puis 22 ;
   - `sameEventPressesGrouped` : un `QTouchEvent` à deux appuis → `gestureTouches() == 2`, aucun point d'encre ;
-  - `userReachesTheToolHost` : politique d'essai (classe locale du test) qui rend `Decision{Route::Tool, 1}` →
-    `ToolHost::user(1).activeTool()` a reçu l'appui (compteur de l'outil d'essai) et l'utilisateur 0 rien ;
+  - `decisionUserReachesTheView` : politique d'essai (classe locale du test) qui rend `Decision{Route::Tool, 1}` →
+    `lastContactUser() == 1` après l'appui (« l'utilisateur 1 reçoit, l'utilisateur 0 rien » est prouvé par L11-T7,
+    mode à deux utilisateurs allumé : avant lui, `ToolHost` n'a qu'un `UserState`) ;
   - `imposedPenDrawsWhileSelectIsCurrent` : outil courant sélecteur, `PenTouchPolicy`, un doigt trace → un trait
     ajouté, outil courant toujours le sélecteur ;
   - `finishContactsKeepsTheStroke` : appui et deux mouvements au stylet, `finishContacts()` → le trait est dans la page
@@ -808,7 +893,8 @@ doigt) et `select.png` (cadre de sélection autour du rectangle).
     "description": "S28 (modes du toucher) : pour chacun des quatre modes, un doigt injecté produit l'effet attendu.",
     "steps": [
       {"waitReady": true},
-      {"command": "tool.shape-rectangle"},
+      {"command": "tool.shape"},
+      {"command": "shape.choose", "argument": "rectangle"},
       {"stroke": [[600, 500], [800, 650]], "pressure": 0.5},
       {"command": "tool.pen"},
       {"command": "touch.mode", "argument": "ignore"},
@@ -826,7 +912,7 @@ doigt) et `select.png` (cadre de sélection autour du rectangle).
       {"command": "tool.pen"},
       {"touch": [[700, 575], [700, 575]]},
       {"waitReady": true},
-      {"expect": "pageView.selectionCount", "value": 1},
+      {"expect": "appTools.selectionCount", "value": 1},
       {"capture": "select"},
       {"command": "touch.mode", "argument": "full"},
       {"touch": [[200, 400], [400, 400]]},
@@ -836,8 +922,9 @@ doigt) et `select.png` (cadre de sélection autour du rectangle).
     ]
   }
   ```
-  Identifiants `tool.shape-rectangle`, `tool.select`, `tool.pen`, propriété `pageView.selectionCount` et couleur
-  d'encre par défaut : à revérifier par L11-T0 (lots 3 et 4) ; les noms réels remplacent ceux-ci.
+  Identifiants réels : `tool.shape` puis `shape.choose` (lot 4, `docs/plans/2026-10-18-livraison-complete-lot4-PLAN.md:407` ;
+  forme de l'argument relue par L11-T0), `tool.select`, `tool.pen` ; sélection lue par `appTools.selectionCount`
+  (lot 3) ; couleur d'encre par défaut relue par L11-T0.
 - [ ] **Étape 4 : vert**, preuve visuelle, banc sans écran, preuve de tâche ; contrôle des titres du corpus vide ;
   `NOMS OK` ; commit « Lot 11 : réglage du mode du toucher (L11-T6) ».
 
@@ -881,7 +968,7 @@ la tâche le signale : L11-T4 est mergée, aucun recoupement dans la vague V3).
 **Interdits.** Aucun changement à `FullTouchPolicy` ni aux trois politiques de L11-T4 ; aucune boîte de dialogue ni
 QML ici.
 
-**Terminé quand** les 7 fonctions passent et la mutation est vue rouge.
+**Terminé quand** les 8 fonctions passent et la mutation est vue rouge.
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge** `tst_input_twousers.cpp` : `mouseIsFirstUser` ; `secondStylusIsSecondUser` (deux appuis
@@ -890,7 +977,10 @@ QML ici.
   l'utilisateur 0 → `Tool` puis `Ignore`, jamais `Gesture`) ; `palmOfOneUserOnly` (stylet de l'utilisateur 0 posé ;
   doigt dans l'aire de l'utilisateur 1 → `Tool`, utilisateur 1) ; `eachUserKeepsItsTool` (`ToolHost` : `user(0)`
   stylo rouge, `user(1)` gomme ; relus distincts) ; `singleUserWhenOff` (`ToolHost::user(1)` sans mode → même objet que
-  `user(0)`).
+  `user(0)`) ; `secondUserReceivesInDualMode` (`ToolHost::setDualUsers(true)`, créneau ajouté par cette tâche et appelé
+  par `DualMode` en L11-T9 ; vue chargée, `TwoUserPolicy` posée par `PageView::setRoutingPolicy` ; un appui de stylet
+  de l'appareil 22 après un de l'appareil 11 atteint l'outil d'essai de `user(1)` et pas celui de `user(0)`, compteurs
+  des deux outils d'essai).
 - [ ] **Étape 2 : implémentation.**
 - [ ] **Étape 3 : mutation** : faire rendre `Gesture` au deuxième doigt → `noGestureInDualMode` rouge ;
   `git -C <wt> checkout -- input/src/twouserpolicy.cpp` ; vert.
@@ -943,12 +1033,18 @@ dans la ligne par l'orchestrateur avant le lancement.
   rouge, bleu, vert, noir, épaisseurs 2, 4, 8), chaque bouton déclenche sa commande avec `user = 1` ; non
   personnalisable.
 
+**Gestionnaires et utilisateur (amendement 1, M7).** `Commands::trigger(id, argument, user)` appelle le gestionnaire
+JS avec `(argument, user)` ; dans `Main.qml`, les gestionnaires des outils et du stylo passent l'utilisateur :
+`pen.color` → `appTools.setColor(color, user)`, `pen.width` → `appTools.setWidth(width, user)`, `tool.*` →
+`appTools.setTool(<outil>, user)` ; `ToolHost` (instance `appTools`) gagne ces surcharges (`user` = 0 par défaut :
+les appels existants ne changent pas). `DualMode` appelle `ToolHost::setDualUsers(bool)` (L11-T7).
+
 **Fichiers.** Ceux de la ligne de la table.
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_secondpalette|tst_captures_deux_utilisateurs|tst_actions_'`.
 
 **Preuve visuelle.** `captures.ps1 -Scenario deux-utilisateurs -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire "appDualMode.active=false"` :
-lectures et `PIXEL` du scénario `OK`, `CAPTURES OK` ; décrire `deux-traits.png` (deux traits simultanés, deux
+lectures, `PIXEL` et `CHANGE pageView.zoom OK` du scénario, `CAPTURES OK` ; décrire `deux-traits.png` (deux traits simultanés, deux
 couleurs, deux épaisseurs ; deuxième palette à gauche).
 
 **Interdits.** Aucune voie QML qui contourne `trigger` pour le second ; aucune personnalisation de la deuxième palette.
@@ -958,7 +1054,7 @@ couleurs, deux épaisseurs ; deuxième palette à gauche).
 **Étapes.**
 - [ ] **Étape 1 : test rouge** `tst_ui_secondpalette.cpp` : `opensDialogParsed` (`file.open` vrai, `pen.color` faux) ;
   `everyDialogCommandMarked` (pour chaque commande dont le gestionnaire est relevé comme ouvrant une boîte — liste
-  écrite dans le test — `opensDialog` vrai) ; `secondUserCannotOpenADialog` (`trigger("file.open", {}, 1)` faux,
+  écrite dans le test, `help.check-updates` compris (sa boîte arrive en L11-T22) — `opensDialog` vrai) ; `secondUserCannotOpenADialog` (`trigger("file.open", {}, 1)` faux,
   signal émis) ; `firstUserStillCan` ; `toggleSetsTheTwoUserPolicy` ; `offRestoresTheTouchMode` (mode `pen`, deux
   utilisateurs allumé puis éteint → politique du stylo) ; `pinchZoomsOnlyWhenOff` (pincement injecté : échelle
   inchangée en mode allumé, changée éteint).
@@ -986,16 +1082,21 @@ couleurs, deux épaisseurs ; deuxième palette à gauche).
       {"checkPixel": "trait-utilisateur-1", "at": [850, 300], "color": "#E53935", "tolerance": 60},
       {"checkPixel": "trait-utilisateur-2", "at": [250, 500], "color": "#1E88E5", "tolerance": 60},
       {"capture": "deux-traits"},
+      {"remember": "pageView.zoom", "as": "z0"},
       {"pinch": [640, 400], "from": 100, "to": 200, "steps": 10},
-      {"expect": "pageView.scale", "value": 1},
+      {"waitReady": true},
+      {"expect": "pageView.zoom", "value": "${z0}"},
       {"command": "users.dual"},
       {"expect": "appDualMode.active", "value": false},
       {"pinch": [640, 400], "from": 100, "to": 200, "steps": 10},
+      {"waitReady": true},
+      {"expectChanged": "pageView.zoom", "from": "${z0}"},
       {"expect": "secondPalette.visible", "value": false}
     ]
   }
   ```
-  Le bleu `#1E88E5` et l'épaisseur 2 font partie du contenu par défaut de la deuxième palette (amendé par L11-T0 si
+  `pageView.zoom` est le zoom de la vue (`ui/include/actcraft/ui/pageview.h:41, 46`), pas `scale` (propriété de
+  `QQuickItem`, toujours 1) ; formes `remember` et `${z0}` : A23. Le bleu `#1E88E5` et l'épaisseur 2 font partie du contenu par défaut de la deuxième palette (amendé par L11-T0 si
   elle diffère). La sélection séparée, l'objet
   tenu et la règle sont prouvés par `tst_tools_twousers` (L11-T8) ; la boîte refusée par `tst_ui_secondpalette`.
 - [ ] **Étape 4 : vert**, preuve visuelle, banc sans écran, preuve de tâche ; `NOMS OK` ; contrôle des titres du corpus
@@ -1015,16 +1116,16 @@ de repli quand `narrow` ; `Main.qml` regroupe les menus de la ligne supérieure 
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_narrowlayout|tst_captures_tablette_etroite|tst_ui_shell'`.
 
-**Preuve visuelle.** Deux passages :
-`captures.ps1 -Scenario tablette-etroite -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Taille 800x1280 -Lire "appLayout.narrow=true"`
-puis `-Taille 1280x800 -Lire "appLayout.narrow=false"` (sortie `.tmp/captures-large`) : `LU … OK`, `CAPTURES OK` ;
-décrire `portrait.png` (navigateurs masqués, palette repliée en un bouton, page entière visible) et
-`tiroir-ouvert.png`.
+**Preuve visuelle.** Un passage (les `-Lire` sont lus **après** le scénario, `bench/captures/main.cpp:134-137` ; le
+scénario change lui-même la taille par `resize`) :
+`captures.ps1 -Scenario tablette-etroite -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire "appLayout.narrow=false"` :
+`TAILLE 800x1280 OK`, `TAILLE 1280x800 OK`, `LU … OK`, `CAPTURES OK` ; décrire `portrait.png` (navigateurs masqués,
+palette repliée en un bouton, page entière visible), `tiroir-ouvert.png` et `large.png` (disposition d'origine).
 
 **Interdits.** Aucune taille en pixels physiques (dp logiques seulement) ; aucun changement de la disposition Windows
 en largeur ≥ 960 sans `touch-ui` (comportement et disposition de l'original, décision 0100).
 
-**Terminé quand** les 6 fonctions et les deux passages du scénario passent.
+**Terminé quand** les 6 fonctions et le scénario passent.
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge** `tst_ui_narrowlayout.cpp` : `thresholds` (959 → `narrow`, 960 → non ; 599 → `compact`) ;
@@ -1033,11 +1134,12 @@ en largeur ≥ 960 sans `touch-ui` (comportement et disposition de l'original, d
   moins 8) ; `browsersHiddenWhenNarrow` ; `paletteCollapsible` ; `wideLayoutUnchanged` (1280 × 800 sans `touchUi` :
   positions des éléments de la palette identiques à celles relevées avant la tâche, liste écrite dans le test).
 - [ ] **Étape 2 : implémentation** et QML.
-- [ ] **Étape 3 : scénario** `tablette-etroite.json` : `waitReady` ; `expect appLayout.narrow` (valeur passée par
-  `-Lire`) ; capture `portrait` ; ouvrir le tiroir des navigateurs par son bouton (`pointer`, coordonnées de fenêtre
+- [ ] **Étape 3 : scénario** `tablette-etroite.json` : `waitReady` ; `{"resize": [800, 1280]}` ;
+  `{"expect": "appLayout.narrow", "value": true}` ; capture `portrait` ; ouvrir le tiroir des navigateurs par son bouton (`pointer`, coordonnées de fenêtre
   relevées) ; `expect browserPanel.opened = true` ; capture `tiroir-ouvert` ; appui hors du tiroir ;
-  `expect browserPanel.opened = false` ; un trait au doigt (`touch`) visible (`checkPixel`).
-- [ ] **Étape 4 : vert**, preuve visuelle (deux tailles), banc sans écran, preuve de tâche ; commit « Lot 11 : mise en
+  `expect browserPanel.opened = false` ; un trait au doigt (`touch`) visible (`checkPixel`) ;
+  `{"resize": [1280, 800]}` ; `{"expect": "appLayout.narrow", "value": false}` ; capture `large`.
+- [ ] **Étape 4 : vert**, preuve visuelle, banc sans écran, preuve de tâche ; commit « Lot 11 : mise en
   page étroite et cibles tactiles (L11-T10) ».
 
 <a id="tache-l11-t11"></a>
@@ -1053,12 +1155,14 @@ rotation est portée par la vue (L11-T5, point 7) ; cette tâche la prouve de bo
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_orientation|tst_captures_rotation_clavier'`.
 
-**Preuve visuelle.** `captures.ps1 -Scenario rotation-clavier -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Taille 1280x800 -Lire "appLayout.portrait=true"` :
+**Preuve visuelle.** `captures.ps1 -Scenario rotation-clavier -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Taille 1280x800 -Lire "appLayout.portrait=false"` (lu
+après le scénario, qui finit en paysage) :
 `TAILLE 800x1280 OK`, `LU … OK`, `CAPTURES OK` ; décrire `paysage.png` et `portrait.png` (même point de page au
 centre, trait rouge présent).
 
 **Essai Android.** `scripts/essai-android-tablette.ps1 -Apk <…-x86_64.apk> [-Avd <nom>]` : crée au besoin un AVD de
-tablette (`avdmanager create avd -d pixel_tablet`) **sur l'image système déjà installée** (sans téléchargement ; si
+tablette nommé `actcraft-tablette` (`avdmanager create avd -n actcraft-tablette -d pixel_tablet` ; plusieurs Go sous
+`%USERPROFILE%\.android\avd`, création et taille dites au rapport) **sur l'image système déjà installée** (sans téléchargement ; si
 aucune image ne convient, échec `ANDROID TABLETTE EN ECHEC : image système absente`, et l'orchestrateur demande
 l'accord de Jérôme pour la télécharger), démarre sans fenêtre, installe et lance, trace au doigt, tourne l'écran
 (`adb shell settings put system accelerometer_rotation 0` puis `user_rotation 1`), relève la capture (trait présent,
@@ -1077,7 +1181,8 @@ par nom.
   (clavier y = 500, curseur bas = 600 → `shift` = 116) ; `shiftResetsWhenHidden` ; `rotationKeepsTheStroke` (trait,
   1280 × 800 → 800 × 1280 → trait toujours dans la page, même nombre d'objets) ; `rotationDuringStrokeKeepsIt`.
 - [ ] **Étape 2 : implémentation**, `PageArea.qml`.
-- [ ] **Étape 3 : scénario** `rotation-clavier.json` : trait rouge ; `{"resize": [800, 1280]}` ; `checkPixel` du trait
+- [ ] **Étape 3 : scénario** `rotation-clavier.json` : trait rouge ; `{"resize": [800, 1280]}` ;
+  `{"expect": "appLayout.portrait", "value": true}` ; `checkPixel` du trait
   (coordonnées de page inchangées) ; capture `portrait` ; `{"resize": [1280, 800]}` ; capture `paysage`.
 - [ ] **Étape 4 : script** `scripts/essai-android-tablette.ps1` (en-tête de commentaires sur le modèle de
   `scripts/essai-android-fichiers.ps1` ; appels par `scripts/android-commun.ps1`) ; APK par
@@ -1091,7 +1196,8 @@ par nom.
 **Objectif.** D11-7. `ui::FingerMenus : QObject`, `QML_ELEMENT` : écoute `PageView::touchHeld` ; avec le sélecteur
 (outil courant ou imposé), ouvre `FingerMenu.qml` au point du doigt : menu de l'objet sous le doigt (le menu d'édition
 d'objet du lot 5, A18), sinon le menu de la page (`PageContextMenu.qml`) ; avec un outil d'encre : rien.
-`ToolPalette.qml` : appui long d'un doigt sur un bouton → bulle de libellé 1,5 s, le bouton n'est pas déclenché.
+`ToolPalette.qml` : appui long d'un doigt sur un bouton → bulle de libellé 1,5 s (`objectName: "paletteLabel"`), le bouton n'est pas
+déclenché.
 `CommandMenu.qml` : rangées de `appLayout.targetSize` de haut, sous-menus ouverts par un appui (pas au survol) quand
 `touchUi`.
 
@@ -1114,8 +1220,8 @@ déclenchée par l'appui long d'un bouton.
 - [ ] **Étape 2 : implémentation** et QML.
 - [ ] **Étape 3 : scénario** `au-doigt.json` : rectangle tracé ; `tool.select` ; `{"longPress": [700, 575], "kind":
   "touch", "holdMs": 600}` ; `expect fingerMenu.visible = true` ; capture `menu-objet` ; Échap ; appui long sur le
-  bouton du stylo de la palette (fenêtre) ; `expect paletteLabel.visible = true` ; `expect pageView.inkTool =
-  <outil courant inchangé>` ; capture `libelle`.
+  bouton du stylo de la palette (fenêtre) ; `expect paletteLabel.visible = true` ; `expect appTools.currentTool = select` (outil courant inchangé ;
+  forme de la valeur relue par L11-T0) ; capture `libelle`.
 - [ ] **Étape 4 : vert**, preuve visuelle, banc sans écran, preuve de tâche ; commit « Lot 11 : menus et palette au
   doigt (L11-T12) ».
 
@@ -1123,8 +1229,13 @@ déclenchée par l'appui long d'un bouton.
 ### Tâche L11-T13 — Tablette IV : cycle de vie, reprise sans perte
 
 **Objectif.** D11-8. `ui::LifecycleKeeper : QObject`, `QML_ELEMENT` : propriétés `document` (contrôleur de document,
-A4), `view`, `recoveryDir` (`<AppDataLocation>/reprise` par défaut ; dossier d'essai dans les tests et le joueur) ;
-écoute `QGuiApplication::applicationStateChanged` ; à `Suspended` (et `Hidden` sous Android) : si le document est
+A4), `view`, `recoveryDir` (`<AppDataLocation>/reprise` par défaut) ; `StartupOptions` gagne `QString recoveryDir` (vide =
+défaut), posé en propriété initiale `recoveryDir` de `Main.qml` puis sur `appLifecycle` ; le joueur de captures vide
+`<sortie>/reprise` **au lancement** (pas à `restart`) et le pose, comme les réglages d'essai ; installe un filtre
+d'événements sur `qApp` et réagit à `QEvent::ApplicationStateChange`
+(`static_cast<QApplicationStateChangeEvent*>(e)->applicationState()`, voie publique, A22) ; repli si L11-T0 montre que
+la plateforme n'envoie pas cet événement à `qApp` : créneau public `Q_INVOKABLE void applyState(Qt::ApplicationState)`
+relié à `QGuiApplication::applicationStateChanged` et appelé par le joueur sur `appLifecycle` ; à `Suspended` (et `Hidden` sous Android) : si le document est
 modifié, `view->finishContacts()`, puis écriture de `reprise.actcraft` et `reprise.json` hors du fil principal (même
 écriture atomique que l'enregistrement, DA3) ; au démarrage (`start()`, appelé par `componentComplete`) : une copie plus
 récente que le dernier enregistrement du document d'origine est rouverte, `RecoveryBanner.qml` l'annonce (« Travail
@@ -1143,8 +1254,8 @@ du modèle. Ne pas écrire sur le fil principal (Android tue le processus peu ap
 `ETAT suspended OK`, `RELANCE`, `LU … OK`, `PIXEL … OK`, `CAPTURES OK` ; décrire `reprise.png`.
 
 **Essai Android.** `scripts/essai-android-cycle.ps1 -Apk <…-x86_64.apk>` : installe, lance, trace un trait, relève
-l'empreinte (`ACTCRAFT EMPREINTE <h>` écrit dans logcat par une option d'essai `--journal-empreinte`, à ajouter si
-elle n'existe pas — sinon relire la ligne `ACTCRAFT ENREGISTRE` de L2-T22), `adb shell input keyevent HOME`, attend 2 s,
+l'empreinte (`ACTCRAFT EMPREINTE <h>` écrit dans logcat par une option d'essai `--journal-empreinte`, ajoutée par cette tâche
+(`app/main.cpp`, `app/startup.*`) si elle n'existe pas — sinon relire la ligne `ACTCRAFT ENREGISTRE` de L2-T22), `adb shell input keyevent HOME`, attend 2 s,
 `adb shell am kill io.github.jejeasterix.actcraft` (processus en arrière-plan tué comme par le système), relance,
 vérifie la ligne de reprise et la même empreinte, et que le trait est visible (capture, pixel). Dernière ligne :
 `ANDROID CYCLE OK` ou `ANDROID CYCLE EN ECHEC : <raison>`.
@@ -1156,7 +1267,8 @@ rien n'a changé ; aucun réseau.
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge** `tst_ui_lifecycle.cpp` : `nothingWrittenWhenClean` ; `suspendWritesRecovery`
-  (document modifié, état `Suspended` simulé → fichiers présents, empreinte du `.actcraft` relu = empreinte du modèle) ;
+  (document modifié, état `Suspended` simulé par
+  `QApplicationStateChangeEvent ev(Qt::ApplicationSuspended); QCoreApplication::sendEvent(qApp, &ev);` → fichiers présents, empreinte du `.actcraft` relu = empreinte du modèle) ;
   `writeIsOffTheMainThread` (identifiant du fil de l'écriture ≠ fil principal) ; `strokeInProgressIsKept` (contact en
   cours au moment de la suspension → trait dans la copie) ; `processKilledInBackgroundLosesNothing` (copie écrite ;
   nouvel objet sur le même dossier → document rouvert, même empreinte, URL d'origine, `modified` vrai, bannière) ;
@@ -1187,8 +1299,8 @@ garde. Le correctif `L11-C0` (si L11-T0 en a proposé un) a déjà rendu les com
 
 **Essai Android.** `scripts/essai-android-portail.ps1 -Apk <…-x86_64.apk>` : comme `essai-android-fichiers.ps1`, enregistre
 par le sélecteur, ferme, **relance l'application** (`am force-stop` puis lancement), rouvre le document par la liste des
-documents récents (sans sélecteur), empreinte égale ; puis révoque la permission (`adb shell pm clear
-com.android.documentsui` ou suppression du fichier par MediaStore) et vérifie l'entrée retirée et le message
+documents récents (sans sélecteur), empreinte égale ; puis retire le document (`adb shell content delete --uri <uri>` ; `pm clear` de DocumentsUI ne
+retire pas les permissions gardées par le système ; voie vérifiée par L11-T0) et vérifie l'entrée retirée et le message
 (logcat `ACTCRAFT RECENT RETIRE`). Dernière ligne : `ANDROID PORTAIL OK` ou `ANDROID PORTAIL EN ECHEC : <raison>`.
 
 **Interdits.** Aucune permission de stockage large au manifeste (décision 28) ; aucun chemin de fichier tiré d'une URL
@@ -1197,6 +1309,11 @@ com.android.documentsui` ou suppression du fichier par MediaStore) et vérifie l
 **Terminé quand** les 6 fonctions et `ANDROID PORTAIL OK` passent.
 
 **Étapes.**
+- [ ] **Étape 0 : démon Gradle (amendement 1, M13).** Dans `scripts/paquet-android.ps1`, avant l'appel
+  d'`androiddeployqt` : `$env:GRADLE_OPTS = '-Dorg.gradle.daemon=false'` (A24) ; preuve : `Measure-Command` de
+  `pwsh -NoProfile -File ./scripts/paquet-android.ps1 > .tmp/apk.txt 2>&1`, la commande rend la main moins de 60 s
+  après la ligne `APK OK` (horodatage de la ligne relevé par `(Get-Item .tmp/apk.txt).LastWriteTime`) ; aucun
+  processus `java` laissé par l'essai (`Get-Process java` avant et après, PID comparés).
 - [ ] **Étape 1 : test rouge** `tst_ui_documentportal.cpp` (bureau ; JNI remplacé par une interface
   `PermissionBackend` injectée, factice dans le test) : `contentUrlKeptOnAdd` ; `localFileNeedsNoPermission` ;
   `lostPermissionRemovesTheEntry` (signal émis avec le nom affiché, pas l'URL) ; `forgetReleases` ;
@@ -1211,17 +1328,18 @@ com.android.documentsui` ou suppression du fichier par MediaStore) et vérifie l
 
 **Objectif.** D11-12 ; BRIEF § 3 (budget : 60 images/s, latence d'encre < 20 ms) ; demande « performance mesurée sur la
 tablette » ; N1-9 (Android sans machine de référence). L'exécutable du banc (`bench/app`) est empaqueté en APK séparé ;
-sous Android, son dossier de résultats par défaut est `<AppDataLocation>/bench-results` (accessible par
-`adb shell run-as`) ; ses options passent par `applicationArguments` (`adb shell am start … -e applicationArguments
+sous Android, son dossier de résultats par défaut est le dossier propre externe de l'application
+(`/sdcard/Android/data/io.github.jejeasterix.actcraft.banc/files/bench-results`, lisible par `adb pull` sans `run-as`,
+A21) ; l'APK de banc reste construit en release, **non débogable** (la mesure doit rester en release) ; ses options passent par `applicationArguments` (`adb shell am start … -e applicationArguments
 "--scenario court"`, à revérifier sur Qt 6.12).
 
 **Fichiers.** Ceux de la ligne de la table.
 
 **Scripts.**
 - `scripts/paquet-banc-android.ps1` → `build/paquet-banc/ActCraft-banc-<version>-arm64-v8a.apk` et `…-x86_64.apk`
-  (clé de débogage) ; dernière ligne `APK BANC OK` ou `APK BANC EN ECHEC : <raison>`.
+  (clé de débogage ; démon Gradle coupé comme dans `paquet-android.ps1`, L11-T14) ; dernière ligne `APK BANC OK` ou `APK BANC EN ECHEC : <raison>`.
 - `scripts/banc-android.ps1 -Apk <fichier> [-Serie <numéro adb>] [-Scenario court|complet] [-Sortie <dossier>]` :
-  installe, lance, attend la fin, rapatrie le JSON (`adb exec-out run-as io.github.jejeasterix.actcraft.banc cat …`),
+  installe, lance, attend la fin, rapatrie le JSON (`adb pull /sdcard/Android/data/io.github.jejeasterix.actcraft.banc/files/bench-results <Sortie>`),
   écrit `MESURE INDICATIVE (émulateur)` si l'appareil est un émulateur (`ro.kernel.qemu=1`), puis la ligne de verdict du
   banc (`BUDGET TENU`, `BUDGET DEPASSE`, `MESURE INVALIDE`). Désinstalle l'APK de banc à la fin.
 
@@ -1256,7 +1374,8 @@ permission ajoutée ; aucune mesure de l'émulateur présentée comme une mesure
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge** `tst_bench_resultsdir.cpp` : `desktopDefaultUnchanged` (`bench/results`) ;
-  `androidDefaultIsAppData` (fonction pure `resultsDirFor(Platform::Android, appDataPath)`) ; `argumentsParsedFromSingleString`
+  `androidDefaultIsExternalAppFiles` (fonction pure `resultsDirFor(Platform::Android, externalFilesPath)` →
+  `<externalFilesPath>/bench-results`) ; `argumentsParsedFromSingleString`
   (`"--scenario court --taille 1280x800"` → options) ; `explicitOutputWins`.
 - [ ] **Étape 2 : implémentation** (`bench/app/main.cpp`, `bench/app/CMakeLists.txt` : `qt_add_executable` déjà là,
   propriétés Android `QT_ANDROID_PACKAGE_SOURCE_DIR`, identifiant `.banc`), manifeste à nous sans permission.
@@ -1270,14 +1389,15 @@ permission ajoutée ; aucune mesure de l'émulateur présentée comme une mesure
 **Objectif.** Contrôle de 11a avant 11b, sur le worktree du chantier, après le merge de L11-T2 à L11-T15.
 
 **Fichiers.** `tests/tst_ui_shell.cpp` (fonction `lot11aStubsGone` : aucun talon de 11a ne reste — liste des fichiers
-R2 de 11a, aucun marqueur), `docs/verifications/2026-10-21-lot11a-etape.md`, `graphify-out/`.
+R2 et des tests de 11a, aucun marqueur ; le marqueur est construit dans le test, `QStringLiteral("Talon ") +
+QStringLiteral("L11")`, pour que le test ne se compte pas lui-même), `docs/verifications/2026-10-21-lot11a-etape.md`, `graphify-out/`.
 
 **Commandes.**
 - Suites : `pwsh -NoProfile -File ./scripts/test.ps1 -Preset release` puis `pwsh -NoProfile -File ./scripts/test.ps1`
   (formes bornées, sous le jeton) : `TESTS OK` deux fois, N = N11 + 32, `SKIP` restants = talons de 11b seulement
-  (`git grep -n "Talon L11"` : seulement des fichiers de 11b).
-- Captures de 11a, chacune dans **son** dossier : `modes-toucher`, `deux-utilisateurs`, `tablette-etroite` (deux
-  tailles), `rotation-clavier`, `au-doigt`, `cycle-de-vie`, et `premiers-pas` (S2, non-régression) : `CAPTURES OK`.
+  (`git -C <wt> grep -l "Talon L11" -- . ':!docs/' ':!graphify-out/' ':!tests/tst_ui_shell.cpp'` : seulement des
+  fichiers de 11b : `ui/include/actcraft/ui/updatechecker.h`, `ui/src/updatechecker.cpp` et les tests de 11b).
+- Captures de 11a, chacune dans **son** dossier : `modes-toucher`, `deux-utilisateurs`, `tablette-etroite`, `rotation-clavier`, `au-doigt`, `cycle-de-vie`, et `premiers-pas` (S2, non-régression) : `CAPTURES OK`.
 - Paquets et Android : `paquet-android.ps1` (`APK OK`), `verifier-licences.ps1 -Apk …` (`LICENCES OK`),
   `essai-android.ps1` (S3, `ANDROID OK`), `essai-android-fichiers.ps1` (S5, `ANDROID FICHIERS OK`),
   `essai-android-tablette.ps1`, `essai-android-cycle.ps1`, `essai-android-portail.ps1` (`… OK`), tailles des deux APK
