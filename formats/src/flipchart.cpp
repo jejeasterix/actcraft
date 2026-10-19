@@ -958,6 +958,21 @@ private:
             p.object = std::move(m);
             break;
         }
+        case ids::kind::kMathMlObject: {
+            // Sans la chaîne MathML il n'y a rien à lire : l'objet reste non lu, comme avant (L7-T1).
+            if (!o.find(ids::mathMlKeys::kMathMl)) {
+                warn(u"%1 : objet de genre %2 non lu (nœud %3)"_s.arg(where).arg(type).arg(treeNode.nodeId));
+                p.unread = true;
+                break;
+            }
+            core::Equation eq;
+            eq.bounds = bounds;
+            const QString mathml = asString(o.find(ids::mathMlKeys::kMathMl));
+            chargeModel(2 * mathml.size());
+            eq.mathml = mathml.toStdString();
+            p.object = std::move(eq);
+            break;
+        }
         case ids::kind::kConnectorObject: {
             core::Connector link;
             link.firstEnd = asPoint(o.find(ids::connectorKeys::kFromPoint)).value_or(core::PointF{});

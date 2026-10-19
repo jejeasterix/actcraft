@@ -539,6 +539,14 @@ inline Obj filled(Obj o, qint32 style, QRgb color, QRgb color2, qint32 gradient,
     return o;
 }
 
+// Objet équation (type 460) : le MathML est une chaîne, propriété 52 ; rectangle propre en 7.
+inline Obj mathmlObject(quint32 storage, const QString& mathml, double x, double y, double w, double h)
+{
+    Obj o(460, storage);
+    o.userRect(7, x, y, w, h).string(52, mathml);
+    return o;
+}
+
 // Propriétés communes : nom, couche, profondeur, transformation.
 inline Obj item(quint16 kind, quint32 storage, const char* name, qint32 layer, double z, const Obj& placement)
 {
