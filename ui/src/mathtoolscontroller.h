@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QPointF>
 #include <QPointer>
+#include <QSizeF>
 #include <QString>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
@@ -61,15 +62,20 @@ public:
     // Règle au centre de la page (longueur 600, largeur 80, angle 0 ; une suivante décalée de 24) ; son
     // index.
     Q_INVOKABLE int openRuler();
+    // Équerre au centre de la page (côté 300, angle 0 : côtés de l'angle droit vers +x et +y) ; son index.
+    Q_INVOKABLE int openSetSquare();
     // Ferme l'outil : les traits déjà versés restent (ils sont au document, l'outil n'en possède aucun).
     Q_INVOKABLE void close(int index);
+    // Règle : centre, longueur, largeur, angle. Équerre : `center` est le sommet de l'angle droit, `length`
+    // le côté, `thickness` est ignorée.
     Q_INVOKABLE void setFrame(int index, QPointF center, qreal length, qreal thickness, qreal angle);
     // Unités des deux bords : « cm », « mm », « inch », « none » ; gardées pour la règle suivante
     // (QSettings).
     Q_INVOKABLE void setUnits(int index, const QString& top, const QString& bottom);
     Q_INVOKABLE void setShowAngle(int index, bool on);
-    // kind, command, centerX, centerY, length, thickness, angle, displayAngle, topUnit, bottomUnit, showAngle
-    // ; vide hors des bornes.
+    // kind (« ruler » ou « setSquare »), command, centerX, centerY, length, thickness, angle, displayAngle,
+    // topUnit, bottomUnit, showAngle ; vide hors des bornes. Équerre : centre = sommet de l'angle droit,
+    // length = thickness = côté.
     Q_INVOKABLE QVariantMap toolAt(int index) const;
     // Point d'accroche sous `pagePoint` (cercle du survol) : {snapped, x, y} ; aucun changement d'état.
     Q_INVOKABLE QVariantMap snapAt(QPointF pagePoint) const;
@@ -80,16 +86,28 @@ signals:
     void countChanged();
     void revisionChanged();
     void guideBandChanged();
+    // Le délégué de l'index est à créer (kind comme dans toolAt()) ou à retirer : la couche tient un modèle
+    // par outil, sans recréer les délégués des autres.
+    void toolOpened(int index, const QString& kind);
+    void toolClosed(int index);
 
 private:
     struct Entry
     {
         QString command; // identifiant de la commande qui l'ouvre (UserState::setOpenMathTools)
-        std::unique_ptr<features::Ruler> ruler;
+        std::unique_ptr<features::Ruler> ruler; // exactement l'un des deux
+        std::unique_ptr<features::SetSquare> square;
+        QPointF vertex;   // équerre : sommet de l'angle droit
+        double side = 0;  // équerre : côté
+        double angle = 0; // équerre : degrés
         bool showAngle = true;
+        features::StrokeGuide* guide() const noexcept;
+        const char* settingsGroup() const noexcept;
     };
 
     bool valid(int index) const noexcept;
+    QSizeF pageSize() const;
+    int add(Entry entry, const QString& kind);
     void updateFilter();
     // Les guides ne valent que pour le stylo (7a : « avec le stylo, un appui… accroche le trait ») ; la
     // sélection, le marqueur et la gomme passent tels quels (marqueur et gomme : L7-T34).

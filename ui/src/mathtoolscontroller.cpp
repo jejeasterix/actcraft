@@ -13,11 +13,13 @@ namespace {
 
 constexpr double kDefaultLength = 600;
 constexpr double kDefaultThickness = 80;
+constexpr double kDefaultSquareSide = 300;
 constexpr double kNextOffset = 24; // une règle de plus s'ouvre décalée, pas sur la précédente
 constexpr double kMinLength = 120;
 constexpr double kMaxLength = 4000;
 const char* const kGuidedTool = "pen"; // tools::PenTool::id()
 const char* const kRulerGroup = "mathtools/ruler";
+const char* const kSquareGroup = "mathtools/setsquare";
 
 QString unitName(features::RulerUnit unit)
 {
@@ -52,6 +54,16 @@ features::RulerUnit unitFrom(const QString& name, features::RulerUnit fallback)
 }
 
 } // namespace
+
+features::StrokeGuide* MathToolsController::Entry::guide() const noexcept
+{
+    return ruler ? static_cast<features::StrokeGuide*>(ruler.get()) : square.get();
+}
+
+const char* MathToolsController::Entry::settingsGroup() const noexcept
+{
+    return ruler ? kRulerGroup : kSquareGroup;
+}
 
 MathToolsController::MathToolsController(QObject* parent) : QObject(parent) {}
 
@@ -133,12 +145,26 @@ qreal MathToolsController::guideBand() const noexcept
     return kSnapScreenPixels / std::max<qreal>(zoom, 0.01);
 }
 
+QSizeF MathToolsController::pageSize() const
+{
+    return m_view && m_view->content() ? QSizeF(m_view->content()->size()) : QSizeF(1024, 768);
+}
+
+int MathToolsController::add(Entry entry, const QString& kind)
+{
+    m_guides.add(entry.guide());
+    m_tools.push_back(std::move(entry));
+    updateFilter();
+    storeOpenTools();
+    emit countChanged();
+    emit toolOpened(count() - 1, kind);
+    touch();
+    return count() - 1;
+}
+
 int MathToolsController::openRuler()
 {
-    QSizeF page(1024, 768);
-    if (m_view && m_view->content()) {
-        page = m_view->content()->size();
-    }
+    const QSizeF page = pageSize();
     const double offset = kNextOffset * static_cast<double>(m_tools.size());
     Entry entry;
     entry.command = QStringLiteral("math.ruler");
@@ -152,13 +178,26 @@ int MathToolsController::openRuler()
         unitFrom(settings.value(QStringLiteral("bottomUnit")).toString(), features::RulerUnit::Inch));
     entry.showAngle = settings.value(QStringLiteral("showAngle"), true).toBool();
     settings.endGroup();
-    m_guides.add(entry.ruler.get());
-    m_tools.push_back(std::move(entry));
-    updateFilter();
-    storeOpenTools();
-    emit countChanged();
-    touch();
-    return count() - 1;
+    return add(std::move(entry), QStringLiteral("ruler"));
+}
+
+int MathToolsController::openSetSquare()
+{
+    const QSizeF page = pageSize();
+    const double offset = kNextOffset * static_cast<double>(m_tools.size());
+    Entry entry;
+    entry.command = QStringLiteral("math.set-square");
+    entry.square = std::make_unique<features::SetSquare>();
+    // Le triangle occupe la boîte [sommet, sommet + côté] : centrée sur la page.
+    entry.vertex = QPointF((page.width() - kDefaultSquareSide) / 2 + offset,
+                           (page.height() - kDefaultSquareSide) / 2 + offset);
+    entry.side = kDefaultSquareSide;
+    entry.square->setFrame(entry.vertex, entry.side, entry.angle);
+    QSettings settings;
+    settings.beginGroup(QLatin1String(kSquareGroup));
+    entry.showAngle = settings.value(QStringLiteral("showAngle"), true).toBool();
+    settings.endGroup();
+    return add(std::move(entry), QStringLiteral("setSquare"));
 }
 
 void MathToolsController::close(int index)
@@ -168,11 +207,12 @@ void MathToolsController::close(int index)
     }
     // Retiré des guides avant d'être détruit : un trait guidé en cours finit libre, rien n'est effacé.
     auto it = m_tools.begin() + index;
-    m_guides.remove(it->ruler.get());
+    m_guides.remove(it->guide());
     m_tools.erase(it);
     updateFilter();
     storeOpenTools();
     emit countChanged();
+    emit toolClosed(index);
     touch();
 }
 
@@ -181,16 +221,23 @@ void MathToolsController::setFrame(int index, QPointF center, qreal length, qrea
     if (!valid(index)) {
         return;
     }
-    features::Ruler& ruler = *m_tools[static_cast<std::size_t>(index)].ruler;
-    ruler.setFrame(center, std::clamp<double>(length, kMinLength, kMaxLength), std::max<double>(thickness, 1),
-                   angle);
+    Entry& entry = m_tools[static_cast<std::size_t>(index)];
+    const double clamped = std::clamp<double>(length, kMinLength, kMaxLength);
+    if (entry.square) {
+        entry.vertex = center;
+        entry.side = clamped;
+        entry.angle = angle;
+        entry.square->setFrame(center, clamped, angle);
+    } else {
+        entry.ruler->setFrame(center, clamped, std::max<double>(thickness, 1), angle);
+    }
     touch();
 }
 
 void MathToolsController::setUnits(int index, const QString& top, const QString& bottom)
 {
-    if (!valid(index)) {
-        return;
+    if (!valid(index) || !m_tools[static_cast<std::size_t>(index)].ruler) {
+        return; // l'équerre n'a pas d'unités
     }
     features::Ruler& ruler = *m_tools[static_cast<std::size_t>(index)].ruler;
     ruler.setUnits(unitFrom(top, ruler.topUnit()), unitFrom(bottom, ruler.bottomUnit()));
@@ -207,9 +254,10 @@ void MathToolsController::setShowAngle(int index, bool on)
     if (!valid(index)) {
         return;
     }
-    m_tools[static_cast<std::size_t>(index)].showAngle = on;
+    Entry& entry = m_tools[static_cast<std::size_t>(index)];
+    entry.showAngle = on;
     QSettings settings;
-    settings.beginGroup(QLatin1String(kRulerGroup));
+    settings.beginGroup(QLatin1String(entry.settingsGroup()));
     settings.setValue(QStringLiteral("showAngle"), on);
     settings.endGroup();
     touch();
@@ -221,6 +269,19 @@ QVariantMap MathToolsController::toolAt(int index) const
         return {};
     }
     const Entry& entry = m_tools[static_cast<std::size_t>(index)];
+    if (entry.square) {
+        return QVariantMap{{QStringLiteral("kind"), QStringLiteral("setSquare")},
+                           {QStringLiteral("command"), entry.command},
+                           {QStringLiteral("centerX"), entry.vertex.x()},
+                           {QStringLiteral("centerY"), entry.vertex.y()},
+                           {QStringLiteral("length"), entry.side},
+                           {QStringLiteral("thickness"), entry.side},
+                           {QStringLiteral("angle"), entry.angle},
+                           {QStringLiteral("displayAngle"), entry.square->displayAngle()},
+                           {QStringLiteral("topUnit"), QStringLiteral("none")},
+                           {QStringLiteral("bottomUnit"), QStringLiteral("none")},
+                           {QStringLiteral("showAngle"), entry.showAngle}};
+    }
     const features::Ruler& ruler = *entry.ruler;
     return QVariantMap{{QStringLiteral("kind"), QStringLiteral("ruler")},
                        {QStringLiteral("command"), entry.command},

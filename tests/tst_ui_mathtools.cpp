@@ -131,6 +131,43 @@ bool allOnLine(const actcraft::core::Stroke& stroke, double y)
     return !stroke.points.empty();
 }
 
+// Équerre ouverte, lue du contrôleur : sommet de l'angle droit, côté (angle 0 : les côtés vont vers +x et
+// +y).
+struct Square
+{
+    double vx = 0;
+    double vy = 0;
+    double side = 0;
+    double hypotenuse() const { return vx + vy + side; } // x + y le long de l'hypoténuse
+};
+
+Square squareOf(const MathToolsController& tools, int index)
+{
+    const QVariantMap m = tools.toolAt(index);
+    return {m.value(QStringLiteral("centerX")).toDouble(), m.value(QStringLiteral("centerY")).toDouble(),
+            m.value(QStringLiteral("length")).toDouble()};
+}
+
+bool allOnHypotenuse(const actcraft::core::Stroke& stroke, double sum)
+{
+    for (const auto& point : stroke.points) {
+        if (qAbs(point.x + point.y - sum) > 0.5) {
+            return false;
+        }
+    }
+    return !stroke.points.empty();
+}
+
+bool allOnColumn(const actcraft::core::Stroke& stroke, double x)
+{
+    for (const auto& point : stroke.points) {
+        if (qAbs(point.x - x) > 0.5) {
+            return false;
+        }
+    }
+    return !stroke.points.empty();
+}
+
 class TstUiMathTools : public QObject
 {
     Q_OBJECT
@@ -380,6 +417,165 @@ private slots:
             QCOMPARE(menu.count(), 0);
             QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier,
                               scene(w, QPointF(now.cx - 62, now.top() - 40)).toPoint());
+            QTRY_COMPARE(menu.count(), 1);
+            QTest::keyClick(w.window(), Qt::Key_Escape);
+        }
+    }
+
+    // Les trois bords de l'équerre guident le stylo (filtre de la vue) : l'hypoténuse et les deux côtés de
+    // l'angle droit, du côté extérieur ; l'équerre fermée, le trait garde ses coordonnées d'origine.
+    void setSquareGuidesThePen()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.set-square")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QCOMPARE(tools->count(), 1);
+        QCOMPARE(tools->toolAt(0).value(QStringLiteral("kind")).toString(), QStringLiteral("setSquare"));
+        const Square q = squareOf(*tools, 0);
+        QVERIFY(q.side > 100);
+        const double c = q.hypotenuse();
+        const int before = w.pageObjectCount();
+
+        // Hypoténuse, côté extérieur (x + y > c) : 4 à 8 pixels de page de la droite.
+        const auto beside = [&](double x, double outside) { return QPointF(x, c + outside - x); };
+        const double x0 = q.vx + 0.3 * q.side;
+        stylusPath(w, {beside(x0, 8), beside(x0 + 40, 5), beside(x0 + 80, 7), beside(x0 + 120, 4)});
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        const actcraft::core::Stroke* hypotenuse = lastStroke(w);
+        QVERIFY(hypotenuse);
+        QVERIFY2(allOnHypotenuse(*hypotenuse, c), "tous les points du trait sur l'hypoténuse");
+
+        // Côté +x (au-dessus) puis côté +y (à gauche).
+        stylusPath(w, {{q.vx + 40, q.vy - 5}, {q.vx + 140, q.vy - 2}, {q.vx + 240, q.vy - 6}});
+        QTRY_COMPARE(w.pageObjectCount(), before + 2);
+        QVERIFY2(allOnLine(*lastStroke(w), q.vy), "côté +x de l'angle droit");
+        stylusPath(w, {{q.vx - 5, q.vy + 40}, {q.vx - 2, q.vy + 140}, {q.vx - 6, q.vy + 240}});
+        QTRY_COMPARE(w.pageObjectCount(), before + 3);
+        QVERIFY2(allOnColumn(*lastStroke(w), q.vx), "côté +y de l'angle droit");
+
+        tools->close(0);
+        QCOMPARE(tools->count(), 0);
+        stylusPath(w, {beside(x0, 8), beside(x0 + 40, 5), beside(x0 + 80, 7), beside(x0 + 120, 4)});
+        QTRY_COMPARE(w.pageObjectCount(), before + 4);
+        const actcraft::core::Stroke* free = lastStroke(w);
+        QVERIFY(free);
+        QVERIFY2(qAbs(free->points.front().x + free->points.front().y - (c + 8)) <= 0.5,
+                 "équerre fermée : coordonnées d'origine");
+    }
+
+    // Translucidité du corps : kDefaultToolOpacity (100 sur 255), jamais opaque.
+    void setSquareOpacityIsTheDefault()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.set-square")));
+        QQuickItem* body = w.item(QStringLiteral("setSquareBody"));
+        QVERIFY(body);
+        QVERIFY(qAbs(body->opacity() - actcraft::features::kDefaultToolOpacity / 255.0) < 1e-6);
+        QVERIFY(body->opacity() < 1.0);
+    }
+
+    // Déplacer au centre, tourner aux pointes, redimensionner le long de l'hypoténuse ; ni dans la bande du
+    // côté extérieur, ni dans l'angle de la boîte hors du triangle.
+    void setSquareCursorFollowsTheZone()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.set-square")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        const Square q = squareOf(*tools, 0);
+        QQuickWindow* window = w.window();
+        const auto hoverAt = [&](double lx, double ly) {
+            const QPointF page(q.vx + lx, q.vy + ly);
+            QTest::mouseMove(window, scene(w, page).toPoint());
+            QTest::mouseMove(window, scene(w, page).toPoint() + QPoint(1, 0));
+        };
+        hoverAt(60, 150);
+        QTRY_COMPARE(window->cursor().shape(), Qt::SizeAllCursor);
+        hoverAt(q.side - 40, 12);
+        QTRY_COMPARE(window->cursor().shape(), Qt::CrossCursor);
+        hoverAt(12, q.side - 40);
+        QTRY_COMPARE(window->cursor().shape(), Qt::CrossCursor);
+        hoverAt(q.side / 2 - 12, q.side / 2 - 12);
+        QTRY_COMPARE(window->cursor().shape(), Qt::SizeFDiagCursor);
+        hoverAt(q.side / 2, -4); // bande extérieure d'un côté guide : rien à saisir
+        QTRY_VERIFY(window->cursor().shape() != Qt::SizeAllCursor);
+        QVERIFY(window->cursor().shape() != Qt::CrossCursor);
+        QVERIFY(window->cursor().shape() != Qt::SizeFDiagCursor);
+        hoverAt(0.8 * q.side, 0.8 * q.side); // dans la boîte, hors du triangle
+        QTRY_VERIFY(window->cursor().shape() != Qt::SizeAllCursor);
+        QVERIFY(window->cursor().shape() != Qt::SizeFDiagCursor);
+    }
+
+    void setSquareBlocksTheStylus_data() { presentationharness::addPointerRows(); }
+
+    // Appui sur le corps (le triangle) : l'équerre bouge, rien n'est versé. Pendant : le même pointeur sur la
+    // bande extérieure d'un côté guide verse un trait guidé ; dans l'angle de la boîte hors du triangle, un
+    // trait libre sans que l'équerre bouge.
+    void setSquareBlocksTheStylus()
+    {
+        QFETCH(Pointer, pointer);
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.set-square")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        const Square q = squareOf(*tools, 0);
+        const int before = w.pageObjectCount();
+        // Un seul geste : encre lue d'abord sous le seuil de glisser, puis glisser jusqu'au bout.
+        const QPointF from = scene(w, QPointF(q.vx + 60, q.vy + 150));
+        const QPointF to = scene(w, QPointF(q.vx + 60, q.vy + 90));
+        pointerStep(w.window(), pointer, QEvent::TabletPress, from);
+        pointerStep(w.window(), pointer, QEvent::TabletMove, from + QPointF(0, -2));
+        QCOMPARE(w.pageView()->ink()->pointCount(), std::size_t{0});
+        for (int k = 1; k <= 8; ++k) {
+            pointerStep(w.window(), pointer, QEvent::TabletMove, from + (to - from) * (k / 8.0));
+        }
+        pointerStep(w.window(), pointer, QEvent::TabletRelease, to);
+        QTRY_VERIFY2(qAbs(squareOf(*tools, 0).vy - (q.vy - 60)) <= 2,
+                     "équerre déplacée par son gestionnaire");
+        QTest::qWait(50);
+        QCOMPARE(w.pageObjectCount(), before);
+        QCOMPARE(w.pageView()->ink()->pointCount(), std::size_t{0});
+
+        const Square moved = squareOf(*tools, 0);
+        presentationharness::strokeAt(w.window(), pointer, scene(w, QPointF(moved.vx + 60, moved.vy - 6)),
+                                      scene(w, QPointF(moved.vx + 240, moved.vy - 6)));
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        const actcraft::core::Stroke* outside = lastStroke(w);
+        QVERIFY(outside);
+        QVERIFY2(allOnLine(*outside, moved.vy), "bande extérieure : trait versé et guidé");
+        // Hors du triangle, dans la boîte : libre, l'équerre ne bouge pas.
+        const double far = 0.8 * moved.side;
+        presentationharness::strokeAt(w.window(), pointer,
+                                      scene(w, QPointF(moved.vx + far - 30, moved.vy + far)),
+                                      scene(w, QPointF(moved.vx + far + 30, moved.vy + far)));
+        QTRY_COMPARE(w.pageObjectCount(), before + 2);
+        const actcraft::core::Stroke* corner = lastStroke(w);
+        QVERIFY(corner);
+        QVERIFY2(allOnLine(*corner, moved.vy + far), "hors du triangle : trait libre, à ses coordonnées");
+        QVERIFY(qAbs(squareOf(*tools, 0).vx - moved.vx) <= 0.5);
+        QVERIFY(qAbs(squareOf(*tools, 0).vy - moved.vy) <= 0.5);
+        // Bande intérieure d'un côté : sur le corps, donc couverte.
+        presentationharness::strokeAt(w.window(), pointer, scene(w, QPointF(moved.vx + 60, moved.vy + 6)),
+                                      scene(w, QPointF(moved.vx + 160, moved.vy + 6)));
+        QTRY_VERIFY2(qAbs(squareOf(*tools, 0).vx - (moved.vx + 100)) <= 2,
+                     "bande intérieure : l'équerre bouge");
+        QTest::qWait(50);
+        QCOMPARE(w.pageObjectCount(), before + 2);
+        if (pointer == Pointer::Mouse) {
+            // Comme pour la règle : le clic droit, que la vue teste par sa couverture, discrimine.
+            QSignalSpy menu(w.pageView(), &actcraft::ui::PageView::contextMenuRequested);
+            const Square now = squareOf(*tools, 0);
+            QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier,
+                              scene(w, QPointF(now.vx + 60, now.vy + 150)).toPoint());
+            QTest::qWait(50);
+            QCOMPARE(menu.count(), 0);
+            QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier,
+                              scene(w, QPointF(now.vx + far, now.vy + far)).toPoint());
             QTRY_COMPARE(menu.count(), 1);
             QTest::keyClick(w.window(), Qt::Key_Escape);
         }
