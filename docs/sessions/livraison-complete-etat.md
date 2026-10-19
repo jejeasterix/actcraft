@@ -328,6 +328,24 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
 - **L3-T4 mergée** (a76d781, merge bbc643e). Rejeu : suite 113/113, `tst_core_objectedits` 19/19 et `tst_core_lift` 14/14, 11 fonctions nommées en PASS, trois mutations rouges (dont celle du plan sur les `ObjectChanged` soulevés) puis remises, aucun `reserved`, aucun talon restant, format, NOMS OK.
 - **L3-T6 mergée** (b74dd36, merge e9f16ea). Preuve : suite 113/113, `tst_tools_registry` 8/8 et `tst_pentool` 13/13, deux mutations rouges (translucidité du trait, gomme 20) puis remises, format, NOMS OK. **V2 du lot 3 complète** (T4, T5, T6).
 - **Graphe** : 34e1281, 5 169 nœuds dont 720 `document`. Au-delà de 5 000 nœuds, graphify ne régénère plus `graph.html` : poser `GRAPHIFY_VIZ_NODE_LIMIT=8000` avant `graphify update .`. Titres 0, NOMS OK 436.
+- **V3 du lot 3 lancée** (worktrees à c65f79e) : L3-C0 construit ; L3-T11 et L3-T12 écrivent sans construire. L3-T11 a atteint 40 tours sans commit : relancée pour 25 tours, wip d'abord.
+- **L3-T12, wip 7dd5f31** : preuve sous le jeton (`scratchpad/out/preuve-l3t12.txt`). Décisions de A sur ses écarts :
+  - membres privés ajoutés à `documentcontroller.h` (et `#include <actcraft/core/lift.h>`) : autorisés, comme pour L3-T10 ; le bloc `signals:` n'a pas bougé ;
+  - `replaceDocument` non touché (accord A-B) : les objets soulevés portent la génération du document, la référence de Rétablir la page est posée par `openUrl` et par la fin d'un enregistrement réussi. Accepté.
+  - **Reports** :
+    - à la fusion L7-T33 (B) : appeler `forgetStaleLift()` là où `documentReplaced()` est émis, et émettre `liftingChanged` quand un soulèvement est oublié (`loadGeneratedPages`, `loadGeneratedFirstPage`) ;
+    - à L3-T16 (menu contextuel) : `canRevertPage` n'est pas renotifié à la fin d'un enregistrement ; vérifier que l'entrée Rétablir la page suit ;
+    - au lot 4 (pages) : la référence de Rétablir la page se repère par l'indice de la page ; une page insérée avant la page affichée décale la comparaison ;
+    - à L3-T14 : `execute()` et `commitStroke()` pendant un soulèvement ne déposent pas d'abord ; dire si l'outil peut y arriver.
+- **L3-T12 mergée** (merge 4ce61c3). Preuve rejouée : suite 113/113, `tst_ui_lift` 9/9 et `tst_ui_document` 38/38, 18 fonctions nommées en PASS, quatre mutations rouges puis remises, format, NOMS OK.
+- **L3-C0 mergée** (18083e6, merge fdfa0dd) : `object.enlarge` à Ctrl+= ; `edit.redo` reste Ctrl+Y (D11 : pas de conflit à trancher). Preuve de l'agent lue, pas rejouée (une ligne de données et un test) : suite 113/113, `lot3ShortcutsFollowDecisionD11` en PASS, mutation rouge, NOMS OK. Le plan du lot 3 écrit encore « Ctrl++ » (l. 294) : sans effet, la donnée fait foi.
+- **L3-T11, wip 7b9196f**, décisions de A :
+  - piste (a) acceptée : tout trait translucide va au moteur peint ; un stylo opaque à bouts ronds revient à la géométrie (`usesPaintedRenderer` dans `paintedrenderer.cpp`, hors colonne, indispensable) ; l'encre vive translucide se dessine opaque dans une couche (`QQuickItem::layer` depuis le C++), donc `PageArea.qml` ne change pas ;
+  - recalages acceptés, cause en commentaire : `tst_render_painted` (un trait rond ne va plus au moteur peint) et `tst_render_fixedpage` (le trait de `roundLineAt` devient un marqueur pour garder un nœud rastérisé) ;
+  - **refusé comme report** : l'encre vive restait carrée et non lissée. Le plan exige les trois chemins : renvoyée à l'agent, avec permission de recaler `tst_render_inkbuffer` ;
+  - banc : comparer `stroke` sur deux passages au JSON de la base. La base sera relevée dans le worktree de L3-C0 (code de rendu identique à c65f79e) après sa preuve.
+  - **Écriture finie** (4092228) : encre vive ronde et lissée (54 sommets par segment au lieu de 6, bloc d'environ 110 Ko renvoyé à chaque image pendant le trait : à juger sur `stroke`). Preuve en attente d'une place et du JSON de la base. **Pour la porte de fin** : l'encre vive à bout rond prend la largeur constante du trait versé et ne suit plus la pression pendant le trait.
+  - **Reports** : à L3-T14, la largeur de l'encre vive suit la pression mais le trait versé a une largeur constante (écart depuis L3-T6) ; à vérifier par la preuve : une couche du moteur logiciel dessine-t-elle un `QSGRenderNode` ?
 - **À reporter au lot 6 (L6-T31)**, relevé par la relecture du lot 11 (M14) : `appCommands` n'est pas un objectName. Le bon nom est `commands` (`Main.qml:56-58`). Lignes à corriger : lot6b-PLAN:43, 726. À corriger dans le brief de L6-T31.
 - **Plan du lot 8** fini : 0d78cac, 35 tâches (8a : 20 ; 8b : 15). Relecture tour 1 lancée (`scratchpad/revue-plan-lot8.md`). L8-T20 attend H8-6 ; le repli est écrit dans le plan 8b.
   - **Décision de A sur D10** : la caméra garde les identifiants `tool.camera-*`, ceux du lot 7 qui les crée. Le plan du lot 6 (`camera.*`) s'y aligne. S'il faut un correctif, ce sera `L8-C0`.
