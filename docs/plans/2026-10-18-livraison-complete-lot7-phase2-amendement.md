@@ -2,7 +2,9 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
-Brouillon relu trois fois (tours 1 à 3, rapports revue-phase2-t1..t3), puis confronté au socle réel le 2026-10-19 ; relecture exigée de cette confrontation avant exécution.
+Brouillon relu trois fois (tours 1 à 3, rapports revue-phase2-t1..t3), puis confronté au socle réel le 2026-10-19.
+
+Relu trois fois contre le socle réel (revue-phase2-socle-t1..t3) ; derniers correctifs appliqués sans quatrième tour (borne) ; les tests négatifs seront prouvés par mutation à l'exécution.
 
 **Statut : confronté au socle réel.** Le socle est mergé et fusionné dans `feat/livraison-complete-b` (131f790,
 depuis `feat/livraison-complete` @ e7c6713). Les 17 points « [SOCLE?] » du brouillon sont levés par lecture du code
@@ -1137,13 +1139,15 @@ existante modifiée (`execute()` et `document()` publics : `documentcontroller.h
   `Text` ; `undo` : compte de départ) ; `insertObjectOnNewPageIsUndoneAtOnce` (document de **3 pages**
   (`loadGeneratedPages(3)`), page **2 sur 3** affichée par `nextPage()` ; une forme : pages = 4, page affichée = 4,
   un objet ; un seul `undo` : 3 pages, puis `QTRY_COMPARE(currentIndex(), 1)` — page de départ) ;
-  `undoAfterNavigatingAwayKeepsThePage` (même départ, insertion, retour manuel à la page 1 par `pageBack()` répété,
-  puis `undo` : 3 pages, la page affichée reste la page 1 — `QTest::qWait(50)` puis `QCOMPARE(currentIndex(), 0)`,
-  aucun gel) ; `twoNewPageInsertionsUndoInOrder` (départ page 2 sur 3, deux insertions sur une nouvelle page de
-  suite : 5 pages, page 5 affichée ; `undo` : page 4 affichée ; `undo` : page 2 affichée) ;
-  `replacedDocumentForgetsTheReturnPage` (une insertion sur une nouvelle page, puis `newDocument` (« Nouveau ») avant
-  l'annulation ; dans le nouveau document, `loadGeneratedPages(3)`, page 3, `nextPage()` puis `undo` : la page
-  affichée est celle que fixe le socle, jamais l'ancien indice de départ) ; `replaceObjectsIsUndoneAtOnce` (un trait
+  `undoAfterNavigatingAwayKeepsThePage` (départ : 3 pages, page 2 affichée (indice 1) ; insertion sur une nouvelle
+  page (indice 3 affiché) ; **un seul** `pageBack()` (indice 2) ; `undo` ; `QTest::qWait(50)` ;
+  `QCOMPARE(currentIndex(), 2)`) ; `twoNewPageInsertionsUndoInOrder` (départ page 2 sur 3, deux insertions sur une
+  nouvelle page de suite : 5 pages, page 5 affichée ; `undo`, `QTest::qWait(50)`, `QCOMPARE` : page 4 affichée ;
+  `undo`, `QTest::qWait(50)`, `QCOMPARE` : page 2 affichée — jamais `QTRY_COMPARE` ici, qui n'attend rien si la
+  condition est déjà vraie et masquerait la clause `page == added`) ; `replacedDocumentForgetsTheReturnPage` (même
+  départ fixé : 3 pages, page 2 affichée ; une insertion sur une nouvelle page, puis `newDocument` (« Nouveau ») avant
+  l'annulation ; dans le nouveau document, `loadGeneratedPages(3)`, page 3, `nextPage()` puis `undo` ;
+  `QTest::qWait(50)` ; `QCOMPARE(currentIndex(), 2)`) ; `replaceObjectsIsUndoneAtOnce` (un trait
   injecté au stylet → `replaceObjects({id}, {forme})` : un id rendu, le trait absent ; `undo` : le trait revient au même
   rang) ; `insertImageIsUndoneAtOnce` (une image PNG de 8 × 8 : un `ImageObject` de plus dont `resource` est non vide
   et présente dans `document().resources()` ; `undo` : objet retiré, clé absente de `document().resources()`,
@@ -1159,8 +1163,9 @@ existante modifiée (`execute()` et `document()` publics : `documentcontroller.h
   `loadGeneratedFirstPage`, `loadGeneratedPages(3)` et `replaceDocument` l'émettent **exactement une fois** chacun —
   `QCOMPARE(spy.count(), 1)` — et l'observateur n'est pas appelé) ;
   `strokeDoesNotEmitDocumentReplaced` (un trait au stylet, `undo`, `redo`, `insertText` : `documentReplaced` jamais
-  émis, alors que `documentChanged` l'est) ; `insertReadsIdsOnlyWhenApplied` (`replaceObjects` sur des identifiants
-  absents et aucun ajout : vecteur vide rendu, aucun plantage, pile inchangée) ; `floatingPanelIsACover` (à données : un
+  émis, alors que `documentChanged` l'est) ; `insertReadsIdsOnlyWhenApplied` (non-régression seulement :
+  `replaceObjects` sur des identifiants absents et aucun ajout : vecteur vide rendu, pile inchangée ; la cellule
+  partagée exclut par construction la lecture après libération) ; `floatingPanelIsACover` (à données : un
   `FloatingPanel` de 200 × 120 ouvert sur la page, trait sous lui → compte inchangé et `DragHandler` de la barre
   `active` pendant le trait souris et doigt, panneau déplacé au stylet ; panneau fermé → le même trait est versé) ;
   `coveredStylusLeavesFingersFree` (stylet appuyé sur le panneau, un doigt trace hors du panneau → trait versé).
@@ -1186,9 +1191,10 @@ existante modifiée (`execute()` et `document()` publics : `documentcontroller.h
   (revue contre le socle, tour 2, M3) — état dans `presentationdocument.cpp` seulement (fonctions et types de portée
   fichier ; l'en-tête figé n'a qu'un membre) :
   - un **observateur à usage unique par insertion**, posé par `addChangeObserver` juste après l'`execute` qui a
-    réussi, qui ne capture que des **valeurs** (indice de départ `start`, indice de la page ajoutée `added`) et qui
-    se retire lui-même (`removeChangeObserver(token)`, `documentcontroller.h:159-162`) à son premier `Undo` qui
-    retire `added` ;
+    réussi, qui capture `start` (indice de départ), `added` (indice de la page ajoutée), le contrôleur et une
+    **cellule du jeton** (`std::shared_ptr<int>`, remplie juste après `addChangeObserver`, qui ne rend le jeton
+    qu'après avoir rangé la fonction) — aucune référence vers un objet de `DocumentInsertions` — et qui se retire
+    lui-même (`removeChangeObserver(*token)`, `documentcontroller.h:159-162`) à son premier `Undo` qui retire `added` ;
   - il ne ramène l'utilisateur **que si la page retirée était la page affichée** au moment de l'appel :
     `change.kind == PageRemoved && change.page == added && change.page == currentIndex()` (pendant l'appel,
     `currentIndex()` vaut encore l'indice passé au cache, `documentcontroller.h:156-158`) ; sinon il se retire sans
@@ -1197,8 +1203,11 @@ existante modifiée (`execute()` et `document()` publics : `documentcontroller.h
     `m_current = …` de `documentcontroller.cpp:305` l'écraserait) et **bornée** :
     `while (controller.currentIndex() > start) controller.pageBack();` (`pageBack()` ne fait que reculer ; arrêt
     garanti) ;
-  - tous les observateurs en attente sont **retirés sur `documentReplaced`** (une connexion de portée fichier, par
-    contrôleur) ; `replaceObjects` par
+  - tous les observateurs en attente sont **retirés sur `documentReplaced`**, sans registre statique (aucun état
+    indexé par l'adresse d'un contrôleur) : à chaque insertion, `connect(&controller,
+    &DocumentController::documentReplaced, &controller, [&controller, token] {
+    controller.removeChangeObserver(*token); }, Qt::SingleShotConnection)` ; la connexion meurt avec le contrôleur, et
+    un retrait déjà fait est sans effet (jetons jamais réutilisés) ; `replaceObjects` par
   `core::ReplaceObjectsCommand` (un `core::ObjectReplacement` qui retire `removed` et ajoute `added` en un groupe,
   `addedIds()` après `redo()`) — vérifié : `ObjectReplacement { removed; added; }` et le constructeur « un groupe »
   `ReplaceObjectsCommand(page, removed, added)`, `core/include/actcraft/core/replace.h:14-42` ; `setPagePresentation`
