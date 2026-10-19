@@ -40,8 +40,6 @@ class MathToolsController : public QObject
     // bout fixe.
     Q_PROPERTY(qreal minimumLength READ minimumLength CONSTANT)
     Q_PROPERTY(qreal maximumLength READ maximumLength CONSTANT)
-    // Un trait est tenu par un guide, de l'appui au relâché.
-    Q_PROPERTY(bool guiding READ guiding NOTIFY guidingChanged)
 
 public:
     static constexpr double kSnapScreenPixels = 16;
@@ -59,7 +57,6 @@ public:
     qreal guideBand() const noexcept;
     static qreal minimumLength() noexcept;
     static qreal maximumLength() noexcept;
-    bool guiding() const noexcept;
 
     // Règle au centre de la page (longueur 600, largeur 80, angle 0 ; une suivante décalée de 24) ; son
     // index.
@@ -83,7 +80,6 @@ signals:
     void countChanged();
     void revisionChanged();
     void guideBandChanged();
-    void guidingChanged();
 
 private:
     struct Entry
@@ -99,7 +95,6 @@ private:
     // sélection, le marqueur et la gomme passent tels quels (marqueur et gomme : L7-T34).
     bool guidesTool(input::UserId user) const;
     input::Sample guide(const input::Sample& sample);
-    void updateGuiding();
     void syncTolerance();
     void storeOpenTools();
     void touch();
@@ -111,7 +106,6 @@ private:
     std::vector<Entry> m_tools;
     features::GuideSet m_guides;
     int m_revision = 0;
-    bool m_guiding = false;
 };
 
 } // namespace actcraft::ui

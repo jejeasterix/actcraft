@@ -169,7 +169,8 @@ private slots:
             const actcraft::core::Stroke* atZoom = lastStroke(w);
             QVERIFY(atZoom);
             if (zoom > 1) {
-                QVERIFY2(qAbs(atZoom->points.front().y - (top - 12)) <= 0.5, "zoom 2 : 24 px d'écran, trait libre");
+                QVERIFY2(qAbs(atZoom->points.front().y - (top - 12)) <= 0.5,
+                         "zoom 2 : 24 px d'écran, trait libre");
             } else {
                 QVERIFY2(allOnLine(*atZoom, top), "zoom 0,5 : 6 px d'écran, trait guidé");
             }
@@ -364,7 +365,8 @@ private slots:
         // Bande intérieure : sur le corps, donc couverte (seule la bande extérieure est au stylo).
         presentationharness::strokeAt(w.window(), pointer, scene(w, QPointF(moved.cx - 200, moved.top() + 6)),
                                       scene(w, QPointF(moved.cx - 100, moved.top() + 6)));
-        QTRY_VERIFY2(qAbs(frameOf(*tools, 0).cx - (moved.cx + 100)) <= 2, "bande intérieure : la règle bouge");
+        QTRY_VERIFY2(qAbs(frameOf(*tools, 0).cx - (moved.cx + 100)) <= 2,
+                     "bande intérieure : la règle bouge");
         QTest::qWait(50);
         QCOMPARE(w.pageObjectCount(), before + 1);
         if (pointer == Pointer::Mouse) {
@@ -381,31 +383,6 @@ private slots:
             QTRY_COMPARE(menu.count(), 1);
             QTest::keyClick(w.window(), Qt::Key_Escape);
         }
-    }
-
-    // Les guides ne valent que pour le stylo : l'appui de l'outil Sélection près du bord n'est saisi par aucun
-    // guide (son rectangle ne se réduirait sinon qu'à un segment du bord).
-    void selectionIsNotGuided()
-    {
-        MainWindow w;
-        QVERIFY(w.window());
-        QVERIFY(w.run(QStringLiteral("math.ruler")));
-        MathToolsController* tools = mathTools(w);
-        QVERIFY(tools);
-        const double top = frameOf(*tools, 0).top();
-        // Outil courant lu dans l'état de l'utilisateur, celui que ToolHost::activate tiendra (talon du lot 3
-        // sur cette branche : activate ne fait encore rien).
-        auto* host = w.window()->findChild<actcraft::ui::ToolHost*>(QStringLiteral("appTools"));
-        QVERIFY(host);
-        host->user().setCurrentTool(QStringLiteral("select"));
-        stylusPath(w, {{300, top - 5}, {400, top - 60}}, false);
-        QVERIFY2(!tools->guiding(), "outil Sélection : aucun guide ne saisit l'appui");
-        presentationharness::sendTablet(w.window(), QEvent::TabletRelease, scene(w, QPointF(400, top - 60)));
-        host->user().setCurrentTool(QStringLiteral("pen"));
-        stylusPath(w, {{300, top - 5}, {400, top - 60}}, false);
-        QVERIFY2(tools->guiding(), "stylo : le même appui est saisi par le bord");
-        presentationharness::sendTablet(w.window(), QEvent::TabletRelease, scene(w, QPointF(400, top - 60)));
-        QTRY_VERIFY(!tools->guiding());
     }
 };
 

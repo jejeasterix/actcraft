@@ -127,11 +127,6 @@ qreal MathToolsController::maximumLength() noexcept
     return kMaxLength;
 }
 
-bool MathToolsController::guiding() const noexcept
-{
-    return m_guiding;
-}
-
 qreal MathToolsController::guideBand() const noexcept
 {
     const qreal zoom = m_view ? m_view->zoom() : 1.0;
@@ -174,7 +169,6 @@ void MathToolsController::close(int index)
     // Retiré des guides avant d'être détruit : un trait guidé en cours finit libre, rien n'est effacé.
     auto it = m_tools.begin() + index;
     m_guides.remove(it->ruler.get());
-    updateGuiding();
     m_tools.erase(it);
     updateFilter();
     storeOpenTools();
@@ -289,21 +283,7 @@ bool MathToolsController::guidesTool(input::UserId user) const
 
 input::Sample MathToolsController::guide(const input::Sample& sample)
 {
-    if (!guidesTool(sample.user)) {
-        return sample;
-    }
-    const input::Sample out = m_guides.filter(sample);
-    updateGuiding();
-    return out;
-}
-
-void MathToolsController::updateGuiding()
-{
-    const bool now = m_guides.guiding();
-    if (now != m_guiding) {
-        m_guiding = now;
-        emit guidingChanged();
-    }
+    return guidesTool(sample.user) ? m_guides.filter(sample) : sample;
 }
 
 void MathToolsController::syncTolerance()
