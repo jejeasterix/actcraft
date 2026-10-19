@@ -319,8 +319,8 @@ private slots:
         const Frame f = frameOf(*tools, 0);
         const int before = w.pageObjectCount();
         // Un seul geste : encre lue d'abord sous le seuil de glisser (sans couverture, la vue prendrait
-        // l'appui et le stylo dessinerait ; le gestionnaire de la règle ne la lui reprend qu'au-delà du seuil),
-        // puis glisser jusqu'au bout.
+        // l'appui et le stylo dessinerait ; le gestionnaire de la règle ne la lui reprend qu'au-delà du
+        // seuil), puis glisser jusqu'au bout.
         const QPointF from = scene(w, QPointF(f.cx - 62, f.cy));
         const QPointF to = scene(w, QPointF(f.cx - 62, f.cy - 60));
         pointerStep(w.window(), pointer, QEvent::TabletPress, from);
