@@ -1000,13 +1000,13 @@
     "semantic_hash": ""
   },
   "core/include/actcraft/core/document.h": {
-    "mtime": 1792333659.8406603,
-    "ast_hash": "a2b20c7fe3711e8782690121847ae828",
+    "mtime": 1792422789.6062093,
+    "ast_hash": "b5a0e7538eff640a65dbe4f65d9fbe4e",
     "semantic_hash": ""
   },
   "core/src/document.cpp": {
-    "mtime": 1792333659.8936245,
-    "ast_hash": "16988b06214bc1da6a621fc3bbff6258",
+    "mtime": 1792422789.6092083,
+    "ast_hash": "651044ae52118ee4d4bcaaab3bf57798",
     "semantic_hash": ""
   },
   "scripts/captures.ps1": {
@@ -1080,8 +1080,8 @@
     "semantic_hash": ""
   },
   "tests/tst_core_document.cpp": {
-    "mtime": 1792333663.2978961,
-    "ast_hash": "e6488f06fe8faf73a2ec78572d53689e",
+    "mtime": 1792422789.6112266,
+    "ast_hash": "02367b1272bdc551f4fc07a4eb4a643a",
     "semantic_hash": ""
   },
   "tests/tst_ui_about.cpp": {
@@ -1125,8 +1125,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/documentcontroller.h": {
-    "mtime": 1792386408.1589377,
-    "ast_hash": "d7e2050eb7647f5edc0ae71ddf062970",
+    "mtime": 1792422789.619742,
+    "ast_hash": "fe133c3ebfdef9c4446ea15c6793d89a",
     "semantic_hash": ""
   },
   "ui/src/appinfo.cpp": {
@@ -1140,8 +1140,8 @@
     "semantic_hash": ""
   },
   "ui/src/documentcontroller.cpp": {
-    "mtime": 1792386408.2217176,
-    "ast_hash": "361ae7bcf3b87c22311e1b994da674b2",
+    "mtime": 1792422789.624102,
+    "ast_hash": "ff207f0810236db1a7438db6d197e420",
     "semantic_hash": ""
   },
   ".github/workflows/release.yml": {
@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792406436.5163944,
-    "ast_hash": "68d5c1647dc5b65a84dca90acbd68f1e",
+    "mtime": 1792414608.2257657,
+    "ast_hash": "2bbcd7f146e65d53efd0d2cd575973ca",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2560,8 +2560,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_presentation.cpp": {
-    "mtime": 1792406200.518417,
-    "ast_hash": "32ec99ef1c467c9b86daaffcab40eb00",
+    "mtime": 1792422789.613243,
+    "ast_hash": "ffa743d724c4b82b3bba765d70259374",
     "semantic_hash": ""
   },
   "tests/tst_ui_recognition.cpp": {
@@ -2585,8 +2585,8 @@
     "semantic_hash": ""
   },
   "ui/src/presentationdocument.cpp": {
-    "mtime": 1792406200.5666673,
-    "ast_hash": "6a7085c008723494204465d5ee06cd05",
+    "mtime": 1792422789.624102,
+    "ast_hash": "a5c069a6a416e6784e46dc128c39b062",
     "semantic_hash": ""
   },
   "ui/src/presentationdocument.h": {
