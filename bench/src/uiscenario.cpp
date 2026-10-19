@@ -1,5 +1,6 @@
 #include <actcraft/bench/contentcheck.h>
 #include <actcraft/bench/fixtures.h>
+#include <actcraft/bench/injector.h>
 #include <actcraft/bench/uiscenario.h>
 #include <actcraft/formats/nativefile.h>
 #include <actcraft/formats/urlio.h>
@@ -16,6 +17,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QKeySequence>
+#include <QMouseEvent>
 #include <QPointer>
 #include <QPointingDevice>
 #include <QQuickItem>
@@ -29,6 +31,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <functional>
 #include <utility>
 
@@ -47,6 +50,9 @@ constexpr int kWaitForMaxMs = 120000;
 constexpr int kLoopGapMaxMs = 60000;
 constexpr int kLoopProbeIntervalMs = 5;
 constexpr int kLoopSettleTimeoutMs = 1000; // image en attente rendue avant d'armer la sonde
+constexpr int kPinchMaxSteps = 1000;       // pas d'un pincement (entrée non fiable)
+constexpr int kHoldMaxMs = 60000;          // maintien du pointeur
+constexpr double kToleranceEpsilon = 1e-9; // arrondi des flottants à la borne de la tolérance
 // Variables réservées d'un scénario (${SORTIE}, ${SAMPLES}) ; les autres viennent de « remember ».
 constexpr QLatin1StringView kOutputVariable("SORTIE");
 constexpr QLatin1StringView kSamplesVariable("SAMPLES");
@@ -105,6 +111,37 @@ bool isUnder(const QString& dir, const QString& path)
     const QString relative = root.relativeFilePath(file);
     return !relative.isEmpty() && relative != QLatin1String(".") && relative != QLatin1String("..") &&
            !relative.startsWith(QLatin1String("../")) && QDir::isRelativePath(relative);
+}
+
+// « space » : « page » (défaut) ou « window ».
+bool readSpace(const QJsonObject& o, bool& windowSpace, QString& why)
+{
+    windowSpace = false;
+    if (!o.contains(QStringLiteral("space"))) {
+        return true;
+    }
+    const QString text = o.value(QStringLiteral("space")).toString();
+    if (text == QLatin1String("page")) {
+        return true;
+    }
+    if (text == QLatin1String("window")) {
+        windowSpace = true;
+        return true;
+    }
+    why = QStringLiteral("repère inconnu « %1 » (page ou window)").arg(text);
+    return false;
+}
+
+bool parsePoints(const QJsonValue& value, std::vector<QPointF>& out)
+{
+    for (const QJsonValue& item : value.toArray()) {
+        QPointF point;
+        if (!readPoint(item, point)) {
+            return false;
+        }
+        out.push_back(point);
+    }
+    return !out.empty();
 }
 
 bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
@@ -203,6 +240,14 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         step.value = jsonText(o.value(QStringLiteral("value")));
+        if (o.contains(QStringLiteral("tolerance"))) {
+            const QJsonValue tolerance = o.value(QStringLiteral("tolerance"));
+            if (!tolerance.isDouble() || tolerance.toDouble() < 0.0) {
+                why = QStringLiteral("tolérance invalide (expect : nombre ≥ 0)");
+                return false;
+            }
+            step.valueTolerance = tolerance.toDouble();
+        }
         return true;
     }
     if (o.contains(QStringLiteral("fixture"))) {
@@ -273,6 +318,72 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         return true;
+    }
+    if (o.contains(QStringLiteral("touch"))) {
+        step.kind = UiStepKind::Touch;
+        if (!parsePoints(o.value(QStringLiteral("touch")), step.points)) {
+            why = QStringLiteral("doigt invalide (touch : au moins un point [x, y])");
+            return false;
+        }
+        return true;
+    }
+    if (o.contains(QStringLiteral("pinch"))) {
+        step.kind = UiStepKind::Pinch;
+        const QJsonValue steps = o.value(QStringLiteral("steps"));
+        if (!readPoint(o.value(QStringLiteral("pinch")), step.at) ||
+            !o.value(QStringLiteral("from")).isDouble() || !o.value(QStringLiteral("to")).isDouble()) {
+            why = QStringLiteral("pincement invalide (pinch [cx, cy], from, to)");
+            return false;
+        }
+        step.pinchFrom = o.value(QStringLiteral("from")).toDouble();
+        step.pinchTo = o.value(QStringLiteral("to")).toDouble();
+        if (!(step.pinchFrom > 0.0) || !(step.pinchTo > 0.0)) {
+            why = QStringLiteral("pincement invalide (from et to doivent être > 0)");
+            return false;
+        }
+        if (o.contains(QStringLiteral("steps"))) {
+            step.pinchSteps = steps.isDouble() ? steps.toInt(0) : 0;
+            if (step.pinchSteps < 1 || step.pinchSteps > kPinchMaxSteps) {
+                why = QStringLiteral("pincement invalide (steps de 1 à %1)").arg(kPinchMaxSteps);
+                return false;
+            }
+        }
+        return true;
+    }
+    if (o.contains(QStringLiteral("pointer"))) {
+        step.kind = UiStepKind::Pointer;
+        if (!parsePoints(o.value(QStringLiteral("pointer")), step.points)) {
+            why = QStringLiteral("pointeur invalide (pointer : au moins un point [x, y])");
+            return false;
+        }
+        if (o.contains(QStringLiteral("button"))) {
+            const QString button = o.value(QStringLiteral("button")).toString();
+            if (button == QLatin1String("left")) {
+                step.button = Qt::LeftButton;
+            } else if (button == QLatin1String("right")) {
+                step.button = Qt::RightButton;
+            } else {
+                why = QStringLiteral("bouton inconnu « %1 » (left ou right)").arg(button);
+                return false;
+            }
+        }
+        if (o.contains(QStringLiteral("holdMs"))) {
+            const QJsonValue hold = o.value(QStringLiteral("holdMs"));
+            step.holdMs = hold.isDouble() ? hold.toInt(-1) : -1;
+            if (step.holdMs < 0 || step.holdMs > kHoldMaxMs) {
+                why = QStringLiteral("maintien invalide (holdMs de 0 à %1)").arg(kHoldMaxMs);
+                return false;
+            }
+        }
+        return readSpace(o, step.windowSpace, why);
+    }
+    if (o.contains(QStringLiteral("doubleClick"))) {
+        step.kind = UiStepKind::DoubleClick;
+        if (!readPoint(o.value(QStringLiteral("doubleClick")), step.at)) {
+            why = QStringLiteral("double-clic invalide (doubleClick [x, y])");
+            return false;
+        }
+        return readSpace(o, step.windowSpace, why);
     }
     why = QStringLiteral("étape inconnue");
     return false;
@@ -468,6 +579,56 @@ QString propertyText(const QVariant& value)
     }
 }
 
+// Témoin des gestes directs (filtre posé sur l'application le temps de l'étape) : compte les événements
+// tactiles et souris qui arrivent à la fenêtre, pour qu'une étape ne soit « OK » que si la fenêtre les a
+// reçus.
+class GestureWitness : public QObject
+{
+public:
+    explicit GestureWitness(const QObject* window) : m_window(window) {}
+    int touchBegin = 0;
+    int touchUpdate = 0;
+    int touchEnd = 0;
+    int press = 0;
+    int release = 0;
+    int doubleClick = 0;
+    Qt::MouseButton pressButton = Qt::NoButton; // bouton du dernier appui
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        if (watched == m_window) {
+            switch (event->type()) {
+            case QEvent::TouchBegin:
+                ++touchBegin;
+                break;
+            case QEvent::TouchUpdate:
+                ++touchUpdate;
+                break;
+            case QEvent::TouchEnd:
+                ++touchEnd;
+                break;
+            case QEvent::MouseButtonPress:
+                ++press;
+                pressButton = static_cast<QMouseEvent*>(event)->button();
+                break;
+            case QEvent::MouseButtonRelease:
+                ++release;
+                break;
+            case QEvent::MouseButtonDblClick:
+                ++doubleClick;
+                break;
+            default:
+                break;
+            }
+        }
+        return false;
+    }
+
+private:
+    const QObject* m_window;
+};
+
 // Sonde de boucle : minuterie du fil principal qui relève, à chaque tour, l'intervalle depuis le précédent.
 // Un blocage du fil (écriture synchrone, calcul) l'allonge, qu'une image soit produite ou non. Précise : une
 // minuterie grossière peut être servie avec retard (Qt::TimerType), ce qui grossirait les intervalles. Armée
@@ -590,10 +751,24 @@ bool UiScenarioPlayer::read(const UiStep& step, QStringList& report)
     // Propriété absente : « <absente> » (propertyText), jamais « "" » qui égalerait une valeur attendue vide.
     const QString actual = object ? propertyText(object->property(step.property.toUtf8().constData()))
                                   : QStringLiteral("<introuvable>");
-    const bool ok = object && actual == expected;
+    bool ok = false;
+    QString expectation = expected;
+    if (step.valueTolerance) {
+        // Lecture numérique : |lu − attendu| ≤ tolérance ; un texte non numérique, d'un côté ou de l'autre,
+        // est un écart.
+        bool actualIsNumber = false;
+        bool expectedIsNumber = false;
+        const double actualNumber = actual.toDouble(&actualIsNumber);
+        const double expectedNumber = expected.toDouble(&expectedIsNumber);
+        ok = object && actualIsNumber && expectedIsNumber &&
+             std::abs(actualNumber - expectedNumber) <= *step.valueTolerance + kToleranceEpsilon;
+        expectation = QStringLiteral("%1 ± %2").arg(expected, QString::number(*step.valueTolerance, 'g', 12));
+    } else {
+        ok = object && actual == expected;
+    }
     report << (ok ? QStringLiteral("LU %1.%2=%3 OK").arg(step.target, step.property, actual)
                   : QStringLiteral("LU %1.%2=%3 ECART (attendu %4)")
-                        .arg(step.target, step.property, actual, expected));
+                        .arg(step.target, step.property, actual, expectation));
     return ok;
 }
 
@@ -686,6 +861,162 @@ bool UiScenarioPlayer::key(const UiStep& step, QStringList& report)
                   "nommée équivalente)")
                   .arg(step.key, active ? QString() : QStringLiteral(", fenêtre inactive"));
     return false;
+}
+
+namespace {
+
+// Doigt synthétique de Qt Test, créé une seule fois (Qt le garde enregistré jusqu'à la fin du processus).
+QPointingDevice* touchDevice()
+{
+    static QPointingDevice* device = QTest::createTouchDevice();
+    return device;
+}
+
+// Un temps du doigt livré par Qt Test : les points passent par le suivi des points actifs de QGuiApplication
+// (un QTouchEvent posté à la main n'y passe pas : Qt Quick ne retrouve pas le point). Un identifiant par
+// doigt.
+void deliverFingers(QWindow* window, GesturePhase phase, const std::vector<QPointF>& fingers)
+{
+    auto sequence = QTest::touchEvent(window, touchDevice(), false);
+    for (std::size_t id = 0; id < fingers.size(); ++id) {
+        const QPoint point = fingers[id].toPoint();
+        switch (phase) {
+        case GesturePhase::Press:
+            sequence.press(static_cast<int>(id), point, window);
+            break;
+        case GesturePhase::Move:
+            sequence.move(static_cast<int>(id), point, window);
+            break;
+        case GesturePhase::Release:
+            sequence.release(static_cast<int>(id), point, window);
+            break;
+        }
+    }
+    sequence.commit();
+}
+
+} // namespace
+
+Injector& UiScenarioPlayer::gestures()
+{
+    if (!m_gestures) {
+        // La conversion page → scène est celle du trait (PageView::pageToScene) ; l'étape vérifie la vue
+        // avant tout geste en repère de page.
+        m_gestures = std::make_unique<Injector>(m_window, [this](QPointF page) {
+            const ui::PageView* v = view();
+            return v ? v->pageToScene(page) : page;
+        });
+    }
+    return *m_gestures;
+}
+
+bool UiScenarioPlayer::touch(const UiStep& step, QStringList& report)
+{
+    const QString head = QStringLiteral("DOIGT %1 points").arg(step.points.size());
+    if (!view()) {
+        report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
+        return false;
+    }
+    GestureWitness witness(m_window);
+    QCoreApplication::instance()->installEventFilter(&witness);
+    const bool sent =
+        gestures().touchPath(step.points, [this](GesturePhase phase, const std::vector<QPointF>& f) {
+            deliverFingers(m_window, phase, f);
+        });
+    QCoreApplication::instance()->removeEventFilter(&witness);
+    const bool ok = sent && witness.touchBegin == 1 && witness.touchEnd == 1;
+    report << (ok ? head + QStringLiteral(" OK")
+                  : head + QStringLiteral(" ECHEC (la fenêtre a reçu %1 début(s) et %2 fin(s) tactile(s), 1 "
+                                          "et 1 attendus)")
+                               .arg(witness.touchBegin)
+                               .arg(witness.touchEnd));
+    return ok;
+}
+
+bool UiScenarioPlayer::pinch(const UiStep& step, QStringList& report)
+{
+    const QString head = QStringLiteral("PINCEMENT ×%1").arg(step.pinchTo / step.pinchFrom, 0, 'g', 4);
+    if (!view()) {
+        report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
+        return false;
+    }
+    GestureWitness witness(m_window);
+    QCoreApplication::instance()->installEventFilter(&witness);
+    const bool sent = gestures().pinch(
+        step.at, step.pinchFrom, step.pinchTo, step.pinchSteps,
+        [this](GesturePhase phase, const std::vector<QPointF>& f) { deliverFingers(m_window, phase, f); });
+    QCoreApplication::instance()->removeEventFilter(&witness);
+    const bool ok = sent && witness.touchBegin == 1 && witness.touchEnd == 1 && witness.touchUpdate >= 1;
+    report << (ok ? head + QStringLiteral(" OK")
+                  : head + QStringLiteral(" ECHEC (la fenêtre a reçu %1 début(s), %2 mise(s) à jour et %3 "
+                                          "fin(s) tactile(s), 1, au moins %4 et 1 attendus)")
+                               .arg(witness.touchBegin)
+                               .arg(witness.touchUpdate)
+                               .arg(witness.touchEnd)
+                               .arg(1));
+    return ok;
+}
+
+bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
+{
+    const QString head = QStringLiteral("POINTEUR %1").arg(step.points.size());
+    if (!step.windowSpace && !view()) {
+        report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
+        return false;
+    }
+    GestureWitness witness(m_window);
+    QCoreApplication::instance()->installEventFilter(&witness);
+    const Qt::MouseButton button = step.button;
+    const bool sent = gestures().pointerPath(
+        step.points,
+        [this, button](GesturePhase phase, QPointF position) {
+            const QPoint point = position.toPoint();
+            switch (phase) {
+            case GesturePhase::Press:
+                QTest::mousePress(m_window, button, Qt::NoModifier, point);
+                break;
+            case GesturePhase::Move:
+                QTest::mouseMove(m_window, point);
+                break;
+            case GesturePhase::Release:
+                QTest::mouseRelease(m_window, button, Qt::NoModifier, point);
+                break;
+            }
+        },
+        step.holdMs, step.windowSpace ? PointSpace::Window : PointSpace::Page);
+    QCoreApplication::instance()->removeEventFilter(&witness);
+    const bool ok = sent && witness.press == 1 && witness.release == 1 && witness.pressButton == step.button;
+    report << (ok ? head + QStringLiteral(" OK")
+                  : head + QStringLiteral(" ECHEC (la fenêtre a reçu %1 appui(s) et %2 relâché(s), 1 et 1 "
+                                          "attendus)")
+                               .arg(witness.press)
+                               .arg(witness.release));
+    return ok;
+}
+
+bool UiScenarioPlayer::doubleClick(const UiStep& step, QStringList& report)
+{
+    const QString head = QStringLiteral("DOUBLECLIC");
+    if (!step.windowSpace && !view()) {
+        report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
+        return false;
+    }
+    GestureWitness witness(m_window);
+    QCoreApplication::instance()->installEventFilter(&witness);
+    // Qt Test : appui, relâché, appui (Qt le livre en double-clic), relâché, comme une vraie souris.
+    QTest::mouseDClick(
+        m_window, Qt::LeftButton, Qt::NoModifier,
+        gestures().scenePoint(step.at, step.windowSpace ? PointSpace::Window : PointSpace::Page).toPoint());
+    const bool sent = true;
+    QCoreApplication::instance()->removeEventFilter(&witness);
+    const bool ok = sent && witness.press >= 1 && witness.doubleClick == 1 && witness.release == 2;
+    report << (ok ? head + QStringLiteral(" OK")
+                  : head + QStringLiteral(" ECHEC (la fenêtre a reçu %1 appui(s), %2 double-clic(s) et %3 "
+                                          "relâché(s), au moins 1, 1 et 2 attendus)")
+                               .arg(witness.press)
+                               .arg(witness.doubleClick)
+                               .arg(witness.release));
+    return ok;
 }
 
 bool UiScenarioPlayer::checkPixel(const UiStep& step, QStringList& report)
@@ -1027,6 +1358,14 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return remember(step, report);
     case UiStepKind::ArchiveContains:
         return archiveContains(step, report);
+    case UiStepKind::Touch:
+        return touch(step, report);
+    case UiStepKind::Pinch:
+        return pinch(step, report);
+    case UiStepKind::Pointer:
+        return pointer(step, report);
+    case UiStepKind::DoubleClick:
+        return doubleClick(step, report);
     }
     return false;
 }

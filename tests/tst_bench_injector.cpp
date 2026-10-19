@@ -246,6 +246,106 @@ private slots:
         QCOMPARE(window.events[2].button, Qt::LeftButton);
         QCOMPARE(window.events[2].buttons, Qt::MouseButtons(Qt::NoButton));
     }
+
+    // Pincement (L0-S2) : l'injecteur remet au récepteur deux doigts posés à l'écart `from`, `steps` mises à
+    // jour, relâchés à `to`, milieu fixe ; un doigt seul suit les mêmes règles (page → scène).
+    void pinchDeliversTwoTouchPoints()
+    {
+        QWindow window;
+        bench::Injector injector(&window, [](QPointF p) { return p; });
+        struct Frame
+        {
+            bench::GesturePhase phase = bench::GesturePhase::Press;
+            std::vector<QPointF> fingers;
+        };
+        std::vector<Frame> frames;
+        const bench::Injector::FingerSink sink = [&frames](bench::GesturePhase phase,
+                                                           const std::vector<QPointF>& fingers) {
+            Frame frame;
+            frame.phase = phase;
+            frame.fingers = fingers;
+            frames.push_back(frame);
+        };
+        QVERIFY(injector.pinch(QPointF(200, 150), 100, 200, 10, sink, bench::PointSpace::Window));
+        QCOMPARE(frames.size(), std::size_t{12}); // appui, 10 mises à jour, relâché
+        QVERIFY(frames.front().phase == bench::GesturePhase::Press);
+        QVERIFY(frames.back().phase == bench::GesturePhase::Release);
+        QVERIFY(frames[5].phase == bench::GesturePhase::Move);
+        double previous = 0;
+        for (const Frame& frame : frames) {
+            QCOMPARE(frame.fingers.size(), std::size_t{2});
+            const double spread = frame.fingers[1].x() - frame.fingers[0].x();
+            QVERIFY2(spread >= previous, qPrintable(QString::number(spread))); // l'écart ne se referme jamais
+            previous = spread;
+            QVERIFY2(qAbs((frame.fingers[0].x() + frame.fingers[1].x()) / 2 - 200) <= 1, "milieu en x");
+            QVERIFY2(qAbs(frame.fingers[0].y() - 150) <= 1 && qAbs(frame.fingers[1].y() - 150) <= 1,
+                     "milieu en y");
+        }
+        const auto spreadOf = [](const Frame& frame) { return frame.fingers[1].x() - frame.fingers[0].x(); };
+        QVERIFY2(qAbs(spreadOf(frames.front()) - 100) <= 1,
+                 qPrintable(QString::number(spreadOf(frames.front()))));
+        QVERIFY2(qAbs(spreadOf(frames.back()) - 200) <= 1,
+                 qPrintable(QString::number(spreadOf(frames.back()))));
+
+        // Arguments invalides : rien n'est émis.
+        QVERIFY(!injector.pinch(QPointF(200, 150), 0, 200, 10, sink, bench::PointSpace::Window));
+        QVERIFY(!injector.pinch(QPointF(200, 150), 100, -5, 10, sink, bench::PointSpace::Window));
+        QVERIFY(!injector.pinch(QPointF(200, 150), 100, 200, 0, sink, bench::PointSpace::Window));
+        QCOMPARE(frames.size(), std::size_t{12});
+
+        // Un doigt, repère de page : la conversion double les coordonnées ; appui, 16 déplacements, relâché.
+        bench::Injector doubling(&window, [](QPointF p) { return p * 2; });
+        frames.clear();
+        QVERIFY(doubling.touchPath({QPointF(10, 10), QPointF(50, 10)}, sink));
+        QCOMPARE(frames.size(), std::size_t{18});
+        QCOMPARE(frames.front().fingers.size(), std::size_t{1});
+        QCOMPARE(frames.front().fingers[0], QPointF(20, 20));
+        QCOMPARE(frames.back().fingers[0], QPointF(100, 20));
+        QVERIFY(frames.back().phase == bench::GesturePhase::Release);
+        QVERIFY(!doubling.touchPath({}, sink));
+        QCOMPARE(doubling.scenePoint(QPointF(3, 4), bench::PointSpace::Page), QPointF(6, 8));
+        QCOMPARE(doubling.scenePoint(QPointF(3, 4), bench::PointSpace::Window), QPointF(3, 4));
+    }
+
+    // Pointeur (L0-S2) : le maintien sépare l'appui du relâché (instants relevés à l'arrivée au récepteur).
+    void pointerHoldsBeforeRelease()
+    {
+        QWindow window;
+        bench::Injector injector(&window, [](QPointF p) { return p; });
+        std::vector<bench::GesturePhase> phases;
+        std::vector<QPointF> positions;
+        std::vector<std::int64_t> atNs;
+        const bench::Injector::PointerSink sink = [&](bench::GesturePhase phase, QPointF position) {
+            phases.push_back(phase);
+            positions.push_back(position);
+            atNs.push_back(core::monotonicNowNs());
+        };
+        QVERIFY(
+            injector.pointerPath({QPointF(10, 20), QPointF(60, 20)}, sink, 120, bench::PointSpace::Window));
+        QCOMPARE(phases.size(), std::size_t{18}); // appui, 16 déplacements, relâché
+        QVERIFY(phases.front() == bench::GesturePhase::Press);
+        QVERIFY(phases[1] == bench::GesturePhase::Move);
+        QVERIFY(phases.back() == bench::GesturePhase::Release);
+        QCOMPARE(positions.front(), QPointF(10, 20));
+        QCOMPARE(positions.back(), QPointF(60, 20));
+        const std::int64_t heldNs = atNs.back() - atNs.front();
+        QVERIFY2(heldNs >= 120'000'000, qPrintable(QString::number(heldNs)));
+        // Le maintien suit le dernier déplacement : c'est entre lui et le relâché que le temps passe.
+        QVERIFY2(atNs.back() - atNs[phases.size() - 2] >= 120'000'000, "maintien avant le relâché");
+
+        // Sans maintien : appui et relâché, rien entre eux ; un point suffit.
+        phases.clear();
+        positions.clear();
+        atNs.clear();
+        QVERIFY(injector.pointerPath({QPointF(5, 5)}, sink, 0, bench::PointSpace::Window));
+        QCOMPARE(phases.size(), std::size_t{2});
+
+        // Arguments invalides : rien n'est émis.
+        phases.clear();
+        QVERIFY(!injector.pointerPath({QPointF(5, 5)}, sink, -1, bench::PointSpace::Window));
+        QVERIFY(!injector.pointerPath({}, sink, 0, bench::PointSpace::Window));
+        QVERIFY(phases.empty());
+    }
 };
 
 QTEST_MAIN(TstBenchInjector)

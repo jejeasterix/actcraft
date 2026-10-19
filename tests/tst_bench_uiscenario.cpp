@@ -169,6 +169,13 @@ private:
     QByteArray m_value;
 };
 
+// Un scénario d'essai fait des étapes données (liste JSON sans crochets).
+bool parseSteps(const QByteArray& steps, UiScenario& out, QString& error)
+{
+    return parseUiScenario("{\"format\":\"actcraft-scenario/1\",\"name\":\"x\",\"steps\":[" + steps + "]}",
+                           out, error);
+}
+
 } // namespace
 
 // Joueur de scénarios d'interface (DA8). Pas de chaînes brutes R"(…)" dans ce fichier : moc 6.12 s'y perd et
@@ -623,6 +630,184 @@ private slots:
         QVERIFY(!parseUiScenario(
             "{\"format\":\"actcraft-scenario/1\",\"name\":\"x\",\"steps\":[" + step + "]}", s, error));
         QVERIFY2(error.startsWith(QStringLiteral("étape 1")) && error.contains(expected), qPrintable(error));
+    }
+
+    // --- L0-S2 : doigt, pincement, pointeur, double-clic, tolérance de lecture ---
+
+    void touchStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"touch\": [[100, 100], [300, 100]]}", s, error), qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{1});
+        QVERIFY(s.steps[0].kind == UiStepKind::Touch);
+        QCOMPARE(s.steps[0].points.size(), std::size_t{2});
+        QCOMPARE(s.steps[0].points[0], QPointF(100, 100));
+        QCOMPARE(s.steps[0].points[1], QPointF(300, 100));
+    }
+
+    void pinchStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"pinch\": [400, 300], \"from\": 100, \"to\": 200, \"steps\": 10},"
+                            "{\"pinch\": [400, 300], \"from\": 100, \"to\": 50}",
+                            s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{2});
+        QVERIFY(s.steps[0].kind == UiStepKind::Pinch);
+        QCOMPARE(s.steps[0].at, QPointF(400, 300));
+        QCOMPARE(s.steps[0].pinchFrom, 100.0);
+        QCOMPARE(s.steps[0].pinchTo, 200.0);
+        QCOMPARE(s.steps[0].pinchSteps, 10);
+        QCOMPARE(s.steps[1].pinchSteps, 12); // « steps » absent : 12
+        QVERIFY(!parseSteps("{\"pinch\": [400, 300], \"from\": 0, \"to\": 200}", s, error));
+        QVERIFY2(error.startsWith(QStringLiteral("étape 1")), qPrintable(error));
+    }
+
+    void pointerStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"pointer\": [[10, 20], [30, 40]], \"button\": \"right\", \"holdMs\": 250,"
+                            " \"space\": \"window\"},"
+                            "{\"pointer\": [[5, 6]]},"
+                            "{\"pointer\": [[5, 6]], \"space\": \"page\"}",
+                            s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{3});
+        QVERIFY(s.steps[0].kind == UiStepKind::Pointer);
+        QCOMPARE(s.steps[0].points.size(), std::size_t{2});
+        QVERIFY(s.steps[0].button == Qt::RightButton);
+        QCOMPARE(s.steps[0].holdMs, 250);
+        QVERIFY(s.steps[0].windowSpace);
+        QVERIFY(s.steps[1].button == Qt::LeftButton); // défaut
+        QCOMPARE(s.steps[1].holdMs, 0);
+        QVERIFY(!s.steps[1].windowSpace); // « space » absent : page
+        QVERIFY(!s.steps[2].windowSpace);
+        QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"button\": \"middle\"}", s, error));
+        QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"holdMs\": -1}", s, error));
+    }
+
+    void doubleClickStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"doubleClick\": [120, 80]},"
+                            "{\"doubleClick\": [7, 9], \"space\": \"window\"}",
+                            s, error),
+                 qPrintable(error));
+        QVERIFY(s.steps[0].kind == UiStepKind::DoubleClick);
+        QCOMPARE(s.steps[0].at, QPointF(120, 80));
+        QVERIFY(!s.steps[0].windowSpace);
+        QCOMPARE(s.steps[1].at, QPointF(7, 9));
+        QVERIFY(s.steps[1].windowSpace);
+    }
+
+    // Tolérance numérique de « expect » : lue, puis appliquée à la lecture (|lu − attendu| ≤ tolérance).
+    void expectWithTolerance()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"expect\": \"window.mesure\", \"value\": 1.5, \"tolerance\": 0.01},"
+                            "{\"expect\": \"window.mesure\", \"value\": 1.5}",
+                            s, error),
+                 qPrintable(error));
+        QVERIFY(s.steps[0].valueTolerance.has_value());
+        QCOMPARE(*s.steps[0].valueTolerance, 0.01);
+        QVERIFY(!s.steps[1].valueTolerance.has_value()); // sans elle : comparaison exacte
+
+        Fixture f;
+        QVERIFY(load(f));
+        QStringList report;
+        f.window->setProperty("mesure", 1.505);
+        QVERIFY2(f.player->expect(s.steps[0], report), qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(report.last(), QStringLiteral("LU window.mesure=1.505 OK"));
+        QVERIFY(!f.player->expect(s.steps[1], report)); // exacte : 1.505 n'est pas 1.5
+        QVERIFY2(report.last().contains(QLatin1String("ECART")), qPrintable(report.last()));
+        f.window->setProperty("mesure", 1.6);
+        QVERIFY(!f.player->expect(s.steps[0], report));
+        QVERIFY2(report.last().contains(QStringLiteral("ECART (attendu 1.5 ± 0.01)")),
+                 qPrintable(report.last()));
+        f.window->setProperty("mesure",
+                              1.48); // sous l'attendu de plus que la tolérance (1.49 serait à la borne)
+        QVERIFY(!f.player->expect(s.steps[0], report));
+        f.window->setProperty("mesure", 1.51); // exactement à la borne : admis
+        QVERIFY2(f.player->expect(s.steps[0], report), qPrintable(report.last()));
+        f.window->setProperty("mesure", QStringLiteral("beaucoup")); // non numérique : écart
+        QVERIFY(!f.player->expect(s.steps[0], report));
+    }
+
+    // Contrat du lot 1 prolongé : les sortes du socle 3-7 s'ajoutent à la fin, dans cet ordre.
+    void stepKindRanksFrozen()
+    {
+        using K = actcraft::bench::UiStepKind;
+        QCOMPARE(static_cast<int>(K::CheckEdge) + 1, static_cast<int>(K::Touch));
+        QCOMPARE(static_cast<int>(K::Touch) + 1, static_cast<int>(K::Pinch));
+        QCOMPARE(static_cast<int>(K::Pinch) + 1, static_cast<int>(K::Pointer));
+        QCOMPARE(static_cast<int>(K::Pointer) + 1, static_cast<int>(K::DoubleClick));
+    }
+
+    void badGestureStepsAreRefused_data()
+    {
+        QTest::addColumn<QByteArray>("step");
+        QTest::addColumn<QString>("expected");
+        QTest::newRow("pincement from nul")
+            << QByteArray("{\"pinch\":[1,1],\"from\":0,\"to\":200}") << QStringLiteral("from et to");
+        QTest::newRow("pincement to négatif")
+            << QByteArray("{\"pinch\":[1,1],\"from\":100,\"to\":-5}") << QStringLiteral("from et to");
+        QTest::newRow("pincement sans pas")
+            << QByteArray("{\"pinch\":[1,1],\"from\":100,\"to\":200,\"steps\":0}")
+            << QStringLiteral("steps de 1 à 1000");
+        QTest::newRow("pointeur bouton inconnu")
+            << QByteArray("{\"pointer\":[[1,1]],\"button\":\"middle\"}") << QStringLiteral("bouton inconnu");
+        QTest::newRow("pointeur maintien négatif")
+            << QByteArray("{\"pointer\":[[1,1]],\"holdMs\":-1}") << QStringLiteral("holdMs de 0 à 60000");
+        QTest::newRow("pointeur repère inconnu")
+            << QByteArray("{\"pointer\":[[1,1]],\"space\":\"ecran\"}") << QStringLiteral("repère inconnu");
+        QTest::newRow("double-clic repère inconnu")
+            << QByteArray("{\"doubleClick\":[1,1],\"space\":\"ecran\"}") << QStringLiteral("repère inconnu");
+        QTest::newRow("doigt sans point") << QByteArray("{\"touch\":[]}") << QStringLiteral("doigt invalide");
+        QTest::newRow("tolérance négative")
+            << QByteArray("{\"expect\":\"a.b\",\"value\":1,\"tolerance\":-0.5}")
+            << QStringLiteral("tolérance invalide");
+        QTest::newRow("tolérance non numérique")
+            << QByteArray("{\"expect\":\"a.b\",\"value\":1,\"tolerance\":\"large\"}")
+            << QStringLiteral("tolérance invalide");
+    }
+
+    void badGestureStepsAreRefused()
+    {
+        QFETCH(QByteArray, step);
+        QFETCH(QString, expected);
+        UiScenario s;
+        QString error;
+        QVERIFY(!parseSteps(step, s, error));
+        QVERIFY2(error.startsWith(QStringLiteral("étape 1")) && error.contains(expected), qPrintable(error));
+    }
+
+    // Les quatre gestes jouent sur la vraie fenêtre : chaque étape ne dit « OK » que si la fenêtre a reçu les
+    // événements (témoin), pas parce qu'ils ont été postés.
+    void gestureStepsPlayOnTheWindow()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        QStringList report;
+        const UiScenario s =
+            scenario("gestes", "[{\"waitReady\":true},"
+                               "{\"touch\":[[100,100],[200,150]]},"
+                               "{\"pinch\":[200,200],\"from\":80,\"to\":160,\"steps\":4},"
+                               "{\"pointer\":[[100,100],[150,120]],\"button\":\"right\",\"holdMs\":30,"
+                               "\"space\":\"window\"},"
+                               "{\"pointer\":[[100,100],[150,120]]},"
+                               "{\"doubleClick\":[120,120]},"
+                               "{\"doubleClick\":[50,50],\"space\":\"window\"}]");
+        QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        const QString all = report.join(QLatin1Char('\n'));
+        QVERIFY2(all.contains(QLatin1String("DOIGT 2 points OK")), qPrintable(all));
+        QVERIFY2(all.contains(QStringLiteral("PINCEMENT ×2 OK")), qPrintable(all));
+        QCOMPARE(all.count(QLatin1String("POINTEUR 2 OK")), 2);
+        QCOMPARE(all.count(QLatin1String("DOUBLECLIC OK")), 2);
     }
 
     void fixtureWritesAThreePageDocument()
