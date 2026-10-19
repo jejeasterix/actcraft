@@ -1672,7 +1672,7 @@ nommée.
     `QTEST_MAIN` : à la construction de L7-S8.
 16. **Fenêtres créées à la demande** — point de Qt, non du socle : à prouver par L7-T28, L7-T29, L7-T30 (hors écran,
     puis contrôle à l'écran annoncé de L7-T28 et L7-T30).
-17. **Noms** — `NOMS OK` sur la branche fusionnée (contrôle de ce commit, 356 fichiers suivis) ; noms neufs des
+17. **Noms** — `NOMS OK` sur la branche fusionnée (contrôle de 97c3185 : 487 fichiers suivis, 0 nom composé) ; noms neufs des
     tâches repassés au contrôle après `git add` par chaque tâche.
 
 ## Risques
