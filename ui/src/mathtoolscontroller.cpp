@@ -190,6 +190,46 @@ const char* MathToolsController::Entry::settingsGroup() const noexcept
     return square ? kSquareGroup : kProtractorGroup;
 }
 
+std::optional<input::Sample> MathToolsController::CompassGuide::project(const input::Sample& sample,
+                                                                        double tolerance) const
+{
+    return compass.project(sample, tolerance);
+}
+
+std::optional<input::Sample> MathToolsController::CompassGuide::capture(const input::Sample& sample,
+                                                                        double tolerance)
+{
+    return compass.capture(sample, tolerance);
+}
+
+input::Sample MathToolsController::CompassGuide::follow(const input::Sample& sample)
+{
+    return compass.follow(sample);
+}
+
+// Talons de L7-T12 (rouge) : remplis par l'étape verte.
+int MathToolsController::openCompass()
+{
+    return -1;
+}
+
+void MathToolsController::setMirrored(int, bool) {}
+
+void MathToolsController::setShowRadius(int, bool) {}
+
+void MathToolsController::setMarkCentre(int, bool) {}
+
+void MathToolsController::stepCompassLength(int, int) {}
+
+MathToolsController::Entry* MathToolsController::seizedCompass() noexcept
+{
+    return nullptr;
+}
+
+void MathToolsController::followCompass(Entry&, input::Phase) {}
+
+void MathToolsController::storeCompassChoice(const Entry&) {}
+
 MathToolsController::MathToolsController(QObject* parent) : QObject(parent) {}
 
 MathToolsController::~MathToolsController()
@@ -256,7 +296,7 @@ void MathToolsController::setDocumentController(DocumentController* controller)
         m_document->removeChangeObserver(m_strokeObserver);
     }
     m_strokeObserver = 0;
-    m_pendingArc.reset();
+    m_pending.reset();
     m_document = controller;
     watchStrokes();
     emit documentControllerChanged();
@@ -574,7 +614,7 @@ input::Sample MathToolsController::guide(const input::Sample& sample)
         return sample;
     }
     if (sample.phase == input::Phase::Press) {
-        m_pendingArc.reset();
+        m_pending.reset();
         for (Entry& entry : m_tools) {
             if (entry.protractor) {
                 entry.protractor->seized = false;
@@ -592,13 +632,13 @@ input::Sample MathToolsController::guide(const input::Sample& sample)
         // Rien n'est écrit ici : le stylo verse son trait juste après ce relâché ; l'observateur du document
         // le voit et l'insertion suit (watchStrokes).
         if (arc->arcStyle != features::ArcStyle::Arc && protractor.sweptDegrees() >= kMinSweep) {
-            PendingArc pending;
+            PendingAddition pending;
             pending.center = arc->vertex;
             pending.radius = arc->side;
             pending.start = protractor.startDegrees();
             pending.sweep = protractor.signedSweptDegrees();
             pending.style = arc->arcStyle;
-            m_pendingArc = pending;
+            m_pending = pending;
         }
     }
     // L'angle balayé se lit sur l'échelle : publié à chaque degré entier.
@@ -644,7 +684,7 @@ void MathToolsController::watchStrokes()
     // changements, contrat de addChangeObserver), donc elle suit le trait dans la pile d'annulation.
     m_strokeObserver = m_document->addChangeObserver([this](const core::Changes& applied,
                                                             DocumentController::ChangeOrigin origin) {
-        if (origin != DocumentController::ChangeOrigin::Stroke || !m_pendingArc) {
+        if (origin != DocumentController::ChangeOrigin::Stroke || !m_pending) {
             return;
         }
         const auto inserted = std::find_if(applied.begin(), applied.end(), [](const core::Change& change) {
@@ -653,15 +693,15 @@ void MathToolsController::watchStrokes()
         if (inserted == applied.end()) {
             return;
         }
-        PendingArc arc = *m_pendingArc;
-        m_pendingArc.reset();
+        PendingAddition arc = *m_pending;
+        m_pending.reset();
         arc.stroke = inserted->object;
         arc.page = inserted->page;
-        QTimer::singleShot(0, this, [this, arc] { insertArc(arc); });
+        QTimer::singleShot(0, this, [this, arc] { insertAddition(arc); });
     });
 }
 
-void MathToolsController::insertArc(const PendingArc& arc)
+void MathToolsController::insertAddition(const PendingAddition& arc)
 {
     // Page quittée entre-temps (trait coupé par un changement de page) : rien n'est ajouté ailleurs.
     if (!m_document || static_cast<std::size_t>(m_document->currentIndex()) != arc.page) {
