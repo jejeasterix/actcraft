@@ -26,6 +26,21 @@ namespace actcraft::render {
 
 namespace {
 
+// Premier bloc à réécrire. Forme ronde : le bloc qui précède le premier bloc sale reçoit le point qui suit sa
+// jonction (son dernier segment, provisoire, devient final ; une fois, puis il n'écrit plus rien).
+std::size_t firstBlockToWrite(const InkBuffer& buffer, bool rounded)
+{
+    const std::size_t count = buffer.blockCount();
+    const std::size_t firstDirty = buffer.firstDirtyBlock();
+    return rounded && firstDirty > 0 && firstDirty < count ? firstDirty - 1 : firstDirty;
+}
+
+// Le point qui suit la jonction du bloc `index` : le deuxième du bloc suivant ; nullptr pour le dernier.
+const core::StrokePoint* pointAfterBlock(const InkBuffer& buffer, std::size_t index)
+{
+    return index + 1 < buffer.blockCount() ? &buffer.block(index + 1)[1] : nullptr;
+}
+
 // Segments peints par les blocs logiciels (InkItem::softwareSegmentsPainted).
 std::atomic<std::uint64_t> g_softwareSegments{0};
 
@@ -460,10 +475,7 @@ void InkItem::syncRhiBlocks(QSGNode* root, const InkBuffer& buffer, core::PenCap
     }
     const bool rounded = cap != core::PenCap::Square;
     const std::size_t count = buffer.blockCount();
-    const std::size_t firstDirty = buffer.firstDirtyBlock();
-    // Forme ronde : le bloc qui précède le premier bloc sale reçoit le point qui suit sa jonction (son
-    // dernier segment, provisoire, devient final ; une fois, puis il n'écrit plus rien).
-    const std::size_t from = rounded && firstDirty > 0 && firstDirty < count ? firstDirty - 1 : firstDirty;
+    const std::size_t from = firstBlockToWrite(buffer, rounded);
     QSGNode* child = root->firstChild();
     // Nœuds existants jusqu'au premier bloc à reprendre (sans y toucher), puis blocs sales et nœuds
     // manquants.
@@ -476,7 +488,7 @@ void InkItem::syncRhiBlocks(QSGNode* root, const InkBuffer& buffer, core::PenCap
         // Un nœud créé s'écrit en entier même sur un tampon propre : Qt rappelle updatePaintNode(nullptr)
         // après une réinsertion de l'élément, une perte du périphérique ou releaseResources().
         if (created || index >= from) {
-            const core::StrokePoint* next = index + 1 < count ? &buffer.block(index + 1)[1] : nullptr;
+            const core::StrokePoint* next = pointAfterBlock(buffer, index);
             static_cast<InkBlockNode*>(child)->appendFrom(buffer.block(index), next, index == 0,
                                                           index + 1 == count, buffer.baseWidth());
         }
@@ -492,11 +504,10 @@ void InkItem::updateSoftware(QSGNode* root)
     }
     const bool rounded = m_cap != core::PenCap::Square;
     const std::size_t count = m_buffer.blockCount();
-    const std::size_t firstDirty = m_buffer.firstDirtyBlock();
-    const std::size_t from = rounded && firstDirty > 0 && firstDirty < count ? firstDirty - 1 : firstDirty;
+    const std::size_t from = firstBlockToWrite(m_buffer, rounded);
     QSGNode* child = root->firstChild();
     for (std::size_t index = 0; index < count; ++index) {
-        const core::StrokePoint* next = index + 1 < count ? &m_buffer.block(index + 1)[1] : nullptr;
+        const core::StrokePoint* next = pointAfterBlock(m_buffer, index);
         if (child == nullptr) {
             // Un nœud créé se remplit même sur un tampon propre (updatePaintNode(nullptr) après une
             // réinsertion de l'élément), avant son ajout : le moteur lit son rect() à l'ajout.

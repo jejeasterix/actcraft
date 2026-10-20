@@ -18,6 +18,7 @@
 #include <memory>
 
 namespace actcraft::tools {
+class SelectTool;
 class Tool;
 class UserState;
 } // namespace actcraft::tools
@@ -106,7 +107,11 @@ private:
     void discardAdapters() const; // jette les adaptateurs, l'outil occupé abandonnant d'abord son geste
     tools::Tool* toolFor(const QString& id) const;      // créé à la première demande
     tools::Tool* existingTool(const QString& id) const; // jamais créé
-    void ensureSettings();                              // QSettings → UserState (F-136), une fois par fichier
+    tools::SelectTool* selectTool() const;              // l'outil Sélectionner, créé à la première demande
+    tools::InkSettings settingsOf(const QString& id) const; // réglages de l'utilisateur, ou ceux par défaut
+    // Réglages rangés chez l'utilisateur, écrits dans le fichier et rendus à la vue.
+    void storeSettings(const QString& id, const tools::InkSettings& settings);
+    void ensureSettings(); // QSettings → UserState (F-136), une fois par fichier
     void writeSettings(const QString& toolId) const;
     void applyToView(); // couleur (alpha du marqueur) et épaisseur rendues à PageView
     void syncToolCommands();

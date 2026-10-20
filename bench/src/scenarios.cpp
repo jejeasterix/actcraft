@@ -14,6 +14,16 @@
 
 namespace actcraft::bench {
 
+core::Stroke seedAnnotation(const std::vector<QPointF>& points)
+{
+    core::Stroke stroke;
+    stroke.baseWidth = 4;
+    for (const QPointF& p : points) {
+        stroke.points.push_back({p.x(), p.y(), 0.5f});
+    }
+    return stroke;
+}
+
 namespace {
 constexpr int kDemoEvents = 120;
 constexpr double kDemoY = 670.0;
@@ -42,12 +52,7 @@ core::Page pageWithSeeds(const std::vector<std::vector<QPointF>>& seeds)
         next = std::max(next, object.common.id + 1);
     }
     for (const auto& points : seeds) {
-        core::Stroke stroke;
-        stroke.baseWidth = 4;
-        for (const QPointF& p : points) {
-            stroke.points.push_back({p.x(), p.y(), 0.5f});
-        }
-        core::PageObject object = std::move(stroke);
+        core::PageObject object = seedAnnotation(points);
         object.common.layer = core::Layer::Top;
         object.common.id = next++;
         page.objects.push_back(std::move(object));
@@ -65,9 +70,8 @@ int touchedAnnotations(const core::Page& page, const std::vector<PlannedInput>& 
         const double r = kEraserRadiusPage;
         const core::RectF reach{box.x - r, box.y - r, box.width + 2 * r, box.height + 2 * r};
         for (const core::ObjectId id : core::objectsTouching(page, reach)) {
-            const auto found = std::find_if(page.objects.begin(), page.objects.end(),
-                                            [id](const core::PageObject& o) { return o.common.id == id; });
-            if (found != page.objects.end() && core::isAnnotation(*found)) {
+            const std::size_t at = core::indexOf(page, id);
+            if (at < page.objects.size() && core::isAnnotation(page.objects[at])) {
                 touched.push_back(id);
             }
         }

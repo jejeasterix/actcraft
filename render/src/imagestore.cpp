@@ -61,8 +61,8 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
         }
     };
     want(page.background.image, std::nullopt);
-    for (std::size_t i = 0; i < page.objects.size(); ++i) {
-        if (const auto* object = std::get_if<core::ImageObject>(&page.objects[i])) {
+    for (const core::PageObject& entry : page.objects) {
+        if (const auto* object = std::get_if<core::ImageObject>(&entry)) {
             if (object->resource.empty()) {
                 // L3-C13 : rangée par synthesisKey, comme une ressource par sa clé, jamais par indice d'objet
                 // : un objet soulevé ou retiré avant elle ne la déplace pas. Deux images de même clé n'en
@@ -106,7 +106,7 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
                     want(object->resource, std::nullopt);
                 }
             }
-        } else if (const auto* media = std::get_if<core::Media>(&page.objects[i])) {
+        } else if (const auto* media = std::get_if<core::Media>(&entry)) {
             want(media->placeholder, std::nullopt);
         }
     }
@@ -194,8 +194,8 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
     const auto hasVariant = [this, resources](const core::ImageObject& im) {
         return !resources || !resources->resource(im.resource) || m_resources.count(variantKey(im)) > 0;
     };
-    for (std::size_t i = 0; i < page.objects.size(); ++i) {
-        if (const auto* im = std::get_if<core::ImageObject>(&page.objects[i])) {
+    for (const core::PageObject& entry : page.objects) {
+        if (const auto* im = std::get_if<core::ImageObject>(&entry)) {
             if (im->resource.empty()) {
                 // L3-C13 : par synthesisKey, quel que soit l'indice : soulever un objet placé avant l'image
                 // ne demande aucun décodage. Une image en plus dans le magasin ne gêne pas (comme une
@@ -206,7 +206,7 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
             } else if (!has(im->resource) || !hasVariant(*im)) {
                 return false;
             }
-        } else if (const auto* m = std::get_if<core::Media>(&page.objects[i]); m && !has(m->placeholder)) {
+        } else if (const auto* m = std::get_if<core::Media>(&entry); m && !has(m->placeholder)) {
             return false;
         }
     }

@@ -21,6 +21,11 @@ namespace actcraft::ui {
 
 namespace {
 
+input::Point2 toPoint2(QPointF p)
+{
+    return {p.x(), p.y()};
+}
+
 // Même défilement, aux arrondis près : l'axe limitant d'« Ajuster » tombe pile sur la marge, et clampPan peut
 // l'en écarter d'un rien.
 bool samePan(QPointF a, QPointF b)
@@ -342,8 +347,8 @@ void PageView::holdRequestsOfThisTurn()
 
 void PageView::notifyCacheUpdated()
 {
-    m_refreshThisTurn =
-        false; // ce redessin est fini : une demande de plus, même dans ce tour, en part un autre
+    // Ce redessin est fini : une demande de plus, même dans ce tour, en part un autre.
+    m_refreshThisTurn = false;
     if (m_refreshAgain) {
         // Ce redessin a pu commencer avant la dernière demande : un de plus garantit l'état final.
         m_refreshAgain = false;
@@ -858,10 +863,7 @@ bool PageView::onGestureSample(const input::Sample& sample, QPointF viewPos)
                 contact = GestureContact{};
             }
         }
-        if (m_gesture.active()) {
-            m_gesture.end();
-            emit gestureActiveChanged();
-        }
+        stopGesture();
         break;
     }
     return true;
@@ -888,8 +890,8 @@ bool PageView::addGestureContact(std::uint64_t pointer, QPointF viewPos)
     const bool complete = std::all_of(m_gestureContacts.cbegin(), m_gestureContacts.cend(),
                                       [](const GestureContact& contact) { return contact.pointer != 0; });
     if (complete && !m_gesture.active()) {
-        const input::Point2 a{m_gestureContacts[0].viewPos.x(), m_gestureContacts[0].viewPos.y()};
-        const input::Point2 b{m_gestureContacts[1].viewPos.x(), m_gestureContacts[1].viewPos.y()};
+        const input::Point2 a = toPoint2(m_gestureContacts[0].viewPos);
+        const input::Point2 b = toPoint2(m_gestureContacts[1].viewPos);
         m_gesture.begin(a, b);
         const input::GestureStep step = m_gesture.update(a, b);
         m_gestureZoom = m_transform.zoom;
@@ -901,8 +903,8 @@ bool PageView::addGestureContact(std::uint64_t pointer, QPointF viewPos)
 
 void PageView::applyGesture()
 {
-    const input::Point2 a{m_gestureContacts[0].viewPos.x(), m_gestureContacts[0].viewPos.y()};
-    const input::Point2 b{m_gestureContacts[1].viewPos.x(), m_gestureContacts[1].viewPos.y()};
+    const input::Point2 a = toPoint2(m_gestureContacts[0].viewPos);
+    const input::Point2 b = toPoint2(m_gestureContacts[1].viewPos);
     const input::GestureStep step = m_gesture.update(a, b);
     // Pincer : zoom au début du geste × écart relatif, par le zoom ancré unique (borné comme la molette,
     // quitte « Ajuster », cache redessiné après le dernier pas), autour du point de page de l'ancre.
@@ -926,6 +928,11 @@ void PageView::endGesture()
         contact = GestureContact{};
     }
     m_gestureMoved = false;
+    stopGesture();
+}
+
+void PageView::stopGesture()
+{
     if (m_gesture.active()) {
         m_gesture.end();
         emit gestureActiveChanged();

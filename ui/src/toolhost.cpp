@@ -58,10 +58,7 @@ std::unique_ptr<QSettings> openSettings(const QString& file)
 
 QVariantMap hiddenFrame()
 {
-    return QVariantMap{
-        {QStringLiteral("visible"), false},          {QStringLiteral("corners"), QVariantList()},
-        {QStringLiteral("handles"), QVariantList()}, {QStringLiteral("bar"), QVariantList()},
-        {QStringLiteral("rubberBand"), QVariant()},  {QStringLiteral("handlesVisible"), false}};
+    return selectionFrameMap(tools::SelectionView{}, nullptr);
 }
 
 core::Argb opaque(const QColor& color)
@@ -192,14 +189,12 @@ QString ToolHost::currentTool() const
 
 QColor ToolHost::color() const
 {
-    const tools::InkSettings ink =
-        m_user ? m_user->settings(shownInkTool()) : tools::defaultSettings(shownInkTool());
-    return QColor::fromRgba(ink.color);
+    return QColor::fromRgba(settingsOf(shownInkTool()).color);
 }
 
 qreal ToolHost::width() const
 {
-    return m_user ? m_user->settings(shownWidthTool()).width : tools::defaultSettings(shownWidthTool()).width;
+    return settingsOf(shownWidthTool()).width;
 }
 
 int ToolHost::selectionCount() const
@@ -292,13 +287,10 @@ void ToolHost::setColor(const QColor& color)
     const QString id = currentTool();
     tools::InkSettings settings = user().settings(id);
     settings.color = opaque(color);
-    user().setSettings(id, settings);
     if (auto* pen = dynamic_cast<tools::PenTool*>(existingTool(id))) {
         pen->setColor(settings.color);
     }
-    writeSettings(id);
-    applyToView();
-    emit settingsChanged();
+    storeSettings(id, settings);
 }
 
 void ToolHost::setWidth(qreal width)
@@ -314,13 +306,10 @@ void ToolHost::setWidth(qreal width)
     tools::InkSettings settings = user().settings(id);
     settings.width = std::clamp(static_cast<double>(width), static_cast<double>(kMinInkWidth),
                                 static_cast<double>(kMaxInkWidth));
-    user().setSettings(id, settings);
     if (auto* pen = dynamic_cast<tools::PenTool*>(existingTool(id))) {
         pen->setBaseWidth(settings.width);
     }
-    writeSettings(id);
-    applyToView();
-    emit settingsChanged();
+    storeSettings(id, settings);
 }
 
 // Les opérations de la sélection peuvent arriver pendant un geste (raccourci pendant un glissement) : le
@@ -330,7 +319,7 @@ void ToolHost::selectAll()
 {
     cancelGesture();
     activate(QStringLiteral("select"));
-    if (auto* select = dynamic_cast<tools::SelectTool*>(toolFor(QStringLiteral("select")))) {
+    if (tools::SelectTool* select = selectTool()) {
         select->selectAll();
     }
 }
@@ -338,7 +327,7 @@ void ToolHost::selectAll()
 void ToolHost::clearSelection()
 {
     cancelGesture();
-    if (auto* select = dynamic_cast<tools::SelectTool*>(toolFor(QStringLiteral("select")))) {
+    if (tools::SelectTool* select = selectTool()) {
         select->clearSelection();
     } else if (m_user) {
         m_user->setSelection({});
@@ -349,7 +338,7 @@ void ToolHost::clearSelection()
 void ToolHost::deleteSelection()
 {
     cancelGesture();
-    if (auto* select = dynamic_cast<tools::SelectTool*>(toolFor(QStringLiteral("select")))) {
+    if (tools::SelectTool* select = selectTool()) {
         select->deleteSelection();
     }
 }
@@ -357,7 +346,7 @@ void ToolHost::deleteSelection()
 void ToolHost::enlargeSelection()
 {
     cancelGesture();
-    if (auto* select = dynamic_cast<tools::SelectTool*>(toolFor(QStringLiteral("select")))) {
+    if (tools::SelectTool* select = selectTool()) {
         select->enlarge();
     }
 }
@@ -365,7 +354,7 @@ void ToolHost::enlargeSelection()
 void ToolHost::reduceSelection()
 {
     cancelGesture();
-    if (auto* select = dynamic_cast<tools::SelectTool*>(toolFor(QStringLiteral("select")))) {
+    if (tools::SelectTool* select = selectTool()) {
         select->reduce();
     }
 }
@@ -373,7 +362,7 @@ void ToolHost::reduceSelection()
 void ToolHost::setSelectionTranslucency(int value)
 {
     cancelGesture();
-    if (auto* select = dynamic_cast<tools::SelectTool*>(toolFor(QStringLiteral("select")))) {
+    if (tools::SelectTool* select = selectTool()) {
         select->setTranslucency(static_cast<std::uint8_t>(std::clamp(value, 0, 255)));
     }
 }
@@ -391,7 +380,7 @@ void ToolHost::cancelGesture()
 
 tools::Tool* ToolHost::activeTool(input::UserId) const
 {
-    return toolFor(m_user ? m_user->currentTool() : QStringLiteral("pen"));
+    return toolFor(currentTool());
 }
 
 tools::UserState& ToolHost::user(input::UserId)
@@ -442,6 +431,24 @@ void ToolHost::discardAdapters() const
             tool->cancel();
         }
     }
+}
+
+tools::SelectTool* ToolHost::selectTool() const
+{
+    return dynamic_cast<tools::SelectTool*>(toolFor(QStringLiteral("select")));
+}
+
+tools::InkSettings ToolHost::settingsOf(const QString& id) const
+{
+    return m_user ? m_user->settings(id) : tools::defaultSettings(id);
+}
+
+void ToolHost::storeSettings(const QString& id, const tools::InkSettings& settings)
+{
+    user().setSettings(id, settings);
+    writeSettings(id);
+    applyToView();
+    emit settingsChanged();
 }
 
 tools::Tool* ToolHost::toolFor(const QString& id) const

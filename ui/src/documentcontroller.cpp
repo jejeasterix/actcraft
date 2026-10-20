@@ -194,8 +194,7 @@ void DocumentController::executeAs(std::unique_ptr<core::UndoCommand> command, C
 // soulevé revient sans étape (l'outil a abandonné son geste à l'annonce).
 void DocumentController::undo()
 {
-    emit editAboutToApply();
-    dropRemaining();
+    announceEdit();
     if (!m_undo.canUndo()) {
         return;
     }
@@ -205,8 +204,7 @@ void DocumentController::undo()
 
 void DocumentController::redo()
 {
-    emit editAboutToApply();
-    dropRemaining();
+    announceEdit();
     if (!m_undo.canRedo()) {
         return;
     }
@@ -273,12 +271,12 @@ std::vector<core::PageObject> DocumentController::liftObjects(const std::vector<
             copies.push_back(l.object);
         }
     }
-    const core::Changes changes =
-        core::liftChanges(m_current, added); // le cache n'a plus que ceux-là à retirer
+    // Le cache n'a plus que ceux-là à retirer.
+    const core::Changes changes = core::liftChanges(m_current, added);
     m_liftGeneration = m_generation;
     settle(changes, ChangeOrigin::Lift);
-    emit
-    documentChanged(); // hors pile : la réponse de canRevertPage ne change pas, pas de canRevertPageChanged
+    // Hors pile : la réponse de canRevertPage ne change pas, pas de canRevertPageChanged.
+    emit documentChanged();
     if (!wasLifting) {
         emit liftingChanged();
     }
@@ -321,6 +319,18 @@ bool DocumentController::isLifting() const noexcept
     return !m_lifted.empty() && m_liftGeneration == m_generation;
 }
 
+void DocumentController::announceEdit()
+{
+    emit editAboutToApply();
+    dropRemaining();
+}
+
+void DocumentController::announcePageChange()
+{
+    emit pageAboutToChange();
+    dropRemaining();
+}
+
 void DocumentController::dropRemaining()
 {
     forgetStaleLift();
@@ -350,8 +360,7 @@ void DocumentController::commitAnnotation(core::Stroke stroke, std::uint8_t tran
 
 void DocumentController::deleteObjects(const std::vector<core::ObjectId>& ids)
 {
-    emit editAboutToApply();
-    dropRemaining();
+    announceEdit();
     execute(std::make_unique<core::RemoveObjectsCommand>(m_current, ids));
 }
 
@@ -361,8 +370,7 @@ void DocumentController::clearPage(int kind)
         kind > static_cast<int>(core::ClearKind::Page)) {
         return; // genre inconnu : rien à annoncer
     }
-    emit editAboutToApply();
-    dropRemaining();
+    announceEdit();
     execute(std::make_unique<core::ClearPageCommand>(m_current, static_cast<core::ClearKind>(kind)));
 }
 
@@ -370,8 +378,7 @@ void DocumentController::clearPage(int kind)
 // remontée jusqu'à son état propre.
 void DocumentController::revertPage()
 {
-    emit editAboutToApply();
-    dropRemaining();
+    announceEdit();
     const core::Page* saved = savedPage();
     core::Page reference = saved ? *saved : blankLike(m_document.page(m_current));
     execute(std::make_unique<core::ReplacePageCommand>(m_current, std::move(reference)));
@@ -518,9 +525,9 @@ void DocumentController::newDocument(double width, double height)
 
 void DocumentController::nextPage()
 {
-    emit pageAboutToChange(); // le trait en cours rejoint la page affichée avant le déplacement
-    // M2 : l'outil a abandonné son geste à l'annonce ; ce qui reste soulevé revient sans étape.
-    dropRemaining();
+    // Le trait en cours rejoint la page affichée avant le déplacement. M2 : l'outil a abandonné son geste à
+    // l'annonce ; ce qui reste soulevé revient sans étape.
+    announcePageChange();
     if (m_current + 1 < m_document.pageCount()) {
         show(m_current + 1);
         return;
@@ -544,8 +551,7 @@ void DocumentController::pageBack()
     if (target == m_current) {
         return;
     }
-    emit pageAboutToChange();
-    dropRemaining(); // M2
+    announcePageChange(); // M2
     show(target);
 }
 
@@ -554,8 +560,7 @@ void DocumentController::loadGeneratedFirstPage()
     // m2 (L3-C8) : comme les autres éditions, l'annonce d'abord (l'outil abandonne son geste, la vue termine
     // son trait), puis ce qui reste soulevé revient sans étape : son dépôt ne viserait plus la page
     // remplacée.
-    emit editAboutToApply();
-    dropRemaining();
+    announceEdit();
     const QSizeF shownSize = pageSize();
     const bool modified = isModified();
     core::Page& first = m_document.page(0);
@@ -710,8 +715,8 @@ void DocumentController::openUrl(const QUrl& url)
     // Relevée AVANT l'annonce : un trait que la vue termine à l'annonce fait refuser l'ouverture, comme tout
     // changement pendant la lecture (rien n'est perdu).
     const std::uint64_t revision = m_revision;
-    emit editAboutToApply(); // l'outil abandonne son geste, la vue termine son trait
-    dropRemaining();         // M2 : Ouvrir n'attend pas un dépôt
+    // L'outil abandonne son geste, la vue termine son trait ; M2 : Ouvrir n'attend pas un dépôt.
+    announceEdit();
     setBusy(true);
     std::shared_ptr<IoRelay> relay = m_relay;
     QThreadPool::globalInstance()->start([relay, url, revision] {
@@ -729,9 +734,8 @@ void DocumentController::openUrl(const QUrl& url)
             // replaceDocument, il rejoindrait l'ancien document, aussitôt remplacé (L2-C9). S'il change le
             // document, l'ouverture est refusée comme pour tout changement pendant la lecture.
             if (outcome->ok) {
-                emit self.pageAboutToChange();
                 // M2 : soulevé pendant la lecture, l'outil a abandonné à l'annonce ; le reste revient.
-                self.dropRemaining();
+                self.announcePageChange();
             }
             if (outcome->ok && revision != self.m_revision) {
                 const QString changed =
@@ -784,8 +788,7 @@ void DocumentController::saveToUrl(const QUrl& url)
     }
     // La vue termine son trait, qui entre dans le fichier ; l'outil abandonne son geste. Puis M2 :
     // Enregistrer n'écrit jamais un document dont des objets sont soulevés.
-    emit editAboutToApply();
-    dropRemaining();
+    announceEdit();
     setBusy(true);
     // Copie prise ici, sur le fil principal (ressources partagées implicitement) : le fil secondaire ne lit
     // jamais le document affiché, que l'utilisateur continue de modifier.

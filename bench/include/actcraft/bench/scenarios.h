@@ -3,6 +3,8 @@
 // Scénarios rejoués par le banc (décision 22, durées N2-1) : tracé, zoom, défilement, changement de page
 // (L2-T23), et trait de démonstration.
 
+#include <actcraft/core/model.h>
+
 #include <QPoint>
 #include <QPointF>
 #include <QString>
@@ -125,5 +127,8 @@ std::vector<std::int64_t> pageChangeMarks(const std::vector<std::int64_t>& swapN
 std::vector<std::pair<std::int64_t, std::int64_t>>
 pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<bool>& awaitsReady,
                   const std::vector<std::int64_t>& shownNs);
+
+// Annotation de départ d'un scénario : un trait de 4 de large, un point par QPointF, à pression moyenne.
+core::Stroke seedAnnotation(const std::vector<QPointF>& points);
 
 } // namespace actcraft::bench

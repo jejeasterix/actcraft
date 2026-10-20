@@ -682,12 +682,7 @@ BenchResult Runner::run(QQuickWindow* window)
         // L3-T19 : annotations de départ (versées par setLevel, comme des traits passés), puis l'outil du
         // scénario choisi par sa commande nommée, avant la mesure.
         for (const auto& points : plan.seedStrokes) {
-            core::Stroke stroke;
-            stroke.baseWidth = 4;
-            for (const QPointF& p : points) {
-                stroke.points.push_back({p.x(), p.y(), 0.5f});
-            }
-            document->commitStroke(std::move(stroke));
+            document->commitStroke(seedAnnotation(points));
         }
         if (!plan.toolCommand.isEmpty() && !runWindowCommand(m_window, plan.toolCommand)) {
             result.invalidReasons

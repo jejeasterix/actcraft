@@ -58,7 +58,6 @@ Item {
             transformOrigin: Item.Left
             rotation: Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI
             color: root.contour
-            enabled: false
         }
     }
 
@@ -79,7 +78,6 @@ Item {
             color: root.gris
             border.width: 2
             border.color: root.contour
-            enabled: false
             Rectangle {
                 visible: handle.index === 4
                 anchors.centerIn: parent
@@ -87,7 +85,6 @@ Item {
                 height: 2
                 rotation: -45
                 color: root.contour
-                enabled: false
             }
         }
     }
@@ -105,7 +102,6 @@ Item {
         color: "#40808080"
         border.width: 1
         border.color: root.contour
-        enabled: false
     }
 
     ObjectBar {

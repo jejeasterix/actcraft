@@ -83,6 +83,12 @@ bool resizable(const core::PageObject& object)
     return !object.common.locked && object.common.restrictions.resizable;
 }
 
+// Pivotable : la même règle pour le bouton de rotation (beginTransform ; P28).
+bool rotatable(const core::PageObject& object)
+{
+    return !object.common.locked && object.common.restrictions.rotatable;
+}
+
 // Parmi `ids` (présents), ceux qu'Agrandir et Réduire changent (M1, L3-C9).
 std::vector<core::ObjectId> resizableAmong(const core::Page& page, const std::vector<core::ObjectId>& ids)
 {
@@ -226,19 +232,15 @@ void SelectTool::deleteSelection()
 
 void SelectTool::enlarge()
 {
-    const core::Page& page = m_context.document.page();
-    const std::vector<core::ObjectId> ids = present(page, m_context.user.selection());
-    const std::vector<core::ObjectId> scaled = resizableAmong(page, ids);
-    if (scaled.empty()) {
-        return;
-    }
-    const core::PointF center = core::selectionCenter(page, ids); // centre du cadre, comme les poignées
-    m_context.document.execute(std::make_unique<core::TransformObjectsCommand>(
-        m_context.document.pageIndex(), scaled, core::scalingAbout(center, kEnlargeStep, kEnlargeStep)));
-    showFrame();
+    scaleSelection(kEnlargeStep);
 }
 
 void SelectTool::reduce()
+{
+    scaleSelection(1.0 / kEnlargeStep);
+}
+
+void SelectTool::scaleSelection(double factor)
 {
     const core::Page& page = m_context.document.page();
     const std::vector<core::ObjectId> ids = present(page, m_context.user.selection());
@@ -246,8 +248,7 @@ void SelectTool::reduce()
     if (scaled.empty()) {
         return;
     }
-    const core::PointF center = core::selectionCenter(page, ids);
-    const double factor = 1.0 / kEnlargeStep;
+    const core::PointF center = core::selectionCenter(page, ids); // centre du cadre, comme les poignées
     m_context.document.execute(std::make_unique<core::TransformObjectsCommand>(
         m_context.document.pageIndex(), scaled, core::scalingAbout(center, factor, factor)));
     showFrame();
@@ -287,7 +288,7 @@ void SelectTool::press(const input::Sample& sample)
 
     const double zoom = m_context.view.zoom();
     const std::optional<core::ObjectId> hit = core::objectAt(page, m_start, core::kHitToleranceScreen / zoom);
-    const std::vector<core::ObjectId> selection = m_context.user.selection();
+    const std::vector<core::ObjectId>& selection = m_context.user.selection();
     if (!selection.empty()) { // barre et poignées passent avant tout, même avec Maj ou Ctrl
         const SelectionView grabFrame =
             layoutSelection(page, selection, zoom, m_context.view.objectBarCommands());
@@ -404,10 +405,7 @@ void SelectTool::beginDrag(bool force)
         return;
     }
     m_frame = layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {});
-    m_lifted = ids;
-    std::vector<core::PageObject> copies = m_context.document.lift(ids);
-    m_context.lift.show(std::move(copies));
-    m_state = State::Dragging;
+    liftForGesture(std::move(ids), State::Dragging);
 }
 
 void SelectTool::beginTransform(State kind)
@@ -419,10 +417,8 @@ void SelectTool::beginTransform(State kind)
         if (index == page.objects.size()) {
             continue;
         }
-        const core::ObjectCommon& common = page.objects[index].common;
-        const bool allowed =
-            !common.locked &&
-            (kind == State::Resizing ? common.restrictions.resizable : common.restrictions.rotatable); // P28
+        const core::PageObject& object = page.objects[index];
+        const bool allowed = kind == State::Resizing ? resizable(object) : rotatable(object); // P28
         if (allowed) {
             ids.push_back(id);
         }
@@ -432,10 +428,15 @@ void SelectTool::beginTransform(State kind)
         (kind == State::Resizing && m_frame.handles.size() != 8)) {
         return;
     }
-    m_lifted = ids;
-    std::vector<core::PageObject> copies = m_context.document.lift(ids);
-    m_context.lift.show(std::move(copies));
-    m_state = kind;
+    liftForGesture(std::move(ids), kind);
+}
+
+// m_lifted est posé avant le soulèvement.
+void SelectTool::liftForGesture(std::vector<core::ObjectId> ids, State state)
+{
+    m_lifted = std::move(ids);
+    m_context.lift.show(m_context.document.lift(m_lifted));
+    m_state = state;
 }
 
 // Transformation du geste en cours, en coordonnées de page, appliquée après celle des objets.
@@ -512,9 +513,7 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
     const bool trash = m_state == State::Dragging && !cancelled && m_context.view.overTrash(point);
     if (trash) {
         std::vector<core::ObjectId> selection = m_context.user.selection();
-        selection.erase(std::remove_if(selection.begin(), selection.end(),
-                                       [this](core::ObjectId id) { return contains(m_lifted, id); }),
-                        selection.end());
+        std::erase_if(selection, [this](core::ObjectId id) { return contains(m_lifted, id); });
         m_context.document.drop(std::make_unique<core::RemoveObjectsCommand>(page, m_lifted));
         m_context.user.setSelection(std::move(selection));
     } else if (cancelled || delta.isIdentity()) {

@@ -77,13 +77,13 @@ SelectionSurfaceAdapter::SelectionSurfaceAdapter(Commands* commands, Show show)
     : m_commands(commands), m_show(std::move(show))
 {}
 
-void SelectionSurfaceAdapter::show(const tools::SelectionView& view)
+QVariantMap selectionFrameMap(const tools::SelectionView& view, Commands* commands)
 {
     QVariantList bar;
     for (const tools::BarSpot& spot : view.bar) {
         bar.push_back(QVariantMap{
             {QStringLiteral("command"), spot.command},
-            {QStringLiteral("icon"), m_commands ? m_commands->iconUrl(spot.command) : QString()},
+            {QStringLiteral("icon"), commands ? commands->iconUrl(spot.command) : QString()},
             {QStringLiteral("x"), spot.center.x},
             {QStringLiteral("y"), spot.center.y},
         });
@@ -95,14 +95,18 @@ void SelectionSurfaceAdapter::show(const tools::SelectionView& view)
                            {QStringLiteral("width"), view.rubberBand->width},
                            {QStringLiteral("height"), view.rubberBand->height}};
     }
-    const bool handles = view.visible && view.handlesVisible;
-    m_show(QVariantMap{{QStringLiteral("visible"), view.visible},
+    return QVariantMap{{QStringLiteral("visible"), view.visible},
                        {QStringLiteral("corners"), pointList(view.corners)},
                        {QStringLiteral("handles"), pointList(view.handles)},
                        {QStringLiteral("bar"), bar},
                        {QStringLiteral("rubberBand"), band},
-                       {QStringLiteral("handlesVisible"), handles}},
-           handles);
+                       {QStringLiteral("handlesVisible"), view.visible && view.handlesVisible}};
+}
+
+void SelectionSurfaceAdapter::show(const tools::SelectionView& view)
+{
+    const QVariantMap frame = selectionFrameMap(view, m_commands);
+    m_show(frame, frame.value(QStringLiteral("handlesVisible")).toBool());
 }
 
 ViewInfoAdapter::ViewInfoAdapter(PageView& view, Commands* commands, TrashArea area, TrashHover hover)

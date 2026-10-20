@@ -135,21 +135,16 @@ QJsonObject scenarioJson(const ScenarioResult& s)
     };
     QJsonObject cache{{"refreshes", static_cast<double>(s.cacheRequestNs.size())},
                       {"pending_max", s.pendingMax}};
-    if (s.touchedStrokes >= 0) {
-        cache.insert(QStringLiteral("touched_strokes"), s.touchedStrokes);
-    }
-    if (s.liftedObjects >= 0) {
-        cache.insert(QStringLiteral("lifted_objects"), s.liftedObjects);
-    }
-    if (s.pendingCut >= 0) {
-        cache.insert(QStringLiteral("pending_cut"), s.pendingCut);
-    }
-    if (s.rebuilds >= 0) {
-        cache.insert(QStringLiteral("rebuilds"), s.rebuilds);
-    }
-    if (s.decodes >= 0) {
-        cache.insert(QStringLiteral("decodes"), s.decodes);
-    }
+    const auto putIfSet = [&cache](const QString& key, int value) {
+        if (value >= 0) {
+            cache.insert(key, value);
+        }
+    };
+    putIfSet(QStringLiteral("touched_strokes"), s.touchedStrokes);
+    putIfSet(QStringLiteral("lifted_objects"), s.liftedObjects);
+    putIfSet(QStringLiteral("pending_cut"), s.pendingCut);
+    putIfSet(QStringLiteral("rebuilds"), s.rebuilds);
+    putIfSet(QStringLiteral("decodes"), s.decodes);
     return {{"name", s.name},   {"exposure_lost", s.exposureLost},
             {"frames", frames}, {"latency", latency},
             {"input", input},   {"memory", memory},
