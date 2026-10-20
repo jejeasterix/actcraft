@@ -4,6 +4,7 @@
 #include <actcraft/core/objectedits.h>
 
 #include <algorithm>
+#include <cmath>
 #include <iterator>
 #include <limits>
 #include <utility>
@@ -248,6 +249,11 @@ Transform scalingAbout(PointF center, double sx, double sy) noexcept
 {
     return compose(compose(translation(-center.x, -center.y), scaling(sx, sy)),
                    translation(center.x, center.y));
+}
+
+double lengthScale(const Transform& t) noexcept
+{
+    return std::sqrt(std::abs(t.m11 * t.m22 - t.m12 * t.m21));
 }
 
 Transform rotationAbout(PointF center, double degrees) noexcept

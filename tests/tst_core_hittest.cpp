@@ -1,5 +1,6 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/hittest.h>
+#include <actcraft/core/objectedits.h>
 
 #include <QTest>
 
@@ -78,6 +79,16 @@ private slots:
         moved.common.layer = Layer::Middle;
         QVERIFY(!isAnnotation(moved));
         QVERIFY(!isAnnotation(rectObject(3, {0, 0, 1, 1}, Layer::Top)));
+    }
+    // m5 (L3-C7) : un trait agrandi ×3 se désigne dans toute son épaisseur visible, pas dans le tiers.
+    void scaledStrokeHitUsesTheVisibleWidth()
+    {
+        Page page;
+        PageObject o = strokeObject(9, {{100, 100, 0.5f}, {300, 100, 0.5f}}, 10); // demi-largeur locale : 5
+        o.common.transform = scalingAbout({200, 100}, 3, 3);                      // visible : 15
+        insertAtTopOfLayer(page, o);
+        QCOMPARE(objectAt(page, {200, 107}, 0).value_or(0), ObjectId{9}); // 1,4 × 5 sous la ligne
+        QVERIFY(!objectAt(page, {200, 116}, 0).has_value());              // au-delà de 15
     }
 };
 
