@@ -460,6 +460,15 @@ private slots:
         QCOMPARE(none.x, 0.0);
         QCOMPARE(none.y, 0.0);
     }
+    // L3-C7 (M3, m5) : échelle des longueurs d'une transformation, pour l'épaisseur visible d'un trait.
+    void lengthScaleOfTransforms()
+    {
+        QCOMPARE(lengthScale(Transform{}), 1.0);
+        QCOMPARE(lengthScale(scalingAbout({50, 80}, 3, 3)), 3.0);
+        QCOMPARE(lengthScale(scalingAbout({0, 0}, -2, 2)), 2.0); // miroir : valeur absolue
+        QCOMPARE(lengthScale(rotationAbout({10, 10}, 30)), 1.0);
+        QCOMPARE(lengthScale(scalingAbout({0, 0}, 4, 1)), 2.0); // non uniforme : moyenne géométrique
+    }
 };
 
 QTEST_GUILESS_MAIN(TstCoreObjectedits)

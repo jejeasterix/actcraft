@@ -1,6 +1,7 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/erasegeometry.h>
 #include <actcraft/core/hittest.h>
+#include <actcraft/core/objectedits.h>
 #include <actcraft/core/replace.h>
 #include <actcraft/tools/erasertool.h>
 #include <actcraft/tools/userstate.h>
@@ -11,6 +12,29 @@
 #include <utility>
 
 namespace actcraft::tools {
+
+namespace {
+
+// Emprise de la ligne centrale (sans l'épaisseur). core::cutByDisk ne retire que ce qui est à moins de r du
+// centre : un morceau dont cette emprise ne touche pas le carré [c − r, c + r] ne peut pas être coupé.
+core::RectF centerlineBounds(const std::vector<core::StrokePoint>& points) noexcept
+{
+    if (points.empty())
+        return {};
+    double x0 = points.front().x;
+    double x1 = x0;
+    double y0 = points.front().y;
+    double y1 = y0;
+    for (const core::StrokePoint& p : points) {
+        x0 = std::min(x0, p.x);
+        x1 = std::max(x1, p.x);
+        y0 = std::min(y0, p.y);
+        y1 = std::max(y1, p.y);
+    }
+    return {x0, y0, x1 - x0, y1 - y0};
+}
+
+} // namespace
 
 EraserTool::EraserTool(ToolContext& context) : m_context(context) {}
 
@@ -24,28 +48,37 @@ double EraserTool::radius() const
     return m_context.user.settings(QStringLiteral("eraser")).width / 2;
 }
 
+std::size_t EraserTool::cutCalls() const noexcept
+{
+    return m_cuts;
+}
+
 bool EraserTool::isBusy() const noexcept
 {
     return m_active;
 }
 
+// Seul le pointeur de l'appui mène le geste : un autre contact (appui, mouvement, relâché) est ignoré.
 void EraserTool::onSample(const input::Sample& sample)
 {
     const core::PointF point{sample.x, sample.y};
     switch (sample.phase) {
     case input::Phase::Press:
-        if (m_active)
+        if (m_active) {
+            if (sample.pointer != m_pointer)
+                return;
             cancel();
+        }
         begin(sample);
         break;
     case input::Phase::Move:
-        if (!m_active)
+        if (!m_active || sample.pointer != m_pointer)
             return;
         sweep(m_last, point);
         m_last = point;
         break;
     case input::Phase::Release:
-        if (!m_active)
+        if (!m_active || sample.pointer != m_pointer)
             return;
         sweep(m_last, point);
         m_last = point;
@@ -66,6 +99,7 @@ void EraserTool::cancel()
 void EraserTool::begin(const input::Sample& sample)
 {
     m_active = true;
+    m_pointer = sample.pointer;
     m_lifted.clear();
     m_last = {sample.x, sample.y};
     sweep(m_last, m_last, true); // une touche sans mouvement coupe sous le disque
@@ -78,7 +112,8 @@ void EraserTool::reset()
 }
 
 // Soulève chaque annotation touchée par le balayage (une seule fois par geste), puis recoupe les morceaux
-// courants de tous les traits soulevés.
+// proches du balayage. La couche soulevée n'est remontrée que si un trait vient d'être soulevé ou qu'un
+// morceau a changé : un mouvement loin de tout morceau ne coupe ni ne montre rien.
 void EraserTool::sweep(core::PointF from, core::PointF to, bool first)
 {
     const double r = radius();
@@ -93,13 +128,26 @@ void EraserTool::sweep(core::PointF from, core::PointF to, bool first)
         if (core::rectsTouch(core::boundsOnPage(object), reach))
             toLift.push_back(object.common.id);
     }
+    bool changed = false;
     if (!toLift.empty()) {
         for (core::PageObject& copy : m_context.document.lift(toLift)) {
+            auto* stroke = std::get_if<core::Stroke>(&core::body(copy));
+            if (!stroke)
+                continue;
             Lifted lifted;
             lifted.id = copy.common.id;
-            lifted.pieces.push_back(core::strokePointsOnPage(copy));
+            std::vector<core::StrokePoint> points = core::strokePointsOnPage(copy);
+            const core::RectF bounds = centerlineBounds(points);
+            lifted.pieces.push_back({std::move(points), bounds});
+            // Modèle des morceaux : leurs points sont en coordonnées de page, donc transformation identité et
+            // épaisseur à l'échelle visible de l'original ; ses points ne sont plus recopiés par morceau.
+            stroke->baseWidth *= core::lengthScale(copy.common.transform);
+            std::vector<core::StrokePoint>().swap(stroke->points);
+            copy.common.transform = core::Transform{};
+            copy.common.id = 0; // tiré par la commande au dépôt
             lifted.original = std::move(copy);
             m_lifted.push_back(std::move(lifted));
+            changed = true; // il a quitté la page : la couche doit le montrer
         }
     }
     if (m_lifted.empty())
@@ -120,35 +168,61 @@ void EraserTool::sweep(core::PointF from, core::PointF to, bool first)
             centers.push_back({from.x + t * (to.x - from.x), from.y + t * (to.y - from.y)});
         }
     }
+
+    // Chaque morceau proche reçoit les centres dans l'ordre ; ses restes prennent sa place dans le trait. Un
+    // morceau loin du balayage n'est ni relu ni coupé.
+    const auto nearSweep = [&](const Piece& piece) { return core::rectsTouch(piece.bounds, reach); };
     for (Lifted& lifted : m_lifted) {
-        for (const core::PointF& center : centers) {
-            std::vector<std::vector<core::StrokePoint>> next;
-            for (auto& piece : lifted.pieces) {
-                core::StrokeCut cut = core::cutByDisk(piece, center, r);
-                if (!cut.touched) {
-                    next.push_back(std::move(piece));
-                    continue;
-                }
-                lifted.touched = true;
-                for (auto& part : cut.pieces)
-                    next.push_back(std::move(part));
+        if (centers.empty() || std::none_of(lifted.pieces.begin(), lifted.pieces.end(), nearSweep))
+            continue;
+        std::vector<Piece> next;
+        for (Piece& piece : lifted.pieces) {
+            if (!nearSweep(piece)) {
+                next.push_back(std::move(piece));
+                continue;
             }
-            lifted.pieces = std::move(next);
+            std::vector<Piece> parts;
+            parts.push_back(std::move(piece));
+            for (const core::PointF& center : centers) {
+                const core::RectF square{center.x - r, center.y - r, 2 * r, 2 * r};
+                std::vector<Piece> after;
+                for (Piece& part : parts) {
+                    if (!core::rectsTouch(part.bounds, square)) {
+                        after.push_back(std::move(part));
+                        continue;
+                    }
+                    ++m_cuts;
+                    core::StrokeCut cut = core::cutByDisk(part.points, center, r);
+                    if (!cut.touched) {
+                        after.push_back(std::move(part));
+                        continue;
+                    }
+                    lifted.touched = true;
+                    changed = true;
+                    for (auto& rest : cut.pieces) {
+                        const core::RectF restBounds = centerlineBounds(rest);
+                        after.push_back({std::move(rest), restBounds});
+                    }
+                }
+                parts = std::move(after);
+            }
+            for (Piece& part : parts)
+                next.push_back(std::move(part));
         }
+        lifted.pieces = std::move(next);
     }
-    showLifted();
+    if (changed)
+        showLifted();
 }
 
-// Morceaux d'un trait : objets traits de la couche du dessus, commun de l'original, transformation identité.
+// Morceaux d'un trait : copies du modèle (sans les points d'origine), chacune avec les points de son morceau.
 std::vector<core::PageObject> EraserTool::pieceObjects(const Lifted& lifted) const
 {
     std::vector<core::PageObject> out;
     out.reserve(lifted.pieces.size());
-    for (const auto& piece : lifted.pieces) {
+    for (const Piece& piece : lifted.pieces) {
         core::PageObject object = lifted.original;
-        std::get<core::Stroke>(core::body(object)).points = piece;
-        object.common.transform = core::Transform{};
-        object.common.id = 0; // tiré par la commande au dépôt
+        std::get<core::Stroke>(core::body(object)).points = piece.points;
         out.push_back(std::move(object));
     }
     return out;

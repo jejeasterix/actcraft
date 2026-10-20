@@ -3,6 +3,8 @@
 #include <actcraft/tools/tool.h>
 #include <actcraft/tools/toolcontext.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 namespace actcraft::tools {
@@ -18,14 +20,24 @@ public:
     bool isBusy() const noexcept override;
     void cancel() override;
     double radius() const; // largeur réglée de la gomme / 2, pixels de page
+    // Appels de core::cutByDisk depuis la création de l'outil (tests et banc : le coût d'un mouvement ne doit
+    // suivre que les morceaux proches de la gomme).
+    std::size_t cutCalls() const noexcept;
 
 private:
-    // Un trait soulevé pendant le geste : copie d'origine et morceaux courants (points de page).
+    // Un morceau courant : ligne centrale en points de page et son emprise (sans l'épaisseur).
+    struct Piece
+    {
+        std::vector<core::StrokePoint> points;
+        core::RectF bounds;
+    };
+    // Un trait soulevé pendant le geste : modèle des morceaux (commun et trait d'origine, sans ses points,
+    // transformation identité, épaisseur à l'échelle visible) et morceaux courants.
     struct Lifted
     {
         core::ObjectId id = 0;
         core::PageObject original;
-        std::vector<std::vector<core::StrokePoint>> pieces;
+        std::vector<Piece> pieces;
         bool touched = false; // le disque a retiré une partie du trait
     };
 
@@ -38,6 +50,8 @@ private:
 
     ToolContext& m_context;
     bool m_active = false;
+    std::uint64_t m_pointer = 0; // pointeur de l'appui : seuls ses mouvements et son relâché comptent
+    std::size_t m_cuts = 0;
     core::PointF m_last;
     std::vector<Lifted> m_lifted;
 };

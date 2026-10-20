@@ -105,5 +105,8 @@ private:
 PointF selectionCenter(const Page& page, const std::vector<ObjectId>& ids);
 Transform scalingAbout(PointF center, double sx, double sy) noexcept;
 Transform rotationAbout(PointF center, double degrees) noexcept;
+// Échelle des longueurs de `t` : sqrt(|m11·m22 − m12·m21|). Exacte pour une échelle uniforme (avec rotation
+// ou miroir), moyenne géométrique des deux échelles sinon. Sert à l'épaisseur visible d'un trait transformé.
+double lengthScale(const Transform& t) noexcept;
 
 } // namespace actcraft::core

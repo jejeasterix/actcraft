@@ -1,5 +1,6 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/hittest.h>
+#include <actcraft/core/objectedits.h>
 
 #include <algorithm>
 #include <cmath>
@@ -25,14 +26,15 @@ bool strokeHit(const PageObject& object, const Stroke& stroke, PointF point, dou
     if (pts.empty())
         return false;
     const auto mapped = [&](const StrokePoint& s) { return object.common.transform.map({s.x, s.y}); };
+    const double scale = lengthScale(object.common.transform); // épaisseur visible d'un trait transformé
     if (pts.size() == 1) {
-        const double half = strokeWidthAt(stroke.baseWidth, pts[0].pressure) / 2;
+        const double half = strokeWidthAt(stroke.baseWidth, pts[0].pressure) * scale / 2;
         const PointF m = mapped(pts[0]);
         return std::hypot(point.x - m.x, point.y - m.y) <= half + tolerance;
     }
     for (std::size_t i = 1; i < pts.size(); ++i) {
         const double half =
-            strokeWidthAt(stroke.baseWidth, std::max(pts[i - 1].pressure, pts[i].pressure)) / 2;
+            strokeWidthAt(stroke.baseWidth, std::max(pts[i - 1].pressure, pts[i].pressure)) * scale / 2;
         if (distanceToSegment(point, mapped(pts[i - 1]), mapped(pts[i])) <= half + tolerance)
             return true;
     }

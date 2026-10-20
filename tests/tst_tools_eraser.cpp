@@ -2,6 +2,7 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/lift.h>
+#include <actcraft/core/objectedits.h>
 #include <actcraft/core/replace.h>
 #include <actcraft/tools/erasertool.h>
 #include <actcraft/tools/userstate.h>
@@ -502,6 +503,108 @@ private slots:
         QCOMPARE(spans.size(), std::size_t{2});
         QVERIFY(qAbs(spans[0].first - 200) < 1e-9 && qAbs(spans[0].second - 375) < 1e-9);
         QVERIFY(qAbs(spans[1].first - 425) < 1e-9 && qAbs(spans[1].second - 600) < 1e-9);
+    }
+
+    // M1 (L3-C7) : après un soulèvement, des mouvements loin de tout morceau ne coupent ni ne remontrent
+    // rien.
+    void movesInTheVoidCutAndShowNothing()
+    {
+        Rig rig;
+        press(rig.tool, {200, 100});
+        rig.tool.onSample(sample(Phase::Move, 200, -50)); // remonte par le trou qu'il vient de faire
+        QVERIFY(rig.editor.isLifting());
+        QVERIFY(rig.lift.showCalls >= 1);
+        const int shows = rig.lift.showCalls;
+        const std::size_t cuts = rig.tool.cutCalls();
+        moveAlong(rig.tool, line({200, -50}, {200, -250}, 20));
+        QCOMPARE(rig.lift.showCalls, shows);
+        QCOMPARE(rig.tool.cutCalls(), cuts);
+        QCOMPARE(rig.lift.shown.size(), std::size_t{2}); // les deux morceaux restent montrés
+        rig.tool.cancel();
+    }
+
+    // M1 (L3-C7) : le coût d'un mouvement suit les morceaux proches de la gomme, pas le nombre de traits
+    // soulevés plus tôt dans le geste.
+    void cutCallsIgnoreFarLiftedStrokes()
+    {
+        const auto cutsOfTheLastLeg = [](int k) {
+            Rig rig;
+            for (int i = 0; i < k; ++i)
+                addStroke(rig.doc, core::Layer::Top, {100, 300.0 + 60 * i}, {200, 300.0 + 60 * i});
+            const core::ObjectId far = addStroke(rig.doc, core::Layer::Top, {800, 300}, {800, 900});
+            press(rig.tool, {150, 300});
+            moveAlong(rig.tool, line({150, 300}, {150, 300.0 + 60 * (k - 1)}, 6 * k)); // coupe les k traits
+            rig.tool.onSample(sample(Phase::Move, 700, 1000));
+            rig.tool.onSample(sample(Phase::Move, 700, 600));
+            const std::size_t before = rig.tool.cutCalls();
+            moveAlong(rig.tool, line({700, 600}, {900, 600}, 20)); // traverse le trait vertical
+            const std::size_t leg = rig.tool.cutCalls() - before;
+            release(rig.tool, {900, 600});
+            const bool farCut = !pageHas(rig.doc, far);
+            return std::pair<std::size_t, bool>{leg, farCut};
+        };
+        const auto few = cutsOfTheLastLeg(2);
+        const auto many = cutsOfTheLastLeg(8);
+        QVERIFY(few.second && many.second);
+        QVERIFY(few.first > 0);
+        QCOMPARE(many.first, few.first);
+    }
+
+    // M3 (L3-C7) : les morceaux d'un trait agrandi gardent son épaisseur visible.
+    void scaledStrokePiecesKeepTheVisibleWidth()
+    {
+        Rig rig;
+        core::Stroke stroke;
+        stroke.points = {{450, 500, 0.5f}, {550, 500, 0.5f}};
+        stroke.baseWidth = 4;
+        core::PageObject object{stroke};
+        const core::ObjectId id = object.common.id = rig.doc.allocateId();
+        object.common.layer = core::Layer::Top;
+        object.common.transform = core::scalingAbout({500, 500}, 3, 3); // de 350 à 650, épaisseur visible 12
+        core::insertAtTopOfLayer(rig.doc.page(0), object);
+
+        press(rig.tool, {500, 500});
+        rig.tool.onSample(sample(Phase::Move, 501, 500));
+        QCOMPARE(rig.lift.shown.size(), std::size_t{2});
+        for (const core::PageObject& piece : rig.lift.shown)
+            QCOMPARE(std::get<core::Stroke>(core::body(piece)).baseWidth, 12.0);
+        release(rig.tool, {501, 500});
+
+        QVERIFY(!pageHas(rig.doc, id));
+        int pieces = 0;
+        for (const core::PageObject& o : rig.doc.page(0).objects) {
+            const auto* s = std::get_if<core::Stroke>(&core::body(o));
+            if (!s || s->points.empty() || s->points.front().y != 500)
+                continue;
+            ++pieces;
+            QVERIFY(o.common.transform.isIdentity());
+            QCOMPARE(s->baseWidth, 12.0);
+        }
+        QCOMPARE(pieces, 2);
+    }
+
+    // m6 (L3-C7) : seul le pointeur de l'appui mène le geste ; un appui d'un autre pointeur est ignoré.
+    void otherPointerIsIgnored()
+    {
+        Rig rig;
+        input::Sample down = sample(Phase::Press, 200, 100);
+        down.pointer = 1;
+        rig.tool.onSample(down);
+        for (Phase phase : {Phase::Press, Phase::Move, Phase::Release}) {
+            input::Sample other = sample(phase, 200, 200);
+            other.pointer = 2;
+            rig.tool.onSample(other);
+        }
+        QVERIFY(rig.tool.isBusy());
+        QCOMPARE(rig.editor.dropCalls, 0);
+        QVERIFY(!wasLifted(rig.editor, rig.lower));
+        input::Sample up = sample(Phase::Release, 200, 100);
+        up.pointer = 1;
+        rig.tool.onSample(up);
+        QVERIFY(!rig.tool.isBusy());
+        QCOMPARE(rig.editor.dropped.size(), std::size_t{1});
+        QVERIFY(pageHas(rig.doc, rig.lower));
+        QVERIFY(!pageHas(rig.doc, rig.upper));
     }
 };
 
