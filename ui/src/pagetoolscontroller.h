@@ -41,10 +41,10 @@ public:
     // Applique les réglages de la page affichée au rideau et au spot.
     Q_INVOKABLE void applyShownPage();
     // Réglages de la page affichée, une étape ; faux si la valeur est inconnue ou s'il n'y a pas de document.
-    Q_INVOKABLE bool setToolsMode(const QString& mode);     // keep, curtain, spotlight, off
-    Q_INVOKABLE bool setCurtainMode(const QString& mode);   // off, top, bottom, left, right, full
-    Q_INVOKABLE bool setCurtainDistance(double distance);   // pixels de page, fini et positif
-    Q_INVOKABLE bool setSpotlightMode(const QString& mode); // off, circle, square, solid-circle, solid-square
+    Q_INVOKABLE bool setToolsMode(const QString& mode);   // keep, curtain, spotlight, off
+    Q_INVOKABLE bool setCurtainMode(const QString& mode); // off, top, bottom, left, right, full
+    Q_INVOKABLE bool setCurtainDistance(double distance); // pixels de page, fini et positif
+    Q_INVOKABLE bool setSpotShape(const QString& mode);   // off, circle, square, solid-circle, solid-square
 
 signals:
     void documentControllerChanged();

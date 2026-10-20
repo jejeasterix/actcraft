@@ -37,7 +37,7 @@ Item {
             pageToolsController.setCurtainDistance(Number(distance))
         })
         root.commands.setHandler("page.spotlight-mode", function (mode) {
-            pageToolsController.setSpotlightMode(String(mode))
+            pageToolsController.setSpotShape(String(mode))
         })
     }
 

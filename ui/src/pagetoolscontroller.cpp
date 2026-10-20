@@ -32,7 +32,7 @@ constexpr std::array<Named<core::CurtainMode>, 6> kCurtainModes{{{"off", core::C
                                                                  {"left", core::CurtainMode::Left},
                                                                  {"right", core::CurtainMode::Right},
                                                                  {"full", core::CurtainMode::Full}}};
-constexpr std::array<Named<core::SpotlightShape>, 5> kSpotlightModes{
+constexpr std::array<Named<core::SpotlightShape>, 5> kSpotShapes{
     {{"off", core::SpotlightShape::Off},
      {"circle", core::SpotlightShape::Circle},
      {"square", core::SpotlightShape::Square},
@@ -202,10 +202,10 @@ bool PageToolsController::setCurtainDistance(double distance)
            writePresentation([distance](core::PagePresentation& p) { p.curtainDistance = distance; });
 }
 
-bool PageToolsController::setSpotlightMode(const QString& mode)
+bool PageToolsController::setSpotShape(const QString& mode)
 {
     core::SpotlightShape value{};
-    return lookUp(kSpotlightModes, mode, value) &&
+    return lookUp(kSpotShapes, mode, value) &&
            writePresentation([value](core::PagePresentation& p) { p.spotlight = value; });
 }
 
