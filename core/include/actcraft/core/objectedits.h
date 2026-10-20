@@ -83,7 +83,9 @@ private:
 };
 
 // Translucidité (F-524) : 0 opaque … 255 invisible. Fusionne avec la précédente de même famille portant sur
-// les mêmes objets (réglette glissée : une étape). Changes : ObjectChanged par objet.
+// les mêmes objets (réglette glissée : une étape). Mêmes objets ne veut pas dire même ouverture de la
+// réglette : sa fermeture clôt l'étape par UndoStack::closeMerge() (D10, P23). Changes : ObjectChanged par
+// objet.
 class SetTranslucencyCommand final : public UndoCommand
 {
 public:

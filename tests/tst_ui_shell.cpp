@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <initializer_list>
 #include <memory>
 #include <variant>
 
@@ -87,6 +88,29 @@ bool run(Shell& s, const QString& id, const QVariant& argument = QVariant())
     const bool invoked = QMetaObject::invokeMethod(s.window, "runCommand", Q_RETURN_ARG(QVariant, result),
                                                    Q_ARG(QVariant, QVariant(id)), Q_ARG(QVariant, argument));
     return invoked && result.toBool();
+}
+
+// Une ouverture de la réglette de translucidité (D10) : object.translucency sans argument, un mouvement par
+// valeur (signal moved du Slider, celui d'un glissement), puis fermeture. Rend l'erreur, vide si tout va.
+QString translucencyOpening(Shell& s, QObject* popup, QQuickItem* slider, std::initializer_list<int> values)
+{
+    if (!run(s, QStringLiteral("object.translucency"))) {
+        return QStringLiteral("object.translucency refusée");
+    }
+    if (!QTest::qWaitFor([popup] { return popup->property("opened").toBool(); }, 5000)) {
+        return QStringLiteral("réglette non ouverte");
+    }
+    for (const int value : values) {
+        slider->setProperty("value", value);
+        if (!QMetaObject::invokeMethod(slider, "moved")) {
+            return QStringLiteral("signal moved introuvable");
+        }
+    }
+    if (!QMetaObject::invokeMethod(popup, "close") ||
+        !QTest::qWaitFor([popup] { return !popup->property("visible").toBool(); }, 5000)) {
+        return QStringLiteral("réglette non fermée");
+    }
+    return QString();
 }
 
 QString indicator(Shell& s)
@@ -780,6 +804,43 @@ private slots:
         for (const QString& id : lot3) {
             QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
         }
+    }
+
+    // D10, P23 (L3-C12) : la réglette ouverte, réglée puis fermée deux fois sur la même sélection fait deux
+    // étapes d'annulation ; les mouvements d'une même ouverture n'en font qu'une.
+    void translucencyPopupTwoOpeningsAreTwoSteps()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* controller = s.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QObject* popup = s.window->findChild<QObject*>(QStringLiteral("translucencyPopup"));
+        QVERIFY(controller && popup);
+        QQuickItem* slider = popup->findChild<QQuickItem*>(QStringLiteral("translucencySlider"));
+        if (!slider) {
+            slider = item(s, "translucencySlider");
+        }
+        QVERIFY(slider);
+        core::Stroke stroke;
+        stroke.points = {{100, 100, 0.5f}, {300, 100, 0.5f}};
+        controller->commitStroke(stroke);
+        QVERIFY(run(s, QStringLiteral("edit.select-all")));
+        const auto translucency = [controller] {
+            const auto& objects = controller->document().page(0).objects;
+            return objects.size() == 1 ? int(objects.front().common.translucency) : -1;
+        };
+        QCOMPARE(translucency(), 0);
+        QString error = translucencyOpening(s, popup, slider, {30, 50});
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(translucency(), 50);
+        error = translucencyOpening(s, popup, slider, {90, 120});
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(translucency(), 120);
+        controller->undo();
+        QCOMPARE(translucency(), 50); // sans borne : 0, la seconde ouverture fondue dans la première
+        controller->undo();
+        QCOMPARE(translucency(), 0);
+        controller->undo(); // le trait
+        QCOMPARE(controller->document().page(0).objects.size(), std::size_t{0});
     }
 
     // Le clic droit n'est plus un TapHandler : la vue émet contextMenuRequested et la zone ouvre le menu.

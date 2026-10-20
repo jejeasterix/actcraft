@@ -443,6 +443,66 @@ private slots:
         QCOMPARE(doc.page(0).objects[1].common.translucency, std::uint8_t{0});
     }
 
+    // D10, P23 (L3-C12) : mêmes objets, deux ouvertures de la réglette (closeMerge à la fermeture) : deux
+    // étapes. Sans borne, la seconde séance fusionnerait dans la première et un Annuler rendrait 0.
+    void translucencyTwoOpeningsAreTwoSteps()
+    {
+        ObjectId a = 0, b = 0;
+        Document doc = twoStrokes(a, b);
+        UndoStack stack;
+        const auto set = [&](std::uint8_t value) {
+            stack.push(doc, std::make_unique<SetTranslucencyCommand>(0, std::vector<ObjectId>{a}, value));
+        };
+        set(30);
+        set(50); // même ouverture : fusionne
+        stack.closeMerge();
+        set(90);
+        set(120); // seconde ouverture : fusionne dans sa propre étape
+        stack.closeMerge();
+        QCOMPARE(stack.count(), std::size_t{2});
+        QCOMPARE(doc.page(0).objects[0].common.translucency, std::uint8_t{120});
+        stack.undo(doc);
+        QCOMPARE(doc.page(0).objects[0].common.translucency, std::uint8_t{50});
+        stack.undo(doc);
+        QCOMPARE(doc.page(0).objects[0].common.translucency, std::uint8_t{0});
+    }
+
+    // Une autre édition entre deux mouvements borne déjà la fusion (sommet d'une autre famille).
+    void translucencyAnotherEditBetweenDoesNotMerge()
+    {
+        ObjectId a = 0, b = 0;
+        Document doc = twoStrokes(a, b);
+        UndoStack stack;
+        stack.push(doc,
+                   std::make_unique<SetTranslucencyCommand>(0, std::vector<ObjectId>{a}, std::uint8_t{50}));
+        stack.push(doc,
+                   std::make_unique<TransformObjectsCommand>(0, std::vector<ObjectId>{a}, translation(1, 0)));
+        stack.push(doc,
+                   std::make_unique<SetTranslucencyCommand>(0, std::vector<ObjectId>{a}, std::uint8_t{120}));
+        QCOMPARE(stack.count(), std::size_t{3});
+        stack.undo(doc);
+        QCOMPARE(doc.page(0).objects[0].common.translucency, std::uint8_t{50});
+    }
+
+    // Une ouverture close le reste quand une autre édition, annulée depuis, a rendu le sommet à la réglette.
+    void translucencyClosedOpeningStaysClosedAfterAnUndoneEdit()
+    {
+        ObjectId a = 0, b = 0;
+        Document doc = twoStrokes(a, b);
+        UndoStack stack;
+        stack.push(doc,
+                   std::make_unique<SetTranslucencyCommand>(0, std::vector<ObjectId>{a}, std::uint8_t{50}));
+        stack.closeMerge();
+        stack.push(doc,
+                   std::make_unique<TransformObjectsCommand>(0, std::vector<ObjectId>{a}, translation(1, 0)));
+        stack.undo(doc);
+        stack.push(doc,
+                   std::make_unique<SetTranslucencyCommand>(0, std::vector<ObjectId>{a}, std::uint8_t{120}));
+        QCOMPARE(stack.count(), std::size_t{2});
+        stack.undo(doc);
+        QCOMPARE(doc.page(0).objects[0].common.translucency, std::uint8_t{50});
+    }
+
     void pivotsAreTheSelectionCenter()
     {
         ObjectId a = 0, b = 0;

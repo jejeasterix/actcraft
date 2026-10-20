@@ -188,6 +188,63 @@ private slots:
         QCOMPARE(d.title(), std::string()); // « a » et « b » fusionnés : une seule étape
     }
 
+    // L3-C12 : closeMerge clôt l'étape au sommet ; la suivante en ouvre une, qui fusionne de nouveau.
+    void closeMergeStartsANewStep()
+    {
+        Document d;
+        UndoStack stack;
+        stack.push(d, std::make_unique<Append>('a', 7));
+        stack.closeMerge();
+        stack.push(d, std::make_unique<Append>('b', 7));
+        stack.push(d, std::make_unique<Append>('c', 7));
+        QCOMPARE(stack.count(), std::size_t{2});
+        stack.undo(d);
+        QCOMPARE(d.title(), std::string("a"));
+    }
+
+    // Annuler l'étape close puis repartir : la branche neuve fusionne (la borne suit l'effacement).
+    void closeMergeDoesNotSealANewBranch()
+    {
+        Document d;
+        UndoStack stack;
+        stack.push(d, std::make_unique<Append>('a', 7));
+        stack.closeMerge();
+        stack.undo(d);
+        stack.push(d, std::make_unique<Append>('b', 7));
+        stack.push(d, std::make_unique<Append>('c', 7));
+        QCOMPARE(stack.count(), std::size_t{1});
+        stack.undo(d);
+        QCOMPARE(d.title(), std::string());
+    }
+
+    // La limite retire la plus ancienne : la borne recule d'un rang avec les autres.
+    void closeMergeFollowsTheLimit()
+    {
+        Document d;
+        UndoStack stack(2);
+        stack.push(d, std::make_unique<Append>('a'));
+        stack.push(d, std::make_unique<Append>('b', 7));
+        stack.closeMerge();
+        stack.push(d, std::make_unique<Append>('c', 7)); // nouvelle étape ; « a » sort de la pile
+        stack.push(d, std::make_unique<Append>('d', 7)); // fusionne dans « c »
+        QCOMPARE(stack.count(), std::size_t{2});
+        stack.undo(d);
+        QCOMPARE(d.title(), std::string("ab"));
+    }
+
+    // Pile vidée (ouverture, nouveau) : aucune borne ne survit.
+    void closeMergeEndsWithClear()
+    {
+        Document d;
+        UndoStack stack;
+        stack.push(d, std::make_unique<Append>('a', 7));
+        stack.closeMerge();
+        stack.clear();
+        stack.push(d, std::make_unique<Append>('b', 7));
+        stack.push(d, std::make_unique<Append>('c', 7));
+        QCOMPARE(stack.count(), std::size_t{1});
+    }
+
     void mergingIntoTheCleanCommandLosesTheCleanState()
     {
         Document d;

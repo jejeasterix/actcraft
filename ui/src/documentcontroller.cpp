@@ -214,6 +214,11 @@ void DocumentController::redo()
     notifyState(settle(m_undo.redo(m_document), ChangeOrigin::Redo));
 }
 
+void DocumentController::closeMerge()
+{
+    m_undo.closeMerge();
+}
+
 void DocumentController::commitStroke(core::Stroke stroke)
 {
     core::PageObject object = std::move(stroke);
