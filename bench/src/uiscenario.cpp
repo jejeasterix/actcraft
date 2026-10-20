@@ -33,6 +33,7 @@
 #include <atomic>
 #include <cmath>
 #include <functional>
+#include <optional>
 #include <utility>
 
 namespace actcraft::bench {
@@ -1055,6 +1056,8 @@ bool UiScenarioPlayer::checkPixel(const UiStep& step, QStringList& report)
 // même sur un bord crénelé (constat L2-C11).
 bool UiScenarioPlayer::checkEdge(const UiStep& step, QStringList& report)
 {
+    constexpr int kEdgeMargin = 24;
+    const QColor edgeInk(Qt::black);
     ui::PageView* v = view();
     const QImage image = m_window->grabWindow();
     int count = -1;
@@ -1063,8 +1066,8 @@ bool UiScenarioPlayer::checkEdge(const UiStep& step, QStringList& report)
         const qreal dpr = m_window->devicePixelRatio();
         const QPoint from = sceneToImage(v->pageToScene(step.at), dpr);
         const QPoint to = sceneToImage(v->pageToScene(step.to), dpr);
-        count = countIntermediatePixels(image, from, to, QColor(Qt::white), QColor(Qt::black), 24);
-        ink = countInkPixels(image, from, to, QColor(Qt::black), 24);
+        count = countIntermediatePixels(image, from, to, QColor(Qt::white), edgeInk, kEdgeMargin);
+        ink = countInkPixels(image, from, to, edgeInk, kEdgeMargin);
     }
     const bool ok = count >= step.minIntermediate &&
                     (step.maxIntermediate < 0 || count <= step.maxIntermediate) && ink >= step.minInk;
@@ -1403,8 +1406,7 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
         return false;
     }
     bool ok = true;
-    const std::size_t none = scenario.steps.size();
-    std::size_t window = none; // dernière « watchEventLoop » de la fenêtre de boucle ouverte
+    std::optional<std::size_t> window; // dernière « watchEventLoop » de la fenêtre de boucle ouverte
     bool retried = false;
     std::size_t i = 0;
     while (i < scenario.steps.size()) {
@@ -1412,14 +1414,14 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
         if (step.kind == UiStepKind::WatchEventLoop) {
             window = i;
         }
-        m_loopRetryAvailable = window != none && !retried;
+        m_loopRetryAvailable = window.has_value() && !retried;
         m_loopRetryAsked = false;
         const qsizetype before = report.size();
         const bool stepOk = runStep(step, report);
         emitFrom(report, before); // au fil de l'eau : la ligne sort avant l'étape suivante
         if (m_loopRetryAsked) {
             retried = true;
-            i = window; // la fenêtre est rejouée depuis sa « watchEventLoop », une fois
+            i = *window; // la fenêtre est rejouée depuis sa « watchEventLoop », une fois
             continue;
         }
         if (!stepOk) {
@@ -1427,7 +1429,7 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
             break;
         }
         if (step.kind == UiStepKind::MaxEventLoopGap) {
-            window = none;
+            window.reset();
             retried = false;
         }
         ++i;
