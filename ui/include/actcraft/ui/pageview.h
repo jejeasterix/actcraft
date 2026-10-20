@@ -248,6 +248,8 @@ private:
     void forgetDeadCovers();
     // Lot 10 : différé posé sur la page fixe quand le cache est actif et une couche d'attente branchée.
     void updateDeferral();
+    // Pose le différé sur la page fixe ; le quitter verse d'abord ce qui attend (cache redessiné).
+    void applyDeferral(bool deferred);
     void onPendingChanged();
     // Une entrée qui agit relance la minuterie du versement, si elle court.
     void postponeFold();
