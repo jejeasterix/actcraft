@@ -253,13 +253,13 @@ bool CurtainPageMemory::remember()
     // Côté le plus découvert du store, et sa distance ; store fermé : rideau complet.
     const QRectF covered = m_curtain->covered();
     const QSizeF area = m_curtain->area();
-    const std::array<std::pair<core::CurtainMode, double>, 4> open{
+    const std::array<std::pair<core::CurtainMode, double>, 4> openings{
         {{core::CurtainMode::Top, covered.top()},
          {core::CurtainMode::Bottom, area.height() - covered.bottom()},
          {core::CurtainMode::Left, covered.left()},
          {core::CurtainMode::Right, area.width() - covered.right()}}};
     std::pair<core::CurtainMode, double> side{core::CurtainMode::Full, 0.0};
-    for (const auto& candidate : open) {
+    for (const auto& candidate : openings) {
         if (candidate.second > side.second + 0.5) {
             side = candidate;
         }

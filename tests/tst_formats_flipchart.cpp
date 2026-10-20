@@ -383,8 +383,6 @@ private slots:
         QVERIFY(core::hasUniqueIds(r.document));
     }
 
-    // Objet MathML (type 460, propriété 52) : une équation dont `mathml` garde le texte brut (L7-T1). Sans
-    // cette propriété il n'y a rien à lire : l'objet reste non lu, comme avant.
     // Réglages de présentation de la page (L7-T6) : distance du rideau (13), cadre du spot (18), origine XY
     // (29), lus tels quels ; une page qui ne les porte pas garde les défauts.
     void pagePresentationRead()
@@ -413,6 +411,8 @@ private slots:
         QVERIFY(core::isDefault(r.document.page(1).presentation));
     }
 
+    // Objet MathML (type 460, propriété 52) : une équation dont `mathml` garde le texte brut (L7-T1). Sans
+    // cette propriété il n'y a rien à lire : l'objet reste non lu, comme avant.
     void mathmlObjectBecomesEquation()
     {
         const QString mathml = u"<math><mfrac><mi>&#x3B1;</mi><mn>2</mn></mfrac></math>"_s;
