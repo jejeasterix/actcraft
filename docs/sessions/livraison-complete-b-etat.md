@@ -9,7 +9,7 @@ Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (20
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 10/33 tâches terminées
 Tâche : L7-T12 — Compas (F-282), essai 2 — rejeu en cours
-Tâche : L7-T7 — Effets de changement de page I (F-640) — depuis 2026-10-20 20:46
+Tâche : L7-T7 — Effets de changement de page I (F-640), essai 2 — depuis 2026-10-21 00:53
 Tâche : L7-T14 — Dés (F-285, E5) — depuis 2026-10-20 22:48
 Questions à Jérôme : —
 
@@ -67,7 +67,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | suite V6 | L7-T11, L7-T5, L7-T6 | branche du chantier à 48fc294 (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 | 1 | — | — |
 | L7-T6 | L7-T1, T2, T3, T4 | voir ligne L7-T6 de l'amendement phase 2 (+ « spot ferme le rideau ») | .worktrees/livraison-complete-b--L7-T6 (base f0b30ce) | mergée : rejeu TESTS OK 158/158, pagetools 9, features_pagetools 9, flipchart 27 (0 skipped) ; revue corriger → essai 2 → contre-revue merger ; H7-16 tenue ; restent mineurs (preuves) : passage à -1 sans mutant propre, relâché sans déplacement, garde « page en mode spot », page changée pendant le glisser ; écarts : cadre non appliqué au spot (setFrame absent), coches present.spotlight-* périmées | 2 | 8d6e94f | 615e65a (graphe 238d2a6) |
 | L7-T12 | L7-T11 | voir ligne L7-T12 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T12 (base 530e95b) | essai 2 : rendue aea287e (158 TESTS OK, mathtools 34/34, 8 mutants) ; revue « corriger puis merger » : survol au stylet non prouvé (isAccepted), mine collée, snapAt à deux outils ; décision orchestrateur : la charnière déplace le compas, ne le ferme pas (Fermer au menu, fonctionnalites.md:346) | 2 | aea287e | — |
-| L7-T7 | L7-T3 | voir ligne L7-T7 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T7 (base cd09af4) | en cours (concepteur-critique), V7 | 1 | — | — |
+| L7-T7 | L7-T3 | voir ligne L7-T7 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T7 (base cd09af4) | essai 2 : rendue 0882a5b (158 TESTS OK, transitions 14/14, 6 mutants) ; revue « corriger » : le spot ne coupe pas l'effet (7a « rideau ou spot actif »), everyEffectHasAMotion non discriminant ; décision orchestrateur : si aucune voie dans les fichiers de la tâche, une seule liaison ajoutée à Presentation.qml sur le modèle de curtain ; réglages de Jérôme jamais écrits (vérifié par la revue) | 2 | 0882a5b | — |
 | L7-T14 | L7-T2 | voir ligne L7-T14 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T14 (base b3f0e76) | en cours (implementeur-tdd), V8 | 1 | — | — |
 
 ## Terminé quand
