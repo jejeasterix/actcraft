@@ -2,11 +2,16 @@
 
 Statut : en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
 Gabarit : lots (lot 7 du chantier `livraison-complete`, exécuté en parallèle du lot 3)
-Étage : 3, phase 1 terminée (L7-P0 à P9 mergées, cd73acb ; suite debug du chantier 129/129 `TESTS OK` à 10h22) ; entrée de la phase 2 (socle fusionné : 131f790, depuis feat/livraison-complete @ e7c6713) ; phase 1 (logique pure du lot 7, avant le socle commun) — plan : docs/plans/2026-10-18-livraison-complete-lot7-phase1-PLAN.md ; N attendu en fin de phase 1 = 94 + 16 = 110
+Étage : 3 (phase 2 du lot 7, vagues 6 à 8 ; phase 1 terminée et mergée ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branche : feat/livraison-complete-b   Base : feat/livraison-complete @ 7bb551c (+ merge du plan du lot 7 bf8c930 → 2d76ba6)
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
+Lot : 7 « présentation et outils » — 10/33 tâches terminées
+Tâche : L7-T12 — Compas (F-282), essai 2 — rejeu en cours
+Tâche : L7-T7 — Effets de changement de page I (F-640) — depuis 2026-10-20 20:46
+Tâche : L7-T14 — Dés (F-285, E5) — depuis 2026-10-20 22:48
+Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
 Toutes les tâches de fond mortes. Intégrité contrôlée : aucun index.lock, fsck propre, jetons libres ; .cpp sortis pour un rouge remis dans P1, P5, P9 ; wip sains recommités (P1 742ae60, P3 4aa56a5, P7 047f5e1). Dossiers build gardés : à effacer et reconstruire à froid à la première erreur suspecte (LNK1136, fichier tronqué, ninja corrompu).
