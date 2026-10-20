@@ -7,14 +7,14 @@
 
 namespace actcraft::render {
 
-QSGNode* ImageRenderer::createNode(const core::PageObject& object, std::size_t objectIndex,
+QSGNode* ImageRenderer::createNode(const core::PageObject& object, std::size_t /*objectIndex*/,
                                    const RenderContext& context) const
 {
     const auto* image = std::get_if<core::ImageObject>(&object);
     if (!image || !context.images || !context.window) {
         return nullptr;
     }
-    const QImage pixels = context.images->objectImage(*image, objectIndex);
+    const QImage pixels = context.images->objectImage(*image); // par clé, jamais par indice (L3-C13)
     if (pixels.isNull()) {
         return nullptr;
     }
