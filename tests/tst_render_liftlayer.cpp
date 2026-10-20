@@ -431,6 +431,55 @@ private slots:
         QVERIFY2(difference.isEmpty(), qPrintable(difference));
         QCOMPARE(f.page->decodeCount(), decodes);
     }
+
+    // L3-C13 (banc, scénario « soulever » : 2 décodages pour 7 objets soulevés, aucune image parmi eux) : le
+    // magasin rangeait les images synthétiques par INDICE de page. Soulever un objet placé avant une image
+    // décalait son indice : covers() faux, tout était redécodé au soulèvement puis au dépôt, et la page fixe
+    // gardait l'ancienne scène jusqu'au prêt (objet en double pendant le geste). Rangées par synthesisKey,
+    // comme les ressources par clé (droppedImageDoesNotBlink) : ni décodage, ni ancienne scène.
+    void liftBeforeSyntheticImageDoesNotDecode()
+    {
+        core::Document d;
+        d.page(0).objects.push_back(blueRectangle()); // avant l'image : le soulever décale son indice
+        d.page(0).objects.push_back(syntheticImage(core::RectF{420, 300, 100, 100}, 0xFF2E7D32u, 8));
+        Fixture f;
+        open(f);
+        f.page->setSource(&d, 0);
+        QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 5000));
+        const QImage before = f.window.grabWindow();
+        QVERIFY2(near(before.pixelColor(280, 210), kBlue, 8), qPrintable(before.pixelColor(280, 210).name()));
+        QVERIFY2(near(before.pixelColor(470, 350), kGreen, 8),
+                 qPrintable(before.pixelColor(470, 350).name()));
+        const int decodes = f.page->decodeCount();
+        core::Page& shown = d.page(0);
+        const core::PageObject lifted = shown.objects[0];
+        shown.objects.erase(shown.objects.begin());
+        f.page->remove(lifted.common.id, core::RectF{200, 150, 160, 120});
+        f.layer->setObjects({lifted});
+        core::Transform moved;
+        moved.dy = 200; // la copie glisse sous l'image, hors de son ancienne place
+        f.layer->setExtraTransform(moved);
+        QCOMPARE(f.page->decodeCount(), decodes);
+        QVERIFY(f.page->isReady());
+        const QImage gesture = f.window.grabWindow();
+        // Aucun objet en double : l'ancienne place est vide, la copie est sous la translation, l'image reste.
+        QVERIFY2(near(gesture.pixelColor(280, 210), Qt::white, 8),
+                 qPrintable(gesture.pixelColor(280, 210).name()));
+        QVERIFY2(near(gesture.pixelColor(280, 410), kBlue, 8),
+                 qPrintable(gesture.pixelColor(280, 410).name()));
+        QVERIFY2(near(gesture.pixelColor(470, 350), kGreen, 8),
+                 qPrintable(gesture.pixelColor(470, 350).name()));
+        // Dépôt comme DocumentController : l'objet revient à son rang, la couche se vide, insert dans le même
+        // tour.
+        shown.objects.insert(shown.objects.begin(), lifted);
+        f.layer->clear();
+        f.page->insert(lifted.common.id);
+        QCOMPARE(f.page->decodeCount(), decodes);
+        QVERIFY(f.page->isReady());
+        const QImage after = f.window.grabWindow();
+        const QString difference = firstDifference(before, after);
+        QVERIFY2(difference.isEmpty(), qPrintable(difference));
+    }
 };
 
 QTEST_MAIN(TstRenderLiftlayer)

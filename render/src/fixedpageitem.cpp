@@ -31,16 +31,18 @@ void clearChildren(QSGNode* root)
 constexpr std::size_t kBackgroundSlot = std::numeric_limits<std::size_t>::max();
 constexpr std::size_t kGridSlot = kBackgroundSlot - 1;
 
-// Ce qu'ImageStore::generate reçoit de la page : image du fond, images (synthétiques rangées par INDICE
-// d'objet, ressources par clé) et vignettes des médias. Deux pages de même empreinte se décodent pareil.
+// Ce qu'ImageStore::generate reçoit de la page : image du fond, images (synthétiques par synthesisKey,
+// ressources par clé) et vignettes des médias, sans leurs indices : le magasin ne range rien par indice
+// (L3-C13), un objet retiré avant une image ne change pas ce qu'il décode. Deux pages de même empreinte se
+// décodent pareil.
 std::string decodeInputs(const core::Page& page)
 {
     std::string out = page.background.image;
-    for (std::size_t i = 0; i < page.objects.size(); ++i) {
-        if (const auto* im = std::get_if<core::ImageObject>(&page.objects[i])) {
-            out += '|' + std::to_string(i) + ':' + synthesisKey(*im) + ':' + im->resource;
-        } else if (const auto* media = std::get_if<core::Media>(&page.objects[i])) {
-            out += '|' + std::to_string(i) + ":m:" + media->placeholder;
+    for (const core::PageObject& object : page.objects) {
+        if (const auto* im = std::get_if<core::ImageObject>(&object)) {
+            out += '|' + synthesisKey(*im) + ':' + im->resource;
+        } else if (const auto* media = std::get_if<core::Media>(&object)) {
+            out += "|m:" + media->placeholder;
         }
     }
     return out;
@@ -108,8 +110,8 @@ void FixedPageItem::restart(Decode decode, Scope scope)
     // Redécoder seulement si le magasin ne couvre plus la page (annuler un trait ne redécode rien). Pendant
     // le décodage de la page affichée, covers() est faux : un trait (même page) ne le relance pas, sinon des
     // traits plus rapides que lui repousseraient le prêt sans fin et l'ancienne page resterait à l'écran.
-    // Mais seulement si ses images n'ont pas bougé : une suppression avant elles décale leurs indices, et
-    // le décodage en cours poserait l'image d'un objet sur son voisin.
+    // Mais seulement si ses images n'ont pas changé (decodeInputs) ; une suppression avant elles ne compte
+    // pas : le magasin les range par synthesisKey (L3-C13).
     const bool decodingThisPage = samePage && !m_ready && decodeInputs(page()) == m_decodingInputs;
     if (redecode || (!decodingThisPage && !m_images.covers(page(), &document()))) {
         if (m_ready) {

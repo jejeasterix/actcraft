@@ -53,15 +53,6 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
     m_pending = 0;
     m_offOwnerThread = true;
     QThread* const owner = thread();
-    const auto post = [this, generation, owner](std::size_t index, std::string key, QImage image) {
-        const bool off = QThread::currentThread() != owner;
-        QMetaObject::invokeMethod(
-            this,
-            [this, generation, index, key = std::move(key), image = std::move(image), off]() mutable {
-                onImageReady(generation, index, std::move(key), image, off);
-            },
-            Qt::QueuedConnection);
-    };
     // Ressources à décoder : clé -> couleurs transparentes demandées (nullopt = image telle quelle).
     std::map<std::string, std::set<std::optional<core::Argb>>> wanted;
     const auto want = [&wanted, resources](const std::string& key, std::optional<core::Argb> transparent) {
@@ -73,17 +64,40 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
     for (std::size_t i = 0; i < page.objects.size(); ++i) {
         if (const auto* object = std::get_if<core::ImageObject>(&page.objects[i])) {
             if (object->resource.empty()) {
-                ++m_pending;
-                const core::ImageObject copy = *object;
+                // L3-C13 : rangée par synthesisKey, comme une ressource par sa clé, jamais par indice d'objet
+                // : un objet soulevé ou retiré avant elle ne la déplace pas. Deux images de même clé n'en
+                // font qu'une.
+                const std::string key = synthesisKey(*object);
+                bool fresh = false;
                 {
                     QMutexLocker lock(&m_mutex);
-                    m_procedural[i] = copy;
+                    fresh = m_procedural.insert(key).second;
                 }
-                m_pool.start([this, post, i, copy] {
+                if (!fresh) {
+                    continue;
+                }
+                ++m_pending;
+                const core::ImageObject copy = *object;
+                m_pool.start([this, generation, owner, key, copy] {
                     m_started.fetch_add(1);
                     // Couleur transparente appliquée comme la miniature (pagepainter.cpp, paintImage), L2-C9.
-                    const QImage image = synthesizeImage(copy);
-                    post(i, std::string(), copy.hasKeyColor ? withKeyColor(image, copy.keyColor) : image);
+                    const QImage synthesized = synthesizeImage(copy);
+                    const QImage image =
+                        copy.hasKeyColor ? withKeyColor(synthesized, copy.keyColor) : synthesized;
+                    const bool off = QThread::currentThread() != owner;
+                    QMetaObject::invokeMethod(
+                        this,
+                        [this, generation, key, image, off] {
+                            if (generation != m_generation) {
+                                return;
+                            }
+                            if (!image.isNull()) {
+                                QMutexLocker lock(&m_mutex);
+                                m_images[key] = image;
+                            }
+                            onImageReady(generation, off);
+                        },
+                        Qt::QueuedConnection);
                 });
             } else {
                 want(object->resource,
@@ -126,7 +140,7 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
                             m_resources[k] = image;
                         }
                     }
-                    onImageReady(generation, 0, std::string(), QImage(), off);
+                    onImageReady(generation, off);
                 },
                 Qt::QueuedConnection);
         });
@@ -144,17 +158,12 @@ void ImageStore::generate(const core::Page& page, const core::Document* resource
     }
 }
 
-void ImageStore::onImageReady(std::uint64_t generation, std::size_t index, std::string key,
-                              const QImage& image, bool offOwnerThread)
+void ImageStore::onImageReady(std::uint64_t generation, bool offOwnerThread)
 {
     if (generation != m_generation) {
         return;
     }
     m_offOwnerThread = m_offOwnerThread && offOwnerThread;
-    if (key.empty() && !image.isNull()) {
-        QMutexLocker lock(&m_mutex);
-        m_images[index] = image;
-    }
     if (--m_pending == 0) {
         m_ready = true;
         emit ready();
@@ -168,9 +177,9 @@ QImage ImageStore::resourceImage(const std::string& key) const
     return it == m_resources.end() ? QImage() : it->second;
 }
 
-QImage ImageStore::objectImage(const core::ImageObject& object, std::size_t objectIndex) const
+QImage ImageStore::objectImage(const core::ImageObject& object) const
 {
-    return object.resource.empty() ? image(objectIndex) : resourceImage(variantKey(object));
+    return object.resource.empty() ? image(object) : resourceImage(variantKey(object));
 }
 
 bool ImageStore::covers(const core::Page& page, const core::Document* resources) const
@@ -185,13 +194,13 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
     const auto hasVariant = [this, resources](const core::ImageObject& im) {
         return !resources || !resources->resource(im.resource) || m_resources.count(variantKey(im)) > 0;
     };
-    std::size_t procedural = 0;
     for (std::size_t i = 0; i < page.objects.size(); ++i) {
         if (const auto* im = std::get_if<core::ImageObject>(&page.objects[i])) {
             if (im->resource.empty()) {
-                ++procedural;
-                const auto it = m_procedural.find(i);
-                if (it == m_procedural.end() || synthesisKey(it->second) != synthesisKey(*im)) {
+                // L3-C13 : par synthesisKey, quel que soit l'indice : soulever un objet placé avant l'image
+                // ne demande aucun décodage. Une image en plus dans le magasin ne gêne pas (comme une
+                // ressource).
+                if (m_procedural.count(synthesisKey(*im)) == 0) {
                     return false;
                 }
             } else if (!has(im->resource) || !hasVariant(*im)) {
@@ -201,7 +210,7 @@ bool ImageStore::covers(const core::Page& page, const core::Document* resources)
             return false;
         }
     }
-    return procedural == m_procedural.size() && has(page.background.image);
+    return has(page.background.image);
 }
 
 bool ImageStore::isReady() const noexcept
@@ -224,10 +233,10 @@ bool ImageStore::waitForIdle(int msecs)
     return m_pool.waitForDone(msecs);
 }
 
-QImage ImageStore::image(std::size_t objectIndex) const
+QImage ImageStore::image(const core::ImageObject& object) const
 {
     QMutexLocker lock(&m_mutex);
-    const auto it = m_images.find(objectIndex);
+    const auto it = m_images.find(synthesisKey(object));
     return it == m_images.end() ? QImage() : it->second;
 }
 

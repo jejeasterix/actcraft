@@ -19,9 +19,10 @@ QMatrix4x4 matrixOf(const core::Transform& t)
     return QMatrix4x4(QTransform(t.m11, t.m12, t.m21, t.m22, t.dx, t.dy));
 }
 
-// Objet dont les images se cherchent par CLÉ dans le magasin de la page fixe (ressource, vignette de média) :
-// tout objet sauf l'image synthétique, que le magasin range par indice de PAGE (ImageStore::objectImage) ;
-// les indices de la couche ne sont pas ceux de la page. Sans magasin, le peintre la synthétise lui-même.
+// Objet dont les images se cherchent dans le magasin de la page fixe (ressource, vignette de média) : tout
+// objet sauf l'image synthétique (choix de L3-C1, quand le magasin la rangeait par indice de page). Depuis
+// L3-C13, il la range par synthesisKey ; la lui passer est hors du périmètre de L3-C13. Sans magasin, le
+// peintre la synthétise lui-même.
 bool imagesByKey(const core::PageObject& object)
 {
     const auto* image = std::get_if<core::ImageObject>(&object);

@@ -275,10 +275,12 @@ private slots:
         QTRY_VERIFY(f.page->isReady());
     }
 
-    // Revue L2-T23 (2e tour) : le magasin range les images synthétiques par INDICE d'objet. Une suppression
-    // avant elles pendant le décodage décale ces indices : le décodage en cours ne couvre plus la page et
-    // repart, sinon B prend l'image de A jusqu'au décodage suivant.
-    void removalBeforeImagesDuringDecodeRedecodes()
+    // Revue L2-T23 (2e tour) : le magasin rangeait les images synthétiques par INDICE d'objet ; une
+    // suppression avant elles pendant le décodage décalait ces indices, et le décodage devait repartir, sinon
+    // B prenait l'image de A. L3-C13 : rangées par synthesisKey, le décodage en cours couvre encore la page.
+    // Il ne repart pas (ancien nom : removalBeforeImagesDuringDecodeRedecodes) et chaque image garde la
+    // sienne.
+    void removalBeforeImagesDuringDecodeKeepsEachImage()
     {
         Fixture f;
         open(f);
@@ -298,9 +300,11 @@ private slots:
         }
         f.page->setSource(&d, 0);
         QVERIFY(!f.page->isReady());
+        const int decodes = f.page->decodeCount();
         const core::ObjectId strokeId = d.page(0).objects.front().common.id;
         d.page(0).objects.erase(d.page(0).objects.begin());
         f.page->remove(strokeId, core::RectF{});
+        QCOMPARE(f.page->decodeCount(), decodes);
         QTRY_VERIFY(f.page->isReady());
         waitFrame(f);
         const QImage shot = f.window.grabWindow();
