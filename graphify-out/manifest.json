@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792449577.911724,
-    "ast_hash": "b31cfb5cb0ef360c95b69399197c3ebc",
+    "mtime": 1792451325.5254633,
+    "ast_hash": "3e8253816d83984d6c1717dec92af0f9",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2465,8 +2465,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/spot.json": {
-    "mtime": 1792406200.4725113,
-    "ast_hash": "7db54efd86eb7f19e222697a0c553360",
+    "mtime": 1792457063.046464,
+    "ast_hash": "c36ccbd19919501c6d4838b9f6105d4d",
     "semantic_hash": ""
   },
   "tests/support/lot7registry.h": {
@@ -2570,8 +2570,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_spotlight.cpp": {
-    "mtime": 1792406200.5216348,
-    "ast_hash": "99a0286bcb9e3df037bc8bd2bebd568b",
+    "mtime": 1792457063.0504642,
+    "ast_hash": "e5deb8359ffa95af6d5aa357ff0a7ffd",
     "semantic_hash": ""
   },
   "tests/tst_ui_ticker.cpp": {
@@ -2612,6 +2612,16 @@
   "ui/src/mathtoolscontroller.h": {
     "mtime": 1792451025.378544,
     "ast_hash": "646696e27e5701925aef409bb46a63fa",
+    "semantic_hash": ""
+  },
+  "ui/src/spotlightcontroller.cpp": {
+    "mtime": 1792457063.0604618,
+    "ast_hash": "ad146b46fe254e05dd53fe14ed2e85fb",
+    "semantic_hash": ""
+  },
+  "ui/src/spotlightcontroller.h": {
+    "mtime": 1792457063.0644617,
+    "ast_hash": "dbc96f7166f14c67c20d831739c86f87",
     "semantic_hash": ""
   }
 }
