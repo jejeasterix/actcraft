@@ -880,11 +880,11 @@ void MathToolsController::watchStrokes()
         if (inserted == applied.end()) {
             return;
         }
-        PendingAddition arc = *m_pending;
+        PendingAddition pending = *m_pending;
         m_pending.reset();
-        arc.stroke = inserted->object;
-        arc.page = inserted->page;
-        QTimer::singleShot(0, this, [this, arc] { insertAddition(arc); });
+        pending.stroke = inserted->object;
+        pending.page = inserted->page;
+        QTimer::singleShot(0, this, [this, pending] { insertAddition(pending); });
     });
 }
 

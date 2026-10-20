@@ -381,17 +381,23 @@ bool allOnCircle(const actcraft::core::Stroke& stroke, const Comp& c)
     return !stroke.points.empty();
 }
 
-// Survol au stylet : aucun bouton, aucune pression. La vue ne commence aucun trait et le laisse à l'interface
-// (PageView::eventFilter). Envoyé seul à la fenêtre, il n'atteint pas les HoverHandler (constaté hors écran)
-// ; Qt rejoue en souris un événement de tablette que l'interface ne prend pas
-// (Qt::AA_SynthesizeMouseForUnhandledTabletEvents, actif par défaut) : le banc rejoue ce déplacement.
-void stylusHover(QQuickWindow* window, QPointF at)
+// Survol au stylet : aucun bouton, aucune pression. Qt (QGuiApplication) envoie l'événement de tablette
+// non accepté ; si la fenêtre ne l'accepte pas, il le rejoue en souris
+// (Qt::AA_SynthesizeMouseForUnhandledTabletEvents, actif par défaut). Ce rejeu est celui de Qt : le banc le
+// refait à la même condition (hors écran, l'événement de tablette seul n'atteint pas les HoverHandler,
+// constaté). Faux si la fenêtre a pris le survol : Qt ne rejouerait rien, un vrai stylet ne montrerait rien.
+bool stylusHover(QQuickWindow* window, QPointF at)
 {
     QTabletEvent event(QEvent::TabletMove, presentationharness::stylusDevice(), at, window->mapToGlobal(at),
                        0.0, 0, 0, 0, 0, 0, Qt::NoModifier, Qt::NoButton, Qt::NoButton);
+    event.setAccepted(false); // comme QGuiApplication avant l'envoi
     QCoreApplication::sendEvent(window, &event);
+    if (event.isAccepted()) {
+        return false;
+    }
     QTest::mouseMove(window, at.toPoint());
     QCoreApplication::processEvents();
+    return true;
 }
 
 // Opacité rendue d'un élément dans son délégué : la sienne et celles de ses parents, jusqu'à la racine du
@@ -1157,6 +1163,8 @@ private slots:
 
     // P5 : le stylet qui survole le porte-mine fait apparaître la mine, à la couleur de l'encre du stylo,
     // celle que la vue donne au trait (PageView::inkColor, réglée par « pen.color ») ; elle suit ce réglage.
+    // Elle s'éteint quand le stylet s'éloigne, et sur le guide d'un autre outil (la règle ouverte après le
+    // compas, à l'index 1).
     void compassLeadTakesThePenColour()
     {
         MainWindow w;
@@ -1167,15 +1175,22 @@ private slots:
         QVERIFY(w.run(QStringLiteral("math.compass")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
-        QCOMPARE(tools->count(), 1);
         QQuickItem* lead = w.item(QStringLiteral("compassLead"));
         QVERIFY(lead);
         const Comp c = compassOf(*tools, 0);
-        stylusHover(w.window(), scene(w, c.at(-120, 120)));
-        stylusHover(w.window(), scene(w, c.at(-121, 120)));
-        QTRY_VERIFY2(!lead->isVisible(), "loin du porte-mine : pas de mine");
-        stylusHover(w.window(), scene(w, c.lead() + QPointF(2, 1)));
-        stylusHover(w.window(), scene(w, c.lead() + QPointF(3, 1)));
+        // La règle, au-dessus de la charnière, loin du compas.
+        QVERIFY(w.run(QStringLiteral("math.ruler")));
+        QCOMPARE(tools->count(), 2);
+        tools->setFrame(1, QPointF(c.cx - 150, c.cy - c.hingeHeight() - 120), 600, 80, 0);
+        const Frame ruler = frameOf(*tools, 1);
+        QQuickItem* snapMarker = w.item(QStringLiteral("mathToolSnap"));
+        QVERIFY(snapMarker);
+        const auto hover = [&](QPointF page) {
+            return stylusHover(w.window(), scene(w, page)) &&
+                   stylusHover(w.window(), scene(w, page + QPointF(1, 0)));
+        };
+
+        QVERIFY2(hover(c.lead() + QPointF(2, 1)), "survol au stylet non accepté : Qt le rejoue en souris");
         QTRY_VERIFY2(lead->isVisible(), "stylet près du porte-mine : la mine apparaît");
         QCOMPARE(lead->property("color").value<QColor>(), red);
         QVERIFY2(qAbs(renderedOpacity(lead, QStringLiteral("compassTool")) - 1.0) < 1e-6,
@@ -1183,6 +1198,13 @@ private slots:
         const QPointF shown = lead->mapToScene(QPointF(lead->width() / 2, lead->height() / 2));
         const QPointF tip = scene(w, c.lead());
         QVERIFY2(std::hypot(shown.x() - tip.x(), shown.y() - tip.y()) <= 1.5, "la mine est au bout du bras");
+        QVERIFY(hover(QPointF(ruler.cx, ruler.top() - 4)));
+        QTRY_VERIFY2(snapMarker->isVisible(), "bord de la règle : cercle d'accroche");
+        QTRY_VERIFY2(!lead->isVisible(), "bord de la règle : la mine du compas reste éteinte");
+        QVERIFY(hover(c.lead() + QPointF(3, 1)));
+        QTRY_VERIFY(lead->isVisible());
+        QVERIFY(hover(c.at(-120, 120)));
+        QTRY_VERIFY2(!lead->isVisible(), "le stylet s'éloigne : la mine disparaît");
 
         // Le trait versé depuis la mine a la couleur que la mine montrait.
         const int before = w.pageObjectCount();
@@ -1193,10 +1215,17 @@ private slots:
         QVERIFY(allOnCircle(*stroke, c));
         QCOMPARE(QColor::fromRgba(stroke->color), red);
 
-        // La mine suit le réglage du stylo, pas la couleur de l'ouverture.
+        // La mine suit le réglage du stylo, pas la couleur de l'ouverture ; le trait suivant aussi.
         const QColor blue(Qt::blue);
         QVERIFY(w.run(QStringLiteral("pen.color"), blue.name()));
         QTRY_COMPARE(lead->property("color").value<QColor>(), blue);
+        const Comp turned = compassOf(*tools, 0);
+        stylusPath(w, circlePath(turned, turned.angle, turned.angle - 30, 4));
+        QTRY_COMPARE(w.pageObjectCount(), before + 2);
+        const actcraft::core::Stroke* second = lastStroke(w);
+        QVERIFY(second);
+        QVERIFY(allOnCircle(*second, turned));
+        QCOMPARE(QColor::fromRgba(second->color), blue);
     }
 
     // Translucidité du corps : kDefaultToolOpacity (100 sur 255), jamais opaque.
@@ -1229,6 +1258,10 @@ private slots:
             QTest::mouseMove(window, scene(w, page).toPoint() + QPoint(1, 0));
         };
         hoverAt(c.onNeedleArm());
+        QTRY_COMPARE(window->cursor().shape(), Qt::SizeAllCursor);
+        hoverAt(c.onPencilArm(c.leg / 2));
+        QTRY_COMPARE(window->cursor().shape(), Qt::CrossCursor);
+        hoverAt(c.at(c.radius / 2, -c.hingeHeight())); // la charnière déplace, comme le bras de la pointe
         QTRY_COMPARE(window->cursor().shape(), Qt::SizeAllCursor);
         hoverAt(c.onPencilArm(c.leg / 2));
         QTRY_COMPARE(window->cursor().shape(), Qt::CrossCursor);

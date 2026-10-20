@@ -8,8 +8,8 @@ import ActCraft.Ui
 // stylo) ; centre marqué, le contrôleur ajoute ensuite une croix sur la pointe. Quand le stylo approche de la
 // mine (rayon de capture du guide), la mine apparaît à la couleur de l'encre (P5). Le corps (les bras, pas leur
 // boîte) est une couverture de la vue, sauf le disque de capture autour de la mine, qui va au stylo. Zones :
-// déplacer par le bras de la pointe, tourner sans tracer par le bras de la mine, changer le rayon par le
-// porte-mine ; un appui sur la charnière masque le compas (le ferme : les traits restent).
+// déplacer par le bras de la pointe ou par la charnière, tourner sans tracer par le bras de la mine, changer le
+// rayon par le porte-mine. Fermer : par le menu seulement (un geste sur le compas ne le ferme jamais).
 Item {
     id: tool
     objectName: "compassTool"
@@ -69,7 +69,7 @@ Item {
         if (Math.hypot(lx - menuX, ly - menuY) <= 11)
             return "menu"
         if (Math.hypot(lx - hingeX, ly - hingeY) <= 15)
-            return "hinge"
+            return "move"
         if (segmentDistance(lx, ly, leadX, leadY, holderX, holderY) <= armHalf)
             return "radius"
         if (segmentDistance(lx, ly, holderX, holderY, hingeX, hingeY) <= armHalf)
@@ -179,19 +179,6 @@ Item {
     Zone { objectName: "compassMoveZone"; owner: tool; kind: "move"; cursorShape: Qt.SizeAllCursor }
     Zone { objectName: "compassRotateZone"; owner: tool; kind: "rotate"; cursorShape: Qt.CrossCursor }
     Zone { objectName: "compassRadiusZone"; owner: tool; kind: "radius"; cursorShape: Qt.SizeFDiagCursor }
-
-    // Charnière : un appui masque le compas.
-    Item {
-        objectName: "compassHinge"
-        anchors.fill: parent
-        containmentMask: QtObject {
-            function contains(point: point): bool {
-                return tool.zoneAt(point.x, point.y) === "hinge"
-            }
-        }
-        HoverHandler { cursorShape: Qt.PointingHandCursor }
-        TapHandler { onTapped: tool.closeLater() }
-    }
 
     Text {
         objectName: "compassAngle"
