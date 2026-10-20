@@ -111,12 +111,37 @@ private slots:
         // rendu logiciel (environ 300 ms, fumée du 2026-10-18) retarde le relâché du trait suivant et ramène
         // la pause k = 2 (548 ms prévus) sous le délai : seul ce premier versement est garanti. Le garde du
         // différé, sans minutage, est deferredFoldShowsInTheResult.
+        // L3-C14 : ce premier versement n'était pas garanti non plus. Sa reprise tombe 24 ms après la fin du
+        // délai (relevé sous charge : demande à 1391-1395 ms, appui suivant prévu à 1414 ms) ; un relâché
+        // traité 24 ms en retard relance la minuterie, et k = 2 n'a que 48 ms : refreshes = 0. Le joueur
+        // attend désormais le versement du dernier trait (plan.awaitFinalFold), que rien ne repousse : au
+        // moins un versement est relevé quelle que soit la charge (pausesClosesOnTheFoldOfItsLastStroke).
         QVERIFY2(cache.value("refreshes").toInt() >= 1, "au moins un versement attendu dans pauses");
         QVERIFY(requests.size() >= 1);
         QVERIFY(updates.size() >= 1);
         for (qsizetype i = 1; i < requests.size(); ++i) {
             QVERIFY(requests.at(i).toDouble() >= requests.at(i - 1).toDouble());
         }
+    }
+
+    // L3-C14 : la mesure de « pauses » se ferme sur le versement différé de son dernier trait (le joueur
+    // l'attend) : la dernière demande de redessin suit la dernière entrée prévue, et sa fin est relevée. Sans
+    // cette attente, la mesure finissait 150 ms après la dernière entrée et la dernière demande était celle
+    // d'une reprise (k = 1 ou 2), avant le dernier trait, au repos comme sous charge.
+    void pausesClosesOnTheFoldOfItsLastStroke()
+    {
+        const QJsonObject raw = m_root.value("scenarios").toArray().at(4).toObject().value("raw").toObject();
+        const QJsonArray inputs = raw.value("input_ns").toArray();
+        const QJsonArray requests = raw.value("cache_request_ns").toArray();
+        const QJsonArray updates = raw.value("cache_updated_ns").toArray();
+        QVERIFY(!inputs.isEmpty());
+        QVERIFY(!requests.isEmpty());
+        QVERIFY(!updates.isEmpty());
+        const double lastInput = inputs.last().toDouble();
+        QVERIFY2(requests.last().toDouble() > lastInput,
+                 qPrintable(QStringLiteral("dernière demande %1 ms avant la dernière entrée")
+                                .arg((lastInput - requests.last().toDouble()) / 1e6)));
+        QVERIFY(updates.last().toDouble() >= requests.last().toDouble());
     }
 
     // L10-T4 : aucun redessin du cache pendant « stroke » (pauses de 60 ms en court, sous le délai

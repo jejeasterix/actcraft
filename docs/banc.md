@@ -54,7 +54,9 @@ Après « page prête » (images générées, premier cache dessiné) et 2 s de 
 | `page` | 20 changements de page à 500 ms d'écart (page suivante, précédente…), puis page suivante, zoom posé à 150 % et ajustement à 700 ms d'écart | 100 %, document de deux pages générées |
 | `pauses` (lot 10) | 10 traits (4 en court) séparés par le délai d'inactivité du cache (500 ms) plus 0 à 64 ms (0 à 48 ms en court) | 100 %, page du banc rechargée |
 
-Le scénario `pauses` fait tomber chaque reprise du stylet dans la fenêtre du redessin différé du cache. Champs
+Le scénario `pauses` fait tomber chaque reprise du stylet dans la fenêtre du redessin différé du cache. Sa mesure
+se ferme sur le versement différé de son dernier trait, que le joueur attend (L3-C14) : au moins un versement est
+relevé quelle que soit la charge, même si les reprises, à quelques ms du délai, n'en déclenchent aucun. Champs
 `cache.refreshes`, `raw.cache_request_ns`, `raw.cache_updated_ns` : redessins du cache pendant chaque scénario.
 
 Le scénario `page` charge d'abord un document de deux pages générées (`DocumentController::loadGeneratedPages(2,

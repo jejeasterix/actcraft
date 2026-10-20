@@ -71,6 +71,9 @@ struct ScenarioPlan
     bool freezeExempt = false;
     // Attendu S36 sur les redessins du cache (copié dans ScenarioResult::maxCacheRefreshes) ; < 0 : aucun.
     int maxCacheRefreshes = -1;
+    // L3-C14 : la mesure se ferme sur le versement différé du dernier trait (runner.cpp, Runner::play) : le
+    // joueur l'attend après la dernière entrée, rien ne le repousse. Lu par ce booléen, jamais par le nom.
+    bool awaitFinalFold = false;
     std::vector<PlannedInput> inputs;
 };
 
