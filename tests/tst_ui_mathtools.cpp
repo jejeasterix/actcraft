@@ -385,20 +385,32 @@ bool allOnCircle(const actcraft::core::Stroke& stroke, const Comp& c)
 // gestionnaires de survol de l'interface (PageView::eventFilter).
 void stylusHover(QQuickWindow* window, QPointF at)
 {
-    QTabletEvent event(QEvent::TabletMove, presentationharness::stylusDevice(), at, window->mapToGlobal(at), 0.0,
-                       0, 0, 0, 0, 0, Qt::NoModifier, Qt::NoButton, Qt::NoButton);
+    QTabletEvent event(QEvent::TabletMove, presentationharness::stylusDevice(), at, window->mapToGlobal(at),
+                       0.0, 0, 0, 0, 0, 0, Qt::NoModifier, Qt::NoButton, Qt::NoButton);
     QCoreApplication::sendEvent(window, &event);
     QCoreApplication::processEvents();
 }
 
-// Opacité rendue d'un élément : la sienne et celles de tous ses parents.
-double renderedOpacity(const QQuickItem* item)
+// Opacité rendue d'un élément dans son délégué : la sienne et celles de ses parents, jusqu'à la racine du
+// délégué (`root`) comprise.
+double renderedOpacity(const QQuickItem* item, const QString& root)
 {
     double opacity = 1;
     for (; item; item = item->parentItem()) {
         opacity *= item->opacity();
+        if (item->objectName() == root) {
+            break;
+        }
     }
     return opacity;
+}
+
+const actcraft::core::PageObject* objectWithId(const actcraft::core::Page& page, actcraft::core::ObjectId id)
+{
+    const auto it =
+        std::find_if(page.objects.begin(), page.objects.end(),
+                     [id](const actcraft::core::PageObject& object) { return object.common.id == id; });
+    return it == page.objects.end() ? nullptr : &*it;
 }
 
 class TstUiMathTools : public QObject
@@ -1098,8 +1110,8 @@ private slots:
         }
     }
 
-    // F-282 : le stylo posé près de la mine trace le cercle de la mine (filtre de la vue, le stylo inchangé) ;
-    // au-delà d'un tour, le trait se ferme exactement sur son premier point. Le compas fermé, le même geste
+    // F-282 : le stylo posé près de la mine trace le cercle de la mine (filtre de la vue, le stylo inchangé)
+    // ; au-delà d'un tour, le trait se ferme exactement sur son premier point. Le compas fermé, le même geste
     // est libre.
     void compassStrokeIsACircle()
     {
@@ -1113,7 +1125,8 @@ private slots:
         QVERIFY(w.item(QStringLiteral("compassTool")));
         const Comp c = compassOf(*tools, 0);
         QVERIFY(c.radius > 100);
-        QVERIFY2(samePoint(c.leadX, c.leadY, c.cx + c.radius, c.cy), "angle 0 : la mine à droite de la pointe");
+        QVERIFY2(samePoint(c.leadX, c.leadY, c.cx + c.radius, c.cy),
+                 "angle 0 : la mine à droite de la pointe");
         const int before = w.pageObjectCount();
         const std::vector<QPointF> turn = circlePath(c, 0, 400, 5); // plus d'un tour, à 5 px du cercle
         stylusPath(w, turn);
@@ -1134,23 +1147,24 @@ private slots:
         QTRY_COMPARE(w.pageObjectCount(), before + 2);
         const actcraft::core::Stroke* free = lastStroke(w);
         QVERIFY(free);
-        QVERIFY2(qAbs(std::hypot(free->points.front().x - c.cx, free->points.front().y - c.cy) - (c.radius + 5)) <=
-                     0.5,
+        QVERIFY2(qAbs(std::hypot(free->points.front().x - c.cx, free->points.front().y - c.cy) -
+                      (c.radius + 5)) <= 0.5,
                  "compas fermé : coordonnées d'origine");
     }
 
-    // P5 : le stylet qui survole le porte-mine fait apparaître la mine, à la couleur de l'encre du stylo, celle
-    // que la vue donne au trait (PageView::inkColor, réglée par « pen.color ») ; elle suit ce réglage.
+    // P5 : le stylet qui survole le porte-mine fait apparaître la mine, à la couleur de l'encre du stylo,
+    // celle que la vue donne au trait (PageView::inkColor, réglée par « pen.color ») ; elle suit ce réglage.
     void compassLeadTakesThePenColour()
     {
         MainWindow w;
         QVERIFY(w.window());
         const QColor red(Qt::red);
-        QVERIFY(w.run(QStringLiteral("pen.color"), red));
+        QVERIFY(w.run(QStringLiteral("pen.color"), red.name())); // argument « #rrggbb »
         QCOMPARE(w.pageView()->inkColor(), red);
         QObject* snapHover = w.window()->findChild<QObject*>(QStringLiteral("mathToolSnapHover"));
         QVERIFY(snapHover);
-        // Le survol au stylet atteint la couche (bande d'un bord de la règle) : le chemin du survol est vivant.
+        // Le survol au stylet atteint la couche (bande d'un bord de la règle) : le chemin du survol est
+        // vivant.
         QVERIFY(w.run(QStringLiteral("math.ruler")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
@@ -1172,7 +1186,8 @@ private slots:
         stylusHover(w.window(), scene(w, c.lead() + QPointF(3, 1)));
         QTRY_VERIFY2(lead->isVisible(), "stylet près du porte-mine : la mine apparaît");
         QCOMPARE(lead->property("color").value<QColor>(), red);
-        QVERIFY2(qAbs(renderedOpacity(lead) - 1.0) < 1e-6, "la mine n'est pas voilée par le corps translucide");
+        QVERIFY2(qAbs(renderedOpacity(lead, QStringLiteral("compassTool")) - 1.0) < 1e-6,
+                 "la mine n'est pas voilée par le corps translucide");
         const QPointF shown = lead->mapToScene(QPointF(lead->width() / 2, lead->height() / 2));
         const QPointF tip = scene(w, c.lead());
         QVERIFY2(std::hypot(shown.x() - tip.x(), shown.y() - tip.y()) <= 1.5, "la mine est au bout du bras");
@@ -1188,7 +1203,7 @@ private slots:
 
         // La mine suit le réglage du stylo, pas la couleur de l'ouverture.
         const QColor blue(Qt::blue);
-        QVERIFY(w.run(QStringLiteral("pen.color"), blue));
+        QVERIFY(w.run(QStringLiteral("pen.color"), blue.name()));
         QTRY_COMPARE(lead->property("color").value<QColor>(), blue);
     }
 
@@ -1237,13 +1252,14 @@ private slots:
         hoverAt(c.at(-120, 120)); // hors du compas
         QTRY_VERIFY(window->cursor().shape() != Qt::SizeAllCursor);
         QVERIFY(window->cursor().shape() != Qt::SizeFDiagCursor);
-        QTRY_VERIFY2(!snapHover->property("hovered").toBool(), "hors du compas : la couche ne prend pas le survol");
+        QTRY_VERIFY2(!snapHover->property("hovered").toBool(),
+                     "hors du compas : la couche ne prend pas le survol");
     }
 
     void compassBlocksTheStylus_data() { presentationharness::addPointerRows(); }
 
-    // Appui sur le bras de la pointe : le compas bouge, rien n'est versé. Pendant : le même pointeur posé près
-    // de la mine verse un trait guidé sur le cercle.
+    // Appui sur le bras de la pointe : le compas bouge, rien n'est versé. Pendant : le même pointeur posé
+    // près de la mine verse un trait guidé sur le cercle.
     void compassBlocksTheStylus()
     {
         QFETCH(Pointer, pointer);
@@ -1280,19 +1296,21 @@ private slots:
             // Comme pour la règle : le clic droit, que la vue teste par sa couverture, discrimine.
             QSignalSpy menu(w.pageView(), &actcraft::ui::PageView::contextMenuRequested);
             const Comp now = compassOf(*tools, 0);
-            QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier, scene(w, now.onNeedleArm()).toPoint());
+            QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier,
+                              scene(w, now.onNeedleArm()).toPoint());
             QTest::qWait(50);
             QCOMPARE(menu.count(), 0);
-            QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier, scene(w, now.at(-120, 120)).toPoint());
+            QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier,
+                              scene(w, now.at(-120, 120)).toPoint());
             QTRY_COMPARE(menu.count(), 1);
             QTest::keyClick(w.window(), Qt::Key_Escape);
         }
     }
 
-    // « Marquer le centre » (bascule, comme la référence) : après chaque trait guidé par la mine, une croix de
-    // 12 pixels sur la pointe, un seul core::Line, ajouté par DocumentInsertions en une étape après le trait,
-    // à sa couleur, sur sa couche. Le stylo n'est pas modifié : son trait reste sur le cercle. Couche : le
-    // trait passe sur Bottom entre son versement et l'insertion différée ; la croix doit l'y suivre.
+    // « Marquer le centre » (bascule, comme la référence) : après chaque trait guidé par la mine, une croix
+    // de 12 pixels sur la pointe, un seul core::Line, ajouté par DocumentInsertions en une étape après le
+    // trait, à sa couleur, sur sa couche. Le stylo n'est pas modifié : son trait reste sur le cercle. Couche
+    // : le trait passe sur Bottom entre son versement et l'insertion différée ; la croix doit l'y suivre.
     void markCentreAddsACross()
     {
         MainWindow w;
@@ -1327,13 +1345,14 @@ private slots:
         const std::vector<QPointF> arc = circlePath(c, c.angle, c.angle + 120, 5);
         stylusPath(w, arc, false);
         presentationharness::sendTablet(w.window(), QEvent::TabletRelease, scene(w, arc.back()));
+        actcraft::core::ObjectId drawn = 0;
         {
             // Le trait seul est versé : la croix est différée (contrat de addChangeObserver).
             const actcraft::core::Page& page = shownPage(*doc);
             QCOMPARE(countOf<actcraft::core::Line>(page), linesBefore);
             QVERIFY(!page.objects.empty());
             QVERIFY(std::get_if<actcraft::core::Stroke>(&actcraft::core::body(page.objects.back())));
-            const actcraft::core::ObjectId drawn = page.objects.back().common.id;
+            drawn = page.objects.back().common.id;
             doc->execute(std::make_unique<MoveToLayer>(static_cast<std::size_t>(doc->currentIndex()), drawn,
                                                        actcraft::core::Layer::Bottom));
         }
@@ -1343,13 +1362,14 @@ private slots:
         {
             const actcraft::core::Page& page = shownPage(*doc);
             QCOMPARE(countOf<actcraft::core::Line>(page), linesBefore + 1);
-            const actcraft::core::PageObject* strokeObject = lastObjectOf<actcraft::core::Stroke>(page);
+            const actcraft::core::PageObject* strokeObject = objectWithId(page, drawn);
             const actcraft::core::PageObject* crossObject = lastObjectOf<actcraft::core::Line>(page);
             QVERIFY(strokeObject && crossObject);
             const auto* stroke = std::get_if<actcraft::core::Stroke>(&actcraft::core::body(*strokeObject));
             const auto* cross = std::get_if<actcraft::core::Line>(&actcraft::core::body(*crossObject));
             QVERIFY(stroke && cross);
-            QVERIFY2(allOnCircle(*stroke, c), "le trait du stylo reste sur le cercle (aucun point au centre)");
+            QVERIFY2(allOnCircle(*stroke, c),
+                     "le trait du stylo reste sur le cercle (aucun point au centre)");
             QVERIFY(cross->points.size() >= 4);
             double minX = cross->points.front().x;
             double maxX = minX;
@@ -1371,7 +1391,8 @@ private slots:
             QCOMPARE(stroke->baseWidth, 7.0);
             QCOMPARE(cross->pen.width, 3.5);
             QVERIFY(strokeObject->common.layer == actcraft::core::Layer::Bottom);
-            QVERIFY2(crossObject->common.layer == strokeObject->common.layer, "croix : sur la couche du trait");
+            QVERIFY2(crossObject->common.layer == strokeObject->common.layer,
+                     "croix : sur la couche du trait");
         }
         doc->undo();
         QTRY_COMPARE(w.pageObjectCount(), before + 3);

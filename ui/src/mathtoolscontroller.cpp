@@ -5,8 +5,10 @@
 #include <QQuickItem>
 #include <QSettings>
 #include <QTimer>
+#include <QtMath>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <utility>
 #include <variant>
@@ -26,10 +28,21 @@ constexpr double kMinRadius = 60;
 constexpr double kMaxRadius = 2000;
 // En deçà (degrés balayés), un appui sur le pourtour sans arc : ni rayons ni secteur.
 constexpr double kMinSweep = 1;
+// Compas : rayon de 5 cm et bras de 250 à l'ouverture (référence) ; le rayon reste sous 1,9 bras (la
+// charnière existe) ; pointe sous le centre de la page (la charnière reste sur la page).
+constexpr double kDefaultCompassRadius = 5 * features::kPixelsPerCentimetre;
+constexpr double kDefaultLeg = 250;
+constexpr double kMinLeg = 120;
+constexpr double kMaxLeg = 600;
+constexpr double kLegStep = 1.2;
+constexpr double kRadiusPerLeg = 1.9;
+constexpr double kCompassDrop = 80;
+constexpr double kCrossHalf = 6;       // croix du centre : 12 pixels de page
 const char* const kGuidedTool = "pen"; // tools::PenTool::id()
 const char* const kRulerGroup = "mathtools/ruler";
 const char* const kSquareGroup = "mathtools/setsquare";
 const char* const kProtractorGroup = "mathtools/protractor";
+const char* const kCompassGroup = "mathtools/compass";
 
 QString unitName(features::RulerUnit unit)
 {
@@ -112,8 +125,8 @@ core::PointF pointOf(QPointF point)
 }
 
 // Ce que le rapporteur ajoute après le trait guidé, à sa couleur (la couche, celle du trait, est posée par
-// insertArc). Fermé : les deux rayons d'un seul objet (bout de départ de l'arc, centre, bout d'arrivée), de
-// l'épaisseur du trait. Plein : le secteur rempli, sans contour (l'arc est le trait du stylo). `path` :
+// insertAddition). Fermé : les deux rayons d'un seul objet (bout de départ de l'arc, centre, bout d'arrivée),
+// de l'épaisseur du trait. Plein : le secteur rempli, sans contour (l'arc est le trait du stylo). `path` :
 // features::arcPath, le centre en premier et en dernier.
 core::PageObject arcObject(const std::vector<QPointF>& path, features::ArcStyle style,
                            const core::Stroke& stroke)
@@ -150,6 +163,30 @@ core::PageObject arcObject(const std::vector<QPointF>& path, features::ArcStyle 
     return closed;
 }
 
+// Croix du centre du compas (« marquer le centre »), après le trait guidé : à sa couleur, de la moitié de son
+// épaisseur (au moins 1, comme la référence). Un seul objet : core::Line est une polyligne, qui repasse par
+// le centre entre ses deux diagonales de 12 pixels (haut-gauche, bas-droite, centre, haut-droite, bas-gauche)
+// ; à quatre points, elle tracerait un troisième segment.
+core::PageObject crossObject(QPointF centre, const core::Stroke& stroke)
+{
+    core::Line cross;
+    cross.points = {pointOf(centre + QPointF(-kCrossHalf, -kCrossHalf)),
+                    pointOf(centre + QPointF(kCrossHalf, kCrossHalf)), pointOf(centre),
+                    pointOf(centre + QPointF(kCrossHalf, -kCrossHalf)),
+                    pointOf(centre + QPointF(-kCrossHalf, kCrossHalf))};
+    cross.pen.color = stroke.color;
+    cross.pen.width = std::max(1.0, stroke.baseWidth / 2);
+    core::PageObject marked = std::move(cross);
+    return marked;
+}
+
+// Direction de la pointe vers la mine, degrés de page (y vers le bas).
+double armDegrees(const features::Compass& compass)
+{
+    const QPointF arm = compass.pencil() - compass.pivot();
+    return qRadiansToDegrees(std::atan2(arm.y(), arm.x()));
+}
+
 } // namespace
 
 std::optional<input::Sample> MathToolsController::ArcGuide::project(const input::Sample& sample,
@@ -179,6 +216,9 @@ features::StrokeGuide* MathToolsController::Entry::guide() const noexcept
     if (square) {
         return square.get();
     }
+    if (compass) {
+        return compass.get();
+    }
     return protractor.get();
 }
 
@@ -186,6 +226,9 @@ const char* MathToolsController::Entry::settingsGroup() const noexcept
 {
     if (ruler) {
         return kRulerGroup;
+    }
+    if (compass) {
+        return kCompassGroup;
     }
     return square ? kSquareGroup : kProtractorGroup;
 }
@@ -199,36 +242,15 @@ std::optional<input::Sample> MathToolsController::CompassGuide::project(const in
 std::optional<input::Sample> MathToolsController::CompassGuide::capture(const input::Sample& sample,
                                                                         double tolerance)
 {
-    return compass.capture(sample, tolerance);
+    const auto onLead = compass.capture(sample, tolerance);
+    seized = onLead.has_value();
+    return onLead;
 }
 
 input::Sample MathToolsController::CompassGuide::follow(const input::Sample& sample)
 {
     return compass.follow(sample);
 }
-
-// Talons de L7-T12 (rouge) : remplis par l'étape verte.
-int MathToolsController::openCompass()
-{
-    return -1;
-}
-
-void MathToolsController::setMirrored(int, bool) {}
-
-void MathToolsController::setShowRadius(int, bool) {}
-
-void MathToolsController::setMarkCentre(int, bool) {}
-
-void MathToolsController::stepCompassLength(int, int) {}
-
-MathToolsController::Entry* MathToolsController::seizedCompass() noexcept
-{
-    return nullptr;
-}
-
-void MathToolsController::followCompass(Entry&, input::Phase) {}
-
-void MathToolsController::storeCompassChoice(const Entry&) {}
 
 MathToolsController::MathToolsController(QObject* parent) : QObject(parent) {}
 
@@ -419,6 +441,30 @@ int MathToolsController::openProtractor()
     return add(std::move(entry), QStringLiteral("protractor"));
 }
 
+int MathToolsController::openCompass()
+{
+    const QSizeF page = pageSize();
+    const double offset = kNextOffset * static_cast<double>(m_tools.size());
+    Entry entry;
+    entry.command = QStringLiteral("math.compass");
+    entry.compass = std::make_unique<CompassGuide>();
+    entry.side = kDefaultLeg;
+    features::Compass& compass = entry.compass->compass;
+    // Pointe et mine de part et d'autre du centre de la page, la charnière au-dessus.
+    compass.setPivot(QPointF(page.width() / 2 - kDefaultCompassRadius / 2 + offset,
+                             page.height() / 2 + kCompassDrop + offset));
+    compass.setRadius(kDefaultCompassRadius);
+    compass.setAngle(0);
+    QSettings settings;
+    settings.beginGroup(QLatin1String(kCompassGroup));
+    compass.setMirrored(settings.value(QStringLiteral("mirrored"), false).toBool());
+    entry.showAngle = settings.value(QStringLiteral("showAngle"), true).toBool();
+    entry.showRadius = settings.value(QStringLiteral("showRadius"), true).toBool();
+    entry.markCentre = settings.value(QStringLiteral("markCentre"), false).toBool();
+    settings.endGroup();
+    return add(std::move(entry), QStringLiteral("compass"));
+}
+
 void MathToolsController::close(int index)
 {
     if (!valid(index)) {
@@ -441,6 +487,14 @@ void MathToolsController::setFrame(int index, QPointF center, qreal length, qrea
         return;
     }
     Entry& entry = m_tools[static_cast<std::size_t>(index)];
+    if (entry.compass) {
+        features::Compass& compass = entry.compass->compass;
+        compass.setPivot(center);
+        compass.setRadius(std::min<double>(length, kRadiusPerLeg * entry.side)); // puis 20 … 2000 (features)
+        compass.setAngle(angle);
+        touch();
+        return;
+    }
     if (entry.protractor) {
         entry.vertex = center;
         entry.side = std::clamp<double>(length, kMinRadius, kMaxRadius);
@@ -513,12 +567,78 @@ void MathToolsController::setArcStyle(int index, const QString& style)
     touch();
 }
 
+void MathToolsController::setMirrored(int index, bool on)
+{
+    Entry* const entry = compassEntry(index);
+    if (!entry) {
+        return;
+    }
+    entry->compass->compass.setMirrored(on);
+    storeCompassChoice(*entry);
+    touch();
+}
+
+void MathToolsController::setShowRadius(int index, bool on)
+{
+    Entry* const entry = compassEntry(index);
+    if (!entry) {
+        return;
+    }
+    entry->showRadius = on;
+    storeCompassChoice(*entry);
+    touch();
+}
+
+void MathToolsController::setMarkCentre(int index, bool on)
+{
+    Entry* const entry = compassEntry(index);
+    if (!entry) {
+        return;
+    }
+    entry->markCentre = on;
+    storeCompassChoice(*entry);
+    touch();
+}
+
+void MathToolsController::stepCompassLength(int index, int step)
+{
+    Entry* const entry = compassEntry(index);
+    if (!entry) {
+        return;
+    }
+    const double wanted = step > 0 ? entry->side * kLegStep : entry->side / kLegStep;
+    entry->side = step == 0 ? kDefaultLeg : std::clamp(wanted, kMinLeg, kMaxLeg);
+    features::Compass& compass = entry->compass->compass;
+    compass.setRadius(std::min(compass.radius(), kRadiusPerLeg * entry->side));
+    touch();
+}
+
 QVariantMap MathToolsController::toolAt(int index) const
 {
     if (!valid(index)) {
         return {};
     }
     const Entry& entry = m_tools[static_cast<std::size_t>(index)];
+    if (entry.compass) {
+        const features::Compass& compass = entry.compass->compass;
+        return QVariantMap{{QStringLiteral("kind"), QStringLiteral("compass")},
+                           {QStringLiteral("command"), entry.command},
+                           {QStringLiteral("centerX"), compass.pivot().x()},
+                           {QStringLiteral("centerY"), compass.pivot().y()},
+                           {QStringLiteral("length"), compass.radius()},
+                           {QStringLiteral("thickness"), entry.side},
+                           {QStringLiteral("angle"), armDegrees(compass)},
+                           {QStringLiteral("displayAngle"), compass.displayAngle()},
+                           {QStringLiteral("topUnit"), QStringLiteral("none")},
+                           {QStringLiteral("bottomUnit"), QStringLiteral("none")},
+                           {QStringLiteral("showAngle"), entry.showAngle},
+                           {QStringLiteral("showRadius"), entry.showRadius},
+                           {QStringLiteral("mirrored"), compass.mirrored()},
+                           {QStringLiteral("markCentre"), entry.markCentre},
+                           {QStringLiteral("radiusText"), compass.radiusText()},
+                           {QStringLiteral("leadX"), compass.pencil().x()},
+                           {QStringLiteral("leadY"), compass.pencil().y()}};
+    }
     if (entry.protractor) {
         return QVariantMap{{QStringLiteral("kind"), QStringLiteral("protractor")},
                            {QStringLiteral("command"), entry.command},
@@ -570,11 +690,22 @@ QVariantMap MathToolsController::snapAt(QPointF pagePoint) const
     hover.phase = input::Phase::Move;
     const auto snapped = m_guides.snapPreview(hover);
     if (!snapped) {
-        return QVariantMap{{QStringLiteral("snapped"), false}};
+        return QVariantMap{{QStringLiteral("snapped"), false}, {QStringLiteral("tool"), -1}};
+    }
+    // L'outil dont le guide saisirait le stylo : celui dont la projection est le point d'accroche (la règle
+    // du plus proche reste celle de GuideSet).
+    int tool = -1;
+    const double band = guideBand();
+    for (std::size_t i = 0; i < m_tools.size() && tool < 0; ++i) {
+        const auto projected = m_tools[i].guide()->project(hover, band);
+        if (projected && qAbs(projected->x - snapped->x) < 1e-6 && qAbs(projected->y - snapped->y) < 1e-6) {
+            tool = static_cast<int>(i);
+        }
     }
     return QVariantMap{{QStringLiteral("snapped"), true},
                        {QStringLiteral("x"), snapped->x},
-                       {QStringLiteral("y"), snapped->y}};
+                       {QStringLiteral("y"), snapped->y},
+                       {QStringLiteral("tool"), tool}};
 }
 
 bool MathToolsController::valid(int index) const noexcept
@@ -619,9 +750,16 @@ input::Sample MathToolsController::guide(const input::Sample& sample)
             if (entry.protractor) {
                 entry.protractor->seized = false;
             }
+            if (entry.compass) {
+                entry.compass->seized = false;
+            }
         }
     }
     const input::Sample out = m_guides.filter(sample);
+    if (Entry* const held = seizedCompass()) {
+        followCompass(*held, sample.phase);
+        return out;
+    }
     Entry* const arc = seizedProtractor();
     if (!arc) {
         return out;
@@ -658,6 +796,55 @@ MathToolsController::Entry* MathToolsController::seizedProtractor() noexcept
         }
     }
     return nullptr;
+}
+
+MathToolsController::Entry* MathToolsController::seizedCompass() noexcept
+{
+    for (Entry& entry : m_tools) {
+        if (entry.compass && entry.compass->seized) {
+            return &entry;
+        }
+    }
+    return nullptr;
+}
+
+MathToolsController::Entry* MathToolsController::compassEntry(int index) noexcept
+{
+    return valid(index) && m_tools[static_cast<std::size_t>(index)].compass
+               ? &m_tools[static_cast<std::size_t>(index)]
+               : nullptr;
+}
+
+void MathToolsController::followCompass(Entry& entry, input::Phase phase)
+{
+    const features::Compass& compass = entry.compass->compass;
+    if (phase == input::Phase::Release) {
+        entry.compass->seized = false;
+        // Rien n'est écrit ici : la croix suit le trait que le stylo verse juste après ce relâché
+        // (watchStrokes).
+        if (entry.markCentre && compass.sweptDegrees() >= kMinSweep) {
+            PendingAddition pending;
+            pending.kind = PendingAddition::Kind::Cross;
+            pending.center = compass.pivot();
+            m_pending = pending;
+        }
+    }
+    // La mine suit le stylo : le bras est publié à chaque degré entier.
+    const int arm = qRound(armDegrees(compass));
+    if (arm != entry.sweptShown) {
+        entry.sweptShown = arm;
+        touch();
+    }
+}
+
+void MathToolsController::storeCompassChoice(const Entry& entry)
+{
+    QSettings settings;
+    settings.beginGroup(QLatin1String(kCompassGroup));
+    settings.setValue(QStringLiteral("mirrored"), entry.compass->compass.mirrored());
+    settings.setValue(QStringLiteral("showRadius"), entry.showRadius);
+    settings.setValue(QStringLiteral("markCentre"), entry.markCentre);
+    settings.endGroup();
 }
 
 void MathToolsController::applyProtractorFrame(Entry& entry)
@@ -701,24 +888,27 @@ void MathToolsController::watchStrokes()
     });
 }
 
-void MathToolsController::insertAddition(const PendingAddition& arc)
+void MathToolsController::insertAddition(const PendingAddition& pending)
 {
     // Page quittée entre-temps (trait coupé par un changement de page) : rien n'est ajouté ailleurs.
-    if (!m_document || static_cast<std::size_t>(m_document->currentIndex()) != arc.page) {
+    if (!m_document || static_cast<std::size_t>(m_document->currentIndex()) != pending.page) {
         return;
     }
-    const auto& objects = m_document->document().page(arc.page).objects;
-    const auto found = std::find_if(objects.begin(), objects.end(), [&arc](const core::PageObject& object) {
-        return object.common.id == arc.stroke;
-    });
+    const auto& objects = m_document->document().page(pending.page).objects;
+    const auto found =
+        std::find_if(objects.begin(), objects.end(), [&pending](const core::PageObject& object) {
+            return object.common.id == pending.stroke;
+        });
     const core::Stroke* stroke =
         found != objects.end() ? std::get_if<core::Stroke>(&core::body(*found)) : nullptr;
     if (!stroke) {
         return; // trait déjà retiré
     }
-    const std::vector<QPointF> path =
-        features::arcPath(arc.center, arc.radius, arc.start, arc.sweep, arc.style);
-    core::PageObject added = arcObject(path, arc.style, *stroke);
+    core::PageObject added = pending.kind == PendingAddition::Kind::Cross
+                                 ? crossObject(pending.center, *stroke)
+                                 : arcObject(features::arcPath(pending.center, pending.radius, pending.start,
+                                                               pending.sweep, pending.style),
+                                             pending.style, *stroke);
     // La couche du trait, lue sur lui (F-510 : commitStroke la pose).
     added.common.layer = found->common.layer;
     DocumentInsertions(*m_document).insertObject(std::move(added));

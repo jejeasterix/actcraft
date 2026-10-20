@@ -1,11 +1,11 @@
 import QtQuick
 import ActCraft.Ui
 
-// Outils de maths (F-280 règle, F-283 équerre, F-281 rapporteur ; L7-T12, L7-T13 y ajoutent leurs délégués) :
+// Outils de maths (F-280 règle, F-283 équerre, F-281 rapporteur, F-282 compas ; L7-T13 y ajoute son délégué) :
 // contrôleur, délégués en coordonnées de page (cette couche remplit pageOverlays), cercle d'accroche du survol,
 // gestionnaires des commandes math.*. Les outils ne dessinent aucune encre : le stylo verse le trait, guidé par
 // le filtre d'échantillons du contrôleur ; le rapporteur fermé ou plein fait ajouter ensuite ses rayons ou son
-// secteur au document par le contrôleur.
+// secteur au document par le contrôleur, le compas qui marque le centre sa croix.
 Item {
     id: root
     property Commands commands: null
@@ -13,6 +13,8 @@ Item {
     property Tools tools: null
     property Item pageArea: null
     property QtObject controller: mathTools
+    // Outil dont le guide saisirait le stylo survolant (-1 : aucun) : la mine du compas s'y montre.
+    property int snapTool: -1
     anchors.fill: parent
 
     MathToolsController {
@@ -28,8 +30,9 @@ Item {
     ListModel { id: slots }
     Connections {
         target: mathTools
-        function onToolOpened(index, kind) { slots.insert(index, { kind: kind }) }
-        function onToolClosed(index) { slots.remove(index) }
+        // L'accroche est relue : un outil ouvert ou fermé déplace les index (snapTool).
+        function onToolOpened(index, kind) { slots.insert(index, { kind: kind }); root.updateSnap() }
+        function onToolClosed(index) { slots.remove(index); root.updateSnap() }
     }
 
     // Survol pris seulement près d'un bord guide, là où le cercle d'accroche a un sens : ailleurs, la couche
@@ -58,7 +61,8 @@ Item {
                 required property int index
                 required property string kind
                 sourceComponent: slot.kind === "setSquare" ? squareTool
-                                                           : (slot.kind === "protractor" ? protractorTool : rulerTool)
+                               : slot.kind === "protractor" ? protractorTool
+                               : slot.kind === "compass" ? compassTool : rulerTool
                 Component {
                     id: rulerTool
                     RulerTool {
@@ -83,6 +87,17 @@ Item {
                         pageView: root.pageArea ? root.pageArea.view : null
                     }
                 }
+                Component {
+                    id: compassTool
+                    CompassTool {
+                        controller: mathTools
+                        toolIndex: slot.index
+                        pageView: root.pageArea ? root.pageArea.view : null
+                        leadShown: root.snapTool === slot.index
+                        // L'encre que le stylo donne au trait (pen.color la règle sur la vue).
+                        leadColor: root.pageArea && root.pageArea.view ? root.pageArea.view.inkColor : "black"
+                    }
+                }
             }
         }
 
@@ -104,10 +119,12 @@ Item {
     function updateSnap() {
         if (!snapHover.hovered || mathTools.count === 0) {
             snapMarker.visible = false
+            root.snapTool = -1
             return
         }
         const hit = mathTools.snapAt(snapHover.point.position)
         snapMarker.visible = hit.snapped
+        root.snapTool = hit.snapped ? hit.tool : -1
         if (hit.snapped) {
             snapMarker.x = hit.x - snapMarker.width / 2
             snapMarker.y = hit.y - snapMarker.height / 2
@@ -120,5 +137,6 @@ Item {
         root.commands.setHandler("math.ruler", function () { mathTools.openRuler() })
         root.commands.setHandler("math.set-square", function () { mathTools.openSetSquare() })
         root.commands.setHandler("math.protractor", function () { mathTools.openProtractor() })
+        root.commands.setHandler("math.compass", function () { mathTools.openCompass() })
     }
 }
