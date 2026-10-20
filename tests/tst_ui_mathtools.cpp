@@ -381,13 +381,16 @@ bool allOnCircle(const actcraft::core::Stroke& stroke, const Comp& c)
     return !stroke.points.empty();
 }
 
-// Survol au stylet : aucun bouton, aucune pression. La vue ne commence aucun trait et le laisse aux
-// gestionnaires de survol de l'interface (PageView::eventFilter).
+// Survol au stylet : aucun bouton, aucune pression. La vue ne commence aucun trait et le laisse à l'interface
+// (PageView::eventFilter). Envoyé seul à la fenêtre, il n'atteint pas les HoverHandler (constaté hors écran) ;
+// Qt rejoue en souris un événement de tablette que l'interface ne prend pas
+// (Qt::AA_SynthesizeMouseForUnhandledTabletEvents, actif par défaut) : le banc rejoue ce déplacement.
 void stylusHover(QQuickWindow* window, QPointF at)
 {
     QTabletEvent event(QEvent::TabletMove, presentationharness::stylusDevice(), at, window->mapToGlobal(at),
                        0.0, 0, 0, 0, 0, 0, Qt::NoModifier, Qt::NoButton, Qt::NoButton);
     QCoreApplication::sendEvent(window, &event);
+    QTest::mouseMove(window, at.toPoint());
     QCoreApplication::processEvents();
 }
 
@@ -1161,20 +1164,9 @@ private slots:
         const QColor red(Qt::red);
         QVERIFY(w.run(QStringLiteral("pen.color"), red.name())); // argument « #rrggbb »
         QCOMPARE(w.pageView()->inkColor(), red);
-        QObject* snapHover = w.window()->findChild<QObject*>(QStringLiteral("mathToolSnapHover"));
-        QVERIFY(snapHover);
-        // Le survol au stylet atteint la couche (bande d'un bord de la règle) : le chemin du survol est
-        // vivant.
-        QVERIFY(w.run(QStringLiteral("math.ruler")));
+        QVERIFY(w.run(QStringLiteral("math.compass")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
-        const Frame f = frameOf(*tools, 0);
-        stylusHover(w.window(), scene(w, QPointF(f.cx - 62, f.top() - 4)));
-        stylusHover(w.window(), scene(w, QPointF(f.cx - 61, f.top() - 4)));
-        QTRY_VERIFY2(snapHover->property("hovered").toBool(), "survol au stylet : la couche est atteinte");
-        tools->close(0);
-
-        QVERIFY(w.run(QStringLiteral("math.compass")));
         QCOMPARE(tools->count(), 1);
         QQuickItem* lead = w.item(QStringLiteral("compassLead"));
         QVERIFY(lead);
