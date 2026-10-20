@@ -384,22 +384,40 @@ private slots:
     }
 
     // Réglages de présentation de la page (L7-T6) : distance du rideau (13), cadre du spot (18), origine XY
-    // (29), lus tels quels ; une page qui ne les porte pas garde les défauts.
+    // (29), lus tels quels ; une page qui ne les porte pas garde les défauts ; une valeur non finie est
+    // ignorée avec un avertissement. Les propriétés codées ne sont pas lues : outil, rideau, spot et effet
+    // gardent leurs défauts.
     void pagePresentationRead()
     {
+        const double nan = std::numeric_limits<double>::quiet_NaN();
+        const double inf = std::numeric_limits<double>::infinity();
         const QByteArray page1 = fctest::container(
             {Entry(u"103.in"_s, fctest::index(Node(103, 2, 102))),
              Entry(u"102.io"_s,
                    Obj(2, 102).real(13, 120.5).floatRect(18, 10, 20, 200, 100).pointF(29, 64, 48).stream())});
         const QByteArray page2 = fctest::container(
             {Entry(u"203.in"_s, fctest::index(Node(203, 2, 202))), Entry(u"202.io"_s, Obj(2, 202).stream())});
+        const QByteArray page3 = fctest::container(
+            {Entry(u"303.in"_s, fctest::index(Node(303, 2, 302))),
+             Entry(u"302.io"_s,
+                   Obj(2, 302).real(13, nan).floatRect(18, 10, 20, inf, 100).pointF(29, nan, 48).stream())});
         const auto r = formats::flipchart::readFlipchart(fctest::container(
-            {Entry(u"101.in"_s, fctest::index(Node(101, 1, 100, {Node(103, 2, 102), Node(203, 2, 202)}))),
-             Entry(u"100.io"_s, Obj(1, 100).stream()), Entry(u"103.fpg"_s, page1),
-             Entry(u"203.fpg"_s, page2)}));
+            {Entry(u"101.in"_s, fctest::index(Node(
+                                    101, 1, 100, {Node(103, 2, 102), Node(203, 2, 202), Node(303, 2, 302)}))),
+             Entry(u"100.io"_s, Obj(1, 100).stream()), Entry(u"103.fpg"_s, page1), Entry(u"203.fpg"_s, page2),
+             Entry(u"303.fpg"_s, page3)}));
         QVERIFY2(r.ok, qPrintable(r.error));
-        QCOMPARE(r.document.pageCount(), std::size_t{2});
+        QCOMPARE(r.document.pageCount(), std::size_t{3});
+        QVERIFY(core::isDefault(r.document.page(2).presentation));
+        const QString warnings = r.warnings.join(u'\n');
+        QVERIFY2(warnings.contains(u"distance du rideau invalide"_s), qPrintable(warnings));
+        QVERIFY2(warnings.contains(u"cadre du spot invalide"_s), qPrintable(warnings));
+        QVERIFY2(warnings.contains(u"origine XY invalide"_s), qPrintable(warnings));
         const core::PagePresentation& p = r.document.page(0).presentation;
+        QVERIFY(p.tools == core::PageToolsMode::Keep);
+        QVERIFY(p.curtain == core::CurtainMode::Off);
+        QVERIFY(p.spotlight == core::SpotlightShape::Off);
+        QVERIFY(p.transition.empty());
         QCOMPARE(p.curtainDistance, 120.5);
         QCOMPARE(p.spotlightFrame.x, 10.0);
         QCOMPARE(p.spotlightFrame.y, 20.0);

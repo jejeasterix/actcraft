@@ -167,10 +167,7 @@ Item {
             return
         }
         root.commands.setHandler("present.curtain", function () {
-            curtainController.toggle()
-            if (root.commands) {
-                root.commands.setChecked("present.curtain", curtainController.active)
-            }
+            curtainController.toggle() // la coche suit activeChanged (Connections ci-dessous)
         })
         root.commands.setHandler("present.curtain-color", function (c) {
             curtainController.color = c

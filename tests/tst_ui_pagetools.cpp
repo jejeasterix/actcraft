@@ -5,11 +5,13 @@
 #include "support/presentationharness.h"
 
 #include <actcraft/core/document.h>
+#include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/ui/documentcontroller.h>
 
 #include <QtTest>
 
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -114,6 +116,20 @@ private slots:
         QCOMPARE(spotlight->shape(), static_cast<int>(core::SpotlightShape::Square));
         QVERIFY(!curtain->active());
 
+        // Page « spot » : le cadre du spot déplacé est écrit dans la page au relâché, en une étape.
+        const QRectF pressed = spotlight->frame();
+        QVERIFY(spotlight->press(QPointF(100, 100))); // partie masquée : déplace le spot
+        spotlight->move(QPointF(150, 120));
+        spotlight->release();
+        const QRectF moved = spotlight->frame();
+        QVERIFY(moved != pressed);
+        const core::RectF& kept = controller->document().page(0).presentation.spotlightFrame;
+        QCOMPARE(QRectF(kept.x, kept.y, kept.width, kept.height), moved);
+        controller->undo();
+        const core::PagePresentation& first = controller->document().page(0).presentation;
+        QCOMPARE(first.spotlightFrame.width, 0.0);
+        QVERIFY(first.tools == core::PageToolsMode::Spotlight);
+
         // Page 2 : rideau ouvert, spot fermé ; ouvrir le spot ferme le rideau.
         controller->nextPage();
         QTRY_COMPARE(controller->currentIndex(), 1);
@@ -183,38 +199,81 @@ private slots:
         QTest::qWait(50);
         QVERIFY(curtain->active());
         QVERIFY2(closeTo(curtain->covered().y(), 300), qPrintable(QString::number(curtain->covered().y())));
+
+        // Page neuve insérée avant la page affichée, puis annulée : la page affichée se déplace sans changer,
+        // ses outils ne sont pas réappliqués (le rideau tiré reste à 300).
+        controller->execute(std::make_unique<core::AddPageCommand>(0, 1024, 768));
+        QTRY_COMPARE(controller->currentIndex(), 2);
+        controller->undo();
+        QTRY_COMPARE(controller->currentIndex(), 1);
+        QVERIFY(curtain->active());
+        QVERIFY2(closeTo(curtain->covered().y(), 300), qPrintable(QString::number(curtain->covered().y())));
+
+        // Page neuve insérée juste avant, affichée (« comme avant » : le rideau tiré continue), puis annulée
+        // : la page affichée est retirée, la page mémorisée prend sa place au même indice et ses outils
+        // s'appliquent (rideau remis à 120).
+        controller->execute(std::make_unique<core::AddPageCommand>(1, 1024, 768));
+        QTRY_COMPARE(controller->currentIndex(), 2);
+        controller->pageBack();
+        QTRY_COMPARE(controller->currentIndex(), 1);
+        QVERIFY(closeTo(curtain->covered().y(), 300));
+        controller->undo();
+        QCOMPARE(controller->currentIndex(), 1);
+        QVERIFY(curtain->active());
+        QVERIFY2(closeTo(curtain->covered().y(), 120), qPrintable(QString::number(curtain->covered().y())));
     }
 
-    // « Mémoriser pour cette page » : le rideau tiré de 120 depuis le haut devient le réglage de la page
-    // (outil rideau, haut, 120) en une étape ; une annulation rend les défauts.
+    // Bord saisi (`grip`, en fraction de la page) et sens de la traction, pour chaque côté du store.
+    void rememberCurtainIsUndoneAtOnce_data()
+    {
+        QTest::addColumn<int>("side"); // core::CurtainMode
+        QTest::addColumn<QPointF>("grip");
+        QTest::addColumn<QPointF>("pull");
+        QTest::newRow("haut") << static_cast<int>(core::CurtainMode::Top) << QPointF(0.5, 0) << QPointF(0, 1);
+        QTest::newRow("bas") << static_cast<int>(core::CurtainMode::Bottom) << QPointF(0.5, 1)
+                             << QPointF(0, -1);
+        QTest::newRow("gauche") << static_cast<int>(core::CurtainMode::Left) << QPointF(0, 0.5)
+                                << QPointF(1, 0);
+        QTest::newRow("droite") << static_cast<int>(core::CurtainMode::Right) << QPointF(1, 0.5)
+                                << QPointF(-1, 0);
+    }
+
+    // « Mémoriser pour cette page », par l'entrée du menu du rideau : le rideau tiré de 120 depuis un côté
+    // devient le réglage de la page (outil rideau, ce côté, 120) en une étape ; une annulation rend les
+    // défauts.
     void rememberCurtainIsUndoneAtOnce()
     {
+        QFETCH(int, side);
+        QFETCH(QPointF, grip);
+        QFETCH(QPointF, pull);
         MainWindow main;
         QVERIFY(main.window() != nullptr);
         DocumentController* controller = controllerOf(main);
         CurtainController* curtain = curtainOf(main);
-        QQuickItem* root = main.item(QStringLiteral("curtainRoot"));
+        QObject* entry = main.window()->findChild<QObject*>(QStringLiteral("curtainRememberEntry"));
         QVERIFY(controller != nullptr);
         QVERIFY(curtain != nullptr);
-        QVERIFY(root != nullptr);
+        QVERIFY(entry != nullptr);
         QVERIFY(!controller->canUndo());
+        QVERIFY(!entry->property("enabled").toBool()); // rideau fermé : rien à mémoriser
 
         QVERIFY(main.run(QStringLiteral("present.curtain")));
         QVERIFY(curtain->active());
-        QVERIFY(drag(*curtain, QPointF(512, 2), QPointF(512, 120)));
-        QVERIFY(closeTo(curtain->covered().y(), 120));
+        const QSizeF area = curtain->area();
+        const QPointF edge(grip.x() * area.width(), grip.y() * area.height());
+        QVERIFY(drag(*curtain, edge + pull * 2, edge + pull * 120));
+        const QRectF live = curtain->covered();
 
-        QVariant done;
-        QVERIFY(QMetaObject::invokeMethod(root, "rememberForPage", Q_RETURN_ARG(QVariant, done)));
-        QVERIFY(done.toBool());
+        QVERIFY(entry->property("enabled").toBool());
+        QVERIFY(QMetaObject::invokeMethod(entry, "triggered"));
         const std::size_t index = static_cast<std::size_t>(controller->currentIndex());
         const core::PagePresentation& remembered = controller->document().page(index).presentation;
         QVERIFY(remembered.tools == core::PageToolsMode::Curtain);
-        QVERIFY(remembered.curtain == core::CurtainMode::Top);
-        QVERIFY2(qAbs(remembered.curtainDistance - 120) <= 1e-6,
+        QCOMPARE(static_cast<int>(remembered.curtain), side);
+        QVERIFY2(closeTo(remembered.curtainDistance, 120),
                  qPrintable(QString::number(remembered.curtainDistance)));
         QVERIFY(curtain->active()); // le rideau vivant n'a pas bougé
-        QVERIFY(closeTo(curtain->covered().y(), 120));
+        QCOMPARE(curtain->covered(), live);
 
         controller->undo();
         QVERIFY(core::isDefault(controller->document().page(index).presentation));
