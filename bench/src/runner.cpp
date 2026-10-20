@@ -228,6 +228,8 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     s.touchedStrokes = plan.touchedStrokes;
     s.pendingCut = plan.pendingCut;
     s.liftedObjects = plan.liftedObjects;
+    s.freezeExempt = plan.freezeExempt;
+    s.maxCacheRefreshes = plan.maxCacheRefreshes;
     const int rebuildsAtStart = m_fixed->rebuildCount();
     const int decodesAtStart = m_fixed->decodeCount();
     // Pendant un scénario, la vue n'écoute que les périphériques synthétiques (décision 23).

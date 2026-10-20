@@ -291,5 +291,16 @@ la gomme n'agit que sur les annotations ; un zigzag du stylo les croise toutes (
 `soulever` : rectangle de sélection tiré depuis la marge gauche de la vue (la page générée est dense : aucun point
 libre dans la zone centrale), puis appui sur un objet pris et glissement de 300 px en 2 s ; attendu :
 `cache.refreshes` = 2. Chaque scénario relève aussi `cache.rebuilds` et `cache.decodes` (reconstructions et
-décodages d'images de la page fixe), et `soulever` écrit `cache.lifted_objects`, le nombre d'objets que son rectangle prend (de 2 à 8). `cache.touched_strokes` de `gommer` est le k réel : 24 annotations touchées. Premier relevé de ce poste (debug, rendu logiciel, jeu court) : `gommer` 3 redessins ; `soulever` 2 redessins, mais 2 décodages d'images et 2 reconstructions pendant le soulèvement. Ils sont hors du critère « 0 figement » de S13. Mesures de ce poste seulement
+décodages d'images de la page fixe), et `soulever` écrit `cache.lifted_objects`, le nombre d'objets que son rectangle prend (de 2 à 8). `cache.touched_strokes` de `gommer` est le k réel : 24 annotations touchées. Premier relevé de ce poste (debug, rendu logiciel, jeu court) : `gommer` 3 redessins ; `soulever` 2 redessins, mais 2 décodages d'images et 2 reconstructions pendant le soulèvement. Mesures de ce poste seulement
 (décision 0125) : rien n'est mesuré sur le Dell, la tablette ni le MacBook.
+
+**Verdict de ces deux scénarios (L3-C10).** Le critère « 0 figement, 0 reprise hors limite » de S13 reste jugé sur
+les cinq scénarios d'origine ; `gommer` et `soulever` en sont retirés. Le retrait vient d'un booléen que le plan du
+scénario pose (`ScenarioPlan::freezeExempt`, recopié dans `ScenarioResult::freezeExempt`), jamais du nom : un
+scénario appelé `gommer` sans ce booléen serait jugé comme les autres. Dans le JSON, les critères
+`freeze_over_limit` et `resume_over_limit` de ces scénarios restent écrits avec leur valeur relevée, `"ok": true` et
+`"excluded": true` (le champ vaut `false` partout ailleurs) : on lit le figement, il ne fait pas dépasser le budget.
+Les autres critères (images/s, p95, part des intervalles > 25 ms, mémoire) s'appliquent comme aux autres
+scénarios. Les attendus chiffrés de S36 deviennent un critère `cache_refreshes` du verdict, porté par
+`ScenarioPlan::maxCacheRefreshes` : `soulever` ≤ 2 redessins ; `gommer` ≤ `touched_strokes` + 1 + `pending_cut`
+(valeur : `cache.refreshes`, seuil : l'attendu). Un redessin de trop rend « BUDGET DEPASSE ».

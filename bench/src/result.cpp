@@ -251,7 +251,8 @@ QJsonObject toJson(const BenchResult& r)
                                     {"criterion", c.name},
                                     {"value", c.value},
                                     {"limit", c.limit},
-                                    {"ok", c.ok}});
+                                    {"ok", c.ok},
+                                    {"excluded", c.excluded}});
     }
     const QJsonObject verdict{
         {"valid_for_measurement", r.valid},
