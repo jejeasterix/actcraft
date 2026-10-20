@@ -17,8 +17,11 @@ std::size_t indexOf(const Page& page, ObjectId id) noexcept;
 std::size_t depthInLayer(const Page& page, ObjectId id) noexcept;
 // Vrai si les objets sont rangés par couche croissante.
 bool isLayerOrdered(const Page& page) noexcept;
-// Rectangle englobant en coordonnées de page, épaisseur comprise (transformation appliquée) ; vide pour un
-// groupe.
+// Vrai si l'objet a une emprise : sa géométrie donne au moins un point. Un groupe, un objet inconnu sans
+// boîte (UnknownObject::hasBounds faux), un trait sans point n'en ont pas.
+bool hasExtent(const PageObject& object) noexcept;
+// Rectangle englobant en coordonnées de page, épaisseur comprise (transformation appliquée) ; 0 × 0 à
+// l'origine pour un objet sans emprise (hasExtent faux), ce qui n'est pas une position.
 RectF boundsOnPage(const PageObject& object) noexcept;
 
 // Ajoute un objet au sommet de sa couche sur la page `page`. L'identifiant est alloué au premier redo() si

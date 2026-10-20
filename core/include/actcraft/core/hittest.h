@@ -12,7 +12,9 @@ inline constexpr double kHitToleranceScreen = 6.0;
 
 // Annotation (F-230) : trait de stylo, de marqueur ou d'encre révélatrice posé sur la couche supérieure.
 bool isAnnotation(const PageObject& object) noexcept;
-// Sélectionnable : visible (un objet verrouillé se sélectionne mais ne se déplace pas, F-210).
+// Sélectionnable : visible et doté d'une emprise (hasExtent), donc dessiné ; un objet verrouillé se
+// sélectionne mais ne se déplace pas (F-210). Seul filtre du clic, du rectangle élastique et de Ctrl+A (M4,
+// L3-C9).
 bool isSelectable(const PageObject& object) noexcept;
 // Objet sélectionnable le plus haut (le dernier de page.objects, ordonnée par couche) touché par `point` : un
 // trait à moins de sa demi-épaisseur + `tolerance` de sa ligne centrale (transformation appliquée) ; un autre

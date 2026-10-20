@@ -459,6 +459,79 @@ private slots:
         QVERIFY(std::abs(after.center().y - before.center().y) < 0.01);
     }
 
+    // M1 (L3-C9) : Agrandir et Réduire suivent la règle des poignées (!locked && restrictions.resizable,
+    // P28, P30), pas celle du glisser (movable) : un objet déplaçable mais non dimensionnable ne change pas,
+    // un objet dimensionnable mais non déplaçable change.
+    void enlargeAndReduceHonourResizeRestriction()
+    {
+        {
+            Rig r; // non dimensionnable, déplaçable
+            r.only(100, 100, 200, 100);
+            r.first().common.restrictions.resizable = false;
+            r.tool.enlarge();
+            r.tool.reduce();
+            QCOMPARE(r.editor.executes, 0);
+            QVERIFY(r.first().common.transform.isIdentity());
+        }
+        {
+            Rig r; // verrouillé
+            r.only(100, 100, 200, 100);
+            r.first().common.locked = true;
+            r.tool.enlarge();
+            r.tool.reduce();
+            QCOMPARE(r.editor.executes, 0);
+            QVERIFY(r.first().common.transform.isIdentity());
+        }
+        {
+            Rig r; // non déplaçable, dimensionnable : Agrandir (× 1,1) puis Réduire (÷ 1,1) s'appliquent
+            r.only(100, 100, 200, 100);
+            r.first().common.restrictions.movable = false;
+            r.tool.enlarge();
+            QVERIFY(closeTo(r.bounds1().width, 220.0));
+            r.tool.reduce();
+            QVERIFY(closeTo(r.bounds1().width, 200.0));
+            QCOMPARE(r.editor.executes, 2);
+        }
+        {
+            Rig r; // sélection mêlée : seul l'objet dimensionnable change
+            core::Page& page = r.editor.document.page(0);
+            page.objects[core::indexOf(page, 3)].common.restrictions.resizable = false;
+            r.user.setSelection({1, 3});
+            r.tool.enlarge();
+            QCOMPARE(r.editor.executes, 1);
+            QVERIFY(closeTo(r.bounds1().width, 110.0));
+            QVERIFY(r.editor.find(3)->common.transform.isIdentity());
+        }
+    }
+
+    // M4 (L3-C9) : un groupe et un objet inconnu sans boîte n'ont pas d'emprise et ne se dessinent pas. Ni
+    // Ctrl+A, ni un clic près de l'origine, ni un rectangle élastique qui la touche ne les prennent, et un
+    // glissement qui part de l'origine ne soulève rien.
+    void objectsWithoutBoundsAreNeverSelected()
+    {
+        Rig r;
+        core::Page& page = r.editor.document.page(0);
+        core::Group group;
+        group.members = {1, 2};
+        core::PageObject grouped{group};
+        grouped.common.id = 10;
+        page.objects.push_back(grouped);
+        core::PageObject unknown{core::UnknownObject{}};
+        unknown.common.id = 11;
+        page.objects.push_back(unknown);
+
+        r.tool.selectAll();
+        QCOMPARE(r.user.selection(), (std::vector<core::ObjectId>{1, 2, 3}));
+        r.click(2, 2); // à moins de 6 px de l'origine
+        QCOMPARE(r.user.selection(), none);
+        r.drag(-20, -20, 120, 120, 4); // touche l'origine et le 1
+        QCOMPARE(r.user.selection(), (std::vector<core::ObjectId>{1}));
+        r.drag(3, 3, 300, 3, 4);
+        QCOMPARE(r.editor.lifts, 0);
+        QVERIFY(r.editor.find(10)->common.transform.isIdentity());
+        QVERIFY(r.editor.find(11)->common.transform.isIdentity());
+    }
+
     void modifierClickTogglesSelection()
     {
         for (const bool useCtrl : {false, true}) {
