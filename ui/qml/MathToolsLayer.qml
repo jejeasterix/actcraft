@@ -80,11 +80,24 @@ Item {
         border.width: 2 / Math.max(zoom, 0.01)
         visible: false
     }
-    HoverHandler {
-        id: snapHover
-        acceptedDevices: PointerDevice.Mouse | PointerDevice.Stylus
-        onPointChanged: root.updateSnap()
-        onHoveredChanged: root.updateSnap()
+    // Survol pris seulement près d'un bord guide, là où le cercle d'accroche a un sens : ailleurs, la couche
+    // (z 30, toute la page) ne prend aucun survol, et les surcouches de dessous (spot) le reçoivent. Les
+    // délégués ont leurs propres survols (curseurs par zone).
+    Item {
+        id: snapArea
+        anchors.fill: parent
+        containmentMask: QtObject {
+            function contains(point: point): bool {
+                return mathTools.count > 0 && mathTools.snapAt(point).snapped === true
+            }
+        }
+        HoverHandler {
+            id: snapHover
+            objectName: "mathToolSnapHover"
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.Stylus
+            onPointChanged: root.updateSnap()
+            onHoveredChanged: root.updateSnap()
+        }
     }
 
     function updateSnap() {
