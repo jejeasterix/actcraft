@@ -60,7 +60,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T11 | L7-T10, L7-T2 | voir ligne L7-T11 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T11 (base c3d3ed1) | mergée : rejeu TESTS OK 158/158, mathtools Totals 26 (0 skipped) ; revue « on peut merger », retouches faites à l'essai 2 ; hors périmètre : page quittée pendant un trait fermé → arc sans rayons (:668, sans test) | 2 | f12fe3c | df98a5f (graphe 6568c10) |
 | suite V4 | L7-T4, L7-T10 | branche du chantier à 63b2ad8 (timestamp AUTOMOC ui supprimés avant) | — | TESTS OK 158/158 (2026-10-20, après le redémarrage) | 1 | — | — |
 | L7-T6 | L7-T1, T2, T3, T4 | voir ligne L7-T6 de l'amendement phase 2 (+ « spot ferme le rideau ») | .worktrees/livraison-complete-b--L7-T6 (base f0b30ce) | mergée : rejeu TESTS OK 158/158, pagetools 9, features_pagetools 9, flipchart 27 (0 skipped) ; revue corriger → essai 2 → contre-revue merger ; H7-16 tenue ; restent mineurs (preuves) : passage à -1 sans mutant propre, relâché sans déplacement, garde « page en mode spot », page changée pendant le glisser ; écarts : cadre non appliqué au spot (setFrame absent), coches present.spotlight-* périmées | 2 | 8d6e94f | 615e65a (graphe 238d2a6) |
-| L7-T12 | L7-T11 | voir ligne L7-T12 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T12 (base 530e95b) | en cours (concepteur-critique), V6 | 1 | — | — |
+| L7-T12 | L7-T11 | voir ligne L7-T12 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T12 (base 530e95b) | rendue aea287e (agent : 158 TESTS OK, mathtools 34/34, 8 mutants rouges ; mine sur PageView::inkColor car ToolHost::color talon) ; revue adversariale en cours → .tmp/outils-b/revue-l7-t12.md | 1 | aea287e | — |
 | L7-T7 | L7-T3 | voir ligne L7-T7 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T7 (base cd09af4) | en cours (concepteur-critique), V7 | 1 | — | — |
 
 ## Terminé quand
@@ -94,6 +94,7 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 - « Ouvrir le spot ferme le rideau » (plan 7a, étape 3) : fait dans L7-T6 (PageToolsController), mergé.
 
 ## À faire en L7-T34 (après la fusion du lot 3)
+- Survol au stylet des outils de maths (L7-T12) : prouvé hors écran seulement par le rejeu en souris de Qt (`QTabletEvent` sans bouton n'atteint pas les `HoverHandler`) → à voir sur un vrai stylet dans les captures à l'écran (DA8) de la clôture ; et la mine du compas lit `PageView::inkColor` : à revoir quand le lot 3 remplira `ToolHost::color`.
 - `selectionIsNotGuided` (L7-T9, revue) : le guide de la règle est réservé au stylo (`kGuidedTool = "pen"`), mais non testable avant le lot 3 : `ToolHost::activate` et `UserState::setCurrentTool` sont des talons. À ajouter avec `markerFollowsTheRuler`, `eraserFollowsTheCompass`.
 - Constat L7-T9, hors périmètre : la commande `tool.pen` de `Main.qml:292` coche la commande sans activer le stylo (talon du lot 3 ?) : à revoir à la fusion.
 
