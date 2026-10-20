@@ -51,54 +51,54 @@ Item {
             onHoveredChanged: root.updateSnap()
         }
 
-    Repeater {
-        model: slots
-        delegate: Loader {
-            id: slot
-            required property int index
-            required property string kind
-            sourceComponent: slot.kind === "setSquare" ? squareTool
-                                                       : (slot.kind === "protractor" ? protractorTool : rulerTool)
-            Component {
-                id: rulerTool
-                RulerTool {
-                    controller: mathTools
-                    toolIndex: slot.index
-                    pageView: root.pageArea ? root.pageArea.view : null
+        Repeater {
+            model: slots
+            delegate: Loader {
+                id: slot
+                required property int index
+                required property string kind
+                sourceComponent: slot.kind === "setSquare" ? squareTool
+                                                           : (slot.kind === "protractor" ? protractorTool : rulerTool)
+                Component {
+                    id: rulerTool
+                    RulerTool {
+                        controller: mathTools
+                        toolIndex: slot.index
+                        pageView: root.pageArea ? root.pageArea.view : null
+                    }
                 }
-            }
-            Component {
-                id: squareTool
-                SetSquareTool {
-                    controller: mathTools
-                    toolIndex: slot.index
-                    pageView: root.pageArea ? root.pageArea.view : null
+                Component {
+                    id: squareTool
+                    SetSquareTool {
+                        controller: mathTools
+                        toolIndex: slot.index
+                        pageView: root.pageArea ? root.pageArea.view : null
+                    }
                 }
-            }
-            Component {
-                id: protractorTool
-                ProtractorTool {
-                    controller: mathTools
-                    toolIndex: slot.index
-                    pageView: root.pageArea ? root.pageArea.view : null
+                Component {
+                    id: protractorTool
+                    ProtractorTool {
+                        controller: mathTools
+                        toolIndex: slot.index
+                        pageView: root.pageArea ? root.pageArea.view : null
+                    }
                 }
             }
         }
-    }
 
-    // Cercle d'accroche : là où le stylo posé accrocherait le trait (même requête que le filtre, sans état).
-    Rectangle {
-        id: snapMarker
-        objectName: "mathToolSnap"
-        property real zoom: root.pageArea && root.pageArea.view ? root.pageArea.view.zoom : 1
-        width: 12 / Math.max(zoom, 0.01)
-        height: width
-        radius: width / 2
-        color: "transparent"
-        border.color: "#2f6fbf"
-        border.width: 2 / Math.max(zoom, 0.01)
-        visible: false
-    }
+        // Cercle d'accroche : là où le stylo posé accrocherait le trait (même requête que le filtre, sans état).
+        Rectangle {
+            id: snapMarker
+            objectName: "mathToolSnap"
+            property real zoom: root.pageArea && root.pageArea.view ? root.pageArea.view.zoom : 1
+            width: 12 / Math.max(zoom, 0.01)
+            height: width
+            radius: width / 2
+            color: "transparent"
+            border.color: "#2f6fbf"
+            border.width: 2 / Math.max(zoom, 0.01)
+            visible: false
+        }
     }
 
     function updateSnap() {

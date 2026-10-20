@@ -111,10 +111,10 @@ core::PointF pointOf(QPointF point)
     return core::PointF{point.x(), point.y()};
 }
 
-// Ce que le rapporteur ajoute après le trait guidé : sur la couche du trait (F-510), à sa couleur. Fermé :
-// les deux rayons d'un seul objet (bout de départ de l'arc, centre, bout d'arrivée). Plein : le secteur
-// rempli, sans contour (l'arc est le trait du stylo). `path` : features::arcPath, le centre en premier et en
-// dernier.
+// Ce que le rapporteur ajoute après le trait guidé, à sa couleur (la couche, celle du trait, est posée par
+// insertArc). Fermé : les deux rayons d'un seul objet (bout de départ de l'arc, centre, bout d'arrivée), de
+// l'épaisseur du trait. Plein : le secteur rempli, sans contour (l'arc est le trait du stylo). `path` :
+// features::arcPath, le centre en premier et en dernier.
 core::PageObject arcObject(const std::vector<QPointF>& path, features::ArcStyle style,
                            const core::Stroke& stroke)
 {
@@ -140,7 +140,6 @@ core::PageObject arcObject(const std::vector<QPointF>& path, features::ArcStyle 
         sector.pen.width = 0;
         sector.brush = core::solidFill(stroke.color);
         core::PageObject filled = std::move(sector);
-        filled.common.layer = core::Layer::Top;
         return filled;
     }
     core::Line radii;
@@ -148,7 +147,6 @@ core::PageObject arcObject(const std::vector<QPointF>& path, features::ArcStyle 
     radii.pen.color = stroke.color;
     radii.pen.width = stroke.baseWidth;
     core::PageObject closed = std::move(radii);
-    closed.common.layer = core::Layer::Top;
     return closed;
 }
 
@@ -669,19 +667,21 @@ void MathToolsController::insertArc(const PendingArc& arc)
     if (!m_document || static_cast<std::size_t>(m_document->currentIndex()) != arc.page) {
         return;
     }
-    const core::Stroke* stroke = nullptr;
-    for (const core::PageObject& object : m_document->document().page(arc.page).objects) {
-        if (object.common.id == arc.stroke) {
-            stroke = std::get_if<core::Stroke>(&core::body(object));
-            break;
-        }
-    }
+    const auto& objects = m_document->document().page(arc.page).objects;
+    const auto found = std::find_if(objects.begin(), objects.end(), [&arc](const core::PageObject& object) {
+        return object.common.id == arc.stroke;
+    });
+    const core::Stroke* stroke =
+        found != objects.end() ? std::get_if<core::Stroke>(&core::body(*found)) : nullptr;
     if (!stroke) {
         return; // trait déjà retiré
     }
     const std::vector<QPointF> path =
         features::arcPath(arc.center, arc.radius, arc.start, arc.sweep, arc.style);
-    DocumentInsertions(*m_document).insertObject(arcObject(path, arc.style, *stroke));
+    core::PageObject added = arcObject(path, arc.style, *stroke);
+    added.common.layer =
+        found->common.layer; // la couche du trait, lue sur lui (F-510 : commitStroke la pose)
+    DocumentInsertions(*m_document).insertObject(std::move(added));
 }
 
 void MathToolsController::syncTolerance()

@@ -3,7 +3,9 @@
 #include "support/presentationharness.h"
 
 #include <actcraft/core/document.h>
+#include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/undo.h>
 #include <actcraft/features/mathtools.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
@@ -18,9 +20,12 @@
 #include <QtMath>
 #include <QtTest>
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <initializer_list>
+#include <memory>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -246,6 +251,57 @@ template <typename T> const T* lastOf(const actcraft::core::Page& page)
     }
     return nullptr;
 }
+
+// Dernier objet du type T de la page, avec ses données communes (couche), sinon nul.
+template <typename T> const actcraft::core::PageObject* lastObjectOf(const actcraft::core::Page& page)
+{
+    for (auto it = page.objects.rbegin(); it != page.objects.rend(); ++it) {
+        if (std::get_if<T>(&actcraft::core::body(*it))) {
+            return &*it;
+        }
+    }
+    return nullptr;
+}
+
+// Passe un objet de la page sur une autre couche, au sommet de celle-ci (commande du banc : aucune commande
+// du socle ne le fait, et commitStroke pose toujours le trait sur Top). Annoncé en ObjectChanged, comme un
+// objet réordonné (fixedpageitem.cpp).
+class MoveToLayer final : public actcraft::core::UndoCommand
+{
+public:
+    MoveToLayer(std::size_t page, actcraft::core::ObjectId id, actcraft::core::Layer layer)
+        : m_page(page), m_id(id), m_layer(layer)
+    {}
+    void redo(actcraft::core::Document& document, actcraft::core::Changes& changes) override
+    {
+        swapLayer(document, changes);
+    }
+    void undo(actcraft::core::Document& document, actcraft::core::Changes& changes) override
+    {
+        swapLayer(document, changes);
+    }
+
+private:
+    void swapLayer(actcraft::core::Document& document, actcraft::core::Changes& changes)
+    {
+        actcraft::core::Page& page = document.page(m_page);
+        const auto it =
+            std::find_if(page.objects.begin(), page.objects.end(),
+                         [this](const actcraft::core::PageObject& o) { return o.common.id == m_id; });
+        if (it == page.objects.end()) {
+            return;
+        }
+        actcraft::core::PageObject object = std::move(*it);
+        page.objects.erase(it);
+        std::swap(object.common.layer, m_layer);
+        actcraft::core::insertAtTopOfLayer(page, std::move(object));
+        changes.push_back({actcraft::core::Change::Kind::ObjectChanged, m_page, m_id, {}});
+    }
+
+    std::size_t m_page;
+    actcraft::core::ObjectId m_id;
+    actcraft::core::Layer m_layer;
+};
 
 template <typename T> int countOf(const actcraft::core::Page& page)
 {
@@ -679,7 +735,10 @@ private slots:
 
     // F-281, arc plein : le stylo verse son trait guidé tel quel (l'arc seul, sur le pourtour, à sa
     // couleur) ; le contrôleur ajoute ensuite une seule forme, le secteur rempli de la couleur du trait,
-    // par DocumentInsertions. Le stylo n'est jamais modifié : aucun point du trait au centre.
+    // sans contour, sur la couche du trait, par DocumentInsertions. Le stylo n'est jamais modifié : aucun
+    // point du trait au centre. Couche : le trait passe sur Bottom (ni Top, que commitStroke pose, ni Middle,
+    // la couche par défaut d'un objet) entre son versement et l'insertion différée ; le secteur doit l'y
+    // suivre.
     void filledArcBecomesOneShape()
     {
         MainWindow w;
@@ -697,7 +756,19 @@ private slots:
         const Dial d = dialOf(*tools, 0);
         const int before = w.pageObjectCount();
         const int shapesBefore = countOf<actcraft::core::Shape>(shownPage(*doc));
-        stylusPath(w, rimPath(d, -90, 0, 6)); // haut → droite : un quart de tour dans la bande extérieure
+        const std::vector<QPointF> quarter = rimPath(d, -90, 0, 6); // haut → droite, bande extérieure
+        stylusPath(w, quarter, false);
+        presentationharness::sendTablet(w.window(), QEvent::TabletRelease, scene(w, quarter.back()));
+        {
+            // Le trait seul est versé : l'insertion du secteur est différée (contrat de addChangeObserver).
+            const actcraft::core::Page& page = shownPage(*doc);
+            QCOMPARE(countOf<actcraft::core::Shape>(page), shapesBefore);
+            QVERIFY(!page.objects.empty());
+            QVERIFY(std::get_if<actcraft::core::Stroke>(&actcraft::core::body(page.objects.back())));
+            const actcraft::core::ObjectId drawn = page.objects.back().common.id;
+            doc->execute(std::make_unique<MoveToLayer>(static_cast<std::size_t>(doc->currentIndex()), drawn,
+                                                       actcraft::core::Layer::Bottom));
+        }
         QTRY_COMPARE(w.pageObjectCount(), before + 2);
         QTest::qWait(50);
         QCOMPARE(w.pageObjectCount(), before + 2);
@@ -714,6 +785,14 @@ private slots:
         QVERIFY(!sector->open);
         QVERIFY(sector->brush.kind == actcraft::core::FillKind::Solid);
         QCOMPARE(sector->brush.color, stroke->color);
+        QVERIFY2(sector->pen.style == actcraft::core::PenStyle::None, "secteur : aucun contour");
+        QCOMPARE(sector->pen.width, 0.0);
+        const actcraft::core::PageObject* strokeObject = lastObjectOf<actcraft::core::Stroke>(page);
+        const actcraft::core::PageObject* sectorObject = lastObjectOf<actcraft::core::Shape>(page);
+        QVERIFY(strokeObject && sectorObject);
+        QVERIFY(strokeObject->common.layer == actcraft::core::Layer::Bottom);
+        QVERIFY2(sectorObject->common.layer == strokeObject->common.layer,
+                 "secteur : sur la couche du trait");
         const auto& outline = sector->paths.front();
         QVERIFY(outline.size() >= 4);
         QVERIFY2(samePoint(outline.front().x, outline.front().y, d.cx, d.cy) &&
@@ -741,6 +820,8 @@ private slots:
         QVERIFY(tools);
         actcraft::ui::DocumentController* doc = documentController(w);
         QVERIFY(doc);
+        w.pageView()->setInkWidth(
+            7); // ni l'épaisseur par défaut de la vue, ni celle du stylo, ni celle d'un Line
         tools->setArcStyle(0, QStringLiteral("closed"));
         const Dial d = dialOf(*tools, 0);
         const int before = w.pageObjectCount();
@@ -767,6 +848,8 @@ private slots:
                                stroke->points.back().y),
                      "second rayon : à la fin de l'arc");
             QCOMPARE(radii->pen.color, stroke->color);
+            QCOMPARE(stroke->baseWidth, 7.0);
+            QCOMPARE(radii->pen.width, stroke->baseWidth);
         }
         doc->undo();
         QTRY_COMPARE(w.pageObjectCount(), before + 1);
