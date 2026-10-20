@@ -95,7 +95,7 @@ bool takesPressAt(const QQuickItem* item, QPointF scenePos)
 // Lot 10 : une entrée qui agit (appui, relâché, mouvement en contact, molette, appui de touche) repousse le
 // versement ; un survol non (stylet tenu près du tableau, souris sur une barre), sinon il ne partirait qu'au
 // plafond.
-bool postponesFold(const QEvent& event)
+bool isActingInput(const QEvent& event)
 {
     switch (event.type()) {
     case QEvent::TabletPress:
@@ -372,13 +372,8 @@ void PageView::setFixedPage(render::FixedPageItem* page)
     if (page == m_fixedPage) {
         return;
     }
-    if (m_fixedPage) {
-        // Lot 10 : l'ancienne page ne reste pas en différé, où personne ne verserait plus ce qui y attend.
-        if (m_fixedPage->pendingCount() > 0) {
-            requestCacheRefresh();
-        }
-        m_fixedPage->setDeferredFolding(false);
-    }
+    // Lot 10 : l'ancienne page ne reste pas en différé, où personne ne verserait plus ce qui y attend.
+    applyDeferral(false);
     disconnect(m_readyConnection);
     disconnect(m_contentConnection);
     disconnect(m_pendingConnection);
@@ -441,15 +436,21 @@ void PageView::updateDeferral()
     // aucune), personne ne les dessinerait.
     const bool deferred = m_cacheEnabled && !m_pendingLayer.isNull() && m_fixedPage &&
                           m_pendingLayer->fixedPage() == m_fixedPage;
-    if (m_fixedPage) {
-        if (!deferred && m_fixedPage->pendingCount() > 0) {
-            requestCacheRefresh(); // ce qui attendait passe au cache avant que la couche ne serve plus
-        }
-        m_fixedPage->setDeferredFolding(deferred);
-    }
+    applyDeferral(deferred);
     if (!deferred) {
         m_foldTimer.stop();
     }
+}
+
+void PageView::applyDeferral(bool deferred)
+{
+    if (!m_fixedPage) {
+        return;
+    }
+    if (!deferred && m_fixedPage->pendingCount() > 0) {
+        requestCacheRefresh(); // ce qui attendait passe au cache avant que la couche ne serve plus
+    }
+    m_fixedPage->setDeferredFolding(deferred);
 }
 
 void PageView::onPendingChanged()
@@ -559,7 +560,7 @@ void PageView::rebuildPen()
 
 bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
 {
-    if (postponesFold(event)) {
+    if (isActingInput(event)) {
         postponeFold();
     }
     if (!m_pipeline) {
@@ -731,7 +732,7 @@ void PageView::itemChange(ItemChange change, const ItemChangeData& value)
 
 bool PageView::eventFilter(QObject* watched, QEvent* event)
 {
-    if (postponesFold(*event)) {
+    if (isActingInput(*event)) {
         postponeFold(); // lot 10 : rien n'est pris ni filtré de plus pour autant
     }
     const QEvent::Type type = event->type();
@@ -1165,7 +1166,6 @@ QPointF PageView::sceneToPage(QPointF scenePoint) const
 
 void PageView::wheelEvent(QWheelEvent* event)
 {
-    postponeFold();
     if (!acceptsDevice(event->pointingDevice())) {
         event->ignore();
         return;

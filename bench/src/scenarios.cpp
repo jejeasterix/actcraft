@@ -81,6 +81,28 @@ int touchedAnnotations(const core::Page& page, const std::vector<PlannedInput>& 
     return static_cast<int>(touched.size());
 }
 
+// Un trait ondulé (`waves` ondulations) sur la rangée `row`, de l'appui au relâché, un point tous les
+// kStylusPeriodNs depuis `start`. Zone centrale (x 220–804, y 150–618) : hors des témoins et de la bande de
+// démonstration.
+void appendWaveStroke(std::vector<PlannedInput>& inputs, std::int64_t start, int samples, int row, int waves)
+{
+    for (int i = 0; i < samples; ++i) {
+        const double u = static_cast<double>(i) / (samples - 1);
+        PlannedInput in;
+        in.offsetNs = start + i * kStylusPeriodNs;
+        in.kind = i == 0             ? InputKind::TabletPress
+                  : i == samples - 1 ? InputKind::TabletRelease
+                                     : InputKind::TabletMove;
+        in.pagePos = QPointF(220.0 + 584.0 * u,
+                             170.0 + 44.0 * row + 20.0 * std::sin(2 * std::numbers::pi * waves * u));
+        in.pressure = in.kind == InputKind::TabletRelease
+                          ? 0.0f
+                          : static_cast<float>(0.5 + 0.4 * std::sin(2 * std::numbers::pi * u));
+        in.measured = in.kind != InputKind::TabletRelease;
+        inputs.push_back(in);
+    }
+}
+
 // Ajoute le segment from → to, un point tous les `step` pixels environ ; le premier est l'appui si `first`.
 void appendLine(std::vector<PlannedInput>& inputs, QPointF from, QPointF to, double step, std::int64_t& at,
                 bool first)
@@ -215,22 +237,7 @@ ScenarioPlan strokeScenario(ScenarioSet set)
     plan.zoom = 1.0;
     std::int64_t start = 0;
     for (int k = 0; k < 10; ++k) {
-        for (int i = 0; i < samples; ++i) {
-            const double u = static_cast<double>(i) / (samples - 1);
-            PlannedInput in;
-            in.offsetNs = start + i * kStylusPeriodNs;
-            in.kind = i == 0             ? InputKind::TabletPress
-                      : i == samples - 1 ? InputKind::TabletRelease
-                                         : InputKind::TabletMove;
-            // Zone centrale (x 220–804, y 150–618) : hors des témoins et de la bande de démonstration.
-            in.pagePos =
-                QPointF(220.0 + 584.0 * u, 170.0 + 44.0 * k + 20.0 * std::sin(2 * std::numbers::pi * 3 * u));
-            in.pressure = in.kind == InputKind::TabletRelease
-                              ? 0.0f
-                              : static_cast<float>(0.5 + 0.4 * std::sin(2 * std::numbers::pi * u));
-            in.measured = in.kind != InputKind::TabletRelease;
-            plan.inputs.push_back(in);
-        }
+        appendWaveStroke(plan.inputs, start, samples, k, 3);
         start += (samples - 1) * kStylusPeriodNs + pauseNs;
     }
     return plan;
@@ -346,22 +353,7 @@ ScenarioPlan pausesScenario(ScenarioSet set)
     plan.awaitFinalFold = true; // au moins un versement mesuré, quelle que soit la charge (L3-C14)
     std::int64_t start = 0;
     for (int k = 0; k < strokes; ++k) {
-        for (int i = 0; i < samples; ++i) {
-            const double u = static_cast<double>(i) / (samples - 1);
-            PlannedInput in;
-            in.offsetNs = start + i * kStylusPeriodNs;
-            in.kind = i == 0             ? InputKind::TabletPress
-                      : i == samples - 1 ? InputKind::TabletRelease
-                                         : InputKind::TabletMove;
-            // Même zone centrale que « stroke » (hors des témoins et de la bande de démonstration).
-            in.pagePos =
-                QPointF(220.0 + 584.0 * u, 170.0 + 44.0 * k + 20.0 * std::sin(2 * std::numbers::pi * 2 * u));
-            in.pressure = in.kind == InputKind::TabletRelease
-                              ? 0.0f
-                              : static_cast<float>(0.5 + 0.4 * std::sin(2 * std::numbers::pi * u));
-            in.measured = in.kind != InputKind::TabletRelease;
-            plan.inputs.push_back(in);
-        }
+        appendWaveStroke(plan.inputs, start, samples, k, 2);
         const int step = court ? 3 * k : k;
         start += (samples - 1) * kStylusPeriodNs + idleNs + step * kPausesStepNs;
     }

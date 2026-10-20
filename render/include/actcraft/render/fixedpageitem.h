@@ -62,11 +62,12 @@ public:
     void remove(core::ObjectId id, const core::RectF& area) override;
     void invalidate(core::ObjectId id, const core::CacheArea& area) override;
     // Lot 10 (DA11, cache incrémental). Différé (posé par la vue quand une couche d'attente est branchée et
-    // le cache actif) : un objet inséré en fin de page, sans image, page prête et sans grille dessinée
-    // au-dessus, n'entre PAS dans la scène de l'élément (celle que le cache photographie) : il attend,
-    // dessiné par la couche d'attente (PendingLayerItem), jusqu'à foldPending(). Retiré (remove) ou modifié
-    // (invalidate) pendant qu'il attend : seule la couche d'attente change. Tout autre changement reconstruit
-    // tout et verse ce qui attend. Sans différé (défaut) : comportement du lot 2. Repasser à faux verse tout.
+    // le cache actif) : un objet inséré en fin de page, sans image, ni encre révélatrice, page prête et sans
+    // grille dessinée au-dessus (canWait), n'entre PAS dans la scène de l'élément (celle que le cache
+    // photographie) : il attend, dessiné par la couche d'attente (PendingLayerItem), jusqu'à foldPending().
+    // Retiré (remove) ou modifié (invalidate) pendant qu'il attend : seule la couche d'attente change. Tout
+    // autre changement reconstruit tout et verse ce qui attend. Sans différé (défaut) : comportement du
+    // lot 2. Repasser à faux verse tout.
     void setDeferredFolding(bool on);
     bool deferredFolding() const noexcept;
     // Verse les objets en attente dans la scène : à appeler dans le même tour de boucle que la demande de
@@ -81,7 +82,8 @@ public:
     // Objets de la page que la scène de l'élément contient : les cachedObjectCount() premiers. La scène
     // s'arrête là à chaque synchronisation (updatePaintNode) ; la couche d'attente dessine les suivants.
     std::size_t cachedObjectCount() const noexcept;
-    bool forceRasterized() const noexcept; // crochet de test lu par la couche d'attente (même chemin RHI)
+    bool forceRasterized()
+        const noexcept; // crochet de test lu par les couches d'attente et soulevée (même chemin RHI)
     // Magasin des images décodées de la page affichée, en lecture (L3-C1) : la couche soulevée y cherche
     // par clé les images à ressource de ses copies, sans second décodage. Lecture sûre depuis le fil de rendu
     // (ImageStore). Les images synthétiques y sont rangées par indice de cette page.

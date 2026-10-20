@@ -84,10 +84,15 @@ core::Document threePages()
 
 namespace {
 
+bool writeActcraft(const core::Document& document, const QString& path, QString& error)
+{
+    const QByteArray archive = formats::encodeActcraft(document, {}, &error);
+    return !archive.isEmpty() && formats::writeUrl(QUrl::fromLocalFile(path), archive, &error);
+}
+
 bool buildThreePages(const QString& path, QString& error)
 {
-    const QByteArray archive = formats::encodeActcraft(threePages(), {}, &error);
-    return !archive.isEmpty() && formats::writeUrl(QUrl::fromLocalFile(path), archive, &error);
+    return writeActcraft(threePages(), path, error);
 }
 
 // L10-T5 : une page blanche à grille visible (un niveau, pas de 32, lignes noires pleines), pour vérifier que
@@ -103,8 +108,7 @@ bool buildGrid(const QString& path, QString& error)
     pages[0].grid.levels.push_back(level);
     core::Document document(std::move(pages));
     document.setTitle("Grille");
-    const QByteArray archive = formats::encodeActcraft(document, {}, &error);
-    return !archive.isEmpty() && formats::writeUrl(QUrl::fromLocalFile(path), archive, &error);
+    return writeActcraft(document, path, error);
 }
 
 bool buildSyntheticFlipchart(const QString& path, QString& error)

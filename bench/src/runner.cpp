@@ -239,14 +239,10 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     std::vector<std::int64_t> freezes;
     const auto frozen = QObject::connect(m_view, &ui::PageView::strokeFrozen, m_view,
                                          [&freezes] { freezes.push_back(core::monotonicNowNs()); });
-    std::vector<std::int64_t> cacheRequests;
-    std::vector<std::int64_t> cacheUpdates;
-    const auto requested =
-        QObject::connect(m_view, &ui::PageView::cacheRefreshRequested, m_view,
-                         [&cacheRequests] { cacheRequests.push_back(core::monotonicNowNs()); });
-    const auto updated = QObject::connect(m_view, &ui::PageView::cacheUpdated, m_view, [&cacheUpdates] {
-        cacheUpdates.push_back(core::monotonicNowNs());
-    });
+    const auto requested = QObject::connect(m_view, &ui::PageView::cacheRefreshRequested, m_view,
+                                            [&s] { s.cacheRequestNs.push_back(core::monotonicNowNs()); });
+    const auto updated = QObject::connect(m_view, &ui::PageView::cacheUpdated, m_view,
+                                          [&s] { s.cacheUpdatedNs.push_back(core::monotonicNowNs()); });
     // L10-T4 : objets en attente au-dessus du cache (versement différé). Relevé aussi sur objectCountChanged,
     // émis après la mise en attente et avant pendingChanged : au plafond, la vue (branchée avant le banc)
     // verse pendant pendingChanged, qui n'arrive ici qu'avec une attente déjà vide.
@@ -385,8 +381,6 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     QObject::disconnect(updated);
     QObject::disconnect(pendingWatch);
     QObject::disconnect(countWatch);
-    s.cacheRequestNs = std::move(cacheRequests);
-    s.cacheUpdatedNs = std::move(cacheUpdates);
     QObject::disconnect(zoomed);
     QObject::disconnect(panned);
     m_view->setInkProbe(nullptr);
