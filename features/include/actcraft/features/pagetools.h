@@ -1,5 +1,6 @@
 #pragma once
 
+#include <actcraft/core/model.h>
 #include <actcraft/features/curtain.h>
 #include <actcraft/features/spotlight.h>
 
@@ -49,5 +50,10 @@ struct PageToolsResult
 };
 
 PageToolsResult resolvePageTools(PresentationState now, const PageToolsSettings& page);
+
+// Réglages du document (core::PagePresentation) vus par les outils. Outil et forme du spot : mêmes valeurs des
+// deux côtés (static_assert). Rideau : CurtainMode::Off et Full valent « complet » (F-592), les quatre côtés
+// gardent leur côté ; CurtainMode n'a pas les valeurs de Curtain::Start (Full vaut 5 d'un côté, 0 de l'autre).
+PageToolsSettings toPageToolsSettings(const core::PagePresentation& page);
 
 } // namespace actcraft::features

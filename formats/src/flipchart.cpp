@@ -496,6 +496,36 @@ private:
         return key;
     }
 
+    // Réglages de présentation de la page (L7-T6) : distance du rideau, cadre du spot, origine XY, lus tels
+    // quels ; une valeur non finie est ignorée avec un avertissement. Les propriétés codées ne sont pas lues
+    // (flipchartids.h, H7-16).
+    void readPresentation(const StreamObject& page, const QString& where, core::PagePresentation& out)
+    {
+        if (const std::optional<double> d = asNumber(page.find(ids::pageKeys::kPageCurtainDistance))) {
+            if (std::isfinite(*d)) {
+                out.curtainDistance = *d;
+            } else {
+                warn(u"%1 : distance du rideau invalide, ignorée"_s.arg(where));
+            }
+        }
+        if (const std::optional<core::RectF> r = asRect(page.find(ids::pageKeys::kPageSpotFrame))) {
+            if (std::isfinite(r->x) && std::isfinite(r->y) && std::isfinite(r->width) &&
+                std::isfinite(r->height)) {
+                out.spotlightFrame = *r;
+            } else {
+                warn(u"%1 : cadre du spot invalide, ignoré"_s.arg(where));
+            }
+        }
+        if (const std::optional<core::PointF> o = asPoint(page.find(ids::pageKeys::kPageOrigin))) {
+            if (std::isfinite(o->x) && std::isfinite(o->y)) {
+                out.hasOrigin = true;
+                out.origin = *o;
+            } else {
+                warn(u"%1 : origine XY invalide, ignorée"_s.arg(where));
+            }
+        }
+    }
+
     std::optional<core::Page> readPage(const IndexNode& pageNode, const SizeF& startSize,
                                        QByteArray& thumbnail)
     {
@@ -540,6 +570,7 @@ private:
         sheet.name = stringOf(&*pageObject, ids::pageKeys::kPageTitle);
         sheet.notes = stringOf(&*pageObject, ids::pageKeys::kPresenterNotes);
         sheet.grid.visible = flagOr(&*pageObject, ids::pageKeys::kShowGuides, false);
+        readPresentation(*pageObject, where, sheet.presentation);
         const QString thumbName = u"%1.thm"_s.arg(pageNode.nodeId);
         if (m_root->contains(thumbName)) {
             thumbnail = readEntry(*m_root, thumbName, error).value_or(QByteArray());
