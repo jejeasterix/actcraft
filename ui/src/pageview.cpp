@@ -334,7 +334,9 @@ void PageView::holdRequestsOfThisTurn()
         return;
     }
     m_refreshThisTurn = true;
-    // Le tour suivant commence : le redessin parti a pu commencer, une demande de plus en part un autre.
+    // Le tour suivant commence : le redessin parti a pu commencer, une demande de plus en part un autre. La
+    // synchronisation d'un UpdateRequest posté plus tôt dans ce tour passe avant ce lambda : elle remet aussi
+    // le drapeau à faux (itemChange, m4).
     QMetaObject::invokeMethod(this, [this] { m_refreshThisTurn = false; }, Qt::QueuedConnection);
 }
 
@@ -692,10 +694,17 @@ void PageView::itemChange(ItemChange change, const ItemChangeData& value)
     if (change == ItemSceneChange) {
         if (m_filteredWindow) {
             m_filteredWindow->removeEventFilter(this);
+            disconnect(m_filteredWindow, &QQuickWindow::afterSynchronizing, this, nullptr);
         }
         m_filteredWindow = value.window;
         if (m_filteredWindow) {
             m_filteredWindow->installEventFilter(this);
+            // m4 (L3-C8) : le redessin parti a lu la page à cette synchronisation (le cache, live: false, est
+            // rendu dans l'image qui la suit) ; une demande de plus, même dans ce tour, en part un autre.
+            // Fil de rendu en boucle à fils : le fil principal est alors bloqué, rien d'autre ne lit l'état.
+            connect(
+                m_filteredWindow, &QQuickWindow::afterSynchronizing, this,
+                [this] { m_refreshThisTurn = false; }, Qt::DirectConnection);
             // Moteur de la fenêtre (H10-9) : QQuickWindow::graphicsApi() ne renvoie jamais Software en
             // Qt 6.12 (il suit QSGRhiSupport) ; rendererInterface()->graphicsApi() répond dès la construction
             // de la fenêtre (même usage : tests/support/renderhost.h). samples est sans effet en rendu

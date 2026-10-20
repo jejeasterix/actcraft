@@ -103,6 +103,7 @@ signals:
 private:
     // Adaptateurs et outils ; nullptr tant que contrôleur, vue (et son encre) et couche ne sont pas branchés.
     ToolAdapters* adapters() const;
+    void discardAdapters() const; // jette les adaptateurs, l'outil occupé abandonnant d'abord son geste
     tools::Tool* toolFor(const QString& id) const;      // créé à la première demande
     tools::Tool* existingTool(const QString& id) const; // jamais créé
     void ensureSettings();                              // QSettings → UserState (F-136), une fois par fichier

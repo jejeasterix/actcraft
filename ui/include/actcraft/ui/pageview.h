@@ -321,10 +321,12 @@ private:
     QPointF m_lastTouchViewPoint; // même point, en coordonnées de vue (le doigt qui passe au geste y est)
     std::array<GestureContact, 2> m_gestureContacts;
     input::TwoFingerGesture m_gesture;
-    qreal m_gestureZoom = 1.0;      // zoom au début du geste
-    QPointF m_gesturePage;          // point de page sous l'ancre du geste, ramené sous le milieu des doigts
-    bool m_gestureMoved = false;    // un contact du geste a bougé dans l'événement en cours
-    bool m_refreshThisTurn = false; // M3 : un redessin est parti dans ce tour et n'a pas encore commencé
+    qreal m_gestureZoom = 1.0;   // zoom au début du geste
+    QPointF m_gesturePage;       // point de page sous l'ancre du geste, ramené sous le milieu des doigts
+    bool m_gestureMoved = false; // un contact du geste a bougé dans l'événement en cours
+    // M3 : un redessin est parti dans ce tour et n'a pas encore commencé ; faux à la fin du tour ou à la
+    // synchronisation suivante, la première des deux (m4, L3-C8).
+    bool m_refreshThisTurn = false;
 };
 
 } // namespace actcraft::ui

@@ -1,5 +1,6 @@
 #include <actcraft/core/model.h>
 #include <actcraft/core/undo.h>
+#include <actcraft/render/inkitem.h>
 #include <actcraft/render/liftlayeritem.h>
 #include <actcraft/tools/pentool.h>
 #include <actcraft/tools/tool.h>
@@ -487,6 +488,46 @@ private slots:
         tablet(app, QEvent::TabletRelease, QPointF(400, 510), Qt::LeftButton, Qt::NoButton);
         QCOMPARE(app.document->shownObjectCount(), 3); // les morceaux sont dans la page
         QCOMPARE(app.lift->objectCount(), 0);
+    }
+
+    // L3-C8 (m1) : l'encre de la vue remplacée pendant un glissement, puis pendant un coup de gomme. Les
+    // outils sont reconstruits ; celui qui avait un geste l'abandonne d'abord (dépôt sans étape, couche
+    // soulevée vidée). Un cancelGesture() dans le relais de inkChanged ne suffirait pas : il passe par
+    // adapters(), qui jette sans les annuler les outils d'une encre déjà remplacée.
+    void inkChangeWhileLiftingDropsTheLift()
+    {
+        App app;
+        QVERIFY(start(app));
+        QVERIFY(twoStrokes(app));
+        const QString before = app.document->fingerprintText();
+        render::InkItem* first = app.view->ink();
+        QVERIFY(first);
+        auto* second = new render::InkItem(first->parentItem());
+
+        QVERIFY(app.trigger("tool.select"));
+        mouseDrag(app, QPointF(400, 300), QPointF(440, 300), 4, false);
+        QCOMPARE(app.lift->objectCount(), 1);
+        QVERIFY(app.document->isLifting());
+        app.view->setInk(second);
+        QCOMPARE(app.lift->objectCount(), 0);
+        QVERIFY(!app.document->isLifting());
+        QVERIFY(!app.busy());
+        QCOMPARE(app.document->fingerprintText(), before);
+        QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, app.scene(QPointF(440, 300)));
+        QCOMPARE(app.document->fingerprintText(), before); // rien déplacé
+
+        QVERIFY(app.trigger("tool.eraser"));
+        stylus(app, QPointF(400, 390), QPointF(400, 510), 12, false);
+        QVERIFY(app.document->isLifting());
+        QVERIFY(app.lift->objectCount() >= 1);
+        app.view->setInk(first);
+        QCOMPARE(app.lift->objectCount(), 0);
+        QVERIFY(!app.document->isLifting());
+        QVERIFY(!app.busy());
+        QCOMPARE(app.document->fingerprintText(), before); // ce qui était gommé revient
+        tablet(app, QEvent::TabletRelease, QPointF(400, 510), Qt::LeftButton, Qt::NoButton);
+        QCOMPARE(app.document->fingerprintText(), before);
+        QCOMPARE(app.document->shownObjectCount(), 2);
     }
 
     // M2 : page suivante pendant un glissement.
