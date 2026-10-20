@@ -82,6 +82,10 @@ public:
     void execute(std::unique_ptr<core::UndoCommand> command);
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
+    // Clôt l'étape en cours de fusion (core::UndoStack::closeMerge) : la réglette de translucidité l'appelle
+    // à sa fermeture, une étape par ouverture (D10, P23). Ne modifie ni le document ni l'état de la pile vu
+    // de l'interface (canUndo, canRedo, modifié).
+    Q_INVOKABLE void closeMerge();
     // Le stylo verse son trait (ControllerSink) : couche supérieure de la page affichée (F-510), par la pile.
     void commitStroke(core::Stroke stroke);
     // Remplace le document (ouverture, nouveau) : pile vidée, état propre, page 1 affichée. Titre vide :

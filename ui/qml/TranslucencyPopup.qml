@@ -3,11 +3,18 @@ import QtQuick.Controls
 import ActCraft.Ui
 
 // Réglette de translucidité, de 0 (opaque) à 255 (invisible) : ouverte par object.translucency sans argument.
-// Chaque mouvement déclenche object.translucency <valeur> ; une étape d'annulation par fusion (L3-T4).
+// Chaque mouvement déclenche object.translucency <valeur> ; les mouvements d'une ouverture fusionnent en une
+// étape d'annulation, close à la fermeture (D10, P23) : la réouverture en ouvre une autre.
 Popup {
     id: popup
+    objectName: "translucencyPopup"
 
     required property Tools tools
+
+    onClosed: {
+        if (popup.tools.documentController)
+            popup.tools.documentController.closeMerge()
+    }
 
     parent: Overlay.overlay
     x: Math.round((parent.width - width) / 2)
