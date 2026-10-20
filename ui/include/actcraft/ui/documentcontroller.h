@@ -259,6 +259,10 @@ private:
     // Lot 3 (L3-T12) : soulèvement et page de référence de Rétablir la page.
     // Dépôt forcé (M2) : ce qui reste soulevé après l'annonce d'une édition revient sans étape.
     void dropRemaining();
+    // Annonce d'une édition (editAboutToApply), puis dépôt forcé.
+    void announceEdit();
+    // Annonce d'un changement de page (pageAboutToChange), puis dépôt forcé.
+    void announcePageChange();
     // Objets soulevés d'un document remplacé depuis (replaceDocument direct) : oubliés, liftingChanged.
     void forgetStaleLift();
     // Page de la référence pour la page affichée ; nullptr : jamais enregistrée ni ouverte (page vierge, D9).

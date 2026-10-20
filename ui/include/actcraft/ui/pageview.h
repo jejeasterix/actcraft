@@ -260,13 +260,15 @@ private:
     // endToolContacts du routeur : le doigt qui écrit passe au geste (trait abandonné, H3-17) ou cède la main
     // au stylet ou à la souris (trait terminé là où il était, M4 b).
     void endToolContacts(const input::Decision& decision);
-    void
-    terminateTouchStroke(); // relâché au dernier point brut du doigt, puis cancel() si l'outil reste occupé
+    // Relâché au dernier point brut du doigt, puis cancel() si l'outil reste occupé.
+    void terminateTouchStroke();
     void abandonTouchStroke(); // Tool::abandon : rien n'est versé
     bool onGestureSample(const input::Sample& sample, QPointF viewPos);
     bool addGestureContact(std::uint64_t pointer, QPointF viewPos); // faux : le geste a ses deux contacts
     void applyGesture();
     void endGesture(); // annulation, saisie volée : contacts du geste oubliés, au routeur aussi
+    // Termine le geste à deux doigts s'il est actif, et le signale.
+    void stopGesture();
     // M3 : les demandes de redessin suivantes de ce tour sont couvertes par celle qui vient de partir.
     void holdRequestsOfThisTurn();
 
