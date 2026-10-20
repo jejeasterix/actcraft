@@ -1355,8 +1355,8 @@
     "semantic_hash": ""
   },
   "formats/src/flipchart.cpp": {
-    "mtime": 1792414375.601299,
-    "ast_hash": "4749784b8f92de2224375aa888315eca",
+    "mtime": 1792523290.9986627,
+    "ast_hash": "b7033838d9e1380aaf781059412d64cc",
     "semantic_hash": ""
   },
   "formats/src/flipchartdump.cpp": {
@@ -1365,8 +1365,8 @@
     "semantic_hash": ""
   },
   "formats/src/flipchartids.h": {
-    "mtime": 1792414375.6033092,
-    "ast_hash": "9b37e18e6e162e67a820c64c12f1605e",
+    "mtime": 1792523291.001587,
+    "ast_hash": "ac5267f10fcfeefbc9b9011d1b4d3165",
     "semantic_hash": ""
   },
   "formats/src/nativefile.cpp": {
@@ -1485,8 +1485,8 @@
     "semantic_hash": ""
   },
   "tests/tst_formats_flipchart.cpp": {
-    "mtime": 1792414375.6091352,
-    "ast_hash": "07e21a8a05500ad3f81cbac3cedc1175",
+    "mtime": 1792523291.005419,
+    "ast_hash": "091037259ebf73da0711640427ef5e1e",
     "semantic_hash": ""
   },
   "tests/tst_formats_nativefile.cpp": {
@@ -2160,8 +2160,8 @@
     "semantic_hash": ""
   },
   "features/include/actcraft/features/pagetools.h": {
-    "mtime": 1792382785.6086345,
-    "ast_hash": "4b9e95598cf077c72b5d92d898b9bd39",
+    "mtime": 1792523290.9875448,
+    "ast_hash": "d3fb5288dd367e90d01ae0f9d365c01e",
     "semantic_hash": ""
   },
   "features/include/actcraft/features/pagezoom.h": {
@@ -2235,8 +2235,8 @@
     "semantic_hash": ""
   },
   "features/src/pagetools.cpp": {
-    "mtime": 1792382785.615231,
-    "ast_hash": "be43f2947a2fa93f667a58e060f3746a",
+    "mtime": 1792523290.9875448,
+    "ast_hash": "3e9e10696e96183df6e314fce568a532",
     "semantic_hash": ""
   },
   "features/src/pagezoom.cpp": {
@@ -2315,8 +2315,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_pagetools.cpp": {
-    "mtime": 1792382785.6232827,
-    "ast_hash": "cb746c05f4660745f66810dd86028465",
+    "mtime": 1792523291.0034087,
+    "ast_hash": "d2bf5e4180c777dc7c93cc29bd3006c3",
     "semantic_hash": ""
   },
   "tests/tst_features_pagezoom.cpp": {
@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792514470.3215475,
-    "ast_hash": "5a599720a681ebef839ae1268706ba03",
+    "mtime": 1792522017.9383442,
+    "ast_hash": "a0ee11f2b00c13a17e598d083d8e463b",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2550,8 +2550,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_pagetools.cpp": {
-    "mtime": 1792406200.5127766,
-    "ast_hash": "96280ce374b52ab59522f64e837a79e7",
+    "mtime": 1792523291.0074275,
+    "ast_hash": "b5c0d698c4629495b3432e8d5212530f",
     "semantic_hash": ""
   },
   "tests/tst_ui_pagezoom.cpp": {
@@ -2632,6 +2632,16 @@
   "ui/src/pagezoomcontroller.h": {
     "mtime": 1792521871.900283,
     "ast_hash": "74f5c86a055af427918877a2176c9d30",
+    "semantic_hash": ""
+  },
+  "ui/src/pagetoolscontroller.cpp": {
+    "mtime": 1792523291.0118966,
+    "ast_hash": "27706aaac4196a5b416e9d8389c8ac3a",
+    "semantic_hash": ""
+  },
+  "ui/src/pagetoolscontroller.h": {
+    "mtime": 1792523291.0138881,
+    "ast_hash": "069a1a032d576cff96f1f30a4ba5900f",
     "semantic_hash": ""
   }
 }
