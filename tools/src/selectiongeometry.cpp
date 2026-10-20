@@ -17,8 +17,10 @@ core::PointF middle(core::PointF a, core::PointF b) noexcept
     return {(a.x + b.x) / 2, (a.y + b.y) / 2};
 }
 
-// Barre d'objet : au-dessus du cadre, sous lui si elle sortirait du haut de la page, à droite si le cadre est
-// plus haut que large (colonne). Tailles en pixels d'écran, converties en pixels de page.
+// Barre d'objet (D7, P18) : posée le long d'un bord du cadre, qu'elle suit s'il est pivoté. Bord haut
+// (corners[0] → corners[1]) décalé selon la normale extérieure ; bord droit (corners[1] → corners[2]) si le
+// cadre est plus haut que large (colonne), jugé sur les longueurs des bords du cadre. Si la rangée sortirait
+// du haut de la page, elle passe sur le bord opposé. Tailles en pixels d'écran, converties en pixels de page.
 std::vector<BarSpot> layoutBar(const std::vector<core::PointF>& corners, const QStringList& commands,
                                double zoom)
 {
@@ -26,37 +28,44 @@ std::vector<BarSpot> layoutBar(const std::vector<core::PointF>& corners, const Q
     if (commands.isEmpty()) {
         return bar;
     }
-    double minX = corners[0].x;
-    double maxX = minX;
-    double minY = corners[0].y;
-    double maxY = minY;
-    for (const core::PointF& corner : corners) {
-        minX = std::min(minX, corner.x);
-        maxX = std::max(maxX, corner.x);
-        minY = std::min(minY, corner.y);
-        maxY = std::max(maxY, corner.y);
+    const auto length = [](core::PointF a, core::PointF b) { return std::hypot(b.x - a.x, b.y - a.y); };
+    const bool column = length(corners[0], corners[3]) > length(corners[0], corners[1]);
+    // Bord porteur a → b ; bord opposé o → p ; `inside` est un coin du côté intérieur.
+    const core::PointF a = column ? corners[1] : corners[0];
+    const core::PointF b = column ? corners[2] : corners[1];
+    const core::PointF o = column ? corners[0] : corners[3];
+    const core::PointF p = column ? corners[3] : corners[2];
+    const double edge = length(a, b);
+    const core::PointF u =
+        edge > 1e-12 ? core::PointF{(b.x - a.x) / edge, (b.y - a.y) / edge} : core::PointF{1.0, 0.0};
+    core::PointF n{u.y, -u.x};
+    if ((o.x - a.x) * n.x + (o.y - a.y) * n.y > 0) {
+        n = {-n.x, -n.y}; // normale toujours vers l'extérieur, même pour un cadre retourné
     }
     const double button = kBarButtonScreen / zoom;
     const double spacing = kBarSpacingScreen / zoom;
-    const double gap = kBarGapScreen / zoom;
+    const double offset = kBarGapScreen / zoom + button / 2;
     const double count = static_cast<double>(commands.size());
     const double total = count * button + (count - 1) * spacing;
-    const double centerX = (minX + maxX) / 2;
-    const double centerY = (minY + maxY) / 2;
-    const bool column = (maxY - minY) > (maxX - minX);
-    double fixed = 0; // y de la rangée, ou x de la colonne
-    if (column) {
-        fixed = maxX + gap + button / 2;
-    } else {
-        fixed = minY - gap - button / 2;
-        if (fixed - button / 2 < 0) {
-            fixed = maxY + gap + button / 2;
+    const auto build = [&](core::PointF base, core::PointF side) {
+        std::vector<BarSpot> spots;
+        for (qsizetype i = 0; i < commands.size(); ++i) {
+            const double along = -total / 2 + button / 2 + static_cast<double>(i) * (button + spacing);
+            spots.push_back(
+                {commands[i],
+                 {base.x + side.x * offset + u.x * along, base.y + side.y * offset + u.y * along}});
         }
-    }
-    const double first = (column ? centerY : centerX) - total / 2 + button / 2;
-    for (qsizetype i = 0; i < commands.size(); ++i) {
-        const double along = first + static_cast<double>(i) * (button + spacing);
-        bar.push_back({commands[i], column ? core::PointF{fixed, along} : core::PointF{along, fixed}});
+        return spots;
+    };
+    bar = build(middle(a, b), n);
+    if (!column) {
+        double highest = bar[0].center.y;
+        for (const BarSpot& spot : bar) {
+            highest = std::min(highest, spot.center.y);
+        }
+        if (highest - button / 2 < 0) {
+            bar = build(middle(o, p), {-n.x, -n.y});
+        }
     }
     return bar;
 }
