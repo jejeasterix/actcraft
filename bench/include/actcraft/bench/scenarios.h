@@ -66,6 +66,11 @@ struct ScenarioPlan
     int touchedStrokes = -1; // k : annotations que le passage de gomme touche
     int liftedObjects = -1;  // soulever : objets que le rectangle de sélection prend (2 à 8)
     int pendingCut = -1;     // 1 si le dernier trait encore en attente est gommé en deux morceaux
+    // L3-C10 (S36, M3) : retire figements et reprises hors limite du verdict de ce scénario (lu par ce
+    // booléen, jamais par le nom) ; copié dans ScenarioResult::freezeExempt.
+    bool freezeExempt = false;
+    // Attendu S36 sur les redessins du cache (copié dans ScenarioResult::maxCacheRefreshes) ; < 0 : aucun.
+    int maxCacheRefreshes = -1;
     std::vector<PlannedInput> inputs;
 };
 

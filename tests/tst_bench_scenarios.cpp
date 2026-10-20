@@ -141,6 +141,22 @@ private slots:
     // L3-T19 (S36) : la gomme ne touche que les annotations (couche supérieure) ; les traits de la page
     // générée sont sur la couche du milieu. Le scénario pose donc ses propres annotations, versées avant la
     // mesure, et le zigzag du stylo en croise au moins 20.
+    // L3-C10 (S36, M3) : le plan de `gommer` et de `soulever` retire figements et reprises du verdict et pose
+    // l'attendu des redessins ; aucun autre scénario n'est touché.
+    void gesturePlansCarryTheirVerdictExemption()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            for (const bench::ScenarioPlan& plan : bench::allScenarios(set)) {
+                const bool gesture = plan.toolCommand.size() > 0;
+                QCOMPARE(plan.freezeExempt, gesture);
+                QCOMPARE(plan.maxCacheRefreshes >= 0, gesture);
+            }
+            const bench::ScenarioPlan erase = bench::eraseScenario(set);
+            QCOMPARE(erase.maxCacheRefreshes, erase.touchedStrokes + 1 + erase.pendingCut);
+            QCOMPARE(bench::liftScenario(set).maxCacheRefreshes, 2);
+        }
+    }
+
     void eraseScenarioCrossesStrokes()
     {
         for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {

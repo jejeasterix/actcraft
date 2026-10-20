@@ -33,6 +33,8 @@ struct Criterion
     double value = 0;
     double limit = 0;
     bool ok = false;
+    // Critère retiré du jugement pour ce scénario (ScenarioResult::freezeExempt) : relevé, jamais dépassé.
+    bool excluded = false;
 };
 
 // Contrôle du rattachement des traits à leurs images (verdict.h, releaseCoverage).
@@ -74,6 +76,12 @@ struct ScenarioResult
     int touchedStrokes = -1;
     int pendingCut = -1;
     int liftedObjects = -1; // « soulever » : objets pris par le rectangle de sélection
+    // L3-C10 (S36, M3) : posé par le plan du scénario, jamais déduit de son nom. true : figements et reprises
+    // hors limite ne sont pas jugés (relevés, marqués « excluded » dans le verdict) ; fps, p95 et part des
+    // intervalles > 25 ms le restent.
+    bool freezeExempt = false;
+    // Attendu chiffré S36 sur cache.refreshes (cacheRequestNs.size()) ; < 0 : pas de critère.
+    int maxCacheRefreshes = -1;
     int rebuilds = -1;
     int decodes = -1;
 };

@@ -384,7 +384,9 @@ ScenarioPlan eraseScenario(ScenarioSet set)
     }
     appendRelease(plan.inputs);
     plan.touchedStrokes = touchedAnnotations(pageWithSeeds(plan.seedStrokes), plan.inputs);
-    plan.pendingCut = 0; // tout est versé avant la mesure : aucun trait n'attend au-dessus du cache
+    plan.pendingCut = 0;      // tout est versé avant la mesure : aucun trait n'attend au-dessus du cache
+    plan.freezeExempt = true; // S36 : hors du critère « 0 figement » de S13
+    plan.maxCacheRefreshes = plan.touchedStrokes + 1 + plan.pendingCut;
     return plan;
 }
 
@@ -397,6 +399,8 @@ ScenarioPlan liftScenario(ScenarioSet set)
     plan.generatedPages = 1;
     plan.toolCommand = QStringLiteral("tool.select");
     plan.liftedObjects = target.taken;
+    plan.freezeExempt = true;   // S36 : hors du critère « 0 figement » de S13
+    plan.maxCacheRefreshes = 2; // S36 : deux redessins (pose de la sélection, relâché)
     std::int64_t at = 0;
     appendLine(plan.inputs, target.bandFrom, target.bandTo, 4.0, at, true);
     appendRelease(plan.inputs);
