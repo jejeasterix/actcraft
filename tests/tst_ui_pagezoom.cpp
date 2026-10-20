@@ -149,6 +149,12 @@ private slots:
         releaseAt(main.window(), pointer, center);
         QVERIFY2(held > startZoom * 1.2, qPrintable(QString::number(held)));
 
+        // Un trait complet (appui, déplacements, relâché) fait un panoramique, jamais un trait de la page.
+        const QPointF panBefore = main.pageView()->pan();
+        presentationharness::strokeAt(main.window(), pointer, center, center + QPointF(-120, -80));
+        QTest::qWait(100);
+        QVERIFY(main.pageView()->pan() != panBefore);
+
         if (pointer == Pointer::Mouse) {
             pressAt(main.window(), pointer, center, Qt::RightButton);
             QTest::qWait(150);
