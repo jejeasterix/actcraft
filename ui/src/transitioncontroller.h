@@ -13,11 +13,12 @@
 namespace actcraft::ui {
 
 // Effets de changement de page (F-640) : réglages, choix de l'effet et déroulé d'un changement. L'effet est
-// celui de la page QUITTÉE (core::PagePresentation::transition), sinon l'effet global ; « random » est tiré par
-// features::pickEffect sur un générateur injectable (seedRandom). Seuls page.next et page.previous passent ici
-// (navigate) ; sans effet à jouer, la page change aussitôt, comme sans enveloppe. Avec un effet : la surcouche
-// fige un instantané (captureRequested), puis frozen() change la page et l'effet se joue (playRequested) ;
-// finished() le termine. Aucune demande de redessin du cache : seule la vue redessine, pour la nouvelle page.
+// celui de la page QUITTÉE (core::PagePresentation::transition), sinon l'effet global ; « random » est tiré
+// par features::pickEffect sur un générateur injectable (seedRandom). Seuls page.next et page.previous
+// passent ici (navigate) ; sans effet à jouer, la page change aussitôt, comme sans enveloppe. Avec un effet :
+// la surcouche fige un instantané (captureRequested), puis frozen() change la page et l'effet se joue
+// (playRequested) ; finished() le termine. Aucune demande de redessin du cache : seule la vue redessine, pour
+// la nouvelle page.
 class TransitionController : public QObject
 {
     Q_OBJECT
@@ -28,9 +29,9 @@ class TransitionController : public QObject
     Q_PROPERTY(int durationTenths READ durationTenths WRITE setDurationTenths NOTIFY settingsChanged)
     // Vrai pendant le rideau (lié par la surcouche à curtain.active) : aucun effet.
     Q_PROPERTY(bool blocked READ blocked WRITE setBlocked NOTIFY blockedChanged)
-    Q_PROPERTY(int phase READ phase NOTIFY phaseChanged)    // Phase
-    Q_PROPERTY(bool playing READ playing NOTIFY phaseChanged) // instantané en cours ou effet joué
-    Q_PROPERTY(QString effect READ effect NOTIFY phaseChanged) // effet en cours ; vide au repos
+    Q_PROPERTY(int phase READ phase NOTIFY phaseChanged)        // Phase
+    Q_PROPERTY(bool playing READ playing NOTIFY phaseChanged)   // instantané en cours ou effet joué
+    Q_PROPERTY(QString effect READ effect NOTIFY phaseChanged)  // effet en cours ; vide au repos
     Q_PROPERTY(QString played READ played NOTIFY playedChanged) // dernier effet joué (scénarios)
     Q_PROPERTY(QVariantList catalogue READ catalogue CONSTANT)  // [{id, label}] (navigateur, L7-T8)
 

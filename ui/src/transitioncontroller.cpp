@@ -20,7 +20,8 @@ using Origin = QQuickItem::TransformOrigin;
 bool known(const QString& id)
 {
     const auto& list = features::transitionCatalogue();
-    return std::any_of(list.begin(), list.end(), [&id](const features::TransitionEffect& e) { return e.id == id; });
+    return std::any_of(list.begin(), list.end(),
+                       [&id](const features::TransitionEffect& e) { return e.id == id; });
 }
 
 struct Piece
@@ -57,8 +58,7 @@ Piece whole()
 }
 
 // Grille de cols × rows morceaux ; `shape` pose la cible de chacun (colonne, ligne, indice).
-template <typename Shape>
-std::vector<Piece> grid(int cols, int rows, Shape shape)
+template <typename Shape> std::vector<Piece> grid(int cols, int rows, Shape shape)
 {
     std::vector<Piece> pieces;
     for (int r = 0; r < rows; ++r) {
@@ -196,8 +196,8 @@ TransitionController::TransitionController(QObject* parent)
     if (known(global)) {
         m_settings.global = global;
     }
-    m_settings.durationTenths =
-        features::clampDurationTenths(settings.value(QStringLiteral("duration"), m_settings.durationTenths).toInt());
+    m_settings.durationTenths = features::clampDurationTenths(
+        settings.value(QStringLiteral("duration"), m_settings.durationTenths).toInt());
     settings.endGroup();
 }
 

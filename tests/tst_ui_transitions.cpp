@@ -76,7 +76,8 @@ class TstUiTransitions : public QObject
     Q_OBJECT
 
 private slots:
-    // Effet « aucun » (défaut) : la page change aussitôt, comme sans enveloppe, et aucun instantané n'est créé.
+    // Effet « aucun » (défaut) : la page change aussitôt, comme sans enveloppe, et aucun instantané n'est
+    // créé.
     void noEffectWhenNone()
     {
         MainWindow main;
@@ -194,8 +195,8 @@ private slots:
         QVERIFY(settle(main, transition));
     }
 
-    // Le cache n'est redessiné ni pour l'instantané ni par l'effet : aucune demande avant le changement de page,
-    // et autant de demandes, effet fini, qu'un changement de page sans effet.
+    // Le cache n'est redessiné ni pour l'instantané ni par l'effet : aucune demande avant le changement de
+    // page, et autant de demandes, effet fini, qu'un changement de page sans effet.
     void transitionDoesNotRefreshTheCacheBeforeTheEnd()
     {
         MainWindow main;
@@ -224,7 +225,8 @@ private slots:
         spy.clear();
         int atTurn = -1;
         QObject context;
-        QObject::connect(document, &DocumentController::pagesChanged, &context, [&] {
+        // Juste avant le changement de page (la vue demande son redessin dans le changement même).
+        QObject::connect(document, &DocumentController::pageAboutToChange, &context, [&] {
             if (atTurn < 0) {
                 atTurn = static_cast<int>(spy.count());
             }
@@ -239,7 +241,8 @@ private slots:
     }
 
     // Un trait versé moins de 500 ms avant page.next, encore en attente au-dessus du cache, est dans
-    // l'instantané (source : la page entière, pas la page fixe du cache). Image lue par grabToImage ici seulement.
+    // l'instantané (source : la page entière, pas la page fixe du cache). Image lue par grabToImage ici
+    // seulement.
     void snapshotShowsAPendingStroke()
     {
         MainWindow main;
@@ -295,7 +298,8 @@ private slots:
         QVERIFY(settle(main, transition));
         QCOMPARE(document->currentIndex(), 3);
         QCOMPARE(document->pageCount(), 4);
-        QCOMPARE(main.item(QStringLiteral("pageIndicator"))->property("text").toString(), QStringLiteral("4 / 4"));
+        QCOMPARE(main.item(QStringLiteral("pageIndicator"))->property("text").toString(),
+                 QStringLiteral("4 / 4"));
     }
 
     // « Au hasard » : un effet du catalogue tiré par features::pickEffect sur le générateur injecté.
