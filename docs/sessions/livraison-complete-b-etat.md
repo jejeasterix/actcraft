@@ -7,7 +7,7 @@ Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branc
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
-Lot : 7 « présentation et outils » — 10/33 tâches terminées
+Lot : 7 « Présentation et outils » — 10/33 tâches terminées
 Tâche : L7-T12 — Compas (F-282), essai 2 — rejeu en cours
 Tâche : L7-T7 — Effets de changement de page I (F-640) — depuis 2026-10-20 20:46
 Tâche : L7-T14 — Dés (F-285, E5) — depuis 2026-10-20 22:48
