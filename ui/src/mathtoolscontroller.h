@@ -22,15 +22,17 @@
 
 namespace actcraft::ui {
 
-// Outils de maths ouverts dans la fenêtre (F-280 règle, F-283 équerre, F-281 rapporteur ; compas, origine :
-// L7-T12, L7-T13). L'outil n'est jamais écrit dans le document. Leurs bords guident l'encre par le filtre
+// Outils de maths ouverts dans la fenêtre (F-280 règle, F-283 équerre, F-281 rapporteur, F-282 compas ;
+// origine : L7-T13). L'outil n'est jamais écrit dans le document. Leurs bords guident l'encre par le filtre
 // d'échantillons de la vue (PageView::setSampleFilter), appliqué avant le Pipeline, relâchés synthétisés
 // compris (à partir du dernier point brut) : le stylo reçoit des échantillons déjà posés sur le bord et verse
 // son trait comme tout trait ; ni le stylo ni la vue ne savent qu'une règle existe. Rapporteur en style
 // « arc fermé » ou « arc plein » : une fois le trait guidé versé par le stylo (inchangé, l'arc seul), le
 // contrôleur ajoute les deux rayons (core::Line) ou le secteur rempli (core::Shape Path) par
 // DocumentInsertions::insertObject, une étape d'annulation à elle seule ; jamais par le stylo ni par le
-// filtre. Par fenêtre, pas par page : les outils restent en changeant de page. Coordonnées de page.
+// filtre. Compas « marquer le centre » : de même, la croix du centre (un core::Line) suit le trait guidé par
+// la mine, par insertObject, sur la couche du trait. Par fenêtre, pas par page : les outils restent en
+// changeant de page. Coordonnées de page.
 class MathToolsController : public QObject
 {
     Q_OBJECT
@@ -84,11 +86,17 @@ public:
     // Rapporteur centré sur la page (rayon 200, angle 0) ; forme et style d'arc du dernier choix (QSettings
     // mathtools/protractor ; défaut : complet, arc seul) ; son index.
     Q_INVOKABLE int openProtractor();
+    // Compas : pointe à gauche du centre de la page, mine à droite (rayon 5 cm, bras de 250, angle 0) ;
+    // réglages du dernier choix (QSettings mathtools/compass ; défaut : non réfléchi, angle et rayon
+    // affichés, centre non marqué) ; son index.
+    Q_INVOKABLE int openCompass();
     // Ferme l'outil : les traits déjà versés restent (ils sont au document, l'outil n'en possède aucun).
     Q_INVOKABLE void close(int index);
     // Règle : centre, longueur, largeur, angle. Équerre : `center` est le sommet de l'angle droit, `length`
     // le côté, `thickness` est ignorée. Rapporteur : `center` est le centre du cercle, `length` le rayon,
-    // `thickness` est ignorée.
+    // `thickness` est ignorée. Compas : `center` est la pointe, `length` le rayon (borné à 20 … 1,9 × la
+    // longueur des bras), `angle` la direction de la pointe vers la mine ; `thickness` est ignorée (longueur
+    // des bras : stepCompassLength).
     Q_INVOKABLE void setFrame(int index, QPointF center, qreal length, qreal thickness, qreal angle);
     // Unités des deux bords : « cm », « mm », « inch », « none » ; gardées pour la règle suivante
     // (QSettings).
@@ -100,12 +108,23 @@ public:
     // Rapporteur : « arc » (le trait seul), « closed » (trait + deux rayons), « filled » (trait + secteur
     // rempli de la couleur du trait) ; gardé pour le suivant.
     Q_INVOKABLE void setArcStyle(int index, const QString& style);
+    // Compas : dessin réfléchi (charnière de l'autre côté ; la mine ne bouge pas), rayon affiché, centre
+    // marqué (une croix après chaque trait guidé par la mine) ; gardés pour le suivant.
+    Q_INVOKABLE void setMirrored(int index, bool on);
+    Q_INVOKABLE void setShowRadius(int index, bool on);
+    Q_INVOKABLE void setMarkCentre(int index, bool on);
+    // Compas : longueur des bras augmentée (step > 0, × 1,2), réduite (step < 0) ou réinitialisée (0, 250),
+    // bornée à 120 … 600 ; le rayon reste sous 1,9 × la longueur.
+    Q_INVOKABLE void stepCompassLength(int index, int step);
     // kind (« ruler », « setSquare » ou « protractor »), command, centerX, centerY, length, thickness, angle,
     // displayAngle, topUnit, bottomUnit, showAngle ; vide hors des bornes. Équerre : centre = sommet de
     // l'angle droit, length = thickness = côté. Rapporteur : centre du cercle, length = thickness = rayon, et
-    // shape, arcStyle, swept (angle balayé par le trait guidé en cours ou le dernier, degrés entiers).
+    // shape, arcStyle, swept (angle balayé par le trait guidé en cours ou le dernier, degrés entiers). Compas
+    // : centre = pointe, length = rayon, thickness = longueur des bras, angle = direction de la mine, et
+    // mirrored, showRadius, markCentre, radiusText (« 3,0 cm »), leadX, leadY (la mine).
     Q_INVOKABLE QVariantMap toolAt(int index) const;
-    // Point d'accroche sous `pagePoint` (cercle du survol) : {snapped, x, y} ; aucun changement d'état.
+    // Point d'accroche sous `pagePoint` (cercle du survol) : {snapped, x, y, tool} ; tool : index de l'outil
+    // dont le guide saisirait le stylo (-1 sans accroche). Aucun changement d'état.
     Q_INVOKABLE QVariantMap snapAt(QPointF pagePoint) const;
 
 signals:
@@ -133,28 +152,51 @@ private:
         input::Sample follow(const input::Sample& sample) override;
     };
 
+    // Compas vu par GuideSet, comme ArcGuide : le guide de features et la marque « saisi au dernier appui ».
+    class CompassGuide final : public features::StrokeGuide
+    {
+    public:
+        features::Compass compass;
+        bool seized = false;
+        std::optional<input::Sample> project(const input::Sample& sample, double tolerance) const override;
+        std::optional<input::Sample> capture(const input::Sample& sample, double tolerance) override;
+        input::Sample follow(const input::Sample& sample) override;
+    };
+
     struct Entry
     {
         QString command; // identifiant de la commande qui l'ouvre (UserState::setOpenMathTools)
-        std::unique_ptr<features::Ruler> ruler; // exactement l'un des trois
+        std::unique_ptr<features::Ruler> ruler; // exactement l'un des quatre
         std::unique_ptr<features::SetSquare> square;
         std::unique_ptr<ArcGuide> protractor;
-        QPointF vertex;   // équerre : sommet de l'angle droit ; rapporteur : centre
-        double side = 0;  // équerre : côté ; rapporteur : rayon
+        std::unique_ptr<CompassGuide> compass; // pointe, rayon, angle et miroir : dans features::Compass
+        QPointF vertex;                        // équerre : sommet de l'angle droit ; rapporteur : centre
+        double side = 0;  // équerre : côté ; rapporteur : rayon ; compas : longueur des bras
         double angle = 0; // équerre, rapporteur : degrés
         features::Protractor::Kind shape = features::Protractor::Kind::Full;
         features::ArcStyle arcStyle = features::ArcStyle::Arc;
-        int sweptShown = 0; // rapporteur : angle balayé publié par toolAt() (degrés entiers)
+        // Publié à chaque degré entier : rapporteur, angle balayé ; compas, angle du bras (la mine suit le
+        // stylo).
+        int sweptShown = 0;
         bool showAngle = true;
+        bool showRadius = true;  // compas
+        bool markCentre = false; // compas
         features::StrokeGuide* guide() const noexcept;
         const char* settingsGroup() const noexcept;
     };
 
-    // Rayons ou secteur à ajouter : armé au relâché guidé par un rapporteur fermé ou plein, complété par le
-    // trait que le stylo verse aussitôt (observateur du document), inséré ensuite.
-    struct PendingArc
+    // Ce qu'un outil ajoute après le trait guidé qu'il a tenu (rayons ou secteur d'un rapporteur fermé ou
+    // plein, croix du centre d'un compas) : armé au relâché, complété par le trait que le stylo verse
+    // aussitôt (observateur du document), inséré ensuite.
+    struct PendingAddition
     {
-        QPointF center;
+        enum class Kind
+        {
+            Arc,
+            Cross
+        };
+        Kind kind = Kind::Arc;
+        QPointF center; // arc : centre du cercle ; croix : pointe du compas
         double radius = 0;
         double start = 0; // degrés de page (repère de features::arcPath)
         double sweep = 0; // avec son sens
@@ -171,12 +213,16 @@ private:
     // sélection, le marqueur et la gomme passent tels quels (marqueur et gomme : L7-T34).
     bool guidesTool(input::UserId user) const;
     input::Sample guide(const input::Sample& sample);
-    // Rapporteur qui tient le trait (saisi à l'appui), sinon nul.
+    // Rapporteur ou compas qui tient le trait (saisi à l'appui), sinon nul.
     Entry* seizedProtractor() noexcept;
+    Entry* seizedCompass() noexcept;
+    Entry* compassEntry(int index) noexcept; // compas de l'index, sinon nul
+    void followCompass(Entry& entry, input::Phase phase);
+    static void storeCompassChoice(const Entry& entry);
     static void applyProtractorFrame(Entry& entry);
     static void storeProtractorChoice(const Entry& entry);
     void watchStrokes();
-    void insertArc(const PendingArc& arc);
+    void insertAddition(const PendingAddition& pending);
     void syncTolerance();
     void storeOpenTools();
     void touch();
@@ -185,7 +231,7 @@ private:
     QPointer<ToolHost> m_toolHost;
     QPointer<DocumentController> m_document;
     int m_strokeObserver = 0;
-    std::optional<PendingArc> m_pendingArc;
+    std::optional<PendingAddition> m_pending;
     QMetaObject::Connection m_zoomConnection;
     bool m_filterInstalled = false;
     std::vector<Entry> m_tools;
