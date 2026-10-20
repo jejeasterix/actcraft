@@ -679,8 +679,8 @@ void MathToolsController::insertArc(const PendingArc& arc)
     const std::vector<QPointF> path =
         features::arcPath(arc.center, arc.radius, arc.start, arc.sweep, arc.style);
     core::PageObject added = arcObject(path, arc.style, *stroke);
-    added.common.layer =
-        found->common.layer; // la couche du trait, lue sur lui (F-510 : commitStroke la pose)
+    // La couche du trait, lue sur lui (F-510 : commitStroke la pose).
+    added.common.layer = found->common.layer;
     DocumentInsertions(*m_document).insertObject(std::move(added));
 }
 
