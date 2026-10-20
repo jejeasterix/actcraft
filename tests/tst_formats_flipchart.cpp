@@ -385,8 +385,8 @@ private slots:
 
     // Objet MathML (type 460, propriété 52) : une équation dont `mathml` garde le texte brut (L7-T1). Sans
     // cette propriété il n'y a rien à lire : l'objet reste non lu, comme avant.
-    // Réglages de présentation de la page (L7-T6) : distance du rideau (13), cadre du spot (18), origine XY (29),
-    // lus tels quels ; une page qui ne les porte pas garde les défauts.
+    // Réglages de présentation de la page (L7-T6) : distance du rideau (13), cadre du spot (18), origine XY
+    // (29), lus tels quels ; une page qui ne les porte pas garde les défauts.
     void pagePresentationRead()
     {
         const QByteArray page1 = fctest::container(
@@ -397,7 +397,8 @@ private slots:
             {Entry(u"203.in"_s, fctest::index(Node(203, 2, 202))), Entry(u"202.io"_s, Obj(2, 202).stream())});
         const auto r = formats::flipchart::readFlipchart(fctest::container(
             {Entry(u"101.in"_s, fctest::index(Node(101, 1, 100, {Node(103, 2, 102), Node(203, 2, 202)}))),
-             Entry(u"100.io"_s, Obj(1, 100).stream()), Entry(u"103.fpg"_s, page1), Entry(u"203.fpg"_s, page2)}));
+             Entry(u"100.io"_s, Obj(1, 100).stream()), Entry(u"103.fpg"_s, page1),
+             Entry(u"203.fpg"_s, page2)}));
         QVERIFY2(r.ok, qPrintable(r.error));
         QCOMPARE(r.document.pageCount(), std::size_t{2});
         const core::PagePresentation& p = r.document.page(0).presentation;

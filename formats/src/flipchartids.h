@@ -58,10 +58,10 @@ inline constexpr quint16 kPageTitle = 2;
 inline constexpr quint16 kPresenterNotes = 5;
 inline constexpr quint16 kSheetSize = 6;
 inline constexpr quint16 kShowGuides = 17; // grille affichée
-// Réglages de présentation de la page (F-591 à F-593, F-284) lus tels quels : un nombre, un rectangle, un point.
-// Les propriétés codées de la page (12 mode du rideau, 16 mode du spot, 27 outils de page, 30 effet propre à la
-// page) ne sont pas lues : aucune de leurs valeurs n'est établie par une source indépendante du fichier lu
-// (hypothèse H7-16 du lot 7) ; elles gardent leur valeur par défaut.
+// Réglages de présentation de la page (F-591 à F-593, F-284) lus tels quels : un nombre, un rectangle, un
+// point. Les propriétés codées de la page (12 mode du rideau, 16 mode du spot, 27 outils de page, 30 effet
+// propre à la page) ne sont pas lues : aucune de leurs valeurs n'est établie par une source indépendante du
+// fichier lu (hypothèse H7-16 du lot 7) ; elles gardent leur valeur par défaut.
 inline constexpr quint16 kPageCurtainDistance = 13; // distance découverte du rideau, pixels de page
 inline constexpr quint16 kPageSpotFrame = 18;       // cadre du spot
 inline constexpr quint16 kPageOrigin = 29;          // origine XY mémorisée

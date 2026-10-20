@@ -21,10 +21,11 @@ template <typename Value> struct Named
     Value value;
 };
 
-constexpr std::array<Named<core::PageToolsMode>, 4> kToolsModes{{{"keep", core::PageToolsMode::Keep},
-                                                                  {"curtain", core::PageToolsMode::Curtain},
-                                                                  {"spotlight", core::PageToolsMode::Spotlight},
-                                                                  {"off", core::PageToolsMode::Off}}};
+constexpr std::array<Named<core::PageToolsMode>, 4> kToolsModes{
+    {{"keep", core::PageToolsMode::Keep},
+     {"curtain", core::PageToolsMode::Curtain},
+     {"spotlight", core::PageToolsMode::Spotlight},
+     {"off", core::PageToolsMode::Off}}};
 constexpr std::array<Named<core::CurtainMode>, 6> kCurtainModes{{{"off", core::CurtainMode::Off},
                                                                  {"top", core::CurtainMode::Top},
                                                                  {"bottom", core::CurtainMode::Bottom},
@@ -81,8 +82,8 @@ void PageToolsController::setDocumentController(DocumentController* controller)
     m_document = controller;
     m_shownIndex = controller ? controller->currentIndex() : -1;
     if (controller) {
-        m_pagesConnection =
-            connect(controller, &DocumentController::pagesChanged, this, &PageToolsController::onPagesChanged);
+        m_pagesConnection = connect(controller, &DocumentController::pagesChanged, this,
+                                    &PageToolsController::onPagesChanged);
         m_replacedConnection = connect(controller, &DocumentController::documentReplaced, this,
                                        &PageToolsController::applyShownPage);
     }
@@ -152,10 +153,11 @@ void PageToolsController::applyShownPage()
         static_cast<std::size_t>(index) >= m_document->document().pageCount()) {
         return;
     }
-    const features::PageToolsSettings page =
-        features::toPageToolsSettings(m_document->document().page(static_cast<std::size_t>(index)).presentation);
+    const features::PageToolsSettings page = features::toPageToolsSettings(
+        m_document->document().page(static_cast<std::size_t>(index)).presentation);
     const features::PresentationState now{
-        m_curtain->active(), SpotlightController::fromCore(static_cast<core::SpotlightShape>(m_spotlight->shape()))};
+        m_curtain->active(),
+        SpotlightController::fromCore(static_cast<core::SpotlightShape>(m_spotlight->shape()))};
     const features::PageToolsResult next = features::resolvePageTools(now, page);
     if (next.resetCurtain) {
         m_curtain->reset(static_cast<int>(next.curtainStart), next.curtainDistance);

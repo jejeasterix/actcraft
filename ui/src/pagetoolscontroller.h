@@ -41,9 +41,9 @@ public:
     // Applique les réglages de la page affichée au rideau et au spot.
     Q_INVOKABLE void applyShownPage();
     // Réglages de la page affichée, une étape ; faux si la valeur est inconnue ou s'il n'y a pas de document.
-    Q_INVOKABLE bool setToolsMode(const QString& mode);   // keep, curtain, spotlight, off
-    Q_INVOKABLE bool setCurtainMode(const QString& mode); // off, top, bottom, left, right, full
-    Q_INVOKABLE bool setCurtainDistance(double distance); // pixels de page, fini et positif
+    Q_INVOKABLE bool setToolsMode(const QString& mode);     // keep, curtain, spotlight, off
+    Q_INVOKABLE bool setCurtainMode(const QString& mode);   // off, top, bottom, left, right, full
+    Q_INVOKABLE bool setCurtainDistance(double distance);   // pixels de page, fini et positif
     Q_INVOKABLE bool setSpotlightMode(const QString& mode); // off, circle, square, solid-circle, solid-square
 
 signals:
@@ -66,9 +66,10 @@ private:
     bool m_spotlightWasActive = false;
 };
 
-// Mémoriser le rideau pour la page (P9 de L7-T0) : le côté et la distance du rideau vivant deviennent les réglages
-// de la page affichée (outil « rideau », côté, distance), en une étape (DocumentInsertions::setPagePresentation).
-// Porté par la surcouche du rideau, pour l'entrée « Mémoriser pour cette page » de son menu.
+// Mémoriser le rideau pour la page (P9 de L7-T0) : le côté et la distance du rideau vivant deviennent les
+// réglages de la page affichée (outil « rideau », côté, distance), en une étape
+// (DocumentInsertions::setPagePresentation). Porté par la surcouche du rideau, pour l'entrée « Mémoriser pour
+// cette page » de son menu.
 class CurtainPageMemory : public QObject
 {
     Q_OBJECT

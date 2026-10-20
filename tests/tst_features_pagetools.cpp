@@ -1,6 +1,5 @@
-#include <actcraft/features/pagetools.h>
-
 #include <actcraft/core/model.h>
+#include <actcraft/features/pagetools.h>
 
 #include <QtTest>
 
@@ -61,8 +60,9 @@ private slots:
         QCOMPARE(next.spotlight, Spotlight::Shape::Circle);
     }
 
-    // F-592 : un rideau de page sans mode (Off) ou « complet » (Full) s'ouvre fermé en entier. CurtainMode::Full
-    // vaut 5 et Curtain::Start::Full 0 : un transtypage par valeur rendrait un côté hors de l'énumération.
+    // F-592 : un rideau de page sans mode (Off) ou « complet » (Full) s'ouvre fermé en entier.
+    // CurtainMode::Full vaut 5 et Curtain::Start::Full 0 : un transtypage par valeur rendrait un côté hors de
+    // l'énumération.
     void curtainModeOffMeansFull()
     {
         core::PagePresentation p;
@@ -92,9 +92,12 @@ private slots:
             QCOMPARE(toPageToolsSettings(p).tools, choice);
         }
         const std::pair<core::CurtainMode, Curtain::Start> curtains[] = {
-            {core::CurtainMode::Off, Curtain::Start::Full},       {core::CurtainMode::Top, Curtain::Start::Top},
-            {core::CurtainMode::Bottom, Curtain::Start::Bottom}, {core::CurtainMode::Left, Curtain::Start::Left},
-            {core::CurtainMode::Right, Curtain::Start::Right},   {core::CurtainMode::Full, Curtain::Start::Full}};
+            {core::CurtainMode::Off, Curtain::Start::Full},
+            {core::CurtainMode::Top, Curtain::Start::Top},
+            {core::CurtainMode::Bottom, Curtain::Start::Bottom},
+            {core::CurtainMode::Left, Curtain::Start::Left},
+            {core::CurtainMode::Right, Curtain::Start::Right},
+            {core::CurtainMode::Full, Curtain::Start::Full}};
         for (const auto& [mode, start] : curtains) {
             p.curtain = mode;
             QCOMPARE(toPageToolsSettings(p).curtainStart, start);
