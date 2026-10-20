@@ -77,6 +77,24 @@ bool movable(const core::PageObject& object)
     return !object.common.locked && object.common.restrictions.movable;
 }
 
+// Dimensionnable : la règle des poignées (layoutSelection, beginTransform ; P28, P30), pas celle du glisser.
+bool resizable(const core::PageObject& object)
+{
+    return !object.common.locked && object.common.restrictions.resizable;
+}
+
+// Parmi `ids` (présents), ceux qu'Agrandir et Réduire changent (M1, L3-C9).
+std::vector<core::ObjectId> resizableAmong(const core::Page& page, const std::vector<core::ObjectId>& ids)
+{
+    std::vector<core::ObjectId> out;
+    for (const core::ObjectId id : ids) {
+        if (resizable(page.objects[core::indexOf(page, id)])) {
+            out.push_back(id);
+        }
+    }
+    return out;
+}
+
 // Identifiants encore sur la page et sélectionnables, dans l'ordre reçu.
 std::vector<core::ObjectId> present(const core::Page& page, const std::vector<core::ObjectId>& ids)
 {
@@ -210,12 +228,13 @@ void SelectTool::enlarge()
 {
     const core::Page& page = m_context.document.page();
     const std::vector<core::ObjectId> ids = present(page, m_context.user.selection());
-    if (ids.empty()) {
+    const std::vector<core::ObjectId> scaled = resizableAmong(page, ids);
+    if (scaled.empty()) {
         return;
     }
-    const core::PointF center = core::selectionCenter(page, ids);
+    const core::PointF center = core::selectionCenter(page, ids); // centre du cadre, comme les poignées
     m_context.document.execute(std::make_unique<core::TransformObjectsCommand>(
-        m_context.document.pageIndex(), ids, core::scalingAbout(center, kEnlargeStep, kEnlargeStep)));
+        m_context.document.pageIndex(), scaled, core::scalingAbout(center, kEnlargeStep, kEnlargeStep)));
     showFrame();
 }
 
@@ -223,13 +242,14 @@ void SelectTool::reduce()
 {
     const core::Page& page = m_context.document.page();
     const std::vector<core::ObjectId> ids = present(page, m_context.user.selection());
-    if (ids.empty()) {
+    const std::vector<core::ObjectId> scaled = resizableAmong(page, ids);
+    if (scaled.empty()) {
         return;
     }
     const core::PointF center = core::selectionCenter(page, ids);
     const double factor = 1.0 / kEnlargeStep;
     m_context.document.execute(std::make_unique<core::TransformObjectsCommand>(
-        m_context.document.pageIndex(), ids, core::scalingAbout(center, factor, factor)));
+        m_context.document.pageIndex(), scaled, core::scalingAbout(center, factor, factor)));
     showFrame();
 }
 

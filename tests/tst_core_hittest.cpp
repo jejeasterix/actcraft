@@ -49,7 +49,58 @@ private slots:
         QCOMPARE(objectAt(page, {200, 104}, 0).value_or(0), ObjectId{7}); // dans la demi-épaisseur (5)
         QVERIFY(!objectAt(page, {200, 112}, 0).has_value());
         QCOMPARE(objectAt(page, {200, 112}, 8).value_or(0), ObjectId{7}); // grâce à la tolérance
-        QVERIFY(!objectAt(page, {200, 150}, 8).has_value());              // dans l'emprise, loin de l'encre
+        QVERIFY(!objectAt(page, {200, 150}, 8)
+                     .has_value()); // loin de l'encre, hors de l'emprise aussi (87 à 113)
+    }
+    // M7 (L3-C9) : un trait en diagonale ou en L se désigne par son encre. Chaque point refusé est dans son
+    // emprise (boundsOnPage) mais loin de sa ligne : une désignation par l'emprise le prendrait.
+    void strokeHitFollowsTheInkNotTheBounds()
+    {
+        Page diagonal;
+        insertAtTopOfLayer(diagonal, strokeObject(7, {{0, 0, 0.5f}, {400, 400, 0.5f}}, 10));
+        QVERIFY(boundsOnPage(diagonal.objects[0]).contains({300, 100}));
+        QVERIFY(!objectAt(diagonal, {300, 100}, 8).has_value());              // à 141 de la ligne
+        QCOMPARE(objectAt(diagonal, {200, 203}, 0).value_or(0), ObjectId{7}); // à 2,1 de la ligne
+        Page corner;
+        insertAtTopOfLayer(corner, strokeObject(8, {{0, 0, 0.5f}, {400, 0, 0.5f}, {400, 400, 0.5f}}, 10));
+        QVERIFY(boundsOnPage(corner.objects[0]).contains({100, 300}));
+        QVERIFY(!objectAt(corner, {100, 300}, 8).has_value());              // à 300 de chaque branche
+        QCOMPARE(objectAt(corner, {397, 300}, 0).value_or(0), ObjectId{8}); // sur la branche verticale
+    }
+    // M4 (L3-C9) : un groupe et un objet inconnu sans boîte n'ont pas d'emprise (boundsOnPage rend 0 × 0 à
+    // l'origine) et ne se dessinent pas : ni un clic près de l'origine ni un rectangle qui la touche ne les
+    // désignent. Un objet inconnu qui a une boîte se désigne, lui.
+    void objectsWithoutBoundsAreNotDesignated()
+    {
+        Page page;
+        insertAtTopOfLayer(page, rectObject(1, {100, 100, 50, 50}));
+        Group group;
+        group.members = {1};
+        PageObject grouped{group};
+        grouped.common.id = 2;
+        insertAtTopOfLayer(page, grouped);
+        PageObject unknown{UnknownObject{}};
+        unknown.common.id = 3;
+        insertAtTopOfLayer(page, unknown);
+        UnknownObject boxed;
+        boxed.bounds = {300, 300, 40, 40};
+        boxed.hasBounds = true;
+        PageObject withBox{boxed};
+        withBox.common.id = 4;
+        insertAtTopOfLayer(page, withBox);
+
+        QVERIFY(!hasExtent(grouped));
+        QVERIFY(!hasExtent(unknown));
+        QVERIFY(hasExtent(withBox));
+        QVERIFY(!isSelectable(grouped));
+        QVERIFY(!isSelectable(unknown));
+        QVERIFY(isSelectable(withBox));
+        QVERIFY(!isSelectable(strokeObject(5, {}, 4)));  // un trait sans point n'a pas d'emprise non plus
+        QVERIFY(!objectAt(page, {2, 2}, 6).has_value()); // à moins de 6 px de l'origine
+        QCOMPARE(objectsTouching(page, normalizedRect({-20, -20}, {120, 120})), (std::vector<ObjectId>{1}));
+        QCOMPARE(objectAt(page, {320, 320}, 0).value_or(0), ObjectId{4});
+        QCOMPARE(objectsTouching(page, normalizedRect({-20, -20}, {500, 500})),
+                 (std::vector<ObjectId>{1, 4}));
     }
     void rectangleTouchingSelects()
     {

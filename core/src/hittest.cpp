@@ -50,7 +50,7 @@ bool isAnnotation(const PageObject& object) noexcept
 
 bool isSelectable(const PageObject& object) noexcept
 {
-    return object.common.visible;
+    return object.common.visible && hasExtent(object);
 }
 
 std::optional<ObjectId> objectAt(const Page& page, PointF point, double tolerance)
