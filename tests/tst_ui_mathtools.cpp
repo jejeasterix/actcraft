@@ -382,8 +382,8 @@ bool allOnCircle(const actcraft::core::Stroke& stroke, const Comp& c)
 }
 
 // Survol au stylet : aucun bouton, aucune pression. La vue ne commence aucun trait et le laisse à l'interface
-// (PageView::eventFilter). Envoyé seul à la fenêtre, il n'atteint pas les HoverHandler (constaté hors écran) ;
-// Qt rejoue en souris un événement de tablette que l'interface ne prend pas
+// (PageView::eventFilter). Envoyé seul à la fenêtre, il n'atteint pas les HoverHandler (constaté hors écran)
+// ; Qt rejoue en souris un événement de tablette que l'interface ne prend pas
 // (Qt::AA_SynthesizeMouseForUnhandledTabletEvents, actif par défaut) : le banc rejoue ce déplacement.
 void stylusHover(QQuickWindow* window, QPointF at)
 {
