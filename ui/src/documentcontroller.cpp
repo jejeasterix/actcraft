@@ -247,6 +247,11 @@ std::vector<core::PageObject> DocumentController::liftObjects(const std::vector<
         return {};
     }
     const bool wasLifting = !m_lifted.empty();
+    if (!wasLifting) {
+        // M2 (L3-C8) : la réponse de « Rétablir la page » sur la page entière, rendue pendant tout le geste
+        // (déjà en cache dans l'application : Main.qml la relit à chaque révision).
+        canRevertPage();
+    }
     // Une seule liste aux rangs de la page entière (ceux qu'attend restoreObjects) : les objets déjà soulevés
     // reviennent un instant dans la page, sans changement pour le cache, puis tous sont repris ensemble.
     std::vector<core::ObjectId> all = fresh;
@@ -267,8 +272,8 @@ std::vector<core::PageObject> DocumentController::liftObjects(const std::vector<
         core::liftChanges(m_current, added); // le cache n'a plus que ceux-là à retirer
     m_liftGeneration = m_generation;
     settle(changes, ChangeOrigin::Lift);
-    emit documentChanged();
-    emit canRevertPageChanged();
+    emit
+    documentChanged(); // hors pile : la réponse de canRevertPage ne change pas, pas de canRevertPageChanged
     if (!wasLifting) {
         emit liftingChanged();
     }
@@ -295,8 +300,9 @@ void DocumentController::dropLifted(std::unique_ptr<core::UndoCommand> command)
         pages = settle(changes, ChangeOrigin::Drop);
     }
     if (commandChanges.empty()) {
-        emit documentChanged(); // dépôt sans étape : la pile n'a pas bougé
-        emit canRevertPageChanged();
+        // Dépôt sans étape : ni la pile ni la réponse de canRevertPage n'ont bougé (la page est celle d'avant
+        // le soulèvement), pas de canRevertPageChanged (M2, L3-C8).
+        emit documentChanged();
     } else {
         notifyState(pages);
     }
@@ -375,10 +381,13 @@ const core::Page* DocumentController::savedPage() const
 }
 
 // Relue par Main.qml à chaque documentChanged et undoChanged : une comparaison d'empreintes par révision et
-// par page affichée. Pendant un soulèvement, la page est incomplète : réponse calculée, jamais gardée.
+// par page affichée. M2 (L3-C8) : pendant un soulèvement, la page est incomplète (sa réponse serait fausse)
+// et le soulèvement, hors pile, ne change pas la réponse : la dernière calculée, sur la page entière
+// (liftObjects la tient à jour avant de soulever), sans aucune empreinte pendant le geste.
 bool DocumentController::canRevertPage() const
 {
     const auto differs = [this] {
+        ++m_revertComparisons;
         const core::Page& shown = m_document.page(m_current);
         const core::Page* saved = savedPage();
         const std::uint64_t reference =
@@ -386,7 +395,7 @@ bool DocumentController::canRevertPage() const
         return core::fingerprint(shown) != reference;
     };
     if (isLifting()) {
-        return differs();
+        return m_revertCheck.answer;
     }
     if (!m_revertCheck.valid || m_revertCheck.revision != m_revision || m_revertCheck.page != m_current) {
         m_revertCheck = RevertCheck{true, m_revision, m_current, differs()};
@@ -537,6 +546,11 @@ void DocumentController::pageBack()
 
 void DocumentController::loadGeneratedFirstPage()
 {
+    // m2 (L3-C8) : comme les autres éditions, l'annonce d'abord (l'outil abandonne son geste, la vue termine
+    // son trait), puis ce qui reste soulevé revient sans étape : son dépôt ne viserait plus la page
+    // remplacée.
+    emit editAboutToApply();
+    dropRemaining();
     const QSizeF shownSize = pageSize();
     const bool modified = isModified();
     core::Page& first = m_document.page(0);

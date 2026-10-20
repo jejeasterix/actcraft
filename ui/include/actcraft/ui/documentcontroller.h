@@ -143,6 +143,8 @@ public:
     Q_INVOKABLE void clearPage(int kind); // core::ClearKind (F-130)
     Q_INVOKABLE void revertPage();        // F-131
     bool canRevertPage() const;
+    // Tests (L3-C8) : comparaisons d'empreintes de page entière faites par canRevertPage depuis la création.
+    int revertComparisonCount() const noexcept { return m_revertComparisons; }
 
     // Origine d'une modification versée (observateur unique, socle des lots 3 et 7).
     enum class ChangeOrigin : std::uint8_t
@@ -177,7 +179,9 @@ signals:
     void titleChanged();
     void fileUrlChanged();
     void documentChanged();
-    void canRevertPageChanged(); // avec documentChanged, et à la fin d'un enregistrement (référence changée)
+    // Avec documentChanged, sauf au soulèvement et au dépôt sans étape (réponse inchangée, L3-C8), et à la
+    // fin d'un enregistrement (référence changée).
+    void canRevertPageChanged();
     void undoChanged();
     void busyChanged();
     void warningsChanged();
@@ -270,6 +274,7 @@ private:
         bool answer = false;
     };
     mutable RevertCheck m_revertCheck;
+    mutable int m_revertComparisons = 0;
 };
 
 } // namespace actcraft::ui

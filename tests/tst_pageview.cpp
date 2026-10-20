@@ -1566,6 +1566,28 @@ private slots:
         QCOMPARE(f.view->cacheRefreshCount(), start + 2);
     }
 
+    // L3-C8 (m4) : la synchronisation d'un UpdateRequest posté plus tôt dans le tour passe avant le lambda en
+    // file qui clôt ce tour. Le redessin demandé y lit la page ; une demande arrivée après, même dans ce
+    // tour, n'est pas couverte par lui : sa fin doit en relancer un. Avant correctif, elle était avalée et le
+    // cache se disait prêt, périmé, jusqu'au changement suivant.
+    void requestAfterTheSyncOfThisTurnIsNotLost()
+    {
+        Fixture f;
+        QVERIFY(open(f));
+        QCoreApplication::processEvents(); // les demandes de l'ouverture sont d'un tour passé
+        QSignalSpy requested(f.view, &PageView::cacheRefreshRequested);
+        f.view->requestCacheRefresh(); // part tout de suite
+        QCOMPARE(requested.count(), 1);
+        QVERIFY(f.view->window());
+        emit f.view->window()->afterSynchronizing(); // le redessin parti lit la page ici
+        f.view->requestCacheRefresh();               // même tour, après la lecture
+        f.view->notifyCacheUpdated();                // fin du redessin lu avant la seconde demande
+        QVERIFY(!f.view->cacheReady());              // un autre redessin est en route
+        QVERIFY(requested.count() >= 2);
+        f.view->notifyCacheUpdated();
+        QVERIFY(f.view->cacheReady());
+    }
+
     // D-S9, branche « outil de ToolHost » : le stylo de ToolHost occupé (stylet immobile plus longtemps que
     // le délai) retient le versement. Le stylo interne, lui, n'écrit pas : une garde sur lui laisserait
     // verser.

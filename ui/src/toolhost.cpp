@@ -155,8 +155,9 @@ void ToolHost::setView(PageView* view)
     m_view = view;
     m_adapters.reset();
     if (m_view) {
-        // L'encre remplacée : les adaptateurs sont reconstruits à la demande suivante (adapters()).
-        connect(m_view, &PageView::inkChanged, this, [this] { m_adapters.reset(); });
+        // L'encre remplacée : les adaptateurs sont reconstruits à la demande suivante (adapters()), après
+        // l'abandon du geste en cours (m1, L3-C8 : discardAdapters, pas cancelGesture, voir plus bas).
+        connect(m_view, &PageView::inkChanged, this, [this] { discardAdapters(); });
         if (!m_filtering && QCoreApplication::instance()) {
             // Filtre de l'application : il passe avant celui que la vue pose sur la fenêtre pour le stylet.
             QCoreApplication::instance()->installEventFilter(this);
@@ -405,14 +406,14 @@ ToolAdapters* ToolHost::adapters() const
 {
     render::InkItem* ink = m_view ? m_view->ink() : nullptr;
     if (!m_controller || !m_view || !m_liftLayer || !ink) {
-        m_adapters.reset();
+        discardAdapters();
         return nullptr;
     }
     if (m_adapters &&
         m_adapters->matches(m_controller.data(), m_view.data(), ink, m_liftLayer.data(), m_commands.data())) {
         return m_adapters.get();
     }
-    m_adapters.reset();
+    discardAdapters();
     // L'hôte n'est jamais constant pour ceux qui le branchent : activeTool() const crée à la demande.
     auto* self = const_cast<ToolHost*>(this);
     self->ensureSettings();
@@ -421,6 +422,26 @@ ToolAdapters* ToolHost::adapters() const
         [self](const QVariantMap& frame, bool handles) { self->showSelection(frame, handles); },
         [self] { return self->m_trashArea; }, [self](bool hover) { self->setTrashHoverState(hover); });
     return m_adapters.get();
+}
+
+// m1 (L3-C8) : des outils jetés abandonnent d'abord leur geste (dépôt sans étape, couche soulevée vidée),
+// comme avant setView ou setLiftLayer. cancelGesture() ne convient pas : il passe par adapters(), qui ne
+// retrouve plus les outils d'une encre déjà remplacée (et s'y rappellerait). Seulement si tout ce qu'ils
+// regardent vit encore : l'abandon toucherait sinon un objet détruit. Sortis de m_adapters d'abord : un
+// signal émis pendant l'abandon (documentChanged, refreshSelection) ne les retrouve pas et ne les annule pas
+// deux fois.
+void ToolHost::discardAdapters() const
+{
+    const std::unique_ptr<ToolAdapters> discarded = std::move(m_adapters);
+    if (!discarded || !discarded->controllerRef || !discarded->viewRef || !discarded->inkRef ||
+        !discarded->layerRef) {
+        return;
+    }
+    for (const auto& entry : discarded->tools) {
+        if (tools::Tool* tool = entry.second.get(); tool && tool->isBusy()) {
+            tool->cancel();
+        }
+    }
 }
 
 tools::Tool* ToolHost::toolFor(const QString& id) const

@@ -389,6 +389,73 @@ private slots:
         QCOMPARE(after[2].common.id, c);
     }
 
+    // L3-C8 (M2) : un soulèvement est hors pile et ne change pas la réponse de « Rétablir la page ». Lue
+    // comme Main.qml la lit (à chaque documentChanged et canRevertPageChanged) pendant une série de
+    // soulèvements (la gomme soulève un trait par contact), elle ne compare aucune empreinte et ne change pas
+    // ; au dépôt sans étape non plus. Avant correctif : des empreintes de page entière à chaque soulèvement,
+    // et une réponse calculée sur la page incomplète (tout soulevé, la page montrée ressemble à la page
+    // vierge : « non »).
+    void liftKeepsTheRevertAnswerWithoutComparing()
+    {
+        ui::DocumentController controller;
+        std::vector<bool> answers;
+        const auto read = [&] { answers.push_back(controller.canRevertPage()); };
+        connect(&controller, &ui::DocumentController::documentChanged, &controller, read);
+        connect(&controller, &ui::DocumentController::canRevertPageChanged, &controller, read);
+        controller.commitStroke(line(100));
+        controller.commitStroke(line(200));
+        controller.commitStroke(line(300));
+        QVERIFY(controller.canRevertPage()); // la page diffère de la page vierge
+        std::vector<core::ObjectId> ids;
+        for (const core::PageObject& object : controller.document().page(0).objects) {
+            ids.push_back(object.common.id);
+        }
+        QSignalSpy revert(&controller, &ui::DocumentController::canRevertPageChanged);
+        answers.clear();
+        const int comparisons = controller.revertComparisonCount();
+        for (const core::ObjectId id : ids) {
+            controller.liftObjects({id});
+        }
+        QCOMPARE(controller.shownObjectCount(), 0);
+        QCOMPARE(answers.size(), ids.size()); // relue à chaque soulèvement (documentChanged seul)
+        QCOMPARE(controller.revertComparisonCount(), comparisons);
+        QCOMPARE(revert.count(), 0);
+        QVERIFY(std::all_of(answers.begin(), answers.end(), [](bool answer) { return answer; }));
+        QVERIFY(controller.canRevertPage());
+        controller.dropLifted(nullptr);
+        QCOMPARE(revert.count(), 0); // dépôt sans étape : la réponse n'a pas changé
+        QCOMPARE(controller.revertComparisonCount(), comparisons);
+        QVERIFY(controller.canRevertPage());
+        controller.revertPage(); // une étape : la réponse est recalculée sur la page entière
+        QVERIFY(!controller.canRevertPage());
+    }
+
+    // L3-C8 (m2) : la page du banc remplace la page 1 ; un soulèvement ouvert est annoncé puis déposé avant,
+    // comme pour les autres éditions. Sinon, le dépôt de l'outil remettrait un objet de l'ancienne page dans
+    // la page générée.
+    void generatedFirstPageDropsTheLiftFirst()
+    {
+        ui::DocumentController controller;
+        controller.commitStroke(line(100));
+        const core::ObjectId id = controller.document().page(0).objects.back().common.id;
+        controller.liftObjects({id});
+        bool liftingWhenAnnounced = false;
+        connect(&controller, &ui::DocumentController::editAboutToApply, &controller,
+                [&] { liftingWhenAnnounced = controller.isLifting(); });
+        QSignalSpy about(&controller, &ui::DocumentController::editAboutToApply);
+        controller.loadGeneratedFirstPage();
+        QCOMPARE(about.count(), 1); // l'outil abandonne son geste avant le remplacement
+        QVERIFY(liftingWhenAnnounced);
+        QVERIFY(!controller.isLifting());
+        const std::size_t generated = controller.document().page(0).objects.size();
+        QVERIFY(generated > 0);
+        controller.dropLifted(nullptr); // relâché d'un outil qui n'aurait pas abandonné : rien à remettre
+        const std::vector<core::PageObject>& objects = controller.document().page(0).objects;
+        QCOMPARE(objects.size(), generated);
+        QVERIFY(std::none_of(objects.begin(), objects.end(),
+                             [id](const core::PageObject& object) { return object.common.id == id; }));
+    }
+
     // L3-C5 : la gomme sur le vrai contrôleur. Chaque trait touché est soulevé une fois, quel que soit le
     // nombre d'allers-retours : traits soulevés, objets montrés et changements du cache sont bornés par les
     // traits touchés, pas par l'historique du geste (au banc, avant correctif : 792 traits soulevés pour 24).
