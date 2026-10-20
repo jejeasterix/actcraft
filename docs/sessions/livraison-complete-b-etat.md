@@ -56,10 +56,10 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | suite V3 | L7-T3, L7-T9 | branche du chantier à 0c0b0e2 | — | TESTS OK 158/158 (2e passage ; 1er : LNK2001 AUTOMOC, timestamp ui supprimés) | 2 | — | — |
 | L7-T4 | L7-T2 | voir ligne L7-T4 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T4 (base 0c0b0e2) | mergée : rejeu TESTS OK 158/158, spotlight Totals 9 (0 skipped), captures spot OK, 5 mutants ; banc BUDGET DEPASSE (résultat) ; HoverHandler pleine page de MathToolsLayer contourné → correction demandée à L7-T11 | 2 | 3182bcc | 928db8e (graphe 78ac3fb) |
 | L7-T10 | L7-T9 | voir ligne L7-T10 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T10 (base 0c0b0e2) | mergée : rejeu TESTS OK 158/158, mathtools Totals 18 (0 skipped), 4 mutants un par construction ; Repeater → ListModel ; banc BUDGET DEPASSE (résultat) | 1 | d9b6b36 | dd7f2f2 (graphe 2ca164f) |
-| L7-T5 | L7-S8 | voir ligne L7-T5 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T5 (base e8d01f0) | en cours (implementeur-tdd), V5 | 1 | — | — |
-| L7-T11 | L7-T10, L7-T2 | voir ligne L7-T11 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T11 (base c3d3ed1) | en cours (concepteur-critique), V5 | 1 | — | — |
-| suite V4 | L7-T4, L7-T10 | branche du chantier à f0b30ce (timestamp AUTOMOC ui supprimés avant) | — | en cours | 1 | — | — |
-| L7-T6 | L7-T1, T2, T3, T4 | voir ligne L7-T6 de l'amendement phase 2 (+ « spot ferme le rideau ») | .worktrees/livraison-complete-b--L7-T6 (base f0b30ce) | en cours (concepteur-critique), V6 | 1 | — | — |
+| L7-T5 | L7-S8 | voir ligne L7-T5 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T5 (base e8d01f0) | wip 4cc93e0 : rouge vu (55da116), vert vu sur 6d5b9b0 (pagezoom 9/9), mutant A rouge ; dernier test (trait complet pour faire tomber le mutant B) NON construit ; restent mutant C, suite 158, banc, NOMS OK ; point ouvert : ligne (souris) et rightHoldIsTakenByTheCover non discriminables (le PointHandler prend l'appui avant la vue) | 1 | 4cc93e0 | — |
+| L7-T11 | L7-T10, L7-T2 | voir ligne L7-T11 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T11 (base c3d3ed1) | rendue 1aad104 (agent : 158 TESTS OK, mathtools 26/26, 7 mutants rouges, survol de MathToolsLayer restreint aux bandes guides) ; revue adversariale lancée à 04 h 25 → scratchpad revue-l7-t11.md (copie .tmp/outils-b) ; rejeu NON fait | 1 | 1aad104 | — |
+| suite V4 | L7-T4, L7-T10 | branche du chantier à f0b30ce | — | NON jouée (attente arrêtée à 04 h 22 avant l'arrêt du PC) | 0 | — | — |
+| L7-T6 | L7-T1, T2, T3, T4 | voir ligne L7-T6 de l'amendement phase 2 (+ « spot ferme le rideau ») | .worktrees/livraison-complete-b--L7-T6 (base f0b30ce) | wip fb452cc : tout écrit, RIEN construit (verrou jamais obtenu) ; NOMS OK seul ; H7-16 appliquée (aucune valeur établie pour 12/16/27/30, pageToolsPropertyRead absent) ; « spot ferme le rideau » fait dans PageToolsController (M7) ; écarts : cadre du spot non appliqué (setFrame hors ligne), coches present.spotlight-* périmées | 1 | fb452cc | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
@@ -94,6 +94,16 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 ## À faire en L7-T34 (après la fusion du lot 3)
 - `selectionIsNotGuided` (L7-T9, revue) : le guide de la règle est réservé au stylo (`kGuidedTool = "pen"`), mais non testable avant le lot 3 : `ToolHost::activate` et `UserState::setCurrentTool` sont des talons. À ajouter avec `markerFollowsTheRuler`, `eraserFollowsTheCompass`.
 - Constat L7-T9, hors périmètre : la commande `tool.pen` de `Main.qml:292` coche la commande sans activer le stylo (talon du lot 3 ?) : à revoir à la fusion.
+
+## Point de reprise (écrit le 2026-10-20 vers 04 h 30, avant l'arrêt du PC)
+Mergé dans `feat/livraison-complete-b` : phase 1, L7-S8, vague 2 (T1, T2), vague 3 (T3, T9), vague 4 (T4, T10). Suites du chantier vertes après V2 et V3 ; **suite V4 non jouée**.
+Aucune construction ni attente de B ne tourne ; tous les worktrees sont commités. Outils : `.tmp/outils-b/` (b-jeton.ps1, rejeu.ps1 avec la forme `exe:classe`, suite-chantier.ps1, consignes-T.md, revues).
+Premiers gestes, dans l'ordre :
+1. Lire `.tmp/outils-b/revue-l7-t11.md` (revue de L7-T11) ; si « corriger », relancer un agent concepteur-critique sur le worktree L7-T11 avec les constats.
+2. Avant toute suite dans le worktree du chantier : supprimer `build/debug/ui/actcraft_ui_autogen/timestamp`, `build/debug/ui/actcraft_uiplugin_autogen/timestamp`, `build/debug/tests/tst_ui_lot7_autogen/timestamp` (piège AUTOMOC), puis suite V4 par `b-jeton.ps1 … suite-chantier.ps1`.
+3. L7-T5 : relancer un agent implementeur-tdd sur 4cc93e0 (vert du dernier test, mutants B et C, suite, banc, NOMS OK) ; trancher le point « souris ».
+4. L7-T6 : retirer la garde d'heure (04 h 30) de `.tmp/run.ps1` du worktree L7-T6, puis `b-jeton.ps1 -Proprietaire livraison-complete-b/L7-T6 -Commande "pwsh -NoProfile -File '<wt>\.tmp\run.ps1'"` ; lire `.tmp/etapes.txt` ; revue adversariale ensuite (concepteur-critique).
+5. Rejouer L7-T11 (`-Tests tst_ui_lot7:mathtools`), merger ; puis L7-T12 (dépend de T11) en parallèle de L7-T7 (dépend de T3).
 
 ## Arrêt du PC (annonce de Jérôme du 2026-10-19 vers 20 h 05, relayée par Pilote 2)
 « Organise le travail pour faire une pause à 5h30 du matin au plus tard demain car je dois prendre mon PC et je pars à 5h45 du matin. » Après 04 h 30 le 20/10 : rien de long lancé. À 05 h 15 : rien en cours, tout commité, point de reprise exact ici. Rappels de session posés à 04 h 27 et 05 h 03. Heure de reprise inconnue.
