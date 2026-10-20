@@ -439,6 +439,27 @@ private slots:
         QVERIFY2(sample->width() >= 12, qPrintable(QString::number(sample->width())));
     }
 
+    // F-138 (L3-C15) : le cercle de largeur suit le pointeur avec le stylo et le marqueur, jamais avec la
+    // sélection, même quand le pointeur survole la page ou y bouge ; il revient avec un outil d'encre.
+    void widthIndicatorOnlyWithInkTools()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QQuickItem* indicator = item(s, "widthIndicator");
+        QVERIFY(indicator);
+        const QPoint over = s.view->pageToScene(QPointF(500, 400)).toPoint();
+        QVERIFY(run(s, QStringLiteral("tool.pen")));
+        QTest::mouseMove(s.window, over);
+        QTRY_VERIFY(indicator->isVisible());
+        QVERIFY(run(s, QStringLiteral("tool.select")));
+        QTRY_VERIFY(!indicator->isVisible());
+        QTest::mouseMove(s.window, over + QPoint(30, 20));
+        QTest::qWait(50);
+        QVERIFY(!indicator->isVisible());
+        QVERIFY(run(s, QStringLiteral("tool.highlighter")));
+        QTRY_VERIFY(indicator->isVisible());
+    }
+
     void redStrokeSurvivesPageRoundTrip()
     {
         Shell s;
