@@ -275,6 +275,27 @@ core::PointF around(core::PointF center, core::PointF from, double degrees)
 
 const std::vector<core::ObjectId> none;
 
+// Position d'un point par rapport au bord a→b d'un cadre : `out` = distance vers l'extérieur (le côté de
+// `inside` est le côté intérieur), `along` = abscisse le long du bord depuis a.
+struct EdgeCoords
+{
+    double out = 0;
+    double along = 0;
+};
+EdgeCoords edgeCoords(core::PointF a, core::PointF b, core::PointF inside, core::PointF p)
+{
+    const double length = std::hypot(b.x - a.x, b.y - a.y);
+    const double ux = (b.x - a.x) / length;
+    const double uy = (b.y - a.y) / length;
+    double nx = uy;
+    double ny = -ux;
+    if ((inside.x - a.x) * nx + (inside.y - a.y) * ny > 0) {
+        nx = -nx;
+        ny = -ny;
+    }
+    return {(p.x - a.x) * nx + (p.y - a.y) * ny, (p.x - a.x) * ux + (p.y - a.y) * uy};
+}
+
 } // namespace
 
 class TstToolsSelect : public QObject
@@ -744,6 +765,84 @@ private slots:
                                                     core::boundsOnPage(r.editor.page().objects[2]));
         QCOMPARE(many.corners[0].x, united.x);
         QCOMPARE(many.corners[2].y, united.y + united.height);
+    }
+
+    // D7, P18 : la barre d'un objet seul pivoté suit le bord haut du cadre, à distance constante.
+    void rotatedSingleObjectBarFollowsTopEdgeOfFrame()
+    {
+        const QStringList commands{QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c"),
+                                   QStringLiteral("d"), QStringLiteral("e")};
+        for (const double zoom : {1.0, 2.0}) {
+            Rig r;
+            r.only(300, 300, 200, 100);
+            r.first().common.transform = core::rotationAbout({400, 350}, 45);
+            const tools::SelectionView v = tools::layoutSelection(r.editor.page(), {1}, zoom, commands);
+            QCOMPARE(v.bar.size(), std::size_t(5));
+            const double edge = std::hypot(v.corners[1].x - v.corners[0].x, v.corners[1].y - v.corners[0].y);
+            double previous = 0;
+            double sum = 0;
+            for (std::size_t i = 0; i < v.bar.size(); ++i) {
+                QCOMPARE(v.bar[i].command, commands[static_cast<qsizetype>(i)]);
+                const EdgeCoords e = edgeCoords(v.corners[0], v.corners[1], v.corners[3], v.bar[i].center);
+                QVERIFY2(closeTo(e.out, (8.0 + 12.0) / zoom), qPrintable(QString::number(e.out)));
+                if (i > 0) {
+                    QVERIFY(closeTo(e.along - previous, (24.0 + 4.0) / zoom));
+                }
+                previous = e.along;
+                sum += e.along;
+            }
+            QVERIFY(closeTo(sum / 5.0, edge / 2)); // centrée sur le bord
+        }
+    }
+
+    // Le cadre pivoté de 90° est plus haut que large : la colonne se juge sur le cadre, pas sur l'emprise.
+    void rotatedTallFrameBarIsAColumnAlongItsSide()
+    {
+        const QStringList commands{QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c")};
+        Rig r;
+        r.only(300, 300, 50, 200);
+        r.first().common.transform = core::rotationAbout({325, 400}, 90);
+        const tools::SelectionView v = tools::layoutSelection(r.editor.page(), {1}, 1.0, commands);
+        QCOMPARE(v.bar.size(), std::size_t(3));
+        const double side = std::hypot(v.corners[2].x - v.corners[1].x, v.corners[2].y - v.corners[1].y);
+        QVERIFY(closeTo(side, 200)); // bord de 200, porté par le côté droit du cadre
+        double sum = 0;
+        for (const tools::BarSpot& spot : v.bar) {
+            const EdgeCoords e = edgeCoords(v.corners[1], v.corners[2], v.corners[0], spot.center);
+            QVERIFY2(closeTo(e.out, 20.0), qPrintable(QString::number(e.out)));
+            sum += e.along;
+        }
+        QVERIFY(closeTo(sum / 3.0, side / 2));
+    }
+
+    void barOfSeveralObjectsStaysOnUnitedBounds()
+    {
+        const QStringList commands{QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c")};
+        Rig r;
+        r.editor.document.page(0).objects[0].common.transform = core::rotationAbout({150, 150}, 45);
+        const tools::SelectionView v = tools::layoutSelection(r.editor.page(), {1, 3}, 1.0, commands);
+        const core::RectF united = core::unitedRect(core::boundsOnPage(r.editor.page().objects[0]),
+                                                    core::boundsOnPage(r.editor.page().objects[2]));
+        QCOMPARE(v.bar.size(), std::size_t(3));
+        for (std::size_t i = 0; i < v.bar.size(); ++i) {
+            QVERIFY(closeTo(v.bar[i].center.y, united.y - 20.0));
+            QVERIFY(closeTo(v.bar[i].center.x, united.x + united.width / 2 + (double(i) - 1) * 28.0));
+        }
+    }
+
+    void clickOnButtonOfRotatedBarTriggersItsCommand()
+    {
+        Rig r;
+        r.only(300, 300, 200, 100);
+        r.first().common.transform = core::rotationAbout({400, 350}, 45);
+        r.tool.refresh();
+        const tools::SelectionView& v = r.selection.last();
+        const core::PointF button = r.barSpot(QStringLiteral("object.enlarge"));
+        const EdgeCoords e = edgeCoords(v.corners[0], v.corners[1], v.corners[3], button);
+        QVERIFY(closeTo(e.out, 20.0)); // le bouton cliqué est bien sur la barre pivotée
+        r.click(button.x, button.y);
+        QCOMPARE(r.commands.triggered, (QStringList{QStringLiteral("object.enlarge")}));
+        QCOMPARE(r.editor.lifts, 0);
     }
 
     void handlesHiddenWhileDragging()
