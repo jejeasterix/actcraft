@@ -70,11 +70,7 @@ void LiftLayerItem::setExtraTransform(const core::Transform& extra)
 
 void LiftLayerItem::clear()
 {
-    m_objects.clear();
-    m_extra = core::Transform{};
-    m_rebuild = true;
-    update();
-    emit objectsChanged();
+    setObjects({});
 }
 
 int LiftLayerItem::objectCount() const noexcept

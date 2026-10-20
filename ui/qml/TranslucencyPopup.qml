@@ -10,6 +10,7 @@ Popup {
     objectName: "translucencyPopup"
 
     required property Tools tools
+    readonly property string title: popup.tools.commands ? popup.tools.commands.label("object.translucency") : ""
 
     onClosed: {
         if (popup.tools.documentController)
@@ -35,7 +36,7 @@ Popup {
     contentItem: Column {
         spacing: Theme.espace2
         Text {
-            text: popup.tools.commands ? popup.tools.commands.label("object.translucency") : ""
+            text: popup.title
             color: Theme.texte
             font.pixelSize: Theme.taillePolice
         }
@@ -48,7 +49,7 @@ Popup {
             stepSize: 1
             value: 0
             implicitHeight: Theme.tailleBouton
-            Accessible.name: popup.tools.commands ? popup.tools.commands.label("object.translucency") : ""
+            Accessible.name: popup.title
             onMoved: popup.tools.commands.trigger("object.translucency", Math.round(value))
             background: Rectangle {
                 x: slider.leftPadding

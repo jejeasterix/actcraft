@@ -27,7 +27,6 @@ Item {
             color: Theme.surface
             border.width: 1
             border.color: Theme.contour
-            enabled: false
             Accessible.name: bar.commands.label(modelData.command)
 
             Image {
@@ -37,7 +36,6 @@ Item {
                 sourceSize.width: 16
                 sourceSize.height: 16
                 source: button.modelData.icon
-                enabled: false
             }
         }
     }

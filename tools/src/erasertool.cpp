@@ -72,17 +72,13 @@ void EraserTool::onSample(const input::Sample& sample)
         begin(sample);
         break;
     case input::Phase::Move:
-        if (!m_active || sample.pointer != m_pointer)
-            return;
-        sweep(m_last, point);
-        m_last = point;
-        break;
     case input::Phase::Release:
         if (!m_active || sample.pointer != m_pointer)
             return;
         sweep(m_last, point);
         m_last = point;
-        finish();
+        if (sample.phase == input::Phase::Release)
+            finish();
         break;
     }
 }
@@ -100,7 +96,6 @@ void EraserTool::begin(const input::Sample& sample)
 {
     m_active = true;
     m_pointer = sample.pointer;
-    m_lifted.clear();
     m_last = {sample.x, sample.y};
     sweep(m_last, m_last, true); // une touche sans mouvement coupe sous le disque
 }
@@ -172,45 +167,46 @@ void EraserTool::sweep(core::PointF from, core::PointF to, bool first)
     // Chaque morceau proche reçoit les centres dans l'ordre ; ses restes prennent sa place dans le trait. Un
     // morceau loin du balayage n'est ni relu ni coupé.
     const auto nearSweep = [&](const Piece& piece) { return core::rectsTouch(piece.bounds, reach); };
-    for (Lifted& lifted : m_lifted) {
-        if (centers.empty() || std::none_of(lifted.pieces.begin(), lifted.pieces.end(), nearSweep))
-            continue;
-        std::vector<Piece> next;
-        for (Piece& piece : lifted.pieces) {
-            if (!nearSweep(piece)) {
-                next.push_back(std::move(piece));
+    if (!centers.empty())
+        for (Lifted& lifted : m_lifted) {
+            if (std::none_of(lifted.pieces.begin(), lifted.pieces.end(), nearSweep))
                 continue;
-            }
-            std::vector<Piece> parts;
-            parts.push_back(std::move(piece));
-            for (const core::PointF& center : centers) {
-                const core::RectF square{center.x - r, center.y - r, 2 * r, 2 * r};
-                std::vector<Piece> after;
-                for (Piece& part : parts) {
-                    if (!core::rectsTouch(part.bounds, square)) {
-                        after.push_back(std::move(part));
-                        continue;
-                    }
-                    ++m_cuts;
-                    core::StrokeCut cut = core::cutByDisk(part.points, center, r);
-                    if (!cut.touched) {
-                        after.push_back(std::move(part));
-                        continue;
-                    }
-                    lifted.touched = true;
-                    changed = true;
-                    for (auto& rest : cut.pieces) {
-                        const core::RectF restBounds = centerlineBounds(rest);
-                        after.push_back({std::move(rest), restBounds});
-                    }
+            std::vector<Piece> next;
+            for (Piece& piece : lifted.pieces) {
+                if (!nearSweep(piece)) {
+                    next.push_back(std::move(piece));
+                    continue;
                 }
-                parts = std::move(after);
+                std::vector<Piece> parts;
+                parts.push_back(std::move(piece));
+                for (const core::PointF& center : centers) {
+                    const core::RectF square{center.x - r, center.y - r, 2 * r, 2 * r};
+                    std::vector<Piece> after;
+                    for (Piece& part : parts) {
+                        if (!core::rectsTouch(part.bounds, square)) {
+                            after.push_back(std::move(part));
+                            continue;
+                        }
+                        ++m_cuts;
+                        core::StrokeCut cut = core::cutByDisk(part.points, center, r);
+                        if (!cut.touched) {
+                            after.push_back(std::move(part));
+                            continue;
+                        }
+                        lifted.touched = true;
+                        changed = true;
+                        for (auto& rest : cut.pieces) {
+                            const core::RectF restBounds = centerlineBounds(rest);
+                            after.push_back({std::move(rest), restBounds});
+                        }
+                    }
+                    parts = std::move(after);
+                }
+                for (Piece& part : parts)
+                    next.push_back(std::move(part));
             }
-            for (Piece& part : parts)
-                next.push_back(std::move(part));
+            lifted.pieces = std::move(next);
         }
-        lifted.pieces = std::move(next);
-    }
     if (changed)
         showLifted();
 }

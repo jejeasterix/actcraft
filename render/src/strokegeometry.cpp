@@ -15,6 +15,18 @@ namespace actcraft::render {
 
 namespace {
 
+// L'angle ramené dans ]-π, π].
+double wrappedTurn(double turn) noexcept
+{
+    while (turn > std::numbers::pi) {
+        turn -= 2 * std::numbers::pi;
+    }
+    while (turn <= -std::numbers::pi) {
+        turn += 2 * std::numbers::pi;
+    }
+    return turn;
+}
+
 float f(double v)
 {
     return static_cast<float>(v);
@@ -126,13 +138,7 @@ void appendRoundJoin(core::PointF a, core::PointF b, core::PointF c, double half
                      std::vector<Vertex2D>& out)
 {
     const double incoming = std::atan2(b.y - a.y, b.x - a.x);
-    double turn = std::atan2(c.y - b.y, c.x - b.x) - incoming;
-    while (turn > std::numbers::pi) {
-        turn -= 2 * std::numbers::pi;
-    }
-    while (turn <= -std::numbers::pi) {
-        turn += 2 * std::numbers::pi;
-    }
+    const double turn = wrappedTurn(std::atan2(c.y - b.y, c.x - b.x) - incoming);
     if (std::abs(turn) < 1e-9) {
         return;
     }
@@ -158,13 +164,7 @@ void appendFixedJoin(core::PointF center, std::optional<double> from, std::optio
         out.insert(out.end(), 6, Vertex2D{f(center.x), f(center.y)});
         return;
     }
-    double turn = *to - *from;
-    while (turn > std::numbers::pi) {
-        turn -= 2 * std::numbers::pi;
-    }
-    while (turn <= -std::numbers::pi) {
-        turn += 2 * std::numbers::pi;
-    }
+    const double turn = wrappedTurn(*to - *from);
     for (const double side : {std::numbers::pi / 2, -std::numbers::pi / 2}) {
         appendTriangle(center, onCircle(center, half, *from + side),
                        onCircle(center, half, *from + side + turn), out);

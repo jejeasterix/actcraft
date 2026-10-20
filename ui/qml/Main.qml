@@ -63,12 +63,9 @@ Window {
         objectName: "documentController"
         fixedPage: pageArea.fixedPage
         // Page suivante pendant un trait (PgDown, télécommande, doigt sur le bouton) : le trait se termine et
-        // reste sur sa page. L'outil abandonne d'abord son geste (M2) : sans cela, le relâché synthétisé par
-        // finishStroke terminerait un glissement de la sélection par un déplacement.
-        onPageAboutToChange: {
-            appTools.cancelGesture()
-            pageArea.view.finishStroke()
-        }
+        // reste sur sa page. finishStroke abandonne d'abord le geste de l'outil (M2) : sans cela, le relâché
+        // synthétisé terminerait un glissement de la sélection par un déplacement.
+        onPageAboutToChange: pageArea.view.finishStroke()
     }
 
     // Outils de l'utilisateur (lot 3) : branchés à la vue, à la couche soulevée et aux commandes.
@@ -82,10 +79,7 @@ Window {
     }
     Connections {
         target: appDocument
-        function onEditAboutToApply() {
-            appTools.cancelGesture()
-            pageArea.view.finishStroke()
-        }
+        function onEditAboutToApply() { pageArea.view.finishStroke() }
         function onUndoChanged() { root.syncEditCommands() }
         function onDocumentChanged() { root.syncEditCommands() }
         function onCanRevertPageChanged() { root.syncEditCommands() }

@@ -19,6 +19,9 @@ public:
     void onSample(const input::Sample& sample) override;
     bool isBusy() const noexcept override;
     void cancel() override;
+    // Touches Maj et Ctrl : un échantillon n'en porte pas. L'appelant transmet chaque changement par onKey
+    // (appui : Qt::Key_Shift ou Qt::Key_Control avec le modificateur ; relâché : les mêmes avec les
+    // modificateurs restants) ; toute touche transmise remplace les modificateurs connus (L3-T8).
     bool onKey(int key, int modifiers) override; // Suppr : supprimer ; Échap : abandon du geste
     void selectAll();
     void clearSelection();
@@ -27,10 +30,6 @@ public:
     void reduce();          // ÷ kEnlargeStep
     void setTranslucency(std::uint8_t value);
     void refresh(); // la page a changé (annuler, page suivante) : sélection filtrée, cadre recalculé
-
-    // Touches Maj et Ctrl : un échantillon n'en porte pas. L'appelant transmet chaque changement par onKey
-    // (appui : Qt::Key_Shift ou Qt::Key_Control avec le modificateur ; relâché : les mêmes avec les
-    // modificateurs restants) ; toute touche transmise remplace les modificateurs connus (L3-T8).
 
 private:
     enum class State : std::uint8_t
@@ -58,6 +57,10 @@ private:
     void release(const input::Sample& sample);
     void beginDrag(bool force);
     void beginTransform(State kind);
+    // Soulève ids (m_lifted d'abord), montre les copies et passe à state.
+    void liftForGesture(std::vector<core::ObjectId> ids, State state);
+    // Agrandir et Réduire : la sélection redimensionnable, × factor autour du centre du cadre.
+    void scaleSelection(double factor);
     core::Transform gestureTransform(core::PointF point) const;
     void updateDrag(core::PointF point);
     void endDrag(core::PointF point, bool cancelled);

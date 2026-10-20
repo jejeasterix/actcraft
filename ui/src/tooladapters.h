@@ -21,6 +21,10 @@
 namespace actcraft::ui {
 
 class Commands;
+
+// Le cadre de sélection tel que QML le lit (visible, corners, handles, bar, rubberBand, handlesVisible).
+// commands peut être nul : la barre n'a alors pas d'icônes.
+QVariantMap selectionFrameMap(const tools::SelectionView& view, Commands* commands);
 class DocumentController;
 class PageView;
 
