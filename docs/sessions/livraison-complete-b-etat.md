@@ -95,6 +95,9 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 - `selectionIsNotGuided` (L7-T9, revue) : le guide de la règle est réservé au stylo (`kGuidedTool = "pen"`), mais non testable avant le lot 3 : `ToolHost::activate` et `UserState::setCurrentTool` sont des talons. À ajouter avec `markerFollowsTheRuler`, `eraserFollowsTheCompass`.
 - Constat L7-T9, hors périmètre : la commande `tool.pen` de `Main.qml:292` coche la commande sans activer le stylo (talon du lot 3 ?) : à revoir à la fusion.
 
+## Reprise du 2026-10-20 à 16 h 00 (après le redémarrage du PC, message de Pilote)
+Points 1 à 4 du point de reprise lancés : suite V4 sous le verrou (timestamp AUTOMOC supprimés), agents L7-T11 essai 2, L7-T5 reprise (point souris tranché : garder les tests, prouver par un mutant du chemin souris, couverture discriminée au stylet et au doigt seulement), L7-T6 reprise (run.ps1 sans garde d'heure). RAM libre 0,6 Go : longues attentes du jeton.
+
 ## Point de reprise (écrit le 2026-10-20 vers 04 h 30, avant l'arrêt du PC)
 Mergé dans `feat/livraison-complete-b` : phase 1, L7-S8, vague 2 (T1, T2), vague 3 (T3, T9), vague 4 (T4, T10). Suites du chantier vertes après V2 et V3 ; **suite V4 non jouée**.
 Aucune construction ni attente de B ne tourne ; tous les worktrees sont commités. Outils : `.tmp/outils-b/` (b-jeton.ps1, rejeu.ps1 avec la forme `exe:classe`, suite-chantier.ps1, consignes-T.md, revues).
