@@ -363,6 +363,16 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
             waitFor([this, swaps] { return m_recorder->swapNs().size() >= swaps + 2; }, 5000);
         }
     }
+    // Versement différé du dernier trait (L3-C14, plan.awaitFinalFold : « pauses ») : la mesure attend que le
+    // trait passe en attente (son relâché posté est traité), puis que le délai d'inactivité le verse et que
+    // le cache soit redessiné ; aucune entrée ne suit, rien ne le repousse. Sans cela, les seuls versements
+    // mesurés étaient ceux des reprises k = 1 et k = 2 (24 et 48 ms au-dessus du délai en court) : un relâché
+    // traité en retard d'autant sous charge relançait la minuterie, aucun versement n'était relevé et
+    // tst_bench_result (cacheRefreshesAreRecorded) échouait. Sans versement, l'attente va au plafond.
+    if (plan.awaitFinalFold && waitFor([this] { return m_fixed->pendingCount() > 0; }, kPageShownTimeoutMs)) {
+        waitFor([this] { return m_fixed->pendingCount() == 0 && m_view->cacheReady(); },
+                ui::kCacheFoldIdleMs + kPageShownTimeoutMs);
+    }
     waitMs(150); // dernières images : figement, redessin du cache
     m_recorder->end();
     QObject::disconnect(pump);

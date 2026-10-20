@@ -339,6 +339,7 @@ ScenarioPlan pausesScenario(ScenarioSet set)
     plan.name = QStringLiteral("pauses");
     plan.zoom = 1.0;
     plan.generatedPages = 1;
+    plan.awaitFinalFold = true; // au moins un versement mesuré, quelle que soit la charge (L3-C14)
     std::int64_t start = 0;
     for (int k = 0; k < strokes; ++k) {
         for (int i = 0; i < samples; ++i) {

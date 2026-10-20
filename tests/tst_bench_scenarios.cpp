@@ -301,6 +301,17 @@ private slots:
         QCOMPARE(plans[4].inputs.size(), std::size_t{10 * 100});
     }
 
+    // L3-C14 : seul « pauses » ferme sa mesure sur le versement différé de son dernier trait ; « stroke »
+    // garde ses traits en attente (aucun redessin du cache pendant sa mesure, tst_bench_result).
+    void onlyPausesAwaitsItsFinalFold()
+    {
+        for (const bench::ScenarioSet set : {bench::ScenarioSet::Court, bench::ScenarioSet::Complet}) {
+            for (const bench::ScenarioPlan& plan : bench::allScenarios(set)) {
+                QCOMPARE(plan.awaitFinalFold, plan.name == QStringLiteral("pauses"));
+            }
+        }
+    }
+
     // L2-T23 : changements de page à intervalle fixe par commandes nommées (aucun événement posté, aucune
     // encre), puis deux zooms posés sur la page peinte ; document de deux pages générées chargé avant.
     void pageScenarioFlipsPages()
