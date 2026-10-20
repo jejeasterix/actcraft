@@ -19,14 +19,6 @@
 namespace actcraft::render {
 
 namespace {
-void clearChildren(QSGNode* root)
-{
-    while (QSGNode* child = root->firstChild()) {
-        root->removeChildNode(child);
-        delete child;
-    }
-}
-
 // Emplacements du fond peint et de la grille parmi les nœuds rastérisés (les objets y sont par leur indice).
 constexpr std::size_t kBackgroundSlot = std::numeric_limits<std::size_t>::max();
 constexpr std::size_t kGridSlot = kBackgroundSlot - 1;
@@ -192,26 +184,27 @@ void FixedPageItem::insert(core::ObjectId id)
     const core::PageObject& object = shown.objects[index];
     const bool imageChanged = usesImages(object);
     const bool atEnd = index + 1 == shown.objects.size();
-    const auto* strokeObject = std::get_if<core::Stroke>(&object);
+    // Calculé avant tout emit : un slot de objectCountChanged pourrait modifier la page.
+    const bool isStroke = std::get_if<core::Stroke>(&object) != nullptr;
+    const auto announceAppended = [this, isStroke] {
+        emit objectCountChanged();
+        if (isStroke) {
+            emit strokeAppended();
+        }
+    };
     if (atEnd && m_deferred && m_ready && canWait(shown, object)) {
         // Lot 10 : il attend au-dessus du cache ; ni nœud dans la scène, ni redessin du cache. Limite de DA11
         // (écart 5, H10-8) : hors fin de page, ou objet qui ne peut pas attendre → redessin immédiat
         // ci-dessous.
         m_pendingIds.push_back(id);
-        emit objectCountChanged();
-        if (strokeObject) {
-            emit strokeAppended();
-        }
+        announceAppended();
         emit pendingChanged();
         return;
     }
     if (atEnd && index >= m_builtCount && !imageChanged && m_pendingIds.empty()) {
         // Fin de page (le stylo, hors différé) : le prochain updatePaintNode n'ajoute que ce nœud. Avec des
         // objets en attente, ce nœud passerait devant eux dans la scène : reconstruction ci-dessous.
-        emit objectCountChanged();
-        if (strokeObject) {
-            emit strokeAppended();
-        }
+        announceAppended();
         emit contentChanged();
         update();
         return;
@@ -432,7 +425,6 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     QSGNode* root = old ? old : (software ? new QSGTransformNode : new QSGNode);
     const NodeContexts contexts =
         nodeContexts(window(), software, &m_images, m_rasterScale, m_forceRasterized);
-    const RenderContext& context = contexts.context;
     const RenderContext& painted = contexts.painted;
     const bool rasterized = !painted.software;
     const core::Page& shown = page();
@@ -501,14 +493,13 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         // les ajoute quand ils sont versés.
         const std::size_t limit = cachedObjectCount();
         for (std::size_t i = m_builtCount; i < limit; ++i) {
-            const ObjectNode made =
-                createObjectNode(shown.objects[i], i, m_registry, m_painted, context, painted);
+            const ObjectNode made = createObjectNode(shown.objects[i], i, m_registry, m_painted, contexts);
             if (!made.root) {
                 continue;
             }
             if (made.viaPainter && rasterized) {
-                addRasterSlot(made.leaf,
-                              i); // feuille : les nœuds de transformation et d'opacité restent en place
+                // feuille : les nœuds de transformation et d'opacité restent en place
+                addRasterSlot(made.leaf, i);
             }
             if (m_gridDrawnAbove) {
                 root->insertChildNodeBefore(made.root, m_gridDrawnAbove);

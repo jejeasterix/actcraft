@@ -112,8 +112,7 @@ QSGNode* LiftLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
             const NodeContexts unkeyed = nodeContexts(window(), software, nullptr, scale, forced);
             for (std::size_t i = 0; i < m_objects.size(); ++i) {
                 const NodeContexts& contexts = imagesByKey(m_objects[i]) ? byKey : unkeyed;
-                const ObjectNode made = createObjectNode(m_objects[i], i, m_registry, m_painted,
-                                                         contexts.context, contexts.painted);
+                const ObjectNode made = createObjectNode(m_objects[i], i, m_registry, m_painted, contexts);
                 if (made.root) {
                     root->appendChildNode(made.root); // ordre du vecteur, comme la page fixe
                     ++m_builtCount;
