@@ -61,6 +61,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | suite V4 | L7-T4, L7-T10 | branche du chantier à 63b2ad8 (timestamp AUTOMOC ui supprimés avant) | — | TESTS OK 158/158 (2026-10-20, après le redémarrage) | 1 | — | — |
 | L7-T6 | L7-T1, T2, T3, T4 | voir ligne L7-T6 de l'amendement phase 2 (+ « spot ferme le rideau ») | .worktrees/livraison-complete-b--L7-T6 (base f0b30ce) | essai 2 : rendu 30fb0ba (158 TESTS OK, rouge vu, 7 mutants, H7-16 tenue) ; revue « corriger » : identité de page par indice (Annuler d'une page avant → rideau perdu), cadre du spot non écrit au relâché ; simplifications | 2 | 30fb0ba | — |
 | L7-T12 | L7-T11 | voir ligne L7-T12 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T12 (base 530e95b) | en cours (concepteur-critique), V6 | 1 | — | — |
+| L7-T7 | L7-T3 | voir ligne L7-T7 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T7 (base cd09af4) | en cours (concepteur-critique), V7 | 1 | — | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
