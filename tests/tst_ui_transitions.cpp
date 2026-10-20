@@ -5,8 +5,10 @@
 #include <actcraft/features/transitions.h>
 #include <actcraft/ui/documentcontroller.h>
 
+#include <QHash>
 #include <QQuickItemGrabResult>
 #include <QRandomGenerator>
+#include <QStringList>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -49,6 +51,13 @@ int snapshotsOf(const MainWindow& main)
 {
     const QQuickItem* root = main.item(QStringLiteral("transitionRoot"));
     return root ? root->property("snapshotCount").toInt() : -1;
+}
+
+// Morceaux de l'instantané encore présents.
+int snapshotPieces(const MainWindow& main)
+{
+    const QQuickItem* frame = main.item(QStringLiteral("transitionSnapshot"));
+    return frame ? static_cast<int>(frame->childItems().size()) : -1;
 }
 
 void setPageEffect(DocumentController& document, const char* effect)
@@ -114,6 +123,7 @@ private slots:
         QCOMPARE(snapshotsOf(main), 1);
         QVERIFY(settle(main, transition));
         QCOMPARE(document->currentIndex(), 1);
+        QTRY_COMPARE(snapshotPieces(main), 0); // instantané retiré (destroy() est différé)
     }
 
     // Les gestionnaires de page.next et page.previous sont ceux de la présentation après le chargement, par
@@ -167,18 +177,30 @@ private slots:
         QCOMPARE(document->currentIndex(), 1);
     }
 
-    // Rideau actif (curtain.active) : aucun effet, la page change aussitôt ; rideau fermé : l'effet revient.
+    void noEffectWhileCurtainActive_data()
+    {
+        QTest::addColumn<QString>("command");
+        QTest::addColumn<QString>("control");
+        QTest::newRow("rideau") << QStringLiteral("present.curtain") << QStringLiteral("curtain");
+        // noEffectWhileSpotlightActive : même règle pour le spot (7a, « rideau ou spot actif »).
+        QTest::newRow("spot") << QStringLiteral("present.spotlight-circle") << QStringLiteral("spotlight");
+    }
+
+    // Rideau ou spot actif (curtain.active, spotlight.active) : aucun effet, la page change aussitôt ; fermé
+    // : l'effet revient.
     void noEffectWhileCurtainActive()
     {
+        QFETCH(QString, command);
+        QFETCH(QString, control);
         MainWindow main;
         QVERIFY(main.window() != nullptr);
         QObject* transition = transitionOf(main);
         DocumentController* document = documentOf(main);
-        QObject* curtain = main.window()->findChild<QObject*>(QStringLiteral("curtain"));
-        QVERIFY(transition && document && curtain);
+        QObject* blocker = main.window()->findChild<QObject*>(control);
+        QVERIFY(transition && document && blocker);
         QVERIFY(main.run(QStringLiteral("view.page-effect"), QStringLiteral("dissolve")));
-        QVERIFY(main.run(QStringLiteral("present.curtain")));
-        QVERIFY(curtain->property("active").toBool());
+        QVERIFY(main.run(command));
+        QVERIFY(blocker->property("active").toBool());
         QVERIFY(main.run(QStringLiteral("page.next")));
         QCOMPARE(document->currentIndex(), 1);
         QCOMPARE(phaseOf(transition), kIdle);
@@ -187,8 +209,8 @@ private slots:
         QCOMPARE(snapshotsOf(main), 0);
         QCOMPARE(playedOf(transition), QString());
 
-        QVERIFY(main.run(QStringLiteral("present.curtain")));
-        QVERIFY(!curtain->property("active").toBool());
+        QVERIFY(main.run(command));
+        QVERIFY(!blocker->property("active").toBool());
         QVERIFY(main.run(QStringLiteral("page.previous")));
         QTRY_COMPARE_WITH_TIMEOUT(phaseOf(transition), kAnimating, 5000);
         QCOMPARE(playedOf(transition), QStringLiteral("dissolve"));
@@ -300,6 +322,28 @@ private slots:
         QCOMPARE(document->pageCount(), 4);
         QCOMPARE(main.item(QStringLiteral("pageIndicator"))->property("text").toString(),
                  QStringLiteral("4 / 4"));
+        QTRY_COMPARE(snapshotPieces(main), 0); // les instantanés interrompus aussi
+    }
+
+    // Aucune image rendue (fenêtre cachée) : l'instantané n'arrive jamais ; passé le repli, la page change
+    // sans effet au lieu de rester en attente.
+    void pageTurnsWhenNoFrameIsRendered()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        QObject* transition = transitionOf(main);
+        DocumentController* document = documentOf(main);
+        QVERIFY(transition && document);
+        QVERIFY(main.run(QStringLiteral("view.page-effect"), QStringLiteral("dissolve")));
+        main.window()->hide();
+        QCoreApplication::processEvents();
+        QVERIFY(main.run(QStringLiteral("page.next")));
+        QCOMPARE(phaseOf(transition), 1); // instantané demandé
+        QCOMPARE(document->currentIndex(), 0);
+        QTRY_COMPARE_WITH_TIMEOUT(document->currentIndex(), 1, 6000);
+        QCOMPARE(phaseOf(transition), kIdle);
+        QCOMPARE(playedOf(transition), QString());
+        QTRY_COMPARE(snapshotPieces(main), 0);
     }
 
     // « Au hasard » : un effet du catalogue tiré par features::pickEffect sur le générateur injecté.
@@ -320,7 +364,8 @@ private slots:
         QVERIFY(settle(main, transition));
     }
 
-    // Chacun des seize mouvements a ses pièces ; « aucun » et « au hasard » n'en ont pas.
+    // Chacun des seize mouvements a ses pièces, chaque pièce bouge, et deux effets n'ont jamais le même
+    // mouvement ; « aucun » et « au hasard » n'en ont pas.
     void everyEffectHasAMotion()
     {
         MainWindow main;
@@ -329,6 +374,7 @@ private slots:
         QVERIFY(transition != nullptr);
         const QVariantList catalogue = transition->property("catalogue").toList();
         QCOMPARE(catalogue.size(), 18);
+        QHash<QString, QString> owners; // signature du mouvement -> effet
         for (const QVariant& entry : catalogue) {
             const QString id = entry.toMap().value(QStringLiteral("id")).toString();
             QVariantList pieces;
@@ -340,14 +386,30 @@ private slots:
             }
             QVERIFY2(!pieces.isEmpty(), qPrintable(id));
             double longest = 0;
+            QStringList signature;
             for (const QVariant& piece : pieces) {
                 const QVariantMap p = piece.toMap();
                 const double span = p.value(QStringLiteral("span")).toDouble();
                 QVERIFY2(span > 0 && span <= 1, qPrintable(id));
                 longest = std::max(longest, span);
+                const bool moves = p.value(QStringLiteral("dx")).toDouble() != 0 ||
+                                   p.value(QStringLiteral("dy")).toDouble() != 0 ||
+                                   p.value(QStringLiteral("scale")).toDouble() != 1 ||
+                                   p.value(QStringLiteral("opacity")).toDouble() != 1;
+                QVERIFY2(moves, qPrintable(id));
+                QStringList values;
+                for (const char* key :
+                     {"x", "y", "width", "height", "dx", "dy", "scale", "opacity", "origin", "span"}) {
+                    values << QString::number(p.value(QString::fromLatin1(key)).toDouble(), 'g', 6);
+                }
+                signature << values.join(QLatin1Char(','));
             }
             QVERIFY2(qFuzzyCompare(longest, 1.0), qPrintable(id));
+            const QString key = signature.join(QLatin1Char(';'));
+            QVERIFY2(!owners.contains(key), qPrintable(id + QStringLiteral(" = ") + owners.value(key)));
+            owners.insert(key, id);
         }
+        QCOMPARE(owners.size(), 16);
     }
 
     // Effet global et durée gardés d'une fenêtre à la suivante ; durée bornée à 5..30 dixièmes.

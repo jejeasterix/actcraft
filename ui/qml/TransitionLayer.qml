@@ -17,6 +17,7 @@ Item {
     property Item pageArea: null
     property QtObject controller: transitionController
     property QtObject curtain: null
+    property QtObject spotlight: null
     // Instantanés pris depuis le chargement (crochet de test : aucun quand il n'y a pas d'effet à jouer).
     property int snapshotCount: 0
     // Morceaux de l'instantané en cours ; leur génération écarte le signal d'un instantané déjà retiré.
@@ -29,7 +30,7 @@ Item {
         id: transitionController
         objectName: "transition"
         documentController: root.documentController
-        blocked: root.curtain ? root.curtain.active : false
+        blocked: (root.curtain ? root.curtain.active : false) || (root.spotlight ? root.spotlight.active : false)
         onCaptureRequested: effect => root.capture(effect)
         onPlayRequested: (effect, durationMs) => root.play(durationMs)
         onStopRequested: root.clear()
@@ -53,7 +54,7 @@ Item {
             property real toScale: 1
             property real toOpacity: 1
             property real fraction: 1 // part de la durée
-            property int span: 1      // millisecondes
+            property int durationMs: 1
             live: false
             hideSource: false
             onScheduledUpdateCompleted: {
@@ -66,26 +67,26 @@ Item {
             ParallelAnimation {
                 id: motion
                 XAnimator {
-                    target: piece; from: piece.x; to: piece.x + piece.toX; duration: piece.span
+                    target: piece; from: piece.x; to: piece.x + piece.toX; duration: piece.durationMs
                     easing.type: Easing.InOutQuad
                 }
                 YAnimator {
-                    target: piece; from: piece.y; to: piece.y + piece.toY; duration: piece.span
+                    target: piece; from: piece.y; to: piece.y + piece.toY; duration: piece.durationMs
                     easing.type: Easing.InOutQuad
                 }
                 ScaleAnimator {
-                    target: piece; from: 1; to: piece.toScale; duration: piece.span
+                    target: piece; from: 1; to: piece.toScale; duration: piece.durationMs
                     easing.type: Easing.InOutQuad
                 }
                 OpacityAnimator {
-                    target: piece; from: 1; to: piece.toOpacity; duration: piece.span
+                    target: piece; from: 1; to: piece.toOpacity; duration: piece.durationMs
                     easing.type: Easing.InOutQuad
                 }
                 onFinished: root.pieceDone(piece.generation)
             }
 
-            function play(durationMs) {
-                piece.span = Math.max(1, Math.round(durationMs * piece.fraction))
+            function play(totalMs) {
+                piece.durationMs = Math.max(1, Math.round(totalMs * piece.fraction))
                 motion.start()
             }
         }

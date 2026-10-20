@@ -14,6 +14,9 @@ namespace actcraft::ui {
 namespace {
 
 constexpr auto kGroup = "presentation/transition";
+// Au-delà, un instantané sans image rendue est abandonné. Large : une image du rendu logiciel en débogage,
+// sous charge, dépasse parfois une demi-seconde ; la fenêtre ne montre alors rien de toute façon.
+constexpr int kCaptureTimeoutMs = 2000;
 
 using Origin = QQuickItem::TransformOrigin;
 
@@ -52,11 +55,6 @@ QVariantMap toMap(const Piece& p)
             {QStringLiteral("span"), p.span}};
 }
 
-Piece whole()
-{
-    return Piece{};
-}
-
 // Grille de cols × rows morceaux ; `shape` pose la cible de chacun (colonne, ligne, indice).
 template <typename Shape> std::vector<Piece> grid(int cols, int rows, Shape shape)
 {
@@ -80,18 +78,18 @@ template <typename Shape> std::vector<Piece> grid(int cols, int rows, Shape shap
 std::vector<Piece> piecesFor(const QString& id)
 {
     if (id == QLatin1String("dissolve")) { // fondu : l'ancienne page devient transparente
-        Piece p = whole();
+        Piece p;
         p.opacity = 0;
         return {p};
     }
     if (id == QLatin1String("corner-peel")) { // se replie vers le coin haut gauche
-        Piece p = whole();
+        Piece p;
         p.scale = 0;
         p.origin = Origin::TopLeft;
         return {p};
     }
-    if (id == QLatin1String("box-turn")) { // part à gauche en rétrécissant, comme une face qui tourne
-        Piece p = whole();
+    if (id == QLatin1String("box-turn")) { // part à gauche en rétrécissant
+        Piece p;
         p.dx = -1;
         p.scale = 0.6;
         p.opacity = 0.2;
@@ -99,7 +97,7 @@ std::vector<Piece> piecesFor(const QString& id)
         return {p};
     }
     if (id == QLatin1String("card-flip")) { // se réduit au centre
-        Piece p = whole();
+        Piece p;
         p.scale = 0;
         p.opacity = 0.4;
         return {p};
@@ -118,7 +116,7 @@ std::vector<Piece> piecesFor(const QString& id)
         });
     }
     if (id == QLatin1String("slide-right")) { // glisse vers la droite
-        Piece p = whole();
+        Piece p;
         p.dx = 1;
         return {p};
     }
@@ -129,13 +127,13 @@ std::vector<Piece> piecesFor(const QString& id)
         });
     }
     if (id == QLatin1String("corner-swing")) { // tombe vers le coin bas gauche
-        Piece p = whole();
+        Piece p;
         p.dy = 1;
         p.scale = 0.3;
         p.origin = Origin::BottomLeft;
         return {p};
     }
-    if (id == QLatin1String("spiral-out")) { // morceaux chassés du centre, en tournant
+    if (id == QLatin1String("spiral-out")) { // morceaux chassés du centre, l'un après l'autre
         static constexpr int order[9] = {1, 2, 3, 8, 0, 4, 7, 6, 5};
         return grid(3, 3, [](Piece& p, int c, int r, int index) {
             p.dx = (c - 1) * 1.2;
@@ -146,7 +144,7 @@ std::vector<Piece> piecesFor(const QString& id)
         });
     }
     if (id == QLatin1String("turn-reveal")) { // se referme sur son bord gauche
-        Piece p = whole();
+        Piece p;
         p.scale = 0;
         p.origin = Origin::Left;
         return {p};
@@ -176,7 +174,7 @@ std::vector<Piece> piecesFor(const QString& id)
         });
     }
     if (id == QLatin1String("funnel")) { // aspirée vers le bas
-        Piece p = whole();
+        Piece p;
         p.scale = 0;
         p.opacity = 0.5;
         p.origin = Origin::Bottom;
@@ -190,6 +188,13 @@ std::vector<Piece> piecesFor(const QString& id)
 TransitionController::TransitionController(QObject* parent)
     : QObject(parent), m_random(QRandomGenerator::global()->generate())
 {
+    m_captureTimer.setSingleShot(true);
+    m_captureTimer.setInterval(kCaptureTimeoutMs);
+    connect(&m_captureTimer, &QTimer::timeout, this, [this] {
+        if (m_phase == Capturing) {
+            settle(); // aucune image rendue (fenêtre cachée) : la page change sans effet
+        }
+    });
     QSettings settings;
     settings.beginGroup(QLatin1String(kGroup));
     const QString global = settings.value(QStringLiteral("global"), m_settings.global).toString();
@@ -400,6 +405,11 @@ void TransitionController::setPhase(Phase phase)
         return;
     }
     m_phase = phase;
+    if (m_phase == Capturing) {
+        m_captureTimer.start(); // repli : sans image rendue, la page change sans effet
+    } else {
+        m_captureTimer.stop();
+    }
     emit phaseChanged();
 }
 

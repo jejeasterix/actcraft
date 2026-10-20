@@ -7,6 +7,7 @@
 #include <QPointer>
 #include <QRandomGenerator>
 #include <QString>
+#include <QTimer>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
@@ -27,7 +28,8 @@ class TransitionController : public QObject
                    setDocumentController NOTIFY documentControllerChanged)
     Q_PROPERTY(QString globalEffect READ globalEffect WRITE setGlobalEffect NOTIFY settingsChanged)
     Q_PROPERTY(int durationTenths READ durationTenths WRITE setDurationTenths NOTIFY settingsChanged)
-    // Vrai pendant le rideau (lié par la surcouche à curtain.active) : aucun effet.
+    // Vrai pendant le rideau ou le spot (lié par la surcouche à curtain.active et spotlight.active) : aucun
+    // effet.
     Q_PROPERTY(bool blocked READ blocked WRITE setBlocked NOTIFY blockedChanged)
     Q_PROPERTY(int phase READ phase NOTIFY phaseChanged)        // Phase
     Q_PROPERTY(bool playing READ playing NOTIFY phaseChanged)   // instantané en cours ou effet joué
@@ -95,6 +97,7 @@ private:
     QPointer<DocumentController> m_document;
     features::TransitionSettings m_settings;
     QRandomGenerator m_random;
+    QTimer m_captureTimer; // repli de l'instantané (kCaptureTimeoutMs)
     features::NavigationKind m_pending = features::NavigationKind::Next;
     QString m_effect;
     QString m_played;
