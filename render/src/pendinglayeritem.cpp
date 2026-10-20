@@ -42,10 +42,10 @@ void PendingLayerItem::setFixedPage(FixedPageItem* page)
     if (m_page) {
         // Tout changement de ce que la couche lit émet pendingChanged (pendingIds, pendingRevision) ou
         // readyChanged (isReady) ; contentChanged (redessin du cache) ne la concerne pas.
-        m_pendingConnection = connect(m_page, &FixedPageItem::pendingChanged, this, &QQuickItem::update);
+        m_pendingConnection = connect(m_page, &FixedPageItem::pendingChanged, this, [this] { update(); });
         // Au prêt, la page fixe se reconstruit (avec ce qui attendait) : la couche se vide dans la même
         // image.
-        m_readyConnection = connect(m_page, &FixedPageItem::readyChanged, this, &QQuickItem::update);
+        m_readyConnection = connect(m_page, &FixedPageItem::readyChanged, this, [this] { update(); });
     }
     update();
     emit fixedPageChanged();
