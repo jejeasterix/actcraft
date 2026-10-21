@@ -9,7 +9,9 @@
 namespace actcraft::core {
 
 // Copie de `page` dont chaque objet reçoit un identifiant neuf du document ; membres de groupes, extrémités
-// de connecteurs et cibles d'actions qui visent un objet de la page suivent leur nouvel identifiant.
+// de connecteurs et cibles d'actions qui visent un objet de la page suivent leur nouvel identifiant ; une
+// référence hors de la page, ou à 0 (« aucun »), reste telle quelle. Identifiants épuisés (allocateId rend
+// 0) : les objets restants gardent 0, et la copie n'est pas à insérer.
 Page withFreshIds(Document& document, Page page);
 
 // Indices des pages déplacées après MovePagesCommand(pages, before) (F-802 : elles restent sélectionnées).
@@ -46,7 +48,8 @@ private:
 };
 
 // Coller, dupliquer, insérer (F-600, F-601) : copies à identifiants neufs (withFreshIds au premier redo,
-// gardés ensuite) insérées à `index`. Changes : PageInserted.
+// gardés ensuite) insérées à `index`. Changes : PageInserted. Identifiants épuisés : rien n'est inséré, aucun
+// changement rendu (comme AddObjectCommand).
 class InsertPagesCommand final : public UndoCommand
 {
 public:
