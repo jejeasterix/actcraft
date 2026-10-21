@@ -76,9 +76,10 @@ struct Harness
         component.setData("import QtQuick\nTextEdit { width: 400; height: 200 }", QUrl());
         edit.reset(component.create());
         Q_ASSERT(edit);
-        controller.addChangeObserver([this](const core::Changes& applied, ui::DocumentController::ChangeOrigin) {
-            core::applyToCache(applied, static_cast<std::size_t>(controller.currentIndex()), cacheSpy);
-        });
+        controller.addChangeObserver(
+            [this](const core::Changes& applied, ui::DocumentController::ChangeOrigin) {
+                core::applyToCache(applied, static_cast<std::size_t>(controller.currentIndex()), cacheSpy);
+            });
         editing.setDocumentController(&controller);
         editing.setTextDocument(quickDocument());
     }
@@ -124,7 +125,10 @@ struct Harness
         const auto* text = std::get_if<core::Text>(&core::body(p.objects[index]));
         return text ? plainOfHtml(text->html).trimmed() : QStringLiteral("<pas un texte>");
     }
-    QString htmlPlainOfFirst() const { return plainOf(static_cast<std::size_t>(controller.currentIndex()), 0); }
+    QString htmlPlainOfFirst() const
+    {
+        return plainOf(static_cast<std::size_t>(controller.currentIndex()), 0);
+    }
     qreal firstBlockTopMargin() const { return document()->begin().blockFormat().topMargin(); }
 };
 
@@ -144,8 +148,9 @@ bool openAndWait(ui::DocumentController& controller, const QString& path)
 
 } // namespace
 
-// Édition du texte (F-250 à F-253, F-100, D7, D8, P17 à P22) : soulèvement, une étape à la validation, texte vide,
-// barre de mise en forme, validation avant tout dépôt forcé (editAboutToApply ET pageAboutToChange, V6).
+// Édition du texte (F-250 à F-253, F-100, D7, D8, P17 à P22) : soulèvement, une étape à la validation, texte
+// vide, barre de mise en forme, validation avant tout dépôt forcé (editAboutToApply ET pageAboutToChange,
+// V6).
 class TstUiText : public QObject
 {
     Q_OBJECT
@@ -157,12 +162,13 @@ private slots:
         const QString html = QStringLiteral(
             "<p>visible<img src=\"file://hote/partage/x.png\"><img src=\"http://exemple.invalid/y.png\">"
             "<a href=\"http://exemple.invalid/lien\">lien</a></p>"
-            "<table background=\"file://hote/z.png\"><tr><td background=\"file://hote/w.png\">a</td></tr></table>"
+            "<table background=\"file://hote/z.png\"><tr><td "
+            "background=\"file://hote/w.png\">a</td></tr></table>"
             "<p style=\"background-image:url(file://hote/v.png)\">b</p>");
-        const QList<QUrl> inputs{QUrl(QStringLiteral("file://hote/partage/x.png")),
-                                 QUrl(QStringLiteral("http://exemple.invalid/y.png")),
-                                 QUrl(QStringLiteral("file://hote/z.png")), QUrl(QStringLiteral("file://hote/w.png")),
-                                 QUrl(QStringLiteral("file://hote/v.png"))};
+        const QList<QUrl> inputs{
+            QUrl(QStringLiteral("file://hote/partage/x.png")),
+            QUrl(QStringLiteral("http://exemple.invalid/y.png")), QUrl(QStringLiteral("file://hote/z.png")),
+            QUrl(QStringLiteral("file://hote/w.png")), QUrl(QStringLiteral("file://hote/v.png"))};
         QList<QUrl> requested;
         bool allNull = true;
         const QString safe = ui::safeTextHtml(html, [&](const QUrl& url, const QVariant& answer) {
@@ -210,8 +216,8 @@ private slots:
         QCOMPARE(plainOfHtml(text->html).trimmed(), QStringLiteral("Bonjour"));
     }
 
-    // Annuler pendant l'édition (editAboutToApply) : la frappe est validée (une étape), puis c'est elle qui est
-    // annulée ; Rétablir la rend.
+    // Annuler pendant l'édition (editAboutToApply) : la frappe est validée (une étape), puis c'est elle qui
+    // est annulée ; Rétablir la rend.
     void undoDuringEditCommitsFirst()
     {
         Harness h;
@@ -228,8 +234,8 @@ private slots:
         QCOMPARE(h.htmlPlainOfFirst(), QStringLiteral("deux"));
     }
 
-    // V6 : changer de page émet pageAboutToChange, PAS editAboutToApply. La page quittée garde le texte frappé,
-    // texte existant soulevé comme texte neuf ; rien ne reste soulevé ni en édition.
+    // V6 : changer de page émet pageAboutToChange, PAS editAboutToApply. La page quittée garde le texte
+    // frappé, texte existant soulevé comme texte neuf ; rien ne reste soulevé ni en édition.
     void pageChangeDuringEditCommitsFirst()
     {
         Harness h;

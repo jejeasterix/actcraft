@@ -105,15 +105,15 @@ private:
     QRectF m_frame;
     int m_selectionStart = 0;
     int m_selectionEnd = 0;
-    std::size_t m_page = 0;      // page de l'édition
-    core::RectF m_objectBounds;  // emprise en coordonnées de l'objet (origine gardée, taille mesurée)
-    qreal m_fixedWidth = 0;      // > 0 : largeur imposée (texte existant, poignée d'extension)
+    std::size_t m_page = 0;     // page de l'édition
+    core::RectF m_objectBounds; // emprise en coordonnées de l'objet (origine gardée, taille mesurée)
+    qreal m_fixedWidth = 0;     // > 0 : largeur imposée (texte existant, poignée d'extension)
     bool m_geometryChanged = false;
-    QString m_initialHtml;       // HTML du TextEdit au début de l'édition : inchangé, aucune étape
+    QString m_initialHtml; // HTML du TextEdit au début de l'édition : inchangé, aucune étape
     // Mémoire de la police et de la taille (D7) : celles des textes suivants. L'en-tête figé (L4-T1) ne donne
     // pas accès à tools::UserState : la mémoire est gardée ici.
-    QString m_fontFamily;        // vide : police de l'application (N2-3)
-    qreal m_pointSize = 14;
+    QString m_nextFamily; // vide : police de l'application (N2-3)
+    qreal m_nextSize = 14;
 };
 
 } // namespace actcraft::ui

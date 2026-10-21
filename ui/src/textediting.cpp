@@ -34,10 +34,10 @@ QString safeTextHtml(const QString& html, const std::function<void(const QUrl&, 
 
 namespace {
 
-constexpr qreal kSizeStep = 2;    // D8 : taille ±2 points
+constexpr qreal kSizeStep = 2;     // D8 : taille ±2 points
 constexpr qreal kMinPointSize = 8; // D8 : minimum 8 (et non 4)
-constexpr qreal kSpacingStep = 2; // D8 : 2 points d'espace au-dessus du paragraphe
-constexpr int kIndentStep = 1;    // D8 : un niveau
+constexpr qreal kSpacingStep = 2;  // D8 : 2 points d'espace au-dessus du paragraphe
+constexpr int kIndentStep = 1;     // D8 : un niveau
 
 QString placeholderText()
 {
@@ -69,8 +69,7 @@ private:
     const std::function<void(const QUrl&, const QVariant&)>& m_observer;
 };
 
-template <typename Format>
-bool withoutBackgroundImage(Format& format)
+template <typename Format> bool clearImageUrl(Format& format)
 {
     if (!format.hasProperty(QTextFormat::BackgroundImageUrl)) {
         return false;
@@ -91,7 +90,7 @@ void cleanFrames(QTextFrame* frame)
         return;
     }
     QTextFrameFormat format = frame->frameFormat();
-    if (withoutBackgroundImage(format)) {
+    if (clearImageUrl(format)) {
         frame->setFrameFormat(format);
     }
     if (auto* table = qobject_cast<QTextTable*>(frame)) {
@@ -99,7 +98,7 @@ void cleanFrames(QTextFrame* frame)
             for (int column = 0; column < table->columns(); ++column) {
                 QTextTableCell cell = table->cellAt(row, column);
                 QTextCharFormat cellFormat = cell.format();
-                if (withoutBackgroundImage(cellFormat)) {
+                if (clearImageUrl(cellFormat)) {
                     cell.setFormat(cellFormat);
                 }
             }
@@ -113,8 +112,9 @@ void cleanFrames(QTextFrame* frame)
 
 } // namespace
 
-// Bloquant 5 (amendements 1 à 3) : le HTML d'un texte vient du fichier ouvert. Rien n'en est chargé ; les images
-// hors `data:`, les ancres et les images de fond (bloc, cadre, tableau, cellule, caractères) sont retirées.
+// Bloquant 5 (amendements 1 à 3) : le HTML d'un texte vient du fichier ouvert. Rien n'en est chargé ; les
+// images hors `data:`, les ancres et les images de fond (bloc, cadre, tableau, cellule, caractères) sont
+// retirées.
 QString safeTextHtml(const QString& html, const std::function<void(const QUrl&, const QVariant&)>& observer)
 {
     AnalysisDocument document(observer);
@@ -130,8 +130,8 @@ QString safeTextHtml(const QString& html, const std::function<void(const QUrl&, 
     for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
         QTextBlockFormat blockFormat = block.blockFormat();
         QTextCharFormat blockChars = block.charFormat();
-        const bool blockDirty = withoutBackgroundImage(blockFormat);
-        const bool charsDirty = withoutBackgroundImage(blockChars);
+        const bool blockDirty = clearImageUrl(blockFormat);
+        const bool charsDirty = clearImageUrl(blockChars);
         if (blockDirty || charsDirty) {
             QTextCursor cursor(block);
             if (blockDirty) {
@@ -151,7 +151,7 @@ QString safeTextHtml(const QString& html, const std::function<void(const QUrl&, 
                 images.push_back({fragment.position(), fragment.length()});
                 continue;
             }
-            bool dirty = withoutBackgroundImage(format);
+            bool dirty = clearImageUrl(format);
             if (format.isAnchor() || format.hasProperty(QTextFormat::AnchorHref) ||
                 format.hasProperty(QTextFormat::AnchorName)) {
                 format.setAnchor(false);
@@ -172,7 +172,8 @@ QString safeTextHtml(const QString& html, const std::function<void(const QUrl&, 
         cursor.setCharFormat(format);
     }
     // De la fin vers le début : les positions relevées restent justes.
-    std::sort(images.begin(), images.end(), [](const Range& a, const Range& b) { return a.position > b.position; });
+    std::sort(images.begin(), images.end(),
+              [](const Range& a, const Range& b) { return a.position > b.position; });
     for (const Range& image : images) {
         QTextCursor cursor(&document);
         cursor.setPosition(image.position);
@@ -200,10 +201,11 @@ void TextEditing::setDocumentController(DocumentController* controller)
     }
     m_controller = controller;
     if (m_controller) {
-        // V6 : les dépôts forcés passent par DEUX signaux (ui/src/documentcontroller.cpp:322-332). Enregistrer,
-        // annuler, rétablir, ouvrir, supprimer, effacer : editAboutToApply ; changer de page (et replaceDocument) :
-        // pageAboutToChange, sans editAboutToApply. Comme ToolHost (ui/src/toolhost.cpp:121-122), le texte se
-        // valide sur les deux, avant que dropRemaining ne remette le texte soulevé tel qu'il était.
+        // V6 : les dépôts forcés passent par DEUX signaux (ui/src/documentcontroller.cpp:322-332).
+        // Enregistrer, annuler, rétablir, ouvrir, supprimer, effacer : editAboutToApply ; changer de page (et
+        // replaceDocument) : pageAboutToChange, sans editAboutToApply. Comme ToolHost
+        // (ui/src/toolhost.cpp:121-122), le texte se valide sur les deux, avant que dropRemaining ne remette
+        // le texte soulevé tel qu'il était.
         connect(m_controller, &DocumentController::editAboutToApply, this, &TextEditing::commit);
         connect(m_controller, &DocumentController::pageAboutToChange, this, &TextEditing::commit);
     }
@@ -338,7 +340,7 @@ qreal TextEditing::fontSize() const
     }
     const QTextDocument* doc = editDocument();
     const qreal fallback = doc ? doc->defaultFont().pointSizeF() : 0;
-    return fallback > 0 ? fallback : m_pointSize;
+    return fallback > 0 ? fallback : m_nextSize;
 }
 
 bool TextEditing::bold() const
@@ -359,14 +361,15 @@ bool TextEditing::underline() const
 QTextCharFormat TextEditing::newTextFormat() const
 {
     QTextCharFormat format;
-    format.setFontFamilies(QStringList{m_fontFamily.isEmpty() ? QGuiApplication::font().family() : m_fontFamily});
-    format.setFontPointSize(m_pointSize);
+    format.setFontFamilies(
+        QStringList{m_nextFamily.isEmpty() ? QGuiApplication::font().family() : m_nextFamily});
+    format.setFontPointSize(m_nextSize);
     format.setForeground(QColor(Qt::black)); // D7 : noir, sans fond ni contour
     return format;
 }
 
-// P17, P20, D7. Le patron évident (une commande par frappe) est le mauvais : rien n'entre dans le paperboard avant
-// commit ; un texte existant est soulevé (un retrait du cache), il revient en une étape.
+// P17, P20, D7. Le patron évident (une commande par frappe) est le mauvais : rien n'entre dans le paperboard
+// avant commit ; un texte existant est soulevé (un retrait du cache), il revient en une étape.
 bool TextEditing::beginAt(QPointF pagePoint, bool vertical)
 {
     QTextDocument* doc = editDocument();
@@ -399,8 +402,8 @@ bool TextEditing::beginAt(QPointF pagePoint, bool vertical)
     m_page = page;
     m_geometryChanged = false;
     if (existing) {
-        // Copies prises avant le soulèvement, qui retire l'objet de la page. Seul le HTML assaini entre dans le
-        // TextEdit (bloquant 5).
+        // Copies prises avant le soulèvement, qui retire l'objet de la page. Seul le HTML assaini entre dans
+        // le TextEdit (bloquant 5).
         doc->setHtml(safeTextHtml(QString::fromStdString(existing->html), {}));
         m_editing = *hit;
         m_vertical = existing->vertical;
@@ -435,7 +438,8 @@ bool TextEditing::beginAt(QPointF pagePoint, bool vertical)
     return true;
 }
 
-// Mesure du document du peintre (render/src/pagepainter.cpp, paintText) : marge 0, largeur = celle de l'emprise.
+// Mesure du document du peintre (render/src/pagepainter.cpp, paintText) : marge 0, largeur = celle de
+// l'emprise.
 core::RectF TextEditing::measuredBounds(const QString& safeHtml) const
 {
     const std::function<void(const QUrl&, const QVariant&)> none;
@@ -545,7 +549,8 @@ void TextEditing::changeBlocks(const std::function<void(QTextBlockFormat&)>& cha
     const QTextBlock last = doc->findBlock(selection.selectionEnd());
     QTextCursor edit(doc);
     edit.beginEditBlock();
-    for (QTextBlock block = doc->findBlock(selection.selectionStart()); block.isValid(); block = block.next()) {
+    for (QTextBlock block = doc->findBlock(selection.selectionStart()); block.isValid();
+         block = block.next()) {
         QTextBlockFormat format = block.blockFormat();
         change(format);
         QTextCursor(block).setBlockFormat(format);
@@ -558,8 +563,8 @@ void TextEditing::changeBlocks(const std::function<void(QTextBlockFormat&)>& cha
 
 void TextEditing::rememberFormat()
 {
-    m_pointSize = fontSize();
-    m_fontFamily = fontFamily();
+    m_nextSize = fontSize();
+    m_nextFamily = fontFamily();
 }
 
 // F-100, D8 : sur la sélection du TextEdit.
@@ -581,9 +586,9 @@ void TextEditing::apply(const QString& command, const QVariant& argument)
         mergeFormat(format);
     } else if (command == QLatin1String("text.superscript") || command == QLatin1String("text.subscript")) {
         const auto wanted = command == QLatin1String("text.superscript") ? QTextCharFormat::AlignSuperScript
-                                                                          : QTextCharFormat::AlignSubScript;
-        format.setVerticalAlignment(currentCharFormat().verticalAlignment() == wanted ? QTextCharFormat::AlignNormal
-                                                                                       : wanted);
+                                                                         : QTextCharFormat::AlignSubScript;
+        format.setVerticalAlignment(
+            currentCharFormat().verticalAlignment() == wanted ? QTextCharFormat::AlignNormal : wanted);
         mergeFormat(format);
     } else if (command == QLatin1String("text.size-up") || command == QLatin1String("text.size-down") ||
                command == QLatin1String("text.size")) {
@@ -625,15 +630,18 @@ void TextEditing::apply(const QString& command, const QVariant& argument)
         changeBlocks([alignment](QTextBlockFormat& block) { block.setAlignment(alignment); });
     } else if (command == QLatin1String("text.spacing-up") || command == QLatin1String("text.spacing-down")) {
         const qreal step = command == QLatin1String("text.spacing-up") ? kSpacingStep : -kSpacingStep;
-        changeBlocks([step](QTextBlockFormat& block) { block.setTopMargin(std::max(0.0, block.topMargin() + step)); });
+        changeBlocks(
+            [step](QTextBlockFormat& block) { block.setTopMargin(std::max(0.0, block.topMargin() + step)); });
     } else if (command == QLatin1String("text.indent") || command == QLatin1String("text.outdent")) {
         const int step = command == QLatin1String("text.indent") ? kIndentStep : -kIndentStep;
-        changeBlocks([step](QTextBlockFormat& block) { block.setIndent(std::max(0, block.indent() + step)); });
+        changeBlocks(
+            [step](QTextBlockFormat& block) { block.setIndent(std::max(0, block.indent() + step)); });
     } else if (command == QLatin1String("text.bullets")) {
         QTextCursor cursor = selectionCursor();
         if (QTextList* list = cursor.currentList()) {
             const QTextBlock last = doc->findBlock(cursor.selectionEnd());
-            for (QTextBlock block = doc->findBlock(cursor.selectionStart()); block.isValid(); block = block.next()) {
+            for (QTextBlock block = doc->findBlock(cursor.selectionStart()); block.isValid();
+                 block = block.next()) {
                 if (block.textList() == list) {
                     list->remove(block);
                     QTextBlockFormat plain = block.blockFormat();
