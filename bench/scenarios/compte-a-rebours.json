@@ -1,6 +1,32 @@
 {
   "format": "actcraft-scenario/1",
   "name": "compte-a-rebours",
-  "description": "Talon L7-S8 : rempli par L7-T16 (S10).",
-  "steps": [ {"waitReady": true} ]
+  "description": "F-290 : tool.clock ouvre le panneau horloge (cadran analogique et affichage numérique) ; le bouton Réglage ouvre la boîte du compte à rebours ; la durée 00:00:03 est saisie au clavier dans countdownField, l'action de fin « page suivante » choisie au clavier (Tab puis flèche bas), Entrée valide ; à l'échéance la page 2 est affichée (pageIndicator.text = 2 / 2) et le compte à rebours indique 00:00:00.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "tool.clock"},
+    {"expect": "clockRoot.visible", "value": true},
+    {"expect": "pageIndicator.text", "value": "1 / 1"},
+    {"capture": "horloge-ouverte"},
+    {"pointer": [[1200, 400]], "button": "left", "space": "window"},
+    {"expect": "countdownDialog.visible", "value": true},
+    {"key": "0"},
+    {"key": "0"},
+    {"key": ":"},
+    {"key": "0"},
+    {"key": "0"},
+    {"key": ":"},
+    {"key": "0"},
+    {"key": "3"},
+    {"expect": "countdownField.text", "value": "00:00:03"},
+    {"key": "Tab"},
+    {"key": "Down"},
+    {"expect": "countdownEndAction.currentValue", "value": "page.next"},
+    {"capture": "reglage"},
+    {"key": "Return"},
+    {"expect": "countdownDialog.visible", "value": false},
+    {"waitFor": "pageIndicator.text", "value": "2 / 2", "timeoutMs": 6000},
+    {"expect": "clockDigital.text", "value": "00:00:00"},
+    {"capture": "horloge"}
+  ]
 }
