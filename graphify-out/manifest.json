@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792584552.658628,
-    "ast_hash": "d4e7d83540611db7c128b3258237efc7",
+    "mtime": 1792589057.5575466,
+    "ast_hash": "42d170b4ef5c592585f72199c150286b",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2575,8 +2575,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_ticker.cpp": {
-    "mtime": 1792406200.5236406,
-    "ast_hash": "3bbe91ec389f0b69dc54277d5ab07592",
+    "mtime": 1792592234.0848336,
+    "ast_hash": "054185033edcd32bfa974cc8bc910db3",
     "semantic_hash": ""
   },
   "tests/tst_ui_transitions.cpp": {
@@ -2692,6 +2692,16 @@
   "ui/src/presentationcommands.h": {
     "mtime": 1792585411.4333334,
     "ast_hash": "623ba055e75de75223f42cb4aaebb6d9",
+    "semantic_hash": ""
+  },
+  "ui/src/tickercontroller.cpp": {
+    "mtime": 1792592234.0848336,
+    "ast_hash": "a0ffb5de40ec2b4197d9e32cb2d37b2e",
+    "semantic_hash": ""
+  },
+  "ui/src/tickercontroller.h": {
+    "mtime": 1792592234.0921853,
+    "ast_hash": "c8941055e72e9c488d279edb248efd4b",
     "semantic_hash": ""
   }
 }
