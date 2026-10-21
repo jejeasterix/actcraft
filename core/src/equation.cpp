@@ -142,9 +142,10 @@ private:
         return fail(u"plus de %1 niveaux d'imbrication"_s.arg(kMaxEquationDepth));
     }
 
-    // Position dans source_ du « < » de l'élément dont xml_ vient de rendre le StartElement, ou -1. `before` est
-    // la position relevée avant ce jeton : exacte après une balise, mais un caractère plus loin après un blanc
-    // (jeton Characters), le lecteur ayant déjà lu le « < » qui le termine. Le nom qui suit le « < » le confirme.
+    // Position dans source_ du « < » de l'élément dont xml_ vient de rendre le StartElement, ou -1. `before`
+    // est la position relevée avant ce jeton : exacte après une balise, mais un caractère plus loin après un
+    // blanc (jeton Characters), le lecteur ayant déjà lu le « < » qui le termine. Le nom qui suit le « < » le
+    // confirme.
     qint64 tagStart(qint64 before) const
     {
         const QStringView name = xml_.qualifiedName();
@@ -154,8 +155,8 @@ private:
         const QStringView tag = QStringView(source_).mid(at + 1);
         if (!tag.startsWith(name) || tag.size() <= name.size())
             return -1;
-        const QChar next = tag[name.size()];
-        return next.isSpace() || next == u'/' || next == u'>' ? at : -1;
+        const QChar follower = tag[name.size()];
+        return follower.isSpace() || follower == u'/' || follower == u'>' ? at : -1;
     }
 
     // xml_ vient de rendre le StartElement de l'élément ; `start` est la position relevée avant ce jeton.
@@ -239,7 +240,8 @@ private:
                 return fail(u"entité non résolue : %1"_s.arg(xml_.name()));
         }
         // Fin : le dernier « > » lu (un élément vide <x/> peut laisser le lecteur un caractère plus loin).
-        const qint64 end = source_.lastIndexOf(u'>', qMin(xml_.characterOffset(), qint64(source_.size())) - 1) + 1;
+        const qint64 end =
+            source_.lastIndexOf(u'>', qMin(xml_.characterOffset(), qint64(source_.size())) - 1) + 1;
         if (start < 0 || end <= start)
             return fail(u"position incohérente d'un élément inconnu"_s);
         const QStringView slice = QStringView(source_).mid(start, end - start);
