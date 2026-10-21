@@ -107,6 +107,7 @@ Preuve de A : debug et release 113/113 ; talons « par L7- » : 3 lignes (equati
 Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrateur » de `docs/verifications/2026-10-18-lot7-principes.md` : T3/T6 (position du rideau par page, propriété 27), T4 (capture de la zone, curseurs, contour 10), T9–T11 (curseurs par zone, translucidité 100), T12 (mine à la couleur du stylo), T14 (1 dé, mémorisé), T15 (transfert sur la page), T16/T19 (H7-14, H7-15), T20 (polygone), T21 (délai 1 s), T24–T27 (palettes d'équation). P20 (symétries autour de l'origine) → lot 5.
 
 ## Reports entre tâches de la phase 2
+- Pour L7-T19 (venus de L7-T18) : `loops` et `to` non suivis en cours de passage ; un texte de plus de 64 Kio gardé comme défaut est refusé à la relecture et fait perdre tous les réglages par défaut sans avertissement ; l'aide de test qui rejoue le stylet en souris est recopiée dans chaque test au lieu d'être dans `tests/support/presentationharness.h` (à factoriser par une tâche qui a ce fichier, L7-T32 ?).
 - « Ouvrir le spot ferme le rideau » (plan 7a, étape 3) : fait dans L7-T6 (PageToolsController), mergé.
 
 ## À vérifier à la clôture du lot (S22, captures à l'écran)
