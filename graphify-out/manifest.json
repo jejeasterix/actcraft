@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792546027.1165216,
-    "ast_hash": "3a085d8d8d6d942bd57c726c23e7c45a",
+    "mtime": 1792554997.452847,
+    "ast_hash": "b1f0f50b31c3b5e659c3a6e59ddb6b29",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2430,8 +2430,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/effets.json": {
-    "mtime": 1792406200.4587185,
-    "ast_hash": "8d9e6fbb2d83fdb977ec3d1b4c3bcc54",
+    "mtime": 1792556787.6943264,
+    "ast_hash": "23cf03ed7c3ff52e440062d2d0a170a5",
     "semantic_hash": ""
   },
   "bench/scenarios/equation.json": {
@@ -2580,8 +2580,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_transitions.cpp": {
-    "mtime": 1792542941.0726316,
-    "ast_hash": "63ea4d46aeca5c98291b8d09dd5527ab",
+    "mtime": 1792556787.6967502,
+    "ast_hash": "f8db107fe83a3641afefbe8027c5e33e",
     "semantic_hash": ""
   },
   "ui/src/presentationdocument.cpp": {
