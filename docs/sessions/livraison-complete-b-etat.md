@@ -109,6 +109,7 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 - « Ouvrir le spot ferme le rideau » (plan 7a, étape 3) : fait dans L7-T6 (PageToolsController), mergé.
 
 ## À vérifier à la clôture du lot (S22, captures à l'écran)
+- Refus d'un schéma par le navigateur web (L7-T17) : message posé dans `PresentationCommands.message`, mais aucun bandeau ne l'affiche (`MessageBanner` est dans `Main.qml`) → à câbler dans L7-T32 (contrôle du lot).
 - Appui et survol au vrai stylet sur les panneaux (dés L7-T14, compas L7-T12, navigateur des effets L7-T8) : prouvés hors écran par le rejeu souris de Qt seulement ; à voir à l'écran. Navigateur des effets (L7-T8) : aucun moyen de retirer l'effet propre d'une page pour revenir à l'effet global.
 - Effets de page (L7-T7) : six mouvements approximés sans rotation (box-turn, card-flip, tiles-spin, corner-swing, spiral-out, turn-reveal) ; slide-right sans poussée ; star-iris en quatre quarts. À regarder à l'écran, à corriger dans une tâche dédiée si besoin.
 - Effets de page (L7-T7) : `known()` duplique la logique de `features` (un `isKnownEffect()` dans features serait la bonne place).
