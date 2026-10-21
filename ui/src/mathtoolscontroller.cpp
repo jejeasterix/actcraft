@@ -2,6 +2,8 @@
 
 #include "presentationdocument.h"
 
+#include <actcraft/core/pagecache.h>
+
 #include <QQuickItem>
 #include <QSettings>
 #include <QTimer>
@@ -16,6 +18,15 @@
 namespace actcraft::ui {
 
 namespace {
+
+// Cache qui ne garde rien : core::applyToCache ne sert ici qu'à suivre l'indice d'une page.
+class IndexOnlyCache final : public core::PageCache
+{
+public:
+    void insert(core::ObjectId) override {}
+    void remove(core::ObjectId, const core::RectF&) override {}
+    void invalidate(core::ObjectId, const core::CacheArea&) override {}
+};
 
 constexpr double kDefaultLength = 600;
 constexpr double kDefaultThickness = 80;
@@ -263,6 +274,9 @@ MathToolsController::~MathToolsController()
     if (m_document && m_strokeObserver != 0) {
         m_document->removeChangeObserver(m_strokeObserver);
     }
+    if (m_document && m_originObserver != 0) {
+        m_document->removeChangeObserver(m_originObserver);
+    }
 }
 
 PageView* MathToolsController::view() const noexcept
@@ -319,6 +333,10 @@ void MathToolsController::setDocumentController(DocumentController* controller)
         m_document->removeChangeObserver(m_strokeObserver);
     }
     m_strokeObserver = 0;
+    if (m_document && m_originObserver != 0) {
+        m_document->removeChangeObserver(m_originObserver);
+    }
+    m_originObserver = 0;
     m_pending.reset();
     for (QMetaObject::Connection& connection : m_originConnections) {
         disconnect(connection);
@@ -326,6 +344,18 @@ void MathToolsController::setDocumentController(DocumentController* controller)
     m_document = controller;
     watchStrokes();
     if (controller) {
+        // Page suivie par l'observateur de changements (core::applyToCache), comme PageToolsController :
+        // un ajout ou un retrait de page avant elle la déplace sans la changer.
+        m_originObserver = controller->addChangeObserver(
+            [this](const core::Changes& applied, DocumentController::ChangeOrigin) {
+                if (m_originIndex < 0) {
+                    return;
+                }
+                IndexOnlyCache ignored;
+                const std::optional<std::size_t> moved =
+                    core::applyToCache(applied, static_cast<std::size_t>(m_originIndex), ignored);
+                m_originIndex = moved ? static_cast<int>(*moved) : -1;
+            });
         // Changement de page affichée seulement (comme PageToolsController) : un document remplacé qui garde
         // son indice est relu par documentReplaced.
         m_originConnections[0] = connect(controller, &DocumentController::pagesChanged, this, [this] {

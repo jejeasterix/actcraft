@@ -248,6 +248,7 @@ private:
     QPointer<ToolHost> m_toolHost;
     QPointer<DocumentController> m_document;
     int m_strokeObserver = 0;
+    int m_originObserver = 0;
     std::optional<PendingAddition> m_pending;
     QMetaObject::Connection m_zoomConnection;
     bool m_filterInstalled = false;
