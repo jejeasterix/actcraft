@@ -36,7 +36,8 @@ QtObject {
             curtain: curtainRoot.controller; spotlight: spotlightRoot.controller },
         TransitionLayer { id: transitionRoot; objectName: "transitionRoot"; z: 10; parent: presentation.layer
             commands: presentation.commands; documentController: presentation.documentController
-            tools: presentation.tools; pageArea: presentation.pageArea; curtain: curtainRoot.controller },
+            tools: presentation.tools; pageArea: presentation.pageArea; curtain: curtainRoot.controller
+            spotlight: spotlightRoot.controller },
         PageEffectsPicker { id: effectsRoot; objectName: "effectsRoot"; z: 50; parent: presentation.layer
             commands: presentation.commands; documentController: presentation.documentController
             tools: presentation.tools; pageArea: presentation.pageArea; transitions: transitionRoot.controller },
