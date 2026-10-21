@@ -43,7 +43,8 @@ struct Fixture
     {
         QString text;
         for (std::size_t i = 0; i < document.document().pageCount(); ++i) {
-            text += QString::fromStdString(document.document().page(i).name);
+            const std::string& name = document.document().page(i).name;
+            text += name.empty() ? QStringLiteral("-") : QString::fromStdString(name); // « - » : page vierge
         }
         return text;
     }
