@@ -99,7 +99,8 @@ private slots:
     {
         Document d = pages(2);
         UndoStack stack;
-        const Changes refused = stack.push(d, std::make_unique<RemovePagesCommand>(std::vector<std::size_t>{0, 1}));
+        const Changes refused =
+            stack.push(d, std::make_unique<RemovePagesCommand>(std::vector<std::size_t>{0, 1}));
         QVERIFY(refused.empty());
         QCOMPARE(d.pageCount(), std::size_t{2});
         stack.push(d, std::make_unique<RemovePagesCommand>(std::vector<std::size_t>{0}));
@@ -109,8 +110,9 @@ private slots:
     }
     void removeFollowsTheShownPage()
     {
-        // Page « 4 » affichée (indice 3) ; les pages 1 et 3 retirées : elle passe à l'indice 1, sans redessin.
-        // Retirées dans l'ordre croissant à leurs indices d'origine, la seconde viserait l'indice affiché.
+        // Page « 4 » affichée (indice 3) ; les pages 1 et 3 retirées : elle passe à l'indice 1, sans
+        // redessin. Retirées dans l'ordre croissant à leurs indices d'origine, la seconde viserait l'indice
+        // affiché.
         Document d = pages(5);
         UndoStack stack;
         const Changes c = stack.push(d, std::make_unique<RemovePagesCommand>(std::vector<std::size_t>{0, 2}));
@@ -140,7 +142,8 @@ private slots:
     }
     void insertMovesTheShownPage()
     {
-        // Deux copies collées devant la page affichée (« 2 », indice 1) : elle recule de deux rangs, en une étape.
+        // Deux copies collées devant la page affichée (« 2 », indice 1) : elle recule de deux rangs, en une
+        // étape.
         Document d = pages(3);
         UndoStack stack;
         const Changes c =
@@ -238,7 +241,8 @@ private slots:
         d.reserveIdsBelow(std::numeric_limits<ObjectId>::max());
         UndoStack stack;
         QTest::ignoreMessage(QtWarningMsg, "Document : identifiants d'objets épuisés");
-        const Changes c = stack.push(d, std::make_unique<InsertPagesCommand>(1, std::vector<Page>{d.page(0)}));
+        const Changes c =
+            stack.push(d, std::make_unique<InsertPagesCommand>(1, std::vector<Page>{d.page(0)}));
         QVERIFY(c.empty());
         QCOMPARE(d.pageCount(), std::size_t{1});
         QVERIFY(stack.undo(d).empty());

@@ -194,7 +194,8 @@ void InsertPagesCommand::redo(Document& document, Changes& changes)
         return;
     }
     if (!m_fresh) {
-        // Premier redo seulement : un rétablir rend les mêmes identifiants (le cache et la sélection s'y fient).
+        // Premier redo seulement : un rétablir rend les mêmes identifiants (le cache et la sélection s'y
+        // fient).
         std::vector<Page> copies;
         copies.reserve(m_pages.size());
         for (const Page& page : m_pages) {
