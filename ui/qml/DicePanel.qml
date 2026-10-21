@@ -51,6 +51,26 @@ FloatingPanel {
         }
     }
 
+    // Bouton du panneau. Le stylet n'atteint pas toujours le clic du bouton : un TapHandler propre au stylet
+    // l'active aussi ; un anti-rebond évite le double déclenchement si les deux voies arrivent.
+    component PanelButton: Button {
+        id: pb
+        property double last: 0
+        signal activated()
+        function fire() {
+            const now = Date.now()
+            if (now - pb.last < 300)
+                return
+            pb.last = now
+            pb.activated()
+        }
+        onClicked: pb.fire()
+        TapHandler {
+            acceptedDevices: PointerDevice.Stylus
+            onTapped: pb.fire()
+        }
+    }
+
     // Un réglage entier borné, avec ses deux boutons.
     component Stepper: Row {
         id: stepper
@@ -70,14 +90,14 @@ FloatingPanel {
             color: Theme.texte
             font.pixelSize: Theme.taillePolice
         }
-        Button {
+        PanelButton {
             objectName: stepper.key + "Down"
             width: Theme.tailleBouton
             height: Theme.tailleBouton
             text: "−"
             enabled: stepper.value > stepper.from
             Accessible.name: qsTr("Diminuer")
-            onClicked: stepper.picked(stepper.value - 1)
+            onActivated: stepper.picked(stepper.value - 1)
         }
         Label {
             objectName: stepper.key + "Value"
@@ -89,14 +109,14 @@ FloatingPanel {
             color: Theme.texte
             font.pixelSize: Theme.taillePolice
         }
-        Button {
+        PanelButton {
             objectName: stepper.key + "Up"
             width: Theme.tailleBouton
             height: Theme.tailleBouton
             text: "+"
             enabled: stepper.value < stepper.to
             Accessible.name: qsTr("Augmenter")
-            onClicked: stepper.picked(stepper.value + 1)
+            onActivated: stepper.picked(stepper.value + 1)
         }
     }
 
@@ -140,20 +160,20 @@ FloatingPanel {
 
         Row {
             spacing: Theme.espace2
-            Button {
+            PanelButton {
                 objectName: "diceRollButton"
                 width: (column.width - Theme.espace2) / 2
                 height: Theme.tailleBouton
                 text: diceController.rolling ? qsTr("Arrêter") : qsTr("Lancer")
-                onClicked: diceController.rolling ? diceController.skip() : diceController.roll()
+                onActivated: diceController.rolling ? diceController.skip() : diceController.roll()
             }
-            Button {
+            PanelButton {
                 objectName: "diceWriteButton"
                 width: (column.width - Theme.espace2) / 2
                 height: Theme.tailleBouton
                 text: qsTr("Écrire sur la page")
                 enabled: diceController.canWrite
-                onClicked: diceController.writeTotal()
+                onActivated: diceController.writeTotal()
             }
         }
 
