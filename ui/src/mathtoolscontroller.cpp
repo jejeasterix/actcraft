@@ -286,6 +286,7 @@ void MathToolsController::setView(PageView* view)
     }
     syncTolerance();
     updateFilter();
+    refreshOrigin();
     emit viewChanged();
 }
 
@@ -319,8 +320,25 @@ void MathToolsController::setDocumentController(DocumentController* controller)
     }
     m_strokeObserver = 0;
     m_pending.reset();
+    for (QMetaObject::Connection& connection : m_originConnections) {
+        disconnect(connection);
+    }
     m_document = controller;
     watchStrokes();
+    if (controller) {
+        // Changement de page affichée seulement (comme PageToolsController) : un document remplacé qui garde
+        // son indice est relu par documentReplaced.
+        m_originConnections[0] = connect(controller, &DocumentController::pagesChanged, this, [this] {
+            if (m_document && m_document->currentIndex() != m_originIndex) {
+                refreshOrigin();
+            }
+        });
+        m_originConnections[1] = connect(controller, &DocumentController::documentReplaced, this,
+                                         &MathToolsController::refreshOrigin);
+        m_originConnections[2] = connect(controller, &DocumentController::documentChanged, this,
+                                         &MathToolsController::refreshOrigin);
+    }
+    refreshOrigin();
     emit documentControllerChanged();
 }
 
@@ -931,6 +949,71 @@ void MathToolsController::storeOpenTools()
         ids.push_back(entry.command);
     }
     m_toolHost->user().setOpenMathTools(std::move(ids));
+}
+
+bool MathToolsController::originVisible() const noexcept
+{
+    return m_originVisible;
+}
+
+void MathToolsController::setOriginVisible(bool visible)
+{
+    if (visible == m_originVisible) {
+        return;
+    }
+    m_originVisible = visible;
+    emit originVisibleChanged();
+}
+
+QPointF MathToolsController::origin() const noexcept
+{
+    return m_origin;
+}
+
+bool MathToolsController::moveOrigin(QPointF point)
+{
+    if (!m_document || !std::isfinite(point.x()) || !std::isfinite(point.y())) {
+        return false;
+    }
+    DocumentInsertions insertions(*m_document);
+    const core::Page* page = insertions.shownPage();
+    if (!page) {
+        return false;
+    }
+    // Présentation courante recopiée, seule l'origine change : les réglages des outils de page restent.
+    core::PagePresentation value = page->presentation;
+    if (value.hasOrigin && value.origin.x == point.x() && value.origin.y == point.y()) {
+        return false;
+    }
+    value.hasOrigin = true;
+    value.origin = pointOf(point);
+    insertions.setPagePresentation(std::move(value));
+    return true;
+}
+
+void MathToolsController::refreshOrigin()
+{
+    // Mémoire de la seule page affichée, relue du modèle : jamais gardée d'un indice à l'autre, donc jamais
+    // périmée par l'ajout ou le retrait d'une page.
+    features::OriginMemory memory(pageSize());
+    std::size_t shown = 0;
+    m_originIndex = -1;
+    if (m_document) {
+        const int index = m_document->currentIndex();
+        m_originIndex = index;
+        if (index >= 0 && static_cast<std::size_t>(index) < m_document->document().pageCount()) {
+            shown = static_cast<std::size_t>(index);
+            const core::PagePresentation& stored = m_document->document().page(shown).presentation;
+            if (stored.hasOrigin) {
+                memory.set(shown, QPointF(stored.origin.x, stored.origin.y));
+            }
+        }
+    }
+    const QPointF next = memory.at(shown);
+    if (next != m_origin) {
+        m_origin = next;
+        emit originChanged();
+    }
 }
 
 void MathToolsController::touch()
