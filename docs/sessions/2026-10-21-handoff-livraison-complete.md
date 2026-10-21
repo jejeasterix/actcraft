@@ -47,7 +47,7 @@ L4-C2 (2e71fd6), L4-T8 (00ff92e), L4-C3 (49b08c6), L4-T24 (a72bd3d). R2 de 4a in
 1. **R2 de 4a**, trois worktrees avec tests rouges commités, agents interrompus par la fin de session :
    - L4-T7 (`--L4-T7`, 87bff43, `concepteur-critique`, arrêté à 40 tours) ;
    - L4-T11 (`--L4-T11`, 0ada19a, `implementeur-tdd`) ;
-   - L4-T31 (`--L4-T31`, 074d5c6, `implementeur-tdd`).
+   - L4-T31 (`--L4-T31`, 074d5c6 rouge, **61040d9 vert, agent fini**) : ne pas relancer d'agent ; relire et rejouer `.tmp/preuve-L4-T31.ps1`. Écart à juger : `chainPresetsExecuteNothingOnRelease` (L4-T8) modifié, l'aperçu est désormais montré pendant le glissé (contrat de L4-T31), `executed == 0` gardé.
    Regarder `git -C <wt> log` et `status` (du travail a pu être commité après ces sha), puis relancer un agent du
    même type par tâche, repartant de ses commits, avec le brief commun ; relire et rejouer chaque preuve.
 2. Puis, dans l'ordre : R3 (L4-T12, L4-T13, L4-T14), point d'étape de 4a, L4-C4 (débloquée), L4-T19, L4-T26
