@@ -781,9 +781,10 @@ private slots:
             names << child->objectName();
             QCOMPARE(child->z(), 0.0);
         }
-        // Amendement 1 du lot 4 : la grille du dessus sort de la scène du cache (L4-T7). Amendement 5 (L4-C3) :
-        // l'observation L4-O2 de l'original contredit L4-O1 : la grille du dessus couvre tout ce qui est posé, le
-        // trait en cours compris (H4-22) ; elle passe donc après l'encre et avant les surcouches de page.
+        // Amendement 1 du lot 4 : la grille du dessus sort de la scène du cache (L4-T7). Amendement 5 (L4-C3)
+        // : l'observation L4-O2 de l'original contredit L4-O1 : la grille du dessus couvre tout ce qui est
+        // posé, le trait en cours compris (H4-22) ; elle passe donc après l'encre et avant les surcouches de
+        // page.
         QCOMPARE(names, (QStringList{"fixedPage", "pageCache", "pendingLayer", "liftLayer", "ink",
                                      "gridOverlay", "pageOverlays"}));
     }
