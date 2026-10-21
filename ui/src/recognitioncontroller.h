@@ -23,15 +23,15 @@ namespace actcraft::ui {
 // Reconnaissance de forme (F-296, L7-T21). Chaque trait du stylo versé dans le document (observateur de
 // DocumentController, origine Stroke) entre dans une session (features::RecognitionSession) ; quand le délai
 // commun s'est écoulé depuis le DERNIER trait, chaque trait reconnu est remplacé par sa forme, couche
-// intermédiaire, en une étape d'annulation (DocumentInsertions::replaceObjects). La session ne se vide que sur
-// documentReplaced : documentChanged part après chaque trait (décision 13 de la phase 2). Les traits mûrs
+// intermédiaire, en une étape d'annulation (DocumentInsertions::replaceObjects). La session ne se vide que
+// sur documentReplaced : documentChanged part après chaque trait (décision 13 de la phase 2). Les traits mûrs
 // passent par processDue, seul point de répartition : la reconnaissance d'écriture (L7-T23) s'y branche.
 class RecognitionController : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
-    Q_PROPERTY(DocumentController* documentController READ documentController WRITE setDocumentController NOTIFY
-                   documentControllerChanged)
+    Q_PROPERTY(DocumentController* documentController READ documentController WRITE setDocumentController
+                   NOTIFY documentControllerChanged)
     Q_PROPERTY(bool shapeMode READ shapeMode WRITE setShapeMode NOTIFY shapeModeChanged)
     Q_PROPERTY(bool fillShapes READ fillShapes WRITE setFillShapes NOTIFY fillShapesChanged)
     // Couleur de remplissage choisie ; invalide (défaut) : celle du contour, donc du trait.

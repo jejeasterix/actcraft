@@ -182,7 +182,8 @@ private slots:
         QVERIFY(!controller->canUndo());
     }
 
-    // Option « remplir les formes reconnues » : remplissage de la couleur du contour, ou de la couleur choisie.
+    // Option « remplir les formes reconnues » : remplissage de la couleur du contour, ou de la couleur
+    // choisie.
     void fillOptionFillsTheShape()
     {
         std::int64_t now = 0;
@@ -218,8 +219,8 @@ private slots:
         QCOMPARE(shapeOf(*redFilled).outline, kInk);
     }
 
-    // Trapèze tracé (angles de 76° et 104°) : ni rectangle ni carré, un polygone convexe d'un seul tour, rangé
-    // en `Shape` `Polygon` dont les sommets sont les coins tracés.
+    // Trapèze tracé (angles de 76° et 104°) : ni rectangle ni carré, un polygone convexe d'un seul tour,
+    // rangé en `Shape` `Polygon` dont les sommets sont les coins tracés.
     void roughQuadrilateralBecomesAPolygonShape()
     {
         std::int64_t now = 0;
@@ -320,8 +321,8 @@ private slots:
     }
 
     // Un cercle tracé, puis un second trait avant la fin du délai : un trait ne remet pas la session à zéro
-    // (documentChanged part après chaque trait) ; les deux traits restent dans la session et la reconnaissance
-    // part au délai compté depuis le dernier.
+    // (documentChanged part après chaque trait) ; les deux traits restent dans la session et la
+    // reconnaissance part au délai compté depuis le dernier.
     void strokeKeepsThePendingRecognition()
     {
         std::int64_t now = 0;

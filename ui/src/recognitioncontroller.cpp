@@ -87,7 +87,7 @@ core::PageObject shapeFor(const features::RecognizedShape& found, const core::St
     shape.bounds = rectOf(found.bounds);
     shape.outline = stroke.color;
     shape.outlineWidth = stroke.baseWidth;
-    shape.fill = !fill                ? kTransparent
+    shape.fill = !fill                 ? kTransparent
                  : fillColor.isValid() ? static_cast<core::Argb>(fillColor.rgba())
                                        : stroke.color;
     switch (found.kind) {
@@ -164,8 +164,9 @@ void RecognitionController::setDocumentController(DocumentController* controller
     m_document = controller;
     resetSession();
     if (controller) {
-        // Document remplacé (ouverture, « Nouveau », banc) : ses identifiants ne sont plus ceux de la session.
-        // Jamais documentChanged : il part après chaque trait et viderait la session que ce trait remplit.
+        // Document remplacé (ouverture, « Nouveau », banc) : ses identifiants ne sont plus ceux de la
+        // session. Jamais documentChanged : il part après chaque trait et viderait la session que ce trait
+        // remplit.
         m_replacedConnection = connect(controller, &DocumentController::documentReplaced, this,
                                        &RecognitionController::resetSession);
         m_observer = controller->addChangeObserver(
