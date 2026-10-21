@@ -1,8 +1,12 @@
 // Champs du lot 4 en .actcraft (L4-T6) : préréglage et points intelligents d'une forme, texte de haut en bas,
 // hauteur d'origine d'une page. Clés facultatives de actcraft-document/1 : écrites seulement hors défaut,
-// lues comme des clés connues (jamais rangées parmi les clés inconnues gardées, L2-C8).
+// lues comme des clés connues (jamais rangées parmi les clés inconnues gardées, L2-C8). Texte de haut en bas
+// d'un .flipchart (L4-T24, D9).
+#include "support/flipchartwriter.h"
+
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
+#include <actcraft/formats/flipchart.h>
 #include <actcraft/formats/nativejson.h>
 
 #include <QJsonArray>
@@ -85,6 +89,26 @@ QJsonObject firstPage(const QJsonObject& root)
 QJsonObject objectAt(const QJsonObject& root, qsizetype index)
 {
     return firstPage(root).value(u"objects"_s).toArray().at(index).toObject();
+}
+
+// Paperboard d'une page (nœud 2003) : un texte de haut en bas (genre 469, nœud 2020) avec son cadre, dont la
+// propriété 38 désigne une ressource de texte qui porte du HTML, puis une image (genre 9, nœud 2030). Le numéro
+// 38 de ce genre n'est pas dans notre documentation du format : un lecteur qui le suivrait comme celui d'un
+// texte fabriquerait un texte, comme celui d'une image en devinerait une.
+QByteArray verticalTextPaperboard()
+{
+    using namespace fctest;
+    using namespace fctest::synth;
+    Sheet s(2003);
+    s.tree = {Node(2020, 469, 2021), Node(2030, 9, 2031)};
+    s.entries = {io(2021, item(469, 2021, "texte de haut en bas", 1, 1, place(120, 80))
+                              .userRect(7, 0, 0, 30, 90)
+                              .integer(38, 3001)),
+                 io(2031, item(9, 2031, "image", 1, 2, place(300, 40)).userRect(7, 0, 0, 20, 10).integer(38, 3002))};
+    return paperboard(u"Texte de haut en bas"_s, {s},
+                      {ir(3001, Obj(12, 3001).string(5, u"<p>SOURCE-OPAQUE</p>"_s)),
+                       ir(3002, Obj(10, 3002).sizeF(5, 20, 10)),
+                       Entry(u"3002.png"_s, pngBytes(20, 10, 0xFF3366CCu))});
 }
 
 } // namespace
@@ -218,6 +242,33 @@ private slots:
         QCOMPARE(got.baseHeight, 0.0);
         QVERIFY(got.unknownKeys.empty());
         QVERIFY(got.objects[0].unknownKeys.empty() && got.objects[1].unknownKeys.empty());
+    }
+
+    // D9 : l'original garde d'un texte de haut en bas une image rendue et une source opaque, pas le texte en
+    // clair. Notre documentation du format donne le genre (469) et le cadre (propriété commune 7), pas le champ
+    // de l'image : l'objet est déclaré non lu (repli du plan), sous le message des genres non lus qu'attend
+    // l'oracle synthétique. Discrimine les patrons écartés : lu comme un texte (core::Text à vertical vrai tiré
+    // de la ressource), ou comme une image d'un champ deviné ; l'un et l'autre ajoutent un objet.
+    void flipchartVerticalTextRead()
+    {
+        const formats::flipchart::FlipchartReadResult r =
+            formats::flipchart::readFlipchart(verticalTextPaperboard());
+        QVERIFY2(r.ok, qPrintable(r.error));
+        QCOMPARE(r.warnings, QStringList{u"page 2003 : objet de genre 469 non lu (nœud 2020)"_s});
+        const core::Page& page = r.document.page(0);
+        QCOMPARE(page.objects.size(), std::size_t{1});
+        const auto* image = std::get_if<core::ImageObject>(&core::body(page.objects[0]));
+        QVERIFY(image);
+        QCOMPARE(image->bounds.width, 20.0);
+        QCOMPARE(page.objects[0].common.transform.dx, 300.0);
+        // Aucun texte fabriqué : ni objet texte, ni la source parmi les ressources du document.
+        for (const core::PageObject& object : page.objects) {
+            QVERIFY(!std::get_if<core::Text>(&core::body(object)));
+        }
+        QCOMPARE(r.document.resources().size(), std::size_t{1});
+        for (const auto& [key, resource] : r.document.resources()) {
+            QVERIFY2(!resource.data.contains("SOURCE-OPAQUE"), key.c_str());
+        }
     }
 };
 

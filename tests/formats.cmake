@@ -16,6 +16,7 @@ actcraft_add_test(tst_formats_urlio
     SOURCES tst_formats_urlio.cpp
     LIBS ActCraft::formats)
 
+# Qt6::Gui : l'écrivain de paperboards de test (support/flipchartwriter.h) fabrique ses PNG par QImage (L4-T24).
 actcraft_add_test(tst_formats_lot4
     SOURCES tst_formats_lot4.cpp
-    LIBS ActCraft::formats)
+    LIBS ActCraft::formats Qt6::Gui)
