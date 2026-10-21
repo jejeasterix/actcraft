@@ -1,4 +1,5 @@
 #include <actcraft/core/edits.h>
+#include <actcraft/core/gridsnap.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/tools/selectiongeometry.h>
@@ -435,7 +436,12 @@ void SelectTool::beginTransform(State kind)
 void SelectTool::liftForGesture(std::vector<core::ObjectId> ids, State state)
 {
     m_lifted = std::move(ids);
-    m_context.lift.show(m_context.document.lift(m_lifted));
+    std::vector<core::PageObject> copies = m_context.document.lift(m_lifted);
+    m_firstLifted.reset();
+    if (!copies.empty()) {
+        m_firstLifted = copies.front();
+    }
+    m_context.lift.show(std::move(copies));
     m_state = state;
 }
 
@@ -508,8 +514,19 @@ void SelectTool::updateDrag(core::PointF point)
 
 void SelectTool::endDrag(core::PointF point, bool cancelled)
 {
-    const core::Transform delta = gestureTransform(point);
+    core::Transform delta = gestureTransform(point);
     const std::size_t page = m_context.document.pageIndex();
+    if (m_state == State::Dragging && !cancelled && m_firstLifted && !m_context.view.overTrash(point)) {
+        // Accrochage au dépôt seulement (F-622) : les objets sont soulevés, donc hors de la page ; on
+        // accroche d'après la copie du premier, sur la grille de la page.
+        core::Page probe;
+        probe.grid = m_context.document.page().grid;
+        probe.width = m_context.document.page().width;
+        probe.height = m_context.document.page().height;
+        probe.objects.push_back(*m_firstLifted);
+        const core::PointF snapped = core::snapDelta(probe, {m_firstLifted->common.id}, {delta.dx, delta.dy});
+        delta = core::translation(snapped.x, snapped.y);
+    }
     const bool trash = m_state == State::Dragging && !cancelled && m_context.view.overTrash(point);
     if (trash) {
         std::vector<core::ObjectId> selection = m_context.user.selection();
@@ -605,6 +622,7 @@ void SelectTool::reset() noexcept
     m_base.clear();
     m_grabbed.clear();
     m_lifted.clear();
+    m_firstLifted.reset();
 }
 
 } // namespace actcraft::tools

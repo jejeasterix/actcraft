@@ -4,6 +4,7 @@
 #include <actcraft/tools/toolcontext.h>
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace actcraft::tools {
@@ -80,9 +81,10 @@ private:
     std::vector<core::ObjectId> m_base;    // sélection avant un rectangle additif
     std::vector<core::ObjectId> m_grabbed; // objets visés par le glissement
     std::vector<core::ObjectId> m_lifted;  // objets effectivement soulevés
-    SelectionView m_frame;                 // cadre de la sélection au soulèvement
-    HandleKind m_handle = HandleKind::TopLeft; // poignée saisie
-    QString m_command;                         // bouton de barre saisi
+    std::optional<core::PageObject> m_firstLifted; // copie du premier objet soulevé (ancrage de l'accrochage)
+    SelectionView m_frame;                         // cadre de la sélection au soulèvement
+    HandleKind m_handle = HandleKind::TopLeft;     // poignée saisie
+    QString m_command;                             // bouton de barre saisi
     bool m_trashHover = false;
     int m_modifiers = 0;
 };
