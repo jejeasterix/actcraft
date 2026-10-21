@@ -15,8 +15,8 @@ constexpr int kCornerVertices = 8;
 constexpr double kCalloutTipDepth = 1.3;  // la pointe reste sous la boîte, à 1,3 de la hauteur (non exposé)
 constexpr double kCalloutBaseWidth = 0.2; // largeur de la base de la pointe, fraction de la largeur
 
-ShapePreset makePreset(const char* id, ShapeFamily family, bool square, int axis, std::vector<double> defaults,
-                       std::vector<double> minimum, std::vector<double> maximum)
+ShapePreset makePreset(const char* id, ShapeFamily family, bool square, int axis,
+                       std::vector<double> defaults, std::vector<double> minimum, std::vector<double> maximum)
 {
     ShapePreset preset;
     preset.id = id;
@@ -60,8 +60,10 @@ std::vector<ShapePreset> buildCatalog()
     catalog.push_back(closedPreset("pentagon"));
     catalog.push_back(closedPreset("hexagon"));
     catalog.push_back(closedPreset("star"));
-    catalog.push_back(makePreset("arrow", ShapeFamily::Closed, false, 0, {0.6, 0.25}, {0.0, 0.0}, {1.0, 0.5}));
-    catalog.push_back(makePreset("callout", ShapeFamily::Closed, false, 0, {1.0, 0.1}, {0.0, 0.01}, {1.0, 0.3}));
+    catalog.push_back(
+        makePreset("arrow", ShapeFamily::Closed, false, 0, {0.6, 0.25}, {0.0, 0.0}, {1.0, 0.5}));
+    catalog.push_back(
+        makePreset("callout", ShapeFamily::Closed, false, 0, {1.0, 0.1}, {0.0, 0.01}, {1.0, 0.3}));
     catalog.push_back(closedPreset("octagon"));
     catalog.push_back(closedPreset("star-four"));
     catalog.push_back(closedPreset("burst"));
@@ -86,7 +88,8 @@ std::vector<double> effectiveParameters(const ShapePreset& preset, const std::ve
     return out;
 }
 
-void addArc(std::vector<PointF>& out, double cx, double cy, double radius, double fromDegrees, double toDegrees)
+void addArc(std::vector<PointF>& out, double cx, double cy, double radius, double fromDegrees,
+            double toDegrees)
 {
     for (int i = 0; i < kCornerVertices; ++i) {
         const double t = static_cast<double>(i) / static_cast<double>(kCornerVertices - 1);
@@ -95,7 +98,8 @@ void addArc(std::vector<PointF>& out, double cx, double cy, double radius, doubl
     }
 }
 
-// Rectangle arrondi de la boîte {0, 0, w, h}, sens horaire ; `tipX` insère la pointe d'une bulle sur le bord bas.
+// Rectangle arrondi de la boîte {0, 0, w, h}, sens horaire ; `tipX` insère la pointe d'une bulle sur le bord
+// bas.
 std::vector<PointF> roundedBox(double w, double h, double radius, const double* tipX)
 {
     std::vector<PointF> out;

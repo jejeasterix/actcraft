@@ -36,7 +36,8 @@ Change apply(Document& document, std::size_t pageIndex, ObjectId id, const std::
 
 } // namespace
 
-SetShapeParametersCommand::SetShapeParametersCommand(std::size_t page, ObjectId id, std::vector<double> parameters)
+SetShapeParametersCommand::SetShapeParametersCommand(std::size_t page, ObjectId id,
+                                                     std::vector<double> parameters)
     : m_page(page), m_id(id), m_after(std::move(parameters))
 {}
 
