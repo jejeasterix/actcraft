@@ -47,7 +47,7 @@ changement, son fondement, les tâches touchées :
 6. **L4-T23 — Échap** (trouvé par L4-T21) : Échap n'atteint pas `TextTool::cancel()` : `ToolHost::cancelGesture`
    n'appelle `cancel()` que si l'outil est occupé (`ui/src/toolhost.cpp:370-378`), et `TextTool` ne l'est jamais
    (`neverBusy`, L4-T22). L4-T23 valide donc le texte par `Keys.onShortcutOverride` → `appText.commit()` ; test ajouté
-   « Échap valide le texte » (segment `escapeCommitsTheText` du scénario `texte`).
+   « Échap valide le texte » (segment final du scénario `texte`, capture `echap-valide`).
 7. **Correctif L4-C2 ajouté au plan 4b** (trouvé par L4-T21) : `DocumentController::execute()` n'annonce rien ; une
    commande de pages lancée pendant l'édition d'un texte (supprimer, couper, dupliquer, déplacer sans changer de page)
    ne valide pas ce texte d'abord. Contrat : `PagesController` valide l'édition en cours avant toute commande de pages
