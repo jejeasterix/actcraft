@@ -101,6 +101,10 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 ## Reports entre tâches de la phase 2
 - « Ouvrir le spot ferme le rideau » (plan 7a, étape 3) : fait dans L7-T6 (PageToolsController), mergé.
 
+## À vérifier à la clôture du lot (S22, captures à l'écran)
+- Effets de page (L7-T7) : six mouvements approximés sans rotation (box-turn, card-flip, tiles-spin, corner-swing, spiral-out, turn-reveal) ; slide-right sans poussée ; star-iris en quatre quarts. À regarder à l'écran, à corriger dans une tâche dédiée si besoin.
+- Effets de page (L7-T7) : `known()` duplique la logique de `features` (un `isKnownEffect()` dans features serait la bonne place).
+
 ## À faire en L7-T34 (après la fusion du lot 3)
 - Survol au stylet des outils de maths (L7-T12) : prouvé hors écran seulement par le rejeu en souris de Qt (`QTabletEvent` sans bouton n'atteint pas les `HoverHandler`) → à voir sur un vrai stylet dans les captures à l'écran (DA8) de la clôture ; et la mine du compas lit `PageView::inkColor` : à revoir quand le lot 3 remplira `ToolHost::color`.
 - `selectionIsNotGuided` (L7-T9, revue) : le guide de la règle est réservé au stylo (`kGuidedTool = "pen"`), mais non testable avant le lot 3 : `ToolHost::activate` et `UserState::setCurrentTool` sont des talons. À ajouter avec `markerFollowsTheRuler`, `eraserFollowsTheCompass`.
