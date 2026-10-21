@@ -325,15 +325,11 @@ private slots:
         if (pointer != Pointer::Mouse) {
             return;
         }
-        // Clic droit hors de la bande : la vue le reçoit (menu de la page), le message continue.
+        // Clic droit hors de la bande : la vue le reçoit (demande du menu de la page, talon du socle qui
+        // n'ouvre rien), le message continue.
         QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, belowFrom.toPoint());
         QTRY_COMPARE(menu.count(), 1);
         QVERIFY(ticker->running());
-        QObject* pageMenu = main.window()->findChild<QObject*>(QStringLiteral("pageContextMenu"));
-        QVERIFY(pageMenu != nullptr);
-        QVERIFY(QMetaObject::invokeMethod(pageMenu, "close"));
-        QTRY_VERIFY(!pageMenu->property("visible").toBool());
-        QTest::qWait(100);
 
         // Clic droit sur la bande : aucun menu de la page, le message s'arrête.
         QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, zone.center().toPoint());
