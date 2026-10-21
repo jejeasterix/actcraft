@@ -1,5 +1,5 @@
-// Texte de haut en bas (L4-T24, H4-3, D9) : une colonne d'un caractère, chaque lettre sous la précédente, mise
-// en forme gardée, et le même dessin dans le peintre partagé (renderPage) et dans la texture du rendu
+// Texte de haut en bas (L4-T24, H4-3, D9) : une colonne d'un caractère, chaque lettre sous la précédente,
+// mise en forme gardée, et le même dessin dans le peintre partagé (renderPage) et dans la texture du rendu
 // (rasterizeLocal), qui l'appelle.
 #include <actcraft/core/model.h>
 #include <actcraft/render/pagepainter.h>
@@ -109,14 +109,16 @@ double widestLetter(const QImage& device)
     QFont font = QGuiApplication::font();
     font.setPointSizeF(40);
     const QFontMetricsF metrics(font, &device);
-    return std::max({metrics.horizontalAdvance(u'A'), metrics.horizontalAdvance(u'B'),
-                     metrics.horizontalAdvance(u'C')});
+    return std::max(
+        {metrics.horizontalAdvance(u'A'), metrics.horizontalAdvance(u'B'), metrics.horizontalAdvance(u'C')});
 }
 
 QString describe(const Ink& ink)
 {
-    QString out = QStringLiteral("%1 bande(s), encre %2 × %3 :").arg(ink.bands.size()).arg(ink.box.width()).arg(
-        ink.box.height());
+    QString out = QStringLiteral("%1 bande(s), encre %2 × %3 :")
+                      .arg(ink.bands.size())
+                      .arg(ink.box.width())
+                      .arg(ink.box.height());
     for (const Band& b : ink.bands) {
         out += QStringLiteral(" [y %1-%2, x %3-%4]").arg(b.top).arg(b.bottom).arg(b.left).arg(b.right);
     }
@@ -130,9 +132,9 @@ class TstRenderVerticalText : public QObject
     Q_OBJECT
 
 private slots:
-    // « ABC » à 40 points dans un cadre large : trois bandes d'encre disjointes, l'une sous l'autre et centrées
-    // l'une sur l'autre, dans une colonne de moins de 1,5 fois la largeur d'une lettre. Rouge si le texte reste
-    // sur une ligne.
+    // « ABC » à 40 points dans un cadre large : trois bandes d'encre disjointes, l'une sous l'autre et
+    // centrées l'une sur l'autre, dans une colonne de moins de 1,5 fois la largeur d'une lettre. Rouge si le
+    // texte reste sur une ligne.
     void lettersStackOneUnderAnother()
     {
         const QImage image = painted(pageWith(verticalText(kAbc, 40, 30, 200, 300)));
@@ -157,10 +159,11 @@ private slots:
                  qPrintable(QStringLiteral("gras %1 px, maigre %2 px").arg(bold.pixels).arg(plain.pixels)));
     }
 
-    // Discrimine le patron écarté. Cadre de 8 × 20, plus étroit et plus bas que la colonne : le peintre dessine
-    // la colonne entière ; la texture doit couvrir cette même colonne, donc tenir son étendue de la mise en page
-    // du peintre et non du seul cadre du modèle (ni d'une mise en page à elle). Rouge si la texture rogne au
-    // cadre ou place la colonne autrement ; la comparaison ne vaut que si la colonne est vraiment dessinée.
+    // Discrimine le patron écarté. Cadre de 8 × 20, plus étroit et plus bas que la colonne : le peintre
+    // dessine la colonne entière ; la texture doit couvrir cette même colonne, donc tenir son étendue de la
+    // mise en page du peintre et non du seul cadre du modèle (ni d'une mise en page à elle). Rouge si la
+    // texture rogne au cadre ou place la colonne autrement ; la comparaison ne vaut que si la colonne est
+    // vraiment dessinée.
     void sameInPainterAndTexture()
     {
         const core::PageObject object = verticalText(kAbc, 60, 40, 8, 20);

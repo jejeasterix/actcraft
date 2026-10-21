@@ -15,8 +15,8 @@
 
 namespace actcraft::render {
 
-// Défini dans pagepainter.cpp : étendue dessinée d'un texte de haut en bas, tenue de la mise en page du peintre,
-// la seule de ce texte (L4-T24) ; vide pour un autre texte.
+// Défini dans pagepainter.cpp : étendue dessinée d'un texte de haut en bas, tenue de la mise en page du
+// peintre, la seule de ce texte (L4-T24) ; vide pour un autre texte.
 QRectF verticalTextExtent(const core::Text& text);
 
 namespace {

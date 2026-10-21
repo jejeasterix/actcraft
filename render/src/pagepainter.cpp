@@ -292,10 +292,11 @@ void paintImage(QPainter& p, const core::ImageObject& im, const ImageLookup& ima
 }
 
 // --- Texte de haut en bas (H4-3, D9)
-// Une colonne d'un caractère : sa largeur est la plus grande avance des caractères du texte, chacun à sa police ;
-// retour à la ligne partout, lignes centrées : chaque lettre sous la précédente, mise en forme gardée. C'est la
-// seule mise en page de ce texte : la texture du rendu (paintedrenderer.cpp) en tient son étendue par
-// verticalTextExtent. Les lignes précalculées d'un .flipchart (runs) gardent leur place d'origine.
+// Une colonne d'un caractère : sa largeur est la plus grande avance des caractères du texte, chacun à sa
+// police ; retour à la ligne partout, lignes centrées : chaque lettre sous la précédente, mise en forme
+// gardée. C'est la seule mise en page de ce texte : la texture du rendu (paintedrenderer.cpp) en tient son
+// étendue par verticalTextExtent. Les lignes précalculées d'un .flipchart (runs) gardent leur place
+// d'origine.
 bool drawnAsColumn(const core::Text& t)
 {
     return t.vertical && t.runs.empty() && !t.html.empty();
@@ -332,8 +333,8 @@ void layOutColumn(QTextDocument& document)
     option.setWrapMode(QTextOption::WrapAnywhere);
     option.setAlignment(Qt::AlignHCenter);
     document.setDefaultTextOption(option);
-    // L'alignement, le retrait et l'interdiction de couper d'un paragraphe du HTML l'emportent sur l'option du
-    // document : ils sont remis, le reste de la mise en forme est gardé.
+    // L'alignement, le retrait et l'interdiction de couper d'un paragraphe du HTML l'emportent sur l'option
+    // du document : ils sont remis, le reste de la mise en forme est gardé.
     QTextBlockFormat column;
     column.setAlignment(Qt::AlignHCenter);
     column.setNonBreakableLines(false);
@@ -655,8 +656,8 @@ void paintUnknown(QPainter& p, const core::UnknownObject& unknown)
 
 } // namespace
 
-// Étendue dessinée d'un texte de haut en bas, tenue de la seule mise en page du peintre (layOutText) ; vide pour
-// un autre texte. Déclarée et appelée par paintedrenderer.cpp, qui y prend le rectangle de sa texture.
+// Étendue dessinée d'un texte de haut en bas, tenue de la seule mise en page du peintre (layOutText) ; vide
+// pour un autre texte. Déclarée et appelée par paintedrenderer.cpp, qui y prend le rectangle de sa texture.
 QRectF verticalTextExtent(const core::Text& text)
 {
     if (!drawnAsColumn(text)) {
