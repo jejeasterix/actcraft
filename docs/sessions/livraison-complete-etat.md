@@ -2,7 +2,7 @@
 
 Statut : en cours — repris le 2026-10-16 à 17 h 20 dans Claude Desktop (handoff `docs/sessions/2026-10-16-handoff-livraison-complete.md`) ; règles communes recréées dans le scratchpad (`regles-tache.md`) ; mémoire 0,4 Go libres → parallélisme 1 ; jetons `tests` et `ecran` tenus par des PID morts (autres sessions), repris automatiquement
 Gabarit : lots (provisoire, à confirmer à l'étage 2)
-Avancement : 4/11 lots clos — clos : 1, 2, 10, 3 · en cours : 7 (B) · à faire : 4, 5, 6, 8, 9, 11
+Avancement : 4/11 lots clos — clos : 1, 2, 10, 3 · en cours : 4, 7 (B) · à faire : 5, 6, 8, 9, 11
 Étage : 3 (lot 4, vague V1) — depuis 2026-10-21 06:46
 Lot : 4 « Outils II » — 0/31 tâches terminées — depuis 2026-10-21 06:46
 Tâche : L4-T0 — ouverture : vidéos, REA et ancien dépôt confrontés au lot, API revérifiées — depuis 2026-10-21 06:46
