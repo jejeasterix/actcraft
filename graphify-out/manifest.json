@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792569773.7624657,
-    "ast_hash": "68926755a76f2b7aa0056b040ef137c4",
+    "mtime": 1792574442.7143688,
+    "ast_hash": "82f81406c424fbd8d14de6a7dc41fdf2",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2520,8 +2520,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_dice.cpp": {
-    "mtime": 1792554844.5685465,
-    "ast_hash": "044940764d015bda952c6581fd95d94d",
+    "mtime": 1792575664.4640393,
+    "ast_hash": "fccbea6c7d18b28b7893b72b7c84d7f6",
     "semantic_hash": ""
   },
   "tests/tst_ui_equation.cpp": {

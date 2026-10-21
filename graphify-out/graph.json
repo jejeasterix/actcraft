@@ -17940,7 +17940,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_render_include_actcraft_render_painternode_h",
-      "community": 365,
+      "community": 403,
       "norm_label": "painternode.h"
     },
     {
@@ -17950,7 +17950,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "render_painternode_actcraft",
-      "community": 365,
+      "community": 403,
       "norm_label": "actcraft()"
     },
     {
@@ -17960,7 +17960,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "render_include_actcraft_render_painternode_h_namespace",
-      "community": 365,
+      "community": 403,
       "norm_label": "namespace"
     },
     {
@@ -20510,7 +20510,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_qrectf",
-      "community": 381,
+      "community": 326,
       "norm_label": "qrectf"
     },
     {
@@ -20630,7 +20630,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_pagepainter_rectof",
-      "community": 381,
+      "community": 326,
       "norm_label": "rectof()"
     },
     {
@@ -20640,7 +20640,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_rectf",
-      "community": 381,
+      "community": 326,
       "norm_label": "rectf"
     },
     {
@@ -20820,7 +20820,7 @@
       "source_location": "L281",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_imagelookup",
-      "community": 326,
+      "community": 311,
       "norm_label": "imagelookup"
     },
     {
@@ -20990,7 +20990,7 @@
       "source_location": "L565",
       "_origin": "ast",
       "id": "src_pagepainter_paintunknown",
-      "community": 286,
+      "community": 326,
       "norm_label": "paintunknown()"
     },
     {
@@ -21000,7 +21000,7 @@
       "source_location": "L565",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_unknownobject",
-      "community": 286,
+      "community": 326,
       "norm_label": "unknownobject"
     },
     {
@@ -21030,7 +21030,7 @@
       "source_location": "L580",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_qimage",
-      "community": 326,
+      "community": 311,
       "norm_label": "qimage"
     },
     {
@@ -21070,7 +21070,7 @@
       "source_location": "L601",
       "_origin": "ast",
       "id": "src_pagepainter_decodeimages",
-      "community": 311,
+      "community": 326,
       "norm_label": "decodeimages()"
     },
     {
@@ -21080,7 +21080,7 @@
       "source_location": "L601",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_decodedimages",
-      "community": 311,
+      "community": 326,
       "norm_label": "decodedimages"
     },
     {
@@ -21090,7 +21090,7 @@
       "source_location": "L601",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_document",
-      "community": 311,
+      "community": 326,
       "norm_label": "document"
     },
     {
@@ -21130,7 +21130,7 @@
       "source_location": "L671",
       "_origin": "ast",
       "id": "src_pagepainter_paintbackground",
-      "community": 326,
+      "community": 311,
       "norm_label": "paintbackground()"
     },
     {
@@ -21140,7 +21140,7 @@
       "source_location": "L671",
       "_origin": "ast",
       "id": "render_src_pagepainter_cpp_page",
-      "community": 326,
+      "community": 311,
       "norm_label": "page"
     },
     {
@@ -21150,7 +21150,7 @@
       "source_location": "L688",
       "_origin": "ast",
       "id": "src_pagepainter_paintgrid",
-      "community": 326,
+      "community": 311,
       "norm_label": "paintgrid()"
     },
     {
@@ -21160,7 +21160,7 @@
       "source_location": "L710",
       "_origin": "ast",
       "id": "src_pagepainter_paintpage",
-      "community": 326,
+      "community": 311,
       "norm_label": "paintpage()"
     },
     {
@@ -21170,7 +21170,7 @@
       "source_location": "L710",
       "_origin": "ast",
       "id": "paintoptions",
-      "community": 326,
+      "community": 311,
       "norm_label": "paintoptions"
     },
     {
@@ -21180,7 +21180,7 @@
       "source_location": "L726",
       "_origin": "ast",
       "id": "src_pagepainter_renderpage",
-      "community": 326,
+      "community": 311,
       "norm_label": "renderpage()"
     },
     {
@@ -21190,7 +21190,7 @@
       "source_location": "L744",
       "_origin": "ast",
       "id": "src_pagepainter_thumbnailpng",
-      "community": 326,
+      "community": 311,
       "norm_label": "thumbnailpng()"
     },
     {
@@ -21390,7 +21390,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "src_paintedrenderer_paintedpagenode_paint",
-      "community": 326,
+      "community": 311,
       "norm_label": ".paint()"
     },
     {
@@ -35532,7 +35532,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "qsgrendernode",
-      "community": 365,
+      "community": 28,
       "norm_label": "qsgrendernode"
     },
     {
@@ -36942,7 +36942,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_prototype_mesure_tests_tst_render_ink_software_cpp",
-      "community": 365,
+      "community": 28,
       "norm_label": "tst_render_ink_software.cpp"
     },
     {
@@ -37152,7 +37152,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_spyitem_updatepaintnode",
-      "community": 28,
+      "community": 404,
       "norm_label": ".updatepaintnode()"
     },
     {
@@ -37162,7 +37162,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_qsgnode",
-      "community": 28,
+      "community": 404,
       "norm_label": "qsgnode"
     },
     {
@@ -37172,7 +37172,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "tests_tst_render_ink_software_cpp_updatepaintnodedata",
-      "community": 28,
+      "community": 404,
       "norm_label": "updatepaintnodedata"
     },
     {
@@ -40899,7 +40899,7 @@
       "label": "stylusTap()",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L59",
+      "source_location": "L61",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_stylustap",
       "community": 191,
@@ -40909,7 +40909,7 @@
       "label": "QQuickWindow",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L59",
+      "source_location": "L61",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_cpp_qquickwindow",
       "community": 191,
@@ -40919,7 +40919,7 @@
       "label": "openDice()",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L84",
+      "source_location": "L86",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_opendice",
       "community": 191,
@@ -40929,7 +40929,7 @@
       "label": "TstUiDice",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L100",
+      "source_location": "L102",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_tstuidice",
       "community": 191,
@@ -40939,7 +40939,7 @@
       "label": ".private()",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L102",
+      "source_location": "L104",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_tstuidice_private",
       "community": 191,
@@ -40949,7 +40949,7 @@
       "label": "Q_OBJECT",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L102",
+      "source_location": "L104",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_cpp_q_object",
       "community": 191,
@@ -40959,7 +40959,7 @@
       "label": ".init()",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L113",
+      "source_location": "L115",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_tstuidice_init",
       "community": 191,
@@ -40969,7 +40969,7 @@
       "label": ".oneDieTheFirstTime()",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L122",
+      "source_location": "L124",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_tstuidice_onediethefirsttime",
       "community": 191,
@@ -40979,7 +40979,7 @@
       "label": ".diceCountAndSpeedRemembered()",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L133",
+      "source_location": "L135",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_tstuidice_dicecountandspeedremembered",
       "community": 191,
@@ -40989,7 +40989,7 @@
       "label": ".diceTotalWrittenOnThePage()",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L154",
+      "source_location": "L156",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_tstuidice_dicetotalwrittenonthepage",
       "community": 191,
@@ -40999,7 +40999,7 @@
       "label": ".dicePanelClosesByItsCross()",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L194",
+      "source_location": "L196",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_tstuidice_dicepanelclosesbyitscross",
       "community": 191,
@@ -41009,7 +41009,7 @@
       "label": ".diceBlocksTheStylus_data()",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L218",
+      "source_location": "L220",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_tstuidice_diceblocksthestylus_data",
       "community": 191,
@@ -41019,7 +41019,7 @@
       "label": ".diceBlocksTheStylus()",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L223",
+      "source_location": "L225",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_tstuidice_diceblocksthestylus",
       "community": 191,
@@ -41029,7 +41029,7 @@
       "label": "unique_ptr",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L285",
+      "source_location": "L287",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_cpp_unique_ptr",
       "community": 191,
@@ -41039,7 +41039,7 @@
       "label": "QTemporaryDir",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L285",
+      "source_location": "L287",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_cpp_qtemporarydir",
       "community": 191,
@@ -41049,7 +41049,7 @@
       "label": "m_settings",
       "file_type": "code",
       "source_file": "tests/tst_ui_dice.cpp",
-      "source_location": "L285",
+      "source_location": "L287",
       "_origin": "ast",
       "id": "tests_tst_ui_dice_tstuidice_m_settings",
       "community": 191,
@@ -52502,7 +52502,7 @@
       "source_location": "L375",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_count",
-      "community": 284,
+      "community": 402,
       "norm_label": "count()"
     },
     {
@@ -52592,7 +52592,7 @@
       "source_location": "L416",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_pagesize",
-      "community": 266,
+      "community": 402,
       "norm_label": "pagesize()"
     },
     {
@@ -52602,7 +52602,7 @@
       "source_location": "L416",
       "_origin": "ast",
       "id": "ui_src_mathtoolscontroller_cpp_qsizef",
-      "community": 266,
+      "community": 402,
       "norm_label": "qsizef"
     },
     {
@@ -52612,7 +52612,7 @@
       "source_location": "L421",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_add",
-      "community": 284,
+      "community": 402,
       "norm_label": "add()"
     },
     {
@@ -52632,7 +52632,7 @@
       "source_location": "L433",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_openruler",
-      "community": 284,
+      "community": 402,
       "norm_label": "openruler()"
     },
     {
@@ -52642,7 +52642,7 @@
       "source_location": "L452",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_opensetsquare",
-      "community": 266,
+      "community": 402,
       "norm_label": "opensetsquare()"
     },
     {
@@ -52662,7 +52662,7 @@
       "source_location": "L492",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_opencompass",
-      "community": 266,
+      "community": 402,
       "norm_label": "opencompass()"
     },
     {
@@ -52672,7 +52672,7 @@
       "source_location": "L516",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_close",
-      "community": 284,
+      "community": 402,
       "norm_label": "close()"
     },
     {
@@ -52682,7 +52682,7 @@
       "source_location": "L532",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_setframe",
-      "community": 266,
+      "community": 402,
       "norm_label": "setframe()"
     },
     {
@@ -52782,7 +52782,7 @@
       "source_location": "L664",
       "_origin": "ast",
       "id": "ui_src_mathtoolscontroller_cpp_qvariantmap",
-      "community": 23,
+      "community": 266,
       "norm_label": "qvariantmap"
     },
     {
@@ -52792,7 +52792,7 @@
       "source_location": "L733",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_snapat",
-      "community": 23,
+      "community": 266,
       "norm_label": "snapat()"
     },
     {
@@ -52812,7 +52812,7 @@
       "source_location": "L764",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_updatefilter",
-      "community": 284,
+      "community": 402,
       "norm_label": "updatefilter()"
     },
     {
@@ -52912,7 +52912,7 @@
       "source_location": "L898",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_applyprotractorframe",
-      "community": 257,
+      "community": 402,
       "norm_label": "applyprotractorframe()"
     },
     {
@@ -52972,7 +52972,7 @@
       "source_location": "L971",
       "_origin": "ast",
       "id": "src_mathtoolscontroller_storeopentools",
-      "community": 284,
+      "community": 402,
       "norm_label": "storeopentools()"
     },
     {
@@ -65019,7 +65019,7 @@
       "label": "Red\u00e9marrage du PC (2026-10-18 vers 22h53, cause probable : m\u00e9moire)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L15",
+      "source_location": "L14",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_red\u00e9marrage_du_pc_2026_10_18_vers_22h53_cause_probable_m\u00e9moire",
       "community": 211,
@@ -65029,7 +65029,7 @@
       "label": "Reprise apr\u00e8s le temps calme (2026-10-18 vers 22h30, red\u00e9marrage de l'app demand\u00e9 par J\u00e9r\u00f4me)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L22",
+      "source_location": "L21",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_reprise_apr\u00e8s_le_temps_calme_2026_10_18_vers_22h30_red\u00e9marrage_de_l_app_demand\u00e9_par_j\u00e9r\u00f4me",
       "community": 211,
@@ -65039,7 +65039,7 @@
       "label": "R\u00e9f\u00e9rence",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L33",
+      "source_location": "L32",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_r\u00e9f\u00e9rence",
       "community": 211,
@@ -65049,7 +65049,7 @@
       "label": "Compteurs",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L36",
+      "source_location": "L35",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_compteurs",
       "community": 211,
@@ -65059,7 +65059,7 @@
       "label": "T\u00e2ches",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L39",
+      "source_location": "L38",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_t\u00e2ches",
       "community": 211,
@@ -65069,7 +65069,7 @@
       "label": "Termin\u00e9 quand",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L78",
+      "source_location": "L77",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_termin\u00e9_quand",
       "community": 211,
@@ -65079,7 +65079,7 @@
       "label": "Socle fusionn\u00e9 (2026-10-19, message de A) \u2014 points \u00e0 reporter dans l'amendement de phase 2",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L81",
+      "source_location": "L80",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_socle_fusionn\u00e9_2026_10_19_message_de_a_points_\u00e0_reporter_dans_l_amendement_de_phase_2",
       "community": 211,
@@ -65089,7 +65089,7 @@
       "label": "\u00c9carts accept\u00e9s en phase 1",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L89",
+      "source_location": "L88",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_\u00e9carts_accept\u00e9s_en_phase_1",
       "community": 211,
@@ -65099,7 +65099,7 @@
       "label": "\u00c0 reporter en phase 2 (de L7-T0)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L102",
+      "source_location": "L101",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_\u00e0_reporter_en_phase_2_de_l7_t0",
       "community": 211,
@@ -65109,7 +65109,7 @@
       "label": "Reports entre t\u00e2ches de la phase 2",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L105",
+      "source_location": "L104",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_reports_entre_t\u00e2ches_de_la_phase_2",
       "community": 211,
@@ -65119,7 +65119,7 @@
       "label": "\u00c0 v\u00e9rifier \u00e0 la cl\u00f4ture du lot (S22, captures \u00e0 l'\u00e9cran)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L108",
+      "source_location": "L107",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_\u00e0_v\u00e9rifier_\u00e0_la_cl\u00f4ture_du_lot_s22_captures_\u00e0_l_\u00e9cran",
       "community": 211,
@@ -65129,7 +65129,7 @@
       "label": "Lot 3 livr\u00e9 (2026-10-21)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L113",
+      "source_location": "L112",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_lot_3_livr\u00e9_2026_10_21",
       "community": 211,
@@ -65139,7 +65139,7 @@
       "label": "\u00c0 faire en L7-T34 (apr\u00e8s la fusion du lot 3)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L116",
+      "source_location": "L115",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_\u00e0_faire_en_l7_t34_apr\u00e8s_la_fusion_du_lot_3",
       "community": 211,
@@ -65149,7 +65149,7 @@
       "label": "Reprise du 2026-10-20 \u00e0 16 h 00 (apr\u00e8s le red\u00e9marrage du PC, message de Pilote)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L121",
+      "source_location": "L120",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_reprise_du_2026_10_20_\u00e0_16_h_00_apr\u00e8s_le_red\u00e9marrage_du_pc_message_de_pilote",
       "community": 211,
@@ -65159,7 +65159,7 @@
       "label": "Point de reprise (\u00e9crit le 2026-10-20 vers 04 h 30, avant l'arr\u00eat du PC)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L124",
+      "source_location": "L123",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_point_de_reprise_\u00e9crit_le_2026_10_20_vers_04_h_30_avant_l_arr\u00eat_du_pc",
       "community": 211,
@@ -65169,7 +65169,7 @@
       "label": "Arr\u00eat du PC (annonce de J\u00e9r\u00f4me du 2026-10-19 vers 20 h 05, relay\u00e9e par Pilote 2)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L134",
+      "source_location": "L133",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_arr\u00eat_du_pc_annonce_de_j\u00e9r\u00f4me_du_2026_10_19_vers_20_h_05_relay\u00e9e_par_pilote_2",
       "community": 211,
@@ -65179,7 +65179,7 @@
       "label": "Portes",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L137",
+      "source_location": "L136",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_portes",
       "community": 211,
@@ -65189,7 +65189,7 @@
       "label": "Pi\u00e8ges trouv\u00e9s",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-b-etat.md",
-      "source_location": "L140",
+      "source_location": "L139",
       "_origin": "ast",
       "id": "sessions_livraison_complete_b_etat_pi\u00e8ges_trouv\u00e9s",
       "community": 211,
@@ -78170,9 +78170,9 @@
       "source_file": "ui/src/calculatorcontroller.h",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_h_src_calculatorcontroller",
-      "target": "qobject",
-      "confidence_score": 1.0
+      "target": "qobject"
     },
     {
       "relation": "imports",
@@ -122064,9 +122064,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "support_presentationharness",
-      "confidence_score": 1.0
+      "target": "support_presentationharness"
     },
     {
       "relation": "imports",
@@ -152121,9 +152121,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "calculatorcontroller",
-      "confidence_score": 1.0
+      "target": "calculatorcontroller"
     },
     {
       "relation": "contains",
@@ -152131,9 +152131,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L32",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "tests_tst_ui_calculator_calculatorof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_calculatorof"
     },
     {
       "relation": "contains",
@@ -152141,9 +152141,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "tests_tst_ui_calculator_centreof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_centreof"
     },
     {
       "relation": "contains",
@@ -152151,9 +152151,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L93",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "tests_tst_ui_calculator_clickkeys",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_clickkeys"
     },
     {
       "relation": "contains",
@@ -152161,9 +152161,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "tests_tst_ui_calculator_controllerof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_controllerof"
     },
     {
       "relation": "imports",
@@ -152172,9 +152172,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "tests_tst_ui_calculator_cpp_documentcontroller",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_documentcontroller"
     },
     {
       "relation": "imports",
@@ -152183,9 +152183,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "tests_tst_ui_calculator_cpp_qstringlist",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qstringlist"
     },
     {
       "relation": "imports",
@@ -152194,9 +152194,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "tests_tst_ui_calculator_cpp_qtemporarydir",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qtemporarydir"
     },
     {
       "relation": "contains",
@@ -152204,9 +152204,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L77",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "tests_tst_ui_calculator_opencalculator",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_opencalculator"
     },
     {
       "relation": "contains",
@@ -152214,9 +152214,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L52",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "tests_tst_ui_calculator_stylustap",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_stylustap"
     },
     {
       "relation": "contains",
@@ -152224,9 +152224,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L106",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator",
-      "target": "tests_tst_ui_calculator_textof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_textof"
     },
     {
       "relation": "contains",
@@ -152245,9 +152245,9 @@
       "source_location": "L26",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_controllerof",
-      "target": "tests_tst_ui_calculator_cpp_documentcontroller",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_documentcontroller"
     },
     {
       "relation": "references",
@@ -152256,9 +152256,9 @@
       "source_location": "L26",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_controllerof",
-      "target": "tests_tst_ui_calculator_cpp_mainwindow",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_mainwindow"
     },
     {
       "relation": "calls",
@@ -152267,9 +152267,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L264",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_calculationtopageisundoneatonce",
-      "target": "tests_tst_ui_calculator_controllerof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_controllerof"
     },
     {
       "relation": "references",
@@ -152278,9 +152278,9 @@
       "source_location": "L32",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_calculatorof",
-      "target": "tests_tst_ui_calculator_cpp_mainwindow",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_mainwindow"
     },
     {
       "relation": "references",
@@ -152289,9 +152289,9 @@
       "source_location": "L93",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_clickkeys",
-      "target": "tests_tst_ui_calculator_cpp_mainwindow",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_mainwindow"
     },
     {
       "relation": "references",
@@ -152300,9 +152300,9 @@
       "source_location": "L77",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_opencalculator",
-      "target": "tests_tst_ui_calculator_cpp_mainwindow",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_mainwindow"
     },
     {
       "relation": "references",
@@ -152311,9 +152311,9 @@
       "source_location": "L106",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_textof",
-      "target": "tests_tst_ui_calculator_cpp_mainwindow",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_mainwindow"
     },
     {
       "relation": "references",
@@ -152322,9 +152322,9 @@
       "source_location": "L32",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_calculatorof",
-      "target": "calculatorcontroller",
-      "confidence_score": 1.0
+      "target": "calculatorcontroller"
     },
     {
       "relation": "calls",
@@ -152333,9 +152333,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L188",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_systemcalculatorlaunchedonwindows",
-      "target": "tests_tst_ui_calculator_calculatorof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_calculatorof"
     },
     {
       "relation": "references",
@@ -152344,9 +152344,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_centreof",
-      "target": "tests_tst_ui_calculator_cpp_qpointf",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qpointf"
     },
     {
       "relation": "references",
@@ -152355,9 +152355,9 @@
       "source_location": "L43",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_centreof",
-      "target": "tests_tst_ui_calculator_cpp_qquickitem",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qquickitem"
     },
     {
       "relation": "calls",
@@ -152366,9 +152366,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L100",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_clickkeys",
-      "target": "tests_tst_ui_calculator_centreof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_centreof"
     },
     {
       "relation": "calls",
@@ -152377,9 +152377,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L274",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_calculationtopageisundoneatonce",
-      "target": "tests_tst_ui_calculator_centreof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_centreof"
     },
     {
       "relation": "calls",
@@ -152388,9 +152388,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L306",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_calculatorblocksthestylus",
-      "target": "tests_tst_ui_calculator_centreof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_centreof"
     },
     {
       "relation": "calls",
@@ -152399,9 +152399,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L87",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_opencalculator",
-      "target": "tests_tst_ui_calculator_cpp_qpointf",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qpointf"
     },
     {
       "relation": "references",
@@ -152410,9 +152410,9 @@
       "source_location": "L52",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_stylustap",
-      "target": "tests_tst_ui_calculator_cpp_qpointf",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qpointf"
     },
     {
       "relation": "calls",
@@ -152421,9 +152421,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L310",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_calculatorblocksthestylus",
-      "target": "tests_tst_ui_calculator_cpp_qpointf",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qpointf"
     },
     {
       "relation": "references",
@@ -152432,9 +152432,9 @@
       "source_location": "L77",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_opencalculator",
-      "target": "tests_tst_ui_calculator_cpp_qquickitem",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qquickitem"
     },
     {
       "relation": "references",
@@ -152443,9 +152443,9 @@
       "source_location": "L52",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_stylustap",
-      "target": "tests_tst_ui_calculator_cpp_qquickwindow",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qquickwindow"
     },
     {
       "relation": "calls",
@@ -152454,9 +152454,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L308",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_calculatorblocksthestylus",
-      "target": "tests_tst_ui_calculator_stylustap",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_stylustap"
     },
     {
       "relation": "calls",
@@ -152465,9 +152465,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L266",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_calculationtopageisundoneatonce",
-      "target": "tests_tst_ui_calculator_opencalculator",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_opencalculator"
     },
     {
       "relation": "calls",
@@ -152476,9 +152476,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L298",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_calculatorblocksthestylus",
-      "target": "tests_tst_ui_calculator_opencalculator",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_opencalculator"
     },
     {
       "relation": "calls",
@@ -152487,9 +152487,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L231",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_clearentryandclearallaretwokeys",
-      "target": "tests_tst_ui_calculator_opencalculator",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_opencalculator"
     },
     {
       "relation": "calls",
@@ -152498,9 +152498,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L249",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_keyboardtypestoo",
-      "target": "tests_tst_ui_calculator_opencalculator",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_opencalculator"
     },
     {
       "relation": "calls",
@@ -152509,9 +152509,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L213",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_panelshowsthecalculationabovetheresult",
-      "target": "tests_tst_ui_calculator_opencalculator",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_opencalculator"
     },
     {
       "relation": "references",
@@ -152520,9 +152520,9 @@
       "source_location": "L93",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_clickkeys",
-      "target": "tests_tst_ui_calculator_cpp_qstringlist",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qstringlist"
     },
     {
       "relation": "calls",
@@ -152531,9 +152531,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L267",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_calculationtopageisundoneatonce",
-      "target": "tests_tst_ui_calculator_clickkeys",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_clickkeys"
     },
     {
       "relation": "calls",
@@ -152542,9 +152542,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L233",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_clearentryandclearallaretwokeys",
-      "target": "tests_tst_ui_calculator_clickkeys",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_clickkeys"
     },
     {
       "relation": "calls",
@@ -152553,9 +152553,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L216",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_panelshowsthecalculationabovetheresult",
-      "target": "tests_tst_ui_calculator_clickkeys",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_clickkeys"
     },
     {
       "relation": "references",
@@ -152564,9 +152564,9 @@
       "source_location": "L106",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_textof",
-      "target": "tests_tst_ui_calculator_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qstring"
     },
     {
       "relation": "calls",
@@ -152575,9 +152575,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L269",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_calculationtopageisundoneatonce",
-      "target": "tests_tst_ui_calculator_textof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_textof"
     },
     {
       "relation": "calls",
@@ -152586,9 +152586,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L313",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_calculatorblocksthestylus",
-      "target": "tests_tst_ui_calculator_textof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_textof"
     },
     {
       "relation": "calls",
@@ -152597,9 +152597,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L235",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_clearentryandclearallaretwokeys",
-      "target": "tests_tst_ui_calculator_textof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_textof"
     },
     {
       "relation": "calls",
@@ -152608,9 +152608,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L254",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_keyboardtypestoo",
-      "target": "tests_tst_ui_calculator_textof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_textof"
     },
     {
       "relation": "calls",
@@ -152619,9 +152619,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L214",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_panelshowsthecalculationabovetheresult",
-      "target": "tests_tst_ui_calculator_textof",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_textof"
     },
     {
       "relation": "calls",
@@ -152630,9 +152630,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L242",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator_clearentryandclearallaretwokeys",
-      "target": "tests_tst_ui_calculator_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qstring"
     },
     {
       "relation": "references",
@@ -152641,9 +152641,9 @@
       "source_location": "L352",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_cpp_qtemporarydir",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_qtemporarydir"
     },
     {
       "relation": "references",
@@ -152652,9 +152652,9 @@
       "source_location": "L352",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_cpp_unique_ptr",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_cpp_unique_ptr"
     },
     {
       "relation": "method",
@@ -152662,9 +152662,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L261",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_tstuicalculator_calculationtopageisundoneatonce",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_tstuicalculator_calculationtopageisundoneatonce"
     },
     {
       "relation": "method",
@@ -152672,9 +152672,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L293",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_tstuicalculator_calculatorblocksthestylus",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_tstuicalculator_calculatorblocksthestylus"
     },
     {
       "relation": "method",
@@ -152682,9 +152682,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L288",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_tstuicalculator_calculatorblocksthestylus_data",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_tstuicalculator_calculatorblocksthestylus_data"
     },
     {
       "relation": "method",
@@ -152692,9 +152692,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L136",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_tstuicalculator_calculatorsettingremembered",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_tstuicalculator_calculatorsettingremembered"
     },
     {
       "relation": "method",
@@ -152702,9 +152702,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L228",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_tstuicalculator_clearentryandclearallaretwokeys",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_tstuicalculator_clearentryandclearallaretwokeys"
     },
     {
       "relation": "method",
@@ -152712,9 +152712,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L126",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_tstuicalculator_init",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_tstuicalculator_init"
     },
     {
       "relation": "method",
@@ -152722,9 +152722,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L246",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_tstuicalculator_keyboardtypestoo",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_tstuicalculator_keyboardtypestoo"
     },
     {
       "relation": "defines",
@@ -152733,9 +152733,9 @@
       "source_location": "L352",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_tstuicalculator_m_settings",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_tstuicalculator_m_settings"
     },
     {
       "relation": "method",
@@ -152743,9 +152743,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L210",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_tstuicalculator_panelshowsthecalculationabovetheresult",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_tstuicalculator_panelshowsthecalculationabovetheresult"
     },
     {
       "relation": "method",
@@ -152763,9 +152763,9 @@
       "source_file": "tests/tst_ui_calculator.cpp",
       "source_location": "L155",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_ui_calculator_tstuicalculator",
-      "target": "tests_tst_ui_calculator_tstuicalculator_systemcalculatorlaunchedonwindows",
-      "confidence_score": 1.0
+      "target": "tests_tst_ui_calculator_tstuicalculator_systemcalculatorlaunchedonwindows"
     },
     {
       "relation": "references",
@@ -173577,9 +173577,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L39",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_calculatorcontroller",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_calculatorcontroller"
     },
     {
       "relation": "contains",
@@ -173587,9 +173587,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L104",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_canwrite",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_canwrite"
     },
     {
       "relation": "contains",
@@ -173597,9 +173597,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L46",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_display",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_display"
     },
     {
       "relation": "contains",
@@ -173607,9 +173607,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L109",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_documentcontroller",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_documentcontroller"
     },
     {
       "relation": "contains",
@@ -173617,9 +173617,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_endswithoperator",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_endswithoperator"
     },
     {
       "relation": "contains",
@@ -173627,9 +173627,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_entersanumber",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_entersanumber"
     },
     {
       "relation": "contains",
@@ -173637,9 +173637,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L51",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_expression",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_expression"
     },
     {
       "relation": "contains",
@@ -173647,9 +173647,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L62",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_mode",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_mode"
     },
     {
       "relation": "contains",
@@ -173657,9 +173657,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L137",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_open",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_open"
     },
     {
       "relation": "contains",
@@ -173667,9 +173667,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L57",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_pagetext",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_pagetext"
     },
     {
       "relation": "contains",
@@ -173677,9 +173677,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L149",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_placeonpage",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_placeonpage"
     },
     {
       "relation": "contains",
@@ -173687,9 +173687,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L128",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_press",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_press"
     },
     {
       "relation": "contains",
@@ -173697,9 +173697,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L79",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_programpath",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_programpath"
     },
     {
       "relation": "contains",
@@ -173707,9 +173707,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L114",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_setdocumentcontroller",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_setdocumentcontroller"
     },
     {
       "relation": "contains",
@@ -173717,9 +173717,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L123",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_setlauncher",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_setlauncher"
     },
     {
       "relation": "contains",
@@ -173727,9 +173727,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L67",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_setmode",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_setmode"
     },
     {
       "relation": "contains",
@@ -173737,9 +173737,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L84",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_setprogrampath",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_setprogrampath"
     },
     {
       "relation": "contains",
@@ -173747,9 +173747,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_startprogram",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_startprogram"
     },
     {
       "relation": "contains",
@@ -173757,9 +173757,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L95",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_cpp_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_systemmodesavailable",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_systemmodesavailable"
     },
     {
       "relation": "imports",
@@ -173779,9 +173779,9 @@
       "source_location": "L20",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_startprogram",
-      "target": "ui_src_calculatorcontroller_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "ui_src_calculatorcontroller_cpp_qstring"
     },
     {
       "relation": "references",
@@ -173790,9 +173790,9 @@
       "source_location": "L46",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_display",
-      "target": "ui_src_calculatorcontroller_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "ui_src_calculatorcontroller_cpp_qstring"
     },
     {
       "relation": "references",
@@ -173801,9 +173801,9 @@
       "source_location": "L25",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_endswithoperator",
-      "target": "ui_src_calculatorcontroller_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "ui_src_calculatorcontroller_cpp_qstring"
     },
     {
       "relation": "references",
@@ -173812,9 +173812,9 @@
       "source_location": "L31",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_entersanumber",
-      "target": "ui_src_calculatorcontroller_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "ui_src_calculatorcontroller_cpp_qstring"
     },
     {
       "relation": "references",
@@ -173823,9 +173823,9 @@
       "source_location": "L51",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_expression",
-      "target": "ui_src_calculatorcontroller_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "ui_src_calculatorcontroller_cpp_qstring"
     },
     {
       "relation": "references",
@@ -173834,9 +173834,9 @@
       "source_location": "L57",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_pagetext",
-      "target": "ui_src_calculatorcontroller_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "ui_src_calculatorcontroller_cpp_qstring"
     },
     {
       "relation": "references",
@@ -173845,9 +173845,9 @@
       "source_location": "L128",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_press",
-      "target": "ui_src_calculatorcontroller_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "ui_src_calculatorcontroller_cpp_qstring"
     },
     {
       "relation": "references",
@@ -173856,9 +173856,9 @@
       "source_location": "L79",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_programpath",
-      "target": "ui_src_calculatorcontroller_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "ui_src_calculatorcontroller_cpp_qstring"
     },
     {
       "relation": "references",
@@ -173867,9 +173867,9 @@
       "source_location": "L84",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_setprogrampath",
-      "target": "ui_src_calculatorcontroller_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "ui_src_calculatorcontroller_cpp_qstring"
     },
     {
       "relation": "calls",
@@ -173878,9 +173878,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L54",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_expression",
-      "target": "src_calculatorcontroller_endswithoperator",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_endswithoperator"
     },
     {
       "relation": "calls",
@@ -173889,9 +173889,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L132",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_press",
-      "target": "src_calculatorcontroller_entersanumber",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_entersanumber"
     },
     {
       "relation": "references",
@@ -173900,9 +173900,9 @@
       "source_location": "L39",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_calculatorcontroller",
-      "target": "ui_src_calculatorcontroller_cpp_qobject",
-      "confidence_score": 1.0
+      "target": "ui_src_calculatorcontroller_cpp_qobject"
     },
     {
       "relation": "calls",
@@ -173911,9 +173911,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L54",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_expression",
-      "target": "src_calculatorcontroller_display",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_display"
     },
     {
       "relation": "calls",
@@ -173922,9 +173922,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L160",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_placeonpage",
-      "target": "src_calculatorcontroller_pagetext",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_pagetext"
     },
     {
       "relation": "calls",
@@ -173933,9 +173933,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L139",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_open",
-      "target": "src_calculatorcontroller_systemmodesavailable",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_systemmodesavailable"
     },
     {
       "relation": "references",
@@ -173944,9 +173944,9 @@
       "source_location": "L114",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_setdocumentcontroller",
-      "target": "src_calculatorcontroller_documentcontroller",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_documentcontroller"
     },
     {
       "relation": "references",
@@ -173955,9 +173955,9 @@
       "source_file": "ui/src/calculatorcontroller.cpp",
       "source_location": "L123",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_setlauncher",
-      "target": "launcher",
-      "confidence_score": 1.0
+      "target": "launcher"
     },
     {
       "relation": "contains",
@@ -173965,9 +173965,9 @@
       "source_file": "ui/src/calculatorcontroller.h",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "ui_src_calculatorcontroller_h_src_calculatorcontroller",
-      "target": "src_calculatorcontroller_actcraft",
-      "confidence_score": 1.0
+      "target": "src_calculatorcontroller_actcraft"
     },
     {
       "relation": "references",
@@ -173976,9 +173976,9 @@
       "source_location": "L13",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_calculatorcontroller_actcraft",
-      "target": "ui_src_calculatorcontroller_h_namespace",
-      "confidence_score": 1.0
+      "target": "ui_src_calculatorcontroller_h_namespace"
     },
     {
       "relation": "contains",
@@ -198579,5 +198579,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "8f6e617ca259f9d803b0d91981cb9d3d20bf384b"
+  "built_at_commit": "3509c86da1e63c45b2ae8744d5da936f5eee33bb"
 }

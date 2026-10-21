@@ -1,16 +1,16 @@
 # Graph Report - livraison-complete-b  (2026-10-21)
 
 ## Corpus Check
-- 436 files · ~763,342 words
+- 436 files · ~763,388 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 6606 nodes · 12453 edges · 402 communities (303 shown, 99 thin omitted)
+- 6606 nodes · 12453 edges · 405 communities (304 shown, 101 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 560 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8f6e617c`
+- Built from commit: `3509c86d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -387,6 +387,9 @@
 - [[_COMMUNITY_Community 399|Community 399]]
 - [[_COMMUNITY_Community 400|Community 400]]
 - [[_COMMUNITY_Community 401|Community 401]]
+- [[_COMMUNITY_Community 402|Community 402]]
+- [[_COMMUNITY_Community 403|Community 403]]
+- [[_COMMUNITY_Community 404|Community 404]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `TstPageView` - 56 edges
@@ -415,7 +418,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (402 total, 99 thin omitted)
+## Communities (405 total, 101 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.14
@@ -446,8 +449,8 @@ Cohesion: 0.06
 Nodes (31): Carte des fichiers (7a), Ce que l'ancien dépôt dit déjà (relevé pour ce plan, reformulé), Contrats partagés entre tâches (noms figés), Couverture des scénarios, Fin du sous-lot 7a (orchestrateur, hors tâches), Livraison complète — lot 7 « Présentation et outils » — sous-lot 7a — plan d'exécution, Règles communes à toutes les tâches (rappelées dans chaque section), Table des tâches (sous-lot 7a) (+23 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.11
-Nodes (21): documentController(), Entry::guide(), guideBand(), MathToolsController(), maximumLength(), maximumRadius(), minimumLength(), minimumRadius() (+13 more)
+Cohesion: 0.12
+Nodes (19): documentController(), Entry::guide(), guideBand(), MathToolsController(), maximumLength(), maximumRadius(), minimumLength(), minimumRadius() (+11 more)
 
 ### Community 24 - "Community 24"
 Cohesion: 0.07
@@ -466,8 +469,8 @@ Cohesion: 0.05
 Nodes (40): Banc de fluidité — mode d'emploi, Carte des fichiers, Ce que la latence mesurée ne prouve pas, Ce qui est joué, Clôture — passages au banc (orchestrateur), Commandes, Contrats partagés entre tâches (noms figés), Couverture des scénarios (+32 more)
 
 ### Community 28 - "Community 28"
-Cohesion: 0.13
-Nodes (13): atomic_int, QRectF, QSGNode, RenderingFlags, RenderState, StateFlags, UpdatePaintNodeData, SpyItem (+5 more)
+Cohesion: 0.15
+Nodes (12): atomic_int, QSGRenderNode, QRectF, RenderingFlags, RenderState, StateFlags, SpyItem, m_rect (+4 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.22
@@ -1146,8 +1149,8 @@ Cohesion: 0.36
 Nodes (11): QChar, QString, apply(), digitCount(), display(), entry(), expression(), operatorSymbol() (+3 more)
 
 ### Community 257 - "Community 257"
-Cohesion: 0.18
-Nodes (20): Compass, applyProtractorFrame(), armDegrees(), openProtractor(), setArcStyle(), setProtractorShape(), setShowAngle(), setUnits() (+12 more)
+Cohesion: 0.19
+Nodes (19): Compass, armDegrees(), openProtractor(), setArcStyle(), setProtractorShape(), setShowAngle(), setUnits(), shapeFrom() (+11 more)
 
 ### Community 258 - "Community 258"
 Cohesion: 0.10
@@ -1178,8 +1181,8 @@ Cohesion: 0.26
 Nodes (4): Q_OBJECT, StrokePoint, pt(), TstRenderInkBuffer
 
 ### Community 266 - "Community 266"
-Cohesion: 0.15
-Nodes (19): PendingAddition, arcObject(), crossObject(), insertAddition(), moveOrigin(), openCompass(), openSetSquare(), origin() (+11 more)
+Cohesion: 0.17
+Nodes (16): PendingAddition, arcObject(), crossObject(), insertAddition(), moveOrigin(), origin(), pointOf(), snapAt() (+8 more)
 
 ### Community 267 - "Community 267"
 Cohesion: 0.10
@@ -1218,16 +1221,16 @@ Cohesion: 0.67
 Nodes (3): commitAnnotation(), Stroke, uint8_t
 
 ### Community 284 - "Community 284"
-Cohesion: 0.19
-Nodes (21): add(), close(), compassEntry(), count(), followCompass(), guide(), guidesTool(), openRuler() (+13 more)
+Cohesion: 0.23
+Nodes (15): compassEntry(), followCompass(), guide(), guidesTool(), seizedCompass(), seizedProtractor(), setMarkCentre(), setMirrored() (+7 more)
 
 ### Community 285 - "Community 285"
 Cohesion: 0.15
 Nodes (9): actcraft(), namespace, QPointF, center(), namespace, flipchart(), map, class (+1 more)
 
 ### Community 286 - "Community 286"
-Cohesion: 0.19
-Nodes (20): QPainterPath, PageObject, PointF, QPainter, QPointF, Shape, Stroke, Text (+12 more)
+Cohesion: 0.22
+Nodes (18): QPainterPath, PageObject, PointF, QPainter, QPointF, Shape, Stroke, Text (+10 more)
 
 ### Community 287 - "Community 287"
 Cohesion: 0.17
@@ -1314,8 +1317,8 @@ Cohesion: 0.40
 Nodes (4): class, namespace, actcraft(), TickerRun()
 
 ### Community 311 - "Community 311"
-Cohesion: 0.29
-Nodes (7): DecodedImages, Document, string, decodeImages(), find(), insert(), lookup()
+Cohesion: 0.27
+Nodes (13): PaintOptions, ImageLookup, Page, QImage, string, find(), insert(), lookup() (+5 more)
 
 ### Community 312 - "Community 312"
 Cohesion: 0.22
@@ -1354,8 +1357,8 @@ Cohesion: 0.33
 Nodes (6): int64_t, optional, QEvent, QPointF, Sample, sampleFromEvent()
 
 ### Community 326 - "Community 326"
-Cohesion: 0.19
-Nodes (19): PaintOptions, Argb, QImage, ImageLookup, ImageObject, Media, Page, QColor (+11 more)
+Cohesion: 0.14
+Nodes (18): Argb, QImage, DecodedImages, Document, ImageObject, Media, QColor, QRectF (+10 more)
 
 ### Community 327 - "Community 327"
 Cohesion: 0.24
@@ -1426,8 +1429,8 @@ Cohesion: 0.50
 Nodes (4): Connection, ReturnWatch, replaced, token
 
 ### Community 365 - "Community 365"
-Cohesion: 0.15
-Nodes (9): QSGRenderNode, namespace, actcraft(), Q_OBJECT, QPoint, StrokePoint, midSegment(), pointAt() (+1 more)
+Cohesion: 0.21
+Nodes (6): Q_OBJECT, QPoint, StrokePoint, midSegment(), pointAt(), TstRenderInkSoftware
 
 ### Community 367 - "Community 367"
 Cohesion: 0.18
@@ -1470,8 +1473,8 @@ Cohesion: 0.33
 Nodes (3): Q_OBJECT, TstFormatsOracle, public
 
 ### Community 381 - "Community 381"
-Cohesion: 0.25
-Nodes (8): QBrush, Argb, Fill, QRectF, RectF, brushOf(), color(), rectOf()
+Cohesion: 0.40
+Nodes (5): QBrush, Argb, Fill, brushOf(), color()
 
 ### Community 384 - "Community 384"
 Cohesion: 0.40
@@ -1509,10 +1512,14 @@ Nodes (4): BSTR, fromBstr(), OwnedBstr, m_text
 Cohesion: 0.40
 Nodes (5): inkWidth(), scrollPositionY(), setInkWidth(), zoom(), qreal
 
+### Community 402 - "Community 402"
+Cohesion: 0.27
+Nodes (12): add(), applyProtractorFrame(), close(), count(), openCompass(), openRuler(), openSetSquare(), pageSize() (+4 more)
+
 ## Knowledge Gaps
 - **1860 isolated node(s):** `namespace`, `namespace`, `Platforms`, `QStringList`, `ItemsStatus` (+1855 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **99 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **101 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
