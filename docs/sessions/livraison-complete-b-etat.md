@@ -2,7 +2,7 @@
 
 Statut : en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
 Gabarit : lots (lot 7 du chantier `livraison-complete`, exécuté en parallèle du lot 3)
-Étage : 3 (phase 2 du lot 7, vagues 6 à 8 ; phase 1 terminée et mergée ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
+Étage : 3 (phase 2 du lot 7 : fin du lot P2-A, L7-T19 en cours, et début de P2-B, L7-T21 et L7-T24 ; phase 1 terminée et mergée ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branche : feat/livraison-complete-b   Base : feat/livraison-complete @ 7bb551c (+ merge du plan du lot 7 bf8c930 → 2d76ba6)
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
