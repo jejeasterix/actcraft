@@ -3,6 +3,8 @@
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/lift.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/shapeedits.h>
+#include <actcraft/core/shapegeometry.h>
 #include <actcraft/tools/selectiongeometry.h>
 #include <actcraft/tools/selecttool.h>
 #include <actcraft/tools/userstate.h>
@@ -87,6 +89,9 @@ private:
         }
         if (dynamic_cast<const core::SetTranslucencyCommand*>(command)) {
             return "Translucency";
+        }
+        if (dynamic_cast<const core::SetShapeParametersCommand*>(command)) {
+            return "SetShapeParameters";
         }
         return "other";
     }
@@ -238,6 +243,17 @@ struct Rig
         user.setSelection({1});
         tool.refresh();
     }
+    // Une seule forme à préréglage : 1 = `preset` dans (x, y, w, h), sélectionnée.
+    void onlyShape(const char* preset, double x, double y, double w, double h)
+    {
+        core::PageObject object = core::makeShapeObject(preset, {x, y, w, h}, core::ShapeStyle{});
+        object.common.id = 1;
+        editor.document.page(0).objects.clear();
+        editor.document.page(0).objects.push_back(std::move(object));
+        user.setSelection({1});
+        tool.refresh();
+    }
+    const core::Shape& shape1() const { return std::get<core::Shape>(core::body(*editor.find(1))); }
     core::PageObject& first() { return editor.document.page(0).objects[0]; }
     core::PointF handle(tools::HandleKind kind) const
     {
@@ -1022,6 +1038,80 @@ private slots:
                      int(tools::SelectionHitKind::Handle));
             QVERIFY(tools::hitSelection(v, {300 + outside, 200}, zoom).kind !=
                     tools::SelectionHitKind::Handle);
+        }
+    }
+
+    // Points intelligents (F-242, L4-T10).
+    void smartPointsShownForArrow()
+    {
+        Rig r;
+        r.onlyShape("arrow", 100, 100, 200, 100);
+        QCOMPARE(r.selection.last().smartPoints.size(), std::size_t(2));
+        // Point 0 : début de la tête, à 0,6 de la largeur sur le bord haut (coordonnées de page).
+        QVERIFY(closeTo(r.selection.last().smartPoints[0].x, 220));
+        QVERIFY(closeTo(r.selection.last().smartPoints[0].y, 100));
+        // Deux objets sélectionnés : aucun point.
+        core::PageObject other = rectangle(2, 400, 400, 50, 50);
+        r.editor.document.page(0).objects.push_back(std::move(other));
+        r.user.setSelection({1, 2});
+        r.tool.refresh();
+        QVERIFY(r.selection.last().smartPoints.empty());
+    }
+
+    void smartPointDragLiftsOnceAndDropsOneStep()
+    {
+        Rig r;
+        r.onlyShape("arrow", 100, 100, 200, 100);
+        const core::PointF grab = r.selection.last().smartPoints[0];
+        r.click(grab.x, grab.y); // un clic sur un point ne soulève rien
+        QCOMPARE(r.editor.lifts, 0);
+        QCOMPARE(r.editor.drops, 0);
+        r.drag(grab.x, grab.y, grab.x + 40, grab.y, 4);
+        QCOMPARE(r.editor.lifts, 1);
+        QCOMPARE(r.editor.drops, 1);
+        QCOMPARE(r.editor.executes, 0);
+        QCOMPARE(r.editor.calls.back(), std::string("drop:SetShapeParameters"));
+        QVERIFY(r.lift.shows >= 4); // l'aperçu suit : une copie reconstruite par mouvement
+        QCOMPARE(r.lift.clears, 1);
+        QVERIFY(closeTo(r.shape1().parameters[0], 0.8));
+        QVERIFY(closeTo(r.selection.last().smartPoints[0].x, 260));
+        QVERIFY(r.editor.find(1)->common.transform.dx == 100); // la forme n'a pas bougé
+        QCOMPARE(r.user.selection(), (std::vector<core::ObjectId>{1}));
+        QVERIFY(!r.tool.isBusy());
+    }
+
+    void smartPointDragEscapeKeepsTheShape()
+    {
+        Rig r;
+        r.onlyShape("arrow", 100, 100, 200, 100);
+        const core::PointF grab = r.selection.last().smartPoints[0];
+        const std::vector<double> before = r.shape1().parameters;
+        r.press(grab.x, grab.y);
+        r.move(grab.x + 20, grab.y);
+        r.move(grab.x + 40, grab.y);
+        QVERIFY(r.tool.onKey(Qt::Key_Escape, 0));
+        QCOMPARE(r.editor.calls.back(), std::string("drop:null"));
+        QVERIFY(r.shape1().parameters == before);
+        QCOMPARE(r.editor.executes, 0);
+    }
+
+    void noSmartPointForReadShapes()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100); // forme lue : aucun préréglage
+        QVERIFY(r.selection.last().smartPoints.empty());
+    }
+
+    void noSmartPointForStars()
+    {
+        for (const char* preset : {"star", "burst"}) {
+            Rig r;
+            r.onlyShape(preset, 100, 100, 200, 100);
+            QVERIFY(r.selection.last().smartPoints.empty());
+            // Là où un point aurait pu être (le coin haut droit de l'étoile) : un déplacement ordinaire.
+            r.drag(200, 150, 240, 150, 3);
+            QCOMPARE(r.editor.lifts, 1);
+            QCOMPARE(r.editor.calls.back(), std::string("drop:Transform"));
         }
     }
 };
