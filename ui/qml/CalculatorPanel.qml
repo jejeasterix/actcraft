@@ -68,7 +68,7 @@ FloatingPanel {
             return "="
         case Qt.Key_Backspace:
             return "CE"
-        case Qt.Key_Delete:
+        case Qt.Key_C:
             return "C"
         default:
             return ""

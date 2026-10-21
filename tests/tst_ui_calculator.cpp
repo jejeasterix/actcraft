@@ -252,7 +252,7 @@ private slots:
         }
         QTest::keyClick(main.window(), Qt::Key_Return);
         QCOMPARE(textOf(main, QStringLiteral("calculatorDisplay")), QStringLiteral("5"));
-        QTest::keyClick(main.window(), Qt::Key_Delete);
+        QTest::keyClick(main.window(), Qt::Key_C);
         QCOMPARE(textOf(main, QStringLiteral("calculatorDisplay")), QStringLiteral("0"));
     }
 
