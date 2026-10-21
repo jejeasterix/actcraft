@@ -143,7 +143,8 @@ private slots:
         QVERIFY(!tool.isBusy());
         const auto& o = h.doc.document.page(0).objects.back();
         QCOMPARE(o.common.layer, core::Layer::Middle);
-        QCOMPARE(QString::fromStdString(std::get<core::Shape>(core::body(o)).preset), QStringLiteral("rectangle"));
+        QCOMPARE(QString::fromStdString(std::get<core::Shape>(core::body(o)).preset),
+                 QStringLiteral("rectangle"));
     }
     void singleClickAddsNothing()
     {
@@ -166,8 +167,9 @@ private slots:
         QCOMPARE(o.common.transform.dx, 50.0);
         QCOMPARE(o.common.transform.dy, 70.0);
     }
-    // Amendement 5 (D5 contredit avec témoin, L4-O2) : Maj, tenue avant l'appui ou enfoncée au milieu du glisser,
-    // ne change ni l'aperçu ni la forme posée (ni carré, ni 45°) ; le relais de Ctrl et d'avant appui non plus.
+    // Amendement 5 (D5 contredit avec témoin, L4-O2) : Maj, tenue avant l'appui ou enfoncée au milieu du
+    // glisser, ne change ni l'aperçu ni la forme posée (ni carré, ni 45°) ; le relais de Ctrl et d'avant
+    // appui non plus.
     void shiftLeavesTheShapeUnchanged()
     {
         const auto previewPrint = [](const std::vector<core::PageObject>& shown) {
