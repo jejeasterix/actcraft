@@ -412,6 +412,15 @@ private slots:
         for (int i = 1; i <= 8; ++i) {
             QTest::mouseMove(app.window, at(QPointF(400 + 10.0 * i, 300)));
         }
+        // L3-C16 : le redessin du soulèvement est attendu avant le dépôt. Sans cette attente, le test
+        // supposait une image entre l'appui et le relâché, envoyés d'une traite : à cadence lente (CI macOS,
+        // reproduit sous Windows avec QT_QPA_UPDATE_IDLE_TIME=200), le dépôt arrivait avant la
+        // synchronisation du soulèvement et sa demande relançait un redessin (redessins : 2, demandes : 4).
+        // Un glissement réel dure plus d'une image ; chaque phase garde sa preuve : deux objets, une demande.
+        QVERIFY(QTest::qWaitFor(
+            [&] { return app.view->cacheReady() && app.view->cacheRefreshCount() >= before + 1; }, 10000));
+        QCOMPARE(app.view->cacheRefreshCount(), before + 1);
+        QCOMPARE(requested.count(), 1);
         QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, at(QPointF(480, 300)));
         QVERIFY(QTest::qWaitFor(
             [&] { return app.view->cacheReady() && app.view->cacheRefreshCount() >= before + 2; }, 10000));
