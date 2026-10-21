@@ -10,6 +10,8 @@ Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.w
 Lot : 7 « Présentation et outils » — 13/33 tâches terminées
 Tâche : L7-T13 — Origine XY (F-284) — depuis 2026-10-21 01:17
 Tâche : L7-T8 — Effets de changement de page II (navigateur, scénario effets) — depuis 2026-10-21 02:37
+Tâche : L7-T15 — Calculatrice (F-286) — depuis 2026-10-21 05:55
+Tâche : L7-T16 — Horloge et compte à rebours (F-290, H7-14) — depuis 2026-10-21 05:55
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -70,7 +72,9 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T14 | L7-T2 | voir ligne L7-T14 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T14 (base b3f0e76) | mergée : rejeu TESTS OK 158/158, dice Totals 9 (0 skipped), 5 mutants ; TapHandler stylet refusé par l'orchestrateur (double clic), appui au stylet testé comme Qt | 1 | 95f3bc3 | abae189 (graphe 2b12cb7) |
 | L7-T13 | L7-T12 | voir ligne L7-T13 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T13 (base ee24d12) | en cours (implementeur-tdd), V7 | 1 | — | — |
 | suite V7 | L7-T12, L7-T7 | branche du chantier à 6367ade (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 | 1 | — | — |
-| L7-T8 | L7-T7, L7-T2 | voir ligne L7-T8 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T8 (base 6367ade) | en cours (implementeur-tdd), V8 | 1 | — | — |
+| L7-T8 | L7-T7, L7-T2 | voir ligne L7-T8 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T8 (base 6367ade) | rendue 54ef51c (158 TESTS OK, transitions 23/23, captures effets LU dissolve OK, 4 mutants lus test par test) ; rejeu en cours | 1 | 54ef51c | — |
+| L7-T15 | L7-T2 | voir ligne L7-T15 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T15 (base e098c86) | en cours (implementeur-tdd), V9 | 1 | — | — |
+| L7-T16 | L7-T2 | voir ligne L7-T16 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T16 (base e098c86) | en cours (implementeur-tdd), V9 | 1 | — | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
