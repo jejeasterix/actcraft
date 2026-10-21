@@ -41,17 +41,14 @@ Suivre les gestes 1 à 4 du « Point de reprise (pause du quota, 2026-10-21) » 
 
 1. **L7-T24** (équation I, `concepteur-critique`, worktree `--L7-T24`, c29a5e7) : la revue dit « corriger » (`.tmp/outils-b/revue-l7-t24.md`), avec F1 et F2 bloquants. Essai 2, puis nouveau rejeu `-Tests tst_core_equation`, puis merge.
 2. **L7-T21** (forme II, worktree `--L7-T21`, 3c540c6) : vert, 6 mutants tués. Restent la revue adversariale, le rejeu `-Tests tst_ui_lot7:recognition` et le merge.
-3. **L7-T19** (message défilant II, `implementeur-tdd`, worktree `--L7-T19`) : interrompue en cours de code (voir « Travail en vol »). Ensuite rejeu `-Tests tst_ui_lot7:ticker` et merge, qui ferme le lot P2-A.
+3. **L7-T19** (message défilant II, worktree `--L7-T19`, 2f4eea6) : verte, 4 mutants tués. Restent le rejeu `-Tests tst_ui_lot7:ticker` et merge, qui ferme le lot P2-A.
 4. Suite V11, puis L7-T23 ‖ L7-T25 ; puis T26‖T30, T27‖T31, T28‖T29 (T28 et T30 jamais ensemble : jeton `ecran`), T32, T33 (merge du lot 3), T34. Clôture du lot : sections « À vérifier à la clôture du lot » et « À faire en L7-T34 » de l'état. Enfin, prévenir A « lot 7 prêt à fusionner », avec le sha et le piège AUTOMOC.
 
 Fini quand : 33/33 tâches mergées, suite verte, clôture du lot faite, A prévenu.
 
 ## Travail en vol à la fermeture de cette session
 
-- **Agent L7-T19** : il codait encore à 19 h 03 (rouge commité en 8f785df, `TickerOverlay.qml` et `tickercontroller.cpp` modifiés, non commités). La nouvelle session ne peut pas le reprendre par SendMessage : relancer un `implementeur-tdd` sur le worktree `--L7-T19`, à partir de son dernier commit. S'il reste des fichiers modifiés non commités, les relire et les commiter en wip avant de lancer.
-- **Rejeu de L7-T24 sur c29a5e7** : lancé avant la pause, il tenait le verrou B à 19 h. Il ne vaut plus, puisque le code change à l'essai 2. Sortie : `<wt T24>\.tmp\rejeu.txt`.
-- **Verrou B et jeton `tests`** : libres quand ces deux travaux auront fini. Vérifier par `jeton.ps1 -Nom tests -Etat` (sortie lue telle quelle, sans tube) avant la première construction.
-- **Question en attente de Jérôme** : aucune, hors le message de reprise de la pause.
+Aucun. L'agent L7-T19 a fini (2f4eea6, vert, worktree propre) et le rejeu de L7-T24 sur c29a5e7 aussi (`TESTS OK` 158/158, à refaire après l'essai 2). Verrou B et jeton `tests` libérés par B. Question en attente de Jérôme : aucune, hors le message de reprise de la pause.
 
 ## 🔧 Git
 
