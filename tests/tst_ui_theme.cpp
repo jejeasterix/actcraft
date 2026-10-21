@@ -27,7 +27,9 @@ const char* const kIcons[] = {"menu",           "outils",    "page-precedente",
                               "compas",         "origine",   "des",
                               "calculatrice",   "horloge",   "message",
                               "forme-reconnue", "ecriture",  "camera",
-                              "clavier",        "bureau"};
+                              "clavier",        "bureau",
+                              // Lot 4 (L4-T1) : 34 icônes à nous.
+                              "forme", "texte", "texte-vertical", "grille", "grille-masquer", "aimant", "createur-grille", "navigateurs", "page-avant", "page-apres", "page-couper", "page-copier", "page-coller", "page-dupliquer", "page-supprimer", "fond", "allonger", "zones", "gras", "italique", "souligne", "exposant", "indice", "aligner-gauche", "centrer", "aligner-droite", "interligne-plus", "interligne-moins", "retrait-plus", "retrait-moins", "puces", "symboles", "taille-plus", "taille-moins"};
 
 // Luminance relative de WCAG 2.1 (composantes sRGB linéarisées).
 double relativeLuminance(const QColor& color)

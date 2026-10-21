@@ -876,6 +876,31 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(controller.get(), "nextPage"));
         QCOMPARE(controller->property("pageCount").toInt(), 2);
     }
+
+    void pageContentChangedNamesThePage()
+    {
+        actcraft::ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        controller.nextPage(); // deux pages, la 2e affichée
+        QSignalSpy spy(&controller, &actcraft::ui::DocumentController::pageContentChanged);
+        actcraft::core::Stroke stroke;
+        stroke.points = {{10, 10, 0.5f}, {50, 50, 0.5f}};
+        controller.commitStroke(stroke);
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toInt(), 1);
+    }
+
+    void showPageShowsIt()
+    {
+        actcraft::ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        controller.nextPage();
+        controller.nextPage();
+        controller.showPage(0);
+        QCOMPARE(controller.currentIndex(), 0);
+        controller.showPage(9);
+        QCOMPARE(controller.currentIndex(), 2);
+    }
 };
 
 QTEST_MAIN(TstUiDocument)

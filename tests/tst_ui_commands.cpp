@@ -169,13 +169,28 @@ private slots:
         QCOMPARE(first.value(QStringLiteral("id")).toString(), QStringLiteral("object.move-free"));
         QVERIFY(first.contains(QStringLiteral("label")));
         QVERIFY(first.contains(QStringLiteral("icon")));
-        QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}),
+        // Amendement 1 du lot 4 : entrées du menu de page ajoutées en fin ; les entrées du socle restent en tête.
+        QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}).mid(0, 4),
                  (QStringList{QStringLiteral("tool.select"), QStringLiteral("tool.pen"), QStringLiteral("-"),
                               QStringLiteral("recognition.convert-to-text")}));
         QVERIFY(c.contextMenu().at(2).toMap().value(QStringLiteral("separator")).toBool());
         c.setPlatform(Platform::Android);
-        QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}),
+        QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}).mid(0, 2),
                  (QStringList{QStringLiteral("tool.select"), QStringLiteral("tool.pen")}));
+    }
+
+    void contextMenuWithSubmenu()
+    {
+        Commands c;
+        c.setProfileDir(m_emptyProfile.path());
+        c.setPlatform(Platform::Windows);
+        const QVariantList menu = c.contextMenu();
+        const QStringList ids = itemIds(QVariantMap{{QStringLiteral("items"), menu}});
+        QCOMPARE(ids.mid(4, 2), (QStringList{QStringLiteral("-"), QStringLiteral("page-insert")}));
+        const QVariantMap submenu = menu.at(5).toMap();
+        QVERIFY(submenu.value(QStringLiteral("submenu")).toBool());
+        QCOMPARE(itemIds(submenu),
+                 (QStringList{QStringLiteral("page.insert-before"), QStringLiteral("page.insert-after")}));
     }
 
     void everyDeclaredIconExists()

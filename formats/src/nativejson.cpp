@@ -557,7 +557,7 @@ template <typename T> void writeBody(QJsonObject&, const T&)
 void writeBody(QJsonObject& j, const Shape& shape)
 {
     const auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill, pen,
-                 brush] = shape;
+                 brush, preset, parameters] = shape; // préréglage et paramètres : L4-T6
     j.insert(u"shape"_s, nameText(kind));
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"polygon"_s, pairsJson(polygon));
@@ -637,7 +637,7 @@ QJsonObject runJson(const TextSpan& run)
 
 void writeBody(QJsonObject& j, const Text& textObject)
 {
-    const auto& [bounds, html, runs] = textObject;
+    const auto& [bounds, html, runs, vertical] = textObject; // vertical : L4-T6
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"html"_s, str(html));
     QJsonArray list;
@@ -765,7 +765,7 @@ QJsonObject presentationJson(const PagePresentation& presentation)
 
 QJsonObject pageJson(const Page& page)
 {
-    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys] = page;
+    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight] = page; // baseHeight : L4-T6
     QJsonObject j;
     j.insert(u"width"_s, width);
     j.insert(u"height"_s, height);
@@ -1209,7 +1209,7 @@ template <typename T> void readBody(Reader&, const QJsonObject&, T&)
 void readBody(Reader& r, const QJsonObject& j, Shape& shape)
 {
     auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill, pen,
-           brush] = shape;
+           brush, preset, parameters] = shape; // préréglage et paramètres : L4-T6
     kind = r.readEnum(kShapeKinds, j, u"shape", kind);
     bounds = r.readRect(j, u"bounds", bounds);
     polygon = r.readPairs(j, u"polygon");
@@ -1300,7 +1300,7 @@ TextSpan readRun(Reader& r, const QJsonObject& j)
 
 void readBody(Reader& r, const QJsonObject& j, Text& textObject)
 {
-    auto& [bounds, html, runs] = textObject;
+    auto& [bounds, html, runs, vertical] = textObject; // vertical : L4-T6
     bounds = r.readRect(j, u"bounds", bounds);
     html = r.readString(j, u"html");
     for (const QJsonValue& value : r.readArray(j, u"runs")) {
@@ -1494,7 +1494,7 @@ PagePresentation readPresentation(Reader& r, const QJsonObject& j)
 Page readPage(Reader& r, const QJsonObject& j)
 {
     Page page;
-    auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys] = page;
+    auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight] = page; // baseHeight : L4-T6
     // « presentation » est lue par readPresentation, qui garde ses sous-clés inconnues ; hors des clés
     // inconnues de la page : pageJson(Page{}) ne l'écrit pas, elle y serait gardée en double et réécrite même
     // remise aux réglages par défaut.

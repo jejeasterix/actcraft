@@ -186,7 +186,7 @@ QVariantList Commands::objectBar() const
 
 QVariantList Commands::contextMenu() const
 {
-    return menuItems(m_layout.contextMenu, nullptr);
+    return menuItems(m_layout.contextMenu, &m_layout.contextSubmenus);
 }
 
 QVariantList Commands::palette() const

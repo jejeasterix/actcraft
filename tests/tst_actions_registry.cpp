@@ -1,4 +1,5 @@
 #include <actcraft/actions/commandregistry.h>
+#include <actcraft/actions/layout.h>
 
 #include <QHash>
 #include <QSysInfo>
@@ -315,6 +316,36 @@ private slots:
         }
         // Raccourcis écrits en QML (H-S5) : un seul Shortcut, Main.qml:226, instancié depuis
         // Commands.shortcuts ; aucune séquence littérale à ajouter à ce test.
+    }
+
+    void lot4EntriesDeclared()
+    {
+        CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        for (const char* id : {"tool.shape", "shape.choose", "tool.text", "tool.text-vertical", "text.bold",
+                               "view.browsers", "page.insert-after", "page.paste", "grid.designer", "grid.snap",
+                               "page.extend", "page.zones"}) {
+            QVERIFY2(registry.find(QString::fromLatin1(id)), id);
+        }
+        Layout layout;
+        const QByteArray json = readLayeredFile(QStringLiteral("layout.json"), QString(), dataResourceDir());
+        QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
+        QVERIFY(layout.contextMenu.contains(QStringLiteral(">page-insert")));
+        QVERIFY(unknownCommands(layout, registry).isEmpty());
+    }
+
+    void editAtArgumentOptional()
+    {
+        CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        const CommandInfo* info = registry.find(QStringLiteral("text.edit-at"));
+        QVERIFY(info);
+        QCOMPARE(info->argument, ArgumentKind::Text);
+        QVERIFY(info->argumentOptional);
+        QVERIFY(registry.find(QStringLiteral("shape.fill-color"))->argument == ArgumentKind::Color);
+        QVERIFY(registry.find(QStringLiteral("tool.shape"))->shortcut.isEmpty()); // D18
     }
 
     void optionalArgumentMayBeAbsent()

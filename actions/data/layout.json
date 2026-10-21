@@ -5,14 +5,15 @@
     { "id": "edit", "label": "Éditer", "items": ["edit.undo", "edit.redo", "-", "edit.delete", "edit.select-all", "-",
       { "submenu": "clear", "label": "Effacer", "items": ["clear.annotations", "clear.objects", "clear.grid", "clear.background", "clear.page"] },
       "page.revert"] },
-    { "id": "view", "label": "Affichage", "items": ["view.fullscreen", "-", "page.previous", "page.next", "-", "view.fit", "-", "view.page-zoom", "view.page-effects", "-", "view.trash"] },
-    { "id": "insert", "label": "Insérer", "items": ["insert.date-time", "insert.equation"] },
+    { "id": "view", "label": "Affichage", "items": ["view.fullscreen", "-", "page.previous", "page.next", "-", "view.fit", "-", "view.page-zoom", "view.page-effects", "-", "view.trash", "-", "view.browsers", "view.page-extension"] },
+    { "id": "insert", "label": "Insérer", "items": ["insert.date-time", "insert.equation", "-",
+      { "submenu": "insert-page", "label": "Page", "items": ["page.insert-before", "page.insert-after"] }] },
     { "id": "tools", "label": "Outils", "items": ["desktop.annotate", "desktop.tools", "-", "tool.pen", "tool.highlighter", "tool.eraser", "-",
       "tool.handwriting", "tool.shape-recognition", "-", "present.curtain",
       { "submenu": "spot", "label": "Spot", "items": ["present.spotlight-circle", "present.spotlight-square", "present.spotlight-solid-circle", "present.spotlight-solid-square"] },
       { "submenu": "camera", "label": "Caméra", "items": ["tool.camera-area", "tool.camera-polygon", "tool.camera-freehand", "tool.camera-window", "tool.camera-screen"] },
       { "submenu": "math", "label": "Outils de maths", "items": ["math.ruler", "math.protractor", "math.set-square", "math.compass", "math.xy-origin", "tool.dice", "tool.calculator"] },
-      { "submenu": "other-tools", "label": "Autres outils", "items": ["tool.keyboard", "tool.clock", "tool.ticker", "tool.web-browser"] }] },
+      { "submenu": "other-tools", "label": "Autres outils", "items": ["tool.keyboard", "tool.clock", "tool.ticker", "tool.web-browser", "tool.text-vertical"] }] },
     { "id": "help", "label": "Aide", "items": ["help.website", "-", "help.about"] }
   ],
   "palette": [
@@ -22,10 +23,14 @@
     { "group": "epaisseur" },
     { "group": "outils", "items": ["tool.select", "tool.pen", "tool.highlighter", "tool.eraser"] },
     { "group": "edition", "items": ["edit.undo", "edit.redo", "edit.delete"] },
-    { "group": "presentation", "items": ["present.curtain", "present.spotlight-circle", "view.page-zoom", "math.ruler", "tool.clock"] }
+    { "group": "presentation", "items": ["present.curtain", "present.spotlight-circle", "view.page-zoom", "math.ruler", "tool.clock"] },
+    { "group": "formes-texte", "items": ["tool.shape", "tool.text"] }
   ],
   "objectBar": ["object.move-free", "object.rotate", "object.translucency", "object.enlarge", "object.reduce"],
-  "contextMenu": ["tool.select", "tool.pen", "-", "recognition.convert-to-text"],
+  "contextMenu": ["tool.select", "tool.pen", "-", "recognition.convert-to-text",
+    "-", { "submenu": "page-insert", "label": "Insérer une page", "items": ["page.insert-before", "page.insert-after"] },
+    "-", "page.background", "grid.designer", "grid.hide", "grid.snap",
+    "-", "page.cut", "page.copy", "page.paste", "page.duplicate", "page.delete"],
   "shortcuts": {},
   "colors": [
     "#E53935", "#FB8C00", "#FDD835", "#43A047",
