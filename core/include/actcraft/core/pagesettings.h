@@ -8,7 +8,7 @@
 
 namespace actcraft::core {
 
-inline constexpr double kExtendRatio = 0.10; // F-301 : 10 % par clic (D10)
+inline constexpr double kExtendRatio = 0.10; // F-301 : 10 % de la hauteur courante par clic (L4-O1)
 inline constexpr int kMergeGrid = 4;         // famille de fusion de SetGridCommand (une séance du créateur)
 
 // Vrai si la grille dessine quelque chose sous les objets : visible, non dessinée au-dessus, un niveau
@@ -53,7 +53,7 @@ private:
     Background m_before;
 };
 
-// Hauteur après un clic d'extension : height + kExtendRatio × base, base = baseHeight, ou height si 0 (D10).
+// Hauteur après un clic d'extension : height × (1 + kExtendRatio), pas cumulé (L4-O1 ; D10 contredit).
 double nextExtendedHeight(const Page& page) noexcept;
 
 // Un clic d'extension (F-301 a) : baseHeight posé au premier clic, height = nextExtendedHeight. Une étape par

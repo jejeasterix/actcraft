@@ -131,20 +131,22 @@ private slots:
         QCOMPARE(document.page(0).background.fill.color, Background{}.fill.color);
     }
 
-    void extendStepsByTenPercentOfBase()
+    // Pas cumulé, observé dans l'original (L4-O1) : 768 × 1,1³ = 1022,208 ; le pas fixe de 10 % de la hauteur
+    // d'origine (D10, contredit) donnerait 998,4 et ferait échouer ce test.
+    void extendStepsByTenPercentOfCurrent()
     {
         Document document; // 1024 × 768
         UndoStack stack;
         const Changes changes = stack.push(document, std::make_unique<ExtendPageCommand>(0));
         QVERIFY(isWholePageChange(changes));
         QCOMPARE(document.page(0).baseHeight, 768.0);
-        QVERIFY(std::abs(document.page(0).height - 844.8) < 1e-9);
+        QVERIFY(std::abs(document.page(0).height - 844.8) < 1e-3);
         stack.push(document, std::make_unique<ExtendPageCommand>(0));
         stack.push(document, std::make_unique<ExtendPageCommand>(0));
-        QVERIFY(std::abs(document.page(0).height - 998.4) < 1e-9); // pas fixe (D10, H4-14)
-        QCOMPARE(document.page(0).baseHeight, 768.0);
-        QCOMPARE(stack.count(), std::size_t{3}); // une étape par clic
-        QVERIFY(std::abs(nextExtendedHeight(document.page(0)) - 1075.2) < 1e-9);
+        QVERIFY(std::abs(document.page(0).height - 1022.208) < 1e-3);
+        QCOMPARE(document.page(0).baseHeight, 768.0); // la hauteur d'origine reste celle du premier clic
+        QCOMPARE(stack.count(), std::size_t{3});      // une étape par clic
+        QVERIFY(std::abs(nextExtendedHeight(document.page(0)) - 1124.4288) < 1e-3);
     }
 
     void threeUndosRestoreTheHeight()

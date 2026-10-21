@@ -58,7 +58,8 @@ void SetGridCommand::redo(Document& document, Changes& changes)
 {
     Page& page = document.page(m_page);
     if (!m_executed) {
-        m_before = page.grid; // la grille d'avant, une fois : une commande fusionnée garde celle de la première
+        // La grille d'avant, une fois : une commande fusionnée garde celle de la première.
+        m_before = page.grid;
         m_executed = true;
     }
     page.grid = m_after;
@@ -106,10 +107,11 @@ void SetBackgroundCommand::undo(Document& document, Changes& changes)
     changes.push_back(pageChanged(m_page));
 }
 
+// Pas cumulé : 10 % de la hauteur courante à chaque clic (L4-O1 : 768 × 1,1³ = 1022,208, lu 1 022,21 dans
+// l'original ; le pas fixe de 10 % de la hauteur d'origine, 998,4, est contredit).
 double nextExtendedHeight(const Page& page) noexcept
 {
-    const double base = page.baseHeight > 0 ? page.baseHeight : page.height;
-    return page.height + kExtendRatio * base; // pas fixe (D10, H4-14 : à confirmer par L4-O1)
+    return page.height * (1.0 + kExtendRatio);
 }
 
 ExtendPageCommand::ExtendPageCommand(std::size_t page) : m_page(page) {}
