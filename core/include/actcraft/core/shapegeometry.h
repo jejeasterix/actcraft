@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -76,5 +77,23 @@ enum class ShapeGesture : std::uint8_t
     Freehand,
 };
 ShapeGesture shapeGesture(std::string_view preset) noexcept; // préréglage inconnu : Box
+
+// Amendement 4 du lot 4 (L4-T31, P37) : ajout en fin. Lignes posées au clic et forme à main levée.
+inline constexpr double kChainDoubleClickScreen =
+    6.0; // second appui à moins de 6 px d'écran du dernier sommet
+inline constexpr std::int64_t kChainDoubleClickNs = 500'000'000; // et moins de 500 ms après l'appui précédent
+inline constexpr int kCurveChainSamples = 12;                    // points par segment de la courbe brisée
+
+// Courbe de Catmull-Rom centripète passant par chaque sommet : (n - 1) x samplesPerSegment + 1 points, chaque
+// sommet au rang i x samplesPerSegment. Moins de trois sommets : les sommets tels quels.
+std::vector<PointF> smoothChain(const std::vector<PointF>& vertices,
+                                int samplesPerSegment = kCurveChainSamples);
+
+// Line posée par les gestes Clicks et Freehand : polyline : sommets tels quels ; curve-chain : smoothChain ;
+// freeform : points du geste. Points consécutifs confondus retirés ; moins de deux points distincts, ou
+// préréglage dont le geste est Box : std::nullopt. Même convention de coordonnées que makeLineObject, couche
+// intermédiaire, plume = contour du style.
+std::optional<PageObject> makeChainObject(std::string_view preset, const std::vector<PointF>& points,
+                                          const ShapeStyle& style);
 
 } // namespace actcraft::core

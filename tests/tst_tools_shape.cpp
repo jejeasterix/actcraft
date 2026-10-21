@@ -275,7 +275,8 @@ private slots:
         tool.onSample(at(100, 100, Phase::Release));
         QCOMPARE(std::get<core::Shape>(core::body(h.doc.document.page(0).objects.back())).fill >> 24, 0u);
     }
-    void chainPresetsExecuteNothingOnRelease() // amendement 4 (D1) : leur geste est celui de L4-T31
+    void
+    chainPresetsExecuteNothingOnRelease() // amendement 4 (D1) : un glissé pose des sommets, ne verse rien
     {
         for (const char* preset : {"polyline", "curve-chain"}) {
             Harness h;
@@ -283,7 +284,7 @@ private slots:
             tools::ShapeTool tool(h.context);
             tool.onSample(at(100, 100, Phase::Press));
             tool.onSample(at(200, 160, Phase::Move));
-            QVERIFY(h.lift.shown.empty());
+            QVERIFY(!h.lift.shown.empty()); // L4-T31 : le glissé bouton tenu montre le segment en cours
             tool.onSample(at(200, 160, Phase::Release));
             QCOMPARE(h.doc.executed, 0);
         }
@@ -357,7 +358,8 @@ private slots:
         QVERIFY(!tool.isBusy());
         click(tool, 100, 100, 1000);
         click(tool, 200, 100, 2000);
-        tool.cancel(); // changement d'outil ou de page : la ligne commencée est versée, comme le trait du stylo
+        tool.cancel(); // changement d'outil ou de page : la ligne commencée est versée, comme le trait du
+                       // stylo
         QCOMPARE(h.doc.executed, 1);
         QVERIFY(h.lift.shown.empty());
         QVERIFY(!tool.isBusy());
@@ -370,8 +372,9 @@ private slots:
         click(tool, 100, 100, 0);
         click(tool, 200, 100, 1000);
         click(tool, 200, 200, 2000);
-        // Le chemin Échap -> tool.select -> cancelGesture() relève de ToolHost (lot 3, ui/src/toolhost.cpp) et
-        // n'est pas rejoué ici ; ce test vérifie ce qu'il déclenche : cancel() verse la ligne en une étape.
+        // Le chemin Échap -> tool.select -> cancelGesture() relève de ToolHost (lot 3, ui/src/toolhost.cpp)
+        // et n'est pas rejoué ici ; ce test vérifie ce qu'il déclenche : cancel() verse la ligne en une
+        // étape.
         if (tool.isBusy())
             tool.cancel();
         QCOMPARE(h.doc.executed, 1); // une seule AddObjectCommand : une étape d'annulation

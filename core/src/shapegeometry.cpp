@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <numbers>
 #include <utility>
 
@@ -334,6 +335,75 @@ ShapeGesture shapeGesture(std::string_view preset) noexcept
     if (preset == "polyline" || preset == "curve-chain")
         return ShapeGesture::Clicks;
     return ShapeGesture::Box;
+}
+
+std::vector<PointF> smoothChain(const std::vector<PointF>& vertices, int samplesPerSegment)
+{
+    const std::size_t n = vertices.size();
+    if (n < 3 || samplesPerSegment < 1)
+        return vertices;
+    const auto lerp = [](PointF a, PointF b, double u) {
+        return PointF{a.x + (b.x - a.x) * u, a.y + (b.y - a.y) * u};
+    };
+    const auto knot = [](PointF a, PointF b) {
+        return std::sqrt(std::hypot(b.x - a.x, b.y - a.y));
+    }; // alpha 0,5
+    constexpr double kEpsilon = 1e-9;
+    std::vector<PointF> out;
+    out.reserve((n - 1) * static_cast<std::size_t>(samplesPerSegment) + 1);
+    for (std::size_t i = 0; i + 1 < n; ++i) {
+        const PointF p1 = vertices[i];
+        const PointF p2 = vertices[i + 1];
+        // Extrémités prolongées par symétrie du premier et du dernier segment.
+        const PointF p0 = i > 0 ? vertices[i - 1] : PointF{2 * p1.x - p2.x, 2 * p1.y - p2.y};
+        const PointF p3 = i + 2 < n ? vertices[i + 2] : PointF{2 * p2.x - p1.x, 2 * p2.y - p1.y};
+        const double d01 = knot(p0, p1);
+        const double d12 = knot(p1, p2);
+        const double d23 = knot(p2, p3);
+        const bool straight = d01 < kEpsilon || d12 < kEpsilon || d23 < kEpsilon; // nœuds confondus
+        out.push_back(p1);
+        for (int k = 1; k < samplesPerSegment; ++k) {
+            const double u = static_cast<double>(k) / samplesPerSegment;
+            if (straight) {
+                out.push_back(lerp(p1, p2, u));
+                continue;
+            }
+            const double t0 = 0;
+            const double t1 = t0 + d01;
+            const double t2 = t1 + d12;
+            const double t3 = t2 + d23;
+            const double t = t1 + (t2 - t1) * u;
+            const PointF a1 = lerp(p0, p1, (t - t0) / (t1 - t0));
+            const PointF a2 = lerp(p1, p2, (t - t1) / (t2 - t1));
+            const PointF a3 = lerp(p2, p3, (t - t2) / (t3 - t2));
+            const PointF b1 = lerp(a1, a2, (t - t0) / (t2 - t0));
+            const PointF b2 = lerp(a2, a3, (t - t1) / (t3 - t1));
+            out.push_back(lerp(b1, b2, (t - t1) / (t2 - t1)));
+        }
+    }
+    out.push_back(vertices.back());
+    return out;
+}
+
+std::optional<PageObject> makeChainObject(std::string_view preset, const std::vector<PointF>& points,
+                                          const ShapeStyle& style)
+{
+    const ShapeGesture gesture = shapeGesture(preset);
+    if (gesture == ShapeGesture::Box)
+        return std::nullopt;
+    std::vector<PointF> distinct;
+    for (const PointF& p : points) {
+        if (distinct.empty() || p.x != distinct.back().x || p.y != distinct.back().y)
+            distinct.push_back(p);
+    }
+    if (distinct.size() < 2)
+        return std::nullopt;
+    Line line;
+    line.points = preset == "curve-chain" ? smoothChain(distinct) : std::move(distinct);
+    line.pen = outlineOf(style);
+    PageObject object{std::move(line)};
+    object.common.layer = Layer::Middle;
+    return object;
 }
 
 } // namespace actcraft::core

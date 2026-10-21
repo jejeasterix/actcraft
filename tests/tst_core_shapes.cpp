@@ -178,13 +178,14 @@ private slots:
         QVERIFY(!makeChainObject("polyline", {{10, 10}}, {}).has_value());
         QVERIFY(!makeChainObject("polyline", {{10, 10}, {10, 10}}, {}).has_value());
         QVERIFY(!makeChainObject("rectangle", {{0, 0}, {50, 50}}, {}).has_value()); // geste Box
-        const std::optional<PageObject> o = makeChainObject("polyline", {{0, 0}, {0, 0}, {50, 0}, {50, 40}}, {});
+        const std::optional<PageObject> o =
+            makeChainObject("polyline", {{0, 0}, {0, 0}, {50, 0}, {50, 40}}, {});
         QVERIFY(o.has_value());
         QCOMPARE(o->common.layer, Layer::Middle);
         QCOMPARE(std::get<Line>(body(*o)).points.size(), std::size_t{3}); // doublon retiré
         QVERIFY(makeChainObject("freeform", {{0, 0}, {3, 1}, {6, 4}}, {}).has_value());
-        QVERIFY(std::get<Line>(body(*makeChainObject("curve-chain", {{0, 0}, {50, 0}, {50, 50}}, {}))).points.size()
-                == std::size_t{2 * kCurveChainSamples + 1});
+        QVERIFY(std::get<Line>(body(*makeChainObject("curve-chain", {{0, 0}, {50, 0}, {50, 50}}, {})))
+                    .points.size() == std::size_t{2 * kCurveChainSamples + 1});
     }
 };
 
