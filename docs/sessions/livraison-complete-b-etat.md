@@ -79,7 +79,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T17 | L7-T2 | voir ligne L7-T17 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T17 (base 2894c46, retiré après merge) | mergée : rejeu TESTS OK 158/158, othertools Totals 5 (0 skipped), rouge vu, 3 mutants | 1 | 700796f | 37fd214 (graphe 9ed379b) |
 | L7-T18 | L7-S8 | voir ligne L7-T18 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T18 (base 2894c46, retiré après merge) | mergée : rejeu TESTS OK 158/158, ticker Totals 13 (0 skipped) ; revue corriger → essai 2 ; fil de rendu supposé ; banc S23 avec message à la clôture | 2 | 3df65f3 | 70fd111 (graphe dec9117) |
 | L7-T24 | lot P2-A (écart : lancée avant la fin de P2-A, fichiers core seuls, disjoints de T18/T19 ; décision orchestrateur pour le rythme) | voir ligne L7-T24 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T24 (base 87e2ff0) | en cours (concepteur-critique), V12 | 1 | — | — |
-| suite V10 | L7-T17, L7-T18 | branche du chantier à 5cf0a0e (timestamp AUTOMOC supprimés avant) | — | en cours | 1 | — | — |
+| suite V10 | L7-T17, L7-T18 | branche du chantier à 5cf0a0e (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 (3 ignorés habituels : oracle, oracle_synth, miniatures_samples) | 1 | — | — |
 | L7-T19 | L7-T18, L7-T2 | voir ligne L7-T19 de l'amendement phase 2 (+ reports de L7-T18) | .worktrees/livraison-complete-b--L7-T19 (base 5cf0a0e) | en cours (implementeur-tdd), V11 | 1 | — | — |
 | L7-T21 | lot P2-A (écart : lancée avant le merge de L7-T19, fichiers disjoints ; décision orchestrateur pour le rythme) | voir ligne L7-T21 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T21 (base 5cf0a0e) | en cours (concepteur-critique), V12 | 1 | — | — |
 
