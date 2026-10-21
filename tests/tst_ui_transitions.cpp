@@ -80,6 +80,60 @@ bool settle(const MainWindow& main, const QObject* transition)
     return QTest::qWaitFor([transition] { return phaseOf(transition) == kIdle; }, 8000) && main.waitReady();
 }
 
+// Navigateur d'effets (L7-T8) : ouvert par la commande, racine « effectsRoot » visible.
+QQuickItem* openPicker(const MainWindow& main)
+{
+    if (!main.run(QStringLiteral("view.page-effects"))) {
+        return nullptr;
+    }
+    QQuickItem* picker = main.item(QStringLiteral("effectsRoot"));
+    return picker && QTest::qWaitFor([picker] { return picker->isVisible(); }, 3000) ? picker : nullptr;
+}
+
+// Noms des délégués « effect-<id> » sous un élément.
+void collectDelegates(const QQuickItem* item, QStringList& names)
+{
+    const QList<QQuickItem*> children = item->childItems();
+    for (const QQuickItem* child : children) {
+        if (child->objectName().startsWith(QStringLiteral("effect-"))) {
+            names << child->objectName();
+        }
+        collectDelegates(child, names);
+    }
+}
+
+QPoint centerOf(const QQuickItem* item)
+{
+    return item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint();
+}
+
+// Appui bref au stylet sur un bouton ou un délégué. Qt (QGuiApplication) envoie l'événement de tablette non
+// accepté ; si la fenêtre ne l'accepte pas, il le rejoue en souris
+// (Qt::AA_SynthesizeMouseForUnhandledTabletEvents, actif par défaut) : le rejeu est refait ici à la même
+// condition, et à elle seule. Renvoie vrai si la tablette a pris l'appui.
+bool stylusTap(QQuickWindow* window, QPoint at)
+{
+    const auto send = [&](QEvent::Type type) {
+        const bool down = type == QEvent::TabletPress;
+        QTabletEvent event(type, presentationharness::stylusDevice(), QPointF(at),
+                           window->mapToGlobal(QPointF(at)), down ? 0.5 : 0.0, 0, 0, 0, 0, 0, Qt::NoModifier,
+                           Qt::LeftButton, down ? Qt::LeftButton : Qt::NoButton);
+        event.setAccepted(false); // comme QGuiApplication avant l'envoi
+        QCoreApplication::sendEvent(window, &event);
+        return event.isAccepted();
+    };
+    const bool taken = send(QEvent::TabletPress);
+    if (!taken) {
+        QTest::mousePress(window, Qt::LeftButton, Qt::NoModifier, at);
+    }
+    send(QEvent::TabletRelease);
+    if (!taken) {
+        QTest::mouseRelease(window, Qt::LeftButton, Qt::NoModifier, at);
+    }
+    QCoreApplication::processEvents();
+    return taken;
+}
+
 class TstUiTransitions : public QObject
 {
     Q_OBJECT
@@ -445,6 +499,140 @@ private slots:
         QVERIFY(main.run(QStringLiteral("edit.undo")));
         QCOMPARE(pageEffectOf(*document), QString());
         QVERIFY(!document->canUndo());
+    }
+
+    // La commande view.page-effects ouvre le navigateur : une vignette (délégué « effect-<id> ») par entrée
+    // du catalogue, dix-huit, et pas une de plus.
+    void browserListsEveryEffect()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        QObject* transition = transitionOf(main);
+        QVERIFY(transition != nullptr);
+        const QQuickItem* hidden = main.item(QStringLiteral("effectsRoot"));
+        QVERIFY(hidden != nullptr);
+        QVERIFY2(!hidden->isVisible(), "fermé tant qu'on ne l'a pas demandé");
+        const QQuickItem* picker = openPicker(main);
+        QVERIFY(picker != nullptr);
+        const QVariantList catalogue = transition->property("catalogue").toList();
+        QCOMPARE(catalogue.size(), 18);
+        QStringList names;
+        collectDelegates(picker, names);
+        QCOMPARE(names.size(), 18);
+        for (const QVariant& entry : catalogue) {
+            const QString id = entry.toMap().value(QStringLiteral("id")).toString();
+            QVERIFY2(names.contains(QStringLiteral("effect-") + id), qPrintable(id));
+        }
+    }
+
+    // Un appui sur la deuxième vignette choisit l'effet global ; « Terminé » ferme sans le défaire.
+    void browserChoiceSetsTheGlobalEffect()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        QObject* transition = transitionOf(main);
+        QVERIFY(transition != nullptr);
+        QQuickItem* picker = openPicker(main);
+        QVERIFY(picker != nullptr);
+        const QVariantList catalogue = transition->property("catalogue").toList();
+        QVERIFY(catalogue.size() > 2);
+        const QString second = catalogue.at(1).toMap().value(QStringLiteral("id")).toString();
+        const QString third = catalogue.at(2).toMap().value(QStringLiteral("id")).toString();
+        QCOMPARE(transition->property("globalEffect").toString(), QStringLiteral("none"));
+        QQuickItem* cell = main.item(QStringLiteral("effect-") + second);
+        QVERIFY(cell != nullptr);
+        QVERIFY(main.window()->contentItem()->contains(
+            cell->mapToItem(main.window()->contentItem(), QPointF(5, 5))));
+        QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, centerOf(cell));
+        QTRY_COMPARE(transition->property("globalEffect").toString(), second);
+        QQuickItem* other = main.item(QStringLiteral("effect-") + third);
+        QVERIFY(other != nullptr);
+        QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, centerOf(other));
+        QTRY_COMPARE(transition->property("globalEffect").toString(), third);
+        QQuickItem* done = main.item(QStringLiteral("effectsDone"));
+        QVERIFY(done != nullptr);
+        QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, centerOf(done));
+        QTRY_VERIFY(!picker->isVisible());
+        QCOMPARE(transition->property("globalEffect").toString(), third);
+    }
+
+    // Le même choix, à l'appui bref du stylet sur une vignette.
+    void browserChoiceWorksWithTheStylus()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        QObject* transition = transitionOf(main);
+        QVERIFY(transition != nullptr);
+        QVERIFY(openPicker(main) != nullptr);
+        QQuickItem* cell = main.item(QStringLiteral("effect-dissolve"));
+        QVERIFY(cell != nullptr);
+        stylusTap(main.window(), centerOf(cell));
+        QTRY_COMPARE(transition->property("globalEffect").toString(), QStringLiteral("dissolve"));
+    }
+
+    // Avec la case « pour cette page seulement », le choix s'écrit dans la page affichée (page.effect) et
+    // laisse l'effet global.
+    void browserPageOnlyChoiceWritesThePageEffect()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        QObject* transition = transitionOf(main);
+        DocumentController* document = documentOf(main);
+        QVERIFY(transition && document);
+        QVERIFY(openPicker(main) != nullptr);
+        QQuickItem* box = main.item(QStringLiteral("effectsPageOnly"));
+        QQuickItem* cell = main.item(QStringLiteral("effect-shards"));
+        QVERIFY(box && cell);
+        QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, centerOf(box));
+        QTRY_VERIFY(box->property("checked").toBool());
+        QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, centerOf(cell));
+        QTRY_COMPARE(pageEffectOf(*document), QStringLiteral("shards"));
+        QCOMPARE(transition->property("globalEffect").toString(), QStringLiteral("none"));
+    }
+
+    void pageEffectsPickerBlocksTheStylus_data() { presentationharness::addPointerRows(); }
+
+    // Ouvert, le navigateur couvre la page : un trait posé sur lui n'en verse aucun, au stylet comme au doigt
+    // ; le même geste, panneau fermé, verse un trait. À la souris, l'appui gauche n'atteint pas la vue même
+    // sans couverture (constaté en L7-T9) : le clic droit, que la vue teste par sa couverture (menu
+    // contextuel), discrimine : aucun menu sur le panneau, un menu une fois fermé.
+    void pageEffectsPickerBlocksTheStylus()
+    {
+        QFETCH(Pointer, pointer);
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        QQuickItem* picker = openPicker(main);
+        QQuickItem* hint = main.item(QStringLiteral("effectsHint"));
+        QQuickItem* done = main.item(QStringLiteral("effectsDone"));
+        QVERIFY(picker && hint && done);
+        // Un tracé sur l'astuce, texte sans gestionnaire, qui reste dans la page.
+        const QPointF from = hint->mapToScene(QPointF(10, hint->height() / 2));
+        const QPointF to = hint->mapToScene(QPointF(hint->width() - 10, hint->height() / 2));
+        const QRectF pageZone = main.pageView()->mapRectToScene(main.pageView()->boundingRect());
+        QVERIFY2(pageZone.contains(from) && pageZone.contains(to), "le tracé d'essai est sur la page");
+        const int before = main.pageObjectCount();
+        QSignalSpy menu(main.pageView(), &actcraft::ui::PageView::contextMenuRequested);
+
+        presentationharness::strokeAt(main.window(), pointer, from, to);
+        QTest::qWait(50);
+        QCOMPARE(main.pageObjectCount(), before);
+        QCOMPARE(main.pageView()->ink()->pointCount(), std::size_t{0});
+        if (pointer == Pointer::Mouse) {
+            QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, from.toPoint());
+            QTest::qWait(50);
+            QCOMPARE(menu.count(), 0);
+        }
+
+        QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, centerOf(done));
+        QTRY_VERIFY(!picker->isVisible());
+        presentationharness::strokeAt(main.window(), pointer, from, to);
+        if (pointer == Pointer::Mouse) {
+            QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, from.toPoint());
+            QTRY_COMPARE(menu.count(), 1);
+            QTest::keyClick(main.window(), Qt::Key_Escape);
+        } else {
+            QTRY_COMPARE(main.pageObjectCount(), before + 1);
+        }
     }
 };
 
