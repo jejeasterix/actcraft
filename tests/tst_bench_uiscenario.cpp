@@ -169,6 +169,13 @@ private:
     QByteArray m_value;
 };
 
+// Un scénario d'essai fait des étapes données (liste JSON sans crochets).
+bool parseSteps(const QByteArray& steps, UiScenario& out, QString& error)
+{
+    return parseUiScenario("{\"format\":\"actcraft-scenario/1\",\"name\":\"x\",\"steps\":[" + steps + "]}",
+                           out, error);
+}
+
 } // namespace
 
 // Joueur de scénarios d'interface (DA8). Pas de chaînes brutes R"(…)" dans ce fichier : moc 6.12 s'y perd et
@@ -453,6 +460,78 @@ private slots:
         QVERIFY(QString::fromUtf8(index.readAll()).contains(QStringLiteral("en échec")));
     }
 
+    // L10-T5 (S33) : contrôle de bord, pixels comptés un à un le long d'un segment de page.
+    void checkEdgeStepIsParsed()
+    {
+        const QByteArray json = R"({"format": "actcraft-scenario/1", "name": "x", "steps": [
+            {"checkEdge": "bord", "from": [380, 400], "to": [440, 400], "minIntermediate": 2}]})";
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseUiScenario(json, s, error), qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{1});
+        const UiStep& step = s.steps[0];
+        QVERIFY(step.kind == UiStepKind::CheckEdge);
+        QCOMPARE(step.name, QStringLiteral("bord"));
+        QCOMPARE(step.at, QPointF(380, 400));
+        QCOMPARE(step.to, QPointF(440, 400));
+        QCOMPARE(step.minIntermediate, 2);
+        QCOMPARE(step.maxIntermediate, -1); // sans plafond
+        QCOMPARE(step.minInk, 0);
+        const QByteArray full = R"({"format": "actcraft-scenario/1", "name": "x", "steps": [
+            {"checkEdge": "g", "from": [1, 2], "to": [1, 9], "minIntermediate": 0, "maxIntermediate": 0,
+             "minInk": 1}]})";
+        QVERIFY2(parseUiScenario(full, s, error), qPrintable(error));
+        QCOMPARE(s.steps[0].maxIntermediate, 0);
+        QCOMPARE(s.steps[0].minInk, 1);
+        const QByteArray bad = R"({"format": "actcraft-scenario/1", "name": "x", "steps": [
+            {"checkEdge": "bord", "from": [380, 400]}]})";
+        QVERIFY(!parseUiScenario(bad, s, error));
+    }
+
+    // L10-T5 : file.open lit le fichier hors du fil principal ; jusqu'au retour (busy vrai), le document du
+    // lancement reste affiché et « prêt ». Toute autre attente peut être satisfaite par l'ancien document :
+    // anticrenelage attendait « 1 / 1 », déjà vrai au lancement, et contrôlait la grille sur la page vierge
+    // (busy vrai, titre « Sans titre » relevés au contrôle, 2 fois sur 4 à l'écran). Chaque ouverture d'un
+    // scénario commité est donc suivie de l'attente de busy = false.
+    void committedScenariosWaitForEveryOpen()
+    {
+        const QDir root(QStringLiteral(ACTCRAFT_TESTS_DIR "/../bench/scenarios"));
+        QStringList paths;
+        for (const QString& sub : {QStringLiteral("."), QStringLiteral("local")}) {
+            const QDir folder(root.filePath(sub));
+            const QStringList names = folder.entryList({QStringLiteral("*.json")}, QDir::Files, QDir::Name);
+            for (const QString& name : names) {
+                paths << folder.filePath(name);
+            }
+        }
+        QVERIFY(paths.size() >= 5);
+        int opens = 0;
+        for (const QString& path : paths) {
+            QFile file(path);
+            QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(path));
+            UiScenario s;
+            QString error;
+            QVERIFY2(parseUiScenario(file.readAll(), s, error),
+                     qPrintable(path + QStringLiteral(" : ") + error));
+            for (std::size_t i = 0; i < s.steps.size(); ++i) {
+                if (s.steps[i].kind != UiStepKind::Command ||
+                    s.steps[i].command != QStringLiteral("file.open")) {
+                    continue;
+                }
+                ++opens;
+                const bool waits = i + 1 < s.steps.size() && s.steps[i + 1].kind == UiStepKind::WaitFor &&
+                                   s.steps[i + 1].target == QStringLiteral("documentController") &&
+                                   s.steps[i + 1].property == QStringLiteral("busy") &&
+                                   s.steps[i + 1].value == QStringLiteral("false");
+                QVERIFY2(waits, qPrintable(QStringLiteral("%1, étape %2 : file.open sans attente de "
+                                                          "documentController.busy = false")
+                                               .arg(path)
+                                               .arg(i + 1)));
+            }
+        }
+        QVERIFY(opens >= 4);
+    }
+
     // Étapes de L2-T20 (S5) : fixture, attente d'une propriété, sonde de boucle, mémoire, archive.
     void newStepsAreParsed()
     {
@@ -522,6 +601,9 @@ private slots:
             << QByteArray("{\"maxEventLoopGapMs\":0}") << QStringLiteral("seuil de boucle invalide");
         QTest::newRow("seuil de boucle démesuré")
             << QByteArray("{\"maxEventLoopGapMs\":2000000000}") << QStringLiteral("seuil de boucle invalide");
+        QTest::newRow("seuil de boucle informatif non booléen")
+            << QByteArray("{\"maxEventLoopGapMs\":25,\"informative\":\"oui\"}")
+            << QStringLiteral("informative : true ou false");
         QTest::newRow("remember sans nom")
             << QByteArray("{\"remember\":\"a.b\"}") << QStringLiteral("mémoire invalide");
         // Noms réservés : ${SORTIE} et ${SAMPLES} ne se redéfinissent pas (une fixture irait ailleurs).
@@ -551,6 +633,184 @@ private slots:
         QVERIFY(!parseUiScenario(
             "{\"format\":\"actcraft-scenario/1\",\"name\":\"x\",\"steps\":[" + step + "]}", s, error));
         QVERIFY2(error.startsWith(QStringLiteral("étape 1")) && error.contains(expected), qPrintable(error));
+    }
+
+    // --- L0-S2 : doigt, pincement, pointeur, double-clic, tolérance de lecture ---
+
+    void touchStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"touch\": [[100, 100], [300, 100]]}", s, error), qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{1});
+        QVERIFY(s.steps[0].kind == UiStepKind::Touch);
+        QCOMPARE(s.steps[0].points.size(), std::size_t{2});
+        QCOMPARE(s.steps[0].points[0], QPointF(100, 100));
+        QCOMPARE(s.steps[0].points[1], QPointF(300, 100));
+    }
+
+    void pinchStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"pinch\": [400, 300], \"from\": 100, \"to\": 200, \"steps\": 10},"
+                            "{\"pinch\": [400, 300], \"from\": 100, \"to\": 50}",
+                            s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{2});
+        QVERIFY(s.steps[0].kind == UiStepKind::Pinch);
+        QCOMPARE(s.steps[0].at, QPointF(400, 300));
+        QCOMPARE(s.steps[0].pinchFrom, 100.0);
+        QCOMPARE(s.steps[0].pinchTo, 200.0);
+        QCOMPARE(s.steps[0].pinchSteps, 10);
+        QCOMPARE(s.steps[1].pinchSteps, 12); // « steps » absent : 12
+        QVERIFY(!parseSteps("{\"pinch\": [400, 300], \"from\": 0, \"to\": 200}", s, error));
+        QVERIFY2(error.startsWith(QStringLiteral("étape 1")), qPrintable(error));
+    }
+
+    void pointerStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"pointer\": [[10, 20], [30, 40]], \"button\": \"right\", \"holdMs\": 250,"
+                            " \"space\": \"window\"},"
+                            "{\"pointer\": [[5, 6]]},"
+                            "{\"pointer\": [[5, 6]], \"space\": \"page\"}",
+                            s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{3});
+        QVERIFY(s.steps[0].kind == UiStepKind::Pointer);
+        QCOMPARE(s.steps[0].points.size(), std::size_t{2});
+        QVERIFY(s.steps[0].button == Qt::RightButton);
+        QCOMPARE(s.steps[0].holdMs, 250);
+        QVERIFY(s.steps[0].windowSpace);
+        QVERIFY(s.steps[1].button == Qt::LeftButton); // défaut
+        QCOMPARE(s.steps[1].holdMs, 0);
+        QVERIFY(!s.steps[1].windowSpace); // « space » absent : page
+        QVERIFY(!s.steps[2].windowSpace);
+        QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"button\": \"middle\"}", s, error));
+        QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"holdMs\": -1}", s, error));
+    }
+
+    void doubleClickStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"doubleClick\": [120, 80]},"
+                            "{\"doubleClick\": [7, 9], \"space\": \"window\"}",
+                            s, error),
+                 qPrintable(error));
+        QVERIFY(s.steps[0].kind == UiStepKind::DoubleClick);
+        QCOMPARE(s.steps[0].at, QPointF(120, 80));
+        QVERIFY(!s.steps[0].windowSpace);
+        QCOMPARE(s.steps[1].at, QPointF(7, 9));
+        QVERIFY(s.steps[1].windowSpace);
+    }
+
+    // Tolérance numérique de « expect » : lue, puis appliquée à la lecture (|lu − attendu| ≤ tolérance).
+    void expectWithTolerance()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"expect\": \"window.mesure\", \"value\": 1.5, \"tolerance\": 0.01},"
+                            "{\"expect\": \"window.mesure\", \"value\": 1.5}",
+                            s, error),
+                 qPrintable(error));
+        QVERIFY(s.steps[0].valueTolerance.has_value());
+        QCOMPARE(*s.steps[0].valueTolerance, 0.01);
+        QVERIFY(!s.steps[1].valueTolerance.has_value()); // sans elle : comparaison exacte
+
+        Fixture f;
+        QVERIFY(load(f));
+        QStringList report;
+        f.window->setProperty("mesure", 1.505);
+        QVERIFY2(f.player->expect(s.steps[0], report), qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(report.last(), QStringLiteral("LU window.mesure=1.505 OK"));
+        QVERIFY(!f.player->expect(s.steps[1], report)); // exacte : 1.505 n'est pas 1.5
+        QVERIFY2(report.last().contains(QLatin1String("ECART")), qPrintable(report.last()));
+        f.window->setProperty("mesure", 1.6);
+        QVERIFY(!f.player->expect(s.steps[0], report));
+        QVERIFY2(report.last().contains(QStringLiteral("ECART (attendu 1.5 ± 0.01)")),
+                 qPrintable(report.last()));
+        f.window->setProperty("mesure",
+                              1.48); // sous l'attendu de plus que la tolérance (1.49 serait à la borne)
+        QVERIFY(!f.player->expect(s.steps[0], report));
+        f.window->setProperty("mesure", 1.51); // exactement à la borne : admis
+        QVERIFY2(f.player->expect(s.steps[0], report), qPrintable(report.last()));
+        f.window->setProperty("mesure", QStringLiteral("beaucoup")); // non numérique : écart
+        QVERIFY(!f.player->expect(s.steps[0], report));
+    }
+
+    // Contrat du lot 1 prolongé : les sortes du socle 3-7 s'ajoutent à la fin, dans cet ordre.
+    void stepKindRanksFrozen()
+    {
+        using K = actcraft::bench::UiStepKind;
+        QCOMPARE(static_cast<int>(K::CheckEdge) + 1, static_cast<int>(K::Touch));
+        QCOMPARE(static_cast<int>(K::Touch) + 1, static_cast<int>(K::Pinch));
+        QCOMPARE(static_cast<int>(K::Pinch) + 1, static_cast<int>(K::Pointer));
+        QCOMPARE(static_cast<int>(K::Pointer) + 1, static_cast<int>(K::DoubleClick));
+    }
+
+    void badGestureStepsAreRefused_data()
+    {
+        QTest::addColumn<QByteArray>("step");
+        QTest::addColumn<QString>("expected");
+        QTest::newRow("pincement from nul")
+            << QByteArray("{\"pinch\":[1,1],\"from\":0,\"to\":200}") << QStringLiteral("from et to");
+        QTest::newRow("pincement to négatif")
+            << QByteArray("{\"pinch\":[1,1],\"from\":100,\"to\":-5}") << QStringLiteral("from et to");
+        QTest::newRow("pincement sans pas")
+            << QByteArray("{\"pinch\":[1,1],\"from\":100,\"to\":200,\"steps\":0}")
+            << QStringLiteral("steps de 1 à 1000");
+        QTest::newRow("pointeur bouton inconnu")
+            << QByteArray("{\"pointer\":[[1,1]],\"button\":\"middle\"}") << QStringLiteral("bouton inconnu");
+        QTest::newRow("pointeur maintien négatif")
+            << QByteArray("{\"pointer\":[[1,1]],\"holdMs\":-1}") << QStringLiteral("holdMs de 0 à 60000");
+        QTest::newRow("pointeur repère inconnu")
+            << QByteArray("{\"pointer\":[[1,1]],\"space\":\"ecran\"}") << QStringLiteral("repère inconnu");
+        QTest::newRow("double-clic repère inconnu")
+            << QByteArray("{\"doubleClick\":[1,1],\"space\":\"ecran\"}") << QStringLiteral("repère inconnu");
+        QTest::newRow("doigt sans point") << QByteArray("{\"touch\":[]}") << QStringLiteral("doigt invalide");
+        QTest::newRow("tolérance négative")
+            << QByteArray("{\"expect\":\"a.b\",\"value\":1,\"tolerance\":-0.5}")
+            << QStringLiteral("tolérance invalide");
+        QTest::newRow("tolérance non numérique")
+            << QByteArray("{\"expect\":\"a.b\",\"value\":1,\"tolerance\":\"large\"}")
+            << QStringLiteral("tolérance invalide");
+    }
+
+    void badGestureStepsAreRefused()
+    {
+        QFETCH(QByteArray, step);
+        QFETCH(QString, expected);
+        UiScenario s;
+        QString error;
+        QVERIFY(!parseSteps(step, s, error));
+        QVERIFY2(error.startsWith(QStringLiteral("étape 1")) && error.contains(expected), qPrintable(error));
+    }
+
+    // Les quatre gestes jouent sur la vraie fenêtre : chaque étape ne dit « OK » que si la fenêtre a reçu les
+    // événements (témoin), pas parce qu'ils ont été postés.
+    void gestureStepsPlayOnTheWindow()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        QStringList report;
+        const UiScenario s =
+            scenario("gestes", "[{\"waitReady\":true},"
+                               "{\"touch\":[[100,100],[200,150]]},"
+                               "{\"pinch\":[200,200],\"from\":80,\"to\":160,\"steps\":4},"
+                               "{\"pointer\":[[100,100],[150,120]],\"button\":\"right\",\"holdMs\":30,"
+                               "\"space\":\"window\"},"
+                               "{\"pointer\":[[100,100],[150,120]]},"
+                               "{\"doubleClick\":[120,120]},"
+                               "{\"doubleClick\":[50,50],\"space\":\"window\"}]");
+        QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        const QString all = report.join(QLatin1Char('\n'));
+        QVERIFY2(all.contains(QLatin1String("DOIGT 2 points OK")), qPrintable(all));
+        QVERIFY2(all.contains(QStringLiteral("PINCEMENT ×2 OK")), qPrintable(all));
+        QCOMPARE(all.count(QLatin1String("POINTEUR 2 OK")), 2);
+        QCOMPARE(all.count(QLatin1String("DOUBLECLIC OK")), 2);
     }
 
     void fixtureWritesAThreePageDocument()
@@ -801,6 +1061,65 @@ private slots:
                  qPrintable(report.join(QLatin1Char('\n'))));
         QVERIFY2(loopMax(report.last()) >= 250 &&
                      report.last().contains(QLatin1String("ECART (seuil 100 ms)")),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        // Le blocage se reproduit à la reprise : la fenêtre est rejouée une fois, pas davantage (L10-C2).
+        QCOMPARE(report.filter(QStringLiteral("BOUCLE sonde démarrée")).size(), 2);
+    }
+
+    // Discriminant (L10-C2) : un écart qui ne se reproduit pas (la charge de la machine ; ici, un blocage à
+    // la première mesure seulement) est repris une fois, seuil entier, et passe, sans « ECART » dans le
+    // rapport (motif d'échec de ctest). Sous l'ancienne règle, un plus long intervalle comparé une seule
+    // fois, ce scénario échouait. Un blocage reproduit échoue toujours :
+    // eventLoopProbeSeesABlockedMainThread.
+    void eventLoopGapIsRetriedOnce()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        int starts = 0;
+        f.player->setLineSink([&f, &starts](const QString& line) {
+            if (line.startsWith(QStringLiteral("BOUCLE sonde démarrée")) && ++starts == 1) {
+                QTimer::singleShot(100, f.window, [] { QThread::msleep(250); });
+            }
+        });
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("reprise", "[{\"watchEventLoop\":true},{\"wait\":400},"
+                                                    " {\"maxEventLoopGapMs\":100}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(starts, 2);
+        QVERIFY2(report.size() == 6 && loopMax(report.at(2)) >= 250 &&
+                     report.at(2).endsWith(
+                         QStringLiteral(" ms au-dessus du seuil (100 ms) : fenêtre rejouée une fois")),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(report.filter(QStringLiteral("ECART")).isEmpty(),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(loopMax(report.last()) < 100 && report.last().endsWith(QLatin1String(" ms OK")),
+                 qPrintable(report.last()));
+    }
+
+    // Discriminant (L3-C4) : une mesure « informative » au-dessus du seuil est écrite (HORS SEUIL), sans
+    // « ECART » (motif d'échec de ctest) ni reprise, et le scénario réussit. Le même blocage, reproduit à
+    // chaque passage, fait échouer une mesure ordinaire (eventLoopProbeSeesABlockedMainThread) : le réglage
+    // ne change que l'étape qui le porte.
+    void informativeEventLoopGapIsWrittenNotJudged()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        f.player->setLineSink([&f](const QString& line) {
+            if (line.startsWith(QStringLiteral("BOUCLE sonde démarrée"))) {
+                QTimer::singleShot(100, f.window, [] { QThread::msleep(250); });
+            }
+        });
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("informatif", "[{\"watchEventLoop\":true},{\"wait\":600},"
+                                                       " {\"maxEventLoopGapMs\":100,\"informative\":true}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(loopMax(report.last()) >= 250 &&
+                     report.last().endsWith(QLatin1String(" ms HORS SEUIL (seuil 100 ms, informatif)")),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(report.filter(QStringLiteral("BOUCLE sonde démarrée")).size(), 1);
+        QVERIFY2(report.filter(QStringLiteral("ECART")).isEmpty(),
                  qPrintable(report.join(QLatin1Char('\n'))));
     }
 

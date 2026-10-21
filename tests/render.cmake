@@ -32,3 +32,15 @@ actcraft_add_test(tst_render_painted
 add_test(NAME tst_render_painted_density COMMAND tst_render_painted htmlImagesNeverBlockTheScene)
 get_test_property(tst_render_painted ENVIRONMENT _painted_env)
 set_tests_properties(tst_render_painted_density PROPERTIES ENVIRONMENT "${_painted_env};QT_SCREEN_SCALE_FACTORS=2")
+
+actcraft_add_test(tst_render_pendinglayer
+    SOURCES tst_render_pendinglayer.cpp
+    LIBS ActCraft::render Qt6::Quick)
+
+actcraft_add_test(tst_render_liftlayer
+    SOURCES tst_render_liftlayer.cpp
+    LIBS ActCraft::render Qt6::Quick)
+
+actcraft_add_test(tst_render_strokeshape
+    SOURCES tst_render_strokeshape.cpp
+    LIBS ActCraft::render Qt6::Quick)

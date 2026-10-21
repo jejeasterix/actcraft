@@ -126,15 +126,29 @@ QJsonObject scenarioJson(const ScenarioResult& s)
         {"interval_class", classes(iv.classes)},
         {"input_ns", relative(s.frames.inputNs, s.startNs)},
         {"freeze_ns", relative(s.frames.freezeNs, s.startNs)},
+        {"cache_request_ns", relative(s.cacheRequestNs, s.startNs)},
+        {"cache_updated_ns", relative(s.cacheUpdatedNs, s.startNs)},
         {"latency_seq", latencySeq},
         {"latency_total_ms", s.latency ? doubles(s.latency->totalMs) : QJsonArray()},
         {"latency_planned_to_sync_ms", s.latency ? doubles(s.latency->plannedToSyncMs) : QJsonArray()},
         {"latency_sync_to_swap_ms", s.latency ? doubles(s.latency->syncToSwapMs) : QJsonArray()},
     };
+    QJsonObject cache{{"refreshes", static_cast<double>(s.cacheRequestNs.size())},
+                      {"pending_max", s.pendingMax}};
+    const auto putIfSet = [&cache](const QString& key, int value) {
+        if (value >= 0) {
+            cache.insert(key, value);
+        }
+    };
+    putIfSet(QStringLiteral("touched_strokes"), s.touchedStrokes);
+    putIfSet(QStringLiteral("lifted_objects"), s.liftedObjects);
+    putIfSet(QStringLiteral("pending_cut"), s.pendingCut);
+    putIfSet(QStringLiteral("rebuilds"), s.rebuilds);
+    putIfSet(QStringLiteral("decodes"), s.decodes);
     return {{"name", s.name},   {"exposure_lost", s.exposureLost},
             {"frames", frames}, {"latency", latency},
             {"input", input},   {"memory", memory},
-            {"raw", raw}};
+            {"cache", cache},   {"raw", raw}};
 }
 
 } // namespace
@@ -232,7 +246,8 @@ QJsonObject toJson(const BenchResult& r)
                                     {"criterion", c.name},
                                     {"value", c.value},
                                     {"limit", c.limit},
-                                    {"ok", c.ok}});
+                                    {"ok", c.ok},
+                                    {"excluded", c.excluded}});
     }
     const QJsonObject verdict{
         {"valid_for_measurement", r.valid},

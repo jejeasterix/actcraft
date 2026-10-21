@@ -1,0 +1,33 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "marqueur",
+  "description": "S37 : marqueur jaune 20 par défaut, croisement uniforme, double passage plus foncé, mémoire par outil, pastille de couleur sous le marqueur.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "pen.color", "argument": "#E53935"},
+    {"command": "pen.width", "argument": 8},
+    {"command": "tool.highlighter"},
+    {"expect": "appTools.width", "value": 20},
+    {"expect": "toolCursor.cursorShape", "value": 10},
+    {"stroke": [[200, 300], [500, 300], [500, 500], [350, 200]], "pressure": 0.5},
+    {"stroke": [[200, 600], [500, 600]], "pressure": 0.5},
+    {"stroke": [[200, 600], [500, 600]], "pressure": 0.5},
+    {"waitReady": true},
+    {"checkPixel": "croisement", "at": [400, 300], "color": "#FFFF80", "tolerance": 30},
+    {"checkPixel": "branche", "at": [300, 300], "color": "#FFFF80", "tolerance": 30},
+    {"checkPixel": "double-passage", "at": [350, 600], "color": "#FFFF40", "tolerance": 30},
+    {"capture": "marqueur"},
+    {"command": "pen.color", "argument": "#FDD835"},
+    {"expect": "swatch-2.current", "value": true},
+    {"capture": "pastille-sous-marqueur"},
+    {"command": "tool.pen"},
+    {"expect": "toolCursor.cursorShape", "value": 2},
+    {"expect": "appTools.width", "value": 8},
+    {"expect": "pageView.inkColor", "value": "#e53935"},
+    {"expect": "swatch-0.current", "value": true},
+    {"command": "tool.eraser"},
+    {"expect": "appTools.width", "value": 50},
+    {"expect": "pageView.inkWidth", "value": 50},
+    {"command": "tool.pen"}
+  ]
+}

@@ -36,6 +36,7 @@ enum class ArgumentKind : std::uint8_t
     Color,  // « #RRGGBB » ou « #AARRGGBB »
     Number, // réel fini
     Url,    // texte non vide formant une URL valide : chemin local ou content:// (décisions 17 et 20)
+    Text,   // texte non vide (nom d'un effet, d'un mode)
 };
 
 struct CommandInfo

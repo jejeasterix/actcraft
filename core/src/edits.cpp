@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <limits>
+#include <optional>
 #include <utility>
 
 namespace actcraft::core {
@@ -36,8 +37,9 @@ struct Box
     }
 };
 
-// Rectangle local (coordonnées de l'objet) ; marge = demi-épaisseur du trait.
-RectF localBounds(const PageObject& object) noexcept
+// Rectangle local (coordonnées de l'objet) ; marge = demi-épaisseur du trait. Aucun : l'objet n'a aucun
+// point.
+std::optional<RectF> localBounds(const PageObject& object) noexcept
 {
     Box box;
     double margin = 0;
@@ -81,11 +83,17 @@ RectF localBounds(const PageObject& object) noexcept
         box.add(c->firstEnd);
         box.add(c->secondEnd);
         margin = c->pen.width / 2;
+    } else if (const auto* e = std::get_if<Equation>(&object)) {
+        box.addRect(e->bounds);
+        margin = 1; // repère d'un pixel (render/) : son anticrénelage déborde de la boîte
     } else if (const auto* u = std::get_if<UnknownObject>(&object); u && u->hasBounds) {
         box.addRect(u->bounds);
         margin = 1; // repère d'un pixel (render/) : son anticrénelage déborde de la boîte
     }
-    return box.empty() ? RectF{} : box.grown(margin);
+    if (box.empty()) {
+        return std::nullopt;
+    }
+    return box.grown(margin);
 }
 
 } // namespace
@@ -135,9 +143,14 @@ bool isLayerOrdered(const Page& page) noexcept
     return true;
 }
 
+bool hasExtent(const PageObject& object) noexcept
+{
+    return localBounds(object).has_value();
+}
+
 RectF boundsOnPage(const PageObject& object) noexcept
 {
-    const RectF local = localBounds(object);
+    const RectF local = localBounds(object).value_or(RectF{});
     if (local.width == 0 && local.height == 0 && local.x == 0 && local.y == 0) {
         return local;
     }

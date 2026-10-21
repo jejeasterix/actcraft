@@ -67,14 +67,16 @@ private slots:
         c.setProfileDir(m_emptyProfile.path());
         c.setPlatform(Platform::Windows);
         QVERIFY2(c.errors().isEmpty(), qPrintable(c.errors().join(QLatin1Char('\n'))));
-        QCOMPARE(menuLabels(c), (QStringList{QStringLiteral("Fichier"), QStringLiteral("Affichage"),
+        // Socle des lots 3 et 7 (L0-S4) : Éditer et Insérer ne sont plus vides.
+        QCOMPARE(menuLabels(c), (QStringList{QStringLiteral("Fichier"), QStringLiteral("Éditer"),
+                                             QStringLiteral("Affichage"), QStringLiteral("Insérer"),
                                              QStringLiteral("Outils"), QStringLiteral("Aide")}));
-        QCOMPARE(itemIds(c.menus().at(1)),
+        QCOMPARE(itemIds(c.menus().at(2)).mid(0, 6),
                  (QStringList{QStringLiteral("view.fullscreen"), QStringLiteral("-"),
                               QStringLiteral("page.previous"), QStringLiteral("page.next"),
                               QStringLiteral("-"), QStringLiteral("view.fit")}));
         const QVariantMap fullscreen =
-            c.menus().at(1).toMap().value(QStringLiteral("items")).toList().at(0).toMap();
+            c.menus().at(2).toMap().value(QStringLiteral("items")).toList().at(0).toMap();
         QCOMPARE(fullscreen.value(QStringLiteral("label")).toString(), QStringLiteral("Plein écran"));
         QCOMPARE(fullscreen.value(QStringLiteral("shortcut")).toString(), QStringLiteral("F5"));
         QVERIFY(fullscreen.value(QStringLiteral("checkable")).toBool());
@@ -89,9 +91,11 @@ private slots:
         for (const QVariant& group : c.palette()) {
             groups << group.toMap().value(QStringLiteral("group")).toString();
         }
+        // Groupes « edition » et « presentation » ajoutés par le socle (L0-S4).
         QCOMPARE(groups, (QStringList{QStringLiteral("commandes"), QStringLiteral("pages"),
                                       QStringLiteral("couleurs"), QStringLiteral("epaisseur"),
-                                      QStringLiteral("outils")}));
+                                      QStringLiteral("outils"), QStringLiteral("edition"),
+                                      QStringLiteral("presentation")}));
         const QVariantMap first =
             c.palette().at(0).toMap().value(QStringLiteral("items")).toList().at(0).toMap();
         QCOMPARE(first.value(QStringLiteral("id")).toString(), QStringLiteral("menu.main"));
@@ -99,6 +103,79 @@ private slots:
                  QStringLiteral("qrc:/qt/qml/ActCraft/Ui/icons/menu.svg"));
         QCOMPARE(c.colors().size(), qsizetype{16});
         QCOMPARE(c.penWidths(), (QVariantList{2.0, 4.0, 6.0, 8.0}));
+    }
+
+    void submenuInMenus()
+    {
+        Commands commands;
+        commands.setProfileDir(m_emptyProfile.path());
+        commands.setPlatform(Platform::Windows);
+        const QVariantList menus = commands.menus();
+        QVariantMap edit;
+        for (const QVariant& m : menus) {
+            if (m.toMap().value(QStringLiteral("id")).toString() == QLatin1String("edit")) {
+                edit = m.toMap();
+            }
+        }
+        QVERIFY(!edit.isEmpty());
+        bool found = false;
+        for (const QVariant& it : edit.value(QStringLiteral("items")).toList()) {
+            const QVariantMap item = it.toMap();
+            if (item.value(QStringLiteral("submenu")).toBool()) {
+                found = true;
+                QCOMPARE(item.value(QStringLiteral("label")).toString(), QStringLiteral("Effacer"));
+                QCOMPARE(item.value(QStringLiteral("items")).toList().size(), 5);
+            }
+        }
+        QVERIFY(found);
+        QCOMPARE(commands.objectBar().size(), 5);
+    }
+
+    void submenuFilteredByPlatform()
+    {
+        const auto cameraOf = [](const Commands& c) {
+            for (const QVariant& m : c.menus()) {
+                if (m.toMap().value(QStringLiteral("id")).toString() != QLatin1String("tools")) {
+                    continue;
+                }
+                for (const QVariant& it : m.toMap().value(QStringLiteral("items")).toList()) {
+                    if (it.toMap().value(QStringLiteral("id")).toString() == QLatin1String("camera") &&
+                        it.toMap().value(QStringLiteral("submenu")).toBool()) {
+                        return it.toMap();
+                    }
+                }
+            }
+            return QVariantMap{};
+        };
+        Commands c;
+        c.setProfileDir(m_emptyProfile.path());
+        c.setPlatform(Platform::Windows);
+        const QVariantMap camera = cameraOf(c);
+        QVERIFY(!camera.isEmpty());
+        QCOMPARE(camera.value(QStringLiteral("label")).toString(), QStringLiteral("Caméra"));
+        QCOMPARE(camera.value(QStringLiteral("items")).toList().size(), 5);
+        c.setPlatform(Platform::Android);
+        QVERIFY(cameraOf(c).isEmpty());
+    }
+
+    void objectBarAndContextMenu()
+    {
+        Commands c;
+        c.setProfileDir(m_emptyProfile.path());
+        c.setPlatform(Platform::Windows);
+        const QVariantList bar = c.objectBar();
+        QCOMPARE(bar.size(), 5);
+        const QVariantMap first = bar.at(0).toMap();
+        QCOMPARE(first.value(QStringLiteral("id")).toString(), QStringLiteral("object.move-free"));
+        QVERIFY(first.contains(QStringLiteral("label")));
+        QVERIFY(first.contains(QStringLiteral("icon")));
+        QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}),
+                 (QStringList{QStringLiteral("tool.select"), QStringLiteral("tool.pen"), QStringLiteral("-"),
+                              QStringLiteral("recognition.convert-to-text")}));
+        QVERIFY(c.contextMenu().at(2).toMap().value(QStringLiteral("separator")).toBool());
+        c.setPlatform(Platform::Android);
+        QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}),
+                 (QStringList{QStringLiteral("tool.select"), QStringLiteral("tool.pen")}));
     }
 
     void everyDeclaredIconExists()
@@ -145,7 +222,11 @@ private slots:
         Commands c;
         c.setProfileDir(profile.path());
         QVERIFY(!c.errors().isEmpty());
-        QCOMPARE(menuLabels(c).size(), qsizetype{4});
+        // Le repli est la disposition des ressources : ses six menus non vides depuis le socle des lots 3
+        // et 7.
+        QCOMPARE(menuLabels(c), (QStringList{QStringLiteral("Fichier"), QStringLiteral("Éditer"),
+                                             QStringLiteral("Affichage"), QStringLiteral("Insérer"),
+                                             QStringLiteral("Outils"), QStringLiteral("Aide")}));
     }
 
     void triggerReachesTheQmlHandler()

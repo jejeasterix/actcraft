@@ -256,8 +256,10 @@ private slots:
 
         // Largeur 40 (demi-largeur 20) : coins aux pointes (71.7, 100), (100, 71.7), (228.3, 200),
         // (200, 228.3) ; blockBounds s'arrête à 80 et à 220. Les sondes à 7 px des bornes exigent une marge
-        // d'au moins 0,35 × demi-largeur.
-        ink->beginStroke(0xFF000000u, 40.0);
+        // d'au moins 0,35 × demi-largeur. Amendé par L3-T11 : l'encre vive prend la forme ronde par défaut
+        // (D2), dont le bout ne va pas jusqu'à ces coins ; le cas reste celui du bout carré du prototype,
+        // demandé explicitement. Forme ronde : roundCapsAreNotClipped.
+        ink->beginStroke(0xFF000000u, 40.0, core::PenCap::Square);
         ink->addPoint({100, 100, 0.5f}, 0);
         ink->addPoint({200, 200, 0.5f}, 1);
         const QImage image = window.grabWindow();
@@ -267,6 +269,32 @@ private slots:
         QVERIFY2(colorNear(image.pixelColor(226, 200), QColor(Qt::black), 60), "coin droit");
         QVERIFY2(colorNear(image.pixelColor(200, 226), QColor(Qt::black), 60), "coin bas");
         QVERIFY(colorNear(image.pixelColor(66, 100), QColor(Qt::white), 1));
+    }
+
+    // Forme ronde (L3-T11) : largeur baseWidth constante, alors que blockBounds borne les points à la
+    // demi-largeur de leur pression. Sous une pression faible (0,1 : demi-largeur 12 pour une largeur 40), le
+    // bout rond (rayon 20) sort des bornes de 8 px : la marge du nœud doit le couvrir, sinon le moteur
+    // logiciel le rognerait.
+    void roundCapsAreNotClipped()
+    {
+        QQuickWindow window;
+        window.setColor(Qt::white);
+        window.resize(400, 400);
+        auto* ink = new render::InkItem;
+        ink->setSize(QSizeF(400, 400));
+        ink->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+        ink->beginStroke(0xFF000000u, 40.0);
+        ink->addPoint({100, 100, 0.1f}, 0);
+        ink->addPoint({200, 200, 0.1f}, 1);
+        const QImage image = window.grabWindow();
+        // Sur l'axe, à moins de 20 px des bouts ; blockBounds s'arrête à 88 et à 212.
+        QVERIFY2(colorNear(image.pixelColor(87, 87), QColor(Qt::black), 60), "bout rond de départ");
+        QVERIFY2(colorNear(image.pixelColor(213, 213), QColor(Qt::black), 60), "bout rond d'arrivée");
+        // Coin qu'un bout carré couvrirait, hors du disque : blanc.
+        QVERIFY2(colorNear(image.pixelColor(73, 100), QColor(Qt::white), 1), "coin de bout carré");
     }
 
     // Qt rappelle updatePaintNode(nullptr) quand l'élément revient dans une fenêtre : les nœuds recréés

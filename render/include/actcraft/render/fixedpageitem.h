@@ -28,6 +28,7 @@ class FixedPageItem : public QQuickItem, public core::PageCache
     Q_OBJECT
     Q_PROPERTY(bool ready READ isReady NOTIFY readyChanged)
     Q_PROPERTY(int objectCount READ objectCount NOTIFY objectCountChanged)
+    Q_PROPERTY(int pendingCount READ pendingCount NOTIFY pendingChanged)
 
 public:
     explicit FixedPageItem(QQuickItem* parent = nullptr);
@@ -54,12 +55,39 @@ public:
     std::size_t sourcePage() const noexcept;
     // core::PageCache (DA11), implémentation du lot 2 : ajout en fin de page sans reconstruction (seul le
     // nœud de l'objet est construit ; une image ou un média passe par la reconstruction, qui les décode),
-    // sinon reconstruction complète. remove et invalidate reconstruisent toute la page : l'identifiant et la
-    // zone qu'ils portent serviront au lot « cache incrémental » à viser le nœud. Chaque appel émet
-    // contentChanged.
+    // sinon reconstruction complète. remove et invalidate reconstruisent toute la page, sauf pour un objet en
+    // attente (lot 10, setDeferredFolding ci-dessous). Chaque appel qui change la scène émet contentChanged ;
+    // un objet mis en attente, retiré ou modifié pendant qu'il attend émet seulement pendingChanged.
     void insert(core::ObjectId id) override;
     void remove(core::ObjectId id, const core::RectF& area) override;
     void invalidate(core::ObjectId id, const core::CacheArea& area) override;
+    // Lot 10 (DA11, cache incrémental). Différé (posé par la vue quand une couche d'attente est branchée et
+    // le cache actif) : un objet inséré en fin de page, sans image, ni encre révélatrice, page prête et sans
+    // grille dessinée au-dessus (canWait), n'entre PAS dans la scène de l'élément (celle que le cache
+    // photographie) : il attend, dessiné par la couche d'attente (PendingLayerItem), jusqu'à foldPending().
+    // Retiré (remove) ou modifié (invalidate) pendant qu'il attend : seule la couche d'attente change. Tout
+    // autre changement reconstruit tout et verse ce qui attend. Sans différé (défaut) : comportement du
+    // lot 2. Repasser à faux verse tout.
+    void setDeferredFolding(bool on);
+    bool deferredFolding() const noexcept;
+    // Verse les objets en attente dans la scène : à appeler dans le même tour de boucle que la demande de
+    // redessin du cache (la vue le fait dans requestCacheRefresh) ; la même image montre alors le cache qui
+    // les contient et la couche d'attente vide.
+    void foldPending();
+    // Objets en attente : toujours les derniers de la page, dans l'ordre de la page.
+    int pendingCount() const noexcept;
+    const std::vector<core::ObjectId>& pendingIds() const noexcept;
+    // Augmente quand un objet en attente change sans changer de place (invalidate) : la couche refait tout.
+    std::uint64_t pendingRevision() const noexcept;
+    // Objets de la page que la scène de l'élément contient : les cachedObjectCount() premiers. La scène
+    // s'arrête là à chaque synchronisation (updatePaintNode) ; la couche d'attente dessine les suivants.
+    std::size_t cachedObjectCount() const noexcept;
+    bool forceRasterized()
+        const noexcept; // crochet de test lu par les couches d'attente et soulevée (même chemin RHI)
+    // Magasin des images décodées de la page affichée, en lecture (L3-C1) : la couche soulevée y cherche
+    // par clé les images à ressource de ses copies, sans second décodage. Lecture sûre depuis le fil de rendu
+    // (ImageStore). Les images synthétiques y sont rangées par indice de cette page.
+    const ImageStore& images() const noexcept;
     // Vrai quand les images sont prêtes et les nœuds construits à la prochaine image. Tant qu'il est faux
     // après un changement de page, l'élément garde les nœuds de la page précédente (pas d'éclair blanc,
     // L2-T23).
@@ -82,6 +110,7 @@ signals:
     void objectCountChanged();
     void strokeAppended();
     void contentChanged();
+    void pendingChanged();
 
 protected:
     QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData* data) override;
@@ -116,6 +145,8 @@ private:
     void onImagesReady();
     void addRasterSlot(QSGNode* node, std::size_t object);
     void rescaleRasterNodes(const core::Page& page, const RenderContext& painted);
+    // Invariant de la couche d'attente : les objets en attente sont, dans l'ordre, les derniers de la page.
+    bool pendingAreTheLastObjects() const noexcept;
 
     const core::Document* m_source = nullptr;
     std::size_t m_sourcePage = 0;
@@ -141,6 +172,9 @@ private:
     std::vector<RasterSlot> m_rasterSlots; // fil de rendu
     std::atomic<int> m_rasterNodes{0};
     std::atomic<int> m_rasterizationCount{0};
+    bool m_deferred = false;
+    std::vector<core::ObjectId> m_pendingIds; // fil principal ; lu par les synchronisations
+    std::uint64_t m_pendingRevision = 0;
 };
 
 } // namespace actcraft::render

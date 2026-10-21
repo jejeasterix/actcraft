@@ -3,6 +3,7 @@
 
 #include <actcraft/core/document.h>
 #include <actcraft/formats/nativefile.h>
+#include <actcraft/formats/urlio.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documentio.h>
@@ -13,6 +14,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
+#include <QMetaObject>
 #include <QSemaphore>
 #include <QSignalSpy>
 #include <QStandardPaths>
@@ -21,9 +23,11 @@
 #include <QThread>
 #include <QThreadPool>
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace actcraft;
@@ -124,6 +128,25 @@ private:
     std::shared_ptr<State> m_state;
     bool m_released = false;
 };
+
+// Écrivain d'essai posé pour la durée d'un test (ui::setArchiveWriterForTests), retiré quelle que soit la
+// sortie du test (échec d'un QVERIFY compris) : les tests suivants écrivent par formats::writeUrl.
+class ArchiveWriterOverride
+{
+public:
+    explicit ArchiveWriterOverride(ui::ArchiveWriter writer)
+    {
+        ui::setArchiveWriterForTests(std::move(writer));
+    }
+    ~ArchiveWriterOverride() { ui::setArchiveWriterForTests({}); }
+    ArchiveWriterOverride(const ArchiveWriterOverride&) = delete;
+    ArchiveWriterOverride& operator=(const ArchiveWriterOverride&) = delete;
+};
+
+// Délai au bout duquel l'écrivain d'essai renonce à attendre le fil principal. Il ne mesure rien : un fil
+// principal libre libère l'écrivain au tour de boucle suivant ; il borne seulement l'échec d'un fil principal
+// qui attend l'écriture (sans lui, le test se bloquerait).
+constexpr int kWriterReleaseTimeoutMs = 10000;
 
 } // namespace
 
@@ -231,6 +254,59 @@ private slots:
         // Appel direct sur le fil principal : le résultat le dit (le relevé n'est pas une constante).
         QVERIFY(!ui::saveDocument(controller.document(), url).offMainThread);
         QVERIFY(!ui::loadDocument(url).offMainThread);
+    }
+
+    // Discriminant (L3-C4) : l'écrivain d'essai ne finit que si le FIL PRINCIPAL le libère, par sa file
+    // d'événements, pendant l'écriture. Un enregistrement qui attend l'écriture sur le fil principal
+    // (waitForDone du pool, waitForFinished ou result() d'un futur, écriture sur le fil principal) ne le
+    // libère jamais : l'écrivain renonce au bout de kWriterReleaseTimeoutMs et le test échoue, sans se
+    // bloquer. Ni chronomètre ni drapeau posé par le code testé : lastIoOffMainThread reste vrai quand le fil
+    // principal attend un fil secondaire (ioRunsOffTheMainThread passe sous cette mutation, ce test non).
+    void saveNeverWaitsForTheWriterOnTheMainThread()
+    {
+        struct Gate
+        {
+            QSemaphore released;
+            std::atomic<bool> releasedOnMainThread{false};
+            std::atomic<bool> finished{false};
+        };
+        auto gate = std::make_shared<Gate>();
+        const ArchiveWriterOverride writer(
+            [gate](const QUrl& url, const QByteArray& archive, QString* error) {
+                QMetaObject::invokeMethod(
+                    QCoreApplication::instance(),
+                    [gate] {
+                        gate->releasedOnMainThread.store(QThread::isMainThread());
+                        gate->released.release();
+                    },
+                    Qt::QueuedConnection);
+                const bool released = gate->released.tryAcquire(1, kWriterReleaseTimeoutMs);
+                const bool written = released && formats::writeUrl(url, archive, error);
+                if (!released) {
+                    *error = QStringLiteral("écrivain jamais libéré par le fil principal");
+                }
+                gate->finished.store(true);
+                return written;
+            });
+        QTemporaryDir dir;
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        const QString saved = controller.property("fingerprint").toString();
+        const QString path = dir.filePath(QStringLiteral("porte.actcraft"));
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(QUrl::fromLocalFile(path));
+        // Rendu la main avant la fin de l'écriture : l'écrivain attend le fil principal, qui n'a encore
+        // traité aucun événement. Un enregistrement qui attendrait l'écriture, même en faisant tourner une
+        // boucle locale, rendrait la main après elle.
+        QVERIFY2(!gate->finished.load(), "saveToUrl a rendu la main après la fin de l'écriture");
+        QVERIFY(controller.property("busy").toBool());
+        QVERIFY(savedSpy.wait(60000));
+        QVERIFY2(savedSpy.first().at(0).toBool(), qPrintable(savedSpy.first().at(1).toString()));
+        QVERIFY(gate->releasedOnMainThread.load());
+        QVERIFY(!controller.isModified());
+        QCOMPARE(savedFingerprint(path), saved); // l'écrivain d'essai a écrit l'archive reçue, entière
     }
 
     void thumbnailsAreWrittenForEveryPage()

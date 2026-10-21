@@ -60,6 +60,31 @@ BenchResult good()
     return r;
 }
 
+// Scénario de geste (S36) ajouté à r : copie du tracé sain, `refreshes` redessins du cache, figements et
+// reprises hors limite donnés. `exempt` et `limit` sont ce que le plan du scénario pose (jamais le nom).
+ScenarioResult& addGesture(BenchResult& r, const QString& name, bool exempt, int limit, int refreshes,
+                           int freezes, int resumes)
+{
+    ScenarioResult s = r.scenarios.front();
+    s.name = name;
+    s.latency.reset();
+    s.freezeExempt = exempt;
+    s.maxCacheRefreshes = limit;
+    s.cacheRequestNs.assign(static_cast<std::size_t>(refreshes), 0);
+    s.intervals.freezeOverLimit = static_cast<std::uint64_t>(freezes);
+    s.intervals.resumeOverLimit = static_cast<std::uint64_t>(resumes);
+    r.scenarios.push_back(s);
+    return r.scenarios.back();
+}
+
+const Criterion* find(const BenchResult& r, const QString& scenario, const char* name)
+{
+    const auto it = std::find_if(r.criteria.begin(), r.criteria.end(), [&](const Criterion& c) {
+        return c.scenario == scenario && c.name == QLatin1String(name);
+    });
+    return it == r.criteria.end() ? nullptr : &*it;
+}
+
 ExitCode after(BenchResult r)
 {
     applyVerdict(r);
@@ -213,7 +238,105 @@ private slots:
         QCOMPARE(resume->value, 1.0);
     }
 
+    // L3-C10 (S36, M3, B1) : `soulever` (2 figements) et `gommer` (1 figement, 1 reprise) hors limite,
+    // redessins dans l'attendu : budget tenu, et le verdict dit que ces deux critères sont hors critère pour
+    // eux.
+    void exemptGesturesKeepTheBudgetDespiteFreezes()
+    {
+        BenchResult r = good();
+        addGesture(r, QStringLiteral("soulever"), true, 2, 2, 2, 1);
+        addGesture(r, QStringLiteral("gommer"), true, 25, 3, 1, 0);
+        applyVerdict(r);
+        QVERIFY(r.valid);
+        QVERIFY(r.withinBudget);
+        QCOMPARE(exitCodeFor(r), ExitCode::WithinBudget);
+        for (const char* scenario : {"soulever", "gommer"}) {
+            for (const char* name : {"freeze_over_limit", "resume_over_limit"}) {
+                const Criterion* c = find(r, QString::fromLatin1(scenario), name);
+                QVERIFY2(c, name);
+                QVERIFY(c->excluded);
+                QVERIFY(c->ok);
+            }
+        }
+        // Le critère du tracé n'est pas touché.
+        const Criterion* stroke = find(r, QStringLiteral("stroke"), "freeze_over_limit");
+        QVERIFY(stroke && !stroke->excluded);
+        QCOMPARE(find(r, QStringLiteral("soulever"), "freeze_over_limit")->value, 2.0);
+        const QJsonArray json = toJson(r).value("verdict").toObject().value("criteria").toArray();
+        bool seen = false;
+        for (const QJsonValue& v : json) {
+            const QJsonObject o = v.toObject();
+            if (o.value("scenario").toString() == QLatin1String("soulever") &&
+                o.value("criterion").toString() == QLatin1String("freeze_over_limit")) {
+                seen = true;
+                QVERIFY(o.value("excluded").toBool());
+            }
+        }
+        QVERIFY(seen);
+    }
+
+    // Le même figement dans le tracé reste jugé.
+    void theSameFreezeInTheStrokeIsOverBudget()
+    {
+        BenchResult r = good();
+        r.scenarios[0].intervals.freezeOverLimit = 2;
+        addGesture(r, QStringLiteral("soulever"), true, 2, 2, 2, 1);
+        QCOMPARE(after(r), ExitCode::OverBudget);
+    }
+
+    // Les attendus chiffrés de S36 sont des critères : trois redessins pour `soulever` (attendu 2).
+    void liftWithThreeRefreshesIsOverBudget()
+    {
+        BenchResult r = good();
+        addGesture(r, QStringLiteral("soulever"), true, 2, 3, 0, 0);
+        applyVerdict(r);
+        QCOMPARE(exitCodeFor(r), ExitCode::OverBudget);
+        const Criterion* c = find(r, QStringLiteral("soulever"), "cache_refreshes");
+        QVERIFY(c);
+        QVERIFY(!c->ok);
+        QCOMPARE(c->value, 3.0);
+        QCOMPARE(c->limit, 2.0);
+    }
+
+    void eraseRefreshesAreJudgedAgainstTheirOwnLimit()
+    {
+        BenchResult within = good();
+        addGesture(within, QStringLiteral("gommer"), true, 25, 25, 0, 0); // k + 1 + pending_cut : inclus
+        QCOMPARE(after(within), ExitCode::WithinBudget);
+        BenchResult over = good();
+        addGesture(over, QStringLiteral("gommer"), true, 25, 26, 0, 0);
+        QCOMPARE(after(over), ExitCode::OverBudget);
+    }
+
+    // Les autres critères restent appliqués aux scénarios exemptés.
+    void exemptGesturesAreStillJudgedOnFrameRate()
+    {
+        BenchResult r = good();
+        addGesture(r, QStringLiteral("soulever"), true, 2, 2, 0, 0).intervals.fps = 30;
+        QCOMPARE(after(r), ExitCode::OverBudget);
+    }
+
+    // Preuve que le nom n'est pas lu : un scénario appelé `gommer` sans le booléen est jugé comme les autres,
+    // et un scénario appelé autrement avec le booléen est exempté.
+    void theScenarioNameIsNeverRead()
+    {
+        BenchResult r = good();
+        addGesture(r, QStringLiteral("gommer"), false, -1, 0, 1, 0);
+        applyVerdict(r);
+        QCOMPARE(exitCodeFor(r), ExitCode::OverBudget);
+        const Criterion* c = find(r, QStringLiteral("gommer"), "freeze_over_limit");
+        QVERIFY(c && !c->excluded && !c->ok);
+        QVERIFY(
+            !find(r, QStringLiteral("gommer"), "cache_refreshes")); // pas de limite posée : pas de critère
+
+        BenchResult other = good();
+        addGesture(other, QStringLiteral("autre"), true, -1, 0, 2, 1);
+        QCOMPARE(after(other), ExitCode::WithinBudget);
+    }
+
     // Le test qui distingue : période d'écran inconnue (≤ 0) → classifyIntervals ne calcule rien (0 image/s).
+    // Un verdict qui jugerait ces zéros rendrait « BUDGET DEPASSE » (code 1) ; la mesure est invalide (code
+    // 2).
     // Un verdict qui jugerait ces zéros rendrait « BUDGET DEPASSE » (code 1) ; la mesure est invalide (code
     // 2).
     void invalidRefreshPeriodIsInvalidNotOverBudget()
@@ -668,7 +791,7 @@ private slots:
         const BenchResult r = runBench(options);
         QCOMPARE(r.windowMode, QStringLiteral("window"));
         QCOMPARE(r.windowSize, QSize(1366, 768));
-        QCOMPARE(r.contentChecks.size(), std::size_t{4});
+        QCOMPARE(r.contentChecks.size(), std::size_t{5}); // L10-T4 : stroke-folded
         const bool allOk = std::all_of(r.contentChecks.begin(), r.contentChecks.end(),
                                        [](const ContentCheck& c) { return c.ok; });
         QVERIFY2(allOk, qPrintable(describeChecks(r)));

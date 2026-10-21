@@ -1,12 +1,15 @@
 #include <actcraft/bench/result.h>
 #include <actcraft/bench/scenarios.h>
+#include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
+#include <actcraft/core/hittest.h>
 #include <actcraft/render/paintedrenderer.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <QTest>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <numeric>
@@ -119,11 +122,194 @@ private slots:
     void allScenariosInOrder()
     {
         const auto plans = bench::allScenarios(bench::ScenarioSet::Court);
-        QCOMPARE(plans.size(), std::size_t{4}); // L2-T23 : scénario « page » ajouté en dernier
+        // L2-T23 : « page » ; L10-T1 : « pauses » ; L3-T19 : « gommer » et « soulever », en dernier (le
+        // compte passe de 5 à 7 : les cinq premiers gardent leur nom et leur ordre).
+        QCOMPARE(plans.size(), std::size_t{7});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
         QCOMPARE(plans[3].name, QStringLiteral("page"));
+        QCOMPARE(plans[4].name, QStringLiteral("pauses"));
+        QCOMPARE(plans[5].name, QStringLiteral("gommer"));
+        QCOMPARE(plans[6].name, QStringLiteral("soulever"));
+        for (std::size_t i = 0; i < 5; ++i) {
+            QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
+            QVERIFY(plans[i].seedStrokes.empty());
+        }
+    }
+
+    // L3-T19 (S36) : la gomme ne touche que les annotations (couche supérieure) ; les traits de la page
+    // générée sont sur la couche du milieu. Le scénario pose donc ses propres annotations, versées avant la
+    // mesure, et le zigzag du stylo en croise au moins 20.
+    // L3-C10 (S36, M3) : le plan de `gommer` et de `soulever` retire figements et reprises du verdict et pose
+    // l'attendu des redessins ; aucun autre scénario n'est touché.
+    void gesturePlansCarryTheirVerdictExemption()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            for (const bench::ScenarioPlan& plan : bench::allScenarios(set)) {
+                const bool gesture = plan.toolCommand.size() > 0;
+                QCOMPARE(plan.freezeExempt, gesture);
+                QCOMPARE(plan.maxCacheRefreshes >= 0, gesture);
+            }
+            const bench::ScenarioPlan erase = bench::eraseScenario(set);
+            QCOMPARE(erase.maxCacheRefreshes, erase.touchedStrokes + 1 + erase.pendingCut);
+            QCOMPARE(bench::liftScenario(set).maxCacheRefreshes, 2);
+        }
+    }
+
+    void eraseScenarioCrossesStrokes()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan plan = bench::eraseScenario(set);
+            QCOMPARE(plan.name, QStringLiteral("gommer"));
+            QCOMPARE(plan.toolCommand, QStringLiteral("tool.eraser"));
+            QCOMPARE(plan.generatedPages, 1);
+            QCOMPARE(plan.seedStrokes.size(), std::size_t{24});
+            QCOMPARE(plan.pendingCut, 0);
+            core::Page page = core::generatePage();
+            core::ObjectId next = 1;
+            for (const core::PageObject& o : page.objects) {
+                next = std::max(next, o.common.id + 1);
+            }
+            const core::ObjectId firstSeed = next;
+            for (const auto& points : plan.seedStrokes) {
+                core::Stroke stroke;
+                for (const QPointF& p : points) {
+                    stroke.points.push_back({p.x(), p.y(), 0.5f});
+                }
+                core::PageObject object = std::move(stroke);
+                object.common.layer = core::Layer::Top;
+                object.common.id = next++;
+                page.objects.push_back(std::move(object));
+            }
+            // Les traits générés ne sont pas des annotations : la gomme les saute.
+            QVERIFY(!core::isAnnotation(page.objects.front()));
+            QCOMPARE(plan.inputs.front().kind, InputKind::TabletPress);
+            QCOMPARE(plan.inputs.back().kind, InputKind::TabletRelease);
+            std::set<core::ObjectId> crossed;
+            for (std::size_t i = 1; i < plan.inputs.size(); ++i) {
+                const auto& a = plan.inputs[i - 1];
+                const auto& b = plan.inputs[i];
+                QCOMPARE(b.offsetNs - a.offsetNs, bench::kStylusPeriodNs);
+                QVERIFY(!b.measured);
+                QVERIFY(!core::hitsWitness({b.pagePos.x(), b.pagePos.y()}, bench::kEraserRadiusPage));
+                const core::RectF box =
+                    core::normalizedRect({a.pagePos.x(), a.pagePos.y()}, {b.pagePos.x(), b.pagePos.y()});
+                const double r = bench::kEraserRadiusPage;
+                const core::RectF reach{box.x - r, box.y - r, box.width + 2 * r, box.height + 2 * r};
+                for (const core::ObjectId id : core::objectsTouching(page, reach)) {
+                    if (id >= firstSeed) {
+                        crossed.insert(id);
+                    }
+                }
+            }
+            QVERIFY2(crossed.size() >= 20, qPrintable(QString::number(crossed.size())));
+            QCOMPARE(plan.touchedStrokes, static_cast<int>(crossed.size()));
+        }
+    }
+
+    // L3-T19 (S36, M3) : un rectangle de sélection qui prend DEUX objets versés, puis un appui sur l'un d'eux
+    // choisi par objectAt et un glissement de 300 px en 2 s.
+    void liftScenarioDragsAnObject()
+    {
+        const bench::ScenarioPlan plan = bench::liftScenario(bench::ScenarioSet::Complet);
+        QCOMPARE(plan.name, QStringLiteral("soulever"));
+        QCOMPARE(plan.toolCommand, QStringLiteral("tool.select"));
+        QCOMPARE(plan.generatedPages, 1);
+        QVERIFY(plan.seedStrokes.empty());
+        QVERIFY(plan.inputs.size() > 100);
+        const core::Page page = core::generatePage();
+        std::vector<std::size_t> presses;
+        std::vector<std::size_t> releases;
+        for (std::size_t i = 0; i < plan.inputs.size(); ++i) {
+            if (plan.inputs[i].kind == InputKind::TabletPress) {
+                presses.push_back(i);
+            }
+            if (plan.inputs[i].kind == InputKind::TabletRelease) {
+                releases.push_back(i);
+            }
+        }
+        QCOMPARE(presses.size(), std::size_t{2});
+        QCOMPARE(releases.size(), std::size_t{2});
+        // Rectangle : depuis un point libre, il prend exactement deux objets, hors témoins.
+        const QPointF from = plan.inputs[presses[0]].pagePos;
+        const QPointF to = plan.inputs[releases[0] - 1].pagePos;
+        QVERIFY(!core::objectAt(page, {from.x(), from.y()}, core::kHitToleranceScreen));
+        QVERIFY(from.x() < 0); // départ dans la marge de la vue
+        const auto taken =
+            core::objectsTouching(page, core::normalizedRect({from.x(), from.y()}, {to.x(), to.y()}));
+        // La page générée est dense (emprises qui se recouvrent) : aucun rectangle ne prend exactement deux
+        // objets ; le plan en prend le moins possible (plusieurs : le cas de M3).
+        QVERIFY2(taken.size() >= 2 && taken.size() <= 8, qPrintable(QString::number(taken.size())));
+        QCOMPARE(plan.liftedObjects, static_cast<int>(taken.size()));
+        QCOMPARE(plan.liftedObjects, static_cast<int>(taken.size()));
+        for (const core::ObjectId id : taken) {
+            QVERIFY(id < page.objects[page.objects.size() - 3].common.id);
+        }
+        // Appui sur l'un des deux, puis 300 px en 2 s.
+        const QPointF grab = plan.inputs[presses[1]].pagePos;
+        const auto hit = core::objectAt(page, {grab.x(), grab.y()}, core::kHitToleranceScreen);
+        QVERIFY(hit.has_value());
+        QVERIFY(std::find(taken.begin(), taken.end(), *hit) != taken.end());
+        const QPointF end = plan.inputs[releases[1] - 1].pagePos;
+        QVERIFY(std::abs(std::hypot(end.x() - grab.x(), end.y() - grab.y()) - 300.0) < 1.0);
+        QCOMPARE(plan.inputs[releases[1] - 1].offsetNs - plan.inputs[presses[1]].offsetNs,
+                 std::int64_t{2'000'000'000});
+        QVERIFY(end.x() >= 220.0 && end.x() <= 804.0);
+    }
+
+    // L10-T1 (DA11) : chaque reprise tombe après le délai d'inactivité du cache, décalée de 0 à 64 ms (court
+    // : 0 à 48), pour tomber dans la fenêtre du redessin différé ; page du banc rechargée (300 objets).
+    void pausesResumeInsideTheFoldWindow()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan plan = bench::pausesScenario(set);
+            QCOMPARE(plan.name, QStringLiteral("pauses"));
+            QCOMPARE(plan.generatedPages, 1);
+            QVERIFY(!plan.pageChecks); // page rechargée, mais aucun relevé du scénario « page »
+            QCOMPARE(plan.zoom, 1.0);
+            std::vector<std::int64_t> pauses;
+            std::int64_t lastRelease = -1;
+            for (const auto& in : plan.inputs) {
+                QVERIFY(!core::hitsWitness({in.pagePos.x(), in.pagePos.y()}, 16.0));
+                QCOMPARE(in.measured, in.kind != InputKind::TabletRelease);
+                if (in.kind == InputKind::TabletPress && lastRelease >= 0) {
+                    pauses.push_back(in.offsetNs - lastRelease);
+                }
+                if (in.kind == InputKind::TabletRelease) {
+                    lastRelease = in.offsetNs;
+                }
+            }
+            const std::size_t strokes = set == bench::ScenarioSet::Court ? 4 : 10;
+            QCOMPARE(pauses.size(), strokes - 1);
+            const std::int64_t idleNs = std::int64_t{ui::kCacheFoldIdleMs} * 1'000'000;
+            for (std::int64_t p : pauses) {
+                QVERIFY(p >= idleNs);
+                QVERIFY(p <= idleNs + 64'000'000);
+            }
+            // k = 0 : l'appui tombe à l'instant du versement et relance la minuterie ; il ne mesure rien de
+            // sûr. Seules les reprises k >= 1 jugent le versement (L10-T6).
+            QCOMPARE(pauses.front(), idleNs);
+            QVERIFY(pauses.back() - pauses.front() >= 40'000'000); // la fenêtre du versement est balayée
+        }
+    }
+
+    void pausesComesAfterTheOthersWithoutChangingThem()
+    {
+        const auto plans = bench::allScenarios(bench::ScenarioSet::Complet);
+        QCOMPARE(plans[0].inputs.size(), bench::strokeScenario(bench::ScenarioSet::Complet).inputs.size());
+        QCOMPARE(plans[4].inputs.size(), std::size_t{10 * 100});
+    }
+
+    // L3-C14 : seul « pauses » ferme sa mesure sur le versement différé de son dernier trait ; « stroke »
+    // garde ses traits en attente (aucun redessin du cache pendant sa mesure, tst_bench_result).
+    void onlyPausesAwaitsItsFinalFold()
+    {
+        for (const bench::ScenarioSet set : {bench::ScenarioSet::Court, bench::ScenarioSet::Complet}) {
+            for (const bench::ScenarioPlan& plan : bench::allScenarios(set)) {
+                QCOMPARE(plan.awaitFinalFold, plan.name == QStringLiteral("pauses"));
+            }
+        }
     }
 
     // L2-T23 : changements de page à intervalle fixe par commandes nommées (aucun événement posté, aucune
@@ -133,6 +319,7 @@ private slots:
         const bench::ScenarioPlan court = bench::pageScenario(bench::ScenarioSet::Court);
         QCOMPARE(court.name, QStringLiteral("page"));
         QCOMPARE(court.generatedPages, 2);
+        QVERIFY(court.pageChecks); // relevés propres au scénario (runner.cpp), lus par ce booléen
         QCOMPARE(court.inputs.size(), std::size_t{7});
         for (std::size_t i = 0; i < 4; ++i) {
             const bench::PlannedInput& in = court.inputs[i];
@@ -157,6 +344,7 @@ private slots:
 
         const bench::ScenarioPlan complet = bench::pageScenario(bench::ScenarioSet::Complet);
         QCOMPARE(complet.inputs.size(), std::size_t{23});
+        QVERIFY(complet.pageChecks);
         QCOMPARE(complet.inputs[19].command,
                  QStringLiteral("page.previous"));                         // 20 changements : retour page 1
         QCOMPARE(complet.inputs[20].command, QStringLiteral("page.next")); // puis la page peinte
@@ -166,6 +354,7 @@ private slots:
                                  bench::zoomScenario(bench::ScenarioSet::Court),
                                  bench::scrollScenario(bench::ScenarioSet::Court)}) {
             QCOMPARE(plan.generatedPages, 0);
+            QVERIFY(!plan.pageChecks);
             for (const bench::PlannedInput& in : plan.inputs) {
                 QVERIFY(in.kind != InputKind::Command);
             }

@@ -22,7 +22,8 @@ inline constexpr double kMaxRasterSide = 8192; // côté de texture accepté par
 double boundedRasterScale(double width, double height, double scale) noexcept;
 
 // Vrai si l'objet passe par le peintre partagé plutôt que par un moteur du prototype : texte, ligne, média,
-// connecteur, forme à chemins, trait autre que le stylo à bouts carrés.
+// connecteur, forme à chemins, trait autre que le stylo opaque (marqueur, encre révélatrice, trait
+// translucide).
 bool usesPaintedRenderer(const core::PageObject& object) noexcept;
 
 // Objet en coordonnées de l'objet, rastérisé à `scale` (borné par boundedRasterScale) dans une image ARGB

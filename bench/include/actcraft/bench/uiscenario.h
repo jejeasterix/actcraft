@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 class QObject;
@@ -25,6 +26,7 @@ class PageView;
 namespace actcraft::bench {
 
 class EventLoopProbe;
+class Injector;
 
 enum class UiStepKind : std::uint8_t
 {
@@ -37,12 +39,26 @@ enum class UiStepKind : std::uint8_t
     CheckPixel, // {"checkPixel": "nom", "at": [x, y], "color": "#rrggbb", "tolerance": 48}
     Expect,     // {"expect": "objet.propriété", "value": …}
     // Ajoutées au lot 2 (L2-T20, S5), à la fin : les rangs ci-dessus ne changent pas.
-    Fixture,         // {"fixture": "trois-pages", "path": "${SORTIE}/a.actcraft"} — sous le dossier de sortie
-    WaitFor,         // {"waitFor": "objet.propriété", "value": …, "timeoutMs": 10000} — 1 ms à 2 min
+    Fixture, // {"fixture": "trois-pages", "path": "${SORTIE}/a.actcraft"} — sous le dossier de sortie
+    WaitFor, // {"waitFor": "objet.propriété", "value": …, "timeoutMs": 10000} — 1 ms à 2 min
+    // Fenêtre de boucle : de « watchEventLoop » à « maxEventLoopGapMs ». Plus long intervalle au-dessus du
+    // seuil : la fenêtre est rejouée une fois, seuil entier, et n'échoue (ECART) que si l'écart se reproduit.
+    // La charge de la machine ne se reproduit pas ; un blocage du fil principal par l'étape jouée (E/S
+    // synchrone), si (L10-C2). Les étapes de la fenêtre doivent donc pouvoir être rejouées.
     WatchEventLoop,  // {"watchEventLoop": true} — démarre la sonde de la boucle du fil principal
-    MaxEventLoopGap, // {"maxEventLoopGapMs": 25} — arrête la sonde, compare le plus long intervalle
+    MaxEventLoopGap, // {"maxEventLoopGapMs": 25} — arrête la sonde, compare le plus long intervalle ;
+                     // "informative": true — l'écart est écrit (« HORS SEUIL … (informatif) »), jamais jugé
+                     // ni rejoué (S5, L3-C4 : une preuve sans chronomètre garde l'invariant, tst_ui_files)
     Remember,        // {"remember": "objet.propriété", "as": "nom"} — valeur de ${nom} ensuite
     ArchiveContains, // {"archive": "<chemin>", "contains": ["document.json", "resources/", …]} — préfixes
+    // Ajoutée au lot 10 (L10-T5, S33), à la fin.
+    CheckEdge, // {"checkEdge": "nom", "from": [x, y], "to": [x, y], "minIntermediate": 2, "maxIntermediate":
+               // 0, "minInk": 1}
+    // Ajoutées par le socle des lots 3 et 7 (L0-S2), à la fin, dans cet ordre.
+    Touch,       // {"touch": [[x, y], …]} — un doigt, coordonnées de page
+    Pinch,       // {"pinch": [cx, cy], "from": 100, "to": 200, "steps": 12} — écarts en pixels de vue
+    Pointer,     // {"pointer": [[x, y], …], "button": "left", "holdMs": 0, "space": "page"}
+    DoubleClick, // {"doubleClick": [x, y], "space": "page"}
 };
 
 struct UiStep
@@ -63,6 +79,22 @@ struct UiStep
     QString value;      // attendue, en texte (propertyText)
     QString path;       // Fixture, ArchiveContains
     QStringList values; // ArchiveContains : préfixes d'entrées attendus
+    QPointF to;         // CheckEdge : fin du segment (début : at)
+    int minIntermediate = 0;
+    int maxIntermediate = -1; // -1 : sans plafond
+    int minInk = 0;           // pixels d'encre exigés sur le segment (contrôle positif d'un contrôle négatif)
+    // Ajoutés par L0-S2. Pinch : centre dans `at`. Pointer : points dans `points`. DoubleClick : point dans
+    // `at`.
+    double pinchFrom = 0;                    // Pinch : écart initial des deux doigts, pixels de vue (> 0)
+    double pinchTo = 0;                      // Pinch : écart final (> 0)
+    int pinchSteps = 12;                     // Pinch : pas d'une image (1 à 1000)
+    Qt::MouseButton button = Qt::LeftButton; // Pointer
+    int holdMs = 0;                          // Pointer : maintien au dernier point avant le relâché
+    bool windowSpace = false;                // Pointer, DoubleClick : points en fenêtre plutôt qu'en page
+    std::optional<double>
+        valueTolerance; // Expect : écart admis, valeur numérique ; absent : comparaison exacte
+    // Ajouté par L3-C4. MaxEventLoopGap : mesure écrite, l'écart au seuil ne fait pas échouer le scénario.
+    bool informative = false;
 };
 
 struct UiScenario
@@ -81,15 +113,16 @@ bool parseReadSpec(const QString& text, UiStep& out);
 QString propertyText(const QVariant& value);
 
 // Joue un scénario sur une fenêtre Qt Quick (DA8). Une ligne de rapport par étape : COMMANDE, TRAIT, TOUCHE,
-// ATTENTE, PRET, CAPTURE, PIXEL, LU, FIXTURE, BOUCLE, MEMO, ARCHIVE. Chaque étape d'action contrôle son
-// résultat, jamais « OK » sur le seul envoi : COMMANDE exige le retour vrai de runCommand ; TRAIT, postés à
-// la fenêtre (le filtre de la PageView les y attend, variante B), exige un trait figé par la vue ; TOUCHE
-// exige l'appui accepté par un raccourci non ambigu ou par un élément actif (repli sinon : la commande nommée
-// équivalente) ; CAPTURE refuse une image vide ou uniforme ; FIXTURE n'écrit que sous le dossier de sortie.
-// Lignes terminées par OK, ECHEC ou ECART. Aucune attente à durée fixe hors de l'étape « wait » : conditions
-// avec plafond (ATTENTE d'une propriété comprise).
-// Variables, remplacées en une passe dans l'argument textuel d'une commande, les chemins et les valeurs
-// attendues : ${SORTIE} (dossier de sortie), ${SAMPLES} (ACTCRAFT_SAMPLES_DIR ; absente, l'étape échoue),
+// ATTENTE, PRET, CAPTURE, PIXEL, LU, FIXTURE, BOUCLE, MEMO, ARCHIVE, BORD, DOIGT, PINCEMENT, POINTEUR,
+// DOUBLECLIC (ces quatre : événements livrés à la fenêtre, comptés par un témoin). Chaque étape d'action
+// contrôle son résultat, jamais « OK » sur le seul envoi : COMMANDE exige le retour vrai de runCommand ;
+// TRAIT, postés à la fenêtre (le filtre de la PageView les y attend, variante B), exige un trait figé par la
+// vue ; TOUCHE exige l'appui accepté par un raccourci non ambigu ou par un élément actif (repli sinon : la
+// commande nommée équivalente) ; CAPTURE refuse une image vide ou uniforme ; FIXTURE n'écrit que sous le
+// dossier de sortie. Lignes terminées par OK, ECHEC ou ECART. Aucune attente à durée fixe hors de l'étape «
+// wait » : conditions avec plafond (ATTENTE d'une propriété comprise). Variables, remplacées en une passe
+// dans l'argument textuel d'une commande, les chemins et les valeurs attendues : ${SORTIE} (dossier de
+// sortie), ${SAMPLES} (ACTCRAFT_SAMPLES_DIR ; absente, l'étape échoue),
 // ${<nom>} (mémorisé par « remember ») ; une variable inconnue ou non fermée fait échouer l'étape.
 // Sonde de boucle (BOUCLE, écart 1 du plan 2b) : une minuterie de 5 ms sur le fil principal relève le plus
 // long intervalle entre deux de ses tours, intervalle en cours à l'arrêt compris. Elle tient hors écran, où
@@ -138,6 +171,12 @@ private:
     bool stroke(const UiStep& step, QStringList& report);
     bool key(const UiStep& step, QStringList& report);
     bool checkPixel(const UiStep& step, QStringList& report);
+    bool checkEdge(const UiStep& step, QStringList& report);
+    bool touch(const UiStep& step, QStringList& report);
+    bool pinch(const UiStep& step, QStringList& report);
+    bool pointer(const UiStep& step, QStringList& report);
+    bool doubleClick(const UiStep& step, QStringList& report);
+    Injector& gestures(); // injecteur des gestes directs, créé à la première étape qui en a besoin
     bool fixture(const UiStep& step, QStringList& report);
     bool waitFor(const UiStep& step, QStringList& report);
     bool watchEventLoop(QStringList& report);
@@ -152,6 +191,7 @@ private:
 
     QQuickWindow* m_window = nullptr;
     std::unique_ptr<QPointingDevice> m_stylus;
+    std::unique_ptr<Injector> m_gestures; // doigt et souris synthétiques (L0-S2)
     QString m_scenarioName;
     QString m_outputDir;
     QStringList m_index;
@@ -160,6 +200,8 @@ private:
     KeyDelivery m_keyDelivery;
     QHash<QString, QString> m_memory;            // « remember » : nom → valeur
     std::unique_ptr<EventLoopProbe> m_loopProbe; // sonde de boucle armée par « watchEventLoop »
+    bool m_loopRetryAvailable = false;           // fenêtre de boucle pas encore rejouée (play)
+    bool m_loopRetryAsked = false;               // écart à la première mesure : play rejoue la fenêtre
 };
 
 } // namespace actcraft::bench

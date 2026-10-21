@@ -59,3 +59,30 @@ Dans `bench/results/` (ignoré par git) :
   `2026-10-17_185511-Dell-Inc-Latitude-5450-software.json` ;
 - 0.1.0 (worktree de mesure) : `2026-10-17_191043-…-direct3d11.json`, `2026-10-17_191512-…-direct3d11.json` ;
 - lot 2 : `2026-10-17_191213-…-direct3d11.json`, `2026-10-17_192044-…-direct3d11.json`.
+
+## Rejeu du 2026-10-18 (machine plus calme)
+
+Même commande (`bench.ps1 -Rendu d3d11 -SansConstruire`), Direct3D 11, plein écran, cache, en alternance : 0.1.0
+(`3de027a`) et **0.2.0 exacte** (`70c0493`, construite en release pour la mesure). Quatre passages valides, contrôles de
+contenu réussis. Charge relevée au début de chaque passage : processeur 0 % ; mémoire libre en baisse (2,85 → 1,19 Go,
+une autre session a démarré pendant la mesure).
+
+| Passage | Version | RAM libre | p95 stroke / zoom / scroll (ms) | > 25 ms stroke / zoom / scroll | latence p50 / p95 (ms) | figements hors limite (stroke) | pic mémoire max (Mo) |
+|---|---|---|---|---|---|---|---|
+| 1 | 0.1.0 | 2,85 Go | 17,1 / 17,2 / 17,1 | 0,00 / 0,00 / 0,28 % | 10,7 / 18,0 | 6 | 696 |
+| 2 | 0.2.0 | 2,20 Go | 22,6 / 19,8 / 17,9 | 4,88 / 1,40 / 2,26 % | 11,8 / 32,0 | 10 | 842 (`page`) |
+| 3 | 0.1.0 | 1,62 Go | 17,1 / 17,4 / 17,1 | 0,00 / 0,00 / 0,00 % | 10,7 / 18,2 | 5 | 693 |
+| 4 | 0.2.0 | 1,19 Go | 17,0 / 17,2 / 17,1 | 0,00 / 0,00 / 0,00 % | 10,8 / 18,2 | 7 | 834 (`page`) |
+
+Images/s : 59,9 à 60,1 partout.
+
+**Lecture.** Le passage 4 de la 0.2.0 tient tous les critères que la 0.1.0 tient (images/s ≥ 58, p95 ≤ 18,5 ms,
+images > 25 ms ≤ 1 %, reprises 0, latence p50 < 20 ms, pic mémoire < 1 024 Mo) ; le passage 2, juste après la
+construction de la 0.2.0, les dépasse sur `stroke` et `zoom`. Les figements hors limite de `stroke` (5 à 10 pour les
+deux versions, 1 au lot 1 sur machine calme) ne font pas partie de la porte avant le lot 10. **Verdict : pas de
+régression attribuable au lot 2 sur les scénarios `stroke`, `zoom`, `scroll` (1 passage sur 2 de la 0.2.0 tenu, l'autre
+dégradé sous charge) ; à confirmer à la clôture du lot 10** (0.1.0, 0.2.0 et 0.3.0 en alternance, plan du lot 10). Le
+scénario `page` (nouveau) monte le pic mémoire à 834-842 Mo, sous le budget de 1 024 Mo.
+
+Fichiers : 0.1.0 `2026-10-18_081852-…`, `…_082352-…` ; 0.2.0 `…_082237-…`, `…_082452-…` (`-direct3d11.json`, dans
+`bench/results/` des worktrees de mesure).

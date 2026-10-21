@@ -23,6 +23,7 @@ struct Change
         PageInserted,
         PageRemoved,
         PageChanged,
+        PageSettingsChanged, // réglages de la page (présentation) : aucun pixel du cache ne change
     };
     Kind kind;
     std::size_t page;
@@ -41,6 +42,7 @@ public:
     virtual void redo(Document& document, Changes& changes) = 0;
     virtual void undo(Document& document, Changes& changes) = 0;
     // Deux commandes consécutives de même famille (≥ 0) peuvent fusionner : glissements continus (lot 3).
+    // UndoStack::closeMerge() borne la fusion (une étape par ouverture de la réglette, D10).
     virtual int mergeId() const noexcept { return -1; }
     // Absorbe `other`, déjà exécutée ; vrai si la fusion a eu lieu.
     virtual bool mergeWith(const UndoCommand& other)
@@ -75,6 +77,10 @@ public:
     bool isClean() const noexcept;
     void setClean() noexcept; // l'état courant est celui du fichier
     void clear() noexcept;    // pile vide, état propre
+    // Clôt l'étape en cours (D10, P23 : fermeture de la réglette de translucidité) : aucune commande déjà
+    // exécutée n'absorbe plus la suivante, qui ouvre une étape. Annuler et Rétablir ne rouvrent pas une étape
+    // close ; dans une branche neuve, après Annuler, les nouvelles commandes fusionnent de nouveau.
+    void closeMerge() noexcept;
 
 private:
     void record(std::unique_ptr<UndoCommand> command); // efface les annulées, fusionne, borne
@@ -84,6 +90,8 @@ private:
     std::size_t m_index = 0;
     std::size_t m_clean = 0;
     std::size_t m_limit;
+    // Rang à partir duquel une commande peut encore absorber la suivante (closeMerge) ; ≤ count().
+    std::size_t m_mergeFloor = 0;
 };
 
 } // namespace actcraft::core

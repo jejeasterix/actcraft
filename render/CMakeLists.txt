@@ -16,6 +16,10 @@ actcraft_add_module(render
         src/imagerenderer.cpp
         include/actcraft/render/fixedpageitem.h
         src/fixedpageitem.cpp
+        src/objectnodes.h
+        src/objectnodes.cpp
+        include/actcraft/render/pendinglayeritem.h
+        src/pendinglayeritem.cpp
         include/actcraft/render/inkbuffer.h
         src/inkbuffer.cpp
         include/actcraft/render/inkitem.h
@@ -24,6 +28,10 @@ actcraft_add_module(render
         src/pagepainter.cpp
         include/actcraft/render/paintedrenderer.h
         src/paintedrenderer.cpp
+        src/equationlayout.h
+        src/equationlayout.cpp
+        include/actcraft/render/liftlayeritem.h
+        src/liftlayeritem.cpp
     DEPENDS
         ActCraft::core Qt6::Quick)
 

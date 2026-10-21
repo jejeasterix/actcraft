@@ -12,6 +12,7 @@
 #include <QThread>
 
 #include <cstddef>
+#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -40,6 +41,27 @@ QString flipchartRefusal()
 {
     return QStringLiteral("Un paperboard .flipchart ne se réécrit pas : enregistrez-le au format ActCraft "
                           "(.actcraft).");
+}
+
+// Écrivain d'essai (setArchiveWriterForTests) : posé sur le fil du test, lu sur le fil de l'écriture, d'où le
+// verrou. Vide dans l'application.
+struct TestWriter
+{
+    std::mutex mutex;
+    ArchiveWriter writer;
+};
+
+TestWriter& testWriter()
+{
+    static TestWriter instance;
+    return instance;
+}
+
+ArchiveWriter currentTestWriter()
+{
+    TestWriter& holder = testWriter();
+    const std::lock_guard<std::mutex> lock(holder.mutex);
+    return holder.writer;
 }
 
 } // namespace
@@ -105,13 +127,21 @@ SaveOutcome saveDocument(const core::Document& snapshot, const QUrl& url)
         out.error = error;
         return out;
     }
-    if (!formats::writeUrl(url, archive, &error)) {
+    const ArchiveWriter writer = currentTestWriter();
+    if (!(writer ? writer(url, archive, &error) : formats::writeUrl(url, archive, &error))) {
         out.error = error;
         return out;
     }
     out.ok = true;
     out.fingerprint = core::fingerprint(snapshot);
     return out;
+}
+
+void setArchiveWriterForTests(ArchiveWriter writer)
+{
+    TestWriter& holder = testWriter();
+    const std::lock_guard<std::mutex> lock(holder.mutex);
+    holder.writer = std::move(writer);
 }
 
 QUrl actcraftTarget(const QUrl& url, QString* error)

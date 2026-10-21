@@ -52,6 +52,12 @@ Après « page prête » (images générées, premier cache dessiné) et 2 s de 
 | `zoom` | 100 → 800 → 25 → 100 % en 6 s, molette fine Ctrl à 120 Hz | 100 % |
 | `scroll` | aller-retour vertical puis horizontal en 6 s | 400 %, page calée en haut à gauche |
 | `page` | 20 changements de page à 500 ms d'écart (page suivante, précédente…), puis page suivante, zoom posé à 150 % et ajustement à 700 ms d'écart | 100 %, document de deux pages générées |
+| `pauses` (lot 10) | 10 traits (4 en court) séparés par le délai d'inactivité du cache (500 ms) plus 0 à 64 ms (0 à 48 ms en court) | 100 %, page du banc rechargée |
+
+Le scénario `pauses` fait tomber chaque reprise du stylet dans la fenêtre du redessin différé du cache. Sa mesure
+se ferme sur le versement différé de son dernier trait, que le joueur attend (L3-C14) : au moins un versement est
+relevé quelle que soit la charge, même si les reprises, à quelques ms du délai, n'en déclenchent aucun. Champs
+`cache.refreshes`, `raw.cache_request_ns`, `raw.cache_updated_ns` : redessins du cache pendant chaque scénario.
 
 Le scénario `page` charge d'abord un document de deux pages générées (`DocumentController::loadGeneratedPages(2,
 true)`) : 30 images chacune, et sur la page 2, 20 textes et 20 formes à chemins dessinés par le moteur peint
@@ -276,3 +282,27 @@ voir « Limites connues »).
    ```
 8. Renvoyer le dossier `bench/results/` (JSON), les dernières lignes notées, le dossier `captures/` s'il existe,
    et la sortie de l'étape 7.
+
+### `gommer` et `soulever` (L3-T19, H10-8 e, S36)
+
+Deux scénarios jouent un outil choisi **par commande avant la mesure** (`ScenarioPlan::toolCommand`, appelée par
+`runCommand` de la fenêtre, puis `tool.pen` après). `gommer` : 24 annotations (couche supérieure) sont posées puis
+versées dans le cache avant la mesure, parce que les traits de la page générée sont sur la couche du milieu et que
+la gomme n'agit que sur les annotations ; un zigzag du stylo les croise toutes (`cache.touched_strokes` = k,
+`cache.pending_cut` = 0 : aucun trait n'attend). Attendu S36 : `cache.refreshes` ≤ k + 1 + `pending_cut`.
+`soulever` : rectangle de sélection tiré depuis la marge gauche de la vue (la page générée est dense : aucun point
+libre dans la zone centrale), puis appui sur un objet pris et glissement de 300 px en 2 s ; attendu :
+`cache.refreshes` = 2. Chaque scénario relève aussi `cache.rebuilds` et `cache.decodes` (reconstructions et
+décodages d'images de la page fixe), et `soulever` écrit `cache.lifted_objects`, le nombre d'objets que son rectangle prend (de 2 à 8). `cache.touched_strokes` de `gommer` est le k réel : 24 annotations touchées. Premier relevé de ce poste (debug, rendu logiciel, jeu court) : `gommer` 3 redessins ; `soulever` 2 redessins, mais 2 décodages d'images et 2 reconstructions pendant le soulèvement. Mesures de ce poste seulement
+(décision 0125) : rien n'est mesuré sur le Dell, la tablette ni le MacBook.
+
+**Verdict de ces deux scénarios (L3-C10).** Le critère « 0 figement, 0 reprise hors limite » de S13 reste jugé sur
+les cinq scénarios d'origine ; `gommer` et `soulever` en sont retirés. Le retrait vient d'un booléen que le plan du
+scénario pose (`ScenarioPlan::freezeExempt`, recopié dans `ScenarioResult::freezeExempt`), jamais du nom : un
+scénario appelé `gommer` sans ce booléen serait jugé comme les autres. Dans le JSON, les critères
+`freeze_over_limit` et `resume_over_limit` de ces scénarios restent écrits avec leur valeur relevée, `"ok": true` et
+`"excluded": true` (le champ vaut `false` partout ailleurs) : on lit le figement, il ne fait pas dépasser le budget.
+Les autres critères (images/s, p95, part des intervalles > 25 ms, mémoire) s'appliquent comme aux autres
+scénarios. Les attendus chiffrés de S36 deviennent un critère `cache_refreshes` du verdict, porté par
+`ScenarioPlan::maxCacheRefreshes` : `soulever` ≤ 2 redessins ; `gommer` ≤ `touched_strokes` + 1 + `pending_cut`
+(valeur : `cache.refreshes`, seuil : l'attendu). Un redessin de trop rend « BUDGET DEPASSE ».

@@ -33,6 +33,8 @@ struct Criterion
     double value = 0;
     double limit = 0;
     bool ok = false;
+    // Critère retiré du jugement pour ce scénario (ScenarioResult::freezeExempt) : relevé, jamais dépassé.
+    bool excluded = false;
 };
 
 // Contrôle du rattachement des traits à leurs images (verdict.h, releaseCoverage).
@@ -53,7 +55,7 @@ struct RefreshPeriod
 
 struct ScenarioResult
 {
-    QString name;             // stroke | zoom | scroll
+    QString name;             // stroke | zoom | scroll | page | pauses | gommer | soulever
     std::int64_t startNs = 0; // origine des séries brutes
     FrameSeries frames;
     IntervalStats intervals;
@@ -63,6 +65,25 @@ struct ScenarioResult
     MemorySummary memory;
     bool exposureLost = false;
     ReleaseCoverage releases; // tracé seulement
+    // L10-T1 : PageView::cacheRefreshRequested et cacheUpdated pendant le scénario (horloge
+    // core::monotonicNowNs()), pour attribuer un figement ou une reprise à un redessin du cache.
+    std::vector<std::int64_t> cacheRequestNs;
+    std::vector<std::int64_t> cacheUpdatedNs;
+    int pendingMax = 0; // L10-T4 : plus grand FixedPageItem::pendingCount pendant le scénario
+    // L3-T19 : relevés de « gommer » (k, 1 si le dernier trait en attente est gommé en deux morceaux) ; -1 :
+    // sans objet. Reconstructions complètes et décodages d'images de la page fixe pendant le scénario (un
+    // soulèvement qui redécode les images des synthétiques s'y voit) ; -1 : non relevés.
+    int touchedStrokes = -1;
+    int pendingCut = -1;
+    int liftedObjects = -1; // « soulever » : objets pris par le rectangle de sélection
+    // L3-C10 (S36, M3) : posé par le plan du scénario, jamais déduit de son nom. true : figements et reprises
+    // hors limite ne sont pas jugés (relevés, marqués « excluded » dans le verdict) ; fps, p95 et part des
+    // intervalles > 25 ms le restent.
+    bool freezeExempt = false;
+    // Attendu chiffré S36 sur cache.refreshes (cacheRequestNs.size()) ; < 0 : pas de critère.
+    int maxCacheRefreshes = -1;
+    int rebuilds = -1;
+    int decodes = -1;
 };
 
 struct BenchResult

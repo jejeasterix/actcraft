@@ -2,6 +2,7 @@
 
 #include <QQuickWindow>
 #include <QSGRendererInterface>
+#include <QSurfaceFormat>
 
 bool parseRenderBackend(const QStringList& args, RenderBackend& out, QString& error)
 {
@@ -34,6 +35,21 @@ bool parseRenderBackend(const QStringList& args, RenderBackend& out, QString& er
 
 void applyRenderBackend(RenderBackend backend)
 {
+    if (backend != RenderBackend::Software) {
+        // Traits lissés en RHI comme en rendu logiciel (L10-T5) : la fenêtre (encre, couche d'attente) est
+        // multi-échantillonnée ; la texture du cache l'est par ShaderEffectSource.samples (PageArea.qml).
+        QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+        format.setSamples(kMsaaSamples);
+        QSurfaceFormat::setDefaultFormat(format);
+        // H10-9 (L10-T8) : les couches, dont la texture du cache, perdent leur profondeur-stencil
+        // multi-échantillonnée (− 597 Mio au zoom 800 % posé). QSGRhiLayer ne lit que cette variable, une
+        // seule fois (static bool depthBufferEnabled = qEnvironmentVariableIsEmpty(...)) : l'API
+        // QQuickGraphicsConfiguration::setDepthBufferFor2D ne retire jamais la profondeur-stencil des
+        // couches, quel que soit le moment de l'appel. La variable retire aussi le stencil : une découpe non
+        // rectangulaire (clip sous une rotation non multiple de 90°) n'aurait plus de découpe en RHI ; aucune
+        // aujourd'hui.
+        qputenv("QSG_NO_DEPTH_BUFFER", "1");
+    }
     switch (backend) {
     case RenderBackend::Auto:
         break;

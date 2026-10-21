@@ -6,6 +6,7 @@
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/toolhost.h>
 
 #include <QImage>
 #include <QPointingDevice>
@@ -13,13 +14,17 @@
 #include <QQmlComponent>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QRegularExpression>
+#include <QSettings>
 #include <QStringList>
 #include <QTabletEvent>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <algorithm>
 #include <cmath>
+#include <initializer_list>
 #include <memory>
 #include <variant>
 
@@ -83,6 +88,29 @@ bool run(Shell& s, const QString& id, const QVariant& argument = QVariant())
     const bool invoked = QMetaObject::invokeMethod(s.window, "runCommand", Q_RETURN_ARG(QVariant, result),
                                                    Q_ARG(QVariant, QVariant(id)), Q_ARG(QVariant, argument));
     return invoked && result.toBool();
+}
+
+// Une ouverture de la réglette de translucidité (D10) : object.translucency sans argument, un mouvement par
+// valeur (signal moved du Slider, celui d'un glissement), puis fermeture. Rend l'erreur, vide si tout va.
+QString translucencyOpening(Shell& s, QObject* popup, QQuickItem* slider, std::initializer_list<int> values)
+{
+    if (!run(s, QStringLiteral("object.translucency"))) {
+        return QStringLiteral("object.translucency refusée");
+    }
+    if (!QTest::qWaitFor([popup] { return popup->property("opened").toBool(); }, 5000)) {
+        return QStringLiteral("réglette non ouverte");
+    }
+    for (const int value : values) {
+        slider->setProperty("value", value);
+        if (!QMetaObject::invokeMethod(slider, "moved")) {
+            return QStringLiteral("signal moved introuvable");
+        }
+    }
+    if (!QMetaObject::invokeMethod(popup, "close") ||
+        !QTest::qWaitFor([popup] { return !popup->property("visible").toBool(); }, 5000)) {
+        return QStringLiteral("réglette non fermée");
+    }
+    return QString();
 }
 
 QString indicator(Shell& s)
@@ -304,6 +332,8 @@ class TstUiShell : public QObject
 
 private:
     std::unique_ptr<QPointingDevice> m_stylus;
+    // Réglages des outils (ToolHost) : jamais dans le vrai registre.
+    QTemporaryDir m_settingsDir;
 
     void post(Shell& s, QEvent::Type type, QPointF scene, Qt::MouseButtons buttons)
     {
@@ -316,6 +346,9 @@ private:
 private slots:
     void initTestCase()
     {
+        QVERIFY(m_settingsDir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
         m_stylus = std::make_unique<QPointingDevice>(
             QStringLiteral("tst-ui-shell-stylus"), 5170, QInputDevice::DeviceType::Stylus,
             QPointingDevice::PointerType::Pen,
@@ -328,13 +361,14 @@ private slots:
         QVERIFY(start(s));
         for (const char* name :
              {"topBar", "toolPalette", "pageArea", "pageIndicator", "zoomBox", "colorSwatches", "widthPicker",
-              "menu-file", "menu-view", "menu-tools", "menu-help", "button-page.next", "button-page.previous",
-              "button-tool.pen", "button-menu.main", "button-menu.tools", "button-view.fullscreen"}) {
+              "menu-file", "menu-edit", "menu-view", "menu-insert", "menu-tools", "menu-help",
+              "button-page.next", "button-page.previous", "button-tool.pen", "button-menu.main",
+              "button-menu.tools", "button-view.fullscreen"}) {
             QQuickItem* found = item(s, name);
             QVERIFY2(found && found->isVisible(), name);
         }
-        QVERIFY(!item(s, "menu-edit"));   // menu vide en lot 1 : pas affiché
-        QVERIFY(!item(s, "menu-insert")); // idem
+        // Éditer et Insérer, vides au lot 1, sont garnis par le socle des lots 3 et 7 (L0-S4) : ils
+        // s'affichent.
         QCOMPARE(indicator(s), QStringLiteral("1 / 1"));
         QCOMPARE(s.fixed->objectCount(), 0);
         // Palette à droite de la page, ligne supérieure au-dessus (F-001, F-002) ; pas de barre d'état
@@ -403,6 +437,27 @@ private slots:
         QQuickItem* sample = item(s, "widthIndicatorSample");
         QVERIFY(sample);
         QVERIFY2(sample->width() >= 12, qPrintable(QString::number(sample->width())));
+    }
+
+    // F-138 (L3-C15) : le cercle de largeur suit le pointeur avec le stylo et le marqueur, jamais avec la
+    // sélection, même quand le pointeur survole la page ou y bouge ; il revient avec un outil d'encre.
+    void widthIndicatorOnlyWithInkTools()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QQuickItem* indicator = item(s, "widthIndicator");
+        QVERIFY(indicator);
+        const QPoint over = s.view->pageToScene(QPointF(500, 400)).toPoint();
+        QVERIFY(run(s, QStringLiteral("tool.pen")));
+        QTest::mouseMove(s.window, over);
+        QTRY_VERIFY(indicator->isVisible());
+        QVERIFY(run(s, QStringLiteral("tool.select")));
+        QTRY_VERIFY(!indicator->isVisible());
+        QTest::mouseMove(s.window, over + QPoint(30, 20));
+        QTest::qWait(50);
+        QVERIFY(!indicator->isVisible());
+        QVERIFY(run(s, QStringLiteral("tool.highlighter")));
+        QTRY_VERIFY(indicator->isVisible());
     }
 
     void redStrokeSurvivesPageRoundTrip()
@@ -709,6 +764,207 @@ private slots:
             }
         }
         QVERIFY2(failures.isEmpty(), qPrintable(failures.join(QLatin1Char('\n'))));
+    }
+
+    // ---- Socle 3-7 (L0-S9) : ordre des couches, emplacements, gestionnaires ----
+
+    // L'ordre des enfants fait l'empilement (z à 0 partout) : page fixe, cache, couche d'attente, couche
+    // soulevée (lot 3), encre, surcouches de page (lot 7).
+    void socleLayerOrder()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QQuickItem* page = item(s, "page");
+        QVERIFY(page);
+        QStringList names;
+        for (QQuickItem* child : page->childItems()) {
+            names << child->objectName();
+            QCOMPARE(child->z(), 0.0);
+        }
+        QCOMPARE(names,
+                 (QStringList{"fixedPage", "pageCache", "pendingLayer", "liftLayer", "ink", "pageOverlays"}));
+    }
+
+    void socleSlotsExist()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name : {"appTools", "selectionOverlay", "toolCursor", "presentationSlot",
+                                 "pageContextMenu", "trashCan", "presentationLayer", "presentation"}) {
+            const QString objectName = QString::fromLatin1(name);
+            QVERIFY2(s.window->findChild<QObject*>(objectName) != nullptr ||
+                         findItem(s.window->contentItem(), objectName),
+                     name);
+        }
+        QQuickItem* selection = item(s, "selectionOverlay");
+        QQuickItem* cursor = item(s, "toolCursor");
+        QQuickItem* slot = item(s, "presentationSlot");
+        QVERIFY(selection && cursor && slot);
+        const QList<QQuickItem*> siblings = s.view->parentItem()->childItems();
+        QVERIFY(siblings.indexOf(s.view) < siblings.indexOf(selection));
+        QVERIFY(siblings.indexOf(selection) < siblings.indexOf(slot));
+        // La couche de présentation couvre la fenêtre, au-dessus de tout le reste.
+        QQuickItem* layer = item(s, "presentationLayer");
+        QVERIFY(layer);
+        QCOMPARE(layer->z(), 50.0);
+        QVERIFY(s.window->findChild<ui::ToolHost*>(QStringLiteral("appTools")));
+    }
+
+    void everyLot3CommandHasAHandler()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>();
+        QVERIFY(commands);
+        const QStringList lot3 = {"tool.select",     "tool.highlighter",  "tool.eraser",
+                                  "edit.undo",       "edit.redo",         "edit.delete",
+                                  "edit.select-all", "clear.annotations", "clear.objects",
+                                  "clear.grid",      "clear.background",  "clear.page",
+                                  "page.revert",     "view.trash",        "object.translucency",
+                                  "object.enlarge",  "object.reduce"};
+        for (const QString& id : lot3) {
+            QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
+        }
+    }
+
+    // D10, P23 (L3-C12) : la réglette ouverte, réglée puis fermée deux fois sur la même sélection fait deux
+    // étapes d'annulation ; les mouvements d'une même ouverture n'en font qu'une.
+    void translucencyPopupTwoOpeningsAreTwoSteps()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* controller = s.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QObject* popup = s.window->findChild<QObject*>(QStringLiteral("translucencyPopup"));
+        QVERIFY(controller && popup);
+        QQuickItem* slider = popup->findChild<QQuickItem*>(QStringLiteral("translucencySlider"));
+        if (!slider) {
+            slider = item(s, "translucencySlider");
+        }
+        QVERIFY(slider);
+        core::Stroke stroke;
+        stroke.points = {{100, 100, 0.5f}, {300, 100, 0.5f}};
+        controller->commitStroke(stroke);
+        QVERIFY(run(s, QStringLiteral("edit.select-all")));
+        const auto translucency = [controller] {
+            const auto& objects = controller->document().page(0).objects;
+            return objects.size() == 1 ? int(objects.front().common.translucency) : -1;
+        };
+        QCOMPARE(translucency(), 0);
+        QString error = translucencyOpening(s, popup, slider, {30, 50});
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(translucency(), 50);
+        error = translucencyOpening(s, popup, slider, {90, 120});
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(translucency(), 120);
+        controller->undo();
+        QCOMPARE(translucency(), 50); // sans borne : 0, la seconde ouverture fondue dans la première
+        controller->undo();
+        QCOMPARE(translucency(), 0);
+        controller->undo(); // le trait
+        QCOMPARE(controller->document().page(0).objects.size(), std::size_t{0});
+    }
+
+    // Le clic droit n'est plus un TapHandler : la vue émet contextMenuRequested et la zone ouvre le menu.
+    // Espion : PageArea compte les demandes (contextMenuRequestCount) juste avant d'appeler popupAt.
+    void contextMenuOpensFromTheView()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QQuickItem* area = item(s, "pageArea");
+        QVERIFY(area);
+        QCOMPARE(area->property("contextMenuRequestCount").toInt(), 0);
+        emit s.view->contextMenuRequested(QPointF(10, 10));
+        QCOMPARE(area->property("contextMenuRequestCount").toInt(), 1);
+    }
+
+    // L3-T16 : le menu contextuel montre les entrées de la disposition sauf celle de l'outil courant.
+    void contextMenuSkipsTheCurrentTool()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* menu = s.window->findChild<QObject*>(QStringLiteral("pageContextMenu"));
+        QVERIFY(menu);
+        const auto ids = [menu] {
+            QVariant entries;
+            if (!QMetaObject::invokeMethod(menu, "visibleEntries", Q_RETURN_ARG(QVariant, entries))) {
+                return QStringList{QStringLiteral("<invocation refusée>")};
+            }
+            QStringList out;
+            for (const QVariant& entry : entries.toList()) {
+                const QVariantMap map = entry.toMap();
+                out.append(map.value(QStringLiteral("separator")).toBool()
+                               ? QStringLiteral("-")
+                               : map.value(QStringLiteral("id")).toString());
+            }
+            return out;
+        };
+        QVERIFY(run(s, QStringLiteral("tool.pen")));
+        const QStringList withPen = ids();
+        QVERIFY(withPen.contains(QStringLiteral("tool.select")));
+        QVERIFY(!withPen.contains(QStringLiteral("tool.pen")));
+        QVERIFY(run(s, QStringLiteral("tool.select")));
+        const QStringList withSelect = ids();
+        QCOMPARE(withSelect.value(0), QStringLiteral("tool.pen"));
+        QVERIFY(!withSelect.contains(QStringLiteral("tool.select")));
+        // Jamais de séparateur doublé ni de queue (celui de tête est exclu par le premier contrôle).
+        QVERIFY(withSelect.last() != QStringLiteral("-"));
+        for (qsizetype i = 1; i < withSelect.size(); ++i) {
+            QVERIFY(
+                !(withSelect.at(i) == QStringLiteral("-") && withSelect.at(i - 1) == QStringLiteral("-")));
+        }
+    }
+
+    // Annotation de bureau (lot 7) : PageArea sans Tools ni Commands dessine encore.
+    void pageAreaWithoutToolsDraws()
+    {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nimport ActCraft.Ui\nPageArea { width: 800; height: 600 }\n",
+                          QUrl());
+        QQuickWindow window;
+        window.resize(800, 600);
+        std::unique_ptr<QObject> created(component.create());
+        QVERIFY2(created, qPrintable(component.errorString()));
+        auto* area = qobject_cast<QQuickItem*>(created.get());
+        QVERIFY(area);
+        area->setParentItem(window.contentItem());
+        // Document réel et vide : sans lui, la zone n'a aucune page (tools reste à null, c'est l'objet du
+        // test).
+        auto* controller = new ui::DocumentController(&window);
+        QVERIFY(area->setProperty("documentController", QVariant::fromValue(controller)));
+        controller->setFixedPage(area->property("fixedPage").value<render::FixedPageItem*>());
+        controller->newDocument(1024, 768);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(area->property("tools").value<QObject*>() == nullptr);
+        auto* view = area->property("view").value<ui::PageView*>();
+        auto* fixed = area->property("fixedPage").value<render::FixedPageItem*>();
+        QVERIFY(view && fixed);
+        QVERIFY(QTest::qWaitFor([&] { return fixed->isReady() && view->cacheReady(); }, 10000));
+        const QPointF a = view->pageToScene(QPointF(300, 400));
+        const QPointF b = view->pageToScene(QPointF(700, 400));
+        const auto post = [&](QEvent::Type type, QPointF scene, Qt::MouseButtons buttons) {
+            QCoreApplication::postEvent(&window,
+                                        new QTabletEvent(type, m_stylus.get(), scene,
+                                                         window.mapToGlobal(scene), buttons ? 0.5 : 0.0, 0, 0,
+                                                         0, 0, 0, Qt::NoModifier, Qt::LeftButton, buttons));
+        };
+        post(QEvent::TabletPress, a, Qt::LeftButton);
+        for (int i = 1; i <= 10; ++i) {
+            post(QEvent::TabletMove, a + (b - a) * i / 10, Qt::LeftButton);
+        }
+        post(QEvent::TabletRelease, b, Qt::NoButton);
+        QTRY_COMPARE_WITH_TIMEOUT(fixed->objectCount(), 1, 3000);
+    }
+
+    // Aucun avertissement QML (propriété requise absente, type inconnu, liaison nulle...), au chargement
+    // comme à la fermeture de la fenêtre.
+    void shellLoadsWithoutQmlWarning()
+    {
+        QTest::failOnWarning(QRegularExpression(QStringLiteral("qrc:.*\\.qml")));
+        Shell s;
+        QVERIFY(start(s));
+        QTest::qWait(200);
     }
 };
 

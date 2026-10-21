@@ -48,6 +48,7 @@ std::optional<std::size_t> applyToCache(const Changes& changes, std::size_t show
         case Change::Kind::PageChanged:
             cache.invalidate(0, std::nullopt);
             break;
+        case Change::Kind::PageSettingsChanged: // présentation de la page : rien à redessiner (I3)
         case Change::Kind::PageInserted:
         case Change::Kind::PageRemoved:
             break;

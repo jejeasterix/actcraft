@@ -72,6 +72,16 @@ QSize cacheTextureSize(QSizeF page, double zoom, double devicePixelRatio, int ma
     return QSize(std::max(1, static_cast<int>(w)), std::max(1, static_cast<int>(h)));
 }
 
+int cacheMaxSide(QSizeF page, double devicePixelRatio, int cacheSamples, double sharpZoom)
+{
+    if (cacheSamples <= 1) {
+        return kMaxCacheSide;
+    }
+    const double zoom = std::max(1.0, sharpZoom);
+    const double sharpSide = std::ceil(std::max(page.width(), page.height()) * zoom * devicePixelRatio);
+    return std::min(kMaxCacheSide, std::max(kMaxMsaaCacheSide, static_cast<int>(sharpSide)));
+}
+
 ScrollAxis scrollAxis(double pan, double viewLength, double contentLength, double margin)
 {
     const double extent = contentLength + 2 * margin;

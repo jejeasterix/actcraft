@@ -1,8 +1,48 @@
 #include <actcraft/bench/contentcheck.h>
 
 #include <cmath>
+#include <cstdlib>
 
 namespace actcraft::bench {
+
+namespace {
+
+// Parcours de Bresenham de [from, to], extrémités comprises : nombre de pixels dont la couleur vérifie
+// `keep`. -1 si l'image est vide ou si un point sort de l'image.
+template <typename Keep> int countAlongLine(const QImage& image, QPoint from, QPoint to, Keep keep)
+{
+    if (image.isNull() || !image.rect().contains(from) || !image.rect().contains(to)) {
+        return -1;
+    }
+    int x = from.x();
+    int y = from.y();
+    const int dx = std::abs(to.x() - x);
+    const int dy = -std::abs(to.y() - y);
+    const int sx = x < to.x() ? 1 : -1;
+    const int sy = y < to.y() ? 1 : -1;
+    int err = dx + dy;
+    int count = 0;
+    for (;;) {
+        if (keep(image.pixelColor(x, y))) {
+            ++count;
+        }
+        if (x == to.x() && y == to.y()) {
+            break;
+        }
+        const int e2 = 2 * err;
+        if (e2 >= dy) {
+            err += dy;
+            x += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y += sy;
+        }
+    }
+    return count;
+}
+
+} // namespace
 
 bool colorNear(QColor actual, QColor expected, int tolerance) noexcept
 {
@@ -54,6 +94,19 @@ ContentCheck checkColor(const QString& name, const QImage& image, QPoint pixel, 
     check.actual = actual.isValid() ? actual.name(QColor::HexArgb) : QStringLiteral("hors-image");
     check.ok = actual.isValid() && colorNear(actual, expected, tolerance);
     return check;
+}
+
+int countIntermediatePixels(const QImage& image, QPoint from, QPoint to, QColor background, QColor ink,
+                            int margin)
+{
+    return countAlongLine(image, from, to, [&](QColor c) {
+        return !colorNear(c, background, margin) && !colorNear(c, ink, margin);
+    });
+}
+
+int countInkPixels(const QImage& image, QPoint from, QPoint to, QColor ink, int margin)
+{
+    return countAlongLine(image, from, to, [&](QColor c) { return colorNear(c, ink, margin); });
 }
 
 QStringList captureSteps()

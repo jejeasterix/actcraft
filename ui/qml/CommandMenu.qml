@@ -1,70 +1,54 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import Qt.labs.qmlmodels
 import ActCraft.Ui
 
 // Menu construit depuis la disposition (actions/data/layout.json) : une entrée par commande disponible ; libellé,
 // raccourci et coche lus dans le registre ; un clic déclenche la commande par son nom. Les entrées sont créées par
 // un Instantiator (jamais par createObject sans parent : elles survivaient au menu et lisaient un registre disparu).
+// Un élément `submenu` crée un Menu enfant (un CommandMenu) par le même Instantiator : un DelegateChooser choisit le
+// délégué d'après la colonne `kind` d'un ListModel, car un tableau JavaScript n'expose que `modelData`.
 Menu {
     id: menu
     required property Commands commands
     property var spec: ({ id: "", label: "", items: [] })
+    readonly property bool isCommandMenu: true
     title: spec.label
 
+    ListModel {
+        id: entries
+    }
+    function syncEntries() {
+        entries.clear()
+        const items = menu.spec.items || []
+        for (let i = 0; i < items.length; ++i) {
+            entries.append({ kind: items[i].submenu === true ? "submenu" : "item", payload: JSON.stringify(items[i]) })
+        }
+    }
+    onSpecChanged: syncEntries()
+    Component.onCompleted: syncEntries()
+
     Instantiator {
-        model: menu.spec.items || []
-        delegate: MenuItem {
-            id: entry
-            required property var modelData
-            readonly property bool isSeparator: modelData.separator === true
-            readonly property string commandId: isSeparator ? "" : modelData.id
-            objectName: isSeparator ? "menuSeparator" : "menuItem-" + commandId
-            text: isSeparator ? "" : menu.commands.label(commandId)
-            enabled: !isSeparator && menu.commands.revision >= 0 && menu.commands.isEnabled(commandId)
-            checkable: !isSeparator && modelData.checkable === true
-            checked: !isSeparator && menu.commands.revision >= 0 && menu.commands.isChecked(commandId)
-            implicitHeight: isSeparator ? 9 : Theme.tailleBouton
-            // Le clic bascule la coche localement : on rend la main au registre.
-            onToggled: checked = Qt.binding(function () {
-                return !entry.isSeparator && menu.commands.revision >= 0 && menu.commands.isChecked(entry.commandId)
-            })
-            onTriggered: if (!isSeparator) menu.commands.trigger(commandId)
-            background: ItemHighlight {
-                control: entry
-            }
-            contentItem: Item {
-                implicitHeight: entry.isSeparator ? 1 : label.implicitHeight
-                Rectangle {
-                    visible: entry.isSeparator
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width
-                    height: 1
-                    color: Theme.separateur
+        model: entries
+        delegate: DelegateChooser {
+            role: "kind"
+            DelegateChoice {
+                roleValue: "submenu"
+                CommandSubmenu {
+                    required property string payload
+                    commands: menu ? menu.commands : null
+                    spec: JSON.parse(payload)
                 }
-                // La colonne de la coche (indicateur du style, dessiné à gauche) est réservée sur chaque entrée : la
-                // coche ne recouvre plus le libellé et les libellés d'un même menu restent alignés (L1-C5).
-                RowLayout {
-                    visible: !entry.isSeparator
-                    anchors.fill: parent
-                    anchors.leftMargin: Theme.tailleIcone + Theme.espace1
-                    spacing: Theme.espace3
-                    Label {
-                        id: label
-                        text: entry.text
-                        Layout.fillWidth: true
-                        font.pixelSize: Theme.taillePolice
-                        color: entry.enabled ? Theme.texte : Theme.texteDesactive
-                    }
-                    Label {
-                        text: entry.isSeparator ? "" : menu.commands.shortcut(entry.commandId)
-                        font.pixelSize: Theme.taillePolice
-                        color: entry.enabled ? Theme.texteDiscret : Theme.texteDesactive
-                    }
+            }
+            DelegateChoice {
+                roleValue: "item"
+                CommandEntry {
+                    commands: menu ? menu.commands : null
                 }
             }
         }
-        onObjectAdded: (index, object) => menu.insertItem(index, object)
-        onObjectRemoved: (index, object) => menu.removeItem(object)
+        onObjectAdded: (index, object) => object.isCommandMenu === true ? menu.insertMenu(index, object) : menu.insertItem(index, object)
+        onObjectRemoved: (index, object) => object.isCommandMenu === true ? menu.removeMenu(object) : menu.removeItem(object)
     }
 }

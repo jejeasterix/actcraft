@@ -4,10 +4,13 @@
 #include <actcraft/input/pipeline.h>
 #include <actcraft/input/qtevents.h>
 #include <actcraft/tools/pentool.h>
+#include <actcraft/tools/tool.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/toolhost.h>
 
 #include <QMouseEvent>
 #include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QTabletEvent>
 #include <QTouchEvent>
 #include <QWheelEvent>
@@ -17,6 +20,11 @@
 namespace actcraft::ui {
 
 namespace {
+
+input::Point2 toPoint2(QPointF p)
+{
+    return {p.x(), p.y()};
+}
 
 // Même défilement, aux arrondis près : l'axe limitant d'« Ajuster » tombe pile sur la marge, et clampPan peut
 // l'en écarter d'un rien.
@@ -84,17 +92,80 @@ bool takesPressAt(const QQuickItem* item, QPointF scenePos)
                        [scenePos](const QQuickItem* child) { return takesPressAt(child, scenePos); });
 }
 
+// Lot 10 : une entrée qui agit (appui, relâché, mouvement en contact, molette, appui de touche) repousse le
+// versement ; un survol non (stylet tenu près du tableau, souris sur une barre), sinon il ne partirait qu'au
+// plafond.
+bool isActingInput(const QEvent& event)
+{
+    switch (event.type()) {
+    case QEvent::TabletPress:
+    case QEvent::TabletRelease:
+    case QEvent::MouseButtonPress:
+    case QEvent::MouseButtonRelease:
+    case QEvent::Wheel:
+    case QEvent::KeyPress:
+    case QEvent::TouchBegin:
+    case QEvent::TouchUpdate:
+    case QEvent::TouchEnd:
+        return true;
+    case QEvent::TabletMove: {
+        const auto& tablet = static_cast<const QTabletEvent&>(event);
+        return tablet.buttons() != Qt::NoButton || tablet.pressure() > 0;
+    }
+    case QEvent::MouseMove:
+        return static_cast<const QMouseEvent&>(event).buttons() != Qt::NoButton;
+    default:
+        return false;
+    }
+}
+
 } // namespace
 
-PageView::PageView(QQuickItem* parent) : QQuickItem(parent)
+// Fin du Pipeline (D-S1, D-S9) : l'outil qui reçoit la voie Tool maintenant (outil de ToolHost, sinon stylo
+// interne). Lu à chaque échantillon : un changement d'outil ne reconstruit rien.
+class ToolDispatch final : public input::SampleSink
 {
-    setAcceptedMouseButtons(Qt::LeftButton);
+public:
+    explicit ToolDispatch(const PageView& view) : m_view(view) {}
+    void onSample(const input::Sample& sample) override
+    {
+        if (tools::Tool* tool = m_view.currentTool()) {
+            tool->onSample(sample);
+        }
+    }
+
+private:
+    const PageView& m_view;
+};
+
+PageView::PageView(QQuickItem* parent) : QQuickItem(parent), m_dispatch(std::make_unique<ToolDispatch>(*this))
+{
+    // Bouton droit : menu contextuel par signal (contextMenuRequested), jamais à l'outil.
+    setAcceptedMouseButtons(Qt::LeftButton | Qt::RightButton);
     setAcceptTouchEvents(true);
     m_cacheTimer.setSingleShot(true);
     m_cacheTimer.setInterval(kCacheRefreshDelayMs);
     connect(&m_cacheTimer, &QTimer::timeout, this, [this] {
         updateCacheTextureSize();
         requestCacheRefresh();
+    });
+    m_foldTimer.setSingleShot(true);
+    m_foldTimer.setTimerType(Qt::PreciseTimer); // la reprise de « pauses » vise la fin du délai à 8 ms près
+    m_foldTimer.setInterval(kCacheFoldIdleMs);
+    connect(&m_foldTimer, &QTimer::timeout, this, [this] {
+        // D-S9 : jamais pendant un geste de l'outil qui reçoit la voie Tool (trait, sélection, gomme).
+        if (const auto* busy = currentTool(); busy && busy->isBusy()) {
+            m_foldTimer.start();
+            return;
+        }
+        if (m_fixedPage && m_fixedPage->pendingCount() > 0) {
+            requestCacheRefresh(); // verse et redessine, hors de l'écriture
+        }
+    });
+    // Une couverture est une route de la politique (D-S1) : le routeur la consulte à l'appui, pour le
+    // stylet, le doigt et la souris ; aucune autre route ne la teste.
+    m_router.setCoverTest([this](const input::Sample& press) {
+        return coveredAt(m_transform.pageToView(QPointF(press.x, press.y)));
     });
 }
 
@@ -181,6 +252,7 @@ void PageView::setCacheEnabled(bool enabled)
         return;
     }
     m_cacheEnabled = enabled;
+    updateDeferral();
     emit cacheEnabledChanged();
     requestCacheRefresh();
 }
@@ -188,6 +260,23 @@ void PageView::setCacheEnabled(bool enabled)
 QSize PageView::cacheTextureSize() const noexcept
 {
     return m_cacheTextureSize;
+}
+
+int PageView::cacheSamples() const noexcept
+{
+    return m_cacheSamples;
+}
+
+void PageView::setCacheSamples(int samples)
+{
+    samples = std::max(1, samples);
+    if (samples == m_cacheSamples) {
+        return;
+    }
+    m_cacheSamples = samples;
+    emit cacheSamplesChanged();
+    updateCacheTextureSize();
+    requestCacheRefresh();
 }
 
 bool PageView::cacheReady() const noexcept
@@ -215,30 +304,60 @@ void PageView::fitPage()
 
 void PageView::requestCacheRefresh()
 {
+    // Lot 10 : tout redessin verse, dans le même tour que la demande (jamais à sa fin : un objet inséré entre
+    // la demande et la synchronisation suivante ne serait alors ni dans le cache ni dans la couche
+    // d'attente).
+    m_foldTimer.stop();
+    if (m_fixedPage) {
+        m_fixedPage->foldPending();
+    }
     if (!m_cacheEnabled) {
         m_refreshInFlight = false;
         m_refreshAgain = false;
+        m_refreshThisTurn = false;
         setCacheReady(true);
         emit cacheUpdated();
         return;
     }
     setCacheReady(false);
+    if (m_refreshThisTurn) {
+        // M3 : une demande de ce tour est déjà partie ; son redessin ne commence qu'à la synchronisation
+        // suivante, après ce tour : il couvre celle-ci (soulèvement ou dépôt de plusieurs objets : un seul).
+        return;
+    }
     if (m_refreshInFlight) {
-        m_refreshAgain = true; // la fin du redessin en cours ne suffira pas
+        m_refreshAgain = true; // arrivée après le départ du redessin en cours : sa fin ne suffira pas
     }
     m_refreshInFlight = true;
-    emit cacheRefreshRequested(); // toujours tout de suite (décision 10)
+    holdRequestsOfThisTurn();
+    emit cacheRefreshRequested(); // la première du tour part tout de suite (décision 10)
+}
+
+void PageView::holdRequestsOfThisTurn()
+{
+    if (m_refreshThisTurn) {
+        return;
+    }
+    m_refreshThisTurn = true;
+    // Le tour suivant commence : le redessin parti a pu commencer, une demande de plus en part un autre. La
+    // synchronisation d'un UpdateRequest posté plus tôt dans ce tour passe avant ce lambda : elle remet aussi
+    // le drapeau à faux (itemChange, m4).
+    QMetaObject::invokeMethod(this, [this] { m_refreshThisTurn = false; }, Qt::QueuedConnection);
 }
 
 void PageView::notifyCacheUpdated()
 {
+    // Ce redessin est fini : une demande de plus, même dans ce tour, en part un autre.
+    m_refreshThisTurn = false;
     if (m_refreshAgain) {
         // Ce redessin a pu commencer avant la dernière demande : un de plus garantit l'état final.
         m_refreshAgain = false;
+        holdRequestsOfThisTurn();
         emit cacheRefreshRequested();
         return;
     }
     m_refreshInFlight = false;
+    ++m_cacheRefreshCount; // redessin terminé (une relance, plus haut, ne compte pas)
     setCacheReady(true);
     emit cacheUpdated();
 }
@@ -253,8 +372,11 @@ void PageView::setFixedPage(render::FixedPageItem* page)
     if (page == m_fixedPage) {
         return;
     }
+    // Lot 10 : l'ancienne page ne reste pas en différé, où personne ne verserait plus ce qui y attend.
+    applyDeferral(false);
     disconnect(m_readyConnection);
     disconnect(m_contentConnection);
+    disconnect(m_pendingConnection);
     m_fixedPage = page;
     if (m_fixedPage) {
         // Page prête (premier dessin, images décodées) ou contenu changé (trait inséré, annulation, autre
@@ -266,9 +388,89 @@ void PageView::setFixedPage(render::FixedPageItem* page)
         };
         m_readyConnection = connect(m_fixedPage, &render::FixedPageItem::readyChanged, this, refresh);
         m_contentConnection = connect(m_fixedPage, &render::FixedPageItem::contentChanged, this, refresh);
+        // Lot 10 : un objet mis en attente (ou retiré pendant qu'il attend) n'émet que pendingChanged.
+        m_pendingConnection =
+            connect(m_fixedPage, &render::FixedPageItem::pendingChanged, this, &PageView::onPendingChanged);
     }
+    updateDeferral();
     rebuildPen();
     emit fixedPageChanged();
+}
+
+render::PendingLayerItem* PageView::pendingLayer() const noexcept
+{
+    return m_pendingLayer;
+}
+
+void PageView::setPendingLayer(render::PendingLayerItem* layer)
+{
+    if (layer == m_pendingLayer) {
+        return;
+    }
+    disconnect(m_layerPageConnection);
+    disconnect(m_layerDestroyedConnection);
+    m_pendingLayer = layer;
+    if (layer) {
+        // Sa page fixe peut lui être donnée après la vue (ordre des liaisons QML) ou changer.
+        m_layerPageConnection =
+            connect(layer, &render::PendingLayerItem::fixedPageChanged, this, &PageView::updateDeferral);
+        // Détruite : plus personne ne dessine ce qui attend, la page fixe quitte le différé.
+        m_layerDestroyedConnection = connect(layer, &QObject::destroyed, this, [this] {
+            m_pendingLayer = nullptr;
+            updateDeferral();
+            emit pendingLayerChanged();
+        });
+    }
+    updateDeferral();
+    emit pendingLayerChanged();
+}
+
+bool PageView::foldTimerActive() const noexcept
+{
+    return m_foldTimer.isActive();
+}
+
+void PageView::updateDeferral()
+{
+    // La couche doit dessiner les objets en attente de CETTE page fixe : regardant une autre page (ou
+    // aucune), personne ne les dessinerait.
+    const bool deferred = m_cacheEnabled && !m_pendingLayer.isNull() && m_fixedPage &&
+                          m_pendingLayer->fixedPage() == m_fixedPage;
+    applyDeferral(deferred);
+    if (!deferred) {
+        m_foldTimer.stop();
+    }
+}
+
+void PageView::applyDeferral(bool deferred)
+{
+    if (!m_fixedPage) {
+        return;
+    }
+    if (!deferred && m_fixedPage->pendingCount() > 0) {
+        requestCacheRefresh(); // ce qui attendait passe au cache avant que la couche ne serve plus
+    }
+    m_fixedPage->setDeferredFolding(deferred);
+}
+
+void PageView::onPendingChanged()
+{
+    if (!m_fixedPage || m_fixedPage->pendingCount() == 0) {
+        m_foldTimer.stop();
+        return;
+    }
+    if (m_fixedPage->pendingCount() >= kCacheFoldMaxPending) {
+        requestCacheRefresh(); // plafond : versé tout de suite (H10-3)
+        return;
+    }
+    m_foldTimer.start();
+}
+
+void PageView::postponeFold()
+{
+    if (m_foldTimer.isActive()) {
+        m_foldTimer.start();
+    }
 }
 
 render::InkItem* PageView::ink() const noexcept
@@ -340,7 +542,7 @@ void PageView::rebuildPen()
         return;
     }
     m_inkSurface = std::make_unique<InkSurfaceAdapter>(*m_ink);
-    tools::DocumentSink* sink = nullptr;
+    actcraft::tools::DocumentSink* sink = nullptr;
     if (m_controller) {
         m_controllerSink = std::make_unique<ControllerSink>(*m_controller, *this);
         sink = m_controllerSink.get();
@@ -348,16 +550,19 @@ void PageView::rebuildPen()
         m_documentSink = std::make_unique<FixedPageSink>(*m_fixedPage, *this);
         sink = m_documentSink.get();
     }
-    m_pen = std::make_unique<tools::PenTool>(*m_inkSurface, *sink);
+    m_pen = std::make_unique<actcraft::tools::PenTool>(*m_inkSurface, *sink);
     m_pen->setColor(m_inkColor.rgba());
     m_pen->setBaseWidth(m_inkWidth);
-    m_pipeline = std::make_unique<input::Pipeline>(*m_pen);
+    m_pipeline = std::make_unique<input::Pipeline>(*m_dispatch); // vers currentTool()
     m_pipeline->setProbe(m_probe);
     m_ink->setProbe(m_probe);
 }
 
 bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
 {
+    if (isActingInput(event)) {
+        postponeFold();
+    }
     if (!m_pipeline) {
         return false;
     }
@@ -366,33 +571,106 @@ bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
         return false;
     }
     const QPointF pagePos = viewTransform().viewToPage(viewPos);
-    const auto sample = input::sampleFromEvent(event, pagePos, core::monotonicNowNs());
+    auto sample = input::sampleFromEvent(event, pagePos, core::monotonicNowNs());
     if (!sample) {
         return false;
     }
-    m_lastPagePoint = pagePos;
-    m_pipeline->push(*sample);
+    const input::Decision decision = m_router.route(*sample);
+    if (decision.endToolContacts) {
+        endToolContacts(decision); // décidé par la politique du routeur : la vue ne compte pas les doigts
+    }
+    switch (decision.route) {
+    case input::Route::Tool:
+        break;
+    case input::Route::Gesture:
+        return onGestureSample(*sample, viewPos);
+    case input::Route::Ignore:
+    case input::Route::Cover:
+        // La vue ne prend rien et rend aussitôt le contact au routeur ; l'événement continue vers la
+        // surcouche, qui le reçoit par ses gestionnaires.
+        m_router.release(sample->pointer);
+        return false;
+    }
+    sample->user = decision.user;
+    m_lastRawPagePoint = pagePos;
+    if (sample->device == input::DeviceKind::Touch) {
+        m_lastTouchPagePoint = pagePos;
+        m_lastTouchViewPoint = viewPos;
+        m_touchPointer = sample->pointer;
+        m_touchDrawing = sample->phase != input::Phase::Release;
+    }
+    pushToTool(*sample);
     return true;
+}
+
+void PageView::endToolContacts(const input::Decision& decision)
+{
+    if (!m_touchDrawing) {
+        return;
+    }
+    if (decision.route == input::Route::Gesture) {
+        // H3-17 : le deuxième doigt pose un geste, le doigt qui écrivait y passe (routeur) ; son trait est
+        // abandonné, rien n'est versé ni annulable.
+        abandonTouchStroke();
+        addGestureContact(m_touchPointer, m_lastTouchViewPoint);
+    } else {
+        // M4 (b) : un stylet ou la souris prend la main. Le trait du doigt se termine là où il était ; le
+        // routeur garde le doigt (Ignore) : la suite de son contact n'écrit plus, la vue n'a rien à oublier.
+        terminateTouchStroke();
+    }
+}
+
+void PageView::pushToTool(const input::Sample& sample)
+{
+    if (m_filter) {
+        m_pipeline->push(m_filter(sample));
+    } else {
+        m_pipeline->push(sample);
+    }
 }
 
 void PageView::finishStroke()
 {
-    m_touchDrawing = false; // la suite du contact du doigt ne dessine plus
+    // Report de L3-T14 : un geste d'un outil de ToolHost (glissement de la sélection, gomme) est d'abord
+    // abandonné sans étape, comme au changement de page (Main.qml) ; le relâché synthétisé plus bas le
+    // terminerait par un déplacement. Le stylo de ToolHost y verse son trait (Tool::cancel).
+    if (m_tools) {
+        m_tools->cancelGesture();
+    }
+    if (m_touchDrawing) {
+        m_touchDrawing = false;           // la suite du contact du doigt ne dessine plus
+        m_router.release(m_touchPointer); // ni ne reste retenue au routeur : la vue n'en verra pas le relâché
+    }
     // Stylet : m_stylusDrawing reste vrai, le contact reste pris jusqu'au relâché (rien n'en passe à
-    // l'interface) ; ses points n'ajoutent rien, le stylo ne dessine plus. Souris : idem par la saisie.
-    if (!m_pipeline || !m_pen || !m_pen->isDrawing()) {
+    // l'interface) ; ses points n'ajoutent rien, l'outil n'est plus occupé. Souris : idem par la saisie.
+    auto* tool = currentTool();
+    if (!m_pipeline || !tool || !tool->isBusy()) {
         return;
     }
     input::Sample release;
-    release.x = m_lastPagePoint.x(); // au dernier point : le relâché n'ajoute aucun point
-    release.y = m_lastPagePoint.y();
+    release.x = m_lastRawPagePoint.x(); // au dernier point brut, filtré comme lui : aucun point de plus
+    release.y = m_lastRawPagePoint.y();
     release.timestampNs = core::monotonicNowNs();
     release.phase = input::Phase::Release;
-    m_pipeline->push(release);
+    pushToTool(release);
+    if (tool->isBusy()) {
+        tool->cancel(); // un outil que le relâché ne termine pas (L3-T14) finit son geste proprement
+    }
 }
 
 void PageView::mousePressEvent(QMouseEvent* event)
 {
+    if (event->button() == Qt::RightButton) {
+        // Test de couverture direct : sampleFromEvent ne rend rien pour le bouton droit, le routeur n'est
+        // pas consulté. Rien au Pipeline ; la suite du contact droit n'a pas d'échantillon (ignorée).
+        if (coveredAt(event->position())) {
+            event->ignore();
+            return;
+        }
+        event->accept();
+        emit contextMenuRequested(event->position());
+        return;
+    }
     if (!canStartStroke(event->position())) {
         event->ignore();
         return;
@@ -422,16 +700,41 @@ void PageView::itemChange(ItemChange change, const ItemChangeData& value)
     if (change == ItemSceneChange) {
         if (m_filteredWindow) {
             m_filteredWindow->removeEventFilter(this);
+            disconnect(m_filteredWindow, &QQuickWindow::afterSynchronizing, this, nullptr);
         }
         m_filteredWindow = value.window;
         if (m_filteredWindow) {
             m_filteredWindow->installEventFilter(this);
+            // m4 (L3-C8) : le redessin parti a lu la page à cette synchronisation (le cache, live: false, est
+            // rendu dans l'image qui la suit) ; une demande de plus, même dans ce tour, en part un autre.
+            // Fil de rendu en boucle à fils : le fil principal est alors bloqué, rien d'autre ne lit l'état.
+            connect(
+                m_filteredWindow, &QQuickWindow::afterSynchronizing, this,
+                [this] { m_refreshThisTurn = false; }, Qt::DirectConnection);
+            // Moteur de la fenêtre (H10-9) : QQuickWindow::graphicsApi() ne renvoie jamais Software en
+            // Qt 6.12 (il suit QSGRhiSupport) ; rendererInterface()->graphicsApi() répond dès la construction
+            // de la fenêtre (même usage : tests/support/renderhost.h). samples est sans effet en rendu
+            // logiciel.
+            const int samples =
+                m_filteredWindow->rendererInterface()->graphicsApi() == QSGRendererInterface::Software
+                    ? 1
+                    : kCacheMsaaSamples;
+            if (samples != m_cacheSamples) {
+                m_cacheSamples = samples;
+                emit cacheSamplesChanged();
+            }
         }
+        // Rapport de pixels connu à l'attache : sans ceci, une taille calculée avant garde l'ancienne
+        // jusqu'au prochain zoom (H10-9).
+        updateCacheTextureSize();
     }
 }
 
 bool PageView::eventFilter(QObject* watched, QEvent* event)
 {
+    if (isActingInput(*event)) {
+        postponeFold(); // lot 10 : rien n'est pris ni filtré de plus pour autant
+    }
     const QEvent::Type type = event->type();
     if (type == QEvent::TabletPress || type == QEvent::TabletMove || type == QEvent::TabletRelease) {
         auto* tablet = static_cast<QTabletEvent*>(event);
@@ -442,10 +745,10 @@ bool PageView::eventFilter(QObject* watched, QEvent* event)
         // stylet, pas celui du stylo (PenTool::isDrawing vaut aussi pour un doigt ou la souris).
         bool taken = false;
         if (type == QEvent::TabletPress) {
-            if (canStartStroke(viewPos) && acceptsDevice(tablet->pointingDevice()) && !coveredAt(viewPos)) {
-                // Un seul trait à la fois : le stylet termine d'abord celui du doigt (PenTool mêlerait les
-                // points des deux).
-                finishTouchStroke();
+            if (canStartStroke(viewPos) && acceptsDevice(tablet->pointingDevice())) {
+                // Un seul trait à la fois : si un doigt écrit, la politique du routeur le fait passer à
+                // Ignore (endToolContacts) et handlePointer termine son trait ; un appui couvert (Cover) ne
+                // le termine pas.
                 taken = handlePointer(*tablet, viewPos);
             }
             m_stylusDrawing = taken;
@@ -471,59 +774,178 @@ bool PageView::canStartStroke(QPointF viewPos) const
 
 bool PageView::coveredAt(QPointF viewPos) const
 {
-    const QQuickItem* parent = parentItem();
-    if (!parent) {
-        return false;
-    }
-    // Ordre de Qt Quick : z croissant, puis ordre des enfants à z égal.
     const QPointF scenePos = mapToScene(viewPos);
-    const QList<QQuickItem*> siblings = parent->childItems();
-    const qsizetype self = siblings.indexOf(this);
-    for (qsizetype i = 0; i < siblings.size(); ++i) {
-        const QQuickItem* other = siblings.at(i);
-        const bool above = other->z() > z() || (!(other->z() < z()) && i > self);
-        if (above && takesPressAt(other, scenePos)) {
-            return true;
+    if (const QQuickItem* parent = parentItem()) {
+        // Ordre de Qt Quick : z croissant, puis ordre des enfants à z égal.
+        const QList<QQuickItem*> siblings = parent->childItems();
+        const qsizetype self = siblings.indexOf(this);
+        for (qsizetype i = 0; i < siblings.size(); ++i) {
+            const QQuickItem* other = siblings.at(i);
+            const bool above = other->z() > z() || (!(other->z() < z()) && i > self);
+            if (above && takesPressAt(other, scenePos)) {
+                return true;
+            }
         }
     }
-    return false;
+    // Couvertures déclarées (D-S1) : visibles, actives, sous le point (containmentMask respecté).
+    return std::any_of(m_covers.cbegin(), m_covers.cend(), [scenePos](const QPointer<QQuickItem>& cover) {
+        return cover && cover->isVisible() && cover->isEnabled() &&
+               cover->contains(cover->mapFromScene(scenePos));
+    });
 }
 
 void PageView::touchEvent(QTouchEvent* event)
 {
     if (event->type() == QEvent::TouchCancel) {
-        finishTouchStroke();
+        finishTouchStroke(); // annulation du système : le trait du doigt est versé à son dernier point
+        endGesture();
         event->accept();
         return;
     }
-    // L'événement remis à la vue ne porte que ses points (saisis par elle ou appuyés sur elle) : un deuxième
-    // doigt posé sur la vue y figure avec le premier ; posé ailleurs (palette), il n'arrête rien.
-    if (event->pointCount() != 1) {
-        finishTouchStroke(); // un deuxième doigt arrête le trait du premier (gestes : lot 3)
-        event->ignore();
-        return;
+    // L'événement remis à la vue ne porte que ses points (saisis par elle ou appuyés sur elle). Chaque point
+    // est un contact du routeur, converti comme un événement d'un seul point : la politique dit où il va
+    // (outil, geste, rien : paume, troisième doigt) ; la vue ne compte pas les doigts.
+    bool taken = false;
+    for (const QEventPoint& point : event->points()) {
+        QEvent::Type type = QEvent::None;
+        if (point.state() == QEventPoint::State::Pressed) {
+            type = QEvent::TouchBegin;
+        } else if (point.state() == QEventPoint::State::Updated) {
+            type = QEvent::TouchUpdate;
+        } else if (point.state() == QEventPoint::State::Released) {
+            type = QEvent::TouchEnd;
+        } else {
+            continue; // immobile : rien de neuf pour le routeur
+        }
+        if (type == QEvent::TouchBegin && !canStartStroke(point.position())) {
+            continue;
+        }
+        const QTouchEvent single(type, event->pointingDevice(), event->modifiers(), {point});
+        taken = handlePointer(single, point.position()) || taken;
     }
-    const QPointF viewPos = event->points().constFirst().position();
-    const bool begin = event->type() == QEvent::TouchBegin;
-    // Pendant un trait du stylet, un doigt (ou la paume) ne commence rien : le trait du stylet continue.
-    if ((begin && (m_stylusDrawing || !canStartStroke(viewPos))) || (!begin && !m_touchDrawing)) {
-        event->ignore();
-        return;
+    // Un seul pas du geste par événement, une fois tous ses points connus : deux doigts déplacés ensemble ne
+    // font pas un zoom passager (le premier seul aurait changé l'écart).
+    if (m_gestureMoved && m_gesture.active()) {
+        applyGesture();
     }
-    m_lastTouchViewPos = viewPos;
-    const bool handled = handlePointer(*event, viewPos);
-    if (begin) {
-        m_touchDrawing = handled;
-    } else if (event->type() == QEvent::TouchEnd) {
-        m_touchDrawing = false;
-    }
-    event->setAccepted(handled);
+    m_gestureMoved = false;
+    event->setAccepted(taken);
 }
 
 void PageView::touchUngrabEvent()
 {
-    finishTouchStroke(); // saisie volée (futur geste, Flickable) : le trait du doigt se termine proprement
+    finishTouchStroke(); // saisie volée (Flickable) : le trait du doigt se termine proprement
+    endGesture();
     QQuickItem::touchUngrabEvent();
+}
+
+bool PageView::onGestureSample(const input::Sample& sample, QPointF viewPos)
+{
+    switch (sample.phase) {
+    case input::Phase::Press:
+        if (!addGestureContact(sample.pointer, viewPos)) {
+            m_router.release(sample.pointer); // une autre politique en enverrait un troisième : rien
+            return false;
+        }
+        break;
+    case input::Phase::Move:
+        for (GestureContact& contact : m_gestureContacts) {
+            if (contact.pointer == sample.pointer) {
+                contact.viewPos = viewPos;
+                m_gestureMoved = true;
+            }
+        }
+        break;
+    case input::Phase::Release:
+        // Un des deux se relève : le geste finit ; l'autre reste au geste (routeur) et en recommence un avec
+        // un nouveau doigt.
+        for (GestureContact& contact : m_gestureContacts) {
+            if (contact.pointer == sample.pointer) {
+                contact = GestureContact{};
+            }
+        }
+        stopGesture();
+        break;
+    }
+    return true;
+}
+
+bool PageView::addGestureContact(std::uint64_t pointer, QPointF viewPos)
+{
+    GestureContact* slot = nullptr;
+    for (GestureContact& contact : m_gestureContacts) {
+        if (contact.pointer == pointer) {
+            slot = &contact;
+        }
+    }
+    for (GestureContact& contact : m_gestureContacts) {
+        if (!slot && contact.pointer == 0) {
+            slot = &contact;
+        }
+    }
+    if (!slot) {
+        return false;
+    }
+    slot->pointer = pointer;
+    slot->viewPos = viewPos;
+    const bool complete = std::all_of(m_gestureContacts.cbegin(), m_gestureContacts.cend(),
+                                      [](const GestureContact& contact) { return contact.pointer != 0; });
+    if (complete && !m_gesture.active()) {
+        const input::Point2 a = toPoint2(m_gestureContacts[0].viewPos);
+        const input::Point2 b = toPoint2(m_gestureContacts[1].viewPos);
+        m_gesture.begin(a, b);
+        const input::GestureStep step = m_gesture.update(a, b);
+        m_gestureZoom = m_transform.zoom;
+        m_gesturePage = m_transform.viewToPage(QPointF(step.anchor.x, step.anchor.y));
+        emit gestureActiveChanged();
+    }
+    return true;
+}
+
+void PageView::applyGesture()
+{
+    const input::Point2 a = toPoint2(m_gestureContacts[0].viewPos);
+    const input::Point2 b = toPoint2(m_gestureContacts[1].viewPos);
+    const input::GestureStep step = m_gesture.update(a, b);
+    // Pincer : zoom au début du geste × écart relatif, par le zoom ancré unique (borné comme la molette,
+    // quitte « Ajuster », cache redessiné après le dernier pas), autour du point de page de l'ancre.
+    zoomAround(m_transform.pageToView(m_gesturePage), m_gestureZoom * step.scale);
+    // Défiler : ce point de page est ramené sous le milieu des doigts.
+    ViewTransform t = m_transform;
+    t.pan += QPointF(step.center.x, step.center.y) - m_transform.pageToView(m_gesturePage);
+    t = clampPan(t, size(), pageSize());
+    if (!samePan(t.pan, m_transform.pan)) {
+        m_fitMode = false;
+        apply(t);
+    }
+}
+
+void PageView::endGesture()
+{
+    for (GestureContact& contact : m_gestureContacts) {
+        if (contact.pointer != 0) {
+            m_router.release(contact.pointer);
+        }
+        contact = GestureContact{};
+    }
+    m_gestureMoved = false;
+    stopGesture();
+}
+
+void PageView::stopGesture()
+{
+    if (m_gesture.active()) {
+        m_gesture.end();
+        emit gestureActiveChanged();
+    }
+}
+
+void PageView::abandonTouchStroke()
+{
+    m_touchDrawing = false;
+    if (auto* tool = currentTool(); tool && tool->isBusy()) {
+        tool->abandon();
+    }
 }
 
 void PageView::finishTouchStroke()
@@ -531,18 +953,26 @@ void PageView::finishTouchStroke()
     if (!m_touchDrawing) {
         return;
     }
+    terminateTouchStroke();
+    m_router.release(m_touchPointer); // la vue n'en verra pas le relâché
+}
+
+void PageView::terminateTouchStroke()
+{
     m_touchDrawing = false;
-    if (!m_pipeline) {
-        return;
+    if (auto* tool = currentTool(); m_pipeline && tool && tool->isBusy()) {
+        input::Sample release;
+        release.x = m_lastTouchPagePoint.x(); // dernier point brut du doigt, filtré comme lui
+        release.y = m_lastTouchPagePoint.y();
+        release.timestampNs = core::monotonicNowNs();
+        release.device = input::DeviceKind::Touch;
+        release.phase = input::Phase::Release;
+        release.pointer = m_touchPointer;
+        pushToTool(release);
+        if (tool->isBusy()) {
+            tool->cancel();
+        }
     }
-    const QPointF page = viewTransform().viewToPage(m_lastTouchViewPos);
-    input::Sample release;
-    release.x = page.x();
-    release.y = page.y();
-    release.timestampNs = core::monotonicNowNs();
-    release.device = input::DeviceKind::Touch;
-    release.phase = input::Phase::Release;
-    m_pipeline->push(release);
 }
 
 QColor PageView::inkColor() const noexcept
@@ -645,6 +1075,95 @@ bool PageView::acceptsDevice(const QInputDevice* device) const
     return m_exclusive.isEmpty() || m_exclusive.contains(device);
 }
 
+ToolHost* PageView::tools() const noexcept
+{
+    return m_tools.data();
+}
+
+void PageView::setTools(ToolHost* tools)
+{
+    if (tools == m_tools) {
+        return;
+    }
+    m_tools = tools; // lu à chaque échantillon (currentTool) : rien à reconstruire
+    emit toolsChanged();
+}
+
+tools::Tool* PageView::currentTool() const
+{
+    if (m_tools) {
+        if (auto* active = m_tools->activeTool()) {
+            return active;
+        }
+    }
+    return m_pen.get();
+}
+
+int PageView::cacheRefreshCount() const noexcept
+{
+    return m_cacheRefreshCount;
+}
+
+bool PageView::gestureActive() const noexcept
+{
+    return m_gesture.active();
+}
+
+input::PointerRouter& PageView::router() noexcept
+{
+    return m_router;
+}
+
+void PageView::addInputCover(QQuickItem* cover)
+{
+    if (!cover || m_covers.contains(cover)) {
+        return;
+    }
+    m_covers.append(cover);
+    connect(cover, &QObject::destroyed, this, &PageView::forgetDeadCovers, Qt::UniqueConnection);
+}
+
+void PageView::removeInputCover(QQuickItem* cover)
+{
+    if (!cover) {
+        return;
+    }
+    m_covers.removeAll(cover);
+    disconnect(cover, &QObject::destroyed, this, &PageView::forgetDeadCovers);
+}
+
+void PageView::forgetDeadCovers()
+{
+    // À destroyed, le QPointer est déjà nul : on retire les couvertures mortes, pas un pointeur donné.
+    m_covers.removeIf([](const QPointer<QQuickItem>& cover) { return cover.isNull(); });
+}
+
+void PageView::setSampleFilter(SampleFilter filter)
+{
+    m_filter = std::move(filter);
+}
+
+void PageView::zoomAround(QPointF viewPoint, qreal zoom)
+{
+    // Comme scrollTo : si rien ne bouge (butée du zoom, page entière visible), « Ajuster » reste.
+    const ViewTransform t = clampPan(zoomAt(m_transform, viewPoint, zoom), size(), pageSize());
+    const bool changed = !qFuzzyCompare(t.zoom, m_transform.zoom);
+    if (!changed && samePan(t.pan, m_transform.pan)) {
+        return;
+    }
+    m_fitMode = false;
+    apply(t);
+    if (changed) {
+        setCacheReady(false);
+        m_cacheTimer.start(); // redessin kCacheRefreshDelayMs après le dernier appel
+    }
+}
+
+QPointF PageView::sceneToPage(QPointF scenePoint) const
+{
+    return m_transform.viewToPage(mapFromScene(scenePoint));
+}
+
 void PageView::wheelEvent(QWheelEvent* event)
 {
     if (!acceptsDevice(event->pointingDevice())) {
@@ -658,19 +1177,7 @@ void PageView::wheelEvent(QWheelEvent* event)
         if (delta == 0) {
             return;
         }
-        const ViewTransform t =
-            clampPan(zoomAt(m_transform, event->position(), m_transform.zoom * wheelZoomFactor(delta)),
-                     size(), pageSize());
-        const bool changed = !qFuzzyCompare(t.zoom, m_transform.zoom);
-        if (!changed && samePan(t.pan, m_transform.pan)) {
-            return;
-        }
-        m_fitMode = false;
-        apply(t);
-        if (changed) {
-            setCacheReady(false);
-            m_cacheTimer.start(); // redessin 150 ms après le dernier cran
-        }
+        zoomAround(event->position(), m_transform.zoom * wheelZoomFactor(delta)); // zoom ancré unique (M7)
     } else {
         ViewTransform t = m_transform;
         t.pan += wheelScrollDelta(event->angleDelta(), event->pixelDelta(), event->modifiers());
@@ -749,7 +1256,11 @@ void PageView::onContentSizeChanged(QSizeF oldPage)
 void PageView::updateCacheTextureSize()
 {
     const qreal dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
-    const QSize s = ui::cacheTextureSize(pageSize(), m_transform.zoom, dpr);
+    const QSizeF page = pageSize();
+    // H10-9 : plafond selon l'échantillonnage du cache, jamais celui de la fenêtre ; ni flou à 100 % ni à
+    // l'ajustement.
+    const int maxSide = ui::cacheMaxSide(page, dpr, m_cacheSamples, ui::fitPage(size(), page).zoom);
+    const QSize s = ui::cacheTextureSize(page, m_transform.zoom, dpr, maxSide);
     if (s != m_cacheTextureSize) {
         m_cacheTextureSize = s;
         emit cacheTextureSizeChanged();

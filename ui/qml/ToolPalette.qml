@@ -10,11 +10,17 @@ Rectangle {
     objectName: "toolPalette"
     required property Commands commands
     required property PageView view
+    required property Tools tools
     implicitWidth: Theme.largeurPalette
     color: Theme.palette
 
     Flickable {
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        // Hauteur réservée en bas pour la corbeille quand elle est affichée.
+        anchors.bottomMargin: trash.visible ? trash.height : 0.0
         contentHeight: column.implicitHeight + 2 * Theme.espace2
         clip: true
         boundsBehavior: Flickable.StopAtBounds
@@ -78,5 +84,19 @@ Rectangle {
                 }
             }
         }
+    }
+
+    // Lot 3 : corbeille sous la palette (« Afficher la corbeille » la masque).
+    TrashCan {
+        id: trash
+        // Commande qui affiche la corbeille (identifiant lu depuis une propriété : l'AOT refuse l'argument littéral).
+        readonly property string commandId: "view.trash"
+        objectName: "trashCan"
+        tools: paletteRoot.tools
+        commands: paletteRoot.commands
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        visible: paletteRoot.commands.revision >= 0 && paletteRoot.commands.isChecked(trash.commandId)
     }
 }

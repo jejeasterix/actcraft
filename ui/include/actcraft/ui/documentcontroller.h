@@ -1,6 +1,8 @@
 #pragma once
 
 #include <actcraft/core/document.h>
+#include <actcraft/core/lift.h>
+#include <actcraft/core/model.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/render/fixedpageitem.h>
 
@@ -15,7 +17,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <vector>
 
 namespace actcraft::ui {
 
@@ -45,9 +49,14 @@ class DocumentController : public QObject
     Q_PROPERTY(QStringList warnings READ warnings NOTIFY warningsChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
     Q_PROPERTY(QString suggestedFileName READ suggestedFileName NOTIFY titleChanged)
-    // Vrai si la dernière lecture ou écriture a tourné hors du fil principal (S5 la lit ; mutation : écriture
-    // synchrone → faux).
+    // Vrai si la dernière lecture ou écriture a tourné hors du fil principal (S5 la lit). Faux seulement si
+    // elle a tourné SUR le fil principal : un fil principal qui attend une écriture faite sur un fil
+    // secondaire le laisse vrai. Cette attente-là se prouve sans ce drapeau (tst_ui_files,
+    // saveNeverWaitsForTheWriterOnTheMainThread).
     Q_PROPERTY(bool lastIoOffMainThread READ lastIoOffMainThread NOTIFY lastIoChanged)
+    Q_PROPERTY(int shownObjectCount READ shownObjectCount NOTIFY documentChanged)
+    Q_PROPERTY(bool lifting READ isLifting NOTIFY liftingChanged)
+    Q_PROPERTY(bool canRevertPage READ canRevertPage NOTIFY canRevertPageChanged)
 
 public:
     explicit DocumentController(QObject* parent = nullptr);
@@ -73,6 +82,10 @@ public:
     void execute(std::unique_ptr<core::UndoCommand> command);
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
+    // Clôt l'étape en cours de fusion (core::UndoStack::closeMerge) : la réglette de translucidité l'appelle
+    // à sa fermeture, une étape par ouverture (D10, P23). Ne modifie ni le document ni l'état de la pile vu
+    // de l'interface (canUndo, canRedo, modifié).
+    Q_INVOKABLE void closeMerge();
     // Le stylo verse son trait (ControllerSink) : couche supérieure de la page affichée (F-510), par la pile.
     void commitStroke(core::Stroke stroke);
     // Remplace le document (ouverture, nouveau) : pile vidée, état propre, page 1 affichée. Titre vide :
@@ -118,6 +131,45 @@ public:
     // Tests : dossier qui remplace Documents pour defaultFolderUrl (un test n'écrit jamais dans le profil).
     void setDocumentsRoot(const QString& documents);
 
+    int shownObjectCount() const noexcept;
+    // Soulever (DA11, lot 3) : retire les objets de la page affichée hors pile et rend leurs copies ; le
+    // cache reçoit core::liftChanges. N'émet PAS editAboutToApply (B1 : l'outil qui soulève ne doit pas
+    // s'annuler lui-même). Pendant un soulèvement, Enregistrer, Ouvrir et les changements de page sont
+    // refusés ou attendent le dépôt.
+    std::vector<core::PageObject> liftObjects(const std::vector<core::ObjectId>& ids);
+    // Remet les objets soulevés, exécute `command` par la pile (nullptr : aucune étape), et le cache reçoit
+    // core::changesAfterLift.
+    void dropLifted(std::unique_ptr<core::UndoCommand> command);
+    bool isLifting() const noexcept;
+    // Trait d'un outil d'encre avec sa translucidité (marqueur, F-225) : couche supérieure, par la pile.
+    void commitAnnotation(core::Stroke stroke, std::uint8_t translucency);
+    void deleteObjects(const std::vector<core::ObjectId>& ids);
+    Q_INVOKABLE void clearPage(int kind); // core::ClearKind (F-130)
+    Q_INVOKABLE void revertPage();        // F-131
+    bool canRevertPage() const;
+    // Tests (L3-C8) : comparaisons d'empreintes de page entière faites par canRevertPage depuis la création.
+    int revertComparisonCount() const noexcept { return m_revertComparisons; }
+
+    // Origine d'une modification versée (observateur unique, socle des lots 3 et 7).
+    enum class ChangeOrigin : std::uint8_t
+    {
+        Command, // execute()
+        Undo,
+        Redo,
+        Stroke, // commitStroke / commitAnnotation : trait versé par un outil d'encre
+        Lift,   // liftObjects (lot 3)
+        Drop,   // dropLifted (lot 3)
+    };
+    // Reçoit, après chaque modification de la page affichée, exactement les changements passés au cache
+    // (core::applyToCache) et leur origine. Appelé sur le fil principal, après la page fixe.
+    // Appelé juste après core::applyToCache, avant que la page affichée suive les pages insérées ou retirées
+    // : pendant l'appel, currentIndex() est l'indice que la page fixe a reçu, donc
+    // core::applyToCache(applied, currentIndex(), espion) rejoue exactement ses appels. Un observateur peut
+    // en retirer un (lui-même compris) pendant l'appel : le retiré n'est plus appelé.
+    using ChangeObserver = std::function<void(const core::Changes& applied, ChangeOrigin origin)>;
+    int addChangeObserver(ChangeObserver observer); // jeton > 0
+    void removeChangeObserver(int token);
+
 signals:
     void fixedPageChanged();
     // Juste avant un changement de page affichée demandé (page suivante ou précédente, ajout compris,
@@ -131,6 +183,9 @@ signals:
     void titleChanged();
     void fileUrlChanged();
     void documentChanged();
+    // Avec documentChanged, sauf au soulèvement et au dépôt sans étape (réponse inchangée, L3-C8), et à la
+    // fin d'un enregistrement (référence changée).
+    void canRevertPageChanged();
     void undoChanged();
     void busyChanged();
     void warningsChanged();
@@ -138,6 +193,10 @@ signals:
     void lastIoChanged();
     void loadFinished(bool ok, const QString& message);
     void saveFinished(bool ok, const QString& message);
+    // Avant Annuler, Rétablir, Effacer, Rétablir la page, Supprimer : la vue termine le trait en cours et les
+    // outils leur geste (L2-T15).
+    void editAboutToApply();
+    void liftingChanged();
 
 private:
     void setBusy(bool busy);
@@ -149,10 +208,13 @@ private:
     // Exécute la commande ; elle n'entre dans la pile que si elle a changé quelque chose (changements
     // rendus).
     core::Changes run(std::unique_ptr<core::UndoCommand> command);
-    // Changements d'une commande : cache de la page affichée (applyToCache), page affichée recalée sur
-    // l'indice qu'il rend (relue par la page fixe si elle a bougé ou disparu). Vrai si le nombre de pages ou
-    // la page affichée a changé.
-    bool settle(const core::Changes& changes);
+    // execute() avec l'origine annoncée aux observateurs (commitStroke : Stroke).
+    void executeAs(std::unique_ptr<core::UndoCommand> command, ChangeOrigin origin);
+    // Changements d'une commande : cache de la page affichée (applyToCache), puis observateurs (même liste,
+    // `origin`), puis page affichée recalée sur l'indice qu'il rend (relue par la page fixe si elle a bougé
+    // ou disparu). Seul appel du cache. Vrai si le nombre de pages ou la page affichée a changé.
+    bool settle(const core::Changes& changes, ChangeOrigin origin);
+    void notifyObservers(const core::Changes& changes, ChangeOrigin origin);
     // Signaux d'état après une modification : pagesChanged (si `pages`), document, pile, modifié.
     void notifyState(bool pages);
     void updateModified(); // modifiedChanged si l'état « modifié » a changé
@@ -185,6 +247,42 @@ private:
     std::uint64_t m_revision = 0;
     // Le fil secondaire rend son résultat par ce relais, tant que le contrôleur vit (documentcontroller.cpp).
     std::shared_ptr<IoRelay> m_relay;
+    // Observateurs des modifications versées (D-S7), dans l'ordre d'ajout.
+    struct ObserverEntry
+    {
+        int token = 0;
+        ChangeObserver call;
+    };
+    std::vector<ObserverEntry> m_observers;
+    int m_lastObserverToken = 0;
+
+    // Lot 3 (L3-T12) : soulèvement et page de référence de Rétablir la page.
+    // Dépôt forcé (M2) : ce qui reste soulevé après l'annonce d'une édition revient sans étape.
+    void dropRemaining();
+    // Annonce d'une édition (editAboutToApply), puis dépôt forcé.
+    void announceEdit();
+    // Annonce d'un changement de page (pageAboutToChange), puis dépôt forcé.
+    void announcePageChange();
+    // Objets soulevés d'un document remplacé depuis (replaceDocument direct) : oubliés, liftingChanged.
+    void forgetStaleLift();
+    // Page de la référence pour la page affichée ; nullptr : jamais enregistrée ni ouverte (page vierge, D9).
+    const core::Page* savedPage() const;
+    std::vector<core::LiftedObject> m_lifted; // page affichée, ordre de la page
+    std::uint64_t m_liftGeneration = 0;       // m_generation au soulèvement
+    // Document tel qu'ouvert ou enregistré en dernier (D9), valable pour la génération m_referenceGeneration.
+    // Partagé avec la copie que le fil d'écriture a enregistrée : aucune copie de plus sur le fil principal.
+    std::shared_ptr<const core::Document> m_reference;
+    std::uint64_t m_referenceGeneration = 0;
+    // canRevertPage, relue à chaque documentChanged (Main.qml) : une empreinte de page par révision.
+    struct RevertCheck
+    {
+        bool valid = false;
+        std::uint64_t revision = 0;
+        std::size_t page = 0;
+        bool answer = false;
+    };
+    mutable RevertCheck m_revertCheck;
+    mutable int m_revertComparisons = 0;
 };
 
 } // namespace actcraft::ui
