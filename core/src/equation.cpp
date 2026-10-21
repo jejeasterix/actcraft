@@ -1,3 +1,18 @@
 #include <actcraft/core/equation.h>
-// Talon L0-S : rempli par L7-T24. Équation (F-301) : arbre et MathML.
-namespace actcraft::core {} // namespace actcraft::core
+
+namespace actcraft::core {
+
+std::optional<EquationNode> parseMathml(const std::string& mathml, QString& error)
+{
+    (void)mathml;
+    error = QStringLiteral("MathML : lecture pas encore écrite");
+    return std::nullopt;
+}
+
+std::string toMathml(const EquationNode& root)
+{
+    (void)root;
+    return {};
+}
+
+} // namespace actcraft::core
