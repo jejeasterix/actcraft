@@ -7,9 +7,8 @@ Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branc
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
-Lot : 7 « Présentation et outils » — 15/33 tâches terminées
+Lot : 7 « Présentation et outils » — 16/33 tâches terminées
 Tâche : L7-T15 — Calculatrice (F-286) — depuis 2026-10-21 05:55
-Tâche : L7-T16 — Horloge et compte à rebours (F-290, H7-14) — depuis 2026-10-21 05:55
 Tâche : L7-T14c — Correction d'assemblage : croix du panneau des dés recouverte dans le chantier — depuis 2026-10-21 07:51
 Questions à Jérôme : —
 
@@ -74,7 +73,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | suite V8 | L7-T14, L7-T8 | branche du chantier à a1c9db4 | — | TESTS EN ECHEC 157/158 : tst_ui_dice::dicePanelClosesByItsCross rouge deux fois sur deux, exécutable seul (« !panel->isVisible() ») ; vert dans le worktree de L7-T14 → défaut d'assemblage (L7-T7, T8 ou T12 recouvre la croix ?) ; correction à confier à l'agent L7-T14 dès qu'une place d'agent se libère | 1 | — | — |
 | L7-T8 | L7-T7, L7-T2 | voir ligne L7-T8 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T8 (base 6367ade) | mergée : rejeu TESTS OK 158/158, transitions Totals 23 (0 skipped), captures effets LU dissolve OK, 4 mutants lus test par test | 1 | 54ef51c | a994951 (graphe 9690765) |
 | L7-T15 | L7-T2 | voir ligne L7-T15 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T15 (base e098c86) | en cours (implementeur-tdd), V9 | 1 | — | — |
-| L7-T16 | L7-T2 | voir ligne L7-T16 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T16 (base e098c86) | en cours (implementeur-tdd), V9 | 1 | — | — |
+| L7-T16 | L7-T2 | voir ligne L7-T16 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T16 (base e098c86, retiré après merge) | mergée : rejeu TESTS OK 158/158, clock Totals 10 (0 skipped), captures compte-à-rebours OK, 5 mutants | 1 | e25083d | f3f0cca (graphe ce7119f) |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
