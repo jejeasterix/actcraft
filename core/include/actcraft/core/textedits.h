@@ -22,6 +22,7 @@ private:
     ObjectId m_id;
     Text m_after;
     Text m_before;
+    bool m_applied = false; // redo() a trouvé le texte : undo() a quelque chose à défaire
 };
 
 // Ligne de base de la première ligne, coordonnées de l'objet : celle de la première ligne lue (runs) ; sinon
