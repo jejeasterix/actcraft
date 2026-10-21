@@ -769,7 +769,7 @@ private slots:
     // ---- Socle 3-7 (L0-S9) : ordre des couches, emplacements, gestionnaires ----
 
     // L'ordre des enfants fait l'empilement (z à 0 partout) : page fixe, cache, couche d'attente, couche
-    // soulevée (lot 3), encre, surcouches de page (lot 7).
+    // soulevée (lot 3), encre, grille du dessus (lot 4), surcouches de page (lot 7).
     void socleLayerOrder()
     {
         Shell s;
@@ -781,8 +781,68 @@ private slots:
             names << child->objectName();
             QCOMPARE(child->z(), 0.0);
         }
-        QCOMPARE(names,
-                 (QStringList{"fixedPage", "pageCache", "pendingLayer", "liftLayer", "ink", "pageOverlays"}));
+        // Amendement 1 du lot 4 : la grille du dessus sort de la scène du cache (L4-T7) ; rang fixé par D17
+        // (amendement 4) : entre l'encre et les surcouches. L'autre rang envisagé (sous l'encre) tombe.
+        QCOMPARE(names, (QStringList{"fixedPage", "pageCache", "pendingLayer", "liftLayer", "ink", "gridOverlay",
+                                     "pageOverlays"}));
+    }
+
+    // L4-T2 : chaque élément de la coquille du lot 4 existe, nommé, en talon.
+    void lot4ShellPlaceholders()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name : {"browserPanel", "pageNavigator", "shapePalette", "textFormatBar", "textEditor",
+                                 "verticalTextBar", "gridDesigner", "backgroundDialog", "pageExtensionHandle",
+                                 "pageZones", "gridOverlay", "appPageSettings", "appThumbnails", "appPages",
+                                 "appText"}) {
+            const QString objectName = QString::fromLatin1(name);
+            QVERIFY2(s.window->findChild<QObject*>(objectName) != nullptr ||
+                         findItem(s.window->contentItem(), objectName),
+                     name);
+        }
+    }
+
+    // Les 47 commandes du lot 4 : du bloc « tool.shape » à « page.zones » du fichier des commandes.
+    void everyLot4CommandHasAHandler()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>();
+        QVERIFY(commands);
+        const QStringList all = commands->registry().ids();
+        const qsizetype first = all.indexOf(QStringLiteral("tool.shape"));
+        const qsizetype last = all.indexOf(QStringLiteral("page.zones"));
+        QVERIFY(first >= 0 && last > first);
+        const QStringList lot4 = all.mid(first, last - first + 1);
+        QCOMPARE(lot4.size(), 47);
+        for (const QString& id : lot4) {
+            QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
+        }
+    }
+
+    // text.edit-at : « x;y;v » (v = 0 ou 1) ; argument absent : valider l'édition (null).
+    void editAtHandlerParsesItsText()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        const auto parse = [&s](const QVariant& argument) {
+            QVariant result;
+            const bool invoked = QMetaObject::invokeMethod(s.window, "editAtArgument",
+                                                           Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, argument));
+            return invoked ? result : QVariant(QStringLiteral("non appelée"));
+        };
+        const QVariantMap vertical = parse(QStringLiteral("120;80;1")).toMap();
+        QCOMPARE(vertical.value(QStringLiteral("x")).toDouble(), 120.0);
+        QCOMPARE(vertical.value(QStringLiteral("y")).toDouble(), 80.0);
+        QCOMPARE(vertical.value(QStringLiteral("vertical")).toBool(), true);
+        const QVariantMap horizontal = parse(QStringLiteral("5.5;7;0")).toMap();
+        QCOMPARE(horizontal.value(QStringLiteral("x")).toDouble(), 5.5);
+        QCOMPARE(horizontal.value(QStringLiteral("vertical")).toBool(), false);
+        const QVariant none = parse(QVariant());
+        QVERIFY(none.toString() != QStringLiteral("non appelée"));
+        QVERIFY(none.toMap().isEmpty());
+        QVERIFY(none.toString().isEmpty());
     }
 
     void socleSlotsExist()
