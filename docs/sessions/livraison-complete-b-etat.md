@@ -74,7 +74,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T8 | L7-T7, L7-T2 | voir ligne L7-T8 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T8 (base 6367ade) | mergée : rejeu TESTS OK 158/158, transitions Totals 23 (0 skipped), captures effets LU dissolve OK, 4 mutants lus test par test | 1 | 54ef51c | a994951 (graphe 9690765) |
 | L7-T15 | L7-T2 | voir ligne L7-T15 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T15 (base e098c86, retiré après merge) | mergée : rejeu TESTS OK 158/158, calculator Totals 11 (0 skipped), 5 mutants ; rouge invalide (Copy-Item), preuve par les mutants | 1 | 689fdc6 | 8f6e617 (graphe 6f76c5d) |
 | L7-T16 | L7-T2 | voir ligne L7-T16 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T16 (base e098c86, retiré après merge) | mergée : rejeu TESTS OK 158/158, clock Totals 10 (0 skipped), captures compte-à-rebours OK, 5 mutants | 1 | e25083d | f3f0cca (graphe ce7119f) |
-| suite V9 | L7-T13, T14c, T15, T16 | branche du chantier à 2894c46 (timestamp AUTOMOC supprimés avant) | — | en cours | 1 | — | — |
+| suite V9 | L7-T13, T14c, T15, T16 | branche du chantier à 2894c46 (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 (la branche est de nouveau verte) | 1 | — | — |
 | L7-T17 | L7-T2 | voir ligne L7-T17 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T17 (base 2894c46) | en cours (implementeur-tdd), V10 | 1 | — | — |
 | L7-T18 | L7-S8 | voir ligne L7-T18 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T18 (base 2894c46) | en cours (concepteur-critique), V10 | 1 | — | — |
 
