@@ -296,17 +296,29 @@ private slots:
         QCOMPARE(f.page->cachedObjectCount(), std::size_t{1});
     }
 
-    void gridDrawnAboveIsNeverDeferred()
+    // Changement de règle voulu (L4-T7) : remplace gridDrawnAboveIsNeverDeferred du lot 10. La grille du
+    // dessus est désormais une surcouche hors du cache (GridOverlayItem, au-dessus de l'encre) ; la scène de
+    // la page fixe ne dessine plus rien au-dessus des objets, donc un trait en fin de page peut attendre.
+    void strokeOnGridAbovePageIsDeferred()
     {
         Fixture f;
         open(f, true);
         core::Page page;
+        page.grid.visible = true;
         page.grid.drawnAbove = true;
+        page.grid.levels.push_back(core::GridLevel{});
         f.page->setPage(std::move(page));
         QVERIFY(QTest::qWaitFor([&] { return f.page->isReady(); }, 5000));
         f.page->setDeferredFolding(true);
+        QVERIFY(near(at(f, 300, 100), Qt::white, 8)); // synchronisation : la scène de la page est construite
+        const int rebuilds = f.page->rebuildCount();
+        QSignalSpy content(f.page, &render::FixedPageItem::contentChanged);
         f.page->appendStroke(lineAt(100));
-        QCOMPARE(f.page->pendingCount(), 0); // il doit passer sous la grille : dans la scène
+        QCOMPARE(f.page->pendingCount(), 1);
+        QCOMPARE(f.page->cachedObjectCount(), std::size_t{0});
+        QCOMPARE(content.count(), 0); // aucun redessin du cache demandé
+        QVERIFY(near(at(f, 300, 100), Qt::black, 60)); // dessiné par la couche d'attente
+        QCOMPARE(f.page->rebuildCount(), rebuilds);
     }
 
     // Revue M2 : un trait en attente modifié en place (couleur), puis invalidate : seule la couche change ;
