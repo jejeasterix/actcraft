@@ -447,7 +447,7 @@ core::Transform SelectTool::gestureTransform(core::PointF point) const
                                   (m_frame.corners[0].y + m_frame.corners[2].y) / 2};
         double delta = toDegrees(std::atan2(point.y - center.y, point.x - center.x)) -
                        toDegrees(std::atan2(m_start.y - center.y, m_start.x - center.x));
-        if ((m_modifiers & Qt::ShiftModifier) != 0) {
+        if ((m_modifiers & static_cast<int>(Qt::ShiftModifier)) != 0) {
             delta = std::round(delta / kSnapStepDegrees) * kSnapStepDegrees;
         }
         return core::rotationAbout(center, delta);
