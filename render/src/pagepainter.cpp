@@ -17,8 +17,12 @@
 #include <QPainterPath>
 #include <QPolygonF>
 #include <QRadialGradient>
+#include <QTextBlock>
+#include <QTextBoundaryFinder>
+#include <QTextCursor>
 #include <QTextDocument>
 #include <QTextFormat>
+#include <QTextOption>
 #include <QUrl>
 #include <QVariant>
 
@@ -287,6 +291,87 @@ void paintImage(QPainter& p, const core::ImageObject& im, const ImageLookup& ima
     p.drawImage(rect, image);
 }
 
+// --- Texte de haut en bas (H4-3, D9)
+// Une colonne d'un caractère : sa largeur est la plus grande avance des caractères du texte, chacun à sa police ;
+// retour à la ligne partout, lignes centrées : chaque lettre sous la précédente, mise en forme gardée. C'est la
+// seule mise en page de ce texte : la texture du rendu (paintedrenderer.cpp) en tient son étendue par
+// verticalTextExtent. Les lignes précalculées d'un .flipchart (runs) gardent leur place d'origine.
+bool drawnAsColumn(const core::Text& t)
+{
+    return t.vertical && t.runs.empty() && !t.html.empty();
+}
+
+double widestAdvance(const QTextDocument& document)
+{
+    const QFont base = document.defaultFont();
+    const QPaintDevice* device = document.documentLayout()->paintDevice();
+    double widest = 0;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            if (!fragment.isValid()) {
+                continue;
+            }
+            const QFontMetricsF metrics(fragment.charFormat().font().resolve(base), device);
+            const QString text = fragment.text();
+            QTextBoundaryFinder graphemes(QTextBoundaryFinder::Grapheme, text);
+            qsizetype start = 0;
+            for (qsizetype end = graphemes.toNextBoundary(); end > start; end = graphemes.toNextBoundary()) {
+                widest = std::max(widest, metrics.horizontalAdvance(text.mid(start, end - start)));
+                start = end;
+            }
+        }
+    }
+    return widest;
+}
+
+void layOutColumn(QTextDocument& document)
+{
+    document.setUndoRedoEnabled(false);
+    QTextOption option = document.defaultTextOption();
+    option.setWrapMode(QTextOption::WrapAnywhere);
+    option.setAlignment(Qt::AlignHCenter);
+    document.setDefaultTextOption(option);
+    // L'alignement, le retrait et l'interdiction de couper d'un paragraphe du HTML l'emportent sur l'option du
+    // document : ils sont remis, le reste de la mise en forme est gardé.
+    QTextBlockFormat column;
+    column.setAlignment(Qt::AlignHCenter);
+    column.setNonBreakableLines(false);
+    column.setLeftMargin(0);
+    column.setRightMargin(0);
+    column.setTextIndent(0);
+    column.setIndent(0);
+    QTextCursor cursor(&document);
+    cursor.select(QTextCursor::Document);
+    cursor.mergeBlockFormat(column);
+    document.setTextWidth(widestAdvance(document));
+}
+
+// Document mis en page d'un texte riche : colonne d'un caractère (haut en bas), sinon largeur du cadre.
+void layOutText(QTextDocument& document, const core::Text& t)
+{
+    document.setDocumentMargin(0);
+    document.setHtml(QString::fromStdString(t.html));
+    if (drawnAsColumn(t)) {
+        layOutColumn(document);
+    } else if (t.bounds.width > 0) {
+        document.setTextWidth(t.bounds.width);
+    }
+}
+
+// Étendue d'une colonne mise en page, en coordonnées de l'objet : la colonne, débordée d'une demi-colonne de
+// chaque côté (italique, jambages qui sortent de l'avance), arrondie aux pixels entiers vers l'extérieur.
+QRectF columnExtent(const QTextDocument& document, const core::Text& t)
+{
+    const double width = document.textWidth();
+    const double reach = std::max(width / 2, 1.0);
+    const double left = std::floor(t.bounds.x - reach);
+    const double top = std::floor(t.bounds.y - reach);
+    const double right = std::ceil(t.bounds.x + width + reach);
+    const double bottom = std::ceil(t.bounds.y + document.size().height() + reach);
+    return QRectF(left, top, right - left, bottom - top);
+}
+
 void paintText(QPainter& p, const core::Text& t)
 {
     if (!t.runs.empty()) {
@@ -321,12 +406,13 @@ void paintText(QPainter& p, const core::Text& t)
         return;
     }
     IsolatedTextDocument document;
-    document.setDocumentMargin(0);
-    document.setHtml(QString::fromStdString(t.html));
-    if (t.bounds.width > 0) {
-        document.setTextWidth(t.bounds.width);
-    }
+    layOutText(document, t);
     p.translate(t.bounds.x, t.bounds.y);
+    if (drawnAsColumn(t)) {
+        // Sans découpe au cadre : la colonne entière, que la texture couvre aussi (verticalTextExtent).
+        document.drawContents(&p);
+        return;
+    }
     document.drawContents(&p, QRectF(0, 0, t.bounds.width > 0 ? t.bounds.width : 2000,
                                      t.bounds.height > 0 ? t.bounds.height : 2000));
 }
@@ -568,6 +654,18 @@ void paintUnknown(QPainter& p, const core::UnknownObject& unknown)
 }
 
 } // namespace
+
+// Étendue dessinée d'un texte de haut en bas, tenue de la seule mise en page du peintre (layOutText) ; vide pour
+// un autre texte. Déclarée et appelée par paintedrenderer.cpp, qui y prend le rectangle de sa texture.
+QRectF verticalTextExtent(const core::Text& text)
+{
+    if (!drawnAsColumn(text)) {
+        return {};
+    }
+    IsolatedTextDocument document;
+    layOutText(document, text);
+    return columnExtent(document, text);
+}
 
 void DecodedImages::insert(std::string key, QImage image)
 {
