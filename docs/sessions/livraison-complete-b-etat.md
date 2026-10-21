@@ -149,6 +149,7 @@ Premiers gestes, dans l'ordre :
 ouvertes : — · passées : —
 
 ## Pièges trouvés
+- Qt (à porter au coffre, 04_Pieges) : `QXmlStreamReader::characterOffset()` compte des unités UTF-16, pas des octets UTF-8 (une tranche prise dans les octets se décale après un caractère non ASCII) ; et après un blanc, il pointe un caractère plus loin (le `<` suivant déjà lu) : recaler le début sur le `<` réel (L7-T24). PowerShell : `Select-String` ignore la casse par défaut (`^JETON` reconnaît « Jeton … »), utiliser `-CaseSensitive`.
 - Disque plein le 2026-10-21 vers 09 h (3,2 Go libres puis 0 ; LNK1116 code 112 dans L7-T15, « Espace insuffisant » à la copie) : chaque worktree construit prend 3 à 7 Go. Remède appliqué : builds des 13 worktrees mergés supprimés, puis worktrees retirés (branches gardées) → 83,7 Go libres ; rejeux et bancs copiés dans `.tmp/outils-b/bancs/<tâche>/`. Règle désormais : retirer le worktree d'une tâche juste après son merge.
 - Suite du disque plein et des arrêts de processus par A vers 09 h 20 : PDB corrompus (`LNK1285: fichier PDB endommagé`, vu en L7-T15). Remède : supprimer les `*.pdb` et `*.ilk` de `build/debug` (fait dans le worktree du chantier, 298 fichiers, et dans L7-T15). À faire dans tout worktree qui donne LNK1285.
 - Qt (à porter au coffre, 04_Pieges) : une propriété par défaut déclarée dans un fichier QML ne sert qu'aux objets écrits là où le type est utilisé (ici `Main.qml`) ; dans le fichier lui-même, assigner par nom (`data: [ … ]`). Erreur vue : `Cannot assign to non-existent default property` (L7-S8).
