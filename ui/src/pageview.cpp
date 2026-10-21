@@ -576,19 +576,30 @@ bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
         return false;
     }
     const input::Decision decision = m_router.route(*sample);
+    // Amendement 1 du lot 4 (V5) : contactActive suit les décisions que le routeur retient.
+    const bool released = sample->phase == input::Phase::Release;
+    if (sample->phase == input::Phase::Press &&
+        (decision.route == input::Route::Tool || decision.route == input::Route::Gesture)) {
+        holdContact(sample->pointer);
+    }
     if (decision.endToolContacts) {
         endToolContacts(decision); // décidé par la politique du routeur : la vue ne compte pas les doigts
     }
     switch (decision.route) {
     case input::Route::Tool:
         break;
-    case input::Route::Gesture:
-        return onGestureSample(*sample, viewPos);
+    case input::Route::Gesture: {
+        const bool taken = onGestureSample(*sample, viewPos);
+        if (released) {
+            forgetContact(sample->pointer); // décision rendue par le routeur au relâché
+        }
+        return taken;
+    }
     case input::Route::Ignore:
     case input::Route::Cover:
         // La vue ne prend rien et rend aussitôt le contact au routeur ; l'événement continue vers la
         // surcouche, qui le reçoit par ses gestionnaires.
-        m_router.release(sample->pointer);
+        releaseContact(sample->pointer);
         return false;
     }
     sample->user = decision.user;
@@ -600,6 +611,9 @@ bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
         m_touchDrawing = sample->phase != input::Phase::Release;
     }
     pushToTool(*sample);
+    if (released) {
+        forgetContact(sample->pointer); // après le relâché versé à l'outil (trait déjà au document)
+    }
     return true;
 }
 
@@ -638,8 +652,8 @@ void PageView::finishStroke()
         m_tools->cancelGesture();
     }
     if (m_touchDrawing) {
-        m_touchDrawing = false;           // la suite du contact du doigt ne dessine plus
-        m_router.release(m_touchPointer); // ni ne reste retenue au routeur : la vue n'en verra pas le relâché
+        m_touchDrawing = false;         // la suite du contact du doigt ne dessine plus
+        releaseContact(m_touchPointer); // ni ne reste retenue au routeur : la vue n'en verra pas le relâché
     }
     // Stylet : m_stylusDrawing reste vrai, le contact reste pris jusqu'au relâché (rien n'en passe à
     // l'interface) ; ses points n'ajoutent rien, l'outil n'est plus occupé. Souris : idem par la saisie.
@@ -844,7 +858,7 @@ bool PageView::onGestureSample(const input::Sample& sample, QPointF viewPos)
     switch (sample.phase) {
     case input::Phase::Press:
         if (!addGestureContact(sample.pointer, viewPos)) {
-            m_router.release(sample.pointer); // une autre politique en enverrait un troisième : rien
+            releaseContact(sample.pointer); // une autre politique en enverrait un troisième : rien
             return false;
         }
         break;
@@ -924,7 +938,7 @@ void PageView::endGesture()
 {
     for (GestureContact& contact : m_gestureContacts) {
         if (contact.pointer != 0) {
-            m_router.release(contact.pointer);
+            releaseContact(contact.pointer);
         }
         contact = GestureContact{};
     }
@@ -954,7 +968,7 @@ void PageView::finishTouchStroke()
         return;
     }
     terminateTouchStroke();
-    m_router.release(m_touchPointer); // la vue n'en verra pas le relâché
+    releaseContact(m_touchPointer); // la vue n'en verra pas le relâché
 }
 
 void PageView::terminateTouchStroke()
@@ -1107,6 +1121,37 @@ int PageView::cacheRefreshCount() const noexcept
 bool PageView::gestureActive() const noexcept
 {
     return m_gesture.active();
+}
+
+bool PageView::contactActive() const noexcept
+{
+    return !m_heldContacts.isEmpty();
+}
+
+void PageView::holdContact(std::uint64_t pointer)
+{
+    const bool was = contactActive();
+    if (!m_heldContacts.contains(pointer)) {
+        m_heldContacts.append(pointer);
+    }
+    if (!was) {
+        emit contactActiveChanged();
+    }
+}
+
+void PageView::forgetContact(std::uint64_t pointer)
+{
+    const bool was = contactActive();
+    m_heldContacts.removeAll(pointer);
+    if (was && !contactActive()) {
+        emit contactActiveChanged();
+    }
+}
+
+void PageView::releaseContact(std::uint64_t pointer)
+{
+    m_router.release(pointer);
+    forgetContact(pointer);
 }
 
 input::PointerRouter& PageView::router() noexcept

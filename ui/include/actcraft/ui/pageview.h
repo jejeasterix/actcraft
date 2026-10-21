@@ -331,6 +331,27 @@ private:
     // M3 : un redessin est parti dans ce tour et n'a pas encore commencé ; faux à la fin du tour ou à la
     // synchronisation suivante, la première des deux (m4, L3-C8).
     bool m_refreshThisTurn = false;
+
+    // Amendement 1 du lot 4 : ajout en fin, en-tête figé par L0-S7. V5 (L4-T0) : aucun état de contact
+    // n'était publié (input::PointerRouter garde le sien privé, gestureActive ne couvre que deux doigts).
+    // Vrai entre l'appui et le relâché de tout contact routé (stylet, souris, doigt ; vers l'outil ou le
+    // geste), suivi dans le chemin d'entrée de la vue, sans toucher au routeur : un contact compte dès que le
+    // routeur retient sa décision et jusqu'à ce qu'il la rende (relâché, ou contact rendu par la vue).
+    // contactActiveChanged aux deux bascules. Les miniatures (PageThumbnails) n'en lancent aucune pendant un
+    // contact.
+    Q_PROPERTY(bool contactActive READ contactActive NOTIFY contactActiveChanged)
+
+public:
+    bool contactActive() const noexcept;
+
+signals:
+    void contactActiveChanged();
+
+private:
+    void holdContact(std::uint64_t pointer);    // appui retenu par le routeur (outil ou geste)
+    void forgetContact(std::uint64_t pointer);  // décision rendue par le routeur (relâché)
+    void releaseContact(std::uint64_t pointer); // m_router.release, puis forgetContact
+    QList<std::uint64_t> m_heldContacts;
 };
 
 } // namespace actcraft::ui

@@ -239,8 +239,8 @@ private slots:
         QCOMPARE(thumbs.data(thumbs.index(2), PageThumbnails::CurrentRole).toBool(), false);
     }
 
-    // Défaut 11 : un déplacement retire puis insère, le nombre de pages ne change pas ; toutes les lignes sont
-    // rendues de nouveau, la miniature suit la page.
+    // Défaut 11 : un déplacement retire puis insère, le nombre de pages ne change pas ; toutes les lignes
+    // sont rendues de nouveau, la miniature suit la page.
     void moveRerendersShiftedRows()
     {
         ui::DocumentController controller;

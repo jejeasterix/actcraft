@@ -7,11 +7,18 @@
 #include <QImage>
 #include <QPointer>
 #include <QQuickPaintedItem>
+#include <QTimer>
 #include <QtQml/qqmlregistration.h>
 
+#include <cstdint>
+#include <memory>
 #include <vector>
 
+class QThread;
+
 namespace actcraft::ui {
+
+struct ThumbnailRelay; // pagethumbnails.cpp
 
 // Miniatures des pages (F-800), à jour après chaque modification sans figer l'écriture : copie de la page sur
 // le fil principal, rendu par le peintre partagé (DA5) sur un fil secondaire, kSettleMs après la dernière
@@ -60,6 +67,7 @@ public:
     int launchCount() const noexcept; // amendement 3
     QImage image(int page) const;     // dernière image rendue ; nulle avant le premier rendu
     Q_INVOKABLE void refreshAll();
+    QThread* lastRenderThread() const noexcept; // tests : fil du dernier rendu terminé
 
 signals:
     void wiringChanged();
@@ -67,6 +75,25 @@ signals:
     void renderingChanged();
 
 private:
+    void attachController();
+    void detachController();
+    // Lignes refaites, toutes marquées, génération avancée (tout rendu en vol sera jeté). `changes` : pages
+    // insérées ou retirées, les images gardées suivent leur page jusqu'au nouveau rendu ; nullptr : document
+    // remplacé, images oubliées.
+    void resetRows(const core::Changes* changes);
+    void onChanges(const core::Changes& changes);
+    void onDocumentChanged();
+    void onPagesChanged();
+    void onContactChanged();
+    void mark(int page);
+    void markAll();
+    bool contactInProgress() const;
+    // Lance le rendu d'une page marquée si rien n'est en vol, le minuteur échu et aucun contact en cours.
+    void pump();
+    void launch(int page);
+    void finish(std::uint64_t generation, int page, const QImage& image, QThread* thread);
+    void updatePending();
+
     QPointer<DocumentController> m_controller;
     QPointer<PageView> m_view;
     std::vector<QImage> m_images;
@@ -75,6 +102,19 @@ private:
     int m_pending = 0;
     int m_renders = 0;
     double m_lastCopyMs = 0;
+    std::vector<char> m_marked; // une case par ligne : page à rendre
+    QTimer m_settle;            // kSettleMs après la dernière marque, minuteur unique
+    std::shared_ptr<ThumbnailRelay> m_relay;
+    std::uint64_t m_generation = 0;
+    bool m_inFlight = false; // un rendu au plus à la fois
+    int m_launches = 0;
+    int m_revisionCounter = 0;
+    int m_current = -1;
+    int m_observerToken = 0;
+    bool m_sawChanges = false; // l'observateur a parlé depuis le dernier documentChanged
+    QThread* m_lastRenderThread = nullptr;
+    QList<QMetaObject::Connection> m_controllerConnections;
+    QMetaObject::Connection m_viewConnection;
 };
 
 // Image d'une miniature dans le QML (type ThumbnailImage) : peint PageThumbnails::image(page).
