@@ -3346,13 +3346,315 @@ scénarios et l'étape `typeText` ; `TESTS OK`.
 
 ---
 
+<a id="tache-l4-t31"></a>
+### Tâche L4-T31 — `tools` : ligne et courbe brisées au multi-clic, forme à main levée
+
+**Origine.** Amendement 4 : P37 et C3 (la ligne brisée se pose point par point, un clic par sommet, et se termine par un
+double-clic ; la courbe brisée de même), D1 (rangs 4 à 6 du catalogue), point 9 de L4-T0. Dépend de L4-T8 (l'outil
+des formes, qui écarte ces trois préréglages du tracé en boîte) et, par elle, de L4-T3 (`ShapeGesture`).
+
+**Objectif.** Donner leur geste aux trois préréglages que L4-T8 laisse de côté (`core::shapeGesture` différent de
+`Box`) :
+- **`polyline` et `curve-chain` (geste `Clicks`).** Chaque appui pose un sommet (point accroché par
+  `core::nearestGridPoint` si la grille de la page accroche, comme L4-T8) ; un relâché à plus de
+  `kShapeMinDragScreen / zoom` de son appui pose aussi un sommet (un glissé trace un segment). Pendant le geste,
+  l'aperçu montre les sommets posés suivis du point courant (`lift.show`, aucune commande). Un appui à moins de
+  `kChainDoubleClickScreen / zoom` du dernier sommet **et** moins de `kChainDoubleClickNs` après l'appui précédent
+  (`input::Sample::timestampNs`) est un double-clic : il ne pose pas de sommet, il termine — `lift.clear()`, puis
+  **une** `core::AddObjectCommand` de `core::makeChainObject(preset, sommets, style)` si elle rend un objet, rien
+  sinon. `curve-chain` passe ses sommets à `core::smoothChain` (dans `makeChainObject`) : la géométrie lissée vit dans
+  `core/`.
+- **`freeform` (geste `Freehand`).** Appui, mouvements, relâché comme un trait : les points du geste (sans accrochage,
+  supposé ; un point à moins d'un pixel d'écran du précédent est sauté) ; aperçu à chaque mouvement ; au relâché, si
+  l'emprise du geste dépasse `kShapeMinDragScreen / zoom`, une `AddObjectCommand` de `makeChainObject`, sinon rien.
+  Tracé ouvert, sans remplissage (supposé : objet `core::Line`).
+- **Fin anticipée.** `cancel()` (changement d'outil, de page, Annuler : ToolHost l'appelle) verse la ligne commencée si
+  elle a au moins deux sommets distincts, comme le stylo verse son trait ; `abandon()` efface l'aperçu et ne verse
+  rien. Échap n'atteint pas l'outil (V7). `isBusy()` est vrai tant qu'une ligne est commencée ou qu'un geste à main
+  levée est en cours.
+- **Style.** Celui de L4-T8 : contour et épaisseur de `user.settings("shape")` (noir, 4 par défaut, D3) ; la plume de
+  la `Line` est le contour.
+
+**Ajout en fin de `core/include/actcraft/core/shapegeometry.h`** (après `ShapeGesture` de L4-T3, signalé ; inclure
+`<cstdint>` et `<optional>` en tête s'ils manquent) :
+```cpp
+// Amendement 4 du lot 4 (L4-T31, P37) : ajout en fin. Lignes posées au clic et forme à main levée.
+inline constexpr double kChainDoubleClickScreen = 6.0;           // second appui à moins de 6 px d'écran du dernier sommet
+inline constexpr std::int64_t kChainDoubleClickNs = 500'000'000; // et moins de 500 ms après l'appui précédent
+inline constexpr int kCurveChainSamples = 12;                    // points par segment de la courbe brisée
+
+// Courbe de Catmull-Rom centripète passant par chaque sommet : (n − 1) × samplesPerSegment + 1 points, chaque
+// sommet au rang i × samplesPerSegment. Moins de trois sommets : les sommets tels quels.
+std::vector<PointF> smoothChain(const std::vector<PointF>& vertices, int samplesPerSegment = kCurveChainSamples);
+
+// Line posée par les gestes Clicks et Freehand : polyline → sommets tels quels ; curve-chain → smoothChain ;
+// freeform → points du geste. Points consécutifs confondus retirés ; moins de deux points distincts, ou préréglage
+// dont le geste est Box : std::nullopt. Même convention de coordonnées que makeLineObject (L4-T3), couche
+// intermédiaire, plume = contour du style.
+std::optional<PageObject> makeChainObject(std::string_view preset, const std::vector<PointF>& points,
+                                          const ShapeStyle& style);
+```
+**Ajout à `tools/include/actcraft/tools/shapetool.h`** (signalé) : en public, `void abandon() override; // rien n'est
+versé` ; en privé, `std::vector<core::PointF> m_chain; // sommets posés (Clicks) ou points du geste (Freehand)` et
+`std::int64_t m_lastPressNs = 0;` (inclure `<cstdint>` et `<vector>` s'ils manquent).
+
+**Fichiers.** `core/include/actcraft/core/shapegeometry.h`, `core/src/shapegeometry.cpp`,
+`tools/include/actcraft/tools/shapetool.h`, `tools/src/shapetool.cpp`, `tests/tst_core_shapes.cpp`,
+`tests/tst_tools_shape.cpp`. (Le point 9 de L4-T0 ne cite pas `shapetool.h` : il s'y ajoute pour l'état privé du
+multi-clic et `abandon()`.)
+
+**Test et commande bornée.** Commande ciblée `-R 'tst_core_shapes|tst_tools_shape'` (deux tests, `100% tests passed,
+0 tests failed out of 2`) ; fonctions `smoothChainPassesThroughVertices`, `chainNeedsTwoDistinctPoints` (avec les neuf
+de L4-T3 : `Totals: 11 passed`), `polylineByClicksEndsOnDoubleClick`, `curveChainIsSmoothed`, `freeformFollowsTheDrag`,
+`chainCancelKeepsTwoVerticesOrMore`, `chainAbandonAddsNothing` (avec les onze de L4-T8 : `Totals: 16 passed`) en
+`PASS` ; banc sans écran ; preuve de tâche : `100% tests passed, 0 tests failed out of N`, N = 136 + n_B **inchangé**
+(aucun test enregistré), `TESTS OK`, lignes `tst_core_shapes … Passed` et `tst_tools_shape … Passed`.
+
+**Interdits.** Aucun en-tête de `render/` ni de `ui/` dans `tools/`. Pas de géométrie dans `tools/` : le lissage et la
+construction de l'objet sont dans `core/`. Aucune écriture dans le document hors `execute`. Aucun test de L4-T3 ni de
+L4-T8 modifié : `chainPresetsExecuteNothingOnRelease` (L4-T8) reste vert tel quel. Pas de QtGui dans `core/`.
+
+**Terminé quand.** Les sept fonctions neuves passent, les fonctions de L4-T3 et de L4-T8 restent vertes ; `TESTS OK` ;
+N inchangé ; banc joint ; ajouts aux deux en-têtes signalés au rapport.
+
+**Étapes.**
+- [ ] **Étape 1 : tests rouges de `core`.** Ajouter à `tests/tst_core_shapes.cpp`, dans `private slots` :
+  ```cpp
+      void smoothChainPassesThroughVertices() // L4-T31
+      {
+          const std::vector<PointF> vertices{{0, 0}, {100, 0}, {100, 100}, {200, 100}};
+          const std::vector<PointF> curve = smoothChain(vertices, 8);
+          QCOMPARE(curve.size(), std::size_t{3 * 8 + 1});
+          for (std::size_t i = 0; i < vertices.size(); ++i) {
+              QVERIFY(std::abs(curve[i * 8].x - vertices[i].x) < 1e-9);
+              QVERIFY(std::abs(curve[i * 8].y - vertices[i].y) < 1e-9);
+          }
+          bool leavesTheStraightSegment = false; // entre (100, 0) et (100, 100), la courbe n'est pas droite
+          for (std::size_t k = 1; k < 8; ++k)
+              leavesTheStraightSegment = leavesTheStraightSegment || std::abs(curve[8 + k].x - 100) > 1e-6;
+          QVERIFY(leavesTheStraightSegment);
+          QCOMPARE(smoothChain({{0, 0}, {10, 0}}, 8).size(), std::size_t{2});
+      }
+      void chainNeedsTwoDistinctPoints() // L4-T31
+      {
+          QVERIFY(!makeChainObject("polyline", {{10, 10}}, {}).has_value());
+          QVERIFY(!makeChainObject("polyline", {{10, 10}, {10, 10}}, {}).has_value());
+          QVERIFY(!makeChainObject("rectangle", {{0, 0}, {50, 50}}, {}).has_value()); // geste Box
+          const std::optional<PageObject> o = makeChainObject("polyline", {{0, 0}, {0, 0}, {50, 0}, {50, 40}}, {});
+          QVERIFY(o.has_value());
+          QCOMPARE(o->common.layer, Layer::Middle);
+          QCOMPARE(std::get<Line>(body(*o)).points.size(), std::size_t{3}); // doublon retiré
+          QVERIFY(makeChainObject("freeform", {{0, 0}, {3, 1}, {6, 4}}, {}).has_value());
+          QVERIFY(std::get<Line>(body(*makeChainObject("curve-chain", {{0, 0}, {50, 0}, {50, 50}}, {}))).points.size()
+                  == std::size_t{2 * kCurveChainSamples + 1});
+      }
+  ```
+  Commande ciblée `-R tst_core_shapes` → rouge (fonctions non déclarées : erreur de compilation attendue).
+- [ ] **Étape 2 : `core`.** Ajouter le bloc d'en-tête ci-dessus ; dans `shapegeometry.cpp`, `smoothChain` (Catmull-Rom
+  centripète, alpha 0,5 ; extrémités prolongées par symétrie du premier et du dernier segment ; nœuds confondus :
+  segment droit) et `makeChainObject` (dédoublonnage, `shapeGesture`, construction comme `makeLineObject`). Commande
+  ciblée → vert.
+- [ ] **Étape 3 : tests rouges de `tools`.** Ajouter à `tests/tst_tools_shape.cpp`, dans l'espace de noms anonyme
+  (après `at`) :
+  ```cpp
+  input::Sample atTime(double x, double y, input::Phase phase, std::int64_t ms)
+  {
+      input::Sample s = at(x, y, phase);
+      s.timestampNs = ms * 1'000'000;
+      return s;
+  }
+  void click(tools::ShapeTool& tool, double x, double y, std::int64_t ms)
+  {
+      tool.onSample(atTime(x, y, input::Phase::Press, ms));
+      tool.onSample(atTime(x, y, input::Phase::Release, ms + 50));
+  }
+  std::vector<core::PointF> pagePoints(const core::PageObject& o) // translation seule (convention de L4-T3)
+  {
+      std::vector<core::PointF> out;
+      for (const core::PointF& p : std::get<core::Line>(core::body(o)).points)
+          out.push_back({p.x + o.common.transform.dx, p.y + o.common.transform.dy});
+      return out;
+  }
+  ```
+  puis dans `private slots` :
+  ```cpp
+      void polylineByClicksEndsOnDoubleClick() // L4-T31
+      {
+          Harness h;
+          h.user.setShapeSettings({QStringLiteral("polyline"), true, 0xFFFFAA00u, false});
+          tools::ShapeTool tool(h.context);
+          click(tool, 100, 100, 0);
+          click(tool, 200, 100, 1000);
+          tool.onSample(atTime(200, 200, input::Phase::Move, 1500));
+          QCOMPARE(h.lift.shown.size(), std::size_t{1}); // aperçu : sommets posés et point courant
+          QCOMPARE(h.doc.executed, 0);
+          QVERIFY(tool.isBusy());
+          click(tool, 200, 200, 2000);
+          click(tool, 201, 201, 2200); // double-clic : à moins de 6 px et de 500 ms, ne pose pas de sommet
+          QCOMPARE(h.doc.executed, 1);
+          QVERIFY(h.lift.shown.empty());
+          QVERIFY(!tool.isBusy());
+          const std::vector<core::PointF> points = pagePoints(h.doc.document.page(0).objects.back());
+          QCOMPARE(points.size(), std::size_t{3});
+          QCOMPARE(points[0].x, 100.0);
+          QCOMPARE(points[1].x, 200.0);
+          QCOMPARE(points[2].y, 200.0);
+      }
+      void curveChainIsSmoothed() // L4-T31
+      {
+          Harness h;
+          h.user.setShapeSettings({QStringLiteral("curve-chain"), true, 0xFFFFAA00u, false});
+          tools::ShapeTool tool(h.context);
+          click(tool, 0, 0, 0);
+          click(tool, 100, 0, 1000);
+          click(tool, 100, 100, 2000);
+          click(tool, 200, 100, 3000);
+          click(tool, 200, 100, 3100); // double-clic
+          QCOMPARE(h.doc.executed, 1);
+          const std::vector<core::PointF> points = pagePoints(h.doc.document.page(0).objects.back());
+          QCOMPARE(points.size(), std::size_t{3 * core::kCurveChainSamples + 1});
+          QCOMPARE(points.front().x, 0.0);
+          QCOMPARE(points.back().x, 200.0);
+          QCOMPARE(points.back().y, 100.0);
+      }
+      void freeformFollowsTheDrag() // L4-T31
+      {
+          Harness h;
+          h.user.setShapeSettings({QStringLiteral("freeform"), true, 0xFFFFAA00u, false});
+          tools::ShapeTool tool(h.context);
+          tool.onSample(at(0, 0, input::Phase::Press));
+          for (int i = 1; i <= 10; ++i)
+              tool.onSample(at(10.0 * i, (i % 2) * 5.0, input::Phase::Move));
+          QCOMPARE(h.lift.shown.size(), std::size_t{1});
+          QCOMPARE(h.doc.executed, 0);
+          tool.onSample(at(100, 0, input::Phase::Release));
+          QCOMPARE(h.doc.executed, 1);
+          QVERIFY(h.lift.shown.empty());
+          QVERIFY(pagePoints(h.doc.document.page(0).objects.back()).size() >= std::size_t{11});
+          tool.onSample(at(300, 300, input::Phase::Press)); // sous le seuil : rien
+          tool.onSample(at(301, 301, input::Phase::Release));
+          QCOMPARE(h.doc.executed, 1);
+      }
+      void chainCancelKeepsTwoVerticesOrMore() // L4-T31
+      {
+          Harness h;
+          h.user.setShapeSettings({QStringLiteral("polyline"), true, 0xFFFFAA00u, false});
+          tools::ShapeTool tool(h.context);
+          click(tool, 100, 100, 0);
+          tool.cancel(); // un seul sommet : rien n'est versé
+          QCOMPARE(h.doc.executed, 0);
+          QVERIFY(!tool.isBusy());
+          click(tool, 100, 100, 1000);
+          click(tool, 200, 100, 2000);
+          tool.cancel(); // changement d'outil ou de page : la ligne commencée est versée, comme le trait du stylo
+          QCOMPARE(h.doc.executed, 1);
+          QVERIFY(h.lift.shown.empty());
+          QVERIFY(!tool.isBusy());
+      }
+      void chainAbandonAddsNothing() // L4-T31
+      {
+          Harness h;
+          h.user.setShapeSettings({QStringLiteral("polyline"), true, 0xFFFFAA00u, false});
+          tools::ShapeTool tool(h.context);
+          click(tool, 100, 100, 0);
+          click(tool, 200, 100, 1000);
+          tool.abandon();
+          QCOMPARE(h.doc.executed, 0);
+          QVERIFY(h.lift.shown.empty());
+          QVERIFY(!tool.isBusy());
+      }
+  ```
+  Commande ciblée `-R tst_tools_shape` → rouge.
+- [ ] **Étape 4 : `ShapeTool`.** Ajouts à `shapetool.h` ci-dessus ; dans `shapetool.cpp`, aiguillage par
+  `core::shapeGesture` au début de `onSample` : `Box` → chemin de L4-T8 inchangé ; `Clicks` et `Freehand` → règles de
+  l'objectif ; aperçu par `lift.show({*makeChainObject(…)})` quand il rend un objet, `lift.clear()` sinon ; `cancel()`
+  et `abandon()` selon l'objectif. Commande ciblée → vert, fonctions de L4-T8 comprises.
+- [ ] **Étape 5 : preuves.** `format.ps1`, preuve de tâche (N inchangé), banc sans écran (non-régression, aucun
+  scénario neuf), `git add`, `NOMS OK`.
+- [ ] **Étape 6 : commit.**
+  ```powershell
+  git -C <wt> add core/include/actcraft/core/shapegeometry.h core/src/shapegeometry.cpp tools/include/actcraft/tools/shapetool.h tools/src/shapetool.cpp tests/tst_core_shapes.cpp tests/tst_tools_shape.cpp
+  git -C <wt> commit -m "tools : ligne et courbe brisées posées au clic, forme à main levée (L4-T31)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  ```
+
+---
+
+<a id="tache-l4-o1"></a>
+### Tâche L4-O1 — Séance d'observation de l'original à l'écran (D5, D6, D10, D11, D17)
+
+**Origine.** Point 11 de L4-T0 : cinq comportements ne se lisent pas en statique ; une seule séance à l'écran, annoncée
+à Jérôme. Ce n'est pas une tâche de code : elle ne construit rien, n'occupe aucune place de tests et se joue hors des
+vagues (section « Vagues », amendement 4), au plus tard avant L4-T28 et L4-C1 (plan 4b), qui l'attendent.
+
+**Rôle de l'orchestrateur (avant de lancer le subagent).** Prévenir Jérôme d'une ligne : la souris et le clavier de
+l'écran principal vont être pilotés, l'original va s'ouvrir, durée estimée. Attendre qu'aucune fenêtre d'ActCraft ne
+soit ouverte à l'écran (`tools/cmp.py` de l'ancien dépôt ferme toute fenêtre « ActCraft » et `Inspire.exe`). Le subagent
+prend le jeton `ecran` pour toute la séance (`jeton.ps1 -Nom ecran -Proprietaire L4-O1`). À la remise du rapport,
+l'orchestrateur amende les tâches que les verdicts touchent (colonne « si contredit » ci-dessous), fait relire, puis
+lance L4-T28 et L4-C1.
+
+**Objectif.** Observer la 3.5.18 (`C:\Program Files\Activ Software\Inspire\`) sur l'écran principal (1920 × 1080), sur
+un paperboard neuf non enregistré, et rendre pour chaque point un verdict « confirmé », « contredit » ou « non
+observé », avec ce qui a été vu, écrit en nos mots :
+
+| Point | Geste à faire | Ce que le plan suppose | Si contredit : tâches à amender |
+|---|---|---|---|
+| D5 — Maj pendant le tracé | outil des formes, rectangle glissé Maj tenue, puis Maj relâchée avant le relâché ; ligne glissée Maj tenue | carré ; ratio libéré au relâché de Maj ; ligne contrainte à 45° (H4-12) | L4-T8 (`shiftKeepsSquare`, `shiftReleaseFreesTheRatio`), L4-T11 |
+| D6 — grille invisible | grille avec accrochage, rectangle déplacé ; grille cachée, rectangle déplacé de nouveau | l'accrochage continue grille cachée (F-622, H4-12) | L4-T5 (`invisibleGridStillSnaps`), L4-T9 |
+| D10 — règle de l'allongement | page de 768 de haut, trois clics sur la poignée d'allongement ; hauteur relevée | pas fixe : 998,4 ; cumulé : 1022,2 (H4-14) | L4-T4 (`extendStepsByTenPercentOfBase`), L4-T26 (attendus 998,4) |
+| D11 — dessin des cadres | page réglée à 2 cadres en largeur et 3 en hauteur ; séparations dessinées ou non, aspect, en présentation ; effet sur un objet déplacé et sur l'accrochage ; boîte de taille personnalisée d'un paperboard neuf : taille de page obtenue pour 2 × 3 cadres de 400 × 300 | dessin non tranché ; taille de page = taille d'un cadre × nombre de cadres (supposé, P29) | L4-T27 (si la donnée diffère), L4-T28 (contrat du dessin), L4-C1 (règle de la taille) |
+| D17 — encre en cours et grille du dessus | grille « toujours visible », trait au stylo tracé lentement ; capture pendant le tracé | la grille couvre le trait en cours, rien ne change au relâché | L4-T2 (`socleLayerOrder`), L4-T7 |
+
+**Fichiers.** `docs/verifications/2026-10-21-lot4-observation.md` (dans le dépôt : verdicts, gestes et constats en nos
+mots, aucune capture). Hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot4-observation.md` et ses
+captures (relevé brut).
+
+**Outils.** Ceux de l'ancien dépôt pour rejouer de vraies entrées (`tools/drive.py`, `tools/scenarios.py`,
+`tools/zoom.py`, lancés **dans** `C:\Users\JeromeDenis\REA - Activinspire`), ou la commande de l'écran ; graphe de
+l'ancien dépôt (`graphify query "…"` dans ce dossier) pour retrouver les gestes déjà joués par l'application de
+référence.
+
+**Preuve.** Rapport commité avec ses cinq verdicts ; relevé brut présent hors dépôt ;
+`git -C <wt> add docs/verifications/2026-10-21-lot4-observation.md` puis
+`python -I "C:/Users/JeromeDenis/REA - Activinspire/tools/controle_noms_actcraft.py" <wt>` → `NOMS OK` ; commande des
+titres du corpus (section de L4-T0) sur le worktree → sortie vide.
+
+**Interdits.** Aucune capture, aucun texte de l'aide, aucun nom de commande ou de ressource de l'original dans le
+dépôt : nos identifiants (`tool.shape`, `page.extend`…) et nos mots. Ne jamais modifier
+`C:\Users\JeromeDenis\REA - Activinspire\samples\` ni le profil `%APPDATA%\Promethean` : ne changer aucun réglage de
+l'application ; une bascule d'affichage par un menu est remise dans son état avant la fermeture ; relever avant et
+après la séance la date de modification des fichiers du profil (lecture seule) et, si elle a changé, le dire tout de
+suite à l'orchestrateur (Jérôme décide). Ne rien enregistrer dans `samples/`. Aucune fenêtre ailleurs que sur l'écran
+principal.
+
+**Terminé quand.** Cinq verdicts écrits, chacun avec le geste joué, ce qui a été vu et les tâches à amender ; `NOMS OK` ;
+sortie du contrôle des titres vide ; jeton `ecran` rendu ; l'original fermé.
+
+**Étapes.**
+- [ ] **Étape 1 : préparer.** Dates des fichiers du profil relevées ; aucune fenêtre d'ActCraft ouverte ; jeton `ecran`
+  pris ; original lancé sur l'écran principal, paperboard neuf.
+- [ ] **Étape 2 : observer** les cinq points du tableau, dans l'ordre, avec une capture hors dépôt pour chacun et les
+  valeurs lues (hauteur de page, dimensions d'une forme) quand l'original les affiche.
+- [ ] **Étape 3 : fermer** l'original sans enregistrer ; relever de nouveau les dates du profil ; rendre le jeton.
+- [ ] **Étape 4 : écrire** le relevé brut hors dépôt puis `docs/verifications/2026-10-21-lot4-observation.md` (tableau
+  « point, geste, constat en nos mots, verdict, tâches à amender »).
+- [ ] **Étape 5 : contrôles et commit.**
+  ```powershell
+  git -C <wt> add docs/verifications/2026-10-21-lot4-observation.md
+  git -C <wt> commit -m "Lot 4 : observation à l'écran de cinq comportements non tranchés en statique (L4-O1)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  ```
+
+---
+
 ## Hypothèses à revoir (porte de fin du lot 4)
 
 ### Niveau 1
-- **H4-1** — Catalogue des formes : celui de la référence (22) tant que D1 ne dit pas autre chose.
-- **H4-2** — Courbe de Bézier et forme libre absentes si la 3.5.18 ne les a pas (écart 2).
+- **H4-1** — Catalogue des formes : les 22 premières formes de la 3.5.18 dans son ordre (D1, amendement 4), dont
+  `freeform`, `polyline`, `curve-chain` aux rangs 4 à 6.
+- **H4-2** — Pas de courbe de Bézier ; la forme à main levée, la ligne et la courbe brisées existent (D1) : L4-T31.
 - **H4-3** — Texte de haut en bas = lettres empilées (colonne d'un caractère, retour à la ligne partout) : D9.
-- **H4-4** — Zones de page : comportement fixé par D11 ; tant qu'il ne l'est pas, L4-T27 et L4-T28 ne commencent pas.
+- **H4-4** — Zones de page : la donnée est fixée par D11 (cadres, 0 à 40 en largeur, 0 à 53 en hauteur) et L4-T27
+  la pose ; le dessin et l'effet sont observés par L4-O1, et L4-T28 ne commence pas avant son rapport.
 - **H4-5** — Panneau des navigateurs ancré seulement au lot 4 ; flottant au lot 6.
 
 ### Niveau 2
@@ -3364,6 +3666,18 @@ scénarios et l'étape `typeText` ; `TESTS OK`.
   dépasse la limite en D3D11 : tuiles (L10-T7) ou cache par groupe de couches, décision de la porte.
 - **H4-9** — « Accrocher à la grille » bascule l'autorisation d'accrochage de la grille de la page (D6).
 - **H4-10** — Texte de départ « Votre texte » (à nous) ; police par défaut N2-3.
+
+### Ajoutées par L4-T0 (amendement 4)
+- **H4-11** — Nom « Forme n » posé à la création, compteur par page ; affiché par le lot 6.
+- **H4-12** — Maj pendant le tracé et accrochage d'une grille invisible : comportement de l'ancien dépôt et F-622,
+  à confirmer à l'écran (L4-O1).
+- **H4-13** — Couleurs et orientation du texte de haut en bas : hors du lot 4.
+- **H4-14** — Allongement par pas fixe de 10 % de la hauteur d'origine, à confirmer à l'écran (L4-O1).
+- **H4-15** — Taille des miniatures en réglette continue, l'original procédant par colonnes.
+- **H4-16** — Case « toutes les pages » et dégradé radial de la boîte du fond : hors du lot 4.
+- **H4-17** — Les 17 formes au-delà des 22 premières (croix, coche, trapèze, parallélogramme, demi-cercle, arcs,
+  flèches coudées…) : hors du lot 4.
+- (**H4-18**, au plan 4b : fond en image, numérotée H4-11 avant l'amendement 4.)
 
 ## Décisions tranchées par ce plan
 
@@ -3379,7 +3693,9 @@ scénarios et l'étape `typeText` ; `TESTS OK`.
 
 ## Point d'étape du sous-lot 4a (orchestrateur, hors tâches)
 
-Joué après V6, dans le worktree du chantier, avant de lancer 4b.
+Joué après V6 (L4-T31 comprise, en V5), dans le worktree du chantier, avant de lancer 4b. **Amendement 4 :** si
+L4-O1 a rendu son rapport, ses verdicts « contredit » sur D5, D6 et D17 ouvrent ici des correctifs `L4-C<n>` (tâches
+de 4a) ; sinon l'orchestrateur la planifie avec Jérôme avant V11 de 4b.
 
 1. **Double relecture** (conformité, qualité) du diff de 4a ; correctifs `L4-C<n>` (deux tours au plus).
 2. **Suite** (jeton `tests`) : `scripts/test.ps1`, forme bornée, N = 136 + n_B, `TESTS OK` ; talons restants : ceux

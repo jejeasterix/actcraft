@@ -1389,6 +1389,84 @@ regardées et décrites.
 
 ---
 
+<a id="tache-l4-c1"></a>
+### Tâche L4-C1 — Correctif : taille personnalisée d'un paperboard neuf en pixels d'un cadre et en nombre de cadres
+
+**Origine.** Amendement 4 : D16 (écart E10). Dans la 3.5.18, la taille personnalisée d'un paperboard neuf se donne en
+pixels pour **un cadre** (préréglages et autre) et en **nombre de cadres** en largeur et en hauteur ; F-700 et notre
+boîte (`ui/qml/PageSizeDialog.qml`, lot 1) ne donnent que des pixels. Même donnée que les zones de page (D11) : après
+L4-T27 (`core::PageZones`, `core::clampZones`). Après L4-O1 aussi : la règle de la taille de page ci-dessous est
+supposée (P29) ; si le verdict de L4-O1 sur D11 la contredit, l'orchestrateur amende cette section avant de la lancer.
+
+**Objectif.**
+- `PageSizeDialog.qml` : « Largeur d'un cadre (pixels) » et « Hauteur d'un cadre (pixels) » (les deux champs
+  existants, mêmes noms d'objet `pageWidthBox`, `pageHeightBox`), plus « Cadres en largeur » (`pageFramesAcrossBox`,
+  0 à 40, 0 par défaut) et « Cadres en hauteur » (`pageFramesDownBox`, 0 à 53, 0 par défaut). Libellés à nous.
+  `acceptSize(w, h, across, down)` : `across` et `down` facultatifs (0) ; l'appel à deux arguments du lot 1
+  (`newSizesComeFromTheirCommands`, `tests/tst_ui_filemenu.cpp`) reste valable. Signal
+  `sizeAccepted(real width, real height, int across, int down)`.
+- `FileActions.qml` : `onSizeAccepted: (w, h, across, down) => actions.newDocumentWithFrames(w, h, across, down)` et
+  `function newDocumentWithFrames(w, h, across, down) { guard(function () {
+  actions.document.newDocumentWithFrames(w, h, across, down) }) }` (même garde que `newDocument`).
+- `DocumentController` : à la fin des membres publics, signalé, `// L4-C1 (D16) : ajout en fin.` puis
+  `Q_INVOKABLE void newDocumentWithFrames(double frameWidth, double frameHeight, int across, int down);`. Corps :
+  `zones = core::clampZones({across, down})` ; page de `frameWidth × max(1, zones.horizontal)` sur
+  `frameHeight × max(1, zones.vertical)` (règle supposée, P29), chaque côté borné à 8000 px en ramenant le nombre de
+  cadres au plus grand qui tient ; `page(0).zones = zones` ; puis comme `newDocument` (`replaceDocument` vers un
+  paperboard « Sans titre », `forgetStaleLift`) : aucune étape d'annulation, document non modifié.
+
+**Fichiers.** `ui/qml/PageSizeDialog.qml`, `ui/qml/FileActions.qml`, `ui/include/actcraft/ui/documentcontroller.h`,
+`ui/src/documentcontroller.cpp`, `tests/tst_ui_filemenu.cpp`.
+
+**Test et commande bornée.** Commande ciblée `-R tst_ui_filemenu` (`100% tests passed, 0 tests failed out of 1`) ;
+fonctions `customSizeTakesFrames` et `newSizesComeFromTheirCommands` (inchangée) en `PASS` ; preuve de tâche :
+`100% tests passed, 0 tests failed out of N`, N = 136 + n_B **inchangé** (aucun test enregistré), `TESTS OK`, ligne
+`tst_ui_filemenu … Passed` ; `premiers-pas` hors écran `-Lire "pageIndicator.text=1 / 1"` → `CAPTURES OK`.
+
+**Interdits.** Aucun libellé de l'original. Ne pas changer la signature de `newDocument` ni les commandes `file.new-*`.
+`documentcontroller.h` : ajout en fin seulement (fichier chaud commun avec le lot 7). Aucune étape d'annulation pour un
+paperboard neuf.
+
+**Terminé quand.** `customSizeTakesFrames` et `newSizesComeFromTheirCommands` passent ; `TESTS OK` ; N inchangé ;
+`premiers-pas` `CAPTURES OK` ; ajout à `documentcontroller.h` signalé au rapport ; `NOMS OK`.
+
+**Étapes.**
+- [ ] **Étape 1 : test rouge.** Ajouter à `tests/tst_ui_filemenu.cpp`, après `newSizesComeFromTheirCommands`, sur le
+  même montage (`Shell`, `start`, `controller`, `run`, `namedObject`) :
+  ```cpp
+      void customSizeTakesFrames() // L4-C1 (D16)
+      {
+          Shell s;
+          QVERIFY(start(s));
+          auto* doc = controller(s);
+          QVERIFY(run(s, QStringLiteral("file.new-custom")));
+          QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+          QVERIFY(sizeDialog);
+          QTRY_VERIFY(sizeDialog->property("visible").toBool());
+          QVERIFY(QMetaObject::invokeMethod(sizeDialog, "acceptSize", Q_ARG(QVariant, 400), Q_ARG(QVariant, 300),
+                                            Q_ARG(QVariant, 2), Q_ARG(QVariant, 3)));
+          QTRY_COMPARE(doc->pageSize(), QSizeF(800, 900)); // un cadre de 400 × 300, 2 en largeur, 3 en hauteur
+          QCOMPARE(doc->document().page(0).zones.horizontal, 2);
+          QCOMPARE(doc->document().page(0).zones.vertical, 3);
+          QVERIFY(!doc->canUndo());
+          QVERIFY(!doc->property("modified").toBool());
+          doc->newDocumentWithFrames(4000, 300, 3, 0); // 3 × 4000 dépasse 8000 : 2 cadres
+          QCOMPARE(doc->pageSize(), QSizeF(8000, 300));
+          QCOMPARE(doc->document().page(0).zones.horizontal, 2);
+      }
+  ```
+  (Accesseurs réels de `DocumentController` à lire d'abord : `document()`, `canUndo()` et la propriété `modified`
+  existent au lot 3 ; adapter les noms sans changer ce qui est vérifié.) Commande ciblée → rouge.
+- [ ] **Étape 2 : implémenter** `newDocumentWithFrames`, puis la boîte et `FileActions.qml`. Commande ciblée → vert.
+- [ ] **Étape 3 : preuves.** `format.ps1`, preuve de tâche, `premiers-pas` hors écran, `git add`, `NOMS OK`.
+- [ ] **Étape 4 : commit.**
+  ```powershell
+  git -C <wt> add ui/qml/PageSizeDialog.qml ui/qml/FileActions.qml ui/include/actcraft/ui/documentcontroller.h ui/src/documentcontroller.cpp tests/tst_ui_filemenu.cpp
+  git -C <wt> commit -m "ui : taille personnalisée d'un paperboard neuf en pixels d'un cadre et en nombre de cadres (L4-C1)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  ```
+
+---
+
 ## Hypothèse ajoutée par 4b
 
 - **H4-18** (niveau 2 ; numérotée H4-11 avant l'amendement 4, numéro repris par L4-T0) — Fond en image : offert seulement si le contrôleur sait ajouter une ressource (lot 7 fusionné
