@@ -7,8 +7,7 @@ Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branc
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
-Lot : 7 « Présentation et outils » — 12/33 tâches terminées
-Tâche : L7-T14 — Dés (F-285, E5) — depuis 2026-10-20 22:48
+Lot : 7 « Présentation et outils » — 13/33 tâches terminées
 Tâche : L7-T13 — Origine XY (F-284) — depuis 2026-10-21 01:17
 Tâche : L7-T8 — Effets de changement de page II (navigateur, scénario effets) — depuis 2026-10-21 02:37
 Questions à Jérôme : —
@@ -68,7 +67,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T6 | L7-T1, T2, T3, T4 | voir ligne L7-T6 de l'amendement phase 2 (+ « spot ferme le rideau ») | .worktrees/livraison-complete-b--L7-T6 (base f0b30ce) | mergée : rejeu TESTS OK 158/158, pagetools 9, features_pagetools 9, flipchart 27 (0 skipped) ; revue corriger → essai 2 → contre-revue merger ; H7-16 tenue ; restent mineurs (preuves) : passage à -1 sans mutant propre, relâché sans déplacement, garde « page en mode spot », page changée pendant le glisser ; écarts : cadre non appliqué au spot (setFrame absent), coches present.spotlight-* périmées | 2 | 8d6e94f | 615e65a (graphe 238d2a6) |
 | L7-T12 | L7-T11 | voir ligne L7-T12 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T12 (base 530e95b) | mergée : rejeu TESTS OK 158/158, mathtools Totals 34 (0 skipped) ; revue corriger → essai 2 ; charnière déplace (décision orchestrateur) ; hors périmètre : rotation, rayon, « Réfléchi », longueur et relecture des réglages non testés ; mine allumée pour tout outil (lot 3, L7-T34) | 2 | de4c4a5 | c298c5e (graphe 339fa48) |
 | L7-T7 | L7-T3 | voir ligne L7-T7 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T7 (base cd09af4) | mergée : rejeu TESTS OK 158/158, transitions Totals 16 (0 skipped) ; revue corriger → essai 2 ; Presentation.qml : une liaison spotlight ajoutée (exception de l'orchestrateur) ; points S22 notés (mouvements approximés) | 2 | fc0e9d0 | 9458c70 (graphe c74c9ca) |
-| L7-T14 | L7-T2 | voir ligne L7-T14 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T14 (base b3f0e76) | en cours (implementeur-tdd), V8 | 1 | — | — |
+| L7-T14 | L7-T2 | voir ligne L7-T14 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T14 (base b3f0e76) | mergée : rejeu TESTS OK 158/158, dice Totals 9 (0 skipped), 5 mutants ; TapHandler stylet refusé par l'orchestrateur (double clic), appui au stylet testé comme Qt | 1 | 95f3bc3 | abae189 (graphe 2b12cb7) |
 | L7-T13 | L7-T12 | voir ligne L7-T13 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T13 (base ee24d12) | en cours (implementeur-tdd), V7 | 1 | — | — |
 | suite V7 | L7-T12, L7-T7 | branche du chantier à 6367ade (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 | 1 | — | — |
 | L7-T8 | L7-T7, L7-T2 | voir ligne L7-T8 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T8 (base 6367ade) | en cours (implementeur-tdd), V8 | 1 | — | — |
@@ -104,6 +103,7 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 - « Ouvrir le spot ferme le rideau » (plan 7a, étape 3) : fait dans L7-T6 (PageToolsController), mergé.
 
 ## À vérifier à la clôture du lot (S22, captures à l'écran)
+- Appui et survol au vrai stylet sur les panneaux (dés L7-T14, compas L7-T12, navigateur des effets L7-T8) : prouvés hors écran par le rejeu souris de Qt seulement ; à voir à l'écran. Navigateur des effets (L7-T8) : aucun moyen de retirer l'effet propre d'une page pour revenir à l'effet global.
 - Effets de page (L7-T7) : six mouvements approximés sans rotation (box-turn, card-flip, tiles-spin, corner-swing, spiral-out, turn-reveal) ; slide-right sans poussée ; star-iris en quatre quarts. À regarder à l'écran, à corriger dans une tâche dédiée si besoin.
 - Effets de page (L7-T7) : `known()` duplique la logique de `features` (un `isKnownEffect()` dans features serait la bonne place).
 
