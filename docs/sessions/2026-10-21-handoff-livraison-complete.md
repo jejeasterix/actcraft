@@ -34,36 +34,33 @@
 - **Releases** : seulement sur go écrit de Jérôme. Commits en français, chemins explicites, ligne
   `Co-Authored-By` de l'environnement.
 
-**État au 2026-10-21, soir** : lot 4 « Outils II » à 21 tâches sur 38, en pause. Mergées dans la session :
-L4-C2 (2e71fd6), L4-T8 (00ff92e), L4-C3 (49b08c6). R2 de 4a en vol, L4-T24 en rejeu.
+**État au 2026-10-21, soir** : lot 4 « Outils II » à 22 tâches sur 38, en pause. Mergées en fin de session :
+L4-C2 (2e71fd6), L4-T8 (00ff92e), L4-C3 (49b08c6), L4-T24 (a72bd3d). R2 de 4a interrompue.
 
 ## ✅ Fait cette session
 - Lot 4 : L4-T0 à L4-T6, L4-T8 à L4-T10, L4-T15 à L4-T18, L4-T21, L4-T22, L4-O1, L4-O2, L4-P1, L4-P2, L4-C2,
-  L4-C3 mergées (détail et preuves : entrées de l'état). Amendement 5 du plan (38 tâches).
+  L4-C3, L4-T24 mergées (détail et preuves : entrées de l'état). Amendement 5 du plan (38 tâches).
 - Décisions d'après l'original (L4-O2) : Maj sans effet sur le tracé (D5) ; grille du dessus sur tout, trait en
   cours compris (H4-22) ; séparations de cadres (D11) ; formes et texte en fin de palette (D19, choix de Jérôme).
 
 ## ⏭️ Prochain (à la relance de Jérôme)
-1. **L4-T24** (texte de haut en bas I, worktree `--L4-T24`, 62c9599) : lire la sortie du rejeu lancé avant la
-   pause, `C:\Users\JEROME~1\AppData\Local\Temp\claude\C--Users-JeromeDenis-ActCraft\fd5ef06a-7b9b-46ba-a8c3-b06809fefd99\scratchpad\out\preuve-l4t24.txt`
-   (s'il n'y a pas de `PREUVE OK` ou `PREUVE EN ECHEC` en dernière ligne, le rejouer). `PREUVE OK` → merger.
-2. **R2 de 4a**, trois worktrees avec tests rouges commités, agents interrompus par la fin de session :
+1. **R2 de 4a**, trois worktrees avec tests rouges commités, agents interrompus par la fin de session :
    - L4-T7 (`--L4-T7`, 87bff43, `concepteur-critique`, arrêté à 40 tours) ;
    - L4-T11 (`--L4-T11`, 0ada19a, `implementeur-tdd`) ;
    - L4-T31 (`--L4-T31`, 074d5c6, `implementeur-tdd`).
    Regarder `git -C <wt> log` et `status` (du travail a pu être commité après ces sha), puis relancer un agent du
    même type par tâche, repartant de ses commits, avec le brief commun ; relire et rejouer chaque preuve.
-3. Puis, dans l'ordre : R3 (L4-T12, L4-T13, L4-T14), point d'étape de 4a, L4-C4 (après L4-T24), L4-T19, L4-T26
+2. Puis, dans l'ordre : R3 (L4-T12, L4-T13, L4-T14), point d'étape de 4a, L4-C4 (débloquée), L4-T19, L4-T26
    (après L4-T13), V10 à V12 de 4b, correctif **L4-C5** (H4-24 : Ctrl+clic ajoute à la sélection comme
    l'original, au lieu de Maj+clic ; `tools/src/selecttool.cpp`).
-4. Avant la PR du lot : `clang-tests.ps1` (adapter `$wt`) sur `tests/` et `bench/`, construction Android
+3. Avant la PR du lot : `clang-tests.ps1` (adapter `$wt`) sur `tests/` et `bench/`, construction Android
    (`cmake --build --preset android-arm64 -- -k 0`), graphe (`git clean -fq -- graphify-out/cache/ast`, puis
    `GRAPHIFY_VIZ_NODE_LIMIT=8000 graphify update .`). Puis clôture du lot (`finalize-session-chaine`).
 - Fini quand (lot 4) : 38 tâches mergées, relecture du lot, PR mergée, CI verte, porte de fin passée.
 
 ## 🔧 Git
 - `main` = 70c8601 (PR #6), à jour sur `origin`. `feat/livraison-complete` poussée (d34e4ef puis ce handoff).
-- Worktrees vivants de A : `livraison-complete`, `--L4-T7`, `--L4-T11`, `--L4-T24`, `--L4-T31`. Ceux de B
+- Worktrees vivants de A : `livraison-complete`, `--L4-T7`, `--L4-T11`, `--L4-T31`. Ceux de B
   (`livraison-complete-b`, lot 7) ne sont pas à A : n'y toucher jamais.
 - Fichier non suivi dans le dossier principal, pas à A : `docs/sessions/prototype-mesure-etat.md`.
 
