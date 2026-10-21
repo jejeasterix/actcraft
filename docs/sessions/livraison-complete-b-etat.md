@@ -8,6 +8,8 @@ Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 17/33 tâches terminées
+Tâche : L7-T17 — Date et heure (F-300), navigateur web (F-299) — depuis 2026-10-21 11:42
+Tâche : L7-T18 — Message défilant I (F-291) — depuis 2026-10-21 11:42
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -72,6 +74,9 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T8 | L7-T7, L7-T2 | voir ligne L7-T8 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T8 (base 6367ade) | mergée : rejeu TESTS OK 158/158, transitions Totals 23 (0 skipped), captures effets LU dissolve OK, 4 mutants lus test par test | 1 | 54ef51c | a994951 (graphe 9690765) |
 | L7-T15 | L7-T2 | voir ligne L7-T15 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T15 (base e098c86, retiré après merge) | mergée : rejeu TESTS OK 158/158, calculator Totals 11 (0 skipped), 5 mutants ; rouge invalide (Copy-Item), preuve par les mutants | 1 | 689fdc6 | 8f6e617 (graphe 6f76c5d) |
 | L7-T16 | L7-T2 | voir ligne L7-T16 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T16 (base e098c86, retiré après merge) | mergée : rejeu TESTS OK 158/158, clock Totals 10 (0 skipped), captures compte-à-rebours OK, 5 mutants | 1 | e25083d | f3f0cca (graphe ce7119f) |
+| suite V9 | L7-T13, T14c, T15, T16 | branche du chantier à 2894c46 (timestamp AUTOMOC supprimés avant) | — | en cours | 1 | — | — |
+| L7-T17 | L7-T2 | voir ligne L7-T17 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T17 (base 2894c46) | en cours (implementeur-tdd), V10 | 1 | — | — |
+| L7-T18 | L7-S8 | voir ligne L7-T18 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T18 (base 2894c46) | en cours (concepteur-critique), V10 | 1 | — | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
