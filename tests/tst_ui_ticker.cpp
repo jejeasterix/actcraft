@@ -436,7 +436,7 @@ private slots:
     }
 
     // Boucle coupée en plein passage : le passage en cours finit, puis le message s'arrête (un animateur sans
-    // fin ne finirait jamais). 
+    // fin ne finirait jamais).
     void loopSwitchedOffDuringAPassEndsIt()
     {
         MainWindow main;

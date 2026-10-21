@@ -26,7 +26,9 @@ Item {
     // Boucle et largeur du texte (la fin du passage) lues de même : couper la boucle finit le passage en cours,
     // la reprendre le prolonge, un texte plus long ou plus court déplace la sortie.
     readonly property bool looping: tickerController.loop
+    onLoopingChanged: root.retime()
     readonly property real textWidth: message.width
+    onTextWidthChanged: root.retime()
 
     TickerController {
         id: tickerController
@@ -257,6 +259,7 @@ Item {
         // Le message défile aussitôt avec les réglages courants, et la fenêtre d'édition s'ouvre.
         root.commands.setHandler("tool.ticker", function () {
             tickerController.start()
+            tickerDialog.open()
         })
     }
 

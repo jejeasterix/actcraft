@@ -26,8 +26,7 @@ int clampedSpeed(int speed) noexcept
 // Le bloc gardé ou écrit dans un fichier ne dépasse pas la taille que la relecture accepte.
 bool fits(const TickerSettings& settings)
 {
-    Q_UNUSED(settings);
-    return true; // ROUGE : garde retirée
+    return features::tickerToJson(settings).size() <= features::kMaxTickerFileBytes;
 }
 
 TickerSettings::Position toPosition(int position) noexcept
