@@ -222,6 +222,8 @@ struct Shape
     bool windingFill = false;
     Outline pen;
     Fill brush;
+    std::string preset; // préréglage de la palette (« rectangle »…) ; vide : forme lue ou générique
+    std::vector<double> parameters; // points intelligents du préréglage (F-242)
 };
 
 enum class ImagePattern : std::uint8_t
@@ -304,6 +306,7 @@ struct Text
     RectF bounds;
     std::string html;
     std::vector<TextSpan> runs;
+    bool vertical = false; // texte de haut en bas (F-301) : colonne d'un caractère
 };
 
 // Son ou vidéo (N2-9 : ouvert par l'application du système) ; dessiné par son image d'espace réservé.
@@ -489,6 +492,7 @@ struct Page
     PagePresentation presentation;
     // Clés de la page que cette version ne connaît pas (comme PageObject::unknownKeys) ; vide : aucune.
     std::string unknownKeys;
+    double baseHeight = 0; // hauteur avant la première extension (F-301) ; 0 : jamais allongée
 };
 
 // Empreinte FNV-1a 64 bits du contenu ; identique sur toutes les plateformes (types à taille fixe, octets

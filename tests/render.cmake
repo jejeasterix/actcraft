@@ -44,3 +44,11 @@ actcraft_add_test(tst_render_liftlayer
 actcraft_add_test(tst_render_strokeshape
     SOURCES tst_render_strokeshape.cpp
     LIBS ActCraft::render Qt6::Quick)
+
+actcraft_add_test(tst_render_gridoverlay
+    SOURCES tst_render_gridoverlay.cpp
+    LIBS ActCraft::render Qt6::Quick)
+
+actcraft_add_test(tst_render_verticaltext
+    SOURCES tst_render_verticaltext.cpp
+    LIBS ActCraft::render Qt6::Quick)

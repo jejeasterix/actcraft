@@ -635,4 +635,38 @@ bool ToolHost::eventFilter(QObject* watched, QEvent* event)
     return false;
 }
 
+// Talon L4-T1 : rempli par L4-T11.
+QString ToolHost::shapePreset() const
+{
+    return QStringLiteral("line");
+}
+
+bool ToolHost::shapeFilled() const
+{
+    return true;
+}
+
+bool ToolHost::shapeFromCenter() const
+{
+    return false;
+}
+
+QStringList ToolHost::shapePresets() const
+{
+    return {};
+}
+
+void ToolHost::chooseShape(const QString&) {}
+
+void ToolHost::setShapeFilled(bool) {}
+
+void ToolHost::setShapeFillColor(const QColor&) {}
+
+void ToolHost::setShapeFromCenter(bool) {}
+
+QVariantList ToolHost::shapeOutline(const QString&) const
+{
+    return {};
+}
+
 } // namespace actcraft::ui

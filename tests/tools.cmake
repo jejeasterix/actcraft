@@ -15,3 +15,11 @@ actcraft_add_test(tst_tools_eraser
 actcraft_add_test(tst_tools_select
     SOURCES tst_tools_select.cpp
     LIBS ActCraft::tools)
+
+actcraft_add_test(tst_tools_shape
+    SOURCES tst_tools_shape.cpp
+    LIBS ActCraft::tools)
+
+actcraft_add_test(tst_tools_text
+    SOURCES tst_tools_text.cpp
+    LIBS ActCraft::tools)

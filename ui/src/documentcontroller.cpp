@@ -462,6 +462,17 @@ bool DocumentController::settle(const core::Changes& changes, ChangeOrigin origi
         m_current = shown ? *shown : std::min(m_current, m_document.pageCount() - 1);
         attach();
     }
+    // Pages touchées (indices distincts, dans l'ordre de rencontre) : la page retirée n'existe plus.
+    std::vector<std::size_t> touched;
+    for (const core::Change& c : changes) {
+        if (c.kind != core::Change::Kind::PageRemoved &&
+            std::find(touched.begin(), touched.end(), c.page) == touched.end()) {
+            touched.push_back(c.page);
+        }
+    }
+    for (const std::size_t page : touched) {
+        emit pageContentChanged(static_cast<int>(page));
+    }
     return pages;
 }
 
@@ -552,6 +563,14 @@ void DocumentController::pageBack()
         return;
     }
     announcePageChange(); // M2
+    show(target);
+}
+
+void DocumentController::showPage(int index)
+{
+    const std::size_t last = m_document.pageCount() - 1;
+    const std::size_t target = index < 0 ? 0 : std::min(static_cast<std::size_t>(index), last);
+    announcePageChange(); // M2, comme nextPage et pageBack
     show(target);
 }
 

@@ -365,6 +365,31 @@ private slots:
         QVERIFY(b >= a);
         QVERIFY(a > 0);
     }
+    void lot4FieldsKeepOldFingerprints()
+    {
+        using namespace actcraft::core;
+        Page page;
+        PageObject shape{Shape{}};
+        shape.common.id = 1;
+        PageObject text{Text{}};
+        text.common.id = 2;
+        page.objects = {shape, text};
+        const auto before = fingerprint(page);
+        std::get<Shape>(body(page.objects[0])).preset = "arrow";
+        QVERIFY(fingerprint(page) != before);
+        std::get<Shape>(body(page.objects[0])).preset.clear();
+        QCOMPARE(fingerprint(page), before);
+        std::get<Shape>(body(page.objects[0])).parameters = {0.3};
+        QVERIFY(fingerprint(page) != before);
+        std::get<Shape>(body(page.objects[0])).parameters.clear();
+        std::get<Text>(body(page.objects[1])).vertical = true;
+        QVERIFY(fingerprint(page) != before);
+        std::get<Text>(body(page.objects[1])).vertical = false;
+        page.baseHeight = 768;
+        QVERIFY(fingerprint(page) != before);
+        page.baseHeight = 0;
+        QCOMPARE(fingerprint(page), before);
+    }
 };
 
 QTEST_GUILESS_MAIN(TstCoreModel)

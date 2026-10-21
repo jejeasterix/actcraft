@@ -147,7 +147,7 @@ template <typename T> void hashType(Fnv1a&, const T&) noexcept
 void hashType(Fnv1a& h, const Shape& shape) noexcept
 {
     const auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill, pen,
-                 brush] = shape;
+                 brush, preset, parameters] = shape; // preset, parameters : queue du flux (fingerprint)
     h.tag(kind);
     h.rect(bounds);
     h.points(polygon);
@@ -206,7 +206,7 @@ void hashType(Fnv1a& h, const Line& line) noexcept
 
 void hashType(Fnv1a& h, const Text& textObject) noexcept
 {
-    const auto& [bounds, html, runs] = textObject;
+    const auto& [bounds, html, runs, vertical] = textObject; // vertical : queue du flux (fingerprint)
     h.rect(bounds);
     h.text(html);
     h.u64(static_cast<std::uint64_t>(runs.size()));
@@ -367,7 +367,8 @@ static_assert(std::variant_size_v<ObjectVariant> == kObjectKindCount,
 
 std::uint64_t fingerprint(const Page& page) noexcept
 {
-    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys] = page;
+    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys,
+                 baseHeight] = page;
     Fnv1a h;
     h.f64(width);
     h.f64(height);
@@ -439,6 +440,31 @@ std::uint64_t fingerprint(const Page& page) noexcept
                 h.text(objects[i].unknownKeys);
             }
         }
+    }
+    // Données du lot 4 : en toute fin, et seulement s'il y en a, pour qu'une page sans elles garde son
+    // empreinte.
+    for (std::size_t i = 0; i < objects.size(); ++i) {
+        const Shape* shape = std::get_if<Shape>(&body(objects[i]));
+        const Text* text = std::get_if<Text>(&body(objects[i]));
+        const bool hasShapeData = shape && (!shape->preset.empty() || !shape->parameters.empty());
+        const bool hasTextData = text && text->vertical;
+        if (!hasShapeData && !hasTextData) {
+            continue;
+        }
+        h.byte(0xA4);
+        h.u64(static_cast<std::uint64_t>(i));
+        h.text(shape ? shape->preset : std::string());
+        h.u64(shape ? static_cast<std::uint64_t>(shape->parameters.size()) : 0u);
+        if (shape) {
+            for (const double parameter : shape->parameters) {
+                h.f64(parameter);
+            }
+        }
+        h.boolean(hasTextData);
+    }
+    if (baseHeight != 0) {
+        h.byte(0xA5);
+        h.f64(baseHeight);
     }
     return h.value();
 }

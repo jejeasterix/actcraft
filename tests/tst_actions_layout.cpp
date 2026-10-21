@@ -120,10 +120,11 @@ private slots:
         }
         // Socle des lots 3 et 7 (L0-S4) : la palette gagne les groupes « edition » et « presentation » après
         // « outils ». Les cinq premiers groupes, ceux du lot 1, ne bougent pas.
+        // Amendement 1 du lot 4 : le groupe « formes-texte » est ajouté en fin de palette (D19).
         QCOMPARE(groups, (QStringList{QStringLiteral("commandes"), QStringLiteral("pages"),
                                       QStringLiteral("couleurs"), QStringLiteral("epaisseur"),
                                       QStringLiteral("outils"), QStringLiteral("edition"),
-                                      QStringLiteral("presentation")}));
+                                      QStringLiteral("presentation"), QStringLiteral("formes-texte")}));
         QCOMPARE(layout.colors.size(), qsizetype{16});
         QCOMPARE(layout.colors.first(), QStringLiteral("#E53935"));
         QCOMPARE(layout.penWidths, (QList<double>{2, 4, 6, 8}));
@@ -202,7 +203,8 @@ private slots:
         QVERIFY(unknownCommands(layout, registry).isEmpty());
         QCOMPARE(layout.objectBar, (QStringList{"object.move-free", "object.rotate", "object.translucency",
                                                 "object.enlarge", "object.reduce"}));
-        QCOMPARE(layout.contextMenu,
+        // Amendement 1 du lot 4 : entrées du menu de page ajoutées en fin ; celles du socle restent en tête.
+        QCOMPARE(layout.contextMenu.mid(0, 4),
                  (QStringList{"tool.select", "tool.pen", "-", "recognition.convert-to-text"}));
     }
 
@@ -255,10 +257,33 @@ private slots:
                                                "tool.highlighter", "tool.eraser", "-", "tool.handwriting",
                                                "tool.shape-recognition", "-", "present.curtain", ">spot",
                                                ">camera", ">math", ">other-tools"}));
-                return;
+                // Amendement 1 du lot 4, F-750 : « tool.text-vertical » en fin d'« Autres outils ».
+                for (const MenuSpec& sub : m.submenus) {
+                    if (sub.id == QLatin1String("other-tools")) {
+                        QCOMPARE(sub.items, (QStringList{"tool.keyboard", "tool.clock", "tool.ticker",
+                                                         "tool.web-browser", "tool.text-vertical"}));
+                        return;
+                    }
+                }
+                QFAIL("sous-menu other-tools absent");
             }
         }
         QFAIL("menu tools absent");
+    }
+
+    void contextMenuAcceptsSubmenus()
+    {
+        const QByteArray json = R"({"format": "actcraft-layout/1", "menus": [], "palette": [], "colors": [],
+            "penWidths": [], "contextMenu": ["tool.select", "-", {"submenu": "page-insert", "label": "Insérer une page",
+            "items": ["page.insert-before", "page.insert-after"]}]})";
+        Layout layout;
+        QString error;
+        QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
+        QCOMPARE(layout.contextMenu, (QStringList{QStringLiteral("tool.select"), QStringLiteral("-"),
+                                                  QStringLiteral(">page-insert")}));
+        QCOMPARE(layout.contextSubmenus.size(), std::size_t{1});
+        QCOMPARE(layout.contextSubmenus.front().items,
+                 (QStringList{QStringLiteral("page.insert-before"), QStringLiteral("page.insert-after")}));
     }
 
     void unknownCommandsAreListedOnce()

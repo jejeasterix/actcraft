@@ -100,6 +100,40 @@ qt_add_qml_module(actcraft_ui
         icons/camera.svg
         icons/clavier.svg
         icons/bureau.svg
+        icons/forme.svg
+        icons/texte.svg
+        icons/texte-vertical.svg
+        icons/grille.svg
+        icons/grille-masquer.svg
+        icons/aimant.svg
+        icons/createur-grille.svg
+        icons/navigateurs.svg
+        icons/page-avant.svg
+        icons/page-apres.svg
+        icons/page-couper.svg
+        icons/page-copier.svg
+        icons/page-coller.svg
+        icons/page-dupliquer.svg
+        icons/page-supprimer.svg
+        icons/fond.svg
+        icons/allonger.svg
+        icons/zones.svg
+        icons/gras.svg
+        icons/italique.svg
+        icons/souligne.svg
+        icons/exposant.svg
+        icons/indice.svg
+        icons/aligner-gauche.svg
+        icons/centrer.svg
+        icons/aligner-droite.svg
+        icons/interligne-plus.svg
+        icons/interligne-moins.svg
+        icons/retrait-plus.svg
+        icons/retrait-moins.svg
+        icons/puces.svg
+        icons/symboles.svg
+        icons/taille-plus.svg
+        icons/taille-moins.svg
     SOURCES
         include/actcraft/ui/viewtransform.h
         include/actcraft/ui/pageview.h
@@ -120,6 +154,14 @@ qt_add_qml_module(actcraft_ui
         src/toolhost.cpp
         src/tooladapters.h
         src/tooladapters.cpp
+        include/actcraft/ui/pageoptions.h
+        src/pageoptions.cpp
+        include/actcraft/ui/pagethumbnails.h
+        src/pagethumbnails.cpp
+        include/actcraft/ui/pagescontroller.h
+        src/pagescontroller.cpp
+        include/actcraft/ui/textediting.h
+        src/textediting.cpp
         ${ACTCRAFT_UI_LOT7_SOURCES})
 
 # Le code d'enregistrement QML généré inclut les en-têtes par leur seul nom : d'où le dossier privé.

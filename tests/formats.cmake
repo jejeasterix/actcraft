@@ -15,3 +15,7 @@ actcraft_add_test(tst_formats_nativefile
 actcraft_add_test(tst_formats_urlio
     SOURCES tst_formats_urlio.cpp
     LIBS ActCraft::formats)
+
+actcraft_add_test(tst_formats_lot4
+    SOURCES tst_formats_lot4.cpp
+    LIBS ActCraft::formats)

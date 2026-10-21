@@ -354,8 +354,10 @@ private slots:
             QVERIFY(px != 0 && py != 0);
         }
         {
+            // Lot 4 : champs ajoutés à la structure (liaison structurée exhaustive) ; leur aller-retour :
+            // tst_formats_lot4 (L4-T6).
             const auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open,
-                         windingFill, pen, brush] = std::get<Shape>(p1.objects[3]);
+                         windingFill, pen, brush, preset, parameters] = std::get<Shape>(p1.objects[3]);
             QVERIFY(kind != ShapeKind::Rectangle && bounds.width != 0 && !polygon.empty() &&
                     fill != 0xFFFFFFFFu && outline != 0xFF000000u && outlineWidth != 1 && opacity != 1 &&
                     !paths.empty() && open && !windingFill && std::get<Shape>(p1.objects[0]).windingFill);
@@ -386,7 +388,7 @@ private slots:
             QVERIFY(!points.empty() && pen.style != PenStyle::Solid);
         }
         {
-            const auto& [bounds, html, runs] = std::get<Text>(p1.objects[5]);
+            const auto& [bounds, html, runs, vertical] = std::get<Text>(p1.objects[5]);
             QVERIFY(bounds.width != 0 && !html.empty() && runs.size() == 2);
             const auto& [text, family, size, weight, italic, underline, strikeOut, color, baseline, runBounds,
                          runKeys] = runs[0];
@@ -411,8 +413,8 @@ private slots:
                     pen.color != 0xFF000000u);
         }
         {
-            const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys] =
-                d.page(1);
+            const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys,
+                         baseHeight] = d.page(1);
             QVERIFY(width != 1024 && height != 768 && objects.empty() && !name.empty() && !notes.empty());
             // Réglages de présentation : jamais dans le document riche, dont les clés sont figées (référence)
             // ; leur aller-retour : presentationRoundTrip, unknownPresentationKeyKept.

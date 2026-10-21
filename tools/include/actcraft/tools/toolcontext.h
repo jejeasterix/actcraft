@@ -71,6 +71,8 @@ struct SelectionView
     std::vector<BarSpot> bar;          // barre d'objet (F-521)
     bool handlesVisible = true;        // F-528 : faux pendant un glissement
     std::optional<core::RectF> rubberBand;
+    std::vector<core::PointF>
+        smartPoints; // F-242 : points intelligents de la forme sélectionnée seule (page)
 };
 
 class SelectionSurface

@@ -156,10 +156,19 @@ bool parseLayout(const QByteArray& json, Layout& out, QString& error)
         layout.penWidths << value;
     }
 
-    for (const char* key : {"objectBar", "contextMenu"}) {
-        QStringList& target = key[0] == 'o' ? layout.objectBar : layout.contextMenu;
-        if (!readStringList(root.value(QLatin1String(key)), target)) {
-            error = QStringLiteral("%1 : tableau de chaînes attendu").arg(QLatin1String(key));
+    if (!readStringList(root.value(QStringLiteral("objectBar")), layout.objectBar)) {
+        error = QStringLiteral("objectBar : tableau de chaînes attendu");
+        return false;
+    }
+    {
+        const ItemsStatus status = readMenuItems(root.value(QStringLiteral("contextMenu")),
+                                                 layout.contextMenu, &layout.contextSubmenus);
+        if (status == ItemsStatus::InvalidSubmenu) {
+            error = QStringLiteral("contextMenu : sous-menu invalide");
+            return false;
+        }
+        if (status != ItemsStatus::Ok) {
+            error = QStringLiteral("contextMenu : tableau attendu");
             return false;
         }
     }
@@ -215,7 +224,14 @@ QStringList unknownCommands(const Layout& layout, const CommandRegistry& registr
         check(id);
     }
     for (const QString& id : layout.contextMenu) {
-        check(id);
+        if (!id.startsWith(QLatin1Char('>'))) {
+            check(id);
+        }
+    }
+    for (const MenuSpec& submenu : layout.contextSubmenus) {
+        for (const QString& id : submenu.items) {
+            check(id);
+        }
     }
     for (const PaletteGroup& group : layout.palette) {
         for (const QString& id : group.items) {
