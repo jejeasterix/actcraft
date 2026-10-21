@@ -17,6 +17,9 @@ Item {
     property alias pageOverlays: pageOverlaysItem
     property alias presentationSlot: presentationSlotItem
     property alias selectionOverlay: selectionOverlayItem
+    // Lot 4 : poignée d'extension (commande view.page-extension) et grille du dessus.
+    property alias pageExtensionHandle: pageExtensionHandleItem
+    property alias gridOverlay: gridOverlayItem
     // Nombre de demandes de menu contextuel reçues de la vue (espion des tests).
     property int contextMenuRequestCount: 0
     property bool cacheEnabled: true
@@ -104,6 +107,25 @@ Item {
                 anchors.fill: parent
             }
 
+            // Lot 4 : grille du dessus (F-620), entre l'encre et les surcouches (D17), hors de la scène que le
+            // cache photographie. Talon : L4-T7 la remplit. Sans `z:` : l'ordre des enfants fait l'empilement.
+            GridOverlay {
+                id: gridOverlayItem
+                objectName: "gridOverlay"
+                anchors.fill: parent
+                zoom: view.zoom
+                fixedPage: fixedPageItem
+            }
+            // PageSettingsChanged n'atteint pas la page fixe : la grille est relue sur le changement de la page
+            // affichée.
+            Connections {
+                target: area.documentController
+                function onPageContentChanged(page) {
+                    if (area.documentController && page === area.documentController.currentIndex)
+                        gridOverlayItem.refresh()
+                }
+            }
+
             // Lot 7 : surcouches en coordonnées de page (outils de maths, origine XY, spot, rideau de la page), au
             // dessus de l'encre et de la couche d'attente ; jamais dans la scène que le cache photographie. Une
             // surcouche qui prend l'entrée se déclare couverture (view.addInputCover).
@@ -111,6 +133,16 @@ Item {
                 id: pageOverlaysItem
                 objectName: "pageOverlays"
                 anchors.fill: parent
+
+                // Lot 4 : zones et poignée d'extension de la page (talons).
+                PageZonesOverlay {
+                    objectName: "pageZones"
+                    anchors.fill: parent
+                }
+                PageExtensionHandle {
+                    id: pageExtensionHandleItem
+                    objectName: "pageExtensionHandle"
+                }
             }
         }
     }
@@ -124,6 +156,10 @@ Item {
         tools: area.tools
         view: view
         visible: area.tools !== null
+    }
+    // Lot 4 : éditeur de texte (talon), à côté de la sélection.
+    TextEditor {
+        objectName: "textEditor"
     }
     ToolCursor {
         id: toolCursor

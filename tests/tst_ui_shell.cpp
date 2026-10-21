@@ -783,8 +783,8 @@ private slots:
         }
         // Amendement 1 du lot 4 : la grille du dessus sort de la scène du cache (L4-T7) ; rang fixé par D17
         // (amendement 4) : entre l'encre et les surcouches. L'autre rang envisagé (sous l'encre) tombe.
-        QCOMPARE(names, (QStringList{"fixedPage", "pageCache", "pendingLayer", "liftLayer", "ink", "gridOverlay",
-                                     "pageOverlays"}));
+        QCOMPARE(names, (QStringList{"fixedPage", "pageCache", "pendingLayer", "liftLayer", "ink",
+                                     "gridOverlay", "pageOverlays"}));
     }
 
     // L4-T2 : chaque élément de la coquille du lot 4 existe, nommé, en talon.
@@ -792,10 +792,10 @@ private slots:
     {
         Shell s;
         QVERIFY(start(s));
-        for (const char* name : {"browserPanel", "pageNavigator", "shapePalette", "textFormatBar", "textEditor",
-                                 "verticalTextBar", "gridDesigner", "backgroundDialog", "pageExtensionHandle",
-                                 "pageZones", "gridOverlay", "appPageSettings", "appThumbnails", "appPages",
-                                 "appText"}) {
+        for (const char* name :
+             {"browserPanel", "pageNavigator", "shapePalette", "textFormatBar", "textEditor",
+              "verticalTextBar", "gridDesigner", "backgroundDialog", "pageExtensionHandle", "pageZones",
+              "gridOverlay", "appPageSettings", "appThumbnails", "appPages", "appText"}) {
             const QString objectName = QString::fromLatin1(name);
             QVERIFY2(s.window->findChild<QObject*>(objectName) != nullptr ||
                          findItem(s.window->contentItem(), objectName),
@@ -828,8 +828,8 @@ private slots:
         QVERIFY(start(s));
         const auto parse = [&s](const QVariant& argument) {
             QVariant result;
-            const bool invoked = QMetaObject::invokeMethod(s.window, "editAtArgument",
-                                                           Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, argument));
+            const bool invoked = QMetaObject::invokeMethod(
+                s.window, "editAtArgument", Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, argument));
             return invoked ? result : QVariant(QStringLiteral("non appelée"));
         };
         const QVariantMap vertical = parse(QStringLiteral("120;80;1")).toMap();
