@@ -275,6 +275,18 @@ core::PointF around(core::PointF center, core::PointF from, double degrees)
 
 const std::vector<core::ObjectId> none;
 
+// Grille de 50 qui accroche (niveau unique, origine en (0, 0)).
+void snappingGrid(Rig& r, bool snapEnabled = true)
+{
+    core::Grid& grid = r.editor.document.page(0).grid;
+    grid.visible = true;
+    grid.snapEnabled = snapEnabled;
+    core::GridLevel level;
+    level.spacingX = 50;
+    level.spacingY = 50;
+    grid.levels.push_back(level);
+}
+
 // Position d'un point par rapport au bord a→b d'un cadre : `out` = distance vers l'extérieur (le côté de
 // `inside` est le côté intérieur), `along` = abscisse le long du bord depuis a.
 struct EdgeCoords
@@ -355,6 +367,56 @@ private slots:
         QCOMPARE(r.lift.clears, 1);
         QCOMPARE(r.user.selection(), (std::vector<core::ObjectId>{1}));
         QVERIFY(!r.tool.isBusy());
+    }
+
+    // L4-T9 : l'accrochage ne joue qu'au dépôt (F-622).
+    void dropSnapsBottomLeftCorner()
+    {
+        Rig r;
+        r.only(12, 12, 40, 30); // coin bas gauche en (12, 42)
+        snappingGrid(r);
+        r.drag(20, 20, 50, 20, 5);
+        QCOMPARE(r.editor.calls.back(), std::string("drop:Transform"));
+        const core::Transform t = r.editor.find(1)->common.transform;
+        QCOMPARE(t.dx, 38.0);
+        QCOMPARE(t.dy, 8.0);
+    }
+
+    void noSnapWithoutGridSnap()
+    {
+        Rig r;
+        r.only(12, 12, 40, 30);
+        snappingGrid(r, false);
+        r.drag(20, 20, 50, 20, 5);
+        const core::Transform t = r.editor.find(1)->common.transform;
+        QCOMPARE(t.dx, 30.0);
+        QCOMPARE(t.dy, 0.0);
+    }
+
+    void snapDragRefreshesTheCacheTwice()
+    {
+        Rig r;
+        r.only(12, 12, 40, 30);
+        snappingGrid(r);
+        r.drag(20, 20, 50, 20, 10);
+        QCOMPARE(r.editor.lifts, 1);
+        QCOMPARE(r.editor.drops, 1);
+        QCOMPARE(r.editor.executes, 0);
+    }
+
+    void noSnapDuringTheDrag()
+    {
+        Rig r;
+        r.only(12, 12, 40, 30);
+        snappingGrid(r);
+        r.press(20, 20);
+        r.move(35, 20);
+        r.move(50, 20);
+        QCOMPARE(r.lift.last.dx, 30.0); // translation brute pendant le geste
+        QCOMPARE(r.lift.last.dy, 0.0);
+        r.release(50, 20);
+        QCOMPARE(r.editor.find(1)->common.transform.dx, 38.0); // seule la commande déposée s'accroche
+        QCOMPARE(r.editor.find(1)->common.transform.dy, 8.0);
     }
 
     void handlesHiddenAndFrameFollowsWhileDragging()
