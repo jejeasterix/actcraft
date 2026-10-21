@@ -7,8 +7,10 @@
 Sources : `docs/verifications/2026-10-21-lot4-observation.md` (L4-O1) et `docs/verifications/2026-10-21-lot4-observation-2.md`
 (L4-O2), lus en entier ; rapports de L4-T6, L4-T15, L4-T17 et L4-T21 (fichier d'état). Chaque décision ci-dessous est
 tranchée par l'orchestrateur. Les paragraphes « Amendement 5 » des sections priment sur les amendements 1 à 4.
-**Tâches mergées** (L4-T0 à L4-T6, L4-T9, L4-T10, L4-T15, L4-T16, L4-T22, L4-O1, L4-O2) et **finies, en rejeu** (L4-T17,
-L4-T18, L4-T21) : leur contrat n'est pas réécrit ; leur section reçoit au plus une note « écart constaté ». Chaque
+**Tâches mergées** (L4-T0 à L4-T6, L4-T9, L4-T10, L4-T15, L4-T16, L4-T22, L4-O1, L4-O2, et L4-T17, L4-T18, L4-T21 :
+ccd826b, 0a54fab, 8a64872) : leur contrat n'est pas réécrit ; leur section reçoit au plus une note « écart constaté ».
+**En cours** : L4-T24, lancée sur e9e6e42 ; cet amendement ne la change pas (sa note ne fixe que l'ordre de
+`tests/tst_formats_lot4.cpp` avec L4-C4). Chaque
 changement, son fondement, les tâches touchées :
 
 1. **D5 — Maj sans effet** (L4-O2, contredit avec un témoin : Maj injectée est bien reçue pendant un geste de souris,
@@ -54,7 +56,7 @@ changement, son fondement, les tâches touchées :
    (et avant de lire les pages pour copier), par le chemin d'`announceEdit` : `editAboutToApply`, puis dépôt forcé de ce
    qui resterait soulevé. Chemin le plus étroit : `ui/src/pagescontroller.cpp` seul (justification dans sa section).
    Dépend de L4-T18 et L4-T21. Tests rouges aujourd'hui : `duplicateDuringEditKeepsTheText`,
-   `deleteDuringEditCommitsFirst` (`tests/tst_ui_text.cpp`).
+   `cutDuringEditKeepsTheText`, `deleteDuringEditCommitsFirst` (`tests/tst_ui_text.cpp`).
 8. **Miniatures** (trouvé par L4-T17) : `Main.qml` crée `appThumbnails` en permanence ; les miniatures sont rendues
    panneau fermé, banc compris. → **L4-T19** suspend le rendu quand le panneau des navigateurs est caché (propriété
    `active` ajoutée en fin de `PageThumbnails`, liée à `browserPanel.visible`) ; test `inactiveRendersNothing`.
@@ -64,11 +66,11 @@ changement, son fondement, les tâches touchées :
 9. **Correctif L4-C4 ajouté au plan 4b** (trouvé par L4-T15) : le format natif réécrit un `UnknownObject` depuis son
    JSON d'origine (`formats/src/nativejson.cpp:710-718`). Une page collée qui contient un objet inconnu garde l'ancien
    identifiant dans le fichier : doublon après enregistrement puis relecture. Contrat : écrire l'identifiant courant à
-   la place de celui du JSON d'origine. Dépend de L4-T15 et L4-T6. Test rouge aujourd'hui
+   la place de celui du JSON d'origine. Dépend de L4-T15 et L4-T6, et de L4-T24 (même fichier de test). Test rouge aujourd'hui
    `unknownObjectWritesItsCurrentId`. Fichiers : `formats/src/nativejson.cpp`, `tests/tst_formats_lot4.cpp`.
 10. **Vagues.** 4a reprend en trois vagues, L4-T7 et L4-T8 débloquées : **R1** : L4-C3 ‖ L4-T8 · **R2** : L4-T7 ‖
     L4-T11 ‖ L4-T31 · **R3** : L4-T12 ‖ L4-T13 ‖ L4-T14 · puis le point d'étape de 4a (section « Vagues »). 4b : **L4-C4
-    en V8**, à la place de L4-T22 (mergée) ; **L4-C2 en V12** avec L4-T30 et L4-C1 (section « Vagues » du plan 4b).
+    en V9 bis**, seule, après le merge de L4-T24 (en cours) et avant L4-T27 ; **L4-C2 en V12** avec L4-T30 et L4-C1 (section « Vagues » du plan 4b).
     Aucun fichier commun dans une même vague (vérifié sur la colonne « fichiers touchés »).
 11. **Hypothèses.** H4-12 et H4-14 sont tranchées (D5 contredit, D6 confirmé ; D10 cumulé) ; H4-4 mise à jour ;
     H4-20 à H4-24 ajoutées (section « Hypothèses à revoir »). La réserve de L4-O2 sur Maj+clic (n'ajoute pas à la

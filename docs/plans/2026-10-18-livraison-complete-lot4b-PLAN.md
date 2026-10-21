@@ -5,8 +5,9 @@
 ## Amendement 5 (observations L4-O1 et L4-O2, découvertes des tâches, 2026-10-21)
 
 Liste complète, avec la décision qui fonde chaque changement : plan 4a, section « Amendement 5 ». Les paragraphes
-« Amendement 5 » des sections priment sur les amendements 1 à 4. Tâches mergées (L4-T15, L4-T16, L4-T22) et finies en
-rejeu (L4-T17, L4-T18, L4-T21) : note « écart constaté » seulement. Ce qui change ici :
+« Amendement 5 » des sections priment sur les amendements 1 à 4. Tâches mergées (L4-T15, L4-T16, L4-T22, et L4-T17,
+L4-T18, L4-T21 : ccd826b, 0a54fab, 8a64872) : note « écart constaté » seulement. En cours : L4-T24 (lancée sur
+e9e6e42), que cet amendement ne change pas. Ce qui change ici :
 - **L4-T19** : miniatures suspendues quand le panneau des navigateurs est caché — propriété `active` ajoutée en fin de
   `PageThumbnails`, liée à `browserPanel.visible` dans `Main.qml` ; test `inactiveRendersNothing` (trouvé par L4-T17 :
   `appThumbnails` rendait panneau fermé, banc compris).
@@ -26,7 +27,7 @@ rejeu (L4-T17, L4-T18, L4-T21) : note « écart constaté » seulement. Ce qui c
 - **Correctif L4-C2 ajouté** (trouvé par L4-T21) : le contrôleur des pages valide l'édition en cours avant toute
   commande de pages ; V12.
 - **Correctif L4-C4 ajouté** (trouvé par L4-T15) : un objet de type inconnu s'écrit avec son identifiant courant ;
-  V8, à la place de L4-T22 (mergée).
+  V9 bis, seule, après le merge de L4-T24 et avant L4-T27.
 - Hypothèses H4-20 à H4-24 : plan 4a. 19 tâches dans ce sous-lot ; **N inchangé** (= 136 + n_B) : L4-C2 et L4-C4
   ajoutent des fonctions à `tst_ui_text` et `tst_formats_lot4`, déjà enregistrés.
 
@@ -114,18 +115,18 @@ restants ceux de 4b seulement, N = 136 + n_B. Les décisions D1 à D19 de L4-T0 
 | L4-T21 | `ui` : édition du texte (soulèvement, validation, texte vide, barre de mise en forme) | L4-T16 | `ui/include/actcraft/ui/textediting.h`, `ui/src/textediting.cpp`, `tests/tst_ui_text.cpp`, `ui/src/documentcontroller.cpp` (attendu inchangé, V6 : seulement si un dépôt forcé n'émet ni `editAboutToApply` ni `pageAboutToChange`) | isolé | concepteur-critique | `TESTS OK`, `tst_ui_text` Passed (dont `editingLoadsNoExternalResource`, `saveDuringEditCommitsFirst`, `undoDuringEditCommitsFirst`, `pageChangeDuringEditCommitsFirst`, `newTextStartsWithPlaceholderSelected`, `typingThenCommitAddsOneObject`, `emptyTextIsNotKept` (texte neuf et texte existant vidé), `editingExistingLiftsIt`, `commitMakesASingleStep`, `boldAppliesToSelection`, `sizeUpStepsByTwo`, `sizeDownStopsAtEight`, `spacingAddsTwoPointsAbove`, `lockedTextIsNotEdited`, `textOfLot7IsEditable`, `cancelRestoresLifted`) ; banc hors écran joint | S7.3 | #tache-l4-t21 |
 | L4-T22 | `tools` : outils Texte et Texte de haut en bas | L4-T1 | `tools/include/actcraft/tools/texttool.h`, `tools/src/texttool.cpp`, `tests/tst_tools_text.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_text` Passed (dont `pressAsksToEditAt`, `verticalToolSaysVertical`, `deactivateCommits`, `neverBusy`) | S7.3, S16 | #tache-l4-t22 |
 | L4-T19 | QML : panneau des navigateurs (icônes, ancrage, Ctrl+B, largeur) et navigateur de pages ; miniatures suspendues panneau caché (amendement 5) ; scénario `navigateur-pages` | L4-T17, L4-T18 | `ui/qml/BrowserPanel.qml`, `ui/qml/PageNavigator.qml`, `ui/icons/{nav-ressources,nav-objets,nav-notes,nav-proprietes,nav-actions}.svg`, `ui/CMakeLists.txt`, `tests/tst_ui_theme.cpp`, `bench/scenarios/navigateur-pages.json`, `ui/include/actcraft/ui/pagethumbnails.h` (ajout en fin, signalé), `ui/src/pagethumbnails.cpp`, `tests/tst_ui_pagethumbnails.cpp`, `ui/qml/Main.qml` (une ligne) | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_navigateur_pages` Passed, `tst_ui_theme` (`iconsAreOurSvgOnA24Grid` : 5 lignes neuves en `PASS`), `tst_ui_pagethumbnails` (dont `inactiveRendersNothing`, les sept fonctions de L4-T17 inchangées) Passed ; `captures.ps1 -Scenario navigateur-pages` hors écran : `LU appThumbnails.active=false OK` avant `view.browsers`, `LU browserPanel.visible=true OK`, `LU appThumbnails.active=true OK`, `LU appPages.selection=[0,1] OK`, `LU appDocument.pageCount=5 OK`, `CAPTURES OK` ; banc hors écran joint | S7.4 | #tache-l4-t19 |
-| L4-T24 | Texte de haut en bas I : rendu (colonne d'un caractère) et lecture `.flipchart` par le cadre et l'image (D9) | L4-T0, L4-T6, L4-C4 (fichier `tests/tst_formats_lot4.cpp`, amendement 5) | `render/src/pagepainter.cpp`, `render/src/paintedrenderer.cpp`, `tests/tst_render_verticaltext.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_render_verticaltext` (dont `lettersStackOneUnderAnother`, `boldIsKept`, `sameInPainterAndTexture`), `tst_formats_lot4` (dont `flipchartVerticalTextRead` : image au cadre, ou objet non lu déclaré) Passed ; `tst_formats_oracle_synth` Passed ; banc hors écran joint | S16 | #tache-l4-t24 |
+| L4-T24 | Texte de haut en bas I : rendu (colonne d'un caractère) et lecture `.flipchart` par le cadre et l'image (D9) | L4-T0, L4-T6 | `render/src/pagepainter.cpp`, `render/src/paintedrenderer.cpp`, `tests/tst_render_verticaltext.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_render_verticaltext` (dont `lettersStackOneUnderAnother`, `boldIsKept`, `sameInPainterAndTexture`), `tst_formats_lot4` (dont `flipchartVerticalTextRead` : image au cadre, ou objet non lu déclaré) Passed ; `tst_formats_oracle_synth` Passed ; banc hors écran joint | S16 | #tache-l4-t24 |
 | L4-T26 | Page allongée : poignée, commande, une étape par clic ; scénario S15 (partie 1) | L4-T4, L4-T13, L4-T17, L4-T21, L4-O1 (plan 4a, D10) | `ui/qml/PageExtensionHandle.qml`, `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `ui/src/documentcontroller.cpp`, `ui/src/pageview.cpp`, `bench/scenarios/page-allongee-zones.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `extendPageThreeTimes`, `extendKeepsTheCurrentTool`, `viewFollowsTheNewHeight`), `tst_captures_page_allongee_zones` Passed ; captures hors écran : `LU appPageSettings.pageHeight=1022.208 OK` (amendement 5, D10 cumulé), `LU pageExtensionHandle.atPageBottom=true OK`, `LU appTools.currentTool=pen OK`, `LU appPageSettings.pageHeight=768 OK`, `CAPTURES OK` ; banc hors écran joint | S15 | #tache-l4-t26 |
 | L4-T20 | Menu de page appliqué aux pages sélectionnées ; boîte « Fond de la page » (E2) | L4-T19, L4-T26 | `ui/qml/PageContextMenu.qml`, `ui/qml/BackgroundDialog.qml`, `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `bench/scenarios/navigateur-pages.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `backgroundColorIsOneStep`, `backgroundGradient`, `backgroundRefreshesOnce`, `eachApplyIsOneStep`), `tst_captures_navigateur_pages` Passed ; captures hors écran (D15, trois boutons) : `LU backgroundDialog.visible=true OK` après « appliquer », `PIXEL fond-jaune OK`, `LU backgroundDialog.visible=false OK` après « annuler », fond toujours jaune, `CAPTURES OK` | S7.4 | #tache-l4-t20 |
 | L4-T23 | QML : éditeur de texte et barre de mise en forme ; scénario `texte` | L4-T21, L4-T22 | `ui/qml/TextEditor.qml`, `ui/qml/TextFormatBar.qml`, `bench/scenarios/texte.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_texte` Passed ; captures hors écran : `LU appText.active=true OK`, `TEXTE Bonjour OK`, `LU appText.bold=true OK`, `LU browserPanel.visible=false OK` (Ctrl+B pendant la frappe, D8), `LU appDocument.shownObjectCount=1 OK`, `LU appText.active=false OK` après Échap (validé, D7), `CAPTURES OK` ; banc hors écran joint | S7.3 | #tache-l4-t23 |
-| L4-T27 | Zones de page I : modèle, commande, natif (et `.flipchart` si D11 l'a relevé) | L4-T0, L4-T24 | `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/include/actcraft/core/pagezones.h`, `core/src/pagezones.cpp`, `tests/tst_core_zones.cpp`, `formats/src/nativejson.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_core_zones` (dont `zonesKeepOldFingerprints`, `setZonesIsOneStep`, `zonesChangeIsIgnoredByTheCache`, `zonesAreBounded` (0 à 40 en largeur, 0 à 53 en hauteur, D11 ; tailles négatives ou non finies ramenées à 0 ; taille non nulle d'au moins 500, amendement 5, H4-20), `extendKeepsTheFrameSize`, `separatorsDoNotAttract` (amendement 5, H4-21)), `tst_formats_lot4` (dont `zonesRoundTrip`, taille d'un cadre comprise, et `zonesKeyIsKnown`, amendement 5) Passed | S15 | #tache-l4-t27 |
+| L4-T27 | Zones de page I : modèle, commande, natif (et `.flipchart` si D11 l'a relevé) | L4-T0, L4-T24, L4-C4 (amendement 5 : mêmes fichiers du format natif) | `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/include/actcraft/core/pagezones.h`, `core/src/pagezones.cpp`, `tests/tst_core_zones.cpp`, `formats/src/nativejson.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_core_zones` (dont `zonesKeepOldFingerprints`, `setZonesIsOneStep`, `zonesChangeIsIgnoredByTheCache`, `zonesAreBounded` (0 à 40 en largeur, 0 à 53 en hauteur, D11 ; tailles négatives ou non finies ramenées à 0 ; taille non nulle d'au moins 500, amendement 5, H4-20), `extendKeepsTheFrameSize`, `separatorsDoNotAttract` (amendement 5, H4-21)), `tst_formats_lot4` (dont `zonesRoundTrip`, taille d'un cadre comprise, et `zonesKeyIsKnown`, amendement 5) Passed | S15 | #tache-l4-t27 |
 | L4-T25 | Texte de haut en bas II : outil, barre, scénario `texte-vertical` (S16) | L4-T23, L4-T24 | `ui/qml/VerticalTextBar.qml`, `ui/src/textediting.cpp`, `tests/tst_ui_text.cpp`, `bench/scenarios/texte-vertical.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_text` (dont `verticalFrameIsOneColumn`, `verticalBarOffersFiveCommands`), `tst_captures_texte_vertical` Passed ; captures hors écran : `LU appText.vertical=true OK`, `PIXEL lettre-a OK`, `PIXEL lettre-b OK`, `PIXEL lettre-c OK`, `LU appDocument.fingerprint=${avant} OK`, `CAPTURES OK` | S16 | #tache-l4-t25 |
-| L4-T28 | Zones de page II : séparations pointillées des cadres en surcouche (édition et plein écran), réglage ; scénario S15 (partie 2) — amendement 5 : plus suspendue | L4-T20, L4-T26, L4-T27, L4-O2 (plan 4a) | `ui/qml/PageZonesOverlay.qml`, `ui/qml/PageArea.qml`, `ui/qml/Main.qml` (une ligne), `ui/qml/Theme.qml` (un jeton ajouté), `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `bench/scenarios/page-allongee-zones.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `zonesRefreshNoCache`, `nextPageIgnoresFrames`), `tst_captures_page_allongee_zones` Passed ; captures hors écran : `LU appPageSettings.zones=2x0 OK`, `LU pageZones.separatorCount=1 OK`, `PIXEL separation-zone OK`, `LU pageZones.separatorCount=3 OK` (2 × 3 cadres), `LU pageZones.visible=true OK` en plein écran, `LU appDocument.fingerprint=${avant} OK`, `CAPTURES OK` ; banc hors écran joint | S15 | #tache-l4-t28 |
+| L4-T28 | Zones de page II : séparations pointillées des cadres en surcouche (édition et plein écran), réglage ; scénario S15 (partie 2) — amendement 5 : plus suspendue | L4-T20, L4-T26, L4-T27, L4-O2 (plan 4a) | `ui/qml/PageZonesOverlay.qml`, `ui/qml/PageArea.qml`, `ui/qml/Main.qml` (une ligne), `ui/qml/Theme.qml` (un jeton ajouté), `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `bench/scenarios/page-allongee-zones.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `zonesRefreshNoCache`, `nextPageIgnoresFrames`), `tst_captures_page_allongee_zones` Passed ; captures hors écran : `LU appPageSettings.zones=2x0 OK`, `LU pageZones.separatorCount=1 OK`, `BORD separation-zone OK` (`checkEdge`, au moins un pixel de pointillé), `LU pageZones.separatorCount=3 OK` (2 × 3 cadres), `LU pageZones.visible=true OK` en plein écran, `LU appDocument.fingerprint=${avant} OK`, `CAPTURES OK` ; banc hors écran joint | S15 | #tache-l4-t28 |
 | L4-T29 | Banc : scénarios `miniatures` (écrire, panneau des navigateurs ouvert) et `miniatures-ferme` (panneau fermé, amendement 5) | L4-T19 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `docs/banc.md` | isolé | implementeur-tdd | `TESTS OK`, `tst_bench_scenarios` (dont `thumbnailsScenarioOpensTheBrowsers`, `closedPanelVariantKeepsItClosed`), `tst_bench_result` (dont `thumbnailsShowInTheResult`) Passed ; banc hors écran : scénario `miniatures` présent, `thumbnails.renders ≥ 1` **dans la fenêtre mesurée**, `thumbnails.during_contact = 0`, `thumbnails.max_copy_ms` relevé ; scénario `miniatures-ferme` présent, `thumbnails.renders = 0` dans la fenêtre mesurée ; variante sur `pauses` jouée | S7.5 | #tache-l4-t29 |
 | L4-T30 | Scénario S7 `formes-texte-pages-grille`, rejoué à l'écran en D3D11 | L4-T12, L4-T13, L4-T20, L4-T23 | `bench/scenarios/formes-texte-pages-grille.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_formes_texte_pages_grille` Passed ; hors écran `CAPTURES OK` (`LU appThumbnails.renderCount=…` en hausse après le texte, `LU appDocument.currentIndex=0 OK` après le glisser, `PIXEL coin-accroche OK`) ; à l'écran D3D11 (jeton `ecran`) `CAPTURES OK` | S7 | #tache-l4-t30 |
 | L4-C1 | Correctif : taille personnalisée d'un paperboard neuf en pixels d'un cadre et en nombre de cadres (D16, E10) ; taille de page = cadres × cadre, cadre de 500 au moins (amendement 5) | L4-T26, L4-T27, L4-O1, L4-O2 (plan 4a) | `ui/qml/PageSizeDialog.qml`, `ui/qml/FileActions.qml`, `ui/include/actcraft/ui/documentcontroller.h` (ajout en fin, signalé), `ui/src/documentcontroller.cpp`, `tests/tst_ui_filemenu.cpp` | isolé | implementeur-tdd | `TESTS OK`, N inchangé (= 136 + n_B), `tst_ui_filemenu` Passed (dont `customSizeTakesFrames` par `acceptFramedSize` : page de 1000 × 1500, cadres de 500 × 500, `newSizesComeFromTheirCommands` inchangé) ; `premiers-pas` hors écran `CAPTURES OK` | S15 | #tache-l4-c1 |
-| L4-C2 | Correctif de L4-T18 : le contrôleur des pages valide l'édition du texte avant toute commande de pages (amendement 5) | L4-T18, L4-T21, L4-T25 (fichier `tests/tst_ui_text.cpp`) | `ui/src/pagescontroller.cpp`, `tests/tst_ui_text.cpp` | isolé | concepteur-critique | rouge d'abord (`duplicateDuringEditKeepsTheText`, `deleteDuringEditCommitsFirst` en `FAIL!` sur le code d'avant), puis `TESTS OK`, N = 136 + n_B inchangé (aucun test enregistré), `tst_ui_text` Passed (dont `duplicateDuringEditKeepsTheText`, `deleteDuringEditCommitsFirst`, et `pageChangeDuringEditCommitsFirst` de L4-T21 inchangé), `tst_ui_pages` Passed (fonctions de L4-T18 inchangées) ; banc hors écran joint | S7, S7.3, S7.4 | #tache-l4-c2 |
-| L4-C4 | Correctif de L4-T6 et L4-T15 : un objet de type inconnu s'écrit avec son identifiant courant (amendement 5) | L4-T6, L4-T15 | `formats/src/nativejson.cpp`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | rouge d'abord (`unknownObjectWritesItsCurrentId` en `FAIL!` sur le code d'avant), puis `TESTS OK`, N = 136 + n_B inchangé (aucun test enregistré), `tst_formats_lot4` Passed (dont `unknownObjectWritesItsCurrentId`, fonctions de L4-T6 inchangées), `tst_formats_nativejson` et `tst_formats_nativefile` Passed (objets inconnus du lot 2 gardés tels quels) | S7, S7.4 | #tache-l4-c4 |
+| L4-C2 | Correctif de L4-T18 : le contrôleur des pages valide l'édition du texte avant toute commande de pages (amendement 5) | L4-T18, L4-T21, L4-T25 (fichier `tests/tst_ui_text.cpp`) | `ui/src/pagescontroller.cpp`, `tests/tst_ui_text.cpp` | isolé | concepteur-critique | rouge d'abord (`duplicateDuringEditKeepsTheText`, `cutDuringEditKeepsTheText`, `deleteDuringEditCommitsFirst` en `FAIL!` sur le code d'avant), puis `TESTS OK`, N = 136 + n_B inchangé (aucun test enregistré), `tst_ui_text` Passed (dont `duplicateDuringEditKeepsTheText`, `cutDuringEditKeepsTheText`, `deleteDuringEditCommitsFirst`, et `pageChangeDuringEditCommitsFirst` de L4-T21 inchangé), `tst_ui_pages` Passed (fonctions de L4-T18 inchangées) ; banc hors écran joint | S7, S7.3, S7.4 | #tache-l4-c2 |
+| L4-C4 | Correctif de L4-T6 et L4-T15 : un objet de type inconnu s'écrit avec son identifiant courant (amendement 5) | L4-T6, L4-T15, L4-T24 (fichier `tests/tst_formats_lot4.cpp`) | `formats/src/nativejson.cpp`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | rouge d'abord (`unknownObjectWritesItsCurrentId` en `FAIL!` sur le code d'avant), puis `TESTS OK`, N = 136 + n_B inchangé (aucun test enregistré), `tst_formats_lot4` Passed (dont `unknownObjectWritesItsCurrentId`, fonctions de L4-T6 inchangées), `tst_formats_nativejson` et `tst_formats_nativefile` Passed (objets inconnus du lot 2 gardés tels quels) | S7, S7.4 | #tache-l4-c4 |
 
 17 tâches (T15 à T30, et L4-C1 par l'amendement 4). Aucune n'enregistre de test (L4-T1 l'a fait ; L4-C1 ajoute une
 fonction à `tst_ui_filemenu`, déjà enregistré) : N = 136 + n_B partout, `TESTS OK`. **Amendement 5 :** 19 tâches
@@ -139,11 +140,13 @@ Jérôme d'une ligne avant.
 V7 : L4-T15 ‖ L4-T16 ‖ L4-T17 · V8 : L4-T18 ‖ L4-T21 ‖ L4-T22 · V9 : L4-T19 ‖ L4-T24 ‖ L4-T26 ·
 V10 : L4-T20 ‖ L4-T23 ‖ L4-T27 · V11 : L4-T25 ‖ L4-T28 ‖ L4-T29 · V12 : L4-T30 ‖ L4-C1 · puis la clôture.
 
-**Amendement 5.** V8 devient **L4-T18 ‖ L4-T21 ‖ L4-C4** : L4-T22 est mergée ; L4-C4 dépend de L4-T6 et L4-T15,
-mergées, et ses fichiers (`formats/src/nativejson.cpp`, `tests/tst_formats_lot4.cpp`) ne recoupent ni ceux de L4-T18
-(`pagescontroller.*`, `tst_ui_pages.cpp`) ni ceux de L4-T21 (`textediting.*`, `tst_ui_text.cpp`,
-`documentcontroller.cpp`) ; L4-T17 (V7, en rejeu) non plus (`pagethumbnails.*`, `pageview.*`,
-`tst_ui_pagethumbnails.cpp`). L4-C4 se merge avant V9 : L4-T24 le suit sur `tst_formats_lot4.cpp`.
+**Amendement 5.** V7 et V8 sont mergées (L4-T15, L4-T16, L4-T17, L4-T18, L4-T21, L4-T22). L4-T24 est en cours
+(lancée sur e9e6e42). **L4-C4 joue en V9 bis, seule**, après le merge de L4-T24 et avant L4-T27 (V10) : ses deux
+fichiers (`formats/src/nativejson.cpp`, `tests/tst_formats_lot4.cpp`) sont aussi ceux de L4-T24
+(`tst_formats_lot4.cpp`) et de L4-T27 (les deux) ; elle dépend donc de L4-T24, et L4-T27 dépend d'elle. Elle ne
+recoupe aucune autre tâche de V9 (L4-T19 : QML, icônes, `pagethumbnails.*`, `Main.qml` ; L4-T26 : `pageoptions.cpp`,
+`tst_ui_pagesettings.cpp`, `documentcontroller.cpp`, `pageview.cpp`, scénario) : si L4-T24 est mergée avant que V9 ne
+finisse, L4-C4 peut partir aussitôt, en parallèle de L4-T19 et L4-T26.
 V12 devient **L4-T30 ‖ L4-C1 ‖ L4-C2** : L4-C2 dépend de L4-T18 et L4-T21 (V8) et suit L4-T25 (V11) sur
 `tests/tst_ui_text.cpp` ; V9, V10 et V11 sont pleines (trois tâches). Ses fichiers (`pagescontroller.cpp`,
 `tst_ui_text.cpp`) ne recoupent ni `formes-texte-pages-grille.json` (L4-T30) ni ceux de L4-C1 (`PageSizeDialog.qml`,
@@ -165,7 +168,8 @@ L4-T27) ; `formats/src/nativejson.cpp` (L4-T6 → L4-T27) ; `ui/src/pageview.cpp
 `tests/tst_ui_theme.cpp` (L4-T1 → L4-T19) ; `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`
 (L4-T1 → L4-T21 → L4-T26 → L4-C1) ;
 `bench/src/scenarios.cpp`, `runner.cpp`, `tst_bench_*` (L4-T14 → L4-T29) ; `ui/CMakeLists.txt` (L4-T2 → L4-T19).
-**Amendement 5 :** `formats/src/nativejson.cpp`, `tests/tst_formats_lot4.cpp` (L4-T6 → L4-C4 → L4-T24 → L4-T27) ;
+**Amendement 5 :** `formats/src/nativejson.cpp`, `tests/tst_formats_lot4.cpp` (L4-T6 → L4-T24 → L4-C4 →
+L4-T27) ;
 `ui/src/pagescontroller.cpp` (L4-T18 → L4-C2) ; `tests/tst_ui_text.cpp` (L4-T21 → L4-T25 → L4-C2) ;
 `ui/include/actcraft/ui/pagethumbnails.h`, `ui/src/pagethumbnails.cpp`, `tests/tst_ui_pagethumbnails.cpp` (L4-T17 →
 L4-T19) ; `ui/qml/Main.qml` (L4-T2 → L4-T19 → L4-T28) ; `ui/qml/PageArea.qml` (L4-T2 → L4-C3 → L4-T7 de 4a →
@@ -486,7 +490,7 @@ emprise avant ∪ après) et `textBaseline` (ligne de base de la première ligne
 <a id="tache-l4-t17"></a>
 ### Tâche L4-T17 — `ui` : miniatures des pages
 
-**Écart constaté (amendement 5).** Finie, en rejeu ; contrat non réécrit. `Main.qml` crée `appThumbnails` en
+**Écart constaté (amendement 5).** Mergée (ccd826b) ; contrat non réécrit. `Main.qml` crée `appThumbnails` en
 permanence : les miniatures sont rendues panneau des navigateurs fermé, banc compris. La suspension est ajoutée par
 **L4-T19** (propriété `active`, défaut vrai : les fonctions de cette tâche ne changent pas) et mesurée par **L4-T29**.
 
@@ -600,7 +604,7 @@ fournisseur d'images enregistré dans le moteur (décision 8 du plan 4a).
 <a id="tache-l4-t18"></a>
 ### Tâche L4-T18 — `ui` : contrôleur des pages
 
-**Écart constaté (amendement 5).** Finie, en rejeu ; contrat non réécrit. Ses commandes passent par
+**Écart constaté (amendement 5).** Mergée (0a54fab) ; contrat non réécrit. Ses commandes passent par
 `DocumentController::execute()`, qui n'annonce rien : pendant l'édition d'un texte, supprimer, couper, dupliquer ou
 déplacer sans changer de page ne valide pas le texte d'abord. Correctif **L4-C2** (même fichier
 `ui/src/pagescontroller.cpp`, après le merge de cette tâche et de L4-T21).
@@ -644,7 +648,7 @@ F-601 : avant elle), `duplicateSelection` (`InsertPagesCommand` après la derni�
 <a id="tache-l4-t21"></a>
 ### Tâche L4-T21 — `ui` : édition du texte
 
-**Écart constaté (amendement 5).** Finie, en rejeu ; contrat non réécrit. Deux points relevés par son rapport :
+**Écart constaté (amendement 5).** Mergée (8a64872) ; contrat non réécrit. Deux points relevés par son rapport :
 (1) Échap n'atteint pas `TextTool::cancel()` (`ToolHost::cancelGesture` n'appelle `cancel()` que si l'outil est occupé,
 `ui/src/toolhost.cpp:370-378`, et `TextTool` ne l'est jamais) → **L4-T23** valide par `Keys.onShortcutOverride` ;
 (2) une commande de pages pendant l'édition ne valide pas le texte → correctif **L4-C2**.
@@ -1018,8 +1022,8 @@ alors ajoutés à la tâche par l'amendement de L4-T0) ; `expect appPages.select
 <a id="tache-l4-t24"></a>
 ### Tâche L4-T24 — Texte de haut en bas I : rendu et lecture `.flipchart`
 
-**Amendement 5.** Dépend aussi de **L4-C4** (V8), pour le fichier `tests/tst_formats_lot4.cpp` : partir de la base où
-L4-C4 est mergée ; ne pas toucher `unknownObjectWritesItsCurrentId`.
+**Amendement 5.** Contrat inchangé ; en cours (lancée sur e9e6e42). L4-C4 la suit sur `tests/tst_formats_lot4.cpp`
+(V9 bis) : rien à faire ici.
 
 **Amendement 4 (D9).** Rendu : inchangé (lettres empilées en colonne, supposé : écriture verticale asiatique).
 Lecture `.flipchart` : dans l'original, l'objet garde **une image rendue et une source opaque** ; le texte n'y est pas
@@ -1326,7 +1330,6 @@ en `PASS` ; preuve de tâche.
   #include <QtTest>
 
   #include <limits>
-  #include <optional>
 
   using namespace actcraft::core;
 
@@ -1400,9 +1403,10 @@ en `PASS` ; preuve de tâche.
           QCOMPARE(clampZones({.frameWidth = 0, .frameHeight = 700}).frameWidth, 0.0); // 0 : non donnée, gardée
           QCOMPARE(clampZones({.frameWidth = 0, .frameHeight = 700}).frameHeight, 700.0);
       }
-      // Amendement 5 (L4-O2, H4-21) : les séparations n'ajoutent aucun point d'accrochage, et la grille part de
-      // l'origine de la page, pas de celle de chaque cadre (supposé). Cadres de 500 : séparations en x = 500 et
-      // y = 500, qui ne sont pas des multiples de 32.
+      // Amendement 5 (L4-O2, H4-21) : les séparations n'attirent pas un objet déplacé et n'ajoutent aucun point
+      // d'accrochage ; la grille part de l'origine de la page, pas de celle de chaque cadre (supposé). Passe par
+      // snapDelta, qui reçoit la page entière (zones comprises), comme l'outil de sélection (L4-T9). Cadres de 500 :
+      // séparations en x = 500 et y = 500, qui ne sont pas des multiples de 32.
       void separatorsDoNotAttract()
       {
           Page page;
@@ -1411,10 +1415,18 @@ en `PASS` ; preuve de tâche.
           page.zones = PageZones{.horizontal = 2, .vertical = 3, .frameWidth = 500, .frameHeight = 500};
           page.grid.snapEnabled = true;
           page.grid.levels.push_back(GridLevel{}); // pas de 32, départ en (0, 0)
-          const std::optional<PointF> p = nearestGridPoint(page.grid, PointF{497, 503}, page.width, page.height);
-          QVERIFY(p.has_value());
-          QCOMPARE(p->x, 512.0); // 500 si la séparation attirait, ou si la grille repartait du cadre
-          QCOMPARE(p->y, 512.0);
+          PageObject shape{Shape{}};
+          shape.common.id = 1;
+          std::get<Shape>(body(shape)).bounds = RectF{497, 463, 40, 40}; // coin bas gauche en (497, 503)
+          page.objects.push_back(shape);
+          const PointF anchor = snapAnchor(page.objects.front());
+          QCOMPARE(anchor.x, 497.0);
+          QCOMPARE(anchor.y, 503.0);
+          // Ancrage ramené sur (512, 512) : +15, +9. Vers la séparation (500, 500), ou une grille repartie du
+          // cadre, ce serait +3, -3.
+          const PointF delta = snapDelta(page, {ObjectId{1}}, PointF{0, 0});
+          QCOMPARE(delta.x, 15.0);
+          QCOMPARE(delta.y, 9.0);
       }
   };
 
@@ -1609,8 +1621,14 @@ cadres dans la page fixe ou dans le cache ; toute modification de l'accrochage.
     }
 ```
 **Scénario** (partie 2) : celui de l'objectif, amendé — après `expect appPageSettings.zones "2x0"`, `expect
-pageZones.separatorCount 1` ; `checkPixel separation-zone [512, 384] #B9C0C8 24` (384 = 3 × 128 : un point du pointillé ;
-coordonnées confirmées au premier passage regardé) ; après `capture zones` : `page.zones "2x3"` ; `waitReady` ; `expect
+pageZones.separatorCount 1` ; `{"checkEdge": "separation-zone", "from": [508, 300], "to": [516, 336],
+"minIntermediate": 1, "minInk": 0}` à la place du `checkPixel` de l'objectif. Pourquoi : `checkPixel` fait la
+moyenne d'un carré de 3 × 3 (`bench/src/contentcheck.cpp:54-75`), et un pointillé d'un pixel y donne un gris presque
+blanc (environ `#F7F8F9`) ; `checkEdge` compte les pixels un à un le long du segment (`bench/src/uiscenario.cpp:1057-1085`).
+Son « encre » est le noir à 24 près : notre `#B9C0C8` y compte comme pixel **intermédiaire** (ni blanc ni noir à 24
+près), d'où `minIntermediate` 1 et `minInk` 0 — un `minInk ≥ 1` échouerait. Le segment, presque vertical, passe par
+les colonnes 508 à 516 sur 36 lignes : il croise la séparation (x = 512) sur plusieurs lignes, donc au moins un point
+du pointillé, même décalé d'un pixel ; coordonnées confirmées au premier passage regardé ; après `capture zones` : `page.zones "2x3"` ; `waitReady` ; `expect
 pageZones.separatorCount 3` ; `view.fullscreen` ; `waitReady` ; `expect pageZones.visible true` ; `expect
 pageZones.separatorCount 3` ; `capture zones-plein-ecran` ; `view.fullscreen` ; `waitReady` ; puis la fin de
 l'objectif (empreinte, enregistrer, rouvrir). Commande ciblée et preuve : celles de la section, fonctions
@@ -1629,15 +1647,15 @@ commande `page.zones` (et l'entrée de réglage retenue par D11). Le scénario `
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_pagesettings|tst_captures_page_allongee_zones'` ; fonctions
 `zonesRefreshNoCache` et `nextPageIgnoresFrames` (amendement 5) en `PASS` ; preuve visuelle ; banc sans écran ; preuve.
 
-**Preuve visuelle.** `… -Lire "appPageSettings.zones=2x0" -Lire "pageZones.separatorCount=1"` : `LU … OK`, `PIXEL
-separation-zone OK` (milieu de la page, un point du pointillé), `LU pageZones.separatorCount=3 OK` après `"2x3"`,
+**Preuve visuelle.** `… -Lire "appPageSettings.zones=2x0" -Lire "pageZones.separatorCount=1"` : `LU … OK`, `BORD
+separation-zone OK` (le segment qui croise x = 512 porte au moins un pixel du pointillé, amendement 5), `LU pageZones.separatorCount=3 OK` après `"2x3"`,
 `LU pageZones.visible=true OK` en plein écran, `LU appDocument.fingerprint=${avant} OK` après aller-retour `.actcraft`,
 `CAPTURES OK` ; décrire `zones.png` (une séparation verticale pointillée au milieu) et `zones-plein-ecran.png` (une
 verticale, deux horizontales, en plein écran) — amendement 5.
 
 **Scénario** (partie 2, après la partie 1) : `page.zones "2x0"` ; `waitReady` ; `expect appPageSettings.zones
-"2x0"` ; `remember pageView.cacheRefreshCount as r` avant la commande et `expect … ${r}` après ; `checkPixel
-separation-zone [512, 384]` (couleur des tirets) ; `capture zones` ; `remember appDocument.fingerprint as avant` ;
+"2x0"` ; `remember pageView.cacheRefreshCount as r` avant la commande et `expect … ${r}` après ; `checkEdge
+separation-zone` (amendement 5 : pas de `checkPixel`) ; `capture zones` ; `remember appDocument.fingerprint as avant` ;
 `file.save-as` `${SORTIE}/z.actcraft` ; `file.open` ; `waitReady` ; `expect appDocument.fingerprint ${avant}`.
 
 **Interdits.** Aucun dessin des zones dans la page fixe.
@@ -1880,14 +1898,14 @@ et `dropRemaining`, `ui/src/documentcontroller.cpp:322-340`.
 QML, `TextEditing` ; le test y ajoute un `PagesController`).
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_text|tst_ui_pages'` (`100% tests passed, 0 tests failed out
-of 2`) ; fonctions `duplicateDuringEditKeepsTheText`, `deleteDuringEditCommitsFirst` en `PASS`, et toutes celles de
+of 2`) ; fonctions `duplicateDuringEditKeepsTheText`, `cutDuringEditKeepsTheText`, `deleteDuringEditCommitsFirst` en `PASS`, et toutes celles de
 L4-T21, L4-T25 et L4-T18 inchangées et vertes ; preuve de tâche (N = 136 + n_B **inchangé**, `TESTS OK`, lignes
 `tst_ui_text … Passed` et `tst_ui_pages … Passed`) ; banc sans écran.
 
 **Interdits.** Ne pas toucher `DocumentController` (en-tête ni source). Ne pas émettre `pageAboutToChange` depuis le
 contrôleur des pages. Ne pas modifier un test de L4-T18 ou de L4-T21 pour faire passer celui-ci.
 
-**Terminé quand.** Les deux fonctions rouges sur le code d'avant (constaté), vertes après ; `TESTS OK` ; N inchangé ;
+**Terminé quand.** Les trois fonctions rouges sur le code d'avant (constaté), vertes après ; `TESTS OK` ; N inchangé ;
 banc joint ; `NOMS OK`.
 
 **Étapes.**
@@ -1911,6 +1929,28 @@ banc joint ; `NOMS OK`.
           QCOMPARE(h.controller.pageCount(), 2);
           QCOMPARE(h.plainOf(0, 0), QStringLiteral("deux"));
           QCOMPARE(h.plainOf(1, 0), QStringLiteral("deux"));
+      }
+
+      // L4-C2 : couper la page affichée pendant l'édition : le presse-papiers reçoit la page avec le texte frappé ;
+      // collée, elle le porte. cutSelection lit les pages lui-même (il ne passe pas par copySelection).
+      void cutDuringEditKeepsTheText()
+      {
+          Harness h;
+          h.controller.nextPage();
+          h.controller.showPage(0);
+          ui::PagesController pages;
+          pages.setDocumentController(&h.controller);
+          h.addText(QStringLiteral("un"), {200, 200, 120, 30});
+          QVERIFY(h.editing.beginAt({210, 210}, false));
+          h.replaceAllText(QStringLiteral("deux"));
+          pages.cutSelection(); // sélection = {0}
+          QVERIFY(!h.editing.isActive());
+          QVERIFY(!h.controller.isLifting());
+          QCOMPARE(h.controller.pageCount(), 1);
+          QVERIFY(pages.canPaste());
+          pages.paste(); // avant la page active : la page collée est la page 0
+          QCOMPARE(h.controller.pageCount(), 2);
+          QCOMPARE(h.plainOf(0, 0), QStringLiteral("deux"));
       }
 
       // L4-C2 : supprimer la page affichée pendant l'édition valide le texte (une étape), puis retire la page (une
@@ -1937,7 +1977,7 @@ banc joint ; `NOMS OK`.
       }
   ```
   (Noms du montage : ceux de `tests/tst_ui_text.cpp` après L4-T21 et L4-T25 — `Harness`, `addText`, `replaceAllText`,
-  `plainOf` ; les lire d'abord, adapter les noms sans changer ce qui est vérifié.) Commande ciblée → les deux en
+  `plainOf` ; les lire d'abord, adapter les noms sans changer ce qui est vérifié.) Commande ciblée → les trois en
   `FAIL!` ; noter la ligne qui échoue de chacune au rapport.
 - [ ] **Étape 2 : implémenter** dans `ui/src/pagescontroller.cpp`, dans l'espace de noms anonyme du fichier (en créer
   un s'il manque) :
@@ -1953,9 +1993,12 @@ banc joint ; `NOMS OK`.
       }
   }
   ```
-  puis `settleEditing(*m_controller);` en tête de `moveSelection`, `insertBlank`, `copySelection`, `paste`,
-  `duplicateSelection` et `deleteSelection`, juste après leurs gardes (`!m_controller`, et refus « toutes les pages »
-  pour `deleteSelection`) ; `cutSelection` le reçoit par `copySelection`, après sa garde. Rien dans `click`, `goTo`.
+  puis `settleEditing(*m_controller);` en tête de `moveSelection`, `insertBlank`, `copySelection`, `cutSelection`,
+  `paste`, `duplicateSelection` et `deleteSelection`, juste après leurs gardes (`!m_controller`, et refus « toutes les
+  pages » pour `cutSelection` et `deleteSelection`). `cutSelection` (`ui/src/pagescontroller.cpp:230-238`) ne passe pas
+  par `copySelection` : il appelle `selectedPages()` puis `deleteSelection()` ; l'appel se place après sa garde et
+  **avant** `selectedPages()`, sinon le presse-papiers reçoit la page sans le texte en cours (le second appel, dans
+  `deleteSelection`, ne trouve plus rien à valider). Rien dans `click`, `goTo`.
 - [ ] **Étape 3 : vert**, `format.ps1`, commande ciblée, preuve de tâche, banc sans écran, `git add`, `NOMS OK`.
 - [ ] **Étape 4 : commit.**
   ```powershell
@@ -1973,6 +2016,9 @@ récente, L2-C8) tel qu'il l'a lu : son JSON d'origine, identifiant compris (`fo
 `objectJson`). Coller ou dupliquer une page (`InsertPagesCommand`, `withFreshIds`, L4-T15) donne à l'objet inconnu de la
 copie un identifiant neuf **en mémoire** ; le fichier garde l'ancien. Après enregistrement puis relecture, deux objets
 ont le même identifiant.
+
+**Dépendances** (amendement 5) : L4-T6 et L4-T15 (mergées), L4-T24 (même fichier de test, en cours) ; L4-T27 la
+suit. Partir de la base où L4-T24 est mergée.
 
 **Contrat.** `objectJson` écrit l'identifiant **courant** de l'objet (`object.common.id`, par `idValue`) à la place de
 celui du JSON d'origine ; toutes les autres clés de ce JSON restent telles quelles. Un objet inconnu dont l'identifiant
