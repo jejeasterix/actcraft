@@ -116,7 +116,7 @@ private slots:
         QVERIFY(registry.contains(QStringLiteral("eraser")));
         QVERIFY(!registry.contains(QStringLiteral("compass")));
         QVERIFY(registry.add(QStringLiteral("compass"), penFactory()));
-        QCOMPARE(registry.ids().size(), qsizetype{5});
+        QCOMPARE(registry.ids().size(), qsizetype{8});              // 7 outils intégrés (lot 4) + « compass »
         QCOMPARE(registry.ids().last(), QStringLiteral("compass")); // ordre d'ajout
     }
 
