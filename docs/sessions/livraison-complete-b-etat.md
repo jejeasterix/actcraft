@@ -10,6 +10,7 @@ Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.w
 Lot : 7 « Présentation et outils » — 12/33 tâches terminées
 Tâche : L7-T14 — Dés (F-285, E5) — depuis 2026-10-20 22:48
 Tâche : L7-T13 — Origine XY (F-284) — depuis 2026-10-21 01:17
+Tâche : L7-T8 — Effets de changement de page II (navigateur, scénario effets) — depuis 2026-10-21 02:37
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -69,6 +70,8 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T7 | L7-T3 | voir ligne L7-T7 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T7 (base cd09af4) | mergée : rejeu TESTS OK 158/158, transitions Totals 16 (0 skipped) ; revue corriger → essai 2 ; Presentation.qml : une liaison spotlight ajoutée (exception de l'orchestrateur) ; points S22 notés (mouvements approximés) | 2 | fc0e9d0 | 9458c70 (graphe c74c9ca) |
 | L7-T14 | L7-T2 | voir ligne L7-T14 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T14 (base b3f0e76) | en cours (implementeur-tdd), V8 | 1 | — | — |
 | L7-T13 | L7-T12 | voir ligne L7-T13 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T13 (base ee24d12) | en cours (implementeur-tdd), V7 | 1 | — | — |
+| suite V7 | L7-T12, L7-T7 | branche du chantier à 6367ade (timestamp AUTOMOC supprimés avant) | — | en cours | 1 | — | — |
+| L7-T8 | L7-T7, L7-T2 | voir ligne L7-T8 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T8 (base 6367ade) | en cours (implementeur-tdd), V8 | 1 | — | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
