@@ -22,6 +22,7 @@ private:
     ObjectId m_id;
     std::vector<double> m_after;
     std::vector<double> m_before;
+    bool m_applied = false; // redo() a trouvé la forme : undo() a quelque chose à défaire
 };
 
 } // namespace actcraft::core
