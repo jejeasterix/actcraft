@@ -129,22 +129,16 @@ La PR jejeasterix/actcraft#6 (lots 10 et 3, 0.4.0) est mergée dans main (70c860
 - `selectionIsNotGuided` (L7-T9, revue) : le guide de la règle est réservé au stylo (`kGuidedTool = "pen"`), mais non testable avant le lot 3 : `ToolHost::activate` et `UserState::setCurrentTool` sont des talons. À ajouter avec `markerFollowsTheRuler`, `eraserFollowsTheCompass`.
 - Constat L7-T9, hors périmètre : la commande `tool.pen` de `Main.qml:292` coche la commande sans activer le stylo (talon du lot 3 ?) : à revoir à la fusion.
 
-## Reprise du 2026-10-20 à 16 h 00 (après le redémarrage du PC, message de Pilote)
-Points 1 à 4 du point de reprise lancés : suite V4 sous le verrou (timestamp AUTOMOC supprimés), agents L7-T11 essai 2, L7-T5 reprise (point souris tranché : garder les tests, prouver par un mutant du chemin souris, couverture discriminée au stylet et au doigt seulement), L7-T6 reprise (run.ps1 sans garde d'heure). RAM libre 0,6 Go : longues attentes du jeton.
+## Pause du quota (2026-10-21 vers 17 h 50, demande de Jérôme relayée mot pour mot par Pilote)
+« afin de ne pas epuisé tout mon quota, organise une pause jusqu'à ce que je relance » (limite de la semaine à 71 %). Consigne : laisser finir les agents et le rejeu déjà lancés, n'en lancer aucun nouveau, puis rien jusqu'au message de reprise. Ni merge ni suite pendant la pause.
 
-## Point de reprise (écrit le 2026-10-20 vers 04 h 30, avant l'arrêt du PC)
-Mergé dans `feat/livraison-complete-b` : phase 1, L7-S8, vague 2 (T1, T2), vague 3 (T3, T9), vague 4 (T4, T10). Suites du chantier vertes après V2 et V3 ; **suite V4 non jouée**.
-Aucune construction ni attente de B ne tourne ; tous les worktrees sont commités. Outils : `.tmp/outils-b/` (b-jeton.ps1, rejeu.ps1 avec la forme `exe:classe`, suite-chantier.ps1, consignes-T.md, revues).
+## Point de reprise (pause du quota, 2026-10-21)
+Mergé dans `feat/livraison-complete-b` : phase 1, L7-S8, L7-T1 à L7-T18, L7-T14c (19/33). Suite V10 verte (158/158) à 5cf0a0e. Worktrees encore présents : `--L7-T19`, `--L7-T21`, `--L7-T24` (les autres retirés).
 Premiers gestes, dans l'ordre :
-1. Revue de L7-T11 rendue (`.tmp/outils-b/revue-l7-t11.md`) : « on peut merger », aucun bloquant. Essai 2 court avant le rejeu : couche du trait reprise (`common.layer`, :143/:151) au lieu de `Layer::Top` ; tests de l'épaisseur des rayons et de l'absence de contour du secteur ; vrai mutant M1 (stylo modifié, armement gardé) ; arc armé sans trait versé à désarmer (sinon un surligneur recevrait les rayons) ; réindentation de `MathToolsLayer.qml` :54/:91. Question à trancher en relisant la section : un arc fermé coûte deux annulations (arc puis rayons) — conforme à la lettre selon la revue. Puis rejeu `-Tests tst_ui_lot7:mathtools` et merge.
-2. Avant toute suite dans le worktree du chantier : supprimer `build/debug/ui/actcraft_ui_autogen/timestamp`, `build/debug/ui/actcraft_uiplugin_autogen/timestamp`, `build/debug/tests/tst_ui_lot7_autogen/timestamp` (piège AUTOMOC), puis suite V4 par `b-jeton.ps1 … suite-chantier.ps1`.
-3. L7-T5 : relancer un agent implementeur-tdd sur 4cc93e0 (vert du dernier test, mutants B et C, suite, banc, NOMS OK) ; trancher le point « souris ».
-4. L7-T6 : retirer la garde d'heure (04 h 30) de `.tmp/run.ps1` du worktree L7-T6, puis `b-jeton.ps1 -Proprietaire livraison-complete-b/L7-T6 -Commande "pwsh -NoProfile -File '<wt>\.tmp\run.ps1'"` ; lire `.tmp/etapes.txt` ; revue adversariale ensuite (concepteur-critique).
-5. Rejouer L7-T11 (`-Tests tst_ui_lot7:mathtools`), merger ; puis L7-T12 (dépend de T11) en parallèle de L7-T7 (dépend de T3).
-
-## Arrêt du PC (annonce de Jérôme du 2026-10-19 vers 20 h 05, relayée par Pilote 2)
-« Organise le travail pour faire une pause à 5h30 du matin au plus tard demain car je dois prendre mon PC et je pars à 5h45 du matin. » Après 04 h 30 le 20/10 : rien de long lancé. À 05 h 15 : rien en cours, tout commité, point de reprise exact ici. Rappels de session posés à 04 h 27 et 05 h 03. Heure de reprise inconnue.
-
+1. L7-T24 (c29a5e7, base 87e2ff0) : lire `.tmp/outils-b/revue-l7-t24.md` (revue adversariale lancée avant la pause) ; si « merger », lire `<wt T24>\.tmp\rejeu.txt` et `rejeu-tst_core_equation.txt` (rejeu lancé avant la pause), sinon relancer `rejeu.ps1 -Tache L7-T24 -Tests tst_core_equation` ; merge `--no-ff`. Si « corriger » : essai 2 par un concepteur-critique.
+2. L7-T21 : lire le rapport final de l'agent (mutants et banc `-HorsEcran`) ; revue adversariale (concepteur-critique) ; rejeu `-Tests tst_ui_lot7:recognition` ; merge.
+3. L7-T19 : lire le rapport final de l'agent (wip dd4cff3 du filet) ; rejeu `-Tests tst_ui_lot7:ticker` ; merge. Ferme le lot P2-A.
+4. Après ces trois merges : suite V11 (supprimer d'abord les trois `timestamp` AUTOMOC), puis L7-T23 (dépend de T21) ‖ L7-T25 (dépend de T24).
 ## Portes
 ouvertes : — · passées : —
 
