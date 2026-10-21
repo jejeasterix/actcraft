@@ -769,7 +769,7 @@ private slots:
     // ---- Socle 3-7 (L0-S9) : ordre des couches, emplacements, gestionnaires ----
 
     // L'ordre des enfants fait l'empilement (z à 0 partout) : page fixe, cache, couche d'attente, couche
-    // soulevée (lot 3), encre, grille du dessus (lot 4), surcouches de page (lot 7).
+    // soulevée (lot 3), grille du dessus (lot 4), encre, surcouches de page (lot 7).
     void socleLayerOrder()
     {
         Shell s;
@@ -781,10 +781,11 @@ private slots:
             names << child->objectName();
             QCOMPARE(child->z(), 0.0);
         }
-        // Amendement 1 du lot 4 : la grille du dessus sort de la scène du cache (L4-T7) ; rang fixé par D17
-        // (amendement 4) : entre l'encre et les surcouches. L'autre rang envisagé (sous l'encre) tombe.
-        QCOMPARE(names, (QStringList{"fixedPage", "pageCache", "pendingLayer", "liftLayer", "ink",
-                                     "gridOverlay", "pageOverlays"}));
+        // Amendement 1 du lot 4 : la grille du dessus sort de la scène du cache (L4-T7) ; rang corrigé par
+        // l'observation de l'original (L4-O1) : sous l'encre en cours, qui passe sur les lignes ; D17 est
+        // contredit.
+        QCOMPARE(names, (QStringList{"fixedPage", "pageCache", "pendingLayer", "liftLayer", "gridOverlay",
+                                     "ink", "pageOverlays"}));
     }
 
     // L4-T2 : chaque élément de la coquille du lot 4 existe, nommé, en talon.

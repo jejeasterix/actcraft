@@ -99,15 +99,7 @@ Item {
                 fixedPage: fixedPageItem
             }
 
-            // Encre en cours : non rognée (règle du lot 2, inchangée) ; elle déborde sur la marge pendant le
-            // tracé, le trait figé est rogné à la page (cache et couche d'attente).
-            InkLayer {
-                id: inkLayer
-                objectName: "ink"
-                anchors.fill: parent
-            }
-
-            // Lot 4 : grille du dessus (F-620), entre l'encre et les surcouches (D17), hors de la scène que le
+            // Lot 4 : grille du dessus (F-620), sous l'encre en cours (observation de l'original, L4-O1 : le trait passe sur ses lignes), hors de la scène que le
             // cache photographie. Talon : L4-T7 la remplit. Sans `z:` : l'ordre des enfants fait l'empilement.
             GridOverlay {
                 id: gridOverlayItem
@@ -124,6 +116,14 @@ Item {
                     if (area.documentController && page === area.documentController.currentIndex)
                         gridOverlayItem.refresh()
                 }
+            }
+
+            // Encre en cours : non rognée (règle du lot 2, inchangée) ; elle déborde sur la marge pendant le
+            // tracé, le trait figé est rogné à la page (cache et couche d'attente).
+            InkLayer {
+                id: inkLayer
+                objectName: "ink"
+                anchors.fill: parent
             }
 
             // Lot 7 : surcouches en coordonnées de page (outils de maths, origine XY, spot, rideau de la page), au
