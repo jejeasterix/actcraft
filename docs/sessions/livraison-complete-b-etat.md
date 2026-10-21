@@ -137,7 +137,7 @@ Mergé dans `feat/livraison-complete-b` : phase 1, L7-S8, L7-T1 à L7-T18, L7-T1
 Premiers gestes, dans l'ordre :
 1. L7-T24 (c29a5e7, base 87e2ff0) : revue rendue, verdict « corriger » (`.tmp/outils-b/revue-l7-t24.md`). Essai 2 par un concepteur-critique, dans les 3 fichiers de la tâche : F1 case vide portant le curseur écrite avec `class` en double (`equation.cpp:307-309`) et relue en `Row` (`:273-276`) ; F2 deux BOM en tête : fin de la tranche Raw non vérifiée (`:81`, `:243-244`), à confirmer par le nom comme le début ; mineurs de la revue à traiter ou consigner (U+FEFF en tête de texte, `&#13;`, `"` dans le commentaire `equation.h:64`, racine `m:math`, 2 mutants survivants sur la case vide, erreurs de l'écrivain ignorées). Consigner le champ `attributes` dans l'état (écart accepté). Puis rejeu `-Tests tst_core_equation` (celui de c29a5e7, lancé avant la pause, ne vaut plus) et merge.
 2. L7-T21 (3c540c6) : rendue verte, 158/158, `NOMS OK`, 6 mutants tués, captures OK ; banc `BUDGET DEPASSE` (p95 page 123 ms, hors périmètre, à voir en clôture). Reste : revue adversariale (concepteur-critique) ; rejeu `-Tests tst_ui_lot7:recognition` ; merge.
-3. L7-T19 : lire le rapport final de l'agent (wip dd4cff3 du filet) ; rejeu `-Tests tst_ui_lot7:ticker` ; merge. Ferme le lot P2-A.
+3. L7-T19 : rouge commité 8f785df, code en cours à la fermeture de la session (19 h 03). Nouvelle session : relancer un implementeur-tdd sur le worktree depuis son dernier commit (commiter en wip ce qui reste modifié) ; rejeu `-Tests tst_ui_lot7:ticker` ; merge. Ferme le lot P2-A.
 4. Après ces trois merges : suite V11 (supprimer d'abord les trois `timestamp` AUTOMOC), puis L7-T23 (dépend de T21) ‖ L7-T25 (dépend de T24).
 ## Portes
 ouvertes : — · passées : —
