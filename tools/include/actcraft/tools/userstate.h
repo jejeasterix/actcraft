@@ -22,8 +22,8 @@ struct ShapeSettings
 {
     QString preset = QStringLiteral("line"); // D1 : défaut de la palette
     bool filled = true;                      // E1
-    core::Argb fill = 0xFFFFFFFFu;
-    bool fromCenter = false; // F-241 : depuis le coin par défaut
+    core::Argb fill = 0xFFFFAA00u;           // D2 : orange
+    bool fromCenter = false;                 // F-241 : depuis le coin par défaut
 };
 
 struct TextSettings
