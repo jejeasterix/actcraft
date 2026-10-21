@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792561887.418915,
-    "ast_hash": "9c589b735f11193678e33a9615d2e36e",
+    "mtime": 1792569672.0582747,
+    "ast_hash": "4b9672fe6e828ba5c491600310fce4ea",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2425,8 +2425,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/compte-a-rebours.json": {
-    "mtime": 1792406200.4538233,
-    "ast_hash": "02e31bc37111fa9c0acacc01928bdd0f",
+    "mtime": 1792569712.0595481,
+    "ast_hash": "303f436850a71306fa130640012987ed",
     "semantic_hash": ""
   },
   "bench/scenarios/effets.json": {
@@ -2505,8 +2505,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_clock.cpp": {
-    "mtime": 1792406200.4995184,
-    "ast_hash": "1d45dda808507a36e744f89397de23bd",
+    "mtime": 1792569712.075505,
+    "ast_hash": "bbe962bc575f48e3d0bf254f8eb1f620",
     "semantic_hash": ""
   },
   "tests/tst_ui_curtain.cpp": {
@@ -2662,6 +2662,16 @@
   "ui/src/dicecontroller.h": {
     "mtime": 1792554844.5685465,
     "ast_hash": "adb056b5af99acccecdf048f51212477",
+    "semantic_hash": ""
+  },
+  "ui/src/clockcontroller.cpp": {
+    "mtime": 1792569712.0790899,
+    "ast_hash": "6882c1e238169f60731a82fc58da1875",
+    "semantic_hash": ""
+  },
+  "ui/src/clockcontroller.h": {
+    "mtime": 1792569712.0790899,
+    "ast_hash": "bce0bc10232e711abfd19c2de13a81d8",
     "semantic_hash": ""
   }
 }
