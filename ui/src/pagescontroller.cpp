@@ -43,6 +43,18 @@ struct Working
     bool& m_flag;
 };
 
+// L4-C2 : avant une commande de pages, ou une copie qui lit les pages, l'édition en cours est validée par le
+// chemin d'announceEdit (documentcontroller.cpp) : editAboutToApply (le texte se valide, les outils
+// abandonnent leur geste), puis dépôt forcé de ce qui resterait soulevé. execute() n'annonce rien (B1,
+// L3-T12).
+void settleEditing(DocumentController& controller)
+{
+    emit controller.editAboutToApply();
+    if (controller.isLifting()) {
+        controller.dropLifted(nullptr);
+    }
+}
+
 } // namespace
 
 PagesController::PagesController(QObject* parent) : QObject(parent) {}
@@ -172,6 +184,7 @@ void PagesController::moveSelection(int before)
     if (!m_controller) {
         return;
     }
+    settleEditing(*m_controller);
     const std::size_t count = static_cast<std::size_t>(m_controller->pageCount());
     const std::size_t target = static_cast<std::size_t>(std::clamp(before, 0, m_controller->pageCount()));
     const std::vector<std::size_t> pages = toIndices(m_selection);
@@ -197,6 +210,7 @@ void PagesController::insertBlank(bool afterShown)
     if (!m_controller) {
         return;
     }
+    settleEditing(*m_controller);
     const int current = m_controller->currentIndex();
     const int at = current + (afterShown ? 1 : 0);
     const core::Page& shown = m_controller->document().page(static_cast<std::size_t>(current));
@@ -223,15 +237,19 @@ void PagesController::copySelection()
     if (!m_controller) {
         return;
     }
+    settleEditing(*m_controller);
     m_clipboard = selectedPages();
     emit clipboardChanged();
 }
 
+// La validation précède selectedPages() : celle de deleteSelection, qui suit, viendrait après la lecture des
+// pages et le presse-papiers recevrait la page sans le texte en cours.
 void PagesController::cutSelection()
 {
     if (!m_controller || m_selection.size() >= m_controller->pageCount()) {
         return; // couper toutes les pages est refusé, comme supprimer
     }
+    settleEditing(*m_controller);
     m_clipboard = selectedPages();
     emit clipboardChanged();
     deleteSelection();
@@ -258,6 +276,7 @@ void PagesController::paste()
     if (!m_controller || m_clipboard.empty()) {
         return;
     }
+    settleEditing(*m_controller);
     insertCopies(static_cast<std::size_t>(m_controller->currentIndex()), m_clipboard);
 }
 
@@ -266,6 +285,7 @@ void PagesController::duplicateSelection()
     if (!m_controller) {
         return;
     }
+    settleEditing(*m_controller);
     insertCopies(static_cast<std::size_t>(m_selection.last()) + 1, selectedPages());
 }
 
@@ -274,6 +294,7 @@ void PagesController::deleteSelection()
     if (!m_controller || m_selection.size() >= m_controller->pageCount()) {
         return; // la dernière page ne se supprime pas
     }
+    settleEditing(*m_controller);
     {
         const Working working(m_working);
         m_controller->execute(std::make_unique<core::RemovePagesCommand>(toIndices(m_selection)));

@@ -441,8 +441,9 @@ private slots:
         QCOMPARE(h.controller.shownObjectCount(), 0); // seule étape : l'ajout
     }
 
-    // L4-C2 : une commande de pages lancée pendant l'édition valide d'abord le texte (comme Annuler). Dupliquer
-    // la page affichée : la copie porte le texte frappé ; sans validation, le texte soulevé manquait à la copie.
+    // L4-C2 : une commande de pages lancée pendant l'édition valide d'abord le texte (comme Annuler).
+    // Dupliquer la page affichée : la copie porte le texte frappé ; sans validation, le texte soulevé
+    // manquait à la copie.
     void duplicateDuringEditKeepsTheText()
     {
         Harness h;
@@ -460,9 +461,9 @@ private slots:
         QCOMPARE(h.plainOf(1, 0), QStringLiteral("deux"));
     }
 
-    // L4-C2 : couper la page affichée pendant l'édition : le presse-papiers reçoit la page avec le texte frappé ;
-    // collée, elle le porte. cutSelection lit les pages lui-même (il ne passe pas par copySelection) : la
-    // validation doit précéder cette lecture, celle de deleteSelection vient trop tard.
+    // L4-C2 : couper la page affichée pendant l'édition : le presse-papiers reçoit la page avec le texte
+    // frappé ; collée, elle le porte. cutSelection lit les pages lui-même, sans passer par copySelection :
+    // la validation doit précéder cette lecture, celle de deleteSelection vient trop tard.
     void cutDuringEditKeepsTheText()
     {
         Harness h;
@@ -483,8 +484,8 @@ private slots:
         QCOMPARE(h.plainOf(0, 0), QStringLiteral("deux"));
     }
 
-    // L4-C2 : supprimer la page affichée pendant l'édition valide le texte (une étape), puis retire la page (une
-    // étape) : deux Annuler rendent la page, puis son texte d'avant.
+    // L4-C2 : supprimer la page affichée pendant l'édition valide le texte (une étape), puis retire la page
+    // (une étape) : deux Annuler rendent la page, puis son texte d'avant.
     void deleteDuringEditCommitsFirst()
     {
         Harness h;
