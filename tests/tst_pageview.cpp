@@ -242,9 +242,18 @@ const actcraft::core::Stroke& lastStroke(const DrawFixture& f)
 // Qt Quick retarde et compresse les TouchUpdate jusqu'à l'image suivante : avant un événement envoyé
 // directement (stylet, annulation, saisie volée), laisser passer une image pour que le déplacement soit
 // livré.
-void settleTouch()
+// L3-C16 : Qt Quick retient un déplacement de doigt (compression du toucher,
+// QQuickDeliveryAgent::delayedTouch) jusqu'à l'image suivante, qui le livre avant sa synchronisation
+// (flushFrameSynchronousEvents). Le délai fixe de 50 ms d'avant supposait une image dans ce délai : la CI
+// macOS ne l'a pas eue, le trait du doigt n'avait que son appui quand le stylet appuyait (PenTool ne verse
+// pas un trait d'un point) et rien n'était versé (1 objet au lieu de 2, 0 au lieu de 1). Reproduit sous
+// Windows avec QT_QPA_UPDATE_IDLE_TIME=200. On attend donc la synchronisation qui suit l'événement : le
+// déplacement est alors livré à la vue, quelle que soit la cadence.
+[[nodiscard]] bool settleTouch(QQuickWindow& window)
 {
-    QTest::qWait(50);
+    QSignalSpy synced(&window, &QQuickWindow::afterSynchronizing);
+    window.requestUpdate(); // une image vient même si rien d'autre n'en demande
+    return synced.wait(5000);
 }
 
 // Les traits des tests sont horizontaux : un point d'un autre trait (autre hauteur) s'y verrait.
@@ -460,15 +469,15 @@ private slots:
         QVERIFY(openDrawing(f, m_stylus.get()));
         QPointingDevice* screen = QTest::createTouchDevice();
         QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton); // termine le trait du doigt
         QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
         QTest::touchEvent(&f.window, screen).release(0, QPoint(400, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         tablet(f, QEvent::TabletMove, QPointF(400, 300), Qt::LeftButton);
         tablet(f, QEvent::TabletRelease, QPointF(450, 300), Qt::NoButton);
         QTRY_COMPARE(f.fixed->objectCount(), 2);
@@ -490,12 +499,12 @@ private slots:
         tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton);
         tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
         QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100)); // paume ou doigt : refusé
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         tablet(f, QEvent::TabletMove, QPointF(400, 300), Qt::LeftButton);
         QTest::touchEvent(&f.window, screen).release(0, QPoint(400, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         tablet(f, QEvent::TabletMove, QPointF(450, 300), Qt::LeftButton);
         tablet(f, QEvent::TabletRelease, QPointF(500, 300), Qt::NoButton);
         QTRY_COMPARE(f.fixed->objectCount(), 1);
@@ -519,7 +528,7 @@ private slots:
         // Annulation (système) : le trait se termine au dernier point connu, la suite ne dessine pas.
         QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 200));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 200));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         QTouchEvent cancel(QEvent::TouchCancel, screen);
         QCoreApplication::sendEvent(f.view, &cancel);
         QTRY_COMPARE(f.fixed->objectCount(), 2);
@@ -528,7 +537,7 @@ private slots:
         // Saisie volée (futur geste, Flickable) : idem.
         QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 300));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 300));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         f.view->ungrabTouchPoints();
         QTRY_COMPARE(f.fixed->objectCount(), 3);
         QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 300));
@@ -1402,10 +1411,10 @@ private slots:
         QPointingDevice* screen = QTest::createTouchDevice();
         QSignalSpy gesture(f.view, &PageView::gestureActiveChanged);
         QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 200));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         for (int i = 1; i <= 3; ++i) {
             QTest::touchEvent(&f.window, screen).move(0, QPoint(300 + 40 * i, 200));
-            settleTouch();
+            QVERIFY(settleTouch(f.window));
         }
         QVERIFY(f.view->currentTool()->isBusy());
         QVERIFY(f.view->ink()->pointCount() >= 2);
@@ -1417,9 +1426,9 @@ private slots:
         QCOMPARE(controller.document().page(0).objects.size(), std::size_t{0});
         QVERIFY(!controller.canUndo());
         QTest::touchEvent(&f.window, screen).move(0, QPoint(380, 220)).move(1, QPoint(640, 420));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 240)).move(1, QPoint(660, 440));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         QCOMPARE(f.view->ink()->pointCount(), std::size_t{0});
         QTest::touchEvent(&f.window, screen).release(0, QPoint(400, 240)).release(1, QPoint(660, 440));
         QTRY_VERIFY(!f.view->gestureActive());
@@ -1440,13 +1449,13 @@ private slots:
         tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton);
         tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
         QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100)).press(1, QPoint(500, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(250, 150)).move(1, QPoint(650, 150));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         QVERIFY(!f.view->gestureActive());
         tablet(f, QEvent::TabletMove, QPointF(400, 300), Qt::LeftButton);
         QTest::touchEvent(&f.window, screen).release(0, QPoint(250, 150)).release(1, QPoint(650, 150));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         tablet(f, QEvent::TabletRelease, QPointF(450, 300), Qt::NoButton);
         QTRY_COMPARE(f.fixed->objectCount(), 1);
         QTest::qWait(50);
@@ -1486,14 +1495,14 @@ private slots:
         f.view->router().setPolicy(std::make_unique<FingerKeepsThePen>());
         QPointingDevice* screen = QTest::createTouchDevice();
         QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton); // ignoré par la politique
         tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
         tablet(f, QEvent::TabletRelease, QPointF(400, 300), Qt::NoButton);
         QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         QTest::touchEvent(&f.window, screen).release(0, QPoint(450, 100));
         QTRY_COMPARE(f.fixed->objectCount(), 1);
         QTest::qWait(50);
@@ -1511,13 +1520,13 @@ private slots:
         QVERIFY(openDrawing(f, m_stylus.get()));
         QPointingDevice* screen = QTest::createTouchDevice();
         QTest::touchEvent(&f.window, screen).press(0, QPoint(300, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         QTest::touchEvent(&f.window, screen).move(0, QPoint(350, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         tablet(f, QEvent::TabletPress, QPointF(300, 300), Qt::LeftButton);
         QTRY_COMPARE(f.fixed->objectCount(), 1); // trait du doigt terminé là où il était
         QTest::touchEvent(&f.window, screen).move(0, QPoint(400, 100));
-        settleTouch();
+        QVERIFY(settleTouch(f.window));
         tablet(f, QEvent::TabletMove, QPointF(350, 300), Qt::LeftButton);
         QTouchEvent cancel(QEvent::TouchCancel, screen);
         QCoreApplication::sendEvent(f.view, &cancel);
