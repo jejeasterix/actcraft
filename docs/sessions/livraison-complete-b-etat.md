@@ -7,8 +7,7 @@ Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branc
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
-Lot : 7 « Présentation et outils » — 17/33 tâches terminées
-Tâche : L7-T17 — Date et heure (F-300), navigateur web (F-299) — depuis 2026-10-21 11:42
+Lot : 7 « Présentation et outils » — 18/33 tâches terminées
 Tâche : L7-T18 — Message défilant I (F-291), essai 2 — depuis 2026-10-21 14:09
 Questions à Jérôme : —
 
@@ -75,7 +74,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T15 | L7-T2 | voir ligne L7-T15 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T15 (base e098c86, retiré après merge) | mergée : rejeu TESTS OK 158/158, calculator Totals 11 (0 skipped), 5 mutants ; rouge invalide (Copy-Item), preuve par les mutants | 1 | 689fdc6 | 8f6e617 (graphe 6f76c5d) |
 | L7-T16 | L7-T2 | voir ligne L7-T16 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T16 (base e098c86, retiré après merge) | mergée : rejeu TESTS OK 158/158, clock Totals 10 (0 skipped), captures compte-à-rebours OK, 5 mutants | 1 | e25083d | f3f0cca (graphe ce7119f) |
 | suite V9 | L7-T13, T14c, T15, T16 | branche du chantier à 2894c46 (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 (la branche est de nouveau verte) | 1 | — | — |
-| L7-T17 | L7-T2 | voir ligne L7-T17 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T17 (base 2894c46) | rendue 700796f (158 TESTS OK, othertools 5/5, rouge vu, 3 mutants) ; rejeu en cours | 1 | 700796f | — |
+| L7-T17 | L7-T2 | voir ligne L7-T17 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T17 (base 2894c46, retiré après merge) | mergée : rejeu TESTS OK 158/158, othertools Totals 5 (0 skipped), rouge vu, 3 mutants | 1 | 700796f | 37fd214 (graphe 9ed379b) |
 | L7-T18 | L7-S8 | voir ligne L7-T18 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T18 (base 2894c46) | essai 2 : rendue a49a6b3 (158 TESTS OK, ticker 12/12) ; revue « corriger » : durée du passage indépendante de la vitesse, trait après l'arrêt non testé, reprise non vérifiée en position ; banc S23 avec message renvoyé à la clôture (aucun scénario ne lance tool.ticker : à prévoir à la clôture) | 2 | a49a6b3 | — |
 
 ## Terminé quand
