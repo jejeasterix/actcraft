@@ -68,6 +68,30 @@ Window {
         onPageAboutToChange: pageArea.view.finishStroke()
     }
 
+    // Lot 4 : réglages de la page, miniatures, pages et édition de texte (types C++ de L4-T1).
+    PageSettings {
+        id: appPageSettings
+        objectName: "appPageSettings"
+        documentController: appDocument
+    }
+    PageThumbnails {
+        id: appThumbnails
+        objectName: "appThumbnails"
+        documentController: appDocument
+        view: pageArea.view
+    }
+    Pages {
+        id: appPages
+        objectName: "appPages"
+        documentController: appDocument
+    }
+    TextEditing {
+        id: appText
+        objectName: "appText"
+        documentController: appDocument
+        view: pageArea.view
+    }
+
     // Outils de l'utilisateur (lot 3) : branchés à la vue, à la couche soulevée et aux commandes.
     Tools {
         id: appTools
@@ -100,6 +124,21 @@ Window {
             root.showFullScreen()
         else
             root.showNormal()
+    }
+
+    // Argument de text.edit-at : « x;y;v » (coordonnées de page, v = 0 ou 1) ; absent ou illisible : null,
+    // c'est-à-dire valider l'édition.
+    function editAtArgument(arg) {
+        if (arg === undefined || arg === null || arg === "")
+            return null
+        const parts = String(arg).split(";")
+        if (parts.length < 2)
+            return null
+        const x = Number(parts[0])
+        const y = Number(parts[1])
+        if (!isFinite(x) || !isFinite(y))
+            return null
+        return { x: x, y: y, vertical: parts.length > 2 && Number(parts[2]) === 1 }
     }
 
     function popupOpened() {
@@ -138,6 +177,12 @@ Window {
         anchors.bottom: parent.bottom
         spacing: 0
 
+        // Lot 4 : panneau des navigateurs (ancre réglée par L4-T19), à gauche de la zone de page.
+        BrowserPanel {
+            id: browserPanel
+            objectName: "browserPanel"
+        }
+
         PageArea {
             id: pageArea
             Layout.fillWidth: true
@@ -149,6 +194,12 @@ Window {
             commands: appCommands
         }
 
+        // Lot 4 : palette des formes, à droite, avant la palette d'outils.
+        ShapePalette {
+            id: shapePalette
+            objectName: "shapePalette"
+        }
+
         ToolPalette {
             id: toolPalette
             Layout.fillHeight: true
@@ -157,6 +208,30 @@ Window {
             view: pageArea.view
             tools: appTools
         }
+    }
+
+    // Lot 4 : barres de texte sous la ligne supérieure, boîtes de la grille et du fond (talons).
+    TextFormatBar {
+        id: textFormatBar
+        objectName: "textFormatBar"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: topBar.bottom
+    }
+    VerticalTextBar {
+        id: verticalTextBar
+        objectName: "verticalTextBar"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: topBar.bottom
+    }
+    GridDesigner {
+        id: gridDesigner
+        objectName: "gridDesigner"
+    }
+    BackgroundDialog {
+        id: backgroundDialog
+        objectName: "backgroundDialog"
     }
 
     // « Menu principal » (F-122) : les mêmes menus que la ligne supérieure.
@@ -325,6 +400,47 @@ Window {
         appCommands.setHandler("menu.tools", function () { toolsMenu.popup() })
         appCommands.setHandler("help.about", function () { aboutDialog.open() })
         appCommands.setHandler("help.website", function () { Qt.openUrlExternally(AppInfo.projectUrl) })
+        // Lot 4 : formes, texte, navigateurs, pages, grille (une ligne vers sa cible chacune).
+        appCommands.setHandler("tool.shape", function () { appTools.activate("shape") })
+        appCommands.setHandler("shape.choose", function (preset) { appTools.chooseShape(preset) })
+        appCommands.setHandler("shape.filled", function () { appTools.setShapeFilled(!appTools.shapeFilled) })
+        appCommands.setHandler("shape.fill-color", function (color) { appTools.setShapeFillColor(color) })
+        appCommands.setHandler("shape.draw-from-center", function () { appTools.setShapeFromCenter(!appTools.shapeFromCenter) })
+        appCommands.setHandler("tool.text", function () { appTools.activate("text") })
+        appCommands.setHandler("tool.text-vertical", function () { appTools.activate("text-vertical") })
+        appCommands.setHandler("text.edit-at", function (arg) {
+            const at = root.editAtArgument(arg)
+            if (at === null)
+                appText.commit()
+            else
+                appText.beginAt(Qt.point(at.x, at.y), at.vertical)
+        })
+        for (const id of ["text.font", "text.size", "text.size-up", "text.size-down", "text.bold", "text.italic",
+                          "text.underline", "text.superscript", "text.subscript", "text.color", "text.background",
+                          "text.align-left", "text.align-center", "text.align-right", "text.spacing-up",
+                          "text.spacing-down", "text.indent", "text.outdent", "text.bullets", "text.select-all",
+                          "text.symbol"])
+            appCommands.setHandler(id, function (arg) { appText.apply(id, arg) })
+        appCommands.setHandler("view.browsers", function () { browserPanel.visible = !browserPanel.visible })
+        appCommands.setHandler("browsers.dock-left", function () { browserPanel.side = "left" })
+        appCommands.setHandler("browsers.dock-right", function () { browserPanel.side = "right" })
+        appCommands.setHandler("page.goto", function (number) { appPages.goTo(number - 1) })
+        appCommands.setHandler("page.insert-before", function () { appPages.insertBlank(false) })
+        appCommands.setHandler("page.insert-after", function () { appPages.insertBlank(true) })
+        appCommands.setHandler("page.cut", function () { appPages.cutSelection() })
+        appCommands.setHandler("page.copy", function () { appPages.copySelection() })
+        appCommands.setHandler("page.paste", function () { appPages.paste() })
+        appCommands.setHandler("page.duplicate", function () { appPages.duplicateSelection() })
+        appCommands.setHandler("page.delete", function () { appPages.deleteSelection() })
+        appCommands.setHandler("page.background", function () { backgroundDialog.open() })
+        appCommands.setHandler("grid.designer", function () { gridDesigner.open() })
+        appCommands.setHandler("grid.hide", function () { appPageSettings.toggleGridHidden() })
+        appCommands.setHandler("grid.snap", function () { appPageSettings.toggleSnap() })
+        appCommands.setHandler("view.page-extension", function () {
+            pageArea.pageExtensionHandle.visible = !pageArea.pageExtensionHandle.visible
+        })
+        appCommands.setHandler("page.extend", function () { appPageSettings.extendPage() })
+        appCommands.setHandler("page.zones", function (zones) { appPageSettings.setZones(zones) })
         appCommands.setChecked("tool.pen", true) // F-200 : le stylo est l'outil de départ
         appCommands.setChecked("view.trash", true)
         root.syncEditCommands()

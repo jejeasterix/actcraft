@@ -57,6 +57,16 @@ qt_add_qml_module(actcraft_ui
         qml/PageContextMenu.qml
         qml/ToolCursor.qml
         qml/Presentation.qml
+        qml/BrowserPanel.qml
+        qml/PageNavigator.qml
+        qml/ShapePalette.qml
+        qml/TextFormatBar.qml
+        qml/TextEditor.qml
+        qml/VerticalTextBar.qml
+        qml/GridDesigner.qml
+        qml/BackgroundDialog.qml
+        qml/PageExtensionHandle.qml
+        qml/PageZonesOverlay.qml
         ${ACTCRAFT_UI_LOT7_QML}
     RESOURCES
         icons/menu.svg
