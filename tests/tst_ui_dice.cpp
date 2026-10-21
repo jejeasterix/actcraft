@@ -46,7 +46,9 @@ QPointF centreOf(const QQuickItem* item)
 
 void clickOn(const MainWindow& main, const QString& name)
 {
-    QQuickItem* item = main.item(name);
+    // Cherché dans le panneau des dés : d'autres panneaux flottants du lot portent les mêmes noms
+    // (« floatingPanelClose »), et main.item rend le premier de l'arbre, parfois celui d'un panneau fermé.
+    QQuickItem* item = presentationharness::findItem(main.item(QStringLiteral("diceRoot")), name);
     QVERIFY2(item != nullptr, qPrintable(name));
     QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, centreOf(item).toPoint());
     QCoreApplication::processEvents();
