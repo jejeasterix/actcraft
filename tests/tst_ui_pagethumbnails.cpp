@@ -20,12 +20,13 @@ using ui::PageThumbnails;
 
 namespace {
 
-// Trait large en travers de la page : le centre de la miniature est sombre.
+// Trait large en travers de la page, par son centre : le centre de la miniature est sombre. (Le trait
+// diagonal de l'esquisse du plan, de (100, 100) à (900, 700), passe à 20 px du centre : il ne le couvre pas.)
 core::Stroke bigStroke()
 {
     core::Stroke stroke;
-    stroke.points = {core::StrokePoint{100, 100, 0.5f}, core::StrokePoint{900, 700, 0.5f}};
-    stroke.baseWidth = 30;
+    stroke.points = {core::StrokePoint{100, 384, 0.5f}, core::StrokePoint{924, 384, 0.5f}};
+    stroke.baseWidth = 60;
     return stroke;
 }
 
