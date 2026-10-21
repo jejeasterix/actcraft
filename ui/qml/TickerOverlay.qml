@@ -8,7 +8,9 @@ import ActCraft.Ui
 // et la couverture est la bande entière, immobile. Le cache n'est jamais redessiné. Texte toujours en texte brut
 // (saisi par l'utilisateur ou lu d'un fichier). Entrée : la bande est une couverture de la vue
 // (addInputCover de la racine, limitée à la bande par containmentMask) tant que le message défile ; elle ne prend
-// que le clic droit, qui arrête le message.
+// que le clic droit, qui arrête le message. La fenêtre d'édition (TickerDialog) s'ouvre avec la commande
+// tool.ticker. Vitesse, boucle et largeur du texte sont suivies en plein passage : la suite part de la place
+// actuelle (retime).
 Item {
     id: root
     anchors.fill: parent
@@ -21,6 +23,10 @@ Item {
     // Vitesse lue par une propriété : un changement en cours de passage repart de la place actuelle (retime).
     readonly property real pixelsPerSecond: tickerController.pixelsPerSecond
     onPixelsPerSecondChanged: root.retime()
+    // Boucle et largeur du texte (la fin du passage) lues de même : couper la boucle finit le passage en cours,
+    // la reprendre le prolonge, un texte plus long ou plus court déplace la sortie.
+    readonly property bool looping: tickerController.loop
+    readonly property real textWidth: message.width
 
     TickerController {
         id: tickerController
@@ -127,6 +133,8 @@ Item {
     property double passStart: 0
     property real passFrom: 0
     property real passSpeed: 0
+    property real passWidth: 0
+    property bool passLoop: false
     property bool partialPass: false
     property QtObject runningMotion: null // animateur du passage en cours ; nul à l'arrêt et en pause
 
@@ -135,6 +143,8 @@ Item {
         root.passStart = Date.now()
         root.passFrom = from
         root.passSpeed = tickerController.pixelsPerSecond
+        root.passWidth = message.width
+        root.passLoop = tickerController.loop
         root.partialPass = partial
     }
 
@@ -153,7 +163,7 @@ Item {
         if (root.partialPass) {
             return Math.max(-message.width, root.passFrom - root.passSpeed * elapsed / 1000)
         }
-        return tickerController.positionAt(band.width, message.width, root.passSpeed, elapsed)
+        return tickerController.positionAt(band.width, root.passWidth, root.passSpeed, root.passLoop, elapsed)
     }
 
     function begin() {
@@ -219,6 +229,15 @@ Item {
         }
     }
 
+    TickerDialog {
+        id: tickerDialog
+        objectName: "tickerDialog"
+        parent: root.parent
+        z: root.z + 1
+        controller: tickerController
+        pageArea: root.pageArea
+    }
+
     function syncCover() {
         const view = root.pageArea ? root.pageArea.view : null
         if (!view) {
@@ -235,7 +254,7 @@ Item {
         if (!root.commands) {
             return
         }
-        // La fenêtre d'édition du message vient en L7-T19 : ici, le message par défaut défile aussitôt.
+        // Le message défile aussitôt avec les réglages courants, et la fenêtre d'édition s'ouvre.
         root.commands.setHandler("tool.ticker", function () {
             tickerController.start()
         })
