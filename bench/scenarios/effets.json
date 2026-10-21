@@ -1,6 +1,31 @@
 {
   "format": "actcraft-scenario/1",
   "name": "effets",
-  "description": "Talon L7-S8 : rempli par L7-T8 (S22).",
-  "steps": [ {"waitReady": true} ]
+  "description": "F-640 : effet global « Fondu » (view.page-effect dissolve), page.next : à mi-effet les deux pages sont mêlées (capture fondu-milieu), puis page 2 / 2 et transition.played = dissolve ; la page 2 reçoit l'effet « Glissement » (page.effect slide-right), page.previous le joue : l'ancienne page est poussée vers la droite par la nouvelle (capture glissement) ; la page 1 n'a pas d'effet propre, page.next revient donc à l'effet global : transition.played = dissolve.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "view.page-effect", "argument": "dissolve"},
+    {"command": "page.next"},
+    {"wait": 700},
+    {"capture": "fondu-milieu"},
+    {"waitFor": "transition.phase", "value": 0, "timeoutMs": 8000},
+    {"waitReady": true},
+    {"expect": "pageIndicator.text", "value": "2 / 2"},
+    {"expect": "transition.played", "value": "dissolve"},
+    {"command": "page.effect", "argument": "slide-right"},
+    {"command": "page.previous"},
+    {"waitFor": "transition.played", "value": "slide-right", "timeoutMs": 5000},
+    {"wait": 700},
+    {"capture": "glissement"},
+    {"waitFor": "transition.phase", "value": 0, "timeoutMs": 8000},
+    {"waitReady": true},
+    {"expect": "pageIndicator.text", "value": "1 / 2"},
+    {"expect": "transition.played", "value": "slide-right"},
+    {"command": "page.next"},
+    {"waitFor": "transition.played", "value": "dissolve", "timeoutMs": 5000},
+    {"waitFor": "transition.phase", "value": 0, "timeoutMs": 8000},
+    {"waitReady": true},
+    {"expect": "pageIndicator.text", "value": "2 / 2"},
+    {"expect": "transition.played", "value": "dissolve"}
+  ]
 }
