@@ -90,7 +90,7 @@ restants ceux de 4b seulement, N = 136 + n_B. Les décisions D1 à D19 de L4-T0 
 | L4-T26 | Page allongée : poignée, commande, une étape par clic ; scénario S15 (partie 1) | L4-T4, L4-T13, L4-T17, L4-T21, L4-O1 (plan 4a, D10) | `ui/qml/PageExtensionHandle.qml`, `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `ui/src/documentcontroller.cpp`, `ui/src/pageview.cpp`, `bench/scenarios/page-allongee-zones.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `extendPageThreeTimes`, `extendKeepsTheCurrentTool`, `viewFollowsTheNewHeight`), `tst_captures_page_allongee_zones` Passed ; captures hors écran : `LU appPageSettings.pageHeight=998.4 OK`, `LU pageExtensionHandle.atPageBottom=true OK`, `LU appTools.currentTool=pen OK`, `LU appPageSettings.pageHeight=768 OK`, `CAPTURES OK` ; banc hors écran joint | S15 | #tache-l4-t26 |
 | L4-T20 | Menu de page appliqué aux pages sélectionnées ; boîte « Fond de la page » (E2) | L4-T19, L4-T26 | `ui/qml/PageContextMenu.qml`, `ui/qml/BackgroundDialog.qml`, `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `bench/scenarios/navigateur-pages.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `backgroundColorIsOneStep`, `backgroundGradient`, `backgroundRefreshesOnce`, `eachApplyIsOneStep`), `tst_captures_navigateur_pages` Passed ; captures hors écran (D15, trois boutons) : `LU backgroundDialog.visible=true OK` après « appliquer », `PIXEL fond-jaune OK`, `LU backgroundDialog.visible=false OK` après « annuler », fond toujours jaune, `CAPTURES OK` | S7.4 | #tache-l4-t20 |
 | L4-T23 | QML : éditeur de texte et barre de mise en forme ; scénario `texte` | L4-T21, L4-T22 | `ui/qml/TextEditor.qml`, `ui/qml/TextFormatBar.qml`, `bench/scenarios/texte.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_texte` Passed ; captures hors écran : `LU appText.active=true OK`, `TEXTE Bonjour OK`, `LU appText.bold=true OK`, `LU browserPanel.visible=false OK` (Ctrl+B pendant la frappe, D8), `LU appDocument.shownObjectCount=1 OK`, `LU appText.active=false OK` après Échap (validé, D7), `CAPTURES OK` ; banc hors écran joint | S7.3 | #tache-l4-t23 |
-| L4-T27 | Zones de page I : modèle, commande, natif (et `.flipchart` si D11 l'a relevé) | L4-T0, L4-T24 | `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/include/actcraft/core/pagezones.h`, `core/src/pagezones.cpp`, `tests/tst_core_zones.cpp`, `formats/src/nativejson.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_core_zones` (dont `zonesKeepOldFingerprints`, `setZonesIsOneStep`, `zonesChangeIsIgnoredByTheCache`, `zonesAreBounded` : 0 à 40 en largeur, 0 à 53 en hauteur, D11, `extendKeepsTheFrameSize`), `tst_formats_lot4` (dont `zonesRoundTrip`, taille d'un cadre comprise) Passed | S15 | #tache-l4-t27 |
+| L4-T27 | Zones de page I : modèle, commande, natif (et `.flipchart` si D11 l'a relevé) | L4-T0, L4-T24 | `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `core/include/actcraft/core/pagezones.h`, `core/src/pagezones.cpp`, `tests/tst_core_zones.cpp`, `formats/src/nativejson.cpp`, `formats/src/flipchart.cpp`, `formats/src/flipchartids.h`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_core_zones` (dont `zonesKeepOldFingerprints`, `setZonesIsOneStep`, `zonesChangeIsIgnoredByTheCache`, `zonesAreBounded` (0 à 40 en largeur, 0 à 53 en hauteur, D11 ; tailles négatives ou non finies ramenées à 0), `extendKeepsTheFrameSize`), `tst_formats_lot4` (dont `zonesRoundTrip`, taille d'un cadre comprise) Passed | S15 | #tache-l4-t27 |
 | L4-T25 | Texte de haut en bas II : outil, barre, scénario `texte-vertical` (S16) | L4-T23, L4-T24 | `ui/qml/VerticalTextBar.qml`, `ui/src/textediting.cpp`, `tests/tst_ui_text.cpp`, `bench/scenarios/texte-vertical.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_text` (dont `verticalFrameIsOneColumn`, `verticalBarOffersFiveCommands`), `tst_captures_texte_vertical` Passed ; captures hors écran : `LU appText.vertical=true OK`, `PIXEL lettre-a OK`, `PIXEL lettre-b OK`, `PIXEL lettre-c OK`, `LU appDocument.fingerprint=${avant} OK`, `CAPTURES OK` | S16 | #tache-l4-t25 |
 | L4-T28 | Zones de page II : dessin en surcouche, réglage ; scénario S15 (partie 2) — **suspendue jusqu'à l'observation à l'écran (D11)** | L4-T20, L4-T26, L4-T27, L4-O1 (plan 4a) | `ui/qml/PageZonesOverlay.qml`, `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `bench/scenarios/page-allongee-zones.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `zonesRefreshNoCache`), `tst_captures_page_allongee_zones` Passed ; captures hors écran : `LU appPageSettings.zones=2x0 OK`, `PIXEL separation-zone OK`, `LU appDocument.fingerprint=${avant} OK`, `CAPTURES OK` ; banc hors écran joint | S15 | #tache-l4-t28 |
 | L4-T29 | Banc : scénario `miniatures` (écrire, panneau des navigateurs ouvert) | L4-T19 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `bench/include/actcraft/bench/result.h`, `bench/src/result.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `docs/banc.md` | isolé | implementeur-tdd | `TESTS OK`, `tst_bench_scenarios` (dont `thumbnailsScenarioOpensTheBrowsers`), `tst_bench_result` (dont `thumbnailsShowInTheResult`) Passed ; banc hors écran : scénario `miniatures` présent, `thumbnails.renders ≥ 1` **dans la fenêtre mesurée**, `thumbnails.during_contact = 0`, `thumbnails.max_copy_ms` relevé ; variante sur `pauses` jouée | S7.5 | #tache-l4-t29 |
@@ -1143,11 +1143,12 @@ Tout `switch` sur `Change::Kind` traite déjà `PageSettingsChanged` (`/we4062`)
 D11 : `struct PageZones { std::int32_t horizontal = 0; std::int32_t vertical = 0; double frameWidth = 0; double
 frameHeight = 0; };` (amendement 4) ajouté à la fin de `Page`
 (`model.h`), bornes 0 à 40 (`horizontal`, cadres en largeur) et 0 à 53 (`vertical`, cadres en hauteur), amendement
-4 ; empreinte : queue `0xA6` + les deux nombres, seulement s'ils ne sont pas nuls (comme
-L4-T1) ; `core/include/actcraft/core/pagezones.h` : `class SetPageZonesCommand final : public UndoCommand`
+4 ; empreinte : queue `0xA6` + les deux nombres puis les deux tailles, seulement si l'un des quatre n'est pas nul
+(comme L4-T1) ; `core/include/actcraft/core/pagezones.h` : `class SetPageZonesCommand final : public UndoCommand`
 (`SetPageZonesCommand(std::size_t page, PageZones zones)`, une étape, changement de page **ignoré par le cache**
 (contrat A13 de L4-T4 : les séparations sont dessinées en surcouche) et `PageZones clampZones(PageZones) noexcept`
-; natif : clé `"zones": {"horizontal": n, "vertical": m}` omise à 0 ; `.flipchart` : propriété de page relevée par
+; natif : clé `"zones": {"horizontal": n, "vertical": m, "frameWidth": w, "frameHeight": h}` omise si les quatre
+sont nuls (amendement 4) ; `.flipchart` : propriété de page relevée par
 D11, écrite à la main dans `flipchartids.h`.
 
 **Fichiers.** Ceux de la ligne L4-T27.
@@ -1171,6 +1172,8 @@ en `PASS` ; preuve de tâche.
   #include <actcraft/core/undo.h>
 
   #include <QtTest>
+
+  #include <limits>
 
   using namespace actcraft::core;
 
@@ -1235,6 +1238,9 @@ en `PASS` ; preuve de tâche.
           const PageZones w = clampZones({.horizontal = 50, .vertical = 2});
           QCOMPARE(w.horizontal, 40);
           QCOMPARE(w.vertical, 2);
+          const PageZones s = clampZones({.frameWidth = -5, .frameHeight = std::numeric_limits<double>::quiet_NaN()});
+          QCOMPARE(s.frameWidth, 0.0); // amendement 4 : taille négative ou non finie ramenée à 0
+          QCOMPARE(s.frameHeight, 0.0);
       }
   };
 
@@ -1443,7 +1449,9 @@ L4-C1 se joue quand même avec cette règle : la donnée (taille d'un cadre et n
   `zones = core::clampZones({.horizontal = across, .vertical = down, .frameWidth = frameWidth, .frameHeight =
   frameHeight})` ; page de `frameWidth × max(1, zones.horizontal)` sur `frameHeight × max(1, zones.vertical)` (règle
   supposée, à observer par L4-O1), chaque côté borné à 8000 px en ramenant le nombre de cadres au plus grand qui
-  tient ; `page(0).zones = zones` (taille d'un cadre comprise) ; puis comme `newDocument` (`replaceDocument` vers un
+  tient ; `page(0).zones = zones` (taille d'un cadre comprise) **seulement si** `across > 0 || down > 0`, sinon
+  `PageZones{}` : sans cadre, le paperboard est celui du lot 1, sans zones, même empreinte et même fichier que
+  `newDocument` ; puis comme `newDocument` (`replaceDocument` vers un
   paperboard « Sans titre », `forgetStaleLift`) : aucune étape d'annulation, document non modifié.
 
 **Fichiers.** `ui/qml/PageSizeDialog.qml`, `ui/qml/FileActions.qml`, `ui/include/actcraft/ui/documentcontroller.h`,
@@ -1483,6 +1491,10 @@ paperboard neuf.
           QCOMPARE(doc->document().page(0).zones.frameHeight, 300.0);
           QVERIFY(!doc->canUndo());
           QVERIFY(!doc->property("modified").toBool());
+          QVERIFY(QMetaObject::invokeMethod(sizeDialog, "acceptSize", Q_ARG(QVariant, 640), Q_ARG(QVariant, 480)));
+          QTRY_COMPARE(doc->pageSize(), QSizeF(640, 480)); // sans cadre : aucune zone, comme au lot 1
+          QCOMPARE(doc->document().page(0).zones.frameWidth, 0.0);
+          QCOMPARE(doc->document().page(0).zones.horizontal, 0);
           doc->newDocumentWithFrames(4000, 300, 3, 0); // 3 × 4000 dépasse 8000 : 2 cadres
           QCOMPARE(doc->pageSize(), QSizeF(8000, 300));
           QCOMPARE(doc->document().page(0).zones.horizontal, 2);
