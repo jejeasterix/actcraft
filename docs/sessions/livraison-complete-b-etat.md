@@ -139,6 +139,7 @@ Premiers gestes, dans l'ordre :
 ouvertes : — · passées : —
 
 ## Pièges trouvés
+- Disque plein le 2026-10-21 vers 09 h (3,2 Go libres puis 0 ; LNK1116 code 112 dans L7-T15, « Espace insuffisant » à la copie) : chaque worktree construit prend 3 à 7 Go. Remède appliqué : builds des 13 worktrees mergés supprimés, puis worktrees retirés (branches gardées) → 83,7 Go libres ; rejeux et bancs copiés dans `.tmp/outils-b/bancs/<tâche>/`. Règle désormais : retirer le worktree d'une tâche juste après son merge.
 - Qt (à porter au coffre, 04_Pieges) : une propriété par défaut déclarée dans un fichier QML ne sert qu'aux objets écrits là où le type est utilisé (ici `Main.qml`) ; dans le fichier lui-même, assigner par nom (`data: [ … ]`). Erreur vue : `Cannot assign to non-existent default property` (L7-S8).
 - CI Clang : `-Wunused-private-field` sur `m_controller` du talon `ui/src/presentationdocument.cpp` levé par L7-T2 (mergée).
 - Qt/CMake (à porter au coffre, 04_Pieges) : un en-tête `QML_ELEMENT` créé après un premier build n'est pas vu par AUTOMOC (`CurtainController is not a type`) ; remède : supprimer `build/debug/ui/actcraft_ui_autogen/timestamp` (L7-T3). QML : `Item.mapFromScene` absent, utiliser `mapFromItem(null, p)` (L7-T3). Revu aussi dans le build incrémental du chantier après le merge de L7-T9 (LNK2001 `MathToolsController::staticMetaObject`) : touche tout build existant qui reçoit un nouvel en-tête, donc aussi A à la fusion du lot 7 → à dire à A dans le message « lot 7 prêt à fusionner ».
