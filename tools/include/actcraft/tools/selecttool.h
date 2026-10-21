@@ -3,6 +3,7 @@
 #include <actcraft/tools/tool.h>
 #include <actcraft/tools/toolcontext.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <vector>
@@ -41,16 +42,18 @@ private:
         Dragging,   // objets soulevés, couche soulevée déplacée
         Resizing,   // objets soulevés, poignée glissée (F-520)
         Rotating,   // objets soulevés, bouton de rotation glissé (F-522)
+        SmartPoint, // forme soulevée, point intelligent glissé (F-242)
     };
     enum class Grab : std::uint8_t
     {
         None,
-        Band,     // appui dans le vide (ou avec Maj/Ctrl) : rectangle
-        Drag,     // appui sur un objet ou dans le cadre : déplacement
-        FreeMove, // bouton « déplacer librement » : déplace même un objet verrouillé ou limité
-        Handle,   // poignée : redimensionner
-        Rotate,   // bouton de rotation
-        Command,  // autre bouton de la barre : un clic le déclenche
+        Band,       // appui dans le vide (ou avec Maj/Ctrl) : rectangle
+        Drag,       // appui sur un objet ou dans le cadre : déplacement
+        FreeMove,   // bouton « déplacer librement » : déplace même un objet verrouillé ou limité
+        Handle,     // poignée : redimensionner
+        Rotate,     // bouton de rotation
+        Command,    // autre bouton de la barre : un clic le déclenche
+        SmartPoint, // point intelligent d'une forme seule
     };
 
     void press(const input::Sample& sample);
@@ -58,6 +61,9 @@ private:
     void release(const input::Sample& sample);
     void beginDrag(bool force);
     void beginTransform(State kind);
+    void beginSmartPoint();
+    void updateSmartPoint(core::PointF point);
+    void endSmartPoint(bool cancelled);
     // Soulève ids (m_lifted d'abord), montre les copies et passe à state.
     void liftForGesture(std::vector<core::ObjectId> ids, State state);
     // Agrandir et Réduire : la sélection redimensionnable, × factor autour du centre du cadre.
@@ -85,6 +91,9 @@ private:
     SelectionView m_frame;                         // cadre de la sélection au soulèvement
     HandleKind m_handle = HandleKind::TopLeft;     // poignée saisie
     QString m_command;                             // bouton de barre saisi
+    std::size_t m_smartPoint = 0;                  // point intelligent saisi
+    std::vector<double> m_smartParameters;         // paramètres du dernier aperçu
+    bool m_smartMoved = false;                     // l'aperçu a changé au moins une fois
     bool m_trashHover = false;
     int m_modifiers = 0;
 };

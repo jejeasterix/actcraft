@@ -89,6 +89,26 @@ Item {
         }
     }
 
+    // Points intelligents d'une forme sélectionnée seule (F-242) : losanges jaunes à contour sombre. Le tableau
+    // vient de appTools.selectionFrame.smartPoints (vide tant que le cadre ne le porte pas).
+    Repeater {
+        model: root.framed && root.handlesOn ? (root.frame.smartPoints || []) : []
+        delegate: Rectangle {
+            id: smart
+            objectName: "selectionSmartPoint"
+            required property var modelData
+            readonly property point at: root.place(modelData)
+            x: at.x - width / 2
+            y: at.y - height / 2
+            width: 12
+            height: 12
+            rotation: 45
+            color: "#FFD43B"
+            border.width: 2
+            border.color: root.contour
+        }
+    }
+
     // Rectangle élastique (glisser sur le vide).
     Rectangle {
         readonly property var band: root.frame.rubberBand

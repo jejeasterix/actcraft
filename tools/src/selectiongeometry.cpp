@@ -1,5 +1,6 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/hittest.h>
+#include <actcraft/core/shapegeometry.h>
 #include <actcraft/tools/selectiongeometry.h>
 
 #include <algorithm>
@@ -89,6 +90,31 @@ bool insideQuad(const std::vector<core::PointF>& quad, core::PointF p) noexcept
 
 } // namespace
 
+std::vector<core::PointF> smartPointsOnPage(const core::PageObject& object)
+{
+    const auto* shape = std::get_if<core::Shape>(&core::body(object));
+    if (shape == nullptr) {
+        return {};
+    }
+    std::vector<core::PointF> points = core::smartPoints(*shape);
+    for (core::PointF& point : points) {
+        point = object.common.transform.map(point);
+    }
+    return points;
+}
+
+core::PointF toObjectPoint(const core::PageObject& object, core::PointF pagePoint) noexcept
+{
+    const core::Transform& t = object.common.transform;
+    const double det = t.m11 * t.m22 - t.m12 * t.m21;
+    if (!(std::abs(det) > 1e-12)) {
+        return pagePoint;
+    }
+    const double x = pagePoint.x - t.dx;
+    const double y = pagePoint.y - t.dy;
+    return {(t.m22 * x - t.m21 * y) / det, (t.m11 * y - t.m12 * x) / det};
+}
+
 SelectionView layoutSelection(const core::Page& page, const std::vector<core::ObjectId>& ids, double zoom,
                               const QStringList& barCommands)
 {
@@ -144,6 +170,9 @@ SelectionView layoutSelection(const core::Page& page, const std::vector<core::Ob
         commands.removeAll(QStringLiteral("object.rotate"));
     }
     out.bar = layoutBar(out.corners, commands, zoom);
+    if (count == 1 && !single->common.locked) {
+        out.smartPoints = smartPointsOnPage(*single);
+    }
     return out;
 }
 
@@ -170,6 +199,16 @@ SelectionHit hitSelection(const SelectionView& view, core::PointF point, double 
             if (std::hypot(point.x - view.handles[i].x, point.y - view.handles[i].y) <= radius) {
                 hit.kind = SelectionHitKind::Handle;
                 hit.handle = static_cast<HandleKind>(i);
+                return hit;
+            }
+        }
+    }
+    if (view.handlesVisible) {
+        const double radius = kHandleRadiusScreen / zoom;
+        for (std::size_t i = 0; i < view.smartPoints.size(); ++i) {
+            if (std::hypot(point.x - view.smartPoints[i].x, point.y - view.smartPoints[i].y) <= radius) {
+                hit.kind = SelectionHitKind::SmartPoint;
+                hit.smartPoint = i;
                 return hit;
             }
         }
