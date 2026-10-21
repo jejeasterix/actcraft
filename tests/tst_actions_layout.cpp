@@ -203,7 +203,8 @@ private slots:
         QVERIFY(unknownCommands(layout, registry).isEmpty());
         QCOMPARE(layout.objectBar, (QStringList{"object.move-free", "object.rotate", "object.translucency",
                                                 "object.enlarge", "object.reduce"}));
-        QCOMPARE(layout.contextMenu,
+        // Amendement 1 du lot 4 : entrées du menu de page ajoutées en fin ; celles du socle restent en tête.
+        QCOMPARE(layout.contextMenu.mid(0, 4),
                  (QStringList{"tool.select", "tool.pen", "-", "recognition.convert-to-text"}));
     }
 

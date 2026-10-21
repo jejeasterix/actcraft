@@ -193,9 +193,10 @@ private slots:
                                    QStringLiteral("pen.width"),          QStringLiteral("menu.main"),
                                    QStringLiteral("menu.tools"),         QStringLiteral("help.website"),
                                    QStringLiteral("help.about")};
-        // Les 23 commandes du lot 1 ouvrent le fichier, dans cet ordre ; les lots 3 et 7 (L0-S4) suivent.
+        // Les 23 commandes du lot 1 ouvrent le fichier, dans cet ordre ; les lots 3 et 7 (L0-S4) suivent,
+        // puis les 47 du lot 4 (L4-T1) : le total passe de 62 à 109 commandes au-delà du lot 1.
         QCOMPARE(r.ids().mid(0, expected.size()), expected);
-        QCOMPARE(r.ids().size(), expected.size() + 62);
+        QCOMPARE(r.ids().size(), expected.size() + 62 + 47);
         QCOMPARE(r.find(QStringLiteral("view.fullscreen"))->shortcut, QStringLiteral("F5"));
         QVERIFY(r.find(QStringLiteral("view.fullscreen"))->checkable);
         QVERIFY(r.find(QStringLiteral("pen.width"))->argument == ArgumentKind::Number);

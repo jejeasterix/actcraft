@@ -91,11 +91,12 @@ private slots:
         for (const QVariant& group : c.palette()) {
             groups << group.toMap().value(QStringLiteral("group")).toString();
         }
-        // Groupes « edition » et « presentation » ajoutés par le socle (L0-S4).
+        // Groupes « edition » et « presentation » ajoutés par le socle (L0-S4), « formes-texte » par le
+        // lot 4.
         QCOMPARE(groups, (QStringList{QStringLiteral("commandes"), QStringLiteral("pages"),
                                       QStringLiteral("couleurs"), QStringLiteral("epaisseur"),
                                       QStringLiteral("outils"), QStringLiteral("edition"),
-                                      QStringLiteral("presentation")}));
+                                      QStringLiteral("presentation"), QStringLiteral("formes-texte")}));
         const QVariantMap first =
             c.palette().at(0).toMap().value(QStringLiteral("items")).toList().at(0).toMap();
         QCOMPARE(first.value(QStringLiteral("id")).toString(), QStringLiteral("menu.main"));

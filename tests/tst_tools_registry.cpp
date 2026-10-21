@@ -104,7 +104,9 @@ private slots:
     {
         ToolRegistry registry;
         registerBuiltinTools(registry);
-        QCOMPARE(registry.ids(), (QStringList{"select", "pen", "highlighter", "eraser"}));
+        // Lot 4 (L4-T1) : les outils « shape », « text » et « text-vertical » s'ajoutent en fin.
+        QCOMPARE(registry.ids(),
+                 (QStringList{"select", "pen", "highlighter", "eraser", "shape", "text", "text-vertical"}));
         QVERIFY(!registry.add(QStringLiteral("pen"), {}));
         QVERIFY(!registry.add(QString(), {}));
         // Les deux refus ci-dessus tiendraient aussi par la seule fabrique vide : on les reprend avec une
