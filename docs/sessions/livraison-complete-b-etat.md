@@ -9,7 +9,7 @@ Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (20
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 17/33 tâches terminées
 Tâche : L7-T17 — Date et heure (F-300), navigateur web (F-299) — depuis 2026-10-21 11:42
-Tâche : L7-T18 — Message défilant I (F-291) — depuis 2026-10-21 11:42
+Tâche : L7-T18 — Message défilant I (F-291), essai 2 — depuis 2026-10-21 14:09
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -76,7 +76,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T16 | L7-T2 | voir ligne L7-T16 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T16 (base e098c86, retiré après merge) | mergée : rejeu TESTS OK 158/158, clock Totals 10 (0 skipped), captures compte-à-rebours OK, 5 mutants | 1 | e25083d | f3f0cca (graphe ce7119f) |
 | suite V9 | L7-T13, T14c, T15, T16 | branche du chantier à 2894c46 (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 (la branche est de nouveau verte) | 1 | — | — |
 | L7-T17 | L7-T2 | voir ligne L7-T17 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T17 (base 2894c46) | rendue 700796f (158 TESTS OK, othertools 5/5, rouge vu, 3 mutants) ; rejeu en cours | 1 | 700796f | — |
-| L7-T18 | L7-S8 | voir ligne L7-T18 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T18 (base 2894c46) | rendue a49a6b3 (158 TESTS OK, ticker 12/12, 5 mutants joués ; banc sans message en boucle : runner ne peut pas lancer tool.ticker) ; revue adversariale en cours | 1 | a49a6b3 | — |
+| L7-T18 | L7-S8 | voir ligne L7-T18 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T18 (base 2894c46) | essai 2 : rendue a49a6b3 (158 TESTS OK, ticker 12/12) ; revue « corriger » : durée du passage indépendante de la vitesse, trait après l'arrêt non testé, reprise non vérifiée en position ; banc S23 avec message renvoyé à la clôture (aucun scénario ne lance tool.ticker : à prévoir à la clôture) | 2 | a49a6b3 | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
@@ -109,7 +109,7 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 - « Ouvrir le spot ferme le rideau » (plan 7a, étape 3) : fait dans L7-T6 (PageToolsController), mergé.
 
 ## À vérifier à la clôture du lot (S22, captures à l'écran)
-- Banc S23 avec message défilant en boucle (L7-T18) : `bench/src/runner.cpp` ne sait pas lancer `tool.ticker` ; le plan 7a (l. 2202-2204) renvoie cette mesure à la clôture. `PageContextMenu.qml` encore talon : le clic droit compte la demande de menu, pas un menu ouvert.
+- Banc S23 avec message défilant en boucle (L7-T18) : `bench/src/runner.cpp` ne sait pas lancer `tool.ticker` ; le plan 7a (l. 2202-2204) renvoie cette mesure à la clôture. `PageContextMenu.qml` encore talon : le clic droit compte la demande de menu, pas un menu ouvert. La revue de L7-T18 note que runner.cpp sait jouer des commandes : il manque seulement un scénario qui lance tool.ticker, prévu par aucune tâche → à écrire à la clôture.
 - Refus d'un schéma par le navigateur web (L7-T17) : message posé dans `PresentationCommands.message`, mais aucun bandeau ne l'affiche (`MessageBanner` est dans `Main.qml`) → à câbler dans L7-T32 (contrôle du lot).
 - Appui et survol au vrai stylet sur les panneaux (dés L7-T14, compas L7-T12, navigateur des effets L7-T8) : prouvés hors écran par le rejeu souris de Qt seulement ; à voir à l'écran. Navigateur des effets (L7-T8) : aucun moyen de retirer l'effet propre d'une page pour revenir à l'effet global.
 - Effets de page (L7-T7) : six mouvements approximés sans rotation (box-turn, card-flip, tiles-spin, corner-swing, spiral-out, turn-reveal) ; slide-right sans poussée ; star-iris en quatre quarts. À regarder à l'écran, à corriger dans une tâche dédiée si besoin.
