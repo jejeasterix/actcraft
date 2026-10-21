@@ -9,8 +9,15 @@
 #include <QQuickTextDocument>
 #include <QRectF>
 #include <QString>
+#include <QTextBlockFormat>
+#include <QTextCharFormat>
+#include <QTextCursor>
+#include <QTextDocument>
 #include <QVariant>
 #include <QtQml/qqmlregistration.h>
+
+#include <cstddef>
+#include <functional>
 
 namespace actcraft::ui {
 
@@ -77,15 +84,36 @@ signals:
     void focusRequested();
 
 private:
+    QTextDocument* editDocument() const; // document du TextEdit ; nullptr sans textDocument
+    QTextCursor selectionCursor() const;
+    QTextCharFormat currentCharFormat() const;
+    void mergeFormat(const QTextCharFormat& format);
+    void changeBlocks(const std::function<void(QTextBlockFormat&)>& change);
+    QTextCharFormat newTextFormat() const;
+    core::RectF measuredBounds(const QString& safeHtml) const;
+    void updateFrame();
+    void finish(); // fin d'édition (avant tout appel au contrôleur : réentrance)
+    void rememberFormat();
+
     QPointer<DocumentController> m_controller;
     QPointer<PageView> m_view;
     QPointer<QQuickTextDocument> m_document;
-    core::ObjectId m_editing = 0; // 0 : texte neuf
+    QPointer<QTextDocument> m_watched; // document dont contentsChanged recalcule le cadre
+    core::ObjectId m_editing = 0;      // 0 : texte neuf
     bool m_active = false;
     bool m_vertical = false;
     QRectF m_frame;
     int m_selectionStart = 0;
     int m_selectionEnd = 0;
+    std::size_t m_page = 0;      // page de l'édition
+    core::RectF m_objectBounds;  // emprise en coordonnées de l'objet (origine gardée, taille mesurée)
+    qreal m_fixedWidth = 0;      // > 0 : largeur imposée (texte existant, poignée d'extension)
+    bool m_geometryChanged = false;
+    QString m_initialHtml;       // HTML du TextEdit au début de l'édition : inchangé, aucune étape
+    // Mémoire de la police et de la taille (D7) : celles des textes suivants. L'en-tête figé (L4-T1) ne donne
+    // pas accès à tools::UserState : la mémoire est gardée ici.
+    QString m_fontFamily;        // vide : police de l'application (N2-3)
+    qreal m_pointSize = 14;
 };
 
 } // namespace actcraft::ui

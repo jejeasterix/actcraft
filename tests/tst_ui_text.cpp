@@ -121,7 +121,7 @@ struct Harness
         if (index >= p.objects.size()) {
             return QStringLiteral("<absent>");
         }
-        const auto* text = std::get_if<core::Text>(&p.objects[index].object);
+        const auto* text = std::get_if<core::Text>(&core::body(p.objects[index]));
         return text ? plainOfHtml(text->html).trimmed() : QStringLiteral("<pas un texte>");
     }
     QString htmlPlainOfFirst() const { return plainOf(static_cast<std::size_t>(controller.currentIndex()), 0); }
@@ -205,7 +205,7 @@ private slots:
         ui::DocumentController reread;
         QVERIFY(openAndWait(reread, path));
         QCOMPARE(reread.shownObjectCount(), 1);
-        const auto* text = std::get_if<core::Text>(&reread.document().page(0).objects[0].object);
+        const auto* text = std::get_if<core::Text>(&core::body(reread.document().page(0).objects[0]));
         QVERIFY(text);
         QCOMPARE(plainOfHtml(text->html).trimmed(), QStringLiteral("Bonjour"));
     }
@@ -281,7 +281,7 @@ private slots:
         QCOMPARE(h.htmlPlainOfFirst(), QStringLiteral("Bonjour"));
         const core::PageObject& object = h.controller.document().page(0).objects[0];
         QCOMPARE(object.common.layer, core::Layer::Middle); // F-253
-        const auto* text = std::get_if<core::Text>(&object.object);
+        const auto* text = std::get_if<core::Text>(&core::body(object));
         QVERIFY(text);
         QCOMPARE(text->bounds.x, 200.0);
         QCOMPARE(text->bounds.y, 200.0);
