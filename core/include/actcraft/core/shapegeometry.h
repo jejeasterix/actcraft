@@ -15,7 +15,7 @@ inline constexpr double kShapeMinDragScreen = 3.0; // en deçà, un tracé est u
 
 enum class ShapeFamily : std::uint8_t
 {
-    Line,   // objet core::Line (ligne, ligne brisée, zigzag, chevron)
+    Line,   // objet core::Line (lignes, main levée, ligne et courbe brisées)
     Closed, // objet core::Shape (polygone ou chemin rempli)
 };
 
@@ -66,5 +66,15 @@ std::vector<PointF> smartPoints(const Shape& shape);
 // Paramètres quand le point `index` est amené en `objectPoint` (coordonnées de l'objet), bornés par le
 // préréglage.
 std::vector<double> dragSmartPoint(const Shape& shape, std::size_t index, PointF objectPoint);
+
+// Amendement 4 du lot 4 (D1) : ajout en fin. Geste de pose d'un préréglage : boîte (glisser d'un coin à
+// l'autre), clics (un sommet par clic, double-clic final : polyline, curve-chain) ou main levée (freeform).
+enum class ShapeGesture : std::uint8_t
+{
+    Box,
+    Clicks,
+    Freehand,
+};
+ShapeGesture shapeGesture(std::string_view preset) noexcept; // préréglage inconnu : Box
 
 } // namespace actcraft::core
