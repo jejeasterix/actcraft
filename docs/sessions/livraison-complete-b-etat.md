@@ -110,6 +110,9 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 - Effets de page (L7-T7) : six mouvements approximés sans rotation (box-turn, card-flip, tiles-spin, corner-swing, spiral-out, turn-reveal) ; slide-right sans poussée ; star-iris en quatre quarts. À regarder à l'écran, à corriger dans une tâche dédiée si besoin.
 - Effets de page (L7-T7) : `known()` duplique la logique de `features` (un `isKnownEffect()` dans features serait la bonne place).
 
+## Lot 3 livré (2026-10-21)
+La PR jejeasterix/actcraft#6 (lots 10 et 3, 0.4.0) est mergée dans main (70c8601) ; feat/livraison-complete y est contenue. Condition « livraison du lot 3 » de L7-T33 remplie. Le Pilote a demandé un rebase sur main : refusé (237 commits avec merges --no-ff, branche que A fusionne) ; l'intégration se fait par le merge de L7-T33, après L7-T32, ou plus tôt si A le demande.
+
 ## À faire en L7-T34 (après la fusion du lot 3)
 - Survol au stylet des outils de maths (L7-T12) : prouvé hors écran seulement par le rejeu en souris de Qt (`QTabletEvent` sans bouton n'atteint pas les `HoverHandler`) → à voir sur un vrai stylet dans les captures à l'écran (DA8) de la clôture ; et la mine du compas lit `PageView::inkColor` : à revoir quand le lot 3 remplira `ToolHost::color`.
 - `selectionIsNotGuided` (L7-T9, revue) : le guide de la règle est réservé au stylo (`kGuidedTool = "pen"`), mais non testable avant le lot 3 : `ToolHost::activate` et `UserState::setCurrentTool` sont des talons. À ajouter avec `markerFollowsTheRuler`, `eraserFollowsTheCompass`.
