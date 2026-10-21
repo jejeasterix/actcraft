@@ -15,6 +15,10 @@
 
 namespace actcraft::render {
 
+// Défini dans pagepainter.cpp : étendue dessinée d'un texte de haut en bas, tenue de la mise en page du
+// peintre, la seule de ce texte (L4-T24) ; vide pour un autre texte.
+QRectF verticalTextExtent(const core::Text& text);
+
 namespace {
 
 // Images dont l'objet a besoin, copiées (partage implicite de QImage) : le nœud ne lit plus le magasin
@@ -193,6 +197,11 @@ QRectF drawnRect(const core::PageObject& local)
             for (const core::PointF& q : path) {
                 unitePoint(rect, q.x, q.y, reach);
             }
+        }
+    } else if (const auto* t = std::get_if<core::Text>(&local)) {
+        // Texte de haut en bas : la colonne que dessine le peintre, qui peut déborder du cadre du modèle.
+        if (const QRectF column = verticalTextExtent(*t); !column.isNull()) {
+            rect = rect.united(column);
         }
     }
     return rect;

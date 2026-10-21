@@ -34,6 +34,9 @@ inline constexpr quint16 kConnectorObject = 52;  // connecteur entre deux objets
 inline constexpr quint16 kTagObject = 53;        // étiquette (légende) d'un objet
 inline constexpr quint16 kMediaObject = 253;     // son ou vidéo
 inline constexpr quint16 kLaunchAction = 463;    // action : lancer une mini-application
+// Texte de haut en bas (§ 4.2) : son cadre est une propriété commune (§ 7.1), le champ de son image n'est pas
+// dans notre documentation ; l'objet est donc déclaré non lu (flipchart.cpp, D9).
+inline constexpr quint16 kTopToBottomTextObject = 469;
 } // namespace kind
 
 inline constexpr bool isActionKind(quint16 k) noexcept
