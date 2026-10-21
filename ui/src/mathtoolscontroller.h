@@ -56,6 +56,10 @@ class MathToolsController : public QObject
     // Bornes du rayon d'un rapporteur, pixels de page.
     Q_PROPERTY(qreal minimumRadius READ minimumRadius CONSTANT)
     Q_PROPERTY(qreal maximumRadius READ maximumRadius CONSTANT)
+    // Origine XY (F-284) : marqueur montré (par fenêtre) et position de l'origine de la page affichée, relue
+    // de son core::PagePresentation (hasOrigin, origin) ; défaut : centre de la page.
+    Q_PROPERTY(bool originVisible READ originVisible WRITE setOriginVisible NOTIFY originVisibleChanged)
+    Q_PROPERTY(QPointF origin READ origin NOTIFY originChanged)
 
 public:
     static constexpr double kSnapScreenPixels = 16;
@@ -77,6 +81,14 @@ public:
     static qreal maximumLength() noexcept;
     static qreal minimumRadius() noexcept;
     static qreal maximumRadius() noexcept;
+    bool originVisible() const noexcept;
+    void setOriginVisible(bool visible);
+    QPointF origin() const noexcept;
+
+    // Mémorise `point` comme origine de la page affichée, en une étape
+    // (DocumentInsertions::setPagePresentation : les autres réglages de la page sont gardés). Faux sans
+    // document, sans page, ou si la page porte déjà cette origine.
+    Q_INVOKABLE bool moveOrigin(QPointF point);
 
     // Règle au centre de la page (longueur 600, largeur 80, angle 0 ; une suivante décalée de 24) ; son
     // index.
@@ -134,6 +146,8 @@ signals:
     void countChanged();
     void revisionChanged();
     void guideBandChanged();
+    void originVisibleChanged();
+    void originChanged();
     // Le délégué de l'index est à créer (kind comme dans toolAt()) ou à retirer : la couche tient un modèle
     // par outil, sans recréer les délégués des autres.
     void toolOpened(int index, const QString& kind);
@@ -226,17 +240,25 @@ private:
     void syncTolerance();
     void storeOpenTools();
     void touch();
+    // Relit l'origine de la page affichée dans le document ; appelée au changement de page, au remplacement
+    // du document (documentReplaced) et après chaque modification (annuler, rétablir, trait).
+    void refreshOrigin();
 
     QPointer<PageView> m_view;
     QPointer<ToolHost> m_toolHost;
     QPointer<DocumentController> m_document;
     int m_strokeObserver = 0;
+    int m_originObserver = 0;
     std::optional<PendingAddition> m_pending;
     QMetaObject::Connection m_zoomConnection;
     bool m_filterInstalled = false;
     std::vector<Entry> m_tools;
     features::GuideSet m_guides;
     int m_revision = 0;
+    bool m_originVisible = false;
+    QPointF m_origin;
+    int m_originIndex = -1; // page affichée à la dernière lecture de l'origine
+    QMetaObject::Connection m_originConnections[3];
 };
 
 } // namespace actcraft::ui

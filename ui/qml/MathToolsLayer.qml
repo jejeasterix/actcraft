@@ -1,7 +1,7 @@
 import QtQuick
 import ActCraft.Ui
 
-// Outils de maths (F-280 règle, F-283 équerre, F-281 rapporteur, F-282 compas ; L7-T13 y ajoute son délégué) :
+// Outils de maths (F-280 règle, F-283 équerre, F-281 rapporteur, F-282 compas, F-284 origine XY) :
 // contrôleur, délégués en coordonnées de page (cette couche remplit pageOverlays), cercle d'accroche du survol,
 // gestionnaires des commandes math.*. Les outils ne dessinent aucune encre : le stylo verse le trait, guidé par
 // le filtre d'échantillons du contrôleur ; le rapporteur fermé ou plein fait ajouter ensuite ses rayons ou son
@@ -101,6 +101,14 @@ Item {
             }
         }
 
+        // Origine XY (F-284) : au-dessus des outils, sous le cercle d'accroche.
+        OriginMarker {
+            id: originMarker
+            objectName: "originMarker"
+            controller: mathTools
+            pageView: root.pageArea ? root.pageArea.view : null
+        }
+
         // Cercle d'accroche : là où le stylo posé accrocherait le trait (même requête que le filtre, sans état).
         Rectangle {
             id: snapMarker
@@ -138,5 +146,10 @@ Item {
         root.commands.setHandler("math.set-square", function () { mathTools.openSetSquare() })
         root.commands.setHandler("math.protractor", function () { mathTools.openProtractor() })
         root.commands.setHandler("math.compass", function () { mathTools.openCompass() })
+        root.commands.setHandler("math.xy-origin", function () {
+            mathTools.originVisible = !mathTools.originVisible
+            if (root.commands)
+                root.commands.setChecked("math.xy-origin", mathTools.originVisible)
+        })
     }
 }

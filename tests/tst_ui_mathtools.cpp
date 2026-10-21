@@ -1,4 +1,5 @@
 #include "mathtoolscontroller.h"
+#include "presentationdocument.h"
 #include "support/lot7registry.h"
 #include "support/presentationharness.h"
 
@@ -16,7 +17,9 @@
 
 #include <QColor>
 #include <QCursor>
+#include <QLineF>
 #include <QSignalSpy>
+#include <QUrl>
 #include <QtMath>
 #include <QtTest>
 
@@ -1431,6 +1434,192 @@ private slots:
         doc->redo();
         QTRY_COMPARE(w.pageObjectCount(), before + 4);
         QCOMPARE(countOf<actcraft::core::Line>(shownPage(*doc)), linesBefore + 1);
+    }
+
+    // F-284 : la commande cochable montre ou retire le marqueur ; déplacé au stylet, il écrit l'origine dans
+    // la présentation de la page affichée (les autres réglages de la page sont gardés) ; une autre page garde
+    // la sienne (défaut : centre) ; revenue sur la page, l'origine est relue du document.
+    void originSavedWithThePage()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        MathToolsController* tools = mathTools(w);
+        actcraft::ui::DocumentController* doc = documentController(w);
+        QVERIFY(tools && doc);
+        QCOMPARE(tools->originVisible(), false);
+        QVERIFY(w.run(QStringLiteral("math.xy-origin")));
+        QCOMPARE(tools->originVisible(), true);
+        QQuickItem* marker = w.item(QStringLiteral("originMarker"));
+        QVERIFY(marker);
+        QVERIFY(marker->isVisible());
+        const QPointF centre = tools->origin();
+
+        doc->nextPage();
+        QTRY_COMPARE(doc->currentIndex(), 1);
+        actcraft::core::PagePresentation settings;
+        settings.curtainDistance = 77;
+        actcraft::ui::DocumentInsertions(*doc).setPagePresentation(settings);
+        QTRY_COMPARE(tools->origin(), centre);
+        QVERIFY(!doc->document().page(1).presentation.hasOrigin);
+
+        const QPointF target = centre + QPointF(120, 80);
+        stylusPath(w, {tools->origin(), target});
+        QTRY_VERIFY(doc->document().page(1).presentation.hasOrigin);
+        const actcraft::core::PagePresentation& written = doc->document().page(1).presentation;
+        QVERIFY(samePoint(written.origin.x, written.origin.y, target.x(), target.y()));
+        QCOMPARE(written.curtainDistance, 77.0);
+        QVERIFY(!doc->document().page(0).presentation.hasOrigin);
+        const QPointF moved = tools->origin();
+        QVERIFY(samePoint(moved.x(), moved.y(), target.x(), target.y()));
+
+        doc->pageBack();
+        QTRY_COMPARE(doc->currentIndex(), 0);
+        QTRY_COMPARE(tools->origin(), centre);
+        doc->nextPage();
+        QTRY_COMPARE(doc->currentIndex(), 1);
+        QTRY_COMPARE(tools->origin(), moved);
+
+        QVERIFY(w.run(QStringLiteral("math.xy-origin")));
+        QCOMPARE(tools->originVisible(), false);
+        QVERIFY(!marker->isVisible());
+    }
+
+    // Un déplacement du marqueur (appui, nombreux déplacements, relâché) est une seule étape : un annuler
+    // rend l'origine d'avant, un rétablir la rend.
+    void originMoveIsUndoneAtOnce()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        MathToolsController* tools = mathTools(w);
+        actcraft::ui::DocumentController* doc = documentController(w);
+        QVERIFY(tools && doc);
+        QVERIFY(w.run(QStringLiteral("math.xy-origin")));
+        const QPointF before = tools->origin();
+        const std::size_t page = static_cast<std::size_t>(doc->currentIndex());
+
+        const QPointF target = before + QPointF(150, 90);
+        stylusPath(w, {before, before + QPointF(100, 60), target});
+        QTRY_VERIFY(doc->document().page(page).presentation.hasOrigin);
+        QVERIFY(samePoint(tools->origin().x(), tools->origin().y(), target.x(), target.y()));
+
+        doc->undo();
+        QVERIFY2(!doc->document().page(page).presentation.hasOrigin,
+                 "un seul annuler rend l'origine d'avant");
+        QCOMPARE(tools->origin(), before);
+        doc->redo();
+        QVERIFY(doc->document().page(page).presentation.hasOrigin);
+        QVERIFY(samePoint(tools->origin().x(), tools->origin().y(), target.x(), target.y()));
+    }
+
+    // Document ouvert (remplacé, la page affichée gardant son indice) : l'origine des pages est lue du
+    // document, sans aucun déplacement ni changement de page.
+    void originReadFromAnOpenedDocument()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        MathToolsController* tools = mathTools(w);
+        actcraft::ui::DocumentController* doc = documentController(w);
+        QVERIFY(tools && doc);
+        QCOMPARE(doc->currentIndex(), 0);
+        std::vector<actcraft::core::Page> pages(2);
+        pages[0].presentation.hasOrigin = true;
+        pages[0].presentation.origin = {123, 456};
+        pages[1].presentation.hasOrigin = true;
+        pages[1].presentation.origin = {700, 50};
+        QVERIFY(tools->origin() != QPointF(123, 456));
+        doc->replaceDocument(actcraft::core::Document(std::move(pages)), QUrl(), QStringLiteral("Origine"));
+        QCOMPARE(doc->currentIndex(), 0);
+        QTRY_COMPARE(tools->origin(), QPointF(123, 456));
+        doc->nextPage();
+        QTRY_COMPARE(doc->currentIndex(), 1);
+        QTRY_COMPARE(tools->origin(), QPointF(700, 50));
+    }
+
+    // Non-régression : l'origine déplacée et mémorisée, un trait au stylet ne la bouge pas (le document
+    // change, la page affichée est la même).
+    void strokeKeepsTheOrigin()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        MathToolsController* tools = mathTools(w);
+        actcraft::ui::DocumentController* doc = documentController(w);
+        QVERIFY(tools && doc);
+        QVERIFY(w.run(QStringLiteral("math.xy-origin")));
+        const QPointF target = tools->origin() + QPointF(200, -100);
+        QVERIFY(tools->moveOrigin(target));
+        QTRY_COMPARE(tools->origin(), target);
+
+        const int before = w.pageObjectCount();
+        stylusPath(w, {QPointF(150, 150), QPointF(300, 150)});
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        QTest::qWait(50);
+        QCOMPARE(tools->origin(), target);
+        const std::size_t page = static_cast<std::size_t>(doc->currentIndex());
+        QVERIFY(doc->document().page(page).presentation.hasOrigin);
+        QQuickItem* marker = w.item(QStringLiteral("originMarker"));
+        QVERIFY(marker);
+        QVERIFY(samePoint(marker->x() + marker->width() / 2, marker->y() + marker->height() / 2, target.x(),
+                          target.y()));
+    }
+
+    // Translucidité du corps : kDefaultToolOpacity (100 sur 255), jamais opaque.
+    void originMarkerOpacityIsTheDefault()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.xy-origin")));
+        QQuickItem* body = w.item(QStringLiteral("originMarkerBody"));
+        QVERIFY(body);
+        QVERIFY(qAbs(body->opacity() - actcraft::features::kDefaultToolOpacity / 255.0) < 1e-6);
+        QVERIFY(body->opacity() < 1.0);
+    }
+
+    void originMarkerBlocksTheStylus_data() { presentationharness::addPointerRows(); }
+
+    // Appui sur le marqueur : il bouge, rien n'est versé. Pendant : le même pointeur hors du marqueur verse
+    // un trait.
+    void originMarkerBlocksTheStylus()
+    {
+        QFETCH(Pointer, pointer);
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.xy-origin")));
+        MathToolsController* tools = mathTools(w);
+        actcraft::ui::DocumentController* doc = documentController(w);
+        QVERIFY(tools && doc);
+        const QPointF start = tools->origin();
+        const int before = w.pageObjectCount();
+        // Un seul geste : encre lue d'abord sous le seuil de glisser, puis glisser jusqu'au bout.
+        const QPointF from = scene(w, start);
+        const QPointF to = from + QPointF(0, -60);
+        pointerStep(w.window(), pointer, QEvent::TabletPress, from);
+        pointerStep(w.window(), pointer, QEvent::TabletMove, from + QPointF(0, -2));
+        QCOMPARE(w.pageView()->ink()->pointCount(), std::size_t{0});
+        for (int k = 1; k <= 8; ++k) {
+            pointerStep(w.window(), pointer, QEvent::TabletMove, from + (to - from) * (k / 8.0));
+        }
+        pointerStep(w.window(), pointer, QEvent::TabletRelease, to);
+        QTRY_VERIFY2(QLineF(tools->origin(), start).length() > 20, "marqueur déplacé par son gestionnaire");
+        QTest::qWait(50);
+        QCOMPARE(w.pageObjectCount(), before);
+        QCOMPARE(w.pageView()->ink()->pointCount(), std::size_t{0});
+        QVERIFY(doc->document().page(static_cast<std::size_t>(doc->currentIndex())).presentation.hasOrigin);
+
+        presentationharness::strokeAt(w.window(), pointer, scene(w, QPointF(150, 150)),
+                                      scene(w, QPointF(300, 150)));
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        if (pointer == Pointer::Mouse) {
+            // Comme pour les autres outils : le clic droit, que la vue teste par sa couverture, discrimine.
+            QSignalSpy menu(w.pageView(), &actcraft::ui::PageView::contextMenuRequested);
+            QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier,
+                              scene(w, tools->origin()).toPoint());
+            QTest::qWait(50);
+            QCOMPARE(menu.count(), 0);
+            QTest::mouseClick(w.window(), Qt::RightButton, Qt::NoModifier,
+                              scene(w, QPointF(150, 600)).toPoint());
+            QTRY_COMPARE(menu.count(), 1);
+            QTest::keyClick(w.window(), Qt::Key_Escape);
+        }
     }
 };
 
