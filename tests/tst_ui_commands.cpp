@@ -169,7 +169,8 @@ private slots:
         QCOMPARE(first.value(QStringLiteral("id")).toString(), QStringLiteral("object.move-free"));
         QVERIFY(first.contains(QStringLiteral("label")));
         QVERIFY(first.contains(QStringLiteral("icon")));
-        // Amendement 1 du lot 4 : entrées du menu de page ajoutées en fin ; les entrées du socle restent en tête.
+        // Amendement 1 du lot 4 : entrées du menu de page ajoutées en fin ; les entrées du socle restent en
+        // tête.
         QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}).mid(0, 4),
                  (QStringList{QStringLiteral("tool.select"), QStringLiteral("tool.pen"), QStringLiteral("-"),
                               QStringLiteral("recognition.convert-to-text")}));

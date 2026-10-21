@@ -278,8 +278,8 @@ private slots:
         Layout layout;
         QString error;
         QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
-        QCOMPARE(layout.contextMenu,
-                 (QStringList{QStringLiteral("tool.select"), QStringLiteral("-"), QStringLiteral(">page-insert")}));
+        QCOMPARE(layout.contextMenu, (QStringList{QStringLiteral("tool.select"), QStringLiteral("-"),
+                                                  QStringLiteral(">page-insert")}));
         QCOMPARE(layout.contextSubmenus.size(), std::size_t{1});
         QCOMPARE(layout.contextSubmenus.front().items,
                  (QStringList{QStringLiteral("page.insert-before"), QStringLiteral("page.insert-after")}));

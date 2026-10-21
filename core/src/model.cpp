@@ -367,8 +367,8 @@ static_assert(std::variant_size_v<ObjectVariant> == kObjectKindCount,
 
 std::uint64_t fingerprint(const Page& page) noexcept
 {
-    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight] =
-        page;
+    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys,
+                 baseHeight] = page;
     Fnv1a h;
     h.f64(width);
     h.f64(height);
@@ -441,7 +441,8 @@ std::uint64_t fingerprint(const Page& page) noexcept
             }
         }
     }
-    // Données du lot 4 : en toute fin, et seulement s'il y en a, pour qu'une page sans elles garde son empreinte.
+    // Données du lot 4 : en toute fin, et seulement s'il y en a, pour qu'une page sans elles garde son
+    // empreinte.
     for (std::size_t i = 0; i < objects.size(); ++i) {
         const Shape* shape = std::get_if<Shape>(&body(objects[i]));
         const Text* text = std::get_if<Text>(&body(objects[i]));

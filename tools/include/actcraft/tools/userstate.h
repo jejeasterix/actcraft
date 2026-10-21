@@ -18,6 +18,21 @@ struct InkSettings
     std::uint8_t translucency = 0; // 0 opaque … 255 invisible
 };
 
+struct ShapeSettings
+{
+    QString preset = QStringLiteral("line"); // D1 : défaut de la palette
+    bool filled = true;                      // E1
+    core::Argb fill = 0xFFFFFFFFu;
+    bool fromCenter = false; // F-241 : depuis le coin par défaut
+};
+
+struct TextSettings
+{
+    QString fontFamily; // vide : police par défaut de l'application (N2-3, D7)
+    double pointSize = 14;
+    core::Argb color = 0xFF000000u;
+};
+
 // Réglages par défaut (D5) : « pen » noir, 4, opaque ; « highlighter » #FFFF00, 20, 127 ; « eraser » 50 ;
 // autre outil : ceux du stylo.
 InkSettings defaultSettings(const QString& toolId);
@@ -37,6 +52,10 @@ public:
     void setSelection(std::vector<core::ObjectId> ids);
     const std::vector<QString>& openMathTools() const noexcept; // réservé au lot 7
     void setOpenMathTools(std::vector<QString> ids);
+    ShapeSettings shapeSettings() const;
+    void setShapeSettings(const ShapeSettings& settings);
+    TextSettings textSettings() const;
+    void setTextSettings(const TextSettings& settings);
 
 private:
     input::UserId m_id;
@@ -44,6 +63,8 @@ private:
     std::map<QString, InkSettings> m_settings;
     std::vector<core::ObjectId> m_selection;
     std::vector<QString> m_mathTools;
+    ShapeSettings m_shape;
+    TextSettings m_text;
 };
 
 } // namespace actcraft::tools

@@ -161,8 +161,8 @@ bool parseLayout(const QByteArray& json, Layout& out, QString& error)
         return false;
     }
     {
-        const ItemsStatus status = readMenuItems(root.value(QStringLiteral("contextMenu")), layout.contextMenu,
-                                                 &layout.contextSubmenus);
+        const ItemsStatus status = readMenuItems(root.value(QStringLiteral("contextMenu")),
+                                                 layout.contextMenu, &layout.contextSubmenus);
         if (status == ItemsStatus::InvalidSubmenu) {
             error = QStringLiteral("contextMenu : sous-menu invalide");
             return false;

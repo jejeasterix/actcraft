@@ -363,3 +363,68 @@ set_tests_properties(tst_captures_ecrire_gommer_annuler PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
+# Lot 4 (L4-T1) : scénarios d'interface du lot, talons réduits à waitReady jusqu'à leur tâche.
+add_test(NAME tst_captures_formes
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/formes.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-formes)
+set_tests_properties(tst_captures_formes PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+add_test(NAME tst_captures_grille
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/grille.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-grille)
+set_tests_properties(tst_captures_grille PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+add_test(NAME tst_captures_texte
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/texte.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-texte)
+set_tests_properties(tst_captures_texte PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+add_test(NAME tst_captures_navigateur_pages
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/navigateur-pages.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-navigateur-pages)
+set_tests_properties(tst_captures_navigateur_pages PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+add_test(NAME tst_captures_page_allongee_zones
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/page-allongee-zones.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-page-allongee-zones)
+set_tests_properties(tst_captures_page_allongee_zones PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+add_test(NAME tst_captures_texte_vertical
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/texte-vertical.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-texte-vertical)
+set_tests_properties(tst_captures_texte_vertical PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+add_test(NAME tst_captures_formes_texte_pages_grille
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/formes-texte-pages-grille.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-formes-texte-pages-grille)
+set_tests_properties(tst_captures_formes_texte_pages_grille PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")

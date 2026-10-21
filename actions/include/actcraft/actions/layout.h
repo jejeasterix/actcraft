@@ -38,7 +38,8 @@ struct Layout
     QStringList colors;                // pastilles « #RRGGBB » (F-133)
     QList<double> penWidths;           // préréglages du stylo, pixels de page (F-137)
     QStringList objectBar;             // barre d'objet de la sélection (F-521), dans l'ordre
-    QStringList contextMenu;           // menu contextuel de la page (F-202), dans l'ordre ; "-" séparateur ; « >id » : sous-menu
+    QStringList contextMenu; // menu contextuel de la page (F-202), dans l'ordre ; "-" séparateur ; « >id » :
+                             // sous-menu
     std::vector<MenuSpec> contextSubmenus; // sous-menus du menu contextuel (jeton « >id »)
 };
 

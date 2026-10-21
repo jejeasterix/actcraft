@@ -1,0 +1,10 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "formes-texte-pages-grille",
+  "description": "Talon L4-T1 : rempli par L4-T30.",
+  "steps": [
+    {
+      "waitReady": true
+    }
+  ]
+}

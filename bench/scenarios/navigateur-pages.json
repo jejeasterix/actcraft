@@ -1,0 +1,10 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "navigateur-pages",
+  "description": "Talon L4-T1 : rempli par L4-T19.",
+  "steps": [
+    {
+      "waitReady": true
+    }
+  ]
+}

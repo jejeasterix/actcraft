@@ -154,6 +154,14 @@ qt_add_qml_module(actcraft_ui
         src/toolhost.cpp
         src/tooladapters.h
         src/tooladapters.cpp
+        include/actcraft/ui/pageoptions.h
+        src/pageoptions.cpp
+        include/actcraft/ui/pagethumbnails.h
+        src/pagethumbnails.cpp
+        include/actcraft/ui/pagescontroller.h
+        src/pagescontroller.cpp
+        include/actcraft/ui/textediting.h
+        src/textediting.cpp
         ${ACTCRAFT_UI_LOT7_SOURCES})
 
 # Le code d'enregistrement QML généré inclut les en-têtes par leur seul nom : d'où le dossier privé.

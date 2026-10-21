@@ -222,8 +222,8 @@ struct Shape
     bool windingFill = false;
     Outline pen;
     Fill brush;
-    std::string preset;              // préréglage de la palette (« rectangle »…) ; vide : forme lue ou générique
-    std::vector<double> parameters;  // points intelligents du préréglage (F-242)
+    std::string preset; // préréglage de la palette (« rectangle »…) ; vide : forme lue ou générique
+    std::vector<double> parameters; // points intelligents du préréglage (F-242)
 };
 
 enum class ImagePattern : std::uint8_t

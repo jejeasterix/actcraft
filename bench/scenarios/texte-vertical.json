@@ -1,0 +1,10 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "texte-vertical",
+  "description": "Talon L4-T1 : rempli par L4-T25.",
+  "steps": [
+    {
+      "waitReady": true
+    }
+  ]
+}

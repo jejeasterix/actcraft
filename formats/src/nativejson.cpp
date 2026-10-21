@@ -765,7 +765,8 @@ QJsonObject presentationJson(const PagePresentation& presentation)
 
 QJsonObject pageJson(const Page& page)
 {
-    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight] = page; // baseHeight : L4-T6
+    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys,
+                 baseHeight] = page; // baseHeight : L4-T6
     QJsonObject j;
     j.insert(u"width"_s, width);
     j.insert(u"height"_s, height);
@@ -1208,8 +1209,8 @@ template <typename T> void readBody(Reader&, const QJsonObject&, T&)
 
 void readBody(Reader& r, const QJsonObject& j, Shape& shape)
 {
-    auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill, pen,
-           brush, preset, parameters] = shape; // préréglage et paramètres : L4-T6
+    auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill, pen, brush,
+           preset, parameters] = shape; // préréglage et paramètres : L4-T6
     kind = r.readEnum(kShapeKinds, j, u"shape", kind);
     bounds = r.readRect(j, u"bounds", bounds);
     polygon = r.readPairs(j, u"polygon");
@@ -1494,7 +1495,8 @@ PagePresentation readPresentation(Reader& r, const QJsonObject& j)
 Page readPage(Reader& r, const QJsonObject& j)
 {
     Page page;
-    auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight] = page; // baseHeight : L4-T6
+    auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight] =
+        page; // baseHeight : L4-T6
     // « presentation » est lue par readPresentation, qui garde ses sous-clés inconnues ; hors des clés
     // inconnues de la page : pageJson(Page{}) ne l'écrit pas, elle y serait gardée en double et réécrite même
     // remise aux réglages par défaut.

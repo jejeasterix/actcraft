@@ -1,0 +1,10 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "page-allongee-zones",
+  "description": "Talon L4-T1 : rempli par L4-T26.",
+  "steps": [
+    {
+      "waitReady": true
+    }
+  ]
+}

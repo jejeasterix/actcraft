@@ -98,8 +98,8 @@ public:
     // l'affiche.
     Q_INVOKABLE void nextPage();
     Q_INVOKABLE void pageBack();
-    // Affiche la page `index` (bornée à 0 .. pageCount − 1), comme nextPage et pageBack : le trait en cours et les
-    // gestes sont d'abord terminés (navigateur de pages, lot 4).
+    // Affiche la page `index` (bornée à 0 .. pageCount − 1), comme nextPage et pageBack : le trait en cours
+    // et les gestes sont d'abord terminés (navigateur de pages, lot 4).
     Q_INVOKABLE void showPage(int index);
     // Banc et tests : la page 1 devient la page générée de 300 objets (core::generatePage), renumérotée
     // depuis le compteur du document (1 à 300 dans un document neuf) : aucun doublon avec les autres pages.

@@ -20,5 +20,19 @@ actcraft_add_module(core
         src/objectedits.cpp
         include/actcraft/core/lift.h
         src/lift.cpp
+        include/actcraft/core/pagezones.h
+        src/pagezones.cpp
+        include/actcraft/core/shapegeometry.h
+        src/shapegeometry.cpp
+        include/actcraft/core/shapeedits.h
+        src/shapeedits.cpp
+        include/actcraft/core/gridsnap.h
+        src/gridsnap.cpp
+        include/actcraft/core/pagesettings.h
+        src/pagesettings.cpp
+        include/actcraft/core/pageedits.h
+        src/pageedits.cpp
+        include/actcraft/core/textedits.h
+        src/textedits.cpp
     DEPENDS
         Qt6::Core)

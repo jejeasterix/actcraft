@@ -323,9 +323,9 @@ private slots:
         CommandRegistry registry;
         QString error;
         QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
-        for (const char* id : {"tool.shape", "shape.choose", "tool.text", "tool.text-vertical", "text.bold",
-                               "view.browsers", "page.insert-after", "page.paste", "grid.designer", "grid.snap",
-                               "page.extend", "page.zones"}) {
+        for (const char* id :
+             {"tool.shape", "shape.choose", "tool.text", "tool.text-vertical", "text.bold", "view.browsers",
+              "page.insert-after", "page.paste", "grid.designer", "grid.snap", "page.extend", "page.zones"}) {
             QVERIFY2(registry.find(QString::fromLatin1(id)), id);
         }
         Layout layout;

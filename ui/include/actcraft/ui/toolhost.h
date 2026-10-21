@@ -12,6 +12,8 @@
 #include <QPointer>
 #include <QRectF>
 #include <QString>
+#include <QStringList>
+#include <QVariantList>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
@@ -49,6 +51,10 @@ class ToolHost : public QObject
     Q_PROPERTY(bool trashHover READ trashHover NOTIFY trashHoverChanged)
     // Vide : réglages de l'application ; tests : chemin d'un fichier .ini.
     Q_PROPERTY(QString settingsFile READ settingsFile WRITE setSettingsFile NOTIFY settingsFileChanged)
+    Q_PROPERTY(QString shapePreset READ shapePreset NOTIFY settingsChanged)
+    Q_PROPERTY(bool shapeFilled READ shapeFilled NOTIFY settingsChanged)
+    Q_PROPERTY(bool shapeFromCenter READ shapeFromCenter NOTIFY settingsChanged)
+    Q_PROPERTY(QStringList shapePresets READ shapePresets CONSTANT) // ordre de la palette
 
 public:
     explicit ToolHost(QObject* parent = nullptr);
@@ -91,6 +97,18 @@ public:
     // branchés.
     tools::Tool* activeTool(input::UserId user = input::kFirstUser) const;
     tools::UserState& user(input::UserId id = input::kFirstUser); // un utilisateur jusqu'au lot 11 (D-S10)
+
+    // Lot 4 (outil des formes), L4-T11.
+    QString shapePreset() const;
+    bool shapeFilled() const;
+    bool shapeFromCenter() const;
+    QStringList shapePresets() const;
+    Q_INVOKABLE void chooseShape(const QString& preset); // active aussi l'outil « shape »
+    Q_INVOKABLE void setShapeFilled(bool filled);
+    Q_INVOKABLE void setShapeFillColor(const QColor& color);
+    Q_INVOKABLE void setShapeFromCenter(bool fromCenter);
+    // Contour normalisé du préréglage dans un carré 1 × 1, pour la palette et le curseur : [{x, y}, …] fermé.
+    Q_INVOKABLE QVariantList shapeOutline(const QString& preset) const;
 
 signals:
     void wiringChanged();

@@ -65,4 +65,24 @@ void UserState::setOpenMathTools(std::vector<QString> ids)
     m_mathTools = std::move(ids);
 }
 
+ShapeSettings UserState::shapeSettings() const
+{
+    return m_shape;
+}
+
+void UserState::setShapeSettings(const ShapeSettings& settings)
+{
+    m_shape = settings;
+}
+
+TextSettings UserState::textSettings() const
+{
+    return m_text;
+}
+
+void UserState::setTextSettings(const TextSettings& settings)
+{
+    m_text = settings;
+}
+
 } // namespace actcraft::tools
