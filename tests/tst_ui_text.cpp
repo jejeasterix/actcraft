@@ -3,6 +3,7 @@
 #include <actcraft/core/model.h>
 #include <actcraft/core/pagecache.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/pagescontroller.h>
 #include <actcraft/ui/textediting.h>
 
 #include <QList>
@@ -438,6 +439,72 @@ private slots:
         QCOMPARE(h.htmlPlainOfFirst(), QStringLiteral("un"));
         h.controller.undo();
         QCOMPARE(h.controller.shownObjectCount(), 0); // seule étape : l'ajout
+    }
+
+    // L4-C2 : une commande de pages lancée pendant l'édition valide d'abord le texte (comme Annuler).
+    // Dupliquer la page affichée : la copie porte le texte frappé ; sans validation, le texte soulevé
+    // manquait à la copie.
+    void duplicateDuringEditKeepsTheText()
+    {
+        Harness h;
+        ui::PagesController pages;
+        pages.setDocumentController(&h.controller);
+        h.addText(QStringLiteral("un"), {200, 200, 120, 30});
+        QVERIFY(h.editing.beginAt({210, 210}, false));
+        h.replaceAllText(QStringLiteral("deux"));
+        QVERIFY(h.controller.isLifting());
+        pages.duplicateSelection(); // sélection = {0}, la page affichée
+        QVERIFY(!h.editing.isActive());
+        QVERIFY(!h.controller.isLifting());
+        QCOMPARE(h.controller.pageCount(), 2);
+        QCOMPARE(h.plainOf(0, 0), QStringLiteral("deux"));
+        QCOMPARE(h.plainOf(1, 0), QStringLiteral("deux"));
+    }
+
+    // L4-C2 : couper la page affichée pendant l'édition : le presse-papiers reçoit la page avec le texte
+    // frappé ; collée, elle le porte. cutSelection lit les pages lui-même, sans passer par copySelection :
+    // la validation doit précéder cette lecture, celle de deleteSelection vient trop tard.
+    void cutDuringEditKeepsTheText()
+    {
+        Harness h;
+        h.controller.nextPage();
+        h.controller.showPage(0);
+        ui::PagesController pages;
+        pages.setDocumentController(&h.controller);
+        h.addText(QStringLiteral("un"), {200, 200, 120, 30});
+        QVERIFY(h.editing.beginAt({210, 210}, false));
+        h.replaceAllText(QStringLiteral("deux"));
+        pages.cutSelection(); // sélection = {0}
+        QVERIFY(!h.editing.isActive());
+        QVERIFY(!h.controller.isLifting());
+        QCOMPARE(h.controller.pageCount(), 1);
+        QVERIFY(pages.canPaste());
+        pages.paste(); // avant la page active : la page collée est la page 0
+        QCOMPARE(h.controller.pageCount(), 2);
+        QCOMPARE(h.plainOf(0, 0), QStringLiteral("deux"));
+    }
+
+    // L4-C2 : supprimer la page affichée pendant l'édition valide le texte (une étape), puis retire la page
+    // (une étape) : deux Annuler rendent la page, puis son texte d'avant.
+    void deleteDuringEditCommitsFirst()
+    {
+        Harness h;
+        h.controller.nextPage();
+        h.controller.showPage(0);
+        ui::PagesController pages;
+        pages.setDocumentController(&h.controller);
+        h.addText(QStringLiteral("un"), {200, 200, 120, 30});
+        QVERIFY(h.editing.beginAt({210, 210}, false));
+        h.replaceAllText(QStringLiteral("deux"));
+        pages.deleteSelection(); // sélection = {0}
+        QVERIFY(!h.editing.isActive());
+        QVERIFY(!h.controller.isLifting());
+        QCOMPARE(h.controller.pageCount(), 1);
+        h.controller.undo(); // la page revient, avec le texte validé
+        QCOMPARE(h.controller.pageCount(), 2);
+        QCOMPARE(h.plainOf(0, 0), QStringLiteral("deux"));
+        h.controller.undo(); // l'édition est sa propre étape
+        QCOMPARE(h.plainOf(0, 0), QStringLiteral("un"));
     }
 };
 
