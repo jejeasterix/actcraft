@@ -52,6 +52,34 @@ void clickOn(const MainWindow& main, const QString& name)
     QCoreApplication::processEvents();
 }
 
+// Appui bref au stylet, comme Qt : l'événement de tablette part non accepté ; si la fenêtre ne l'accepte pas
+// (pas de gestionnaire de tablette sous le point), Qt le rejoue en souris
+// (Qt::AA_SynthesizeMouseForUnhandledTabletEvents, actif par défaut). Faux si la fenêtre a pris un événement
+// : Qt ne rejouerait rien.
+bool stylusTap(QQuickWindow* window, QPointF at)
+{
+    bool replayed = true;
+    for (const QEvent::Type type : {QEvent::TabletPress, QEvent::TabletRelease}) {
+        const bool press = type == QEvent::TabletPress;
+        QTabletEvent event(type, presentationharness::stylusDevice(), at, window->mapToGlobal(at),
+                           press ? 0.5 : 0.0, 0, 0, 0, 0, 0, Qt::NoModifier, Qt::LeftButton,
+                           press ? Qt::LeftButton : Qt::NoButton);
+        event.setAccepted(false); // comme QGuiApplication avant l'envoi
+        QCoreApplication::sendEvent(window, &event);
+        if (event.isAccepted()) {
+            replayed = false;
+            continue;
+        }
+        if (press) {
+            QTest::mousePress(window, Qt::LeftButton, Qt::NoModifier, at.toPoint());
+        } else {
+            QTest::mouseRelease(window, Qt::LeftButton, Qt::NoModifier, at.toPoint());
+        }
+    }
+    QCoreApplication::processEvents();
+    return replayed;
+}
+
 // Ouvre le panneau par sa commande et le pose, sa barre de titre centrée sur le point de page (400, 300).
 QQuickItem* openDice(const MainWindow& main)
 {
@@ -208,8 +236,12 @@ private slots:
 
         // « Lancer » : le lancer démarre, aucun trait.
         const QPointF button = centreOf(roll);
-        presentationharness::strokeAt(main.window(), pointer, button - QPointF(6, 0), button + QPointF(6, 0),
-                                      3);
+        if (pointer == Pointer::Stylus) {
+            QVERIFY2(stylusTap(main.window(), button), "tablette non acceptée : rejouée en souris par Qt");
+        } else {
+            presentationharness::strokeAt(main.window(), pointer, button - QPointF(6, 0),
+                                          button + QPointF(6, 0), 3);
+        }
         QTRY_VERIFY(dice->rolling());
         dice->skip();
         QTest::qWait(50);
