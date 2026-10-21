@@ -6,6 +6,8 @@
 #include <QString>
 #include <QStringList>
 
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 namespace actcraft::tools {
@@ -26,14 +28,23 @@ enum class SelectionHitKind : std::uint8_t
     Inside,
     Handle,
     BarButton,
+    SmartPoint, // point intelligent d'une forme seule (F-242), hors des huit poignées
 };
 struct SelectionHit
 {
     SelectionHitKind kind = SelectionHitKind::None;
     HandleKind handle = HandleKind::TopLeft;
     QString command;
+    std::size_t smartPoint = 0; // rang du point intelligent (SmartPoint)
 };
-// Ordre d'essai : bouton de barre, poignée, intérieur du cadre.
+// Points intelligents de `object` en coordonnées de page (transformation appliquée) ; vide hors d'une forme à
+// préréglage. Les calculs sont ceux de core::smartPoints.
+std::vector<core::PointF> smartPointsOnPage(const core::PageObject& object);
+// Point de page → coordonnées de l'objet (inverse de sa transformation) ; le point tel quel si la
+// transformation n'est pas inversible.
+core::PointF toObjectPoint(const core::PageObject& object, core::PointF pagePoint) noexcept;
+
+// Ordre d'essai : bouton de barre, poignée, point intelligent, intérieur du cadre.
 SelectionHit hitSelection(const SelectionView& view, core::PointF point, double zoom);
 
 } // namespace actcraft::tools
