@@ -9,6 +9,8 @@ Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (20
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 19/33 tâches terminées
 Tâche : L7-T24 — Équation I (F-301) : arbre et MathML — depuis 2026-10-21 14:24
+Tâche : L7-T19 — Message défilant II (F-291, H7-15) — depuis 2026-10-21 16:19
+Tâche : L7-T21 — Reconnaissance de forme II — depuis 2026-10-21 16:19
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -77,6 +79,9 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T17 | L7-T2 | voir ligne L7-T17 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T17 (base 2894c46, retiré après merge) | mergée : rejeu TESTS OK 158/158, othertools Totals 5 (0 skipped), rouge vu, 3 mutants | 1 | 700796f | 37fd214 (graphe 9ed379b) |
 | L7-T18 | L7-S8 | voir ligne L7-T18 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T18 (base 2894c46, retiré après merge) | mergée : rejeu TESTS OK 158/158, ticker Totals 13 (0 skipped) ; revue corriger → essai 2 ; fil de rendu supposé ; banc S23 avec message à la clôture | 2 | 3df65f3 | 70fd111 (graphe dec9117) |
 | L7-T24 | lot P2-A (écart : lancée avant la fin de P2-A, fichiers core seuls, disjoints de T18/T19 ; décision orchestrateur pour le rythme) | voir ligne L7-T24 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T24 (base 87e2ff0) | en cours (concepteur-critique), V12 | 1 | — | — |
+| suite V10 | L7-T17, L7-T18 | branche du chantier à 5cf0a0e (timestamp AUTOMOC supprimés avant) | — | en cours | 1 | — | — |
+| L7-T19 | L7-T18, L7-T2 | voir ligne L7-T19 de l'amendement phase 2 (+ reports de L7-T18) | .worktrees/livraison-complete-b--L7-T19 (base 5cf0a0e) | en cours (implementeur-tdd), V11 | 1 | — | — |
+| L7-T21 | lot P2-A (écart : lancée avant le merge de L7-T19, fichiers disjoints ; décision orchestrateur pour le rythme) | voir ligne L7-T21 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T21 (base 5cf0a0e) | en cours (concepteur-critique), V12 | 1 | — | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
