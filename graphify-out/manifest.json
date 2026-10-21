@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1792536803.9566908,
-    "ast_hash": "cc68def461299579e2c1a1ddaa48e780",
+    "mtime": 1792540880.783023,
+    "ast_hash": "c980f36cc7104d43c1a878b6009e2701",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2580,8 +2580,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_transitions.cpp": {
-    "mtime": 1792406200.5259755,
-    "ast_hash": "474e28ea57b9a2d31ec859b9533ef765",
+    "mtime": 1792542941.0726316,
+    "ast_hash": "63ea4d46aeca5c98291b8d09dd5527ab",
     "semantic_hash": ""
   },
   "ui/src/presentationdocument.cpp": {
@@ -2642,6 +2642,16 @@
   "ui/src/pagetoolscontroller.h": {
     "mtime": 1792523291.0138881,
     "ast_hash": "069a1a032d576cff96f1f30a4ba5900f",
+    "semantic_hash": ""
+  },
+  "ui/src/transitioncontroller.cpp": {
+    "mtime": 1792542941.0796268,
+    "ast_hash": "7a7457370eacd97223d6d86648e2846e",
+    "semantic_hash": ""
+  },
+  "ui/src/transitioncontroller.h": {
+    "mtime": 1792542941.0816357,
+    "ast_hash": "f3d0abc82fec77015076b502d8f27675",
     "semantic_hash": ""
   }
 }
