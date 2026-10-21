@@ -2,6 +2,66 @@
 
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
+## Amendement 4 (résultats de L4-T0, 2026-10-21)
+
+Source : `docs/verifications/2026-10-18-lot4-principes.md` (L4-T0, fusionnée en 98b57d7), section « Ce qui amende le
+plan » (points 1 à 11) et tables D1 à D19, A1 à A14, V1 à V10. Les paragraphes « Amendement 4 » des sections priment
+sur les amendements 1 à 3 ; les numéros de ligne de la source font foi. Chaque changement, la décision qui le fonde,
+les tâches touchées :
+
+1. **L4-T1 déjà en cours** : son contrat n'est pas réécrit ; sa section reçoit la note « amendements transmis en cours
+   d'exécution » (V1, V2, V3, A4, D2, et les citations de A10 et V1). Fondement : points 1 de la source.
+2. **Rang de la grille du dessus** : `gridOverlay` entre `ink` et `pageOverlays`, chaque enfant de `page` à
+   `z() == 0` ; l'autre rang envisagé tombe. Fondement : D17, A12. Tâches : L4-T2, contrat « Ordre des couches ».
+3. **Catalogue des formes** : rangs 4 à 6 = `freeform` (main levée), `polyline` (sommets posés au clic), `curve-chain`
+   (même geste, lissée), à la place de `polyline`, `zigzag`, `chevron` ; défaut `line` ; pas de courbe de Bézier ; les
+   17 formes suivantes hors du lot (H4-17). Fondement : D1, P2. Tâches : L4-T3, L4-T8, contrat des préréglages, H4-1,
+   H4-2.
+4. **Points intelligents** : rectangle arrondi (rayon de 0,01 à 0,5 du plus petit côté), flèche (épaisseur du corps de
+   0 à 0,5 de la hauteur ; début de la tête de 0 à 1 de la largeur, 0,6 au départ, soit une tête de 0,4), bulle
+   (pointe de 0 à 1 de la largeur, 1 au départ ; arrondi de 0,01 à 0,3, 0,1 au départ) ; étoiles et explosions sans
+   paramètre exposé. Fondement : D4, P8. Tâches : L4-T3, L4-T10, L4-T11.
+5. **Geste de chaque préréglage** : `enum class ShapeGesture` et `shapeGesture()` ajoutés **en fin** de
+   `shapegeometry.h` par L4-T3 (ajout signalé), pour que L4-T8 écarte du tracé en boîte les trois formes de D1.
+   Fondement : D1 (« `polyline` et `curve-chain` ne se tracent plus dans une boîte »). Tâches : L4-T3, L4-T8.
+6. **Tâche ajoutée L4-T31** — `tools` : ligne et courbe brisées au multi-clic, forme à main levée ; dépend de L4-T8 ;
+   vague V5. Fondement : P37, C3, D1, point 9 de la source.
+7. **Fusion du créateur de grille** : `UndoStack::closeMerge()` (par `DocumentController::closeMerge()`) à l'ouverture
+   et à la fermeture de chaque séance du créateur ; `kMergeGrid = 4` est libre. Fondement : V7. Tâches : L4-T4,
+   L4-T13.
+8. **Outil des formes et touches** : `onKey` reçoit Maj, Ctrl et `Qt::Key_unknown` (modificateurs relayés à chaque
+   appui de pointeur) ; Échap n'atteint jamais l'outil (raccourci de `tool.select`) ; le coût de l'aperçu
+   (`LiftLayerItem::setObjects` reconstruit ses nœuds à chaque appel) se mesure au banc. Fondement : V7, V9. Tâches :
+   L4-T8, L4-T14 (la mesure est portée par `forme-page-annotee`, seul scénario de banc qui trace des formes).
+9. **Accrochage de la sélection** : appliqué dans `SelectTool::endDrag` (`tools/src/selecttool.cpp:509-531`) à la
+   translation calculée par `gestureTransform` (`:485`), jamais dans `gestureTransform`, qui sert aussi pendant le
+   geste. Fondement : V7. Tâche : L4-T9.
+10. **Relais de Maj déjà livré** par le lot 3 (`ui/src/toolhost.cpp:157-162`, `:586-635`) : L4-T11 ne le réécrit pas
+    (l'amendement 1 de L4-T11 tombe pour le filtre d'événements) et garde `shiftReachesTheShapeTool`. Fondement : V7.
+11. **Style d'une forme neuve** : remplie, `#FFAA00` par défaut (`ShapeSettings::fill = 0xFFFFAA00u`), contour noir
+    de 4, réglage propre à l'outil. Fondement : D2, D3. Tâches : L4-T1 (transmis), à défaut L4-T11.
+12. **Sous-lot 4b** (plan 4b, « Amendement 4 ») : `contactActive` ajouté en fin de `pageview.h` (V5) → L4-T17 ; boîte du
+    fond à trois boutons (D15) → L4-T20 ; validation du texte sur `pageAboutToChange`, texte existant vidé supprimé en
+    une étape, interligne et taille minimale (V6, D7, D8) → L4-T21 ; Échap valide le texte, Ctrl+B, Ctrl+I, Ctrl+U
+    pris par l'éditeur (D7, D8) → L4-T23 ; texte de haut en bas lu par son cadre et son image (D9) → L4-T24 ; bornes
+    des cadres 0 à 40 et 0 à 53 (D11) → L4-T27 ; **L4-T28 suspendue jusqu'à l'observation à l'écran** (D11).
+13. **Correctifs** : `L4-C0` est **abandonné** : D14 et D18 sont conformes, D1 ne touche aucune donnée de commande,
+    et D19 reste au défaut (groupe `formes-texte` en fin de palette), choix de Jérôme du 2026-10-21. Il ne figure ni
+    dans la table ni dans les vagues. `L4-C1` **nécessaire** (D16) : ajouté au plan 4b, vague V12, après L4-T27.
+14. **Séance d'observation à l'écran** : tâche **L4-O1**, une seule séance, annoncée à Jérôme, qui couvre D5 (Maj
+    pendant le tracé), D6 (accrochage d'une grille invisible), D10 (règle de l'allongement), D11 (dessin des cadres),
+    D17 (encre en cours sous la grille du dessus). Hors des vagues (ne construit rien), au plus tard avant L4-T28 et
+    L4-C1, qui l'attendent. Fondement : point 11 de la source.
+15. **Hypothèses** : H4-11 à H4-17 ajoutées ; l'hypothèse du plan 4b numérotée H4-11 (fond en image) devient **H4-18**
+    (collision de numéros avec la source). H4-1, H4-2 et H4-4 sont mises à jour.
+16. **Citations fausses corrigées** (A10, A12, V1) : `parseLayout` en `actions/include/actcraft/actions/layout.h:45`
+    (et non `:42`) ; `"optional"` lu en `actions/src/commandregistry.cpp:184`, appel sans argument accepté en `:287`
+    (et non `:180`, `:283`) ; garde `loadResource` en `render/src/pagepainter.cpp:73` (et non `:71`) ; `canWait` en
+    `render/src/fixedpageitem.cpp:54-59`, appelé en `:195` et `:241`, commentaires `:50-53` et `:246-247` (et non
+    `:60-64`, `:194`, `:246`, `:57-59`, `:251`) ; `socleLayerOrder` en `tests/tst_ui_shell.cpp:773-786`.
+17. **Comptes** : 4a passe à 17 lignes (16 tâches et la séance L4-O1), 4b à 17 tâches (L4-C1 compris), le lot à 34
+    lignes. N ne change pas (N = 136 + n_B) : L4-T31 et L4-C1 ajoutent des fonctions à des tests déjà enregistrés.
+
 ## Amendement 3 (relecture tour 3, 2026-10-19)
 
 Relecture de 12bf522 (dernier tour) : un majeur (M1) et six mineurs (m1 à m6) ; ils finissent la correction de N3,
@@ -67,7 +127,7 @@ du chantier (`.worktrees/livraison-complete`, 2b4caea). D6, D8, D17 et D18 reste
   -N` sur la base à jour et écrit le nouveau N dans le fichier d'état ; toute tâche lancée ensuite prouve avec lui
   (point d'étape de 4a, clôture de 4b, règle « Preuve de tâche »).
 - **N13.** `contextMenuAcceptsSubmenus` appelait `Layout::fromJson`, qui n'existe pas : l'API est
-  `parseLayout(json, layout, error)` (`actions/include/actcraft/actions/layout.h:42`) ; JSON aligné sur
+  `parseLayout(json, layout, error)` (`actions/include/actcraft/actions/layout.h:45`, amendement 4) ; JSON aligné sur
   `contextMenuRead` du socle (`colors`, `penWidths`). De même, `unknownCommands(layout, registry)` est une fonction
   libre (`lot4EntriesDeclared`).
 
@@ -84,7 +144,7 @@ Les sections des tâches portent chacune un paragraphe « Amendement 1 » : il p
 2. **Argument de `text.edit-at` refusé.** `ArgumentKind::Text` n'accepte qu'une chaîne non vide (plan du socle,
    L0-S4 étape 3) ; une `QVariantMap` et l'appel sans argument étaient refusés. → argument **texte** `"x;y;v"`
    (`x`, `y` en coordonnées de page, `v` = `0` ou `1`) et `"optional": true` (clé lue par
-   `actions/src/commandregistry.cpp:180`, appel sans argument accepté en `:283`). Changé : L4-T1 (données, test
+   `actions/src/commandregistry.cpp:184`, appel sans argument accepté en `:287`, amendement 4). Changé : L4-T1 (données, test
    `editAtArgumentOptional`), L4-T2 (gestionnaire), L4-T22 et L4-T21 (4b).
 3. **Ordre des couches figé.** `socleLayerOrder` (L0-S9, plan du socle `:1249`) attend la liste exacte
    `fixedPage, pageCache, pendingLayer, liftLayer, ink, pageOverlays`. → L4-T2 **amende `socleLayerOrder`**, de façon
@@ -93,7 +153,7 @@ Les sections des tâches portent chacune un paragraphe « Amendement 1 » : il p
    dans `C:\Users\JeromeDenis\REA - Activinspire\docs\videos-tanguay\exclus-controle-titres.txt` (hors dépôt,
    facultatif, un titre par ligne).
 5. **HTML chargé sans garde.** Règle du fichier d'état (la règle « **Sécurité** : `QTextDocument::setHtml` charge les ressources citées… » du fichier d'état (`docs/sessions/livraison-complete-etat.md`)) : tout HTML de document passe par un `QTextDocument` dont `loadResource` est neutralisé (garde de L2-T11,
-   `render/src/pagepainter.cpp:71`). → L4-T21 charge un HTML **assaini** (test `editingLoadsNoExternalResource`),
+   `render/src/pagepainter.cpp:73`, amendement 4). → L4-T21 charge un HTML **assaini** (test `editingLoadsNoExternalResource`),
    L4-T23 n'affecte jamais `text` en texte riche sans lui. Règle ajoutée aux règles communes.
 
 **Majeurs.**
@@ -150,7 +210,7 @@ Les sections des tâches portent chacune un paragraphe « Amendement 1 » : il p
 
 **Amendements de la relecture.** 1 (sources des API : A1-A3 de L0-S6, A11 de L0-S2, A12 de L0-S9) : table A. 2 (A6) :
 table A, L4-T21, L4-T20. 3 (A13) : table A, L4-T1, L4-T4, L4-T27. 4 (L4-T7 : prédicat `canWait`,
-`render/src/fixedpageitem.cpp:60-64`, appelé en `:194` et `:246`, commentaires `:57-59` et `:251` ; la ligne `:180`
+`render/src/fixedpageitem.cpp:54-59`, appelé en `:195` et `:241`, commentaires `:50-53` et `:246-247`, amendement 4 ; la ligne `:180`
 citée avant était fausse) : L4-T7. 5 (L4-T1) : L4-T1. 6 (L4-T2) : L4-T2. 7 (L4-T17 : `contactActive`) : L4-T17. 8
 (L4-T21, L4-T23) : 4b. 9 (relais de Maj) : L4-T8, L4-T11. 10 (exclusions hors dépôt) : L4-T0. 11 (clôture) : point
 d'étape de 4a, clôture de 4b.
@@ -208,21 +268,23 @@ code livré et l'écart amende ce plan, comme au lot 10. Les numéros de ligne s
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L4-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; API des lots 3, 7 et L0-S revérifiées | — | `docs/verifications/2026-10-18-lot4-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot4.md`) | isolé | concepteur-critique | rapport commité, relevé brut hors dépôt présent, décisions D1 à D19 et table A1 à A14 écrites, `NOMS OK` (plan ajouté à l'index avant le contrôle), `git grep` des titres du corpus vide (exclusions lues hors dépôt), N3 et n_B relevés | S30 | #tache-l4-t0 |
 | L4-T1 | Réservation I : commandes, disposition (`contextMenu` étendu aux sous-menus), icônes, champs du modèle, CMake, 23 tests enregistrés, en-têtes figés et talons des deux sous-lots | — | `actions/data/commands.json`, `actions/data/layout.json`, `actions/include/actcraft/actions/layout.h`, `actions/src/layout.cpp`, `tests/tst_actions_layout.cpp`, `tests/tst_actions_registry.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `tests/tst_ui_commands.cpp`, `tests/tst_ui_theme.cpp`, `ui/icons/{forme,texte,texte-vertical,grille,grille-masquer,aimant,createur-grille,navigateurs,page-avant,page-apres,page-couper,page-copier,page-coller,page-dupliquer,page-supprimer,fond,allonger,zones,gras,italique,souligne,exposant,indice,aligner-gauche,centrer,aligner-droite,interligne-plus,interligne-moins,retrait-plus,retrait-moins,puces,symboles,taille-plus,taille-moins}.svg`, `core/include/actcraft/core/model.h`, `core/src/model.cpp`, `tests/tst_core_model.cpp`, `core/CMakeLists.txt`, `tools/CMakeLists.txt`, `render/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/core.cmake`, `tests/formats.cmake`, `tests/render.cmake`, `tests/tools.cmake`, `tests/ui.cmake`, `tests/bench.cmake`, talons `core/include/actcraft/core/{shapegeometry,shapeedits,gridsnap,pagesettings,pageedits,textedits,pagezones}.h`, `core/src/{shapegeometry,shapeedits,gridsnap,pagesettings,pageedits,textedits,pagezones}.cpp`, `tools/include/actcraft/tools/{shapetool,texttool}.h`, `tools/src/{shapetool,texttool}.cpp`, `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp`, `tools/include/actcraft/tools/toolcontext.h`, `tools/src/toolregistry.cpp`, `render/include/actcraft/render/gridoverlayitem.h`, `render/src/gridoverlayitem.cpp`, `ui/include/actcraft/ui/{pagethumbnails,pagescontroller,pageoptions,textediting}.h`, `ui/src/{pagethumbnails,pagescontroller,pageoptions,textediting}.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/include/actcraft/ui/documentcontroller.h`, `ui/src/documentcontroller.cpp`, `tests/tst_ui_document.cpp`, 16 tests talons `tests/tst_{core_shapes,core_gridsnap,core_pagesettings,core_pageedits,core_textedits,core_zones,formats_lot4,render_gridoverlay,render_verticaltext,tools_shape,tools_text,ui_shapes,ui_pagesettings,ui_pagethumbnails,ui_pages,ui_text}.cpp`, 7 scénarios talons `bench/scenarios/{formes,grille,texte,navigateur-pages,page-allongee-zones,texte-vertical,formes-texte-pages-grille}.json` | isolé | implementeur-tdd | `100% tests passed, 0 tests failed out of 136` (136 + n_B si le lot 7 a fusionné), `TESTS OK`, `tst_actions_layout` (dont `contextMenuAcceptsSubmenus`, `toolsMenuFollowsF750` amendé, `defaultLayoutMatchesLotOne` amendé, `lot7EntriesPlaced`), `tst_actions_registry` (dont `lot4EntriesDeclared`, `editAtArgumentOptional`, `noShortcutTwice` du socle), `tst_ui_commands` (dont `contextMenuWithSubmenu`, `objectBarAndContextMenu` amendé), `tst_ui_theme` (`iconsAreOurSvgOnA24Grid` : 34 lignes neuves en `PASS`), `tst_core_model` (dont `lot4FieldsKeepOldFingerprints`), `tst_ui_document` (dont `pageContentChangedNamesThePage`, `showPageShowsIt`) Passed ; `premiers-pas` hors écran `CAPTURES OK` | S7, S15, S16 | #tache-l4-t1 |
-| L4-T2 | Réservation II : coquille QML (panneau des navigateurs, palette des formes, barre de texte, surcouches de page, gestionnaires des commandes du lot) | L4-T1 | `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/PageContextMenu.qml`, `ui/qml/CommandMenu.qml` (si le délégué de sous-menu y manque), `ui/qml/{BrowserPanel,PageNavigator,ShapePalette,TextFormatBar,TextEditor,VerticalTextBar,GridDesigner,BackgroundDialog,PageExtensionHandle,PageZonesOverlay}.qml`, `ui/CMakeLists.txt`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = 136 + n_B, `tst_ui_shell` (dont `lot4ShellPlaceholders`, `everyLot4CommandHasAHandler`, `socleLayerOrder` amendé selon D17, `editAtHandlerParsesItsText`) Passed ; `premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S7, S15, S16 | #tache-l4-t2 |
-| L4-T3 | `core` : catalogue des formes, boîte tracée (coin, centre, carré), lignes, points intelligents, commande de paramètres | L4-T0, L4-T1 | `core/include/actcraft/core/shapegeometry.h`, `core/src/shapegeometry.cpp`, `core/include/actcraft/core/shapeedits.h`, `core/src/shapeedits.cpp`, `tests/tst_core_shapes.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_core_shapes` Passed (dont `catalogOrderAndDefault`, `dragFromCornerAndCenter`, `squarePresetsStaySquare`, `linePresetsConstrained`, `arrowHeadSmartPointBounded`, `setParametersIsOneStepAndRebuilds`) | S7, S7.1 | #tache-l4-t3 |
-| L4-T4 | `core` : réglages de page (grille, fond, extension) et contrat de `Change` ignoré par le cache | L4-T0, L4-T1 | `core/include/actcraft/core/pagesettings.h`, `core/src/pagesettings.cpp`, `tests/tst_core_pagesettings.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_core_pagesettings` (dont `gridAboveChangeIsIgnoredByTheCache` — `PageSettingsChanged` du socle —, `gridBelowChangeRedrawsOnce`, `extendStepsByTenPercentOfBase`, `threeUndosRestoreTheHeight`, `designerChangesMerge`) Passed ; mutation de `gridDrawsUnderObjects` rouge puis remise | S7.2, S15 | #tache-l4-t4 |
+| L4-T2 | Réservation II : coquille QML (panneau des navigateurs, palette des formes, barre de texte, surcouches de page, gestionnaires des commandes du lot) | L4-T1 | `ui/qml/Main.qml`, `ui/qml/PageArea.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/PageContextMenu.qml`, `ui/qml/CommandMenu.qml` (si le délégué de sous-menu y manque), `ui/qml/{BrowserPanel,PageNavigator,ShapePalette,TextFormatBar,TextEditor,VerticalTextBar,GridDesigner,BackgroundDialog,PageExtensionHandle,PageZonesOverlay}.qml`, `ui/CMakeLists.txt`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = 136 + n_B, `tst_ui_shell` (dont `lot4ShellPlaceholders`, `everyLot4CommandHasAHandler`, `socleLayerOrder` amendé selon D17 : `gridOverlay` entre `ink` et `pageOverlays`, `z() == 0`, `editAtHandlerParsesItsText`) Passed ; `premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S7, S15, S16 | #tache-l4-t2 |
+| L4-T3 | `core` : catalogue des formes, boîte tracée (coin, centre, carré), lignes, points intelligents, commande de paramètres | L4-T0, L4-T1 | `core/include/actcraft/core/shapegeometry.h`, `core/src/shapegeometry.cpp`, `core/include/actcraft/core/shapeedits.h`, `core/src/shapeedits.cpp`, `tests/tst_core_shapes.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_core_shapes` Passed (dont `catalogOrderAndDefault` (rangs 4 à 6 de D1), `dragFromCornerAndCenter`, `squarePresetsStaySquare`, `linePresetsConstrained`, `arrowHeadSmartPointBounded`, `arrowHeadStartsAtFourTenths`, `smartPointsOnlyForThreePresets`, `gestureOfEachPreset`, `setParametersIsOneStepAndRebuilds`) | S7, S7.1 | #tache-l4-t3 |
+| L4-T4 | `core` : réglages de page (grille, fond, extension) et contrat de `Change` ignoré par le cache | L4-T0, L4-T1 | `core/include/actcraft/core/pagesettings.h`, `core/src/pagesettings.cpp`, `tests/tst_core_pagesettings.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_core_pagesettings` (dont `gridAboveChangeIsIgnoredByTheCache` — `PageSettingsChanged` du socle —, `gridBelowChangeRedrawsOnce`, `extendStepsByTenPercentOfBase`, `threeUndosRestoreTheHeight`, `designerChangesMerge`, `closeMergeSeparatesTwoSessions`) Passed ; mutation de `gridDrawsUnderObjects` rouge puis remise | S7.2, S15 | #tache-l4-t4 |
 | L4-T5 | `core` : accrochage à la grille (intersection la plus proche, coin bas gauche, ligne de base d'un texte) | L4-T0, L4-T1 | `core/include/actcraft/core/gridsnap.h`, `core/src/gridsnap.cpp`, `tests/tst_core_gridsnap.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_core_gridsnap` Passed (dont `nearestOnNormalGrid`, `onlySnappingLevelsCount`, `invisibleGridStillSnaps`, `snapDisabledReturnsNothing`, `bottomLeftCornerLandsOnCrossing`, `textUsesItsBaseline`, `diagonalGridCrossings`) | S7, S7.2 | #tache-l4-t5 |
 | L4-T6 | `formats` : natif — préréglage et paramètres des formes, texte de haut en bas, hauteur d'origine de la page | L4-T1 | `formats/src/nativejson.cpp`, `tests/tst_formats_lot4.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_formats_lot4` Passed (dont `presetAndParametersRoundTrip`, `defaultsAreOmitted`, `verticalTextRoundTrip`, `baseHeightRoundTrip`, `olderFileReadsWithDefaults`), `tst_formats_nativejson` et `tst_formats_nativefile` Passed | S7, S15, S16 | #tache-l4-t6 |
 | L4-T7 | `render` : grille du dessus en surcouche `GridOverlayItem`, retirée de la scène du cache ; trait différé sur page à grille du dessus | L4-T1, L4-T2, L4-T4 | `render/include/actcraft/render/gridoverlayitem.h`, `render/src/gridoverlayitem.cpp`, `render/include/actcraft/render/fixedpageitem.h`, `render/src/fixedpageitem.cpp`, `ui/qml/PageArea.qml`, `tests/tst_render_gridoverlay.cpp`, `tests/tst_render_pendinglayer.cpp`, `tests/tst_render_fixedpage.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_render_gridoverlay` (dont `drawsOnlyTheGridAbove`, `hidingTheGridAboveRebuildsNoCache`, `sharpOnePixelLines`, `refreshRereadsTheGrid`), `tst_render_pendinglayer` (dont `strokeOnGridAbovePageIsDeferred`), `tst_render_fixedpage` Passed ; banc hors écran `content_check.ok = True` | S7.2, S7.5 | #tache-l4-t7 |
-| L4-T8 | `tools` : outil des formes (aperçu par la couche soulevée, coin ou centre, carré, Maj, accrochage, clic simple sans forme) | L4-T3, L4-T5 | `tools/include/actcraft/tools/shapetool.h`, `tools/src/shapetool.cpp`, `tests/tst_tools_shape.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_shape` Passed (dont `dragPreviewsWithoutExecuting`, `releaseExecutesOneAdd`, `singleClickAddsNothing`, `fromCenterSetting`, `shiftKeepsSquare`, `shiftReleaseFreesTheRatio`, `snapsPressAndRelease`, `cancelClearsThePreview`, `unfilledChoiceHonoured`) | S7, S7.1 | #tache-l4-t8 |
-| L4-T9 | `tools` : sélection — accrochage au dépôt (coin bas gauche, ligne de base) | L4-T5 | `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/selectiongeometry.h`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_select` Passed (dont `dropSnapsBottomLeftCorner`, `noSnapWithoutGridSnap`, `snapDragRefreshesTheCacheTwice`, tests du lot 3 inchangés) | S7, S7.2 | #tache-l4-t9 |
-| L4-T13 | Réglages de grille : contrôleur de page (masquer, accrocher, créateur à niveaux), boîte du créateur, scénario `grille` | L4-T2, L4-T4, L4-T7 | `ui/include/actcraft/ui/pageoptions.h`, `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `ui/qml/GridDesigner.qml`, `bench/scenarios/grille.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `hideGridAboveRefreshesNoCache`, `hideGridBelowRefreshesOnce`, `snapToggleFollowsThePage`, `addRemoveResetLevels`, `designerSessionMakesASingleStep`), `tst_captures_grille` Passed ; `captures.ps1 -Scenario grille` hors écran : `LU appPageSettings.gridVisible=false OK`, `LU pageView.cacheRefreshCount=${avant} OK`, `CAPTURES OK` | S7.2 | #tache-l4-t13 |
-| L4-T10 | `tools` : sélection — points intelligents d'une forme (affichés, glissés, une étape) | L4-T3, L4-T9 | `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/selectiongeometry.h`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp`, `ui/qml/SelectionOverlay.qml` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_select` Passed (dont `smartPointsShownForArrow`, `smartPointDragLiftsOnceAndDropsOneStep`, `noSmartPointForReadShapes`) ; banc hors écran joint | S7.1 | #tache-l4-t10 |
-| L4-T11 | `ui::ToolHost` : outil des formes branché (choix, remplissage, coin ou centre, mémoire), contour des préréglages, points intelligents dans le cadre | L4-T2, L4-T8 | `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`, `ui/src/tooladapters.cpp`, `tests/tst_ui_shapes.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_shapes` Passed (dont `shapeToolActivatesWithPalette`, `presetChoiceSurvivesRestart`, `outlineOfEveryPreset`, `smartPointsInSelectionFrame`, `shapeGoesThroughTheCacheInterface`, `shiftReachesTheShapeTool`) ; banc hors écran joint | S7, S7.1 | #tache-l4-t11 |
+| L4-T8 | `tools` : outil des formes (aperçu par la couche soulevée, coin ou centre, carré, Maj, accrochage, clic simple sans forme) | L4-T3, L4-T5 | `tools/include/actcraft/tools/shapetool.h`, `tools/src/shapetool.cpp`, `tests/tst_tools_shape.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_shape` Passed (dont `dragPreviewsWithoutExecuting`, `releaseExecutesOneAdd`, `singleClickAddsNothing`, `fromCenterSetting`, `shiftKeepsSquare`, `shiftReleaseFreesTheRatio`, `snapsPressAndRelease`, `cancelClearsThePreview`, `unfilledChoiceHonoured`, `relayedModifiersKeepShiftState`, `chainPresetsExecuteNothingOnRelease`) ; banc hors écran joint | S7, S7.1 | #tache-l4-t8 |
+| L4-T9 | `tools` : sélection — accrochage au dépôt (coin bas gauche, ligne de base) | L4-T5 | `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/selectiongeometry.h`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_select` Passed (dont `dropSnapsBottomLeftCorner`, `noSnapWithoutGridSnap`, `snapDragRefreshesTheCacheTwice`, `noSnapDuringTheDrag`, tests du lot 3 inchangés) | S7, S7.2 | #tache-l4-t9 |
+| L4-T13 | Réglages de grille : contrôleur de page (masquer, accrocher, créateur à niveaux), boîte du créateur, scénario `grille` | L4-T2, L4-T4, L4-T7 | `ui/include/actcraft/ui/pageoptions.h`, `ui/src/pageoptions.cpp`, `tests/tst_ui_pagesettings.cpp`, `ui/qml/GridDesigner.qml`, `bench/scenarios/grille.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_pagesettings` (dont `hideGridAboveRefreshesNoCache`, `hideGridBelowRefreshesOnce`, `snapToggleFollowsThePage`, `addRemoveResetLevels`, `designerSessionMakesASingleStep`, `twoDesignerSessionsMakeTwoSteps`), `tst_captures_grille` Passed ; `captures.ps1 -Scenario grille` hors écran : `LU appPageSettings.gridVisible=false OK`, `LU pageView.cacheRefreshCount=${avant} OK`, `CAPTURES OK` | S7.2 | #tache-l4-t13 |
+| L4-T10 | `tools` : sélection — points intelligents d'une forme (affichés, glissés, une étape) | L4-T3, L4-T9 | `tools/src/selecttool.cpp`, `tools/include/actcraft/tools/selectiongeometry.h`, `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp`, `ui/qml/SelectionOverlay.qml` | isolé | implementeur-tdd | `TESTS OK`, `tst_tools_select` Passed (dont `smartPointsShownForArrow`, `smartPointDragLiftsOnceAndDropsOneStep`, `noSmartPointForReadShapes`, `noSmartPointForStars`) ; banc hors écran joint | S7.1 | #tache-l4-t10 |
+| L4-T11 | `ui::ToolHost` : outil des formes branché (choix, remplissage, coin ou centre, mémoire), contour des préréglages, points intelligents dans le cadre | L4-T2, L4-T8 | `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`, `ui/src/tooladapters.cpp`, `tests/tst_ui_shapes.cpp`, `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp` (seulement si L4-T1 n'a pas posé le remplissage `#FFAA00` ou le contour noir de 4, D2, D3) | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_shapes` Passed (dont `shapeToolActivatesWithPalette`, `presetChoiceSurvivesRestart`, `outlineOfEveryPreset`, `smartPointsInSelectionFrame` (rectangle arrondi, flèche, bulle), `shapeGoesThroughTheCacheInterface`, `shiftReachesTheShapeTool`, `newShapeIsOrangeWithBlackOutline`) ; banc hors écran joint | S7, S7.1 | #tache-l4-t11 |
 | L4-T12 | QML : palette des formes (nuancier, formes, sans remplissage, coin ou centre), curseur à miniature ; scénario `formes` | L4-T10, L4-T11 | `ui/qml/ShapePalette.qml`, `ui/qml/ToolCursor.qml`, `bench/scenarios/formes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_captures_formes` Passed ; `captures.ps1 -Scenario formes` hors écran : `LU appTools.currentTool=shape OK`, `LU appDocument.shownObjectCount=2 OK`, `PIXEL rectangle-contour OK`, `CAPTURES OK` ; banc hors écran joint | S7.1 | #tache-l4-t12 |
-| L4-T14 | Banc et joueur : scénarios de banc `forme-page-annotee` et `grille-dessus` ; étape `typeText` du joueur | L4-T7, L4-T11 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `docs/banc.md` | isolé | implementeur-tdd | `TESTS OK`, `tst_bench_scenarios` (dont `shapeOnAnnotatedPageScenario`, `gridAboveScenarioDrawsStrokes`), `tst_bench_result` (dont `lot4ScenariosWithFrames`), `tst_bench_uiscenario` (dont `typeTextStepParsed`, `stepKindRanksFrozen` étendu à `TypeText`) Passed ; banc hors écran : scénarios `forme-page-annotee` (`cache.refreshes = k`, k formes posées) et `grille-dessus` (`cache.refreshes` = nombre de versements, 0 entre deux versements) présents | S7.5 | #tache-l4-t14 |
+| L4-T14 | Banc et joueur : scénarios de banc `forme-page-annotee` et `grille-dessus` ; étape `typeText` du joueur | L4-T7, L4-T11 | `bench/include/actcraft/bench/scenarios.h`, `bench/src/scenarios.cpp`, `bench/src/runner.cpp`, `tests/tst_bench_scenarios.cpp`, `tests/tst_bench_result.cpp`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `docs/banc.md` | isolé | implementeur-tdd | `TESTS OK`, `tst_bench_scenarios` (dont `shapeOnAnnotatedPageScenario`, `gridAboveScenarioDrawsStrokes`), `tst_bench_result` (dont `lot4ScenariosWithFrames`), `tst_bench_uiscenario` (dont `typeTextStepParsed`, `stepKindRanksFrozen` étendu à `TypeText`) Passed ; banc hors écran : scénarios `forme-page-annotee` (`cache.refreshes = k`, k formes posées ; trames pendant les glissés relevées : coût de l'aperçu, V9) et `grille-dessus` (`cache.refreshes` = nombre de versements, 0 entre deux versements) présents | S7.5 | #tache-l4-t14 |
+| L4-T31 | `tools` : ligne et courbe brisées au multi-clic, forme à main levée | L4-T8 | `core/include/actcraft/core/shapegeometry.h` (ajout en fin, signalé), `core/src/shapegeometry.cpp`, `tools/include/actcraft/tools/shapetool.h` (membres privés et `abandon()`, signalé), `tools/src/shapetool.cpp`, `tests/tst_core_shapes.cpp`, `tests/tst_tools_shape.cpp` | isolé | implementeur-tdd | `TESTS OK`, N inchangé (= 136 + n_B, aucun test enregistré), `tst_tools_shape` (dont `polylineByClicksEndsOnDoubleClick`, `curveChainIsSmoothed`, `freeformFollowsTheDrag`, `chainCancelKeepsTwoVerticesOrMore`, `chainAbandonAddsNothing`) et `tst_core_shapes` (dont `smoothChainPassesThroughVertices`, `chainNeedsTwoDistinctPoints`) Passed ; banc hors écran joint | S7.1 | #tache-l4-t31 |
+| L4-O1 | Séance d'observation de l'original à l'écran, annoncée à Jérôme (D5, D6, D10, D11, D17) | L4-T0 | `docs/verifications/2026-10-21-lot4-observation.md` (relevé brut hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot4-observation.md`) | isolé | concepteur-critique | annonce à Jérôme faite par l'orchestrateur d'une ligne avant ; jeton `ecran` ; rapport commité : verdict « confirmé », « contredit » ou « non observé » pour chacun des cinq points, avec la liste des tâches à amender ; `NOMS OK` ; `git grep` des titres du corpus vide | S30, S7.1, S7.2, S7.5, S15 | #tache-l4-o1 |
 
-15 tâches dans ce sous-lot (16 dans 4b : 31 pour le lot). Tests ctest : L4-T1 enregistre d'un coup les **23** tests des
+**Amendement 4 :** 17 lignes dans ce sous-lot — 16 tâches (L4-T0 à L4-T14, L4-T31) et la séance d'observation L4-O1 — et 17 tâches dans 4b (L4-T15 à L4-T30, L4-C1) : 34 lignes pour le lot (15 + 16 = 31 avant l'amendement 4). L4-T31 et L4-C1 n'enregistrent aucun test : N ne change pas. Tests ctest : L4-T1 enregistre d'un coup les **23** tests des
 deux sous-lots (16 unitaires, 7 de captures), talons `QSKIP` jusqu'à ce que leur tâche les remplisse : **N3 + 23**
 dès L4-T1, où N3 est le nombre de tests au départ du lot. **Amendement 1 : N3 = 113** (fin du lot 3 et de L0-S,
 ligne L0-S0 du fichier d'état), donc **N = 136** dès L4-T1 ; si le lot 7 a fusionné (L7-T33), **N = 136 + n_B** (n_B relevé par L4-T0,
@@ -231,13 +293,15 @@ ligne L0-S0 du fichier d'état), donc **N = 136** dès L4-T1 ; si le lot 7 a fus
 Worktrees : `.worktrees/livraison-complete--L4-T<n>` (profil), tous isolés : deux tâches d'une même vague ne
 partagent aucun fichier (vérifié sur la colonne « fichiers touchés »).
 
-**Écran.** Aucune tâche de 4a n'ouvre de fenêtre visible. La clôture du lot (fin de 4b) joue les captures et le banc
+**Écran.** Aucune tâche de 4a n'ouvre de fenêtre d'ActCraft visible ; seule L4-O1 ouvre l'original à l'écran, sous le jeton `ecran`, annoncée à Jérôme d'une ligne avant par l'orchestrateur (amendement 4). La clôture du lot (fin de 4b) joue les captures et le banc
 à l'écran sous le jeton `ecran`, annoncés à Jérôme d'une ligne avant.
 
 ## Vagues (largeur 3 au plus ; 2 places de tests pour ce lot)
 
 V1 : L4-T0 ‖ L4-T1 · V2 : L4-T2 ‖ L4-T3 ‖ L4-T4 · V3 : L4-T5 ‖ L4-T6 ‖ L4-T7 · V4 : L4-T8 ‖ L4-T9 ‖ L4-T13 ·
-V5 : L4-T10 ‖ L4-T11 · V6 : L4-T12 ‖ L4-T14 · puis le point d'étape de 4a, puis 4b (son plan).
+V5 : L4-T10 ‖ L4-T11 ‖ L4-T31 · V6 : L4-T12 ‖ L4-T14 · puis le point d'étape de 4a, puis 4b (son plan).
+
+**Amendement 4.** L4-T31 entre en V5, après L4-T8 (V4) : ses fichiers (`shapegeometry.*`, `shapetool.*`, `tst_core_shapes.cpp`, `tst_tools_shape.cpp`) ne recoupent ni ceux de L4-T10 (`selecttool.cpp`, `selectiongeometry.*`, `tst_tools_select.cpp`, `SelectionOverlay.qml`) ni ceux de L4-T11 (`toolhost.cpp`, `tooladapters.*`, `tst_ui_shapes.cpp`, `userstate.*` éventuels). **L4-O1** est hors des vagues : elle ne construit rien et n'occupe aucune place de tests ; l'orchestrateur l'annonce à Jérôme et la lance dès que V2 démarre, ou au premier moment où Jérôme est disponible, et au plus tard avant V11 de 4b : L4-T28 et L4-C1 l'attendent (colonne « dépend de »). Pendant L4-O1, aucune fenêtre d'ActCraft n'est ouverte à l'écran (le jeton `ecran` est pris).
 
 **Places.** Le jeton `tests` a 3 places sur la machine, dont **2 pour ce lot** (la session B, lot 7, garde la
 troisième). Une vague de 3 tâches qui construisent en a toujours une qui attend la notification du jeton : c'est
@@ -247,7 +311,10 @@ prévu, l'agent attend, il ne sonde pas. L4-T0 ne construit rien.
 pour leur contenu ; toutes les tâches de comportement l'attendent (V2 commence quand V1 est finie). Ses décisions
 D1 à D19 et sa table A1 à A14 **amendent ce plan et celui de 4b** avant V2 (relecture du plan exigée). Une décision
 qui change une donnée de commande (raccourci, libellé, ordre de la palette des formes) passe par un correctif
-`L4-C0` (`actions/data/commands.json`, `actions/data/layout.json` seulement), joué seul avant V2. Une API supposée
+`L4-C0` (`actions/data/commands.json`, `actions/data/layout.json` seulement), joué seul avant V2. **Amendement 4 :**
+`L4-C0` est **abandonné** : D14 et D18 conformes ; l'ordre des formes de D1 vit dans `core::shapeCatalog`, pas dans
+les données de commande ; D19 reste au défaut, groupe `formes-texte` en fin de palette (choix de Jérôme du
+2026-10-21). Aucune vague ne le joue. Une API supposée
 qui diffère du code livré (A1 à A14) amende la section de la tâche qui l'emploie.
 
 Fichiers partagés tenus par les dépendances : `ui/qml/Main.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/PageContextMenu.qml`, `ui/CMakeLists.txt`
@@ -255,6 +322,9 @@ Fichiers partagés tenus par les dépendances : `ui/qml/Main.qml`, `ui/qml/ToolP
 `selectiongeometry.*`, `tests/tst_tools_select.cpp` (L4-T9 → L4-T10) ; `ui/src/toolhost.cpp` (L4-T1 → L4-T11) ;
 `ui/src/pageoptions.cpp` (L4-T1 → L4-T13 → 4b) ; `ui/qml/GridDesigner.qml` (L4-T2 → L4-T13) ;
 `ui/qml/ShapePalette.qml` (L4-T2 → L4-T12) ; `ui/qml/SelectionOverlay.qml` (lot 3 → L4-T10) ;
+`core/include/actcraft/core/shapegeometry.h`, `core/src/shapegeometry.cpp`, `tests/tst_core_shapes.cpp` (L4-T1 → L4-T3
+→ L4-T31) ; `tools/include/actcraft/tools/shapetool.h`, `tools/src/shapetool.cpp`, `tests/tst_tools_shape.cpp` (L4-T1
+→ L4-T8 → L4-T31) ; `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp` (L4-T1 → L4-T11, si D2 ou D3 reste à poser) ;
 `bench/src/scenarios.cpp`, `bench/src/runner.cpp` (L4-T14 → L4-T29) ; `core/include/actcraft/core/model.h`
 (L4-T1 → L4-T27) ; `formats/src/nativejson.cpp` (L4-T6 → L4-T27) ; les talons de L4-T1 → leur tâche.
 
@@ -267,7 +337,7 @@ Fichiers partagés tenus par les dépendances : `ui/qml/Main.qml`, `ui/qml/ToolP
 | A3 | `tools::UserState` (`settings`, `setSettings`, `currentTool`, `selection`) et `tools::defaultSettings` ; `L4-T1` y ajoute `shapeSettings`, `textSettings` | socle L0-S6 (D-S10), lot 3 L3-T6 | L4-T8, L4-T11, L4-T21 |
 | A4 | `tools::ToolRegistry::add`, `registerBuiltinTools` (« select », « pen », « highlighter », « eraser ») ; `L4-T1` y ajoute « shape », « text », « text-vertical » | lot 3, L3-T6 | L4-T1, L4-T11 |
 | A5 | `ui::ToolHost` (type QML `Tools`, objet `appTools`), `activate`, `selectionFrame`, `settingsFile` | lot 3, L3-T14 | L4-T11, L4-T12 |
-| A6 | `ui::DocumentController::execute`, `document()`, `liftObjects`, `dropLifted`, `editAboutToApply`, `shownObjectCount`, **`addChangeObserver`** (D-S7 ; remplace `setCacheObserver`, espions par `core::applyToCache(changes, currentIndex, spy)`) ; `L4-T1` y ajoute `showPage`, `pageContentChanged` ; `insertText` et l'ajout d'une ressource sont l'API d'insertion du lot 7, **hors** de `documentcontroller.*` (D-S8) | lots 2 et 3 (L3-T12), socle L0-S5 | L4-T1, L4-T11, L4-T13, 4b (H4-11) |
+| A6 | `ui::DocumentController::execute`, `document()`, `liftObjects`, `dropLifted`, `editAboutToApply`, `shownObjectCount`, **`addChangeObserver`** (D-S7 ; remplace `setCacheObserver`, espions par `core::applyToCache(changes, currentIndex, spy)`) ; `L4-T1` y ajoute `showPage`, `pageContentChanged` ; `insertText` et l'ajout d'une ressource sont l'API d'insertion du lot 7, **hors** de `documentcontroller.*` (D-S8) | lots 2 et 3 (L3-T12), socle L0-S5 | L4-T1, L4-T11, L4-T13, 4b (H4-18, ancien H4-11) |
 | A7 | `ui::PageView::tools`, `cacheRefreshCount`, `pageToScene`, `sceneToPage` (L7-T2, posé par L0-S ?), `addInputCover(QQuickItem*)` (L0-S) | lot 3 (L3-T13), socle L0-S | L4-T2, L4-T13, 4b |
 | A8 | `core::objectAt`, `core::objectsTouching`, `core::kHitToleranceScreen` | lot 3, L3-T3 | L4-T10, L4-T21 |
 | A9 | `core::TransformObjectsCommand`, `RemoveObjectsCommand`, `ReplaceObjectsCommand` (socle L0-S : une seule commande de remplacement) | lot 3, L3-T4 ; socle L0-S | L4-T9, 4b |
@@ -305,6 +375,8 @@ Lu dans `C:\Users\JeromeDenis\REA - Activinspire` ; L4-T0 le complète par le co
    Maj garde un carré, ou contraint une ligne à des multiples de 45° ; ligne horizontale et verticale fixent un
    axe (`canvas/tools.py:822-868`). Un simple clic (moins de 3 px) ne pose aucune forme. Le point d'appui et le
    point courant sont accrochés à la grille pendant le tracé. La forme va sur la couche intermédiaire.
+   **Amendement 4 (D1) :** les rangs 4 à 6 de cette liste viennent de noms lus sur des icônes ; la 3.5.18 y met une
+   forme à main levée, une ligne brisée posée point par point et une courbe posée point par point.
 2. **Texte.** Cliquer avec l'outil Texte sur un texte l'édite ; ailleurs, un texte neuf au point cliqué, texte de
    départ tout sélectionné, police et taille courantes (`canvas/tools.py:942-960`). Barre de mise en forme :
    `canvas/textbar.py`. Le texte de départ de la référence n'est pas repris : le nôtre est « Votre texte » (N1-12).
@@ -322,15 +394,18 @@ Lu dans `C:\Users\JeromeDenis\REA - Activinspire` ; L4-T0 le complète par le co
    des API, la grille en surcouche (limite de DA11), deux scénarios de banc, le contrôleur de miniatures, la boîte
    du fond (écart E2). Une tâche « principes » de plus est probable (amendement § 4 : « lot 4 + 1 ») : L4-T0 la
    crée par l'amendement si un principe du corpus n'entre dans aucune tâche (fichiers fixés par l'amendement).
+   **Amendement 4 :** 34 lignes — L4-T31 (P37), L4-C1 (D16) et la séance d'observation L4-O1 (point 11 de L4-T0).
 2. **Courbe de Bézier et forme libre** (F-240 les cite ; la référence ne les a pas) : L4-T0 relève si la 3.5.18
    les a dans sa palette ; si oui, l'amendement ajoute une tâche `tools` (tracé en plusieurs clics), sinon H4-2.
+   **Amendement 4 (D1) :** pas de Bézier ; la forme à main levée existe, avec la ligne et la courbe brisées : L4-T31.
 3. **Panneau flottant** (F-041) : ancrage à gauche ou à droite au lot 4 ; flottant au lot 6 avec la palette
    flottante (même mécanique) — H4-5.
 4. **Presse-papiers des pages** interne au document au lot 4 ; entre documents et onglets au lot 5 (F-011).
 5. **Entrées du menu de page hors lot** (capture de bureau : lot 7 ; exporter la page : lot 5 ; ajouter à la
    bibliothèque, plus de modèles : lot 6 ; question : exclue) : absentes du menu jusqu'à leur lot.
 6. **Écart E10** (taille personnalisée en hauteurs de page) : tranché par L4-T0 ; s'il diffère de F-700, correctif
-   `L4-C1` (boîte `ui/qml/PageSizeDialog.qml` et sa commande), ajouté par l'amendement.
+   `L4-C1` (boîte `ui/qml/PageSizeDialog.qml` et sa commande), ajouté par l'amendement. **Amendement 4 (D16) :**
+   F-700 diffère (pixels pour un cadre et nombre de cadres en largeur et en hauteur) : `L4-C1` ajouté au plan 4b.
 
 ## Scénarios ajoutés
 
@@ -354,14 +429,14 @@ Lu dans `C:\Users\JeromeDenis\REA - Activinspire` ; L4-T0 le complète par le co
 | Scénario | Tâches | Joué à la clôture |
 |---|---|---|
 | S7 — formes, texte, pages, grille | L4-T1, T2, T3, T5, T6, T8, T9, T11 ; 4b : T15 à T19, T21 à T23, T30 | oui : hors écran et à l'écran en D3D11 (`formes-texte-pages-grille`) |
-| S7.1 — formes | L4-T3, T8, T10, T11, T12 | oui |
-| S7.2 — grille | L4-T4, T5, T7, T9, T13 | oui |
+| S7.1 — formes | L4-T3, T8, T10, T11, T12, T31 ; L4-O1 (Maj, D5) | oui |
+| S7.2 — grille | L4-T4, T5, T7, T9, T13 ; L4-O1 (grille invisible, D6) | oui |
 | S7.3 — texte | 4b : L4-T16, T21, T22, T23 | oui |
 | S7.4 — navigateur de pages | 4b : L4-T15, T17, T18, T19, T20 | oui |
-| S7.5 — banc du lot 4 | L4-T7, T14 ; 4b : T29 | oui : banc complet D3D11 plein écran |
-| S15 — page allongée et zones | L4-T1, T2, T4, T6 ; 4b : T26, T27, T28 | oui |
+| S7.5 — banc du lot 4 | L4-T7, T14 ; 4b : T29 ; L4-O1 (encre en cours, D17) | oui : banc complet D3D11 plein écran |
+| S15 — page allongée et zones | L4-T1, T2, T4, T6 ; L4-O1 (D10, D11) ; 4b : T26, T27, T28, C1 | oui |
 | S16 — texte de haut en bas | L4-T1, T2, T6 ; 4b : T24, T25 | oui |
-| S30 — tâche d'ouverture | L4-T0 | contrôlé à la relecture : rapport, relevé brut, `NOMS OK` |
+| S30 — tâche d'ouverture | L4-T0, L4-O1 (observation demandée par L4-T0) | contrôlé à la relecture : rapport, relevé brut, `NOMS OK` |
 | S13 (lot 10) — non-régression du cache | toutes les tâches de `render/ ui/ tools/` | oui : `pauses`, `cache-differe`, S6 rejoués |
 
 ## Carte des fichiers
@@ -372,7 +447,7 @@ Lu dans `C:\Users\JeromeDenis\REA - Activinspire` ; L4-T0 le complète par le co
 | `actions/data/commands.json`, `layout.json` | 47 commandes du lot ; menus Insérer (sous-menu « Page », en fin), Outils (`other-tools`), Affichage ; palette ; `contextMenu` | L4-T1 | L4-T1 |
 | `actions/…/layout.h`, `actions/src/layout.cpp` | `Layout::contextMenu` accepte les sous-menus | L4-T1 | L4-T1 |
 | `core/…/model.h`, `core/src/model.cpp` | `Shape::preset`, `Shape::parameters`, `Text::vertical`, `Page::baseHeight` ; empreinte | L4-T1 | L4-T1 (zones : L4-T27) |
-| `core/…/shapegeometry.h`, `shapeedits.h` | catalogue, boîte, lignes, points intelligents, `SetShapeParametersCommand` | talon | L4-T3 |
+| `core/…/shapegeometry.h`, `shapeedits.h` | catalogue, boîte, lignes, points intelligents, `SetShapeParametersCommand` ; geste de chaque préréglage (amendement 4) ; lignes posées au clic et main levée | talon | L4-T3, L4-T31 |
 | `core/…/pagesettings.h` | `SetGridCommand`, `SetBackgroundCommand`, `ExtendPageCommand`, `gridDrawsUnderObjects` | talon | L4-T4 |
 | `core/…/gridsnap.h` | `nearestGridPoint`, `snapAnchor`, `snapDelta` | talon | L4-T5 |
 | `core/…/pageedits.h` | `MovePagesCommand`, `RemovePagesCommand`, `InsertPagesCommand`, `withFreshIds` | talon | L4-T15 |
@@ -383,7 +458,9 @@ Lu dans `C:\Users\JeromeDenis\REA - Activinspire` ; L4-T0 le complète par le co
 | `render/…/gridoverlayitem.h` | surcouche de la grille du dessus (type QML `GridOverlay`) | talon | L4-T7 |
 | `render/…/fixedpageitem.*` | grille du dessus retirée ; différé rétabli | — | L4-T7 |
 | `render/src/pagepainter.cpp`, `paintedrenderer.cpp` | texte de haut en bas dessiné | — | L4-T24 |
-| `tools/…/shapetool.h`, `texttool.h` | outils Forme, Texte, Texte de haut en bas | talon | L4-T8, L4-T22 |
+| `tools/…/shapetool.h`, `texttool.h` | outils Forme, Texte, Texte de haut en bas | talon | L4-T8, L4-T31, L4-T22 |
+| `docs/verifications/2026-10-21-lot4-observation.md` | verdicts de la séance d'observation (D5, D6, D10, D11, D17) | — | L4-O1 |
+| `ui/qml/PageSizeDialog.qml`, `ui/qml/FileActions.qml` | taille personnalisée en pixels d'un cadre et en nombre de cadres (D16) | — | L4-C1 (4b) |
 | `tools/…/userstate.h`, `toolcontext.h`, `toolregistry.cpp` | `ShapeSettings`, `TextSettings`, `SelectionView::smartPoints`, outils inscrits | L4-T1 | L4-T1 |
 | `tools/src/selecttool.cpp`, `selectiongeometry.*` | accrochage au dépôt, points intelligents | — | L4-T9, L4-T10 |
 | `ui/…/toolhost.h`, `ui/src/toolhost.cpp`, `tooladapters.*` | réglages de forme, contour des préréglages, points intelligents | API | L4-T11 |
@@ -418,8 +495,8 @@ membres **privés**.
   commande de page n'a Ctrl+X/C/V/D ni Suppr : ces raccourcis restent à l'édition d'objets (lots 3 et 5) ; dans le
   navigateur de pages, le QML les traduit en commandes de page quand il a le focus.
 - Identifiants d'outil : `shape`, `text`, `text-vertical` (en plus de ceux du lot 3).
-- Préréglages de forme (ordre de la palette, D1) : `line`, `line-horizontal`, `line-vertical`, `polyline`,
-  `zigzag`, `chevron`, `rectangle`, `rounded-rectangle`, `square`, `ellipse`, `circle`, `triangle`, `diamond`,
+- Préréglages de forme (ordre de la palette, D1 ; amendement 4) : `line`, `line-horizontal`, `line-vertical`,
+  `freeform`, `polyline`, `curve-chain`, `rectangle`, `rounded-rectangle`, `square`, `ellipse`, `circle`, `triangle`, `diamond`,
   `pentagon`, `hexagon`, `star`, `arrow`, `callout`, `octagon`, `star-four`, `burst`, `burst-twelve`.
 - Objets QML lus par les scénarios : `appTools` (`currentTool`, `shapePreset`, `shapeFilled`,
   `shapeFromCenter`), `appDocument` (`shownObjectCount`, `pageCount`, `currentIndex`, `pageSize`, `canUndo`),
@@ -429,10 +506,10 @@ membres **privés**.
   `textFormatBar`, `verticalTextBar`, `gridDesigner`, `backgroundDialog`, `pageExtensionHandle`, `pageZones`,
   `gridOverlay`.
 - Ordre des couches dans `PageArea.qml` (A12) : `fixedPage`, `pageCache`, `pendingLayer`, `liftLayer`, `ink`,
-  `pageOverlays` (socle) ; `gridOverlay` s'y insère **au rang fixé par D17** (recommandé : entre `ink` et
-  `pageOverlays` ; sinon entre `liftLayer` et `ink`), `socleLayerOrder` amendé par L4-T2 ; `pageZones` et
+  `pageOverlays` (socle) ; `gridOverlay` s'y insère **entre `ink` et `pageOverlays`** (D17, amendement 4), chaque
+  enfant de `page` à `z() == 0`, `socleLayerOrder` amendé par L4-T2 ; `pageZones` et
   `pageExtensionHandle` dans `pageOverlays` ; `textEditor` à côté de `selectionOverlay`.
-- Constantes : `core::kShapeMinDragScreen = 3.0` ; `core::kExtendRatio = 0.10` ; `core::kMergeGrid = 4` ;
+- Constantes : `core::kShapeMinDragScreen = 3.0` ; `core::kExtendRatio = 0.10` ; `core::kMergeGrid = 4` (libre, V7) ; `core::kChainDoubleClickScreen = 6.0`, `core::kChainDoubleClickNs = 500'000'000`, `core::kCurveChainSamples = 12` (L4-T31) ;
   `ui::PageThumbnails::kSettleMs = 400` ; `ui::PageThumbnails::kDefaultWidth = 160`.
 
 ## Règles communes à toutes les tâches (jointes à chaque section par l'orchestrateur)
@@ -452,7 +529,7 @@ les déclarations publiques de L4-T1 (la fonction `reserved()` du test talon est
   cache). C4062 est une erreur (`/we4062`, L0-S3) : un `switch` incomplet échoue en local comme en CI.
 - **Amendement 1 — HTML de document** (la règle « **Sécurité** : `QTextDocument::setHtml` charge les ressources citées… » du fichier d'état (`docs/sessions/livraison-complete-etat.md`)) : jamais `setHtml`, ni
   `TextEdit.RichText` / `Text.RichText`, sur un HTML venu d'un document sans passer par un `QTextDocument` dont
-  `loadResource` est neutralisé (garde de L2-T11, `render/src/pagepainter.cpp:71`) ou par un HTML assaini (L4-T21).
+  `loadResource` est neutralisé (garde de L2-T11, `render/src/pagepainter.cpp:73`) ou par un HTML assaini (L4-T21).
   Un `<img src="file://hôte/…">` d'un `.flipchart` déclencherait une requête SMB.
 - **Amendement 1 — espions de cache** : `DocumentController::addChangeObserver` (D-S7) et
   `core::applyToCache(changes, controller.currentIndex(), spy)` ; `setCacheObserver` n'existe plus.
@@ -731,6 +808,39 @@ couleurs).** Prime sur les étapes ci-dessous.
   appelle la fonction libre `unknownCommands(layout, registry)`.
 - Ces trois tests du socle et du lot 1 sont amendés, pas contournés : la cause (entrées ajoutées en fin) est écrite
   dans le commentaire.
+
+**Amendements transmis en cours d'exécution (amendement 4, résultats de L4-T0).** L4-T1 tournait déjà quand L4-T0 a
+rendu ses résultats : le contrat ci-dessous n'est pas réécrit. L'orchestrateur transmet ces points à l'agent de L4-T1 ;
+son rapport dit lesquels il a appliqués, et un point non appliqué passe à la tâche nommée entre parenthèses.
+- **V3 et A4 — tests figés rouges dès L4-T1, non cités plus haut.** `lot3EntriesDeclared`
+  (`tests/tst_actions_layout.cpp:205-206`, menu de page exact) ; `defaultCommandsFileDeclaresLotOne`
+  (`tests/tst_actions_registry.cpp:197`, compte `23 + 62` des commandes, qui devient `23 + 62 + 47`) ;
+  `paletteColorsAndWidths` (`tests/tst_ui_commands.cpp:96-98`, liste exacte des 7 groupes, `formes-texte` ajouté en
+  fin) ; `builtinsRegistered` (`tests/tst_tools_registry.cpp:107`, liste exacte des quatre outils du lot 3 :
+  `shape`, `text`, `text-vertical` ajoutés en fin, ce qui ajoute `tests/tst_tools_registry.cpp` aux fichiers de
+  L4-T1). Chacun est amendé, pas contourné, avec le commentaire « amendement 1 du lot 4 : entrées ajoutées en fin ».
+  `toolsMenuFollowsF750` (`tests/tst_actions_layout.cpp:246-260`) ne lit que le premier niveau du menu `tools` : il
+  reste vert sans changement, et la place de `tool.text-vertical` en fin d'`other-tools` se vérifie dans
+  `lot4EntriesDeclared`.
+- **V2 — menu contextuel.** `Layout::contextMenu` n'est aujourd'hui qu'un tableau de chaînes
+  (`actions/src/layout.cpp:159-165`) et `Commands::contextMenu()` passe `nullptr` comme sous-menus
+  (`ui/src/commands.cpp:187-190`) : changer aussi `ui/src/commands.cpp:189`, qui reçoit `Layout::contextSubmenus`.
+- **V1 — argument texte.** `ArgumentKind::Text` accepte toute valeur convertible en texte non blanc
+  (`actions/src/commandregistry.cpp:120-121`) : un nombre passe. `editAtArgumentOptional` n'attend donc **pas** le
+  refus d'un nombre ; il vérifie l'appel sans argument (accepté, `:286-287`) et le refus d'une chaîne blanche.
+  Citations justes : `"optional"` lu en `:184` (et non `:180`), `ArgumentKind::Color` `#RRGGBB` ou `#AARRGGBB` en
+  `:97-100`.
+- **D2 — remplissage par défaut.** Dans l'ajout à `userstate.h` (étape 6), `core::Argb fill = 0xFFFFAA00u; // D2 :
+  orange clair` au lieu de `0xFFFFFFFFu` (à défaut : L4-T11). `ShapeStyle::fill` de `shapegeometry.h` garde
+  `0xFFFFFFFFu` : style neutre des tests de géométrie, l'outil prend le remplissage dans `ShapeSettings`.
+- **A10 — citations.** `parseLayout` est en `actions/include/actcraft/actions/layout.h:45` (et non `:42`, amendement 2
+  ci-dessus) ; `unknownCommands` en `:52` ; jeton `>id` en `actions/src/layout.cpp:70` ; filtrage par plateforme en
+  `ui/src/commands.cpp:109-150`.
+- **D19 — place du groupe `formes-texte`** : tranchée au défaut, en fin de palette (choix de Jérôme du 2026-10-21) ;
+  ce que L4-T1 pose déjà (amendement 2) ne change pas, et `L4-C0` est abandonné.
+- **V10 — lot 7** (même tâche, hors de la liste du point 1 de L4-T0). La branche du lot 7 ajoute le signal
+  `documentReplaced` à `documentcontroller.h` : `showPage` et `pageContentChanged` vont dans le même bloc de signaux,
+  pour une juxtaposition sans conflit à la fusion.
 
 **Objectif.** Poser d'un coup tout ce que les tâches des deux sous-lots partagent, pour qu'aucune vague n'écrive
 ensuite dans un fichier chaud en même temps qu'une autre : les 47 commandes et leur disposition (`contextMenu`
@@ -1776,6 +1886,15 @@ amendés : `objectBarAndContextMenu`, `defaultLayoutMatchesLotOne`, `toolsMenuFo
 <a id="tache-l4-t2"></a>
 ### Tâche L4-T2 — Réservation II : coquille QML
 
+**Amendement 4 (D17, A12).** D17 tranche : `gridOverlay` entre `ink` et `pageOverlays` (la grille du dessus couvre
+le trait en cours ; rien ne change au relâché). La liste attendue de `socleLayerOrder` (`tests/tst_ui_shell.cpp:773-786`)
+est `fixedPage, pageCache, pendingLayer, liftLayer, ink, gridOverlay, pageOverlays` ; la boucle `z() == 0`, déjà exigée
+par le test du socle, couvre `gridOverlay` : sa déclaration QML ne pose aucun `z:`. L'autre rang (`liftLayer,
+gridOverlay, ink`) tombe, et le commentaire du test le dit. Citations (A12) : couches de `ui/qml/PageArea.qml:49-117`,
+`fixedPageItem` en `:56`, alias `fixedPage` en `:11`, `area.documentController` en `:25`, `view` en `:29`. L'encre en
+cours sous la grille du dessus est observée à l'écran par L4-O1 : si l'original la montre au-dessus, correctif `L4-C<n>`
+(liste attendue et rang QML).
+
 **Amendement 1 (défauts 2, 3, 8, 9 ; D17).** `pageLayersInOrder` n'est pas ajouté : **`socleLayerOrder`** (L0-S9,
 `tests/tst_ui_shell.cpp`) est amendé, avec ce commentaire au-dessus de la liste : « Amendement 1 du lot 4 : la grille
 du dessus sort de la scène du cache (L4-T7) ; rang fixé par D17. » Liste attendue selon D17 : recommandé
@@ -1835,8 +1954,8 @@ banc sans écran.
       for (QQuickItem* child : page->childItems()) {
           names << child->objectName();
       }
-      // Amendement 1 du lot 4 : la grille du dessus sort de la scène du cache (L4-T7) ; rang fixé par D17
-      // (recommandé ici ; autre choix : "liftLayer", "gridOverlay", "ink").
+      // Amendement 1 du lot 4 : la grille du dessus sort de la scène du cache (L4-T7) ; rang fixé par D17 :
+      // entre l'encre et les surcouches (amendement 4).
       QCOMPARE(names, (QStringList{"fixedPage", "pageCache", "pendingLayer", "liftLayer", "ink", "gridOverlay", "pageOverlays"}));
       for (QQuickItem* child : page->childItems()) {
           QCOMPARE(child->z(), 0.0); // l'ordre des enfants fait l'empilement
@@ -1872,7 +1991,7 @@ banc sans écran.
   → `appPageSettings.extendPage()` ; `page.zones` → `appPageSettings.setZones(arg)`. Les talons reçoivent une
   fonction vide `open()` (`GridDesigner`, `BackgroundDialog`) et une propriété `property string side: "left"`
   (`BrowserPanel`).
-- [ ] **Étape 4 : `PageArea.qml`.** Dans `page`, au rang de D17 (recommandé : juste après `ink`) : `GridOverlay {
+- [ ] **Étape 4 : `PageArea.qml`.** Dans `page`, au rang de D17 : juste après `ink`, sans `z:` : `GridOverlay {
   id: gridOverlay; objectName: "gridOverlay"; anchors.fill: parent; zoom: view.zoom; fixedPage: fixedPageItem }` et
   sa `Connections` (amendement 1) ; dans `pageOverlays` :
   `PageZonesOverlay { objectName: "pageZones"; anchors.fill: parent }` et `PageExtensionHandle { objectName:
@@ -1895,6 +2014,37 @@ banc sans écran.
 <a id="tache-l4-t3"></a>
 ### Tâche L4-T3 — `core` : catalogue des formes, boîte tracée, lignes, points intelligents
 
+**Amendement 4 (D1, D4).** Prime sur l'objectif et les étapes ci-dessous.
+- **Catalogue (D1).** Rangs 4 à 6 : `freeform` (main levée), `polyline` (sommets posés au clic, double-clic final),
+  `curve-chain` (même geste, lissée), à la place de `polyline`, `zigzag`, `chevron` ; tous trois de famille
+  `ShapeFamily::Line`. Défaut `line`. `zigzag` et `chevron` n'existent plus (`findShapePreset` rend `nullptr`).
+  `makeLineObject` rend pour eux un segment de `from` à `to` (aperçu de la palette, boucle du test) ; leur vraie
+  géométrie est celle de L4-T31 (`makeChainObject`). Le commentaire de `ShapeFamily::Line` dans l'en-tête devient
+  « objet core::Line (lignes, main levée, ligne et courbe brisées) » (commentaire seul).
+- **Points intelligents (D4)**, fractions de la boîte, un point par paramètre : `rounded-rectangle` {rayon 0,15 (0,01 à
+  0,5 du plus petit côté)} ; `arrow` {début de la tête 0,6 (0 à 1 de la largeur), soit une tête de 0,4 ; épaisseur du
+  corps 0,25 (0 à 0,5 de la hauteur)}, dans cet ordre ; `callout` {position de la pointe 1 (0 à 1 de la largeur) ;
+  arrondi 0,1 (0,01 à 0,3)}, la pointe restant sous la boîte à 1,3 de la hauteur (à nous, non exposé). `star`,
+  `star-four`, `burst`, `burst-twelve` : **aucun paramètre exposé** (`defaults` vide) ; leur rayon intérieur est fixe
+  (0,45 ; 0,35 ; 0,6 ; 0,7). Les valeurs de départ du rayon et de l'épaisseur du corps sont à nous (D4 ne les donne pas).
+- **Geste de chaque préréglage (ajout en fin de `shapegeometry.h`, signalé, autorisé par cet amendement)**, juste avant
+  la fermeture de l'espace de noms :
+  ```cpp
+  // Amendement 4 du lot 4 (D1) : ajout en fin. Geste de pose d'un préréglage : boîte (glisser d'un coin à l'autre),
+  // clics (un sommet par clic, double-clic final : polyline, curve-chain) ou main levée (freeform).
+  enum class ShapeGesture : std::uint8_t
+  {
+      Box,
+      Clicks,
+      Freehand,
+  };
+  ShapeGesture shapeGesture(std::string_view preset) noexcept; // préréglage inconnu : Box
+  ```
+  L4-T8 s'en sert pour écarter du tracé en boîte les trois formes de D1 ; L4-T31 pour leur geste.
+- **Tests** : `catalogOrderAndDefault` vérifie les rangs 4 à 6 et l'absence de `zigzag` et `chevron` ; trois fonctions
+  de plus, `arrowHeadStartsAtFourTenths`, `smartPointsOnlyForThreePresets`, `gestureOfEachPreset` (code à l'étape 1).
+  Neuf fonctions en tout.
+
 **Objectif.** Remplir `shapegeometry` et `shapeedits` (en-têtes de L4-T1) : catalogue de 22 préréglages à nos
 identifiants dans l'ordre D1, boîte depuis le coin ou le centre, carré, lignes contraintes, géométrie de chaque
 préréglage (polygone de `Shape` en coordonnées de l'objet, origine au coin haut gauche de la boîte, transformation
@@ -1907,13 +2057,16 @@ préréglage (polygone de `Shape` en coordonnées de l'objet, origine au coin ha
 
 **Test et commande bornée.** Commande ciblée `-R tst_core_shapes` ; fonctions du test : `catalogOrderAndDefault`,
 `dragFromCornerAndCenter`, `squarePresetsStaySquare`, `linePresetsConstrained`, `arrowHeadSmartPointBounded`,
-`setParametersIsOneStepAndRebuilds` en `PASS` ; preuve de tâche.
+`arrowHeadStartsAtFourTenths`, `smartPointsOnlyForThreePresets`, `gestureOfEachPreset`,
+`setParametersIsOneStepAndRebuilds` en `PASS` (neuf fonctions, `Totals: 9 passed`) ; preuve de tâche.
 
 **Interdits.** Pas de QtGui dans `core/`. Pas de géométrie dupliquée dans `tools/` ou `ui/` (ils appellent ce
-fichier). Ne pas changer l'en-tête public.
+fichier). Ne pas changer l'en-tête public, hormis l'ajout en fin et le commentaire de `ShapeFamily::Line` permis par
+l'amendement 4.
 
-**Terminé quand.** Les six fonctions passent ; `TESTS OK` ; chaque préréglage du catalogue rend une géométrie non
-vide dans une boîte de 100 × 60 (boucle du test `catalogOrderAndDefault`).
+**Terminé quand.** Les neuf fonctions passent ; `TESTS OK` ; chaque préréglage du catalogue rend une géométrie non
+vide dans une boîte de 100 × 60 (boucle du test `catalogOrderAndDefault`) ; `ShapeGesture` et `shapeGesture` posés en
+fin d'en-tête, ajout signalé au rapport.
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge.** Remplacer le talon de `tests/tst_core_shapes.cpp` :
@@ -1938,7 +2091,12 @@ vide dans une boîte de 100 × 60 (boucle du test `catalogOrderAndDefault`).
           const auto& catalog = shapeCatalog();
           QCOMPARE(catalog.size(), std::size_t{22});
           QCOMPARE(QString::fromStdString(catalog.front().id), QStringLiteral("line"));
+          QCOMPARE(QString::fromStdString(catalog[3].id), QStringLiteral("freeform"));    // D1, amendement 4
+          QCOMPARE(QString::fromStdString(catalog[4].id), QStringLiteral("polyline"));
+          QCOMPARE(QString::fromStdString(catalog[5].id), QStringLiteral("curve-chain"));
           QCOMPARE(QString::fromStdString(catalog[6].id), QStringLiteral("rectangle"));
+          QVERIFY(findShapePreset("zigzag") == nullptr);
+          QVERIFY(findShapePreset("chevron") == nullptr);
           QVERIFY(findShapePreset("circle")->square);
           QVERIFY(findShapePreset("nothing") == nullptr);
           for (const auto& preset : catalog) {
@@ -1997,6 +2155,44 @@ vide dans une boîte de 100 × 60 (boucle du test `catalogOrderAndDefault`).
           PageObject read{Shape{}};
           QVERIFY(smartPoints(std::get<Shape>(body(read))).empty()); // forme lue : aucun
       }
+      void arrowHeadStartsAtFourTenths() // D4, amendement 4
+      {
+          const ShapePreset* arrow = findShapePreset("arrow");
+          QVERIFY(arrow != nullptr);
+          QCOMPARE(arrow->defaults.size(), std::size_t{2});
+          QCOMPARE(arrow->defaults[0], 0.6); // début de la tête : tête de 0,4 de la largeur
+          QCOMPARE(arrow->minimum[0], 0.0);
+          QCOMPARE(arrow->maximum[0], 1.0);
+          QCOMPARE(arrow->minimum[1], 0.0); // épaisseur du corps, fraction de la hauteur
+          QCOMPARE(arrow->maximum[1], 0.5);
+      }
+      void smartPointsOnlyForThreePresets() // D4, amendement 4
+      {
+          for (const auto& preset : shapeCatalog()) {
+              const bool expected = preset.id == "rounded-rectangle" || preset.id == "arrow" || preset.id == "callout";
+              QVERIFY2(preset.defaults.empty() != expected, preset.id.c_str());
+              if (preset.family == ShapeFamily::Closed) {
+                  PageObject o = makeShapeObject(preset.id, {0, 0, 100, 60}, {});
+                  QVERIFY2(smartPoints(std::get<Shape>(body(o))).empty() != expected, preset.id.c_str());
+              }
+          }
+          const ShapePreset* rounded = findShapePreset("rounded-rectangle");
+          QCOMPARE(rounded->minimum[0], 0.01);
+          QCOMPARE(rounded->maximum[0], 0.5);
+          const ShapePreset* callout = findShapePreset("callout");
+          QVERIFY(callout->defaults == (std::vector<double>{1.0, 0.1}));
+          QVERIFY(callout->minimum == (std::vector<double>{0.0, 0.01}));
+          QVERIFY(callout->maximum == (std::vector<double>{1.0, 0.3}));
+      }
+      void gestureOfEachPreset() // D1, amendement 4
+      {
+          QVERIFY(shapeGesture("freeform") == ShapeGesture::Freehand);
+          QVERIFY(shapeGesture("polyline") == ShapeGesture::Clicks);
+          QVERIFY(shapeGesture("curve-chain") == ShapeGesture::Clicks);
+          QVERIFY(shapeGesture("line") == ShapeGesture::Box);
+          QVERIFY(shapeGesture("rectangle") == ShapeGesture::Box);
+          QVERIFY(shapeGesture("nothing") == ShapeGesture::Box);
+      }
       void setParametersIsOneStepAndRebuilds()
       {
           Document document;
@@ -2020,26 +2216,26 @@ vide dans une boîte de 100 × 60 (boucle du test `catalogOrderAndDefault`).
   ```
   (Si `PointF` n'a pas d'`operator==`, comparer les sommets un à un par une aide locale.) Commande ciblée → rouge.
 - [ ] **Étape 2 : catalogue.** Dans `shapegeometry.cpp`, un `static const std::vector<ShapePreset>` construit une
-  fois : familles `Line` pour `line`, `line-horizontal` (axe 1), `line-vertical` (axe 2), `polyline`, `zigzag`,
-  `chevron` ; `square` pour `square` et `circle` ; paramètres : `arrow` {longueur de la tête 0,35 (0,05 à 0,9),
-  demi-largeur du corps 0,25 (0,05 à 0,5)}, `rounded-rectangle` {rayon 0,15 (0 à 0,5)}, `star`, `star-four`,
-  `burst`, `burst-twelve` {rayon intérieur 0,45 / 0,35 / 0,6 / 0,7 (0,1 à 0,95)}, `callout` {pointe x 0,2, y 1,3
-  (−1 à 2)} — fractions de la boîte. `findShapePreset` : recherche linéaire.
+  fois : familles `Line` pour `line`, `line-horizontal` (axe 1), `line-vertical` (axe 2), `freeform`, `polyline`,
+  `curve-chain` (amendement 4) ; `square` pour `square` et `circle` ; paramètres de l'amendement 4 (D4) :
+  `rounded-rectangle` {0,15 (0,01 à 0,5)}, `arrow` {0,6 (0 à 1) ; 0,25 (0 à 0,5)}, `callout` {1 (0 à 1) ; 0,1 (0,01 à
+  0,3)} ; aucun pour les étoiles et les explosions. `findShapePreset` : recherche linéaire. `shapeGesture` :
+  `Freehand` pour `freeform`, `Clicks` pour `polyline` et `curve-chain`, `Box` sinon.
 - [ ] **Étape 3 : boîtes et lignes.** `dragBox` : coin = boîte de `press` à `current` normalisée ; centre =
   boîte centrée sur `press` de demi-côtés `|current − press|` ; `square` : le plus grand des deux, signe du geste.
   `dragLine` : depuis le centre, `from = press − (current − press)` ; axe 1 : `to.y = from.y` ; axe 2 :
   `to.x = from.x` ; `constrain45` : angle arrondi au multiple de 45° le plus proche, longueur gardée.
 - [ ] **Étape 4 : géométrie.** `rebuildShape` : `ShapeKind::Polygon` pour tous les préréglages fermés, sommets
   dans la boîte `{0, 0, w, h}` (ellipse et cercle : 64 sommets ; rectangle arrondi : arcs de 8 sommets par coin ;
-  polygones réguliers inscrits ; étoiles et explosions alternées entre rayon extérieur et intérieur ; flèche : corps
-  puis tête ; bulle : rectangle arrondi plus pointe). `bounds = {0, 0, w, h}` ; `makeShapeObject` pose
+  polygones réguliers inscrits ; étoiles et explosions alternées entre rayon extérieur et rayon intérieur fixe ;
+  flèche : corps puis tête, la tête commençant au paramètre 0 ; bulle : rectangle arrondi plus pointe). `bounds = {0, 0, w, h}` ; `makeShapeObject` pose
   `common.transform = translation(box.x, box.y)`, `outline`, `outlineWidth = style.width`, `fill =
   style.filled ? style.fill : 0` (alpha nul), `pen`, `brush`, `preset`, `parameters = defaults`.
-  `makeLineObject` : `Line` à deux points (ligne, axes), trois (chevron), cinq (zigzag), deux (ligne brisée, dont les
-  points s'ajoutent au lot 5 par les points de forme), plume = contour.
-- [ ] **Étape 5 : points intelligents.** `smartPoints` et `dragSmartPoint` : un point par paramètre (deux pour la
-  pointe de la bulle : un seul point qui porte x et y), positions dans la boîte, conversion inverse bornée par
-  `minimum` / `maximum`.
+  `makeLineObject` : `Line` à deux points pour toute la famille (lignes et axes ; `freeform`, `polyline`,
+  `curve-chain` : segment de remplacement, amendement 4), plume = contour.
+- [ ] **Étape 5 : points intelligents.** `smartPoints` et `dragSmartPoint` : un point par paramètre (D4 : rayon du
+  rectangle arrondi ; début de la tête et épaisseur du corps de la flèche ; pointe et arrondi de la bulle), positions
+  dans la boîte, conversion inverse bornée par `minimum` / `maximum` ; aucun point pour un préréglage sans paramètre.
 - [ ] **Étape 6 : commande.** `SetShapeParametersCommand::redo` : objet trouvé par identifiant sur la page, `Shape`
   avec préréglage ; garde `m_before` au premier passage, pose `m_after`, `rebuildShape`, un `ObjectChanged` de zone
   emprise avant ∪ après (emprise calculée comme `AddObjectCommand` le fait, fonction d'emprise de `edits`) ; `undo`
@@ -2055,6 +2251,15 @@ vide dans une boîte de 100 × 60 (boucle du test `catalogOrderAndDefault`).
 
 <a id="tache-l4-t4"></a>
 ### Tâche L4-T4 — `core` : réglages de page et contrat de `Change` ignoré par le cache
+
+**Amendement 4 (V7).** La fusion d'une séance du créateur passe par le mécanisme existant : `mergeId()` et
+`mergeWith()` de `UndoCommand` (`core/include/actcraft/core/undo.h:44-52`) ; `UndoStack::closeMerge()` pose un
+plancher et ne fusionne rien (`core/src/undo.cpp:62-65`). L4-T13 appelle `DocumentController::closeMerge()`
+(`ui/include/actcraft/ui/documentcontroller.h:88`) à l'ouverture et à la fermeture de chaque séance ; cette tâche
+prouve que deux séances séparées par `closeMerge()` font deux étapes (`closeMergeSeparatesTwoSessions`, ci-dessous).
+`kMergeGrid = 4` est libre (V7) : vérifier par `git -C <wt> grep -n "mergeId" -- core tools ui` qu'aucune commande ne
+rend 4, et l'écrire au rapport. La règle de l'allongement (pas fixe ou cumulé, D10) est observée par L4-O1 : si elle
+est cumulée, `extendStepsByTenPercentOfBase` attend `768 × 1,1³` (≈ 1022,2) par un correctif `L4-C<n>`.
 
 **Objectif.** Remplir `pagesettings` : `SetGridCommand` (fusion d'une séance du créateur), `SetBackgroundCommand`,
 `ExtendPageCommand`, `nextExtendedHeight`, `gridDrawsUnderObjects`, `gridDrawsAboveObjects`. **Le patron évident
@@ -2074,7 +2279,8 @@ après ; **rien** n'est ajouté à `undo.h` ni à `pagecache.cpp` (`PageOverlayC
 
 **Test et commande bornée.** Commande ciblée `-R tst_core_pagesettings` ; fonctions
 `gridAboveChangeIsIgnoredByTheCache`, `gridBelowChangeRedrawsOnce`, `extendStepsByTenPercentOfBase`,
-`threeUndosRestoreTheHeight`, `designerChangesMerge` en `PASS` ; mutation ; preuve de tâche.
+`threeUndosRestoreTheHeight`, `designerChangesMerge`, `closeMergeSeparatesTwoSessions` en `PASS` (`Totals: 6
+passed`) ; mutation ; preuve de tâche.
 
 **Interdits.** Ne pas changer le sens des `Change` existants. Ne pas toucher à `edits.cpp`.
 
@@ -2174,6 +2380,21 @@ après ; **rien** n'est ajouté à `undo.h` ni à `pagecache.cpp` (`PageOverlayC
           QCOMPARE(stack.count(), std::size_t{1});
           stack.undo(document);
           QVERIFY(!document.page(0).grid.visible);
+      }
+      void closeMergeSeparatesTwoSessions() // amendement 4 (V7) : une étape par séance du créateur
+      {
+          Document document;
+          UndoStack stack;
+          Grid g = aboveGrid(true);
+          stack.push(document, std::make_unique<SetGridCommand>(0, g, true));
+          g.levels[0].spacingX = 50;
+          stack.push(document, std::make_unique<SetGridCommand>(0, g, true));
+          stack.closeMerge(); // fermeture de la séance (L4-T13)
+          g.levels[0].spacingX = 60;
+          stack.push(document, std::make_unique<SetGridCommand>(0, g, true));
+          QCOMPARE(stack.count(), std::size_t{2});
+          stack.undo(document);
+          QCOMPARE(document.page(0).grid.levels[0].spacingX, 50.0);
       }
   };
 
@@ -2445,10 +2666,15 @@ facultatives ajoutées). Ne pas toucher au lecteur `.flipchart` (L4-T24).
 <a id="tache-l4-t7"></a>
 ### Tâche L4-T7 — `render` : grille du dessus en surcouche, retirée du cache
 
+**Amendement 4 (A12).** Citations corrigées dans le paragraphe suivant et dans l'objectif : `canWait` en
+`render/src/fixedpageitem.cpp:54-59`, appelé en `:195` et `:241`, commentaires à revoir en `:50-53` et `:246-247`.
+Rang de la surcouche : entre `ink` et `pageOverlays` (D17, posé par L4-T2) ; la surcouche couvre donc aussi le trait
+en cours.
+
 **Amendement 1 (défaut 8, amendement 4).** Le prédicat est `canWait(page, object)`
-(`render/src/fixedpageitem.cpp:60-64`, appelé en `:194` et `:246`) ; la page se lit par `FixedPageItem::page()`
+(`render/src/fixedpageitem.cpp:54-59`, appelé en `:195` et `:241`, amendement 4) ; la page se lit par `FixedPageItem::page()`
 (`fixedpageitem.h:46`, amendement 2) : retirer `!page.grid.drawnAbove` en gardant les
-images et l'encre révélatrice ; mettre à jour les commentaires `:57-59` et `:251` (« grille au-dessus » n'est plus une
+images et l'encre révélatrice ; mettre à jour les commentaires `:50-53` et `:246-247` (« grille au-dessus » n'est plus une
 cause). L'en-tête de `GridOverlayItem` (L4-T1, amendé) porte déjà `fixedPage` et `refresh()` ; `PageArea.qml` les
 branche déjà (L4-T2). `PageSettingsChanged` n'atteint pas `FixedPageItem` (`presentationChangeRedrawsNothing`) :
 la surcouche ne relit la grille que sur `refresh()` ou sur un changement de source de la page fixe. Test de plus dans
@@ -2458,7 +2684,7 @@ la surcouche ne relit la grille que sur `refresh()` ou sur un changement de sour
 
 **Objectif.** La grille « toujours visible » est dessinée par `GridOverlayItem` (au-dessus de `liftLayer`, posé par
 L4-T2) et **plus** par `FixedPageItem` ; la condition `!shown.grid.drawnAbove` de la règle de différé
-(`canWait`, `render/src/fixedpageitem.cpp:60-64`, lot 10) tombe, puisque rien n'est plus dessiné au-dessus des objets dans la
+(`canWait`, `render/src/fixedpageitem.cpp:54-59`, lot 10) tombe, puisque rien n'est plus dessiné au-dessus des objets dans la
 scène du cache. **Le patron évident est le mauvais** : garder la grille du dessus dans la page fixe et y insérer
 les objets « avant » elle (lot 2) ; cela fige la limite de DA11 et redessine tout à chaque bascule.
 Branchement : `render/` ne connaît pas `ui/`, et le QML ne passe pas de pointeur de page. La surcouche lit
@@ -2511,6 +2737,26 @@ miniatures et le peintre partagé dessinent toujours la grille du dessus (inchan
 <a id="tache-l4-t8"></a>
 ### Tâche L4-T8 — `tools` : outil des formes
 
+**Amendement 4 (V7, V9, D1, D5).** Prime sur l'amendement 1 et sur le reste de la section.
+- **Touches (V7).** `ToolHost` relaie déjà (lot 3, `ui/src/toolhost.cpp:586-635`) `onKey(Qt::Key_Shift, m)` et
+  `onKey(Qt::Key_Control, m)` à l'appui et au relâché, et `onKey(Qt::Key_unknown, m)` avant chaque appui de pointeur,
+  `m` étant les modificateurs tenus (masqués par `kRelayedModifiers`). L'état de Maj se lit donc sur
+  `modifiers & Qt::ShiftModifier` **quelle que soit la touche reçue** ; pendant un tracé, tout changement de cet état
+  refait l'aperçu ; `onKey` rend `true` pour `Qt::Key_Shift` seulement. **Échap n'atteint jamais l'outil** (raccourci
+  de `tool.select`, `ui/qml/Main.qml:298-302`) : « Échap annule » tombe (amendement 1, objectif et commentaire de
+  `onKey` dans `shapetool.h`, mis à jour : commentaire seul) ; l'abandon passe par `cancel()` (changement d'outil, de
+  page, Annuler). Test `relayedModifiersKeepShiftState`.
+- **Formes sans boîte (D1).** Si `core::shapeGesture(preset) != core::ShapeGesture::Box` (L4-T3) — `freeform`,
+  `polyline`, `curve-chain` —, le préréglage ne passe ni par `dragBox` ni par `dragLine` : L4-T8 ne montre rien et
+  n'exécute rien pour lui ; son geste est celui de L4-T31. Test `chainPresetsExecuteNothingOnRelease`, qui reste vrai
+  après L4-T31 (une ligne brisée n'est posée qu'au double-clic).
+- **Coût de l'aperçu (V9).** `LiftLayerItem::setObjects` reconstruit ses nœuds à chaque `lift.show`
+  (`render/include/actcraft/render/liftlayeritem.h:31`, `:50`) : aucun scénario de banc ne trace encore de forme, le
+  banc sans écran de cette tâche est une non-régression ; la mesure du coût pendant un tracé est portée par
+  `forme-page-annotee` (L4-T14). Au-delà du budget : H4-8.
+- **Maj (D5)** : comportement de l'ancien dépôt gardé (carré, 45°), non tranché en statique, observé par L4-O1.
+- **Remplissage (D2)** : les tests ci-dessous passent des réglages explicites et ne dépendent pas du défaut `#FFAA00`.
+
 **Amendement 1 (défaut 10).** `Tool::onKey` ne reçoit rien de la vue (M9) et `input::Sample` n'a pas de
 modificateurs : Maj arrive par `ToolHost` (L4-T11), `onKey(Qt::Key_Shift, Qt::ShiftModifier)` à l'appui,
 `onKey(Qt::Key_Shift, Qt::NoModifier)` au relâché. `onKey` met à jour l'état de Maj et, pendant un tracé, refait
@@ -2529,8 +2775,9 @@ seul (F-241, P1). Réglages : `user.shapeSettings()` (préréglage, remplissage,
 **Fichiers.** `tools/include/actcraft/tools/shapetool.h`, `tools/src/shapetool.cpp`, `tests/tst_tools_shape.cpp`.
 
 **Test et commande bornée.** Commande ciblée `-R tst_tools_shape` ; fonctions `dragPreviewsWithoutExecuting`,
-`releaseExecutesOneAdd`, `singleClickAddsNothing`, `fromCenterSetting`, `shiftKeepsSquare`, `snapsPressAndRelease`,
-`cancelClearsThePreview`, `unfilledChoiceHonoured` en `PASS` ; banc sans écran ; preuve de tâche.
+`releaseExecutesOneAdd`, `singleClickAddsNothing`, `fromCenterSetting`, `shiftKeepsSquare`, `shiftReleaseFreesTheRatio`,
+`snapsPressAndRelease`, `cancelClearsThePreview`, `unfilledChoiceHonoured`, `relayedModifiersKeepShiftState`,
+`chainPresetsExecuteNothingOnRelease` en `PASS` (`Totals: 11 passed`) ; banc sans écran ; preuve de tâche.
 
 **Interdits.** Aucun en-tête de `render/` ni de `ui/` dans `tools/`. Aucune écriture dans le document hors
 `execute`. Pas de géométrie recopiée (appeler `shapegeometry`).
@@ -2682,6 +2929,34 @@ seul (F-241, P1). Réglages : `user.shapeSettings()` (préréglage, remplissage,
           tool.onSample(at(100, 100, input::Phase::Release));
           QCOMPARE(std::get<core::Shape>(core::body(h.doc.document.page(0).objects.back())).fill >> 24, 0u);
       }
+      void relayedModifiersKeepShiftState() // amendement 4 (V7) : Maj lue sur les modificateurs de toute touche
+      {
+          Harness h;
+          h.user.setShapeSettings({QStringLiteral("rectangle"), true, 0xFFFFFFFFu, false});
+          tools::ShapeTool tool(h.context);
+          tool.onSample(at(0, 0, input::Phase::Press));
+          QVERIFY(tool.onKey(Qt::Key_Shift, Qt::ShiftModifier));
+          tool.onKey(Qt::Key_Control, (Qt::ShiftModifier | Qt::ControlModifier).toInt()); // Maj toujours tenue
+          tool.onSample(at(100, 40, input::Phase::Move));
+          const auto& square = std::get<core::Shape>(core::body(h.lift.shown.front()));
+          QCOMPARE(square.bounds.width, square.bounds.height);
+          tool.onKey(Qt::Key_unknown, Qt::NoModifier); // relais d'avant appui : Maj relâchée hors focus
+          const auto& freed = std::get<core::Shape>(core::body(h.lift.shown.front()));
+          QCOMPARE(freed.bounds.width, 100.0);
+          QCOMPARE(freed.bounds.height, 40.0);
+      }
+      void chainPresetsExecuteNothingOnRelease() // amendement 4 (D1) : leur geste est celui de L4-T31
+      {
+          for (const char* preset : {"polyline", "curve-chain"}) {
+              Harness h;
+              h.user.setShapeSettings({QString::fromLatin1(preset), true, 0xFFFFFFFFu, false});
+              tools::ShapeTool tool(h.context);
+              tool.onSample(at(100, 100, input::Phase::Press));
+              tool.onSample(at(200, 160, input::Phase::Move));
+              tool.onSample(at(200, 160, input::Phase::Release));
+              QCOMPARE(h.doc.executed, 0);
+          }
+      }
   };
 
   QTEST_GUILESS_MAIN(TstToolsShape)
@@ -2691,7 +2966,8 @@ seul (F-241, P1). Réglages : `user.shapeSettings()` (préréglage, remplissage,
   `toolcontext.h` ; `id()` rend « shape ».)
 - [ ] **Étape 2 : implémenter** `shapetool.cpp` : `objetCourant()` construit par `makeShapeObject` /
   `makeLineObject` (famille du préréglage) depuis `dragBox` / `dragLine` ; accrochage de l'appui et du point courant
-  par `nearestGridPoint(page.grid, p, page.width, page.height)`.
+  par `nearestGridPoint(page.grid, p, page.width, page.height)` ; préréglage dont `shapeGesture` n'est pas `Box` :
+  aucun aperçu, aucune commande (amendement 4) ; Maj lue sur les modificateurs de chaque `onKey`.
 - [ ] **Étape 3 : vert**, banc sans écran, preuve de tâche.
 - [ ] **Étape 4 : commit.**
   ```powershell
@@ -2704,6 +2980,15 @@ seul (F-241, P1). Réglages : `user.shapeSettings()` (préréglage, remplissage,
 <a id="tache-l4-t9"></a>
 ### Tâche L4-T9 — `tools` : sélection — accrochage au dépôt
 
+**Amendement 4 (V7, D6).** Point de branchement : la translation du glissement est calculée par
+`SelectTool::gestureTransform` (`tools/src/selecttool.cpp:485`, `core::translation(point.x - m_start.x, …)`) et
+déposée dans `SelectTool::endDrag` (`:509-531`). L'accrochage s'applique **dans `endDrag`**, à la translation issue de
+`:485`, juste avant la commande ; jamais dans `gestureTransform`, qui sert aussi pendant le geste (décision 4 du plan :
+accrochage au dépôt). Test de plus `noSnapDuringTheDrag` (même montage que `dropSnapsBottomLeftCorner` : pendant les
+mouvements, la transformation montrée par la couche soulevée — `setTransform` du faux `LiftSurface` — est la
+translation brute (30, 0) ; seule la commande déposée porte (38, 8)). D6 : un texte s'aimante par sa ligne de base ;
+l'accrochage d'une grille invisible (F-622) est gardé, observé par L4-O1.
+
 **Objectif.** Au dépôt d'un glissement de la sélection (lot 3, L3-T8), la translation finale passe par
 `core::snapDelta(page, sélection, delta)` avant la commande `TransformObjectsCommand` (F-622) ; pendant le geste,
 la couche soulevée suit le pointeur sans accrochage (comme la référence, qui aligne « au relâchement »). Coût cache
@@ -2713,8 +2998,8 @@ inchangé : un redessin au soulèvement, un au dépôt.
 `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp`.
 
 **Test et commande bornée.** Commande ciblée `-R tst_tools_select` ; fonctions `dropSnapsBottomLeftCorner`,
-`noSnapWithoutGridSnap`, `snapDragRefreshesTheCacheTwice` en `PASS` et toutes celles du lot 3 vertes ; banc sans
-écran ; preuve de tâche.
+`noSnapWithoutGridSnap`, `snapDragRefreshesTheCacheTwice`, `noSnapDuringTheDrag` en `PASS` et toutes celles du lot 3
+vertes ; banc sans écran ; preuve de tâche.
 
 **Interdits.** Ne pas changer une signature publique du lot 3. Ne pas modifier un test du lot 3.
 
@@ -2726,8 +3011,9 @@ inchangé : un redessin au soulèvement, un au dépôt.
   translation (38, 8)) ; `noSnapWithoutGridSnap` (même geste, `snapEnabled` faux : (30, 0)) ;
   `snapDragRefreshesTheCacheTwice` (faux `DocumentEditor` qui compte `lift` et `drop` : un `lift`, un `drop`,
   aucun `execute` pendant dix mouvements).
-- [ ] **Étape 2 : implémenter.** Dans le dépôt du glissement : `delta = core::snapDelta(page, ids, delta)` (fonction
-  d'aide dans `selectiongeometry` si la géométrie y est déjà).
+- [ ] **Étape 2 : implémenter.** Dans `SelectTool::endDrag` (`:509-531`), sur la translation issue de
+  `gestureTransform` (`:485`) : `delta = core::snapDelta(page, ids, delta)` (fonction d'aide dans `selectiongeometry`
+  si la géométrie y est déjà) ; `gestureTransform` inchangé (amendement 4).
 - [ ] **Étape 3 : vert**, banc sans écran, preuve de tâche.
 - [ ] **Étape 4 : commit.**
   ```powershell
@@ -2739,6 +3025,13 @@ inchangé : un redessin au soulèvement, un au dépôt.
 
 <a id="tache-l4-t13"></a>
 ### Tâche L4-T13 — Réglages de grille : contrôleur, créateur, scénario `grille`
+
+**Amendement 4 (V7).** `beginDesigner()` appelle `DocumentController::closeMerge()`
+(`ui/include/actcraft/ui/documentcontroller.h:88`) **avant** le premier `setGrid` de la séance, et `endDesigner()`
+l'appelle **après** le dernier : un réglage fait juste avant l'ouverture ne fusionne pas avec la séance, et deux
+séances font deux étapes (`kMergeGrid = 4`, libre, contrat de L4-T4). Test de plus `twoDesignerSessionsMakeTwoSteps`
+(`beginDesigner`, deux `setGrid`, `endDesigner`, `beginDesigner`, un `setGrid`, `endDesigner` : un `undo()` rend la
+grille de la fin de la première séance, un second la grille d'origine).
 
 **Objectif.** Remplir `PageOptions` pour la grille (propriétés `gridVisible`, `gridSnap`, `gridAbove`,
 `grid` ; `toggleGridHidden`, `toggleSnap`, `beginDesigner`, `setGrid`, `addLevel`, `removeLevel`, `resetGrid`,
@@ -2752,7 +3045,8 @@ aperçu immédiat, F-620) et `bench/scenarios/grille.json` (S7.2 sans la partie 
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_ui_pagesettings|tst_captures_grille'` ; fonctions
 `hideGridAboveRefreshesNoCache`, `hideGridBelowRefreshesOnce`, `snapToggleFollowsThePage`,
-`addRemoveResetLevels`, `designerSessionMakesASingleStep` en `PASS` ; preuve visuelle hors écran (ci-dessous) ;
+`addRemoveResetLevels`, `designerSessionMakesASingleStep`, `twoDesignerSessionsMakeTwoSteps` en `PASS` ; preuve
+visuelle hors écran (ci-dessous) ;
 banc sans écran ; preuve de tâche.
 
 **Preuve visuelle.** `captures.ps1 -Scenario grille -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire
@@ -2771,7 +3065,8 @@ décrire `grille-du-dessus.png` (lignes nettes au-dessus d'un rectangle) et `gri
   `hideGridBelowRefreshesOnce` (grille du dessous : un `invalidate` de toute la page) ; `snapToggleFollowsThePage`
   (`toggleSnap()` sur la page 1, `showPage(1)` : `gridSnap` relit la page 2) ; `addRemoveResetLevels` (deux niveaux
   après `addLevel`, un après `removeLevel(1)`, `resetGrid()` : un niveau, `snap` faux) ;
-  `designerSessionMakesASingleStep` (`beginDesigner`, trois `setGrid`, `endDesigner`, un `undo()` : grille d'origine).
+  `designerSessionMakesASingleStep` (`beginDesigner`, trois `setGrid`, `endDesigner`, un `undo()` : grille d'origine) ;
+  `twoDesignerSessionsMakeTwoSteps` (amendement 4).
 - [ ] **Étape 2 : implémenter** le contrôleur ; conversion `QVariantMap` ↔ `core::Grid` à nos clés (contrat de
   L4-T1).
 - [ ] **Étape 3 : boîte.** `GridDesigner.qml` : `function open()` (montre la boîte, `appPageSettings.beginDesigner()`),
@@ -2816,6 +3111,12 @@ décrire `grille-du-dessus.png` (lignes nettes au-dessus d'un rectangle) et `gri
 <a id="tache-l4-t10"></a>
 ### Tâche L4-T10 — `tools` : sélection — points intelligents
 
+**Amendement 4 (D4).** Seules trois formes ont des points intelligents : `rounded-rectangle` (un point : rayon),
+`arrow` (deux : début de la tête, épaisseur du corps), `callout` (deux : pointe, arrondi), bornés par le catalogue de
+L4-T3. Les étoiles et les explosions n'en ont aucun. Test de plus `noSmartPointForStars` (`star` puis `burst`
+sélectionnés seuls : `smartPoints` vide, et un appui à l'endroit où une version antérieure aurait mis un point
+commence un déplacement ordinaire).
+
 **Objectif.** Une forme seule sélectionnée qui a des points intelligents (`core::smartPoints`) les montre
 (`SelectionView::smartPoints`, coordonnées de page) ; un appui sur l'un d'eux (tolérance
 `tools::kHandleRadiusScreen / zoom`) **soulève** la forme, l'aperçu suit (copie reconstruite montrée par
@@ -2826,7 +3127,8 @@ décrire `grille-du-dessus.png` (lignes nettes au-dessus d'un rectangle) et `gri
 `tools/src/selectiongeometry.cpp`, `tests/tst_tools_select.cpp`, `ui/qml/SelectionOverlay.qml`.
 
 **Test et commande bornée.** Commande ciblée `-R tst_tools_select` ; fonctions `smartPointsShownForArrow`,
-`smartPointDragLiftsOnceAndDropsOneStep`, `noSmartPointForReadShapes` en `PASS`, lot 3 et L4-T9 verts ; banc sans
+`smartPointDragLiftsOnceAndDropsOneStep`, `noSmartPointForReadShapes`, `noSmartPointForStars` en `PASS`, lot 3 et
+L4-T9 verts ; banc sans
 écran ; preuve de tâche.
 
 **Interdits.** Comme L4-T9. Les poignées du lot 3 gardent la priorité si elles se recouvrent (ordre de test :
@@ -2838,7 +3140,7 @@ point intelligent seulement hors des huit poignées).
 - [ ] **Étape 1 : tests rouges** : `smartPointsShownForArrow` (flèche sélectionnée seule : `smartPoints` non vide
   dans la vue montrée ; deux objets sélectionnés : vide) ; `smartPointDragLiftsOnceAndDropsOneStep` (un `lift`, un
   `drop` portant une `SetShapeParametersCommand`, paramètres changés) ; `noSmartPointForReadShapes` (forme sans
-  préréglage : vide).
+  préréglage : vide) ; `noSmartPointForStars` (amendement 4).
 - [ ] **Étape 2 : implémenter** (désignation du point, état de geste « point intelligent », aperçu, dépôt).
 - [ ] **Étape 3 : QML.** `SelectionOverlay.qml` : `Repeater` sur `appTools.selectionFrame.smartPoints` (rempli par
   L4-T11 ; tableau vide d'ici là), placés par `pageView.pageToScene`.
@@ -2853,6 +3155,23 @@ point intelligent seulement hors des huit poignées).
 
 <a id="tache-l4-t11"></a>
 ### Tâche L4-T11 — `ui::ToolHost` : outil des formes branché
+
+**Amendement 4 (V7, D2, D3, D4).** Prime sur l'amendement 1.
+- **Relais de Maj déjà livré (V7)** : `ToolHost` filtre déjà les touches de la fenêtre de la vue et relaie Maj, Ctrl
+  et `Qt::Key_unknown` à l'outil actif (`ui/src/toolhost.cpp:157-162`, `:586-635`). Ne pas le réécrire ni poser un
+  second filtre : la partie « relais de Maj » de l'amendement 1 tombe. `shiftReachesTheShapeTool` reste, tel quel ;
+  il prouve le relais existant pour l'outil `shape`.
+- **Style d'une forme neuve (D2, D3)** : remplie, `#FFAA00` par défaut, contour noir de 4, réglage propre à l'outil
+  des formes. Si le rapport de L4-T1 dit que `ShapeSettings::fill` vaut encore `0xFFFFFFFFu`, cette tâche le pose à
+  `0xFFFFAA00u` dans `tools/include/actcraft/tools/userstate.h` ; si `tools::defaultSettings` ne rend pas, pour
+  `shape`, un contour `#000000` de 4, elle le corrige dans `tools/src/userstate.cpp` (deux fichiers ajoutés à sa ligne,
+  seulement dans ces cas). Mémoire : `tools/shape/fill` vaut `#FFAA00` par défaut. Test de plus
+  `newShapeIsOrangeWithBlackOutline` (fichier de réglages vide, `chooseShape("rectangle")`, tracé injecté : la forme
+  posée a `fill == 0xFFFFAA00u`, `outline == 0xFF000000u`, `outlineWidth == 4`).
+- **Points intelligents (D4)** : `smartPointsInSelectionFrame` vérifie `selectionFrame["smartPoints"]` non vide pour
+  `rounded-rectangle`, `arrow` et `callout` sélectionnés seuls, vide pour `star`.
+- `outlineOfEveryPreset` couvre les 22 préréglages de D1 (`freeform`, `polyline`, `curve-chain` : segment de
+  remplacement de L4-T3, deux points dans [0, 1]).
 
 **Amendement 1 (défauts 6 et 10).** Espion de cache : `DocumentController::addChangeObserver` puis
 `core::applyToCache(changes, controller.currentIndex(), spy)` (D-S7) ; plus de `setCacheObserver`. Relais de Maj :
@@ -2870,11 +3189,13 @@ Maj : il ne l'est plus).
 dans le même `QSettings` que la mémoire par outil du lot 3 (clés `tools/shape/preset`, `tools/shape/filled`,
 `tools/shape/fill`, `tools/shape/fromCenter`) ; `selectionFrame` ajoute la clé `smartPoints` (`[{x, y}]`, page).
 
-**Fichiers.** `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`, `ui/src/tooladapters.cpp`, `tests/tst_ui_shapes.cpp`.
+**Fichiers.** `ui/src/toolhost.cpp`, `ui/src/tooladapters.h`, `ui/src/tooladapters.cpp`, `tests/tst_ui_shapes.cpp` ;
+`tools/include/actcraft/tools/userstate.h` et `tools/src/userstate.cpp` seulement dans les cas de l'amendement 4.
 
 **Test et commande bornée.** Commande ciblée `-R tst_ui_shapes` ; fonctions `shapeToolActivatesWithPalette`,
 `presetChoiceSurvivesRestart`, `outlineOfEveryPreset`, `smartPointsInSelectionFrame`,
-`shapeGoesThroughTheCacheInterface` en `PASS` ; banc sans écran ; preuve de tâche.
+`shapeGoesThroughTheCacheInterface`, `shiftReachesTheShapeTool`, `newShapeIsOrangeWithBlackOutline` en `PASS` ; banc
+sans écran ; preuve de tâche.
 
 **Interdits.** Aucun outil n'appelle la page fixe ni les couches : `shapeGoesThroughTheCacheInterface` le prouve
 (le cache ne reçoit qu'un `insert` au relâché, aucun appel pendant le tracé).
@@ -2889,12 +3210,14 @@ dans le même `QSettings` que la mémoire par outil du lot 3 (clés `tools/shape
   préréglage : au moins 2 points, tous dans [0, 1]) ; `smartPointsInSelectionFrame` (flèche sélectionnée :
   `selectionFrame["smartPoints"]` non vide) ; `shapeGoesThroughTheCacheInterface` (tracé injecté par
   `activeTool()->onSample` : espion par `addChangeObserver` et `core::applyToCache` — zéro appel avant le relâché,
-  un `insert` après) ; `shiftReachesTheShapeTool` (amendement 1).
+  un `insert` après) ; `shiftReachesTheShapeTool` (amendement 1, relais du lot 3) ; `newShapeIsOrangeWithBlackOutline`
+  (amendement 4).
 - [ ] **Étape 2 : implémenter.**
 - [ ] **Étape 3 : vert**, banc sans écran, preuve de tâche.
 - [ ] **Étape 4 : commit.**
   ```powershell
   git -C <wt> add ui/src/toolhost.cpp ui/src/tooladapters.h ui/src/tooladapters.cpp tests/tst_ui_shapes.cpp
+  git -C <wt> add tools/include/actcraft/tools/userstate.h tools/src/userstate.cpp   # seulement si modifiés (D2, D3)
   git -C <wt> commit -m "ui : outil des formes branché, réglages gardés, contours de la palette (L4-T11)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
 
@@ -2971,6 +3294,11 @@ rectangle-contour OK`, `PIXEL cercle-interieur-blanc OK`, `CAPTURES OK` ; décri
 
 <a id="tache-l4-t14"></a>
 ### Tâche L4-T14 — Banc et joueur : `forme-page-annotee`, `grille-dessus`, étape `typeText`
+
+**Amendement 4 (V9).** `forme-page-annotee` mesure aussi le coût de l'aperçu des formes, que L4-T8 ne peut pas
+mesurer (aucun scénario de banc ne trace de forme avant celui-ci) : `LiftLayerItem::setObjects` reconstruit ses nœuds
+à chaque mouvement. Le JSON relève les trames pendant les glissés (mêmes critères de figement que `stroke`, DA7) ;
+`docs/banc.md` le dit. Résultat, pas porte ; hors budget : H4-8.
 
 **Amendement 1 (défaut 16, amendement 1 pour A11).** Attendus chiffrés, écrits dans `docs/banc.md` et vérifiés au
 JSON : `forme-page-annotee` pose **k** formes (k ≥ 10, fixé par le scénario) et `cache.refreshes = k` (chaque
