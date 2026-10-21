@@ -28,10 +28,15 @@ public:
     void undo(Document& document, Changes& changes) override;
 
 private:
+    // Fusion d'une séance du créateur (kMergeGrid) : UndoStack les appelle à travers UndoCommand.
+    int mergeId() const noexcept override;
+    bool mergeWith(const UndoCommand& other) override;
+
     std::size_t m_page;
     Grid m_after;
     Grid m_before;
     bool m_merge;
+    bool m_executed = false; // m_before lu au premier redo
 };
 
 // Fond de la page remplacé (F-610). Changes : PageChanged (toute la page).
