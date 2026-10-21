@@ -83,6 +83,9 @@ public:
     // Durée d'un passage complet (features::TickerRun) : de la largeur de la bande à -textWidth ; 1 ms au
     // moins.
     Q_INVOKABLE int durationMs(qreal screenWidth, qreal textWidth) const;
+    // Abscisse du texte elapsedMs après le départ d'un passage complet à speedPx (features::TickerRun) ;
+    // lue à la pause seulement, jamais à chaque image.
+    Q_INVOKABLE qreal positionAt(qreal screenWidth, qreal textWidth, qreal speedPx, double elapsedMs) const;
     // Garde les réglages courants comme défaut (QSettings, tools/ticker).
     Q_INVOKABLE void keepAsDefault() const;
 

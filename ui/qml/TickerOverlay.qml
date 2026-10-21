@@ -18,6 +18,9 @@ Item {
     property Tools tools: null
     property Item pageArea: null
     property QtObject controller: tickerController
+    // Vitesse lue par une propriété : un changement en cours de passage repart de la place actuelle (retime).
+    readonly property real pixelsPerSecond: tickerController.pixelsPerSecond
+    onPixelsPerSecondChanged: root.retime()
 
     TickerController {
         id: tickerController
@@ -87,9 +90,14 @@ Item {
             target: message
             from: band.width
             to: -message.width
-            duration: tickerController.durationMs(band.width, message.width)
+            // Posée à chaque départ (setDuration), jamais liée : une durée changée en plein passage le finirait.
+            duration: 1
             loops: tickerController.loop ? Animation.Infinite : 1
-            onFinished: tickerController.finished()
+            onFinished: {
+                if (root.finishedBy(motion)) {
+                    tickerController.finished()
+                }
+            }
         }
 
         // Reprise après une pause : la fin du passage interrompu, à la même vitesse, puis la boucle.
@@ -98,7 +106,11 @@ Item {
             objectName: "tickerResume"
             target: message
             to: -message.width
-            onFinished: root.afterResume()
+            onFinished: {
+                if (root.finishedBy(resumeMotion)) {
+                    root.afterResume()
+                }
+            }
         }
 
         MouseArea {
@@ -109,23 +121,70 @@ Item {
         }
     }
 
+    // Départ de l'animateur en cours : sa place se calcule à la demande (pause, vitesse changée), jamais à
+    // chaque image. L'abscisse qu'écrit un animateur arrêté ne suffit pas : elle vaut 0 s'il n'a pas encore
+    // avancé d'une image.
+    property double passStart: 0
+    property real passFrom: 0
+    property real passSpeed: 0
+    property bool partialPass: false
+    property QtObject runningMotion: null // animateur du passage en cours ; nul à l'arrêt et en pause
+
+    function track(animator, from, partial) {
+        root.runningMotion = animator
+        root.passStart = Date.now()
+        root.passFrom = from
+        root.passSpeed = tickerController.pixelsPerSecond
+        root.partialPass = partial
+    }
+
+    // Un animateur arrêté (pause, vitesse changée, arrêt) peut signaler sa fin : seule compte celle du passage
+    // en cours, arrivé au bout de sa durée.
+    function finishedBy(animator) {
+        if (animator !== root.runningMotion || Date.now() - root.passStart < animator.duration - 250) {
+            return false
+        }
+        root.runningMotion = null
+        return true
+    }
+
+    function placeNow() {
+        const elapsed = Date.now() - root.passStart
+        if (root.partialPass) {
+            return Math.max(-message.width, root.passFrom - root.passSpeed * elapsed / 1000)
+        }
+        return tickerController.positionAt(band.width, message.width, root.passSpeed, elapsed)
+    }
+
     function begin() {
+        root.runningMotion = null
         resumeMotion.stop()
         motion.stop()
         message.x = band.width
+        root.setDuration()
+        root.track(motion, band.width, false)
         motion.start()
     }
 
+    // Durée d'un passage complet à la vitesse du moment (features::TickerRun).
+    function setDuration() {
+        motion.duration = tickerController.durationMs(band.width, message.width)
+    }
+
     function end() {
+        root.runningMotion = null
         resumeMotion.stop()
         motion.stop()
         message.x = band.width
     }
 
-    // Pause : un animateur arrêté écrit sa place courante dans message.x, d'où la reprise repart.
+    // Pause : le texte reste à sa place, écrite dans message.x, d'où la reprise repart.
     function hold() {
+        const x = root.placeNow()
+        root.runningMotion = null
         resumeMotion.stop()
         motion.stop()
+        message.x = x
     }
 
     function resume() {
@@ -136,11 +195,24 @@ Item {
         }
         resumeMotion.from = message.x
         resumeMotion.duration = Math.max(1, Math.round(left / tickerController.pixelsPerSecond * 1000))
+        root.track(resumeMotion, message.x, true)
         resumeMotion.start()
+    }
+
+    // Vitesse changée pendant le défilement : la suite du passage part de la place actuelle, à la nouvelle
+    // vitesse (en pause, la reprise la prendra).
+    function retime() {
+        if (!tickerController.running || tickerController.paused) {
+            return
+        }
+        root.hold()
+        root.resume()
     }
 
     function afterResume() {
         if (tickerController.loop) {
+            root.setDuration()
+            root.track(motion, band.width, false)
             motion.start()
         } else {
             tickerController.finished()

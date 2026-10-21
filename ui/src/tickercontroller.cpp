@@ -40,8 +40,19 @@ TickerController::TickerController(QObject* parent) : QObject(parent)
     const QByteArray stored = settings.value(QString::fromLatin1(kSettingsKey)).toString().toUtf8();
     if (!stored.isEmpty()) {
         if (const auto read = features::tickerFromJson(stored)) {
-            m_settings = *read;
-            m_settings.speed = clampedSpeed(m_settings.speed);
+            // Par les modificateurs : mêmes contrôles qu'à la saisie, une valeur refusée garde celle de la
+            // logique.
+            setText(read->text);
+            setFontFamily(read->fontFamily);
+            setFontPointSize(read->fontPointSize);
+            setTextColor(read->textColor);
+            setShadowOffset(read->shadowOffset);
+            setShadowColor(read->shadowColor);
+            setScreenBackground(read->screenBackground);
+            setBackgroundColor(read->backgroundColor);
+            m_settings.position = read->position;
+            setLoop(read->loop);
+            setSpeed(read->speed);
         }
     }
 }
@@ -272,6 +283,12 @@ int TickerController::durationMs(qreal screenWidth, qreal textWidth) const
 {
     const features::TickerRun run(screenWidth, textWidth, pixelsPerSecond(), m_settings.loop);
     return std::max(run.durationMs(), 1);
+}
+
+qreal TickerController::positionAt(qreal screenWidth, qreal textWidth, qreal speedPx, double elapsedMs) const
+{
+    const features::TickerRun run(screenWidth, textWidth, speedPx, m_settings.loop);
+    return run.xAt(static_cast<std::int64_t>(elapsedMs));
 }
 
 void TickerController::keepAsDefault() const

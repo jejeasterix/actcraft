@@ -5,6 +5,7 @@
 #include <actcraft/features/ticker.h>
 #include <actcraft/ui/pageview.h>
 
+#include <QElapsedTimer>
 #include <QImage>
 #include <QSettings>
 #include <QSignalSpy>
@@ -91,6 +92,19 @@ void strokeWith(const MainWindow& main, Pointer pointer, QPointF from, QPointF t
     }
 }
 
+// Trait au stylet dans la zone de la bande, à sa hauteur : vrai s'il est versé (nombre d'objets + 1).
+bool strokeVersedAt(const MainWindow& main, const QRectF& zone, int before)
+{
+    QPointF from;
+    QPointF to;
+    if (!onPage(main, 300, zone.center().y(), &from) || !onPage(main, 700, zone.center().y(), &to) ||
+        !zone.contains(from)) {
+        return false;
+    }
+    stylusStroke(main.window(), from, to);
+    return QTest::qWaitFor([&] { return main.pageObjectCount() == before + 1; }, 5000);
+}
+
 // Message en boucle lancé par sa commande, comme le menu ou Ctrl+Maj+T.
 bool startLoop(const MainWindow& main, TickerController* ticker, int position)
 {
@@ -137,8 +151,38 @@ private slots:
         QVERIFY(ticker.loop());
     }
 
-    // Surcouche : aucune demande de redessin du cache pendant 1 s de défilement en boucle ; un trait au
-    // stylet sous la bande pendant le défilement est versé normalement, et le message continue.
+    // Réglages relus : mêmes contrôles que les modificateurs (taille de police positive, couleurs valides,
+    // ombre positive ou nulle, vitesse bornée) ; une valeur refusée garde celle de la logique.
+    void storedSettingsAreChecked()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, dir.path());
+        actcraft::features::TickerSettings bad;
+        bad.text = QStringLiteral("Altéré");
+        bad.fontPointSize = 0;
+        bad.shadowOffset = -3;
+        bad.speed = 40;
+        QSettings().setValue(QStringLiteral("tools/ticker/message"),
+                             QString::fromUtf8(actcraft::features::tickerToJson(bad)));
+        const QByteArray stored =
+            QSettings().value(QStringLiteral("tools/ticker/message")).toString().toUtf8();
+        QVERIFY(actcraft::features::tickerFromJson(stored).has_value());
+
+        const actcraft::features::TickerSettings defaults;
+        TickerController ticker;
+        QCOMPARE(ticker.text(), QStringLiteral("Altéré")); // le bloc est bien relu
+        QCOMPARE(ticker.fontPointSize(), defaults.fontPointSize);
+        QCOMPARE(ticker.shadowOffset(), 0);
+        QCOMPARE(ticker.speed(), 10);
+        QVERIFY(ticker.textColor().isValid() && ticker.shadowColor().isValid() &&
+                ticker.backgroundColor().isValid());
+    }
+
+    // Surcouche : aucune demande de redessin du cache pendant plus d'un passage en boucle (retour de boucle
+    // compris) ni à l'arrêt ; un trait au stylet sous la bande pendant le défilement est versé normalement,
+    // et le message continue.
     void tickerNeverRefreshesTheCache()
     {
         MainWindow main;
@@ -149,11 +193,22 @@ private slots:
         QVERIFY(spy.isValid());
         const int before = main.pageObjectCount();
 
+        ticker->setSpeed(10);
         QVERIFY(startLoop(main, ticker, TickerController::Center));
         QQuickItem* band = inTicker(main, QStringLiteral("tickerBand"));
-        QVERIFY(band != nullptr && band->isVisible());
-        QTest::qWait(1000);
+        QQuickItem* message = inTicker(main, QStringLiteral("tickerMessage"));
+        QVERIFY(band != nullptr && message != nullptr && band->isVisible());
+        const int pass = ticker->durationMs(band->width(), message->width());
+        QTest::qWait(pass + 600);
+        QVERIFY(ticker->running()); // un passage fini, la boucle a repris
+        QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, sceneRect(band).center().toPoint());
+        QTRY_VERIFY(!ticker->running());
+        QTest::qWait(200);
         QCOMPARE(spy.count(), 0);
+
+        QVERIFY(main.run(QStringLiteral("tool.ticker")));
+        QVERIFY(ticker->running());
+        QTest::qWait(200);
 
         QPointF from;
         QPointF to;
@@ -192,26 +247,41 @@ private slots:
         QVERIFY(ticker->running());
     }
 
-    // Un seul passage : à la fin de l'animation, le message s'arrête et la bande disparaît.
+    // Un seul passage : à la fin de l'animation, le message s'arrête et la bande disparaît. La vitesse
+    // changée en cours de passage vaut aussitôt : le passage repart de sa place, et le reste dure distance /
+    // vitesse nouvelle. Après la fin, la zone de l'ancienne bande reçoit de nouveau les traits.
     void singlePassHidesTheBand()
     {
         MainWindow main;
         QVERIFY(main.window() != nullptr);
         TickerController* ticker = tickerOf(main);
         QVERIFY(ticker != nullptr);
+        const int before = main.pageObjectCount();
         ticker->setLoop(false);
-        ticker->setSpeed(10);
+        ticker->setPosition(TickerController::Center);
+        ticker->setSpeed(4);
         QVERIFY(main.run(QStringLiteral("tool.ticker")));
         QQuickItem* band = inTicker(main, QStringLiteral("tickerBand"));
         QQuickItem* message = inTicker(main, QStringLiteral("tickerMessage"));
         QVERIFY(band != nullptr && message != nullptr);
         QVERIFY(ticker->running());
         QTRY_VERIFY(band->isVisible());
-        const int expected = ticker->durationMs(band->width(), message->width());
-        QTest::qWait(expected / 2);
-        QVERIFY(ticker->running());
-        QTRY_VERIFY_WITH_TIMEOUT(!ticker->running(), expected + 3000);
+        QTest::qWait(500);
+
+        ticker->setSpeed(10);
+        QElapsedTimer clock;
+        clock.start();
+        const qreal at = message->x(); // place écrite par l'animateur arrêté
+        const qint64 expected = qRound64((at + message->width()) / ticker->pixelsPerSecond() * 1000.0);
+        QTRY_VERIFY_WITH_TIMEOUT(!ticker->running(), static_cast<int>(3 * expected + 3000));
+        const qint64 took = clock.elapsed();
+        QVERIFY2(
+            took >= expected * 7 / 10 - 200 && took <= expected * 13 / 10 + 500,
+            qPrintable(
+                QStringLiteral("reste du passage : %1 ms pour %2 ms attendues").arg(took).arg(expected)));
+        QVERIFY2(at < band->width() - 20, qPrintable(QString::number(at)));
         QVERIFY(!band->isVisible());
+        QVERIFY(strokeVersedAt(main, sceneRect(band), before));
     }
 
     // Clic droit sur le message en boucle : il s'arrête, la bande disparaît.
@@ -227,9 +297,12 @@ private slots:
         QTRY_VERIFY(band->isVisible());
         QTest::qWait(300);
         QVERIFY(ticker->running());
+        const int before = main.pageObjectCount();
         QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, sceneRect(band).center().toPoint());
         QTRY_VERIFY(!ticker->running());
         QVERIFY(!band->isVisible());
+        // Message arrêté : la zone de l'ancienne bande n'est plus couverte, le trait y est versé.
+        QVERIFY(strokeVersedAt(main, sceneRect(band), before));
     }
 
     // Pause : le texte reste où il était (la bande ne change plus) ; reprise : il repart de là.
@@ -254,11 +327,24 @@ private slots:
         QTest::qWait(300);
         QCOMPARE(shot(main, band), held);
 
+        const qreal heldX = message->x();
         ticker->togglePause();
         QVERIFY(!ticker->paused());
+        QElapsedTimer clock;
+        clock.start();
         QTest::qWait(300);
         QVERIFY(shot(main, band) != held);
         QVERIFY(ticker->running());
+
+        // Remis en pause : le texte est allé à gauche de sa place tenue, de la distance parcourue depuis la
+        // reprise (un départ du bord droit le mettrait à droite).
+        ticker->togglePause();
+        const qreal seconds = static_cast<qreal>(clock.elapsed()) / 1000.0;
+        const qreal pps = ticker->pixelsPerSecond();
+        const qreal x = message->x();
+        QVERIFY2(x < heldX - pps * qMax(0.0, seconds - 0.25) + 1 && x > heldX - pps * (seconds + 0.2),
+                 qPrintable(QStringLiteral("x %1, tenu %2, %3 s").arg(x).arg(heldX).arg(seconds)));
+        QVERIFY(x < heldX);
     }
 
     // Le message est du texte brut : une balise saisie s'affiche telle quelle, ombre comprise.
