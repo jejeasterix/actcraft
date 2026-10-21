@@ -316,7 +316,7 @@ private slots:
         f.page->appendStroke(lineAt(100));
         QCOMPARE(f.page->pendingCount(), 1);
         QCOMPARE(f.page->cachedObjectCount(), std::size_t{0});
-        QCOMPARE(content.count(), 0); // aucun redessin du cache demandé
+        QCOMPARE(content.count(), 0);                  // aucun redessin du cache demandé
         QVERIFY(near(at(f, 300, 100), Qt::black, 60)); // dessiné par la couche d'attente
         QCOMPARE(f.page->rebuildCount(), rebuilds);
     }

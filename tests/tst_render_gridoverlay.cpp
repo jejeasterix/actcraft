@@ -59,9 +59,9 @@ private:
         render::GridOverlayItem* overlay = nullptr;
     };
 
-    // Page fixe (si `withPage`, sinon hors de la scène : seule la surcouche est dessinée) puis surcouche, dans
-    // cet ordre, sur la page 0 de `document`. `zoom` : la page est agrandie comme par la vue (échelle de son
-    // parent) et la surcouche le sait (propriété zoom, branchée sur view.zoom dans PageArea.qml).
+    // Page fixe (si `withPage`, sinon hors de la scène : seule la surcouche est dessinée) puis surcouche,
+    // dans cet ordre, sur la page 0 de `document`. `zoom` : la page est agrandie comme par la vue (échelle de
+    // son parent) ; la surcouche reçoit ce zoom comme de PageArea.qml (zoom: view.zoom).
     static void open(Fixture& f, const core::Document& document, bool withPage, qreal zoom = 1)
     {
         f.window.setColor(Qt::white);
@@ -214,9 +214,11 @@ private slots:
         open(f, d, true);
         const QImage image = grab(f);
         const QColor red(255, 0, 0);
-        QVERIFY2(near(image.pixelColor(128, 150), Qt::black, 8), qPrintable(image.pixelColor(128, 150).name()));
+        QVERIFY2(near(image.pixelColor(128, 150), Qt::black, 8),
+                 qPrintable(image.pixelColor(128, 150).name()));
         QVERIFY2(near(image.pixelColor(140, 150), red, 8), qPrintable(image.pixelColor(140, 150).name()));
-        QVERIFY2(near(image.pixelColor(150, 160), Qt::black, 8), qPrintable(image.pixelColor(150, 160).name()));
+        QVERIFY2(near(image.pixelColor(150, 160), Qt::black, 8),
+                 qPrintable(image.pixelColor(150, 160).name()));
     }
 };
 

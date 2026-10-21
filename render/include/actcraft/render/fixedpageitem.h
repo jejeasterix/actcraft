@@ -62,12 +62,12 @@ public:
     void remove(core::ObjectId id, const core::RectF& area) override;
     void invalidate(core::ObjectId id, const core::CacheArea& area) override;
     // Lot 10 (DA11, cache incrémental). Différé (posé par la vue quand une couche d'attente est branchée et
-    // le cache actif) : un objet inséré en fin de page, sans image, ni encre révélatrice, page prête et sans
-    // grille dessinée au-dessus (canWait), n'entre PAS dans la scène de l'élément (celle que le cache
-    // photographie) : il attend, dessiné par la couche d'attente (PendingLayerItem), jusqu'à foldPending().
-    // Retiré (remove) ou modifié (invalidate) pendant qu'il attend : seule la couche d'attente change. Tout
-    // autre changement reconstruit tout et verse ce qui attend. Sans différé (défaut) : comportement du
-    // lot 2. Repasser à faux verse tout.
+    // le cache actif) : un objet inséré en fin de page, sans image ni encre révélatrice, page prête
+    // (canWait), n'entre PAS dans la scène de l'élément (celle que le cache photographie) : il attend,
+    // dessiné par la couche d'attente (PendingLayerItem), jusqu'à foldPending(). La grille du dessus n'y fait
+    // plus obstacle : elle n'est plus dans cette scène (GridOverlayItem, L4-T7). Retiré (remove) ou modifié
+    // (invalidate) pendant qu'il attend : seule la couche d'attente change. Tout autre changement reconstruit
+    // tout et verse ce qui attend. Sans différé (défaut) : comportement du lot 2. Repasser à faux verse tout.
     void setDeferredFolding(bool on);
     bool deferredFolding() const noexcept;
     // Verse les objets en attente dans la scène : à appeler dans le même tour de boucle que la demande de
@@ -94,7 +94,8 @@ public:
     bool isReady() const noexcept;
     int objectCount() const noexcept;
     // Pixels d'écran par pixel de page : échelle de rastérisation du moteur peint en RHI (décision 37). Ne
-    // reconstruit qu'en RHI et seulement si la page a des éléments peints.
+    // reconstruit qu'en RHI et seulement si la page a des éléments peints. Émet rasterScaleChanged (la
+    // surcouche de grille se rastérise à la même échelle).
     void setRasterScale(double scale);
     double rasterScale() const noexcept;
     int rebuildCount() const noexcept; // crochet de test : reconstructions complètes de la scène
@@ -111,6 +112,7 @@ signals:
     void strokeAppended();
     void contentChanged();
     void pendingChanged();
+    void rasterScaleChanged(); // L4-T7 : lu par GridOverlayItem
 
 protected:
     QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData* data) override;
@@ -165,7 +167,6 @@ private:
     std::string m_decodingInputs;
     std::size_t m_builtCount = 0;
     double m_rasterScale = 1;
-    QSGNode* m_gridDrawnAbove = nullptr; // fil de rendu : les objets s'insèrent avant la grille du dessus
     std::atomic<int> m_rebuildCount{0};
     bool m_forceRasterized = false;
     bool m_rescale = false;                // nouvelle échelle : refaire les nœuds rastérisés seulement
