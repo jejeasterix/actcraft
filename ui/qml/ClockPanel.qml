@@ -289,32 +289,32 @@ FloatingPanel {
         parent: root
         sx: -1
         sy: -1
-        anchors.left: root.left
-        anchors.top: root.top
+        x: 0
+        y: 0
     }
     CornerGrip {
         objectName: "clockCornerTopRight"
         parent: root
         sx: 1
         sy: -1
-        anchors.right: root.right
-        anchors.top: root.top
+        x: root.width - width
+        y: 0
     }
     CornerGrip {
         objectName: "clockCornerBottomLeft"
         parent: root
         sx: -1
         sy: 1
-        anchors.left: root.left
-        anchors.bottom: root.bottom
+        x: 0
+        y: root.height - height
     }
     CornerGrip {
         objectName: "clockCornerBottomRight"
         parent: root
         sx: 1
         sy: 1
-        anchors.right: root.right
-        anchors.bottom: root.bottom
+        x: root.width - width
+        y: root.height - height
     }
 
     // Fermer le panneau arrête le compte à rebours et la minuterie, et ferme la boîte de réglage.
