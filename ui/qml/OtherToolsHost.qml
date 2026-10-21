@@ -21,6 +21,16 @@ Item {
         if (!root.commands) {
             return
         }
+        root.commands.setHandler("insert.date-time", function () {
+            if (root.controller) {
+                root.controller.insertDateTime()
+            }
+        })
+        root.commands.setHandler("tool.web-browser", function () {
+            if (root.controller) {
+                root.controller.openWebHome()
+            }
+        })
     }
 
     onCommandsChanged: registerCommands()
