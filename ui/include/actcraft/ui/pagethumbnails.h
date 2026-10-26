@@ -115,6 +115,12 @@ private:
     QThread* m_lastRenderThread = nullptr;
     QList<QMetaObject::Connection> m_controllerConnections;
     QMetaObject::Connection m_viewConnection;
+    int m_inFlightPage = -1; // L4-C10 : ligne du rendu en vol, remarquée si les lignes sont refaites
+
+public:
+    // Tests (L4-C10) : délai de calme réglable, kSettleMs par défaut.
+    void setSettleDelay(int ms);
+    int settleDelay() const noexcept;
 };
 
 // Image d'une miniature dans le QML (type ThumbnailImage) : peint PageThumbnails::image(page).

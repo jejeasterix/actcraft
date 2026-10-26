@@ -280,6 +280,16 @@ QThread* PageThumbnails::lastRenderThread() const noexcept
     return m_lastRenderThread;
 }
 
+void PageThumbnails::setSettleDelay(int ms)
+{
+    m_settle.setInterval(std::max(ms, 0));
+}
+
+int PageThumbnails::settleDelay() const noexcept
+{
+    return m_settle.interval();
+}
+
 void PageThumbnails::resetRows(const core::Changes* changes)
 {
     beginResetModel();
