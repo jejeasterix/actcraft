@@ -1,7 +1,7 @@
 {
   "format": "actcraft-scenario/1",
   "name": "formes",
-  "description": "S7.1 : palette, rectangle depuis le coin, clic simple sans forme, cercle depuis le centre sans remplissage, point intelligent d'une flèche.",
+  "description": "S7.1 : palette, rectangle depuis le coin, clic simple sans forme, cercle depuis le centre sans remplissage, point intelligent d'une flèche. Le glisser du point fait une étape : Annuler la défait et garde la flèche (3 objets) ; sans étape, Annuler retirerait la flèche (2).",
   "steps": [
     {"waitReady": true},
     {"command": "tool.shape"},
@@ -32,9 +32,15 @@
     {"pointer": [[400, 530]]},
     {"expect": "appTools.selectionCount", "value": 1},
     {"expect": "selectionSmartPoint.visible", "value": true},
+    {"expect": "documentController.shownObjectCount", "value": 3},
     {"pointer": [[220, 486], [220, 492], [220, 500]]},
     {"waitReady": true},
-    {"expect": "documentController.canUndo", "value": true},
-    {"capture": "fleche-point"}
+    {"capture": "fleche-point"},
+    {"command": "edit.undo"},
+    {"waitReady": true},
+    {"expect": "documentController.shownObjectCount", "value": 3},
+    {"command": "edit.redo"},
+    {"waitReady": true},
+    {"expect": "documentController.shownObjectCount", "value": 3}
   ]
 }

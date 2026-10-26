@@ -13,6 +13,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QSettings>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
@@ -298,6 +299,7 @@ private slots:
     {
         App app;
         QVERIFY(start(app, freshFile("maj.ini")));
+        const QSignalSpy resized(app.view, &QQuickItem::widthChanged);
         app.tools->chooseShape(QStringLiteral("rectangle"));
         // L4-T12 : la palette des formes s'insère dans la disposition au choix de l'outil et redimensionne la
         // zone de page à la prochaine passe de disposition. Un geste en cours est abandonné par ce
@@ -305,8 +307,10 @@ private slots:
         // l'application, la palette est là avant le premier appui.
         QQuickItem* palette = app.window->findChild<QQuickItem*>(QStringLiteral("shapePalette"));
         QVERIFY(palette);
-        QVERIFY(QTest::qWaitFor([&] { return palette->isVisible() && palette->width() > 0; }, 5000));
-        QTest::qWait(100);
+        // m6 (L4-C7) : attente exacte de la passe de disposition qui redimensionne la vue
+        // (PageView::geometryChange), au lieu d'un délai de 100 ms.
+        QVERIFY(QTest::qWaitFor(
+            [&] { return palette->isVisible() && palette->width() > 0 && resized.count() > 0; }, 5000));
         press(app, QPointF(100, 100));
         move(app, QPointF(200, 170));
         QTest::keyPress(app.view->window(), Qt::Key_Shift, Qt::ShiftModifier);
@@ -395,7 +399,8 @@ private slots:
         QCOMPARE(app.tools->currentTool(), QStringLiteral("shape"));
         QCOMPARE(app.tools->user().settings(QStringLiteral("shape")).color, 0xFF1E88E5u);
         QCOMPARE(app.tools->user().settings(QStringLiteral("pen")).color, pen);
-        QCOMPARE(app.tools->color(), QColor(QStringLiteral("#1E88E5"))); // la palette principale suit le contour
+        QCOMPARE(app.tools->color(),
+                 QColor(QStringLiteral("#1E88E5"))); // la palette principale suit le contour
         drag(app, QPointF(100, 100), QPointF(260, 200));
         const core::Shape* shape = lastShape(app);
         QVERIFY(shape);
