@@ -356,8 +356,9 @@ private slots:
             presentationharness::findItem(desktop->window()->contentItem(), QStringLiteral("desktopToolbar"));
         QVERIFY(toolbar);
         const qreal middle = toolbar->height() / 2;
+        // Appui sur la barre, puis trait qui entre dans la page : sans couverture, le stylet le verserait.
         presentationharness::strokeAt(desktop->window(), pointer, toolbar->mapToScene(QPointF(3, middle)),
-                                      toolbar->mapToScene(QPointF(9, middle)), 3);
+                                      toolbar->mapToScene(QPointF(-150, middle)));
         QTest::qWait(50);
         QCOMPARE(desktop->desktopDocument()->shownObjectCount(), 0);
         QVERIFY(!desktop->passThrough());
