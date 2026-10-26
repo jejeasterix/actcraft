@@ -2,15 +2,14 @@
 
 Statut : en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
 Gabarit : lots (lot 7 du chantier `livraison-complete`, exécuté en parallèle du lot 3)
-Étage : 3 (phase 2 du lot 7 : fin du lot P2-A, L7-T19 en cours, et début de P2-B, L7-T21 et L7-T24 ; phase 1 terminée et mergée ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
+Étage : 3 (phase 2 du lot 7 : reprise du 2026-10-26 après la pause du quota ; L7-T19 rejouée avant merge, L7-T24 essai 2, revue de L7-T21 ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branche : feat/livraison-complete-b   Base : feat/livraison-complete @ 7bb551c (+ merge du plan du lot 7 bf8c930 → 2d76ba6)
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 19/33 tâches terminées
-Tâche : L7-T24 — Équation I (F-301) : arbre et MathML — depuis 2026-10-21 14:24
-Tâche : L7-T19 — Message défilant II (F-291, H7-15) — depuis 2026-10-21 16:19
-Tâche : L7-T21 — Reconnaissance de forme II — depuis 2026-10-21 16:19
+Tâche : L7-T24 — Équation I (F-301) : arbre et MathML (essai 2) — depuis 2026-10-26 10:12
+Tâche : L7-T21 — Reconnaissance de forme II (revue adversariale) — depuis 2026-10-26 10:12
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -128,6 +127,9 @@ La PR jejeasterix/actcraft#6 (lots 10 et 3, 0.4.0) est mergée dans main (70c860
 - Survol au stylet des outils de maths (L7-T12) : prouvé hors écran seulement par le rejeu en souris de Qt (`QTabletEvent` sans bouton n'atteint pas les `HoverHandler`) → à voir sur un vrai stylet dans les captures à l'écran (DA8) de la clôture ; et la mine du compas lit `PageView::inkColor` : à revoir quand le lot 3 remplira `ToolHost::color`.
 - `selectionIsNotGuided` (L7-T9, revue) : le guide de la règle est réservé au stylo (`kGuidedTool = "pen"`), mais non testable avant le lot 3 : `ToolHost::activate` et `UserState::setCurrentTool` sont des talons. À ajouter avec `markerFollowsTheRuler`, `eraserFollowsTheCompass`.
 - Constat L7-T9, hors périmètre : la commande `tool.pen` de `Main.qml:292` coche la commande sans activer le stylo (talon du lot 3 ?) : à revoir à la fusion.
+
+## Reprise du 2026-10-26 (10 h 10, message du Pilote : Jérôme lève la pause, « reprend actcraft »)
+Gestes 1 à 3 lancés : L7-T24 essai 2 (concepteur-critique), revue de L7-T21, rejeu de L7-T19 sous le verrou. RAM libre 0,9 Go et A reprend aussi : pas de suite lourde en même temps que A.
 
 ## Pause du quota (2026-10-21 vers 17 h 50, demande de Jérôme relayée mot pour mot par Pilote)
 « afin de ne pas epuisé tout mon quota, organise une pause jusqu'à ce que je relance » (limite de la semaine à 71 %). Consigne : laisser finir les agents et le rejeu déjà lancés, n'en lancer aucun nouveau, puis rien jusqu'au message de reprise. Ni merge ni suite pendant la pause.
