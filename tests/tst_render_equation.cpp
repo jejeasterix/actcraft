@@ -3,12 +3,14 @@
 #include <actcraft/core/equation.h>
 #include <actcraft/core/model.h>
 #include <actcraft/render/equationpaint.h>
+#include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/pagepainter.h>
 #include <actcraft/render/paintedrenderer.h>
 
 #include <QColor>
 #include <QImage>
 #include <QPainter>
+#include <QQuickWindow>
 #include <QSemaphore>
 #include <QTest>
 #include <QThread>
@@ -352,6 +354,27 @@ private slots:
         QCOMPARE(first[0], reference);
         QCOMPARE(first[1], reference);
         QVERIFY(darkInside(reference, e.bounds) > 0);
+    }
+
+    // Page fixe hors écran (FixedPageItem, moteur peint) avec une équation : elle se dessine dans sa boîte
+    // dès cette tâche.
+    void fixedPageDrawsTheEquation()
+    {
+        QQuickWindow window;
+        window.setColor(QColor(0x3c, 0x3f, 0x45));
+        window.resize(400, 200);
+        auto* item = new render::FixedPageItem;
+        item->setSize(QSizeF(400, 200));
+        item->setParentItem(window.contentItem());
+        const core::Equation e = equation("<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>");
+        core::Page page;
+        page.width = 400;
+        page.height = 200;
+        page.objects.push_back(core::PageObject(e));
+        item->setPage(std::move(page));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QTRY_VERIFY(darkInside(window.grabWindow(), e.bounds) > 0);
     }
 
     // En mode Editor, la case marquée actcraft-placeholder se dessine en pointillé et celle marquée
