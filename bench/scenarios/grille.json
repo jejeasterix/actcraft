@@ -1,10 +1,26 @@
 {
   "format": "actcraft-scenario/1",
   "name": "grille",
-  "description": "Talon L4-T1 : rempli par L4-T13.",
+  "description": "S7.2 : créateur de grille, grille du dessus cachée sans redessin du cache, grille du dessous cachée avec un redessin.",
   "steps": [
-    {
-      "waitReady": true
-    }
+    {"waitReady": true},
+    {"command": "grid.designer"},
+    {"expect": "gridDesigner.visible", "value": true},
+    {"expect": "appPageSettings.gridVisible", "value": true},
+    {"key": "Space"},
+    {"expect": "appPageSettings.gridAbove", "value": true},
+    {"command": "grid.snap"},
+    {"expect": "appPageSettings.gridSnap", "value": true},
+    {"capture": "createur"},
+    {"key": "Escape"},
+    {"waitReady": true},
+    {"expect": "gridDesigner.visible", "value": false},
+    {"capture": "grille-du-dessus"},
+    {"remember": "pageView.cacheRefreshCount", "as": "avant"},
+    {"command": "grid.hide"},
+    {"waitReady": true},
+    {"expect": "appPageSettings.gridVisible", "value": false},
+    {"expect": "pageView.cacheRefreshCount", "value": "${avant}"},
+    {"capture": "grille-cachee"}
   ]
 }
