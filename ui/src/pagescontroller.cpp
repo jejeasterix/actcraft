@@ -92,7 +92,7 @@ QList<int> PagesController::selection() const
 
 bool PagesController::canPaste() const noexcept
 {
-    return !m_clipboard.empty();
+    return !m_clipboard.pages.empty();
 }
 
 void PagesController::setSelection(const QList<int>& selection)
@@ -129,7 +129,10 @@ void PagesController::apply(const QList<int>& selection, int shown)
     if (!m_controller) {
         return;
     }
-    {
+    // M-J (L4-C11) : la page déjà affichée ne se remontre pas. showPage annoncerait un changement de page et
+    // referait la page fixe (show → attach → FixedPageItem::setSource) sans que rien ne change ; après une
+    // commande, settle() a déjà recalé la page fixe sur la page affichée.
+    if (shown != m_controller->currentIndex()) {
         const Working working(m_working);
         m_controller->showPage(shown);
     }
@@ -232,14 +235,22 @@ std::vector<core::Page> PagesController::selectedPages() const
     return pages;
 }
 
+// M-K (L4-C11) : les clés seules ne suffisent pas, un autre document ouvert depuis n'a pas leurs octets.
+void PagesController::capture()
+{
+    std::vector<core::Page> pages = selectedPages();
+    std::map<std::string, core::Resource> resources = core::pageResources(m_controller->document(), pages);
+    m_clipboard = Clipboard{std::move(pages), std::move(resources)};
+    emit clipboardChanged();
+}
+
 void PagesController::copySelection()
 {
     if (!m_controller) {
         return;
     }
     settleEditing(*m_controller);
-    m_clipboard = selectedPages();
-    emit clipboardChanged();
+    capture();
 }
 
 // La validation précède selectedPages() : celle de deleteSelection, qui suit, viendrait après la lecture des
@@ -250,17 +261,17 @@ void PagesController::cutSelection()
         return; // couper toutes les pages est refusé, comme supprimer
     }
     settleEditing(*m_controller);
-    m_clipboard = selectedPages();
-    emit clipboardChanged();
+    capture();
     deleteSelection();
 }
 
-void PagesController::insertCopies(std::size_t index, const std::vector<core::Page>& pages)
+void PagesController::insertCopies(std::size_t index, const std::vector<core::Page>& pages,
+                                   std::map<std::string, core::Resource> resources)
 {
     const int before = m_controller->pageCount();
     {
         const Working working(m_working);
-        m_controller->execute(std::make_unique<core::InsertPagesCommand>(index, pages));
+        m_controller->execute(std::make_unique<core::InsertPagesCommand>(index, pages, std::move(resources)));
     }
     const int added = m_controller->pageCount() - before;
     if (added <= 0) {
@@ -273,11 +284,12 @@ void PagesController::insertCopies(std::size_t index, const std::vector<core::Pa
 
 void PagesController::paste()
 {
-    if (!m_controller || m_clipboard.empty()) {
+    if (!m_controller || m_clipboard.pages.empty()) {
         return;
     }
     settleEditing(*m_controller);
-    insertCopies(static_cast<std::size_t>(m_controller->currentIndex()), m_clipboard);
+    insertCopies(static_cast<std::size_t>(m_controller->currentIndex()), m_clipboard.pages,
+                 m_clipboard.resources);
 }
 
 void PagesController::duplicateSelection()

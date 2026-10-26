@@ -3,7 +3,9 @@
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pagescontroller.h>
 
+#include <QByteArray>
 #include <QList>
+#include <QSignalSpy>
 #include <QString>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
@@ -105,8 +107,91 @@ private slots:
         QCOMPARE(f.document.pageCount(), 3);
         QCOMPARE(f.pagesController.selection(), (QList<int>{f.document.currentIndex()}));
         f.document.undo(); // la page revient : la sélection reste dans les bornes
+        // Q16 (L4-C11) : la boucle seule passerait sur une sélection vide ; elle garde la page affichée.
+        QVERIFY(f.pagesController.selection().contains(f.document.currentIndex()));
         for (const int index : f.pagesController.selection()) {
             QVERIFY(index >= 0 && index < f.document.pageCount());
+        }
+    }
+
+    // M-J (L4-C11) : cliquer la miniature de la page affichée (seule, Maj, Ctrl qui en retire une autre,
+    // goTo) ne la remontre pas. showPage annoncerait un changement de page et referait la page fixe (show →
+    // attach), ce que trahissent pageAboutToChange et pagesChanged.
+    void clickOnShownPageDoesNotShowItAgain()
+    {
+        Fixture f(4);
+        f.pagesController.click(0, 0);
+        f.pagesController.click(2, kCtrl); // sélection {0, 2}, page 2 affichée
+        QSignalSpy aboutToChange(&f.document, &ui::DocumentController::pageAboutToChange);
+        QSignalSpy pagesChanged(&f.document, &ui::DocumentController::pagesChanged);
+        f.pagesController.click(0, kCtrl); // retire la page 0 : la page 2 reste affichée
+        QCOMPARE(f.pagesController.selection(), (QList<int>{2}));
+        f.pagesController.click(2, 0);
+        f.pagesController.click(2, kShift);
+        f.pagesController.goTo(2);
+        QCOMPARE(f.document.currentIndex(), 2);
+        QCOMPARE(f.pagesController.selection(), (QList<int>{2}));
+        QCOMPARE(aboutToChange.count(), 0);
+        QCOMPARE(pagesChanged.count(), 0);
+        f.pagesController.click(1, 0); // un vrai changement de page s'annonce toujours
+        QCOMPARE(f.document.currentIndex(), 1);
+        QCOMPARE(aboutToChange.count(), 1);
+    }
+
+    // M-K (L4-C11) : les pages copiées ou coupées emportent les octets de leurs ressources (fond, image,
+    // fichier d'une action) ; un collage dans un autre document, ouvert depuis, les y ajoute. Le
+    // presse-papiers survit au changement de document ; une ressource que la page ne cite pas ne suit pas.
+    void pasteIntoAnotherDocumentKeepsResources()
+    {
+        for (const bool cut : {false, true}) {
+            Fixture f(1);
+            core::Document source(std::vector<core::Page>(2));
+            const QByteArray imageBytes("octets-image");
+            const QByteArray backgroundBytes("octets-fond");
+            const QByteArray fileBytes("octets-fichier");
+            const std::string imageKey = source.addResource(imageBytes, "png");
+            const std::string backgroundKey = source.addResource(backgroundBytes, "jpg");
+            const std::string fileKey = source.addResource(fileBytes, "pdf");
+            static_cast<void>(source.addResource(QByteArray("octets-ailleurs"), "png"));
+            core::Page& page = source.page(0);
+            page.name = "A";
+            page.background.image = backgroundKey;
+            core::ImageObject image;
+            image.resource = imageKey;
+            core::PageObject object = image;
+            object.common.id = source.allocateId();
+            core::Action open;
+            open.resource = fileKey;
+            object.common.actions.push_back(open);
+            page.objects.push_back(std::move(object));
+            f.document.replaceDocument(std::move(source), QUrl(), QStringLiteral("source"));
+            f.pagesController.click(0, 0);
+            if (cut) {
+                f.pagesController.cutSelection();
+            } else {
+                f.pagesController.copySelection();
+            }
+
+            f.document.replaceDocument(core::Document(std::vector<core::Page>(2)), QUrl(),
+                                       QStringLiteral("cible"));
+            QVERIFY2(f.pagesController.canPaste(), cut ? "cut" : "copy");
+            QVERIFY(f.document.document().resources().empty());
+            f.pagesController.paste();
+            const core::Document& target = f.document.document();
+            QCOMPARE(f.document.pageCount(), 3);
+            QCOMPARE(target.page(0).name, std::string("A"));
+            const core::Resource* pastedImage = target.resource(imageKey);
+            QVERIFY2(pastedImage != nullptr, cut ? "cut" : "copy");
+            QCOMPARE(pastedImage->data, imageBytes);
+            QCOMPARE(pastedImage->extension, std::string("png"));
+            QVERIFY(target.resource(backgroundKey) &&
+                    target.resource(backgroundKey)->data == backgroundBytes);
+            QVERIFY(target.resource(fileKey) && target.resource(fileKey)->data == fileBytes);
+            QCOMPARE(target.resources().size(), std::size_t{3});
+            f.document.undo();
+            QCOMPARE(f.document.pageCount(), 2);
+            f.document.redo();
+            QVERIFY(f.document.document().resource(imageKey) != nullptr);
         }
     }
 

@@ -9,6 +9,8 @@
 #include <QtQml/qqmlregistration.h>
 
 #include <cstddef>
+#include <map>
+#include <string>
 #include <vector>
 
 namespace actcraft::ui {
@@ -48,22 +50,34 @@ signals:
     void clipboardChanged();
 
 private:
-    // Sélection = `selection`, page affichée = `shown` ; les signaux de la page affichée émis pendant
-    // l'opération sont ignorés (m_working).
+    // Pages copiées ou coupées et les ressources qu'elles citent (M-K, L4-C11) : un collage dans un autre
+    // document, ouvert depuis, les y ajoute. Le presse-papiers survit au changement de document (F-601).
+    struct Clipboard
+    {
+        std::vector<core::Page> pages;
+        std::map<std::string, core::Resource> resources;
+    };
+
+    // Sélection = `selection`, page affichée = `shown` (M-J : remontrée seulement si elle change) ; les
+    // signaux de la page affichée émis pendant l'opération sont ignorés (m_working).
     void apply(const QList<int>& selection, int shown);
     // La sélection reste dans les bornes et contient la page affichée (changement par une autre voie).
     void sync();
     void setSelection(const QList<int>& selection);
-    // Insère des copies de `pages` à `index` ; sélectionne les pages insérées et affiche la première.
-    void insertCopies(std::size_t index, const std::vector<core::Page>& pages);
+    // Insère des copies de `pages` à `index`, et `resources` au document ; sélectionne les pages insérées et
+    // affiche la première.
+    void insertCopies(std::size_t index, const std::vector<core::Page>& pages,
+                      std::map<std::string, core::Resource> resources = {});
     std::vector<core::Page> selectedPages() const;
+    // Presse-papiers = pages sélectionnées et leurs ressources.
+    void capture();
 
     QPointer<DocumentController> m_controller;
     QMetaObject::Connection m_pagesConnection;
     bool m_working = false;
     QList<int> m_selection;
     int m_anchor = 0;
-    std::vector<core::Page> m_clipboard;
+    Clipboard m_clipboard;
 };
 
 } // namespace actcraft::ui

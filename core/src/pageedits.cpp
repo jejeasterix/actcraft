@@ -184,8 +184,39 @@ void RemovePagesCommand::undo(Document& document, Changes& changes)
     m_removed.clear();
 }
 
-InsertPagesCommand::InsertPagesCommand(std::size_t index, std::vector<Page> pages)
-    : m_index(index), m_pages(std::move(pages))
+// Mêmes clés que le peintre et les miniatures (pagethumbnails.cpp, resourcesOf), plus ce qu'une page collée
+// doit garder sans le peindre : le son ou la vidéo d'un média, le fichier qu'ouvre une action.
+std::map<std::string, Resource> pageResources(const Document& document, const std::vector<Page>& pages)
+{
+    std::map<std::string, Resource> out;
+    const auto add = [&out, &document](const std::string& key) {
+        if (key.empty() || out.count(key) != 0) {
+            return;
+        }
+        if (const Resource* found = document.resource(key)) {
+            out.emplace(key, *found);
+        }
+    };
+    for (const Page& page : pages) {
+        add(page.background.image);
+        for (const PageObject& object : page.objects) {
+            if (const auto* image = std::get_if<ImageObject>(&object)) {
+                add(image->resource);
+            } else if (const auto* media = std::get_if<Media>(&object)) {
+                add(media->placeholder);
+                add(media->media);
+            }
+            for (const Action& action : object.common.actions) {
+                add(action.resource);
+            }
+        }
+    }
+    return out;
+}
+
+InsertPagesCommand::InsertPagesCommand(std::size_t index, std::vector<Page> pages,
+                                       std::map<std::string, Resource> resources)
+    : m_index(index), m_pages(std::move(pages)), m_resources(std::move(resources))
 {}
 
 void InsertPagesCommand::redo(Document& document, Changes& changes)
@@ -206,6 +237,16 @@ void InsertPagesCommand::redo(Document& document, Changes& changes)
         }
         m_pages = std::move(copies);
         m_fresh = true;
+    }
+    // M-K (L4-C11) : les ressources d'abord, la page insérée y trouve les siennes. Clé = SHA-256 des octets
+    // (Document::addResource) : la même clé revient, une ressource déjà là n'est pas touchée.
+    for (const auto& [key, carried] : m_resources) {
+        if (document.resource(key) == nullptr) {
+            static_cast<void>(document.addResource(carried.data, carried.extension));
+            if (!carried.unknownKeys.empty()) {
+                document.setResourceUnknownKeys(key, carried.unknownKeys);
+            }
+        }
     }
     // Les pages passent au document ; l'annulation les reprend.
     for (std::size_t i = 0; i < m_pages.size(); ++i) {
