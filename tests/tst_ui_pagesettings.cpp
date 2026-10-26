@@ -13,12 +13,11 @@
 #include <QTest>
 #include <QVariantList>
 #include <QVariantMap>
+#include <QtQml/qqmlextensionplugin.h>
 
 #include <cstddef>
 #include <memory>
 #include <utility>
-
-#include <QtQml/qqmlextensionplugin.h>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
