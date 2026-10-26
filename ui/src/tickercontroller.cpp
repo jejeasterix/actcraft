@@ -1,8 +1,11 @@
 #include "tickercontroller.h"
 
+#include <QFile>
+#include <QSaveFile>
 #include <QSettings>
 
 #include <algorithm>
+#include <utility>
 
 namespace actcraft::ui {
 
@@ -18,6 +21,12 @@ using features::TickerSettings;
 int clampedSpeed(int speed) noexcept
 {
     return qRound(TickerSettings::pixelsPerSecond(speed) / TickerSettings::pixelsPerSecond(1));
+}
+
+// Le bloc gardé ou écrit dans un fichier ne dépasse pas la taille que la relecture accepte.
+bool fits(const TickerSettings& settings)
+{
+    return features::tickerToJson(settings).size() <= features::kMaxTickerFileBytes;
 }
 
 TickerSettings::Position toPosition(int position) noexcept
@@ -40,21 +49,28 @@ TickerController::TickerController(QObject* parent) : QObject(parent)
     const QByteArray stored = settings.value(QString::fromLatin1(kSettingsKey)).toString().toUtf8();
     if (!stored.isEmpty()) {
         if (const auto read = features::tickerFromJson(stored)) {
-            // Par les modificateurs : mêmes contrôles qu'à la saisie, une valeur refusée garde celle de la
-            // logique.
-            setText(read->text);
-            setFontFamily(read->fontFamily);
-            setFontPointSize(read->fontPointSize);
-            setTextColor(read->textColor);
-            setShadowOffset(read->shadowOffset);
-            setShadowColor(read->shadowColor);
-            setScreenBackground(read->screenBackground);
-            setBackgroundColor(read->backgroundColor);
-            m_settings.position = read->position;
-            setLoop(read->loop);
-            setSpeed(read->speed);
+            adopt(*read);
         }
     }
+}
+
+// Par les modificateurs : mêmes contrôles qu'à la saisie, une valeur refusée garde celle de la logique.
+void TickerController::adopt(const features::TickerSettings& read)
+{
+    setText(read.text);
+    setFontFamily(read.fontFamily);
+    setFontPointSize(read.fontPointSize);
+    setTextColor(read.textColor);
+    setShadowOffset(read.shadowOffset);
+    setShadowColor(read.shadowColor);
+    setScreenBackground(read.screenBackground);
+    setBackgroundColor(read.backgroundColor);
+    if (m_settings.position != read.position) {
+        m_settings.position = read.position;
+        emit settingsChanged();
+    }
+    setLoop(read.loop);
+    setSpeed(read.speed);
 }
 
 QString TickerController::text() const
@@ -67,7 +83,12 @@ void TickerController::setText(const QString& text)
     if (m_settings.text == text) {
         return;
     }
-    m_settings.text = text;
+    TickerSettings next = m_settings;
+    next.text = text;
+    if (!fits(next)) {
+        return; // refusé : un bloc trop gros ne serait pas relu, et ferait perdre tous les réglages gardés
+    }
+    m_settings = next;
     emit settingsChanged();
 }
 
@@ -81,7 +102,12 @@ void TickerController::setFontFamily(const QString& family)
     if (m_settings.fontFamily == family) {
         return;
     }
-    m_settings.fontFamily = family;
+    TickerSettings next = m_settings;
+    next.fontFamily = family;
+    if (!fits(next)) {
+        return;
+    }
+    m_settings = next;
     emit settingsChanged();
 }
 
@@ -285,9 +311,10 @@ int TickerController::durationMs(qreal screenWidth, qreal textWidth) const
     return std::max(run.durationMs(), 1);
 }
 
-qreal TickerController::positionAt(qreal screenWidth, qreal textWidth, qreal speedPx, double elapsedMs) const
+qreal TickerController::positionAt(qreal screenWidth, qreal textWidth, qreal speedPx, bool loop,
+                                   double elapsedMs) const
 {
-    const features::TickerRun run(screenWidth, textWidth, speedPx, m_settings.loop);
+    const features::TickerRun run(screenWidth, textWidth, speedPx, loop);
     return run.xAt(static_cast<std::int64_t>(elapsedMs));
 }
 
@@ -296,6 +323,72 @@ void TickerController::keepAsDefault() const
     QSettings settings;
     settings.setValue(QString::fromLatin1(kSettingsKey),
                       QString::fromUtf8(features::tickerToJson(m_settings)));
+}
+
+void TickerController::setFileChooser(FileChooser chooser)
+{
+    m_chooser = std::move(chooser);
+}
+
+bool TickerController::failed(const QString& message)
+{
+    emit fileFinished(false, message);
+    return false;
+}
+
+bool TickerController::openUrl(const QUrl& url)
+{
+    QFile file(url.toLocalFile());
+    if (!url.isLocalFile() || !file.open(QIODevice::ReadOnly)) {
+        return failed(tr("Ce fichier ne peut pas être lu."));
+    }
+    // Un octet de plus que le maximum suffit à le faire refuser, sans lire un fichier énorme.
+    const std::optional<TickerSettings> read =
+        features::tickerFromJson(file.read(features::kMaxTickerFileBytes + 1));
+    if (!read) {
+        return failed(tr("Ce fichier n'est pas un message ActCraft lisible (64 Kio au plus)."));
+    }
+    adopt(*read);
+    emit fileFinished(true, QString());
+    return true;
+}
+
+bool TickerController::saveToUrl(const QUrl& url)
+{
+    QSaveFile file(url.toLocalFile());
+    if (!url.isLocalFile() || !file.open(QIODevice::WriteOnly) ||
+        file.write(features::tickerToJson(m_settings)) < 0 || !file.commit()) {
+        return failed(tr("Ce fichier ne peut pas être écrit."));
+    }
+    emit fileFinished(true, QString());
+    return true;
+}
+
+void TickerController::chooseOpen()
+{
+    askFile(false);
+}
+
+void TickerController::chooseSave()
+{
+    askFile(true);
+}
+
+void TickerController::askFile(bool save)
+{
+    if (!m_chooser) {
+        emit fileDialogRequested(save);
+        return;
+    }
+    const QUrl url = m_chooser(save);
+    if (url.isEmpty()) {
+        return; // abandon
+    }
+    if (save) {
+        saveToUrl(url);
+    } else {
+        openUrl(url);
+    }
 }
 
 void TickerController::setPaused(bool paused)

@@ -5,7 +5,10 @@
 #include <QColor>
 #include <QObject>
 #include <QString>
+#include <QUrl>
 #include <QtQml/qqmlregistration.h>
+
+#include <functional>
 
 namespace actcraft::ui {
 
@@ -13,6 +16,9 @@ namespace actcraft::ui {
 // contrôleur ne déplace rien et n'a aucune minuterie : la surcouche anime le texte par un XAnimator, sur le
 // fil de rendu, et signale la fin d'un passage unique (finished). Aucun lien au document, aucune demande de
 // redessin du cache. Réglages par défaut lus dans QSettings (tools/ticker) ; keepAsDefault() les y garde.
+// Un texte ou une police dont le bloc gardé dépasserait la taille maximale d'un fichier de message est refusé
+// à la saisie : les autres réglages restent relisibles. Fichiers de messages : openUrl, saveToUrl ; le choix
+// du fichier passe par chooseOpen / chooseSave, remplaçables par setFileChooser (tests : aucune vraie boîte).
 class TickerController : public QObject
 {
     Q_OBJECT
@@ -74,6 +80,11 @@ public:
 
     const features::TickerSettings& settings() const noexcept;
 
+    // Choix d'un fichier de message : renvoie l'URL choisie (vide : abandon) ; save vrai pour enregistrer.
+    // Sans choix posé, le contrôleur demande la boîte de fichiers de l'interface (fileDialogRequested).
+    using FileChooser = std::function<QUrl(bool save)>;
+    void setFileChooser(FileChooser chooser);
+
     // Démarre un passage depuis le bord droit (relance s'il défile déjà) ; reprend s'il était en pause.
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
@@ -83,20 +94,36 @@ public:
     // Durée d'un passage complet (features::TickerRun) : de la largeur de la bande à -textWidth ; 1 ms au
     // moins.
     Q_INVOKABLE int durationMs(qreal screenWidth, qreal textWidth) const;
-    // Abscisse du texte elapsedMs après le départ d'un passage complet à speedPx (features::TickerRun) ;
-    // lue à la pause seulement, jamais à chaque image.
-    Q_INVOKABLE qreal positionAt(qreal screenWidth, qreal textWidth, qreal speedPx, double elapsedMs) const;
+    // Abscisse du texte elapsedMs après le départ d'un passage complet à speedPx, en boucle ou non au départ
+    // (features::TickerRun) ; lue à la pause seulement, jamais à chaque image.
+    Q_INVOKABLE qreal positionAt(qreal screenWidth, qreal textWidth, qreal speedPx, bool loop,
+                                 double elapsedMs) const;
     // Garde les réglages courants comme défaut (QSettings, tools/ticker).
     Q_INVOKABLE void keepAsDefault() const;
+    // Lit un fichier de message local (64 Kio au plus, format actcraft-ticker/1) et le prend comme réglages
+    // courants, sans le garder comme défaut ; faux (réglages inchangés, fileFinished) s'il est illisible.
+    Q_INVOKABLE bool openUrl(const QUrl& url);
+    // Écrit les réglages courants dans un fichier de message local.
+    Q_INVOKABLE bool saveToUrl(const QUrl& url);
+    Q_INVOKABLE void chooseOpen();
+    Q_INVOKABLE void chooseSave();
 
 signals:
     void settingsChanged();
     void runningChanged();
     void pausedChanged();
+    // Un fichier de message a été lu ou écrit (ok), ou refusé (message : la raison, en clair).
+    void fileFinished(bool ok, const QString& message);
+    // Aucun choix de fichier posé : la boîte de fichiers de l'interface doit s'ouvrir.
+    void fileDialogRequested(bool save);
 
 private:
     void setPaused(bool paused);
+    void adopt(const features::TickerSettings& read);
+    void askFile(bool save);
+    bool failed(const QString& message);
 
+    FileChooser m_chooser;
     features::TickerSettings m_settings;
     bool m_running = false;
     bool m_paused = false;

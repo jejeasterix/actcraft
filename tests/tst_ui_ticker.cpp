@@ -6,6 +6,7 @@
 #include <actcraft/ui/pageview.h>
 
 #include <QElapsedTimer>
+#include <QFile>
 #include <QImage>
 #include <QSettings>
 #include <QSignalSpy>
@@ -103,6 +104,41 @@ bool strokeVersedAt(const MainWindow& main, const QRectF& zone, int before)
     }
     stylusStroke(main.window(), from, to);
     return QTest::qWaitFor([&] { return main.pageObjectCount() == before + 1; }, 5000);
+}
+
+// Centre d'un élément, dans la fenêtre.
+QPointF centreOf(const QQuickItem* item)
+{
+    return item->mapToScene(QPointF(item->width() / 2.0, item->height() / 2.0));
+}
+
+// Clic de souris au centre d'un élément (bouton de la fenêtre d'édition).
+void clickItem(const MainWindow& main, const QQuickItem* item)
+{
+    QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, centreOf(item).toPoint());
+}
+
+// Fenêtre d'édition ouverte par la commande tool.ticker (une racine : le nom est unique).
+QQuickItem* openDialog(const MainWindow& main)
+{
+    if (!main.run(QStringLiteral("tool.ticker"))) {
+        return nullptr;
+    }
+    QQuickItem* dialog = main.item(QStringLiteral("tickerDialog"));
+    return dialog && dialog->isVisible() ? dialog : nullptr;
+}
+
+// Élément nommé dans la fenêtre d'édition.
+QQuickItem* inDialog(QQuickItem* dialog, const QString& name)
+{
+    return presentationharness::findItem(dialog, name);
+}
+
+void writeFile(const QString& path, const QByteArray& data)
+{
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QCOMPARE(file.write(data), data.size());
 }
 
 // Message en boucle lancé par sa commande, comme le menu ou Ctrl+Maj+T.
@@ -364,6 +400,274 @@ private slots:
             QCOMPARE(text->property("textFormat").toInt(), static_cast<int>(Qt::PlainText));
             QCOMPARE(text->property("text").toString(), raw);
         }
+    }
+
+    // Un texte (ou une police) dont le bloc gardé dépasserait 64 Kio est refusé à la saisie : les autres
+    // réglages gardés restent relus (avant : bloc refusé à la relecture, tous les réglages perdus sans un
+    // mot).
+    void oversizedTextIsRefusedAtInput()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, dir.path());
+        const actcraft::features::TickerSettings defaults;
+        {
+            TickerController ticker;
+            ticker.setSpeed(9);
+            ticker.setLoop(true);
+            ticker.setText(QString(70 * 1024, QLatin1Char('x')));
+            QCOMPARE(ticker.text(), defaults.text);
+            ticker.setFontFamily(QString(70 * 1024, QLatin1Char('f')));
+            QCOMPARE(ticker.fontFamily(), defaults.fontFamily);
+            // Sous la taille d'un fichier mais écrit avec des échappements (retours à la ligne) : refusé
+            // aussi.
+            ticker.setText(QString(40 * 1024, QLatin1Char('\n')));
+            QCOMPARE(ticker.text(), defaults.text);
+            ticker.setText(QStringLiteral("Bonjour"));
+            ticker.setText(QString(actcraft::features::kMaxTickerFileBytes, QLatin1Char('y')));
+            QCOMPARE(ticker.text(), QStringLiteral("Bonjour")); // le texte gardé est celui d'avant
+            ticker.keepAsDefault();
+        }
+        TickerController fresh;
+        QCOMPARE(fresh.text(), QStringLiteral("Bonjour"));
+        QCOMPARE(fresh.speed(), 9);
+        QVERIFY(fresh.loop());
+    }
+
+    // Boucle coupée en plein passage : le passage en cours finit, puis le message s'arrête (un animateur sans
+    // fin ne finirait jamais).
+    void loopSwitchedOffDuringAPassEndsIt()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        TickerController* ticker = tickerOf(main);
+        QVERIFY(ticker != nullptr);
+        ticker->setSpeed(10);
+        QVERIFY(startLoop(main, ticker, TickerController::Center));
+        QQuickItem* band = inTicker(main, QStringLiteral("tickerBand"));
+        QQuickItem* message = inTicker(main, QStringLiteral("tickerMessage"));
+        QVERIFY(band != nullptr && message != nullptr);
+        QTRY_VERIFY(band->isVisible());
+        const qint64 pass = ticker->durationMs(band->width(), message->width());
+        QElapsedTimer clock;
+        clock.start();
+        QTest::qWait(300);
+        ticker->setLoop(false);
+        QTRY_VERIFY_WITH_TIMEOUT(!ticker->running(), static_cast<int>(pass + 3000));
+        const qint64 took = clock.elapsed();
+        QVERIFY2(took >= pass * 8 / 10 - 300 && took <= pass * 12 / 10 + 600,
+                 qPrintable(QStringLiteral("%1 ms pour un passage de %2 ms").arg(took).arg(pass)));
+    }
+
+    // Texte changé en plein passage : la sortie suit la nouvelle largeur (le passage dure (écran + texte) /
+    // vitesse du nouveau texte, sans saut de place).
+    void textChangedDuringAPassMovesTheExit()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        TickerController* ticker = tickerOf(main);
+        QVERIFY(ticker != nullptr);
+        ticker->setLoop(false);
+        ticker->setPosition(TickerController::Center);
+        ticker->setSpeed(10);
+        QVERIFY(main.run(QStringLiteral("tool.ticker")));
+        QQuickItem* band = inTicker(main, QStringLiteral("tickerBand"));
+        QQuickItem* message = inTicker(main, QStringLiteral("tickerMessage"));
+        QVERIFY(band != nullptr && message != nullptr);
+        QTRY_VERIFY(band->isVisible());
+        QElapsedTimer clock;
+        clock.start();
+        QTest::qWait(300);
+        const qreal oldWidth = message->width();
+        ticker->setText(QStringLiteral("Votre message ici ").repeated(6));
+        QTRY_VERIFY(message->width() > oldWidth * 3);
+        const qreal speed = ticker->pixelsPerSecond();
+        const qint64 oldPass = qRound64((band->width() + oldWidth) / speed * 1000.0);
+        const qint64 newPass = qRound64((band->width() + message->width()) / speed * 1000.0);
+        QVERIFY(newPass > oldPass + 2000);
+        QTRY_VERIFY_WITH_TIMEOUT(!ticker->running(), static_cast<int>(newPass + 3000));
+        const qint64 took = clock.elapsed();
+        QVERIFY2(took >= newPass * 9 / 10 - 300 && took <= newPass * 11 / 10 + 600,
+                 qPrintable(QStringLiteral("%1 ms pour un passage de %2 ms (%3 avant)")
+                                .arg(took)
+                                .arg(newPass)
+                                .arg(oldPass)));
+    }
+
+    // « Appliquer » garde les réglages comme défaut (un contrôleur recréé les relit) et ferme la boîte.
+    void applyKeepsTheDefault()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        TickerController* ticker = tickerOf(main);
+        QVERIFY(ticker != nullptr);
+        QQuickItem* dialog = openDialog(main);
+        QVERIFY(dialog != nullptr);
+        QQuickItem* apply = inDialog(dialog, QStringLiteral("tickerApply"));
+        QVERIFY(apply != nullptr);
+        QVERIFY(!QSettings().contains(QStringLiteral("tools/ticker/message")));
+
+        ticker->setText(QStringLiteral("Appliqué"));
+        ticker->setSpeed(7);
+        ticker->setLoop(true);
+        clickItem(main, apply);
+        QTRY_VERIFY(!dialog->isVisible());
+        TickerController fresh;
+        QCOMPARE(fresh.text(), QStringLiteral("Appliqué"));
+        QCOMPARE(fresh.speed(), 7);
+        QVERIFY(fresh.loop());
+    }
+
+    // « Essayer » joue le message avec les réglages courants sans rien garder, et la boîte reste ouverte.
+    void tryDoesNotKeepTheDefault()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        TickerController* ticker = tickerOf(main);
+        QVERIFY(ticker != nullptr);
+        QQuickItem* dialog = openDialog(main);
+        QVERIFY(dialog != nullptr);
+        QQuickItem* tryButton = inDialog(dialog, QStringLiteral("tickerTry"));
+        QVERIFY(tryButton != nullptr);
+
+        ticker->setText(QStringLiteral("Essai"));
+        ticker->setSpeed(8);
+        ticker->stop();
+        QVERIFY(!ticker->running());
+        clickItem(main, tryButton);
+        QTRY_VERIFY(ticker->running());
+        QQuickItem* text = inTicker(main, QStringLiteral("tickerText"));
+        QVERIFY(text != nullptr);
+        QCOMPARE(text->property("text").toString(), QStringLiteral("Essai"));
+        QVERIFY(dialog->isVisible());
+
+        const actcraft::features::TickerSettings defaults;
+        TickerController fresh;
+        QCOMPARE(fresh.text(), defaults.text);
+        QCOMPARE(fresh.speed(), defaults.speed);
+        QVERIFY(!QSettings().contains(QStringLiteral("tools/ticker/message")));
+    }
+
+    // Fichiers de messages depuis la boîte : « Ouvrir » demande une URL au choix injecté (aucune vraie boîte
+    // de fichiers), lit le fichier et montre ses réglages dans la boîte sans les garder ; un fichier trop
+    // gros est refusé avec la raison affichée et ne change rien ; « Enregistrer » écrit un fichier relisible.
+    // Les fichiers sont écrits dans un dossier temporaire du test.
+    void messageFileLoadedFromTheDialog()
+    {
+        QTemporaryDir files;
+        QVERIFY(files.isValid());
+        actcraft::features::TickerSettings sent;
+        sent.text = QStringLiteral("Chargé du fichier");
+        sent.position = actcraft::features::TickerSettings::Position::Bottom;
+        sent.loop = true;
+        sent.speed = 8;
+        sent.shadowOffset = 4;
+        const QString path = files.filePath(QStringLiteral("message.json"));
+        writeFile(path, actcraft::features::tickerToJson(sent));
+
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        TickerController* ticker = tickerOf(main);
+        QVERIFY(ticker != nullptr);
+        QUrl chosen = QUrl::fromLocalFile(path);
+        int asked = 0;
+        bool askedToSave = true;
+        ticker->setFileChooser([&](bool save) {
+            ++asked;
+            askedToSave = save;
+            return chosen;
+        });
+        QSignalSpy nativeDialog(ticker, &TickerController::fileDialogRequested);
+        QVERIFY(nativeDialog.isValid());
+        QQuickItem* dialog = openDialog(main);
+        QVERIFY(dialog != nullptr);
+        QQuickItem* open = inDialog(dialog, QStringLiteral("tickerOpenFile"));
+        QQuickItem* save = inDialog(dialog, QStringLiteral("tickerSaveFile"));
+        QQuickItem* field = inDialog(dialog, QStringLiteral("tickerTextField"));
+        QQuickItem* error = inDialog(dialog, QStringLiteral("tickerFileError"));
+        QVERIFY(open != nullptr && save != nullptr && field != nullptr && error != nullptr);
+
+        clickItem(main, open);
+        QTRY_COMPARE(ticker->text(), sent.text);
+        QCOMPARE(asked, 1);
+        QVERIFY(!askedToSave);
+        QCOMPARE(ticker->settings(), sent);
+        QTRY_COMPARE(field->property("text").toString(), sent.text);
+        QVERIFY(!error->isVisible());
+        const actcraft::features::TickerSettings defaults;
+        TickerController fresh;
+        QCOMPARE(fresh.text(), defaults.text); // chargé, pas gardé comme défaut
+
+        // Trop gros : refusé, réglages inchangés, raison affichée.
+        const QString big = files.filePath(QStringLiteral("gros.json"));
+        writeFile(big, QByteArray(70 * 1024, ' '));
+        chosen = QUrl::fromLocalFile(big);
+        clickItem(main, open);
+        QTRY_VERIFY(error->isVisible());
+        QVERIFY(!error->property("text").toString().isEmpty());
+        QCOMPARE(ticker->settings(), sent);
+        QCOMPARE(asked, 2);
+
+        // Enregistrer : le fichier écrit se relit et redonne les réglages courants.
+        const QString out = files.filePath(QStringLiteral("sortie.json"));
+        chosen = QUrl::fromLocalFile(out);
+        ticker->setText(QStringLiteral("Écrit"));
+        clickItem(main, save);
+        QTRY_VERIFY(!error->isVisible());
+        QCOMPARE(asked, 3);
+        QVERIFY(askedToSave);
+        QFile written(out);
+        QVERIFY(written.open(QIODevice::ReadOnly));
+        const auto back = actcraft::features::tickerFromJson(written.readAll());
+        QVERIFY(back.has_value());
+        QCOMPARE(*back, ticker->settings());
+        QCOMPARE(back->text, QStringLiteral("Écrit"));
+        QCOMPARE(nativeDialog.count(), 0); // jamais de vraie boîte de fichiers
+    }
+
+    void tickerDialogBlocksTheStylus_data() { presentationharness::addPointerRows(); }
+
+    // La boîte d'édition est une couverture de la page : rien n'est versé dessous, quel que soit le
+    // périphérique ; hors de la boîte, le même trait est versé. Souris : le clic droit sur la boîte n'ouvre
+    // pas le menu de la page, hors de la boîte il l'ouvre.
+    void tickerDialogBlocksTheStylus()
+    {
+        QFETCH(Pointer, pointer);
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        QSignalSpy menu(main.pageView(), &actcraft::ui::PageView::contextMenuRequested);
+        QVERIFY(menu.isValid());
+        const int before = main.pageObjectCount();
+        QQuickItem* dialog = openDialog(main);
+        QVERIFY(dialog != nullptr);
+        const QRectF zone = sceneRect(dialog);
+
+        // Marge gauche de la boîte, hors de tout contrôle : seule la couverture retient le trait.
+        const QPointF on = dialog->mapToScene(QPointF(3, 150));
+        const QPointF onTo = dialog->mapToScene(QPointF(3, 260));
+        QVERIFY(zone.contains(on) && zone.contains(onTo));
+        strokeWith(main, pointer, on, onTo);
+        QTest::qWait(150);
+        QCOMPARE(main.pageObjectCount(), before);
+
+        // Hors de la boîte (et sous la bande du message, en haut) : le trait est versé.
+        QPointF from;
+        QPointF to;
+        QVERIFY(onPage(main, 300, 400, &from) && onPage(main, 700, 400, &to));
+        QVERIFY(!zone.contains(from) && !zone.contains(to));
+        strokeWith(main, pointer, from, to);
+        QTRY_COMPARE_WITH_TIMEOUT(main.pageObjectCount(), before + 1, 5000);
+        QCOMPARE(menu.count(), 0);
+
+        if (pointer != Pointer::Mouse) {
+            return;
+        }
+        QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, on.toPoint());
+        QTest::qWait(150);
+        QCOMPARE(menu.count(), 0);
+        QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, from.toPoint());
+        QTRY_COMPARE(menu.count(), 1);
     }
 
     void tickerBlocksTheStylus_data() { presentationharness::addPointerRows(); }
