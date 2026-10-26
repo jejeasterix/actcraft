@@ -4,15 +4,21 @@
 
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
+#include <actcraft/features/handwriting.h>
 #include <actcraft/features/recognitionsession.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 
 #include <QColor>
+#include <QTemporaryDir>
 #include <QtTest>
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <mutex>
 #include <numbers>
 #include <utility>
 #include <variant>
@@ -22,7 +28,10 @@ namespace {
 
 // Tout le fichier dans cet espace de noms anonyme (exécutable unique : aucun nom global hors du registre).
 namespace core = actcraft::core;
+using actcraft::features::HandwritingRecognizer;
+using actcraft::features::InkStrokes;
 using actcraft::features::RecognitionSession;
+using actcraft::ui::Commands;
 using actcraft::ui::DocumentController;
 using actcraft::ui::RecognitionController;
 using presentationharness::MainWindow;
@@ -126,6 +135,106 @@ std::int64_t atMs(int ms)
 {
     return std::int64_t{ms} * kNsPerMs;
 }
+
+// Journal du reconnaisseur factice, écrit sur le fil de la reconnaissance, lu par le test.
+struct FakeLog
+{
+    std::mutex mutex;
+    std::vector<QThread*> creations;    // fil de chaque création du reconnaisseur
+    std::vector<QThread*> recognitions; // fil de chaque reconnaissance
+    std::vector<InkStrokes> requests;   // traits reçus à chaque reconnaissance
+};
+
+// Reconnaisseur factice : rend, à son n-ième appel, la n-ième liste de `answers` (la dernière ensuite).
+class FakeRecognizer final : public HandwritingRecognizer
+{
+public:
+    FakeRecognizer(std::shared_ptr<FakeLog> log, bool isAvailable, QString statusText,
+                   std::vector<QStringList> answerList)
+        : m_log(std::move(log)), m_available(isAvailable), m_status(std::move(statusText)),
+          m_answers(std::move(answerList))
+    {
+        const std::lock_guard lock(m_log->mutex);
+        m_log->creations.push_back(QThread::currentThread());
+    }
+    bool available() const override { return m_available; }
+    QString status() const override { return m_status; }
+    QStringList recognize(const InkStrokes& strokes) override
+    {
+        const std::lock_guard lock(m_log->mutex);
+        m_log->recognitions.push_back(QThread::currentThread());
+        m_log->requests.push_back(strokes);
+        if (m_answers.empty())
+            return {};
+        return m_answers[std::min(m_log->recognitions.size(), m_answers.size()) - 1];
+    }
+
+private:
+    std::shared_ptr<FakeLog> m_log;
+    bool m_available;
+    QString m_status;
+    std::vector<QStringList> m_answers;
+};
+
+std::shared_ptr<FakeLog> installFake(RecognitionController& recognition, bool available,
+                                     std::vector<QStringList> answers,
+                                     const QString& status = QStringLiteral("Reconnaisseur factice"))
+{
+    auto log = std::make_shared<FakeLog>();
+    recognition.setHandwritingFactoryForTest([log, available, answers, status] {
+        return std::make_unique<FakeRecognizer>(log, available, status, answers);
+    });
+    return log;
+}
+
+// Trait d'écriture de (x0, y0) à (x1, y1).
+std::vector<QPointF> inkLine(double x0, double y0, double x1, double y1)
+{
+    std::vector<QPointF> points;
+    for (int i = 0; i <= 12; ++i) {
+        const double t = static_cast<double>(i) / 12;
+        points.emplace_back(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
+    }
+    return points;
+}
+
+// Objets texte de la page affichée, dans l'ordre de la page.
+std::vector<const core::PageObject*> textsOf(const DocumentController& controller)
+{
+    std::vector<const core::PageObject*> found;
+    for (const core::PageObject& object : shownObjects(controller))
+        if (core::kindOf(object) == core::ObjectKind::Text)
+            found.push_back(&object);
+    return found;
+}
+
+QString htmlOf(const core::PageObject& object)
+{
+    return QString::fromStdString(std::get<core::Text>(core::body(object)).html);
+}
+
+// Fenêtre prête, mode écriture ouvert avec un reconnaisseur factice disponible ; horloge injectée.
+struct Writing
+{
+    MainWindow main;
+    DocumentController* controller = nullptr;
+    RecognitionController* recognition = nullptr;
+    std::shared_ptr<FakeLog> log;
+    std::int64_t now = 0;
+
+    bool open(std::vector<QStringList> answers)
+    {
+        controller = controllerOf(main);
+        recognition = recognitionOf(main);
+        if (!main.window() || !controller || !recognition)
+            return false;
+        log = installFake(*recognition, true, std::move(answers));
+        recognition->setClock([this] { return now; });
+        if (!QTest::qWaitFor([this] { return recognition->handwritingAvailable(); }, 10000))
+            return false;
+        return main.run(QStringLiteral("tool.handwriting")) && recognition->handwritingMode();
+    }
+};
 
 class TstUiRecognition : public QObject
 {
@@ -457,6 +566,218 @@ private slots:
         controller->redo(); // B revient
         QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 2);
         QVERIFY(!controller->canRedo());
+    }
+
+    // Mode écriture ouvert par la commande : un mot écrit reste un trait jusqu'au délai, puis devient UN
+    // objet texte (couche intermédiaire, meilleure lecture) ; un seul Annuler rend le trait.
+    void handwritingMakesOneStep()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("bonjour"), QStringLiteral("bonjours")}}));
+        QVERIFY(!w.recognition->shapeMode());
+
+        w.controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310)));
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 1);
+        w.now = atMs(w.recognition->delayMs() - 1);
+        w.recognition->processDue();
+        QTest::qWait(100);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Text), 0); // délai pas encore écoulé
+
+        w.now = atMs(w.recognition->delayMs());
+        w.recognition->processDue();
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 1, 10000);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 0);
+        const std::vector<const core::PageObject*> texts = textsOf(*w.controller);
+        QVERIFY(htmlOf(*texts.front()).contains(QStringLiteral(">bonjour</p>")));
+        QVERIFY(texts.front()->common.layer == core::Layer::Middle);
+        QCOMPARE(w.recognition->alternatives(), QStringList{QStringLiteral("bonjours")});
+
+        w.controller->undo(); // une étape : le trait revient, le texte part
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 1);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Text), 0);
+        w.controller->undo();
+        QVERIFY(shownObjects(*w.controller).empty());
+        QVERIFY(!w.controller->canUndo());
+    }
+
+    // Choisir une alternative remplace le texte, en une étape ; Annuler rend la première lecture.
+    void alternativeReplacesTheText()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("bonjour"), QStringLiteral("bonjours")}}));
+        w.controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310)));
+        w.now = atMs(w.recognition->delayMs());
+        w.recognition->processDue();
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 1, 10000);
+
+        w.recognition->chooseAlternative(0);
+        QCOMPARE(textsOf(*w.controller).size(), std::size_t{1});
+        QVERIFY(htmlOf(*textsOf(*w.controller).front()).contains(QStringLiteral(">bonjours</p>")));
+        QVERIFY(w.recognition->alternatives().contains(QStringLiteral("bonjour")));
+        w.controller->undo();
+        QCOMPARE(textsOf(*w.controller).size(), std::size_t{1});
+        QVERIFY(htmlOf(*textsOf(*w.controller).front()).contains(QStringLiteral(">bonjour</p>")));
+    }
+
+    // Moteur indisponible : mode refusé, commande grisée, explication du moteur gardée (info-bulle).
+    void handwritingDisabledWithExplanation()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        RecognitionController* recognition = recognitionOf(main);
+        auto* commands = main.window()->findChild<Commands*>(QStringLiteral("commands"));
+        QVERIFY(recognition != nullptr);
+        QVERIFY(commands != nullptr);
+        installFake(*recognition, false, {}, QStringLiteral("Moteur d'essai absent"));
+        QTRY_COMPARE_WITH_TIMEOUT(recognition->handwritingStatus(), QStringLiteral("Moteur d'essai absent"),
+                                  10000);
+        QVERIFY(!recognition->handwritingAvailable());
+        QTRY_VERIFY(!commands->isEnabled(QStringLiteral("tool.handwriting")));
+        recognition->setHandwritingMode(true);
+        QVERIFY(!recognition->handwritingMode()); // refusé : aucun trait ne partirait
+
+        installFake(*recognition, true,
+                    {{QStringLiteral("a")}}); // moteur disponible : la commande se dégrise
+        QTRY_VERIFY(commands->isEnabled(QStringLiteral("tool.handwriting")));
+        QVERIFY(recognition->handwritingAvailable());
+    }
+
+    // Absente d'Android (platforms de commands.json), présente sous Windows.
+    void handwritingAbsentOnAndroid()
+    {
+        QTemporaryDir profile;
+        Commands commands;
+        commands.setProfileDir(profile.path());
+        commands.setPlatform(actcraft::actions::Platform::Windows);
+        QVERIFY(commands.isAvailable(QStringLiteral("tool.handwriting")));
+        commands.setPlatform(actcraft::actions::Platform::Android);
+        QVERIFY(!commands.isAvailable(QStringLiteral("tool.handwriting")));
+        QVERIFY(!commands.trigger(QStringLiteral("tool.handwriting")));
+    }
+
+    // Un seul fil, créé une fois et gardé : le reconnaisseur y est créé, toutes les reconnaissances y
+    // passent, jamais sur le fil principal ; fermer puis rouvrir le mode ne le recrée pas.
+    void controllerOwnsOneHandwritingThread()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("un")}, {QStringLiteral("deux")}}));
+        QThread* const thread = w.recognition->handwritingThread();
+        QVERIFY(thread != nullptr);
+        QVERIFY(thread != QThread::currentThread());
+        QVERIFY(thread->isRunning());
+
+        w.controller->commitStroke(strokeThrough(inkLine(100, 100, 200, 110)));
+        w.now = atMs(w.recognition->delayMs());
+        w.recognition->processDue();
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 1, 10000);
+        w.recognition->setHandwritingMode(false);
+        w.recognition->setHandwritingMode(true);
+        w.controller->commitStroke(strokeThrough(inkLine(500, 400, 600, 410)));
+        w.now += atMs(w.recognition->delayMs());
+        w.recognition->processDue();
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 2, 10000);
+
+        QCOMPARE(w.recognition->handwritingThread(), thread);
+        const std::lock_guard lock(w.log->mutex);
+        QCOMPARE(w.log->creations.size(), std::size_t{1});
+        QCOMPARE(w.log->creations.front(), thread);
+        QCOMPARE(w.log->recognitions.size(), std::size_t{2});
+        for (QThread* const used : w.log->recognitions)
+            QCOMPARE(used, thread);
+    }
+
+    // Deux mots séparés d'une pause : deux objets texte, une seule étape ; deux traits rapprochés : un mot.
+    void eachWordBecomesItsOwnText()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("un")}, {QStringLiteral("deux")}, {QStringLiteral("trois")}}));
+        QVERIFY(w.recognition->delayMs() > 800);
+
+        w.controller->commitStroke(strokeThrough(inkLine(100, 100, 200, 110)));
+        w.now = atMs(800); // pause entre les deux mots, plus courte que le délai
+        w.controller->commitStroke(strokeThrough(inkLine(500, 100, 600, 110)));
+        w.now = atMs(800 + w.recognition->delayMs());
+        w.recognition->processDue();
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 2, 10000);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 0);
+        const std::vector<const core::PageObject*> texts = textsOf(*w.controller);
+        QVERIFY(htmlOf(*texts[0]).contains(QStringLiteral(">un</p>")));
+        QVERIFY(htmlOf(*texts[1]).contains(QStringLiteral(">deux</p>")));
+        QVERIFY(std::get<core::Text>(core::body(*texts[0])).bounds.x <
+                std::get<core::Text>(core::body(*texts[1])).bounds.x);
+        w.controller->undo(); // les deux mots d'un coup
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Text), 0);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 2);
+        w.controller->redo();
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Text), 2);
+
+        w.now += atMs(20000);
+        w.controller->commitStroke(strokeThrough(inkLine(100, 300, 200, 310)));
+        w.now += atMs(100); // moins d'une pause : même mot
+        w.controller->commitStroke(strokeThrough(inkLine(220, 300, 300, 310)));
+        w.now += atMs(w.recognition->delayMs());
+        w.recognition->processDue();
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 3, 10000);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 0);
+        const std::lock_guard lock(w.log->mutex);
+        QCOMPARE(w.log->recognitions.size(), std::size_t{3});
+        QCOMPARE(w.log->requests.back().size(), std::size_t{2}); // deux traits, un appel
+    }
+
+    // Un trait loin du texte reconnu valide la lecture (les alternatives se ferment, le texte reste) ; un
+    // trait qui le recoupe ne la valide pas.
+    void clickOutsideValidatesTheText()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("bonjour"), QStringLiteral("bonjours")}}));
+        w.controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310)));
+        w.now = atMs(w.recognition->delayMs());
+        w.recognition->processDue();
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 1, 10000);
+        QQuickItem* panel = w.main.item(QStringLiteral("recognitionAlternatives"));
+        QVERIFY(panel != nullptr);
+        QTRY_VERIFY(panel->isVisible());
+
+        w.controller->commitStroke(strokeThrough(inkLine(350, 305, 450, 305))); // sur le texte
+        QCOMPARE(w.recognition->alternatives().size(), 1);
+        QVERIFY(panel->isVisible());
+
+        w.controller->commitStroke(strokeThrough(inkLine(900, 600, 1000, 650))); // loin du texte
+        QVERIFY(w.recognition->alternatives().isEmpty());
+        QTRY_VERIFY(!panel->isVisible());
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Text), 1); // le texte reste
+    }
+
+    void alternativesBlockTheStylus_data() { presentationharness::addPointerRows(); }
+
+    // Les alternatives sont une couverture (FloatingPanel) : ni stylet, ni doigt, ni souris ne tracent
+    // dessous ; un trait ailleurs sur la page est versé.
+    void alternativesBlockTheStylus()
+    {
+        QFETCH(presentationharness::Pointer, pointer);
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("bonjour"), QStringLiteral("bonjours")}}));
+        w.controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310)));
+        w.now = atMs(w.recognition->delayMs());
+        w.recognition->processDue();
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 1, 10000);
+        QQuickItem* panel = w.main.item(QStringLiteral("recognitionAlternatives"));
+        QVERIFY(panel != nullptr);
+        QTRY_VERIFY(panel->isVisible());
+        QTest::qWait(100);
+        const int before = w.main.pageObjectCount();
+        QVERIFY(before >= 1);
+
+        const QPointF inside = panel->mapToScene(QPointF(panel->width() * 0.5, panel->height() - 6));
+        presentationharness::strokeAt(w.main.window(), pointer, inside, inside + QPointF(30, 0));
+        QTest::qWait(150);
+        QCOMPARE(w.main.pageObjectCount(), before);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 0);
+
+        // Hors du panneau (en bas à droite de la fenêtre) : le trait est versé.
+        const QPointF outside(w.main.window()->width() * 0.8, w.main.window()->height() * 0.8);
+        presentationharness::strokeAt(w.main.window(), pointer, outside, outside + QPointF(60, 0));
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Stroke), 1, 5000);
     }
 };
 

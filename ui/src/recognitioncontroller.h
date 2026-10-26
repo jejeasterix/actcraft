@@ -2,6 +2,7 @@
 
 #include <actcraft/core/model.h>
 #include <actcraft/core/undo.h>
+#include <actcraft/features/handwriting.h>
 #include <actcraft/features/recognitionsession.h>
 #include <actcraft/ui/documentcontroller.h>
 
@@ -10,12 +11,17 @@
 #include <QMetaObject>
 #include <QObject>
 #include <QPointer>
+#include <QRectF>
 #include <QString>
+#include <QStringList>
+#include <QThread>
 #include <QTimer>
 #include <QtQml/qqmlregistration.h>
 
 #include <cstdint>
 #include <functional>
+#include <map>
+#include <memory>
 #include <vector>
 
 namespace actcraft::ui {
@@ -25,7 +31,11 @@ namespace actcraft::ui {
 // commun s'est écoulé depuis le DERNIER trait, chaque trait reconnu est remplacé par sa forme, couche
 // intermédiaire, en une étape d'annulation (DocumentInsertions::replaceObjects). La session ne se vide que
 // sur documentReplaced : documentChanged part après chaque trait (décision 13 de la phase 2). Les traits mûrs
-// passent par processDue, seul point de répartition : la reconnaissance d'écriture (L7-T23) s'y branche.
+// passent par processDue, seul point de répartition. Mode écriture (F-295, L7-T23) : exclusif avec le mode
+// forme ; le contrôleur possède UN HandwritingThread (fil dédié, créé une fois, gardé). Les traits mûrs sont
+// coupés en mots à chaque pause, chaque mot est reconnu sur ce fil, puis tous les mots reconnus remplacent
+// leurs traits par un objet texte chacun, en une étape. Les autres lectures du dernier mot restent proposées
+// (alternatives) jusqu'à la validation : un trait loin du texte, un Annuler ou un autre mode.
 class RecognitionController : public QObject
 {
     Q_OBJECT
@@ -41,6 +51,16 @@ class RecognitionController : public QObject
     // Genre de la dernière forme posée (« circle », « polygon »…) ; vide tant qu'aucune.
     Q_PROPERTY(QString lastKind READ lastKind NOTIFY lastKindChanged)
     Q_PROPERTY(int pendingCount READ pendingCount NOTIFY pendingCountChanged)
+    // Mode écriture : refusé tant que le reconnaisseur n'a pas répondu disponible.
+    Q_PROPERTY(
+        bool handwritingMode READ handwritingMode WRITE setHandwritingMode NOTIFY handwritingModeChanged)
+    Q_PROPERTY(bool handwritingAvailable READ handwritingAvailable NOTIFY handwritingProbed)
+    // Explication du moteur (info-bulle de la commande grisée) ; vide avant la réponse de probe().
+    Q_PROPERTY(QString handwritingStatus READ handwritingStatus NOTIFY handwritingProbed)
+    // Autres lectures du dernier texte reconnu (hors celle du texte) ; vide : rien à proposer.
+    Q_PROPERTY(QStringList alternatives READ alternatives NOTIFY alternativesChanged)
+    // Boîte, en pixels de page, du dernier texte reconnu.
+    Q_PROPERTY(QRectF alternativesAnchor READ alternativesAnchor NOTIFY alternativesChanged)
 
 public:
     using Clock = std::function<std::int64_t()>; // instant monotone, en nanosecondes
@@ -60,6 +80,24 @@ public:
     void setDelayMs(int delayMs);
     QString lastKind() const;
     int pendingCount() const noexcept;
+    bool handwritingMode() const noexcept;
+    void setHandwritingMode(bool on);
+    bool handwritingAvailable() const noexcept;
+    QString handwritingStatus() const;
+    QStringList alternatives() const;
+    QRectF alternativesAnchor() const;
+    // Le fil dédié (nul avant le premier probeHandwriting()).
+    QThread* handwritingThread() const noexcept;
+
+    // Tests : fabrique du reconnaisseur, appelée sur le fil dédié (nul : celui de la plateforme). Le fil est
+    // recréé et interrogé de nouveau.
+    void setHandwritingFactoryForTest(features::HandwritingThread::Factory factory);
+    // Crée le fil au premier appel et lui demande si le moteur est disponible : handwritingProbed en réponse.
+    Q_INVOKABLE void probeHandwriting();
+    // Remplace le texte reconnu par l'une des autres lectures (index dans alternatives()), en une étape.
+    Q_INVOKABLE void chooseAlternative(int index);
+    // Valide le texte tel qu'il est : les alternatives se ferment.
+    Q_INVOKABLE void validate();
 
     // Tests : temps injecté (aucune attente réelle du délai) ; nul : horloge monotone du contrôleur.
     void setClock(Clock clock);
@@ -77,11 +115,20 @@ signals:
     void delayMsChanged();
     void lastKindChanged();
     void pendingCountChanged();
+    void handwritingModeChanged();
+    void handwritingProbed();
+    void alternativesChanged();
 
 private:
     void onChanges(const core::Changes& applied, DocumentController::ChangeOrigin origin);
     void resetSession();
     void recognizeShapes(const std::vector<core::ObjectId>& strokes);
+    void dispatch(const std::vector<core::ObjectId>& strokes);
+    void recognizeHandwriting(const std::vector<core::ObjectId>& strokes);
+    void startThread();
+    void closeAlternatives();
+    void showAlternatives(QStringList readings, QRectF bounds, core::ObjectId text);
+    core::PageObject textFor(const QRectF& bounds, const QString& text) const;
     void updateTimer();
     std::int64_t now() const;
 
@@ -96,6 +143,19 @@ private:
     bool m_fillShapes = false;
     QColor m_fillColor;
     QString m_lastKind;
+    // Écriture. Le fil est déclaré en dernier : détruit en premier, avant ce qui reçoit ses réponses.
+    bool m_handwritingMode = false;
+    bool m_available = false;
+    QString m_status;
+    std::uint64_t m_epoch = 0;     // session remise à zéro : les reconnaissances en vol sont abandonnées
+    std::uint64_t m_threadGen = 0; // fil recréé : ses réponses en vol sont abandonnées
+    std::map<core::ObjectId, std::int64_t> m_arrivedAt; // instant d'arrivée de chaque trait en attente
+    features::HandwritingThread::Factory m_factory;
+    QStringList m_readings; // lectures du dernier texte, la première est celle du texte posé
+    int m_current = 0;      // lecture actuellement dans le texte
+    QRectF m_anchor;
+    core::ObjectId m_lastText = 0;
+    std::unique_ptr<features::HandwritingThread> m_thread;
 };
 
 } // namespace actcraft::ui
