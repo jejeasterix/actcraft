@@ -268,8 +268,8 @@ private slots:
             "<p>visible<img src=\"file://hote/partage/x.png\"><img src=\"http://exemple.invalid/y.png\">"
             "<a href=\"http://exemple.invalid/lien\">lien</a></p>"
             "<table background=\"file://hote/z.png\"><tr><td "
-            "background=\"file://hote/w.png\">a</td></tr></table>"
-            "<p style=\"background-image:url(file://hote/v.png)\">b</p>");
+            "background=\"file://hote/w.png\">cellule</td></tr></table>"
+            "<p style=\"background-image:url(file://hote/v.png)\">fond</p>");
         const QList<QUrl> inputs{QUrl(QStringLiteral("file://hote/partage/x.png")),
                                  QUrl(QStringLiteral("http://exemple.invalid/y.png")),
                                  QUrl(QStringLiteral("file://hote/z.png")),
@@ -303,8 +303,9 @@ private slots:
         const QString plain = h.editing.plainText();
         QVERIFY(plain.contains(QStringLiteral("visible")));
         QVERIFY(plain.contains(QStringLiteral("lien")));
-        QVERIFY(plain.contains(QLatin1Char('a')));
-        QVERIFY(plain.contains(QLatin1Char('b')));
+        // Q4a2-m7 : mots témoins distincts (« visible » contenait déjà le « b » d'avant).
+        QVERIFY(plain.contains(QStringLiteral("cellule")));
+        QVERIFY(plain.contains(QStringLiteral("fond")));
     }
 
     // Enregistrer pendant l'édition (editAboutToApply) : le fichier relu contient le texte frappé.
@@ -435,12 +436,12 @@ private slots:
         QVERIFY(h.editing.beginAt({210, 210}, false));
         QVERIFY(h.controller.isLifting());
         QCOMPARE(h.cacheSpy.removes, 1);
-        const bool couldUndo = h.controller.canUndo();
         for (int i = 0; i < 20; ++i) {
             h.typeChar(QLatin1Char('x'));
         }
-        QCOMPARE(h.cacheSpy.total(), 1); // rien pendant la frappe
-        QCOMPARE(h.controller.canUndo(), couldUndo);
+        // Rien pendant la frappe. Q4a2-m8 : la comparaison de canUndo() avant et après est retirée, elle
+        // valait toujours vrai (l'AddObjectCommand de addText précède) ; l'espion de cache porte le test.
+        QCOMPARE(h.cacheSpy.total(), 1);
         h.editing.commit();
         QCOMPARE(h.cacheSpy.inserts, 1);
         QVERIFY(!h.controller.isLifting());
