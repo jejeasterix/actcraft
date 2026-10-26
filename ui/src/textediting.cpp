@@ -30,7 +30,10 @@
 
 namespace actcraft::ui {
 
-QString safeTextHtml(const QString& html, const std::function<void(const QUrl&, const QVariant&)>& observer);
+using ResourceObserver = std::function<void(const QUrl&, const QVariant&)>;
+
+QString safeTextHtml(const QString& html, const ResourceObserver& observer);
+std::unique_ptr<QTextDocument> isolatedTextDocument(ResourceObserver observer);
 
 namespace {
 
@@ -49,8 +52,7 @@ QString placeholderText()
 class AnalysisDocument final : public QTextDocument
 {
 public:
-    explicit AnalysisDocument(const std::function<void(const QUrl&, const QVariant&)>& observer)
-        : m_observer(observer)
+    explicit AnalysisDocument(ResourceObserver observer) : m_observer(std::move(observer))
     {
         setDocumentMargin(0);
     }
@@ -66,7 +68,7 @@ protected:
     }
 
 private:
-    const std::function<void(const QUrl&, const QVariant&)>& m_observer;
+    ResourceObserver m_observer;
 };
 
 template <typename Format> bool clearImageUrl(Format& format)
@@ -112,10 +114,16 @@ void cleanFrames(QTextFrame* frame)
 
 } // namespace
 
+// Pour tst_ui_text (L4-C13) : le document isolé de safeTextHtml et de measuredBounds, sans en-tête public.
+std::unique_ptr<QTextDocument> isolatedTextDocument(ResourceObserver observer)
+{
+    return std::make_unique<AnalysisDocument>(std::move(observer));
+}
+
 // Bloquant 5 (amendements 1 à 3) : le HTML d'un texte vient du fichier ouvert. Rien n'en est chargé ; les
 // images hors `data:`, les ancres et les images de fond (bloc, cadre, tableau, cellule, caractères) sont
 // retirées.
-QString safeTextHtml(const QString& html, const std::function<void(const QUrl&, const QVariant&)>& observer)
+QString safeTextHtml(const QString& html, const ResourceObserver& observer)
 {
     AnalysisDocument document(observer);
     document.setHtml(html);
@@ -442,8 +450,7 @@ bool TextEditing::beginAt(QPointF pagePoint, bool vertical)
 // l'emprise.
 core::RectF TextEditing::measuredBounds(const QString& safeHtml) const
 {
-    const std::function<void(const QUrl&, const QVariant&)> none;
-    AnalysisDocument measure(none);
+    AnalysisDocument measure{ResourceObserver()};
     measure.setHtml(safeHtml);
     const qreal width = m_fixedWidth > 0 ? m_fixedWidth : std::ceil(measure.idealWidth()) + 1;
     measure.setTextWidth(width);

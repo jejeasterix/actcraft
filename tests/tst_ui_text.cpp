@@ -6,14 +6,21 @@
 #include <actcraft/ui/pagescontroller.h>
 #include <actcraft/ui/textediting.h>
 
+#include <QColor>
+#include <QFile>
+#include <QImage>
 #include <QList>
+#include <QMetaType>
 #include <QObject>
+#include <QPainter>
 #include <QPointF>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickTextDocument>
 #include <QSignalSpy>
+#include <QSize>
 #include <QString>
+#include <QStringList>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QTextBlock>
@@ -33,12 +40,44 @@
 using namespace actcraft;
 
 namespace actcraft::ui {
-// Fonction libre de ui/src/textediting.cpp (amendement 1, bloquant 5) : pas d'en-tête public, le contrat de
-// L4-T1 reste tel quel. `observer` voit chaque appel de loadResource du document d'analyse et sa réponse.
+// Fonctions libres de ui/src/textediting.cpp (amendement 1, bloquant 5 ; L4-C13) : pas d'en-tête public, le
+// contrat de L4-T1 reste tel quel. `observer` voit chaque appel de loadResource du document isolé (celui de
+// safeTextHtml et de la mesure) et sa réponse.
 QString safeTextHtml(const QString& html, const std::function<void(const QUrl&, const QVariant&)>& observer);
+std::unique_ptr<QTextDocument>
+isolatedTextDocument(std::function<void(const QUrl&, const QVariant&)> observer);
 } // namespace actcraft::ui
 
 namespace {
+
+// Réponse de la garde du peintre (render/src/pagepainter.cpp:77-88) : vide mais valide. Une réponse nulle
+// laisse Qt se rabattre sur la lecture directe du fichier.
+bool emptyButValid(const QVariant& answer)
+{
+    if (answer.metaType() == QMetaType::fromType<QImage>()) {
+        const QImage image = answer.value<QImage>();
+        return image.size() == QSize(1, 1) && image.pixelColor(0, 0).alpha() == 0;
+    }
+    if (answer.metaType() == QMetaType::fromType<QString>()) {
+        return answer.toString().isEmpty();
+    }
+    if (answer.metaType() == QMetaType::fromType<QByteArray>()) {
+        return answer.toByteArray().isEmpty();
+    }
+    return false;
+}
+
+int redPixels(const QImage& image)
+{
+    int reds = 0;
+    for (int y = 0; y < image.height(); ++y) {
+        for (int x = 0; x < image.width(); ++x) {
+            const QColor c = image.pixelColor(x, y);
+            reds += c.red() > 200 && c.green() < 80 && c.blue() < 80 ? 1 : 0;
+        }
+    }
+    return reds;
+}
 
 // Cache espion (D-S7) : ce que core::applyToCache lui envoie.
 class CountingCache final : public core::PageCache
@@ -158,25 +197,95 @@ class TstUiText : public QObject
 
 private slots:
     // Bloquant 5 (amendements 1 à 3) : le HTML d'un fichier ouvert n'entre jamais tel quel dans le TextEdit.
+    // L4-C13 (C9) : le document isolé de l'édition (safeTextHtml, mesure) suit la règle du peintre, qui est
+    // interne à render. Il passe donc le crible du test du peintre (tst_render_painter,
+    // htmlLoadsNoExternalResource), mêmes variantes : rien n'est lu ni dessiné, même à la densité 2, et le
+    // gestionnaire d'images ne demande aucune ressource. Amendé : chaque demande reçoit une réponse vide mais
+    // valide, comme au peintre ; l'ancienne garde répondait nul (allNull), et Qt lisait alors le fichier.
     void editingLoadsNoExternalResource()
     {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QImage red(60, 60, QImage::Format_ARGB32);
+        red.fill(Qt::red);
+        const QString png = dir.filePath(QStringLiteral("rouge.png"));
+        QVERIFY(red.save(png, "PNG"));
+        QVERIFY(red.save(dir.filePath(QStringLiteral("rouge@2x.png")), "PNG")); // variante de densité 2
+        const QString css = dir.filePath(QStringLiteral("style.css"));
+        {
+            QFile file(css);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("p { color: #ff0000; background-color: #ff0000; }");
+        }
+        const QString pngUrl = QUrl::fromLocalFile(png).toString();
+        const QString cssUrl = QUrl::fromLocalFile(css).toString();
+        // Les trois premières variantes portent une image : c'est le gestionnaire d'images qui répond.
+        const QStringList variants = {
+            QStringLiteral("<img src=\"") + pngUrl + QStringLiteral("\" width=\"60\" height=\"60\">"),
+            QStringLiteral("<img src=\"") + png + QStringLiteral("\" width=\"60\" height=\"60\">"),
+            QStringLiteral("<img src=\"") + pngUrl + QStringLiteral("\">"),
+            QStringLiteral("<table background=\"") + pngUrl +
+                QStringLiteral("\" width=\"200\" height=\"60\"><tr><td>XXXX</td></tr></table>"),
+            QStringLiteral("<p style=\"background-image:url(") + pngUrl + QStringLiteral(")\">XXXX XXXX</p>"),
+            QStringLiteral("<style>@import url(") + cssUrl + QStringLiteral(");</style><p>XXXX</p>"),
+        };
+        for (qsizetype v = 0; v < variants.size(); ++v) {
+            const QString& variant = variants.at(v);
+            QList<QUrl> asked;
+            bool answersValid = true;
+            const std::unique_ptr<QTextDocument> document =
+                ui::isolatedTextDocument([&](const QUrl& url, const QVariant& answer) {
+                    asked << url;
+                    answersValid = answersValid && emptyButValid(answer);
+                });
+            document->setHtml(variant);
+            document->setTextWidth(300);
+            if (v == 2) { // sans dimensions : sa place vient de ses seuls attributs, l'image n'est pas lue
+                QVERIFY2(document->size().height() < 60,
+                         qPrintable(QString::number(document->size().height())));
+            }
+            for (const qreal ratio : {1.0, 2.0}) {
+                QImage canvas(qRound(320 * ratio), qRound(200 * ratio), QImage::Format_ARGB32_Premultiplied);
+                canvas.setDevicePixelRatio(ratio);
+                canvas.fill(Qt::white);
+                {
+                    QPainter painter(&canvas);
+                    document->drawContents(&painter);
+                }
+                const int reds = redPixels(canvas);
+                QVERIFY2(reds == 0, qPrintable(variant + QStringLiteral(" : ") + QString::number(reds)));
+            }
+            QVERIFY2(answersValid, qPrintable(variant));
+            if (v < 3) {
+                QVERIFY2(asked.isEmpty(),
+                         qPrintable(variant + QStringLiteral(" : ") +
+                                    (asked.isEmpty() ? QString() : asked.first().toString())));
+            }
+        }
+
         const QString html = QStringLiteral(
+            "<style>@import url(file://hote/s.css);</style>"
             "<p>visible<img src=\"file://hote/partage/x.png\"><img src=\"http://exemple.invalid/y.png\">"
             "<a href=\"http://exemple.invalid/lien\">lien</a></p>"
             "<table background=\"file://hote/z.png\"><tr><td "
             "background=\"file://hote/w.png\">a</td></tr></table>"
             "<p style=\"background-image:url(file://hote/v.png)\">b</p>");
-        const QList<QUrl> inputs{
-            QUrl(QStringLiteral("file://hote/partage/x.png")),
-            QUrl(QStringLiteral("http://exemple.invalid/y.png")), QUrl(QStringLiteral("file://hote/z.png")),
-            QUrl(QStringLiteral("file://hote/w.png")), QUrl(QStringLiteral("file://hote/v.png"))};
+        const QList<QUrl> inputs{QUrl(QStringLiteral("file://hote/partage/x.png")),
+                                 QUrl(QStringLiteral("http://exemple.invalid/y.png")),
+                                 QUrl(QStringLiteral("file://hote/z.png")),
+                                 QUrl(QStringLiteral("file://hote/w.png")),
+                                 QUrl(QStringLiteral("file://hote/v.png")),
+                                 QUrl(QStringLiteral("file://hote/s.css"))};
         QList<QUrl> requested;
-        bool allNull = true;
+        bool allValid = true;
         const QString safe = ui::safeTextHtml(html, [&](const QUrl& url, const QVariant& answer) {
             requested << url;
-            allNull = allNull && !answer.isValid();
+            allValid = allValid && emptyButValid(answer);
         });
-        QVERIFY(allNull);
+        // Une image de fond et une feuille de style sont bien demandées : allValid ne passe pas à vide.
+        QVERIFY(requested.contains(QUrl(QStringLiteral("file://hote/z.png"))));
+        QVERIFY(requested.contains(QUrl(QStringLiteral("file://hote/s.css"))));
+        QVERIFY(allValid);
         for (const QUrl& url : requested) {
             QVERIFY2(inputs.contains(url), qPrintable(url.toString()));
         }
