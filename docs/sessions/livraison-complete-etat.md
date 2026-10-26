@@ -3,7 +3,7 @@
 Statut : en cours — repris le 2026-10-16 à 17 h 20 dans Claude Desktop (handoff `docs/sessions/2026-10-16-handoff-livraison-complete.md`) ; règles communes recréées dans le scratchpad (`regles-tache.md`) ; mémoire 0,4 Go libres → parallélisme 1 ; jetons `tests` et `ecran` tenus par des PID morts (autres sessions), repris automatiquement
 Gabarit : lots (provisoire, à confirmer à l'étage 2)
 Avancement : 4/11 lots clos — clos : 1, 2, 10, 3 · en cours : 4, 7 (B) · à faire : 5, 6, 8, 9, 11
-Étage : 3 (lot 4 ; point d'étape de 4a, double relecture) — depuis 2026-10-26
+Étage : 3 (lot 4 ; point d'étape de 4a, correctifs L4-C7 à L4-C13 à lancer) — depuis 2026-10-26
 Lot : 4 « Outils II » — 28/38 tâches terminées — depuis 2026-10-21 06:46
 Questions à Jérôme : —
 Historique des étages : 3 du lot 10 « cache incrémental » (plan 12b9af9 ; V1 mergée ; V1-V3 mergées (T0, T1, T2, T5, T3) ; V1-V4 mergées (T0, T1, T2, T5, T3, T4 → 05da054) ; V5 : L10-T6 mergée (6e2838e, S13 tenu) ; amendement 2 du plan : L10-T8 (repli H10-9) puis L10-T9 (enquête pauses) ; plans des lots 3 (60a4290) et 7 (2320293, sous-lots 7a/7b) écrits, en relecture ; socle commun 3/7 à trancher après les relectures ; main fusionnée (0322a4e, CI sautée pour les PR en brouillon) ; parallélisme 1 sous 2 Go) — lot 2 clos : PR #4 mergée (70c0493), porte de fin passée le 2026-10-17. Historique du plan du lot 2 : sous-lots 2a (`docs/plans/2026-10-15-livraison-complete-lot2a-PLAN.md`, L2-T1…T10) et 2b (`…-lot2b-PLAN.md`, L2-T11…T23), relus en 3 tours (8234719) ; une seule PR à la fin de 2b — lot 1 clos et mergé (PR #3, 3de027a). Ordre des lots modifié par Jérôme : lot 2, puis lot « cache incrémental » (ex-lot 10), puis les autres dans l'ordre du cadrage.
