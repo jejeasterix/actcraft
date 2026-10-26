@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793056440.1827304,
-    "ast_hash": "5c38cae38063e7785193cc27f3b2e1b1",
+    "mtime": 1793058568.2826197,
+    "ast_hash": "cc80489f0bb0247653a634e921875b0d",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -2305,8 +2305,8 @@
     "semantic_hash": ""
   },
   "tests/tst_tools_text.cpp": {
-    "mtime": 1792585154.1969235,
-    "ast_hash": "a0d364f6a425aa92fe6af23ac48d2628",
+    "mtime": 1793058609.1040106,
+    "ast_hash": "491efb1b23811350816643b83c92aaf9",
     "semantic_hash": ""
   },
   "tests/tst_ui_pages.cpp": {
@@ -2330,8 +2330,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_text.cpp": {
-    "mtime": 1792596987.1661572,
-    "ast_hash": "a3332708a442c9a8d2c00a8e98aa65dd",
+    "mtime": 1793058609.106131,
+    "ast_hash": "1ba7ba93b93bf2e5c0bad22277b9f9fa",
     "semantic_hash": ""
   },
   "tools/include/actcraft/tools/shapetool.h": {
@@ -2340,8 +2340,8 @@
     "semantic_hash": ""
   },
   "tools/include/actcraft/tools/texttool.h": {
-    "mtime": 1792565548.6052828,
-    "ast_hash": "608355600bb9ab155f09966ba959e9a5",
+    "mtime": 1793058609.1086283,
+    "ast_hash": "f8c42bebe7bfd2353df7142058f7c887",
     "semantic_hash": ""
   },
   "tools/src/shapetool.cpp": {
@@ -2390,8 +2390,8 @@
     "semantic_hash": ""
   },
   "ui/src/textediting.cpp": {
-    "mtime": 1792589942.2725346,
-    "ast_hash": "ea40af8cb6583e4d18a4a221b80402cf",
+    "mtime": 1793058609.1086283,
+    "ast_hash": "33b0edd48cf71720f8492ff6a4370890",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot4-principes.md": {
