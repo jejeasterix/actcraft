@@ -51,7 +51,8 @@ constexpr double kLimitGap = 0.1;
 constexpr double kColumnGap = 0.8;
 constexpr double kRowGap = 0.35;
 constexpr double kFenceMargin = 0.05;
-constexpr std::size_t kCacheEntries = 64;
+constexpr std::size_t kCacheEntries = 64; // couples (texte, taille) gardés par fil
+constexpr double kDefaultPoints = 24;     // taille d'une équation sans taille valide
 
 constexpr std::string_view kCursorClass = "actcraft-cursor";
 
@@ -560,51 +561,78 @@ void flatten(const EquationBox& box, QPointF origin, Drawing& out)
     }
 }
 
-double pointSizeOf(const core::Equation& equation)
+// Taille en points, ou la taille par défaut si elle n'est pas valide.
+double pointsOr(double pointSize)
 {
-    return std::isfinite(equation.pointSize) && equation.pointSize > 0 ? equation.pointSize : 24.0;
+    return std::isfinite(pointSize) && pointSize > 0 ? pointSize : kDefaultPoints;
 }
 
-struct CacheEntry
+bool hasRaw(const core::EquationNode& node)
 {
-    double pointSize = 0;
-    std::optional<Drawing> drawing; // vide : MathML illisible
+    return node.kind == Kind::Raw ||
+           std::any_of(node.children.begin(), node.children.end(),
+                       [](const core::EquationNode& child) { return hasRaw(child); });
+}
+
+// MathML lu, mis en page à cette taille et aplati. Vide s'il est illisible, ou si rien n'y est dessinable :
+// aucune encre et au moins un élément inconnu de cette version (<mstyle>, <semantics>…). Le repère neutre
+// le remplace alors, comme pour une équation illisible ; une équation lisible sans encre ni élément inconnu
+// (cases vides) reste une équation.
+std::optional<Drawing> layoutDrawing(const std::string& mathml, double points)
+{
+    QString error;
+    const std::optional<core::EquationNode> root = core::parseMathml(mathml, error);
+    if (!root) {
+        return std::nullopt;
+    }
+    const EquationBox box = layoutEquation(*root, equationFont(points));
+    Drawing drawing;
+    drawing.ink.setFillRule(Qt::WindingFill);
+    flatten(box, QPointF(), drawing);
+    if (drawing.ink.isEmpty() && hasRaw(*root)) {
+        return std::nullopt;
+    }
+    // Cadre mis à l'échelle dans la boîte de l'équation : la boîte et toute l'encre (onglet du signe de la
+    // racine, débord d'un glyphe), que la texture du moteur peint, découpée à la boîte, garde entière.
+    drawing.frame =
+        QRectF(0, -box.ascent, box.width, box.ascent + box.descent).united(drawing.ink.boundingRect());
+    return drawing;
+}
+
+// Dessins gardés : clé, le texte entier du MathML, puis la taille. Deux tailles du même texte ne se
+// chassent pas.
+struct DrawingCache
+{
+    std::unordered_map<std::string, std::unordered_map<double, std::optional<Drawing>>> byText;
+    std::size_t entries = 0;
 };
 
 // Un cache par fil (peintre partagé : fil de rendu, miniatures, exports) : aucun objet partagé entre fils,
-// aucun verrou. Le MathML n'est relu et remis en page que si son texte (clé : std::hash du texte) ou sa
-// taille change, jamais à chaque image.
+// aucun verrou. Un couple (texte, taille) n'est lu et mis en page qu'une fois, jamais à chaque image, tant
+// que le fil n'en dessine pas plus de kCacheEntries ; au-delà, le cache repart de zéro.
 const Drawing* drawingOf(const core::Equation& equation)
 {
-    thread_local std::unordered_map<std::string, CacheEntry> cache;
-    const double pointSize = pointSizeOf(equation);
-    auto it = cache.find(equation.mathml);
-    if (it != cache.end() && it->second.pointSize == pointSize) {
-        return it->second.drawing ? &*it->second.drawing : nullptr;
-    }
-    if (it == cache.end()) {
-        if (cache.size() >= kCacheEntries) {
-            cache.clear();
+    thread_local DrawingCache cache;
+    const double points = pointsOr(equation.pointSize);
+    auto forText = cache.byText.find(equation.mathml);
+    if (forText != cache.byText.end()) {
+        if (const auto found = forText->second.find(points); found != forText->second.end()) {
+            return found->second ? &*found->second : nullptr;
         }
-        it = cache.emplace(equation.mathml, CacheEntry{}).first;
     }
-    CacheEntry& entry = it->second;
-    entry.pointSize = pointSize;
-    entry.drawing.reset();
-    QString error;
-    const std::optional<core::EquationNode> root = core::parseMathml(equation.mathml, error);
-    if (root) {
-        const EquationBox box = layoutEquation(*root, equationFont(pointSize));
-        Drawing drawing;
-        drawing.ink.setFillRule(Qt::WindingFill);
-        flatten(box, QPointF(), drawing);
-        // Cadre mis à l'échelle dans la boîte de l'équation : la boîte et toute l'encre (onglet du signe de
-        // la racine, débord d'un glyphe), que la texture du moteur peint, découpée à la boîte, garde entière.
-        drawing.frame =
-            QRectF(0, -box.ascent, box.width, box.ascent + box.descent).united(drawing.ink.boundingRect());
-        entry.drawing = std::move(drawing);
+    if (cache.entries >= kCacheEntries) {
+        cache.byText.clear();
+        cache.entries = 0;
+        forText = cache.byText.end();
     }
-    return entry.drawing ? &*entry.drawing : nullptr;
+    if (forText == cache.byText.end()) {
+        forText =
+            cache.byText.emplace(equation.mathml, std::unordered_map<double, std::optional<Drawing>>()).first;
+    }
+    std::optional<Drawing>& slot = forText->second[points];
+    ++cache.entries;
+    slot = layoutDrawing(equation.mathml, points);
+    return slot ? &*slot : nullptr;
 }
 
 // Repère neutre de paintUnknown (pagepainter.cpp) sur la boîte de l'équation : cadre gris pointillé d'un
@@ -622,7 +650,7 @@ void paintNeutralFrame(QPainter& painter, const core::RectF& b)
 
 QFont equationFont(double pointSize)
 {
-    const double points = std::isfinite(pointSize) && pointSize > 0 ? pointSize : 24.0;
+    const double points = pointsOr(pointSize);
     QFont font;
     font.setFamilies(
         {QStringLiteral("Times New Roman"), QStringLiteral("Cambria Math"), QStringLiteral("DejaVu Serif")});
@@ -640,7 +668,7 @@ EquationBox layoutEquation(const core::EquationNode& node, const QFont& font)
     } else if (font.pointSizeF() > 0) {
         ctx.baseEm = font.pointSizeF() * 96.0 / 72.0;
     } else {
-        ctx.baseEm = 32;
+        ctx.baseEm = kDefaultPoints * 96.0 / 72.0;
     }
     ctx.font.setPixelSize(kReferencePixels);
     return layoutNode(ctx, node, ctx.baseEm);
