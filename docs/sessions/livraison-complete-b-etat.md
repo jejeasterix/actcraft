@@ -9,7 +9,7 @@ Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (20
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 19/33 tâches terminées
 Tâche : L7-T24 — Équation I (F-301) : arbre et MathML (essai 2) — depuis 2026-10-26 10:12
-Tâche : L7-T21 — Reconnaissance de forme II (revue adversariale) — depuis 2026-10-26 10:12
+Tâche : L7-T21 — Reconnaissance de forme II (essai 2, revue « corriger » : Annuler pendant le délai) — depuis 2026-10-26 10:25
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
