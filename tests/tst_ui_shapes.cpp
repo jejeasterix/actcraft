@@ -262,6 +262,14 @@ private slots:
         App app;
         QVERIFY(start(app, freshFile("maj.ini")));
         app.tools->chooseShape(QStringLiteral("rectangle"));
+        // L4-T12 : la palette des formes s'insère dans la disposition au choix de l'outil et redimensionne la
+        // zone de page à la prochaine passe de disposition. Un geste en cours est abandonné par ce
+        // redimensionnement ; QTest::keyPress fait tourner la boucle d'événements en plein geste. Dans
+        // l'application, la palette est là avant le premier appui.
+        QQuickItem* palette = app.window->findChild<QQuickItem*>(QStringLiteral("shapePalette"));
+        QVERIFY(palette);
+        QVERIFY(QTest::qWaitFor([&] { return palette->isVisible() && palette->width() > 0; }, 5000));
+        QTest::qWait(100);
         press(app, QPointF(100, 100));
         move(app, QPointF(200, 170));
         QTest::keyPress(app.view->window(), Qt::Key_Shift, Qt::ShiftModifier);
