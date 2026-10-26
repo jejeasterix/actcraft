@@ -19,7 +19,7 @@ namespace actcraft::ui {
 namespace {
 
 constexpr double kEquationPoints = 24; // nouvelles équations : la taille par défaut de core::Equation
-constexpr double kMargin = 2;     // autour de l'encre mesurée, pixels de page
+constexpr double kMargin = 2;          // autour de l'encre mesurée, pixels de page
 constexpr QSizeF kFallbackSize(200, 60);
 
 } // namespace
