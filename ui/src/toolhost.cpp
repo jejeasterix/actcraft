@@ -504,13 +504,16 @@ void ToolHost::ensureSettings()
     const std::unique_ptr<QSettings> store = openSettings(m_settingsFile);
     tools::ShapeSettings shape; // défauts du lot 4 : relus à chaque changement de fichier
     if (store) {
-        const QString preset = store->value(settingsKey(QStringLiteral("shape"), QStringLiteral("preset"))).toString();
+        const QString preset =
+            store->value(settingsKey(QStringLiteral("shape"), QStringLiteral("preset"))).toString();
         if (core::findShapePreset(preset.toStdString()) != nullptr) {
             shape.preset = preset;
         }
         shape.filled =
-            store->value(settingsKey(QStringLiteral("shape"), QStringLiteral("filled")), shape.filled).toBool();
-        const QColor fill(store->value(settingsKey(QStringLiteral("shape"), QStringLiteral("fill"))).toString());
+            store->value(settingsKey(QStringLiteral("shape"), QStringLiteral("filled")), shape.filled)
+                .toBool();
+        const QColor fill(
+            store->value(settingsKey(QStringLiteral("shape"), QStringLiteral("fill"))).toString());
         if (fill.isValid()) {
             shape.fill = opaque(fill);
         }
@@ -767,12 +770,13 @@ QVariantList ToolHost::shapeOutline(const QString& preset) const
         if (const auto* shape = std::get_if<core::Shape>(&object)) {
             points = shape->polygon;
         }
-        if (points.size() > 1 && (points.front().x != points.back().x || points.front().y != points.back().y)) {
+        if (points.size() > 1 &&
+            (points.front().x != points.back().x || points.front().y != points.back().y)) {
             points.push_back(points.front());
         }
     }
-    // Une forme peut dépasser sa boîte (la pointe d'une bulle) : le contour est ramené dans [0, 1] par sa propre
-    // étendue, pour que la miniature de la palette ne déborde jamais.
+    // Une forme peut dépasser sa boîte (la pointe d'une bulle) : le contour est ramené dans [0, 1] par sa
+    // propre étendue, pour que la miniature de la palette ne déborde jamais.
     double minX = 0.0;
     double maxX = 1.0;
     double minY = 0.0;

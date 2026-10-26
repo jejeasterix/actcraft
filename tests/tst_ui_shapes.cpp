@@ -132,10 +132,7 @@ private:
     }
 
 private slots:
-    void initTestCase()
-    {
-        QVERIFY(m_dir.isValid());
-    }
+    void initTestCase() { QVERIFY(m_dir.isValid()); }
 
     // Choisir une forme dans la palette active l'outil des formes et coche sa commande.
     void shapeToolActivatesWithPalette()
