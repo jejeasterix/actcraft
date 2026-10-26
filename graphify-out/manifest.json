@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793011128.4057295,
-    "ast_hash": "d4772a2ab7afad34fea52cb7fe59cfb8",
+    "mtime": 1793013504.970401,
+    "ast_hash": "8a07653b0759c9a31c93b22d7c95200e",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -2150,8 +2150,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/grille.json": {
-    "mtime": 1792565548.5519445,
-    "ast_hash": "e3659c7d5b451c8232babdbeca36b646",
+    "mtime": 1793024746.6358416,
+    "ast_hash": "0a828fe6416aa7862f9020de041959cf",
     "semantic_hash": ""
   },
   "bench/scenarios/navigateur-pages.json": {
@@ -2315,8 +2315,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_pagesettings.cpp": {
-    "mtime": 1792565548.6052828,
-    "ast_hash": "3ab5f0b73504c6a91cd35dfc8129c708",
+    "mtime": 1793024746.6393406,
+    "ast_hash": "a71aa8c816f204a6f59f498d9ea2a4c1",
     "semantic_hash": ""
   },
   "tests/tst_ui_pagethumbnails.cpp": {
@@ -2355,8 +2355,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/pageoptions.h": {
-    "mtime": 1792565548.646751,
-    "ast_hash": "350fb4cb01093cf3320acd78bef35aaa",
+    "mtime": 1793024746.640351,
+    "ast_hash": "db4dd73aeceb72ddc8c50da8eef2863e",
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/pagescontroller.h": {
@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "ui/src/pageoptions.cpp": {
-    "mtime": 1792565548.6547976,
-    "ast_hash": "67cabcf104b4a1f5eee8b39cf49836c1",
+    "mtime": 1793024746.647219,
+    "ast_hash": "8961fbf6a53c6c38e69f5957fd34beab",
     "semantic_hash": ""
   },
   "ui/src/pagescontroller.cpp": {
