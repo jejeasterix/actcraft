@@ -7,9 +7,8 @@ Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branc
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
-Lot : 7 « Présentation et outils » — 22/33 tâches terminées
+Lot : 7 « Présentation et outils » — 23/33 tâches terminées
 Tâche : L7-T23 — reconnaissance d'écriture II (implementeur-tdd) — depuis 2026-10-26
-Tâche : L7-T25 — équation II, essai 2 après revue (concepteur-critique) — depuis 2026-10-26
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -83,7 +82,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T21 | lot P2-A (écart : lancée avant le merge de L7-T19, fichiers disjoints ; décision orchestrateur pour le rythme) | voir ligne L7-T21 de l'amendement phase 2 | supprimé (base 5cf0a0e) | mergée : rejeu TESTS OK 158/158, recognition Totals 12 (0 skipped) ; revue corriger → essai 2 (M1 : Annuler/Rétablir → resetSession, mutant tué) ; ouverts pour la clôture : trait en attente jamais converti au changement de page (ordre des signaux inconnu), Annuler abandonne tous les traits en attente (non comparé à l'original) | 2 | 3f8674f | 5a1704e (graphe cd9c5b0) |
 | suite V11 | L7-T19, T21, T24 | branche du chantier à 8c87a04 (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 | 1 | — | — |
 | L7-T23 | L7-T21 | voir ligne L7-T23 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T23 (base 8c87a04) | en cours (implementeur-tdd), V13 | 1 | — | — |
-| L7-T25 | L7-T24 | voir ligne L7-T25 de l'amendement phase 2 (+ champ attributes de L7-T24) | .worktrees/livraison-complete-b--L7-T25 (base 8c87a04) | essai 2 (concepteur-critique) : essai 1 d417186 vert selon l'agent (158/158, 10 mutants) ; revue corriger (.tmp/outils-b/revue-l7-t25.md) : F1 équation lisible faite de Raw invisible, m1 test des deux fils probabiliste, m2 fractionBarIsDrawn manquant, m4 cache, m5, m6 ; m3 écart consigné (image d'avant tenue pour l'illisible seulement) ; décision à la clôture : équation mixte encre + Raw, partie inconnue omise sans signe ; pour L7-T26 : equationpaint.h ne mesure pas la taille naturelle | 2 | — | — |
+| L7-T25 | L7-T24 | voir ligne L7-T25 de l'amendement phase 2 (+ champ attributes de L7-T24) | supprimé (base 8c87a04) | mergée : rejeu TESTS OK 158/158, render_equation Totals 35, render_painter 53 (0 skipped) ; essai 1 d417186 ; revue corriger (.tmp/outils-b/revue-l7-t25.md) : F1 équation lisible faite de Raw invisible, m1 test des deux fils probabiliste, m2 fractionBarIsDrawn manquant, m4 cache, m5, m6 ; m3 écart consigné (image d'avant tenue pour l'illisible seulement) ; décision à la clôture : équation mixte encre + Raw, partie inconnue omise sans signe ; pour L7-T26 : equationpaint.h ne mesure pas la taille naturelle ; essai 2 : F1, m1 (M9 5/5), m2, m4, m5, m6 corrigés | 2 | 0c3641c | 13fcf81 (graphe a064aa8) |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
