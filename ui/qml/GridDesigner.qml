@@ -57,24 +57,35 @@ Popup {
         settings.setGrid(g)
     }
 
-    onAboutToShow: {
+    function begin() {
+        console.warn("GDDEBUG", settings, levels.length, grid.visible)
         if (!settings) {
             return
         }
         settings.beginDesigner()
         level = 0
-        // Une page sans grille en reçoit une, avec un niveau : l'aperçu montre tout de suite quelque chose.
-        if (levels.length === 0) {
+        // Une page sans grille visible en montre une, avec au moins un niveau : l'aperçu est immédiat.
+        if (levels.length === 0 || !grid.visible) {
             var g = settings.grid
             g.visible = true
-            g.levels = [{}]
+            if (levels.length === 0) {
+                g.levels = [{}]
+            }
             settings.setGrid(g)
         }
         aboveCheck.forceActiveFocus()
     }
-    onClosed: {
+    function end() {
         if (settings) {
             settings.endDesigner()
+        }
+    }
+    // Séance du créateur : de l'apparition à la disparition de la fenêtre.
+    onVisibleChanged: {
+        if (visible) {
+            begin()
+        } else {
+            end()
         }
     }
     onLevelsChanged: {
