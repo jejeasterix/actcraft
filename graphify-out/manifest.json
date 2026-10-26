@@ -930,8 +930,8 @@
     "semantic_hash": ""
   },
   "render/CMakeLists.txt": {
-    "mtime": 1792386407.7885282,
-    "ast_hash": "102c487cbbdbe94c78971fdbfb83dc5d",
+    "mtime": 1793042547.7366695,
+    "ast_hash": "60b70bbf2eac2b42139ae7ba21563e77",
     "semantic_hash": ""
   },
   "tests/CMakeLists.txt": {
@@ -1525,8 +1525,8 @@
     "semantic_hash": ""
   },
   "tests/tst_render_painter.cpp": {
-    "mtime": 1792386407.9295623,
-    "ast_hash": "d3c2b936fea56000c96a28cf327a8bb4",
+    "mtime": 1793042547.7449276,
+    "ast_hash": "e0050b40de6a121b99b26ba577130e0e",
     "semantic_hash": ""
   },
   "tests/tst_third_party_miniz.cpp": {
@@ -1755,13 +1755,13 @@
     "semantic_hash": ""
   },
   "render/src/equationlayout.cpp": {
-    "mtime": 1792386407.800985,
-    "ast_hash": "30f1f5dd365e79537942ede44f709559",
+    "mtime": 1793042547.7396688,
+    "ast_hash": "7f9734ae2b95ff25656cbfc083674561",
     "semantic_hash": ""
   },
   "render/src/equationlayout.h": {
-    "mtime": 1792386407.8029945,
-    "ast_hash": "c8d391e4eebd7b0fe2edbe14652d1ce8",
+    "mtime": 1793042547.741668,
+    "ast_hash": "1425293acdf60dbca5f40d4692d88728",
     "semantic_hash": ""
   },
   "render/src/liftlayeritem.cpp": {
@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1793019019.6750746,
-    "ast_hash": "3ad12d748cf2525ce5f6f69cbba2663f",
+    "mtime": 1793040303.9766693,
+    "ast_hash": "e1a5ef7b05a48af211b9bad39ef691e2",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2490,8 +2490,8 @@
     "semantic_hash": ""
   },
   "tests/tst_render_equation.cpp": {
-    "mtime": 1792406200.4931872,
-    "ast_hash": "58e9f64a51a6f5522c720f2f81a4e016",
+    "mtime": 1793042547.7431822,
+    "ast_hash": "b36110d89f03b25e68dc08f9b50f527e",
     "semantic_hash": ""
   },
   "tests/tst_ui_calculator.cpp": {
@@ -2717,6 +2717,11 @@
   "ui/src/recognitioncontroller.h": {
     "mtime": 1793018930.0934658,
     "ast_hash": "6230f48f08ce0e642f534a1527bb866e",
+    "semantic_hash": ""
+  },
+  "render/include/actcraft/render/equationpaint.h": {
+    "mtime": 1793042547.7376657,
+    "ast_hash": "8b81a01b4436b19f099f1dfa3e429fec",
     "semantic_hash": ""
   }
 }
