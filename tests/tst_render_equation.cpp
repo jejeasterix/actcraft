@@ -378,47 +378,55 @@ private slots:
     // principal.
     void paintFromTwoThreads()
     {
-        std::vector<core::Equation> equations;
-        std::vector<std::size_t> reference;
+        // État partagé sur le tas : un fil bloqué, laissé en vie après l'échec, ne touche pas la pile du
+        // test.
+        struct Shared
+        {
+            std::vector<core::Equation> equations;
+            std::vector<std::size_t> reference;
+            std::atomic<int> drawn{0};
+            std::atomic<int> mismatches{0};
+            std::atomic<bool> stop{false};
+            QSemaphore start;
+        };
+        const auto shared = std::make_shared<Shared>();
         for (std::size_t k = 0; k < kThreadTexts; ++k) {
-            equations.push_back(
+            shared->equations.push_back(
                 equation("<math><mfrac><mrow><mi>x</mi><mo>+</mo><mn>" + std::to_string(k) +
                          "</mn></mrow><msqrt><msup><mi>y</mi><mn>2</mn></msup></msqrt></mfrac>"
                          "<mo>=</mo><mi>k</mi></math>"));
-            const QImage image = painted(equations.back(), render::EquationPaintMode::Page);
-            QVERIFY(darkInside(image, equations.back().bounds) > 0);
-            reference.push_back(hashOf(image));
+            const QImage image = painted(shared->equations.back(), render::EquationPaintMode::Page);
+            QVERIFY(darkInside(image, shared->equations.back().bounds) > 0);
+            shared->reference.push_back(hashOf(image));
         }
-        std::atomic<int> drawn{0};
-        std::atomic<int> mismatches{0};
-        std::atomic<bool> stop{false};
-        QSemaphore start;
-        auto work = [&](int index) {
-            start.acquire();
-            for (int i = 0; i < kThreadRounds && !stop; ++i) {
+        auto work = [shared](int index) {
+            shared->start.acquire();
+            for (int i = 0; i < kThreadRounds && !shared->stop; ++i) {
                 const std::size_t k = (std::size_t(i) + std::size_t(index) * kThreadTexts / 2) % kThreadTexts;
-                if (hashOf(painted(equations[k], render::EquationPaintMode::Page)) != reference[k]) {
-                    ++mismatches;
+                if (hashOf(painted(shared->equations[k], render::EquationPaintMode::Page)) !=
+                    shared->reference[k]) {
+                    ++shared->mismatches;
                 }
-                ++drawn;
+                ++shared->drawn;
             }
         };
         std::unique_ptr<QThread> a(QThread::create(work, 0));
         std::unique_ptr<QThread> b(QThread::create(work, 1));
         a->start();
         b->start();
-        start.release(2);
-        const bool inTime = a->wait(120000) && b->wait(120000);
-        if (!inTime) {
-            // Détruire un QThread encore actif arrête le programme (qFatal) : les fils sortent d'abord de
-            // leur boucle, puis le test échoue proprement.
-            stop = true;
-            a->wait();
-            b->wait();
+        shared->start.release(2);
+        if (!(a->wait(120000) && b->wait(120000))) {
+            // Fils trop lents ou bloqués : arrêtés à la fin de leur tour s'ils le peuvent, sinon laissés en
+            // vie (détruire un QThread actif arrête le programme par qFatal) ; le test échoue proprement.
+            shared->stop = true;
+            if (!(a->wait(10000) && b->wait(10000))) {
+                (void)a.release();
+                (void)b.release();
+            }
+            QFAIL("les deux fils n'ont pas fini en 120 s");
         }
-        QVERIFY2(inTime, "les deux fils n'ont pas fini en 120 s");
-        QCOMPARE(drawn.load(), 2 * kThreadRounds);
-        QCOMPARE(mismatches.load(), 0);
+        QCOMPARE(shared->drawn.load(), 2 * kThreadRounds);
+        QCOMPARE(shared->mismatches.load(), 0);
     }
 
     // Page fixe hors écran (FixedPageItem, moteur peint) avec une équation : elle se dessine dans sa boîte
