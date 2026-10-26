@@ -55,6 +55,9 @@ class ToolHost : public QObject
     Q_PROPERTY(bool shapeFilled READ shapeFilled NOTIFY settingsChanged)
     Q_PROPERTY(bool shapeFromCenter READ shapeFromCenter NOTIFY settingsChanged)
     Q_PROPERTY(QStringList shapePresets READ shapePresets CONSTANT) // ordre de la palette
+    // Nuancier de la palette des formes (L4-C7) : remplissage courant, et défaut de l'outil (1re case).
+    Q_PROPERTY(QColor shapeFillColor READ shapeFillColor NOTIFY settingsChanged)
+    Q_PROPERTY(QColor shapeDefaultFillColor READ shapeDefaultFillColor CONSTANT)
 
 public:
     explicit ToolHost(QObject* parent = nullptr);
@@ -83,7 +86,9 @@ public:
     // « select », « pen », « highlighter », « eraser » : outil courant de l'utilisateur 1, commande tool.<id>
     // cochée, réglages de l'outil rendus à la vue (couleur et épaisseur de l'encre).
     Q_INVOKABLE void activate(const QString& toolId);
-    Q_INVOKABLE void setColor(const QColor& color); // outil courant (F-134)
+    // Outil courant s'il a sa couleur (encre ; formes : le contour, L4-C7), sinon le dernier outil d'encre
+    // (F-134).
+    Q_INVOKABLE void setColor(const QColor& color);
     Q_INVOKABLE void setWidth(qreal width);
     Q_INVOKABLE void selectAll();
     Q_INVOKABLE void clearSelection();
@@ -103,6 +108,8 @@ public:
     bool shapeFilled() const;
     bool shapeFromCenter() const;
     QStringList shapePresets() const;
+    QColor shapeFillColor() const;
+    QColor shapeDefaultFillColor() const;
     Q_INVOKABLE void chooseShape(const QString& preset); // active aussi l'outil « shape »
     Q_INVOKABLE void setShapeFilled(bool filled);
     Q_INVOKABLE void setShapeFillColor(const QColor& color);

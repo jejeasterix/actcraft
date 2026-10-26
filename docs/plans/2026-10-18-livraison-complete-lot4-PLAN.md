@@ -3504,6 +3504,15 @@ sans écran ; preuve de tâche.
 forme courante encadrée ; objet `shapePalette`, boutons `shape-<preset>`) ; `ToolCursor.qml` : flèche suivie de la
 miniature de la forme courante quand l'outil est « shape » ; scénario `formes` (S7.1).
 
+> **Amendement du 2026-10-26 (L4-C7, constats M-A, N1, C-M2 du point d'étape 4a).** Le nuancier 2 × 4 est celui
+> du **remplissage**, pas du contour (P38 ; dans l'original, « sans remplissage » est une valeur de la couleur de
+> remplissage) : 1re case = remplissage par défaut de l'outil (#FFAA00, P5/D2, absent des couleurs de la
+> disposition), 6 couleurs de la disposition, 8e case « sans remplissage » ; la bascule « Sans remplissage » à
+> part disparaît. Le **contour** se règle par la palette principale, outil des formes actif : `ToolHost::setColor`
+> écrit les réglages de l'outil « shape » au lieu de basculer sur le stylo (P6/D3). Preuves : `swatchSetsTheFill`
+> et `mainPaletteSetsTheShapeOutline` (`tst_ui_shapes`), scénario `formes` (annulation du glisser du point
+> intelligent).
+
 **Fichiers.** `ui/qml/ShapePalette.qml`, `ui/qml/ToolCursor.qml`, `bench/scenarios/formes.json`.
 
 **Test et commande bornée.** Commande ciblée `-R tst_captures_formes` ; preuve visuelle ; banc sans écran ; preuve

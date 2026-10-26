@@ -7,7 +7,10 @@
 
 #include <QTest>
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <utility>
 #include <variant>
@@ -122,6 +125,16 @@ std::vector<core::PointF> pagePoints(const core::PageObject& o) // translation s
     for (const core::PointF& p : std::get<core::Line>(core::body(o)).points)
         out.push_back({p.x + o.common.transform.dx, p.y + o.common.transform.dy});
     return out;
+}
+
+double distanceToSegment(core::PointF p, core::PointF a, core::PointF b)
+{
+    const double dx = b.x - a.x;
+    const double dy = b.y - a.y;
+    const double length2 = dx * dx + dy * dy;
+    const double t =
+        length2 > 0.0 ? std::clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / length2, 0.0, 1.0) : 0.0;
+    return std::hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 }
 
 tools::ShapeSettings settings(const char* preset, bool filled, bool fromCenter)
@@ -253,6 +266,8 @@ private slots:
         const auto& o = h.doc.document.page(0).objects.back();
         QCOMPARE(o.common.transform.dx, 50.0);
         QCOMPARE(std::get<core::Shape>(core::body(o)).bounds.width, 100.0);
+        QCOMPARE(o.common.transform.dy, 50.0); // Q4a2-m9 : l'axe Y aussi (52 -> 50, 103 -> 100)
+        QCOMPARE(std::get<core::Shape>(core::body(o)).bounds.height, 50.0);
     }
     void cancelClearsThePreview()
     {
@@ -328,6 +343,18 @@ private slots:
         QCOMPARE(points.front().x, 0.0);
         QCOMPARE(points.back().x, 200.0);
         QCOMPARE(points.back().y, 100.0);
+        // M-M (L4-C7) : lissée, la chaîne quitte la ligne brisée de ses sommets. Sans lissage, chaque point
+        // tomberait sur l'un des trois segments (écart nul).
+        const std::vector<core::PointF> vertices{{0.0, 0.0}, {100.0, 0.0}, {100.0, 100.0}, {200.0, 100.0}};
+        double farthest = 0.0;
+        for (const core::PointF& p : points) {
+            double nearest = std::numeric_limits<double>::max();
+            for (std::size_t i = 0; i + 1 < vertices.size(); ++i) {
+                nearest = std::min(nearest, distanceToSegment(p, vertices[i], vertices[i + 1]));
+            }
+            farthest = std::max(farthest, nearest);
+        }
+        QVERIFY2(farthest > 2.0, qPrintable(QString::number(farthest)));
     }
     void freeformFollowsTheDrag() // L4-T31
     {
@@ -375,8 +402,8 @@ private slots:
         // Le chemin Échap -> tool.select -> cancelGesture() relève de ToolHost (lot 3, ui/src/toolhost.cpp)
         // et n'est pas rejoué ici ; ce test vérifie ce qu'il déclenche : cancel() verse la ligne en une
         // étape.
-        if (tool.isBusy())
-            tool.cancel();
+        QVERIFY(tool.isBusy()); // Q4a2-m10 : la précondition est vérifiée, plus masquée par un `if`
+        tool.cancel();
         QCOMPARE(h.doc.executed, 1); // une seule AddObjectCommand : une étape d'annulation
         QCOMPARE(pagePoints(h.doc.document.page(0).objects.back()).size(), std::size_t{3});
         QVERIFY(h.lift.shown.empty());

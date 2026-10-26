@@ -42,6 +42,13 @@ bool isInkTool(const QString& id)
     return id == QStringLiteral("pen") || id == QStringLiteral("highlighter");
 }
 
+// Outils dont la palette principale règle la couleur : l'encre, et l'outil des formes pour son contour (P6,
+// réglage propre ; L4-C7). Le dernier outil d'encre (m_lastInk) reste un outil d'encre.
+bool ownsColor(const QString& id)
+{
+    return isInkTool(id) || id == QStringLiteral("shape");
+}
+
 QString settingsKey(const QString& toolId, const QString& leaf)
 {
     return QStringLiteral("outils/%1/%2").arg(toolId, leaf);
@@ -299,7 +306,7 @@ void ToolHost::setColor(const QColor& color)
         return;
     }
     ensureSettings();
-    if (!isInkTool(currentTool())) {
+    if (!ownsColor(currentTool())) {
         activate(m_lastInk); // sous Sélectionner ou la gomme : au dernier outil d'encre (L3-T0)
     }
     const QString id = currentTool();
@@ -628,10 +635,11 @@ void ToolHost::relayModifiers(int key, int modifiers)
     }
 }
 
+// La couleur montrée suit l'outil qui la porte : sous l'outil des formes, son contour (comme l'épaisseur).
 QString ToolHost::shownInkTool() const
 {
     const QString current = currentTool();
-    return isInkTool(current) ? current : m_lastInk;
+    return ownsColor(current) ? current : m_lastInk;
 }
 
 QString ToolHost::shownWidthTool() const
@@ -698,6 +706,16 @@ QStringList ToolHost::shapePresets() const
         ids.push_back(QString::fromStdString(preset.id));
     }
     return ids;
+}
+
+QColor ToolHost::shapeFillColor() const
+{
+    return QColor::fromRgba(m_user ? m_user->shapeSettings().fill : tools::ShapeSettings{}.fill);
+}
+
+QColor ToolHost::shapeDefaultFillColor() const
+{
+    return QColor::fromRgba(tools::ShapeSettings{}.fill);
 }
 
 void ToolHost::chooseShape(const QString& preset)

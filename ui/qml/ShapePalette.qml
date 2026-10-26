@@ -3,16 +3,20 @@ import QtQuick.Layouts
 import ActCraft.Ui
 
 // Palette des formes (F-240, S7.1) : panneau vertical à droite, visible quand l'outil courant est « shape ».
-// Nuancier du contour (les couleurs de la disposition), case « sans remplissage », bascule « depuis le centre »,
-// grille des formes dessinées d'après notre propre géométrie (appTools.shapeOutline, contour normalisé dans
-// [0, 1]) ; la forme courante est encadrée. Boutons : « shape-<préréglage> ».
+// Nuancier du remplissage 2 × 4 (P38, L4-C7) : 1re case, le remplissage par défaut de l'outil ; six couleurs de
+// la disposition ; 8e case « sans remplissage », une valeur du remplissage (la couleur choisie est gardée). Le
+// contour se règle par la palette principale, outil des formes actif (ToolHost::setColor). Bascule « depuis le
+// centre », grille des formes dessinées d'après notre propre géométrie (appTools.shapeOutline, contour normalisé
+// dans [0, 1]) ; la forme courante est encadrée. Boutons : « shape-<préréglage> ».
 Rectangle {
     id: root
     objectName: "shapePalette"
     required property Tools tools
     required property Commands commands
-    readonly property int swatchCount: 8
     readonly property int cell: 32
+    // Sept couleurs puis la case « sans remplissage » (chaîne vide).
+    readonly property var fillSwatches: [String(root.tools.shapeDefaultFillColor)].concat(
+        root.commands.colors.slice(0, 6), [""])
 
     visible: root.tools !== null && root.tools.currentTool === "shape"
     Layout.fillHeight: true
@@ -26,71 +30,77 @@ Rectangle {
         spacing: Theme.espace2
 
         Text {
-            text: qsTr("Contour")
+            text: qsTr("Remplissage")
             color: Theme.texteDiscret
             font.pixelSize: Theme.taillePoliceTitre
         }
 
-        // Nuancier du contour : 2 × 4, tiré des couleurs de la disposition.
         Grid {
             objectName: "shapeSwatches"
             columns: 4
             spacing: Theme.espace1
             Repeater {
-                model: root.commands.colors.slice(0, root.swatchCount)
+                model: root.fillSwatches
                 delegate: Rectangle {
                     id: swatch
                     required property string modelData
                     required property int index
-                    readonly property bool current: Qt.colorEqual(root.tools.color, modelData)
+                    readonly property bool unfilled: modelData === ""
+                    readonly property bool current: unfilled
+                        ? !root.tools.shapeFilled
+                        : root.tools.shapeFilled && Qt.colorEqual(root.tools.shapeFillColor, modelData)
                     objectName: "shape-swatch-" + index
                     width: root.cell
                     height: Theme.taillePastille + Theme.espace2
                     radius: 3
-                    color: modelData
+                    color: unfilled ? Theme.surface : modelData
                     border.width: current ? 2 : 1
                     border.color: current ? Theme.cadreSelection : Theme.contour
+                    function choose() {
+                        if (unfilled) {
+                            root.tools.setShapeFilled(false)
+                        } else {
+                            root.tools.setShapeFillColor(modelData)
+                            root.tools.setShapeFilled(true)
+                        }
+                    }
                     Accessible.role: Accessible.RadioButton
-                    Accessible.name: qsTr("Contour %1").arg(modelData)
+                    Accessible.name: unfilled ? qsTr("Sans remplissage") : qsTr("Remplissage %1").arg(modelData)
                     Accessible.checked: current
-                    Accessible.onPressAction: root.tools.setColor(swatch.modelData)
-                    TapHandler { onTapped: root.tools.setColor(swatch.modelData) }
+                    Accessible.onPressAction: swatch.choose()
+                    // « Sans remplissage » : une barre oblique sur le fond neutre.
+                    Rectangle {
+                        visible: swatch.unfilled
+                        anchors.centerIn: parent
+                        width: parent.width - 8
+                        height: 2
+                        rotation: -30
+                        color: Theme.texte
+                    }
+                    TapHandler { onTapped: swatch.choose() }
                 }
             }
         }
 
-        // Case « sans remplissage » et bascule « depuis le centre » : deux interrupteurs d'une ligne.
-        Repeater {
-            model: [
-                { id: "shape-unfilled", label: qsTr("Sans remplissage"), on: !root.tools.shapeFilled },
-                { id: "shape-from-center", label: qsTr("Depuis le centre"), on: root.tools.shapeFromCenter }
-            ]
-            delegate: Rectangle {
-                id: toggle
-                required property var modelData
-                objectName: modelData.id
-                width: parent.width
-                height: Theme.tailleBouton - Theme.espace2
-                radius: Theme.rayon
-                color: modelData.on ? Theme.surfaceActive : Theme.surface
-                Accessible.role: Accessible.CheckBox
-                Accessible.name: modelData.label
-                Accessible.checked: modelData.on
-                function flip() {
-                    if (modelData.id === "shape-unfilled")
-                        root.tools.setShapeFilled(modelData.on)
-                    else
-                        root.tools.setShapeFromCenter(!modelData.on)
-                }
-                Accessible.onPressAction: flip()
-                Text {
-                    anchors.centerIn: parent
-                    text: toggle.modelData.label
-                    color: toggle.modelData.on ? Theme.texteSurActive : Theme.texte
-                    font.pixelSize: Theme.taillePolice
-                }
-                TapHandler { onTapped: toggle.flip() }
+        Rectangle {
+            id: fromCenter
+            objectName: "shape-from-center"
+            readonly property bool on: root.tools.shapeFromCenter
+            width: parent.width
+            height: Theme.tailleBouton - Theme.espace2
+            radius: Theme.rayon
+            color: on ? Theme.surfaceActive : Theme.surface
+            Accessible.role: Accessible.CheckBox
+            Accessible.name: qsTr("Depuis le centre")
+            Accessible.checked: on
+            Accessible.onPressAction: root.tools.setShapeFromCenter(!fromCenter.on)
+            Text {
+                anchors.centerIn: parent
+                text: qsTr("Depuis le centre")
+                color: fromCenter.on ? Theme.texteSurActive : Theme.texte
+                font.pixelSize: Theme.taillePolice
             }
+            TapHandler { onTapped: root.tools.setShapeFromCenter(!fromCenter.on) }
         }
 
         Grid {
