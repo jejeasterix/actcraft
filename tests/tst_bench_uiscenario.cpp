@@ -783,8 +783,7 @@ private slots:
         });
         QStringList report;
         QVERIFY2(f.player->play(scenario("texte", "[{\"typeText\":\"Bon jour\"}]"), f.out.path(), report),
-                 qPrintable(report.join(QLatin1Char('
-'))));
+                 qPrintable(report.join(QLatin1Char('\n'))));
         QCOMPARE(report.last(), QStringLiteral("TEXTE Bon jour OK"));
         QCOMPARE(seen.size(), std::size_t{14}); // 7 caractères, un appui et un relâché chacun
         for (std::size_t i = 0; i < 7; ++i) {
