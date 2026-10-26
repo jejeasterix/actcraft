@@ -2,13 +2,15 @@
 
 Statut : en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
 Gabarit : lots (lot 7 du chantier `livraison-complete`, exécuté en parallèle du lot 3)
-Étage : 3 (phase 2 du lot 7 : reprise par la nouvelle session le 2026-10-26 ; T19, T21, T24 mergées ; suite V11 verte ; V13 : L7-T23 ‖ L7-T25 lancées ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
+Étage : 3 (phase 2 du lot 7 : reprise par la nouvelle session le 2026-10-26 ; T19, T21, T24 mergées ; suite V11 verte ; V13 : L7-T25 mergée, L7-T23 en rejeu ; V14 : L7-T26 ‖ L7-T30 lancées ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branche : feat/livraison-complete-b   Base : feat/livraison-complete @ 7bb551c (+ merge du plan du lot 7 bf8c930 → 2d76ba6)
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 23/33 tâches terminées
 Tâche : L7-T23 — reconnaissance d'écriture II (implementeur-tdd) — depuis 2026-10-26
+Tâche : L7-T26 — équation III, éditeur à modèles (concepteur-critique) — depuis 2026-10-26
+Tâche : L7-T30 — annotation de bureau, hors écran seulement (concepteur-critique) — depuis 2026-10-26
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -83,6 +85,8 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | suite V11 | L7-T19, T21, T24 | branche du chantier à 8c87a04 (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 | 1 | — | — |
 | L7-T23 | L7-T21 | voir ligne L7-T23 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T23 (base 8c87a04) | en cours (implementeur-tdd), V13 | 1 | — | — |
 | L7-T25 | L7-T24 | voir ligne L7-T25 de l'amendement phase 2 (+ champ attributes de L7-T24) | supprimé (base 8c87a04) | mergée : rejeu TESTS OK 158/158, render_equation Totals 35, render_painter 53 (0 skipped) ; essai 1 d417186 ; revue corriger (.tmp/outils-b/revue-l7-t25.md) : F1 équation lisible faite de Raw invisible, m1 test des deux fils probabiliste, m2 fractionBarIsDrawn manquant, m4 cache, m5, m6 ; m3 écart consigné (image d'avant tenue pour l'illisible seulement) ; décision à la clôture : équation mixte encre + Raw, partie inconnue omise sans signe ; pour L7-T26 : equationpaint.h ne mesure pas la taille naturelle ; essai 2 : F1, m1 (M9 5/5), m2, m4, m5, m6 corrigés | 2 | 0c3641c | 13fcf81 (graphe a064aa8) |
+| L7-T26 | L7-T25 | voir ligne L7-T26 de l'amendement phase 2 (+ champ attributes de T24, equationpaint.h sans mesure de T25) | .worktrees/livraison-complete-b--L7-T26 (base 90b95cd) | en cours (concepteur-critique), V14 | 1 | — | — |
+| L7-T30 | lot P2-A | voir ligne L7-T30 de l'amendement phase 2 ; contrôle à l'écran reporté aux captures de la clôture (décision orchestrateur : rien à l'écran sans prévenir Jérôme) | .worktrees/livraison-complete-b--L7-T30 (base 90b95cd) | en cours (concepteur-critique), V14 | 1 | — | — |
 
 ## Terminé quand
 toutes les tâches du lot 7 terminées (7a et 7b) · fusion L7-T33 faite · double relecture sans bloquant · suites debug et release sans régression · scénarios S10, S22, S23, S24 réussis · branche prête à fusionner dans `feat/livraison-complete` (la fusion et la PR sont faites par l'orchestrateur de `livraison-complete`)
