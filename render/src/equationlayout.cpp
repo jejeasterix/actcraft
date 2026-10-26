@@ -598,7 +598,10 @@ const Drawing* drawingOf(const core::Equation& equation)
         Drawing drawing;
         drawing.ink.setFillRule(Qt::WindingFill);
         flatten(box, QPointF(), drawing);
-        drawing.frame = QRectF(0, -box.ascent, box.width, box.ascent + box.descent);
+        // Cadre mis à l'échelle dans la boîte de l'équation : la boîte et toute l'encre (onglet du signe de
+        // la racine, débord d'un glyphe), que la texture du moteur peint, découpée à la boîte, garde entière.
+        drawing.frame =
+            QRectF(0, -box.ascent, box.width, box.ascent + box.descent).united(drawing.ink.boundingRect());
         entry.drawing = std::move(drawing);
     }
     return entry.drawing ? &*entry.drawing : nullptr;
