@@ -1,4 +1,5 @@
 #include <actcraft/core/model.h>
+#include <actcraft/core/pageedits.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
@@ -6,6 +7,7 @@
 #include <actcraft/ui/pagethumbnails.h>
 #include <actcraft/ui/pageview.h>
 
+#include <QElapsedTimer>
 #include <QQuickWindow>
 #include <QSignalSpy>
 #include <QTest>
@@ -45,41 +47,14 @@ bool darkAtCenter(const QImage& image)
     return !image.isNull() && qGray(image.pixel(image.width() / 2, image.height() / 2)) < 128;
 }
 
-core::Change pageChange(core::Change::Kind kind, std::size_t page)
+// Trois pages, la deuxième (indice 1) sombre, la troisième affichée.
+void threePagesSecondDark(ui::DocumentController& controller)
 {
-    core::Change change{};
-    change.kind = kind;
-    change.page = page;
-    change.object = 0;
-    change.area = core::RectF{};
-    return change;
+    controller.newDocument(1024, 768);
+    controller.nextPage();
+    controller.commitStroke(bigStroke());
+    controller.nextPage();
 }
-
-// Déplacement d'une page en tête, avec les changements que L4-T15 fixe pour MovePagesCommand (un PageRemoved
-// à l'indice du moment, puis un PageInserted à l'indice d'arrivée). MovePagesCommand est encore un talon dans
-// cette base (L4-T15 est de la même vague) : le contrat suivi par les miniatures est celui des changements.
-class MovePageToFront final : public core::UndoCommand
-{
-public:
-    explicit MovePageToFront(std::size_t from) : m_from(from) {}
-    void redo(core::Document& document, core::Changes& changes) override
-    {
-        core::Page page = document.takePage(m_from);
-        changes.push_back(pageChange(core::Change::Kind::PageRemoved, m_from));
-        document.insertPage(0, std::move(page));
-        changes.push_back(pageChange(core::Change::Kind::PageInserted, 0));
-    }
-    void undo(core::Document& document, core::Changes& changes) override
-    {
-        core::Page page = document.takePage(0);
-        changes.push_back(pageChange(core::Change::Kind::PageRemoved, 0));
-        document.insertPage(m_from, std::move(page));
-        changes.push_back(pageChange(core::Change::Kind::PageInserted, m_from));
-    }
-
-private:
-    std::size_t m_from;
-};
 
 // Vue réelle hors écran (montage de tst_ui_inputpath, sans couverture ni couche d'attente) : zoom 1, sans
 // défilement, point de fenêtre = point de page.
@@ -131,6 +106,7 @@ class TstUiPagethumbnails : public QObject
 
 private slots:
     // Le patron écarté (miniature rendue à chaque pageContentChanged) rendrait tout de suite : rouge ici.
+    // Q12 (L4-C10) : délai long pendant l'attente courte, qu'un poste chargé ne peut pas faire échoir.
     void rendersAfterSettling()
     {
         ui::DocumentController controller;
@@ -139,11 +115,15 @@ private slots:
         thumbs.setDocumentController(&controller);
         QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 1, 5000); // première image de la page vierge
         QVERIFY(!darkAtCenter(thumbs.image(0)));
+        QCOMPARE(thumbs.settleDelay(), PageThumbnails::kSettleMs);
+        thumbs.setSettleDelay(2000);
         controller.commitStroke(bigStroke());
-        QTest::qWait(PageThumbnails::kSettleMs / 2);
+        QCOMPARE(thumbs.launchCount(), 1); // rien lancé au versement
+        QTest::qWait(100);
         QCOMPARE(thumbs.renderCount(), 1); // pas encore
+        QCOMPARE(thumbs.launchCount(), 1);
         QCOMPARE(thumbs.pendingCount(), 1);
-        QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 2, 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 2, 10000);
         const QImage image = thumbs.image(0);
         QCOMPARE(image.width(), PageThumbnails::kDefaultWidth);
         QCOMPARE(image.height(), PageThumbnails::kDefaultWidth * 768 / 1024);
@@ -151,7 +131,9 @@ private slots:
         QCOMPARE(thumbs.pendingCount(), 0);
     }
 
-    // Dix traits à 20 ms d'écart : un seul rendu de plus (regroupé), pas dix.
+    // M-I (L4-C10) : quinze traits espacés d'un dixième du délai, soit une fois et demie le délai. Attente de
+    // calme : rien n'est lancé pendant les traits, puis un seul rendu. Une limitation de débit (minuteur non
+    // relancé à chaque marque) lancerait un rendu au bout du délai, au milieu des traits : rouge ici.
     void oneRenderForManyEdits()
     {
         ui::DocumentController controller;
@@ -159,12 +141,18 @@ private slots:
         PageThumbnails thumbs;
         thumbs.setDocumentController(&controller);
         QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 1, 5000);
-        for (int i = 0; i < 10; ++i) {
+        constexpr int settle = 1000;
+        thumbs.setSettleDelay(settle);
+        QElapsedTimer clock;
+        clock.start();
+        for (int i = 0; i < 15; ++i) {
             controller.commitStroke(smallStroke(i));
-            QTest::qWait(20);
+            QTest::qWait(settle / 10);
+            QCOMPARE(thumbs.launchCount(), 1); // aucun rendu tant que les traits se suivent
         }
-        QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 2, 5000);
-        QTest::qWait(2 * PageThumbnails::kSettleMs);
+        QVERIFY(clock.elapsed() > settle); // la rafale a duré plus que le délai
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 2, 10000);
+        QTest::qWait(2 * settle);
         QCOMPARE(thumbs.renderCount(), 2);
         QCOMPARE(thumbs.launchCount(), 2);
     }
@@ -212,7 +200,12 @@ private slots:
         controller.loadGeneratedFirstPage();
         QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 2, 10000);
         QVERIFY(thumbs.lastRenderThread() != QThread::currentThread());
-        QVERIFY(thumbs.lastCopyMs() >= 0);
+        // Q13 (L4-C10) : une seule page et un seul lancement depuis le premier, donc la copie relevée est
+        // celle de la page générée ; une copie non relevée laisserait 0.
+        QCOMPARE(controller.pageCount(), 1);
+        QCOMPARE(thumbs.launchCount(), 2);
+        QVERIFY(controller.document().page(0).objects.size() >= 300);
+        QVERIFY(thumbs.lastCopyMs() > 0);
         qInfo("MESURE copie d'une page de 300 objets sur le fil principal : %.3f ms", thumbs.lastCopyMs());
     }
 
@@ -240,31 +233,43 @@ private slots:
         QCOMPARE(thumbs.data(thumbs.index(2), PageThumbnails::CurrentRole).toBool(), false);
     }
 
-    // Défaut 11 : un déplacement retire puis insère, le nombre de pages ne change pas ; toutes les lignes
-    // sont rendues de nouveau, la miniature suit la page.
-    void moveRerendersShiftedRows()
+    // Défaut 11 : un déplacement (MovePagesCommand : un PageRemoved puis un PageInserted par page) retire
+    // puis insère, le nombre de pages ne change pas ; les lignes sont refaites. M-H (L4-C10) : seule la ligne
+    // d'arrivée est rendue de nouveau. Q11 : avant tout rendu, les images gardées ont déjà suivi leur page.
+    // Q4a2-m6 : l'attente fixe suit le QTRY et précède le contrôle « pas de rendu en trop ».
+    void moveRendersOnlyArrivedRow()
     {
         ui::DocumentController controller;
-        controller.newDocument(1024, 768);
-        controller.nextPage();
-        controller.commitStroke(bigStroke()); // page 2 (indice 1) sombre
-        controller.nextPage();
+        threePagesSecondDark(controller);
         PageThumbnails thumbs;
         thumbs.setDocumentController(&controller);
         QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 3, 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.pendingCount(), 0, 5000);
         QVERIFY(!darkAtCenter(thumbs.image(0)));
         QVERIFY(darkAtCenter(thumbs.image(1)));
-        const int before = thumbs.renderCount();
+        QVERIFY(!darkAtCenter(thumbs.image(2)));
+        const int renders = thumbs.renderCount();
+        const int launches = thumbs.launchCount();
         QSignalSpy reset(&thumbs, &QAbstractItemModel::modelReset);
-        controller.execute(std::make_unique<MovePageToFront>(1));
+        controller.execute(
+            std::make_unique<core::MovePagesCommand>(std::vector<std::size_t>{2}, 0)); // [C, A, B]
         QCOMPARE(controller.pageCount(), 3);
         QCOMPARE(thumbs.rowCount(), 3);
         QCOMPARE(reset.count(), 1);
-        QTest::qWait(2 * PageThumbnails::kSettleMs);
-        QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), before + 3, 5000);
-        QVERIFY(darkAtCenter(thumbs.image(0))); // l'ancienne page 2
+        QCOMPARE(thumbs.launchCount(), launches); // rien de rendu encore
+        QVERIFY(thumbs.image(0).isNull());        // ligne d'arrivée : à rendre
+        QVERIFY(!thumbs.image(1).isNull());       // l'image de A a suivi A
         QVERIFY(!darkAtCenter(thumbs.image(1)));
-        QVERIFY(!darkAtCenter(thumbs.image(2)));
+        QVERIFY(darkAtCenter(thumbs.image(2))); // l'image de B (sombre) a suivi B
+        QCOMPARE(thumbs.pendingCount(), 1);
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), renders + 1, 5000);
+        QTest::qWait(2 * PageThumbnails::kSettleMs);
+        QCOMPARE(thumbs.renderCount(), renders + 1);
+        QCOMPARE(thumbs.launchCount(), launches + 1);
+        QVERIFY(!thumbs.image(0).isNull());
+        QVERIFY(!darkAtCenter(thumbs.image(0)));
+        QVERIFY(!darkAtCenter(thumbs.image(1)));
+        QVERIFY(darkAtCenter(thumbs.image(2)));
     }
 
     // Rendu lancé, puis document remplacé avant son retour : son résultat est jeté.
@@ -293,6 +298,81 @@ private slots:
         QVERIFY(!darkAtCenter(thumbs.image(0)));
         QCOMPARE(thumbs.renderCount(), 1);
         QCOMPARE(thumbs.launchCount(), 2);
+    }
+
+    // M-G (L4-C10) : objet soulevé (texte en édition, objets déplacés) : la page affichée n'a plus l'objet,
+    // sa miniature garde l'image d'avant et n'est rendue qu'après le dépôt, comme Enregistrer attend le dépôt
+    // (documentcontroller.h, liftObjects). La page est marquée juste avant le soulèvement : une marque en
+    // attente ne doit pas non plus partir pendant le soulèvement.
+    void liftedObjectStaysInThumbnail()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        controller.commitStroke(bigStroke());
+        PageThumbnails thumbs;
+        thumbs.setDocumentController(&controller);
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 1, 5000);
+        QVERIFY(darkAtCenter(thumbs.image(0)));
+        const auto id = controller.document().page(0).objects.front().common.id;
+        controller.commitStroke(smallStroke(0));
+        const int launches = thumbs.launchCount();
+        QCOMPARE(controller.liftObjects({id}).size(), std::size_t{1});
+        QVERIFY(controller.isLifting());
+        QTest::qWait(3 * PageThumbnails::kSettleMs);
+        QCOMPARE(thumbs.launchCount(), launches); // rien rendu pendant le soulèvement
+        QVERIFY(darkAtCenter(thumbs.image(0)));   // l'objet soulevé reste dans la miniature
+        controller.dropLifted(nullptr);
+        QVERIFY(!controller.isLifting());
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.launchCount(), launches + 1, 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.pendingCount(), 0, 5000);
+        QVERIFY(darkAtCenter(thumbs.image(0)));
+        QTest::qWait(2 * PageThumbnails::kSettleMs);
+        QCOMPARE(thumbs.launchCount(), launches + 1);
+    }
+
+    // M-H (L4-C10) : une page ajoutée est la seule rendue ; les autres gardent leur image sans nouveau rendu.
+    void insertRendersOnlyNewPage()
+    {
+        ui::DocumentController controller;
+        threePagesSecondDark(controller);
+        PageThumbnails thumbs;
+        thumbs.setDocumentController(&controller);
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 3, 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.pendingCount(), 0, 5000);
+        const int launches = thumbs.launchCount();
+        controller.nextPage(); // quatrième page ajoutée en fin, affichée
+        QCOMPARE(thumbs.rowCount(), 4);
+        QCOMPARE(thumbs.pendingCount(), 1);
+        QVERIFY(darkAtCenter(thumbs.image(1))); // gardée
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.launchCount(), launches + 1, 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.pendingCount(), 0, 5000);
+        QTest::qWait(2 * PageThumbnails::kSettleMs);
+        QCOMPARE(thumbs.launchCount(), launches + 1);
+        QVERIFY(!thumbs.image(3).isNull());
+        QVERIFY(darkAtCenter(thumbs.image(1)));
+    }
+
+    // M-H (L4-C10) : toutes les pages à rendre (document ouvert) : la page affichée part la première.
+    void shownPageRendersFirst()
+    {
+        ui::DocumentController controller;
+        threePagesSecondDark(controller);
+        QCOMPARE(controller.currentIndex(), 2);
+        PageThumbnails thumbs;
+        QSignalSpy changed(&thumbs, &QAbstractItemModel::dataChanged);
+        thumbs.setDocumentController(&controller);
+        QCOMPARE(thumbs.pendingCount(), 3);
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 3, 5000);
+        int first = -1;
+        for (int i = 0; i < changed.count(); ++i) {
+            const QList<QVariant> arguments = changed.at(i);
+            const auto roles = arguments.at(2).value<QList<int>>();
+            if (roles.contains(PageThumbnails::RevisionRole)) {
+                first = arguments.at(0).value<QModelIndex>().row();
+                break;
+            }
+        }
+        QCOMPARE(first, 2);
     }
 };
 

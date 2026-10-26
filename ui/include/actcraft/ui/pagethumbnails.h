@@ -77,9 +77,9 @@ signals:
 private:
     void attachController();
     void detachController();
-    // Lignes refaites, toutes marquées, génération avancée (tout rendu en vol sera jeté). `changes` : pages
-    // insérées ou retirées, les images gardées suivent leur page jusqu'au nouveau rendu ; nullptr : document
-    // remplacé, images oubliées.
+    // Lignes refaites, génération avancée (tout rendu en vol sera jeté). `changes` : pages insérées ou
+    // retirées, images et marques suivent leur page, seules les pages insérées et celle du rendu en vol sont
+    // marquées (L4-C10) ; nullptr : document remplacé, images oubliées, toutes marquées.
     void resetRows(const core::Changes* changes);
     void onChanges(const core::Changes& changes);
     void onDocumentChanged();
@@ -115,6 +115,12 @@ private:
     QThread* m_lastRenderThread = nullptr;
     QList<QMetaObject::Connection> m_controllerConnections;
     QMetaObject::Connection m_viewConnection;
+    int m_inFlightPage = -1; // L4-C10 : ligne du rendu en vol, remarquée si les lignes sont refaites
+
+public:
+    // Tests (L4-C10) : délai de calme réglable, kSettleMs par défaut.
+    void setSettleDelay(int ms);
+    int settleDelay() const noexcept;
 };
 
 // Image d'une miniature dans le QML (type ThumbnailImage) : peint PageThumbnails::image(page).
