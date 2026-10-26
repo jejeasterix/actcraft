@@ -290,8 +290,8 @@ bool DesktopController::captureBackground()
     if (png.isEmpty()) {
         return false;
     }
-    target->execute(std::make_unique<DesktopCaptureCommand>(
-        static_cast<std::size_t>(target->currentIndex()), std::move(png)));
+    target->execute(std::make_unique<DesktopCaptureCommand>(static_cast<std::size_t>(target->currentIndex()),
+                                                            std::move(png)));
     return true;
 }
 
