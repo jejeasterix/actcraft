@@ -1,6 +1,7 @@
 #include <actcraft/features/equationeditor.h>
 
 #include <QChar>
+#include <QList>
 
 #include <algorithm>
 #include <cstddef>
@@ -174,14 +175,14 @@ std::vector<Path> slotsOf(const Node& root, Path prefix)
 
 Path firstSlotIn(const Node& root, const Path& prefix)
 {
-    const std::vector<Path> slots = slotsOf(root, prefix);
-    return slots.empty() ? prefix : slots.front();
+    const std::vector<Path> cells = slotsOf(root, prefix);
+    return cells.empty() ? prefix : cells.front();
 }
 
 Path lastSlotIn(const Node& root, const Path& prefix)
 {
-    const std::vector<Path> slots = slotsOf(root, prefix);
-    return slots.empty() ? prefix : slots.back();
+    const std::vector<Path> cells = slotsOf(root, prefix);
+    return cells.empty() ? prefix : cells.back();
 }
 
 bool containsPlaceholder(const Node& node)
@@ -388,8 +389,8 @@ bool EquationEditor::load(const std::string& mathml, QString& error)
         tree->children.push_back(placeholder());
     }
     m_root = std::move(*tree);
-    const std::vector<Path> slots = slotsOf(m_root, {});
-    m_cursor = slots.empty() ? Path{static_cast<int>(m_root.children.size()) - 1} : slots.front();
+    const std::vector<Path> cells = slotsOf(m_root, {});
+    m_cursor = cells.empty() ? Path{static_cast<int>(m_root.children.size()) - 1} : cells.front();
     return true;
 }
 
@@ -572,8 +573,8 @@ void EquationEditor::backspace()
 
 void EquationEditor::moveLeft()
 {
-    const std::vector<Path> slots = slotsOf(m_root, {});
-    for (auto it = slots.rbegin(); it != slots.rend(); ++it) {
+    const std::vector<Path> cells = slotsOf(m_root, {});
+    for (auto it = cells.rbegin(); it != cells.rend(); ++it) {
         if (*it < m_cursor) {
             m_cursor = *it;
             return;
@@ -583,8 +584,8 @@ void EquationEditor::moveLeft()
 
 void EquationEditor::moveRight()
 {
-    const std::vector<Path> slots = slotsOf(m_root, {});
-    for (const Path& slot : slots) {
+    const std::vector<Path> cells = slotsOf(m_root, {});
+    for (const Path& slot : cells) {
         if (m_cursor < slot) {
             m_cursor = slot;
             return;
