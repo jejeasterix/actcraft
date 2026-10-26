@@ -391,6 +391,16 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
         }
         return readSpace(o, step.windowSpace, why);
     }
+    if (o.contains(QStringLiteral("typeText"))) {
+        step.kind = UiStepKind::TypeText;
+        const QJsonValue text = o.value(QStringLiteral("typeText"));
+        if (!text.isString() || text.toString().isEmpty()) {
+            why = QStringLiteral("texte invalide (typeText : une chaîne non vide)");
+            return false;
+        }
+        step.value = text.toString();
+        return true;
+    }
     why = QStringLiteral("étape inconnue");
     return false;
 }
@@ -867,6 +877,29 @@ bool UiScenarioPlayer::key(const UiStep& step, QStringList& report)
                   "nommée équivalente)")
                   .arg(step.key, active ? QString() : QStringLiteral(", fenêtre inactive"));
     return false;
+}
+
+// L4-T14 : un appui et un relâché par caractère, avec son texte, livrés comme une vraie frappe (sans la carte
+// des raccourcis : une lettre n'en est pas un). Maj pour une majuscule. Faux si un appui n'est pas accepté.
+bool UiScenarioPlayer::typeText(const UiStep& step, QStringList& report)
+{
+    m_window->requestActivate();
+    const bool active = QTest::qWaitForWindowActive(m_window, kActivateTimeoutMs);
+    bool accepted = true;
+    for (const QChar c : step.value) {
+        const QString text(c);
+        const ushort unicode = c.toUpper().unicode();
+        const int code = unicode >= 0x20 && unicode < 0x7f ? static_cast<int>(unicode) : 0;
+        const Qt::KeyboardModifiers modifiers = c.isUpper() ? Qt::ShiftModifier : Qt::NoModifier;
+        accepted =
+            m_keyDelivery(m_window, keyTimestamp(), QEvent::KeyPress, code, modifiers, text) && accepted;
+        m_keyDelivery(m_window, keyTimestamp(), QEvent::KeyRelease, code, modifiers, text);
+    }
+    QCoreApplication::processEvents();
+    report << QStringLiteral("TEXTE %1 %2%3")
+                  .arg(step.value, accepted ? QStringLiteral("OK") : QStringLiteral("ECHEC"),
+                       accepted || active ? QString() : QStringLiteral(" (fenêtre inactive)"));
+    return accepted;
 }
 
 namespace {
@@ -1382,6 +1415,8 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return pointer(step, report);
     case UiStepKind::DoubleClick:
         return doubleClick(step, report);
+    case UiStepKind::TypeText:
+        return typeText(step, report);
     }
     return false;
 }

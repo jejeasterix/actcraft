@@ -59,6 +59,8 @@ enum class UiStepKind : std::uint8_t
     Pinch,       // {"pinch": [cx, cy], "from": 100, "to": 200, "steps": 12} — écarts en pixels de vue
     Pointer,     // {"pointer": [[x, y], …], "button": "left", "holdMs": 0, "space": "page"}
     DoubleClick, // {"doubleClick": [x, y], "space": "page"}
+    // Ajoutée par L4-T14, à la fin.
+    TypeText, // {"typeText": "Bonjour"} — un QKeyEvent par caractère, avec son texte (dans `value`)
 };
 
 struct UiStep
@@ -176,6 +178,7 @@ private:
     bool pinch(const UiStep& step, QStringList& report);
     bool pointer(const UiStep& step, QStringList& report);
     bool doubleClick(const UiStep& step, QStringList& report);
+    bool typeText(const UiStep& step, QStringList& report);
     Injector& gestures(); // injecteur des gestes directs, créé à la première étape qui en a besoin
     bool fixture(const UiStep& step, QStringList& report);
     bool waitFor(const UiStep& step, QStringList& report);

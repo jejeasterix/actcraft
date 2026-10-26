@@ -11,7 +11,9 @@
 #include <QString>
 #include <QStringList>
 
+#include <cstdint>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace actcraft::bench {
@@ -53,6 +55,21 @@ struct RefreshPeriod
         0; // médiane des intervalles d'un rendu continu (chauffe) ; 0 : non mesurée
 };
 
+// L4-T14 (amendement 4, V9) : trames pendant les glissés de forme (clé shape_preview) et leurs intervalles.
+// Un résultat, jamais une porte (hors budget, H4-8).
+struct ShapePreviewStats
+{
+    int frames = 0;   // images présentées pendant un glissé
+    double p95Ms = 0; // p95 des intervalles qui précèdent ces images (0 si aucun)
+    double maxMs = 0;
+};
+
+// `swapNs` : instants des images (horloge du banc) ; `windowsNs` : fenêtres [début, fin] des glissés, mêmes
+// unités. Une image compte si son instant tombe dans une fenêtre ; son intervalle est celui qui la sépare de
+// l'image précédente (aucun pour la toute première).
+ShapePreviewStats shapePreviewStats(const std::vector<std::int64_t>& swapNs,
+                                    const std::vector<std::pair<std::int64_t, std::int64_t>>& windowsNs);
+
 struct ScenarioResult
 {
     QString name;             // stroke | zoom | scroll | page | pauses | gommer | soulever
@@ -84,6 +101,10 @@ struct ScenarioResult
     int maxCacheRefreshes = -1;
     int rebuilds = -1;
     int decodes = -1;
+    // L4-T14 : k formes posées (cache.placed_shapes ; -1 : sans objet) et trames pendant les glissés
+    // (shape_preview ; absent : scénario qui ne trace pas de forme).
+    int placedShapes = -1;
+    std::optional<ShapePreviewStats> shapePreview;
 };
 
 struct BenchResult

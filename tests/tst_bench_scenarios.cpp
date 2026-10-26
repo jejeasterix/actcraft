@@ -123,8 +123,9 @@ private slots:
     {
         const auto plans = bench::allScenarios(bench::ScenarioSet::Court);
         // L2-T23 : « page » ; L10-T1 : « pauses » ; L3-T19 : « gommer » et « soulever », en dernier (le
-        // compte passe de 5 à 7 : les cinq premiers gardent leur nom et leur ordre).
-        QCOMPARE(plans.size(), std::size_t{7});
+        // compte passe de 5 à 7 : les cinq premiers gardent leur nom et leur ordre). L4-T14 : « forme-page-
+        // annotee » et « grille-dessus » après eux (le compte passe de 7 à 9 : les sept premiers inchangés).
+        QCOMPARE(plans.size(), std::size_t{9});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
@@ -132,6 +133,8 @@ private slots:
         QCOMPARE(plans[4].name, QStringLiteral("pauses"));
         QCOMPARE(plans[5].name, QStringLiteral("gommer"));
         QCOMPARE(plans[6].name, QStringLiteral("soulever"));
+        QCOMPARE(plans[7].name, QStringLiteral("forme-page-annotee"));
+        QCOMPARE(plans[8].name, QStringLiteral("grille-dessus"));
         for (std::size_t i = 0; i < 5; ++i) {
             QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
             QVERIFY(plans[i].seedStrokes.empty());
@@ -256,6 +259,112 @@ private slots:
         QCOMPARE(plan.inputs[releases[1] - 1].offsetNs - plan.inputs[presses[1]].offsetNs,
                  std::int64_t{2'000'000'000});
         QVERIFY(end.x() >= 220.0 && end.x() <= 804.0);
+    }
+
+    // L4-T14 (S7.5, V9) : « forme sur page annotée ». Page générée dont la couche du dessus porte des
+    // annotations ; k >= 10 rectangles posés un par un par glissé (préréglage choisi par commande avant la
+    // mesure, outil « tool.shape ») : chaque insertion est hors fin de page et redessine le cache une fois.
+    void shapeOnAnnotatedPageScenario()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan plan = bench::shapeScenario(set);
+            QCOMPARE(plan.name, QStringLiteral("forme-page-annotee"));
+            QCOMPARE(plan.generatedPages, 1);
+            QCOMPARE(plan.toolCommand, QStringLiteral("tool.shape"));
+            QVERIFY(!plan.seedStrokes.empty()); // annotations : la couche du dessus n'est pas vide
+            QVERIFY(plan.measuresShapePreview);
+            QVERIFY(plan.freezeExempt);
+            QVERIFY(plan.placedShapes >= 10);
+            QCOMPARE(plan.maxCacheRefreshes, plan.placedShapes); // cache.refreshes = k
+            QCOMPARE(plan.setupCommands.size(), std::size_t{1});
+            QCOMPARE(plan.setupCommands[0].first, QStringLiteral("shape.choose"));
+            QCOMPARE(plan.setupCommands[0].second.toString(), QStringLiteral("rectangle"));
+            std::vector<std::size_t> presses;
+            std::vector<std::size_t> releases;
+            for (std::size_t i = 0; i < plan.inputs.size(); ++i) {
+                const auto& in = plan.inputs[i];
+                QVERIFY(in.kind != InputKind::Command && in.kind != InputKind::Wheel);
+                QVERIFY(!in.measured); // aucune latence d'encre : on mesure l'aperçu, pas un trait
+                QVERIFY(!core::hitsWitness({in.pagePos.x(), in.pagePos.y()}, 16.0));
+                QVERIFY(in.pagePos.x() >= 220.0 && in.pagePos.x() <= 804.0);
+                QVERIFY(in.pagePos.y() >= 150.0 && in.pagePos.y() <= 618.0);
+                if (i > 0) {
+                    QVERIFY(in.offsetNs >= plan.inputs[i - 1].offsetNs);
+                }
+                if (in.kind == InputKind::TabletPress) {
+                    presses.push_back(i);
+                }
+                if (in.kind == InputKind::TabletRelease) {
+                    releases.push_back(i);
+                }
+            }
+            QCOMPARE(presses.size(), static_cast<std::size_t>(plan.placedShapes));
+            QCOMPARE(releases.size(), presses.size());
+            for (std::size_t k = 0; k < presses.size(); ++k) {
+                const QPointF a = plan.inputs[presses[k]].pagePos;
+                const QPointF b = plan.inputs[releases[k]].pagePos;
+                QVERIFY(releases[k] > presses[k] + 1);
+                QVERIFY(std::abs(b.x() - a.x()) > 3.0 &&
+                        std::abs(b.y() - a.y()) > 3.0); // un glissé, pas un clic
+                if (k > 0) { // le redessin d'une insertion se termine avant l'appui suivant
+                    QVERIFY(plan.inputs[presses[k]].offsetNs - plan.inputs[releases[k - 1]].offsetNs >=
+                            500'000'000);
+                }
+            }
+            const auto windows = bench::dragWindows(plan);
+            QCOMPARE(windows.size(), presses.size());
+            QCOMPARE(windows[0].first, plan.inputs[presses[0]].offsetNs);
+            QCOMPARE(windows[0].second, plan.inputs[releases[0]].offsetNs);
+        }
+    }
+
+    // L4-T14 : trames comptées dans les glissés seulement ; l'intervalle d'une trame est celui qui la
+    // précède. Fenêtres fermées aux deux bouts.
+    void shapePreviewCountsFramesInsideDrags()
+    {
+        const std::vector<std::int64_t> swaps{0, 10'000'000, 20'000'000, 30'000'000, 80'000'000, 90'000'000};
+        const auto one = bench::shapePreviewStats(swaps, {{15'000'000, 35'000'000}});
+        QCOMPARE(one.frames, 2);
+        QCOMPARE(one.maxMs, 10.0);
+        QCOMPARE(one.p95Ms, 10.0);
+        const auto two =
+            bench::shapePreviewStats(swaps, {{15'000'000, 35'000'000}, {75'000'000, 95'000'000}});
+        QCOMPARE(two.frames, 4);
+        QCOMPARE(two.maxMs, 50.0);
+        QVERIFY(two.p95Ms >= 10.0 && two.p95Ms <= 50.0);
+        const auto none = bench::shapePreviewStats(swaps, {{31'000'000, 79'000'000}});
+        QCOMPARE(none.frames, 0);
+        QCOMPARE(none.maxMs, 0.0);
+    }
+
+    // L4-T14 (S7.5) : page générée dont la grille est dessinée au-dessus des objets ; les traits du scénario
+    // « stroke », que la grille du dessus ne fait plus redessiner (L4-T7) : aucun redessin entre deux
+    // versements de la minuterie, et ses traits sont à 300 ms les uns des autres, sous le délai.
+    void gridAboveScenarioDrawsStrokes()
+    {
+        const core::Grid grid = bench::gridAboveFixture();
+        QVERIFY(grid.visible && grid.drawnAbove && !grid.levels.empty() && !grid.snapEnabled);
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan plan = bench::gridAboveScenario(set);
+            const bench::ScenarioPlan stroke = bench::strokeScenario(set);
+            QCOMPARE(plan.name, QStringLiteral("grille-dessus"));
+            QCOMPARE(plan.generatedPages, 1);
+            QVERIFY(plan.gridAbove);
+            QVERIFY(plan.toolCommand.isEmpty()); // le stylo : les traits de « stroke »
+            QVERIFY(plan.setupCommands.empty());
+            QVERIFY(!plan.freezeExempt); // jugé comme « stroke » (figements compris)
+            QCOMPARE(plan.maxCacheRefreshes, -1);
+            QVERIFY(!plan.measuresShapePreview);
+            QCOMPARE(plan.inputs.size(), stroke.inputs.size());
+            for (std::size_t i = 0; i < plan.inputs.size(); ++i) {
+                QCOMPARE(plan.inputs[i].offsetNs, stroke.inputs[i].offsetNs);
+                QCOMPARE(plan.inputs[i].pagePos, stroke.inputs[i].pagePos);
+                QCOMPARE(plan.inputs[i].kind, stroke.inputs[i].kind);
+                QCOMPARE(plan.inputs[i].measured, stroke.inputs[i].measured);
+            }
+            QVERIFY(std::any_of(plan.inputs.begin(), plan.inputs.end(),
+                                [](const bench::PlannedInput& in) { return in.measured; }));
+        }
     }
 
     // L10-T1 (DA11) : chaque reprise tombe après le délai d'inactivité du cache, décalée de 0 à 64 ms (court

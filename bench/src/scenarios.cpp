@@ -415,10 +415,73 @@ ScenarioPlan liftScenario(ScenarioSet set)
     return plan;
 }
 
+ScenarioPlan shapeScenario(ScenarioSet set)
+{
+    const int d = durationDivisor(set);
+    ScenarioPlan plan;
+    plan.name = QStringLiteral("forme-page-annotee");
+    plan.zoom = 1.0;
+    plan.generatedPages = 1;
+    plan.toolCommand = QStringLiteral("tool.shape");
+    plan.setupCommands.emplace_back(QStringLiteral("shape.choose"), QVariant(QStringLiteral("rectangle")));
+    for (int k = 0; k < 3; ++k) {
+        plan.seedStrokes.push_back(seedStroke(k)); // annotations : la couche du dessus n'est pas vide
+    }
+    plan.freezeExempt = true; // comme « gommer » : chaque insertion redessine le cache, on le mesure
+    plan.placedShapes = kShapeCount;
+    plan.maxCacheRefreshes = kShapeCount;
+    plan.measuresShapePreview = true;
+    // Deux colonnes de cinq rectangles de 120 × 45, zone centrale (x 220–804, y 150–618), hors témoins.
+    std::int64_t at = 0;
+    for (int k = 0; k < kShapeCount; ++k) {
+        const QPointF from(240.0 + 290.0 * (k % 2), 230.0 + 75.0 * (k / 2));
+        const QPointF to(from.x() + 120.0, from.y() + 45.0);
+        appendLine(plan.inputs, from, to, 2.5 * d, at, true);
+        appendRelease(plan.inputs);
+        at = plan.inputs.back().offsetNs + kShapePauseNs;
+    }
+    return plan;
+}
+
+core::Grid gridAboveFixture()
+{
+    core::Grid grid;
+    grid.visible = true;
+    grid.drawnAbove = true;
+    grid.snapEnabled = false;
+    grid.levels.push_back(core::GridLevel{});
+    return grid;
+}
+
+ScenarioPlan gridAboveScenario(ScenarioSet set)
+{
+    ScenarioPlan plan = strokeScenario(set);
+    plan.name = QStringLiteral("grille-dessus");
+    plan.generatedPages = 1;
+    plan.gridAbove = true;
+    return plan;
+}
+
+std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan)
+{
+    std::vector<std::pair<std::int64_t, std::int64_t>> windows;
+    std::int64_t pressAt = -1;
+    for (const PlannedInput& in : plan.inputs) {
+        if (in.kind == InputKind::TabletPress) {
+            pressAt = in.offsetNs;
+        } else if (in.kind == InputKind::TabletRelease && pressAt >= 0) {
+            windows.emplace_back(pressAt, in.offsetNs);
+            pressAt = -1;
+        }
+    }
+    return windows;
+}
+
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
 {
-    return {strokeScenario(set), zoomScenario(set),  scrollScenario(set), pageScenario(set),
-            pausesScenario(set), eraseScenario(set), liftScenario(set)};
+    return {strokeScenario(set), zoomScenario(set),   scrollScenario(set),
+            pageScenario(set),   pausesScenario(set), eraseScenario(set),
+            liftScenario(set),   shapeScenario(set),  gridAboveScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()
