@@ -77,9 +77,9 @@ private slots:
             QCOMPARE(s.contains("shape_preview"), i == 7);
         }
         const QJsonObject preview = scenarios.at(7).toObject().value("shape_preview").toObject();
-        // Sous charge (suite complète en parallèle, debug logiciel : relevé le 2026-10-26, 4 images pendant tout
-        // le scénario, toutes hors des glissés) aucune image ne tombe dans un glissé : frames = 0. Ici la clé et
-        // ses trois champs comptent ; n >= 1 est vérifié par le banc hors écran de la preuve.
+        // Sous charge (suite complète en parallèle, debug logiciel : relevé le 2026-10-26, 4 images pendant
+        // tout le scénario, toutes hors des glissés) aucune image ne tombe dans un glissé : frames = 0. Ici
+        // la clé et ses trois champs comptent ; n >= 1 est vérifié par le banc hors écran de la preuve.
         QVERIFY2(preview.value("frames").toInt(-1) >= 0, "clé shape_preview.frames absente");
         QVERIFY(preview.contains("p95_ms") && preview.value("p95_ms").toDouble(-1) >= 0);
         QVERIFY(preview.contains("max_ms") &&
