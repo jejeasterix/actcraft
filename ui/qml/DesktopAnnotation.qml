@@ -86,9 +86,9 @@ Item {
                     spacing: 8
 
                     Button {
-                        objectName: "desktopPreviousPageButton"
+                        objectName: "desktopPageBackButton"
                         text: qsTr("Page précédente")
-                        onClicked: desktopController.previousPage()
+                        onClicked: desktopController.pageBack()
                     }
                     Button {
                         objectName: "desktopNextPageButton"

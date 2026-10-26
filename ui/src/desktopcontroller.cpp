@@ -75,10 +75,10 @@ private:
 
 // Fond « capture du bureau » (F-071) : la ressource PNG et l'image de fond de la page, en une étape. Annuler
 // rend le fond d'avant et retire la ressource si cette commande l'avait ajoutée.
-class SetBackgroundImageCommand final : public core::UndoCommand
+class DesktopCaptureCommand final : public core::UndoCommand
 {
 public:
-    SetBackgroundImageCommand(std::size_t page, QByteArray png) : m_page(page), m_png(std::move(png)) {}
+    DesktopCaptureCommand(std::size_t page, QByteArray png) : m_page(page), m_png(std::move(png)) {}
 
     void redo(core::Document& document, core::Changes& changes) override
     {
@@ -271,7 +271,7 @@ void DesktopController::nextPage()
     m_desktop->nextPage();
 }
 
-void DesktopController::previousPage()
+void DesktopController::pageBack()
 {
     m_desktop->pageBack();
 }
@@ -290,7 +290,7 @@ bool DesktopController::captureBackground()
     if (png.isEmpty()) {
         return false;
     }
-    target->execute(std::make_unique<SetBackgroundImageCommand>(
+    target->execute(std::make_unique<DesktopCaptureCommand>(
         static_cast<std::size_t>(target->currentIndex()), std::move(png)));
     return true;
 }

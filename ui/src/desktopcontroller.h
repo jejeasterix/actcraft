@@ -68,7 +68,7 @@ public:
     Q_INVOKABLE void toggle();
     // P13 : insère après la page affichée une page transparente vierge de sa taille (une étape) et l'affiche.
     Q_INVOKABLE void nextPage();
-    Q_INVOKABLE void previousPage();
+    Q_INVOKABLE void pageBack();
     // Fond « capture du bureau » de la page affichée du paperboard actif ; faux si aucune image.
     Q_INVOKABLE bool captureBackground();
     // Superposition du bureau sur la page affichée du paperboard du bureau (ouvre l'annotation au besoin).
