@@ -297,8 +297,8 @@ int PageThumbnails::settleDelay() const noexcept
     return m_settle.interval();
 }
 
-// M-H (L4-C10) : les marques suivent leur page comme les images ; seules les pages insérées et celle du rendu en
-// vol (jeté à son retour) sont à rendre. Tout marquer refaisait N rendus par opération de page, la page
+// M-H (L4-C10) : les marques suivent leur page comme les images ; seules les pages insérées et celle du rendu
+// en vol (jeté à son retour) sont à rendre. Tout marquer refaisait N rendus par opération de page, la page
 // insérée en dernier.
 void PageThumbnails::resetRows(const core::Changes* changes)
 {

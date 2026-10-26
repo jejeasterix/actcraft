@@ -200,8 +200,8 @@ private slots:
         controller.loadGeneratedFirstPage();
         QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 2, 10000);
         QVERIFY(thumbs.lastRenderThread() != QThread::currentThread());
-        // Q13 (L4-C10) : une seule page et un seul lancement depuis le premier, donc la copie relevée est celle
-        // de la page générée ; une copie non relevée laisserait 0.
+        // Q13 (L4-C10) : une seule page et un seul lancement depuis le premier, donc la copie relevée est
+        // celle de la page générée ; une copie non relevée laisserait 0.
         QCOMPARE(controller.pageCount(), 1);
         QCOMPARE(thumbs.launchCount(), 2);
         QVERIFY(controller.document().page(0).objects.size() >= 300);
@@ -233,11 +233,10 @@ private slots:
         QCOMPARE(thumbs.data(thumbs.index(2), PageThumbnails::CurrentRole).toBool(), false);
     }
 
-    // Défaut 11 : un déplacement (MovePagesCommand : un PageRemoved puis un PageInserted par page) retire puis
-    // insère, le nombre de pages ne change pas ; les lignes sont refaites.
-    // M-H (L4-C10) : seule la ligne d'arrivée est rendue de nouveau. Q11 : avant tout rendu, les images gardées
-    // ont déjà suivi leur page. Q4a2-m6 : l'attente fixe suit le QTRY et précède le contrôle « pas de rendu en
-    // trop ».
+    // Défaut 11 : un déplacement (MovePagesCommand : un PageRemoved puis un PageInserted par page) retire
+    // puis insère, le nombre de pages ne change pas ; les lignes sont refaites. M-H (L4-C10) : seule la ligne
+    // d'arrivée est rendue de nouveau. Q11 : avant tout rendu, les images gardées ont déjà suivi leur page.
+    // Q4a2-m6 : l'attente fixe suit le QTRY et précède le contrôle « pas de rendu en trop ».
     void moveRendersOnlyArrivedRow()
     {
         ui::DocumentController controller;
@@ -252,7 +251,8 @@ private slots:
         const int renders = thumbs.renderCount();
         const int launches = thumbs.launchCount();
         QSignalSpy reset(&thumbs, &QAbstractItemModel::modelReset);
-        controller.execute(std::make_unique<core::MovePagesCommand>(std::vector<std::size_t>{2}, 0)); // [C, A, B]
+        controller.execute(
+            std::make_unique<core::MovePagesCommand>(std::vector<std::size_t>{2}, 0)); // [C, A, B]
         QCOMPARE(controller.pageCount(), 3);
         QCOMPARE(thumbs.rowCount(), 3);
         QCOMPARE(reset.count(), 1);
@@ -300,8 +300,8 @@ private slots:
         QCOMPARE(thumbs.launchCount(), 2);
     }
 
-    // M-G (L4-C10) : objet soulevé (texte en édition, objets déplacés) : la page affichée n'a plus l'objet, sa
-    // miniature garde l'image d'avant et n'est rendue qu'après le dépôt, comme Enregistrer attend le dépôt
+    // M-G (L4-C10) : objet soulevé (texte en édition, objets déplacés) : la page affichée n'a plus l'objet,
+    // sa miniature garde l'image d'avant et n'est rendue qu'après le dépôt, comme Enregistrer attend le dépôt
     // (documentcontroller.h, liftObjects). La page est marquée juste avant le soulèvement : une marque en
     // attente ne doit pas non plus partir pendant le soulèvement.
     void liftedObjectStaysInThumbnail()
