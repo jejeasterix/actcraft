@@ -8,9 +8,21 @@
 
 namespace actcraft::render {
 
+QFont equationFont(double pointSize)
+{
+    QFont font;
+    font.setPixelSize(qMax(1, qRound(pointSize * 96.0 / 72.0)));
+    return font;
+}
+
+EquationBox layoutEquation(const core::EquationNode&, const QFont&)
+{
+    return {};
+}
+
 // Repère neutre de paintUnknown (pagepainter.cpp) sur la boîte de l'équation : cadre gris pointillé d'un
 // pixel quel que soit le zoom (plume cosmétique). Le MathML n'est pas lu.
-void paintEquation(QPainter& painter, const core::Equation& equation)
+void paintEquation(QPainter& painter, const core::Equation& equation, EquationPaintMode)
 {
     QPen pen(QColor(0x80, 0x80, 0x80), 0, Qt::DashLine);
     pen.setCosmetic(true);
