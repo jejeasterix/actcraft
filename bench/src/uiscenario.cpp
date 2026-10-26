@@ -891,7 +891,8 @@ bool UiScenarioPlayer::typeText(const UiStep& step, QStringList& report)
         const ushort unicode = c.toUpper().unicode();
         const int code = unicode >= 0x20 && unicode < 0x7f ? static_cast<int>(unicode) : 0;
         const Qt::KeyboardModifiers modifiers = c.isUpper() ? Qt::ShiftModifier : Qt::NoModifier;
-        accepted = m_keyDelivery(m_window, keyTimestamp(), QEvent::KeyPress, code, modifiers, text) && accepted;
+        accepted =
+            m_keyDelivery(m_window, keyTimestamp(), QEvent::KeyPress, code, modifiers, text) && accepted;
         m_keyDelivery(m_window, keyTimestamp(), QEvent::KeyRelease, code, modifiers, text);
     }
     QCoreApplication::processEvents();

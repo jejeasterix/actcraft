@@ -55,9 +55,10 @@ private slots:
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
         QCOMPARE(scenarios.size(), 9);
-        const QStringList names{QStringLiteral("stroke"),  QStringLiteral("zoom"),   QStringLiteral("scroll"),
-                                QStringLiteral("page"),    QStringLiteral("pauses"), QStringLiteral("gommer"),
-                                QStringLiteral("soulever"), QStringLiteral("forme-page-annotee"),
+        const QStringList names{QStringLiteral("stroke"),       QStringLiteral("zoom"),
+                                QStringLiteral("scroll"),       QStringLiteral("page"),
+                                QStringLiteral("pauses"),       QStringLiteral("gommer"),
+                                QStringLiteral("soulever"),     QStringLiteral("forme-page-annotee"),
                                 QStringLiteral("grille-dessus")};
         for (qsizetype i = 0; i < 9; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
@@ -76,9 +77,11 @@ private slots:
             QCOMPARE(s.contains("shape_preview"), i == 7);
         }
         const QJsonObject preview = scenarios.at(7).toObject().value("shape_preview").toObject();
-        QVERIFY2(preview.value("frames").toInt(-1) >= 1, qPrintable(QString::number(preview.value("frames").toInt(-1))));
+        QVERIFY2(preview.value("frames").toInt(-1) >= 1,
+                 qPrintable(QString::number(preview.value("frames").toInt(-1))));
         QVERIFY(preview.contains("p95_ms") && preview.value("p95_ms").toDouble(-1) >= 0);
-        QVERIFY(preview.contains("max_ms") && preview.value("max_ms").toDouble(-1) >= preview.value("p95_ms").toDouble());
+        QVERIFY(preview.contains("max_ms") &&
+                preview.value("max_ms").toDouble(-1) >= preview.value("p95_ms").toDouble());
     }
 
     // L4-T14 (S7.5) : « forme-page-annotee » pose k >= 10 formes, une insertion hors fin de page redessine le

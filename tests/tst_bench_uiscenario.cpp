@@ -748,7 +748,8 @@ private slots:
     {
         UiScenario s;
         QString error;
-        QVERIFY2(parseSteps("{\"typeText\": \"Bonjour\"},{\"typeText\": \"a b\"}", s, error), qPrintable(error));
+        QVERIFY2(parseSteps("{\"typeText\": \"Bonjour\"},{\"typeText\": \"a b\"}", s, error),
+                 qPrintable(error));
         QVERIFY(s.steps[0].kind == UiStepKind::TypeText);
         QCOMPARE(s.steps[0].value, QStringLiteral("Bonjour"));
         QCOMPARE(s.steps[1].value, QStringLiteral("a b"));
@@ -776,11 +777,11 @@ private slots:
         accept = true;
         Fixture f;
         QVERIFY(load(f));
-        f.player->setKeyDelivery([](QWindow*, ulong, QEvent::Type type, int, Qt::KeyboardModifiers,
-                                    const QString& text) {
-            seen.push_back({type, text});
-            return type != QEvent::KeyPress || accept;
-        });
+        f.player->setKeyDelivery(
+            [](QWindow*, ulong, QEvent::Type type, int, Qt::KeyboardModifiers, const QString& text) {
+                seen.push_back({type, text});
+                return type != QEvent::KeyPress || accept;
+            });
         QStringList report;
         QVERIFY2(f.player->play(scenario("texte", "[{\"typeText\":\"Bon jour\"}]"), f.out.path(), report),
                  qPrintable(report.join(QLatin1Char('\n'))));

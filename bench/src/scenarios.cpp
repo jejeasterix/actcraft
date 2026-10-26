@@ -479,9 +479,9 @@ std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPla
 
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
 {
-    return {strokeScenario(set), zoomScenario(set),  scrollScenario(set), pageScenario(set),
-            pausesScenario(set), eraseScenario(set), liftScenario(set),   shapeScenario(set),
-            gridAboveScenario(set)};
+    return {strokeScenario(set), zoomScenario(set),   scrollScenario(set),
+            pageScenario(set),   pausesScenario(set), eraseScenario(set),
+            liftScenario(set),   shapeScenario(set),  gridAboveScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()

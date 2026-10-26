@@ -304,7 +304,8 @@ private slots:
                 const QPointF a = plan.inputs[presses[k]].pagePos;
                 const QPointF b = plan.inputs[releases[k]].pagePos;
                 QVERIFY(releases[k] > presses[k] + 1);
-                QVERIFY(std::abs(b.x() - a.x()) > 3.0 && std::abs(b.y() - a.y()) > 3.0); // un glissé, pas un clic
+                QVERIFY(std::abs(b.x() - a.x()) > 3.0 &&
+                        std::abs(b.y() - a.y()) > 3.0); // un glissé, pas un clic
                 if (k > 0) { // le redessin d'une insertion se termine avant l'appui suivant
                     QVERIFY(plan.inputs[presses[k]].offsetNs - plan.inputs[releases[k - 1]].offsetNs >=
                             500'000'000);
@@ -326,7 +327,8 @@ private slots:
         QCOMPARE(one.frames, 2);
         QCOMPARE(one.maxMs, 10.0);
         QCOMPARE(one.p95Ms, 10.0);
-        const auto two = bench::shapePreviewStats(swaps, {{15'000'000, 35'000'000}, {75'000'000, 95'000'000}});
+        const auto two =
+            bench::shapePreviewStats(swaps, {{15'000'000, 35'000'000}, {75'000'000, 95'000'000}});
         QCOMPARE(two.frames, 4);
         QCOMPARE(two.maxMs, 50.0);
         QVERIFY(two.p95Ms >= 10.0 && two.p95Ms <= 50.0);
