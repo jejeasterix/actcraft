@@ -22,6 +22,7 @@ using namespace actcraft;
 namespace {
 
 constexpr const char* kAbc = "<p style=\"font-size:40pt\">ABC</p>";
+constexpr const char* kNarrow = "<p style=\"font-size:40pt\">Wlll</p>";
 constexpr const char* kBoldAbc = "<p style=\"font-size:40pt\"><b>ABC</b></p>";
 constexpr int kInkLevel = 160; // gris plus sombre que ce niveau : encre sur le blanc de la page
 
@@ -147,6 +148,15 @@ private slots:
         for (const Band& b : ink.bands) {
             QVERIFY2(std::abs((b.left + b.right) / 2.0 - first) < letter / 2, qPrintable(describe(ink)));
         }
+    }
+
+    // Une lettre par ligne, quelle que soit sa largeur (L4-C12) : « Wlll » donne quatre bandes, alors que la
+    // colonne a la largeur du « W » et que trois « l » étroits tiendraient ensemble sur une ligne. Rouge tant
+    // que le remplissage glouton range les lettres étroites côte à côte.
+    void narrowLettersGetOneLineEach()
+    {
+        const Ink ink = inkOf(painted(pageWith(verticalText(kNarrow, 40, 30, 200, 300))));
+        QVERIFY2(ink.bands.size() == 4, qPrintable(describe(ink)));
     }
 
     // <b>ABC</b> : toujours en colonne, et plus d'encre qu'en maigre (la mise en forme du HTML est gardée).
