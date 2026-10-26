@@ -295,8 +295,8 @@
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/result.h": {
-    "mtime": 1792514487.0314703,
-    "ast_hash": "06dd450e099214e1a68dd411a0a66146",
+    "mtime": 1793028692.3658476,
+    "ast_hash": "949c651e6b955badaa5507f855ed0255",
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/runner.h": {
@@ -305,8 +305,8 @@
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/scenarios.h": {
-    "mtime": 1792528040.990924,
-    "ast_hash": "ca1f4bd0787926f93867ccbc6544d9f4",
+    "mtime": 1793028692.3698547,
+    "ast_hash": "2fa3c987ea06bb674ef59d2ba263cfc8",
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/stats.h": {
@@ -370,18 +370,18 @@
     "semantic_hash": ""
   },
   "bench/src/result.cpp": {
-    "mtime": 1792528040.995924,
-    "ast_hash": "7119e19d3dc1f87b12d2f1898f3501ef",
+    "mtime": 1793028692.3775463,
+    "ast_hash": "0f24f0272bf752273142956b3ed90194",
     "semantic_hash": ""
   },
   "bench/src/runner.cpp": {
-    "mtime": 1792532666.81804,
-    "ast_hash": "e9a0971f695c1a8a658799302478159c",
+    "mtime": 1793028692.3815465,
+    "ast_hash": "09b1f692770cd6ac9901fe96f6394255",
     "semantic_hash": ""
   },
   "bench/src/scenarios.cpp": {
-    "mtime": 1792532666.81804,
-    "ast_hash": "aa43309958fb28eaf13e963fa52e32ce",
+    "mtime": 1793028692.385546,
+    "ast_hash": "1d7cb59c6f11a102b7c84052d3271d93",
     "semantic_hash": ""
   },
   "bench/src/stats.cpp": {
@@ -690,13 +690,13 @@
     "semantic_hash": ""
   },
   "tests/tst_bench_result.cpp": {
-    "mtime": 1792524587.3246121,
-    "ast_hash": "d957233c90dd767648b5700e68068a56",
+    "mtime": 1793028692.397555,
+    "ast_hash": "edc9013d64f588c4231044d1c786d94a",
     "semantic_hash": ""
   },
   "tests/tst_bench_scenarios.cpp": {
-    "mtime": 1792524587.3266993,
-    "ast_hash": "42a2fde3f04b15594ff563aaa5499705",
+    "mtime": 1793028692.4005587,
+    "ast_hash": "6e837b0a3d4d8a094f9ee468db18e201",
     "semantic_hash": ""
   },
   "tests/tst_bench_stats.cpp": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "docs/banc.md": {
-    "mtime": 1792524587.321615,
-    "ast_hash": "3e111180e8a91ce2d09cc533c3f03dd0",
+    "mtime": 1793028692.3925529,
+    "ast_hash": "045f2b4aabd622fe649bfe4a9de89f5d",
     "semantic_hash": ""
   },
   "docs/mesures/2026-10-13-prototype-mesure.md": {
@@ -985,8 +985,8 @@
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/uiscenario.h": {
-    "mtime": 1792426526.3229122,
-    "ast_hash": "6d5ce009ea53d3edeac6d8a4f3cf07ec",
+    "mtime": 1793028692.3733559,
+    "ast_hash": "95f9a1fcb3be29efe2d4591f465b4cdf",
     "semantic_hash": ""
   },
   "bench/scenarios/premiers-pas.json": {
@@ -995,8 +995,8 @@
     "semantic_hash": ""
   },
   "bench/src/uiscenario.cpp": {
-    "mtime": 1792532666.81804,
-    "ast_hash": "addb0b8257b50e3c810175b61ceff198",
+    "mtime": 1793028692.388549,
+    "ast_hash": "09f7abe2494268de082b0ff1eecb4ebf",
     "semantic_hash": ""
   },
   "core/include/actcraft/core/document.h": {
@@ -1075,8 +1075,8 @@
     "semantic_hash": ""
   },
   "tests/tst_bench_uiscenario.cpp": {
-    "mtime": 1792426526.339574,
-    "ast_hash": "d61d56396588b850cd58d18301655345",
+    "mtime": 1793028692.405067,
+    "ast_hash": "d3213855ed866fc78451080a5652ebe5",
     "semantic_hash": ""
   },
   "tests/tst_core_document.cpp": {
@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793013504.970401,
-    "ast_hash": "8a07653b0759c9a31c93b22d7c95200e",
+    "mtime": 1793024869.9413576,
+    "ast_hash": "927229a167723119b2f6258535f4ef8c",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
