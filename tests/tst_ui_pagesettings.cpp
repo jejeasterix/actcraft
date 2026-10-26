@@ -43,10 +43,10 @@ struct Rig
         controller.nextPage();
         controller.showPage(0);
         options.setDocumentController(&controller);
-        token = controller.addChangeObserver([this](const core::Changes& applied,
-                                                    ui::DocumentController::ChangeOrigin) {
-            core::applyToCache(applied, static_cast<std::size_t>(controller.currentIndex()), spy);
-        });
+        token = controller.addChangeObserver(
+            [this](const core::Changes& applied, ui::DocumentController::ChangeOrigin) {
+                core::applyToCache(applied, static_cast<std::size_t>(controller.currentIndex()), spy);
+            });
     }
     ~Rig() { controller.removeChangeObserver(token); }
 
