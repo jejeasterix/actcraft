@@ -734,8 +734,7 @@ private slots:
         w.now = atMs(w.recognition->delayMs());
         w.recognition->processDue();
         QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 1, 10000);
-        QQuickItem* panel = presentationharness::findItem(w.main.item(QStringLiteral("recognitionRoot")),
-                                                          QStringLiteral("recognitionAlternatives"));
+        QQuickItem* panel = w.main.item(QStringLiteral("recognitionAlternatives"));
         QVERIFY(panel != nullptr);
         QTRY_VERIFY(panel->isVisible());
 
@@ -762,8 +761,7 @@ private slots:
         w.now = atMs(w.recognition->delayMs());
         w.recognition->processDue();
         QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 1, 10000);
-        QQuickItem* panel = presentationharness::findItem(w.main.item(QStringLiteral("recognitionRoot")),
-                                                          QStringLiteral("recognitionAlternatives"));
+        QQuickItem* panel = w.main.item(QStringLiteral("recognitionAlternatives"));
         QVERIFY(panel != nullptr);
         QTRY_VERIFY(panel->isVisible());
         QTest::qWait(100);

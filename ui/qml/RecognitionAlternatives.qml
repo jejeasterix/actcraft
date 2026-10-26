@@ -48,7 +48,6 @@ Item {
                     height: Theme.tailleBouton
                     flat: true
                     text: modelData
-                    textFormat: Text.PlainText
                     Accessible.name: modelData
                     onClicked: recognitionController.chooseAlternative(index)
                 }
