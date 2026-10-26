@@ -6,7 +6,6 @@ Avancement : 4/11 lots clos — clos : 1, 2, 10, 3 · en cours : 4, 7 (B) · à 
 Étage : 3 (lot 4 ; point d'étape de 4a, correctifs L4-C7 à L4-C13 à lancer) — depuis 2026-10-26
 Lot : 4 « Outils II » — 28/38 tâches terminées — depuis 2026-10-21 06:46
 Questions à Jérôme : —
-Tâche : L4-C10 — miniatures : objet soulevé, rendus ciblés — depuis 2026-10-26 18:50
 Tâche : L4-C12 — texte vertical : une lettre par ligne — depuis 2026-10-26 21:30
 Tâche : L4-C11 — pages : pas de réaffichage, presse-papiers avec ressources — depuis 2026-10-26 20:45
 Tâche : L4-C9 — accrochage sur grille inclinée en coordonnées du réseau — depuis 2026-10-26 20:52
@@ -503,6 +502,7 @@ Preuve de L0-S7 lancée sous le jeton (`scratchpad/out/preuve-l0s7.txt`).
   - **L4-C10, suite de l'agent** : `99% … 1 tests failed out of 136`, échec `tst_captures_formes` (`PIXEL cercle-interieur-blanc ECART`, lu #767778, attendu #ffffff), sur la base `06d622d` sans L4-C7. Diff des tests : `moveRerendersShiftedRows` renommée `moveRendersOnlyArrivedRow` (sens réécrit, prévu par Q4a2-m6/M-H), 3 fonctions ajoutées. Branche rebasée sur la tête (avec L4-C7) ; preuve rejouée sous le jeton : si `formes` tombe encore, l'interaction miniatures ↔ capture est à chercher.
   - **L4-C9 rendu en partiel** (commits `8470eec` rouge, `9d6d30f` ; rien n'a tourné). Écart : réduction de Lagrange-Gauss de la base avant l'arrondi (l'arrondi direct dans la base d'origine est faux à 89°), 3 × 3 voisins ; 1 372 cas contre un oracle lent. Hors périmètre : borne haute de page absente de l'accrochage ; S10 ; Q18.
   - **L4-C12 lancé** (implementeur-tdd, `…--L4-C12`, base `5b6278c`).
+  - **L4-C10 mergée** (merge `10e63f1`). Preuve rejouée par A sur la branche rebasée (avec L4-C7) : suite 136/136 `TESTS OK` (donc l'échec `formes` vu par l'agent venait de la base sans L4-C7, sans lien avec les miniatures) ; `tst_ui_pagethumbnails` 10 fonctions, Totals 12 ; 4 mutations rouges (tout marquer, débit, soulèvement, page affichée d'abord) puis retour au vert ; format, NOMS OK, titres 0. Worktree supprimé. L4-T19 peut partir (après 4a).
   - **L3-C7, en cours** (worktree `livraison-complete--L3-C7`, base 3e86368) : gomme qui recoupe tous les traits soulevés et redessine toute la couche soulevée à chaque mouvement (qualité M1) ; morceaux gommés d'un trait mis à l'échelle trop fins et désignation d'un trait agrandi (qualité M3, m5 ; conformité M3) ; gomme qui ne filtre pas le pointeur (qualité m6).
   - **L3-C8** : `canRevertPage` recalculé (quatre empreintes de page) et faux pendant un soulèvement (qualité M2) ; `loadGeneratedFirstPage` sans dépôt (m2) ; `inkChanged` qui détruit les outils sans `cancelGesture` (m1) ; vérifier par un test la demande de redessin perdue du regroupement par tour (m4, plausible).
   - **L3-C9** : groupes et objets sans emprise désignables et déplaçables (qualité M4) ; Agrandir et Réduire passent outre le verrou et « dimensionner » (conformité M1) ; `strokeHitUsesWidthAndTolerance` ne distingue pas l'encre de l'emprise (conformité M7).
