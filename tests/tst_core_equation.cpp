@@ -310,6 +310,134 @@ private slots:
         QCOMPARE(written(math), u"<math><mrow class=\"actcraft-placeholder\"/></math>"_s);
     }
 
+    // La case vide qui porte le curseur (L7-T25 dessine les deux marques) n'a qu'un attribut class : la marque
+    // de la case, puis les autres classes. Écrite, elle se relit en Placeholder à l'identique.
+    void placeholderWithCursorRoundTrip()
+    {
+        using Attributes = std::vector<std::pair<std::string, std::string>>;
+        EquationNode cursor;
+        cursor.kind = EquationNode::Kind::Placeholder;
+        cursor.attributes = {{"class", "actcraft-cursor"}};
+        EquationNode box;
+        box.kind = EquationNode::Kind::Placeholder;
+        EquationNode fraction;
+        fraction.kind = EquationNode::Kind::Fraction;
+        fraction.children = {cursor, box};
+        EquationNode math;
+        math.kind = EquationNode::Kind::Math;
+        math.children.push_back(fraction);
+
+        const QString out = written(math);
+        QCOMPARE(out, u"<math><mfrac><mrow class=\"actcraft-placeholder actcraft-cursor\"/>"
+                      u"<mrow class=\"actcraft-placeholder\"/></mfrac></math>"_s);
+        QCOMPARE(out.count(u"class="_s), 2); // une seule fois par case
+        QString error;
+        const auto tree = parseMathml(out.toStdString(), error);
+        QVERIFY2(tree.has_value(), qPrintable(error));
+        QCOMPARE(outline(*tree), u"math(frac(placeholder,placeholder))"_s);
+        QVERIFY(tree->children[0].children[0].attributes == (Attributes{{"class", "actcraft-cursor"}}));
+        QVERIFY(tree->children[0].children[1].attributes.empty());
+        QCOMPARE(written(*tree), out);
+    }
+
+    // Lecture de la case vide : la marque parmi d'autres classes et d'autres attributs suffit, et seule la
+    // marque est retirée. Un <mrow> marqué qui a un enfant reste un Row, attributs intacts.
+    void placeholderRecognition()
+    {
+        using Attributes = std::vector<std::pair<std::string, std::string>>;
+        QString error;
+        const auto boxes = parseMathml("<math><mrow class=\"actcraft-placeholder\" id=\"k\"/>"
+                                       "<mrow id=\"j\" class=\" actcraft-cursor  actcraft-placeholder \"/></math>",
+                                       error);
+        QVERIFY2(boxes.has_value(), qPrintable(error));
+        QCOMPARE(outline(*boxes), u"math(placeholder,placeholder)"_s);
+        QVERIFY(boxes->children[0].attributes == (Attributes{{"id", "k"}}));
+        QVERIFY(boxes->children[1].attributes == (Attributes{{"id", "j"}, {"class", "actcraft-cursor"}}));
+        QCOMPARE(written(*boxes), u"<math><mrow class=\"actcraft-placeholder\" id=\"k\"/>"
+                                  u"<mrow class=\"actcraft-placeholder actcraft-cursor\" id=\"j\"/></math>"_s);
+
+        const std::string rows =
+            "<math><mrow class=\"actcraft-placeholder\"><mi>x</mi></mrow><mrow class=\"actcraft-cursor\"/></math>";
+        const auto notBoxes = parseMathml(rows, error);
+        QVERIFY2(notBoxes.has_value(), qPrintable(error));
+        QCOMPARE(outline(*notBoxes), u"math(row(mi[x]),row)"_s);
+        QVERIFY(notBoxes->children[0].attributes == (Attributes{{"class", "actcraft-placeholder"}}));
+        QCOMPARE(written(*notBoxes), QString::fromStdString(rows));
+    }
+
+    // Deux BOM en tête : le décodeur retire le premier, QXmlStreamReader saute le second sans le compter, et
+    // ses positions ont une unité de retard sur le texte. La fin d'un Raw, cherchée comme son début puis
+    // confirmée par le nom, reste exacte : élément qui contient un jeton, élément vide, imbriqué dans un
+    // élément du même nom, jeton qui contient un élément.
+    void rawEndConfirmedAfterSecondBom()
+    {
+        const std::string bom = "\xEF\xBB\xBF";
+        const std::vector<std::pair<std::string, QString>> cases = {
+            {"<math><mi>a</mi><menclose><mi>b</mi></menclose></math>",
+             u"math(mi[a],raw[<menclose><mi>b</mi></menclose>])"_s},
+            {"<math><menclose><menclose/></menclose><mspace width=\"1em\"/></math>",
+             u"math(raw[<menclose><menclose/></menclose>],raw[<mspace width=\"1em\"/>])"_s},
+            {"<math><mi>x<mglyph src=\"g\"/></mi></math>", u"math(raw[<mi>x<mglyph src=\"g\"/></mi>])"_s},
+        };
+        for (const auto& [body, shape] : cases) {
+            QString error;
+            const auto tree = parseMathml(bom + bom + body, error);
+            QVERIFY2(tree.has_value(), qPrintable(error));
+            QCOMPARE(outline(*tree), shape);
+            QCOMPARE(written(*tree), QString::fromStdString(body));
+        }
+    }
+
+    // Un U+FEFF en tête d'un texte de jeton ou d'une valeur d'attribut est un caractère comme un autre : il
+    // reste à l'écriture (forme canonique stable).
+    void leadingFeffInTextKept()
+    {
+        const std::string in = "<math><mi>\xEF\xBB\xBF"
+                               "a</mi><mi mathvariant=\"\xEF\xBB\xBF"
+                               "b\">c</mi></math>";
+        QString error;
+        const auto tree = parseMathml(in, error);
+        QVERIFY2(tree.has_value(), qPrintable(error));
+        QVERIFY(tree->children[0].text == "\xEF\xBB\xBF"
+                                          "a");
+        QCOMPARE(written(*tree), QString::fromStdString(in));
+    }
+
+    // Un retour chariot d'un jeton (&#13;) s'écrit &#13; : écrit brut, il serait relu en saut de ligne.
+    void carriageReturnKept()
+    {
+        QString error;
+        const auto tree = parseMathml("<math><mtext>a&#13;b</mtext></math>", error);
+        QVERIFY2(tree.has_value(), qPrintable(error));
+        QVERIFY(tree->children[0].text == "a\rb");
+        const std::string out = toMathml(*tree);
+        QCOMPARE(QString::fromStdString(out), u"<math><mtext>a&#13;b</mtext></math>"_s);
+        const auto again = parseMathml(out, error);
+        QVERIFY2(again.has_value(), qPrintable(error));
+        QVERIFY(again->children[0].text == "a\rb");
+    }
+
+    // Un arbre construit à la main qui ne s'écrit pas en XML 1.0 (caractère de contrôle, UTF-8 invalide, dans
+    // un texte ou une valeur d'attribut) rend une chaîne vide, pas un MathML amputé.
+    void unwritableTreeIsEmpty()
+    {
+        EquationNode identifier;
+        identifier.kind = EquationNode::Kind::Identifier;
+        identifier.text = "a\x01"
+                          "b";
+        EquationNode math;
+        math.kind = EquationNode::Kind::Math;
+        math.children.push_back(identifier);
+        QVERIFY(toMathml(math).empty());
+        math.children[0].text = "\xC3\x28";
+        QVERIFY(toMathml(math).empty());
+        math.children[0].text = "ab";
+        math.children[0].attributes = {{"mathvariant", "x\x02"}};
+        QVERIFY(toMathml(math).empty());
+        math.children[0].attributes.clear();
+        QCOMPARE(written(math), u"<math><mi>ab</mi></math>"_s);
+    }
+
     // Un MathML reçu indenté, avec déclaration XML et commentaire, se lit ; il s'écrit sous la forme
     // canonique.
     void indentedInputIsCanonical()
