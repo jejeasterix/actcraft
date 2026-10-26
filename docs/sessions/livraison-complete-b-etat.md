@@ -2,13 +2,13 @@
 
 Statut : en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
 Gabarit : lots (lot 7 du chantier `livraison-complete`, exécuté en parallèle du lot 3)
-Étage : 3 (phase 2 du lot 7 : reprise par la nouvelle session le 2026-10-26 ; L7-T19 à rejouer et merger, L7-T21 et L7-T24 en essai 2 ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
+Étage : 3 (phase 2 du lot 7 : reprise par la nouvelle session le 2026-10-26 ; T19, T21, T24 mergées, suite V11 puis L7-T23 ‖ L7-T25 ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branche : feat/livraison-complete-b   Base : feat/livraison-complete @ 7bb551c (+ merge du plan du lot 7 bf8c930 → 2d76ba6)
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
-Lot : 7 « Présentation et outils » — 21/33 tâches terminées
-Tâche : L7-T24 — essai 2 (concepteur-critique) — depuis 2026-10-26
+Lot : 7 « Présentation et outils » — 22/33 tâches terminées
+Tâche : suite V11 — suite complète de la branche du chantier — depuis 2026-10-26
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -76,7 +76,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | suite V9 | L7-T13, T14c, T15, T16 | branche du chantier à 2894c46 (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 (la branche est de nouveau verte) | 1 | — | — |
 | L7-T17 | L7-T2 | voir ligne L7-T17 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T17 (base 2894c46, retiré après merge) | mergée : rejeu TESTS OK 158/158, othertools Totals 5 (0 skipped), rouge vu, 3 mutants | 1 | 700796f | 37fd214 (graphe 9ed379b) |
 | L7-T18 | L7-S8 | voir ligne L7-T18 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T18 (base 2894c46, retiré après merge) | mergée : rejeu TESTS OK 158/158, ticker Totals 13 (0 skipped) ; revue corriger → essai 2 ; fil de rendu supposé ; banc S23 avec message à la clôture | 2 | 3df65f3 | 70fd111 (graphe dec9117) |
-| L7-T24 | lot P2-A (écart : lancée avant la fin de P2-A, fichiers core seuls, disjoints de T18/T19 ; décision orchestrateur pour le rythme) | voir ligne L7-T24 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T24 (base 87e2ff0) | en cours (concepteur-critique), V12 | 1 | — | — |
+| L7-T24 | lot P2-A (écart : lancée avant la fin de P2-A, fichiers core seuls, disjoints de T18/T19 ; décision orchestrateur pour le rythme) | voir ligne L7-T24 de l'amendement phase 2 | supprimé (base 87e2ff0) | mergée : rejeu TESTS OK 158/158, tst_core_equation Totals 32 (0 skipped) ; revue corriger → essai 2 (F1, F2, m1, m2, m3, m5, m7 ; rouge vu sur 6 tests, 6 mutants tués) ; écarts acceptés : m4 (racine m:math) refusé, champ attributes ajouté (L7-T25 et L7-T26 du plan 7b décrivent encore 3 champs), garde de fin de Raw non testée | 2 | 80bc951 | 5bf5d6f (graphe 2482fb6) |
 | suite V10 | L7-T17, L7-T18 | branche du chantier à 5cf0a0e (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 (3 ignorés habituels : oracle, oracle_synth, miniatures_samples) | 1 | — | — |
 | L7-T19 | L7-T18, L7-T2 | voir ligne L7-T19 de l'amendement phase 2 (+ reports de L7-T18) | supprimé (base 5cf0a0e) | mergée : rejeu TESTS OK 158/158, ticker Totals 22 (0 skipped) ; CAPTURES OK et 4 mutants selon l'agent ; ferme P2-A | 1 | 2f4eea6 | b114403 (graphe b68a992) |
 | L7-T21 | lot P2-A (écart : lancée avant le merge de L7-T19, fichiers disjoints ; décision orchestrateur pour le rythme) | voir ligne L7-T21 de l'amendement phase 2 | supprimé (base 5cf0a0e) | mergée : rejeu TESTS OK 158/158, recognition Totals 12 (0 skipped) ; revue corriger → essai 2 (M1 : Annuler/Rétablir → resetSession, mutant tué) ; ouverts pour la clôture : trait en attente jamais converti au changement de page (ordre des signaux inconnu), Annuler abandonne tous les traits en attente (non comparé à l'original) | 2 | 3f8674f | 5a1704e (graphe cd9c5b0) |
