@@ -192,6 +192,13 @@ void PageThumbnails::attachController()
         connect(controller, &DocumentController::pageContentChanged, this, &PageThumbnails::mark),
         connect(controller, &DocumentController::documentChanged, this, &PageThumbnails::onDocumentChanged),
         connect(controller, &DocumentController::pagesChanged, this, &PageThumbnails::onPagesChanged),
+        // M-G : fin d'un soulèvement, la page affichée retenue attend encore le délai de calme.
+        connect(controller, &DocumentController::liftingChanged, this,
+                [this] {
+                    if (m_controller && !m_controller->isLifting() && m_pending > 0) {
+                        m_settle.start();
+                    }
+                }),
     };
     m_sawChanges = false;
 }
@@ -290,32 +297,41 @@ int PageThumbnails::settleDelay() const noexcept
     return m_settle.interval();
 }
 
+// M-H (L4-C10) : les marques suivent leur page comme les images ; seules les pages insérées et celle du rendu en
+// vol (jeté à son retour) sont à rendre. Tout marquer refaisait N rendus par opération de page, la page
+// insérée en dernier.
 void PageThumbnails::resetRows(const core::Changes* changes)
 {
     beginResetModel();
     ++m_generation; // un rendu en vol vise l'ancienne disposition : jeté à son retour
     if (changes) {
+        if (m_inFlight && m_inFlightPage >= 0 && static_cast<std::size_t>(m_inFlightPage) < m_marked.size()) {
+            m_marked[static_cast<std::size_t>(m_inFlightPage)] = 1; // à refaire, suit sa page
+        }
         for (const core::Change& change : *changes) {
             const auto at = static_cast<std::ptrdiff_t>(change.page);
             if (change.kind == core::Change::Kind::PageRemoved && change.page < m_images.size()) {
                 m_images.erase(m_images.begin() + at);
                 m_revisions.erase(m_revisions.begin() + at);
+                m_marked.erase(m_marked.begin() + at);
             } else if (change.kind == core::Change::Kind::PageInserted && change.page <= m_images.size()) {
                 m_images.insert(m_images.begin() + at, QImage());
                 m_revisions.insert(m_revisions.begin() + at, 0);
+                m_marked.insert(m_marked.begin() + at, char{1});
             }
         }
     } else {
         m_images.clear();
         m_revisions.clear();
+        m_marked.clear();
     }
     const std::size_t count = m_controller ? m_controller->document().pageCount() : 0;
     m_images.resize(count);
     m_revisions.resize(count, 0);
-    m_marked.assign(count, 1);
+    m_marked.resize(count, char{1}); // document remplacé : tout ; sinon déjà à la taille
     m_current = m_controller ? m_controller->currentIndex() : -1;
     endResetModel();
-    if (count > 0) {
+    if (std::find(m_marked.begin(), m_marked.end(), char{1}) != m_marked.end()) {
         m_settle.start();
     }
     updatePending();
@@ -413,11 +429,26 @@ void PageThumbnails::pump()
     if (contactInProgress()) {
         return; // repris kSettleMs après la fin du contact (onContactChanged)
     }
-    const auto next = std::find(m_marked.begin(), m_marked.end(), char{1});
-    if (next == m_marked.end()) {
+    // M-G : pendant un soulèvement (texte en édition, objets déplacés), la page affichée n'a plus les objets
+    // soulevés ; sa miniature garde l'image d'avant et attend le dépôt, comme Enregistrer (liftObjects,
+    // documentcontroller.h). Les autres pages se rendent.
+    const int shown = m_controller->currentIndex();
+    const int held = m_controller->isLifting() ? shown : -1;
+    const auto due = [this, held](int row) {
+        return row >= 0 && row != held && static_cast<std::size_t>(row) < m_marked.size() &&
+               m_marked[static_cast<std::size_t>(row)] != 0;
+    };
+    // M-H : la page affichée d'abord, puis les autres dans l'ordre.
+    if (due(shown)) {
+        launch(shown);
         return;
     }
-    launch(static_cast<int>(next - m_marked.begin()));
+    for (int row = 0; row < static_cast<int>(m_marked.size()); ++row) {
+        if (due(row)) {
+            launch(row);
+            return;
+        }
+    }
 }
 
 void PageThumbnails::launch(int page)
@@ -436,6 +467,7 @@ void PageThumbnails::launch(int page)
     m_lastCopyMs = static_cast<double>(clock.nsecsElapsed()) / 1e6;
     m_marked[at] = 0;
     m_inFlight = true;
+    m_inFlightPage = page;
     ++m_launches; // amendement 3 (m4) : compté au lancement, sur le fil principal
     const std::uint64_t generation = m_generation;
     const int width = m_width;
@@ -454,6 +486,7 @@ void PageThumbnails::launch(int page)
 void PageThumbnails::finish(std::uint64_t generation, int page, const QImage& image, QThread* thread)
 {
     m_inFlight = false;
+    m_inFlightPage = -1;
     m_lastRenderThread = thread;
     const auto at = static_cast<std::size_t>(page);
     if (generation == m_generation && at < m_images.size()) {

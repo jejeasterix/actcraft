@@ -77,9 +77,9 @@ signals:
 private:
     void attachController();
     void detachController();
-    // Lignes refaites, toutes marquées, génération avancée (tout rendu en vol sera jeté). `changes` : pages
-    // insérées ou retirées, les images gardées suivent leur page jusqu'au nouveau rendu ; nullptr : document
-    // remplacé, images oubliées.
+    // Lignes refaites, génération avancée (tout rendu en vol sera jeté). `changes` : pages insérées ou
+    // retirées, images et marques suivent leur page, seules les pages insérées et celle du rendu en vol sont
+    // marquées (L4-C10) ; nullptr : document remplacé, images oubliées, toutes marquées.
     void resetRows(const core::Changes* changes);
     void onChanges(const core::Changes& changes);
     void onDocumentChanged();
