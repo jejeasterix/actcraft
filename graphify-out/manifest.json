@@ -1670,8 +1670,8 @@
     "semantic_hash": ""
   },
   "core/include/actcraft/core/equation.h": {
-    "mtime": 1792386406.9843051,
-    "ast_hash": "2b498453e3c52b1bfdf55cf0a797007c",
+    "mtime": 1793021165.9731565,
+    "ast_hash": "f6c89d6c38aa11fffeb3b90a78ae2a0c",
     "semantic_hash": ""
   },
   "core/include/actcraft/core/erasegeometry.h": {
@@ -1700,8 +1700,8 @@
     "semantic_hash": ""
   },
   "core/src/equation.cpp": {
-    "mtime": 1792386407.0249958,
-    "ast_hash": "23e5e9adfa571ed615653005f8eea4f5",
+    "mtime": 1793021165.9792247,
+    "ast_hash": "2a478b97e22b75cefdaa3be1cf1a468c",
     "semantic_hash": ""
   },
   "core/src/erasegeometry.cpp": {
@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1793012131.2031972,
-    "ast_hash": "9742be74bb0116eeeb8dbb0d5443769c",
+    "mtime": 1793019019.6750746,
+    "ast_hash": "3ad12d748cf2525ce5f6f69cbba2663f",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2480,8 +2480,8 @@
     "semantic_hash": ""
   },
   "tests/tst_core_equation.cpp": {
-    "mtime": 1792406200.4884436,
-    "ast_hash": "527daffa0e7abced38fdfd601d066b18",
+    "mtime": 1793021165.985099,
+    "ast_hash": "0328233a3b4341c4acb15aec5c7d9dd7",
     "semantic_hash": ""
   },
   "tests/tst_features_equationeditor.cpp": {
