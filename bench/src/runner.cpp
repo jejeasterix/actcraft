@@ -4,6 +4,7 @@
 #include <actcraft/bench/verdict.h>
 #include <actcraft/core/clock.h>
 #include <actcraft/core/generator.h>
+#include <actcraft/core/pagesettings.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
@@ -23,6 +24,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <utility>
 
@@ -230,6 +232,7 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     s.liftedObjects = plan.liftedObjects;
     s.freezeExempt = plan.freezeExempt;
     s.maxCacheRefreshes = plan.maxCacheRefreshes;
+    s.placedShapes = plan.placedShapes;
     const int rebuildsAtStart = m_fixed->rebuildCount();
     const int decodesAtStart = m_fixed->decodeCount();
     // Pendant un scénario, la vue n'écoute que les périphériques synthétiques (décision 23).
@@ -447,6 +450,13 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     s.memory = m_recorder->memory();
     s.rebuilds = m_fixed->rebuildCount() - rebuildsAtStart;
     s.decodes = m_fixed->decodeCount() - decodesAtStart;
+    if (plan.measuresShapePreview) { // L4-T14 (V9) : trames pendant les glissés de forme
+        std::vector<std::pair<std::int64_t, std::int64_t>> windows;
+        for (const auto& [from, to] : dragWindows(plan)) {
+            windows.emplace_back(s.startNs + from, s.startNs + to);
+        }
+        s.shapePreview = shapePreviewStats(s.frames.swapNs, windows);
+    }
     return s;
 }
 
@@ -677,6 +687,21 @@ BenchResult Runner::run(QQuickWindow* window)
         // scénario choisi par sa commande nommée, avant la mesure.
         for (const auto& points : plan.seedStrokes) {
             document->commitStroke(seedAnnotation(points));
+        }
+        if (plan.gridAbove) { // L4-T14 : grille du dessus, versée dans le cache avant la mesure (setLevel)
+            document->execute(std::make_unique<core::SetGridCommand>(0, gridAboveFixture()));
+        }
+        bool setupRefused = false;
+        for (const auto& [command, argument] : plan.setupCommands) {
+            if (!runWindowCommand(m_window, command, argument)) {
+                result.invalidReasons
+                    << QStringLiteral("error: command %1 refused before %2").arg(command, plan.name);
+                setupRefused = true;
+                break;
+            }
+        }
+        if (setupRefused) {
+            break;
         }
         if (!plan.toolCommand.isEmpty() && !runWindowCommand(m_window, plan.toolCommand)) {
             result.invalidReasons
