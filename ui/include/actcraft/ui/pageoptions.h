@@ -58,6 +58,10 @@ signals:
     void changed();
 
 private:
+    // Grille de la page affichée (grille neuve sans contrôleur ni page).
+    core::Grid currentGrid() const;
+    // Remplace la grille de la page affichée par une SetGridCommand (fusion pendant une séance du créateur).
+    void applyGrid(core::Grid grid);
     QPointer<DocumentController> m_controller;
     bool m_designer = false;
 };

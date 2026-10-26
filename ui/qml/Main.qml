@@ -228,6 +228,7 @@ Window {
     GridDesigner {
         id: gridDesigner
         objectName: "gridDesigner"
+        settings: appPageSettings
     }
     BackgroundDialog {
         id: backgroundDialog
