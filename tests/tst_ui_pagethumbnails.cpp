@@ -1,4 +1,5 @@
 #include <actcraft/core/model.h>
+#include <actcraft/core/pageedits.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
@@ -45,42 +46,6 @@ bool darkAtCenter(const QImage& image)
 {
     return !image.isNull() && qGray(image.pixel(image.width() / 2, image.height() / 2)) < 128;
 }
-
-core::Change pageChange(core::Change::Kind kind, std::size_t page)
-{
-    core::Change change{};
-    change.kind = kind;
-    change.page = page;
-    change.object = 0;
-    change.area = core::RectF{};
-    return change;
-}
-
-// Déplacement d'une page en tête, avec les changements que L4-T15 fixe pour MovePagesCommand (un PageRemoved
-// à l'indice du moment, puis un PageInserted à l'indice d'arrivée). MovePagesCommand est encore un talon dans
-// cette base (L4-T15 est de la même vague) : le contrat suivi par les miniatures est celui des changements.
-class MovePageToFront final : public core::UndoCommand
-{
-public:
-    explicit MovePageToFront(std::size_t from) : m_from(from) {}
-    void redo(core::Document& document, core::Changes& changes) override
-    {
-        core::Page page = document.takePage(m_from);
-        changes.push_back(pageChange(core::Change::Kind::PageRemoved, m_from));
-        document.insertPage(0, std::move(page));
-        changes.push_back(pageChange(core::Change::Kind::PageInserted, 0));
-    }
-    void undo(core::Document& document, core::Changes& changes) override
-    {
-        core::Page page = document.takePage(0);
-        changes.push_back(pageChange(core::Change::Kind::PageRemoved, 0));
-        document.insertPage(m_from, std::move(page));
-        changes.push_back(pageChange(core::Change::Kind::PageInserted, m_from));
-    }
-
-private:
-    std::size_t m_from;
-};
 
 // Trois pages, la deuxième (indice 1) sombre, la troisième affichée.
 void threePagesSecondDark(ui::DocumentController& controller)
@@ -268,7 +233,8 @@ private slots:
         QCOMPARE(thumbs.data(thumbs.index(2), PageThumbnails::CurrentRole).toBool(), false);
     }
 
-    // Défaut 11 : un déplacement retire puis insère, le nombre de pages ne change pas ; les lignes sont refaites.
+    // Défaut 11 : un déplacement (MovePagesCommand : un PageRemoved puis un PageInserted par page) retire puis
+    // insère, le nombre de pages ne change pas ; les lignes sont refaites.
     // M-H (L4-C10) : seule la ligne d'arrivée est rendue de nouveau. Q11 : avant tout rendu, les images gardées
     // ont déjà suivi leur page. Q4a2-m6 : l'attente fixe suit le QTRY et précède le contrôle « pas de rendu en
     // trop ».
@@ -286,7 +252,7 @@ private slots:
         const int renders = thumbs.renderCount();
         const int launches = thumbs.launchCount();
         QSignalSpy reset(&thumbs, &QAbstractItemModel::modelReset);
-        controller.execute(std::make_unique<MovePageToFront>(2)); // [A, B, C] devient [C, A, B]
+        controller.execute(std::make_unique<core::MovePagesCommand>(std::vector<std::size_t>{2}, 0)); // [C, A, B]
         QCOMPARE(controller.pageCount(), 3);
         QCOMPARE(thumbs.rowCount(), 3);
         QCOMPARE(reset.count(), 1);
