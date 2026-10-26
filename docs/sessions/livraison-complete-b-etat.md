@@ -7,8 +7,7 @@ Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branc
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
-Lot : 7 « Présentation et outils » — 19/33 tâches terminées
-Tâche : L7-T19 — rejeu de la preuve sous le verrou B — depuis 2026-10-26
+Lot : 7 « Présentation et outils » — 20/33 tâches terminées
 Tâche : L7-T21 — essai 2 (concepteur-critique) — depuis 2026-10-26
 Tâche : L7-T24 — essai 2 (concepteur-critique) — depuis 2026-10-26
 Questions à Jérôme : —
@@ -80,7 +79,7 @@ relecture plan lot 7 : 1/3 (tour 1 : 4 bloquants renvoyés au socle L0-S, I1-I9 
 | L7-T18 | L7-S8 | voir ligne L7-T18 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T18 (base 2894c46, retiré après merge) | mergée : rejeu TESTS OK 158/158, ticker Totals 13 (0 skipped) ; revue corriger → essai 2 ; fil de rendu supposé ; banc S23 avec message à la clôture | 2 | 3df65f3 | 70fd111 (graphe dec9117) |
 | L7-T24 | lot P2-A (écart : lancée avant la fin de P2-A, fichiers core seuls, disjoints de T18/T19 ; décision orchestrateur pour le rythme) | voir ligne L7-T24 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T24 (base 87e2ff0) | en cours (concepteur-critique), V12 | 1 | — | — |
 | suite V10 | L7-T17, L7-T18 | branche du chantier à 5cf0a0e (timestamp AUTOMOC supprimés avant) | — | TESTS OK 158/158 (3 ignorés habituels : oracle, oracle_synth, miniatures_samples) | 1 | — | — |
-| L7-T19 | L7-T18, L7-T2 | voir ligne L7-T19 de l'amendement phase 2 (+ reports de L7-T18) | .worktrees/livraison-complete-b--L7-T19 (base 5cf0a0e) | en cours (implementeur-tdd), V11 | 1 | — | — |
+| L7-T19 | L7-T18, L7-T2 | voir ligne L7-T19 de l'amendement phase 2 (+ reports de L7-T18) | supprimé (base 5cf0a0e) | mergée : rejeu TESTS OK 158/158, ticker Totals 22 (0 skipped) ; CAPTURES OK et 4 mutants selon l'agent ; ferme P2-A | 1 | 2f4eea6 | b114403 (graphe b68a992) |
 | L7-T21 | lot P2-A (écart : lancée avant le merge de L7-T19, fichiers disjoints ; décision orchestrateur pour le rythme) | voir ligne L7-T21 de l'amendement phase 2 | .worktrees/livraison-complete-b--L7-T21 (base 5cf0a0e) | en cours (concepteur-critique), V12 | 1 | — | — |
 
 ## Terminé quand
