@@ -2,12 +2,15 @@
 
 Statut : en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
 Gabarit : lots (lot 7 du chantier `livraison-complete`, exécuté en parallèle du lot 3)
-Étage : 3 (phase 2 du lot 7 : arrêt propre du 2026-10-26 pour bascule vers une nouvelle session ; L7-T19 à rejouer et merger, L7-T21 et L7-T24 en essai 2 ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
+Étage : 3 (phase 2 du lot 7 : reprise par la nouvelle session le 2026-10-26 ; L7-T19 à rejouer et merger, L7-T21 et L7-T24 en essai 2 ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branche : feat/livraison-complete-b   Base : feat/livraison-complete @ 7bb551c (+ merge du plan du lot 7 bf8c930 → 2d76ba6)
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 19/33 tâches terminées
+Tâche : L7-T19 — rejeu de la preuve sous le verrou B — depuis 2026-10-26
+Tâche : L7-T21 — essai 2 (concepteur-critique) — depuis 2026-10-26
+Tâche : L7-T24 — essai 2 (concepteur-critique) — depuis 2026-10-26
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -140,6 +143,9 @@ Premiers gestes, dans l'ordre :
 2. L7-T21, essai 2 (dernier commit 5271d4c, revue `.tmp/outils-b/revue-l7-t21.md` « corriger ») : rouge vu de `undoWhileAStrokeIsPendingKeepsRedo` (11 passés, 1 échoué, `.tmp/m1-rouge.txt` du worktree). Reste : dans `onChanges` de `recognitioncontroller.cpp`, origine `Undo` (et `Redo`) → `resetSession()` puis `return` ; mutant (condition `Undo` retirée → rouge) ; suite complète ; `NOMS OK` dans `.tmp/noms.txt` ; commit final au message de tâche. Mineur « trait avant un changement de page jamais converti » : non corrigé, raison dans le rapport de l'agent (ordre des signaux inconnu) → hypothèse à porter à la clôture. Puis rejeu `-Tests tst_ui_lot7:recognition` et merge (pas de nouvelle revue nécessaire si la correction reste dans ce périmètre).
 3. L7-T24, essai 2 (dernier commit c2fcecb, revue `.tmp/outils-b/revue-l7-t24.md` « corriger ») : six tests rouges écrits, NON construits (`placeholderWithCursorRoundTrip` F1, `rawEndConfirmedAfterSecondBom` F2, `placeholderRecognition` m5, `leadingFeffInTextKept` m1, `carriageReturnKept` m2, `unwritableTreeIsEmpty` m7). Reste : construire et voir le rouge (`<wt>\.tmp\eq.ps1 -Out red`) ; corriger `equation.cpp`/`equation.h` (F1 : un seul `class`, lecture d'un `<mrow>` vide dont `class` contient la marque → `Placeholder` ; F2 : fin cherchée depuis `after - 1` comme `tagStart`, confirmée par `</nom>` ou `<nom/>`, sinon erreur ; m1, m2, m3 commentaire `equation.h:64`, m7) ; m4 (racine `m:math`) non corrigé, raison : espaces de noms partout ; un mutant par test ; suite ; `NOMS OK`. Consigner le champ `attributes` (écart accepté). Puis rejeu `-Tests tst_core_equation` et merge.
 4. Après ces trois merges : suite V11 (supprimer d'abord les trois `timestamp` AUTOMOC ; pas en même temps qu'une suite de A si la RAM libre est sous 1,5 Go), puis L7-T23 (dépend de T21) ‖ L7-T25 (dépend de T24).
+## Reprise par la nouvelle session (2026-10-26)
+Signal reçu (handoff 194639f). Session rattachée. Gestes 1 à 3 relancés : rejeu de L7-T19 sous le verrou B, essais 2 de L7-T21 et L7-T24 (concepteur-critique). Worktrees propres à la reprise, aucun essai compté en plus.
+
 ## Portes
 ouvertes : — · passées : —
 
