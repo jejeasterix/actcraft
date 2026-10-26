@@ -2,7 +2,7 @@
 
 ## Mode de travail
 
-Premier geste : **« reprends le chantier livraison-complete-b »** (skill `nouvelle-feature`, entrée « reprise »), **seulement après le message de reprise de Jérôme** (pause du quota, voir plus bas). Le fichier d'état fait autorité : `docs/sessions/livraison-complete-b-etat.md` (lignes de suivi en tête, section « Point de reprise (pause du quota, 2026-10-21) »).
+Premier geste : **« reprends le chantier livraison-complete-b »** (skill `nouvelle-feature`, entrée « reprise »). La pause du quota est levée. Le fichier d'état fait autorité : `docs/sessions/livraison-complete-b-etat.md` (lignes de suivi en tête, section « Point de reprise (pause du quota, 2026-10-21) »).
 
 - **Rôle.** Session B du chantier ActCraft `livraison-complete` : elle exécute le lot 7 « Présentation et outils » en parallèle de la session A (« Livraison complète »). Orchestrateur de la chaîne `nouvelle-feature`, étage 3, mode autonome : tu ne codes pas, tu lances des sous-agents (`implementeur-tdd`, `concepteur-critique`, `reviewer-adversarial`), tu rejoues leurs preuves, tu merges `--no-ff` dans `feat/livraison-complete-b`, tu es le seul rédacteur du fichier d'état.
 - **Sources.** Brief : `docs/sessions/livraison-complete-b-brief.md`. Plan : `docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md` @ 141411d (table l. 282+, vagues l. 328-345, une section `### Tâche L7-…` par tâche ; plans 7a/7b cités, l'amendement prime). Profil : `.claude/chantier.md` (build, tests, preuve visuelle, banc, interdits).
@@ -25,31 +25,32 @@ Premier geste : **« reprends le chantier livraison-complete-b »** (skill `nouv
   - Commits en français, chemins explicites (jamais `git add -A`), terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - **Communication.** A = session « Livraison complète », Pilote = session « Pilote » ; leurs identifiants sont dans `~/pilotage/etat.json` (ne pas les recopier). Tenir aussi la liste `update_plan` à jour : le panneau du Pilote la lit.
 
-## État au 2026-10-21 vers 19 h 05
+## État au 2026-10-26 vers 11 h (arrêt propre pour bascule)
 
-**Pause du quota en cours.** Jérôme, relayé mot pour mot par le Pilote : « afin de ne pas epuisé tout mon quota, organise une pause jusqu'à ce que je relance ». Ne rien lancer avant son message de reprise.
+La pause du quota est levée (« reprend actcraft », le 26/10). Jérôme a ensuite demandé la bascule, relayée mot pour mot par le Pilote : « Oui : arrêt propre des deux sessions, handoff à jour, deux nouvelles sessions, puis archivage des anciennes. » Reprendre sans attendre d'autre message.
 
-Lot 7 : 19/33 tâches mergées (phase 1, L7-S8, L7-T1 à L7-T18, L7-T14c). Branche du chantier verte : suite V10, 158/158, à 5cf0a0e (état ensuite jusqu'à e5d0d08).
+Lot 7 : 19/33 tâches mergées (phase 1, L7-S8, L7-T1 à L7-T18, L7-T14c). Branche du chantier verte : suite V10, 158/158, à 5cf0a0e.
 
-## ✅ Fait cette session
+## ✅ Fait
 
-Phase 2 du lot 7, de L7-T1 à L7-T18 (détail dans la table de l'état et dans `.tmp/outils-b/`). Incidents traités et règles qui en sortent : section « Pièges trouvés » de l'état (disque plein, PDB corrompus, AUTOMOC, `main.item`, `characterOffset()`, `Select-String`).
+Phase 2 du lot 7, de L7-T1 à L7-T18 (table de l'état, `.tmp/outils-b/`). Le 26/10 : revues adversariales de L7-T24 et L7-T21 (toutes deux « corriger »), essais 2 commencés puis arrêtés proprement. Pièges : section « Pièges trouvés » de l'état.
 
 ## ⏭️ Prochain
 
-Suivre les gestes 1 à 4 du « Point de reprise (pause du quota, 2026-10-21) » de l'état. Résumé :
+Suivre les gestes 1 à 4 du « Point de reprise (bascule vers une nouvelle session, 2026-10-26 vers 11 h) » de l'état. Résumé :
 
-1. **L7-T24** (équation I, `concepteur-critique`, worktree `--L7-T24`, c29a5e7) : la revue dit « corriger » (`.tmp/outils-b/revue-l7-t24.md`), avec F1 et F2 bloquants. Essai 2, puis nouveau rejeu `-Tests tst_core_equation`, puis merge.
-2. **L7-T21** (forme II, worktree `--L7-T21`, 3c540c6) : vert, 6 mutants tués. Restent la revue adversariale, le rejeu `-Tests tst_ui_lot7:recognition` et le merge.
-3. **L7-T19** (message défilant II, worktree `--L7-T19`, 2f4eea6) : verte, 4 mutants tués. Restent le rejeu `-Tests tst_ui_lot7:ticker` et merge, qui ferme le lot P2-A.
+1. **L7-T19** (2f4eea6, verte selon l'agent) : rejeu `-Tests tst_ui_lot7:ticker`, merge. Ferme le lot P2-A.
+2. **L7-T21** essai 2 (5271d4c, rouge M1 vu) : correction dans `onChanges` (origine `Undo`/`Redo` → `resetSession()`), mutant, suite, `NOMS OK`, commit final ; rejeu `-Tests tst_ui_lot7:recognition`, merge.
+3. **L7-T24** essai 2 (c2fcecb, six tests rouges écrits, non construits) : rouge à voir, corrections F1, F2 et mineurs décrites dans l'état, mutants, suite, `NOMS OK` ; rejeu `-Tests tst_core_equation`, merge.
 4. Suite V11, puis L7-T23 ‖ L7-T25 ; puis T26‖T30, T27‖T31, T28‖T29 (T28 et T30 jamais ensemble : jeton `ecran`), T32, T33 (merge du lot 3), T34. Clôture du lot : sections « À vérifier à la clôture du lot » et « À faire en L7-T34 » de l'état. Enfin, prévenir A « lot 7 prêt à fusionner », avec le sha et le piège AUTOMOC.
+
+Un essai 2 se confie à un nouveau `concepteur-critique` : citer dans son prompt le worktree, les consignes `.tmp/outils-b/consignes-T.md`, le rapport de revue, et le geste exact de l'état.
 
 Fini quand : 33/33 tâches mergées, suite verte, clôture du lot faite, A prévenu.
 
-## Travail en vol à la fermeture de cette session
+## Travail en vol
 
-Aucun. L'agent L7-T19 a fini (2f4eea6, vert, worktree propre) et le rejeu de L7-T24 sur c29a5e7 aussi (`TESTS OK` 158/158, à refaire après l'essai 2). Verrou B et jeton `tests` libérés par B. Question en attente de Jérôme : aucune, hors le message de reprise de la pause.
-
+Aucun. Agents arrêtés, worktrees propres, rejeu de L7-T19 arrêté avant de démarrer. B ne tient ni le verrou B ni le jeton `tests` (au moment de l'arrêt, une place était marquée ABANDONNÉ au nom de `livraison-complete/L4-T31`, c'est-à-dire de A, pas de B). RAM libre souvent sous 1,5 Go : le verrou B attend, c'est normal. Question en attente de Jérôme : aucune.
 ## 🔧 Git
 
 - `feat/livraison-complete-b` dans `C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b`, locale, jamais poussée (A la fusionne).
