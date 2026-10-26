@@ -12,7 +12,7 @@
     {"command": "grid.snap"},
     {"expect": "appPageSettings.gridSnap", "value": true},
     {"capture": "createur"},
-    {"key": "Escape"},
+    {"key": "Return"},
     {"waitReady": true},
     {"expect": "gridDesigner.visible", "value": false},
     {"capture": "grille-du-dessus"},

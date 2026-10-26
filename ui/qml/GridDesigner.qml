@@ -102,6 +102,10 @@ Popup {
 
     contentItem: ColumnLayout {
         spacing: Theme.espace3
+        // Entrée ferme la fenêtre (Échap est déjà le raccourci de la commande « sélectionner » : il la
+        // laisse ouverte quand le raccourci est joué en premier).
+        Keys.onReturnPressed: designer.close()
+        Keys.onEnterPressed: designer.close()
 
         // Cadre « Grille » : réglages de la page.
         GroupBox {
