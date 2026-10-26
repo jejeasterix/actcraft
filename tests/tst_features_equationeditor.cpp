@@ -32,6 +32,39 @@ private slots:
                  u"<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>"_s);
     }
 
+    // Une cellule vide lue (<mtd/>) effacée garde sa place : la case vide va DANS la cellule, la ligne garde
+    // ses <mtd>, et la saisie y entre.
+    void backspaceInAnEmptyReadCellKeepsTheCell()
+    {
+        EquationEditor e;
+        QString error;
+        QVERIFY2(e.load("<math><mtable><mtr><mtd/><mtd><mn>1</mn></mtd></mtr></mtable></math>", error),
+                 qPrintable(error));
+        e.backspace();
+        QCOMPARE(QString::fromStdString(e.mathml()),
+                 u"<math><mtable><mtr><mtd><mrow class=\"actcraft-placeholder\"/></mtd><mtd><mn>1</mn></mtd>"
+                 u"</mtr></mtable></math>"_s);
+        e.type(u"2"_s);
+        QCOMPARE(QString::fromStdString(e.mathml()),
+                 u"<math><mtable><mtr><mtd><mn>2</mn></mtd><mtd><mn>1</mn></mtd></mtr></mtable></math>"_s);
+    }
+
+    // Racine n-ième : l'indice est dessiné à gauche de la base ; les flèches suivent l'ordre de l'écran
+    // (indice, puis base).
+    void arrowsFollowTheRootDrawingOrder()
+    {
+        EquationEditor e;
+        QVERIFY(e.insertTemplate(u"nth-root"_s));
+        e.type(u"x"_s); // la base
+        e.moveLeft();   // l'indice, à sa gauche
+        e.type(u"3"_s);
+        QCOMPARE(QString::fromStdString(e.mathml()), u"<math><mroot><mi>x</mi><mn>3</mn></mroot></math>"_s);
+        e.moveRight(); // retour à la base
+        QVERIFY(e.cursorPath() == (std::vector<int>{0, 0}));
+        e.moveLeft();
+        QVERIFY(e.cursorPath() == (std::vector<int>{0, 1}));
+    }
+
     // Effacer le contenu d'une case d'un modèle laisse une case vide : l'arité de l'élément reste juste (un
     // effacement qui retirerait le nœud écrirait un <msup> à un seul enfant).
     void backspaceLeavesAPlaceholder()

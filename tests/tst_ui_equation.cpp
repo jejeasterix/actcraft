@@ -5,14 +5,18 @@
 
 #include <actcraft/core/model.h>
 #include <actcraft/render/equationpaint.h>
+#include <actcraft/render/pagepainter.h>
 #include <actcraft/ui/documentcontroller.h>
 
 #include <QImage>
 #include <QPainter>
+#include <QPicture>
 #include <QSignalSpy>
 #include <QtTest>
 
+#include <algorithm>
 #include <cmath>
+#include <functional>
 #include <variant>
 
 namespace {
@@ -120,18 +124,64 @@ QString oneHalf()
     return u"<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>"_s;
 }
 
-QImage previewImage(const QString& mathml, QSize size)
+// Aperçu de taille `item`, posé en `at` sur une image blanche de taille `size`.
+QImage previewImage(const QString& mathml, QSizeF item, QSize size, QPointF at)
 {
     EquationPreview preview;
-    preview.setSize(QSizeF(size));
+    preview.setSize(item);
     preview.setMathml(mathml);
     QImage image(size, QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::white);
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing);
+    painter.translate(at);
     preview.paint(&painter);
     painter.end();
     return image;
+}
+
+QImage previewImage(const QString& mathml, QSize size)
+{
+    return previewImage(mathml, QSizeF(size), size, QPointF());
+}
+
+// Grossissement des mesures : QPicture borne son dessin au pixel entier du périphérique, soit 0,01 px de
+// page sous ×100.
+constexpr double kMeasureZoom = 100;
+
+// Taille de l'encre d'un dessin, en pixels de page.
+QSizeF inkSize(const std::function<void(QPainter&)>& draw)
+{
+    QPicture picture;
+    QPainter painter(&picture);
+    painter.scale(kMeasureZoom, kMeasureZoom);
+    draw(painter);
+    painter.end();
+    const QRect ink = picture.boundingRect();
+    return QSizeF(ink.width() / kMeasureZoom, ink.height() / kMeasureZoom);
+}
+
+// La même équation sans bornes : paintEquation la dessine alors à l'échelle 1, le coin haut gauche de son
+// cadre en (0, 0).
+core::Equation atScaleOne(core::Equation equation)
+{
+    equation.bounds = core::RectF{0, 0, 0, 0};
+    return equation;
+}
+
+// Plus grand écart d'une composante entre deux images de même taille.
+int maxDifference(const QImage& a, const QImage& b)
+{
+    int worst = 0;
+    for (int y = 0; y < a.height(); ++y) {
+        for (int x = 0; x < a.width(); ++x) {
+            const QRgb p = a.pixel(x, y);
+            const QRgb q = b.pixel(x, y);
+            worst = std::max({worst, std::abs(qRed(p) - qRed(q)), std::abs(qGreen(p) - qGreen(q)),
+                              std::abs(qBlue(p) - qBlue(q)), std::abs(qAlpha(p) - qAlpha(q))});
+        }
+    }
+    return worst;
 }
 
 QImage pageImage(const QString& mathml, QSize size)
@@ -290,6 +340,127 @@ private slots:
         const QString marked =
             u"<math><mfrac><mn class=\"actcraft-cursor\">1</mn><mrow class=\"actcraft-placeholder\"/></mfrac></math>"_s;
         QVERIFY(previewImage(marked, size) != pageImage(marked, size));
+
+        // L'objet que l'éditeur pose : la page le dessine (paintObjectLocal, à ses bornes) comme à l'échelle 1,
+        // au lissage près ; l'aperçu à ces bornes est ce dessin.
+        MainWindow main;
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        QQuickItem* panel = openEditor(main);
+        QVERIFY(panel != nullptr);
+        EquationController* equation = equationOf(main);
+        QVERIFY(equation != nullptr);
+        typeOneHalf(*equation);
+        QVERIFY(clickIn(main, panel, u"equationOkButton"_s));
+        const core::Equation* inserted = lastEquation(*controller);
+        QVERIFY(inserted != nullptr);
+        const core::PageObject object = shown(*controller).objects.back();
+        const core::RectF& b = inserted->bounds;
+        const QSize box(int(std::ceil(b.width)) + 2, int(std::ceil(b.height)) + 2);
+        QImage page(box, QImage::Format_ARGB32_Premultiplied);
+        page.fill(Qt::white);
+        {
+            QPainter painter(&page);
+            painter.setRenderHint(QPainter::Antialiasing);
+            painter.translate(1 - b.x, 1 - b.y);
+            actcraft::render::paintObjectLocal(painter, object, {});
+        }
+        QImage natural(box, QImage::Format_ARGB32_Premultiplied);
+        natural.fill(Qt::white);
+        {
+            QPainter painter(&natural);
+            painter.setRenderHint(QPainter::Antialiasing);
+            painter.translate(1, 1);
+            actcraft::render::paintEquation(painter, atScaleOne(*inserted),
+                                            actcraft::render::EquationPaintMode::Page);
+        }
+        const int drift = maxDifference(page, natural);
+        QVERIFY2(drift <= 32, qPrintable(u"écart à l'échelle 1 : %1"_s.arg(drift)));
+        const QImage shownPreview = previewImage(oneHalf(), QSizeF(b.width, b.height), box, QPointF(1, 1));
+        const int previewDrift = maxDifference(shownPreview, page);
+        QVERIFY2(previewDrift <= 2, qPrintable(u"écart de l'aperçu : %1"_s.arg(previewDrift)));
+    }
+
+    void insertedEquationIsDrawnAtScaleOne_data()
+    {
+        QTest::addColumn<QString>("model");
+        QTest::addColumn<QString>("first");
+        QTest::addColumn<QString>("second");
+        QTest::addColumn<QString>("written");
+        QTest::newRow("chiffre") << QString() << u"1"_s << QString() << u"<math><mn>1</mn></math>"_s;
+        QTest::newRow("fraction") << u"fraction"_s << u"1"_s << u"2"_s << oneHalf();
+        QTest::newRow("descendante") << QString() << u"y"_s << QString() << u"<math><mi>y</mi></math>"_s;
+    }
+
+    // L'équation que l'éditeur pose est dessinée par la page (paintObjectLocal) à l'échelle 1, à 1 % près :
+    // ses bornes sont le cadre que la page met à l'échelle (boîte de la mise en page et encre), pas l'encre
+    // seule. Un chiffre (boîte plus haute que l'encre), une fraction, un « y » (jambage).
+    void insertedEquationIsDrawnAtScaleOne()
+    {
+        QFETCH(QString, model);
+        QFETCH(QString, first);
+        QFETCH(QString, second);
+        QFETCH(QString, written);
+        MainWindow main;
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        QQuickItem* panel = openEditor(main);
+        QVERIFY(panel != nullptr);
+        EquationController* equation = equationOf(main);
+        QVERIFY(equation != nullptr);
+        if (!model.isEmpty()) {
+            QVERIFY(equation->insertTemplate(model));
+        }
+        equation->type(first);
+        if (!second.isEmpty()) {
+            equation->moveRight();
+            equation->type(second);
+        }
+        QCOMPARE(equation->mathml(), written);
+        QVERIFY(clickIn(main, panel, u"equationOkButton"_s));
+        const core::Equation* inserted = lastEquation(*controller);
+        QVERIFY(inserted != nullptr);
+        const core::PageObject object = shown(*controller).objects.back();
+
+        const QSizeF onPage = inkSize([&](QPainter& p) { actcraft::render::paintObjectLocal(p, object, {}); });
+        const core::Equation natural = atScaleOne(*inserted);
+        const QSizeF reference = inkSize([&](QPainter& p) {
+            actcraft::render::paintEquation(p, natural, actcraft::render::EquationPaintMode::Page);
+        });
+        QVERIFY(reference.width() > 1 && reference.height() > 1);
+        const double sx = onPage.width() / reference.width();
+        const double sy = onPage.height() / reference.height();
+        QVERIFY2(std::abs(sx - 1) < 0.01 && std::abs(sy - 1) < 0.01,
+                 qPrintable(u"échelle %1 × %2"_s.arg(sx).arg(sy)));
+    }
+
+    // Éditeur ouvert, un objet sélectionné sur la page : Suppr ne l'efface pas, Échap ferme l'éditeur sans
+    // changer d'outil. Les raccourcis de l'application (edit.delete sur Suppr, tool.select sur Échap) ne
+    // partent pas d'une touche tapée dans l'éditeur. Témoin : l'éditeur fermé, Suppr efface la sélection.
+    void editorKeysDoNotReachTheShortcuts()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        const int empty = main.pageObjectCount();
+        presentationharness::strokeAt(main.window(), Pointer::Mouse, main.pageView()->pageToScene(QPointF(40, 700)),
+                                      main.pageView()->pageToScene(QPointF(140, 700)));
+        QTRY_COMPARE(main.pageObjectCount(), empty + 1);
+        QVERIFY(main.run(u"edit.select-all"_s));
+        const auto* tool = main.pageView()->currentTool();
+        QQuickItem* panel = openEditor(main);
+        QVERIFY(panel != nullptr);
+
+        QTest::keyClick(main.window(), Qt::Key_Delete);
+        QTest::qWait(50);
+        QCOMPARE(main.pageObjectCount(), empty + 1);
+        QVERIFY(panel->isVisible());
+
+        QTest::keyClick(main.window(), Qt::Key_Escape);
+        QTRY_VERIFY(!panel->isVisible());
+        QVERIFY(main.pageView()->currentTool() == tool);
+
+        QTest::keyClick(main.window(), Qt::Key_Delete);
+        QTRY_COMPARE(main.pageObjectCount(), empty);
     }
 
     void equationEditorBlocksTheStylus_data() { presentationharness::addPointerRows(); }
