@@ -10,6 +10,7 @@
 #include <actcraft/ui/toolhost.h>
 
 #include <QQmlApplicationEngine>
+#include <QQuickItem>
 #include <QQuickWindow>
 #include <QSettings>
 #include <QTemporaryDir>
@@ -53,6 +54,25 @@ struct CacheSpy final : core::PageCache
     void remove(core::ObjectId, const core::RectF&) override { ++removes; }
     void invalidate(core::ObjectId, const core::CacheArea&) override { ++invalidates; }
 };
+
+// Élément d'interface par son objectName, cherché dans l'arbre des éléments (délégués de Repeater compris).
+QQuickItem* findItem(QQuickItem* root, const QString& name)
+{
+    for (QQuickItem* child : root->childItems()) {
+        if (child->objectName() == name) {
+            return child;
+        }
+        if (QQuickItem* found = findItem(child, name)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+core::Argb argb(const QColor& color)
+{
+    return static_cast<core::Argb>(color.rgba());
+}
 
 input::Sample sampleAt(QPointF page, input::Phase phase)
 {
@@ -129,6 +149,23 @@ private:
     {
         const auto& objects = app.page().objects;
         return objects.empty() ? nullptr : std::get_if<core::Shape>(&objects.back());
+    }
+
+    // Case `index` du nuancier des formes, une fois la palette posée par la disposition et la case placée.
+    static QQuickItem* swatchAt(const App& app, int index)
+    {
+        QQuickItem* item = findItem(app.window->contentItem(), QStringLiteral("shape-swatch-%1").arg(index));
+        if (!item || !QTest::qWaitFor([&] { return item->isVisible() && item->width() > 0; }, 5000)) {
+            return nullptr;
+        }
+        return item;
+    }
+
+    // Vrai clic de souris au centre de l'élément (TapHandler de la case).
+    static void tap(const App& app, const QQuickItem* item)
+    {
+        const QPointF centre = item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
+        QTest::mouseClick(app.window, Qt::LeftButton, Qt::NoModifier, centre.toPoint());
     }
 
 private slots:
@@ -297,6 +334,81 @@ private slots:
         QCOMPARE(shape->fill, 0xFFFFAA00u);
         QCOMPARE(shape->outline, 0xFF000000u);
         QCOMPARE(shape->outlineWidth, 4.0);
+    }
+
+    // L4-C7 (M-A, N1, C-M2) : le nuancier 2 × 4 de la palette des formes règle le remplissage. 1re case : le
+    // défaut de l'outil, surlignée au départ ; 8e case : « sans remplissage » (une valeur du remplissage, la
+    // couleur gardée). Un clic garde l'outil des formes et ne touche ni le contour de la forme ni le stylo.
+    // Router la case par setColor (patron écarté) basculerait sur le stylo, ou écrirait le contour.
+    void swatchSetsTheFill()
+    {
+        App app;
+        QVERIFY(start(app, freshFile("nuancier.ini")));
+        app.tools->chooseShape(QStringLiteral("rectangle"));
+        const core::Argb pen = app.tools->user().settings(QStringLiteral("pen")).color;
+        const core::Argb outline = app.tools->user().settings(QStringLiteral("shape")).color;
+        QQuickItem* first = swatchAt(app, 0);
+        QQuickItem* chosen = swatchAt(app, 4);
+        QQuickItem* unfilled = swatchAt(app, 7);
+        QVERIFY(first && chosen && unfilled);
+        QCOMPARE(first->property("color").value<QColor>(), QColor(QStringLiteral("#FFAA00")));
+        QVERIFY(first->property("current").toBool());
+        QVERIFY(!unfilled->property("current").toBool());
+
+        app.tools->setShapeFilled(false); // une couleur choisie remplit de nouveau
+        const QColor colour = chosen->property("color").value<QColor>();
+        QVERIFY(argb(colour) != app.tools->user().shapeSettings().fill);
+        tap(app, chosen);
+        QCOMPARE(app.tools->currentTool(), QStringLiteral("shape"));
+        QVERIFY(app.tools->shapeFilled());
+        QCOMPARE(app.tools->user().shapeSettings().fill, argb(colour));
+        QCOMPARE(app.tools->user().settings(QStringLiteral("shape")).color, outline);
+        QCOMPARE(app.tools->user().settings(QStringLiteral("pen")).color, pen);
+        QVERIFY(chosen->property("current").toBool());
+        QVERIFY(!first->property("current").toBool());
+        drag(app, QPointF(100, 100), QPointF(260, 200));
+        const core::Shape* shape = lastShape(app);
+        QVERIFY(shape);
+        QCOMPARE(shape->fill, argb(colour));
+        QCOMPARE(shape->outline, outline);
+
+        tap(app, unfilled);
+        QCOMPARE(app.tools->currentTool(), QStringLiteral("shape"));
+        QVERIFY(!app.tools->shapeFilled());
+        QCOMPARE(app.tools->user().shapeSettings().fill, argb(colour));
+        QVERIFY(unfilled->property("current").toBool());
+        QVERIFY(!chosen->property("current").toBool());
+        QCOMPARE(app.tools->user().settings(QStringLiteral("pen")).color, pen);
+    }
+
+    // L4-C7 (N1, P6) : outil des formes actif, la palette principale règle le contour de l'outil des formes
+    // (réglage propre, gardé dans le fichier) au lieu de basculer sur le stylo. Sous Sélectionner, rien ne
+    // change : la couleur va au dernier outil d'encre (L3-T0).
+    void mainPaletteSetsTheShapeOutline()
+    {
+        const QString file = freshFile("contour.ini");
+        App app;
+        QVERIFY(start(app, file));
+        app.tools->chooseShape(QStringLiteral("rectangle"));
+        const core::Argb pen = app.tools->user().settings(QStringLiteral("pen")).color;
+        app.tools->setColor(QColor(QStringLiteral("#1E88E5")));
+        QCOMPARE(app.tools->currentTool(), QStringLiteral("shape"));
+        QCOMPARE(app.tools->user().settings(QStringLiteral("shape")).color, 0xFF1E88E5u);
+        QCOMPARE(app.tools->user().settings(QStringLiteral("pen")).color, pen);
+        QCOMPARE(app.tools->color(), QColor(QStringLiteral("#1E88E5"))); // la palette principale suit le contour
+        drag(app, QPointF(100, 100), QPointF(260, 200));
+        const core::Shape* shape = lastShape(app);
+        QVERIFY(shape);
+        QCOMPARE(shape->outline, 0xFF1E88E5u);
+        QCOMPARE(shape->fill, 0xFFFFAA00u);
+        const QSettings probe(file, QSettings::IniFormat);
+        QCOMPARE(probe.value(QStringLiteral("outils/shape/couleur")).toString(), QStringLiteral("#1e88e5"));
+
+        app.tools->activate(QStringLiteral("select"));
+        app.tools->setColor(QColor(QStringLiteral("#E53935")));
+        QCOMPARE(app.tools->currentTool(), QStringLiteral("pen"));
+        QCOMPARE(app.tools->user().settings(QStringLiteral("pen")).color, 0xFFE53935u);
+        QCOMPARE(app.tools->user().settings(QStringLiteral("shape")).color, 0xFF1E88E5u);
     }
 };
 
