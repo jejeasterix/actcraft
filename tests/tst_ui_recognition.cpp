@@ -422,6 +422,42 @@ private slots:
         QCOMPARE(countOf(*controller, core::ObjectKind::Shape), 1);
         QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 0);
     }
+
+    // Cercles A puis B tracés, B annulé avant l'échéance : aucune conversion n'est poussée ensuite. Sinon la
+    // conversion différée de A entrerait dans la pile et UndoStack::record effacerait la branche à rétablir :
+    // B serait perdu sans geste de l'utilisateur.
+    void undoWhileAStrokeIsPendingKeepsRedo()
+    {
+        std::int64_t now = 0;
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        DocumentController* controller = controllerOf(main);
+        RecognitionController* recognition = recognitionOf(main);
+        QVERIFY(controller != nullptr);
+        QVERIFY(recognition != nullptr);
+        recognition->setClock([&now] { return now; });
+        recognition->setShapeMode(true);
+        QVERIFY(recognition->delayMs() > 600);
+
+        controller->commitStroke(strokeThrough(circlePoints({400, 300}, 120))); // A
+        now = atMs(400);
+        controller->commitStroke(strokeThrough(circlePoints({600, 400}, 80))); // B
+        QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 2);
+        now = atMs(600);
+        controller->undo(); // B part, pendant le délai
+        QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 1);
+        QVERIFY(controller->canRedo());
+
+        now = atMs(10 * RecognitionSession::kMaxDelayMs); // échéances de A et de B passées
+        recognition->processDue();
+        QVERIFY(controller->canRedo()); // aucune étape poussée : Rétablir tient
+        QCOMPARE(countOf(*controller, core::ObjectKind::Shape), 0);
+        QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 1);
+
+        controller->redo(); // B revient
+        QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 2);
+        QVERIFY(!controller->canRedo());
+    }
 };
 
 } // namespace
