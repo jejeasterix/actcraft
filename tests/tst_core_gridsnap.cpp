@@ -24,12 +24,12 @@ Grid grid(double step, bool snapEnabled = true)
 }
 
 // Un niveau incliné (famille + au pas X, famille − au pas Y), début `start`.
-Grid tilted(GridPattern pattern, double angle, double stepX, double stepY, PointF start = {})
+Grid tilted(GridPattern pattern, double angle, double pitchX, double pitchY, PointF start = {})
 {
-    Grid g = grid(stepX);
+    Grid g = grid(pitchX);
     g.levels[0].pattern = pattern;
     g.levels[0].angle = angle;
-    g.levels[0].spacingY = stepY;
+    g.levels[0].spacingY = pitchY;
     g.levels[0].start = start;
     return g;
 }
