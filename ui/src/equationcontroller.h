@@ -17,12 +17,13 @@
 namespace actcraft::ui {
 
 // Éditeur d'équations à modèles (F-301) offert à QML : features::EquationEditor, ses palettes, l'aperçu et
-// l'insertion. `editorMathml` porte les marques de l'éditeur (cases vides, curseur) et ne sert qu'à l'aperçu ;
-// le document ne reçoit que features::EquationEditor::documentMathml(), sans aucune marque. `accept` refuse
+// l'insertion. `editorMathml` porte les marques de l'éditeur (cases vides, curseur) et ne sert qu'à l'aperçu
+// ; le document ne reçoit que features::EquationEditor::documentMathml(), sans aucune marque. `accept` refuse
 // une équation dont une case reste vide (`message` dit pourquoi) ; sinon il pose l'équation sur la page
 // affichée, couche intermédiaire, centrée sur le point donné, en une étape d'annulation (DocumentInsertions).
 // La boîte posée est la taille naturelle de l'équation, mesurée par le dessin de la page lui-même
-// (render::paintEquation enregistré dans un QPicture, à l'échelle 1) : render/ n'offre pas de mesure publique.
+// (render::paintEquation enregistré dans un QPicture, à l'échelle 1) : render/ n'offre pas de mesure
+// publique.
 class EquationController : public QObject
 {
     Q_OBJECT

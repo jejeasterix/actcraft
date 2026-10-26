@@ -180,7 +180,8 @@ private slots:
         QCOMPARE(QString::fromStdString(inserted->mathml), oneHalf());
         QVERIFY(inserted->bounds.width > 0 && inserted->bounds.height > 0);
         actcraft::ui::PageView* view = main.pageView();
-        const QPointF centre = view->sceneToPage(view->mapToScene(QPointF(view->width() / 2, view->height() / 2)));
+        const QPointF centre =
+            view->sceneToPage(view->mapToScene(QPointF(view->width() / 2, view->height() / 2)));
         QVERIFY2(std::abs(inserted->bounds.x + inserted->bounds.width / 2 - centre.x()) < 1.0, "centre x");
         QVERIFY2(std::abs(inserted->bounds.y + inserted->bounds.height / 2 - centre.y()) < 1.0, "centre y");
         QTRY_VERIFY(!panel->isVisible());
@@ -212,7 +213,8 @@ private slots:
         QVERIFY2(!written.contains(u"actcraft-placeholder"_s), qPrintable(written));
     }
 
-    // Fraction vide, « OK » : rien n'est posé, l'éditeur reste ouvert et dit pourquoi ; le bouton reste actif.
+    // Fraction vide, « OK » : rien n'est posé, l'éditeur reste ouvert et dit pourquoi ; le bouton reste
+    // actif.
     void incompleteEquationIsRefused()
     {
         MainWindow main;
@@ -276,8 +278,9 @@ private slots:
         QCOMPARE(equation->mathml(), u"<math><mfrac><mn>1</mn><mn>23</mn></mfrac></math>"_s);
     }
 
-    // L'aperçu d'une équation sans marque est, pixel à pixel, le dessin de la page ; il diffère du repère neutre
-    // d'un MathML mal formé ; avec les marques, il montre la case vide et le curseur, que la page ne dessine pas.
+    // L'aperçu d'une équation sans marque est, pixel à pixel, le dessin de la page ; il diffère du repère
+    // neutre d'un MathML mal formé ; avec les marques, il montre la case vide et le curseur, que la page ne
+    // dessine pas.
     void previewMatchesThePageWithoutMarks()
     {
         const QSize size(240, 120);

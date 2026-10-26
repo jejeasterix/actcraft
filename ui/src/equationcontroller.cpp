@@ -62,16 +62,17 @@ QVariantList EquationController::palettes()
         for (const features::EquationPalette& palette : features::EquationEditor::palettes()) {
             QVariantList entries;
             for (const QString& id : palette.entries) {
-                const auto found = std::find_if(templates.begin(), templates.end(),
-                                                [&](const features::EquationTemplate& t) { return t.id == id; });
+                const auto found =
+                    std::find_if(templates.begin(), templates.end(),
+                                 [&](const features::EquationTemplate& t) { return t.id == id; });
                 if (found == templates.end()) {
                     continue;
                 }
-                entries.push_back(QVariantMap{
-                    {QStringLiteral("id"), id},
-                    {QStringLiteral("label"), found->label},
-                    {QStringLiteral("mathml"),
-                     QString::fromStdString(features::EquationEditor::templateMathml(id))}});
+                entries.push_back(
+                    QVariantMap{{QStringLiteral("id"), id},
+                                {QStringLiteral("label"), found->label},
+                                {QStringLiteral("mathml"),
+                                 QString::fromStdString(features::EquationEditor::templateMathml(id))}});
             }
             out.push_back(QVariantMap{{QStringLiteral("id"), palette.id},
                                       {QStringLiteral("label"), palette.label},

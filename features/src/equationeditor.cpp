@@ -58,7 +58,8 @@ constexpr TemplateRow kTemplates[] = {
     {u"sub-sup", u"Indice et exposant", u"<math><msubsup><mrow/><mrow/><mrow/></msubsup></math>"},
     {u"over", u"Au-dessus", u"<math><mover><mrow/><mrow/></mover></math>"},
     {u"under", u"Au-dessous", u"<math><munder><mrow/><mrow/></munder></math>"},
-    {u"under-over", u"Au-dessus et au-dessous", u"<math><munderover><mrow/><mrow/><mrow/></munderover></math>"},
+    {u"under-over", u"Au-dessus et au-dessous",
+     u"<math><munderover><mrow/><mrow/><mrow/></munderover></math>"},
     {u"vector", u"Vecteur", u"<math><mover><mrow/><mo>→</mo></mover></math>"},
     {u"bar", u"Barre", u"<math><mover><mrow/><mo>¯</mo></mover></math>"},
     {u"hat", u"Chapeau", u"<math><mover><mrow/><mo>^</mo></mover></math>"},
@@ -122,7 +123,8 @@ std::size_t at(int i)
     return static_cast<std::size_t>(i);
 }
 
-// Suites : enfants lus l'un après l'autre (mrow implicite de MathML), en nombre libre (core/src/equation.cpp).
+// Suites : enfants lus l'un après l'autre (mrow implicite de MathML), en nombre libre
+// (core/src/equation.cpp).
 bool isSequence(Kind kind)
 {
     return kind == Kind::Math || kind == Kind::Row || kind == Kind::Sqrt || kind == Kind::TableCell;
@@ -135,8 +137,7 @@ bool isSlot(const Node& node)
            node.kind != Kind::TableRow;
 }
 
-template <typename N>
-N* walk(N& root, const Path& path)
+template <typename N> N* walk(N& root, const Path& path)
 {
     N* node = &root;
     for (const int i : path) {
@@ -601,8 +602,8 @@ void EquationEditor::moveDown()
     moveVertically(false);
 }
 
-// Remonte du curseur vers la racine jusqu'au premier élément à deux dimensions qui a une case dans la direction
-// demandée (tableau : la ligne voisine, même colonne si elle existe).
+// Remonte du curseur vers la racine jusqu'au premier élément à deux dimensions qui a une case dans la
+// direction demandée (tableau : la ligne voisine, même colonne si elle existe).
 void EquationEditor::moveVertically(bool up)
 {
     for (std::size_t depth = m_cursor.size(); depth-- > 0;) {
@@ -613,7 +614,7 @@ void EquationEditor::moveVertically(bool up)
         }
         const int from = m_cursor[depth];
         const int to = ancestor->kind == Kind::Table ? (up ? from - 1 : from + 1)
-                                                      : verticalStep(ancestor->kind, from, up);
+                                                     : verticalStep(ancestor->kind, from, up);
         if (to < 0 || at(to) >= ancestor->children.size()) {
             continue;
         }

@@ -108,9 +108,11 @@ private slots:
         EquationEditor e;
         QString error;
         QVERIFY2(e.load("<math><mi class=\"actcraft-cursor\">x</mi></math>", error), qPrintable(error));
-        QCOMPARE(QString::fromStdString(e.documentMathml().value_or("<refusée>")), u"<math><mi>x</mi></math>"_s);
-        QVERIFY2(e.load("<math><mfrac><mn>1</mn><mrow class=\"actcraft-placeholder\"/></mfrac></math>", error),
-                 qPrintable(error));
+        QCOMPARE(QString::fromStdString(e.documentMathml().value_or("<refusée>")),
+                 u"<math><mi>x</mi></math>"_s);
+        QVERIFY2(
+            e.load("<math><mfrac><mn>1</mn><mrow class=\"actcraft-placeholder\"/></mfrac></math>", error),
+            qPrintable(error));
         QVERIFY(e.hasPlaceholder());
         QVERIFY(!e.documentMathml().has_value());
     }
@@ -134,7 +136,8 @@ private slots:
             u"<math><mrow><mo>|</mo><mrow/><mo>|</mo></mrow></math>"_s,
             u"<math><mrow><mo>(</mo><mtable><mtr><mtd/><mtd/></mtr></mtable><mo>)</mo></mrow></math>"_s,
             u"<math><mrow><mo>(</mo><mtable><mtr><mtd/></mtr><mtr><mtd/></mtr></mtable><mo>)</mo></mrow></math>"_s,
-            u"<math><mrow><mo>(</mo><mtable><mtr><mtd/><mtd/><mtd/></mtr><mtr><mtd/><mtd/><mtd/></mtr><mtr><mtd/>"
+            u"<math><mrow><mo>(</mo><mtable><mtr><mtd/><mtd/><mtd/></mtr><mtr><mtd/><mtd/><mtd/></"
+            u"mtr><mtr><mtd/>"
             u"<mtd/><mtd/></mtr></mtable><mo>)</mo></mrow></math>"_s,
             u"<math><msub><mo>∬</mo><mrow/></msub><mrow/></math>"_s,
             u"<math><msub><mo>∭</mo><mrow/></msub><mrow/></math>"_s,
@@ -145,7 +148,7 @@ private slots:
         const auto& templates = EquationEditor::templates();
         const auto& palettes = EquationEditor::palettes();
         const std::vector<QString> categories = {
-            u"fractions"_s, u"roots"_s,    u"scripts"_s,  u"underover"_s, u"accents"_s,   u"delimiters"_s,
+            u"fractions"_s, u"roots"_s,     u"scripts"_s,  u"underover"_s, u"accents"_s,   u"delimiters"_s,
             u"operators"_s, u"integrals"_s, u"matrices"_s, u"functions"_s, u"relations"_s, u"greek"_s,
         };
         QCOMPARE(palettes.size(), categories.size());
