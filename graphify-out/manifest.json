@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1793008322.0110657,
-    "ast_hash": "1d73bb71556908e27e21cffa22e53605",
+    "mtime": 1793012131.2031972,
+    "ast_hash": "9742be74bb0116eeeb8dbb0d5443769c",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2450,8 +2450,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/reconnaissance-forme.json": {
-    "mtime": 1792406200.4636045,
-    "ast_hash": "036a36d6d37e98e162c8a983915bdcb8",
+    "mtime": 1793018930.0754614,
+    "ast_hash": "fc634269f6a20d4e4912071153306712",
     "semantic_hash": ""
   },
   "bench/scenarios/regle.json": {
@@ -2565,8 +2565,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_recognition.cpp": {
-    "mtime": 1792406200.5216348,
-    "ast_hash": "5ac4aae661d800f778dd4e061f33ccb1",
+    "mtime": 1793018930.0814567,
+    "ast_hash": "1db805e3c3918062e732ef7113792a96",
     "semantic_hash": ""
   },
   "tests/tst_ui_spotlight.cpp": {
@@ -2707,6 +2707,16 @@
   "docs/sessions/2026-10-21-handoff-livraison-complete-b.md": {
     "mtime": 1793008137.148808,
     "ast_hash": "7aa4839f99db4f622e97d7b7468e5fb8",
+    "semantic_hash": ""
+  },
+  "ui/src/recognitioncontroller.cpp": {
+    "mtime": 1793018930.0904658,
+    "ast_hash": "0afdb81a6d9765e01b75d28fdf36a238",
+    "semantic_hash": ""
+  },
+  "ui/src/recognitioncontroller.h": {
+    "mtime": 1793018930.0934658,
+    "ast_hash": "6230f48f08ce0e642f534a1527bb866e",
     "semantic_hash": ""
   }
 }
