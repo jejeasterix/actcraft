@@ -48,12 +48,13 @@ DocumentController* openDocumentOf(const MainWindow& main)
 
 const actcraft::core::Page& shownPage(const DocumentController& doc)
 {
-    return doc.document().pages().at(static_cast<std::size_t>(doc.currentIndex()));
+    return doc.document().page(static_cast<std::size_t>(doc.currentIndex()));
 }
 
+// Fond uni d'alpha nul (le fond par défaut d'une page est blanc opaque, solidFill(0xFFFFFFFF)).
 bool isTransparentFill(const actcraft::core::Fill& fill)
 {
-    return fill == actcraft::core::solidFill(0x00000000u);
+    return fill.kind == actcraft::core::FillKind::Solid && (fill.color & 0xFF000000u) == 0;
 }
 
 // Fenêtre d'annotation ouverte, page prête, cache à jour : un trait peut y être injecté.
@@ -142,7 +143,7 @@ private slots:
         auto* view = desktop->window()->findChild<actcraft::ui::PageView*>(QStringLiteral("pageView"));
         QVERIFY(view);
         QCOMPARE(view->documentController(), desktop->desktopDocument());
-        QCOMPARE(view->tools(), nullptr);
+        QVERIFY(view->tools() == nullptr);
         const QString openBefore = open->fingerprintText();
         const int openObjects = open->shownObjectCount();
         QCOMPARE(desktop->desktopDocument()->shownObjectCount(), 0);
@@ -198,7 +199,9 @@ private slots:
         QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
         const std::string key = shownPage(*open).background.image;
         QVERIFY(!key.empty());
-        const QByteArray bytes = open->document().resourceBytes(key);
+        const actcraft::core::Resource* resource = open->document().resource(key);
+        QVERIFY(resource);
+        const QByteArray bytes = resource->data;
         QVERIFY(bytes.startsWith(QByteArray("\x89PNG\r\n\x1a\n", 8)));
         QImage decoded;
         QVERIFY(decoded.loadFromData(bytes, "PNG"));
@@ -330,7 +333,9 @@ private slots:
     }
 
     // Chaque pointeur : le trait sur la fenêtre de bureau est versé dans le paperboard du bureau, la page
-    // principale reste inchangée. Mutant : documentController de la racine (document ouvert).
+    // principale reste inchangée ; un trait commencé sur la barre de la fenêtre (couverture de la vue) n'est
+    // pas versé et ne presse aucun bouton. Mutants : documentController de la racine (document ouvert) ;
+    // barre jamais déclarée couverture (le stylet, pris par le filtre de la vue, y trace).
     void desktopWindowTakesEveryPointer_data() { presentationharness::addPointerRows(); }
     void desktopWindowTakesEveryPointer()
     {
@@ -345,6 +350,16 @@ private slots:
         QVERIFY(waitDesktopReady(desktop));
         const QString openBefore = open->fingerprintText();
         const int mainObjects = main.pageObjectCount();
+        QQuickItem* toolbar =
+            presentationharness::findItem(desktop->window()->contentItem(), QStringLiteral("desktopToolbar"));
+        QVERIFY(toolbar);
+        const qreal middle = toolbar->height() / 2;
+        presentationharness::strokeAt(desktop->window(), pointer, toolbar->mapToScene(QPointF(3, middle)),
+                                      toolbar->mapToScene(QPointF(9, middle)), 3);
+        QTest::qWait(50);
+        QCOMPARE(desktop->desktopDocument()->shownObjectCount(), 0);
+        QVERIFY(!desktop->passThrough());
+        QVERIFY(desktop->isAnnotating());
         strokeInDesktopWindow(desktop, pointer);
         QTRY_COMPARE(desktop->desktopDocument()->shownObjectCount(), 1);
         QCOMPARE(open->fingerprintText(), openBefore);
