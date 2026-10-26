@@ -1,10 +1,29 @@
 {
   "format": "actcraft-scenario/1",
   "name": "formes",
-  "description": "Talon L4-T1 : rempli par L4-T12.",
+  "description": "S7.1 : palette, rectangle depuis le coin, clic simple sans forme, cercle depuis le centre sans remplissage, point intelligent d'une flèche.",
   "steps": [
-    {
-      "waitReady": true
-    }
+    {"waitReady": true},
+    {"command": "tool.shape"},
+    {"expect": "shapePalette.visible", "value": true},
+    {"capture": "palette"},
+    {"command": "shape.choose", "argument": "rectangle"},
+    {"stroke": [[200, 200], [400, 320]], "pressure": 0.5},
+    {"waitReady": true},
+    {"checkPixel": "rectangle-contour", "at": [200, 260], "color": "#000000", "tolerance": 60},
+    {"capture": "rectangle"},
+    {"stroke": [[600, 600], [601, 601]], "pressure": 0.5},
+    {"waitReady": true},
+    {"expect": "documentController.shownObjectCount", "value": 1},
+    {"command": "shape.fill-color", "argument": "#43A047"},
+    {"command": "shape.choose", "argument": "circle"},
+    {"command": "shape.draw-from-center"},
+    {"command": "shape.filled"},
+    {"stroke": [[700, 300], [760, 360]], "pressure": 0.5},
+    {"waitReady": true},
+    {"expect": "documentController.shownObjectCount", "value": 2},
+    {"checkPixel": "cercle-interieur-blanc", "at": [700, 300], "color": "#FFFFFF", "tolerance": 8},
+    {"capture": "cercle-centre"},
+    {"expect": "appTools.currentTool", "value": "shape"}
   ]
 }
