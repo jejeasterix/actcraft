@@ -18,7 +18,7 @@ namespace actcraft::ui {
 
 namespace {
 
-constexpr double kPointSize = 24; // nouvelles équations : la taille par défaut de core::Equation
+constexpr double kEquationPoints = 24; // nouvelles équations : la taille par défaut de core::Equation
 constexpr double kMargin = 2;     // autour de l'encre mesurée, pixels de page
 constexpr QSizeF kFallbackSize(200, 60);
 
@@ -26,7 +26,7 @@ constexpr QSizeF kFallbackSize(200, 60);
 
 EquationController::EquationController(QObject* parent) : QObject(parent)
 {
-    m_editorSize = naturalSize(m_editor.editorMathml(), kPointSize);
+    m_editorSize = naturalSize(m_editor.editorMathml(), kEquationPoints);
 }
 
 QString EquationController::mathml() const
@@ -187,7 +187,7 @@ bool EquationController::accept(QPointF pageCentre)
     if (!std::isfinite(centre.x()) || !std::isfinite(centre.y())) {
         centre = QPointF(page->width / 2, page->height / 2);
     }
-    QSizeF size = naturalSize(*written, kPointSize);
+    QSizeF size = naturalSize(*written, kEquationPoints);
     if (size.isEmpty()) {
         size = kFallbackSize;
     }
@@ -195,7 +195,7 @@ bool EquationController::accept(QPointF pageCentre)
     equation.bounds = core::RectF{centre.x() - size.width() / 2, centre.y() - size.height() / 2, size.width(),
                                   size.height()};
     equation.mathml = *written;
-    equation.pointSize = kPointSize;
+    equation.pointSize = kEquationPoints;
     core::PageObject object = std::move(equation);
     object.common.layer = core::Layer::Middle;
     if (insertions.insertObject(std::move(object)) == 0) {
@@ -207,7 +207,7 @@ bool EquationController::accept(QPointF pageCentre)
 
 void EquationController::edited()
 {
-    m_editorSize = naturalSize(m_editor.editorMathml(), kPointSize);
+    m_editorSize = naturalSize(m_editor.editorMathml(), kEquationPoints);
     setMessage({});
     emit equationChanged();
 }
