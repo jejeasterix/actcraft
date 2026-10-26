@@ -742,6 +742,62 @@ private slots:
     }
 
     // Contrat du lot 1 prolongé : les sortes du socle 3-7 s'ajoutent à la fin, dans cet ordre.
+    // L4-T14 : {"typeText": "Bonjour"} : le texte est gardé tel quel ; une chaîne vide ou un autre type est
+    // refusé (le fichier entier l'est : « SCENARIO INVALIDE » côté actcraft-captures).
+    void typeTextStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"typeText\": \"Bonjour\"},{\"typeText\": \"a b\"}", s, error), qPrintable(error));
+        QVERIFY(s.steps[0].kind == UiStepKind::TypeText);
+        QCOMPARE(s.steps[0].value, QStringLiteral("Bonjour"));
+        QCOMPARE(s.steps[1].value, QStringLiteral("a b"));
+        for (const char* bad : {"{\"typeText\": \"\"}", "{\"typeText\": 12}"}) {
+            UiScenario refused;
+            QString why;
+            QVERIFY(!parseSteps(bad, refused, why));
+            QVERIFY2(why.startsWith(QStringLiteral("étape 1")) && why.contains(QStringLiteral("typeText")),
+                     qPrintable(why));
+        }
+    }
+
+    // L4-T14 : un QKeyEvent par caractère, avec son texte (appui puis relâché), livré à la fenêtre ; la ligne
+    // du rapport est « TEXTE <texte> OK ». Une livraison qui refuse l'appui fait échouer l'étape.
+    void typeTextDeliversOneKeyPerCharacter()
+    {
+        struct Event
+        {
+            QEvent::Type type;
+            QString text;
+        };
+        static std::vector<Event> seen;
+        static bool accept = true;
+        seen.clear();
+        accept = true;
+        Fixture f;
+        QVERIFY(load(f));
+        f.player->setKeyDelivery([](QWindow*, ulong, QEvent::Type type, int, Qt::KeyboardModifiers,
+                                    const QString& text) {
+            seen.push_back({type, text});
+            return type != QEvent::KeyPress || accept;
+        });
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("texte", "[{\"typeText\":\"Bon jour\"}]"), f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('
+'))));
+        QCOMPARE(report.last(), QStringLiteral("TEXTE Bon jour OK"));
+        QCOMPARE(seen.size(), std::size_t{14}); // 7 caractères, un appui et un relâché chacun
+        for (std::size_t i = 0; i < 7; ++i) {
+            QCOMPARE(seen[2 * i].type, QEvent::KeyPress);
+            QCOMPARE(seen[2 * i + 1].type, QEvent::KeyRelease);
+            QCOMPARE(seen[2 * i].text, QStringLiteral("Bon jour").mid(static_cast<qsizetype>(i), 1));
+        }
+        seen.clear();
+        accept = false;
+        QVERIFY(!f.player->play(scenario("refuse", "[{\"typeText\":\"ab\"}]"), f.out.path(), report));
+        QVERIFY2(report.last().startsWith(QLatin1String("TEXTE ab ECHEC")), qPrintable(report.last()));
+    }
+
     void stepKindRanksFrozen()
     {
         using K = actcraft::bench::UiStepKind;
@@ -749,6 +805,7 @@ private slots:
         QCOMPARE(static_cast<int>(K::Touch) + 1, static_cast<int>(K::Pinch));
         QCOMPARE(static_cast<int>(K::Pinch) + 1, static_cast<int>(K::Pointer));
         QCOMPARE(static_cast<int>(K::Pointer) + 1, static_cast<int>(K::DoubleClick));
+        QCOMPARE(static_cast<int>(K::DoubleClick) + 1, static_cast<int>(K::TypeText)); // L4-T14
     }
 
     void badGestureStepsAreRefused_data()
