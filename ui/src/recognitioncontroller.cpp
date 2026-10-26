@@ -275,6 +275,13 @@ void RecognitionController::convertPending()
 
 void RecognitionController::onChanges(const core::Changes& applied, DocumentController::ChangeOrigin origin)
 {
+    // Un Annuler (ou Rétablir) pendant le délai abandonne les traits en attente : une conversion poussée
+    // ensuite passerait par UndoStack::record et effacerait la branche à rétablir.
+    if (origin == DocumentController::ChangeOrigin::Undo ||
+        origin == DocumentController::ChangeOrigin::Redo) {
+        resetSession();
+        return;
+    }
     if (origin != DocumentController::ChangeOrigin::Stroke || !m_shapeMode || !m_document) {
         return;
     }
