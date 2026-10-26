@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Shapes
 import ActCraft.Ui
 
 // Palette des formes (F-240, S7.1) : panneau vertical à droite, visible quand l'outil courant est « shape ».
@@ -116,17 +115,26 @@ Rectangle {
                     Accessible.name: modelData
                     Accessible.checked: current
                     Accessible.onPressAction: root.tools.chooseShape(button.modelData)
-                    Shape {
+                    Canvas {
+                        id: thumbnail
                         anchors.centerIn: parent
                         width: 22
                         height: 22
-                        ShapePath {
-                            strokeColor: button.current ? Theme.texteSurActive : Theme.texte
-                            strokeWidth: 1.5
-                            fillColor: "transparent"
-                            PathPolyline {
-                                path: button.outline.map(p => Qt.point(1 + p.x * 20, 1 + p.y * 20))
-                            }
+                        readonly property color ink: button.current ? Theme.texteSurActive : Theme.texte
+                        onInkChanged: requestPaint()
+                        onPaint: {
+                            const ctx = getContext("2d")
+                            ctx.clearRect(0, 0, width, height)
+                            ctx.strokeStyle = ink
+                            ctx.lineWidth = 1.5
+                            ctx.beginPath()
+                            button.outline.forEach((p, i) => {
+                                if (i === 0)
+                                    ctx.moveTo(1 + p.x * 20, 1 + p.y * 20)
+                                else
+                                    ctx.lineTo(1 + p.x * 20, 1 + p.y * 20)
+                            })
+                            ctx.stroke()
                         }
                     }
                     TapHandler { onTapped: root.tools.chooseShape(button.modelData) }

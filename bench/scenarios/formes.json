@@ -22,8 +22,19 @@
     {"pointer": [[700, 300], [730, 330], [760, 360]]},
     {"waitReady": true},
     {"expect": "documentController.shownObjectCount", "value": 2},
-    {"checkPixel": "cercle-interieur-blanc", "at": [700, 300], "color": "#FFFFFF", "tolerance": 8},
     {"capture": "cercle-centre"},
-    {"expect": "appTools.currentTool", "value": "shape"}
+    {"checkPixel": "cercle-interieur-blanc", "at": [700, 300], "color": "#FFFFFF", "tolerance": 8},
+    {"expect": "appTools.currentTool", "value": "shape"},
+    {"command": "shape.choose", "argument": "arrow"},
+    {"pointer": [[300, 500], [400, 530], [500, 560]]},
+    {"waitReady": true},
+    {"command": "tool.select"},
+    {"pointer": [[400, 530]]},
+    {"expect": "appTools.selectionCount", "value": 1},
+    {"expect": "selectionSmartPoint.visible", "value": true},
+    {"pointer": [[220, 486], [220, 492], [220, 500]]},
+    {"waitReady": true},
+    {"expect": "documentController.canUndo", "value": true},
+    {"capture": "fleche-point"}
   ]
 }

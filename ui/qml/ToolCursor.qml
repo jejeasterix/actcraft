@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Shapes
 import ActCraft.Ui
 
 // Curseur par outil (F-201) : flèche pour la sélection, croix pour le stylo ; pour le marqueur et la gomme, le
@@ -22,27 +21,30 @@ Item {
         enabled: cursor.shaped
     }
 
-    Shape {
+    Canvas {
+        id: thumbnail
         objectName: "shapeCursorThumbnail"
         visible: cursor.shaped && pointer.hovered
         x: pointer.point.position.x + 14
         y: pointer.point.position.y + 14
         width: 20
         height: 20
-        ShapePath {
-            strokeColor: Theme.texte
-            strokeWidth: 3
-            fillColor: "transparent"
-            PathPolyline {
-                path: cursor.outline.map(p => Qt.point(1 + p.x * 18, 1 + p.y * 18))
-            }
-        }
-        ShapePath {
-            strokeColor: Theme.barre
-            strokeWidth: 1.5
-            fillColor: "transparent"
-            PathPolyline {
-                path: cursor.outline.map(p => Qt.point(1 + p.x * 18, 1 + p.y * 18))
+        readonly property var outline: cursor.outline
+        onOutlineChanged: requestPaint()
+        onPaint: {
+            const ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+            for (const pass of [[Theme.texte, 3], [Theme.barre, 1.5]]) {
+                ctx.strokeStyle = pass[0]
+                ctx.lineWidth = pass[1]
+                ctx.beginPath()
+                outline.forEach((p, i) => {
+                    if (i === 0)
+                        ctx.moveTo(1 + p.x * 18, 1 + p.y * 18)
+                    else
+                        ctx.lineTo(1 + p.x * 18, 1 + p.y * 18)
+                })
+                ctx.stroke()
             }
         }
     }
