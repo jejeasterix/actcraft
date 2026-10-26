@@ -8,6 +8,7 @@
 #include <actcraft/render/paintedrenderer.h>
 
 #include <QColor>
+#include <QHash>
 #include <QImage>
 #include <QPainter>
 #include <QQuickWindow>
@@ -17,9 +18,11 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 using namespace actcraft;
 using namespace Qt::StringLiterals;
@@ -29,6 +32,10 @@ namespace {
 const render::ImageLookup kNoImages = [](const std::string&) { return QImage(); };
 
 constexpr double kPoints = 24;
+
+// paintFromTwoThreads : textes distincts, plus que les 64 entrées du cache, et dessins par fil.
+constexpr std::size_t kThreadTexts = 80;
+constexpr int kThreadRounds = 200;
 
 std::optional<core::EquationNode> tree(const std::string& mathml)
 {
@@ -69,6 +76,12 @@ QImage pageOf(const core::Equation& e)
     core::Page page;
     page.objects.push_back(core::PageObject(e));
     return render::renderPage(page, kNoImages, 1.0).copy(0, 0, 400, 200);
+}
+
+// Empreinte des pixels d'une image : deux fils comparent leurs dessins sans garder 80 images chacun.
+std::size_t hashOf(const QImage& image)
+{
+    return qHashBits(image.constBits(), std::size_t(image.sizeInBytes()));
 }
 
 bool isWhite(QColor c)
@@ -204,8 +217,10 @@ private slots:
         QVERIFY(r.ascent > c.ascent);
     }
 
-    // Une équation illisible (XML mal formé, arité fausse) garde le repère neutre : même image que
-    // paintUnknown sur la même boîte, et rien de plus en mode Editor.
+    // Une équation illisible (XML mal formé, arité fausse), ou lisible mais faite seulement d'éléments
+    // inconnus de cette version (rien à mettre en page), garde le repère neutre : même image que paintUnknown
+    // sur la même boîte, et rien de plus en mode Editor. Une équation lisible sans encre ni élément inconnu,
+    // elle, ne dessine rien en mode Page : le repère neutre ne remplace pas toute équation sans encre.
     void malformedDrawsTheNeutralFrame()
     {
         const core::RectF box{40, 30, 300, 120};
@@ -219,19 +234,58 @@ private slots:
             render::paintObjectLocal(p, core::PageObject(u), kNoImages);
         }
         QVERIFY(unknown != blank());
+        const std::string unknownOnly =
+            "<math><mstyle displaystyle=\"true\"><mfrac><mn>1</mn><mn>2</mn></mfrac></mstyle></math>";
+        QVERIFY(tree(unknownOnly)); // lisible : mstyle est gardé tel quel, élément inconnu
         for (const std::string& mathml :
              {std::string("<math><mfrac><mn>1</mn></math>"),
-              std::string("<math><mfrac><mn>1</mn></mfrac></math>"), std::string()}) {
+              std::string("<math><mfrac><mn>1</mn></mfrac></math>"), std::string(), unknownOnly}) {
             const core::Equation e = equation(mathml, box);
             QImage local = blank();
             {
                 QPainter p(&local);
                 render::paintObjectLocal(p, core::PageObject(e), kNoImages);
             }
-            QCOMPARE(local, unknown);
-            QCOMPARE(painted(e, render::EquationPaintMode::Editor),
-                     painted(e, render::EquationPaintMode::Page));
+            QVERIFY2(local == unknown, mathml.c_str());
+            QVERIFY2(painted(e, render::EquationPaintMode::Editor) ==
+                         painted(e, render::EquationPaintMode::Page),
+                     mathml.c_str());
         }
+        const core::Equation empty = equation("<math><msup><mrow/><mrow/></msup></math>", box);
+        QVERIFY(tree(empty.mathml));
+        QCOMPARE(painted(empty, render::EquationPaintMode::Page), blank());
+    }
+
+    // La barre d'une fraction : une ligne sombre continue dans le tiers du milieu de la hauteur dessinée, sur
+    // au moins 80 % de la largeur dessinée (numérateur plus large que le dénominateur).
+    void fractionBarIsDrawn()
+    {
+        const core::Equation e =
+            equation("<math><mfrac><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mn>2</mn></mfrac></math>");
+        const QImage image = painted(e, render::EquationPaintMode::Page);
+        const InkedRows rows = inkedRows(image);
+        QVERIFY(rows.first >= 0);
+        int left = image.width();
+        int right = -1;
+        for (int y = rows.first; y <= rows.last; ++y) {
+            for (int x = 0; x < image.width(); ++x) {
+                if (!isWhite(image.pixelColor(x, y))) {
+                    left = std::min(left, x);
+                    right = std::max(right, x);
+                }
+            }
+        }
+        const int width = right - left + 1;
+        const int third = (rows.last - rows.first + 1) / 3;
+        int longest = 0;
+        for (int y = rows.first + third; y <= rows.last - third; ++y) {
+            int run = 0;
+            for (int x = left; x <= right; ++x) {
+                run = isDark(image.pixelColor(x, y)) ? run + 1 : 0;
+                longest = std::max(longest, run);
+            }
+        }
+        QVERIFY2(longest >= 0.8 * width, qPrintable(QStringLiteral("%1 sur %2").arg(longest).arg(width)));
     }
 
     // Les deux chemins du peintre partagé (page logicielle, texture de la page fixe) donnent la même image à
@@ -318,24 +372,32 @@ private slots:
         }
     }
 
-    // Le cache de mise en page est partagé par les fils des miniatures et des exports : deux fils dessinent
-    // la même équation 200 fois chacun, partis ensemble, avant tout dessin du fil principal.
+    // Le peintre partagé sert aussi les fils des miniatures et des exports : deux fils, partis ensemble,
+    // dessinent 200 fois chacun, tour à tour, plus d'équations distinctes que le cache n'en garde (64) :
+    // chaque dessin relit, remet en page et écrit le cache de son fil. Images identiques à celles du fil
+    // principal.
     void paintFromTwoThreads()
     {
-        const core::Equation e =
-            equation("<math><mfrac><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><msqrt><msup><mi>y</mi>"
-                     "<mn>2</mn></msup></msqrt></mfrac><mo>=</mo><mi>k</mi></math>");
+        std::vector<core::Equation> equations;
+        std::vector<std::size_t> reference;
+        for (std::size_t k = 0; k < kThreadTexts; ++k) {
+            equations.push_back(
+                equation("<math><mfrac><mrow><mi>x</mi><mo>+</mo><mn>" + std::to_string(k) +
+                         "</mn></mrow><msqrt><msup><mi>y</mi><mn>2</mn></msup></msqrt></mfrac>"
+                         "<mo>=</mo><mi>k</mi></math>"));
+            const QImage image = painted(equations.back(), render::EquationPaintMode::Page);
+            QVERIFY(darkInside(image, equations.back().bounds) > 0);
+            reference.push_back(hashOf(image));
+        }
         std::atomic<int> drawn{0};
-        QImage first[2];
         std::atomic<int> mismatches{0};
+        std::atomic<bool> stop{false};
         QSemaphore start;
         auto work = [&](int index) {
             start.acquire();
-            for (int i = 0; i < 200; ++i) {
-                const QImage image = painted(e, render::EquationPaintMode::Page);
-                if (i == 0) {
-                    first[index] = image;
-                } else if (image != first[index]) {
+            for (int i = 0; i < kThreadRounds && !stop; ++i) {
+                const std::size_t k = (std::size_t(i) + std::size_t(index) * kThreadTexts / 2) % kThreadTexts;
+                if (hashOf(painted(equations[k], render::EquationPaintMode::Page)) != reference[k]) {
                     ++mismatches;
                 }
                 ++drawn;
@@ -346,14 +408,17 @@ private slots:
         a->start();
         b->start();
         start.release(2);
-        QVERIFY(a->wait(120000));
-        QVERIFY(b->wait(120000));
-        QCOMPARE(drawn.load(), 400);
+        const bool inTime = a->wait(120000) && b->wait(120000);
+        if (!inTime) {
+            // Détruire un QThread encore actif arrête le programme (qFatal) : les fils sortent d'abord de
+            // leur boucle, puis le test échoue proprement.
+            stop = true;
+            a->wait();
+            b->wait();
+        }
+        QVERIFY2(inTime, "les deux fils n'ont pas fini en 120 s");
+        QCOMPARE(drawn.load(), 2 * kThreadRounds);
         QCOMPARE(mismatches.load(), 0);
-        const QImage reference = painted(e, render::EquationPaintMode::Page);
-        QCOMPARE(first[0], reference);
-        QCOMPARE(first[1], reference);
-        QVERIFY(darkInside(reference, e.bounds) > 0);
     }
 
     // Page fixe hors écran (FixedPageItem, moteur peint) avec une équation : elle se dessine dans sa boîte
