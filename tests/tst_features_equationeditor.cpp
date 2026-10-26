@@ -89,8 +89,14 @@ private slots:
         e.moveRight();
         e.type(u"+"_s);
         e.type(u"1"_s);
+        // msqrt est une suite (arité libre, core/src/equation.cpp) : la saisie s'y ajoute sans mrow.
         QCOMPARE(QString::fromStdString(e.mathml()),
-                 u"<math><msqrt><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow></msqrt></math>"_s);
+                 u"<math><msqrt><mi>x</mi><mo>+</mo><mn>1</mn></msqrt></math>"_s);
+        // Sous une fraction (arité fixe), la saisie après un nœud l'enveloppe dans un mrow.
+        QVERIFY(e.load("<math><mfrac><mi>a</mi><mi>b</mi></mfrac></math>", error));
+        e.type(u"+1"_s);
+        QCOMPARE(QString::fromStdString(e.mathml()),
+                 u"<math><mfrac><mrow><mi>a</mi><mo>+</mo><mn>1</mn></mrow><mi>b</mi></mfrac></math>"_s);
         QVERIFY(!e.load("<math><mfrac>", error));
         QVERIFY(!error.isEmpty());
     }

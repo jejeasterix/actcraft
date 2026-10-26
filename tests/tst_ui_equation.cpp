@@ -79,7 +79,7 @@ QQuickItem* openEditor(const MainWindow& main)
     if (!main.run(u"insert.equation"_s)) {
         return nullptr;
     }
-    QQuickItem* panel = main.item(u"equationEditorRoot"_s);
+    QQuickItem* panel = main.item(u"equationRoot"_s);
     QQuickItem* layer = main.item(u"presentationLayer"_s);
     if (!panel || !layer || !panel->isVisible()) {
         return nullptr;
@@ -179,7 +179,7 @@ private slots:
         QVERIFY(written.common.layer == core::Layer::Middle);
         QCOMPARE(QString::fromStdString(inserted->mathml), oneHalf());
         QVERIFY(inserted->bounds.width > 0 && inserted->bounds.height > 0);
-        const actcraft::ui::PageView* view = main.pageView();
+        actcraft::ui::PageView* view = main.pageView();
         const QPointF centre = view->sceneToPage(view->mapToScene(QPointF(view->width() / 2, view->height() / 2)));
         QVERIFY2(std::abs(inserted->bounds.x + inserted->bounds.width / 2 - centre.x()) < 1.0, "centre x");
         QVERIFY2(std::abs(inserted->bounds.y + inserted->bounds.height / 2 - centre.y()) < 1.0, "centre y");
