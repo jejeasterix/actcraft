@@ -198,6 +198,8 @@ Window {
         ShapePalette {
             id: shapePalette
             objectName: "shapePalette"
+            tools: appTools
+            commands: appCommands
         }
 
         ToolPalette {
