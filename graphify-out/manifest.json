@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793051338.1752317,
-    "ast_hash": "3f2519600755946cfafb0c2e9dff8725",
+    "mtime": 1793056440.1827304,
+    "ast_hash": "5c38cae38063e7785193cc27f3b2e1b1",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -2210,8 +2210,8 @@
     "semantic_hash": ""
   },
   "core/src/gridsnap.cpp": {
-    "mtime": 1792574917.2511096,
-    "ast_hash": "5712eb316c0cb489a4499e8fa299877f",
+    "mtime": 1793056822.2769623,
+    "ast_hash": "c038426a2036ce56fb366d2c8e8b4b18",
     "semantic_hash": ""
   },
   "core/src/pageedits.cpp": {
@@ -2255,8 +2255,8 @@
     "semantic_hash": ""
   },
   "tests/tst_core_gridsnap.cpp": {
-    "mtime": 1792574917.2511096,
-    "ast_hash": "29307f0104e43954d4b4b9a7de93a521",
+    "mtime": 1793056822.280956,
+    "ast_hash": "493ea830fb0b251040376103a3630452",
     "semantic_hash": ""
   },
   "tests/tst_core_pageedits.cpp": {
