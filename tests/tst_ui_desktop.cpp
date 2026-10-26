@@ -27,7 +27,8 @@ using actcraft::ui::DocumentController;
 using presentationharness::MainWindow;
 using presentationharness::Pointer;
 
-// Contrôleur porté par la racine `desktopRoot` de Presentation.qml (QtObject : cherché par l'arbre des objets).
+// Contrôleur porté par la racine `desktopRoot` de Presentation.qml (QtObject : cherché par l'arbre des
+// objets).
 DesktopController* desktopOf(const MainWindow& main)
 {
     if (!main.window()) {
@@ -95,9 +96,10 @@ class TstUiDesktop : public QObject
     Q_OBJECT
 
 private slots:
-    // Fenêtre créée par le contrôleur : sans cadre, toujours devant, couleur transparente, surface à canal alpha
-    // demandée AVANT sa création (format posé entre beginCreate et completeCreate). Mutant : fenêtre créée par
-    // createObject en QML (format par défaut, alphaBufferSize -1) ; ou drapeau « toujours devant » retiré.
+    // Fenêtre créée par le contrôleur : sans cadre, toujours devant, couleur transparente, surface à canal
+    // alpha demandée AVANT sa création (format posé entre beginCreate et completeCreate). Mutant : fenêtre
+    // créée par createObject en QML (format par défaut, alphaBufferSize -1) ; ou drapeau « toujours devant »
+    // retiré.
     void annotationWindowIsTransparentAndAbove()
     {
         MainWindow main;
@@ -126,8 +128,8 @@ private slots:
 
     // LE test qui garde l'invariant : la zone de la fenêtre d'annotation écrit dans le paperboard du bureau,
     // jamais dans le document ouvert que Presentation.qml passe à la racine (documentController). Mutant :
-    // PageArea { documentController: root.documentController } (patron des autres racines) → le trait part dans
-    // le document ouvert.
+    // PageArea { documentController: root.documentController } (patron des autres racines) → le trait part
+    // dans le document ouvert.
     void strokeGoesToTheDesktopPaperboard()
     {
         MainWindow main;
@@ -155,8 +157,8 @@ private slots:
         QVERIFY(!open->isModified());
     }
 
-    // Laisser passer les clics : la fenêtre devient transparente aux entrées, et le redevient pas à l'inverse.
-    // Mutant : le drapeau n'est jamais posé.
+    // Laisser passer les clics : la fenêtre devient transparente aux entrées, et le redevient pas à
+    // l'inverse. Mutant : le drapeau n'est jamais posé.
     void passThroughMakesTheWindowTransparentForInput()
     {
         MainWindow main;
@@ -181,9 +183,9 @@ private slots:
         QVERIFY(window->flags().testFlag(Qt::WindowTransparentForInput));
     }
 
-    // Capture du bureau (F-071) : image figée en fond de la page affichée du document ouvert, ressource PNG du
-    // document, en une étape. Mutant : deux commandes (ressource puis fond) → une annulation ne rend pas l'état
-    // d'avant.
+    // Capture du bureau (F-071) : image figée en fond de la page affichée du document ouvert, ressource PNG
+    // du document, en une étape. Mutant : deux commandes (ressource puis fond) → une annulation ne rend pas
+    // l'état d'avant.
     void desktopCaptureBecomesTheBackground()
     {
         MainWindow main;
@@ -251,8 +253,8 @@ private slots:
         QVERIFY(!shownPage(reopened).background.image.empty());
     }
 
-    // P13 : page suivante du paperboard du bureau = nouvelle page transparente vierge, même après une page à fond
-    // capturé, en une étape. Mutant : DocumentController::nextPage (F-125, page du fond par défaut).
+    // P13 : page suivante du paperboard du bureau = nouvelle page transparente vierge, même après une page à
+    // fond capturé, en une étape. Mutant : DocumentController::nextPage (F-125, page du fond par défaut).
     void nextPageIsANewTransparentPage()
     {
         MainWindow main;
