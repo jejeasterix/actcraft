@@ -2,12 +2,12 @@
 
 ## MODE DE TRAVAIL (source : `.claude/chantier.md` de la branche du chantier, qui fait autorité)
 
-- **Premier geste, à la relance de Jérôme seulement : « reprends le chantier livraison-complete »**, dans une
-  session ouverte sur `C:\Users\JeromeDenis\ActCraft`, branche `main` (skill `nouvelle-feature`, entrée
-  « reprise »). Le chantier est **en pause** sur demande de Jérôme (quota de la semaine) : rien ne se lance avant
-  son message de reprise. Le fichier d'état fait autorité :
+- **Premier geste : « reprends le chantier livraison-complete »**, dans une session ouverte sur
+  `C:\Users\JeromeDenis\ActCraft`, branche `main` (skill `nouvelle-feature`, entrée « reprise »). La pause sur quota
+  est levée (2026-10-26). Le fichier d'état fait autorité :
   `C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md`
-  (entrée « PAUSE demandée par Jérôme » : point de reprise).
+  (dernière entrée « Bascule vers une nouvelle session » : point de reprise). RAM souvent basse (moins de 1,5 Go
+  libres) : une seule suite à la fois, jamais en même temps qu'une suite lourde de B.
 - **Autonomie totale jusqu'à la livraison finale.** Décisions du coffre 0100, 0121, 0122 (Hunspell en MPL 1.1),
   0125 (aucune mesure sur le Dell, la tablette réelle ni le MacBook). Les choix de conception qu'une référence
   permet de trancher se décident seul, d'après l'original, puis se notent dans l'état (Jérôme : « tu dois prendre
@@ -34,22 +34,23 @@
 - **Releases** : seulement sur go écrit de Jérôme. Commits en français, chemins explicites, ligne
   `Co-Authored-By` de l'environnement.
 
-**État au 2026-10-21, soir** : lot 4 « Outils II » à 22 tâches sur 38, en pause. Mergées en fin de session :
-L4-C2 (2e71fd6), L4-T8 (00ff92e), L4-C3 (49b08c6), L4-T24 (a72bd3d). R2 de 4a interrompue.
+**État au 2026-10-26** : lot 4 « Outils II » à 23 tâches sur 38. Mergées depuis la pause : L4-T24 (a72bd3d),
+L4-T7 (d99a934). Arrêt propre pour la bascule de session : rien ne tourne, jeton rendu.
 
 ## ✅ Fait cette session
 - Lot 4 : L4-T0 à L4-T6, L4-T8 à L4-T10, L4-T15 à L4-T18, L4-T21, L4-T22, L4-O1, L4-O2, L4-P1, L4-P2, L4-C2,
-  L4-C3, L4-T24 mergées (détail et preuves : entrées de l'état). Amendement 5 du plan (38 tâches).
+  L4-C3, L4-T24, L4-T7 mergées (détail et preuves : entrées de l'état). Amendement 5 du plan (38 tâches).
 - Décisions d'après l'original (L4-O2) : Maj sans effet sur le tracé (D5) ; grille du dessus sur tout, trait en
   cours compris (H4-22) ; séparations de cadres (D11) ; formes et texte en fin de palette (D19, choix de Jérôme).
 
 ## ⏭️ Prochain (à la relance de Jérôme)
-1. **R2 de 4a**, trois worktrees avec tests rouges commités, agents interrompus par la fin de session :
-   - L4-T7 (`--L4-T7`, 87bff43 rouge, 2e7b759, 98a70e1, 4d201d0 ; **agent fini**, suite 136 et `TESTS OK` selon lui, non rejoué) : ne pas relancer d'agent ; relire et rejouer `.tmp/preuve-L4-T7.ps1`. Écarts à juger : `tests/tst_render_painted.cpp` amendé hors liste (`gridAtTopStaysAboveObjects`) ; l'agent a commité `graphify-out/` (4d201d0, `graph.html` remis à l'ancien) : au merge, préférer régénérer le graphe sur la branche du chantier ;
-   - L4-T11 (`--L4-T11`, 0ada19a rouge, ea733e8 wip non vérifié sauvé par A ; agent arrêté à 40 tours, une construction ciblée `.tmp/cible.ps1 -Rouge` tournait encore sous le jeton à la pause) : relancer un `implementeur-tdd` qui repart du wip ;
-   - L4-T31 (`--L4-T31`, 074d5c6 rouge, **61040d9 vert, agent fini**) : ne pas relancer d'agent ; relire et rejouer `.tmp/preuve-L4-T31.ps1`. Écart à juger : `chainPresetsExecuteNothingOnRelease` (L4-T8) modifié, l'aperçu est désormais montré pendant le glissé (contrat de L4-T31), `executed == 0` gardé.
-   Regarder `git -C <wt> log` et `status` (du travail a pu être commité après ces sha), puis relancer un agent du
-   même type par tâche, repartant de ses commits, avec le brief commun ; relire et rejouer chaque preuve.
+1. **Fin de R2 de 4a** :
+   - L4-T31 (`--L4-T31`, 074d5c6 rouge, 61040d9 vert, agent fini) : rejouer `.tmp/preuve-L4-T31.ps1` sous le jeton
+     (relue, sans piège ; sortie dans `.git\chantiers\livraison-complete-A\out\preuve-l4t31.txt`). Écart à juger :
+     `chainPresetsExecuteNothingOnRelease` (L4-T8) adapté, l'aperçu est montré pendant le glissé, `executed == 0` gardé.
+     `PREUVE OK` → merger ;
+   - L4-T11 (`--L4-T11`, 0ada19a rouge, wip ea733e8 et da0884a, **jamais construits**) : relancer un
+     `implementeur-tdd` qui repart du wip (`git diff 0ada19a da0884a`), puis relire et rejouer sa preuve.
 2. Puis, dans l'ordre : R3 (L4-T12, L4-T13, L4-T14), point d'étape de 4a, L4-C4 (débloquée), L4-T19, L4-T26
    (après L4-T13), V10 à V12 de 4b, correctif **L4-C5** (H4-24 : Ctrl+clic ajoute à la sélection comme
    l'original, au lieu de Maj+clic ; `tools/src/selecttool.cpp`).
@@ -59,8 +60,8 @@ L4-C2 (2e71fd6), L4-T8 (00ff92e), L4-C3 (49b08c6), L4-T24 (a72bd3d). R2 de 4a in
 - Fini quand (lot 4) : 38 tâches mergées, relecture du lot, PR mergée, CI verte, porte de fin passée.
 
 ## 🔧 Git
-- `main` = 70c8601 (PR #6), à jour sur `origin`. `feat/livraison-complete` poussée (d34e4ef puis ce handoff).
-- Worktrees vivants de A : `livraison-complete`, `--L4-T7`, `--L4-T11`, `--L4-T31`. Ceux de B
+- `main` = 70c8601 (PR #6), à jour sur `origin`. `feat/livraison-complete` poussée (voir le fichier `.pret` de la bascule pour le dernier commit).
+- Worktrees vivants de A : `livraison-complete`, `--L4-T11`, `--L4-T31`. Ceux de B
   (`livraison-complete-b`, lot 7) ne sont pas à A : n'y toucher jamais.
 - Fichier non suivi dans le dossier principal, pas à A : `docs/sessions/prototype-mesure-etat.md`.
 
