@@ -1,6 +1,21 @@
 {
   "format": "actcraft-scenario/1",
   "name": "reconnaissance-forme",
-  "description": "Talon L7-S8 : rempli par L7-T21 (S10).",
-  "steps": [ {"waitReady": true} ]
+  "description": "F-296 : reconnaissance de forme ouverte (tool.shape-recognition), stylo rouge d'épaisseur 8 ; un cercle tracé au stylet, bosselé (rayon 150 ± 8, trois bosses), devient après le délai commun (1 s) un cercle net : recognition.lastKind = circle ; l'encre est sur le cercle ajusté (bas, rayon 150) et plus sur le creux du tracé (rayon 142) ; le centre garde la couleur de la page.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "tool.shape-recognition"},
+    {"expect": "recognition.shapeMode", "value": true},
+    {"command": "pen.color", "argument": "#E53935"},
+    {"command": "pen.width", "argument": 8},
+    {"stroke": [[662, 384], [663.7, 408], [660.8, 432.4], [652.7, 455.7], [639.5, 476.6], [622.1, 494.1], [601.6, 507.4], [579.5, 516.5], [556.9, 522.2], [534.4, 525.1], [512, 526], [489.6, 525.1], [467.1, 522.2], [444.5, 516.5], [422.4, 507.4], [401.9, 494.1], [384.5, 476.6], [371.3, 455.7], [363.2, 432.4], [360.3, 408], [362, 384], [367.4, 361.1], [375.5, 339.6], [385.4, 319.5], [396.8, 300.3], [409.9, 281.9], [425.3, 264.6], [443.3, 249.2], [464.2, 236.9], [487.4, 228.8], [512, 226], [536.6, 228.8], [559.8, 236.9], [580.7, 249.2], [598.7, 264.6], [614.1, 281.9], [627.2, 300.3], [638.6, 319.5], [648.5, 339.6], [656.6, 361.1], [662, 384]], "pressure": 0.5},
+    {"wait": 1300},
+    {"waitReady": true},
+    {"expect": "recognition.lastKind", "value": "circle"},
+    {"expect": "recognition.pendingCount", "value": 0},
+    {"checkPixel": "cercle-ideal-en-bas", "at": [512, 534], "color": "#E53935", "tolerance": 60},
+    {"checkPixel": "creux-du-trace-efface", "at": [512, 526], "color": "#FFFFFF", "tolerance": 24},
+    {"checkPixel": "centre-de-la-page", "at": [512, 384], "color": "#FFFFFF", "tolerance": 8},
+    {"capture": "cercle-reconnu"}
+  ]
 }
