@@ -5,14 +5,28 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <utility>
 
 namespace actcraft::core {
 
 namespace {
 
 constexpr double kPi = 3.14159265358979323846;
-// Garde-fou : nombre maximal d'itérations par famille de lignes inclinées (pas minuscule, angle très aigu).
-constexpr long long kMaxFamilySteps = 4096;
+// Garde-fou de la réduction de base : quelques tours suffisent (le nombre dépend des seuls pas et angle du
+// niveau, au plus logarithmique en leur rapport) ; la borne n'est là que contre un arrondi flottant
+// pathologique.
+constexpr int kMaxReductionSteps = 64;
+
+struct Vec
+{
+    double x = 0;
+    double y = 0;
+};
+
+double dot(Vec a, Vec b) noexcept
+{
+    return a.x * b.x + a.y * b.y;
+}
 
 double squaredDistance(PointF a, PointF b) noexcept
 {
@@ -27,62 +41,102 @@ double effectiveStep(double spacing, double baseZoom) noexcept
     return std::max(spacing * baseZoom, 1.0);
 }
 
-// Niveau « normal » : arrondi de (p − début) / pas sur chaque axe dessiné ; l'axe non dessiné garde p.
-PointF nearestOnNormal(const GridLevel& level, PointF p, double sx, double sy) noexcept
+// Ligne la plus proche d'un axe du niveau normal : arrondi de (v − début) / pas, sans descendre sous la
+// première ligne que le peintre trace (il part de max(0, début), comme rangeOf).
+double snapAxis(double value, double start, double step) noexcept
 {
+    const double first = std::ceil((std::max(0.0, start) - start) / step - 1e-9);
+    return start + std::max(std::nearbyint((value - start) / step), first) * step;
+}
+
+// Niveau « normal » : chaque axe dessiné accroche sa ligne la plus proche ; l'axe non dessiné garde p ; aucun
+// axe dessiné, aucun accrochage.
+std::optional<PointF> nearestOnNormal(const GridLevel& level, PointF p, double sx, double sy) noexcept
+{
+    if (!level.linesAlongX && !level.linesAlongY) {
+        return std::nullopt;
+    }
     PointF q = p;
     if (level.linesAlongX) {
-        q.x = level.start.x + std::nearbyint((p.x - level.start.x) / sx) * sx;
+        q.x = snapAxis(p.x, level.start.x, sx);
     }
     if (level.linesAlongY) {
-        q.y = level.start.y + std::nearbyint((p.y - level.start.y) / sy) * sy;
+        q.y = snapAxis(p.y, level.start.y, sy);
     }
     return q;
 }
 
-// Niveaux « 45° » et « angle » : croisement le plus proche des deux familles inclinées, parmi ceux de la zone
-// de rayon deux pas autour de p (même géométrie que le peintre : a + t = b − t, t = (y − début Y)·cot).
+// Une seule famille inclinée (x = début X + k·pas + sens·(y − début Y)·cot) : pied de la perpendiculaire sur
+// la ligne la plus proche. Les lignes sont parallèles et régulières : la plus proche est l'arrondi de l'écart
+// horizontal ramené au pas.
+PointF nearestOnFamily(PointF start, double sign, double step, double cot, PointF p) noexcept
+{
+    const double offset = p.x - start.x - sign * (p.y - start.y) * cot;
+    const Vec origin{start.x + std::nearbyint(offset / step) * step, start.y};
+    const Vec direction{sign * cot, 1};
+    const double along = dot({p.x - origin.x, p.y - origin.y}, direction) / dot(direction, direction);
+    return {origin.x + along * direction.x, origin.y + along * direction.y};
+}
+
+// Point du réseau origin + m·b1 + n·b2 (m, n entiers) le plus proche de p, en temps constant : réduction de
+// Lagrange-Gauss (même réseau, |b1| ≤ |b2|, |b1·b2| ≤ |b1|²/2), puis coordonnées de p dans la base réduite.
+// Avec une base réduite, la maille qui contient p se coupe en deux triangles non obtus, et le point du réseau
+// le plus proche est un sommet de cette maille ; les 3 × 3 voisins de l'arrondi la couvrent. Arrondir les
+// coordonnées dans la base d'origine ne suffit pas : à 89°, elle donne un croisement d'une autre rangée, à
+// des centaines de points.
+PointF nearestLatticePoint(PointF origin, Vec b1, Vec b2, PointF p) noexcept
+{
+    for (int pass = 0; pass < kMaxReductionSteps; ++pass) {
+        if (dot(b1, b1) > dot(b2, b2)) {
+            std::swap(b1, b2);
+        }
+        const double mu = dot(b1, b2) / dot(b1, b1);
+        if (std::abs(mu) <= 0.5) {
+            break;
+        }
+        const double m = std::nearbyint(mu);
+        b2 = {b2.x - m * b1.x, b2.y - m * b1.y};
+    }
+    const Vec d{p.x - origin.x, p.y - origin.y};
+    const double det = b1.x * b2.y - b1.y * b2.x;
+    const double u = std::nearbyint((d.x * b2.y - d.y * b2.x) / det);
+    const double v = std::nearbyint((b1.x * d.y - b1.y * d.x) / det);
+    PointF best = origin;
+    double bestDistance = std::numeric_limits<double>::infinity();
+    for (int du = -1; du <= 1; ++du) {
+        for (int dv = -1; dv <= 1; ++dv) {
+            const double m = u + static_cast<double>(du);
+            const double n = v + static_cast<double>(dv);
+            const PointF q{origin.x + m * b1.x + n * b2.x, origin.y + m * b1.y + n * b2.y};
+            const double dist = squaredDistance(q, p);
+            if (dist < bestDistance) {
+                best = q;
+                bestDistance = dist;
+            }
+        }
+    }
+    return best;
+}
+
+// Niveaux « 45° » et « angle », même géométrie que le peintre : famille + (tracée si linesAlongX) x = a + t,
+// famille − (tracée si linesAlongY) x = b − t, t = (y − début Y)·cot, a = début X + i·pas X, b = début X +
+// j·pas Y. Les croisements (a + t = b − t) forment le réseau début + i·e1 + j·e2, e1 = (pas X, −pas X / cot)
+// / 2, e2 = (pas Y, pas Y / cot) / 2 : le point y est ramené et arrondi, sans parcourir de lignes.
 std::optional<PointF> nearestOnDiagonal(const GridLevel& level, PointF p, double sx, double sy) noexcept
 {
     const double degrees =
         level.pattern == GridPattern::Diagonal45 ? 45.0 : std::clamp(level.angle, 1.0, 89.0);
     const double cot = 1.0 / std::tan(degrees * kPi / 180.0);
-    const double r = 2 * std::max(sx, sy);
-    const double xLo = p.x - r;
-    const double xHi = p.x + r;
-    const double yLo = p.y - r;
-    const double yHi = p.y + r;
-    const double tLo = (yLo - level.start.y) * cot;
-    const double tHi = (yHi - level.start.y) * cot;
-
-    std::optional<PointF> best;
-    double bestDistance = std::numeric_limits<double>::infinity();
-    // a + t doit tomber dans [xLo, xHi] pour t dans [tLo, tHi].
-    const auto iFirst = static_cast<long long>(std::ceil((xLo - tHi - level.start.x) / sx - 1e-9));
-    const auto iLast = std::min(static_cast<long long>(std::floor((xHi - tLo - level.start.x) / sx + 1e-9)),
-                                iFirst + kMaxFamilySteps);
-    for (long long i = iFirst; i <= iLast; ++i) {
-        const double a = level.start.x + static_cast<double>(i) * sx;
-        // b − a = 2t, t parcourt [tLo, tHi].
-        const auto jFirst = static_cast<long long>(std::ceil((a + 2 * tLo - level.start.x) / sy - 1e-9));
-        const auto jLast =
-            std::min(static_cast<long long>(std::floor((a + 2 * tHi - level.start.x) / sy + 1e-9)),
-                     jFirst + kMaxFamilySteps);
-        for (long long j = jFirst; j <= jLast; ++j) {
-            const double b = level.start.x + static_cast<double>(j) * sy;
-            const double t = (b - a) / 2;
-            const PointF q{a + t, level.start.y + t / cot};
-            if (q.x < xLo || q.x > xHi || q.y < yLo || q.y > yHi) {
-                continue;
-            }
-            const double d = squaredDistance(q, p);
-            if (d < bestDistance) {
-                best = q;
-                bestDistance = d;
-            }
-        }
+    if (level.linesAlongX && level.linesAlongY) {
+        return nearestLatticePoint(level.start, {sx / 2, -sx / (2 * cot)}, {sy / 2, sy / (2 * cot)}, p);
     }
-    return best;
+    if (level.linesAlongX) {
+        return nearestOnFamily(level.start, 1, sx, cot, p);
+    }
+    if (level.linesAlongY) {
+        return nearestOnFamily(level.start, -1, sy, cot, p);
+    }
+    return std::nullopt;
 }
 
 // Ligne de base du texte, coordonnées de l'objet : core::textBaseline si elle répond, sinon l'origine de la
