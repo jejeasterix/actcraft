@@ -1,6 +1,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/shapegeometry.h>
 #include <actcraft/tools/shapetool.h>
 #include <actcraft/tools/userstate.h>
 
@@ -100,6 +101,27 @@ input::Sample at(double x, double y, Phase phase)
     s.phase = phase;
     s.device = input::DeviceKind::Mouse;
     return s;
+}
+
+input::Sample atTime(double x, double y, Phase phase, std::int64_t ms)
+{
+    input::Sample s = at(x, y, phase);
+    s.timestampNs = ms * 1'000'000;
+    return s;
+}
+
+void click(tools::ShapeTool& tool, double x, double y, std::int64_t ms)
+{
+    tool.onSample(atTime(x, y, Phase::Press, ms));
+    tool.onSample(atTime(x, y, Phase::Release, ms + 50));
+}
+
+std::vector<core::PointF> pagePoints(const core::PageObject& o) // translation seule (convention de L4-T3)
+{
+    std::vector<core::PointF> out;
+    for (const core::PointF& p : std::get<core::Line>(core::body(o)).points)
+        out.push_back({p.x + o.common.transform.dx, p.y + o.common.transform.dy});
+    return out;
 }
 
 tools::ShapeSettings settings(const char* preset, bool filled, bool fromCenter)
@@ -253,7 +275,8 @@ private slots:
         tool.onSample(at(100, 100, Phase::Release));
         QCOMPARE(std::get<core::Shape>(core::body(h.doc.document.page(0).objects.back())).fill >> 24, 0u);
     }
-    void chainPresetsExecuteNothingOnRelease() // amendement 4 (D1) : leur geste est celui de L4-T31
+    void
+    chainPresetsExecuteNothingOnRelease() // amendement 4 (D1) : un glissé pose des sommets, ne verse rien
     {
         for (const char* preset : {"polyline", "curve-chain"}) {
             Harness h;
@@ -261,10 +284,115 @@ private slots:
             tools::ShapeTool tool(h.context);
             tool.onSample(at(100, 100, Phase::Press));
             tool.onSample(at(200, 160, Phase::Move));
-            QVERIFY(h.lift.shown.empty());
+            QVERIFY(!h.lift.shown.empty()); // L4-T31 : le glissé bouton tenu montre le segment en cours
             tool.onSample(at(200, 160, Phase::Release));
             QCOMPARE(h.doc.executed, 0);
         }
+    }
+    void polylineByClicksEndsOnDoubleClick() // L4-T31
+    {
+        Harness h;
+        h.user.setShapeSettings(settings("polyline", true, false));
+        tools::ShapeTool tool(h.context);
+        click(tool, 100, 100, 0);
+        click(tool, 200, 100, 1000);
+        QCOMPARE(h.lift.shown.size(), std::size_t{1}); // aperçu refait au sommet posé (pas de survol, H4-19)
+        QCOMPARE(std::get<core::Line>(core::body(h.lift.shown.front())).points.size(), std::size_t{2});
+        QCOMPARE(h.doc.executed, 0);
+        QVERIFY(tool.isBusy());
+        click(tool, 200, 200, 2000);
+        QCOMPARE(std::get<core::Line>(core::body(h.lift.shown.front())).points.size(), std::size_t{3});
+        click(tool, 201, 201, 2200); // double-clic : à moins de 6 px et de 500 ms, ne pose pas de sommet
+        QCOMPARE(h.doc.executed, 1);
+        QVERIFY(h.lift.shown.empty());
+        QVERIFY(!tool.isBusy());
+        const std::vector<core::PointF> points = pagePoints(h.doc.document.page(0).objects.back());
+        QCOMPARE(points.size(), std::size_t{3});
+        QCOMPARE(points[0].x, 100.0);
+        QCOMPARE(points[1].x, 200.0);
+        QCOMPARE(points[2].y, 200.0);
+    }
+    void curveChainIsSmoothed() // L4-T31
+    {
+        Harness h;
+        h.user.setShapeSettings(settings("curve-chain", true, false));
+        tools::ShapeTool tool(h.context);
+        click(tool, 0, 0, 0);
+        click(tool, 100, 0, 1000);
+        click(tool, 100, 100, 2000);
+        click(tool, 200, 100, 3000);
+        click(tool, 200, 100, 3100); // double-clic
+        QCOMPARE(h.doc.executed, 1);
+        const std::vector<core::PointF> points = pagePoints(h.doc.document.page(0).objects.back());
+        QCOMPARE(points.size(), std::size_t{3 * core::kCurveChainSamples + 1});
+        QCOMPARE(points.front().x, 0.0);
+        QCOMPARE(points.back().x, 200.0);
+        QCOMPARE(points.back().y, 100.0);
+    }
+    void freeformFollowsTheDrag() // L4-T31
+    {
+        Harness h;
+        h.user.setShapeSettings(settings("freeform", true, false));
+        tools::ShapeTool tool(h.context);
+        tool.onSample(at(0, 0, Phase::Press));
+        for (int i = 1; i <= 10; ++i)
+            tool.onSample(at(10.0 * i, (i % 2) * 5.0, Phase::Move));
+        QCOMPARE(h.lift.shown.size(), std::size_t{1});
+        QCOMPARE(h.doc.executed, 0);
+        tool.onSample(at(100, 0, Phase::Release));
+        QCOMPARE(h.doc.executed, 1);
+        QVERIFY(h.lift.shown.empty());
+        QVERIFY(pagePoints(h.doc.document.page(0).objects.back()).size() >= std::size_t{11});
+        tool.onSample(at(300, 300, Phase::Press)); // sous le seuil : rien
+        tool.onSample(at(301, 301, Phase::Release));
+        QCOMPARE(h.doc.executed, 1);
+    }
+    void chainCancelKeepsTwoVerticesOrMore() // L4-T31
+    {
+        Harness h;
+        h.user.setShapeSettings(settings("polyline", true, false));
+        tools::ShapeTool tool(h.context);
+        click(tool, 100, 100, 0);
+        tool.cancel(); // un seul sommet : rien n'est versé
+        QCOMPARE(h.doc.executed, 0);
+        QVERIFY(!tool.isBusy());
+        click(tool, 100, 100, 1000);
+        click(tool, 200, 100, 2000);
+        tool.cancel(); // changement d'outil ou de page : la ligne commencée est versée, comme le trait du
+                       // stylo
+        QCOMPARE(h.doc.executed, 1);
+        QVERIFY(h.lift.shown.empty());
+        QVERIFY(!tool.isBusy());
+    }
+    void escapeVersesTheChainInOneStep() // L4-T31 : Échap -> tool.select -> cancelGesture() -> cancel()
+    {
+        Harness h;
+        h.user.setShapeSettings(settings("polyline", true, false));
+        tools::ShapeTool tool(h.context);
+        click(tool, 100, 100, 0);
+        click(tool, 200, 100, 1000);
+        click(tool, 200, 200, 2000);
+        // Le chemin Échap -> tool.select -> cancelGesture() relève de ToolHost (lot 3, ui/src/toolhost.cpp)
+        // et n'est pas rejoué ici ; ce test vérifie ce qu'il déclenche : cancel() verse la ligne en une
+        // étape.
+        if (tool.isBusy())
+            tool.cancel();
+        QCOMPARE(h.doc.executed, 1); // une seule AddObjectCommand : une étape d'annulation
+        QCOMPARE(pagePoints(h.doc.document.page(0).objects.back()).size(), std::size_t{3});
+        QVERIFY(h.lift.shown.empty());
+        QVERIFY(!tool.isBusy());
+    }
+    void chainAbandonAddsNothing() // L4-T31
+    {
+        Harness h;
+        h.user.setShapeSettings(settings("polyline", true, false));
+        tools::ShapeTool tool(h.context);
+        click(tool, 100, 100, 0);
+        click(tool, 200, 100, 1000);
+        tool.abandon();
+        QCOMPARE(h.doc.executed, 0);
+        QVERIFY(h.lift.shown.empty());
+        QVERIFY(!tool.isBusy());
     }
 };
 

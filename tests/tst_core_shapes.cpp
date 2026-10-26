@@ -158,6 +158,35 @@ private slots:
         stack.undo(document);
         QVERIFY(samePoints(std::get<Shape>(body(document.page(0).objects.back())).polygon, before));
     }
+    void smoothChainPassesThroughVertices() // L4-T31
+    {
+        const std::vector<PointF> vertices{{0, 0}, {100, 0}, {100, 100}, {200, 100}};
+        const std::vector<PointF> curve = smoothChain(vertices, 8);
+        QCOMPARE(curve.size(), std::size_t{3 * 8 + 1});
+        for (std::size_t i = 0; i < vertices.size(); ++i) {
+            QVERIFY(std::abs(curve[i * 8].x - vertices[i].x) < 1e-9);
+            QVERIFY(std::abs(curve[i * 8].y - vertices[i].y) < 1e-9);
+        }
+        bool leavesTheStraightSegment = false; // entre (100, 0) et (100, 100), la courbe n'est pas droite
+        for (std::size_t k = 1; k < 8; ++k)
+            leavesTheStraightSegment = leavesTheStraightSegment || std::abs(curve[8 + k].x - 100) > 1e-6;
+        QVERIFY(leavesTheStraightSegment);
+        QCOMPARE(smoothChain({{0, 0}, {10, 0}}, 8).size(), std::size_t{2});
+    }
+    void chainNeedsTwoDistinctPoints() // L4-T31
+    {
+        QVERIFY(!makeChainObject("polyline", {{10, 10}}, {}).has_value());
+        QVERIFY(!makeChainObject("polyline", {{10, 10}, {10, 10}}, {}).has_value());
+        QVERIFY(!makeChainObject("rectangle", {{0, 0}, {50, 50}}, {}).has_value()); // geste Box
+        const std::optional<PageObject> o =
+            makeChainObject("polyline", {{0, 0}, {0, 0}, {50, 0}, {50, 40}}, {});
+        QVERIFY(o.has_value());
+        QCOMPARE(o->common.layer, Layer::Middle);
+        QCOMPARE(std::get<Line>(body(*o)).points.size(), std::size_t{3}); // doublon retiré
+        QVERIFY(makeChainObject("freeform", {{0, 0}, {3, 1}, {6, 4}}, {}).has_value());
+        QVERIFY(std::get<Line>(body(*makeChainObject("curve-chain", {{0, 0}, {50, 0}, {50, 50}}, {})))
+                    .points.size() == std::size_t{2 * kCurveChainSamples + 1});
+    }
 };
 
 QTEST_GUILESS_MAIN(TstCoreShapes)
