@@ -310,8 +310,8 @@ private slots:
         QCOMPARE(written(math), u"<math><mrow class=\"actcraft-placeholder\"/></math>"_s);
     }
 
-    // La case vide qui porte le curseur (L7-T25 dessine les deux marques) n'a qu'un attribut class : la marque
-    // de la case, puis les autres classes. Écrite, elle se relit en Placeholder à l'identique.
+    // La case vide qui porte le curseur (L7-T25 dessine les deux marques) n'a qu'un attribut class : la
+    // marque de la case, puis les autres classes. Écrite, elle se relit en Placeholder à l'identique.
     void placeholderWithCursorRoundTrip()
     {
         using Attributes = std::vector<std::pair<std::string, std::string>>;
@@ -346,18 +346,20 @@ private slots:
     {
         using Attributes = std::vector<std::pair<std::string, std::string>>;
         QString error;
-        const auto boxes = parseMathml("<math><mrow class=\"actcraft-placeholder\" id=\"k\"/>"
-                                       "<mrow id=\"j\" class=\" actcraft-cursor  actcraft-placeholder \"/></math>",
-                                       error);
+        const auto boxes =
+            parseMathml("<math><mrow class=\"actcraft-placeholder\" id=\"k\"/>"
+                        "<mrow id=\"j\" class=\" actcraft-cursor  actcraft-placeholder \"/></math>",
+                        error);
         QVERIFY2(boxes.has_value(), qPrintable(error));
         QCOMPARE(outline(*boxes), u"math(placeholder,placeholder)"_s);
         QVERIFY(boxes->children[0].attributes == (Attributes{{"id", "k"}}));
         QVERIFY(boxes->children[1].attributes == (Attributes{{"id", "j"}, {"class", "actcraft-cursor"}}));
-        QCOMPARE(written(*boxes), u"<math><mrow class=\"actcraft-placeholder\" id=\"k\"/>"
-                                  u"<mrow class=\"actcraft-placeholder actcraft-cursor\" id=\"j\"/></math>"_s);
+        QCOMPARE(written(*boxes),
+                 u"<math><mrow class=\"actcraft-placeholder\" id=\"k\"/>"
+                 u"<mrow class=\"actcraft-placeholder actcraft-cursor\" id=\"j\"/></math>"_s);
 
-        const std::string rows =
-            "<math><mrow class=\"actcraft-placeholder\"><mi>x</mi></mrow><mrow class=\"actcraft-cursor\"/></math>";
+        const std::string rows = "<math><mrow class=\"actcraft-placeholder\"><mi>x</mi></mrow><mrow "
+                                 "class=\"actcraft-cursor\"/></math>";
         const auto notBoxes = parseMathml(rows, error);
         QVERIFY2(notBoxes.has_value(), qPrintable(error));
         QCOMPARE(outline(*notBoxes), u"math(row(mi[x]),row)"_s);

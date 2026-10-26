@@ -52,17 +52,21 @@ struct EquationNode
 inline constexpr std::size_t kMaxMathmlBytes = 256 * 1024;
 inline constexpr int kMaxEquationDepth = 64; // éléments imbriqués, math compris
 
-// Placeholder : case vide de l'éditeur, écrite <mrow class="actcraft-placeholder"/> (ses autres attributs
-// suivent la marque) ; à la lecture, un <mrow/> vide dont le seul attribut est cette marque.
+// Placeholder : case vide de l'éditeur, écrite <mrow class="actcraft-placeholder"/>. Un seul attribut class :
+// la marque, puis les classes de `attributes` (ainsi actcraft-cursor) ; les autres attributs suivent. À la
+// lecture, un <mrow> sans enfant dont la liste class (jetons séparés par des blancs) contient la marque :
+// seul ce jeton est retiré, les autres classes et les autres attributs restent dans `attributes`.
 inline constexpr std::string_view kPlaceholderClass = "actcraft-placeholder";
 
 // Lit un MathML UTF-8 (racine math). Erreur (nullopt, `error` renseigné) : XML mal formé, UTF-8 invalide, DTD
 // (aucune entité externe ni déclarée n'est lue), plus de kMaxMathmlBytes octets ou de kMaxEquationDepth
-// niveaux, arité d'un élément reconnu fausse. Un élément inconnu de cette version devient un nœud Raw.
+// niveaux, arité d'un élément reconnu fausse. Un élément inconnu de cette version devient un nœud Raw. Les
+// noms se lisent tels qu'écrits, sans espaces de noms : une racine préfixée (<m:math>) est refusée.
 std::optional<EquationNode> parseMathml(const std::string& mathml, QString& error);
 
-// Forme canonique : sans blancs entre éléments ni indentation, références en caractères UTF-8 sauf < > &
-// échappés, élément vide en <x/> ; un Raw recopié tel quel.
+// Forme canonique : sans blancs entre éléments ni indentation, références en caractères UTF-8 sauf < > & "
+// échappés et le retour chariot d'un texte écrit &#13;, élément vide en <x/> ; un Raw recopié tel quel. Un
+// arbre qui ne s'écrit pas en XML 1.0 (UTF-8 invalide, caractère de contrôle) rend une chaîne vide.
 std::string toMathml(const EquationNode& root);
 
 } // namespace actcraft::core

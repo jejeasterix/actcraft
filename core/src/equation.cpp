@@ -4,6 +4,8 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 
+#include <algorithm>
+
 namespace actcraft::core {
 
 using namespace Qt::StringLiterals;
@@ -12,6 +14,7 @@ namespace {
 
 using Kind = EquationNode::Kind;
 using Token = QXmlStreamReader::TokenType;
+using Attributes = decltype(EquationNode::attributes);
 
 constexpr int kFreeArity = -1;
 
@@ -71,6 +74,59 @@ bool isToken(Kind kind)
 QLatin1StringView placeholderClass()
 {
     return QLatin1StringView(kPlaceholderClass.data(), qsizetype(kPlaceholderClass.size()));
+}
+
+// Jetons d'une liste class, séparés par des blancs ASCII.
+std::vector<std::string> classTokens(const std::string& value)
+{
+    constexpr std::string_view blanks = " \t\n\r\f";
+    std::vector<std::string> tokens;
+    for (std::size_t at = value.find_first_not_of(blanks); at != std::string::npos;
+         at = value.find_first_not_of(blanks, at)) {
+        const std::size_t end = std::min(value.find_first_of(blanks, at), value.size());
+        tokens.push_back(value.substr(at, end - at));
+        at = end;
+    }
+    return tokens;
+}
+
+// Retire la marque de case vide de la liste class : ce seul jeton, les autres classes restant séparées d'un
+// blanc, et l'attribut disparaissant s'il n'en reste aucune. Faux, sans rien changer, si la marque n'y est
+// pas.
+bool takePlaceholderClass(Attributes& attributes)
+{
+    const auto attribute =
+        std::find_if(attributes.begin(), attributes.end(), [](const auto& a) { return a.first == "class"; });
+    if (attribute == attributes.end())
+        return false;
+    std::vector<std::string> tokens = classTokens(attribute->second);
+    const auto mark = std::find(tokens.begin(), tokens.end(), kPlaceholderClass);
+    if (mark == tokens.end())
+        return false;
+    tokens.erase(mark);
+    if (tokens.empty()) {
+        attributes.erase(attribute);
+        return true;
+    }
+    std::string rest = tokens.front();
+    for (std::size_t i = 1; i < tokens.size(); ++i) {
+        rest += ' ';
+        rest += tokens[i];
+    }
+    attribute->second = std::move(rest);
+    return true;
+}
+
+// Texte UTF-8 de l'arbre décodé pour l'écriture ; un U+FEFF de tête y est un caractère comme un autre
+// (QString::fromStdString le sauterait). nullopt si l'UTF-8 est invalide.
+std::optional<QString> decodeUtf8(const std::string& text)
+{
+    QStringDecoder decoder(QStringConverter::Utf8,
+                           QStringConverter::Flag::Stateless | QStringConverter::Flag::ConvertInitialBom);
+    QString decoded = decoder.decode(QByteArrayView(text.data(), qsizetype(text.size())));
+    if (decoder.hasError())
+        return std::nullopt;
+    return decoded;
 }
 
 // Lecteur récursif sur QXmlStreamReader, nourri de la QString décodée : characterOffset() y compte des unités
@@ -144,7 +200,8 @@ private:
 
     // Position dans source_ du « < » de l'élément dont xml_ vient de rendre le StartElement, ou -1. `before`
     // est la position relevée avant ce jeton : exacte après une balise, mais un caractère plus loin après un
-    // blanc (jeton Characters), le lecteur ayant déjà lu le « < » qui le termine. Le nom qui suit le « < » le
+    // blanc (jeton Characters), le lecteur ayant déjà lu le « < » qui le termine, et un caractère en retard
+    // quand le texte commence par un U+FEFF que le lecteur saute sans le compter. Le nom qui suit le « < » le
     // confirme.
     qint64 tagStart(qint64 before) const
     {
@@ -157,6 +214,34 @@ private:
             return -1;
         const QChar follower = tag[name.size()];
         return follower.isSpace() || follower == u'/' || follower == u'>' ? at : -1;
+    }
+
+    // Position dans source_ juste après la fin de l'élément dont le « < » est en `start` et dont xml_ vient
+    // de rendre le dernier EndElement, ou -1. Comme pour tagStart, la position du lecteur peut avoir un
+    // caractère de retard : le « > » se cherche vers l'avant depuis cette position moins un, puis la fin est
+    // confirmée par le nom : </nom> (blancs permis avant le « > »), ou /> pour un élément `empty`, sans
+    // aucun jeton entre sa balise ouvrante et sa fin.
+    qint64 rawEnd(qint64 start, bool empty) const
+    {
+        if (start < 0)
+            return -1;
+        const qsizetype at = source_.indexOf(u'>', qMax(start, xml_.characterOffset() - 1));
+        if (at < 0)
+            return -1;
+        const QStringView slice = QStringView(source_).mid(start, at + 1 - start);
+        if (!slice.startsWith(u'<'))
+            return -1;
+        qsizetype length = 1;
+        while (length < slice.size() && !slice[length].isSpace() && slice[length] != u'/' &&
+               slice[length] != u'>')
+            ++length;
+        const QStringView name = slice.mid(1, length - 1);
+        if (name.isEmpty())
+            return -1;
+        const QStringView closing = slice.chopped(1).trimmed();
+        if (closing.endsWith(name) && closing.chopped(name.size()).endsWith(u"</"))
+            return at + 1;
+        return empty && slice.endsWith(u"/>") ? at + 1 : -1;
     }
 
     // xml_ vient de rendre le StartElement de l'élément ; `start` est la position relevée avant ce jeton.
@@ -226,10 +311,13 @@ private:
     // non ASCII qui la précède.
     std::optional<EquationNode> raw(qint64 start, int depth, int open)
     {
+        bool empty = open == 1; // aucun jeton lu entre sa balise ouvrante et sa fin
         while (open > 0) {
             if (depth + open - 1 > kMaxEquationDepth)
                 return failTooDeep();
             const Token t = next();
+            if (t != Token::EndElement)
+                empty = false;
             if (t == Token::StartElement)
                 ++open;
             else if (t == Token::EndElement)
@@ -239,17 +327,12 @@ private:
             else if (t == Token::EntityReference)
                 return fail(u"entité non résolue : %1"_s.arg(xml_.name()));
         }
-        // Fin : le dernier « > » lu (un élément vide <x/> peut laisser le lecteur un caractère plus loin).
-        const qint64 end =
-            source_.lastIndexOf(u'>', qMin(xml_.characterOffset(), qint64(source_.size())) - 1) + 1;
-        if (start < 0 || end <= start)
-            return fail(u"position incohérente d'un élément inconnu"_s);
-        const QStringView slice = QStringView(source_).mid(start, end - start);
-        if (!slice.startsWith(u'<') || !slice.endsWith(u'>'))
+        const qint64 end = rawEnd(start, empty);
+        if (end < 0)
             return fail(u"position incohérente d'un élément inconnu"_s);
         EquationNode node;
         node.kind = Kind::Raw;
-        node.text = slice.toUtf8().toStdString();
+        node.text = QStringView(source_).mid(start, end - start).toUtf8().toStdString();
         return node;
     }
 
@@ -270,11 +353,8 @@ private:
             if (row != (node.kind == Kind::Table) || cell != (node.kind == Kind::TableRow))
                 return fail(u"<%1> : mtable ne contient que des mtr, et mtr que des mtd"_s.arg(known.name));
         }
-        if (node.kind == Kind::Row && node.children.empty() && node.attributes.size() == 1 &&
-            node.attributes.front().first == "class" && node.attributes.front().second == kPlaceholderClass) {
+        if (node.kind == Kind::Row && node.children.empty() && takePlaceholderClass(node.attributes))
             node.kind = Kind::Placeholder;
-            node.attributes.clear();
-        }
         return node;
     }
 
@@ -288,30 +368,75 @@ private:
 class Writer
 {
 public:
+    // Chaîne vide si l'arbre ne s'écrit pas en XML 1.0 (UTF-8 invalide, caractère interdit).
     std::string write(const EquationNode& root)
     {
-        node(root);
+        if (!node(root) || xml_.hasError())
+            return {};
         return out_.toStdString();
     }
 
 private:
-    void node(const EquationNode& n)
+    bool node(const EquationNode& n)
     {
         if (n.kind == Kind::Raw) {
+            const std::optional<QString> raw = decodeUtf8(n.text);
+            if (!raw)
+                return false;
             xml_.writeCharacters(QString()); // ferme la balise ouvrante en attente avant la recopie
-            out_ += QString::fromStdString(n.text);
-            return;
+            out_ += *raw;
+            return true;
         }
         xml_.writeStartElement(elementName(n.kind));
-        if (n.kind == Kind::Placeholder)
-            xml_.writeAttribute("class"_L1, placeholderClass());
-        for (const auto& [name, value] : n.attributes)
-            xml_.writeAttribute(QString::fromStdString(name), QString::fromStdString(value));
-        if (isToken(n.kind) && !n.text.empty())
-            xml_.writeCharacters(QString::fromStdString(n.text));
-        for (const EquationNode& child : n.children)
-            node(child);
+        const bool placeholder = n.kind == Kind::Placeholder;
+        if (placeholder) {
+            // Un seul attribut class : la marque, puis les autres classes du nœud.
+            QString classes(placeholderClass());
+            for (const auto& [name, value] : n.attributes) {
+                if (name != "class" || value.empty())
+                    continue;
+                const std::optional<QString> more = decodeUtf8(value);
+                if (!more)
+                    return false;
+                classes += u' ';
+                classes += *more;
+            }
+            xml_.writeAttribute("class"_L1, classes);
+        }
+        for (const auto& [name, value] : n.attributes) {
+            if (placeholder && name == "class")
+                continue;
+            const std::optional<QString> qualifiedName = decodeUtf8(name);
+            const std::optional<QString> decoded = decodeUtf8(value);
+            if (!qualifiedName || !decoded)
+                return false;
+            xml_.writeAttribute(*qualifiedName, *decoded);
+        }
+        if (isToken(n.kind) && !n.text.empty()) {
+            const std::optional<QString> text = decodeUtf8(n.text);
+            if (!text)
+                return false;
+            characters(*text);
+        }
+        for (const EquationNode& child : n.children) {
+            if (!node(child))
+                return false;
+        }
         xml_.writeEndElement();
+        return true;
+    }
+
+    // Texte d'un jeton ; un retour chariot s'écrit &#13; : écrit brut, la relecture en ferait un saut de
+    // ligne.
+    void characters(const QString& text)
+    {
+        qsizetype from = 0;
+        for (qsizetype at = text.indexOf(u'\r'); at >= 0; at = text.indexOf(u'\r', from)) {
+            xml_.writeCharacters(QStringView(text).mid(from, at - from));
+            xml_.writeEntityReference("#13"_L1);
+            from = at + 1;
+        }
+        xml_.writeCharacters(QStringView(text).mid(from));
     }
 
     QString out_;
