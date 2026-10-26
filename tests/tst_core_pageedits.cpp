@@ -6,6 +6,7 @@
 #include <QtTest>
 
 #include <limits>
+#include <map>
 #include <string>
 
 using namespace actcraft::core;
@@ -247,6 +248,62 @@ private slots:
         QCOMPARE(d.pageCount(), std::size_t{1});
         QVERIFY(stack.undo(d).empty());
         QCOMPARE(d.pageCount(), std::size_t{1});
+    }
+    // M-K (L4-C11) : pageResources ne copie que ce que citent les pages (fond, image, vignette et son d'un
+    // média, fichier d'une action) ; InsertPagesCommand les ajoute au document qui ne les a pas, et une
+    // ressource déjà là garde la sienne. L'annulation retire la page, pas les ressources.
+    void insertBringsTheResourcesOfThePages()
+    {
+        Document source = pages(2);
+        const std::string background = source.addResource(QByteArray("fond"), "jpg");
+        const std::string picture = source.addResource(QByteArray("image"), "png");
+        const std::string poster = source.addResource(QByteArray("vignette"), "png");
+        const std::string sound = source.addResource(QByteArray("son"), "mp3");
+        const std::string file = source.addResource(QByteArray("fichier"), "pdf");
+        const std::string elsewhere = source.addResource(QByteArray("ailleurs"), "png");
+        source.setResourceUnknownKeys(sound, R"({"a":1})");
+        source.page(1).background.image = elsewhere; // page non copiée
+        ImageObject image;
+        image.resource = picture;
+        PageObject first{image};
+        first.common.id = 1;
+        Media media;
+        media.placeholder = poster;
+        media.media = sound;
+        PageObject second{media};
+        second.common.id = 2;
+        Action open;
+        open.resource = file;
+        second.common.actions.push_back(open);
+        source.page(0).background.image = background;
+        source.page(0).objects = {first, second};
+        source.refreshNextId();
+        const std::vector<Page> copied{source.page(0)};
+        const std::map<std::string, Resource> carried = pageResources(source, copied);
+        QCOMPARE(carried.size(), std::size_t{5});
+        QCOMPARE(carried.count(elsewhere), std::size_t{0});
+
+        Document target = pages(1);
+        static_cast<void>(target.addResource(QByteArray("image"), "png"));
+        target.setResourceUnknownKeys(picture, R"({"b":2})");
+        UndoStack stack;
+        stack.push(target, std::make_unique<InsertPagesCommand>(1, copied, carried));
+        QCOMPARE(target.pageCount(), std::size_t{2});
+        QCOMPARE(target.resources().size(), std::size_t{5});
+        for (const auto& [key, resource] : carried) {
+            const Resource* added = target.resource(key);
+            QVERIFY(added != nullptr);
+            QCOMPARE(added->data, resource.data);
+            QCOMPARE(added->extension, resource.extension);
+        }
+        QCOMPARE(target.resource(sound)->unknownKeys, std::string(R"({"a":1})"));
+        QCOMPARE(target.resource(picture)->unknownKeys, std::string(R"({"b":2})")); // déjà là : la sienne
+        stack.undo(target);
+        QCOMPARE(target.pageCount(), std::size_t{1});
+        QCOMPARE(target.resources().size(), std::size_t{5});
+        stack.redo(target);
+        QCOMPARE(target.page(1).background.image, background);
+        QCOMPARE(target.resources().size(), std::size_t{5});
     }
     void cacheFollowsTheShownPage()
     {

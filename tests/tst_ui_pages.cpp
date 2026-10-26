@@ -114,9 +114,9 @@ private slots:
         }
     }
 
-    // M-J (L4-C11) : cliquer la miniature de la page affichée (seule, Maj, Ctrl qui en retire une autre, goTo)
-    // ne la remontre pas. showPage annoncerait un changement de page et referait la page fixe (show → attach),
-    // ce que trahissent pageAboutToChange et pagesChanged.
+    // M-J (L4-C11) : cliquer la miniature de la page affichée (seule, Maj, Ctrl qui en retire une autre,
+    // goTo) ne la remontre pas. showPage annoncerait un changement de page et referait la page fixe (show →
+    // attach), ce que trahissent pageAboutToChange et pagesChanged.
     void clickOnShownPageDoesNotShowItAgain()
     {
         Fixture f(4);
@@ -184,7 +184,8 @@ private slots:
             QVERIFY2(pastedImage != nullptr, cut ? "cut" : "copy");
             QCOMPARE(pastedImage->data, imageBytes);
             QCOMPARE(pastedImage->extension, std::string("png"));
-            QVERIFY(target.resource(backgroundKey) && target.resource(backgroundKey)->data == backgroundBytes);
+            QVERIFY(target.resource(backgroundKey) &&
+                    target.resource(backgroundKey)->data == backgroundBytes);
             QVERIFY(target.resource(fileKey) && target.resource(fileKey)->data == fileBytes);
             QCOMPARE(target.resources().size(), std::size_t{3});
             f.document.undo();
