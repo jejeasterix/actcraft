@@ -4,12 +4,18 @@
 #include <actcraft/core/textedits.h>
 #include <actcraft/ui/textediting.h>
 
+#include <QAbstractTextDocumentLayout>
+#include <QByteArray>
 #include <QColor>
 #include <QFont>
 #include <QGuiApplication>
+#include <QImage>
 #include <QList>
+#include <QObject>
+#include <QSizeF>
 #include <QStringList>
 #include <QTextBlock>
+#include <QTextDocument>
 #include <QTextFragment>
 #include <QTextFrame>
 #include <QTextFrameFormat>
@@ -30,7 +36,10 @@
 
 namespace actcraft::ui {
 
-QString safeTextHtml(const QString& html, const std::function<void(const QUrl&, const QVariant&)>& observer);
+using ResourceObserver = std::function<void(const QUrl&, const QVariant&)>;
+
+QString safeTextHtml(const QString& html, const ResourceObserver& observer);
+std::unique_ptr<QTextDocument> isolatedTextDocument(ResourceObserver observer);
 
 namespace {
 
@@ -44,21 +53,52 @@ QString placeholderText()
     return QStringLiteral("Votre texte"); // D7 : texte de départ, le nôtre
 }
 
-// Document d'analyse : même garde que le peintre (render/src/pagepainter.cpp:73), loadResource ne charge rien
-// (ni fichier local, ni partage réseau, ni HTTP). L'observateur (tests) voit chaque demande et sa réponse.
+// Document isolé de l'édition (analyse et mesure) : la règle du peintre (render/src/pagepainter.cpp:45-92,
+// NoImageHandler et IsolatedTextDocument), recopiée à l'identique parce que ces classes y sont internes. Tout
+// écart se voit dans tst_ui_text (editingLoadsNoExternalResource), qui reprend le crible du peintre
+// (tst_render_painter, htmlLoadsNoExternalResource).
+// Toute ressource demandée (image, fond, feuille de style, toutes URL et tous schémas) reçoit une valeur vide
+// mais valide : QTextDocument ne se rabat alors ni sur un fournisseur, ni sur la lecture directe du fichier.
+// Images du HTML : ni lues ni dessinées, leur place seule est gardée. Le gestionnaire de Qt chercherait
+// « nom@2x.png » sur le disque avant toute ressource (chemin UNC : résolution réseau), puis lirait le fichier
+// quand la ressource est nulle. L'observateur (tests) voit chaque demande et sa réponse.
+class NoImageHandler final : public QObject, public QTextObjectInterface
+{
+    Q_OBJECT
+    Q_INTERFACES(QTextObjectInterface)
+
+public:
+    QSizeF intrinsicSize(QTextDocument*, int, const QTextFormat& format) override
+    {
+        const QTextImageFormat image = format.toImageFormat();
+        return QSizeF(std::max(0.0, image.width()), std::max(0.0, image.height()));
+    }
+    void drawObject(QPainter*, const QRectF&, QTextDocument*, int, const QTextFormat&) override {}
+};
+
 class AnalysisDocument final : public QTextDocument
 {
 public:
-    explicit AnalysisDocument(const std::function<void(const QUrl&, const QVariant&)>& observer)
-        : m_observer(observer)
+    explicit AnalysisDocument(ResourceObserver observer) : m_observer(std::move(observer))
     {
         setDocumentMargin(0);
+        setResourceProvider([](const QUrl&) { return QVariant(QByteArray()); });
+        documentLayout()->registerHandler(QTextFormat::ImageObject, &m_images);
     }
 
 protected:
-    QVariant loadResource(int, const QUrl& name) override
+    QVariant loadResource(int type, const QUrl& name) override
     {
-        const QVariant answer;
+        QVariant answer;
+        if (type == QTextDocument::ImageResource) {
+            QImage blank(1, 1, QImage::Format_ARGB32_Premultiplied);
+            blank.fill(Qt::transparent);
+            answer = blank;
+        } else if (type == QTextDocument::StyleSheetResource) {
+            answer = QString();
+        } else {
+            answer = QByteArray();
+        }
         if (m_observer) {
             m_observer(name, answer);
         }
@@ -66,7 +106,8 @@ protected:
     }
 
 private:
-    const std::function<void(const QUrl&, const QVariant&)>& m_observer;
+    ResourceObserver m_observer; // par valeur (Q4a-m4) : le document peut survivre à l'appelant
+    NoImageHandler m_images;
 };
 
 template <typename Format> bool clearImageUrl(Format& format)
@@ -112,10 +153,16 @@ void cleanFrames(QTextFrame* frame)
 
 } // namespace
 
+// Pour tst_ui_text (L4-C13) : le document isolé de safeTextHtml et de measuredBounds, sans en-tête public.
+std::unique_ptr<QTextDocument> isolatedTextDocument(ResourceObserver observer)
+{
+    return std::make_unique<AnalysisDocument>(std::move(observer));
+}
+
 // Bloquant 5 (amendements 1 à 3) : le HTML d'un texte vient du fichier ouvert. Rien n'en est chargé ; les
 // images hors `data:`, les ancres et les images de fond (bloc, cadre, tableau, cellule, caractères) sont
 // retirées.
-QString safeTextHtml(const QString& html, const std::function<void(const QUrl&, const QVariant&)>& observer)
+QString safeTextHtml(const QString& html, const ResourceObserver& observer)
 {
     AnalysisDocument document(observer);
     document.setHtml(html);
@@ -442,8 +489,7 @@ bool TextEditing::beginAt(QPointF pagePoint, bool vertical)
 // l'emprise.
 core::RectF TextEditing::measuredBounds(const QString& safeHtml) const
 {
-    const std::function<void(const QUrl&, const QVariant&)> none;
-    AnalysisDocument measure(none);
+    AnalysisDocument measure{ResourceObserver()};
     measure.setHtml(safeHtml);
     const qreal width = m_fixedWidth > 0 ? m_fixedWidth : std::ceil(measure.idealWidth()) + 1;
     measure.setTextWidth(width);
@@ -713,3 +759,5 @@ void TextEditing::moveFrame(QPointF delta)
 }
 
 } // namespace actcraft::ui
+
+#include "textediting.moc"

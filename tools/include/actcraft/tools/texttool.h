@@ -6,7 +6,9 @@
 namespace actcraft::tools {
 
 // Outils Texte et Texte de haut en bas (F-250, F-301 b) : un appui demande l'édition au point touché par la
-// commande « text.edit-at » ({x, y, vertical}) ; l'édition elle-même est dans ui::TextEditing.
+// commande « text.edit-at », dont l'argument est le texte « x;y;v » (coordonnées de page à deux décimales,
+// v = 1 pour le texte de haut en bas, 0 sinon ; ArgumentKind::Text, jamais une table) ; l'édition elle-même
+// est dans ui::TextEditing.
 class TextTool final : public Tool
 {
 public:

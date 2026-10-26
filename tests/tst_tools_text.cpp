@@ -156,7 +156,9 @@ private slots:
         QVERIFY(h.commands.calls.empty());
     }
 
-    // Échap passe par cancel() : l'interface valide toute seule, l'outil ne déclenche rien.
+    // cancel() et abandon() ne déclenchent rien : Échap, changement de page et Annuler valident l'édition
+    // côté interface (amendement 5 : ToolHost::cancelGesture n'appelle cancel() que si l'outil est occupé, ce
+    // que l'outil Texte n'est jamais).
     void cancelSendsNothing()
     {
         Harness h;
