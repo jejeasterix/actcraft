@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793024869.9413576,
-    "ast_hash": "927229a167723119b2f6258535f4ef8c",
+    "mtime": 1793028800.2034354,
+    "ast_hash": "7698f0d7c44bc89804310573189fc1f9",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -2145,8 +2145,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/formes.json": {
-    "mtime": 1792565548.5519445,
-    "ast_hash": "55c186c5f7600a32dc8dd2d8933eea3b",
+    "mtime": 1793032733.9636984,
+    "ast_hash": "10c1162c05d7faf9a44e3e529c8f4caf",
     "semantic_hash": ""
   },
   "bench/scenarios/grille.json": {
@@ -2325,8 +2325,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_shapes.cpp": {
-    "mtime": 1793013359.152398,
-    "ast_hash": "986624f1a36a10bedd210226ffd94f34",
+    "mtime": 1793032733.9666982,
+    "ast_hash": "943eb41ed99dc1b4950a045c8969783b",
     "semantic_hash": ""
   },
   "tests/tst_ui_text.cpp": {

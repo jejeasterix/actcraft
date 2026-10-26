@@ -4190,7 +4190,7 @@
       "source_location": "L504",
       "_origin": "ast",
       "id": "src_scenarios_demoinkprobepoint",
-      "community": 263,
+      "community": 19,
       "norm_label": "demoinkprobepoint()"
     },
     {
@@ -6670,7 +6670,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_edits",
-      "community": 208,
+      "community": 297,
       "norm_label": "edits.cpp"
     },
     {
@@ -6820,7 +6820,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "src_edits_insertattopoflayer",
-      "community": 230,
+      "community": 297,
       "norm_label": "insertattopoflayer()"
     },
     {
@@ -6830,7 +6830,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "core_src_edits_cpp_size_t",
-      "community": 208,
+      "community": 297,
       "norm_label": "size_t"
     },
     {
@@ -6840,7 +6840,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "core_src_edits_cpp_page",
-      "community": 208,
+      "community": 297,
       "norm_label": "page"
     },
     {
@@ -6850,7 +6850,7 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "src_edits_indexof",
-      "community": 208,
+      "community": 297,
       "norm_label": "indexof()"
     },
     {
@@ -6860,7 +6860,7 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "core_src_edits_cpp_objectid",
-      "community": 208,
+      "community": 297,
       "norm_label": "objectid"
     },
     {
@@ -6870,7 +6870,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "src_edits_depthinlayer",
-      "community": 208,
+      "community": 297,
       "norm_label": "depthinlayer()"
     },
     {
@@ -6880,7 +6880,7 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "src_edits_islayerordered",
-      "community": 208,
+      "community": 297,
       "norm_label": "islayerordered()"
     },
     {
@@ -6890,7 +6890,7 @@
       "source_location": "L146",
       "_origin": "ast",
       "id": "src_edits_hasextent",
-      "community": 208,
+      "community": 230,
       "norm_label": "hasextent()"
     },
     {
@@ -6910,7 +6910,7 @@
       "source_location": "L166",
       "_origin": "ast",
       "id": "src_edits_addobjectcommand",
-      "community": 208,
+      "community": 297,
       "norm_label": "addobjectcommand()"
     },
     {
@@ -6920,7 +6920,7 @@
       "source_location": "L170",
       "_origin": "ast",
       "id": "src_edits_redo",
-      "community": 208,
+      "community": 297,
       "norm_label": "redo()"
     },
     {
@@ -6930,7 +6930,7 @@
       "source_location": "L170",
       "_origin": "ast",
       "id": "core_src_edits_cpp_document",
-      "community": 208,
+      "community": 297,
       "norm_label": "document"
     },
     {
@@ -6940,7 +6940,7 @@
       "source_location": "L170",
       "_origin": "ast",
       "id": "core_src_edits_cpp_changes",
-      "community": 208,
+      "community": 297,
       "norm_label": "changes"
     },
     {
@@ -6950,7 +6950,7 @@
       "source_location": "L184",
       "_origin": "ast",
       "id": "src_edits_undo",
-      "community": 208,
+      "community": 297,
       "norm_label": "undo()"
     },
     {
@@ -6960,7 +6960,7 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "src_edits_id",
-      "community": 208,
+      "community": 297,
       "norm_label": "id()"
     },
     {
@@ -6970,7 +6970,7 @@
       "source_location": "L203",
       "_origin": "ast",
       "id": "src_edits_addpagecommand",
-      "community": 208,
+      "community": 297,
       "norm_label": "addpagecommand()"
     },
     {
@@ -8160,7 +8160,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "core_src_model_cpp_transform",
-      "community": 297,
+      "community": 162,
       "norm_label": "transform"
     },
     {
@@ -8420,7 +8420,7 @@
       "source_location": "L306",
       "_origin": "ast",
       "id": "src_model_scaling",
-      "community": 297,
+      "community": 162,
       "norm_label": "scaling()"
     },
     {
@@ -8430,7 +8430,7 @@
       "source_location": "L314",
       "_origin": "ast",
       "id": "src_model_rotation",
-      "community": 297,
+      "community": 162,
       "norm_label": "rotation()"
     },
     {
@@ -9300,7 +9300,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_pagesettings_nextextendedheight",
-      "community": 299,
+      "community": 255,
       "norm_label": "nextextendedheight()"
     },
     {
@@ -9310,7 +9310,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "core_src_pagesettings_cpp_page",
-      "community": 299,
+      "community": 255,
       "norm_label": "page"
     },
     {
@@ -10280,7 +10280,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "src_undo_index",
-      "community": 257,
+      "community": 314,
       "norm_label": "index()"
     },
     {
@@ -16300,7 +16300,7 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "render_src_fixedpageitem_cpp_size_t",
-      "community": 44,
+      "community": 234,
       "norm_label": "size_t"
     },
     {
@@ -16320,7 +16320,7 @@
       "source_location": "L159",
       "_origin": "ast",
       "id": "src_fixedpageitem_sourcepage",
-      "community": 44,
+      "community": 234,
       "norm_label": "sourcepage()"
     },
     {
@@ -16470,7 +16470,7 @@
       "source_location": "L293",
       "_origin": "ast",
       "id": "src_fixedpageitem_cachedobjectcount",
-      "community": 44,
+      "community": 234,
       "norm_label": "cachedobjectcount()"
     },
     {
@@ -16560,7 +16560,7 @@
       "source_location": "L368",
       "_origin": "ast",
       "id": "src_fixedpageitem_setforcerasterized",
-      "community": 319,
+      "community": 44,
       "norm_label": "setforcerasterized()"
     },
     {
@@ -16620,7 +16620,7 @@
       "source_location": "L405",
       "_origin": "ast",
       "id": "src_fixedpageitem_onimagesready",
-      "community": 319,
+      "community": 44,
       "norm_label": "onimagesready()"
     },
     {
@@ -25332,7 +25332,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_start",
-      "community": 96,
+      "community": 175,
       "norm_label": "start()"
     },
     {
@@ -25572,7 +25572,7 @@
       "source_location": "L492",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_releasemustbecoveredbyasyncofitsownstroke",
-      "community": 175,
+      "community": 2,
       "norm_label": ".releasemustbecoveredbyasyncofitsownstroke()"
     },
     {
@@ -25652,7 +25652,7 @@
       "source_location": "L677",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_postedwheelreachesthepageview",
-      "community": 96,
+      "community": 175,
       "norm_label": ".postedwheelreachesthepageview()"
     },
     {
@@ -25702,7 +25702,7 @@
       "source_location": "L824",
       "_origin": "ast",
       "id": "tests_tst_bench_verdict_tstbenchverdict_benchtargetsarevisibleintheshell",
-      "community": 96,
+      "community": 175,
       "norm_label": ".benchtargetsarevisibleintheshell()"
     },
     {
@@ -27182,7 +27182,7 @@
       "source_location": "L157",
       "_origin": "ast",
       "id": "tests_tst_core_model_tstcoremodel_transformscomposelikeqtransform",
-      "community": 297,
+      "community": 162,
       "norm_label": ".transformscomposelikeqtransform()"
     },
     {
@@ -28282,7 +28282,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "tests_tst_core_pagesettings_spy",
-      "community": 299,
+      "community": 332,
       "norm_label": "spy"
     },
     {
@@ -28292,7 +28292,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "tests_tst_core_pagesettings_spy_inserts",
-      "community": 299,
+      "community": 332,
       "norm_label": "inserts"
     },
     {
@@ -28302,7 +28302,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "tests_tst_core_pagesettings_spy_removes",
-      "community": 299,
+      "community": 332,
       "norm_label": "removes"
     },
     {
@@ -28312,7 +28312,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "tests_tst_core_pagesettings_spy_invalidations",
-      "community": 299,
+      "community": 332,
       "norm_label": "invalidations"
     },
     {
@@ -28322,7 +28322,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "tests_tst_core_pagesettings_spy_insert",
-      "community": 299,
+      "community": 332,
       "norm_label": ".insert()"
     },
     {
@@ -28332,7 +28332,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "tests_tst_core_pagesettings_cpp_objectid",
-      "community": 299,
+      "community": 332,
       "norm_label": "objectid"
     },
     {
@@ -28342,7 +28342,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "tests_tst_core_pagesettings_spy_remove",
-      "community": 299,
+      "community": 332,
       "norm_label": ".remove()"
     },
     {
@@ -28352,7 +28352,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "tests_tst_core_pagesettings_cpp_rectf",
-      "community": 299,
+      "community": 332,
       "norm_label": "rectf"
     },
     {
@@ -28362,7 +28362,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "tests_tst_core_pagesettings_spy_invalidate",
-      "community": 299,
+      "community": 332,
       "norm_label": ".invalidate()"
     },
     {
@@ -28372,7 +28372,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "tests_tst_core_pagesettings_cpp_cachearea",
-      "community": 299,
+      "community": 332,
       "norm_label": "cachearea"
     },
     {
@@ -33792,7 +33792,7 @@
       "source_location": "L279",
       "_origin": "ast",
       "id": "tests_tst_pageview_openhost",
-      "community": 332,
+      "community": 37,
       "norm_label": "openhost()"
     },
     {
@@ -33802,7 +33802,7 @@
       "source_location": "L279",
       "_origin": "ast",
       "id": "tests_tst_pageview_cpp_qstring",
-      "community": 332,
+      "community": 37,
       "norm_label": "qstring"
     },
     {
@@ -34532,7 +34532,7 @@
       "source_location": "L1603",
       "_origin": "ast",
       "id": "tests_tst_pageview_tstpageview_foldwaitsfortheactivetool",
-      "community": 332,
+      "community": 37,
       "norm_label": ".foldwaitsfortheactivetool()"
     },
     {
@@ -34542,7 +34542,7 @@
       "source_location": "L1632",
       "_origin": "ast",
       "id": "tests_tst_pageview_tstpageview_latencyprobeseestoolsamples",
-      "community": 332,
+      "community": 37,
       "norm_label": ".latencyprobeseestoolsamples()"
     },
     {
@@ -34552,7 +34552,7 @@
       "source_location": "L1670",
       "_origin": "ast",
       "id": "tests_tst_pageview_tstpageview_pagechangeendstoolstroke",
-      "community": 332,
+      "community": 37,
       "norm_label": ".pagechangeendstoolstroke()"
     },
     {
@@ -37902,7 +37902,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "tests_tst_render_painted_hostiletext",
-      "community": 107,
+      "community": 106,
       "norm_label": "hostiletext()"
     },
     {
@@ -37912,7 +37912,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_qstring",
-      "community": 107,
+      "community": 106,
       "norm_label": "qstring"
     },
     {
@@ -38202,7 +38202,7 @@
       "source_location": "L192",
       "_origin": "ast",
       "id": "tests_tst_render_painted_tstrenderpainted_open",
-      "community": 107,
+      "community": 345,
       "norm_label": ".open()"
     },
     {
@@ -38212,7 +38212,7 @@
       "source_location": "L192",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_fixture",
-      "community": 107,
+      "community": 345,
       "norm_label": "fixture"
     },
     {
@@ -38222,7 +38222,7 @@
       "source_location": "L192",
       "_origin": "ast",
       "id": "tests_tst_render_painted_cpp_page",
-      "community": 107,
+      "community": 345,
       "norm_label": "page"
     },
     {
@@ -43702,7 +43702,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_tst_tools_shape",
-      "community": 320,
+      "community": 323,
       "norm_label": "tst_tools_shape.cpp"
     },
     {
@@ -44342,7 +44342,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "shapetool",
-      "community": 320,
+      "community": 323,
       "norm_label": "shapetool"
     },
     {
@@ -50759,7 +50759,7 @@
       "label": ".newShapeIsOrangeWithBlackOutline()",
       "file_type": "code",
       "source_file": "tests/tst_ui_shapes.cpp",
-      "source_location": "L281",
+      "source_location": "L289",
       "_origin": "ast",
       "id": "tests_tst_ui_shapes_tstuishapes_newshapeisorangewithblackoutline",
       "community": 352,
@@ -58232,7 +58232,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_pagethumbnails_post",
-      "community": 314,
+      "community": 216,
       "norm_label": "post()"
     },
     {
@@ -58242,7 +58242,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "ui_src_pagethumbnails_cpp_f",
-      "community": 314,
+      "community": 216,
       "norm_label": "f"
     },
     {
@@ -58252,7 +58252,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_pagethumbnails_resourcesof",
-      "community": 314,
+      "community": 216,
       "norm_label": "resourcesof()"
     },
     {
@@ -58262,7 +58262,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "resourcemap",
-      "community": 314,
+      "community": 216,
       "norm_label": "resourcemap"
     },
     {
@@ -58272,7 +58272,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "ui_src_pagethumbnails_cpp_page",
-      "community": 314,
+      "community": 216,
       "norm_label": "page"
     },
     {
@@ -58282,7 +58282,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "ui_src_pagethumbnails_cpp_document",
-      "community": 314,
+      "community": 216,
       "norm_label": "document"
     },
     {
@@ -58292,7 +58292,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_pagethumbnails_renderthumbnail",
-      "community": 314,
+      "community": 216,
       "norm_label": "renderthumbnail()"
     },
     {
@@ -58302,7 +58302,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "ui_src_pagethumbnails_cpp_qimage",
-      "community": 314,
+      "community": 216,
       "norm_label": "qimage"
     },
     {
@@ -58332,7 +58332,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "src_pagethumbnails_rowcount",
-      "community": 216,
+      "community": 314,
       "norm_label": "rowcount()"
     },
     {
@@ -58342,7 +58342,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "qmodelindex",
-      "community": 216,
+      "community": 314,
       "norm_label": "qmodelindex"
     },
     {
@@ -58352,7 +58352,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "src_pagethumbnails_data",
-      "community": 216,
+      "community": 314,
       "norm_label": "data()"
     },
     {
@@ -58362,7 +58362,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "ui_src_pagethumbnails_cpp_qvariant",
-      "community": 216,
+      "community": 314,
       "norm_label": "qvariant"
     },
     {
@@ -58372,7 +58372,7 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "src_pagethumbnails_rolenames",
-      "community": 361,
+      "community": 216,
       "norm_label": "rolenames()"
     },
     {
@@ -58382,7 +58382,7 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "ui_src_pagethumbnails_cpp_qhash",
-      "community": 361,
+      "community": 216,
       "norm_label": "qhash"
     },
     {
@@ -58392,7 +58392,7 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "ui_src_pagethumbnails_cpp_qbytearray",
-      "community": 361,
+      "community": 216,
       "norm_label": "qbytearray"
     },
     {
@@ -58402,7 +58402,7 @@
       "source_location": "L166",
       "_origin": "ast",
       "id": "src_pagethumbnails_documentcontroller",
-      "community": 216,
+      "community": 314,
       "norm_label": "documentcontroller()"
     },
     {
@@ -58412,7 +58412,7 @@
       "source_location": "L171",
       "_origin": "ast",
       "id": "src_pagethumbnails_setdocumentcontroller",
-      "community": 216,
+      "community": 314,
       "norm_label": "setdocumentcontroller()"
     },
     {
@@ -58422,7 +58422,7 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "src_pagethumbnails_attachcontroller",
-      "community": 216,
+      "community": 314,
       "norm_label": "attachcontroller()"
     },
     {
@@ -58442,7 +58442,7 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "src_pagethumbnails_view",
-      "community": 216,
+      "community": 314,
       "norm_label": "view()"
     },
     {
@@ -58452,7 +58452,7 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "ui_src_pagethumbnails_cpp_pageview",
-      "community": 216,
+      "community": 314,
       "norm_label": "pageview"
     },
     {
@@ -58462,7 +58462,7 @@
       "source_location": "L216",
       "_origin": "ast",
       "id": "src_pagethumbnails_setview",
-      "community": 216,
+      "community": 314,
       "norm_label": "setview()"
     },
     {
@@ -58532,7 +58532,7 @@
       "source_location": "L266",
       "_origin": "ast",
       "id": "src_pagethumbnails_image",
-      "community": 314,
+      "community": 216,
       "norm_label": "image()"
     },
     {
@@ -58572,7 +58572,7 @@
       "source_location": "L283",
       "_origin": "ast",
       "id": "src_pagethumbnails_resetrows",
-      "community": 216,
+      "community": 314,
       "norm_label": "resetrows()"
     },
     {
@@ -58582,7 +58582,7 @@
       "source_location": "L283",
       "_origin": "ast",
       "id": "ui_src_pagethumbnails_cpp_changes",
-      "community": 216,
+      "community": 314,
       "norm_label": "changes"
     },
     {
@@ -58592,7 +58592,7 @@
       "source_location": "L315",
       "_origin": "ast",
       "id": "src_pagethumbnails_onchanges",
-      "community": 216,
+      "community": 314,
       "norm_label": "onchanges()"
     },
     {
@@ -58602,7 +58602,7 @@
       "source_location": "L329",
       "_origin": "ast",
       "id": "src_pagethumbnails_ondocumentchanged",
-      "community": 216,
+      "community": 314,
       "norm_label": "ondocumentchanged()"
     },
     {
@@ -58612,7 +58612,7 @@
       "source_location": "L340",
       "_origin": "ast",
       "id": "src_pagethumbnails_onpageschanged",
-      "community": 257,
+      "community": 314,
       "norm_label": "onpageschanged()"
     },
     {
@@ -58622,7 +58622,7 @@
       "source_location": "L363",
       "_origin": "ast",
       "id": "src_pagethumbnails_oncontactchanged",
-      "community": 314,
+      "community": 216,
       "norm_label": "oncontactchanged()"
     },
     {
@@ -58652,7 +58652,7 @@
       "source_location": "L393",
       "_origin": "ast",
       "id": "src_pagethumbnails_contactinprogress",
-      "community": 314,
+      "community": 216,
       "norm_label": "contactinprogress()"
     },
     {
@@ -58662,7 +58662,7 @@
       "source_location": "L398",
       "_origin": "ast",
       "id": "src_pagethumbnails_pump",
-      "community": 314,
+      "community": 216,
       "norm_label": "pump()"
     },
     {
@@ -58672,7 +58672,7 @@
       "source_location": "L413",
       "_origin": "ast",
       "id": "src_pagethumbnails_launch",
-      "community": 314,
+      "community": 216,
       "norm_label": "launch()"
     },
     {
@@ -58682,7 +58682,7 @@
       "source_location": "L444",
       "_origin": "ast",
       "id": "src_pagethumbnails_finish",
-      "community": 314,
+      "community": 216,
       "norm_label": "finish()"
     },
     {
@@ -58692,7 +58692,7 @@
       "source_location": "L444",
       "_origin": "ast",
       "id": "ui_src_pagethumbnails_cpp_uint64_t",
-      "community": 314,
+      "community": 216,
       "norm_label": "uint64_t"
     },
     {
@@ -58752,7 +58752,7 @@
       "source_location": "L483",
       "_origin": "ast",
       "id": "src_pagethumbnails_page",
-      "community": 314,
+      "community": 216,
       "norm_label": "page()"
     },
     {
@@ -58792,7 +58792,7 @@
       "source_location": "L513",
       "_origin": "ast",
       "id": "src_pagethumbnails_paint",
-      "community": 314,
+      "community": 216,
       "norm_label": "paint()"
     },
     {
@@ -58802,7 +58802,7 @@
       "source_location": "L513",
       "_origin": "ast",
       "id": "ui_src_pagethumbnails_cpp_qpainter",
-      "community": 314,
+      "community": 216,
       "norm_label": "qpainter"
     },
     {
@@ -69139,7 +69139,7 @@
       "label": "Demande",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-etat.md",
-      "source_location": "L32",
+      "source_location": "L31",
       "_origin": "ast",
       "id": "sessions_livraison_complete_etat_demande",
       "community": 102,
@@ -69149,7 +69149,7 @@
       "label": "R\u00e9f\u00e9rence",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-etat.md",
-      "source_location": "L43",
+      "source_location": "L42",
       "_origin": "ast",
       "id": "sessions_livraison_complete_etat_r\u00e9f\u00e9rence",
       "community": 102,
@@ -69159,7 +69159,7 @@
       "label": "Compteurs",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-etat.md",
-      "source_location": "L47",
+      "source_location": "L46",
       "_origin": "ast",
       "id": "sessions_livraison_complete_etat_compteurs",
       "community": 102,
@@ -69169,7 +69169,7 @@
       "label": "T\u00e2ches",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-etat.md",
-      "source_location": "L50",
+      "source_location": "L49",
       "_origin": "ast",
       "id": "sessions_livraison_complete_etat_t\u00e2ches",
       "community": 102,
@@ -69179,7 +69179,7 @@
       "label": "T\u00e2ches du lot 10",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-etat.md",
-      "source_location": "L124",
+      "source_location": "L123",
       "_origin": "ast",
       "id": "sessions_livraison_complete_etat_t\u00e2ches_du_lot_10",
       "community": 102,
@@ -69189,7 +69189,7 @@
       "label": "Reprise apr\u00e8s le temps calme du 2026-10-18 (~22 h 30, red\u00e9marrage de l'app demand\u00e9 par J\u00e9r\u00f4me)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-etat.md",
-      "source_location": "L143",
+      "source_location": "L142",
       "_origin": "ast",
       "id": "sessions_livraison_complete_etat_reprise_apr\u00e8s_le_temps_calme_du_2026_10_18_22_h_30_red\u00e9marrage_de_l_app_demand\u00e9_par_j\u00e9r\u00f4me",
       "community": 102,
@@ -69199,7 +69199,7 @@
       "label": "Reprise apr\u00e8s le red\u00e9marrage du poste (2026-10-18, 22 h 50, cause probable : m\u00e9moire)",
       "file_type": "document",
       "source_file": "docs/sessions/livraison-complete-etat.md",
-      "source_location": "L153",
+      "source_location": "L152",
       "_origin": "ast",
       "id": "sessions_livraison_complete_etat_reprise_apr\u00e8s_le_red\u00e9marrage_du_poste_2026_10_18_22_h_50_cause_probable_m\u00e9moire",
       "community": 102,
@@ -77568,9 +77568,9 @@
       "source_file": "bench/src/result.cpp",
       "source_location": "L165",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_result",
-      "target": "src_result_shapepreviewstats",
-      "confidence_score": 1.0
+      "target": "src_result_shapepreviewstats"
     },
     {
       "relation": "contains",
@@ -77731,9 +77731,9 @@
       "source_location": "L165",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_result_shapepreviewstats",
-      "target": "bench_src_result_cpp_vector",
-      "confidence_score": 1.0
+      "target": "bench_src_result_cpp_vector"
     },
     {
       "relation": "references",
@@ -77742,9 +77742,9 @@
       "source_location": "L165",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_result_shapepreviewstats",
-      "target": "bench_src_result_cpp_int64_t",
-      "confidence_score": 1.0
+      "target": "bench_src_result_cpp_int64_t"
     },
     {
       "relation": "calls",
@@ -77896,9 +77896,9 @@
       "source_location": "L165",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_result_shapepreviewstats",
-      "target": "bench_src_result_cpp_pair",
-      "confidence_score": 1.0
+      "target": "bench_src_result_cpp_pair"
     },
     {
       "relation": "calls",
@@ -79398,9 +79398,9 @@
       "source_file": "bench/src/scenarios.cpp",
       "source_location": "L465",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_scenarios",
-      "target": "src_scenarios_dragwindows",
-      "confidence_score": 1.0
+      "target": "src_scenarios_dragwindows"
     },
     {
       "relation": "contains",
@@ -79438,9 +79438,9 @@
       "source_file": "bench/src/scenarios.cpp",
       "source_location": "L446",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_scenarios",
-      "target": "src_scenarios_gridabovefixture",
-      "confidence_score": 1.0
+      "target": "src_scenarios_gridabovefixture"
     },
     {
       "relation": "contains",
@@ -79448,9 +79448,9 @@
       "source_file": "bench/src/scenarios.cpp",
       "source_location": "L456",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_scenarios",
-      "target": "src_scenarios_gridabovescenario",
-      "confidence_score": 1.0
+      "target": "src_scenarios_gridabovescenario"
     },
     {
       "relation": "contains",
@@ -79568,9 +79568,9 @@
       "source_file": "bench/src/scenarios.cpp",
       "source_location": "L418",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_scenarios",
-      "target": "src_scenarios_shapescenario",
-      "confidence_score": 1.0
+      "target": "src_scenarios_shapescenario"
     },
     {
       "relation": "contains",
@@ -79741,9 +79741,9 @@
       "source_location": "L465",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_scenarios_dragwindows",
-      "target": "bench_src_scenarios_cpp_vector",
-      "confidence_score": 1.0
+      "target": "bench_src_scenarios_cpp_vector"
     },
     {
       "relation": "references",
@@ -79917,9 +79917,9 @@
       "source_file": "bench/src/scenarios.cpp",
       "source_location": "L428",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_scenarios_shapescenario",
-      "target": "src_scenarios_seedstroke",
-      "confidence_score": 1.0
+      "target": "src_scenarios_seedstroke"
     },
     {
       "relation": "calls",
@@ -80093,9 +80093,9 @@
       "source_location": "L465",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_scenarios_dragwindows",
-      "target": "bench_src_scenarios_cpp_int64_t",
-      "confidence_score": 1.0
+      "target": "bench_src_scenarios_cpp_int64_t"
     },
     {
       "relation": "references",
@@ -80137,9 +80137,9 @@
       "source_file": "bench/src/scenarios.cpp",
       "source_location": "L439",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_scenarios_shapescenario",
-      "target": "src_scenarios_appendline",
-      "confidence_score": 1.0
+      "target": "src_scenarios_appendline"
     },
     {
       "relation": "calls",
@@ -80170,9 +80170,9 @@
       "source_file": "bench/src/scenarios.cpp",
       "source_location": "L440",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_scenarios_shapescenario",
-      "target": "src_scenarios_appendrelease",
-      "confidence_score": 1.0
+      "target": "src_scenarios_appendrelease"
     },
     {
       "relation": "references",
@@ -80335,9 +80335,9 @@
       "source_file": "bench/src/scenarios.cpp",
       "source_location": "L420",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_scenarios_shapescenario",
-      "target": "src_scenarios_durationdivisor",
-      "confidence_score": 1.0
+      "target": "src_scenarios_durationdivisor"
     },
     {
       "relation": "references",
@@ -80423,9 +80423,9 @@
       "source_location": "L456",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_scenarios_gridabovescenario",
-      "target": "scenarioset",
-      "confidence_score": 1.0
+      "target": "scenarioset"
     },
     {
       "relation": "references",
@@ -80445,9 +80445,9 @@
       "source_location": "L418",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_scenarios_shapescenario",
-      "target": "scenarioset",
-      "confidence_score": 1.0
+      "target": "scenarioset"
     },
     {
       "relation": "calls",
@@ -80467,9 +80467,9 @@
       "source_file": "bench/src/scenarios.cpp",
       "source_location": "L458",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_scenarios_gridabovescenario",
-      "target": "src_scenarios_strokescenario",
-      "confidence_score": 1.0
+      "target": "src_scenarios_strokescenario"
     },
     {
       "relation": "references",
@@ -80555,9 +80555,9 @@
       "source_location": "L465",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_scenarios_dragwindows",
-      "target": "bench_src_scenarios_cpp_scenarioplan",
-      "confidence_score": 1.0
+      "target": "bench_src_scenarios_cpp_scenarioplan"
     },
     {
       "relation": "references",
@@ -80577,9 +80577,9 @@
       "source_location": "L456",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_scenarios_gridabovescenario",
-      "target": "bench_src_scenarios_cpp_scenarioplan",
-      "confidence_score": 1.0
+      "target": "bench_src_scenarios_cpp_scenarioplan"
     },
     {
       "relation": "references",
@@ -80599,9 +80599,9 @@
       "source_location": "L418",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_scenarios_shapescenario",
-      "target": "bench_src_scenarios_cpp_scenarioplan",
-      "confidence_score": 1.0
+      "target": "bench_src_scenarios_cpp_scenarioplan"
     },
     {
       "relation": "calls",
@@ -80687,9 +80687,9 @@
       "source_file": "bench/src/scenarios.cpp",
       "source_location": "L484",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_scenarios_allscenarios",
-      "target": "src_scenarios_shapescenario",
-      "confidence_score": 1.0
+      "target": "src_scenarios_shapescenario"
     },
     {
       "relation": "references",
@@ -80698,9 +80698,9 @@
       "source_location": "L446",
       "weight": 1.0,
       "context": "return_type",
+      "confidence_score": 1.0,
       "source": "src_scenarios_gridabovefixture",
-      "target": "bench_src_scenarios_cpp_grid",
-      "confidence_score": 1.0
+      "target": "bench_src_scenarios_cpp_grid"
     },
     {
       "relation": "calls",
@@ -80709,9 +80709,9 @@
       "source_file": "bench/src/scenarios.cpp",
       "source_location": "L484",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_scenarios_allscenarios",
-      "target": "src_scenarios_gridabovescenario",
-      "confidence_score": 1.0
+      "target": "src_scenarios_gridabovescenario"
     },
     {
       "relation": "references",
@@ -80720,9 +80720,9 @@
       "source_location": "L465",
       "weight": 1.0,
       "context": "generic_arg",
+      "confidence_score": 1.0,
       "source": "src_scenarios_dragwindows",
-      "target": "bench_src_scenarios_cpp_pair",
-      "confidence_score": 1.0
+      "target": "bench_src_scenarios_cpp_pair"
     },
     {
       "relation": "references",
@@ -81758,9 +81758,9 @@
       "source_file": "bench/src/uiscenario.cpp",
       "source_location": "L884",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_uiscenario",
-      "target": "src_uiscenario_typetext",
-      "confidence_score": 1.0
+      "target": "src_uiscenario_typetext"
     },
     {
       "relation": "contains",
@@ -82160,9 +82160,9 @@
       "source_file": "bench/src/uiscenario.cpp",
       "source_location": "L901",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_uiscenario_typetext",
-      "target": "bench_src_uiscenario_cpp_qstring",
-      "confidence_score": 1.0
+      "target": "bench_src_uiscenario_cpp_qstring"
     },
     {
       "relation": "calls",
@@ -82479,9 +82479,9 @@
       "source_location": "L884",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_uiscenario_typetext",
-      "target": "uistep",
-      "confidence_score": 1.0
+      "target": "uistep"
     },
     {
       "relation": "references",
@@ -83765,9 +83765,9 @@
       "source_file": "bench/src/uiscenario.cpp",
       "source_location": "L895",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_uiscenario_typetext",
-      "target": "src_uiscenario_keytimestamp",
-      "confidence_score": 1.0
+      "target": "src_uiscenario_keytimestamp"
     },
     {
       "relation": "references",
@@ -84993,9 +84993,9 @@
       "source_location": "L884",
       "weight": 1.0,
       "context": "parameter_type",
+      "confidence_score": 1.0,
       "source": "src_uiscenario_typetext",
-      "target": "bench_src_uiscenario_cpp_qstringlist",
-      "confidence_score": 1.0
+      "target": "bench_src_uiscenario_cpp_qstringlist"
     },
     {
       "relation": "calls",
@@ -85059,9 +85059,9 @@
       "source_file": "bench/src/uiscenario.cpp",
       "source_location": "L1419",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_uiscenario_runstep",
-      "target": "src_uiscenario_typetext",
-      "confidence_score": 1.0
+      "target": "src_uiscenario_typetext"
     },
     {
       "relation": "calls",
@@ -129205,9 +129205,9 @@
       "source_file": "tests/tst_bench_result.cpp",
       "source_location": "L54",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_bench_result_tstbenchresult",
-      "target": "tests_tst_bench_result_tstbenchresult_lot4scenarioswithframes",
-      "confidence_score": 1.0
+      "target": "tests_tst_bench_result_tstbenchresult_lot4scenarioswithframes"
     },
     {
       "relation": "defines",
@@ -129267,9 +129267,9 @@
       "source_file": "tests/tst_bench_result.cpp",
       "source_location": "L94",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_bench_result_tstbenchresult",
-      "target": "tests_tst_bench_result_tstbenchresult_shapeandgridabovecacherefreshes",
-      "confidence_score": 1.0
+      "target": "tests_tst_bench_result_tstbenchresult_shapeandgridabovecacherefreshes"
     },
     {
       "relation": "method",
@@ -129408,9 +129408,9 @@
       "source_file": "tests/tst_bench_scenarios.cpp",
       "source_location": "L343",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_bench_scenarios_tstbenchscenarios",
-      "target": "tests_tst_bench_scenarios_tstbenchscenarios_gridabovescenariodrawsstrokes",
-      "confidence_score": 1.0
+      "target": "tests_tst_bench_scenarios_tstbenchscenarios_gridabovescenariodrawsstrokes"
     },
     {
       "relation": "method",
@@ -129508,9 +129508,9 @@
       "source_file": "tests/tst_bench_scenarios.cpp",
       "source_location": "L267",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_bench_scenarios_tstbenchscenarios",
-      "target": "tests_tst_bench_scenarios_tstbenchscenarios_shapeonannotatedpagescenario",
-      "confidence_score": 1.0
+      "target": "tests_tst_bench_scenarios_tstbenchscenarios_shapeonannotatedpagescenario"
     },
     {
       "relation": "method",
@@ -129518,9 +129518,9 @@
       "source_file": "tests/tst_bench_scenarios.cpp",
       "source_location": "L323",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_bench_scenarios_tstbenchscenarios",
-      "target": "tests_tst_bench_scenarios_tstbenchscenarios_shapepreviewcountsframesinsidedrags",
-      "confidence_score": 1.0
+      "target": "tests_tst_bench_scenarios_tstbenchscenarios_shapepreviewcountsframesinsidedrags"
     },
     {
       "relation": "method",
@@ -130662,9 +130662,9 @@
       "source_file": "tests/tst_bench_uiscenario.cpp",
       "source_location": "L779",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_bench_uiscenario_tstbenchuiscenario_typetextdeliversonekeypercharacter",
-      "target": "tests_tst_bench_uiscenario_load",
-      "confidence_score": 1.0
+      "target": "tests_tst_bench_uiscenario_load"
     },
     {
       "relation": "references",
@@ -130926,9 +130926,9 @@
       "source_file": "tests/tst_bench_uiscenario.cpp",
       "source_location": "L786",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_bench_uiscenario_tstbenchuiscenario_typetextdeliversonekeypercharacter",
-      "target": "tests_tst_bench_uiscenario_scenario",
-      "confidence_score": 1.0
+      "target": "tests_tst_bench_uiscenario_scenario"
     },
     {
       "relation": "references",
@@ -131364,9 +131364,9 @@
       "source_file": "tests/tst_bench_uiscenario.cpp",
       "source_location": "L751",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_bench_uiscenario_tstbenchuiscenario_typetextstepparsed",
-      "target": "tests_tst_bench_uiscenario_parsesteps",
-      "confidence_score": 1.0
+      "target": "tests_tst_bench_uiscenario_parsesteps"
     },
     {
       "relation": "method",
@@ -131754,9 +131754,9 @@
       "source_file": "tests/tst_bench_uiscenario.cpp",
       "source_location": "L767",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_bench_uiscenario_tstbenchuiscenario",
-      "target": "tests_tst_bench_uiscenario_tstbenchuiscenario_typetextdeliversonekeypercharacter",
-      "confidence_score": 1.0
+      "target": "tests_tst_bench_uiscenario_tstbenchuiscenario_typetextdeliversonekeypercharacter"
     },
     {
       "relation": "method",
@@ -131764,9 +131764,9 @@
       "source_file": "tests/tst_bench_uiscenario.cpp",
       "source_location": "L747",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_tst_bench_uiscenario_tstbenchuiscenario",
-      "target": "tests_tst_bench_uiscenario_tstbenchuiscenario_typetextstepparsed",
-      "confidence_score": 1.0
+      "target": "tests_tst_bench_uiscenario_tstbenchuiscenario_typetextstepparsed"
     },
     {
       "relation": "method",
@@ -221867,5 +221867,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "883cc10aa6556504f7c03a451ba5bdb1835265ce"
+  "built_at_commit": "ec89472221b65727b0ac2e673b5bbe489749beec"
 }
