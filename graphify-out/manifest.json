@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793008319.1542678,
-    "ast_hash": "f4fb89fdeef7e2a852111ad68da7dd9d",
+    "mtime": 1793011128.4057295,
+    "ast_hash": "d4772a2ab7afad34fea52cb7fe59cfb8",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -1910,8 +1910,8 @@
     "semantic_hash": ""
   },
   "ui/src/tooladapters.cpp": {
-    "mtime": 1792528041.0685387,
-    "ast_hash": "df0393bfbbb2f294d5f34b7d5dc36160",
+    "mtime": 1793013359.1543949,
+    "ast_hash": "1093bc90c8fcc4f92a0b27970d4ad28b",
     "semantic_hash": ""
   },
   "ui/src/tooladapters.h": {
@@ -1920,8 +1920,8 @@
     "semantic_hash": ""
   },
   "ui/src/toolhost.cpp": {
-    "mtime": 1792565548.6585689,
-    "ast_hash": "9a97830dafd3c91ca7916304f53e81d7",
+    "mtime": 1793013359.1563966,
+    "ast_hash": "0aae6ab5405bc8f0aeaf3200fee7106c",
     "semantic_hash": ""
   },
   "ui/icons/agrandir.svg": {
@@ -2325,8 +2325,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_shapes.cpp": {
-    "mtime": 1792565548.6052828,
-    "ast_hash": "c7c978e175ea45d9e8d51f91631a8e0b",
+    "mtime": 1793013359.152398,
+    "ast_hash": "986624f1a36a10bedd210226ffd94f34",
     "semantic_hash": ""
   },
   "tests/tst_ui_text.cpp": {
