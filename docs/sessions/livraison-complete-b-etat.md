@@ -151,6 +151,8 @@ Premiers gestes, dans l'ordre :
 ## Reprise par la nouvelle session (2026-10-26)
 Signal reçu (handoff 194639f). Session rattachée. Gestes 1 à 3 relancés : rejeu de L7-T19 sous le verrou B, essais 2 de L7-T21 et L7-T24 (concepteur-critique). Worktrees propres à la reprise, aucun essai compté en plus.
 
+Verrou B remplacé le 2026-10-27 (proposition du Pilote, chaîne 1ad3713) : `.tmp/outils-b/b-jeton.ps1` garde son interface mais relaie vers `jeton.ps1 -Nom tests -PlacesParSujet 1` (sujet `livraison-complete-b`), sans mutex ni boucle RAM maison ; ancienne version : `b-jeton.ancien.ps1`. Contrôle : `jeton.ps1 -Libre -PlacesParSujet 1` répond « quota du sujet livraison-complete-b : 1 place tenue sur 1 » pendant la suite de L7-T30.
+
 ## Portes
 ouvertes : — · passées : —
 
@@ -163,7 +165,7 @@ ouvertes : — · passées : —
 - Qt/CMake (à porter au coffre, 04_Pieges) : un en-tête `QML_ELEMENT` créé après un premier build n'est pas vu par AUTOMOC (`CurtainController is not a type`) ; remède : supprimer `build/debug/ui/actcraft_ui_autogen/timestamp` (L7-T3). QML : `Item.mapFromScene` absent, utiliser `mapFromItem(null, p)` (L7-T3). Revu aussi dans le build incrémental du chantier après le merge de L7-T9 (LNK2001 `MathToolsController::staticMetaObject`) : touche tout build existant qui reçoit un nouvel en-tête, donc aussi A à la fusion du lot 7 → à dire à A dans le message « lot 7 prêt à fusionner ».
 - Consignes communes de la phase 2 : scratchpad `consignes-T.md` (verrou B, tests instables sous charge à relancer seuls : `tst_captures_aller_retour_natif`, `tst_ui_files`, `tst_pageview`, `tst_bench_verdict`, `tst_bench_result`).
 - Places de tests : 2e place accordée par Pilote le 2026-10-18 vers 22h (Jérôme lui a laissé la manœuvre) ; A reste prioritaire, retour à une place dès qu'A en a besoin.
-- Parallélisme (demande de rythme de Pilote, consigne de Jérôme dans la tâche planifiée) : 4 agents écrivent en parallèle, les constructions passent une à une par le jeton ; consignes communes : scratchpad `consignes-P.md` (temps 1 sans P0, temps 2 après merge de P0).
+- [Caduc depuis le 2026-10-27 : la chaîne 1ad3713 interdit de lancer une tâche qui construit sans place libre ; B mène 2 tâches au plus.] Parallélisme (demande de rythme de Pilote, consigne de Jérôme dans la tâche planifiée) : 4 agents écrivent en parallèle, les constructions passent une à une par le jeton ; consignes communes : scratchpad `consignes-P.md` (temps 1 sans P0, temps 2 après merge de P0).
 - Jeton `tests` : exige 3,5 Go de RAM libre ; la machine tourne autour de 2-3 Go pendant les suites de A, attente longue (une attente expirée, code 3).
 - Le dépôt contenait deux titres de vidéos dans 7 fichiers : corrigé par A (f167eb9 sur feat/livraison-complete, `file.new` = « Créer un paperboard ») ; arrive ici par la fusion de phase 2 (ne pas fusionner avant le socle).
 - `tst_captures_aller_retour_natif` échoue sous charge (`BOUCLE max=… ECART`, seuil 25 ms), base comprise : pas une régression de B ; A le fiabilise.
