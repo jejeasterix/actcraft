@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793028800.2034354,
-    "ast_hash": "7698f0d7c44bc89804310573189fc1f9",
+    "mtime": 1793041947.4313054,
+    "ast_hash": "ae2b3675be75c0620066d7ab708976dc",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -1905,8 +1905,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/toolhost.h": {
-    "mtime": 1792565548.64999,
-    "ast_hash": "f27480de94f685bb7c5efdae8ba864a8",
+    "mtime": 1793044009.7977304,
+    "ast_hash": "cc5d2cfaea0c17ce30e84ed971cc8146",
     "semantic_hash": ""
   },
   "ui/src/tooladapters.cpp": {
@@ -1920,8 +1920,8 @@
     "semantic_hash": ""
   },
   "ui/src/toolhost.cpp": {
-    "mtime": 1793013359.1563966,
-    "ast_hash": "0aae6ab5405bc8f0aeaf3200fee7106c",
+    "mtime": 1793044009.8057308,
+    "ast_hash": "738d0107b8a370350fb8e0c8241c6ae7",
     "semantic_hash": ""
   },
   "ui/icons/agrandir.svg": {
@@ -2080,8 +2080,8 @@
     "semantic_hash": ""
   },
   "docs/plans/2026-10-18-livraison-complete-lot4-PLAN.md": {
-    "mtime": 1792591631.9717324,
-    "ast_hash": "af78ee7b0b8a0407f821463501f6fb3c",
+    "mtime": 1793044009.783196,
+    "ast_hash": "4ed7b0de9a3817b2b6ad8df44707281d",
     "semantic_hash": ""
   },
   "docs/plans/2026-10-18-livraison-complete-lot4b-PLAN.md": {
@@ -2145,8 +2145,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/formes.json": {
-    "mtime": 1793032733.9636984,
-    "ast_hash": "10c1162c05d7faf9a44e3e529c8f4caf",
+    "mtime": 1793044009.77191,
+    "ast_hash": "6b06cecbdd7d7c6c50459dd857735b81",
     "semantic_hash": ""
   },
   "bench/scenarios/grille.json": {
@@ -2300,8 +2300,8 @@
     "semantic_hash": ""
   },
   "tests/tst_tools_shape.cpp": {
-    "mtime": 1793010973.1651714,
-    "ast_hash": "fbc9e3b99859cedbfbfc4d155fb4b100",
+    "mtime": 1793044009.7877212,
+    "ast_hash": "677419d93ed3e58e32d1280dadc21d9e",
     "semantic_hash": ""
   },
   "tests/tst_tools_text.cpp": {
@@ -2325,8 +2325,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_shapes.cpp": {
-    "mtime": 1793032733.9666982,
-    "ast_hash": "943eb41ed99dc1b4950a045c8969783b",
+    "mtime": 1793044009.7917202,
+    "ast_hash": "b37f2294a85719fe1d55a01a02297fe3",
     "semantic_hash": ""
   },
   "tests/tst_ui_text.cpp": {
