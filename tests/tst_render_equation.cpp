@@ -28,7 +28,7 @@ namespace {
 
 const render::ImageLookup kNoImages = [](const std::string&) { return QImage(); };
 
-constexpr double kPointSize = 24;
+constexpr double kPoints = 24;
 
 std::optional<core::EquationNode> tree(const std::string& mathml)
 {
@@ -41,7 +41,7 @@ core::Equation equation(const std::string& mathml, core::RectF bounds = {20, 10,
     core::Equation e;
     e.bounds = bounds;
     e.mathml = mathml;
-    e.pointSize = kPointSize;
+    e.pointSize = kPoints;
     return e;
 }
 
@@ -158,7 +158,7 @@ private slots:
     // Numérateur et dénominateur empilés, réduits à 80 % : la fraction est plus haute que 1,8 chiffre.
     void fractionIsTallerThanItsParts()
     {
-        const QFont font = render::equationFont(kPointSize);
+        const QFont font = render::equationFont(kPoints);
         const auto digit = tree("<math><mn>2</mn></math>");
         const auto fraction = tree("<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>");
         QVERIFY(digit && fraction);
@@ -173,7 +173,7 @@ private slots:
     // Ligne de base de l'exposant au-dessus de celle de sa base (y vers le bas).
     void superscriptIsRaised()
     {
-        const QFont font = render::equationFont(kPointSize);
+        const QFont font = render::equationFont(kPoints);
         const auto power = tree("<math><msup><mi>x</mi><mn>2</mn></msup></math>");
         QVERIFY(power);
         const render::EquationBox root = render::layoutEquation(*power, font);
@@ -191,7 +191,7 @@ private slots:
     // Le signe de la racine s'ajoute au contenu (plus d'un demi-cadratin) et sa barre passe au-dessus.
     void rootCoversItsContent()
     {
-        const QFont font = render::equationFont(kPointSize);
+        const QFont font = render::equationFont(kPoints);
         const auto root = tree("<math><msqrt><mi>x</mi><mo>+</mo><mn>1</mn></msqrt></math>");
         const auto content = tree("<math><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow></math>");
         QVERIFY(root && content);
