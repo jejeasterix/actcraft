@@ -35,30 +35,36 @@ Popup {
         border.color: Theme.contour
     }
 
-    // Écrit une clé du niveau édité, ou une clé de la grille quand `inLevel` est faux.
+    // Copie modifiable de la grille : l'objet lu sur PageSettings ne se modifie pas en place côté JS.
+    function editableGrid() {
+        var g = Object.assign({}, settings.grid)
+        var list = []
+        var src = settings.grid.levels
+        for (var i = 0; i < src.length; ++i) {
+            list.push(Object.assign({}, src[i]))
+        }
+        g.levels = list
+        return g
+    }
+    // Écrit une clé du niveau édité.
     function patchLevel(name, value) {
         if (!settings || !current) {
             return
         }
-        var g = settings.grid
-        var list = g.levels
-        var item = list[level]
-        item[name] = value
-        list[level] = item
-        g.levels = list
+        var g = editableGrid()
+        g.levels[level][name] = value
         settings.setGrid(g)
     }
     function patchGrid(name, value) {
         if (!settings) {
             return
         }
-        var g = settings.grid
+        var g = editableGrid()
         g[name] = value
         settings.setGrid(g)
     }
 
     function begin() {
-        console.warn("GDDEBUG", settings, levels.length, grid.visible)
         if (!settings) {
             return
         }
@@ -66,7 +72,7 @@ Popup {
         level = 0
         // Une page sans grille visible en montre une, avec au moins un niveau : l'aperçu est immédiat.
         if (levels.length === 0 || !grid.visible) {
-            var g = settings.grid
+            var g = editableGrid()
             g.visible = true
             if (levels.length === 0) {
                 g.levels = [{}]

@@ -3,8 +3,13 @@
 #include <actcraft/core/pagesettings.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageoptions.h>
+#include <actcraft/ui/pageview.h>
+#include <actcraft/ui/toolhost.h>
 
+#include <QQmlApplicationEngine>
+#include <QQuickWindow>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QVariantList>
 #include <QVariantMap>
@@ -12,6 +17,10 @@
 #include <cstddef>
 #include <memory>
 #include <utility>
+
+#include <QtQml/qqmlextensionplugin.h>
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 using namespace actcraft;
 
@@ -86,7 +95,45 @@ class TstUiPagesettings : public QObject
 {
     Q_OBJECT
 
+private:
+    QTemporaryDir m_dir;
+
 private slots:
+    void initTestCase() { QVERIFY(m_dir.isValid()); }
+
+    // La boîte réelle (Main.qml) : l'ouverture montre une grille, la fermeture clôt la séance en une étape.
+    void designerDialogOpensAndClosesOneSession()
+    {
+        QQmlApplicationEngine engine;
+        engine.setInitialProperties(
+            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+        engine.loadFromModule("ActCraft.Ui", "Main");
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+        QVERIFY(window);
+        auto* tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        tools->setSettingsFile(m_dir.filePath(QStringLiteral("reglages.ini"))); // jamais le profil réel
+        auto* options = window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
+        auto* document = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QObject* designer = window->findChild<QObject*>(QStringLiteral("gridDesigner"));
+        QVERIFY(options && document && designer);
+        QVERIFY(window->isVisible() || QTest::qWaitForWindowExposed(window));
+        QVERIFY(!options->gridVisible());
+        const bool undoBefore = document->canUndo();
+
+        QVERIFY(QMetaObject::invokeMethod(designer, "open"));
+        QTRY_VERIFY(designer->property("visible").toBool());
+        QVERIFY(options->gridVisible());
+        QVERIFY(!options->grid().value(QStringLiteral("levels")).toList().isEmpty());
+        QVERIFY(QMetaObject::invokeMethod(designer, "close"));
+        QTRY_VERIFY(!designer->property("visible").toBool());
+        QVERIFY(options->gridVisible());
+        document->undo(); // toute la séance en une étape
+        QVERIFY(!options->gridVisible());
+        QCOMPARE(document->canUndo(), undoBefore);
+    }
+
     // Grille du dessus : la cacher ne redessine pas le cache (D-S7, P14).
     void hideGridAboveRefreshesNoCache()
     {
