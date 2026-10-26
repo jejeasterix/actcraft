@@ -771,9 +771,22 @@ QVariantList ToolHost::shapeOutline(const QString& preset) const
             points.push_back(points.front());
         }
     }
+    // Une forme peut dépasser sa boîte (la pointe d'une bulle) : le contour est ramené dans [0, 1] par sa propre
+    // étendue, pour que la miniature de la palette ne déborde jamais.
+    double minX = 0.0;
+    double maxX = 1.0;
+    double minY = 0.0;
+    double maxY = 1.0;
+    for (const core::PointF& point : points) {
+        minX = std::min(minX, point.x);
+        maxX = std::max(maxX, point.x);
+        minY = std::min(minY, point.y);
+        maxY = std::max(maxY, point.y);
+    }
     QVariantList list;
     for (const core::PointF& point : points) {
-        list.push_back(QVariantMap{{QStringLiteral("x"), point.x}, {QStringLiteral("y"), point.y}});
+        list.push_back(QVariantMap{{QStringLiteral("x"), (point.x - minX) / (maxX - minX)},
+                                   {QStringLiteral("y"), (point.y - minY) / (maxY - minY)}});
     }
     return list;
 }
