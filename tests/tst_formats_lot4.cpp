@@ -1,7 +1,7 @@
 // Champs du lot 4 en .actcraft (L4-T6) : préréglage et points intelligents d'une forme, texte de haut en bas,
 // hauteur d'origine d'une page. Clés facultatives de actcraft-document/1 : écrites seulement hors défaut,
 // lues comme des clés connues (jamais rangées parmi les clés inconnues gardées, L2-C8). Texte de haut en bas
-// d'un .flipchart (L4-T24, D9).
+// d'un .flipchart (L4-T24, D9). Zones de page (L4-T27, D11).
 #include "support/flipchartwriter.h"
 
 #include <actcraft/core/document.h>
@@ -9,6 +9,7 @@
 #include <actcraft/core/pageedits.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/formats/flipchart.h>
+#include <actcraft/formats/nativefile.h>
 #include <actcraft/formats/nativejson.h>
 
 #include <QJsonArray>
@@ -27,7 +28,8 @@ using namespace Qt::StringLiterals;
 namespace {
 
 // Clés du lot 4, sous la forme compacte « "clé": » : une valeur de texte égale à un nom ne les imite pas.
-constexpr const char* kLot4Keys[] = {"\"preset\":", "\"parameters\":", "\"vertical\":", "\"baseHeight\":"};
+constexpr const char* kLot4Keys[] = {
+    "\"preset\":", "\"parameters\":", "\"vertical\":", "\"baseHeight\":", "\"zones\":"}; // « zones » : L4-T27
 
 core::Document sample()
 {
@@ -363,6 +365,111 @@ private slots:
             QJsonDocument(written.at(3).toObject()).toJson(QJsonDocument::Compact);
         QCOMPARE(writtenWithoutId, QJsonDocument(withoutId).toJson(QJsonDocument::Compact));
         QCOMPARE(writtenTextId, QJsonDocument(textId).toJson(QJsonDocument::Compact));
+    }
+
+    // L4-T27 (D11, amendement 5) : 2 × 1 cadres de 500 × 600 écrits sous « zones », relus tels quels, taille
+    // comprise ; un document sans zones n'a pas la clé. Le lecteur passe par clampZones : des valeurs hors
+    // bornes dans le fichier sont ramenées (D11, H4-20), jamais gardées telles quelles.
+    void zonesRoundTrip()
+    {
+        core::Document d = plain();
+        d.page(0).zones =
+            core::PageZones{.horizontal = 2, .vertical = 1, .frameWidth = 500, .frameHeight = 600};
+        const QJsonObject root = formats::documentToJson(d);
+        const QJsonObject written = firstPage(root).value(u"zones"_s).toObject();
+        QCOMPARE(written.size(), qsizetype{4});
+        QCOMPARE(written.value(u"horizontal"_s).toInt(), 2);
+        QCOMPARE(written.value(u"vertical"_s).toInt(), 1);
+        QCOMPARE(written.value(u"frameWidth"_s).toDouble(), 500.0);
+        QCOMPARE(written.value(u"frameHeight"_s).toDouble(), 600.0);
+        const ReadBack back = readBack(root);
+        QVERIFY2(back.result.ok && back.result.warnings.isEmpty(), qPrintable(report(back.result)));
+        const core::PageZones& z = back.document.page(0).zones;
+        QCOMPARE(z.horizontal, 2);
+        QCOMPARE(z.vertical, 1);
+        QCOMPARE(z.frameWidth, 500.0);
+        QCOMPARE(z.frameHeight, 600.0);
+        QCOMPARE(core::fingerprint(back.document), core::fingerprint(d));
+        QVERIFY(!firstPage(formats::documentToJson(plain())).contains(u"zones"_s));
+        // Par l'archive .actcraft entière (document.json dans le zip) : mêmes zones, même empreinte.
+        QString error;
+        const QByteArray archive = formats::encodeActcraft(d, {}, &error);
+        QVERIFY2(!archive.isEmpty(), qPrintable(error));
+        const formats::DecodeResult opened = formats::decodeActcraft(archive);
+        QVERIFY2(opened.ok && opened.warnings.isEmpty(),
+                 qPrintable(opened.error + opened.warnings.join(u'\n')));
+        QCOMPARE(opened.document.page(0).zones.horizontal, 2);
+        QCOMPARE(opened.document.page(0).zones.frameHeight, 600.0);
+        QCOMPARE(core::fingerprint(opened.document), core::fingerprint(d));
+
+        QJsonObject page = firstPage(root);
+        page.insert(u"zones"_s, QJsonObject{{u"horizontal"_s, 99},
+                                            {u"vertical"_s, -3},
+                                            {u"frameWidth"_s, 400},
+                                            {u"frameHeight"_s, -1}});
+        QJsonObject wild = root;
+        wild.insert(u"pages"_s, QJsonArray{page});
+        const ReadBack clamped = readBack(wild);
+        QVERIFY2(clamped.result.ok, qPrintable(report(clamped.result)));
+        const core::PageZones& c = clamped.document.page(0).zones;
+        QCOMPARE(c.horizontal, 40);
+        QCOMPARE(c.vertical, 0);
+        QCOMPARE(c.frameWidth, 500.0);
+        QCOMPARE(c.frameHeight, 0.0);
+        QVERIFY2(clamped.document.page(0).unknownKeys.empty(), clamped.document.page(0).unknownKeys.c_str());
+    }
+
+    // Valeur de « zones » mal formée (L4-T27) : la règle commune des valeurs lues
+    // (invalidValuesWarnAndFallBack) : un avertissement qui la nomme, le défaut, rien de gardé en inconnu.
+    // Discrimine le patron écarté d'une « zones » qui n'est pas un objet gardée telle quelle parmi les clés
+    // inconnues.
+    void invalidZonesWarnAndFallBack()
+    {
+        const auto readWith = [](const QJsonValue& zones) {
+            QJsonObject root = formats::documentToJson(plain());
+            QJsonArray pages = root.value(u"pages"_s).toArray();
+            QJsonObject page = pages.at(0).toObject();
+            page.insert(u"zones"_s, zones);
+            pages.replace(0, page);
+            root.insert(u"pages"_s, pages);
+            return readBack(root);
+        };
+        for (const QJsonValue& notAnObject :
+             {QJsonValue(QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}}), QJsonValue(3)}) {
+            const ReadBack back = readWith(notAnObject);
+            QVERIFY2(back.result.ok, qPrintable(back.result.error));
+            QCOMPARE(back.result.warnings.size(), qsizetype{1});
+            QVERIFY2(back.result.warnings.first().contains(u"« zones »"_s), qPrintable(report(back.result)));
+            const core::Page& page = back.document.page(0);
+            QVERIFY(core::isDefault(page.zones));
+            QVERIFY2(page.unknownKeys.empty(), page.unknownKeys.c_str());
+        }
+        const ReadBack half = readWith(QJsonObject{
+            {u"horizontal"_s, 2.5}, {u"vertical"_s, 2}, {u"frameWidth"_s, 0}, {u"frameHeight"_s, 0}});
+        QVERIFY2(half.result.ok, qPrintable(half.result.error));
+        QCOMPARE(half.result.warnings.size(), qsizetype{1});
+        QVERIFY2(half.result.warnings.first().contains(u"« horizontal »"_s), qPrintable(report(half.result)));
+        const core::Page& page = half.document.page(0);
+        QCOMPARE(page.zones.horizontal, 0);
+        QCOMPARE(page.zones.vertical, 2);
+        QVERIFY2(page.unknownKeys.empty(), page.unknownKeys.c_str());
+    }
+
+    // Amendement 5 (trouvé par L4-T6) : « zones », omise à zéro, est dans le gabarit everyPageKey avec ses
+    // quatre sous-clés hors défaut ; sinon elle serait lue comme inconnue (unknownKeys) et l'empreinte
+    // changerait.
+    void zonesKeyIsKnown()
+    {
+        core::Document d = plain();
+        d.page(0).zones =
+            core::PageZones{.horizontal = 2, .vertical = 3, .frameWidth = 500, .frameHeight = 600};
+        ReadBack back = readBack(formats::documentToJson(d));
+        QVERIFY2(back.result.ok && back.result.warnings.isEmpty(), qPrintable(report(back.result)));
+        core::Page& page = back.document.page(0);
+        QVERIFY2(page.unknownKeys.empty(), page.unknownKeys.c_str());
+        QCOMPARE(core::fingerprint(back.document), core::fingerprint(d));
+        page.zones = core::PageZones{}; // remise au défaut : plus de clé « zones » dans le fichier réécrit
+        QVERIFY(!bytes(back.document).contains("\"zones\":"));
     }
 };
 

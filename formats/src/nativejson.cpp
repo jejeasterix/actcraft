@@ -1,3 +1,4 @@
+#include <actcraft/core/pagezones.h>
 #include <actcraft/formats/nativejson.h>
 
 #include <QJsonArray>
@@ -786,10 +787,20 @@ QJsonObject presentationJson(const PagePresentation& presentation)
     return withKept(j, unknownKeys);
 }
 
+// Zones de page (L4-T27, D11) : les quatre sous-clés, toujours ensemble.
+QJsonObject zonesJson(const PageZones& zones)
+{
+    const auto& [horizontal, vertical, frameWidth, frameHeight] = zones;
+    return QJsonObject{{u"horizontal"_s, horizontal},
+                       {u"vertical"_s, vertical},
+                       {u"frameWidth"_s, frameWidth},
+                       {u"frameHeight"_s, frameHeight}};
+}
+
 QJsonObject pageJson(const Page& page)
 {
-    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys,
-                 baseHeight] = page; // baseHeight : L4-T6
+    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight,
+                 zones] = page; // baseHeight : L4-T6 ; zones : L4-T27
     QJsonObject j;
     j.insert(u"width"_s, width);
     j.insert(u"height"_s, height);
@@ -801,6 +812,9 @@ QJsonObject pageJson(const Page& page)
     const auto& [fill, image] = background;
     j.insert(u"background"_s, QJsonObject{{u"fill"_s, fillJson(fill)}, {u"image"_s, str(image)}});
     j.insert(u"grid"_s, gridJson(grid));
+    if (!isDefault(zones)) {
+        j.insert(u"zones"_s, zonesJson(zones)); // facultative (L4-T27) : absente, aucune zone
+    }
     if (!isDefault(presentation)) {
         j.insert(u"presentation"_s, presentationJson(presentation)); // absente : réglages par défaut
     }
@@ -1566,11 +1580,24 @@ PagePresentation readPresentation(Reader& r, const QJsonObject& j)
     return presentation;
 }
 
+// Zones de page (L4-T27) : absentes, aucune. Bornées par clampZones (D11, H4-20) sans avertissement ; un
+// nombre mal formé en a un et garde le défaut, comme toute valeur lue.
+PageZones readZones(Reader& r, const QJsonObject& j)
+{
+    PageZones zones;
+    auto& [horizontal, vertical, frameWidth, frameHeight] = zones;
+    horizontal = r.readInteger(j, u"horizontal", horizontal);
+    vertical = r.readInteger(j, u"vertical", vertical);
+    frameWidth = r.readNumber(j, u"frameWidth", frameWidth);
+    frameHeight = r.readNumber(j, u"frameHeight", frameHeight);
+    return clampZones(zones);
+}
+
 Page readPage(Reader& r, const QJsonObject& j)
 {
     Page page;
-    auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight] =
-        page; // baseHeight : L4-T6
+    auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight,
+           zones] = page; // baseHeight : L4-T6 ; zones : L4-T27
     // « presentation » est lue par readPresentation, qui garde ses sous-clés inconnues ; hors des clés
     // inconnues de la page : pageJson(Page{}) ne l'écrit pas, elle y serait gardée en double et réécrite même
     // remise aux réglages par défaut.
@@ -1588,6 +1615,7 @@ Page readPage(Reader& r, const QJsonObject& j)
     fill = r.readFill(jb, u"fill", fill);
     image = r.readString(jb, u"image");
     grid = readGrid(r, r.readChild(j, u"grid"));
+    zones = readZones(r, r.readChild(j, u"zones"));
     const QJsonArray list = r.readArray(j, u"objects");
     const QString pageWhere = r.where;
     for (qsizetype i = 0; i < list.size(); ++i) {
@@ -1699,6 +1727,10 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
     }
     Page everyPageKey;
     everyPageKey.baseHeight = 1; // « baseHeight » n'est écrite que hors défaut (L4-T6)
+    everyPageKey.zones = PageZones{.horizontal = 1,
+                                   .vertical = 1,
+                                   .frameWidth = 1,
+                                   .frameHeight = 1}; // « zones » n'est écrite que hors défaut (L4-T27)
     known.page = pageJson(everyPageKey);
     PagePresentation everyPresentationKey;
     everyPresentationKey.hasOrigin = true;

@@ -573,7 +573,7 @@ private slots:
         const QJsonObject page{{u"width"_s, 1024},
                                {u"height"_s, 768},
                                {u"objects"_s, QJsonArray{shape, unknown, line}},
-                               {u"zones"_s, QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}}}};
+                               {u"futureLayout"_s, QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}}}};
         const QJsonObject root{
             {u"format"_s, u"actcraft-document/1.3"_s},
             {u"title"_s, u"Plus récent"_s},
@@ -626,7 +626,7 @@ private slots:
         const QJsonObject savedRoot = QJsonDocument::fromJson(savedJson).object();
         const QJsonObject savedPage = savedRoot.value(u"pages"_s).toArray().at(0).toObject();
         QCOMPARE(savedRoot.value(u"restrictions"_s), root.value(u"restrictions"_s));
-        QCOMPARE(savedPage.value(u"zones"_s), page.value(u"zones"_s));
+        QCOMPARE(savedPage.value(u"futureLayout"_s), page.value(u"futureLayout"_s));
         QCOMPARE(savedPage.value(u"objects"_s).toArray().at(2).toObject().value(u"dashOffset"_s).toInt(), 2);
     }
 

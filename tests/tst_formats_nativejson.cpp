@@ -414,8 +414,11 @@ private slots:
         }
         {
             const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys,
-                         baseHeight] = d.page(1);
+                         baseHeight, zones] = d.page(1);
             QVERIFY(width != 1024 && height != 768 && objects.empty() && !name.empty() && !notes.empty());
+            // Zones de page (L4-T27) : jamais dans le document riche, dont les clés sont figées (référence) ;
+            // leur aller-retour : zonesRoundTrip, zonesKeyIsKnown (tst_formats_lot4).
+            QVERIFY(isDefault(zones));
             // Réglages de présentation : jamais dans le document riche, dont les clés sont figées (référence)
             // ; leur aller-retour : presentationRoundTrip, unknownPresentationKeyKept.
             QVERIFY(isDefault(presentation));
@@ -812,7 +815,7 @@ private slots:
         o.insert(u"pen"_s, pen);
         root = withObject(root, 0, 3, o);
         QJsonObject p = page(root, 0);
-        p.insert(u"zones"_s, QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}});
+        p.insert(u"futureLayout"_s, QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}});
         QJsonObject background = p.value(u"background"_s).toObject();
         background.insert(u"blur"_s, 4);
         p.insert(u"background"_s, background);
