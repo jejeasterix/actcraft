@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793058568.2826197,
-    "ast_hash": "cc80489f0bb0247653a634e921875b0d",
+    "mtime": 1793058693.160044,
+    "ast_hash": "4f71f9d5712697f55da6f662c97a0fe5",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -1410,8 +1410,8 @@
     "semantic_hash": ""
   },
   "render/src/pagepainter.cpp": {
-    "mtime": 1792603320.2279756,
-    "ast_hash": "f8845d2651ae52f103f54b7acf5856e8",
+    "mtime": 1793061229.872824,
+    "ast_hash": "6dcedc250134fb761a42a3a5332da856",
     "semantic_hash": ""
   },
   "render/src/paintedrenderer.cpp": {
@@ -2295,8 +2295,8 @@
     "semantic_hash": ""
   },
   "tests/tst_render_verticaltext.cpp": {
-    "mtime": 1792603320.2479846,
-    "ast_hash": "93b159ba49da756684f29b71f3d68fe0",
+    "mtime": 1793061229.876407,
+    "ast_hash": "49143e8d74dc776ebe178c52b654d82f",
     "semantic_hash": ""
   },
   "tests/tst_tools_shape.cpp": {
