@@ -1006,10 +1006,12 @@ bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
     const Qt::MouseButton button = step.button;
+    QPoint lastPoint;
     const bool sent = gestures().pointerPath(
         step.points,
-        [this, button](GesturePhase phase, QPointF position) {
+        [this, button, &lastPoint](GesturePhase phase, QPointF position) {
             const QPoint point = position.toPoint();
+            lastPoint = point;
             switch (phase) {
             case GesturePhase::Press:
                 QTest::mousePress(m_window, button, Qt::NoModifier, point);
@@ -1024,6 +1026,16 @@ bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
         },
         step.holdMs, step.windowSpace ? PointSpace::Window : PointSpace::Page);
     QCoreApplication::instance()->removeEventFilter(&witness);
+    // Qt Quick ne met pas à jour le survol (HoverHandler) pendant un geste à bouton enfoncé, et celui du
+    // point de relâchement n'arrive que bien après (mesuré : 300 ms, et un déplacement sur le même point est
+    // ignoré) : une capture lisait le survol d'un point intermédiaire. Le geste se termine donc par deux
+    // déplacements sans bouton, un pixel à côté puis sur le point du relâchement, livrés à l'envoi : le
+    // survol est à jour au retour, sans attente à durée fixe. Les outils ne lisent que les déplacements à
+    // bouton enfoncé.
+    if (sent) {
+        QTest::mouseMove(m_window, lastPoint + QPoint(1, 0));
+        QTest::mouseMove(m_window, lastPoint);
+    }
     const bool ok = sent && witness.press == 1 && witness.release == 1 && witness.pressButton == step.button;
     report << (ok ? head + QStringLiteral(" OK")
                   : head + QStringLiteral(" ECHEC (la fenêtre a reçu %1 appui(s) et %2 relâché(s), 1 et 1 "
