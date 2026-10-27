@@ -190,6 +190,10 @@ Arrêt de vague du 2026-10-27 pour une bascule sur le Mac, annulé le même jour
 - L7-T30 et L7-T31 (mergées) : annotation du bureau à l'écran (transparence D3D11, toujours devant, passage des clics, contenu de la capture avec délai de 250 ms, fenêtre principale réduite à la palette et rendue, roue, anneaux, fenêtre « Reprendre l'annotation »).
 
 
+## Pause après le lot 7 (2026-10-27, vers 22 h 05)
+
+Décision de Jérôme relayée mot pour mot par le Pilote : « Si actcraft fini un lot ne lance pas le suivant, on va faire une pause ». Application : finir le lot 7 jusqu'au bout (tâches, merges, clôture, état), prévenir A, puis ne lancer aucun autre lot ni tâche ; arrêt au repos, sans sous-agent ni tâche de fond ; une ligne au Pilote à l'arrêt.
+
 ## Redémarrage du PC (2026-10-27)
 
 **Reprise (2026-10-27 vers 17 h, handoff `~/.claude/handoffs/4de983e7-…md`)** : RAM libre 0,4 Go, deux chantiers au registre → P = 1. Place `tests` tenue par un PID mort (L7-T29) reprise. L7-T29 relancée (concepteur-critique, même essai) ; L7-T28 attend la place de B (build froid), relancée à la fin des constructions de L7-T29.
