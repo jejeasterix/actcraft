@@ -107,8 +107,9 @@ Item {
                 anchors.fill: parent
             }
 
-            // Lot 4 : grille du dessus (F-620), au-dessus de l'encre en cours (observation de l'original, L4-O2 : elle couvre tout ce qui est posé, le trait en cours compris, H4-22), hors de la scène que le
-            // cache photographie. Talon : L4-T7 la remplit. Sans `z:` : l'ordre des enfants fait l'empilement.
+            // Lot 4 : grille du dessus (F-620), au-dessus de l'encre en cours (observation de l'original, L4-O2 :
+            // elle couvre tout ce qui est posé, le trait en cours compris, H4-22), hors de la scène que le cache
+            // photographie. Sans `z:` : l'ordre des enfants fait l'empilement.
             GridOverlay {
                 id: gridOverlayItem
                 objectName: "gridOverlay"

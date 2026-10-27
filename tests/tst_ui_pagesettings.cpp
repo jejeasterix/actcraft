@@ -8,6 +8,7 @@
 #include <actcraft/ui/toolhost.h>
 
 #include <QQmlApplicationEngine>
+#include <QQuickItem>
 #include <QQuickWindow>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -20,6 +21,7 @@
 #include <limits>
 #include <memory>
 #include <utility>
+#include <vector>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
@@ -89,6 +91,27 @@ struct Rig
     }
     double spacing(int page) const { return grid(page).levels.at(0).spacingX; }
 };
+
+// Élément visuel nommé, cherché dans le contenu d'une fenêtre flottante (ses éléments ne sont pas enfants
+// QObject de la fenêtre).
+QObject* findItem(QObject* popup, const QString& name)
+{
+    std::vector<QQuickItem*> todo{popup->property("contentItem").value<QQuickItem*>()};
+    while (!todo.empty()) {
+        QQuickItem* item = todo.back();
+        todo.pop_back();
+        if (!item) {
+            continue;
+        }
+        if (item->objectName() == name) {
+            return item;
+        }
+        for (QQuickItem* child : item->childItems()) {
+            todo.push_back(child);
+        }
+    }
+    return nullptr;
+}
 
 } // namespace
 
@@ -311,7 +334,8 @@ private slots:
     }
 
     // La boîte réelle : les coches de « Cacher la grille », « Aimanter » et « Poignée d'allongement » suivent
-    // l'état (y compris l'annulation), le créateur règle l'angle libre, le bouton de niveau n'est pas à bascule.
+    // l'état (y compris l'annulation), le créateur règle l'angle libre, le bouton de niveau n'est pas à
+    // bascule.
     void gridCommandsAreChecked()
     {
         QQmlApplicationEngine engine;
@@ -323,7 +347,8 @@ private slots:
         QVERIFY(window);
         auto* tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
         QVERIFY(tools);
-        tools->setSettingsFile(m_dir.filePath(QStringLiteral("reglages-coches.ini"))); // jamais le profil réel
+        tools->setSettingsFile(
+            m_dir.filePath(QStringLiteral("reglages-coches.ini"))); // jamais le profil réel
         auto* options = window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
         auto* document = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
         auto* commands = window->findChild<ui::Commands*>(QStringLiteral("commands"));
@@ -345,12 +370,12 @@ private slots:
         QVERIFY(!commands->isChecked(hide));
 
         // Bouton de niveau : à pression simple, pas à bascule (un second clic ne le décoche pas).
-        QObject* levelButton = designer->findChild<QObject*>(QStringLiteral("gridLevelButton0"));
+        QObject* levelButton = findItem(designer, QStringLiteral("gridLevelButton0"));
         QVERIFY(levelButton);
         QVERIFY(!levelButton->property("checkable").toBool());
 
         // Angle libre : réglage visible seulement avec le style « Angle libre », écrit dans le niveau.
-        QObject* angle = designer->findChild<QObject*>(QStringLiteral("gridAngle"));
+        QObject* angle = findItem(designer, QStringLiteral("gridAngle"));
         QVERIFY(angle);
         QVERIFY(!angle->property("visible").toBool()); // style « Normal »
         QVariantMap map = options->grid();

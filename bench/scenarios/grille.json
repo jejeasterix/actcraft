@@ -4,6 +4,11 @@
   "description": "S7.2 : créateur de grille, grille du dessus cachée sans redessin du cache, grille du dessous cachée avec un redessin.",
   "steps": [
     {"waitReady": true},
+    {"command": "tool.shape"},
+    {"command": "shape.choose", "argument": "rectangle"},
+    {"pointer": [[200, 200], [300, 260], [400, 320]]},
+    {"waitReady": true},
+    {"expect": "documentController.shownObjectCount", "value": 1},
     {"command": "grid.designer"},
     {"expect": "gridDesigner.visible", "value": true},
     {"expect": "appPageSettings.gridVisible", "value": true},

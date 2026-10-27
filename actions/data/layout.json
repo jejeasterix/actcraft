@@ -2,7 +2,7 @@
   "format": "actcraft-layout/1",
   "menus": [
     { "id": "file", "label": "Fichier", "items": ["file.new", "file.new-screen", "file.new-1024x768", "file.new-1152x864", "file.new-1280x1024", "file.new-custom", "-", "file.open", "-", "file.save", "file.save-as", "-", "file.close", "-", "file.quit"] },
-    { "id": "edit", "label": "Éditer", "items": ["edit.undo", "edit.redo", "-", "edit.delete", "edit.select-all", "-",
+    { "id": "edit", "label": "Éditer", "items": ["edit.undo", "edit.redo", "-", "edit.delete", "edit.select-all", "-", "grid.designer", "-",
       { "submenu": "clear", "label": "Effacer", "items": ["clear.annotations", "clear.objects", "clear.grid", "clear.background", "clear.page"] },
       "page.revert"] },
     { "id": "view", "label": "Affichage", "items": ["view.fullscreen", "-", "page.previous", "page.next", "-", "view.fit", "-", "view.page-zoom", "view.page-effects", "-", "view.trash", "-", "view.browsers", "view.page-extension"] },

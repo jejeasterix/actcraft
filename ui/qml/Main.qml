@@ -108,6 +108,23 @@ Window {
         function onDocumentChanged() { root.syncEditCommands() }
         function onCanRevertPageChanged() { root.syncEditCommands() }
     }
+    // Coches des commandes de grille et de poignée : elles suivent l'état (commande, annulation, changement de
+    // page). « Cacher la grille » n'est cochée que pour une grille qui existe et que l'on a cachée.
+    Connections {
+        target: appPageSettings
+        function onChanged() { root.syncGridCommands() }
+    }
+    Connections {
+        target: pageArea.pageExtensionHandle
+        function onVisibleChanged() {
+            appCommands.setChecked("view.page-extension", pageArea.pageExtensionHandle.visible)
+        }
+    }
+    function syncGridCommands() {
+        const levels = appPageSettings.grid.levels
+        appCommands.setChecked("grid.hide", !appPageSettings.gridVisible && !!levels && levels.length > 0)
+        appCommands.setChecked("grid.snap", appPageSettings.gridSnap)
+    }
     function syncEditCommands() {
         appCommands.setEnabled("edit.undo", appDocument.canUndo)
         appCommands.setEnabled("edit.redo", appDocument.canRedo)
@@ -442,6 +459,8 @@ Window {
         appCommands.setHandler("view.page-extension", function () {
             pageArea.pageExtensionHandle.visible = !pageArea.pageExtensionHandle.visible
         })
+        root.syncGridCommands()
+        appCommands.setChecked("view.page-extension", pageArea.pageExtensionHandle.visible)
         appCommands.setHandler("page.extend", function () { appPageSettings.extendPage() })
         appCommands.setHandler("page.zones", function (zones) { appPageSettings.setZones(zones) })
         appCommands.setChecked("tool.pen", true) // F-200 : le stylo est l'outil de départ

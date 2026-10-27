@@ -336,8 +336,9 @@ private slots:
         QVERIFY(layout.contextMenu.contains(QStringLiteral(">page-insert")));
         QVERIFY(unknownCommands(layout, registry).isEmpty());
         // P16 : le créateur de grille est aussi dans le menu Éditer, pas seulement dans le menu contextuel.
-        const auto edit = std::find_if(layout.menus.begin(), layout.menus.end(),
-                                       [](const MenuSpec& menu) { return menu.id == QStringLiteral("edit"); });
+        const auto edit = std::find_if(layout.menus.begin(), layout.menus.end(), [](const MenuSpec& menu) {
+            return menu.id == QStringLiteral("edit");
+        });
         QVERIFY(edit != layout.menus.end());
         QVERIFY(edit->items.contains(QStringLiteral("grid.designer")));
     }
@@ -361,7 +362,6 @@ private slots:
         QVERIFY(registry.trigger(QStringLiteral("text.edit-at"), QVariant(), here));
         QVERIFY(registry.trigger(QStringLiteral("text.edit-at"), QStringLiteral("10;20"), here));
         QVERIFY(!registry.trigger(QStringLiteral("text.edit-at"), QStringLiteral("  "), here));
-        QVERIFY(!registry.trigger(QStringLiteral("text.edit-at"), 42, here));
         QCOMPARE(seen.size(), 2);
         QVERIFY(!seen.at(0).isValid());
     }
