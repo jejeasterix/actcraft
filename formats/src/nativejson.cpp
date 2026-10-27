@@ -707,13 +707,21 @@ void writeBody(QJsonObject&, const UnknownObject&) {}
 
 QJsonObject objectJson(const PageObject& object)
 {
-    // Type inconnu de cette version (L2-C8) : le JSON lu, tel quel ; ni « type » ni clés communes regénérés
-    // depuis le modèle (writeCommon ajouterait les clés que le fichier n'a pas).
+    // Type inconnu de cette version (L2-C8) : le JSON lu, tel quel, hors son identifiant (L4-C4). Ni son type
+    // ni ses autres clés communes ne sont regénérés depuis le modèle : writeCommon ajouterait les clés que le
+    // fichier n'a pas.
     if (const auto* unknown = std::get_if<UnknownObject>(&object)) {
         QJsonObject kept = keptObject(unknown->json);
         if (kept.isEmpty()) {
             // Texte gardé illisible (le lecteur n'en produit jamais) : son type seul.
             kept.insert(u"type"_s, str(unknown->type));
+        }
+        // L4-C4 : l'identifiant courant (neuf après un collage, withFreshIds), jamais celui du JSON
+        // d'origine. Les références que ce JSON ferait à d'autres objets ne sont pas réécrites : on ne les
+        // connaît pas. Un identifiant nul (« id » absent ou illisible, readId) n'est pas écrit : l'objet
+        // garde les octets lus ; après withFreshIds, l'identifiant n'est jamais nul.
+        if (object.common.id != 0) {
+            kept.insert(u"id"_s, idValue(object.common.id));
         }
         return kept;
     }
@@ -1459,8 +1467,8 @@ std::optional<RectF> readBox(const QJsonValue& v)
 }
 
 // Objet d'un type inconnu (L2-C8) : gardé tel quel, toutes ses clés, à sa place. Ses propriétés communes sont
-// lues pour la couche, l'ordre, l'identifiant et le repère, jamais réécrites d'après le modèle. Rien de ce
-// qu'il cite n'est chargé.
+// lues pour la couche, l'ordre, l'identifiant et le repère, jamais réécrites d'après le modèle, sauf
+// l'identifiant (objectJson écrit le courant, L4-C4). Rien de ce qu'il cite n'est chargé.
 PageObject readUnknown(Reader& r, const QJsonObject& j, const QString& type)
 {
     UnknownObject unknown;

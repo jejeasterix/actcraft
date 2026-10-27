@@ -6,6 +6,8 @@
 
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/pageedits.h>
+#include <actcraft/core/undo.h>
 #include <actcraft/formats/flipchart.h>
 #include <actcraft/formats/nativejson.h>
 
@@ -14,8 +16,10 @@
 #include <QJsonObject>
 #include <QtTest>
 
+#include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 using namespace actcraft;
 using namespace Qt::StringLiterals;
@@ -271,6 +275,94 @@ private slots:
         for (const auto& [key, resource] : r.document.resources()) {
             QVERIFY2(!resource.data.contains("SOURCE-OPAQUE"), key.c_str());
         }
+    }
+
+    // L4-C4 : un objet de type inconnu est réécrit depuis son JSON d'origine ; son identifiant courant y
+    // remplace celui du JSON. Sans cela, la page collée (identifiants neufs, withFreshIds) garde dans le
+    // fichier l'identifiant de sa source : doublon à la relecture. Discrimine aussi le patron écarté,
+    // regénérer l'objet par writeCommon : l'objet à venir n'a pas de « label », que writeCommon ajouterait.
+    // Seule la clé « id » change, et l'objet source, dont l'identifiant n'a pas bougé, s'écrit avec les
+    // octets lus.
+    void unknownObjectWritesItsCurrentId()
+    {
+        QJsonObject root = formats::documentToJson(plain());
+        QJsonArray pages = root.value(u"pages"_s).toArray();
+        QJsonObject page = pages.at(0).toObject();
+        QJsonArray objects = page.value(u"objects"_s).toArray();
+        QJsonObject future = objects.at(0).toObject(); // clés communes écrites par cette version
+        future.insert(u"type"_s, u"objet-a-venir"_s);
+        future.insert(u"id"_s, 9);
+        QVERIFY(future.contains(u"label"_s));
+        future.remove(u"label"_s); // clé commune absente du fichier d'une version future
+        objects.append(future);
+        page.insert(u"objects"_s, objects);
+        pages.replace(0, page);
+        root.insert(u"pages"_s, pages);
+        ReadBack back = readBack(root);
+        QVERIFY2(back.result.ok, qPrintable(report(back.result)));
+        core::Document& d = back.document;
+        QCOMPARE(d.page(0).objects.size(), std::size_t{3});
+        QCOMPARE(d.page(0).objects[2].common.id, core::ObjectId{9});
+        core::UndoStack stack;
+        stack.push(d, std::make_unique<core::InsertPagesCommand>(1, std::vector<core::Page>{d.page(0)}));
+        QCOMPARE(d.pageCount(), std::size_t{2});
+        const core::ObjectId fresh = d.page(1).objects[2].common.id;
+        QVERIFY(fresh != 0 && fresh != core::ObjectId{9});
+        const QJsonObject written = formats::documentToJson(d);
+        const QJsonArray writtenPages = written.value(u"pages"_s).toArray();
+        const QJsonObject source =
+            writtenPages.at(0).toObject().value(u"objects"_s).toArray().at(2).toObject();
+        const QJsonObject copied =
+            writtenPages.at(1).toObject().value(u"objects"_s).toArray().at(2).toObject();
+        QCOMPARE(copied.value(u"id"_s).toDouble(), static_cast<double>(fresh)); // rouge avant le correctif
+        QCOMPARE(copied.value(u"type"_s).toString(), u"objet-a-venir"_s);
+        // Rouge sous writeCommon (« label » ajouté) : le JSON d'origine, la clé « id » seule remplacée.
+        QJsonObject expected = future;
+        expected.insert(u"id"_s, static_cast<double>(fresh));
+        QCOMPARE(QJsonDocument(copied).toJson(QJsonDocument::Compact),
+                 QJsonDocument(expected).toJson(QJsonDocument::Compact));
+        QCOMPARE(QJsonDocument(source).toJson(QJsonDocument::Compact),
+                 QJsonDocument(future).toJson(QJsonDocument::Compact));
+        ReadBack again = readBack(written);
+        QVERIFY2(again.result.ok, qPrintable(report(again.result)));
+        QCOMPARE(again.document.page(1).objects[2].common.id, fresh);
+        QCOMPARE(again.document.page(0).objects[2].common.id, core::ObjectId{9});
+    }
+
+    // L4-C4 (relecture) : un objet inconnu sans « id », ou d'un « id » que cette version ne sait pas lire (un
+    // texte), est lu avec l'identifiant 0 (readId) ; réécrit sans avoir été collé, il garde les octets lus.
+    // La clé « id » ne s'écrit que pour un identifiant courant non nul : après withFreshIds, il l'est
+    // toujours. Rouge si elle s'écrivait sans condition (« id »: 0 ajouté, ou le texte écrasé par 0).
+    void unknownObjectWithoutIdKeepsItsBytes()
+    {
+        QJsonObject root = formats::documentToJson(plain());
+        QJsonArray pages = root.value(u"pages"_s).toArray();
+        QJsonObject page = pages.at(0).toObject();
+        QJsonArray objects = page.value(u"objects"_s).toArray();
+        QJsonObject withoutId = objects.at(0).toObject();
+        withoutId.insert(u"type"_s, u"objet-a-venir"_s);
+        QVERIFY(withoutId.contains(u"id"_s));
+        withoutId.remove(u"id"_s);
+        QJsonObject textId = withoutId;
+        textId.insert(u"id"_s, u"a1b2"_s);
+        objects.append(withoutId);
+        objects.append(textId);
+        page.insert(u"objects"_s, objects);
+        pages.replace(0, page);
+        root.insert(u"pages"_s, pages);
+        const ReadBack back = readBack(root);
+        QVERIFY2(back.result.ok, qPrintable(report(back.result)));
+        QCOMPARE(back.document.page(0).objects.size(), std::size_t{4});
+        QCOMPARE(back.document.page(0).objects[2].common.id, core::ObjectId{0});
+        QCOMPARE(back.document.page(0).objects[3].common.id, core::ObjectId{0});
+        const QJsonArray written =
+            firstPage(formats::documentToJson(back.document)).value(u"objects"_s).toArray();
+        const QByteArray writtenWithoutId =
+            QJsonDocument(written.at(2).toObject()).toJson(QJsonDocument::Compact);
+        const QByteArray writtenTextId =
+            QJsonDocument(written.at(3).toObject()).toJson(QJsonDocument::Compact);
+        QCOMPARE(writtenWithoutId, QJsonDocument(withoutId).toJson(QJsonDocument::Compact));
+        QCOMPARE(writtenTextId, QJsonDocument(textId).toJson(QJsonDocument::Compact));
     }
 };
 
