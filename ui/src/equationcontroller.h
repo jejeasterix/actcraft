@@ -12,6 +12,7 @@
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
+#include <optional>
 #include <string>
 
 namespace actcraft::ui {
@@ -32,6 +33,7 @@ class EquationController : public QObject
     Q_PROPERTY(QString editorMathml READ editorMathml NOTIFY equationChanged)
     Q_PROPERTY(bool hasPlaceholder READ hasPlaceholder NOTIFY equationChanged)
     Q_PROPERTY(QSizeF editorSize READ editorSize NOTIFY equationChanged)
+    Q_PROPERTY(quint64 editingId READ editingId NOTIFY equationChanged)
     Q_PROPERTY(QString message READ message NOTIFY messageChanged)
     Q_PROPERTY(QVariantList palettes READ palettes CONSTANT)
     Q_PROPERTY(actcraft::ui::DocumentController* documentController READ documentController WRITE
@@ -45,6 +47,7 @@ public:
     bool hasPlaceholder() const;
     QSizeF editorSize() const; // taille naturelle de l'équation éditée, marques comprises
     QString message() const;
+    quint64 editingId() const noexcept; // identifiant de l'équation rééditée ; 0 : une équation neuve
     // Une entrée par catégorie : {id, label, entries: [{id, label, mathml}]} ; mathml : le modèle tel qu'il
     // s'insère (cases vides marquées), pour le dessin du bouton.
     static QVariantList palettes();
@@ -56,6 +59,11 @@ public:
     static QSizeF naturalSize(const std::string& mathml, double pointSize);
 
     Q_INVOKABLE void open(); // une nouvelle équation, une case vide
+    // Rouvre l'équation `id` de la page affichée : curseur à la fin, taille de police gardée. Faux, rien
+    // changé, si la page n'a pas d'équation de cet identifiant ou si son MathML ne se lit pas. accept() la
+    // remplace alors sous le même identifiant, en une étape ; sans modification (même MathML canonique qu'à
+    // l'ouverture) il ne touche pas au document : les octets d'origine restent.
+    Q_INVOKABLE bool edit(quint64 id);
     Q_INVOKABLE bool insertTemplate(const QString& id);
     Q_INVOKABLE void type(const QString& text);
     Q_INVOKABLE void backspace();
@@ -75,10 +83,14 @@ signals:
 private:
     void edited();
     void setMessage(const QString& message);
+    bool acceptEdit(const std::string& written);
 
     features::EquationEditor m_editor;
     QString m_message;
     QSizeF m_editorSize;
+    quint64 m_editId = 0;
+    double m_fontPoints = 24;
+    std::optional<std::string> m_baseline; // documentMathml() à l'ouverture en réédition
     QPointer<DocumentController> m_document;
 };
 
