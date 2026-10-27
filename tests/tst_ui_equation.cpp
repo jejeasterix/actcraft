@@ -6,6 +6,7 @@
 #include <actcraft/core/model.h>
 #include <actcraft/render/equationpaint.h>
 #include <actcraft/render/pagepainter.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 
 #include <QImage>
@@ -437,32 +438,52 @@ private slots:
 
     // Éditeur ouvert, un objet sélectionné sur la page : Suppr ne l'efface pas, Échap ferme l'éditeur sans
     // changer d'outil. Les raccourcis de l'application (edit.delete sur Suppr, tool.select sur Échap) ne
-    // partent pas d'une touche tapée dans l'éditeur. Témoin : l'éditeur fermé, Suppr efface la sélection.
+    // partent pas d'une touche tapée dans l'éditeur. Témoin : l'éditeur fermé, Suppr déclenche edit.delete.
     void editorKeysDoNotReachTheShortcuts()
     {
         MainWindow main;
         QVERIFY(main.window() != nullptr);
-        const int empty = main.pageObjectCount();
-        presentationharness::strokeAt(main.window(), Pointer::Mouse,
-                                      main.pageView()->pageToScene(QPointF(40, 700)),
-                                      main.pageView()->pageToScene(QPointF(140, 700)));
-        QTRY_COMPARE(main.pageObjectCount(), empty + 1);
-        QVERIFY(main.run(u"edit.select-all"_s));
+        auto* commands = main.window()->findChild<actcraft::ui::Commands*>(u"commands"_s);
+        QVERIFY(commands != nullptr);
+        QSignalSpy fired(commands, &actcraft::ui::Commands::triggered);
+        // Un raccourci d'application n'agit que dans une fenêtre active.
+        main.window()->requestActivate();
+        QVERIFY(QTest::qWaitForWindowActive(main.window()));
+        const auto deleteCount = [&fired] {
+            int n = 0;
+            for (const QList<QVariant>& call : fired) {
+                n += call.at(0).toString() == u"edit.delete"_s ? 1 : 0;
+            }
+            return n;
+        };
         const auto* tool = main.pageView()->currentTool();
+
+        // Témoin, éditeur fermé : Suppr déclenche edit.delete.
+        QTest::keyClick(main.window(), Qt::Key_Delete);
+        QTRY_COMPARE(deleteCount(), 1);
+
         QQuickItem* panel = openEditor(main);
         QVERIFY(panel != nullptr);
 
+        // Les deux touches sont jouées avant de conclure : un raccourci qui fuit est nommé, sans cacher
+        // l'autre.
+        QStringList leaks;
+
+        // Dans l'éditeur, Suppr efface la saisie et ne déclenche pas edit.delete.
         QTest::keyClick(main.window(), Qt::Key_Delete);
         QTest::qWait(50);
-        QCOMPARE(main.pageObjectCount(), empty + 1);
-        QVERIFY(panel->isVisible());
+        if (deleteCount() != 1) {
+            leaks << u"Suppr a déclenché edit.delete"_s;
+        }
+        QVERIFY(panel->isVisible() || deleteCount() != 1);
 
+        // Échap ferme l'éditeur sans changer d'outil.
         QTest::keyClick(main.window(), Qt::Key_Escape);
         QTRY_VERIFY(!panel->isVisible());
-        QVERIFY(main.pageView()->currentTool() == tool);
-
-        QTest::keyClick(main.window(), Qt::Key_Delete);
-        QTRY_COMPARE(main.pageObjectCount(), empty);
+        if (main.pageView()->currentTool() != tool) {
+            leaks << u"Échap a changé d'outil"_s;
+        }
+        QVERIFY2(leaks.isEmpty(), qPrintable(leaks.join(u" ; "_s)));
     }
 
     void equationEditorBlocksTheStylus_data() { presentationharness::addPointerRows(); }
