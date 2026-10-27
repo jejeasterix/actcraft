@@ -1026,11 +1026,12 @@ bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
         },
         step.holdMs, step.windowSpace ? PointSpace::Window : PointSpace::Page);
     QCoreApplication::instance()->removeEventFilter(&witness);
-    // Qt Quick ne met pas à jour le survol (HoverHandler) pendant un geste à bouton enfoncé, et celui du point de
-    // relâchement n'arrive que bien après (mesuré : 300 ms, et un déplacement sur le même point est ignoré) : une
-    // capture lisait le survol d'un point intermédiaire. Le geste se termine donc par deux déplacements sans bouton,
-    // un pixel à côté puis sur le point du relâchement, livrés à l'envoi : le survol est à jour au retour, sans
-    // attente à durée fixe. Les outils ne lisent que les déplacements à bouton enfoncé.
+    // Qt Quick ne met pas à jour le survol (HoverHandler) pendant un geste à bouton enfoncé, et celui du
+    // point de relâchement n'arrive que bien après (mesuré : 300 ms, et un déplacement sur le même point est
+    // ignoré) : une capture lisait le survol d'un point intermédiaire. Le geste se termine donc par deux
+    // déplacements sans bouton, un pixel à côté puis sur le point du relâchement, livrés à l'envoi : le
+    // survol est à jour au retour, sans attente à durée fixe. Les outils ne lisent que les déplacements à
+    // bouton enfoncé.
     if (sent) {
         QTest::mouseMove(m_window, lastPoint + QPoint(1, 0));
         QTest::mouseMove(m_window, lastPoint);
