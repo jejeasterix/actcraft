@@ -363,18 +363,76 @@ void TextEditing::setColumnDocument(QQuickTextDocument* document)
         return;
     }
     m_column = document;
+    m_columnHtml.clear();
+    m_columnCuts.clear();
     emit wiringChanged();
+    updateFrame(); // une édition en cours remplit la nouvelle colonne
 }
 
+// Le séparateur ajouté avant la position c du texte édité est, dans la colonne, à c + (séparateurs avant
+// lui).
 int TextEditing::columnPosition(int position, bool lineStart) const
 {
-    (void)lineStart;
-    return position;
+    const auto end = lineStart ? std::upper_bound(m_columnCuts.begin(), m_columnCuts.end(), position)
+                               : std::lower_bound(m_columnCuts.begin(), m_columnCuts.end(), position);
+    return position + static_cast<int>(end - m_columnCuts.begin());
 }
 
 int TextEditing::editPosition(int columnPosition) const
 {
-    return columnPosition;
+    int before = 0;
+    const int count = static_cast<int>(m_columnCuts.size());
+    while (before < count && m_columnCuts[static_cast<std::size_t>(before)] + before < columnPosition) {
+        ++before;
+    }
+    return columnPosition - before;
+}
+
+// Colonne montrée d'un texte de haut en bas (L4-C17) : une copie du texte édité, mise en page par le peintre
+// (render::layOutVerticalColumn, qui met un séparateur de ligne entre deux graphèmes). Le document édité n'en
+// reçoit aucun : Qt laisse un espace pendre au bout de la ligne de la lettre précédente, et aucune option de
+// mise en page du TextEdit d'entrée ne le met sur sa propre ligne (essayé sur Qt 6.12 : WrapAnywhere, largeur
+// infime, IncludeTrailingSpaces, ShowTabsAndSpaces). La largeur reste celle du TextEdit de la colonne.
+void TextEditing::updateColumn(const QString& html)
+{
+    QTextDocument* column = m_column ? m_column->textDocument() : nullptr;
+    const QTextDocument* doc = editDocument();
+    if (!column || html == m_columnHtml) {
+        return;
+    }
+    m_columnHtml = html;
+    m_columnCuts.clear();
+    if (html.isEmpty() || !doc) {
+        column->clear();
+        emit columnChanged();
+        return;
+    }
+    const qreal width = column->textWidth();
+    column->setHtml(html);
+    render::layOutVerticalColumn(*column);
+    if (width > 0) {
+        column->setTextWidth(width);
+    }
+    // Séparateurs de l'affichage : les caractères de la colonne que le texte édité n'a pas. Le peintre n'en
+    // met jamais à côté d'un séparateur tapé : à caractère égal, c'est le même.
+    const QString edited = doc->toRawText();
+    const QString shown = column->toRawText();
+    qsizetype i = 0;
+    for (qsizetype j = 0; j <= edited.size(); ++j) {
+        while (i < shown.size() && (j == edited.size() || shown[i] != edited[j]) &&
+               shown[i] == QChar::LineSeparator) {
+            m_columnCuts.push_back(static_cast<int>(j));
+            ++i;
+        }
+        if (j < edited.size()) {
+            if (i >= shown.size() || shown[i] != edited[j]) {
+                m_columnCuts.clear(); // copie inattendue : positions telles quelles plutôt que fausses
+                break;
+            }
+            ++i;
+        }
+    }
+    emit columnChanged();
 }
 
 int TextEditing::selectionStart() const noexcept
@@ -593,6 +651,7 @@ void TextEditing::finish()
     m_fixedWidth = 0;
     m_geometryChanged = false;
     m_initialHtml.clear();
+    updateColumn({});
 }
 
 // F-252, D7 : une étape au plus. Texte neuf vide : oublié, sans étape ; texte existant vidé : supprimé en une
@@ -821,8 +880,10 @@ void TextEditing::updateFrame()
     // largeur du texte à plat. Le TextEdit y replie à la plus petite avance : une lettre par ligne.
     QRectF next;
     qreal wrap = 0;
+    QString html;
     if (m_vertical) {
-        next = QRectF(m_frame.topLeft(), measuredColumn(doc->toHtml()));
+        html = doc->toHtml();
+        next = QRectF(m_frame.topLeft(), measuredColumn(html));
         wrap = narrowestAdvance(*doc);
     } else {
         const qreal width = m_fixedWidth > 0 ? m_fixedWidth : doc->idealWidth();
@@ -834,6 +895,7 @@ void TextEditing::updateFrame()
         m_wrapWidth = wrap;
         emit frameChanged();
     }
+    updateColumn(html); // après le cadre : la colonne QML a déjà sa largeur
 }
 
 void TextEditing::setFrameWidth(qreal width)

@@ -740,9 +740,10 @@ private slots:
     }
 
     // Une lettre par ligne pendant la frappe, comme le résultat validé (« Wii » : W large, deux i étroits ;
-    // « iWi », « lWl »). Un espace reste hors de ce contrat : Qt le laisse pendre au bout de la ligne de la
-    // lettre précédente, l'édition a alors une ligne de moins que le résultat). Le TextEdit du test prend la
-    // largeur de repli donnée par TextEditing, comme l'éditeur QML.
+    // « iWi », « lWl »). Un espace reste hors de ce contrat pour le TextEdit d'entrée : Qt le laisse pendre
+    // au bout de la ligne de la lettre précédente ; la colonne montrée le met sur sa ligne (L4-C17,
+    // verticalEditShowsSpacesLikeTheResult). Le TextEdit du test prend la largeur de repli donnée par
+    // TextEditing, comme l'éditeur QML.
     void verticalEditShowsOneLetterPerLine()
     {
         for (const QString& word : {QStringLiteral("Wii"), QStringLiteral("iWi"), QStringLiteral("lWl")}) {

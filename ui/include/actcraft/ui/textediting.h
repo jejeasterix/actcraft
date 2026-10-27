@@ -115,7 +115,8 @@ private:
     QTextCharFormat newTextFormat() const;
     core::RectF measuredBounds(const QString& safeHtml) const;
     void updateFrame();
-    void finish(); // fin d'édition (avant tout appel au contrôleur : réentrance)
+    void updateColumn(const QString& html); // colonne montrée ; html vide : vidée
+    void finish();                          // fin d'édition (avant tout appel au contrôleur : réentrance)
     void rememberFormat();
 
     QPointer<DocumentController> m_controller;
@@ -124,6 +125,7 @@ private:
     QPointer<QTextDocument> m_watched;     // document dont contentsChanged recalcule le cadre
     QPointer<QQuickTextDocument> m_column; // colonne montrée d'un texte de haut en bas
     std::vector<int> m_columnCuts;         // positions du texte édité où l'affichage ajoute un séparateur
+    QString m_columnHtml;                  // HTML de la colonne montrée : inchangé, rien n'est refait
     core::ObjectId m_editing = 0;          // 0 : texte neuf
     bool m_active = false;
     bool m_vertical = false;
