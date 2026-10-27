@@ -620,8 +620,8 @@ private slots:
         return QFontMetricsF(font).horizontalAdvance(QLatin1Char('W'));
     }
 
-    // Le cadre d'un texte de haut en bas est une colonne d'un caractère (largeur de L4-T24), pas la largeur du
-    // texte écrit à plat.
+    // Le cadre d'un texte de haut en bas est une colonne d'un caractère (largeur de L4-T24), pas la largeur
+    // du texte écrit à plat.
     void verticalFrameIsOneColumn()
     {
         Harness h;
@@ -630,15 +630,16 @@ private slots:
         const qreal wide = widestLetterAdvance();
         QVERIFY2(h.editing.frame().width() > 0, "cadre sans largeur");
         QVERIFY2(h.editing.frame().width() < 1.5 * wide,
-                 qPrintable(QStringLiteral("largeur %1, avance de W %2").arg(h.editing.frame().width()).arg(wide)));
+                 qPrintable(
+                     QStringLiteral("largeur %1, avance de W %2").arg(h.editing.frame().width()).arg(wide)));
         // La même frappe à plat reste large : la colonne vient bien du mode.
         h.editing.commit();
         QVERIFY(h.editing.beginAt({400, 400}, false));
         QVERIFY(h.editing.frame().width() > 3 * wide);
     }
 
-    // La largeur d'un texte de haut en bas ne se tire pas à la poignée (elle est masquée) et reste celle de la
-    // colonne même pour un texte rouvert (largeur imposée de l'objet).
+    // La largeur d'un texte de haut en bas ne se tire pas à la poignée (elle est masquée) et reste celle de
+    // la colonne même pour un texte rouvert (largeur imposée de l'objet).
     void verticalFrameKeepsItsWidth()
     {
         Harness h;
@@ -646,10 +647,12 @@ private slots:
         const qreal column = h.editing.frame().width();
         h.editing.setFrameWidth(300);
         QCOMPARE(h.editing.frame().width(), column);
+        QVERIFY(!h.editing.hasFixedWidth()); // la poignée masquée n'impose rien
         h.replaceAllText(QStringLiteral("ABC"));
         h.editing.commit();
         QCOMPARE(h.controller.shownObjectCount(), 1);
-        QVERIFY(h.editing.beginAt({201, 201}, false)); // rouvert : le drapeau de l'objet commande, pas l'appel
+        QVERIFY(
+            h.editing.beginAt({201, 201}, false)); // rouvert : le drapeau de l'objet commande, pas l'appel
         QVERIFY(h.editing.isVertical());
         QVERIFY(h.editing.frame().width() < 1.5 * widestLetterAdvance());
     }
@@ -675,7 +678,8 @@ private slots:
                  qPrintable(QString::number(text->bounds.height)));
     }
 
-    // La barre du texte de haut en bas : police, taille, gras, italique, souligné (F-301 b), cinq boutons nommés.
+    // La barre du texte de haut en bas : police, taille, gras, italique, souligné (F-301 b), cinq boutons
+    // nommés.
     void verticalBarOffersFiveCommands()
     {
         QQmlEngine engine;

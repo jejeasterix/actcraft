@@ -8,6 +8,7 @@
 #include <QByteArray>
 #include <QColor>
 #include <QFont>
+#include <QFontMetricsF>
 #include <QGuiApplication>
 #include <QImage>
 #include <QList>
@@ -17,8 +18,6 @@
 #include <QTextBlock>
 #include <QTextBoundaryFinder>
 #include <QTextCursor>
-#include <QTextOption>
-#include <QFontMetricsF>
 #include <QTextDocument>
 #include <QTextFragment>
 #include <QTextFrame>
@@ -26,6 +25,7 @@
 #include <QTextImageFormat>
 #include <QTextList>
 #include <QTextListFormat>
+#include <QTextOption>
 #include <QTextTable>
 #include <QTextTableCell>
 #include <QUrl>
@@ -155,8 +155,9 @@ void cleanFrames(QTextFrame* frame)
     }
 }
 
-// Texte de haut en bas (H4-3, D9) : colonne d'un caractère. Même règle que le peintre (render/src/pagepainter.cpp,
-// layOutColumn) : largeur = plus grande avance d'un graphème, chacun à sa police ; le peintre est la référence.
+// Texte de haut en bas (H4-3, D9) : colonne d'un caractère. Même règle que le peintre
+// (render/src/pagepainter.cpp, layOutColumn) : largeur = plus grande avance d'un graphème, chacun à sa police
+// ; le peintre est la référence.
 double widestAdvance(const QTextDocument& document)
 {
     const QFont base = document.defaultFont();
