@@ -76,6 +76,13 @@ QString jsonText(const QJsonValue& value)
     if (value.isDouble()) {
         return propertyText(QVariant(value.toDouble()));
     }
+    if (value.isArray()) {
+        QStringList parts;
+        for (const QJsonValue item : value.toArray()) {
+            parts << jsonText(item);
+        }
+        return QStringLiteral("[%1]").arg(parts.join(QLatin1Char(',')));
+    }
     return value.toString();
 }
 
@@ -587,6 +594,14 @@ QString propertyText(const QVariant& value)
     case QMetaType::QColor:
         return value.value<QColor>().name(QColor::HexRgb);
     default:
+        if (value.metaType() == QMetaType::fromType<QList<int>>()) {
+            // Liste d'entiers (sélection de pages) : « [0,1] », comme jsonText d'un tableau du scénario.
+            QStringList parts;
+            for (const int n : value.value<QList<int>>()) {
+                parts << QString::number(n);
+            }
+            return QStringLiteral("[%1]").arg(parts.join(QLatin1Char(',')));
+        }
         if (!value.canConvert<QString>()) {
             // QPointF, QRectF, QObject*… : nommés, jamais lus « "" ».
             return QStringLiteral("<non textuel : %1>").arg(QString::fromLatin1(value.typeName()));

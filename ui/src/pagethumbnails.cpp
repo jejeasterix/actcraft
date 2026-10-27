@@ -440,6 +440,9 @@ bool PageThumbnails::contactInProgress() const
 
 void PageThumbnails::pump()
 {
+    if (!m_active) {
+        return; // amendement 5 : panneau caché, les marques attendent setActive(true)
+    }
     if (m_inFlight || !m_controller || m_settle.isActive()) {
         return; // un rendu en vol relance à son retour ; une marque récente, à l'échéance du minuteur
     }

@@ -79,6 +79,8 @@ Window {
         objectName: "appThumbnails"
         documentController: appDocument
         view: pageArea.view
+        // Amendement 5 (L4-T19) : aucun rendu de miniature panneau des navigateurs caché.
+        active: browserPanel.visible
     }
     Pages {
         id: appPages
@@ -198,6 +200,10 @@ Window {
         BrowserPanel {
             id: browserPanel
             objectName: "browserPanel"
+            thumbnails: appThumbnails
+            pages: appPages
+            documentController: appDocument
+            commands: appCommands
         }
 
         PageArea {

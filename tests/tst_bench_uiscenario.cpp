@@ -271,6 +271,13 @@ private slots:
         QCOMPARE(propertyText(QVariant()), QStringLiteral("<absente>"));
     }
 
+    // L4-T19 : la sélection de pages (QList<int>) se lit « [0,1] ».
+    void integerListPropertyText()
+    {
+        QCOMPARE(propertyText(QVariant::fromValue(QList<int>{0, 1})), QStringLiteral("[0,1]"));
+        QCOMPARE(propertyText(QVariant::fromValue(QList<int>{})), QStringLiteral("[]"));
+    }
+
     void playsOnARealPageView()
     {
         UiScenario s;

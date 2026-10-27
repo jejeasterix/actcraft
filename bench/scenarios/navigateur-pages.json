@@ -1,10 +1,44 @@
 {
   "format": "actcraft-scenario/1",
   "name": "navigateur-pages",
-  "description": "Talon L4-T1 : rempli par L4-T19.",
+  "description": "S7.4 : panneau des navigateurs, sélection de pages (clavier : le joueur n'envoie pas de modificateur à la souris), glisser une sélection, copier-coller, insertion. Miniatures suspendues panneau caché.",
   "steps": [
-    {
-      "waitReady": true
-    }
+    {"waitReady": true},
+    {"expect": "appThumbnails.active", "value": false},
+    {"command": "view.browsers"},
+    {"expect": "browserPanel.visible", "value": true},
+    {"expect": "appThumbnails.active", "value": true},
+    {"command": "page.next"},
+    {"command": "page.next"},
+    {"command": "page.next"},
+    {"waitReady": true},
+    {"expect": "documentController.pageCount", "value": 4},
+    {"capture": "panneau"},
+    {"pointer": [[110, 328]], "space": "window"},
+    {"key": "Shift+Down"},
+    {"expect": "appPages.selection", "value": [1, 2]},
+    {"capture": "plage"},
+    {"pointer": [[110, 328], [110, 300], [110, 230], [110, 150]], "space": "window"},
+    {"expect": "appPages.selection", "value": [0, 1]},
+    {"capture": "deplace"},
+    {"command": "page.copy"},
+    {"command": "page.goto", "argument": "4"},
+    {"command": "page.paste"},
+    {"waitReady": true},
+    {"expect": "documentController.pageCount", "value": 6},
+    {"command": "edit.undo"},
+    {"expect": "documentController.pageCount", "value": 4},
+    {"command": "page.insert-after"},
+    {"expect": "documentController.pageCount", "value": 5},
+    {"waitReady": true},
+    {"capture": "colle"},
+    {"command": "page.goto", "argument": "1"},
+    {"pointer": [[110, 192]], "space": "window"},
+    {"key": "Shift+Down"},
+    {"expect": "appPages.selection", "value": [0, 1]},
+    {"command": "browsers.dock-right"},
+    {"waitReady": true},
+    {"capture": "ancre-droite"},
+    {"command": "browsers.dock-left"}
   ]
 }
