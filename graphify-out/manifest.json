@@ -810,8 +810,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/pageview.h": {
-    "mtime": 1792590229.911841,
-    "ast_hash": "cdc961b39394817051199bff3c11c4d1",
+    "mtime": 1793095074.4452624,
+    "ast_hash": "7d7a14dd195d50a21d8a52df6bf912c2",
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/viewtransform.h": {
@@ -820,8 +820,8 @@
     "semantic_hash": ""
   },
   "ui/src/pageview.cpp": {
-    "mtime": 1792590229.9159095,
-    "ast_hash": "44f40b04e1de66966dfdffee2766a5f3",
+    "mtime": 1793095074.45528,
+    "ast_hash": "298bb5b0229a4f6cc5170e9e904ef2a1",
     "semantic_hash": ""
   },
   "ui/src/penadapters.cpp": {
@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793072105.6490889,
-    "ast_hash": "a1b4f4f803f2344f352af8a03e668010",
+    "mtime": 1793085510.9448843,
+    "ast_hash": "aea228c75cbff5fa6e29491e07d244e9",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -2325,8 +2325,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_shapes.cpp": {
-    "mtime": 1793044009.7917202,
-    "ast_hash": "b37f2294a85719fe1d55a01a02297fe3",
+    "mtime": 1793095074.442209,
+    "ast_hash": "2567324a0d72dcbe61eeb894fe201ab4",
     "semantic_hash": ""
   },
   "tests/tst_ui_text.cpp": {
