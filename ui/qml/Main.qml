@@ -209,6 +209,7 @@ Window {
             documentController: appDocument
             tools: appTools
             commands: appCommands
+            textEditing: appText
         }
 
         // Lot 4 : palette des formes, à droite, avant la palette d'outils.
@@ -233,6 +234,8 @@ Window {
     TextFormatBar {
         id: textFormatBar
         objectName: "textFormatBar"
+        commands: appCommands
+        editing: appText
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: topBar.bottom
