@@ -9,6 +9,17 @@ Item {
     id: overlay
     property string zones: "" // « <cadres en largeur>x<cadres en hauteur> » (appPageSettings.zones)
     property real zoom: 1     // view.zoom : un trait d'un pixel d'écran à tout zoom
+    property point pan: Qt.point(0, 0) // view.pan : position de la page dans la vue
+    property size viewSize: Qt.size(0, 0) // taille de la vue : les séparations ne vont pas au-delà
+    // Pixels physiques par unité de page : un trait d'un pixel physique aussi sur un écran à échelle > 1.
+    readonly property real pixelsPerUnit: Math.max(0.01, zoom) * Math.max(1, Screen.devicePixelRatio)
+    // Partie visible de la page (unités de page) : le nombre de tuiles d'une séparation dépend de l'écran,
+    // jamais de la page (une image tuilée très longue, rangée dans l'atlas de textures, ferait un rectangle par
+    // tuile à chaque pas de zoom).
+    readonly property real visLeft: Math.max(0, -pan.x / Math.max(0.01, zoom))
+    readonly property real visRight: Math.min(width, (viewSize.width - pan.x) / Math.max(0.01, zoom))
+    readonly property real visTop: Math.max(0, -pan.y / Math.max(0.01, zoom))
+    readonly property real visBottom: Math.min(height, (viewSize.height - pan.y) / Math.max(0.01, zoom))
     readonly property int across: overlay.zonePart(0)
     readonly property int down: overlay.zonePart(1)
     // n cadres : n − 1 séparations ; lu par le scénario page-allongee-zones.
@@ -77,15 +88,24 @@ Item {
     readonly property string verticalDashes: dashImage(Theme.separationCadre, true)
     readonly property string horizontalDashes: dashImage(Theme.separationCadre, false)
 
-    // Une séparation : une image tuilée d'un pixel d'écran d'épaisseur, à l'échelle de l'écran (scale 1 / zoom).
+    // Une séparation : une image tuilée d'un pixel physique d'épaisseur, bornée à la partie visible de la page, à
+    // l'échelle de l'écran (scale 1 / pixelsPerUnit). Son début tombe sur un multiple de 3 pixels depuis le haut ou
+    // la gauche de la page : le pointillé reste accroché à la page quand on défile.
     component Separation: Image {
         property bool vertical: true
         property real at: 0 // position en coordonnées de page
-        x: vertical ? at : 0
-        y: vertical ? 0 : at
-        width: vertical ? 1 : Math.max(1, Math.ceil(overlay.width * overlay.zoom))
-        height: vertical ? Math.max(1, Math.ceil(overlay.height * overlay.zoom)) : 1
-        scale: 1 / Math.max(0.01, overlay.zoom)
+        readonly property real lo: vertical ? overlay.visTop : overlay.visLeft   // début visible, le long du trait
+        readonly property real hi: vertical ? overlay.visBottom : overlay.visRight
+        readonly property real side: vertical ? overlay.visLeft : overlay.visTop // visible aussi en travers
+        readonly property real sideEnd: vertical ? overlay.visRight : overlay.visBottom
+        readonly property real startPx: Math.floor(lo * overlay.pixelsPerUnit / 3) * 3
+        readonly property real lengthPx: Math.max(1, Math.ceil(hi * overlay.pixelsPerUnit - startPx))
+        visible: hi > lo && at >= side && at <= sideEnd
+        x: vertical ? at : startPx / overlay.pixelsPerUnit
+        y: vertical ? startPx / overlay.pixelsPerUnit : at
+        width: vertical ? 1 : lengthPx
+        height: vertical ? lengthPx : 1
+        scale: 1 / overlay.pixelsPerUnit
         transformOrigin: Item.TopLeft
         source: vertical ? overlay.verticalDashes : overlay.horizontalDashes
         fillMode: Image.Tile

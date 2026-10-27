@@ -149,6 +149,8 @@ Item {
                     anchors.fill: parent
                     zones: area.zones
                     zoom: view.zoom
+                    pan: view.pan
+                    viewSize: Qt.size(view.width, view.height)
                 }
                 PageExtensionHandle {
                     id: pageExtensionHandleItem

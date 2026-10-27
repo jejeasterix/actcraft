@@ -125,7 +125,8 @@ private slots:
         // L2-T23 : « page » ; L10-T1 : « pauses » ; L3-T19 : « gommer » et « soulever », en dernier (le
         // compte passe de 5 à 7 : les cinq premiers gardent leur nom et leur ordre). L4-T14 : « forme-page-
         // annotee » et « grille-dessus » après eux (le compte passe de 7 à 9 : les sept premiers inchangés).
-        QCOMPARE(plans.size(), std::size_t{9});
+        // L4-T28 : « zones-zoom » en dernier (le compte passe de 9 à 10 : les neuf premiers inchangés).
+        QCOMPARE(plans.size(), std::size_t{10});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
@@ -135,6 +136,7 @@ private slots:
         QCOMPARE(plans[6].name, QStringLiteral("soulever"));
         QCOMPARE(plans[7].name, QStringLiteral("forme-page-annotee"));
         QCOMPARE(plans[8].name, QStringLiteral("grille-dessus"));
+        QCOMPARE(plans[9].name, QStringLiteral("zones-zoom"));
         for (std::size_t i = 0; i < 5; ++i) {
             QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
             QVERIFY(plans[i].seedStrokes.empty());
@@ -364,6 +366,31 @@ private slots:
             }
             QVERIFY(std::any_of(plan.inputs.begin(), plan.inputs.end(),
                                 [](const bench::PlannedInput& in) { return in.measured; }));
+        }
+    }
+
+    // L4-T28 : « zones-zoom » rejoue le zoom à la molette de « zoom » sur une page générée réglée à 40 x 53
+    // cadres : même entrées, rien d'autre ne change (jugé comme « zoom »).
+    void zonesZoomScenarioZoomsOnManyFrames()
+    {
+        QCOMPARE(bench::kBenchZonesAcross, 40);
+        QCOMPARE(bench::kBenchZonesDown, 53);
+        for (const auto scenarioSet : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan plan = bench::zonesZoomScenario(scenarioSet);
+            const bench::ScenarioPlan zoom = bench::zoomScenario(scenarioSet);
+            QCOMPARE(plan.name, QStringLiteral("zones-zoom"));
+            QVERIFY(plan.zones);
+            QVERIFY(!zoom.zones);
+            QCOMPARE(plan.generatedPages, 1);
+            QVERIFY(plan.toolCommand.isEmpty());
+            QVERIFY(!plan.freezeExempt);
+            QCOMPARE(plan.maxCacheRefreshes, -1);
+            QCOMPARE(plan.inputs.size(), zoom.inputs.size());
+            for (std::size_t i = 0; i < plan.inputs.size(); ++i) {
+                QCOMPARE(plan.inputs[i].offsetNs, zoom.inputs[i].offsetNs);
+                QCOMPARE(plan.inputs[i].angleDelta, zoom.inputs[i].angleDelta);
+                QCOMPARE(plan.inputs[i].modifiers, zoom.inputs[i].modifiers);
+            }
         }
     }
 

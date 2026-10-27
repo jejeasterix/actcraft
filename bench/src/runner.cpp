@@ -5,6 +5,7 @@
 #include <actcraft/core/clock.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/pagesettings.h>
+#include <actcraft/core/pagezones.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
@@ -690,6 +691,17 @@ BenchResult Runner::run(QQuickWindow* window)
         }
         if (plan.gridAbove) { // L4-T14 : grille du dessus, versée dans le cache avant la mesure (setLevel)
             document->execute(std::make_unique<core::SetGridCommand>(0, gridAboveFixture()));
+        }
+        if (plan.zones) { // L4-T28 : 40 x 53 cadres, séparations en surcouche pendant la mesure
+            core::PageZones zones;
+            zones.horizontal = kBenchZonesAcross;
+            zones.vertical = kBenchZonesDown;
+            document->execute(std::make_unique<core::SetPageZonesCommand>(0, zones));
+            const core::PageZones& applied = document->document().page(0).zones;
+            if (applied.horizontal != kBenchZonesAcross || applied.vertical != kBenchZonesDown) {
+                result.invalidReasons << QStringLiteral("error: zones not applied before %1").arg(plan.name);
+                break;
+            }
         }
         bool setupRefused = false;
         for (const auto& [command, argument] : plan.setupCommands) {

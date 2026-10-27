@@ -54,13 +54,13 @@ private slots:
     void lot4ScenariosWithFrames()
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
-        QCOMPARE(scenarios.size(), 9);
-        const QStringList names{QStringLiteral("stroke"),       QStringLiteral("zoom"),
-                                QStringLiteral("scroll"),       QStringLiteral("page"),
-                                QStringLiteral("pauses"),       QStringLiteral("gommer"),
-                                QStringLiteral("soulever"),     QStringLiteral("forme-page-annotee"),
-                                QStringLiteral("grille-dessus")};
-        for (qsizetype i = 0; i < 9; ++i) {
+        QCOMPARE(scenarios.size(), 10); // L4-T28 : « zones-zoom » en dernier (neuf avant)
+        const QStringList names{QStringLiteral("stroke"),        QStringLiteral("zoom"),
+                                QStringLiteral("scroll"),        QStringLiteral("page"),
+                                QStringLiteral("pauses"),        QStringLiteral("gommer"),
+                                QStringLiteral("soulever"),      QStringLiteral("forme-page-annotee"),
+                                QStringLiteral("grille-dessus"), QStringLiteral("zones-zoom")};
+        for (qsizetype i = 0; i < 10; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);
@@ -84,6 +84,16 @@ private slots:
         QVERIFY(preview.contains("p95_ms") && preview.value("p95_ms").toDouble(-1) >= 0);
         QVERIFY(preview.contains("max_ms") &&
                 preview.value("max_ms").toDouble(-1) >= preview.value("p95_ms").toDouble());
+    }
+
+    // L4-T28 : « zones-zoom » a posé ses 40 x 53 cadres avant la mesure (sinon le banc l'invalide).
+    void zonesZoomAppliedItsFrames()
+    {
+        const QJsonArray reasons = m_root.value("verdict").toObject().value("invalid_reasons").toArray();
+        for (const QJsonValue& reason : reasons) {
+            QVERIFY2(!reason.toString().contains(QStringLiteral("zones not applied")),
+                     qPrintable(reason.toString()));
+        }
     }
 
     // L4-T14 (S7.5) : « forme-page-annotee » pose k >= 10 formes, une insertion hors fin de page redessine le

@@ -3,6 +3,7 @@
 #include <actcraft/core/generator.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/pagecache.h>
+#include <actcraft/core/pagesettings.h>
 #include <actcraft/core/pagezones.h>
 #include <actcraft/core/replace.h>
 #include <actcraft/render/fixedpageitem.h>
@@ -721,6 +722,29 @@ private slots:
         QCOMPARE(controller.shownObjectCount(), 0);
         QCOMPARE(controller.document().page(0).zones.horizontal, 2);
         QCOMPARE(controller.document().page(0).zones.vertical, 3);
+        QVERIFY(!controller.canRevertPage());
+    }
+
+    // La grille et le fond d'une page jamais enregistrée sont de sa mise en page : « Rétablir la page » les
+    // garde, comme la copie sans objets du rendu (L4-T28).
+    void revertBlankPageKeepsGridAndBackground()
+    {
+        ui::DocumentController controller;
+        core::Grid grid;
+        grid.visible = true;
+        grid.levels.push_back(core::GridLevel{});
+        controller.execute(std::make_unique<core::SetGridCommand>(0, grid));
+        core::Background background;
+        background.fill.kind = core::FillKind::Solid;
+        background.fill.color = 0xFF112233u;
+        controller.execute(std::make_unique<core::SetBackgroundCommand>(0, background));
+        QVERIFY(!controller.canRevertPage());
+        controller.commitStroke(redStroke());
+        QVERIFY(controller.canRevertPage());
+        controller.revertPage();
+        QCOMPARE(controller.shownObjectCount(), 0);
+        QVERIFY(controller.document().page(0).grid.visible);
+        QCOMPARE(controller.document().page(0).background.fill.color, core::Argb{0xFF112233u});
         QVERIFY(!controller.canRevertPage());
     }
 

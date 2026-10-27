@@ -1081,6 +1081,51 @@ private slots:
         QTRY_COMPARE(overlay->property("separatorCount").toInt(), 0);
         QVERIFY(!overlay->isVisible());
     }
+    // M1 (fluidité) : chaque séparation est bornée à la partie visible de la page, donc à la taille de la
+    // vue, quel que soit le zoom : à zoom 8 sur 40 × 53 cadres, aucune n'est longue comme la page au zoom.
+    void separationsAreBoundedByTheView()
+    {
+        QQmlApplicationEngine engine;
+        engine.setInitialProperties(
+            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+        engine.loadFromModule("ActCraft.Ui", "Main");
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+        QVERIFY(window);
+        auto* tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        tools->setSettingsFile(
+            m_dir.filePath(QStringLiteral("reglages-bornes.ini"))); // jamais le profil réel
+        auto* options = window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
+        auto* overlay = window->findChild<QQuickItem*>(QStringLiteral("pageZones"));
+        auto* view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
+        QVERIFY(options && overlay && view);
+        QVERIFY(window->isVisible() || QTest::qWaitForWindowExposed(window));
+        QTRY_VERIFY(view->width() > 100 && view->height() > 100);
+        options->setZones(QStringLiteral("40x53"));
+        QTRY_COMPARE(overlay->property("separatorCount").toInt(), 39 + 52);
+        const qreal ratio = window->devicePixelRatio();
+        for (const qreal zoom : {1.0, 8.0}) {
+            view->setZoom(zoom);
+            QTRY_COMPARE(overlay->property("zoom").toDouble(), zoom);
+            int shown = 0;
+            for (QQuickItem* child : overlay->childItems()) {
+                if (child->metaObject()->indexOfProperty("vertical") < 0 || !child->isVisible()) {
+                    continue;
+                }
+                ++shown;
+                const qreal length = child->property("vertical").toBool() ? child->height() : child->width();
+                const qreal limit =
+                    (child->property("vertical").toBool() ? view->height() : view->width()) * ratio;
+                QVERIFY2(length >= 1 && length <= limit + 3,
+                         qPrintable(QStringLiteral("zoom %1 : longueur %2 pour une vue de %3")
+                                        .arg(zoom)
+                                        .arg(length)
+                                        .arg(limit)));
+            }
+            QVERIFY(shown > 0);
+        }
+    }
 };
 
 QTEST_MAIN(TstUiPagesettings)
