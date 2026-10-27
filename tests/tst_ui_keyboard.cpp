@@ -2,6 +2,7 @@
 #include "support/lot7registry.h"
 #include "support/presentationharness.h"
 
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 
@@ -13,6 +14,7 @@
 #include <QQuickWindow>
 #include <QRectF>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <QUrl>
 #include <QtTest>
 
@@ -20,6 +22,7 @@
 
 namespace {
 
+using actcraft::ui::Commands;
 using actcraft::ui::DocumentController;
 using actcraft::ui::KeyboardController;
 using presentationharness::MainWindow;
@@ -239,6 +242,19 @@ private slots:
         QVERIFY(main.run(QStringLiteral("tool.keyboard")));
         QVERIFY(!keyboard->isOpen());
         QTRY_VERIFY(second.isNull());
+    }
+
+    // Fonction de bureau : la commande n'existe pas sur Android (plateformes de commands.json).
+    void keyboardAbsentOnAndroid()
+    {
+        QTemporaryDir profile;
+        Commands commands;
+        commands.setProfileDir(profile.path());
+        commands.setPlatform(actcraft::actions::Platform::Windows);
+        QVERIFY(commands.isAvailable(QStringLiteral("tool.keyboard")));
+        commands.setPlatform(actcraft::actions::Platform::Android);
+        QVERIFY(!commands.isAvailable(QStringLiteral("tool.keyboard")));
+        QVERIFY(!commands.trigger(QStringLiteral("tool.keyboard")));
     }
 };
 

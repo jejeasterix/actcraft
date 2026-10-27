@@ -46,4 +46,11 @@ private:
     bool m_caps = false;
 };
 
+// Envoie `text` à l'application au premier plan (clavier à l'écran, F-294) ; vrai si toute la frappe est
+// partie. Windows (keyinjector_win.cpp) : SendInput, chaque unité UTF-16 en KEYEVENTF_UNICODE, "\b", "\r" et
+// "\t" en touches Retour arrière, Entrée et Tabulation. Ailleurs (keyinjector_other.cpp) : rien, faux. Jamais
+// appelé par les tests automatiques (KeyboardController prend un injecteur remplaçable). Aucune frappe n'est
+// journalisée.
+bool sendUnicodeToForeground(const QString& text);
+
 } // namespace actcraft::features
