@@ -37,6 +37,18 @@ KeyboardController::Layout fromFeatures(features::ScreenKeyboard::Layout layout)
     return KeyboardController::Layout::Standard;
 }
 
+// Vrai si la disposition a une touche de verrouillage des majuscules (Compact n'en a pas).
+bool hasCapsLockKey(features::ScreenKeyboard::Layout layout)
+{
+    const features::ScreenKeyboard keyboard(layout);
+    for (const features::KeyCap& cap : keyboard.keys()) {
+        if (cap.id == QLatin1String("caps")) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Texte confié à l'injecteur : les touches de commande y deviennent leur caractère de contrôle.
 QString injectedText(const features::KeyOutput& output)
 {
@@ -88,6 +100,11 @@ void KeyboardController::setLayout(Layout layout)
 {
     if (layout == this->layout()) {
         return;
+    }
+    // Disposition sans touche de verrouillage : le verrouillage tombe en y passant, sinon rien ne
+    // l'enlèverait et tout sortirait en majuscules.
+    if (m_keyboard.capsLocked() && !hasCapsLockKey(toFeatures(layout))) {
+        m_keyboard.press(QStringLiteral("caps"));
     }
     m_keyboard.setLayout(toFeatures(layout));
     emit layoutChanged();
@@ -192,6 +209,8 @@ bool KeyboardController::sendToFocus(const features::KeyOutput& output)
 void KeyboardController::onFocusWindowChanged(QWindow* focus)
 {
     if (focus == nullptr) {
+        // Le focus a quitté ActCraft : la fenêtre d'avant ne doit plus ni le reprendre ni recevoir la frappe.
+        m_lastFocus = nullptr;
         return;
     }
     if (focus == m_window.data()) {

@@ -85,7 +85,8 @@ private:
     features::ScreenKeyboard m_keyboard;
     bool m_open = false;
     QPointer<QQuickWindow> m_window;
-    QPointer<QWindow> m_lastFocus; // dernière fenêtre d'ActCraft (hors clavier) qui a eu le focus
+    // Dernière fenêtre d'ActCraft (hors clavier) qui a eu le focus ; nulle quand le focus a quitté ActCraft.
+    QPointer<QWindow> m_lastFocus;
     Injector m_injector;
 };
 
