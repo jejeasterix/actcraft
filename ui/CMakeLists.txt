@@ -144,6 +144,11 @@ qt_add_qml_module(actcraft_ui
         icons/symboles.svg
         icons/taille-plus.svg
         icons/taille-moins.svg
+        icons/nav-ressources.svg
+        icons/nav-objets.svg
+        icons/nav-notes.svg
+        icons/nav-proprietes.svg
+        icons/nav-actions.svg
     SOURCES
         include/actcraft/ui/viewtransform.h
         include/actcraft/ui/pageview.h
