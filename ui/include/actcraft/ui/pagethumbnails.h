@@ -37,9 +37,9 @@ class PageThumbnails : public QAbstractListModel
     // Amendement 3 : rendus lancés (compté sur le fil principal au lancement) ; renderCount compte les
     // terminés.
     Q_PROPERTY(int launchCount READ launchCount NOTIFY renderingChanged)
-    // Amendement 5 du lot 4 (L4-T19) : faux quand le panneau des navigateurs est caché ; aucun rendu n'est alors
-    // lancé. Revenu à vrai : les pages modifiées entre-temps, ou jamais rendues, le sont kSettleMs plus tard,
-    // comme après une modification (et jamais pendant un contact). Vrai par défaut.
+    // Amendement 5 du lot 4 (L4-T19) : faux quand le panneau des navigateurs est caché ; aucun rendu n'est
+    // alors lancé. Revenu à vrai : les pages modifiées entre-temps, ou jamais rendues, le sont kSettleMs plus
+    // tard, comme après une modification (et jamais pendant un contact). Vrai par défaut.
     Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
 
 public:
