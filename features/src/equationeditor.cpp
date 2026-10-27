@@ -150,20 +150,25 @@ template <typename N> N* walk(N& root, const Path& path)
     return node;
 }
 
+// Cases dans l'ordre de l'écran, de gauche à droite : celui du texte, sauf mroot, dont l'indice (second
+// enfant) est dessiné à gauche de la base.
 void collectSlots(const Node& node, Path& path, std::vector<Path>& out)
 {
     if (!path.empty() && isSlot(node)) {
         out.push_back(path);
         return;
     }
-    for (std::size_t i = 0; i < node.children.size(); ++i) {
+    const std::size_t count = node.children.size();
+    const bool indexFirst = node.kind == Kind::Root && count == 2;
+    for (std::size_t k = 0; k < count; ++k) {
+        const std::size_t i = indexFirst ? count - 1 - k : k;
         path.push_back(static_cast<int>(i));
         collectSlots(node.children[i], path, out);
         path.pop_back();
     }
 }
 
-// Cases du sous-arbre de `prefix`, dans l'ordre du texte.
+// Cases du sous-arbre de `prefix`, dans l'ordre de l'écran.
 std::vector<Path> slotsOf(const Node& root, Path prefix)
 {
     std::vector<Path> out;
@@ -545,6 +550,12 @@ void EquationEditor::backspace()
         return;
     }
     if (!removable) {
+        if (current->kind == Kind::TableCell) {
+            // Cellule vide lue (<mtd/>) : la case vide va dedans, la ligne garde ses cellules.
+            current->children.push_back(placeholder());
+            m_cursor.push_back(0);
+            return;
+        }
         parent.children[at(index)] = placeholder(); // l'arité reste juste
         return;
     }
@@ -571,9 +582,16 @@ void EquationEditor::backspace()
     }
 }
 
+// Case précédente dans l'ordre de l'écran ; un curseur hors des cases recule dans l'ordre du texte.
 void EquationEditor::moveLeft()
 {
     const std::vector<Path> cells = slotsOf(m_root, {});
+    if (const auto here = std::find(cells.begin(), cells.end(), m_cursor); here != cells.end()) {
+        if (here != cells.begin()) {
+            m_cursor = *std::prev(here);
+        }
+        return;
+    }
     for (auto it = cells.rbegin(); it != cells.rend(); ++it) {
         if (*it < m_cursor) {
             m_cursor = *it;
@@ -582,9 +600,16 @@ void EquationEditor::moveLeft()
     }
 }
 
+// Case suivante dans l'ordre de l'écran ; un curseur hors des cases avance dans l'ordre du texte.
 void EquationEditor::moveRight()
 {
     const std::vector<Path> cells = slotsOf(m_root, {});
+    if (const auto here = std::find(cells.begin(), cells.end(), m_cursor); here != cells.end()) {
+        if (std::next(here) != cells.end()) {
+            m_cursor = *std::next(here);
+        }
+        return;
+    }
     for (const Path& slot : cells) {
         if (m_cursor < slot) {
             m_cursor = slot;

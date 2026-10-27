@@ -106,12 +106,37 @@ FloatingPanel {
         case Qt.Key_Escape:
             root.close()
             return true
+        case Qt.Key_Delete:
+            return true // aucun effacement vers l'avant : la touche est prise, sans effet
         default:
             return false
         }
     }
 
+    // Touches que l'éditeur prend avant les raccourcis de l'application (Main.qml, Qt.ApplicationShortcut :
+    // Échap pour tool.select, Suppr pour edit.delete) : édition, Entrée, Échap et saisie, sans Ctrl, Alt ni
+    // Méta ; les combinaisons et les touches de fonction restent à l'application.
+    function ownsKey(event) {
+        if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))
+            return false
+        switch (event.key) {
+        case Qt.Key_Escape:
+        case Qt.Key_Delete:
+        case Qt.Key_Backspace:
+        case Qt.Key_Return:
+        case Qt.Key_Enter:
+        case Qt.Key_Left:
+        case Qt.Key_Right:
+        case Qt.Key_Up:
+        case Qt.Key_Down:
+            return true
+        default:
+            return event.text.length > 0 && event.text.charCodeAt(0) >= 32
+        }
+    }
+
     focus: true
+    Keys.onShortcutOverride: event => { event.accepted = root.ownsKey(event) }
     Keys.onPressed: event => {
         if (root.editKey(event.key)) {
             event.accepted = true
@@ -222,6 +247,7 @@ FloatingPanel {
                         equationController.type(typed)
                     }
                 }
+                Keys.onShortcutOverride: event => { event.accepted = root.ownsKey(event) }
                 Keys.onPressed: event => {
                     if (root.editKey(event.key))
                         event.accepted = true

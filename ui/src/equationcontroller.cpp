@@ -2,11 +2,13 @@
 
 #include "presentationdocument.h"
 
+#include <actcraft/core/equation.h>
 #include <actcraft/render/equationpaint.h>
 
 #include <QPainter>
 #include <QPicture>
 #include <QRect>
+#include <QString>
 #include <QVariantMap>
 
 #include <algorithm>
@@ -19,8 +21,21 @@ namespace actcraft::ui {
 namespace {
 
 constexpr double kEquationPoints = 24; // nouvelles équations : la taille par défaut de core::Equation
-constexpr double kMargin = 2;          // autour de l'encre mesurée, pixels de page
+constexpr double kMeasureZoom = 100;   // QPicture borne son dessin au pixel entier : 0,01 px de page
 constexpr QSizeF kFallbackSize(200, 60);
+
+// Ajoute actcraft-cursor aux classes de la racine : en mode Editor, son surlignage couvre la boîte entière de
+// la mise en page.
+void markWhole(core::EquationNode& root)
+{
+    for (auto& [name, value] : root.attributes) {
+        if (name == "class") {
+            value += value.empty() ? "actcraft-cursor" : " actcraft-cursor";
+            return;
+        }
+    }
+    root.attributes.emplace_back("class", "actcraft-cursor");
+}
 
 } // namespace
 
@@ -97,23 +112,34 @@ void EquationController::setDocumentController(DocumentController* controller)
     emit documentControllerChanged();
 }
 
-// Le dessin de la page enregistré sans bornes (core::Equation::bounds vide : échelle 1, coin haut gauche du
-// dessin en (0, 0)) ; l'encre enregistrée, marge comprise, donne la boîte.
+// Cadre du dessin de la page : la boîte de la mise en page et l'encre (render/src/equationlayout.cpp,
+// layoutDrawing), que paintEquation met à l'échelle dans les bornes de l'équation. Des bornes de la taille du
+// cadre la font dessiner à l'échelle 1 ; l'encre seule ne suffit pas (un chiffre a une boîte plus haute que
+// son encre, un jambage déborde de la sienne). L'API publique ne donne pas le cadre : la racine marquée
+// actcraft-cursor fait peindre sa boîte en mode Editor (surlignage du curseur), et boîte et encre,
+// enregistrées sans bornes (échelle 1, coin haut gauche du cadre en (0, 0)), donnent le cadre.
 QSizeF EquationController::naturalSize(const std::string& mathml, double pointSize)
 {
+    QString error;
+    std::optional<core::EquationNode> root = core::parseMathml(mathml, error);
+    if (!root) {
+        return {};
+    }
+    markWhole(*root);
     core::Equation probe;
-    probe.mathml = mathml;
+    probe.mathml = core::toMathml(*root);
     probe.pointSize = pointSize;
     probe.bounds = core::RectF{0, 0, 0, 0};
     QPicture picture;
     QPainter painter(&picture);
+    painter.scale(kMeasureZoom, kMeasureZoom);
     render::paintEquation(painter, probe, render::EquationPaintMode::Editor);
     painter.end();
-    const QRect ink = picture.boundingRect();
-    if (!ink.isValid() || ink.right() <= 0 || ink.bottom() <= 0) {
+    const QRect frame = picture.boundingRect();
+    if (!frame.isValid() || frame.right() <= 0 || frame.bottom() <= 0) {
         return {};
     }
-    return QSizeF(ink.right() + 1 + kMargin, ink.bottom() + 1 + kMargin);
+    return QSizeF((frame.right() + 1) / kMeasureZoom, (frame.bottom() + 1) / kMeasureZoom);
 }
 
 void EquationController::open()
@@ -181,6 +207,7 @@ bool EquationController::accept(QPointF pageCentre)
     DocumentInsertions insertions(*m_document);
     const core::Page* page = insertions.shownPage();
     if (!page) {
+        setMessage(tr("Aucune page n'est montrée : l'équation n'a pas été posée."));
         return false;
     }
     QPointF centre = pageCentre;
@@ -199,6 +226,7 @@ bool EquationController::accept(QPointF pageCentre)
     core::PageObject object = std::move(equation);
     object.common.layer = core::Layer::Middle;
     if (insertions.insertObject(std::move(object)) == 0) {
+        setMessage(tr("L'équation n'a pas pu être posée sur la page."));
         return false;
     }
     setMessage({});

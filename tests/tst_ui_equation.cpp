@@ -341,8 +341,8 @@ private slots:
             u"<math><mfrac><mn class=\"actcraft-cursor\">1</mn><mrow class=\"actcraft-placeholder\"/></mfrac></math>"_s;
         QVERIFY(previewImage(marked, size) != pageImage(marked, size));
 
-        // L'objet que l'éditeur pose : la page le dessine (paintObjectLocal, à ses bornes) comme à l'échelle 1,
-        // au lissage près ; l'aperçu à ces bornes est ce dessin.
+        // L'objet que l'éditeur pose : la page le dessine (paintObjectLocal, à ses bornes) comme à l'échelle
+        // 1, au lissage près ; l'aperçu à ces bornes est ce dessin.
         MainWindow main;
         DocumentController* controller = controllerOf(main);
         QVERIFY(controller != nullptr);
@@ -422,7 +422,8 @@ private slots:
         QVERIFY(inserted != nullptr);
         const core::PageObject object = shown(*controller).objects.back();
 
-        const QSizeF onPage = inkSize([&](QPainter& p) { actcraft::render::paintObjectLocal(p, object, {}); });
+        const QSizeF onPage =
+            inkSize([&](QPainter& p) { actcraft::render::paintObjectLocal(p, object, {}); });
         const core::Equation natural = atScaleOne(*inserted);
         const QSizeF reference = inkSize([&](QPainter& p) {
             actcraft::render::paintEquation(p, natural, actcraft::render::EquationPaintMode::Page);
@@ -442,7 +443,8 @@ private slots:
         MainWindow main;
         QVERIFY(main.window() != nullptr);
         const int empty = main.pageObjectCount();
-        presentationharness::strokeAt(main.window(), Pointer::Mouse, main.pageView()->pageToScene(QPointF(40, 700)),
+        presentationharness::strokeAt(main.window(), Pointer::Mouse,
+                                      main.pageView()->pageToScene(QPointF(40, 700)),
                                       main.pageView()->pageToScene(QPointF(140, 700)));
         QTRY_COMPARE(main.pageObjectCount(), empty + 1);
         QVERIFY(main.run(u"edit.select-all"_s));
