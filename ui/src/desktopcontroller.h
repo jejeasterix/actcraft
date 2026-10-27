@@ -7,6 +7,7 @@
 #include <QPointer>
 #include <QQmlComponent>
 #include <QQuickWindow>
+#include <QRect>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
@@ -30,8 +31,10 @@ namespace actcraft::ui {
 // Outils de bureau (F-080), L7-T31 : `showTools` réduit la fenêtre principale (`mainWindow`) et ouvre la roue
 // (`toolsShown`, fenêtre de DesktopToolsWheel.qml) ; `restore` rend la fenêtre principale et ferme la roue,
 // qui se ferme aussi si la fenêtre est restaurée autrement. Pendant l'annotation, la fenêtre principale est
-// gardée devant (drapeau « toujours devant » posé à l'ouverture, rendu à la fermeture) : la palette reste
-// accessible. Les entrées de la roue viennent de features::defaultWheel(), chacune une commande nommée.
+// réduite à l'emprise de la palette (état normal, barre du haut au-dessus) et gardée devant (drapeau
+// « toujours devant ») : le paperboard disparaît, la palette reste. À la fermeture, visibilité, géométrie et
+// drapeaux d'avant sont rendus. Les entrées de la roue viennent de features::defaultWheel(), chacune une
+// commande nommée.
 //
 // Fonds de bureau : la capture (image figée, ressource PNG du document, une étape) vise la page affichée du
 // paperboard actif (celui du bureau pendant l'annotation, sinon le document ouvert) ; nos fenêtres visibles
@@ -119,8 +122,9 @@ private:
     void
     followPages(const core::Changes& changes); // indices des pages superposées après un ajout ou un retrait
     void updateLive();
-    void keepMainInFront(); // palette principale devant l'annotation
-    void releaseMainFront();
+    void keepMainInFront();    // palette principale devant l'annotation
+    void releaseMainFront();   // rend la fenêtre principale dans l'état d'avant l'annotation
+    QRect paletteRect() const; // emprise de la palette à l'écran (avec la barre du haut), nulle sans palette
     void setToolsShown(bool shown);
     void onMainVisibilityChanged();
 
@@ -133,8 +137,17 @@ private:
     bool m_live = false;
     QPointer<QQuickWindow> m_main;
     bool m_toolsShown = false;
-    bool m_mainPinned = false;       // drapeau « toujours devant » posé par nous sur la fenêtre principale
-    bool m_hidingForCapture = false; // fenêtre masquée pour la saisie : ce n'est pas une fermeture
+    // Fenêtre principale avant l'annotation : visibilité, géométrie normale et drapeaux, rendus à la
+    // fermeture.
+    struct MainState
+    {
+        bool saved = false;
+        QWindow::Visibility visibility = QWindow::Windowed;
+        QRect geometry;
+        Qt::WindowFlags flags;
+    };
+    MainState m_mainState;
+    bool m_hidingForCapture = false;      // fenêtre masquée pour la saisie : ce n'est pas une fermeture
     std::vector<std::size_t> m_livePages; // pages du paperboard du bureau qui portent la superposition
     CaptureSource m_capture;
 };

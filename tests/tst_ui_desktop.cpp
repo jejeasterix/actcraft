@@ -749,6 +749,57 @@ private slots:
         QVERIFY(!main.window()->flags().testFlag(Qt::WindowStaysOnTopHint));
     }
 
+    // Décision de l'orchestrateur (essai 2, d'après l'original) : pendant l'annotation le paperboard
+    // disparaît et seule la palette reste devant. La fenêtre principale est réduite à l'emprise de la palette
+    // (barre du haut au-dessus), à partir de son état normal ; à la fermeture, visibilité, géométrie et
+    // drapeaux d'avant sont rendus (plein écran, maximisée, ou fenêtrée). Mutants : pas de réduction ; pas de
+    // retour à l'état d'avant.
+    void mainWindowShrinksToThePaletteAndComesBack_data()
+    {
+        QTest::addColumn<int>("visibility");
+        QTest::newRow("fenetree") << static_cast<int>(QWindow::Windowed);
+        QTest::newRow("plein ecran") << static_cast<int>(QWindow::FullScreen);
+        QTest::newRow("maximisee") << static_cast<int>(QWindow::Maximized);
+    }
+    void mainWindowShrinksToThePaletteAndComesBack()
+    {
+        QFETCH(int, visibility);
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QQuickWindow* window = main.window();
+        if (visibility == static_cast<int>(QWindow::FullScreen)) {
+            window->showFullScreen();
+        } else if (visibility == static_cast<int>(QWindow::Maximized)) {
+            window->showMaximized();
+        }
+        QTRY_COMPARE(static_cast<int>(window->visibility()), visibility);
+        QVERIFY(main.waitReady());
+        QQuickItem* palette =
+            presentationharness::findItem(window->contentItem(), QStringLiteral("toolPalette"));
+        QVERIFY(palette);
+        const QRect screen = QGuiApplication::primaryScreen()->geometry();
+        const QRect before = window->geometry();
+        const Qt::WindowFlags flagsBefore = window->flags();
+        const int paletteWidth = static_cast<int>(palette->width());
+        QVERIFY(paletteWidth > 0);
+        QVERIFY(before.width() > paletteWidth);
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        // Réduite à l'emprise de la palette : plus étroite que l'écran, de la largeur de la palette.
+        QTRY_COMPARE(window->geometry().width(), paletteWidth);
+        QVERIFY(window->geometry().width() < screen.width());
+        QCOMPARE(static_cast<int>(window->visibility()), static_cast<int>(QWindow::Windowed));
+        QVERIFY(window->flags().testFlag(Qt::WindowStaysOnTopHint));
+        // Fermeture : l'état d'avant, exactement.
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(!desktop->isAnnotating());
+        QTRY_COMPARE(static_cast<int>(window->visibility()), visibility);
+        QTRY_COMPARE(window->geometry(), before);
+        QCOMPARE(window->flags(), flagsBefore);
+    }
+
     // F4b (revue L7-T30) : en passage des clics, une fenêtre toujours devant qui reçoit les clics rend la
     // saisie à l'annotation (la fenêtre d'annotation et la principale n'en reçoivent plus). Mutant : le
     // bouton ne rend pas la saisie.

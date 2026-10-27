@@ -14,6 +14,7 @@
 #include <QPixmap>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QQuickItem>
 #include <QScreen>
 #include <QSizeF>
 #include <QSurfaceFormat>
@@ -374,19 +375,61 @@ void DesktopController::keepMainInFront()
     if (!m_annotating || !m_main || m_toolsShown) {
         return;
     }
-    if (!m_mainPinned && !m_main->flags().testFlag(Qt::WindowStaysOnTopHint)) {
+    if (!m_mainState.saved) {
+        // Première fois de cette annotation : l'état d'avant est gardé, puis la fenêtre est réduite à
+        // l'emprise de la palette (le paperboard disparaît, seule la palette reste), toujours devant.
+        const QRect target = paletteRect(); // avant tout changement d'état : coordonnées d'aujourd'hui
+        m_mainState.saved = true;
+        m_mainState.visibility = m_main->visibility();
+        m_mainState.flags = m_main->flags();
+        if (m_mainState.visibility == QWindow::FullScreen || m_mainState.visibility == QWindow::Maximized) {
+            m_main->showNormal(); // on part de l'état normal ; sa géométrie est celle à rendre
+        }
+        m_mainState.geometry = m_main->geometry();
         m_main->setFlag(Qt::WindowStaysOnTopHint, true);
-        m_mainPinned = true;
+        if (target.isValid()) {
+            m_main->setGeometry(target);
+        }
     }
     m_main->raise();
 }
 
+QRect DesktopController::paletteRect() const
+{
+    const auto* palette = m_main ? m_main->findChild<QQuickItem*>(QStringLiteral("toolPalette")) : nullptr;
+    if (!palette || palette->width() <= 0 || palette->height() <= 0) {
+        return {};
+    }
+    // La barre du haut garde sa place au-dessus de la palette (même mise en page dans la fenêtre réduite) :
+    // la palette reste exactement où elle est à l'écran.
+    const auto* topBar = m_main->findChild<QQuickItem*>(QStringLiteral("topBar"));
+    const int extra = topBar ? static_cast<int>(topBar->height()) : 0;
+    const QPoint inWindow = palette->mapToScene(QPointF(0, 0)).toPoint();
+    const QPoint global = m_main->mapToGlobal(inWindow);
+    return QRect(global.x(), global.y() - extra, static_cast<int>(palette->width()),
+                 static_cast<int>(palette->height()) + extra);
+}
+
 void DesktopController::releaseMainFront()
 {
-    if (m_mainPinned && m_main) {
-        m_main->setFlag(Qt::WindowStaysOnTopHint, false);
+    if (!m_mainState.saved) {
+        return;
     }
-    m_mainPinned = false;
+    const MainState state = m_mainState;
+    m_mainState = MainState{};
+    if (!m_main) {
+        return;
+    }
+    m_main->setFlags(state.flags);
+    m_main->setGeometry(state.geometry);
+    if (m_toolsShown) {
+        return; // fenêtre réduite par la roue : elle ne revient pas d'elle-même
+    }
+    if (state.visibility == QWindow::FullScreen) {
+        m_main->showFullScreen();
+    } else if (state.visibility == QWindow::Maximized) {
+        m_main->showMaximized();
+    }
 }
 
 QVariantList DesktopController::wheelEntries(double radius, double ringRadius) const
