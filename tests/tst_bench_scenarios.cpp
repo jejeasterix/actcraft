@@ -147,9 +147,6 @@ private slots:
         }
     }
 
-    // L3-T19 (S36) : la gomme ne touche que les annotations (couche supérieure) ; les traits de la page
-    // générée sont sur la couche du milieu. Le scénario pose donc ses propres annotations, versées avant la
-    // mesure, et le zigzag du stylo en croise au moins 20.
     // L4-T29 (S7.5, amendements 1 et 5) : « miniatures » joue les traits de « stroke » panneau des
     // navigateurs ouvert (view.browsers avant la mesure, refermé après), sur la page générée et trois pages
     // de plus pour que le navigateur ait des miniatures à tenir à jour.
@@ -245,6 +242,9 @@ private slots:
         }
     }
 
+    // L3-T19 (S36) : la gomme ne touche que les annotations (couche supérieure) ; les traits de la page
+    // générée sont sur la couche du milieu. Le scénario pose donc ses propres annotations, versées avant la
+    // mesure, et le zigzag du stylo en croise au moins 20.
     // L3-C10 (S36, M3) : le plan de `gommer` et de `soulever` retire figements et reprises du verdict et pose
     // l'attendu des redessins ; aucun autre scénario n'est touché.
     void gesturePlansCarryTheirVerdictExemption()

@@ -49,7 +49,7 @@ private slots:
 
     // L2-T23 : « page » ; L10-T1 : « pauses » (reprises après le délai d'inactivité du cache) ; L3-T19 :
     // « gommer » et « soulever » ; L4-T14 : « forme-page-annotee » et « grille-dessus » ; L4-T29 :
-    // « miniatures » et « miniatures-ferme ». Remplace lot4ScenariosWithFrames (lui-même remplaçant de
+    // « miniatures », « miniatures-ferme » et « miniatures-pauses ». Remplace lot4ScenariosWithFrames (lui-même remplaçant de
     // sevenScenariosWithFrames) : le banc compte onze scénarios, non plus neuf (les neuf premiers gardent
     // leur rang). Amendement 4 (V9) : « forme-page-annotee » écrit la clé shape_preview, relue ici.
     void lot4bScenariosWithFrames()
