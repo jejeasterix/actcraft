@@ -215,6 +215,8 @@ Window {
             documentController: appDocument
             tools: appTools
             commands: appCommands
+            textEditing: appText
+            textListOpen: textFormatBar.openLists > 0
         }
 
         // Lot 4 : palette des formes, à droite, avant la palette d'outils.
@@ -239,6 +241,11 @@ Window {
     TextFormatBar {
         id: textFormatBar
         objectName: "textFormatBar"
+        commands: appCommands
+        editing: appText
+        pageView: pageArea.view
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: topBar.bottom
@@ -306,12 +313,14 @@ Window {
     FileActions {
         id: fileActions
         document: appDocument
+        textEditing: appText
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
 
     // Fermeture de la fenêtre : même demande que « Quitter ».
     onClosing: close => {
+        appText.commit() // avant de lire `modified` : le texte en cours compte
         if (appDocument.modified && !fileActions.quitting) {
             close.accepted = false
             fileActions.quit()

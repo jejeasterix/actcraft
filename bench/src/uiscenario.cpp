@@ -182,7 +182,9 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         step.pressure = o.value(QStringLiteral("pressure")).toDouble(0.5);
-        return true;
+        // Stylet posé sur un bouton de l'interface : repère fenêtre, et aucun trait ne doit naître.
+        step.expectStroke = !o.value(QStringLiteral("noStroke")).toBool(false);
+        return readSpace(o, step.windowSpace, why);
     }
     if (o.contains(QStringLiteral("key"))) {
         step.kind = UiStepKind::Key;
@@ -743,11 +745,11 @@ bool UiScenarioPlayer::isReady() const
 }
 
 void UiScenarioPlayer::postTablet(QEvent::Type type, QPointF page, double pressure, Qt::MouseButton button,
-                                  Qt::MouseButtons buttons)
+                                  Qt::MouseButtons buttons, bool windowSpace)
 {
     // À la fenêtre, pas à l'élément : Qt Quick n'adresse pas le stylet aux éléments, la PageView le capte par
     // un filtre posé sur la fenêtre (pageview.cpp, itemChange et eventFilter).
-    const QPointF scene = view()->pageToScene(page);
+    const QPointF scene = windowSpace ? page : view()->pageToScene(page);
     QCoreApplication::postEvent(m_window,
                                 new QTabletEvent(type, m_stylus.get(), scene, m_window->mapToGlobal(scene),
                                                  pressure, 0, 0, 0, 0, 0, Qt::NoModifier, button, buttons));
@@ -815,19 +817,32 @@ bool UiScenarioPlayer::stroke(const UiStep& step, QStringList& report)
     int frozen = 0;
     const auto connection =
         QObject::connect(v, &ui::PageView::strokeFrozen, v, [&frozen] { ++frozen; }, Qt::DirectConnection);
-    postTablet(QEvent::TabletPress, step.points.front(), step.pressure, Qt::LeftButton, Qt::LeftButton);
+    postTablet(QEvent::TabletPress, step.points.front(), step.pressure, Qt::LeftButton, Qt::LeftButton,
+               step.windowSpace);
     for (std::size_t i = 1; i < step.points.size(); ++i) {
         const QPointF from = step.points[i - 1];
         const QPointF to = step.points[i];
         for (int k = 1; k <= kStrokeSubdivisions; ++k) {
             postTablet(QEvent::TabletMove,
                        from + (to - from) * (k / static_cast<double>(kStrokeSubdivisions)), step.pressure,
-                       Qt::NoButton, Qt::LeftButton);
+                       Qt::NoButton, Qt::LeftButton, step.windowSpace);
         }
     }
-    postTablet(QEvent::TabletRelease, step.points.back(), 0.0, Qt::LeftButton, Qt::NoButton);
-    waitUntil([&frozen] { return frozen > 0; }, kStrokeTimeoutMs);
+    postTablet(QEvent::TabletRelease, step.points.back(), 0.0, Qt::LeftButton, Qt::NoButton,
+               step.windowSpace);
+    if (step.expectStroke) {
+        waitUntil([&frozen] { return frozen > 0; }, kStrokeTimeoutMs);
+    }
     QObject::disconnect(connection);
+    if (!step.expectStroke) {
+        const bool none = frozen == 0;
+        report << head +
+                      (none ? QStringLiteral(" OK (aucun trait, comme attendu)")
+                            : QStringLiteral(
+                                  " ECHEC (%1 trait(s) figé(s), aucun attendu : le stylet a atteint l'outil)")
+                                  .arg(frozen));
+        return none;
+    }
     if (frozen != 1) {
         report << head + QStringLiteral(
                              " ECHEC (%1 trait(s) figé(s), 1 attendu : le stylet n'a pas atteint la vue)")

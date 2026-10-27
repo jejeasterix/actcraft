@@ -92,7 +92,8 @@ struct UiStep
     int pinchSteps = 12;                     // Pinch : pas d'une image (1 à 1000)
     Qt::MouseButton button = Qt::LeftButton; // Pointer
     int holdMs = 0;                          // Pointer : maintien au dernier point avant le relâché
-    bool windowSpace = false;                // Pointer, DoubleClick : points en fenêtre plutôt qu'en page
+    bool windowSpace = false; // Pointer, DoubleClick, Stroke : points en fenêtre plutôt qu'en page
+    bool expectStroke = true; // Stroke : faux = aucun trait ne doit être figé (stylet sur un bouton)
     std::optional<double>
         valueTolerance; // Expect : écart admis, valeur numérique ; absent : comparaison exacte
     // Ajouté par L3-C4. MaxEventLoopGap : mesure écrite, l'écart au seuil ne fait pas échouer le scénario.
@@ -169,7 +170,7 @@ private:
     // Conventions d'une vraie tablette (comme l'injecteur du banc) : bouton seulement à l'appui et au
     // relâché.
     void postTablet(QEvent::Type type, QPointF page, double pressure, Qt::MouseButton button,
-                    Qt::MouseButtons buttons);
+                    Qt::MouseButtons buttons, bool windowSpace = false);
     bool stroke(const UiStep& step, QStringList& report);
     bool key(const UiStep& step, QStringList& report);
     bool checkPixel(const UiStep& step, QStringList& report);

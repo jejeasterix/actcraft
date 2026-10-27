@@ -292,6 +292,11 @@ void TextEditing::setTextDocument(QQuickTextDocument* document)
     if (m_watched) {
         // Frappe : le cadre suit le document ; rien n'est écrit dans le paperboard avant la validation.
         connect(m_watched, &QTextDocument::contentsChanged, this, &TextEditing::updateFrame);
+        // La hauteur n'est connue qu'après la mise en page : un changement de largeur la rend plus tard.
+        if (QAbstractTextDocumentLayout* layout = m_watched->documentLayout()) {
+            connect(layout, &QAbstractTextDocumentLayout::documentSizeChanged, this,
+                    &TextEditing::updateFrame);
+        }
     }
     emit wiringChanged();
 }
@@ -743,6 +748,7 @@ void TextEditing::setFrameWidth(qreal width)
     m_fixedWidth = width;
     m_geometryChanged = true;
     updateFrame();
+    emit frameChanged(); // fixedWidth a pu changer sans que le cadre change
 }
 
 void TextEditing::moveFrame(QPointF delta)
