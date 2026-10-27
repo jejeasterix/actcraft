@@ -31,12 +31,17 @@ Item {
                && item.y + item.height <= list.contentY + list.height + 0.5
     }
 
-    // Un appui sur la page rend le focus : Suppr, Ctrl+X, C, V et D ne valent que tant que le navigateur a le
-    // focus (sinon Suppr supprimerait une page quand on veut supprimer l'objet sélectionné).
+    // Tout appui sur la page rend le focus : Suppr, Ctrl+X, C, V et D ne valent que tant que le navigateur a le
+    // focus (sinon Suppr supprimerait une page quand on veut supprimer l'objet sélectionné). Le clic droit ne
+    // tient aucun contact : la vue le signale par contextMenuRequested.
     Connections {
         target: root.thumbnails ? root.thumbnails.view : null
         function onContactActiveChanged() {
             if (target.contactActive && root.activeFocus)
+                root.focus = false
+        }
+        function onContextMenuRequested() {
+            if (root.activeFocus)
                 root.focus = false
         }
     }
@@ -49,10 +54,22 @@ Item {
     function touchTick() {
         root.delegateTick += 1
     }
+    // Jamais de repositionnement de la liste sous un appui ou un défilement au doigt : la demande est gardée et
+    // jouée au relâché (flushShow).
+    property bool showPending: false
     function showCurrent() {
+        if (area.pressed || touchScroll.active) {
+            root.showPending = true
+            return
+        }
+        root.showPending = false
         if (list.count > 0)
             list.positionViewAtIndex(Math.max(0, Math.min(list.count - 1, root.documentController.currentIndex)),
                                      ListView.Contain)
+    }
+    function flushShow() {
+        if (root.showPending)
+            Qt.callLater(root.showCurrent)
     }
     Component.onCompleted: Qt.callLater(root.showCurrent)
     onVisibleChanged: if (visible) Qt.callLater(root.showCurrent)
@@ -152,6 +169,132 @@ Item {
         }
     }
 
+    // Zone d'appui : sous la liste (délégués, icône de menu de la page et barre de défilement passent avant),
+    // et non dans son contenu : les coordonnées de la souris sont celles de la partie visible, converties une
+    // seule fois en ordonnées du contenu (list.contentY).
+    Item {
+        id: pressZone
+        anchors.fill: list
+
+        // Au doigt, glisser fait défiler (le stylet et la souris déplacent des pages, la molette et la barre
+        // font défiler aussi).
+        DragHandler {
+            id: touchScroll
+            objectName: "pageListTouchScroll"
+            target: null
+            acceptedDevices: PointerDevice.TouchScreen
+            xAxis.enabled: false
+            property real startY: 0
+            onActiveChanged: {
+                if (active) {
+                    startY = list.contentY
+                    area.scrolled = true
+                } else {
+                    root.flushShow()
+                }
+            }
+            onTranslationChanged: {
+                if (!active)
+                    return
+                const max = Math.max(0, list.contentHeight - list.height)
+                list.contentY = Math.max(0, Math.min(max, startY - translation.y))
+            }
+        }
+
+        MouseArea {
+            id: area
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            property int pressedIndex: -1
+            property real pressedY: 0
+            property bool deferred: false
+            property bool dragging: false
+            property bool touch: false     // appui synthétisé depuis un doigt
+            property bool scrolled: false  // le doigt a fait défiler la liste
+            property int before: 0
+            property real insertY: 0
+
+            // Position d'insertion (indice « avant ») et ordonnée du trait pour une ordonnée de la partie visible.
+            function locate(y) {
+                const count = list.count
+                const content = y + list.contentY
+                for (let i = 0; i < count; ++i) {
+                    const item = list.itemAtIndex(i)
+                    if (!item)
+                        continue
+                    if (content < item.y + item.height / 2) {
+                        area.before = i
+                        area.insertY = item.y - list.spacing / 2
+                        return
+                    }
+                }
+                area.before = count
+                const last = list.itemAtIndex(count - 1)
+                area.insertY = last ? last.y + last.height + list.spacing / 2 : 0
+            }
+
+            onPressed: mouse => {
+                root.forceActiveFocus()
+                const index = list.indexAt(mouse.x, mouse.y + list.contentY)
+                area.pressedIndex = index
+                area.pressedY = mouse.y
+                area.dragging = false
+                area.deferred = false
+                area.scrolled = false
+                area.touch = mouse.source !== Qt.MouseEventNotSynthesized
+                if (index < 0)
+                    return
+                if (mouse.button === Qt.RightButton) {
+                    if (root.pages.selection.indexOf(index) < 0)
+                        root.pages.click(index, 0)
+                    menu.popupAt(mouse.x + list.x, mouse.y + list.y)
+                    return
+                }
+                if (area.touch)
+                    return // au doigt : un clic au relâché seulement, et sans défilement
+                const plain = (mouse.modifiers & (Qt.ShiftModifier | Qt.ControlModifier)) === 0
+                if (plain && root.pages.selection.length > 1 && root.pages.selection.indexOf(index) >= 0)
+                    area.deferred = true // peut-être le début du glisser de toute la sélection
+                else
+                    root.pages.click(index, mouse.modifiers)
+            }
+            onPositionChanged: mouse => {
+                if (area.touch || area.pressedIndex < 0 || !(mouse.buttons & Qt.LeftButton))
+                    return
+                if (!area.dragging && Math.abs(mouse.y - area.pressedY) > root.dragThreshold)
+                    area.dragging = true
+                if (area.dragging)
+                    area.locate(mouse.y)
+            }
+            onReleased: mouse => {
+                if (area.pressedIndex >= 0 && mouse.button === Qt.LeftButton) {
+                    if (area.touch) {
+                        if (!area.scrolled)
+                            root.pages.click(area.pressedIndex, 0)
+                    } else if (area.dragging) {
+                        root.pages.moveSelection(area.before)
+                    } else if (area.deferred) {
+                        root.pages.click(area.pressedIndex, 0)
+                    }
+                }
+                area.dragging = false
+                area.deferred = false
+                area.pressedIndex = -1
+                root.flushShow()
+            }
+            onCanceled: {
+                area.dragging = false
+                area.deferred = false
+                area.pressedIndex = -1
+                root.flushShow()
+            }
+            onWheel: wheel => {
+                const max = Math.max(0, list.contentHeight - list.height)
+                list.contentY = Math.max(0, Math.min(max, list.contentY - wheel.angleDelta.y / 2))
+            }
+        }
+    }
+
     ListView {
         id: list
         objectName: "pageList"
@@ -164,27 +307,10 @@ Item {
         clip: true
         model: root.thumbnails
         boundsBehavior: Flickable.StopAtBounds
-        interactive: false // le glisser à la souris ou au stylet déplace des pages ; défilement : voir ci-dessous
+        interactive: false // le glisser à la souris ou au stylet déplace des pages ; défilement : pressZone
         ScrollBar.vertical: ScrollBar {
             objectName: "pageListScrollBar"
             policy: ScrollBar.AsNeeded
-        }
-        // Au doigt, glisser fait défiler (le stylet et la souris déplacent des pages, la molette et la barre
-        // font défiler aussi).
-        DragHandler {
-            id: touchScroll
-            objectName: "pageListTouchScroll"
-            target: null
-            acceptedDevices: PointerDevice.TouchScreen
-            xAxis.enabled: false
-            property real startY: 0
-            onActiveChanged: if (active) startY = list.contentY
-            onTranslationChanged: {
-                if (!active)
-                    return
-                const max = Math.max(0, list.contentHeight - list.height)
-                list.contentY = Math.max(0, Math.min(max, startY - translation.y))
-            }
         }
 
         delegate: Item {
@@ -251,102 +377,33 @@ Item {
                     color: Theme.barre
                     opacity: 0.8
                 }
-                onClicked: ownMenu.popup(x + cell.x + list.x, y + cell.y - list.contentY + list.y)
+                // Menu de la page (pas celui du navigateur), sur la sélection ; une page hors sélection la remplace.
+                onClicked: {
+                    if (root.pages.selection.indexOf(cell.index) < 0)
+                        root.pages.click(cell.index, 0)
+                    menu.popupAt(x + cell.x + list.x, y + cell.y - list.contentY + list.y)
+                }
             }
         }
+    }
 
-        // Fantôme d'insertion : trait entre deux miniatures pendant le glisser.
+    // Fantôme d'insertion : trait entre deux miniatures pendant le glisser (au-dessus de la liste, sans entrée).
+    Item {
+        x: list.x
+        y: list.y
+        width: list.width
+        height: list.height
+        clip: true
+        z: 2
         Rectangle {
             objectName: "insertionGhost"
             visible: area.dragging
             x: Theme.espace2
-            width: list.width - 2 * Theme.espace2
+            width: parent.width - 2 * Theme.espace2
             height: 3
             radius: 1
             color: Theme.surfaceActive
             y: area.insertY - list.contentY - 1
-            z: 2
-        }
-
-        MouseArea {
-            id: area
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            property int pressedIndex: -1
-            property real pressedY: 0
-            property bool deferred: false
-            property bool dragging: false
-            property int before: 0
-            property real insertY: 0
-
-            // Position d'insertion (indice « avant ») et ordonnée du trait pour une ordonnée de la liste.
-            function locate(y) {
-                const count = list.count
-                const content = y + list.contentY
-                for (let i = 0; i < count; ++i) {
-                    const item = list.itemAtIndex(i)
-                    if (!item)
-                        continue
-                    if (content < item.y + item.height / 2) {
-                        area.before = i
-                        area.insertY = item.y - list.spacing / 2
-                        return
-                    }
-                }
-                area.before = count
-                const last = list.itemAtIndex(count - 1)
-                area.insertY = last ? last.y + last.height + list.spacing / 2 : 0
-            }
-
-            onPressed: mouse => {
-                root.forceActiveFocus()
-                const index = list.indexAt(mouse.x, mouse.y + list.contentY)
-                area.pressedIndex = index
-                area.pressedY = mouse.y
-                area.dragging = false
-                area.deferred = false
-                if (index < 0)
-                    return
-                if (mouse.button === Qt.RightButton) {
-                    if (root.pages.selection.indexOf(index) < 0)
-                        root.pages.click(index, 0)
-                    menu.popupAt(mouse.x + list.x, mouse.y + list.y)
-                    return
-                }
-                const plain = (mouse.modifiers & (Qt.ShiftModifier | Qt.ControlModifier)) === 0
-                if (plain && root.pages.selection.length > 1 && root.pages.selection.indexOf(index) >= 0)
-                    area.deferred = true // peut-être le début du glisser de toute la sélection
-                else
-                    root.pages.click(index, mouse.modifiers)
-            }
-            onPositionChanged: mouse => {
-                if (area.pressedIndex < 0 || !(mouse.buttons & Qt.LeftButton))
-                    return
-                if (!area.dragging && Math.abs(mouse.y - area.pressedY) > root.dragThreshold)
-                    area.dragging = true
-                if (area.dragging)
-                    area.locate(mouse.y)
-            }
-            onReleased: mouse => {
-                if (area.pressedIndex >= 0 && mouse.button === Qt.LeftButton) {
-                    if (area.dragging)
-                        root.pages.moveSelection(area.before)
-                    else if (area.deferred)
-                        root.pages.click(area.pressedIndex, 0)
-                }
-                area.dragging = false
-                area.deferred = false
-                area.pressedIndex = -1
-            }
-            onCanceled: {
-                area.dragging = false
-                area.deferred = false
-                area.pressedIndex = -1
-            }
-            onWheel: wheel => {
-                const max = Math.max(0, list.contentHeight - list.height)
-                list.contentY = Math.max(0, Math.min(max, list.contentY - wheel.angleDelta.y / 2))
-            }
         }
     }
 }
