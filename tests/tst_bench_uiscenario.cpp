@@ -271,6 +271,23 @@ private slots:
         QCOMPARE(propertyText(QVariant()), QStringLiteral("<absente>"));
     }
 
+    // L4-T19 : un doigt se pose aussi en coordonnées de fenêtre (navigateur de pages, hors de la page).
+    void touchStepAcceptsWindowSpace()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseUiScenario(QByteArray(R"({"format": "actcraft-scenario/1", "name": "t", "steps": [
+            {"touch": [[1, 2], [3, 4]], "space": "window"}, {"touch": [[1, 2]]}]})"),
+                                 s, error),
+                 qPrintable(error));
+        QCOMPARE(static_cast<int>(s.steps.size()), 2);
+        QVERIFY(s.steps.at(0).windowSpace);
+        QVERIFY(!s.steps.at(1).windowSpace);
+        QVERIFY(!parseUiScenario(QByteArray(R"({"format": "actcraft-scenario/1", "name": "t", "steps": [
+            {"touch": [[1, 2]], "space": "ailleurs"}]})"),
+                                 s, error));
+    }
+
     // L4-T19 : une valeur attendue en tableau JSON s'écrit « [1,2] » (jsonText), comme propertyText d'une
     // liste.
     void expectArrayValueIsCompactText()

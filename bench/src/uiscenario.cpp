@@ -338,7 +338,7 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             why = QStringLiteral("doigt invalide (touch : au moins un point [x, y])");
             return false;
         }
-        return true;
+        return readSpace(o, step.windowSpace, why);
     }
     if (o.contains(QStringLiteral("pinch"))) {
         step.kind = UiStepKind::Pinch;
@@ -967,16 +967,17 @@ Injector& UiScenarioPlayer::gestures()
 bool UiScenarioPlayer::touch(const UiStep& step, QStringList& report)
 {
     const QString head = QStringLiteral("DOIGT %1 points").arg(step.points.size());
-    if (!view()) {
+    if (!step.windowSpace && !view()) {
         report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
         return false;
     }
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
     const bool sent =
-        gestures().touchPath(step.points, [this](GesturePhase phase, const std::vector<QPointF>& f) {
-            deliverFingers(m_window, phase, f);
-        });
+        gestures().touchPath(
+            step.points,
+            [this](GesturePhase phase, const std::vector<QPointF>& f) { deliverFingers(m_window, phase, f); },
+            step.windowSpace ? PointSpace::Window : PointSpace::Page);
     QCoreApplication::instance()->removeEventFilter(&witness);
     const bool ok = sent && witness.touchBegin == 1 && witness.touchEnd == 1;
     report << (ok ? head + QStringLiteral(" OK")

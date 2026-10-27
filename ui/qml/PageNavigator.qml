@@ -20,7 +20,9 @@ Item {
     activeFocusOnTab: true
 
     // La miniature de la page affichée est entièrement dans la vue (lu par le banc).
+    property int delegateTick: 0 // un délégué créé ou redimensionné : currentVisible se relit
     readonly property bool currentVisible: {
+        root.delegateTick
         list.contentY
         list.height
         list.contentHeight
@@ -43,6 +45,9 @@ Item {
     Connections {
         target: root.documentController
         function onPagesChanged() { Qt.callLater(root.showCurrent) }
+    }
+    function touchTick() {
+        root.delegateTick += 1
     }
     function showCurrent() {
         if (list.count > 0)
@@ -195,6 +200,9 @@ Item {
             objectName: "pageThumb" + pageNumber
             width: list.width
             height: shownWidth * aspect + 2 * root.cellPad
+            // Reporté : le délégué n'est dans la liste (itemAtIndex) qu'après sa création.
+            Component.onCompleted: Qt.callLater(root.touchTick)
+            onHeightChanged: Qt.callLater(root.touchTick)
 
             Rectangle {
                 x: Theme.espace2
