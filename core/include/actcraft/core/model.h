@@ -479,6 +479,19 @@ struct PagePresentation
 // inconnue est gardée.
 bool isDefault(const PagePresentation& presentation) noexcept;
 
+// Zones de page (F-603, D11) : la page compte des cadres, `horizontal` en largeur (0 à 40) et `vertical` en
+// hauteur (0 à 53), chacun d'une taille en pixels. Bornes : clampZones (pagezones.h). Tout à 0 : aucune zone,
+// rien dans l'empreinte ni dans le fichier.
+struct PageZones
+{
+    std::int32_t horizontal = 0;
+    std::int32_t vertical = 0;
+    double frameWidth = 0;
+    double frameHeight = 0; // taille d'un cadre en pixels (D11) ; 0 : non donnée
+};
+// Vrai : les quatre champs sont nuls, rien à écrire, rien dans l'empreinte.
+bool isDefault(const PageZones& zones) noexcept;
+
 // Objets dans l'ordre de dessin, rangés par couche : le dernier est au premier plan.
 struct Page
 {
@@ -493,6 +506,7 @@ struct Page
     // Clés de la page que cette version ne connaît pas (comme PageObject::unknownKeys) ; vide : aucune.
     std::string unknownKeys;
     double baseHeight = 0; // hauteur avant la première extension (F-301) ; 0 : jamais allongée
+    PageZones zones;       // cadres de la page (F-603, D11, L4-T27) ; l'allongement ne les modifie pas
 };
 
 // Empreinte FNV-1a 64 bits du contenu ; identique sur toutes les plateformes (types à taille fixe, octets

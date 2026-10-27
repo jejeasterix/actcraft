@@ -414,8 +414,11 @@ private slots:
         }
         {
             const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys,
-                         baseHeight] = d.page(1);
+                         baseHeight, zones] = d.page(1);
             QVERIFY(width != 1024 && height != 768 && objects.empty() && !name.empty() && !notes.empty());
+            // Zones de page (L4-T27) : jamais dans le document riche, dont les clés sont figées (référence) ;
+            // leur aller-retour : zonesRoundTrip, zonesKeyIsKnown (tst_formats_lot4).
+            QVERIFY(isDefault(zones));
             // Réglages de présentation : jamais dans le document riche, dont les clés sont figées (référence)
             // ; leur aller-retour : presentationRoundTrip, unknownPresentationKeyKept.
             QVERIFY(isDefault(presentation));
