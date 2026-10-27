@@ -19,6 +19,8 @@ Item {
     property int tick: 0
     // Vrai pendant que la sélection du TextEdit et celle de TextEditing se recopient l'une dans l'autre.
     property bool syncing: false
+    // Une liste de la barre de mise en forme est ouverte : Échap la ferme, il ne valide pas le texte.
+    property bool listOpen: false
 
     Connections {
         target: root.pageView
@@ -70,26 +72,21 @@ Item {
         width: root.shown ? root.editing.frame.width * root.zoom : 0
         height: root.shown ? root.editing.frame.height * root.zoom : 0
 
-        Item {
+        // Un seul élément, redessiné quand le cadre change (Canvas : aucun module de plus que QtQuick ; un
+        // Repeater de traits recréait tous ses délégués à chaque frappe et à chaque pas de zoom).
+        Canvas {
             id: dashes
             anchors.fill: parent
             anchors.margins: -3
-            readonly property int pas: 8
-            Repeater {
-                model: Math.ceil(dashes.width / dashes.pas)
-                delegate: Item {
-                    required property int index
-                    Rectangle { x: index * dashes.pas; y: 0; width: Math.min(4, dashes.width - x); height: 1; color: root.trait }
-                    Rectangle { x: index * dashes.pas; y: dashes.height - 1; width: Math.min(4, dashes.width - x); height: 1; color: root.trait }
-                }
-            }
-            Repeater {
-                model: Math.ceil(dashes.height / dashes.pas)
-                delegate: Item {
-                    required property int index
-                    Rectangle { x: 0; y: index * dashes.pas; width: 1; height: Math.min(4, dashes.height - y); color: root.trait }
-                    Rectangle { x: dashes.width - 1; y: index * dashes.pas; width: 1; height: Math.min(4, dashes.height - y); color: root.trait }
-                }
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onPaint: {
+                const ctx = getContext("2d")
+                ctx.reset()
+                ctx.strokeStyle = root.trait
+                ctx.lineWidth = 1
+                ctx.setLineDash([4, 4])
+                ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
             }
         }
 
@@ -102,6 +99,9 @@ Item {
             scale: root.zoom
             transformOrigin: Item.TopLeft
             color: "#000000"
+            // Texte brut : un collage ne fait jamais entrer de HTML (règle du chantier : jamais de texte riche
+            // sans HTML assaini). La mise en forme vient de TextEditing, qui charge le HTML assaini.
+            textFormat: TextEdit.PlainText
             wrapMode: root.shown && root.editing.fixedWidth ? TextEdit.WrapAtWordBoundaryOrAnywhere : TextEdit.NoWrap
             selectByMouse: true
             persistentSelection: true // la sélection reste visible quand un bouton de la barre prend la souris
@@ -134,7 +134,7 @@ Item {
     // Touche prise par l'éditeur pendant l'édition : Échap, Ctrl+B, Ctrl+I, Ctrl+U (sans autre modificateur).
     function ownedKey(event) {
         if (event.key === Qt.Key_Escape)
-            return true
+            return !root.listOpen
         return event.modifiers === Qt.ControlModifier
                 && (event.key === Qt.Key_B || event.key === Qt.Key_I || event.key === Qt.Key_U)
     }

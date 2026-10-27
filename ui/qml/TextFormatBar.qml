@@ -11,6 +11,24 @@ Item {
     id: bar
     property Commands commands: null
     property TextEditing editing: null
+    // Vue de la page : la barre est une couverture d'entrée (le stylet posé sur un bouton ne va pas à l'outil).
+    property PageView pageView: null
+    // Listes ouvertes (police, taille, couleurs, symboles) : la vue ne reçoit rien tant que l'une l'est.
+    property int openLists: 0
+    signal popupOpened()
+    signal popupClosed()
+    function listOpened() { bar.openLists += 1; bar.popupOpened() }
+    function listClosed() { bar.openLists = Math.max(0, bar.openLists - 1); bar.popupClosed() }
+    function closeLists() {
+        fontCombo.popup.close()
+        sizeCombo.popup.close()
+        symbolChoice.close()
+        for (let i = 0; i < colorChoices.count; ++i)
+            colorChoices.itemAt(i).close()
+    }
+    onVisibleChanged: if (!visible) bar.closeLists()
+    Component.onCompleted: if (pageView) pageView.addInputCover(bar)
+    Component.onDestruction: if (pageView) pageView.removeInputCover(bar)
 
     // Identifiants lus depuis des propriétés : l'AOT refuse l'argument littéral (voir TrashCan.qml).
     readonly property string fontId: "text.font"
@@ -60,6 +78,8 @@ Item {
     // Liste déroulante à nous (le style de base est clair).
     component BarCombo: ComboBox {
         id: combo
+        signal popupOpened()
+        signal popupClosed()
         focusPolicy: Qt.NoFocus
         implicitHeight: Theme.tailleBouton - Theme.espace2
         font.pixelSize: Theme.taillePolice
@@ -101,6 +121,8 @@ Item {
             background: Rectangle { color: entry.highlighted ? Theme.surfaceActive : "transparent" }
         }
         popup: Popup {
+            onOpened: combo.popupOpened()
+            onClosed: combo.popupClosed()
             y: combo.height
             width: combo.width
             height: Math.min(contentItem.implicitHeight, 8 * (Theme.tailleBouton - Theme.espace2))
@@ -123,6 +145,8 @@ Item {
     component ChoiceButton: ToolButton {
         id: choice
         property alias popupContent: choicePopup.contentItem
+        signal popupOpened()
+        signal popupClosed()
         focusPolicy: Qt.NoFocus
         implicitWidth: Theme.tailleBouton
         implicitHeight: Theme.tailleBouton
@@ -134,6 +158,8 @@ Item {
         function close() { choicePopup.close() }
         Popup {
             id: choicePopup
+            onOpened: choice.popupOpened()
+            onClosed: choice.popupClosed()
             y: choice.height + Theme.espace1
             padding: Theme.espace2
             focus: false
@@ -163,7 +189,10 @@ Item {
             spacing: Theme.espace1
 
             BarCombo {
+                id: fontCombo
                 objectName: "textFontCombo"
+                onPopupOpened: bar.listOpened()
+                onPopupClosed: bar.listClosed()
                 width: 168
                 y: (row.height - height) / 2
                 model: Qt.fontFamilies()
@@ -174,7 +203,10 @@ Item {
                 }
             }
             BarCombo {
+                id: sizeCombo
                 objectName: "textSizeCombo"
+                onPopupOpened: bar.listOpened()
+                onPopupClosed: bar.listClosed()
                 width: 76
                 y: (row.height - height) / 2
                 model: bar.sizes
@@ -196,9 +228,12 @@ Item {
 
             // Couleur du texte puis fond : une grille des couleurs du registre.
             Repeater {
+                id: colorChoices
                 model: [{ id: bar.colorId, fond: false }, { id: bar.backgroundId, fond: true }]
                 delegate: ChoiceButton {
                     id: colorChoice
+                    onPopupOpened: bar.listOpened()
+                    onPopupClosed: bar.listClosed()
                     required property var modelData
                     objectName: modelData.fond ? "textBackgroundButton" : "textColorButton"
                     y: (row.height - height) / 2
@@ -276,6 +311,8 @@ Item {
             }
             ChoiceButton {
                 id: symbolChoice
+                onPopupOpened: bar.listOpened()
+                onPopupClosed: bar.listClosed()
                 objectName: "textSymbolButton"
                 y: (row.height - height) / 2
                 icon.source: bar.commands.iconUrl(bar.symbolId)

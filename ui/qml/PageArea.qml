@@ -14,6 +14,7 @@ Item {
     property Commands commands: null
     // Lot 4 : édition du texte (TextEditing de la fenêtre) ; null pour une annotation de bureau.
     property TextEditing textEditing: null
+    property bool textListOpen: false // une liste de la barre de texte est ouverte : Échap la ferme, il ne valide pas
     // Emplacements des lots 3 et 7 (ordre des couches figé par le socle).
     property alias liftLayer: liftLayerItem
     property alias pageOverlays: pageOverlaysItem
@@ -167,6 +168,7 @@ Item {
         objectName: "textEditor"
         anchors.fill: parent
         editing: area.textEditing
+        listOpen: area.textListOpen
         pageView: view
     }
     ToolCursor {
