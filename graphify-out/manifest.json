@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1793088625.1311018,
-    "ast_hash": "6bb46af3e7c27d42abc4c10e4cddfaaa",
+    "mtime": 1793108480.0604942,
+    "ast_hash": "4d6c9961e45de863080f704dca870e83",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2435,8 +2435,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/equation.json": {
-    "mtime": 1792406200.460376,
-    "ast_hash": "14b89d5ced8eb01e4a782b539fe44035",
+    "mtime": 1793112687.7381048,
+    "ast_hash": "f2e776690f882acef7ffb63cf085f81e",
     "semantic_hash": ""
   },
   "bench/scenarios/message.json": {
@@ -2525,8 +2525,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_equation.cpp": {
-    "mtime": 1793082934.3053026,
-    "ast_hash": "e1552229275e422276062bd3e698eda5",
+    "mtime": 1793112687.7381048,
+    "ast_hash": "b3f2fdcbb9a03f961b645268458324c0",
     "semantic_hash": ""
   },
   "tests/tst_ui_keyboard.cpp": {
@@ -2745,13 +2745,13 @@
     "semantic_hash": ""
   },
   "ui/src/equationcontroller.cpp": {
-    "mtime": 1793082934.3109477,
-    "ast_hash": "6107b4869b9436dc95fdd46d21c9c8d9",
+    "mtime": 1793112687.7381048,
+    "ast_hash": "26bfef900e6df2bf932d9c7382f290d3",
     "semantic_hash": ""
   },
   "ui/src/equationcontroller.h": {
-    "mtime": 1793082934.3109477,
-    "ast_hash": "bb1553901f761badba3e73a443fea390",
+    "mtime": 1793112687.7381048,
+    "ast_hash": "f3deb27ba33f8524cbb10bf923e43234",
     "semantic_hash": ""
   },
   "ui/src/equationpreviewitem.cpp": {
