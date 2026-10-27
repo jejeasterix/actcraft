@@ -79,6 +79,11 @@ struct ThumbnailStats
     double maxCopyMs = 0;  // copie de la page la plus longue (lastCopyMs relevé à chaque lancement)
 };
 
+// Rendus lancés (instants `launchNs`, horloge du banc) qui tombent dans un contact : `windowsNs` sont les
+// intervalles appui -> relâché injectés, bornes comprises. Un lancement par rendu (L4-T29, N10).
+int launchesDuringContact(const std::vector<std::int64_t>& launchNs,
+                          const std::vector<std::pair<std::int64_t, std::int64_t>>& windowsNs);
+
 struct ScenarioResult
 {
     QString name;             // stroke | zoom | scroll | page | pauses | gommer | soulever
@@ -114,7 +119,8 @@ struct ScenarioResult
     // (shape_preview ; absent : scénario qui ne trace pas de forme).
     int placedShapes = -1;
     std::optional<ShapePreviewStats> shapePreview;
-    std::optional<ThumbnailStats> thumbnails; // L4-T29 : absent hors « miniatures » et « miniatures-ferme »
+    std::optional<ThumbnailStats>
+        thumbnails; // L4-T29 : absent hors « miniatures », « miniatures-ferme » et « miniatures-pauses »
 };
 
 struct BenchResult

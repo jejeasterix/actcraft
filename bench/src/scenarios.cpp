@@ -443,15 +443,24 @@ ScenarioPlan shapeScenario(ScenarioSet set)
     return plan;
 }
 
-ScenarioPlan thumbnailsScenario(ScenarioSet set)
+namespace {
+// Panneau des navigateurs ouvert pendant la mesure : document de kThumbnailPages pages, panneau ouvert avant
+// la mesure et refermé après, miniatures relevées.
+void openBrowsersDuring(ScenarioPlan& plan)
 {
-    ScenarioPlan plan = strokeScenario(set);
-    plan.name = QStringLiteral("miniatures");
     plan.generatedPages = kThumbnailPages;
     plan.measuresThumbnails = true;
     plan.browsersOpen = true;
     plan.setupCommands.emplace_back(QStringLiteral("view.browsers"), QVariant());
     plan.teardownCommands.emplace_back(QStringLiteral("view.browsers"), QVariant());
+}
+} // namespace
+
+ScenarioPlan thumbnailsScenario(ScenarioSet set)
+{
+    ScenarioPlan plan = strokeScenario(set);
+    plan.name = QStringLiteral("miniatures");
+    openBrowsersDuring(plan);
     return plan;
 }
 
@@ -459,12 +468,8 @@ ScenarioPlan thumbnailsPausesScenario(ScenarioSet set)
 {
     ScenarioPlan plan = pausesScenario(set);
     plan.name = QStringLiteral("miniatures-pauses");
-    plan.generatedPages = kThumbnailPages;
     plan.awaitFinalFold = false; // propre à « pauses » ; la mesure attend le rendu de miniature (runner.cpp)
-    plan.measuresThumbnails = true;
-    plan.browsersOpen = true;
-    plan.setupCommands.emplace_back(QStringLiteral("view.browsers"), QVariant());
-    plan.teardownCommands.emplace_back(QStringLiteral("view.browsers"), QVariant());
+    openBrowsersDuring(plan);
     return plan;
 }
 

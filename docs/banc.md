@@ -71,7 +71,7 @@ redessiné). Une commande qui n'attend aucun prêt (zoom posé sans cache : page
 à la première image qui la suit. Décodage, reconstruction et redessin du cache y comptent ; les images entre
 deux changements (rendu continu pendant la mesure) restent au repos.
 
-Lot 4 (L4-T14, S7.5) : deux scénarios s'ajoutent après `soulever`, les sept premiers inchangés (le banc en joue neuf ; onze avec le lot 4b, ci-dessous).
+Lot 4 (L4-T14, S7.5) : deux scénarios s'ajoutent après `soulever`, les sept premiers inchangés (le banc en joue neuf ; douze avec le lot 4b, ci-dessous).
 
 | Scénario | Contenu | Attendu relevé |
 |---|---|---|
@@ -100,13 +100,14 @@ inchangés (le banc en joue douze). Ils mesurent que les miniatures du navigateu
 Les deux premiers sont jugés comme `stroke` (figements compris, aucun attendu sur `cache.refreshes`). Avant la mesure, le
 banc vérifie l'état réel du panneau (`appThumbnails.active`) et, panneau ouvert, attend que les miniatures soient
 à jour (`pendingCount` = 0) : les rendus de l'ouverture ne comptent donc pas. Le dernier trait laisse sa miniature à
-refaire 400 ms plus tard (`PageThumbnails::kSettleMs`) ; panneau ouvert, la mesure attend ce rendu avant de se
-fermer, pour qu'il tombe dans la fenêtre.
+refaire 400 ms plus tard (`PageThumbnails::kSettleMs`) ; panneau ouvert, la mesure relève `renderCount` à la fin
+de l'injection puis attend un rendu de plus, pour que celui du dernier trait tombe dans la fenêtre.
 
 **Clé `thumbnails`** (ces trois scénarios seulement). `"thumbnails": {"renders": n, "max_copy_ms": x,
 "during_contact": k}` : `renders` = rendus terminés entre le début et la fin de la mesure (`renderCount`) ;
-`during_contact` = somme des hausses de `launchCount` (rendus **lancés**) entre un appui et son relâché, lues à
-chaque changement de contact et de rendu ; `max_copy_ms` = la plus longue copie de page sur le fil principal
+`during_contact` = nombre de rendus **lancés** (hausses de `launchCount`, horodatées à chaque `renderingChanged`)
+dont l'instant tombe entre un appui et son relâché injectés (instants d'envoi de l'injecteur) ; il vaut 0 tant que
+`PageThumbnails` ne lance rien pendant un contact, et le banc le prouve de l'extérieur ; `max_copy_ms` = la plus longue copie de page sur le fil principal
 (`lastCopyMs`, relevé à chaque lancement). Un résultat, jamais une porte. Sur le Mac en debug logiciel, `renders`
 peut valoir 0 sous forte charge : seul le banc en D3D11 release du PC fait foi pour les chiffres.
 

@@ -193,6 +193,15 @@ ShapePreviewStats shapePreviewStats(const std::vector<std::int64_t>& swapNs,
     return out;
 }
 
+int launchesDuringContact(const std::vector<std::int64_t>& launchNs,
+                          const std::vector<std::pair<std::int64_t, std::int64_t>>& windowsNs)
+{
+    return static_cast<int>(std::count_if(launchNs.begin(), launchNs.end(), [&](std::int64_t at) {
+        return std::any_of(windowsNs.begin(), windowsNs.end(),
+                           [at](const auto& w) { return at >= w.first && at <= w.second; });
+    }));
+}
+
 QString apiName(QSGRendererInterface::GraphicsApi api)
 {
     switch (api) {
