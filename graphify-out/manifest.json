@@ -955,8 +955,8 @@
     "semantic_hash": ""
   },
   "actions/data/layout.json": {
-    "mtime": 1792565548.5519445,
-    "ast_hash": "bbe970f2f6e1ec3ad76ff85b29bceefb",
+    "mtime": 1793069107.7190564,
+    "ast_hash": "86a6ae9978c5ff9a5f670090026d2aef",
     "semantic_hash": ""
   },
   "actions/include/actcraft/actions/commandregistry.h": {
@@ -1070,8 +1070,8 @@
     "semantic_hash": ""
   },
   "tests/tst_actions_registry.cpp": {
-    "mtime": 1792565548.5938756,
-    "ast_hash": "93f43faf4f8a802c402bf930b69fbbf0",
+    "mtime": 1793069107.7300713,
+    "ast_hash": "8cf7e0f31b7d8277ef4ca5dcba468203",
     "semantic_hash": ""
   },
   "tests/tst_bench_uiscenario.cpp": {
@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793058693.160044,
-    "ast_hash": "4f71f9d5712697f55da6f662c97a0fe5",
+    "mtime": 1793061348.7490187,
+    "ast_hash": "8905a4a957bdcb5764979c6a5f7c3684",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -2150,8 +2150,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/grille.json": {
-    "mtime": 1793024746.6358416,
-    "ast_hash": "0a828fe6416aa7862f9020de041959cf",
+    "mtime": 1793069107.7240589,
+    "ast_hash": "3a8b1d5c3a544f023cf92ee0a7882604",
     "semantic_hash": ""
   },
   "bench/scenarios/navigateur-pages.json": {
@@ -2315,8 +2315,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_pagesettings.cpp": {
-    "mtime": 1793024746.6393406,
-    "ast_hash": "a71aa8c816f204a6f59f498d9ea2a4c1",
+    "mtime": 1793069107.7330718,
+    "ast_hash": "42be7681e691106b9825885334d29886",
     "semantic_hash": ""
   },
   "tests/tst_ui_pagethumbnails.cpp": {
@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "ui/src/pageoptions.cpp": {
-    "mtime": 1793024746.647219,
-    "ast_hash": "8961fbf6a53c6c38e69f5957fd34beab",
+    "mtime": 1793069107.749608,
+    "ast_hash": "c1f9065d6727464e6cbb91bc17fc2d30",
     "semantic_hash": ""
   },
   "ui/src/pagescontroller.cpp": {
