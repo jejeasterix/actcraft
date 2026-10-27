@@ -1003,6 +1003,11 @@ bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
         report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
         return false;
     }
+    // Qt Quick met la mise en page à jour à la prochaine image : un panneau ouvert ou fermé par la commande
+    // précédente (la palette des formes) redimensionnerait la vue de page au milieu du geste, et la vue
+    // abandonne alors le geste de l'outil (PageView::finishStroke). grabWindow() termine la mise en page
+    // en attente avant le premier point ; les points de page sont convertis ensuite, à la taille définitive.
+    m_window->grabWindow();
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
     const Qt::MouseButton button = step.button;
