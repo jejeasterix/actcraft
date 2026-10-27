@@ -22,7 +22,7 @@
     {"stroke": [[900, 70], [901, 70]], "space": "window", "noStroke": true},
     {"expect": "appText.active", "value": true},
     {"expect": "appTools.currentTool", "value": "text-vertical"},
-    {"checkPixel": "cadre-pointille", "at": [398, 198], "color": "#86A0CB", "tolerance": 50},
+    {"checkEdge": "cadre-pointille", "from": [399, 194], "to": [399, 200], "minIntermediate": 1, "minInk": 0},
     {"capture": "edition"},
     {"key": "Escape"},
     {"expect": "appTools.currentTool", "value": "text-vertical"},
