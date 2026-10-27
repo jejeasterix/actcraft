@@ -51,6 +51,9 @@ Item {
         TapHandler {
             id: tap
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchScreen | PointerDevice.Stylus
+            // Saisie exclusive dès l'appui (comme un bouton) : avec la saisie passive par défaut, le relâché du
+            // stylet n'arrive pas jusqu'au gestionnaire et la touche ne tape pas.
+            gesturePolicy: TapHandler.ReleaseWithinBounds
             onTapped: button.activated()
         }
     }
