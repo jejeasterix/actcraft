@@ -76,6 +76,13 @@ QString jsonText(const QJsonValue& value)
     if (value.isDouble()) {
         return propertyText(QVariant(value.toDouble()));
     }
+    if (value.isArray()) {
+        QStringList parts;
+        for (const QJsonValue item : value.toArray()) {
+            parts << jsonText(item);
+        }
+        return QStringLiteral("[%1]").arg(parts.join(QLatin1Char(',')));
+    }
     return value.toString();
 }
 
@@ -331,7 +338,7 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             why = QStringLiteral("doigt invalide (touch : au moins un point [x, y])");
             return false;
         }
-        return true;
+        return readSpace(o, step.windowSpace, why);
     }
     if (o.contains(QStringLiteral("pinch"))) {
         step.kind = UiStepKind::Pinch;
@@ -587,6 +594,14 @@ QString propertyText(const QVariant& value)
     case QMetaType::QColor:
         return value.value<QColor>().name(QColor::HexRgb);
     default:
+        if (value.metaType() == QMetaType::fromType<QList<int>>()) {
+            // Liste d'entiers (sélection de pages) : « [0,1] », comme jsonText d'un tableau du scénario.
+            QStringList parts;
+            for (const int n : value.value<QList<int>>()) {
+                parts << QString::number(n);
+            }
+            return QStringLiteral("[%1]").arg(parts.join(QLatin1Char(',')));
+        }
         if (!value.canConvert<QString>()) {
             // QPointF, QRectF, QObject*… : nommés, jamais lus « "" ».
             return QStringLiteral("<non textuel : %1>").arg(QString::fromLatin1(value.typeName()));
@@ -952,16 +967,16 @@ Injector& UiScenarioPlayer::gestures()
 bool UiScenarioPlayer::touch(const UiStep& step, QStringList& report)
 {
     const QString head = QStringLiteral("DOIGT %1 points").arg(step.points.size());
-    if (!view()) {
+    if (!step.windowSpace && !view()) {
         report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
         return false;
     }
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
-    const bool sent =
-        gestures().touchPath(step.points, [this](GesturePhase phase, const std::vector<QPointF>& f) {
-            deliverFingers(m_window, phase, f);
-        });
+    const bool sent = gestures().touchPath(
+        step.points,
+        [this](GesturePhase phase, const std::vector<QPointF>& f) { deliverFingers(m_window, phase, f); },
+        step.windowSpace ? PointSpace::Window : PointSpace::Page);
     QCoreApplication::instance()->removeEventFilter(&witness);
     const bool ok = sent && witness.touchBegin == 1 && witness.touchEnd == 1;
     report << (ok ? head + QStringLiteral(" OK")

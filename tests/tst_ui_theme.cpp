@@ -25,7 +25,9 @@ const char* const kIcons[] = {
     "navigateurs", "page-avant", "page-apres", "page-couper", "page-copier", "page-coller", "page-dupliquer",
     "page-supprimer", "fond", "allonger", "zones", "gras", "italique", "souligne", "exposant", "indice",
     "aligner-gauche", "centrer", "aligner-droite", "interligne-plus", "interligne-moins", "retrait-plus",
-    "retrait-moins", "puces", "symboles", "taille-plus", "taille-moins"};
+    "retrait-moins", "puces", "symboles", "taille-plus", "taille-moins",
+    // Lot 4 (L4-T19) : les cinq icônes des navigateurs.
+    "nav-ressources", "nav-objets", "nav-notes", "nav-proprietes", "nav-actions"};
 
 // Luminance relative de WCAG 2.1 (composantes sRGB linéarisées).
 double relativeLuminance(const QColor& color)

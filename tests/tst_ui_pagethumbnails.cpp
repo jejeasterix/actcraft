@@ -157,6 +157,24 @@ private slots:
         QCOMPARE(thumbs.launchCount(), 2);
     }
 
+    // Amendement 5 (trouvé par L4-T17) : panneau des navigateurs caché, aucun rendu lancé ; rouvert, la page
+    // modifiée pendant la suspension est rendue.
+    void inactiveRendersNothing()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        PageThumbnails thumbs;
+        thumbs.setActive(false);
+        thumbs.setDocumentController(&controller);
+        controller.commitStroke(smallStroke(0));
+        QTest::qWait(2 * PageThumbnails::kSettleMs);
+        QCOMPARE(thumbs.launchCount(), 0);
+        QCOMPARE(thumbs.renderCount(), 0);
+        thumbs.setActive(true);
+        QTRY_COMPARE_WITH_TIMEOUT(thumbs.renderCount(), 1, 5000);
+        QCOMPARE(thumbs.launchCount(), 1);
+    }
+
     // Appui sur la vue : contactActive vrai, aucun rendu lancé tant qu'il dure ; relâché : un rendu.
     void postponedDuringContact()
     {
