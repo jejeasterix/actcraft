@@ -81,6 +81,9 @@ class PageView : public QQuickItem
     Q_PROPERTY(actcraft::ui::ToolHost* tools READ tools WRITE setTools NOTIFY toolsChanged)
     Q_PROPERTY(int cacheRefreshCount READ cacheRefreshCount NOTIFY cacheUpdated)
     Q_PROPERTY(bool gestureActive READ gestureActive NOTIFY gestureActiveChanged)
+    // L4-C15 : dernier point de pointeur reçu par la vue (coordonnées de la vue), appuis et mouvements à
+    // bouton enfoncé compris : le HoverHandler de QML, lui, ne bouge pas pendant un glisser.
+    Q_PROPERTY(QPointF pointerPosition READ pointerPosition NOTIFY pointerPositionChanged)
 
 public:
     using SampleFilter = std::function<input::Sample(const input::Sample&)>;
@@ -174,8 +177,9 @@ public:
     void setTools(ToolHost* tools);
     actcraft::tools::Tool* currentTool() const; // outil qui reçoit la voie Tool maintenant
     int
-    cacheRefreshCount() const noexcept;  // redessins du cache terminés depuis la création (crochet S6, H10-1)
-    bool gestureActive() const noexcept; // un geste à deux doigts est en cours (L3-T13 ; faux au socle)
+    cacheRefreshCount() const noexcept; // redessins du cache terminés depuis la création (crochet S6, H10-1)
+    QPointF pointerPosition() const noexcept { return m_pointerPosition; }
+    bool gestureActive() const noexcept;     // un geste à deux doigts est en cours (L3-T13 ; faux au socle)
     input::PointerRouter& router() noexcept; // tests
     // Surcouche (lot 7) qui couvre la page là où elle est visible : à l'appui sous elle, ni stylet, ni doigt,
     // ni souris ne vont à l'outil (Route::Cover) ; l'événement continue vers ses gestionnaires. Oubliée à sa
@@ -210,6 +214,7 @@ signals:
     void scrollChanged();
     void toolsChanged();
     void gestureActiveChanged();
+    void pointerPositionChanged();
     void contextMenuRequested(QPointF viewPos); // clic droit non couvert sur la vue (F-202)
 
 protected:
@@ -319,6 +324,7 @@ private:
     bool m_stylusDrawing = false;     // un trait du stylet, commencé sur la vue, est en cours
     bool m_touchDrawing = false;      // un trait d'un doigt est en cours
     std::uint64_t m_touchPointer = 0; // contact du doigt qui trace (Sample::pointer)
+    QPointF m_pointerPosition;        // voir pointerPosition
     QPointF m_lastTouchPagePoint;     // dernier point brut du doigt qui trace, en coordonnées de page
     QPointF
         m_lastRawPagePoint; // dernier point brut routé vers l'outil (avant le filtre), coordonnées de page

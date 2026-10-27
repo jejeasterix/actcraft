@@ -563,6 +563,10 @@ bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
     if (isActingInput(event)) {
         postponeFold();
     }
+    if (viewPos != m_pointerPosition) { // rien à signaler quand rien ne bouge
+        m_pointerPosition = viewPos;
+        emit pointerPositionChanged();
+    }
     if (!m_pipeline) {
         return false;
     }

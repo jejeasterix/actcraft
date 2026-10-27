@@ -326,8 +326,8 @@ private slots:
         QCOMPARE(shape->bounds.height, 70.0);
     }
 
-    // L4-C15 : la miniature de la forme courante accompagne le pointeur pendant le glisser. Qt Quick ne met pas
-    // à jour un HoverHandler à bouton enfoncé : sans autre source, elle restait au point d'appui.
+    // L4-C15 : la miniature de la forme courante accompagne le pointeur pendant le glisser. Qt Quick ne met
+    // pas à jour un HoverHandler à bouton enfoncé : sans autre source, elle restait au point d'appui.
     void thumbnailFollowsThePointerWhileDragging()
     {
         App app;
@@ -357,8 +357,8 @@ private slots:
         QCOMPARE(app.document->shownObjectCount(), 1);
     }
 
-    // L4-C15 : même cause pour le cercle de largeur (F-138) du marqueur et de la gomme, dont le curseur système est
-    // masqué : il doit suivre la souris pendant le glisser.
+    // L4-C15 : même cause pour le cercle de largeur (F-138) du marqueur et de la gomme, dont le curseur
+    // système est masqué : il doit suivre la souris pendant le glisser.
     void widthIndicatorFollowsThePointerWhileDragging()
     {
         App app;
@@ -374,7 +374,8 @@ private slots:
             QTest::mousePress(app.window, Qt::LeftButton, Qt::NoModifier, start);
             QTest::mouseMove(app.window, end);
             QVERIFY2(indicator->isVisible(), tool);
-            const QPointF centre = indicator->mapToScene(QPointF(indicator->width() / 2, indicator->height() / 2));
+            const QPointF centre =
+                indicator->mapToScene(QPointF(indicator->width() / 2, indicator->height() / 2));
             QVERIFY2((centre - QPointF(end)).manhattanLength() < 1.5, tool);
             QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, end);
         }
