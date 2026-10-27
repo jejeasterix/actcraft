@@ -1,6 +1,32 @@
 {
   "format": "actcraft-scenario/1",
   "name": "equation",
-  "description": "Talon L7-S8 : rempli par L7-T27 (S24).",
-  "steps": [ {"waitReady": true} ]
+  "description": "S24 : l'éditeur d'équations pose une fraction un demi au centre de la page (modèle « fraction », 1, flèche droite, 2, Entrée) ; la page est enregistrée en .actcraft, fermée, rouverte : même empreinte, la fraction est toujours dessinée.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "insert.equation"},
+    {"expect": "equationRoot.visible", "value": true},
+    {"wait": 300},
+    {"pointer": [[448, 268]], "button": "left", "space": "window"},
+    {"key": "1"},
+    {"key": "Right"},
+    {"key": "2"},
+    {"capture": "editeur"},
+    {"key": "Return"},
+    {"expect": "equationRoot.visible", "value": false},
+    {"waitReady": true},
+    {"checkPixel": "barre-de-fraction", "at": [512, 384], "color": "#000000", "tolerance": 140},
+    {"capture": "fraction-posee"},
+    {"remember": "documentController.fingerprint", "as": "avant"},
+    {"command": "file.save-as", "argument": "${SORTIE}/eq.actcraft"},
+    {"waitFor": "documentController.busy", "value": false},
+    {"command": "file.close"},
+    {"waitReady": true},
+    {"command": "file.open", "argument": "${SORTIE}/eq.actcraft"},
+    {"waitFor": "documentController.busy", "value": false},
+    {"expect": "documentController.fingerprint", "value": "${avant}"},
+    {"waitReady": true},
+    {"checkPixel": "barre-relue", "at": [512, 384], "color": "#000000", "tolerance": 140},
+    {"capture": "equation"}
+  ]
 }
