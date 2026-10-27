@@ -326,6 +326,60 @@ private slots:
         QCOMPARE(shape->bounds.height, 70.0);
     }
 
+    // L4-C15 : la miniature de la forme courante accompagne le pointeur pendant le glisser. Qt Quick ne met pas
+    // à jour un HoverHandler à bouton enfoncé : sans autre source, elle restait au point d'appui.
+    void thumbnailFollowsThePointerWhileDragging()
+    {
+        App app;
+        QVERIFY(start(app, freshFile("miniature.ini")));
+        const QSignalSpy resized(app.view, &QQuickItem::widthChanged);
+        app.tools->chooseShape(QStringLiteral("rectangle"));
+        QQuickItem* palette = app.window->findChild<QQuickItem*>(QStringLiteral("shapePalette"));
+        QVERIFY(palette);
+        QVERIFY(QTest::qWaitFor(
+            [&] { return palette->isVisible() && palette->width() > 0 && resized.count() > 0; }, 5000));
+        QQuickItem* thumbnail = findItem(app.window->contentItem(), QStringLiteral("shapeCursorThumbnail"));
+        QVERIFY(thumbnail);
+        const QPoint start = app.view->pageToScene(QPointF(300, 300)).toPoint();
+        const QPoint middle = app.view->pageToScene(QPointF(420, 350)).toPoint();
+        const QPoint end = app.view->pageToScene(QPointF(560, 430)).toPoint();
+        QTest::mouseMove(app.window, start);
+        QTRY_VERIFY(thumbnail->isVisible());
+        QTest::mousePress(app.window, Qt::LeftButton, Qt::NoModifier, start);
+        QVERIFY(app.busy());
+        for (const QPoint& target : {middle, end}) {
+            QTest::mouseMove(app.window, target);
+            QVERIFY(thumbnail->isVisible());
+            QCOMPARE(thumbnail->mapToScene(QPointF(0, 0)).toPoint() - QPoint(14, 14), target);
+        }
+        QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, end);
+        // Les outils reçoivent toujours le geste complet : la forme est tracée du point d'appui au relâché.
+        QCOMPARE(app.document->shownObjectCount(), 1);
+    }
+
+    // L4-C15 : même cause pour le cercle de largeur (F-138) du marqueur et de la gomme, dont le curseur système est
+    // masqué : il doit suivre la souris pendant le glisser.
+    void widthIndicatorFollowsThePointerWhileDragging()
+    {
+        App app;
+        QVERIFY(start(app, freshFile("cercle.ini")));
+        QQuickItem* indicator = findItem(app.window->contentItem(), QStringLiteral("widthIndicator"));
+        QVERIFY(indicator);
+        for (const char* tool : {"highlighter", "eraser"}) {
+            app.tools->activate(QString::fromLatin1(tool));
+            const QPoint start = app.view->pageToScene(QPointF(300, 300)).toPoint();
+            const QPoint end = app.view->pageToScene(QPointF(520, 380)).toPoint();
+            QTest::mouseMove(app.window, start);
+            QTRY_VERIFY(indicator->isVisible());
+            QTest::mousePress(app.window, Qt::LeftButton, Qt::NoModifier, start);
+            QTest::mouseMove(app.window, end);
+            QVERIFY2(indicator->isVisible(), tool);
+            const QPointF centre = indicator->mapToScene(QPointF(indicator->width() / 2, indicator->height() / 2));
+            QVERIFY2((centre - QPointF(end)).manhattanLength() < 1.5, tool);
+            QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, end);
+        }
+    }
+
     // D2, D3 : remplie en orange, contour noir de 4, pour un fichier de réglages vide.
     void newShapeIsOrangeWithBlackOutline()
     {
