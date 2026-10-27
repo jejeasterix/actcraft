@@ -2,16 +2,15 @@
 
 Statut : en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
 Gabarit : lots (lot 7 du chantier `livraison-complete`, exécuté en parallèle du lot 3)
-Étage : 3 (phase 2 du lot 7 : reprise par la nouvelle session le 2026-10-26 ; T19, T21, T24 mergées ; suite V11 verte ; V13 : L7-T23 et L7-T25 mergées ; V14 : L7-T26 ‖ L7-T30 lancées, L7-T30 mergée ; L7-T26 mergée ; V15 : L7-T31 mergée, L7-T27 en cours ; V16 : L7-T29 lancée (L7-T28 ensuite) ; arrêt de vague le 2026-10-27 pour la bascule sur le Mac ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
+Étage : 3 (phase 2 du lot 7 : reprise par la nouvelle session le 2026-10-26 ; T19, T21, T24 mergées ; suite V11 verte ; V13 : L7-T23 et L7-T25 mergées ; V14 : L7-T26 ‖ L7-T30 lancées, L7-T30 mergée ; L7-T26 mergée ; V15 : L7-T31 mergée, L7-T27 en cours ; V16 : L7-T29 lancée (L7-T28 ensuite) ; arrêt de vague du 2026-10-27 annulé, B reste sur le PC ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branche : feat/livraison-complete-b   Base : feat/livraison-complete @ 7bb551c (+ merge du plan du lot 7 bf8c930 → 2d76ba6)
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Relectures : mac
-Machine : mac à partir du 2026-10-27 (suites sans jeton.ps1, voir ~/pilotage-mac/consignes-actcraft.md ; preuves Windows reportées au retour du PC)
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 27/33 tâches terminées
-Tâche : L7-T27 — équation IV, essai 1 arrêté au wip 6a476bd (arrêt de vague, bascule Mac) — depuis 2026-10-27
-Tâche : L7-T29 — clavier à l'écran, essai 1 arrêté au wip b2600c8 (arrêt de vague, bascule Mac) — depuis 2026-10-27
+Tâche : L7-T27 — équation IV, essai 1 repris au wip 6a476bd après l'arrêt de vague annulé — depuis 2026-10-27
+Tâche : L7-T29 — clavier à l'écran, essai 1 repris au wip b2600c8 après l'arrêt de vague annulé — depuis 2026-10-27
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -178,9 +177,9 @@ ouvertes : — · passées : —
 - `tst_captures_aller_retour_natif` échoue sous charge (`BOUCLE max=… ECART`, seuil 25 ms), base comprise : pas une régression de B ; A le fiabilise.
 (voir aussi « Pièges trouvés » du chantier parent)
 
-## Bascule sur le Mac (2026-10-27) : preuves qui ne se font que sous Windows
+## Contrôles réservés à Windows et à l'écran (relevés le 2026-10-27)
 
-Arrêt de vague demandé par Jérôme (relayé par le Pilote) : la suite du lot se fait sur le Mac mini, les preuves Windows attendent le retour du PC. Worktrees de tâche ouverts : `livraison-complete-b--L7-T27` (wip 6a476bd), `livraison-complete-b--L7-T29` (wip b2600c8), arbres propres. Restent à lancer : L7-T28, L7-T32, L7-T33, L7-T34.
+Arrêt de vague du 2026-10-27 pour une bascule sur le Mac, annulé le même jour (contrordre de Jérôme relayé par le Pilote : seule A passe au Mac ; B reste sur le PC). Liste gardée pour la clôture. Worktrees de tâche ouverts : `livraison-complete-b--L7-T27` (wip 6a476bd), `livraison-complete-b--L7-T29` (wip b2600c8), arbres propres. Restent à lancer : L7-T28, L7-T32, L7-T33, L7-T34.
 
 - Pour toute tâche : build MSVC `/W4 /WX`, suite debug `scripts/test.ps1` → `TESTS OK` N = 158 sous Windows, banc de non-régression en fin de lot, captures natives D3D11.
 - L7-T27 : `tst_captures_equation` et captures `equation` à rejouer ; le reste du TDD se fait sur le Mac.
