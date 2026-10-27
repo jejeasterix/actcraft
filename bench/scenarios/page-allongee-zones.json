@@ -50,7 +50,9 @@
     {"waitReady": true},
     {"remember": "documentController.fingerprint", "as": "avant"},
     {"command": "file.save-as", "argument": "${SORTIE}/z.actcraft"},
+    {"waitFor": "documentController.busy", "value": false},
     {"command": "file.open", "argument": "${SORTIE}/z.actcraft"},
+    {"waitFor": "documentController.busy", "value": false},
     {"waitReady": true},
     {"expect": "documentController.fingerprint", "value": "${avant}"}
   ]
