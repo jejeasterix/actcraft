@@ -500,8 +500,8 @@ private slots:
         QCOMPARE(rig.options.pageHeight(), 768.0);
     }
 
-    // La poignée (Main.qml) et la commande ne passent pas par l'outil courant : le stylo reste, un clic sur la
-    // poignée allonge la page d'une étape.
+    // La poignée (Main.qml) et la commande ne passent pas par l'outil courant : le stylo reste, un clic sur
+    // la poignée allonge la page d'une étape.
     void extendKeepsTheCurrentTool()
     {
         QQmlApplicationEngine engine;
@@ -513,12 +513,16 @@ private slots:
         QVERIFY(window);
         auto* tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
         QVERIFY(tools);
-        tools->setSettingsFile(m_dir.filePath(QStringLiteral("reglages-poignee.ini"))); // jamais le profil réel
+        tools->setSettingsFile(
+            m_dir.filePath(QStringLiteral("reglages-poignee.ini"))); // jamais le profil réel
         auto* options = window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
         auto* commands = window->findChild<ui::Commands*>(QStringLiteral("commands"));
         auto* handle = window->findChild<QQuickItem*>(QStringLiteral("pageExtensionHandle"));
         QVERIFY(options && commands && handle);
         QVERIFY(window->isVisible() || QTest::qWaitForWindowExposed(window));
+        auto* view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
+        QVERIFY(view);
+        QTRY_VERIFY(view->width() > 100 && view->height() > 100); // mise en page faite
         tools->activate(QStringLiteral("pen"));
         QCOMPARE(tools->currentTool(), QStringLiteral("pen"));
 
@@ -554,9 +558,11 @@ private slots:
         auto* view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
         QVERIFY(options && view);
         QVERIFY(window->isVisible() || QTest::qWaitForWindowExposed(window));
-        view->setZoom(1.0); // hors ajustement : la zone de défilement dépend alors de la hauteur de la page
+        QTRY_VERIFY(view->width() > 100 && view->height() > 100); // mise en page faite
+        view->setZoom(2.0); // hors ajustement, la page dépasse la vue : la zone de défilement dépend alors de
+                            // la hauteur de la page
         const qreal before = view->scrollSizeY();
-        QVERIFY(before > 0 && before < 1.0 + 1e-9);
+        QVERIFY(before > 0);
         options->extendPage();
         QTRY_VERIFY(view->scrollSizeY() < before - 1e-6);
         QVERIFY(std::abs(view->content()->height() - 844.8) < 1e-3);

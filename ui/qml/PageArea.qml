@@ -143,6 +143,8 @@ Item {
                 PageExtensionHandle {
                     id: pageExtensionHandleItem
                     objectName: "pageExtensionHandle"
+                    pageView: view
+                    commands: area.commands
                 }
             }
         }
