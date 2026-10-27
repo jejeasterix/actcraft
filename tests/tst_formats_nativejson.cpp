@@ -815,7 +815,7 @@ private slots:
         o.insert(u"pen"_s, pen);
         root = withObject(root, 0, 3, o);
         QJsonObject p = page(root, 0);
-        p.insert(u"zones"_s, QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}});
+        p.insert(u"futureLayout"_s, QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}});
         QJsonObject background = p.value(u"background"_s).toObject();
         background.insert(u"blur"_s, 4);
         p.insert(u"background"_s, background);
