@@ -995,8 +995,8 @@
     "semantic_hash": ""
   },
   "bench/src/uiscenario.cpp": {
-    "mtime": 1793028692.388549,
-    "ast_hash": "09f7abe2494268de082b0ff1eecb4ebf",
+    "mtime": 1793074971.6916618,
+    "ast_hash": "3fbe9e88e456d7c6e7eeae3e47c3991b",
     "semantic_hash": ""
   },
   "core/include/actcraft/core/document.h": {
@@ -1075,8 +1075,8 @@
     "semantic_hash": ""
   },
   "tests/tst_bench_uiscenario.cpp": {
-    "mtime": 1793028692.405067,
-    "ast_hash": "d3213855ed866fc78451080a5652ebe5",
+    "mtime": 1793074971.6975136,
+    "ast_hash": "d15126982fa369c5a3ea81ee9c5092d2",
     "semantic_hash": ""
   },
   "tests/tst_core_document.cpp": {
@@ -1185,8 +1185,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793061348.7490187,
-    "ast_hash": "8905a4a957bdcb5764979c6a5f7c3684",
+    "mtime": 1793072105.6490889,
+    "ast_hash": "a1b4f4f803f2344f352af8a03e668010",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
