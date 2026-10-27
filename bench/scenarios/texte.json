@@ -25,7 +25,7 @@
     {"waitFor": "appText.active", "value": false, "timeoutMs": 10000},
     {"waitReady": true},
     {"expect": "documentController.shownObjectCount", "value": 1},
-    {"checkPixel": "texte-encre", "at": [302, 310], "color": "#000000", "tolerance": 120},
+    {"checkPixel": "texte-encre", "at": [304, 310], "color": "#000000", "tolerance": 60},
     {"capture": "valide"},
     {"command": "tool.text"},
     {"pointer": [[600, 600]]},
