@@ -29,6 +29,8 @@ Item {
     property bool inputBlocked: false
     // Document ouvert : le stylo y verse ses traits par la pile (L2-T15).
     property DocumentController documentController: null
+    // Pages du document (sélection) : le menu de page agit sur la page affichée, seule sélectionnée (F-771).
+    property Pages pages: null
     clip: true
 
     PageView {
@@ -46,6 +48,8 @@ Item {
         // Clic droit non couvert : la vue le signale (aucun TapHandler de clic droit ici).
         onContextMenuRequested: viewPos => {
             area.contextMenuRequestCount += 1
+            if (area.pages && area.documentController)
+                area.pages.goTo(area.documentController.currentIndex)
             pageContextMenu.popupAt(viewPos.x, viewPos.y)
         }
         // Branché dès la création de la vue (un bloc Connections ne l'est qu'en fin de composant).

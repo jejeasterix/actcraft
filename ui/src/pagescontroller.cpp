@@ -172,6 +172,22 @@ void PagesController::click(int index, int modifiers)
     apply({index}, index);
 }
 
+void PagesController::focusPage(int index)
+{
+    if (!m_controller || index < 0 || index >= m_controller->pageCount()) {
+        return;
+    }
+    if (!m_selection.contains(index)) {
+        click(index, 0);
+        return;
+    }
+    if (index != m_controller->currentIndex()) {
+        const Working working(m_working);
+        m_controller->showPage(index);
+    }
+    sync();
+}
+
 void PagesController::goTo(int index)
 {
     if (!m_controller) {

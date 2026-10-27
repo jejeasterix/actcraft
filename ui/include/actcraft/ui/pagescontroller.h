@@ -35,6 +35,9 @@ public:
     // F-801 : sans modificateur, sélection = {index} et la page s'affiche ; Maj : plage depuis l'ancre ; Ctrl
     // : bascule (la dernière page sélectionnée ne se retire pas). `modifiers` : Qt::KeyboardModifiers.
     Q_INVOKABLE void click(int index, int modifiers);
+    // Menu d'une miniature : la page cliquée devient la page affichée ; la sélection multiple qui la contient
+    // est gardée, sinon elle la remplace.
+    Q_INVOKABLE void focusPage(int index);
     Q_INVOKABLE void goTo(int index);           // F-800 : sans effet de changement de page
     Q_INVOKABLE void moveSelection(int before); // F-802 : pages gardées sélectionnées
     Q_INVOKABLE void insertBlank(bool after);   // F-600, par rapport à la page affichée

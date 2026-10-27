@@ -4,13 +4,16 @@
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageoptions.h>
+#include <actcraft/ui/pagescontroller.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QSignalSpy>
+#include <QTabletEvent>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QVariantList>
@@ -36,10 +39,17 @@ struct CacheSpy final : core::PageCache
     int inserts = 0;
     int removes = 0;
     int invalidates = 0;
+    int wholePage = 0; // invalidate(0, rien) : toute la page
     int calls() const { return inserts + removes + invalidates; }
     void insert(core::ObjectId) override { ++inserts; }
     void remove(core::ObjectId, const core::RectF&) override { ++removes; }
-    void invalidate(core::ObjectId, const core::CacheArea&) override { ++invalidates; }
+    void invalidate(core::ObjectId object, const core::CacheArea& area) override
+    {
+        ++invalidates;
+        if (object == 0 && !area) {
+            ++wholePage;
+        }
+    }
 };
 
 // Contrôleur réel (document de deux pages), réglages de page branchés, espion de cache.
@@ -113,6 +123,61 @@ QObject* findItem(QObject* popup, const QString& name)
     }
     return nullptr;
 }
+
+// La fenêtre réelle (Main.qml), réglages dans un dossier jetable.
+struct MainRig
+{
+    QQmlApplicationEngine engine;
+    QQuickWindow* window = nullptr;
+    ui::ToolHost* tools = nullptr;
+    ui::PageOptions* options = nullptr;
+    ui::DocumentController* document = nullptr;
+    ui::PagesController* pages = nullptr;
+    ui::PageView* view = nullptr;
+    QObject* dialog = nullptr;
+
+    bool start(const QString& settingsFile)
+    {
+        engine.setInitialProperties(
+            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+        engine.loadFromModule("ActCraft.Ui", "Main");
+        if (engine.rootObjects().isEmpty()) {
+            return false;
+        }
+        window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+        if (!window) {
+            return false;
+        }
+        tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        if (!tools) {
+            return false;
+        }
+        tools->setSettingsFile(settingsFile); // jamais le profil réel
+        options = window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
+        document = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        pages = window->findChild<ui::PagesController*>(QStringLiteral("appPages"));
+        view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
+        dialog = window->findChild<QObject*>(QStringLiteral("backgroundDialog"));
+        return options && document && pages && view && dialog &&
+               (window->isVisible() || QTest::qWaitForWindowExposed(window));
+    }
+    // Bouton de la boîte, par nom.
+    QObject* button(const char* name) const { return findItem(dialog, QString::fromLatin1(name)); }
+    bool click(const char* name) const
+    {
+        QObject* b = button(name);
+        return b && QMetaObject::invokeMethod(b, "click");
+    }
+    bool openDialog() const
+    {
+        return QMetaObject::invokeMethod(dialog, "open") &&
+               QTest::qWaitFor([this] { return dialog->property("visible").toBool(); }, 5000);
+    }
+    core::Argb fillColor(int page = 0) const
+    {
+        return document->document().page(static_cast<std::size_t>(page)).background.fill.color;
+    }
+};
 
 } // namespace
 
@@ -597,6 +662,327 @@ private slots:
         QCOMPARE(pages.count(), 0);
         rig.options.extendPage(); // témoin : une page allongée, elle, l'annonce
         QVERIFY(pages.count() >= 1);
+    }
+    // F-610 : une couleur unie est une étape ; un undo rend le blanc.
+    void backgroundColorIsOneStep()
+    {
+        Rig rig;
+        const auto yellow = [&] { return rig.controller.document().page(0).background.fill; };
+        QCOMPARE(yellow().color, core::Argb{0xFFFFFFFFu});
+        rig.options.setBackground({{QStringLiteral("kind"), QStringLiteral("color")},
+                                   {QStringLiteral("color"), QColor(QStringLiteral("#ffff00"))}});
+        QCOMPARE(yellow().kind, core::FillKind::Solid);
+        QCOMPARE(yellow().color, core::Argb{0xFFFFFF00u});
+        QCOMPARE(rig.options.background().value(QStringLiteral("kind")).toString(), QStringLiteral("color"));
+        QCOMPARE(rig.options.background().value(QStringLiteral("color")).value<QColor>(),
+                 QColor(QStringLiteral("#ffff00")));
+        rig.controller.undo();
+        QCOMPARE(yellow().color, core::Argb{0xFFFFFFFFu});
+    }
+
+    // F-610 : deux couleurs et un sens font un dégradé.
+    void backgroundGradient()
+    {
+        Rig rig;
+        rig.options.setBackground({{QStringLiteral("kind"), QStringLiteral("gradient")},
+                                   {QStringLiteral("color"), QColor(QStringLiteral("#ff0000"))},
+                                   {QStringLiteral("color2"), QColor(QStringLiteral("#0000ff"))},
+                                   {QStringLiteral("gradient"), QStringLiteral("horizontal")}});
+        const core::Fill& fill = rig.controller.document().page(0).background.fill;
+        QCOMPARE(fill.kind, core::FillKind::Gradient);
+        QCOMPARE(fill.color, core::Argb{0xFFFF0000u});
+        QCOMPARE(fill.color2, core::Argb{0xFF0000FFu});
+        QCOMPARE(fill.gradient, core::GradientKind::Horizontal);
+        const QVariantMap map = rig.options.background();
+        QCOMPARE(map.value(QStringLiteral("kind")).toString(), QStringLiteral("gradient"));
+        QCOMPARE(map.value(QStringLiteral("gradient")).toString(), QStringLiteral("horizontal"));
+        QCOMPARE(map.value(QStringLiteral("color2")).value<QColor>(), QColor(QStringLiteral("#0000ff")));
+    }
+
+    // Un fond redessine toute la page, une seule fois.
+    void backgroundRefreshesOnce()
+    {
+        Rig rig;
+        QSignalSpy changed(&rig.options, &ui::PageOptions::changed);
+        rig.options.setBackground({{QStringLiteral("kind"), QStringLiteral("color")},
+                                   {QStringLiteral("color"), QColor(QStringLiteral("#00ff00"))}});
+        QCOMPARE(rig.spy.invalidates, 1);
+        QCOMPARE(rig.spy.wholePage, 1);
+        QCOMPARE(rig.spy.calls(), 1);
+        QVERIFY(changed.count() >= 1);
+    }
+
+    // D15 : chaque « appliquer » est sa propre étape (jaune puis vert : deux undo pour le blanc).
+    void eachApplyIsOneStep()
+    {
+        Rig rig;
+        const auto color = [&] { return rig.controller.document().page(0).background.fill.color; };
+        rig.options.setBackground({{QStringLiteral("kind"), QStringLiteral("color")},
+                                   {QStringLiteral("color"), QColor(QStringLiteral("#ffff00"))}});
+        rig.options.setBackground({{QStringLiteral("kind"), QStringLiteral("color")},
+                                   {QStringLiteral("color"), QColor(QStringLiteral("#00ff00"))}});
+        QCOMPARE(color(), core::Argb{0xFF00FF00u});
+        rig.controller.undo();
+        QCOMPARE(color(), core::Argb{0xFFFFFF00u});
+        rig.controller.undo();
+        QCOMPARE(color(), core::Argb{0xFFFFFFFFu});
+    }
+
+    // Le fond vaut pour la page affichée.
+    void backgroundTargetsTheShownPage()
+    {
+        Rig rig;
+        rig.controller.showPage(1);
+        rig.options.setBackground({{QStringLiteral("kind"), QStringLiteral("color")},
+                                   {QStringLiteral("color"), QColor(QStringLiteral("#ffff00"))}});
+        QCOMPARE(rig.controller.document().page(1).background.fill.color, core::Argb{0xFFFFFF00u});
+        QCOMPARE(rig.controller.document().page(0).background.fill.color, core::Argb{0xFFFFFFFFu});
+    }
+
+    // D15 : la boîte réelle a trois boutons. « Appliquer » garde la boîte ouverte, « annuler » ferme sans
+    // rien défaire de ce qui est appliqué, « valider » applique ce qui ne l'est pas puis ferme.
+    void backgroundDialogThreeButtons()
+    {
+        QQmlApplicationEngine engine;
+        engine.setInitialProperties(
+            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+        engine.loadFromModule("ActCraft.Ui", "Main");
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+        QVERIFY(window);
+        auto* tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        tools->setSettingsFile(m_dir.filePath(QStringLiteral("reglages-fond.ini"))); // jamais le profil réel
+        auto* options = window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
+        auto* document = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QObject* dialog = window->findChild<QObject*>(QStringLiteral("backgroundDialog"));
+        QVERIFY(options && document && dialog);
+        QVERIFY(window->isVisible() || QTest::qWaitForWindowExposed(window));
+        const auto fillColor = [&] { return document->document().page(0).background.fill.color; };
+        const auto click = [&](const char* name) {
+            auto* button = dialog->findChild<QObject*>(QString::fromLatin1(name));
+            if (!button) { // le contenu d'un Popup n'est pas enfant QObject de la boîte
+                button = findItem(dialog, QString::fromLatin1(name));
+            }
+            return button && QMetaObject::invokeMethod(button, "click");
+        };
+
+        QVERIFY(QMetaObject::invokeMethod(dialog, "open"));
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(dialog, "chooseColor", Q_ARG(QVariant, QStringLiteral("#ffff00"))));
+        QVERIFY(click("backgroundApply"));
+        QCOMPARE(fillColor(), core::Argb{0xFFFFFF00u});
+        QVERIFY(dialog->property("visible").toBool()); // appliquer laisse la boîte ouverte
+        QVERIFY(click("backgroundCancel"));
+        QTRY_VERIFY(!dialog->property("visible").toBool());
+        QCOMPARE(fillColor(), core::Argb{0xFFFFFF00u}); // ce qui est appliqué reste
+
+        QVERIFY(QMetaObject::invokeMethod(dialog, "open"));
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(dialog, "chooseColor", Q_ARG(QVariant, QStringLiteral("#00ff00"))));
+        QVERIFY(click("backgroundOk")); // valider applique ce qui ne l'est pas, puis ferme
+        QTRY_VERIFY(!dialog->property("visible").toBool());
+        QCOMPARE(fillColor(), core::Argb{0xFF00FF00u});
+        document->undo(); // un seul pas pour « valider »
+        QCOMPARE(fillColor(), core::Argb{0xFFFFFF00u});
+
+        // Annuler sans rien appliquer ne touche à rien.
+        QVERIFY(QMetaObject::invokeMethod(dialog, "open"));
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(dialog, "chooseColor", Q_ARG(QVariant, QStringLiteral("#ff0000"))));
+        QVERIFY(click("backgroundCancel"));
+        QTRY_VERIFY(!dialog->property("visible").toBool());
+        QCOMPARE(fillColor(), core::Argb{0xFFFFFF00u});
+    }
+
+    // F-771 : le menu de page ouvert sur la page agit sur la page affichée, seule sélectionnée.
+    void pageMenuSelectsTheShownPage()
+    {
+        QQmlApplicationEngine engine;
+        engine.setInitialProperties(
+            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+        engine.loadFromModule("ActCraft.Ui", "Main");
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+        QVERIFY(window);
+        auto* tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        tools->setSettingsFile(m_dir.filePath(QStringLiteral("reglages-menu.ini")));
+        auto* document = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        auto* pages = window->findChild<ui::PagesController*>(QStringLiteral("appPages"));
+        auto* view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
+        QVERIFY(document && pages && view);
+        QVERIFY(window->isVisible() || QTest::qWaitForWindowExposed(window));
+        document->nextPage();
+        document->nextPage();
+        pages->click(0, 0);
+        pages->click(2, Qt::ShiftModifier);
+        QCOMPARE(pages->selection(), (QList<int>{0, 1, 2}));
+        document->showPage(1);
+        emit view->contextMenuRequested(QPointF(10, 10));
+        QCOMPARE(pages->selection(), (QList<int>{1}));
+        QCOMPARE(document->currentIndex(), 1);
+    }
+    // B1 : boîte ouverte, la page ne reçoit plus d'appui (inputBlocked) : un appui au stylet sur la boîte ne
+    // pose pas d'encre dessous. Même défaut sur le créateur de grille.
+    void dialogsBlockTheStylus()
+    {
+        MainRig r;
+        QVERIFY(r.start(m_dir.filePath(QStringLiteral("reglages-stylet.ini"))));
+        QObject* designer = r.window->findChild<QObject*>(QStringLiteral("gridDesigner"));
+        QVERIFY(designer);
+        QVERIFY(!r.view->inputBlocked());
+        QVERIFY(QMetaObject::invokeMethod(designer, "open"));
+        QTRY_VERIFY(r.view->inputBlocked());
+        QVERIFY(QMetaObject::invokeMethod(designer, "close"));
+        QTRY_VERIFY(!r.view->inputBlocked());
+
+        r.tools->activate(QStringLiteral("pen"));
+        const std::size_t before = r.document->document().page(0).objects.size();
+        QVERIFY(r.openDialog());
+        QVERIFY(r.view->inputBlocked());
+        auto* apply = qobject_cast<QQuickItem*>(r.button("backgroundApply"));
+        QVERIFY(apply);
+        const QPointF at = apply->mapToScene(QPointF(apply->width() / 2, apply->height() / 2));
+        QPointingDevice stylus(QStringLiteral("tst-fond-stylet"), 5161, QInputDevice::DeviceType::Stylus,
+                               QPointingDevice::PointerType::Pen,
+                               QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 0);
+        const auto send = [&](QEvent::Type type, QPointF scene, Qt::MouseButtons buttons) {
+            QTabletEvent event(type, &stylus, scene, r.window->mapToGlobal(scene), buttons ? 0.5 : 0.0, 0, 0,
+                               0, 0, 0, Qt::NoModifier, Qt::LeftButton, buttons);
+            QCoreApplication::sendEvent(r.window, &event);
+        };
+        send(QEvent::TabletPress, at, Qt::LeftButton);
+        for (int i = 1; i <= 3; ++i) {
+            send(QEvent::TabletMove, at + QPointF(i * 6, 0), Qt::LeftButton);
+        }
+        send(QEvent::TabletRelease, at + QPointF(18, 0), Qt::NoButton);
+        QCOMPARE(r.document->document().page(0).objects.size(), before);
+    }
+
+    // M1 : « appliquer » sans rien changer ne touche pas au fond (image, genre non offert, sens gardés) et ne
+    // pousse aucune étape.
+    void applyWithoutChangeKeepsTheBackground()
+    {
+        MainRig r;
+        QVERIFY(r.start(m_dir.filePath(QStringLiteral("reglages-fond-inchange.ini"))));
+        core::Background background;
+        background.fill.kind = core::FillKind::Gradient;
+        background.fill.color = 0xFF112233u;
+        background.fill.color2 = 0xFF445566u;
+        background.fill.gradient = core::GradientKind::DiagonalDown;
+        background.image = "fond.png";
+        r.document->execute(std::make_unique<core::SetBackgroundCommand>(0, background));
+        const std::string before = r.document->document().page(0).background.image;
+        r.document->undo(); // la pile repart d'une étape de moins : on compare à l'état « défait »
+        r.document->redo();
+        const bool undoBefore = r.document->canUndo();
+        QVERIFY(r.openDialog());
+        QVERIFY(r.click("backgroundApply"));
+        const core::Background& after = r.document->document().page(0).background;
+        QCOMPARE(after.image, before);
+        QCOMPARE(after.fill.kind, core::FillKind::Gradient);
+        QCOMPARE(after.fill.gradient, core::GradientKind::DiagonalDown);
+        QCOMPARE(after.fill.color, core::Argb{0xFF112233u});
+        QCOMPARE(after.fill.color2, core::Argb{0xFF445566u});
+        QCOMPARE(r.document->canUndo(), undoBefore);
+        r.document->undo(); // l'étape défaite est bien la nôtre, pas un « appliquer » de plus
+        QVERIFY(r.document->document().page(0).background.image.empty());
+        QVERIFY(r.click("backgroundOk"));
+        QTRY_VERIFY(!r.dialog->property("visible").toBool());
+        QVERIFY(r.document->document().page(0).background.image.empty());
+    }
+
+    // Un fond identique ne fait pas d'étape.
+    void identicalBackgroundPushesNoStep()
+    {
+        Rig rig;
+        const QVariantMap yellow{{QStringLiteral("kind"), QStringLiteral("color")},
+                                 {QStringLiteral("color"), QColor(QStringLiteral("#ffff00"))}};
+        rig.options.setBackground(yellow);
+        rig.controller.undo();
+        rig.controller.redo();
+        rig.spy = CacheSpy{};
+        rig.options.setBackground(yellow);
+        QCOMPARE(rig.spy.calls(), 0);
+        rig.controller.undo(); // un seul pas : le blanc d'origine
+        QCOMPARE(rig.controller.document().page(0).background.fill.color, core::Argb{0xFFFFFFFFu});
+    }
+
+    // Un genre que la boîte n'offre pas (image seule) n'est jamais posé par setBackground.
+    void unknownKindIsIgnored()
+    {
+        Rig rig;
+        const bool undoBefore = rig.controller.canUndo();
+        rig.options.setBackground({{QStringLiteral("kind"), QStringLiteral("image")},
+                                   {QStringLiteral("image"), QStringLiteral("x.png")}});
+        QVERIFY(rig.controller.document().page(0).background.image.empty());
+        QCOMPARE(rig.controller.canUndo(), undoBefore);
+    }
+
+    // Mineur 5 : la boîte relit la page à chaque ouverture ; un choix non appliqué puis annulé est oublié.
+    void dialogReloadsThePageOnReopen()
+    {
+        MainRig r;
+        QVERIFY(r.start(m_dir.filePath(QStringLiteral("reglages-fond-relit.ini"))));
+        QVERIFY(r.openDialog());
+        QVERIFY(
+            QMetaObject::invokeMethod(r.dialog, "chooseColor", Q_ARG(QVariant, QStringLiteral("#ff0000"))));
+        QVERIFY(r.click("backgroundCancel"));
+        QTRY_VERIFY(!r.dialog->property("visible").toBool());
+        QCOMPARE(r.fillColor(), core::Argb{0xFFFFFFFFu});
+        QVERIFY(r.openDialog());
+        QCOMPARE(r.dialog->property("color").value<QColor>(), QColor(QStringLiteral("#ffffff")));
+        QVERIFY(r.dialog->property("applied").toBool());
+        QVERIFY(r.click("backgroundCancel"));
+    }
+
+    // Mineur 5 : un dégradé passé par les boutons de la boîte (genre, deuxième couleur, sens).
+    void dialogBuildsAGradientWithItsButtons()
+    {
+        MainRig r;
+        QVERIFY(r.start(m_dir.filePath(QStringLiteral("reglages-fond-degrade.ini"))));
+        QVERIFY(r.openDialog());
+        QVERIFY(r.click("backgroundKindGradient"));
+        QVERIFY(
+            QMetaObject::invokeMethod(r.dialog, "chooseColor", Q_ARG(QVariant, QStringLiteral("#ff0000"))));
+        QVERIFY(
+            QMetaObject::invokeMethod(r.dialog, "chooseColor2", Q_ARG(QVariant, QStringLiteral("#0000ff"))));
+        QVERIFY(r.click("backgroundHorizontal"));
+        QVERIFY(r.click("backgroundApply"));
+        const core::Fill& fill = r.document->document().page(0).background.fill;
+        QCOMPARE(fill.kind, core::FillKind::Gradient);
+        QCOMPARE(fill.color, core::Argb{0xFFFF0000u});
+        QCOMPARE(fill.color2, core::Argb{0xFF0000FFu});
+        QCOMPARE(fill.gradient, core::GradientKind::Horizontal);
+        QVERIFY(r.dialog->property("applied").toBool());
+        QVERIFY(r.click("backgroundHorizontal")); // un second clic ne décoche pas le sens
+        QCOMPARE(r.dialog->property("direction").toString(), QStringLiteral("horizontal"));
+        QVERIFY(r.dialog->property("applied").toBool()); // et ne change rien à appliquer
+        QVERIFY(r.click("backgroundKindGradient"));
+        QVERIFY(r.dialog->property("applied").toBool());
+        QVERIFY(r.click("backgroundCancel"));
+    }
+
+    // M2 : le menu de page d'une miniature agit sur la page cliquée : elle devient la page affichée, et la
+    // sélection multiple n'est pas réduite si la miniature en fait partie.
+    void focusPageKeepsASelectionContainingIt()
+    {
+        Rig rig;
+        rig.controller.showPage(1);
+        rig.controller.nextPage(); // trois pages, affichée : 2
+        ui::PagesController pages;
+        pages.setDocumentController(&rig.controller);
+        pages.click(0, 0);
+        pages.click(1, Qt::ShiftModifier);
+        QCOMPARE(pages.selection(), (QList<int>{0, 1}));
+        QCOMPARE(rig.controller.currentIndex(), 1);
+        QVERIFY(QMetaObject::invokeMethod(&pages, "focusPage", Q_ARG(int, 0)));
+        QCOMPARE(pages.selection(), (QList<int>{0, 1}));
+        QCOMPARE(rig.controller.currentIndex(), 0);
+        QVERIFY(QMetaObject::invokeMethod(&pages, "focusPage", Q_ARG(int, 2)));
+        QCOMPARE(pages.selection(), (QList<int>{2}));
+        QCOMPARE(rig.controller.currentIndex(), 2);
     }
 };
 
