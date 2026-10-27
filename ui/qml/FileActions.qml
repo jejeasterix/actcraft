@@ -10,6 +10,8 @@ Item {
     id: actions
     objectName: "fileActions"
     required property DocumentController document
+    // Édition de texte en cours : validée avant de lire `modified` (sinon Fermer, Nouveau ou Quitter la perdraient).
+    property TextEditing textEditing: null
     signal popupOpened()
     signal popupClosed()
     property var pending: null    // action à reprendre après « enregistrer ? »
@@ -21,6 +23,7 @@ Item {
     property bool saveWaiting: false
 
     function guard(action) {
+        if (actions.textEditing) actions.textEditing.commit()
         if (!actions.document.modified) { action(); return }
         actions.pending = action
         saveChanges.documentTitle = actions.document.title
