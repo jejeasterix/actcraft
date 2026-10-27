@@ -5,7 +5,9 @@
 #include <QVariantList>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -16,6 +18,18 @@ namespace {
 
 constexpr double kMinSpacing = 1;
 constexpr double kMaxSpacing = 4096;
+
+// Réécrit `target` seulement si la valeur est un nombre fini (un NaN passe `std::clamp` sans être borné).
+void assignFinite(double& target, const QVariant& value, double low, double high)
+{
+    const double number = value.toDouble();
+    if (std::isfinite(number)) {
+        target = std::clamp(number, low, high);
+    }
+}
+
+constexpr double kNoLow = std::numeric_limits<double>::lowest();
+constexpr double kNoHigh = std::numeric_limits<double>::max();
 
 QString key(const char* name)
 {
@@ -52,16 +66,16 @@ core::GridLevel levelFromMap(const QVariantMap& map, core::GridLevel base)
         base.snap = get("snap").toBool();
     }
     if (has("startX")) {
-        base.start.x = get("startX").toDouble();
+        assignFinite(base.start.x, get("startX"), kNoLow, kNoHigh);
     }
     if (has("startY")) {
-        base.start.y = get("startY").toDouble();
+        assignFinite(base.start.y, get("startY"), kNoLow, kNoHigh);
     }
     if (has("spacingX")) {
-        base.spacingX = std::clamp(get("spacingX").toDouble(), kMinSpacing, kMaxSpacing);
+        assignFinite(base.spacingX, get("spacingX"), kMinSpacing, kMaxSpacing);
     }
     if (has("spacingY")) {
-        base.spacingY = std::clamp(get("spacingY").toDouble(), kMinSpacing, kMaxSpacing);
+        assignFinite(base.spacingY, get("spacingY"), kMinSpacing, kMaxSpacing);
     }
     if (has("color")) {
         const QColor color = get("color").value<QColor>();
@@ -73,7 +87,7 @@ core::GridLevel levelFromMap(const QVariantMap& map, core::GridLevel base)
         base.pattern = static_cast<core::GridPattern>(std::clamp(get("pattern").toInt(), 0, 2));
     }
     if (has("angle")) {
-        base.angle = get("angle").toDouble();
+        assignFinite(base.angle, get("angle"), kNoLow, kNoHigh);
     }
     if (has("line")) {
         base.line = static_cast<core::GridLine>(std::clamp(get("line").toInt(), 0, 5));
@@ -102,13 +116,13 @@ core::Grid gridFromMap(const QVariantMap& map, const core::Grid& base)
         grid.drawnAbove = get("above").toBool();
     }
     if (has("previewZoom")) {
-        grid.previewZoom = get("previewZoom").toDouble();
+        assignFinite(grid.previewZoom, get("previewZoom"), kNoLow, kNoHigh);
     }
     if (has("baseZoom")) {
-        grid.baseZoom = get("baseZoom").toDouble();
+        assignFinite(grid.baseZoom, get("baseZoom"), kNoLow, kNoHigh);
     }
     if (has("zoomIncrement")) {
-        grid.zoomIncrement = get("zoomIncrement").toDouble();
+        assignFinite(grid.zoomIncrement, get("zoomIncrement"), kNoLow, kNoHigh);
     }
     if (has("levels")) {
         const QVariantList list = get("levels").toList();
@@ -285,6 +299,9 @@ void PageOptions::stepSpacing(int sign)
 {
     core::Grid grid = currentGrid();
     const double factor = sign >= 0 ? 1 + grid.zoomIncrement : 1 - grid.zoomIncrement;
+    if (!std::isfinite(factor)) {
+        return; // incrément illisible dans le fichier : pas de pas NaN
+    }
     for (core::GridLevel& level : grid.levels) {
         level.spacingX = std::clamp(level.spacingX * factor, kMinSpacing, kMaxSpacing);
         level.spacingY = std::clamp(level.spacingY * factor, kMinSpacing, kMaxSpacing);

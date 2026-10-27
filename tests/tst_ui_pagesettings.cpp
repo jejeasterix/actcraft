@@ -1,12 +1,14 @@
 #include <actcraft/core/model.h>
 #include <actcraft/core/pagecache.h>
 #include <actcraft/core/pagesettings.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageoptions.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
 #include <QQmlApplicationEngine>
+#include <QQuickItem>
 #include <QQuickWindow>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -16,8 +18,10 @@
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <utility>
+#include <vector>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
@@ -87,6 +91,27 @@ struct Rig
     }
     double spacing(int page) const { return grid(page).levels.at(0).spacingX; }
 };
+
+// Élément visuel nommé, cherché dans le contenu d'une fenêtre flottante (ses éléments ne sont pas enfants
+// QObject de la fenêtre).
+QObject* findItem(QObject* popup, const QString& name)
+{
+    std::vector<QQuickItem*> todo{popup->property("contentItem").value<QQuickItem*>()};
+    while (!todo.empty()) {
+        QQuickItem* item = todo.back();
+        todo.pop_back();
+        if (!item) {
+            continue;
+        }
+        if (item->objectName() == name) {
+            return item;
+        }
+        for (QQuickItem* child : item->childItems()) {
+            todo.push_back(child);
+        }
+    }
+    return nullptr;
+}
 
 } // namespace
 
@@ -210,19 +235,196 @@ private slots:
         QCOMPARE(rig.spacing(0), before * 1.5 * 0.5);
     }
 
+    // Tous les champs hors défaut sur la page 0 ; la carte lue, appliquée à la page 1 (grille par défaut),
+    // redonne la même grille champ par champ.
     void gridMapRoundTrips()
     {
         Rig rig;
-        rig.seed(0, true);
+        core::Grid source;
+        source.visible = true;
+        source.snapEnabled = true;
+        source.drawnAbove = true;
+        source.previewZoom = 1.75;
+        source.baseZoom = 2.5;
+        source.zoomIncrement = 0.25;
+        core::GridLevel a;
+        a.visible = false;
+        a.snap = false;
+        a.start = {7, 9};
+        a.spacingX = 40;
+        a.spacingY = 24;
+        a.color = 0xFF2E7D32u;
+        a.pattern = core::GridPattern::Angle;
+        a.angle = 61;
+        a.line = core::GridLine::Dashed;
+        a.linesAlongX = false;
+        a.linesAlongY = false;
+        core::GridLevel b;
+        b.start = {-3, 5};
+        b.spacingX = 12;
+        b.spacingY = 15;
+        b.color = 0xFFD32F2Fu;
+        b.pattern = core::GridPattern::Diagonal45;
+        b.line = core::GridLine::BigDots;
+        source.levels = {a, b};
+        rig.controller.execute(std::make_unique<core::SetGridCommand>(std::size_t{0}, source));
+        rig.controller.closeMerge();
+
         const QVariantMap map = rig.options.grid();
-        QVERIFY(map.value(QStringLiteral("visible")).toBool());
-        QVERIFY(map.value(QStringLiteral("above")).toBool());
+        rig.controller.showPage(1);
+        QVERIFY(rig.grid(1).levels.empty()); // grille par défaut : rien à retrouver sans la carte
+        rig.options.setGrid(map);
+
+        const core::Grid& got = rig.grid(1);
+        QCOMPARE(got.visible, source.visible);
+        QCOMPARE(got.snapEnabled, source.snapEnabled);
+        QCOMPARE(got.drawnAbove, source.drawnAbove);
+        QCOMPARE(got.previewZoom, source.previewZoom);
+        QCOMPARE(got.baseZoom, source.baseZoom);
+        QCOMPARE(got.zoomIncrement, source.zoomIncrement);
+        QCOMPARE(got.levels.size(), source.levels.size());
+        for (std::size_t i = 0; i < source.levels.size(); ++i) {
+            const core::GridLevel& x = got.levels.at(i);
+            const core::GridLevel& y = source.levels.at(i);
+            QCOMPARE(x.visible, y.visible);
+            QCOMPARE(x.snap, y.snap);
+            QCOMPARE(x.start.x, y.start.x);
+            QCOMPARE(x.start.y, y.start.y);
+            QCOMPARE(x.spacingX, y.spacingX);
+            QCOMPARE(x.spacingY, y.spacingY);
+            QCOMPARE(x.color, y.color);
+            QCOMPARE(static_cast<int>(x.pattern), static_cast<int>(y.pattern));
+            QCOMPARE(x.angle, y.angle);
+            QCOMPARE(static_cast<int>(x.line), static_cast<int>(y.line));
+            QCOMPARE(x.linesAlongX, y.linesAlongX);
+            QCOMPARE(x.linesAlongY, y.linesAlongY);
+        }
+    }
+
+    // Une valeur non finie (QML, fichier) ne passe pas : `std::clamp` laisserait passer un NaN.
+    void nonFiniteValuesAreIgnored()
+    {
+        Rig rig;
+        rig.seed(0, false);
         const core::Grid before = rig.grid(0);
-        rig.options.setGrid(map); // identique : même grille
-        QCOMPARE(rig.grid(0).levels.size(), before.levels.size());
-        QCOMPARE(rig.grid(0).levels.at(0).color, before.levels.at(0).color);
-        QCOMPARE(rig.grid(0).levels.at(0).spacingX, before.levels.at(0).spacingX);
-        QCOMPARE(rig.grid(0).drawnAbove, before.drawnAbove);
+        const double nan = std::numeric_limits<double>::quiet_NaN();
+        const double inf = std::numeric_limits<double>::infinity();
+        QVariantMap map = rig.options.grid();
+        map.insert(QStringLiteral("previewZoom"), nan);
+        map.insert(QStringLiteral("baseZoom"), inf);
+        map.insert(QStringLiteral("zoomIncrement"), nan);
+        QVariantMap level = map.value(QStringLiteral("levels")).toList().value(0).toMap();
+        level.insert(QStringLiteral("spacingX"), nan);
+        level.insert(QStringLiteral("spacingY"), inf);
+        level.insert(QStringLiteral("startX"), nan);
+        level.insert(QStringLiteral("startY"), -inf);
+        level.insert(QStringLiteral("angle"), nan);
+        map.insert(QStringLiteral("levels"), QVariantList{level});
+        rig.options.setGrid(map);
+        const core::Grid& after = rig.grid(0);
+        QCOMPARE(after.previewZoom, before.previewZoom);
+        QCOMPARE(after.baseZoom, before.baseZoom);
+        QCOMPARE(after.zoomIncrement, before.zoomIncrement);
+        const core::GridLevel& l = after.levels.at(0);
+        QCOMPARE(l.spacingX, before.levels.at(0).spacingX);
+        QCOMPARE(l.spacingY, before.levels.at(0).spacingY);
+        QCOMPARE(l.start.x, before.levels.at(0).start.x);
+        QCOMPARE(l.start.y, before.levels.at(0).start.y);
+        QCOMPARE(l.angle, before.levels.at(0).angle);
+    }
+
+    // La boîte réelle : les coches de « Cacher la grille », « Aimanter » et « Poignée d'allongement » suivent
+    // l'état (y compris l'annulation), le créateur règle l'angle libre, le bouton de niveau n'est pas à
+    // bascule.
+    void gridCommandsAreChecked()
+    {
+        QQmlApplicationEngine engine;
+        engine.setInitialProperties(
+            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+        engine.loadFromModule("ActCraft.Ui", "Main");
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+        QVERIFY(window);
+        auto* tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        tools->setSettingsFile(
+            m_dir.filePath(QStringLiteral("reglages-coches.ini"))); // jamais le profil réel
+        auto* options = window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
+        auto* document = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        auto* commands = window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QObject* designer = window->findChild<QObject*>(QStringLiteral("gridDesigner"));
+        QObject* handle = window->findChild<QObject*>(QStringLiteral("pageExtensionHandle"));
+        QVERIFY(options && document && commands && designer && handle);
+        QVERIFY(window->isVisible() || QTest::qWaitForWindowExposed(window));
+        const QString hide = QStringLiteral("grid.hide");
+        const QString snap = QStringLiteral("grid.snap");
+        const QString extension = QStringLiteral("view.page-extension");
+        QVERIFY(!commands->isChecked(hide)); // page sans grille : rien n'est caché
+        QVERIFY(!commands->isChecked(snap));
+        QVERIFY(!commands->isChecked(extension));
+
+        // Une grille sur la page : le créateur l'ouvre.
+        QVERIFY(commands->trigger(QStringLiteral("grid.designer")));
+        QTRY_VERIFY(designer->property("visible").toBool());
+        QVERIFY(options->gridVisible());
+        QVERIFY(!commands->isChecked(hide));
+
+        // Bouton de niveau : à pression simple, pas à bascule (un second clic ne le décoche pas).
+        QObject* levelButton = findItem(designer, QStringLiteral("gridLevelButton0"));
+        QVERIFY(levelButton);
+        QVERIFY(!levelButton->property("checkable").toBool());
+
+        // Angle libre : réglage visible seulement avec le style « Angle libre », écrit dans le niveau.
+        QObject* angle = findItem(designer, QStringLiteral("gridAngle"));
+        QVERIFY(angle);
+        QVERIFY(!angle->property("visible").toBool()); // style « Normal »
+        QVariantMap map = options->grid();
+        QVariantList levels = map.value(QStringLiteral("levels")).toList();
+        QVariantMap level = levels.value(0).toMap();
+        level.insert(QStringLiteral("pattern"), static_cast<int>(core::GridPattern::Angle));
+        levels[0] = level;
+        map.insert(QStringLiteral("levels"), levels);
+        options->setGrid(map);
+        QTRY_VERIFY(angle->property("visible").toBool());
+        QVERIFY(angle->setProperty("value", 60));
+        QVERIFY(QMetaObject::invokeMethod(angle, "valueModified"));
+        const auto angleOf = [&] {
+            return options->grid()
+                .value(QStringLiteral("levels"))
+                .toList()
+                .value(0)
+                .toMap()
+                .value(QStringLiteral("angle"))
+                .toDouble();
+        };
+        QCOMPARE(angleOf(), 60.0);
+
+        QVERIFY(QMetaObject::invokeMethod(designer, "close"));
+        QTRY_VERIFY(!designer->property("visible").toBool());
+
+        // Cacher la grille : la coche suit, y compris le retour.
+        QVERIFY(commands->trigger(hide));
+        QVERIFY(!options->gridVisible());
+        QVERIFY(commands->isChecked(hide));
+        QVERIFY(commands->trigger(hide));
+        QVERIFY(options->gridVisible());
+        QVERIFY(!commands->isChecked(hide));
+
+        // Accrochage : la coche suit la commande et l'annulation.
+        QVERIFY(commands->trigger(snap));
+        QVERIFY(options->gridSnap());
+        QVERIFY(commands->isChecked(snap));
+        document->undo();
+        QVERIFY(!options->gridSnap());
+        QVERIFY(!commands->isChecked(snap));
+
+        // Poignée d'allongement.
+        QVERIFY(commands->trigger(extension));
+        QVERIFY(handle->property("visible").toBool());
+        QVERIFY(commands->isChecked(extension));
+        QVERIFY(commands->trigger(extension));
+        QVERIFY(!handle->property("visible").toBool());
+        QVERIFY(!commands->isChecked(extension));
     }
 
     // Trois réglages d'une séance, une seule étape : un undo() rend la grille d'origine.

@@ -178,8 +178,8 @@ Popup {
                         required property int index
                         objectName: "gridLevelButton" + index
                         text: qsTr("Niveau %1").arg(index + 1)
-                        checkable: true
-                        checked: designer.level === index
+                        // Pas à bascule : un second clic sur le niveau courant ne le décoche pas.
+                        highlighted: designer.level === index
                         onClicked: designer.level = index
                     }
                 }
@@ -244,6 +244,18 @@ Popup {
                     onActivated: designer.patchLevel("line", currentIndex)
                     Binding { target: lineBox; property: "currentIndex"; value: designer.current ? designer.current.line : 2; restoreMode: Binding.RestoreNone }
                 }
+
+                // Angle libre (style 2) : la grille s'incline de cet angle ; borne de l'accrochage (1 à 89).
+                Label { text: qsTr("Angle"); color: Theme.texte; visible: angleBox.visible }
+                SpinBox {
+                    id: angleBox
+                    objectName: "gridAngle"
+                    from: 1; to: 89; editable: true
+                    visible: !!designer.current && designer.current.pattern === 2
+                    onValueModified: designer.patchLevel("angle", value)
+                    Binding { target: angleBox; property: "value"; value: designer.current ? Math.round(designer.current.angle) : 30; restoreMode: Binding.RestoreNone }
+                }
+                Item { visible: angleBox.visible; Layout.columnSpan: 2 }
 
                 Label { text: qsTr("Couleur"); color: Theme.texte }
                 RowLayout {

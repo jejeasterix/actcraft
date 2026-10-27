@@ -6,6 +6,7 @@
 #include <QTest>
 #include <QUrl>
 
+#include <algorithm>
 #include <limits>
 
 using namespace actcraft::actions;
@@ -334,6 +335,12 @@ private slots:
         QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
         QVERIFY(layout.contextMenu.contains(QStringLiteral(">page-insert")));
         QVERIFY(unknownCommands(layout, registry).isEmpty());
+        // P16 : le créateur de grille est aussi dans le menu Éditer, pas seulement dans le menu contextuel.
+        const auto edit = std::find_if(layout.menus.begin(), layout.menus.end(), [](const MenuSpec& menu) {
+            return menu.id == QStringLiteral("edit");
+        });
+        QVERIFY(edit != layout.menus.end());
+        QVERIFY(edit->items.contains(QStringLiteral("grid.designer")));
     }
 
     void editAtArgumentOptional()
@@ -347,6 +354,16 @@ private slots:
         QVERIFY(info->argumentOptional);
         QVERIFY(registry.find(QStringLiteral("shape.fill-color"))->argument == ArgumentKind::Color);
         QVERIFY(registry.find(QStringLiteral("tool.shape"))->shortcut.isEmpty()); // D18
+        // Appels réels : sans argument, la commande part (elle valide le texte en cours) ; une chaîne blanche
+        // ou un autre type est refusé.
+        QVariantList seen;
+        registry.setHandler(QStringLiteral("text.edit-at"), [&seen](const QVariant& a) { seen << a; });
+        const Platform here = currentPlatform();
+        QVERIFY(registry.trigger(QStringLiteral("text.edit-at"), QVariant(), here));
+        QVERIFY(registry.trigger(QStringLiteral("text.edit-at"), QStringLiteral("10;20"), here));
+        QVERIFY(!registry.trigger(QStringLiteral("text.edit-at"), QStringLiteral("  "), here));
+        QCOMPARE(seen.size(), 2);
+        QVERIFY(!seen.at(0).isValid());
     }
 
     void optionalArgumentMayBeAbsent()
