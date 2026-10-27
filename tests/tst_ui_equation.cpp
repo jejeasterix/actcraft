@@ -479,7 +479,10 @@ private slots:
 
         // Échap ferme l'éditeur sans changer d'outil.
         QTest::keyClick(main.window(), Qt::Key_Escape);
-        QTRY_VERIFY(!panel->isVisible());
+        QTest::qWait(100);
+        if (panel->isVisible()) {
+            leaks << u"Échap n'a pas fermé l'éditeur (pris par tool.select)"_s;
+        }
         if (main.pageView()->currentTool() != tool) {
             leaks << u"Échap a changé d'outil"_s;
         }

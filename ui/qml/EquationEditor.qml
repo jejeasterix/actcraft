@@ -117,6 +117,8 @@ FloatingPanel {
     // Échap pour tool.select, Suppr pour edit.delete) : édition, Entrée, Échap et saisie, sans Ctrl, Alt ni
     // Méta ; les combinaisons et les touches de fonction restent à l'application.
     function ownsKey(event) {
+        if (!root.visible)
+            return false // éditeur fermé : il garde le focus actif mais ne prend aucune touche
         if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))
             return false
         switch (event.key) {
