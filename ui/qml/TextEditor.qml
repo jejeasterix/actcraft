@@ -102,7 +102,7 @@ Item {
             scale: root.zoom
             transformOrigin: Item.TopLeft
             color: "#000000"
-            wrapMode: TextEdit.WrapAtWordBoundaryOrAnywhere
+            wrapMode: root.shown && root.editing.fixedWidth ? TextEdit.WrapAtWordBoundaryOrAnywhere : TextEdit.NoWrap
             selectByMouse: true
             persistentSelection: true // la sélection reste visible quand un bouton de la barre prend la souris
             cursorVisible: activeFocus

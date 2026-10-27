@@ -743,6 +743,7 @@ void TextEditing::setFrameWidth(qreal width)
     m_fixedWidth = width;
     m_geometryChanged = true;
     updateFrame();
+    emit frameChanged(); // fixedWidth a pu changer sans que le cadre change
 }
 
 void TextEditing::moveFrame(QPointF delta)
