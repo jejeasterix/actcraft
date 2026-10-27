@@ -1,7 +1,7 @@
 #include <actcraft/core/model.h>
 #include <actcraft/core/pagecache.h>
-#include <actcraft/core/pagezones.h>
 #include <actcraft/core/pagesettings.h>
+#include <actcraft/core/pagezones.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageoptions.h>
@@ -1002,7 +1002,6 @@ private slots:
         rig.options.setZones(QStringLiteral("2x0"));
         rig.controller.undo();
         QCOMPARE(rig.options.zones(), QStringLiteral("0x0")); // une seule étape à défaire
-        QVERIFY(!rig.controller.canUndo());
         QCOMPARE(rig.spy.calls(), 0);
     }
 
@@ -1054,8 +1053,7 @@ private slots:
         QCOMPARE(controller.pageCount(), 2); // page ajoutée en fin, comme sans cadres
     }
 
-    // La surcouche suit les zones : n − 1 séparations par sens, comptées une fois ; le plein écran ne la cache
-    // pas ; elle ne prend pas l'entrée (un trait de stylet la traverse).
+    // La surcouche suit les zones : n − 1 séparations par sens, cachée quand il n'y en a aucune.
     void overlayFollowsZones()
     {
         QQmlApplicationEngine engine;

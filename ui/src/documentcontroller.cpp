@@ -56,6 +56,7 @@ core::Page blankLike(const core::Page& page)
     core::Page blank;
     blank.width = page.width;
     blank.height = page.height;
+    blank.zones = page.zones; // mise en page de la page, pas contenu : « Rétablir » la garde
     return blank;
 }
 
