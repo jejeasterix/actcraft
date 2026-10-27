@@ -157,6 +157,12 @@ QJsonObject scenarioJson(const ScenarioResult& s)
                                                                 {"p95_ms", s.shapePreview->p95Ms},
                                                                 {"max_ms", s.shapePreview->maxMs}});
     }
+    if (s.thumbnails) {
+        out.insert(QStringLiteral("thumbnails"),
+                   QJsonObject{{"renders", s.thumbnails->renders},
+                               {"max_copy_ms", s.thumbnails->maxCopyMs},
+                               {"during_contact", s.thumbnails->duringContact}});
+    }
     return out;
 }
 
@@ -185,6 +191,15 @@ ShapePreviewStats shapePreviewStats(const std::vector<std::int64_t>& swapNs,
         out.maxMs = p.max;
     }
     return out;
+}
+
+int launchesDuringContact(const std::vector<std::int64_t>& launchNs,
+                          const std::vector<std::pair<std::int64_t, std::int64_t>>& windowsNs)
+{
+    return static_cast<int>(std::count_if(launchNs.begin(), launchNs.end(), [&](std::int64_t at) {
+        return std::any_of(windowsNs.begin(), windowsNs.end(),
+                           [at](const auto& w) { return at >= w.first && at <= w.second; });
+    }));
 }
 
 QString apiName(QSGRendererInterface::GraphicsApi api)

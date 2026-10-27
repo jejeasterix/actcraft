@@ -90,6 +90,35 @@ private slots:
         QVERIFY(scenarios.at(1).toObject().value("latency").isNull());
     }
 
+    // L4-T29 (m2) : la clé `thumbnails` écrit les trois valeurs sous leur nom (clés interverties : rouge).
+    void thumbnailsAreSerialized()
+    {
+        BenchResult r = sample();
+        ScenarioResult miniatures;
+        miniatures.name = QStringLiteral("miniatures");
+        miniatures.thumbnails = ThumbnailStats{3, 1, 2.5};
+        r.scenarios.push_back(miniatures);
+        const QJsonArray scenarios = toJson(r).value("scenarios").toArray();
+        QVERIFY(!scenarios.at(0).toObject().contains("thumbnails"));
+        const QJsonObject t = scenarios.at(2).toObject().value("thumbnails").toObject();
+        QCOMPARE(t.value("renders").toInt(-1), 3);
+        QCOMPARE(t.value("during_contact").toInt(-1), 1);
+        QCOMPARE(t.value("max_copy_ms").toDouble(-1), 2.5);
+    }
+
+    // L4-T29 (M1, amendement 2 N10) : un rendu lancé compte s'il tombe entre un appui et son relâché
+    // (bornes comprises), jamais hors d'un contact ; une fenêtre vide ne compte rien.
+    void launchesDuringContactCountsInsideTheWindows()
+    {
+        const std::vector<std::pair<std::int64_t, std::int64_t>> windows{{ms(15), ms(25)}, {ms(35), ms(45)}};
+        QCOMPARE(launchesDuringContact({ms(10), ms(20), ms(30), ms(40)}, windows), 2);
+        QCOMPARE(launchesDuringContact({ms(15), ms(25), ms(35), ms(45)}, windows), 4);
+        QCOMPARE(launchesDuringContact({ms(10), ms(30), ms(50)}, windows), 0);
+        QCOMPARE(launchesDuringContact({ms(20), ms(20)}, windows), 2); // deux lancements au même instant
+        QCOMPARE(launchesDuringContact({ms(20)}, {}), 0);
+        QCOMPARE(launchesDuringContact({}, windows), 0);
+    }
+
     // Écart au plan : champs ajoutés par T13 (reprises, figements non mesurés, période invalide).
     void framesExposeResumeAndInvalidPeriod()
     {
