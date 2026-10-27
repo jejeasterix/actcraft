@@ -3,6 +3,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/undo.h>
+#include <actcraft/features/desktopwheel.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QBuffer>
@@ -18,6 +19,7 @@
 #include <QSurfaceFormat>
 #include <QThread>
 #include <QUrl>
+#include <QVariantMap>
 #include <QWindow>
 #include <QtQml/qqml.h>
 
@@ -230,6 +232,11 @@ void DesktopController::setAnnotating(bool annotating)
         closeWindow();
     }
     m_annotating = annotating;
+    if (annotating) {
+        keepMainInFront(); // après le show de la fenêtre d'annotation : la principale la dépasse
+    } else {
+        releaseMainFront();
+    }
     emit annotatingChanged();
 }
 
@@ -291,6 +298,124 @@ QQuickWindow* DesktopController::window() const noexcept
 bool DesktopController::liveDesktopBackground() const noexcept
 {
     return m_live;
+}
+
+QQuickWindow* DesktopController::mainWindow() const noexcept
+{
+    return m_main.data();
+}
+
+void DesktopController::setMainWindow(QQuickWindow* window)
+{
+    if (m_main == window) {
+        return;
+    }
+    if (m_main) {
+        m_main->disconnect(this);
+    }
+    m_main = window;
+    if (m_main) {
+        connect(m_main, &QWindow::visibilityChanged, this, &DesktopController::onMainVisibilityChanged);
+    }
+    emit mainWindowChanged();
+}
+
+bool DesktopController::toolsShown() const noexcept
+{
+    return m_toolsShown;
+}
+
+void DesktopController::setToolsShown(bool shown)
+{
+    if (m_toolsShown == shown) {
+        return;
+    }
+    m_toolsShown = shown;
+    emit toolsShownChanged();
+}
+
+void DesktopController::showTools()
+{
+    if (!m_main) {
+        return;
+    }
+    setToolsShown(true);
+    m_main->showMinimized();
+}
+
+void DesktopController::restore()
+{
+    setToolsShown(false);
+    if (m_main) {
+        m_main->showNormal();
+        m_main->requestActivate();
+    }
+    keepMainInFront();
+}
+
+void DesktopController::onMainVisibilityChanged()
+{
+    // La fenêtre principale revient (autrement que par restore) : la roue n'a plus lieu d'être. Une saisie
+    // d'écran la masque et la rend le temps d'une capture : ce n'est pas un retour.
+    if (!m_toolsShown || m_hidingForCapture || !m_main) {
+        return;
+    }
+    const QWindow::Visibility visibility = m_main->visibility();
+    if (visibility == QWindow::Windowed || visibility == QWindow::Maximized ||
+        visibility == QWindow::FullScreen) {
+        setToolsShown(false);
+        keepMainInFront();
+    }
+}
+
+void DesktopController::keepMainInFront()
+{
+    // Fenêtre principale réduite (roue ouverte) : la lever la restaurerait.
+    if (!m_annotating || !m_main || m_toolsShown) {
+        return;
+    }
+    if (!m_mainPinned && !m_main->flags().testFlag(Qt::WindowStaysOnTopHint)) {
+        m_main->setFlag(Qt::WindowStaysOnTopHint, true);
+        m_mainPinned = true;
+    }
+    m_main->raise();
+}
+
+void DesktopController::releaseMainFront()
+{
+    if (m_mainPinned && m_main) {
+        m_main->setFlag(Qt::WindowStaysOnTopHint, false);
+    }
+    m_mainPinned = false;
+}
+
+QVariantList DesktopController::wheelEntries(double radius, double ringRadius) const
+{
+    const auto toVariant = [](const std::vector<features::WheelEntry>& entries, double r,
+                              auto&& self) -> QVariantList {
+        QVariantList list;
+        const std::vector<QPointF> positions = features::wheelPositions(static_cast<int>(entries.size()), r);
+        for (std::size_t i = 0; i < entries.size(); ++i) {
+            QVariantMap entry;
+            entry.insert(QStringLiteral("command"), entries[i].command);
+            entry.insert(QStringLiteral("label"), entries[i].label);
+            entry.insert(QStringLiteral("x"), positions[i].x());
+            entry.insert(QStringLiteral("y"), positions[i].y());
+            entry.insert(QStringLiteral("ring"), self(entries[i].ring, r, self));
+            list.push_back(entry);
+        }
+        return list;
+    };
+    const std::vector<features::WheelEntry> wheel = features::defaultWheel();
+    QVariantList list = toVariant(wheel, radius, toVariant);
+    // Anneaux secondaires : sur le cercle extérieur.
+    for (qsizetype i = 0; i < list.size(); ++i) {
+        QVariantMap entry = list[i].toMap();
+        entry.insert(QStringLiteral("ring"),
+                     toVariant(wheel[static_cast<std::size_t>(i)].ring, ringRadius, toVariant));
+        list[i] = entry;
+    }
+    return list;
 }
 
 void DesktopController::setCaptureSource(CaptureSource source)

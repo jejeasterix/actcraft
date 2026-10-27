@@ -25,6 +25,68 @@ Item {
         objectName: "desktopController"
         openDocument: root.documentController
         windowComponent: annotationWindow
+        // Fenêtre principale : réduite par desktop.tools, gardée devant l'annotation.
+        mainWindow: root.pageArea ? root.pageArea.Window.window : null
+    }
+
+    // Roue des outils (F-080) et sortie du passage des clics : deux fenêtres créées à la demande, SANS parent
+    // (un Window enfant d'un Item prend la fenêtre principale pour parent : réduite avec elle).
+    property var wheelWindow: null
+    property var resumeWindow: null
+
+    Component {
+        id: wheelComponent
+        DesktopToolsWheel {}
+    }
+
+    // Annotation en passage des clics : la fenêtre ne reçoit plus rien, et la fenêtre principale n'est pas
+    // active (ses raccourcis se taisent). Ce petit bouton, toujours devant et qui reçoit les clics, est la
+    // sortie : il rend la saisie à l'annotation.
+    Component {
+        id: resumeComponent
+
+        Window {
+            id: resume
+            objectName: "desktopResumeWindow"
+            flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+            visible: desktopController.annotating && desktopController.passThrough
+            width: 240
+            height: 56
+            x: Screen.width - width - 16
+            y: Screen.height - height - 16
+            title: qsTr("Reprendre l'annotation")
+
+            Button {
+                objectName: "desktopResumeButton"
+                anchors.fill: parent
+                text: qsTr("Reprendre l'annotation")
+                onClicked: desktopController.passThrough = false
+            }
+        }
+    }
+
+    function ensureWheel() {
+        if (!root.wheelWindow) {
+            root.wheelWindow = wheelComponent.createObject(null, {
+                "controller": desktopController,
+                "commands": Qt.binding(function () { return root.commands })
+            })
+        }
+    }
+
+    function ensureResume() {
+        if (!root.resumeWindow) {
+            root.resumeWindow = resumeComponent.createObject(null)
+        }
+    }
+
+    Component.onDestruction: {
+        if (root.wheelWindow) {
+            root.wheelWindow.destroy()
+        }
+        if (root.resumeWindow) {
+            root.resumeWindow.destroy()
+        }
     }
 
     Component {
@@ -135,6 +197,12 @@ Item {
         root.commands.setHandler("desktop.annotate", function () {
             desktopController.toggle() // la coche suit annotatingChanged
         })
+        root.commands.setHandler("desktop.tools", function () {
+            desktopController.showTools()
+        })
+        root.commands.setHandler("desktop.restore", function () {
+            desktopController.restore()
+        })
         root.commands.setHandler("page.background-desktop-capture", function () {
             desktopController.captureBackground()
         })
@@ -151,6 +219,16 @@ Item {
         }
         function onLiveDesktopBackgroundChanged() {
             root.syncChecks()
+        }
+        function onToolsShownChanged() {
+            if (desktopController.toolsShown) {
+                root.ensureWheel()
+            }
+        }
+        function onPassThroughChanged() {
+            if (desktopController.passThrough) {
+                root.ensureResume()
+            }
         }
     }
     onCommandsChanged: registerCommands()
