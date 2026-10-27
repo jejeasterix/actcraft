@@ -182,11 +182,13 @@ void DocumentController::execute(std::unique_ptr<core::UndoCommand> command)
 
 void DocumentController::executeAs(std::unique_ptr<core::UndoCommand> command, ChangeOrigin origin)
 {
+    const QSizeF shownSize = pageSize();
     const core::Changes changes = run(std::move(command));
     if (changes.empty()) {
         return; // sans effet : ni pile, ni signal, ni observateur
     }
-    notifyState(settle(changes, origin));
+    // L4-T26 : une page allongée change de taille sans changer de page ; la vue relit alors pageSize.
+    notifyState(settle(changes, origin) || pageSize() != shownSize);
 }
 
 // L2-T15 : l'annonce d'abord. La vue y termine son trait, qui entre dans la pile et devient l'étape annulée ;
@@ -199,7 +201,8 @@ void DocumentController::undo()
         return;
     }
     ++m_revision;
-    notifyState(settle(m_undo.undo(m_document), ChangeOrigin::Undo));
+    const QSizeF shownSize = pageSize();
+    notifyState(settle(m_undo.undo(m_document), ChangeOrigin::Undo) || pageSize() != shownSize);
 }
 
 void DocumentController::redo()
@@ -209,7 +212,8 @@ void DocumentController::redo()
         return;
     }
     ++m_revision;
-    notifyState(settle(m_undo.redo(m_document), ChangeOrigin::Redo));
+    const QSizeF shownSize = pageSize();
+    notifyState(settle(m_undo.redo(m_document), ChangeOrigin::Redo) || pageSize() != shownSize);
 }
 
 void DocumentController::closeMerge()

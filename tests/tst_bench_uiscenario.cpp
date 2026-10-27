@@ -19,6 +19,7 @@
 #include <qpa/qwindowsysteminterface.h>
 
 #include <memory>
+#include <vector>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
@@ -52,9 +53,9 @@ struct Fixture
     QTemporaryDir out;
 };
 
-bool load(Fixture& f)
+bool load(Fixture& f, const QString& file = QStringLiteral("fenetre.qml"))
 {
-    f.engine.load(QUrl::fromLocalFile(QStringLiteral(ACTCRAFT_TESTS_DIR "/data/uiscenario/fenetre.qml")));
+    f.engine.load(QUrl::fromLocalFile(QStringLiteral(ACTCRAFT_TESTS_DIR "/data/uiscenario/") + file));
     if (f.engine.rootObjects().size() != 1) {
         return false;
     }
@@ -932,6 +933,47 @@ private slots:
             view->pageToScene(QPointF(160, 160)).toPoint(); // la souris n'a que des pixels entiers
         const QPointF got(hover->property("px").toDouble(), hover->property("py").toDouble());
         QCOMPARE(got, last);
+    }
+
+    // L4-C16 : Qt Quick met la mise en page à jour à la prochaine image. Un panneau qui se referme (la
+    // palette des formes, à « tool.select ») redimensionne la vue de page pendant le geste suivant ; la vue
+    // abandonne alors le geste de l'outil (PageView::finishStroke) et le scénario perdait un glisser une fois
+    // sur deux. Le joueur termine la mise en page avant d'envoyer un geste. Ici la commande est jouée sans
+    // que les événements soient traités : la mise en page est en attente quand l'étape « pointer » commence.
+    void pointerStepStartsAfterTheLayoutHasSettled()
+    {
+        Fixture f;
+        QVERIFY(load(f, QStringLiteral("fenetre-panneau.qml")));
+        auto* view = f.window->findChild<actcraft::ui::PageView*>(QStringLiteral("pageView"));
+        QVERIFY(view);
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("palette", "[{\"waitReady\":true},"
+                                                    "{\"command\":\"panneau.ouvre\"},"
+                                                    "{\"capture\":\"palette\"}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        const qreal withPanel = view->width();
+        QVariant ignored;
+        QVERIFY(QMetaObject::invokeMethod(f.window, "runCommand", Q_RETURN_ARG(QVariant, ignored),
+                                          Q_ARG(QVariant, QVariant(QStringLiteral("panneau.ferme"))),
+                                          Q_ARG(QVariant, QVariant())));
+        QCOMPARE(view->width(), withPanel); // la mise en page n'est pas faite : c'est la condition de l'essai
+        std::vector<qreal> widths;
+        view->setSampleFilter([&widths, view](const actcraft::input::Sample& sample) {
+            widths.push_back(view->width());
+            return sample;
+        });
+        QVERIFY2(f.player->play(scenario("glisse", "[{\"pointer\":[[100,100],[130,130],[160,160]]}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        view->setSampleFilter({});
+        QVERIFY(widths.size() >= 3);
+        f.window->grabWindow(); // termine la mise en page qui resterait en attente
+        QVERIFY2(view->width() != withPanel,
+                 "la fermeture du panneau doit avoir changé la largeur de la vue");
+        for (const qreal width : widths) {
+            QCOMPARE(width, view->width()); // la mise en page était finie avant le premier point du geste
+        }
     }
 
     void fixtureWritesAThreePageDocument()
