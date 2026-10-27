@@ -98,7 +98,7 @@ public:
     int mode() const noexcept;
     QRectF selection() const noexcept; // zone ou fenêtre choisie, en coordonnées de la fenêtre de capture
     void setSelection(const QRectF& selection);
-    QVariantList outline() const; // contour dessiné (points de la fenêtre de capture)
+    QVariantList outline() const;  // contour dessiné (points de la fenêtre de capture)
     bool isReady() const noexcept; // une forme est choisie : une destination peut la recevoir
     QString frozenSource() const;  // image figée, par le fournisseur d'images du moteur
     QString message() const;
@@ -168,7 +168,7 @@ private:
     Mode m_pending = NoMode;
     QImage m_frozen;
     int m_serial = 0;
-    QRect m_screen;              // écran photographié, pixels logiques globaux
+    QRect m_screen;                // écran photographié, pixels logiques globaux
     std::vector<QRectF> m_windows; // fenêtres du bureau, coordonnées de la fenêtre de capture
     QRectF m_selection;
     QRectF m_lastArea; // P11 : zone gardée d'une capture à l'autre

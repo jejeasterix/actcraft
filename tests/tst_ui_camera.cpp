@@ -176,14 +176,14 @@ class TstUiCamera : public QObject
     Q_OBJECT
 
 private slots:
-    // LE test qui garde l'invariant (décision 4 bis) : la sélection se fait dans une fenêtre à elle, créée à la
-    // demande et sans parent (avec la principale pour parent, elle se réduirait avec elle) ; la palette est un
-    // élément de CETTE fenêtre, pas une couverture de la vue principale. Chaque pointeur, appuyé et glissé sur
-    // l'image figée, trace le rectangle de sélection ; un appui sur la palette ne le touche pas ; la page
-    // principale ne reçoit rien. Témoin : un trait sur la vue principale, aux coordonnées de scène où la
-    // palette se trouve dans sa fenêtre, est versé. Mutants : palette déclarée couverture de la vue principale
-    // (patron des panneaux du lot, pageArea: presentation.pageArea) → le témoin au stylet est arrêté ;
-    // sélection en surcouche de la fenêtre principale → aucune fenêtre de capture.
+    // LE test qui garde l'invariant (décision 4 bis) : la sélection se fait dans une fenêtre à elle, créée à
+    // la demande et sans parent (avec la principale pour parent, elle se réduirait avec elle) ; la palette
+    // est un élément de CETTE fenêtre, pas une couverture de la vue principale. Chaque pointeur, appuyé et
+    // glissé sur l'image figée, trace le rectangle de sélection ; un appui sur la palette ne le touche pas ;
+    // la page principale ne reçoit rien. Témoin : un trait sur la vue principale, aux coordonnées de scène où
+    // la palette se trouve dans sa fenêtre, est versé. Mutants : palette déclarée couverture de la vue
+    // principale (patron des panneaux du lot, pageArea: presentation.pageArea) → le témoin au stylet est
+    // arrêté ; sélection en surcouche de la fenêtre principale → aucune fenêtre de capture.
     void cameraWindowTakesEveryPointer_data() { presentationharness::addPointerRows(); }
     void cameraWindowTakesEveryPointer()
     {
@@ -209,7 +209,8 @@ private slots:
         QQuickItem* palette =
             presentationharness::findItem(window->contentItem(), QStringLiteral("cameraPalette"));
         QVERIFY(palette);
-        QVERIFY(!presentationharness::findItem(main.window()->contentItem(), QStringLiteral("cameraPalette")));
+        QVERIFY(
+            !presentationharness::findItem(main.window()->contentItem(), QStringLiteral("cameraPalette")));
 
         // La palette posée au milieu de la vue principale : mêmes coordonnées de scène, autre fenêtre.
         actcraft::ui::PageView* view = main.pageView();
@@ -410,8 +411,8 @@ private slots:
         QCOMPARE(open->fingerprintText(), before);
     }
 
-    // P11 : la zone d'une capture partielle est gardée pour la suivante (posée, ou annulée). Mutant : zone par
-    // défaut à chaque ouverture.
+    // P11 : la zone d'une capture partielle est gardée pour la suivante (posée, ou annulée). Mutant : zone
+    // par défaut à chaque ouverture.
     void captureAreaKeptForTheNextCapture()
     {
         MainWindow main;
@@ -525,17 +526,19 @@ private slots:
 
     // Liste des fenêtres du bureau (Windows) : une fenêtre native de test y figure, à sa place. Les fenêtres
     // Qt hors écran n'ont pas de fenêtre native : la fenêtre de test est créée par Windows, sans cadre,
-    // invisible à l'œil (calque d'opacité nulle), en pixels physiques ; hors écran, l'écran de Qt a un rapport
-    // 1, pixels logiques et physiques se confondent. Ailleurs : liste vide (capture de l'écran entier).
+    // invisible à l'œil (calque d'opacité nulle), en pixels physiques ; hors écran, l'écran de Qt a un
+    // rapport 1, pixels logiques et physiques se confondent. Ailleurs : liste vide (capture de l'écran
+    // entier).
     void topLevelWindowsListsOurWindow()
     {
 #ifdef _WIN32
         const QRect expected(123, 145, 234, 156);
         const DPI_AWARENESS_CONTEXT previous =
             SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-        HWND window = CreateWindowExW(WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, L"STATIC", L"",
-                                      WS_POPUP, expected.x(), expected.y(), expected.width(),
-                                      expected.height(), nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+        HWND window =
+            CreateWindowExW(WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, L"STATIC", L"", WS_POPUP,
+                            expected.x(), expected.y(), expected.width(), expected.height(), nullptr, nullptr,
+                            GetModuleHandleW(nullptr), nullptr);
         if (previous) {
             SetThreadDpiAwarenessContext(previous);
         }

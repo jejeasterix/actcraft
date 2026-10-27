@@ -436,8 +436,9 @@ void CameraController::beginCapture()
     m_screen = screen ? screen->geometry() : QRect();
     const QImage image = m_capture ? m_capture() : QImage();
     if (image.isNull() || m_screen.isEmpty()) {
-        setMessage(tr("La caméra n'a reçu aucune image de l'écran. Vérifiez que l'enregistrement de l'écran est "
-                      "autorisé pour ActCraft, puis recommencez."));
+        setMessage(
+            tr("La caméra n'a reçu aucune image de l'écran. Vérifiez que l'enregistrement de l'écran est "
+               "autorisé pour ActCraft, puis recommencez."));
         return;
     }
     clearMessage();
@@ -448,8 +449,8 @@ void CameraController::beginCapture()
         setFrozen(QImage());
         return;
     }
-    // Fenêtres du bureau, relevées avec l'image (avant notre fenêtre de sélection), en coordonnées de la fenêtre
-    // de capture.
+    // Fenêtres du bureau, relevées avec l'image (avant notre fenêtre de sélection), en coordonnées de la
+    // fenêtre de capture.
     m_windows.clear();
     if (mode == WindowMode && m_windowSource) {
         const QRectF b = bounds();
@@ -502,8 +503,8 @@ bool CameraController::openWindow()
         window->setScreen(screen);
     }
     window->setGeometry(m_screen);
-    // Fermée par le système (Alt+F4…) : la capture s'arrête, hors du traitement de l'événement (closeWindow se
-    // déconnecte avant de la cacher).
+    // Fermée par le système (Alt+F4…) : la capture s'arrête, hors du traitement de l'événement (closeWindow
+    // se déconnecte avant de la cacher).
     const QPointer<QQuickWindow> guard(window);
     connect(window, &QWindow::visibleChanged, this, [this, guard](bool visible) {
         if (!visible) {
