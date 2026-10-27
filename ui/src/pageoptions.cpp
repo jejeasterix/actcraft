@@ -229,7 +229,10 @@ QVariantMap PageOptions::background() const
 
 qreal PageOptions::pageHeight() const
 {
-    return 0;
+    if (!m_controller || m_controller->pageCount() == 0) {
+        return 0;
+    }
+    return m_controller->document().page(static_cast<std::size_t>(m_controller->currentIndex())).height;
 }
 
 QString PageOptions::zones() const
@@ -322,7 +325,15 @@ void PageOptions::endDesigner()
 
 void PageOptions::setBackground(const QVariantMap&) {}
 
-void PageOptions::extendPage() {}
+void PageOptions::extendPage()
+{
+    if (!m_controller || m_controller->pageCount() == 0) {
+        return;
+    }
+    // Une étape par clic (F-301 a) : le pas est cumulé par la commande du noyau (D10, L4-O1).
+    m_controller->execute(
+        std::make_unique<core::ExtendPageCommand>(static_cast<std::size_t>(m_controller->currentIndex())));
+}
 
 void PageOptions::setZones(const QString&) {}
 

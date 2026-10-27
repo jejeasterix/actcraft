@@ -17,6 +17,7 @@
 #include <QVariantMap>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include <cmath>
 #include <cstddef>
 #include <limits>
 #include <memory>
@@ -479,6 +480,123 @@ private slots:
         QCOMPARE(rig.spacing(0), origin);
         rig.controller.undo();
         QVERIFY(!rig.options.gridSnap());
+    }
+
+    // F-301 a, D10 cumulé (L4-O1) : trois clics font 768 × 1,1³ ; trois annulations rendent 768.
+    void extendPageThreeTimes()
+    {
+        Rig rig;
+        const auto height = [&] { return rig.controller.document().page(0).height; };
+        QCOMPARE(rig.options.pageHeight(), 768.0);
+        rig.options.extendPage();
+        rig.options.extendPage();
+        rig.options.extendPage();
+        QVERIFY(std::abs(height() - 1022.208) < 1e-3);
+        QVERIFY(std::abs(rig.options.pageHeight() - 1022.208) < 1e-3);
+        rig.controller.undo();
+        QVERIFY(std::abs(height() - 929.28) < 1e-3); // une annulation = une seule étape
+        QVERIFY(std::abs(rig.options.pageHeight() - 929.28) < 1e-3);
+        rig.controller.undo();
+        rig.controller.undo();
+        QCOMPARE(height(), 768.0);
+        QCOMPARE(rig.options.pageHeight(), 768.0);
+    }
+
+    // La poignée (Main.qml) et la commande ne passent pas par l'outil courant : le stylo reste, un clic sur
+    // la poignée allonge la page d'une étape.
+    void extendKeepsTheCurrentTool()
+    {
+        QQmlApplicationEngine engine;
+        engine.setInitialProperties(
+            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+        engine.loadFromModule("ActCraft.Ui", "Main");
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+        QVERIFY(window);
+        auto* tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        tools->setSettingsFile(
+            m_dir.filePath(QStringLiteral("reglages-poignee.ini"))); // jamais le profil réel
+        auto* options = window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
+        auto* commands = window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        auto* handle = window->findChild<QQuickItem*>(QStringLiteral("pageExtensionHandle"));
+        QVERIFY(options && commands && handle);
+        QVERIFY(window->isVisible() || QTest::qWaitForWindowExposed(window));
+        auto* view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
+        QVERIFY(view);
+        QTRY_VERIFY(view->width() > 100 && view->height() > 100); // mise en page faite
+        auto* controller = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(controller);
+        const auto objectCount = [&] {
+            return controller->document()
+                .page(static_cast<std::size_t>(controller->currentIndex()))
+                .objects.size();
+        };
+        const std::size_t objectsBefore = objectCount();
+        tools->activate(QStringLiteral("pen"));
+        QCOMPARE(tools->currentTool(), QStringLiteral("pen"));
+
+        QVERIFY(commands->trigger(QStringLiteral("page.extend")));
+        QVERIFY(std::abs(options->pageHeight() - 844.8) < 1e-3);
+        QCOMPARE(tools->currentTool(), QStringLiteral("pen"));
+
+        // Un clic sur la poignée montrée : une étape de plus, l'outil ne change pas.
+        QVERIFY(commands->trigger(QStringLiteral("view.page-extension")));
+        QTRY_VERIFY(handle->isVisible());
+        QTRY_VERIFY(handle->property("atPageBottom").toBool());
+        const QPointF inside = handle->mapToScene(QPointF(handle->width() / 2, handle->height() / 4));
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, inside.toPoint());
+        QTRY_VERIFY(std::abs(options->pageHeight() - 929.28) < 1e-3);
+        QCOMPARE(tools->currentTool(), QStringLiteral("pen"));
+        QCOMPARE(objectCount(), objectsBefore); // le clic n'a posé aucun trait
+        QTRY_VERIFY(handle->property("atPageBottom").toBool());
+    }
+
+    // La vue suit la nouvelle hauteur : zone de défilement et contenu à la hauteur de la page.
+    void viewFollowsTheNewHeight()
+    {
+        QQmlApplicationEngine engine;
+        engine.setInitialProperties(
+            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+        engine.loadFromModule("ActCraft.Ui", "Main");
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+        QVERIFY(window);
+        auto* tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        tools->setSettingsFile(m_dir.filePath(QStringLiteral("reglages-vue.ini"))); // jamais le profil réel
+        auto* options = window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
+        auto* view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
+        QVERIFY(options && view);
+        QVERIFY(window->isVisible() || QTest::qWaitForWindowExposed(window));
+        QTRY_VERIFY(view->width() > 100 && view->height() > 100); // mise en page faite
+        view->setZoom(2.0); // hors ajustement, la page dépasse la vue : la zone de défilement dépend alors de
+                            // la hauteur de la page
+        const qreal before = view->scrollSizeY();
+        QVERIFY(before > 0);
+        options->extendPage();
+        QTRY_VERIFY(view->scrollSizeY() < before - 1e-6);
+        QVERIFY(std::abs(view->content()->height() - 844.8) < 1e-3);
+        auto* controller = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(controller);
+        controller->undo(); // l'annulation rend la hauteur d'origine à la vue
+        QTRY_VERIFY(std::abs(view->content()->height() - 768.0) < 1e-3);
+        QTRY_VERIFY(std::abs(view->scrollSizeY() - before) < 1e-6);
+    }
+
+    // Une page allongée change de taille sans changer de page ; un trait n'annonce rien de tel.
+    void strokeDoesNotEmitPagesChanged()
+    {
+        Rig rig;
+        QSignalSpy pages(&rig.controller, &ui::DocumentController::pagesChanged);
+        const std::size_t before = rig.controller.document().page(0).objects.size();
+        core::Stroke stroke;
+        stroke.points = {{10, 10, 0.5f}, {40, 30, 0.5f}, {80, 20, 0.5f}};
+        rig.controller.commitStroke(std::move(stroke));
+        QCOMPARE(rig.controller.document().page(0).objects.size(), before + 1);
+        QCOMPARE(pages.count(), 0);
+        rig.options.extendPage(); // témoin : une page allongée, elle, l'annonce
+        QVERIFY(pages.count() >= 1);
     }
 };
 

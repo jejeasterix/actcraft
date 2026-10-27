@@ -1,10 +1,32 @@
 {
   "format": "actcraft-scenario/1",
   "name": "page-allongee-zones",
-  "description": "Talon L4-T1 : rempli par L4-T26.",
+  "description": "S15 (partie 1) : la poignée allonge la page d'un pas cumulé par clic, sans changer d'outil ; elle suit le bas de la page.",
   "steps": [
-    {
-      "waitReady": true
-    }
+    {"waitReady": true},
+    {"command": "view.page-extension"},
+    {"expect": "pageExtensionHandle.visible", "value": true},
+    {"expect": "pageExtensionHandle.atPageBottom", "value": true},
+    {"pointer": [[512, 762]]},
+    {"waitReady": true},
+    {"expect": "pageExtensionHandle.atPageBottom", "value": true},
+    {"pointer": [[512, 838.8]]},
+    {"waitReady": true},
+    {"expect": "pageExtensionHandle.atPageBottom", "value": true},
+    {"pointer": [[512, 923.28]]},
+    {"waitReady": true},
+    {"expect": "pageExtensionHandle.atPageBottom", "value": true},
+    {"expect": "appPageSettings.pageHeight", "value": 1022.208, "tolerance": 0.01},
+    {"expect": "appTools.currentTool", "value": "pen"},
+    {"capture": "allongee"},
+    {"command": "view.zoom", "argument": 150},
+    {"waitReady": true},
+    {"expect": "pageExtensionHandle.atPageBottom", "value": true},
+    {"command": "view.fit"},
+    {"waitReady": true},
+    {"command": "edit.undo"},
+    {"command": "edit.undo"},
+    {"command": "edit.undo"},
+    {"expect": "appPageSettings.pageHeight", "value": 768, "tolerance": 0.01}
   ]
 }
