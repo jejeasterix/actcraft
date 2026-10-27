@@ -885,7 +885,7 @@ private slots:
         const UiScenario s = scenario("survol", "[{\"waitReady\":true},"
                                                 "{\"pointer\":[[100,100],[130,130],[160,160]]}]");
         QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
-        const QPointF last = view->pageToScene(QPointF(160, 160));
+        const QPointF last = view->pageToScene(QPointF(160, 160)).toPoint(); // la souris n'a que des pixels entiers
         const QPointF got(hover->property("px").toDouble(), hover->property("py").toDouble());
         QCOMPARE(got, last);
     }
