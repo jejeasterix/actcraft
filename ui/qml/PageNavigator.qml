@@ -19,6 +19,39 @@ Item {
     clip: true
     activeFocusOnTab: true
 
+    // La miniature de la page affichée est entièrement dans la vue (lu par le banc).
+    readonly property bool currentVisible: {
+        list.contentY
+        list.height
+        list.contentHeight
+        const item = list.itemAtIndex(root.documentController.currentIndex)
+        return item !== null && item.y >= list.contentY - 0.5
+               && item.y + item.height <= list.contentY + list.height + 0.5
+    }
+
+    // Un appui sur la page rend le focus : Suppr, Ctrl+X, C, V et D ne valent que tant que le navigateur a le
+    // focus (sinon Suppr supprimerait une page quand on veut supprimer l'objet sélectionné).
+    Connections {
+        target: root.thumbnails ? root.thumbnails.view : null
+        function onContactActiveChanged() {
+            if (target.contactActive && root.activeFocus)
+                root.focus = false
+        }
+    }
+
+    // La page affichée est amenée dans la vue quand elle change (page suivante, aller à, insertion).
+    Connections {
+        target: root.documentController
+        function onPagesChanged() { Qt.callLater(root.showCurrent) }
+    }
+    function showCurrent() {
+        if (list.count > 0)
+            list.positionViewAtIndex(Math.max(0, Math.min(list.count - 1, root.documentController.currentIndex)),
+                                     ListView.Contain)
+    }
+    Component.onCompleted: Qt.callLater(root.showCurrent)
+    onVisibleChanged: if (visible) Qt.callLater(root.showCurrent)
+
     // Un raccourci de la fenêtre (Suppr = supprimer des objets) ne passe pas avant ces touches.
     Keys.onShortcutOverride: event => {
         const ctrl = (event.modifiers & Qt.ControlModifier) !== 0
@@ -56,10 +89,21 @@ Item {
         root.pages.click(to, extend ? Qt.ShiftModifier : 0)
     }
 
+    // Menu du clic droit sur une miniature : celui de la page (contrat de F-202).
     PageContextMenu {
         id: menu
         objectName: "pageNavigatorMenu"
         commands: root.commands
+    }
+    // Menu propre au navigateur (icône de menu) : les commandes de pages seules.
+    CommandMenu {
+        id: ownMenu
+        objectName: "pageNavigatorOwnMenu"
+        commands: root.commands
+        spec: ({ id: "", label: "", items: [
+            { id: "page.insert-before" }, { id: "page.insert-after" }, { separator: true },
+            { id: "page.cut" }, { id: "page.copy" }, { id: "page.paste" }, { separator: true },
+            { id: "page.duplicate" }, { id: "page.delete" }] })
     }
 
     // Réglette de taille des miniatures et menu du navigateur.
@@ -99,7 +143,7 @@ Item {
                 radius: Theme.rayon
                 color: menuButton.hovered ? Theme.surfaceSurvol : Theme.surface
             }
-            onClicked: menu.popupAt(menuButton.x + header.x, header.y + menuButton.height)
+            onClicked: ownMenu.popup(menuButton.x + header.x, header.y + menuButton.height)
         }
     }
 
@@ -115,7 +159,28 @@ Item {
         clip: true
         model: root.thumbnails
         boundsBehavior: Flickable.StopAtBounds
-        interactive: false // le glisser sert à déplacer des pages ; la molette fait défiler
+        interactive: false // le glisser à la souris ou au stylet déplace des pages ; défilement : voir ci-dessous
+        ScrollBar.vertical: ScrollBar {
+            objectName: "pageListScrollBar"
+            policy: ScrollBar.AsNeeded
+        }
+        // Au doigt, glisser fait défiler (le stylet et la souris déplacent des pages, la molette et la barre
+        // font défiler aussi).
+        DragHandler {
+            id: touchScroll
+            objectName: "pageListTouchScroll"
+            target: null
+            acceptedDevices: PointerDevice.TouchScreen
+            xAxis.enabled: false
+            property real startY: 0
+            onActiveChanged: if (active) startY = list.contentY
+            onTranslationChanged: {
+                if (!active)
+                    return
+                const max = Math.max(0, list.contentHeight - list.height)
+                list.contentY = Math.max(0, Math.min(max, startY - translation.y))
+            }
+        }
 
         delegate: Item {
             id: cell
@@ -178,7 +243,7 @@ Item {
                     color: Theme.barre
                     opacity: 0.8
                 }
-                onClicked: menu.popupAt(x + cell.x + list.x, y + cell.y - list.contentY + list.y)
+                onClicked: ownMenu.popup(x + cell.x + list.x, y + cell.y - list.contentY + list.y)
             }
         }
 

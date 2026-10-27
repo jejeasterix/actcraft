@@ -53,7 +53,7 @@
     {"pointer": [[196, 106]], "space": "window"},
     {"expect": "pageNavigatorOwnMenu.visible", "value": true},
     {"expect": "pageNavigatorMenu.visible", "value": false},
-    {"key": "Escape"},
+    {"pointer": [[700, 400]], "space": "window"},
     {"expect": "pageNavigatorOwnMenu.visible", "value": false},
     {"command": "browsers.dock-right"},
     {"waitReady": true},

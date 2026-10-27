@@ -271,7 +271,8 @@ private slots:
         QCOMPARE(propertyText(QVariant()), QStringLiteral("<absente>"));
     }
 
-    // L4-T19 : une valeur attendue en tableau JSON s'écrit « [1,2] » (jsonText), comme propertyText d'une liste.
+    // L4-T19 : une valeur attendue en tableau JSON s'écrit « [1,2] » (jsonText), comme propertyText d'une
+    // liste.
     void expectArrayValueIsCompactText()
     {
         UiScenario s;
