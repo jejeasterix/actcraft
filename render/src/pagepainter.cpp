@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 namespace actcraft::render {
 
@@ -326,6 +327,30 @@ double widestAdvance(const QTextDocument& document)
     return widest;
 }
 
+// Une lettre par ligne, quelle que soit sa largeur (L4-C12) : un séparateur de ligne est inséré entre deux
+// graphèmes voisins d'un paragraphe. Le remplissage glouton de WrapAnywhere rangerait sinon plusieurs lettres
+// étroites sur une même ligne.
+void separateLetters(QTextDocument& document)
+{
+    QTextCursor cursor(&document);
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        const QString text = block.text();
+        QTextBoundaryFinder graphemes(QTextBoundaryFinder::Grapheme, text);
+        std::vector<qsizetype> cuts;
+        for (qsizetype end = graphemes.toNextBoundary(); end > 0 && end < text.size();
+             end = graphemes.toNextBoundary()) {
+            // Un saut de ligne déjà présent (<br>) fait déjà passer à la ligne.
+            if (text[end - 1] != QChar::LineSeparator && text[end] != QChar::LineSeparator) {
+                cuts.push_back(end);
+            }
+        }
+        for (auto cut = cuts.rbegin(); cut != cuts.rend(); ++cut) {
+            cursor.setPosition(static_cast<int>(block.position() + *cut));
+            cursor.insertText(QString(QChar(QChar::LineSeparator)));
+        }
+    }
+}
+
 void layOutColumn(QTextDocument& document)
 {
     document.setUndoRedoEnabled(false);
@@ -345,7 +370,9 @@ void layOutColumn(QTextDocument& document)
     QTextCursor cursor(&document);
     cursor.select(QTextCursor::Document);
     cursor.mergeBlockFormat(column);
-    document.setTextWidth(widestAdvance(document));
+    const double width = widestAdvance(document);
+    separateLetters(document);
+    document.setTextWidth(width);
 }
 
 // Document mis en page d'un texte riche : colonne d'un caractère (haut en bas), sinon largeur du cadre.
