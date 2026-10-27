@@ -7,6 +7,8 @@
 #include <QPointer>
 #include <QQmlComponent>
 #include <QQuickWindow>
+#include <QRect>
+#include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
 #include <cstddef>
@@ -25,6 +27,14 @@ namespace actcraft::ui {
 // création native, completeCreate, puis show. À chaque ouverture, les pages prennent la taille de l'écran. Un
 // trait en cours est versé sur sa page avant tout changement de page et avant la fermeture (comme Main.qml).
 // Fenêtre fermée et détruite à la désactivation ; le paperboard reste.
+//
+// Outils de bureau (F-080), L7-T31 : `showTools` réduit la fenêtre principale (`mainWindow`) et ouvre la roue
+// (`toolsShown`, fenêtre de DesktopToolsWheel.qml) ; `restore` rend la fenêtre principale et ferme la roue,
+// qui se ferme aussi si la fenêtre est restaurée autrement. Pendant l'annotation, la fenêtre principale est
+// réduite à l'emprise de la palette (état normal, barre du haut au-dessus) et gardée devant (drapeau
+// « toujours devant ») : le paperboard disparaît, la palette reste. À la fermeture, visibilité, géométrie et
+// drapeaux d'avant sont rendus. Les entrées de la roue viennent de features::defaultWheel(), chacune une
+// commande nommée.
 //
 // Fonds de bureau : la capture (image figée, ressource PNG du document, une étape) vise la page affichée du
 // paperboard actif (celui du bureau pendant l'annotation, sinon le document ouvert) ; nos fenêtres visibles
@@ -45,6 +55,8 @@ class DesktopController : public QObject
                    windowComponentChanged)
     Q_PROPERTY(QQuickWindow* window READ window NOTIFY windowChanged)
     Q_PROPERTY(bool liveDesktopBackground READ liveDesktopBackground NOTIFY liveDesktopBackgroundChanged)
+    Q_PROPERTY(QQuickWindow* mainWindow READ mainWindow WRITE setMainWindow NOTIFY mainWindowChanged)
+    Q_PROPERTY(bool toolsShown READ toolsShown NOTIFY toolsShownChanged)
 
 public:
     // Image du bureau ; par défaut, l'écran principal (QScreen::grabWindow). Les tests en injectent une.
@@ -66,6 +78,10 @@ public:
     // Vrai si la page affichée du paperboard du bureau porte la superposition (P22).
     bool liveDesktopBackground() const noexcept;
 
+    QQuickWindow* mainWindow() const noexcept;
+    void setMainWindow(QQuickWindow* window);
+    bool toolsShown() const noexcept;
+
     void setCaptureSource(CaptureSource source);
 
     Q_INVOKABLE void toggle();
@@ -77,7 +93,17 @@ public:
     // Superposition du bureau sur la page affichée du paperboard du bureau (ouvre l'annotation au besoin).
     Q_INVOKABLE void toggleLiveDesktopBackground();
 
+    // F-080 : réduit la fenêtre principale et ouvre la roue ; sans fenêtre principale, rien.
+    Q_INVOKABLE void showTools();
+    // Rend la fenêtre principale et ferme la roue.
+    Q_INVOKABLE void restore();
+    // Entrées de la roue, prêtes pour QML : {command, label, x, y, ring: [...]}, positions relatives au
+    // centre, sens horaire depuis le haut ; les entrées d'un anneau secondaire sont sur le cercle extérieur.
+    Q_INVOKABLE QVariantList wheelEntries(double radius, double ringRadius) const;
+
 signals:
+    void mainWindowChanged();
+    void toolsShownChanged();
     void annotatingChanged();
     void passThroughChanged();
     void openDocumentChanged();
@@ -96,6 +122,11 @@ private:
     void
     followPages(const core::Changes& changes); // indices des pages superposées après un ajout ou un retrait
     void updateLive();
+    void keepMainInFront();    // palette principale devant l'annotation
+    void releaseMainFront();   // rend la fenêtre principale dans l'état d'avant l'annotation
+    QRect paletteRect() const; // emprise de la palette à l'écran (avec la barre du haut), nulle sans palette
+    void setToolsShown(bool shown);
+    void onMainVisibilityChanged();
 
     DocumentController* m_desktop = nullptr; // enfant : vit autant que le contrôleur
     QPointer<DocumentController> m_open;
@@ -104,6 +135,18 @@ private:
     bool m_annotating = false;
     bool m_passThrough = false;
     bool m_live = false;
+    QPointer<QQuickWindow> m_main;
+    bool m_toolsShown = false;
+    // Fenêtre principale avant l'annotation : visibilité, géométrie normale et drapeaux, rendus à la
+    // fermeture.
+    struct MainState
+    {
+        bool saved = false;
+        QWindow::Visibility visibility = QWindow::Windowed;
+        QRect geometry;
+        Qt::WindowFlags flags;
+    };
+    MainState m_mainState;
     bool m_hidingForCapture = false;      // fenêtre masquée pour la saisie : ce n'est pas une fermeture
     std::vector<std::size_t> m_livePages; // pages du paperboard du bureau qui portent la superposition
     CaptureSource m_capture;

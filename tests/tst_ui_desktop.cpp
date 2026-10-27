@@ -18,6 +18,8 @@
 #include <QSurfaceFormat>
 #include <QTemporaryDir>
 #include <QUrl>
+#include <QVariantList>
+#include <QVariantMap>
 #include <QtTest>
 
 #include <cstddef>
@@ -111,6 +113,23 @@ QPointF beginStylusStroke(QQuickWindow* window)
 std::size_t objectsOn(const DocumentController& doc, std::size_t page)
 {
     return doc.document().page(page).objects.size();
+}
+
+// Fenêtre de premier niveau nommée (roue, sortie du passage des clics : créées sans parent par la racine).
+QQuickWindow* windowNamed(const QString& name)
+{
+    const QWindowList windows = QGuiApplication::allWindows();
+    for (QWindow* window : windows) {
+        if (window->objectName() == name) {
+            return qobject_cast<QQuickWindow*>(window);
+        }
+    }
+    return nullptr;
+}
+
+QQuickWindow* wheelWindow()
+{
+    return windowNamed(QStringLiteral("desktopToolsWheel"));
 }
 
 // Tout le fichier dans cet espace de noms anonyme (exécutable unique : aucun nom global hors du registre).
@@ -542,6 +561,273 @@ private slots:
             const actcraft::core::Page& page = paperboard->document().page(i);
             QCOMPARE(QSizeF(page.width, page.height), screen);
         }
+    }
+
+    // --- L7-T31 : outils de bureau (F-080), roue et anneaux ---
+
+    // Roue : les identifiants de ses entrées (anneaux compris) sont tous des commandes déclarées du registre
+    // chargé de commands.json (celui de la fenêtre principale), sous les préfixes desktop. et tool. ; aucune
+    // entrée de vote ni de service de l'éditeur d'origine. Mutant : une entrée « vote.start » dans la liste.
+    void wheelHasNoVoteNorVendorEntry()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QObject* commands = main.window()
+                                ->findChild<QObject*>(QStringLiteral("desktopRoot"))
+                                ->property("commands")
+                                .value<QObject*>();
+        QVERIFY(commands);
+        QVariantList entries;
+        QVERIFY(QMetaObject::invokeMethod(desktop, "wheelEntries", Q_RETURN_ARG(QVariantList, entries),
+                                          Q_ARG(double, 100.0), Q_ARG(double, 200.0)));
+        QVERIFY(!entries.isEmpty());
+        QStringList ids;
+        for (const QVariant& entry : entries) {
+            const QVariantMap map = entry.toMap();
+            if (!map.value(QStringLiteral("command")).toString().isEmpty()) {
+                ids << map.value(QStringLiteral("command")).toString();
+            }
+            for (const QVariant& inner : map.value(QStringLiteral("ring")).toList()) {
+                ids << inner.toMap().value(QStringLiteral("command")).toString();
+            }
+        }
+        QVERIFY(ids.size() >= 10);
+        for (const QString& id : std::as_const(ids)) {
+            bool available = false;
+            QVERIFY(QMetaObject::invokeMethod(commands, "isAvailable", Q_RETURN_ARG(bool, available),
+                                              Q_ARG(QString, id)));
+            QVERIFY2(available, qPrintable(id));
+            QVERIFY2(id.startsWith(QStringLiteral("desktop.")) || id.startsWith(QStringLiteral("tool.")),
+                     qPrintable(id));
+            for (const char* forbidden : {"vote", "survey", "poll", "promethean", "inspire", "recorder"}) {
+                QVERIFY2(!id.contains(QLatin1String(forbidden), Qt::CaseInsensitive), qPrintable(id));
+            }
+        }
+        QVERIFY(ids.contains(QStringLiteral("desktop.restore")));
+        QVERIFY(ids.contains(QStringLiteral("tool.keyboard")));
+        QVERIFY(ids.contains(QStringLiteral("tool.camera-screen")));
+        QVERIFY(ids.contains(QStringLiteral("tool.dice")));
+    }
+
+    // Positions : sens horaire depuis le haut (y vers le bas).
+    void wheelEntriesAreLaidOutClockwiseFromTheTop()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVariantList entries;
+        QVERIFY(QMetaObject::invokeMethod(desktop, "wheelEntries", Q_RETURN_ARG(QVariantList, entries),
+                                          Q_ARG(double, 100.0), Q_ARG(double, 200.0)));
+        QCOMPARE(entries.size(), 4);
+        const QVariantMap first = entries[0].toMap();
+        const QVariantMap second = entries[1].toMap();
+        QVERIFY(qAbs(first.value(QStringLiteral("x")).toDouble()) < 0.01);
+        QVERIFY(qAbs(first.value(QStringLiteral("y")).toDouble() + 100) < 0.01);
+        QVERIFY(qAbs(second.value(QStringLiteral("x")).toDouble() - 100) < 0.01);
+        QVERIFY(qAbs(second.value(QStringLiteral("y")).toDouble()) < 0.01);
+        // Anneau secondaire (caméra) : cinq entrées sur le cercle extérieur.
+        const QVariantList ring = second.value(QStringLiteral("ring")).toList();
+        QCOMPARE(ring.size(), 5);
+        QVERIFY(qAbs(ring[0].toMap().value(QStringLiteral("y")).toDouble() + 200) < 0.01);
+    }
+
+    // desktop.tools : la fenêtre principale est réduite, la roue s'ouvre (fenêtre sans cadre, toujours
+    // devant, SANS parent : réduite avec la principale, elle disparaîtrait). Mutant : transientParent = la
+    // principale.
+    void toolsReduceTheMainWindowAndShowTheWheel()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(!desktop->property("toolsShown").toBool());
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QVERIFY(desktop->property("toolsShown").toBool());
+        QQuickWindow* wheel = wheelWindow();
+        QVERIFY(wheel);
+        QTRY_VERIFY(wheel->isVisible());
+        QVERIFY(wheel->flags().testFlag(Qt::WindowStaysOnTopHint));
+        QVERIFY(wheel->flags().testFlag(Qt::FramelessWindowHint));
+        QVERIFY(wheel->transientParent() == nullptr);
+        QTRY_COMPARE(main.window()->visibility(), QWindow::Minimized);
+        QVERIFY(main.run(QStringLiteral("desktop.restore")));
+    }
+
+    // Revenir à ActCraft (desktop.restore) ferme la roue et rend la fenêtre principale. Mutant : restore ne
+    // ferme pas la roue.
+    void restoreClosesTheWheel()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QQuickWindow* wheel = wheelWindow();
+        QVERIFY(wheel);
+        QTRY_VERIFY(wheel->isVisible());
+        QVERIFY(main.run(QStringLiteral("desktop.restore")));
+        QVERIFY(!desktop->property("toolsShown").toBool());
+        QTRY_VERIFY(!wheel->isVisible());
+        QTRY_VERIFY(main.window()->visibility() != QWindow::Minimized);
+    }
+
+    // La roue se ferme aussi si la fenêtre principale est restaurée autrement (barre des tâches).
+    // Mutant : aucune écoute de la visibilité de la fenêtre principale.
+    void wheelClosesWhenTheWindowIsRestored()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QQuickWindow* wheel = wheelWindow();
+        QVERIFY(wheel);
+        QTRY_VERIFY(wheel->isVisible());
+        QTRY_COMPARE(main.window()->visibility(), QWindow::Minimized);
+        main.window()->showNormal();
+        QTRY_VERIFY(!desktop->property("toolsShown").toBool());
+        QTRY_VERIFY(!wheel->isVisible());
+    }
+
+    // Icône puis roue : un clic déploie ; les entrées déclenchent des commandes nommées (« Revenir »
+    // ferme la roue) ; un anneau secondaire s'ouvre sur un clic et se referme sur un autre.
+    void wheelEntriesRunNamedCommands()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QQuickWindow* wheel = wheelWindow();
+        QVERIFY(wheel);
+        QTRY_VERIFY(wheel->isVisible());
+        const auto entry = [wheel](const QString& name) {
+            return presentationharness::findItem(wheel->contentItem(), name);
+        };
+        QVERIFY(!entry(QStringLiteral("desktopWheelEntry_desktop.restore")));
+        QQuickItem* icon = entry(QStringLiteral("desktopWheelIcon"));
+        QVERIFY(icon);
+        QVERIFY(QMetaObject::invokeMethod(icon, "click"));
+        QTRY_VERIFY(entry(QStringLiteral("desktopWheelEntry_desktop.restore")));
+        // Anneau « Caméra » (deuxième entrée).
+        QQuickItem* ring = entry(QStringLiteral("desktopWheelRing_1"));
+        QVERIFY(ring);
+        QVERIFY(QMetaObject::invokeMethod(ring, "click"));
+        for (const char* id : {"tool.camera-area", "tool.camera-polygon", "tool.camera-freehand",
+                               "tool.camera-window", "tool.camera-screen"}) {
+            const QString name = QStringLiteral("desktopWheelEntry_") + QLatin1String(id);
+            QTRY_VERIFY2(entry(name), qPrintable(name));
+        }
+        QVERIFY(QMetaObject::invokeMethod(ring, "click"));
+        QTRY_VERIFY(!entry(QStringLiteral("desktopWheelEntry_tool.camera-area")));
+        // « Revenir à ActCraft » : commande nommée, roue fermée.
+        QQuickItem* restore = entry(QStringLiteral("desktopWheelEntry_desktop.restore"));
+        QVERIFY(restore);
+        QVERIFY(QMetaObject::invokeMethod(restore, "click"));
+        QVERIFY(!desktop->property("toolsShown").toBool());
+        QTRY_VERIFY(!wheel->isVisible());
+    }
+
+    // F4a (revue L7-T30) : la palette principale reste devant la fenêtre d'annotation ; le drapeau « toujours
+    // devant » est posé pendant l'annotation et rendu ensuite. Mutant : jamais posé.
+    void mainWindowStaysInFrontOfTheAnnotation()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(!main.window()->flags().testFlag(Qt::WindowStaysOnTopHint));
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        QVERIFY(main.window()->flags().testFlag(Qt::WindowStaysOnTopHint));
+        QVERIFY(desktop->window()->flags().testFlag(Qt::WindowStaysOnTopHint));
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(!desktop->isAnnotating());
+        QVERIFY(!main.window()->flags().testFlag(Qt::WindowStaysOnTopHint));
+    }
+
+    // Décision de l'orchestrateur (essai 2, d'après l'original) : pendant l'annotation le paperboard
+    // disparaît et seule la palette reste devant. La fenêtre principale est réduite à l'emprise de la palette
+    // (barre du haut au-dessus), à partir de son état normal ; à la fermeture, visibilité, géométrie et
+    // drapeaux d'avant sont rendus (plein écran, maximisée, ou fenêtrée). Mutants : pas de réduction ; pas de
+    // retour à l'état d'avant.
+    void mainWindowShrinksToThePaletteAndComesBack_data()
+    {
+        QTest::addColumn<int>("visibility");
+        QTest::newRow("fenetree") << static_cast<int>(QWindow::Windowed);
+        QTest::newRow("plein ecran") << static_cast<int>(QWindow::FullScreen);
+        QTest::newRow("maximisee") << static_cast<int>(QWindow::Maximized);
+    }
+    void mainWindowShrinksToThePaletteAndComesBack()
+    {
+        QFETCH(int, visibility);
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QQuickWindow* window = main.window();
+        if (visibility == static_cast<int>(QWindow::FullScreen)) {
+            window->showFullScreen();
+        } else if (visibility == static_cast<int>(QWindow::Maximized)) {
+            window->showMaximized();
+        }
+        QTRY_COMPARE(static_cast<int>(window->visibility()), visibility);
+        QVERIFY(main.waitReady());
+        QQuickItem* palette =
+            presentationharness::findItem(window->contentItem(), QStringLiteral("toolPalette"));
+        QVERIFY(palette);
+        const QRect screen = QGuiApplication::primaryScreen()->geometry();
+        const QRect before = window->geometry();
+        const Qt::WindowFlags flagsBefore = window->flags();
+        const int paletteWidth = static_cast<int>(palette->width());
+        QVERIFY(paletteWidth > 0);
+        QVERIFY(before.width() > paletteWidth);
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        // Réduite à l'emprise de la palette : plus étroite que l'écran, de la largeur de la palette.
+        QTRY_COMPARE(window->geometry().width(), paletteWidth);
+        QVERIFY(window->geometry().width() < screen.width());
+        QCOMPARE(static_cast<int>(window->visibility()), static_cast<int>(QWindow::Windowed));
+        QVERIFY(window->flags().testFlag(Qt::WindowStaysOnTopHint));
+        // Fermeture : l'état d'avant, exactement.
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(!desktop->isAnnotating());
+        QTRY_COMPARE(static_cast<int>(window->visibility()), visibility);
+        QTRY_COMPARE(window->geometry(), before);
+        QCOMPARE(window->flags(), flagsBefore);
+    }
+
+    // F4b (revue L7-T30) : en passage des clics, une fenêtre toujours devant qui reçoit les clics rend la
+    // saisie à l'annotation (la fenêtre d'annotation et la principale n'en reçoivent plus). Mutant : le
+    // bouton ne rend pas la saisie.
+    void passThroughHasAnAccessibleExit()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        QQuickWindow* before = windowNamed(QStringLiteral("desktopResumeWindow"));
+        QVERIFY(!before || !before->isVisible());
+        desktop->setPassThrough(true);
+        QQuickWindow* resume = windowNamed(QStringLiteral("desktopResumeWindow"));
+        QVERIFY(resume);
+        QTRY_VERIFY(resume->isVisible());
+        QVERIFY(resume->flags().testFlag(Qt::WindowStaysOnTopHint));
+        QVERIFY(!resume->flags().testFlag(Qt::WindowTransparentForInput));
+        QVERIFY(desktop->window()->flags().testFlag(Qt::WindowTransparentForInput));
+        QQuickItem* button =
+            presentationharness::findItem(resume->contentItem(), QStringLiteral("desktopResumeButton"));
+        QVERIFY(button);
+        QVERIFY(QMetaObject::invokeMethod(button, "click"));
+        QVERIFY(!desktop->passThrough());
+        QVERIFY(desktop->isAnnotating());
+        QVERIFY(!desktop->window()->flags().testFlag(Qt::WindowTransparentForInput));
+        QTRY_VERIFY(!resume->isVisible());
     }
 };
 
