@@ -30,6 +30,9 @@ Item {
         saveChanges.open()
     }
     function newDocument(w, h) { guard(function () { actions.document.newDocument(w, h) }) }
+    function newDocumentWithFrames(w, h, across, down) {
+        guard(function () { actions.document.newDocumentWithFrames(w, h, across, down) })
+    }
     function askSize() { sizeDialog.open() }
     function open(argument) {
         const url = actions.document.urlFromArgument(argument)
@@ -90,7 +93,7 @@ Item {
         id: sizeDialog
         onOpened: actions.popupOpened()
         onClosed: actions.popupClosed()
-        onSizeAccepted: (w, h) => actions.newDocument(w, h)
+        onSizeAccepted: (w, h, across, down) => actions.newDocumentWithFrames(w, h, across, down)
     }
     Connections {
         target: actions.document
