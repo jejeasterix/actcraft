@@ -447,6 +447,36 @@ private slots:
         QVERIFY(!h.controller.isLifting());
     }
 
+    // fixedWidth (L4-T23) : l'éditeur QML ne replie le texte qu'à une largeur imposée. Un texte neuf n'en a
+    // pas : le cadre suit idealWidth, sans passage à la ligne (sinon idealWidth s'effondre sur un document
+    // replié, le cadre aussi, et le texte devient une colonne d'une lettre).
+    void fixedWidthOnlyWhenImposed()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({100, 100}, false));
+        QVERIFY(!h.editing.hasFixedWidth());
+        for (int i = 0; i < 40; ++i) {
+            h.typeChar(QLatin1Char('m'));
+        }
+        QVERIFY(!h.editing.hasFixedWidth());
+        QCOMPARE(h.document()->blockCount(), 1);
+        QVERIFY(h.editing.frame().width() >= h.document()->idealWidth());
+        QVERIFY(h.editing.frame().width() > 100); // quarante lettres : bien plus large qu'une colonne
+        // Poignée d'extension : la largeur est imposée, le cadre la prend.
+        h.editing.setFrameWidth(60);
+        QVERIFY(h.editing.hasFixedWidth());
+        QCOMPARE(h.editing.frame().width(), 60.0);
+        h.editing.commit();
+        QVERIFY(!h.editing.hasFixedWidth());
+        // Texte existant : sa largeur est celle de son emprise.
+        h.addText(QStringLiteral("un"), {300, 300, 120, 30});
+        QVERIFY(h.editing.beginAt({310, 310}, false));
+        QVERIFY(h.editing.hasFixedWidth());
+        QCOMPARE(h.editing.frame().width(), 120.0);
+        h.editing.commit();
+        QVERIFY(!h.editing.hasFixedWidth());
+    }
+
     void commitMakesASingleStep()
     {
         Harness h;
