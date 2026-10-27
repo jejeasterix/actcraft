@@ -5,9 +5,11 @@
   "steps": [
     {"waitReady": true},
     {"expect": "appThumbnails.active", "value": false},
+    {"expect": "browserPanel.commandChecked", "value": false},
     {"command": "view.browsers"},
     {"expect": "browserPanel.visible", "value": true},
     {"expect": "appThumbnails.active", "value": true},
+    {"expect": "browserPanel.commandChecked", "value": true},
     {"command": "page.next"},
     {"command": "page.next"},
     {"command": "page.next"},
