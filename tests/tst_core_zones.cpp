@@ -10,6 +10,7 @@
 
 #include <QtTest>
 
+#include <cstdint>
 #include <limits>
 
 using namespace actcraft::core;
@@ -27,10 +28,34 @@ private slots:
         QVERIFY(fingerprint(page) != before);
         page.zones.horizontal = 0;
         QCOMPARE(fingerprint(page), before);
+        page.zones.vertical = 2;
+        QVERIFY(fingerprint(page) != before);
+        page.zones.vertical = 0;
+        QCOMPARE(fingerprint(page), before);
         page.zones.frameWidth = 400; // amendement 4 : la taille d'un cadre entre dans l'empreinte
         QVERIFY(fingerprint(page) != before);
         page.zones.frameWidth = 0;
         QCOMPARE(fingerprint(page), before);
+        page.zones.frameHeight = 400;
+        QVERIFY(fingerprint(page) != before);
+        page.zones.frameHeight = 0;
+        QCOMPARE(fingerprint(page), before);
+        // Chaque champ compte, à sa place : 2 cadres en largeur ne valent pas 2 en hauteur, 2 en hauteur ne
+        // valent pas 3, une hauteur de cadre de 500 ne vaut pas 600.
+        const auto withZones = [](PageZones zones) {
+            Page p;
+            p.zones = zones;
+            return fingerprint(p);
+        };
+        QVERIFY(withZones({.horizontal = 2}) != withZones({.vertical = 2}));
+        QVERIFY(withZones({.vertical = 2}) != withZones({.vertical = 3}));
+        QVERIFY(withZones({.frameWidth = 500}) != withZones({.frameHeight = 500}));
+        QVERIFY(withZones({.frameHeight = 500}) != withZones({.frameHeight = 600}));
+        // Valeur figée, recoupée hors C++ (Python) : l'état FNV-1a de fingerprint(Page{})
+        // (0xB59B2DE2A9B3C823, tst_core_model) prolongé de l'octet 0xA6, de 2 et 3 (int32 petit-boutistes)
+        // puis de 500 et 600 (IEEE 754 petit-boutistes).
+        QCOMPARE(withZones({.horizontal = 2, .vertical = 3, .frameWidth = 500, .frameHeight = 600}),
+                 std::uint64_t{0x501B62CF9F23665Bull});
     }
     void extendKeepsTheFrameSize() // amendement 4 (D11) : l'allongement ne touche pas les cadres
     {
@@ -42,14 +67,26 @@ private slots:
         QCOMPARE(d.page(0).zones.frameHeight, 600.0);
         QCOMPARE(d.page(0).zones.vertical, 3);
     }
+    // Une étape : annuler rend les quatre champs d'avant, rétablir les quatre d'après.
     void setZonesIsOneStep()
     {
+        const auto same = [](const PageZones& a, const PageZones& b) {
+            return a.horizontal == b.horizontal && a.vertical == b.vertical && a.frameWidth == b.frameWidth &&
+                   a.frameHeight == b.frameHeight;
+        };
+        const PageZones before{.horizontal = 2, .vertical = 3, .frameWidth = 500, .frameHeight = 600};
+        const PageZones after{.horizontal = 4, .vertical = 1, .frameWidth = 700, .frameHeight = 800};
         Document d;
+        d.page(0).zones = before;
         UndoStack stack;
-        stack.push(d, std::make_unique<SetPageZonesCommand>(0, PageZones{.horizontal = 2}));
-        QCOMPARE(d.page(0).zones.horizontal, 2);
+        stack.push(d, std::make_unique<SetPageZonesCommand>(0, after));
+        QVERIFY(same(d.page(0).zones, after));
+        QCOMPARE(stack.count(), std::size_t{1});
         stack.undo(d);
-        QCOMPARE(d.page(0).zones.horizontal, 0);
+        QVERIFY(same(d.page(0).zones, before));
+        QVERIFY(!stack.canUndo());
+        stack.redo(d);
+        QVERIFY(same(d.page(0).zones, after));
     }
     void zonesChangeIsIgnoredByTheCache()
     {

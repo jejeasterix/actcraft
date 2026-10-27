@@ -419,6 +419,42 @@ private slots:
         QVERIFY2(clamped.document.page(0).unknownKeys.empty(), clamped.document.page(0).unknownKeys.c_str());
     }
 
+    // Valeur de « zones » mal formée (L4-T27) : la règle commune des valeurs lues
+    // (invalidValuesWarnAndFallBack) : un avertissement qui la nomme, le défaut, rien de gardé en inconnu.
+    // Discrimine le patron écarté d'une « zones » qui n'est pas un objet gardée telle quelle parmi les clés
+    // inconnues.
+    void invalidZonesWarnAndFallBack()
+    {
+        const auto readWith = [](const QJsonValue& zones) {
+            QJsonObject root = formats::documentToJson(plain());
+            QJsonArray pages = root.value(u"pages"_s).toArray();
+            QJsonObject page = pages.at(0).toObject();
+            page.insert(u"zones"_s, zones);
+            pages.replace(0, page);
+            root.insert(u"pages"_s, pages);
+            return readBack(root);
+        };
+        for (const QJsonValue& notAnObject :
+             {QJsonValue(QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}}), QJsonValue(3)}) {
+            const ReadBack back = readWith(notAnObject);
+            QVERIFY2(back.result.ok, qPrintable(back.result.error));
+            QCOMPARE(back.result.warnings.size(), qsizetype{1});
+            QVERIFY2(back.result.warnings.first().contains(u"« zones »"_s), qPrintable(report(back.result)));
+            const core::Page& page = back.document.page(0);
+            QVERIFY(core::isDefault(page.zones));
+            QVERIFY2(page.unknownKeys.empty(), page.unknownKeys.c_str());
+        }
+        const ReadBack half = readWith(QJsonObject{
+            {u"horizontal"_s, 2.5}, {u"vertical"_s, 2}, {u"frameWidth"_s, 0}, {u"frameHeight"_s, 0}});
+        QVERIFY2(half.result.ok, qPrintable(half.result.error));
+        QCOMPARE(half.result.warnings.size(), qsizetype{1});
+        QVERIFY2(half.result.warnings.first().contains(u"« horizontal »"_s), qPrintable(report(half.result)));
+        const core::Page& page = half.document.page(0);
+        QCOMPARE(page.zones.horizontal, 0);
+        QCOMPARE(page.zones.vertical, 2);
+        QVERIFY2(page.unknownKeys.empty(), page.unknownKeys.c_str());
+    }
+
     // Amendement 5 (trouvé par L4-T6) : « zones », omise à zéro, est dans le gabarit everyPageKey avec ses
     // quatre sous-clés hors défaut ; sinon elle serait lue comme inconnue (unknownKeys) et l'empreinte
     // changerait.
