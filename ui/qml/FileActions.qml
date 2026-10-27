@@ -91,6 +91,7 @@ Item {
     }
     PageSizeDialog {
         id: sizeDialog
+        document: actions.document
         onOpened: actions.popupOpened()
         onClosed: actions.popupClosed()
         onSizeAccepted: (w, h, across, down) => actions.newDocumentWithFrames(w, h, across, down)

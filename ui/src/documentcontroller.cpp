@@ -544,9 +544,13 @@ void DocumentController::newDocument(double width, double height)
     forgetStaleLift();
 }
 
+double DocumentController::minFrameSide() const noexcept
+{
+    return core::kMinFrameSide;
+}
+
 void DocumentController::newDocumentWithFrames(double frameWidth, double frameHeight, int across, int down)
 {
-    constexpr double kMaxSide = 8000;
     core::PageZones zones = core::clampZones(
         {.horizontal = across, .vertical = down, .frameWidth = frameWidth, .frameHeight = frameHeight});
     if (zones.horizontal <= 0 && zones.vertical <= 0) {
@@ -559,16 +563,21 @@ void DocumentController::newDocumentWithFrames(double frameWidth, double frameHe
     if (zones.frameHeight <= 0) {
         zones.frameHeight = core::kMinFrameSide;
     }
-    // Chaque côté tient en 8000 px : le nombre de cadres est ramené au plus grand qui tient (au moins un).
+    // Un cadre plus grand que la page permise est ramené au plafond avant le calcul des nombres.
+    zones.frameWidth = std::min(zones.frameWidth, kMaxPageSide);
+    zones.frameHeight = std::min(zones.frameHeight, kMaxPageSide);
+    // Chaque côté tient dans kMaxPageSide : le nombre de cadres est ramené au plus grand qui tient (au moins
+    // un).
     const auto fit = [](std::int32_t count, double side) {
-        return count <= 0 ? count
-                          : std::clamp(count, std::int32_t{1},
-                                       std::max(std::int32_t{1}, static_cast<std::int32_t>(kMaxSide / side)));
+        return count <= 0
+                   ? count
+                   : std::clamp(count, std::int32_t{1},
+                                std::max(std::int32_t{1}, static_cast<std::int32_t>(kMaxPageSide / side)));
     };
     zones.horizontal = fit(zones.horizontal, zones.frameWidth);
     zones.vertical = fit(zones.vertical, zones.frameHeight);
-    const double width = std::min(kMaxSide, zones.frameWidth * std::max(1, zones.horizontal));
-    const double height = std::min(kMaxSide, zones.frameHeight * std::max(1, zones.vertical));
+    const double width = std::min(kMaxPageSide, zones.frameWidth * std::max(1, zones.horizontal));
+    const double height = std::min(kMaxPageSide, zones.frameHeight * std::max(1, zones.vertical));
     core::Document document(width, height);
     document.page(0).zones = zones;
     replaceDocument(std::move(document), QUrl(), untitled());
