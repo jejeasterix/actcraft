@@ -157,6 +157,12 @@ QJsonObject scenarioJson(const ScenarioResult& s)
                                                                 {"p95_ms", s.shapePreview->p95Ms},
                                                                 {"max_ms", s.shapePreview->maxMs}});
     }
+    if (s.thumbnails) {
+        out.insert(QStringLiteral("thumbnails"),
+                   QJsonObject{{"renders", s.thumbnails->renders},
+                               {"max_copy_ms", s.thumbnails->maxCopyMs},
+                               {"during_contact", s.thumbnails->duringContact}});
+    }
     return out;
 }
 

@@ -443,6 +443,27 @@ ScenarioPlan shapeScenario(ScenarioSet set)
     return plan;
 }
 
+ScenarioPlan thumbnailsScenario(ScenarioSet set)
+{
+    ScenarioPlan plan = strokeScenario(set);
+    plan.name = QStringLiteral("miniatures");
+    plan.generatedPages = kThumbnailPages;
+    plan.measuresThumbnails = true;
+    plan.browsersOpen = true;
+    plan.setupCommands.emplace_back(QStringLiteral("view.browsers"), QVariant());
+    plan.teardownCommands.emplace_back(QStringLiteral("view.browsers"), QVariant());
+    return plan;
+}
+
+ScenarioPlan closedThumbnailsScenario(ScenarioSet set)
+{
+    ScenarioPlan plan = strokeScenario(set);
+    plan.name = QStringLiteral("miniatures-ferme");
+    plan.generatedPages = kThumbnailPages;
+    plan.measuresThumbnails = true;
+    return plan;
+}
+
 core::Grid gridAboveFixture()
 {
     core::Grid grid;
@@ -479,9 +500,17 @@ std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPla
 
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
 {
-    return {strokeScenario(set), zoomScenario(set),   scrollScenario(set),
-            pageScenario(set),   pausesScenario(set), eraseScenario(set),
-            liftScenario(set),   shapeScenario(set),  gridAboveScenario(set)};
+    return {strokeScenario(set),
+            zoomScenario(set),
+            scrollScenario(set),
+            pageScenario(set),
+            pausesScenario(set),
+            eraseScenario(set),
+            liftScenario(set),
+            shapeScenario(set),
+            gridAboveScenario(set),
+            thumbnailsScenario(set),
+            closedThumbnailsScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()

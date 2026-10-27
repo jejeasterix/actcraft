@@ -70,6 +70,15 @@ struct ShapePreviewStats
 ShapePreviewStats shapePreviewStats(const std::vector<std::int64_t>& swapNs,
                                     const std::vector<std::pair<std::int64_t, std::int64_t>>& windowsNs);
 
+// L4-T29 (S7.5, amendements 1 et 5) : miniatures des pages pendant la fenêtre mesurée (clé thumbnails).
+// Un résultat, jamais une porte.
+struct ThumbnailStats
+{
+    int renders = 0;       // rendus terminés entre le début et la fin de la mesure (renderCount)
+    int duringContact = 0; // rendus lancés (launchCount) entre un appui et son relâché
+    double maxCopyMs = 0;  // copie de la page la plus longue (lastCopyMs relevé à chaque lancement)
+};
+
 struct ScenarioResult
 {
     QString name;             // stroke | zoom | scroll | page | pauses | gommer | soulever
@@ -105,6 +114,7 @@ struct ScenarioResult
     // (shape_preview ; absent : scénario qui ne trace pas de forme).
     int placedShapes = -1;
     std::optional<ShapePreviewStats> shapePreview;
+    std::optional<ThumbnailStats> thumbnails; // L4-T29 : absent hors « miniatures » et « miniatures-ferme »
 };
 
 struct BenchResult
