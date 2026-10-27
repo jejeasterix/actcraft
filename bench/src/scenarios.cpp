@@ -443,6 +443,45 @@ ScenarioPlan shapeScenario(ScenarioSet set)
     return plan;
 }
 
+namespace {
+// Panneau des navigateurs ouvert pendant la mesure : document de kThumbnailPages pages, panneau ouvert avant
+// la mesure et refermé après, miniatures relevées.
+void openBrowsersDuring(ScenarioPlan& plan)
+{
+    plan.generatedPages = kThumbnailPages;
+    plan.measuresThumbnails = true;
+    plan.browsersOpen = true;
+    plan.setupCommands.emplace_back(QStringLiteral("view.browsers"), QVariant());
+    plan.teardownCommands.emplace_back(QStringLiteral("view.browsers"), QVariant());
+}
+} // namespace
+
+ScenarioPlan thumbnailsScenario(ScenarioSet set)
+{
+    ScenarioPlan plan = strokeScenario(set);
+    plan.name = QStringLiteral("miniatures");
+    openBrowsersDuring(plan);
+    return plan;
+}
+
+ScenarioPlan thumbnailsPausesScenario(ScenarioSet set)
+{
+    ScenarioPlan plan = pausesScenario(set);
+    plan.name = QStringLiteral("miniatures-pauses");
+    plan.awaitFinalFold = false; // propre à « pauses » ; la mesure attend le rendu de miniature (runner.cpp)
+    openBrowsersDuring(plan);
+    return plan;
+}
+
+ScenarioPlan closedThumbnailsScenario(ScenarioSet set)
+{
+    ScenarioPlan plan = strokeScenario(set);
+    plan.name = QStringLiteral("miniatures-ferme");
+    plan.generatedPages = kThumbnailPages;
+    plan.measuresThumbnails = true;
+    return plan;
+}
+
 core::Grid gridAboveFixture()
 {
     core::Grid grid;
@@ -479,9 +518,18 @@ std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPla
 
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
 {
-    return {strokeScenario(set), zoomScenario(set),   scrollScenario(set),
-            pageScenario(set),   pausesScenario(set), eraseScenario(set),
-            liftScenario(set),   shapeScenario(set),  gridAboveScenario(set)};
+    return {strokeScenario(set),
+            zoomScenario(set),
+            scrollScenario(set),
+            pageScenario(set),
+            pausesScenario(set),
+            eraseScenario(set),
+            liftScenario(set),
+            shapeScenario(set),
+            gridAboveScenario(set),
+            thumbnailsScenario(set),
+            closedThumbnailsScenario(set),
+            thumbnailsPausesScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()

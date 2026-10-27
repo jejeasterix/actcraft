@@ -71,7 +71,7 @@ redessiné). Une commande qui n'attend aucun prêt (zoom posé sans cache : page
 à la première image qui la suit. Décodage, reconstruction et redessin du cache y comptent ; les images entre
 deux changements (rendu continu pendant la mesure) restent au repos.
 
-Lot 4 (L4-T14, S7.5) : deux scénarios s'ajoutent après `soulever`, les sept premiers inchangés (le banc en joue neuf).
+Lot 4 (L4-T14, S7.5) : deux scénarios s'ajoutent après `soulever`, les sept premiers inchangés (le banc en joue neuf ; douze avec le lot 4b, ci-dessous).
 
 | Scénario | Contenu | Attendu relevé |
 |---|---|---|
@@ -87,6 +87,29 @@ aucun autre scénario ne trace de forme. Le JSON relève, au niveau du scénario
 "p95_ms": x, "max_ms": y}` : `frames` est le nombre d'images présentées pendant les glissés (de l'appui au
 relâché de chaque forme), `p95_ms` et `max_ms` les intervalles qui précèdent ces images. C'est un résultat, jamais
 une porte (hors budget, H4-8).
+
+Lot 4b (L4-T29, S7.5, amendements 1 et 5) : trois scénarios s'ajoutent après `grille-dessus`, les neuf premiers
+inchangés (le banc en joue douze). Ils mesurent que les miniatures du navigateur de pages ne figent pas l'écriture.
+
+| Scénario | Contenu | Attendu relevé |
+|---|---|---|
+| `miniatures` | les traits de `stroke`, **panneau des navigateurs ouvert** (`view.browsers` avant la mesure, refermé après) ; page générée et trois pages de plus (4 pages), pour que le navigateur ait des miniatures à tenir à jour | `thumbnails.renders` ≥ 1 **dans la fenêtre mesurée**, `thumbnails.during_contact` = 0, `thumbnails.max_copy_ms` relevé ; figements et latence comparés à `stroke` |
+| `miniatures-ferme` | même plan, même document de 4 pages, **sans** `view.browsers` : le panneau reste fermé | `thumbnails.renders` = 0 dans la fenêtre mesurée (aucun rendu panneau fermé, L4-T19), `thumbnails.during_contact` = 0 ; figements et latence comparés à `stroke` |
+| `miniatures-pauses` | variante sur `pauses` (amendement 1) : les traits de `pauses` (pauses de 500 ms et plus, donc plus longues que les 400 ms de `kSettleMs`), panneau ouvert, 4 pages : les rendus tombent dans les pauses | `thumbnails.renders` relevé, `thumbnails.during_contact` = 0 ; ses figements se comparent à ceux de `pauses` (sans panneau), dans le même JSON ; ne ferme pas sa mesure sur le versement différé, propre à `pauses` |
+
+Les deux premiers sont jugés comme `stroke` (figements compris, aucun attendu sur `cache.refreshes`). Avant la mesure, le
+banc vérifie l'état réel du panneau (`appThumbnails.active`) et, panneau ouvert, attend que les miniatures soient
+à jour (`pendingCount` = 0) : les rendus de l'ouverture ne comptent donc pas. Le dernier trait laisse sa miniature à
+refaire 400 ms plus tard (`PageThumbnails::kSettleMs`) ; panneau ouvert, la mesure relève `renderCount` à la fin
+de l'injection puis attend un rendu de plus, pour que celui du dernier trait tombe dans la fenêtre.
+
+**Clé `thumbnails`** (ces trois scénarios seulement). `"thumbnails": {"renders": n, "max_copy_ms": x,
+"during_contact": k}` : `renders` = rendus terminés entre le début et la fin de la mesure (`renderCount`) ;
+`during_contact` = nombre de rendus **lancés** (hausses de `launchCount`, horodatées à chaque `renderingChanged`)
+dont l'instant tombe entre un appui et son relâché injectés (instants d'envoi de l'injecteur) ; il vaut 0 tant que
+`PageThumbnails` ne lance rien pendant un contact, et le banc le prouve de l'extérieur ; `max_copy_ms` = la plus longue copie de page sur le fil principal
+(`lastCopyMs`, relevé à chaque lancement). Un résultat, jamais une porte. Sur le Mac en debug logiciel, `renders`
+peut valoir 0 sous forte charge : seul le banc en D3D11 release du PC fait foi pour les chiffres.
 
 **Joueur de scénarios d'interface : étape `typeText`** (ajoutée à la fin de `UiStepKind`, après `DoubleClick`).
 `{"typeText": "Bonjour"}` livre à la fenêtre un appui et un relâché par caractère, avec son texte (Maj pour une
