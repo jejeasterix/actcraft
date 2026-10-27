@@ -1,6 +1,7 @@
 #include <actcraft/bench/fixtures.h>
 #include <actcraft/bench/uiscenario.h>
 #include <actcraft/formats/nativefile.h>
+#include <actcraft/ui/pageview.h>
 
 #include <QCoreApplication>
 #include <QDir>
@@ -868,6 +869,25 @@ private slots:
         QVERIFY2(all.contains(QStringLiteral("PINCEMENT ×2 OK")), qPrintable(all));
         QCOMPARE(all.count(QLatin1String("POINTEUR 2 OK")), 2);
         QCOMPARE(all.count(QLatin1String("DOUBLECLIC OK")), 2);
+    }
+
+    // L4-C14 : à la fin d'une étape « pointer », le survol (HoverHandler) est celui du dernier point. Qt Quick
+    // livre les déplacements de survol à la prochaine image : le joueur attend cette image, il ne laisse pas la
+    // capture suivante lire la position d'un point intermédiaire.
+    void pointerStepLeavesTheHoverAtTheLastPoint()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        auto* view = f.window->findChild<actcraft::ui::PageView*>(QStringLiteral("pageView"));
+        auto* hover = f.window->findChild<QQuickItem*>(QStringLiteral("survol"));
+        QVERIFY(view && hover);
+        QStringList report;
+        const UiScenario s = scenario("survol", "[{\"waitReady\":true},"
+                                                "{\"pointer\":[[100,100],[130,130],[160,160]]}]");
+        QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        const QPointF last = view->pageToScene(QPointF(160, 160));
+        const QPointF got(hover->property("px").toDouble(), hover->property("py").toDouble());
+        QCOMPARE(got, last);
     }
 
     void fixtureWritesAThreePageDocument()

@@ -76,4 +76,18 @@ Window {
             }
         }
     }
+
+    // L4-C14 : survol suivi comme le fait ToolCursor (HoverHandler) ; Qt Quick livre les déplacements de
+    // survol à la prochaine image, pas à l'envoi.
+    Item {
+        anchors.fill: parent
+        HoverHandler {
+            id: survol
+        }
+        Item {
+            objectName: "survol"
+            property real px: survol.point.position.x
+            property real py: survol.point.position.y
+        }
+    }
 }
