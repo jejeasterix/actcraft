@@ -50,6 +50,14 @@ Rectangle {
     }
     onSideChanged: root.dock()
 
+    // État coché de « Navigateurs » (Ctrl+B, icône, menu) : celui du panneau. Lu par le banc.
+    readonly property bool commandChecked: root.commands.revision >= 0 && root.commands.isChecked("view.browsers")
+    function syncChecked() {
+        root.commands.setChecked("view.browsers", root.visible)
+    }
+    onVisibleChanged: root.syncChecked()
+    Component.onCompleted: root.syncChecked()
+
     // Les cinq icônes à nous (nav-*) et celle des pages (page-copier, déjà à nous).
     readonly property var navigators: [
         { id: "pages", label: qsTr("Pages"), icon: "page-copier", enabled: true },
