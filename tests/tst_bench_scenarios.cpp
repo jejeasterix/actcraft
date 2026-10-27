@@ -125,7 +125,8 @@ private slots:
         // L2-T23 : « page » ; L10-T1 : « pauses » ; L3-T19 : « gommer » et « soulever », en dernier (le
         // compte passe de 5 à 7 : les cinq premiers gardent leur nom et leur ordre). L4-T14 : « forme-page-
         // annotee » et « grille-dessus » après eux (le compte passe de 7 à 9 : les sept premiers inchangés).
-        QCOMPARE(plans.size(), std::size_t{9});
+        // L4-T29 : « miniatures » et « miniatures-ferme » après eux (le compte passe de 9 à 11).
+        QCOMPARE(plans.size(), std::size_t{11});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
@@ -135,6 +136,8 @@ private slots:
         QCOMPARE(plans[6].name, QStringLiteral("soulever"));
         QCOMPARE(plans[7].name, QStringLiteral("forme-page-annotee"));
         QCOMPARE(plans[8].name, QStringLiteral("grille-dessus"));
+        QCOMPARE(plans[9].name, QStringLiteral("miniatures"));
+        QCOMPARE(plans[10].name, QStringLiteral("miniatures-ferme"));
         for (std::size_t i = 0; i < 5; ++i) {
             QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
             QVERIFY(plans[i].seedStrokes.empty());
@@ -144,6 +147,62 @@ private slots:
     // L3-T19 (S36) : la gomme ne touche que les annotations (couche supérieure) ; les traits de la page
     // générée sont sur la couche du milieu. Le scénario pose donc ses propres annotations, versées avant la
     // mesure, et le zigzag du stylo en croise au moins 20.
+    // L4-T29 (S7.5, amendements 1 et 5) : « miniatures » joue les traits de « stroke » panneau des navigateurs
+    // ouvert (view.browsers avant la mesure, refermé après), sur la page générée et trois pages de plus pour
+    // que le navigateur ait des miniatures à tenir à jour.
+    void thumbnailsScenarioOpensTheBrowsers()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan plan = bench::thumbnailsScenario(set);
+            const bench::ScenarioPlan stroke = bench::strokeScenario(set);
+            QCOMPARE(plan.name, QStringLiteral("miniatures"));
+            QCOMPARE(plan.generatedPages, 4);
+            QVERIFY(plan.measuresThumbnails);
+            QVERIFY(plan.browsersOpen);
+            QCOMPARE(plan.setupCommands.size(), std::size_t{1});
+            QCOMPARE(plan.setupCommands[0].first, QStringLiteral("view.browsers"));
+            QCOMPARE(plan.teardownCommands.size(), std::size_t{1});
+            QCOMPARE(plan.teardownCommands[0].first, QStringLiteral("view.browsers"));
+            QVERIFY(plan.toolCommand.isEmpty()); // le stylo
+            QVERIFY(!plan.freezeExempt);         // jugé comme « stroke », figements compris
+            QCOMPARE(plan.maxCacheRefreshes, -1);
+            QVERIFY(!plan.awaitFinalFold);
+            QCOMPARE(plan.inputs.size(), stroke.inputs.size());
+            for (std::size_t i = 0; i < plan.inputs.size(); ++i) {
+                QCOMPARE(plan.inputs[i].offsetNs, stroke.inputs[i].offsetNs);
+                QCOMPARE(plan.inputs[i].pagePos, stroke.inputs[i].pagePos);
+                QCOMPARE(plan.inputs[i].kind, stroke.inputs[i].kind);
+                QCOMPARE(plan.inputs[i].measured, stroke.inputs[i].measured);
+            }
+        }
+    }
+
+    // L4-T29 (amendement 5) : même scénario, mêmes pages, mais le panneau reste fermé (L4-T19 : aucun rendu).
+    void closedPanelVariantKeepsItClosed()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan plan = bench::closedThumbnailsScenario(set);
+            const bench::ScenarioPlan open = bench::thumbnailsScenario(set);
+            QCOMPARE(plan.name, QStringLiteral("miniatures-ferme"));
+            QCOMPARE(plan.generatedPages, open.generatedPages);
+            QVERIFY(plan.measuresThumbnails);
+            QVERIFY(!plan.browsersOpen);
+            QVERIFY(plan.teardownCommands.empty());
+            for (const auto& [command, argument] : plan.setupCommands) {
+                Q_UNUSED(argument);
+                QVERIFY2(command != QStringLiteral("view.browsers"), "le panneau doit rester fermé");
+            }
+            QCOMPARE(plan.inputs.size(), open.inputs.size());
+            QVERIFY(!plan.freezeExempt);
+            QCOMPARE(plan.maxCacheRefreshes, -1);
+        }
+        // Les autres scénarios ne relèvent aucune miniature.
+        for (const auto& plan : bench::allScenarios(bench::ScenarioSet::Court)) {
+            const bool thumbs = plan.name.startsWith(QStringLiteral("miniatures"));
+            QCOMPARE(plan.measuresThumbnails, thumbs);
+        }
+    }
+
     // L3-C10 (S36, M3) : le plan de `gommer` et de `soulever` retire figements et reprises du verdict et pose
     // l'attendu des redessins ; aucun autre scénario n'est touché.
     void gesturePlansCarryTheirVerdictExemption()

@@ -48,19 +48,21 @@ private slots:
     }
 
     // L2-T23 : « page » ; L10-T1 : « pauses » (reprises après le délai d'inactivité du cache) ; L3-T19 :
-    // « gommer » et « soulever » ; L4-T14 : « forme-page-annotee » et « grille-dessus ». Remplace
-    // sevenScenariosWithFrames : le banc compte neuf scénarios, non plus sept (les sept premiers gardent leur
+    // « gommer » et « soulever » ; L4-T14 : « forme-page-annotee » et « grille-dessus » ; L4-T29 :
+    // « miniatures » et « miniatures-ferme ». Remplace lot4ScenariosWithFrames (lui-même remplaçant de
+    // sevenScenariosWithFrames) : le banc compte onze scénarios, non plus neuf (les neuf premiers gardent leur
     // rang). Amendement 4 (V9) : « forme-page-annotee » écrit la clé shape_preview, relue ici.
-    void lot4ScenariosWithFrames()
+    void lot4bScenariosWithFrames()
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
-        QCOMPARE(scenarios.size(), 9);
+        QCOMPARE(scenarios.size(), 11);
         const QStringList names{QStringLiteral("stroke"),       QStringLiteral("zoom"),
                                 QStringLiteral("scroll"),       QStringLiteral("page"),
                                 QStringLiteral("pauses"),       QStringLiteral("gommer"),
                                 QStringLiteral("soulever"),     QStringLiteral("forme-page-annotee"),
-                                QStringLiteral("grille-dessus")};
-        for (qsizetype i = 0; i < 9; ++i) {
+                                QStringLiteral("grille-dessus"),
+                                QStringLiteral("miniatures"),   QStringLiteral("miniatures-ferme")};
+        for (qsizetype i = 0; i < 11; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);
@@ -84,6 +86,26 @@ private slots:
         QVERIFY(preview.contains("p95_ms") && preview.value("p95_ms").toDouble(-1) >= 0);
         QVERIFY(preview.contains("max_ms") &&
                 preview.value("max_ms").toDouble(-1) >= preview.value("p95_ms").toDouble());
+    }
+
+    // L4-T29 (S7.5, amendements 1 et 5) : clé `thumbnails` des deux scénarios de miniatures, absente des
+    // autres. Panneau fermé : aucun rendu (L4-T19). Panneau ouvert : le nombre de rendus peut valoir 0 en debug
+    // logiciel sous charge (>= 0 ici, >= 1 dans le banc hors écran de la preuve) ; aucun n'est jamais lancé
+    // pendant un contact.
+    void thumbnailsShowInTheResult()
+    {
+        const QJsonArray scenarios = m_root.value("scenarios").toArray();
+        for (qsizetype i = 0; i < scenarios.size(); ++i) {
+            QCOMPARE(scenarios.at(i).toObject().contains("thumbnails"), i >= 9);
+        }
+        const QJsonObject open = scenarios.at(9).toObject().value("thumbnails").toObject();
+        QVERIFY2(open.value("renders").toInt(-1) >= 0, "thumbnails.renders absent");
+        QVERIFY(open.value("max_copy_ms").toDouble(-1) >= 0);
+        QCOMPARE(open.value("during_contact").toInt(-1), 0);
+        const QJsonObject closed = scenarios.at(10).toObject().value("thumbnails").toObject();
+        QCOMPARE(closed.value("renders").toInt(-1), 0);
+        QCOMPARE(closed.value("during_contact").toInt(-1), 0);
+        QVERIFY(closed.contains("max_copy_ms"));
     }
 
     // L4-T14 (S7.5) : « forme-page-annotee » pose k >= 10 formes, une insertion hors fin de page redessine le
