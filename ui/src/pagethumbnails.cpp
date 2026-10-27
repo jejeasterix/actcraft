@@ -287,6 +287,23 @@ QThread* PageThumbnails::lastRenderThread() const noexcept
     return m_lastRenderThread;
 }
 
+bool PageThumbnails::active() const noexcept
+{
+    return m_active;
+}
+
+void PageThumbnails::setActive(bool active)
+{
+    if (m_active == active) {
+        return;
+    }
+    m_active = active;
+    if (m_active && m_pending > 0) {
+        m_settle.start(); // pages marquées pendant la suspension : rendues kSettleMs plus tard
+    }
+    emit activeChanged();
+}
+
 void PageThumbnails::setSettleDelay(int ms)
 {
     m_settle.setInterval(std::max(ms, 0));

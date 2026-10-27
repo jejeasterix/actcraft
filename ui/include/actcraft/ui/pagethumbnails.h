@@ -37,6 +37,10 @@ class PageThumbnails : public QAbstractListModel
     // Amendement 3 : rendus lancés (compté sur le fil principal au lancement) ; renderCount compte les
     // terminés.
     Q_PROPERTY(int launchCount READ launchCount NOTIFY renderingChanged)
+    // Amendement 5 du lot 4 (L4-T19) : faux quand le panneau des navigateurs est caché ; aucun rendu n'est alors
+    // lancé. Revenu à vrai : les pages modifiées entre-temps, ou jamais rendues, le sont kSettleMs plus tard,
+    // comme après une modification (et jamais pendant un contact). Vrai par défaut.
+    Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
 
 public:
     static constexpr int kSettleMs = 400;
@@ -68,11 +72,14 @@ public:
     QImage image(int page) const;     // dernière image rendue ; nulle avant le premier rendu
     Q_INVOKABLE void refreshAll();
     QThread* lastRenderThread() const noexcept; // tests : fil du dernier rendu terminé
+    bool active() const noexcept;               // amendement 5 (L4-T19)
+    void setActive(bool active);                // n'interrompt pas un rendu déjà lancé
 
 signals:
     void wiringChanged();
     void thumbnailWidthChanged();
     void renderingChanged();
+    void activeChanged(); // amendement 5 (L4-T19)
 
 private:
     void attachController();
@@ -116,6 +123,7 @@ private:
     QList<QMetaObject::Connection> m_controllerConnections;
     QMetaObject::Connection m_viewConnection;
     int m_inFlightPage = -1; // L4-C10 : ligne du rendu en vol, remarquée si les lignes sont refaites
+    bool m_active = true;    // amendement 5 (L4-T19)
 
 public:
     // Tests (L4-C10) : délai de calme réglable, kSettleMs par défaut.
