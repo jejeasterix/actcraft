@@ -494,6 +494,8 @@ private slots:
         QVERIFY(std::abs(height() - 1022.208) < 1e-3);
         QVERIFY(std::abs(rig.options.pageHeight() - 1022.208) < 1e-3);
         rig.controller.undo();
+        QVERIFY(std::abs(height() - 929.28) < 1e-3); // une annulation = une seule étape
+        QVERIFY(std::abs(rig.options.pageHeight() - 929.28) < 1e-3);
         rig.controller.undo();
         rig.controller.undo();
         QCOMPARE(height(), 768.0);
@@ -523,6 +525,14 @@ private slots:
         auto* view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
         QVERIFY(view);
         QTRY_VERIFY(view->width() > 100 && view->height() > 100); // mise en page faite
+        auto* controller = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(controller);
+        const auto objectCount = [&] {
+            return controller->document()
+                .page(static_cast<std::size_t>(controller->currentIndex()))
+                .objects.size();
+        };
+        const std::size_t objectsBefore = objectCount();
         tools->activate(QStringLiteral("pen"));
         QCOMPARE(tools->currentTool(), QStringLiteral("pen"));
 
@@ -538,6 +548,7 @@ private slots:
         QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, inside.toPoint());
         QTRY_VERIFY(std::abs(options->pageHeight() - 929.28) < 1e-3);
         QCOMPARE(tools->currentTool(), QStringLiteral("pen"));
+        QCOMPARE(objectCount(), objectsBefore); // le clic n'a posé aucun trait
         QTRY_VERIFY(handle->property("atPageBottom").toBool());
     }
 
@@ -566,6 +577,26 @@ private slots:
         options->extendPage();
         QTRY_VERIFY(view->scrollSizeY() < before - 1e-6);
         QVERIFY(std::abs(view->content()->height() - 844.8) < 1e-3);
+        auto* controller = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(controller);
+        controller->undo(); // l'annulation rend la hauteur d'origine à la vue
+        QTRY_VERIFY(std::abs(view->content()->height() - 768.0) < 1e-3);
+        QTRY_VERIFY(std::abs(view->scrollSizeY() - before) < 1e-6);
+    }
+
+    // Une page allongée change de taille sans changer de page ; un trait n'annonce rien de tel.
+    void strokeDoesNotEmitPagesChanged()
+    {
+        Rig rig;
+        QSignalSpy pages(&rig.controller, &ui::DocumentController::pagesChanged);
+        const std::size_t before = rig.controller.document().page(0).objects.size();
+        core::Stroke stroke;
+        stroke.points = {{10, 10, 0.5f}, {40, 30, 0.5f}, {80, 20, 0.5f}};
+        rig.controller.commitStroke(std::move(stroke));
+        QCOMPARE(rig.controller.document().page(0).objects.size(), before + 1);
+        QCOMPARE(pages.count(), 0);
+        rig.options.extendPage(); // témoin : une page allongée, elle, l'annonce
+        QVERIFY(pages.count() >= 1);
     }
 };
 
