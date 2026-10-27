@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -39,6 +40,7 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+#include <dwmapi.h>
 #include <windows.h>
 #endif
 
@@ -455,6 +457,47 @@ private slots:
         QCOMPARE(main.pageObjectCount(), objects);
     }
 
+    // Échap ferme la sélection quel que soit le focus dans sa fenêtre : une case de la palette qui a pris le
+    // focus au clic ne laisse pas Échap au raccourci de tool.select (Main.qml, Qt.ApplicationShortcut).
+    // Mutant : Échap traité par la seule surface (focus initial) → tool.select déclenché, fenêtre ouverte.
+    void escapeClosesTheSelectionFromThePalette()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        CameraController* camera = cameraOf(main);
+        QVERIFY(camera);
+        camera->setCaptureSource([] { return fakeScreen(); });
+        QObject* root = main.window()->findChild<QObject*>(QStringLiteral("cameraRoot"));
+        QVERIFY(root);
+        auto* commands = qobject_cast<Commands*>(root->property("commands").value<QObject*>());
+        QVERIFY(commands);
+        const int objects = main.pageObjectCount();
+        QQuickWindow* window = openCapture(main, camera, QStringLiteral("tool.camera-area"));
+        QVERIFY(window);
+        QVERIFY(QTest::qWaitForWindowActive(window));
+        QQuickItem* field =
+            presentationharness::findItem(window->contentItem(), QStringLiteral("cameraZoneLeft"));
+        QVERIFY(field);
+        QTRY_VERIFY(field->isVisible() && field->width() > 0);
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier,
+                          field->mapToScene(QPointF(field->width() / 2, field->height() / 2)).toPoint());
+        QQuickItem* focused = window->activeFocusItem();
+        QVERIFY2(focused && (focused == field || field->isAncestorOf(focused)),
+                 qPrintable(focused ? QString::fromLatin1(focused->metaObject()->className())
+                                    : QStringLiteral("aucun élément")));
+        const QPointer<QQuickWindow> guard(window);
+        QSignalSpy triggered(commands, &Commands::triggered);
+        QTest::keyClick(window, Qt::Key_Escape);
+        QStringList ids;
+        for (qsizetype i = 0; i < triggered.count(); ++i) {
+            ids << triggered.at(i).at(0).toString();
+        }
+        QVERIFY2(!ids.contains(QStringLiteral("tool.select")), qPrintable(ids.join(QStringLiteral(", "))));
+        QTRY_VERIFY(!camera->window());
+        QTRY_VERIFY(guard.isNull());
+        QCOMPARE(main.pageObjectCount(), objects);
+    }
+
     // Écran entier : capture immédiate, posée sur la page affichée, sans fenêtre de sélection.
     void screenCaptureGoesStraightToThePage()
     {
@@ -473,6 +516,29 @@ private slots:
         const core::ImageObject* image = newImageOn(shownPage(*open), known);
         QVERIFY(image);
         QCOMPARE(decodedResource(*open, image->resource).size(), fakeScreen().size());
+    }
+
+    // Écran entier sans document où poser l'image : un message dans la fenêtre principale, comme l'image
+    // vide, au lieu de rien. Mutant : échec de la pose ignoré → aucun message.
+    void screenCaptureWithoutDocumentShowsAMessage()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        CameraController* camera = cameraOf(main);
+        QVERIFY(camera);
+        camera->setCaptureSource([] { return fakeScreen(); });
+        camera->setDocumentController(nullptr);
+        const int objects = main.pageObjectCount();
+        QVERIFY(camera->message().isEmpty());
+        QVERIFY(main.run(QStringLiteral("tool.camera-screen")));
+        QTRY_VERIFY(!camera->message().isEmpty());
+        QVERIFY(!camera->window());
+        QVERIFY(camera->frozenImage().isNull());
+        QCOMPARE(main.pageObjectCount(), objects);
+        QQuickItem* box =
+            presentationharness::findItem(main.window()->contentItem(), QStringLiteral("cameraMessage"));
+        QVERIFY(box);
+        QVERIFY(box->isVisible());
     }
 
     // Point par point : un clic près du premier sommet ferme ; hors du polygone, l'image est transparente.
@@ -524,6 +590,36 @@ private slots:
         QCOMPARE(QGuiApplication::clipboard()->image().size(), QSize(300, 200));
     }
 
+    // Fenêtre : le clic fige la fenêtre choisie ; le survol qui suit (le pointeur monte vers la palette en
+    // passant sur une autre fenêtre, ou hors de toute fenêtre) ne la change plus. Mutant : survol qui réécrit
+    // la sélection après le clic → l'autre fenêtre (ou l'écran entier) est posée.
+    void windowCaptureKeepsTheClickedWindow()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        CameraController* camera = cameraOf(main);
+        QVERIFY(camera);
+        camera->setCaptureSource([] { return fakeScreen(); });
+        const QRect screen = QGuiApplication::primaryScreen()->geometry();
+        const QPoint origin = screen.topLeft();
+        camera->setWindowSource([origin] {
+            return std::vector<QRect>{QRect(origin + QPoint(50, 60), QSize(300, 200)),
+                                      QRect(origin + QPoint(400, 300), QSize(250, 150))};
+        });
+        QVERIFY(openCapture(main, camera, QStringLiteral("tool.camera-window")));
+        const QRectF chosen(50, 60, 300, 200);
+        camera->hover(QPointF(100, 100));
+        camera->press(QPointF(100, 100));
+        camera->release(QPointF(100, 100));
+        QCOMPARE(camera->selection(), chosen);
+        camera->hover(QPointF(450, 350)); // l'autre fenêtre
+        QCOMPARE(camera->selection(), chosen);
+        camera->hover(QPointF(screen.width() - 5, screen.height() - 5)); // hors de toute fenêtre
+        QCOMPARE(camera->selection(), chosen);
+        QVERIFY(camera->deliver(CameraController::Clipboard));
+        QCOMPARE(QGuiApplication::clipboard()->image().size(), QSize(300, 200));
+    }
+
     // Liste des fenêtres du bureau (Windows) : une fenêtre native de test y figure, à sa place. Les fenêtres
     // Qt hors écran n'ont pas de fenêtre native : la fenêtre de test est créée par Windows, sans cadre,
     // invisible à l'œil (calque d'opacité nulle), en pixels physiques ; hors écran, l'écran de Qt a un
@@ -532,23 +628,49 @@ private slots:
     void topLevelWindowsListsOurWindow()
     {
 #ifdef _WIN32
+        // Exclues : une fenêtre transparente aux clics (WS_EX_TRANSPARENT : surcouche d'un outil
+        // d'enregistrement, d'un pilote), qui masquerait toutes les autres dans la capture d'une fenêtre, et
+        // une fenêtre masquée par le compositeur (DWMWA_CLOAK). Mutants : l'un ou l'autre filtre retiré.
         const QRect expected(123, 145, 234, 156);
+        const QRect clickThrough(321, 247, 211, 133);
+        const QRect cloaked(517, 389, 187, 121);
         const DPI_AWARENESS_CONTEXT previous =
             SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-        HWND window =
-            CreateWindowExW(WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, L"STATIC", L"", WS_POPUP,
-                            expected.x(), expected.y(), expected.width(), expected.height(), nullptr, nullptr,
-                            GetModuleHandleW(nullptr), nullptr);
+        const auto create = [](const QRect& r, DWORD extra) {
+            return CreateWindowExW(WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | extra, L"STATIC",
+                                   L"", WS_POPUP, r.x(), r.y(), r.width(), r.height(), nullptr, nullptr,
+                                   GetModuleHandleW(nullptr), nullptr);
+        };
+        HWND window = create(expected, 0);
+        HWND transparent = create(clickThrough, WS_EX_TRANSPARENT);
+        HWND hidden = create(cloaked, 0);
         if (previous) {
             SetThreadDpiAwarenessContext(previous);
         }
-        QVERIFY(window);
-        SetLayeredWindowAttributes(window, 0, 0, LWA_ALPHA);
-        ShowWindow(window, SW_SHOWNOACTIVATE);
-        const std::vector<QRect> listed = actcraft::features::topLevelWindows();
-        DestroyWindow(window);
-        QVERIFY2(std::find(listed.begin(), listed.end(), expected) != listed.end(),
-                 qPrintable(QStringLiteral("%1 fenêtres listées").arg(listed.size())));
+        std::vector<QRect> listed;
+        bool cloakSet = false;
+        if (window && transparent && hidden) {
+            const BOOL cloak = TRUE;
+            cloakSet = SUCCEEDED(DwmSetWindowAttribute(hidden, DWMWA_CLOAK, &cloak, sizeof(cloak)));
+            for (HWND each : {window, transparent, hidden}) {
+                SetLayeredWindowAttributes(each, 0, 0, LWA_ALPHA);
+                ShowWindow(each, SW_SHOWNOACTIVATE);
+            }
+            listed = actcraft::features::topLevelWindows();
+        }
+        for (HWND each : {window, transparent, hidden}) {
+            if (each) {
+                DestroyWindow(each);
+            }
+        }
+        QVERIFY(window && transparent && hidden);
+        QVERIFY(cloakSet);
+        const auto listedHas = [&listed](const QRect& r) {
+            return std::find(listed.begin(), listed.end(), r) != listed.end();
+        };
+        QVERIFY2(listedHas(expected), qPrintable(QStringLiteral("%1 fenêtres listées").arg(listed.size())));
+        QVERIFY2(!listedHas(clickThrough), "fenêtre transparente aux clics listée");
+        QVERIFY2(!listedHas(cloaked), "fenêtre masquée par le compositeur listée");
 #else
         QVERIFY(actcraft::features::topLevelWindows().empty());
 #endif
