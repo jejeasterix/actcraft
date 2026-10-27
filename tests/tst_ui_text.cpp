@@ -6,11 +6,14 @@
 #include <actcraft/ui/pagescontroller.h>
 #include <actcraft/ui/textediting.h>
 
+#include <QClipboard>
 #include <QColor>
 #include <QFile>
+#include <QGuiApplication>
 #include <QImage>
 #include <QList>
 #include <QMetaType>
+#include <QMimeData>
 #include <QObject>
 #include <QPainter>
 #include <QPointF>
@@ -202,6 +205,30 @@ private slots:
     // htmlLoadsNoExternalResource), mêmes variantes : rien n'est lu ni dessiné, même à la densité 2, et le
     // gestionnaire d'images ne demande aucune ressource. Amendé : chaque demande reçoit une réponse vide mais
     // valide, comme au peintre ; l'ancienne garde répondait nul (allNull), et Qt lisait alors le fichier.
+    void pasteIsPlainTextInTheEditor()
+    {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(
+            "import QtQuick\nTextEdit { textFormat: TextEdit.PlainText; width: 400; height: 200 }", QUrl());
+        const std::unique_ptr<QObject> edit(component.create());
+        QVERIFY(edit);
+        auto* quick = edit->property("textDocument").value<QQuickTextDocument*>();
+        QVERIFY(quick);
+        QTextDocument* document = quick->textDocument();
+        auto* mime = new QMimeData;
+        mime->setHtml(QStringLiteral("<p>collé</p><img src=\"file://hote/partage/x.png\"><a "
+                                     "href=\"http://exemple.invalid/\">lien</a>"));
+        mime->setText(QStringLiteral("collé"));
+        QGuiApplication::clipboard()->setMimeData(mime);
+        QVERIFY(QMetaObject::invokeMethod(edit.get(), "paste"));
+        QCOMPARE(document->toPlainText(), QStringLiteral("collé"));
+        const QString html = document->toHtml();
+        QVERIFY(!html.contains(QLatin1String("<img")));
+        QVERIFY(!html.contains(QLatin1String("hote/")));
+        QVERIFY(!html.contains(QLatin1String("exemple.invalid")));
+    }
+
     void editingLoadsNoExternalResource()
     {
         QTemporaryDir dir;
@@ -445,6 +472,36 @@ private slots:
         h.editing.commit();
         QCOMPARE(h.cacheSpy.inserts, 1);
         QVERIFY(!h.controller.isLifting());
+    }
+
+    // fixedWidth (L4-T23) : l'éditeur QML ne replie le texte qu'à une largeur imposée. Un texte neuf n'en a
+    // pas : le cadre suit idealWidth, sans passage à la ligne (sinon idealWidth s'effondre sur un document
+    // replié, le cadre aussi, et le texte devient une colonne d'une lettre).
+    void fixedWidthOnlyWhenImposed()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({100, 100}, false));
+        QVERIFY(!h.editing.hasFixedWidth());
+        for (int i = 0; i < 40; ++i) {
+            h.typeChar(QLatin1Char('m'));
+        }
+        QVERIFY(!h.editing.hasFixedWidth());
+        QCOMPARE(h.document()->blockCount(), 1);
+        QVERIFY(h.editing.frame().width() >= h.document()->idealWidth());
+        QVERIFY(h.editing.frame().width() > 100); // quarante lettres : bien plus large qu'une colonne
+        // Poignée d'extension : la largeur est imposée, le cadre la prend.
+        h.editing.setFrameWidth(60);
+        QVERIFY(h.editing.hasFixedWidth());
+        QCOMPARE(h.editing.frame().width(), 60.0);
+        h.editing.commit();
+        QVERIFY(!h.editing.hasFixedWidth());
+        // Texte existant : sa largeur est celle de son emprise.
+        h.addText(QStringLiteral("un"), {300, 300, 120, 30});
+        QVERIFY(h.editing.beginAt({310, 310}, false));
+        QVERIFY(h.editing.hasFixedWidth());
+        QCOMPARE(h.editing.frame().width(), 120.0);
+        h.editing.commit();
+        QVERIFY(!h.editing.hasFixedWidth());
     }
 
     void commitMakesASingleStep()
