@@ -2,7 +2,11 @@
 
 #include "presentationdocument.h"
 
+#include <actcraft/core/document.h>
+#include <actcraft/core/edits.h>
 #include <actcraft/core/equation.h>
+#include <actcraft/core/hittest.h>
+#include <actcraft/core/undo.h>
 #include <actcraft/render/equationpaint.h>
 
 #include <QPainter>
@@ -13,6 +17,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <optional>
 #include <utility>
 
@@ -36,6 +41,46 @@ void markWhole(core::EquationNode& root)
     }
     root.attributes.emplace_back("class", "actcraft-cursor");
 }
+
+// Remplace un objet de la page sous son identifiant, au même rang (core::ReplaceObjectsCommand tire des
+// identifiants neufs et ignore celui de l'ajout : elle ne convient pas à la réédition). Changes : un
+// ObjectChanged, zone = emprise avant ∪ emprise après. Objet absent : rien ne change.
+class ReplaceInPlace final : public core::UndoCommand
+{
+public:
+    ReplaceInPlace(std::size_t page, core::PageObject after) : m_page(page), m_after(std::move(after)) {}
+    void redo(core::Document& document, core::Changes& changes) override
+    {
+        core::Page& page = document.page(m_page);
+        if (!m_applied) {
+            m_index = core::indexOf(page, m_after.common.id);
+            if (m_index >= page.objects.size()) {
+                return;
+            }
+            m_before = page.objects[m_index];
+            m_applied = true;
+        }
+        page.objects[m_index] = m_after;
+        changes.push_back(
+            core::Change{core::Change::Kind::ObjectChanged, m_page, m_after.common.id,
+                         core::unitedRect(core::boundsOnPage(m_before), core::boundsOnPage(m_after))});
+    }
+    void undo(core::Document& document, core::Changes& changes) override
+    {
+        core::Page& page = document.page(m_page);
+        page.objects[m_index] = m_before;
+        changes.push_back(
+            core::Change{core::Change::Kind::ObjectChanged, m_page, m_before.common.id,
+                         core::unitedRect(core::boundsOnPage(m_before), core::boundsOnPage(m_after))});
+    }
+
+private:
+    std::size_t m_page;
+    core::PageObject m_after;
+    core::PageObject m_before;
+    std::size_t m_index = 0;
+    bool m_applied = false;
+};
 
 } // namespace
 
@@ -67,6 +112,11 @@ QSizeF EquationController::editorSize() const
 QString EquationController::message() const
 {
     return m_message;
+}
+
+quint64 EquationController::editingId() const noexcept
+{
+    return m_editId;
 }
 
 QVariantList EquationController::palettes()
@@ -145,7 +195,48 @@ QSizeF EquationController::naturalSize(const std::string& mathml, double pointSi
 void EquationController::open()
 {
     m_editor.clear();
+    m_editId = 0;
+    m_pointSize = kEquationPoints;
+    m_baseline.reset();
     edited();
+}
+
+bool EquationController::edit(quint64 id)
+{
+    if (m_document.isNull() || id == 0) {
+        return false;
+    }
+    DocumentInsertions insertions(*m_document);
+    const core::Page* page = insertions.shownPage();
+    if (!page) {
+        return false;
+    }
+    const std::size_t at = core::indexOf(*page, id);
+    if (at >= page->objects.size()) {
+        return false;
+    }
+    const auto* equation = std::get_if<core::Equation>(&core::body(page->objects[at]));
+    if (!equation) {
+        return false;
+    }
+    QString error;
+    if (!m_editor.load(equation->mathml, error)) {
+        return false;
+    }
+    // Le curseur d'une équation lue est sur sa première case : la saisie irait après le premier jeton. En
+    // réédition il va à la dernière case (le modèle d'édition n'a pas de position avant le premier jeton).
+    for (int guard = 0; guard < 10000; ++guard) {
+        const std::vector<int> before = m_editor.cursorPath();
+        m_editor.moveRight();
+        if (m_editor.cursorPath() == before) {
+            break;
+        }
+    }
+    m_editId = id;
+    m_pointSize = equation->pointSize > 0 ? equation->pointSize : kEquationPoints;
+    m_baseline = m_editor.documentMathml();
+    edited();
+    return true;
 }
 
 bool EquationController::insertTemplate(const QString& id)
@@ -204,6 +295,9 @@ bool EquationController::accept(QPointF pageCentre)
     if (m_document.isNull()) {
         return false;
     }
+    if (m_editId != 0) {
+        return acceptEdit(*written);
+    }
     DocumentInsertions insertions(*m_document);
     const core::Page* page = insertions.shownPage();
     if (!page) {
@@ -233,9 +327,37 @@ bool EquationController::accept(QPointF pageCentre)
     return true;
 }
 
+bool EquationController::acceptEdit(const std::string& written)
+{
+    DocumentInsertions insertions(*m_document);
+    const core::Page* page = insertions.shownPage();
+    const std::size_t at = page ? core::indexOf(*page, m_editId) : 0;
+    if (!page || at >= page->objects.size() || !std::get_if<core::Equation>(&core::body(page->objects[at]))) {
+        setMessage(tr("L'équation n'est plus sur la page affichée : rien n'a été modifié."));
+        return false;
+    }
+    if (m_baseline && *m_baseline == written) {
+        setMessage({}); // rien de modifié : le document garde les octets d'origine
+        return true;
+    }
+    core::PageObject object = page->objects[at];
+    auto& equation = std::get<core::Equation>(core::body(object));
+    const QSizeF size = naturalSize(written, equation.pointSize > 0 ? equation.pointSize : kEquationPoints);
+    if (!size.isEmpty()) {
+        const double cx = equation.bounds.x + equation.bounds.width / 2;
+        const double cy = equation.bounds.y + equation.bounds.height / 2;
+        equation.bounds =
+            core::RectF{cx - size.width() / 2, cy - size.height() / 2, size.width(), size.height()};
+    }
+    equation.mathml = written;
+    m_document->execute(std::make_unique<ReplaceInPlace>(insertions.shownIndex(), std::move(object)));
+    setMessage({});
+    return true;
+}
+
 void EquationController::edited()
 {
-    m_editorSize = naturalSize(m_editor.editorMathml(), kEquationPoints);
+    m_editorSize = naturalSize(m_editor.editorMathml(), m_pointSize);
     setMessage({});
     emit equationChanged();
 }

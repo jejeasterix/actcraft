@@ -75,6 +75,14 @@ FloatingPanel {
             root.close()
     }
 
+    // Réédition d'une équation de la page (commande equation.edit, argument : son identifiant).
+    function editEquation(id) {
+        if (!equationController.edit(Number(id)))
+            return
+        root.visible = true
+        root.forceActiveFocus()
+    }
+
     function openEditor() {
         equationController.open()
         root.visible = true
@@ -229,8 +237,8 @@ FloatingPanel {
                                                        (previewArea.height - 2 * Theme.espace2) / natural.height)
                                             : 1
                 anchors.centerIn: parent
-                width: Math.max(1, natural.width * fit)
-                height: Math.max(1, natural.height * fit)
+                width: natural.width > 0 ? Math.max(1, natural.width * fit) : 40 // équation sans dessin : une zone montrée
+                height: natural.height > 0 ? Math.max(1, natural.height * fit) : 24
                 mathml: equationController.editorMathml
             }
 
@@ -303,7 +311,7 @@ FloatingPanel {
                 objectName: "equationOkButton"
                 width: (parent.width - parent.spacing) / 2
                 height: 36
-                text: qsTr("Insérer")
+                text: equationController.editingId !== 0 ? qsTr("OK") : qsTr("Insérer")
                 enabled: root.documentController !== null
                 focusPolicy: Qt.NoFocus
                 onClicked: root.accept()
@@ -325,6 +333,9 @@ FloatingPanel {
         }
         root.commands.setHandler("insert.equation", function () {
             root.openEditor()
+        })
+        root.commands.setHandler("equation.edit", function (id) {
+            root.editEquation(id)
         })
     }
 
