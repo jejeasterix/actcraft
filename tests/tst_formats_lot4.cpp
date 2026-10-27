@@ -9,6 +9,7 @@
 #include <actcraft/core/pageedits.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/formats/flipchart.h>
+#include <actcraft/formats/nativefile.h>
 #include <actcraft/formats/nativejson.h>
 
 #include <QJsonArray>
@@ -390,6 +391,16 @@ private slots:
         QCOMPARE(z.frameHeight, 600.0);
         QCOMPARE(core::fingerprint(back.document), core::fingerprint(d));
         QVERIFY(!firstPage(formats::documentToJson(plain())).contains(u"zones"_s));
+        // Par l'archive .actcraft entière (document.json dans le zip) : mêmes zones, même empreinte.
+        QString error;
+        const QByteArray archive = formats::encodeActcraft(d, {}, &error);
+        QVERIFY2(!archive.isEmpty(), qPrintable(error));
+        const formats::DecodeResult opened = formats::decodeActcraft(archive);
+        QVERIFY2(opened.ok && opened.warnings.isEmpty(),
+                 qPrintable(opened.error + opened.warnings.join(u'\n')));
+        QCOMPARE(opened.document.page(0).zones.horizontal, 2);
+        QCOMPARE(opened.document.page(0).zones.frameHeight, 600.0);
+        QCOMPARE(core::fingerprint(opened.document), core::fingerprint(d));
 
         QJsonObject page = firstPage(root);
         page.insert(u"zones"_s, QJsonObject{{u"horizontal"_s, 99},
