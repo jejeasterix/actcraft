@@ -6,11 +6,14 @@
 #include <actcraft/ui/pagescontroller.h>
 #include <actcraft/ui/textediting.h>
 
+#include <QClipboard>
 #include <QColor>
 #include <QFile>
+#include <QGuiApplication>
 #include <QImage>
 #include <QList>
 #include <QMetaType>
+#include <QMimeData>
 #include <QObject>
 #include <QPainter>
 #include <QPointF>
@@ -202,6 +205,30 @@ private slots:
     // htmlLoadsNoExternalResource), mêmes variantes : rien n'est lu ni dessiné, même à la densité 2, et le
     // gestionnaire d'images ne demande aucune ressource. Amendé : chaque demande reçoit une réponse vide mais
     // valide, comme au peintre ; l'ancienne garde répondait nul (allNull), et Qt lisait alors le fichier.
+    void pasteIsPlainTextInTheEditor()
+    {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(
+            "import QtQuick\nTextEdit { textFormat: TextEdit.PlainText; width: 400; height: 200 }", QUrl());
+        const std::unique_ptr<QObject> edit(component.create());
+        QVERIFY(edit);
+        auto* quick = edit->property("textDocument").value<QQuickTextDocument*>();
+        QVERIFY(quick);
+        QTextDocument* document = quick->textDocument();
+        auto* mime = new QMimeData;
+        mime->setHtml(QStringLiteral("<p>collé</p><img src=\"file://hote/partage/x.png\"><a "
+                                     "href=\"http://exemple.invalid/\">lien</a>"));
+        mime->setText(QStringLiteral("collé"));
+        QGuiApplication::clipboard()->setMimeData(mime);
+        QVERIFY(QMetaObject::invokeMethod(edit.get(), "paste"));
+        QCOMPARE(document->toPlainText(), QStringLiteral("collé"));
+        const QString html = document->toHtml();
+        QVERIFY(!html.contains(QLatin1String("<img")));
+        QVERIFY(!html.contains(QLatin1String("hote/")));
+        QVERIFY(!html.contains(QLatin1String("exemple.invalid")));
+    }
+
     void editingLoadsNoExternalResource()
     {
         QTemporaryDir dir;
