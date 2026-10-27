@@ -718,8 +718,11 @@ QJsonObject objectJson(const PageObject& object)
         }
         // L4-C4 : l'identifiant courant (neuf après un collage, withFreshIds), jamais celui du JSON
         // d'origine. Les références que ce JSON ferait à d'autres objets ne sont pas réécrites : on ne les
-        // connaît pas.
-        kept.insert(u"id"_s, idValue(object.common.id));
+        // connaît pas. Un identifiant nul (« id » absent ou illisible, readId) n'est pas écrit : l'objet
+        // garde les octets lus ; après withFreshIds, l'identifiant n'est jamais nul.
+        if (object.common.id != 0) {
+            kept.insert(u"id"_s, idValue(object.common.id));
+        }
         return kept;
     }
     QJsonObject j;
