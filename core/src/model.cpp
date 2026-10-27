@@ -477,8 +477,8 @@ std::uint64_t fingerprint(const Page& page) noexcept
     if (!isDefault(zones)) {
         const auto& [horizontal, vertical, frameWidth, frameHeight] = zones;
         h.byte(0xA6);
-        h.u32(static_cast<std::uint32_t>(horizontal));
-        h.u32(static_cast<std::uint32_t>(vertical));
+        h.i32(horizontal);
+        h.i32(vertical);
         h.f64(frameWidth);
         h.f64(frameHeight);
     }
