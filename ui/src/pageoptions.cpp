@@ -242,10 +242,9 @@ QVariantMap PageOptions::background() const
     const core::Fill& fill = background.fill;
     QVariantMap map;
     // « other » : un fond que la boîte n'offre pas (aucun, motif) ; l'image reste dans « image ».
-    map.insert(key("kind"),
-               fill.kind == core::FillKind::Gradient ? key("gradient")
-               : fill.kind == core::FillKind::Solid  ? key("color")
-                                                     : key("other"));
+    map.insert(key("kind"), fill.kind == core::FillKind::Gradient ? key("gradient")
+                            : fill.kind == core::FillKind::Solid  ? key("color")
+                                                                  : key("other"));
     map.insert(key("color"), QColor::fromRgba(fill.color));
     map.insert(key("color2"), QColor::fromRgba(fill.color2));
     map.insert(key("gradient"), formats::gradientKindName(fill.gradient));

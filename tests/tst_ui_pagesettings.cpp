@@ -969,6 +969,7 @@ private slots:
     void focusPageKeepsASelectionContainingIt()
     {
         Rig rig;
+        rig.controller.showPage(1);
         rig.controller.nextPage(); // trois pages, affichée : 2
         ui::PagesController pages;
         pages.setDocumentController(&rig.controller);
