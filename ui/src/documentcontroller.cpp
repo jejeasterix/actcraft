@@ -2,6 +2,7 @@
 #include <actcraft/core/generator.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/pagecache.h>
+#include <actcraft/core/pagezones.h>
 #include <actcraft/formats/urlio.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documentio.h>
@@ -540,6 +541,37 @@ void DocumentController::newDocument(double width, double height)
 {
     replaceDocument(core::Document(width, height), QUrl(), untitled());
     // L'outil n'a pas déposé à pageAboutToChange : les copies de l'ancien document sont oubliées.
+    forgetStaleLift();
+}
+
+void DocumentController::newDocumentWithFrames(double frameWidth, double frameHeight, int across, int down)
+{
+    constexpr double kMaxSide = 8000;
+    core::PageZones zones = core::clampZones(
+        {.horizontal = across, .vertical = down, .frameWidth = frameWidth, .frameHeight = frameHeight});
+    if (zones.horizontal <= 0 && zones.vertical <= 0) {
+        newDocument(frameWidth, frameHeight); // sans cadre : celui du lot 1, sans zones
+        return;
+    }
+    if (zones.frameWidth <= 0) {
+        zones.frameWidth = core::kMinFrameSide; // taille non donnée : le plus petit cadre
+    }
+    if (zones.frameHeight <= 0) {
+        zones.frameHeight = core::kMinFrameSide;
+    }
+    // Chaque côté tient en 8000 px : le nombre de cadres est ramené au plus grand qui tient (au moins un).
+    const auto fit = [](std::int32_t count, double side) {
+        return count <= 0 ? count
+                          : std::clamp(count, std::int32_t{1},
+                                       std::max(std::int32_t{1}, static_cast<std::int32_t>(kMaxSide / side)));
+    };
+    zones.horizontal = fit(zones.horizontal, zones.frameWidth);
+    zones.vertical = fit(zones.vertical, zones.frameHeight);
+    const double width = std::min(kMaxSide, zones.frameWidth * std::max(1, zones.horizontal));
+    const double height = std::min(kMaxSide, zones.frameHeight * std::max(1, zones.vertical));
+    core::Document document(width, height);
+    document.page(0).zones = zones;
+    replaceDocument(std::move(document), QUrl(), untitled());
     forgetStaleLift();
 }
 

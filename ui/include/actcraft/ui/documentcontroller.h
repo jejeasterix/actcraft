@@ -173,6 +173,12 @@ public:
     int addChangeObserver(ChangeObserver observer); // jeton > 0
     void removeChangeObserver(int token);
 
+    // L4-C1 (D16) : ajout en fin.
+    // Paperboard vierge « Sans titre » dont la taille se donne par cadre : page de `frameWidth` x `across`
+    // sur `frameHeight` x `down` (au moins un cadre par sens, chaque côté borné à 8000). Un cadre fait au
+    // moins kMinFrameSide (core::clampZones). Aucun nombre de cadres : le paperboard de newDocument.
+    Q_INVOKABLE void newDocumentWithFrames(double frameWidth, double frameHeight, int across, int down);
+
 signals:
     void fixedPageChanged();
     // Juste avant un changement de page affichée demandé (page suivante ou précédente, ajout compris,

@@ -9,10 +9,12 @@
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documentio.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/toolhost.h>
 
 #include <QFile>
 #include <QImage>
 #include <QJSValue>
+#include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
 #include <QQuickItem>
@@ -21,6 +23,7 @@
 #include <QSemaphore>
 #include <QSignalSpy>
 #include <QStringList>
+#include <QTabletEvent>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QThreadPool>
@@ -450,6 +453,108 @@ private slots:
         QVERIFY(
             QMetaObject::invokeMethod(sizeDialog, "acceptSize", Q_ARG(QVariant, 640), Q_ARG(QVariant, 480)));
         QTRY_COMPARE(doc->pageSize(), QSizeF(640, 480));
+    }
+
+    void customSizeTakesFrames() // L4-C1 (D16)
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QVERIFY(sizeDialog);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(sizeDialog, "acceptFramedSize", Q_ARG(QVariant, 400),
+                                          Q_ARG(QVariant, 300), Q_ARG(QVariant, 2), Q_ARG(QVariant, 3)));
+        // Amendement 5 (L4-O2) : un cadre de 400 x 300 devient 500 x 500 (H4-20) ; page = 2 x 3 cadres.
+        QCOMPARE(namedObject(s, "pageWidthBox")->property("value").toInt(), 500);
+        QCOMPARE(namedObject(s, "pageHeightBox")->property("value").toInt(), 500);
+        QTRY_COMPARE(doc->pageSize(), QSizeF(1000, 1500));
+        QCOMPARE(doc->document().page(0).zones.horizontal, 2);
+        QCOMPARE(doc->document().page(0).zones.vertical, 3);
+        QCOMPARE(doc->document().page(0).zones.frameWidth, 500.0); // D11 : taille d'un cadre stockée
+        QCOMPARE(doc->document().page(0).zones.frameHeight, 500.0);
+        QVERIFY(!doc->canUndo());
+        QVERIFY(!doc->isModified());
+        QVERIFY(
+            QMetaObject::invokeMethod(sizeDialog, "acceptSize", Q_ARG(QVariant, 640), Q_ARG(QVariant, 480)));
+        QTRY_COMPARE(doc->pageSize(), QSizeF(640, 480)); // sans cadre : aucune zone, minimum du lot 1 (200)
+        QCOMPARE(doc->document().page(0).zones.frameWidth, 0.0);
+        QCOMPARE(doc->document().page(0).zones.horizontal, 0);
+        doc->newDocumentWithFrames(4000, 300, 3,
+                                   0); // cadre de 4000 x 500 (H4-20) ; 3 x 4000 dépasse 8000 : 2 cadres
+        QCOMPARE(doc->pageSize(), QSizeF(8000, 500));
+        QCOMPARE(doc->document().page(0).zones.horizontal, 2);
+    }
+
+    // « Valider » sans rien changer : le paperboard du lot 1, sans zones, comme newDocument.
+    void validatingTheDefaultsMakesNoFrames()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QVERIFY(sizeDialog);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(sizeDialog, "accept"));
+        QTRY_VERIFY(!sizeDialog->property("visible").toBool());
+        QCOMPARE(doc->pageSize(), QSizeF(1024, 768));
+        QVERIFY(core::isDefault(doc->document().page(0).zones));
+        QVERIFY(!doc->canUndo());
+        QVERIFY(!doc->isModified());
+        // Une valeur lue est rendue telle quelle ; négatifs et excès sont ramenés, sans rien bloquer.
+        doc->newDocumentWithFrames(1000, 800, -3, -1);
+        QCOMPARE(doc->pageSize(), QSizeF(1000, 800));
+        QVERIFY(core::isDefault(doc->document().page(0).zones));
+        doc->newDocumentWithFrames(300, 200, 0, 2); // un seul sens en cadres : cadres de 500 x 500
+        QCOMPARE(doc->pageSize(), QSizeF(500, 1000));
+        QCOMPARE(doc->document().page(0).zones.horizontal, 0);
+        QCOMPARE(doc->document().page(0).zones.vertical, 2);
+        doc->newDocumentWithFrames(500, 500, 99, 99); // 40 x 53 au plus, puis 8000 par côté : 16 x 16
+        QCOMPARE(doc->pageSize(), QSizeF(8000, 8000));
+        QCOMPARE(doc->document().page(0).zones.horizontal, 16);
+        QCOMPARE(doc->document().page(0).zones.vertical, 16);
+    }
+
+    // B1 : boîte ouverte, le stylet posé sur un de ses champs ne pose pas d'encre dessous.
+    void sizeDialogBlocksTheStylus()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QVERIFY(sizeDialog);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QTRY_VERIFY(s.view->inputBlocked());
+        auto* box = qobject_cast<QQuickItem*>(namedObject(s, "pageFramesAcrossBox"));
+        QVERIFY(box);
+        const QPointF at = box->mapToScene(QPointF(box->width() / 2, box->height() / 2));
+        QPointingDevice stylus(QStringLiteral("tst-taille-stylet"), 5162, QInputDevice::DeviceType::Stylus,
+                               QPointingDevice::PointerType::Pen,
+                               QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 0);
+        const auto stroke = [&] {
+            const auto send = [&](QEvent::Type type, QPointF scene, Qt::MouseButtons buttons) {
+                QTabletEvent event(type, &stylus, scene, s.window->mapToGlobal(scene), buttons ? 0.5 : 0.0, 0,
+                                   0, 0, 0, 0, Qt::NoModifier, Qt::LeftButton, buttons);
+                QCoreApplication::sendEvent(s.window, &event);
+            };
+            send(QEvent::TabletPress, at, Qt::LeftButton);
+            for (int i = 1; i <= 3; ++i) {
+                send(QEvent::TabletMove, at + QPointF(i * 6, 0), Qt::LeftButton);
+            }
+            send(QEvent::TabletRelease, at + QPointF(18, 0), Qt::NoButton);
+        };
+        s.view->tools()->activate(QStringLiteral("pen"));
+        const std::size_t before = doc->document().page(0).objects.size();
+        stroke();
+        QCOMPARE(doc->document().page(0).objects.size(), before);
+        // Témoin : boîte fermée, le même geste pose bien de l'encre.
+        QVERIFY(QMetaObject::invokeMethod(sizeDialog, "close"));
+        QTRY_VERIFY(!s.view->inputBlocked());
+        stroke();
+        QTRY_VERIFY(doc->document().page(0).objects.size() > before);
     }
 
     void bannerShowsReadingWarnings()
