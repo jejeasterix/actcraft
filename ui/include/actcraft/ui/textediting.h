@@ -37,8 +37,8 @@ class TextEditing : public QObject
     Q_PROPERTY(bool active READ isActive NOTIFY activeChanged)
     Q_PROPERTY(bool vertical READ isVertical NOTIFY activeChanged)
     Q_PROPERTY(QRectF frame READ frame NOTIFY frameChanged) // coordonnées de page
-    // Largeur imposée (texte existant, poignée d'extension) : le TextEdit y passe à la ligne ; sinon il ne le fait
-    // pas (le cadre mesure alors idealWidth, qui s'effondrerait sur un document replié).
+    // Largeur imposée (texte existant, poignée d'extension) : le TextEdit y passe à la ligne ; sinon non
+    // (le cadre mesure alors idealWidth, qui s'effondrerait sur un document replié).
     Q_PROPERTY(bool fixedWidth READ hasFixedWidth NOTIFY frameChanged)
     Q_PROPERTY(QString plainText READ plainText NOTIFY formatChanged)
     Q_PROPERTY(QString fontFamily READ fontFamily NOTIFY formatChanged)
