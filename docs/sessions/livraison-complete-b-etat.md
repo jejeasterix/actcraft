@@ -134,6 +134,7 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 
 ## Lot 3 livré (2026-10-21)
 La PR jejeasterix/actcraft#6 (lots 10 et 3, 0.4.0) est mergée dans main (70c8601) ; feat/livraison-complete y est contenue. Condition « livraison du lot 3 » de L7-T33 remplie. Le Pilote a demandé un rebase sur main : refusé (237 commits avec merges --no-ff, branche que A fusionne) ; l'intégration se fait par le merge de L7-T33, après L7-T32, ou plus tôt si A le demande.
+La PR jejeasterix/actcraft#7 (lot B11, CI à la demande) est mergée dans main (a50d9e6, signalé par le Pilote le 2026-10-27) : la cible du merge de L7-T33 est désormais main @ a50d9e6 ou plus récent, par un merge, sans rebase.
 
 ## À faire en L7-T34 (après la fusion du lot 3)
 - Survol au stylet des outils de maths (L7-T12) : prouvé hors écran seulement par le rejeu en souris de Qt (`QTabletEvent` sans bouton n'atteint pas les `HoverHandler`) → à voir sur un vrai stylet dans les captures à l'écran (DA8) de la clôture ; et la mine du compas lit `PageView::inkColor` : à revoir quand le lot 3 remplira `ToolHost::color`.
