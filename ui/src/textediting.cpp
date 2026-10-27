@@ -15,6 +15,10 @@
 #include <QSizeF>
 #include <QStringList>
 #include <QTextBlock>
+#include <QTextBoundaryFinder>
+#include <QTextCursor>
+#include <QTextOption>
+#include <QFontMetricsF>
 #include <QTextDocument>
 #include <QTextFragment>
 #include <QTextFrame>
@@ -149,6 +153,76 @@ void cleanFrames(QTextFrame* frame)
     for (QTextFrame* child : children) {
         cleanFrames(child);
     }
+}
+
+// Texte de haut en bas (H4-3, D9) : colonne d'un caractère. Même règle que le peintre (render/src/pagepainter.cpp,
+// layOutColumn) : largeur = plus grande avance d'un graphème, chacun à sa police ; le peintre est la référence.
+double widestAdvance(const QTextDocument& document)
+{
+    const QFont base = document.defaultFont();
+    const QPaintDevice* device = document.documentLayout()->paintDevice();
+    double widest = 0;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            if (!fragment.isValid()) {
+                continue;
+            }
+            const QFontMetricsF metrics(fragment.charFormat().font().resolve(base), device);
+            const QString text = fragment.text();
+            QTextBoundaryFinder graphemes(QTextBoundaryFinder::Grapheme, text);
+            qsizetype start = 0;
+            for (qsizetype end = graphemes.toNextBoundary(); end > start; end = graphemes.toNextBoundary()) {
+                widest = std::max(widest, metrics.horizontalAdvance(text.mid(start, end - start)));
+                start = end;
+            }
+        }
+    }
+    return widest;
+}
+
+// Un séparateur de ligne entre deux graphèmes voisins : une lettre par ligne (comme le peintre).
+void separateLetters(QTextDocument& document)
+{
+    QTextCursor cursor(&document);
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        const QString text = block.text();
+        QTextBoundaryFinder graphemes(QTextBoundaryFinder::Grapheme, text);
+        std::vector<qsizetype> cuts;
+        for (qsizetype end = graphemes.toNextBoundary(); end > 0 && end < text.size();
+             end = graphemes.toNextBoundary()) {
+            if (text[end - 1] != QChar::LineSeparator && text[end] != QChar::LineSeparator) {
+                cuts.push_back(end);
+            }
+        }
+        for (auto cut = cuts.rbegin(); cut != cuts.rend(); ++cut) {
+            cursor.setPosition(static_cast<int>(block.position() + *cut));
+            cursor.insertText(QString(QChar(QChar::LineSeparator)));
+        }
+    }
+}
+
+// Emprise (largeur de la colonne, hauteur des lettres empilées) d'un HTML assaini de haut en bas.
+QSizeF columnSize(QTextDocument& document)
+{
+    QTextOption option = document.defaultTextOption();
+    option.setWrapMode(QTextOption::WrapAnywhere);
+    option.setAlignment(Qt::AlignHCenter);
+    document.setDefaultTextOption(option);
+    QTextBlockFormat column;
+    column.setAlignment(Qt::AlignHCenter);
+    column.setNonBreakableLines(false);
+    column.setLeftMargin(0);
+    column.setRightMargin(0);
+    column.setTextIndent(0);
+    column.setIndent(0);
+    QTextCursor cursor(&document);
+    cursor.select(QTextCursor::Document);
+    cursor.mergeBlockFormat(column);
+    const double width = std::max(1.0, widestAdvance(document));
+    separateLetters(document);
+    document.setTextWidth(width);
+    return QSizeF(width, document.size().height());
 }
 
 } // namespace
@@ -496,6 +570,10 @@ core::RectF TextEditing::measuredBounds(const QString& safeHtml) const
 {
     AnalysisDocument measure{ResourceObserver()};
     measure.setHtml(safeHtml);
+    if (m_vertical) {
+        const QSizeF column = columnSize(measure);
+        return core::RectF{m_objectBounds.x, m_objectBounds.y, column.width(), std::ceil(column.height())};
+    }
     const qreal width = m_fixedWidth > 0 ? m_fixedWidth : std::ceil(measure.idealWidth()) + 1;
     measure.setTextWidth(width);
     return core::RectF{m_objectBounds.x, m_objectBounds.y, width, std::ceil(measure.size().height())};
@@ -732,7 +810,9 @@ void TextEditing::updateFrame()
     if (!m_active || !doc) {
         return;
     }
-    const qreal width = m_fixedWidth > 0 ? m_fixedWidth : doc->idealWidth();
+    // De haut en bas : la colonne d'un caractère, jamais une largeur imposée ni la largeur du texte à plat.
+    const qreal width = m_vertical ? std::max(1.0, widestAdvance(*doc))
+                                   : (m_fixedWidth > 0 ? m_fixedWidth : doc->idealWidth());
     const QRectF next(m_frame.topLeft(), QSizeF(width, doc->size().height()));
     if (next != m_frame) {
         m_frame = next;
@@ -742,8 +822,8 @@ void TextEditing::updateFrame()
 
 void TextEditing::setFrameWidth(qreal width)
 {
-    if (!m_active || !(width > 0)) {
-        return;
+    if (!m_active || !(width > 0) || m_vertical) {
+        return; // la colonne d'un texte de haut en bas ne s'étend pas
     }
     m_fixedWidth = width;
     m_geometryChanged = true;

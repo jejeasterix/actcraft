@@ -102,7 +102,10 @@ Item {
             // Texte brut : un collage ne fait jamais entrer de HTML (règle du chantier : jamais de texte riche
             // sans HTML assaini). La mise en forme vient de TextEditing, qui charge le HTML assaini.
             textFormat: TextEdit.PlainText
-            wrapMode: root.shown && root.editing.fixedWidth ? TextEdit.WrapAtWordBoundaryOrAnywhere : TextEdit.NoWrap
+            // De haut en bas : colonne d'un caractère, lettres centrées, repli partout.
+            horizontalAlignment: root.shown && root.editing.vertical ? TextEdit.AlignHCenter : TextEdit.AlignLeft
+            wrapMode: root.shown && root.editing.vertical ? TextEdit.WrapAnywhere
+                      : root.shown && root.editing.fixedWidth ? TextEdit.WrapAtWordBoundaryOrAnywhere : TextEdit.NoWrap
             selectByMouse: true
             persistentSelection: true // la sélection reste visible quand un bouton de la barre prend la souris
             cursorVisible: activeFocus
@@ -182,7 +185,7 @@ Item {
     Rectangle {
         id: widthHandle
         objectName: "textWidthHandle"
-        visible: root.shown
+        visible: root.shown && !root.editing.vertical // F-250 : la colonne d'un texte de haut en bas ne s'étend pas
         width: 12
         height: 28
         radius: 4
