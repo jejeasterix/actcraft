@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1793108480.0604942,
-    "ast_hash": "4d6c9961e45de863080f704dca870e83",
+    "mtime": 1793116351.4023957,
+    "ast_hash": "fc3134285a03fe595b02a9c923aed6b2",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2405,8 +2405,8 @@
     "semantic_hash": ""
   },
   "features/include/actcraft/features/screenkeyboard.h": {
-    "mtime": 1792397405.183532,
-    "ast_hash": "82765f64ac63b82c975153f4a496f702",
+    "mtime": 1793126612.8883708,
+    "ast_hash": "cc9b4a8fe1f99c93b2ea2bd45a47bdfd",
     "semantic_hash": ""
   },
   "features/src/camera.cpp": {
@@ -2530,8 +2530,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_keyboard.cpp": {
-    "mtime": 1792406200.5085564,
-    "ast_hash": "54a0264a0da6807a9be89778cd3d8ab8",
+    "mtime": 1793126612.8925169,
+    "ast_hash": "21d8cdfd119297cb42214f13e6aa8abb",
     "semantic_hash": ""
   },
   "tests/tst_ui_lot7_main.cpp": {
@@ -2762,6 +2762,26 @@
   "ui/src/equationpreviewitem.h": {
     "mtime": 1793082934.3131032,
     "ast_hash": "3cad4265851d5b39f7add0316cfe8849",
+    "semantic_hash": ""
+  },
+  "features/src/keyinjector_other.cpp": {
+    "mtime": 1793126612.89002,
+    "ast_hash": "4ae7e8deef2678e330a4ff421d1a7d5f",
+    "semantic_hash": ""
+  },
+  "features/src/keyinjector_win.cpp": {
+    "mtime": 1793126612.89002,
+    "ast_hash": "4c7b3381ad1f9cf676c47911413dbd0b",
+    "semantic_hash": ""
+  },
+  "ui/src/keyboardcontroller.cpp": {
+    "mtime": 1793126612.8925169,
+    "ast_hash": "a7a26626aad2e884cba4ce6e0a56fa19",
+    "semantic_hash": ""
+  },
+  "ui/src/keyboardcontroller.h": {
+    "mtime": 1793126612.8925169,
+    "ast_hash": "1486622e10cd47087e4450757a80d00b",
     "semantic_hash": ""
   }
 }
