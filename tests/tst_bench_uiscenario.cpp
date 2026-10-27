@@ -271,6 +271,24 @@ private slots:
         QCOMPARE(propertyText(QVariant()), QStringLiteral("<absente>"));
     }
 
+    // L4-T19 : une valeur attendue en tableau JSON s'écrit « [1,2] » (jsonText), comme propertyText d'une liste.
+    void expectArrayValueIsCompactText()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseUiScenario(QStringLiteral(R"({"format": "actcraft-scenario/1", "name": "t", "steps": [
+            {"expect": "appPages.selection", "value": [1, 2]},
+            {"expect": "appPages.selection", "value": []},
+            {"expect": "a.b", "value": [[0, 1], true]}]})")
+                                     .toUtf8(),
+                                 s, error),
+                 qPrintable(error));
+        QCOMPARE(static_cast<int>(s.steps.size()), 3);
+        QCOMPARE(s.steps.at(0).value, QStringLiteral("[1,2]"));
+        QCOMPARE(s.steps.at(1).value, QStringLiteral("[]"));
+        QCOMPARE(s.steps.at(2).value, QStringLiteral("[[0,1],true]"));
+    }
+
     // L4-T19 : la sélection de pages (QList<int>) se lit « [0,1] ».
     void integerListPropertyText()
     {
