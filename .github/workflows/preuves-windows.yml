@@ -1,0 +1,123 @@
+name: Preuves Windows
+
+# Chantier mac-autonome, lot B11 (décision 44) : lancé à la demande seulement. Build MSVC (/W4 /WX), preset au
+# choix, ctest. Sert aux tâches qui doivent prouver un comportement Windows sans poste Windows (session sur le Mac).
+# Exclus : banc de fluidité et rendu sur vrai GPU (le runner n'en a pas) ; ils restent au PC.
+# Lancement : gh workflow run preuves-windows.yml --repo jejeasterix/actcraft --ref <branche> -f preset=release [-f tests=<motif>]
+# workflow_dispatch exige ce fichier sur main, et le run prend la version du fichier dans la ref visée : la branche
+# doit contenir main fusionné.
+# Pratiques de ci.yml : actions épinglées par commit, aqtinstall épinglé, délai du job.
+# Verdict : la dernière ligne PREUVES WINDOWS du journal, horodatée en tête (GitHub recopie aussi le texte des run:,
+# d'où l'ancrage « <horodatage>Z PREUVES WINDOWS » côté lecteur) ; tout échec finit par « PREUVES WINDOWS EN ECHEC : <étape> ».
+on:
+  workflow_dispatch:
+    inputs:
+      preset:
+        description: "Preset CMake (configure, build et test)"
+        type: choice
+        options: [debug, release]
+        default: release
+      tests:
+        description: "Motif ctest -R (vide : toute la suite)"
+        type: string
+        default: ""
+
+concurrency:
+  group: preuves-windows-${{ github.ref }}-${{ inputs.preset }}-${{ inputs.tests }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  QT_VERSION: "6.12.0"
+
+jobs:
+  preuves:
+    name: Preuves Windows (${{ inputs.preset }})
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - id: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - id: python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      # Même aqtinstall que ci.yml : la 3.3.0 ne sait pas installer Qt 6.12.
+      - id: outils
+        name: Installer Ninja et aqtinstall
+        run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+
+      - id: qt
+        name: Installer Qt
+        shell: bash
+        run: |
+          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats --outputdir "$RUNNER_TEMP/Qt"
+          dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
+          echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
+          echo "${dir%/}/bin" >> "$GITHUB_PATH"
+
+      - id: msvc
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      # Les entrées passent par l'environnement, jamais dans le script : un motif ne peut rien injecter.
+      - id: configurer
+        name: Configurer
+        env:
+          PRESET: ${{ inputs.preset }}
+        run: cmake --preset $env:PRESET
+
+      - id: wx
+        name: Vérifier /W4 /WX
+        env:
+          PRESET: ${{ inputs.preset }}
+        run: |
+          $ninja = "build/$env:PRESET/build.ninja"
+          $w4 = Select-String -Path $ninja -Pattern '/W4' -SimpleMatch -Quiet
+          $wx = Select-String -Path $ninja -Pattern '/WX' -SimpleMatch -Quiet
+          if (-not ($w4 -and $wx)) { Write-Output "/W4 /WX absents de $ninja"; exit 1 }
+          Write-Output "/W4 et /WX présents dans $ninja"
+
+      - id: compiler
+        name: Compiler
+        env:
+          PRESET: ${{ inputs.preset }}
+        run: cmake --build --preset $env:PRESET
+
+      - id: tester
+        name: Tester
+        env:
+          PRESET: ${{ inputs.preset }}
+          MOTIF: ${{ inputs.tests }}
+        run: |
+          if ($env:MOTIF) { ctest --preset $env:PRESET -R $env:MOTIF } else { ctest --preset $env:PRESET }
+          if ($LASTEXITCODE -eq 0) { Write-Output 'PREUVES WINDOWS OK' } else { Write-Output 'PREUVES WINDOWS EN ECHEC'; exit 1 }
+
+      # Toujours la dernière étape : un échec de n'importe quelle étape (Compiler sous /WX compris) ou une annulation
+      # finit par un verdict. Un délai dépassé peut couper le job avant elle : le lecteur traite « code ≠ 0 sans verdict ».
+      - name: Verdict d'échec
+        if: failure() || cancelled()
+        env:
+          E_CHECKOUT: ${{ steps.checkout.outcome }}
+          E_PYTHON: ${{ steps.python.outcome }}
+          E_OUTILS: ${{ steps.outils.outcome }}
+          E_QT: ${{ steps.qt.outcome }}
+          E_MSVC: ${{ steps.msvc.outcome }}
+          E_CONFIGURER: ${{ steps.configurer.outcome }}
+          E_WX: ${{ steps.wx.outcome }}
+          E_COMPILER: ${{ steps.compiler.outcome }}
+          E_TESTER: ${{ steps.tester.outcome }}
+        run: |
+          $etapes = [ordered]@{
+            'checkout' = $env:E_CHECKOUT; 'setup-python' = $env:E_PYTHON; 'Installer Ninja et aqtinstall' = $env:E_OUTILS
+            'Installer Qt' = $env:E_QT; 'msvc-dev-cmd' = $env:E_MSVC; 'Configurer' = $env:E_CONFIGURER
+            'Vérifier /W4 /WX' = $env:E_WX; 'Compiler' = $env:E_COMPILER; 'Tester' = $env:E_TESTER
+          }
+          $etape = @($etapes.Keys | Where-Object { $etapes[$_] -eq 'failure' })[0]
+          if (-not $etape) { $etape = @($etapes.Keys | Where-Object { $etapes[$_] -eq 'cancelled' })[0] }
+          if (-not $etape) { $etape = 'run annulé' } elseif ($etapes[$etape] -eq 'cancelled') { $etape = "$etape (annulé)" }
+          Write-Output "PREUVES WINDOWS EN ECHEC : $etape"
+          exit 1
