@@ -1,6 +1,6 @@
 # État — livraison-complete-b
 
-Statut : en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
+Statut : en pause (décision de Jérôme, 2026-10-27 vers 22 h 10 ; point de reprise : section « Pause immédiate ») — en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
 Gabarit : lots (lot 7 du chantier `livraison-complete`, exécuté en parallèle du lot 3)
 Étage : 3 (phase 2 du lot 7 : reprise par la nouvelle session le 2026-10-26 ; T19, T21, T24 mergées ; suite V11 verte ; V13 : L7-T23 et L7-T25 mergées ; V14 : L7-T26 ‖ L7-T30 lancées, L7-T30 mergée ; L7-T26 mergée ; V15 : L7-T31 et L7-T27 mergées ; V16 : L7-T29 et L7-T28 lancées ; arrêt de vague du 2026-10-27 annulé, B reste sur le PC ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branche : feat/livraison-complete-b   Base : feat/livraison-complete @ 7bb551c (+ merge du plan du lot 7 bf8c930 → 2d76ba6)
@@ -9,7 +9,6 @@ Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (20
 Relectures : mac
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 29/33 tâches terminées
-Tâche : L7-T28 — caméra, essai 1 repris par un nouvel agent depuis 67474ce (build froid) — depuis 2026-10-27
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -189,6 +188,14 @@ Arrêt de vague du 2026-10-27 pour une bascule sur le Mac, annulé le même jour
 - L7-T29 (clavier) : `keyinjector_win.cpp` (SendInput) ; fenêtre réellement sans focus, y compris au déplacement ; clavier visible quand la fenêtre principale est réduite ; `keyinjector_other.cpp` et la fenêtre hors écran se prouvent sur le Mac.
 - L7-T30 et L7-T31 (mergées) : annotation du bureau à l'écran (transparence D3D11, toujours devant, passage des clics, contenu de la capture avec délai de 250 ms, fenêtre principale réduite à la palette et rendue, roue, anneaux, fenêtre « Reprendre l'annotation »).
 
+
+## Pause immédiate (2026-10-27, vers 22 h 10) — POINT DE REPRISE
+
+Nouvelle décision de Jérôme relayée mot pour mot par le Pilote : « il va etre temps de mettre actcraft en pause, n'attend pas la fin du lot ». Elle remplace la pause « après le lot 7 » ci-dessous. Arrêt fait : rejeu de L7-T28 arrêté (aucun processus restant, place `tests-2` abandonnée, reprise seule), aucun sous-agent vivant, aucune tâche de fond, rien poussé.
+
+Étape exacte de chaque tâche ouverte :
+- **L7-T28 (caméra)** : worktree `.worktrees/livraison-complete-b--L7-T28`, branche `feat/livraison-complete-b--L7-T28`, tête 9934ec8, arbre propre. Code fini, relecture Mac faite (actcraft-local-20261027195143-6b96 : 2 importants + 2 mineurs, tous corrigés par l'agent : rouge e525e50, correctif 9934ec8 ; 5 mutants rapportés tués ; agent : 158/158 TESTS OK, tst_ui_camera 19/0/0). Banc rapporté sur 4e0048b : BUDGET DEPASSE seulement sur `page` (p95 77,5 ms, connu). **Reste, dans l'ordre** : (1) rejeu par `rejeu.ps1 -Tache L7-T28 -Tests tst_ui_lot7:camera,tst_ui_lot7:presentation,tst_ui_shell` sous b-jeton (la classe caméra est dans `tst_ui_lot7.exe`, pas de `tst_ui_camera.exe`) ; (2) merge `--no-ff`, graphe, preuves dans `.tmp/outils-b/bancs/L7-T28/`, worktree retiré ; (3) `NOMS OK` sur la branche du chantier après merge (dans le worktree, NOMS EN ECHEC vient seulement de la copie ancienne de l'état, `ReplaceInPlace`) ; (4) compléter la note du coffre `04_Pieges/qml-echap-pris-par-un-raccourci-d-application.md` : remède final du cas SpinBox = filtre de touches C++ du `CameraController` sur toute la fenêtre de capture (9934ec8).
+- Ensuite : L7-T32, L7-T33 (merge de main @ a50d9e6 ou plus récent, sans rebase), L7-T34, clôture du lot (captures à l'écran, Jérôme prévenu avant), message à A.
 
 ## Pause après le lot 7 (2026-10-27, vers 22 h 05)
 
