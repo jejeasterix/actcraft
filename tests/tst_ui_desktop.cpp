@@ -9,9 +9,11 @@
 #include <actcraft/ui/pageview.h>
 
 #include <QColor>
+#include <QGuiApplication>
 #include <QImage>
 #include <QPointer>
 #include <QQuickWindow>
+#include <QScreen>
 #include <QSignalSpy>
 #include <QSurfaceFormat>
 #include <QTemporaryDir>
@@ -19,6 +21,7 @@
 #include <QtTest>
 
 #include <cstddef>
+#include <vector>
 
 namespace {
 
@@ -90,6 +93,25 @@ void strokeInDesktopWindow(DesktopController* desktop, Pointer pointer)
                                   QPointF(size.width() * 0.6, size.height() * 0.55));
 }
 
+// Trait au stylet commencé au milieu de la fenêtre d'annotation, pas encore relâché ; rend le point du relâché.
+QPointF beginStylusStroke(QQuickWindow* window)
+{
+    const QSizeF size = window->size();
+    const QPointF from(size.width() * 0.35, size.height() * 0.45);
+    const QPointF to(size.width() * 0.6, size.height() * 0.55);
+    presentationharness::sendTablet(window, QEvent::TabletPress, from);
+    for (int i = 1; i <= 8; ++i) {
+        presentationharness::sendTablet(window, QEvent::TabletMove, from + (to - from) * (i / 8.0));
+    }
+    QCoreApplication::processEvents();
+    return to;
+}
+
+std::size_t objectsOn(const DocumentController& doc, std::size_t page)
+{
+    return doc.document().page(page).objects.size();
+}
+
 // Tout le fichier dans cet espace de noms anonyme (exécutable unique : aucun nom global hors du registre).
 class TstUiDesktop : public QObject
 {
@@ -97,9 +119,9 @@ class TstUiDesktop : public QObject
 
 private slots:
     // Fenêtre créée par le contrôleur : sans cadre, toujours devant, couleur transparente, surface à canal
-    // alpha demandée AVANT sa création (format posé entre beginCreate et completeCreate). Mutant : fenêtre
-    // créée par createObject en QML (format par défaut, alphaBufferSize -1) ; ou drapeau « toujours devant »
-    // retiré.
+    // alpha demandée avant sa création native. Le format explicite (setFormat, demandé par 7b) double
+    // setColor(Qt::transparent), qui demande déjà ce canal : retirer setFormat est un mutant équivalent ; seule
+    // la vue à l'écran en D3D11 prouve la transparence. Mutant : drapeau « toujours devant » retiré.
     void annotationWindowIsTransparentAndAbove()
     {
         MainWindow main;
@@ -335,9 +357,11 @@ private slots:
     }
 
     // Chaque pointeur : le trait sur la fenêtre de bureau est versé dans le paperboard du bureau, la page
-    // principale reste inchangée ; un trait commencé sur la barre de la fenêtre (couverture de la vue) n'est
-    // pas versé et ne presse aucun bouton. Mutants : documentController de la racine (document ouvert) ;
-    // barre jamais déclarée couverture (le stylet, pris par le filtre de la vue, y trace).
+    // principale reste inchangée ; un trait commencé sur la barre de la fenêtre n'est pas versé. Le stylet est
+    // pris par le filtre de la fenêtre avant tout élément : seule la couverture déclarée par la racine l'arrête
+    // (témoin : couverture retirée, le même trait est versé). La souris et le doigt vont d'abord à la
+    // MouseArea de la barre, couverture ou non. Mutants : documentController de la racine (document ouvert) ;
+    // barre jamais déclarée couverture (M9).
     void desktopWindowTakesEveryPointer_data() { presentationharness::addPointerRows(); }
     void desktopWindowTakesEveryPointer()
     {
@@ -350,23 +374,170 @@ private slots:
         QVERIFY(open);
         QVERIFY(main.run(QStringLiteral("desktop.annotate")));
         QVERIFY(waitDesktopReady(desktop));
+        QQuickWindow* window = desktop->window();
+        DocumentController* paperboard = desktop->desktopDocument();
+        auto* view = window->findChild<actcraft::ui::PageView*>(QStringLiteral("pageView"));
+        QVERIFY(view);
         const QString openBefore = open->fingerprintText();
         const int mainObjects = main.pageObjectCount();
-        QQuickItem* toolbar =
-            presentationharness::findItem(desktop->window()->contentItem(), QStringLiteral("desktopToolbar"));
+        QQuickItem* toolbar = presentationharness::findItem(window->contentItem(), QStringLiteral("desktopToolbar"));
         QVERIFY(toolbar);
         const qreal middle = toolbar->height() / 2;
-        // Appui sur la barre, puis trait qui entre dans la page : sans couverture, le stylet le verserait.
-        presentationharness::strokeAt(desktop->window(), pointer, toolbar->mapToScene(QPointF(3, middle)),
-                                      toolbar->mapToScene(QPointF(-150, middle)));
+        const QPointF start = toolbar->mapToScene(QPointF(3, middle));
+        const QPointF end = toolbar->mapToScene(QPointF(-150, middle));
+        // L'appui est sur la vue : sans couverture, le filtre du stylet le prendrait.
+        const QRectF viewRect = view->mapRectToScene(view->boundingRect());
+        QVERIFY2(view->contains(view->mapFromScene(start)),
+                 qPrintable(QStringLiteral("appui (%1, %2) hors de la vue (%3, %4, %5 x %6), fenêtre %7 x %8")
+                                .arg(start.x())
+                                .arg(start.y())
+                                .arg(viewRect.x())
+                                .arg(viewRect.y())
+                                .arg(viewRect.width())
+                                .arg(viewRect.height())
+                                .arg(window->width())
+                                .arg(window->height())));
+        presentationharness::strokeAt(window, pointer, start, end);
         QTest::qWait(50);
-        QCOMPARE(desktop->desktopDocument()->shownObjectCount(), 0);
+        QCOMPARE(paperboard->shownObjectCount(), 0);
+        // Témoin : couverture retirée, le stylet verse le même trait ; la souris et le doigt, non.
+        const int witness = pointer == Pointer::Stylus ? 1 : 0;
+        view->removeInputCover(toolbar);
+        presentationharness::strokeAt(window, pointer, start, end);
+        QTest::qWait(50);
+        QCOMPARE(paperboard->shownObjectCount(), witness);
+        view->addInputCover(toolbar);
         QVERIFY(!desktop->passThrough());
         QVERIFY(desktop->isAnnotating());
         strokeInDesktopWindow(desktop, pointer);
-        QTRY_COMPARE(desktop->desktopDocument()->shownObjectCount(), 1);
+        QTRY_COMPARE(paperboard->shownObjectCount(), witness + 1);
         QCOMPARE(open->fingerprintText(), openBefore);
         QCOMPARE(main.pageObjectCount(), mainObjects);
+    }
+
+    // F2 : un trait en cours est versé sur sa page avant tout changement de page du paperboard du bureau (comme
+    // Main.qml pour le document ouvert : pageAboutToChange → finishStroke), par la barre comme par le
+    // paperboard lui-même. Mutant : rien n'écoute pageAboutToChange.
+    void strokeInProgressEndsBeforePageChange()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        QQuickWindow* window = desktop->window();
+        DocumentController* paperboard = desktop->desktopDocument();
+        QPointF release = beginStylusStroke(window);
+        QCOMPARE(objectsOn(*paperboard, 0), std::size_t{0}); // en cours : rien de versé
+        desktop->nextPage();
+        QCOMPARE(paperboard->currentIndex(), 1);
+        QCOMPARE(objectsOn(*paperboard, 0), std::size_t{1});
+        presentationharness::sendTablet(window, QEvent::TabletRelease, release);
+        QCoreApplication::processEvents();
+        QCOMPARE(objectsOn(*paperboard, 1), std::size_t{0});
+        QCOMPARE(objectsOn(*paperboard, 0), std::size_t{1});
+        // Retour par le paperboard (DocumentController::pageBack émet pageAboutToChange).
+        QVERIFY(waitDesktopReady(desktop));
+        release = beginStylusStroke(window);
+        paperboard->pageBack();
+        QCOMPARE(paperboard->currentIndex(), 0);
+        QCOMPARE(objectsOn(*paperboard, 1), std::size_t{1});
+        presentationharness::sendTablet(window, QEvent::TabletRelease, release);
+        QCoreApplication::processEvents();
+        QCOMPARE(objectsOn(*paperboard, 0), std::size_t{1});
+        QCOMPARE(objectsOn(*paperboard, 1), std::size_t{1});
+    }
+
+    // F2 : fermer la fenêtre d'annotation pendant un trait le verse avant de détruire la vue. Mutant : la
+    // fermeture ne termine pas le trait (perdu avec la vue).
+    void strokeInProgressEndsBeforeClose()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        DocumentController* paperboard = desktop->desktopDocument();
+        beginStylusStroke(desktop->window());
+        QCOMPARE(paperboard->shownObjectCount(), 0);
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(!desktop->isAnnotating());
+        QCOMPARE(paperboard->shownObjectCount(), 1);
+    }
+
+    // F3 : la capture ne contient aucune fenêtre d'ActCraft : nos fenêtres visibles sont masquées le temps de
+    // la saisie, puis rendues dans leur état, et l'annotation continue (le masquage n'est pas une fermeture).
+    // Mutant : saisie sans masquer.
+    void captureHidesOurWindows()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QQuickWindow* mainWindow = main.window();
+        QVERIFY(mainWindow->isVisible());
+        const Qt::WindowStates mainStates = mainWindow->windowStates();
+        QPointer<QQuickWindow> annotation;
+        int calls = 0;
+        bool mainShown = true;
+        bool annotationShown = true;
+        desktop->setCaptureSource([&] {
+            ++calls;
+            mainShown = mainWindow->isVisible();
+            annotationShown = annotation && annotation->isVisible();
+            return fakeDesktop();
+        });
+        // Hors annotation : la fenêtre principale.
+        QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
+        QCOMPARE(calls, 1);
+        QVERIFY(!mainShown);
+        QVERIFY(mainWindow->isVisible());
+        QCOMPARE(mainWindow->windowStates(), mainStates);
+        // Pendant l'annotation : les deux fenêtres.
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        annotation = desktop->window();
+        const Qt::WindowFlags flags = annotation->flags();
+        QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
+        QCOMPARE(calls, 2);
+        QVERIFY(!mainShown);
+        QVERIFY(!annotationShown);
+        QVERIFY(mainWindow->isVisible());
+        QVERIFY(annotation->isVisible());
+        QTest::qWait(50); // l'arrêt sur fermeture passe par un appel en file : il ne doit pas venir
+        QVERIFY(desktop->isAnnotating());
+        QCOMPARE(desktop->window(), annotation.data());
+        QVERIFY(annotation->isVisible());
+        QCOMPARE(annotation->flags(), flags);
+        QCOMPARE(mainWindow->windowStates(), mainStates);
+        QVERIFY(!shownPage(*desktop->desktopDocument()).background.image.empty());
+    }
+
+    // m6 : le paperboard du bureau prend la taille de l'écran à chaque ouverture (résolution changée entre deux
+    // activations), toutes ses pages, son contenu gardé. Mutant : taille figée à la construction.
+    void desktopPaperboardTakesTheScreenSize()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        DocumentController* paperboard = desktop->desktopDocument();
+        actcraft::core::Page small;
+        small.width = 100;
+        small.height = 80;
+        paperboard->replaceDocument(actcraft::core::Document(std::vector<actcraft::core::Page>{small, small}),
+                                    QUrl(), QStringLiteral("bureau"));
+        QCOMPARE(paperboard->pageSize(), QSizeF(100, 80));
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        const QSizeF screen(QGuiApplication::primaryScreen()->geometry().size());
+        QCOMPARE(paperboard->pageCount(), 2);
+        for (std::size_t i = 0; i < 2; ++i) {
+            const actcraft::core::Page& page = paperboard->document().page(i);
+            QCOMPARE(QSizeF(page.width, page.height), screen);
+        }
     }
 };
 
