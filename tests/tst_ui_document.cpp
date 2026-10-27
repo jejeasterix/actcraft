@@ -3,6 +3,7 @@
 #include <actcraft/core/generator.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/pagecache.h>
+#include <actcraft/core/pagezones.h>
 #include <actcraft/core/replace.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/documentcontroller.h>
@@ -702,6 +703,25 @@ private slots:
         opened.revertPage();
         QCOMPARE(opened.fingerprintText(), atOpening);
         QCOMPARE(opened.shownObjectCount(), 1);
+    }
+
+    // Rétablir la page d'une page jamais enregistrée garde ses zones (mise en page, pas contenu) : une page
+    // réglée en 2 × 3 cadres n'a rien à rétablir, et le rétablissement après un trait les garde.
+    void revertBlankPageKeepsItsZones()
+    {
+        ui::DocumentController controller;
+        core::PageZones zones;
+        zones.horizontal = 2;
+        zones.vertical = 3;
+        controller.execute(std::make_unique<core::SetPageZonesCommand>(0, zones));
+        QVERIFY(!controller.canRevertPage());
+        controller.commitStroke(redStroke());
+        QVERIFY(controller.canRevertPage());
+        controller.revertPage();
+        QCOMPARE(controller.shownObjectCount(), 0);
+        QCOMPARE(controller.document().page(0).zones.horizontal, 2);
+        QCOMPARE(controller.document().page(0).zones.vertical, 3);
+        QVERIFY(!controller.canRevertPage());
     }
 
     // L3-T16 : la référence de « Rétablir la page » change à la fin d'un enregistrement ; Main.qml relit

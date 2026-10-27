@@ -1,5 +1,6 @@
 #include <actcraft/core/model.h>
 #include <actcraft/core/pagecache.h>
+#include <actcraft/core/pagezones.h>
 #include <actcraft/core/pagesettings.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
@@ -983,6 +984,104 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(&pages, "focusPage", Q_ARG(int, 2)));
         QCOMPARE(pages.selection(), (QList<int>{2}));
         QCOMPARE(rig.controller.currentIndex(), 2);
+    }
+    // F-603, D11 : régler les zones ne redessine pas le cache (surcouche), tient en une étape, et se relit
+    // telle quelle ; appliquer sans changement ne pousse aucune étape.
+    void zonesRefreshNoCache()
+    {
+        Rig rig;
+        QCOMPARE(rig.options.zones(), QStringLiteral("0x0"));
+        QSignalSpy changed(&rig.options, &ui::PageOptions::changed);
+        rig.options.setZones(QStringLiteral("2x0"));
+        QCOMPARE(rig.options.zones(), QStringLiteral("2x0"));
+        QCOMPARE(rig.spy.calls(), 0);
+        QVERIFY(changed.count() >= 1);
+        QCOMPARE(rig.controller.document().page(0).zones.horizontal, 2);
+        // Sans changement : aucune étape de plus.
+        rig.controller.closeMerge();
+        rig.options.setZones(QStringLiteral("2x0"));
+        rig.controller.undo();
+        QCOMPARE(rig.options.zones(), QStringLiteral("0x0")); // une seule étape à défaire
+        QVERIFY(!rig.controller.canUndo());
+        QCOMPARE(rig.spy.calls(), 0);
+    }
+
+    // Les nombres sont bornés (clampZones), la taille d'un cadre déjà posée est gardée, un texte illisible
+    // ne change rien.
+    void zonesAreBoundedAndKeepTheFrameSize()
+    {
+        Rig rig;
+        core::PageZones sized;
+        sized.horizontal = 1;
+        sized.frameWidth = 600;
+        sized.frameHeight = 700;
+        rig.controller.execute(std::make_unique<core::SetPageZonesCommand>(0, sized));
+        rig.controller.closeMerge();
+        rig.options.setZones(QStringLiteral("99x99"));
+        QCOMPARE(rig.options.zones(), QStringLiteral("40x53"));
+        QCOMPARE(rig.controller.document().page(0).zones.frameWidth, 600.0);
+        QCOMPARE(rig.controller.document().page(0).zones.frameHeight, 700.0);
+        rig.options.setZones(QStringLiteral("abc"));
+        rig.options.setZones(QStringLiteral("-1x2"));
+        rig.options.setZones(QStringLiteral("2"));
+        QCOMPARE(rig.options.zones(), QStringLiteral("40x53"));
+    }
+
+    // Les zones suivent la page affichée.
+    void zonesFollowThePage()
+    {
+        Rig rig;
+        rig.options.setZones(QStringLiteral("2x3"));
+        QSignalSpy changed(&rig.options, &ui::PageOptions::changed);
+        rig.controller.showPage(1);
+        QVERIFY(changed.count() >= 1);
+        QCOMPARE(rig.options.zones(), QStringLiteral("0x0"));
+        rig.controller.showPage(0);
+        QCOMPARE(rig.options.zones(), QStringLiteral("2x3"));
+    }
+
+    // Amendement 5 (D11, L4-O2) : page suivante change de page et ne parcourt pas les cadres.
+    void nextPageIgnoresFrames()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::PageOptions options;
+        options.setDocumentController(&controller);
+        options.setZones(QStringLiteral("2x3"));
+        QCOMPARE(options.zones(), QStringLiteral("2x3"));
+        controller.nextPage();
+        QCOMPARE(controller.currentIndex(), 1);
+        QCOMPARE(controller.pageCount(), 2); // page ajoutée en fin, comme sans cadres
+    }
+
+    // La surcouche suit les zones : n − 1 séparations par sens, comptées une fois ; le plein écran ne la cache
+    // pas ; elle ne prend pas l'entrée (un trait de stylet la traverse).
+    void overlayFollowsZones()
+    {
+        QQmlApplicationEngine engine;
+        engine.setInitialProperties(
+            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+        engine.loadFromModule("ActCraft.Ui", "Main");
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+        QVERIFY(window);
+        auto* tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        tools->setSettingsFile(m_dir.filePath(QStringLiteral("reglages-zones.ini"))); // jamais le profil réel
+        auto* options = window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
+        auto* overlay = window->findChild<QQuickItem*>(QStringLiteral("pageZones"));
+        QVERIFY(options && overlay);
+        QVERIFY(window->isVisible() || QTest::qWaitForWindowExposed(window));
+        QCOMPARE(overlay->property("separatorCount").toInt(), 0);
+        QVERIFY(!overlay->isVisible());
+        options->setZones(QStringLiteral("2x0"));
+        QTRY_COMPARE(overlay->property("separatorCount").toInt(), 1);
+        QVERIFY(overlay->isVisible());
+        options->setZones(QStringLiteral("2x3"));
+        QTRY_COMPARE(overlay->property("separatorCount").toInt(), 3);
+        options->setZones(QStringLiteral("1x1")); // un cadre : aucune séparation
+        QTRY_COMPARE(overlay->property("separatorCount").toInt(), 0);
+        QVERIFY(!overlay->isVisible());
     }
 };
 
