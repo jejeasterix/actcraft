@@ -32,8 +32,9 @@ namespace actcraft::ui {
 // DesktopController (décision 4 bis) : beginCreate sans parent (avec un parent, la fenêtre prendrait la
 // principale pour parent transitoire et se réduirait avec elle), sans cadre, toujours devant, sur l'écran
 // photographié, à sa taille. La palette est un élément de CETTE fenêtre : jamais une couverture de la vue
-// principale. Échap ferme la fenêtre. Les gestes (appui, glisser, relâché, survol) arrivent en coordonnées de
-// la fenêtre, donc en pixels logiques de l'écran ; l'image figée est en pixels physiques.
+// principale. Échap ferme la fenêtre, quel que soit le focus (filtre d'événements de la fenêtre). Les gestes
+// (appui, glisser, relâché, survol) arrivent en coordonnées de la fenêtre, donc en pixels logiques de l'écran
+// ; l'image figée est en pixels physiques.
 //
 // Destinations « page » : l'image découpée devient une ressource PNG du document et un objet image, à sa
 // taille en pixels logiques, centré dans la vue, en une étape (DocumentInsertions::insertImage, comme la
@@ -121,6 +122,9 @@ public:
     Q_INVOKABLE void release(QPointF point);
     Q_INVOKABLE void hover(QPointF point);
 
+    // Échap dans la fenêtre de capture, quel que soit l'élément qui y a le focus.
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
 signals:
     void documentControllerChanged();
     void pageViewChanged();
@@ -175,6 +179,7 @@ private:
     features::PolygonPicker m_polygon;
     features::FreehandPicker m_freehand;
     Drag m_drag = Drag::None;
+    bool m_windowPicked = false; // mode fenêtre : un clic a choisi la fenêtre, le survol ne la change plus
     QPointF m_dragStart;
     QRectF m_dragOrigin;
     QPointF m_anchor; // coin opposé pendant un redimensionnement

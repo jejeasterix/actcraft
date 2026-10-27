@@ -7,8 +7,10 @@
 #include <QBuffer>
 #include <QByteArray>
 #include <QClipboard>
+#include <QEvent>
 #include <QGuiApplication>
 #include <QIODevice>
+#include <QKeyEvent>
 #include <QLineF>
 #include <QMetaObject>
 #include <QMutex>
@@ -359,6 +361,7 @@ void CameraController::press(QPointF point)
         emit outlineChanged();
         break;
     case WindowMode:
+        m_drag = Drag::Draw; // appui en cours : le doigt glissé suit la fenêtre sous lui
         setSelection(windowAt(point));
         break;
     default:
@@ -387,7 +390,7 @@ void CameraController::move(QPointF point)
         emit outlineChanged();
         break;
     case WindowMode:
-        if (m_drag == Drag::None) {
+        if (m_drag != Drag::None) {
             setSelection(windowAt(point)); // doigt glissé d'une fenêtre à l'autre
         }
         break;
@@ -414,6 +417,13 @@ void CameraController::release(QPointF point)
         m_freehand.release();
         emit outlineChanged();
         break;
+    case WindowMode:
+        if (m_drag != Drag::None) {
+            setSelection(windowAt(point));
+            m_windowPicked = true; // le clic fige la fenêtre choisie
+        }
+        m_drag = Drag::None;
+        break;
     default:
         break;
     }
@@ -421,9 +431,29 @@ void CameraController::release(QPointF point)
 
 void CameraController::hover(QPointF point)
 {
-    if (m_mode == WindowMode) {
-        setSelection(windowAt(point)); // la fenêtre sous le pointeur est encadrée
+    // La fenêtre sous le pointeur est encadrée jusqu'au clic qui la choisit : le pointeur monte ensuite vers
+    // la palette en passant sur d'autres fenêtres sans changer le choix ; un nouveau clic en choisit une
+    // autre.
+    if (m_mode == WindowMode && !m_windowPicked && m_drag == Drag::None) {
+        setSelection(windowAt(point));
     }
+}
+
+bool CameraController::eventFilter(QObject* watched, QEvent* event)
+{
+    // Échap ferme la sélection quel que soit l'élément qui a le focus dans la fenêtre de capture (une case de
+    // la palette comprise) : pris au ShortcutOverride, avant les raccourcis de l'application (Main.qml,
+    // Qt.ApplicationShortcut : Échap pour tool.select), qui sinon le prendraient.
+    if (watched == m_window.data() &&
+        (event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress) &&
+        static_cast<QKeyEvent*>(event)->key() == Qt::Key_Escape) {
+        event->accept();
+        if (event->type() == QEvent::KeyPress) {
+            cancel();
+        }
+        return true;
+    }
+    return QObject::eventFilter(watched, event);
 }
 
 void CameraController::beginCapture()
@@ -444,9 +474,15 @@ void CameraController::beginCapture()
     clearMessage();
     setFrozen(image);
     if (mode == ScreenMode) {
-        // Écran entier : capture immédiate, posée sur la page affichée.
-        insertOnPage(m_frozen, false);
+        // Écran entier : capture immédiate, posée sur la page affichée ; sans document où la poser, un
+        // message, comme pour l'image vide, au lieu de rien.
+        const bool placed = insertOnPage(m_frozen, false);
         setFrozen(QImage());
+        if (!placed) {
+            setMessage(
+                tr("La caméra n'a pas pu poser l'image de l'écran sur la page. Ouvrez un document, puis "
+                   "recommencez."));
+        }
         return;
     }
     // Fenêtres du bureau, relevées avec l'image (avant notre fenêtre de sélection), en coordonnées de la
@@ -464,6 +500,7 @@ void CameraController::beginCapture()
     m_polygon.clear();
     m_freehand.clear();
     m_drag = Drag::None;
+    m_windowPicked = false;
     m_selection = QRectF();
     setMode(mode);
     if (mode == AreaMode) {
@@ -518,6 +555,7 @@ bool CameraController::openWindow()
                 Qt::QueuedConnection));
         }
     });
+    window->installEventFilter(this); // Échap, quel que soit le focus
     m_window = window;
     emit windowChanged();
     window->show();
@@ -531,11 +569,13 @@ void CameraController::closeWindow()
         QQuickWindow* window = m_window.data();
         m_window = nullptr;
         window->disconnect(this);
+        window->removeEventFilter(this);
         window->hide();
         window->deleteLater();
         emit windowChanged();
     }
     m_drag = Drag::None;
+    m_windowPicked = false;
     m_polygon.clear();
     m_freehand.clear();
     m_windows.clear();

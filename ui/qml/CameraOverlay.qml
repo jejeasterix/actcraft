@@ -135,13 +135,8 @@ Item {
                 id: surface
                 objectName: "cameraSurface"
                 anchors.fill: parent
-                focus: true
-                // Échap est à la fenêtre de capture, avant les raccourcis de l'application (Main.qml,
-                // Qt.ApplicationShortcut : Échap pour tool.select), qui sinon le prendraient.
-                Keys.onShortcutOverride: event => {
-                    event.accepted = event.key === Qt.Key_Escape
-                }
-                Keys.onEscapePressed: cameraController.cancel()
+                // Échap : CameraController filtre les touches de toute la fenêtre (une case de la palette
+                // peut avoir le focus), avant les raccourcis de l'application.
                 // Les points qui tombent sur la palette sont à elle, même ceux qu'aucun de ses éléments ne prend.
                 containmentMask: QtObject {
                     function contains(point: point): bool {

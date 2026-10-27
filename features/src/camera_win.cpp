@@ -27,6 +27,13 @@ bool isCloaked(HWND window)
     return SUCCEEDED(DwmGetWindowAttribute(window, DWMWA_CLOAKED, &cloaked, sizeof(cloaked))) && cloaked != 0;
 }
 
+// Fenêtre transparente aux clics (surcouche d'un outil d'enregistrement, d'un pilote) : on ne la vise pas ;
+// toujours devant, elle masquerait toutes les autres dans la capture d'une fenêtre.
+bool isClickThrough(HWND window)
+{
+    return (GetWindowLongPtrW(window, GWL_EXSTYLE) & WS_EX_TRANSPARENT) != 0;
+}
+
 // Cadre visible en pixels physiques : sans les bordures invisibles de redimensionnement (Windows 10 et 11).
 bool visibleFrame(HWND window, RECT& frame)
 {
@@ -57,7 +64,7 @@ QRect toQtPixels(const QRect& physical)
 BOOL CALLBACK collectWindow(HWND window, LPARAM data)
 {
     auto* windows = reinterpret_cast<std::vector<QRect>*>(data);
-    if (!IsWindowVisible(window) || IsIconic(window) || isCloaked(window)) {
+    if (!IsWindowVisible(window) || IsIconic(window) || isClickThrough(window) || isCloaked(window)) {
         return TRUE;
     }
     RECT frame{};
