@@ -97,6 +97,24 @@
     {"command": "browsers.dock-right"},
     {"waitReady": true},
     {"capture": "ancre-droite"},
-    {"command": "browsers.dock-left"}
+    {"command": "browsers.dock-left"},
+    {"expect": "appPages.selection", "value": [0, 1]},
+    {"pointer": [[700, 400]], "space": "window", "button": "right"},
+    {"waitFor": "pageContextMenu.visible", "value": true, "timeoutMs": 5000},
+    {"expect": "appPages.selection", "value": [1]},
+    {"pointer": [[700, 500]], "space": "window"},
+    {"waitFor": "pageContextMenu.visible", "value": false, "timeoutMs": 5000},
+    {"command": "page.background"},
+    {"waitFor": "backgroundDialog.visible", "value": true, "timeoutMs": 5000},
+    {"pointer": [[532, 351]], "space": "window"},
+    {"pointer": [[686, 529]], "space": "window"},
+    {"expect": "backgroundDialog.visible", "value": true},
+    {"waitReady": true},
+    {"checkPixel": "fond-jaune", "at": [50, 50], "color": "#FFFF00", "tolerance": 8},
+    {"pointer": [[578, 529]], "space": "window"},
+    {"waitFor": "backgroundDialog.visible", "value": false, "timeoutMs": 5000},
+    {"waitReady": true},
+    {"checkPixel": "fond-jaune", "at": [50, 50], "color": "#FFFF00", "tolerance": 8},
+    {"capture": "fond"}
   ]
 }

@@ -36,6 +36,43 @@ QString key(const char* name)
     return QString::fromLatin1(name);
 }
 
+const char* gradientName(core::GradientKind kind)
+{
+    switch (kind) {
+    case core::GradientKind::Horizontal:
+        return "horizontal";
+    case core::GradientKind::DiagonalDown:
+        return "diagonal-down";
+    case core::GradientKind::DiagonalUp:
+        return "diagonal-up";
+    case core::GradientKind::Radial:
+        return "radial";
+    case core::GradientKind::Vertical:
+        break;
+    }
+    return "vertical";
+}
+
+core::GradientKind gradientFromName(const QString& name, core::GradientKind fallback)
+{
+    if (name == QLatin1String("vertical")) {
+        return core::GradientKind::Vertical;
+    }
+    if (name == QLatin1String("horizontal")) {
+        return core::GradientKind::Horizontal;
+    }
+    if (name == QLatin1String("diagonal-down")) {
+        return core::GradientKind::DiagonalDown;
+    }
+    if (name == QLatin1String("diagonal-up")) {
+        return core::GradientKind::DiagonalUp;
+    }
+    if (name == QLatin1String("radial")) {
+        return core::GradientKind::Radial;
+    }
+    return fallback;
+}
+
 QVariantMap levelToMap(const core::GridLevel& level)
 {
     QVariantMap map;
@@ -224,7 +261,19 @@ QVariantMap PageOptions::grid() const
 
 QVariantMap PageOptions::background() const
 {
-    return {};
+    if (!m_controller || m_controller->pageCount() == 0) {
+        return {};
+    }
+    const core::Background& background =
+        m_controller->document().page(static_cast<std::size_t>(m_controller->currentIndex())).background;
+    const core::Fill& fill = background.fill;
+    QVariantMap map;
+    map.insert(key("kind"), fill.kind == core::FillKind::Gradient ? key("gradient") : key("color"));
+    map.insert(key("color"), QColor::fromRgba(fill.color));
+    map.insert(key("color2"), QColor::fromRgba(fill.color2));
+    map.insert(key("gradient"), key(gradientName(fill.gradient)));
+    map.insert(key("image"), QString::fromStdString(background.image));
+    return map;
 }
 
 qreal PageOptions::pageHeight() const
@@ -323,7 +372,36 @@ void PageOptions::endDesigner()
     }
 }
 
-void PageOptions::setBackground(const QVariantMap&) {}
+void PageOptions::setBackground(const QVariantMap& background)
+{
+    if (!m_controller || m_controller->pageCount() == 0) {
+        return;
+    }
+    const std::size_t page = static_cast<std::size_t>(m_controller->currentIndex());
+    core::Background next = m_controller->document().page(page).background;
+    const auto color = [&](const char* name, core::Argb fallback) {
+        const QColor value = background.value(key(name)).value<QColor>();
+        return value.isValid() ? static_cast<core::Argb>(value.rgba()) : fallback;
+    };
+    const QString kind = background.value(key("kind"), key("color")).toString();
+    if (kind == QLatin1String("gradient")) {
+        core::Fill fill;
+        fill.kind = core::FillKind::Gradient;
+        fill.color = color("color", next.fill.color);
+        fill.color2 = color("color2", next.fill.color2);
+        fill.gradient =
+            gradientFromName(background.value(key("gradient")).toString(), core::GradientKind::Vertical);
+        next.fill = fill;
+        next.image.clear();
+    } else if (kind == QLatin1String("image")) {
+        // Le fichier image est une ressource du lot 7 : ici on ne fait que nommer la ressource choisie.
+        next.image = background.value(key("image")).toString().toStdString();
+    } else {
+        next.fill = core::solidFill(color("color", next.fill.color));
+        next.image.clear();
+    }
+    m_controller->execute(std::make_unique<core::SetBackgroundCommand>(page, std::move(next)));
+}
 
 void PageOptions::extendPage()
 {

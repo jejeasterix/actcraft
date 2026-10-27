@@ -213,6 +213,7 @@ Window {
             cacheEnabled: root.cacheEnabled
             inputBlocked: root.openPopups > 0
             documentController: appDocument
+            pages: appPages
             tools: appTools
             commands: appCommands
         }
@@ -258,6 +259,7 @@ Window {
     BackgroundDialog {
         id: backgroundDialog
         objectName: "backgroundDialog"
+        settings: appPageSettings
     }
 
     // « Menu principal » (F-122) : les mêmes menus que la ligne supérieure.
