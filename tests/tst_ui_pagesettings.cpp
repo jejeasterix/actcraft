@@ -603,9 +603,7 @@ private slots:
     void backgroundColorIsOneStep()
     {
         Rig rig;
-        const auto yellow = [&] {
-            return rig.controller.document().page(0).background.fill;
-        };
+        const auto yellow = [&] { return rig.controller.document().page(0).background.fill; };
         QCOMPARE(yellow().color, core::Argb{0xFFFFFFFFu});
         rig.options.setBackground({{QStringLiteral("kind"), QStringLiteral("color")},
                                    {QStringLiteral("color"), QColor(QStringLiteral("#ffff00"))}});
@@ -676,8 +674,8 @@ private slots:
         QCOMPARE(rig.controller.document().page(0).background.fill.color, core::Argb{0xFFFFFFFFu});
     }
 
-    // D15 : la boîte réelle a trois boutons. « Appliquer » garde la boîte ouverte, « annuler » ferme sans rien
-    // défaire de ce qui est appliqué, « valider » applique ce qui ne l'est pas puis ferme.
+    // D15 : la boîte réelle a trois boutons. « Appliquer » garde la boîte ouverte, « annuler » ferme sans
+    // rien défaire de ce qui est appliqué, « valider » applique ce qui ne l'est pas puis ferme.
     void backgroundDialogThreeButtons()
     {
         QQmlApplicationEngine engine;
