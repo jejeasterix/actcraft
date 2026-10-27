@@ -39,7 +39,7 @@ Toujours `pwsh -NoProfile` (jamais `powershell.exe` 5.1).
   `release` par défaut, `ctest` ; ni banc ni rendu sur vrai GPU : ceux-là restent au PC). Piège : `workflow_dispatch`
   prend le fichier dans la ref visée, la branche doit donc contenir `main` fusionné (après le lot B11 du chantier
   mac-autonome) et être poussée sur `origin`. `tests` vide (option omise) = toute la suite ; sinon expression de
-  `ctest -R` (ex. `-f tests=tst_bureau`) ; un motif qui ne trouve aucun test échoue (`noTestsAction: error`).
+  `ctest -R` (ex. `-f tests=tst_modules`) ; un motif qui ne trouve aucun test échoue (`noTestsAction: error`).
   Le run dure 20 à 40 min : lancer la forme bornée en tâche de fond (`run_in_background: true` de l'outil Bash), jamais
   au premier plan (l'appel coupe à 10 min) ; elle lance le run elle-même et rend la main à sa fin. Le journal recopie
   le texte des `run:` : seule une ligne `<horodatage>Z PREUVES WINDOWS …` est un verdict, d'où l'ancre `[0-9]Z`.
@@ -49,12 +49,13 @@ Toujours `pwsh -NoProfile` (jamais `powershell.exe` 5.1).
     `New-Item -ItemType Directory -Force .tmp | Out-Null; $s = gh workflow run preuves-windows.yml --repo jejeasterix/actcraft --ref <branche> -f preset=release 2>&1 | Out-String; $id = [regex]::Match($s, 'actions/runs/(\d+)').Groups[1].Value; if (-not $id) { 'code 2'; 'RUN INTROUVABLE : aucune URL rendue par gh workflow run, aucun run deviné' } else { "run $id"; gh run watch $id --repo jejeasterix/actcraft --exit-status --interval 60 > .tmp/preuve-windows.txt 2>&1; "code $LASTEXITCODE"; gh run view $id --repo jejeasterix/actcraft --log | Select-String '[0-9]Z PREUVES WINDOWS (OK|EN ECHEC)' | Select-Object -Last 1 }`
   - Réussite : `code 0` et dernière ligne de verdict `PREUVES WINDOWS OK`. Échec : `code` ≠ 0 et
     `PREUVES WINDOWS EN ECHEC : <étape>` (l'étape tombée : `Compiler` pour un avertissement sous `/WX`, `Vérifier /W4 /WX`,
-    `Tester`… ; `<étape> (annulé)` ou `run annulé` pour une annulation), détail par `gh run view <id> --log-failed`
-    (`<id>` : ligne `run <id>`). `code` ≠ 0 sans ligne de verdict : job coupé avant sa dernière étape (délai de 40 min
-    dépassé, ou annulé par un run plus récent sur la même ref, le même preset et le même motif : `cancel-in-progress`) ;
+    `Tester`…), détail par `gh run view <id> --log-failed`
+    (`<id>` : ligne `run <id>`). `code` ≠ 0 sans ligne de verdict, ou avec une ligne `EN ECHEC` finissant par `(annulé)` ou `run annulé` : job coupé (délai de 40 min dépassé, ou annulé par un run plus récent sur la même ref, le même preset et le même motif : `cancel-in-progress`) ;
     `gh run view <id> --repo jejeasterix/actcraft --json conclusion` dit `cancelled` ou `failure` ; ce n'est pas un
     verdict sur le code : relancer seul, une preuve à la fois par ref. `code 2` et `RUN INTROUVABLE` : `gh workflow run` n'a rendu
-    aucune URL ; ne pas prendre « le dernier run » de `gh run list` (il peut être plus ancien), relancer.
+    aucune URL ; ne pas prendre « le dernier run » de `gh run list` (il peut être plus ancien). Vérifier `gh --version`
+    (2.103.2 rend l'URL ; version minimale exacte non vérifiée) et mettre gh à jour ; un run a pu partir quand même :
+    une seule relance, jamais en boucle.
 
 ## Preuve visuelle
 
