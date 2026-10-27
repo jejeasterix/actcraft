@@ -254,8 +254,7 @@ Item {
                 if (index < 0)
                     return
                 if (mouse.button === Qt.RightButton) {
-                    if (root.pages.selection.indexOf(index) < 0)
-                        root.pages.click(index, 0)
+                    root.pages.focusPage(index)
                     menu.popupAt(mouse.x + list.x, mouse.y + list.y)
                     return
                 }
@@ -390,8 +389,7 @@ Item {
                 }
                 // Menu de la page (pas celui du navigateur), sur la sélection ; une page hors sélection la remplace.
                 onClicked: {
-                    if (root.pages.selection.indexOf(cell.index) < 0)
-                        root.pages.click(cell.index, 0)
+                    root.pages.focusPage(cell.index)
                     menu.popupAt(x + cell.x + list.x, y + cell.y - list.contentY + list.y)
                 }
             }

@@ -1667,6 +1667,21 @@ QJsonObject resourceJson(const std::string& key, const std::string& extension)
 
 } // namespace
 
+QString gradientKindName(GradientKind kind)
+{
+    return latin1(enumName(kind));
+}
+
+std::optional<GradientKind> gradientKindFromName(const QString& name)
+{
+    for (const auto& entry : kGradients) {
+        if (latin1(entry.name) == name) {
+            return entry.value;
+        }
+    }
+    return std::nullopt;
+}
+
 QString describe(ResourceFailure failure)
 {
     switch (failure) {

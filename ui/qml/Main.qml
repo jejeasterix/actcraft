@@ -255,11 +255,15 @@ Window {
         id: gridDesigner
         objectName: "gridDesigner"
         settings: appPageSettings
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
     }
     BackgroundDialog {
         id: backgroundDialog
         objectName: "backgroundDialog"
         settings: appPageSettings
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
     }
 
     // « Menu principal » (F-122) : les mêmes menus que la ligne supérieure.

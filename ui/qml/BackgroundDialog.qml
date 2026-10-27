@@ -17,35 +17,36 @@ Popup {
     property color color: "#ffffff"
     property color color2: "#ffffff"
     property string direction: "vertical"
-    // Vrai tant que le choix affiché est celui de la page (rien à appliquer).
+    // Vrai tant que le choix affiché est celui de la page (rien à appliquer : « appliquer » ne fait rien).
     property bool applied: true
 
     readonly property var swatches: ["#FFFFFF", "#000000", "#FFFF00", "#FF0000", "#00AA00", "#0066FF", "#FF8800",
                                      "#8800CC", "#F5F5DC", "#CCE5FF", "#FFE0E0", "#E0FFE0", "#FFF3B0", "#D9D9D9",
                                      "#404040", "#003366"]
 
-    function chooseKind(value) { kind = value; applied = false }
-    function chooseColor(value) { color = value; applied = false }
-    function chooseColor2(value) { color2 = value; applied = false }
-    function chooseDirection(value) { direction = value; applied = false }
+    // Un choix identique à l'actuel n'invalide rien (« appliquer » resterait sans objet).
+    function chooseKind(value) { if (kind !== value) { kind = value; applied = false } }
+    function chooseColor(value) { if (!Qt.colorEqual(color, value)) { color = value; applied = false } }
+    function chooseColor2(value) { if (!Qt.colorEqual(color2, value)) { color2 = value; applied = false } }
+    function chooseDirection(value) { if (direction !== value) { direction = value; applied = false } }
 
     function loadFromPage() {
         const page = settings ? settings.background : ({})
-        kind = page.kind === "gradient" ? "gradient" : "color"
+        // « other » (aucun fond, motif) et un sens non offert (diagonale, radial) sont gardés tels que lus.
+        kind = page.kind !== undefined ? page.kind : "color"
         color = page.color !== undefined ? page.color : "#ffffff"
         color2 = page.color2 !== undefined ? page.color2 : color
-        direction = page.gradient === "horizontal" ? "horizontal" : "vertical"
+        direction = page.gradient !== undefined ? page.gradient : "vertical"
         applied = true
     }
     function apply() {
-        if (!settings)
+        if (!settings || applied)
             return
         settings.setBackground({ kind: kind, color: color, color2: color2, gradient: direction })
         applied = true
     }
     function accept() {
-        if (!applied)
-            apply()
+        apply()
         close()
     }
 
@@ -73,11 +74,12 @@ Popup {
         id: grid
         property color current: "#ffffff"
         property string prefix: "backgroundSwatch"
+        property var swatches: []
         signal picked(string value)
         columns: 8
         spacing: 8
         Repeater {
-            model: dialog.swatches
+            model: grid.swatches
             delegate: Rectangle {
                 id: swatch
                 required property string modelData
@@ -116,8 +118,7 @@ Popup {
                 width: 100
                 height: 36
                 text: qsTr("Couleur")
-                checkable: true
-                checked: dialog.kind === "color"
+                highlighted: dialog.kind === "color"
                 onClicked: dialog.chooseKind("color")
             }
             Button {
@@ -125,8 +126,7 @@ Popup {
                 width: 100
                 height: 36
                 text: qsTr("Dégradé")
-                checkable: true
-                checked: dialog.kind === "gradient"
+                highlighted: dialog.kind === "gradient"
                 onClicked: dialog.chooseKind("gradient")
             }
             Button {
@@ -135,8 +135,7 @@ Popup {
                 width: 60
                 height: 36
                 text: qsTr("Haut-bas")
-                checkable: true
-                checked: dialog.direction === "vertical"
+                highlighted: dialog.direction === "vertical"
                 onClicked: dialog.chooseDirection("vertical")
             }
             Button {
@@ -145,13 +144,13 @@ Popup {
                 width: 60
                 height: 36
                 text: qsTr("Côtés")
-                checkable: true
-                checked: dialog.direction === "horizontal"
+                highlighted: dialog.direction === "horizontal"
                 onClicked: dialog.chooseDirection("horizontal")
             }
         }
         SwatchGrid {
             y: 84
+            swatches: dialog.swatches
             current: dialog.color
             onPicked: value => dialog.chooseColor(value)
         }
@@ -159,6 +158,7 @@ Popup {
             y: 168
             visible: dialog.kind === "gradient"
             prefix: "backgroundSwatchB"
+            swatches: dialog.swatches
             current: dialog.color2
             onPicked: value => dialog.chooseColor2(value)
         }

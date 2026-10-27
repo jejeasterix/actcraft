@@ -1,4 +1,5 @@
 #include <actcraft/core/pagesettings.h>
+#include <actcraft/formats/nativejson.h>
 #include <actcraft/ui/pageoptions.h>
 
 #include <QColor>
@@ -36,41 +37,13 @@ QString key(const char* name)
     return QString::fromLatin1(name);
 }
 
-const char* gradientName(core::GradientKind kind)
+// Deux fonds identiques : ni étape d'annulation ni redessin.
+bool sameBackground(const core::Background& a, const core::Background& b)
 {
-    switch (kind) {
-    case core::GradientKind::Horizontal:
-        return "horizontal";
-    case core::GradientKind::DiagonalDown:
-        return "diagonal-down";
-    case core::GradientKind::DiagonalUp:
-        return "diagonal-up";
-    case core::GradientKind::Radial:
-        return "radial";
-    case core::GradientKind::Vertical:
-        break;
-    }
-    return "vertical";
-}
-
-core::GradientKind gradientFromName(const QString& name, core::GradientKind fallback)
-{
-    if (name == QLatin1String("vertical")) {
-        return core::GradientKind::Vertical;
-    }
-    if (name == QLatin1String("horizontal")) {
-        return core::GradientKind::Horizontal;
-    }
-    if (name == QLatin1String("diagonal-down")) {
-        return core::GradientKind::DiagonalDown;
-    }
-    if (name == QLatin1String("diagonal-up")) {
-        return core::GradientKind::DiagonalUp;
-    }
-    if (name == QLatin1String("radial")) {
-        return core::GradientKind::Radial;
-    }
-    return fallback;
+    return a.image == b.image && a.fill.kind == b.fill.kind && a.fill.color == b.fill.color &&
+           a.fill.color2 == b.fill.color2 && a.fill.gradient == b.fill.gradient &&
+           a.fill.pattern == b.fill.pattern && a.fill.opaqueBackground == b.fill.opaqueBackground &&
+           a.fill.backgroundColor == b.fill.backgroundColor;
 }
 
 QVariantMap levelToMap(const core::GridLevel& level)
@@ -268,10 +241,14 @@ QVariantMap PageOptions::background() const
         m_controller->document().page(static_cast<std::size_t>(m_controller->currentIndex())).background;
     const core::Fill& fill = background.fill;
     QVariantMap map;
-    map.insert(key("kind"), fill.kind == core::FillKind::Gradient ? key("gradient") : key("color"));
+    // « other » : un fond que la boîte n'offre pas (aucun, motif) ; l'image reste dans « image ».
+    map.insert(key("kind"),
+               fill.kind == core::FillKind::Gradient ? key("gradient")
+               : fill.kind == core::FillKind::Solid  ? key("color")
+                                                     : key("other"));
     map.insert(key("color"), QColor::fromRgba(fill.color));
     map.insert(key("color2"), QColor::fromRgba(fill.color2));
-    map.insert(key("gradient"), key(gradientName(fill.gradient)));
+    map.insert(key("gradient"), formats::gradientKindName(fill.gradient));
     map.insert(key("image"), QString::fromStdString(background.image));
     return map;
 }
@@ -378,27 +355,30 @@ void PageOptions::setBackground(const QVariantMap& background)
         return;
     }
     const std::size_t page = static_cast<std::size_t>(m_controller->currentIndex());
-    core::Background next = m_controller->document().page(page).background;
+    const core::Background current = m_controller->document().page(page).background;
+    core::Background next = current;
     const auto color = [&](const char* name, core::Argb fallback) {
         const QColor value = background.value(key(name)).value<QColor>();
         return value.isValid() ? static_cast<core::Argb>(value.rgba()) : fallback;
     };
-    const QString kind = background.value(key("kind"), key("color")).toString();
+    const QString kind = background.value(key("kind")).toString();
     if (kind == QLatin1String("gradient")) {
-        core::Fill fill;
+        core::Fill fill = current.fill.kind == core::FillKind::Gradient ? current.fill : core::Fill{};
         fill.kind = core::FillKind::Gradient;
-        fill.color = color("color", next.fill.color);
-        fill.color2 = color("color2", next.fill.color2);
-        fill.gradient =
-            gradientFromName(background.value(key("gradient")).toString(), core::GradientKind::Vertical);
+        fill.color = color("color", fill.color);
+        fill.color2 = color("color2", fill.color2);
+        fill.gradient = formats::gradientKindFromName(background.value(key("gradient")).toString())
+                            .value_or(fill.gradient);
         next.fill = fill;
         next.image.clear();
-    } else if (kind == QLatin1String("image")) {
-        // Le fichier image est une ressource du lot 7 : ici on ne fait que nommer la ressource choisie.
-        next.image = background.value(key("image")).toString().toStdString();
-    } else {
-        next.fill = core::solidFill(color("color", next.fill.color));
+    } else if (kind == QLatin1String("color")) {
+        next.fill = core::solidFill(color("color", current.fill.color));
         next.image.clear();
+    } else {
+        return; // l'image viendra avec les ressources du lot 7 (H4-18) ; un genre inconnu ne change rien
+    }
+    if (sameBackground(current, next)) {
+        return;
     }
     m_controller->execute(std::make_unique<core::SetBackgroundCommand>(page, std::move(next)));
 }
