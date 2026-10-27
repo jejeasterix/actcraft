@@ -29,6 +29,7 @@ Item {
     property bool inputBlocked: false
     // Document ouvert : le stylo y verse ses traits par la pile (L2-T15).
     property DocumentController documentController: null
+    property string zones: "" // « <cadres en largeur>x<cadres en hauteur> » (appPageSettings.zones), séparations en surcouche
     // Pages du document (sélection) : le menu de page agit sur la page affichée, seule sélectionnée (F-771).
     property Pages pages: null
     clip: true
@@ -146,6 +147,10 @@ Item {
                 PageZonesOverlay {
                     objectName: "pageZones"
                     anchors.fill: parent
+                    zones: area.zones
+                    zoom: view.zoom
+                    pan: view.pan
+                    viewSize: Qt.size(view.width, view.height)
                 }
                 PageExtensionHandle {
                     id: pageExtensionHandleItem

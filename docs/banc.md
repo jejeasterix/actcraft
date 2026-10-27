@@ -71,11 +71,12 @@ redessiné). Une commande qui n'attend aucun prêt (zoom posé sans cache : page
 à la première image qui la suit. Décodage, reconstruction et redessin du cache y comptent ; les images entre
 deux changements (rendu continu pendant la mesure) restent au repos.
 
-Lot 4 (L4-T14, S7.5) : deux scénarios s'ajoutent après `soulever`, les sept premiers inchangés (le banc en joue neuf ; douze avec le lot 4b, ci-dessous).
+Lot 4 (L4-T14, S7.5) : deux scénarios s'ajoutent après `soulever`, les sept premiers inchangés (le banc en joue neuf ; douze avec le lot 4b, treize avec `zones-zoom`, ci-dessous).
 
 | Scénario | Contenu | Attendu relevé |
 |---|---|---|
 | `forme-page-annotee` | page générée portant trois annotations (couche du dessus) ; 10 rectangles posés un à un par glissé (préréglage `rectangle` choisi par `shape.choose`, outil `tool.shape`, 600 ms entre deux formes) | `cache.placed_shapes` = k = 10 et `cache.refreshes` = k : une forme va sous les annotations, chaque insertion est hors fin de page et redessine le cache une fois (limite déclarée, écart 5 du lot 10) |
+| `zones-zoom` (L4-T28) | page générée réglée à 40 x 53 cadres, le maximum (`SetPageZonesCommand` avant la mesure, vérifiée : sinon la mesure est invalide, `error: zones not applied`) ; le zoom à la molette de `zoom` (100 -> 800 -> 25 -> 100 %) | jugé comme `zoom` ; informatif : latence et figements comparés à `zoom` (rendu logiciel) ; D3D11 à relever sur le PC. Garde de conception : chaque séparation (91) est bornée à la partie visible de la page, donc à la taille de la vue (`separationsAreBoundedByTheView`) |
 | `grille-dessus` | page générée dont la grille est dessinée au-dessus des objets ; les traits du scénario `stroke` | `cache.refreshes` = nombre de versements de la minuterie, soit 0 : les traits restent en attente (pauses de 300 ms sous le délai) et la grille du dessus ne redessine rien (L4-T7) |
 
 `forme-page-annotee` est jugé comme `gommer` : figements et reprises relevés, hors critère (`freezeExempt`), et
@@ -89,7 +90,7 @@ relâché de chaque forme), `p95_ms` et `max_ms` les intervalles qui précèdent
 une porte (hors budget, H4-8).
 
 Lot 4b (L4-T29, S7.5, amendements 1 et 5) : trois scénarios s'ajoutent après `grille-dessus`, les neuf premiers
-inchangés (le banc en joue douze). Ils mesurent que les miniatures du navigateur de pages ne figent pas l'écriture.
+inchangés (le banc en joue douze ; treize avec `zones-zoom`, L4-T28). Ils mesurent que les miniatures du navigateur de pages ne figent pas l'écriture.
 
 | Scénario | Contenu | Attendu relevé |
 |---|---|---|

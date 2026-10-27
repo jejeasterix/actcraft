@@ -213,6 +213,7 @@ Window {
             cacheEnabled: root.cacheEnabled
             inputBlocked: root.openPopups > 0
             documentController: appDocument
+            zones: appPageSettings.zones
             pages: appPages
             tools: appTools
             commands: appCommands

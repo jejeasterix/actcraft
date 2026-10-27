@@ -1,8 +1,10 @@
 #include <actcraft/core/pagesettings.h>
+#include <actcraft/core/pagezones.h>
 #include <actcraft/formats/nativejson.h>
 #include <actcraft/ui/pageoptions.h>
 
 #include <QColor>
+#include <QStringList>
 #include <QVariantList>
 
 #include <algorithm>
@@ -262,7 +264,12 @@ qreal PageOptions::pageHeight() const
 
 QString PageOptions::zones() const
 {
-    return QStringLiteral("0x0");
+    if (!m_controller || m_controller->pageCount() == 0) {
+        return QStringLiteral("0x0");
+    }
+    const core::PageZones& zones =
+        m_controller->document().page(static_cast<std::size_t>(m_controller->currentIndex())).zones;
+    return QStringLiteral("%1x%2").arg(zones.horizontal).arg(zones.vertical);
 }
 
 void PageOptions::toggleGridHidden()
@@ -392,6 +399,31 @@ void PageOptions::extendPage()
         std::make_unique<core::ExtendPageCommand>(static_cast<std::size_t>(m_controller->currentIndex())));
 }
 
-void PageOptions::setZones(const QString&) {}
+void PageOptions::setZones(const QString& zones)
+{
+    if (!m_controller || m_controller->pageCount() == 0) {
+        return;
+    }
+    // « <cadres en largeur>x<cadres en hauteur> » : deux entiers positifs ou nuls, sinon rien ne change.
+    const QStringList parts = zones.split(QLatin1Char('x'));
+    bool okAcross = false;
+    bool okDown = false;
+    const int across = parts.size() == 2 ? parts.at(0).trimmed().toInt(&okAcross) : 0;
+    const int down = parts.size() == 2 ? parts.at(1).trimmed().toInt(&okDown) : 0;
+    if (!okAcross || !okDown || across < 0 || down < 0) {
+        return;
+    }
+    const auto page = static_cast<std::size_t>(m_controller->currentIndex());
+    // La taille d'un cadre déjà posée est gardée : ce réglage ne donne que des nombres de cadres.
+    core::PageZones next = m_controller->document().page(page).zones;
+    next.horizontal = across;
+    next.vertical = down;
+    next = core::clampZones(next);
+    const core::PageZones& current = m_controller->document().page(page).zones;
+    if (next.horizontal == current.horizontal && next.vertical == current.vertical) {
+        return; // rien à changer : ni étape ni redessin
+    }
+    m_controller->execute(std::make_unique<core::SetPageZonesCommand>(page, next));
+}
 
 } // namespace actcraft::ui

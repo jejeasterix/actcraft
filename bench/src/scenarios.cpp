@@ -501,6 +501,15 @@ ScenarioPlan gridAboveScenario(ScenarioSet set)
     return plan;
 }
 
+ScenarioPlan zonesZoomScenario(ScenarioSet scenarioSet)
+{
+    ScenarioPlan plan = zoomScenario(scenarioSet);
+    plan.name = QStringLiteral("zones-zoom");
+    plan.generatedPages = 1;
+    plan.zones = true;
+    return plan;
+}
+
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan)
 {
     std::vector<std::pair<std::int64_t, std::int64_t>> windows;
@@ -529,7 +538,8 @@ std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
             gridAboveScenario(set),
             thumbnailsScenario(set),
             closedThumbnailsScenario(set),
-            thumbnailsPausesScenario(set)};
+            thumbnailsPausesScenario(set),
+            zonesZoomScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()

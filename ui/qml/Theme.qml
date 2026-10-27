@@ -19,6 +19,7 @@ QtObject {
     readonly property color texteDesactive: "#6B7380" // libellé ou icône d'une commande indisponible
     readonly property color contour: "#858D98"        // bord d'une pastille, flèche du zoom, bord des menus
     readonly property color separateur: "#3F444D"     // séparation des groupes (décor, sans seuil)
+    readonly property color separationCadre: "#B9C0C8" // séparations des cadres d'une page (décor, sans seuil)
     readonly property color cadreSelection: "#FFFFFF" // pastille de la couleur courante
     readonly property color page: "#FFFFFF"           // page ; puits de l'échantillon d'épaisseur
 

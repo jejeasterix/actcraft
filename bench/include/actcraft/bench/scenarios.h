@@ -82,6 +82,10 @@ struct ScenarioPlan
     // La page chargée reçoit `gridAboveFixture()` (SetGridCommand par le document, versée dans le cache avant
     // la mesure) : page à grille dessinée au-dessus des objets.
     bool gridAbove = false;
+    // L4-T28 : la page chargée reçoit 40 x 53 cadres (`kBenchZonesAcross` x `kBenchZonesDown`,
+    // SetPageZonesCommand par le document) : séparations des zones dessinées en surcouche pendant la mesure
+    // (« zones-zoom »).
+    bool zones = false;
     // Formes posées par les glissés du plan (k) ; -1 : sans objet. Écrit dans le JSON (cache.placed_shapes).
     int placedShapes = -1;
     // Relève, dans le JSON, les trames pendant les glissés (clé shape_preview : coût de l'aperçu des formes).
@@ -150,10 +154,15 @@ core::Grid gridAboveFixture();
 // « grille-dessus » : page générée à grille du dessus, traits du scénario « stroke » (différés : aucun
 // redessin du cache entre deux versements de la minuterie ; 0 dans la mesure, pauses de 300 ms < délai).
 ScenarioPlan gridAboveScenario(ScenarioSet set);
+// L4-T28 : « zones-zoom » = le zoom à la molette (100 -> 800 -> 25 -> 100 %) de « zoom » sur une page générée
+// réglée à 40 x 53 cadres, le maximum : 91 séparations pointillées à tenir à chaque pas de zoom.
+inline constexpr int kBenchZonesAcross = 40;
+inline constexpr int kBenchZonesDown = 53;
+ScenarioPlan zonesZoomScenario(ScenarioSet scenarioSet);
 // Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);
 // stroke, zoom, scroll, page, pauses, gommer, soulever, forme-page-annotee, grille-dessus, miniatures,
-// miniatures-ferme, miniatures-pauses
+// miniatures-ferme, miniatures-pauses, zones-zoom
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set);
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();

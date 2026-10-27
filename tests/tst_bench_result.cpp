@@ -56,14 +56,15 @@ private slots:
     void lot4bScenariosWithFrames()
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
-        QCOMPARE(scenarios.size(), 12);
+        QCOMPARE(scenarios.size(), 13); // L4-T28 : « zones-zoom » en dernier (douze avant)
         const QStringList names{QStringLiteral("stroke"),           QStringLiteral("zoom"),
                                 QStringLiteral("scroll"),           QStringLiteral("page"),
                                 QStringLiteral("pauses"),           QStringLiteral("gommer"),
                                 QStringLiteral("soulever"),         QStringLiteral("forme-page-annotee"),
                                 QStringLiteral("grille-dessus"),    QStringLiteral("miniatures"),
-                                QStringLiteral("miniatures-ferme"), QStringLiteral("miniatures-pauses")};
-        for (qsizetype i = 0; i < 12; ++i) {
+                                QStringLiteral("miniatures-ferme"), QStringLiteral("miniatures-pauses"),
+                                QStringLiteral("zones-zoom")};
+        for (qsizetype i = 0; i < 13; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);
@@ -97,7 +98,7 @@ private slots:
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
         for (qsizetype i = 0; i < scenarios.size(); ++i) {
-            QCOMPARE(scenarios.at(i).toObject().contains("thumbnails"), i >= 9);
+            QCOMPARE(scenarios.at(i).toObject().contains("thumbnails"), i >= 9 && i <= 11);
         }
         const QJsonObject open = scenarios.at(9).toObject().value("thumbnails").toObject();
         QVERIFY2(open.value("renders").toInt(-1) >= 0, "thumbnails.renders absent");
@@ -112,6 +113,16 @@ private slots:
         QVERIFY2(pauses.value("renders").toInt(-1) >= 0, "thumbnails.renders absent");
         QVERIFY(pauses.value("max_copy_ms").toDouble(-1) >= 0);
         QCOMPARE(pauses.value("during_contact").toInt(-1), 0);
+    }
+
+    // L4-T28 : « zones-zoom » a posé ses 40 x 53 cadres avant la mesure (sinon le banc l'invalide).
+    void zonesZoomAppliedItsFrames()
+    {
+        const QJsonArray reasons = m_root.value("verdict").toObject().value("invalid_reasons").toArray();
+        for (const QJsonValue& reason : reasons) {
+            QVERIFY2(!reason.toString().contains(QStringLiteral("zones not applied")),
+                     qPrintable(reason.toString()));
+        }
     }
 
     // L4-T14 (S7.5) : « forme-page-annotee » pose k >= 10 formes, une insertion hors fin de page redessine le
