@@ -34,6 +34,28 @@ Toujours `pwsh -NoProfile` (jamais `powershell.exe` 5.1).
   - Les mesures de fluidité se font en preset `release` seulement ; un chiffre mesuré en `debug` ne prouve rien.
 - Tests obligatoires : tout code de `core/`, `formats/`, `actions/` modifié a ses tests. Rendu et interface :
   test de chargement + passage au banc.
+- Preuve Windows sans poste Windows (session sur le Mac, ou toute tâche dont la preuve exige MSVC) : job à la demande
+  `.github/workflows/preuves-windows.yml` sur `windows-latest` (MSVC `/W4 /WX` contrôlé dans `build.ninja`, preset
+  `release` par défaut, `ctest` ; ni banc ni rendu sur vrai GPU : ceux-là restent au PC). Piège : `workflow_dispatch`
+  prend le fichier dans la ref visée, la branche doit donc contenir `main` fusionné (après le lot B11 du chantier
+  mac-autonome) et être poussée sur `origin`. `tests` vide (option omise) = toute la suite ; sinon expression de
+  `ctest -R` (ex. `-f tests=tst_modules`) ; un motif qui ne trouve aucun test échoue (`noTestsAction: error`).
+  Le run dure 20 à 40 min : lancer la forme bornée en tâche de fond (`run_in_background: true` de l'outil Bash), jamais
+  au premier plan (l'appel coupe à 10 min) ; elle lance le run elle-même et rend la main à sa fin. Le journal recopie
+  le texte des `run:` : seule une ligne `<horodatage>Z PREUVES WINDOWS …` est un verdict, d'où l'ancre `[0-9]Z`.
+  - bash (Mac), forme bornée :
+    `mkdir -p .tmp && url=$(gh workflow run preuves-windows.yml --repo jejeasterix/actcraft --ref <branche> -f preset=release 2>&1 | grep -Eo 'https://github.com/[^ ]+/actions/runs/[0-9]+' | tail -1); id=${url##*/}; if [ -z "$id" ]; then echo 'code 2'; echo 'RUN INTROUVABLE : aucune URL rendue par gh workflow run, aucun run deviné'; else echo "run $id"; gh run watch "$id" --repo jejeasterix/actcraft --exit-status --interval 60 > .tmp/preuve-windows.txt 2>&1; echo "code $?"; gh run view "$id" --repo jejeasterix/actcraft --log | grep -E '[0-9]Z PREUVES WINDOWS (OK|EN ECHEC)' | tail -1; fi`
+  - pwsh (PC), forme bornée :
+    `New-Item -ItemType Directory -Force .tmp | Out-Null; $s = gh workflow run preuves-windows.yml --repo jejeasterix/actcraft --ref <branche> -f preset=release 2>&1 | Out-String; $id = [regex]::Match($s, 'actions/runs/(\d+)').Groups[1].Value; if (-not $id) { 'code 2'; 'RUN INTROUVABLE : aucune URL rendue par gh workflow run, aucun run deviné' } else { "run $id"; gh run watch $id --repo jejeasterix/actcraft --exit-status --interval 60 > .tmp/preuve-windows.txt 2>&1; "code $LASTEXITCODE"; gh run view $id --repo jejeasterix/actcraft --log | Select-String '[0-9]Z PREUVES WINDOWS (OK|EN ECHEC)' | Select-Object -Last 1 }`
+  - Réussite : `code 0` et dernière ligne de verdict `PREUVES WINDOWS OK`. Échec : `code` ≠ 0 et
+    `PREUVES WINDOWS EN ECHEC : <étape>` (l'étape tombée : `Compiler` pour un avertissement sous `/WX`, `Vérifier /W4 /WX`,
+    `Tester`…), détail par `gh run view <id> --log-failed`
+    (`<id>` : ligne `run <id>`). `code` ≠ 0 sans ligne de verdict, ou avec une ligne `EN ECHEC` finissant par `(annulé)` ou `run annulé` : job coupé (délai de 40 min dépassé, ou annulé par un run plus récent sur la même ref, le même preset et le même motif : `cancel-in-progress`) ;
+    `gh run view <id> --repo jejeasterix/actcraft --json conclusion` dit `cancelled` ou `failure` ; ce n'est pas un
+    verdict sur le code : relancer seul, une preuve à la fois par ref. `code 2` et `RUN INTROUVABLE` : `gh workflow run` n'a rendu
+    aucune URL ; ne pas prendre « le dernier run » de `gh run list` (il peut être plus ancien). Vérifier `gh --version`
+    (2.103.2 rend l'URL ; version minimale exacte non vérifiée) et mettre gh à jour ; un run a pu partir quand même :
+    une seule relance, jamais en boucle.
 
 ## Preuve visuelle
 
@@ -100,8 +122,10 @@ Locaux, jamais publiés hors du go de la release (décisions 26 à 33 du cadrage
   Émulateur local ou CI : `docs/verifications/2026-10-14-outillage-paquets.md`.
 - Licences : `scripts/verifier-licences.ps1` (appelé par les deux scripts de paquet ; liste
   `packaging/qt-autorises.txt`).
-- CI : jobs `paquet-windows` (S1) et `android` (S3, émulateur KVM) à chaque PR, sans téléversement. Essai de CI sans
-  PR : push d'une branche `essai-ci/<sujet>`, puis suppression de la branche.
+- CI : jobs `paquet-windows` (S1) et `android` (S3, émulateur KVM) à chaque PR, sans téléversement. Plus de CI sur
+  push (ni `main` ni `essai-ci/**`, lot B11 du chantier mac-autonome). Essai de CI sans PR :
+  `gh workflow run ci.yml --repo jejeasterix/actcraft --ref <branche>` (branche poussée, avec `main` fusionné) ;
+  preuve Windows seule : commande « Preuve Windows » (section Build et tests).
 - Release : `.github/workflows/release.yml`. Tag `v<version>` (action finale, go écrit) → brouillon avec
   installateur, APK `arm64-v8a` signé par la clé de release, `SHA256SUMS.txt`, notes de `CHANGELOG.md`
   (`scripts/notes-version.ps1`, `NOTES OK`). Sans les secrets de signature, le mode réel échoue avant toute
