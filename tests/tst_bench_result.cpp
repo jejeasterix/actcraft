@@ -55,14 +55,15 @@ private slots:
     void lot4bScenariosWithFrames()
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
-        QCOMPARE(scenarios.size(), 11);
+        QCOMPARE(scenarios.size(), 12);
         const QStringList names{QStringLiteral("stroke"),          QStringLiteral("zoom"),
                                 QStringLiteral("scroll"),          QStringLiteral("page"),
                                 QStringLiteral("pauses"),          QStringLiteral("gommer"),
                                 QStringLiteral("soulever"),        QStringLiteral("forme-page-annotee"),
                                 QStringLiteral("grille-dessus"),   QStringLiteral("miniatures"),
-                                QStringLiteral("miniatures-ferme")};
-        for (qsizetype i = 0; i < 11; ++i) {
+                                QStringLiteral("miniatures-ferme"),
+                                QStringLiteral("miniatures-pauses")};
+        for (qsizetype i = 0; i < 12; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);
@@ -106,6 +107,11 @@ private slots:
         QCOMPARE(closed.value("renders").toInt(-1), 0);
         QCOMPARE(closed.value("during_contact").toInt(-1), 0);
         QVERIFY(closed.contains("max_copy_ms"));
+        // Variante sur « pauses » (amendement 1) : panneau ouvert, mêmes bornes que « miniatures ».
+        const QJsonObject pauses = scenarios.at(11).toObject().value("thumbnails").toObject();
+        QVERIFY2(pauses.value("renders").toInt(-1) >= 0, "thumbnails.renders absent");
+        QVERIFY(pauses.value("max_copy_ms").toDouble(-1) >= 0);
+        QCOMPARE(pauses.value("during_contact").toInt(-1), 0);
     }
 
     // L4-T14 (S7.5) : « forme-page-annotee » pose k >= 10 formes, une insertion hors fin de page redessine le

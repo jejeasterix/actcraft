@@ -5,6 +5,7 @@
 #include <actcraft/core/hittest.h>
 #include <actcraft/render/paintedrenderer.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/pagethumbnails.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <QTest>
@@ -125,8 +126,8 @@ private slots:
         // L2-T23 : « page » ; L10-T1 : « pauses » ; L3-T19 : « gommer » et « soulever », en dernier (le
         // compte passe de 5 à 7 : les cinq premiers gardent leur nom et leur ordre). L4-T14 : « forme-page-
         // annotee » et « grille-dessus » après eux (le compte passe de 7 à 9 : les sept premiers inchangés).
-        // L4-T29 : « miniatures » et « miniatures-ferme » après eux (le compte passe de 9 à 11).
-        QCOMPARE(plans.size(), std::size_t{11});
+        // L4-T29 : « miniatures » et « miniatures-ferme » après eux (le compte passe de 9 à 11), puis « miniatures-pauses » (12).
+        QCOMPARE(plans.size(), std::size_t{12});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
@@ -138,6 +139,7 @@ private slots:
         QCOMPARE(plans[8].name, QStringLiteral("grille-dessus"));
         QCOMPARE(plans[9].name, QStringLiteral("miniatures"));
         QCOMPARE(plans[10].name, QStringLiteral("miniatures-ferme"));
+        QCOMPARE(plans[11].name, QStringLiteral("miniatures-pauses"));
         for (std::size_t i = 0; i < 5; ++i) {
             QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
             QVERIFY(plans[i].seedStrokes.empty());
@@ -173,6 +175,44 @@ private slots:
                 QCOMPARE(plan.inputs[i].pagePos, stroke.inputs[i].pagePos);
                 QCOMPARE(plan.inputs[i].kind, stroke.inputs[i].kind);
                 QCOMPARE(plan.inputs[i].measured, stroke.inputs[i].measured);
+            }
+        }
+    }
+
+    // L4-T29 (amendement 1) : variante sur « pauses » : les traits de « pauses » joués panneau ouvert, pour
+    // que les rendus (400 ms après la dernière modification) tombent dans les pauses ; ses figements sont
+    // comparés à ceux de « pauses » sans panneau, dans le même JSON.
+    void thumbnailsPausesVariant()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan plan = bench::thumbnailsPausesScenario(set);
+            const bench::ScenarioPlan pauses = bench::pausesScenario(set);
+            QCOMPARE(plan.name, QStringLiteral("miniatures-pauses"));
+            QCOMPARE(plan.generatedPages, bench::kThumbnailPages);
+            QVERIFY(plan.measuresThumbnails);
+            QVERIFY(plan.browsersOpen);
+            QCOMPARE(plan.setupCommands.size(), std::size_t{1});
+            QCOMPARE(plan.setupCommands[0].first, QStringLiteral("view.browsers"));
+            QCOMPARE(plan.teardownCommands.size(), std::size_t{1});
+            QVERIFY(plan.toolCommand.isEmpty());
+            QVERIFY(!plan.freezeExempt);
+            QCOMPARE(plan.maxCacheRefreshes, -1);
+            QVERIFY(!plan.awaitFinalFold); // propre à « pauses » (onlyPausesAwaitsItsFinalFold)
+            QCOMPARE(plan.inputs.size(), pauses.inputs.size());
+            for (std::size_t i = 0; i < plan.inputs.size(); ++i) {
+                QCOMPARE(plan.inputs[i].offsetNs, pauses.inputs[i].offsetNs);
+                QCOMPARE(plan.inputs[i].pagePos, pauses.inputs[i].pagePos);
+                QCOMPARE(plan.inputs[i].kind, pauses.inputs[i].kind);
+            }
+            // Chaque pause laisse le temps d'un rendu de miniature.
+            std::int64_t lastRelease = -1;
+            for (const auto& in : plan.inputs) {
+                if (in.kind == InputKind::TabletPress && lastRelease >= 0) {
+                    QVERIFY(in.offsetNs - lastRelease >= std::int64_t{ui::PageThumbnails::kSettleMs} * 1'000'000);
+                }
+                if (in.kind == InputKind::TabletRelease) {
+                    lastRelease = in.offsetNs;
+                }
             }
         }
     }
