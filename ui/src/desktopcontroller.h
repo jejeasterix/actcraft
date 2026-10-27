@@ -20,13 +20,16 @@ namespace actcraft::ui {
 // Le contrôleur POSSÈDE le paperboard du bureau (`desktopDocument`) : un DocumentController à part, créé une
 // fois et gardé d'une activation à l'autre (P14), jamais le document ouvert (`openDocument`, celui que
 // Presentation.qml passe à la racine) ; ses pages sont transparentes (P13). Il crée lui-même la fenêtre
-// d'annotation depuis le Component de la racine : beginCreate, format à canal alpha et couleur transparente
-// posés sur la QQuickWindow AVANT sa création native, completeCreate, puis show (une fenêtre créée par
-// createObject en QML naîtrait avec le format par défaut, sans alpha). Fenêtre fermée et détruite à la
-// désactivation ; le paperboard reste.
+// d'annotation depuis le Component de la racine : beginCreate, format à canal alpha (explicite, demandé par
+// 7b ; setColor(Qt::transparent) le demande aussi) et couleur transparente posés sur la QQuickWindow avant sa
+// création native, completeCreate, puis show. À chaque ouverture, les pages prennent la taille de l'écran. Un
+// trait en cours est versé sur sa page avant tout changement de page et avant la fermeture (comme Main.qml).
+// Fenêtre fermée et détruite à la désactivation ; le paperboard reste.
 //
 // Fonds de bureau : la capture (image figée, ressource PNG du document, une étape) vise la page affichée du
-// paperboard actif (celui du bureau pendant l'annotation, sinon le document ouvert) ; la superposition
+// paperboard actif (celui du bureau pendant l'annotation, sinon le document ouvert) ; nos fenêtres visibles
+// sont masquées le temps de la saisie puis rendues dans leur état (la capture ne montre rien d'ActCraft) ; la
+// superposition
 // (bureau vivant) est un état de la vue, porté par UNE page du paperboard du bureau (P22), jamais écrit dans
 // le document : enregistrer écrit le fond d'origine.
 class DesktopController : public QObject
@@ -85,6 +88,9 @@ signals:
 private:
     bool openWindow(); // faux sans Component prêt ou s'il ne rend pas une QQuickWindow
     void closeWindow();
+    void finishStroke();     // trait en cours de la vue de la fenêtre, versé sur sa page
+    void fitPagesToScreen(); // toutes les pages à la taille de l'écran principal, en une étape, si besoin
+    QImage grabWithoutOurWindows();
     Qt::WindowFlags windowFlags() const noexcept;
     DocumentController* activeDocument() const noexcept;
     void
@@ -98,6 +104,7 @@ private:
     bool m_annotating = false;
     bool m_passThrough = false;
     bool m_live = false;
+    bool m_hidingForCapture = false;      // fenêtre masquée pour la saisie : ce n'est pas une fermeture
     std::vector<std::size_t> m_livePages; // pages du paperboard du bureau qui portent la superposition
     CaptureSource m_capture;
 };

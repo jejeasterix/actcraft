@@ -3,6 +3,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/undo.h>
+#include <actcraft/ui/pageview.h>
 
 #include <QBuffer>
 #include <QByteArray>
@@ -15,13 +16,16 @@
 #include <QScreen>
 #include <QSizeF>
 #include <QSurfaceFormat>
+#include <QThread>
 #include <QUrl>
+#include <QWindow>
 #include <QtQml/qqml.h>
 
 #include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace actcraft::ui {
 
@@ -115,6 +119,45 @@ private:
     core::Background m_before;
 };
 
+// m6 : toutes les pages à une taille donnée (celle de l'écran), en une étape ; annuler rend les tailles
+// d'avant.
+class ResizePagesCommand final : public core::UndoCommand
+{
+public:
+    ResizePagesCommand(double width, double height) : m_width(width), m_height(height) {}
+
+    void redo(core::Document& document, core::Changes& changes) override
+    {
+        m_before.clear();
+        for (std::size_t i = 0; i < document.pageCount(); ++i) {
+            core::Page& page = document.page(i);
+            m_before.emplace_back(page.width, page.height);
+            page.width = m_width;
+            page.height = m_height;
+            changes.push_back(pageChange(core::Change::Kind::PageChanged, i));
+        }
+    }
+
+    void undo(core::Document& document, core::Changes& changes) override
+    {
+        for (std::size_t i = 0; i < document.pageCount() && i < m_before.size(); ++i) {
+            core::Page& page = document.page(i);
+            page.width = m_before[i].first;
+            page.height = m_before[i].second;
+            changes.push_back(pageChange(core::Change::Kind::PageChanged, i));
+        }
+    }
+
+private:
+    double m_width;
+    double m_height;
+    std::vector<std::pair<double, double>> m_before;
+};
+
+// Une fenêtre masquée quitte l'écran à l'image suivante du compositeur, après l'éventuelle transition de
+// Windows : la saisie de l'écran attend ce délai (captureBackground vient de masquer nos fenêtres).
+constexpr unsigned long kHiddenWindowsSettleMs = 250;
+
 QByteArray pngOf(const QImage& image)
 {
     QByteArray bytes;
@@ -128,7 +171,11 @@ QByteArray pngOf(const QImage& image)
 QImage grabPrimaryScreen()
 {
     QScreen* screen = QGuiApplication::primaryScreen();
-    return screen ? screen->grabWindow(0).toImage() : QImage();
+    if (!screen) {
+        return QImage();
+    }
+    QThread::msleep(kHiddenWindowsSettleMs);
+    return screen->grabWindow(0).toImage();
 }
 
 QSizeF primaryScreenSize()
@@ -150,6 +197,9 @@ DesktopController::DesktopController(QObject* parent)
     m_desktop->addChangeObserver(
         [this](const core::Changes& changes, DocumentController::ChangeOrigin) { followPages(changes); });
     connect(m_desktop, &DocumentController::pagesChanged, this, &DesktopController::updateLive);
+    // Comme Main.qml pour le document ouvert : page suivante ou précédente pendant un trait (doigt sur la
+    // barre, télécommande), le trait se termine et reste sur sa page.
+    connect(m_desktop, &DocumentController::pageAboutToChange, this, &DesktopController::finishStroke);
     connect(m_desktop, &DocumentController::documentReplaced, this, [this] {
         m_livePages.clear();
         updateLive();
@@ -255,6 +305,7 @@ void DesktopController::toggle()
 
 void DesktopController::nextPage()
 {
+    finishStroke(); // avant la page insérée : le trait la précède dans l'historique
     const core::Document& document = m_desktop->document();
     const auto current = static_cast<std::size_t>(m_desktop->currentIndex());
     if (current >= document.pageCount()) {
@@ -282,7 +333,7 @@ bool DesktopController::captureBackground()
     if (!target || !m_capture) {
         return false;
     }
-    const QImage image = m_capture();
+    const QImage image = grabWithoutOurWindows();
     if (image.isNull()) {
         return false;
     }
@@ -318,6 +369,7 @@ bool DesktopController::openWindow()
     if (!m_component || !m_component->isReady()) {
         return false;
     }
+    fitPagesToScreen(); // résolution changée depuis la dernière ouverture
     QQmlContext* context = m_component->creationContext();
     if (!context) {
         context = qmlContext(this);
@@ -344,9 +396,9 @@ bool DesktopController::openWindow()
         window->setGeometry(screen->geometry());
     }
     // Fermée par le système (Alt+F4…) : l'annotation s'arrête, hors du traitement de l'événement.
-    // (closeWindow se déconnecte avant de la cacher.)
+    // (closeWindow se déconnecte avant de la cacher ; masquée pour une capture, elle reste ouverte.)
     connect(window, &QWindow::visibleChanged, this, [this](bool visible) {
-        if (!visible) {
+        if (!visible && !m_hidingForCapture) {
             static_cast<void>(
                 QMetaObject::invokeMethod(this, [this] { setAnnotating(false); }, Qt::QueuedConnection));
         }
@@ -362,6 +414,7 @@ void DesktopController::closeWindow()
     if (!m_window) {
         return;
     }
+    finishStroke(); // la vue part avec la fenêtre : le trait en cours est versé d'abord
     QQuickWindow* window = m_window.data();
     m_window = nullptr;
     emit windowChanged();
@@ -370,6 +423,63 @@ void DesktopController::closeWindow()
     window->hide();
     window->deleteLater();
     setPassThrough(false);
+}
+
+void DesktopController::finishStroke()
+{
+    if (!m_window) {
+        return;
+    }
+    if (auto* view = m_window->findChild<PageView*>(QStringLiteral("pageView"))) {
+        view->finishStroke();
+    }
+}
+
+void DesktopController::fitPagesToScreen()
+{
+    const QSizeF size = primaryScreenSize();
+    const core::Document& document = m_desktop->document();
+    for (std::size_t i = 0; i < document.pageCount(); ++i) {
+        const core::Page& page = document.page(i);
+        if (page.width != size.width() || page.height != size.height()) {
+            m_desktop->execute(std::make_unique<ResizePagesCommand>(size.width(), size.height()));
+            return;
+        }
+    }
+}
+
+QImage DesktopController::grabWithoutOurWindows()
+{
+    struct Shown
+    {
+        QPointer<QWindow> window;
+        Qt::WindowStates states;
+    };
+    std::vector<Shown> shown;
+    const QPointer<QWindow> focused = QGuiApplication::focusWindow();
+    m_hidingForCapture = true;
+    const QWindowList windows = QGuiApplication::topLevelWindows();
+    for (QWindow* window : windows) {
+        if (window->isVisible()) {
+            shown.push_back({window, window->windowStates()});
+            window->hide();
+        }
+    }
+    const QImage image = m_capture();
+    for (const Shown& entry : shown) {
+        if (!entry.window) {
+            continue;
+        }
+        entry.window->setVisible(true);
+        if (entry.window->windowStates() != entry.states) {
+            entry.window->setWindowStates(entry.states);
+        }
+    }
+    if (focused) {
+        focused->requestActivate();
+    }
+    m_hidingForCapture = false;
+    return image;
 }
 
 Qt::WindowFlags DesktopController::windowFlags() const noexcept

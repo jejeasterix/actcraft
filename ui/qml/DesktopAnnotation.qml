@@ -104,7 +104,14 @@ Item {
                     Button {
                         objectName: "desktopCloseButton"
                         text: qsTr("Fermer")
-                        onClicked: desktopController.annotating = false
+                        // Commande nommée de l'application (cochable) ; sans elle (démontage), le contrôleur.
+                        onClicked: {
+                            if (root.commands) {
+                                root.commands.trigger("desktop.annotate")
+                            } else {
+                                desktopController.annotating = false
+                            }
+                        }
                     }
                 }
 

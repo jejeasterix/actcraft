@@ -93,7 +93,8 @@ void strokeInDesktopWindow(DesktopController* desktop, Pointer pointer)
                                   QPointF(size.width() * 0.6, size.height() * 0.55));
 }
 
-// Trait au stylet commencé au milieu de la fenêtre d'annotation, pas encore relâché ; rend le point du relâché.
+// Trait au stylet commencé au milieu de la fenêtre d'annotation, pas encore relâché ; rend le point du
+// relâché.
 QPointF beginStylusStroke(QQuickWindow* window)
 {
     const QSizeF size = window->size();
@@ -120,8 +121,8 @@ class TstUiDesktop : public QObject
 private slots:
     // Fenêtre créée par le contrôleur : sans cadre, toujours devant, couleur transparente, surface à canal
     // alpha demandée avant sa création native. Le format explicite (setFormat, demandé par 7b) double
-    // setColor(Qt::transparent), qui demande déjà ce canal : retirer setFormat est un mutant équivalent ; seule
-    // la vue à l'écran en D3D11 prouve la transparence. Mutant : drapeau « toujours devant » retiré.
+    // setColor(Qt::transparent), qui demande déjà ce canal : retirer setFormat est un mutant équivalent ;
+    // seule la vue à l'écran en D3D11 prouve la transparence. Mutant : drapeau « toujours devant » retiré.
     void annotationWindowIsTransparentAndAbove()
     {
         MainWindow main;
@@ -357,11 +358,11 @@ private slots:
     }
 
     // Chaque pointeur : le trait sur la fenêtre de bureau est versé dans le paperboard du bureau, la page
-    // principale reste inchangée ; un trait commencé sur la barre de la fenêtre n'est pas versé. Le stylet est
-    // pris par le filtre de la fenêtre avant tout élément : seule la couverture déclarée par la racine l'arrête
-    // (témoin : couverture retirée, le même trait est versé). La souris et le doigt vont d'abord à la
-    // MouseArea de la barre, couverture ou non. Mutants : documentController de la racine (document ouvert) ;
-    // barre jamais déclarée couverture (M9).
+    // principale reste inchangée ; un trait commencé sur la barre de la fenêtre n'est pas versé. Le stylet
+    // est pris par le filtre de la fenêtre avant tout élément : seule la couverture déclarée par la racine
+    // l'arrête (témoin : couverture retirée, le même trait est versé). La souris et le doigt vont d'abord à
+    // la MouseArea de la barre, couverture ou non. Mutants : documentController de la racine (document
+    // ouvert) ; barre jamais déclarée couverture (M9).
     void desktopWindowTakesEveryPointer_data() { presentationharness::addPointerRows(); }
     void desktopWindowTakesEveryPointer()
     {
@@ -380,11 +381,14 @@ private slots:
         QVERIFY(view);
         const QString openBefore = open->fingerprintText();
         const int mainObjects = main.pageObjectCount();
-        QQuickItem* toolbar = presentationharness::findItem(window->contentItem(), QStringLiteral("desktopToolbar"));
+        QQuickItem* toolbar =
+            presentationharness::findItem(window->contentItem(), QStringLiteral("desktopToolbar"));
         QVERIFY(toolbar);
-        const qreal middle = toolbar->height() / 2;
-        const QPointF start = toolbar->mapToScene(QPointF(3, middle));
-        const QPointF end = toolbar->mapToScene(QPointF(-150, middle));
+        // Appui dans la marge haute de la barre, près de son bord droit : hors écran (800 x 800), la barre,
+        // plus large que l'écran, déborde à gauche et son bord gauche est hors de la fenêtre (cause de M9
+        // survivant).
+        const QPointF start = toolbar->mapToScene(QPointF(toolbar->width() - 40, 3));
+        const QPointF end = toolbar->mapToScene(QPointF(toolbar->width() - 200, -150));
         // L'appui est sur la vue : sans couverture, le filtre du stylet le prendrait.
         const QRectF viewRect = view->mapRectToScene(view->boundingRect());
         QVERIFY2(view->contains(view->mapFromScene(start)),
@@ -415,8 +419,8 @@ private slots:
         QCOMPARE(main.pageObjectCount(), mainObjects);
     }
 
-    // F2 : un trait en cours est versé sur sa page avant tout changement de page du paperboard du bureau (comme
-    // Main.qml pour le document ouvert : pageAboutToChange → finishStroke), par la barre comme par le
+    // F2 : un trait en cours est versé sur sa page avant tout changement de page du paperboard du bureau
+    // (comme Main.qml pour le document ouvert : pageAboutToChange → finishStroke), par la barre comme par le
     // paperboard lui-même. Mutant : rien n'écoute pageAboutToChange.
     void strokeInProgressEndsBeforePageChange()
     {
@@ -515,8 +519,8 @@ private slots:
         QVERIFY(!shownPage(*desktop->desktopDocument()).background.image.empty());
     }
 
-    // m6 : le paperboard du bureau prend la taille de l'écran à chaque ouverture (résolution changée entre deux
-    // activations), toutes ses pages, son contenu gardé. Mutant : taille figée à la construction.
+    // m6 : le paperboard du bureau prend la taille de l'écran à chaque ouverture (résolution changée entre
+    // deux activations), toutes ses pages, son contenu gardé. Mutant : taille figée à la construction.
     void desktopPaperboardTakesTheScreenSize()
     {
         MainWindow main;
