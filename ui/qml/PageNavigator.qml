@@ -26,7 +26,7 @@ Item {
     readonly property bool currentVisible: root.visibleNow
     function refreshVisible() {
         const item = list.itemAtIndex(root.documentController.currentIndex)
-        root.visibleNow = item !== null && item.y >= list.contentY - 0.5
+        root.visibleNow = root.visible && item !== null && item.y >= list.contentY - 0.5
                           && item.y + item.height <= list.contentY + list.height + 0.5
     }
     Connections {
@@ -59,9 +59,6 @@ Item {
             Qt.callLater(root.showCurrent)
             Qt.callLater(root.refreshVisible)
         }
-    }
-    function touchTick() {
-        root.refreshVisible()
     }
     // Jamais de repositionnement de la liste sous un appui ou un défilement au doigt : la demande est gardée et
     // jouée au relâché (flushShow).
@@ -205,8 +202,9 @@ Item {
             onTranslationChanged: {
                 if (!active)
                     return
-                const max = Math.max(0, list.contentHeight - list.height)
-                list.contentY = Math.max(0, Math.min(max, startY - translation.y))
+                const low = list.originY
+                const high = low + Math.max(0, list.contentHeight - list.height)
+                list.contentY = Math.max(low, Math.min(high, startY - activeTranslation.y))
             }
         }
 
@@ -250,6 +248,8 @@ Item {
                 area.dragging = false
                 area.deferred = false
                 area.scrolled = false
+                // mouse.source reste le seul moyen sûr : un PointHandler tactile n'est pas encore actif à l'arrivée de la
+                // souris synthétisée (mesuré : le glisser au doigt cliquait alors la page sous le doigt).
                 area.touch = mouse.source !== Qt.MouseEventNotSynthesized
                 if (index < 0)
                     return
@@ -298,8 +298,9 @@ Item {
                 root.flushShow()
             }
             onWheel: wheel => {
-                const max = Math.max(0, list.contentHeight - list.height)
-                list.contentY = Math.max(0, Math.min(max, list.contentY - wheel.angleDelta.y / 2))
+                const low = list.originY
+                const high = low + Math.max(0, list.contentHeight - list.height)
+                list.contentY = Math.max(low, Math.min(high, list.contentY - wheel.angleDelta.y / 2))
             }
         }
     }
@@ -336,9 +337,9 @@ Item {
             width: list.width
             height: shownWidth * aspect + 2 * root.cellPad
             // Reporté : le délégué n'est dans la liste (itemAtIndex) qu'après sa création.
-            Component.onCompleted: Qt.callLater(root.touchTick)
-            onHeightChanged: Qt.callLater(root.touchTick)
-            onYChanged: Qt.callLater(root.touchTick)
+            Component.onCompleted: Qt.callLater(root.refreshVisible)
+            onHeightChanged: Qt.callLater(root.refreshVisible)
+            onYChanged: Qt.callLater(root.refreshVisible)
 
             Rectangle {
                 x: Theme.espace2
