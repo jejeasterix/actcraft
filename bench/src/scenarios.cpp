@@ -455,6 +455,19 @@ ScenarioPlan thumbnailsScenario(ScenarioSet set)
     return plan;
 }
 
+ScenarioPlan thumbnailsPausesScenario(ScenarioSet set)
+{
+    ScenarioPlan plan = pausesScenario(set);
+    plan.name = QStringLiteral("miniatures-pauses");
+    plan.generatedPages = kThumbnailPages;
+    plan.awaitFinalFold = false; // propre à « pauses » ; la mesure attend le rendu de miniature (runner.cpp)
+    plan.measuresThumbnails = true;
+    plan.browsersOpen = true;
+    plan.setupCommands.emplace_back(QStringLiteral("view.browsers"), QVariant());
+    plan.teardownCommands.emplace_back(QStringLiteral("view.browsers"), QVariant());
+    return plan;
+}
+
 ScenarioPlan closedThumbnailsScenario(ScenarioSet set)
 {
     ScenarioPlan plan = strokeScenario(set);
@@ -510,7 +523,8 @@ std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
             shapeScenario(set),
             gridAboveScenario(set),
             thumbnailsScenario(set),
-            closedThumbnailsScenario(set)};
+            closedThumbnailsScenario(set),
+            thumbnailsPausesScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()

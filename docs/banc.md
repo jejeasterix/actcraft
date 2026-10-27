@@ -88,21 +88,22 @@ aucun autre scénario ne trace de forme. Le JSON relève, au niveau du scénario
 relâché de chaque forme), `p95_ms` et `max_ms` les intervalles qui précèdent ces images. C'est un résultat, jamais
 une porte (hors budget, H4-8).
 
-Lot 4b (L4-T29, S7.5, amendements 1 et 5) : deux scénarios s'ajoutent après `grille-dessus`, les neuf premiers
-inchangés (le banc en joue onze). Ils mesurent que les miniatures du navigateur de pages ne figent pas l'écriture.
+Lot 4b (L4-T29, S7.5, amendements 1 et 5) : trois scénarios s'ajoutent après `grille-dessus`, les neuf premiers
+inchangés (le banc en joue douze). Ils mesurent que les miniatures du navigateur de pages ne figent pas l'écriture.
 
 | Scénario | Contenu | Attendu relevé |
 |---|---|---|
 | `miniatures` | les traits de `stroke`, **panneau des navigateurs ouvert** (`view.browsers` avant la mesure, refermé après) ; page générée et trois pages de plus (4 pages), pour que le navigateur ait des miniatures à tenir à jour | `thumbnails.renders` ≥ 1 **dans la fenêtre mesurée**, `thumbnails.during_contact` = 0, `thumbnails.max_copy_ms` relevé ; figements et latence comparés à `stroke` |
 | `miniatures-ferme` | même plan, même document de 4 pages, **sans** `view.browsers` : le panneau reste fermé | `thumbnails.renders` = 0 dans la fenêtre mesurée (aucun rendu panneau fermé, L4-T19), `thumbnails.during_contact` = 0 ; figements et latence comparés à `stroke` |
+| `miniatures-pauses` | variante sur `pauses` (amendement 1) : les traits de `pauses` (pauses de 500 ms et plus, donc plus longues que les 400 ms de `kSettleMs`), panneau ouvert, 4 pages : les rendus tombent dans les pauses | `thumbnails.renders` relevé, `thumbnails.during_contact` = 0 ; ses figements se comparent à ceux de `pauses` (sans panneau), dans le même JSON ; ne ferme pas sa mesure sur le versement différé, propre à `pauses` |
 
-Les deux sont jugés comme `stroke` (figements compris, aucun attendu sur `cache.refreshes`). Avant la mesure, le
+Les deux premiers sont jugés comme `stroke` (figements compris, aucun attendu sur `cache.refreshes`). Avant la mesure, le
 banc vérifie l'état réel du panneau (`appThumbnails.active`) et, panneau ouvert, attend que les miniatures soient
 à jour (`pendingCount` = 0) : les rendus de l'ouverture ne comptent donc pas. Le dernier trait laisse sa miniature à
 refaire 400 ms plus tard (`PageThumbnails::kSettleMs`) ; panneau ouvert, la mesure attend ce rendu avant de se
 fermer, pour qu'il tombe dans la fenêtre.
 
-**Clé `thumbnails`** (ces deux scénarios seulement). `"thumbnails": {"renders": n, "max_copy_ms": x,
+**Clé `thumbnails`** (ces trois scénarios seulement). `"thumbnails": {"renders": n, "max_copy_ms": x,
 "during_contact": k}` : `renders` = rendus terminés entre le début et la fin de la mesure (`renderCount`) ;
 `during_contact` = somme des hausses de `launchCount` (rendus **lancés**) entre un appui et son relâché, lues à
 chaque changement de contact et de rendu ; `max_copy_ms` = la plus longue copie de page sur le fil principal
