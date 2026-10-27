@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <vector>
 
 namespace actcraft::ui {
 
@@ -32,6 +33,12 @@ class TextEditing : public QObject
                    setDocumentController NOTIFY wiringChanged)
     Q_PROPERTY(actcraft::ui::PageView* view READ view WRITE setView NOTIFY wiringChanged)
     Q_PROPERTY(QQuickTextDocument* textDocument READ textDocument WRITE setTextDocument NOTIFY wiringChanged)
+    // Texte de haut en bas (L4-C17) : document du TextEdit qui montre la colonne pendant la frappe. Il reçoit
+    // une copie du texte édité, mise en page par le peintre (render::layOutVerticalColumn) : l'édition montre
+    // le résultat validé, espaces compris, sans toucher au document édité (texte, curseur, sélection,
+    // annulation).
+    Q_PROPERTY(
+        QQuickTextDocument* columnDocument READ columnDocument WRITE setColumnDocument NOTIFY wiringChanged)
     Q_PROPERTY(int selectionStart READ selectionStart WRITE setSelectionStart NOTIFY formatChanged)
     Q_PROPERTY(int selectionEnd READ selectionEnd WRITE setSelectionEnd NOTIFY formatChanged)
     Q_PROPERTY(bool active READ isActive NOTIFY activeChanged)
@@ -58,6 +65,8 @@ public:
     void setView(PageView* view);
     QQuickTextDocument* textDocument() const noexcept;
     void setTextDocument(QQuickTextDocument* document);
+    QQuickTextDocument* columnDocument() const noexcept;
+    void setColumnDocument(QQuickTextDocument* document);
     int selectionStart() const noexcept;
     void setSelectionStart(int position);
     int selectionEnd() const noexcept;
@@ -83,6 +92,11 @@ public:
     Q_INVOKABLE void apply(const QString& command, const QVariant& argument);
     Q_INVOKABLE void setFrameWidth(qreal width); // poignée d'extension (page)
     Q_INVOKABLE void moveFrame(QPointF delta);   // poignée de déplacement (page)
+    // Position du texte édité dans la colonne montrée, qui compte les séparateurs ajoutés pour l'affichage :
+    // au bout de la ligne de la lettre précédente, ou (lineStart) au début de la ligne suivante. Et
+    // l'inverse.
+    Q_INVOKABLE int columnPosition(int position, bool lineStart) const;
+    Q_INVOKABLE int editPosition(int columnPosition) const;
 
 signals:
     void wiringChanged();
@@ -90,6 +104,7 @@ signals:
     void frameChanged();
     void formatChanged();
     void focusRequested();
+    void columnChanged(); // la colonne montrée a été remise à jour
 
 private:
     QTextDocument* editDocument() const; // document du TextEdit ; nullptr sans textDocument
@@ -106,8 +121,10 @@ private:
     QPointer<DocumentController> m_controller;
     QPointer<PageView> m_view;
     QPointer<QQuickTextDocument> m_document;
-    QPointer<QTextDocument> m_watched; // document dont contentsChanged recalcule le cadre
-    core::ObjectId m_editing = 0;      // 0 : texte neuf
+    QPointer<QTextDocument> m_watched;     // document dont contentsChanged recalcule le cadre
+    QPointer<QQuickTextDocument> m_column; // colonne montrée d'un texte de haut en bas
+    std::vector<int> m_columnCuts;         // positions du texte édité où l'affichage ajoute un séparateur
+    core::ObjectId m_editing = 0;          // 0 : texte neuf
     bool m_active = false;
     bool m_vertical = false;
     QRectF m_frame;

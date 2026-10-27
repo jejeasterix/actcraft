@@ -352,6 +352,31 @@ void TextEditing::setTextDocument(QQuickTextDocument* document)
     emit wiringChanged();
 }
 
+QQuickTextDocument* TextEditing::columnDocument() const noexcept
+{
+    return m_column;
+}
+
+void TextEditing::setColumnDocument(QQuickTextDocument* document)
+{
+    if (m_column == document) {
+        return;
+    }
+    m_column = document;
+    emit wiringChanged();
+}
+
+int TextEditing::columnPosition(int position, bool lineStart) const
+{
+    (void)lineStart;
+    return position;
+}
+
+int TextEditing::editPosition(int columnPosition) const
+{
+    return columnPosition;
+}
+
 int TextEditing::selectionStart() const noexcept
 {
     return m_selectionStart;
