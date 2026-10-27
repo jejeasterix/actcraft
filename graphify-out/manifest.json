@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1793075131.9948566,
-    "ast_hash": "9bd38c611fd47d1242ca26d1baed6e54",
+    "mtime": 1793088625.1311018,
+    "ast_hash": "6bb46af3e7c27d42abc4c10e4cddfaaa",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2515,8 +2515,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_desktop.cpp": {
-    "mtime": 1793074931.9435275,
-    "ast_hash": "fe781b7590689b6571ff42ed11e907b4",
+    "mtime": 1793099430.0211213,
+    "ast_hash": "5a2e5e3a86218c0f15e4eec4235c8e6b",
     "semantic_hash": ""
   },
   "tests/tst_ui_dice.cpp": {
@@ -2725,13 +2725,13 @@
     "semantic_hash": ""
   },
   "ui/src/desktopcontroller.cpp": {
-    "mtime": 1793074931.9454427,
-    "ast_hash": "7b24a0d7489a1a5dfde47c83f2705993",
+    "mtime": 1793099430.0306456,
+    "ast_hash": "d866de50592b10329c8d4a119d58004b",
     "semantic_hash": ""
   },
   "ui/src/desktopcontroller.h": {
-    "mtime": 1793074931.9454427,
-    "ast_hash": "cf7341f3e7fa949ff6f2c62e861c9b91",
+    "mtime": 1793099430.0316517,
+    "ast_hash": "523f41fcebd08d49e97db74c3ad5f147",
     "semantic_hash": ""
   },
   "features/include/actcraft/features/equationeditor.h": {
