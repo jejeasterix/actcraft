@@ -2,6 +2,7 @@
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/textedits.h>
+#include <actcraft/render/pagepainter.h>
 #include <actcraft/ui/textediting.h>
 
 #include <QAbstractTextDocumentLayout>
@@ -155,14 +156,31 @@ void cleanFrames(QTextFrame* frame)
     }
 }
 
-// Texte de haut en bas (H4-3, D9) : colonne d'un caractère. Même règle que le peintre
-// (render/src/pagepainter.cpp, layOutColumn) : largeur = plus grande avance d'un graphème, chacun à sa police
-// ; le peintre est la référence.
-double widestAdvance(const QTextDocument& document)
+// Texte de haut en bas (H4-3, D9) : la mise en page de la colonne est celle du peintre
+// (render::layOutVerticalColumn), la seule ; ici, sa mesure et la plus petite avance (largeur de repli de
+// l'éditeur).
+QSizeF columnSize(QTextDocument& document)
+{
+    render::layOutVerticalColumn(document);
+    return QSizeF(std::max(1.0, document.textWidth()), document.size().height());
+}
+
+// Colonne mesurée d'un HTML, sur un document isolé : le document édité n'est pas touché.
+QSizeF measuredColumn(const QString& html)
+{
+    AnalysisDocument measure{ResourceObserver()};
+    measure.setHtml(html);
+    return columnSize(measure);
+}
+
+// Plus petite avance d'un graphème du texte (au moins 1) : un TextEdit de cette largeur, qui compte aussi les
+// espaces de fin, met chaque graphème sur sa propre ligne.
+double narrowestAdvance(const QTextDocument& document)
 {
     const QFont base = document.defaultFont();
     const QPaintDevice* device = document.documentLayout()->paintDevice();
-    double widest = 0;
+    double narrowest = 0;
+    bool any = false;
     for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
         for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
             const QTextFragment fragment = it.fragment();
@@ -174,56 +192,14 @@ double widestAdvance(const QTextDocument& document)
             QTextBoundaryFinder graphemes(QTextBoundaryFinder::Grapheme, text);
             qsizetype start = 0;
             for (qsizetype end = graphemes.toNextBoundary(); end > start; end = graphemes.toNextBoundary()) {
-                widest = std::max(widest, metrics.horizontalAdvance(text.mid(start, end - start)));
+                const double advance = metrics.horizontalAdvance(text.mid(start, end - start));
+                narrowest = any ? std::min(narrowest, advance) : advance;
+                any = true;
                 start = end;
             }
         }
     }
-    return widest;
-}
-
-// Un séparateur de ligne entre deux graphèmes voisins : une lettre par ligne (comme le peintre).
-void separateLetters(QTextDocument& document)
-{
-    QTextCursor cursor(&document);
-    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
-        const QString text = block.text();
-        QTextBoundaryFinder graphemes(QTextBoundaryFinder::Grapheme, text);
-        std::vector<qsizetype> cuts;
-        for (qsizetype end = graphemes.toNextBoundary(); end > 0 && end < text.size();
-             end = graphemes.toNextBoundary()) {
-            if (text[end - 1] != QChar::LineSeparator && text[end] != QChar::LineSeparator) {
-                cuts.push_back(end);
-            }
-        }
-        for (auto cut = cuts.rbegin(); cut != cuts.rend(); ++cut) {
-            cursor.setPosition(static_cast<int>(block.position() + *cut));
-            cursor.insertText(QString(QChar(QChar::LineSeparator)));
-        }
-    }
-}
-
-// Emprise (largeur de la colonne, hauteur des lettres empilées) d'un HTML assaini de haut en bas.
-QSizeF columnSize(QTextDocument& document)
-{
-    QTextOption option = document.defaultTextOption();
-    option.setWrapMode(QTextOption::WrapAnywhere);
-    option.setAlignment(Qt::AlignHCenter);
-    document.setDefaultTextOption(option);
-    QTextBlockFormat column;
-    column.setAlignment(Qt::AlignHCenter);
-    column.setNonBreakableLines(false);
-    column.setLeftMargin(0);
-    column.setRightMargin(0);
-    column.setTextIndent(0);
-    column.setIndent(0);
-    QTextCursor cursor(&document);
-    cursor.select(QTextCursor::Document);
-    cursor.mergeBlockFormat(column);
-    const double width = std::max(1.0, widestAdvance(document));
-    separateLetters(document);
-    document.setTextWidth(width);
-    return QSizeF(width, document.size().height());
+    return std::max(1.0, narrowest);
 }
 
 } // namespace
@@ -407,6 +383,11 @@ void TextEditing::setSelectionEnd(int position)
 bool TextEditing::isActive() const noexcept
 {
     return m_active;
+}
+
+qreal TextEditing::wrapWidth() const noexcept
+{
+    return m_wrapWidth;
 }
 
 bool TextEditing::isVertical() const noexcept
@@ -811,12 +792,21 @@ void TextEditing::updateFrame()
     if (!m_active || !doc) {
         return;
     }
-    // De haut en bas : la colonne d'un caractère, jamais une largeur imposée ni la largeur du texte à plat.
-    const qreal width = m_vertical ? std::max(1.0, widestAdvance(*doc))
-                                   : (m_fixedWidth > 0 ? m_fixedWidth : doc->idealWidth());
-    const QRectF next(m_frame.topLeft(), QSizeF(width, doc->size().height()));
-    if (next != m_frame) {
+    // De haut en bas : la colonne d'un caractère (mise en page du peintre), jamais une largeur imposée ni la
+    // largeur du texte à plat. Le TextEdit y replie à la plus petite avance : une lettre par ligne.
+    QRectF next;
+    qreal wrap = 0;
+    if (m_vertical) {
+        next = QRectF(m_frame.topLeft(), measuredColumn(doc->toHtml()));
+        wrap = narrowestAdvance(*doc);
+    } else {
+        const qreal width = m_fixedWidth > 0 ? m_fixedWidth : doc->idealWidth();
+        next = QRectF(m_frame.topLeft(), QSizeF(width, doc->size().height()));
+        wrap = width;
+    }
+    if (next != m_frame || wrap != m_wrapWidth) {
         m_frame = next;
+        m_wrapWidth = wrap;
         emit frameChanged();
     }
 }

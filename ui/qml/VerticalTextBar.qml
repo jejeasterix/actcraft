@@ -62,6 +62,7 @@ Item {
             leftPadding: Theme.espace2
             rightPadding: combo.indicator.width + Theme.espace1
             text: combo.displayText
+            textFormat: Text.PlainText // un nom de famille lu dans le document n'est jamais du HTML
             font: combo.font
             color: Theme.texte
             elide: Text.ElideRight
@@ -88,6 +89,7 @@ Item {
             highlighted: combo.highlightedIndex === index
             contentItem: Text {
                 text: entry.modelData
+                textFormat: Text.PlainText
                 font: combo.font
                 color: entry.highlighted ? Theme.texteSurActive : Theme.texte
                 elide: Text.ElideRight

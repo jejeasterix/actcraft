@@ -93,9 +93,11 @@ Item {
         TextEdit {
             id: textEdit
             objectName: "textEdit"
-            x: 0
+            // De haut en bas : largeur de repli = plus petite avance d'un graphème (une lettre par ligne, comme le
+            // résultat validé), recentrée dans la colonne.
+            x: root.shown && root.editing.vertical ? (box.width - width * root.zoom) / 2 : 0
             y: 0
-            width: root.shown ? Math.max(1, root.editing.frame.width) : 1
+            width: root.shown ? Math.max(1, root.editing.vertical ? root.editing.wrapWidth : root.editing.frame.width) : 1
             scale: root.zoom
             transformOrigin: Item.TopLeft
             color: "#000000"
