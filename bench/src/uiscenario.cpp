@@ -973,11 +973,10 @@ bool UiScenarioPlayer::touch(const UiStep& step, QStringList& report)
     }
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
-    const bool sent =
-        gestures().touchPath(
-            step.points,
-            [this](GesturePhase phase, const std::vector<QPointF>& f) { deliverFingers(m_window, phase, f); },
-            step.windowSpace ? PointSpace::Window : PointSpace::Page);
+    const bool sent = gestures().touchPath(
+        step.points,
+        [this](GesturePhase phase, const std::vector<QPointF>& f) { deliverFingers(m_window, phase, f); },
+        step.windowSpace ? PointSpace::Window : PointSpace::Page);
     QCoreApplication::instance()->removeEventFilter(&witness);
     const bool ok = sent && witness.touchBegin == 1 && witness.touchEnd == 1;
     report << (ok ? head + QStringLiteral(" OK")
