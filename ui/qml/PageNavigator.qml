@@ -19,16 +19,22 @@ Item {
     clip: true
     activeFocusOnTab: true
 
-    // La miniature de la page affichée est entièrement dans la vue (lu par le banc).
-    property int delegateTick: 0 // un délégué créé ou redimensionné : currentVisible se relit
-    readonly property bool currentVisible: {
-        root.delegateTick
-        list.contentY
-        list.height
-        list.contentHeight
+    // La miniature de la page affichée est entièrement dans la vue (lu par le banc). Relue à chaque événement
+    // de la liste (mesuré : une liaison déclarative sur itemAtIndex restait fausse à 9 pages, un calcul frais
+    // donnait vrai) ; refreshVisible est reporté, donc regroupé.
+    property bool visibleNow: false
+    readonly property bool currentVisible: root.visibleNow
+    function refreshVisible() {
         const item = list.itemAtIndex(root.documentController.currentIndex)
-        return item !== null && item.y >= list.contentY - 0.5
-               && item.y + item.height <= list.contentY + list.height + 0.5
+        root.visibleNow = item !== null && item.y >= list.contentY - 0.5
+                          && item.y + item.height <= list.contentY + list.height + 0.5
+    }
+    Connections {
+        target: list
+        function onContentYChanged() { root.refreshVisible() }
+        function onContentHeightChanged() { root.refreshVisible() }
+        function onHeightChanged() { root.refreshVisible() }
+        function onCountChanged() { Qt.callLater(root.refreshVisible) }
     }
 
     // Tout appui sur la page rend le focus : Suppr, Ctrl+X, C, V et D ne valent que tant que le navigateur a le
@@ -49,10 +55,13 @@ Item {
     // La page affichée est amenée dans la vue quand elle change (page suivante, aller à, insertion).
     Connections {
         target: root.documentController
-        function onPagesChanged() { Qt.callLater(root.showCurrent) }
+        function onPagesChanged() {
+            Qt.callLater(root.showCurrent)
+            Qt.callLater(root.refreshVisible)
+        }
     }
     function touchTick() {
-        root.delegateTick += 1
+        root.refreshVisible()
     }
     // Jamais de repositionnement de la liste sous un appui ou un défilement au doigt : la demande est gardée et
     // jouée au relâché (flushShow).
@@ -329,6 +338,7 @@ Item {
             // Reporté : le délégué n'est dans la liste (itemAtIndex) qu'après sa création.
             Component.onCompleted: Qt.callLater(root.touchTick)
             onHeightChanged: Qt.callLater(root.touchTick)
+            onYChanged: Qt.callLater(root.touchTick)
 
             Rectangle {
                 x: Theme.espace2
