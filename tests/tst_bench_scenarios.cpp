@@ -126,7 +126,8 @@ private slots:
         // L2-T23 : « page » ; L10-T1 : « pauses » ; L3-T19 : « gommer » et « soulever », en dernier (le
         // compte passe de 5 à 7 : les cinq premiers gardent leur nom et leur ordre). L4-T14 : « forme-page-
         // annotee » et « grille-dessus » après eux (le compte passe de 7 à 9 : les sept premiers inchangés).
-        // L4-T29 : « miniatures » et « miniatures-ferme » après eux (le compte passe de 9 à 11), puis « miniatures-pauses » (12).
+        // L4-T29 : « miniatures » et « miniatures-ferme » après eux (le compte passe de 9 à 11), puis «
+        // miniatures-pauses » (12).
         QCOMPARE(plans.size(), std::size_t{12});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
@@ -208,7 +209,8 @@ private slots:
             std::int64_t lastRelease = -1;
             for (const auto& in : plan.inputs) {
                 if (in.kind == InputKind::TabletPress && lastRelease >= 0) {
-                    QVERIFY(in.offsetNs - lastRelease >= std::int64_t{ui::PageThumbnails::kSettleMs} * 1'000'000);
+                    QVERIFY(in.offsetNs - lastRelease >=
+                            std::int64_t{ui::PageThumbnails::kSettleMs} * 1'000'000);
                 }
                 if (in.kind == InputKind::TabletRelease) {
                     lastRelease = in.offsetNs;

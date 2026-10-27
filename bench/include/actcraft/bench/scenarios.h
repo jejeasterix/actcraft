@@ -140,6 +140,11 @@ ScenarioPlan shapeScenario(ScenarioSet set);
 inline constexpr int kThumbnailPages = 4;
 ScenarioPlan thumbnailsScenario(ScenarioSet set);
 ScenarioPlan closedThumbnailsScenario(ScenarioSet set);
+// Amendement 1 : « miniatures-pauses » rejoue les traits de « pauses » panneau ouvert, pour que les rendus
+// (kSettleMs après la dernière modification) tombent dans les pauses ; ses figements se comparent à ceux de
+// « pauses » sans panneau, dans le même JSON. Ne ferme pas sa mesure sur le versement différé (propre à «
+// pauses »).
+ScenarioPlan thumbnailsPausesScenario(ScenarioSet set);
 // Grille d'une page « grille-dessus » : visible, dessinée au-dessus, un niveau (pas de 32), sans accrochage.
 core::Grid gridAboveFixture();
 // « grille-dessus » : page générée à grille du dessus, traits du scénario « stroke » (différés : aucun
@@ -148,7 +153,7 @@ ScenarioPlan gridAboveScenario(ScenarioSet set);
 // Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);
 // stroke, zoom, scroll, page, pauses, gommer, soulever, forme-page-annotee, grille-dessus, miniatures,
-// miniatures-ferme
+// miniatures-ferme, miniatures-pauses
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set);
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();

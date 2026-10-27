@@ -56,13 +56,12 @@ private slots:
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
         QCOMPARE(scenarios.size(), 12);
-        const QStringList names{QStringLiteral("stroke"),          QStringLiteral("zoom"),
-                                QStringLiteral("scroll"),          QStringLiteral("page"),
-                                QStringLiteral("pauses"),          QStringLiteral("gommer"),
-                                QStringLiteral("soulever"),        QStringLiteral("forme-page-annotee"),
-                                QStringLiteral("grille-dessus"),   QStringLiteral("miniatures"),
-                                QStringLiteral("miniatures-ferme"),
-                                QStringLiteral("miniatures-pauses")};
+        const QStringList names{QStringLiteral("stroke"),           QStringLiteral("zoom"),
+                                QStringLiteral("scroll"),           QStringLiteral("page"),
+                                QStringLiteral("pauses"),           QStringLiteral("gommer"),
+                                QStringLiteral("soulever"),         QStringLiteral("forme-page-annotee"),
+                                QStringLiteral("grille-dessus"),    QStringLiteral("miniatures"),
+                                QStringLiteral("miniatures-ferme"), QStringLiteral("miniatures-pauses")};
         for (qsizetype i = 0; i < 12; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
