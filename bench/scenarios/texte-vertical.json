@@ -1,10 +1,40 @@
 {
   "format": "actcraft-scenario/1",
   "name": "texte-vertical",
-  "description": "Talon L4-T1 : rempli par L4-T25.",
+  "description": "S16 : l'outil Texte de haut en bas ouvre une colonne d'un caractère ; ABC en gras s'empile (une lettre par ligne), la barre à cinq commandes couvre la vue (le stylet posé sur elle ne valide pas le texte), Échap est pris par l'éditeur ; le document enregistré puis rouvert garde son empreinte.",
   "steps": [
-    {
-      "waitReady": true
-    }
+    {"waitReady": true},
+    {"command": "tool.text-vertical"},
+    {"pointer": [[400, 200]]},
+    {"waitFor": "appText.active", "value": true, "timeoutMs": 10000},
+    {"expect": "appText.vertical", "value": true},
+    {"expect": "verticalTextBar.visible", "value": true},
+    {"expect": "textFormatBar.visible", "value": false},
+    {"command": "text.select-all"},
+    {"typeText": "ABC"},
+    {"expect": "appText.plainText", "value": "ABC"},
+    {"command": "text.select-all"},
+    {"command": "text.bold"},
+    {"expect": "appText.bold", "value": true},
+    {"stroke": [[900, 70], [901, 70]], "space": "window", "noStroke": true},
+    {"expect": "appText.active", "value": true},
+    {"expect": "appTools.currentTool", "value": "text-vertical"},
+    {"capture": "edition"},
+    {"command": "tool.pen"},
+    {"waitFor": "appText.active", "value": false, "timeoutMs": 10000},
+    {"waitReady": true},
+    {"expect": "documentController.shownObjectCount", "value": 1},
+    {"checkPixel": "lettre-a", "at": [404, 206], "color": "#000000", "tolerance": 110},
+    {"checkPixel": "lettre-b", "at": [404, 224], "color": "#000000", "tolerance": 110},
+    {"checkPixel": "lettre-c", "at": [404, 242], "color": "#000000", "tolerance": 110},
+    {"capture": "abc"},
+    {"remember": "documentController.fingerprint", "as": "avant"},
+    {"command": "file.save-as", "argument": "${SORTIE}/v.actcraft"},
+    {"waitFor": "documentController.busy", "value": false, "timeoutMs": 10000},
+    {"command": "file.open", "argument": "${SORTIE}/v.actcraft"},
+    {"waitFor": "documentController.busy", "value": false, "timeoutMs": 10000},
+    {"waitReady": true},
+    {"expect": "documentController.fingerprint", "value": "${avant}"},
+    {"capture": "rouvert"}
   ]
 }

@@ -9,6 +9,8 @@
 #include <QClipboard>
 #include <QColor>
 #include <QFile>
+#include <QFont>
+#include <QFontMetricsF>
 #include <QGuiApplication>
 #include <QImage>
 #include <QList>
@@ -606,6 +608,94 @@ private slots:
         QCOMPARE(h.htmlPlainOfFirst(), QStringLiteral("un"));
         h.controller.undo();
         QCOMPARE(h.controller.shownObjectCount(), 0); // seule étape : l'ajout
+    }
+
+    // --- Texte de haut en bas II (L4-T25, H4-3, D9)
+
+    // Avance du « W » à la police par défaut d'un texte neuf (famille de l'application, 14 points).
+    static qreal widestLetterAdvance()
+    {
+        QFont font(QGuiApplication::font().family());
+        font.setPointSizeF(14);
+        return QFontMetricsF(font).horizontalAdvance(QLatin1Char('W'));
+    }
+
+    // Le cadre d'un texte de haut en bas est une colonne d'un caractère (largeur de L4-T24), pas la largeur du
+    // texte écrit à plat.
+    void verticalFrameIsOneColumn()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({200, 200}, true));
+        QVERIFY(h.editing.isVertical());
+        const qreal wide = widestLetterAdvance();
+        QVERIFY2(h.editing.frame().width() > 0, "cadre sans largeur");
+        QVERIFY2(h.editing.frame().width() < 1.5 * wide,
+                 qPrintable(QStringLiteral("largeur %1, avance de W %2").arg(h.editing.frame().width()).arg(wide)));
+        // La même frappe à plat reste large : la colonne vient bien du mode.
+        h.editing.commit();
+        QVERIFY(h.editing.beginAt({400, 400}, false));
+        QVERIFY(h.editing.frame().width() > 3 * wide);
+    }
+
+    // La largeur d'un texte de haut en bas ne se tire pas à la poignée (elle est masquée) et reste celle de la
+    // colonne même pour un texte rouvert (largeur imposée de l'objet).
+    void verticalFrameKeepsItsWidth()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({200, 200}, true));
+        const qreal column = h.editing.frame().width();
+        h.editing.setFrameWidth(300);
+        QCOMPARE(h.editing.frame().width(), column);
+        h.replaceAllText(QStringLiteral("ABC"));
+        h.editing.commit();
+        QCOMPARE(h.controller.shownObjectCount(), 1);
+        QVERIFY(h.editing.beginAt({201, 201}, false)); // rouvert : le drapeau de l'objet commande, pas l'appel
+        QVERIFY(h.editing.isVertical());
+        QVERIFY(h.editing.frame().width() < 1.5 * widestLetterAdvance());
+    }
+
+    // Validé, l'objet porte `vertical` et l'emprise d'une colonne : sa largeur est celle de la colonne, sa
+    // hauteur celle des lettres empilées (une par ligne), non celle du mot à plat.
+    void verticalCommitKeepsTheFlagAndTheColumn()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({200, 200}, true));
+        h.replaceAllText(QStringLiteral("ABC"));
+        h.editing.commit();
+        const core::Page& page = h.controller.document().page(0);
+        QCOMPARE(page.objects.size(), std::size_t{1});
+        const auto* text = std::get_if<core::Text>(&core::body(page.objects[0]));
+        QVERIFY(text);
+        QVERIFY(text->vertical);
+        QVERIFY2(text->bounds.width < 1.5 * widestLetterAdvance(),
+                 qPrintable(QString::number(text->bounds.width)));
+        QFont font(QGuiApplication::font().family());
+        font.setPointSizeF(14);
+        QVERIFY2(text->bounds.height > 2.5 * QFontMetricsF(font).height(),
+                 qPrintable(QString::number(text->bounds.height)));
+    }
+
+    // La barre du texte de haut en bas : police, taille, gras, italique, souligné (F-301 b), cinq boutons nommés.
+    void verticalBarOffersFiveCommands()
+    {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nimport ActCraft.Ui\nItem {\n"
+                          "  width: 900; height: 200\n"
+                          "  property QtObject bar: b\n"
+                          "  Commands { id: cmd }\n"
+                          "  VerticalTextBar { id: b; objectName: \"verticalTextBar\"; commands: cmd }\n"
+                          "}\n",
+                          QUrl());
+        std::unique_ptr<QObject> root(component.create());
+        QVERIFY2(root, qPrintable(component.errorString()));
+        QObject* bar = root->property("bar").value<QObject*>();
+        QVERIFY(bar);
+        for (const char* name : {"vbar-font", "vbar-size", "vbar-bold", "vbar-italic", "vbar-underline"}) {
+            QVERIFY2(bar->findChild<QObject*>(QString::fromLatin1(name)) != nullptr, name);
+        }
+        // Visible seulement pour un texte de haut en bas en cours d'édition.
+        QCOMPARE(bar->property("visible").toBool(), false);
     }
 
     // L4-C2 : une commande de pages lancée pendant l'édition valide d'abord le texte (comme Annuler).
