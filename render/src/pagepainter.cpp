@@ -683,6 +683,16 @@ void paintUnknown(QPainter& p, const core::UnknownObject& unknown)
 
 } // namespace
 
+void layOutVerticalColumn(QTextDocument& document)
+{
+    layOutColumn(document);
+}
+
+double verticalColumnWidth(const QTextDocument& document)
+{
+    return widestAdvance(document);
+}
+
 // Étendue dessinée d'un texte de haut en bas, tenue de la seule mise en page du peintre (layOutText) ; vide
 // pour un autre texte. Déclarée et appelée par paintedrenderer.cpp, qui y prend le rectangle de sa texture.
 QRectF verticalTextExtent(const core::Text& text)

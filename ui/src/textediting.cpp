@@ -2,12 +2,14 @@
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/textedits.h>
+#include <actcraft/render/pagepainter.h>
 #include <actcraft/ui/textediting.h>
 
 #include <QAbstractTextDocumentLayout>
 #include <QByteArray>
 #include <QColor>
 #include <QFont>
+#include <QFontMetricsF>
 #include <QGuiApplication>
 #include <QImage>
 #include <QList>
@@ -15,6 +17,8 @@
 #include <QSizeF>
 #include <QStringList>
 #include <QTextBlock>
+#include <QTextBoundaryFinder>
+#include <QTextCursor>
 #include <QTextDocument>
 #include <QTextFragment>
 #include <QTextFrame>
@@ -22,6 +26,7 @@
 #include <QTextImageFormat>
 #include <QTextList>
 #include <QTextListFormat>
+#include <QTextOption>
 #include <QTextTable>
 #include <QTextTableCell>
 #include <QUrl>
@@ -149,6 +154,52 @@ void cleanFrames(QTextFrame* frame)
     for (QTextFrame* child : children) {
         cleanFrames(child);
     }
+}
+
+// Texte de haut en bas (H4-3, D9) : la mise en page de la colonne est celle du peintre
+// (render::layOutVerticalColumn), la seule ; ici, sa mesure et la plus petite avance (largeur de repli de
+// l'éditeur).
+QSizeF columnSize(QTextDocument& document)
+{
+    render::layOutVerticalColumn(document);
+    return QSizeF(std::max(1.0, document.textWidth()), document.size().height());
+}
+
+// Colonne mesurée d'un HTML, sur un document isolé : le document édité n'est pas touché.
+QSizeF measuredColumn(const QString& html)
+{
+    AnalysisDocument measure{ResourceObserver()};
+    measure.setHtml(html);
+    return columnSize(measure);
+}
+
+// Plus petite avance d'un graphème du texte (au moins 1) : un TextEdit de cette largeur, qui compte aussi les
+// espaces de fin, met chaque graphème sur sa propre ligne.
+double narrowestAdvance(const QTextDocument& document)
+{
+    const QFont base = document.defaultFont();
+    const QPaintDevice* device = document.documentLayout()->paintDevice();
+    double narrowest = 0;
+    bool any = false;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            if (!fragment.isValid()) {
+                continue;
+            }
+            const QFontMetricsF metrics(fragment.charFormat().font().resolve(base), device);
+            const QString text = fragment.text();
+            QTextBoundaryFinder graphemes(QTextBoundaryFinder::Grapheme, text);
+            qsizetype start = 0;
+            for (qsizetype end = graphemes.toNextBoundary(); end > start; end = graphemes.toNextBoundary()) {
+                const double advance = metrics.horizontalAdvance(text.mid(start, end - start));
+                narrowest = any ? std::min(narrowest, advance) : advance;
+                any = true;
+                start = end;
+            }
+        }
+    }
+    return std::max(1.0, narrowest);
 }
 
 } // namespace
@@ -334,6 +385,11 @@ bool TextEditing::isActive() const noexcept
     return m_active;
 }
 
+qreal TextEditing::wrapWidth() const noexcept
+{
+    return m_wrapWidth;
+}
+
 bool TextEditing::isVertical() const noexcept
 {
     return m_vertical;
@@ -496,6 +552,10 @@ core::RectF TextEditing::measuredBounds(const QString& safeHtml) const
 {
     AnalysisDocument measure{ResourceObserver()};
     measure.setHtml(safeHtml);
+    if (m_vertical) {
+        const QSizeF column = columnSize(measure);
+        return core::RectF{m_objectBounds.x, m_objectBounds.y, column.width(), std::ceil(column.height())};
+    }
     const qreal width = m_fixedWidth > 0 ? m_fixedWidth : std::ceil(measure.idealWidth()) + 1;
     measure.setTextWidth(width);
     return core::RectF{m_objectBounds.x, m_objectBounds.y, width, std::ceil(measure.size().height())};
@@ -732,18 +792,29 @@ void TextEditing::updateFrame()
     if (!m_active || !doc) {
         return;
     }
-    const qreal width = m_fixedWidth > 0 ? m_fixedWidth : doc->idealWidth();
-    const QRectF next(m_frame.topLeft(), QSizeF(width, doc->size().height()));
-    if (next != m_frame) {
+    // De haut en bas : la colonne d'un caractère (mise en page du peintre), jamais une largeur imposée ni la
+    // largeur du texte à plat. Le TextEdit y replie à la plus petite avance : une lettre par ligne.
+    QRectF next;
+    qreal wrap = 0;
+    if (m_vertical) {
+        next = QRectF(m_frame.topLeft(), measuredColumn(doc->toHtml()));
+        wrap = narrowestAdvance(*doc);
+    } else {
+        const qreal width = m_fixedWidth > 0 ? m_fixedWidth : doc->idealWidth();
+        next = QRectF(m_frame.topLeft(), QSizeF(width, doc->size().height()));
+        wrap = width;
+    }
+    if (next != m_frame || wrap != m_wrapWidth) {
         m_frame = next;
+        m_wrapWidth = wrap;
         emit frameChanged();
     }
 }
 
 void TextEditing::setFrameWidth(qreal width)
 {
-    if (!m_active || !(width > 0)) {
-        return;
+    if (!m_active || !(width > 0) || m_vertical) {
+        return; // la colonne d'un texte de haut en bas ne s'étend pas
     }
     m_fixedWidth = width;
     m_geometryChanged = true;

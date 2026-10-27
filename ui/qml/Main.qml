@@ -217,7 +217,7 @@ Window {
             tools: appTools
             commands: appCommands
             textEditing: appText
-            textListOpen: textFormatBar.openLists > 0
+            textListOpen: textFormatBar.openLists + verticalTextBar.openLists > 0
         }
 
         // Lot 4 : palette des formes, à droite, avant la palette d'outils.
@@ -254,6 +254,11 @@ Window {
     VerticalTextBar {
         id: verticalTextBar
         objectName: "verticalTextBar"
+        commands: appCommands
+        editing: appText
+        pageView: pageArea.view
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: topBar.bottom

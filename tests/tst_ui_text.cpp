@@ -2,6 +2,7 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/pagecache.h>
+#include <actcraft/render/pagepainter.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pagescontroller.h>
 #include <actcraft/ui/textediting.h>
@@ -9,6 +10,8 @@
 #include <QClipboard>
 #include <QColor>
 #include <QFile>
+#include <QFont>
+#include <QFontMetricsF>
 #include <QGuiApplication>
 #include <QImage>
 #include <QList>
@@ -30,9 +33,12 @@
 #include <QTextBlockFormat>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QTextLayout>
+#include <QTextOption>
 #include <QUrl>
 #include <QVariant>
 
+#include <cmath>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -606,6 +612,199 @@ private slots:
         QCOMPARE(h.htmlPlainOfFirst(), QStringLiteral("un"));
         h.controller.undo();
         QCOMPARE(h.controller.shownObjectCount(), 0); // seule étape : l'ajout
+    }
+
+    // --- Texte de haut en bas II (L4-T25, H4-3, D9)
+
+    // Avance du « W » à la police par défaut d'un texte neuf (famille de l'application, 14 points).
+    static qreal widestLetterAdvance()
+    {
+        QFont font(QGuiApplication::font().family());
+        font.setPointSizeF(14);
+        return QFontMetricsF(font).horizontalAdvance(QLatin1Char('W'));
+    }
+
+    // Le cadre d'un texte de haut en bas est une colonne d'un caractère (largeur de L4-T24), pas la largeur
+    // du texte écrit à plat.
+    void verticalFrameIsOneColumn()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({200, 200}, true));
+        QVERIFY(h.editing.isVertical());
+        const qreal wide = widestLetterAdvance();
+        QVERIFY2(h.editing.frame().width() > 0, "cadre sans largeur");
+        QVERIFY2(h.editing.frame().width() < 1.5 * wide,
+                 qPrintable(
+                     QStringLiteral("largeur %1, avance de W %2").arg(h.editing.frame().width()).arg(wide)));
+        // La même frappe à plat reste large : la colonne vient bien du mode.
+        h.editing.commit();
+        QVERIFY(h.editing.beginAt({400, 400}, false));
+        QVERIFY(h.editing.frame().width() > 3 * wide);
+    }
+
+    // La largeur d'un texte de haut en bas ne se tire pas à la poignée (elle est masquée) et reste celle de
+    // la colonne même pour un texte rouvert (largeur imposée de l'objet).
+    void verticalFrameKeepsItsWidth()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({200, 200}, true));
+        const qreal column = h.editing.frame().width();
+        h.editing.setFrameWidth(300);
+        QCOMPARE(h.editing.frame().width(), column);
+        QVERIFY(!h.editing.hasFixedWidth()); // la poignée masquée n'impose rien
+        h.replaceAllText(QStringLiteral("ABC"));
+        h.editing.commit();
+        QCOMPARE(h.controller.shownObjectCount(), 1);
+        QVERIFY(
+            h.editing.beginAt({201, 201}, false)); // rouvert : le drapeau de l'objet commande, pas l'appel
+        QVERIFY(h.editing.isVertical());
+        QVERIFY(h.editing.frame().width() < 1.5 * widestLetterAdvance());
+    }
+
+    // Validé, l'objet porte `vertical` et l'emprise d'une colonne : sa largeur est celle de la colonne, sa
+    // hauteur celle des lettres empilées (une par ligne), non celle du mot à plat.
+    void verticalCommitKeepsTheFlagAndTheColumn()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({200, 200}, true));
+        h.replaceAllText(QStringLiteral("ABC"));
+        h.editing.commit();
+        const core::Page& page = h.controller.document().page(0);
+        QCOMPARE(page.objects.size(), std::size_t{1});
+        const auto* text = std::get_if<core::Text>(&core::body(page.objects[0]));
+        QVERIFY(text);
+        QVERIFY(text->vertical);
+        QVERIFY2(text->bounds.width < 1.5 * widestLetterAdvance(),
+                 qPrintable(QString::number(text->bounds.width)));
+        QFont font(QGuiApplication::font().family());
+        font.setPointSizeF(14);
+        QVERIFY2(text->bounds.height > 2.5 * QFontMetricsF(font).height(),
+                 qPrintable(QString::number(text->bounds.height)));
+    }
+
+    // La barre du texte de haut en bas : police, taille, gras, italique, souligné (F-301 b), cinq boutons
+    // nommés.
+    void verticalBarOffersFiveCommands()
+    {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nimport ActCraft.Ui\nItem {\n"
+                          "  width: 900; height: 200\n"
+                          "  property QtObject bar: b\n"
+                          "  Commands { id: cmd }\n"
+                          "  VerticalTextBar { id: b; objectName: \"verticalTextBar\"; commands: cmd }\n"
+                          "}\n",
+                          QUrl());
+        std::unique_ptr<QObject> root(component.create());
+        QVERIFY2(root, qPrintable(component.errorString()));
+        QObject* bar = root->property("bar").value<QObject*>();
+        QVERIFY(bar);
+        for (const char* name : {"vbar-font", "vbar-size", "vbar-bold", "vbar-italic", "vbar-underline"}) {
+            QVERIFY2(bar->findChild<QObject*>(QString::fromLatin1(name)) != nullptr, name);
+        }
+        // Chaque bouton déclenche la commande qui porte son nom.
+        const QList<std::pair<const char*, const char*>> commandOf{
+            {"vbar-bold", "text.bold"}, {"vbar-italic", "text.italic"}, {"vbar-underline", "text.underline"}};
+        for (const auto& [name, id] : commandOf) {
+            QObject* button = bar->findChild<QObject*>(QString::fromLatin1(name));
+            QCOMPARE(button->property("commandId").toString(), QString::fromLatin1(id));
+        }
+        // Visible seulement pour un texte de haut en bas en cours d'édition.
+        QCOMPARE(bar->property("visible").toBool(), false);
+    }
+
+    // Une lettre par ligne pendant la frappe, comme le résultat validé (« Wii » : W large, deux i étroits ;
+    // « iWi », « lWl »). Un espace reste hors de ce contrat : Qt le laisse pendre au bout de la ligne de la
+    // lettre précédente, l'édition a alors une ligne de moins que le résultat). Le TextEdit du test prend la
+    // largeur de repli donnée par TextEditing, comme l'éditeur QML.
+    void verticalEditShowsOneLetterPerLine()
+    {
+        for (const QString& word : {QStringLiteral("Wii"), QStringLiteral("iWi"), QStringLiteral("lWl")}) {
+            Harness h;
+            QVERIFY(h.editing.beginAt({200, 200}, true));
+            h.replaceAllText(word);
+            QVERIFY(h.edit->setProperty("wrapMode", 3)); // TextEdit.WrapAnywhere
+            QVERIFY(h.edit->setProperty("width", h.editing.wrapWidth()));
+            QVERIFY2(h.editing.wrapWidth() < h.editing.frame().width(), qPrintable(word));
+            // Le document du TextEdit garde l'option des espaces de fin après le réglage du repli ; un
+            // document de même option et de même HTML, à la largeur de repli, a trois lignes de la hauteur du
+            // cadre.
+            QTextDocument shown;
+            shown.setDefaultFont(h.document()->defaultFont());
+            QTextOption option = h.document()->defaultTextOption();
+            option.setWrapMode(QTextOption::WrapAnywhere); // le repli du TextEdit QML (wrapMode)
+            shown.setDefaultTextOption(option);
+            shown.setDocumentMargin(h.document()->documentMargin());
+            shown.setHtml(h.document()->toHtml());
+            shown.setTextWidth(h.editing.wrapWidth());
+            const qreal shownHeight = shown.size().height(); // la mise en page se fait ici, avant de compter
+            int lines =
+                0; // lineCount() de QTextDocument est le nombre de blocs : on compte les lignes mises en page
+            for (QTextBlock block = shown.begin(); block.isValid(); block = block.next()) {
+                lines += block.layout()->lineCount();
+            }
+            QVERIFY2(lines == 3, qPrintable(QStringLiteral("%1 : %2 lignes").arg(word).arg(lines)));
+            const qreal frameHeight = h.editing.frame().height();
+            QVERIFY2(
+                qAbs(shownHeight - frameHeight) < 1.0,
+                qPrintable(
+                    QStringLiteral("%1 : repli %2, cadre %3").arg(word).arg(shownHeight).arg(frameHeight)));
+            h.editing.commit();
+            const auto* text =
+                std::get_if<core::Text>(&core::body(h.controller.document().page(0).objects[0]));
+            QVERIFY(text);
+            QCOMPARE(text->bounds.height, std::ceil(frameHeight));
+        }
+    }
+
+    // « Wii » validé : trois lignes, la colonne du peintre (la même mise en page,
+    // render::layOutVerticalColumn).
+    void verticalCommitIsTheColumnOfThePainter()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({200, 200}, true));
+        h.replaceAllText(QStringLiteral("Wii"));
+        h.editing.commit();
+        const auto* text = std::get_if<core::Text>(&core::body(h.controller.document().page(0).objects[0]));
+        QVERIFY(text);
+        QTextDocument column;
+        column.setDocumentMargin(0);
+        column.setHtml(QString::fromStdString(text->html));
+        render::layOutVerticalColumn(column);
+        QCOMPARE(text->bounds.height, std::ceil(column.size().height()));
+        QCOMPARE(text->bounds.width, render::verticalColumnWidth(column));
+        QFont font(QGuiApplication::font().family());
+        font.setPointSizeF(14);
+        const qreal line = QFontMetricsF(font).lineSpacing();
+        QVERIFY2(text->bounds.height > 2.5 * line && text->bounds.height < 3.5 * line,
+                 qPrintable(QStringLiteral("hauteur %1, ligne %2").arg(text->bounds.height).arg(line)));
+    }
+
+    // Une famille lue dans le document (« <img src=… > ») reste affichée telle quelle : les textes des listes
+    // de police sont en texte brut, dans la barre à plat et dans celle de haut en bas.
+    void fontFamilyIsShownAsPlainText()
+    {
+        const QString family = QStringLiteral("<img src=\"file:///inexistant.png\">");
+        const QList<std::pair<const char*, const char*>> bars{{"VerticalTextBar", "vbar-font"},
+                                                              {"TextFormatBar", "textFontCombo"}};
+        for (const auto& [bar, combo] : bars) {
+            QQmlEngine engine;
+            QQmlComponent component(&engine);
+            component.setData(
+                QByteArray("import QtQuick\nimport ActCraft.Ui\nItem {\n  width: 900; height: 200\n"
+                           "  Commands { id: cmd }\n  ") +
+                    bar + QByteArray(" { objectName: \"bar\"; commands: cmd }\n}\n"),
+                QUrl());
+            std::unique_ptr<QObject> root(component.create());
+            QVERIFY2(root, qPrintable(component.errorString()));
+            QObject* box = root->findChild<QObject*>(QString::fromLatin1(combo));
+            QVERIFY2(box, combo);
+            QVERIFY(box->setProperty("displayText", family));
+            auto* shown = box->property("contentItem").value<QObject*>();
+            QVERIFY2(shown, combo);
+            QCOMPARE(shown->property("text").toString(), family);
+            QCOMPARE(shown->property("textFormat").toInt(), 0); // Text.PlainText
+        }
     }
 
     // L4-C2 : une commande de pages lancée pendant l'édition valide d'abord le texte (comme Annuler).

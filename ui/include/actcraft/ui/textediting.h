@@ -39,6 +39,9 @@ class TextEditing : public QObject
     Q_PROPERTY(QRectF frame READ frame NOTIFY frameChanged) // coordonnées de page
     // Largeur imposée (texte existant, poignée d'extension) : le TextEdit y passe à la ligne ; sinon non
     // (le cadre mesure alors idealWidth, qui s'effondrerait sur un document replié).
+    // Largeur de repli du TextEdit : celle du cadre ; de haut en bas, la plus petite avance d'un graphème
+    // (une lettre par ligne, le TextEdit est recentré dans la colonne).
+    Q_PROPERTY(qreal wrapWidth READ wrapWidth NOTIFY frameChanged)
     Q_PROPERTY(bool fixedWidth READ hasFixedWidth NOTIFY frameChanged)
     Q_PROPERTY(QString plainText READ plainText NOTIFY formatChanged)
     Q_PROPERTY(QString fontFamily READ fontFamily NOTIFY formatChanged)
@@ -61,6 +64,7 @@ public:
     void setSelectionEnd(int position);
     bool isActive() const noexcept;
     bool isVertical() const noexcept;
+    qreal wrapWidth() const noexcept;
     QRectF frame() const noexcept;
     bool hasFixedWidth() const noexcept { return m_fixedWidth > 0; }
     QString plainText() const;
@@ -111,7 +115,8 @@ private:
     int m_selectionEnd = 0;
     std::size_t m_page = 0;     // page de l'édition
     core::RectF m_objectBounds; // emprise en coordonnées de l'objet (origine gardée, taille mesurée)
-    qreal m_fixedWidth = 0;     // > 0 : largeur imposée (texte existant, poignée d'extension)
+    qreal m_wrapWidth = 0;
+    qreal m_fixedWidth = 0; // > 0 : largeur imposée (texte existant, poignée d'extension)
     bool m_geometryChanged = false;
     QString m_initialHtml; // HTML du TextEdit au début de l'édition : inchangé, aucune étape
     // Mémoire de la police et de la taille (D7) : celles des textes suivants. L'en-tête figé (L4-T1) ne donne
