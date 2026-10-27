@@ -328,6 +328,42 @@ private slots:
         QCOMPARE(again.document.page(1).objects[2].common.id, fresh);
         QCOMPARE(again.document.page(0).objects[2].common.id, core::ObjectId{9});
     }
+
+    // L4-C4 (relecture) : un objet inconnu sans « id », ou d'un « id » que cette version ne sait pas lire (un
+    // texte), est lu avec l'identifiant 0 (readId) ; réécrit sans avoir été collé, il garde les octets lus.
+    // La clé « id » ne s'écrit que pour un identifiant courant non nul : après withFreshIds, il l'est
+    // toujours. Rouge si elle s'écrivait sans condition (« id »: 0 ajouté, ou le texte écrasé par 0).
+    void unknownObjectWithoutIdKeepsItsBytes()
+    {
+        QJsonObject root = formats::documentToJson(plain());
+        QJsonArray pages = root.value(u"pages"_s).toArray();
+        QJsonObject page = pages.at(0).toObject();
+        QJsonArray objects = page.value(u"objects"_s).toArray();
+        QJsonObject withoutId = objects.at(0).toObject();
+        withoutId.insert(u"type"_s, u"objet-a-venir"_s);
+        QVERIFY(withoutId.contains(u"id"_s));
+        withoutId.remove(u"id"_s);
+        QJsonObject textId = withoutId;
+        textId.insert(u"id"_s, u"a1b2"_s);
+        objects.append(withoutId);
+        objects.append(textId);
+        page.insert(u"objects"_s, objects);
+        pages.replace(0, page);
+        root.insert(u"pages"_s, pages);
+        const ReadBack back = readBack(root);
+        QVERIFY2(back.result.ok, qPrintable(report(back.result)));
+        QCOMPARE(back.document.page(0).objects.size(), std::size_t{4});
+        QCOMPARE(back.document.page(0).objects[2].common.id, core::ObjectId{0});
+        QCOMPARE(back.document.page(0).objects[3].common.id, core::ObjectId{0});
+        const QJsonArray written =
+            firstPage(formats::documentToJson(back.document)).value(u"objects"_s).toArray();
+        const QByteArray writtenWithoutId =
+            QJsonDocument(written.at(2).toObject()).toJson(QJsonDocument::Compact);
+        const QByteArray writtenTextId =
+            QJsonDocument(written.at(3).toObject()).toJson(QJsonDocument::Compact);
+        QCOMPARE(writtenWithoutId, QJsonDocument(withoutId).toJson(QJsonDocument::Compact));
+        QCOMPARE(writtenTextId, QJsonDocument(textId).toJson(QJsonDocument::Compact));
+    }
 };
 
 QTEST_GUILESS_MAIN(TstFormatsLot4)
