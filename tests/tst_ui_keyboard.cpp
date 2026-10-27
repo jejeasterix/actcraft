@@ -6,6 +6,7 @@
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 
+#include <QEvent>
 #include <QGuiApplication>
 #include <QPointer>
 #include <QQmlComponent>
@@ -16,6 +17,7 @@
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QUrl>
+#include <QWindow>
 #include <QtTest>
 
 #include <memory>
@@ -116,6 +118,56 @@ QPointF keyCenter(QQuickWindow* window, const QString& id)
         return {};
     }
     return center;
+}
+
+// Compte les appuis de touche envoyés à une fenêtre, sans les arrêter.
+class KeyPressCounter : public QObject
+{
+public:
+    explicit KeyPressCounter(QObject* watched) : m_watched(watched) { watched->installEventFilter(this); }
+
+    int count() const { return m_count; }
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        if (watched == m_watched && event->type() == QEvent::KeyPress) {
+            ++m_count;
+        }
+        return false;
+    }
+
+private:
+    QObject* m_watched;
+    int m_count = 0;
+};
+
+// Plateforme qui donne quand même le focus au clavier (drapeau ignoré), simulée hors écran en retirant le
+// drapeau : active la fenêtre du clavier et tape la touche `id` à l'instant où le clavier reçoit le focus,
+// avant que le contrôleur ne le rende. Vrai si la touche est partie pendant que le clavier avait le focus.
+bool typeWhileTheKeyboardHasTheFocus(KeyboardController* keyboard, const QString& id)
+{
+    QQuickWindow* window = keyboard->window();
+    if (!window) {
+        return false;
+    }
+    bool reached = false;
+    bool focused = false;
+    bool typed = false;
+    const QMetaObject::Connection connection =
+        QObject::connect(qGuiApp, &QGuiApplication::focusWindowChanged, keyboard, [&](QWindow* focus) {
+            if (focus != window || reached) {
+                return;
+            }
+            reached = true;
+            focused = QGuiApplication::focusWindow() == window;
+            typed = keyboard->press(id);
+        });
+    window->setFlag(Qt::WindowDoesNotAcceptFocus, false);
+    window->requestActivate();
+    const bool waited = QTest::qWaitFor([&reached] { return reached; });
+    QObject::disconnect(connection);
+    return waited && focused && typed;
 }
 
 // Tout le fichier dans cet espace de noms anonyme (exécutable unique : aucun nom global hors du registre).
@@ -242,6 +294,91 @@ private slots:
         QVERIFY(main.run(QStringLiteral("tool.keyboard")));
         QVERIFY(!keyboard->isOpen());
         QTRY_VERIFY(second.isNull());
+    }
+
+    // Relecture de L7-T29 : la disposition Compact n'a pas de touche de verrouillage des majuscules ; y
+    // passer verrouillé enlève le verrouillage, sinon tout sortirait en majuscules sans issue. Mutant :
+    // setLayout garde le verrouillage.
+    void compactLayoutDropsTheCapsLock()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        KeyboardController* keyboard = keyboardOf(main);
+        QVERIFY(keyboard);
+        QStringList injected;
+        keyboard->setInjector([&injected](const QString& text) {
+            injected << text;
+            return true;
+        });
+        const std::unique_ptr<QQuickItem> field = focusedField(main);
+        QVERIFY(field);
+        keyboard->setLayout(KeyboardController::Layout::Standard);
+        QVERIFY(keyboard->press(QStringLiteral("caps")));
+        QVERIFY(keyboard->capsLocked());
+        QVERIFY(keyboard->press(QStringLiteral("a")));
+        keyboard->setLayout(KeyboardController::Layout::Compact);
+        QCOMPARE(keyboard->layout(), KeyboardController::Layout::Compact);
+        QVERIFY(!keyboard->capsLocked());
+        QVERIFY(keyboard->press(QStringLiteral("b")));
+        QCOMPARE(textOf(field.get()), QStringLiteral("Ab"));
+        QVERIFY(injected.isEmpty());
+    }
+
+    // Repli d'une plateforme qui donne quand même le focus au clavier : une touche tapée à cet instant part
+    // vers la fenêtre d'ActCraft d'avant (pas vers le clavier ni vers l'injecteur), et le contrôleur rend le
+    // focus à cette fenêtre. Mutants : focusTarget sans repli vers la fenêtre d'avant ; onFocusWindowChanged
+    // sans requestActivate.
+    void focusTakenByTheKeyboardGoesBack()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        KeyboardController* keyboard = keyboardOf(main);
+        QVERIFY(keyboard);
+        QStringList injected;
+        keyboard->setInjector([&injected](const QString& text) {
+            injected << text;
+            return true;
+        });
+        const std::unique_ptr<QQuickItem> field = focusedField(main);
+        QVERIFY(field);
+        QVERIFY(openKeyboard(main, keyboard));
+        QTRY_COMPARE(QGuiApplication::focusWindow(), main.window());
+        KeyPressCounter toMain(main.window());
+        KeyPressCounter toKeyboard(keyboard->window());
+        QVERIFY(typeWhileTheKeyboardHasTheFocus(keyboard, QStringLiteral("q")));
+        QCOMPARE(toMain.count(), 1);
+        QCOMPARE(toKeyboard.count(), 0);
+        QVERIFY(injected.isEmpty());
+        QTRY_COMPARE(QGuiApplication::focusWindow(), main.window());
+        QTRY_COMPARE(QGuiApplication::focusObject(), field.get());
+    }
+
+    // Relecture de L7-T29 : quand le focus quitte ActCraft (une autre application au premier plan), le
+    // contrôleur oublie la fenêtre d'avant. Si une plateforme donne ensuite le focus au clavier, la frappe
+    // part à l'injecteur (vers l'application au premier plan), pas vers une fenêtre d'ActCraft périmée. Hors
+    // écran, la plateforme ne retire jamais le focus à toutes les fenêtres : le test émet la notification que
+    // Qt émet alors. Mutant : la fenêtre d'avant gardée quand le focus quitte ActCraft.
+    void keyboardForgetsActCraftWhenTheFocusLeavesIt()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        KeyboardController* keyboard = keyboardOf(main);
+        QVERIFY(keyboard);
+        QStringList injected;
+        keyboard->setInjector([&injected](const QString& text) {
+            injected << text;
+            return true;
+        });
+        const std::unique_ptr<QQuickItem> field = focusedField(main);
+        QVERIFY(field);
+        QVERIFY(openKeyboard(main, keyboard));
+        QTRY_COMPARE(QGuiApplication::focusWindow(), main.window());
+        KeyPressCounter toMain(main.window());
+        emit qGuiApp->focusWindowChanged(nullptr); // le focus quitte ActCraft
+        QVERIFY(typeWhileTheKeyboardHasTheFocus(keyboard, QStringLiteral("q")));
+        QCOMPARE(injected, QStringList{QStringLiteral("q")});
+        QCOMPARE(toMain.count(), 0);
+        QCOMPARE(textOf(field.get()), QString());
     }
 
     // Fonction de bureau : la commande n'existe pas sur Android (plateformes de commands.json).
