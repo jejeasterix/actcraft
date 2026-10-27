@@ -1,5 +1,7 @@
 #include "equationcontroller.h"
 #include "equationpreviewitem.h"
+#include "presentationdocument.h"
+#include "support/flipchartwriter.h"
 #include "support/lot7registry.h"
 #include "support/presentationharness.h"
 
@@ -13,6 +15,7 @@
 #include <QPainter>
 #include <QPicture>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QtTest>
 
 #include <algorithm>
@@ -200,6 +203,51 @@ QImage pageImage(const QString& mathml, QSize size)
     actcraft::render::paintEquation(painter, equation, actcraft::render::EquationPaintMode::Page);
     painter.end();
     return image;
+}
+
+// Pose une équation déjà dans le document (couche intermédiaire), comme le ferait un fichier lu.
+core::ObjectId addEquation(DocumentController& controller, const std::string& mathml)
+{
+    core::Equation equation;
+    equation.bounds = core::RectF{100, 100, 160, 60};
+    equation.mathml = mathml;
+    core::PageObject object = std::move(equation);
+    object.common.layer = core::Layer::Middle;
+    return actcraft::ui::DocumentInsertions(controller).insertObject(std::move(object));
+}
+
+const core::Equation* equationById(const DocumentController& controller, core::ObjectId id)
+{
+    for (const core::PageObject& object : shown(controller).objects) {
+        if (object.common.id == id) {
+            return std::get_if<core::Equation>(&core::body(object));
+        }
+    }
+    return nullptr;
+}
+
+// Ouvre l'éditeur sur l'équation `id` par sa commande ; le panneau, ou nul.
+QQuickItem* editEquation(const MainWindow& main, core::ObjectId id)
+{
+    if (!main.run(u"equation.edit"_s, QVariant(static_cast<double>(id)))) {
+        return nullptr;
+    }
+    QQuickItem* panel = main.item(u"equationRoot"_s);
+    return panel && panel->isVisible() ? panel : nullptr;
+}
+
+bool saveTo(DocumentController& controller, const QUrl& url)
+{
+    QSignalSpy saved(&controller, &DocumentController::saveFinished);
+    controller.saveToUrl(url);
+    return saved.wait(60000) && saved.first().at(0).toBool();
+}
+
+bool openFrom(DocumentController& controller, const QUrl& url)
+{
+    QSignalSpy loaded(&controller, &DocumentController::loadFinished);
+    controller.openUrl(url);
+    return loaded.wait(60000) && loaded.first().at(0).toBool();
 }
 
 // Tout le fichier dans cet espace de noms anonyme (exécutable unique : aucun nom global hors du registre).
@@ -550,6 +598,157 @@ private slots:
         presentationharness::strokeAt(main.window(), pointer, main.pageView()->pageToScene(QPointF(40, 700)),
                                       main.pageView()->pageToScene(QPointF(140, 700)));
         QTRY_COMPARE(main.pageObjectCount(), before + 1);
+    }
+    // « equation.edit <id> » rouvre l'éditeur sur l'équation ; la saisie va à la fin (m1 de la revue de
+    // L7-T26) ; « OK » la remplace sous le même identifiant, à la même place, en une étape, sans marque de
+    // l'éditeur.
+    void editKeepsTheId()
+    {
+        MainWindow main;
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        const std::string original = "<math><mi>a</mi><mo>+</mo><mi>b</mi></math>";
+        const core::ObjectId id = addEquation(*controller, original);
+        QVERIFY(id != 0);
+        const std::size_t count = shown(*controller).objects.size();
+        const std::size_t rank = count - 1;
+        QQuickItem* panel = editEquation(main, id);
+        QVERIFY(panel != nullptr);
+        EquationController* equation = equationOf(main);
+        QVERIFY(equation != nullptr);
+        QCOMPARE(equation->mathml(), QString::fromStdString(original));
+        equation->type(u"c"_s);
+        QCOMPARE(equation->mathml(), u"<math><mi>a</mi><mo>+</mo><mi>b</mi><mi>c</mi></math>"_s);
+
+        QVERIFY(clickIn(main, panel, u"equationOkButton"_s));
+        QTRY_VERIFY(!panel->isVisible());
+        QCOMPARE(shown(*controller).objects.size(), count);
+        QCOMPARE(shown(*controller).objects[rank].common.id, id);
+        const core::Equation* edited = equationById(*controller, id);
+        QVERIFY(edited != nullptr);
+        const QString written = QString::fromStdString(edited->mathml);
+        QCOMPARE(written, u"<math><mi>a</mi><mo>+</mo><mi>b</mi><mi>c</mi></math>"_s);
+        QVERIFY2(!written.contains(u"actcraft-cursor"_s), qPrintable(written));
+        QVERIFY2(!written.contains(u"actcraft-placeholder"_s), qPrintable(written));
+
+        controller->undo(); // une seule étape rend l'équation d'origine, sous le même identifiant
+        const core::Equation* back = equationById(*controller, id);
+        QVERIFY(back != nullptr);
+        QCOMPARE(back->mathml, original);
+        QCOMPARE(shown(*controller).objects.size(), count);
+        controller->redo();
+        QCOMPARE(QString::fromStdString(equationById(*controller, id)->mathml), written);
+    }
+
+    // Une équation rééditée puis enregistrée en .actcraft se relit identique (empreinte du document
+    // comprise).
+    void equationRoundTripIdentical()
+    {
+        MainWindow main;
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        const core::ObjectId id = addEquation(*controller, "<math><mi>a</mi><mo>+</mo><mi>b</mi></math>");
+        QQuickItem* panel = editEquation(main, id);
+        QVERIFY(panel != nullptr);
+        equationOf(main)->type(u"c"_s);
+        QVERIFY(clickIn(main, panel, u"equationOkButton"_s));
+        const QString before = controller->property("fingerprint").toString();
+        const core::Equation* edited = equationById(*controller, id);
+        QVERIFY(edited != nullptr);
+        const core::Equation keep = *edited;
+
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QUrl url = QUrl::fromLocalFile(dir.filePath(u"eq.actcraft"_s));
+        QVERIFY(saveTo(*controller, url));
+        controller->newDocument(1024, 768);
+        QVERIFY(controller->property("fingerprint").toString() != before);
+        QVERIFY(openFrom(*controller, url));
+        QCOMPARE(controller->property("fingerprint").toString(), before);
+        const core::Equation* reread = equationById(*controller, id);
+        QVERIFY(reread != nullptr);
+        QCOMPARE(reread->mathml, keep.mathml);
+        QCOMPARE(reread->pointSize, keep.pointSize);
+        QCOMPARE(reread->bounds.x, keep.bounds.x);
+        QCOMPARE(reread->bounds.width, keep.bounds.width);
+    }
+
+    // MathML non canonique (espace de noms, blancs, entité) : lu, rouvert dans l'éditeur, « Annuler » puis
+    // « OK » sans modification laissent les mêmes octets ; seule une modification écrit la forme canonique.
+    void untouchedEquationKeepsItsBytes()
+    {
+        MainWindow main;
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        const std::string odd =
+            "<math xmlns=\"http://www.w3.org/1998/Math/MathML\">\n  <mi>&#x3B1;</mi> <mo>+</mo>\n"
+            "  <mn>1</mn>\n</math>";
+        const core::ObjectId id = addEquation(*controller, odd);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QUrl url = QUrl::fromLocalFile(dir.filePath(u"odd.actcraft"_s));
+        QVERIFY(saveTo(*controller, url));
+        controller->newDocument(1024, 768);
+        QVERIFY(openFrom(*controller, url));
+        QVERIFY(equationById(*controller, id) != nullptr);
+        QCOMPARE(equationById(*controller, id)->mathml, odd);
+        QVERIFY(!controller->canUndo());
+
+        QQuickItem* panel = editEquation(main, id);
+        QVERIFY(panel != nullptr);
+        QVERIFY(clickIn(main, panel, u"equationCancelButton"_s));
+        QTRY_VERIFY(!panel->isVisible());
+        QCOMPARE(equationById(*controller, id)->mathml, odd);
+        QVERIFY(!controller->canUndo());
+
+        panel = editEquation(main, id);
+        QVERIFY(panel != nullptr);
+        QVERIFY(clickIn(main, panel, u"equationOkButton"_s));
+        QTRY_VERIFY(!panel->isVisible());
+        QCOMPARE(equationById(*controller, id)->mathml, odd);
+        QVERIFY(!controller->canUndo());
+
+        panel = editEquation(main, id);
+        QVERIFY(panel != nullptr);
+        equationOf(main)->type(u"2"_s);
+        QVERIFY(clickIn(main, panel, u"equationOkButton"_s));
+        QVERIFY(equationById(*controller, id)->mathml != odd);
+        QVERIFY(controller->canUndo());
+    }
+
+    // Une équation lue d'un .flipchart (objet MathML, L7-T1) est dessinée : de l'encre sombre dans sa boîte.
+    void flipchartEquationIsDrawn()
+    {
+        namespace synth = fctest::synth;
+        synth::Sheet sheet(1003);
+        sheet.tree = {fctest::Node(1010, 460, 1011)};
+        sheet.entries = {
+            synth::io(1011, synth::mathmlObject(1011, u"<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>"_s,
+                                                100, 100, 200, 120))};
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString path = dir.filePath(u"eq.flipchart"_s);
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(synth::paperboard(u"eq"_s, {sheet}));
+        file.close();
+
+        MainWindow main;
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        QVERIFY(openFrom(*controller, QUrl::fromLocalFile(path)));
+        const auto& objects = shown(*controller).objects;
+        QCOMPARE(objects.size(), std::size_t{1});
+        QVERIFY(std::get_if<core::Equation>(&core::body(objects[0])) != nullptr);
+        const QImage image = actcraft::render::renderPage(shown(*controller), {}, 1.0);
+        QVERIFY(!image.isNull());
+        int dark = 0;
+        for (int y = 100; y < 220 && y < image.height(); ++y) {
+            for (int x = 100; x < 300 && x < image.width(); ++x) {
+                dark += qGray(image.pixel(x, y)) < 100 ? 1 : 0;
+            }
+        }
+        QVERIFY2(dark > 20, qPrintable(u"pixels sombres : %1"_s.arg(dark)));
     }
 };
 
