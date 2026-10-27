@@ -8,6 +8,7 @@
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documentio.h>
+#include <actcraft/ui/pageoptions.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
@@ -476,6 +477,13 @@ private slots:
         QCOMPARE(doc->document().page(0).zones.frameHeight, 500.0);
         QVERIFY(!doc->canUndo());
         QVERIFY(!doc->isModified());
+        // Le paperboard neuf montre ses séparations : réglage « 2x3 » (2 + 3 cadres : 1 + 2 séparations).
+        auto* options = s.window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
+        QVERIFY(options);
+        QTRY_COMPARE(options->zones(), QStringLiteral("2x3"));
+        QQuickItem* overlay = item(s, "pageZones");
+        QVERIFY(overlay);
+        QTRY_COMPARE(overlay->property("separatorCount").toInt(), 3);
         QVERIFY(
             QMetaObject::invokeMethod(sizeDialog, "acceptSize", Q_ARG(QVariant, 640), Q_ARG(QVariant, 480)));
         QTRY_COMPARE(doc->pageSize(), QSizeF(640, 480)); // sans cadre : aucune zone, minimum du lot 1 (200)
@@ -485,6 +493,72 @@ private slots:
                                    0); // cadre de 4000 x 500 (H4-20) ; 3 x 4000 dépasse 8000 : 2 cadres
         QCOMPARE(doc->pageSize(), QSizeF(8000, 500));
         QCOMPARE(doc->document().page(0).zones.horizontal, 2);
+    }
+
+    // Plafond défini une fois (maxPageSide) ; les champs de cadres suivent la taille d'un cadre, sans rien
+    // ramener en silence : à 500 px par cadre, 16 cadres au plus.
+    void frameBoxesFollowTheCeiling()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QCOMPARE(doc->property("maxPageSide").toDouble(), 8000.0);
+        QCOMPARE(doc->property("minFrameSide").toDouble(), 500.0);
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QVERIFY(sizeDialog);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QObject* width = namedObject(s, "pageWidthBox");
+        QObject* height = namedObject(s, "pageHeightBox");
+        QObject* across = namedObject(s, "pageFramesAcrossBox");
+        QObject* down = namedObject(s, "pageFramesDownBox");
+        QVERIFY(width && height && across && down);
+        QVERIFY(width->setProperty("value", 500));
+        QVERIFY(height->setProperty("value", 500));
+        QTRY_COMPARE(across->property("to").toInt(), 16);
+        QTRY_COMPARE(down->property("to").toInt(), 16);
+        QVERIFY(across->setProperty("value", 16));
+        QCOMPARE(across->property("value").toInt(), 16);
+        QTRY_COMPARE(width->property("to").toInt(), 500); // 16 cadres : la largeur ne peut plus grandir
+        QVERIFY(width->setProperty("value", 2000));
+        QCOMPARE(width->property("value").toInt(), 500); // refusée, visible : jamais ramenée après coup
+        QCOMPARE(across->property("value").toInt(), 16);
+    }
+
+    // Un cadre plus grand que le plafond est ramené au plafond avant le calcul : page = cadres x cadre.
+    void oversizedFrameIsCapped()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        doc->newDocumentWithFrames(10000, 600, 1, 1);
+        QCOMPARE(doc->pageSize(), QSizeF(8000, 600));
+        QCOMPARE(doc->document().page(0).zones.frameWidth, 8000.0);
+        QCOMPARE(doc->document().page(0).zones.horizontal, 1);
+        QCOMPARE(doc->document().page(0).zones.vertical, 1);
+    }
+
+    // Même garde que « Nouveau » : un document modifié demande avant d'être remplacé.
+    void framedSizeAsksBeforeReplacingAModifiedDocument()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(doc->isModified());
+        const QSizeF before = doc->pageSize();
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QObject* ask = namedObject(s, "saveChangesDialog");
+        QVERIFY(sizeDialog && ask);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(sizeDialog, "acceptFramedSize", Q_ARG(QVariant, 500),
+                                          Q_ARG(QVariant, 500), Q_ARG(QVariant, 2), Q_ARG(QVariant, 3)));
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QCOMPARE(doc->pageSize(), before);
+        QVERIFY(QMetaObject::invokeMethod(ask, "discard"));
+        QTRY_COMPARE(doc->pageSize(), QSizeF(1000, 1500));
+        QVERIFY(!doc->isModified());
     }
 
     // « Valider » sans rien changer : le paperboard du lot 1, sans zones, comme newDocument.
