@@ -46,7 +46,7 @@ FloatingPanel {
                 color: Theme.texte
             }
             SpinBox {
-                objectName: "cameraAreaLeft"
+                objectName: "cameraZoneLeft"
                 editable: true
                 from: 0
                 to: 100000
@@ -58,7 +58,7 @@ FloatingPanel {
                 color: Theme.texte
             }
             SpinBox {
-                objectName: "cameraAreaTop"
+                objectName: "cameraZoneTop"
                 editable: true
                 from: 0
                 to: 100000
@@ -70,7 +70,7 @@ FloatingPanel {
                 color: Theme.texte
             }
             SpinBox {
-                objectName: "cameraAreaWidth"
+                objectName: "cameraZoneWidth"
                 editable: true
                 from: 1
                 to: 100000
@@ -82,7 +82,7 @@ FloatingPanel {
                 color: Theme.texte
             }
             SpinBox {
-                objectName: "cameraAreaHeight"
+                objectName: "cameraZoneHeight"
                 editable: true
                 from: 1
                 to: 100000
