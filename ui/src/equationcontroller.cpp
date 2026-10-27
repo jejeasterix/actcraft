@@ -45,10 +45,10 @@ void markWhole(core::EquationNode& root)
 // Remplace un objet de la page sous son identifiant, au même rang (core::ReplaceObjectsCommand tire des
 // identifiants neufs et ignore celui de l'ajout : elle ne convient pas à la réédition). Changes : un
 // ObjectChanged, zone = emprise avant ∪ emprise après. Objet absent : rien ne change.
-class ReplaceInPlace final : public core::UndoCommand
+class EquationRewrite final : public core::UndoCommand
 {
 public:
-    ReplaceInPlace(std::size_t page, core::PageObject after) : m_page(page), m_after(std::move(after)) {}
+    EquationRewrite(std::size_t page, core::PageObject after) : m_page(page), m_after(std::move(after)) {}
     void redo(core::Document& document, core::Changes& changes) override
     {
         core::Page& page = document.page(m_page);
@@ -196,7 +196,7 @@ void EquationController::open()
 {
     m_editor.clear();
     m_editId = 0;
-    m_pointSize = kEquationPoints;
+    m_fontPoints = kEquationPoints;
     m_baseline.reset();
     edited();
 }
@@ -233,7 +233,7 @@ bool EquationController::edit(quint64 id)
         }
     }
     m_editId = id;
-    m_pointSize = equation->pointSize > 0 ? equation->pointSize : kEquationPoints;
+    m_fontPoints = equation->pointSize > 0 ? equation->pointSize : kEquationPoints;
     m_baseline = m_editor.documentMathml();
     edited();
     return true;
@@ -350,14 +350,14 @@ bool EquationController::acceptEdit(const std::string& written)
             core::RectF{cx - size.width() / 2, cy - size.height() / 2, size.width(), size.height()};
     }
     equation.mathml = written;
-    m_document->execute(std::make_unique<ReplaceInPlace>(insertions.shownIndex(), std::move(object)));
+    m_document->execute(std::make_unique<EquationRewrite>(insertions.shownIndex(), std::move(object)));
     setMessage({});
     return true;
 }
 
 void EquationController::edited()
 {
-    m_editorSize = naturalSize(m_editor.editorMathml(), m_pointSize);
+    m_editorSize = naturalSize(m_editor.editorMathml(), m_fontPoints);
     setMessage({});
     emit equationChanged();
 }

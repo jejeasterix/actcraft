@@ -89,7 +89,7 @@ private:
     QString m_message;
     QSizeF m_editorSize;
     quint64 m_editId = 0;
-    double m_pointSize = 24;
+    double m_fontPoints = 24;
     std::optional<std::string> m_baseline; // documentMathml() à l'ouverture en réédition
     QPointer<DocumentController> m_document;
 };
