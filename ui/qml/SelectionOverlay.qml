@@ -20,9 +20,9 @@ Item {
     readonly property color gris: "#808080"
     readonly property color contour: "#101418"
 
-    readonly property var frame: tools.selectionFrame
+    readonly property var frame: tools ? tools.selectionFrame : ({})
     readonly property bool framed: frame.visible === true
-    readonly property bool handlesOn: tools.handlesVisible
+    readonly property bool handlesOn: !!tools && tools.handlesVisible
     // Compteur réévalué quand la vue bouge : pageToScene n'annonce pas ses dépendances.
     property int tick: 0
 
@@ -108,7 +108,7 @@ Item {
         id: bar
         anchors.fill: parent
         tools: root.tools
-        commands: root.tools.commands
+        commands: root.tools ? root.tools.commands : null
         overlay: root
         visible: root.framed && root.handlesOn
     }

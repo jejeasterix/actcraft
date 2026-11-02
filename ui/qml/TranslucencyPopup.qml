@@ -10,7 +10,7 @@ Popup {
     objectName: "translucencyPopup"
 
     required property Tools tools
-    readonly property string title: popup.tools.commands ? popup.tools.commands.label("object.translucency") : ""
+    readonly property string title: popup.tools && popup.tools.commands ? popup.tools.commands.label("object.translucency") : ""
 
     onClosed: {
         if (popup.tools.documentController)

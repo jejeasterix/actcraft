@@ -14,7 +14,7 @@ Item {
     enabled: false
 
     Repeater {
-        model: bar.tools.selectionFrame.bar
+        model: bar.tools ? bar.tools.selectionFrame.bar : []
         delegate: Rectangle {
             id: button
             required property var modelData

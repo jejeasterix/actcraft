@@ -7,8 +7,8 @@ import ActCraft.Ui
 Item {
     id: cursor
     required property Tools tools
-    readonly property bool circled: cursor.tools.currentTool === "highlighter" || cursor.tools.currentTool === "eraser"
-    property int cursorShape: cursor.tools.currentTool === "select"
+    readonly property bool circled: !!cursor.tools && (cursor.tools.currentTool === "highlighter" || cursor.tools.currentTool === "eraser")
+    property int cursorShape: !!cursor.tools && cursor.tools.currentTool === "select"
                               ? Qt.ArrowCursor
                               : cursor.circled ? Qt.BlankCursor : Qt.CrossCursor
     enabled: false
