@@ -40,4 +40,5 @@ void PenShapeTool::setPen(const core::Outline& pen, bool highlighter)
     m_highlighter = highlighter;
 }
 
+bool PenShapeTool::onKey(int, int) { return false; }
 } // namespace actcraft::tools

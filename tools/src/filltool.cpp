@@ -33,4 +33,7 @@ void FillTool::setColor(core::Argb color)
     m_color = color;
 }
 
+FillTool::~FillTool() {}
+void FillTool::setComputeObserver(std::function<void(QThread*)>) {}
+int FillTool::staleImageFillDropped() const noexcept { return 0; }
 } // namespace actcraft::tools
