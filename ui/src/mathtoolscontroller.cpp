@@ -265,13 +265,20 @@ input::Sample MathToolsController::CompassGuide::follow(const input::Sample& sam
     return compass.follow(sample);
 }
 
-MathToolsController::MathToolsController(QObject* parent) : QObject(parent) {}
+MathToolsController::MathToolsController(QObject* parent) : QObject(parent)
+{
+    connect(this, &MathToolsController::originVisibleChanged, this, &MathToolsController::syncPivot);
+    connect(this, &MathToolsController::originChanged, this, &MathToolsController::syncPivot);
+}
 
 MathToolsController::~MathToolsController()
 {
     // Le filtre et l'observateur tiennent `this` : jamais laissés à une vue ou un document qui survit.
     if (m_view && m_filterInstalled) {
         m_view->setSampleFilter({});
+    }
+    if (m_view) {
+        m_view->setProperty(kRotationPivotProperty, QVariant());
     }
     if (m_document && m_strokeObserver != 0) {
         m_document->removeChangeObserver(m_strokeObserver);
@@ -296,6 +303,9 @@ void MathToolsController::setView(PageView* view)
     }
     m_filterInstalled = false;
     disconnect(m_zoomConnection);
+    if (m_view) {
+        m_view->setProperty(kRotationPivotProperty, QVariant());
+    }
     m_view = view;
     if (m_view) {
         m_zoomConnection = connect(m_view, &PageView::zoomChanged, this, &MathToolsController::syncTolerance);
@@ -303,6 +313,7 @@ void MathToolsController::setView(PageView* view)
     syncTolerance();
     updateFilter();
     refreshOrigin();
+    syncPivot();
     emit viewChanged();
 }
 
@@ -1011,6 +1022,13 @@ void MathToolsController::setOriginVisible(bool visible)
     }
     m_originVisible = visible;
     emit originVisibleChanged();
+}
+
+void MathToolsController::syncPivot()
+{
+    if (m_view) {
+        m_view->setProperty(kRotationPivotProperty, m_originVisible ? QVariant(m_origin) : QVariant());
+    }
 }
 
 QPointF MathToolsController::origin() const noexcept

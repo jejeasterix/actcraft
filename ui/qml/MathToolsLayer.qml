@@ -94,8 +94,9 @@ Item {
                         toolIndex: slot.index
                         pageView: root.pageArea ? root.pageArea.view : null
                         leadShown: root.snapTool === slot.index
-                        // L'encre que le stylo donne au trait (pen.color la règle sur la vue).
-                        leadColor: root.pageArea && root.pageArea.view ? root.pageArea.view.inkColor : "black"
+                        // Couleur de l'outil d'encre, opaque (extras/mathtools.py, _ink_style) ; sans hôte
+                        // d'outils (bureau), celle de la vue.
+                        leadColor: root.tools ? root.tools.color : root.pageArea && root.pageArea.view ? root.pageArea.view.inkColor : "black"
                     }
                 }
             }

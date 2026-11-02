@@ -63,6 +63,9 @@ class MathToolsController : public QObject
 
 public:
     static constexpr double kSnapScreenPixels = 16;
+    // Propriété dynamique de la vue : l'origine montrée (QPointF), pivot de la poignée de rotation du lot 3
+    // (ViewInfoAdapter::rotationPivot) ; absente quand l'origine est cachée.
+    static constexpr const char* kRotationPivotProperty = "actcraftRotationPivot";
 
     explicit MathToolsController(QObject* parent = nullptr);
     ~MathToolsController() override;
@@ -251,6 +254,7 @@ private:
     // Relit l'origine de la page affichée dans le document ; appelée au changement de page, au remplacement
     // du document (documentReplaced) et après chaque modification (annuler, rétablir, trait).
     void refreshOrigin();
+    void syncPivot(); // kRotationPivotProperty sur la vue, d'après originVisible et origin
 
     QPointer<PageView> m_view;
     QPointer<ToolHost> m_toolHost;
