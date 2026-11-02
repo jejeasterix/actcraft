@@ -14,6 +14,11 @@
 
 namespace actcraft::formats {
 
+// Nom natif d'un sens de dégradé (« vertical », « horizontal », « diagonalDown », « diagonalUp », « radial »)
+// et son inverse : le vocabulaire du fichier, partagé avec l'interface.
+QString gradientKindName(core::GradientKind kind);
+std::optional<core::GradientKind> gradientKindFromName(const QString& name);
+
 // Format natif (DA3, décision 17) : « document.json » de l'archive .actcraft. Clés et noms d'énumérations en
 // anglais, écrits en clair un par un, figés par nativejson.cpp et par tst_formats_nativejson (keysAreFrozen).
 // Un champ du modèle = une clé. Tout changement incompatible passe par « actcraft-document/2 » et un lecteur

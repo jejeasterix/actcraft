@@ -1,3 +1,4 @@
+#include <actcraft/core/pagezones.h>
 #include <actcraft/formats/nativejson.h>
 
 #include <QJsonArray>
@@ -557,7 +558,7 @@ template <typename T> void writeBody(QJsonObject&, const T&)
 void writeBody(QJsonObject& j, const Shape& shape)
 {
     const auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill, pen,
-                 brush] = shape;
+                 brush, preset, parameters] = shape; // préréglage et paramètres : L4-T6
     j.insert(u"shape"_s, nameText(kind));
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"polygon"_s, pairsJson(polygon));
@@ -574,6 +575,18 @@ void writeBody(QJsonObject& j, const Shape& shape)
     j.insert(u"windingFill"_s, windingFill);
     j.insert(u"pen"_s, outlineJson(pen));
     j.insert(u"brush"_s, fillJson(brush));
+    // Clés facultatives du lot 4 (L4-T6), absentes à leur défaut : un fichier sans elles garde ses octets. Le
+    // gabarit des clés connues les tient d'un objet où elles sont hors défaut (everyKeyObject).
+    if (!preset.empty()) {
+        j.insert(u"preset"_s, str(preset));
+    }
+    if (!parameters.empty()) {
+        QJsonArray list;
+        for (const double parameter : parameters) {
+            list.append(parameter);
+        }
+        j.insert(u"parameters"_s, list);
+    }
 }
 
 void writeBody(QJsonObject& j, const ImageObject& image)
@@ -637,7 +650,7 @@ QJsonObject runJson(const TextSpan& run)
 
 void writeBody(QJsonObject& j, const Text& textObject)
 {
-    const auto& [bounds, html, runs] = textObject;
+    const auto& [bounds, html, runs, vertical, firstBaseline] = textObject; // vertical : L4-T6
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"html"_s, str(html));
     QJsonArray list;
@@ -645,6 +658,12 @@ void writeBody(QJsonObject& j, const Text& textObject)
         list.append(runJson(run));
     }
     j.insert(u"runs"_s, list);
+    if (vertical) {
+        j.insert(u"vertical"_s, true); // facultative (L4-T6) : absente, texte horizontal
+    }
+    if (firstBaseline) {
+        j.insert(u"firstBaseline"_s, pointJson(*firstBaseline)); // facultative (L4-C5) : absente, non mesurée
+    }
 }
 
 void writeBody(QJsonObject& j, const Media& mediaObject)
@@ -692,13 +711,21 @@ void writeBody(QJsonObject&, const UnknownObject&) {}
 
 QJsonObject objectJson(const PageObject& object)
 {
-    // Type inconnu de cette version (L2-C8) : le JSON lu, tel quel ; ni « type » ni clés communes regénérés
-    // depuis le modèle (writeCommon ajouterait les clés que le fichier n'a pas).
+    // Type inconnu de cette version (L2-C8) : le JSON lu, tel quel, hors son identifiant (L4-C4). Ni son type
+    // ni ses autres clés communes ne sont regénérés depuis le modèle : writeCommon ajouterait les clés que le
+    // fichier n'a pas.
     if (const auto* unknown = std::get_if<UnknownObject>(&object)) {
         QJsonObject kept = keptObject(unknown->json);
         if (kept.isEmpty()) {
             // Texte gardé illisible (le lecteur n'en produit jamais) : son type seul.
             kept.insert(u"type"_s, str(unknown->type));
+        }
+        // L4-C4 : l'identifiant courant (neuf après un collage, withFreshIds), jamais celui du JSON
+        // d'origine. Les références que ce JSON ferait à d'autres objets ne sont pas réécrites : on ne les
+        // connaît pas. Un identifiant nul (« id » absent ou illisible, readId) n'est pas écrit : l'objet
+        // garde les octets lus ; après withFreshIds, l'identifiant n'est jamais nul.
+        if (object.common.id != 0) {
+            kept.insert(u"id"_s, idValue(object.common.id));
         }
         return kept;
     }
@@ -763,17 +790,34 @@ QJsonObject presentationJson(const PagePresentation& presentation)
     return withKept(j, unknownKeys);
 }
 
+// Zones de page (L4-T27, D11) : les quatre sous-clés, toujours ensemble.
+QJsonObject zonesJson(const PageZones& zones)
+{
+    const auto& [horizontal, vertical, frameWidth, frameHeight] = zones;
+    return QJsonObject{{u"horizontal"_s, horizontal},
+                       {u"vertical"_s, vertical},
+                       {u"frameWidth"_s, frameWidth},
+                       {u"frameHeight"_s, frameHeight}};
+}
+
 QJsonObject pageJson(const Page& page)
 {
-    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys] = page;
+    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight,
+                 zones] = page; // baseHeight : L4-T6 ; zones : L4-T27
     QJsonObject j;
     j.insert(u"width"_s, width);
     j.insert(u"height"_s, height);
+    if (baseHeight != 0) {
+        j.insert(u"baseHeight"_s, baseHeight); // facultative (L4-T6) : absente, page jamais allongée
+    }
     j.insert(u"name"_s, str(name));
     j.insert(u"notes"_s, str(notes));
     const auto& [fill, image] = background;
     j.insert(u"background"_s, QJsonObject{{u"fill"_s, fillJson(fill)}, {u"image"_s, str(image)}});
     j.insert(u"grid"_s, gridJson(grid));
+    if (!isDefault(zones)) {
+        j.insert(u"zones"_s, zonesJson(zones)); // facultative (L4-T27) : absente, aucune zone
+    }
     if (!isDefault(presentation)) {
         j.insert(u"presentation"_s, presentationJson(presentation)); // absente : réglages par défaut
     }
@@ -826,8 +870,10 @@ bool isResourceExtension(const std::string& extension)
 
 // Clés qu'écrit l'écrivain (L2-C8) : celles d'un objet vierge de chaque type connu, d'une page, d'une action,
 // d'une ligne de texte, d'un niveau de grille, d'une déclaration de ressource et d'un document vierges
-// (l'écrivain écrit toutes ses clés, quelles que soient les valeurs). Une clé lue hors de ces gabarits est
-// inconnue de cette version. Construits à chaque lecture : rien de partagé entre fils.
+// (l'écrivain écrit toutes ses clés, quelles que soient les valeurs, sauf les clés facultatives : « origin »,
+// « presentation » et celles du lot 4 ; leur gabarit vient d'un modèle où elles sont hors défaut,
+// everyPresentationKey, everyKeyObject, everyPageKey). Une clé lue hors de ces gabarits est inconnue de cette
+// version. Construits à chaque lecture : rien de partagé entre fils.
 struct KnownKeys
 {
     std::array<QJsonObject, kObjectKindCount> objects; // Unknown : vide, jamais consulté
@@ -1048,6 +1094,31 @@ public:
         return out;
     }
 
+    // Tableau de nombres finis, tout ou rien : un élément mal formé et le tableau garde le défaut du modèle
+    // (vide), jamais un 0 à sa place (des points intelligents à 0 déplaceraient les poignées du préréglage).
+    std::vector<double> readFiniteNumbers(const QJsonObject& o, QStringView key)
+    {
+        const QJsonValue v = o.value(key);
+        if (v.isUndefined()) {
+            return {};
+        }
+        if (!v.isArray()) {
+            warn(u"« %1 » n'est pas un tableau"_s.arg(key));
+            return {};
+        }
+        const QJsonArray a = v.toArray();
+        std::vector<double> out;
+        out.reserve(static_cast<std::size_t>(a.size()));
+        for (const QJsonValue& e : a) {
+            if (!e.isDouble() || !std::isfinite(e.toDouble())) {
+                warn(u"« %1 » : valeur qui n'est pas un nombre fini, valeurs par défaut"_s.arg(key));
+                return {};
+            }
+            out.push_back(e.toDouble());
+        }
+        return out;
+    }
+
     // Points à plat (x, y, x, y…) ; un nombre impair de coordonnées perd la dernière.
     std::vector<PointF> readPairs(const QJsonValue& v, QStringView key)
     {
@@ -1104,6 +1175,19 @@ public:
             y = (*a)[1];
         }
         return point;
+    }
+
+    // Point facultatif : absent ou mal formé (avertissement de readFixed), aucun.
+    std::optional<PointF> readOptionalPoint(const QJsonObject& o, QStringView key)
+    {
+        if (const std::optional<std::array<double, 2>> a = readFixed<2>(o, key)) {
+            PointF point;
+            auto& [x, y] = point;
+            x = (*a)[0];
+            y = (*a)[1];
+            return point;
+        }
+        return std::nullopt;
     }
 
     RectF readRect(const QJsonObject& o, QStringView key, RectF rect)
@@ -1208,8 +1292,8 @@ template <typename T> void readBody(Reader&, const QJsonObject&, T&)
 
 void readBody(Reader& r, const QJsonObject& j, Shape& shape)
 {
-    auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill, pen,
-           brush] = shape;
+    auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open, windingFill, pen, brush,
+           preset, parameters] = shape; // préréglage et paramètres : L4-T6
     kind = r.readEnum(kShapeKinds, j, u"shape", kind);
     bounds = r.readRect(j, u"bounds", bounds);
     polygon = r.readPairs(j, u"polygon");
@@ -1224,6 +1308,10 @@ void readBody(Reader& r, const QJsonObject& j, Shape& shape)
     windingFill = r.readFlag(j, u"windingFill", windingFill);
     pen = r.readOutline(j, u"pen");
     brush = r.readFill(j, u"brush", brush);
+    // Tout texte est gardé, même un préréglage que cette version ne connaît pas (core::shapeCatalog) : il
+    // revient tel quel à l'écriture.
+    preset = r.readString(j, u"preset");
+    parameters = r.readFiniteNumbers(j, u"parameters");
 }
 
 void readBody(Reader& r, const QJsonObject& j, ImageObject& image)
@@ -1300,13 +1388,20 @@ TextSpan readRun(Reader& r, const QJsonObject& j)
 
 void readBody(Reader& r, const QJsonObject& j, Text& textObject)
 {
-    auto& [bounds, html, runs] = textObject;
+    auto& [bounds, html, runs, vertical, firstBaseline] = textObject; // vertical : L4-T6
     bounds = r.readRect(j, u"bounds", bounds);
     html = r.readString(j, u"html");
     for (const QJsonValue& value : r.readArray(j, u"runs")) {
         if (const std::optional<QJsonObject> jr = r.readElement(value, u"runs")) {
             runs.push_back(readRun(r, *jr));
         }
+    }
+    vertical = r.readFlag(j, u"vertical", vertical);
+    firstBaseline = r.readOptionalPoint(j, u"firstBaseline");
+    // Mesure d'un texte horizontal, dans son emprise : sinon (colonne, clé périmée d'une version antérieure),
+    // aucune (L4-C5).
+    if (firstBaseline && (vertical || !bounds.contains(*firstBaseline))) {
+        firstBaseline.reset();
     }
 }
 
@@ -1363,6 +1458,23 @@ template <std::size_t I = 0> PageObject blankObject(std::size_t index)
     return object;
 }
 
+// Gabarit des clés connues d'un type (KnownKeys) : l'objet vierge, ses champs facultatifs du lot 4 hors
+// défaut pour que l'écrivain en écrive la clé (comme everyPresentationKey pour « origin »). Sans eux, une clé
+// lue « preset », « parameters » ou « vertical » irait aux clés inconnues et serait réécrite même remise au
+// défaut.
+PageObject everyKeyObject(std::size_t index)
+{
+    PageObject object = blankObject(index);
+    if (auto* shape = std::get_if<Shape>(&body(object))) {
+        shape->preset = "preset";
+        shape->parameters = {0.0};
+    } else if (auto* text = std::get_if<Text>(&body(object))) {
+        text->vertical = true;
+        text->firstBaseline = PointF{};
+    }
+    return object;
+}
+
 // Boîte d'un objet inconnu, s'il en donne une lisible : quatre nombres finis, taille positive ou nulle, coins
 // finis. Sans avertissement : « bounds » a le sens que lui donne un type inconnu.
 std::optional<RectF> readBox(const QJsonValue& v)
@@ -1392,8 +1504,8 @@ std::optional<RectF> readBox(const QJsonValue& v)
 }
 
 // Objet d'un type inconnu (L2-C8) : gardé tel quel, toutes ses clés, à sa place. Ses propriétés communes sont
-// lues pour la couche, l'ordre, l'identifiant et le repère, jamais réécrites d'après le modèle. Rien de ce
-// qu'il cite n'est chargé.
+// lues pour la couche, l'ordre, l'identifiant et le repère, jamais réécrites d'après le modèle, sauf
+// l'identifiant (objectJson écrit le courant, L4-C4). Rien de ce qu'il cite n'est chargé.
 PageObject readUnknown(Reader& r, const QJsonObject& j, const QString& type)
 {
     UnknownObject unknown;
@@ -1491,10 +1603,24 @@ PagePresentation readPresentation(Reader& r, const QJsonObject& j)
     return presentation;
 }
 
+// Zones de page (L4-T27) : absentes, aucune. Bornées par clampZones (D11, H4-20) sans avertissement ; un
+// nombre mal formé en a un et garde le défaut, comme toute valeur lue.
+PageZones readZones(Reader& r, const QJsonObject& j)
+{
+    PageZones zones;
+    auto& [horizontal, vertical, frameWidth, frameHeight] = zones;
+    horizontal = r.readInteger(j, u"horizontal", horizontal);
+    vertical = r.readInteger(j, u"vertical", vertical);
+    frameWidth = r.readNumber(j, u"frameWidth", frameWidth);
+    frameHeight = r.readNumber(j, u"frameHeight", frameHeight);
+    return clampZones(zones);
+}
+
 Page readPage(Reader& r, const QJsonObject& j)
 {
     Page page;
-    auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys] = page;
+    auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight,
+           zones] = page; // baseHeight : L4-T6 ; zones : L4-T27
     // « presentation » est lue par readPresentation, qui garde ses sous-clés inconnues ; hors des clés
     // inconnues de la page : pageJson(Page{}) ne l'écrit pas, elle y serait gardée en double et réécrite même
     // remise aux réglages par défaut.
@@ -1504,6 +1630,7 @@ Page readPage(Reader& r, const QJsonObject& j)
     presentation = readPresentation(r, r.readChild(j, u"presentation"));
     width = r.readNumber(j, u"width", width);
     height = r.readNumber(j, u"height", height);
+    baseHeight = r.readNumber(j, u"baseHeight", baseHeight);
     name = r.readString(j, u"name");
     notes = r.readString(j, u"notes");
     const QJsonObject jb = r.readChild(j, u"background");
@@ -1511,6 +1638,7 @@ Page readPage(Reader& r, const QJsonObject& j)
     fill = r.readFill(jb, u"fill", fill);
     image = r.readString(jb, u"image");
     grid = readGrid(r, r.readChild(j, u"grid"));
+    zones = readZones(r, r.readChild(j, u"zones"));
     const QJsonArray list = r.readArray(j, u"objects");
     const QString pageWhere = r.where;
     for (qsizetype i = 0; i < list.size(); ++i) {
@@ -1561,6 +1689,21 @@ QJsonObject resourceJson(const std::string& key, const std::string& extension)
 }
 
 } // namespace
+
+QString gradientKindName(GradientKind kind)
+{
+    return latin1(enumName(kind));
+}
+
+std::optional<GradientKind> gradientKindFromName(const QString& name)
+{
+    for (const auto& entry : kGradients) {
+        if (latin1(entry.name) == name) {
+            return entry.value;
+        }
+    }
+    return std::nullopt;
+}
 
 QString describe(ResourceFailure failure)
 {
@@ -1617,10 +1760,16 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
     KnownKeys known;
     for (std::size_t i = 0; i < known.objects.size(); ++i) {
         if (i != static_cast<std::size_t>(ObjectKind::Unknown)) {
-            known.objects[i] = objectJson(blankObject(i));
+            known.objects[i] = objectJson(everyKeyObject(i));
         }
     }
-    known.page = pageJson(Page{});
+    Page everyPageKey;
+    everyPageKey.baseHeight = 1; // « baseHeight » n'est écrite que hors défaut (L4-T6)
+    everyPageKey.zones = PageZones{.horizontal = 1,
+                                   .vertical = 1,
+                                   .frameWidth = 1,
+                                   .frameHeight = 1}; // « zones » n'est écrite que hors défaut (L4-T27)
+    known.page = pageJson(everyPageKey);
     PagePresentation everyPresentationKey;
     everyPresentationKey.hasOrigin = true;
     known.presentation = presentationJson(everyPresentationKey);

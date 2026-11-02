@@ -2,6 +2,7 @@
 
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
+#include <actcraft/core/pagesettings.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/imagesynth.h>
 
@@ -49,13 +50,14 @@ bool usesImages(const core::PageObject& object)
 
 // Lot 10 : l'objet peut attendre au-dessus du cache (mis en attente par insert, gardé en attente par
 // invalidate). Ni image (la couche d'attente n'a pas de magasin), ni encre révélatrice (P8 : elle rend
-// transparents les objets sous elle, redessin immédiat), ni page à grille dessinée au-dessus des objets.
-// Limite de DA11 (écart 5, H10-8) : sinon, redessin immédiat (reconstruction).
-bool canWait(const core::Page& page, const core::PageObject& object)
+// transparents les objets sous elle, redessin immédiat). Limite de DA11 (écart 5, H10-8) : sinon, redessin
+// immédiat (reconstruction). La grille du dessus n'est plus une cause (L4-T7) : surcouche hors de cette scène
+// (GridOverlayItem), au-dessus de la couche d'attente comme du cache.
+bool canWait(const core::PageObject& object)
 {
     const auto* stroke = std::get_if<core::Stroke>(&object);
     const bool revealer = stroke && stroke->kind == core::StrokeKind::Revealer;
-    return !usesImages(object) && !revealer && !page.grid.drawnAbove;
+    return !usesImages(object) && !revealer;
 }
 } // namespace
 
@@ -192,7 +194,7 @@ void FixedPageItem::insert(core::ObjectId id)
             emit strokeAppended();
         }
     };
-    if (atEnd && m_deferred && m_ready && canWait(shown, object)) {
+    if (atEnd && m_deferred && m_ready && canWait(object)) {
         // Lot 10 : il attend au-dessus du cache ; ni nœud dans la scène, ni redessin du cache. Limite de DA11
         // (écart 5, H10-8) : hors fin de page, ou objet qui ne peut pas attendre → redessin immédiat
         // ci-dessous.
@@ -238,13 +240,13 @@ void FixedPageItem::invalidate(core::ObjectId id, const core::CacheArea&)
     const bool pending =
         id != 0 && std::find(m_pendingIds.begin(), m_pendingIds.end(), id) != m_pendingIds.end();
     // index est valide ici : un objet en attente en queue de page y est.
-    if (pending && pendingAreTheLastObjects() && canWait(shown, shown.objects[index])) {
+    if (pending && pendingAreTheLastObjects() && canWait(shown.objects[index])) {
         ++m_pendingRevision; // modifié en place pendant qu'il attend : la couche le refait
         emit pendingChanged();
         return;
     }
-    // Hors de l'attente, objet qui ne peut plus attendre (canWait : image, encre révélatrice, grille
-    // au-dessus), ou objet en attente réordonné (annoncé en ObjectChanged, undo.h n'a pas de type
+    // Hors de l'attente, objet qui ne peut plus attendre (canWait : image, encre révélatrice), ou objet en
+    // attente réordonné (annoncé en ObjectChanged, undo.h n'a pas de type
     // « réordonné ») : ce qui attend n'est plus la queue de la page ; reconstruction complète, qui verse
     // tout, comme insert.
     restart(imageChanged && !m_ready ? Decode::Force : Decode::IfUncovered, Scope::SamePage);
@@ -335,6 +337,7 @@ void FixedPageItem::setRasterScale(double scale)
         return;
     }
     m_rasterScale = scale;
+    emit rasterScaleChanged();
     if (!m_pendingIds.empty()) { // la couche d'attente refait ses nœuds à la nouvelle échelle
         ++m_pendingRevision;
         emit pendingChanged();
@@ -393,9 +396,6 @@ void FixedPageItem::rescaleRasterNodes(const core::Page& page, const RenderConte
         QSGNode* parent = slot.node->parent();
         parent->insertChildNodeBefore(fresh, slot.node);
         parent->removeChildNode(slot.node);
-        if (m_gridDrawnAbove == slot.node) {
-            m_gridDrawnAbove = fresh;
-        }
         delete slot.node;
         slot.node = fresh;
         ++m_rasterizationCount;
@@ -454,7 +454,6 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         ++m_rebuildCount;
         clearChildren(root);
         m_underlay = nullptr;
-        m_gridDrawnAbove = nullptr;
         m_rasterSlots.clear();
         if (m_ready) {
             QSGNode* background = createBackgroundNode(shown, painted);
@@ -462,10 +461,12 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
             if (rasterized && backgroundIsPainted(shown)) {
                 addRasterSlot(background, kBackgroundSlot);
             }
-            if (QSGNode* grid = createGridNode(shown, painted)) {
-                if (shown.grid.drawnAbove) {
-                    m_gridDrawnAbove = grid;
-                }
+            // Grille du dessous seulement : celle du dessus est la surcouche GridOverlayItem, hors de la
+            // scène que le cache photographie (L4-T7) ; la masquer ou la montrer ne reconstruit pas cette
+            // scène.
+            QSGNode* grid =
+                core::gridDrawsUnderObjects(shown.grid) ? createGridNode(shown, painted) : nullptr;
+            if (grid) {
                 root->appendChildNode(grid);
                 if (rasterized) {
                     addRasterSlot(grid, kGridSlot);
@@ -501,11 +502,7 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
                 // feuille : les nœuds de transformation et d'opacité restent en place
                 addRasterSlot(made.leaf, i);
             }
-            if (m_gridDrawnAbove) {
-                root->insertChildNodeBefore(made.root, m_gridDrawnAbove);
-            } else {
-                root->appendChildNode(made.root);
-            }
+            root->appendChildNode(made.root);
         }
         m_builtCount = limit;
     }

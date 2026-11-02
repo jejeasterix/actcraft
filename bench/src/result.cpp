@@ -6,6 +6,8 @@
 #include <QJsonDocument>
 #include <QSaveFile>
 
+#include <algorithm>
+
 namespace actcraft::bench {
 
 namespace {
@@ -145,13 +147,60 @@ QJsonObject scenarioJson(const ScenarioResult& s)
     putIfSet(QStringLiteral("pending_cut"), s.pendingCut);
     putIfSet(QStringLiteral("rebuilds"), s.rebuilds);
     putIfSet(QStringLiteral("decodes"), s.decodes);
-    return {{"name", s.name},   {"exposure_lost", s.exposureLost},
-            {"frames", frames}, {"latency", latency},
-            {"input", input},   {"memory", memory},
-            {"cache", cache},   {"raw", raw}};
+    putIfSet(QStringLiteral("placed_shapes"), s.placedShapes);
+    QJsonObject out{{"name", s.name},   {"exposure_lost", s.exposureLost},
+                    {"frames", frames}, {"latency", latency},
+                    {"input", input},   {"memory", memory},
+                    {"cache", cache},   {"raw", raw}};
+    if (s.shapePreview) {
+        out.insert(QStringLiteral("shape_preview"), QJsonObject{{"frames", s.shapePreview->frames},
+                                                                {"p95_ms", s.shapePreview->p95Ms},
+                                                                {"max_ms", s.shapePreview->maxMs}});
+    }
+    if (s.thumbnails) {
+        out.insert(QStringLiteral("thumbnails"),
+                   QJsonObject{{"renders", s.thumbnails->renders},
+                               {"max_copy_ms", s.thumbnails->maxCopyMs},
+                               {"during_contact", s.thumbnails->duringContact}});
+    }
+    return out;
 }
 
 } // namespace
+
+ShapePreviewStats shapePreviewStats(const std::vector<std::int64_t>& swapNs,
+                                    const std::vector<std::pair<std::int64_t, std::int64_t>>& windowsNs)
+{
+    ShapePreviewStats out;
+    std::vector<double> intervalsMs;
+    for (std::size_t k = 0; k < swapNs.size(); ++k) {
+        const bool inDrag = std::any_of(windowsNs.begin(), windowsNs.end(), [&](const auto& w) {
+            return swapNs[k] >= w.first && swapNs[k] <= w.second;
+        });
+        if (!inDrag) {
+            continue;
+        }
+        ++out.frames;
+        if (k > 0) {
+            intervalsMs.push_back(static_cast<double>(swapNs[k] - swapNs[k - 1]) / 1'000'000.0);
+        }
+    }
+    if (!intervalsMs.empty()) {
+        const Percentiles p = summarize(intervalsMs);
+        out.p95Ms = p.p95;
+        out.maxMs = p.max;
+    }
+    return out;
+}
+
+int launchesDuringContact(const std::vector<std::int64_t>& launchNs,
+                          const std::vector<std::pair<std::int64_t, std::int64_t>>& windowsNs)
+{
+    return static_cast<int>(std::count_if(launchNs.begin(), launchNs.end(), [&](std::int64_t at) {
+        return std::any_of(windowsNs.begin(), windowsNs.end(),
+                           [at](const auto& w) { return at >= w.first && at <= w.second; });
+    }));
+}
 
 QString apiName(QSGRendererInterface::GraphicsApi api)
 {

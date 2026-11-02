@@ -8,11 +8,14 @@
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documentio.h>
+#include <actcraft/ui/pageoptions.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/toolhost.h>
 
 #include <QFile>
 #include <QImage>
 #include <QJSValue>
+#include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
 #include <QQuickItem>
@@ -21,6 +24,7 @@
 #include <QSemaphore>
 #include <QSignalSpy>
 #include <QStringList>
+#include <QTabletEvent>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QThreadPool>
@@ -450,6 +454,278 @@ private slots:
         QVERIFY(
             QMetaObject::invokeMethod(sizeDialog, "acceptSize", Q_ARG(QVariant, 640), Q_ARG(QVariant, 480)));
         QTRY_COMPARE(doc->pageSize(), QSizeF(640, 480));
+    }
+
+    void customSizeTakesFrames() // L4-C1 (D16)
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QVERIFY(sizeDialog);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(sizeDialog, "acceptFramedSize", Q_ARG(QVariant, 400),
+                                          Q_ARG(QVariant, 300), Q_ARG(QVariant, 2), Q_ARG(QVariant, 3)));
+        // Amendement 5 (L4-O2) : un cadre de 400 x 300 devient 500 x 500 (H4-20) ; page = 2 x 3 cadres.
+        QCOMPARE(namedObject(s, "pageWidthBox")->property("value").toInt(), 500);
+        QCOMPARE(namedObject(s, "pageHeightBox")->property("value").toInt(), 500);
+        QTRY_COMPARE(doc->pageSize(), QSizeF(1000, 1500));
+        QCOMPARE(doc->document().page(0).zones.horizontal, 2);
+        QCOMPARE(doc->document().page(0).zones.vertical, 3);
+        QCOMPARE(doc->document().page(0).zones.frameWidth, 500.0); // D11 : taille d'un cadre stockée
+        QCOMPARE(doc->document().page(0).zones.frameHeight, 500.0);
+        QVERIFY(!doc->canUndo());
+        QVERIFY(!doc->isModified());
+        // Le paperboard neuf montre ses séparations : réglage « 2x3 » (2 + 3 cadres : 1 + 2 séparations).
+        auto* options = s.window->findChild<ui::PageOptions*>(QStringLiteral("appPageSettings"));
+        QVERIFY(options);
+        QTRY_COMPARE(options->zones(), QStringLiteral("2x3"));
+        QQuickItem* overlay = item(s, "pageZones");
+        QVERIFY(overlay);
+        QTRY_COMPARE(overlay->property("separatorCount").toInt(), 3);
+        QVERIFY(
+            QMetaObject::invokeMethod(sizeDialog, "acceptSize", Q_ARG(QVariant, 640), Q_ARG(QVariant, 480)));
+        QTRY_COMPARE(doc->pageSize(), QSizeF(640, 480)); // sans cadre : aucune zone, minimum du lot 1 (200)
+        QCOMPARE(doc->document().page(0).zones.frameWidth, 0.0);
+        QCOMPARE(doc->document().page(0).zones.horizontal, 0);
+        doc->newDocumentWithFrames(4000, 300, 3,
+                                   0); // cadre de 4000 x 500 (H4-20) ; 3 x 4000 dépasse 8000 : 2 cadres
+        QCOMPARE(doc->pageSize(), QSizeF(8000, 500));
+        QCOMPARE(doc->document().page(0).zones.horizontal, 2);
+    }
+
+    // Plafond défini une fois (maxPageSide) ; les champs de cadres suivent la taille d'un cadre, sans rien
+    // ramener en silence : à 500 px par cadre, 16 cadres au plus.
+    void frameBoxesFollowTheCeiling()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QCOMPARE(doc->property("maxPageSide").toDouble(), 8000.0);
+        QCOMPARE(doc->property("minFrameSide").toDouble(), 500.0);
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QVERIFY(sizeDialog);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QObject* width = namedObject(s, "pageWidthBox");
+        QObject* height = namedObject(s, "pageHeightBox");
+        QObject* across = namedObject(s, "pageFramesAcrossBox");
+        QObject* down = namedObject(s, "pageFramesDownBox");
+        QVERIFY(width && height && across && down);
+        QVERIFY(width->setProperty("value", 500));
+        QVERIFY(height->setProperty("value", 500));
+        QTRY_COMPARE(across->property("to").toInt(), 16);
+        QTRY_COMPARE(down->property("to").toInt(), 16);
+        QVERIFY(across->setProperty("value", 16));
+        QCOMPARE(across->property("value").toInt(), 16);
+        QTRY_COMPARE(width->property("to").toInt(), 500); // 16 cadres : la largeur ne peut plus grandir
+        QVERIFY(width->setProperty("value", 2000));
+        QCOMPARE(width->property("value").toInt(), 500); // refusée, visible : jamais ramenée après coup
+        QCOMPARE(across->property("value").toInt(), 16);
+    }
+
+    // Un cadre plus grand que le plafond est ramené au plafond avant le calcul : page = cadres x cadre.
+    void oversizedFrameIsCapped()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        doc->newDocumentWithFrames(10000, 600, 1, 1);
+        QCOMPARE(doc->pageSize(), QSizeF(8000, 600));
+        QCOMPARE(doc->document().page(0).zones.frameWidth, 8000.0);
+        QCOMPARE(doc->document().page(0).zones.horizontal, 1);
+        QCOMPARE(doc->document().page(0).zones.vertical, 1);
+    }
+
+    // L4-C19 : les tailles se posent avant les nombres de cadres, le plafond suit la nouvelle largeur
+    // (1024 par défaut aurait borné à 7 cadres).
+    void framedSizeCeilingFollowsTheNewSize()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QVERIFY(sizeDialog);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(sizeDialog, "acceptFramedSize", Q_ARG(QVariant, 500),
+                                          Q_ARG(QVariant, 500), Q_ARG(QVariant, 10), Q_ARG(QVariant, 10)));
+        QCOMPARE(namedObject(s, "pageFramesAcrossBox")->property("value").toInt(), 10);
+        QTRY_COMPARE(doc->document().page(0).zones.horizontal, 10);
+    }
+
+    // Même garde que « Nouveau » : un document modifié demande avant d'être remplacé.
+    void framedSizeAsksBeforeReplacingAModifiedDocument()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(doc->isModified());
+        const QSizeF before = doc->pageSize();
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QObject* ask = namedObject(s, "saveChangesDialog");
+        QVERIFY(sizeDialog && ask);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(sizeDialog, "acceptFramedSize", Q_ARG(QVariant, 500),
+                                          Q_ARG(QVariant, 500), Q_ARG(QVariant, 2), Q_ARG(QVariant, 3)));
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QCOMPARE(doc->pageSize(), before);
+        QVERIFY(QMetaObject::invokeMethod(ask, "discard"));
+        QTRY_COMPARE(doc->pageSize(), QSizeF(1000, 1500));
+        QVERIFY(!doc->isModified());
+    }
+
+    // « Valider » sans rien changer : le paperboard du lot 1, sans zones, comme newDocument.
+    void validatingTheDefaultsMakesNoFrames()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QVERIFY(sizeDialog);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(sizeDialog, "accept"));
+        QTRY_VERIFY(!sizeDialog->property("visible").toBool());
+        QCOMPARE(doc->pageSize(), QSizeF(1024, 768));
+        QVERIFY(core::isDefault(doc->document().page(0).zones));
+        QVERIFY(!doc->canUndo());
+        QVERIFY(!doc->isModified());
+        // Une valeur lue est rendue telle quelle ; négatifs et excès sont ramenés, sans rien bloquer.
+        doc->newDocumentWithFrames(1000, 800, -3, -1);
+        QCOMPARE(doc->pageSize(), QSizeF(1000, 800));
+        QVERIFY(core::isDefault(doc->document().page(0).zones));
+        doc->newDocumentWithFrames(300, 200, 0, 2); // un seul sens en cadres : cadres de 500 x 500
+        QCOMPARE(doc->pageSize(), QSizeF(500, 1000));
+        QCOMPARE(doc->document().page(0).zones.horizontal, 0);
+        QCOMPARE(doc->document().page(0).zones.vertical, 2);
+        doc->newDocumentWithFrames(500, 500, 99, 99); // 40 x 53 au plus, puis 8000 par côté : 16 x 16
+        QCOMPARE(doc->pageSize(), QSizeF(8000, 8000));
+        QCOMPARE(doc->document().page(0).zones.horizontal, 16);
+        QCOMPARE(doc->document().page(0).zones.vertical, 16);
+    }
+
+    // B1 : boîte ouverte, le stylet posé sur un de ses champs ne pose pas d'encre dessous.
+    void sizeDialogBlocksTheStylus()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QVERIFY(sizeDialog);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QTRY_VERIFY(s.view->inputBlocked());
+        auto* box = qobject_cast<QQuickItem*>(namedObject(s, "pageFramesAcrossBox"));
+        QVERIFY(box);
+        const QPointF at = box->mapToScene(QPointF(box->width() / 2, box->height() / 2));
+        QPointingDevice stylus(QStringLiteral("tst-taille-stylet"), 5162, QInputDevice::DeviceType::Stylus,
+                               QPointingDevice::PointerType::Pen,
+                               QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 0);
+        const auto stroke = [&] {
+            const auto send = [&](QEvent::Type type, QPointF scene, Qt::MouseButtons buttons) {
+                QTabletEvent event(type, &stylus, scene, s.window->mapToGlobal(scene), buttons ? 0.5 : 0.0, 0,
+                                   0, 0, 0, 0, Qt::NoModifier, Qt::LeftButton, buttons);
+                QCoreApplication::sendEvent(s.window, &event);
+            };
+            send(QEvent::TabletPress, at, Qt::LeftButton);
+            for (int i = 1; i <= 3; ++i) {
+                send(QEvent::TabletMove, at + QPointF(i * 6, 0), Qt::LeftButton);
+            }
+            send(QEvent::TabletRelease, at + QPointF(18, 0), Qt::NoButton);
+        };
+        s.view->tools()->activate(QStringLiteral("pen"));
+        const std::size_t before = doc->document().page(0).objects.size();
+        stroke();
+        QCOMPARE(doc->document().page(0).objects.size(), before);
+        // Témoin : boîte fermée, le même geste pose bien de l'encre.
+        QVERIFY(QMetaObject::invokeMethod(sizeDialog, "close"));
+        QTRY_VERIFY(!s.view->inputBlocked());
+        stroke();
+        QTRY_VERIFY(doc->document().page(0).objects.size() > before);
+    }
+
+    // L4-C18 : les menus du navigateur de pages recouvrent la vue : ouverts, ils bloquent le stylet (contrat
+    // du lot).
+    void navigatorMenusBlockTheStylus_data()
+    {
+        QTest::addColumn<QByteArray>("menuName");
+        QTest::newRow("menu de page") << QByteArray("pageNavigatorMenu");
+        QTest::newRow("menu du navigateur") << QByteArray("pageNavigatorOwnMenu");
+    }
+
+    void navigatorMenusBlockTheStylus()
+    {
+        QFETCH(QByteArray, menuName);
+        Shell s;
+        QVERIFY(start(s));
+        QVERIFY(run(s, QStringLiteral("view.browsers")));
+        QObject* menu = namedObject(s, menuName.constData());
+        QVERIFY(menu);
+        QVERIFY(!s.view->inputBlocked());
+        QVERIFY(QMetaObject::invokeMethod(menu, "open"));
+        QTRY_VERIFY(menu->property("visible").toBool());
+        QTRY_VERIFY(s.view->inputBlocked());
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QTRY_VERIFY(!s.view->inputBlocked());
+    }
+
+    // L4-C21 : le menu contextuel de la page recouvre la vue : ouvert, il bloque le stylet (contrat du lot).
+    void pageContextMenuBlocksTheStylus()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* menu = namedObject(s, "pageContextMenu");
+        QVERIFY(menu);
+        QVERIFY(!s.view->inputBlocked());
+        QVERIFY(QMetaObject::invokeMethod(menu, "popupAt", Q_ARG(QVariant, 200), Q_ARG(QVariant, 200)));
+        QTRY_VERIFY(menu->property("visible").toBool());
+        QTRY_VERIFY(s.view->inputBlocked());
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QTRY_VERIFY(!s.view->inputBlocked());
+    }
+
+    // L4-C18 : un lâcher sur la moitié basse de la dernière miniature créée, des pages suivant, insère après
+    // elle (et non en fin de document).
+    void dropOnLowerHalfOfLastCreatedThumbnail()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QVERIFY(run(s, QStringLiteral("view.browsers")));
+        for (int i = 0; i < 11; ++i) {
+            QVERIFY(run(s, QStringLiteral("page.insert-after")));
+        }
+        QVERIFY(run(s, QStringLiteral("page.goto"), QVariant(1)));
+        auto* list = qobject_cast<QQuickItem*>(namedObject(s, "pageList"));
+        QObject* area = namedObject(s, "pageListArea");
+        QVERIFY(list && area);
+        const int count = list->property("count").toInt();
+        QCOMPARE(count, 12);
+        s.window->resize(1280, 800);
+        QTRY_VERIFY(list->width() > 100 && list->height() > 200);
+        QTRY_VERIFY(list->property("contentHeight").toDouble() > list->height());
+        int last = -1;
+        QQuickItem* cell = nullptr;
+        for (int i = 0; i < count; ++i) {
+            QQuickItem* item = nullptr;
+            QVERIFY(QMetaObject::invokeMethod(list, "itemAtIndex", Q_RETURN_ARG(QQuickItem*, item),
+                                              Q_ARG(int, i)));
+            if (item) {
+                last = i;
+                cell = item;
+            }
+        }
+        QVERIFY(last >= 0 && last < count - 1);
+        QVERIFY(cell);
+        const double contentY = list->property("contentY").toDouble();
+        const double y = cell->y() + cell->height() * 0.75 - contentY;
+        QVERIFY(QMetaObject::invokeMethod(area, "locate", Q_ARG(QVariant, QVariant(y))));
+        QCOMPARE(area->property("before").toInt(), last + 1);
     }
 
     void bannerShowsReadingWarnings()

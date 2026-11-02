@@ -354,8 +354,10 @@ private slots:
             QVERIFY(px != 0 && py != 0);
         }
         {
+            // Lot 4 : champs ajoutés à la structure (liaison structurée exhaustive) ; leur aller-retour :
+            // tst_formats_lot4 (L4-T6).
             const auto& [kind, bounds, polygon, fill, outline, outlineWidth, opacity, paths, open,
-                         windingFill, pen, brush] = std::get<Shape>(p1.objects[3]);
+                         windingFill, pen, brush, preset, parameters] = std::get<Shape>(p1.objects[3]);
             QVERIFY(kind != ShapeKind::Rectangle && bounds.width != 0 && !polygon.empty() &&
                     fill != 0xFFFFFFFFu && outline != 0xFF000000u && outlineWidth != 1 && opacity != 1 &&
                     !paths.empty() && open && !windingFill && std::get<Shape>(p1.objects[0]).windingFill);
@@ -386,7 +388,7 @@ private slots:
             QVERIFY(!points.empty() && pen.style != PenStyle::Solid);
         }
         {
-            const auto& [bounds, html, runs] = std::get<Text>(p1.objects[5]);
+            const auto& [bounds, html, runs, vertical, firstBaseline] = std::get<Text>(p1.objects[5]);
             QVERIFY(bounds.width != 0 && !html.empty() && runs.size() == 2);
             const auto& [text, family, size, weight, italic, underline, strikeOut, color, baseline, runBounds,
                          runKeys] = runs[0];
@@ -411,9 +413,12 @@ private slots:
                     pen.color != 0xFF000000u);
         }
         {
-            const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys] =
-                d.page(1);
+            const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys,
+                         baseHeight, zones] = d.page(1);
             QVERIFY(width != 1024 && height != 768 && objects.empty() && !name.empty() && !notes.empty());
+            // Zones de page (L4-T27) : jamais dans le document riche, dont les clés sont figées (référence) ;
+            // leur aller-retour : zonesRoundTrip, zonesKeyIsKnown (tst_formats_lot4).
+            QVERIFY(isDefault(zones));
             // Réglages de présentation : jamais dans le document riche, dont les clés sont figées (référence)
             // ; leur aller-retour : presentationRoundTrip, unknownPresentationKeyKept.
             QVERIFY(isDefault(presentation));
@@ -810,7 +815,7 @@ private slots:
         o.insert(u"pen"_s, pen);
         root = withObject(root, 0, 3, o);
         QJsonObject p = page(root, 0);
-        p.insert(u"zones"_s, QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}});
+        p.insert(u"futureLayout"_s, QJsonArray{QJsonObject{{u"name"_s, u"haut"_s}}});
         QJsonObject background = p.value(u"background"_s).toObject();
         background.insert(u"blur"_s, 4);
         p.insert(u"background"_s, background);
@@ -1071,6 +1076,71 @@ private slots:
         QVERIFY(r.ok);
         QVERIFY(r.warnings.join(u' ').contains(u"empreinte"_s));
         QCOMPARE(back.resources().size(), std::size_t{0});
+    }
+
+    // L4-C5 : `firstBaseline` est facultative, hors de l'empreinte, jamais écrite quand elle manque ; lue,
+    // elle doit tenir dans l'emprise d'un texte horizontal (une version antérieure la garde comme clé
+    // inconnue et la réécrit périmée après un changement de police).
+    static core::Document documentWithText(bool vertical, std::optional<core::PointF> baseline)
+    {
+        core::Document d;
+        core::Text text;
+        text.bounds = {10, 10, 100, 40};
+        text.html = "<p>un</p>";
+        text.vertical = vertical;
+        text.firstBaseline = baseline;
+        core::PageObject object{text};
+        object.common.id = 1;
+        d.page(0).objects.push_back(object);
+        d.refreshNextId();
+        return d;
+    }
+    static std::optional<core::PointF> readBaseline(const QJsonObject& root, QStringList* warnings = nullptr)
+    {
+        core::Document back;
+        const auto r = formats::documentFromJson(root, loaderFrom(core::Document{}), back);
+        if (warnings) {
+            *warnings = r.warnings;
+        }
+        const auto* text = r.ok ? std::get_if<core::Text>(&back.page(0).objects[0]) : nullptr;
+        return text ? text->firstBaseline : std::nullopt;
+    }
+    void firstBaselineIsWrittenAndReadBack()
+    {
+        const QJsonObject root = formats::documentToJson(documentWithText(false, core::PointF{12, 30}));
+        QVERIFY(object(root, 0, 0).contains(u"firstBaseline"_s));
+        const auto back = readBaseline(root);
+        QVERIFY(back.has_value());
+        QCOMPARE(back->y, 30.0);
+    }
+    void firstBaselineIsNotWrittenWhenEmpty()
+    {
+        const QJsonObject root = formats::documentToJson(documentWithText(false, std::nullopt));
+        QVERIFY(!object(root, 0, 0).contains(u"firstBaseline"_s));
+        QStringList warnings;
+        QVERIFY(!readBaseline(root, &warnings).has_value()); // clé absente : aucune, sans avertissement
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join(u'\n')));
+    }
+    void firstBaselineMalformedIsIgnoredWithAWarning()
+    {
+        const QJsonObject root = formats::documentToJson(documentWithText(false, core::PointF{12, 30}));
+        QJsonObject o = object(root, 0, 0);
+        o.insert(u"firstBaseline"_s, u"abc"_s);
+        QStringList warnings;
+        QVERIFY(!readBaseline(withObject(root, 0, 0, o), &warnings).has_value());
+        QCOMPARE(warnings.size(), 1);
+    }
+    void firstBaselineOutsideTheBoundsIsDropped()
+    {
+        const QJsonObject root = formats::documentToJson(documentWithText(false, core::PointF{12, 30}));
+        QJsonObject o = object(root, 0, 0);
+        o.insert(u"firstBaseline"_s, QJsonArray{12, 90}); // sous l'emprise (10..50)
+        QVERIFY(!readBaseline(withObject(root, 0, 0, o)).has_value());
+    }
+    void firstBaselineOfAVerticalTextIsDropped()
+    {
+        const QJsonObject root = formats::documentToJson(documentWithText(true, core::PointF{12, 30}));
+        QVERIFY(!readBaseline(root).has_value());
     }
 
     void malformedValuesFallBackWithWarnings()

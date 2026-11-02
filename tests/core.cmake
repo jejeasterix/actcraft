@@ -43,3 +43,27 @@ actcraft_add_test(tst_core_objectedits
 actcraft_add_test(tst_core_lift
     SOURCES tst_core_lift.cpp
     LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_shapes
+    SOURCES tst_core_shapes.cpp
+    LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_gridsnap
+    SOURCES tst_core_gridsnap.cpp
+    LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_pagesettings
+    SOURCES tst_core_pagesettings.cpp
+    LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_pageedits
+    SOURCES tst_core_pageedits.cpp
+    LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_textedits
+    SOURCES tst_core_textedits.cpp
+    LIBS ActCraft::core)
+
+actcraft_add_test(tst_core_zones
+    SOURCES tst_core_zones.cpp
+    LIBS ActCraft::core)

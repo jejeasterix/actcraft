@@ -12,6 +12,8 @@
 #include <QPointer>
 #include <QRectF>
 #include <QString>
+#include <QStringList>
+#include <QVariantList>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
@@ -49,6 +51,13 @@ class ToolHost : public QObject
     Q_PROPERTY(bool trashHover READ trashHover NOTIFY trashHoverChanged)
     // Vide : réglages de l'application ; tests : chemin d'un fichier .ini.
     Q_PROPERTY(QString settingsFile READ settingsFile WRITE setSettingsFile NOTIFY settingsFileChanged)
+    Q_PROPERTY(QString shapePreset READ shapePreset NOTIFY settingsChanged)
+    Q_PROPERTY(bool shapeFilled READ shapeFilled NOTIFY settingsChanged)
+    Q_PROPERTY(bool shapeFromCenter READ shapeFromCenter NOTIFY settingsChanged)
+    Q_PROPERTY(QStringList shapePresets READ shapePresets CONSTANT) // ordre de la palette
+    // Nuancier de la palette des formes (L4-C7) : remplissage courant, et défaut de l'outil (1re case).
+    Q_PROPERTY(QColor shapeFillColor READ shapeFillColor NOTIFY settingsChanged)
+    Q_PROPERTY(QColor shapeDefaultFillColor READ shapeDefaultFillColor CONSTANT)
 
 public:
     explicit ToolHost(QObject* parent = nullptr);
@@ -77,7 +86,9 @@ public:
     // « select », « pen », « highlighter », « eraser » : outil courant de l'utilisateur 1, commande tool.<id>
     // cochée, réglages de l'outil rendus à la vue (couleur et épaisseur de l'encre).
     Q_INVOKABLE void activate(const QString& toolId);
-    Q_INVOKABLE void setColor(const QColor& color); // outil courant (F-134)
+    // Outil courant s'il a sa couleur (encre ; formes : le contour, L4-C7), sinon le dernier outil d'encre
+    // (F-134).
+    Q_INVOKABLE void setColor(const QColor& color);
     Q_INVOKABLE void setWidth(qreal width);
     Q_INVOKABLE void selectAll();
     Q_INVOKABLE void clearSelection();
@@ -91,6 +102,20 @@ public:
     // branchés.
     tools::Tool* activeTool(input::UserId user = input::kFirstUser) const;
     tools::UserState& user(input::UserId id = input::kFirstUser); // un utilisateur jusqu'au lot 11 (D-S10)
+
+    // Lot 4 (outil des formes), L4-T11.
+    QString shapePreset() const;
+    bool shapeFilled() const;
+    bool shapeFromCenter() const;
+    QStringList shapePresets() const;
+    QColor shapeFillColor() const;
+    QColor shapeDefaultFillColor() const;
+    Q_INVOKABLE void chooseShape(const QString& preset); // active aussi l'outil « shape »
+    Q_INVOKABLE void setShapeFilled(bool filled);
+    Q_INVOKABLE void setShapeFillColor(const QColor& color);
+    Q_INVOKABLE void setShapeFromCenter(bool fromCenter);
+    // Contour normalisé du préréglage dans un carré 1 × 1, pour la palette et le curseur : [{x, y}, …] fermé.
+    Q_INVOKABLE QVariantList shapeOutline(const QString& preset) const;
 
 signals:
     void wiringChanged();

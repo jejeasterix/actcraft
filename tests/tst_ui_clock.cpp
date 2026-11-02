@@ -293,7 +293,16 @@ private slots:
             // prendrait l'appui du trait : un clic hors du menu, sur le panneau, le ferme.
             QObject* pageMenu = main.window()->findChild<QObject*>(QStringLiteral("pageContextMenu"));
             QVERIFY(pageMenu);
-            QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, body.toPoint());
+            // Lot 4 : le menu de la page (16 entrées) couvre désormais le corps du panneau ; le clic de
+            // fermeture va sur la barre de titre, hors du menu (sans glisser, il ne déplace pas le panneau).
+            const QPointF outside = panel->mapToScene(QPointF(100, 22));
+            auto* menuContent = pageMenu->property("contentItem").value<QQuickItem*>();
+            QVERIFY(menuContent);
+            QQuickItem* menuBox = menuContent->parentItem() ? menuContent->parentItem() : menuContent;
+            QVERIFY2(
+                !menuBox->mapRectToScene(QRectF(0, 0, menuBox->width(), menuBox->height())).contains(outside),
+                "point de fermeture hors du menu");
+            QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, outside.toPoint());
             QTRY_VERIFY(!pageMenu->property("visible").toBool());
         }
 

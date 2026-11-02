@@ -4,6 +4,7 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/render/fixedpageitem.h>
+#include <actcraft/render/gridoverlayitem.h>
 #include <actcraft/render/imagestore.h>
 #include <actcraft/render/pagepainter.h>
 #include <actcraft/render/paintedrenderer.h>
@@ -370,6 +371,8 @@ private slots:
         }
     }
 
+    // Changement de règle voulu (L4-T7) : la grille du dessus n'est plus dans la scène de la page fixe (celle
+    // que le cache photographie) ; la surcouche GridOverlayItem, posée au-dessus, la dessine sur les objets.
     void gridAtTopStaysAboveObjects()
     {
         core::Page page;
@@ -383,6 +386,12 @@ private slots:
         page.grid.levels.push_back(level);
         Fixture f;
         QVERIFY(open(f, page));
+        QVERIFY(
+            colorNear(grab(f).pixelColor(100, 50), QColor(Qt::red), 3)); // page fixe seule : pas de grille
+        auto* overlay = new render::GridOverlayItem;
+        overlay->setSize(QSizeF(1024, 768));
+        overlay->setParentItem(f.window.contentItem());
+        overlay->setFixedPage(f.page);
         const QImage image = grab(f);
         QVERIFY(colorNear(image.pixelColor(100, 50), QColor(Qt::black),
                           20)); // trait de grille sur le carré rouge
