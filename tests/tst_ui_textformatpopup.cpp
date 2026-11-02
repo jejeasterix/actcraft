@@ -9,6 +9,22 @@
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
+namespace {
+// Les délégués d'un Repeater n'ont pas la barre pour parent QObject : on descend par les enfants visuels.
+QQuickItem* findItem(QQuickItem* from, const QString& name)
+{
+    if (from->objectName() == name) {
+        return from;
+    }
+    for (QQuickItem* child : from->childItems()) {
+        if (QQuickItem* found = findItem(child, name)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+} // namespace
+
 // L4-C20 : les fenêtres de choix de la barre de texte (couleur, fond, symboles) se referment par un second
 // appui sur leur bouton. Avec CloseOnPressOutside, l'appui hors de la fenêtre la fermait puis le relâché sur
 // le bouton la rouvrait.
@@ -32,7 +48,7 @@ private slots:
         QQmlComponent component(&engine);
         component.setData(QByteArray("import QtQuick\nimport ActCraft.Ui\nItem {\n  width: 1600; height: 400\n"
                                      "  Commands { id: cmd }\n"
-                                     "  TextFormatBar { objectName: \"bar\"; commands: cmd; width: 1600 }\n}\n"),
+                                     "  TextFormatBar { objectName: \"bar\"; commands: cmd; width: 1600; visible: true }\n}\n"),
                           QUrl());
         std::unique_ptr<QObject> created(component.create());
         QVERIFY2(created, qPrintable(component.errorString()));
@@ -45,7 +61,7 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(&window));
 
         QObject* bar = root->findChild<QObject*>(QStringLiteral("bar"));
-        auto* choice = root->findChild<QQuickItem*>(button);
+        QQuickItem* choice = findItem(root, button);
         QVERIFY(bar && choice);
         QVERIFY2(choice->isVisible() && choice->width() > 0, "bouton absent de la barre");
         const QPoint at = choice->mapToScene(QPointF(choice->width() / 2, choice->height() / 2)).toPoint();
