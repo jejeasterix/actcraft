@@ -99,7 +99,7 @@ jobs:
             ctest --preset $env:PRESET --rerun-failed -N | Select-String 'Test +#\d+: (\S+)' | ForEach-Object {
               $nom = $_.Matches[0].Groups[1].Value
               $exe = Get-ChildItem "build/$env:PRESET" -Recurse -Filter "$nom.exe" | Select-Object -First 1
-              if ($exe) { Write-Output "== $nom en direct"; & $exe.FullName -v2 2>&1 | Select-Object -Last 60; Write-Output ("code de sortie 0x{0:X}" -f $LASTEXITCODE) }
+              if ($exe) { Write-Output "== $nom en direct"; $env:QT_QPA_PLATFORM = 'offscreen'; $env:QT_QUICK_BACKEND = 'software'; $env:QT_QPA_FONTDIR = "$env:WINDIR/Fonts"; $env:QT_FORCE_STDERR_LOGGING = '1'; $env:QT_LOGGING_RULES = '*.debug=false'; & $exe.FullName -v2 -o 'sortie-test.txt,txt' 2>&1 | Select-Object -Last 60; Write-Output ("code de sortie 0x{0:X}" -f $LASTEXITCODE); if (Test-Path sortie-test.txt) { Get-Content sortie-test.txt | Select-Object -Last 80 } else { Write-Output 'aucune sortie QtTest' } }
             }
             Write-Output 'PREUVES WINDOWS EN ECHEC'; exit 1
           }
