@@ -19,8 +19,8 @@ namespace actcraft::tools {
 namespace {
 
 // Calcul d'une zone d'image : décodage, remplissage, encodage PNG. Tourne hors du fil principal.
-std::string computeImageFill(const QByteArray& data, core::RectF bounds, core::PointF point,
-                             core::Argb color, int tolerance)
+std::string computeImageFill(const QByteArray& data, core::RectF bounds, core::PointF point, core::Argb color,
+                             int tolerance)
 {
     const QImage image = QImage::fromData(data);
     if (image.isNull() || bounds.width <= 0 || bounds.height <= 0) {
@@ -156,8 +156,8 @@ void FillTool::finishImageFill(QFutureWatcher<std::string>* watcher, std::size_t
     bool same = m_context.document.pageIndex() == pageIndex && m_context.document.revision() == revision;
     if (same) {
         const std::size_t index = core::indexOf(page, image);
-        const auto* object = index < page.objects.size() ? std::get_if<core::ImageObject>(&page.objects[index])
-                                                          : nullptr;
+        const auto* object =
+            index < page.objects.size() ? std::get_if<core::ImageObject>(&page.objects[index]) : nullptr;
         same = object != nullptr && object->resource == key;
     }
     if (!same) {

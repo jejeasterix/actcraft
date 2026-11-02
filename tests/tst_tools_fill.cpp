@@ -96,7 +96,6 @@ public:
     bool trigger(const QString&, const QVariant&) override { return true; }
 };
 
-
 struct Harness
 {
     FakeDocument doc;
@@ -116,7 +115,8 @@ struct Harness
     {
         core::ShapeStyle style;
         style.fill = fill;
-        doc.execute(std::make_unique<core::AddObjectCommand>(0, core::makeShapeObject("rectangle", box, style)));
+        doc.execute(
+            std::make_unique<core::AddObjectCommand>(0, core::makeShapeObject("rectangle", box, style)));
         return doc.page().objects.back().common.id;
     }
 

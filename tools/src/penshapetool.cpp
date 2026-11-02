@@ -83,10 +83,10 @@ void PenShapeTool::onSample(const input::Sample& sample)
     if (m_shape == core::PenShape::Polyline) {
         switch (sample.phase) {
         case input::Phase::Press: {
-            const bool doubleClick =
-                !m_clicks.empty() && sample.timestampNs - m_lastClickNs <= kDoubleClickNs &&
-                std::hypot(point.x - m_press.x, point.y - m_press.y) <=
-                    core::kHitToleranceScreen / zoomOf(m_context);
+            const bool doubleClick = !m_clicks.empty() &&
+                                     sample.timestampNs - m_lastClickNs <= kDoubleClickNs &&
+                                     std::hypot(point.x - m_press.x, point.y - m_press.y) <=
+                                         core::kHitToleranceScreen / zoomOf(m_context);
             if (doubleClick) {
                 std::vector<core::PointF> points = m_clicks;
                 const bool enough = points.size() >= 2;

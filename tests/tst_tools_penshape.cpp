@@ -1,7 +1,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
-#include <actcraft/core/penmodifiers.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/penmodifiers.h>
 #include <actcraft/core/shapegeometry.h>
 #include <actcraft/tools/penshapetool.h>
 #include <actcraft/tools/userstate.h>
@@ -91,7 +91,6 @@ class FakeCommands final : public tools::CommandSink
 public:
     bool trigger(const QString&, const QVariant&) override { return true; }
 };
-
 
 struct Harness
 {
