@@ -9,11 +9,14 @@
 
 #include <QClipboard>
 #include <QColor>
+#include <QCoreApplication>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFont>
 #include <QFontMetricsF>
 #include <QGuiApplication>
 #include <QImage>
+#include <QInputMethodEvent>
 #include <QList>
 #include <QMetaType>
 #include <QMimeData>
@@ -22,7 +25,10 @@
 #include <QPointF>
 #include <QQmlComponent>
 #include <QQmlEngine>
+#include <QQuickItem>
 #include <QQuickTextDocument>
+#include <QQuickWindow>
+#include <QRegularExpression>
 #include <QSignalSpy>
 #include <QSize>
 #include <QString>
@@ -37,7 +43,9 @@
 #include <QTextOption>
 #include <QUrl>
 #include <QVariant>
+#include <QtQml/qqmlextensionplugin.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <functional>
@@ -45,6 +53,8 @@
 #include <utility>
 #include <variant>
 #include <vector>
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 using namespace actcraft;
 
@@ -149,6 +159,65 @@ QTextDocument* documentOf(const QObject& textEdit)
 {
     return textEdit.property("textDocument").value<QQuickTextDocument*>()->textDocument();
 }
+
+// Ligne k mise en page du premier bloc, en coordonnées du document.
+QRectF lineRect(QTextDocument& document, int k)
+{
+    document.size(); // la mise en page se fait ici
+    const QTextBlock block = document.firstBlock();
+    const QTextLine line = block.layout()->lineAt(k);
+    const QPointF at = block.layout()->position();
+    return QRectF(at.x() + line.x(), at.y() + line.y(), line.width(), line.height());
+}
+
+// Le vrai TextEditor.qml (module ActCraft.Ui) dans une fenêtre hors écran, branché à un TextEditing (L4-C17).
+struct EditorHarness
+{
+    QQmlEngine engine;
+    ui::DocumentController controller;
+    ui::TextEditing editing;
+    QQuickWindow window;
+    std::unique_ptr<QQuickItem> editor; // détruit le premier : avant la fenêtre et TextEditing
+
+    EditorHarness()
+    {
+        editing.setDocumentController(&controller);
+        QQmlComponent component(&engine);
+        component.loadFromModule("ActCraft.Ui", "TextEditor");
+        if (component.isError()) {
+            qWarning() << component.errors();
+            return;
+        }
+        editor.reset(qobject_cast<QQuickItem*>(component.createWithInitialProperties(
+            {{QStringLiteral("editing"), QVariant::fromValue(static_cast<QObject*>(&editing))}})));
+        if (editor) {
+            editor->setParentItem(window.contentItem());
+            editor->setSize(QSizeF(400, 400));
+        }
+        window.resize(400, 400);
+    }
+
+    QQuickItem* item(const char* name) const
+    {
+        return editor ? editor->findChild<QQuickItem*>(QLatin1String(name)) : nullptr;
+    }
+
+    // Fenêtre active, texte de haut en bas commencé, « A B » tapé au clavier.
+    bool typeVertical()
+    {
+        window.show();
+        window.requestActivate();
+        if (!QTest::qWaitForWindowActive(&window) || !editing.beginAt({100, 100}, true)) {
+            return false;
+        }
+        QQuickItem* input = item("textEdit");
+        if (!input || !QTest::qWaitFor([input] { return input->hasActiveFocus(); })) {
+            return false;
+        }
+        QTest::keyClicks(&window, QStringLiteral("A B"));
+        return editing.plainText() == QStringLiteral("A B");
+    }
+};
 
 // Contrôleur, TextEdit QML (son QQuickTextDocument) et TextEditing branchés ; espion de cache par
 // addChangeObserver puis core::applyToCache.
@@ -930,6 +999,116 @@ private slots:
             QCOMPARE(h.editing.columnPosition(2, false), 2);
             QCOMPARE(h.editing.editPosition(3), 3);
         }
+    }
+
+    // L4-C17, sur le vrai TextEditor.qml : la colonne montre le texte (liaison columnDocument), l'entrée
+    // transparente ne le montre pas en double, le curseur et la sélection s'y placent comme dans le texte. La
+    // validation ne place rien hors de la colonne vidée (avertissement « out of range » de QTextCursor).
+    void verticalEditorShowsTheColumnNotTheInput()
+    {
+        QTest::failOnWarning(QRegularExpression(QStringLiteral("out of range")));
+        EditorHarness e;
+        QVERIFY(e.editor);
+        QVERIFY(e.typeVertical());
+        QQuickItem* input = e.item("textEdit");
+        QQuickItem* column = e.item("textColumn");
+        QQuickItem* caret = e.item("textColumnCaret");
+        QVERIFY(input && column && caret);
+        QTextDocument* shown = documentOf(*column);
+        QCOMPARE(laidOutLines(*shown), 3);
+        QVERIFY(column->isVisible());
+        QCOMPARE(input->opacity(), 0.0);
+        // Le curseur montré : au bout de la ligne de la lettre précédente.
+        for (const auto& [position, line] : QList<std::pair<int, int>>{{1, 0}, {2, 1}, {3, 2}}) {
+            QVERIFY(input->setProperty("cursorPosition", position));
+            QCOMPARE(qRound(caret->y()), qRound(lineRect(*shown, line).y()));
+            QVERIFY(caret->height() > 0);
+        }
+        // L'espace sélectionné : sa ligne seule.
+        QVERIFY(QMetaObject::invokeMethod(input, "select", Q_ARG(int, 1), Q_ARG(int, 2)));
+        QCOMPARE(column->property("selectionStart").toInt(), 2);
+        QCOMPARE(column->property("selectionEnd").toInt(), 3);
+        e.editing.commit();
+        QVERIFY(shown->isEmpty());
+    }
+
+    // L4-C17, M1 : la colonne prend la souris comme le TextEdit d'entrée la prenait à plat (c84ef41) : un
+    // double-clic sélectionne le mot, Maj+appui étend la sélection.
+    void verticalEditorMouseSelectsLikeTheInput()
+    {
+        EditorHarness e;
+        QVERIFY(e.editor);
+        QVERIFY(e.typeVertical());
+        QQuickItem* input = e.item("textEdit");
+        QQuickItem* column = e.item("textColumn");
+        QVERIFY(input && column);
+        QTextDocument* shown = documentOf(*column);
+        const qreal width = shown->textWidth();
+        const auto at = [&](int line, qreal x) {
+            return column->mapToScene(QPointF(x, lineRect(*shown, line).center().y())).toPoint();
+        };
+        QTest::mouseDClick(&e.window, Qt::LeftButton, Qt::NoModifier, at(2, width / 2));
+        QCOMPARE(input->property("selectedText").toString(), QStringLiteral("B"));
+        QTest::mouseClick(&e.window, Qt::LeftButton, Qt::NoModifier, at(0, 0.5));
+        QCOMPARE(input->property("cursorPosition").toInt(), 0);
+        QCOMPARE(input->property("selectedText").toString(), QString());
+        QTest::mouseClick(&e.window, Qt::LeftButton, Qt::ShiftModifier, at(2, width - 0.5));
+        QCOMPARE(input->property("selectedText").toString(), QStringLiteral("A B"));
+    }
+
+    // L4-C17, m3 : la pré-édition (touche morte, méthode de saisie) se voit dans la colonne, au curseur, sans
+    // être du texte ; validée, elle devient la lettre composée.
+    void verticalEditorShowsThePreedit()
+    {
+        EditorHarness e;
+        QVERIFY(e.editor);
+        QVERIFY(e.typeVertical());
+        QQuickItem* input = e.item("textEdit");
+        QQuickItem* column = e.item("textColumn");
+        QVERIFY(input && column);
+        QTextDocument* shown = documentOf(*column);
+        QInputMethodEvent compose(QStringLiteral("^"), {});
+        QCoreApplication::sendEvent(input, &compose);
+        QCOMPARE(input->property("preeditText").toString(), QStringLiteral("^"));
+        QCOMPARE(e.editing.plainText(), QStringLiteral("A B"));
+        QVERIFY(shown->toPlainText().contains(QLatin1Char('^')));
+        QCOMPARE(laidOutLines(*shown), 4);
+        QCOMPARE(e.editing.editPosition(shown->characterCount() - 1), 3); // au bout : après « B »
+        QCOMPARE(e.editing.columnPosition(3, false), 5);                  // le curseur, avant la pré-édition
+        QInputMethodEvent commit;
+        commit.setCommitString(QStringLiteral("ê"));
+        QCoreApplication::sendEvent(input, &commit);
+        QCOMPARE(e.editing.plainText(), QStringLiteral("A Bê"));
+        QVERIFY(!shown->toPlainText().contains(QLatin1Char('^')));
+        QCOMPARE(laidOutLines(*shown), 4);
+    }
+
+    // L4-C17, m5 : coût d'une frappe à 200 graphèmes, cadre et colonne montrée compris (médiane de cinq).
+    // Mesure seule, sans seuil (construction de débogage, machine quelconque) ; le banc release reste au PC.
+    void verticalKeystrokeCostAt200Graphemes()
+    {
+        Harness h;
+        std::unique_ptr<QObject> column = columnTextEdit(h.engine);
+        QVERIFY(column);
+        QVERIFY(column->setProperty("width", 40)); // largeur posée, comme la liaison de TextEditor.qml
+        h.editing.setColumnDocument(column->property("textDocument").value<QQuickTextDocument*>());
+        QVERIFY(h.editing.beginAt({200, 200}, true));
+        QString text;
+        for (int i = 0; i < 199; ++i) {
+            text += i % 5 == 4 ? QChar(u' ') : QChar(static_cast<char16_t>(u'a' + i % 26));
+        }
+        h.replaceAllText(text);
+        std::vector<qint64> micros;
+        for (int i = 0; i < 5; ++i) {
+            QElapsedTimer timer;
+            timer.start();
+            h.typeChar(QLatin1Char('z'));
+            micros.push_back(timer.nsecsElapsed() / 1000);
+        }
+        QCOMPARE(laidOutLines(*documentOf(*column)), 204);
+        std::sort(micros.begin(), micros.end());
+        qInfo("L4-C17 : une frappe à 200 graphèmes, %lld µs (médiane de 5)",
+              static_cast<long long>(micros[2]));
     }
 
     // « Wii » validé : trois lignes, la colonne du peintre (la même mise en page,
