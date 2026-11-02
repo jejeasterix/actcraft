@@ -1,7 +1,7 @@
 import QtQuick
 import ActCraft.Ui
 
-// Talon L5-T2 : panneau du connecteur (styles, extrémités), visible avec l'outil connecteur. Le corps vient
+// Coquille (L5-T2) : panneau du connecteur (styles, extrémités), visible avec l'outil connecteur. Le corps vient
 // de L5-T17.
 Item {
     id: root
