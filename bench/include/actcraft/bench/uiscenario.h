@@ -57,7 +57,7 @@ enum class UiStepKind : std::uint8_t
     // Ajoutées par le socle des lots 3 et 7 (L0-S2), à la fin, dans cet ordre.
     Touch,       // {"touch": [[x, y], …]} — un doigt, coordonnées de page
     Pinch,       // {"pinch": [cx, cy], "from": 100, "to": 200, "steps": 12} — écarts en pixels de vue
-    Pointer,     // {"pointer": [[x, y], …], "button": "left", "holdMs": 0, "space": "page"}
+    Pointer,     // {"pointer": [[x, y], …], "button": "left", "modifiers": ["ctrl"], "holdMs": 0, "space": "page"}
     DoubleClick, // {"doubleClick": [x, y], "space": "page"}
     // Ajoutée par L4-T14, à la fin.
     TypeText, // {"typeText": "Bonjour"} — un QKeyEvent par caractère, avec son texte (dans `value`)

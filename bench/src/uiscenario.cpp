@@ -384,6 +384,28 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
                 return false;
             }
         }
+        if (o.contains(QStringLiteral("modifiers"))) {
+            const QJsonValue list = o.value(QStringLiteral("modifiers"));
+            if (!list.isArray()) {
+                why = QStringLiteral("modificateurs invalides (modifiers : liste de ctrl, shift, alt, meta)");
+                return false;
+            }
+            for (const QJsonValue& value : list.toArray()) {
+                const QString name = value.toString().toLower();
+                if (name == QLatin1String("ctrl")) {
+                    step.modifiers |= Qt::ControlModifier;
+                } else if (name == QLatin1String("shift")) {
+                    step.modifiers |= Qt::ShiftModifier;
+                } else if (name == QLatin1String("alt")) {
+                    step.modifiers |= Qt::AltModifier;
+                } else if (name == QLatin1String("meta")) {
+                    step.modifiers |= Qt::MetaModifier;
+                } else {
+                    why = QStringLiteral("modificateur inconnu « %1 » (ctrl, shift, alt ou meta)").arg(name);
+                    return false;
+                }
+            }
+        }
         if (o.contains(QStringLiteral("holdMs"))) {
             const QJsonValue hold = o.value(QStringLiteral("holdMs"));
             step.holdMs = hold.isDouble() ? hold.toInt(-1) : -1;
@@ -1050,21 +1072,22 @@ bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
     const Qt::MouseButton button = step.button;
+    const Qt::KeyboardModifiers modifiers = step.modifiers;
     QPoint lastPoint;
     const bool sent = gestures().pointerPath(
         step.points,
-        [this, button, &lastPoint](GesturePhase phase, QPointF position) {
+        [this, button, modifiers, &lastPoint](GesturePhase phase, QPointF position) {
             const QPoint point = position.toPoint();
             lastPoint = point;
             switch (phase) {
             case GesturePhase::Press:
-                QTest::mousePress(m_window, button, Qt::NoModifier, point);
+                QTest::mousePress(m_window, button, modifiers, point);
                 break;
             case GesturePhase::Move:
                 QTest::mouseMove(m_window, point);
                 break;
             case GesturePhase::Release:
-                QTest::mouseRelease(m_window, button, Qt::NoModifier, point);
+                QTest::mouseRelease(m_window, button, modifiers, point);
                 break;
             }
         },
