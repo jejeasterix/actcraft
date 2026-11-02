@@ -120,6 +120,21 @@ int laidOutLines(QTextDocument& document)
     return lines;
 }
 
+// Ligne mise en page (blocs confondus) où tombe une position du document.
+int lineOf(QTextDocument& document, int position)
+{
+    document.size(); // la mise en page se fait ici
+    int line = 0;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        if (block.contains(position) || !block.next().isValid()) {
+            const QTextLine at = block.layout()->lineForTextPosition(position - block.position());
+            return at.isValid() ? line + at.lineNumber() : -1;
+        }
+        line += block.layout()->lineCount();
+    }
+    return -1;
+}
+
 // La colonne montrée d'un texte de haut en bas, comme dans TextEditor.qml (L4-C17).
 std::unique_ptr<QObject> columnTextEdit(QQmlEngine& engine)
 {
@@ -798,6 +813,10 @@ private slots:
             h.editing.setColumnDocument(column->property("textDocument").value<QQuickTextDocument*>());
             QVERIFY(h.editing.beginAt({200, 200}, true));
             h.replaceAllText(word);
+            // Qt fusionne une insertion contiguë à la dernière insertion d'un bloc d'édition fermé
+            // (QTextDocumentPrivate::appendUndoItem) : sans cette remise à zéro, annuler « C » annulerait le
+            // mot.
+            h.document()->clearUndoRedoStacks();
             QVERIFY(h.edit->setProperty("cursorPosition", 1));
             h.typeChar(QLatin1Char('C')); // après le curseur du TextEdit, qui ne bouge pas
             const QString typed = word + QLatin1Char('C');
@@ -821,8 +840,22 @@ private slots:
                                     .arg(typed)
                                     .arg(shown->size().height())
                                     .arg(h.editing.frame().height())));
-            // Le document édité : sans séparateur ajouté, curseur en place, la frappe s'annule seule.
+            // Le curseur montré : au bout de la ligne du graphème précédent, ou au début de celle du suivant.
+            for (int at = 0; at <= typed.size(); ++at) {
+                if (at > 0) {
+                    QCOMPARE(lineOf(*shown, h.editing.columnPosition(at, false)), at - 1);
+                }
+                if (at < typed.size()) {
+                    QCOMPARE(lineOf(*shown, h.editing.columnPosition(at, true)), at);
+                }
+            }
+            // Le document édité : sans séparateur ajouté, curseur en place, la frappe s'annule seule. La mise
+            // en page du peintre, appliquée à lui, y mettrait des séparateurs et lui ôterait son annulation
+            // (render/src/pagepainter.cpp, layOutColumn : setUndoRedoEnabled(false)).
             QCOMPARE(h.document()->toPlainText(), typed);
+            QCOMPARE(h.editing.plainText(), typed);
+            QVERIFY(!h.document()->toRawText().contains(QChar(QChar::LineSeparator)));
+            QCOMPARE(h.document()->availableUndoSteps(), 1); // la frappe, rien de l'affichage
             QCOMPARE(h.edit->property("cursorPosition").toInt(), 1);
             h.document()->undo();
             QCOMPARE(h.document()->toPlainText(), word);
@@ -873,6 +906,30 @@ private slots:
         flat.replaceAllText(QStringLiteral("A B"));
         QVERIFY(documentOf(*unused)->isEmpty());
         QCOMPARE(flat.editing.columnPosition(2, false), 2);
+    }
+
+    // L4-C17 : l'édition finie, validée ou abandonnée, la colonne montrée est vidée et ses positions sont
+    // celles du texte : l'édition suivante, à plat, ne garde rien du texte de haut en bas.
+    void verticalColumnIsEmptiedWhenEditingEnds()
+    {
+        for (const bool validate : {true, false}) {
+            Harness h;
+            std::unique_ptr<QObject> column = columnTextEdit(h.engine);
+            QVERIFY(column);
+            h.editing.setColumnDocument(column->property("textDocument").value<QQuickTextDocument*>());
+            QVERIFY(h.editing.beginAt({200, 200}, true));
+            h.replaceAllText(QStringLiteral("A B"));
+            QVERIFY(!documentOf(*column)->isEmpty());
+            QCOMPARE(h.editing.columnPosition(2, false), 3);
+            if (validate) {
+                h.editing.commit();
+            } else {
+                h.editing.cancel();
+            }
+            QVERIFY(documentOf(*column)->isEmpty());
+            QCOMPARE(h.editing.columnPosition(2, false), 2);
+            QCOMPARE(h.editing.editPosition(3), 3);
+        }
     }
 
     // « Wii » validé : trois lignes, la colonne du peintre (la même mise en page,
