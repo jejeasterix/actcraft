@@ -21,6 +21,7 @@
 #include <QVariantMap>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <limits>
@@ -1081,6 +1082,48 @@ private slots:
         QTRY_COMPARE(overlay->property("separatorCount").toInt(), 0);
         QVERIFY(!overlay->isVisible());
     }
+    // L4-C19 : l'allongement ne déplace pas les séparations : elles restent à k x taille d'un cadre.
+    void separationsKeepTheFrameSizeAfterExtension()
+    {
+        MainRig r;
+        QVERIFY(r.start(m_dir.filePath(QStringLiteral("reglages-cadres-allonge.ini"))));
+        r.document->newDocumentWithFrames(500, 500, 2, 3);
+        r.options->extendPage();
+        QCOMPARE(r.document->pageSize().height(), 1650.0);
+        auto* overlay = r.window->findChild<QQuickItem*>(QStringLiteral("pageZones"));
+        QVERIFY(overlay);
+        QList<qreal> across;
+        QList<qreal> down;
+        for (QQuickItem* child : overlay->childItems()) {
+            if (child->metaObject()->indexOfProperty("vertical") < 0) {
+                continue;
+            }
+            (child->property("vertical").toBool() ? across : down).append(child->property("at").toReal());
+        }
+        std::sort(across.begin(), across.end());
+        std::sort(down.begin(), down.end());
+        QCOMPARE(across, (QList<qreal>{500}));
+        QCOMPARE(down, (QList<qreal>{500, 1000}));
+    }
+
+    // L4-C19 : sur un fond lu « other » (motif), choisir une pastille puis valider applique la couleur.
+    void colorOnAnOtherBackgroundIsApplied()
+    {
+        MainRig r;
+        QVERIFY(r.start(m_dir.filePath(QStringLiteral("reglages-fond-other.ini"))));
+        core::Background background;
+        background.fill.kind = core::FillKind::Pattern;
+        background.fill.pattern = 2;
+        r.document->execute(std::make_unique<core::SetBackgroundCommand>(0, background));
+        QVERIFY(r.openDialog());
+        QVERIFY(QMetaObject::invokeMethod(r.dialog, "chooseColor", Q_ARG(QVariant, QColor(Qt::yellow))));
+        QVERIFY(r.click("backgroundOk"));
+        QTRY_VERIFY(!r.dialog->property("visible").toBool());
+        const core::Fill& fill = r.document->document().page(0).background.fill;
+        QCOMPARE(fill.kind, core::FillKind::Solid);
+        QCOMPARE(fill.color, core::Argb{0xFFFFFF00u});
+    }
+
     // M1 (fluidité) : chaque séparation est bornée à la partie visible de la page, donc à la taille de la
     // vue, quel que soit le zoom : à zoom 8 sur 40 × 53 cadres, aucune n'est longue comme la page au zoom.
     void separationsAreBoundedByTheView()

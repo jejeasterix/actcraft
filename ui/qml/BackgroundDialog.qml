@@ -26,7 +26,11 @@ Popup {
 
     // Un choix identique à l'actuel n'invalide rien (« appliquer » resterait sans objet).
     function chooseKind(value) { if (kind !== value) { kind = value; applied = false } }
-    function chooseColor(value) { if (!Qt.colorEqual(color, value)) { color = value; applied = false } }
+    // Sur un fond « other » (aucun remplissage, motif), choisir une couleur le fait passer à « color ».
+    function chooseColor(value) {
+        if (kind !== "color" && kind !== "gradient") { kind = "color"; color = value; applied = false }
+        else if (!Qt.colorEqual(color, value)) { color = value; applied = false }
+    }
     function chooseColor2(value) { if (!Qt.colorEqual(color2, value)) { color2 = value; applied = false } }
     function chooseDirection(value) { if (direction !== value) { direction = value; applied = false } }
 

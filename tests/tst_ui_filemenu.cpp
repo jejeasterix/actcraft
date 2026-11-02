@@ -538,6 +538,23 @@ private slots:
         QCOMPARE(doc->document().page(0).zones.vertical, 1);
     }
 
+    // L4-C19 : les tailles se posent avant les nombres de cadres, le plafond suit la nouvelle largeur
+    // (1024 par défaut aurait borné à 7 cadres).
+    void framedSizeCeilingFollowsTheNewSize()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QVERIFY(run(s, QStringLiteral("file.new-custom")));
+        QObject* sizeDialog = namedObject(s, "pageSizeDialog");
+        QVERIFY(sizeDialog);
+        QTRY_VERIFY(sizeDialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(sizeDialog, "acceptFramedSize", Q_ARG(QVariant, 500),
+                                          Q_ARG(QVariant, 500), Q_ARG(QVariant, 10), Q_ARG(QVariant, 10)));
+        QCOMPARE(namedObject(s, "pageFramesAcrossBox")->property("value").toInt(), 10);
+        QTRY_COMPARE(doc->document().page(0).zones.horizontal, 10);
+    }
+
     // Même garde que « Nouveau » : un document modifié demande avant d'être remplacé.
     void framedSizeAsksBeforeReplacingAModifiedDocument()
     {

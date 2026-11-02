@@ -130,6 +130,8 @@ struct Fill
     std::uint8_t pattern = 0;      // Qt::BrushStyle 2 à 14 (FillKind::Pattern)
     bool opaqueBackground = false; // F-574 : fond des motifs
     Argb backgroundColor = 0xFF000000u;
+
+    bool operator==(const Fill&) const = default;
 };
 
 inline Fill solidFill(Argb color) noexcept
