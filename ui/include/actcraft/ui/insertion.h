@@ -9,7 +9,11 @@
 #include <QUrl>
 #include <QVariantList>
 
+#include <vector>
+
 namespace actcraft::ui {
+
+struct InsertionJob; // insertion.cpp
 
 // Insérer une image ou un média (F-560 à F-562) ; remplie par L5-T15.
 class Insertion : public QObject
@@ -38,7 +42,10 @@ signals:
     void failed(QString message);
 
 private:
+    void start(std::vector<InsertionJob> jobs);
     DocumentController* m_document = nullptr;
+    int m_pending = 0;
+    bool m_lastOff = false;
 };
 
 } // namespace actcraft::ui
