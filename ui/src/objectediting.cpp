@@ -106,9 +106,15 @@ std::vector<ObjectId> leaves(const core::Page& page, const std::vector<ObjectId>
 
 void selectNewObjects(DocumentController& document, ToolHost* tools, const std::set<ObjectId>& before)
 {
+    // Objets de premier niveau seulement : les membres d'un groupe inséré ne sont pas sélectionnés (D2).
     std::vector<ObjectId> fresh;
+    std::set<ObjectId> members;
     for (const core::PageObject& object : shownPage(document).objects)
         if (before.count(object.common.id) == 0)
+            if (const auto* group = std::get_if<core::Group>(&core::body(object)))
+                members.insert(group->members.begin(), group->members.end());
+    for (const core::PageObject& object : shownPage(document).objects)
+        if (before.count(object.common.id) == 0 && members.count(object.common.id) == 0)
             fresh.push_back(object.common.id);
     if (tools != nullptr && !fresh.empty())
         tools->selectObjects(fresh);
