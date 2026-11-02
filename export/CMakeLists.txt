@@ -8,3 +8,10 @@ actcraft_add_module(export
         src/officeconvert.cpp
     DEPENDS
         ActCraft::render ActCraft::formats ActCraft::core Qt6::Gui Qt6::Concurrent)
+
+# Import PDF par Qt PDF (liaison dynamique, LGPLv3) ; sans l'option, pdfImportAvailable() reste faux.
+if(ACTCRAFT_IMPORT_PDF)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Pdf)
+    target_link_libraries(actcraft_export PUBLIC Qt6::Pdf)
+    target_compile_definitions(actcraft_export PUBLIC ACTCRAFT_IMPORT_PDF=1)
+endif()
