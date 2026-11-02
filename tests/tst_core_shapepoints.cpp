@@ -62,9 +62,14 @@ core::RectF boundsOf(const core::PageObject& o)
 QString objectFingerprint(const core::PageObject& o)
 {
     const auto& s = std::get<core::Shape>(core::body(o));
-    QString out = QStringLiteral("%1|%2,%3,%4,%5|%6|%7|").arg(static_cast<int>(s.kind)).arg(s.bounds.x).arg(
-        s.bounds.y).arg(s.bounds.width).arg(s.bounds.height).arg(QString::fromStdString(s.preset)).arg(
-        s.paths.size());
+    QString out = QStringLiteral("%1|%2,%3,%4,%5|%6|%7|")
+                      .arg(static_cast<int>(s.kind))
+                      .arg(s.bounds.x)
+                      .arg(s.bounds.y)
+                      .arg(s.bounds.width)
+                      .arg(s.bounds.height)
+                      .arg(QString::fromStdString(s.preset))
+                      .arg(s.paths.size());
     for (const auto& p : s.polygon)
         out += QStringLiteral("(%1,%2)").arg(p.x).arg(p.y);
     for (double v : s.parameters)
@@ -93,8 +98,8 @@ private slots:
         core::UndoStack stack;
         stack.push(d, std::make_unique<core::MoveShapePointCommand>(0, a, 0, core::PointF{80, 60}));
         QVERIFY(contains(core::shapePoints(objectById(d, a)), {80, 60}));
-        QCOMPARE(boundsOf(objectById(d, a)).y, 60.0);
         const auto& shape = std::get<core::Shape>(core::body(objectById(d, a)));
+        QCOMPARE(boundsOf(objectById(d, a)).y, 60.0 - shape.outlineWidth / 2); // l'emprise compte le contour
         QCOMPARE(shape.kind, core::ShapeKind::Polygon);
     }
     void smartShapeKeepsItsSmartPoints()
