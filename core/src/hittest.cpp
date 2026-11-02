@@ -53,6 +53,11 @@ bool isSelectable(const PageObject& object) noexcept
     return object.common.visible && hasExtent(object);
 }
 
+bool isSelectable(const Page& page, const PageObject& object) noexcept
+{
+    return object.common.visible && hasExtent(page, object);
+}
+
 std::optional<ObjectId> objectAt(const Page& page, PointF point, double tolerance)
 {
     for (auto it = page.objects.rbegin(); it != page.objects.rend(); ++it) {

@@ -1,5 +1,6 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
+#include <actcraft/core/hittest.h>
 #include <actcraft/core/undo.h>
 
 #include <QTest>
@@ -18,6 +19,15 @@ PageObject onLayer(Layer layer, ObjectId id)
     s.baseWidth = 4;
     PageObject o = s;
     o.common.layer = layer;
+    o.common.id = id;
+    return o;
+}
+
+PageObject groupOf(ObjectId id, std::vector<ObjectId> members)
+{
+    Group g;
+    g.members = std::move(members);
+    PageObject o = g;
     o.common.id = id;
     return o;
 }
@@ -85,6 +95,72 @@ private slots:
         QCOMPARE(r.y, 0.0);
         QCOMPARE(r.width, 20.0);
         QCOMPARE(r.height, 50.0);
+    }
+
+    // L5-C5 : un groupe n'a que des identifiants de membres ; son emprise se lit donc sur la page.
+    void groupBoundsAreTheUnionOfTheTransformedMembers()
+    {
+        Page p;
+        p.objects.push_back(onLayer(Layer::Middle, 1)); // (8, 8, 24, 4)
+        PageObject moved = onLayer(Layer::Middle, 2);
+        moved.common.transform = translation(100, 50); // (108, 58, 24, 4)
+        p.objects.push_back(moved);
+        p.objects.push_back(groupOf(3, {1, 2}));
+        const PageObject& group = p.objects[2];
+        QVERIFY(hasExtent(p, group));
+        const RectF r = boundsOnPage(p, group);
+        QCOMPARE(r.x, 8.0);
+        QCOMPARE(r.y, 8.0);
+        QCOMPARE(r.width, 124.0);
+        QCOMPARE(r.height, 54.0);
+        // Sans page, un groupe reste sans emprise (comportement historique).
+        QVERIFY(!hasExtent(group));
+        // Un objet ordinaire se mesure comme avant.
+        QCOMPARE(boundsOnPage(p, p.objects[1]).x, 108.0);
+    }
+
+    void nestedGroupsAreMeasuredThroughTheirMembers()
+    {
+        Page p;
+        p.objects.push_back(onLayer(Layer::Middle, 1));
+        PageObject far = onLayer(Layer::Middle, 2);
+        far.common.transform = translation(200, 0); // (208, 8, 24, 4)
+        p.objects.push_back(far);
+        p.objects.push_back(groupOf(3, {1}));
+        p.objects.push_back(groupOf(4, {3, 2}));
+        const RectF r = boundsOnPage(p, p.objects[3]);
+        QCOMPARE(r.x, 8.0);
+        QCOMPARE(r.width, 224.0);
+        QVERIFY(isSelectable(p, p.objects[3]));
+    }
+
+    void aGroupIsSelectableAndAnEmptyOneIsNot()
+    {
+        Page p;
+        p.objects.push_back(onLayer(Layer::Middle, 1));
+        p.objects.push_back(onLayer(Layer::Middle, 2));
+        p.objects.push_back(groupOf(3, {1, 2}));
+        p.objects.push_back(groupOf(4, {}));      // vide
+        p.objects.push_back(groupOf(5, {77}));    // membre absent de la page
+        QVERIFY(isSelectable(p, p.objects[2]));
+        QVERIFY(!isSelectable(p, p.objects[3]));
+        QVERIFY(!hasExtent(p, p.objects[3]));
+        QVERIFY(!isSelectable(p, p.objects[4]));
+        QCOMPARE(boundsOnPage(p, p.objects[3]).width, 0.0);
+        p.objects[2].common.visible = false; // invisible : non sélectionnable, comme tout objet
+        QVERIFY(!isSelectable(p, p.objects[2]));
+        QVERIFY(isSelectable(p, p.objects[0]));
+    }
+
+    void groupCyclesDoNotLoopForever()
+    {
+        Page p;
+        p.objects.push_back(onLayer(Layer::Middle, 1));
+        p.objects.push_back(groupOf(2, {1, 3}));
+        p.objects.push_back(groupOf(3, {2}));
+        QVERIFY(hasExtent(p, p.objects[1]));
+        QCOMPARE(boundsOnPage(p, p.objects[1]).width, 24.0);
+        QVERIFY(!hasExtent(p, p.objects[2]) || boundsOnPage(p, p.objects[2]).width == 24.0);
     }
 
     void addObjectAllocatesAnIdOnceAndUndoes()

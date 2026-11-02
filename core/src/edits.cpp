@@ -163,6 +163,16 @@ RectF boundsOnPage(const PageObject& object) noexcept
     return box.grown(0);
 }
 
+bool hasExtent(const Page& /*page*/, const PageObject& object) noexcept
+{
+    return hasExtent(object);
+}
+
+RectF boundsOnPage(const Page& /*page*/, const PageObject& object) noexcept
+{
+    return boundsOnPage(object);
+}
+
 AddObjectCommand::AddObjectCommand(std::size_t page, PageObject object)
     : m_page(page), m_object(std::move(object))
 {}
