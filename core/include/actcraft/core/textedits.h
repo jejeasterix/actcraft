@@ -26,8 +26,8 @@ private:
 };
 
 // Ligne de base de la première ligne, coordonnées de l'objet : celle de la première ligne lue (runs) ; sinon
-// std::nullopt (l'appelant prend le coin inférieur gauche de la première ligne qu'il a mesurée, ou de
-// l'emprise).
+// celle que la validation a mesurée (Text::firstBaseline, H4-6) ; sinon std::nullopt (l'appelant prend le
+// coin inférieur gauche de l'emprise).
 std::optional<PointF> textBaseline(const Text& text) noexcept;
 
 } // namespace actcraft::core

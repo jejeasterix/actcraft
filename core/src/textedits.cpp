@@ -55,7 +55,7 @@ void SetTextCommand::undo(Document& document, Changes& changes)
 std::optional<PointF> textBaseline(const Text& text) noexcept
 {
     if (text.runs.empty())
-        return std::nullopt;
+        return text.firstBaseline; // texte créé dans ActCraft : première ligne mesurée à la validation (H4-6)
     return text.runs.front().baseline;
 }
 

@@ -154,13 +154,15 @@ std::optional<PointF> localBaseline(const Text& text) noexcept
 
 // Coin bas gauche de l'emprise géométrique transformée, sans la demi-épaisseur du contour (l'ancrage vise la
 // forme, pas son trait) ; aucun pour les objets dont l'emprise vient de points ou d'un trait (traits, lignes,
-// connecteurs, chemins) : snapAnchor retombe alors sur boundsOnPage.
+// connecteurs, chemins, polygones lus) : snapAnchor retombe alors sur boundsOnPage. Un polygone construit
+// depuis son préréglage (toutes les formes du lot 4, rebuildShape) s'ancre à la boîte qui l'a construit, pas
+// à son sommet le plus bas (D6, L4-C5).
 std::optional<PointF> geometricBottomLeft(const PageObject& object) noexcept
 {
     const Transform& t = object.common.transform;
     RectF r;
     if (const auto* s = std::get_if<Shape>(&body(object));
-        s && s->kind != ShapeKind::Path && s->kind != ShapeKind::Polygon) {
+        s && s->kind != ShapeKind::Path && (s->kind != ShapeKind::Polygon || !s->preset.empty())) {
         r = s->bounds;
     } else if (const auto* t2 = std::get_if<Text>(&body(object))) {
         r = t2->bounds;

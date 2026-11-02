@@ -388,7 +388,7 @@ private slots:
             QVERIFY(!points.empty() && pen.style != PenStyle::Solid);
         }
         {
-            const auto& [bounds, html, runs, vertical] = std::get<Text>(p1.objects[5]);
+            const auto& [bounds, html, runs, vertical, firstBaseline] = std::get<Text>(p1.objects[5]);
             QVERIFY(bounds.width != 0 && !html.empty() && runs.size() == 2);
             const auto& [text, family, size, weight, italic, underline, strikeOut, color, baseline, runBounds,
                          runKeys] = runs[0];

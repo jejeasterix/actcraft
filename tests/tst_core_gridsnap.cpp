@@ -138,9 +138,9 @@ private slots:
         page.grid.snapEnabled = false;
         QCOMPARE(snapDelta(page, {7}, {30, 0}).x, 30.0);
     }
-    // L4-C5 (D6) : une forme du lot 4 (Polygon reconstruit depuis son préréglage) s'ancre au coin bas gauche de
-    // sa boîte, sans la demi-épaisseur du contour. Sous l'ancien patron (Polygon traité comme un chemin, repli sur
-    // boundsOnPage), l'ancrage tombait en (10, 44) : le coin restait à 2 px du croisement.
+    // L4-C5 (D6) : une forme du lot 4 (Polygon reconstruit depuis son préréglage) s'ancre au coin bas gauche
+    // de sa boîte, sans la demi-épaisseur du contour. Sous l'ancien patron (Polygon traité comme un chemin,
+    // repli sur boundsOnPage), l'ancrage tombait en (10, 44) : le coin restait à 2 px du croisement.
     void presetPolygonAnchorsOnItsBoxNotItsOutline()
     {
         Page page;

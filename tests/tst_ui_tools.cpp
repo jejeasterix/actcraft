@@ -441,9 +441,9 @@ private slots:
         QCOMPARE(app.tools->selectionCount(), 2);
     }
 
-    // L4-C5 (H4-24 ; décision de l'orchestrateur du 2026-11-02, à revoir à la porte de fin : Maj+clic garde son
-    // effet) : Ctrl+clic, touche tenue comme au clavier, ajoute l'objet cliqué à la sélection, puis l'en retire,
-    // comme dans l'original.
+    // L4-C5 (H4-24 ; décision de l'orchestrateur du 2026-11-02, à revoir à la porte de fin : Maj+clic garde
+    // son effet) : Ctrl+clic, touche tenue comme au clavier, ajoute l'objet cliqué à la sélection, puis l'en
+    // retire, comme dans l'original.
     void controlClickAddsThenRemovesTheClickedObject()
     {
         App app;

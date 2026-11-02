@@ -24,6 +24,7 @@
 #include <QTextFrame>
 #include <QTextFrameFormat>
 #include <QTextImageFormat>
+#include <QTextLayout>
 #include <QTextList>
 #include <QTextListFormat>
 #include <QTextOption>
@@ -662,6 +663,28 @@ bool TextEditing::beginAt(QPointF pagePoint, bool vertical)
     return true;
 }
 
+namespace {
+
+// H4-6, D6 (L4-C5) : origine de la ligne de base de la première ligne, coordonnées de l'objet, sur le même
+// document que measuredBounds (celui du peintre : marge 0, largeur de l'emprise). Aucune si le document n'a
+// pas de ligne : l'accrochage prend alors l'emprise.
+std::optional<core::PointF> firstLineBaseline(const QString& safeHtml, const core::RectF& bounds)
+{
+    AnalysisDocument measure{ResourceObserver()};
+    measure.setHtml(safeHtml);
+    measure.setTextWidth(bounds.width);
+    static_cast<void>(measure.size()); // mise en page complète
+    const QTextLayout* layout = measure.firstBlock().layout();
+    if (layout == nullptr || layout->lineCount() == 0) {
+        return std::nullopt;
+    }
+    const QTextLine line = layout->lineAt(0);
+    return core::PointF{bounds.x + layout->position().x() + line.naturalTextRect().x(),
+                        bounds.y + layout->position().y() + line.y() + line.ascent()};
+}
+
+} // namespace
+
 // Mesure du document du peintre (render/src/pagepainter.cpp, paintText) : marge 0, largeur = celle de
 // l'emprise.
 core::RectF TextEditing::measuredBounds(const QString& safeHtml) const
@@ -710,6 +733,9 @@ void TextEditing::commit()
         text.bounds = measuredBounds(safe);
         text.html = safe.toStdString();
         text.vertical = m_vertical;
+        if (!m_vertical) { // une colonne n'a pas de première ligne horizontale : l'emprise
+            text.firstBaseline = firstLineBaseline(safe, text.bounds);
+        }
     }
     finish(); // avant le contrôleur : ses signaux peuvent revenir ici
     if (m_controller) {

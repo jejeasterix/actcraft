@@ -650,7 +650,7 @@ QJsonObject runJson(const TextSpan& run)
 
 void writeBody(QJsonObject& j, const Text& textObject)
 {
-    const auto& [bounds, html, runs, vertical] = textObject; // vertical : L4-T6
+    const auto& [bounds, html, runs, vertical, firstBaseline] = textObject; // vertical : L4-T6
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"html"_s, str(html));
     QJsonArray list;
@@ -660,6 +660,9 @@ void writeBody(QJsonObject& j, const Text& textObject)
     j.insert(u"runs"_s, list);
     if (vertical) {
         j.insert(u"vertical"_s, true); // facultative (L4-T6) : absente, texte horizontal
+    }
+    if (firstBaseline) {
+        j.insert(u"firstBaseline"_s, pointJson(*firstBaseline)); // facultative (L4-C5) : absente, non mesurée
     }
 }
 
@@ -1174,6 +1177,22 @@ public:
         return point;
     }
 
+    // Point facultatif : absent ou mal formé (avertissement de readFixed), aucun.
+    std::optional<PointF> readOptionalPoint(const QJsonObject& o, QStringView key)
+    {
+        if (!o.contains(key)) {
+            return std::nullopt;
+        }
+        if (const std::optional<std::array<double, 2>> a = readFixed<2>(o, key)) {
+            PointF point;
+            auto& [x, y] = point;
+            x = (*a)[0];
+            y = (*a)[1];
+            return point;
+        }
+        return std::nullopt;
+    }
+
     RectF readRect(const QJsonObject& o, QStringView key, RectF rect)
     {
         if (const std::optional<std::array<double, 4>> a = readFixed<4>(o, key)) {
@@ -1372,7 +1391,7 @@ TextSpan readRun(Reader& r, const QJsonObject& j)
 
 void readBody(Reader& r, const QJsonObject& j, Text& textObject)
 {
-    auto& [bounds, html, runs, vertical] = textObject; // vertical : L4-T6
+    auto& [bounds, html, runs, vertical, firstBaseline] = textObject; // vertical : L4-T6
     bounds = r.readRect(j, u"bounds", bounds);
     html = r.readString(j, u"html");
     for (const QJsonValue& value : r.readArray(j, u"runs")) {
@@ -1381,6 +1400,7 @@ void readBody(Reader& r, const QJsonObject& j, Text& textObject)
         }
     }
     vertical = r.readFlag(j, u"vertical", vertical);
+    firstBaseline = r.readOptionalPoint(j, u"firstBaseline");
 }
 
 void readBody(Reader& r, const QJsonObject& j, Equation& equation)
@@ -1448,6 +1468,7 @@ PageObject everyKeyObject(std::size_t index)
         shape->parameters = {0.0};
     } else if (auto* text = std::get_if<Text>(&body(object))) {
         text->vertical = true;
+        text->firstBaseline = PointF{};
     }
     return object;
 }
