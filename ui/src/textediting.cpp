@@ -685,6 +685,23 @@ std::optional<core::PointF> firstLineBaseline(const QString& safeHtml, const cor
 
 } // namespace
 
+// L4-C5 : un texte enregistré avant la mesure (horizontal, ni « runs » ni « firstBaseline ») reçoit sa ligne
+// de base à l'ouverture. Hors de l'empreinte : ni étape d'annulation, ni document modifié.
+void measureFirstBaselines(core::Document& document)
+{
+    for (std::size_t i = 0; i < document.pageCount(); ++i) {
+        for (core::PageObject& object : document.page(i).objects) {
+            auto* text = std::get_if<core::Text>(&core::body(object));
+            if (text == nullptr || text->vertical || !text->runs.empty() || text->firstBaseline ||
+                text->html.empty()) {
+                continue;
+            }
+            text->firstBaseline =
+                firstLineBaseline(safeTextHtml(QString::fromStdString(text->html), {}), text->bounds);
+        }
+    }
+}
+
 // Mesure du document du peintre (render/src/pagepainter.cpp, paintText) : marge 0, largeur = celle de
 // l'emprise.
 core::RectF TextEditing::measuredBounds(const QString& safeHtml) const

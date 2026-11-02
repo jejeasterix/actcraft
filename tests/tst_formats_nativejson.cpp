@@ -1078,9 +1078,9 @@ private slots:
         QCOMPARE(back.resources().size(), std::size_t{0});
     }
 
-    // L4-C5 : `firstBaseline` est facultative, hors de l'empreinte, jamais écrite quand elle manque ; lue, elle
-    // doit tenir dans l'emprise d'un texte horizontal (une version antérieure la garde comme clé inconnue et
-    // la réécrit périmée après un changement de police).
+    // L4-C5 : `firstBaseline` est facultative, hors de l'empreinte, jamais écrite quand elle manque ; lue,
+    // elle doit tenir dans l'emprise d'un texte horizontal (une version antérieure la garde comme clé
+    // inconnue et la réécrit périmée après un changement de police).
     static core::Document documentWithText(bool vertical, std::optional<core::PointF> baseline)
     {
         core::Document d;
@@ -1089,7 +1089,9 @@ private slots:
         text.html = "<p>un</p>";
         text.vertical = vertical;
         text.firstBaseline = baseline;
-        d.page(0).objects.push_back(core::PageObject{text});
+        core::PageObject object{text};
+        object.common.id = 1;
+        d.page(0).objects.push_back(object);
         d.refreshNextId();
         return d;
     }

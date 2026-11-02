@@ -1180,9 +1180,6 @@ public:
     // Point facultatif : absent ou mal formé (avertissement de readFixed), aucun.
     std::optional<PointF> readOptionalPoint(const QJsonObject& o, QStringView key)
     {
-        if (!o.contains(key)) {
-            return std::nullopt;
-        }
         if (const std::optional<std::array<double, 2>> a = readFixed<2>(o, key)) {
             PointF point;
             auto& [x, y] = point;
@@ -1401,6 +1398,11 @@ void readBody(Reader& r, const QJsonObject& j, Text& textObject)
     }
     vertical = r.readFlag(j, u"vertical", vertical);
     firstBaseline = r.readOptionalPoint(j, u"firstBaseline");
+    // Mesure d'un texte horizontal, dans son emprise : sinon (colonne, clé périmée d'une version antérieure),
+    // aucune (L4-C5).
+    if (firstBaseline && (vertical || !bounds.contains(*firstBaseline))) {
+        firstBaseline.reset();
+    }
 }
 
 void readBody(Reader& r, const QJsonObject& j, Equation& equation)

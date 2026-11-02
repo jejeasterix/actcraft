@@ -19,6 +19,8 @@
 
 namespace actcraft::ui {
 
+void measureFirstBaselines(core::Document& document); // ui/src/textediting.cpp (L4-C5)
+
 // Fil secondaire → contrôleur. Le fil poste son résultat sous le verrou, et le destructeur du contrôleur
 // efface la cible sous le même verrou : jamais un envoi vers un objet en cours de destruction (un QPointer lu
 // depuis un autre fil ne le garantit pas). Un résultat posté avant la destruction est retiré par ~QObject.
@@ -522,6 +524,7 @@ void DocumentController::show(std::size_t index)
 void DocumentController::replaceDocument(core::Document document, const QUrl& fileUrl, const QString& title)
 {
     emit pageAboutToChange();
+    measureFirstBaselines(document);
     m_document = std::move(document);
     m_undo.clear();
     m_fileUrl = fileUrl;
