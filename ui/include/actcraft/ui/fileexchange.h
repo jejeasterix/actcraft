@@ -1,12 +1,13 @@
 #pragma once
+#include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documenttabs.h>
+
 #include <QObject>
 #include <QQmlEngine>
 #include <QString>
 #include <QUrl>
 
 namespace actcraft::ui {
-class DocumentController;
-class DocumentTabs;
 
 // Export, import PDF et PowerPoint (F-020 à F-023) ; rempli par L5-T25 et L5-T30.
 class FileExchange : public QObject

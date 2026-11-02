@@ -1,4 +1,7 @@
 #pragma once
+#include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/pageview.h>
+
 #include <QAbstractListModel>
 #include <QQmlEngine>
 #include <QString>
@@ -6,8 +9,6 @@
 #include <QVariantList>
 
 namespace actcraft::ui {
-class DocumentController;
-class PageView;
 
 // Onglets des paperboards ouverts (F-010, F-011) ; rempli par L5-T20.
 class DocumentTabs : public QAbstractListModel

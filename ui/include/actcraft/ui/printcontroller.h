@@ -1,4 +1,6 @@
 #pragma once
+#include <actcraft/ui/documentcontroller.h>
+
 #include <QImage>
 #include <QObject>
 #include <QQmlEngine>
@@ -6,7 +8,6 @@
 #include <QStringList>
 
 namespace actcraft::ui {
-class DocumentController;
 
 // Boîte d'impression (F-670 à F-679) ; remplie par L5-T28.
 class PrintController : public QObject

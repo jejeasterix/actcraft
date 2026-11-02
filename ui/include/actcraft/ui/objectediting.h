@@ -1,11 +1,12 @@
 #pragma once
+#include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/toolhost.h>
+
 #include <QObject>
 #include <QPointF>
 #include <QQmlEngine>
 
 namespace actcraft::ui {
-class DocumentController;
-class ToolHost;
 
 class ObjectEditing : public QObject
 {

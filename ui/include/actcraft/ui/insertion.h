@@ -1,4 +1,6 @@
 #pragma once
+#include <actcraft/ui/documentcontroller.h>
+
 #include <QImage>
 #include <QObject>
 #include <QPointF>
@@ -8,7 +10,6 @@
 #include <QVariantList>
 
 namespace actcraft::ui {
-class DocumentController;
 
 // Insérer une image ou un média (F-560 à F-562) ; remplie par L5-T15.
 class Insertion : public QObject
