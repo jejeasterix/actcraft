@@ -19,5 +19,11 @@ actcraft_add_module(tools
         src/shapetool.cpp
         include/actcraft/tools/texttool.h
         src/texttool.cpp
+        include/actcraft/tools/filltool.h
+        src/filltool.cpp
+        include/actcraft/tools/penshapetool.h
+        src/penshapetool.cpp
+        include/actcraft/tools/connectortool.h
+        src/connectortool.cpp
     DEPENDS
-        ActCraft::core ActCraft::actions ActCraft::input ActCraft::render)
+        ActCraft::core ActCraft::actions ActCraft::input ActCraft::render Qt6::Concurrent)

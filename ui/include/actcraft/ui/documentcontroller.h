@@ -144,6 +144,15 @@ public:
     // core::changesAfterLift.
     void dropLifted(std::unique_ptr<core::UndoCommand> command);
     bool isLifting() const noexcept;
+
+    // Document garé par un onglet (L5-T20) : document, pile d'annulation, URL, état modifié, avertissements,
+    // page affichée.
+    struct ParkedSession;
+    // Rend la session affichée et en installe une vide ; dépose d'abord un soulèvement en cours
+    // (dropLifted(nullptr)).
+    std::unique_ptr<ParkedSession> parkSession();
+    // Installe une session garée : la page affichée est reconstruite une fois (cache redessiné une fois).
+    void resumeSession(std::unique_ptr<ParkedSession> session);
     // Trait d'un outil d'encre avec sa translucidité (marqueur, F-225) : couche supérieure, par la pile.
     void commitAnnotation(core::Stroke stroke, std::uint8_t translucency);
     void deleteObjects(const std::vector<core::ObjectId>& ids);

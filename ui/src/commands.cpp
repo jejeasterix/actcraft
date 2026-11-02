@@ -189,6 +189,11 @@ QVariantList Commands::contextMenu() const
     return menuItems(m_layout.contextMenu, &m_layout.contextSubmenus);
 }
 
+QVariantList Commands::objectMenu() const
+{
+    return menuItems(m_layout.objectMenu, &m_layout.objectSubmenus);
+}
+
 QVariantList Commands::palette() const
 {
     QVariantList out;

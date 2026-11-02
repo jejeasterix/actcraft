@@ -23,8 +23,10 @@ endif()
 
 option(ACTCRAFT_BUILD_TESTS "Construire les tests" ON)
 option(ACTCRAFT_BUILD_BENCH "Construire le banc de fluidité" ON)
+option(ACTCRAFT_PRINT "Impression par QPrinter (Windows)" ${WIN32})
+option(ACTCRAFT_IMPORT_PDF "Import PDF par Qt PDF" OFF) # rendue automatique par L5-T22
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Svg)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Svg Concurrent)
 qt_standard_project_setup(REQUIRES 6.12)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -38,6 +40,8 @@ add_subdirectory(formats)
 add_subdirectory(actions)
 add_subdirectory(input)
 add_subdirectory(render)
+add_subdirectory(export)
+add_subdirectory(print)
 add_subdirectory(tools)
 add_subdirectory(features)
 add_subdirectory(ui)

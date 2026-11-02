@@ -1,0 +1,63 @@
+#pragma once
+#include <QObject>
+#include <QPointF>
+#include <QQmlEngine>
+
+namespace actcraft::ui {
+class DocumentController;
+class ToolHost;
+
+class ObjectEditing : public QObject
+{
+    Q_OBJECT
+    QML_ELEMENT
+    Q_PROPERTY(DocumentController* document READ document WRITE setDocument NOTIFY documentChanged)
+    Q_PROPERTY(ToolHost* tools READ tools WRITE setTools NOTIFY toolsChanged)
+    Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY selectionStateChanged)
+    Q_PROPERTY(bool canPaste READ canPaste NOTIFY clipboardChanged)
+    Q_PROPERTY(bool selectionLocked READ selectionLocked NOTIFY selectionStateChanged)
+    Q_PROPERTY(bool selectionHidden READ selectionHidden NOTIFY selectionStateChanged)
+    Q_PROPERTY(bool selectionDragCopy READ selectionDragCopy NOTIFY selectionStateChanged)
+    Q_PROPERTY(bool selectionIsGroup READ selectionIsGroup NOTIFY selectionStateChanged)
+    Q_PROPERTY(bool selectionIsAnnotation READ selectionIsAnnotation NOTIFY selectionStateChanged)
+public:
+    explicit ObjectEditing(QObject* parent = nullptr);
+    DocumentController* document() const;
+    void setDocument(DocumentController* document);
+    ToolHost* tools() const;
+    void setTools(ToolHost* tools);
+    bool hasSelection() const;
+    bool canPaste() const;
+    bool selectionLocked() const;
+    bool selectionHidden() const;
+    bool selectionDragCopy() const;
+    bool selectionIsGroup() const;
+    bool selectionIsAnnotation() const;
+
+    Q_INVOKABLE void cut();
+    Q_INVOKABLE void copy();
+    Q_INVOKABLE void paste();
+    Q_INVOKABLE void pasteAt(QPointF pagePoint);
+    Q_INVOKABLE void pasteOnto();
+    Q_INVOKABLE void duplicate();
+    Q_INVOKABLE void toggleGroup();
+    Q_INVOKABLE void
+    arrange(const QString& how); // front, back, forward, backward, layer-top, layer-middle, layer-bottom
+    Q_INVOKABLE void
+    align(const QString& how); // left, center-x, right, top, center-y, bottom, width, height, angle, all
+    Q_INVOKABLE void
+    transform(const QString& how); // original-size, fit-*, mirror-x|y, flip-x|y, origin-flip-x|y
+    Q_INVOKABLE void toggleFlag(const QString& flag); // lock, hide, drag-copy
+
+signals:
+    void documentChanged();
+    void toolsChanged();
+    void selectionStateChanged();
+    void clipboardChanged();
+
+private:
+    DocumentController* m_document = nullptr;
+    ToolHost* m_tools = nullptr;
+};
+
+} // namespace actcraft::ui

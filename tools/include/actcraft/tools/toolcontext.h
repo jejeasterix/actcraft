@@ -73,6 +73,7 @@ struct SelectionView
     std::optional<core::RectF> rubberBand;
     std::vector<core::PointF>
         smartPoints; // F-242 : points intelligents de la forme sélectionnée seule (page)
+    std::vector<core::PointF> shapePoints; // L5-T16
 };
 
 class SelectionSurface

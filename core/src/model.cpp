@@ -110,12 +110,14 @@ void hashUnknownKeys(Fnv1a& h, const std::string& keys) noexcept
 
 void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
 {
-    const auto& [id, name, layer, visible, locked, translucency, restrictions, transform, label, actions] = c;
+    const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
+                 actions] = c;
     h.u64(id);
     h.text(name);
     h.tag(layer);
     h.boolean(visible);
     h.boolean(locked);
+    h.boolean(dragCopy);
     h.byte(translucency);
     const auto& [movable, resizable, rotatable] = restrictions;
     h.boolean(movable);
@@ -251,12 +253,15 @@ void hashType(Fnv1a& h, const Group& group) noexcept
 
 void hashType(Fnv1a& h, const Connector& connector) noexcept
 {
-    const auto& [firstEnd, secondEnd, objectA, objectB, pen] = connector;
+    const auto& [firstEnd, secondEnd, objectA, objectB, pen, style, capA, capB] = connector;
     h.point(firstEnd);
     h.point(secondEnd);
     h.u64(objectA);
     h.u64(objectB);
     h.outline(pen);
+    h.byte(style);
+    h.tag(capA);
+    h.tag(capB);
 }
 
 void hashType(Fnv1a& h, const Equation& equation) noexcept
