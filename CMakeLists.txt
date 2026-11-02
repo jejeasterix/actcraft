@@ -26,7 +26,12 @@ option(ACTCRAFT_BUILD_BENCH "Construire le banc de fluidité" ON)
 option(ACTCRAFT_PRINT "Impression par QPrinter (Windows)" ${WIN32})
 # Import PDF : automatique, ON si Qt PDF (module Pdf) est trouvé, OFF sinon (la construction passe sans).
 find_package(Qt6 6.12 QUIET COMPONENTS Pdf)
-option(ACTCRAFT_IMPORT_PDF "Import PDF par Qt PDF" ${Qt6Pdf_FOUND})
+if(Qt6Pdf_FOUND)
+    set(_actcraft_pdf_default ON)
+else()
+    set(_actcraft_pdf_default OFF)
+endif()
+option(ACTCRAFT_IMPORT_PDF "Import PDF par Qt PDF" ${_actcraft_pdf_default})
 message(STATUS "ACTCRAFT_IMPORT_PDF=${ACTCRAFT_IMPORT_PDF}")
 
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Svg Concurrent)
