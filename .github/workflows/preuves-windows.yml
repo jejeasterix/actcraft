@@ -93,7 +93,7 @@ jobs:
           PRESET: ${{ inputs.preset }}
           MOTIF: ${{ inputs.tests }}
         run: |
-          if ($env:MOTIF) { ctest --preset $env:PRESET -R $env:MOTIF } else { ctest --preset $env:PRESET }
+          if ($env:MOTIF) { ctest --preset $env:PRESET --output-on-failure -R $env:MOTIF } else { ctest --preset $env:PRESET --output-on-failure }
           if ($LASTEXITCODE -eq 0) { Write-Output 'PREUVES WINDOWS OK' } else { Write-Output 'PREUVES WINDOWS EN ECHEC'; exit 1 }
 
       # Toujours la dernière étape : un échec de n'importe quelle étape (Compiler sous /WX compris) ou une annulation
