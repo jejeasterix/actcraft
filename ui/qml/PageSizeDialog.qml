@@ -25,10 +25,11 @@ Dialog {
         widthBox.value = w; heightBox.value = h
         dialog.accept()
     }
-    // Les nombres de cadres d'abord : le minimum par cadre (minFrame) s'applique ensuite aux deux tailles.
+    // Les tailles d'abord : le plafond des nombres de cadres se calcule avec la nouvelle taille ; le minimum
+    // par cadre (minFrame) s'applique ensuite aux deux tailles.
     function acceptFramedSize(w, h, across, down) {
-        framesAcrossBox.value = across; framesDownBox.value = down
         widthBox.value = w; heightBox.value = h
+        framesAcrossBox.value = across; framesDownBox.value = down
         dialog.accept()
     }
     onAccepted: dialog.sizeAccepted(widthBox.value, heightBox.value, framesAcrossBox.value, framesDownBox.value)

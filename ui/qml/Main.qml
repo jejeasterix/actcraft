@@ -214,6 +214,7 @@ Window {
             inputBlocked: root.openPopups > 0
             documentController: appDocument
             zones: appPageSettings.zones
+            zoneFrameSize: appPageSettings.zoneFrameSize
             pages: appPages
             tools: appTools
             commands: appCommands

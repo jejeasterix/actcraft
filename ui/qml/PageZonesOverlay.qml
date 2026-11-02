@@ -8,6 +8,7 @@ import ActCraft.Ui
 Item {
     id: overlay
     property string zones: "" // « <cadres en largeur>x<cadres en hauteur> » (appPageSettings.zones)
+    property size frameSize: Qt.size(0, 0) // taille d'un cadre (appPageSettings.zoneFrameSize), 0 : non donnée
     property real zoom: 1     // view.zoom : un trait d'un pixel d'écran à tout zoom
     property point pan: Qt.point(0, 0) // view.pan : position de la page dans la vue
     property size viewSize: Qt.size(0, 0) // taille de la vue : les séparations ne vont pas au-delà
@@ -119,7 +120,7 @@ Item {
         delegate: Separation {
             required property int index
             vertical: true
-            at: overlay.width * (index + 1) / overlay.across
+            at: overlay.frameSize.width > 0 ? overlay.frameSize.width * (index + 1) : overlay.width * (index + 1) / overlay.across
         }
     }
     Repeater {
@@ -127,7 +128,7 @@ Item {
         delegate: Separation {
             required property int index
             vertical: false
-            at: overlay.height * (index + 1) / overlay.down
+            at: overlay.frameSize.height > 0 ? overlay.frameSize.height * (index + 1) : overlay.height * (index + 1) / overlay.down
         }
     }
 }

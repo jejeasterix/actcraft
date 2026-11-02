@@ -42,10 +42,7 @@ QString key(const char* name)
 // Deux fonds identiques : ni étape d'annulation ni redessin.
 bool sameBackground(const core::Background& a, const core::Background& b)
 {
-    return a.image == b.image && a.fill.kind == b.fill.kind && a.fill.color == b.fill.color &&
-           a.fill.color2 == b.fill.color2 && a.fill.gradient == b.fill.gradient &&
-           a.fill.pattern == b.fill.pattern && a.fill.opaqueBackground == b.fill.opaqueBackground &&
-           a.fill.backgroundColor == b.fill.backgroundColor;
+    return a.image == b.image && a.fill == b.fill;
 }
 
 QVariantMap levelToMap(const core::GridLevel& level)
@@ -153,8 +150,6 @@ core::Grid gridFromMap(const QVariantMap& map, const core::Grid& base)
 
 } // namespace
 
-// Talon L4-T1 : fond (L4-T20), extension (L4-T26), zones (L4-T28) restent à remplir ; la grille est ici
-// (L4-T13).
 PageOptions::PageOptions(QObject* parent) : QObject(parent) {}
 
 DocumentController* PageOptions::documentController() const noexcept
@@ -270,6 +265,16 @@ QString PageOptions::zones() const
     const core::PageZones& zones =
         m_controller->document().page(static_cast<std::size_t>(m_controller->currentIndex())).zones;
     return QStringLiteral("%1x%2").arg(zones.horizontal).arg(zones.vertical);
+}
+
+QSizeF PageOptions::zoneFrameSize() const
+{
+    if (!m_controller || m_controller->pageCount() == 0) {
+        return {};
+    }
+    const core::PageZones& zones =
+        m_controller->document().page(static_cast<std::size_t>(m_controller->currentIndex())).zones;
+    return {zones.frameWidth, zones.frameHeight};
 }
 
 void PageOptions::toggleGridHidden()

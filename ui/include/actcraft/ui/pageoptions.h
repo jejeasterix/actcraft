@@ -4,6 +4,7 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QSizeF>
 #include <QString>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
@@ -26,6 +27,7 @@ class PageOptions : public QObject
     Q_PROPERTY(
         QVariantMap background READ background NOTIFY changed) // {kind, color, color2, gradient, image}
     Q_PROPERTY(qreal pageHeight READ pageHeight NOTIFY changed)
+    Q_PROPERTY(QSizeF zoneFrameSize READ zoneFrameSize NOTIFY changed)
     Q_PROPERTY(QString zones READ zones NOTIFY changed) // « <horizontales>x<verticales> », « 0x0 » par défaut
 
 public:
@@ -39,6 +41,7 @@ public:
     QVariantMap background() const;
     qreal pageHeight() const;
     QString zones() const;
+    QSizeF zoneFrameSize() const; // taille d'un cadre (0 x 0 : non donnée)
 
     Q_INVOKABLE void toggleGridHidden();               // F-623
     Q_INVOKABLE void toggleSnap();                     // F-622
