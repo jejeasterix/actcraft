@@ -179,6 +179,14 @@ private slots:
 
         QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, center.toPoint());
         QCOMPARE(menu.count(), 1);
+        QTest::keyClick(main.window(), Qt::Key_Escape);
+        // Lot 3 : le clic droit ouvre le menu de la page ; Échap ne le ferme pas ici (défaut du lot 3,
+        // consigné). Ouvert, il prendrait l'appui droit tenu qui suit : un clic hors du menu le ferme.
+        QObject* pageMenu = main.window()->findChild<QObject*>(QStringLiteral("pageContextMenu"));
+        QVERIFY(pageMenu);
+        QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier,
+                          inWindow(main, QPointF(100, 100)).toPoint());
+        QTRY_VERIFY(!pageMenu->property("visible").toBool());
 
         QVERIFY(main.run(QStringLiteral("view.page-zoom")));
         const int before = main.pageObjectCount();
