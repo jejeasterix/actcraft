@@ -159,6 +159,15 @@ private slots:
         QCOMPARE(d.x, 38.0);
         QCOMPARE(d.y, 8.0);
     }
+    // L4-C5 (D6) : une étoile s'ancre au coin bas gauche de sa boîte, pas à son sommet le plus bas.
+    void presetStarAnchorsOnItsBoxCorner()
+    {
+        const PageObject o = makeShapeObject("star", {20, 10, 100, 80}, ShapeStyle{});
+        QVERIFY(std::get<Shape>(body(o)).preset == "star");
+        const PointF a = snapAnchor(o);
+        QCOMPARE(a.x, 20.0);
+        QCOMPARE(a.y, 90.0);
+    }
     void textUsesItsBaseline()
     {
         PageObject o{Text{}};
