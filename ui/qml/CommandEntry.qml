@@ -18,6 +18,7 @@ MenuItem {
     checkable: !isSeparator && entryData.checkable === true
     checked: !isSeparator && commands && commands.revision >= 0 && commands.isChecked(commandId)
     implicitHeight: isSeparator ? 9 : Theme.tailleBouton
+    implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset, implicitContentWidth + leftPadding + rightPadding)
     // Le clic bascule la coche localement : on rend la main au registre.
     onToggled: checked = Qt.binding(function () {
         return !entry.isSeparator && commands && commands.revision >= 0 && commands.isChecked(entry.commandId)
@@ -28,6 +29,9 @@ MenuItem {
     }
     contentItem: Item {
         implicitHeight: entry.isSeparator ? 1 : label.implicitHeight
+        // Largeur du menu : colonne de la coche, libellé, écart, raccourci (sans elle le menu se réglait sur la
+        // plus petite entrée et tronquait les libellés ou recouvrait les raccourcis).
+        implicitWidth: entry.isSeparator ? 0 : row.implicitWidth + Theme.tailleIcone + Theme.espace1
         Rectangle {
             visible: entry.isSeparator
             anchors.verticalCenter: parent.verticalCenter
@@ -38,6 +42,7 @@ MenuItem {
         // La colonne de la coche (indicateur du style, dessiné à gauche) est réservée sur chaque entrée : la
         // coche ne recouvre plus le libellé et les libellés d'un même menu restent alignés (L1-C5).
         RowLayout {
+            id: row
             visible: !entry.isSeparator
             anchors.fill: parent
             anchors.leftMargin: Theme.tailleIcone + Theme.espace1

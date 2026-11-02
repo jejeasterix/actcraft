@@ -157,6 +157,17 @@ Window {
         appCommands.setChecked("grid.hide", !appPageSettings.gridVisible && !!levels && levels.length > 0)
         appCommands.setChecked("grid.snap", appPageSettings.gridSnap)
     }
+    // Coches des bascules d'objet : l'état de la sélection (verrou, groupe, masque, copie au glissement).
+    Connections {
+        target: appEditing
+        function onSelectionStateChanged() { root.syncObjectFlags() }
+    }
+    function syncObjectFlags() {
+        appCommands.setChecked("object.lock", appEditing.selectionLocked)
+        appCommands.setChecked("object.group", appEditing.selectionIsGroup)
+        appCommands.setChecked("object.hide", appEditing.selectionHidden)
+        appCommands.setChecked("object.drag-copy", appEditing.selectionDragCopy)
+    }
     function syncEditCommands() {
         appCommands.setEnabled("edit.undo", appDocument.canUndo)
         appCommands.setEnabled("edit.redo", appDocument.canRedo)
@@ -268,6 +279,7 @@ Window {
             pages: appPages
             tools: appTools
             commands: appCommands
+            objectMenu: objectEditMenu
             textEditing: appText
             textListOpen: textFormatBar.openLists + verticalTextBar.openLists > 0
             onPopupOpened: root.popupOpened()
@@ -620,9 +632,15 @@ Window {
         appCommands.setHandler("object.shape-points", function () { appTools.activate("select-points") })
         appCommands.setHandler("tool.fill", function () { appTools.activate("fill") })
         appCommands.setHandler("tool.connector", function () { appTools.activate("connector") })
-        appCommands.setHandler("pen.shape", function () { appTools.activate("pen-shape") })
-        appCommands.setHandler("connector.style", function () {
-            // L5-T17
+        appCommands.setHandler("pen.shape", function (shape) {
+            if (root.hasArgument(shape))
+                appTools.activate("pen-shape", shape)
+            else
+                appTools.activate("pen-shape")
+        })
+        appCommands.setHandler("connector.style", function (rank) {
+            if (root.hasArgument(rank) || rank === 0)
+                appTools.setConnectorStyle(Number(rank))
         })
         appCommands.setHandler("view.pen-modifiers", function () { penModifierBar.visible = !penModifierBar.visible })
         appCommands.setHandler("insert.image", function (url) {

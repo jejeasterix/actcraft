@@ -128,6 +128,7 @@ QVariantMap selectionFrameMap(const tools::SelectionView& view, Commands* comman
                        {QStringLiteral("corners"), pointList(view.corners)},
                        {QStringLiteral("handles"), pointList(view.handles)},
                        {QStringLiteral("smartPoints"), pointList(view.smartPoints)},
+                       {QStringLiteral("shapePoints"), pointList(view.shapePoints)},
                        {QStringLiteral("bar"), bar},
                        {QStringLiteral("rubberBand"), band},
                        {QStringLiteral("handlesVisible"), view.visible && view.handlesVisible}};

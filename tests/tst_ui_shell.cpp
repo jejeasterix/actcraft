@@ -1104,6 +1104,89 @@ private slots:
         QVERIFY(s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs")));
     }
 
+    // L5-T18 : identifiants (« - » pour un séparateur) d'une liste d'entrées de menu.
+    static QStringList menuIds(const QVariantList& entries)
+    {
+        QStringList out;
+        for (const QVariant& entry : entries) {
+            const QVariantMap map = entry.toMap();
+            out.append(map.value(QStringLiteral("separator")).toBool()
+                           ? QStringLiteral("-")
+                           : map.value(QStringLiteral("id")).toString());
+        }
+        return out;
+    }
+
+    // L5-T18 : les entrées du menu d'objet sont celles de commands.objectMenu, filtrées par plateforme et par
+    // la sélection, sans séparateur de tête, de queue ni doublé.
+    void objectMenuMatchesLayout()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>();
+        QObject* menu = s.window->findChild<QObject*>(QStringLiteral("objectEditMenu"));
+        QVERIFY(commands && menu);
+        for (const actions::Platform platform :
+             {actions::Platform::Windows, actions::Platform::MacOS, actions::Platform::Android}) {
+            commands->setPlatform(platform);
+            QStringList expected = menuIds(commands->objectMenu());
+            expected.removeIf([](const QString& id) { return id.startsWith(QLatin1String("recognition.")); });
+            QStringList cleaned;
+            for (const QString& id : expected) {
+                if (id == QLatin1String("-") && (cleaned.isEmpty() || cleaned.last() == QLatin1String("-"))) {
+                    continue;
+                }
+                cleaned.append(id);
+            }
+            while (!cleaned.isEmpty() && cleaned.last() == QLatin1String("-")) {
+                cleaned.removeLast();
+            }
+            QCOMPARE(menuIds(menu->property("entries").toList()), cleaned);
+        }
+        commands->setPlatform(actions::Platform::Windows);
+        QCOMPARE(menu->property("visibleCommandCount").toInt(), 13);
+        QVERIFY(menuIds(menu->property("entries").toList()).contains(QStringLiteral("transform")));
+    }
+
+    // L5-T18 : « Convertir en forme » ne s'offre que pour une annotation ; « Convertir en texte » aussi sous
+    // Windows seulement.
+    void convertEntriesOnlyForAnnotations()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>();
+        auto* editing = s.window->findChild<ui::ObjectEditing*>(QStringLiteral("appEditing"));
+        QObject* menu = s.window->findChild<QObject*>(QStringLiteral("objectEditMenu"));
+        QVERIFY(commands && editing && menu);
+        const auto ids = [menu] { return menuIds(menu->property("entries").toList()); };
+        const QString toShape = QStringLiteral("recognition.convert-to-shape");
+        const QString toText = QStringLiteral("recognition.convert-to-text");
+        commands->setPlatform(actions::Platform::Windows);
+        QVERIFY(!ids().contains(toShape));
+        QVERIFY(!ids().contains(toText));
+        QVERIFY(run(s, QStringLiteral("pen.width"), 8));
+        const QPoint a = s.view->pageToScene(QPointF(300, 400)).toPoint();
+        const QPoint b = s.view->pageToScene(QPointF(700, 400)).toPoint();
+        QTest::mousePress(s.window, Qt::LeftButton, Qt::NoModifier, a);
+        for (int i = 1; i <= 20; ++i) {
+            QTest::mouseMove(s.window, a + (b - a) * i / 20);
+        }
+        QTest::mouseRelease(s.window, Qt::LeftButton, Qt::NoModifier, b);
+        QTRY_COMPARE_WITH_TIMEOUT(s.fixed->objectCount(), 1, 3000);
+        QVERIFY(run(s, QStringLiteral("tool.select")));
+        QVERIFY(run(s, QStringLiteral("edit.select-all")));
+        QTRY_VERIFY(editing->selectionIsAnnotation());
+        QVERIFY(ids().contains(toShape));
+        QVERIFY(ids().contains(toText));
+        QCOMPARE(menu->property("visibleCommandCount").toInt(), 15);
+        commands->setPlatform(actions::Platform::MacOS);
+        QVERIFY(ids().contains(toShape));
+        QVERIFY(!ids().contains(toText));
+        QVERIFY(run(s, QStringLiteral("edit.delete")));
+        QTRY_VERIFY(!editing->selectionIsAnnotation());
+        QVERIFY(!ids().contains(toShape));
+    }
+
     // Aucun avertissement QML (propriété requise absente, type inconnu, liaison nulle...), au chargement
     // comme à la fermeture de la fenêtre.
     void shellLoadsWithoutQmlWarning()

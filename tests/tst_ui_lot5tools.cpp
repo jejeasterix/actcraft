@@ -262,6 +262,10 @@ private slots:
         const core::ObjectId b = app.addShape({400, 100, 100, 100});
         QVERIFY(app.trigger("tool.connector"));
         QCOMPARE(app.tools->currentTool(), QStringLiteral("connector"));
+        // L5-T18 : le panneau des connecteurs s'ouvre à côté de la page et la redimensionne au tour suivant
+        // de la boucle d'événements ; on attend que la vue soit stable avant de convertir les points en
+        // pixels.
+        QTest::qWait(200);
         app.mouseDrag(QPointF(198, 102), QPointF(402, 102));
         const core::Connector* connector = lastConnector(app);
         QVERIFY(connector != nullptr);
