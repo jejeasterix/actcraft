@@ -84,6 +84,9 @@
     { "id": "desktop.annotate", "label": "Annoter le bureau", "icon": "bureau", "shortcut": "Ctrl+Shift+A", "checkable": true, "platforms": ["windows", "macos", "linux"] },
     { "id": "desktop.tools", "label": "Outils de bureau", "shortcut": "F6", "platforms": ["windows", "macos", "linux"] },
     { "id": "desktop.restore", "label": "Revenir à ActCraft", "platforms": ["windows", "macos", "linux"] },
+    { "id": "desktop.page-next", "label": "Page suivante de l'annotation", "platforms": ["windows", "macos", "linux"] },
+    { "id": "desktop.page-previous", "label": "Page précédente de l'annotation", "platforms": ["windows", "macos", "linux"] },
+    { "id": "desktop.pass-through", "label": "Laisser passer les clics", "platforms": ["windows", "macos", "linux"] },
     { "id": "page.background-desktop-capture", "label": "Fond : capture du bureau", "platforms": ["windows", "macos", "linux"] },
     { "id": "page.background-desktop-overlay", "label": "Fond : bureau en transparence", "checkable": true, "platforms": ["windows", "macos", "linux"] }
   ]

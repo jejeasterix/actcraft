@@ -160,4 +160,17 @@ bool CalculatorController::placeOnPage()
     return insertions.insertText(m_calculator.pageText(), bounds) != 0;
 }
 
+bool CalculatorController::placeAt(double pageX, double pageY)
+{
+    if (m_document.isNull()) {
+        return false;
+    }
+    DocumentInsertions insertions(*m_document);
+    if (!insertions.shownPage()) {
+        return false;
+    }
+    const QRectF bounds(pageX - 100, pageY - 20, 200, 40);
+    return insertions.insertText(m_calculator.pageText(), bounds) != 0;
+}
+
 } // namespace actcraft::ui

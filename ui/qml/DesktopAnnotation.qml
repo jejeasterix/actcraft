@@ -150,18 +150,18 @@ Item {
                     Button {
                         objectName: "desktopPageBackButton"
                         text: qsTr("Page précédente")
-                        onClicked: desktopController.pageBack()
+                        onClicked: root.triggerCommand("desktop.page-previous")
                     }
                     Button {
                         objectName: "desktopNextPageButton"
                         text: qsTr("Page suivante")
-                        onClicked: desktopController.nextPage()
+                        onClicked: root.triggerCommand("desktop.page-next")
                     }
                     Button {
                         objectName: "desktopPassThroughButton"
                         text: qsTr("Laisser passer les clics")
                         highlighted: desktopController.passThrough
-                        onClicked: desktopController.passThrough = !desktopController.passThrough
+                        onClicked: root.triggerCommand("desktop.pass-through")
                     }
                     Button {
                         objectName: "desktopCloseButton"
@@ -179,6 +179,19 @@ Item {
 
                 Component.onCompleted: desktopArea.view.addInputCover(toolbar)
             }
+        }
+    }
+
+    // Les boutons de la fenêtre passent par les commandes nommées ; sans elles (démontage), par le contrôleur.
+    function triggerCommand(id) {
+        if (root.commands) {
+            root.commands.trigger(id)
+        } else if (id === "desktop.page-next") {
+            desktopController.nextPage()
+        } else if (id === "desktop.page-previous") {
+            desktopController.pageBack()
+        } else if (id === "desktop.pass-through") {
+            desktopController.passThrough = !desktopController.passThrough
         }
     }
 
@@ -202,6 +215,15 @@ Item {
         })
         root.commands.setHandler("desktop.restore", function () {
             desktopController.restore()
+        })
+        root.commands.setHandler("desktop.page-next", function () {
+            desktopController.nextPage()
+        })
+        root.commands.setHandler("desktop.page-previous", function () {
+            desktopController.pageBack()
+        })
+        root.commands.setHandler("desktop.pass-through", function () {
+            desktopController.passThrough = !desktopController.passThrough
         })
         root.commands.setHandler("page.background-desktop-capture", function () {
             desktopController.captureBackground()
