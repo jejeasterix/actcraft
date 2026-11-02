@@ -139,19 +139,6 @@ std::optional<PointF> nearestOnDiagonal(const GridLevel& level, PointF p, double
     return std::nullopt;
 }
 
-// Ligne de base du texte, coordonnées de l'objet : core::textBaseline si elle répond, sinon l'origine de la
-// première ligne lue directement.
-std::optional<PointF> localBaseline(const Text& text) noexcept
-{
-    if (const auto b = textBaseline(text)) {
-        return b;
-    }
-    if (!text.runs.empty()) {
-        return text.runs.front().baseline;
-    }
-    return std::nullopt;
-}
-
 // Coin bas gauche de l'emprise géométrique transformée, sans la demi-épaisseur du contour (l'ancrage vise la
 // forme, pas son trait) ; aucun pour les objets dont l'emprise vient de points ou d'un trait (traits, lignes,
 // connecteurs, chemins, polygones lus) : snapAnchor retombe alors sur boundsOnPage. Un polygone construit
@@ -217,7 +204,7 @@ std::optional<PointF> nearestGridPoint(const Grid& grid, PointF point, double, d
 PointF snapAnchor(const PageObject& object)
 {
     if (const auto* text = std::get_if<Text>(&body(object))) {
-        if (const auto baseline = localBaseline(*text)) {
+        if (const auto baseline = textBaseline(*text)) {
             return object.common.transform.map(*baseline);
         }
     }
