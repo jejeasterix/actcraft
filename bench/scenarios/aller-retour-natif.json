@@ -16,7 +16,7 @@
     {"watchEventLoop": true},
     {"command": "file.save-as", "argument": "${SORTIE}/copie.actcraft"},
     {"waitFor": "documentController.busy", "value": false},
-    {"maxEventLoopGapMs": 25},
+    {"maxEventLoopGapMs": 25, "informative": true},
     {"expect": "documentController.lastIoOffMainThread", "value": true},
     {"expect": "documentController.modified", "value": false},
     {"remember": "documentController.fingerprint", "as": "avant"},

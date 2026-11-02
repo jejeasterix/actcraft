@@ -78,8 +78,7 @@ int cacheMaxSide(QSizeF page, double devicePixelRatio, int cacheSamples, double 
         return kMaxCacheSide;
     }
     const double zoom = std::max(1.0, sharpZoom);
-    const double sharpSide = std::max(std::ceil(page.width() * zoom * devicePixelRatio),
-                                      std::ceil(page.height() * zoom * devicePixelRatio));
+    const double sharpSide = std::ceil(std::max(page.width(), page.height()) * zoom * devicePixelRatio);
     return std::min(kMaxCacheSide, std::max(kMaxMsaaCacheSide, static_cast<int>(sharpSide)));
 }
 

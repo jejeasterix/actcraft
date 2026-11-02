@@ -266,7 +266,8 @@ private slots:
         Layout layout;
         layout.menus.push_back(MenuSpec{QStringLiteral("m"),
                                         QStringLiteral("M"),
-                                        {QStringLiteral("a.b"), QStringLiteral("-"), QStringLiteral("a.b")}});
+                                        {QStringLiteral("a.b"), QStringLiteral("-"), QStringLiteral("a.b")},
+                                        {}});
         layout.palette.push_back(PaletteGroup{QStringLiteral("g"), {QStringLiteral("c.d")}});
         CommandRegistry registry;
         QCOMPARE(unknownCommands(layout, registry),

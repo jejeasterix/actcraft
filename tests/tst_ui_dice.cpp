@@ -274,7 +274,13 @@ private slots:
             QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier,
                               main.pageView()->pageToScene(QPointF(40, 700)).toPoint());
             QTRY_COMPARE(menu.count(), 1);
-            QTest::keyClick(main.window(), Qt::Key_Escape);
+            // Lot 3 : le clic droit ouvre le menu de la page. Échap, raccourci de « Sélectionner »
+            // (commands.json), ne le ferme pas ici et changerait l'outil (consigné) ; ouvert, le menu
+            // prendrait l'appui du trait : un clic hors du menu, sur le panneau, le ferme.
+            QObject* pageMenu = main.window()->findChild<QObject*>(QStringLiteral("pageContextMenu"));
+            QVERIFY(pageMenu);
+            QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, centreOf(total).toPoint());
+            QTRY_VERIFY(!pageMenu->property("visible").toBool());
         }
 
         // Hors du panneau : un trait est versé.

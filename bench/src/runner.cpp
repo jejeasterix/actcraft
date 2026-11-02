@@ -225,6 +225,13 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
 {
     ScenarioResult s;
     s.name = plan.name;
+    s.touchedStrokes = plan.touchedStrokes;
+    s.pendingCut = plan.pendingCut;
+    s.liftedObjects = plan.liftedObjects;
+    s.freezeExempt = plan.freezeExempt;
+    s.maxCacheRefreshes = plan.maxCacheRefreshes;
+    const int rebuildsAtStart = m_fixed->rebuildCount();
+    const int decodesAtStart = m_fixed->decodeCount();
     // Pendant un scénario, la vue n'écoute que les périphériques synthétiques (décision 23).
     m_view->setExclusiveDevices({m_injector->stylus(), m_injector->wheel()});
     m_view->setInkProbe(m_recorder.get());
@@ -232,14 +239,10 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     std::vector<std::int64_t> freezes;
     const auto frozen = QObject::connect(m_view, &ui::PageView::strokeFrozen, m_view,
                                          [&freezes] { freezes.push_back(core::monotonicNowNs()); });
-    std::vector<std::int64_t> cacheRequests;
-    std::vector<std::int64_t> cacheUpdates;
-    const auto requested =
-        QObject::connect(m_view, &ui::PageView::cacheRefreshRequested, m_view,
-                         [&cacheRequests] { cacheRequests.push_back(core::monotonicNowNs()); });
-    const auto updated = QObject::connect(m_view, &ui::PageView::cacheUpdated, m_view, [&cacheUpdates] {
-        cacheUpdates.push_back(core::monotonicNowNs());
-    });
+    const auto requested = QObject::connect(m_view, &ui::PageView::cacheRefreshRequested, m_view,
+                                            [&s] { s.cacheRequestNs.push_back(core::monotonicNowNs()); });
+    const auto updated = QObject::connect(m_view, &ui::PageView::cacheUpdated, m_view,
+                                          [&s] { s.cacheUpdatedNs.push_back(core::monotonicNowNs()); });
     // L10-T4 : objets en attente au-dessus du cache (versement différé). Relevé aussi sur objectCountChanged,
     // émis après la mise en attente et avant pendingChanged : au plafond, la vue (branchée avant le banc)
     // verse pendant pendingChanged, qui n'arrive ici qu'avec une attente déjà vide.
@@ -335,6 +338,37 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
             invalidReasons << QStringLiteral("error: commands incomplete in %1").arg(plan.name);
         }
     }
+    // Fin du dernier changement (L3-C3) : la mesure attend le prêt qui ferme sa fenêtre (relevé par
+    // noteShown), puis deux images, avant les 150 ms. Sans cela, un changement plus long que ces 150 ms
+    // (debug, machine chargée) restait ouvert jusqu'à la fin de la mesure : aucun intervalle au repos après
+    // la première commande (tst_bench_result, pageChangesAreActiveUntilShown, rouge sous charge). Sans prêt
+    // relevé, l'attente va au plafond et la fenêtre reste ouverte, comme avant.
+    if (!commands.empty()) {
+        std::int64_t awaited = -1; // dernière commande jouée qui attend un prêt
+        for (std::size_t i = 0; i < commands.size(); ++i) {
+            if (commandRun[i] >= 0 && commandAwaits[i]) {
+                awaited = commandRun[i];
+            }
+        }
+        const bool closed =
+            awaited < 0 ||
+            waitFor([&shownNs, awaited] { return !shownNs.empty() && shownNs.back() >= awaited; },
+                    kPageShownTimeoutMs);
+        if (closed) {
+            const std::size_t swaps = m_recorder->swapNs().size();
+            waitFor([this, swaps] { return m_recorder->swapNs().size() >= swaps + 2; }, 5000);
+        }
+    }
+    // Versement différé du dernier trait (L3-C14, plan.awaitFinalFold : « pauses ») : la mesure attend que le
+    // trait passe en attente (son relâché posté est traité), puis que le délai d'inactivité le verse et que
+    // le cache soit redessiné ; aucune entrée ne suit, rien ne le repousse. Sans cela, les seuls versements
+    // mesurés étaient ceux des reprises k = 1 et k = 2 (24 et 48 ms au-dessus du délai en court) : un relâché
+    // traité en retard d'autant sous charge relançait la minuterie, aucun versement n'était relevé et
+    // tst_bench_result (cacheRefreshesAreRecorded) échouait. Sans versement, l'attente va au plafond.
+    if (plan.awaitFinalFold && waitFor([this] { return m_fixed->pendingCount() > 0; }, kPageShownTimeoutMs)) {
+        waitFor([this] { return m_fixed->pendingCount() == 0 && m_view->cacheReady(); },
+                ui::kCacheFoldIdleMs + kPageShownTimeoutMs);
+    }
     waitMs(150); // dernières images : figement, redessin du cache
     m_recorder->end();
     QObject::disconnect(pump);
@@ -347,8 +381,6 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     QObject::disconnect(updated);
     QObject::disconnect(pendingWatch);
     QObject::disconnect(countWatch);
-    s.cacheRequestNs = std::move(cacheRequests);
-    s.cacheUpdatedNs = std::move(cacheUpdates);
     QObject::disconnect(zoomed);
     QObject::disconnect(panned);
     m_view->setInkProbe(nullptr);
@@ -413,6 +445,8 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
         invalidReasons << QStringLiteral("error: wheel not delivered in %1").arg(plan.name);
     }
     s.memory = m_recorder->memory();
+    s.rebuilds = m_fixed->rebuildCount() - rebuildsAtStart;
+    s.decodes = m_fixed->decodeCount() - decodesAtStart;
     return s;
 }
 
@@ -639,6 +673,16 @@ BenchResult Runner::run(QQuickWindow* window)
                 break;
             }
         }
+        // L3-T19 : annotations de départ (versées par setLevel, comme des traits passés), puis l'outil du
+        // scénario choisi par sa commande nommée, avant la mesure.
+        for (const auto& points : plan.seedStrokes) {
+            document->commitStroke(seedAnnotation(points));
+        }
+        if (!plan.toolCommand.isEmpty() && !runWindowCommand(m_window, plan.toolCommand)) {
+            result.invalidReasons
+                << QStringLiteral("error: command %1 refused before %2").arg(plan.toolCommand, plan.name);
+            break;
+        }
         if (!setLevel(plan)) {
             result.invalidReasons << QStringLiteral("error: cache not ready before %1").arg(plan.name);
             break;
@@ -660,6 +704,10 @@ BenchResult Runner::run(QQuickWindow* window)
             });
         result.scenarios.push_back(play(plan, refreshPeriodNs, result.invalidReasons));
         QObject::disconnect(zoomWatch);
+        if (!plan.toolCommand.isEmpty() && !runWindowCommand(m_window, QStringLiteral("tool.pen"))) {
+            result.invalidReasons
+                << QStringLiteral("error: command tool.pen refused after %1").arg(plan.name);
+        }
         if (!m_injector->finished()) {
             result.invalidReasons << QStringLiteral("error: injection incomplete in %1").arg(plan.name);
             break;

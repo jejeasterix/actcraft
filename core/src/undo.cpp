@@ -32,8 +32,9 @@ void UndoStack::record(std::unique_ptr<UndoCommand> command)
             m_clean = kNoClean; // l'état enregistré était dans la branche effacée
         }
         m_commands.erase(m_commands.begin() + static_cast<std::ptrdiff_t>(m_index), m_commands.end());
+        m_mergeFloor = std::min(m_mergeFloor, m_index); // la branche neuve commence ouverte
     }
-    if (!m_commands.empty()) {
+    if (m_commands.size() > m_mergeFloor) { // borne de closeMerge : le sommet peut encore absorber
         UndoCommand& top = *m_commands.back();
         if (top.mergeId() >= 0 && top.mergeId() == command->mergeId() && top.mergeWith(*command)) {
             if (m_clean == m_index) {
@@ -50,7 +51,17 @@ void UndoStack::record(std::unique_ptr<UndoCommand> command)
         if (m_clean != kNoClean) {
             m_clean = m_clean == 0 ? kNoClean : m_clean - 1;
         }
+        if (m_mergeFloor > 0) {
+            --m_mergeFloor; // les rangs reculent d'un cran
+        }
     }
+}
+
+// Jamais en deçà d'une borne déjà posée : après Annuler, les commandes annulées restent closes si on les
+// rétablit.
+void UndoStack::closeMerge() noexcept
+{
+    m_mergeFloor = std::max(m_mergeFloor, m_index);
 }
 
 Changes UndoStack::undo(Document& document)
@@ -115,6 +126,7 @@ void UndoStack::clear() noexcept
     m_commands.clear();
     m_index = 0;
     m_clean = 0;
+    m_mergeFloor = 0;
 }
 
 } // namespace actcraft::core

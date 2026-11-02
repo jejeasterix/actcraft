@@ -83,7 +83,9 @@ private:
 };
 
 // Translucidité (F-524) : 0 opaque … 255 invisible. Fusionne avec la précédente de même famille portant sur
-// les mêmes objets (réglette glissée : une étape). Changes : ObjectChanged par objet.
+// les mêmes objets (réglette glissée : une étape). Mêmes objets ne veut pas dire même ouverture de la
+// réglette : sa fermeture clôt l'étape par UndoStack::closeMerge() (D10, P23). Changes : ObjectChanged par
+// objet.
 class SetTranslucencyCommand final : public UndoCommand
 {
 public:
@@ -105,5 +107,8 @@ private:
 PointF selectionCenter(const Page& page, const std::vector<ObjectId>& ids);
 Transform scalingAbout(PointF center, double sx, double sy) noexcept;
 Transform rotationAbout(PointF center, double degrees) noexcept;
+// Échelle des longueurs de `t` : sqrt(|m11·m22 − m12·m21|). Exacte pour une échelle uniforme (avec rotation
+// ou miroir), moyenne géométrique des deux échelles sinon. Sert à l'épaisseur visible d'un trait transformé.
+double lengthScale(const Transform& t) noexcept;
 
 } // namespace actcraft::core

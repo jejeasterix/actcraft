@@ -18,6 +18,7 @@
 #include <memory>
 
 namespace actcraft::tools {
+class SelectTool;
 class Tool;
 class UserState;
 } // namespace actcraft::tools
@@ -101,6 +102,27 @@ signals:
     void settingsFileChanged();
 
 private:
+    // Adaptateurs et outils ; nullptr tant que contrôleur, vue (et son encre) et couche ne sont pas branchés.
+    ToolAdapters* adapters() const;
+    void discardAdapters() const; // jette les adaptateurs, l'outil occupé abandonnant d'abord son geste
+    tools::Tool* toolFor(const QString& id) const;      // créé à la première demande
+    tools::Tool* existingTool(const QString& id) const; // jamais créé
+    tools::SelectTool* selectTool() const;              // l'outil Sélectionner, créé à la première demande
+    tools::InkSettings settingsOf(const QString& id) const; // réglages de l'utilisateur, ou ceux par défaut
+    // Réglages rangés chez l'utilisateur, écrits dans le fichier et rendus à la vue.
+    void storeSettings(const QString& id, const tools::InkSettings& settings);
+    void ensureSettings(); // QSettings → UserState (F-136), une fois par fichier
+    void writeSettings(const QString& toolId) const;
+    void applyToView(); // couleur (alpha du marqueur) et épaisseur rendues à PageView
+    void syncToolCommands();
+    void showSelection(const QVariantMap& frame, bool handlesVisible);
+    void setTrashHoverState(bool hover);
+    void refreshSelection();
+    void relayModifiers(int key, int modifiers);
+    QString shownInkTool() const;
+    QString shownWidthTool() const;
+    bool eventFilter(QObject* watched, QEvent* event) override; // Maj et Ctrl (L3-T8)
+
     QPointer<Commands> m_commands;
     QPointer<DocumentController> m_controller;
     QPointer<PageView> m_view;
@@ -109,6 +131,13 @@ private:
     bool m_trashHover = false;
     QString m_settingsFile;
     std::unique_ptr<tools::UserState> m_user;
+    mutable std::unique_ptr<ToolAdapters> m_adapters;
+    QString m_lastInk = QStringLiteral("pen"); // dernier outil d'encre (L3-T0)
+    QVariantMap m_selectionFrame;
+    bool m_handlesVisible = false;
+    bool m_settingsLoaded = false;
+    bool m_filtering = false;
+    int m_observer = 0;
 };
 
 } // namespace actcraft::ui

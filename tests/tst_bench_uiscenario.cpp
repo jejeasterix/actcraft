@@ -601,6 +601,9 @@ private slots:
             << QByteArray("{\"maxEventLoopGapMs\":0}") << QStringLiteral("seuil de boucle invalide");
         QTest::newRow("seuil de boucle démesuré")
             << QByteArray("{\"maxEventLoopGapMs\":2000000000}") << QStringLiteral("seuil de boucle invalide");
+        QTest::newRow("seuil de boucle informatif non booléen")
+            << QByteArray("{\"maxEventLoopGapMs\":25,\"informative\":\"oui\"}")
+            << QStringLiteral("informative : true ou false");
         QTest::newRow("remember sans nom")
             << QByteArray("{\"remember\":\"a.b\"}") << QStringLiteral("mémoire invalide");
         // Noms réservés : ${SORTIE} et ${SAMPLES} ne se redéfinissent pas (une fixture irait ailleurs).
@@ -1092,6 +1095,32 @@ private slots:
                  qPrintable(report.join(QLatin1Char('\n'))));
         QVERIFY2(loopMax(report.last()) < 100 && report.last().endsWith(QLatin1String(" ms OK")),
                  qPrintable(report.last()));
+    }
+
+    // Discriminant (L3-C4) : une mesure « informative » au-dessus du seuil est écrite (HORS SEUIL), sans
+    // « ECART » (motif d'échec de ctest) ni reprise, et le scénario réussit. Le même blocage, reproduit à
+    // chaque passage, fait échouer une mesure ordinaire (eventLoopProbeSeesABlockedMainThread) : le réglage
+    // ne change que l'étape qui le porte.
+    void informativeEventLoopGapIsWrittenNotJudged()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        f.player->setLineSink([&f](const QString& line) {
+            if (line.startsWith(QStringLiteral("BOUCLE sonde démarrée"))) {
+                QTimer::singleShot(100, f.window, [] { QThread::msleep(250); });
+            }
+        });
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("informatif", "[{\"watchEventLoop\":true},{\"wait\":600},"
+                                                       " {\"maxEventLoopGapMs\":100,\"informative\":true}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(loopMax(report.last()) >= 250 &&
+                     report.last().endsWith(QLatin1String(" ms HORS SEUIL (seuil 100 ms, informatif)")),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(report.filter(QStringLiteral("BOUCLE sonde démarrée")).size(), 1);
+        QVERIFY2(report.filter(QStringLiteral("ECART")).isEmpty(),
+                 qPrintable(report.join(QLatin1Char('\n'))));
     }
 
     // Discriminant : un blocage juste avant la comparaison, sans tour de boucle entre les deux (ici, la

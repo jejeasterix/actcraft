@@ -42,4 +42,10 @@ void ControllerSink::commitStroke(core::Stroke stroke)
     m_view.onStrokeFrozen();
 }
 
+void ControllerSink::commitAnnotation(core::Stroke stroke, std::uint8_t translucency)
+{
+    m_controller.commitAnnotation(std::move(stroke), translucency);
+    m_view.onStrokeFrozen();
+}
+
 } // namespace actcraft::ui

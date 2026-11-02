@@ -19,6 +19,21 @@ Sample at(DeviceKind device, Phase phase, double x, std::uint64_t pointer = 0)
     return out;
 }
 
+Sample s(DeviceKind device, Phase phase, std::uint64_t pointer = 0)
+{
+    Sample out;
+    out.device = device;
+    out.phase = phase;
+    out.pointer = pointer;
+    return out;
+}
+
+class AlwaysIgnore final : public RoutingPolicy
+{
+public:
+    Decision decide(const Sample&, const RouterState&) const override { return {}; }
+};
+
 // Couverture d'essai : la bande x < 100.
 bool coveredLeftBand(const Sample& press)
 {
@@ -56,8 +71,6 @@ class TstInputRouting : public QObject
     Q_OBJECT
 
 private slots:
-    void reserved() { QSKIP("Talon L0-S : rempli par L3-T5."); }
-
     // D-S1 : une décision Cover est retenue pour tout le contact (le point sort de la couverture : toujours
     // Cover), puis rendue au relâché et oubliée.
     void coverRouteHeldForWholeContact()
@@ -165,6 +178,107 @@ private slots:
         router.reset();
         QCOMPARE(router.gestureTouches(), 0);
         QCOMPARE(router.route(at(DeviceKind::Touch, Phase::Move, 700, 2)).route, Route::Ignore);
+    }
+
+    // Politique du toucher (L3-T5).
+    void stylusAndMouseGoToTool()
+    {
+        PointerRouter router;
+        QCOMPARE(router.route(s(DeviceKind::Stylus, Phase::Press)).route, Route::Tool);
+        QCOMPARE(router.route(s(DeviceKind::Stylus, Phase::Release)).route, Route::Tool);
+        QCOMPARE(router.route(s(DeviceKind::Mouse, Phase::Press)).route, Route::Tool);
+    }
+    void oneFingerGoesToTool()
+    {
+        PointerRouter router;
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Press, 1)).route, Route::Tool);
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Move, 1)).route, Route::Tool);
+    }
+    void secondFingerCancelsToolAndStartsGesture()
+    {
+        PointerRouter router;
+        router.route(s(DeviceKind::Touch, Phase::Press, 1));
+        const Decision second = router.route(s(DeviceKind::Touch, Phase::Press, 2));
+        QCOMPARE(second.route, Route::Gesture);
+        QVERIFY(second.endToolContacts);
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Move, 1)).route,
+                 Route::Gesture); // le premier y passe
+        QCOMPARE(router.gestureTouches(), 2);
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Press, 3)).route, Route::Ignore); // troisième doigt
+    }
+    void palmIgnoredWhileStylusDown()
+    {
+        PointerRouter router;
+        router.route(s(DeviceKind::Stylus, Phase::Press));
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Press, 5)).route, Route::Ignore);
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Move, 5)).route, Route::Ignore);
+        router.route(s(DeviceKind::Stylus, Phase::Release));
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Press, 6)).route, Route::Tool);
+    }
+    void decisionHeldForWholeContact()
+    {
+        PointerRouter router;
+        router.route(s(DeviceKind::Stylus, Phase::Press));
+        router.route(s(DeviceKind::Touch, Phase::Press, 5)); // ignoré : paume
+        router.route(s(DeviceKind::Stylus, Phase::Release));
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Move, 5)).route, Route::Ignore); // toujours ignoré
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Release, 5)).route, Route::Ignore);
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Move, 5)).route, Route::Ignore); // oublié : inconnu
+    }
+    void everyContactHasAUser()
+    {
+        PointerRouter router;
+        QCOMPARE(router.route(s(DeviceKind::Stylus, Phase::Press)).user, kFirstUser);
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Press, 1)).user, kFirstUser);
+    }
+    void policyIsReplaceable()
+    {
+        PointerRouter router;
+        router.route(s(DeviceKind::Touch, Phase::Press, 1)); // décidé par la politique d'origine
+        router.setPolicy(std::make_unique<AlwaysIgnore>());
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Move, 1)).route, Route::Tool); // garde sa décision
+        QCOMPARE(router.route(s(DeviceKind::Stylus, Phase::Press)).route, Route::Ignore);
+    }
+    void stylusTakesOverFromFinger()
+    {
+        PointerRouter router;
+        router.route(s(DeviceKind::Touch, Phase::Press, 1));
+        const Decision stylus = router.route(s(DeviceKind::Stylus, Phase::Press));
+        QCOMPARE(stylus.route, Route::Tool);
+        QVERIFY(stylus.endToolContacts); // la vue termine le trait du doigt
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Move, 1)).route, Route::Ignore);
+    }
+    // M4 (b) vaut aussi pour la souris.
+    void mouseTakesOverFromFinger()
+    {
+        PointerRouter router;
+        router.route(s(DeviceKind::Touch, Phase::Press, 1));
+        const Decision mouse = router.route(s(DeviceKind::Mouse, Phase::Press));
+        QCOMPARE(mouse.route, Route::Tool);
+        QVERIFY(mouse.endToolContacts);
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Move, 1)).route, Route::Ignore);
+    }
+    // M4 (b) : le doigt dont le stylet a pris la main n'est pas compté comme un doigt du geste ; relâché le
+    // stylet, un nouveau doigt ne fait pas de pincement avec ce doigt périmé (il irait sinon au geste).
+    void takenOverFingerStartsNoPinch()
+    {
+        PointerRouter router;
+        router.route(s(DeviceKind::Touch, Phase::Press, 1));
+        router.route(s(DeviceKind::Stylus, Phase::Press));
+        QCOMPARE(router.gestureTouches(), 0);
+        router.route(s(DeviceKind::Stylus, Phase::Release));
+        const Decision next = router.route(s(DeviceKind::Touch, Phase::Press, 2));
+        QCOMPARE(next.route, Route::Tool);
+        QVERIFY(!next.endToolContacts);
+        QCOMPARE(router.gestureTouches(), 0);
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Move, 1)).route, Route::Ignore);
+    }
+    void resetForgetsContacts()
+    {
+        PointerRouter router;
+        router.route(s(DeviceKind::Touch, Phase::Press, 1));
+        router.reset();
+        QCOMPARE(router.route(s(DeviceKind::Touch, Phase::Move, 1)).route, Route::Ignore);
     }
 };
 

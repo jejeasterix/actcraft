@@ -51,6 +51,8 @@ foreach ($f in $fichiers) {
     if ($raisons.Count -gt 0) { $ligne += ", raisons d'invalidité : $($raisons -join ', ')" }
     $depasses = @($j.verdict.criteria | Where-Object { -not $_.ok } | ForEach-Object { "$($_.scenario) $($_.criterion) = $(Nombre $_.value 2) (seuil $(Nombre $_.limit 2))" })
     if ($depasses.Count -gt 0) { $ligne += ", critères dépassés : $($depasses -join ' ; ')" }
+    $exclus = @($j.verdict.criteria | Where-Object { $_.excluded } | ForEach-Object { "$($_.scenario) $($_.criterion) = $(Nombre $_.value 0)" })
+    if ($exclus.Count -gt 0) { $ligne += ", hors critère : $($exclus -join ' ; ')" }
     $sources.Add($ligne)
 }
 $lignes.Add('')

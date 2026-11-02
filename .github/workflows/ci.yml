@@ -1,13 +1,11 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-      - "essai-ci/**"
-      - "!essai-ci/release-**"
+  # Plus de CI sur push (ni main ni essai-ci/**) depuis le chantier mac-autonome (lot B11) : la CI part sur les PR
+  # prêtes, ou à la main : gh workflow run ci.yml --repo jejeasterix/actcraft --ref <branche> (branche avec main fusionné).
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}

@@ -3,17 +3,22 @@
 
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/tools/tool.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/toolhost.h>
 #include <actcraft/ui/viewtransform.h>
 
+#include <QDir>
 #include <QElapsedTimer>
 #include <QKeyEvent>
 #include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QTabletEvent>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
 
@@ -34,11 +39,11 @@ struct App
     render::InkItem* ink = nullptr;
 };
 
-bool start(App& app, bool cacheEnabled)
+bool start(App& app, bool cacheEnabled, bool generatedPage = true)
 {
     StartupOptions options;
     options.cacheEnabled = cacheEnabled;
-    options.generatedPage = true;
+    options.generatedPage = generatedPage;
     app.window = loadMainWindow(app.engine, options);
     if (!app.window || !QTest::qWaitForWindowExposed(app.window)) {
         return false;
@@ -67,6 +72,8 @@ class TstUiDrawing : public QObject
 
 private:
     std::unique_ptr<QPointingDevice> m_stylus;
+    QPointingDevice* m_touch = nullptr;
+    QTemporaryDir m_settingsDir;
 
     void post(App& app, QEvent::Type type, QPointF page, qreal pressure, Qt::MouseButton button,
               Qt::MouseButtons buttons)
@@ -155,6 +162,14 @@ private:
 private slots:
     void initTestCase()
     {
+        // Main.qml porte ToolHost (réglages par outil) : jamais le profil réel.
+        QVERIFY(m_settingsDir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+        const QSettings probe;
+        QVERIFY2(QDir::fromNativeSeparators(probe.fileName()).startsWith(m_settingsDir.path()),
+                 qPrintable(probe.fileName()));
+        m_touch = QTest::createTouchDevice();
         m_stylus = std::make_unique<QPointingDevice>(
             QStringLiteral("tst-ui-stylus"), 5150, QInputDevice::DeviceType::Stylus,
             QPointingDevice::PointerType::Pen,
@@ -347,6 +362,101 @@ private slots:
         }
         QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, b);
         QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), 301, 3000);
+    }
+
+    // S3 tenu avec ToolHost posé (Main.qml) : un doigt trace avec l'outil stylo de l'utilisateur.
+    void fingerStrokeStillDraws()
+    {
+        App app;
+        QVERIFY(start(app, true));
+        QVERIFY(app.view->tools());
+        QVERIFY(app.view->currentTool());
+        QCOMPARE(app.view->currentTool()->id(), QStringLiteral("pen"));
+        const QPoint a = app.view->pageToScene(QPointF(300, 600)).toPoint();
+        const QPoint b = app.view->pageToScene(QPointF(500, 600)).toPoint();
+        QTest::touchEvent(app.window, m_touch).press(0, a);
+        for (int i = 1; i <= 10; ++i) {
+            QTest::touchEvent(app.window, m_touch).move(0, a + (b - a) * i / 10);
+        }
+        QTest::touchEvent(app.window, m_touch).release(0, b);
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), 301, 3000);
+    }
+
+    // M3 (L3-T13) : soulever puis déposer deux objets coûte deux redessins du cache, un au soulèvement des
+    // deux, un au dépôt. Sans regroupement des demandes d'un même tour (une par objet), chaque phase en
+    // demanderait plus (demandes répétées et relance de fin) : on compte aussi les demandes émises.
+    void dragOfTwoObjectsCostsTwoRedraws()
+    {
+        App app;
+        QVERIFY(start(app, true, false));
+        auto* tools = app.window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        sendStroke(app, 300);
+        sendStroke(app, 340);
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), 2, 3000);
+        QVERIFY(
+            QTest::qWaitFor([&] { return app.fixed->pendingCount() == 0 && app.view->cacheReady(); }, 10000));
+        tools->activate(QStringLiteral("select"));
+        const auto at = [&app](QPointF page) { return app.view->pageToScene(page).toPoint(); };
+        QTest::mousePress(app.window, Qt::LeftButton, Qt::NoModifier, at(QPointF(250, 250)));
+        for (int i = 1; i <= 8; ++i) {
+            QTest::mouseMove(app.window, at(QPointF(250 + 37.5 * i, 250 + 17.5 * i)));
+        }
+        QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, at(QPointF(550, 390)));
+        QTRY_COMPARE_WITH_TIMEOUT(tools->selectionCount(), 2, 3000);
+        QVERIFY(QTest::qWaitFor([&] { return app.view->cacheReady(); }, 10000));
+        QTest::qWait(100);
+        const int before = app.view->cacheRefreshCount();
+        QSignalSpy requested(app.view, &ui::PageView::cacheRefreshRequested);
+        QTest::mousePress(app.window, Qt::LeftButton, Qt::NoModifier, at(QPointF(400, 300)));
+        for (int i = 1; i <= 8; ++i) {
+            QTest::mouseMove(app.window, at(QPointF(400 + 10.0 * i, 300)));
+        }
+        // L3-C16 : le redessin du soulèvement est attendu avant le dépôt. Sans cette attente, le test
+        // supposait une image entre l'appui et le relâché, envoyés d'une traite : à cadence lente (CI macOS,
+        // reproduit sous Windows avec QT_QPA_UPDATE_IDLE_TIME=200), le dépôt arrivait avant la
+        // synchronisation du soulèvement et sa demande relançait un redessin (redessins : 2, demandes : 4).
+        // Un glissement réel dure plus d'une image ; chaque phase garde sa preuve : deux objets, une demande.
+        QVERIFY(QTest::qWaitFor(
+            [&] { return app.view->cacheReady() && app.view->cacheRefreshCount() >= before + 1; }, 10000));
+        QCOMPARE(app.view->cacheRefreshCount(), before + 1);
+        QCOMPARE(requested.count(), 1);
+        QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, at(QPointF(480, 300)));
+        QVERIFY(QTest::qWaitFor(
+            [&] { return app.view->cacheReady() && app.view->cacheRefreshCount() >= before + 2; }, 10000));
+        QTest::qWait(200);
+        qInfo("redessins : %d, demandes : %d", app.view->cacheRefreshCount() - before,
+              static_cast<int>(requested.count()));
+        QCOMPARE(app.view->cacheRefreshCount(), before + 2);
+        QCOMPARE(requested.count(), 2);
+    }
+
+    // Report de L3-T14 (L3-T13) : un zoom pendant un glissement de la sélection l'abandonne sans étape
+    // (ToolHost::cancelGesture d'abord) ; le relâché synthétisé par finishStroke le terminait par un
+    // déplacement.
+    void zoomDuringADragAbandonsIt()
+    {
+        App app;
+        QVERIFY(start(app, true, false));
+        auto* tools = app.window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        auto* document = app.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(tools && document);
+        sendStroke(app, 300);
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), 1, 3000);
+        const QString before = document->fingerprintText();
+        tools->activate(QStringLiteral("select"));
+        const auto at = [&app](QPointF page) { return app.view->pageToScene(page).toPoint(); };
+        QTest::mousePress(app.window, Qt::LeftButton, Qt::NoModifier, at(QPointF(400, 300)));
+        for (int i = 1; i <= 4; ++i) {
+            QTest::mouseMove(app.window, at(QPointF(400 + 10.0 * i, 300)));
+        }
+        QTRY_VERIFY_WITH_TIMEOUT(tools->activeTool()->isBusy() && document->isLifting(), 3000);
+        app.view->setZoom(2.0);
+        QVERIFY(!tools->activeTool()->isBusy());
+        QVERIFY(!document->isLifting());
+        QCOMPARE(document->fingerprintText(), before);
+        QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, at(QPointF(440, 300)));
+        QCOMPARE(document->fingerprintText(), before);
     }
 };
 

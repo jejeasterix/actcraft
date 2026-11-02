@@ -41,6 +41,9 @@ class ControllerSink final : public tools::DocumentSink
 public:
     ControllerSink(DocumentController& controller, PageView& view);
     void commitStroke(core::Stroke stroke) override;
+    // Le marqueur garde sa translucidité jusqu'au document (F-225) : le chemin par défaut de DocumentSink
+    // passerait par commitStroke et la perdrait.
+    void commitAnnotation(core::Stroke stroke, std::uint8_t translucency) override;
 
 private:
     DocumentController& m_controller;

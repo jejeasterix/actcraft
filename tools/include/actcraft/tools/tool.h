@@ -19,6 +19,10 @@ public:
     // stylo verse son trait ; la sélection et la gomme remettent ce qu'elles ont soulevé, sans étape
     // d'annulation.
     virtual void cancel() = 0;
+    // Abandonne le geste en cours sans rien verser ni laisser d'étape (H3-17 : trait d'un doigt quand un
+    // deuxième doigt pose un geste). Par défaut cancel(), qui abandonne déjà pour la sélection et la gomme ;
+    // le stylo le redéfinit (son cancel() verse le trait).
+    virtual void abandon() { cancel(); }
     // Touche (Qt::Key, Qt::KeyboardModifiers) ; vrai si l'outil l'a prise.
     virtual bool onKey(int key, int modifiers)
     {

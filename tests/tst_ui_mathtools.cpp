@@ -594,6 +594,9 @@ private slots:
         MainWindow w;
         QVERIFY(w.window());
         QVERIFY(w.run(QStringLiteral("math.ruler")));
+        // Lot 3 : le curseur du stylo est la croix, celui d'une zone de rotation aussi ; avec la sélection
+        // (flèche), le retour au curseur de l'outil hors des zones reste discriminant.
+        QVERIFY(w.run(QStringLiteral("tool.select")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
         const Frame f = frameOf(*tools, 0);
@@ -747,6 +750,9 @@ private slots:
         MainWindow w;
         QVERIFY(w.window());
         QVERIFY(w.run(QStringLiteral("math.set-square")));
+        // Lot 3 : le curseur du stylo est la croix, celui d'une zone de rotation aussi ; avec la sélection
+        // (flèche), le retour au curseur de l'outil hors des zones reste discriminant.
+        QVERIFY(w.run(QStringLiteral("tool.select")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
         const Square q = squareOf(*tools, 0);
@@ -854,7 +860,8 @@ private slots:
     {
         MainWindow w;
         QVERIFY(w.window());
-        w.pageView()->setInkColor(QColor(0x22, 0x66, 0xAA)); // pas le noir par défaut
+        // Lot 3 : l'outil tient l'encre de la vue (ToolHost la réécrit) ; la couleur se règle sur lui.
+        QVERIFY(w.run(QStringLiteral("pen.color"), QStringLiteral("#2266aa"))); // pas le noir par défaut
         QVERIFY(w.run(QStringLiteral("math.protractor")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
@@ -931,8 +938,9 @@ private slots:
         QVERIFY(tools);
         actcraft::ui::DocumentController* doc = documentController(w);
         QVERIFY(doc);
-        w.pageView()->setInkWidth(
-            7); // ni l'épaisseur par défaut de la vue, ni celle du stylo, ni celle d'un Line
+        // Lot 3 : l'épaisseur se règle sur l'outil (ToolHost réécrit celle de la vue) ; 7 n'est ni le défaut
+        // du stylo ni celle d'un Line.
+        QVERIFY(w.run(QStringLiteral("pen.width"), 7));
         tools->setArcStyle(0, QStringLiteral("closed"));
         const Dial d = dialOf(*tools, 0);
         const int before = w.pageObjectCount();
@@ -1036,6 +1044,9 @@ private slots:
         MainWindow w;
         QVERIFY(w.window());
         QVERIFY(w.run(QStringLiteral("math.protractor")));
+        // Lot 3 : le curseur du stylo est la croix, celui d'une zone de rotation aussi ; avec la sélection
+        // (flèche), le retour au curseur de l'outil hors des zones reste discriminant.
+        QVERIFY(w.run(QStringLiteral("tool.select")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
         QQuickItem* handle = w.item(QStringLiteral("protractorHandle"));
@@ -1250,6 +1261,9 @@ private slots:
         MainWindow w;
         QVERIFY(w.window());
         QVERIFY(w.run(QStringLiteral("math.compass")));
+        // Lot 3 : le curseur du stylo est la croix, celui d'une zone de rotation aussi ; avec la sélection
+        // (flèche), le retour au curseur de l'outil hors des zones reste discriminant.
+        QVERIFY(w.run(QStringLiteral("tool.select")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
         const Comp c = compassOf(*tools, 0);
@@ -1343,8 +1357,9 @@ private slots:
     {
         MainWindow w;
         QVERIFY(w.window());
-        w.pageView()->setInkColor(QColor(0x22, 0x66, 0xAA)); // pas le noir par défaut
-        w.pageView()->setInkWidth(7);
+        // Lot 3 : l'outil tient l'encre de la vue (ToolHost la réécrit) ; la couleur se règle sur lui.
+        QVERIFY(w.run(QStringLiteral("pen.color"), QStringLiteral("#2266aa"))); // pas le noir par défaut
+        QVERIFY(w.run(QStringLiteral("pen.width"), 7));
         QVERIFY(w.run(QStringLiteral("math.compass")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
