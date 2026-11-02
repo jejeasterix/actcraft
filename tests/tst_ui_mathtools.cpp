@@ -938,8 +938,8 @@ private slots:
         QVERIFY(tools);
         actcraft::ui::DocumentController* doc = documentController(w);
         QVERIFY(doc);
-        // Lot 3 : l'épaisseur se règle sur l'outil (ToolHost réécrit celle de la vue) ; 7 n'est ni le défaut du
-        // stylo ni celle d'un Line.
+        // Lot 3 : l'épaisseur se règle sur l'outil (ToolHost réécrit celle de la vue) ; 7 n'est ni le défaut
+        // du stylo ni celle d'un Line.
         QVERIFY(w.run(QStringLiteral("pen.width"), 7));
         tools->setArcStyle(0, QStringLiteral("closed"));
         const Dial d = dialOf(*tools, 0);
