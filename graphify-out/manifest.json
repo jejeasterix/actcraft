@@ -950,8 +950,8 @@
     "semantic_hash": ""
   },
   "actions/data/commands.json": {
-    "mtime": 1792386406.877535,
-    "ast_hash": "0f793b8302b367d6849df00dc024db19",
+    "mtime": 1793626409.3349442,
+    "ast_hash": "a6ccc3ac3ee444f6ee11c7e48371c1f3",
     "semantic_hash": ""
   },
   "actions/data/layout.json": {
@@ -1070,8 +1070,8 @@
     "semantic_hash": ""
   },
   "tests/tst_actions_registry.cpp": {
-    "mtime": 1792386407.8616817,
-    "ast_hash": "f27c7a6d3721b77fdfcb9f19811fbd02",
+    "mtime": 1793626409.3379498,
+    "ast_hash": "807261d9c7ce4048a5e9d5c4fa23b1f6",
     "semantic_hash": ""
   },
   "tests/tst_bench_uiscenario.cpp": {
@@ -2300,8 +2300,8 @@
     "semantic_hash": ""
   },
   "tests/tst_features_handwriting.cpp": {
-    "mtime": 1792384382.0090854,
-    "ast_hash": "f969e6d38e5a86f4be455846eef31da5",
+    "mtime": 1793626409.3379498,
+    "ast_hash": "43c9ea39ace9b1b96dfb2edbdf637d59",
     "semantic_hash": ""
   },
   "tests/tst_features_keyboard.cpp": {
@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1793613440.1987884,
-    "ast_hash": "79f1039586b45ba875db88b2f0008a04",
+    "mtime": 1793616006.6077342,
+    "ast_hash": "751674fa22b7d76027dc8216dbe098ea",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2445,8 +2445,8 @@
     "semantic_hash": ""
   },
   "bench/scenarios/presentation.json": {
-    "mtime": 1792406200.4636045,
-    "ast_hash": "a9ce56d8cd9a300c2672472e4f8eb6c0",
+    "mtime": 1793626409.335951,
+    "ast_hash": "4d988747063471bfabb0a0733556da78",
     "semantic_hash": ""
   },
   "bench/scenarios/reconnaissance-forme.json": {
@@ -2495,8 +2495,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_calculator.cpp": {
-    "mtime": 1792574383.8774736,
-    "ast_hash": "0a91e0a1ef0368be911ede93213c7eca",
+    "mtime": 1793626409.3389485,
+    "ast_hash": "1d5c8d8d40982901ccdb8c29cd6b3beb",
     "semantic_hash": ""
   },
   "tests/tst_ui_camera.cpp": {
@@ -2560,8 +2560,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_presentation.cpp": {
-    "mtime": 1792422789.613243,
-    "ast_hash": "ffa743d724c4b82b3bba765d70259374",
+    "mtime": 1793626409.3399518,
+    "ast_hash": "332f773738e084f4a070459920603f53",
     "semantic_hash": ""
   },
   "tests/tst_ui_recognition.cpp": {
@@ -2675,13 +2675,13 @@
     "semantic_hash": ""
   },
   "ui/src/calculatorcontroller.cpp": {
-    "mtime": 1792574383.8794742,
-    "ast_hash": "119dd8e66ee3a199184e26b0d721fe02",
+    "mtime": 1793626409.3447025,
+    "ast_hash": "560483bc77055fca41c0f6c5b21dc7be",
     "semantic_hash": ""
   },
   "ui/src/calculatorcontroller.h": {
-    "mtime": 1792574383.88048,
-    "ast_hash": "653494a55f9305665d2133ebe38f5b79",
+    "mtime": 1793626409.3457003,
+    "ast_hash": "801052bebb9ed8e22b50eafdd663621f",
     "semantic_hash": ""
   },
   "ui/src/presentationcommands.cpp": {
@@ -2807,6 +2807,11 @@
   "docs/sessions/2026-10-27-handoff-livraison-complete-b.md": {
     "mtime": 1793137587.0178432,
     "ast_hash": "43b03cc4521d00f4dd9e988c1c3fa86e",
+    "semantic_hash": ""
+  },
+  "docs/verifications/2026-11-02-lot7-epinglages.md": {
+    "mtime": 1793626409.3369498,
+    "ast_hash": "84e2e332b79aef320b262896cc2834db",
     "semantic_hash": ""
   }
 }
