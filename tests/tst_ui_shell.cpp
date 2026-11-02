@@ -1110,14 +1110,15 @@ private slots:
         QStringList out;
         for (const QVariant& entry : entries) {
             const QVariantMap map = entry.toMap();
-            out.append(map.value(QStringLiteral("separator")).toBool() ? QStringLiteral("-")
-                                                                       : map.value(QStringLiteral("id")).toString());
+            out.append(map.value(QStringLiteral("separator")).toBool()
+                           ? QStringLiteral("-")
+                           : map.value(QStringLiteral("id")).toString());
         }
         return out;
     }
 
-    // L5-T18 : les entrées du menu d'objet sont celles de commands.objectMenu, filtrées par plateforme et par la
-    // sélection, sans séparateur de tête, de queue ni doublé.
+    // L5-T18 : les entrées du menu d'objet sont celles de commands.objectMenu, filtrées par plateforme et par
+    // la sélection, sans séparateur de tête, de queue ni doublé.
     void objectMenuMatchesLayout()
     {
         Shell s;
@@ -1125,8 +1126,8 @@ private slots:
         auto* commands = s.window->findChild<ui::Commands*>();
         QObject* menu = s.window->findChild<QObject*>(QStringLiteral("objectEditMenu"));
         QVERIFY(commands && menu);
-        for (const actions::Platform platform : {actions::Platform::Windows, actions::Platform::MacOS,
-                                                  actions::Platform::Android}) {
+        for (const actions::Platform platform :
+             {actions::Platform::Windows, actions::Platform::MacOS, actions::Platform::Android}) {
             commands->setPlatform(platform);
             QStringList expected = menuIds(commands->objectMenu());
             expected.removeIf([](const QString& id) { return id.startsWith(QLatin1String("recognition.")); });
