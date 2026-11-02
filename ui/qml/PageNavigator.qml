@@ -15,6 +15,9 @@ Item {
     required property Commands commands
     readonly property int cellPad: 6
     readonly property int dragThreshold: 6
+    // Les menus recouvrent la vue : ouverts, ils bloquent le stylet (contrat du lot 4).
+    signal popupOpened()
+    signal popupClosed()
 
     clip: true
     activeFocusOnTab: true
@@ -122,12 +125,16 @@ Item {
         id: menu
         objectName: "pageNavigatorMenu"
         commands: root.commands
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
     }
     // Menu propre au navigateur (icône de menu) : les commandes de pages seules.
     CommandMenu {
         id: ownMenu
         objectName: "pageNavigatorOwnMenu"
         commands: root.commands
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
         spec: ({ id: "", label: "", items: [
             { id: "page.insert-before" }, { id: "page.insert-after" }, { separator: true },
             { id: "page.cut" }, { id: "page.copy" }, { id: "page.paste" }, { separator: true },
@@ -210,6 +217,7 @@ Item {
 
         MouseArea {
             id: area
+            objectName: "pageListArea"
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             property int pressedIndex: -1
@@ -225,19 +233,18 @@ Item {
             function locate(y) {
                 const count = list.count
                 const content = y + list.contentY
-                for (let i = 0; i < count; ++i) {
-                    const item = list.itemAtIndex(i)
-                    if (!item)
-                        continue
-                    if (content < item.y + item.height / 2) {
-                        area.before = i
-                        area.insertY = item.y - list.spacing / 2
-                        return
-                    }
+                const found = list.indexAt(0, content)
+                if (found < 0) {
+                    // Sous le contenu (ou entre deux miniatures) : fin de liste, ou miniature voisine.
+                    area.before = content <= 0 ? 0 : count
+                    const tail = list.itemAtIndex(count - 1)
+                    area.insertY = area.before === 0 ? 0 : (tail ? tail.y + tail.height + list.spacing / 2 : 0)
+                    return
                 }
-                area.before = count
-                const last = list.itemAtIndex(count - 1)
-                area.insertY = last ? last.y + last.height + list.spacing / 2 : 0
+                const item = list.itemAtIndex(found)
+                const lower = item ? content >= item.y + item.height / 2 : false
+                area.before = found + (lower ? 1 : 0)
+                area.insertY = item ? (lower ? item.y + item.height + list.spacing / 2 : item.y - list.spacing / 2) : 0
             }
 
             onPressed: mouse => {

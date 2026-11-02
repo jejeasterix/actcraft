@@ -21,6 +21,10 @@ Rectangle {
     property int panelWidth: 220
     readonly property int iconSize: 30
 
+    // Les menus du navigateur recouvrent la vue : relayés à la fenêtre (Main.openPopups).
+    signal popupOpened()
+    signal popupClosed()
+
     visible: false
     color: Theme.palette
     Layout.fillHeight: true
@@ -116,6 +120,8 @@ Rectangle {
         pages: root.pages
         documentController: root.documentController
         commands: root.commands
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
     }
 
     // Bord intérieur : glissé, il règle la largeur (160 à 480).
