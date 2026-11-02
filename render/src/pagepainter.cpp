@@ -192,24 +192,16 @@ void drawPolyline(QPainter& p, const std::vector<core::PointF>& points)
 
 void paintStroke(QPainter& p, const core::Stroke& s)
 {
-    if (s.kind == core::StrokeKind::Pen && s.cap == core::PenCap::Square) {
+    // Moteur du prototype (un segment carré par paire de points, largeur de la pression) pour le stylo opaque
+    // à bouts carrés seulement. Tout autre trait d'un seul chemin : forme ronde (D2), et un trait translucide
+    // (alpha de la couleur, ou opacité posée par le nœud parent ou par paintObject) ne fonce pas sur lui-même
+    // (D3).
+    const bool seeThrough = (s.color >> 24) != 0xFFu || p.opacity() < 1.0;
+    if (s.kind == core::StrokeKind::Pen && !hasRoundShape(s) && !seeThrough) {
         paintStrokeSegments(p, s.points, s.baseWidth, color(s.color));
         return;
     }
-    QPen pen(color(s.color));
-    pen.setWidthF(s.baseWidth);
-    pen.setCapStyle(s.cap == core::PenCap::Flat     ? Qt::FlatCap
-                    : s.cap == core::PenCap::Square ? Qt::SquareCap
-                                                    : Qt::RoundCap);
-    pen.setJoinStyle(Qt::RoundJoin);
-    p.setPen(pen);
-    p.setBrush(Qt::NoBrush);
-    std::vector<core::PointF> points;
-    points.reserve(s.points.size());
-    for (const core::StrokePoint& q : s.points) {
-        points.push_back(core::PointF{q.x, q.y});
-    }
-    drawPolyline(p, points);
+    paintStrokePath(p, s, color(s.color));
 }
 
 void paintShape(QPainter& p, const core::Shape& s)

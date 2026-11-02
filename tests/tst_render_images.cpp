@@ -80,14 +80,13 @@ private slots:
         QVERIFY(!store.isReady()); // generate() rend la main avant la fin de la génération
         QVERIFY(ready.wait(20000));
         QVERIFY(store.isReady());
-        QVERIFY(store.generatedOffOwnerThread()); // chaque image a été synthétisée sur un fil secondaire
-        QCOMPARE(store.imageCount(), std::size_t{30});
-        for (std::size_t i = 0; i < page.objects.size(); ++i) {
-            if (const auto* im = std::get_if<core::ImageObject>(&page.objects[i])) {
-                const QImage image = store.image(i);
-                QCOMPARE(image.size(), QSize(im->sourceWidth, im->sourceHeight));
-            } else {
-                QVERIFY(store.image(i).isNull());
+        QVERIFY(store.generatedOffOwnerThread());      // chaque image a été synthétisée sur un fil secondaire
+        QCOMPARE(store.imageCount(), std::size_t{30}); // 30 synthesisKey distinctes
+        // L3-C13 : rangées par synthesisKey, plus par indice d'objet : chaque image se cherche par son objet
+        // (l'ancienne vérification « nulle aux indices sans image » n'a plus d'objet).
+        for (const core::PageObject& object : page.objects) {
+            if (const auto* im = std::get_if<core::ImageObject>(&object)) {
+                QCOMPARE(store.image(*im).size(), QSize(im->sourceWidth, im->sourceHeight));
             }
         }
     }
@@ -200,8 +199,8 @@ private slots:
         QVERIFY(ready.wait(5000));
         QVERIFY(store.generatedOffOwnerThread());
         QCOMPARE(store.resourceImage(key).size(), QSize(4, 4));
-        QCOMPARE(store.objectImage(plain, 0).pixelColor(0, 0), QColor(Qt::white));
-        const QImage cut = store.objectImage(masked, 1);
+        QCOMPARE(store.objectImage(plain).pixelColor(0, 0), QColor(Qt::white));
+        const QImage cut = store.objectImage(masked);
         QCOMPARE(cut.pixelColor(0, 0).alpha(), 0);
         QCOMPARE(cut.pixelColor(1, 1), QColor(Qt::red));
         QVERIFY(render::ImageStore::variantKey(masked) != render::ImageStore::variantKey(plain));
@@ -235,13 +234,13 @@ private slots:
         QSignalSpy ready(&store, &render::ImageStore::ready);
         store.generate(page, &document);
         QVERIFY(ready.wait(5000));
-        const QImage image = store.objectImage(plain, 0);
+        const QImage image = store.objectImage(plain);
         QCOMPARE(image.colorCount(), 0);
         QCOMPARE(image.pixelColor(0, 0), QColor(Qt::red));
         QCOMPARE(image.pixelColor(1, 1), QColor(Qt::white));
-        QCOMPARE(store.objectImage(white, 1).pixelColor(1, 1).alpha(), 0);
-        QCOMPARE(store.objectImage(white, 1).pixelColor(0, 0), QColor(Qt::red));
-        QCOMPARE(store.objectImage(green, 2).pixelColor(1, 1), QColor(Qt::white));
+        QCOMPARE(store.objectImage(white).pixelColor(1, 1).alpha(), 0);
+        QCOMPARE(store.objectImage(white).pixelColor(0, 0), QColor(Qt::red));
+        QCOMPARE(store.objectImage(green).pixelColor(1, 1), QColor(Qt::white));
     }
 
     void placeholderAndBackgroundAreDecoded()
@@ -280,7 +279,7 @@ private slots:
         QVERIFY(ready.wait(5000));
         QVERIFY(store.isReady());
         QVERIFY(store.resourceImage(bad).isNull());
-        QVERIFY(store.objectImage(b, 1).isNull());
+        QVERIFY(store.objectImage(b).isNull());
     }
 
     void resourceImageRendersInSoftware()
@@ -322,7 +321,18 @@ private slots:
         stroke.points = {{1, 1, 0.5f}};
         page.objects.emplace_back(stroke); // trait ajouté en fin : les images gardent leurs indices
         QVERIFY(store.covers(page, nullptr));
+        // L3-C13 : cette assertion était `!covers` (images rangées par indice). C'était la cause des deux
+        // décodages du scénario « soulever » : un objet soulevé avant une image décalait son indice. Rangées
+        // par synthesisKey, des indices décalés ne demandent aucun décodage ; une image jamais synthétisée,
+        // si.
         page.objects.insert(page.objects.begin(), core::PageObject(stroke)); // indices décalés
+        QVERIFY(store.covers(page, nullptr));
+        core::ImageObject unseen;
+        unseen.sourceWidth = 16;
+        unseen.sourceHeight = 16;
+        unseen.colorA = 0xFF123456u;
+        unseen.colorB = 0xFF654321u;
+        page.objects.emplace_back(unseen);
         QVERIFY(!store.covers(page, nullptr));
     }
 

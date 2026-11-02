@@ -138,14 +138,16 @@ Item {
         anchors.fill: parent
     }
 
-    // Indicateur de largeur (F-138) : cercle de la taille et de la couleur du trait sous le pointeur.
+    // Indicateur de largeur (F-138) : cercle de la taille et de la couleur du trait sous le pointeur, pour les
+    // outils d'encre seulement. Avec la sélection, la flèche suffit (ToolCursor) : le cercle de l'encre gardée
+    // restait sous le pointeur, au point d'appui sur un objet verrouillé (L3-C15). Sans Tools : le stylo.
     HoverHandler {
         id: hover
         cursorShape: toolCursor.cursorShape
     }
     Rectangle {
         objectName: "widthIndicator"
-        visible: hover.hovered && !area.inputBlocked
+        visible: hover.hovered && !area.inputBlocked && !(area.tools && area.tools.currentTool === "select")
         width: Math.max(4, view.inkWidth * view.zoom)
         height: width
         radius: width / 2

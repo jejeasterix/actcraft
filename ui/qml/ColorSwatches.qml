@@ -17,7 +17,8 @@ Grid {
             id: swatch
             required property string modelData
             required property int index
-            readonly property bool current: Qt.colorEqual(grid.view.inkColor, modelData)
+            // Sous le marqueur, inkColor porte une translucidité (alpha 128) : on compare la couleur seule.
+            readonly property bool current: Qt.colorEqual(Qt.rgba(grid.view.inkColor.r, grid.view.inkColor.g, grid.view.inkColor.b, 1), modelData)
             objectName: "swatch-" + index
             width: Theme.taillePastille
             height: Theme.taillePastille

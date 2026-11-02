@@ -6,16 +6,15 @@
 #include <QSGRendererInterface>
 #include <QSGTransformNode>
 
+#include <algorithm>
+
 namespace actcraft::render {
 
 namespace {
 // Retire et détruit tous les nœuds posés par la couche.
 void clearNodes(QSGNode* root, std::vector<std::pair<core::ObjectId, QSGNode*>>& nodes)
 {
-    while (QSGNode* child = root->firstChild()) {
-        root->removeChildNode(child);
-        delete child;
-    }
+    clearChildren(root);
     nodes.clear();
 }
 } // namespace
@@ -86,16 +85,15 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     if (m_page && !m_page->isReady()) {
         return root;
     }
-    static const std::vector<core::ObjectId> none;
-    const std::vector<core::ObjectId>& wanted = m_page ? m_page->pendingIds() : none;
-    const std::uint64_t revision = m_page ? m_page->pendingRevision() : 0;
-    if (m_page && wanted.size() > m_page->page().objects.size()) {
-        // Invariant rompu (FixedPageItem le tient : ne doit pas arriver) : ne rien dessiner plutôt que lire
-        // hors de la page.
+    if (!m_page || m_page->pendingIds().size() > m_page->page().objects.size()) {
+        // Sans page, ou invariant rompu (FixedPageItem le tient : ne doit pas arriver) : ne rien dessiner
+        // plutôt que lire hors de la page.
         clearNodes(root, m_nodes);
         m_builtCount.store(0);
         return root;
     }
+    const std::vector<core::ObjectId>& wanted = m_page->pendingIds();
+    const std::uint64_t revision = m_page->pendingRevision();
     // Les nœuds déjà posés restent tant qu'ils sont le début de ce qui attend : trait ajouté, on pose la
     // suite ; dernier trait annulé, on retire le seul surplus ; versement, tout part. Modification en place
     // (révision changée) : tout est refait.
@@ -114,7 +112,7 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         }
         m_nodes.pop_back();
     }
-    if (m_page && m_nodes.size() < wanted.size()) {
+    if (m_nodes.size() < wanted.size()) {
         const core::Page& shown = m_page->page();
         const NodeContexts contexts =
             nodeContexts(window(), software, nullptr, m_page->rasterScale(), m_page->forceRasterized());
@@ -122,8 +120,8 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         const std::size_t first = shown.objects.size() - wanted.size();
         for (std::size_t k = m_nodes.size(); k < wanted.size(); ++k) {
             const std::size_t index = first + k;
-            const ObjectNode made = createObjectNode(shown.objects[index], index, m_registry, m_painted,
-                                                     contexts.context, contexts.painted);
+            const ObjectNode made =
+                createObjectNode(shown.objects[index], index, m_registry, m_painted, contexts);
             m_nodes.emplace_back(wanted[k], made.root);
             ++m_createdCount;
             if (made.root) {
@@ -131,11 +129,8 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
             }
         }
     }
-    int built = 0;
-    for (const auto& entry : m_nodes) {
-        built += entry.second ? 1 : 0;
-    }
-    m_builtCount.store(built);
+    m_builtCount.store(static_cast<int>(std::count_if(
+        m_nodes.begin(), m_nodes.end(), [](const auto& entry) { return entry.second != nullptr; })));
     return root;
 }
 

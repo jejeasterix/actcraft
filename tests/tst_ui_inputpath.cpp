@@ -375,17 +375,19 @@ private slots:
         tablet(f, QEvent::TabletRelease, QPointF(400, 300), Qt::NoButton); // la suite du contact n'écrit plus
         QTest::qWait(20);
         QCOMPARE(f.fixed->objectCount(), 1);
-        // Doigt terminé par un deuxième doigt (finishTouchStroke).
+        // Doigt terminé par l'annulation du système (finishTouchStroke). Amendé par L3-T13 (H3-17) : un
+        // deuxième doigt abandonne désormais le trait sans le verser ; l'annulation le verse encore.
         QTest::touchEvent(&f.window, m_screen).press(0, QPoint(300, 400));
         settleTouch();
         QTest::touchEvent(&f.window, m_screen).move(0, QPoint(400, 400));
         settleTouch();
-        QTest::touchEvent(&f.window, m_screen).stationary(0).press(1, QPoint(600, 500));
+        QTouchEvent cancel(QEvent::TouchCancel, m_screen);
+        QCoreApplication::sendEvent(f.view, &cancel);
         QTRY_COMPARE(f.fixed->objectCount(), 2);
         QCOMPARE(lastStroke(f).points.size(), std::size_t{2});
         QVERIFY2(closeTo(lastStroke(f).points.back().x, 450), "doigt : relâché synthétisé filtré");
         QVERIFY(closeTo(lastStroke(f).points.back().y, 400));
-        QTest::touchEvent(&f.window, m_screen).release(0, QPoint(400, 400)).release(1, QPoint(600, 500));
+        QTest::touchEvent(&f.window, m_screen).release(0, QPoint(400, 400));
         settleTouch();
         QCOMPARE(f.fixed->objectCount(), 2);
     }
@@ -484,6 +486,9 @@ private slots:
         f.view->notifyCacheUpdated();
         QCOMPARE(f.view->cacheRefreshCount(), start + 1);
         f.view->requestCacheRefresh();
+        // Amendé par L3-T13 (M3) : deux demandes du même tour font un seul redessin ; la seconde arrive donc
+        // au tour suivant, après le départ du premier.
+        QCoreApplication::processEvents();
         f.view->requestCacheRefresh(); // pendant le redessin : sa fin en relance un
         f.view->notifyCacheUpdated();  // relance : ne compte pas
         QCOMPARE(f.view->cacheRefreshCount(), start + 1);

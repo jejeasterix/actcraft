@@ -63,7 +63,8 @@ Window {
         objectName: "documentController"
         fixedPage: pageArea.fixedPage
         // Page suivante pendant un trait (PgDown, télécommande, doigt sur le bouton) : le trait se termine et
-        // reste sur sa page.
+        // reste sur sa page. finishStroke abandonne d'abord le geste de l'outil (M2) : sans cela, le relâché
+        // synthétisé terminerait un glissement de la sélection par un déplacement.
         onPageAboutToChange: pageArea.view.finishStroke()
     }
 
@@ -81,6 +82,7 @@ Window {
         function onEditAboutToApply() { pageArea.view.finishStroke() }
         function onUndoChanged() { root.syncEditCommands() }
         function onDocumentChanged() { root.syncEditCommands() }
+        function onCanRevertPageChanged() { root.syncEditCommands() }
     }
     function syncEditCommands() {
         appCommands.setEnabled("edit.undo", appDocument.canUndo)
@@ -316,10 +318,15 @@ Window {
         appCommands.setHandler("view.zoom", function (percent) { pageArea.view.zoom = percent / 100 })
         appCommands.setHandler("page.next", function () { appDocument.nextPage() })
         appCommands.setHandler("page.previous", function () { appDocument.pageBack() })
-        appCommands.setHandler("tool.pen", function () { appCommands.setChecked("tool.pen", true) })
-        appCommands.setHandler("pen.color", function (color) { pageArea.view.inkColor = color })
-        appCommands.setHandler("pen.width", function (width) { pageArea.view.inkWidth = width })
-        appCommands.setHandler("tool.select", function () { appTools.activate("select") })
+        appCommands.setHandler("tool.pen", function () { appTools.activate("pen") })
+        // La vue n'a plus de couleur propre : appTools la tient à jour (inkColor, inkWidth).
+        appCommands.setHandler("pen.color", function (color) { appTools.setColor(color) })
+        appCommands.setHandler("pen.width", function (width) { appTools.setWidth(width) })
+        // Échap (M9) : abandon du geste en cours ; au repos, outil Sélectionner. Jamais livré à l'outil.
+        appCommands.setHandler("tool.select", function () {
+            appTools.cancelGesture()
+            appTools.activate("select")
+        })
         appCommands.setHandler("tool.highlighter", function () { appTools.activate("highlighter") })
         appCommands.setHandler("tool.eraser", function () { appTools.activate("eraser") })
         appCommands.setHandler("edit.undo", function () { appDocument.undo() })

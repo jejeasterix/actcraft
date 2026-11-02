@@ -1,6 +1,7 @@
 #pragma once
 
 #include <actcraft/core/document.h>
+#include <actcraft/core/lift.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/render/fixedpageitem.h>
@@ -48,12 +49,14 @@ class DocumentController : public QObject
     Q_PROPERTY(QStringList warnings READ warnings NOTIFY warningsChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
     Q_PROPERTY(QString suggestedFileName READ suggestedFileName NOTIFY titleChanged)
-    // Vrai si la dernière lecture ou écriture a tourné hors du fil principal (S5 la lit ; mutation : écriture
-    // synchrone → faux).
+    // Vrai si la dernière lecture ou écriture a tourné hors du fil principal (S5 la lit). Faux seulement si
+    // elle a tourné SUR le fil principal : un fil principal qui attend une écriture faite sur un fil
+    // secondaire le laisse vrai. Cette attente-là se prouve sans ce drapeau (tst_ui_files,
+    // saveNeverWaitsForTheWriterOnTheMainThread).
     Q_PROPERTY(bool lastIoOffMainThread READ lastIoOffMainThread NOTIFY lastIoChanged)
     Q_PROPERTY(int shownObjectCount READ shownObjectCount NOTIFY documentChanged)
     Q_PROPERTY(bool lifting READ isLifting NOTIFY liftingChanged)
-    Q_PROPERTY(bool canRevertPage READ canRevertPage NOTIFY documentChanged)
+    Q_PROPERTY(bool canRevertPage READ canRevertPage NOTIFY canRevertPageChanged)
 
 public:
     explicit DocumentController(QObject* parent = nullptr);
@@ -79,6 +82,10 @@ public:
     void execute(std::unique_ptr<core::UndoCommand> command);
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
+    // Clôt l'étape en cours de fusion (core::UndoStack::closeMerge) : la réglette de translucidité l'appelle
+    // à sa fermeture, une étape par ouverture (D10, P23). Ne modifie ni le document ni l'état de la pile vu
+    // de l'interface (canUndo, canRedo, modifié).
+    Q_INVOKABLE void closeMerge();
     // Le stylo verse son trait (ControllerSink) : couche supérieure de la page affichée (F-510), par la pile.
     void commitStroke(core::Stroke stroke);
     // Remplace le document (ouverture, nouveau) : pile vidée, état propre, page 1 affichée. Titre vide :
@@ -140,6 +147,8 @@ public:
     Q_INVOKABLE void clearPage(int kind); // core::ClearKind (F-130)
     Q_INVOKABLE void revertPage();        // F-131
     bool canRevertPage() const;
+    // Tests (L3-C8) : comparaisons d'empreintes de page entière faites par canRevertPage depuis la création.
+    int revertComparisonCount() const noexcept { return m_revertComparisons; }
 
     // Origine d'une modification versée (observateur unique, socle des lots 3 et 7).
     enum class ChangeOrigin : std::uint8_t
@@ -174,6 +183,9 @@ signals:
     void titleChanged();
     void fileUrlChanged();
     void documentChanged();
+    // Avec documentChanged, sauf au soulèvement et au dépôt sans étape (réponse inchangée, L3-C8), et à la
+    // fin d'un enregistrement (référence changée).
+    void canRevertPageChanged();
     void undoChanged();
     void busyChanged();
     void warningsChanged();
@@ -181,8 +193,8 @@ signals:
     void lastIoChanged();
     void loadFinished(bool ok, const QString& message);
     void saveFinished(bool ok, const QString& message);
-    // Avant Annuler, Rétablir, un soulèvement, Effacer, Rétablir la page, Supprimer : la vue termine le trait
-    // en cours et les outils leur geste (L2-T15).
+    // Avant Annuler, Rétablir, Effacer, Rétablir la page, Supprimer : la vue termine le trait en cours et les
+    // outils leur geste (L2-T15).
     void editAboutToApply();
     void liftingChanged();
     // Lot 7 (L7-T2) : le document entier a été remplacé (ouverture, « Nouveau », page ou document du banc),
@@ -248,6 +260,34 @@ private:
     };
     std::vector<ObserverEntry> m_observers;
     int m_lastObserverToken = 0;
+
+    // Lot 3 (L3-T12) : soulèvement et page de référence de Rétablir la page.
+    // Dépôt forcé (M2) : ce qui reste soulevé après l'annonce d'une édition revient sans étape.
+    void dropRemaining();
+    // Annonce d'une édition (editAboutToApply), puis dépôt forcé.
+    void announceEdit();
+    // Annonce d'un changement de page (pageAboutToChange), puis dépôt forcé.
+    void announcePageChange();
+    // Objets soulevés d'un document remplacé depuis (replaceDocument direct) : oubliés, liftingChanged.
+    void forgetStaleLift();
+    // Page de la référence pour la page affichée ; nullptr : jamais enregistrée ni ouverte (page vierge, D9).
+    const core::Page* savedPage() const;
+    std::vector<core::LiftedObject> m_lifted; // page affichée, ordre de la page
+    std::uint64_t m_liftGeneration = 0;       // m_generation au soulèvement
+    // Document tel qu'ouvert ou enregistré en dernier (D9), valable pour la génération m_referenceGeneration.
+    // Partagé avec la copie que le fil d'écriture a enregistrée : aucune copie de plus sur le fil principal.
+    std::shared_ptr<const core::Document> m_reference;
+    std::uint64_t m_referenceGeneration = 0;
+    // canRevertPage, relue à chaque documentChanged (Main.qml) : une empreinte de page par révision.
+    struct RevertCheck
+    {
+        bool valid = false;
+        std::uint64_t revision = 0;
+        std::size_t page = 0;
+        bool answer = false;
+    };
+    mutable RevertCheck m_revertCheck;
+    mutable int m_revertComparisons = 0;
 };
 
 } // namespace actcraft::ui

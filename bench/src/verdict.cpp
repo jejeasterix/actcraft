@@ -79,8 +79,9 @@ void applyVerdict(BenchResult& r, const Budget& b)
 
     r.criteria.clear();
     const auto criterion = [&r](const QString& scenario, const char* name, double value, double limit,
-                                bool ok) {
-        r.criteria.push_back({scenario, QString::fromLatin1(name), value, limit, ok});
+                                bool ok, bool excluded = false) {
+        // Un critère exclu est relevé, jamais dépassé : ok reste vrai (JSON : « excluded »).
+        r.criteria.push_back({scenario, QString::fromLatin1(name), value, limit, ok || excluded, excluded});
     };
     std::uint64_t memoryPeak = 0;
     for (const ScenarioResult& s : r.scenarios) {
@@ -91,11 +92,18 @@ void applyVerdict(BenchResult& r, const Budget& b)
                       iv.active.count > 0 && iv.active.p95 <= b.maxP95Ms);
             criterion(s.name, "over_25ms_ratio", iv.over25Ratio, b.maxOver25Ratio,
                       iv.over25Ratio <= b.maxOver25Ratio);
-            // N1-1 et H-orch-1 : figements et reprises, au plus une image perdue chacun.
+            // N1-1 et H-orch-1 : figements et reprises, au plus une image perdue chacun. Un scénario de geste
+            // (S36, M3) en est exclu par le booléen que son plan pose, jamais par son nom.
             criterion(s.name, "freeze_over_limit", static_cast<double>(iv.freezeOverLimit), 0,
-                      iv.freezeOverLimit == 0);
+                      iv.freezeOverLimit == 0, s.freezeExempt);
             criterion(s.name, "resume_over_limit", static_cast<double>(iv.resumeOverLimit), 0,
-                      iv.resumeOverLimit == 0);
+                      iv.resumeOverLimit == 0, s.freezeExempt);
+        }
+        if (s.maxCacheRefreshes >= 0) {
+            // Attendu chiffré S36 : redessins du cache pendant le geste (cache.refreshes du JSON).
+            const auto refreshes = static_cast<double>(s.cacheRequestNs.size());
+            criterion(s.name, "cache_refreshes", refreshes, s.maxCacheRefreshes,
+                      refreshes <= s.maxCacheRefreshes);
         }
         if (s.latency) {
             criterion(s.name, "latency_p50_ms", s.latency->total.p50, b.maxLatencyP50Ms,

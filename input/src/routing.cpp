@@ -28,14 +28,33 @@ RouterState stateOf(const std::unordered_map<std::uint64_t, Decision>& contacts)
 
 } // namespace
 
-// Talon L0-S : rempli par L3-T5.
-// Politique minimale du socle (L0-S7) : stylet et souris → outil ; doigt pendant un contact de stylet ou de
-// souris routé vers l'outil → rien (paume) ; sinon → outil. Ni geste ni M4 : L3-T5.
+// Gestion complète du toucher (L3-T5, D12). Seule cette politique dit où va un contact : la vue n'y compte
+// pas les doigts (le lot 11 change la politique, pas la vue).
 Decision FullTouchPolicy::decide(const Sample& press, const RouterState& state) const
 {
     Decision decision;
     decision.user = kFirstUser;
-    decision.route = press.device == DeviceKind::Touch && state.stylusDown ? Route::Ignore : Route::Tool;
+    if (press.device != DeviceKind::Touch) {
+        // Stylet, souris, autre : l'outil. Un doigt qui écrit cède la main (M4 b) : le routeur le passe à
+        // Ignore, la vue termine son trait.
+        decision.route = Route::Tool;
+        decision.endToolContacts = state.toolTouches > 0;
+        // Pendant un pincement, les doigts du geste restent à Gesture et le stylet va à l'outil (H3-19).
+        return decision;
+    }
+    if (state.stylusDown) {
+        decision.route = Route::Ignore; // paume pendant un contact du stylet ou de la souris
+    } else if (state.toolTouches + state.gestureTouches == 0) {
+        decision.route = Route::Tool; // premier doigt
+    } else if (state.toolTouches == 1 && state.gestureTouches == 0) {
+        // Deuxième doigt : le geste commence, le premier doigt y passe ; son trait est abandonné (H3-17).
+        decision.route = Route::Gesture;
+        decision.endToolContacts = true;
+    } else if (state.gestureTouches == 1) {
+        decision.route = Route::Gesture; // un doigt resté du geste en retrouve un second
+    } else {
+        decision.route = Route::Ignore; // au-delà de deux doigts
+    }
     return decision;
 }
 
@@ -62,9 +81,14 @@ Decision PointerRouter::route(const Sample& sample)
         }
         Decision decision = m_policy ? m_policy->decide(sample, m_state) : Decision{};
         if (decision.endToolContacts) {
+            // M4 (b) : la décision vit dans la politique, pas dans la vue (modes du toucher du lot 11). Un
+            // deuxième doigt fait passer le premier au geste ; un stylet ou une souris qui prend la main le
+            // fait passer à Ignore : il n'écrit plus et ne reste pas compté comme un doigt du geste (un doigt
+            // suivant ferait sinon un pincement avec lui).
+            const Route moved = sample.device == DeviceKind::Touch ? Route::Gesture : Route::Ignore;
             for (auto& [pointer, held] : m_contacts) {
                 if (pointer != kStylusOrMouse && held.route == Route::Tool) {
-                    held.route = Route::Gesture;
+                    held.route = moved;
                 }
             }
         }

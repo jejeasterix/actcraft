@@ -284,6 +284,18 @@ private slots:
         }
     }
 
+    void lot3ShortcutsFollowDecisionD11()
+    {
+        // D11 (lot 3) : Agrandir l'objet est sur Ctrl+= (et non Ctrl++), Réduire sur Ctrl+-,
+        // Rétablir sur Ctrl+Y.
+        CommandRegistry r;
+        QString error;
+        QVERIFY2(r.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        QCOMPARE(r.find(QStringLiteral("object.enlarge"))->shortcut, QStringLiteral("Ctrl+="));
+        QCOMPARE(r.find(QStringLiteral("object.reduce"))->shortcut, QStringLiteral("Ctrl+-"));
+        QCOMPARE(r.find(QStringLiteral("edit.redo"))->shortcut, QStringLiteral("Ctrl+Y"));
+    }
+
     void noShortcutTwice()
     {
         // QtCore seulement ici : séquences comparées en texte, sans espaces ni casse (pas de QKeySequence).

@@ -20,6 +20,14 @@ NodeContexts nodeContexts(QQuickWindow* window, bool software, const ImageStore*
     return out;
 }
 
+void clearChildren(QSGNode* root)
+{
+    while (QSGNode* child = root->firstChild()) {
+        root->removeChildNode(child);
+        delete child;
+    }
+}
+
 namespace {
 // Transformation et translucidité de l'objet par des nœuds parents, quel que soit son moteur : aucun moteur
 // ne les applique lui-même (sinon double transformation).
@@ -44,7 +52,7 @@ QSGNode* wrapped(QSGNode* node, const core::ObjectCommon& common)
 
 ObjectNode createObjectNode(const core::PageObject& object, std::size_t index,
                             const RendererRegistry& registry, const PaintedRenderer& painter,
-                            const RenderContext& context, const RenderContext& painted)
+                            const NodeContexts& contexts)
 {
     ObjectNode out;
     if (!object.common.visible || std::get_if<core::Group>(&object)) {
@@ -53,11 +61,11 @@ ObjectNode createObjectNode(const core::PageObject& object, std::size_t index,
     QSGNode* node = nullptr;
     bool viaPainter = usesPaintedRenderer(object);
     if (viaPainter) {
-        node = painter.createNode(object, painted);
+        node = painter.createNode(object, contexts.painted);
     } else if (const ObjectRenderer* renderer = registry.find(core::kindOf(object))) {
-        node = renderer->createNode(object, index, context);
+        node = renderer->createNode(object, index, contexts.context);
         if (!node && std::get_if<core::ImageObject>(&object)) {
-            node = painter.createNode(object, painted); // image illisible : repère du peintre
+            node = painter.createNode(object, contexts.painted); // image illisible : repère du peintre
             viaPainter = true;
         }
     }

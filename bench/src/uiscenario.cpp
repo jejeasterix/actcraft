@@ -33,6 +33,7 @@
 #include <atomic>
 #include <cmath>
 #include <functional>
+#include <optional>
 #include <utility>
 
 namespace actcraft::bench {
@@ -287,6 +288,11 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             why = QStringLiteral("seuil de boucle invalide (de 1 à %1 ms)").arg(kLoopGapMaxMs);
             return false;
         }
+        if (o.contains(QStringLiteral("informative")) && !o.value(QStringLiteral("informative")).isBool()) {
+            why = QStringLiteral("seuil de boucle invalide (informative : true ou false)");
+            return false;
+        }
+        step.informative = o.value(QStringLiteral("informative")).toBool(false);
         return true;
     }
     if (o.contains(QStringLiteral("remember"))) {
@@ -1050,6 +1056,8 @@ bool UiScenarioPlayer::checkPixel(const UiStep& step, QStringList& report)
 // même sur un bord crénelé (constat L2-C11).
 bool UiScenarioPlayer::checkEdge(const UiStep& step, QStringList& report)
 {
+    constexpr int kEdgeMargin = 24;
+    const QColor edgeInk(Qt::black);
     ui::PageView* v = view();
     const QImage image = m_window->grabWindow();
     int count = -1;
@@ -1058,8 +1066,8 @@ bool UiScenarioPlayer::checkEdge(const UiStep& step, QStringList& report)
         const qreal dpr = m_window->devicePixelRatio();
         const QPoint from = sceneToImage(v->pageToScene(step.at), dpr);
         const QPoint to = sceneToImage(v->pageToScene(step.to), dpr);
-        count = countIntermediatePixels(image, from, to, QColor(Qt::white), QColor(Qt::black), 24);
-        ink = countInkPixels(image, from, to, QColor(Qt::black), 24);
+        count = countIntermediatePixels(image, from, to, QColor(Qt::white), edgeInk, kEdgeMargin);
+        ink = countInkPixels(image, from, to, edgeInk, kEdgeMargin);
     }
     const bool ok = count >= step.minIntermediate &&
                     (step.maxIntermediate < 0 || count <= step.maxIntermediate) && ink >= step.minInk;
@@ -1213,6 +1221,14 @@ bool UiScenarioPlayer::maxEventLoopGap(const UiStep& step, QStringList& report)
     m_loopProbe.reset();
     if (max <= step.ms) {
         report << QStringLiteral("BOUCLE max=%1 ms OK").arg(max);
+        return true;
+    }
+    // Mesure informative (L3-C4, S5) : écrite, ni jugée ni rejouée ; sans « ECART », motif d'échec de ctest.
+    // L'invariant qu'elle surveillait (le fil principal n'attend jamais l'écriture) est prouvé sans
+    // chronomètre par tst_ui_files ; à l'écran, l'orchestrateur juge la mesure aux clôtures.
+    if (step.informative) {
+        report
+            << QStringLiteral("BOUCLE max=%1 ms HORS SEUIL (seuil %2 ms, informatif)").arg(max).arg(step.ms);
         return true;
     }
     // Reprise unique (L10-C2) : la charge de la machine allonge un intervalle au hasard, un blocage du fil
@@ -1390,8 +1406,7 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
         return false;
     }
     bool ok = true;
-    const std::size_t none = scenario.steps.size();
-    std::size_t window = none; // dernière « watchEventLoop » de la fenêtre de boucle ouverte
+    std::optional<std::size_t> window; // dernière « watchEventLoop » de la fenêtre de boucle ouverte
     bool retried = false;
     std::size_t i = 0;
     while (i < scenario.steps.size()) {
@@ -1399,14 +1414,14 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
         if (step.kind == UiStepKind::WatchEventLoop) {
             window = i;
         }
-        m_loopRetryAvailable = window != none && !retried;
+        m_loopRetryAvailable = window.has_value() && !retried;
         m_loopRetryAsked = false;
         const qsizetype before = report.size();
         const bool stepOk = runStep(step, report);
         emitFrom(report, before); // au fil de l'eau : la ligne sort avant l'étape suivante
         if (m_loopRetryAsked) {
             retried = true;
-            i = window; // la fenêtre est rejouée depuis sa « watchEventLoop », une fois
+            i = *window; // la fenêtre est rejouée depuis sa « watchEventLoop », une fois
             continue;
         }
         if (!stepOk) {
@@ -1414,7 +1429,7 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
             break;
         }
         if (step.kind == UiStepKind::MaxEventLoopGap) {
-            window = none;
+            window.reset();
             retried = false;
         }
         ++i;

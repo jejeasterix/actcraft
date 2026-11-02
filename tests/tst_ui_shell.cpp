@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <initializer_list>
 #include <memory>
 #include <variant>
 
@@ -87,6 +88,29 @@ bool run(Shell& s, const QString& id, const QVariant& argument = QVariant())
     const bool invoked = QMetaObject::invokeMethod(s.window, "runCommand", Q_RETURN_ARG(QVariant, result),
                                                    Q_ARG(QVariant, QVariant(id)), Q_ARG(QVariant, argument));
     return invoked && result.toBool();
+}
+
+// Une ouverture de la réglette de translucidité (D10) : object.translucency sans argument, un mouvement par
+// valeur (signal moved du Slider, celui d'un glissement), puis fermeture. Rend l'erreur, vide si tout va.
+QString translucencyOpening(Shell& s, QObject* popup, QQuickItem* slider, std::initializer_list<int> values)
+{
+    if (!run(s, QStringLiteral("object.translucency"))) {
+        return QStringLiteral("object.translucency refusée");
+    }
+    if (!QTest::qWaitFor([popup] { return popup->property("opened").toBool(); }, 5000)) {
+        return QStringLiteral("réglette non ouverte");
+    }
+    for (const int value : values) {
+        slider->setProperty("value", value);
+        if (!QMetaObject::invokeMethod(slider, "moved")) {
+            return QStringLiteral("signal moved introuvable");
+        }
+    }
+    if (!QMetaObject::invokeMethod(popup, "close") ||
+        !QTest::qWaitFor([popup] { return !popup->property("visible").toBool(); }, 5000)) {
+        return QStringLiteral("réglette non fermée");
+    }
+    return QString();
 }
 
 QString indicator(Shell& s)
@@ -413,6 +437,27 @@ private slots:
         QQuickItem* sample = item(s, "widthIndicatorSample");
         QVERIFY(sample);
         QVERIFY2(sample->width() >= 12, qPrintable(QString::number(sample->width())));
+    }
+
+    // F-138 (L3-C15) : le cercle de largeur suit le pointeur avec le stylo et le marqueur, jamais avec la
+    // sélection, même quand le pointeur survole la page ou y bouge ; il revient avec un outil d'encre.
+    void widthIndicatorOnlyWithInkTools()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QQuickItem* indicator = item(s, "widthIndicator");
+        QVERIFY(indicator);
+        const QPoint over = s.view->pageToScene(QPointF(500, 400)).toPoint();
+        QVERIFY(run(s, QStringLiteral("tool.pen")));
+        QTest::mouseMove(s.window, over);
+        QTRY_VERIFY(indicator->isVisible());
+        QVERIFY(run(s, QStringLiteral("tool.select")));
+        QTRY_VERIFY(!indicator->isVisible());
+        QTest::mouseMove(s.window, over + QPoint(30, 20));
+        QTest::qWait(50);
+        QVERIFY(!indicator->isVisible());
+        QVERIFY(run(s, QStringLiteral("tool.highlighter")));
+        QTRY_VERIFY(indicator->isVisible());
     }
 
     void redStrokeSurvivesPageRoundTrip()
@@ -782,6 +827,43 @@ private slots:
         }
     }
 
+    // D10, P23 (L3-C12) : la réglette ouverte, réglée puis fermée deux fois sur la même sélection fait deux
+    // étapes d'annulation ; les mouvements d'une même ouverture n'en font qu'une.
+    void translucencyPopupTwoOpeningsAreTwoSteps()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* controller = s.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QObject* popup = s.window->findChild<QObject*>(QStringLiteral("translucencyPopup"));
+        QVERIFY(controller && popup);
+        QQuickItem* slider = popup->findChild<QQuickItem*>(QStringLiteral("translucencySlider"));
+        if (!slider) {
+            slider = item(s, "translucencySlider");
+        }
+        QVERIFY(slider);
+        core::Stroke stroke;
+        stroke.points = {{100, 100, 0.5f}, {300, 100, 0.5f}};
+        controller->commitStroke(stroke);
+        QVERIFY(run(s, QStringLiteral("edit.select-all")));
+        const auto translucency = [controller] {
+            const auto& objects = controller->document().page(0).objects;
+            return objects.size() == 1 ? int(objects.front().common.translucency) : -1;
+        };
+        QCOMPARE(translucency(), 0);
+        QString error = translucencyOpening(s, popup, slider, {30, 50});
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(translucency(), 50);
+        error = translucencyOpening(s, popup, slider, {90, 120});
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(translucency(), 120);
+        controller->undo();
+        QCOMPARE(translucency(), 50); // sans borne : 0, la seconde ouverture fondue dans la première
+        controller->undo();
+        QCOMPARE(translucency(), 0);
+        controller->undo(); // le trait
+        QCOMPARE(controller->document().page(0).objects.size(), std::size_t{0});
+    }
+
     // Le clic droit n'est plus un TapHandler : la vue émet contextMenuRequested et la zone ouvre le menu.
     // Espion : PageArea compte les demandes (contextMenuRequestCount) juste avant d'appeler popupAt.
     void contextMenuOpensFromTheView()
@@ -793,6 +875,43 @@ private slots:
         QCOMPARE(area->property("contextMenuRequestCount").toInt(), 0);
         emit s.view->contextMenuRequested(QPointF(10, 10));
         QCOMPARE(area->property("contextMenuRequestCount").toInt(), 1);
+    }
+
+    // L3-T16 : le menu contextuel montre les entrées de la disposition sauf celle de l'outil courant.
+    void contextMenuSkipsTheCurrentTool()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* menu = s.window->findChild<QObject*>(QStringLiteral("pageContextMenu"));
+        QVERIFY(menu);
+        const auto ids = [menu] {
+            QVariant entries;
+            if (!QMetaObject::invokeMethod(menu, "visibleEntries", Q_RETURN_ARG(QVariant, entries))) {
+                return QStringList{QStringLiteral("<invocation refusée>")};
+            }
+            QStringList out;
+            for (const QVariant& entry : entries.toList()) {
+                const QVariantMap map = entry.toMap();
+                out.append(map.value(QStringLiteral("separator")).toBool()
+                               ? QStringLiteral("-")
+                               : map.value(QStringLiteral("id")).toString());
+            }
+            return out;
+        };
+        QVERIFY(run(s, QStringLiteral("tool.pen")));
+        const QStringList withPen = ids();
+        QVERIFY(withPen.contains(QStringLiteral("tool.select")));
+        QVERIFY(!withPen.contains(QStringLiteral("tool.pen")));
+        QVERIFY(run(s, QStringLiteral("tool.select")));
+        const QStringList withSelect = ids();
+        QCOMPARE(withSelect.value(0), QStringLiteral("tool.pen"));
+        QVERIFY(!withSelect.contains(QStringLiteral("tool.select")));
+        // Jamais de séparateur doublé ni de queue (celui de tête est exclu par le premier contrôle).
+        QVERIFY(withSelect.last() != QStringLiteral("-"));
+        for (qsizetype i = 1; i < withSelect.size(); ++i) {
+            QVERIFY(
+                !(withSelect.at(i) == QStringLiteral("-") && withSelect.at(i - 1) == QStringLiteral("-")));
+        }
     }
 
     // Annotation de bureau (lot 7) : PageArea sans Tools ni Commands dessine encore.

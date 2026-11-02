@@ -31,8 +31,9 @@ struct Decision
 {
     Route route = Route::Ignore;
     UserId user = kFirstUser;
+    // Appui d'un doigt : ces doigts passent à Gesture ; appui d'un stylet ou de la souris : à Ignore (M4 b).
     bool endToolContacts =
-        false; // les doigts en cours vers l'outil passent au geste : la vue termine leur trait
+        false; // les doigts en cours vers l'outil passent à Gesture ou à Ignore : la vue termine leur trait
 };
 
 // Politique de routage (DA-A1), remplaçable : décide à l'appui ; la décision vaut jusqu'au relâché.
@@ -60,7 +61,8 @@ public:
     // À l'appui, une décision retenue pour le même pointeur est remplacée ; la politique décide et la
     // décision est retenue pour `sample.pointer` (stylet et souris : 0) ; ensuite, la décision retenue ; au
     // relâché, elle est rendue puis oubliée. Mouvement d'un contact inconnu : Ignore. endToolContacts : les
-    // décisions retenues des doigts routés vers l'outil passent à Gesture.
+    // décisions retenues des doigts routés vers l'outil passent à Gesture si l'appui vient d'un doigt, à
+    // Ignore s'il vient d'un stylet ou de la souris (M4 b).
     Decision route(const Sample& sample);
     int gestureTouches() const noexcept;
     void reset(); // tout contact oublié (perte de saisie)

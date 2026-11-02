@@ -223,7 +223,9 @@ private slots:
         QVERIFY(render::usesPaintedRenderer(core::PageObject(highlighter)));
         core::Stroke round;
         round.cap = core::PenCap::Round;
-        QVERIFY(render::usesPaintedRenderer(core::PageObject(round)));
+        // Amendé par L3-T11 : la géométrie sait faire les bouts ronds, le stylo opaque y revient (seul un
+        // trait translucide reste au moteur peint, voir tst_render_strokeshape).
+        QVERIFY(!render::usesPaintedRenderer(core::PageObject(round)));
         QVERIFY(!render::usesPaintedRenderer(core::PageObject(core::Stroke{})));
         QVERIFY(!render::usesPaintedRenderer(core::PageObject(core::Shape{})));
         QVERIFY(!render::usesPaintedRenderer(core::PageObject(core::ImageObject{})));
