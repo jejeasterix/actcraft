@@ -610,6 +610,42 @@ private slots:
         QCOMPARE(again.y, anchor.y);
     }
 
+    // L4-C5 : une colonne n'a pas de première ligne horizontale ; l'ancrage reste l'emprise.
+    void verticalCommitHasNoFirstBaseline()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({200, 200}, true));
+        h.replaceAllText(QStringLiteral("ABC"));
+        h.editing.commit();
+        const auto* text = std::get_if<core::Text>(&core::body(h.controller.document().page(0).objects[0]));
+        QVERIFY(text);
+        QVERIFY(text->vertical);
+        QVERIFY(!text->firstBaseline.has_value());
+    }
+
+    // L4-C5 : un texte enregistré avant la mesure (ni « runs » ni « firstBaseline ») reçoit sa ligne de base
+    // à l'ouverture, sans étape d'annulation ni document modifié.
+    void openingMeasuresTheFirstBaselineOfAnOldText()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString path = dir.filePath(QStringLiteral("ancien.actcraft"));
+        {
+            Harness h;
+            h.addText(QStringLiteral("un"), {200, 200, 120, 80});
+            QVERIFY(saveAndWait(h.controller, path));
+        }
+        ui::DocumentController reread;
+        QVERIFY(openAndWait(reread, path));
+        const auto& object = reread.document().page(0).objects[0];
+        const auto* text = std::get_if<core::Text>(&core::body(object));
+        QVERIFY(text);
+        QVERIFY(text->firstBaseline.has_value());
+        QVERIFY(core::snapAnchor(object).y < 200 + 40); // première ligne, pas le bas du cadre (280)
+        QVERIFY(!reread.isModified());
+        QVERIFY(!reread.canUndo());
+    }
+
     // D7 : texte neuf laissé vide oublié sans étape ; texte existant vidé supprimé en une étape.
     void emptyTextIsNotKept()
     {
