@@ -214,7 +214,9 @@ struct EditorHarness
         if (!input || !QTest::qWaitFor([input] { return input->hasActiveFocus(); })) {
             return false;
         }
-        QTest::keyClicks(&window, QStringLiteral("A B"));
+        for (const char key : {'A', ' ', 'B'}) {
+            QTest::keyClick(&window, key); // keyClicks est réservé aux QWidget
+        }
         return editing.plainText() == QStringLiteral("A B");
     }
 };
