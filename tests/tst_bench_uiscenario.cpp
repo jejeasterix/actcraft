@@ -1157,6 +1157,35 @@ private slots:
         QVERIFY(!QFile::exists(sibling));
     }
 
+    // Ajouté par L4-T30 : « above » compare « strictement supérieur à » (compteur en hausse), en lecture et en attente.
+    void expectAndWaitForAbove()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"expect\": \"window.compteur\", \"value\": 5, \"above\": true},"
+                            "{\"waitFor\": \"window.compteur\", \"value\": 5, \"above\": true, \"timeoutMs\": 300}",
+                            s, error),
+                 qPrintable(error));
+        QVERIFY(s.steps[0].above);
+        QVERIFY(s.steps[1].above);
+        Fixture f;
+        QVERIFY(load(f));
+        QStringList report;
+        f.window->setProperty("compteur", 5);
+        QVERIFY(!f.player->expect(s.steps[0], report)); // 5 n'est pas > 5
+        QVERIFY2(report.last().contains(QLatin1String("ECART")), qPrintable(report.last()));
+        f.window->setProperty("compteur", 6);
+        QVERIFY2(f.player->expect(s.steps[0], report), qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(report.last(), QStringLiteral("LU window.compteur=6 OK"));
+        f.window->setProperty("compteur", 5);
+        QTimer::singleShot(100, f.window, [&f] { f.window->setProperty("compteur", 9); });
+        const UiScenario waiting =
+            scenario("hausse", "[{\"waitFor\":\"window.compteur\",\"value\":5,\"above\":true,\"timeoutMs\":300}]");
+        QVERIFY2(f.player->play(waiting, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        f.window->setProperty("compteur", 5);
+        QVERIFY(!f.player->play(waiting, f.out.path(), report));
+    }
+
     // Attente d'une propriété : elle suit la valeur qui change plus tard (pas une lecture unique), et échoue
     // à son plafond sans le dépasser de beaucoup.
     void waitForFollowsTheProperty()
