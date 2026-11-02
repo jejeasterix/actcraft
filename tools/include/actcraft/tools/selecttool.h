@@ -32,6 +32,10 @@ public:
     void reduce();          // ÷ kEnlargeStep
     void setTranslucency(std::uint8_t value);
     void refresh(); // la page a changé (annuler, page suivante) : sélection filtrée, cadre recalculé
+    // Mode points de forme (F-527, `object.shape-points`, L5-T16) : la forme sélectionnée seule montre ses points
+    // (SelectionView::shapePoints) ; glisser un point le déplace en une étape. Échap au repos quitte le mode.
+    void setShapePointsMode(bool on);
+    bool shapePointsMode() const noexcept;
 
 private:
     enum class State : std::uint8_t

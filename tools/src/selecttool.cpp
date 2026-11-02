@@ -279,6 +279,16 @@ void SelectTool::refresh()
     showFrame();
 }
 
+void SelectTool::setShapePointsMode(bool on) // Talon L5-T16 : rempli après le test rouge
+{
+    static_cast<void>(on);
+}
+
+bool SelectTool::shapePointsMode() const noexcept
+{
+    return false;
+}
+
 void SelectTool::press(const input::Sample& sample)
 {
     const core::Page& page = m_context.document.page();
