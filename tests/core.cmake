@@ -88,7 +88,7 @@ actcraft_add_test(tst_core_objectflags
 # L5-T8
 actcraft_add_test(tst_core_fill
     SOURCES tst_core_fill.cpp
-    LIBS ActCraft::core)
+    LIBS ActCraft::core ActCraft::render)
 # L5-T9
 actcraft_add_test(tst_core_shapepoints
     SOURCES tst_core_shapepoints.cpp
