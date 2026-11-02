@@ -510,6 +510,18 @@ ScenarioPlan zonesZoomScenario(ScenarioSet scenarioSet)
     return plan;
 }
 
+const char* const* editionGestures() noexcept
+{
+    return nullptr;
+}
+
+ScenarioPlan editionScenario(ScenarioSet)
+{
+    ScenarioPlan plan;
+    plan.name = QStringLiteral("edition");
+    return plan;
+}
+
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan)
 {
     std::vector<std::pair<std::int64_t, std::int64_t>> windows;

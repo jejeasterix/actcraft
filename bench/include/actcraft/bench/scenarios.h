@@ -100,6 +100,10 @@ struct ScenarioPlan
     // Le panneau des navigateurs est ouvert pendant la mesure : le banc attend les miniatures à jour avant la
     // mesure et le rendu d'une miniature dans la fenêtre ; le runner vérifie l'état réel du panneau.
     bool browsersOpen = false;
+    // L5-T19 : les commandes `edition.*` de ce plan sont des gestes d'édition (editionGestures), jouées par le
+    // runner par ObjectEditing et ToolHost, chacune dans sa fenêtre de mesure des redessins du cache. Lu par ce
+    // booléen, jamais par le nom.
+    bool measuresEdition = false;
     std::vector<PlannedInput> inputs;
 };
 
@@ -159,10 +163,24 @@ ScenarioPlan gridAboveScenario(ScenarioSet set);
 inline constexpr int kBenchZonesAcross = 40;
 inline constexpr int kBenchZonesDown = 53;
 ScenarioPlan zonesZoomScenario(ScenarioSet scenarioSet);
+// L5-T19 (S8.2, D21). « edition » : page générée portant kEditionAnnotations annotations (couche du dessus) ;
+// quatre gestes d'édition passés par ObjectEditing et ToolHost, dans l'ordre de editionGestures() : coller
+// kEditionPasted objets, les grouper, aligner cinq annotations, mettre une annotation au premier plan. Un trait
+// est écrit toutes les kEditionStrokePeriodNs, jamais pendant la fenêtre d'un geste (kEditionGestureSpanNs
+// réservées après sa commande). Le runner relève, par geste, les redessins du cache terminés
+// (PageView::cacheRefreshCount, jamais cache.refreshes) : clé `edition.refreshes_by_gesture` du JSON.
+inline constexpr int kEditionAnnotations = 200;
+inline constexpr int kEditionPasted = 20;
+inline constexpr std::int64_t kEditionStrokePeriodNs = 2'000'000'000;
+inline constexpr std::int64_t kEditionGestureSpanNs = 3'500'000'000;
+inline constexpr std::size_t kEditionGestureCount = 4;
+// Commandes `edition.*` du plan, dans l'ordre joué.
+const char* const* editionGestures() noexcept;
+ScenarioPlan editionScenario(ScenarioSet scenarioSet);
 // Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);
 // stroke, zoom, scroll, page, pauses, gommer, soulever, forme-page-annotee, grille-dessus, miniatures,
-// miniatures-ferme, miniatures-pauses, zones-zoom
+// miniatures-ferme, miniatures-pauses, zones-zoom, edition
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set);
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();

@@ -8,6 +8,9 @@
 #include <actcraft/ui/pagethumbnails.h>
 #include <actcraft/ui/viewtransform.h>
 
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QStringList>
 #include <QTest>
 
 #include <algorithm>
@@ -128,7 +131,7 @@ private slots:
         // annotee » et « grille-dessus » après eux (le compte passe de 7 à 9 : les sept premiers inchangés).
         // L4-T29 : « miniatures » et « miniatures-ferme » après eux (le compte passe de 9 à 11), puis «
         // miniatures-pauses » (12). L4-T28 : « zones-zoom » en dernier (13 : les douze premiers inchangés).
-        QCOMPARE(plans.size(), std::size_t{13});
+        QCOMPARE(plans.size(), std::size_t{14});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
@@ -142,10 +145,97 @@ private slots:
         QCOMPARE(plans[10].name, QStringLiteral("miniatures-ferme"));
         QCOMPARE(plans[11].name, QStringLiteral("miniatures-pauses"));
         QCOMPARE(plans[12].name, QStringLiteral("zones-zoom"));
+        QCOMPARE(plans[13].name, QStringLiteral("edition")); // L5-T19 : en dernier (14 : treize inchangés)
         for (std::size_t i = 0; i < 5; ++i) {
             QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
             QVERIFY(plans[i].seedStrokes.empty());
         }
+    }
+
+    // L5-T19 (S8.2, D21) : « edition » = page de 200 annotations, quatre gestes d'édition (coller, grouper,
+    // aligner, premier plan) en commandes `edition.*`, un trait toutes les 2 s entre les fenêtres des gestes.
+    void editionScenarioListed()
+    {
+        QCOMPARE(bench::kEditionGestureCount, std::size_t{4});
+        const char* const* gestures = bench::editionGestures();
+        QVERIFY(gestures != nullptr);
+        const QStringList expected{"edition.paste", "edition.group", "edition.align", "edition.front"};
+        for (const auto scenarioSet : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan plan = bench::editionScenario(scenarioSet);
+            QCOMPARE(plan.name, QStringLiteral("edition"));
+            QCOMPARE(plan.generatedPages, 1);
+            QCOMPARE(plan.seedStrokes.size(), std::size_t{200});
+            QVERIFY(plan.measuresEdition);
+            QVERIFY(plan.freezeExempt);          // chaque geste redessine le cache : on le mesure
+            QVERIFY(plan.toolCommand.isEmpty()); // le stylo reste l'outil des traits
+            QStringList commands;
+            std::vector<std::int64_t> commandAt;
+            std::vector<std::int64_t> pressAt;
+            for (const auto& in : plan.inputs) {
+                QVERIFY(in.kind != InputKind::Wheel);
+                if (in.kind == InputKind::Command) {
+                    commands << in.command;
+                    commandAt.push_back(in.offsetNs);
+                    continue;
+                }
+                QVERIFY(!in.measured);
+                QVERIFY(!core::hitsWitness({in.pagePos.x(), in.pagePos.y()}, 16.0));
+                QVERIFY(in.pagePos.x() >= 220.0 && in.pagePos.x() <= 804.0);
+                QVERIFY(in.pagePos.y() >= 150.0 && in.pagePos.y() <= 618.0);
+                if (in.kind == InputKind::TabletPress) {
+                    pressAt.push_back(in.offsetNs);
+                }
+            }
+            for (std::size_t k = 0; k < bench::kEditionGestureCount; ++k) {
+                QCOMPARE(QString::fromLatin1(gestures[k]), expected.at(static_cast<qsizetype>(k)));
+            }
+            QCOMPARE(commands, expected);
+            QVERIFY(pressAt.size() >= 4); // des traits entre les gestes
+            // Aucun trait dans la fenêtre d'un geste ; les gestes ne se chevauchent pas.
+            for (const std::int64_t at : commandAt) {
+                for (const auto& in : plan.inputs) {
+                    if (in.kind != InputKind::Command) {
+                        QVERIFY2(in.offsetNs < at || in.offsetNs >= at + bench::kEditionGestureSpanNs,
+                                 "un trait tombe dans la fenêtre d'un geste");
+                    }
+                }
+            }
+            for (std::size_t k = 1; k < commandAt.size(); ++k) {
+                QVERIFY(commandAt[k] - commandAt[k - 1] >= bench::kEditionGestureSpanNs);
+            }
+            // Un trait toutes les 2 s au plus serré (complet : deux traits par cycle).
+            std::int64_t closest = std::numeric_limits<std::int64_t>::max();
+            for (std::size_t k = 1; k < pressAt.size(); ++k) {
+                closest = std::min(closest, pressAt[k] - pressAt[k - 1]);
+            }
+            QVERIFY(closest >= bench::kEditionStrokePeriodNs);
+        }
+    }
+
+    // L5-T19 : clé `edition.refreshes_by_gesture` du JSON, seulement dans « edition ».
+    void editionRefreshesShowInTheResult()
+    {
+        bench::BenchResult result;
+        bench::ScenarioResult other;
+        other.name = QStringLiteral("stroke");
+        bench::ScenarioResult edition;
+        edition.name = QStringLiteral("edition");
+        edition.edition = bench::EditionRefreshes{1, 0, 1, 1};
+        result.scenarios = {other, edition};
+        const QJsonArray scenarios = bench::toJson(result).value("scenarios").toArray();
+        QCOMPARE(scenarios.size(), 2);
+        QVERIFY(!scenarios.at(0).toObject().contains("edition"));
+        const QJsonObject by = scenarios.at(1)
+                                   .toObject()
+                                   .value("edition")
+                                   .toObject()
+                                   .value("refreshes_by_gesture")
+                                   .toObject();
+        QCOMPARE(by.value("paste").toInt(-9), 1);
+        QCOMPARE(by.value("group").toInt(-9), 0);
+        QCOMPARE(by.value("align").toInt(-9), 1);
+        QCOMPARE(by.value("front").toInt(-9), 1);
+        QCOMPARE(by.size(), 4);
     }
 
     // L4-T29 (S7.5, amendements 1 et 5) : « miniatures » joue les traits de « stroke » panneau des
