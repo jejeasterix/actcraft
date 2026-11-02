@@ -26,9 +26,11 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #if defined(Q_OS_WIN)
 #ifndef NOMINMAX
@@ -332,22 +334,32 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     ui::PageThumbnails* const thumbs = plan.measuresThumbnails ? m_thumbnails : nullptr;
     const int thumbRenders0 = thumbs ? thumbs->renderCount() : 0;
     int lastLaunch = thumbs ? thumbs->launchCount() : 0;
-    int duringContact = 0;
+    // Instants relevés (monotonicNowNs) : lancements de rendu et fenêtres de contact (appui à relâché) ;
+    // `launchesDuringContact` en tire le compte à la fin (bornes comprises).
+    std::vector<std::int64_t> launchNs;
+    std::vector<std::pair<std::int64_t, std::int64_t>> contactWindows;
     double maxCopyMs = 0;
     bool inContact = false;
     QMetaObject::Connection thumbWatch;
     QMetaObject::Connection contactWatch;
     if (thumbs) {
-        const auto note = [this, thumbs, &lastLaunch, &duringContact, &maxCopyMs, &inContact] {
+        const auto note = [this, thumbs, &lastLaunch, &launchNs, &contactWindows, &maxCopyMs, &inContact] {
+            const std::int64_t at = core::monotonicNowNs();
             const int now = thumbs->launchCount();
-            if (inContact) {
-                duringContact += now - lastLaunch;
+            for (int k = lastLaunch; k < now; ++k) {
+                launchNs.push_back(at);
             }
             if (now != lastLaunch) {
                 maxCopyMs = std::max(maxCopyMs, thumbs->lastCopyMs());
             }
             lastLaunch = now;
-            inContact = m_view->contactActive();
+            const bool contact = m_view->contactActive();
+            if (contact && !inContact) {
+                contactWindows.emplace_back(at, std::numeric_limits<std::int64_t>::max()); // ouverte
+            } else if (!contact && inContact && !contactWindows.empty()) {
+                contactWindows.back().second = at;
+            }
+            inContact = contact;
         };
         thumbWatch = QObject::connect(thumbs, &ui::PageThumbnails::renderingChanged, m_view, note);
         contactWatch = QObject::connect(m_view, &ui::PageView::contactActiveChanged, m_view, note);
@@ -412,7 +424,8 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     QObject::disconnect(thumbWatch);
     QObject::disconnect(contactWatch);
     if (thumbs) {
-        s.thumbnails = ThumbnailStats{thumbs->renderCount() - thumbRenders0, duringContact, maxCopyMs};
+        s.thumbnails = ThumbnailStats{thumbs->renderCount() - thumbRenders0,
+                                      launchesDuringContact(launchNs, contactWindows), maxCopyMs};
     }
     QObject::disconnect(pump);
     QObject::disconnect(readyWatch);
