@@ -349,7 +349,8 @@ private slots:
         QVERIFY(closeRect(r.bounds(102), 400, 100, 50, 50));
     }
 
-    // D9 : verrouillé, seule la poignée « Déplacer » (object.move-free) le déplace ; ni copie, ni point de forme.
+    // D9 : verrouillé, seule la poignée « Déplacer » (object.move-free) le déplace ; ni copie, ni point de
+    // forme.
     void lockedMovesOnlyByMoveHandle()
     {
         Rig r;
@@ -454,7 +455,8 @@ private slots:
         QCOMPARE(r.editor.drops, 1);
     }
 
-    // H5-14 : une forme intelligente dont on déplace un point perd son préréglage (règle de L5-T9, pas de l'outil).
+    // H5-14 : une forme intelligente dont on déplace un point perd son préréglage (règle de L5-T9, pas de
+    // l'outil).
     void smartShapeLosesItsPresetWhenAPointMoves()
     {
         Rig r;

@@ -32,8 +32,9 @@ public:
     void reduce();          // ÷ kEnlargeStep
     void setTranslucency(std::uint8_t value);
     void refresh(); // la page a changé (annuler, page suivante) : sélection filtrée, cadre recalculé
-    // Mode points de forme (F-527, `object.shape-points`, L5-T16) : la forme sélectionnée seule montre ses points
-    // (SelectionView::shapePoints) ; glisser un point le déplace en une étape. Échap au repos quitte le mode.
+    // Mode points de forme (F-527, `object.shape-points`, L5-T16) : la forme sélectionnée seule montre ses
+    // points (SelectionView::shapePoints) ; glisser un point le déplace en une étape. Échap au repos quitte
+    // le mode.
     void setShapePointsMode(bool on);
     bool shapePointsMode() const noexcept;
 
@@ -47,6 +48,7 @@ private:
         Resizing,   // objets soulevés, poignée glissée (F-520)
         Rotating,   // objets soulevés, bouton de rotation glissé (F-522)
         SmartPoint, // forme soulevée, point intelligent glissé (F-242)
+        ShapePoint, // forme soulevée, point de forme glissé (F-527, L5-T16)
     };
     enum class Grab : std::uint8_t
     {
@@ -58,6 +60,7 @@ private:
         Rotate,     // bouton de rotation
         Command,    // autre bouton de la barre : un clic le déclenche
         SmartPoint, // point intelligent d'une forme seule
+        ShapePoint, // point de forme d'une forme seule, en mode points de forme
     };
 
     void press(const input::Sample& sample);
@@ -68,6 +71,11 @@ private:
     void beginSmartPoint();
     void updateSmartPoint(core::PointF point);
     void endSmartPoint(bool cancelled);
+    // Mode points de forme : points de la forme sélectionnée seule (page), vides hors du mode.
+    std::vector<core::PointF> shownShapePoints(const std::vector<core::ObjectId>& selection) const;
+    void beginShapePoint();
+    void updateShapePoint(core::PointF point);
+    void endShapePoint(bool cancelled);
     // Soulève ids (m_lifted d'abord), montre les copies et passe à state.
     void liftForGesture(std::vector<core::ObjectId> ids, State state);
     // Agrandir et Réduire : la sélection redimensionnable, × factor autour du centre du cadre.
@@ -99,6 +107,12 @@ private:
     std::vector<double> m_smartParameters;         // paramètres du dernier aperçu
     bool m_smartMoved = false;                     // l'aperçu a changé au moins une fois
     bool m_trashHover = false;
+    bool m_shapePointsMode = false;             // object.shape-points (F-527)
+    std::size_t m_shapePoint = 0;               // point de forme saisi
+    std::optional<core::PointF> m_shapePointTo; // position du dernier aperçu
+    std::vector<core::ObjectId> m_copied;       // soulevés à dragCopy : laissés en place, copiés au dépôt
+    std::vector<core::PageObject>
+        m_copySources; // leur fermeture (closureForCopy), prise avant le soulèvement
     int m_modifiers = 0;
 };
 
