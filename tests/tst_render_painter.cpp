@@ -895,7 +895,8 @@ private slots:
 
     void connectorRoundCapIsDrawn()
     {
-        const QImage image = renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::Round));
+        const QImage image =
+            renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::Round));
         QVERIFY(near(image.pixelColor(200, 50), Qt::red, 10));
         QVERIFY(near(image.pixelColor(200, 54), Qt::red, 10)); // disque de rayon 6, bien au-delà du trait
         QVERIFY(near(image.pixelColor(204, 50), Qt::red, 10));
@@ -904,7 +905,8 @@ private slots:
 
     void connectorArrowCapIsDrawn()
     {
-        const QImage image = renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::Arrow));
+        const QImage image =
+            renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::Arrow));
         QVERIFY(near(image.pixelColor(195, 50), Qt::red, 10));
         QVERIFY(near(image.pixelColor(189, 54), Qt::red, 10)); // base large de la flèche, hors du trait
         QVERIFY(near(image.pixelColor(189, 46), Qt::red, 10));
@@ -922,7 +924,8 @@ private slots:
 
     void connectorWithoutCapIsAPlainLine()
     {
-        const QImage image = renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::None));
+        const QImage image =
+            renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::None));
         QVERIFY(near(image.pixelColor(100, 50), Qt::red, 10));
         QVERIFY(near(image.pixelColor(198, 50), Qt::red, 10));
         QVERIFY(near(image.pixelColor(204, 50), Qt::white, 2));
@@ -942,7 +945,8 @@ private slots:
         QVERIFY(near(b.pixelColor(200, 54), Qt::red, 10));
         QVERIFY(near(b.pixelColor(10, 54), Qt::white, 2));
         // Flèche en A : pointe vers A, base du côté de B.
-        const QImage arrowA = renderConnector(capConnector(core::ConnectorCap::Arrow, core::ConnectorCap::None));
+        const QImage arrowA =
+            renderConnector(capConnector(core::ConnectorCap::Arrow, core::ConnectorCap::None));
         QVERIFY(near(arrowA.pixelColor(21, 54), Qt::red, 10));
         QVERIFY(near(arrowA.pixelColor(7, 50), Qt::white, 2));
         QVERIFY(near(arrowA.pixelColor(189, 54), Qt::white, 2));
