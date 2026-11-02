@@ -928,8 +928,8 @@ private slots:
     }
 
     // L5-C4 : un geste qui reconstruit la page (retrait ou réordonnancement : « remove » puis « insert » de
-    // chaque objet) puis insère en fin de page, dans le même tour, ne laisse pas ce dernier objet en attente :
-    // le redessin demandé par la reconstruction le couvre ; sinon le versement après l'inactivité fait un
+    // chaque objet) puis insère en fin de page, dans le même tour, ne laisse pas ce dernier objet en attente
+    // : le redessin demandé par la reconstruction le couvre ; sinon le versement après l'inactivité fait un
     // second redessin pour un seul geste (collage, « premier plan » : 2 mesurés au banc, S8.2 exige 1).
     void insertAfterRebuildOfTheSameTurnIsNotLeftWaiting()
     {

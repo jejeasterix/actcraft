@@ -102,7 +102,8 @@ void FixedPageItem::restart(Decode decode, Scope scope)
     // L5-C4 : un objet inséré en fin de page dans ce même tour (suite d'une commande : collage, ordre) est lu
     // par le redessin que cette reconstruction demande ; le mettre en attente ferait un second redessin, au
     // versement.
-    if (samePage && !m_restartedThisTurn) { // pas setPage ni setSource : ils ouvrent une page, qui reste lente
+    if (samePage &&
+        !m_restartedThisTurn) { // pas setPage ni setSource : ils ouvrent une page, qui reste lente
         m_restartedThisTurn = true;
         QMetaObject::invokeMethod(this, [this] { m_restartedThisTurn = false; }, Qt::QueuedConnection);
     }
