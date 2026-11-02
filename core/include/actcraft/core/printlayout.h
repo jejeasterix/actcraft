@@ -1,4 +1,5 @@
 #pragma once
+#include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 
 #include <vector>
