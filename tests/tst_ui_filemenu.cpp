@@ -673,6 +673,8 @@ private slots:
         QVERIFY(list && area);
         const int count = list->property("count").toInt();
         QCOMPARE(count, 12);
+        s.window->resize(1280, 800);
+        QTRY_VERIFY(list->width() > 100 && list->height() > 200);
         QTRY_VERIFY(list->property("contentHeight").toDouble() > list->height());
         int last = -1;
         QQuickItem* cell = nullptr;
