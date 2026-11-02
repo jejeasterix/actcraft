@@ -737,6 +737,50 @@ private slots:
         QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"holdMs\": -1}", s, error));
     }
 
+    // L4-C21 : les étapes « pointer » portent des modificateurs (Ctrl+clic d'une miniature).
+    void pointerStepModifiersParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"pointer\": [[5, 6]], \"modifiers\": [\"ctrl\"]},"
+                            "{\"pointer\": [[5, 6]], \"modifiers\": [\"Shift\", \"alt\"]},"
+                            "{\"pointer\": [[5, 6]]}",
+                            s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps[0].modifiers, Qt::KeyboardModifiers(Qt::ControlModifier));
+        QCOMPARE(s.steps[1].modifiers, Qt::KeyboardModifiers(Qt::ShiftModifier | Qt::AltModifier));
+        QCOMPARE(s.steps[2].modifiers, Qt::KeyboardModifiers(Qt::NoModifier));
+        QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"modifiers\": [\"hyper\"]}", s, error));
+        QVERIFY2(error.contains(QStringLiteral("modificateur inconnu")), qPrintable(error));
+        QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"modifiers\": \"ctrl\"}", s, error));
+    }
+
+    void pointerStepSendsItsModifiers()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        struct Spy : QObject
+        {
+            QList<Qt::KeyboardModifiers> presses;
+            bool eventFilter(QObject*, QEvent* e) override
+            {
+                if (e->type() == QEvent::MouseButtonPress) {
+                    presses << static_cast<QMouseEvent*>(e)->modifiers();
+                }
+                return false;
+            }
+        } spy;
+        f.window->installEventFilter(&spy);
+        QStringList report;
+        const UiScenario s = scenario("modificateurs", "[{\"waitReady\":true},"
+                                                       "{\"pointer\":[[100,100]],\"modifiers\":[\"ctrl\"]},"
+                                                       "{\"pointer\":[[100,100]]}]");
+        QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(spy.presses.size(), 2);
+        QCOMPARE(spy.presses[0], Qt::KeyboardModifiers(Qt::ControlModifier));
+        QCOMPARE(spy.presses[1], Qt::KeyboardModifiers(Qt::NoModifier));
+    }
+
     void doubleClickStepParsed()
     {
         UiScenario s;

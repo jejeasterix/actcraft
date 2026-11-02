@@ -1,7 +1,7 @@
 {
   "format": "actcraft-scenario/1",
   "name": "grille",
-  "description": "S7.2 : créateur de grille, grille du dessus cachée sans redessin du cache (le cas d'une grille du dessous, un redessin de plus, est couvert en unitaire par hideGridBelowRefreshesOnce : le joueur ne sait que comparer à une valeur lue, pas à cette valeur plus un).",
+  "description": "S7.2 : créateur de grille, grille du dessus cachée sans redessin du cache, puis grille du dessous cachée avec un redessin de plus.",
   "steps": [
     {"waitReady": true},
     {"command": "tool.shape"},
@@ -26,6 +26,21 @@
     {"waitReady": true},
     {"expect": "appPageSettings.gridVisible", "value": false},
     {"expect": "pageView.cacheRefreshCount", "value": "${avant}"},
-    {"capture": "grille-cachee"}
+    {"capture": "grille-cachee"},
+    {"command": "grid.hide"},
+    {"waitReady": true},
+    {"expect": "appPageSettings.gridVisible", "value": true},
+    {"command": "grid.designer"},
+    {"expect": "gridDesigner.visible", "value": true},
+    {"key": "Space"},
+    {"expect": "appPageSettings.gridAbove", "value": false},
+    {"key": "Return"},
+    {"waitReady": true},
+    {"expect": "gridDesigner.visible", "value": false},
+    {"remember": "pageView.cacheRefreshCount", "as": "avantDessous"},
+    {"command": "grid.hide"},
+    {"waitFor": "pageView.cacheRefreshCount", "value": "${avantDessous}", "above": true, "timeoutMs": 5000},
+    {"expect": "appPageSettings.gridVisible", "value": false},
+    {"capture": "grille-dessous-cachee"}
   ]
 }

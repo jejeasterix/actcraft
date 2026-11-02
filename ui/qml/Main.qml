@@ -222,6 +222,8 @@ Window {
             commands: appCommands
             textEditing: appText
             textListOpen: textFormatBar.openLists + verticalTextBar.openLists > 0
+            onPopupOpened: root.popupOpened()
+            onPopupClosed: root.popupClosed()
         }
 
         // Lot 4 : palette des formes, à droite, avant la palette d'outils.

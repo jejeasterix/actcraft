@@ -25,6 +25,9 @@ Item {
     property alias gridOverlay: gridOverlayItem
     // Nombre de demandes de menu contextuel reçues de la vue (espion des tests).
     property int contextMenuRequestCount: 0
+    // Le menu contextuel recouvre la vue : relayé à la fenêtre (Main.openPopups).
+    signal popupOpened()
+    signal popupClosed()
     property bool cacheEnabled: true
     property bool inputBlocked: false
     // Document ouvert : le stylo y verse ses traits par la pile (L2-T15).
@@ -271,5 +274,7 @@ Item {
         id: pageContextMenu
         objectName: "pageContextMenu"
         commands: area.commands
+        onOpened: area.popupOpened()
+        onClosed: area.popupClosed()
     }
 }

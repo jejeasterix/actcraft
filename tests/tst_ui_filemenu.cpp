@@ -674,6 +674,22 @@ private slots:
         QTRY_VERIFY(!s.view->inputBlocked());
     }
 
+    // L4-C21 : le menu contextuel de la page recouvre la vue : ouvert, il bloque le stylet (contrat du lot).
+    void pageContextMenuBlocksTheStylus()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* menu = namedObject(s, "pageContextMenu");
+        QVERIFY(menu);
+        QVERIFY(!s.view->inputBlocked());
+        QVERIFY(QMetaObject::invokeMethod(menu, "popupAt", Q_ARG(QVariant, 200), Q_ARG(QVariant, 200)));
+        QTRY_VERIFY(menu->property("visible").toBool());
+        QTRY_VERIFY(s.view->inputBlocked());
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QTRY_VERIFY(!s.view->inputBlocked());
+    }
+
     // L4-C18 : un lâcher sur la moitié basse de la dernière miniature créée, des pages suivant, insère après
     // elle (et non en fin de document).
     void dropOnLowerHalfOfLastCreatedThumbnail()

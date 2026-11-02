@@ -1,7 +1,7 @@
 {
   "format": "actcraft-scenario/1",
   "name": "navigateur-pages",
-  "description": "S7.4 : panneau des navigateurs, sélection de pages (clavier : le joueur n'envoie pas de modificateur à la souris), glisser une sélection, copier-coller, insertion. Miniatures suspendues panneau caché.",
+  "description": "S7.4 : panneau des navigateurs, sélection de pages (clavier, puis Ctrl+clic qui retire et ajoute une page), glisser une sélection, copier-coller, insertion. Miniatures suspendues panneau caché.",
   "steps": [
     {"waitReady": true},
     {"expect": "appThumbnails.active", "value": false},
@@ -82,6 +82,14 @@
     {"command": "page.goto", "argument": "1"},
     {"pointer": [[110, 192]], "space": "window"},
     {"key": "Shift+Down"},
+    {"expect": "appPages.selection", "value": [0, 1]},
+    {"pointer": [[110, 328]], "space": "window", "modifiers": ["ctrl"]},
+    {"expect": "appPages.selection", "value": [0]},
+    {"pointer": [[110, 328]], "space": "window", "modifiers": ["ctrl"]},
+    {"expect": "appPages.selection", "value": [0, 1]},
+    {"pointer": [[110, 600]], "space": "window", "modifiers": ["ctrl"]},
+    {"expect": "appPages.selection", "value": [0, 1, 3]},
+    {"pointer": [[110, 600]], "space": "window", "modifiers": ["ctrl"]},
     {"expect": "appPages.selection", "value": [0, 1]},
     {"pointer": [[198, 276]], "space": "window"},
     {"expect": "pageNavigatorMenu.visible", "value": true},
