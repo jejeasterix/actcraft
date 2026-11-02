@@ -108,8 +108,8 @@ std::vector<PointF> penShapePoints(PenShape shape, PointF from, PointF to, const
         return boxPoints(from, to);
     case PenShape::Circle: {
         const PointF corner = squareCorner(from, to);
-        return ellipsePoints((from.x + corner.x) / 2, (from.y + corner.y) / 2, std::abs(corner.x - from.x) / 2,
-                             std::abs(corner.y - from.y) / 2);
+        return ellipsePoints((from.x + corner.x) / 2, (from.y + corner.y) / 2,
+                             std::abs(corner.x - from.x) / 2, std::abs(corner.y - from.y) / 2);
     }
     case PenShape::Ellipse:
         return ellipsePoints((from.x + to.x) / 2, (from.y + to.y) / 2, std::abs(to.x - from.x) / 2,

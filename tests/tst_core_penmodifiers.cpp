@@ -20,7 +20,8 @@ class TestPenModifiers : public QObject
 private slots:
     void horizontalLineIgnoresVerticalMotion()
     {
-        const auto p = actcraft::core::penShapePoints(actcraft::core::PenShape::Horizontal, {10, 10}, {200, 90});
+        const auto p =
+            actcraft::core::penShapePoints(actcraft::core::PenShape::Horizontal, {10, 10}, {200, 90});
         QVERIFY(!p.empty());
         QCOMPARE(p.front().y, 10.0);
         QVERIFY(same(p.back(), {200, 10}));
@@ -123,7 +124,8 @@ private slots:
     }
     void highlighterKeepsItsKind()
     {
-        const auto object = actcraft::core::penShapeStroke({{0, 0}, {10, 0}}, actcraft::core::Outline{}, true);
+        const auto object =
+            actcraft::core::penShapeStroke({{0, 0}, {10, 0}}, actcraft::core::Outline{}, true);
         const auto* stroke = std::get_if<actcraft::core::Stroke>(&object);
         QVERIFY(stroke);
         QVERIFY(stroke->kind == actcraft::core::StrokeKind::Highlighter);
