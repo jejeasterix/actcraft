@@ -19,7 +19,7 @@ namespace {
 
 // Calcul d'une zone d'image : décodage, remplissage, encodage PNG. Tourne hors du fil principal.
 std::string computeImageFill(const QByteArray& data, core::RectF bounds, core::PointF point, core::Argb color,
-                             int tolerance)
+                             int tolerance, const FillTool::ImageFiller& filler)
 {
     const QImage image = QImage::fromData(data);
     if (image.isNull() || bounds.width <= 0 || bounds.height <= 0) {
