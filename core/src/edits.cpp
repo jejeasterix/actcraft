@@ -6,6 +6,7 @@
 #include <limits>
 #include <optional>
 #include <utility>
+#include <vector>
 
 namespace actcraft::core {
 
@@ -161,6 +162,53 @@ RectF boundsOnPage(const PageObject& object) noexcept
     box.add(t.map({local.x, local.y + local.height}));
     box.add(t.map({local.x + local.width, local.y + local.height}));
     return box.grown(0);
+}
+
+namespace {
+
+// Emprise sur la page d'un objet, groupes résolus par la page ; `visiting` protège d'un cycle de groupes.
+std::optional<RectF> pageExtent(const Page& page, const PageObject& object, std::vector<ObjectId>& visiting)
+{
+    const auto* group = std::get_if<Group>(&object);
+    if (group == nullptr) {
+        if (!hasExtent(object)) {
+            return std::nullopt;
+        }
+        return boundsOnPage(object);
+    }
+    if (std::find(visiting.begin(), visiting.end(), object.common.id) != visiting.end()) {
+        return std::nullopt;
+    }
+    visiting.push_back(object.common.id);
+    Box box;
+    for (const ObjectId member : group->members) {
+        const std::size_t at = indexOf(page, member);
+        if (at == page.objects.size()) {
+            continue;
+        }
+        if (const auto r = pageExtent(page, page.objects[at], visiting)) {
+            box.addRect(*r);
+        }
+    }
+    visiting.pop_back();
+    if (box.empty()) {
+        return std::nullopt;
+    }
+    return box.grown(0);
+}
+
+} // namespace
+
+bool hasExtent(const Page& page, const PageObject& object) noexcept
+{
+    std::vector<ObjectId> visiting;
+    return pageExtent(page, object, visiting).has_value();
+}
+
+RectF boundsOnPage(const Page& page, const PageObject& object) noexcept
+{
+    std::vector<ObjectId> visiting;
+    return pageExtent(page, object, visiting).value_or(RectF{});
 }
 
 AddObjectCommand::AddObjectCommand(std::size_t page, PageObject object)
