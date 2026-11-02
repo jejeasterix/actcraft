@@ -1,3 +1,5 @@
+#include "nativeobjects.h"
+
 #include <actcraft/core/pagezones.h>
 #include <actcraft/formats/nativejson.h>
 
@@ -1726,7 +1728,57 @@ QJsonObject resourceJson(const std::string& key, const std::string& extension)
     return QJsonObject{{u"key"_s, str(key)}, {u"extension"_s, str(extension)}};
 }
 
+// Gabarits des clés connues (KnownKeys), les mêmes pour un document et pour les objets du presse-papiers.
+KnownKeys knownKeys()
+{
+    KnownKeys known;
+    for (std::size_t i = 0; i < known.objects.size(); ++i) {
+        if (i != static_cast<std::size_t>(ObjectKind::Unknown)) {
+            known.objects[i] = objectJson(everyKeyObject(i));
+        }
+    }
+    Page everyPageKey;
+    everyPageKey.baseHeight = 1; // « baseHeight » n'est écrite que hors défaut (L4-T6)
+    everyPageKey.zones = PageZones{.horizontal = 1,
+                                   .vertical = 1,
+                                   .frameWidth = 1,
+                                   .frameHeight = 1}; // « zones » n'est écrite que hors défaut (L4-T27)
+    known.page = pageJson(everyPageKey);
+    PagePresentation everyPresentationKey;
+    everyPresentationKey.hasOrigin = true;
+    known.presentation = presentationJson(everyPresentationKey);
+    known.action = actionJson(Action{});
+    known.run = runJson(TextSpan{});
+    known.level = gridLevelJson(GridLevel{});
+    known.resource = resourceJson({}, {});
+    known.document = documentToJson(Document{});
+    return known;
+}
+
 } // namespace
+
+// Code d'objet du format natif, partagé avec le presse-papiers (nativeobjects.h, L5-T3) : les fonctions
+// ci-dessus, sans copie, pour que l'enregistrement et le presse-papiers ne divergent jamais.
+QJsonObject native::objectJson(const PageObject& object)
+{
+    return formats::objectJson(object);
+}
+
+std::vector<PageObject> native::readObjects(const QJsonArray& list, QStringList& warnings)
+{
+    const KnownKeys known = knownKeys();
+    Reader r;
+    r.known = &known;
+    std::vector<PageObject> objects;
+    for (qsizetype i = 0; i < list.size(); ++i) {
+        r.where = u"objet %1"_s.arg(i + 1);
+        if (std::optional<PageObject> object = readObject(r, list.at(i))) {
+            objects.push_back(std::move(*object));
+        }
+    }
+    warnings << r.warnings;
+    return objects;
+}
 
 QString gradientKindName(GradientKind kind)
 {
@@ -1795,27 +1847,7 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
         return result;
     }
 
-    KnownKeys known;
-    for (std::size_t i = 0; i < known.objects.size(); ++i) {
-        if (i != static_cast<std::size_t>(ObjectKind::Unknown)) {
-            known.objects[i] = objectJson(everyKeyObject(i));
-        }
-    }
-    Page everyPageKey;
-    everyPageKey.baseHeight = 1; // « baseHeight » n'est écrite que hors défaut (L4-T6)
-    everyPageKey.zones = PageZones{.horizontal = 1,
-                                   .vertical = 1,
-                                   .frameWidth = 1,
-                                   .frameHeight = 1}; // « zones » n'est écrite que hors défaut (L4-T27)
-    known.page = pageJson(everyPageKey);
-    PagePresentation everyPresentationKey;
-    everyPresentationKey.hasOrigin = true;
-    known.presentation = presentationJson(everyPresentationKey);
-    known.action = actionJson(Action{});
-    known.run = runJson(TextSpan{});
-    known.level = gridLevelJson(GridLevel{});
-    known.resource = resourceJson({}, {});
-    known.document = documentToJson(Document{});
+    const KnownKeys known = knownKeys();
 
     // Tout est lu dans un document neuf : `out` n'est remplacé qu'à la fin, lecture réussie.
     Reader r;
