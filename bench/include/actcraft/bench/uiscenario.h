@@ -92,6 +92,7 @@ struct UiStep
     int pinchSteps = 12;                     // Pinch : pas d'une image (1 à 1000)
     Qt::MouseButton button = Qt::LeftButton; // Pointer
     int holdMs = 0;                          // Pointer : maintien au dernier point avant le relâché
+    Qt::KeyboardModifiers modifiers;         // Pointer : modificateurs tenus pendant le clic (L4-C21)
     bool windowSpace = false; // Pointer, DoubleClick, Stroke : points en fenêtre plutôt qu'en page
     bool expectStroke = true; // Stroke : faux = aucun trait ne doit être figé (stylet sur un bouton)
     std::optional<double>
