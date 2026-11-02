@@ -223,15 +223,23 @@ private:
     QSizeF pageSize() const;
     int add(Entry entry, const QString& kind);
     void updateFilter();
-    // Les guides ne valent que pour le stylo (7a : « avec le stylo, un appui… accroche le trait ») ; la
-    // sélection, le marqueur et la gomme passent tels quels (marqueur et gomme : L7-T34).
-    bool guidesTool(input::UserId user) const;
+    // Guides que suit l'outil courant de l'utilisateur : stylo et marqueur, tous (F-280 « avec Stylo ou
+    // Marqueur ») ; gomme, la mine du compas seule (F-282 « Stylo, marqueur ou gomme près de la mine ») ;
+    // sélection et autres outils, aucun (L7-T34).
+    enum class GuidedBy
+    {
+        All,
+        Compass,
+        None
+    };
+    GuidedBy guidedBy(input::UserId user) const;
     input::Sample guide(const input::Sample& sample);
     // Rapporteur ou compas qui tient le trait (saisi à l'appui), sinon nul.
     Entry* seizedProtractor() noexcept;
     Entry* seizedCompass() noexcept;
     Entry* compassEntry(int index) noexcept; // compas de l'index, sinon nul
-    void followCompass(Entry& entry, input::Phase phase);
+    // poursInk : l'outil verse un trait (stylo, marqueur) ; la gomme n'arme aucune croix.
+    void followCompass(Entry& entry, input::Phase phase, bool poursInk);
     static void storeCompassChoice(const Entry& entry);
     static void applyProtractorFrame(Entry& entry);
     static void storeProtractorChoice(const Entry& entry);
@@ -254,6 +262,7 @@ private:
     bool m_filterInstalled = false;
     std::vector<Entry> m_tools;
     features::GuideSet m_guides;
+    features::GuideSet m_compassGuides; // la mine des compas seule : ce que suit la gomme
     int m_revision = 0;
     bool m_originVisible = false;
     QPointF m_origin;
