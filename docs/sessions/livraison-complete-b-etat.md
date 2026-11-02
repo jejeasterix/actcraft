@@ -134,6 +134,9 @@ Sections à corriger des plans 7a/7b listées dans « Écarts pour l'orchestrate
 - Effets de page (L7-T7) : six mouvements approximés sans rotation (box-turn, card-flip, tiles-spin, corner-swing, spiral-out, turn-reveal) ; slide-right sans poussée ; star-iris en quatre quarts. À regarder à l'écran, à corriger dans une tâche dédiée si besoin.
 - Effets de page (L7-T7) : `known()` duplique la logique de `features` (un `isKnownEffect()` dans features serait la bonne place).
 
+## Lot 4 livré (2026-11-02)
+Lot 4 livré (2026-11-02, message du Pilote) : la PR jejeasterix/actcraft#8 est mergée dans main (042df64). Décision de l'orchestrateur : L7-T33 finit sur main @ a50d9e6 (preuve en cours), puis une tâche corrective **L7-T33b** merge main @ 042df64 dans `feat/livraison-complete-b` (merge, sans rebase), avec la même méthode d'adaptation que L7-T33 (côté lot 7 d'abord ; les 7 gardes null de L7-T33 dans les QML du lot 3 sont les premiers conflits possibles avec le lot 4), avant L7-T34, qui s'appuie sur les points d'accroche des outils.
+
 ## Lot 3 livré (2026-10-21)
 La PR jejeasterix/actcraft#6 (lots 10 et 3, 0.4.0) est mergée dans main (70c8601) ; feat/livraison-complete y est contenue. Condition « livraison du lot 3 » de L7-T33 remplie. Le Pilote a demandé un rebase sur main : refusé (237 commits avec merges --no-ff, branche que A fusionne) ; l'intégration se fait par le merge de L7-T33, après L7-T32, ou plus tôt si A le demande.
 La PR jejeasterix/actcraft#7 (lot B11, CI à la demande) est mergée dans main (a50d9e6, signalé par le Pilote le 2026-10-27) : la cible du merge de L7-T33 est désormais main @ a50d9e6 ou plus récent, par un merge, sans rebase.
