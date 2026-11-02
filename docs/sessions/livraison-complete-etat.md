@@ -679,6 +679,10 @@ CI verte · releases publiées seulement sur go écrit de Jérôme (action final
 4. Paquets (`build/paquet/` du worktree du chantier) : `PAQUET OK : …\ActCraft-0.1.0-setup.exe` (25,5 Mo) ; `INSTALLATEUR OK` (`--version : ActCraft 0.1.0`, fenêtre « ActCraft — rendu : Direct3D 11 », `qwindows.dll` du dossier installé) ; `APK OK` : `ActCraft-0.1.0-arm64-v8a.apk` (48,7 Mo), `ActCraft-0.1.0-x86_64.apk` (49,6 Mo), cible 36, 0 permission, signature de débogage.
 5. CHANGELOG daté (`## 0.1.0 — 2026-10-15`, `NOTES OK`) ; `graphify update .` (1962 nœuds) ; commit 70cfea5.
 
+## PR du lot 4
+
+PR #8 https://github.com/jejeasterix/actcraft/pull/8 (créée en brouillon, branche poussée à fc2ec9c). Point de retour : `origin/main` = a50d9e6 (branche à jour, aucun rebase). Profil : porte avant merge non ; CI couverte par la suite complète non → merge seulement sur CI verte (`attendre-ci.cjs --pret`, en fond). Conditions écrites : double relecture faite, 0 bloquant ouvert (tours de correctifs L4-C18 à L4-C23 clos) · 0 tâche bloquée · suite Mac debug 133/133 sans baisse, Windows release 138/138 (run 41465980962) · aucun test retiré ni `QSKIP` ajouté (L4-C22 et L4-C23 ne changent qu'un contrôle de pixel et une coordonnée de clic, attendus inchangés) · scénarios du lot joués hors écran et réussis (D3D11 au PC) · CLI : aucune · graphe reporté au PC (écart à la règle « avant le merge », comme aux lots précédents : `graphify update` sur le Mac réécrit les chemins).
+
 ## Rapport du lot 4
 
 Lot 4 « Outils II » (plans 4a et 4b, 38 tâches, correctifs L4-C1 à L4-C22, simplification L4-S1), version 0.5.0.
