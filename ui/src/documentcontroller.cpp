@@ -331,6 +331,23 @@ bool DocumentController::isLifting() const noexcept
     return !m_lifted.empty() && m_liftGeneration == m_generation;
 }
 
+// Talon L5-T1 : rempli par L5-T20.
+struct DocumentController::ParkedSession
+{
+};
+
+// Talon L5-T1 : rempli par L5-T20.
+std::unique_ptr<DocumentController::ParkedSession> DocumentController::parkSession()
+{
+    return nullptr;
+}
+
+// Talon L5-T1 : rempli par L5-T20.
+void DocumentController::resumeSession(std::unique_ptr<ParkedSession> session)
+{
+    static_cast<void>(session);
+}
+
 void DocumentController::announceEdit()
 {
     emit editAboutToApply();

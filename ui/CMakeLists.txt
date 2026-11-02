@@ -152,6 +152,29 @@ qt_add_qml_module(actcraft_ui
         icons/nav-notes.svg
         icons/nav-proprietes.svg
         icons/nav-actions.svg
+        icons/couper.svg
+        icons/copier.svg
+        icons/coller.svg
+        icons/dupliquer.svg
+        icons/grouper.svg
+        icons/degrouper.svg
+        icons/organiser.svg
+        icons/aligner.svg
+        icons/transformer.svg
+        icons/verrouiller.svg
+        icons/masquer.svg
+        icons/glisser-copie.svg
+        icons/points-forme.svg
+        icons/pot-peinture.svg
+        icons/connecteur.svg
+        icons/modification-stylo.svg
+        icons/menu-objet.svg
+        icons/image.svg
+        icons/media.svg
+        icons/onglets.svg
+        icons/exporter.svg
+        icons/imprimer.svg
+        icons/importer.svg
     SOURCES
         include/actcraft/ui/viewtransform.h
         include/actcraft/ui/pageview.h
@@ -180,6 +203,16 @@ qt_add_qml_module(actcraft_ui
         src/pagescontroller.cpp
         include/actcraft/ui/textediting.h
         src/textediting.cpp
+        include/actcraft/ui/objectediting.h
+        src/objectediting.cpp
+        include/actcraft/ui/insertion.h
+        src/insertion.cpp
+        include/actcraft/ui/documenttabs.h
+        src/documenttabs.cpp
+        include/actcraft/ui/fileexchange.h
+        src/fileexchange.cpp
+        include/actcraft/ui/printcontroller.h
+        src/printcontroller.cpp
         ${ACTCRAFT_UI_LOT7_SOURCES})
 
 # Le code d'enregistrement QML généré inclut les en-têtes par leur seul nom : d'où le dossier privé.
@@ -204,7 +237,7 @@ target_include_directories(actcraft_ui
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/actcraft/ui ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(actcraft_ui PUBLIC
     Qt6::Quick ActCraft::actions ActCraft::formats ActCraft::input ActCraft::render ActCraft::tools
-    ActCraft::features)
+    ActCraft::features ActCraft::export ActCraft::print Qt6::Concurrent)
 actcraft_set_warnings(actcraft_ui)
 
 # Version affichée par « À propos » (décision 31).

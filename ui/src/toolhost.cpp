@@ -392,6 +392,12 @@ void ToolHost::setSelectionTranslucency(int value)
     }
 }
 
+// Talon L5-T1 : rempli par L5-T17.
+void ToolHost::setConnectorStyle(int style)
+{
+    static_cast<void>(style);
+}
+
 void ToolHost::cancelGesture()
 {
     if (!m_user) {

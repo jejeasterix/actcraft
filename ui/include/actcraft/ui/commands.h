@@ -25,6 +25,7 @@ class Commands : public QObject
     Q_PROPERTY(QVariantList palette READ palette NOTIFY layoutChanged)
     Q_PROPERTY(QVariantList objectBar READ objectBar NOTIFY layoutChanged)
     Q_PROPERTY(QVariantList contextMenu READ contextMenu NOTIFY layoutChanged)
+    Q_PROPERTY(QVariantList objectMenu READ objectMenu NOTIFY layoutChanged)
     Q_PROPERTY(QVariantList shortcuts READ shortcuts NOTIFY layoutChanged)
     Q_PROPERTY(QStringList colors READ colors NOTIFY layoutChanged)
     Q_PROPERTY(QVariantList penWidths READ penWidths NOTIFY layoutChanged)
@@ -49,6 +50,7 @@ public:
     QVariantList objectBar() const;
     // Menu contextuel de la page : mêmes éléments qu'un menu (séparateurs nettoyés comme au premier niveau).
     QVariantList contextMenu() const;
+    QVariantList objectMenu() const;
     // [{group, items: [{id, label, icon, checkable}]}] ; « couleurs » et « epaisseur » gardés sans items.
     QVariantList palette() const;
     // [{id, sequence}] des commandes disponibles qui ont un raccourci.

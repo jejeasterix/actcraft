@@ -92,6 +92,19 @@ constexpr std::string_view enumName(PenCap value) noexcept
     return {};
 }
 
+constexpr std::string_view enumName(ConnectorCap value) noexcept
+{
+    switch (value) {
+    case ConnectorCap::None:
+        return "none";
+    case ConnectorCap::Round:
+        return "round";
+    case ConnectorCap::Arrow:
+        return "arrow";
+    }
+    return {};
+}
+
 constexpr std::string_view enumName(PenJoin value) noexcept
 {
     switch (value) {
@@ -345,6 +358,7 @@ constexpr auto kLayers = namesOf<Layer>();
 constexpr auto kPenStyles = namesOf<PenStyle>();
 constexpr auto kPenCaps = namesOf<PenCap>();
 constexpr auto kPenJoins = namesOf<PenJoin>();
+constexpr auto kConnectorCaps = namesOf<ConnectorCap>();
 constexpr auto kFillKinds = namesOf<FillKind>();
 constexpr auto kGradients = namesOf<GradientKind>();
 constexpr auto kActionKinds = namesOf<ActionKind>();
@@ -371,10 +385,11 @@ template <typename E, std::size_t N> constexpr bool distinct(const std::array<Na
     return true;
 }
 static_assert(distinct(kLayers) && distinct(kPenStyles) && distinct(kPenCaps) && distinct(kPenJoins) &&
-                  distinct(kFillKinds) && distinct(kGradients) && distinct(kActionKinds) &&
-                  distinct(kObjectKinds) && distinct(kShapeKinds) && distinct(kPatterns) &&
-                  distinct(kStrokeKinds) && distinct(kGridPatterns) && distinct(kGridLines) &&
-                  distinct(kToolsModes) && distinct(kCurtainModes) && distinct(kSpotlightShapes),
+                  distinct(kConnectorCaps) && distinct(kFillKinds) && distinct(kGradients) &&
+                  distinct(kActionKinds) && distinct(kObjectKinds) && distinct(kShapeKinds) &&
+                  distinct(kPatterns) && distinct(kStrokeKinds) && distinct(kGridPatterns) &&
+                  distinct(kGridLines) && distinct(kToolsModes) && distinct(kCurtainModes) &&
+                  distinct(kSpotlightShapes),
               "document.json : nom ou valeur d'énumération en double");
 
 constexpr bool followsVariantOrder()
@@ -528,13 +543,16 @@ QJsonObject actionJson(const Action& action)
 
 void writeCommon(QJsonObject& j, const ObjectCommon& common)
 {
-    const auto& [id, name, layer, visible, locked, translucency, restrictions, transform, label, actions] =
-        common;
+    const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
+                 actions] = common;
     j.insert(u"id"_s, idValue(id));
     j.insert(u"name"_s, str(name));
     j.insert(u"layer"_s, nameText(layer));
     j.insert(u"visible"_s, visible);
     j.insert(u"locked"_s, locked);
+    if (dragCopy) { // clé facultative (lot 5) : écrite seulement si vraie
+        j.insert(u"dragCopy"_s, true);
+    }
     j.insert(u"translucency"_s, static_cast<int>(translucency));
     const auto& [movable, resizable, rotatable] = restrictions;
     j.insert(u"restrictions"_s,
@@ -689,12 +707,22 @@ void writeBody(QJsonObject& j, const Group& group)
 
 void writeBody(QJsonObject& j, const Connector& connector)
 {
-    const auto& [firstEnd, secondEnd, objectA, objectB, pen] = connector;
+    const auto& [firstEnd, secondEnd, objectA, objectB, pen, style, capA, capB] = connector;
     j.insert(u"firstEnd"_s, pointJson(firstEnd));
     j.insert(u"secondEnd"_s, pointJson(secondEnd));
     j.insert(u"objectA"_s, idValue(objectA));
     j.insert(u"objectB"_s, idValue(objectB));
     j.insert(u"pen"_s, outlineJson(pen));
+    // Clés facultatives (lot 5) : écrites seulement hors défaut ; leur gabarit vient d'everyKeyObject.
+    if (style != 0) {
+        j.insert(u"style"_s, static_cast<int>(style));
+    }
+    if (capA != ConnectorCap::None) {
+        j.insert(u"capA"_s, nameText(capA));
+    }
+    if (capB != ConnectorCap::None) {
+        j.insert(u"capB"_s, nameText(capB));
+    }
 }
 
 void writeBody(QJsonObject& j, const Equation& equation)
@@ -1261,12 +1289,14 @@ Action readAction(Reader& r, const QJsonObject& j)
 ObjectCommon readCommon(Reader& r, const QJsonObject& j)
 {
     ObjectCommon common;
-    auto& [id, name, layer, visible, locked, translucency, restrictions, transform, label, actions] = common;
+    auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
+           actions] = common;
     id = r.readId(j, u"id");
     name = r.readString(j, u"name");
     layer = r.readEnum(kLayers, j, u"layer", layer);
     visible = r.readFlag(j, u"visible", visible);
     locked = r.readFlag(j, u"locked", locked);
+    dragCopy = r.readFlag(j, u"dragCopy", dragCopy);
     translucency = r.readInteger(j, u"translucency", translucency);
     const QJsonObject jr = r.readChild(j, u"restrictions");
     auto& [movable, resizable, rotatable] = restrictions;
@@ -1435,12 +1465,15 @@ void readBody(Reader& r, const QJsonObject& j, Group& group)
 
 void readBody(Reader& r, const QJsonObject& j, Connector& connector)
 {
-    auto& [firstEnd, secondEnd, objectA, objectB, pen] = connector;
+    auto& [firstEnd, secondEnd, objectA, objectB, pen, style, capA, capB] = connector;
     firstEnd = r.readPoint(j, u"firstEnd", firstEnd);
     secondEnd = r.readPoint(j, u"secondEnd", secondEnd);
     objectA = r.readId(j, u"objectA");
     objectB = r.readId(j, u"objectB");
     pen = r.readOutline(j, u"pen");
+    style = r.readInteger(j, u"style", style);
+    capA = r.readEnum(kConnectorCaps, j, u"capA", capA);
+    capB = r.readEnum(kConnectorCaps, j, u"capB", capB);
 }
 
 // Jamais appelé : readObject lit un objet inconnu par readUnknown (std::visit exige un lecteur par type).
@@ -1465,7 +1498,12 @@ template <std::size_t I = 0> PageObject blankObject(std::size_t index)
 PageObject everyKeyObject(std::size_t index)
 {
     PageObject object = blankObject(index);
-    if (auto* shape = std::get_if<Shape>(&body(object))) {
+    object.common.dragCopy = true; // lot 5 : clé facultative
+    if (auto* connector = std::get_if<Connector>(&body(object))) {
+        connector->style = 1;
+        connector->capA = ConnectorCap::Arrow;
+        connector->capB = ConnectorCap::Arrow;
+    } else if (auto* shape = std::get_if<Shape>(&body(object))) {
         shape->preset = "preset";
         shape->parameters = {0.0};
     } else if (auto* text = std::get_if<Text>(&body(object))) {

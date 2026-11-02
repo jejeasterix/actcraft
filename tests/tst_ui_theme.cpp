@@ -20,6 +20,10 @@ const char* const kIcons[] = {
     "effacer", "deplacer", "rotation", "translucidite", "agrandir", "reduire", "rideau", "spot", "zoom-page",
     "effets", "regle", "equerre", "rapporteur", "compas", "origine", "des", "calculatrice", "horloge",
     "message", "forme-reconnue", "ecriture", "camera", "clavier", "bureau",
+    // Lot 5 (L5-T1) : 23 icônes à nous.
+    "couper", "copier", "coller", "dupliquer", "grouper", "degrouper", "organiser", "aligner", "transformer",
+    "verrouiller", "masquer", "glisser-copie", "points-forme", "pot-peinture", "connecteur",
+    "modification-stylo", "menu-objet", "image", "media", "onglets", "exporter", "imprimer", "importer",
     // Lot 4 (L4-T1) : 34 icônes à nous.
     "forme", "texte", "texte-vertical", "grille", "grille-masquer", "aimant", "createur-grille",
     "navigateurs", "page-avant", "page-apres", "page-couper", "page-copier", "page-coller", "page-dupliquer",

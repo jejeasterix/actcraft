@@ -97,6 +97,7 @@ public:
     Q_INVOKABLE void reduceSelection();
     Q_INVOKABLE void setSelectionTranslucency(int value);
     Q_INVOKABLE void cancelGesture();
+    Q_INVOKABLE void setConnectorStyle(int style); // L5-T17
 
     // Outil courant de l'utilisateur ; nullptr tant que le contrôleur, la vue et la couche ne sont pas
     // branchés.
