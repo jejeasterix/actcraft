@@ -5,6 +5,8 @@
 #include <actcraft/tools/toolcontext.h>
 
 #include <QFutureWatcher>
+#include <QImage>
+#include <QPoint>
 #include <QThread>
 
 #include <cstdint>
@@ -25,6 +27,10 @@ public:
     bool isBusy() const noexcept override;
     void cancel() override;
     void setColor(core::Argb color);
+    // Remplissage d'une zone d'image (render::floodFill), branché par ui/ : un outil ne connaît pas render/
+    // (règle de modularité 2). Sans lui, un clic sur une image ne fait rien. Appelé hors du fil principal.
+    using ImageFiller = std::function<QImage(const QImage&, QPoint, core::Argb, int)>;
+    void setImageFiller(ImageFiller filler);
     // Crochet de test : appelé par le fil de calcul d'un remplissage d'image, à la fin du calcul.
     void setComputeObserver(std::function<void(QThread*)> observer);
     // Nombre de résultats d'image jetés parce que le document avait changé entre-temps.
@@ -38,6 +44,7 @@ private:
     ToolContext& m_context;
     core::Argb m_color = 0xFF000000u;
     std::function<void(QThread*)> m_observer;
+    ImageFiller m_filler;
     std::vector<QFutureWatcher<std::string>*> m_jobs;
     int m_stale = 0;
 };

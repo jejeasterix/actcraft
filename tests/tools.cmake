@@ -28,7 +28,7 @@ actcraft_add_test(tst_tools_text
 # L5-T12
 actcraft_add_test(tst_tools_fill
     SOURCES tst_tools_fill.cpp
-    LIBS ActCraft::tools)
+    LIBS ActCraft::tools ActCraft::render)
 # L5-T12
 actcraft_add_test(tst_tools_penshape
     SOURCES tst_tools_penshape.cpp

@@ -1,7 +1,6 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/fill.h>
 #include <actcraft/core/hittest.h>
-#include <actcraft/render/imagefill.h>
 #include <actcraft/tools/filltool.h>
 
 #include <QBuffer>
@@ -30,7 +29,7 @@ std::string computeImageFill(const QByteArray& data, core::RectF bounds, core::P
                              image.width() - 1);
     const int y = std::clamp(static_cast<int>((point.y - bounds.y) / bounds.height * image.height()), 0,
                              image.height() - 1);
-    const QImage filled = render::floodFill(image, QPoint(x, y), color, tolerance);
+    const QImage filled = filler(image, QPoint(x, y), color, tolerance);
     QByteArray png;
     QBuffer buffer(&png);
     buffer.open(QIODevice::WriteOnly);
@@ -71,6 +70,11 @@ void FillTool::cancel()
 void FillTool::setColor(core::Argb color)
 {
     m_color = color;
+}
+
+void FillTool::setImageFiller(ImageFiller filler)
+{
+    m_filler = std::move(filler);
 }
 
 void FillTool::setComputeObserver(std::function<void(QThread*)> observer)
@@ -116,6 +120,9 @@ void FillTool::fillImage(core::ObjectId image, core::PointF point)
     if (object == nullptr || object->resource.empty()) {
         return; // image procédurale : aucune ressource à remplir
     }
+    if (!m_filler) {
+        return; // branché par ui/
+    }
     const std::string key = object->resource;
     const QByteArray data = m_context.document.resourceData(key);
     if (data.isEmpty()) {
@@ -126,6 +133,7 @@ void FillTool::fillImage(core::ObjectId image, core::PointF point)
     const std::uint64_t revision = m_context.document.revision();
     const core::Argb color = m_color;
     const auto observer = m_observer;
+    const auto filler = m_filler;
 
     auto* watcher = new QFutureWatcher<std::string>();
     m_jobs.push_back(watcher);
@@ -134,7 +142,8 @@ void FillTool::fillImage(core::ObjectId image, core::PointF point)
                          finishImageFill(watcher, pageIndex, revision, image, key);
                      });
     watcher->setFuture(QtConcurrent::run([=] {
-        std::string png = computeImageFill(data, bounds, point, color, core::kDefaultImageFillTolerance);
+        std::string png =
+            computeImageFill(data, bounds, point, color, core::kDefaultImageFillTolerance, filler);
         if (observer) {
             observer(QThread::currentThread());
         }

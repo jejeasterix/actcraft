@@ -3,6 +3,7 @@
 #include <actcraft/core/fill.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/shapegeometry.h>
+#include <actcraft/render/imagefill.h>
 #include <actcraft/tools/filltool.h>
 #include <actcraft/tools/userstate.h>
 
@@ -109,7 +110,13 @@ struct Harness
     tools::ToolContext context{doc, ink, strokes, lift, selection, view, commands, user};
     tools::FillTool tool{context};
 
-    Harness() { tool.setColor(0xFF00AA00u); }
+    Harness()
+    {
+        tool.setColor(0xFF00AA00u);
+        tool.setImageFiller([](const QImage& image, QPoint seed, core::Argb color, int tolerance) {
+            return render::floodFill(image, seed, color, tolerance);
+        });
+    }
 
     core::ObjectId addShape(const core::RectF& box, core::Argb fill)
     {
