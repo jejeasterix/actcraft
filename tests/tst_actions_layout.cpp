@@ -299,8 +299,10 @@ private slots:
         const QByteArray json = readLayeredFile(QStringLiteral("layout.json"), QString(), dataResourceDir());
         QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
         QVERIFY(unknownCommands(layout, registry).isEmpty());
-        QCOMPARE(layout.objectBar, (QStringList{"object.move-free", "object.rotate", "object.translucency",
-                                                "object.enlarge", "object.reduce"}));
+        // Lot 5 (L5-T1) : six boutons ajoutés en fin ; les cinq du lot 3 restent en tête.
+        QCOMPARE(layout.objectBar.mid(0, 5),
+                 (QStringList{"object.move-free", "object.rotate", "object.translucency", "object.enlarge",
+                              "object.reduce"}));
         // Amendement 1 du lot 4 : entrées du menu de page ajoutées en fin ; celles du socle restent en tête.
         QCOMPARE(layout.contextMenu.mid(0, 4),
                  (QStringList{"tool.select", "tool.pen", "-", "recognition.convert-to-text"}));

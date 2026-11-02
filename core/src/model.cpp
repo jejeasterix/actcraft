@@ -117,7 +117,9 @@ void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
     h.tag(layer);
     h.boolean(visible);
     h.boolean(locked);
-    h.boolean(dragCopy);
+    if (dragCopy) { // lot 5 : haché seulement hors défaut, les empreintes d'avant restent inchangées
+        h.byte(0xD7);
+    }
     h.byte(translucency);
     const auto& [movable, resizable, rotatable] = restrictions;
     h.boolean(movable);
@@ -259,9 +261,12 @@ void hashType(Fnv1a& h, const Connector& connector) noexcept
     h.u64(objectA);
     h.u64(objectB);
     h.outline(pen);
-    h.byte(style);
-    h.tag(capA);
-    h.tag(capB);
+    if (style != 0 || capA != ConnectorCap::None || capB != ConnectorCap::None) { // lot 5, idem
+        h.byte(0xC5);
+        h.byte(style);
+        h.tag(capA);
+        h.tag(capB);
+    }
 }
 
 void hashType(Fnv1a& h, const Equation& equation) noexcept

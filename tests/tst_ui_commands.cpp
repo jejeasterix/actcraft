@@ -122,14 +122,17 @@ private slots:
         bool found = false;
         for (const QVariant& it : edit.value(QStringLiteral("items")).toList()) {
             const QVariantMap item = it.toMap();
-            if (item.value(QStringLiteral("submenu")).toBool()) {
+            // Lot 5 : le menu Éditer gagne trois sous-menus (Transformer, Aligner, Organiser) après « Effacer
+            // ».
+            if (item.value(QStringLiteral("submenu")).toBool() &&
+                item.value(QStringLiteral("id")).toString() == QLatin1String("clear")) {
                 found = true;
                 QCOMPARE(item.value(QStringLiteral("label")).toString(), QStringLiteral("Effacer"));
                 QCOMPARE(item.value(QStringLiteral("items")).toList().size(), 5);
             }
         }
         QVERIFY(found);
-        QCOMPARE(commands.objectBar().size(), 5);
+        QCOMPARE(commands.objectBar().size(), 11); // 5 d'avant le lot 5, 6 du lot 5
     }
 
     void submenuFilteredByPlatform()
