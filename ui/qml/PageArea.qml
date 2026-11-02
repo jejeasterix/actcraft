@@ -202,17 +202,11 @@ Item {
     // Indicateur de largeur (F-138) : cercle de la taille et de la couleur du trait sous le pointeur, pour les
     // outils d'encre seulement. Avec la sélection, la flèche suffit (ToolCursor) : le cercle de l'encre gardée
     // restait sous le pointeur, au point d'appui sur un objet verrouillé (L3-C15). Sans Tools : le stylo.
-    // Position du pointeur : le HoverHandler ne bouge pas pendant un glisser à bouton enfoncé ; la vue, elle,
-    // reçoit alors les mouvements (L4-C15). La plus récente des deux sources l'emporte.
-    property point pointerAt: Qt.point(0, 0)
+    // Position du pointeur : celle de ToolCursor (le HoverHandler ne bouge pas pendant un glisser à bouton enfoncé ;
+    // la vue, elle, reçoit alors les mouvements, L4-C15 ; la plus récente des deux sources l'emporte).
     HoverHandler {
         id: hover
         cursorShape: toolCursor.cursorShape
-        onPointChanged: area.pointerAt = hover.point.position
-    }
-    Connections {
-        target: view
-        function onPointerPositionChanged() { area.pointerAt = area.mapFromItem(view, view.pointerPosition) }
     }
     Rectangle {
         objectName: "widthIndicator"
@@ -220,8 +214,8 @@ Item {
         width: Math.max(4, view.inkWidth * view.zoom)
         height: width
         radius: width / 2
-        x: area.pointerAt.x - width / 2
-        y: area.pointerAt.y - height / 2
+        x: toolCursor.pointerAt.x - width / 2
+        y: toolCursor.pointerAt.y - height / 2
         color: "transparent"
         border.width: 1
         border.color: view.inkColor
