@@ -1,0 +1,401 @@
+{
+ "format": "actcraft-scenario/1",
+ "name": "edition",
+ "description": "S8, S8.2, S8.3 : formes dupliquées, alignées à gauche, mises au premier plan, originaux verrouillés (glissement refusé), pot de peinture, points de forme, connecteur suivi dans le déplacement, puis menu d'objet ouvert sur une forme. Le groupement n'est pas rejoué ici : un groupe n'a pas d'emprise dans core (hasExtent) et ne se sélectionne pas.",
+ "steps": [
+  {
+   "waitReady": true
+  },
+  {
+   "command": "tool.shape"
+  },
+  {
+   "command": "shape.choose",
+   "argument": "rectangle"
+  },
+  {
+   "pointer": [
+    [
+     200,
+     150
+    ],
+    [
+     250,
+     190
+    ],
+    [
+     300,
+     220
+    ]
+   ]
+  },
+  {
+   "pointer": [
+    [
+     350,
+     150
+    ],
+    [
+     400,
+     190
+    ],
+    [
+     450,
+     220
+    ]
+   ]
+  },
+  {
+   "pointer": [
+    [
+     700,
+     300
+    ],
+    [
+     750,
+     340
+    ],
+    [
+     800,
+     380
+    ]
+   ]
+  },
+  {
+   "pointer": [
+    [
+     700,
+     500
+    ],
+    [
+     750,
+     540
+    ],
+    [
+     800,
+     580
+    ]
+   ]
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "expect": "documentController.shownObjectCount",
+   "value": 4
+  },
+  {
+   "command": "tool.select"
+  },
+  {
+   "pointer": [
+    [
+     150,
+     100
+    ],
+    [
+     300,
+     200
+    ],
+    [
+     500,
+     260
+    ]
+   ]
+  },
+  {
+   "expect": "appTools.selectionCount",
+   "value": 2
+  },
+  {
+   "command": "edit.duplicate"
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "expect": "appTools.selectionCount",
+   "value": 2
+  },
+  {
+   "expect": "documentController.shownObjectCount",
+   "value": 6
+  },
+  {
+   "pointer": [
+    [
+     900,
+     650
+    ]
+   ]
+  },
+  {
+   "expect": "appTools.selectionCount",
+   "value": 0
+  },
+  {
+   "pointer": [
+    [
+     150,
+     90
+    ],
+    [
+     300,
+     200
+    ],
+    [
+     500,
+     250
+    ]
+   ]
+  },
+  {
+   "expect": "appTools.selectionCount",
+   "value": 4
+  },
+  {
+   "command": "align.left"
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "expect": "appTools.selectionCount",
+   "value": 4
+  },
+  {
+   "command": "arrange.front"
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "capture": "alignes-a-gauche"
+  },
+  {
+   "pointer": [
+    [
+     900,
+     650
+    ]
+   ]
+  },
+  {
+   "pointer": [
+    [
+     120,
+     100
+    ],
+    [
+     190,
+     130
+    ],
+    [
+     260,
+     155
+    ]
+   ]
+  },
+  {
+   "expect": "appTools.selectionCount",
+   "value": 2
+  },
+  {
+   "command": "object.lock"
+  },
+  {
+   "waitFor": "appEditing.selectionLocked",
+   "value": true,
+   "timeoutMs": 5000
+  },
+  {
+   "pointer": [
+    [
+     250,
+     185
+    ],
+    [
+     350,
+     285
+    ],
+    [
+     550,
+     385
+    ]
+   ]
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "checkPixel": "verrou-refuse",
+   "at": [
+    500,
+    350
+   ],
+   "color": "#FFFFFF",
+   "tolerance": 8
+  },
+  {
+   "pointer": [
+    [
+     900,
+     650
+    ]
+   ]
+  },
+  {
+   "command": "tool.fill"
+  },
+  {
+   "command": "pen.color",
+   "argument": "#E53935"
+  },
+  {
+   "pointer": [
+    [
+     250,
+     190
+    ]
+   ]
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "checkPixel": "remplissage",
+   "at": [
+    250,
+    190
+   ],
+   "color": "#E53935",
+   "tolerance": 60
+  },
+  {
+   "command": "tool.select"
+  },
+  {
+   "pointer": [
+    [
+     750,
+     300
+    ]
+   ]
+  },
+  {
+   "expect": "appTools.selectionCount",
+   "value": 1
+  },
+  {
+   "command": "object.shape-points"
+  },
+  {
+   "pointer": [
+    [
+     700,
+     300
+    ],
+    [
+     690,
+     290
+    ],
+    [
+     680,
+     280
+    ]
+   ]
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "checkPixel": "point-deplace",
+   "at": [
+    680,
+    280
+   ],
+   "color": "#FFD43B",
+   "tolerance": 30
+  },
+  {
+   "key": "Escape"
+  },
+  {
+   "command": "tool.connector"
+  },
+  {
+   "pointer": [
+    [
+     750,
+     380
+    ],
+    [
+     750,
+     440
+    ],
+    [
+     750,
+     500
+    ]
+   ]
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "checkPixel": "connecteur",
+   "at": [
+    750,
+    440
+   ],
+   "color": "#808080",
+   "tolerance": 80
+  },
+  {
+   "command": "tool.select"
+  },
+  {
+   "pointer": [
+    [
+     800,
+     540
+    ],
+    [
+     850,
+     540
+    ],
+    [
+     900,
+     540
+    ]
+   ]
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "capture": "connecteur-suivi"
+  },
+  {
+   "pointer": [
+    [
+     250,
+     228
+    ]
+   ]
+  },
+  {
+   "expect": "appTools.selectionCount",
+   "value": 1
+  },
+  {
+   "command": "object.menu"
+  },
+  {
+   "wait": 400
+  },
+  {
+   "capture": "menu-objet"
+  }
+ ]
+}
