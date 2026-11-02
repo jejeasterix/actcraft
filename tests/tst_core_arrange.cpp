@@ -144,7 +144,7 @@ private slots:
         const auto outer = d.page(0).objects[d.page(0).objects.size() - 2].common.id;
         QCOMPARE(core::topLevelGroupOf(d.page(0), id(d, 'a')), outer);
         QCOMPARE(core::expandGroups(d.page(0), {outer}),
-                 (std::vector{id(d, 'a'), id(d, 'b'), inner, id(d, 'c'), outer}));
+                 (std::vector{id(d, 'c'), id(d, 'a'), id(d, 'b'), inner, outer})); // membres en ordre de page
         stack.push(d, core::makeUngroupCommand(d.page(0), 0, {outer}));
         QVERIFY(hasObject(d, inner));
         QVERIFY(!hasObject(d, outer));
