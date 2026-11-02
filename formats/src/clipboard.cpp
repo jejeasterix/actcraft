@@ -60,6 +60,20 @@ template <typename F> void forEachCitedKey(const core::PageObject& object, F&& v
     }
 }
 
+// Extension de ressource lisible : [a-z0-9]{1,8}, comme core::Resource::extension.
+bool isExtension(const QString& value)
+{
+    if (value.isEmpty() || value.size() > 8) {
+        return false;
+    }
+    for (const QChar c : value) {
+        if (!((c >= u'a' && c <= u'z') || (c >= u'0' && c <= u'9'))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace
 
 QByteArray encodeClipboard(const ClipboardPayload& payload)
@@ -73,8 +87,17 @@ QByteArray encodeClipboard(const ClipboardPayload& payload)
         resources.insert(QString::fromStdString(key),
                          QString::fromLatin1(QByteArray::fromStdString(bytes).toBase64()));
     }
-    const QJsonObject root{
+    QJsonObject root{
         {u"format"_s, u"actcraft-objects/1"_s}, {u"objects"_s, objects}, {u"resources"_s, resources}};
+    QJsonObject extensions;
+    for (const auto& [key, extension] : payload.extensions) {
+        if (payload.resources.contains(key)) {
+            extensions.insert(QString::fromStdString(key), QString::fromStdString(extension));
+        }
+    }
+    if (!extensions.isEmpty()) {
+        root.insert(u"extensions"_s, extensions);
+    }
     return QJsonDocument(root).toJson(QJsonDocument::Compact);
 }
 
@@ -88,8 +111,10 @@ std::optional<ClipboardPayload> decodeClipboard(const QByteArray& bytes)
     const QJsonObject root = document.object();
     const QJsonValue objects = root.value(u"objects"_s);
     const QJsonValue resources = root.value(u"resources"_s);
+    const QJsonValue extensions = root.value(u"extensions"_s);
     if (!isClipboardFormat(root.value(u"format"_s)) || !objects.isArray() ||
-        (!resources.isUndefined() && !resources.isObject())) {
+        (!resources.isUndefined() && !resources.isObject()) ||
+        (!extensions.isUndefined() && !extensions.isObject())) {
         return std::nullopt;
     }
 
@@ -106,6 +131,15 @@ std::optional<ClipboardPayload> decodeClipboard(const QByteArray& bytes)
             return std::nullopt; // octets illisibles, ou qui ne correspondent pas à leur clé
         }
         payload.resources.emplace(key, data.decoded.toStdString());
+    }
+    // Extensions (facultatives) : celles d'une ressource portée et bien formées ; les autres retombent sur
+    // « bin » au collage.
+    const QJsonObject named = extensions.toObject();
+    for (auto it = named.begin(); it != named.end(); ++it) {
+        const std::string key = it.key().toStdString();
+        if (it.value().isString() && isExtension(it.value().toString()) && payload.resources.contains(key)) {
+            payload.extensions.emplace(key, it.value().toString().toStdString());
+        }
     }
 
     QStringList warnings; // valeurs mal formées : défaut du modèle, comme à l'ouverture d'un fichier

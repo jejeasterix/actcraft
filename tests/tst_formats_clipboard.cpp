@@ -313,6 +313,7 @@ private slots:
     void objectsReadByNativeReader();
     void resourcesTravelWithObjects();
     void groupMembersTravelTogether();
+    void resourceExtensionsTravel();
     void foreignPayloadRejected();
 };
 
@@ -440,6 +441,43 @@ void TestClipboard::foreignPayloadRejected()
     // Ressource citée absente, ou octets qui ne correspondent pas à leur clé SHA-256 : refusée.
     QVERIFY(!formats::decodeClipboard(payloadWithWrongResourceKey()));
     QVERIFY(!formats::decodeClipboard(handWrittenPayload(sha256Hex(png), QJsonObject{})));
+}
+
+void TestClipboard::resourceExtensionsTravel()
+{
+    // Document::addResource exige l'extension : elle voyage avec la ressource (H5-13, L5-T4).
+    const QByteArray png = pngBytes();
+    const std::string key = sha256Hex(png);
+    formats::ClipboardPayload payload;
+    payload.resources = {{key, png.toStdString()}};
+    payload.extensions = {{key, "png"}};
+    auto back = formats::decodeClipboard(formats::encodeClipboard(payload));
+    QVERIFY(back);
+    QCOMPARE(back->extensions, payload.extensions);
+
+    // Charge sans table (celle de L5-T3) : lisible, aucune extension (« bin » au collage).
+    payload.extensions.clear();
+    const QByteArray bytes = formats::encodeClipboard(payload);
+    QVERIFY(!QJsonDocument::fromJson(bytes).object().contains(u"extensions"_s));
+    back = formats::decodeClipboard(bytes);
+    QVERIFY(back);
+    QVERIFY(back->extensions.empty());
+    QCOMPARE(back->resources, payload.resources);
+
+    // Extension mal formée, ou clé sans ressource : ignorée.
+    const QJsonObject root{
+        {u"format"_s, kFormat},
+        {u"objects"_s, QJsonArray{}},
+        {u"resources"_s, QJsonObject{{QString::fromStdString(key), QString::fromLatin1(png.toBase64())}}},
+        {u"extensions"_s, QJsonObject{{QString::fromStdString(key), u"P NG"_s}, {u"abc"_s, u"png"_s}}}};
+    back = formats::decodeClipboard(QJsonDocument(root).toJson(QJsonDocument::Compact));
+    QVERIFY(back);
+    QVERIFY(back->extensions.empty());
+
+    // Table d'extensions qui n'est pas un objet : charge refusée, comme pour « resources ».
+    QJsonObject wrong = root;
+    wrong.insert(u"extensions"_s, u"png"_s);
+    QVERIFY(!formats::decodeClipboard(QJsonDocument(wrong).toJson(QJsonDocument::Compact)));
 }
 
 QTEST_GUILESS_MAIN(TestClipboard)
