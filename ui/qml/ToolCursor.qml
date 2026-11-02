@@ -11,7 +11,8 @@ Item {
     required property Tools tools
     // Vue de la page : seule source de position à bouton enfoncé (le HoverHandler ne bouge pas pendant un glisser).
     property var view: null
-    // Position du pointeur dans le repère de ce curseur : la plus récente des deux sources.
+    // Position du pointeur dans le repère de ce curseur : la plus récente des deux sources. Source unique : PageArea
+    // (indicateur de largeur) la lit ici.
     property point pointerAt: Qt.point(0, 0)
     readonly property bool circled: cursor.tools.currentTool === "highlighter" || cursor.tools.currentTool === "eraser"
     readonly property bool shaped: cursor.tools.currentTool === "shape"
@@ -22,7 +23,6 @@ Item {
 
     HoverHandler {
         id: pointer
-        enabled: cursor.shaped
         onPointChanged: cursor.pointerAt = pointer.point.position
     }
     Connections {

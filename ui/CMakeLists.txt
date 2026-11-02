@@ -19,7 +19,7 @@ set_source_files_properties(qml/FileActions.qml qml/SaveChangesDialog.qml qml/Pa
 # Même défaut (C4702) pour les composants de la coquille du socle 3-7 (L0-S0) : chargés depuis leur source.
 set_source_files_properties(qml/SelectionOverlay.qml qml/ObjectBar.qml qml/TrashCan.qml qml/PageContextMenu.qml
     qml/TranslucencyPopup.qml qml/Presentation.qml qml/TextEditor.qml qml/TextFormatBar.qml
-    qml/VerticalTextBar.qml
+    qml/VerticalTextBar.qml qml/TextBarBase.qml qml/BarCombo.qml
     PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)
 
 # Lot 7 (présentation et outils) : ses sources QML et C++ sont listées dans ui/presentation.cmake (fichier de la
@@ -64,6 +64,8 @@ qt_add_qml_module(actcraft_ui
         qml/TextFormatBar.qml
         qml/TextEditor.qml
         qml/VerticalTextBar.qml
+        qml/TextBarBase.qml
+        qml/BarCombo.qml
         qml/GridDesigner.qml
         qml/BackgroundDialog.qml
         qml/PageExtensionHandle.qml

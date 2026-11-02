@@ -32,6 +32,12 @@ Item {
         root.visibleNow = root.visible && item !== null && item.y >= list.contentY - 0.5
                           && item.y + item.height <= list.contentY + list.height + 0.5
     }
+    // Fait défiler la liste à `y`, bornée au contenu (doigt et molette).
+    function scrollTo(y) {
+        const low = list.originY
+        const high = low + Math.max(0, list.contentHeight - list.height)
+        list.contentY = Math.max(low, Math.min(high, y))
+    }
     Connections {
         target: list
         function onContentYChanged() { root.refreshVisible() }
@@ -209,9 +215,7 @@ Item {
             onTranslationChanged: {
                 if (!active)
                     return
-                const low = list.originY
-                const high = low + Math.max(0, list.contentHeight - list.height)
-                list.contentY = Math.max(low, Math.min(high, startY - activeTranslation.y))
+                root.scrollTo(startY - activeTranslation.y)
             }
         }
 
@@ -304,9 +308,7 @@ Item {
                 root.flushShow()
             }
             onWheel: wheel => {
-                const low = list.originY
-                const high = low + Math.max(0, list.contentHeight - list.height)
-                list.contentY = Math.max(low, Math.min(high, list.contentY - wheel.angleDelta.y / 2))
+                root.scrollTo(list.contentY - wheel.angleDelta.y / 2)
             }
         }
     }
