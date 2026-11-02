@@ -648,6 +648,70 @@ private slots:
         QTRY_VERIFY(doc->document().page(0).objects.size() > before);
     }
 
+    // L4-C18 : les menus du navigateur de pages recouvrent la vue : ouverts, ils bloquent le stylet (contrat
+    // du lot).
+    void navigatorMenusBlockTheStylus_data()
+    {
+        QTest::addColumn<QByteArray>("menuName");
+        QTest::newRow("menu de page") << QByteArray("pageNavigatorMenu");
+        QTest::newRow("menu du navigateur") << QByteArray("pageNavigatorOwnMenu");
+    }
+
+    void navigatorMenusBlockTheStylus()
+    {
+        QFETCH(QByteArray, menuName);
+        Shell s;
+        QVERIFY(start(s));
+        QVERIFY(run(s, QStringLiteral("view.browsers")));
+        QObject* menu = namedObject(s, menuName.constData());
+        QVERIFY(menu);
+        QVERIFY(!s.view->inputBlocked());
+        QVERIFY(QMetaObject::invokeMethod(menu, "open"));
+        QTRY_VERIFY(menu->property("visible").toBool());
+        QTRY_VERIFY(s.view->inputBlocked());
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QTRY_VERIFY(!s.view->inputBlocked());
+    }
+
+    // L4-C18 : un lâcher sur la moitié basse de la dernière miniature créée, des pages suivant, insère après
+    // elle (et non en fin de document).
+    void dropOnLowerHalfOfLastCreatedThumbnail()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QVERIFY(run(s, QStringLiteral("view.browsers")));
+        for (int i = 0; i < 11; ++i) {
+            QVERIFY(run(s, QStringLiteral("page.insert-after")));
+        }
+        QVERIFY(run(s, QStringLiteral("page.goto"), QVariant(1)));
+        auto* list = qobject_cast<QQuickItem*>(namedObject(s, "pageList"));
+        QObject* area = namedObject(s, "pageListArea");
+        QVERIFY(list && area);
+        const int count = list->property("count").toInt();
+        QCOMPARE(count, 12);
+        s.window->resize(1280, 800);
+        QTRY_VERIFY(list->width() > 100 && list->height() > 200);
+        QTRY_VERIFY(list->property("contentHeight").toDouble() > list->height());
+        int last = -1;
+        QQuickItem* cell = nullptr;
+        for (int i = 0; i < count; ++i) {
+            QQuickItem* item = nullptr;
+            QVERIFY(QMetaObject::invokeMethod(list, "itemAtIndex", Q_RETURN_ARG(QQuickItem*, item),
+                                              Q_ARG(int, i)));
+            if (item) {
+                last = i;
+                cell = item;
+            }
+        }
+        QVERIFY(last >= 0 && last < count - 1);
+        QVERIFY(cell);
+        const double contentY = list->property("contentY").toDouble();
+        const double y = cell->y() + cell->height() * 0.75 - contentY;
+        QVERIFY(QMetaObject::invokeMethod(area, "locate", Q_ARG(QVariant, QVariant(y))));
+        QCOMPARE(area->property("before").toInt(), last + 1);
+    }
+
     void bannerShowsReadingWarnings()
     {
         Shell s;

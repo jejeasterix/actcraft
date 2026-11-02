@@ -204,6 +204,8 @@ Window {
             pages: appPages
             documentController: appDocument
             commands: appCommands
+            onPopupOpened: root.popupOpened()
+            onPopupClosed: root.popupClosed()
         }
 
         PageArea {
