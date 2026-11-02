@@ -84,6 +84,16 @@ struct ThumbnailStats
 int launchesDuringContact(const std::vector<std::int64_t>& launchNs,
                           const std::vector<std::pair<std::int64_t, std::int64_t>>& windowsNs);
 
+// L5-T19 (D21) : redessins du cache terminés (PageView::cacheRefreshCount) pendant la fenêtre de chaque geste
+// du scénario « edition » ; -1 : geste non mesuré. Un résultat, jamais une porte (attendu : chacun <= 1).
+struct EditionRefreshes
+{
+    int paste = -1;
+    int group = -1;
+    int align = -1;
+    int front = -1;
+};
+
 struct ScenarioResult
 {
     QString name;             // stroke | zoom | scroll | page | pauses | gommer | soulever
@@ -119,6 +129,7 @@ struct ScenarioResult
     // (shape_preview ; absent : scénario qui ne trace pas de forme).
     int placedShapes = -1;
     std::optional<ShapePreviewStats> shapePreview;
+    std::optional<EditionRefreshes> edition; // L5-T19 : absent hors « edition »
     std::optional<ThumbnailStats>
         thumbnails; // L4-T29 : absent hors « miniatures », « miniatures-ferme » et « miniatures-pauses »
 };
