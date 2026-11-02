@@ -4,12 +4,15 @@
 #include <actcraft/bench/verdict.h>
 #include <actcraft/core/clock.h>
 #include <actcraft/core/generator.h>
+#include <actcraft/core/hittest.h>
 #include <actcraft/core/pagesettings.h>
 #include <actcraft/core/pagezones.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/objectediting.h>
 #include <actcraft/ui/pagethumbnails.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/toolhost.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <QCoreApplication>
@@ -25,10 +28,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <iterator>
 #include <limits>
 #include <memory>
 #include <optional>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -102,6 +107,144 @@ bool runWindowCommand(QQuickWindow* window, const QString& id, const QVariant& a
     const bool invoked = QMetaObject::invokeMethod(window, "runCommand", Q_RETURN_ARG(QVariant, result),
                                                    Q_ARG(QVariant, QVariant(id)), Q_ARG(QVariant, argument));
     return invoked && result.toBool();
+}
+
+// L5-T19 : gestes d'édition du scénario « edition », passés par ObjectEditing et ToolHost (le chemin réel).
+struct EditionGear
+{
+    QQuickWindow* window = nullptr;
+    ui::PageView* view = nullptr;
+    render::FixedPageItem* fixed = nullptr;
+    ui::DocumentController* document = nullptr;
+    ui::ToolHost* tools = nullptr;
+    ui::ObjectEditing* editing = nullptr;
+    std::vector<core::ObjectId> pasted; // objets collés par « edition.paste », groupés ensuite
+};
+
+bool waitUntil(const std::function<bool()>& condition, int timeoutMs)
+{
+    QElapsedTimer clock;
+    clock.start();
+    QTimer wake;
+    wake.start(10);
+    while (!condition()) {
+        if (clock.elapsed() > timeoutMs) {
+            return false;
+        }
+        QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents);
+    }
+    return true;
+}
+
+std::vector<core::ObjectId> pageIds(const core::Page& page)
+{
+    std::vector<core::ObjectId> ids;
+    for (const core::PageObject& object : page.objects) {
+        ids.push_back(object.common.id);
+    }
+    return ids;
+}
+
+// Joue le geste `command` et relève les redessins du cache terminés (PageView::cacheRefreshCount) de sa
+// fenêtre : ouverte quand plus rien n'attend au-dessus du cache et que le cache est prêt, fermée à la
+// stabilité (cache prêt, rien en attente, aucun redessin pendant kCacheFoldIdleMs + 300 ms). Faux si le geste
+// n'a rien changé au document (un geste sans effet mesurerait 0 pour de fausses raisons).
+bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes& out)
+{
+    const core::Page& page = g.document->document().page(static_cast<std::size_t>(g.document->currentIndex()));
+    std::vector<core::ObjectId> annotations;
+    for (const core::PageObject& object : page.objects) {
+        if (core::isAnnotation(object)) {
+            annotations.push_back(object.common.id);
+        }
+    }
+    if (annotations.size() < 130) {
+        return false;
+    }
+    const auto pick = [&annotations](std::initializer_list<std::size_t> indexes) {
+        std::vector<core::ObjectId> ids;
+        for (const std::size_t i : indexes) {
+            ids.push_back(annotations[i]);
+        }
+        return ids;
+    };
+    const bool paste = command == QLatin1String("edition.paste");
+    const bool group = command == QLatin1String("edition.group");
+    const bool align = command == QLatin1String("edition.align");
+    const bool front = command == QLatin1String("edition.front");
+    if (!paste && !group && !align && !front) {
+        return false;
+    }
+    // Préparation, hors fenêtre : la sélection ne redessine pas le cache.
+    std::vector<core::ObjectId> before = pageIds(page);
+    if (paste) {
+        std::vector<core::ObjectId> ids;
+        for (std::size_t i = 1; i <= static_cast<std::size_t>(kEditionPasted); ++i) {
+            ids.push_back(annotations[i]);
+        }
+        g.tools->selectObjects(ids);
+        g.editing->copy();
+    } else if (group) {
+        if (g.pasted.empty()) {
+            return false;
+        }
+        g.tools->selectObjects(g.pasted);
+    } else if (align) {
+        g.tools->selectObjects(pick({25, 50, 75, 100, 125}));
+    } else {
+        g.tools->selectObjects(pick({0}));
+    }
+    const auto quiet = [&g] { return g.fixed->pendingCount() == 0 && g.view->cacheReady(); };
+    if (!waitUntil(quiet, 15000)) {
+        return false;
+    }
+    int edits = 0;
+    const auto edited =
+        QObject::connect(g.document, &ui::DocumentController::undoChanged, g.document, [&edits] { ++edits; });
+    std::int64_t lastNs = core::monotonicNowNs();
+    const auto updated = QObject::connect(g.view, &ui::PageView::cacheUpdated, g.view,
+                                          [&lastNs] { lastNs = core::monotonicNowNs(); });
+    const int refreshesBefore = g.view->cacheRefreshCount();
+    if (paste) {
+        g.editing->paste();
+    } else if (group) {
+        g.editing->toggleGroup();
+    } else if (align) {
+        g.editing->align(QStringLiteral("left"));
+    } else {
+        g.editing->arrange(QStringLiteral("front"));
+    }
+    runWindowCommand(g.window, QStringLiteral("tool.pen")); // les traits suivants sont écrits au stylo
+    const std::int64_t idleNs = std::int64_t{ui::kCacheFoldIdleMs + 300} * 1'000'000;
+    const bool stable = waitUntil(
+        [&] { return quiet() && core::monotonicNowNs() - lastNs >= idleNs; }, 20000);
+    const int refreshes = g.view->cacheRefreshCount() - refreshesBefore;
+    QObject::disconnect(edited);
+    QObject::disconnect(updated);
+    if (!stable || edits < 1) {
+        return false;
+    }
+    if (paste) {
+        g.pasted.clear();
+        const std::set<core::ObjectId> known(before.begin(), before.end());
+        const core::Page& after = g.document->document().page(static_cast<std::size_t>(g.document->currentIndex()));
+        for (const core::ObjectId id : pageIds(after)) {
+            if (known.count(id) == 0) {
+                g.pasted.push_back(id);
+            }
+        }
+        if (g.pasted.size() != static_cast<std::size_t>(kEditionPasted)) {
+            return false;
+        }
+        out.paste = refreshes;
+    } else if (group) {
+        out.group = refreshes;
+    } else if (align) {
+        out.align = refreshes;
+    } else {
+        out.front = refreshes;
+    }
+    return true;
 }
 
 } // namespace
@@ -288,11 +431,29 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     QTimer commandTimer; // coup unique réarmé sur l'échéance suivante, comme l'injecteur
     commandTimer.setSingleShot(true);
     commandTimer.setTimerType(Qt::PreciseTimer);
+    EditionGear edition;
+    if (plan.measuresEdition) {
+        edition.window = m_window;
+        edition.view = m_view;
+        edition.fixed = m_fixed;
+        edition.document = m_window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        edition.tools = m_window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        edition.editing = m_window->findChild<ui::ObjectEditing*>(QStringLiteral("appEditing"));
+        if (!edition.document || !edition.tools || !edition.editing) {
+            invalidReasons << QStringLiteral("error: edition gear missing in %1").arg(plan.name);
+        }
+        s.edition.emplace();
+    }
     const auto runDueCommands = [&] {
         while (nextCommand < commands.size() && commandPlanned[nextCommand] <= core::monotonicNowNs()) {
             const PlannedInput& in = commands[nextCommand];
             commandRun[nextCommand] = core::monotonicNowNs();
-            if (!runWindowCommand(m_window, in.command, in.argument)) {
+            const bool gesture = plan.measuresEdition && in.command.startsWith(QLatin1String("edition."));
+            const bool done = gesture ? (edition.editing != nullptr && edition.tools != nullptr &&
+                                         edition.document != nullptr &&
+                                         runEditionGesture(edition, in.command, *s.edition))
+                                      : runWindowCommand(m_window, in.command, in.argument);
+            if (!done) {
                 invalidReasons
                     << QStringLiteral("error: command %1 refused in %2").arg(in.command, plan.name);
             }

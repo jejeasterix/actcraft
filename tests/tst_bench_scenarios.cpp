@@ -166,7 +166,7 @@ private slots:
             QCOMPARE(plan.generatedPages, 1);
             QCOMPARE(plan.seedStrokes.size(), std::size_t{200});
             QVERIFY(plan.measuresEdition);
-            QVERIFY(plan.freezeExempt);          // chaque geste redessine le cache : on le mesure
+            QVERIFY(!plan.freezeExempt);         // figements et reprises restent jugés
             QVERIFY(plan.toolCommand.isEmpty()); // le stylo reste l'outil des traits
             QStringList commands;
             std::vector<std::int64_t> commandAt;

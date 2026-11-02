@@ -157,6 +157,13 @@ QJsonObject scenarioJson(const ScenarioResult& s)
                                                                 {"p95_ms", s.shapePreview->p95Ms},
                                                                 {"max_ms", s.shapePreview->maxMs}});
     }
+    if (s.edition) { // L5-T19 : redessins du cache terminés par geste (D21), jamais cache.refreshes
+        out.insert(QStringLiteral("edition"),
+                   QJsonObject{{"refreshes_by_gesture", QJsonObject{{"paste", s.edition->paste},
+                                                                    {"group", s.edition->group},
+                                                                    {"align", s.edition->align},
+                                                                    {"front", s.edition->front}}}});
+    }
     if (s.thumbnails) {
         out.insert(QStringLiteral("thumbnails"),
                    QJsonObject{{"renders", s.thumbnails->renders},

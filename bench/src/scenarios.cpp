@@ -510,15 +510,66 @@ ScenarioPlan zonesZoomScenario(ScenarioSet scenarioSet)
     return plan;
 }
 
+namespace {
+const char* const kEditionCommands[kEditionGestureCount] = {"edition.paste", "edition.group", "edition.align",
+                                                            "edition.front"};
+
+// Annotation k de la page d'« edition » : 25 rangées sur 8 colonnes, un court trait ondulé chacune, zone
+// centrale (x 230-776, y 160-592).
+std::vector<QPointF> editionSeed(int k)
+{
+    const int row = k % 25;
+    const int column = k / 25;
+    const double x0 = 230.0 + 70.0 * column;
+    const double y = 160.0 + 18.0 * row;
+    std::vector<QPointF> points;
+    for (double x = x0; x <= x0 + 56.0; x += 14.0) {
+        points.emplace_back(x, y + 3.0 * std::sin(x / 40.0 + k));
+    }
+    return points;
+}
+} // namespace
+
 const char* const* editionGestures() noexcept
 {
-    return nullptr;
+    return kEditionCommands;
 }
 
-ScenarioPlan editionScenario(ScenarioSet)
+ScenarioPlan editionScenario(ScenarioSet scenarioSet)
 {
+    const bool court = scenarioSet == ScenarioSet::Court;
+    const int samples = court ? 20 : 100;      // 0,1 s ou 0,5 s à 200 points/s
+    const int strokesPerCycle = court ? 1 : 2; // un trait toutes les 2 s (complet)
     ScenarioPlan plan;
     plan.name = QStringLiteral("edition");
+    plan.zoom = 1.0;
+    plan.generatedPages = 1;
+    // Figements et reprises restent jugés (métriques existantes) : le verdict est un résultat, pas une porte.
+    plan.measuresEdition = true;
+    for (int k = 0; k < kEditionAnnotations; ++k) {
+        plan.seedStrokes.push_back(editionSeed(k));
+    }
+    std::int64_t start = 0;
+    int row = 0;
+    for (std::size_t gesture = 0; gesture < kEditionGestureCount; ++gesture) {
+        std::int64_t lastStart = start;
+        for (int s = 0; s < strokesPerCycle; ++s) {
+            lastStart = start + s * kEditionStrokePeriodNs;
+            const std::size_t first = plan.inputs.size();
+            appendWaveStroke(plan.inputs, lastStart, samples, row++ % 10, 2);
+            for (std::size_t i = first; i < plan.inputs.size(); ++i) {
+                plan.inputs[i].measured = false; // pas de latence d'encre ici : on mesure des gestes
+            }
+        }
+        // Le dernier trait est fini et versé (kCacheFoldIdleMs) avant que la fenêtre du geste s'ouvre.
+        const std::int64_t at = lastStart + (samples - 1) * kStylusPeriodNs + 300'000'000;
+        PlannedInput in;
+        in.offsetNs = at;
+        in.kind = InputKind::Command;
+        in.command = QString::fromLatin1(kEditionCommands[gesture]);
+        plan.inputs.push_back(in);
+        start = at + kEditionGestureSpanNs;
+    }
     return plan;
 }
 
@@ -551,7 +602,8 @@ std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
             thumbnailsScenario(set),
             closedThumbnailsScenario(set),
             thumbnailsPausesScenario(set),
-            zonesZoomScenario(set)};
+            zonesZoomScenario(set),
+            editionScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()
