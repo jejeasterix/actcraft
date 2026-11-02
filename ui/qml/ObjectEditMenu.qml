@@ -88,6 +88,9 @@ Item {
     CommandMenu {
         id: menu
         objectName: "objectMenu"
+        // Marges de fenêtre : le menu se décale pour tenir en entier (sinon il touche le bord bas, coupé).
+        topMargin: 8
+        bottomMargin: 8
         commands: root.commands
         onOpened: root.popupOpened()
         onClosed: root.popupClosed()
