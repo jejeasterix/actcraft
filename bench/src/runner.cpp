@@ -151,7 +151,8 @@ std::vector<core::ObjectId> pageIds(const core::Page& page)
 // n'a rien changé au document (un geste sans effet mesurerait 0 pour de fausses raisons).
 bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes& out)
 {
-    const core::Page& page = g.document->document().page(static_cast<std::size_t>(g.document->currentIndex()));
+    const core::Page& page =
+        g.document->document().page(static_cast<std::size_t>(g.document->currentIndex()));
     std::vector<core::ObjectId> annotations;
     for (const core::PageObject& object : page.objects) {
         if (core::isAnnotation(object)) {
@@ -216,8 +217,8 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
     }
     runWindowCommand(g.window, QStringLiteral("tool.pen")); // les traits suivants sont écrits au stylo
     const std::int64_t idleNs = std::int64_t{ui::kCacheFoldIdleMs + 300} * 1'000'000;
-    const bool stable = waitUntil(
-        [&] { return quiet() && core::monotonicNowNs() - lastNs >= idleNs; }, 20000);
+    const bool stable =
+        waitUntil([&] { return quiet() && core::monotonicNowNs() - lastNs >= idleNs; }, 20000);
     const int refreshes = g.view->cacheRefreshCount() - refreshesBefore;
     QObject::disconnect(edited);
     QObject::disconnect(updated);
@@ -227,7 +228,8 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
     if (paste) {
         g.pasted.clear();
         const std::set<core::ObjectId> known(before.begin(), before.end());
-        const core::Page& after = g.document->document().page(static_cast<std::size_t>(g.document->currentIndex()));
+        const core::Page& after =
+            g.document->document().page(static_cast<std::size_t>(g.document->currentIndex()));
         for (const core::ObjectId id : pageIds(after)) {
             if (known.count(id) == 0) {
                 g.pasted.push_back(id);
@@ -449,10 +451,10 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
             const PlannedInput& in = commands[nextCommand];
             commandRun[nextCommand] = core::monotonicNowNs();
             const bool gesture = plan.measuresEdition && in.command.startsWith(QLatin1String("edition."));
-            const bool done = gesture ? (edition.editing != nullptr && edition.tools != nullptr &&
-                                         edition.document != nullptr &&
-                                         runEditionGesture(edition, in.command, *s.edition))
-                                      : runWindowCommand(m_window, in.command, in.argument);
+            const bool done =
+                gesture ? (edition.editing != nullptr && edition.tools != nullptr &&
+                           edition.document != nullptr && runEditionGesture(edition, in.command, *s.edition))
+                        : runWindowCommand(m_window, in.command, in.argument);
             if (!done) {
                 invalidReasons
                     << QStringLiteral("error: command %1 refused in %2").arg(in.command, plan.name);

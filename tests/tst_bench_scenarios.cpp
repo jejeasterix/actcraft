@@ -225,12 +225,8 @@ private slots:
         const QJsonArray scenarios = bench::toJson(result).value("scenarios").toArray();
         QCOMPARE(scenarios.size(), 2);
         QVERIFY(!scenarios.at(0).toObject().contains("edition"));
-        const QJsonObject by = scenarios.at(1)
-                                   .toObject()
-                                   .value("edition")
-                                   .toObject()
-                                   .value("refreshes_by_gesture")
-                                   .toObject();
+        const QJsonObject by =
+            scenarios.at(1).toObject().value("edition").toObject().value("refreshes_by_gesture").toObject();
         QCOMPARE(by.value("paste").toInt(-9), 1);
         QCOMPARE(by.value("group").toInt(-9), 0);
         QCOMPARE(by.value("align").toInt(-9), 1);
