@@ -15,7 +15,7 @@ Questions à Jérôme : —
   - Puis : simplification du lot 4 (liste dans le journal), clôture du lot 4 (`etage-4-cloture.md`, plan 4b) ; le lot 5 ne se lance pas sans Jérôme.
   - À la reprise sur le Mac : relire ce fichier, `~/pilotage-mac/consignes-actcraft.md` et `~/pilotage-mac/notes-actcraft.md`.
 Machine : mac à partir du 2026-10-27 (suites sans jeton.ps1, voir ~/pilotage-mac/consignes-actcraft.md ; preuves Windows reportées au retour du PC)
-Tâche : L4-C5 — élargie : Ctrl+clic ajoute à la sélection (H4-24, Maj+clic gardé : hypothèse à revoir, décision de A), ancrage des formes `Polygon` sans demi-contour (C2-M1), ligne de base du texte créé (C2-M2) (concepteur-critique, base 17ea376) — depuis 2026-11-02
+Tâche : L4-C5 — élargie : Ctrl+clic ajoute à la sélection (H4-24, Maj+clic gardé : hypothèse à revoir, décision de A), ancrage des formes `Polygon` sans demi-contour (C2-M1), ligne de base du texte créé (C2-M2) (concepteur-critique, base 17ea376) — depuis 2026-11-02 — 2026-11-02 : fait (6ca62cf ; patron choisi : champ facultatif `Text::firstBaseline` mesuré à la validation, clé native `firstBaseline` hors empreinte ; écarté : `TextSpan` fabriqué dans `runs`, qui ferait foi pour le dessin ; Ctrl+clic déjà dans `kExtendModifiers`, garde ajoutée). Rejeu de A : ciblés verts (gridsnap 18, nativejson 31, ui_tools 23, ui_text 39), 3 mutations rouges puis vertes, suite 131/132 (seul `tst_captures_page_allongee_zones` rouge, puis 5/5 vert seul : instabilité sous `-j2`). Relecture : 0 bloquant, 0 majeur, 3 mineurs, 1 simplification → corrections confiées à un nouvel implementeur-tdd (le premier agent avait épuisé ses tours)
 Tâche : L4-T30 — scénario S7 `formes-texte-pages-grille` (implementeur-tdd, worktree `--L4-T30`, base c5d8e00 ; part D3D11 reportée au PC) — depuis 2026-11-02
 Tâche : L4-C18 — navigateur : menus sans popupOpened, locate(), Ctrl+clic au scénario — depuis 2026-11-02
 Tâche : L4-C19 — cadres et fond : séparations à k × taille d'un cadre, fond « other », ordre d'acceptFramedSize, sameBackground — depuis 2026-11-02
@@ -57,6 +57,11 @@ Contexte de la demande : Jérôme a vu le prototype de mesure et attendait une i
 ## Référence
 Rapide (worktree neuf, debug) : 29/29 TESTS OK
 Complète (origin/main @ 175b336) : release 29/29 TESTS OK · debug 29/29 TESTS OK
+
+## Pièges trouvés (2026-11-02)
+- `tst_captures_page_allongee_zones` : `BORD separation-zone ECART (intermédiaires 0, attendu ≥ 1)` une fois sous `ctest -j2` (rejeu de L4-C5, qui ne touche pas aux zones), puis 5/5 vert seul : test instable sous charge, à surveiller (L4-C19 touche les séparations).
+- Relecteur Mac (`relire-sur-mac.cjs`, `MAC_HOTE=local`) : « Not logged in » → relectures dans la session.
+- Les relecteurs du lot entier (181 fichiers) atteignent leurs 40 tours : relance par `SendMessage` pour le rapport, puis un second relecteur sur le non couvert.
 
 ## Compteurs
 contre-relecture cadrage 2/2 (tour 2 : 0 bloquant, 6 imp. + 4 min. appliqués en 663644e ; tour 1 : 1 bloquant, 11 importants, 3 mineurs → renvoyés au cadreur ; arbitrages : questions « fonctions à revoir » et « cache avant la mesure Dell » posées à la porte du lot 1 avec défaut ; lot cache déplacé avant la release 1.0 ; lot vidéos avant la release 1.0) · relecture plan lot 1 : 2/3 (tour 1 : 1 bloquant sécurité → 1b96289 ; tour 2 : 0 bloquant, 1 imp. + 3 min. → 7e4c743) · vagues sans progrès 0/2 · correctifs de fin (lot 2) 1/2
