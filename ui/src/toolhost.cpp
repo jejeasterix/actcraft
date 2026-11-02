@@ -1,21 +1,29 @@
 #include "tooladapters.h"
 
 #include <actcraft/core/model.h>
+#include <actcraft/core/penmodifiers.h>
 #include <actcraft/core/shapegeometry.h>
+#include <actcraft/render/imagefill.h>
+#include <actcraft/tools/connectortool.h>
+#include <actcraft/tools/filltool.h>
+#include <actcraft/tools/penshapetool.h>
 #include <actcraft/tools/pentool.h>
 #include <actcraft/tools/selecttool.h>
 #include <actcraft/tools/toolregistry.h>
 #include <actcraft/ui/toolhost.h>
 
 #include <QCoreApplication>
+#include <QImage>
 #include <QInputEvent>
 #include <QKeyEvent>
+#include <QPoint>
 #include <QQuickWindow>
 #include <QSettings>
 #include <QVariantList>
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <variant>
@@ -32,6 +40,14 @@ const tools::ToolRegistry& registry()
     static const tools::ToolRegistry instance = [] {
         tools::ToolRegistry built;
         tools::registerBuiltinTools(built);
+        // Outils du lot 5 (L5-T17) : inscrits ici, le registre de tools/ n'est pas dans cette tâche.
+        built.add(QStringLiteral("fill"),
+                  [](tools::ToolContext& context) { return std::make_unique<tools::FillTool>(context); });
+        built.add(QStringLiteral("pen-shape"),
+                  [](tools::ToolContext& context) { return std::make_unique<tools::PenShapeTool>(context); });
+        built.add(QStringLiteral("connector"), [](tools::ToolContext& context) {
+            return std::make_unique<tools::ConnectorTool>(context);
+        });
         return built;
     }();
     return instance;
@@ -42,11 +58,14 @@ bool isInkTool(const QString& id)
     return id == QStringLiteral("pen") || id == QStringLiteral("highlighter");
 }
 
-// Outils dont la palette principale règle la couleur : l'encre, et l'outil des formes pour son contour (P6,
-// réglage propre ; L4-C7). Le dernier outil d'encre (m_lastInk) reste un outil d'encre.
+constexpr int kConnectorStyleCount = 14; // panneau des connecteurs (D11)
+
+// Outils dont la palette principale règle la couleur : l'encre, le pot de peinture (L5-T17), et l'outil des
+// formes pour son contour (P6, réglage propre ; L4-C7). Le dernier outil d'encre (m_lastInk) reste un outil
+// d'encre.
 bool ownsColor(const QString& id)
 {
-    return isInkTool(id) || id == QStringLiteral("shape");
+    return isInkTool(id) || id == QStringLiteral("shape") || id == QStringLiteral("fill");
 }
 
 QString settingsKey(const QString& toolId, const QString& leaf)
@@ -274,8 +293,61 @@ void ToolHost::setSettingsFile(const QString& path)
     emit settingsChanged();
 }
 
+void ToolHost::activate(const QString& toolId, const QVariant& argument)
+{
+    if (toolId != QStringLiteral("pen-shape") || !argument.isValid() || argument.toString().isEmpty()) {
+        activate(toolId); // sans argument : le tracé gardé
+        return;
+    }
+    const QString current = currentTool();
+    if (!isInkTool(current) && current != QStringLiteral("pen-shape")) {
+        return; // F-221 : la modification de stylo ne vaut que sous les outils d'encre
+    }
+    const std::optional<core::PenShape> shape = core::penShapeFromId(argument.toString().toStdString());
+    if (!shape) {
+        return;
+    }
+    ensureSettings();
+    if (*shape == core::PenShape::Free) { // recliquer le tracé revient au trait libre
+        if (current == QStringLiteral("pen-shape")) {
+            cancelGesture();
+            activate(m_lastInk);
+        }
+        return;
+    }
+    cancelGesture();
+    m_penShape = argument.toString();
+    writeValue(settingsKey(QStringLiteral("pen-shape"), QStringLiteral("trace")), m_penShape);
+    if (current == QStringLiteral("pen-shape")) {
+        configureTool(existingTool(current));
+        emit settingsChanged();
+        return;
+    }
+    activate(QStringLiteral("pen-shape"));
+}
+
 void ToolHost::activate(const QString& toolId)
 {
+    const QString shown = currentTool();
+    if (toolId == QStringLiteral("pen-shape") && !isInkTool(shown) && shown != QStringLiteral("pen-shape")) {
+        return; // F-221
+    }
+    if (toolId ==
+        QStringLiteral("select-points")) { // object.shape-points : Sélection en mode points de forme
+        activate(QStringLiteral("select"));
+        if (tools::SelectTool* select = selectTool()) {
+            select->setShapePointsMode(true);
+        }
+        return;
+    }
+    if (toolId == QStringLiteral("select") && shown == QStringLiteral("select")) {
+        // Échap au repos (tool.select, M9) : quitte le mode points de forme.
+        tools::SelectTool* select = selectTool();
+        if (select && select->shapePointsMode() && !select->isBusy()) {
+            select->setShapePointsMode(false);
+        }
+        return;
+    }
     if (!registry().contains(toolId)) {
         return;
     }
@@ -292,6 +364,8 @@ void ToolHost::activate(const QString& toolId)
         m_lastInk = toolId;
     }
     if (tools::Tool* next = activeTool()) {
+        configureTool(
+            next); // couleur du pot, style du connecteur, tracé et encre de la modification de stylo
         next->activate();
     }
     syncToolCommands();
@@ -306,16 +380,18 @@ void ToolHost::setColor(const QColor& color)
         return;
     }
     ensureSettings();
-    if (!ownsColor(currentTool())) {
+    const bool penModifier = currentTool() == QStringLiteral("pen-shape"); // règle l'encre dont elle vient
+    if (!penModifier && !ownsColor(currentTool())) {
         activate(m_lastInk); // sous Sélectionner ou la gomme : au dernier outil d'encre (L3-T0)
     }
-    const QString id = currentTool();
+    const QString id = penModifier ? m_lastInk : currentTool();
     tools::InkSettings settings = user().settings(id);
     settings.color = opaque(color);
     if (auto* pen = dynamic_cast<tools::PenTool*>(existingTool(id))) {
         pen->setColor(settings.color);
     }
     storeSettings(id, settings);
+    configureTool(existingTool(currentTool())); // pot de peinture, modification de stylo
 }
 
 void ToolHost::setWidth(qreal width)
@@ -324,10 +400,12 @@ void ToolHost::setWidth(qreal width)
         return;
     }
     ensureSettings();
-    if (currentTool() == QStringLiteral("select")) {
+    if (const QString shown = currentTool(); shown == QStringLiteral("select") ||
+                                             shown == QStringLiteral("fill") ||
+                                             shown == QStringLiteral("connector")) {
         activate(m_lastInk); // Sélectionner n'a pas d'épaisseur ; la gomme garde la sienne
     }
-    const QString id = currentTool();
+    const QString id = currentTool() == QStringLiteral("pen-shape") ? m_lastInk : currentTool();
     tools::InkSettings settings = user().settings(id);
     settings.width = std::clamp(static_cast<double>(width), static_cast<double>(kMinInkWidth),
                                 static_cast<double>(kMaxInkWidth));
@@ -335,6 +413,7 @@ void ToolHost::setWidth(qreal width)
         pen->setBaseWidth(settings.width);
     }
     storeSettings(id, settings);
+    configureTool(existingTool(currentTool()));
 }
 
 // Les opérations de la sélection peuvent arriver pendant un geste (raccourci pendant un glissement) : le
@@ -404,10 +483,45 @@ void ToolHost::setSelectionTranslucency(int value)
     }
 }
 
-// Talon L5-T1 : rempli par L5-T17.
+// Style du connecteur (rang du panneau, 14 styles) : gardé comme les réglages par outil (F-136), rendu à
+// l'outil Connecteur.
 void ToolHost::setConnectorStyle(int style)
 {
-    static_cast<void>(style);
+    ensureSettings();
+    m_connectorStyle = std::clamp(style, 0, kConnectorStyleCount - 1);
+    writeValue(settingsKey(QStringLiteral("connector"), QStringLiteral("style")), m_connectorStyle);
+    configureTool(existingTool(QStringLiteral("connector")));
+    emit settingsChanged();
+}
+
+void ToolHost::writeValue(const QString& key, const QVariant& value) const
+{
+    if (const std::unique_ptr<QSettings> store = openSettings(m_settingsFile)) {
+        store->setValue(key, value);
+    }
+}
+
+// Ce que l'outil tient de l'hôte : il ne voit que son contexte (règle de modularité 2), ui/ lui donne le
+// reste.
+void ToolHost::configureTool(tools::Tool* tool) const
+{
+    if (auto* fill = dynamic_cast<tools::FillTool*>(tool)) {
+        fill->setColor(settingsOf(QStringLiteral("fill")).color);
+        fill->setImageFiller([](const QImage& image, QPoint seed, core::Argb color, int tolerance) {
+            return render::floodFill(image, seed, color, tolerance);
+        });
+    } else if (auto* connector = dynamic_cast<tools::ConnectorTool*>(tool)) {
+        connector->setStyle(static_cast<std::uint8_t>(m_connectorStyle));
+    } else if (auto* penShape = dynamic_cast<tools::PenShapeTool*>(tool)) {
+        // Le trait suit l'encre dont la modification vient ; seule l'alpha de la couleur rend le marqueur
+        // translucide (stroke.color).
+        const tools::InkSettings ink = settingsOf(m_lastInk);
+        core::Outline pen;
+        pen.color = (ink.color & 0x00FFFFFFu) | (static_cast<core::Argb>(255 - ink.translucency) << 24);
+        pen.width = ink.width;
+        penShape->setShape(core::penShapeFromId(m_penShape.toStdString()).value_or(core::PenShape::Free));
+        penShape->setPen(pen, m_lastInk == QStringLiteral("highlighter"));
+    }
 }
 
 void ToolHost::cancelGesture()
@@ -507,7 +621,9 @@ tools::Tool* ToolHost::toolFor(const QString& id) const
     if (!created) {
         return nullptr;
     }
-    return wired->tools.emplace(id, std::move(created)).first->second.get();
+    tools::Tool* added = wired->tools.emplace(id, std::move(created)).first->second.get();
+    configureTool(added);
+    return added;
 }
 
 tools::Tool* ToolHost::existingTool(const QString& id) const
@@ -547,6 +663,18 @@ void ToolHost::ensureSettings()
                 .toBool();
     }
     user().setShapeSettings(shape);
+    m_connectorStyle = 0;
+    m_penShape.clear();
+    if (store) {
+        m_connectorStyle = std::clamp(
+            store->value(settingsKey(QStringLiteral("connector"), QStringLiteral("style")), 0).toInt(), 0,
+            kConnectorStyleCount - 1);
+        const QString trace =
+            store->value(settingsKey(QStringLiteral("pen-shape"), QStringLiteral("trace"))).toString();
+        if (core::penShapeFromId(trace.toStdString())) {
+            m_penShape = trace;
+        }
+    }
     for (const QString& id : registry().ids()) {
         if (id == QStringLiteral("select")) {
             continue;
@@ -571,6 +699,11 @@ void ToolHost::ensureSettings()
                     pen->setBaseWidth(settings.width);
                 }
             }
+        }
+    }
+    if (m_adapters) { // outils déjà créés : les réglages relus du nouveau fichier (L5-T17)
+        for (const auto& entry : m_adapters->tools) {
+            configureTool(entry.second.get());
         }
     }
 }
@@ -663,7 +796,9 @@ QString ToolHost::shownInkTool() const
 QString ToolHost::shownWidthTool() const
 {
     const QString current = currentTool();
-    return current == QStringLiteral("select") ? m_lastInk : current;
+    const bool borrowsInk = current == QStringLiteral("select") || current == QStringLiteral("fill") ||
+                            current == QStringLiteral("connector") || current == QStringLiteral("pen-shape");
+    return borrowsInk ? m_lastInk : current;
 }
 
 // Maj et Ctrl (L3-T8) : un échantillon ne les porte pas. Relayés à l'outil actif à l'appui et au relâché de

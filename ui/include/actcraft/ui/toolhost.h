@@ -13,6 +13,7 @@
 #include <QRectF>
 #include <QString>
 #include <QStringList>
+#include <QVariant>
 #include <QVariantList>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
@@ -87,6 +88,10 @@ public:
     // « select », « pen », « highlighter », « eraser » : outil courant de l'utilisateur 1, commande tool.<id>
     // cochée, réglages de l'outil rendus à la vue (couleur et épaisseur de l'encre).
     Q_INVOKABLE void activate(const QString& toolId);
+    // L5-T17 : « pen-shape » avec le tracé choisi (identifiant de pen.shape ; « free » : retour au trait
+    // libre) ; seulement sous le stylo, le marqueur ou ce même outil, sinon sans effet (F-221). Autre outil :
+    // activate(id).
+    Q_INVOKABLE void activate(const QString& toolId, const QVariant& argument);
     // Outil courant s'il a sa couleur (encre ; formes : le contour, L4-C7), sinon le dernier outil d'encre
     // (F-134).
     Q_INVOKABLE void setColor(const QColor& color);
@@ -148,6 +153,10 @@ private:
     void setTrashHoverState(bool hover);
     void refreshSelection();
     void relayModifiers(int key, int modifiers);
+    // L5-T17 : réglages gardés par outil (couleur du pot, style du connecteur, tracé choisi) rendus à
+    // l'outil.
+    void configureTool(tools::Tool* tool) const;
+    void writeValue(const QString& key, const QVariant& value) const;
     QString shownInkTool() const;
     QString shownWidthTool() const;
     bool eventFilter(QObject* watched, QEvent* event) override; // Maj et Ctrl (L3-T8)
@@ -166,6 +175,8 @@ private:
     bool m_handlesVisible = false;
     bool m_settingsLoaded = false;
     bool m_filtering = false;
+    int m_connectorStyle = 0; // L5-T17 : style du connecteur (rang du panneau)
+    QString m_penShape;       // L5-T17 : tracé choisi de la modification de stylo
     int m_observer = 0;
 };
 

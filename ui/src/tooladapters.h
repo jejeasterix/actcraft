@@ -36,15 +36,23 @@ class DocumentEditorAdapter final : public tools::DocumentEditor
 {
 public:
     explicit DocumentEditorAdapter(DocumentController& controller);
+    ~DocumentEditorAdapter() override;
     const core::Page& page() const override;
     std::size_t pageIndex() const override;
     void execute(std::unique_ptr<core::UndoCommand> command) override;
     std::vector<core::PageObject> lift(const std::vector<core::ObjectId>& ids) override;
     void drop(std::unique_ptr<core::UndoCommand> command) override;
     bool isLifting() const override;
+    QByteArray resourceData(const std::string& key) const override; // L5-T12
+    // Compteur des changements appliqués (tous, Annuler et Rétablir compris) : un calcul différé le capture
+    // pour jeter un résultat périmé.
+    std::uint64_t revision() const override;
 
 private:
     DocumentController& m_controller;
+    QPointer<DocumentController> m_alive; // le contrôleur peut mourir avant l'adaptateur
+    int m_observer = 0;
+    std::uint64_t m_revision = 0;
 };
 
 class LiftSurfaceAdapter final : public tools::LiftSurface
