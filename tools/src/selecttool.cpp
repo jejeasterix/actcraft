@@ -114,7 +114,7 @@ std::vector<core::ObjectId> present(const core::Page& page, const std::vector<co
     std::vector<core::ObjectId> out;
     for (const core::ObjectId id : ids) {
         const std::size_t index = core::indexOf(page, id);
-        if (index != page.objects.size() && core::isSelectable(page.objects[index])) {
+        if (index != page.objects.size() && core::isSelectable(page, page.objects[index])) {
             out.push_back(id);
         }
     }

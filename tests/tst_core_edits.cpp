@@ -140,8 +140,8 @@ private slots:
         p.objects.push_back(onLayer(Layer::Middle, 1));
         p.objects.push_back(onLayer(Layer::Middle, 2));
         p.objects.push_back(groupOf(3, {1, 2}));
-        p.objects.push_back(groupOf(4, {}));      // vide
-        p.objects.push_back(groupOf(5, {77}));    // membre absent de la page
+        p.objects.push_back(groupOf(4, {}));   // vide
+        p.objects.push_back(groupOf(5, {77})); // membre absent de la page
         QVERIFY(isSelectable(p, p.objects[2]));
         QVERIFY(!isSelectable(p, p.objects[3]));
         QVERIFY(!hasExtent(p, p.objects[3]));
