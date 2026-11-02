@@ -1,4 +1,5 @@
 #include <actcraft/core/alignment.h>
+#include <actcraft/core/arrange.h>
 #include <actcraft/core/clipboardedits.h>
 #include <actcraft/core/connectors.h>
 #include <actcraft/core/document.h>
@@ -263,6 +264,36 @@ private slots:
         const auto undone = stack.undo(d);
         QCOMPARE(changedCount(undone, c), 1);
         QCOMPARE(changedCount(undone, still), 0);
+    }
+
+    void makeConnectorLandsInTheTopLayer()
+    {
+        const auto o = core::makeConnector({1, 2}, 7, {3, 4}, 0, 5);
+        QVERIFY(o.common.layer == core::Layer::Top);
+        const auto& c = std::get<core::Connector>(o);
+        QCOMPARE(xy(c.firstEnd), XY(1, 2));
+        QCOMPARE(xy(c.secondEnd), XY(3, 4));
+        QCOMPARE(c.objectA, core::ObjectId(7));
+        QCOMPARE(c.objectB, core::ObjectId(0));
+        QCOMPARE(c.style, std::uint8_t(5));
+    }
+
+    // Grouper (L5-T5) ne déplace rien : aucun bout ne bouge ni ne se détache, aucun ObjectChanged du
+    // connecteur.
+    void groupingKeepsConnectorsAttached()
+    {
+        auto d = blank();
+        const auto a = addRect(d, {100, 100, 100, 50});
+        const auto b = addRect(d, {400, 100, 100, 50});
+        const auto c = addConnectorAt(d, {200, 150}, a, {400, 100}, b);
+        core::UndoStack stack;
+        const auto changes = stack.push(
+            d, core::withFollowingConnectors(d.page(0), 0, core::makeGroupCommand(d.page(0), 0, {a, b})));
+        QCOMPARE(changedCount(changes, c), 0);
+        QCOMPARE(connector(d, c).objectA, a);
+        QCOMPARE(connector(d, c).objectB, b);
+        QCOMPARE(xy(connector(d, c).firstEnd), XY(200, 150));
+        QCOMPARE(xy(connector(d, c).secondEnd), XY(400, 100));
     }
 
     // Sans connecteur lié sur la page, la commande n'est pas enveloppée : elle garde sa fusion (lot 3).
