@@ -48,6 +48,7 @@ core::ObjectId addRect(core::Document& d, core::RectF bounds)
 {
     core::Shape s;
     s.bounds = bounds;
+    s.outlineWidth = 0; // l'emprise ne déborde pas du rectangle
     core::PageObject o = s;
     o.common.id = d.allocateId();
     d.page(0).objects.push_back(std::move(o));
@@ -216,8 +217,8 @@ private slots:
         QCOMPARE(std::count_if(changes.begin(), changes.end(),
                                [](const auto& ch) { return ch.kind == core::Change::Kind::ObjectChanged; }),
                  2);
-        const auto& chB = *std::find_if(changes.begin(), changes.end(),
-                                        [b](const auto& ch) { return ch.object == b; });
+        const auto& chB =
+            *std::find_if(changes.begin(), changes.end(), [b](const auto& ch) { return ch.object == b; });
         QCOMPARE(chB.area.x, 300.0); // union avant {300..320} et après {5 + 300 ..}
         QCOMPARE(chB.area.width, 25.0);
         QCOMPARE(boundsOf(objectById(d, a)).x, 60.0);
