@@ -109,6 +109,25 @@ Item {
         }
     }
 
+    // Points d'attache du connecteur (L5-T13, sélection invisible) et points de forme (L5-T16, D13) : carrés de
+    // 13 px à contour sombre, dessinés même sans cadre de sélection.
+    Repeater {
+        model: root.framed ? (root.frame.shapePoints || []) : (root.frame.smartPoints || []).concat(root.frame.shapePoints || [])
+        delegate: Rectangle {
+            id: square
+            objectName: "selectionSquarePoint"
+            required property var modelData
+            readonly property point at: root.place(modelData)
+            x: at.x - width / 2
+            y: at.y - height / 2
+            width: 13
+            height: 13
+            color: "#FFD43B"
+            border.width: 2
+            border.color: root.contour
+        }
+    }
+
     // Rectangle élastique (glisser sur le vide).
     Rectangle {
         readonly property var band: root.frame.rubberBand
