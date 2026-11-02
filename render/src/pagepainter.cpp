@@ -351,37 +351,13 @@ void separateLetters(QTextDocument& document)
     }
 }
 
-void layOutColumn(QTextDocument& document)
-{
-    document.setUndoRedoEnabled(false);
-    QTextOption option = document.defaultTextOption();
-    option.setWrapMode(QTextOption::WrapAnywhere);
-    option.setAlignment(Qt::AlignHCenter);
-    document.setDefaultTextOption(option);
-    // L'alignement, le retrait et l'interdiction de couper d'un paragraphe du HTML l'emportent sur l'option
-    // du document : ils sont remis, le reste de la mise en forme est gardé.
-    QTextBlockFormat column;
-    column.setAlignment(Qt::AlignHCenter);
-    column.setNonBreakableLines(false);
-    column.setLeftMargin(0);
-    column.setRightMargin(0);
-    column.setTextIndent(0);
-    column.setIndent(0);
-    QTextCursor cursor(&document);
-    cursor.select(QTextCursor::Document);
-    cursor.mergeBlockFormat(column);
-    const double width = widestAdvance(document);
-    separateLetters(document);
-    document.setTextWidth(width);
-}
-
 // Document mis en page d'un texte riche : colonne d'un caractère (haut en bas), sinon largeur du cadre.
 void layOutText(QTextDocument& document, const core::Text& t)
 {
     document.setDocumentMargin(0);
     document.setHtml(QString::fromStdString(t.html));
     if (drawnAsColumn(t)) {
-        layOutColumn(document);
+        layOutVerticalColumn(document);
     } else if (t.bounds.width > 0) {
         document.setTextWidth(t.bounds.width);
     }
@@ -685,7 +661,26 @@ void paintUnknown(QPainter& p, const core::UnknownObject& unknown)
 
 void layOutVerticalColumn(QTextDocument& document)
 {
-    layOutColumn(document);
+    document.setUndoRedoEnabled(false);
+    QTextOption option = document.defaultTextOption();
+    option.setWrapMode(QTextOption::WrapAnywhere);
+    option.setAlignment(Qt::AlignHCenter);
+    document.setDefaultTextOption(option);
+    // L'alignement, le retrait et l'interdiction de couper d'un paragraphe du HTML l'emportent sur l'option
+    // du document : ils sont remis, le reste de la mise en forme est gardé.
+    QTextBlockFormat column;
+    column.setAlignment(Qt::AlignHCenter);
+    column.setNonBreakableLines(false);
+    column.setLeftMargin(0);
+    column.setRightMargin(0);
+    column.setTextIndent(0);
+    column.setIndent(0);
+    QTextCursor cursor(&document);
+    cursor.select(QTextCursor::Document);
+    cursor.mergeBlockFormat(column);
+    const double width = widestAdvance(document);
+    separateLetters(document);
+    document.setTextWidth(width);
 }
 
 double verticalColumnWidth(const QTextDocument& document)
