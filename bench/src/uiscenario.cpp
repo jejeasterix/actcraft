@@ -250,6 +250,7 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         step.value = jsonText(o.value(QStringLiteral("value")));
+        step.above = o.value(QStringLiteral("above")).toBool(false);
         if (o.contains(QStringLiteral("tolerance"))) {
             const QJsonValue tolerance = o.value(QStringLiteral("tolerance"));
             if (!tolerance.isDouble() || tolerance.toDouble() < 0.0) {
@@ -284,6 +285,7 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         step.value = jsonText(o.value(QStringLiteral("value")));
+        step.above = o.value(QStringLiteral("above")).toBool(false);
         return true;
     }
     if (o.contains(QStringLiteral("watchEventLoop"))) {
@@ -786,7 +788,14 @@ bool UiScenarioPlayer::read(const UiStep& step, QStringList& report)
                                   : QStringLiteral("<introuvable>");
     bool ok = false;
     QString expectation = expected;
-    if (step.valueTolerance) {
+    if (step.above) {
+        bool actualIsNumber = false;
+        bool expectedIsNumber = false;
+        const double actualNumber = actual.toDouble(&actualIsNumber);
+        const double expectedNumber = expected.toDouble(&expectedIsNumber);
+        ok = object && actualIsNumber && expectedIsNumber && actualNumber > expectedNumber;
+        expectation = QStringLiteral("> %1").arg(expected);
+    } else if (step.valueTolerance) {
         // Lecture numérique : |lu − attendu| ≤ tolérance ; un texte non numérique, d'un côté ou de l'autre,
         // est un écart.
         bool actualIsNumber = false;
@@ -1250,21 +1259,31 @@ bool UiScenarioPlayer::waitFor(const UiStep& step, QStringList& report)
     // Condition avec plafond, jamais une durée fixe ; l'objet peut disparaître pendant l'attente.
     const QByteArray property = step.property.toUtf8();
     QString actual;
+    const auto matches = [&](const QString& value) {
+        if (!step.above) {
+            return value == expected;
+        }
+        bool a = false;
+        bool b = false;
+        const double lu = value.toDouble(&a);
+        const double attendu = expected.toDouble(&b);
+        return a && b && lu > attendu;
+    };
     waitUntil(
         [&] {
             if (!target) {
                 return true;
             }
             actual = propertyText(target->property(property.constData()));
-            return actual == expected;
+            return matches(actual);
         },
         step.ms);
     if (!target) {
         report << head + QStringLiteral(" ECHEC (objet détruit pendant l'attente)");
         return false;
     }
-    const bool ok = actual == expected;
-    report << (ok ? head + QStringLiteral("=%1 OK").arg(expected)
+    const bool ok = matches(actual);
+    report << (ok ? head + QStringLiteral("=%1 OK").arg(step.above ? actual : expected)
                   : head +
                         QStringLiteral("=%1 ECHEC (lu %2 après %3 ms)").arg(expected, actual).arg(step.ms));
     return ok;

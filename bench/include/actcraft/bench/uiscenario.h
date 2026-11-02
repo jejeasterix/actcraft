@@ -96,6 +96,7 @@ struct UiStep
     bool expectStroke = true; // Stroke : faux = aucun trait ne doit être figé (stylet sur un bouton)
     std::optional<double>
         valueTolerance; // Expect : écart admis, valeur numérique ; absent : comparaison exacte
+    bool above = false; // Expect, WaitFor : vrai = lu strictement supérieur à la valeur (L4-T30)
     // Ajouté par L3-C4. MaxEventLoopGap : mesure écrite, l'écart au seuil ne fait pas échouer le scénario.
     bool informative = false;
 };
