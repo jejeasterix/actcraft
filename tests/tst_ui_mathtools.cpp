@@ -1242,6 +1242,92 @@ private slots:
         QCOMPARE(QColor::fromRgba(second->color), blue);
     }
 
+    // F-280, L7-T34 : le marqueur du lot 3 suit le bord de la règle comme le stylo (même filtre
+    // d'échantillons, en amont de l'outil actif) ; le marqueur lui-même ne sait pas qu'une règle existe.
+    void markerFollowsTheRuler()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("tool.highlighter")));
+        QVERIFY(w.run(QStringLiteral("math.ruler")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QVERIFY(tools->toolHost());
+        QCOMPARE(tools->toolHost()->currentTool(), QStringLiteral("highlighter"));
+        const double top = frameOf(*tools, 0).top();
+        const int before = w.pageObjectCount();
+        stylusPath(w, {{300, top - 4}, {400, top - 1}, {500, top + 2}, {600, top + 3}, {700, top + 3}});
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        const actcraft::core::Stroke* guided = lastStroke(w);
+        QVERIFY(guided);
+        QVERIFY(guided->points.size() >= 2);
+        QVERIFY2(allOnLine(*guided, top), "marqueur : tous les points du trait sur le bord haut");
+        QVERIFY(qAbs(guided->points.front().x - 300) <= 0.5);
+        QVERIFY(qAbs(guided->points.back().x - 700) <= 0.5);
+    }
+
+    // F-282, L7-T34 : la gomme du lot 3 suit la mine du compas (même filtre) : le bras tourne avec elle. Elle
+    // ne verse aucun trait : « marquer le centre » n'ajoute aucune croix, ni à son relâché, ni au trait libre
+    // que le stylo verse ensuite.
+    void eraserFollowsTheCompass()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        actcraft::ui::DocumentController* doc = documentController(w);
+        QVERIFY(doc);
+        QVERIFY(w.run(QStringLiteral("math.compass")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        tools->setMarkCentre(0, true);
+        const Comp c = compassOf(*tools, 0);
+        QVERIFY(qAbs(c.angle) < 1e-6);
+        QVERIFY(w.run(QStringLiteral("tool.eraser")));
+        QVERIFY(tools->toolHost());
+        QCOMPARE(tools->toolHost()->currentTool(), QStringLiteral("eraser"));
+        const int lines = countOf<actcraft::core::Line>(doc->document().page(0));
+        stylusPath(w, circlePath(c, 0, 60, 5));
+        QTRY_VERIFY2(qAbs(compassOf(*tools, 0).angle - 60) <= 1, "gomme guidée : le bras suit jusqu'à 60°");
+        QTest::qWait(50);
+        QCOMPARE(countOf<actcraft::core::Line>(doc->document().page(0)), lines);
+
+        // Trait libre au stylo, loin du compas : il ne reçoit pas la croix restée armée par la gomme.
+        QVERIFY(w.run(QStringLiteral("tool.pen")));
+        const int before = w.pageObjectCount();
+        stylusPath(w, {c.at(-60, 260), c.at(40, 260)});
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        QTest::qWait(50);
+        QCOMPARE(countOf<actcraft::core::Line>(doc->document().page(0)), lines);
+        QCOMPARE(w.pageObjectCount(), before + 1);
+    }
+
+    // Revue de L7-T9 : avec l'outil Sélectionner, la règle ne guide pas. Un cadre de sélection tiré depuis
+    // le bord garde ses coordonnées et prend le trait placé au-dessus de la règle ; guidé, il serait plat
+    // (y = bord) et ne prendrait rien.
+    void selectionIsNotGuided()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.ruler")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QVERIFY(tools->toolHost());
+        const Frame f = frameOf(*tools, 0);
+        const double top = f.top();
+        // Règle écartée le temps de verser le trait libre, puis remise.
+        tools->setFrame(0, QPointF(f.cx, f.cy + 300), f.length, f.thickness, 0);
+        const int before = w.pageObjectCount();
+        stylusPath(w, {{400, top - 16}, {450, top - 16}, {500, top - 16}});
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        tools->setFrame(0, QPointF(f.cx, f.cy), f.length, f.thickness, 0);
+        QVERIFY(qAbs(frameOf(*tools, 0).top() - top) < 1e-6);
+        QVERIFY(w.run(QStringLiteral("tool.select")));
+        QCOMPARE(tools->toolHost()->currentTool(), QStringLiteral("select"));
+        QCOMPARE(tools->toolHost()->selectionCount(), 0);
+        stylusPath(w, {{300, top - 3}, {500, top - 20}, {700, top - 30}});
+        QTRY_COMPARE(tools->toolHost()->selectionCount(), 1);
+        QCOMPARE(w.pageObjectCount(), before + 1);
+    }
+
     // Translucidité du corps : kDefaultToolOpacity (100 sur 255), jamais opaque.
     void compassOpacityIsTheDefault()
     {
