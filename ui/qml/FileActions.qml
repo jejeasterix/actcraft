@@ -10,6 +10,8 @@ Item {
     id: actions
     objectName: "fileActions"
     required property DocumentController document
+    // Édition de texte en cours : validée avant de lire `modified` (sinon Fermer, Nouveau ou Quitter la perdraient).
+    property TextEditing textEditing: null
     signal popupOpened()
     signal popupClosed()
     property var pending: null    // action à reprendre après « enregistrer ? »
@@ -21,12 +23,16 @@ Item {
     property bool saveWaiting: false
 
     function guard(action) {
+        if (actions.textEditing) actions.textEditing.commit()
         if (!actions.document.modified) { action(); return }
         actions.pending = action
         saveChanges.documentTitle = actions.document.title
         saveChanges.open()
     }
     function newDocument(w, h) { guard(function () { actions.document.newDocument(w, h) }) }
+    function newDocumentWithFrames(w, h, across, down) {
+        guard(function () { actions.document.newDocumentWithFrames(w, h, across, down) })
+    }
     function askSize() { sizeDialog.open() }
     function open(argument) {
         const url = actions.document.urlFromArgument(argument)
@@ -85,9 +91,10 @@ Item {
     }
     PageSizeDialog {
         id: sizeDialog
+        document: actions.document
         onOpened: actions.popupOpened()
         onClosed: actions.popupClosed()
-        onSizeAccepted: (w, h) => actions.newDocument(w, h)
+        onSizeAccepted: (w, h, across, down) => actions.newDocumentWithFrames(w, h, across, down)
     }
     Connections {
         target: actions.document

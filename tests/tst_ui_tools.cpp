@@ -441,6 +441,27 @@ private slots:
         QCOMPARE(app.tools->selectionCount(), 2);
     }
 
+    // L4-C5 (H4-24 ; décision de l'orchestrateur du 2026-11-02, à revoir à la porte de fin : Maj+clic garde
+    // son effet) : Ctrl+clic, touche tenue comme au clavier, ajoute l'objet cliqué à la sélection, puis l'en
+    // retire, comme dans l'original.
+    void controlClickAddsThenRemovesTheClickedObject()
+    {
+        App app;
+        QVERIFY(start(app));
+        QVERIFY(twoStrokes(app));
+        QVERIFY(app.trigger("tool.select"));
+        click(app, QPointF(400, 300));
+        QCOMPARE(app.tools->selectionCount(), 1);
+        QTest::keyPress(app.window, Qt::Key_Control, Qt::ControlModifier);
+        click(app, QPointF(400, 450), Qt::ControlModifier);
+        QCOMPARE(app.tools->selectionCount(), 2);
+        click(app, QPointF(450, 300), Qt::ControlModifier); // loin des poignées du cadre des deux traits
+        QCOMPARE(app.tools->selectionCount(), 1);
+        QTest::keyRelease(app.window, Qt::Key_Control, Qt::NoModifier);
+        click(app, QPointF(450, 300));
+        QCOMPARE(app.tools->selectionCount(), 1);
+    }
+
     // L3-T12 : execute() ne dépose pas d'abord ce qui est soulevé. Une commande de la sélection lancée
     // pendant un glissement (Suppr) fait d'abord abandonner son geste à l'outil.
     void commandDuringDragAbandonsTheGestureFirst()

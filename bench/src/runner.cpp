@@ -4,8 +4,11 @@
 #include <actcraft/bench/verdict.h>
 #include <actcraft/core/clock.h>
 #include <actcraft/core/generator.h>
+#include <actcraft/core/pagesettings.h>
+#include <actcraft/core/pagezones.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/pagethumbnails.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/viewtransform.h>
 
@@ -23,8 +26,11 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <limits>
+#include <memory>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #if defined(Q_OS_WIN)
 #ifndef NOMINMAX
@@ -230,6 +236,7 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     s.liftedObjects = plan.liftedObjects;
     s.freezeExempt = plan.freezeExempt;
     s.maxCacheRefreshes = plan.maxCacheRefreshes;
+    s.placedShapes = plan.placedShapes;
     const int rebuildsAtStart = m_fixed->rebuildCount();
     const int decodesAtStart = m_fixed->decodeCount();
     // Pendant un scénario, la vue n'écoute que les périphériques synthétiques (décision 23).
@@ -321,6 +328,43 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
         m_window->update();
     }
 
+    // L4-T29 : miniatures. Rendus terminés dans la fenêtre, rendus lancés entre un appui et son relâché
+    // (launchCount lu à chaque changement de contact et de rendu), copie la plus longue (lastCopyMs, posé au
+    // lancement).
+    ui::PageThumbnails* const thumbs = plan.measuresThumbnails ? m_thumbnails : nullptr;
+    const int thumbRenders0 = thumbs ? thumbs->renderCount() : 0;
+    int lastLaunch = thumbs ? thumbs->launchCount() : 0;
+    // Instants relevés (monotonicNowNs) : lancements de rendu et fenêtres de contact (appui à relâché) ;
+    // `launchesDuringContact` en tire le compte à la fin (bornes comprises).
+    std::vector<std::int64_t> launchNs;
+    std::vector<std::pair<std::int64_t, std::int64_t>> contactWindows;
+    double maxCopyMs = 0;
+    bool inContact = false;
+    QMetaObject::Connection thumbWatch;
+    QMetaObject::Connection contactWatch;
+    if (thumbs) {
+        const auto note = [this, thumbs, &lastLaunch, &launchNs, &contactWindows, &maxCopyMs, &inContact] {
+            const std::int64_t at = core::monotonicNowNs();
+            const int now = thumbs->launchCount();
+            for (int k = lastLaunch; k < now; ++k) {
+                launchNs.push_back(at);
+            }
+            if (now != lastLaunch) {
+                maxCopyMs = std::max(maxCopyMs, thumbs->lastCopyMs());
+            }
+            lastLaunch = now;
+            const bool contact = m_view->contactActive();
+            if (contact && !inContact) {
+                contactWindows.emplace_back(at, std::numeric_limits<std::int64_t>::max()); // ouverte
+            } else if (!contact && inContact && !contactWindows.empty()) {
+                contactWindows.back().second = at;
+            }
+            inContact = contact;
+        };
+        thumbWatch = QObject::connect(thumbs, &ui::PageThumbnails::renderingChanged, m_view, note);
+        contactWatch = QObject::connect(m_view, &ui::PageView::contactActiveChanged, m_view, note);
+    }
+
     m_recorder->begin();
     s.startNs = core::monotonicNowNs() + 20'000'000;
     startInputs(std::move(toPost), s.startNs);
@@ -369,8 +413,20 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
         waitFor([this] { return m_fixed->pendingCount() == 0 && m_view->cacheReady(); },
                 ui::kCacheFoldIdleMs + kPageShownTimeoutMs);
     }
+    // Panneau ouvert : le dernier trait laisse sa miniature à refaire kSettleMs plus tard ; la mesure attend
+    // ce rendu pour qu'il tombe dans la fenêtre. Sans rendu, l'attente va au plafond (renders = 0 relevé).
+    if (thumbs && plan.browsersOpen) {
+        waitFor([thumbs, thumbRenders0] { return thumbs->renderCount() > thumbRenders0; },
+                ui::PageThumbnails::kSettleMs + 10000);
+    }
     waitMs(150); // dernières images : figement, redessin du cache
     m_recorder->end();
+    QObject::disconnect(thumbWatch);
+    QObject::disconnect(contactWatch);
+    if (thumbs) {
+        s.thumbnails = ThumbnailStats{thumbs->renderCount() - thumbRenders0,
+                                      launchesDuringContact(launchNs, contactWindows), maxCopyMs};
+    }
     QObject::disconnect(pump);
     QObject::disconnect(readyWatch);
     QObject::disconnect(cacheWatch);
@@ -447,6 +503,13 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     s.memory = m_recorder->memory();
     s.rebuilds = m_fixed->rebuildCount() - rebuildsAtStart;
     s.decodes = m_fixed->decodeCount() - decodesAtStart;
+    if (plan.measuresShapePreview) { // L4-T14 (V9) : trames pendant les glissés de forme
+        std::vector<std::pair<std::int64_t, std::int64_t>> windows;
+        for (const auto& [from, to] : dragWindows(plan)) {
+            windows.emplace_back(s.startNs + from, s.startNs + to);
+        }
+        s.shapePreview = shapePreviewStats(s.frames.swapNs, windows);
+    }
     return s;
 }
 
@@ -658,6 +721,7 @@ BenchResult Runner::run(QQuickWindow* window)
         applyVerdict(result);
         return result;
     }
+    m_thumbnails = m_window->findChild<ui::PageThumbnails*>(QStringLiteral("appThumbnails"));
     result.graphicsApi = apiName(m_window->rendererInterface()->graphicsApi());
     result.cache = m_view->cacheEnabled();
     // Médiane d'un rendu continu : contrôle de cohérence de la période de référence (applyVerdict).
@@ -678,6 +742,32 @@ BenchResult Runner::run(QQuickWindow* window)
         for (const auto& points : plan.seedStrokes) {
             document->commitStroke(seedAnnotation(points));
         }
+        if (plan.gridAbove) { // L4-T14 : grille du dessus, versée dans le cache avant la mesure (setLevel)
+            document->execute(std::make_unique<core::SetGridCommand>(0, gridAboveFixture()));
+        }
+        if (plan.zones) { // L4-T28 : 40 x 53 cadres, séparations en surcouche pendant la mesure
+            core::PageZones zones;
+            zones.horizontal = kBenchZonesAcross;
+            zones.vertical = kBenchZonesDown;
+            document->execute(std::make_unique<core::SetPageZonesCommand>(0, zones));
+            const core::PageZones& applied = document->document().page(0).zones;
+            if (applied.horizontal != kBenchZonesAcross || applied.vertical != kBenchZonesDown) {
+                result.invalidReasons << QStringLiteral("error: zones not applied before %1").arg(plan.name);
+                break;
+            }
+        }
+        bool setupRefused = false;
+        for (const auto& [command, argument] : plan.setupCommands) {
+            if (!runWindowCommand(m_window, command, argument)) {
+                result.invalidReasons
+                    << QStringLiteral("error: command %1 refused before %2").arg(command, plan.name);
+                setupRefused = true;
+                break;
+            }
+        }
+        if (setupRefused) {
+            break;
+        }
         if (!plan.toolCommand.isEmpty() && !runWindowCommand(m_window, plan.toolCommand)) {
             result.invalidReasons
                 << QStringLiteral("error: command %1 refused before %2").arg(plan.toolCommand, plan.name);
@@ -686,6 +776,20 @@ BenchResult Runner::run(QQuickWindow* window)
         if (!setLevel(plan)) {
             result.invalidReasons << QStringLiteral("error: cache not ready before %1").arg(plan.name);
             break;
+        }
+        if (plan.measuresThumbnails) { // L4-T29 : le panneau est dans l'état voulu, les miniatures à jour
+            if (m_thumbnails == nullptr || m_thumbnails->active() != plan.browsersOpen) {
+                result.invalidReasons
+                    << QStringLiteral("error: browsers panel not %1 before %2")
+                           .arg(plan.browsersOpen ? QStringLiteral("open") : QStringLiteral("closed"),
+                                plan.name);
+                break;
+            }
+            if (plan.browsersOpen && !waitFor([this] { return m_thumbnails->pendingCount() == 0; }, 30000)) {
+                result.invalidReasons
+                    << QStringLiteral("error: thumbnails not ready before %1").arg(plan.name);
+                break;
+            }
         }
         // Compteurs de la page fixe au zoom posé (view.zoom 150) : ce qu'il refait jusqu'à la fin du
         // scénario.
@@ -704,6 +808,12 @@ BenchResult Runner::run(QQuickWindow* window)
             });
         result.scenarios.push_back(play(plan, refreshPeriodNs, result.invalidReasons));
         QObject::disconnect(zoomWatch);
+        for (const auto& [command, argument] : plan.teardownCommands) { // L4-T29 : panneau refermé
+            if (!runWindowCommand(m_window, command, argument)) {
+                result.invalidReasons
+                    << QStringLiteral("error: command %1 refused after %2").arg(command, plan.name);
+            }
+        }
         if (!plan.toolCommand.isEmpty() && !runWindowCommand(m_window, QStringLiteral("tool.pen"))) {
             result.invalidReasons
                 << QStringLiteral("error: command tool.pen refused after %1").arg(plan.name);

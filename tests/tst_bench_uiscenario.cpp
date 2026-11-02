@@ -1,6 +1,7 @@
 #include <actcraft/bench/fixtures.h>
 #include <actcraft/bench/uiscenario.h>
 #include <actcraft/formats/nativefile.h>
+#include <actcraft/ui/pageview.h>
 
 #include <QCoreApplication>
 #include <QDir>
@@ -18,6 +19,7 @@
 #include <qpa/qwindowsysteminterface.h>
 
 #include <memory>
+#include <vector>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
@@ -51,9 +53,9 @@ struct Fixture
     QTemporaryDir out;
 };
 
-bool load(Fixture& f)
+bool load(Fixture& f, const QString& file = QStringLiteral("fenetre.qml"))
 {
-    f.engine.load(QUrl::fromLocalFile(QStringLiteral(ACTCRAFT_TESTS_DIR "/data/uiscenario/fenetre.qml")));
+    f.engine.load(QUrl::fromLocalFile(QStringLiteral(ACTCRAFT_TESTS_DIR "/data/uiscenario/") + file));
     if (f.engine.rootObjects().size() != 1) {
         return false;
     }
@@ -268,6 +270,49 @@ private slots:
         QObject object;
         QCOMPARE(propertyText(QVariant::fromValue(&object)), QStringLiteral("<non textuel : QObject*>"));
         QCOMPARE(propertyText(QVariant()), QStringLiteral("<absente>"));
+    }
+
+    // L4-T19 : un doigt se pose aussi en coordonnées de fenêtre (navigateur de pages, hors de la page).
+    void touchStepAcceptsWindowSpace()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseUiScenario(QByteArray(R"({"format": "actcraft-scenario/1", "name": "t", "steps": [
+            {"touch": [[1, 2], [3, 4]], "space": "window"}, {"touch": [[1, 2]]}]})"),
+                                 s, error),
+                 qPrintable(error));
+        QCOMPARE(static_cast<int>(s.steps.size()), 2);
+        QVERIFY(s.steps.at(0).windowSpace);
+        QVERIFY(!s.steps.at(1).windowSpace);
+        QVERIFY(!parseUiScenario(QByteArray(R"({"format": "actcraft-scenario/1", "name": "t", "steps": [
+            {"touch": [[1, 2]], "space": "ailleurs"}]})"),
+                                 s, error));
+    }
+
+    // L4-T19 : une valeur attendue en tableau JSON s'écrit « [1,2] » (jsonText), comme propertyText d'une
+    // liste.
+    void expectArrayValueIsCompactText()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseUiScenario(QStringLiteral(R"({"format": "actcraft-scenario/1", "name": "t", "steps": [
+            {"expect": "appPages.selection", "value": [1, 2]},
+            {"expect": "appPages.selection", "value": []},
+            {"expect": "a.b", "value": [[0, 1], true]}]})")
+                                     .toUtf8(),
+                                 s, error),
+                 qPrintable(error));
+        QCOMPARE(static_cast<int>(s.steps.size()), 3);
+        QCOMPARE(s.steps.at(0).value, QStringLiteral("[1,2]"));
+        QCOMPARE(s.steps.at(1).value, QStringLiteral("[]"));
+        QCOMPARE(s.steps.at(2).value, QStringLiteral("[[0,1],true]"));
+    }
+
+    // L4-T19 : la sélection de pages (QList<int>) se lit « [0,1] ».
+    void integerListPropertyText()
+    {
+        QCOMPARE(propertyText(QVariant::fromValue(QList<int>{0, 1})), QStringLiteral("[0,1]"));
+        QCOMPARE(propertyText(QVariant::fromValue(QList<int>{})), QStringLiteral("[]"));
     }
 
     void playsOnARealPageView()
@@ -692,6 +737,50 @@ private slots:
         QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"holdMs\": -1}", s, error));
     }
 
+    // L4-C21 : les étapes « pointer » portent des modificateurs (Ctrl+clic d'une miniature).
+    void pointerStepModifiersParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"pointer\": [[5, 6]], \"modifiers\": [\"ctrl\"]},"
+                            "{\"pointer\": [[5, 6]], \"modifiers\": [\"Shift\", \"alt\"]},"
+                            "{\"pointer\": [[5, 6]]}",
+                            s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps[0].modifiers, Qt::KeyboardModifiers(Qt::ControlModifier));
+        QCOMPARE(s.steps[1].modifiers, Qt::KeyboardModifiers(Qt::ShiftModifier | Qt::AltModifier));
+        QCOMPARE(s.steps[2].modifiers, Qt::KeyboardModifiers(Qt::NoModifier));
+        QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"modifiers\": [\"hyper\"]}", s, error));
+        QVERIFY2(error.contains(QStringLiteral("modificateur inconnu")), qPrintable(error));
+        QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"modifiers\": \"ctrl\"}", s, error));
+    }
+
+    void pointerStepSendsItsModifiers()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        struct Spy : QObject
+        {
+            QList<Qt::KeyboardModifiers> presses;
+            bool eventFilter(QObject*, QEvent* e) override
+            {
+                if (e->type() == QEvent::MouseButtonPress) {
+                    presses << static_cast<QMouseEvent*>(e)->modifiers();
+                }
+                return false;
+            }
+        } spy;
+        f.window->installEventFilter(&spy);
+        QStringList report;
+        const UiScenario s = scenario("modificateurs", "[{\"waitReady\":true},"
+                                                       "{\"pointer\":[[100,100]],\"modifiers\":[\"ctrl\"]},"
+                                                       "{\"pointer\":[[100,100]]}]");
+        QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(spy.presses.size(), 2);
+        QCOMPARE(spy.presses[0], Qt::KeyboardModifiers(Qt::ControlModifier));
+        QCOMPARE(spy.presses[1], Qt::KeyboardModifiers(Qt::NoModifier));
+    }
+
     void doubleClickStepParsed()
     {
         UiScenario s;
@@ -742,6 +831,62 @@ private slots:
     }
 
     // Contrat du lot 1 prolongé : les sortes du socle 3-7 s'ajoutent à la fin, dans cet ordre.
+    // L4-T14 : {"typeText": "Bonjour"} : le texte est gardé tel quel ; une chaîne vide ou un autre type est
+    // refusé (le fichier entier l'est : « SCENARIO INVALIDE » côté actcraft-captures).
+    void typeTextStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"typeText\": \"Bonjour\"},{\"typeText\": \"a b\"}", s, error),
+                 qPrintable(error));
+        QVERIFY(s.steps[0].kind == UiStepKind::TypeText);
+        QCOMPARE(s.steps[0].value, QStringLiteral("Bonjour"));
+        QCOMPARE(s.steps[1].value, QStringLiteral("a b"));
+        for (const char* bad : {"{\"typeText\": \"\"}", "{\"typeText\": 12}"}) {
+            UiScenario refused;
+            QString why;
+            QVERIFY(!parseSteps(bad, refused, why));
+            QVERIFY2(why.startsWith(QStringLiteral("étape 1")) && why.contains(QStringLiteral("typeText")),
+                     qPrintable(why));
+        }
+    }
+
+    // L4-T14 : un QKeyEvent par caractère, avec son texte (appui puis relâché), livré à la fenêtre ; la ligne
+    // du rapport est « TEXTE <texte> OK ». Une livraison qui refuse l'appui fait échouer l'étape.
+    void typeTextDeliversOneKeyPerCharacter()
+    {
+        struct Event
+        {
+            QEvent::Type type;
+            QString text;
+        };
+        static std::vector<Event> seen;
+        static bool accept = true;
+        seen.clear();
+        accept = true;
+        Fixture f;
+        QVERIFY(load(f));
+        f.player->setKeyDelivery(
+            [](QWindow*, ulong, QEvent::Type type, int, Qt::KeyboardModifiers, const QString& text) {
+                seen.push_back({type, text});
+                return type != QEvent::KeyPress || accept;
+            });
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("texte", "[{\"typeText\":\"Bon jour\"}]"), f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(report.last(), QStringLiteral("TEXTE Bon jour OK"));
+        QCOMPARE(seen.size(), std::size_t{16}); // 8 caractères, un appui et un relâché chacun
+        for (std::size_t i = 0; i < 8; ++i) {
+            QCOMPARE(seen[2 * i].type, QEvent::KeyPress);
+            QCOMPARE(seen[2 * i + 1].type, QEvent::KeyRelease);
+            QCOMPARE(seen[2 * i].text, QStringLiteral("Bon jour").mid(static_cast<qsizetype>(i), 1));
+        }
+        seen.clear();
+        accept = false;
+        QVERIFY(!f.player->play(scenario("refuse", "[{\"typeText\":\"ab\"}]"), f.out.path(), report));
+        QVERIFY2(report.last().startsWith(QLatin1String("TEXTE ab ECHEC")), qPrintable(report.last()));
+    }
+
     void stepKindRanksFrozen()
     {
         using K = actcraft::bench::UiStepKind;
@@ -749,6 +894,7 @@ private slots:
         QCOMPARE(static_cast<int>(K::Touch) + 1, static_cast<int>(K::Pinch));
         QCOMPARE(static_cast<int>(K::Pinch) + 1, static_cast<int>(K::Pointer));
         QCOMPARE(static_cast<int>(K::Pointer) + 1, static_cast<int>(K::DoubleClick));
+        QCOMPARE(static_cast<int>(K::DoubleClick) + 1, static_cast<int>(K::TypeText)); // L4-T14
     }
 
     void badGestureStepsAreRefused_data()
@@ -811,6 +957,67 @@ private slots:
         QVERIFY2(all.contains(QStringLiteral("PINCEMENT ×2 OK")), qPrintable(all));
         QCOMPARE(all.count(QLatin1String("POINTEUR 2 OK")), 2);
         QCOMPARE(all.count(QLatin1String("DOUBLECLIC OK")), 2);
+    }
+
+    // L4-C14 : à la fin d'une étape « pointer », le survol (HoverHandler) est celui du dernier point. Qt
+    // Quick livre les déplacements de survol à la prochaine image : le joueur attend cette image, il ne
+    // laisse pas la capture suivante lire la position d'un point intermédiaire.
+    void pointerStepLeavesTheHoverAtTheLastPoint()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        auto* view = f.window->findChild<actcraft::ui::PageView*>(QStringLiteral("pageView"));
+        auto* hover = f.window->findChild<QQuickItem*>(QStringLiteral("survol"));
+        QVERIFY(view && hover);
+        QStringList report;
+        const UiScenario s = scenario("survol", "[{\"waitReady\":true},"
+                                                "{\"pointer\":[[100,100],[130,130],[160,160]]}]");
+        QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        const QPointF last =
+            view->pageToScene(QPointF(160, 160)).toPoint(); // la souris n'a que des pixels entiers
+        const QPointF got(hover->property("px").toDouble(), hover->property("py").toDouble());
+        QCOMPARE(got, last);
+    }
+
+    // L4-C16 : Qt Quick met la mise en page à jour à la prochaine image. Un panneau qui se referme (la
+    // palette des formes, à « tool.select ») redimensionne la vue de page pendant le geste suivant ; la vue
+    // abandonne alors le geste de l'outil (PageView::finishStroke) et le scénario perdait un glisser une fois
+    // sur deux. Le joueur termine la mise en page avant d'envoyer un geste. Ici la commande est jouée sans
+    // que les événements soient traités : la mise en page est en attente quand l'étape « pointer » commence.
+    void pointerStepStartsAfterTheLayoutHasSettled()
+    {
+        Fixture f;
+        QVERIFY(load(f, QStringLiteral("fenetre-panneau.qml")));
+        auto* view = f.window->findChild<actcraft::ui::PageView*>(QStringLiteral("pageView"));
+        QVERIFY(view);
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("palette", "[{\"waitReady\":true},"
+                                                    "{\"command\":\"panneau.ouvre\"},"
+                                                    "{\"capture\":\"palette\"}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        const qreal withPanel = view->width();
+        QVariant ignored;
+        QVERIFY(QMetaObject::invokeMethod(f.window, "runCommand", Q_RETURN_ARG(QVariant, ignored),
+                                          Q_ARG(QVariant, QVariant(QStringLiteral("panneau.ferme"))),
+                                          Q_ARG(QVariant, QVariant())));
+        QCOMPARE(view->width(), withPanel); // la mise en page n'est pas faite : c'est la condition de l'essai
+        std::vector<qreal> widths;
+        view->setSampleFilter([&widths, view](const actcraft::input::Sample& sample) {
+            widths.push_back(view->width());
+            return sample;
+        });
+        QVERIFY2(f.player->play(scenario("glisse", "[{\"pointer\":[[100,100],[130,130],[160,160]]}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        view->setSampleFilter({});
+        QVERIFY(widths.size() >= 3);
+        f.window->grabWindow(); // termine la mise en page qui resterait en attente
+        QVERIFY2(view->width() != withPanel,
+                 "la fermeture du panneau doit avoir changé la largeur de la vue");
+        for (const qreal width : widths) {
+            QCOMPARE(width, view->width()); // la mise en page était finie avant le premier point du geste
+        }
     }
 
     void fixtureWritesAThreePageDocument()
@@ -992,6 +1199,37 @@ private slots:
         }
         QVERIFY(!QFile::exists(outside));
         QVERIFY(!QFile::exists(sibling));
+    }
+
+    // Ajouté par L4-T30 : « above » compare « strictement supérieur à » (compteur en hausse), en lecture et
+    // en attente.
+    void expectAndWaitForAbove()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps(
+                     "{\"expect\": \"window.compteur\", \"value\": 5, \"above\": true},"
+                     "{\"waitFor\": \"window.compteur\", \"value\": 5, \"above\": true, \"timeoutMs\": 300}",
+                     s, error),
+                 qPrintable(error));
+        QVERIFY(s.steps[0].above);
+        QVERIFY(s.steps[1].above);
+        Fixture f;
+        QVERIFY(load(f));
+        QStringList report;
+        f.window->setProperty("compteur", 5);
+        QVERIFY(!f.player->expect(s.steps[0], report)); // 5 n'est pas > 5
+        QVERIFY2(report.last().contains(QLatin1String("ECART")), qPrintable(report.last()));
+        f.window->setProperty("compteur", 6);
+        QVERIFY2(f.player->expect(s.steps[0], report), qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(report.last(), QStringLiteral("LU window.compteur=6 OK"));
+        f.window->setProperty("compteur", 5);
+        QTimer::singleShot(100, f.window, [&f] { f.window->setProperty("compteur", 9); });
+        const UiScenario waiting = scenario(
+            "hausse", "[{\"waitFor\":\"window.compteur\",\"value\":5,\"above\":true,\"timeoutMs\":300}]");
+        QVERIFY2(f.player->play(waiting, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        f.window->setProperty("compteur", 5);
+        QVERIFY(!f.player->play(waiting, f.out.path(), report));
     }
 
     // Attente d'une propriété : elle suit la valeur qui change plus tard (pas une lecture unique), et échoue

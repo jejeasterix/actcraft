@@ -22,6 +22,7 @@ class FixedPageItem;
 }
 namespace actcraft::ui {
 class PageView;
+class PageThumbnails;
 class DocumentController;
 } // namespace actcraft::ui
 
@@ -74,6 +75,7 @@ private:
     BenchOptions m_options;
     ui::PageView* m_view = nullptr;
     render::FixedPageItem* m_fixed = nullptr;
+    ui::PageThumbnails* m_thumbnails = nullptr; // L4-T29 : « appThumbnails » de la fenêtre
     std::unique_ptr<FrameRecorder> m_recorder;
     std::unique_ptr<Injector> m_injector;
 };

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -130,6 +131,8 @@ struct Fill
     std::uint8_t pattern = 0;      // Qt::BrushStyle 2 à 14 (FillKind::Pattern)
     bool opaqueBackground = false; // F-574 : fond des motifs
     Argb backgroundColor = 0xFF000000u;
+
+    bool operator==(const Fill&) const = default;
 };
 
 inline Fill solidFill(Argb color) noexcept
@@ -222,6 +225,8 @@ struct Shape
     bool windingFill = false;
     Outline pen;
     Fill brush;
+    std::string preset; // préréglage de la palette (« rectangle »…) ; vide : forme lue ou générique
+    std::vector<double> parameters; // points intelligents du préréglage (F-242)
 };
 
 enum class ImagePattern : std::uint8_t
@@ -304,6 +309,11 @@ struct Text
     RectF bounds;
     std::string html;
     std::vector<TextSpan> runs;
+    bool vertical = false; // texte de haut en bas (F-301) : colonne d'un caractère
+    // Origine de la ligne de base de la première ligne, coordonnées de l'objet, mesurée à la validation sur
+    // le document du peintre (H4-6, L4-C5). Absente (texte lu, colonne, texte du banc) : l'accrochage prend
+    // la première ligne lue, sinon l'emprise.
+    std::optional<PointF> firstBaseline;
 };
 
 // Son ou vidéo (N2-9 : ouvert par l'application du système) ; dessiné par son image d'espace réservé.
@@ -476,6 +486,19 @@ struct PagePresentation
 // inconnue est gardée.
 bool isDefault(const PagePresentation& presentation) noexcept;
 
+// Zones de page (F-603, D11) : la page compte des cadres, `horizontal` en largeur (0 à 40) et `vertical` en
+// hauteur (0 à 53), chacun d'une taille en pixels. Bornes : clampZones (pagezones.h). Tout à 0 : aucune zone,
+// rien dans l'empreinte ni dans le fichier.
+struct PageZones
+{
+    std::int32_t horizontal = 0;
+    std::int32_t vertical = 0;
+    double frameWidth = 0;
+    double frameHeight = 0; // taille d'un cadre en pixels (D11) ; 0 : non donnée
+};
+// Vrai : les quatre champs sont nuls, rien à écrire, rien dans l'empreinte.
+bool isDefault(const PageZones& zones) noexcept;
+
 // Objets dans l'ordre de dessin, rangés par couche : le dernier est au premier plan.
 struct Page
 {
@@ -489,6 +512,8 @@ struct Page
     PagePresentation presentation;
     // Clés de la page que cette version ne connaît pas (comme PageObject::unknownKeys) ; vide : aucune.
     std::string unknownKeys;
+    double baseHeight = 0; // hauteur avant la première extension (F-301) ; 0 : jamais allongée
+    PageZones zones;       // cadres de la page (F-603, D11, L4-T27) ; l'allongement ne les modifie pas
 };
 
 // Empreinte FNV-1a 64 bits du contenu ; identique sur toutes les plateformes (types à taille fixe, octets

@@ -91,11 +91,12 @@ private slots:
         for (const QVariant& group : c.palette()) {
             groups << group.toMap().value(QStringLiteral("group")).toString();
         }
-        // Groupes « edition » et « presentation » ajoutés par le socle (L0-S4).
+        // Groupes « edition » et « presentation » ajoutés par le socle (L0-S4), « formes-texte » par le
+        // lot 4.
         QCOMPARE(groups, (QStringList{QStringLiteral("commandes"), QStringLiteral("pages"),
                                       QStringLiteral("couleurs"), QStringLiteral("epaisseur"),
                                       QStringLiteral("outils"), QStringLiteral("edition"),
-                                      QStringLiteral("presentation")}));
+                                      QStringLiteral("presentation"), QStringLiteral("formes-texte")}));
         const QVariantMap first =
             c.palette().at(0).toMap().value(QStringLiteral("items")).toList().at(0).toMap();
         QCOMPARE(first.value(QStringLiteral("id")).toString(), QStringLiteral("menu.main"));
@@ -169,13 +170,29 @@ private slots:
         QCOMPARE(first.value(QStringLiteral("id")).toString(), QStringLiteral("object.move-free"));
         QVERIFY(first.contains(QStringLiteral("label")));
         QVERIFY(first.contains(QStringLiteral("icon")));
-        QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}),
+        // Amendement 1 du lot 4 : entrées du menu de page ajoutées en fin ; les entrées du socle restent en
+        // tête.
+        QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}).mid(0, 4),
                  (QStringList{QStringLiteral("tool.select"), QStringLiteral("tool.pen"), QStringLiteral("-"),
                               QStringLiteral("recognition.convert-to-text")}));
         QVERIFY(c.contextMenu().at(2).toMap().value(QStringLiteral("separator")).toBool());
         c.setPlatform(Platform::Android);
-        QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}),
+        QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}).mid(0, 2),
                  (QStringList{QStringLiteral("tool.select"), QStringLiteral("tool.pen")}));
+    }
+
+    void contextMenuWithSubmenu()
+    {
+        Commands c;
+        c.setProfileDir(m_emptyProfile.path());
+        c.setPlatform(Platform::Windows);
+        const QVariantList menu = c.contextMenu();
+        const QStringList ids = itemIds(QVariantMap{{QStringLiteral("items"), menu}});
+        QCOMPARE(ids.mid(4, 2), (QStringList{QStringLiteral("-"), QStringLiteral("page-insert")}));
+        const QVariantMap submenu = menu.at(5).toMap();
+        QVERIFY(submenu.value(QStringLiteral("submenu")).toBool());
+        QCOMPARE(itemIds(submenu),
+                 (QStringList{QStringLiteral("page.insert-before"), QStringLiteral("page.insert-after")}));
     }
 
     void everyDeclaredIconExists()

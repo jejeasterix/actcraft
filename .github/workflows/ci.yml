@@ -40,7 +40,8 @@ jobs:
           - os: macos-latest
             qt_arch: clang_64
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    # Lot 4 : la suite debug Windows, jouée en série, dépasse 20 min (73/138 tests à 11 min, PR #8) ; 50 min de marge.
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 

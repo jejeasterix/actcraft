@@ -1,10 +1,12 @@
 #include <actcraft/actions/commandregistry.h>
+#include <actcraft/actions/layout.h>
 
 #include <QHash>
 #include <QSysInfo>
 #include <QTest>
 #include <QUrl>
 
+#include <algorithm>
 #include <limits>
 
 using namespace actcraft::actions;
@@ -192,9 +194,10 @@ private slots:
                                    QStringLiteral("pen.width"),          QStringLiteral("menu.main"),
                                    QStringLiteral("menu.tools"),         QStringLiteral("help.website"),
                                    QStringLiteral("help.about")};
-        // Les 23 commandes du lot 1 ouvrent le fichier, dans cet ordre ; les lots 3 et 7 (L0-S4) suivent.
+        // Les 23 commandes du lot 1 ouvrent le fichier, dans cet ordre ; les lots 3 et 7 (L0-S4) suivent,
+        // puis les 47 du lot 4 (L4-T1) : le total passe de 62 à 109 commandes au-delà du lot 1.
         QCOMPARE(r.ids().mid(0, expected.size()), expected);
-        QCOMPARE(r.ids().size(), expected.size() + 62);
+        QCOMPARE(r.ids().size(), expected.size() + 62 + 47);
         QCOMPARE(r.find(QStringLiteral("view.fullscreen"))->shortcut, QStringLiteral("F5"));
         QVERIFY(r.find(QStringLiteral("view.fullscreen"))->checkable);
         QVERIFY(r.find(QStringLiteral("pen.width"))->argument == ArgumentKind::Number);
@@ -315,6 +318,52 @@ private slots:
         }
         // Raccourcis écrits en QML (H-S5) : un seul Shortcut, Main.qml:226, instancié depuis
         // Commands.shortcuts ; aucune séquence littérale à ajouter à ce test.
+    }
+
+    void lot4EntriesDeclared()
+    {
+        CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        for (const char* id :
+             {"tool.shape", "shape.choose", "tool.text", "tool.text-vertical", "text.bold", "view.browsers",
+              "page.insert-after", "page.paste", "grid.designer", "grid.snap", "page.extend", "page.zones"}) {
+            QVERIFY2(registry.find(QString::fromLatin1(id)), id);
+        }
+        Layout layout;
+        const QByteArray json = readLayeredFile(QStringLiteral("layout.json"), QString(), dataResourceDir());
+        QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
+        QVERIFY(layout.contextMenu.contains(QStringLiteral(">page-insert")));
+        QVERIFY(unknownCommands(layout, registry).isEmpty());
+        // P16 : le créateur de grille est aussi dans le menu Éditer, pas seulement dans le menu contextuel.
+        const auto edit = std::find_if(layout.menus.begin(), layout.menus.end(), [](const MenuSpec& menu) {
+            return menu.id == QStringLiteral("edit");
+        });
+        QVERIFY(edit != layout.menus.end());
+        QVERIFY(edit->items.contains(QStringLiteral("grid.designer")));
+    }
+
+    void editAtArgumentOptional()
+    {
+        CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        const CommandInfo* info = registry.find(QStringLiteral("text.edit-at"));
+        QVERIFY(info);
+        QCOMPARE(info->argument, ArgumentKind::Text);
+        QVERIFY(info->argumentOptional);
+        QVERIFY(registry.find(QStringLiteral("shape.fill-color"))->argument == ArgumentKind::Color);
+        QVERIFY(registry.find(QStringLiteral("tool.shape"))->shortcut.isEmpty()); // D18
+        // Appels réels : sans argument, la commande part (elle valide le texte en cours) ; une chaîne blanche
+        // ou un autre type est refusé.
+        QVariantList seen;
+        registry.setHandler(QStringLiteral("text.edit-at"), [&seen](const QVariant& a) { seen << a; });
+        const Platform here = currentPlatform();
+        QVERIFY(registry.trigger(QStringLiteral("text.edit-at"), QVariant(), here));
+        QVERIFY(registry.trigger(QStringLiteral("text.edit-at"), QStringLiteral("10;20"), here));
+        QVERIFY(!registry.trigger(QStringLiteral("text.edit-at"), QStringLiteral("  "), here));
+        QCOMPARE(seen.size(), 2);
+        QVERIFY(!seen.at(0).isValid());
     }
 
     void optionalArgumentMayBeAbsent()

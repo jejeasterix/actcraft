@@ -1,6 +1,9 @@
 #include <actcraft/core/edits.h>
+#include <actcraft/core/gridsnap.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/shapeedits.h>
+#include <actcraft/core/shapegeometry.h>
 #include <actcraft/tools/selectiongeometry.h>
 #include <actcraft/tools/selecttool.h>
 #include <actcraft/tools/userstate.h>
@@ -177,6 +180,9 @@ void SelectTool::cancel()
     case State::Rotating:
         endDrag(m_start, true);
         return;
+    case State::SmartPoint:
+        endSmartPoint(true);
+        return;
     }
 }
 
@@ -311,6 +317,11 @@ void SelectTool::press(const input::Sample& sample)
             m_handle = grabbed.handle;
             return;
         }
+        if (grabbed.kind == SelectionHitKind::SmartPoint) {
+            m_grab = Grab::SmartPoint;
+            m_smartPoint = grabbed.smartPoint;
+            return;
+        }
     }
     if ((m_modifiers & kExtendModifiers) != 0) {
         if (hit) { // Maj ou Ctrl + clic : bascule (P26)
@@ -375,6 +386,9 @@ void SelectTool::move(const input::Sample& sample)
         case Grab::Rotate:
             beginTransform(State::Rotating);
             break;
+        case Grab::SmartPoint:
+            beginSmartPoint();
+            break;
         case Grab::None:
         case Grab::Command:
             return;
@@ -386,6 +400,8 @@ void SelectTool::move(const input::Sample& sample)
     }
     if (m_state == State::RubberBand) {
         showBand(point);
+    } else if (m_state == State::SmartPoint) {
+        updateSmartPoint(point);
     } else {
         updateDrag(point);
     }
@@ -431,11 +447,75 @@ void SelectTool::beginTransform(State kind)
     liftForGesture(std::move(ids), kind);
 }
 
+// Une forme seule à préréglage, non verrouillée : soulevée, son aperçu est reconstruit à chaque mouvement
+// (updateSmartPoint) et le dépôt est une seule SetShapeParametersCommand.
+void SelectTool::beginSmartPoint()
+{
+    const core::Page& page = m_context.document.page();
+    const std::vector<core::ObjectId>& selection = m_context.user.selection();
+    if (selection.size() != 1) {
+        return;
+    }
+    const std::size_t index = core::indexOf(page, selection.front());
+    if (index == page.objects.size() || page.objects[index].common.locked) {
+        return;
+    }
+    const auto* shape = std::get_if<core::Shape>(&core::body(page.objects[index]));
+    if (shape == nullptr || m_smartPoint >= core::smartPoints(*shape).size()) {
+        return;
+    }
+    m_frame = layoutSelection(page, selection, m_context.view.zoom(), {});
+    m_smartParameters.clear();
+    m_smartMoved = false;
+    liftForGesture({selection.front()}, State::SmartPoint);
+}
+
+void SelectTool::updateSmartPoint(core::PointF point)
+{
+    if (!m_firstLifted) {
+        return;
+    }
+    core::PageObject copy = *m_firstLifted;
+    auto* shape = std::get_if<core::Shape>(&core::body(copy));
+    if (shape == nullptr) {
+        return;
+    }
+    m_smartParameters = core::dragSmartPoint(*shape, m_smartPoint, toObjectPoint(copy, point));
+    shape->parameters = m_smartParameters;
+    core::rebuildShape(*shape);
+    m_smartMoved = true;
+    SelectionView view = m_frame;
+    view.handlesVisible = false; // F-528
+    view.smartPoints = smartPointsOnPage(copy);
+    std::vector<core::PageObject> preview;
+    preview.push_back(std::move(copy));
+    m_context.lift.show(std::move(preview));
+    publish(view);
+}
+
+void SelectTool::endSmartPoint(bool cancelled)
+{
+    if (cancelled || !m_smartMoved || m_smartParameters.empty()) {
+        m_context.document.drop(nullptr);
+    } else {
+        m_context.document.drop(std::make_unique<core::SetShapeParametersCommand>(
+            m_context.document.pageIndex(), m_lifted.front(), m_smartParameters));
+    }
+    m_context.lift.clear();
+    reset();
+    showFrame();
+}
+
 // m_lifted est posé avant le soulèvement.
 void SelectTool::liftForGesture(std::vector<core::ObjectId> ids, State state)
 {
     m_lifted = std::move(ids);
-    m_context.lift.show(m_context.document.lift(m_lifted));
+    std::vector<core::PageObject> copies = m_context.document.lift(m_lifted);
+    m_firstLifted.reset();
+    if (!copies.empty()) {
+        m_firstLifted = copies.front();
+    }
+    m_context.lift.show(std::move(copies));
     m_state = state;
 }
 
@@ -498,6 +578,7 @@ void SelectTool::updateDrag(core::PointF point)
     }
     SelectionView view = m_frame;
     view.handlesVisible = false; // F-528
+    view.smartPoints.clear();
     if (m_dragSelection || m_state != State::Dragging) {
         for (core::PointF& corner : view.corners) {
             corner = delta.map(corner);
@@ -508,8 +589,19 @@ void SelectTool::updateDrag(core::PointF point)
 
 void SelectTool::endDrag(core::PointF point, bool cancelled)
 {
-    const core::Transform delta = gestureTransform(point);
+    core::Transform delta = gestureTransform(point);
     const std::size_t page = m_context.document.pageIndex();
+    if (m_state == State::Dragging && !cancelled && m_firstLifted && !m_context.view.overTrash(point)) {
+        // Accrochage au dépôt seulement (F-622) : les objets sont soulevés, donc hors de la page ; on
+        // accroche d'après la copie du premier, sur la grille de la page.
+        core::Page probe;
+        probe.grid = m_context.document.page().grid;
+        probe.width = m_context.document.page().width;
+        probe.height = m_context.document.page().height;
+        probe.objects.push_back(*m_firstLifted);
+        const core::PointF snapped = core::snapDelta(probe, {m_firstLifted->common.id}, {delta.dx, delta.dy});
+        delta = core::translation(snapped.x, snapped.y);
+    }
     const bool trash = m_state == State::Dragging && !cancelled && m_context.view.overTrash(point);
     if (trash) {
         std::vector<core::ObjectId> selection = m_context.user.selection();
@@ -578,6 +670,9 @@ void SelectTool::release(const input::Sample& sample)
     case State::Rotating:
         endDrag(point, false);
         return;
+    case State::SmartPoint:
+        endSmartPoint(false);
+        return;
     }
     reset();
     showFrame();
@@ -602,9 +697,12 @@ void SelectTool::reset() noexcept
     m_dragSelection = false;
     m_additive = false;
     m_command.clear();
+    m_smartParameters.clear();
+    m_smartMoved = false;
     m_base.clear();
     m_grabbed.clear();
     m_lifted.clear();
+    m_firstLifted.reset();
 }
 
 } // namespace actcraft::tools

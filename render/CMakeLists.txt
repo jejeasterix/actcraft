@@ -32,6 +32,8 @@ actcraft_add_module(render
         src/equationlayout.cpp
         include/actcraft/render/liftlayeritem.h
         src/liftlayeritem.cpp
+        include/actcraft/render/gridoverlayitem.h
+        src/gridoverlayitem.cpp
     DEPENDS
         ActCraft::core Qt6::Quick)
 

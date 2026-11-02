@@ -57,8 +57,11 @@ enum class UiStepKind : std::uint8_t
     // Ajoutées par le socle des lots 3 et 7 (L0-S2), à la fin, dans cet ordre.
     Touch,       // {"touch": [[x, y], …]} — un doigt, coordonnées de page
     Pinch,       // {"pinch": [cx, cy], "from": 100, "to": 200, "steps": 12} — écarts en pixels de vue
-    Pointer,     // {"pointer": [[x, y], …], "button": "left", "holdMs": 0, "space": "page"}
+    Pointer,     // {"pointer": [[x, y], …], "button": "left", "modifiers": ["ctrl"], "holdMs": 0, "space":
+                 // "page"}
     DoubleClick, // {"doubleClick": [x, y], "space": "page"}
+    // Ajoutée par L4-T14, à la fin.
+    TypeText, // {"typeText": "Bonjour"} — un QKeyEvent par caractère, avec son texte (dans `value`)
 };
 
 struct UiStep
@@ -90,9 +93,12 @@ struct UiStep
     int pinchSteps = 12;                     // Pinch : pas d'une image (1 à 1000)
     Qt::MouseButton button = Qt::LeftButton; // Pointer
     int holdMs = 0;                          // Pointer : maintien au dernier point avant le relâché
-    bool windowSpace = false;                // Pointer, DoubleClick : points en fenêtre plutôt qu'en page
+    Qt::KeyboardModifiers modifiers;         // Pointer : modificateurs tenus pendant le clic (L4-C21)
+    bool windowSpace = false; // Pointer, DoubleClick, Stroke : points en fenêtre plutôt qu'en page
+    bool expectStroke = true; // Stroke : faux = aucun trait ne doit être figé (stylet sur un bouton)
     std::optional<double>
         valueTolerance; // Expect : écart admis, valeur numérique ; absent : comparaison exacte
+    bool above = false; // Expect, WaitFor : vrai = lu strictement supérieur à la valeur (L4-T30)
     // Ajouté par L3-C4. MaxEventLoopGap : mesure écrite, l'écart au seuil ne fait pas échouer le scénario.
     bool informative = false;
 };
@@ -167,7 +173,7 @@ private:
     // Conventions d'une vraie tablette (comme l'injecteur du banc) : bouton seulement à l'appui et au
     // relâché.
     void postTablet(QEvent::Type type, QPointF page, double pressure, Qt::MouseButton button,
-                    Qt::MouseButtons buttons);
+                    Qt::MouseButtons buttons, bool windowSpace = false);
     bool stroke(const UiStep& step, QStringList& report);
     bool key(const UiStep& step, QStringList& report);
     bool checkPixel(const UiStep& step, QStringList& report);
@@ -176,6 +182,7 @@ private:
     bool pinch(const UiStep& step, QStringList& report);
     bool pointer(const UiStep& step, QStringList& report);
     bool doubleClick(const UiStep& step, QStringList& report);
+    bool typeText(const UiStep& step, QStringList& report);
     Injector& gestures(); // injecteur des gestes directs, créé à la première étape qui en a besoin
     bool fixture(const UiStep& step, QStringList& report);
     bool waitFor(const UiStep& step, QStringList& report);

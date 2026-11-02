@@ -1,6 +1,8 @@
 #include <actcraft/tools/erasertool.h>
 #include <actcraft/tools/pentool.h>
 #include <actcraft/tools/selecttool.h>
+#include <actcraft/tools/shapetool.h>
+#include <actcraft/tools/texttool.h>
 #include <actcraft/tools/toolregistry.h>
 #include <actcraft/tools/userstate.h>
 
@@ -71,6 +73,12 @@ void registerBuiltinTools(ToolRegistry& registry)
                  [](ToolContext& context) { return inkTool(context, core::StrokeKind::Highlighter); });
     registry.add(QStringLiteral("eraser"),
                  [](ToolContext& context) { return std::make_unique<EraserTool>(context); });
+    registry.add(QStringLiteral("shape"),
+                 [](ToolContext& context) { return std::make_unique<ShapeTool>(context); });
+    registry.add(QStringLiteral("text"),
+                 [](ToolContext& context) { return std::make_unique<TextTool>(context, false); });
+    registry.add(QStringLiteral("text-vertical"),
+                 [](ToolContext& context) { return std::make_unique<TextTool>(context, true); });
 }
 
 } // namespace actcraft::tools

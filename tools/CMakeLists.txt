@@ -15,5 +15,9 @@ actcraft_add_module(tools
         src/selecttool.cpp
         include/actcraft/tools/selectiongeometry.h
         src/selectiongeometry.cpp
+        include/actcraft/tools/shapetool.h
+        src/shapetool.cpp
+        include/actcraft/tools/texttool.h
+        src/texttool.cpp
     DEPENDS
         ActCraft::core ActCraft::actions ActCraft::input ActCraft::render)

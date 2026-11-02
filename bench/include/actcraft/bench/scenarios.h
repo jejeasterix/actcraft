@@ -76,6 +76,30 @@ struct ScenarioPlan
     // L3-C14 : la mesure se ferme sur le versement différé du dernier trait (runner.cpp, Runner::play) : le
     // joueur l'attend après la dernière entrée, rien ne le repousse. Lu par ce booléen, jamais par le nom.
     bool awaitFinalFold = false;
+    // L4-T14. Commandes nommées jouées avant la mesure, avant `toolCommand` (« shape.choose » « rectangle » :
+    // le préréglage de l'outil des formes).
+    std::vector<std::pair<QString, QVariant>> setupCommands;
+    // La page chargée reçoit `gridAboveFixture()` (SetGridCommand par le document, versée dans le cache avant
+    // la mesure) : page à grille dessinée au-dessus des objets.
+    bool gridAbove = false;
+    // L4-T28 : la page chargée reçoit 40 x 53 cadres (`kBenchZonesAcross` x `kBenchZonesDown`,
+    // SetPageZonesCommand par le document) : séparations des zones dessinées en surcouche pendant la mesure
+    // (« zones-zoom »).
+    bool zones = false;
+    // Formes posées par les glissés du plan (k) ; -1 : sans objet. Écrit dans le JSON (cache.placed_shapes).
+    int placedShapes = -1;
+    // Relève, dans le JSON, les trames pendant les glissés (clé shape_preview : coût de l'aperçu des formes).
+    // Lu par ce booléen, jamais par le nom.
+    bool measuresShapePreview = false;
+    // L4-T29 (S7.5). Commandes nommées jouées après la mesure (« view.browsers » referme le panneau ouvert
+    // avant elle).
+    std::vector<std::pair<QString, QVariant>> teardownCommands;
+    // Relève, dans le JSON, les miniatures des pages (clé thumbnails : rendus dans la fenêtre mesurée, rendus
+    // lancés pendant un contact, copie la plus longue). Lu par ce booléen, jamais par le nom.
+    bool measuresThumbnails = false;
+    // Le panneau des navigateurs est ouvert pendant la mesure : le banc attend les miniatures à jour avant la
+    // mesure et le rendu d'une miniature dans la fenêtre ; le runner vérifie l'état réel du panneau.
+    bool browsersOpen = false;
     std::vector<PlannedInput> inputs;
 };
 
@@ -105,7 +129,40 @@ ScenarioPlan eraseScenario(ScenarioSet set);
 // Soulèvement : rectangle de sélection qui prend deux objets de la page générée, puis appui sur l'un d'eux et
 // glissement de 300 px en 2 s (complet ; ÷ 5 en court). Page du banc rechargée.
 ScenarioPlan liftScenario(ScenarioSet set);
-// stroke, zoom, scroll, page, pauses, gommer, soulever
+// L4-T14 (S7.5, V9). « forme-page-annotee » : page générée portant trois annotations (couche du dessus) ;
+// kShapeCount rectangles tracés un à un par glissé avec « tool.shape » (préréglage « rectangle » choisi avant
+// la mesure), séparés de kShapePauseNs. Chaque insertion est hors fin de page : une forme va sous les
+// annotations et redessine le cache une fois, donc cache.refreshes = k (maxCacheRefreshes = k). Mesure aussi
+// le coût de l'aperçu (LiftLayerItem::setObjects reconstruit ses nœuds à chaque mouvement).
+inline constexpr int kShapeCount = 10;
+inline constexpr std::int64_t kShapePauseNs = 600'000'000; // plus que le redessin du cache en debug (~300 ms)
+ScenarioPlan shapeScenario(ScenarioSet set);
+// L4-T29 (S7.5, amendements 1 et 5). « miniatures » : les traits de « stroke » joués panneau des navigateurs
+// ouvert (« view.browsers » avant la mesure, refermé après), page générée et trois pages de plus
+// (kThumbnailPages) pour que le navigateur ait des miniatures à tenir à jour. « miniatures-ferme » : même
+// plan, même document, panneau fermé : aucun rendu (L4-T19). Jugés comme « stroke » (figements compris).
+inline constexpr int kThumbnailPages = 4;
+ScenarioPlan thumbnailsScenario(ScenarioSet set);
+ScenarioPlan closedThumbnailsScenario(ScenarioSet set);
+// Amendement 1 : « miniatures-pauses » rejoue les traits de « pauses » panneau ouvert, pour que les rendus
+// (kSettleMs après la dernière modification) tombent dans les pauses ; ses figements se comparent à ceux de
+// « pauses » sans panneau, dans le même JSON. Ne ferme pas sa mesure sur le versement différé (propre à «
+// pauses »).
+ScenarioPlan thumbnailsPausesScenario(ScenarioSet set);
+// Grille d'une page « grille-dessus » : visible, dessinée au-dessus, un niveau (pas de 32), sans accrochage.
+core::Grid gridAboveFixture();
+// « grille-dessus » : page générée à grille du dessus, traits du scénario « stroke » (différés : aucun
+// redessin du cache entre deux versements de la minuterie ; 0 dans la mesure, pauses de 300 ms < délai).
+ScenarioPlan gridAboveScenario(ScenarioSet set);
+// L4-T28 : « zones-zoom » = le zoom à la molette (100 -> 800 -> 25 -> 100 %) de « zoom » sur une page générée
+// réglée à 40 x 53 cadres, le maximum : 91 séparations pointillées à tenir à chaque pas de zoom.
+inline constexpr int kBenchZonesAcross = 40;
+inline constexpr int kBenchZonesDown = 53;
+ScenarioPlan zonesZoomScenario(ScenarioSet scenarioSet);
+// Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
+std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);
+// stroke, zoom, scroll, page, pauses, gommer, soulever, forme-page-annotee, grille-dessus, miniatures,
+// miniatures-ferme, miniatures-pauses, zones-zoom
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set);
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();

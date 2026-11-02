@@ -76,6 +76,13 @@ QString jsonText(const QJsonValue& value)
     if (value.isDouble()) {
         return propertyText(QVariant(value.toDouble()));
     }
+    if (value.isArray()) {
+        QStringList parts;
+        for (const QJsonValue item : value.toArray()) {
+            parts << jsonText(item);
+        }
+        return QStringLiteral("[%1]").arg(parts.join(QLatin1Char(',')));
+    }
     return value.toString();
 }
 
@@ -175,7 +182,9 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         step.pressure = o.value(QStringLiteral("pressure")).toDouble(0.5);
-        return true;
+        // Stylet posé sur un bouton de l'interface : repère fenêtre, et aucun trait ne doit naître.
+        step.expectStroke = !o.value(QStringLiteral("noStroke")).toBool(false);
+        return readSpace(o, step.windowSpace, why);
     }
     if (o.contains(QStringLiteral("key"))) {
         step.kind = UiStepKind::Key;
@@ -241,6 +250,7 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         step.value = jsonText(o.value(QStringLiteral("value")));
+        step.above = o.value(QStringLiteral("above")).toBool(false);
         if (o.contains(QStringLiteral("tolerance"))) {
             const QJsonValue tolerance = o.value(QStringLiteral("tolerance"));
             if (!tolerance.isDouble() || tolerance.toDouble() < 0.0) {
@@ -275,6 +285,7 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         step.value = jsonText(o.value(QStringLiteral("value")));
+        step.above = o.value(QStringLiteral("above")).toBool(false);
         return true;
     }
     if (o.contains(QStringLiteral("watchEventLoop"))) {
@@ -331,7 +342,7 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             why = QStringLiteral("doigt invalide (touch : au moins un point [x, y])");
             return false;
         }
-        return true;
+        return readSpace(o, step.windowSpace, why);
     }
     if (o.contains(QStringLiteral("pinch"))) {
         step.kind = UiStepKind::Pinch;
@@ -373,6 +384,28 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
                 return false;
             }
         }
+        if (o.contains(QStringLiteral("modifiers"))) {
+            const QJsonValue list = o.value(QStringLiteral("modifiers"));
+            if (!list.isArray()) {
+                why = QStringLiteral("modificateurs invalides (modifiers : liste de ctrl, shift, alt, meta)");
+                return false;
+            }
+            for (const QJsonValue& value : list.toArray()) {
+                const QString name = value.toString().toLower();
+                if (name == QLatin1String("ctrl")) {
+                    step.modifiers |= Qt::ControlModifier;
+                } else if (name == QLatin1String("shift")) {
+                    step.modifiers |= Qt::ShiftModifier;
+                } else if (name == QLatin1String("alt")) {
+                    step.modifiers |= Qt::AltModifier;
+                } else if (name == QLatin1String("meta")) {
+                    step.modifiers |= Qt::MetaModifier;
+                } else {
+                    why = QStringLiteral("modificateur inconnu « %1 » (ctrl, shift, alt ou meta)").arg(name);
+                    return false;
+                }
+            }
+        }
         if (o.contains(QStringLiteral("holdMs"))) {
             const QJsonValue hold = o.value(QStringLiteral("holdMs"));
             step.holdMs = hold.isDouble() ? hold.toInt(-1) : -1;
@@ -390,6 +423,16 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         return readSpace(o, step.windowSpace, why);
+    }
+    if (o.contains(QStringLiteral("typeText"))) {
+        step.kind = UiStepKind::TypeText;
+        const QJsonValue text = o.value(QStringLiteral("typeText"));
+        if (!text.isString() || text.toString().isEmpty()) {
+            why = QStringLiteral("texte invalide (typeText : une chaîne non vide)");
+            return false;
+        }
+        step.value = text.toString();
+        return true;
     }
     why = QStringLiteral("étape inconnue");
     return false;
@@ -577,6 +620,14 @@ QString propertyText(const QVariant& value)
     case QMetaType::QColor:
         return value.value<QColor>().name(QColor::HexRgb);
     default:
+        if (value.metaType() == QMetaType::fromType<QList<int>>()) {
+            // Liste d'entiers (sélection de pages) : « [0,1] », comme jsonText d'un tableau du scénario.
+            QStringList parts;
+            for (const int n : value.value<QList<int>>()) {
+                parts << QString::number(n);
+            }
+            return QStringLiteral("[%1]").arg(parts.join(QLatin1Char(',')));
+        }
         if (!value.canConvert<QString>()) {
             // QPointF, QRectF, QObject*… : nommés, jamais lus « "" ».
             return QStringLiteral("<non textuel : %1>").arg(QString::fromLatin1(value.typeName()));
@@ -718,11 +769,11 @@ bool UiScenarioPlayer::isReady() const
 }
 
 void UiScenarioPlayer::postTablet(QEvent::Type type, QPointF page, double pressure, Qt::MouseButton button,
-                                  Qt::MouseButtons buttons)
+                                  Qt::MouseButtons buttons, bool windowSpace)
 {
     // À la fenêtre, pas à l'élément : Qt Quick n'adresse pas le stylet aux éléments, la PageView le capte par
     // un filtre posé sur la fenêtre (pageview.cpp, itemChange et eventFilter).
-    const QPointF scene = view()->pageToScene(page);
+    const QPointF scene = windowSpace ? page : view()->pageToScene(page);
     QCoreApplication::postEvent(m_window,
                                 new QTabletEvent(type, m_stylus.get(), scene, m_window->mapToGlobal(scene),
                                                  pressure, 0, 0, 0, 0, 0, Qt::NoModifier, button, buttons));
@@ -759,7 +810,14 @@ bool UiScenarioPlayer::read(const UiStep& step, QStringList& report)
                                   : QStringLiteral("<introuvable>");
     bool ok = false;
     QString expectation = expected;
-    if (step.valueTolerance) {
+    if (step.above) {
+        bool actualIsNumber = false;
+        bool expectedIsNumber = false;
+        const double actualNumber = actual.toDouble(&actualIsNumber);
+        const double expectedNumber = expected.toDouble(&expectedIsNumber);
+        ok = object && actualIsNumber && expectedIsNumber && actualNumber > expectedNumber;
+        expectation = QStringLiteral("> %1").arg(expected);
+    } else if (step.valueTolerance) {
         // Lecture numérique : |lu − attendu| ≤ tolérance ; un texte non numérique, d'un côté ou de l'autre,
         // est un écart.
         bool actualIsNumber = false;
@@ -790,19 +848,32 @@ bool UiScenarioPlayer::stroke(const UiStep& step, QStringList& report)
     int frozen = 0;
     const auto connection =
         QObject::connect(v, &ui::PageView::strokeFrozen, v, [&frozen] { ++frozen; }, Qt::DirectConnection);
-    postTablet(QEvent::TabletPress, step.points.front(), step.pressure, Qt::LeftButton, Qt::LeftButton);
+    postTablet(QEvent::TabletPress, step.points.front(), step.pressure, Qt::LeftButton, Qt::LeftButton,
+               step.windowSpace);
     for (std::size_t i = 1; i < step.points.size(); ++i) {
         const QPointF from = step.points[i - 1];
         const QPointF to = step.points[i];
         for (int k = 1; k <= kStrokeSubdivisions; ++k) {
             postTablet(QEvent::TabletMove,
                        from + (to - from) * (k / static_cast<double>(kStrokeSubdivisions)), step.pressure,
-                       Qt::NoButton, Qt::LeftButton);
+                       Qt::NoButton, Qt::LeftButton, step.windowSpace);
         }
     }
-    postTablet(QEvent::TabletRelease, step.points.back(), 0.0, Qt::LeftButton, Qt::NoButton);
-    waitUntil([&frozen] { return frozen > 0; }, kStrokeTimeoutMs);
+    postTablet(QEvent::TabletRelease, step.points.back(), 0.0, Qt::LeftButton, Qt::NoButton,
+               step.windowSpace);
+    if (step.expectStroke) {
+        waitUntil([&frozen] { return frozen > 0; }, kStrokeTimeoutMs);
+    }
     QObject::disconnect(connection);
+    if (!step.expectStroke) {
+        const bool none = frozen == 0;
+        report << head +
+                      (none ? QStringLiteral(" OK (aucun trait, comme attendu)")
+                            : QStringLiteral(
+                                  " ECHEC (%1 trait(s) figé(s), aucun attendu : le stylet a atteint l'outil)")
+                                  .arg(frozen));
+        return none;
+    }
     if (frozen != 1) {
         report << head + QStringLiteral(
                              " ECHEC (%1 trait(s) figé(s), 1 attendu : le stylet n'a pas atteint la vue)")
@@ -869,6 +940,29 @@ bool UiScenarioPlayer::key(const UiStep& step, QStringList& report)
     return false;
 }
 
+// L4-T14 : un appui et un relâché par caractère, avec son texte, livrés comme une vraie frappe (sans la carte
+// des raccourcis : une lettre n'en est pas un). Maj pour une majuscule. Faux si un appui n'est pas accepté.
+bool UiScenarioPlayer::typeText(const UiStep& step, QStringList& report)
+{
+    m_window->requestActivate();
+    const bool active = QTest::qWaitForWindowActive(m_window, kActivateTimeoutMs);
+    bool accepted = true;
+    for (const QChar c : step.value) {
+        const QString text(c);
+        const ushort unicode = c.toUpper().unicode();
+        const int code = unicode >= 0x20 && unicode < 0x7f ? static_cast<int>(unicode) : 0;
+        const Qt::KeyboardModifiers modifiers = c.isUpper() ? Qt::ShiftModifier : Qt::NoModifier;
+        accepted =
+            m_keyDelivery(m_window, keyTimestamp(), QEvent::KeyPress, code, modifiers, text) && accepted;
+        m_keyDelivery(m_window, keyTimestamp(), QEvent::KeyRelease, code, modifiers, text);
+    }
+    QCoreApplication::processEvents();
+    report << QStringLiteral("TEXTE %1 %2%3")
+                  .arg(step.value, accepted ? QStringLiteral("OK") : QStringLiteral("ECHEC"),
+                       accepted || active ? QString() : QStringLiteral(" (fenêtre inactive)"));
+    return accepted;
+}
+
 namespace {
 
 // Doigt synthétique de Qt Test, créé une seule fois (Qt le garde enregistré jusqu'à la fin du processus).
@@ -919,16 +1013,16 @@ Injector& UiScenarioPlayer::gestures()
 bool UiScenarioPlayer::touch(const UiStep& step, QStringList& report)
 {
     const QString head = QStringLiteral("DOIGT %1 points").arg(step.points.size());
-    if (!view()) {
+    if (!step.windowSpace && !view()) {
         report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
         return false;
     }
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
-    const bool sent =
-        gestures().touchPath(step.points, [this](GesturePhase phase, const std::vector<QPointF>& f) {
-            deliverFingers(m_window, phase, f);
-        });
+    const bool sent = gestures().touchPath(
+        step.points,
+        [this](GesturePhase phase, const std::vector<QPointF>& f) { deliverFingers(m_window, phase, f); },
+        step.windowSpace ? PointSpace::Window : PointSpace::Page);
     QCoreApplication::instance()->removeEventFilter(&witness);
     const bool ok = sent && witness.touchBegin == 1 && witness.touchEnd == 1;
     report << (ok ? head + QStringLiteral(" OK")
@@ -970,27 +1064,45 @@ bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
         report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
         return false;
     }
+    // Qt Quick met la mise en page à jour à la prochaine image : un panneau ouvert ou fermé par la commande
+    // précédente (la palette des formes) redimensionnerait la vue de page au milieu du geste, et la vue
+    // abandonne alors le geste de l'outil (PageView::finishStroke). grabWindow() termine la mise en page
+    // en attente avant le premier point ; les points de page sont convertis ensuite, à la taille définitive.
+    m_window->grabWindow();
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
     const Qt::MouseButton button = step.button;
+    const Qt::KeyboardModifiers modifiers = step.modifiers;
+    QPoint lastPoint;
     const bool sent = gestures().pointerPath(
         step.points,
-        [this, button](GesturePhase phase, QPointF position) {
+        [this, button, modifiers, &lastPoint](GesturePhase phase, QPointF position) {
             const QPoint point = position.toPoint();
+            lastPoint = point;
             switch (phase) {
             case GesturePhase::Press:
-                QTest::mousePress(m_window, button, Qt::NoModifier, point);
+                QTest::mousePress(m_window, button, modifiers, point);
                 break;
             case GesturePhase::Move:
                 QTest::mouseMove(m_window, point);
                 break;
             case GesturePhase::Release:
-                QTest::mouseRelease(m_window, button, Qt::NoModifier, point);
+                QTest::mouseRelease(m_window, button, modifiers, point);
                 break;
             }
         },
         step.holdMs, step.windowSpace ? PointSpace::Window : PointSpace::Page);
     QCoreApplication::instance()->removeEventFilter(&witness);
+    // Qt Quick ne met pas à jour le survol (HoverHandler) pendant un geste à bouton enfoncé, et celui du
+    // point de relâchement n'arrive que bien après (mesuré : 300 ms, et un déplacement sur le même point est
+    // ignoré) : une capture lisait le survol d'un point intermédiaire. Le geste se termine donc par deux
+    // déplacements sans bouton, un pixel à côté puis sur le point du relâchement, livrés à l'envoi : le
+    // survol est à jour au retour, sans attente à durée fixe. Les outils ne lisent que les déplacements à
+    // bouton enfoncé.
+    if (sent) {
+        QTest::mouseMove(m_window, lastPoint + QPoint(1, 0));
+        QTest::mouseMove(m_window, lastPoint);
+    }
     const bool ok = sent && witness.press == 1 && witness.release == 1 && witness.pressButton == step.button;
     report << (ok ? head + QStringLiteral(" OK")
                   : head + QStringLiteral(" ECHEC (la fenêtre a reçu %1 appui(s) et %2 relâché(s), 1 et 1 "
@@ -1170,21 +1282,31 @@ bool UiScenarioPlayer::waitFor(const UiStep& step, QStringList& report)
     // Condition avec plafond, jamais une durée fixe ; l'objet peut disparaître pendant l'attente.
     const QByteArray property = step.property.toUtf8();
     QString actual;
+    const auto matches = [&](const QString& value) {
+        if (!step.above) {
+            return value == expected;
+        }
+        bool a = false;
+        bool b = false;
+        const double lu = value.toDouble(&a);
+        const double attendu = expected.toDouble(&b);
+        return a && b && lu > attendu;
+    };
     waitUntil(
         [&] {
             if (!target) {
                 return true;
             }
             actual = propertyText(target->property(property.constData()));
-            return actual == expected;
+            return matches(actual);
         },
         step.ms);
     if (!target) {
         report << head + QStringLiteral(" ECHEC (objet détruit pendant l'attente)");
         return false;
     }
-    const bool ok = actual == expected;
-    report << (ok ? head + QStringLiteral("=%1 OK").arg(expected)
+    const bool ok = matches(actual);
+    report << (ok ? head + QStringLiteral("=%1 OK").arg(step.above ? actual : expected)
                   : head +
                         QStringLiteral("=%1 ECHEC (lu %2 après %3 ms)").arg(expected, actual).arg(step.ms));
     return ok;
@@ -1382,6 +1504,8 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return pointer(step, report);
     case UiStepKind::DoubleClick:
         return doubleClick(step, report);
+    case UiStepKind::TypeText:
+        return typeText(step, report);
     }
     return false;
 }

@@ -48,16 +48,23 @@ private slots:
     }
 
     // L2-T23 : « page » ; L10-T1 : « pauses » (reprises après le délai d'inactivité du cache) ; L3-T19 :
-    // « gommer » et « soulever ». Remplace fiveScenariosWithFrames : le banc compte sept scénarios, non plus
-    // cinq (les cinq premiers gardent leur rang).
-    void sevenScenariosWithFrames()
+    // « gommer » et « soulever » ; L4-T14 : « forme-page-annotee » et « grille-dessus » ; L4-T29 :
+    // « miniatures », « miniatures-ferme » et « miniatures-pauses ». Remplace lot4ScenariosWithFrames
+    // (lui-même remplaçant de sevenScenariosWithFrames) : le banc compte onze scénarios, non plus neuf (les
+    // neuf premiers gardent leur rang). Amendement 4 (V9) : « forme-page-annotee » écrit la clé
+    // shape_preview, relue ici.
+    void lot4bScenariosWithFrames()
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
-        QCOMPARE(scenarios.size(), 7);
-        const QStringList names{QStringLiteral("stroke"),  QStringLiteral("zoom"),   QStringLiteral("scroll"),
-                                QStringLiteral("page"),    QStringLiteral("pauses"), QStringLiteral("gommer"),
-                                QStringLiteral("soulever")};
-        for (qsizetype i = 0; i < 7; ++i) {
+        QCOMPARE(scenarios.size(), 13); // L4-T28 : « zones-zoom » en dernier (douze avant)
+        const QStringList names{QStringLiteral("stroke"),           QStringLiteral("zoom"),
+                                QStringLiteral("scroll"),           QStringLiteral("page"),
+                                QStringLiteral("pauses"),           QStringLiteral("gommer"),
+                                QStringLiteral("soulever"),         QStringLiteral("forme-page-annotee"),
+                                QStringLiteral("grille-dessus"),    QStringLiteral("miniatures"),
+                                QStringLiteral("miniatures-ferme"), QStringLiteral("miniatures-pauses"),
+                                QStringLiteral("zones-zoom")};
+        for (qsizetype i = 0; i < 13; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);
@@ -70,7 +77,70 @@ private slots:
             if (i < 5) {
                 QVERIFY(s.value("frames").toObject().value("active").toInt() > 0);
             }
+            // La clé n'existe que pour le scénario qui trace des formes.
+            QCOMPARE(s.contains("shape_preview"), i == 7);
         }
+        const QJsonObject preview = scenarios.at(7).toObject().value("shape_preview").toObject();
+        // Sous charge (suite complète en parallèle, debug logiciel : relevé le 2026-10-26, 4 images pendant
+        // tout le scénario, toutes hors des glissés) aucune image ne tombe dans un glissé : frames = 0. Ici
+        // la clé et ses trois champs comptent ; n >= 1 est vérifié par le banc hors écran de la preuve.
+        QVERIFY2(preview.value("frames").toInt(-1) >= 0, "clé shape_preview.frames absente");
+        QVERIFY(preview.contains("p95_ms") && preview.value("p95_ms").toDouble(-1) >= 0);
+        QVERIFY(preview.contains("max_ms") &&
+                preview.value("max_ms").toDouble(-1) >= preview.value("p95_ms").toDouble());
+    }
+
+    // L4-T29 (S7.5, amendements 1 et 5) : clé `thumbnails` des deux scénarios de miniatures, absente des
+    // autres. Panneau fermé : aucun rendu (L4-T19). Panneau ouvert : le nombre de rendus peut valoir 0 en
+    // debug logiciel sous charge (>= 0 ici, >= 1 dans le banc hors écran de la preuve) ; aucun n'est jamais
+    // lancé pendant un contact.
+    void thumbnailsShowInTheResult()
+    {
+        const QJsonArray scenarios = m_root.value("scenarios").toArray();
+        for (qsizetype i = 0; i < scenarios.size(); ++i) {
+            QCOMPARE(scenarios.at(i).toObject().contains("thumbnails"), i >= 9 && i <= 11);
+        }
+        const QJsonObject open = scenarios.at(9).toObject().value("thumbnails").toObject();
+        QVERIFY2(open.value("renders").toInt(-1) >= 0, "thumbnails.renders absent");
+        QVERIFY(open.value("max_copy_ms").toDouble(-1) >= 0);
+        QCOMPARE(open.value("during_contact").toInt(-1), 0);
+        const QJsonObject closed = scenarios.at(10).toObject().value("thumbnails").toObject();
+        QCOMPARE(closed.value("renders").toInt(-1), 0);
+        QCOMPARE(closed.value("during_contact").toInt(-1), 0);
+        QVERIFY(closed.contains("max_copy_ms"));
+        // Variante sur « pauses » (amendement 1) : panneau ouvert, mêmes bornes que « miniatures ».
+        const QJsonObject pauses = scenarios.at(11).toObject().value("thumbnails").toObject();
+        QVERIFY2(pauses.value("renders").toInt(-1) >= 0, "thumbnails.renders absent");
+        QVERIFY(pauses.value("max_copy_ms").toDouble(-1) >= 0);
+        QCOMPARE(pauses.value("during_contact").toInt(-1), 0);
+    }
+
+    // L4-T28 : « zones-zoom » a posé ses 40 x 53 cadres avant la mesure (sinon le banc l'invalide).
+    void zonesZoomAppliedItsFrames()
+    {
+        const QJsonArray reasons = m_root.value("verdict").toObject().value("invalid_reasons").toArray();
+        for (const QJsonValue& reason : reasons) {
+            QVERIFY2(!reason.toString().contains(QStringLiteral("zones not applied")),
+                     qPrintable(reason.toString()));
+        }
+    }
+
+    // L4-T14 (S7.5) : « forme-page-annotee » pose k >= 10 formes, une insertion hors fin de page redessine le
+    // cache une fois chacune (k au repos ; sous charge, des demandes d'un même tour fusionnent, comme
+    // « soulever » : borne haute k, l'exactitude est vérifiée par le banc hors écran de la preuve).
+    // « grille-dessus » : la grille du dessus ne redessine rien, ses traits restent en attente (aucun
+    // versement dans la mesure : 0).
+    void shapeAndGridAboveCacheRefreshes()
+    {
+        const QJsonArray scenarios = m_root.value("scenarios").toArray();
+        const QJsonObject shapes = scenarios.at(7).toObject().value("cache").toObject();
+        const int k = shapes.value("placed_shapes").toInt(-1);
+        QVERIFY2(k >= 10, qPrintable(QString::number(k)));
+        const int refreshes = shapes.value("refreshes").toInt(-1);
+        QVERIFY2(refreshes >= 1 && refreshes <= k, qPrintable(QString::number(refreshes)));
+        const QJsonObject grid = scenarios.at(8).toObject().value("cache").toObject();
+        QCOMPARE(grid.value("refreshes").toInt(-1), 0);
+        QVERIFY(!grid.contains("placed_shapes"));
     }
 
     // L3-T19 (S36) : redessins du cache de « gommer » (<= k + 1 + pending_cut) et de « soulever » (2 : un au

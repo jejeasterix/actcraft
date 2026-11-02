@@ -98,6 +98,9 @@ public:
     // l'affiche.
     Q_INVOKABLE void nextPage();
     Q_INVOKABLE void pageBack();
+    // Affiche la page `index` (bornée à 0 .. pageCount − 1), comme nextPage et pageBack : le trait en cours
+    // et les gestes sont d'abord terminés (navigateur de pages, lot 4).
+    Q_INVOKABLE void showPage(int index);
     // Banc et tests : la page 1 devient la page générée de 300 objets (core::generatePage), renumérotée
     // depuis le compteur du document (1 à 300 dans un document neuf) : aucun doublon avec les autres pages.
     // Pile vidée ; « modifié » inchangé ; ni le nombre de pages ni la page affichée ne changent (pagesChanged
@@ -170,6 +173,19 @@ public:
     int addChangeObserver(ChangeObserver observer); // jeton > 0
     void removeChangeObserver(int token);
 
+    // L4-C1 (D16) : ajout en fin.
+    // Paperboard vierge « Sans titre » dont la taille se donne par cadre : page de `frameWidth` x `across`
+    // sur `frameHeight` x `down` (au moins un cadre par sens, chaque côté borné à kMaxPageSide). Un cadre
+    // fait au moins kMinFrameSide (core::clampZones). Aucun nombre de cadres : le paperboard de newDocument.
+    Q_INVOKABLE void newDocumentWithFrames(double frameWidth, double frameHeight, int across, int down);
+    // Plafond d'un côté de page en pixels et plus petit cadre (core::kMinFrameSide) : définis une fois, lus
+    // par la boîte de taille personnalisée.
+    static constexpr double kMaxPageSide = 8000;
+    Q_PROPERTY(double maxPageSide READ maxPageSide CONSTANT)
+    Q_PROPERTY(double minFrameSide READ minFrameSide CONSTANT)
+    double maxPageSide() const noexcept { return kMaxPageSide; }
+    double minFrameSide() const noexcept;
+
 signals:
     void fixedPageChanged();
     // Juste avant un changement de page affichée demandé (page suivante ou précédente, ajout compris,
@@ -197,6 +213,8 @@ signals:
     // outils leur geste (L2-T15).
     void editAboutToApply();
     void liftingChanged();
+    // Une fois par page touchée par une commande (objet ou page, hors page retirée), après settle().
+    void pageContentChanged(int page);
 
 private:
     void setBusy(bool busy);

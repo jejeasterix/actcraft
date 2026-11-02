@@ -974,6 +974,13 @@ private:
             p.object = std::move(link);
             break;
         }
+        // Texte de haut en bas (D9) : l'original en garde une image rendue et une source opaque, pas le texte
+        // en clair. Notre documentation du format donne son genre et son cadre (propriété commune, lu plus
+        // haut : il sert au miroir de la transformation de ses enfants), pas le champ de son image. Il est
+        // donc déclaré non lu comme tout genre non lu : ses enfants entrent, et aucun texte n'est tiré de sa
+        // source. Le lire comme un texte (kTextObject) fabriquerait un texte que le fichier ne contient pas
+        // (tst_formats_lot4, flipchartVerticalTextRead).
+        case ids::kind::kTopToBottomTextObject:
         default:
             // Signalé ; la référence se tait (écart nommé « objet-non-lu-signale » de l'oracle synthétique).
             warn(u"%1 : objet de genre %2 non lu (nœud %3)"_s.arg(where).arg(type).arg(treeNode.nodeId));

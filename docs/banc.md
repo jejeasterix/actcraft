@@ -71,6 +71,53 @@ redessiné). Une commande qui n'attend aucun prêt (zoom posé sans cache : page
 à la première image qui la suit. Décodage, reconstruction et redessin du cache y comptent ; les images entre
 deux changements (rendu continu pendant la mesure) restent au repos.
 
+Lot 4 (L4-T14, S7.5) : deux scénarios s'ajoutent après `soulever`, les sept premiers inchangés (le banc en joue neuf ; douze avec le lot 4b, treize avec `zones-zoom`, ci-dessous).
+
+| Scénario | Contenu | Attendu relevé |
+|---|---|---|
+| `forme-page-annotee` | page générée portant trois annotations (couche du dessus) ; 10 rectangles posés un à un par glissé (préréglage `rectangle` choisi par `shape.choose`, outil `tool.shape`, 600 ms entre deux formes) | `cache.placed_shapes` = k = 10 et `cache.refreshes` = k : une forme va sous les annotations, chaque insertion est hors fin de page et redessine le cache une fois (limite déclarée, écart 5 du lot 10) |
+| `zones-zoom` (L4-T28) | page générée réglée à 40 x 53 cadres, le maximum (`SetPageZonesCommand` avant la mesure, vérifiée : sinon la mesure est invalide, `error: zones not applied`) ; le zoom à la molette de `zoom` (100 -> 800 -> 25 -> 100 %) | jugé comme `zoom` ; informatif : latence et figements comparés à `zoom` (rendu logiciel) ; D3D11 à relever sur le PC. Garde de conception : chaque séparation (91) est bornée à la partie visible de la page, donc à la taille de la vue (`separationsAreBoundedByTheView`) |
+| `grille-dessus` | page générée dont la grille est dessinée au-dessus des objets ; les traits du scénario `stroke` | `cache.refreshes` = nombre de versements de la minuterie, soit 0 : les traits restent en attente (pauses de 300 ms sous le délai) et la grille du dessus ne redessine rien (L4-T7) |
+
+`forme-page-annotee` est jugé comme `gommer` : figements et reprises relevés, hors critère (`freezeExempt`), et
+`cache.refreshes` ≤ k au verdict. `grille-dessus` est jugé comme `stroke`, sans attendu chiffré au verdict : son 0 se lit dans le JSON.
+
+**Clé `shape_preview`** (`forme-page-annotee` seulement, amendement 4, V9). Le coût de l'aperçu des formes :
+l'aperçu passe par la couche soulevée, dont `LiftLayerItem::setObjects` reconstruit les nœuds à chaque mouvement, et
+aucun autre scénario ne trace de forme. Le JSON relève, au niveau du scénario, `"shape_preview": {"frames": n,
+"p95_ms": x, "max_ms": y}` : `frames` est le nombre d'images présentées pendant les glissés (de l'appui au
+relâché de chaque forme), `p95_ms` et `max_ms` les intervalles qui précèdent ces images. C'est un résultat, jamais
+une porte (hors budget, H4-8).
+
+Lot 4b (L4-T29, S7.5, amendements 1 et 5) : trois scénarios s'ajoutent après `grille-dessus`, les neuf premiers
+inchangés (le banc en joue douze ; treize avec `zones-zoom`, L4-T28). Ils mesurent que les miniatures du navigateur de pages ne figent pas l'écriture.
+
+| Scénario | Contenu | Attendu relevé |
+|---|---|---|
+| `miniatures` | les traits de `stroke`, **panneau des navigateurs ouvert** (`view.browsers` avant la mesure, refermé après) ; page générée et trois pages de plus (4 pages), pour que le navigateur ait des miniatures à tenir à jour | `thumbnails.renders` ≥ 1 **dans la fenêtre mesurée**, `thumbnails.during_contact` = 0, `thumbnails.max_copy_ms` relevé ; figements et latence comparés à `stroke` |
+| `miniatures-ferme` | même plan, même document de 4 pages, **sans** `view.browsers` : le panneau reste fermé | `thumbnails.renders` = 0 dans la fenêtre mesurée (aucun rendu panneau fermé, L4-T19), `thumbnails.during_contact` = 0 ; figements et latence comparés à `stroke` |
+| `miniatures-pauses` | variante sur `pauses` (amendement 1) : les traits de `pauses` (pauses de 500 ms et plus, donc plus longues que les 400 ms de `kSettleMs`), panneau ouvert, 4 pages : les rendus tombent dans les pauses | `thumbnails.renders` relevé, `thumbnails.during_contact` = 0 ; ses figements se comparent à ceux de `pauses` (sans panneau), dans le même JSON ; ne ferme pas sa mesure sur le versement différé, propre à `pauses` |
+
+Les deux premiers sont jugés comme `stroke` (figements compris, aucun attendu sur `cache.refreshes`). Avant la mesure, le
+banc vérifie l'état réel du panneau (`appThumbnails.active`) et, panneau ouvert, attend que les miniatures soient
+à jour (`pendingCount` = 0) : les rendus de l'ouverture ne comptent donc pas. Le dernier trait laisse sa miniature à
+refaire 400 ms plus tard (`PageThumbnails::kSettleMs`) ; panneau ouvert, la mesure relève `renderCount` à la fin
+de l'injection puis attend un rendu de plus, pour que celui du dernier trait tombe dans la fenêtre.
+
+**Clé `thumbnails`** (ces trois scénarios seulement). `"thumbnails": {"renders": n, "max_copy_ms": x,
+"during_contact": k}` : `renders` = rendus terminés entre le début et la fin de la mesure (`renderCount`) ;
+`during_contact` = nombre de rendus **lancés** (hausses de `launchCount`, horodatées à chaque `renderingChanged`)
+dont l'instant tombe entre un appui et son relâché injectés (instants d'envoi de l'injecteur) ; il vaut 0 tant que
+`PageThumbnails` ne lance rien pendant un contact, et le banc le prouve de l'extérieur ; `max_copy_ms` = la plus longue copie de page sur le fil principal
+(`lastCopyMs`, relevé à chaque lancement). Un résultat, jamais une porte. Sur le Mac en debug logiciel, `renders`
+peut valoir 0 sous forte charge : seul le banc en D3D11 release du PC fait foi pour les chiffres.
+
+**Joueur de scénarios d'interface : étape `typeText`** (ajoutée à la fin de `UiStepKind`, après `DoubleClick`).
+`{"typeText": "Bonjour"}` livre à la fenêtre un appui et un relâché par caractère, avec son texte (Maj pour une
+majuscule), par le même chemin que `key`, sans la carte des raccourcis. Une chaîne vide ou non textuelle rend le
+fichier invalide (`SCENARIO INVALIDE`). Ligne du rapport : `TEXTE <texte> OK`, ou `ECHEC` si un appui n'est
+accepté par aucun élément.
+
 Puis une séquence de démonstration non mesurée : un trait capturé à mi-parcours, à la fin, à 800 % et de retour à
 100 %. Quatre contrôles de couleur (trois objets témoins, l'encre en cours) prouvent que le rendu dessine
 vraiment ; `--captures` écrit les quatre images `<rendu>-<étape>.png`. `--scenario court` divise les durées par 5

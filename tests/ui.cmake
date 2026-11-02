@@ -64,3 +64,33 @@ actcraft_add_test(tst_ui_tools
 actcraft_add_test(tst_ui_inputpath
     SOURCES tst_ui_inputpath.cpp
     LIBS ActCraft::ui Qt6::Quick actcraft_uiplugin)
+
+actcraft_add_test(tst_ui_shapes
+    SOURCES tst_ui_shapes.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+actcraft_add_test(tst_ui_pagesettings
+    SOURCES tst_ui_pagesettings.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+actcraft_add_test(tst_ui_pagethumbnails
+    SOURCES tst_ui_pagethumbnails.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+actcraft_add_test(tst_ui_pages
+    SOURCES tst_ui_pages.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+actcraft_add_test(tst_ui_text
+    SOURCES tst_ui_text.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+# Les fenêtres de choix de la barre de texte se referment par un second appui sur leur bouton (L4-C20).
+actcraft_add_test(tst_ui_textformatpopup
+    SOURCES tst_ui_textformatpopup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+# Échap ferme une boîte modale au lieu de passer à l'outil Sélectionner (L4-C6).
+actcraft_add_test(tst_ui_escape
+    SOURCES tst_ui_escape.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
