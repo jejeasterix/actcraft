@@ -1,5 +1,7 @@
 #include "tooladapters.h"
 
+#include <actcraft/core/model.h>
+#include <actcraft/core/shapegeometry.h>
 #include <actcraft/tools/pentool.h>
 #include <actcraft/tools/selecttool.h>
 #include <actcraft/tools/toolregistry.h>
@@ -14,7 +16,10 @@
 
 #include <algorithm>
 #include <memory>
+#include <string>
 #include <utility>
+#include <variant>
+#include <vector>
 
 namespace actcraft::ui {
 
@@ -35,6 +40,13 @@ const tools::ToolRegistry& registry()
 bool isInkTool(const QString& id)
 {
     return id == QStringLiteral("pen") || id == QStringLiteral("highlighter");
+}
+
+// Outils dont la palette principale règle la couleur : l'encre, et l'outil des formes pour son contour (P6,
+// réglage propre ; L4-C7). Le dernier outil d'encre (m_lastInk) reste un outil d'encre.
+bool ownsColor(const QString& id)
+{
+    return isInkTool(id) || id == QStringLiteral("shape");
 }
 
 QString settingsKey(const QString& toolId, const QString& leaf)
@@ -64,6 +76,19 @@ QVariantMap hiddenFrame()
 core::Argb opaque(const QColor& color)
 {
     return static_cast<core::Argb>(color.rgba()) | 0xFF000000u; // la translucidité va à part (F-225)
+}
+
+void writeShapeSettings(const QString& file, const tools::ShapeSettings& settings)
+{
+    const std::unique_ptr<QSettings> store = openSettings(file);
+    if (!store) {
+        return;
+    }
+    store->setValue(settingsKey(QStringLiteral("shape"), QStringLiteral("preset")), settings.preset);
+    store->setValue(settingsKey(QStringLiteral("shape"), QStringLiteral("filled")), settings.filled);
+    store->setValue(settingsKey(QStringLiteral("shape"), QStringLiteral("fill")),
+                    QColor::fromRgba(settings.fill).name(QColor::HexRgb));
+    store->setValue(settingsKey(QStringLiteral("shape"), QStringLiteral("fromCenter")), settings.fromCenter);
 }
 
 } // namespace
@@ -281,7 +306,7 @@ void ToolHost::setColor(const QColor& color)
         return;
     }
     ensureSettings();
-    if (!isInkTool(currentTool())) {
+    if (!ownsColor(currentTool())) {
         activate(m_lastInk); // sous Sélectionner ou la gomme : au dernier outil d'encre (L3-T0)
     }
     const QString id = currentTool();
@@ -484,6 +509,26 @@ void ToolHost::ensureSettings()
     }
     m_settingsLoaded = true;
     const std::unique_ptr<QSettings> store = openSettings(m_settingsFile);
+    tools::ShapeSettings shape; // défauts du lot 4 : relus à chaque changement de fichier
+    if (store) {
+        const QString preset =
+            store->value(settingsKey(QStringLiteral("shape"), QStringLiteral("preset"))).toString();
+        if (core::findShapePreset(preset.toStdString()) != nullptr) {
+            shape.preset = preset;
+        }
+        shape.filled =
+            store->value(settingsKey(QStringLiteral("shape"), QStringLiteral("filled")), shape.filled)
+                .toBool();
+        const QColor fill(
+            store->value(settingsKey(QStringLiteral("shape"), QStringLiteral("fill"))).toString());
+        if (fill.isValid()) {
+            shape.fill = opaque(fill);
+        }
+        shape.fromCenter =
+            store->value(settingsKey(QStringLiteral("shape"), QStringLiteral("fromCenter")), shape.fromCenter)
+                .toBool();
+    }
+    user().setShapeSettings(shape);
     for (const QString& id : registry().ids()) {
         if (id == QStringLiteral("select")) {
             continue;
@@ -590,10 +635,11 @@ void ToolHost::relayModifiers(int key, int modifiers)
     }
 }
 
+// La couleur montrée suit l'outil qui la porte : sous l'outil des formes, son contour (comme l'épaisseur).
 QString ToolHost::shownInkTool() const
 {
     const QString current = currentTool();
-    return isInkTool(current) ? current : m_lastInk;
+    return ownsColor(current) ? current : m_lastInk;
 }
 
 QString ToolHost::shownWidthTool() const
@@ -633,6 +679,138 @@ bool ToolHost::eventFilter(QObject* watched, QEvent* event)
         break;
     }
     return false;
+}
+
+// Formes (lot 4) : le préréglage, le remplissage et le mode de tracé sont gardés chez l'utilisateur
+// (ShapeSettings) et dans le même fichier que les réglages par outil ; le contour de la forme (couleur,
+// épaisseur) est celui de l'outil « shape » (réglages par outil).
+QString ToolHost::shapePreset() const
+{
+    return m_user ? m_user->shapeSettings().preset : tools::ShapeSettings{}.preset;
+}
+
+bool ToolHost::shapeFilled() const
+{
+    return m_user ? m_user->shapeSettings().filled : tools::ShapeSettings{}.filled;
+}
+
+bool ToolHost::shapeFromCenter() const
+{
+    return m_user ? m_user->shapeSettings().fromCenter : tools::ShapeSettings{}.fromCenter;
+}
+
+QStringList ToolHost::shapePresets() const
+{
+    QStringList ids;
+    for (const core::ShapePreset& preset : core::shapeCatalog()) {
+        ids.push_back(QString::fromStdString(preset.id));
+    }
+    return ids;
+}
+
+QColor ToolHost::shapeFillColor() const
+{
+    return QColor::fromRgba(m_user ? m_user->shapeSettings().fill : tools::ShapeSettings{}.fill);
+}
+
+QColor ToolHost::shapeDefaultFillColor() const
+{
+    return QColor::fromRgba(tools::ShapeSettings{}.fill);
+}
+
+void ToolHost::chooseShape(const QString& preset)
+{
+    if (core::findShapePreset(preset.toStdString()) == nullptr) {
+        return;
+    }
+    ensureSettings();
+    cancelGesture(); // un autre préréglage ne reprend pas le tracé commencé
+    tools::ShapeSettings settings = user().shapeSettings();
+    settings.preset = preset;
+    user().setShapeSettings(settings);
+    writeShapeSettings(m_settingsFile, settings);
+    emit settingsChanged();
+    activate(QStringLiteral("shape"));
+}
+
+void ToolHost::setShapeFilled(bool filled)
+{
+    ensureSettings();
+    tools::ShapeSettings settings = user().shapeSettings();
+    settings.filled = filled;
+    user().setShapeSettings(settings);
+    writeShapeSettings(m_settingsFile, settings);
+    emit settingsChanged();
+}
+
+void ToolHost::setShapeFillColor(const QColor& color)
+{
+    if (!color.isValid()) {
+        return;
+    }
+    ensureSettings();
+    tools::ShapeSettings settings = user().shapeSettings();
+    settings.fill = opaque(color);
+    user().setShapeSettings(settings);
+    writeShapeSettings(m_settingsFile, settings);
+    emit settingsChanged();
+}
+
+void ToolHost::setShapeFromCenter(bool fromCenter)
+{
+    ensureSettings();
+    tools::ShapeSettings settings = user().shapeSettings();
+    settings.fromCenter = fromCenter;
+    user().setShapeSettings(settings);
+    writeShapeSettings(m_settingsFile, settings);
+    emit settingsChanged();
+}
+
+// Contour du préréglage dans un carré 1 × 1, tel que le construit l'outil (même géométrie) ; fermé pour une
+// forme pleine. Une ligne rend son segment : les trois formes sans boîte aussi (L4-T3).
+QVariantList ToolHost::shapeOutline(const QString& preset) const
+{
+    const std::string id = preset.toStdString();
+    const core::ShapePreset* found = core::findShapePreset(id);
+    if (found == nullptr) {
+        return {};
+    }
+    const core::ShapeStyle style;
+    std::vector<core::PointF> points;
+    if (found->family == core::ShapeFamily::Line) {
+        const auto [from, to] = core::dragLine(core::PointF{0, 1}, core::PointF{1, 0}, *found, false, false);
+        const core::PageObject object = core::makeLineObject(id, from, to, style);
+        if (const auto* line = std::get_if<core::Line>(&object)) {
+            points = line->points;
+        }
+    } else {
+        const core::PageObject object = core::makeShapeObject(id, core::RectF{0, 0, 1, 1}, style);
+        if (const auto* shape = std::get_if<core::Shape>(&object)) {
+            points = shape->polygon;
+        }
+        if (points.size() > 1 &&
+            (points.front().x != points.back().x || points.front().y != points.back().y)) {
+            points.push_back(points.front());
+        }
+    }
+    // Une forme peut dépasser sa boîte (la pointe d'une bulle) : le contour est ramené dans [0, 1] par sa
+    // propre étendue, pour que la miniature de la palette ne déborde jamais.
+    double minX = 0.0;
+    double maxX = 1.0;
+    double minY = 0.0;
+    double maxY = 1.0;
+    for (const core::PointF& point : points) {
+        minX = std::min(minX, point.x);
+        maxX = std::max(maxX, point.x);
+        minY = std::min(minY, point.y);
+        maxY = std::max(maxY, point.y);
+    }
+    QVariantList list;
+    for (const core::PointF& point : points) {
+        list.push_back(QVariantMap{{QStringLiteral("x"), (point.x - minX) / (maxX - minX)},
+                                   {QStringLiteral("y"), (point.y - minY) / (maxY - minY)}});
+    }
+    return list;
 }
 
 } // namespace actcraft::ui

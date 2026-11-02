@@ -104,7 +104,9 @@ private slots:
     {
         ToolRegistry registry;
         registerBuiltinTools(registry);
-        QCOMPARE(registry.ids(), (QStringList{"select", "pen", "highlighter", "eraser"}));
+        // Lot 4 (L4-T1) : les outils « shape », « text » et « text-vertical » s'ajoutent en fin.
+        QCOMPARE(registry.ids(),
+                 (QStringList{"select", "pen", "highlighter", "eraser", "shape", "text", "text-vertical"}));
         QVERIFY(!registry.add(QStringLiteral("pen"), {}));
         QVERIFY(!registry.add(QString(), {}));
         // Les deux refus ci-dessus tiendraient aussi par la seule fabrique vide : on les reprend avec une
@@ -114,7 +116,7 @@ private slots:
         QVERIFY(registry.contains(QStringLiteral("eraser")));
         QVERIFY(!registry.contains(QStringLiteral("compass")));
         QVERIFY(registry.add(QStringLiteral("compass"), penFactory()));
-        QCOMPARE(registry.ids().size(), qsizetype{5});
+        QCOMPARE(registry.ids().size(), qsizetype{8});              // 7 outils intégrés (lot 4) + « compass »
         QCOMPARE(registry.ids().last(), QStringLiteral("compass")); // ordre d'ajout
     }
 

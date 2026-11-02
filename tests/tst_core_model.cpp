@@ -75,6 +75,25 @@ private:
     }
 
 private slots:
+    // L4-C19 : l'égalité d'un remplissage couvre chaque champ (un champ ajouté et oublié se verrait ici).
+    void fillEqualityCoversEveryField()
+    {
+        const Fill base;
+        QVERIFY(base == Fill{});
+        const auto differs = [&](auto change) {
+            Fill other = base;
+            change(other);
+            return !(other == base);
+        };
+        QVERIFY(differs([](Fill& f) { f.kind = FillKind::Solid; }));
+        QVERIFY(differs([](Fill& f) { f.color = 0x11223344u; }));
+        QVERIFY(differs([](Fill& f) { f.color2 = 0x11223344u; }));
+        QVERIFY(differs([](Fill& f) { f.gradient = GradientKind::DiagonalDown; }));
+        QVERIFY(differs([](Fill& f) { f.pattern = 3; }));
+        QVERIFY(differs([](Fill& f) { f.opaqueBackground = true; }));
+        QVERIFY(differs([](Fill& f) { f.backgroundColor = 0x11223344u; }));
+    }
+
     void kindOfFollowsVariantOrder()
     {
         const Page page = richPage();
@@ -364,6 +383,31 @@ private slots:
         const std::int64_t b = monotonicNowNs();
         QVERIFY(b >= a);
         QVERIFY(a > 0);
+    }
+    void lot4FieldsKeepOldFingerprints()
+    {
+        using namespace actcraft::core;
+        Page page;
+        PageObject shape{Shape{}};
+        shape.common.id = 1;
+        PageObject text{Text{}};
+        text.common.id = 2;
+        page.objects = {shape, text};
+        const auto before = fingerprint(page);
+        std::get<Shape>(body(page.objects[0])).preset = "arrow";
+        QVERIFY(fingerprint(page) != before);
+        std::get<Shape>(body(page.objects[0])).preset.clear();
+        QCOMPARE(fingerprint(page), before);
+        std::get<Shape>(body(page.objects[0])).parameters = {0.3};
+        QVERIFY(fingerprint(page) != before);
+        std::get<Shape>(body(page.objects[0])).parameters.clear();
+        std::get<Text>(body(page.objects[1])).vertical = true;
+        QVERIFY(fingerprint(page) != before);
+        std::get<Text>(body(page.objects[1])).vertical = false;
+        page.baseHeight = 768;
+        QVERIFY(fingerprint(page) != before);
+        page.baseHeight = 0;
+        QCOMPARE(fingerprint(page), before);
     }
 };
 

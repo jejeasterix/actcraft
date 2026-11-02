@@ -2,6 +2,7 @@
 #include <actcraft/core/generator.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/pagecache.h>
+#include <actcraft/core/pagezones.h>
 #include <actcraft/formats/urlio.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documentio.h>
@@ -17,6 +18,8 @@
 #include <utility>
 
 namespace actcraft::ui {
+
+void measureFirstBaselines(core::Document& document); // ui/src/textediting.cpp (L4-C5)
 
 // Fil secondaire → contrôleur. Le fil poste son résultat sous le verrou, et le destructeur du contrôleur
 // efface la cible sous le même verrou : jamais un envoi vers un objet en cours de destruction (un QPointer lu
@@ -56,6 +59,11 @@ core::Page blankLike(const core::Page& page)
     core::Page blank;
     blank.width = page.width;
     blank.height = page.height;
+    // Mise en page de la page, pas contenu : « Rétablir » la garde (zones, grille, fond), comme la copie sans
+    // objets du rendu.
+    blank.zones = page.zones;
+    blank.grid = page.grid;
+    blank.background = page.background;
     return blank;
 }
 
@@ -182,11 +190,13 @@ void DocumentController::execute(std::unique_ptr<core::UndoCommand> command)
 
 void DocumentController::executeAs(std::unique_ptr<core::UndoCommand> command, ChangeOrigin origin)
 {
+    const QSizeF shownSize = pageSize();
     const core::Changes changes = run(std::move(command));
     if (changes.empty()) {
         return; // sans effet : ni pile, ni signal, ni observateur
     }
-    notifyState(settle(changes, origin));
+    // L4-T26 : une page allongée change de taille sans changer de page ; la vue relit alors pageSize.
+    notifyState(settle(changes, origin) || pageSize() != shownSize);
 }
 
 // L2-T15 : l'annonce d'abord. La vue y termine son trait, qui entre dans la pile et devient l'étape annulée ;
@@ -199,7 +209,8 @@ void DocumentController::undo()
         return;
     }
     ++m_revision;
-    notifyState(settle(m_undo.undo(m_document), ChangeOrigin::Undo));
+    const QSizeF shownSize = pageSize();
+    notifyState(settle(m_undo.undo(m_document), ChangeOrigin::Undo) || pageSize() != shownSize);
 }
 
 void DocumentController::redo()
@@ -209,7 +220,8 @@ void DocumentController::redo()
         return;
     }
     ++m_revision;
-    notifyState(settle(m_undo.redo(m_document), ChangeOrigin::Redo));
+    const QSizeF shownSize = pageSize();
+    notifyState(settle(m_undo.redo(m_document), ChangeOrigin::Redo) || pageSize() != shownSize);
 }
 
 void DocumentController::closeMerge()
@@ -462,6 +474,17 @@ bool DocumentController::settle(const core::Changes& changes, ChangeOrigin origi
         m_current = shown ? *shown : std::min(m_current, m_document.pageCount() - 1);
         attach();
     }
+    // Pages touchées (indices distincts, dans l'ordre de rencontre) : la page retirée n'existe plus.
+    std::vector<std::size_t> touched;
+    for (const core::Change& c : changes) {
+        if (c.kind != core::Change::Kind::PageRemoved &&
+            std::find(touched.begin(), touched.end(), c.page) == touched.end()) {
+            touched.push_back(c.page);
+        }
+    }
+    for (const std::size_t page : touched) {
+        emit pageContentChanged(static_cast<int>(page));
+    }
     return pages;
 }
 
@@ -501,6 +524,7 @@ void DocumentController::show(std::size_t index)
 void DocumentController::replaceDocument(core::Document document, const QUrl& fileUrl, const QString& title)
 {
     emit pageAboutToChange();
+    measureFirstBaselines(document);
     m_document = std::move(document);
     m_undo.clear();
     m_fileUrl = fileUrl;
@@ -521,6 +545,46 @@ void DocumentController::newDocument(double width, double height)
 {
     replaceDocument(core::Document(width, height), QUrl(), untitled());
     // L'outil n'a pas déposé à pageAboutToChange : les copies de l'ancien document sont oubliées.
+    forgetStaleLift();
+}
+
+double DocumentController::minFrameSide() const noexcept
+{
+    return core::kMinFrameSide;
+}
+
+void DocumentController::newDocumentWithFrames(double frameWidth, double frameHeight, int across, int down)
+{
+    core::PageZones zones = core::clampZones(
+        {.horizontal = across, .vertical = down, .frameWidth = frameWidth, .frameHeight = frameHeight});
+    if (zones.horizontal <= 0 && zones.vertical <= 0) {
+        newDocument(frameWidth, frameHeight); // sans cadre : celui du lot 1, sans zones
+        return;
+    }
+    if (zones.frameWidth <= 0) {
+        zones.frameWidth = core::kMinFrameSide; // taille non donnée : le plus petit cadre
+    }
+    if (zones.frameHeight <= 0) {
+        zones.frameHeight = core::kMinFrameSide;
+    }
+    // Un cadre plus grand que la page permise est ramené au plafond avant le calcul des nombres.
+    zones.frameWidth = std::min(zones.frameWidth, kMaxPageSide);
+    zones.frameHeight = std::min(zones.frameHeight, kMaxPageSide);
+    // Chaque côté tient dans kMaxPageSide : le nombre de cadres est ramené au plus grand qui tient (au moins
+    // un).
+    const auto fit = [](std::int32_t count, double side) {
+        return count <= 0
+                   ? count
+                   : std::clamp(count, std::int32_t{1},
+                                std::max(std::int32_t{1}, static_cast<std::int32_t>(kMaxPageSide / side)));
+    };
+    zones.horizontal = fit(zones.horizontal, zones.frameWidth);
+    zones.vertical = fit(zones.vertical, zones.frameHeight);
+    const double width = std::min(kMaxPageSide, zones.frameWidth * std::max(1, zones.horizontal));
+    const double height = std::min(kMaxPageSide, zones.frameHeight * std::max(1, zones.vertical));
+    core::Document document(width, height);
+    document.page(0).zones = zones;
+    replaceDocument(std::move(document), QUrl(), untitled());
     forgetStaleLift();
 }
 
@@ -553,6 +617,14 @@ void DocumentController::pageBack()
         return;
     }
     announcePageChange(); // M2
+    show(target);
+}
+
+void DocumentController::showPage(int index)
+{
+    const std::size_t last = m_document.pageCount() - 1;
+    const std::size_t target = index < 0 ? 0 : std::min(static_cast<std::size_t>(index), last);
+    announcePageChange(); // M2, comme nextPage et pageBack
     show(target);
 }
 

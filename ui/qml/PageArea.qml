@@ -12,17 +12,30 @@ Item {
     // Lot 3 : outils de l'utilisateur ; null pour une annotation de bureau (lot 7), où la zone dessine sans eux.
     property Tools tools: null
     property Commands commands: null
+    // Lot 4 : édition du texte (TextEditing de la fenêtre) ; null pour une annotation de bureau.
+    property TextEditing textEditing: null
+    property bool textListOpen: false // une liste de la barre de texte est ouverte : Échap la ferme, il ne valide pas
     // Emplacements des lots 3 et 7 (ordre des couches figé par le socle).
     property alias liftLayer: liftLayerItem
     property alias pageOverlays: pageOverlaysItem
     property alias presentationSlot: presentationSlotItem
     property alias selectionOverlay: selectionOverlayItem
+    // Lot 4 : poignée d'extension (commande view.page-extension) et grille du dessus.
+    property alias pageExtensionHandle: pageExtensionHandleItem
+    property alias gridOverlay: gridOverlayItem
     // Nombre de demandes de menu contextuel reçues de la vue (espion des tests).
     property int contextMenuRequestCount: 0
+    // Le menu contextuel recouvre la vue : relayé à la fenêtre (Main.openPopups).
+    signal popupOpened()
+    signal popupClosed()
     property bool cacheEnabled: true
     property bool inputBlocked: false
     // Document ouvert : le stylo y verse ses traits par la pile (L2-T15).
     property DocumentController documentController: null
+    property size zoneFrameSize: Qt.size(0, 0) // appPageSettings.zoneFrameSize : l'allongement ne change pas les cadres
+    property string zones: "" // « <cadres en largeur>x<cadres en hauteur> » (appPageSettings.zones), séparations en surcouche
+    // Pages du document (sélection) : le menu de page agit sur la page affichée, seule sélectionnée (F-771).
+    property Pages pages: null
     clip: true
 
     PageView {
@@ -40,6 +53,8 @@ Item {
         // Clic droit non couvert : la vue le signale (aucun TapHandler de clic droit ici).
         onContextMenuRequested: viewPos => {
             area.contextMenuRequestCount += 1
+            if (area.pages && area.documentController)
+                area.pages.goTo(area.documentController.currentIndex)
             pageContextMenu.popupAt(viewPos.x, viewPos.y)
         }
         // Branché dès la création de la vue (un bloc Connections ne l'est qu'en fin de composant).
@@ -104,6 +119,26 @@ Item {
                 anchors.fill: parent
             }
 
+            // Lot 4 : grille du dessus (F-620), au-dessus de l'encre en cours (observation de l'original, L4-O2 :
+            // elle couvre tout ce qui est posé, le trait en cours compris, H4-22), hors de la scène que le cache
+            // photographie. Sans `z:` : l'ordre des enfants fait l'empilement.
+            GridOverlay {
+                id: gridOverlayItem
+                objectName: "gridOverlay"
+                anchors.fill: parent
+                zoom: view.zoom
+                fixedPage: fixedPageItem
+            }
+            // PageSettingsChanged n'atteint pas la page fixe : la grille est relue sur le changement de la page
+            // affichée.
+            Connections {
+                target: area.documentController
+                function onPageContentChanged(page) {
+                    if (area.documentController && page === area.documentController.currentIndex)
+                        gridOverlayItem.refresh()
+                }
+            }
+
             // Lot 7 : surcouches en coordonnées de page (outils de maths, origine XY, spot, rideau de la page), au
             // dessus de l'encre et de la couche d'attente ; jamais dans la scène que le cache photographie. Une
             // surcouche qui prend l'entrée se déclare couverture (view.addInputCover).
@@ -111,6 +146,23 @@ Item {
                 id: pageOverlaysItem
                 objectName: "pageOverlays"
                 anchors.fill: parent
+
+                // Lot 4 : zones et poignée d'extension de la page (talons).
+                PageZonesOverlay {
+                    objectName: "pageZones"
+                    anchors.fill: parent
+                    zones: area.zones
+                    frameSize: area.zoneFrameSize
+                    zoom: view.zoom
+                    pan: view.pan
+                    viewSize: Qt.size(view.width, view.height)
+                }
+                PageExtensionHandle {
+                    id: pageExtensionHandleItem
+                    objectName: "pageExtensionHandle"
+                    pageView: view
+                    commands: area.commands
+                }
             }
         }
     }
@@ -125,11 +177,20 @@ Item {
         view: view
         visible: area.tools !== null
     }
+    // Lot 4 : éditeur de texte (talon), à côté de la sélection.
+    TextEditor {
+        objectName: "textEditor"
+        anchors.fill: parent
+        editing: area.textEditing
+        listOpen: area.textListOpen
+        pageView: view
+    }
     ToolCursor {
         id: toolCursor
         objectName: "toolCursor"
         anchors.fill: parent
         tools: area.tools
+        view: view
     }
     // Lot 7 : surcouches en coordonnées de la zone (au-dessus de la sélection, sous les barres de défilement).
     Item {
@@ -141,6 +202,8 @@ Item {
     // Indicateur de largeur (F-138) : cercle de la taille et de la couleur du trait sous le pointeur, pour les
     // outils d'encre seulement. Avec la sélection, la flèche suffit (ToolCursor) : le cercle de l'encre gardée
     // restait sous le pointeur, au point d'appui sur un objet verrouillé (L3-C15). Sans Tools : le stylo.
+    // Position du pointeur : celle de ToolCursor (le HoverHandler ne bouge pas pendant un glisser à bouton enfoncé ;
+    // la vue, elle, reçoit alors les mouvements, L4-C15 ; la plus récente des deux sources l'emporte).
     HoverHandler {
         id: hover
         cursorShape: toolCursor.cursorShape
@@ -151,8 +214,8 @@ Item {
         width: Math.max(4, view.inkWidth * view.zoom)
         height: width
         radius: width / 2
-        x: hover.point.position.x - width / 2
-        y: hover.point.position.y - height / 2
+        x: toolCursor.pointerAt.x - width / 2
+        y: toolCursor.pointerAt.y - height / 2
         color: "transparent"
         border.width: 1
         border.color: view.inkColor
@@ -205,5 +268,7 @@ Item {
         id: pageContextMenu
         objectName: "pageContextMenu"
         commands: area.commands
+        onOpened: area.popupOpened()
+        onClosed: area.popupClosed()
     }
 }

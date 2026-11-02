@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(ActCraft
-    VERSION 0.4.0
+    VERSION 0.5.0
     DESCRIPTION "Logiciel libre de tableau blanc interactif"
     LANGUAGES C CXX)
 

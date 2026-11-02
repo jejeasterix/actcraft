@@ -10,6 +10,7 @@
 #include <unordered_map>
 
 class QPainter;
+class QTextDocument;
 
 namespace actcraft::render {
 
@@ -41,6 +42,14 @@ private:
 // un fil secondaire pour un gros document. `maxSide` > 0 : chaque image est décodée réduite pour que son plus
 // grand côté n'en dépasse pas la valeur (miniatures), jamais agrandie.
 DecodedImages decodeImages(const core::Document& document, int maxSide = 0);
+
+// Texte de haut en bas (H4-3, D9) : l'unique mise en page de la colonne d'un caractère, celle du peintre, que
+// l'éditeur de l'interface réutilise pour son cadre et sa mesure. `layOutVerticalColumn` met le document en
+// colonne (retour à la ligne partout, lignes centrées, un séparateur de ligne entre deux graphèmes voisins,
+// largeur = `verticalColumnWidth` mesurée avant la coupe) ; sa largeur est ensuite `textWidth()`, sa hauteur
+// `size().height()`. `verticalColumnWidth` : plus grande avance d'un graphème, chacun à sa police.
+void layOutVerticalColumn(QTextDocument& document);
+double verticalColumnWidth(const QTextDocument& document);
 
 struct PaintOptions
 {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <actcraft/render/fixedpageitem.h>
+#include <actcraft/render/gridoverlayitem.h>
 #include <actcraft/render/inkitem.h>
 #include <actcraft/render/liftlayeritem.h>
 #include <actcraft/render/pendinglayeritem.h>
@@ -38,6 +39,14 @@ struct LiftLayerForeign
     Q_GADGET
     QML_FOREIGN(actcraft::render::LiftLayerItem)
     QML_NAMED_ELEMENT(LiftLayer)
+};
+
+// Lot 4 : grille dessinée au-dessus des objets (render/ n'est pas un module QML).
+struct GridOverlayForeign
+{
+    Q_GADGET
+    QML_FOREIGN(actcraft::render::GridOverlayItem)
+    QML_NAMED_ELEMENT(GridOverlay)
 };
 
 } // namespace actcraft::ui

@@ -18,7 +18,8 @@ set_source_files_properties(qml/FileActions.qml qml/SaveChangesDialog.qml qml/Pa
 
 # Même défaut (C4702) pour les composants de la coquille du socle 3-7 (L0-S0) : chargés depuis leur source.
 set_source_files_properties(qml/SelectionOverlay.qml qml/ObjectBar.qml qml/TrashCan.qml qml/PageContextMenu.qml
-    qml/TranslucencyPopup.qml qml/Presentation.qml
+    qml/TranslucencyPopup.qml qml/Presentation.qml qml/TextEditor.qml qml/TextFormatBar.qml
+    qml/VerticalTextBar.qml qml/TextBarBase.qml qml/BarCombo.qml
     PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)
 
 # Lot 7 (présentation et outils) : ses sources QML et C++ sont listées dans ui/presentation.cmake (fichier de la
@@ -57,6 +58,18 @@ qt_add_qml_module(actcraft_ui
         qml/PageContextMenu.qml
         qml/ToolCursor.qml
         qml/Presentation.qml
+        qml/BrowserPanel.qml
+        qml/PageNavigator.qml
+        qml/ShapePalette.qml
+        qml/TextFormatBar.qml
+        qml/TextEditor.qml
+        qml/VerticalTextBar.qml
+        qml/TextBarBase.qml
+        qml/BarCombo.qml
+        qml/GridDesigner.qml
+        qml/BackgroundDialog.qml
+        qml/PageExtensionHandle.qml
+        qml/PageZonesOverlay.qml
         ${ACTCRAFT_UI_LOT7_QML}
     RESOURCES
         icons/menu.svg
@@ -100,6 +113,45 @@ qt_add_qml_module(actcraft_ui
         icons/camera.svg
         icons/clavier.svg
         icons/bureau.svg
+        icons/forme.svg
+        icons/texte.svg
+        icons/texte-vertical.svg
+        icons/grille.svg
+        icons/grille-masquer.svg
+        icons/aimant.svg
+        icons/createur-grille.svg
+        icons/navigateurs.svg
+        icons/page-avant.svg
+        icons/page-apres.svg
+        icons/page-couper.svg
+        icons/page-copier.svg
+        icons/page-coller.svg
+        icons/page-dupliquer.svg
+        icons/page-supprimer.svg
+        icons/fond.svg
+        icons/allonger.svg
+        icons/zones.svg
+        icons/gras.svg
+        icons/italique.svg
+        icons/souligne.svg
+        icons/exposant.svg
+        icons/indice.svg
+        icons/aligner-gauche.svg
+        icons/centrer.svg
+        icons/aligner-droite.svg
+        icons/interligne-plus.svg
+        icons/interligne-moins.svg
+        icons/retrait-plus.svg
+        icons/retrait-moins.svg
+        icons/puces.svg
+        icons/symboles.svg
+        icons/taille-plus.svg
+        icons/taille-moins.svg
+        icons/nav-ressources.svg
+        icons/nav-objets.svg
+        icons/nav-notes.svg
+        icons/nav-proprietes.svg
+        icons/nav-actions.svg
     SOURCES
         include/actcraft/ui/viewtransform.h
         include/actcraft/ui/pageview.h
@@ -120,6 +172,14 @@ qt_add_qml_module(actcraft_ui
         src/toolhost.cpp
         src/tooladapters.h
         src/tooladapters.cpp
+        include/actcraft/ui/pageoptions.h
+        src/pageoptions.cpp
+        include/actcraft/ui/pagethumbnails.h
+        src/pagethumbnails.cpp
+        include/actcraft/ui/pagescontroller.h
+        src/pagescontroller.cpp
+        include/actcraft/ui/textediting.h
+        src/textediting.cpp
         ${ACTCRAFT_UI_LOT7_SOURCES})
 
 # Le code d'enregistrement QML généré inclut les en-têtes par leur seul nom : d'où le dossier privé.
