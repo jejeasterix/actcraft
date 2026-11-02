@@ -91,7 +91,8 @@ Outlines outlinesOf(const PageObject& object)
         const RectF& b = shape->bounds;
         switch (shape->kind) {
         case ShapeKind::Rectangle:
-            add({{b.x, b.y}, {b.x + b.width, b.y}, {b.x + b.width, b.y + b.height}, {b.x, b.y + b.height}}, true);
+            add({{b.x, b.y}, {b.x + b.width, b.y}, {b.x + b.width, b.y + b.height}, {b.x, b.y + b.height}},
+                true);
             break;
         case ShapeKind::Ellipse: {
             Polyline ring;
@@ -137,8 +138,7 @@ class ReplaceObjectCommand final : public UndoCommand
 public:
     ReplaceObjectCommand(std::size_t page, PageObject before, PageObject after)
         : m_page(page), m_before(std::move(before)), m_after(std::move(after))
-    {
-    }
+    {}
     void redo(Document& document, Changes& changes) override { apply(document, changes, m_after); }
     void undo(Document& document, Changes& changes) override { apply(document, changes, m_before); }
 
@@ -162,8 +162,7 @@ class ImageFillCommand final : public UndoCommand
 public:
     ImageFillCommand(std::size_t page, ObjectId image, std::string pngBytes)
         : m_page(page), m_image(image), m_png(std::move(pngBytes))
-    {
-    }
+    {}
     void redo(Document& document, Changes& changes) override
     {
         Page& page = document.page(m_page);
@@ -173,7 +172,8 @@ public:
             return;
         m_before = image->resource;
         m_hadObject = true;
-        image->resource = document.addResource(QByteArray(m_png.data(), static_cast<qsizetype>(m_png.size())), "png");
+        image->resource =
+            document.addResource(QByteArray(m_png.data(), static_cast<qsizetype>(m_png.size())), "png");
         changes.push_back({Change::Kind::ObjectChanged, m_page, m_image, boundsOnPage(page.objects[index])});
     }
     void undo(Document& document, Changes& changes) override

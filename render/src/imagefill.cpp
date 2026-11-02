@@ -9,7 +9,8 @@ namespace actcraft::render {
 
 QImage floodFill(const QImage& image, QPoint seed, core::Argb color, int tolerance)
 {
-    if (image.isNull() || seed.x() < 0 || seed.y() < 0 || seed.x() >= image.width() || seed.y() >= image.height())
+    if (image.isNull() || seed.x() < 0 || seed.y() < 0 || seed.x() >= image.width() ||
+        seed.y() >= image.height())
         return image;
     QImage out = image.convertToFormat(QImage::Format_ARGB32);
     const int width = out.width();
@@ -25,7 +26,8 @@ QImage floodFill(const QImage& image, QPoint seed, core::Argb color, int toleran
     std::vector<bool> seen(static_cast<std::size_t>(width) * static_cast<std::size_t>(height), false);
     std::vector<QPoint> queue{seed};
     const auto index = [&](QPoint p) {
-        return static_cast<std::size_t>(p.y()) * static_cast<std::size_t>(width) + static_cast<std::size_t>(p.x());
+        return static_cast<std::size_t>(p.y()) * static_cast<std::size_t>(width) +
+               static_cast<std::size_t>(p.x());
     };
     seen[index(seed)] = true;
     // La zone se décide sur l'image d'origine : un pixel peint ne devient pas la référence.
@@ -35,7 +37,8 @@ QImage floodFill(const QImage& image, QPoint seed, core::Argb color, int toleran
         queue.pop_back();
         const QRgb old = source.pixel(p);
         out.setPixel(p, qRgba(qRed(color), qGreen(color), qBlue(color), qAlpha(old)));
-        const QPoint around[4] = {{p.x() + 1, p.y()}, {p.x() - 1, p.y()}, {p.x(), p.y() + 1}, {p.x(), p.y() - 1}};
+        const QPoint around[4] = {
+            {p.x() + 1, p.y()}, {p.x() - 1, p.y()}, {p.x(), p.y() + 1}, {p.x(), p.y() - 1}};
         for (const QPoint& n : around) {
             if (n.x() < 0 || n.y() < 0 || n.x() >= width || n.y() >= height || seen[index(n)])
                 continue;

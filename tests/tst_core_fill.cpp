@@ -111,8 +111,8 @@ private slots:
         auto d = blank();
         const auto a = addRect(d, {100, 100, 200, 100});
         core::UndoStack stack;
-        stack.push(d, core::makeFillCommand(d.page(0), 0, core::fillHitAt(d.page(0), {200, 150}, 3.0),
-                                            0xFF00FF00u));
+        stack.push(
+            d, core::makeFillCommand(d.page(0), 0, core::fillHitAt(d.page(0), {200, 150}, 3.0), 0xFF00FF00u));
         QCOMPARE(fillColorOf(objectById(d, a)), core::Argb(0xFF00FF00u));
         QCOMPARE(stack.count(), std::size_t(1));
         stack.undo(d);
