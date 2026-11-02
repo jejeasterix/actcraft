@@ -659,8 +659,9 @@ private slots:
         QVERIFY(id != 0);
         const core::Equation* equation = equationById(*controller, id);
         QVERIFY(equation != nullptr);
-        const QPointF centre = main.pageView()->pageToScene(QPointF(equation->bounds.x + equation->bounds.width / 2,
-                                                                    equation->bounds.y + equation->bounds.height / 2));
+        const QPointF centre =
+            main.pageView()->pageToScene(QPointF(equation->bounds.x + equation->bounds.width / 2,
+                                                 equation->bounds.y + equation->bounds.height / 2));
         QQuickItem* panel = main.item(u"equationRoot"_s);
         QVERIFY(panel != nullptr);
         QVERIFY(!panel->isVisible());

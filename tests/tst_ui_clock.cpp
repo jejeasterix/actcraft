@@ -100,10 +100,11 @@ private slots:
             commands << map.value(QStringLiteral("command")).toString();
             labels << map.value(QStringLiteral("label")).toString();
         }
-        QCOMPARE(commands, (QStringList{QString(), QStringLiteral("page.next"), QStringLiteral("page.previous"),
-                                        QStringLiteral("page.revert")}));
-        QCOMPARE(labels, (QStringList{QStringLiteral("Aucune"), QStringLiteral("Page suivante"),
-                                      QStringLiteral("Page précédente"), QStringLiteral("Rétablir la page")}));
+        QCOMPARE(commands, (QStringList{QString(), QStringLiteral("page.next"),
+                                        QStringLiteral("page.previous"), QStringLiteral("page.revert")}));
+        QCOMPARE(labels,
+                 (QStringList{QStringLiteral("Aucune"), QStringLiteral("Page suivante"),
+                              QStringLiteral("Page précédente"), QStringLiteral("Rétablir la page")}));
 
         // « rétablir la page » est acceptée ; une action hors liste est refusée, l'action en cours reste.
         clock->setEndAction(QStringLiteral("page.revert"));
@@ -122,8 +123,8 @@ private slots:
         QCOMPARE(combo->property("count").toInt(), 4);
     }
 
-    // F-290 : « rétablir la page » à l'échéance : la page reprend son état d'ouverture (document neuf : vierge)
-    // par la commande page.revert du lot 3, une seule fois ; un annuler rend le trait.
+    // F-290 : « rétablir la page » à l'échéance : la page reprend son état d'ouverture (document neuf :
+    // vierge) par la commande page.revert du lot 3, une seule fois ; un annuler rend le trait.
     void countdownCanRevertThePage()
     {
         MainWindow main;

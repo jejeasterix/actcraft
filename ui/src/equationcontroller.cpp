@@ -201,6 +201,22 @@ void EquationController::open()
     edited();
 }
 
+quint64 EquationController::equationAt(QPointF pagePoint, double zoom) const
+{
+    if (m_document.isNull() || zoom <= 0 || m_document->currentIndex() < 0) {
+        return 0;
+    }
+    const core::Page& page =
+        m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
+    const std::optional<core::ObjectId> hit =
+        core::objectAt(page, core::PointF{pagePoint.x(), pagePoint.y()}, core::kHitToleranceScreen / zoom);
+    if (!hit) {
+        return 0;
+    }
+    const std::size_t at = core::indexOf(page, *hit);
+    return at < page.objects.size() && std::get_if<core::Equation>(&core::body(page.objects[at])) ? *hit : 0;
+}
+
 bool EquationController::edit(quint64 id)
 {
     if (m_document.isNull() || id == 0) {

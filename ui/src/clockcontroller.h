@@ -20,7 +20,8 @@ namespace actcraft::ui {
 // objets de features/ par ce contrôleur : l'horloge monotone du programme plus `clockNowOffsetMs` (réglage de
 // test : les tests avancent le temps sans attendre). Une minuterie de 250 ms (tant que le panneau est actif)
 // interroge le compte à rebours ; à chaque fin, l'action choisie (une commande nommée, ou aucune) est
-// déclenchée une seule fois. Les actions de fin de ce lot : aucune, page suivante, page précédente.
+// déclenchée une seule fois. Les quatre actions de fin de F-290 : aucune, page suivante, page précédente,
+// rétablir la page (page.revert du lot 3, L7-T34).
 class ClockController : public QObject
 {
     Q_OBJECT

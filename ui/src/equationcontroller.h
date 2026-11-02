@@ -64,6 +64,9 @@ public:
     // remplace alors sous le même identifiant, en une étape ; sans modification (même MathML canonique qu'à
     // l'ouverture) il ne touche pas au document : les octets d'origine restent.
     Q_INVOKABLE bool edit(quint64 id);
+    // F-301, L7-T34 : identifiant de l'équation que l'outil Sélectionner toucherait en `pagePoint` (objet du
+    // dessus, tolérance de touche à ce zoom), 0 si l'objet touché n'est pas une équation.
+    Q_INVOKABLE quint64 equationAt(QPointF pagePoint, double zoom) const;
     Q_INVOKABLE bool insertTemplate(const QString& id);
     Q_INVOKABLE void type(const QString& text);
     Q_INVOKABLE void backspace();
