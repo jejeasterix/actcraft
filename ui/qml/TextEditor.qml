@@ -46,6 +46,19 @@ Item {
         when: root.editing !== null
     }
 
+    // De haut en bas (L4-C17) : document de la colonne montrée, que TextEditing remplit à chaque frappe.
+    Binding {
+        target: root.editing
+        property: "columnDocument"
+        value: column.textDocument
+        when: root.editing !== null
+    }
+
+    Connections {
+        target: root.editing
+        function onColumnChanged() { root.syncColumn() }
+    }
+
     Connections {
         target: root.editing
         function onFocusRequested() { textEdit.forceActiveFocus() }
@@ -101,6 +114,8 @@ Item {
             scale: root.zoom
             transformOrigin: Item.TopLeft
             color: "#000000"
+            // De haut en bas : transparent, il garde l'entrée ; la colonne ci-dessous montre le texte (L4-C17).
+            opacity: root.shown && root.editing.vertical ? 0 : 1
             // Texte brut : un collage ne fait jamais entrer de HTML (règle du chantier : jamais de texte riche
             // sans HTML assaini). La mise en forme vient de TextEditing, qui charge le HTML assaini.
             textFormat: TextEdit.PlainText
@@ -112,8 +127,11 @@ Item {
             persistentSelection: true // la sélection reste visible quand un bouton de la barre prend la souris
             cursorVisible: activeFocus
 
-            onSelectionStartChanged: root.pushSelection()
-            onSelectionEndChanged: root.pushSelection()
+            onSelectionStartChanged: { root.pushSelection(); root.syncColumn() }
+            onSelectionEndChanged: { root.pushSelection(); root.syncColumn() }
+            onCursorPositionChanged: root.syncColumn()
+            // De haut en bas : la pré-édition (touche morte, méthode de saisie) se montre dans la colonne (L4-C17).
+            onPreeditTextChanged: if (root.shown) root.editing.setPreedit(preeditText, cursorPosition)
 
             // D8 : pendant la frappe, Ctrl+B, Ctrl+I et Ctrl+U sont à l'éditeur (le raccourci de commande,
             // navigateurs ou page vierge, ne part pas) ; D7 : Échap valide. Le raccourci global de l'outil de
@@ -134,6 +152,65 @@ Item {
                                        : event.key === Qt.Key_I ? "text.italic" : "text.underline", undefined)
             }
         }
+
+        // De haut en bas (L4-C17) : la colonne montrée, copie du texte mise en page par le peintre
+        // (TextEditing.columnDocument) : une ligne par graphème, espaces compris, comme le résultat validé. Qt
+        // laisse un espace pendre au bout de la ligne de la lettre précédente : le TextEdit d'entrée ne peut pas
+        // le montrer, il reste transparent et garde le texte, le curseur, la sélection et l'annulation. La
+        // colonne en montre le curseur, la sélection et la pré-édition ; la souris y fait ce qu'elle fait dans le
+        // TextEdit d'entrée à plat : appui (curseur), glissé et Maj+appui (sélection), double-clic (mot).
+        TextEdit {
+            id: column
+            objectName: "textColumn"
+            visible: root.shown && root.editing.vertical
+            width: root.shown ? Math.max(1, root.editing.frame.width) : 1
+            scale: root.zoom
+            transformOrigin: Item.TopLeft
+            color: textEdit.color
+            textFormat: TextEdit.PlainText // le contenu vient de TextEditing, jamais d'un texte riche
+            readOnly: true
+            activeFocusOnPress: false
+            selectByMouse: false
+            persistentSelection: true
+            wrapMode: TextEdit.WrapAnywhere
+            horizontalAlignment: TextEdit.AlignHCenter
+            onWidthChanged: root.syncColumn()
+
+            Rectangle {
+                id: caret
+                objectName: "textColumnCaret"
+                property rect at: Qt.rect(0, 0, 0, 0)
+                visible: column.visible && textEdit.activeFocus
+                x: at.x
+                y: at.y
+                width: 1
+                height: at.height
+                color: textEdit.color
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.IBeamCursor
+                function editAt(mouse) {
+                    return root.editing.editPosition(column.positionAt(mouse.x, mouse.y))
+                }
+                onPressed: mouse => {
+                    textEdit.forceActiveFocus()
+                    if (mouse.modifiers & Qt.ShiftModifier)
+                        textEdit.moveCursorSelection(editAt(mouse), TextEdit.SelectCharacters)
+                    else
+                        textEdit.cursorPosition = editAt(mouse)
+                }
+                onDoubleClicked: mouse => {
+                    textEdit.cursorPosition = editAt(mouse)
+                    textEdit.selectWord()
+                }
+                onPositionChanged: mouse => {
+                    if (pressed)
+                        textEdit.moveCursorSelection(editAt(mouse), TextEdit.SelectCharacters)
+                }
+            }
+        }
     }
 
     // Touche prise par l'éditeur pendant l'édition : Échap, Ctrl+B, Ctrl+I, Ctrl+U (sans autre modificateur).
@@ -142,6 +219,22 @@ Item {
             return !root.listOpen
         return event.modifiers === Qt.ControlModifier
                 && (event.key === Qt.Key_B || event.key === Qt.Key_I || event.key === Qt.Key_U)
+    }
+
+    // De haut en bas : sélection et curseur du TextEdit d'entrée, placés dans la colonne montrée. Bornés par la
+    // colonne : à la fin de l'édition, elle est vidée avant que `shown` ne tombe.
+    function syncColumn() {
+        if (!shown || !editing.vertical)
+            return
+        const last = column.length
+        const start = textEdit.selectionStart
+        const end = textEdit.selectionEnd
+        if (start === end)
+            column.deselect()
+        else
+            column.select(Math.min(editing.columnPosition(start, true), last),
+                          Math.min(editing.columnPosition(end, false), last))
+        caret.at = column.positionToRectangle(Math.min(editing.columnPosition(textEdit.cursorPosition, false), last))
     }
 
     function pushSelection() {
