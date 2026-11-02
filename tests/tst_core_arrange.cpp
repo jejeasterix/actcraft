@@ -92,6 +92,11 @@ private slots:
         QCOMPARE(core::arrangedOrder(d.page(0), {id(d, 'a')}, core::ArrangeMove::Backward), ids(d, "abcde"));
         // Tout en haut de sa couche : forward ne bouge pas non plus.
         QCOMPARE(core::arrangedOrder(d.page(0), {id(d, 'd')}, core::ArrangeMove::Forward), ids(d, "abcde"));
+        // Deux choisis en haut de leur couche : bloqués ensemble.
+        QCOMPARE(core::arrangedOrder(d.page(0), {id(d, 'c'), id(d, 'd')}, core::ArrangeMove::Forward),
+                 ids(d, "abcde"));
+        QCOMPARE(core::arrangedOrder(d.page(0), {id(d, 'a'), id(d, 'b')}, core::ArrangeMove::Forward),
+                 ids(d, "cabde"));
     }
     void frontKeepsRelativeOrder()
     {
@@ -165,7 +170,8 @@ private slots:
         o1.common.id = 6;
         core::PageObject o2 = g2;
         o2.common.id = 7;
-        d.page(0).objects.push_back(o1); // fichier lu d'ailleurs : cycle 6 -> 7 -> 6 ; ordre sans importance ici
+        d.page(0).objects.push_back(
+            o1); // fichier lu d'ailleurs : cycle 6 -> 7 -> 6 ; ordre sans importance ici
         d.page(0).objects.push_back(o2);
         QCOMPARE(core::expandGroups(d.page(0), {6}).size(), std::size_t(2));
         static_cast<void>(core::topLevelGroupOf(d.page(0), 6)); // doit rendre la main

@@ -45,7 +45,8 @@ std::vector<ObjectId> pageOrder(const Page& page)
 
 // Pose l'ordre `order` (une permutation des objets de la page) ; sans effet sinon. Changes : pour chaque
 // objet dont le rang change, un retrait puis une insertion.
-void applyOrder(Document& document, std::size_t pageIndex, const std::vector<ObjectId>& order, Changes& changes)
+void applyOrder(Document& document, std::size_t pageIndex, const std::vector<ObjectId>& order,
+                Changes& changes)
 {
     Page& page = document.page(pageIndex);
     if (order.size() != page.objects.size()) {
