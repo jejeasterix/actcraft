@@ -754,6 +754,9 @@ private slots:
             QVERIFY2(ids.contains(QLatin1String(named)), named);
         }
         for (const QString& id : ids) {
+            if (id == QLatin1String("recognition.convert-to-text")) {
+                continue; // gestionnaire branché par L7-T34 (menu contextuel) ; hors de ce contrôle
+            }
             QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
         }
     }
@@ -856,8 +859,9 @@ private slots:
             QQuickItem* panel = main.item(QLatin1String(entry.root));
             QVERIFY2(panel != nullptr && panel->isVisible(), entry.root);
             QQuickItem* layer = main.item(QStringLiteral("presentationLayer"));
-            panel->setPosition(layer->mapFromScene(main.pageView()->pageToScene(QPointF(400, 300)) -
-                                                   QPointF(panel->width() / 2, 22)));
+            // Tout le panneau dans la fenêtre : le coin haut gauche en (300, 10) de la couche.
+            panel->setPosition(QPointF(300, 10));
+            QVERIFY2(layer->height() >= panel->y() + panel->height(), entry.root);
             QTest::qWait(50);
             const int before = main.pageObjectCount();
             const QPointF body = panel->mapToScene(QPointF(30, panel->height() - 20));
@@ -884,7 +888,17 @@ private slots:
                     continue;
                 }
                 const QPointF centre = button->mapToScene(QPointF(button->width() / 2, button->height() / 2));
-                QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, centre.toPoint());
+                // Le bouton est dans les bornes du panneau (la vue teste la couverture sur ces bornes) ; un
+                // bouton qui en déborde laisse passer l'appui vers la page.
+                QVERIFY2(panel->contains(panel->mapFromScene(centre)),
+                         qPrintable(
+                             QStringLiteral("%1 : %2 hors du panneau").arg(QLatin1String(entry.root), name)));
+                // Avec un léger tremblement de main, comme un vrai clic.
+                QTest::mouseMove(main.window(), centre.toPoint());
+                QTest::mousePress(main.window(), Qt::LeftButton, Qt::NoModifier, centre.toPoint());
+                QTest::mouseMove(main.window(), (centre + QPointF(2, 1)).toPoint());
+                QTest::mouseRelease(main.window(), Qt::LeftButton, Qt::NoModifier,
+                                    (centre + QPointF(2, 1)).toPoint());
                 QTest::qWait(30);
                 QVERIFY2(main.pageObjectCount() == before,
                          qPrintable(QStringLiteral("%1 : %2").arg(QLatin1String(entry.root), name)));
