@@ -18,6 +18,7 @@
 #include <QtQml/qqmlregistration.h>
 
 #include <memory>
+#include <vector>
 
 namespace actcraft::tools {
 class SelectTool;
@@ -92,6 +93,8 @@ public:
     Q_INVOKABLE void setWidth(qreal width);
     Q_INVOKABLE void selectAll();
     Q_INVOKABLE void clearSelection();
+    // H5-15 : active l'outil Sélection et sélectionne ces objets de la page affichée (ceux qui existent).
+    void selectObjects(const std::vector<core::ObjectId>& ids);
     Q_INVOKABLE void deleteSelection();
     Q_INVOKABLE void enlargeSelection();
     Q_INVOKABLE void reduceSelection();

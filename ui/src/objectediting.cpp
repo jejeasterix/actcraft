@@ -1,107 +1,557 @@
+#include <actcraft/core/alignment.h>
+#include <actcraft/core/arrange.h>
+#include <actcraft/core/clipboardedits.h>
+#include <actcraft/core/connectors.h>
+#include <actcraft/core/edits.h>
+#include <actcraft/core/objectflags.h>
+#include <actcraft/formats/clipboard.h>
+#include <actcraft/ui/insertion.h>
 #include <actcraft/ui/objectediting.h>
+#include <actcraft/ui/pagescontroller.h>
+
+#include <QClipboard>
+#include <QGuiApplication>
+#include <QImage>
+#include <QMimeData>
+
+#include <algorithm>
+#include <map>
+#include <memory>
+#include <set>
+#include <string>
+#include <variant>
+#include <vector>
 
 namespace actcraft::ui {
 
-// Talon L5-T1 : rempli par L5-T14.
-ObjectEditing::ObjectEditing(QObject* parent) : QObject(parent) {}
+namespace {
 
-// Talon L5-T1 : rempli par L5-T14.
+using core::ObjectId;
+
+// Collage : ajoute les ressources citées (une fois, au premier redo comme à chaque suivant : même clé, même
+// copie) puis colle les objets ; une seule étape.
+class PasteWithResources final : public core::UndoCommand
+{
+public:
+    PasteWithResources(std::size_t page, std::vector<core::PageObject> prepared,
+                       formats::ClipboardPayload payload)
+        : m_inner(page, std::move(prepared)), m_payload(std::move(payload))
+    {}
+    void redo(core::Document& document, core::Changes& changes) override
+    {
+        for (const auto& [key, bytes] : m_payload.resources) {
+            const auto ext = m_payload.extensions.find(key);
+            document.addResource(QByteArray(bytes.data(), static_cast<qsizetype>(bytes.size())),
+                                 ext != m_payload.extensions.end() ? ext->second : std::string("bin"));
+        }
+        m_inner.redo(document, changes);
+    }
+    void undo(core::Document& document, core::Changes& changes) override { m_inner.undo(document, changes); }
+
+private:
+    core::PasteObjectsCommand m_inner;
+    formats::ClipboardPayload m_payload;
+};
+
+std::size_t shownIndex(const DocumentController& c)
+{
+    return static_cast<std::size_t>(c.currentIndex());
+}
+
+const core::Page& shownPage(const DocumentController& c)
+{
+    return c.document().page(shownIndex(c));
+}
+
+std::set<ObjectId> idsOf(const core::Page& page)
+{
+    std::set<ObjectId> out;
+    for (const core::PageObject& object : page.objects)
+        out.insert(object.common.id);
+    return out;
+}
+
+// Sélection de l'utilisateur, limitée aux objets présents sur la page affichée.
+std::vector<ObjectId> presentSelection(DocumentController* document, ToolHost* tools)
+{
+    std::vector<ObjectId> out;
+    if (document == nullptr || tools == nullptr)
+        return out;
+    const std::set<ObjectId> present = idsOf(shownPage(*document));
+    for (const ObjectId id : tools->user().selection())
+        if (present.count(id) != 0)
+            out.push_back(id);
+    return out;
+}
+
+const core::PageObject* find(const core::Page& page, ObjectId id)
+{
+    for (const core::PageObject& object : page.objects)
+        if (object.common.id == id)
+            return &object;
+    return nullptr;
+}
+
+// Membres des groupes, pas les groupes : un groupe passé seul n'est pas transformé (L5-T6).
+std::vector<ObjectId> leaves(const core::Page& page, const std::vector<ObjectId>& ids)
+{
+    std::vector<ObjectId> out;
+    for (const ObjectId id : core::expandGroups(page, ids)) {
+        const core::PageObject* object = find(page, id);
+        if (object != nullptr && !std::holds_alternative<core::Group>(core::body(*object)))
+            out.push_back(id);
+    }
+    return out;
+}
+
+void selectNewObjects(DocumentController& document, ToolHost* tools, const std::set<ObjectId>& before)
+{
+    std::vector<ObjectId> fresh;
+    for (const core::PageObject& object : shownPage(document).objects)
+        if (before.count(object.common.id) == 0)
+            fresh.push_back(object.common.id);
+    if (tools != nullptr && !fresh.empty())
+        tools->selectObjects(fresh);
+}
+
+void run(DocumentController& document, std::unique_ptr<core::UndoCommand> command, bool followConnectors)
+{
+    if (!command)
+        return;
+    if (followConnectors)
+        command = core::withFollowingConnectors(shownPage(document), shownIndex(document), std::move(command));
+    document.execute(std::move(command));
+}
+
+bool isGroup(const core::PageObject& object)
+{
+    return std::holds_alternative<core::Group>(core::body(object));
+}
+
+} // namespace
+
+ObjectEditing::ObjectEditing(QObject* parent) : QObject(parent)
+{
+    m_insertion = new Insertion(this);
+    m_pages = new PagesController(this);
+    connect(m_insertion, &Insertion::inserted, this, [this](int count) {
+        if (m_document == nullptr || m_tools == nullptr || count <= 0)
+            return;
+        // Les objets insérés portent les plus grands identifiants de la page (compteur du document).
+        const std::set<ObjectId> present = idsOf(shownPage(*m_document));
+        std::vector<ObjectId> all(present.begin(), present.end());
+        std::sort(all.begin(), all.end());
+        const std::size_t n = std::min(all.size(), static_cast<std::size_t>(count));
+        m_tools->selectObjects(std::vector<ObjectId>(all.end() - static_cast<std::ptrdiff_t>(n), all.end()));
+    });
+    connect(m_pages, &PagesController::clipboardChanged, this, &ObjectEditing::clipboardChanged);
+    if (QClipboard* clipboard = QGuiApplication::clipboard()) {
+        connect(clipboard, &QClipboard::dataChanged, this, [this]() {
+            if (!m_writing)
+                m_pageClipboard = false;
+            emit clipboardChanged();
+        });
+    }
+}
+
 DocumentController* ObjectEditing::document() const
 {
     return m_document;
 }
 
-// Talon L5-T1 : rempli par L5-T14.
 void ObjectEditing::setDocument(DocumentController* document)
 {
+    if (m_document == document)
+        return;
+    if (m_document != nullptr)
+        disconnect(m_document, nullptr, this, nullptr);
     m_document = document;
+    m_insertion->setDocument(document);
+    m_pages->setDocumentController(document);
+    if (document != nullptr) {
+        connect(document, &DocumentController::documentChanged, this, &ObjectEditing::selectionStateChanged);
+        connect(document, &DocumentController::pagesChanged, this, &ObjectEditing::selectionStateChanged);
+    }
+    emit documentChanged();
+    emit selectionStateChanged();
 }
 
-// Talon L5-T1 : rempli par L5-T14.
 ToolHost* ObjectEditing::tools() const
 {
     return m_tools;
 }
 
-// Talon L5-T1 : rempli par L5-T14.
 void ObjectEditing::setTools(ToolHost* tools)
 {
+    if (m_tools == tools)
+        return;
+    if (m_tools != nullptr)
+        disconnect(m_tools, nullptr, this, nullptr);
     m_tools = tools;
+    if (tools != nullptr)
+        connect(tools, &ToolHost::selectionChanged, this, &ObjectEditing::selectionStateChanged);
+    emit toolsChanged();
+    emit selectionStateChanged();
 }
 
-// Talon L5-T1 : rempli par L5-T14.
 bool ObjectEditing::hasSelection() const
 {
-    return false;
+    return !presentSelection(m_document, m_tools).empty();
 }
 
-// Talon L5-T1 : rempli par L5-T14.
 bool ObjectEditing::canPaste() const
 {
-    return false;
+    if (m_pageClipboard && m_pages->canPaste())
+        return true;
+    const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
+    return mime != nullptr && (mime->hasFormat(formats::kObjectsMimeType) || mime->hasImage() || mime->hasText());
 }
 
-// Talon L5-T1 : rempli par L5-T14.
+namespace {
+bool flagState(DocumentController* document, ToolHost* tools, core::ObjectFlag flag)
+{
+    const std::vector<ObjectId> ids = presentSelection(document, tools);
+    return !ids.empty() && core::flagOfAll(shownPage(*document), ids, flag);
+}
+} // namespace
+
 bool ObjectEditing::selectionLocked() const
 {
-    return false;
+    return flagState(m_document, m_tools, core::ObjectFlag::Locked);
 }
 
-// Talon L5-T1 : rempli par L5-T14.
 bool ObjectEditing::selectionHidden() const
 {
-    return false;
+    return flagState(m_document, m_tools, core::ObjectFlag::Hidden);
 }
 
-// Talon L5-T1 : rempli par L5-T14.
 bool ObjectEditing::selectionDragCopy() const
 {
-    return false;
+    return flagState(m_document, m_tools, core::ObjectFlag::DragCopy);
 }
 
-// Talon L5-T1 : rempli par L5-T14.
 bool ObjectEditing::selectionIsGroup() const
 {
-    return false;
+    const std::vector<ObjectId> ids = presentSelection(m_document, m_tools);
+    if (ids.empty())
+        return false;
+    const core::Page& page = shownPage(*m_document);
+    return std::all_of(ids.begin(), ids.end(), [&page](ObjectId id) {
+        const core::PageObject* object = find(page, id);
+        return object != nullptr && isGroup(*object);
+    });
 }
 
-// Talon L5-T1 : rempli par L5-T14.
 bool ObjectEditing::selectionIsAnnotation() const
 {
-    return false;
+    const std::vector<ObjectId> ids = presentSelection(m_document, m_tools);
+    if (ids.empty())
+        return false;
+    const core::Page& page = shownPage(*m_document);
+    return std::all_of(ids.begin(), ids.end(), [&page](ObjectId id) {
+        const core::PageObject* object = find(page, id);
+        return object != nullptr && std::holds_alternative<core::Stroke>(core::body(*object));
+    });
 }
 
-// Talon L5-T1 : rempli par L5-T14.
-void ObjectEditing::cut() {}
+void ObjectEditing::copy()
+{
+    if (m_document == nullptr)
+        return;
+    const std::vector<ObjectId> ids = presentSelection(m_document, m_tools);
+    if (ids.empty()) { // D3 : la page
+        m_pages->focusPage(m_document->currentIndex());
+        m_pages->copySelection();
+        m_pageClipboard = true;
+        return;
+    }
+    const core::Page& page = shownPage(*m_document);
+    formats::ClipboardPayload payload;
+    payload.objects = core::closureForCopy(page, ids);
+    if (payload.objects.empty())
+        return;
+    payload.resources = formats::resourcesFor(m_document->document(), payload.objects);
+    for (const auto& entry : payload.resources)
+        if (const core::Resource* resource = m_document->document().resource(entry.first))
+            payload.extensions[entry.first] = resource->extension;
+    auto mime = std::make_unique<QMimeData>();
+    mime->setData(formats::kObjectsMimeType, formats::encodeClipboard(payload));
+    if (payload.objects.size() == 1) {
+        if (const auto* image = std::get_if<core::ImageObject>(&core::body(payload.objects.front()))) {
+            if (const core::Resource* resource = m_document->document().resource(image->resource)) {
+                const QImage decoded = QImage::fromData(resource->data);
+                if (!decoded.isNull())
+                    mime->setImageData(decoded);
+            }
+        }
+    }
+    m_writing = true;
+    QGuiApplication::clipboard()->setMimeData(mime.release());
+    m_writing = false;
+    m_pageClipboard = false;
+    emit clipboardChanged();
+}
 
-// Talon L5-T1 : rempli par L5-T14.
-void ObjectEditing::copy() {}
+void ObjectEditing::cut()
+{
+    if (m_document == nullptr)
+        return;
+    const std::vector<ObjectId> ids = presentSelection(m_document, m_tools);
+    if (ids.empty()) {
+        m_pages->focusPage(m_document->currentIndex());
+        m_pages->cutSelection();
+        m_pageClipboard = true;
+        return;
+    }
+    copy();
+    run(*m_document, core::makeCutCommand(shownPage(*m_document), shownIndex(*m_document), ids), true);
+    m_tools->clearSelection();
+}
 
-// Talon L5-T1 : rempli par L5-T14.
-void ObjectEditing::paste() {}
+namespace {
+// Pose la charge `payload` sur la page ; `dx`, `dy` ou `target` selon le mode. Vrai si quelque chose a été collé.
+bool pastePayload(DocumentController& document, ToolHost* tools, formats::ClipboardPayload payload,
+                  double dx, double dy, const core::PageObject* target)
+{
+    if (payload.objects.empty())
+        return false;
+    const std::set<ObjectId> before = idsOf(shownPage(document));
+    std::vector<core::PageObject> prepared =
+        target != nullptr ? core::preparePasteOnto(payload.objects, *target)
+                          : core::preparePaste(payload.objects, dx, dy);
+    document.execute(std::make_unique<PasteWithResources>(shownIndex(document), std::move(prepared),
+                                                          std::move(payload)));
+    selectNewObjects(document, tools, before);
+    return true;
+}
 
-// Talon L5-T1 : rempli par L5-T14.
-void ObjectEditing::pasteOnto() {}
+std::optional<formats::ClipboardPayload> clipboardObjects()
+{
+    const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
+    if (mime == nullptr || !mime->hasFormat(formats::kObjectsMimeType))
+        return std::nullopt;
+    return formats::decodeClipboard(mime->data(formats::kObjectsMimeType));
+}
+} // namespace
 
-// Talon L5-T1 : rempli par L5-T14.
-void ObjectEditing::duplicate() {}
+void ObjectEditing::paste()
+{
+    if (m_document == nullptr)
+        return;
+    if (m_pageClipboard && m_pages->canPaste()) {
+        m_pages->paste();
+        return;
+    }
+    if (auto payload = clipboardObjects();
+        payload && pastePayload(*m_document, m_tools, std::move(*payload), core::kPasteOffset,
+                                core::kPasteOffset, nullptr))
+        return;
+    const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
+    if (mime == nullptr)
+        return;
+    if (mime->hasImage()) {
+        const QImage image = qvariant_cast<QImage>(mime->imageData());
+        if (!image.isNull()) {
+            m_insertion->insertImageData(image);
+            return;
+        }
+    }
+    if (mime->hasText()) { // texte brut seulement : un HTML venu d'ailleurs n'est jamais interprété
+        const QSizeF size = m_document->pageSize();
+        m_insertion->acceptDrop({}, mime->text(), QPointF(size.width() / 2, size.height() / 2));
+    }
+}
 
-// Talon L5-T1 : rempli par L5-T14.
-void ObjectEditing::toggleGroup() {}
+void ObjectEditing::pasteAt(QPointF pagePoint)
+{
+    if (m_document == nullptr)
+        return;
+    auto payload = clipboardObjects();
+    if (!payload) {
+        const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
+        if (mime != nullptr && !mime->hasImage() && mime->hasText())
+            m_insertion->acceptDrop({}, mime->text(), pagePoint);
+        else
+            paste();
+        return;
+    }
+    bool any = false;
+    double left = 0, top = 0, right = 0, bottom = 0;
+    for (const core::PageObject& object : payload->objects) {
+        if (isGroup(object))
+            continue;
+        const core::RectF b = core::boundsOnPage(object);
+        left = any ? std::min(left, b.x) : b.x;
+        top = any ? std::min(top, b.y) : b.y;
+        right = any ? std::max(right, b.x + b.width) : b.x + b.width;
+        bottom = any ? std::max(bottom, b.y + b.height) : b.y + b.height;
+        any = true;
+    }
+    pastePayload(*m_document, m_tools, std::move(*payload), pagePoint.x() - (left + right) / 2,
+                 pagePoint.y() - (top + bottom) / 2, nullptr);
+}
 
-// Talon L5-T1 : rempli par L5-T14.
-void ObjectEditing::pasteAt(QPointF) {}
+void ObjectEditing::pasteOnto()
+{
+    if (m_document == nullptr)
+        return;
+    const std::vector<ObjectId> ids = presentSelection(m_document, m_tools);
+    auto payload = clipboardObjects();
+    if (ids.empty() || !payload) {
+        paste();
+        return;
+    }
+    const core::PageObject target = *find(shownPage(*m_document), ids.front());
+    pastePayload(*m_document, m_tools, std::move(*payload), 0, 0, &target);
+}
 
-// Talon L5-T1 : rempli par L5-T14.
-void ObjectEditing::arrange(const QString&) {}
+void ObjectEditing::duplicate()
+{
+    if (m_document == nullptr)
+        return;
+    const std::vector<ObjectId> ids = presentSelection(m_document, m_tools);
+    if (ids.empty()) {
+        m_pages->focusPage(m_document->currentIndex());
+        m_pages->duplicateSelection();
+        return;
+    }
+    const std::set<ObjectId> before = idsOf(shownPage(*m_document));
+    run(*m_document, core::makeDuplicateCommand(shownPage(*m_document), shownIndex(*m_document), ids), false);
+    selectNewObjects(*m_document, m_tools, before);
+}
 
-// Talon L5-T1 : rempli par L5-T14.
-void ObjectEditing::align(const QString&) {}
+void ObjectEditing::toggleGroup()
+{
+    if (m_document == nullptr)
+        return;
+    const std::vector<ObjectId> ids = presentSelection(m_document, m_tools);
+    if (ids.empty())
+        return;
+    const core::Page& page = shownPage(*m_document);
+    if (selectionIsGroup()) {
+        std::vector<ObjectId> members;
+        for (const ObjectId id : ids)
+            if (const auto* group = std::get_if<core::Group>(&core::body(*find(page, id))))
+                members.insert(members.end(), group->members.begin(), group->members.end());
+        run(*m_document, core::makeUngroupCommand(page, shownIndex(*m_document), ids), false);
+        m_tools->selectObjects(members);
+        return;
+    }
+    const std::set<ObjectId> before = idsOf(page);
+    run(*m_document, core::makeGroupCommand(page, shownIndex(*m_document), ids), false);
+    selectNewObjects(*m_document, m_tools, before);
+}
 
-// Talon L5-T1 : rempli par L5-T14.
-void ObjectEditing::transform(const QString&) {}
+void ObjectEditing::arrange(const QString& how)
+{
+    if (m_document == nullptr)
+        return;
+    const std::vector<ObjectId> ids = presentSelection(m_document, m_tools);
+    if (ids.empty())
+        return;
+    const core::Page& page = shownPage(*m_document);
+    const std::size_t index = shownIndex(*m_document);
+    static const std::map<QString, core::ArrangeMove> moves = {{QStringLiteral("front"), core::ArrangeMove::Front},
+                                                               {QStringLiteral("back"), core::ArrangeMove::Back},
+                                                               {QStringLiteral("forward"), core::ArrangeMove::Forward},
+                                                               {QStringLiteral("backward"), core::ArrangeMove::Backward}};
+    static const std::map<QString, core::Layer> layers = {{QStringLiteral("layer-top"), core::Layer::Top},
+                                                          {QStringLiteral("layer-middle"), core::Layer::Middle},
+                                                          {QStringLiteral("layer-bottom"), core::Layer::Bottom}};
+    if (const auto move = moves.find(how); move != moves.end()) {
+        std::vector<ObjectId> order = core::arrangedOrder(page, ids, move->second);
+        std::vector<ObjectId> current;
+        for (const core::PageObject& object : page.objects)
+            current.push_back(object.common.id);
+        if (order != current)
+            run(*m_document, std::make_unique<core::ReorderObjectsCommand>(index, std::move(order)), false);
+    } else if (const auto layer = layers.find(how); layer != layers.end()) {
+        run(*m_document, std::make_unique<core::SetLayerCommand>(index, core::expandGroups(page, ids), layer->second),
+            false);
+    }
+}
 
-// Talon L5-T1 : rempli par L5-T14.
-void ObjectEditing::toggleFlag(const QString&) {}
+void ObjectEditing::align(const QString& how)
+{
+    if (m_document == nullptr)
+        return;
+    static const std::map<QString, core::AlignMode> modes = {
+        {QStringLiteral("left"), core::AlignMode::Left},       {QStringLiteral("center-x"), core::AlignMode::CenterX},
+        {QStringLiteral("right"), core::AlignMode::Right},     {QStringLiteral("top"), core::AlignMode::Top},
+        {QStringLiteral("center-y"), core::AlignMode::CenterY}, {QStringLiteral("bottom"), core::AlignMode::Bottom},
+        {QStringLiteral("width"), core::AlignMode::Width},     {QStringLiteral("height"), core::AlignMode::Height},
+        {QStringLiteral("angle"), core::AlignMode::Angle},     {QStringLiteral("all"), core::AlignMode::All}};
+    const auto mode = modes.find(how);
+    const std::vector<ObjectId> selected = presentSelection(m_document, m_tools);
+    if (mode == modes.end() || selected.empty())
+        return;
+    const core::Page& page = shownPage(*m_document);
+    core::TransformList list = core::alignTransforms(page, leaves(page, selected), mode->second);
+    if (!list.empty())
+        run(*m_document, std::make_unique<core::TransformEachCommand>(shownIndex(*m_document), std::move(list)), true);
+}
+
+void ObjectEditing::transform(const QString& how)
+{
+    if (m_document == nullptr)
+        return;
+    const std::vector<ObjectId> selected = presentSelection(m_document, m_tools);
+    if (selected.empty())
+        return;
+    const core::Page& page = shownPage(*m_document);
+    const std::size_t index = shownIndex(*m_document);
+    const std::vector<ObjectId> members = leaves(page, selected);
+    core::TransformList list;
+    if (how == QLatin1String("original-size"))
+        list = core::fitTransforms(page, members, core::FitMode::OriginalSize);
+    else if (how == QLatin1String("fit-width"))
+        list = core::fitTransforms(page, members, core::FitMode::Width);
+    else if (how == QLatin1String("fit-height"))
+        list = core::fitTransforms(page, members, core::FitMode::Height);
+    else if (how == QLatin1String("fit-page"))
+        list = core::fitTransforms(page, members, core::FitMode::Page);
+    else if (how == QLatin1String("flip-x") || how == QLatin1String("flip-y"))
+        list = core::flipTransforms(page, members, how.endsWith(QLatin1Char('x')) ? core::Axis::X : core::Axis::Y);
+    else if (how == QLatin1String("origin-flip-x") || how == QLatin1String("origin-flip-y")) {
+        if (!page.presentation.hasOrigin)
+            return; // commande inerte sans origine mémorisée
+        list = core::originFlipTransforms(page, members,
+                                          how.endsWith(QLatin1Char('x')) ? core::Axis::X : core::Axis::Y,
+                                          page.presentation.origin);
+    } else if (how == QLatin1String("mirror-x") || how == QLatin1String("mirror-y")) {
+        const std::set<ObjectId> before = idsOf(page);
+        std::vector<core::PageObject> copies =
+            core::mirrorCopies(page, selected, how.endsWith(QLatin1Char('x')) ? core::Axis::X : core::Axis::Y);
+        if (copies.empty())
+            return;
+        run(*m_document,
+            std::make_unique<core::PasteObjectsCommand>(index, core::preparePaste(std::move(copies), 0, 0)), false);
+        selectNewObjects(*m_document, m_tools, before);
+        return;
+    }
+    if (!list.empty())
+        run(*m_document, std::make_unique<core::TransformEachCommand>(index, std::move(list)), true);
+}
+
+void ObjectEditing::toggleFlag(const QString& flag)
+{
+    if (m_document == nullptr)
+        return;
+    const std::vector<ObjectId> ids = presentSelection(m_document, m_tools);
+    if (ids.empty())
+        return;
+    core::ObjectFlag which;
+    if (flag == QLatin1String("lock"))
+        which = core::ObjectFlag::Locked;
+    else if (flag == QLatin1String("hide"))
+        which = core::ObjectFlag::Hidden;
+    else if (flag == QLatin1String("drag-copy"))
+        which = core::ObjectFlag::DragCopy;
+    else
+        return;
+    const bool value = !core::flagOfAll(shownPage(*m_document), ids, which);
+    run(*m_document, std::make_unique<core::SetObjectFlagCommand>(shownIndex(*m_document), ids, which, value),
+        false);
+}
 
 } // namespace actcraft::ui

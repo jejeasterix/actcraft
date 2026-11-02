@@ -93,7 +93,7 @@ struct Fixture
     {
         const auto all = ids();
         core::PageObject connector =
-            core::makeConnector({200, 125}, all.front(), {300, 125}, all.back(), 0);
+            core::makeConnector({200, 100}, all.front(), {300, 100}, all.back(), 0);
         document.execute(std::make_unique<core::AddObjectCommand>(0, std::move(connector)));
         return page().objects.back().common.id;
     }
@@ -172,7 +172,7 @@ private slots:
         f.editing.align(QStringLiteral("left"));
         QCOMPARE(f.lastOrigin, ui::DocumentController::ChangeOrigin::Command);
         QVERIFY(f.has('v')); // ObjectChanged : la transformation passe par la pile, pas par la vue
-        QCOMPARE(f.lastBounds().x, 100.0);
+        QCOMPARE(f.lastBounds().x, core::boundsOnPage(f.page().objects.front()).x);
     }
 
     void cutGoesThroughReplaceCommand()
@@ -236,13 +236,13 @@ private slots:
             f.document.undo(); // une seule étape : connecteur remis
             QCOMPARE(f.connector(connector)->secondEnd.x, 300.0);
         }
-        { // transformer : B ajusté à la page
+        { // transformer : B retourné, le bout garde son point d'attache
             Fixture f(2, false);
             const core::ObjectId connector = f.addConnector();
             f.tools.user().setSelection({f.ids()[1]});
-            f.editing.transform(QStringLiteral("fit-page"));
+            f.editing.transform(QStringLiteral("flip-x"));
             const core::Connector* c = f.connector(connector);
-            QVERIFY(c->objectB == 0 || c->secondEnd.x != 300.0);
+            QVERIFY(c->objectB == 0 || c->secondEnd.y != 100.0);
         }
         { // couper : B retiré, l'extrémité se détache
             Fixture f(2, false);

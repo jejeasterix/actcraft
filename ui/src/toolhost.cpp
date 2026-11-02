@@ -360,6 +360,18 @@ void ToolHost::clearSelection()
     }
 }
 
+void ToolHost::selectObjects(const std::vector<core::ObjectId>& ids)
+{
+    cancelGesture();
+    activate(QStringLiteral("select"));
+    user().setSelection(ids);
+    if (tools::SelectTool* select = selectTool()) {
+        select->refresh(); // filtre sur la page, recalcule le cadre
+    } else {
+        emit selectionChanged();
+    }
+}
+
 void ToolHost::deleteSelection()
 {
     cancelGesture();

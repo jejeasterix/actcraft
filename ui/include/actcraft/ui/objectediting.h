@@ -8,6 +8,9 @@
 
 namespace actcraft::ui {
 
+class Insertion;
+class PagesController;
+
 class ObjectEditing : public QObject
 {
     Q_OBJECT
@@ -59,6 +62,10 @@ signals:
 private:
     DocumentController* m_document = nullptr;
     ToolHost* m_tools = nullptr;
+    Insertion* m_insertion = nullptr;   // collage d'image et de texte venus d'ailleurs
+    PagesController* m_pages = nullptr; // sans sélection d'objet, les commandes agissent sur la page (D3)
+    bool m_pageClipboard = false;       // le dernier copier ou couper portait sur une page
+    bool m_writing = false;             // on écrit nous-mêmes dans le presse-papiers
 };
 
 } // namespace actcraft::ui
