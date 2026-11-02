@@ -130,6 +130,8 @@ Item {
             onSelectionStartChanged: { root.pushSelection(); root.syncColumn() }
             onSelectionEndChanged: { root.pushSelection(); root.syncColumn() }
             onCursorPositionChanged: root.syncColumn()
+            // De haut en bas : la pré-édition (touche morte, méthode de saisie) se montre dans la colonne (L4-C17).
+            onPreeditTextChanged: if (root.shown) root.editing.setPreedit(preeditText, cursorPosition)
 
             // D8 : pendant la frappe, Ctrl+B, Ctrl+I et Ctrl+U sont à l'éditeur (le raccourci de commande,
             // navigateurs ou page vierge, ne part pas) ; D7 : Échap valide. Le raccourci global de l'outil de
@@ -155,7 +157,8 @@ Item {
         // (TextEditing.columnDocument) : une ligne par graphème, espaces compris, comme le résultat validé. Qt
         // laisse un espace pendre au bout de la ligne de la lettre précédente : le TextEdit d'entrée ne peut pas
         // le montrer, il reste transparent et garde le texte, le curseur, la sélection et l'annulation. La
-        // colonne en montre le curseur et la sélection ; un appui y place le curseur du TextEdit d'entrée.
+        // colonne en montre le curseur, la sélection et la pré-édition ; la souris y fait ce qu'elle fait dans le
+        // TextEdit d'entrée à plat : appui (curseur), glissé et Maj+appui (sélection), double-clic (mot).
         TextEdit {
             id: column
             objectName: "textColumn"
@@ -193,7 +196,14 @@ Item {
                 }
                 onPressed: mouse => {
                     textEdit.forceActiveFocus()
+                    if (mouse.modifiers & Qt.ShiftModifier)
+                        textEdit.moveCursorSelection(editAt(mouse), TextEdit.SelectCharacters)
+                    else
+                        textEdit.cursorPosition = editAt(mouse)
+                }
+                onDoubleClicked: mouse => {
                     textEdit.cursorPosition = editAt(mouse)
+                    textEdit.selectWord()
                 }
                 onPositionChanged: mouse => {
                     if (pressed)
@@ -211,17 +221,20 @@ Item {
                 && (event.key === Qt.Key_B || event.key === Qt.Key_I || event.key === Qt.Key_U)
     }
 
-    // De haut en bas : sélection et curseur du TextEdit d'entrée, placés dans la colonne montrée.
+    // De haut en bas : sélection et curseur du TextEdit d'entrée, placés dans la colonne montrée. Bornés par la
+    // colonne : à la fin de l'édition, elle est vidée avant que `shown` ne tombe.
     function syncColumn() {
         if (!shown || !editing.vertical)
             return
+        const last = column.length
         const start = textEdit.selectionStart
         const end = textEdit.selectionEnd
         if (start === end)
             column.deselect()
         else
-            column.select(editing.columnPosition(start, true), editing.columnPosition(end, false))
-        caret.at = column.positionToRectangle(editing.columnPosition(textEdit.cursorPosition, false))
+            column.select(Math.min(editing.columnPosition(start, true), last),
+                          Math.min(editing.columnPosition(end, false), last))
+        caret.at = column.positionToRectangle(Math.min(editing.columnPosition(textEdit.cursorPosition, false), last))
     }
 
     function pushSelection() {

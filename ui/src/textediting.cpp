@@ -165,14 +165,6 @@ QSizeF columnSize(QTextDocument& document)
     return QSizeF(std::max(1.0, document.textWidth()), document.size().height());
 }
 
-// Colonne mesurée d'un HTML, sur un document isolé : le document édité n'est pas touché.
-QSizeF measuredColumn(const QString& html)
-{
-    AnalysisDocument measure{ResourceObserver()};
-    measure.setHtml(html);
-    return columnSize(measure);
-}
-
 // Plus petite avance d'un graphème du texte (au moins 1) : un TextEdit de cette largeur, qui compte aussi les
 // espaces de fin, met chaque graphème sur sa propre ligne.
 double narrowestAdvance(const QTextDocument& document)
@@ -200,6 +192,20 @@ double narrowestAdvance(const QTextDocument& document)
         }
     }
     return std::max(1.0, narrowest);
+}
+
+// Pré-édition (touche morte, méthode de saisie) : pas encore du texte ; insérée soulignée à sa position,
+// comme QQuickTextEdit la montre à plat.
+void insertPreedit(QTextDocument& document, const QString& text, int at)
+{
+    if (text.isEmpty()) {
+        return;
+    }
+    QTextCursor cursor(&document);
+    cursor.setPosition(std::clamp(at, 0, std::max(0, document.characterCount() - 1)));
+    QTextCharFormat format = cursor.charFormat();
+    format.setFontUnderline(true);
+    cursor.insertText(text, format);
 }
 
 } // namespace
@@ -363,7 +369,7 @@ void TextEditing::setColumnDocument(QQuickTextDocument* document)
         return;
     }
     m_column = document;
-    m_columnHtml.clear();
+    m_columnKey.clear();
     m_columnCuts.clear();
     emit wiringChanged();
     updateFrame(); // une édition en cours remplit la nouvelle colonne
@@ -388,49 +394,70 @@ int TextEditing::editPosition(int columnPosition) const
     return columnPosition - before;
 }
 
+void TextEditing::setPreedit(const QString& text, int position)
+{
+    if (m_preedit == text && m_preeditAt == position) {
+        return;
+    }
+    m_preedit = text;
+    m_preeditAt = position;
+    updateFrame();
+}
+
 // Colonne montrée d'un texte de haut en bas (L4-C17) : une copie du texte édité, mise en page par le peintre
-// (render::layOutVerticalColumn, qui met un séparateur de ligne entre deux graphèmes). Le document édité n'en
-// reçoit aucun : Qt laisse un espace pendre au bout de la ligne de la lettre précédente, et aucune option de
-// mise en page du TextEdit d'entrée ne le met sur sa propre ligne (essayé sur Qt 6.12 : WrapAnywhere, largeur
-// infime, IncludeTrailingSpaces, ShowTabsAndSpaces). La largeur reste celle du TextEdit de la colonne.
-void TextEditing::updateColumn(const QString& html)
+// (render::layOutVerticalColumn, qui met un séparateur de ligne entre deux graphèmes) sur le document isolé
+// de la mesure du cadre, puis posée en une fois dans le document du TextEdit de la colonne. Le document édité
+// n'en reçoit aucun : Qt laisse un espace pendre au bout de la ligne de la lettre précédente, et aucune
+// option de mise en page du TextEdit d'entrée ne le met sur sa propre ligne (essayé sur Qt 6.12 :
+// WrapAnywhere, largeur infime, IncludeTrailingSpaces, ShowTabsAndSpaces). Séparer les lettres dans le
+// document d'un QQuickTextEdit, un séparateur à la fois, referait sa mise en page à chaque insertion (m5). La
+// largeur est celle du TextEdit de la colonne, liée au cadre.
+void TextEditing::updateColumn(const QTextDocument* laidOut)
 {
     QTextDocument* column = m_column ? m_column->textDocument() : nullptr;
     const QTextDocument* doc = editDocument();
-    if (!column || html == m_columnHtml) {
+    if (!column) {
         return;
     }
-    m_columnHtml = html;
     m_columnCuts.clear();
-    if (html.isEmpty() || !doc) {
-        column->clear();
+    if (!laidOut || !doc) {
+        if (!column->isEmpty()) {
+            column->clear();
+        }
         emit columnChanged();
         return;
     }
-    const qreal width = column->textWidth();
-    column->setHtml(html);
-    render::layOutVerticalColumn(*column);
-    if (width > 0) {
-        column->setTextWidth(width);
-    }
-    // Séparateurs de l'affichage : les caractères de la colonne que le texte édité n'a pas. Le peintre n'en
-    // met jamais à côté d'un séparateur tapé : à caractère égal, c'est le même.
+    column->setUndoRedoEnabled(false);
+    column->setHtml(laidOut->toHtml());
+    // Ajouts de l'affichage : les séparateurs, que le texte édité (pré-édition comprise) n'a pas, et la
+    // pré-édition, à sa position. Le peintre ne met jamais de séparateur à côté d'un séparateur tapé : à
+    // caractère égal, c'est le même.
     const QString edited = doc->toRawText();
+    const qsizetype at = std::clamp<qsizetype>(m_preeditAt, 0, edited.size());
+    const qsizetype extra = m_preedit.size();
+    const QString expected = edited.left(at) + m_preedit + edited.mid(at);
     const QString shown = column->toRawText();
+    const auto editedAt = [at, extra](qsizetype j) {
+        return static_cast<int>(j <= at ? j : (j <= at + extra ? at : j - extra));
+    };
     qsizetype i = 0;
-    for (qsizetype j = 0; j <= edited.size(); ++j) {
-        while (i < shown.size() && (j == edited.size() || shown[i] != edited[j]) &&
+    bool matched = true;
+    for (qsizetype j = 0; j <= expected.size() && matched; ++j) {
+        while (i < shown.size() && (j == expected.size() || shown[i] != expected[j]) &&
                shown[i] == QChar::LineSeparator) {
-            m_columnCuts.push_back(static_cast<int>(j));
+            m_columnCuts.push_back(editedAt(j));
             ++i;
         }
-        if (j < edited.size()) {
-            if (i >= shown.size() || shown[i] != edited[j]) {
-                m_columnCuts.clear(); // copie inattendue : positions telles quelles plutôt que fausses
-                break;
-            }
+        if (j < expected.size()) {
+            matched = i < shown.size() && shown[i] == expected[j];
             ++i;
         }
+    }
+    if (matched) {
+        m_columnCuts.insert(m_columnCuts.end(), static_cast<std::size_t>(extra), static_cast<int>(at));
+        std::sort(m_columnCuts.begin(), m_columnCuts.end());
+    } else {
+        m_columnCuts.clear(); // copie inattendue : positions telles quelles plutôt que fausses
     }
     emit columnChanged();
 }
@@ -651,7 +678,9 @@ void TextEditing::finish()
     m_fixedWidth = 0;
     m_geometryChanged = false;
     m_initialHtml.clear();
-    updateColumn({});
+    m_preedit.clear();
+    m_columnKey.clear();
+    updateColumn(nullptr);
 }
 
 // F-252, D7 : une étape au plus. Texte neuf vide : oublié, sans étape ; texte existant vidé : supprimé en une
@@ -880,10 +909,21 @@ void TextEditing::updateFrame()
     // largeur du texte à plat. Le TextEdit y replie à la plus petite avance : une lettre par ligne.
     QRectF next;
     qreal wrap = 0;
-    QString html;
+    std::unique_ptr<QTextDocument> laidOut;
     if (m_vertical) {
-        html = doc->toHtml();
-        next = QRectF(m_frame.topLeft(), measuredColumn(html));
+        // Une mise en page par frappe (m5) : la colonne du peintre, pré-édition comprise, mesurée sur un
+        // document isolé, donne le cadre puis la colonne montrée. Texte et pré-édition inchangés : rien n'est
+        // refait (le cadre suit aussi la taille du document, qui change sans eux).
+        const QString html = doc->toHtml();
+        const QString key = html + QChar(u'\0') + m_preedit + QChar(u'\0') + QString::number(m_preeditAt);
+        if (key != m_columnKey) {
+            laidOut = std::make_unique<AnalysisDocument>(ResourceObserver());
+            laidOut->setHtml(html);
+            insertPreedit(*laidOut, m_preedit, m_preeditAt);
+            m_columnSize = columnSize(*laidOut);
+            m_columnKey = key;
+        }
+        next = QRectF(m_frame.topLeft(), m_columnSize);
         wrap = narrowestAdvance(*doc);
     } else {
         const qreal width = m_fixedWidth > 0 ? m_fixedWidth : doc->idealWidth();
@@ -895,7 +935,9 @@ void TextEditing::updateFrame()
         m_wrapWidth = wrap;
         emit frameChanged();
     }
-    updateColumn(html); // après le cadre : la colonne QML a déjà sa largeur
+    if (laidOut) {
+        updateColumn(laidOut.get()); // après le cadre : la colonne QML a déjà sa largeur
+    }
 }
 
 void TextEditing::setFrameWidth(qreal width)
