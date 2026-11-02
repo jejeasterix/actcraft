@@ -161,7 +161,13 @@ void cleanFrames(QTextFrame* frame)
 // l'éditeur).
 QSizeF columnSize(QTextDocument& document)
 {
+    // En un bloc d'édition (m5) : la mise en page suit les séparateurs du peintre une fois, et non à chaque
+    // insertion (la taille de page par défaut d'un QTextDocument, -1 × -1, n'est pas nulle : chaque
+    // changement y refait la mise en page du paragraphe).
+    QTextCursor batch(&document);
+    batch.beginEditBlock();
     render::layOutVerticalColumn(document);
+    batch.endEditBlock();
     return QSizeF(std::max(1.0, document.textWidth()), document.size().height());
 }
 
