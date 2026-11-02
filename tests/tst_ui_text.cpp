@@ -1149,7 +1149,9 @@ private slots:
         QTest::mouseClick(&e.window, Qt::LeftButton, Qt::NoModifier, at(0, 0.5));
         QCOMPARE(input->property("cursorPosition").toInt(), 0);
         QCOMPARE(input->property("selectedText").toString(), QString());
-        QTest::mouseClick(&e.window, Qt::LeftButton, Qt::ShiftModifier, at(2, width - 0.5));
+        // À un pixel entier du bord : toPoint() arrondit, et width - 0.5 tombait un pixel hors de la colonne
+        // quand son abscisse de scène est entière (Windows) : l'appui n'y arrivait pas (L4-C23).
+        QTest::mouseClick(&e.window, Qt::LeftButton, Qt::ShiftModifier, at(2, width - 1.5));
         QCOMPARE(input->property("selectedText").toString(), QStringLiteral("A B"));
     }
 
