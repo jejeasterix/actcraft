@@ -1,7 +1,7 @@
 {
   "format": "actcraft-scenario/1",
   "name": "grille",
-  "description": "S7.2 : créateur de grille, grille du dessus cachée sans redessin du cache, grille du dessous cachée avec un redessin.",
+  "description": "S7.2 : créateur de grille, grille du dessus cachée sans redessin du cache (le cas d'une grille du dessous, un redessin de plus, est couvert en unitaire par hideGridBelowRefreshesOnce : le joueur ne sait que comparer à une valeur lue, pas à cette valeur plus un).",
   "steps": [
     {"waitReady": true},
     {"command": "tool.shape"},
