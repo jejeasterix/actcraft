@@ -123,9 +123,10 @@ void TestClipboardEdits::pasteOffsetsBy20()
     core::UndoStack stack;
     stack.push(d, std::make_unique<core::PasteObjectsCommand>(0, std::move(prepared)));
     QCOMPARE(d.page(0).objects.size(), std::size_t(2));
-    QCOMPARE(boundsOf(d.page(0).objects[1]).x, 120.0);
-    QCOMPARE(boundsOf(d.page(0).objects[1]).y, 120.0);
-    QCOMPARE(boundsOf(objectById(d, a)).x, 100.0); // l'original ne bouge pas
+    // boundsOnPage compte le demi-trait : le décalage se mesure contre l'original.
+    QCOMPARE(boundsOf(d.page(0).objects[1]).x - boundsOf(objectById(d, a)).x, 20.0);
+    QCOMPARE(boundsOf(d.page(0).objects[1]).y - boundsOf(objectById(d, a)).y, 20.0);
+    QCOMPARE(boundsOf(objectById(d, a)).x, 99.5); // l'original ne bouge pas (100 moins le demi-trait)
     stack.undo(d);
     QCOMPARE(d.page(0).objects.size(), std::size_t(1));
 }
@@ -142,8 +143,8 @@ void TestClipboardEdits::duplicateOffsetsBy10AndSelectsCopy()
     QCOMPARE(raw->addedIds().size(), std::size_t(1));
     QVERIFY(raw->addedIds()[0] != a);
     QVERIFY(hasObject(d, raw->addedIds()[0]));
-    QCOMPARE(boundsOf(objectById(d, raw->addedIds()[0])).x, 110.0);
-    QCOMPARE(boundsOf(objectById(d, raw->addedIds()[0])).y, 110.0);
+    QCOMPARE(boundsOf(objectById(d, raw->addedIds()[0])).x - boundsOf(objectById(d, a)).x, 10.0);
+    QCOMPARE(boundsOf(objectById(d, raw->addedIds()[0])).y - boundsOf(objectById(d, a)).y, 10.0);
 }
 
 void TestClipboardEdits::copiesAreUnlockedAndUnnamed()
