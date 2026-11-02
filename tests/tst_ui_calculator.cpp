@@ -285,6 +285,42 @@ private slots:
         QVERIFY(!controller->canUndo());
     }
 
+    // Le résultat se glisse hors du panneau : lâché sur la page en (300, 200), le calcul s'y écrit en un
+    // texte dont les bornes contiennent ce point, en une étape d'annulation ; lâché dans le panneau, rien ne
+    // s'écrit.
+    void calculationDraggedToThePageIsUndoneAtOnce()
+    {
+        MainWindow main;
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        QVERIFY(openCalculator(main) != nullptr);
+        QVERIFY(clickKeys(main, {QStringLiteral("1"), QStringLiteral("Plus"), QStringLiteral("1"),
+                                 QStringLiteral("Equals")}));
+        QQuickItem* display = main.item(QStringLiteral("calculatorDisplay"));
+        QVERIFY(display != nullptr);
+        QCOMPARE(textOf(main, QStringLiteral("calculatorDisplay")), QStringLiteral("2"));
+        const std::size_t before = shown(*controller).objects.size();
+
+        // Dans le panneau : rien.
+        presentationharness::strokeAt(main.window(), Pointer::Mouse, centreOf(display) - QPointF(40, 0),
+                                      centreOf(display) + QPointF(40, 0));
+        QTest::qWait(50);
+        QCOMPARE(shown(*controller).objects.size(), before);
+
+        presentationharness::strokeAt(main.window(), Pointer::Mouse, centreOf(display),
+                                      main.pageView()->pageToScene(QPointF(300, 200)));
+        QTRY_COMPARE(shown(*controller).objects.size(), before + 1);
+        const core::PageObject& written = shown(*controller).objects.back();
+        const auto* text = std::get_if<core::Text>(&core::body(written));
+        QVERIFY(text != nullptr);
+        QVERIFY(written.common.layer == core::Layer::Middle);
+        QVERIFY2(QString::fromStdString(text->html).contains(QStringLiteral(">1 + 1 = 2<")),
+                 text->html.c_str());
+        QVERIFY(text->bounds.contains(core::PointF{300, 200}));
+        controller->undo();
+        QCOMPARE(shown(*controller).objects.size(), before);
+    }
+
     void calculatorBlocksTheStylus_data() { presentationharness::addPointerRows(); }
 
     // Panneau ouvert, il couvre la page quel que soit le périphérique : la touche « 7 » saisit sans tracer,

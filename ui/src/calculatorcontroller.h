@@ -61,8 +61,8 @@ public:
     Q_INVOKABLE bool open();
     // Écrit le calcul près du centre de la page affichée ; faux sans document.
     Q_INVOKABLE bool placeOnPage();
-    // Écrit le calcul centré sur un point de la page affichée (le résultat glissé hors du panneau) ; une étape
-    // d'annulation ; faux sans document.
+    // Écrit le calcul centré sur un point de la page affichée (le résultat glissé hors du panneau) ; une
+    // étape d'annulation ; faux sans document.
     Q_INVOKABLE bool placeAt(double pageX, double pageY);
 
 signals:
