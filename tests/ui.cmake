@@ -84,3 +84,8 @@ actcraft_add_test(tst_ui_pages
 actcraft_add_test(tst_ui_text
     SOURCES tst_ui_text.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+# Échap ferme une boîte modale au lieu de passer à l'outil Sélectionner (L4-C6).
+actcraft_add_test(tst_ui_escape
+    SOURCES tst_ui_escape.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)

@@ -392,6 +392,8 @@ Window {
             required property var modelData
             sequence: modelData.sequence
             context: Qt.ApplicationShortcut
+            // Échap appartient à la boîte ouverte (« Annuler ») : le raccourci global ne lui prend pas la touche.
+            enabled: !(root.openPopups > 0 && /^esc(ape)?$/i.test(String(modelData.sequence)))
             onActivated: appCommands.trigger(modelData.id)
         }
     }
