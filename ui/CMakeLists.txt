@@ -70,6 +70,13 @@ qt_add_qml_module(actcraft_ui
         qml/BackgroundDialog.qml
         qml/PageExtensionHandle.qml
         qml/PageZonesOverlay.qml
+        qml/ObjectEditMenu.qml
+        qml/PenModifierBar.qml
+        qml/ConnectorPanel.qml
+        qml/DocumentTabBar.qml
+        qml/FileExchangeActions.qml
+        qml/PrintSetupDialog.qml
+        qml/SheetPreview.qml
         ${ACTCRAFT_UI_LOT7_QML}
     RESOURCES
         icons/menu.svg
