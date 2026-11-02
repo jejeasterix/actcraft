@@ -132,7 +132,7 @@
   },
   {
    "expect": "appTools.selectionCount",
-   "value": 3
+   "value": 1
   },
   {
    "expect": "documentController.shownObjectCount",
