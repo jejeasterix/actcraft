@@ -99,6 +99,13 @@ void FixedPageItem::restart(Decode decode, Scope scope)
         // (setSource, setPage) réattribue les mêmes : la révision les lui fait refaire.
         ++m_pendingRevision;
     }
+    // L5-C4 : un objet inséré en fin de page dans ce même tour (suite d'une commande : collage, ordre) est lu
+    // par le redessin que cette reconstruction demande ; le mettre en attente ferait un second redessin, au
+    // versement.
+    if (samePage && !m_restartedThisTurn) { // pas setPage ni setSource : ils ouvrent une page, qui reste lente
+        m_restartedThisTurn = true;
+        QMetaObject::invokeMethod(this, [this] { m_restartedThisTurn = false; }, Qt::QueuedConnection);
+    }
     m_rebuild = true;
     m_builtCount = 0; // les nœuds affichés ne suivent plus cette page : aucun ajout « en fin de scène »
     // Redécoder seulement si le magasin ne couvre plus la page (annuler un trait ne redécode rien). Pendant
@@ -194,7 +201,7 @@ void FixedPageItem::insert(core::ObjectId id)
             emit strokeAppended();
         }
     };
-    if (atEnd && m_deferred && m_ready && canWait(object)) {
+    if (atEnd && m_deferred && m_ready && !m_restartedThisTurn && canWait(object)) {
         // Lot 10 : il attend au-dessus du cache ; ni nœud dans la scène, ni redessin du cache. Limite de DA11
         // (écart 5, H10-8) : hors fin de page, ou objet qui ne peut pas attendre → redessin immédiat
         // ci-dessous.
