@@ -20,7 +20,7 @@ struct ClipboardPayload
     std::map<std::string, std::string> resources; // clé SHA-256 → octets
     // Clé SHA-256 → extension (core::Resource::extension, qu'exige Document::addResource), remplie depuis
     // document.resource(clé)->extension. Clé absente, ou extension hors [a-z0-9]{1,8} : « bin », le défaut du
-    // modèle (une charge sans cette table reste lisible). Ajout de L5-T4 (H5-12).
+    // modèle (une charge sans cette table reste lisible). Ajout de L5-T4 (H5-13).
     std::map<std::string, std::string> extensions = {};
 };
 // {"format": "actcraft-objects/1", "objects": […], "resources": {clé: base64}, "extensions": {clé:

@@ -202,7 +202,7 @@ void TestClipboardEdits::groupReferencesRemapped()
 
     stack.undo(d);
     QCOMPARE(d.page(0).objects.size(), std::size_t(4)); // leurre, a, b, g
-    stack.redo(d); // mêmes identifiants, références toujours justes
+    stack.redo(d);                                      // mêmes identifiants, références toujours justes
     QCOMPARE(raw->addedIds(), ids);
     QCOMPARE(d.nextId(), nextBefore + 3);
     const auto& again = asGroup(d.page(0).objects.back());

@@ -445,7 +445,7 @@ void TestClipboard::foreignPayloadRejected()
 
 void TestClipboard::resourceExtensionsTravel()
 {
-    // Document::addResource exige l'extension : elle voyage avec la ressource (H5-12, L5-T4).
+    // Document::addResource exige l'extension : elle voyage avec la ressource (H5-13, L5-T4).
     const QByteArray png = pngBytes();
     const std::string key = sha256Hex(png);
     formats::ClipboardPayload payload;
