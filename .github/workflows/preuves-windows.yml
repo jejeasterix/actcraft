@@ -94,7 +94,15 @@ jobs:
           MOTIF: ${{ inputs.tests }}
         run: |
           if ($env:MOTIF) { ctest --preset $env:PRESET --output-on-failure -R $env:MOTIF } else { ctest --preset $env:PRESET --output-on-failure }
-          if ($LASTEXITCODE -eq 0) { Write-Output 'PREUVES WINDOWS OK' } else { Write-Output 'PREUVES WINDOWS EN ECHEC'; exit 1 }
+          if ($LASTEXITCODE -eq 0) { Write-Output 'PREUVES WINDOWS OK' } else {
+            # ctest n'affiche rien quand le test meurt avant d'écrire : relancer chaque test rouge en direct, avec son code de sortie.
+            ctest --preset $env:PRESET --rerun-failed -N | Select-String 'Test +#\d+: (\S+)' | ForEach-Object {
+              $nom = $_.Matches[0].Groups[1].Value
+              $exe = Get-ChildItem "build/$env:PRESET" -Recurse -Filter "$nom.exe" | Select-Object -First 1
+              if ($exe) { Write-Output "== $nom en direct"; & $exe.FullName -v2 2>&1 | Select-Object -Last 60; Write-Output ("code de sortie 0x{0:X}" -f $LASTEXITCODE) }
+            }
+            Write-Output 'PREUVES WINDOWS EN ECHEC'; exit 1
+          }
 
       # Toujours la dernière étape : un échec de n'importe quelle étape (Compiler sous /WX compris) ou une annulation
       # finit par un verdict. Un délai dépassé peut couper le job avant elle : le lecteur traite « code ≠ 0 sans verdict ».
