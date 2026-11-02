@@ -119,7 +119,8 @@ void run(DocumentController& document, std::unique_ptr<core::UndoCommand> comman
     if (!command)
         return;
     if (followConnectors)
-        command = core::withFollowingConnectors(shownPage(document), shownIndex(document), std::move(command));
+        command =
+            core::withFollowingConnectors(shownPage(document), shownIndex(document), std::move(command));
     document.execute(std::move(command));
 }
 
@@ -204,7 +205,8 @@ bool ObjectEditing::canPaste() const
     if (m_pageClipboard && m_pages->canPaste())
         return true;
     const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
-    return mime != nullptr && (mime->hasFormat(formats::kObjectsMimeType) || mime->hasImage() || mime->hasText());
+    return mime != nullptr &&
+           (mime->hasFormat(formats::kObjectsMimeType) || mime->hasImage() || mime->hasText());
 }
 
 namespace {
@@ -309,18 +311,19 @@ void ObjectEditing::cut()
 }
 
 namespace {
-// Pose la charge `payload` sur la page ; `dx`, `dy` ou `target` selon le mode. Vrai si quelque chose a été collé.
-bool pastePayload(DocumentController& document, ToolHost* tools, formats::ClipboardPayload payload,
-                  double dx, double dy, const core::PageObject* target)
+// Pose la charge `payload` sur la page ; `dx`, `dy` ou `target` selon le mode. Vrai si quelque chose a été
+// collé.
+bool pastePayload(DocumentController& document, ToolHost* tools, formats::ClipboardPayload payload, double dx,
+                  double dy, const core::PageObject* target)
 {
     if (payload.objects.empty())
         return false;
     const std::set<ObjectId> before = idsOf(shownPage(document));
-    std::vector<core::PageObject> prepared =
-        target != nullptr ? core::preparePasteOnto(payload.objects, *target)
-                          : core::preparePaste(payload.objects, dx, dy);
-    document.execute(std::make_unique<PasteWithResources>(shownIndex(document), std::move(prepared),
-                                                          std::move(payload)));
+    std::vector<core::PageObject> prepared = target != nullptr
+                                                 ? core::preparePasteOnto(payload.objects, *target)
+                                                 : core::preparePaste(payload.objects, dx, dy);
+    document.execute(
+        std::make_unique<PasteWithResources>(shownIndex(document), std::move(prepared), std::move(payload)));
     selectNewObjects(document, tools, before);
     return true;
 }
@@ -451,13 +454,15 @@ void ObjectEditing::arrange(const QString& how)
         return;
     const core::Page& page = shownPage(*m_document);
     const std::size_t index = shownIndex(*m_document);
-    static const std::map<QString, core::ArrangeMove> moves = {{QStringLiteral("front"), core::ArrangeMove::Front},
-                                                               {QStringLiteral("back"), core::ArrangeMove::Back},
-                                                               {QStringLiteral("forward"), core::ArrangeMove::Forward},
-                                                               {QStringLiteral("backward"), core::ArrangeMove::Backward}};
-    static const std::map<QString, core::Layer> layers = {{QStringLiteral("layer-top"), core::Layer::Top},
-                                                          {QStringLiteral("layer-middle"), core::Layer::Middle},
-                                                          {QStringLiteral("layer-bottom"), core::Layer::Bottom}};
+    static const std::map<QString, core::ArrangeMove> moves = {
+        {QStringLiteral("front"), core::ArrangeMove::Front},
+        {QStringLiteral("back"), core::ArrangeMove::Back},
+        {QStringLiteral("forward"), core::ArrangeMove::Forward},
+        {QStringLiteral("backward"), core::ArrangeMove::Backward}};
+    static const std::map<QString, core::Layer> layers = {
+        {QStringLiteral("layer-top"), core::Layer::Top},
+        {QStringLiteral("layer-middle"), core::Layer::Middle},
+        {QStringLiteral("layer-bottom"), core::Layer::Bottom}};
     if (const auto move = moves.find(how); move != moves.end()) {
         std::vector<ObjectId> order = core::arrangedOrder(page, ids, move->second);
         std::vector<ObjectId> current;
@@ -466,7 +471,8 @@ void ObjectEditing::arrange(const QString& how)
         if (order != current)
             run(*m_document, std::make_unique<core::ReorderObjectsCommand>(index, std::move(order)), false);
     } else if (const auto layer = layers.find(how); layer != layers.end()) {
-        run(*m_document, std::make_unique<core::SetLayerCommand>(index, core::expandGroups(page, ids), layer->second),
+        run(*m_document,
+            std::make_unique<core::SetLayerCommand>(index, core::expandGroups(page, ids), layer->second),
             false);
     }
 }
@@ -476,11 +482,16 @@ void ObjectEditing::align(const QString& how)
     if (m_document == nullptr)
         return;
     static const std::map<QString, core::AlignMode> modes = {
-        {QStringLiteral("left"), core::AlignMode::Left},       {QStringLiteral("center-x"), core::AlignMode::CenterX},
-        {QStringLiteral("right"), core::AlignMode::Right},     {QStringLiteral("top"), core::AlignMode::Top},
-        {QStringLiteral("center-y"), core::AlignMode::CenterY}, {QStringLiteral("bottom"), core::AlignMode::Bottom},
-        {QStringLiteral("width"), core::AlignMode::Width},     {QStringLiteral("height"), core::AlignMode::Height},
-        {QStringLiteral("angle"), core::AlignMode::Angle},     {QStringLiteral("all"), core::AlignMode::All}};
+        {QStringLiteral("left"), core::AlignMode::Left},
+        {QStringLiteral("center-x"), core::AlignMode::CenterX},
+        {QStringLiteral("right"), core::AlignMode::Right},
+        {QStringLiteral("top"), core::AlignMode::Top},
+        {QStringLiteral("center-y"), core::AlignMode::CenterY},
+        {QStringLiteral("bottom"), core::AlignMode::Bottom},
+        {QStringLiteral("width"), core::AlignMode::Width},
+        {QStringLiteral("height"), core::AlignMode::Height},
+        {QStringLiteral("angle"), core::AlignMode::Angle},
+        {QStringLiteral("all"), core::AlignMode::All}};
     const auto mode = modes.find(how);
     const std::vector<ObjectId> selected = presentSelection(m_document, m_tools);
     if (mode == modes.end() || selected.empty())
@@ -488,7 +499,8 @@ void ObjectEditing::align(const QString& how)
     const core::Page& page = shownPage(*m_document);
     core::TransformList list = core::alignTransforms(page, leaves(page, selected), mode->second);
     if (!list.empty())
-        run(*m_document, std::make_unique<core::TransformEachCommand>(shownIndex(*m_document), std::move(list)), true);
+        run(*m_document,
+            std::make_unique<core::TransformEachCommand>(shownIndex(*m_document), std::move(list)), true);
 }
 
 void ObjectEditing::transform(const QString& how)
@@ -511,7 +523,8 @@ void ObjectEditing::transform(const QString& how)
     else if (how == QLatin1String("fit-page"))
         list = core::fitTransforms(page, members, core::FitMode::Page);
     else if (how == QLatin1String("flip-x") || how == QLatin1String("flip-y"))
-        list = core::flipTransforms(page, members, how.endsWith(QLatin1Char('x')) ? core::Axis::X : core::Axis::Y);
+        list = core::flipTransforms(page, members,
+                                    how.endsWith(QLatin1Char('x')) ? core::Axis::X : core::Axis::Y);
     else if (how == QLatin1String("origin-flip-x") || how == QLatin1String("origin-flip-y")) {
         if (!page.presentation.hasOrigin)
             return; // commande inerte sans origine mémorisée
@@ -520,12 +533,13 @@ void ObjectEditing::transform(const QString& how)
                                           page.presentation.origin);
     } else if (how == QLatin1String("mirror-x") || how == QLatin1String("mirror-y")) {
         const std::set<ObjectId> before = idsOf(page);
-        std::vector<core::PageObject> copies =
-            core::mirrorCopies(page, selected, how.endsWith(QLatin1Char('x')) ? core::Axis::X : core::Axis::Y);
+        std::vector<core::PageObject> copies = core::mirrorCopies(
+            page, selected, how.endsWith(QLatin1Char('x')) ? core::Axis::X : core::Axis::Y);
         if (copies.empty())
             return;
         run(*m_document,
-            std::make_unique<core::PasteObjectsCommand>(index, core::preparePaste(std::move(copies), 0, 0)), false);
+            std::make_unique<core::PasteObjectsCommand>(index, core::preparePaste(std::move(copies), 0, 0)),
+            false);
         selectNewObjects(*m_document, m_tools, before);
         return;
     }

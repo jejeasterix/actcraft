@@ -92,8 +92,7 @@ struct Fixture
     core::ObjectId addConnector()
     {
         const auto all = ids();
-        core::PageObject connector =
-            core::makeConnector({200, 100}, all.front(), {300, 100}, all.back(), 0);
+        core::PageObject connector = core::makeConnector({200, 100}, all.front(), {300, 100}, all.back(), 0);
         document.execute(std::make_unique<core::AddObjectCommand>(0, std::move(connector)));
         return page().objects.back().common.id;
     }
