@@ -165,7 +165,7 @@ Item {
             y: choice.height + Theme.espace1
             padding: Theme.espace2
             focus: false
-            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
             background: Rectangle {
                 color: Theme.palette
                 border.color: Theme.contour
