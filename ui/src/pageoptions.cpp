@@ -31,6 +31,12 @@ void assignFinite(double& target, const QVariant& value, double low, double high
     }
 }
 
+// Aucun document, ou aucune page affichée : les réglages de page n'ont rien à lire ni à changer.
+bool noPage(const DocumentController* controller)
+{
+    return controller == nullptr || controller->pageCount() == 0;
+}
+
 constexpr double kNoLow = std::numeric_limits<double>::lowest();
 constexpr double kNoHigh = std::numeric_limits<double>::max();
 
@@ -181,7 +187,7 @@ void PageOptions::setDocumentController(DocumentController* controller)
 
 core::Grid PageOptions::currentGrid() const
 {
-    if (!m_controller || m_controller->pageCount() == 0) {
+    if (noPage(m_controller)) {
         return {};
     }
     return m_controller->document().page(static_cast<std::size_t>(m_controller->currentIndex())).grid;
@@ -189,7 +195,7 @@ core::Grid PageOptions::currentGrid() const
 
 void PageOptions::applyGrid(core::Grid grid)
 {
-    if (!m_controller || m_controller->pageCount() == 0) {
+    if (noPage(m_controller)) {
         return;
     }
     m_controller->execute(std::make_unique<core::SetGridCommand>(
@@ -231,7 +237,7 @@ QVariantMap PageOptions::grid() const
 
 QVariantMap PageOptions::background() const
 {
-    if (!m_controller || m_controller->pageCount() == 0) {
+    if (noPage(m_controller)) {
         return {};
     }
     const core::Background& background =
@@ -251,7 +257,7 @@ QVariantMap PageOptions::background() const
 
 qreal PageOptions::pageHeight() const
 {
-    if (!m_controller || m_controller->pageCount() == 0) {
+    if (noPage(m_controller)) {
         return 0;
     }
     return m_controller->document().page(static_cast<std::size_t>(m_controller->currentIndex())).height;
@@ -259,7 +265,7 @@ qreal PageOptions::pageHeight() const
 
 QString PageOptions::zones() const
 {
-    if (!m_controller || m_controller->pageCount() == 0) {
+    if (noPage(m_controller)) {
         return QStringLiteral("0x0");
     }
     const core::PageZones& zones =
@@ -269,7 +275,7 @@ QString PageOptions::zones() const
 
 QSizeF PageOptions::zoneFrameSize() const
 {
-    if (!m_controller || m_controller->pageCount() == 0) {
+    if (noPage(m_controller)) {
         return {};
     }
     const core::PageZones& zones =
@@ -362,7 +368,7 @@ void PageOptions::endDesigner()
 
 void PageOptions::setBackground(const QVariantMap& background)
 {
-    if (!m_controller || m_controller->pageCount() == 0) {
+    if (noPage(m_controller)) {
         return;
     }
     const std::size_t page = static_cast<std::size_t>(m_controller->currentIndex());
@@ -396,7 +402,7 @@ void PageOptions::setBackground(const QVariantMap& background)
 
 void PageOptions::extendPage()
 {
-    if (!m_controller || m_controller->pageCount() == 0) {
+    if (noPage(m_controller)) {
         return;
     }
     // Une étape par clic (F-301 a) : le pas est cumulé par la commande du noyau (D10, L4-O1).
@@ -406,7 +412,7 @@ void PageOptions::extendPage()
 
 void PageOptions::setZones(const QString& zones)
 {
-    if (!m_controller || m_controller->pageCount() == 0) {
+    if (noPage(m_controller)) {
         return;
     }
     // « <cadres en largeur>x<cadres en hauteur> » : deux entiers positifs ou nuls, sinon rien ne change.
