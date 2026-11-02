@@ -75,6 +75,25 @@ private:
     }
 
 private slots:
+    // L4-C19 : l'égalité d'un remplissage couvre chaque champ (un champ ajouté et oublié se verrait ici).
+    void fillEqualityCoversEveryField()
+    {
+        const core::Fill base;
+        QVERIFY(base == core::Fill{});
+        const auto differs = [&](auto change) {
+            core::Fill other = base;
+            change(other);
+            return !(other == base);
+        };
+        QVERIFY(differs([](core::Fill& f) { f.kind = core::FillKind::Solid; }));
+        QVERIFY(differs([](core::Fill& f) { f.color = 0x11223344u; }));
+        QVERIFY(differs([](core::Fill& f) { f.color2 = 0x11223344u; }));
+        QVERIFY(differs([](core::Fill& f) { f.gradient = core::GradientKind::DiagonalDown; }));
+        QVERIFY(differs([](core::Fill& f) { f.pattern = 3; }));
+        QVERIFY(differs([](core::Fill& f) { f.opaqueBackground = true; }));
+        QVERIFY(differs([](core::Fill& f) { f.backgroundColor = 0x11223344u; }));
+    }
+
     void kindOfFollowsVariantOrder()
     {
         const Page page = richPage();
