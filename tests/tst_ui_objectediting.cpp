@@ -13,6 +13,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include <algorithm>
 #include <memory>
 #include <set>
 #include <string>
@@ -261,6 +262,52 @@ private slots:
         QCOMPARE(f.selection().size(), std::size_t(1));
         QVERIFY(f.selection()[0] != first);
         QCOMPARE(f.tools.currentTool(), QStringLiteral("select"));
+    }
+
+    // D2 : dupliquer ou coller un groupe sélectionne la seule copie du groupe, pas ses membres copiés.
+    void duplicateGroupSelectsOnlyTheCopy()
+    {
+        Fixture f(2);
+        const std::vector<core::ObjectId> members = f.ids();
+        core::PageObject group = core::Group{members};
+        group.common.layer = core::Layer::Middle;
+        f.document.execute(std::make_unique<core::AddObjectCommand>(0, std::move(group)));
+        const core::ObjectId groupId = f.page().objects.back().common.id;
+        f.tools.user().setSelection({groupId});
+        f.editing.duplicate();
+        QCOMPARE(f.objectCount(), 6);
+        QCOMPARE(f.selection().size(), std::size_t(1));
+        QVERIFY(f.selection()[0] != groupId);
+        QVERIFY(std::holds_alternative<core::Group>(core::body(f.page().objects.back())));
+        QCOMPARE(f.selection()[0], f.page().objects.back().common.id);
+    }
+
+    void pasteGroupSelectsOnlyTheCopy()
+    {
+        Fixture f(2);
+        const std::vector<core::ObjectId> members = f.ids();
+        core::PageObject group = core::Group{members};
+        group.common.layer = core::Layer::Middle;
+        f.document.execute(std::make_unique<core::AddObjectCommand>(0, std::move(group)));
+        const core::ObjectId groupId = f.page().objects.back().common.id;
+        f.tools.user().setSelection({groupId});
+        f.editing.copy();
+        f.editing.paste();
+        QCOMPARE(f.objectCount(), 6);
+        QCOMPARE(f.selection().size(), std::size_t(1));
+        QVERIFY(f.selection()[0] != groupId);
+        QVERIFY(std::holds_alternative<core::Group>(core::body(f.page().objects.back())));
+    }
+
+    void duplicateTwoSimpleObjectsSelectsBothCopies()
+    {
+        Fixture f(2);
+        const std::vector<core::ObjectId> before = f.ids();
+        f.editing.duplicate();
+        QCOMPARE(f.objectCount(), 4);
+        QCOMPARE(f.selection().size(), std::size_t(2));
+        for (const core::ObjectId id : f.selection())
+            QVERIFY(std::find(before.begin(), before.end(), id) == before.end());
     }
 
     void flagsAreToggledAndReported()
