@@ -1017,7 +1017,7 @@ private slots:
             }
             // Le document édité : sans séparateur ajouté, curseur en place, la frappe s'annule seule. La mise
             // en page du peintre, appliquée à lui, y mettrait des séparateurs et lui ôterait son annulation
-            // (render/src/pagepainter.cpp, layOutColumn : setUndoRedoEnabled(false)).
+            // (render/src/pagepainter.cpp, layOutVerticalColumn : setUndoRedoEnabled(false)).
             QCOMPARE(h.document()->toPlainText(), typed);
             QCOMPARE(h.editing.plainText(), typed);
             QVERIFY(!h.document()->toRawText().contains(QChar(QChar::LineSeparator)));

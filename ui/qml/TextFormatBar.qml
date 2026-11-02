@@ -9,7 +9,7 @@ import ActCraft.Ui
 // et sa sélection). Libellés et infobulles à nous, lus dans le registre des commandes.
 TextBarBase {
     id: bar
-    // Listes ouvertes (police, taille, couleurs, symboles) : la vue ne reçoit rien tant que l'une l'est.
+    // Ferme les listes ouvertes (police, taille, couleurs, symboles), comptées par openLists de TextBarBase.
     function closeLists() {
         fontCombo.popup.close()
         sizeCombo.popup.close()
