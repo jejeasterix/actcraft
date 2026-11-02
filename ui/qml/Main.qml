@@ -103,6 +103,36 @@ Window {
         view: pageArea.view
         liftLayer: pageArea.liftLayer
     }
+
+    // Lot 5 : édition des objets, insertion, onglets, échanges de fichiers et impression (types C++ de L5-T1).
+    ObjectEditing {
+        id: appEditing
+        objectName: "appEditing"
+        document: appDocument
+        tools: appTools
+    }
+    Insertion {
+        id: appInsertion
+        objectName: "appInsertion"
+        document: appDocument
+    }
+    DocumentTabs {
+        id: appTabs
+        objectName: "appTabs"
+        document: appDocument
+        view: pageArea.view
+    }
+    FileExchange {
+        id: appExchange
+        objectName: "appExchange"
+        document: appDocument
+        tabs: appTabs
+    }
+    PrintController {
+        id: appPrint
+        objectName: "appPrint"
+        document: appDocument
+    }
     Connections {
         target: appDocument
         function onEditAboutToApply() { pageArea.view.finishStroke() }
@@ -160,6 +190,11 @@ Window {
         return { x: x, y: y, vertical: parts.length > 2 && Number(parts[2]) === 1 }
     }
 
+    // Argument de commande donné ? (un chemin ou une adresse ; absent ou vide : ouvrir le dialogue)
+    function hasArgument(arg) {
+        return arg !== undefined && arg !== null && arg !== ""
+    }
+
     function popupOpened() {
         root.openPopups += 1
     }
@@ -189,10 +224,23 @@ Window {
         onPopupClosed: root.popupClosed()
     }
 
-    RowLayout {
+    // Lot 5 : onglets sous la ligne supérieure (sans hauteur tant qu'un seul document est ouvert).
+    DocumentTabBar {
+        id: documentTabBar
+        objectName: "documentTabBar"
+        tabs: appTabs
+        commands: appCommands
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: topBar.bottom
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
+    }
+
+    RowLayout {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: documentTabBar.bottom
         anchors.bottom: parent.bottom
         spacing: 0
 
@@ -232,6 +280,20 @@ Window {
             objectName: "shapePalette"
             tools: appTools
             commands: appCommands
+        }
+
+        // Lot 5 : modifications du stylo et panneau du connecteur, à côté de la palette d'outils.
+        PenModifierBar {
+            id: penModifierBar
+            objectName: "penModifierBar"
+            commands: appCommands
+            tools: appTools
+        }
+        ConnectorPanel {
+            id: connectorPanel
+            objectName: "connectorPanel"
+            commands: appCommands
+            tools: appTools
         }
 
         ToolPalette {
@@ -282,6 +344,37 @@ Window {
         settings: appPageSettings
         onOpened: root.popupOpened()
         onClosed: root.popupClosed()
+    }
+
+    // Lot 5 : menu d'édition d'objet, dialogues de fichiers, boîte d'impression et aperçu (talons).
+    ObjectEditMenu {
+        id: objectEditMenu
+        objectName: "objectEditMenu"
+        commands: appCommands
+        editing: appEditing
+        tools: appTools
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
+    }
+    FileExchangeActions {
+        id: fileExchangeActions
+        objectName: "fileExchangeActions"
+        exchange: appExchange
+        insertion: appInsertion
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
+    }
+    PrintSetupDialog {
+        id: printSetupDialog
+        objectName: "printSetupDialog"
+        printing: appPrint
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
+    }
+    SheetPreview {
+        id: sheetPreview
+        objectName: "sheetPreview"
+        printing: appPrint
     }
 
     // « Menu principal » (F-122) : les mêmes menus que la ligne supérieure.
@@ -493,6 +586,7 @@ Window {
         appCommands.setHandler("view.page-extension", function () {
             pageArea.pageExtensionHandle.visible = !pageArea.pageExtensionHandle.visible
         })
+        root.setLot5Handlers()
         root.syncGridCommands()
         appCommands.setChecked("view.page-extension", pageArea.pageExtensionHandle.visible)
         appCommands.setHandler("page.extend", function () { appPageSettings.extendPage() })
@@ -502,6 +596,80 @@ Window {
         root.syncEditCommands()
         if (root.generatedPage)
             appDocument.loadGeneratedFirstPage()
+    }
+
+    // Lot 5 : un gestionnaire par commande, une ligne vers sa cible chacune (corps talons jusqu'à leur tâche).
+    function setLot5Handlers() {
+        appCommands.setHandler("edit.cut", function () { appEditing.cut() })
+        appCommands.setHandler("edit.copy", function () { appEditing.copy() })
+        appCommands.setHandler("edit.paste", function () { appEditing.paste() })
+        appCommands.setHandler("edit.paste-onto", function () { appEditing.pasteOnto() })
+        appCommands.setHandler("edit.duplicate", function () { appEditing.duplicate() })
+        appCommands.setHandler("object.group", function () { appEditing.toggleGroup() })
+        for (const flag of ["lock", "hide", "drag-copy"])
+            appCommands.setHandler("object." + flag, function () { appEditing.toggleFlag(flag) })
+        for (const how of ["front", "back", "forward", "backward", "layer-top", "layer-middle", "layer-bottom"])
+            appCommands.setHandler("arrange." + how, function () { appEditing.arrange(how) })
+        for (const how of ["left", "center-x", "right", "top", "center-y", "bottom", "width", "height", "angle", "all"])
+            appCommands.setHandler("align." + how, function () { appEditing.align(how) })
+        for (const how of ["original-size", "fit-width", "fit-height", "fit-page", "mirror-x", "mirror-y", "flip-x",
+                           "flip-y", "origin-flip-x", "origin-flip-y"])
+            appCommands.setHandler("transform." + how, function () { appEditing.transform(how) })
+        appCommands.setHandler("object.menu", function () { objectEditMenu.popupAtSelection() })
+        // L5-T17 : l'argument de l'outil (style, forme) est passé par les outils eux-mêmes.
+        appCommands.setHandler("object.shape-points", function () { appTools.activate("select-points") })
+        appCommands.setHandler("tool.fill", function () { appTools.activate("fill") })
+        appCommands.setHandler("tool.connector", function () { appTools.activate("connector") })
+        appCommands.setHandler("pen.shape", function () { appTools.activate("pen-shape") })
+        appCommands.setHandler("connector.style", function () {
+            // L5-T17
+        })
+        appCommands.setHandler("view.pen-modifiers", function () { penModifierBar.visible = !penModifierBar.visible })
+        appCommands.setHandler("insert.image", function (url) {
+            if (root.hasArgument(url))
+                appInsertion.insertImage(url)
+            else
+                fileExchangeActions.chooseImage()
+        })
+        appCommands.setHandler("insert.media", function (url) {
+            if (root.hasArgument(url))
+                appInsertion.insertMedia(url)
+            else
+                fileExchangeActions.chooseMedia()
+        })
+        appCommands.setHandler("tab.next", function () { appTabs.next() })
+        appCommands.setHandler("tab.previous", function () { appTabs.previous() })
+        appCommands.setHandler("view.tabs", function (position) { appTabs.position = position })
+        appCommands.setHandler("export.page-image", function (url) {
+            if (root.hasArgument(url))
+                appExchange.exportPageImage(url)
+            else
+                fileExchangeActions.chooseExportPageImage()
+        })
+        appCommands.setHandler("export.pdf", function (url) {
+            if (root.hasArgument(url))
+                appExchange.exportPdf(url)
+            else
+                fileExchangeActions.chooseExportPdf()
+        })
+        appCommands.setHandler("file.import-pdf", function (url) {
+            if (root.hasArgument(url))
+                appExchange.importPdf(url)
+            else
+                fileExchangeActions.chooseImportPdf()
+        })
+        appCommands.setHandler("file.import-powerpoint-images", function (url) {
+            if (root.hasArgument(url))
+                appExchange.importPowerpointImages(url)
+            else
+                fileExchangeActions.chooseImportPowerpoint()
+        })
+        appCommands.setHandler("file.print", function () {
+            if (Qt.platform.os === "windows")
+                printSetupDialog.open()
+            else
+                appExchange.printThroughPdf()
+        })
     }
 
     function apiName(api) {
