@@ -169,6 +169,7 @@ void TestClipboardEdits::copiesAreUnlockedAndUnnamed()
 void TestClipboardEdits::groupReferencesRemapped()
 {
     core::Document d = blank();
+    addRect(d, {500, 500, 10, 10}); // leurre : identifiants d'origine distincts des rangs provisoires
     const auto a = addRect(d, {0, 0, 10, 10});
     const auto b = addRect(d, {20, 0, 10, 10});
     const auto g = addGroup(d, {a, b});
@@ -200,7 +201,7 @@ void TestClipboardEdits::groupReferencesRemapped()
     QCOMPARE(asGroup(objectById(d, g)).members, (std::vector<core::ObjectId>{a, b})); // original intact
 
     stack.undo(d);
-    QCOMPARE(d.page(0).objects.size(), std::size_t(3));
+    QCOMPARE(d.page(0).objects.size(), std::size_t(4)); // leurre, a, b, g
     stack.redo(d); // mêmes identifiants, références toujours justes
     QCOMPARE(raw->addedIds(), ids);
     QCOMPARE(d.nextId(), nextBefore + 3);
@@ -213,6 +214,7 @@ void TestClipboardEdits::nestedGroupsRemapped()
 {
     // g2 = {g1, c}, g1 = {a, b} : l'intérieur avant l'extérieur, et l'extérieur cite la copie de g1.
     core::Document d = blank();
+    addRect(d, {500, 500, 10, 10}); // leurre : identifiants d'origine distincts des rangs provisoires
     const auto a = addRect(d, {0, 0, 10, 10});
     const auto b = addRect(d, {20, 0, 10, 10});
     const auto c = addRect(d, {40, 0, 10, 10});
@@ -240,6 +242,7 @@ void TestClipboardEdits::connectorEndsRemapped()
     // Connecteur entre a et b, copié avec a seulement : objectA remappé vers la copie de a, objectB remis à
     // 0.
     core::Document d = blank();
+    addRect(d, {500, 500, 10, 10}); // leurre : identifiants d'origine distincts des rangs provisoires
     const auto a = addRect(d, {0, 0, 10, 10});
     const auto b = addRect(d, {100, 0, 10, 10});
     const auto c = addConnector(d, a, b);
