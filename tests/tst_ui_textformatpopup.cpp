@@ -46,10 +46,12 @@ private slots:
         QFETCH(QString, button);
         QQmlEngine engine;
         QQmlComponent component(&engine);
-        component.setData(QByteArray("import QtQuick\nimport ActCraft.Ui\nItem {\n  width: 1600; height: 400\n"
-                                     "  Commands { id: cmd }\n"
-                                     "  TextFormatBar { objectName: \"bar\"; commands: cmd; width: 1600; visible: true }\n}\n"),
-                          QUrl());
+        component.setData(
+            QByteArray(
+                "import QtQuick\nimport ActCraft.Ui\nItem {\n  width: 1600; height: 400\n"
+                "  Commands { id: cmd }\n"
+                "  TextFormatBar { objectName: \"bar\"; commands: cmd; width: 1600; visible: true }\n}\n"),
+            QUrl());
         std::unique_ptr<QObject> created(component.create());
         QVERIFY2(created, qPrintable(component.errorString()));
         auto* root = qobject_cast<QQuickItem*>(created.get());
