@@ -5,6 +5,8 @@
 #include <actcraft/render/inkitem.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documenttabs.h>
+#include <actcraft/ui/objectediting.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
@@ -1017,6 +1019,90 @@ private slots:
         }
         post(QEvent::TabletRelease, b, Qt::NoButton);
         QTRY_COMPARE_WITH_TIMEOUT(fixed->objectCount(), 1, 3000);
+    }
+
+    // L5-T2 : les 53 commandes du lot 5 (liste de L5-T1, tests/tst_actions_layout.cpp) ont un gestionnaire.
+    void everyLot5CommandHasAHandler()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>();
+        QVERIFY(commands);
+        const QStringList lot5{
+        "edit.cut",
+        "edit.copy",
+        "edit.paste",
+        "edit.paste-onto",
+        "edit.duplicate",
+        "object.menu",
+        "object.group",
+        "object.lock",
+        "object.hide",
+        "object.drag-copy",
+        "object.shape-points",
+        "arrange.front",
+        "arrange.back",
+        "arrange.forward",
+        "arrange.backward",
+        "arrange.layer-top",
+        "arrange.layer-middle",
+        "arrange.layer-bottom",
+        "align.left",
+        "align.center-x",
+        "align.right",
+        "align.top",
+        "align.center-y",
+        "align.bottom",
+        "align.width",
+        "align.height",
+        "align.angle",
+        "align.all",
+        "transform.original-size",
+        "transform.fit-width",
+        "transform.fit-height",
+        "transform.fit-page",
+        "transform.mirror-x",
+        "transform.mirror-y",
+        "transform.flip-x",
+        "transform.flip-y",
+        "transform.origin-flip-x",
+        "transform.origin-flip-y",
+        "tool.fill",
+        "tool.connector",
+        "connector.style",
+        "view.pen-modifiers",
+        "pen.shape",
+        "insert.image",
+        "insert.media",
+        "tab.next",
+        "tab.previous",
+        "view.tabs",
+        "export.page-image",
+        "export.pdf",
+        "file.import-pdf",
+        "file.import-powerpoint-images",
+        "file.print"};
+        QCOMPARE(lot5.size(), 53);
+        for (const QString& id : lot5) {
+            QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
+        }
+    }
+
+    // L5-T2 : objets du lot 5 et emplacements de la coquille, tous nommés.
+    void lot5SlotsExist()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name : {"appEditing", "appInsertion", "appTabs", "appExchange", "appPrint", "objectEditMenu",
+                                 "penModifierBar", "connectorPanel", "documentTabBar", "fileExchangeActions",
+                                 "printSetupDialog", "sheetPreview"}) {
+            const QString objectName = QString::fromLatin1(name);
+            QVERIFY2(s.window->findChild<QObject*>(objectName) != nullptr ||
+                         findItem(s.window->contentItem(), objectName),
+                     name);
+        }
+        QVERIFY(s.window->findChild<ui::ObjectEditing*>(QStringLiteral("appEditing")));
+        QVERIFY(s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs")));
     }
 
     // Aucun avertissement QML (propriété requise absente, type inconnu, liaison nulle...), au chargement
