@@ -97,7 +97,8 @@ private slots:
         }
         QTRY_VERIFY(dialog->property("visible").toBool());
         QTRY_VERIFY(r.view->inputBlocked());
-        QTRY_VERIFY(dialog->property("activeFocus").toBool()); // la touche va à la boîte, une fois qu'elle a le focus
+        // La touche va à la boîte une fois qu'elle a le focus.
+        QTRY_VERIFY(dialog->property("activeFocus").toBool());
         const QString before = r.document->fingerprintText();
         const int pages = r.document->pageCount();
 
