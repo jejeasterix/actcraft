@@ -4,6 +4,33 @@ Les versions d'ActCraft, de la plus récente à la plus ancienne. Une section pa
 chaque lot (décision 31 du cadrage `docs/specs/2026-10-14-livraison-complete-cadrage.md`) ; la section sert de notes
 à la release correspondante.
 
+## 0.5.0 — 2026-11-02
+
+Outils de la page : les formes, le texte, le navigateur de pages, le menu de page, le fond, la grille, la page
+allongée et ses zones.
+
+- Formes : une palette propose les formes (rectangle, cercle, polygones et autres préréglages), un nuancier,
+  le choix « sans remplissage » et le tracé depuis le coin ou depuis le centre. La ligne et la courbe brisées se
+  tracent au multi-clic, la forme à main levée d'un seul geste. Les points intelligents d'une forme se glissent pour
+  la modifier, en une étape d'annulation.
+- Texte : l'outil Texte ouvre un cadre d'édition et une barre de mise en forme (gras, taille, couleur et autres
+  réglages) ; un appui hors du cadre valide le texte. Le texte de haut en bas s'écrit en
+  colonne, un caractère par ligne, avec sa propre barre.
+- Accrochage à la grille : un objet déposé se pose par son coin bas gauche, un texte par sa première ligne de base.
+- Sélection : Ctrl+clic ajoute un objet à la sélection ; Maj+clic reste accepté.
+- Navigateur de pages : le panneau des navigateurs (Ctrl+B) montre les miniatures des pages, rendues sans ralentir
+  le tracé. On y sélectionne plusieurs pages (Ctrl+clic, Maj), on les déplace, les duplique, les copie, les colle,
+  les insère et les supprime.
+- Menu de page : il s'applique aux pages sélectionnées et ouvre la boîte « Fond de la page ».
+- Grille : le créateur de grille règle des niveaux, le pas, la couleur et la position au-dessus ou au-dessous de
+  l'encre ; la grille se masque et l'accrochage se coupe depuis le menu.
+- Page allongée : une poignée et une commande allongent la page d'un cadre, une étape par clic. Les zones de page
+  découpent la page en cadres, montrés par des séparations pointillées en édition et en plein écran.
+- Échap ferme une boîte ouverte comme « Annuler », sans changer d'outil.
+- Formats : le format natif garde les préréglages et paramètres des formes, le texte de haut en bas, la ligne de
+  base des textes et la hauteur d'origine de la page ; le texte de haut en bas des paperboards `.flipchart` est lu.
+- Banc de mesure : nouveaux scénarios `forme-page-annotee`, `grille-dessus`, `miniatures` et `miniatures-ferme`.
+
 ## 0.4.0 — 2026-10-20
 
 Dessiner et corriger : sélectionner, déplacer et transformer les objets, le marqueur et la gomme, annuler et
