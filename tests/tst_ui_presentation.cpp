@@ -904,6 +904,68 @@ private slots:
                          qPrintable(QStringLiteral("%1 : %2").arg(QLatin1String(entry.root), name)));
             }
         }
+
+        // Surcouches : la partie qui prend l'entrée, un trait au stylet n'y verse rien.
+        // Rideau fermé : couvre toute la page (CurtainOverlay.qml:8-10, L7-T3). Zoom de page : couvre toute
+        // la zone (PageZoomOverlay.qml:8-9, L7-T5). Spot : la partie masquée couvre, la zone éclairée laisse
+        // passer l'encre par conception (SpotlightOverlay.qml:9-12, L7-T4) : le coin de la page est masqué.
+        const struct
+        {
+            const char* command;
+            QPointF page;
+        } pageOverlays[] = {{"present.curtain", {500, 400}},
+                            {"view.page-zoom", {500, 400}},
+                            {"present.spotlight-circle", {30, 30}}};
+        for (const auto& overlay : pageOverlays) {
+            presentationharness::MainWindow main;
+            QVERIFY(main.window() != nullptr);
+            QVERIFY2(main.run(QLatin1String(overlay.command)), overlay.command);
+            QTest::qWait(50);
+            const int before = main.pageObjectCount();
+            stylusStroke(main, overlay.page, overlay.page + QPointF(80, 0));
+            QTest::qWait(50);
+            QVERIFY2(main.pageObjectCount() == before, overlay.command);
+        }
+
+        // Message défilant : la bande (containmentMask de la racine, TickerOverlay.qml:9-12, L7-T18) couvre.
+        {
+            presentationharness::MainWindow main;
+            QVERIFY(main.window() != nullptr);
+            QVERIFY(main.run(QStringLiteral("tool.ticker")));
+            QQuickItem* ticker = main.item(QStringLiteral("tickerRoot"));
+            QVERIFY(ticker != nullptr);
+            QTest::qWait(100);
+            QPointF probe;
+            for (int y = 4; y < 796 && probe.isNull(); y += 8) {
+                if (ticker->contains(ticker->mapFromScene(QPointF(640, y)))) {
+                    probe = QPointF(640, y);
+                }
+            }
+            QVERIFY2(!probe.isNull(), "bande du message introuvable");
+            const int before = main.pageObjectCount();
+            presentationharness::strokeAt(main.window(), Pointer::Stylus, probe, probe + QPointF(80, 0));
+            QTest::qWait(50);
+            QVERIFY(main.pageObjectCount() == before);
+        }
+
+        // Outils de maths : la règle ne dessine aucune encre et le stylo la traverse par conception (guide du
+        // trait, MathToolsLayer.qml:4-8, L7-T9) ; la partie qui prend l'entrée est sa zone de déplacement.
+        {
+            presentationharness::MainWindow main;
+            QVERIFY(main.window() != nullptr);
+            QVERIFY(main.run(QStringLiteral("math.ruler")));
+            QQuickItem* zone = main.item(QStringLiteral("rulerMoveZone"));
+            QVERIFY(zone != nullptr);
+            QTest::qWait(50);
+            const int before = main.pageObjectCount();
+            const QPointF centre = zone->mapToScene(QPointF(zone->width() / 2, zone->height() / 2));
+            presentationharness::strokeAt(main.window(), Pointer::Stylus, centre, centre + QPointF(40, 30));
+            QTest::qWait(50);
+            QVERIFY(main.pageObjectCount() == before);
+        }
+        // Alternatives d'écriture : FloatingPanel (même code que les cinq panneaux ci-dessus), prouvées avec
+        // leur reconnaisseur simulé par alternativesBlockTheStylus (tst_ui_recognition.cpp:751). Couche des
+        // transitions : sans entrée (aucune couverture, aucun gestionnaire dans TransitionLayer.qml).
     }
 
     // Stylet posé sur le panneau (couvert) : il ne retient pas la page, un doigt hors du panneau trace.
