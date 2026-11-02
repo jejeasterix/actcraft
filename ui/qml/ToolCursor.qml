@@ -23,6 +23,7 @@ Item {
 
     HoverHandler {
         id: pointer
+        parent: cursor.parent // Sur le parent : survolé ici, il retiendrait le survol des sœurs dessous (outils de maths, L7-T33b)
         onPointChanged: cursor.pointerAt = pointer.point.position
     }
     Connections {
