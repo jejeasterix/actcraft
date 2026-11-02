@@ -195,7 +195,6 @@ Item {
                     return root.editing.editPosition(column.positionAt(mouse.x, mouse.y))
                 }
                 onPressed: mouse => {
-                    console.warn("DIAG press mods=" + mouse.modifiers + " xy=" + mouse.x + "," + mouse.y + " pos=" + column.positionAt(mouse.x, mouse.y) + " edit=" + editAt(mouse) + " cur=" + textEdit.cursorPosition + " sel=" + textEdit.selectionStart + "-" + textEdit.selectionEnd)
                     textEdit.forceActiveFocus()
                     if (mouse.modifiers & Qt.ShiftModifier)
                         textEdit.moveCursorSelection(editAt(mouse), TextEdit.SelectCharacters)
