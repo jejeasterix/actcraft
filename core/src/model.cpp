@@ -206,7 +206,9 @@ void hashType(Fnv1a& h, const Line& line) noexcept
 
 void hashType(Fnv1a& h, const Text& textObject) noexcept
 {
-    const auto& [bounds, html, runs, vertical] = textObject; // vertical : queue du flux (fingerprint)
+    // vertical : queue du flux (fingerprint) ; firstBaseline : mesure tirée du HTML et de l'emprise, hors
+    // empreinte
+    const auto& [bounds, html, runs, vertical, firstBaseline] = textObject;
     h.rect(bounds);
     h.text(html);
     h.u64(static_cast<std::uint64_t>(runs.size()));

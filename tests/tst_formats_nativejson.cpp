@@ -388,7 +388,7 @@ private slots:
             QVERIFY(!points.empty() && pen.style != PenStyle::Solid);
         }
         {
-            const auto& [bounds, html, runs, vertical] = std::get<Text>(p1.objects[5]);
+            const auto& [bounds, html, runs, vertical, firstBaseline] = std::get<Text>(p1.objects[5]);
             QVERIFY(bounds.width != 0 && !html.empty() && runs.size() == 2);
             const auto& [text, family, size, weight, italic, underline, strikeOut, color, baseline, runBounds,
                          runKeys] = runs[0];
@@ -1076,6 +1076,71 @@ private slots:
         QVERIFY(r.ok);
         QVERIFY(r.warnings.join(u' ').contains(u"empreinte"_s));
         QCOMPARE(back.resources().size(), std::size_t{0});
+    }
+
+    // L4-C5 : `firstBaseline` est facultative, hors de l'empreinte, jamais écrite quand elle manque ; lue,
+    // elle doit tenir dans l'emprise d'un texte horizontal (une version antérieure la garde comme clé
+    // inconnue et la réécrit périmée après un changement de police).
+    static core::Document documentWithText(bool vertical, std::optional<core::PointF> baseline)
+    {
+        core::Document d;
+        core::Text text;
+        text.bounds = {10, 10, 100, 40};
+        text.html = "<p>un</p>";
+        text.vertical = vertical;
+        text.firstBaseline = baseline;
+        core::PageObject object{text};
+        object.common.id = 1;
+        d.page(0).objects.push_back(object);
+        d.refreshNextId();
+        return d;
+    }
+    static std::optional<core::PointF> readBaseline(const QJsonObject& root, QStringList* warnings = nullptr)
+    {
+        core::Document back;
+        const auto r = formats::documentFromJson(root, loaderFrom(core::Document{}), back);
+        if (warnings) {
+            *warnings = r.warnings;
+        }
+        const auto* text = r.ok ? std::get_if<core::Text>(&back.page(0).objects[0]) : nullptr;
+        return text ? text->firstBaseline : std::nullopt;
+    }
+    void firstBaselineIsWrittenAndReadBack()
+    {
+        const QJsonObject root = formats::documentToJson(documentWithText(false, core::PointF{12, 30}));
+        QVERIFY(object(root, 0, 0).contains(u"firstBaseline"_s));
+        const auto back = readBaseline(root);
+        QVERIFY(back.has_value());
+        QCOMPARE(back->y, 30.0);
+    }
+    void firstBaselineIsNotWrittenWhenEmpty()
+    {
+        const QJsonObject root = formats::documentToJson(documentWithText(false, std::nullopt));
+        QVERIFY(!object(root, 0, 0).contains(u"firstBaseline"_s));
+        QStringList warnings;
+        QVERIFY(!readBaseline(root, &warnings).has_value()); // clé absente : aucune, sans avertissement
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join(u'\n')));
+    }
+    void firstBaselineMalformedIsIgnoredWithAWarning()
+    {
+        const QJsonObject root = formats::documentToJson(documentWithText(false, core::PointF{12, 30}));
+        QJsonObject o = object(root, 0, 0);
+        o.insert(u"firstBaseline"_s, u"abc"_s);
+        QStringList warnings;
+        QVERIFY(!readBaseline(withObject(root, 0, 0, o), &warnings).has_value());
+        QCOMPARE(warnings.size(), 1);
+    }
+    void firstBaselineOutsideTheBoundsIsDropped()
+    {
+        const QJsonObject root = formats::documentToJson(documentWithText(false, core::PointF{12, 30}));
+        QJsonObject o = object(root, 0, 0);
+        o.insert(u"firstBaseline"_s, QJsonArray{12, 90}); // sous l'emprise (10..50)
+        QVERIFY(!readBaseline(withObject(root, 0, 0, o)).has_value());
+    }
+    void firstBaselineOfAVerticalTextIsDropped()
+    {
+        const QJsonObject root = formats::documentToJson(documentWithText(true, core::PointF{12, 30}));
+        QVERIFY(!readBaseline(root).has_value());
     }
 
     void malformedValuesFallBackWithWarnings()

@@ -1,5 +1,6 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
+#include <actcraft/core/gridsnap.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/pagecache.h>
 #include <actcraft/render/pagepainter.h>
@@ -549,6 +550,100 @@ private slots:
         QCOMPARE(text->bounds.y, 200.0);
         QVERIFY(text->bounds.width > 0);
         QVERIFY(text->bounds.height > 0);
+    }
+
+    // L4-C5 (D6, H4-6) : un texte de deux lignes créé dans ActCraft s'ancre à la ligne de base de sa première
+    // ligne, mesurée à la validation sur le document du peintre, pas au bas de son cadre. Il ne prend aucune
+    // ligne lue : « runs » fait foi pour le dessin, une ligne fabriquée y remplacerait le HTML.
+    void createdTextAnchorsOnItsFirstBaseline()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({200, 200}, false));
+        h.replaceAllText(QStringLiteral("Bonjour\nAu revoir"));
+        h.editing.commit();
+        QCOMPARE(h.controller.shownObjectCount(), 1);
+        const core::PageObject& object = h.controller.document().page(0).objects[0];
+        const auto* text = std::get_if<core::Text>(&core::body(object));
+        QVERIFY(text);
+        QVERIFY(text->runs.empty());
+        // Mesure témoin, comme le peintre : marge 0, largeur de l'emprise, première ligne du premier bloc.
+        QTextDocument painted;
+        painted.setDocumentMargin(0);
+        painted.setHtml(QString::fromStdString(text->html));
+        painted.setTextWidth(text->bounds.width);
+        QVERIFY(painted.size().height() > 0);
+        const QTextLayout* layout = painted.firstBlock().layout();
+        QVERIFY(layout && layout->lineCount() > 0);
+        const QTextLine first = layout->lineAt(0);
+        const double expected = text->bounds.y + layout->position().y() + first.y() + first.ascent();
+        const core::PointF anchor = core::snapAnchor(object);
+        QCOMPARE(anchor.x, text->bounds.x);
+        QVERIFY2(std::abs(anchor.y - expected) < 1.0,
+                 qPrintable(QStringLiteral("ancrage %1, première ligne %2, bas du cadre %3")
+                                .arg(anchor.y)
+                                .arg(expected)
+                                .arg(text->bounds.y + text->bounds.height)));
+        QVERIFY(anchor.y < text->bounds.y + text->bounds.height / 2);
+    }
+
+    // L4-C5 (H4-6) : la ligne de base mesurée survit à l'enregistrement et à la réouverture (format natif).
+    void firstBaselineSurvivesSaveAndReopen()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString path = dir.filePath(QStringLiteral("ligne-de-base.actcraft"));
+        Harness h;
+        QVERIFY(h.editing.beginAt({200, 200}, false));
+        h.replaceAllText(QStringLiteral("Bonjour\nAu revoir"));
+        h.editing.commit();
+        const core::PageObject& object = h.controller.document().page(0).objects[0];
+        const auto* text = std::get_if<core::Text>(&core::body(object));
+        QVERIFY(text);
+        const core::PointF anchor = core::snapAnchor(object);
+        QVERIFY(anchor.y < text->bounds.y + text->bounds.height / 2);
+        QVERIFY(saveAndWait(h.controller, path));
+        ui::DocumentController reread;
+        QVERIFY(openAndWait(reread, path));
+        QCOMPARE(reread.shownObjectCount(), 1);
+        const core::PointF again = core::snapAnchor(reread.document().page(0).objects[0]);
+        QCOMPARE(again.x, anchor.x);
+        QCOMPARE(again.y, anchor.y);
+    }
+
+    // L4-C5 : une colonne n'a pas de première ligne horizontale ; l'ancrage reste l'emprise.
+    void verticalCommitHasNoFirstBaseline()
+    {
+        Harness h;
+        QVERIFY(h.editing.beginAt({200, 200}, true));
+        h.replaceAllText(QStringLiteral("ABC"));
+        h.editing.commit();
+        const auto* text = std::get_if<core::Text>(&core::body(h.controller.document().page(0).objects[0]));
+        QVERIFY(text);
+        QVERIFY(text->vertical);
+        QVERIFY(!text->firstBaseline.has_value());
+    }
+
+    // L4-C5 : un texte enregistré avant la mesure (ni « runs » ni « firstBaseline ») reçoit sa ligne de base
+    // à l'ouverture, sans étape d'annulation ni document modifié.
+    void openingMeasuresTheFirstBaselineOfAnOldText()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString path = dir.filePath(QStringLiteral("ancien.actcraft"));
+        {
+            Harness h;
+            h.addText(QStringLiteral("un"), {200, 200, 120, 80});
+            QVERIFY(saveAndWait(h.controller, path));
+        }
+        ui::DocumentController reread;
+        QVERIFY(openAndWait(reread, path));
+        const auto& object = reread.document().page(0).objects[0];
+        const auto* text = std::get_if<core::Text>(&core::body(object));
+        QVERIFY(text);
+        QVERIFY(text->firstBaseline.has_value());
+        QVERIFY(core::snapAnchor(object).y < 200 + 40); // première ligne, pas le bas du cadre (280)
+        QVERIFY(!reread.isModified());
+        QVERIFY(!reread.canUndo());
     }
 
     // D7 : texte neuf laissé vide oublié sans étape ; texte existant vidé supprimé en une étape.

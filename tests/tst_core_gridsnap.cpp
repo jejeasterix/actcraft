@@ -1,4 +1,5 @@
 #include <actcraft/core/gridsnap.h>
+#include <actcraft/core/shapegeometry.h>
 
 #include <QtTest>
 
@@ -136,6 +137,36 @@ private slots:
         QCOMPARE(d.y, 8.0);
         page.grid.snapEnabled = false;
         QCOMPARE(snapDelta(page, {7}, {30, 0}).x, 30.0);
+    }
+    // L4-C5 (D6) : une forme du lot 4 (Polygon reconstruit depuis son préréglage) s'ancre au coin bas gauche
+    // de sa boîte, sans la demi-épaisseur du contour. Sous l'ancien patron (Polygon traité comme un chemin,
+    // repli sur boundsOnPage), l'ancrage tombait en (10, 44) : le coin restait à 2 px du croisement.
+    void presetPolygonAnchorsOnItsBoxNotItsOutline()
+    {
+        Page page;
+        page.grid = grid(50);
+        PageObject o = makeShapeObject("rectangle", {0, 0, 40, 30}, ShapeStyle{});
+        auto& shape = std::get<Shape>(body(o));
+        QVERIFY(shape.kind == ShapeKind::Polygon);
+        shape.outlineWidth = 4;
+        o.common.id = 7;
+        o.common.transform = translation(12, 12); // coin bas gauche de la boîte en (12, 42)
+        page.objects.push_back(o);
+        const PointF a = snapAnchor(o);
+        QCOMPARE(a.x, 12.0);
+        QCOMPARE(a.y, 42.0);
+        const PointF d = snapDelta(page, {7}, {30, 0}); // ancrage visé (42, 42) → (50, 50)
+        QCOMPARE(d.x, 38.0);
+        QCOMPARE(d.y, 8.0);
+    }
+    // L4-C5 (D6) : une étoile s'ancre au coin bas gauche de sa boîte, pas à son sommet le plus bas.
+    void presetStarAnchorsOnItsBoxCorner()
+    {
+        const PageObject o = makeShapeObject("star", {20, 10, 100, 80}, ShapeStyle{});
+        QVERIFY(std::get<Shape>(body(o)).preset == "star");
+        const PointF a = snapAnchor(o);
+        QCOMPARE(a.x, 20.0);
+        QCOMPARE(a.y, 90.0);
     }
     void textUsesItsBaseline()
     {

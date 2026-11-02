@@ -73,6 +73,29 @@ private slots:
         QCOMPARE(textBaseline(t)->y, 22.0);
     }
     void noRunsNoBaseline() { QVERIFY(!textBaseline(Text{}).has_value()); }
+    // L4-C5 : la ligne de base mesurée ne vaut que pour un texte horizontal, dans son emprise.
+    void measuredBaselineIsUsedInsideTheBounds()
+    {
+        Text t;
+        t.bounds = {10, 10, 100, 40};
+        t.firstBaseline = PointF{12, 30};
+        QCOMPARE(textBaseline(t)->y, 30.0);
+    }
+    void measuredBaselineOutsideTheBoundsIsIgnored()
+    {
+        Text t;
+        t.bounds = {10, 10, 100, 40};
+        t.firstBaseline = PointF{12, 90}; // périmée : le texte a rétréci depuis
+        QVERIFY(!textBaseline(t).has_value());
+    }
+    void measuredBaselineOfAVerticalTextIsIgnored()
+    {
+        Text t;
+        t.bounds = {10, 10, 100, 40};
+        t.vertical = true;
+        t.firstBaseline = PointF{12, 30};
+        QVERIFY(!textBaseline(t).has_value());
+    }
 };
 
 QTEST_GUILESS_MAIN(TstCoreTextedits)

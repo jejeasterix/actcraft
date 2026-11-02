@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -309,6 +310,10 @@ struct Text
     std::string html;
     std::vector<TextSpan> runs;
     bool vertical = false; // texte de haut en bas (F-301) : colonne d'un caractère
+    // Origine de la ligne de base de la première ligne, coordonnées de l'objet, mesurée à la validation sur
+    // le document du peintre (H4-6, L4-C5). Absente (texte lu, colonne, texte du banc) : l'accrochage prend
+    // la première ligne lue, sinon l'emprise.
+    std::optional<PointF> firstBaseline;
 };
 
 // Son ou vidéo (N2-9 : ouvert par l'application du système) ; dessiné par son image d'espace réservé.

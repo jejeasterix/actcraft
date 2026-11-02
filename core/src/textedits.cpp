@@ -54,8 +54,13 @@ void SetTextCommand::undo(Document& document, Changes& changes)
 
 std::optional<PointF> textBaseline(const Text& text) noexcept
 {
-    if (text.runs.empty())
-        return std::nullopt;
+    if (text.runs.empty()) {
+        // Texte créé dans ActCraft : première ligne mesurée à la validation (H4-6). Une mesure portée par une
+        // colonne, ou hors de l'emprise (clé gardée par une version antérieure et périmée), ne vaut rien.
+        if (text.vertical || !text.firstBaseline || !text.bounds.contains(*text.firstBaseline))
+            return std::nullopt;
+        return text.firstBaseline;
+    }
     return text.runs.front().baseline;
 }
 
