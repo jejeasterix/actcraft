@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-b-etat.md": {
-    "mtime": 1793116351.4023957,
-    "ast_hash": "fc3134285a03fe595b02a9c923aed6b2",
+    "mtime": 1793613440.1987884,
+    "ast_hash": "79f1039586b45ba875db88b2f0008a04",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-18-lot7-principes.md": {
@@ -2395,8 +2395,8 @@
     "semantic_hash": ""
   },
   "features/include/actcraft/features/camera.h": {
-    "mtime": 1792397405.1786516,
-    "ast_hash": "919b8fdcb10867bb365228e23999ebb7",
+    "mtime": 1793615879.1006634,
+    "ast_hash": "e4b025d9f0e1a71815eb695abdf4770b",
     "semantic_hash": ""
   },
   "features/include/actcraft/features/desktopwheel.h": {
@@ -2500,8 +2500,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_camera.cpp": {
-    "mtime": 1792406200.496034,
-    "ast_hash": "63941ab5dce1e4b877fc5af8b02cb914",
+    "mtime": 1793615879.103789,
+    "ast_hash": "0497c59d44aa1a43a1476815b1892ec1",
     "semantic_hash": ""
   },
   "tests/tst_ui_clock.cpp": {
@@ -2782,6 +2782,31 @@
   "ui/src/keyboardcontroller.h": {
     "mtime": 1793126612.8925169,
     "ast_hash": "1486622e10cd47087e4450757a80d00b",
+    "semantic_hash": ""
+  },
+  "features/src/camera_other.cpp": {
+    "mtime": 1793615879.1017199,
+    "ast_hash": "2e5a5c0b50ea7445c6f1a6e6823ac9ef",
+    "semantic_hash": ""
+  },
+  "features/src/camera_win.cpp": {
+    "mtime": 1793615879.1022494,
+    "ast_hash": "5a8471009fba0d9bce085bc1f720e933",
+    "semantic_hash": ""
+  },
+  "ui/src/cameracontroller.cpp": {
+    "mtime": 1793615879.1062942,
+    "ast_hash": "6670a0c3d9252d958e3d07a608ffee67",
+    "semantic_hash": ""
+  },
+  "ui/src/cameracontroller.h": {
+    "mtime": 1793615879.1062942,
+    "ast_hash": "2693f17027f2a785363a157a0d91fbe3",
+    "semantic_hash": ""
+  },
+  "docs/sessions/2026-10-27-handoff-livraison-complete-b.md": {
+    "mtime": 1793137587.0178432,
+    "ast_hash": "43b03cc4521d00f4dd9e988c1c3fa86e",
     "semantic_hash": ""
   }
 }
