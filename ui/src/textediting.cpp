@@ -689,7 +689,7 @@ std::optional<core::PointF> firstLineBaseline(const QString& safeHtml, const cor
 // de base à l'ouverture. Hors de l'empreinte : ni étape d'annulation, ni document modifié.
 void measureFirstBaselines(core::Document& document)
 {
-    if (qGuiApp == nullptr) {
+    if (qobject_cast<QGuiApplication*>(QCoreApplication::instance()) == nullptr) {
         return; // sans application graphique (outils en ligne de commande), pas de polices à mesurer
     }
     for (std::size_t i = 0; i < document.pageCount(); ++i) {
