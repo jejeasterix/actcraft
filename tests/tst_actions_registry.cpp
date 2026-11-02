@@ -194,7 +194,7 @@ private slots:
                                    QStringLiteral("help.about")};
         // Les 23 commandes du lot 1 ouvrent le fichier, dans cet ordre ; les lots 3 et 7 (L0-S4) suivent.
         QCOMPARE(r.ids().mid(0, expected.size()), expected);
-        QCOMPARE(r.ids().size(), expected.size() + 62);
+        QCOMPARE(r.ids().size(), expected.size() + 65);
         QCOMPARE(r.find(QStringLiteral("view.fullscreen"))->shortcut, QStringLiteral("F5"));
         QVERIFY(r.find(QStringLiteral("view.fullscreen"))->checkable);
         QVERIFY(r.find(QStringLiteral("pen.width"))->argument == ArgumentKind::Number);

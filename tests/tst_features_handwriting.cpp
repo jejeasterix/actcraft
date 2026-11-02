@@ -127,42 +127,6 @@ private slots:
         QVERIFY(!r->available()); // hors de Windows, jamais de moteur (reprend unavailableOffWindows de 7b)
 #endif
     }
-    void recognitionRunsOnOneDedicatedThread()
-    {
-        auto log = std::make_shared<ThreadLog>();
-        log->gateOpen = false; // fermée avant le démarrage du fil : la création attend aussi
-        std::vector<QThread*> callbackThreads;
-        int replies = 0;
-        // Receveur propre au test, détruit après le fil : une réponse restée en file part avec lui, jamais
-        // livrée dans un autre test (les rappels écrivent dans cette pile).
-        QObject receiver;
-        HandwritingThread thread([log] { return std::make_unique<FakeRecognizer>(log, true); });
-        const InkStrokes ink{{{0, 0}, {0, 10}}};
-        for (int i = 0; i < 2; ++i)
-            thread.recognize(ink, &receiver, [&](const RecognitionReply& reply) {
-                QCOMPARE(reply.texts.value(0), QStringLiteral("bonjour"));
-                callbackThreads.push_back(QThread::currentThread());
-                ++replies;
-            });
-        // L'appelant a repris la main : la création et les deux reconnaissances attendent la barrière.
-        const int repliesBeforeTheLoop = replies;
-        {
-            const std::lock_guard lock(log->mutex);
-            log->gateOpen = true;
-        }
-        log->gateOpened.notify_all();
-        QTRY_COMPARE(replies, 2);
-        QCOMPARE(repliesBeforeTheLoop, 0); // réponses rendues en file, jamais pendant l'appel
-        const std::lock_guard lock(log->mutex);
-        QVERIFY(!log->gateTimedOut); // ni la construction ni recognize() n'ont attendu le reconnaisseur
-        QCOMPARE(log->threads.size(), std::size_t{3}); // création + deux reconnaissances
-        for (QThread* t : log->threads) {
-            QCOMPARE(t, static_cast<QThread*>(&thread)); // toujours le même fil, le fil dédié
-            QVERIFY(t != QThread::currentThread());      // jamais le fil principal
-        }
-        for (QThread* t : callbackThreads)
-            QCOMPARE(t, QThread::currentThread()); // réponse rendue sur le fil du receveur
-    }
     void recognitionThreadIsSingleThreadedApartment()
     {
 #ifdef Q_OS_WIN

@@ -114,6 +114,31 @@ FloatingPanel {
             textFormat: Text.PlainText
             color: Theme.texte
             font.pixelSize: Theme.taillePoliceTitre
+
+            // Le résultat se glisse hors du panneau : lâché sur la page, le calcul s'y écrit à cet endroit
+            // (une étape d'annulation). Lâché dans le panneau, rien ne s'écrit.
+            DragHandler {
+                id: resultDrag
+                objectName: "calculatorResultDrag"
+                target: null
+                property point dropScene: Qt.point(0, 0)
+                onCentroidChanged: {
+                    if (active) {
+                        dropScene = centroid.scenePosition
+                    }
+                }
+                onActiveChanged: {
+                    if (active || !root.pageArea || !root.pageArea.view) {
+                        return
+                    }
+                    const local = root.mapFromItem(null, dropScene.x, dropScene.y)
+                    if (root.contains(local)) {
+                        return
+                    }
+                    const page = root.pageArea.view.sceneToPage(dropScene)
+                    calculatorController.placeAt(page.x, page.y)
+                }
+            }
         }
 
         Grid {

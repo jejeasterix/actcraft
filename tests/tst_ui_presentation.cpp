@@ -1,22 +1,29 @@
+#include "desktopcontroller.h"
+#include "presentationcommands.h"
 #include "presentationdocument.h"
 #include "support/lot7registry.h"
 #include "support/presentationharness.h"
 
+#include <actcraft/actions/commandregistry.h>
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/formats/nativejson.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 
 #include <QBuffer>
 #include <QColor>
 #include <QImage>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QSettings>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QtTest>
 
 #include <algorithm>
@@ -26,6 +33,7 @@
 
 namespace {
 
+using actcraft::ui::Commands;
 using actcraft::ui::DocumentController;
 using actcraft::ui::DocumentInsertions;
 using presentationharness::Pointer;
@@ -87,6 +95,56 @@ bool jsonHasResource(const core::Document& document, const std::string& key)
         return entry.toObject().value(u"key").toString() == QString::fromStdString(key);
     });
 }
+
+Commands* commandsOf(const presentationharness::MainWindow& main)
+{
+    return main.window() ? main.window()->findChild<Commands*>(QStringLiteral("commands")) : nullptr;
+}
+
+// Identifiants (clé « id ») d'une liste de menus ou de palette, sous-menus compris.
+void collectIds(const QVariant& node, QStringList& ids)
+{
+    if (node.metaType().id() == QMetaType::QVariantList) {
+        for (const QVariant& child : node.toList()) {
+            collectIds(child, ids);
+        }
+    } else if (node.metaType().id() == QMetaType::QVariantMap) {
+        const QVariantMap map = node.toMap();
+        if (map.contains(QStringLiteral("id"))) {
+            ids << map.value(QStringLiteral("id")).toString();
+        }
+        for (const QVariant& child : map) {
+            collectIds(child, ids);
+        }
+    }
+}
+
+// Les identifiants du bloc du lot 7 de commands.json : de « view.page-zoom » (première commande du lot) à la
+// fin.
+QStringList lot7CommandIds()
+{
+    QStringList ids;
+    bool inBlock = false;
+    const QJsonArray all = QJsonDocument::fromJson(actcraft::actions::defaultCommandsJson())
+                               .object()
+                               .value(u"commands")
+                               .toArray();
+    for (const QJsonValue& entry : all) {
+        const QString id = entry.toObject().value(u"id").toString();
+        inBlock = inBlock || id == QStringLiteral("view.page-zoom");
+        if (inBlock) {
+            ids << id;
+        }
+    }
+    return ids;
+}
+
+// Panneau flottant du lot qui prend l'entrée : commande qui l'ouvre, racine.
+struct PanelRoot
+{
+    const char* command;
+    const char* root;
+};
 
 // Trait au stylet injecté sous la page (coordonnées de page) ; le trait versé est le dernier objet de la page
 // (couche supérieure).
@@ -679,6 +737,235 @@ private slots:
         QVERIFY(!panel->isVisible());
         presentationharness::strokeAt(main.window(), pointer, from, to);
         QTRY_COMPARE(main.pageObjectCount(), before + 1);
+    }
+
+    // --- L7-T32 : contrôle du lot ---
+
+    // Chaque commande du bloc du lot 7 de commands.json (lu, non recopié) a un gestionnaire ; les trois
+    // commandes de l'annotation du bureau en font partie.
+    void everyLot7CommandHasAHandler()
+    {
+        presentationharness::MainWindow main;
+        Commands* commands = commandsOf(main);
+        QVERIFY(commands != nullptr);
+        const QStringList ids = lot7CommandIds();
+        QVERIFY2(ids.size() >= 46, qPrintable(QString::number(ids.size())));
+        for (const char* named : {"desktop.page-next", "desktop.page-previous", "desktop.pass-through"}) {
+            QVERIFY2(ids.contains(QLatin1String(named)), named);
+        }
+        for (const QString& id : ids) {
+            if (id == QLatin1String("recognition.convert-to-text")) {
+                continue; // gestionnaire branché par L7-T34 (menu contextuel) ; hors de ce contrôle
+            }
+            QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
+        }
+    }
+
+    // Sous Android, ni les menus ni la palette ne portent une commande de bureau ou d'écriture.
+    void androidMenusHaveNoDesktopCommand()
+    {
+        QTemporaryDir profile;
+        Commands commands;
+        commands.setProfileDir(profile.path());
+        commands.setPlatform(actcraft::actions::Platform::Windows);
+        QStringList onWindows;
+        collectIds(commands.menus(), onWindows);
+        QVERIFY(onWindows.contains(QStringLiteral("desktop.annotate"))); // le témoin voit ce qu'il doit voir
+        commands.setPlatform(actcraft::actions::Platform::Android);
+        QStringList ids;
+        collectIds(commands.menus(), ids);
+        collectIds(commands.palette(), ids);
+        QVERIFY(!ids.isEmpty());
+        for (const QString& id : std::as_const(ids)) {
+            for (const char* forbidden : {"tool.camera-", "tool.keyboard", "desktop.", "tool.handwriting",
+                                          "recognition.convert-to-text", "page.background-desktop"}) {
+                QVERIFY2(!id.startsWith(QLatin1String(forbidden)), qPrintable(id));
+            }
+        }
+    }
+
+    // Le refus d'un schéma par le navigateur web (message de PresentationCommands) se lit dans le bandeau ;
+    // une adresse valide le retire.
+    void webBrowserRefusalShowsInTheBanner()
+    {
+        presentationharness::MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        auto* pc = main.window()->findChild<actcraft::ui::PresentationCommands*>(
+            QStringLiteral("presentationCommands"));
+        QVERIFY(pc != nullptr);
+        pc->setUrlOpener([](const QUrl&) { return true; });
+        QQuickItem* banner = main.item(QStringLiteral("messageBanner"));
+        QVERIFY(banner != nullptr);
+        QQuickItem* text = presentationharness::findItem(banner, QStringLiteral("messageText"));
+        QVERIFY(text != nullptr);
+        QVERIFY(!banner->isVisible());
+        QSettings().setValue(QStringLiteral("tools/webHome"),
+                             QStringLiteral("file:///C:/Windows/notepad.exe"));
+        QVERIFY(!pc->openWebHome());
+        QVERIFY(!pc->message().isEmpty());
+        QTRY_VERIFY(banner->isVisible());
+        QCOMPARE(text->property("text").toString(), pc->message());
+        QSettings().setValue(QStringLiteral("tools/webHome"), QStringLiteral("https://exemple.test/"));
+        QVERIFY(pc->openWebHome());
+        QTRY_VERIFY(!banner->isVisible());
+    }
+
+    // Les boutons de l'annotation du bureau passent par leurs commandes nommées (témoin :
+    // Commands::triggered).
+    void desktopButtonsTriggerTheirCommands()
+    {
+        presentationharness::MainWindow main;
+        Commands* commands = commandsOf(main);
+        QVERIFY(commands != nullptr);
+        auto* desktop =
+            main.window()->findChild<actcraft::ui::DesktopController*>(QStringLiteral("desktopController"));
+        QVERIFY(desktop != nullptr);
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QTRY_VERIFY(desktop->window() != nullptr);
+        QQuickWindow* window = desktop->window();
+        QVERIFY(QTest::qWaitForWindowExposed(window));
+        QSignalSpy triggered(commands, &Commands::triggered);
+        const std::pair<const char*, const char*> buttons[] = {
+            {"desktopNextPageButton", "desktop.page-next"},
+            {"desktopPageBackButton", "desktop.page-previous"},
+            {"desktopPassThroughButton", "desktop.pass-through"}};
+        for (const auto& [button, command] : buttons) {
+            triggered.clear();
+            QObject* item = window->findChild<QObject*>(QString::fromLatin1(button));
+            QVERIFY2(item != nullptr, button);
+            QVERIFY(QMetaObject::invokeMethod(item, "click"));
+            QVERIFY2(triggered.count() >= 1 &&
+                         triggered.constFirst().constFirst().toString() == QLatin1String(command),
+                     button);
+        }
+        QVERIFY(desktop->passThrough()); // le dernier bouton a basculé le passage des clics
+        desktop->setPassThrough(false);
+    }
+
+    // Chaque panneau du lot qui prend l'entrée est une couverture déclarée une fois ouvert : un trait au
+    // stylet sous son corps ne verse rien, et le clic de souris sur chacun de ses boutons de palette ou de
+    // modèle ne laisse aucun point sur la page.
+    void everyInputPanelIsACover()
+    {
+        const PanelRoot panels[] = {{"tool.dice", "diceRoot"},
+                                    {"tool.calculator", "calculatorRoot"},
+                                    {"tool.clock", "clockRoot"},
+                                    {"insert.equation", "equationRoot"},
+                                    {"view.page-effects", "effectsRoot"}};
+        for (const PanelRoot& entry : panels) {
+            presentationharness::MainWindow main;
+            QVERIFY(main.window() != nullptr);
+            QVERIFY2(main.run(QLatin1String(entry.command)), entry.command);
+            QQuickItem* panel = main.item(QLatin1String(entry.root));
+            QVERIFY2(panel != nullptr && panel->isVisible(), entry.root);
+            QQuickItem* layer = main.item(QStringLiteral("presentationLayer"));
+            // Tout le panneau dans la fenêtre : le coin haut gauche en (300, 10) de la couche.
+            panel->setPosition(QPointF(300, 10));
+            QVERIFY2(layer->height() >= panel->y() + panel->height(), entry.root);
+            QTest::qWait(50);
+            const int before = main.pageObjectCount();
+            const QPointF body = panel->mapToScene(QPointF(30, panel->height() - 20));
+            presentationharness::strokeAt(main.window(), Pointer::Stylus, body, body + QPointF(60, 0));
+            QTest::qWait(50);
+            QVERIFY2(main.pageObjectCount() == before, entry.root);
+
+            // Les boutons, par leur nom (relus à chaque clic : un clic peut reconstruire la liste).
+            QStringList names;
+            const QList<QQuickItem*> items = panel->findChildren<QQuickItem*>();
+            for (QQuickItem* item : items) {
+                if (item->inherits("QQuickAbstractButton") && !item->objectName().isEmpty()) {
+                    names << item->objectName();
+                }
+            }
+            QVERIFY2(!names.isEmpty(), entry.root);
+            for (const QString& name : std::as_const(names)) {
+                if (name == QLatin1String("floatingPanelClose") || name.endsWith(QLatin1String("OkButton")) ||
+                    name == QLatin1String("calculatorPlaceButton")) {
+                    continue; // fermer ou poser sur la page : le but de ces boutons
+                }
+                QQuickItem* button = presentationharness::findItem(panel, name);
+                if (!button || !button->isVisible() || !button->isEnabled()) {
+                    continue;
+                }
+                const QPointF centre = button->mapToScene(QPointF(button->width() / 2, button->height() / 2));
+                // Le bouton est dans les bornes du panneau (la vue teste la couverture sur ces bornes) ; un
+                // bouton qui en déborde laisse passer l'appui vers la page.
+                QVERIFY2(panel->contains(panel->mapFromScene(centre)),
+                         qPrintable(
+                             QStringLiteral("%1 : %2 hors du panneau").arg(QLatin1String(entry.root), name)));
+                // Avec un léger tremblement de main, comme un vrai clic.
+                QTest::mouseMove(main.window(), centre.toPoint());
+                QTest::mousePress(main.window(), Qt::LeftButton, Qt::NoModifier, centre.toPoint());
+                QTest::mouseMove(main.window(), (centre + QPointF(2, 1)).toPoint());
+                QTest::mouseRelease(main.window(), Qt::LeftButton, Qt::NoModifier,
+                                    (centre + QPointF(2, 1)).toPoint());
+                QTest::qWait(30);
+                QVERIFY2(main.pageObjectCount() == before,
+                         qPrintable(QStringLiteral("%1 : %2").arg(QLatin1String(entry.root), name)));
+            }
+        }
+
+        // Surcouches : la partie qui prend l'entrée, un trait au stylet n'y verse rien.
+        // Rideau fermé : couvre toute la page (CurtainOverlay.qml:8-10, L7-T3). Zoom de page : couvre toute
+        // la zone (PageZoomOverlay.qml:8-9, L7-T5). Spot : la partie masquée couvre, la zone éclairée laisse
+        // passer l'encre par conception (SpotlightOverlay.qml:9-12, L7-T4) : le coin de la page est masqué.
+        const struct
+        {
+            const char* command;
+            QPointF page;
+        } pageOverlays[] = {{"present.curtain", {500, 400}},
+                            {"view.page-zoom", {500, 400}},
+                            {"present.spotlight-circle", {30, 30}}};
+        for (const auto& overlay : pageOverlays) {
+            presentationharness::MainWindow main;
+            QVERIFY(main.window() != nullptr);
+            QVERIFY2(main.run(QLatin1String(overlay.command)), overlay.command);
+            QTest::qWait(50);
+            const int before = main.pageObjectCount();
+            stylusStroke(main, overlay.page, overlay.page + QPointF(80, 0));
+            QTest::qWait(50);
+            QVERIFY2(main.pageObjectCount() == before, overlay.command);
+        }
+
+        // Message défilant : la bande (containmentMask de la racine, TickerOverlay.qml:9-12, L7-T18) couvre.
+        {
+            presentationharness::MainWindow main;
+            QVERIFY(main.window() != nullptr);
+            QVERIFY(main.run(QStringLiteral("tool.ticker")));
+            QQuickItem* ticker = main.item(QStringLiteral("tickerRoot"));
+            QVERIFY(ticker != nullptr);
+            QTest::qWait(100);
+            QPointF probe;
+            for (int y = 4; y < 796 && probe.isNull(); y += 8) {
+                if (ticker->contains(ticker->mapFromScene(QPointF(640, y)))) {
+                    probe = QPointF(640, y);
+                }
+            }
+            QVERIFY2(!probe.isNull(), "bande du message introuvable");
+            const int before = main.pageObjectCount();
+            presentationharness::strokeAt(main.window(), Pointer::Stylus, probe, probe + QPointF(80, 0));
+            QTest::qWait(50);
+            QVERIFY(main.pageObjectCount() == before);
+        }
+
+        // Outils de maths : la règle ne dessine aucune encre et le stylo la traverse par conception (guide du
+        // trait, MathToolsLayer.qml:4-8, L7-T9) ; la partie qui prend l'entrée est sa zone de déplacement.
+        {
+            presentationharness::MainWindow main;
+            QVERIFY(main.window() != nullptr);
+            QVERIFY(main.run(QStringLiteral("math.ruler")));
+            QQuickItem* zone = main.item(QStringLiteral("rulerMoveZone"));
+            QVERIFY(zone != nullptr);
+            QTest::qWait(50);
+            const int before = main.pageObjectCount();
+            const QPointF centre = zone->mapToScene(QPointF(zone->width() / 2, zone->height() / 2));
+            presentationharness::strokeAt(main.window(), Pointer::Stylus, centre, centre + QPointF(40, 30));
+            QTest::qWait(50);
+            QVERIFY(main.pageObjectCount() == before);
+        }
+        // Alternatives d'écriture : FloatingPanel (même code que les cinq panneaux ci-dessus), prouvées avec
+        // leur reconnaisseur simulé par alternativesBlockTheStylus (tst_ui_recognition.cpp:751). Couche des
+        // transitions : sans entrée (aucune couverture, aucun gestionnaire dans TransitionLayer.qml).
     }
 
     // Stylet posé sur le panneau (couvert) : il ne retient pas la page, un doigt hors du panneau trace.

@@ -19,7 +19,7 @@ namespace actcraft::ui {
 // vaut 0 ActCraft (défaut), 1 calculatrice du système, 2 programme choisi ; les deux derniers n'existent que
 // sous Windows, ailleurs `open()` retombe sur ActCraft. Le programme est lancé par un lanceur injectable (les
 // tests n'en lancent jamais). `placeOnPage` écrit `pageText()` sur la page affichée par DocumentInsertions,
-// en une étape d'annulation.
+// en une étape d'annulation ; `placeAt` fait de même à l'endroit où le résultat est lâché.
 class CalculatorController : public QObject
 {
     Q_OBJECT
@@ -61,6 +61,9 @@ public:
     Q_INVOKABLE bool open();
     // Écrit le calcul près du centre de la page affichée ; faux sans document.
     Q_INVOKABLE bool placeOnPage();
+    // Écrit le calcul centré sur un point de la page affichée (le résultat glissé hors du panneau) ; une
+    // étape d'annulation ; faux sans document.
+    Q_INVOKABLE bool placeAt(double pageX, double pageY);
 
 signals:
     void calculationChanged();
