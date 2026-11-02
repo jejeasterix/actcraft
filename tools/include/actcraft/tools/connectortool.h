@@ -5,6 +5,7 @@
 #include <actcraft/tools/toolcontext.h>
 
 #include <cstdint>
+#include <optional>
 
 namespace actcraft::tools {
 
@@ -20,8 +21,18 @@ public:
     void setStyle(std::uint8_t style);
 
 private:
+    void showAttachPoints(core::PointF point);
+    void clearAttachPoints();
+    core::PageObject currentConnector(core::PointF point) const;
+    bool dragged(core::PointF point) const;
+
     ToolContext& m_context;
     std::uint8_t m_style = 0;
+    bool m_active = false;
+    core::PointF m_rawPress; // presse brute : seuil de clic
+    core::PointF m_start;    // bout de départ, accroché ou libre
+    core::ObjectId m_objectA = 0;
+    bool m_shownPoints = false;
 };
 
 } // namespace actcraft::tools

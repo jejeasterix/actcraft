@@ -111,11 +111,9 @@ struct Harness
 
     core::ObjectId add(const core::RectF& box)
     {
-        auto command = std::make_unique<core::AddObjectCommand>(
-            0, core::makeShapeObject("rectangle", box, core::ShapeStyle{}));
-        core::AddObjectCommand* raw = command.get();
-        doc.execute(std::move(command));
-        return raw->id();
+        doc.execute(std::make_unique<core::AddObjectCommand>(
+            0, core::makeShapeObject("rectangle", box, core::ShapeStyle{})));
+        return doc.page().objects.back().common.id;
     }
 
     void send(double x, double y, Phase phase)
