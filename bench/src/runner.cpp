@@ -1,4 +1,5 @@
 #include <actcraft/bench/contentcheck.h>
+#include <actcraft/bench/memory.h>
 #include <actcraft/bench/runner.h>
 #include <actcraft/bench/scenarios.h>
 #include <actcraft/bench/verdict.h>
@@ -7,8 +8,10 @@
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/pagesettings.h>
 #include <actcraft/core/pagezones.h>
+#include <actcraft/export/pdfexport.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documenttabs.h>
 #include <actcraft/ui/objectediting.h>
 #include <actcraft/ui/pagethumbnails.h>
 #include <actcraft/ui/pageview.h>
@@ -18,12 +21,15 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QFutureWatcher>
 #include <QGuiApplication>
 #include <QImage>
 #include <QMetaObject>
 #include <QQuickWindow>
 #include <QScreen>
+#include <QTemporaryDir>
 #include <QTimer>
+#include <QUrl>
 #include <QVariant>
 
 #include <algorithm>
@@ -144,6 +150,90 @@ std::vector<core::ObjectId> pageIds(const core::Page& page)
     }
     return ids;
 }
+
+// L5-T31 : onglets du scénario « onglets » (bascules mesurées par la commande `tabs.switch`).
+struct TabsGear
+{
+    ui::DocumentTabs* tabs = nullptr;
+    ui::PageView* view = nullptr;
+    render::FixedPageItem* fixed = nullptr;
+};
+
+// Affiche l'onglet `index` et mesure le temps jusqu'à un rendu terminé : un redessin du cache de plus
+// (PageView::cacheRefreshCount, D21), page prête, plus rien en attente. Faux si l'onglet n'est pas affiché ou
+// si le rendu n'arrive pas.
+bool runTabSwitch(TabsGear& g, int index, std::vector<double>& out)
+{
+    const int refreshesBefore = g.view->cacheRefreshCount();
+    QElapsedTimer clock;
+    clock.start();
+    g.tabs->activate(index);
+    if (g.tabs->currentIndex() != index) {
+        return false;
+    }
+    const bool shown = waitUntil(
+        [&g, refreshesBefore] {
+            return g.view->cacheRefreshCount() > refreshesBefore && g.fixed->isReady() &&
+                   g.view->cacheReady() && g.fixed->pendingCount() == 0;
+        },
+        15000);
+    out.push_back(static_cast<double>(clock.nsecsElapsed()) / 1e6);
+    return shown;
+}
+
+// L5-T31 : exports PDF du document synthétique sur leur fil dédié (exporting::exportPdf), relancés l'un après
+// l'autre tant que le scénario « export-fond » dure ; durées et échecs relevés.
+class BackgroundExports
+{
+public:
+    explicit BackgroundExports(ui::DocumentController* document) : m_document(document)
+    {
+        QObject::connect(&m_watcher, &QFutureWatcher<exporting::ExportResult>::finished, &m_watcher, [this] {
+            const exporting::ExportResult result = m_watcher.result();
+            m_running = false;
+            ++m_done;
+            m_failed += result.ok ? 0 : 1;
+            m_maxMs = std::max(m_maxMs, static_cast<double>(m_clock.nsecsElapsed()) / 1e6);
+            if (m_active) {
+                launch();
+            }
+        });
+    }
+    bool valid() const { return m_dir.isValid() && m_document != nullptr; }
+    void start()
+    {
+        m_active = true;
+        launch();
+    }
+    // Attend l'export en cours (au plus `timeoutMs`) sans en relancer.
+    bool finish(const std::function<bool(const std::function<bool()>&, int)>& wait, int timeoutMs)
+    {
+        m_active = false;
+        return wait([this] { return !m_running; }, timeoutMs);
+    }
+    int done() const { return m_done; }
+    int failed() const { return m_failed; }
+    double maxMs() const { return m_maxMs; }
+
+private:
+    void launch()
+    {
+        m_running = true;
+        m_clock.start();
+        m_watcher.setFuture(exporting::exportPdf(
+            m_document->document(), QUrl::fromLocalFile(m_dir.filePath(QStringLiteral("fond.pdf")))));
+    }
+
+    ui::DocumentController* m_document;
+    QTemporaryDir m_dir;
+    QFutureWatcher<exporting::ExportResult> m_watcher;
+    QElapsedTimer m_clock;
+    bool m_active = false;
+    bool m_running = false;
+    int m_done = 0;
+    int m_failed = 0;
+    double m_maxMs = 0;
+};
 
 // Joue le geste `command` et relève les redessins du cache terminés (PageView::cacheRefreshCount) de sa
 // fenêtre : ouverte quand plus rien n'attend au-dessus du cache et que le cache est prêt, fermée à la
@@ -446,15 +536,37 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
         }
         s.edition.emplace();
     }
+    TabsGear tabsGear;
+    if (plan.tabCount > 0) {
+        tabsGear.tabs = m_window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs"));
+        tabsGear.view = m_view;
+        tabsGear.fixed = m_fixed;
+        if (!tabsGear.tabs) {
+            invalidReasons << QStringLiteral("error: tabs missing in %1").arg(plan.name);
+        }
+        s.tabs.emplace();
+    }
+    std::unique_ptr<BackgroundExports> exports;
+    if (plan.exportsInBackground) {
+        exports = std::make_unique<BackgroundExports>(
+            m_window->findChild<ui::DocumentController*>(QStringLiteral("documentController")));
+        if (!exports->valid()) {
+            invalidReasons << QStringLiteral("error: background export not possible in %1").arg(plan.name);
+            exports.reset();
+        }
+    }
     const auto runDueCommands = [&] {
         while (nextCommand < commands.size() && commandPlanned[nextCommand] <= core::monotonicNowNs()) {
             const PlannedInput& in = commands[nextCommand];
             commandRun[nextCommand] = core::monotonicNowNs();
             const bool gesture = plan.measuresEdition && in.command.startsWith(QLatin1String("edition."));
-            const bool done =
-                gesture ? (edition.editing != nullptr && edition.tools != nullptr &&
-                           edition.document != nullptr && runEditionGesture(edition, in.command, *s.edition))
-                        : runWindowCommand(m_window, in.command, in.argument);
+            const bool tabSwitch = plan.tabCount > 0 && in.command == QLatin1String("tabs.switch");
+            const bool done = tabSwitch ? (tabsGear.tabs != nullptr &&
+                                           runTabSwitch(tabsGear, in.argument.toInt(), s.tabs->switchMs))
+                              : gesture ? (edition.editing != nullptr && edition.tools != nullptr &&
+                                           edition.document != nullptr &&
+                                           runEditionGesture(edition, in.command, *s.edition))
+                                        : runWindowCommand(m_window, in.command, in.argument);
             if (!done) {
                 invalidReasons
                     << QStringLiteral("error: command %1 refused in %2").arg(in.command, plan.name);
@@ -534,6 +646,9 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     for (std::size_t i = 0; i < commands.size(); ++i) {
         commandPlanned[i] = s.startNs + commands[i].offsetNs;
     }
+    if (exports) {
+        exports->start(); // les traits partent à la même heure : l'export tourne pendant toute la mesure
+    }
     runDueCommands();
     const auto allSent = [this, &nextCommand, &commands] {
         return m_injector->finished() && nextCommand == commands.size();
@@ -584,6 +699,19 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     }
     waitMs(150); // dernières images : figement, redessin du cache
     m_recorder->end();
+    if (exports) {
+        const bool finished = exports->finish([this](const std::function<bool()>& condition,
+                                                     int timeoutMs) { return waitFor(condition, timeoutMs); },
+                                              30000);
+        if (!finished || exports->done() == 0 || exports->failed() > 0) {
+            invalidReasons
+                << QStringLiteral("error: background export incomplete or failed in %1").arg(plan.name);
+        }
+        s.exportBackground.emplace();
+        s.exportBackground->exports = exports->done();
+        s.exportBackground->failures = exports->failed();
+        s.exportBackground->maxExportMs = exports->maxMs();
+    }
     QObject::disconnect(thumbWatch);
     QObject::disconnect(contactWatch);
     if (thumbs) {
@@ -664,6 +792,10 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
         invalidReasons << QStringLiteral("error: wheel not delivered in %1").arg(plan.name);
     }
     s.memory = m_recorder->memory();
+    if (s.exportBackground) { // latence d'encre et figements : la référence « stroke » vient du runner
+        s.exportBackground->inkP95Ms = s.latency ? s.latency->total.p95 : 0;
+        s.exportBackground->freezes = static_cast<int>(s.intervals.freezeOverLimit);
+    }
     s.rebuilds = m_fixed->rebuildCount() - rebuildsAtStart;
     s.decodes = m_fixed->decodeCount() - decodesAtStart;
     if (plan.measuresShapePreview) { // L4-T14 (V9) : trames pendant les glissés de forme
@@ -905,6 +1037,47 @@ BenchResult Runner::run(QQuickWindow* window)
         for (const auto& points : plan.seedStrokes) {
             document->commitStroke(seedAnnotation(points));
         }
+        std::optional<TabsStats> tabsSetup;
+        if (plan.fixtureDocument) { // L5-T31 : document synthétique à exporter
+            document->replaceDocument(tabsFixtureDocument(0), QUrl(), QStringLiteral("essai"));
+            if (!waitPageShown()) {
+                result.invalidReasons << QStringLiteral("error: fixture not ready before %1").arg(plan.name);
+                break;
+            }
+        }
+        if (plan.tabCount > 0) { // L5-T31 : un onglet, mémoire, puis tous les onglets, mémoire
+            auto* const tabs = m_window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs"));
+            const auto quiet = [this] { return pageShown() && m_fixed->pendingCount() == 0; };
+            if (!tabs || tabs->rowCount() != 1) {
+                result.invalidReasons << QStringLiteral("error: tabs not at one before %1").arg(plan.name);
+                break;
+            }
+            document->replaceDocument(tabsFixtureDocument(0), QUrl(), QStringLiteral("essai 1"));
+            waitFor(quiet, 15000);
+            waitMs(500);
+            TabsStats stats;
+            stats.memoryOneTabMb = static_cast<double>(readProcessMemory().privateBytes) / 1048576.0;
+            for (int i = 1; i < plan.tabCount; ++i) {
+                tabs->newTab();
+                if (tabs->rowCount() != i + 1) {
+                    result.invalidReasons << QStringLiteral("error: tab %1 not opened").arg(i + 1);
+                    break;
+                }
+                document->replaceDocument(tabsFixtureDocument(i), QUrl(),
+                                          QStringLiteral("essai %1").arg(i + 1));
+                waitFor(quiet, 15000);
+            }
+            tabs->activate(0);
+            waitFor(quiet, 15000);
+            waitMs(500);
+            stats.memoryFourTabsMb = static_cast<double>(readProcessMemory().privateBytes) / 1048576.0;
+            stats.memoryDeltaMb = stats.memoryFourTabsMb - stats.memoryOneTabMb;
+            stats.memoryBudgetMb = tabsMemoryBudgetMb(m_window->size());
+            tabsSetup = stats;
+            if (tabs->rowCount() != plan.tabCount) {
+                break;
+            }
+        }
         if (plan.gridAbove) { // L4-T14 : grille du dessus, versée dans le cache avant la mesure (setLevel)
             document->execute(std::make_unique<core::SetGridCommand>(0, gridAboveFixture()));
         }
@@ -971,6 +1144,34 @@ BenchResult Runner::run(QQuickWindow* window)
             });
         result.scenarios.push_back(play(plan, refreshPeriodNs, result.invalidReasons));
         QObject::disconnect(zoomWatch);
+        if (tabsSetup && result.scenarios.back().tabs) {
+            tabsSetup->switchMs = result.scenarios.back().tabs->switchMs;
+            result.scenarios.back().tabs = tabsSetup;
+        }
+        if (result.scenarios.back().exportBackground) { // référence : « stroke » du même passage
+            const auto stroke =
+                std::find_if(result.scenarios.begin(), result.scenarios.end(),
+                             [](const ScenarioResult& r) { return r.name == QLatin1String("stroke"); });
+            ExportBackgroundStats& e = *result.scenarios.back().exportBackground;
+            if (stroke == result.scenarios.end() || !stroke->latency) {
+                result.invalidReasons << QStringLiteral("error: no stroke reference for %1").arg(plan.name);
+            } else {
+                e.strokeInkP95Ms = stroke->latency->total.p95;
+                e.strokeFreezes = static_cast<int>(stroke->intervals.freezeOverLimit);
+            }
+        }
+        if (plan.tabCount > 0 || plan.fixtureDocument) { // le banc retrouve un onglet et la page générée
+            if (auto* const tabs = m_window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs"))) {
+                while (tabs->rowCount() > 1) {
+                    tabs->closeWithoutSaving(tabs->rowCount() - 1);
+                }
+            }
+            document->loadGeneratedPages(1, false);
+            if (!waitPageShown()) {
+                result.invalidReasons << QStringLiteral("error: page not restored after %1").arg(plan.name);
+                break;
+            }
+        }
         for (const auto& [command, argument] : plan.teardownCommands) { // L4-T29 : panneau refermé
             if (!runWindowCommand(m_window, command, argument)) {
                 result.invalidReasons
