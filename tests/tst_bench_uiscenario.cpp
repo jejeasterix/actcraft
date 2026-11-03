@@ -4,6 +4,7 @@
 #include <actcraft/ui/pageview.h>
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
@@ -668,6 +669,15 @@ private slots:
             << QByteArray("{\"file\":\"x\",\"pdfPages\":0}") << QStringLiteral("fichier invalide");
         QTest::newRow("file taille nulle")
             << QByteArray("{\"file\":\"x\",\"imageSize\":[0,4]}") << QStringLiteral("fichier invalide");
+        QTest::newRow("file taille fractionnaire")
+            << QByteArray("{\"file\":\"x\",\"imageSize\":[1024.4,768]}")
+            << QStringLiteral("fichier invalide");
+        QTest::newRow("file pages fractionnaires")
+            << QByteArray("{\"file\":\"x\",\"pdfPages\":2.5}") << QStringLiteral("fichier invalide");
+        QTest::newRow("file pages textuelles")
+            << QByteArray("{\"file\":\"x\",\"pdfPages\":\"3\"}") << QStringLiteral("fichier invalide");
+        QTest::newRow("file non textuel")
+            << QByteArray("{\"file\":3,\"pdfPages\":3}") << QStringLiteral("fichier invalide");
         QTest::newRow("archive sans liste")
             << QByteArray("{\"archive\":\"x\"}") << QStringLiteral("archive invalide (archive, contains)");
         QTest::newRow("archive liste vide") << QByteArray("{\"archive\":\"x\",\"contains\":[]}")
@@ -1187,6 +1197,14 @@ private slots:
 
     // L5-T32 : un PDF a le nombre de pages attendu (l'arbre « /Type /Pages » ne compte pas), une image la
     // taille attendue ; l'écart est dit avec la valeur obtenue.
+    static void touch(const QString& path, int secondsFromNow)
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadWrite));
+        QVERIFY(file.setFileTime(QDateTime::currentDateTime().addSecs(secondsFromNow),
+                                 QFileDevice::FileModificationTime));
+    }
+
     void fileCheckStep()
     {
         Fixture f;
@@ -1203,6 +1221,9 @@ private slots:
         QImage image(40, 30, QImage::Format_RGB32);
         image.fill(Qt::white);
         QVERIFY(image.save(png));
+        // Écrits avant play() : datés d'après son départ, comme le serait un export du scénario.
+        touch(pdf, 60);
+        touch(png, 60);
         QStringList report;
         QVERIFY2(f.player->play(scenario("ok", "[{\"file\":\"${SORTIE}/a.pdf\",\"pdfPages\":3},"
                                                " {\"file\":\"${SORTIE}/a.png\",\"imageSize\":[40,30]}]"),
@@ -1221,6 +1242,57 @@ private slots:
         QVERIFY(!f.player->play(scenario("absent", "[{\"file\":\"${SORTIE}/rien.png\",\"imageSize\":[1,1]}]"),
                                 f.out.path(), report));
         QVERIFY2(report.last().contains(QStringLiteral("ECHEC")), qPrintable(report.last()));
+    }
+
+    // L5-T32 (relecture) : un fichier valide laissé par un passage précédent ne prouve pas l'export de
+    // celui-ci.
+    void fileCheckRefusesAFileOlderThanTheScenario()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        const QString pdf = f.out.filePath(QStringLiteral("vieux.pdf"));
+        const QString png = f.out.filePath(QStringLiteral("vieux.png"));
+        {
+            QFile file(pdf);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("%PDF-1.4\n2 0 obj\n<< /Type /Page >>\nendobj\n");
+        }
+        QImage image(40, 30, QImage::Format_RGB32);
+        image.fill(Qt::white);
+        QVERIFY(image.save(png));
+        touch(pdf, -3600);
+        touch(png, -3600);
+        QStringList report;
+        QVERIFY(!f.player->play(scenario("vieux-pdf", "[{\"file\":\"${SORTIE}/vieux.pdf\",\"pdfPages\":1}]"),
+                                f.out.path(), report));
+        QCOMPARE(report.last(),
+                 QStringLiteral("FICHIER ") + pdf + QStringLiteral(" ECART (fichier antérieur au scénario)"));
+        QVERIFY(!f.player->play(
+            scenario("vieille-image", "[{\"file\":\"${SORTIE}/vieux.png\",\"imageSize\":[40,30]}]"),
+            f.out.path(), report));
+        QCOMPARE(report.last(),
+                 QStringLiteral("FICHIER ") + png + QStringLiteral(" ECART (fichier antérieur au scénario)"));
+    }
+
+    // L5-T32 (relecture) : fichier qui n'est pas un PDF, ou absent.
+    void fileCheckRefusesNonPdfAndAbsentFiles()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        const QString text = f.out.filePath(QStringLiteral("texte.pdf"));
+        {
+            QFile file(text);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("bonjour");
+        }
+        touch(text, 60);
+        QStringList report;
+        QVERIFY(!f.player->play(scenario("pas-pdf", "[{\"file\":\"${SORTIE}/texte.pdf\",\"pdfPages\":1}]"),
+                                f.out.path(), report));
+        QCOMPARE(report.last(), QStringLiteral("FICHIER ") + text + QStringLiteral(" ECART (pas un PDF)"));
+        QVERIFY(!f.player->play(scenario("absent-pdf", "[{\"file\":\"${SORTIE}/rien.pdf\",\"pdfPages\":1}]"),
+                                f.out.path(), report));
+        QVERIFY2(report.last().contains(QStringLiteral("ECHEC (illisible)")), qPrintable(report.last()));
     }
 
     // Le chemin d'une fixture vient du scénario (entrée non fiable) : elle n'écrit que sous le dossier de
