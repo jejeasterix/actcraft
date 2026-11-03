@@ -303,6 +303,58 @@ private slots:
                                              QStringLiteral("Outils"), QStringLiteral("Aide")}));
     }
 
+    // Un layoutChanged (commande masquée ailleurs) ne recrée pas les entrées d'un menu dont le contenu est
+    // identique (L5-C25) ; le menu qui contenait la commande, lui, se met à jour.
+    void layoutChangeKeepsUnchangedMenuEntries()
+    {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nimport ActCraft.Ui\nItem {\n"
+                          "  property alias registre: commandes\n"
+                          "  Commands { id: commandes }\n"
+                          "  function menuSpec(id) {\n"
+                          "    const m = commandes.menus\n"
+                          "    for (let i = 0; i < m.length; ++i) if (m[i].id === id) return m[i]\n"
+                          "    return { id: \"\", label: \"\", items: [] }\n"
+                          "  }\n"
+                          "  function entree(menu, i) { return menu.itemAt(i) }\n"
+                          "  property alias fichier: fichierMenu\n"
+                          "  property alias editer: editerMenu\n"
+                          "  CommandMenu { id: fichierMenu; commands: commandes; spec: menuSpec(\"file\") }\n"
+                          "  CommandMenu { id: editerMenu; commands: commandes; spec: menuSpec(\"edit\") }\n"
+                          "}\n",
+                          QUrl());
+        std::unique_ptr<QObject> root(component.create());
+        QVERIFY2(root, qPrintable(component.errorString()));
+        auto* c = qobject_cast<Commands*>(root->property("registre").value<QObject*>());
+        QVERIFY(c);
+        c->setProfileDir(m_emptyProfile.path());
+        c->setPlatform(Platform::Windows);
+        auto* fichier = root->property("fichier").value<QObject*>();
+        auto* editer = root->property("editer").value<QObject*>();
+        QVERIFY(fichier && editer);
+        const auto itemAt = [&root](QObject* menu, int index) {
+            QVariant item;
+            QMetaObject::invokeMethod(root.get(), "entree", Q_RETURN_ARG(QVariant, item),
+                                      Q_ARG(QVariant, QVariant::fromValue(menu)), Q_ARG(QVariant, index));
+            return item.value<QObject*>();
+        };
+        const auto count = [](QObject* menu) { return menu->property("count").toInt(); };
+        QObject* fichierFirst = itemAt(fichier, 0);
+        QObject* editerFirst = itemAt(editer, 0);
+        QVERIFY(fichierFirst && editerFirst);
+        const int fichierCount = count(fichier);
+        const int editerCount = count(editer);
+        QCOMPARE(editerFirst->property("text").toString(), QStringLiteral("Annuler"));
+
+        c->setHidden(QStringLiteral("edit.undo"), true); // commande du menu Éditer seulement
+
+        QCOMPARE(count(fichier), fichierCount);
+        QCOMPARE(itemAt(fichier, 0), fichierFirst); // même objet : rien n'a été recréé
+        QCOMPARE(count(editer), editerCount - 1);
+        QVERIFY(itemAt(editer, 0)->property("text").toString() != QStringLiteral("Annuler"));
+    }
+
     void triggerReachesTheQmlHandler()
     {
         QQmlEngine engine;
