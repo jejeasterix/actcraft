@@ -8,6 +8,9 @@
 #include <QUrl>
 #include <QVariantList>
 
+#include <memory>
+#include <vector>
+
 namespace actcraft::ui {
 
 // Onglets des paperboards ouverts (F-010, F-011) ; rempli par L5-T20.
@@ -33,6 +36,7 @@ public:
     Q_ENUM(Role)
 
     explicit DocumentTabs(QObject* parent = nullptr);
+    ~DocumentTabs() override; // L5-T20 : les sessions garées sont détruites dans documenttabs.cpp
     int rowCount(const QModelIndex& parent = {}) const override;
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
@@ -63,9 +67,19 @@ signals:
     void saveRequested(int index);
 
 private:
+    // L5-T20 : un onglet ; `parked` est nul pour l'onglet affiché (son document est au contrôleur).
+    struct Tab;
+    bool canSwitch() const;
+    void switchTo(int index, std::unique_ptr<DocumentController::ParkedSession> leaving);
+    void emitRow(int row);
     DocumentController* m_document = nullptr;
     PageView* m_view = nullptr;
     QString m_position = QStringLiteral("top");
+    std::vector<Tab> m_tabs;
+    int m_current = 0;
+    QMetaObject::Connection m_titleConnection;
+    QMetaObject::Connection m_modifiedConnection;
+    QMetaObject::Connection m_urlConnection;
 };
 
 } // namespace actcraft::ui
