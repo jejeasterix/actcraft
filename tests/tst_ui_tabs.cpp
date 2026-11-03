@@ -3,6 +3,7 @@
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documenttabs.h>
+#include <actcraft/ui/pagethumbnails.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QElapsedTimer>
@@ -278,6 +279,43 @@ private slots:
         f.document.undo(); // une étape dans l'onglet d'arrivée
         QCOMPARE(f.document.pageCount(), 1);
         QVERIFY(!f.document.canUndo());
+    }
+
+    // L5-C10 : la miniature de la page copiée montre son contenu après la bascule vers l'onglet garé.
+    void thumbnailShowsTheCopiedPage()
+    {
+        Fixture f;         // onglet 0 : page 1 avec un trait
+        f.document.undo(); // page 1 vide
+        f.document.nextPage();
+        f.drawStrokeOnShown(); // page 2 avec un trait
+        f.document.showPage(0);
+        QCOMPARE(f.document.pageCount(), 2);
+        ui::PageThumbnails thumbnails;
+        thumbnails.setSettleDelay(0);
+        thumbnails.setDocumentController(&f.document);
+        const auto settled = [&] { return thumbnails.pendingCount() == 0 && thumbnails.rowCount() == 2; };
+        const auto hasRed = [&](int row) {
+            const QImage image = thumbnails.image(row);
+            for (int y = 0; y < image.height(); ++y) {
+                for (int x = 0; x < image.width(); ++x) {
+                    if (near(image.pixelColor(x, y), QColor(255, 0, 0), 60)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+        QTRY_VERIFY_WITH_TIMEOUT(settled(), 10000);
+        QVERIFY(!hasRed(0));
+        QVERIFY(hasRed(1));
+        f.tabs.newTab();
+        f.tabs.activate(0);
+        QTRY_VERIFY_WITH_TIMEOUT(settled(), 10000);
+        f.tabs.copyPagesToTab({1}, 1);
+        f.tabs.activate(1);
+        QTRY_VERIFY_WITH_TIMEOUT(settled(), 10000);
+        QVERIFY2(hasRed(0), "la miniature de la page copiée est vide");
+        QVERIFY(!hasRed(1));
     }
 
     void titlesFollowTheDocuments()
