@@ -90,8 +90,10 @@ QImage fakeDesktop()
 bool captureDesktop(MainWindow& main, DesktopController* desktop)
 {
     QSignalSpy finished(desktop, &DesktopController::backgroundCaptured);
-    return main.run(QStringLiteral("page.background-desktop-capture")) && finished.wait(5000) &&
-           finished.first().at(0).toBool();
+    // Fin comptée même si elle vient dans la commande : seul captureDoesNotBlockTheMainThread garde
+    // l'asynchrone.
+    return main.run(QStringLiteral("page.background-desktop-capture")) &&
+           (!finished.isEmpty() || finished.wait(5000)) && finished.first().at(0).toBool();
 }
 
 // Trait au milieu de la fenêtre d'annotation (la page couvre l'écran principal).
