@@ -265,6 +265,20 @@ void TransitionController::setBlocked(bool blocked)
     emit blockedChanged();
 }
 
+bool TransitionController::desktopAnnotation() const noexcept
+{
+    return m_desktopAnnotation;
+}
+
+void TransitionController::setDesktopAnnotation(bool annotating)
+{
+    if (m_desktopAnnotation == annotating) {
+        return;
+    }
+    m_desktopAnnotation = annotating;
+    emit desktopAnnotationChanged();
+}
+
 int TransitionController::phase() const noexcept
 {
     return m_phase;
@@ -307,6 +321,7 @@ void TransitionController::navigate(int kind)
     const std::string pageEffect = leaving ? leaving->presentation.transition : std::string();
     features::TransitionBlockers blockers;
     blockers.curtainOrSpotlight = m_blocked;
+    blockers.desktopAnnotation = m_desktopAnnotation;
     const QString id = features::pickEffect(
         features::effectForLeaving(m_settings, pageEffect, navigation, blockers), m_random);
     if (id == QLatin1String("none") || piecesFor(id).empty()) {

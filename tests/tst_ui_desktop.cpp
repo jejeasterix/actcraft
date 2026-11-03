@@ -86,6 +86,16 @@ QImage fakeDesktop()
     return image;
 }
 
+// Capture du bureau par la commande, attendue jusqu'à sa fin (M4 : asynchrone) ; vrai si le fond est posé.
+bool captureDesktop(MainWindow& main, DesktopController* desktop)
+{
+    QSignalSpy finished(desktop, &DesktopController::backgroundCaptured);
+    // Fin comptée même si elle vient dans la commande : seul captureDoesNotBlockTheMainThread garde
+    // l'asynchrone.
+    return main.run(QStringLiteral("page.background-desktop-capture")) &&
+           (!finished.isEmpty() || finished.wait(5000)) && finished.first().at(0).toBool();
+}
+
 // Trait au milieu de la fenêtre d'annotation (la page couvre l'écran principal).
 void strokeInDesktopWindow(DesktopController* desktop, Pointer pointer)
 {
@@ -240,7 +250,7 @@ private slots:
         const QString before = open->fingerprintText();
         QVERIFY(shownPage(*open).background.image.empty());
         QVERIFY(!open->canUndo());
-        QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
+        QVERIFY(captureDesktop(main, desktop));
         const std::string key = shownPage(*open).background.image;
         QVERIFY(!key.empty());
         const actcraft::core::Resource* resource = open->document().resource(key);
@@ -269,7 +279,7 @@ private slots:
         QVERIFY(main.run(QStringLiteral("desktop.annotate")));
         QVERIFY(waitDesktopReady(desktop));
         DocumentController* paperboard = desktop->desktopDocument();
-        QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
+        QVERIFY(captureDesktop(main, desktop));
         QVERIFY(!shownPage(*paperboard).background.image.empty());
         const QString captured = paperboard->fingerprintText();
         const bool undoBefore = paperboard->canUndo();
@@ -309,7 +319,7 @@ private slots:
         DocumentController* paperboard = desktop->desktopDocument();
         QCOMPARE(paperboard->pageCount(), 1);
         QVERIFY(isTransparentFill(shownPage(*paperboard).background.fill));
-        QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
+        QVERIFY(captureDesktop(main, desktop));
         QVERIFY(!shownPage(*paperboard).background.image.empty());
         const QSizeF size = paperboard->pageSize();
         const QString captured = paperboard->fingerprintText();
@@ -427,13 +437,16 @@ private slots:
         const int witness = pointer == Pointer::Stylus ? 1 : 0;
         view->removeInputCover(toolbar);
         presentationharness::strokeAt(window, pointer, start, end);
-        QTest::qWait(50);
-        QCOMPARE(paperboard->shownObjectCount(), witness);
+        QTRY_COMPARE(paperboard->shownObjectCount(), witness);
         view->addInputCover(toolbar);
         QVERIFY(!desktop->passThrough());
         QVERIFY(desktop->isAnnotating());
         strokeInDesktopWindow(desktop, pointer);
         QTRY_COMPARE(paperboard->shownObjectCount(), witness + 1);
+        // Plus rien en route (cache à jour) : aucun trait versé en retard, les affirmations négatives
+        // tiennent.
+        QVERIFY(waitDesktopReady(desktop));
+        QCOMPARE(paperboard->shownObjectCount(), witness + 1);
         QCOMPARE(open->fingerprintText(), openBefore);
         QCOMPARE(main.pageObjectCount(), mainObjects);
     }
@@ -513,7 +526,7 @@ private slots:
             return fakeDesktop();
         });
         // Hors annotation : la fenêtre principale.
-        QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
+        QVERIFY(captureDesktop(main, desktop));
         QCOMPARE(calls, 1);
         QVERIFY(!mainShown);
         QVERIFY(mainWindow->isVisible());
@@ -523,7 +536,7 @@ private slots:
         QVERIFY(waitDesktopReady(desktop));
         annotation = desktop->window();
         const Qt::WindowFlags flags = annotation->flags();
-        QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
+        QVERIFY(captureDesktop(main, desktop));
         QCOMPARE(calls, 2);
         QVERIFY(!mainShown);
         QVERIFY(!annotationShown);
@@ -574,10 +587,9 @@ private slots:
         QVERIFY(main.window());
         DesktopController* desktop = desktopOf(main);
         QVERIFY(desktop);
-        QObject* commands = main.window()
-                                ->findChild<QObject*>(QStringLiteral("desktopRoot"))
-                                ->property("commands")
-                                .value<QObject*>();
+        QObject* root = main.window()->findChild<QObject*>(QStringLiteral("desktopRoot"));
+        QVERIFY(root);
+        QObject* commands = root->property("commands").value<QObject*>();
         QVERIFY(commands);
         QVariantList entries;
         QVERIFY(QMetaObject::invokeMethod(desktop, "wheelEntries", Q_RETURN_ARG(QVariantList, entries),
@@ -865,8 +877,235 @@ private slots:
         QVERIFY(main.run(QStringLiteral("desktop.annotate"))); // fermée
         QTRY_VERIFY(!desktop->isAnnotating());
         QVERIFY(main.run(QStringLiteral("tool.select")));
-        QTest::qWait(50);
+        // Témoin, sans attente fixe : l'outil a changé ; followTool suit ce changement dans le même appel.
+        QObject* root = main.window()->findChild<QObject*>(QStringLiteral("desktopRoot"));
+        QVERIFY(root);
+        QObject* tools = root->property("tools").value<QObject*>();
+        QVERIFY(tools);
+        QTRY_COMPARE(tools->property("currentTool").toString(), QStringLiteral("select"));
         QVERIFY(!desktop->passThrough());
+    }
+
+    // M4 (relecture du lot 7) : la capture n'endort pas le fil principal. La commande rend la main aussitôt,
+    // nos fenêtres masquées ; la saisie vient après le délai, puis le fond est posé et les fenêtres
+    // reviennent ; une seconde demande pendant ce temps est refusée. Mutant : saisie dans la commande même
+    // (l'ancien QThread::msleep de 250 ms).
+    void captureDoesNotBlockTheMainThread()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        DocumentController* open = openDocumentOf(main);
+        QVERIFY(open);
+        int calls = 0;
+        desktop->setCaptureSource([&calls] {
+            ++calls;
+            return fakeDesktop();
+        });
+        QSignalSpy finished(desktop, &DesktopController::backgroundCaptured);
+        QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
+        QCOMPARE(calls, 0);
+        QVERIFY(!main.window()->isVisible());
+        QVERIFY(shownPage(*open).background.image.empty());
+        QVERIFY(!desktop->captureBackground()); // une capture à la fois
+        QVERIFY(finished.wait(5000));
+        QCOMPARE(finished.count(), 1);
+        QVERIFY(finished.first().at(0).toBool());
+        QCOMPARE(calls, 1);
+        QVERIFY(main.window()->isVisible());
+        QVERIFY(!shownPage(*open).background.image.empty());
+    }
+
+    // Relecture du lot 7 : la roue fermée déployée (fenêtre principale revenue par la barre des tâches)
+    // reparaît repliée, l'icône à sa place. Mutant : le repli à la fermeture ne rend pas le décalage du
+    // déploiement (224 px).
+    void wheelReopensFoldedWhereItWas()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QQuickWindow* wheel = wheelWindow();
+        QVERIFY(wheel);
+        QTRY_VERIFY(wheel->isVisible());
+        const QPoint before = wheel->position();
+        QQuickItem* icon =
+            presentationharness::findItem(wheel->contentItem(), QStringLiteral("desktopWheelIcon"));
+        QVERIFY(icon);
+        QVERIFY(QMetaObject::invokeMethod(icon, "click"));
+        QTRY_VERIFY(wheel->property("expanded").toBool());
+        QVERIFY(wheel->position() != before);
+        QTRY_COMPARE(main.window()->visibility(), QWindow::Minimized);
+        main.window()->showNormal();
+        QTRY_VERIFY(!wheel->isVisible());
+        QVERIFY(!wheel->property("expanded").toBool());
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QTRY_VERIFY(wheel->isVisible());
+        QCOMPARE(wheel->position(), before);
+        QVERIFY(main.run(QStringLiteral("desktop.restore")));
+    }
+
+    // M3 (relecture du lot 7) : Sélectionner déjà actif à l'ouverture de l'annotation fait passer les clics
+    // dès l'ouverture (F-070), sans attendre un changement d'outil ; ouverte avec le stylo, elle prend la
+    // saisie. Mutants : seul currentToolChanged est suivi ; l'outil est relu à la création de la fenêtre
+    // (avant que l'annotation soit ouverte : followTool l'ignore).
+    void selectToolBeforeOpeningPassesClicksThrough()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("tool.select")));
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        QTRY_VERIFY(desktop->passThrough());
+        QVERIFY(desktop->window()->flags().testFlag(Qt::WindowTransparentForInput));
+        QVERIFY(main.run(QStringLiteral("tool.pen")));
+        QTRY_VERIFY(!desktop->passThrough());
+        QVERIFY(main.run(QStringLiteral("desktop.annotate"))); // fermée
+        QTRY_VERIFY(!desktop->isAnnotating());
+        QVERIFY(main.run(QStringLiteral("desktop.annotate"))); // rouverte avec le stylo
+        QVERIFY(waitDesktopReady(desktop));
+        QVERIFY(!desktop->passThrough());
+        QVERIFY(!desktop->window()->flags().testFlag(Qt::WindowTransparentForInput));
+    }
+
+    // M5 (relecture du lot 7) : revenir de la roue rend l'état d'avant de la fenêtre principale (ici le plein
+    // écran), même quand l'annotation a été fermée pendant que la roue était ouverte. Mutant : restore() fait
+    // toujours showNormal (l'état gardé par l'annotation est perdu à sa fermeture, roue ouverte).
+    void restoreFromTheWheelGivesBackFullScreen_data()
+    {
+        QTest::addColumn<bool>("annotating");
+        QTest::newRow("annotation fermee roue ouverte") << true;
+        QTest::newRow("sans annotation") << false;
+    }
+    void restoreFromTheWheelGivesBackFullScreen()
+    {
+        QFETCH(bool, annotating);
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QQuickWindow* window = main.window();
+        window->showFullScreen();
+        QTRY_COMPARE(window->visibility(), QWindow::FullScreen);
+        QVERIFY(main.waitReady());
+        if (annotating) {
+            QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+            QVERIFY(waitDesktopReady(desktop));
+            QTRY_COMPARE(window->visibility(), QWindow::Windowed);
+        }
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QTRY_COMPARE(window->visibility(), QWindow::Minimized);
+        if (annotating) {
+            QVERIFY(main.run(QStringLiteral("desktop.annotate"))); // fermée, roue ouverte
+            QVERIFY(!desktop->isAnnotating());
+            QVERIFY(desktop->property("toolsShown").toBool());
+            QCOMPARE(window->visibility(), QWindow::Minimized); // elle ne revient pas d'elle-même
+        }
+        QVERIFY(main.run(QStringLiteral("desktop.restore")));
+        QVERIFY(!desktop->property("toolsShown").toBool());
+        QTRY_COMPARE(window->visibility(), QWindow::FullScreen);
+    }
+
+    // M8 (relecture du lot 7) : un outil lancé depuis un anneau de la roue (horloge, dés, calculatrice,
+    // message défilant : tous dans la fenêtre principale) se voit : la fenêtre qui le porte n'est plus
+    // réduite, le panneau est ouvert. Mutant : l'entrée déclenche seulement la commande de l'outil (le
+    // panneau s'ouvre dans la fenêtre principale réduite, invisible).
+    void wheelToolIsVisible_data()
+    {
+        QTest::addColumn<QString>("command");
+        QTest::addColumn<QString>("panel"); // racine du panneau ; vide : le message défile sur la page
+        QTest::newRow("horloge") << QStringLiteral("tool.clock") << QStringLiteral("clockRoot");
+        QTest::newRow("des") << QStringLiteral("tool.dice") << QStringLiteral("diceRoot");
+        QTest::newRow("calculatrice")
+            << QStringLiteral("tool.calculator") << QStringLiteral("calculatorRoot");
+        QTest::newRow("message defilant") << QStringLiteral("tool.ticker") << QString();
+    }
+    void wheelToolIsVisible()
+    {
+        QFETCH(QString, command);
+        QFETCH(QString, panel);
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.waitReady());
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QQuickWindow* wheel = wheelWindow();
+        QVERIFY(wheel);
+        QTRY_VERIFY(wheel->isVisible());
+        QTRY_COMPARE(main.window()->visibility(), QWindow::Minimized);
+        // L'anneau qui porte la commande.
+        QVariantList entries;
+        QVERIFY(QMetaObject::invokeMethod(desktop, "wheelEntries", Q_RETURN_ARG(QVariantList, entries),
+                                          Q_ARG(double, 110.0), Q_ARG(double, 205.0)));
+        int ringIndex = -1;
+        for (qsizetype i = 0; i < entries.size(); ++i) {
+            for (const QVariant& inner : entries[i].toMap().value(QStringLiteral("ring")).toList()) {
+                if (inner.toMap().value(QStringLiteral("command")).toString() == command) {
+                    ringIndex = static_cast<int>(i);
+                }
+            }
+        }
+        QVERIFY2(ringIndex >= 0, qPrintable(command));
+        const auto entry = [wheel](const QString& name) {
+            return presentationharness::findItem(wheel->contentItem(), name);
+        };
+        QQuickItem* icon = entry(QStringLiteral("desktopWheelIcon"));
+        QVERIFY(icon);
+        QVERIFY(QMetaObject::invokeMethod(icon, "click"));
+        const QString ringName = QStringLiteral("desktopWheelRing_%1").arg(ringIndex);
+        QTRY_VERIFY(entry(ringName));
+        QVERIFY(QMetaObject::invokeMethod(entry(ringName), "click"));
+        const QString entryName = QStringLiteral("desktopWheelEntry_") + command;
+        QTRY_VERIFY2(entry(entryName), qPrintable(entryName));
+        QVERIFY(QMetaObject::invokeMethod(entry(entryName), "click"));
+        QTRY_VERIFY(main.window()->visibility() != QWindow::Minimized);
+        QVERIFY(main.window()->isVisible());
+        QVERIFY(!desktop->property("toolsShown").toBool());
+        if (!panel.isEmpty()) {
+            QQuickItem* root = main.item(panel);
+            QVERIFY2(root, qPrintable(panel));
+            QTRY_VERIFY(root->isVisible());
+            QCOMPARE(root->window(), main.window());
+        }
+    }
+
+    // M2 (relecture du lot 7 ; plan 7b, L7-T30 ; F-640 : effets désactivés pendant l'annotation de bureau) :
+    // annotation ouverte, page.next du document ouvert change de page aussitôt, sans instantané ni effet ;
+    // fermée, l'effet revient. Mutant : TransitionBlockers::desktopAnnotation jamais posé.
+    void transitionsBlockedWhileAnnotating()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QObject* transition = main.window()->findChild<QObject*>(QStringLiteral("transition"));
+        QQuickItem* layer = main.item(QStringLiteral("transitionRoot"));
+        DocumentController* open = openDocumentOf(main);
+        QVERIFY(transition && layer && open);
+        QVERIFY(main.run(QStringLiteral("view.page-effect"), QStringLiteral("dissolve")));
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        const int before = open->currentIndex();
+        QVERIFY(main.run(QStringLiteral("page.next")));
+        QCOMPARE(open->currentIndex(), before + 1);
+        QCOMPARE(transition->property("phase").toInt(), 0);
+        QCOMPARE(layer->property("snapshotCount").toInt(), 0);
+        QCOMPARE(transition->property("played").toString(), QString());
+        // Fermée : l'effet revient.
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(!desktop->isAnnotating());
+        QVERIFY(main.waitReady());
+        QVERIFY(main.run(QStringLiteral("page.previous")));
+        QTRY_COMPARE_WITH_TIMEOUT(transition->property("played").toString(), QStringLiteral("dissolve"),
+                                  5000);
+        QCOMPARE(layer->property("snapshotCount").toInt(), 1);
+        QTRY_COMPARE_WITH_TIMEOUT(transition->property("phase").toInt(), 0, 8000);
+        QCOMPARE(open->currentIndex(), before);
     }
 };
 

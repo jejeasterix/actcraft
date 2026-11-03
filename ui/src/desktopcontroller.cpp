@@ -18,7 +18,7 @@
 #include <QScreen>
 #include <QSizeF>
 #include <QSurfaceFormat>
-#include <QThread>
+#include <QTimer>
 #include <QUrl>
 #include <QVariantMap>
 #include <QWindow>
@@ -158,8 +158,24 @@ private:
 };
 
 // Une fenêtre masquée quitte l'écran à l'image suivante du compositeur, après l'éventuelle transition de
-// Windows : la saisie de l'écran attend ce délai (captureBackground vient de masquer nos fenêtres).
-constexpr unsigned long kHiddenWindowsSettleMs = 250;
+// Windows : la saisie de l'écran attend ce délai (captureBackground vient de masquer nos fenêtres), par une
+// minuterie, jamais par un sommeil du fil principal (M4).
+constexpr int kHiddenWindowsSettleMs = 250;
+
+// Outils de la roue qui s'ouvrent dans la fenêtre principale : panneaux de l'horloge, des dés et de la
+// calculatrice, message défilant et son dialogue. ÉCART À L'ORIGINAL (hypothèse H-M8, à revoir à la porte de
+// clôture) : l'original montre ces outils sur le bureau, sa fenêtre restant cachée. Ici, ce sont des éléments
+// de la fenêtre principale, invisibles tant qu'elle est réduite par la roue : l'entrée la rend d'abord
+// (desktop.restore), puis lance l'outil. Les montrer sur le bureau demanderait une fenêtre propre à chacun.
+bool opensInTheMainWindow(const QString& command)
+{
+    for (const char* id : {"tool.ticker", "tool.clock", "tool.calculator", "tool.dice"}) {
+        if (command == QLatin1String(id)) {
+            return true;
+        }
+    }
+    return false;
+}
 
 QByteArray pngOf(const QImage& image)
 {
@@ -174,11 +190,7 @@ QByteArray pngOf(const QImage& image)
 QImage grabPrimaryScreen()
 {
     QScreen* screen = QGuiApplication::primaryScreen();
-    if (!screen) {
-        return QImage();
-    }
-    QThread::msleep(kHiddenWindowsSettleMs);
-    return screen->grabWindow(0).toImage();
+    return screen ? screen->grabWindow(0).toImage() : QImage();
 }
 
 QSizeF primaryScreenSize()
@@ -347,15 +359,30 @@ void DesktopController::showTools()
     if (!m_main) {
         return;
     }
+    if (!m_toolsShown) {
+        // M5 : état à rendre au retour. Pendant l'annotation, la palette (état normal) ; si l'annotation se
+        // ferme roue ouverte, releaseMainFront y met l'état d'avant l'annotation.
+        const QWindow::Visibility visibility = m_main->visibility();
+        const bool full = visibility == QWindow::FullScreen || visibility == QWindow::Maximized;
+        m_wheelReturn = !m_annotating && full ? visibility : QWindow::Windowed;
+    }
     setToolsShown(true);
     m_main->showMinimized();
 }
 
 void DesktopController::restore()
 {
+    const QWindow::Visibility back = m_toolsShown && !m_annotating ? m_wheelReturn : QWindow::Windowed;
+    m_wheelReturn = QWindow::Windowed;
     setToolsShown(false);
     if (m_main) {
-        m_main->showNormal();
+        if (back == QWindow::FullScreen) {
+            m_main->showFullScreen();
+        } else if (back == QWindow::Maximized) {
+            m_main->showMaximized();
+        } else {
+            m_main->showNormal();
+        }
         m_main->requestActivate();
     }
     keepMainInFront();
@@ -371,6 +398,7 @@ void DesktopController::onMainVisibilityChanged()
     const QWindow::Visibility visibility = m_main->visibility();
     if (visibility == QWindow::Windowed || visibility == QWindow::Maximized ||
         visibility == QWindow::FullScreen) {
+        m_wheelReturn = QWindow::Windowed;
         setToolsShown(false);
         keepMainInFront();
     }
@@ -430,7 +458,10 @@ void DesktopController::releaseMainFront()
     m_main->setFlags(state.flags);
     m_main->setGeometry(state.geometry);
     if (m_toolsShown) {
-        return; // fenêtre réduite par la roue : elle ne revient pas d'elle-même
+        // Fenêtre réduite par la roue : elle ne revient pas d'elle-même ; restore() rendra l'état d'avant
+        // l'annotation (M5).
+        m_wheelReturn = state.visibility;
+        return;
     }
     if (state.visibility == QWindow::FullScreen) {
         m_main->showFullScreen();
@@ -451,6 +482,7 @@ QVariantList DesktopController::wheelEntries(double radius, double ringRadius) c
             entry.insert(QStringLiteral("label"), entries[i].label);
             entry.insert(QStringLiteral("x"), positions[i].x());
             entry.insert(QStringLiteral("y"), positions[i].y());
+            entry.insert(QStringLiteral("restoresMain"), opensInTheMainWindow(entries[i].command));
             entry.insert(QStringLiteral("ring"), self(entries[i].ring, r, self));
             list.push_back(entry);
         }
@@ -505,20 +537,28 @@ void DesktopController::pageBack()
 bool DesktopController::captureBackground()
 {
     DocumentController* target = activeDocument();
-    if (!target || !m_capture) {
+    if (!target || !m_capture || m_hidingForCapture) {
         return false;
     }
-    const QImage image = grabWithoutOurWindows();
-    if (image.isNull()) {
-        return false;
-    }
-    QByteArray png = pngOf(image);
-    if (png.isEmpty()) {
-        return false;
-    }
-    target->execute(std::make_unique<DesktopCaptureCommand>(static_cast<std::size_t>(target->currentIndex()),
-                                                            std::move(png)));
+    m_captureTarget = target;
+    m_capturePage = static_cast<std::size_t>(target->currentIndex()); // la page affichée à la demande
+    hideOurWindows();
+    QTimer::singleShot(kHiddenWindowsSettleMs, this, &DesktopController::finishCapture);
     return true;
+}
+
+void DesktopController::finishCapture()
+{
+    const QImage image = m_capture ? m_capture() : QImage();
+    showOurWindows();
+    const QPointer<DocumentController> target = m_captureTarget;
+    m_captureTarget = nullptr;
+    QByteArray png = image.isNull() ? QByteArray() : pngOf(image);
+    const bool done = target && !png.isEmpty();
+    if (done) {
+        target->execute(std::make_unique<DesktopCaptureCommand>(m_capturePage, std::move(png)));
+    }
+    emit backgroundCaptured(done);
 }
 
 void DesktopController::toggleLiveDesktopBackground()
@@ -623,25 +663,23 @@ void DesktopController::fitPagesToScreen()
     }
 }
 
-QImage DesktopController::grabWithoutOurWindows()
+void DesktopController::hideOurWindows()
 {
-    struct Shown
-    {
-        QPointer<QWindow> window;
-        Qt::WindowStates states;
-    };
-    std::vector<Shown> shown;
-    const QPointer<QWindow> focused = QGuiApplication::focusWindow();
+    m_hidden.clear();
+    m_focusBeforeCapture = QGuiApplication::focusWindow();
     m_hidingForCapture = true;
     const QWindowList windows = QGuiApplication::topLevelWindows();
     for (QWindow* window : windows) {
         if (window->isVisible()) {
-            shown.push_back({window, window->windowStates()});
+            m_hidden.push_back({window, window->windowStates()});
             window->hide();
         }
     }
-    const QImage image = m_capture();
-    for (const Shown& entry : shown) {
+}
+
+void DesktopController::showOurWindows()
+{
+    for (const HiddenWindow& entry : m_hidden) {
         if (!entry.window) {
             continue;
         }
@@ -650,11 +688,12 @@ QImage DesktopController::grabWithoutOurWindows()
             entry.window->setWindowStates(entry.states);
         }
     }
-    if (focused) {
-        focused->requestActivate();
+    m_hidden.clear();
+    if (m_focusBeforeCapture) {
+        m_focusBeforeCapture->requestActivate();
     }
+    m_focusBeforeCapture = nullptr;
     m_hidingForCapture = false;
-    return image;
 }
 
 Qt::WindowFlags DesktopController::windowFlags() const noexcept

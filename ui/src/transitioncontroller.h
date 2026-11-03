@@ -31,6 +31,10 @@ class TransitionController : public QObject
     // Vrai pendant le rideau ou le spot (lié par la surcouche à curtain.active et spotlight.active) : aucun
     // effet.
     Q_PROPERTY(bool blocked READ blocked WRITE setBlocked NOTIFY blockedChanged)
+    // Vrai pendant l'annotation du bureau (lié par la surcouche à desktop.annotating, F-640) : aucun effet.
+    // Le mode Création (TransitionBlockers::designMode) n'a pas de source avant le lot 8 : jamais posé ici.
+    Q_PROPERTY(bool desktopAnnotation READ desktopAnnotation WRITE setDesktopAnnotation NOTIFY
+                   desktopAnnotationChanged)
     Q_PROPERTY(int phase READ phase NOTIFY phaseChanged)        // Phase
     Q_PROPERTY(bool playing READ playing NOTIFY phaseChanged)   // instantané en cours ou effet joué
     Q_PROPERTY(QString effect READ effect NOTIFY phaseChanged)  // effet en cours ; vide au repos
@@ -56,6 +60,8 @@ public:
     void setDurationTenths(int tenths); // borné à 5..30 ; gardé (QSettings)
     bool blocked() const noexcept;
     void setBlocked(bool blocked);
+    bool desktopAnnotation() const noexcept;
+    void setDesktopAnnotation(bool annotating);
     int phase() const noexcept;
     bool playing() const noexcept;
     QString effect() const;
@@ -81,6 +87,7 @@ signals:
     void documentControllerChanged();
     void settingsChanged();
     void blockedChanged();
+    void desktopAnnotationChanged();
     void phaseChanged();
     void playedChanged();
     void captureRequested(const QString& effect);
@@ -103,6 +110,7 @@ private:
     QString m_played;
     Phase m_phase = Idle;
     bool m_blocked = false;
+    bool m_desktopAnnotation = false;
 };
 
 } // namespace actcraft::ui

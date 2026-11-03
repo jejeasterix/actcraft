@@ -166,14 +166,8 @@ Item {
                     Button {
                         objectName: "desktopCloseButton"
                         text: qsTr("Fermer")
-                        // Commande nommée de l'application (cochable) ; sans elle (démontage), le contrôleur.
-                        onClicked: {
-                            if (root.commands) {
-                                root.commands.trigger("desktop.annotate")
-                            } else {
-                                desktopController.annotating = false
-                            }
-                        }
+                        // Commande nommée de l'application (cochable) ; sans elle (démontage), son action.
+                        onClicked: root.triggerCommand("desktop.annotate")
                     }
                 }
 
@@ -182,16 +176,25 @@ Item {
         }
     }
 
-    // Les boutons de la fenêtre passent par les commandes nommées ; sans elles (démontage), par le contrôleur.
+    // Actions des commandes du bureau, écrites une fois : gestionnaires des commandes nommées
+    // (registerCommands) et repli des boutons de la fenêtre sans elles (démontage, triggerCommand).
+    readonly property var actions: ({
+        "desktop.annotate": function () { desktopController.toggle() }, // la coche suit annotatingChanged
+        "desktop.tools": function () { desktopController.showTools() },
+        "desktop.restore": function () { desktopController.restore() },
+        "desktop.page-next": function () { desktopController.nextPage() },
+        "desktop.page-previous": function () { desktopController.pageBack() },
+        "desktop.pass-through": function () { desktopController.passThrough = !desktopController.passThrough },
+        "page.background-desktop-capture": function () { desktopController.captureBackground() },
+        "page.background-desktop-overlay": function () { desktopController.toggleLiveDesktopBackground() }
+    })
+
+    // Les boutons de la fenêtre passent par les commandes nommées ; sans elles (démontage), par leur action.
     function triggerCommand(id) {
         if (root.commands) {
             root.commands.trigger(id)
-        } else if (id === "desktop.page-next") {
-            desktopController.nextPage()
-        } else if (id === "desktop.page-previous") {
-            desktopController.pageBack()
-        } else if (id === "desktop.pass-through") {
-            desktopController.passThrough = !desktopController.passThrough
+        } else if (root.actions[id]) {
+            root.actions[id]()
         }
     }
 
@@ -207,36 +210,21 @@ Item {
         if (!root.commands) {
             return
         }
-        root.commands.setHandler("desktop.annotate", function () {
-            desktopController.toggle() // la coche suit annotatingChanged
-        })
-        root.commands.setHandler("desktop.tools", function () {
-            desktopController.showTools()
-        })
-        root.commands.setHandler("desktop.restore", function () {
-            desktopController.restore()
-        })
-        root.commands.setHandler("desktop.page-next", function () {
-            desktopController.nextPage()
-        })
-        root.commands.setHandler("desktop.page-previous", function () {
-            desktopController.pageBack()
-        })
-        root.commands.setHandler("desktop.pass-through", function () {
-            desktopController.passThrough = !desktopController.passThrough
-        })
-        root.commands.setHandler("page.background-desktop-capture", function () {
-            desktopController.captureBackground()
-        })
-        root.commands.setHandler("page.background-desktop-overlay", function () {
-            desktopController.toggleLiveDesktopBackground()
-        })
+        for (const id in root.actions) {
+            root.commands.setHandler(id, root.actions[id])
+        }
         syncChecks()
     }
 
     Connections {
         target: desktopController
         function onAnnotatingChanged() {
+            // M3 : l'outil courant vaut dès l'ouverture (Sélectionner déjà actif fait passer les clics). Ici,
+            // après le changement d'état : à la création de la fenêtre, l'annotation n'est pas encore ouverte
+            // et followTool ne fait rien.
+            if (desktopController.annotating && root.tools) {
+                desktopController.followTool(root.tools.currentTool)
+            }
             root.syncChecks()
         }
         function onLiveDesktopBackgroundChanged() {

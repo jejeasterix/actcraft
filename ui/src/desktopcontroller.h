@@ -88,7 +88,9 @@ public:
     // P13 : insère après la page affichée une page transparente vierge de sa taille (une étape) et l'affiche.
     Q_INVOKABLE void nextPage();
     Q_INVOKABLE void pageBack();
-    // Fond « capture du bureau » de la page affichée du paperboard actif ; faux si aucune image.
+    // Fond « capture du bureau » de la page affichée du paperboard actif. Asynchrone (M4) : nos fenêtres sont
+    // masquées, la saisie a lieu quand elles ont quitté l'écran, sans bloquer le fil principal, puis
+    // backgroundCaptured(ok) la termine. Faux si rien à viser ou une capture déjà en cours.
     Q_INVOKABLE bool captureBackground();
     // Superposition du bureau sur la page affichée du paperboard du bureau (ouvre l'annotation au besoin).
     Q_INVOKABLE void toggleLiveDesktopBackground();
@@ -114,13 +116,16 @@ signals:
     void windowComponentChanged();
     void windowChanged();
     void liveDesktopBackgroundChanged();
+    void backgroundCaptured(bool ok); // fin de captureBackground : vrai si le fond a été posé
 
 private:
     bool openWindow(); // faux sans Component prêt ou s'il ne rend pas une QQuickWindow
     void closeWindow();
     void finishStroke();     // trait en cours de la vue de la fenêtre, versé sur sa page
     void fitPagesToScreen(); // toutes les pages à la taille de l'écran principal, en une étape, si besoin
-    QImage grabWithoutOurWindows();
+    void hideOurWindows();   // nos fenêtres visibles, masquées pour la saisie (état gardé)
+    void showOurWindows();   // rendues dans leur état, focus compris
+    void finishCapture();    // saisie, fenêtres rendues, fond posé, backgroundCaptured
     Qt::WindowFlags windowFlags() const noexcept;
     DocumentController* activeDocument() const noexcept;
     void
@@ -151,7 +156,18 @@ private:
         Qt::WindowFlags flags;
     };
     MainState m_mainState;
-    bool m_hidingForCapture = false;      // fenêtre masquée pour la saisie : ce n'est pas une fermeture
+    // M5 : état de la fenêtre principale à rendre au retour de la roue (plein écran, maximisée ou normale).
+    QWindow::Visibility m_wheelReturn = QWindow::Windowed;
+    bool m_hidingForCapture = false; // fenêtre masquée pour la saisie : ce n'est pas une fermeture
+    struct HiddenWindow
+    {
+        QPointer<QWindow> window;
+        Qt::WindowStates states;
+    };
+    std::vector<HiddenWindow> m_hidden; // fenêtres masquées par la capture en cours
+    QPointer<QWindow> m_focusBeforeCapture;
+    QPointer<DocumentController> m_captureTarget; // paperboard visé par la capture en cours
+    std::size_t m_capturePage = 0;
     std::vector<std::size_t> m_livePages; // pages du paperboard du bureau qui portent la superposition
     CaptureSource m_capture;
 };
