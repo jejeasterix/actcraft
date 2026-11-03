@@ -123,5 +123,9 @@ actcraft_add_test(tst_ui_printdialog
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 # L5-T30
 actcraft_add_test(tst_ui_import
-    SOURCES tst_ui_import.cpp
+    SOURCES tst_ui_import.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_import PRIVATE ${PROJECT_SOURCE_DIR}/app)
+target_compile_definitions(tst_ui_import PRIVATE
+    ACTCRAFT_CMAKE="${CMAKE_COMMAND}"
+    ACTCRAFT_IMPORT_DATA="${PROJECT_SOURCE_DIR}/tests/data/import")
