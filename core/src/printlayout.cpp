@@ -78,8 +78,14 @@ std::vector<Sheet> notesSheets(const Document& document, PageSpan span, const Pr
             continue;
         const std::size_t firstSheet = used / perSheet;
         const std::size_t lastSheet = (used + lines - 1) / perSheet;
-        if (sheets.size() <= lastSheet)
-            sheets.resize(lastSheet + 1, Sheet{true, {}, {}});
+        if (sheets.size() <= lastSheet) {
+            const std::size_t old = sheets.size();
+            sheets.resize(lastSheet + 1);
+            for (std::size_t s = old; s <= lastSheet; ++s) {
+                sheets[s].notes = true;
+                sheets[s].firstNoteLine = static_cast<int>(s * perSheet);
+            }
+        }
         for (std::size_t s = firstSheet; s <= lastSheet; ++s)
             sheets[s].noteOf.push_back(p);
         used += lines;

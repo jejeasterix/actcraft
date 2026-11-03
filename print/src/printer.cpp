@@ -102,15 +102,8 @@ std::vector<NoteLine> notesOf(const core::Document& document, const core::Sheet&
     std::size_t used = 0;
     for (std::size_t p = spanFirst; p < first; ++p)
         used += static_cast<std::size_t>(splitNotes(document.page(p)).size());
-    const auto perSheet = static_cast<std::size_t>(core::kNoteLinesPerSheet);
-    const auto firstLines = static_cast<std::size_t>(splitNotes(document.page(first)).size());
-    // Partagée avec les pages suivantes, la première page est sur sa dernière feuille. Seule sur la feuille
-    // et plus longue qu'elle, rien dans core::Sheet ne dit laquelle de ses feuilles c'est : la première est
-    // prise.
-    const std::size_t index =
-        sheet.noteOf.size() > 1 && firstLines > 0 ? (used + firstLines - 1) / perSheet : used / perSheet;
-    const std::size_t begin = index * perSheet;
-    const std::size_t end = begin + perSheet;
+    const auto begin = static_cast<std::size_t>(std::max(0, sheet.firstNoteLine));
+    const std::size_t end = begin + static_cast<std::size_t>(core::kNoteLinesPerSheet);
     std::size_t line = used;
     for (const std::size_t page : sheet.noteOf) {
         if (page >= count)
