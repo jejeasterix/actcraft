@@ -85,8 +85,8 @@ ExportResult writePdf(const core::Document& document, const QUrl& url, std::vect
 
 QFuture<ExportResult> exportPdf(core::Document document, QUrl url, std::vector<std::size_t> pages)
 {
-    return detail::runAsync([document = std::move(document), url = std::move(url),
-                             pages = std::move(pages)]() { return writePdf(document, url, pages); });
+    return detail::runAsync([doc = std::move(document), dest = std::move(url),
+                             pageList = std::move(pages)]() { return writePdf(doc, dest, pageList); });
 }
 
 int countPdfPages(const QByteArray& pdf)

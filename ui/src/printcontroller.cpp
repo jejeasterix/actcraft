@@ -554,7 +554,7 @@ void PrintController::saveSettings()
 
 void PrintController::loadSettings()
 {
-    const core::PrintSettings d;
+    const core::PrintSettings defaults;
     const std::unique_ptr<QSettings> store = openSettings(m_settingsFile);
     if (store) {
         store->beginGroup(QStringLiteral("print"));
@@ -562,19 +562,19 @@ void PrintController::loadSettings()
     const auto read = [&](const char* key, const QVariant& fallback) {
         return store ? store->value(QString::fromLatin1(key), fallback) : fallback;
     };
-    m_rows = std::clamp(read("rows", d.rows).toInt(), 1, 20);
-    m_columns = std::clamp(read("columns", d.columns).toInt(), 1, 20);
-    m_frames = read("frames", d.frames).toBool();
-    m_pageNumbers = read("pageNumbers", d.pageNumbers).toBool();
-    m_range = rangeOrAll(read("range", rangeName(d.range)).toString());
-    m_from = std::clamp(read("from", d.from).toInt(), 1, 9999);
-    m_to = std::clamp(read("to", d.to).toInt(), 1, 9999);
-    m_copies = std::clamp(read("copies", d.copies).toInt(), 1, 999);
-    m_marginMm = std::clamp(read("marginMm", d.marginMm).toDouble(), 0.0, 100.0);
-    m_gray = read("gray", d.gray).toBool();
-    m_notes = notesOrNone(read("notes", notesName(d.notes)).toString());
-    m_noteBreak = read("noteBreak", d.noteBreak).toBool();
-    m_noteSeparator = read("noteSeparator", d.noteSeparator).toBool();
+    m_rows = std::clamp(read("rows", defaults.rows).toInt(), 1, 20);
+    m_columns = std::clamp(read("columns", defaults.columns).toInt(), 1, 20);
+    m_frames = read("frames", defaults.frames).toBool();
+    m_pageNumbers = read("pageNumbers", defaults.pageNumbers).toBool();
+    m_range = rangeOrAll(read("range", rangeName(defaults.range)).toString());
+    m_from = std::clamp(read("from", defaults.from).toInt(), 1, 9999);
+    m_to = std::clamp(read("to", defaults.to).toInt(), 1, 9999);
+    m_copies = std::clamp(read("copies", defaults.copies).toInt(), 1, 999);
+    m_marginMm = std::clamp(read("marginMm", defaults.marginMm).toDouble(), 0.0, 100.0);
+    m_gray = read("gray", defaults.gray).toBool();
+    m_notes = notesOrNone(read("notes", notesName(defaults.notes)).toString());
+    m_noteBreak = read("noteBreak", defaults.noteBreak).toBool();
+    m_noteSeparator = read("noteSeparator", defaults.noteSeparator).toBool();
     m_printer = read("printer", QString()).toString();
     changed();
 }

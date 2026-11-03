@@ -300,7 +300,7 @@ void Insertion::start(std::vector<InsertionJob> jobs)
                     emit inserted(count);
             });
     watcher->setFuture(
-        QtConcurrent::run([jobs = std::move(jobs), mainThread]() { return work(jobs, mainThread); }));
+        QtConcurrent::run([moved = std::move(jobs), mainThread]() { return work(moved, mainThread); }));
 }
 
 void Insertion::insertImage(const QUrl& url)
