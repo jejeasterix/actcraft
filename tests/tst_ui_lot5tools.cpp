@@ -18,6 +18,7 @@
 #include <QImage>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QCoreApplication>
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>
@@ -338,6 +339,12 @@ private slots:
     // magasin par défaut à la première ouverture : le panneau montre le style et les extrémités gardés.
     void connectorPanelShowsRememberedChoiceFromTheDefaultStore()
     {
+        // Comme l'application (main.cpp) : sans nom d'organisation, il n'y a pas de magasin par défaut.
+        QCoreApplication::setOrganizationName(QStringLiteral("ActCraftTest"));
+        struct Restore
+        {
+            ~Restore() { QCoreApplication::setOrganizationName(QString()); }
+        } restore;
         {
             App app;
             QVERIFY(start(app, QString())); // magasin par défaut (redirigé vers le dossier du test)
