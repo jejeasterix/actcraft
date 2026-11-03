@@ -34,6 +34,13 @@
   {"expect": "appTabs.currentIndex", "value": 1},
   {"expect": "documentController.pageCount", "value": 2},
   {"waitFor": "appThumbnails.pendingCount", "value": 0, "timeoutMs": 10000},
-  {"capture": "deuxieme"}
+  {"capture": "deuxieme"},
+  {"pointer": [[646, 64]], "space": "window"},
+  {"waitFor": "appTabs.count", "value": 2, "timeoutMs": 5000},
+  {"waitReady": true},
+  {"expect": "appTabs.currentIndex", "value": 1},
+  {"expect": "documentTabBar.visible", "value": true},
+  {"expect": "documentController.pageCount", "value": 2},
+  {"capture": "troisieme-ferme"}
  ]
 }
