@@ -416,7 +416,7 @@ Item {
     }
 
     // F-011 : sonde du glisser vers les onglets. Invisible, d'un pixel, elle suit le pointeur pendant le glisser de
-    // pages ; les DropArea de la barre d'onglets lisent la sélection dans les données du glisser.
+    // pages ; les DropArea de la barre d'onglets lisent la sélection dans `dragPages` (source du glisser).
     Item {
         id: dropProxy
         objectName: "tabDropProxy"
@@ -426,7 +426,7 @@ Item {
         Drag.keys: ["actcraft-pages"]
         Drag.supportedActions: Qt.CopyAction
         Drag.proposedAction: Qt.CopyAction
-        Drag.mimeData: ({"actcraft-pages": JSON.stringify(root.pages.selection.length > 0 ? root.pages.selection : [area.pressedIndex])})
+        property var dragPages: root.pages.selection.length > 0 ? root.pages.selection : [area.pressedIndex]
     }
 
     // Fantôme d'insertion : trait entre deux miniatures pendant le glisser (au-dessus de la liste, sans entrée).

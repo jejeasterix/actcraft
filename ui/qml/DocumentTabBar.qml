@@ -176,12 +176,8 @@ Item {
                 enabled: !tab.current
                 keys: ["actcraft-pages"]
                 onDropped: drop => {
-                    let pages = []
-                    try {
-                        pages = JSON.parse(drop.getDataAsString("actcraft-pages"))
-                    } catch (e) {
-                        pages = []
-                    }
+                    // La sélection glissée est portée par la sonde du navigateur (source du glisser).
+                    const pages = drop.source && drop.source.dragPages ? drop.source.dragPages : []
                     if (pages.length === 0)
                         return
                     root.tabs.copyPagesToTab(pages, tab.index)
