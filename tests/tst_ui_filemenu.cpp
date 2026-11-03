@@ -8,6 +8,7 @@
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documentio.h>
+#include <actcraft/ui/documenttabs.h>
 #include <actcraft/ui/pageoptions.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
@@ -100,6 +101,17 @@ bool run(Shell& s, const QString& id, const QVariant& argument = QVariant())
 ui::DocumentController* controller(Shell& s)
 {
     return s.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+}
+
+ui::DocumentTabs* tabsOf(Shell& s)
+{
+    return s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs"));
+}
+
+bool dialogVisible(Shell& s, const char* name)
+{
+    QObject* dialog = s.window->findChild<QObject*>(QString::fromLatin1(name));
+    return dialog && dialog->property("visible").toBool();
 }
 
 QObject* namedObject(Shell& s, const char* name)
@@ -271,7 +283,8 @@ private slots:
         QVERIFY(start(s));
         auto* doc = controller(s);
         QVERIFY(run(s, QStringLiteral("page.next")));
-        QVERIFY(run(s, QStringLiteral("file.new")));
+        QVERIFY(
+            run(s, QStringLiteral("file.close"))); // L5-C10 : « Nouveau » n'écrase plus, « Fermer » demande
         QObject* dialog = namedObject(s, "saveChangesDialog");
         QVERIFY(dialog);
         QTRY_VERIFY(dialog->property("visible").toBool());
@@ -279,6 +292,95 @@ private slots:
         QTRY_VERIFY(!dialog->property("visible").toBool());
         QCOMPARE(doc->pageCount(), 2);
         QVERIFY(doc->isModified());
+    }
+
+    // L5-C10 (F-010) : « Nouveau » ouvre un onglet, sans rien demander ; le document modifié reste dans le
+    // sien.
+    void newOpensATabAndKeepsTheModifiedDocument()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        QQuickItem* bar = item(s, "documentTabBar");
+        QVERIFY(bar);
+        QVERIFY(!bar->isVisible()); // D14 : un seul document, pas de barre
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(run(s, QStringLiteral("file.new-1280x1024")));
+        QVERIFY(!dialogVisible(s, "saveChangesDialog"));
+        QCOMPARE(tabs->rowCount(), 2);
+        QCOMPARE(tabs->currentIndex(), 1);
+        QCOMPARE(doc->pageSize(), QSizeF(1280, 1024));
+        QCOMPARE(doc->pageCount(), 1);
+        QVERIFY(!doc->isModified());
+        QVERIFY(tabs->data(tabs->index(0), ui::DocumentTabs::ModifiedRole).toBool());
+        QTRY_VERIFY(bar->isVisible()); // D14 : visible dès deux documents ouverts
+        tabs->activate(0);
+        QCOMPARE(doc->pageCount(), 2);
+        QVERIFY(doc->isModified());
+    }
+
+    // L5-C10 (F-010, H5-23) : « Ouvrir » ouvre un onglet, sauf sur un « Sans titre » vierge, remplacé.
+    void openUsesATabUnlessTheShownDocumentIsBlank()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("deux.actcraft"));
+        QVERIFY(writeTwoPages(path));
+        QSignalSpy loaded(doc, &ui::DocumentController::loadFinished);
+        QVERIFY(run(s, QStringLiteral("file.open"), path)); // vierge : remplacé dans son onglet
+        QVERIFY(loaded.wait(10000));
+        QCOMPARE(tabs->rowCount(), 1);
+        QCOMPARE(doc->pageCount(), 2);
+        QVERIFY(run(s, QStringLiteral("file.open"), path)); // document avec fichier : un onglet
+        QVERIFY(loaded.wait(10000));
+        QCOMPARE(tabs->rowCount(), 2);
+        QCOMPARE(tabs->currentIndex(), 1);
+        QVERIFY(run(s, QStringLiteral("page.insert-after")));
+        QVERIFY(doc->isModified());
+        QVERIFY(run(s, QStringLiteral("file.open"), path)); // modifié : un onglet, sans demande
+        QVERIFY(loaded.wait(10000));
+        QVERIFY(!dialogVisible(s, "saveChangesDialog"));
+        QCOMPARE(tabs->rowCount(), 3);
+        QVERIFY(tabs->data(tabs->index(1), ui::DocumentTabs::ModifiedRole).toBool());
+    }
+
+    // L5-C10 : fermer un onglet modifié sans titre, « Enregistrer », puis « Enregistrer sous » abandonné : la
+    // fermeture est abandonnée (onglet ouvert, rien d'armé) ; un enregistrement plus tard ne le ferme pas.
+    void cancelledSaveAsAbandonsTheTabClose()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QTemporaryDir root;
+        auto* doc = controller(s);
+        doc->setDocumentsRoot(root.path());
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        QObject* bar = namedObject(s, "documentTabBar");
+        QObject* ask = namedObject(s, "tabSaveChangesDialog");
+        QObject* saveDialog = namedObject(s, "saveDialog");
+        QVERIFY(bar && ask && saveDialog);
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        tabs->newTab(); // le document modifié sans titre est garé dans l'onglet 0
+        QCOMPARE(tabs->rowCount(), 2);
+        tabs->requestClose(0);
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QCOMPARE(tabs->currentIndex(), 0);
+        QVERIFY(QMetaObject::invokeMethod(ask, "save"));
+        QVERIFY(bar->property("closeAfterSave").toBool());
+        QVERIFY(QMetaObject::invokeMethod(saveDialog, "reject"));
+        QTRY_VERIFY(!bar->property("closeAfterSave").toBool());
+        QCOMPARE(tabs->rowCount(), 2);
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        QVERIFY(run(s, QStringLiteral("file.save-as"), root.filePath(QStringLiteral("x.actcraft"))));
+        QVERIFY(saved.wait(10000));
+        QTest::qWait(100);
+        QCOMPARE(tabs->rowCount(), 2); // enregistrer plus tard ne ferme pas l'onglet
     }
 
     void quitAsksBeforeLeavingAModifiedDocument()
@@ -398,14 +500,16 @@ private slots:
         QCOMPARE(doc->pageCount(), 2);
     }
 
-    // Même chose par « Quitter » puis « Enregistrer » pendant l'ouverture (modifications abandonnées à
-    // l'ouverture) : l'action en attente est réévaluée sur le document ouvert, propre : on quitte sans
-    // écrire.
-    void quitThenSaveDuringASuccessfulOpenQuitsWithoutWriting()
+    // L5-C10 : « Ouvrir » sur un document modifié ouvre un onglet, sans demande : plus de « Quitter » pendant
+    // une ouverture qui écarte les modifications. « Enregistrer » demandé pendant la lecture visait l'onglet
+    // chargé : il est abandonné à la fin d'une ouverture réussie, rien n'est écrit ; l'onglet modifié reste.
+    void saveRequestedDuringAnOpenInANewTabIsDropped()
     {
         Shell s;
         QVERIFY(start(s));
         auto* doc = controller(s);
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
         QTemporaryDir dir;
         const QString path = dir.filePath(QStringLiteral("deux.actcraft"));
         QVERIFY(writeTwoPages(path));
@@ -414,26 +518,21 @@ private slots:
         QVERIFY(doc->isModified());
         QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
         QSignalSpy loaded(doc, &ui::DocumentController::loadFinished);
-        QObject* ask = namedObject(s, "saveChangesDialog");
-        QObject* actions = namedObject(s, "fileActions");
-        QVERIFY(ask && actions);
         PoolHold pool;
         QVERIFY(pool.held());
         QVERIFY(run(s, QStringLiteral("file.open"), path));
-        QTRY_VERIFY(ask->property("visible").toBool());
-        QVERIFY(QMetaObject::invokeMethod(ask, "discard")); // ouvrir sans enregistrer
-        QTRY_VERIFY(!ask->property("visible").toBool());
+        QVERIFY(!dialogVisible(s, "saveChangesDialog"));
+        QCOMPARE(tabs->rowCount(), 2);
         QVERIFY(doc->isBusy());
-        QVERIFY(run(s, QStringLiteral("file.quit")));
-        QTRY_VERIFY(ask->property("visible").toBool());
-        QVERIFY(QMetaObject::invokeMethod(ask, "save"));
+        QVERIFY(run(s, QStringLiteral("file.save"))); // Ctrl+S pendant la lecture
         pool.release();
         QVERIFY(loaded.wait(20000));
         QCOMPARE(loaded.first().at(0).toBool(), true);
-        QTRY_VERIFY_WITH_TIMEOUT(actions->property("quitting").toBool(), 20000);
         QTest::qWait(300);
         QCOMPARE(saved.count(), 0);
         QCOMPARE(fileBytes(path), before);
+        QCOMPARE(doc->pageCount(), 2);
+        QVERIFY(tabs->data(tabs->index(0), ui::DocumentTabs::ModifiedRole).toBool());
     }
 
     void newSizesComeFromTheirCommands()
@@ -555,8 +654,9 @@ private slots:
         QTRY_COMPARE(doc->document().page(0).zones.horizontal, 10);
     }
 
-    // Même garde que « Nouveau » : un document modifié demande avant d'être remplacé.
-    void framedSizeAsksBeforeReplacingAModifiedDocument()
+    // Même règle que « Nouveau » (L5-C10) : la taille avec cadres ouvre un onglet sans rien demander, le
+    // document modifié reste dans le sien.
+    void framedSizeOpensATabAndKeepsTheModifiedDocument()
     {
         Shell s;
         QVERIFY(start(s));
@@ -571,11 +671,16 @@ private slots:
         QTRY_VERIFY(sizeDialog->property("visible").toBool());
         QVERIFY(QMetaObject::invokeMethod(sizeDialog, "acceptFramedSize", Q_ARG(QVariant, 500),
                                           Q_ARG(QVariant, 500), Q_ARG(QVariant, 2), Q_ARG(QVariant, 3)));
-        QTRY_VERIFY(ask->property("visible").toBool());
-        QCOMPARE(doc->pageSize(), before);
-        QVERIFY(QMetaObject::invokeMethod(ask, "discard"));
         QTRY_COMPARE(doc->pageSize(), QSizeF(1000, 1500));
+        QVERIFY(!ask->property("visible").toBool());
         QVERIFY(!doc->isModified());
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        QCOMPARE(tabs->rowCount(), 2);
+        QVERIFY(tabs->data(tabs->index(0), ui::DocumentTabs::ModifiedRole).toBool());
+        tabs->activate(0);
+        QCOMPARE(doc->pageSize(), before);
+        QVERIFY(doc->isModified());
     }
 
     // « Valider » sans rien changer : le paperboard du lot 1, sans zones, comme newDocument.

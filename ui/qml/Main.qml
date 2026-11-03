@@ -436,9 +436,11 @@ Window {
     FileActions {
         id: fileActions
         document: appDocument
+        tabs: appTabs
         textEditing: appText
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
+        onSaveAbandoned: documentTabBar.closeAfterSave = false
     }
 
     // Fermeture de la fenêtre : même demande que « Quitter ».
