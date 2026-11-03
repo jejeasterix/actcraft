@@ -134,6 +134,16 @@ bool FileExchange::powerpointAvailable() const
     return exporting::pdfImportAvailable() && exporting::findConverter().has_value();
 }
 
+// L5-C13 : le fichier contient ce que l'utilisateur voit. Comme Enregistrer, l'édition en cours est validée
+// (editAboutToApply) et ce qui est soulevé est déposé sans étape d'annulation avant de capturer le document.
+void FileExchange::settleEditing()
+{
+    emit m_document->editAboutToApply();
+    if (m_document->isLifting()) {
+        m_document->dropLifted(nullptr);
+    }
+}
+
 // La copie du document est prise ici, sur le fil principal ; le rendu et l'écriture tournent sur un fil
 // secondaire (jamais le cache de la vue).
 void FileExchange::exportPdf(const QUrl& url)
@@ -142,6 +152,7 @@ void FileExchange::exportPdf(const QUrl& url)
         return;
     }
     const QUrl target = localized(url);
+    settleEditing();
     watch(this, exporting::exportPdf(m_document->document(), target),
           [this, target](exporting::ExportResult r) {
               setBusy(false);
@@ -160,6 +171,7 @@ void FileExchange::exportPageImage(const QUrl& url)
     }
     const QUrl target = localized(url);
     const auto page = static_cast<std::size_t>(m_document->currentIndex());
+    settleEditing();
     watch(this, exporting::exportPageImage(m_document->document(), page, target),
           [this, target](exporting::ExportResult r) {
               setBusy(false);
@@ -273,6 +285,7 @@ void FileExchange::printThroughPdf()
     }
     const QUrl target = QUrl::fromLocalFile(file.fileName());
     file.close();
+    settleEditing();
     watch(this, exporting::exportPdf(m_document->document(), target),
           [this, target](exporting::ExportResult r) {
               setBusy(false);

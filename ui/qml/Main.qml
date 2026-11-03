@@ -517,7 +517,17 @@ Window {
         }
     }
 
+    // Les entrées d'import n'apparaissent aux menus que si elles peuvent servir.
+    Connections {
+        target: appExchange
+        function onConverterChanged() {
+            appCommands.setHidden("file.import-powerpoint-images", !appExchange.powerpointAvailable)
+        }
+    }
+
     Component.onCompleted: {
+        appCommands.setHidden("file.import-pdf", !appExchange.pdfImportAvailable)
+        appCommands.setHidden("file.import-powerpoint-images", !appExchange.powerpointAvailable)
         appCommands.setHandler("file.quit", function () { fileActions.quit() })
         appCommands.setHandler("file.new", function () { fileActions.newDocument(1024, 768) })
         appCommands.setHandler("file.new-screen", function () { fileActions.newDocument(root.screen.width, root.screen.height) })
