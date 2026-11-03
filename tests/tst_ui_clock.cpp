@@ -143,7 +143,7 @@ private slots:
         QTemporaryDir folder;
         QVERIFY(folder.isValid());
         QSignalSpy saved(controller, &DocumentController::saveFinished);
-        controller->saveToUrl(QUrl::fromLocalFile(folder.filePath(QStringLiteral("retablir.flipchart"))));
+        controller->saveToUrl(QUrl::fromLocalFile(folder.filePath(QStringLiteral("retablir.actcraft"))));
         QTRY_COMPARE_WITH_TIMEOUT(saved.count(), 1, 10000); // la page enregistrée devient la référence
         QVERIFY2(saved.at(0).at(0).toBool(), qPrintable(saved.at(0).at(1).toString()));
 
