@@ -1,0 +1,27 @@
+{
+ "format": "actcraft-scenario/1",
+ "name": "exporter",
+ "description": "S8 : un paperboard de deux pages exporté en image (page affichée) puis en PDF par les commandes de fichier, sans dialogue ; le PDF écrit est relu par l'import PDF, qui l'ouvre dans un nouvel onglet de deux pages.",
+ "steps": [
+  {"waitReady": true},
+  {"expect": "appTabs.count", "value": 1},
+  {"stroke": [[300, 300], [500, 300]], "pressure": 0.5},
+  {"waitReady": true},
+  {"command": "page.insert-after"},
+  {"expect": "documentController.pageCount", "value": 2},
+  {"command": "export.page-image", "argument": "${SORTIE}/page.png"},
+  {"waitFor": "appExchange.busy", "value": false, "timeoutMs": 15000},
+  {"command": "export.pdf", "argument": "${SORTIE}/sortie.pdf"},
+  {"waitFor": "appExchange.busy", "value": false, "timeoutMs": 15000},
+  {"expect": "appTabs.count", "value": 1},
+  {"capture": "avant-import"},
+  {"command": "file.import-pdf", "argument": "${SORTIE}/sortie.pdf"},
+  {"waitFor": "appTabs.count", "value": 2, "timeoutMs": 15000},
+  {"waitFor": "appExchange.busy", "value": false, "timeoutMs": 15000},
+  {"waitReady": true},
+  {"expect": "appTabs.currentIndex", "value": 1},
+  {"expect": "documentController.pageCount", "value": 2},
+  {"expect": "documentController.title", "value": "sortie"},
+  {"capture": "pdf-relu"}
+ ]
+}

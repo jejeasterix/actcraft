@@ -114,8 +114,9 @@ actcraft_add_test(tst_ui_tabs
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 # L5-T25
 actcraft_add_test(tst_ui_fileexchange
-    SOURCES tst_ui_fileexchange.cpp
+    SOURCES tst_ui_fileexchange.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_fileexchange PRIVATE ${PROJECT_SOURCE_DIR}/app)
 # L5-T28
 actcraft_add_test(tst_ui_printdialog
     SOURCES tst_ui_printdialog.cpp

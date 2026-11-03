@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Dialogs
 import ActCraft.Ui
 
 // Coquille (L5-T2) : dialogues de fichiers de l'export, de l'import et de l'insertion (choisir un fichier, puis
@@ -17,12 +18,56 @@ Item {
     }
     function chooseMedia() {
     }
+    // Nom proposé : le titre du paperboard (ses caractères interdits dans un nom de fichier deviennent « _ »),
+    // dans le dossier des documents.
+    function suggestion(suffix) {
+        const base = root.exchange.document.suggestedFileName.replace(/\.actcraft$/, "")
+        return root.exchange.document.defaultFolderUrl(true) + "/" + base.replace(/[\\\/:*?"<>|]/g, "_") + suffix
+    }
     function chooseExportPdf() {
+        exportPdfDialog.currentFile = root.suggestion(".pdf")
+        exportPdfDialog.open()
     }
     function chooseExportPageImage() {
+        exportImageDialog.currentFile = root.suggestion(".png")
+        exportImageDialog.open()
     }
     function chooseImportPdf() {
+        importPdfDialog.currentFolder = root.exchange.document.defaultFolderUrl(true)
+        importPdfDialog.open()
     }
     function chooseImportPowerpoint() {
+    }
+
+    // Les scénarios et les commandes avec argument n'ouvrent jamais ces boîtes (Main.qml) : l'URL va droit à
+    // FileExchange.
+    FileDialog {
+        id: exportPdfDialog
+        objectName: "exportPdfDialog"
+        title: qsTr("Exporter en PDF")
+        fileMode: FileDialog.SaveFile
+        defaultSuffix: "pdf"
+        nameFilters: [qsTr("Documents PDF (*.pdf)")]
+        onAccepted: root.exchange.exportPdf(selectedFile)
+        onVisibleChanged: visible ? root.popupOpened() : root.popupClosed()
+    }
+    FileDialog {
+        id: exportImageDialog
+        objectName: "exportImageDialog"
+        title: qsTr("Exporter la page en image")
+        fileMode: FileDialog.SaveFile
+        defaultSuffix: "png"
+        nameFilters: [qsTr("Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff)")]
+        onAccepted: root.exchange.exportPageImage(selectedFile)
+        onVisibleChanged: visible ? root.popupOpened() : root.popupClosed()
+    }
+    FileDialog {
+        id: importPdfDialog
+        objectName: "importPdfDialog"
+        title: qsTr("Importer un PDF")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [qsTr("Documents PDF (*.pdf)")]
+        onAccepted: root.exchange.importPdf(selectedFile)
+        onVisibleChanged: visible ? root.popupOpened() : root.popupClosed()
     }
 }
