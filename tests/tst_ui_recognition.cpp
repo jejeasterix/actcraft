@@ -8,6 +8,7 @@
 #include <actcraft/features/recognitionsession.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/toolhost.h>
 
 #include <QColor>
 #include <QTemporaryDir>
@@ -34,6 +35,7 @@ using actcraft::features::RecognitionSession;
 using actcraft::ui::Commands;
 using actcraft::ui::DocumentController;
 using actcraft::ui::RecognitionController;
+using actcraft::ui::ToolHost;
 using presentationharness::MainWindow;
 
 constexpr std::int64_t kNsPerMs = 1000000;
@@ -50,6 +52,12 @@ RecognitionController* recognitionOf(const MainWindow& main)
 {
     return main.window() ? main.window()->findChild<RecognitionController*>(QStringLiteral("recognition"))
                          : nullptr;
+}
+
+// Outils de l'utilisateur (lot 3) : la sélection passe par eux.
+ToolHost* toolsOf(const MainWindow& main)
+{
+    return main.window() ? main.window()->findChild<ToolHost*>() : nullptr;
 }
 
 // Trait du stylo tel que la vue le verse (DocumentController::commitStroke : origine Stroke).
@@ -530,6 +538,101 @@ private slots:
         QCOMPARE(recognition->pendingCount(), 0);
         QCOMPARE(countOf(*controller, core::ObjectKind::Shape), 1);
         QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 0);
+    }
+
+    // F-296 a posteriori : `recognition.convert-to-shape` agit sur les annotations SÉLECTIONNÉES, mode fermé
+    // ou non, en une étape. Cercle A tracé mode fermé (jamais en attente), sélectionné ; puis mode ouvert et
+    // cercle B tracé (en attente, non sélectionné) : seul A devient une forme, B reste un trait en attente.
+    // Sous l'ancien gestionnaire (convertPending) c'est B qui serait converti, et A resterait un trait.
+    void convertSelectionToShape()
+    {
+        std::int64_t now = 0;
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        DocumentController* controller = controllerOf(main);
+        RecognitionController* recognition = recognitionOf(main);
+        ToolHost* tools = toolsOf(main);
+        QVERIFY(controller != nullptr);
+        QVERIFY(recognition != nullptr);
+        QVERIFY(tools != nullptr);
+        recognition->setClock([&now] { return now; });
+        QVERIFY(!recognition->shapeMode());
+        QVERIFY(main.run(QStringLiteral("tool.select")));
+
+        controller->commitStroke(strokeThrough(circlePoints({400, 300}, 120))); // A
+        QCOMPARE(recognition->pendingCount(), 0);
+        tools->selectAll();
+        QTRY_COMPARE(tools->selectionCount(), 1);
+        recognition->setShapeMode(true);
+        controller->commitStroke(strokeThrough(circlePoints({800, 500}, 60))); // B
+        QCOMPARE(recognition->pendingCount(), 1);
+        QCOMPARE(tools->selectionCount(), 1); // B n'entre pas dans la sélection
+
+        QVERIFY(main.run(QStringLiteral("recognition.convert-to-shape")));
+        QCOMPARE(countOf(*controller, core::ObjectKind::Shape), 1);
+        QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 1);
+        QCOMPARE(recognition->pendingCount(), 1); // B attend toujours son délai
+        const core::PageObject* object = onlyShape(*controller);
+        QVERIFY(object != nullptr);
+        const core::Shape& shape = shapeOf(*object);
+        QVERIFY(shape.kind == core::ShapeKind::Ellipse);
+        const core::PointF centre = object->common.transform.map(
+            {shape.bounds.x + shape.bounds.width / 2, shape.bounds.y + shape.bounds.height / 2});
+        QVERIFY2(near(centre.x, 400, 6) && near(centre.y, 300, 6),
+                 qPrintable(QStringLiteral("%1, %2").arg(centre.x).arg(centre.y)));
+        QVERIFY(object->common.layer == core::Layer::Middle);
+
+        controller->undo(); // une étape : A revient en trait
+        QCOMPARE(countOf(*controller, core::ObjectKind::Shape), 0);
+        QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 2);
+    }
+
+    // F-295 a posteriori : `recognition.convert-to-text` reconnaît les annotations SÉLECTIONNÉES comme de
+    // l'écriture, mode écriture fermé, en une étape. Mot A tracé puis sélectionné, trait B tracé ensuite (non
+    // sélectionné) : seul A part au reconnaisseur et devient un texte, B reste un trait. Sous convertPending
+    // (aucun mode ouvert, rien en attente), rien ne serait converti.
+    void convertSelectionToText()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        DocumentController* controller = controllerOf(main);
+        RecognitionController* recognition = recognitionOf(main);
+        ToolHost* tools = toolsOf(main);
+        QVERIFY(controller != nullptr);
+        QVERIFY(recognition != nullptr);
+        QVERIFY(tools != nullptr);
+        const std::shared_ptr<FakeLog> log =
+            installFake(*recognition, true, {{QStringLiteral("bonjour"), QStringLiteral("bonjours")}});
+        if (!QTest::qWaitFor([recognition] { return recognition->handwritingAvailable(); }, 10000))
+            QSKIP("Sans reconnaisseur d'écriture : conversion en texte non vérifiée.");
+        QVERIFY(!recognition->handwritingMode());
+        QVERIFY(!recognition->shapeMode());
+        QVERIFY(main.run(QStringLiteral("tool.select")));
+
+        controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310))); // A
+        tools->selectAll();
+        QTRY_COMPARE(tools->selectionCount(), 1);
+        controller->commitStroke(strokeThrough(inkLine(700, 500, 800, 510))); // B
+        QCOMPARE(tools->selectionCount(), 1);
+        QCOMPARE(recognition->pendingCount(), 0);
+
+        QVERIFY(main.run(QStringLiteral("recognition.convert-to-text")));
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*controller, core::ObjectKind::Text), 1, 10000);
+        QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 1); // B
+        const std::vector<const core::PageObject*> texts = textsOf(*controller);
+        QVERIFY(htmlOf(*texts.front()).contains(QStringLiteral(">bonjour</p>")));
+        QVERIFY(texts.front()->common.layer == core::Layer::Middle);
+        QVERIFY(near(std::get<core::Text>(core::body(*texts.front())).bounds.x, 300, 1));
+        {
+            const std::lock_guard lock(log->mutex);
+            QCOMPARE(log->requests.size(), std::size_t{1});
+            QCOMPARE(log->requests.front().size(), std::size_t{1}); // le seul trait A
+            QVERIFY(near(log->requests.front().front().front().x(), 300, 1));
+        }
+
+        controller->undo(); // une étape : A revient en trait
+        QCOMPARE(countOf(*controller, core::ObjectKind::Text), 0);
+        QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 2);
     }
 
     // Cercles A puis B tracés, B annulé avant l'échéance : aucune conversion n'est poussée ensuite. Sinon la
