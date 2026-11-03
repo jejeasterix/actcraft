@@ -15,8 +15,12 @@ Item {
     signal popupClosed()
 
     function chooseImage() {
+        insertImageDialog.currentFolder = root.exchange.document.defaultFolderUrl(true)
+        insertImageDialog.open()
     }
     function chooseMedia() {
+        insertMediaDialog.currentFolder = root.exchange.document.defaultFolderUrl(true)
+        insertMediaDialog.open()
     }
     // Nom proposé : le titre du paperboard (ses caractères interdits dans un nom de fichier deviennent « _ »),
     // dans le dossier des documents.
@@ -43,6 +47,25 @@ Item {
 
     // Les scénarios et les commandes avec argument n'ouvrent jamais ces boîtes (Main.qml) : l'URL va droit à
     // FileExchange.
+    FileDialog {
+        id: insertImageDialog
+        objectName: "insertImageDialog"
+        title: qsTr("Insérer une image")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [qsTr("Images (*.png *.jpg *.jpeg *.bmp *.gif *.tif *.tiff *.svg)"), qsTr("Tous les fichiers (*)")]
+        onAccepted: root.insertion.insertImage(selectedFile)
+        onVisibleChanged: visible ? root.popupOpened() : root.popupClosed()
+    }
+    FileDialog {
+        id: insertMediaDialog
+        objectName: "insertMediaDialog"
+        title: qsTr("Insérer un média")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [qsTr("Sons et vidéos (*.mp3 *.wav *.ogg *.oga *.m4a *.aac *.flac *.opus *.mp4 *.m4v *.mov *.avi *.webm *.mkv *.mpg *.mpeg *.wmv)"),
+                      qsTr("Tous les fichiers (*)")]
+        onAccepted: root.insertion.insertMedia(selectedFile)
+        onVisibleChanged: visible ? root.popupOpened() : root.popupClosed()
+    }
     FileDialog {
         id: exportPdfDialog
         objectName: "exportPdfDialog"

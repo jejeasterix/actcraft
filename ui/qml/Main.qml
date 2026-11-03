@@ -147,6 +147,10 @@ Window {
         function onChanged() { root.syncGridCommands() }
     }
     Connections {
+        target: penModifierBar
+        function onVisibleChanged() { appCommands.setChecked("view.pen-modifiers", penModifierBar.visible) }
+    }
+    Connections {
         target: pageArea.pageExtensionHandle
         function onVisibleChanged() {
             appCommands.setChecked("view.page-extension", pageArea.pageExtensionHandle.visible)
@@ -359,7 +363,7 @@ Window {
         onClosed: root.popupClosed()
     }
 
-    // Lot 5 : menu d'édition d'objet, dialogues de fichiers, boîte d'impression et aperçu (talons).
+    // Lot 5 : menu d'édition d'objet, dialogues de fichiers et boîte d'impression (l'aperçu est dans la boîte).
     ObjectEditMenu {
         id: objectEditMenu
         objectName: "objectEditMenu"
@@ -384,11 +388,6 @@ Window {
         exchange: appExchange
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
-    }
-    SheetPreview {
-        id: sheetPreview
-        objectName: "sheetPreview"
-        printing: appPrint
     }
 
     // « Menu principal » (F-122) : les mêmes menus que la ligne supérieure.
@@ -630,7 +629,7 @@ Window {
             appDocument.loadGeneratedFirstPage()
     }
 
-    // Lot 5 : un gestionnaire par commande, une ligne vers sa cible chacune (corps talons jusqu'à leur tâche).
+    // Lot 5 : un gestionnaire par commande, une ligne vers sa cible chacune.
     function setLot5Handlers() {
         appCommands.setHandler("edit.cut", function () { appEditing.cut() })
         appCommands.setHandler("edit.copy", function () { appEditing.copy() })
@@ -663,6 +662,7 @@ Window {
                 appTools.setConnectorStyle(Number(rank))
         })
         appCommands.setHandler("view.pen-modifiers", function () { penModifierBar.visible = !penModifierBar.visible })
+        appCommands.setChecked("view.pen-modifiers", penModifierBar.visible)
         appCommands.setHandler("insert.image", function (url) {
             if (root.hasArgument(url))
                 appInsertion.insertImage(url)
@@ -677,7 +677,16 @@ Window {
         })
         appCommands.setHandler("tab.next", function () { appTabs.next() })
         appCommands.setHandler("tab.previous", function () { appTabs.previous() })
-        appCommands.setHandler("view.tabs", function (position) { appTabs.position = position })
+        // Sans argument (le clic du menu) : position suivante ; avec argument : seulement une position connue.
+        appCommands.setHandler("view.tabs", function (position) {
+            const positions = ["top", "bottom", "hidden"]
+            if (root.hasArgument(position)) {
+                if (positions.indexOf(String(position)) >= 0)
+                    appTabs.position = String(position)
+            } else {
+                appTabs.position = positions[(positions.indexOf(appTabs.position) + 1) % positions.length]
+            }
+        })
         appCommands.setHandler("export.page-image", function (url) {
             if (root.hasArgument(url))
                 appExchange.exportPageImage(url)

@@ -1094,12 +1094,19 @@ private slots:
         QVERIFY(start(s));
         for (const char* name : {"appEditing", "appInsertion", "appTabs", "appExchange", "appPrint",
                                  "objectEditMenu", "penModifierBar", "connectorPanel", "documentTabBar",
-                                 "fileExchangeActions", "printSetupDialog", "sheetPreview"}) {
+                                 "fileExchangeActions", "printSetupDialog"}) {
             const QString objectName = QString::fromLatin1(name);
             QVERIFY2(s.window->findChild<QObject*>(objectName) != nullptr ||
                          findItem(s.window->contentItem(), objectName),
                      name);
         }
+        // L5-C19 : l'aperçu de la feuille n'est plus gardé à la racine ; il vit dans la boîte d'impression.
+        QObject* printDialog = s.window->findChild<QObject*>(QStringLiteral("printSetupDialog"));
+        QVERIFY(printDialog);
+        const auto parts = printDialog->findChildren<QObject*>();
+        QVERIFY(std::any_of(parts.begin(), parts.end(), [](QObject* part) {
+            return QByteArray(part->metaObject()->className()).startsWith("SheetPreview");
+        }));
         QVERIFY(s.window->findChild<ui::ObjectEditing*>(QStringLiteral("appEditing")));
         QVERIFY(s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs")));
     }
