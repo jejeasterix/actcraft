@@ -805,6 +805,65 @@ private slots:
         QCOMPARE(tabs->rowCount(), 2);
     }
 
+    // L5-C19 (M20) : fermer un onglet modifié, « Enregistrer », écriture réussie : l'onglet se ferme.
+    void closingAModifiedTabThenSavingClosesIt()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QTemporaryDir root;
+        auto* doc = controller(s);
+        doc->setDocumentsRoot(root.path());
+        auto* tabs = tabsOf(s);
+        QObject* ask = namedObject(s, "tabSaveChangesDialog");
+        QVERIFY(tabs && ask);
+        const QString path = root.filePath(QStringLiteral("a.actcraft"));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(run(s, QStringLiteral("file.save-as"), path));
+        QTRY_VERIFY(!doc->isBusy() && !doc->isModified());
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        tabs->newTab(); // le document modifié, avec fichier, est garé dans l'onglet 0
+        QCOMPARE(tabs->rowCount(), 2);
+        tabs->requestClose(0);
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        QVERIFY(QMetaObject::invokeMethod(ask, "save"));
+        QVERIFY(saved.wait(10000));
+        QTRY_COMPARE(tabs->rowCount(), 1);
+    }
+
+    // L5-C19 (M20) : « Enregistrer » à la fermeture pendant une écriture, puis une modification pendant
+    // celle-ci : la première fin d'écriture laisse le document modifié, l'enregistrement attendu repart ; la
+    // fermeture attend sa fin à lui, quel que soit l'ordre de connexion des deux gestionnaires de fin.
+    void closeWaitsForTheRelaunchedSaveWhenEditedDuringAWrite()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QTemporaryDir root;
+        auto* doc = controller(s);
+        doc->setDocumentsRoot(root.path());
+        auto* tabs = tabsOf(s);
+        QObject* ask = namedObject(s, "tabSaveChangesDialog");
+        QVERIFY(tabs && ask);
+        const QString path = root.filePath(QStringLiteral("b.actcraft"));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(run(s, QStringLiteral("file.save-as"), path));
+        QTRY_VERIFY(!doc->isBusy() && !doc->isModified());
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        tabs->newTab();
+        tabs->requestClose(0);
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        PoolHold pool;
+        QVERIFY(pool.held());
+        QVERIFY(run(s, QStringLiteral("file.save"))); // une écriture est en cours
+        QVERIFY(doc->isBusy());
+        QVERIFY(QMetaObject::invokeMethod(ask, "save")); // « Enregistrer » : attend la fin de l'écriture
+        QVERIFY(run(s, QStringLiteral("page.insert-after")));       // modification pendant l'écriture
+        pool.release();
+        QTRY_COMPARE_WITH_TIMEOUT(saved.count(), 2, 20000); // l'écriture, puis celle qui était attendue
+        QTRY_COMPARE_WITH_TIMEOUT(tabs->rowCount(), 1, 20000);
+    }
+
     void newSizesComeFromTheirCommands()
     {
         Shell s;
