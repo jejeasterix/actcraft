@@ -366,12 +366,14 @@ private slots:
         QCOMPARE(e.value("no_more_freezes").toBool(false), true);
         // Au budget : 12 / 10 = 1,2 passe ; au-dessus du seuil de mémoire : faux.
         background.inkP95Ms = 12.0;
+        background.freezes = 2; // un figement de plus que « stroke »
         stats.memoryDeltaMb = 20.0;
         result.scenarios[1].tabs = stats;
         result.scenarios[2].exportBackground = background;
         const QJsonArray again = bench::toJson(result).value("scenarios").toArray();
         const QJsonObject e2 = again.at(2).toObject().value("export_background").toObject();
         QCOMPARE(e2.value("within_ratio").toBool(false), true);
+        QCOMPARE(e2.value("no_more_freezes").toBool(true), false);
         const QJsonObject t2 = again.at(1).toObject().value("tabs").toObject();
         QCOMPARE(t2.value("memory_within_budget").toBool(true), false);
     }
