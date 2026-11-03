@@ -285,7 +285,8 @@ private slots:
         QVERIFY(run(s, QStringLiteral("page.next")));
         QVERIFY(
             run(s, QStringLiteral("file.close"))); // L5-C10 : « Nouveau » n'écrase plus, « Fermer » demande
-        QObject* dialog = namedObject(s, "tabSaveChangesDialog"); // L5-C11 : Fermer suit le chemin de la croix
+        QObject* dialog =
+            namedObject(s, "tabSaveChangesDialog"); // L5-C11 : Fermer suit le chemin de la croix
         QVERIFY(dialog);
         QTRY_VERIFY(dialog->property("visible").toBool());
         QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
@@ -419,7 +420,7 @@ private slots:
         QVERIFY(dialog && actions);
         QVERIFY(run(s, QStringLiteral("file.quit")));
         QTRY_VERIFY(dialog->property("visible").toBool());
-        QCOMPARE(tabs->currentIndex(), 0); // l'onglet garé est montré avant la demande
+        QCOMPARE(tabs->currentIndex(), 0);                     // l'onglet garé est montré avant la demande
         QVERIFY(QMetaObject::invokeMethod(dialog, "discard")); // « Ne pas enregistrer » : le suivant
         QTRY_VERIFY(dialog->property("visible").toBool());
         QCOMPARE(tabs->currentIndex(), 1);
@@ -474,7 +475,8 @@ private slots:
         QVERIFY(tabs->data(tabs->index(0), ui::DocumentTabs::ModifiedRole).toBool());
     }
 
-    // L5-C11 : « Enregistrer » d'un sans-titre ouvre « Enregistrer sous » ; son annulation abandonne la sortie.
+    // L5-C11 : « Enregistrer » d'un sans-titre ouvre « Enregistrer sous » ; son annulation abandonne la
+    // sortie.
     void quitSaveAsCancelledAbandonsTheQuit()
     {
         Shell s;
@@ -496,7 +498,8 @@ private slots:
         QVERIFY(doc->isModified());
     }
 
-    // L5-C11 : « Fermer » ferme l'onglet affiché, comme sa croix ; le dernier devient un « Sans titre » vierge.
+    // L5-C11 : « Fermer » ferme l'onglet affiché, comme sa croix ; le dernier devient un « Sans titre »
+    // vierge.
     void closeClosesTheShownTab()
     {
         Shell s;
@@ -549,10 +552,12 @@ private slots:
         QQuickItem* text = item(s, "messageText");
         QVERIFY(exchange && banner && text);
         QVERIFY(!banner->isVisible());
-        QVERIFY(QMetaObject::invokeMethod(exchange, "failed", Q_ARG(QString, QStringLiteral("export échoué"))));
+        QVERIFY(
+            QMetaObject::invokeMethod(exchange, "failed", Q_ARG(QString, QStringLiteral("export échoué"))));
         QTRY_VERIFY(banner->isVisible());
         QCOMPARE(text->property("text").toString(), QStringLiteral("export échoué"));
-        QVERIFY(QMetaObject::invokeMethod(exchange, "finished", Q_ARG(QString, QStringLiteral("export fini"))));
+        QVERIFY(
+            QMetaObject::invokeMethod(exchange, "finished", Q_ARG(QString, QStringLiteral("export fini"))));
         QTRY_COMPARE(text->property("text").toString(), QStringLiteral("export fini"));
     }
 
