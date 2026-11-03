@@ -1128,16 +1128,16 @@ private slots:
         QTRY_VERIFY(bar->isVisible());
         QVERIFY(bar->height() > 0);
         QCOMPARE(tabs->position(), QStringLiteral("top"));
-        QVERIFY(qAbs(topOf(bar) - bottomOf(top)) <= 1);          // sous la ligne supérieure
-        QVERIFY(topOf(s.view) >= bottomOf(bar) - 1);              // la page sous la barre
-        QVERIFY(topOf(textBar) >= bottomOf(bar) - 1);             // les barres de texte aussi
+        QVERIFY(qAbs(topOf(bar) - bottomOf(top)) <= 1); // sous la ligne supérieure
+        QVERIFY(topOf(s.view) >= bottomOf(bar) - 1);    // la page sous la barre
+        QVERIFY(topOf(textBar) >= bottomOf(bar) - 1);   // les barres de texte aussi
         QVERIFY(topOf(verticalBar) >= bottomOf(bar) - 1);
 
         tabs->setPosition(QStringLiteral("bottom"));
-        QTRY_VERIFY(qAbs(bottomOf(bar) - windowHeight) <= 1);     // en bas de la fenêtre
+        QTRY_VERIFY(qAbs(bottomOf(bar) - windowHeight) <= 1); // en bas de la fenêtre
         QVERIFY(bar->isVisible());
-        QVERIFY(bottomOf(s.view) <= topOf(bar) + 1);              // la page au-dessus
-        QVERIFY(qAbs(topOf(textBar) - bottomOf(top)) <= 1);       // barres de texte sous la ligne supérieure
+        QVERIFY(bottomOf(s.view) <= topOf(bar) + 1);        // la page au-dessus
+        QVERIFY(qAbs(topOf(textBar) - bottomOf(top)) <= 1); // barres de texte sous la ligne supérieure
 
         tabs->setPosition(QStringLiteral("hidden"));
         QTRY_VERIFY(!bar->isVisible());
@@ -1167,8 +1167,8 @@ private slots:
         QVERIFY(ready(s));
     }
 
-    // L5-T21 : « titre* » composé depuis ModifiedRole, gras pour l'onglet affiché ; la croix ferme sans demande un
-    // onglet propre, ouvre la boîte d'enregistrement pour un onglet modifié.
+    // L5-T21 : « titre* » composé depuis ModifiedRole, gras pour l'onglet affiché ; la croix ferme sans
+    // demande un onglet propre, ouvre la boîte d'enregistrement pour un onglet modifié.
     void tabLabelsAndCloseButtons()
     {
         Shell s;
@@ -1190,8 +1190,9 @@ private slots:
         const auto click = [&](const char* name) {
             QQuickItem* target = item(s, name);
             QVERIFY2(target, name);
-            QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier,
-                              target->mapToScene(QPointF(target->width() / 2, target->height() / 2)).toPoint());
+            QTest::mouseClick(
+                s.window, Qt::LeftButton, Qt::NoModifier,
+                target->mapToScene(QPointF(target->width() / 2, target->height() / 2)).toPoint());
         };
         click("documentTabClose1"); // modifié : la boîte s'ouvre, l'onglet reste
         QObject* dialog = s.window->findChild<QObject*>(QStringLiteral("tabSaveChangesDialog"));
