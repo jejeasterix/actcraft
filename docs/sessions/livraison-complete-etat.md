@@ -775,6 +775,10 @@ PR #9 https://github.com/jejeasterix/actcraft/pull/9 (créée en brouillon le 20
 
 - **L5-C25 mergée le 2026-11-03** (merge 6bed841 ; 6c2a5f2 rouge, 1c77087, f4d2476 ; base 602ec5c) : `CommandMenu.syncEntries()` ne recrée rien si le contenu est identique ; cas `tst_ui_commands::layoutChangeKeepsUnchangedMenuEntries` (N = 164 inchangé) ; délais CI `build` 50 → 90 min, `paquet-windows` 15 → 25 min. Rejeu de A : 164/164, 0 avertissement, mutation rouge puis verte, `PREUVE OK` ; Mac `tst_ui_shapes` 5,7 → 3,4 s, `tst_ui_escape` 2,8 → 1,7 s, `tst_ui_filemenu` 19,8 → 13,7 s. Reste ≈ +0,06 s par fenêtre par rapport au lot 4 (menus du lot 5). Windows non vérifié : la CI le dira.
 
+- **CI de la PR #9 rouge sur a572f9a (run 41728289492)** : délais tenus (suite Windows 37 min, `paquet-windows` vert) ; 169/170, `tst_ui_import` rouge sans sortie. Preuve Windows debug avec Qt PDF (branche jetable `diag/import-win`, workflow `preuves-windows.yml` + `qtpdf`, run 41736774526) : `importEntryHiddenWithoutConverter()` `s.start()` faux — PATH réduit à un dossier vide, DLL de Qt introuvables sous Windows. Note : `preuves-windows.yml` n'installe pas `qtpdf`, ses cas d'import y sont sautés (run 41735536775 vert pour rien) ; à corriger hors lot.
+
+- **L5-C26 mergée le 2026-11-04** (merge 7d0e4ef ; b583253 ; base a572f9a) : `pathWithoutConverter()` dans `tests/tst_ui_import.cpp` garde sous Windows les dossiers de Qt, de l'exécutable et System32 (sans soffice) ; Mac inchangé. Pas de rouge Mac (défaut Windows seul, rouge prouvé par la CI). Rejeu de A : 164/164, `tst_ui_import` 8/8, `PREUVE OK` ; preuve Windows avec Qt PDF run 41738433016 `PREUVES WINDOWS OK`. Branche jetable supprimée.
+
 ## Rapport du lot 5
 
 Lot 5 « Édition et fichiers » (plans 5a et 5b, L5-T0 à L5-T33, correctifs L5-C2 et C4 à C23, simplification L5-T34 ; L5-C3 au PC, H5-18). Clôture menée sur le Mac seul (2026-11-03).
