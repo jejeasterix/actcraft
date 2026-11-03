@@ -205,6 +205,25 @@ void RecognitionController::setDocumentController(DocumentController* controller
     emit documentControllerChanged();
 }
 
+ToolHost* RecognitionController::tools() const noexcept
+{
+    return m_tools;
+}
+
+void RecognitionController::setTools(ToolHost* tools)
+{
+    if (m_tools == tools) {
+        return;
+    }
+    m_tools = tools;
+    emit toolsChanged();
+}
+
+std::vector<core::ObjectId> RecognitionController::selectedObjects() const
+{
+    return m_tools ? m_tools->user().selection() : std::vector<core::ObjectId>{};
+}
+
 bool RecognitionController::shapeMode() const noexcept
 {
     return m_shapeMode;
@@ -444,6 +463,36 @@ void RecognitionController::convertPending()
     emit pendingCountChanged();
     dispatch(pending);
     updateTimer();
+}
+
+void RecognitionController::convertToShape()
+{
+    // A posteriori (F-296) : la sélection d'abord, quel que soit le mode ; les traits en attente qui n'en
+    // sont pas gardent leur délai.
+    const std::vector<core::ObjectId> selected = selectedObjects();
+    if (selected.empty()) {
+        convertPending();
+        return;
+    }
+    recognizeShapes(selected);
+}
+
+void RecognitionController::convertToText()
+{
+    if (!m_thread || !m_available) {
+        return; // aucun reconnaisseur : rien n'est lu, rien n'est retiré de la session
+    }
+    std::vector<core::ObjectId> strokes = selectedObjects(); // a posteriori (F-295), quel que soit le mode
+    if (strokes.empty()) {
+        strokes = m_session.pending();
+        if (strokes.empty()) {
+            return;
+        }
+        m_session.clear();
+        emit pendingCountChanged();
+        updateTimer();
+    }
+    recognizeHandwriting(strokes);
 }
 
 void RecognitionController::onChanges(const core::Changes& applied, DocumentController::ChangeOrigin origin)

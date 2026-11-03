@@ -21,6 +21,7 @@ Item {
         id: recognitionController
         objectName: "recognition"
         documentController: root.documentController
+        tools: root.tools
     }
 
     FloatingPanel {
@@ -79,7 +80,10 @@ Item {
             recognitionController.handwritingMode = !recognitionController.handwritingMode
         })
         root.commands.setHandler("recognition.convert-to-shape", function () {
-            recognitionController.convertPending()
+            recognitionController.convertToShape() // la sélection, sinon les traits en attente
+        })
+        root.commands.setHandler("recognition.convert-to-text", function () {
+            recognitionController.convertToText()
         })
         syncChecked()
         root.commands.setEnabled("tool.handwriting", recognitionController.handwritingAvailable)
