@@ -98,6 +98,21 @@ QStringList importEntries(const ui::Commands& commands)
     return out;
 }
 
+// Vrai si l'entrée figure quelque part dans les menus (sous-menus compris).
+bool inMenus(const QVariantList& items, const QString& id)
+{
+    for (const QVariant& v : items) {
+        const QVariantMap m = v.toMap();
+        if (m.value(QStringLiteral("id")).toString() == id) {
+            return true;
+        }
+        if (inMenus(m.value(QStringLiteral("items")).toList(), id)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace
 
 class TestUiImport : public QObject
@@ -115,6 +130,34 @@ private slots:
         for (const char* variable : {"TMPDIR", "TMP", "TEMP"}) {
             qunsetenv(variable);
         }
+    }
+
+    // L5-C13 : l'entrée « Présentation en images » n'est dans le menu que si un convertisseur existe.
+    void importEntryHiddenWithoutConverter()
+    {
+        if (!exporting::pdfImportAvailable()) {
+            QSKIP("Qt PDF absent : import PDF indisponible dans cette construction");
+        }
+        const QString id = QStringLiteral("file.import-powerpoint-images");
+        {
+            Shell s;
+            QVERIFY(s.start());
+            auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+            QVERIFY(commands);
+            QVERIFY(!s.exchange->powerpointAvailable());
+            QVERIFY(!inMenus(commands->menus(), id));
+            QVERIFY(inMenus(commands->menus(), QStringLiteral("file.import-pdf")));
+            // Le convertisseur apparaît, et l'objet l'annonce : l'entrée revient.
+            qputenv("ACTCRAFT_OFFICE_CONVERTER", fakeConverter(fixturePdf()));
+            emit s.exchange->converterChanged();
+            QVERIFY(inMenus(commands->menus(), id));
+        }
+        qputenv("ACTCRAFT_OFFICE_CONVERTER", fakeConverter(fixturePdf()));
+        Shell s;
+        QVERIFY(s.start());
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands);
+        QVERIFY(inMenus(commands->menus(), id));
     }
 
     void fixtureHasTwoPages()

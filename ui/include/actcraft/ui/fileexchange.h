@@ -46,6 +46,7 @@ signals:
     void failed(QString message);
 
 private:
+    void settleEditing();
     void setBusy(bool busy);
     // Un travail à la fois (`busy`) ; refus visible (`failed`) sinon. Vrai si le travail peut partir.
     bool begin();
