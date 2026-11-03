@@ -233,6 +233,39 @@ private slots:
         QCOMPARE(stroke->points[2].y, 100.0);
     }
 
+    // Choisir une couleur ou une épaisseur rappelle setShape avec le même tracé : la polyligne en cours reste.
+    void sameShapeKeepsThePolylineInProgress()
+    {
+        Harness h;
+        h.tool.setShape(core::PenShape::Polyline);
+        h.click(10, 10, 0);
+        h.click(100, 10, 1'000'000'000);
+        QVERIFY(h.tool.isBusy());
+        const int clears = h.lift.clears;
+        h.tool.setShape(core::PenShape::Polyline); // même tracé
+        QVERIFY(h.tool.isBusy());
+        QCOMPARE(h.lift.clears, clears);
+        h.click(100, 100, 2'000'000'000);
+        h.click(100, 100, 2'100'000'000); // double clic : termine
+        QCOMPARE(h.doc.executed, 1);
+        const core::Stroke* stroke = h.lastStroke();
+        QVERIFY(stroke != nullptr);
+        QCOMPARE(stroke->points.size(), std::size_t(3));
+    }
+
+    // Un autre tracé abandonne bien celui en cours.
+    void otherShapeResetsTheTool()
+    {
+        Harness h;
+        h.tool.setShape(core::PenShape::Polyline);
+        h.click(10, 10, 0);
+        h.click(100, 10, 1'000'000'000);
+        QVERIFY(h.tool.isBusy());
+        h.tool.setShape(core::PenShape::Circle);
+        QVERIFY(!h.tool.isBusy());
+        QCOMPARE(h.doc.executed, 0);
+    }
+
     void escapeAbandonsThePolyline()
     {
         Harness h;

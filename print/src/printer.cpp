@@ -27,6 +27,7 @@ namespace {
 constexpr int kPainterDotsPerMeter = 3780;
 constexpr double kPainterDpi = 96.0;
 constexpr double kMmPerInch = 25.4;
+thread_local std::size_t g_decodedImages = 0;
 #if defined(ACTCRAFT_PRINT)
 // Plafond de la feuille en image : A4 à 300 ppp ≈ 8,7 Mpx (35 Mo en couleur) ; au-delà, la mémoire croît sans
 // gain visible pour une page de tableau blanc.
@@ -160,6 +161,7 @@ void paintPagesSheet(QPainter& p, const core::Document& document, const core::Sh
 {
     // Images du document en pleine résolution (jamais celles, réduites, des miniatures).
     const render::DecodedImages images = render::decodeImages(document);
+    g_decodedImages = images.size();
     const render::ImageLookup lookup = images.lookup();
     const double unitPerPx = kPainterDpi / kMmPerInch / pxPerMm;
     for (const core::SheetCell& cell : sheet.cells) {
@@ -225,6 +227,11 @@ QString defaultPrinterName()
 #endif
 }
 
+std::size_t lastSheetDecodedImageCount()
+{
+    return g_decodedImages;
+}
+
 // L'unique composition d'une feuille : l'aperçu (L5-T28) et l'impression l'appellent tous deux.
 QImage renderSheet(const core::Document& document, const core::Sheet& sheet,
                    const core::PrintSettings& settings, core::SizeF sheetMm, int dpi)
@@ -240,6 +247,7 @@ QImage renderSheet(const core::Document& document, const core::Sheet& sheet,
     image.setDotsPerMeterX(kPainterDotsPerMeter);
     image.setDotsPerMeterY(kPainterDotsPerMeter);
     image.fill(Qt::white);
+    g_decodedImages = 0;
     {
         QPainter p(&image);
         p.setRenderHint(QPainter::Antialiasing, true);
