@@ -9,6 +9,7 @@
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QFutureWatcher>
+#include <QPointer>
 #include <QTextDocument>
 #include <QThread>
 #include <QtConcurrent>
@@ -16,6 +17,7 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -256,25 +258,47 @@ void Insertion::start(std::vector<InsertionJob> jobs)
     // Document et page devant lesquels l'insertion est demandée : un changement d'onglet pendant le décodage
     // ne doit pas verser l'image dans l'autre.
     const std::uint64_t generation = m_document->generation();
-    const std::size_t originPage = static_cast<std::size_t>(m_document->currentIndex());
-    connect(watcher, &QFutureWatcher<Result>::finished, this, [this, watcher, generation, originPage]() {
-        Result result = watcher->result();
-        watcher->deleteLater();
-        m_lastOff = result.offMainThread;
-        int count = 0;
-        if (m_document != nullptr && !result.items.empty()) {
-            if (m_document->generation() == generation && originPage < m_document->document().pageCount())
-                count = place(*m_document, result.items, originPage);
-            else if (result.error.isEmpty())
-                result.error = QStringLiteral("Insertion abandonnée : le document affiché a changé.");
+    // La page d'origine est suivie par les changements de pages (insertion, retrait) : son indice se décale,
+    // ou elle disparaît (retirée ou déplacée) et l'image est abandonnée (H5-32, L5-C23).
+    auto origin =
+        std::make_shared<std::optional<std::size_t>>(static_cast<std::size_t>(m_document->currentIndex()));
+    QPointer<DocumentController> watched = m_document;
+    const int token = m_document->addChangeObserver([origin](const core::Changes& changes, auto) {
+        for (const core::Change& change : changes) {
+            if (!*origin)
+                return;
+            if (change.kind == core::Change::Kind::PageInserted && change.page <= **origin)
+                ++**origin;
+            else if (change.kind == core::Change::Kind::PageRemoved) {
+                if (change.page == **origin)
+                    origin->reset();
+                else if (change.page < **origin)
+                    --**origin;
+            }
         }
-        if (--m_pending == 0)
-            emit busyChanged();
-        if (!result.error.isEmpty())
-            emit failed(result.error);
-        if (count > 0)
-            emit inserted(count);
     });
+    connect(watcher, &QFutureWatcher<Result>::finished, this,
+            [this, watcher, generation, origin, watched, token]() {
+                Result result = watcher->result();
+                watcher->deleteLater();
+                if (watched)
+                    watched->removeChangeObserver(token);
+                m_lastOff = result.offMainThread;
+                int count = 0;
+                if (m_document != nullptr && !result.items.empty()) {
+                    if (m_document->generation() == generation && *origin &&
+                        **origin < m_document->document().pageCount())
+                        count = place(*m_document, result.items, **origin);
+                    else if (result.error.isEmpty())
+                        result.error = QStringLiteral("Insertion abandonnée : le document affiché a changé.");
+                }
+                if (--m_pending == 0)
+                    emit busyChanged();
+                if (!result.error.isEmpty())
+                    emit failed(result.error);
+                if (count > 0)
+                    emit inserted(count);
+            });
     watcher->setFuture(
         QtConcurrent::run([jobs = std::move(jobs), mainThread]() { return work(jobs, mainThread); }));
 }

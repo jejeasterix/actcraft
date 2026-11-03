@@ -693,6 +693,10 @@ void ToolHost::ensureSettings()
                 .toBool();
     }
     user().setShapeSettings(shape);
+    const int styleBefore =
+        m_connectorStyle; // L5-C23 : un panneau déjà lié relit la mémoire à la première lecture
+    const int capABefore = m_connectorCapA;
+    const int capBBefore = m_connectorCapB;
     m_connectorStyle = 0;
     m_connectorCapA = 0;
     m_connectorCapB = 0;
@@ -743,6 +747,9 @@ void ToolHost::ensureSettings()
         for (const auto& entry : m_adapters->tools) {
             configureTool(entry.second.get());
         }
+    }
+    if (styleBefore != m_connectorStyle || capABefore != m_connectorCapA || capBBefore != m_connectorCapB) {
+        emit settingsChanged();
     }
 }
 
