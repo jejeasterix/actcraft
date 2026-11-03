@@ -1148,7 +1148,18 @@ BenchResult Runner::run(QQuickWindow* window)
             tabsSetup->switchMs = result.scenarios.back().tabs->switchMs;
             result.scenarios.back().tabs = tabsSetup;
         }
-        if (result.scenarios.back().exportBackground) { // référence : « stroke » du même passage
+        if (result.scenarios.back().exportBackground) { // références du même passage
+            const auto baseline = std::find_if(result.scenarios.begin(), result.scenarios.end(),
+                                               [](const ScenarioResult& r) {
+                                                   return r.name == QLatin1String("export-fond-reference");
+                                               });
+            ExportBackgroundStats& ex = *result.scenarios.back().exportBackground;
+            if (baseline == result.scenarios.end() || !baseline->latency) {
+                result.invalidReasons << QStringLiteral("error: no baseline reference for %1").arg(plan.name);
+            } else {
+                ex.baselineInkP95Ms = baseline->latency->total.p95;
+                ex.baselineFreezes = static_cast<int>(baseline->intervals.freezeOverLimit);
+            }
             const auto stroke =
                 std::find_if(result.scenarios.begin(), result.scenarios.end(),
                              [](const ScenarioResult& r) { return r.name == QLatin1String("stroke"); });
