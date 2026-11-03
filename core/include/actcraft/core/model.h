@@ -57,6 +57,8 @@ struct Transform
 
 // `first` appliquée d'abord, puis `second` (QTransform : first * second).
 Transform compose(const Transform& first, const Transform& second) noexcept;
+// Inverse de `t` ; rien si elle n'existe pas (déterminant nul ou non fini).
+std::optional<Transform> inverted(const Transform& t) noexcept;
 Transform translation(double dx, double dy) noexcept;
 Transform scaling(double sx, double sy) noexcept;
 // Degrés, sens horaire à l'écran (y vers le bas), comme QTransform::rotate ; angles droits exacts.

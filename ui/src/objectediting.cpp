@@ -3,6 +3,7 @@
 #include <actcraft/core/clipboardedits.h>
 #include <actcraft/core/connectors.h>
 #include <actcraft/core/edits.h>
+#include <actcraft/core/hittest.h>
 #include <actcraft/core/objectflags.h>
 #include <actcraft/formats/clipboard.h>
 #include <actcraft/ui/insertion.h>
@@ -17,6 +18,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <variant>
@@ -108,14 +110,10 @@ void selectNewObjects(DocumentController& document, ToolHost* tools, const std::
         tools->selectObjects(fresh);
 }
 
-void run(DocumentController& document, std::unique_ptr<core::UndoCommand> command, bool followConnectors)
+void run(DocumentController& document, std::unique_ptr<core::UndoCommand> command)
 {
-    if (!command)
-        return;
-    if (followConnectors)
-        command =
-            core::withFollowingConnectors(shownPage(document), shownIndex(document), std::move(command));
-    document.execute(std::move(command));
+    if (command)
+        document.execute(std::move(command)); // le suivi des connecteurs est fait par execute (L5-C18)
 }
 
 bool isGroup(const core::PageObject& object)
@@ -300,7 +298,7 @@ void ObjectEditing::cut()
         return;
     }
     copy();
-    run(*m_document, core::makeCutCommand(shownPage(*m_document), shownIndex(*m_document), ids), true);
+    run(*m_document, core::makeCutCommand(shownPage(*m_document), shownIndex(*m_document), ids));
     m_tools->clearSelection();
 }
 
@@ -372,20 +370,16 @@ void ObjectEditing::pasteAt(QPointF pagePoint)
             paste();
         return;
     }
-    bool any = false;
-    double left = 0, top = 0, right = 0, bottom = 0;
+    std::optional<core::RectF> united;
     for (const core::PageObject& object : payload->objects) {
         if (isGroup(object) || !core::hasExtent(object))
             continue;
         const core::RectF b = core::boundsOnPage(object);
-        left = any ? std::min(left, b.x) : b.x;
-        top = any ? std::min(top, b.y) : b.y;
-        right = any ? std::max(right, b.x + b.width) : b.x + b.width;
-        bottom = any ? std::max(bottom, b.y + b.height) : b.y + b.height;
-        any = true;
+        united = united ? core::enclosingRect(*united, b) : b;
     }
-    pastePayload(*m_document, m_tools, std::move(*payload), pagePoint.x() - (left + right) / 2,
-                 pagePoint.y() - (top + bottom) / 2, nullptr);
+    const core::PointF center = united ? united->center() : core::PointF{0, 0};
+    pastePayload(*m_document, m_tools, std::move(*payload), pagePoint.x() - center.x,
+                 pagePoint.y() - center.y, nullptr);
 }
 
 void ObjectEditing::pasteOnto()
@@ -413,7 +407,7 @@ void ObjectEditing::duplicate()
         return;
     }
     const std::set<ObjectId> before = idsOf(shownPage(*m_document));
-    run(*m_document, core::makeDuplicateCommand(shownPage(*m_document), shownIndex(*m_document), ids), false);
+    run(*m_document, core::makeDuplicateCommand(shownPage(*m_document), shownIndex(*m_document), ids));
     selectNewObjects(*m_document, m_tools, before);
 }
 
@@ -430,12 +424,12 @@ void ObjectEditing::toggleGroup()
         for (const ObjectId id : ids)
             if (const auto* group = std::get_if<core::Group>(&core::body(*find(page, id))))
                 members.insert(members.end(), group->members.begin(), group->members.end());
-        run(*m_document, core::makeUngroupCommand(page, shownIndex(*m_document), ids), false);
+        run(*m_document, core::makeUngroupCommand(page, shownIndex(*m_document), ids));
         m_tools->selectObjects(members);
         return;
     }
     const std::set<ObjectId> before = idsOf(page);
-    run(*m_document, core::makeGroupCommand(page, shownIndex(*m_document), ids), false);
+    run(*m_document, core::makeGroupCommand(page, shownIndex(*m_document), ids));
     selectNewObjects(*m_document, m_tools, before);
 }
 
@@ -463,11 +457,10 @@ void ObjectEditing::arrange(const QString& how)
         for (const core::PageObject& object : page.objects)
             current.push_back(object.common.id);
         if (order != current)
-            run(*m_document, std::make_unique<core::ReorderObjectsCommand>(index, std::move(order)), false);
+            run(*m_document, std::make_unique<core::ReorderObjectsCommand>(index, std::move(order)));
     } else if (const auto layer = layers.find(how); layer != layers.end()) {
         run(*m_document,
-            std::make_unique<core::SetLayerCommand>(index, core::expandGroups(page, ids), layer->second),
-            false);
+            std::make_unique<core::SetLayerCommand>(index, core::expandGroups(page, ids), layer->second));
     }
 }
 
@@ -494,7 +487,7 @@ void ObjectEditing::align(const QString& how)
     core::TransformList list = core::alignTransforms(page, selected, mode->second);
     if (!list.empty())
         run(*m_document,
-            std::make_unique<core::TransformEachCommand>(shownIndex(*m_document), std::move(list)), true);
+            std::make_unique<core::TransformEachCommand>(shownIndex(*m_document), std::move(list)));
 }
 
 void ObjectEditing::transform(const QString& how)
@@ -532,13 +525,12 @@ void ObjectEditing::transform(const QString& how)
         if (copies.empty())
             return;
         run(*m_document,
-            std::make_unique<core::PasteObjectsCommand>(index, core::preparePaste(std::move(copies), 0, 0)),
-            false);
+            std::make_unique<core::PasteObjectsCommand>(index, core::preparePaste(std::move(copies), 0, 0)));
         selectNewObjects(*m_document, m_tools, before);
         return;
     }
     if (!list.empty())
-        run(*m_document, std::make_unique<core::TransformEachCommand>(index, std::move(list)), true);
+        run(*m_document, std::make_unique<core::TransformEachCommand>(index, std::move(list)));
 }
 
 void ObjectEditing::toggleFlag(const QString& flag)
@@ -563,7 +555,7 @@ void ObjectEditing::toggleFlag(const QString& flag)
         which == core::ObjectFlag::DragCopy ? ids : core::expandGroups(shownPage(*m_document), ids);
     const bool value = !core::flagOfAll(shownPage(*m_document), targets, which);
     run(*m_document,
-        std::make_unique<core::SetObjectFlagCommand>(shownIndex(*m_document), targets, which, value), false);
+        std::make_unique<core::SetObjectFlagCommand>(shownIndex(*m_document), targets, which, value));
 }
 
 } // namespace actcraft::ui

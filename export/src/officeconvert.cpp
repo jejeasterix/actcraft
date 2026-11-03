@@ -1,3 +1,5 @@
+#include "asyncrun.h"
+
 #include <actcraft/export/officeconvert.h>
 
 #include <QCoreApplication>
@@ -27,29 +29,6 @@ namespace {
 constexpr int kDefaultTimeoutMs = 120000;
 constexpr const char* kScriptResource = ":/actcraft/export/pptx-to-pdf.ps1";
 std::atomic<int> g_timeoutMs{0};
-
-ConvertResult failure(const QString& error)
-{
-    ConvertResult result;
-    result.error = error;
-    return result;
-}
-
-// Un fil à nous, pas le groupe de fils : QFuture::result() peut exécuter une tâche encore en file sur le
-// fil qui attend (même raison que detail::runAsync de pageexport.cpp).
-QFuture<ConvertResult> runAsync(std::function<ConvertResult()> work)
-{
-    auto promise = std::make_shared<QPromise<ConvertResult>>();
-    promise->start();
-    QFuture<ConvertResult> future = promise->future();
-    QThread* thread = QThread::create([promise, work = std::move(work)]() {
-        promise->addResult(work());
-        promise->finish();
-    });
-    QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
-    thread->start();
-    return future;
-}
 
 QString libreOfficeProgram()
 {
@@ -126,14 +105,16 @@ ConvertResult runConversion(const Converter& converter, const QString& presentat
 {
     const QFileInfo input(presentationPath);
     if (!input.isFile()) {
-        return failure(QStringLiteral("La présentation est introuvable."));
+        return detail::failure<ConvertResult>(QStringLiteral("La présentation est introuvable."));
     }
     if (converter.program.isEmpty()) {
-        return failure(QStringLiteral("Aucun convertisseur de présentation n'est disponible."));
+        return detail::failure<ConvertResult>(
+            QStringLiteral("Aucun convertisseur de présentation n'est disponible."));
     }
     QTemporaryDir dir;
     if (!dir.isValid()) {
-        return failure(QStringLiteral("Le dossier temporaire de la conversion n'a pas pu être créé."));
+        return detail::failure<ConvertResult>(
+            QStringLiteral("Le dossier temporaire de la conversion n'a pas pu être créé."));
     }
     dir.setAutoRemove(false); // le PDF doit survivre à l'appel ; supprimé en cas d'échec ci-dessous
     const QString outDir = QFileInfo(dir.path()).absoluteFilePath();
@@ -141,7 +122,7 @@ ConvertResult runConversion(const Converter& converter, const QString& presentat
     const QString outPath = QDir(outDir).filePath(input.completeBaseName() + QStringLiteral(".pdf"));
     const auto fail = [&dir](const QString& error) {
         QDir(dir.path()).removeRecursively();
-        return failure(error);
+        return detail::failure<ConvertResult>(error);
     };
 
     // Profil LibreOffice propre à cette conversion (-env:UserInstallation={profileurl}) : sans lui, avec
@@ -258,7 +239,8 @@ std::optional<Converter> findConverter()
 
 QFuture<ConvertResult> convertToPdf(const Converter& converter, const QString& presentationPath)
 {
-    return runAsync([converter, presentationPath]() { return runConversion(converter, presentationPath); });
+    return detail::runAsync(
+        [converter, presentationPath]() { return runConversion(converter, presentationPath); });
 }
 
 } // namespace actcraft::exporting

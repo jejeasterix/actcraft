@@ -1,3 +1,5 @@
+#include "asyncrun.h"
+
 #include <actcraft/export/pageexport.h>
 #include <actcraft/formats/urlio.h>
 #include <actcraft/render/pagepainter.h>
@@ -20,7 +22,6 @@ namespace detail {
 using RenderObserver = void (*)();
 void setRenderObserver(RenderObserver observer);
 void noteRenderThread();
-QFuture<ExportResult> runAsync(std::function<ExportResult()> work);
 } // namespace detail
 
 namespace {
@@ -31,21 +32,6 @@ namespace detail {
 void setRenderObserver(RenderObserver observer)
 {
     g_observer.store(observer);
-}
-// Un fil à nous, pas le groupe de fils : en attendant le résultat, QFuture::result() peut exécuter la tâche
-// encore en file sur le fil qui attend, donc sur le fil principal.
-QFuture<ExportResult> runAsync(std::function<ExportResult()> work)
-{
-    auto promise = std::make_shared<QPromise<ExportResult>>();
-    promise->start();
-    QFuture<ExportResult> future = promise->future();
-    QThread* thread = QThread::create([promise, work = std::move(work)]() {
-        promise->addResult(work());
-        promise->finish();
-    });
-    QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
-    thread->start();
-    return future;
 }
 void noteRenderThread()
 {
@@ -87,33 +73,28 @@ const char* formatName(ImageFormat format)
     return "PNG";
 }
 
-ExportResult failure(const QString& error)
-{
-    ExportResult result;
-    result.error = error;
-    return result;
-}
-
 ExportResult renderImage(const core::Document& document, std::size_t page, const QUrl& url)
 {
     if (page >= document.pageCount()) {
-        return failure(QStringLiteral("Cette page n'existe pas."));
+        return detail::failure<ExportResult>(QStringLiteral("Cette page n'existe pas."));
     }
     detail::noteRenderThread();
     const render::DecodedImages images = render::decodeImages(document);
     const QImage image = render::renderPage(document.page(page), images.lookup(), 1.0);
     if (image.isNull()) {
-        return failure(QStringLiteral("La page est trop grande pour être exportée en image."));
+        return detail::failure<ExportResult>(
+            QStringLiteral("La page est trop grande pour être exportée en image."));
     }
     QByteArray bytes;
     QBuffer buffer(&bytes);
     buffer.open(QIODevice::WriteOnly);
     if (!image.save(&buffer, formatName(imageFormatFor(url)))) {
-        return failure(QStringLiteral("Le format d'image demandé n'est pas disponible."));
+        return detail::failure<ExportResult>(
+            QStringLiteral("Le format d'image demandé n'est pas disponible."));
     }
     QString error;
     if (!formats::writeUrl(url, bytes, &error)) {
-        return failure(error);
+        return detail::failure<ExportResult>(error);
     }
     ExportResult result;
     result.ok = true;

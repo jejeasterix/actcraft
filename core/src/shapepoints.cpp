@@ -64,20 +64,6 @@ PointF midpoint(const Contour& c, std::size_t i)
     return {(a.x + b.x) / 2, (a.y + b.y) / 2};
 }
 
-bool invert(const Transform& t, Transform& out)
-{
-    const double det = t.m11 * t.m22 - t.m12 * t.m21;
-    if (det == 0 || !std::isfinite(det))
-        return false;
-    out.m11 = t.m22 / det;
-    out.m12 = -t.m12 / det;
-    out.m21 = -t.m21 / det;
-    out.m22 = t.m11 / det;
-    out.dx = -(out.m11 * t.dx + out.m21 * t.dy);
-    out.dy = -(out.m12 * t.dx + out.m22 * t.dy);
-    return true;
-}
-
 } // namespace
 
 std::vector<PointF> shapePoints(const PageObject& object)
@@ -108,8 +94,9 @@ void MoveShapePointCommand::redo(Document& document, Changes& changes)
         return;
     PageObject& object = page.objects[rank];
     auto* shape = std::get_if<Shape>(&body(object));
-    Transform inverse;
-    if (shape == nullptr || object.common.locked || !invert(object.common.transform, inverse))
+    const std::optional<Transform> inverse =
+        shape == nullptr || object.common.locked ? std::nullopt : inverted(object.common.transform);
+    if (!inverse)
         return;
 
     std::vector<Contour> contours = contoursOf(*shape);
@@ -130,7 +117,7 @@ void MoveShapePointCommand::redo(Document& document, Changes& changes)
     if (target == contours.size())
         return;
 
-    const PointF local = inverse.map(m_to);
+    const PointF local = inverse->map(m_to);
     Contour& contour = contours[target];
     if (isMidpoint)
         contour.points.insert(contour.points.begin() + static_cast<std::ptrdiff_t>(remaining + 1), local);

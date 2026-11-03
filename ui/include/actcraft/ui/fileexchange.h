@@ -1,4 +1,6 @@
 #pragma once
+#include <actcraft/export/pageexport.h>
+#include <actcraft/export/pdfimport.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documenttabs.h>
 
@@ -53,6 +55,13 @@ private:
     // Un travail à la fois (`busy`) ; refus visible (`failed`) sinon. Vrai si le travail peut partir.
     bool begin();
     void fail(const QString& message);
+    // Fin commune des exports : `okFormat` et `failFormat` portent un « %1 ».
+    void finishExport(const exporting::ExportResult& result, const QUrl& target, const QString& okFormat,
+                      const QString& failFormat);
+    // Fin commune des imports : installe le document dans un onglet neuf ; les trois textes portent un « %1
+    // ».
+    void finishImport(exporting::ImportResult result, const QUrl& source, const QString& failFormat,
+                      const QString& busyMessage, const QString& doneFormat);
     DocumentController* m_document = nullptr;
     DocumentTabs* m_tabs = nullptr;
     bool m_busy = false;

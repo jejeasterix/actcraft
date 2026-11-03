@@ -34,20 +34,14 @@ struct Unit
 
 RectF unionRects(const std::vector<const PageObject*>& objects)
 {
-    double x0 = 0;
-    double y0 = 0;
-    double x1 = 0;
-    double y1 = 0;
+    RectF united;
     bool first = true;
     for (const PageObject* object : objects) {
         const RectF r = boundsOnPage(*object);
-        x0 = first ? r.x : std::min(x0, r.x);
-        y0 = first ? r.y : std::min(y0, r.y);
-        x1 = first ? r.x + r.width : std::max(x1, r.x + r.width);
-        y1 = first ? r.y + r.height : std::max(y1, r.y + r.height);
+        united = first ? r : enclosingRect(united, r);
         first = false;
     }
-    return RectF{x0, y0, x1 - x0, y1 - y0};
+    return united;
 }
 
 // Unités présentes, sans doublon, déverrouillées et d'emprise non nulle, dans l'ordre des identifiants
@@ -105,9 +99,6 @@ std::vector<Unit> units(const Page& page, const std::vector<ObjectId>& ids)
     }
     return out;
 }
-
-// Applique `delta` (dans le plan de la page) à chaque objet de l'unité.
-void pushUnitDelta(TransformList& out, const Unit& unit, const Transform& delta);
 
 PageObject withTransform(const PageObject& object, const Transform& transform)
 {
@@ -269,16 +260,9 @@ TransformList alignTransforms(const Page& page, const std::vector<ObjectId>& ids
         return {}; // D6 : un objet seul, ou un seul groupe, n'est pas aligné
     }
     RectF u = all.front().bounds;
-    double x1 = u.x + u.width;
-    double y1 = u.y + u.height;
     for (const Unit& unit : all) {
-        u.x = std::min(u.x, unit.bounds.x);
-        u.y = std::min(u.y, unit.bounds.y);
-        x1 = std::max(x1, unit.bounds.x + unit.bounds.width);
-        y1 = std::max(y1, unit.bounds.y + unit.bounds.height);
+        u = enclosingRect(u, unit.bounds);
     }
-    u.width = x1 - u.x;
-    u.height = y1 - u.y;
     const Unit* ref = &*std::min_element(all.begin(), all.end(), [](const Unit& a, const Unit& b) {
         return a.head->common.id < b.head->common.id; // le premier créé
     });
