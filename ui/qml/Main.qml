@@ -446,7 +446,7 @@ Window {
     // Fermeture de la fenêtre : même demande que « Quitter ».
     onClosing: close => {
         appText.commit() // avant de lire `modified` : le texte en cours compte
-        if (appDocument.modified && !fileActions.quitting) {
+        if (!fileActions.quitting && fileActions.hasUnsavedTabs()) {
             close.accepted = false
             fileActions.quit()
         }
