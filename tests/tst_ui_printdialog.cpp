@@ -57,7 +57,7 @@ core::PrintSettings settingsOf(const ui::PrintController& p)
     s.columns = p.columns();
     s.frames = p.frames();
     s.pageNumbers = p.pageNumbers();
-    s.range = p.range() == QLatin1String("current") ? core::PrintRange::Current
+    s.range = p.range() == QLatin1String("current")   ? core::PrintRange::Current
               : p.range() == QLatin1String("from-to") ? core::PrintRange::FromTo
                                                       : core::PrintRange::All;
     s.from = p.from();
@@ -154,7 +154,7 @@ struct Shell
         printing->setDocument(&document);
         return true;
     }
-    template<class T = QQuickItem> T* find(const char* name)
+    template <class T = QQuickItem> T* find(const char* name)
     {
         return dialog->findChild<T*>(QString::fromLatin1(name));
     }
@@ -297,8 +297,8 @@ void TstUiPrintDialog::previewMatchesSheets()
         QCOMPARE(sheets.size(), std::size_t{2});
         for (int i = 0; i < 2; ++i) {
             const QImage shown = printing.previewSheet(i, 72);
-            const QImage expected = print::renderSheet(document.document(), sheets[static_cast<std::size_t>(i)],
-                                                       settings, kSheet, 72);
+            const QImage expected = print::renderSheet(
+                document.document(), sheets[static_cast<std::size_t>(i)], settings, kSheet, 72);
             QVERIFY(!shown.isNull());
             QCOMPARE(shown.size(), expected.size());
             QCOMPARE(shown.format(), expected.format());
@@ -431,8 +431,10 @@ void TstUiPrintDialog::dialogEditsSettingsAndShowsTheSheet()
     QVERIFY(preview->property("sourceSize").toSize().width() > 0);
 
     // Exporter en PDF : appel de l'échange avec l'URL choisie.
-    QVERIFY(QMetaObject::invokeMethod(shell.dialog, "exportTo", Q_ARG(QUrl, QUrl::fromLocalFile("/tmp/x.pdf"))));
-    QCOMPARE(shell.root->property("calls").toStringList(), QStringList{QStringLiteral("export:file:///tmp/x.pdf")});
+    QVERIFY(QMetaObject::invokeMethod(shell.dialog, "exportTo",
+                                      Q_ARG(QVariant, QUrl::fromLocalFile("/tmp/x.pdf"))));
+    QCOMPARE(shell.root->property("calls").toStringList(),
+             QStringList{QStringLiteral("export:file:///tmp/x.pdf")});
 
     // « Enregistrer les réglages et quitter » : réglages gardés, boîte fermée.
     auto* save = shell.find<QQuickItem>("saveAndQuitButton");

@@ -1,18 +1,21 @@
 #pragma once
 #include <actcraft/ui/documentcontroller.h>
 
+#include <QHash>
 #include <QImage>
 #include <QObject>
 #include <QQmlEngine>
+#include <QQmlParserStatus>
 #include <QString>
 #include <QStringList>
 
 namespace actcraft::ui {
 
 // Boîte d'impression (F-670 à F-679) ; remplie par L5-T28.
-class PrintController : public QObject
+class PrintController : public QObject, public QQmlParserStatus
 {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(DocumentController* document READ document WRITE setDocument NOTIFY documentChanged)
     Q_PROPERTY(int rows READ rows WRITE setRows NOTIFY settingsChanged)
@@ -40,6 +43,8 @@ class PrintController : public QObject
     Q_PROPERTY(int previewRenders READ previewRenders NOTIFY previewRendersChanged)
 public:
     explicit PrintController(QObject* parent = nullptr);
+    void classBegin() override {}
+    void componentComplete() override; // fournisseur d'images « printpreview » du moteur
     DocumentController* document() const;
     void setDocument(DocumentController* document);
     int rows() const;
@@ -78,6 +83,8 @@ public:
     int previewRenders() const;
 
     Q_INVOKABLE QImage previewSheet(int index, int dpi);
+    // Adresse (image://printpreview/…) de la feuille `index` ; change quand le document ou un réglage change.
+    Q_INVOKABLE QString previewSource(int index, int dpi) const;
     Q_INVOKABLE bool print(const QString& outputFile = {});
     Q_INVOKABLE void saveSettings();
     Q_INVOKABLE void loadSettings();
@@ -91,6 +98,9 @@ signals:
     void failed(QString message);
 
 private:
+    void invalidate();
+    void changed();
+    bool report(bool ok, const QString& message);
     DocumentController* m_document = nullptr;
     int m_rows = 1;
     int m_columns = 1;
@@ -108,6 +118,8 @@ private:
     QString m_printer;
     QString m_settingsFile;
     int m_previewRenders = 0;
+    int m_revision = 0;
+    QHash<qint64, QImage> m_cache;
 };
 
 } // namespace actcraft::ui
