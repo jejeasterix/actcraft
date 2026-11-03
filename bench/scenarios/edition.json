@@ -1,7 +1,7 @@
 {
  "format": "actcraft-scenario/1",
  "name": "edition",
- "description": "S8, S8.2, S8.3 : formes dupliquées, alignées à gauche, mises au premier plan, originaux verrouillés (glissement refusé), pot de peinture, points de forme, connecteur suivi dans le déplacement, puis menu d'objet ouvert sur une forme. Le groupement n'est pas rejoué ici : un groupe n'a pas d'emprise dans core (hasExtent) et ne se sélectionne pas.",
+ "description": "S8, S8.2, S8.3 : formes groupées (le groupement est rejoué : le groupe se sélectionne par glissement sur ses membres) puis dupliquées, alignées à gauche et mises au premier plan (lus par pixel et par empreinte), trois Annuler rendent l'état d'avant la duplication (empreinte, nombre d'objets, pixel) puis trois Rétablir le restituent, originaux verrouillés (glissement refusé, pixels), pot de peinture, point de forme déplacé (pixel sur la forme déformée), connecteur tracé de sommet à sommet et suivi dans le déplacement (pixel sur le nouveau trajet, ancien trajet blanc), puis menu d'objet ouvert (nombre de commandes lu).",
  "steps": [
   {
    "waitReady": true
@@ -125,6 +125,10 @@
    "capture": "groupe"
   },
   {
+   "remember": "documentController.fingerprint",
+   "as": "apres-groupe"
+  },
+  {
    "command": "edit.duplicate"
   },
   {
@@ -171,14 +175,32 @@
    "value": 4
   },
   {
+   "checkPixel": "avant-alignement",
+   "at": [
+    440,
+    190
+   ],
+   "color": "#FFAA00",
+   "tolerance": 40
+  },
+  {
    "command": "align.left"
   },
   {
    "waitReady": true
   },
   {
-   "expect": "appTools.selectionCount",
-   "value": 4
+   "checkPixel": "aligne-a-gauche",
+   "at": [
+    440,
+    190
+   ],
+   "color": "#FFFFFF",
+   "tolerance": 8
+  },
+  {
+   "remember": "documentController.fingerprint",
+   "as": "apres-alignement"
   },
   {
    "command": "arrange.front"
@@ -187,7 +209,85 @@
    "waitReady": true
   },
   {
+   "remember": "documentController.fingerprint",
+   "as": "apres-premier-plan"
+  },
+  {
    "capture": "alignes-a-gauche"
+  },
+  {
+   "command": "edit.undo"
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "expect": "documentController.fingerprint",
+   "value": "${apres-alignement}"
+  },
+  {
+   "command": "edit.redo"
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "expect": "documentController.fingerprint",
+   "value": "${apres-premier-plan}"
+  },
+  {
+   "command": "edit.undo"
+  },
+  {
+   "command": "edit.undo"
+  },
+  {
+   "command": "edit.undo"
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "expect": "documentController.fingerprint",
+   "value": "${apres-groupe}"
+  },
+  {
+   "expect": "documentController.shownObjectCount",
+   "value": 5
+  },
+  {
+   "checkPixel": "trois-annuler",
+   "at": [
+    440,
+    190
+   ],
+   "color": "#FFAA00",
+   "tolerance": 40
+  },
+  {
+   "command": "edit.redo"
+  },
+  {
+   "command": "edit.redo"
+  },
+  {
+   "command": "edit.redo"
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "expect": "documentController.fingerprint",
+   "value": "${apres-premier-plan}"
+  },
+  {
+   "checkPixel": "refait-aligne",
+   "at": [
+    440,
+    190
+   ],
+   "color": "#FFFFFF",
+   "tolerance": 8
   },
   {
    "pointer": [
@@ -205,17 +305,17 @@
     ],
     [
      190,
-     130
+     170
     ],
     [
      260,
-     155
+     250
     ]
    ]
   },
   {
    "expect": "appTools.selectionCount",
-   "value": 2
+   "value": 4
   },
   {
    "command": "object.lock"
@@ -226,18 +326,22 @@
    "timeoutMs": 5000
   },
   {
+   "remember": "documentController.fingerprint",
+   "as": "avant-verrou"
+  },
+  {
    "pointer": [
     [
      250,
-     185
+     190
     ],
     [
      350,
-     285
+     290
     ],
     [
      550,
-     385
+     390
     ]
    ]
   },
@@ -245,13 +349,37 @@
    "waitReady": true
   },
   {
+   "expect": "documentController.fingerprint",
+   "value": "${avant-verrou}"
+  },
+  {
+   "checkPixel": "verrou-tient",
+   "at": [
+    250,
+    190
+   ],
+   "color": "#FFAA00",
+   "tolerance": 40
+  },
+  {
+   "capture": "verrou"
+  },
+  {
    "checkPixel": "verrou-refuse",
    "at": [
-    500,
-    350
+    550,
+    390
    ],
    "color": "#FFFFFF",
    "tolerance": 8
+  },
+  {
+   "command": "object.lock"
+  },
+  {
+   "waitFor": "appEditing.selectionLocked",
+   "value": false,
+   "timeoutMs": 5000
   },
   {
    "pointer": [
@@ -328,11 +456,11 @@
   {
    "checkPixel": "point-deplace",
    "at": [
-    680,
-    280
+    692,
+    300
    ],
-   "color": "#FFD43B",
-   "tolerance": 30
+   "color": "#FFAA00",
+   "tolerance": 40
   },
   {
    "key": "Escape"
@@ -343,15 +471,15 @@
   {
    "pointer": [
     [
-     750,
+     700,
      380
     ],
     [
-     750,
+     700,
      440
     ],
     [
-     750,
+     700,
      500
     ]
    ]
@@ -362,7 +490,7 @@
   {
    "checkPixel": "connecteur",
    "at": [
-    750,
+    700,
     440
    ],
    "color": "#808080",
@@ -391,6 +519,24 @@
    "waitReady": true
   },
   {
+   "checkPixel": "connecteur-suit",
+   "at": [
+    750,
+    440
+   ],
+   "color": "#808080",
+   "tolerance": 80
+  },
+  {
+   "checkPixel": "ancien-trajet",
+   "at": [
+    700,
+    440
+   ],
+   "color": "#FFFFFF",
+   "tolerance": 8
+  },
+  {
    "capture": "connecteur-suivi"
   },
   {
@@ -409,7 +555,13 @@
    "command": "object.menu"
   },
   {
-   "wait": 400
+   "waitFor": "objectEditMenu.isOpen",
+   "value": true,
+   "timeoutMs": 5000
+  },
+  {
+   "expect": "objectEditMenu.visibleCommandCount",
+   "value": 13
   },
   {
    "capture": "menu-objet"
