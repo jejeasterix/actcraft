@@ -377,6 +377,85 @@ private slots:
         QVERIFY(f.kinds.empty());
         QVERIFY(!f.editing.hasSelection());
     }
+
+    // L5-C17 (M1, D6) : un groupe s'aligne comme un bloc ; ses membres gardent leurs positions relatives.
+    void alignMovesGroupAsABlock()
+    {
+        Fixture f(3, false);
+        const std::vector<core::ObjectId> all = f.ids();
+        core::PageObject group = core::Group{{all[0], all[1]}};
+        group.common.layer = core::Layer::Middle;
+        f.document.execute(std::make_unique<core::AddObjectCommand>(0, std::move(group)));
+        const core::ObjectId groupId = f.page().objects.back().common.id;
+        f.tools.user().setSelection({groupId, all[2]});
+        f.editing.align(QStringLiteral("left"));
+        const auto at = [&f](core::ObjectId id) {
+            return core::boundsOnPage(f.page().objects[core::indexOf(f.page(), id)]);
+        };
+        QCOMPARE(at(all[0]).x, 100.0);
+        QCOMPARE(at(all[1]).x, 300.0); // le membre ne rejoint pas le bord du groupe
+        QCOMPARE(at(all[2]).x, 100.0); // l'objet seul rejoint le bord gauche du groupe
+    }
+
+    void alignOfASingleGroupDoesNothing()
+    {
+        Fixture f(2, false);
+        const std::vector<core::ObjectId> all = f.ids();
+        core::PageObject group = core::Group{all};
+        group.common.layer = core::Layer::Middle;
+        f.document.execute(std::make_unique<core::AddObjectCommand>(0, std::move(group)));
+        f.tools.user().setSelection({f.page().objects.back().common.id});
+        f.clearSpy();
+        f.editing.align(QStringLiteral("left"));
+        QVERIFY(f.kinds.empty());
+    }
+
+    void flipOfAGroupFlipsTheWholeBlock()
+    {
+        Fixture f(2, false);
+        const std::vector<core::ObjectId> all = f.ids();
+        core::PageObject group = core::Group{all};
+        group.common.layer = core::Layer::Middle;
+        f.document.execute(std::make_unique<core::AddObjectCommand>(0, std::move(group)));
+        f.tools.user().setSelection({f.page().objects.back().common.id});
+        f.editing.transform(QStringLiteral("flip-y")); // gauche / droite autour du centre du groupe
+        QCOMPARE(core::boundsOnPage(f.page().objects[0]).x, 300.0);
+        QCOMPARE(core::boundsOnPage(f.page().objects[1]).x, 100.0);
+    }
+
+    // L5-C17 (M7, D9) : règle retenue, le drapeau posé sur le groupe est propagé à ses membres.
+    void lockAndHideOfAGroupReachItsMembers()
+    {
+        Fixture f(2, false);
+        const std::vector<core::ObjectId> all = f.ids();
+        core::PageObject group = core::Group{all};
+        group.common.layer = core::Layer::Middle;
+        f.document.execute(std::make_unique<core::AddObjectCommand>(0, std::move(group)));
+        f.tools.user().setSelection({f.page().objects.back().common.id});
+        f.editing.toggleFlag(QStringLiteral("lock"));
+        QVERIFY(f.page().objects[0].common.locked && f.page().objects[1].common.locked);
+        f.editing.toggleFlag(QStringLiteral("hide"));
+        QVERIFY(!f.page().objects[0].common.visible && !f.page().objects[1].common.visible);
+        f.document.undo();
+        QVERIFY(f.page().objects[0].common.visible && f.page().objects[1].common.visible);
+        f.document.undo();
+        QVERIFY(!f.page().objects[0].common.locked && !f.page().objects[1].common.locked);
+    }
+
+    // L5-C17 (mineur) : un objet sans emprise ne compte pas dans le centrage de « Coller ici ».
+    void pasteAtIgnoresObjectsWithoutExtent()
+    {
+        Fixture f(1, false);
+        core::PageObject empty = core::Line{};
+        empty.common.layer = core::Layer::Middle;
+        f.document.execute(std::make_unique<core::AddObjectCommand>(0, std::move(empty)));
+        f.tools.user().setSelection(f.ids());
+        f.editing.copy();
+        f.editing.pasteAt(QPointF(500, 400));
+        const core::RectF pasted = core::boundsOnPage(f.page().objects[f.page().objects.size() - 2]);
+        QCOMPARE(pasted.center().x, 500.0);
+        QCOMPARE(pasted.center().y, 400.0);
+    }
 };
 
 QTEST_MAIN(TestObjectEditing)

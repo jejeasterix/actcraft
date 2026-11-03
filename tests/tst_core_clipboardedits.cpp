@@ -110,6 +110,7 @@ private slots:
     void nestedGroupsRemapped();
     void connectorEndsRemapped();
     void pasteOnObjectKeepsItsLayer();
+    void pasteOnGroupCentersOnItsRealBounds();
     void cutIsOneStep();
 };
 
@@ -275,6 +276,21 @@ void TestClipboardEdits::pasteOnObjectKeepsItsLayer()
     QCOMPARE(copies.size(), std::size_t(1));
     QCOMPARE(copies[0].common.layer, core::Layer::Bottom);
     QCOMPARE(boundsOf(copies[0]).center().x, 250.0);
+    QCOMPARE(boundsOf(copies[0]).center().y, 250.0);
+}
+
+// L5-C17 (M6) : l'emprise d'un groupe est celle de ses membres, lue sur la page.
+void TestClipboardEdits::pasteOnGroupCentersOnItsRealBounds()
+{
+    core::Document d = blank();
+    const auto a = addRect(d, {0, 0, 10, 10}, core::Layer::Top);
+    const auto m1 = addRect(d, {200, 200, 100, 100}, core::Layer::Middle);
+    const auto m2 = addRect(d, {400, 200, 100, 100}, core::Layer::Middle);
+    const auto g = addGroup(d, {m1, m2});
+    const auto copies =
+        core::preparePasteOnto(core::closureForCopy(d.page(0), {a}), d.page(0), objectById(d, g));
+    QCOMPARE(copies.size(), std::size_t(1));
+    QCOMPARE(boundsOf(copies[0]).center().x, 350.0);
     QCOMPARE(boundsOf(copies[0]).center().y, 250.0);
 }
 

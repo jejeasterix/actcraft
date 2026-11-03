@@ -19,6 +19,9 @@ std::vector<PageObject> closureForCopy(const Page& page, const std::vector<Objec
 std::vector<PageObject> preparePaste(std::vector<PageObject> objects, double dx, double dy);
 // Coller sur l'objet (F-540) : centre de l'ensemble sur le centre de `target`, couche de `target`.
 std::vector<PageObject> preparePasteOnto(std::vector<PageObject> objects, const PageObject& target);
+// Même chose, `target` lu sur `page` : l'emprise d'un groupe est celle de ses membres (L5-C17, M6).
+std::vector<PageObject> preparePasteOnto(std::vector<PageObject> objects, const Page& page,
+                                         const PageObject& target);
 
 // Ajout de copies préparées en une étape : un ReplaceObjectsCommand (A6) puis, au redo, références de groupe
 // et de connecteur passées des rangs provisoires aux identifiants tirés (addedIds(), même ordre). Aucun

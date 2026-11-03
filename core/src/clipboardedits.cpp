@@ -157,6 +157,12 @@ std::vector<PageObject> preparePasteOnto(std::vector<PageObject> objects, const 
     return out;
 }
 
+std::vector<PageObject> preparePasteOnto(std::vector<PageObject> objects, const Page& /*page*/,
+                                         const PageObject& target)
+{
+    return preparePasteOnto(std::move(objects), target);
+}
+
 PasteObjectsCommand::PasteObjectsCommand(std::size_t page, std::vector<PageObject> prepared)
     : m_inner(std::make_unique<ReplaceObjectsCommand>(page, std::vector<ObjectId>{}, std::move(prepared))),
       m_page(page)
