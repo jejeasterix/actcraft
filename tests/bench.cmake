@@ -457,20 +457,18 @@ set_tests_properties(tst_captures_exporter PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
-# Impression : imprimante virtuelle de Windows seulement.
-if(ACTCRAFT_PRINT AND WIN32)
-    add_test(NAME tst_captures_imprimer
-        COMMAND $<TARGET_FILE:actcraft-captures>
-            --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/imprimer.json
-            --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-imprimer)
-    set_tests_properties(tst_captures_imprimer PROPERTIES
-        TIMEOUT 300
-        ENVIRONMENT "${_bench_env_offscreen}"
-        PASS_REGULAR_EXPRESSION "SCENARIO OK"
-        FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
-endif()
+# Impression : par PDF, sans QPrinter (H5-27), sur toutes les plateformes.
+add_test(NAME tst_captures_imprimer
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/imprimer.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-imprimer)
+set_tests_properties(tst_captures_imprimer PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
 # Import : convertisseur factice (jamais PowerPoint en CI), PDF produit par notre export.
-if(WIN32 AND ACTCRAFT_IMPORT_PDF)
+if(ACTCRAFT_IMPORT_PDF)
     add_test(NAME tst_captures_importer
         COMMAND $<TARGET_FILE:actcraft-captures>
             --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/importer.json
