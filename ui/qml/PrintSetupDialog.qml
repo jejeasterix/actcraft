@@ -212,15 +212,9 @@ Popup {
                     text: qsTr("Imprimer")
                     highlighted: true
                     onClicked: {
-                        if (dialog.printing.available) {
-                            if (dialog.printing.print(""))
-                                dialog.close()
-                        } else if (dialog.exchange) {
-                            dialog.exchange.printThroughPdf()
+                        // Avec ou sans QPrinter : les feuilles des réglages (imprimante, ou PDF ouvert).
+                        if (dialog.printing.print(""))
                             dialog.close()
-                        } else {
-                            dialog.message = qsTr("Aucune imprimante n'est disponible.")
-                        }
                     }
                 }
             }

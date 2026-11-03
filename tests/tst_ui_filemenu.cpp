@@ -873,7 +873,6 @@ private slots:
         QCOMPARE(doc->document().page(0).zones.vertical, 16);
     }
 
-    // B1 : boîte ouverte, le stylet posé sur un de ses champs ne pose pas d'encre dessous.
     // L5-C15 : Fichier > Imprimer ouvre la boîte d'impression sur toutes les plateformes ; elle reçoit
     // l'échange, donc « Exporter en PDF » est actif (le repli sans QPrinter en dépend).
     void printOpensTheDialogWithItsExchange()
@@ -893,6 +892,7 @@ private slots:
         QTRY_VERIFY(!dialog->property("visible").toBool());
     }
 
+    // B1 : boîte ouverte, le stylet posé sur un de ses champs ne pose pas d'encre dessous.
     void sizeDialogBlocksTheStylus()
     {
         Shell s;

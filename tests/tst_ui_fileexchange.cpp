@@ -189,7 +189,7 @@ private slots:
         QCOMPARE(s.tabs->rowCount(), 1);
     }
 
-    void printThroughPdfOffWindows()
+    void printThroughPdfOpensThePdfOfTheDocument()
     {
         Shell s;
         QVERIFY(s.start());

@@ -134,6 +134,18 @@
    "value": 4
   },
   {
+   "waitFor": "previewImage.status",
+   "value": "Ready"
+  },
+  {
+   "expect": "previewImage.status",
+   "value": "Ready"
+  },
+  {
+   "expect": "appPrint.previewRenders",
+   "value": 1
+  },
+  {
    "capture": "boite-impression"
   }
  ]

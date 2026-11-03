@@ -388,14 +388,23 @@ void TstUiPrintDialog::printWritesTheSheets()
     const QString second = dir.filePath(QStringLiteral("deux.pdf"));
     QVERIFY(printing.print(second));
     QCOMPARE(pdfPages(second), 3);
-    // Ni imprimante ni fichier : refus annoncé.
-    printing.setPrinter(QString());
-    QVERIFY(!printing.print());
-    QCOMPARE(failed.count(), 1);
+    // Sans QPrinter ni fichier (L5-C15) : le PDF temporaire des feuilles s'ouvre dans le lecteur du système.
+    if (!print::printingAvailable()) {
+        UrlCatcher catcher;
+        QDesktopServices::setUrlHandler(QStringLiteral("file"), &catcher, "got");
+        printing.setPrinter(QString());
+        QVERIFY(printing.print());
+        QDesktopServices::unsetUrlHandler(QStringLiteral("file"));
+        QCOMPARE(catcher.urls.size(), 1);
+        QCOMPARE(pdfPages(catcher.urls.first().toLocalFile()), 3);
+        QFile::remove(catcher.urls.first().toLocalFile());
+        QCOMPARE(failed.count(), 0);
+    }
+    const qsizetype refused = failed.count();
     // Fichier impossible à écrire : refus annoncé, aucun fichier fantôme.
     const QString impossible = dir.filePath(QStringLiteral("absent/sortie.pdf"));
     QVERIFY(!printing.print(impossible));
-    QCOMPARE(failed.count(), 2);
+    QCOMPARE(failed.count(), refused + 1);
     QVERIFY(!QFile::exists(impossible));
 }
 
