@@ -539,6 +539,23 @@ private slots:
         QTRY_COMPARE(tabs->rowCount(), 1);
     }
 
+    // L5-C11 : les messages de L5-T25 (échec ou fin d'un échange de fichier) arrivent à la bannière.
+    void exchangeMessagesReachTheBanner()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* exchange = s.window->findChild<QObject*>(QStringLiteral("appExchange"));
+        QQuickItem* banner = item(s, "messageBanner");
+        QQuickItem* text = item(s, "messageText");
+        QVERIFY(exchange && banner && text);
+        QVERIFY(!banner->isVisible());
+        QVERIFY(QMetaObject::invokeMethod(exchange, "failed", Q_ARG(QString, QStringLiteral("export échoué"))));
+        QTRY_VERIFY(banner->isVisible());
+        QCOMPARE(text->property("text").toString(), QStringLiteral("export échoué"));
+        QVERIFY(QMetaObject::invokeMethod(exchange, "finished", Q_ARG(QString, QStringLiteral("export fini"))));
+        QTRY_COMPARE(text->property("text").toString(), QStringLiteral("export fini"));
+    }
+
     // L2-C9, constat 5 : « Quitter » pendant un enregistrement, puis « Enregistrer » : l'enregistrement
     // demandé attend la fin de celui en cours, puis « Quitter » reprend. Avant : refusé (occupé) sans
     // erreur, et l'action en attente oubliée.
