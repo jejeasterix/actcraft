@@ -72,6 +72,7 @@ private slots:
 
         controller->undo();
         QCOMPARE(shown(*controller).objects.size(), before);
+        QVERIFY(!controller->canUndo()); // une seule étape
     }
 
     // F-299 : l'adresse d'accueil par défaut est la page du projet ; le réglage la remplace.

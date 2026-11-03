@@ -116,11 +116,13 @@ FloatingPanel {
             font.pixelSize: Theme.taillePoliceTitre
 
             // Le résultat se glisse hors du panneau : lâché sur la page, le calcul s'y écrit à cet endroit
-            // (une étape d'annulation). Lâché dans le panneau, rien ne s'écrit.
+            // (une étape d'annulation). Lâché dans le panneau, hors de la vue (barre d'outils, miniatures) ou
+            // hors de la page, rien ne s'écrit. Sans document où écrire, pas de glisser (comme le bouton).
             DragHandler {
                 id: resultDrag
                 objectName: "calculatorResultDrag"
                 target: null
+                enabled: calculatorController.canWrite
                 property point dropScene: Qt.point(0, 0)
                 onCentroidChanged: {
                     if (active) {
@@ -135,7 +137,15 @@ FloatingPanel {
                     if (root.contains(local)) {
                         return
                     }
-                    const page = root.pageArea.view.sceneToPage(dropScene)
+                    const view = root.pageArea.view
+                    const content = view.content
+                    if (!content || !view.contains(view.mapFromItem(null, dropScene.x, dropScene.y))) {
+                        return
+                    }
+                    const page = view.sceneToPage(dropScene)
+                    if (page.x < 0 || page.y < 0 || page.x > content.width || page.y > content.height) {
+                        return
+                    }
                     calculatorController.placeAt(page.x, page.y)
                 }
             }
