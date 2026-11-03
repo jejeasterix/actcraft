@@ -3,6 +3,8 @@
 #include <actcraft/ui/printcontroller.h>
 
 #include <QCoreApplication>
+#include <QDesktopServices>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QMarginsF>
@@ -13,6 +15,8 @@
 #include <QQmlEngine>
 #include <QQuickImageProvider>
 #include <QSettings>
+#include <QTemporaryFile>
+#include <QUrl>
 
 #include <algorithm>
 #include <memory>
@@ -446,8 +450,8 @@ bool PrintController::report(bool ok, const QString& message)
 }
 
 // Windows (QPrinter construit) : print::printDocument. Sans QPrinter, un fichier de sortie reçoit les
-// feuilles de renderSheet dans un PDF (QPdfWriter) ; sans fichier, rien n'est imprimé ici : la boîte passe
-// alors par FileExchange::printThroughPdf (N1-15).
+// feuilles de renderSheet dans un PDF (QPdfWriter) ; sans fichier, le PDF est temporaire et s'ouvre dans le
+// lecteur du système (même gestionnaire que FileExchange::printThroughPdf), pour l'impression qu'il propose.
 bool PrintController::print(const QString& outputFile)
 {
     if (!m_document) {
@@ -464,22 +468,37 @@ bool PrintController::print(const QString& outputFile)
         return report(r.ok,
                       r.ok ? tr("%n feuille(s) envoyée(s) à l'impression.", nullptr, r.sheets) : r.error);
     }
-    if (outputFile.isEmpty()) {
-        return report(false, tr("Aucune imprimante ni fichier de sortie."));
+    QString target = outputFile;
+    const bool openAfter = outputFile.isEmpty();
+    if (openAfter) {
+        QTemporaryFile file(QDir::temp().absoluteFilePath(QStringLiteral("ActCraft-impression-XXXXXX.pdf")));
+        file.setAutoRemove(false);
+        if (!file.open()) {
+            return report(false, tr("Impression impossible : le dossier temporaire n'est pas accessible."));
+        }
+        target = file.fileName();
+        file.close();
     }
+    // Un échec ne laisse pas de PDF temporaire derrière lui (un fichier choisi par l'appelant reste à lui).
+    const auto abort = [&](const QString& message) {
+        if (openAfter) {
+            QFile::remove(target);
+        }
+        return report(false, message);
+    };
     const std::vector<core::Sheet> sheets =
         core::layoutSheets(m_document->document(), settings, current, kSheetMm);
     if (sheets.empty()) {
-        return report(false, tr("Rien à imprimer."));
+        return abort(tr("Rien à imprimer."));
     }
-    QPdfWriter writer(outputFile);
+    QPdfWriter writer(target);
     writer.setResolution(kFallbackDpi);
     writer.setPageSize(QPageSize(QPageSize::A4));
     writer.setPageMargins(QMarginsF(0, 0, 0, 0));
     writer.setCreator(QStringLiteral("ActCraft"));
     QPainter painter;
     if (!painter.begin(&writer)) {
-        return report(false, tr("Impossible d'écrire %1.").arg(outputFile));
+        return abort(tr("Impossible d'écrire %1.").arg(target));
     }
     bool first = true;
     int written = 0;
@@ -496,10 +515,16 @@ bool PrintController::print(const QString& outputFile)
         }
     }
     painter.end();
-    if (!QFileInfo::exists(outputFile)) {
-        return report(false, tr("Impossible d'écrire %1.").arg(outputFile));
+    if (!QFileInfo::exists(target)) {
+        return abort(tr("Impossible d'écrire %1.").arg(target));
     }
-    return report(true, tr("%n feuille(s) écrite(s).", nullptr, written));
+    if (!openAfter) {
+        return report(true, tr("%n feuille(s) écrite(s).", nullptr, written));
+    }
+    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(target))) {
+        return abort(tr("Impression impossible : aucun lecteur de PDF n'a pu ouvrir %1.").arg(target));
+    }
+    return report(true, tr("PDF ouvert pour l'impression."));
 }
 
 void PrintController::saveSettings()

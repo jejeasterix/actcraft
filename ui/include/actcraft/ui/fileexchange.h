@@ -36,6 +36,9 @@ public:
     Q_INVOKABLE void importPdf(const QUrl& url);
     Q_INVOKABLE void importPowerpointImages(const QUrl& url);
     Q_INVOKABLE void printThroughPdf(); // hors Windows, N1-15
+    // Valide l'édition en cours et dépose ce qui est soulevé (sans étape d'annulation) : ce qui sort ou
+    // s'imprime est ce que l'utilisateur voit. Appelée par chaque export et par Fichier > Imprimer.
+    Q_INVOKABLE void settleEditing();
 
 signals:
     void documentChanged();
@@ -46,7 +49,6 @@ signals:
     void failed(QString message);
 
 private:
-    void settleEditing();
     void setBusy(bool busy);
     // Un travail à la fois (`busy`) ; refus visible (`failed`) sinon. Vrai si le travail peut partir.
     bool begin();

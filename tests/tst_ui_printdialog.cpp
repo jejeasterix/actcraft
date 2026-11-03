@@ -3,6 +3,7 @@
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/printcontroller.h>
 
+#include <QDesktopServices>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
@@ -15,6 +16,7 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QUrl>
 #include <QtQml/qqmlextensionplugin.h>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
@@ -160,6 +162,16 @@ struct Shell
     }
 };
 
+// Gestionnaire des URL « file » : note les PDF que « Imprimer » ouvrirait dans un lecteur.
+struct UrlCatcher : QObject
+{
+    Q_OBJECT
+public:
+    QList<QUrl> urls;
+public slots:
+    void got(const QUrl& url) { urls.push_back(url); }
+};
+
 } // namespace
 
 class TstUiPrintDialog : public QObject
@@ -172,6 +184,7 @@ private slots:
     void previewIsLazy();
     void printWritesTheSheets();
     void dialogEditsSettingsAndShowsTheSheet();
+    void printButtonPrintsTheSheetsOfTheSettings();
 };
 
 void TstUiPrintDialog::sheetCountFollowsSettings()
@@ -375,14 +388,23 @@ void TstUiPrintDialog::printWritesTheSheets()
     const QString second = dir.filePath(QStringLiteral("deux.pdf"));
     QVERIFY(printing.print(second));
     QCOMPARE(pdfPages(second), 3);
-    // Ni imprimante ni fichier : refus annoncé.
-    printing.setPrinter(QString());
-    QVERIFY(!printing.print());
-    QCOMPARE(failed.count(), 1);
+    // Sans QPrinter ni fichier (L5-C15) : le PDF temporaire des feuilles s'ouvre dans le lecteur du système.
+    if (!print::printingAvailable()) {
+        UrlCatcher catcher;
+        QDesktopServices::setUrlHandler(QStringLiteral("file"), &catcher, "got");
+        printing.setPrinter(QString());
+        QVERIFY(printing.print());
+        QDesktopServices::unsetUrlHandler(QStringLiteral("file"));
+        QCOMPARE(catcher.urls.size(), 1);
+        QCOMPARE(pdfPages(catcher.urls.first().toLocalFile()), 3);
+        QFile::remove(catcher.urls.first().toLocalFile());
+        QCOMPARE(failed.count(), 0);
+    }
+    const qsizetype refused = failed.count();
     // Fichier impossible à écrire : refus annoncé, aucun fichier fantôme.
     const QString impossible = dir.filePath(QStringLiteral("absent/sortie.pdf"));
     QVERIFY(!printing.print(impossible));
-    QCOMPARE(failed.count(), 2);
+    QCOMPARE(failed.count(), refused + 1);
     QVERIFY(!QFile::exists(impossible));
 }
 
@@ -454,6 +476,37 @@ void TstUiPrintDialog::dialogEditsSettingsAndShowsTheSheet()
         QTest::qWait(300);
         shell.window.grabWindow().save(QDir(grab).filePath(QStringLiteral("boite-impression.png")));
     }
+}
+
+// L5-C15 : sans QPrinter, « Imprimer » ouvre un PDF des feuilles des réglages (2 × 2 : une feuille pour
+// quatre pages), pas celui du document entier (quatre pages) que donnerait FileExchange::printThroughPdf.
+void TstUiPrintDialog::printButtonPrintsTheSheetsOfTheSettings()
+{
+    if (print::printingAvailable()) {
+        QSKIP("QPrinter construit : « Imprimer » part vers l'imprimante, pas vers un PDF");
+    }
+    Shell shell;
+    QVERIFY(shell.start(4));
+    shell.printing->setRows(2);
+    shell.printing->setColumns(2);
+    QCOMPARE(shell.printing->sheetCount(), 1);
+    QMetaObject::invokeMethod(shell.dialog, "open");
+    QTRY_VERIFY(shell.dialog->property("opened").toBool());
+    UrlCatcher catcher;
+    QDesktopServices::setUrlHandler(QStringLiteral("file"), &catcher, "got");
+    QSignalSpy finished(shell.printing, &ui::PrintController::finished);
+    auto* button = shell.find<QQuickItem>("printButton");
+    QVERIFY(button);
+    QTest::mouseClick(&shell.window, Qt::LeftButton, {},
+                      button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint());
+    QTRY_COMPARE(catcher.urls.size(), 1);
+    QDesktopServices::unsetUrlHandler(QStringLiteral("file"));
+    const QString path = catcher.urls.first().toLocalFile();
+    QCOMPARE(pdfPages(path), 1);
+    QCOMPARE(finished.count(), 1);
+    QVERIFY(shell.root->property("calls").toStringList().isEmpty()); // jamais printThroughPdf
+    QTRY_VERIFY(!shell.dialog->property("opened").toBool());
+    QFile::remove(path);
 }
 
 QTEST_MAIN(TstUiPrintDialog)

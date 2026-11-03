@@ -1,7 +1,7 @@
 {
  "format": "actcraft-scenario/1",
  "name": "imprimer",
- "description": "S17 (partie jouable sans boîte ouverte) : un paperboard de quatre pages ; le contrôleur d'impression compte quatre feuilles aux réglages par défaut et n'a composé aucun aperçu. La boîte elle-même (réglages, aperçu, impression vers l'imprimante virtuelle) est jouée par tst_ui_printdialog ; son ouverture par Fichier > Imprimer reste à brancher dans Main.qml (L5-C11).",
+ "description": "S17 : un paperboard de quatre pages ; le contrôleur d'impression compte quatre feuilles aux réglages par défaut et n'a composé aucun aperçu ; Fichier > Imprimer (file.print) ouvre la boîte, qui reçoit l'échange (Exporter en PDF actif) et montre la première feuille, captée boîte ouverte. Les réglages, l'aperçu et l'impression vers l'imprimante virtuelle sont joués par tst_ui_printdialog.",
  "steps": [
   {
    "waitReady": true
@@ -114,6 +114,39 @@
   },
   {
    "capture": "quatre-pages"
+  },
+  {
+   "command": "file.print"
+  },
+  {
+   "waitFor": "printSetupDialog.visible",
+   "value": true
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "expect": "printSetupDialog.visible",
+   "value": true
+  },
+  {
+   "expect": "appPrint.sheetCount",
+   "value": 4
+  },
+  {
+   "waitFor": "previewImage.status",
+   "value": "Ready"
+  },
+  {
+   "expect": "previewImage.status",
+   "value": "Ready"
+  },
+  {
+   "expect": "appPrint.previewRenders",
+   "value": 1
+  },
+  {
+   "capture": "boite-impression"
   }
  ]
 }

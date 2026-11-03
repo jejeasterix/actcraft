@@ -873,6 +873,25 @@ private slots:
         QCOMPARE(doc->document().page(0).zones.vertical, 16);
     }
 
+    // L5-C15 : Fichier > Imprimer ouvre la boîte d'impression sur toutes les plateformes ; elle reçoit
+    // l'échange, donc « Exporter en PDF » est actif (le repli sans QPrinter en dépend).
+    void printOpensTheDialogWithItsExchange()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* dialog = namedObject(s, "printSetupDialog");
+        QVERIFY(dialog);
+        QVERIFY(!dialog->property("visible").toBool());
+        QVERIFY(run(s, QStringLiteral("file.print")));
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QVERIFY(dialog->property("exchange").value<QObject*>() != nullptr);
+        QObject* exportButton = dialog->findChild<QObject*>(QStringLiteral("exportButton"));
+        QVERIFY(exportButton);
+        QVERIFY(exportButton->property("enabled").toBool());
+        QVERIFY(QMetaObject::invokeMethod(dialog, "close"));
+        QTRY_VERIFY(!dialog->property("visible").toBool());
+    }
+
     // B1 : boîte ouverte, le stylet posé sur un de ses champs ne pose pas d'encre dessous.
     void sizeDialogBlocksTheStylus()
     {

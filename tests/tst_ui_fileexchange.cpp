@@ -189,7 +189,7 @@ private slots:
         QCOMPARE(s.tabs->rowCount(), 1);
     }
 
-    void printThroughPdfOffWindows()
+    void printThroughPdfOpensThePdfOfTheDocument()
     {
         Shell s;
         QVERIFY(s.start());
@@ -197,12 +197,9 @@ private slots:
         UrlCatcher catcher;
         QDesktopServices::setUrlHandler(QStringLiteral("file"), &catcher, "got");
         QSignalSpy done(s.exchange, &ui::FileExchange::finished);
-#ifdef Q_OS_WIN
-        // Sous Windows « Imprimer » ouvre la boîte d'impression : la voie par PDF est appelée directement.
+        // « Imprimer » ouvre la boîte (L5-C15) ; son repli sans QPrinter appelle printThroughPdf : on
+        // appelle cette voie directement, la boîte est couverte par tst_ui_filemenu.
         QMetaObject::invokeMethod(s.exchange, "printThroughPdf");
-#else
-        QVERIFY(s.run(QStringLiteral("file.print")));
-#endif
         QTRY_VERIFY_WITH_TIMEOUT(done.count() == 1 && !s.exchange->isBusy(), 15000);
         QDesktopServices::unsetUrlHandler(QStringLiteral("file"));
         QCOMPARE(catcher.urls.size(), 1);
@@ -266,6 +263,25 @@ private slots:
         s.document->undo();
         QCOMPARE(s.document->document().page(0).objects.size(), std::size_t(0));
         QVERIFY(!s.document->canUndo());
+    }
+
+    // L5-C15 : Fichier > Imprimer règle l'édition en cours avant d'ouvrir la boîte : l'objet soulevé est
+    // déposé, donc l'aperçu et le PDF imprimé le contiennent.
+    void printSettlesTheLiftBeforeOpeningTheDialog()
+    {
+        Shell s;
+        QVERIFY(s.start());
+        s.document->newDocument(800, 600);
+        s.document->commitStroke(redStroke());
+        const core::ObjectId id = s.document->document().page(0).objects.front().common.id;
+        QCOMPARE(s.document->liftObjects({id}).size(), std::size_t(1));
+        QVERIFY(s.document->isLifting());
+        QVERIFY(s.run(QStringLiteral("file.print")));
+        QVERIFY(!s.document->isLifting());
+        QCOMPARE(s.document->document().page(0).objects.size(), std::size_t(1));
+        QObject* dialog = s.window->findChild<QObject*>(QStringLiteral("printSetupDialog"));
+        QVERIFY(dialog);
+        QTRY_VERIFY(dialog->property("visible").toBool());
     }
 
     void failedExportReportsAndReleasesBusy()
