@@ -117,6 +117,9 @@ struct ExportBackgroundStats
     double inkP95Ms = 0;
     double strokeInkP95Ms = 0;
     double baselineInkP95Ms = 0; // L5-C12 : « export-fond-reference »
+    // L5-C14 : tours du fil de charge témoin de la référence (SpinningLoad) ; 0 : la référence n'a porté
+    // aucune charge (mesure à ne pas comparer à celles de L5-C14).
+    std::int64_t baselineControlLoadIterations = 0;
     int freezes = 0;
     int baselineFreezes = 0;
     int strokeFreezes = 0;
@@ -149,6 +152,7 @@ struct ScenarioResult
     // hors limite ne sont pas jugés (relevés, marqués « excluded » dans le verdict) ; fps, p95 et part des
     // intervalles > 25 ms le restent.
     bool freezeExempt = false;
+    std::int64_t controlLoadIterations = 0; // L5-C14 : tours de la charge témoin (plan.spinsInBackground)
     // Attendu chiffré S36 sur cache.refreshes (cacheRequestNs.size()) ; < 0 : pas de critère.
     int maxCacheRefreshes = -1;
     int rebuilds = -1;

@@ -1,5 +1,6 @@
 #include <actcraft/bench/result.h>
 #include <actcraft/bench/scenarios.h>
+#include <actcraft/bench/spinningload.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/hittest.h>
@@ -326,6 +327,68 @@ private slots:
         });
         QVERIFY(at != plans.begin() && at != plans.end());
         QCOMPARE(std::prev(at)->name, QStringLiteral("export-fond-reference"));
+    }
+
+    // L5-C14 : la référence porte une charge témoin (un fil qui calcule, sans export) : sans elle, elle
+    // mesure une machine au repos et paraît plus lente que l'export (rapport 0,81 mesuré, hors démarrage à
+    // froid : référence rejouée 16,74 puis 16,85 ms, et 16,70 ms après l'export). Seule la référence la
+    // porte.
+    void exportBackgroundReferenceCarriesAControlLoad()
+    {
+        for (const auto set : {bench::ScenarioSet::Court, bench::ScenarioSet::Complet}) {
+            const bench::ScenarioPlan reference = bench::exportBackgroundReferenceScenario(set);
+            QVERIFY(reference.spinsInBackground);
+            QVERIFY(!reference.exportsInBackground);
+        }
+        for (const auto& plan : bench::allScenarios(bench::ScenarioSet::Court)) {
+            QCOMPARE(plan.spinsInBackground, plan.name == QStringLiteral("export-fond-reference"));
+        }
+    }
+
+    // L5-C14 : preuve que la charge témoin tourne (compteur de tours, aucun chrono : on attend un premier
+    // tour avec un plafond large), qu'elle s'arrête à la destruction, et que le JSON dit si la référence en a
+    // porté.
+    void controlLoadActuallyRuns()
+    {
+        std::int64_t seen = 0;
+        {
+            bench::SpinningLoad load;
+            QTRY_VERIFY_WITH_TIMEOUT(load.iterations() > 0, 10000);
+            seen = load.iterations();
+        }
+        QVERIFY(seen > 0);
+    }
+
+    void exportBackgroundJsonSaysWhetherTheBaselineCarriesALoad()
+    {
+        bench::BenchResult result;
+        bench::ScenarioResult exported;
+        exported.name = QStringLiteral("export-fond");
+        bench::ExportBackgroundStats background;
+        background.inkP95Ms = 10.0;
+        background.baselineInkP95Ms = 10.0;
+        background.baselineControlLoadIterations = 7;
+        exported.exportBackground = background;
+        result.scenarios = {exported};
+        QJsonObject e = bench::toJson(result)
+                            .value("scenarios")
+                            .toArray()
+                            .at(0)
+                            .toObject()
+                            .value("export_background")
+                            .toObject();
+        QCOMPARE(e.value("baseline_control_load").toBool(false), true);
+        QCOMPARE(e.value("control_load_iterations").toInteger(-9), qint64{7});
+        result.scenarios[0].exportBackground->baselineControlLoadIterations = 0;
+        e = bench::toJson(result)
+                .value("scenarios")
+                .toArray()
+                .at(0)
+                .toObject()
+                .value("export_background")
+                .toObject();
+        QCOMPARE(e.value("baseline_control_load").toBool(true), false);
+        QCOMPARE(e.value("control_load_iterations").toInteger(-9), qint64{0});
     }
 
     // Les documents synthétiques sont fixés par le banc : 20 pages de 50 traits, aucune image, différents

@@ -113,6 +113,11 @@ struct ScenarioPlan
     // L5-T31 : un export PDF du document synthétique tourne sur son fil pendant les traits (relancé tant que
     // le scénario dure) ; le runner relève ses durées et la latence d'encre. Lu par ce booléen.
     bool exportsInBackground = false;
+    // L5-C14 : charge témoin de « export-fond-reference » : un fil qui calcule sans fin pendant les traits
+    // (aucun export). Mesuré : la référence n'est pas plus lente par démarrage à froid, mais parce que
+    // l'export, en gardant un cœur actif, abaisse la latence d'encre ; la référence porte donc une charge
+    // qui n'écrit rien, pour que le rapport ne mesure que le coût de l'export. Lu par ce booléen.
+    bool spinsInBackground = false;
     // L5-T31 : le document chargé avant la mesure est tabsFixtureDocument(0) (20 pages de 50 traits).
     bool fixtureDocument = false;
     std::vector<PlannedInput> inputs;
@@ -209,6 +214,9 @@ ScenarioPlan tabsScenario(ScenarioSet set);
 ScenarioPlan exportBackgroundScenario(ScenarioSet set);
 // L5-C12 : « export-fond-reference », jouée juste avant « export-fond » dans le même passage : même page
 // (document synthétique), même tracé, aucun export. Sa latence d'encre p95 est le dénominateur du rapport.
+// L5-C14 : elle porte une charge témoin (spinsInBackground, SpinningLoad) : sans elle, la référence tourne
+// sur une machine au repos et paraît plus lente que l'export (rapport 0,81 mesuré ; le démarrage à froid
+// est écarté : 16,74 puis 16,85 ms rejouée). Le JSON le dit (`baseline_control_load`).
 ScenarioPlan exportBackgroundReferenceScenario(ScenarioSet set);
 // Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);

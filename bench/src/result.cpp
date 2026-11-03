@@ -178,21 +178,24 @@ QJsonObject scenarioJson(const ScenarioResult& s)
         const ExportBackgroundStats& e = *s.exportBackground;
         const double ratio = e.baselineInkP95Ms > 0 ? e.inkP95Ms / e.baselineInkP95Ms : 0;
         const double ratioToStroke = e.strokeInkP95Ms > 0 ? e.inkP95Ms / e.strokeInkP95Ms : 0;
-        out.insert(QStringLiteral("export_background"),
-                   QJsonObject{{"exports", e.exports},
-                               {"failures", e.failures},
-                               {"max_export_ms", e.maxExportMs},
-                               {"ink_p95_ms", e.inkP95Ms},
-                               {"stroke_ink_p95_ms", e.strokeInkP95Ms},
-                               {"baseline_ink_p95_ms", e.baselineInkP95Ms},
-                               {"ratio_to_baseline", ratio},
-                               {"ratio_to_stroke", ratioToStroke}, // pour information
-                               {"ratio_budget", kExportInkRatioBudget},
-                               {"within_ratio", e.baselineInkP95Ms > 0 && ratio <= kExportInkRatioBudget},
-                               {"freezes", e.freezes},
-                               {"baseline_freezes", e.baselineFreezes},
-                               {"stroke_freezes", e.strokeFreezes},
-                               {"no_more_freezes", e.freezes <= e.baselineFreezes}});
+        out.insert(
+            QStringLiteral("export_background"),
+            QJsonObject{{"exports", e.exports},
+                        {"failures", e.failures},
+                        {"max_export_ms", e.maxExportMs},
+                        {"ink_p95_ms", e.inkP95Ms},
+                        {"stroke_ink_p95_ms", e.strokeInkP95Ms},
+                        {"baseline_ink_p95_ms", e.baselineInkP95Ms},
+                        {"baseline_control_load", e.baselineControlLoadIterations > 0},
+                        {"control_load_iterations", static_cast<qint64>(e.baselineControlLoadIterations)},
+                        {"ratio_to_baseline", ratio},
+                        {"ratio_to_stroke", ratioToStroke}, // pour information
+                        {"ratio_budget", kExportInkRatioBudget},
+                        {"within_ratio", e.baselineInkP95Ms > 0 && ratio <= kExportInkRatioBudget},
+                        {"freezes", e.freezes},
+                        {"baseline_freezes", e.baselineFreezes},
+                        {"stroke_freezes", e.strokeFreezes},
+                        {"no_more_freezes", e.freezes <= e.baselineFreezes}});
     }
     if (s.thumbnails) {
         out.insert(QStringLiteral("thumbnails"),

@@ -2,6 +2,7 @@
 #include <actcraft/bench/memory.h>
 #include <actcraft/bench/runner.h>
 #include <actcraft/bench/scenarios.h>
+#include <actcraft/bench/spinningload.h>
 #include <actcraft/bench/verdict.h>
 #include <actcraft/core/clock.h>
 #include <actcraft/core/generator.h>
@@ -33,6 +34,7 @@
 #include <QVariant>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <functional>
 #include <iterator>
@@ -40,6 +42,7 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -555,6 +558,11 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
             exports.reset();
         }
     }
+    // L5-C14 : charge témoin de la référence, vivante jusqu'à la fin de la mesure (m_recorder->end()).
+    std::unique_ptr<SpinningLoad> spin;
+    if (plan.spinsInBackground) {
+        spin = std::make_unique<SpinningLoad>();
+    }
     const auto runDueCommands = [&] {
         while (nextCommand < commands.size() && commandPlanned[nextCommand] <= core::monotonicNowNs()) {
             const PlannedInput& in = commands[nextCommand];
@@ -699,6 +707,13 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     }
     waitMs(150); // dernières images : figement, redessin du cache
     m_recorder->end();
+    if (spin) {
+        s.controlLoadIterations = spin->iterations();
+        if (s.controlLoadIterations <= 0) { // le fil n'a pas tourné : la référence ne vaudrait rien
+            invalidReasons << QStringLiteral("error: control load did not run in %1").arg(plan.name);
+        }
+        spin.reset();
+    }
     if (exports) {
         const bool finished = exports->finish([this](const std::function<bool()>& condition,
                                                      int timeoutMs) { return waitFor(condition, timeoutMs); },
@@ -1159,6 +1174,7 @@ BenchResult Runner::run(QQuickWindow* window)
             } else {
                 ex.baselineInkP95Ms = baseline->latency->total.p95;
                 ex.baselineFreezes = static_cast<int>(baseline->intervals.freezeOverLimit);
+                ex.baselineControlLoadIterations = baseline->controlLoadIterations;
             }
             const auto stroke =
                 std::find_if(result.scenarios.begin(), result.scenarios.end(),
