@@ -265,6 +265,25 @@ private slots:
         QVERIFY(!s.document->canUndo());
     }
 
+    // L5-C15 : Fichier > Imprimer règle l'édition en cours avant d'ouvrir la boîte : l'objet soulevé est
+    // déposé, donc l'aperçu et le PDF imprimé le contiennent.
+    void printSettlesTheLiftBeforeOpeningTheDialog()
+    {
+        Shell s;
+        QVERIFY(s.start());
+        s.document->newDocument(800, 600);
+        s.document->commitStroke(redStroke());
+        const core::ObjectId id = s.document->document().page(0).objects.front().common.id;
+        QCOMPARE(s.document->liftObjects({id}).size(), std::size_t(1));
+        QVERIFY(s.document->isLifting());
+        QVERIFY(s.run(QStringLiteral("file.print")));
+        QVERIFY(!s.document->isLifting());
+        QCOMPARE(s.document->document().page(0).objects.size(), std::size_t(1));
+        QObject* dialog = s.window->findChild<QObject*>(QStringLiteral("printSetupDialog"));
+        QVERIFY(dialog);
+        QTRY_VERIFY(dialog->property("visible").toBool());
+    }
+
     void failedExportReportsAndReleasesBusy()
     {
         Shell s;
