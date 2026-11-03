@@ -56,15 +56,17 @@ private slots:
     void lot4bScenariosWithFrames()
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
-        QCOMPARE(scenarios.size(), 14); // L5-T19 : « edition » en dernier (treize avant)
+        QCOMPARE(scenarios.size(),
+                 16); // L5-T31 : « onglets » et « export-fond » après « edition » (quatorze avant)
         const QStringList names{QStringLiteral("stroke"),           QStringLiteral("zoom"),
                                 QStringLiteral("scroll"),           QStringLiteral("page"),
                                 QStringLiteral("pauses"),           QStringLiteral("gommer"),
                                 QStringLiteral("soulever"),         QStringLiteral("forme-page-annotee"),
                                 QStringLiteral("grille-dessus"),    QStringLiteral("miniatures"),
                                 QStringLiteral("miniatures-ferme"), QStringLiteral("miniatures-pauses"),
-                                QStringLiteral("zones-zoom"),       QStringLiteral("edition")};
-        for (qsizetype i = 0; i < 14; ++i) {
+                                QStringLiteral("zones-zoom"),       QStringLiteral("edition"),
+                                QStringLiteral("onglets"),          QStringLiteral("export-fond")};
+        for (qsizetype i = 0; i < 16; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);
