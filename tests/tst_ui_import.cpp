@@ -132,14 +132,14 @@ private slots:
         // Le dossier temporaire de la conversion naît sous TMPDIR/TMP/TEMP : un dossier à nous, vide d'abord.
         QTemporaryDir scratch;
         QVERIFY(scratch.isValid());
-        for (const char* variable : {"TMPDIR", "TMP", "TEMP"}) {
-            qputenv(variable, QFile::encodeName(scratch.path()));
-        }
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
         const QString deck = dummyPresentation(dir, QStringLiteral("cours.pptx"));
         QVERIFY(!deck.isEmpty());
         qputenv("ACTCRAFT_OFFICE_CONVERTER", fakeConverter(fixturePdf()));
+        for (const char* variable : {"TMPDIR", "TMP", "TEMP"}) {
+            qputenv(variable, QFile::encodeName(scratch.path()));
+        }
 
         Shell s;
         QVERIFY(s.start());
@@ -171,9 +171,6 @@ private slots:
         }
         QTemporaryDir scratch;
         QVERIFY(scratch.isValid());
-        for (const char* variable : {"TMPDIR", "TMP", "TEMP"}) {
-            qputenv(variable, QFile::encodeName(scratch.path()));
-        }
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
         const QString deck = dummyPresentation(dir, QStringLiteral("cassee.pptx"));
@@ -184,6 +181,9 @@ private slots:
         bad.write("ceci n'est pas un PDF");
         bad.close();
         qputenv("ACTCRAFT_OFFICE_CONVERTER", fakeConverter(notPdf));
+        for (const char* variable : {"TMPDIR", "TMP", "TEMP"}) {
+            qputenv(variable, QFile::encodeName(scratch.path()));
+        }
 
         Shell s;
         QVERIFY(s.start());

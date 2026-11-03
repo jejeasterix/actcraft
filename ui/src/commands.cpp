@@ -311,7 +311,19 @@ QString Commands::shortcut(const QString& id) const
 
 bool Commands::isAvailable(const QString& id) const
 {
-    return m_registry.isAvailable(id, m_platform);
+    return !m_hidden.contains(id) && m_registry.isAvailable(id, m_platform);
+}
+
+void Commands::setHidden(const QString& id, bool hidden)
+{
+    if (hidden ? !m_hidden.contains(id) : m_hidden.contains(id)) {
+        if (hidden) {
+            m_hidden.insert(id);
+        } else {
+            m_hidden.remove(id);
+        }
+        emit layoutChanged();
+    }
 }
 
 bool Commands::isEnabled(const QString& id) const

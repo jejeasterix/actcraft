@@ -3,7 +3,7 @@ import QtQuick.Dialogs
 import ActCraft.Ui
 
 // Coquille (L5-T2) : dialogues de fichiers de l'export, de l'import et de l'insertion (choisir un fichier, puis
-// appeler FileExchange ou Insertion). Les corps viennent de L5-T25 et L5-T30 ; chaque boîte posée sur la vue
+// appeler FileExchange ou Insertion). Chaque boîte posée sur la vue
 // émet popupOpened et popupClosed (contrat du lot 4).
 Item {
     id: root
@@ -37,6 +37,8 @@ Item {
         importPdfDialog.open()
     }
     function chooseImportPowerpoint() {
+        importPowerpointDialog.currentFolder = root.exchange.document.defaultFolderUrl(true)
+        importPowerpointDialog.open()
     }
 
     // Les scénarios et les commandes avec argument n'ouvrent jamais ces boîtes (Main.qml) : l'URL va droit à
@@ -68,6 +70,15 @@ Item {
         fileMode: FileDialog.OpenFile
         nameFilters: [qsTr("Documents PDF (*.pdf)")]
         onAccepted: root.exchange.importPdf(selectedFile)
+        onVisibleChanged: visible ? root.popupOpened() : root.popupClosed()
+    }
+    FileDialog {
+        id: importPowerpointDialog
+        objectName: "importPowerpointDialog"
+        title: qsTr("Importer une présentation en images")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [qsTr("Présentations (*.pptx *.ppt *.ppsx *.odp)")]
+        onAccepted: root.exchange.importPowerpointImages(selectedFile)
         onVisibleChanged: visible ? root.popupOpened() : root.popupClosed()
     }
 }

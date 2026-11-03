@@ -1,3 +1,4 @@
+#include <actcraft/export/officeconvert.h>
 #include <actcraft/export/pageexport.h>
 #include <actcraft/export/pdfexport.h>
 #include <actcraft/export/pdfimport.h>
@@ -40,6 +41,19 @@ template <typename Result, typename Done> void watch(QObject* owner, QFuture<Res
         done(std::move(result));
     });
     watcher->setFuture(future);
+}
+
+// Installe un document importé dans un onglet neuf. Faux si le modèle refuse de basculer (opération en cours).
+bool installInNewTab(DocumentTabs* tabs, DocumentController* document, core::Document&& imported,
+                     const QString& title)
+{
+    const int before = tabs->rowCount();
+    tabs->newTab();
+    if (tabs->rowCount() == before) {
+        return false;
+    }
+    document->replaceDocument(std::move(imported), QUrl(), title);
+    return true;
 }
 
 } // namespace
@@ -112,10 +126,11 @@ bool FileExchange::pdfImportAvailable() const
     return exporting::pdfImportAvailable();
 }
 
-// Talon L5-T1 : rempli par L5-T30.
+// Vrai si un convertisseur de présentations existe (LibreOffice, PowerPoint ou la variable de test) et que
+// l'import PDF est construit : la présentation passe par un PDF.
 bool FileExchange::powerpointAvailable() const
 {
-    return false;
+    return exporting::pdfImportAvailable() && exporting::findConverter().has_value();
 }
 
 // La copie du document est prise ici, sur le fil principal ; le rendu et l'écriture tournent sur un fil
@@ -177,21 +192,68 @@ void FileExchange::importPdf(const QUrl& url)
             fail(tr("Import PDF impossible : %1").arg(r.error));
             return;
         }
-        const int before = m_tabs->rowCount();
-        m_tabs->newTab();
-        if (m_tabs->rowCount() == before) { // le modèle refuse de basculer (opération en cours)
+        const QString title =
+            QFileInfo(source.isLocalFile() ? source.toLocalFile() : source.path()).completeBaseName();
+        if (!installInNewTab(m_tabs, m_document, std::move(r.document), title)) {
             fail(tr("Import PDF impossible : un autre fichier est en cours de lecture."));
             return;
         }
-        const QString title =
-            QFileInfo(source.isLocalFile() ? source.toLocalFile() : source.path()).completeBaseName();
-        m_document->replaceDocument(std::move(r.document), QUrl(), title);
         emit finished(tr("PDF importé : %1").arg(fileName(source)));
     });
 }
 
-// Talon L5-T1 : rempli par L5-T30.
-void FileExchange::importPowerpointImages(const QUrl&) {}
+// Présentation -> PDF par le convertisseur (fil dédié du module export), puis le PDF est lu comme par
+// importPdf et s'installe dans un onglet neuf. Le dossier temporaire du PDF converti est supprimé après
+// l'import, succès ou échec.
+void FileExchange::importPowerpointImages(const QUrl& url)
+{
+    if (!exporting::pdfImportAvailable()) {
+        fail(tr("L'import de présentations n'est pas disponible dans cette version."));
+        return;
+    }
+    const std::optional<exporting::Converter> converter = exporting::findConverter();
+    if (!converter) {
+        fail(tr("Aucun convertisseur de présentations n'est installé (LibreOffice ou PowerPoint)."));
+        return;
+    }
+    if (!m_tabs) {
+        fail(tr("Aucun onglet pour recevoir la présentation."));
+        return;
+    }
+    const QUrl source = localized(url);
+    if (!source.isLocalFile()) {
+        fail(tr("Import de la présentation impossible : seul un fichier local est accepté."));
+        return;
+    }
+    if (!begin()) {
+        return;
+    }
+    const QString path = source.toLocalFile();
+    watch(this, exporting::convertToPdf(*converter, path), [this, source](exporting::ConvertResult c) {
+        if (!c.ok) {
+            setBusy(false);
+            fail(tr("Import de la présentation impossible : %1").arg(c.error));
+            return;
+        }
+        const QString folder = QFileInfo(c.pdfPath).absolutePath();
+        watch(this, exporting::importPdf(QUrl::fromLocalFile(c.pdfPath)),
+              [this, source, folder](exporting::ImportResult r) {
+                  QDir(folder).removeRecursively();
+                  setBusy(false);
+                  if (!r.ok) {
+                      fail(tr("Import de la présentation impossible : %1").arg(r.error));
+                      return;
+                  }
+                  if (!installInNewTab(m_tabs, m_document, std::move(r.document),
+                                       QFileInfo(source.toLocalFile()).completeBaseName())) {
+                      fail(tr("Import de la présentation impossible : un autre fichier est en cours de "
+                              "lecture."));
+                      return;
+                  }
+                  emit finished(tr("Présentation importée : %1").arg(fileName(source)));
+              });
+    });
+}
 
 // Hors Windows (N1-15) : la mise en page de la boîte d'impression n'existe pas, le paperboard part par
 // l'export PDF de L5-T23 (même rendu que l'écran) dans le dossier temporaire, puis le lecteur de PDF du
