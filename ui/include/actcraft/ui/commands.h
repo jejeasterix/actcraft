@@ -6,6 +6,7 @@
 #include <QHash>
 #include <QJSValue>
 #include <QObject>
+#include <QSet>
 #include <QStringList>
 #include <QVariant>
 #include <QtQml/qqmlregistration.h>
@@ -69,6 +70,10 @@ public:
     Q_INVOKABLE QString iconUrl(const QString& id) const;
     Q_INVOKABLE QString shortcut(const QString& id) const;
     Q_INVOKABLE bool isAvailable(const QString& id) const;
+    // Retire (ou rend) une commande aux menus, barres et raccourcis sans l'ôter du registre : une
+    // fonction que le poste ne peut pas rendre (convertisseur absent) n'est pas offerte. Les scénarios et
+    // `trigger` la jouent encore ; son gestionnaire refuse visiblement.
+    Q_INVOKABLE void setHidden(const QString& id, bool hidden);
     Q_INVOKABLE bool isEnabled(const QString& id) const;
     Q_INVOKABLE void setEnabled(const QString& id, bool enabled);
     Q_INVOKABLE bool isChecked(const QString& id) const;
@@ -90,6 +95,7 @@ private:
     actions::Platform m_platform;
     QString m_profileDir;
     QStringList m_errors;
+    QSet<QString> m_hidden;
     QHash<QString, QJSValue> m_handlers;
     int m_revision = 0;
 };

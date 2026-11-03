@@ -184,7 +184,7 @@
   { "id": "export.page-image", "label": "Exporter la page en image…", "icon": "exporter", "shortcut": "Ctrl+Shift+E", "argument": "url", "optional": true },
   { "id": "export.pdf", "label": "Exporter en PDF…", "argument": "url", "optional": true },
   { "id": "file.import-pdf", "label": "PDF…", "icon": "importer", "argument": "url", "optional": true },
-  { "id": "file.import-powerpoint-images", "label": "Présentation en images…", "argument": "url", "optional": true, "platforms": ["windows"] },
+  { "id": "file.import-powerpoint-images", "label": "Présentation en images…", "argument": "url", "optional": true, "platforms": ["windows", "macos", "linux"] },
   { "id": "file.print", "label": "Imprimer…", "icon": "imprimer", "shortcut": "Ctrl+P" }
   ]
 }
