@@ -1,152 +1,59 @@
 {
  "format": "actcraft-scenario/1",
  "name": "imprimer",
- "description": "S17 : un paperboard de quatre pages ; le contrôleur d'impression compte quatre feuilles aux réglages par défaut et n'a composé aucun aperçu ; Fichier > Imprimer (file.print) ouvre la boîte, qui reçoit l'échange (Exporter en PDF actif) et montre la première feuille, captée boîte ouverte. Les réglages, l'aperçu et l'impression vers l'imprimante virtuelle sont joués par tst_ui_printdialog.",
+ "description": "S17 (partie jouable hors écran sur le Mac) : un paperboard de quatre pages dont la page 2 est tracée en rouge ; le contrôleur d'impression compte quatre feuilles aux réglages par défaut et n'a composé aucun aperçu ; Fichier > Imprimer (file.print) ouvre la boîte, qui montre la première feuille. Les réglages de S17 sont posés par des clics dans la boîte : en gris, deux pages par feuille (lignes = 2), plage de la page 2 à la page 4 ; le nombre de feuilles est relu (2), l'aperçu se recompose (la capture finale montre le tracé rouge de la page 2 en gris ; le joueur ne lit pas les pixels de l'aperçu, ce contrôle revient au PC). Non jouables ici : le PDF des feuilles de « Imprimer » (ouvert dans un lecteur, sans chemin connu du joueur) et ses pages comptées, la page allongée, les notes, les réglages relus après relance de l'application (voir le rapport de L5-C20, à rejouer sous Windows).",
  "steps": [
-  {
-   "waitReady": true
-  },
-  {
-   "expect": "appPrint.sheetCount",
-   "value": 1
-  },
-  {
-   "stroke": [
-    [
-     300,
-     300
-    ],
-    [
-     600,
-     300
-    ]
-   ],
-   "pressure": 0.5
-  },
-  {
-   "waitReady": true
-  },
-  {
-   "command": "page.insert-after"
-  },
-  {
-   "waitReady": true
-  },
-  {
-   "stroke": [
-    [
-     300,
-     360
-    ],
-    [
-     600,
-     360
-    ]
-   ],
-   "pressure": 0.5
-  },
-  {
-   "waitReady": true
-  },
-  {
-   "command": "page.insert-after"
-  },
-  {
-   "waitReady": true
-  },
-  {
-   "stroke": [
-    [
-     300,
-     420
-    ],
-    [
-     600,
-     420
-    ]
-   ],
-   "pressure": 0.5
-  },
-  {
-   "waitReady": true
-  },
-  {
-   "command": "page.insert-after"
-  },
-  {
-   "waitReady": true
-  },
-  {
-   "stroke": [
-    [
-     300,
-     480
-    ],
-    [
-     600,
-     480
-    ]
-   ],
-   "pressure": 0.5
-  },
-  {
-   "waitReady": true
-  },
-  {
-   "expect": "documentController.pageCount",
-   "value": 4
-  },
-  {
-   "expect": "appPrint.sheetCount",
-   "value": 4
-  },
-  {
-   "expect": "appPrint.rows",
-   "value": 1
-  },
-  {
-   "expect": "appPrint.gray",
-   "value": false
-  },
-  {
-   "expect": "appPrint.previewRenders",
-   "value": 0
-  },
-  {
-   "capture": "quatre-pages"
-  },
-  {
-   "command": "file.print"
-  },
-  {
-   "waitFor": "printSetupDialog.visible",
-   "value": true
-  },
-  {
-   "waitReady": true
-  },
-  {
-   "expect": "printSetupDialog.visible",
-   "value": true
-  },
-  {
-   "expect": "appPrint.sheetCount",
-   "value": 4
-  },
-  {
-   "waitFor": "previewImage.status",
-   "value": "Ready"
-  },
-  {
-   "expect": "previewImage.status",
-   "value": "Ready"
-  },
-  {
-   "expect": "appPrint.previewRenders",
-   "value": 1
-  },
-  {
-   "capture": "boite-impression"
-  }
+  {"waitReady": true},
+  {"expect": "appPrint.sheetCount", "value": 1},
+  {"stroke": [[300, 300], [600, 300]], "pressure": 0.5},
+  {"waitReady": true},
+  {"command": "page.insert-after"},
+  {"waitReady": true},
+  {"command": "pen.color", "argument": "#E53935"},
+  {"stroke": [[300, 360], [600, 360]], "pressure": 0.5},
+  {"waitReady": true},
+  {"command": "page.insert-after"},
+  {"waitReady": true},
+  {"stroke": [[300, 420], [600, 420]], "pressure": 0.5},
+  {"waitReady": true},
+  {"command": "page.insert-after"},
+  {"waitReady": true},
+  {"stroke": [[300, 480], [600, 480]], "pressure": 0.5},
+  {"waitReady": true},
+  {"expect": "documentController.pageCount", "value": 4},
+  {"expect": "appPrint.sheetCount", "value": 4},
+  {"expect": "appPrint.rows", "value": 1},
+  {"expect": "appPrint.gray", "value": false},
+  {"expect": "appPrint.previewRenders", "value": 0},
+  {"capture": "quatre-pages"},
+  {"command": "file.print"},
+  {"waitFor": "printSetupDialog.visible", "value": true},
+  {"waitReady": true},
+  {"expect": "printSetupDialog.visible", "value": true},
+  {"expect": "appPrint.sheetCount", "value": 4},
+  {"waitFor": "previewImage.status", "value": "Ready"},
+  {"expect": "previewImage.status", "value": "Ready"},
+  {"expect": "appPrint.previewRenders", "value": 1},
+  {"capture": "boite-impression"},
+  {"pointer": [[566, 154]], "space": "window"},
+  {"expect": "appPrint.gray", "value": true},
+  {"pointer": [[553, 196]], "space": "window"},
+  {"expect": "appPrint.rows", "value": 2},
+  {"expect": "appPrint.sheetCount", "value": 2},
+  {"pointer": [[535, 364]], "space": "window"},
+  {"key": "Down"},
+  {"key": "Down"},
+  {"key": "Return"},
+  {"expect": "appPrint.range", "value": "from-to"},
+  {"pointer": [[553, 448]], "space": "window"},
+  {"pointer": [[553, 448]], "space": "window"},
+  {"pointer": [[553, 448]], "space": "window"},
+  {"expect": "appPrint.to", "value": 4},
+  {"pointer": [[553, 406]], "space": "window"},
+  {"expect": "appPrint.from", "value": 2},
+  {"waitFor": "appPrint.previewRenders", "value": 1, "above": true, "timeoutMs": 10000},
+  {"waitFor": "previewImage.status", "value": "Ready", "timeoutMs": 10000},
+  {"expect": "appPrint.sheetCount", "value": 2},
+  {"capture": "reglages-s17"}
  ]
 }
