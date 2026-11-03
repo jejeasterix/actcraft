@@ -381,6 +381,7 @@ Window {
         id: printSetupDialog
         objectName: "printSetupDialog"
         printing: appPrint
+        exchange: appExchange
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -702,10 +703,7 @@ Window {
                 fileExchangeActions.chooseImportPowerpoint()
         })
         appCommands.setHandler("file.print", function () {
-            if (Qt.platform.os === "windows")
-                printSetupDialog.open()
-            else
-                appExchange.printThroughPdf()
+            printSetupDialog.open()
         })
     }
 
