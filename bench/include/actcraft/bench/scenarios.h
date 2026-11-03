@@ -159,10 +159,15 @@ ScenarioPlan gridAboveScenario(ScenarioSet set);
 inline constexpr int kBenchZonesAcross = 40;
 inline constexpr int kBenchZonesDown = 53;
 ScenarioPlan zonesZoomScenario(ScenarioSet scenarioSet);
+// L7-T34 (lot 10, écart 5). Reconnaissance de forme ouverte par « tool.shape-recognition » avant la mesure
+// (setupCommands), puis un cercle à main levée d'un seul appui sur la page du banc ; la dernière entrée
+// referme le mode, features::RecognitionSession::kDefaultDelayMs + 300 ms après le relâché : la conversion
+// du trait en forme (et son redessin du cache) tombe dans la mesure. Même durée en court et en complet.
+ScenarioPlan recognitionScenario(ScenarioSet set);
 // Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);
 // stroke, zoom, scroll, page, pauses, gommer, soulever, forme-page-annotee, grille-dessus, miniatures,
-// miniatures-ferme, miniatures-pauses, zones-zoom
+// miniatures-ferme, miniatures-pauses, zones-zoom, reconnaissance
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set);
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();

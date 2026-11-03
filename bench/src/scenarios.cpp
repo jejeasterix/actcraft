@@ -2,6 +2,7 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/hittest.h>
+#include <actcraft/features/recognitionsession.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <algorithm>
@@ -510,6 +511,35 @@ ScenarioPlan zonesZoomScenario(ScenarioSet scenarioSet)
     return plan;
 }
 
+ScenarioPlan recognitionScenario(ScenarioSet set)
+{
+    (void)set; // le délai de la session ne se divise pas : même plan en court et en complet
+    constexpr int kSides = 48;
+    constexpr double kRadius = 150.0;
+    constexpr double kStepPx = 6.0;
+    const QPointF centre(512.0, 384.0); // zone centrale de la page du banc
+    ScenarioPlan plan;
+    plan.name = QStringLiteral("reconnaissance");
+    plan.zoom = 1.0;
+    plan.generatedPages = 1;
+    plan.setupCommands.emplace_back(QStringLiteral("tool.shape-recognition"), QVariant());
+    std::int64_t at = 0;
+    for (int k = 0; k < kSides; ++k) {
+        const double a0 = 2 * std::numbers::pi * k / kSides;
+        const double a1 = 2 * std::numbers::pi * (k + 1) / kSides;
+        appendLine(plan.inputs, centre + QPointF(kRadius * std::cos(a0), kRadius * std::sin(a0)),
+                   centre + QPointF(kRadius * std::cos(a1), kRadius * std::sin(a1)), kStepPx, at, k == 0);
+    }
+    appendRelease(plan.inputs);
+    PlannedInput close;
+    close.offsetNs = plan.inputs.back().offsetNs +
+                     std::int64_t{features::RecognitionSession::kDefaultDelayMs + 300} * 1'000'000;
+    close.kind = InputKind::Command;
+    close.command = QStringLiteral("tool.shape-recognition"); // referme le mode ouvert avant la mesure
+    plan.inputs.push_back(close);
+    return plan;
+}
+
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan)
 {
     std::vector<std::pair<std::int64_t, std::int64_t>> windows;
@@ -539,7 +569,8 @@ std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
             thumbnailsScenario(set),
             closedThumbnailsScenario(set),
             thumbnailsPausesScenario(set),
-            zonesZoomScenario(set)};
+            zonesZoomScenario(set),
+            recognitionScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()
