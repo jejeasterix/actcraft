@@ -14,11 +14,11 @@
 
 #include <QBuffer>
 #include <QColor>
+#include <QCoreApplication>
 #include <QDir>
 #include <QImage>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
-#include <QCoreApplication>
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>

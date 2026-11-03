@@ -215,8 +215,9 @@ private slots:
         const auto c = addConnectorAt(d, {200, 150}, a, {600, 600}, 0);
         objectById(d, c).common.locked = true; // survit à l'effacement
         core::UndoStack stack;
-        stack.push(d, core::withFollowingConnectors(
-                          d.page(0), 0, std::make_unique<core::ClearPageCommand>(0, core::ClearKind::Objects)));
+        stack.push(d,
+                   core::withFollowingConnectors(
+                       d.page(0), 0, std::make_unique<core::ClearPageCommand>(0, core::ClearKind::Objects)));
         QCOMPARE(core::indexOf(d.page(0), a), d.page(0).objects.size()); // l'objet est parti
         QCOMPARE(connector(d, c).objectA, core::ObjectId(0));
         QCOMPARE(xy(connector(d, c).firstEnd), XY(200, 150)); // reste en place

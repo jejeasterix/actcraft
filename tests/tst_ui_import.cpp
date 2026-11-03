@@ -207,10 +207,10 @@ private slots:
             }
             QVERIFY(inMenus(commands->menus(), QStringLiteral("file.import-pdf")));
 #ifndef Q_OS_WIN
-            // Un soffice exécutable sur le PATH (machine avec LibreOffice) : l'entrée apparaît. Sur une machine
-            // où LibreOffice est installé hors du PATH (/Applications sur Mac), findConverter() est déjà vrai
-            // avec le PATH vide : le faux soffice ne prouverait rien, ce bloc seul est passé (pas un talon : le
-            // reste du test s'exécute).
+            // Un soffice exécutable sur le PATH (machine avec LibreOffice) : l'entrée apparaît. Sur une
+            // machine où LibreOffice est installé hors du PATH (/Applications sur Mac), findConverter() est
+            // déjà vrai avec le PATH vide : le faux soffice ne prouverait rien, ce bloc seul est passé (pas
+            // un talon : le reste du test s'exécute).
             if (exporting::findConverter().has_value()) {
                 qInfo("Bloc « faux soffice » passé : un convertisseur est déjà trouvé avec le PATH vide.");
             } else {

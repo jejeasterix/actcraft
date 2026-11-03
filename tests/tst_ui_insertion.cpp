@@ -137,8 +137,8 @@ private slots:
         QVERIFY(controller.document().page(0).objects.empty());
     }
 
-    // L5-C23 (mineur D) : une page insérée avant l'origine pendant le décodage décale son indice ; l'image reste
-    // sur sa page.
+    // L5-C23 (mineur D) : une page insérée avant l'origine pendant le décodage décale son indice ; l'image
+    // reste sur sa page.
     void imageFollowsItsPageWhenOneIsInsertedBefore()
     {
         QTemporaryDir dir;
@@ -148,7 +148,8 @@ private slots:
         insertion.setDocument(&controller);
         QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
         insertion.insertImage(QUrl::fromLocalFile(writePng(dir, "a.png", 100, 100)));
-        controller.execute(std::make_unique<core::InsertPagesCommand>(0, std::vector<core::Page>{core::Page{}}));
+        controller.execute(
+            std::make_unique<core::InsertPagesCommand>(0, std::vector<core::Page>{core::Page{}}));
         QCOMPARE(controller.document().pageCount(), std::size_t(2));
         QTRY_COMPARE(inserted.count(), 1);
         QVERIFY(controller.document().page(0).objects.empty());
