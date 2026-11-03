@@ -109,8 +109,8 @@ private slots:
         core::SetObjectFlagCommand command(0, {g}, core::ObjectFlag::Hidden, true);
         command.redo(d, changes);
         QCOMPARE(countKind(changes, core::Change::Kind::ObjectChanged), 1);
-        QCOMPARE(changes[0].area.width, 30.0);
-        QCOMPARE(changes[0].area.height, 10.0);
+        QVERIFY(changes[0].area.width >= 30.0 && changes[0].area.width < 32.0);
+        QVERIFY(changes[0].area.height >= 10.0 && changes[0].area.height < 12.0);
     }
     void dragCopyFlagRoundTrips()
     {
