@@ -83,7 +83,8 @@ void SetObjectFlagCommand::redo(Document& document, Changes& changes)
         }
         write(object, m_flag, m_value);
         if (changesPixels(m_flag)) {
-            changes.push_back(Change{Change::Kind::ObjectChanged, m_page, m_ids[i], boundsOnPage(object)});
+            changes.push_back(
+                Change{Change::Kind::ObjectChanged, m_page, m_ids[i], boundsOnPage(page, object)});
         }
     }
 }
@@ -99,7 +100,8 @@ void SetObjectFlagCommand::undo(Document& document, Changes& changes)
         PageObject& object = page.objects[index];
         write(object, m_flag, m_before[i]);
         if (changesPixels(m_flag)) {
-            changes.push_back(Change{Change::Kind::ObjectChanged, m_page, m_ids[i], boundsOnPage(object)});
+            changes.push_back(
+                Change{Change::Kind::ObjectChanged, m_page, m_ids[i], boundsOnPage(page, object)});
         }
     }
 }

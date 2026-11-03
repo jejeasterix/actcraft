@@ -94,6 +94,24 @@ private slots:
         lock.redo(d, none);
         QVERIFY(none.empty());
     }
+    // L5-C17 (M7) : masquer un groupe signale une zone de redessin non vide (l'emprise de ses membres).
+    void hiddenGroupReportsItsRealArea()
+    {
+        auto d = blank();
+        const auto a = addRect(d, {0, 0, 10, 10});
+        const auto b = addRect(d, {20, 0, 10, 10});
+        core::PageObject group = core::Group{{a, b}};
+        group.common.id = d.nextId();
+        core::insertAtTopOfLayer(d.page(0), std::move(group));
+        d.refreshNextId();
+        const core::ObjectId g = d.page(0).objects.back().common.id;
+        core::Changes changes;
+        core::SetObjectFlagCommand command(0, {g}, core::ObjectFlag::Hidden, true);
+        command.redo(d, changes);
+        QCOMPARE(countKind(changes, core::Change::Kind::ObjectChanged), 1);
+        QVERIFY(changes[0].area.width >= 30.0 && changes[0].area.width < 32.0);
+        QVERIFY(changes[0].area.height >= 10.0 && changes[0].area.height < 12.0);
+    }
     void dragCopyFlagRoundTrips()
     {
         auto d = blank();

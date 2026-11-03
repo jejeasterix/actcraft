@@ -41,6 +41,7 @@
   {"expect": "appTools.selectionCount", "value": 2},
   {"checkPixel": "forme-seule-alignee", "at": [260, 385], "color": "#FFAA00", "tolerance": 40},
   {"checkPixel": "ancien-emplacement-vide", "at": [670, 360], "color": "#FFFFFF", "tolerance": 8},
+  {"checkPixel": "groupe-garde-sa-forme", "at": [400, 185], "color": "#FFAA00", "tolerance": 40},
   {"capture": "onglet-2-aligne"},
   {"command": "edit.undo"},
   {"waitReady": true},
