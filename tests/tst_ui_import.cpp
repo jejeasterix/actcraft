@@ -10,8 +10,10 @@
 #include <actcraft/ui/documenttabs.h>
 #include <actcraft/ui/fileexchange.h>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QLibraryInfo>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QSignalSpy>
@@ -129,6 +131,23 @@ QString fakeSofficeDirectory(QTemporaryDir& dir)
     return dir.path();
 }
 
+// PATH ne laissant voir aucun convertisseur : le dossier donné d'abord. Sous Windows, les DLL de Qt (plugins
+// QML chargés à la demande, plateforme) se résolvent par le PATH : un PATH réduit au seul dossier vide fait
+// échouer le chargement de Main.qml. On y garde donc les dossiers de Qt, de l'exécutable de test et de
+// System32 ; aucun ne contient soffice (findConverter() cherche « soffice » sur le PATH, puis sous
+// %ProgramFiles%\LibreOffice, puis PowerPoint par le registre). Hors Windows : le dossier seul.
+QByteArray pathWithoutConverter(const QString& directory)
+{
+    QStringList entries{QDir::toNativeSeparators(directory)};
+#ifdef Q_OS_WIN
+    entries << QDir::toNativeSeparators(QLibraryInfo::path(QLibraryInfo::BinariesPath))
+            << QDir::toNativeSeparators(QCoreApplication::applicationDirPath())
+            << QDir::toNativeSeparators(qEnvironmentVariable("SystemRoot", QStringLiteral("C:\\Windows")) +
+                                        QStringLiteral("\\System32"));
+#endif
+    return QFile::encodeName(entries.join(QDir::listSeparator()));
+}
+
 // PATH, TMPDIR, TMP, TEMP : valeurs d'origine mémorisées au départ, remises telles quelles (ou retirées si
 // elles n'existaient pas) à la fin de chaque cas.
 struct SavedEnvironment
@@ -194,7 +213,7 @@ private slots:
         // l'entrée doit alors être visible, et le test ne juge que cette cohérence.
         QTemporaryDir emptyDir;
         QVERIFY(emptyDir.isValid());
-        qputenv("PATH", QFile::encodeName(emptyDir.path()));
+        qputenv("PATH", pathWithoutConverter(emptyDir.path()));
         {
             Shell s;
             QVERIFY(s.start());
@@ -217,11 +236,11 @@ private slots:
                 QTemporaryDir sofficeDir;
                 QVERIFY(sofficeDir.isValid());
                 QVERIFY(!fakeSofficeDirectory(sofficeDir).isEmpty());
-                qputenv("PATH", QFile::encodeName(sofficeDir.path()));
+                qputenv("PATH", pathWithoutConverter(sofficeDir.path()));
                 emit s.exchange->converterChanged();
                 QVERIFY(s.exchange->powerpointAvailable());
                 QVERIFY(inMenus(commands->menus(), id));
-                qputenv("PATH", QFile::encodeName(emptyDir.path()));
+                qputenv("PATH", pathWithoutConverter(emptyDir.path()));
             }
 #endif
             // Le convertisseur apparaît, et l'objet l'annonce : l'entrée revient.
