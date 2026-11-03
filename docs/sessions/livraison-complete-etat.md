@@ -771,6 +771,10 @@ PR #9 https://github.com/jejeasterix/actcraft/pull/9 (créée en brouillon le 20
 
 - **L5-C24 mergée le 2026-11-03** (merge 7dcc049 ; b75228a ; base 2f776ff ; locale `d` → `defaults` dans `PrintController::loadSettings` ; build `-Wshadow` sur le Mac : aucun `-Wshadow-field` (pas d'autre C4458), 10 captures de lambda qui reprennent le nom d'une locale renommées par précaution (`asyncrun.h`, `pageexport.cpp`, `pdfexport.cpp`, `pdfimport.cpp`, `documentcontroller.cpp`, `insertion.cpp`), paramètre de lambda renommé dans `tests/tst_bench_scenarios.cpp` (masquage dans le test lui-même) ; rejeu de A : 164/164, masquages du lot 5 = aucun, `PREUVE OK`). Hors périmètre : même masquage de capture `render/src/imagestore.cpp:133`.
 
+- **CI de la PR #9 rouge sur 766ac86 (2026-11-03, run 41715403316)** : android, macOS, format verts ; `build` Windows coupé par son délai de 50 min pendant ctest (99/170, aucun test rouge) ; `paquet-windows` coupé à 15 min (compilation release 693/808). Cause (diagnostic par sous-agent, `.tmp/diag-lenteur-ui.md`) : tests UI ×2 depuis le lot 4 sur les deux plateformes ; `Main.qml` appelle `setHidden` au démarrage (a67fc6e, 61b2dde), `layoutChanged` fait recréer toutes les entrées de chaque `CommandMenu` (MenuItem créés par fenêtre : 2 793 → 7 925).
+
+- **L5-C25 mergée le 2026-11-03** (merge 6bed841 ; 6c2a5f2 rouge, 1c77087, f4d2476 ; base 602ec5c) : `CommandMenu.syncEntries()` ne recrée rien si le contenu est identique ; cas `tst_ui_commands::layoutChangeKeepsUnchangedMenuEntries` (N = 164 inchangé) ; délais CI `build` 50 → 90 min, `paquet-windows` 15 → 25 min. Rejeu de A : 164/164, 0 avertissement, mutation rouge puis verte, `PREUVE OK` ; Mac `tst_ui_shapes` 5,7 → 3,4 s, `tst_ui_escape` 2,8 → 1,7 s, `tst_ui_filemenu` 19,8 → 13,7 s. Reste ≈ +0,06 s par fenêtre par rapport au lot 4 (menus du lot 5). Windows non vérifié : la CI le dira.
+
 ## Rapport du lot 5
 
 Lot 5 « Édition et fichiers » (plans 5a et 5b, L5-T0 à L5-T33, correctifs L5-C2 et C4 à C23, simplification L5-T34 ; L5-C3 au PC, H5-18). Clôture menée sur le Mac seul (2026-11-03).
