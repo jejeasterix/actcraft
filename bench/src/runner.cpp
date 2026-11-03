@@ -243,19 +243,19 @@ private:
 class SpinningLoad
 {
 public:
-    SpinningLoad() : m_thread([this] {
-        std::uint64_t x = 88172645463325252ULL;
-        while (!m_stop.load(std::memory_order_relaxed)) {
-            for (int i = 0; i < 100'000; ++i) {
-                x ^= x << 13;
-                x ^= x >> 7;
-                x ^= x << 17;
-            }
-            m_sink.store(x, std::memory_order_relaxed); // le calcul n'est pas supprimé
-        }
-    })
-    {
-    }
+    SpinningLoad()
+        : m_thread([this] {
+              std::uint64_t x = 88172645463325252ULL;
+              while (!m_stop.load(std::memory_order_relaxed)) {
+                  for (int i = 0; i < 100'000; ++i) {
+                      x ^= x << 13;
+                      x ^= x >> 7;
+                      x ^= x << 17;
+                  }
+                  m_sink.store(x, std::memory_order_relaxed); // le calcul n'est pas supprimé
+              }
+          })
+    {}
     ~SpinningLoad()
     {
         m_stop.store(true, std::memory_order_relaxed);
