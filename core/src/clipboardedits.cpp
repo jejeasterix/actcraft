@@ -129,7 +129,8 @@ std::vector<PageObject> preparePaste(std::vector<PageObject> objects, double dx,
     return out;
 }
 
-std::vector<PageObject> preparePasteOnto(std::vector<PageObject> objects, const PageObject& target)
+std::vector<PageObject> pasteOnto(std::vector<PageObject> objects, const PageObject& target,
+                                  const RectF& targetBounds)
 {
     bool any = false;
     double left = 0;
@@ -147,7 +148,7 @@ std::vector<PageObject> preparePasteOnto(std::vector<PageObject> objects, const 
         bottom = any ? std::max(bottom, r.y + r.height) : r.y + r.height;
         any = true;
     }
-    const PointF to = boundsOnPage(target).center();
+    const PointF to = targetBounds.center();
     const double dx = any ? to.x - (left + right) / 2 : 0;
     const double dy = any ? to.y - (top + bottom) / 2 : 0;
     std::vector<PageObject> out = preparePaste(std::move(objects), dx, dy);
@@ -157,10 +158,15 @@ std::vector<PageObject> preparePasteOnto(std::vector<PageObject> objects, const 
     return out;
 }
 
-std::vector<PageObject> preparePasteOnto(std::vector<PageObject> objects, const Page& /*page*/,
+std::vector<PageObject> preparePasteOnto(std::vector<PageObject> objects, const PageObject& target)
+{
+    return pasteOnto(std::move(objects), target, boundsOnPage(target));
+}
+
+std::vector<PageObject> preparePasteOnto(std::vector<PageObject> objects, const Page& page,
                                          const PageObject& target)
 {
-    return preparePasteOnto(std::move(objects), target);
+    return pasteOnto(std::move(objects), target, boundsOnPage(page, target));
 }
 
 PasteObjectsCommand::PasteObjectsCommand(std::size_t page, std::vector<PageObject> prepared)

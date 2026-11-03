@@ -22,24 +22,88 @@ bool sameTransform(const Transform& a, const Transform& b) noexcept
            a.dy == b.dy;
 }
 
-// Objets présents, sans doublon, déverrouillés et d'emprise non nulle, dans l'ordre des identifiants donnés.
-std::vector<const PageObject*> usable(const Page& page, const std::vector<ObjectId>& ids)
+// Unité d'édition : un objet, ou un groupe pris comme un bloc (L5-C17, D6) ; `parts` sont les objets
+// réellement transformés (les membres d'un groupe), `bounds` l'emprise de l'unité sur la page.
+struct Unit
 {
-    std::vector<const PageObject*> out;
+    const PageObject* head = nullptr;
+    std::vector<const PageObject*> parts;
+    RectF bounds;
+    bool group = false;
+};
+
+RectF unionRects(const std::vector<const PageObject*>& objects)
+{
+    double x0 = 0;
+    double y0 = 0;
+    double x1 = 0;
+    double y1 = 0;
+    bool first = true;
+    for (const PageObject* object : objects) {
+        const RectF r = boundsOnPage(*object);
+        x0 = first ? r.x : std::min(x0, r.x);
+        y0 = first ? r.y : std::min(y0, r.y);
+        x1 = first ? r.x + r.width : std::max(x1, r.x + r.width);
+        y1 = first ? r.y + r.height : std::max(y1, r.y + r.height);
+        first = false;
+    }
+    return RectF{x0, y0, x1 - x0, y1 - y0};
+}
+
+// Unités présentes, sans doublon, déverrouillées et d'emprise non nulle, dans l'ordre des identifiants
+// donnés ; un membre cité avec son groupe n'est pas compté deux fois.
+std::vector<Unit> units(const Page& page, const std::vector<ObjectId>& ids)
+{
+    std::set<ObjectId> covered;
+    for (const ObjectId id : ids) {
+        const std::size_t rank = indexOf(page, id);
+        if (rank < page.objects.size() && std::holds_alternative<Group>(body(page.objects[rank]))) {
+            for (const ObjectId member : expandGroups(page, {id})) {
+                if (member != id) {
+                    covered.insert(member);
+                }
+            }
+        }
+    }
+    std::vector<Unit> out;
     std::set<ObjectId> seen;
     for (const ObjectId id : ids) {
         const std::size_t rank = indexOf(page, id);
-        if (rank >= page.objects.size() || !seen.insert(id).second) {
+        if (rank >= page.objects.size() || covered.count(id) != 0 || !seen.insert(id).second) {
             continue;
         }
         const PageObject& object = page.objects[rank];
-        if (object.common.locked || !hasExtent(object)) {
+        if (object.common.locked) {
             continue;
         }
-        out.push_back(&object);
+        Unit unit;
+        unit.head = &object;
+        if (std::holds_alternative<Group>(body(object))) {
+            unit.group = true;
+            for (const ObjectId member : expandGroups(page, {id})) {
+                const PageObject& m = page.objects[indexOf(page, member)];
+                if (!std::holds_alternative<Group>(body(m)) && !m.common.locked && hasExtent(m)) {
+                    unit.parts.push_back(&m);
+                }
+            }
+            if (unit.parts.empty()) {
+                continue;
+            }
+            unit.bounds = unionRects(unit.parts);
+        } else {
+            if (!hasExtent(object)) {
+                continue;
+            }
+            unit.parts = {&object};
+            unit.bounds = boundsOnPage(object);
+        }
+        out.push_back(std::move(unit));
     }
     return out;
 }
+
+// Applique `delta` (dans le plan de la page) à chaque objet de l'unité.
+void pushUnitDelta(TransformList& out, const Unit& unit, const Transform& delta);
 
 PageObject withTransform(const PageObject& object, const Transform& transform)
 {
@@ -107,29 +171,11 @@ void pushDelta(TransformList& out, const PageObject& object, const Transform& de
     push(out, object, compose(object.common.transform, delta));
 }
 
-RectF unionOf(const std::vector<const PageObject*>& objects)
+void pushUnitDelta(TransformList& out, const Unit& unit, const Transform& delta)
 {
-    double x0 = 0;
-    double y0 = 0;
-    double x1 = 0;
-    double y1 = 0;
-    bool first = true;
-    for (const PageObject* object : objects) {
-        const RectF r = boundsOnPage(*object);
-        if (first) {
-            x0 = r.x;
-            y0 = r.y;
-            x1 = r.x + r.width;
-            y1 = r.y + r.height;
-            first = false;
-        } else {
-            x0 = std::min(x0, r.x);
-            y0 = std::min(y0, r.y);
-            x1 = std::max(x1, r.x + r.width);
-            y1 = std::max(y1, r.y + r.height);
-        }
+    for (const PageObject* part : unit.parts) {
+        pushDelta(out, *part, delta);
     }
-    return RectF{x0, y0, x1 - x0, y1 - y0};
 }
 
 // Absolu : la taille, l'angle et le centre de `ref` (mode « Tout »).
@@ -214,60 +260,71 @@ void TransformEachCommand::undo(Document& document, Changes& changes)
 
 TransformList alignTransforms(const Page& page, const std::vector<ObjectId>& ids, AlignMode mode)
 {
-    const std::vector<const PageObject*> objects = usable(page, ids);
-    if (objects.size() < 2) {
-        return {}; // D6 : un objet seul n'est pas aligné
+    const std::vector<Unit> all = units(page, ids);
+    if (all.size() < 2) {
+        return {}; // D6 : un objet seul, ou un seul groupe, n'est pas aligné
     }
-    const RectF u = unionOf(objects);
-    const PageObject* ref =
-        *std::min_element(objects.begin(), objects.end(), [](const auto* a, const auto* b) {
-            return a->common.id < b->common.id; // le premier créé
-        });
-    const RectF rb = boundsOnPage(*ref);
+    RectF u = all.front().bounds;
+    double x1 = u.x + u.width;
+    double y1 = u.y + u.height;
+    for (const Unit& unit : all) {
+        u.x = std::min(u.x, unit.bounds.x);
+        u.y = std::min(u.y, unit.bounds.y);
+        x1 = std::max(x1, unit.bounds.x + unit.bounds.width);
+        y1 = std::max(y1, unit.bounds.y + unit.bounds.height);
+    }
+    u.width = x1 - u.x;
+    u.height = y1 - u.y;
+    const Unit* ref = &*std::min_element(all.begin(), all.end(), [](const Unit& a, const Unit& b) {
+        return a.head->common.id < b.head->common.id; // le premier créé
+    });
+    const RectF rb = ref->bounds;
+    const auto angleOf = [](const Unit& unit) {
+        return unit.group ? 0.0 : rotationDegrees(unit.head->common.transform);
+    };
     TransformList out;
-    for (const PageObject* object : objects) {
-        if (object == ref && (mode == AlignMode::Width || mode == AlignMode::Height ||
-                              mode == AlignMode::Angle || mode == AlignMode::All)) {
+    for (const Unit& unit : all) {
+        if (&unit == ref && (mode == AlignMode::Width || mode == AlignMode::Height ||
+                             mode == AlignMode::Angle || mode == AlignMode::All)) {
             continue;
         }
-        const RectF b = boundsOnPage(*object);
+        const RectF b = unit.bounds;
         switch (mode) {
         case AlignMode::Left:
-            pushDelta(out, *object, translation(u.x - b.x, 0));
+            pushUnitDelta(out, unit, translation(u.x - b.x, 0));
             break;
         case AlignMode::CenterX:
-            pushDelta(out, *object, translation(u.center().x - b.center().x, 0));
+            pushUnitDelta(out, unit, translation(u.center().x - b.center().x, 0));
             break;
         case AlignMode::Right:
-            pushDelta(out, *object, translation((u.x + u.width) - (b.x + b.width), 0));
+            pushUnitDelta(out, unit, translation((u.x + u.width) - (b.x + b.width), 0));
             break;
         case AlignMode::Top:
-            pushDelta(out, *object, translation(0, u.y - b.y));
+            pushUnitDelta(out, unit, translation(0, u.y - b.y));
             break;
         case AlignMode::CenterY:
-            pushDelta(out, *object, translation(0, u.center().y - b.center().y));
+            pushUnitDelta(out, unit, translation(0, u.center().y - b.center().y));
             break;
         case AlignMode::Bottom:
-            pushDelta(out, *object, translation(0, (u.y + u.height) - (b.y + b.height)));
+            pushUnitDelta(out, unit, translation(0, (u.y + u.height) - (b.y + b.height)));
             break;
         case AlignMode::Width:
             if (b.width > kEps && rb.width > kEps) {
-                pushDelta(out, *object, scalingAbout(rb.width / b.width, 1.0, {b.x, b.y}));
+                pushUnitDelta(out, unit, scalingAbout(rb.width / b.width, 1.0, {b.x, b.y}));
             }
             break;
         case AlignMode::Height:
             if (b.height > kEps && rb.height > kEps) {
-                pushDelta(out, *object, scalingAbout(1.0, rb.height / b.height, {b.x, b.y}));
+                pushUnitDelta(out, unit, scalingAbout(1.0, rb.height / b.height, {b.x, b.y}));
             }
             break;
         case AlignMode::Angle:
-            pushDelta(out, *object,
-                      rotationAbout(rotationDegrees(ref->common.transform) -
-                                        rotationDegrees(object->common.transform),
-                                    b.center()));
+            pushUnitDelta(out, unit, rotationAbout(angleOf(*ref) - angleOf(unit), b.center()));
             break;
         case AlignMode::All:
-            push(out, *object, matchingAll(*object, *ref));
+            if (!unit.group && !ref->group) { // la taille et l'angle d'un groupe ne sont pas définis
+                push(out, *unit.head, matchingAll(*unit.head, *ref->head));
+            }
             break;
         }
     }
@@ -277,9 +334,13 @@ TransformList alignTransforms(const Page& page, const std::vector<ObjectId>& ids
 TransformList fitTransforms(const Page& page, const std::vector<ObjectId>& ids, FitMode mode)
 {
     TransformList out;
-    for (const PageObject* object : usable(page, ids)) {
-        const RectF b = boundsOnPage(*object);
+    for (const Unit& unit : units(page, ids)) {
+        const RectF b = unit.bounds;
         if (mode == FitMode::OriginalSize) {
+            if (unit.group) {
+                continue; // un groupe n'a pas de taille d'origine
+            }
+            const PageObject* object = unit.head;
             const Transform& t = object->common.transform;
             const double sx = std::hypot(t.m11, t.m12);
             const double sy = std::hypot(t.m21, t.m22);
@@ -312,9 +373,17 @@ TransformList fitTransforms(const Page& page, const std::vector<ObjectId>& ids, 
             continue; // seuls les objets plus grands que la page sont réduits (D7)
         }
         const Transform shrink = scalingAbout(scale, scale, b.center());
-        const RectF r = boundsOnPage(withTransform(*object, compose(object->common.transform, shrink)));
-        const PointF shift = shiftInto(r, page.width, page.height);
-        pushDelta(out, *object, compose(shrink, translation(shift.x, shift.y)));
+        std::vector<PageObject> shrunk;
+        shrunk.reserve(unit.parts.size());
+        for (const PageObject* part : unit.parts) {
+            shrunk.push_back(withTransform(*part, compose(part->common.transform, shrink)));
+        }
+        std::vector<const PageObject*> shrunkPointers;
+        for (const PageObject& part : shrunk) {
+            shrunkPointers.push_back(&part);
+        }
+        const PointF shift = shiftInto(unionRects(shrunkPointers), page.width, page.height);
+        pushUnitDelta(out, unit, compose(shrink, translation(shift.x, shift.y)));
     }
     return out;
 }
@@ -322,9 +391,9 @@ TransformList fitTransforms(const Page& page, const std::vector<ObjectId>& ids, 
 TransformList flipTransforms(const Page& page, const std::vector<ObjectId>& ids, Axis axis)
 {
     TransformList out;
-    for (const PageObject* object : usable(page, ids)) {
-        const PointF c = boundsOnPage(*object).center();
-        pushDelta(out, *object, axis == Axis::X ? reflection(false, c.y) : reflection(true, c.x));
+    for (const Unit& unit : units(page, ids)) {
+        const PointF c = unit.bounds.center();
+        pushUnitDelta(out, unit, axis == Axis::X ? reflection(false, c.y) : reflection(true, c.x));
     }
     return out;
 }
@@ -334,8 +403,8 @@ TransformList originFlipTransforms(const Page& page, const std::vector<ObjectId>
 {
     TransformList out;
     const Transform delta = axis == Axis::X ? reflection(false, origin.y) : reflection(true, origin.x);
-    for (const PageObject* object : usable(page, ids)) {
-        pushDelta(out, *object, delta);
+    for (const Unit& unit : units(page, ids)) {
+        pushUnitDelta(out, unit, delta);
     }
     return out;
 }

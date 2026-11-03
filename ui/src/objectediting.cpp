@@ -92,18 +92,6 @@ const core::PageObject* find(const core::Page& page, ObjectId id)
     return nullptr;
 }
 
-// Membres des groupes, pas les groupes : un groupe passé seul n'est pas transformé (L5-T6).
-std::vector<ObjectId> leaves(const core::Page& page, const std::vector<ObjectId>& ids)
-{
-    std::vector<ObjectId> out;
-    for (const ObjectId id : core::expandGroups(page, ids)) {
-        const core::PageObject* object = find(page, id);
-        if (object != nullptr && !std::holds_alternative<core::Group>(core::body(*object)))
-            out.push_back(id);
-    }
-    return out;
-}
-
 void selectNewObjects(DocumentController& document, ToolHost* tools, const std::set<ObjectId>& before)
 {
     // Objets de premier niveau seulement : les membres d'un groupe inséré ne sont pas sélectionnés (D2).
@@ -325,9 +313,9 @@ bool pastePayload(DocumentController& document, ToolHost* tools, formats::Clipbo
     if (payload.objects.empty())
         return false;
     const std::set<ObjectId> before = idsOf(shownPage(document));
-    std::vector<core::PageObject> prepared = target != nullptr
-                                                 ? core::preparePasteOnto(payload.objects, *target)
-                                                 : core::preparePaste(payload.objects, dx, dy);
+    std::vector<core::PageObject> prepared =
+        target != nullptr ? core::preparePasteOnto(payload.objects, shownPage(document), *target)
+                          : core::preparePaste(payload.objects, dx, dy);
     document.execute(
         std::make_unique<PasteWithResources>(shownIndex(document), std::move(prepared), std::move(payload)));
     selectNewObjects(document, tools, before);
@@ -387,7 +375,7 @@ void ObjectEditing::pasteAt(QPointF pagePoint)
     bool any = false;
     double left = 0, top = 0, right = 0, bottom = 0;
     for (const core::PageObject& object : payload->objects) {
-        if (isGroup(object))
+        if (isGroup(object) || !core::hasExtent(object))
             continue;
         const core::RectF b = core::boundsOnPage(object);
         left = any ? std::min(left, b.x) : b.x;
@@ -503,7 +491,7 @@ void ObjectEditing::align(const QString& how)
     if (mode == modes.end() || selected.empty())
         return;
     const core::Page& page = shownPage(*m_document);
-    core::TransformList list = core::alignTransforms(page, leaves(page, selected), mode->second);
+    core::TransformList list = core::alignTransforms(page, selected, mode->second);
     if (!list.empty())
         run(*m_document,
             std::make_unique<core::TransformEachCommand>(shownIndex(*m_document), std::move(list)), true);
@@ -518,7 +506,7 @@ void ObjectEditing::transform(const QString& how)
         return;
     const core::Page& page = shownPage(*m_document);
     const std::size_t index = shownIndex(*m_document);
-    const std::vector<ObjectId> members = leaves(page, selected);
+    const std::vector<ObjectId>& members = selected; // un groupe est transformé comme un bloc (D6)
     core::TransformList list;
     if (how == QLatin1String("original-size"))
         list = core::fitTransforms(page, members, core::FitMode::OriginalSize);
@@ -569,9 +557,13 @@ void ObjectEditing::toggleFlag(const QString& flag)
         which = core::ObjectFlag::DragCopy;
     else
         return;
-    const bool value = !core::flagOfAll(shownPage(*m_document), ids, which);
-    run(*m_document, std::make_unique<core::SetObjectFlagCommand>(shownIndex(*m_document), ids, which, value),
-        false);
+    // Règle (D9) : verrou et masquage posés sur un groupe sont propagés à ses membres, que le dessin,
+    // l'export, la sélection et le déplacement lisent chacun sur leur objet.
+    const std::vector<ObjectId> targets =
+        which == core::ObjectFlag::DragCopy ? ids : core::expandGroups(shownPage(*m_document), ids);
+    const bool value = !core::flagOfAll(shownPage(*m_document), targets, which);
+    run(*m_document,
+        std::make_unique<core::SetObjectFlagCommand>(shownIndex(*m_document), targets, which, value), false);
 }
 
 } // namespace actcraft::ui
