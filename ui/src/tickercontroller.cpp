@@ -1,5 +1,6 @@
 #include "tickercontroller.h"
 
+#include <QDateTime>
 #include <QFile>
 #include <QSaveFile>
 #include <QSettings>
@@ -328,6 +329,16 @@ void TickerController::keepAsDefault() const
 void TickerController::setFileChooser(FileChooser chooser)
 {
     m_chooser = std::move(chooser);
+}
+
+void TickerController::setClock(Clock clock)
+{
+    m_clock = std::move(clock);
+}
+
+double TickerController::nowMs() const
+{
+    return static_cast<double>(m_clock ? m_clock() : QDateTime::currentMSecsSinceEpoch());
 }
 
 bool TickerController::failed(const QString& message)

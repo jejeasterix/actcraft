@@ -8,6 +8,8 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <QImage>
+#include <QQmlContext>
+#include <QQmlExpression>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -257,8 +259,23 @@ private slots:
         QQuickItem* message = inTicker(main, QStringLiteral("tickerMessage"));
         QVERIFY(band != nullptr && message != nullptr && band->isVisible());
         const int pass = ticker->durationMs(band->width(), message->width());
-        QTest::qWait(pass + 600);
-        QVERIFY(ticker->running()); // un passage fini, la boucle a repris
+        // S23, hypothèse H-T36 : la boucle est prouvée par la configuration de l'animateur (sans fin, sur le
+        // fil de rendu, jamais relancé), pas par un compteur. Après 1,5 passage, il tourne encore et aucun
+        // animateur n'a fini : le contrôleur n'a reçu aucun finished() (seuls leurs onFinished l'appellent).
+        QObject* motion = main.window()->findChild<QObject*>(QStringLiteral("tickerMotion"));
+        QObject* resume = main.window()->findChild<QObject*>(QStringLiteral("tickerResume"));
+        QVERIFY(motion != nullptr && resume != nullptr);
+        QQmlExpression infinite(qmlContext(motion), motion, QStringLiteral("Animation.Infinite"));
+        const int endless = infinite.evaluate().toInt();
+        QVERIFY(!infinite.hasError());
+        QCOMPARE(motion->property("loops").toInt(), endless);
+        QSignalSpy motionEnded(motion, SIGNAL(finished()));
+        QSignalSpy resumeEnded(resume, SIGNAL(finished()));
+        QTest::qWait(pass * 3 / 2);
+        QVERIFY(motion->property("running").toBool());
+        QCOMPARE(motionEnded.count(), 0);
+        QCOMPARE(resumeEnded.count(), 0);
+        QVERIFY(ticker->running());
         QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, sceneRect(band).center().toPoint());
         QTRY_VERIFY(!ticker->running());
         QTest::qWait(200);
@@ -333,8 +350,11 @@ private slots:
         const qint64 expected = qRound64((at + message->width()) / ticker->pixelsPerSecond() * 1000.0);
         QTRY_VERIFY_WITH_TIMEOUT(!ticker->running(), static_cast<int>(3 * expected + 3000));
         const qint64 took = clock.elapsed();
+        // Cadencé par XAnimator sur le fil de rendu, pas d'horloge injectable : borne basse au tiers. La
+        // borne haute reste sous l'issue de l'ancienne vitesse (4, 2,5 fois plus lente) : à 7/4, le test
+        // prouve encore que la vitesse nouvelle vaut aussitôt ; au triple, il ne le prouverait plus.
         QVERIFY2(
-            took >= expected * 7 / 10 - 200 && took <= expected * 13 / 10 + 500,
+            took >= expected / 3 && took <= expected * 7 / 4,
             qPrintable(
                 QStringLiteral("reste du passage : %1 ms pour %2 ms attendues").arg(took).arg(expected)));
         QVERIFY2(at < band->width() - 20, qPrintable(QString::number(at)));
@@ -363,23 +383,31 @@ private slots:
         QVERIFY(strokeVersedAt(main, sceneRect(band), before));
     }
 
-    // Pause : le texte reste où il était (la bande ne change plus) ; reprise : il repart de là.
+    // Pause : le texte reste où il était (la bande ne change plus) ; reprise : il repart de là. Les places
+    // tenues se calculent à l'horloge du contrôleur, injectée ici : elles sont exactes, sans borne de temps.
+    // L'animateur, lui, avance en temps réel sur le fil de rendu : la bande change après la reprise.
     void pauseHoldsTheMessage()
     {
+        qint64 now = 1'000'000; // avant la fenêtre : l'horloge injectée survit au contrôleur
         MainWindow main;
         QVERIFY(main.window() != nullptr);
         TickerController* ticker = tickerOf(main);
         QVERIFY(ticker != nullptr);
+        ticker->setClock([&now] { return now; });
         QVERIFY(startLoop(main, ticker, TickerController::Top));
         QQuickItem* band = inTicker(main, QStringLiteral("tickerBand"));
         QQuickItem* message = inTicker(main, QStringLiteral("tickerMessage"));
         QVERIFY(band != nullptr && message != nullptr);
         QTRY_VERIFY(band->isVisible());
         QTest::qWait(400);
+        now += 400;
 
         ticker->togglePause();
         QVERIFY(ticker->paused());
-        QTest::qWait(100);
+        const qreal pps = ticker->pixelsPerSecond();
+        const qreal first = ticker->positionAt(band->width(), message->width(), pps, true, 400);
+        QVERIFY2(qAbs(message->x() - first) < 0.5,
+                 qPrintable(QStringLiteral("x %1 pour %2").arg(message->x()).arg(first)));
         QVERIFY2(message->x() < band->width() - 10, qPrintable(QString::number(message->x())));
         const QImage held = shot(main, band);
         QTest::qWait(300);
@@ -388,20 +416,18 @@ private slots:
         const qreal heldX = message->x();
         ticker->togglePause();
         QVERIFY(!ticker->paused());
-        QElapsedTimer clock;
-        clock.start();
         QTest::qWait(300);
         QVERIFY(shot(main, band) != held);
         QVERIFY(ticker->running());
 
-        // Remis en pause : le texte est allé à gauche de sa place tenue, de la distance parcourue depuis la
-        // reprise (un départ du bord droit le mettrait à droite).
+        // Remis en pause 300 ms plus tard (horloge injectée) : le texte est à gauche de sa place tenue, de la
+        // distance parcourue à la vitesse du passage (un départ du bord droit le mettrait à droite).
+        now += 300;
         ticker->togglePause();
-        const qreal seconds = static_cast<qreal>(clock.elapsed()) / 1000.0;
-        const qreal pps = ticker->pixelsPerSecond();
         const qreal x = message->x();
-        QVERIFY2(x < heldX - pps * qMax(0.0, seconds - 0.25) + 1 && x > heldX - pps * (seconds + 0.2),
-                 qPrintable(QStringLiteral("x %1, tenu %2, %3 s").arg(x).arg(heldX).arg(seconds)));
+        QVERIFY2(
+            qAbs(x - (heldX - pps * 0.3)) < 0.5,
+            qPrintable(QStringLiteral("x %1, tenu %2, attendu %3").arg(x).arg(heldX).arg(heldX - pps * 0.3)));
         QVERIFY(x < heldX);
     }
 
@@ -475,9 +501,11 @@ private slots:
         clock.start();
         QTest::qWait(300);
         ticker->setLoop(false);
-        QTRY_VERIFY_WITH_TIMEOUT(!ticker->running(), static_cast<int>(pass + 3000));
+        QTRY_VERIFY_WITH_TIMEOUT(!ticker->running(), static_cast<int>(3 * pass + 3000));
         const qint64 took = clock.elapsed();
-        QVERIFY2(took >= pass * 8 / 10 - 300 && took <= pass * 12 / 10 + 600,
+        // Cadencé par XAnimator sur le fil de rendu, pas d'horloge injectable : du tiers au triple du
+        // passage. Un arrêt immédiat (300 ms) resterait sous la borne basse.
+        QVERIFY2(took >= pass / 3 && took <= 3 * pass,
                  qPrintable(QStringLiteral("%1 ms pour un passage de %2 ms").arg(took).arg(pass)));
     }
 
@@ -507,9 +535,12 @@ private slots:
         const qint64 oldPass = qRound64((band->width() + oldWidth) / speed * 1000.0);
         const qint64 newPass = qRound64((band->width() + message->width()) / speed * 1000.0);
         QVERIFY(newPass > oldPass + 2000);
-        QTRY_VERIFY_WITH_TIMEOUT(!ticker->running(), static_cast<int>(newPass + 3000));
+        QTRY_VERIFY_WITH_TIMEOUT(!ticker->running(), static_cast<int>(3 * newPass + 3000));
         const qint64 took = clock.elapsed();
-        QVERIFY2(took >= newPass * 9 / 10 - 300 && took <= newPass * 11 / 10 + 600,
+        // Cadencé par XAnimator sur le fil de rendu, pas d'horloge injectable : borne haute au triple du
+        // passage nouveau. La borne basse reste à mi-chemin entre l'ancien passage et le nouveau : seul ce
+        // seuil distingue une sortie à la nouvelle largeur d'une sortie à l'ancienne.
+        QVERIFY2(took >= (oldPass + newPass) / 2 && took <= 3 * newPass,
                  qPrintable(QStringLiteral("%1 ms pour un passage de %2 ms (%3 avant)")
                                 .arg(took)
                                 .arg(newPass)
