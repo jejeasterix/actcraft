@@ -23,7 +23,7 @@ Popup {
     modal: true
     anchors.centerIn: Overlay.overlay
     width: 780
-    height: 560
+    height: 640
     padding: 12
     closePolicy: Popup.CloseOnEscape
 
@@ -79,7 +79,7 @@ Popup {
             Layout.preferredWidth: 330
             columns: 2
             columnSpacing: 10
-            rowSpacing: 4
+            rowSpacing: 2
 
             Label { text: qsTr("Imprimante") }
             ComboBox {
@@ -162,8 +162,8 @@ Popup {
                 model: [qsTr("Sans les notes"), qsTr("Avec les pages"), qsTr("Notes seules")]
                 onActivated: dialog.printing.notes = dialog.noteKeys[currentIndex]
             }
-            Label { text: qsTr("Mise en page des notes"); enabled: notesBox.currentIndex !== 0 }
             ColumnLayout {
+                Layout.columnSpan: 2
                 CheckBox {
                     id: noteBreakBox; objectName: "noteBreakBox"; text: qsTr("Une feuille par page")
                     enabled: notesBox.currentIndex !== 0
