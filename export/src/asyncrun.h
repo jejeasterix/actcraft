@@ -22,8 +22,8 @@ template <class Work> auto runAsync(Work work) -> QFuture<std::invoke_result_t<W
     auto promise = std::make_shared<QPromise<Result>>();
     promise->start();
     QFuture<Result> future = promise->future();
-    QThread* thread = QThread::create([promise, work = std::move(work)]() mutable {
-        promise->addResult(work());
+    QThread* thread = QThread::create([promise, task = std::move(work)]() mutable {
+        promise->addResult(task());
         promise->finish();
     });
     QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);

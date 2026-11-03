@@ -105,9 +105,8 @@ ExportResult renderImage(const core::Document& document, std::size_t page, const
 
 QFuture<ExportResult> exportPageImage(core::Document document, std::size_t page, QUrl url)
 {
-    return detail::runAsync([document = std::move(document), page, url = std::move(url)]() {
-        return renderImage(document, page, url);
-    });
+    return detail::runAsync(
+        [doc = std::move(document), page, dest = std::move(url)]() { return renderImage(doc, page, dest); });
 }
 
 } // namespace actcraft::exporting

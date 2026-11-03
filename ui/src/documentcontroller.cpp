@@ -931,9 +931,9 @@ void DocumentController::saveToUrl(const QUrl& url)
     const std::uint64_t generation = m_generation;
     const std::uint64_t revision = m_revision;
     std::shared_ptr<IoRelay> relay = m_relay;
-    QThreadPool::globalInstance()->start([relay, url = target, snapshot, generation, revision] {
-        const SaveOutcome outcome = saveDocument(*snapshot, url);
-        relay->post([relay, url, outcome, generation, revision, snapshot] {
+    QThreadPool::globalInstance()->start([relay, file = target, snapshot, generation, revision] {
+        const SaveOutcome outcome = saveDocument(*snapshot, file);
+        relay->post([relay, file, outcome, generation, revision, snapshot] {
             DocumentController& self = *relay->target; // livré au contrôleur vivant (IoRelay)
             self.setBusy(false);
             self.setLastIo(outcome.offMainThread);
@@ -960,11 +960,11 @@ void DocumentController::saveToUrl(const QUrl& url)
                 } else {
                     self.m_modifiedOutsideStack = true;
                 }
-                if (url != self.m_fileUrl) {
-                    self.m_fileUrl = url;
+                if (file != self.m_fileUrl) {
+                    self.m_fileUrl = file;
                     emit self.fileUrlChanged();
                 }
-                const QString title = titleFromUrl(url);
+                const QString title = titleFromUrl(file);
                 if (title != self.m_title) {
                     self.m_title = title;
                     emit self.titleChanged();

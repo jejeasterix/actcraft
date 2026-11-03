@@ -480,8 +480,8 @@ private slots:
         QCOMPARE(e2.value("within_ratio").toBool(false), true);
         QCOMPARE(e2.value("no_more_freezes").toBool(true), false);
         // L5-C12 : le verdict porte sur la référence, non sur « stroke » (page de 300 objets, plus lente).
-        const auto exportKey = [&result](const bench::ExportBackgroundStats& stats) {
-            result.scenarios[2].exportBackground = stats;
+        const auto exportKey = [&result](const bench::ExportBackgroundStats& value) {
+            result.scenarios[2].exportBackground = value;
             return bench::toJson(result)
                 .value("scenarios")
                 .toArray()

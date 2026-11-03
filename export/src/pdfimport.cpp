@@ -127,7 +127,7 @@ bool pdfImportAvailable()
 QFuture<ImportResult> importPdf(QUrl url, int dpi)
 {
 #ifdef ACTCRAFT_IMPORT_PDF
-    return detail::runAsync([url = std::move(url), dpi]() { return importFrom(url, dpi); });
+    return detail::runAsync([source = std::move(url), dpi]() { return importFrom(source, dpi); });
 #else
     static_cast<void>(url);
     static_cast<void>(dpi);
