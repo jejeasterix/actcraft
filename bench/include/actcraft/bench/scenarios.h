@@ -214,6 +214,9 @@ ScenarioPlan tabsScenario(ScenarioSet set);
 ScenarioPlan exportBackgroundScenario(ScenarioSet set);
 // L5-C12 : « export-fond-reference », jouée juste avant « export-fond » dans le même passage : même page
 // (document synthétique), même tracé, aucun export. Sa latence d'encre p95 est le dénominateur du rapport.
+// L5-C14 : elle porte une charge témoin (spinsInBackground, SpinningLoad) : sans elle, la référence tourne
+// sur une machine au repos et paraît plus lente que l'export (rapport 0,81 mesuré ; le démarrage à froid
+// est écarté : 16,74 puis 16,85 ms rejouée). Le JSON le dit (`baseline_control_load`).
 ScenarioPlan exportBackgroundReferenceScenario(ScenarioSet set);
 // Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);
