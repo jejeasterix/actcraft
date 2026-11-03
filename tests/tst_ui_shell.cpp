@@ -1104,6 +1104,110 @@ private slots:
         QVERIFY(s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs")));
     }
 
+    // L5-T21 : la barre d'onglets n'existe qu'à partir de deux documents et suit appTabs.position (D14) ; les
+    // barres de texte restent sous elle, jamais recouvertes.
+    void tabBarFollowsPosition()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* tabs = s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs"));
+        QVERIFY(tabs);
+        QQuickItem* bar = item(s, "documentTabBar");
+        QQuickItem* top = item(s, "topBar");
+        QQuickItem* textBar = item(s, "textFormatBar");
+        QQuickItem* verticalBar = item(s, "verticalTextBar");
+        QVERIFY(bar && top && textBar && verticalBar);
+        const auto topOf = [](QQuickItem* i) { return i->mapToScene(QPointF(0, 0)).y(); };
+        const auto bottomOf = [](QQuickItem* i) { return i->mapToScene(QPointF(0, i->height())).y(); };
+        const qreal windowHeight = s.window->height();
+
+        QVERIFY(!bar->isVisible()); // un seul document : pas de barre, pas de hauteur
+        QCOMPARE(bar->height(), 0.0);
+
+        tabs->newTab();
+        QTRY_VERIFY(bar->isVisible());
+        QVERIFY(bar->height() > 0);
+        QCOMPARE(tabs->position(), QStringLiteral("top"));
+        QVERIFY(qAbs(topOf(bar) - bottomOf(top)) <= 1); // sous la ligne supérieure
+        QVERIFY(topOf(s.view) >= bottomOf(bar) - 1);    // la page sous la barre
+        QVERIFY(topOf(textBar) >= bottomOf(bar) - 1);   // les barres de texte aussi
+        QVERIFY(topOf(verticalBar) >= bottomOf(bar) - 1);
+
+        tabs->setPosition(QStringLiteral("bottom"));
+        QTRY_VERIFY(qAbs(bottomOf(bar) - windowHeight) <= 1); // en bas de la fenêtre
+        QVERIFY(bar->isVisible());
+        QVERIFY(bottomOf(s.view) <= topOf(bar) + 1);        // la page au-dessus
+        QVERIFY(qAbs(topOf(textBar) - bottomOf(top)) <= 1); // barres de texte sous la ligne supérieure
+
+        tabs->setPosition(QStringLiteral("hidden"));
+        QTRY_VERIFY(!bar->isVisible());
+        QCOMPARE(bar->height(), 0.0);
+        QVERIFY(bottomOf(s.view) >= windowHeight - 1);
+
+        tabs->setPosition(QStringLiteral("top"));
+        QTRY_VERIFY(bar->isVisible());
+        tabs->closeWithoutSaving(1); // retour à un seul document
+        QTRY_VERIFY(!bar->isVisible());
+        QCOMPARE(bar->height(), 0.0);
+    }
+
+    // L5-T21 (M9) : trois onglets de plus, toujours une seule PageView, celle de la fenêtre.
+    void oneViewForAllTabs()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* tabs = s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs"));
+        QVERIFY(tabs);
+        for (int i = 0; i < 3; ++i) {
+            tabs->newTab();
+        }
+        QCOMPARE(tabs->rowCount(), 4);
+        QCOMPARE(s.window->findChildren<ui::PageView*>().size(), 1);
+        QCOMPARE(tabs->view(), s.view);
+        QVERIFY(ready(s));
+    }
+
+    // L5-T21 : « titre* » composé depuis ModifiedRole, gras pour l'onglet affiché ; la croix ferme sans
+    // demande un onglet propre, ouvre la boîte d'enregistrement pour un onglet modifié.
+    void tabLabelsAndCloseButtons()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* tabs = s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs"));
+        QVERIFY(tabs);
+        tabs->newTab();
+        QQuickItem* first = nullptr;
+        QQuickItem* second = nullptr;
+        QTRY_VERIFY((first = item(s, "documentTabLabel0")) && (second = item(s, "documentTabLabel1")));
+        QVERIFY(!first->property("font").value<QFont>().bold());
+        QVERIFY(second->property("font").value<QFont>().bold()); // l'onglet affiché est en gras
+        QVERIFY(second->property("text").toString().startsWith(QStringLiteral("Sans titre")));
+        QVERIFY(!second->property("text").toString().endsWith(QLatin1Char('*')));
+        QVERIFY(run(s, QStringLiteral("page.insert-after"))); // le document affiché est modifié
+        QTRY_VERIFY(second->property("text").toString().endsWith(QLatin1Char('*')));
+        QVERIFY(!first->property("text").toString().endsWith(QLatin1Char('*')));
+
+        const auto click = [&](const char* name) {
+            QQuickItem* target = item(s, name);
+            QVERIFY2(target, name);
+            QTest::mouseClick(
+                s.window, Qt::LeftButton, Qt::NoModifier,
+                target->mapToScene(QPointF(target->width() / 2, target->height() / 2)).toPoint());
+        };
+        click("documentTabClose1"); // modifié : la boîte s'ouvre, l'onglet reste
+        QObject* dialog = s.window->findChild<QObject*>(QStringLiteral("tabSaveChangesDialog"));
+        QVERIFY(dialog);
+        QTRY_VERIFY(dialog->property("opened").toBool());
+        QCOMPARE(tabs->rowCount(), 2);
+        QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
+        QTRY_VERIFY(!dialog->property("opened").toBool());
+        QCOMPARE(tabs->rowCount(), 2);
+
+        click("documentTabClose0"); // propre : fermé sans demande
+        QTRY_COMPARE(tabs->rowCount(), 1);
+        QVERIFY(!dialog->property("opened").toBool());
+    }
+
     // L5-T18 : identifiants (« - » pour un séparateur) d'une liste d'entrées de menu.
     static QStringList menuIds(const QVariantList& entries)
     {
