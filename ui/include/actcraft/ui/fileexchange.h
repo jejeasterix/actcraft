@@ -9,7 +9,9 @@
 
 namespace actcraft::ui {
 
-// Export, import PDF et PowerPoint (F-020 à F-023) ; rempli par L5-T25 et L5-T30.
+// Export, import PDF et PowerPoint (F-020 à F-023) ; rempli par L5-T25 (export, import PDF, impression par PDF)
+// et L5-T30 (PowerPoint). Le rendu et l'écriture se font sur un fil secondaire (module export) ; `finished` et
+// `failed` sont émis sur le fil principal, la bannière de la fenêtre les montre.
 class FileExchange : public QObject
 {
     Q_OBJECT
@@ -44,8 +46,13 @@ signals:
     void failed(QString message);
 
 private:
+    void setBusy(bool busy);
+    // Un travail à la fois (`busy`) ; refus visible (`failed`) sinon. Vrai si le travail peut partir.
+    bool begin();
+    void fail(const QString& message);
     DocumentController* m_document = nullptr;
     DocumentTabs* m_tabs = nullptr;
+    bool m_busy = false;
 };
 
 } // namespace actcraft::ui
