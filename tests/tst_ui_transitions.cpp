@@ -271,6 +271,32 @@ private slots:
         QVERIFY(settle(main, transition));
     }
 
+    // S22 (F-640 : effets désactivés pour la navigation par le navigateur de page) : page.goto (lot 4) change
+    // de page aussitôt, sans instantané ni effet, même avec un effet global. Mutant : page.goto enveloppé
+    // comme page.next.
+    void pageNavigatorPlaysNoEffect()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        QObject* transition = transitionOf(main);
+        DocumentController* document = documentOf(main);
+        QVERIFY(transition && document);
+        QVERIFY(main.run(QStringLiteral("page.next"))); // deux pages, sans effet
+        QCOMPARE(document->currentIndex(), 1);
+        QVERIFY(main.waitReady());
+        QVERIFY(main.run(QStringLiteral("view.page-effect"), QStringLiteral("dissolve")));
+        QVERIFY(main.run(QStringLiteral("page.goto"), 1)); // numéro de page, depuis 1
+        QCOMPARE(document->currentIndex(), 0);
+        QCOMPARE(phaseOf(transition), kIdle);
+        QCOMPARE(snapshotsOf(main), 0);
+        QCOMPARE(playedOf(transition), QString());
+        // Témoin : page.next joue l'effet.
+        QVERIFY(main.waitReady());
+        QVERIFY(main.run(QStringLiteral("page.next")));
+        QTRY_COMPARE_WITH_TIMEOUT(playedOf(transition), QStringLiteral("dissolve"), 5000);
+        QVERIFY(settle(main, transition));
+    }
+
     // Le cache n'est redessiné ni pour l'instantané ni par l'effet : aucune demande avant le changement de
     // page, et autant de demandes, effet fini, qu'un changement de page sans effet.
     void transitionDoesNotRefreshTheCacheBeforeTheEnd()

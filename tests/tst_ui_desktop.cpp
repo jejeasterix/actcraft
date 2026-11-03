@@ -983,6 +983,39 @@ private slots:
         QTRY_VERIFY(main.window()->visibility() != QWindow::Minimized);
         QVERIFY(main.window()->isVisible());
     }
+
+    // M2 (relecture du lot 7 ; plan 7b, L7-T30 ; F-640 : effets désactivés pendant l'annotation de bureau) :
+    // annotation ouverte, page.next du document ouvert change de page aussitôt, sans instantané ni effet ;
+    // fermée, l'effet revient. Mutant : TransitionBlockers::desktopAnnotation jamais posé.
+    void transitionsBlockedWhileAnnotating()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QObject* transition = main.window()->findChild<QObject*>(QStringLiteral("transition"));
+        QQuickItem* layer = main.item(QStringLiteral("transitionRoot"));
+        DocumentController* open = openDocumentOf(main);
+        QVERIFY(transition && layer && open);
+        QVERIFY(main.run(QStringLiteral("view.page-effect"), QStringLiteral("dissolve")));
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        const int before = open->currentIndex();
+        QVERIFY(main.run(QStringLiteral("page.next")));
+        QCOMPARE(open->currentIndex(), before + 1);
+        QCOMPARE(transition->property("phase").toInt(), 0);
+        QCOMPARE(layer->property("snapshotCount").toInt(), 0);
+        QCOMPARE(transition->property("played").toString(), QString());
+        // Fermée : l'effet revient.
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(!desktop->isAnnotating());
+        QVERIFY(main.waitReady());
+        QVERIFY(main.run(QStringLiteral("page.previous")));
+        QTRY_COMPARE_WITH_TIMEOUT(transition->property("played").toString(), QStringLiteral("dissolve"), 5000);
+        QCOMPARE(layer->property("snapshotCount").toInt(), 1);
+        QTRY_COMPARE_WITH_TIMEOUT(transition->property("phase").toInt(), 0, 8000);
+        QCOMPARE(open->currentIndex(), before);
+    }
 };
 
 } // namespace
