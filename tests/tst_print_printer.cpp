@@ -33,8 +33,7 @@ core::Document documentS17()
 }
 
 // Document coloré : fond bleu, rectangle rouge à contour vert, texte jaune (HTML, document de texte gardé du
-// peintre). Le texte en points rend visible une feuille dont l'image porterait la résolution de l'imprimante
-// au lieu des 96 ppp du peintre partagé.
+// peintre) : une composition qui oublierait l'un d'eux se voit.
 core::Document colouredDocument()
 {
     std::vector<core::Page> pages(1);
@@ -160,8 +159,7 @@ private slots:
         const core::PrintSettings s; // une page par feuille, en couleur
         const auto sheets = core::layoutSheets(d, s, 0, kA4);
         QCOMPARE(sheets.size(), std::size_t(1));
-        const int dpi =
-            150; // autre que les 96 ppp du peintre : une feuille à la résolution de l'imprimante se voit
+        const int dpi = 150; // autre que 96 ppp : la page est mise à l'échelle de sa cellule
         const QImage sheet =
             print::renderSheet(d, sheets[0], s, kA4, dpi).convertToFormat(QImage::Format_RGB32);
         QVERIFY(!sheet.isNull());

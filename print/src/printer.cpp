@@ -22,8 +22,8 @@ namespace actcraft::print {
 
 namespace {
 
-// Le peintre partagé dessine à 96 ppp (render::renderPage, render/src/pagepainter.cpp) : une feuille plus
-// fine change d'échelle, jamais de résolution logique, sinon un texte en points grossirait d'autant.
+// Réglages de render::renderPage (render/src/pagepainter.cpp) : image à 96 ppp, fond blanc, lissage ; une
+// feuille plus fine change l'échelle du peintre, pas ces réglages.
 constexpr int kPainterDotsPerMeter = 3780;
 constexpr double kPainterDpi = 96.0;
 constexpr double kMmPerInch = 25.4;
