@@ -195,6 +195,7 @@ private slots:
         QCOMPARE(f.view->fixedPage()->pendingCount(), 1);
         QVERIFY(f.grabHasColorNear({200, 100}, Qt::red)); // dessiné par la couche d'attente
         f.tabs.activate(1);                               // bascule pendant l'attente
+        QCOMPARE(f.view->fixedPage()->pendingCount(), 0); // rattachée dans le même tour : restart l'a vidée
         QTest::qWait(ui::kCacheFoldIdleMs + 300);
         QCOMPARE(f.view->fixedPage()->pendingCount(), 0);
         QVERIFY(!f.grabHasColorNear({200, 100}, Qt::red)); // aucun fantôme sur la page de l'onglet 1
