@@ -51,6 +51,9 @@ struct Sheet
     bool notes = false;
     std::vector<SheetCell> cells;
     std::vector<std::size_t> noteOf;
+    // Notes à la suite : rang, dans la suite des lignes de la plage, de la première ligne de cette feuille
+    // (0, kNoteLinesPerSheet, 2 × kNoteLinesPerSheet…). Toujours 0 avec un saut de feuille par page.
+    int firstNoteLine = 0;
 };
 inline constexpr int kNoteLinesPerSheet = 60;
 

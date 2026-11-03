@@ -78,6 +78,25 @@ private slots:
         pages[0].notes += "\ny"; // 121 lignes
         QCOMPARE(core::sheetCount(core::Document(pages), s, 0, kA4), 3);
     }
+    void continuousNotesSheetsCarryTheirFirstLine()
+    {
+        std::vector<core::Page> pages(1);
+        for (int i = 0; i < 129; ++i)
+            pages[0].notes += "x\n";
+        pages[0].notes += "x"; // 130 lignes : trois feuilles
+        core::PrintSettings s;
+        s.notes = core::PrintNotes::NotesOnly;
+        s.noteBreak = false;
+        const auto sheets = core::layoutSheets(core::Document(pages), s, 0, kA4);
+        QCOMPARE(sheets.size(), std::size_t(3));
+        QCOMPARE(sheets[0].firstNoteLine, 0);
+        QCOMPARE(sheets[1].firstNoteLine, core::kNoteLinesPerSheet);
+        QCOMPARE(sheets[2].firstNoteLine, 2 * core::kNoteLinesPerSheet);
+        // Un saut de feuille par page : toujours 0.
+        s.noteBreak = true;
+        for (const auto& sh : core::layoutSheets(core::Document(pages), s, 0, kA4))
+            QCOMPARE(sh.firstNoteLine, 0);
+    }
     void longPageFitsWhole()
     {
         const auto d = documentS17();
