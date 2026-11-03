@@ -1,5 +1,6 @@
 #include <actcraft/bench/result.h>
 #include <actcraft/bench/scenarios.h>
+#include <actcraft/bench/spinningload.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/hittest.h>
@@ -342,6 +343,52 @@ private slots:
         for (const auto& plan : bench::allScenarios(bench::ScenarioSet::Court)) {
             QCOMPARE(plan.spinsInBackground, plan.name == QStringLiteral("export-fond-reference"));
         }
+    }
+
+    // L5-C14 : preuve que la charge témoin tourne (compteur de tours, aucun chrono : on attend un premier
+    // tour avec un plafond large), qu'elle s'arrête à la destruction, et que le JSON dit si la référence en a
+    // porté.
+    void controlLoadActuallyRuns()
+    {
+        std::int64_t seen = 0;
+        {
+            bench::SpinningLoad load;
+            QTRY_VERIFY_WITH_TIMEOUT(load.iterations() > 0, 10000);
+            seen = load.iterations();
+        }
+        QVERIFY(seen > 0);
+    }
+
+    void exportBackgroundJsonSaysWhetherTheBaselineCarriesALoad()
+    {
+        bench::BenchResult result;
+        bench::ScenarioResult exported;
+        exported.name = QStringLiteral("export-fond");
+        bench::ExportBackgroundStats background;
+        background.inkP95Ms = 10.0;
+        background.baselineInkP95Ms = 10.0;
+        background.baselineControlLoadIterations = 7;
+        exported.exportBackground = background;
+        result.scenarios = {exported};
+        QJsonObject e = bench::toJson(result)
+                            .value("scenarios")
+                            .toArray()
+                            .at(0)
+                            .toObject()
+                            .value("export_background")
+                            .toObject();
+        QCOMPARE(e.value("baseline_control_load").toBool(false), true);
+        QCOMPARE(e.value("control_load_iterations").toInteger(-9), qint64{7});
+        result.scenarios[0].exportBackground->baselineControlLoadIterations = 0;
+        e = bench::toJson(result)
+                .value("scenarios")
+                .toArray()
+                .at(0)
+                .toObject()
+                .value("export_background")
+                .toObject();
+        QCOMPARE(e.value("baseline_control_load").toBool(true), false);
+        QCOMPARE(e.value("control_load_iterations").toInteger(-9), qint64{0});
     }
 
     // Les documents synthétiques sont fixés par le banc : 20 pages de 50 traits, aucune image, différents
