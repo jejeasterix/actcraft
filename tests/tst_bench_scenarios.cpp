@@ -131,8 +131,8 @@ private slots:
         // compte passe de 5 à 7 : les cinq premiers gardent leur nom et leur ordre). L4-T14 : « forme-page-
         // annotee » et « grille-dessus » après eux (le compte passe de 7 à 9 : les sept premiers inchangés).
         // L4-T29 : « miniatures » et « miniatures-ferme » après eux (le compte passe de 9 à 11), puis «
-        // miniatures-pauses » (12). L4-T28 : « zones-zoom » (13). L7-T34 : « reconnaissance » en dernier (14 :
-        // les treize premiers gardent leur nom et leur rang).
+        // miniatures-pauses » (12). L4-T28 : « zones-zoom » (13). L7-T34 : « reconnaissance » en dernier (14
+        // : les treize premiers gardent leur nom et leur rang).
         QCOMPARE(plans.size(), std::size_t{14});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
