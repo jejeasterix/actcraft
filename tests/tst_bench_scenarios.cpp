@@ -294,8 +294,8 @@ private slots:
     }
 
     // L5-C12 : « export-fond » se juge contre une référence SANS export, sur la MÊME page (le document
-    // synthétique) avec le MÊME tracé, jouée juste avant lui dans le même passage. Une référence sur une autre
-    // page (« stroke » : 300 objets) ou absente ne prouverait rien sur le coût de l'export.
+    // synthétique) avec le MÊME tracé, jouée juste avant lui dans le même passage. Une référence sur une
+    // autre page (« stroke » : 300 objets) ou absente ne prouverait rien sur le coût de l'export.
     void exportBackgroundHasALoyalReference()
     {
         for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
