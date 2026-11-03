@@ -1149,10 +1149,10 @@ BenchResult Runner::run(QQuickWindow* window)
             result.scenarios.back().tabs = tabsSetup;
         }
         if (result.scenarios.back().exportBackground) { // références du même passage
-            const auto baseline = std::find_if(result.scenarios.begin(), result.scenarios.end(),
-                                               [](const ScenarioResult& r) {
-                                                   return r.name == QLatin1String("export-fond-reference");
-                                               });
+            const auto baseline =
+                std::find_if(result.scenarios.begin(), result.scenarios.end(), [](const ScenarioResult& r) {
+                    return r.name == QLatin1String("export-fond-reference");
+                });
             ExportBackgroundStats& ex = *result.scenarios.back().exportBackground;
             if (baseline == result.scenarios.end() || !baseline->latency) {
                 result.invalidReasons << QStringLiteral("error: no baseline reference for %1").arg(plan.name);

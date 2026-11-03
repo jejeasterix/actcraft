@@ -200,7 +200,8 @@ inline constexpr int kTabsStrokesPerPage = 50;
 inline constexpr int kTabsSwitches = 10;
 inline constexpr std::int64_t kTabsSwitchPeriodNs = 800'000'000; // complet ; ÷ 5 en court
 inline constexpr double kCacheBytesPerPixel = 20.0;              // cache d'une vue (L10-T8)
-inline constexpr double kExportInkRatioBudget = 1.2; // p95 d'encre avec export / p95 de la référence sans export
+inline constexpr double kExportInkRatioBudget =
+    1.2; // p95 d'encre avec export / p95 de la référence sans export
 core::Document tabsFixtureDocument(int index);
 // Seuil de `memory_delta_mb` : largeur x hauteur x kCacheBytesPerPixel, en Mio (2^20 o).
 double tabsMemoryBudgetMb(const QSize& windowSize) noexcept;
