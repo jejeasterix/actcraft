@@ -396,6 +396,7 @@ private slots:
             0, core::makeConnector({200, 100}, a, {400, 100}, b, 0)));
         const core::ObjectId connectorId = app.page().objects.back().common.id;
 
+        const double topBefore = core::boundsOnPage(app.object(a)).y;
         app.document->execute(std::make_unique<core::TransformObjectsCommand>(
             0, std::vector<core::ObjectId>{a}, core::translation(0, 80)));
         {
