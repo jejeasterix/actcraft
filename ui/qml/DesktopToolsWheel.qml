@@ -17,7 +17,8 @@ Window {
     property int openRing: -1
     readonly property real iconSize: 72
     readonly property real wheelSize: 520
-    readonly property var entries: root.controller ? root.controller.wheelEntries(110, 205) : []
+    // Relue à chaque déploiement (setExpanded) : une liaison sur l'appel ne se recalculerait jamais.
+    property var entries: []
 
     flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
@@ -34,27 +35,37 @@ Window {
         const delta = (root.wheelSize - root.iconSize) / 2
         root.x += value ? -delta : delta
         root.y += value ? -delta : delta
+        if (value) {
+            root.entries = root.controller ? root.controller.wheelEntries(110, 205) : []
+        }
         root.expanded = value
         if (!value) {
             root.openRing = -1
         }
     }
 
-    function trigger(command) {
-        if (command === "") {
+    // entry : {command, restoresMain, …} (DesktopController::wheelEntries).
+    function trigger(entry) {
+        if (!entry || entry.command === "") {
             return
         }
         root.setExpanded(false)
-        if (root.commands) {
-            root.commands.trigger(command)
+        if (!root.commands) {
+            return
         }
+        // Écart à l'original (H-M8, voir opensInTheMainWindow) : un outil de la fenêtre principale la rend
+        // d'abord, sinon il s'ouvrirait dans la fenêtre réduite, invisible.
+        if (entry.restoresMain) {
+            root.commands.trigger("desktop.restore")
+        }
+        root.commands.trigger(entry.command)
     }
 
-    // Une fermeture de la roue (fenêtre principale revenue) la replie pour la fois suivante.
+    // Une fermeture de la roue (fenêtre principale revenue) la replie pour la fois suivante, l'icône à sa
+    // place (le décalage du déploiement est rendu).
     onVisibleChanged: {
         if (!visible) {
-            root.expanded = false
-            root.openRing = -1
+            root.setExpanded(false)
         }
     }
 
@@ -118,7 +129,7 @@ Window {
                     if (slot.isRing) {
                         root.openRing = root.openRing === slot.index ? -1 : slot.index
                     } else {
-                        root.trigger(slot.modelData.command)
+                        root.trigger(slot.modelData)
                     }
                 }
                 background: Rectangle {
@@ -148,7 +159,7 @@ Window {
                     x: root.width / 2 + modelData.x - width / 2
                     y: root.height / 2 + modelData.y - height / 2
                     text: modelData.label
-                    onClicked: root.trigger(modelData.command)
+                    onClicked: root.trigger(modelData)
                     background: Rectangle {
                         radius: width / 2
                         color: "#F2FFFFFF"
