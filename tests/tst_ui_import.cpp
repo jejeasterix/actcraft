@@ -113,6 +113,20 @@ bool inMenus(const QVariantList& items, const QString& id)
     return false;
 }
 
+// Faux « soffice » exécutable dans un dossier à part, pour mettre une machine « avec LibreOffice » sous le test.
+QString fakeSofficeDirectory(QTemporaryDir& dir)
+{
+    QFile file(dir.filePath(QStringLiteral("soffice")));
+    if (!file.open(QIODevice::WriteOnly) || file.write("#!/bin/sh\nexit 0\n") <= 0) {
+        return {};
+    }
+    file.close();
+    file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+    return dir.path();
+}
+
+QTemporaryDir g_fakeSoffice;
+
 } // namespace
 
 class TestUiImport : public QObject
@@ -123,6 +137,8 @@ private slots:
     {
         qunsetenv("ACTCRAFT_OFFICE_CONVERTER");
         qunsetenv("ACTCRAFT_POWERSHELL");
+        // ROUGE (L5-C22 / M19) : une machine qui a LibreOffice, soffice sur le PATH.
+        qputenv("PATH", (QFile::encodeName(fakeSofficeDirectory(g_fakeSoffice)) + ":" + qgetenv("PATH")));
     }
     void cleanup()
     {
