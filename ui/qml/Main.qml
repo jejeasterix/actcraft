@@ -243,7 +243,8 @@ Window {
         commands: appCommands
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: topBar.bottom
+        // Ni ancre haute ni basse : ancrées en alternance, elles étirent la barre le temps d'un changement.
+        y: appTabs.position === "bottom" ? parent.height - height : topBar.y + topBar.height
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -251,8 +252,8 @@ Window {
     RowLayout {
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: documentTabBar.bottom
-        anchors.bottom: parent.bottom
+        anchors.top: appTabs.position === "bottom" ? topBar.bottom : documentTabBar.bottom
+        anchors.bottom: appTabs.position === "bottom" ? documentTabBar.top : parent.bottom
         spacing: 0
 
         // Lot 4 : panneau des navigateurs (ancre réglée par L4-T19), à gauche de la zone de page.
@@ -329,7 +330,7 @@ Window {
         onPopupClosed: root.popupClosed()
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: topBar.bottom
+        anchors.top: appTabs.position === "bottom" ? topBar.bottom : documentTabBar.bottom
     }
     VerticalTextBar {
         id: verticalTextBar
@@ -341,7 +342,7 @@ Window {
         onPopupClosed: root.popupClosed()
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: topBar.bottom
+        anchors.top: appTabs.position === "bottom" ? topBar.bottom : documentTabBar.bottom
     }
     GridDesigner {
         id: gridDesigner
