@@ -868,6 +868,121 @@ private slots:
         QTest::qWait(50);
         QVERIFY(!desktop->passThrough());
     }
+
+    // M3 (relecture du lot 7) : Sélectionner déjà actif à l'ouverture de l'annotation fait passer les clics
+    // dès l'ouverture (F-070), sans attendre un changement d'outil ; ouverte avec le stylo, elle prend la
+    // saisie. Mutants : seul currentToolChanged est suivi ; l'outil est relu à la création de la fenêtre
+    // (avant que l'annotation soit ouverte : followTool l'ignore).
+    void selectToolBeforeOpeningPassesClicksThrough()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("tool.select")));
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        QTRY_VERIFY(desktop->passThrough());
+        QVERIFY(desktop->window()->flags().testFlag(Qt::WindowTransparentForInput));
+        QVERIFY(main.run(QStringLiteral("tool.pen")));
+        QTRY_VERIFY(!desktop->passThrough());
+        QVERIFY(main.run(QStringLiteral("desktop.annotate"))); // fermée
+        QTRY_VERIFY(!desktop->isAnnotating());
+        QVERIFY(main.run(QStringLiteral("desktop.annotate"))); // rouverte avec le stylo
+        QVERIFY(waitDesktopReady(desktop));
+        QVERIFY(!desktop->passThrough());
+        QVERIFY(!desktop->window()->flags().testFlag(Qt::WindowTransparentForInput));
+    }
+
+    // M5 (relecture du lot 7) : revenir de la roue rend l'état d'avant de la fenêtre principale (ici le plein
+    // écran), même quand l'annotation a été fermée pendant que la roue était ouverte. Mutant : restore() fait
+    // toujours showNormal (l'état gardé par l'annotation est perdu à sa fermeture, roue ouverte).
+    void restoreFromTheWheelGivesBackFullScreen_data()
+    {
+        QTest::addColumn<bool>("annotating");
+        QTest::newRow("annotation fermee roue ouverte") << true;
+        QTest::newRow("sans annotation") << false;
+    }
+    void restoreFromTheWheelGivesBackFullScreen()
+    {
+        QFETCH(bool, annotating);
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QQuickWindow* window = main.window();
+        window->showFullScreen();
+        QTRY_COMPARE(window->visibility(), QWindow::FullScreen);
+        QVERIFY(main.waitReady());
+        if (annotating) {
+            QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+            QVERIFY(waitDesktopReady(desktop));
+            QTRY_COMPARE(window->visibility(), QWindow::Windowed);
+        }
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QTRY_COMPARE(window->visibility(), QWindow::Minimized);
+        if (annotating) {
+            QVERIFY(main.run(QStringLiteral("desktop.annotate"))); // fermée, roue ouverte
+            QVERIFY(!desktop->isAnnotating());
+            QVERIFY(desktop->property("toolsShown").toBool());
+            QCOMPARE(window->visibility(), QWindow::Minimized); // elle ne revient pas d'elle-même
+        }
+        QVERIFY(main.run(QStringLiteral("desktop.restore")));
+        QVERIFY(!desktop->property("toolsShown").toBool());
+        QTRY_COMPARE(window->visibility(), QWindow::FullScreen);
+    }
+
+    // M8 (relecture du lot 7) : un outil lancé depuis un anneau de la roue (horloge, dés, calculatrice) se
+    // voit : la fenêtre qui le porte n'est plus réduite. Mutant : l'entrée déclenche seulement la commande de
+    // l'outil (le panneau s'ouvre dans la fenêtre principale réduite, invisible).
+    void wheelToolIsVisible_data()
+    {
+        QTest::addColumn<QString>("command");
+        QTest::newRow("horloge") << QStringLiteral("tool.clock");
+        QTest::newRow("des") << QStringLiteral("tool.dice");
+        QTest::newRow("calculatrice") << QStringLiteral("tool.calculator");
+    }
+    void wheelToolIsVisible()
+    {
+        QFETCH(QString, command);
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.waitReady());
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QQuickWindow* wheel = wheelWindow();
+        QVERIFY(wheel);
+        QTRY_VERIFY(wheel->isVisible());
+        QTRY_COMPARE(main.window()->visibility(), QWindow::Minimized);
+        // L'anneau qui porte la commande.
+        QVariantList entries;
+        QVERIFY(QMetaObject::invokeMethod(desktop, "wheelEntries", Q_RETURN_ARG(QVariantList, entries),
+                                          Q_ARG(double, 110.0), Q_ARG(double, 205.0)));
+        int ringIndex = -1;
+        for (qsizetype i = 0; i < entries.size(); ++i) {
+            for (const QVariant& inner : entries[i].toMap().value(QStringLiteral("ring")).toList()) {
+                if (inner.toMap().value(QStringLiteral("command")).toString() == command) {
+                    ringIndex = static_cast<int>(i);
+                }
+            }
+        }
+        QVERIFY2(ringIndex >= 0, qPrintable(command));
+        const auto entry = [wheel](const QString& name) {
+            return presentationharness::findItem(wheel->contentItem(), name);
+        };
+        QQuickItem* icon = entry(QStringLiteral("desktopWheelIcon"));
+        QVERIFY(icon);
+        QVERIFY(QMetaObject::invokeMethod(icon, "click"));
+        const QString ringName = QStringLiteral("desktopWheelRing_%1").arg(ringIndex);
+        QTRY_VERIFY(entry(ringName));
+        QVERIFY(QMetaObject::invokeMethod(entry(ringName), "click"));
+        const QString entryName = QStringLiteral("desktopWheelEntry_") + command;
+        QTRY_VERIFY2(entry(entryName), qPrintable(entryName));
+        QVERIFY(QMetaObject::invokeMethod(entry(entryName), "click"));
+        QTRY_VERIFY(main.window()->visibility() != QWindow::Minimized);
+        QVERIFY(main.window()->isVisible());
+    }
 };
 
 } // namespace
