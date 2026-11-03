@@ -214,6 +214,18 @@ private slots:
         QCOMPARE(c->style, std::uint8_t{5});
     }
 
+    // M3 (L5-C18, D11) : les extrémités réglées vont au connecteur tracé.
+    void capsAreUsed()
+    {
+        Harness h;
+        h.tool.setCaps(core::ConnectorCap::Round, core::ConnectorCap::Arrow);
+        h.drag(101, 1, 299, 2);
+        const core::Connector* c = h.lastConnector();
+        QVERIFY(c != nullptr);
+        QCOMPARE(c->capA, core::ConnectorCap::Round);
+        QCOMPARE(c->capB, core::ConnectorCap::Arrow);
+    }
+
     void previewDuringDragThenCleared()
     {
         Harness h;

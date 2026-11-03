@@ -282,6 +282,56 @@ private slots:
         QCOMPARE(lastConnector(app)->style, std::uint8_t{0});
     }
 
+    // M3 (L5-C18, D11) : les extrémités A et B se règlent par connector.caps (« A,B », rangs 0 aucune, 1
+    // rayon, 2 flèche), sont gardées comme le style et vont au connecteur tracé.
+    void connectorRemembersCaps()
+    {
+        {
+            App app;
+            QVERIFY(start(app, QStringLiteral("extremites.ini")));
+            QVERIFY(app.trigger("connector.caps", QStringLiteral("1,2")));
+        }
+        App app;
+        QVERIFY(start(app, QStringLiteral("extremites.ini")));
+        QCOMPARE(app.tools->property("connectorCapA").toInt(), 1);
+        QCOMPARE(app.tools->property("connectorCapB").toInt(), 2);
+        app.addShape({100, 100, 100, 100});
+        app.addShape({400, 100, 100, 100});
+        const qreal widthBefore = app.view->width();
+        const QPoint originBefore = app.scene({0, 0});
+        QVERIFY(app.trigger("tool.connector"));
+        QTRY_VERIFY(app.view->width() != widthBefore || app.scene({0, 0}) != originBefore);
+        app.mouseDrag(QPointF(198, 102), QPointF(402, 102));
+        const core::Connector* connector = lastConnector(app);
+        QVERIFY(connector != nullptr);
+        QCOMPARE(connector->capA, core::ConnectorCap::Round);
+        QCOMPARE(connector->capB, core::ConnectorCap::Arrow);
+
+        QVERIFY(app.trigger("connector.caps", QStringLiteral("9,-1"))); // bornés aux trois formes
+        QCOMPARE(app.tools->property("connectorCapA").toInt(), 2);
+        QCOMPARE(app.tools->property("connectorCapB").toInt(), 0);
+    }
+
+    // M18 (L5-C18) : après relance, le panneau surligne le style et les extrémités gardés, pas le style 1.
+    void connectorPanelShowsRememberedChoice()
+    {
+        {
+            App app;
+            QVERIFY(start(app, QStringLiteral("panneau.ini")));
+            app.tools->setConnectorStyle(5);
+            app.trigger("connector.caps", QStringLiteral("2,1"));
+        }
+        App app;
+        QVERIFY(start(app, QStringLiteral("panneau.ini")));
+        QObject* panel = app.window->findChild<QObject*>(QStringLiteral("connectorPanel"));
+        QVERIFY(panel != nullptr);
+        QCOMPARE(panel->property("chosen").toInt(), 5); // « Style 6 », celui que dessine le connecteur
+        QCOMPARE(panel->property("capA").toInt(), 2);
+        QCOMPARE(panel->property("capB").toInt(), 1);
+        app.tools->setConnectorStyle(8);
+        QCOMPARE(panel->property("chosen").toInt(), 8); // le panneau suit la mémoire
+    }
+
     // Échap (tool.select, au repos) et la désactivation quittent le mode points de forme.
     void escapeLeavesShapePoints()
     {
