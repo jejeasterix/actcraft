@@ -11,18 +11,22 @@
 
 using namespace actcraft;
 
+#ifdef ACTCRAFT_IMPORT_PDF
 namespace actcraft::exporting::detail {
 using RenderObserver = void (*)();
 void setRenderObserver(RenderObserver observer);
 } // namespace actcraft::exporting::detail
+#endif
 
 namespace {
 
+#ifdef ACTCRAFT_IMPORT_PDF
 std::atomic<QThread*> g_importThread{nullptr};
 void noteThread()
 {
     g_importThread.store(QThread::currentThread());
 }
+#endif
 
 // PDF d'essai produit par l'export de L5-T23 : aucun fichier tiers dans le dépôt.
 QUrl writePdf(const QTemporaryDir& dir, int pages, double width = 1024, double height = 768)
