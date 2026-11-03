@@ -2,6 +2,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/objectedits.h>
 #include <actcraft/core/shapegeometry.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/tools/selecttool.h>
@@ -330,6 +331,106 @@ private slots:
         app.document->undo(); // une seule étape : l'objet et le connecteur reviennent
         QVERIFY(std::abs(core::boundsOnPage(app.object(a)).y - top) < 0.01);
         QCOMPARE(std::get<core::Connector>(app.object(connectorId)).firstEnd.y, 100.0);
+    }
+
+    // M2 (L5-C18) : le suivi se fait au point unique par où passe toute commande du document (le contrôleur),
+    // pas commande par commande. Une commande brute, qu'aucun outil n'enveloppe, emmène le bout de l'objet
+    // qu'elle déplace et détache celui de l'objet qu'elle retire, chaque fois en une étape.
+    void anyCommandCarriesLinkedConnectors()
+    {
+        App app;
+        QVERIFY(start(app));
+        const core::ObjectId a = app.addShape({100, 100, 100, 100});
+        const core::ObjectId b = app.addShape({400, 100, 100, 100});
+        app.document->execute(std::make_unique<core::AddObjectCommand>(
+            0, core::makeConnector({200, 100}, a, {400, 100}, b, 0)));
+        const core::ObjectId connectorId = app.page().objects.back().common.id;
+
+        app.document->execute(std::make_unique<core::TransformObjectsCommand>(
+            0, std::vector<core::ObjectId>{a}, core::translation(0, 80)));
+        {
+            const auto& moved = std::get<core::Connector>(app.object(connectorId));
+            QCOMPARE(moved.firstEnd.x, 200.0);
+            QCOMPARE(moved.firstEnd.y, 180.0); // le bout suit le sommet déplacé
+            QCOMPARE(moved.secondEnd.y, 100.0);
+        }
+        app.document->undo(); // une étape : l'objet et le bout reviennent ensemble
+        QCOMPARE(std::get<core::Connector>(app.object(connectorId)).firstEnd.y, 100.0);
+        QCOMPARE(core::boundsOnPage(app.object(a)).y, 100.0);
+
+        app.document->execute(
+            std::make_unique<core::RemoveObjectsCommand>(0, std::vector<core::ObjectId>{a}));
+        {
+            const auto& detached = std::get<core::Connector>(app.object(connectorId));
+            QCOMPARE(detached.objectA, core::ObjectId{0}); // l'objet retiré ne retient plus le bout
+            QCOMPARE(detached.objectB, b);
+            QCOMPARE(detached.firstEnd.x, 200.0); // le bout reste où il est
+        }
+        app.document->undo();
+        QCOMPARE(std::get<core::Connector>(app.object(connectorId)).objectA, a);
+        QCOMPARE(app.page().objects.size(), std::size_t(3));
+    }
+
+    // M2 : les commandes de la sélection (object.enlarge, edit.delete) et la corbeille emmènent aussi les
+    // bouts.
+    void selectionCommandsCarryLinkedConnectors()
+    {
+        App app;
+        QVERIFY(start(app));
+        const core::ObjectId a = app.addShape({100, 100, 100, 100});
+        const core::ObjectId b = app.addShape({400, 100, 100, 100});
+        app.document->execute(std::make_unique<core::AddObjectCommand>(
+            0, core::makeConnector({200, 100}, a, {400, 100}, b, 0)));
+        const core::ObjectId connectorId = app.page().objects.back().common.id;
+        QVERIFY(app.trigger("tool.select"));
+        app.tools->selectObjects({a});
+
+        QVERIFY(app.trigger("object.enlarge"));
+        const core::PointF corner = core::attachPoints(app.object(a)).at(1); // sommet en haut à droite
+        QVERIFY(corner.x != 200.0 || corner.y != 100.0);
+        {
+            const auto& followed = std::get<core::Connector>(app.object(connectorId));
+            QVERIFY2(std::abs(followed.firstEnd.x - corner.x) < 0.01 &&
+                         std::abs(followed.firstEnd.y - corner.y) < 0.01,
+                     "le bout doit suivre le sommet agrandi");
+            QCOMPARE(followed.secondEnd.x, 400.0);
+        }
+
+        app.tools->selectObjects({a});
+        QVERIFY(app.trigger("edit.delete"));
+        QCOMPARE(std::get<core::Connector>(app.object(connectorId)).objectA, core::ObjectId{0});
+        app.document->undo();
+        QCOMPARE(std::get<core::Connector>(app.object(connectorId)).objectA, a);
+
+        app.document->deleteObjects({b}); // la corbeille
+        QCOMPARE(std::get<core::Connector>(app.object(connectorId)).objectB, core::ObjectId{0});
+    }
+
+    // M2 (doute du relecteur, tooladapters.cpp:77) : le seul connecteur lié, soulevé avec son objet A, garde
+    // son bout B sur B au dépôt ; le suivi ne se décide pas sur la page privée des objets soulevés.
+    void connectorLiftedWithItsObjectKeepsOtherEnd()
+    {
+        App app;
+        QVERIFY(start(app));
+        const core::ObjectId a = app.addShape({100, 100, 100, 100});
+        const core::ObjectId b = app.addShape({400, 100, 100, 100});
+        app.document->execute(std::make_unique<core::AddObjectCommand>(
+            0, core::makeConnector({200, 100}, a, {400, 100}, b, 0)));
+        const core::ObjectId connectorId = app.page().objects.back().common.id;
+        QVERIFY(app.trigger("tool.select"));
+        app.tools->selectObjects({a, connectorId});
+        const double top = core::boundsOnPage(app.object(a)).y;
+
+        app.mouseDrag(QPointF(150, 150), QPointF(150, 250));
+        const double shift = core::boundsOnPage(app.object(a)).y - top;
+        QVERIFY(shift > 50);
+        const core::PageObject& object = app.object(connectorId);
+        const auto& connector = std::get<core::Connector>(object);
+        const core::PointF endA = object.common.transform.map(connector.firstEnd);
+        const core::PointF endB = object.common.transform.map(connector.secondEnd);
+        QVERIFY2(std::abs(endA.y - (100 + shift)) < 0.01, "le bout A suit A");
+        QVERIFY2(std::abs(endB.x - 400) < 0.01 && std::abs(endB.y - 100) < 0.01, "le bout B reste sur B");
+        QCOMPARE(connector.objectB, b);
     }
 };
 
