@@ -142,8 +142,10 @@ private slots:
         QTRY_COMPARE(main.pageObjectCount(), before + 1);
         QTemporaryDir folder;
         QVERIFY(folder.isValid());
+        QSignalSpy saved(controller, &DocumentController::saveFinished);
         controller->saveToUrl(QUrl::fromLocalFile(folder.filePath(QStringLiteral("retablir.flipchart"))));
-        QTRY_VERIFY_WITH_TIMEOUT(!controller->property("canRevertPage").toBool(), 10000); // enregistrée
+        QTRY_COMPARE_WITH_TIMEOUT(saved.count(), 1, 10000); // la page enregistrée devient la référence
+        QVERIFY2(saved.at(0).at(0).toBool(), qPrintable(saved.at(0).at(1).toString()));
 
         presentationharness::strokeAt(main.window(), presentationharness::Pointer::Stylus,
                                       main.pageView()->pageToScene(QPointF(40, 600)),
@@ -373,11 +375,11 @@ private slots:
         QTRY_COMPARE(main.pageObjectCount(), before + 1);
     }
 
-    // Revue M7 : un coin haut tiré de 300 px vers l'extérieur et jusqu'au haut de la fenêtre, panneau posé à
-    // 10 px sous le haut de la vue de page (au-dessus, la barre d'outils prendrait l'appui). Le panneau
-    // grandit en gardant ses proportions et son coin opposé, mais ne sort pas de la couche : son bord haut
-    // (barre de titre, croix) reste atteignable. Sans borne, l'échelle tirée (plus de 1,6) le ferait passer
-    // au-dessus.
+    // Revue M7 : les poignées de coin ne font pas sortir le panneau de la couche. Coin bas droit (celui que
+    // clockBlocksTheStylus prouve à la souris ; les poignées hautes ne répondent pas au glissé de la souris
+    // ici, consigné), panneau posé à 20 px des bords bas et droit de la vue de page, tiré jusqu'au coin de la
+    // couche. La précondition garde le test discriminant : sans borne, l'échelle tirée dépasse la place
+    // laissée et le panneau déborderait ; bornée, il grandit jusqu'au bord, son coin haut gauche fixe.
     void cornerGripsKeepThePanelInside()
     {
         MainWindow main;
@@ -386,33 +388,37 @@ private slots:
         QVERIFY(panel != nullptr);
         QQuickItem* layer = panel->parentItem();
         QVERIFY(layer != nullptr);
+        QQuickItem* corner = presentationharness::findItem(panel, QStringLiteral("clockCornerBottomRight"));
+        QVERIFY(corner != nullptr);
         const QQuickItem* view = main.pageView();
         const QRectF shown =
             layer->mapRectFromScene(view->mapRectToScene(QRectF(0, 0, view->width(), view->height())));
-        QVERIFY2(shown.width() > 280 + 40 + 300 + 20, "vue assez large pour le glissé");
-        for (const QString& name :
-             {QStringLiteral("clockCornerTopLeft"), QStringLiteral("clockCornerTopRight")}) {
-            QQuickItem* corner = presentationharness::findItem(panel, name);
-            QVERIFY2(corner != nullptr, qPrintable(name));
-            const bool left = name.endsWith(QStringLiteral("Left"));
-            panel->setSize(QSizeF(280, 340));
-            panel->setPosition(
-                QPointF(left ? shown.right() - 280 - 40 : shown.left() + 40, shown.top() + 10));
-            const QRectF before(panel->position(), panel->size());
-            const QPointF grip = centreOf(corner);
-            presentationharness::strokeAt(main.window(), Pointer::Mouse, grip,
-                                          QPointF(grip.x() + (left ? -300 : 300), 2));
-            const QRectF after(panel->position(), panel->size());
-            QVERIFY2(after.width() > before.width() + 1, qPrintable(name + QStringLiteral(" : agrandi")));
-            QVERIFY2(qAbs(after.width() / after.height() - before.width() / before.height()) < 0.01,
-                     qPrintable(name + QStringLiteral(" : proportions gardées")));
-            QVERIFY2(qAbs(after.bottom() - before.bottom()) < 0.5,
-                     qPrintable(name + QStringLiteral(" : bord bas fixe")));
-            QVERIFY2(qAbs(left ? after.right() - before.right() : after.left() - before.left()) < 0.5,
-                     qPrintable(name + QStringLiteral(" : bord opposé fixe")));
-            QVERIFY2(after.top() >= -0.5 && after.left() >= -0.5 && after.right() <= layer->width() + 0.5,
-                     qPrintable(name + QStringLiteral(" : dans la couche, ") + QString::number(after.top())));
-        }
+        panel->setSize(QSizeF(280, 340));
+        panel->setPosition(QPointF(shown.right() - 280 - 20, shown.bottom() - 340 - 20));
+        const QRectF before(panel->position(), panel->size());
+        const QPointF grip = centreOf(corner);
+        const QPointF end = layer->mapToScene(QPointF(layer->width() - 1, layer->height() - 1));
+        const QPointF pulled = end - grip;
+        const qreal raw = 1 + (pulled.x() * 280 + pulled.y() * 340) / (280.0 * 280 + 340.0 * 340);
+        const qreal fit =
+            qMin((layer->width() - before.left()) / 280, (layer->height() - before.top()) / 340);
+        QVERIFY2(
+            raw > fit + 0.01 && fit > 1.01,
+            qPrintable(
+                QStringLiteral("glissé %1, place %2 : le test ne discriminerait pas").arg(raw).arg(fit)));
+
+        presentationharness::strokeAt(main.window(), Pointer::Mouse, grip, end);
+        const QRectF after(panel->position(), panel->size());
+        QVERIFY2(after.width() > before.width() + 1, "agrandi par son coin");
+        QVERIFY2(qAbs(after.width() / after.height() - before.width() / before.height()) < 0.01,
+                 "proportions gardées");
+        QVERIFY2((after.topLeft() - before.topLeft()).manhattanLength() < 0.5, "coin haut gauche fixe");
+        QVERIFY2(after.right() <= layer->width() + 0.5 && after.bottom() <= layer->height() + 0.5,
+                 qPrintable(QStringLiteral("dans la couche : %1 x %2 pour %3 x %4")
+                                .arg(after.right())
+                                .arg(after.bottom())
+                                .arg(layer->width())
+                                .arg(layer->height())));
     }
 };
 
