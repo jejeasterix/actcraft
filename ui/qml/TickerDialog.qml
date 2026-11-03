@@ -252,7 +252,7 @@ FloatingPanel {
             Caption { text: qsTr("Ombre (px)") }
             SpinBox {
                 id: shadowBox
-                objectName: "tickerShadow"
+                objectName: "tickerShadowOffset"
                 height: root.rowHeight
                 from: 0
                 to: 20

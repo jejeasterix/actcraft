@@ -141,6 +141,30 @@ void writeFile(const QString& path, const QByteArray& data)
     QCOMPARE(file.write(data), data.size());
 }
 
+// Dossier des réglages posé pour une fonction de test, et remis en état à sa sortie (revue qualité z3qb) : le
+// chemin de QSettings est global au processus (exécutable unique du lot 7) ; sans retour, les fonctions
+// suivantes liraient et écriraient dans le dossier temporaire déjà détruit. Rendu à un dossier temporaire
+// propre au processus, jamais au vrai registre.
+class SettingsPathScope
+{
+public:
+    explicit SettingsPathScope(const QString& path) { use(path); }
+    ~SettingsPathScope()
+    {
+        static QTemporaryDir fallback;
+        use(fallback.path());
+    }
+    SettingsPathScope(const SettingsPathScope&) = delete;
+    SettingsPathScope& operator=(const SettingsPathScope&) = delete;
+
+private:
+    static void use(const QString& path)
+    {
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, path);
+    }
+};
+
 // Message en boucle lancé par sa commande, comme le menu ou Ctrl+Maj+T.
 bool startLoop(const MainWindow& main, TickerController* ticker, int position)
 {
@@ -160,8 +184,7 @@ private slots:
     {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, dir.path());
+        const SettingsPathScope settingsScope(dir.path());
         const actcraft::features::TickerSettings defaults;
         {
             TickerController ticker;
@@ -193,8 +216,7 @@ private slots:
     {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, dir.path());
+        const SettingsPathScope settingsScope(dir.path());
         actcraft::features::TickerSettings bad;
         bad.text = QStringLiteral("Altéré");
         bad.fontPointSize = 0;
@@ -409,8 +431,7 @@ private slots:
     {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, dir.path());
+        const SettingsPathScope settingsScope(dir.path());
         const actcraft::features::TickerSettings defaults;
         {
             TickerController ticker;
