@@ -223,6 +223,26 @@ private slots:
         QCOMPARE(countPdfImages(job.outputFile), 4);
     }
 
+    // Notes à la suite sur plus d'une feuille : chaque feuille imprime sa tranche, jamais la première.
+    void continuousNotesSheetsPrintDifferentSlices()
+    {
+        std::vector<core::Page> pages(1);
+        for (int i = 1; i <= 130; ++i)
+            pages[0].notes += (i > 1 ? "\n" : "") + std::string("Ligne numero ") + std::to_string(i);
+        const core::Document d(std::move(pages));
+        core::PrintSettings s;
+        s.notes = core::PrintNotes::NotesOnly;
+        s.noteBreak = false;
+        const auto sheets = core::layoutSheets(d, s, 0, kA4);
+        QCOMPARE(sheets.size(), std::size_t(3));
+        const QImage a = print::renderSheet(d, sheets[0], s, kA4, 96);
+        const QImage b = print::renderSheet(d, sheets[1], s, kA4, 96);
+        const QImage c = print::renderSheet(d, sheets[2], s, kA4, 96);
+        QVERIFY(a != b);
+        QVERIFY(b != c);
+        QVERIFY(a != c);
+    }
+
     void printsToFileThroughVirtualPrinter()
     {
         QTemporaryDir dir;
