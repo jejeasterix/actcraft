@@ -920,7 +920,7 @@ private slots:
     // Relecture du lot 7 : la roue fermée déployée (fenêtre principale revenue par la barre des tâches)
     // reparaît repliée, l'icône à sa place. Mutant : le repli à la fermeture ne rend pas le décalage du
     // déploiement (224 px).
-    void wheelComesBackFoldedInPlace()
+    void wheelReopensFoldedWhereItWas()
     {
         MainWindow main;
         QVERIFY(main.window());
