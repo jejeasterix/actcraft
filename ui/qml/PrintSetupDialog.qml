@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Dialogs
 import QtQuick.Layouts
 import ActCraft.Ui
 
@@ -9,14 +8,15 @@ import ActCraft.Ui
 // « Enregistrer les réglages et quitter » les garde pour la prochaine ouverture. La boîte émet popupOpened et
 // popupClosed (contrat du lot 4).
 //
-// Branchement (Main.qml) : `exchange: appExchange`. Sans lui, « Exporter en PDF » est grisé et, quand
-// l'impression par QPrinter n'est pas construite, « Imprimer » n'a pas de repli.
+// Branchement (Main.qml) : `exchange: appExchange` et `fileExchangeActions: fileExchangeActions`. Sans
+// `exchange`, « Exporter en PDF » est grisé ; sans `fileExchangeActions`, il ne propose pas de nom de fichier.
 Popup {
     id: dialog
     objectName: "printSetupDialog"
 
     required property PrintController printing
     property var exchange: null
+    property var fileExchangeActions: null // son dialogue d'export et le nom de fichier proposé
     signal popupOpened()
     signal popupClosed()
 
@@ -201,11 +201,7 @@ Popup {
                     objectName: "exportButton"
                     text: qsTr("Exporter en PDF…")
                     enabled: dialog.exchange !== null
-                    onClicked: {
-                        exportPdfDialog.currentFile = dialog.exchange.document.defaultFolderUrl(true) + "/"
-                            + dialog.exchange.document.suggestedFileName.replace(/\.actcraft$/, "").replace(/[\\\/:*?"<>|]/g, "_") + ".pdf"
-                        exportPdfDialog.open()
-                    }
+                    onClicked: if (dialog.fileExchangeActions) dialog.fileExchangeActions.chooseExportPdf()
                 }
                 Button {
                     objectName: "printButton"
@@ -235,15 +231,5 @@ Popup {
                 }
             }
         }
-    }
-
-    FileDialog {
-        id: exportPdfDialog
-        objectName: "printExportPdfDialog"
-        title: qsTr("Exporter en PDF")
-        fileMode: FileDialog.SaveFile
-        defaultSuffix: "pdf"
-        nameFilters: [qsTr("Documents PDF (*.pdf)")]
-        onAccepted: dialog.exportTo(selectedFile)
     }
 }

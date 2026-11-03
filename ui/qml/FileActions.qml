@@ -45,8 +45,13 @@ Item {
         actions.resumeQuit()
     }
 
-    function guard(action) {
+    // Valide le texte en cours d'édition, s'il y en a un.
+    function commitText() {
         if (actions.textEditing) actions.textEditing.commit()
+    }
+
+    function guard(action) {
+        actions.commitText()
         if (!actions.document.modified) { action(); return }
         actions.pending = action
         saveChanges.documentTitle = actions.document.title
@@ -55,7 +60,7 @@ Item {
     // Un onglet neuf, puis `fill` le met à la taille voulue. Refusé pendant une lecture ou une écriture (le
     // nombre d'onglets ne change pas) : rien n'est alors remplacé.
     function inNewTab(fill) {
-        if (actions.textEditing) actions.textEditing.commit()
+        actions.commitText()
         const before = actions.tabs.count
         actions.tabs.newTab()
         if (actions.tabs.count > before) fill()
@@ -65,7 +70,7 @@ Item {
         inNewTab(function () { actions.document.newDocumentWithFrames(w, h, across, down) })
     }
     function openUrl(url) {
-        if (actions.textEditing) actions.textEditing.commit()
+        actions.commitText()
         if (!actions.document.modified && actions.document.fileUrl.toString() === "")
             actions.document.openUrl(url)
         else
@@ -96,18 +101,18 @@ Item {
         saveDialog.open()
     }
     function close() {
-        if (actions.textEditing) actions.textEditing.commit()
+        actions.commitText()
         actions.tabs.requestClose(actions.tabs.currentIndex)
     }
     // Un onglet, affiché ou garé, a-t-il des modifications ? (fermeture de la fenêtre)
     function hasUnsavedTabs() {
-        if (actions.textEditing) actions.textEditing.commit()
+        actions.commitText()
         for (let i = 0; i < actions.tabs.count; ++i)
             if (actions.tabs.isModifiedAt(i)) return true
         return false
     }
     function quit() {
-        if (actions.textEditing) actions.textEditing.commit()
+        actions.commitText()
         actions.quitFrom(0)
     }
     // Demande l'enregistrement du premier onglet modifié à partir de `from` (il est montré d'abord), puis passe

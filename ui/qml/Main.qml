@@ -210,6 +210,16 @@ Window {
         return arg !== undefined && arg !== null && arg !== ""
     }
 
+    // Gestionnaire de commande « argument donné : on agit ; sinon : on ouvre le dialogue ».
+    function argumentOrDialog(act, openDialog) {
+        return function (arg) {
+            if (root.hasArgument(arg))
+                act(arg)
+            else
+                openDialog()
+        }
+    }
+
     function popupOpened() {
         root.openPopups += 1
     }
@@ -386,6 +396,7 @@ Window {
         objectName: "printSetupDialog"
         printing: appPrint
         exchange: appExchange
+        fileExchangeActions: fileExchangeActions
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -658,7 +669,7 @@ Window {
                 appTools.activate("pen-shape")
         })
         appCommands.setHandler("connector.style", function (rank) {
-            if (root.hasArgument(rank) || rank === 0)
+            if (root.hasArgument(rank))
                 appTools.setConnectorStyle(Number(rank))
         })
         appCommands.setHandler("connector.caps", function (caps) {
@@ -668,18 +679,10 @@ Window {
         })
         appCommands.setHandler("view.pen-modifiers", function () { penModifierBar.visible = !penModifierBar.visible })
         appCommands.setChecked("view.pen-modifiers", penModifierBar.visible)
-        appCommands.setHandler("insert.image", function (url) {
-            if (root.hasArgument(url))
-                appInsertion.insertImage(url)
-            else
-                fileExchangeActions.chooseImage()
-        })
-        appCommands.setHandler("insert.media", function (url) {
-            if (root.hasArgument(url))
-                appInsertion.insertMedia(url)
-            else
-                fileExchangeActions.chooseMedia()
-        })
+        appCommands.setHandler("insert.image", root.argumentOrDialog(
+            function (url) { appInsertion.insertImage(url) }, function () { fileExchangeActions.chooseImage() }))
+        appCommands.setHandler("insert.media", root.argumentOrDialog(
+            function (url) { appInsertion.insertMedia(url) }, function () { fileExchangeActions.chooseMedia() }))
         appCommands.setHandler("tab.next", function () { appTabs.next() })
         appCommands.setHandler("tab.previous", function () { appTabs.previous() })
         // Sans argument (le clic du menu) : position suivante ; avec argument : seulement une position connue.
@@ -692,30 +695,14 @@ Window {
                 appTabs.position = positions[(positions.indexOf(appTabs.position) + 1) % positions.length]
             }
         })
-        appCommands.setHandler("export.page-image", function (url) {
-            if (root.hasArgument(url))
-                appExchange.exportPageImage(url)
-            else
-                fileExchangeActions.chooseExportPageImage()
-        })
-        appCommands.setHandler("export.pdf", function (url) {
-            if (root.hasArgument(url))
-                appExchange.exportPdf(url)
-            else
-                fileExchangeActions.chooseExportPdf()
-        })
-        appCommands.setHandler("file.import-pdf", function (url) {
-            if (root.hasArgument(url))
-                appExchange.importPdf(url)
-            else
-                fileExchangeActions.chooseImportPdf()
-        })
-        appCommands.setHandler("file.import-powerpoint-images", function (url) {
-            if (root.hasArgument(url))
-                appExchange.importPowerpointImages(url)
-            else
-                fileExchangeActions.chooseImportPowerpoint()
-        })
+        appCommands.setHandler("export.page-image", root.argumentOrDialog(
+            function (url) { appExchange.exportPageImage(url) }, function () { fileExchangeActions.chooseExportPageImage() }))
+        appCommands.setHandler("export.pdf", root.argumentOrDialog(
+            function (url) { appExchange.exportPdf(url) }, function () { fileExchangeActions.chooseExportPdf() }))
+        appCommands.setHandler("file.import-pdf", root.argumentOrDialog(
+            function (url) { appExchange.importPdf(url) }, function () { fileExchangeActions.chooseImportPdf() }))
+        appCommands.setHandler("file.import-powerpoint-images", root.argumentOrDialog(
+            function (url) { appExchange.importPowerpointImages(url) }, function () { fileExchangeActions.chooseImportPowerpoint() }))
         appCommands.setHandler("file.print", function () {
             appExchange.settleEditing() // l'aperçu et le PDF contiennent l'objet soulevé
             printSetupDialog.open()

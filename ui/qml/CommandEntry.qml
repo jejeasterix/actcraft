@@ -18,7 +18,6 @@ MenuItem {
     checkable: !isSeparator && entryData.checkable === true
     checked: !isSeparator && commands && commands.revision >= 0 && commands.isChecked(commandId)
     implicitHeight: isSeparator ? 9 : Theme.tailleBouton
-    implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset, implicitContentWidth + leftPadding + rightPadding)
     // Le clic bascule la coche localement : on rend la main au registre.
     onToggled: checked = Qt.binding(function () {
         return !entry.isSeparator && commands && commands.revision >= 0 && commands.isChecked(entry.commandId)
