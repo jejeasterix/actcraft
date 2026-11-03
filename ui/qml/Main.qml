@@ -703,6 +703,7 @@ Window {
                 fileExchangeActions.chooseImportPowerpoint()
         })
         appCommands.setHandler("file.print", function () {
+            appExchange.settleEditing() // l'aperçu et le PDF contiennent l'objet soulevé
             printSetupDialog.open()
         })
     }
