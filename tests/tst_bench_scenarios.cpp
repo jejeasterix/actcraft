@@ -131,7 +131,8 @@ private slots:
         // annotee » et « grille-dessus » après eux (le compte passe de 7 à 9 : les sept premiers inchangés).
         // L4-T29 : « miniatures » et « miniatures-ferme » après eux (le compte passe de 9 à 11), puis «
         // miniatures-pauses » (12). L4-T28 : « zones-zoom » en dernier (13 : les douze premiers inchangés).
-        QCOMPARE(plans.size(), std::size_t{14});
+        // L5-T31 : « onglets » et « export-fond » après eux (16 : les quatorze premiers inchangés).
+        QCOMPARE(plans.size(), std::size_t{16});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
@@ -145,7 +146,9 @@ private slots:
         QCOMPARE(plans[10].name, QStringLiteral("miniatures-ferme"));
         QCOMPARE(plans[11].name, QStringLiteral("miniatures-pauses"));
         QCOMPARE(plans[12].name, QStringLiteral("zones-zoom"));
-        QCOMPARE(plans[13].name, QStringLiteral("edition")); // L5-T19 : en dernier (14 : treize inchangés)
+        QCOMPARE(plans[13].name, QStringLiteral("edition")); // L5-T19 : après eux (14 : treize inchangés)
+        QCOMPARE(plans[14].name, QStringLiteral("onglets"));
+        QCOMPARE(plans[15].name, QStringLiteral("export-fond"));
         for (std::size_t i = 0; i < 5; ++i) {
             QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
             QVERIFY(plans[i].seedStrokes.empty());
@@ -232,6 +235,147 @@ private slots:
         QCOMPARE(by.value("align").toInt(-9), 1);
         QCOMPARE(by.value("front").toInt(-9), 1);
         QCOMPARE(by.size(), 4);
+    }
+
+    // L5-T31 (S8.5, D21) : « onglets » = quatre documents synthétiques de 20 pages de 50 traits, ouverts,
+    // puis dix bascules par la commande nommée `tabs.switch` (jamais deux fois de suite le même onglet) ; «
+    // export-fond » = les traits de « stroke » pendant un export PDF d'un de ces documents.
+    void tabsAndExportScenariosListed()
+    {
+        QCOMPARE(bench::kTabsCount, 4);
+        QCOMPARE(bench::kTabsSwitches, 10);
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan tabs = bench::tabsScenario(set);
+            QCOMPARE(tabs.name, QStringLiteral("onglets"));
+            QCOMPARE(tabs.tabCount, bench::kTabsCount);
+            QVERIFY(!tabs.exportsInBackground);
+            QVERIFY(!tabs.freezeExempt); // le verdict n'est pas une porte, mais il reste jugé
+            QCOMPARE(tabs.maxCacheRefreshes, -1);
+            QVERIFY(tabs.toolCommand.isEmpty());
+            QCOMPARE(tabs.inputs.size(), std::size_t{10});
+            int previous = 0; // l'onglet affiché au début des bascules
+            std::int64_t lastAt = -1;
+            for (const auto& in : tabs.inputs) {
+                QVERIFY(in.kind == InputKind::Command);
+                QCOMPARE(in.command, QStringLiteral("tabs.switch"));
+                QVERIFY(!in.measured);
+                const int target = in.argument.toInt();
+                QVERIFY(target >= 0 && target < bench::kTabsCount);
+                QVERIFY(target != previous);
+                previous = target;
+                QVERIFY(in.offsetNs > lastAt);
+                lastAt = in.offsetNs;
+            }
+
+            const bench::ScenarioPlan exported = bench::exportBackgroundScenario(set);
+            const bench::ScenarioPlan stroke = bench::strokeScenario(set);
+            QCOMPARE(exported.name, QStringLiteral("export-fond"));
+            QVERIFY(exported.exportsInBackground);
+            QCOMPARE(exported.tabCount, 0);
+            QVERIFY(exported.fixtureDocument); // l'export lit un des documents synthétiques
+            QVERIFY(!exported.freezeExempt);
+            QCOMPARE(exported.maxCacheRefreshes, -1);
+            QCOMPARE(exported.inputs.size(), stroke.inputs.size()); // mêmes traits que « stroke »
+            for (std::size_t i = 0; i < stroke.inputs.size(); ++i) {
+                QVERIFY(exported.inputs[i].kind == stroke.inputs[i].kind);
+                QCOMPARE(exported.inputs[i].offsetNs, stroke.inputs[i].offsetNs);
+                QCOMPARE(exported.inputs[i].pagePos, stroke.inputs[i].pagePos);
+                QCOMPARE(exported.inputs[i].measured, stroke.inputs[i].measured);
+            }
+        }
+        // Aucun autre scénario ne porte ces drapeaux.
+        for (const auto& plan : bench::allScenarios(bench::ScenarioSet::Court)) {
+            QCOMPARE(plan.tabCount > 0, plan.name == QStringLiteral("onglets"));
+            QCOMPARE(plan.exportsInBackground, plan.name == QStringLiteral("export-fond"));
+        }
+    }
+
+    // Les documents synthétiques sont fixés par le banc : 20 pages de 50 traits, aucune image, différents
+    // d'un onglet à l'autre, identiques d'un appel à l'autre.
+    void tabsFixtureDocumentsAreFixed()
+    {
+        const core::Document a = bench::tabsFixtureDocument(0);
+        QCOMPARE(a.pageCount(), std::size_t{20});
+        std::set<core::ObjectId> ids;
+        for (std::size_t p = 0; p < a.pageCount(); ++p) {
+            QCOMPARE(a.page(p).objects.size(), std::size_t{50});
+            for (const core::PageObject& object : a.page(p).objects) {
+                QVERIFY(std::holds_alternative<core::Stroke>(object));
+                QVERIFY(ids.insert(object.common.id).second); // identifiants uniques dans le document
+            }
+        }
+        QCOMPARE(a.resources().size(), std::size_t{0});
+        QCOMPARE(core::fingerprint(a.page(0)), core::fingerprint(bench::tabsFixtureDocument(0).page(0)));
+        QVERIFY(core::fingerprint(a.page(0)) != core::fingerprint(bench::tabsFixtureDocument(1).page(0)));
+    }
+
+    // Seuil de mémoire : largeur x hauteur x 20 o, en Mio (2^20 o).
+    void tabsMemoryBudgetIsOneViewCache()
+    {
+        QVERIFY(std::abs(bench::tabsMemoryBudgetMb(QSize(1280, 800)) - 19.53125) < 1e-9);
+        QVERIFY(std::abs(bench::tabsMemoryBudgetMb(QSize(1920, 1080)) - 39.55078125) < 1e-9);
+    }
+
+    // Clés `tabs.*` et `export_background.*` du JSON, seulement dans « onglets » et « export-fond ».
+    void tabsAndExportStatsShowInTheResult()
+    {
+        bench::BenchResult result;
+        bench::ScenarioResult other;
+        other.name = QStringLiteral("stroke");
+        bench::ScenarioResult tabs;
+        tabs.name = QStringLiteral("onglets");
+        bench::TabsStats stats;
+        stats.memoryOneTabMb = 100.0;
+        stats.memoryFourTabsMb = 112.5;
+        stats.memoryDeltaMb = 12.5;
+        stats.memoryBudgetMb = 19.53125;
+        stats.switchMs = {10.0, 20.0, 30.0};
+        tabs.tabs = stats;
+        bench::ScenarioResult exported;
+        exported.name = QStringLiteral("export-fond");
+        bench::ExportBackgroundStats background;
+        background.exports = 3;
+        background.failures = 0;
+        background.maxExportMs = 80.0;
+        background.inkP95Ms = 13.0;
+        background.strokeInkP95Ms = 10.0;
+        background.freezes = 1;
+        background.strokeFreezes = 1;
+        exported.exportBackground = background;
+        result.scenarios = {other, tabs, exported};
+        const QJsonArray scenarios = bench::toJson(result).value("scenarios").toArray();
+        QCOMPARE(scenarios.size(), 3);
+        QVERIFY(!scenarios.at(0).toObject().contains("tabs"));
+        QVERIFY(!scenarios.at(0).toObject().contains("export_background"));
+        const QJsonObject t = scenarios.at(1).toObject().value("tabs").toObject();
+        QCOMPARE(t.value("memory_delta_mb").toDouble(-9), 12.5);
+        QCOMPARE(t.value("memory_budget_mb").toDouble(-9), 19.53125);
+        QCOMPARE(t.value("memory_within_budget").toBool(false), true);
+        QCOMPARE(t.value("memory_one_tab_mb").toDouble(-9), 100.0);
+        QCOMPARE(t.value("memory_four_tabs_mb").toDouble(-9), 112.5);
+        QCOMPARE(t.value("switch_ms").toObject().value("count").toInt(-9), 3);
+        QCOMPARE(t.value("switch_ms").toObject().value("max").toDouble(-9), 30.0);
+        QVERIFY(t.value("switch_ms").toObject().contains("p95"));
+        const QJsonObject e = scenarios.at(2).toObject().value("export_background").toObject();
+        QCOMPARE(e.value("exports").toInt(-9), 3);
+        QCOMPARE(e.value("ink_p95_ms").toDouble(-9), 13.0);
+        QCOMPARE(e.value("stroke_ink_p95_ms").toDouble(-9), 10.0);
+        QCOMPARE(e.value("ratio_budget").toDouble(-9), 1.2);
+        QVERIFY(std::abs(e.value("ratio_to_stroke").toDouble(-9) - 1.3) < 1e-9);
+        QCOMPARE(e.value("within_ratio").toBool(true), false); // 1,3 > 1,2
+        QCOMPARE(e.value("no_more_freezes").toBool(false), true);
+        // Au budget : 12 / 10 = 1,2 passe ; au-dessus du seuil de mémoire : faux.
+        background.inkP95Ms = 12.0;
+        background.freezes = 2; // un figement de plus que « stroke »
+        stats.memoryDeltaMb = 20.0;
+        result.scenarios[1].tabs = stats;
+        result.scenarios[2].exportBackground = background;
+        const QJsonArray again = bench::toJson(result).value("scenarios").toArray();
+        const QJsonObject e2 = again.at(2).toObject().value("export_background").toObject();
+        QCOMPARE(e2.value("within_ratio").toBool(false), true);
+        QCOMPARE(e2.value("no_more_freezes").toBool(true), false);
+        const QJsonObject t2 = again.at(1).toObject().value("tabs").toObject();
+        QCOMPARE(t2.value("memory_within_budget").toBool(true), false);
     }
 
     // L4-T29 (S7.5, amendements 1 et 5) : « miniatures » joue les traits de « stroke » panneau des

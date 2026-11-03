@@ -3,10 +3,12 @@
 // Scénarios rejoués par le banc (décision 22, durées N2-1) : tracé, zoom, défilement, changement de page
 // (L2-T23), et trait de démonstration.
 
+#include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 
 #include <QPoint>
 #include <QPointF>
+#include <QSize>
 #include <QString>
 #include <QVariant>
 #include <Qt>
@@ -104,6 +106,15 @@ struct ScenarioPlan
     // le runner par ObjectEditing et ToolHost, chacune dans sa fenêtre de mesure des redessins du cache. Lu
     // par ce booléen, jamais par le nom.
     bool measuresEdition = false;
+    // L5-T31 (S8.5) : > 0, le runner ouvre ce nombre d'onglets de documents synthétiques
+    // (tabsFixtureDocument) avant la mesure, relève la mémoire avec un onglet puis avec tous, et joue les
+    // commandes `tabs.switch`. Lu par ce nombre, jamais par le nom.
+    int tabCount = 0;
+    // L5-T31 : un export PDF du document synthétique tourne sur son fil pendant les traits (relancé tant que
+    // le scénario dure) ; le runner relève ses durées et la latence d'encre. Lu par ce booléen.
+    bool exportsInBackground = false;
+    // L5-T31 : le document chargé avant la mesure est tabsFixtureDocument(0) (20 pages de 50 traits).
+    bool fixtureDocument = false;
     std::vector<PlannedInput> inputs;
 };
 
@@ -178,10 +189,27 @@ inline constexpr std::size_t kEditionGestureCount = 4;
 // Commandes `edition.*` du plan, dans l'ordre joué.
 const char* const* editionGestures() noexcept;
 ScenarioPlan editionScenario(ScenarioSet scenarioSet);
+// L5-T31 (S8.5, D21). « onglets » : kTabsCount documents synthétiques de kTabsPages pages de
+// kTabsStrokesPerPage traits, sans image (fixés par le banc), ouverts chacun dans un onglet, puis
+// kTabsSwitches bascules (commande `tabs.switch`, argument : l'indice de l'onglet à afficher, jamais deux
+// fois le même de suite, en partant de l'onglet 0). « export-fond » : les traits de « stroke » pendant un
+// export PDF du document synthétique (exporting::exportPdf). Résultats, jamais une porte.
+inline constexpr int kTabsCount = 4;
+inline constexpr int kTabsPages = 20;
+inline constexpr int kTabsStrokesPerPage = 50;
+inline constexpr int kTabsSwitches = 10;
+inline constexpr std::int64_t kTabsSwitchPeriodNs = 800'000'000; // complet ; ÷ 5 en court
+inline constexpr double kCacheBytesPerPixel = 20.0;              // cache d'une vue (L10-T8)
+inline constexpr double kExportInkRatioBudget = 1.2;             // p95 d'encre / p95 de « stroke »
+core::Document tabsFixtureDocument(int index);
+// Seuil de `memory_delta_mb` : largeur x hauteur x kCacheBytesPerPixel, en Mio (2^20 o).
+double tabsMemoryBudgetMb(const QSize& windowSize) noexcept;
+ScenarioPlan tabsScenario(ScenarioSet set);
+ScenarioPlan exportBackgroundScenario(ScenarioSet set);
 // Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);
 // stroke, zoom, scroll, page, pauses, gommer, soulever, forme-page-annotee, grille-dessus, miniatures,
-// miniatures-ferme, miniatures-pauses, zones-zoom, edition
+// miniatures-ferme, miniatures-pauses, zones-zoom, edition, onglets, export-fond
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set);
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();

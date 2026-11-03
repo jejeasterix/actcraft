@@ -573,6 +573,59 @@ ScenarioPlan editionScenario(ScenarioSet scenarioSet)
     return plan;
 }
 
+core::Document tabsFixtureDocument(int index)
+{
+    core::Document document(std::vector<core::Page>(static_cast<std::size_t>(kTabsPages)));
+    for (int p = 0; p < kTabsPages; ++p) {
+        for (int k = 0; k < kTabsStrokesPerPage; ++k) {
+            const double phase = 0.7 * index + 0.31 * p + 0.17 * k;
+            std::vector<QPointF> points;
+            for (double x = 220.0; x <= 804.0; x += 25.0) {
+                points.emplace_back(x, 170.0 + 9.0 * k + 8.0 * std::sin(x / 40.0 + phase));
+            }
+            core::PageObject object = seedAnnotation(points);
+            object.common.layer = core::Layer::Top;
+            object.common.id = document.allocateId();
+            document.page(static_cast<std::size_t>(p)).objects.push_back(std::move(object));
+        }
+    }
+    return document;
+}
+
+double tabsMemoryBudgetMb(const QSize& windowSize) noexcept
+{
+    return static_cast<double>(windowSize.width()) * windowSize.height() * kCacheBytesPerPixel / 1048576.0;
+}
+
+ScenarioPlan tabsScenario(ScenarioSet scenarioSet)
+{
+    ScenarioPlan plan;
+    plan.name = QStringLiteral("onglets");
+    plan.zoom = 1.0;
+    plan.tabCount = kTabsCount;
+    const std::int64_t period = kTabsSwitchPeriodNs / durationDivisor(scenarioSet);
+    int shown = 0;
+    for (int i = 0; i < kTabsSwitches; ++i) {
+        shown = (shown + 1) % kTabsCount; // 1, 2, 3, 0, 1, 2, 3, 0, 1, 2
+        PlannedInput in;
+        in.offsetNs = (i + 1) * period;
+        in.kind = InputKind::Command;
+        in.command = QStringLiteral("tabs.switch");
+        in.argument = shown;
+        plan.inputs.push_back(in);
+    }
+    return plan;
+}
+
+ScenarioPlan exportBackgroundScenario(ScenarioSet scenarioSet)
+{
+    ScenarioPlan plan = strokeScenario(scenarioSet);
+    plan.name = QStringLiteral("export-fond");
+    plan.exportsInBackground = true;
+    plan.fixtureDocument = true;
+    return plan;
+}
+
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan)
 {
     std::vector<std::pair<std::int64_t, std::int64_t>> windows;
@@ -603,7 +656,9 @@ std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
             closedThumbnailsScenario(set),
             thumbnailsPausesScenario(set),
             zonesZoomScenario(set),
-            editionScenario(set)};
+            editionScenario(set),
+            tabsScenario(set),
+            exportBackgroundScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()
