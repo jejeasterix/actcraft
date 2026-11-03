@@ -237,9 +237,9 @@ private slots:
         QCOMPARE(by.size(), 4);
     }
 
-    // L5-T31 (S8.5, D21) : « onglets » = quatre documents synthétiques de 20 pages de 50 traits, ouverts, puis
-    // dix bascules par la commande nommée `tabs.switch` (jamais deux fois de suite le même onglet) ;
-    // « export-fond » = les traits de « stroke » pendant un export PDF d'un de ces documents.
+    // L5-T31 (S8.5, D21) : « onglets » = quatre documents synthétiques de 20 pages de 50 traits, ouverts,
+    // puis dix bascules par la commande nommée `tabs.switch` (jamais deux fois de suite le même onglet) ; «
+    // export-fond » = les traits de « stroke » pendant un export PDF d'un de ces documents.
     void tabsAndExportScenariosListed()
     {
         QCOMPARE(bench::kTabsCount, 4);
