@@ -200,16 +200,20 @@ inline constexpr int kTabsStrokesPerPage = 50;
 inline constexpr int kTabsSwitches = 10;
 inline constexpr std::int64_t kTabsSwitchPeriodNs = 800'000'000; // complet ; ÷ 5 en court
 inline constexpr double kCacheBytesPerPixel = 20.0;              // cache d'une vue (L10-T8)
-inline constexpr double kExportInkRatioBudget = 1.2;             // p95 d'encre / p95 de « stroke »
+inline constexpr double kExportInkRatioBudget =
+    1.2; // p95 d'encre avec export / p95 de la référence sans export
 core::Document tabsFixtureDocument(int index);
 // Seuil de `memory_delta_mb` : largeur x hauteur x kCacheBytesPerPixel, en Mio (2^20 o).
 double tabsMemoryBudgetMb(const QSize& windowSize) noexcept;
 ScenarioPlan tabsScenario(ScenarioSet set);
 ScenarioPlan exportBackgroundScenario(ScenarioSet set);
+// L5-C12 : « export-fond-reference », jouée juste avant « export-fond » dans le même passage : même page
+// (document synthétique), même tracé, aucun export. Sa latence d'encre p95 est le dénominateur du rapport.
+ScenarioPlan exportBackgroundReferenceScenario(ScenarioSet set);
 // Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);
 // stroke, zoom, scroll, page, pauses, gommer, soulever, forme-page-annotee, grille-dessus, miniatures,
-// miniatures-ferme, miniatures-pauses, zones-zoom, edition, onglets, export-fond
+// miniatures-ferme, miniatures-pauses, zones-zoom, edition, onglets, export-fond-reference, export-fond
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set);
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();

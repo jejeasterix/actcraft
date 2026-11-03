@@ -626,6 +626,14 @@ ScenarioPlan exportBackgroundScenario(ScenarioSet scenarioSet)
     return plan;
 }
 
+ScenarioPlan exportBackgroundReferenceScenario(ScenarioSet scenarioSet)
+{
+    ScenarioPlan plan = exportBackgroundScenario(scenarioSet);
+    plan.name = QStringLiteral("export-fond-reference");
+    plan.exportsInBackground = false;
+    return plan;
+}
+
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan)
 {
     std::vector<std::pair<std::int64_t, std::int64_t>> windows;
@@ -658,6 +666,7 @@ std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
             zonesZoomScenario(set),
             editionScenario(set),
             tabsScenario(set),
+            exportBackgroundReferenceScenario(set),
             exportBackgroundScenario(set)};
 }
 

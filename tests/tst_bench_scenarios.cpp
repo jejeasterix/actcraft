@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <limits>
 #include <numeric>
 #include <set>
@@ -132,7 +133,8 @@ private slots:
         // L4-T29 : « miniatures » et « miniatures-ferme » après eux (le compte passe de 9 à 11), puis «
         // miniatures-pauses » (12). L4-T28 : « zones-zoom » en dernier (13 : les douze premiers inchangés).
         // L5-T31 : « onglets » et « export-fond » après eux (16 : les quatorze premiers inchangés).
-        QCOMPARE(plans.size(), std::size_t{16});
+        // L5-C12 : « export-fond-reference » juste avant « export-fond » (17).
+        QCOMPARE(plans.size(), std::size_t{17});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
@@ -148,7 +150,8 @@ private slots:
         QCOMPARE(plans[12].name, QStringLiteral("zones-zoom"));
         QCOMPARE(plans[13].name, QStringLiteral("edition")); // L5-T19 : après eux (14 : treize inchangés)
         QCOMPARE(plans[14].name, QStringLiteral("onglets"));
-        QCOMPARE(plans[15].name, QStringLiteral("export-fond"));
+        QCOMPARE(plans[15].name, QStringLiteral("export-fond-reference"));
+        QCOMPARE(plans[16].name, QStringLiteral("export-fond"));
         for (std::size_t i = 0; i < 5; ++i) {
             QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
             QVERIFY(plans[i].seedStrokes.empty());
@@ -290,6 +293,41 @@ private slots:
         }
     }
 
+    // L5-C12 : « export-fond » se juge contre une référence SANS export, sur la MÊME page (le document
+    // synthétique) avec le MÊME tracé, jouée juste avant lui dans le même passage. Une référence sur une
+    // autre page (« stroke » : 300 objets) ou absente ne prouverait rien sur le coût de l'export.
+    void exportBackgroundHasALoyalReference()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan reference = bench::exportBackgroundReferenceScenario(set);
+            const bench::ScenarioPlan exported = bench::exportBackgroundScenario(set);
+            QCOMPARE(reference.name, QStringLiteral("export-fond-reference"));
+            QVERIFY(!reference.exportsInBackground); // aucun export
+            QVERIFY(reference.fixtureDocument);      // même page que l'export
+            QCOMPARE(reference.fixtureDocument, exported.fixtureDocument);
+            QCOMPARE(reference.tabCount, exported.tabCount);
+            QCOMPARE(reference.zoom, exported.zoom);
+            QCOMPARE(reference.toolCommand, exported.toolCommand);
+            QCOMPARE(reference.freezeExempt, exported.freezeExempt);
+            QCOMPARE(reference.maxCacheRefreshes, exported.maxCacheRefreshes);
+            QCOMPARE(reference.inputs.size(), exported.inputs.size()); // même tracé
+            for (std::size_t i = 0; i < exported.inputs.size(); ++i) {
+                QVERIFY(reference.inputs[i].kind == exported.inputs[i].kind);
+                QCOMPARE(reference.inputs[i].offsetNs, exported.inputs[i].offsetNs);
+                QCOMPARE(reference.inputs[i].pagePos, exported.inputs[i].pagePos);
+                QCOMPARE(reference.inputs[i].pressure, exported.inputs[i].pressure);
+                QCOMPARE(reference.inputs[i].measured, exported.inputs[i].measured);
+            }
+        }
+        // Dans le passage, la référence précède immédiatement l'export.
+        const auto plans = bench::allScenarios(bench::ScenarioSet::Court);
+        const auto at = std::find_if(plans.begin(), plans.end(), [](const bench::ScenarioPlan& p) {
+            return p.name == QStringLiteral("export-fond");
+        });
+        QVERIFY(at != plans.begin() && at != plans.end());
+        QCOMPARE(std::prev(at)->name, QStringLiteral("export-fond-reference"));
+    }
+
     // Les documents synthétiques sont fixés par le banc : 20 pages de 50 traits, aucune image, différents
     // d'un onglet à l'autre, identiques d'un appel à l'autre.
     void tabsFixtureDocumentsAreFixed()
@@ -339,7 +377,9 @@ private slots:
         background.maxExportMs = 80.0;
         background.inkP95Ms = 13.0;
         background.strokeInkP95Ms = 10.0;
+        background.baselineInkP95Ms = 10.0; // L5-C12 : référence sans export, même page, même tracé
         background.freezes = 1;
+        background.baselineFreezes = 1;
         background.strokeFreezes = 1;
         exported.exportBackground = background;
         result.scenarios = {other, tabs, exported};
@@ -361,12 +401,14 @@ private slots:
         QCOMPARE(e.value("ink_p95_ms").toDouble(-9), 13.0);
         QCOMPARE(e.value("stroke_ink_p95_ms").toDouble(-9), 10.0);
         QCOMPARE(e.value("ratio_budget").toDouble(-9), 1.2);
-        QVERIFY(std::abs(e.value("ratio_to_stroke").toDouble(-9) - 1.3) < 1e-9);
+        QCOMPARE(e.value("baseline_ink_p95_ms").toDouble(-9), 10.0);
+        QVERIFY(std::abs(e.value("ratio_to_stroke").toDouble(-9) - 1.3) < 1e-9); // pour information
+        QVERIFY(std::abs(e.value("ratio_to_baseline").toDouble(-9) - 1.3) < 1e-9);
         QCOMPARE(e.value("within_ratio").toBool(true), false); // 1,3 > 1,2
         QCOMPARE(e.value("no_more_freezes").toBool(false), true);
         // Au budget : 12 / 10 = 1,2 passe ; au-dessus du seuil de mémoire : faux.
         background.inkP95Ms = 12.0;
-        background.freezes = 2; // un figement de plus que « stroke »
+        background.freezes = 2; // un figement de plus que la référence
         stats.memoryDeltaMb = 20.0;
         result.scenarios[1].tabs = stats;
         result.scenarios[2].exportBackground = background;
@@ -374,6 +416,26 @@ private slots:
         const QJsonObject e2 = again.at(2).toObject().value("export_background").toObject();
         QCOMPARE(e2.value("within_ratio").toBool(false), true);
         QCOMPARE(e2.value("no_more_freezes").toBool(true), false);
+        // L5-C12 : le verdict porte sur la référence, non sur « stroke » (page de 300 objets, plus lente).
+        const auto exportKey = [&result](const bench::ExportBackgroundStats& stats) {
+            result.scenarios[2].exportBackground = stats;
+            return bench::toJson(result)
+                .value("scenarios")
+                .toArray()
+                .at(2)
+                .toObject()
+                .value("export_background")
+                .toObject();
+        };
+        background.strokeInkP95Ms = 100.0; // ratio_to_stroke 0,12, mais ratio_to_baseline 1,5
+        background.baselineInkP95Ms = 8.0;
+        const QJsonObject e3 = exportKey(background);
+        QVERIFY(std::abs(e3.value("ratio_to_stroke").toDouble(-9) - 0.12) < 1e-9);
+        QVERIFY(std::abs(e3.value("ratio_to_baseline").toDouble(-9) - 1.5) < 1e-9);
+        QCOMPARE(e3.value("within_ratio").toBool(true), false);
+        // Sans référence mesurée (p95 nul), le rapport n'est pas jugé tenu.
+        background.baselineInkP95Ms = 0;
+        QCOMPARE(exportKey(background).value("within_ratio").toBool(true), false);
         const QJsonObject t2 = again.at(1).toObject().value("tabs").toObject();
         QCOMPARE(t2.value("memory_within_budget").toBool(true), false);
     }

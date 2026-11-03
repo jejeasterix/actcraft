@@ -107,7 +107,8 @@ struct TabsStats
 };
 
 // L5-T31 : clé `export_background` de « export-fond ». Latence d'encre p95 pendant les exports PDF contre
-// celle de « stroke » du même passage (budget 1,2). Un résultat, jamais une porte.
+// celle de la référence sans export, même page et même tracé, du même passage (budget 1,2) ; « stroke »
+// (page de 300 objets) n'est gardé que pour information. Un résultat, jamais une porte.
 struct ExportBackgroundStats
 {
     int exports = 0;  // exports terminés pendant la mesure
@@ -115,7 +116,9 @@ struct ExportBackgroundStats
     double maxExportMs = 0;
     double inkP95Ms = 0;
     double strokeInkP95Ms = 0;
+    double baselineInkP95Ms = 0; // L5-C12 : « export-fond-reference »
     int freezes = 0;
+    int baselineFreezes = 0;
     int strokeFreezes = 0;
 };
 
