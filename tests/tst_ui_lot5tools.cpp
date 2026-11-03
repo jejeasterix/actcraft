@@ -406,7 +406,7 @@ private slots:
         }
         app.document->undo(); // une étape : l'objet et le bout reviennent ensemble
         QCOMPARE(std::get<core::Connector>(app.object(connectorId)).firstEnd.y, 100.0);
-        QCOMPARE(core::boundsOnPage(app.object(a)).y, 100.0);
+        QCOMPARE(core::boundsOnPage(app.object(a)).y, topBefore); // emprise d'avant, contour compris
 
         app.document->execute(
             std::make_unique<core::RemoveObjectsCommand>(0, std::vector<core::ObjectId>{a}));
