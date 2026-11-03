@@ -3,6 +3,7 @@
 #include <actcraft/render/pagepainter.h>
 
 #include <QColor>
+#include <QDeadlineTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
@@ -31,15 +32,29 @@ core::Document documentS17()
     return core::Document(std::move(pages));
 }
 
-// Document coloré : une page dont le contenu n'est pas gris (fond et objet colorés).
+// Document coloré : fond bleu, rectangle rouge à contour vert, texte jaune (HTML, document de texte gardé du
+// peintre). Le texte en points rend visible une feuille dont l'image porterait la résolution de l'imprimante
+// au lieu des 96 ppp du peintre partagé.
 core::Document colouredDocument()
 {
     std::vector<core::Page> pages(1);
+    pages[0].background.fill = core::solidFill(0xFF3060C0u);
+    core::Shape rect;
+    rect.kind = core::ShapeKind::Rectangle;
+    rect.bounds = {120, 120, 360, 220};
+    rect.fill = 0xFFD02020u;
+    rect.outline = 0xFF20A040u;
+    rect.outlineWidth = 6;
+    pages[0].objects.emplace_back(rect);
+    core::Text text;
+    text.bounds = {120, 420, 760, 200};
+    text.html = "<p style=\"font-size:40pt; color:#f0c000\">Impression</p>";
+    pages[0].objects.emplace_back(text);
     return core::Document(std::move(pages));
 }
 
-// Imprimante virtuelle qui écrit un fichier : « Microsoft Print to PDF » sous Windows ; ailleurs, le PDF de Qt
-// (nom d'imprimante vide, fichier de sortie posé).
+// Imprimante virtuelle qui écrit un fichier : « Microsoft Print to PDF » sous Windows ; ailleurs, le PDF de
+// Qt (nom d'imprimante vide, fichier de sortie posé).
 print::PrintJob virtualPrinterJob(const QString& file = {}, const core::PrintSettings& settings = {})
 {
     print::PrintJob job;
@@ -50,8 +65,8 @@ print::PrintJob virtualPrinterJob(const QString& file = {}, const core::PrintSet
     return job;
 }
 
-// Imprimante native capable d'écrire un fichier : « Microsoft Print to PDF » sous Windows ; sous macOS, toute file
-// du système (le moteur natif écrit le PDF quand un fichier de sortie est posé). Vide : aucune.
+// Imprimante native capable d'écrire un fichier : « Microsoft Print to PDF » sous Windows ; sous macOS, toute
+// file du système (le moteur natif écrit le PDF quand un fichier de sortie est posé). Vide : aucune.
 QString nativeFilePrinter()
 {
     const QStringList names = print::printerNames();
@@ -83,12 +98,12 @@ int countMatches(const QByteArray& pdf, const QString& pattern)
 int countPdfPages(const QString& path)
 {
     const QByteArray pdf = readFile(path);
-    return pdf.isEmpty() ? -1 : countMatches(pdf, QStringLiteral(R"(/Type\s*/Page(?![s\w]))"));
+    return pdf.isEmpty() ? -1 : countMatches(pdf, QStringLiteral("/Type\\s*/Page(?![s\\w])"));
 }
 
 int countPdfImages(const QString& path)
 {
-    return countMatches(readFile(path), QStringLiteral(R"(/Subtype\s*/Image\b)"));
+    return countMatches(readFile(path), QStringLiteral("/Subtype\\s*/Image\\b"));
 }
 
 // Le moteur PDF de Qt signe `/Producer (Qt x.y.z)` en UTF-16 BE (et `<pdf:Producer>Qt` en XMP).
@@ -101,8 +116,10 @@ bool producedByQt(const QByteArray& pdf)
 bool waitForFile(const QString& path)
 {
     // Le pilote d'une imprimante native écrit le fichier après le spouleur : attente bornée.
-    QTRY_VERIFY_WITH_TIMEOUT(QFileInfo(path).size() > 0, 30000);
-    return true;
+    const QDeadlineTimer deadline(30000);
+    while (QFileInfo(path).size() <= 0 && !deadline.hasExpired())
+        QTest::qWait(100);
+    return QFileInfo(path).size() > 0;
 }
 
 bool isGray(QRgb c)
@@ -123,7 +140,7 @@ bool hasColour(const QImage& image)
 QRectF toPixels(const core::SheetCell& cell, int dpi)
 {
     const double k = dpi / 25.4;
-    return {cell.target.left() * k, cell.target.top() * k, cell.target.width() * k, cell.target.height() * k};
+    return {cell.target.x * k, cell.target.y * k, cell.target.width * k, cell.target.height * k};
 }
 
 } // namespace
@@ -134,17 +151,19 @@ class TestPrinter : public QObject
 private slots:
     void printingIsBuilt() { QVERIFY(print::printingAvailable()); }
 
-    // Le patron que la tâche écarte : une feuille composée par un second chemin de dessin (ou depuis le cache, ou
-    // par les miniatures). La cellule de la feuille doit être, au pixel près, ce que le peintre partagé dessine pour
-    // cette page dans ce rectangle.
+    // Le patron que la tâche écarte : une feuille composée par un second chemin de dessin (ou depuis le
+    // cache, ou par les miniatures). La cellule de la feuille doit être, au pixel près, ce que le peintre
+    // partagé dessine pour cette page dans ce rectangle.
     void sheetCellIsSharedPainterOutput()
     {
         const auto d = colouredDocument();
         const core::PrintSettings s; // une page par feuille, en couleur
         const auto sheets = core::layoutSheets(d, s, 0, kA4);
         QCOMPARE(sheets.size(), std::size_t(1));
-        const int dpi = 96;
-        const QImage sheet = print::renderSheet(d, sheets[0], s, kA4, dpi).convertToFormat(QImage::Format_RGB32);
+        const int dpi =
+            150; // autre que les 96 ppp du peintre : une feuille à la résolution de l'imprimante se voit
+        const QImage sheet =
+            print::renderSheet(d, sheets[0], s, kA4, dpi).convertToFormat(QImage::Format_RGB32);
         QVERIFY(!sheet.isNull());
         QCOMPARE(sheet.width(), qRound(kA4.width * dpi / 25.4));
         QCOMPARE(sheet.height(), qRound(kA4.height * dpi / 25.4));
@@ -153,18 +172,21 @@ private slots:
         const auto& cell = sheets[0].cells[0];
         const core::Page& page = d.page(cell.page);
         const QRectF target = toPixels(cell, dpi);
-        QImage reference(sheet.size(), QImage::Format_RGB32);
+        // Environnement de render::renderPage (render/src/pagepainter.cpp) : 96 ppp, fond blanc, lissage.
+        QImage reference(sheet.size(), QImage::Format_ARGB32_Premultiplied);
+        reference.setDotsPerMeterX(3780);
+        reference.setDotsPerMeterY(3780);
         reference.fill(Qt::white);
         {
             QPainter p(&reference);
-            p.setRenderHint(QPainter::Antialiasing);
-            p.setRenderHint(QPainter::SmoothPixmapTransform);
-            p.setRenderHint(QPainter::TextAntialiasing);
+            p.setRenderHint(QPainter::Antialiasing, true);
+            p.setRenderHint(QPainter::TextAntialiasing, true);
             p.translate(target.topLeft());
             p.scale(target.width() / page.width, target.height() / page.height);
             const render::DecodedImages images = render::decodeImages(d);
             render::paintPage(p, page, images.lookup());
         }
+        reference = reference.convertToFormat(QImage::Format_RGB32);
         // Intérieur de la cellule (le cadre est dessiné sur son bord) : écart au plus de 2 par canal.
         const QRect inner = target.toAlignedRect().adjusted(4, 4, -4, -4);
         int differing = 0;
@@ -181,8 +203,8 @@ private slots:
     }
 
     // Le même patron vu de l'imprimante : chaque feuille imprimée est l'image de `renderSheet` (une image par
-    // feuille dans le PDF), jamais un dessin vectoriel de `paintPage` sur le QPrinter, qui perdrait le gris et la
-    // parité avec l'aperçu.
+    // feuille dans le PDF), jamais un dessin vectoriel de `paintPage` sur le QPrinter, qui perdrait le gris
+    // et la parité avec l'aperçu.
     void printedSheetsAreRenderedSheets()
     {
         QTemporaryDir dir;
@@ -230,7 +252,8 @@ private slots:
         // Le contenu est coloré : sans cela, le contrôle du gris passerait à vide.
         QVERIFY(hasColour(print::renderSheet(d, sheets[0], s, kA4, 50)));
         s.gray = true;
-        const QImage gray = print::renderSheet(d, sheets[0], s, kA4, 50).convertToFormat(QImage::Format_RGB32);
+        const QImage gray =
+            print::renderSheet(d, sheets[0], s, kA4, 50).convertToFormat(QImage::Format_RGB32);
         QVERIFY(!gray.isNull());
         bool allWhite = true;
         for (int y = 0; y < gray.height(); ++y) {
@@ -273,11 +296,14 @@ private slots:
         QVERIFY(!qApp->inherits("QApplication"));
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
-        QVERIFY(print::printDocument(documentS17(), 0, virtualPrinterJob(dir.filePath(QStringLiteral("a.pdf")))).ok);
+        QVERIFY(
+            print::printDocument(documentS17(), 0, virtualPrinterJob(dir.filePath(QStringLiteral("a.pdf"))))
+                .ok);
     }
 
-    // Sortie nommée `….pdf` vers une imprimante native : Qt passerait en PdfFormat d'après l'extension et écrirait
-    // le fichier lui-même ; le format natif est reposé après le nom, le fichier vient donc du pilote.
+    // Sortie nommée `….pdf` vers une imprimante native : Qt passerait en PdfFormat d'après l'extension et
+    // écrirait le fichier lui-même ; le format natif est reposé après le nom, le fichier vient donc du
+    // pilote.
     void nativeFormatKeptForPdfName()
     {
         const QString printer = nativeFilePrinter();
