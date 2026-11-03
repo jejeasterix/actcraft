@@ -241,6 +241,33 @@ private slots:
         QVERIFY(!QFile::exists(dir.filePath(QStringLiteral("b.pdf"))));
     }
 
+    // L5-C13 : un export lancé pendant un soulèvement contient ce que l'utilisateur voit (les objets
+    // soulevés), sans perdre ni dupliquer l'objet, et sans ajouter plus d'une étape d'annulation.
+    void exportDuringLiftContainsLiftedObjects()
+    {
+        Shell s;
+        QVERIFY(s.start());
+        s.document->newDocument(800, 600);
+        s.document->commitStroke(redStroke());
+        const core::ObjectId id = s.document->document().page(0).objects.front().common.id;
+        const auto lifted = s.document->liftObjects({id});
+        QCOMPARE(lifted.size(), std::size_t(1));
+        QVERIFY(s.document->isLifting());
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QSignalSpy done(s.exchange, &ui::FileExchange::finished);
+        const QString path = dir.filePath(QStringLiteral("soulevee.png"));
+        QVERIFY(s.run(QStringLiteral("export.page-image"), path));
+        QTRY_VERIFY_WITH_TIMEOUT(done.count() == 1 && !s.exchange->isBusy(), 15000);
+        QVERIFY(hasRed(QImage(path)));
+        QVERIFY(!s.document->isLifting());
+        QCOMPARE(s.document->document().page(0).objects.size(), std::size_t(1));
+        // Une seule étape d'annulation : le trait seul (le dépôt n'en ajoute pas).
+        s.document->undo();
+        QCOMPARE(s.document->document().page(0).objects.size(), std::size_t(0));
+        QVERIFY(!s.document->canUndo());
+    }
+
     void failedExportReportsAndReleasesBusy()
     {
         Shell s;
