@@ -763,6 +763,10 @@ CI verte · releases publiées seulement sur go écrit de Jérôme (action final
 
 PR #8 https://github.com/jejeasterix/actcraft/pull/8 (créée en brouillon, branche poussée à fc2ec9c). Point de retour : `origin/main` = a50d9e6 (branche à jour, aucun rebase). Profil : porte avant merge non ; CI couverte par la suite complète non → merge seulement sur CI verte (`attendre-ci.cjs --pret`, en fond). Conditions écrites : double relecture faite, 0 bloquant ouvert (tours de correctifs L4-C18 à L4-C23 clos) · 0 tâche bloquée · suite Mac debug 133/133 sans baisse, Windows release 138/138 (run 41465980962) · aucun test retiré ni `QSKIP` ajouté (L4-C22 et L4-C23 ne changent qu'un contrôle de pixel et une coordonnée de clic, attendus inchangés) · scénarios du lot joués hors écran et réussis (D3D11 au PC) · CLI : aucune · graphe reporté au PC (écart à la règle « avant le merge », comme aux lots précédents : `graphify update` sur le Mac réécrit les chemins).
 
+## PR du lot 5
+
+PR #9 https://github.com/jejeasterix/actcraft/pull/9 (créée en brouillon le 2026-11-03, branche poussée à ecbcdee). Point de retour : `origin/main` = 042df64 (branche à jour par une fusion sans contenu de `origin/main`, aucun rebase). Profil : porte avant merge non ; CI couverte par la suite complète non → merge seulement sur CI verte (`attendre-ci.cjs --pret`, en fond). Conditions : double relecture faite (2 tours), 0 bloquant ouvert · 0 tâche bloquée (L5-C3 au PC par H5-18, hors Mac) · suite Mac debug 164/164 sans baisse (référence du lot 4 : 133) · aucun test retiré sans remplacement ni `QSKIP` ajouté hors plan · scénarios hors écran tous réussis ; parts à l'écran (D3D11) et S17 complet au PC, comme au lot 4 (décision de A, règle du Mac seul) · CLI : aucune · graphe à jour (ecbcdee) · CI : en attente.
+
 ## Rapport du lot 5
 
 Lot 5 « Édition et fichiers » (plans 5a et 5b, L5-T0 à L5-T33, correctifs L5-C2 et C4 à C23, simplification L5-T34 ; L5-C3 au PC, H5-18). Clôture menée sur le Mac seul (2026-11-03).
