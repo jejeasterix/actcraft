@@ -4,6 +4,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 #include <actcraft/features/spotlight.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 
 #include <QBuffer>
@@ -224,6 +225,58 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(main.pageObjectCount(), strokes, 5000);
         QCOMPARE(imageCount(*controller), 0);
         QCOMPARE(controller->document().resources().size(), resources);
+    }
+
+    // Revue M6 : les coches des quatre commandes du spot suivent la forme ouverte, d'où qu'elle vienne. Un
+    // changement de page qui ferme le spot ouvert par sa commande les décoche toutes ; une page « spot carré »
+    // qui ouvre son spot coche « carré », et lui seul.
+    void spotlightChecksFollowThePage()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        auto* commands = main.window()->findChild<actcraft::ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands != nullptr);
+        QObject* spotlight = spotlightOf(main);
+        QVERIFY(spotlight != nullptr);
+        const QStringList ids{QStringLiteral("present.spotlight-circle"), QStringLiteral("present.spotlight-square"),
+                              QStringLiteral("present.spotlight-solid-circle"),
+                              QStringLiteral("present.spotlight-solid-square")};
+        const auto checked = [&] {
+            QStringList on;
+            for (const QString& id : ids) {
+                if (commands->isChecked(id)) {
+                    on << id;
+                }
+            }
+            return on;
+        };
+
+        // Page 1 : spot rond ouvert par sa commande, coché seul.
+        QVERIFY(main.run(ids[0]));
+        QCOMPARE(checked(), QStringList{ids[0]});
+
+        // Page 2 en mode rideau : y entrer ferme le spot, plus rien n'est coché.
+        controller->nextPage();
+        QTRY_COMPARE(controller->currentIndex(), 1);
+        QVERIFY(main.run(QStringLiteral("page.tools-mode"), QStringLiteral("curtain")));
+        controller->pageBack();
+        QTRY_COMPARE(controller->currentIndex(), 0);
+        controller->nextPage();
+        QTRY_COMPARE(controller->currentIndex(), 1);
+        QCOMPARE(spotlight->property("shape").toInt(), 0);
+        QCOMPARE(checked(), QStringList());
+
+        // Page 2 en mode spot carré : y revenir ouvre le carré, coché seul.
+        QVERIFY(main.run(QStringLiteral("page.tools-mode"), QStringLiteral("spotlight")));
+        QVERIFY(main.run(QStringLiteral("page.spotlight-mode"), QStringLiteral("square")));
+        controller->pageBack();
+        QTRY_COMPARE(controller->currentIndex(), 0);
+        controller->nextPage();
+        QTRY_COMPARE(controller->currentIndex(), 1);
+        QCOMPARE(spotlight->property("shape").toInt(), 2);
+        QCOMPARE(checked(), QStringList{ids[1]});
     }
 };
 

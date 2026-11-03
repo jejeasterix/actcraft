@@ -342,6 +342,40 @@ private slots:
                                       main.pageView()->pageToScene(QPointF(140, 700)));
         QTRY_COMPARE(main.pageObjectCount(), before + 1);
     }
+
+    // Revue M7 : un coin haut tiré de 300 px vers l'extérieur, panneau posé à 10 px du bord haut. Le panneau
+    // grandit en gardant ses proportions et son coin opposé, mais ne sort pas de la couche : son bord haut
+    // (barre de titre, croix) reste atteignable. Sans borne, l'échelle 1,43 le ferait monter de 137 px au-dessus.
+    void cornerGripsKeepThePanelInside()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        QQuickItem* panel = openClock(main);
+        QVERIFY(panel != nullptr);
+        QQuickItem* layer = panel->parentItem();
+        QVERIFY(layer != nullptr);
+        for (const QString& name : {QStringLiteral("clockCornerTopLeft"), QStringLiteral("clockCornerTopRight")}) {
+            QQuickItem* corner = presentationharness::findItem(panel, name);
+            QVERIFY2(corner != nullptr, qPrintable(name));
+            const bool left = name.endsWith(QStringLiteral("Left"));
+            panel->setSize(QSizeF(280, 340));
+            panel->setPosition(QPointF(left ? layer->width() - 280 - 40 : 40, 10));
+            const QRectF before(panel->position(), panel->size());
+            const QPointF grip = centreOf(corner);
+            presentationharness::strokeAt(main.window(), Pointer::Mouse, grip,
+                                          grip + QPointF(left ? -300 : 300, 0));
+            const QRectF after(panel->position(), panel->size());
+            QVERIFY2(after.width() > before.width() + 1, qPrintable(name + QStringLiteral(" : agrandi")));
+            QVERIFY2(qAbs(after.width() / after.height() - before.width() / before.height()) < 0.01,
+                     qPrintable(name + QStringLiteral(" : proportions gardées")));
+            QVERIFY2(qAbs(after.bottom() - before.bottom()) < 0.5,
+                     qPrintable(name + QStringLiteral(" : bord bas fixe")));
+            QVERIFY2(qAbs(left ? after.right() - before.right() : after.left() - before.left()) < 0.5,
+                     qPrintable(name + QStringLiteral(" : bord opposé fixe")));
+            QVERIFY2(after.top() >= -0.5 && after.left() >= -0.5 && after.right() <= layer->width() + 0.5,
+                     qPrintable(name + QStringLiteral(" : dans la couche, ") + QString::number(after.top())));
+        }
+    }
 };
 
 } // namespace
