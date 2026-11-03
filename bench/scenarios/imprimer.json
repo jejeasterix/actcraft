@@ -1,0 +1,119 @@
+{
+ "format": "actcraft-scenario/1",
+ "name": "imprimer",
+ "description": "S17 (partie jouable sans boîte ouverte) : un paperboard de quatre pages ; le contrôleur d'impression compte quatre feuilles aux réglages par défaut et n'a composé aucun aperçu. La boîte elle-même (réglages, aperçu, impression vers l'imprimante virtuelle) est jouée par tst_ui_printdialog ; son ouverture par Fichier > Imprimer reste à brancher dans Main.qml (L5-C11).",
+ "steps": [
+  {
+   "waitReady": true
+  },
+  {
+   "expect": "appPrint.sheetCount",
+   "value": 1
+  },
+  {
+   "stroke": [
+    [
+     300,
+     300
+    ],
+    [
+     600,
+     300
+    ]
+   ],
+   "pressure": 0.5
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "command": "page.insert-after"
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "stroke": [
+    [
+     300,
+     360
+    ],
+    [
+     600,
+     360
+    ]
+   ],
+   "pressure": 0.5
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "command": "page.insert-after"
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "stroke": [
+    [
+     300,
+     420
+    ],
+    [
+     600,
+     420
+    ]
+   ],
+   "pressure": 0.5
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "command": "page.insert-after"
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "stroke": [
+    [
+     300,
+     480
+    ],
+    [
+     600,
+     480
+    ]
+   ],
+   "pressure": 0.5
+  },
+  {
+   "waitReady": true
+  },
+  {
+   "expect": "documentController.pageCount",
+   "value": 4
+  },
+  {
+   "expect": "appPrint.sheetCount",
+   "value": 4
+  },
+  {
+   "expect": "appPrint.rows",
+   "value": 1
+  },
+  {
+   "expect": "appPrint.gray",
+   "value": false
+  },
+  {
+   "expect": "appPrint.previewRenders",
+   "value": 0
+  },
+  {
+   "capture": "quatre-pages"
+  }
+ ]
+}
