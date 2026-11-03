@@ -146,7 +146,7 @@ Item {
         objectName: "spotlightMenu"
         MenuItem {
             objectName: "spotlightCaptureEntry"
-            text: "Capturer la zone éclairée"
+            text: qsTr("Capturer la zone éclairée")
             enabled: spotlightController.active && !spotlightController.hidesInside && !root.capturing
             onTriggered: root.captureLit()
         }
@@ -200,10 +200,16 @@ Item {
         "present.spotlight-solid-square": 4
     })
 
+    // Forme dont les coches sont posées (-1 : aucune encore). Les coches suivent la forme d'où que vienne son
+    // changement (commande, changement de page par PageToolsController) : relues sur `changed`, et seulement
+    // quand la forme change, pas à chaque déplacement du spot.
+    property int checkedShape: -1
+
     function syncChecks() {
         if (!root.commands) {
             return
         }
+        root.checkedShape = spotlightController.shape
         for (const id of Object.keys(root.spotlightCommands)) {
             root.commands.setChecked(id, spotlightController.shape === root.spotlightCommands[id])
         }
@@ -212,7 +218,6 @@ Item {
     function bindCommand(id, shape) {
         root.commands.setHandler(id, function () {
             spotlightController.toggle(shape)
-            root.syncChecks()
         })
     }
 
@@ -223,11 +228,17 @@ Item {
         for (const id of Object.keys(root.spotlightCommands)) {
             root.bindCommand(id, root.spotlightCommands[id])
         }
+        root.syncChecks()
     }
 
     Connections {
         target: spotlightController
-        function onChanged() { root.syncCover() }
+        function onChanged() {
+            root.syncCover()
+            if (spotlightController.shape !== root.checkedShape) {
+                root.syncChecks()
+            }
+        }
     }
     onPageAreaChanged: syncCover()
     onCommandsChanged: registerCommands()
