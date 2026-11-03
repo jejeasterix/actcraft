@@ -40,8 +40,9 @@ jobs:
           - os: macos-latest
             qt_arch: clang_64
     runs-on: ${{ matrix.os }}
-    # Lot 4 : la suite debug Windows, jouée en série, dépasse 20 min (73/138 tests à 11 min, PR #8) ; 50 min de marge.
-    timeout-minutes: 50
+    # Lot 4 : la suite debug Windows, jouée en série, dépasse 20 min (73/138 tests à 11 min, PR #8). Lot 5 : 170 tests,
+    # coupée à 99/170 à 50 min (run 41715403316, PR #9) ; 90 min de marge.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -92,7 +93,8 @@ jobs:
   paquet-windows:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: windows-latest
-    timeout-minutes: 15
+    # Lot 5 : compilation release coupée à 693/808 à 15 min (run 41715403316, PR #9).
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
