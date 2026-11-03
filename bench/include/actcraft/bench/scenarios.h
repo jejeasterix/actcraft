@@ -113,6 +113,11 @@ struct ScenarioPlan
     // L5-T31 : un export PDF du document synthétique tourne sur son fil pendant les traits (relancé tant que
     // le scénario dure) ; le runner relève ses durées et la latence d'encre. Lu par ce booléen.
     bool exportsInBackground = false;
+    // L5-C14 : charge témoin de « export-fond-reference » : un fil qui calcule sans fin pendant les traits
+    // (aucun export). Mesuré : la référence n'est pas plus lente par démarrage à froid, mais parce que
+    // l'export, en gardant un cœur actif, abaisse la latence d'encre ; la référence porte donc une charge
+    // qui n'écrit rien, pour que le rapport ne mesure que le coût de l'export. Lu par ce booléen.
+    bool spinsInBackground = false;
     // L5-T31 : le document chargé avant la mesure est tabsFixtureDocument(0) (20 pages de 50 traits).
     bool fixtureDocument = false;
     std::vector<PlannedInput> inputs;

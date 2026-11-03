@@ -328,6 +328,21 @@ private slots:
         QCOMPARE(std::prev(at)->name, QStringLiteral("export-fond-reference"));
     }
 
+    // L5-C14 : la référence porte une charge témoin (un fil qui calcule, sans export) : sans elle, elle mesure
+    // une machine au repos et paraît plus lente que l'export (rapport 0,81 mesuré, hors démarrage à froid :
+    // référence rejouée 16,74 puis 16,85 ms, et 16,70 ms après l'export). Seule la référence la porte.
+    void exportBackgroundReferenceCarriesAControlLoad()
+    {
+        for (const auto set : {bench::ScenarioSet::Court, bench::ScenarioSet::Complet}) {
+            const bench::ScenarioPlan reference = bench::exportBackgroundReferenceScenario(set);
+            QVERIFY(reference.spinsInBackground);
+            QVERIFY(!reference.exportsInBackground);
+        }
+        for (const auto& plan : bench::allScenarios(bench::ScenarioSet::Court)) {
+            QCOMPARE(plan.spinsInBackground, plan.name == QStringLiteral("export-fond-reference"));
+        }
+    }
+
     // Les documents synthétiques sont fixés par le banc : 20 pages de 50 traits, aucune image, différents
     // d'un onglet à l'autre, identiques d'un appel à l'autre.
     void tabsFixtureDocumentsAreFixed()
