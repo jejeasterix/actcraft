@@ -829,6 +829,45 @@ private slots:
         QVERIFY(!desktop->window()->flags().testFlag(Qt::WindowTransparentForInput));
         QTRY_VERIFY(!resume->isVisible());
     }
+
+    // F-070 (L7-T34) : l'outil Sélectionner de l'utilisateur (outils du lot 3, pas ceux de la zone de
+    // l'annotation, qui n'en a pas) fait passer les clics vers le bureau ; un autre outil rend la saisie à
+    // l'annotation. Hors annotation, rien. Mutant : le passage ne suit pas l'outil courant.
+    void selectToolPassesClicksThrough()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("tool.pen")));
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        QQuickWindow* window = desktop->window();
+        QVERIFY(!desktop->passThrough());
+
+        QVERIFY(main.run(QStringLiteral("tool.select")));
+        QTRY_VERIFY(desktop->passThrough());
+        QVERIFY(window->flags().testFlag(Qt::WindowTransparentForInput));
+        QVERIFY(desktop->isAnnotating());
+
+        QVERIFY(main.run(QStringLiteral("tool.pen")));
+        QTRY_VERIFY(!desktop->passThrough());
+        QVERIFY(!window->flags().testFlag(Qt::WindowTransparentForInput));
+
+        // Le bouton de la fenêtre reste : le passage manuel tient avec le stylo.
+        QObject* button = window->findChild<QObject*>(QStringLiteral("desktopPassThroughButton"));
+        QVERIFY(button);
+        QVERIFY(QMetaObject::invokeMethod(button, "click"));
+        QVERIFY(desktop->passThrough());
+        QVERIFY(QMetaObject::invokeMethod(button, "click"));
+        QVERIFY(!desktop->passThrough());
+
+        QVERIFY(main.run(QStringLiteral("desktop.annotate"))); // fermée
+        QTRY_VERIFY(!desktop->isAnnotating());
+        QVERIFY(main.run(QStringLiteral("tool.select")));
+        QTest::qWait(50);
+        QVERIFY(!desktop->passThrough());
+    }
 };
 
 } // namespace
