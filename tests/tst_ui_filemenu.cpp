@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <tuple>
 #include <variant>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
@@ -693,6 +694,175 @@ private slots:
         QCOMPARE(fileBytes(path), before);
         QCOMPARE(doc->pageCount(), 2);
         QVERIFY(tabs->data(tabs->index(0), ui::DocumentTabs::ModifiedRole).toBool());
+    }
+
+    // L5-C19 (M12) : l'entrée du menu Affichage déclenche « view.tabs » sans argument, comme CommandEntry :
+    // la barre passe à la position suivante (haut, bas, masquée) ; une valeur inconnue ne change rien.
+    void tabsMenuEntryCyclesThePositionsAndRejectsUnknownValues()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        QCOMPARE(tabs->position(), QStringLiteral("top"));
+        QVERIFY(run(s, QStringLiteral("view.tabs"))); // le clic du menu : aucun argument
+        QCOMPARE(tabs->position(), QStringLiteral("bottom"));
+        QVERIFY(run(s, QStringLiteral("view.tabs")));
+        QCOMPARE(tabs->position(), QStringLiteral("hidden"));
+        QVERIFY(run(s, QStringLiteral("view.tabs")));
+        QCOMPARE(tabs->position(), QStringLiteral("top"));
+        run(s, QStringLiteral("view.tabs"), QStringLiteral("foo"));
+        QCOMPARE(tabs->position(), QStringLiteral("top"));
+        QVERIFY(run(s, QStringLiteral("view.tabs"), QStringLiteral("hidden")));
+        QCOMPARE(tabs->position(), QStringLiteral("hidden"));
+    }
+
+    // L5-C19 (M14) : « Modification du stylo » est cochable : la coche suit la barre.
+    void penModifiersMenuEntryIsCheckedWithItsBar()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands);
+        QVERIFY(!commands->isChecked(QStringLiteral("view.pen-modifiers")));
+        QVERIFY(run(s, QStringLiteral("view.pen-modifiers")));
+        QVERIFY(item(s, "penModifierBar")->isVisible());
+        QVERIFY(commands->isChecked(QStringLiteral("view.pen-modifiers")));
+        QVERIFY(run(s, QStringLiteral("view.pen-modifiers")));
+        QVERIFY(!commands->isChecked(QStringLiteral("view.pen-modifiers")));
+    }
+
+    // L5-C19 (M13) : Insertion > Image… et Média… sans argument ouvrent leur boîte de fichier ; le fichier
+    // choisi est inséré sur la page.
+    void insertImageAndMediaWithoutArgumentOpenTheirDialogsAndInsertTheChosenFile()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QTemporaryDir dir;
+        const QString png = dir.filePath(QStringLiteral("rouge.png"));
+        QImage image(200, 100, QImage::Format_RGB32);
+        image.fill(Qt::red);
+        QVERIFY(image.save(png, "PNG"));
+        const QString mp3 = dir.filePath(QStringLiteral("son.mp3"));
+        QFile media(mp3);
+        QVERIFY(media.open(QIODevice::WriteOnly));
+        media.write("ID3-pas-vraiment-du-son");
+        media.close();
+        for (const auto& [command, dialogName, path] :
+             {std::tuple{"insert.image", "insertImageDialog", png},
+              std::tuple{"insert.media", "insertMediaDialog", mp3}}) {
+            QObject* dialog = namedObject(s, dialogName);
+            QVERIFY2(dialog, dialogName);
+            QVERIFY(!dialog->property("visible").toBool());
+            QVERIFY(run(s, QString::fromLatin1(command)));
+            QTRY_VERIFY2(dialog->property("visible").toBool(), dialogName);
+            QVERIFY(QMetaObject::invokeMethod(dialog, "close"));
+            QTRY_VERIFY(!dialog->property("visible").toBool());
+            const std::size_t before = doc->document().page(0).objects.size();
+            dialog->setProperty("selectedFile", QUrl::fromLocalFile(path));
+            QVERIFY(QMetaObject::invokeMethod(dialog, "accepted"));
+            QTRY_COMPARE(doc->document().page(0).objects.size(), before + 1);
+        }
+    }
+
+    // L5-C19 (M17) : « Quitter » pendant l'ouverture d'un second onglet, avec un premier modifié : la bascule
+    // vers lui est refusée pendant la lecture ; la sortie attend la fin de la lecture, puis reprend (elle
+    // demande l'enregistrement de l'onglet modifié). Avant : rien ne se passait, sans message.
+    void quitDuringAnOpenWaitsForItThenAsksForTheModifiedTab()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("deux.actcraft"));
+        QVERIFY(writeTwoPages(path));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(doc->isModified());
+        QSignalSpy loaded(doc, &ui::DocumentController::loadFinished);
+        QObject* ask = namedObject(s, "saveChangesDialog");
+        QObject* actions = namedObject(s, "fileActions");
+        QVERIFY(ask && actions);
+        PoolHold pool;
+        QVERIFY(pool.held());
+        QVERIFY(run(s, QStringLiteral("file.open"), path)); // onglet neuf, lecture en cours
+        QCOMPARE(tabs->rowCount(), 2);
+        QVERIFY(doc->isBusy());
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        QTest::qWait(100);
+        QVERIFY(!ask->property("visible").toBool()); // pas de bascule pendant la lecture
+        QVERIFY(!actions->property("quitting").toBool());
+        pool.release();
+        QVERIFY(loaded.wait(20000));
+        QCOMPARE(loaded.first().at(0).toBool(), true);
+        QTRY_VERIFY_WITH_TIMEOUT(ask->property("visible").toBool(), 20000); // la sortie a repris
+        QCOMPARE(tabs->currentIndex(), 0);                                  // l'onglet modifié est montré
+        QVERIFY(!actions->property("quitting").toBool());
+        QVERIFY(QMetaObject::invokeMethod(ask, "cancel")); // « Annuler » : rien n'est perdu
+        QTRY_VERIFY(!ask->property("visible").toBool());
+        QVERIFY(!actions->property("quitting").toBool());
+        QCOMPARE(tabs->rowCount(), 2);
+    }
+
+    // L5-C19 (M20) : fermer un onglet modifié, « Enregistrer », écriture réussie : l'onglet se ferme.
+    void closingAModifiedTabThenSavingClosesIt()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QTemporaryDir root;
+        auto* doc = controller(s);
+        doc->setDocumentsRoot(root.path());
+        auto* tabs = tabsOf(s);
+        QObject* ask = namedObject(s, "tabSaveChangesDialog");
+        QVERIFY(tabs && ask);
+        const QString path = root.filePath(QStringLiteral("a.actcraft"));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(run(s, QStringLiteral("file.save-as"), path));
+        QTRY_VERIFY(!doc->isBusy() && !doc->isModified());
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        tabs->newTab(); // le document modifié, avec fichier, est garé dans l'onglet 0
+        QCOMPARE(tabs->rowCount(), 2);
+        tabs->requestClose(0);
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        QVERIFY(QMetaObject::invokeMethod(ask, "save"));
+        QVERIFY(saved.wait(10000));
+        QTRY_COMPARE(tabs->rowCount(), 1);
+    }
+
+    // L5-C19 (M20) : « Enregistrer » à la fermeture pendant une écriture, puis une modification pendant
+    // celle-ci : la première fin d'écriture laisse le document modifié, l'enregistrement attendu repart ; la
+    // fermeture attend sa fin à lui, quel que soit l'ordre de connexion des deux gestionnaires de fin.
+    void closeWaitsForTheRelaunchedSaveWhenEditedDuringAWrite()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QTemporaryDir root;
+        auto* doc = controller(s);
+        doc->setDocumentsRoot(root.path());
+        auto* tabs = tabsOf(s);
+        QObject* ask = namedObject(s, "tabSaveChangesDialog");
+        QVERIFY(tabs && ask);
+        const QString path = root.filePath(QStringLiteral("b.actcraft"));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(run(s, QStringLiteral("file.save-as"), path));
+        QTRY_VERIFY(!doc->isBusy() && !doc->isModified());
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        tabs->newTab();
+        tabs->requestClose(0);
+        QTRY_VERIFY(ask->property("visible").toBool());
+        QSignalSpy saved(doc, &ui::DocumentController::saveFinished);
+        PoolHold pool;
+        QVERIFY(pool.held());
+        QVERIFY(run(s, QStringLiteral("file.save"))); // une écriture est en cours
+        QVERIFY(doc->isBusy());
+        QVERIFY(QMetaObject::invokeMethod(ask, "save"));      // « Enregistrer » : attend la fin de l'écriture
+        QVERIFY(run(s, QStringLiteral("page.insert-after"))); // modification pendant l'écriture
+        pool.release();
+        QTRY_COMPARE_WITH_TIMEOUT(saved.count(), 2, 20000); // l'écriture, puis celle qui était attendue
+        QTRY_COMPARE_WITH_TIMEOUT(tabs->rowCount(), 1, 20000);
     }
 
     void newSizesComeFromTheirCommands()

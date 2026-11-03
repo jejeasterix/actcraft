@@ -26,6 +26,15 @@ Item {
     // (« Quitter » après « Enregistrer les modifications ? ») reprend (L2-C9). Jamais refusé en silence ; abandonné
     // si une ouverture réussie a remplacé le document visé.
     property bool saveWaiting: false
+    // « Quitter » demandé pendant une lecture ou une écriture : reprend à cet onglet quand elle finit (-1 : rien).
+    property int quitResume: -1
+
+    function resumeQuit() {
+        const from = actions.quitResume
+        if (from < 0) return
+        actions.quitResume = -1
+        actions.quitFrom(from)
+    }
 
     function guard(action) {
         if (actions.textEditing) actions.textEditing.commit()
@@ -98,7 +107,11 @@ Item {
         for (let i = from; i < actions.tabs.count; ++i) {
             if (!actions.tabs.isModifiedAt(i)) continue
             if (i !== actions.tabs.currentIndex) actions.tabs.activate(i)
-            if (i !== actions.tabs.currentIndex) return // lecture ou écriture en cours : rien ne bouge
+            if (i !== actions.tabs.currentIndex) {
+                // Lecture ou écriture en cours : la bascule est refusée ; la sortie reprend à sa fin.
+                actions.quitResume = from
+                return
+            }
             actions.pending = function () { actions.quitFrom(i + 1) }
             saveChanges.documentTitle = actions.document.title
             saveChanges.open()
@@ -145,6 +158,10 @@ Item {
     Connections {
         target: actions.document
         function onSaveFinished(ok, message) {
+            if (actions.quitResume >= 0 && !actions.saveWaiting && !actions.afterSave) {
+                actions.resumeQuit()
+                return
+            }
             // L'enregistrement en attente part d'abord, l'action qui le suit attend sa fin à lui ; sauf si
             // l'écriture finie a déjà mis l'écran dans le fichier (document propre) : l'action reprend aussitôt.
             if (actions.saveWaiting) {
@@ -156,8 +173,10 @@ Item {
             if (ok && a) a()
         }
         function onLoadFinished(ok, message) {
-            if (!actions.saveWaiting)
+            if (!actions.saveWaiting) {
+                actions.resumeQuit()
                 return
+            }
             actions.saveWaiting = false
             // Lecture ratée : le document est le même, l'enregistrement demandé part. Lecture réussie : il
             // visait le document remplacé, il est abandonné (jamais relancé sur le document ouvert) ; l'action
