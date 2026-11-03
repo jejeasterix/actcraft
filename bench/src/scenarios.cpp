@@ -631,6 +631,7 @@ ScenarioPlan exportBackgroundReferenceScenario(ScenarioSet scenarioSet)
     ScenarioPlan plan = exportBackgroundScenario(scenarioSet);
     plan.name = QStringLiteral("export-fond-reference");
     plan.exportsInBackground = false;
+    plan.spinsInBackground = true; // L5-C14 : charge témoin, voir ScenarioPlan::spinsInBackground
     return plan;
 }
 

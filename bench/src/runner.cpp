@@ -33,6 +33,7 @@
 #include <QVariant>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <functional>
 #include <iterator>
@@ -40,6 +41,7 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -233,6 +235,39 @@ private:
     int m_done = 0;
     int m_failed = 0;
     double m_maxMs = 0;
+};
+
+// L5-C14 : charge témoin de la référence « export-fond-reference » : un fil qui calcule sans fin (aucune
+// écriture, aucun partage avec l'interface), arrêté et joint à la destruction. Il garde un cœur actif comme
+// l'export, sans en avoir le coût.
+class SpinningLoad
+{
+public:
+    SpinningLoad() : m_thread([this] {
+        std::uint64_t x = 88172645463325252ULL;
+        while (!m_stop.load(std::memory_order_relaxed)) {
+            for (int i = 0; i < 100'000; ++i) {
+                x ^= x << 13;
+                x ^= x >> 7;
+                x ^= x << 17;
+            }
+            m_sink.store(x, std::memory_order_relaxed); // le calcul n'est pas supprimé
+        }
+    })
+    {
+    }
+    ~SpinningLoad()
+    {
+        m_stop.store(true, std::memory_order_relaxed);
+        m_thread.join();
+    }
+    SpinningLoad(const SpinningLoad&) = delete;
+    SpinningLoad& operator=(const SpinningLoad&) = delete;
+
+private:
+    std::atomic<bool> m_stop{false};
+    std::atomic<std::uint64_t> m_sink{0};
+    std::thread m_thread; // déclaré en dernier : les atomiques existent avant son départ
 };
 
 // Joue le geste `command` et relève les redessins du cache terminés (PageView::cacheRefreshCount) de sa
@@ -555,6 +590,11 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
             exports.reset();
         }
     }
+    // L5-C14 : charge témoin de la référence, vivante jusqu'à la fin de la mesure (m_recorder->end()).
+    std::unique_ptr<SpinningLoad> spin;
+    if (plan.spinsInBackground) {
+        spin = std::make_unique<SpinningLoad>();
+    }
     const auto runDueCommands = [&] {
         while (nextCommand < commands.size() && commandPlanned[nextCommand] <= core::monotonicNowNs()) {
             const PlannedInput& in = commands[nextCommand];
@@ -699,6 +739,7 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     }
     waitMs(150); // dernières images : figement, redessin du cache
     m_recorder->end();
+    spin.reset();
     if (exports) {
         const bool finished = exports->finish([this](const std::function<bool()>& condition,
                                                      int timeoutMs) { return waitFor(condition, timeoutMs); },
