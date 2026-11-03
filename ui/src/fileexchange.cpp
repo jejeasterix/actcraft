@@ -43,7 +43,8 @@ template <typename Result, typename Done> void watch(QObject* owner, QFuture<Res
     watcher->setFuture(future);
 }
 
-// Installe un document importé dans un onglet neuf. Faux si le modèle refuse de basculer (opération en cours).
+// Installe un document importé dans un onglet neuf. Faux si le modèle refuse de basculer (opération en
+// cours).
 bool installInNewTab(DocumentTabs* tabs, DocumentController* document, core::Document&& imported,
                      const QString& title)
 {
