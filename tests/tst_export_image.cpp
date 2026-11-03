@@ -74,7 +74,8 @@ private slots:
         {
             const char* file;
             const char* format;
-        } cases[] = {{"a.jpg", "jpeg"}, {"a.jpeg", "jpeg"}, {"a.bmp", "bmp"}, {"a.tif", "tiff"}, {"a.tiff", "tiff"}};
+        } cases[] = {
+            {"a.jpg", "jpeg"}, {"a.jpeg", "jpeg"}, {"a.bmp", "bmp"}, {"a.tif", "tiff"}, {"a.tiff", "tiff"}};
         for (const auto& c : cases) {
             QTemporaryDir dir;
             const QUrl url = QUrl::fromLocalFile(dir.filePath(c.file));
@@ -169,7 +170,7 @@ private slots:
                 black += (c.red() < 80 && c.green() < 80 && c.blue() < 80) ? 1 : 0;
             }
         }
-        QCOMPARE(red, 0);   // le fichier cité n'a pas été lu
+        QCOMPARE(red, 0);    // le fichier cité n'a pas été lu
         QVERIFY(black > 20); // mais le texte est bien peint
     }
 };

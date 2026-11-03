@@ -67,7 +67,9 @@ private slots:
 
     void countCountsPageDictionariesOnly()
     {
-        QCOMPARE(exporting::countPdfPages("<< /Type /Pages /Kids [1 0 R] >> << /Type /Page >> << /Type/Page >>"), 2);
+        QCOMPARE(
+            exporting::countPdfPages("<< /Type /Pages /Kids [1 0 R] >> << /Type /Page >> << /Type/Page >>"),
+            2);
         QCOMPARE(exporting::countPdfPages(QByteArray()), 0);
     }
 
@@ -82,7 +84,8 @@ private slots:
     {
         QTemporaryDir dir;
         const QByteArray pdf = exportedBytes(core::Document(1024, 768), dir.filePath("s.pdf"));
-        const QRegularExpression box(QStringLiteral("/MediaBox\\s*\\[\\s*0\\s+0\\s+([0-9.]+)\\s+([0-9.]+)\\s*\\]"));
+        const QRegularExpression box(
+            QStringLiteral("/MediaBox\\s*\\[\\s*0\\s+0\\s+([0-9.]+)\\s+([0-9.]+)\\s*\\]"));
         const auto match = box.match(QString::fromLatin1(pdf));
         QVERIFY2(match.hasMatch(), "MediaBox absente");
         QVERIFY2(qAbs(match.captured(1).toDouble() - 768.0) < 0.5, qPrintable(match.captured(1)));
@@ -97,7 +100,8 @@ private slots:
         document.page(1).height = 800;
         QTemporaryDir dir;
         const QByteArray pdf = exportedBytes(document, dir.filePath("s.pdf"));
-        const QRegularExpression box(QStringLiteral("/MediaBox\\s*\\[\\s*0\\s+0\\s+([0-9.]+)\\s+([0-9.]+)\\s*\\]"));
+        const QRegularExpression box(
+            QStringLiteral("/MediaBox\\s*\\[\\s*0\\s+0\\s+([0-9.]+)\\s+([0-9.]+)\\s*\\]"));
         auto it = box.globalMatch(QString::fromLatin1(pdf));
         QVERIFY(it.hasNext());
         it.next();
