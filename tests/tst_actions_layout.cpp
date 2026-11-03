@@ -29,7 +29,8 @@ bool writeFile(const QString& path, const QByteArray& data)
     return file.open(QIODevice::WriteOnly) && file.write(data) == data.size();
 }
 
-// Les 53 commandes du lot 5 (L5-T1), dans l'ordre de commands.json ; la liste de L5-T2 est la même.
+// Les 54 commandes du lot 5 (53 de L5-T1, plus connector.caps de L5-C18), dans l'ordre de commands.json ; la
+// liste de L5-T2 est la même.
 const QStringList kLot5{"edit.cut",
                         "edit.copy",
                         "edit.paste",
@@ -71,6 +72,7 @@ const QStringList kLot5{"edit.cut",
                         "tool.fill",
                         "tool.connector",
                         "connector.style",
+                        "connector.caps", // L5-C18 : extrémités du connecteur
                         "view.pen-modifiers",
                         "pen.shape",
                         "insert.image",
@@ -388,7 +390,7 @@ private slots:
 
     void lot5EntriesDeclared()
     {
-        QCOMPARE(kLot5.size(), 53);
+        QCOMPARE(kLot5.size(), 54);
         const CommandRegistry registry = registryFromResources();
         QSet<QString> shortcuts;
         for (const QString& id : registry.ids()) {
