@@ -253,6 +253,13 @@ Item {
             }
         }
     }
+    // Outils de l'utilisateur (lot 3), pas ceux de desktopArea : Sélectionner fait passer les clics (F-070).
+    Connections {
+        target: root.tools
+        function onCurrentToolChanged() {
+            desktopController.followTool(root.tools.currentTool)
+        }
+    }
     onCommandsChanged: registerCommands()
 
     Component.onCompleted: registerCommands()

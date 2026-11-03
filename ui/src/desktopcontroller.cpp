@@ -258,6 +258,13 @@ void DesktopController::setPassThrough(bool passThrough)
     emit passThroughChanged();
 }
 
+void DesktopController::followTool(const QString& toolId)
+{
+    if (m_annotating) {
+        setPassThrough(toolId == QStringLiteral("select"));
+    }
+}
+
 DocumentController* DesktopController::desktopDocument() const noexcept
 {
     return m_desktop;
