@@ -42,6 +42,7 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <span>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -242,6 +243,18 @@ private:
 // fenêtre : ouverte quand plus rien n'attend au-dessus du cache et que le cache est prêt, fermée à la
 // stabilité (cache prêt, rien en attente, aucun redessin pendant kCacheFoldIdleMs + 300 ms). Faux si le geste
 // n'a rien changé au document (un geste sans effet mesurerait 0 pour de fausses raisons).
+// Rang des gestes dans editionGestures() (scenarios.h ; le quatrième, « front », est le cas par défaut) et
+// résultat qui leur répond.
+constexpr int kPasteGesture = 0;
+constexpr int kGroupGesture = 1;
+constexpr int kAlignGesture = 2;
+constexpr int EditionRefreshes::* kGestureSlots[] = {&EditionRefreshes::paste, &EditionRefreshes::group,
+                                                     &EditionRefreshes::align, &EditionRefreshes::front};
+// Annotations alignées (rangs dans la page d'« edition ») et nombre minimal d'annotations qui les contient.
+constexpr std::size_t kAlignPicks[] = {25, 50, 75, 100, 125};
+constexpr std::size_t kMinAnnotations = 130;
+static_assert(kAlignPicks[std::size(kAlignPicks) - 1] < kMinAnnotations);
+
 bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes& out)
 {
     const core::Page& page =
@@ -252,23 +265,26 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
             annotations.push_back(object.common.id);
         }
     }
-    if (annotations.size() < 130) {
+    if (annotations.size() < kMinAnnotations) {
         return false;
     }
-    const auto pick = [&annotations](std::initializer_list<std::size_t> indexes) {
+    const auto pick = [&annotations](std::span<const std::size_t> indexes) {
         std::vector<core::ObjectId> ids;
         for (const std::size_t i : indexes) {
             ids.push_back(annotations[i]);
         }
         return ids;
     };
-    const bool paste = command == QLatin1String("edition.paste");
-    const bool group = command == QLatin1String("edition.group");
-    const bool align = command == QLatin1String("edition.align");
-    const bool front = command == QLatin1String("edition.front");
-    if (!paste && !group && !align && !front) {
+    int gesture = -1;
+    for (std::size_t i = 0; i < kEditionGestureCount; ++i) {
+        if (command == QLatin1String(editionGestures()[i])) {
+            gesture = static_cast<int>(i);
+        }
+    }
+    if (gesture < 0) {
         return false;
     }
+    const bool paste = gesture == kPasteGesture;
     // Préparation, hors fenêtre : la sélection ne redessine pas le cache.
     std::vector<core::ObjectId> before = pageIds(page);
     if (paste) {
@@ -278,15 +294,16 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
         }
         g.tools->selectObjects(ids);
         g.editing->copy();
-    } else if (group) {
+    } else if (gesture == kGroupGesture) {
         if (g.pasted.empty()) {
             return false;
         }
         g.tools->selectObjects(g.pasted);
-    } else if (align) {
-        g.tools->selectObjects(pick({25, 50, 75, 100, 125}));
+    } else if (gesture == kAlignGesture) {
+        g.tools->selectObjects(pick(kAlignPicks));
     } else {
-        g.tools->selectObjects(pick({0}));
+        constexpr std::size_t kFirst[] = {0};
+        g.tools->selectObjects(pick(kFirst));
     }
     const auto quiet = [&g] { return g.fixed->pendingCount() == 0 && g.view->cacheReady(); };
     if (!waitUntil(quiet, 15000)) {
@@ -299,14 +316,19 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
     const auto updated = QObject::connect(g.view, &ui::PageView::cacheUpdated, g.view,
                                           [&lastNs] { lastNs = core::monotonicNowNs(); });
     const int refreshesBefore = g.view->cacheRefreshCount();
-    if (paste) {
+    switch (gesture) {
+    case kPasteGesture:
         g.editing->paste();
-    } else if (group) {
+        break;
+    case kGroupGesture:
         g.editing->toggleGroup();
-    } else if (align) {
+        break;
+    case kAlignGesture:
         g.editing->align(QStringLiteral("left"));
-    } else {
+        break;
+    default:
         g.editing->arrange(QStringLiteral("front"));
+        break;
     }
     runWindowCommand(g.window, QStringLiteral("tool.pen")); // les traits suivants sont écrits au stylo
     const std::int64_t idleNs = std::int64_t{ui::kCacheFoldIdleMs + 300} * 1'000'000;
@@ -331,14 +353,8 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
         if (g.pasted.size() != static_cast<std::size_t>(kEditionPasted)) {
             return false;
         }
-        out.paste = refreshes;
-    } else if (group) {
-        out.group = refreshes;
-    } else if (align) {
-        out.align = refreshes;
-    } else {
-        out.front = refreshes;
     }
+    out.*kGestureSlots[gesture] = refreshes;
     return true;
 }
 
@@ -1164,10 +1180,11 @@ BenchResult Runner::run(QQuickWindow* window)
             result.scenarios.back().tabs = tabsSetup;
         }
         if (result.scenarios.back().exportBackground) { // références du même passage
-            const auto baseline =
-                std::find_if(result.scenarios.begin(), result.scenarios.end(), [](const ScenarioResult& r) {
-                    return r.name == QLatin1String("export-fond-reference");
-                });
+            const auto findScenario = [&result](const QString& name) {
+                return std::find_if(result.scenarios.begin(), result.scenarios.end(),
+                                    [&name](const ScenarioResult& r) { return r.name == name; });
+            };
+            const auto baseline = findScenario(QStringLiteral("export-fond-reference"));
             ExportBackgroundStats& ex = *result.scenarios.back().exportBackground;
             if (baseline == result.scenarios.end() || !baseline->latency) {
                 result.invalidReasons << QStringLiteral("error: no baseline reference for %1").arg(plan.name);
@@ -1176,15 +1193,12 @@ BenchResult Runner::run(QQuickWindow* window)
                 ex.baselineFreezes = static_cast<int>(baseline->intervals.freezeOverLimit);
                 ex.baselineControlLoadIterations = baseline->controlLoadIterations;
             }
-            const auto stroke =
-                std::find_if(result.scenarios.begin(), result.scenarios.end(),
-                             [](const ScenarioResult& r) { return r.name == QLatin1String("stroke"); });
-            ExportBackgroundStats& e = *result.scenarios.back().exportBackground;
+            const auto stroke = findScenario(QStringLiteral("stroke"));
             if (stroke == result.scenarios.end() || !stroke->latency) {
                 result.invalidReasons << QStringLiteral("error: no stroke reference for %1").arg(plan.name);
             } else {
-                e.strokeInkP95Ms = stroke->latency->total.p95;
-                e.strokeFreezes = static_cast<int>(stroke->intervals.freezeOverLimit);
+                ex.strokeInkP95Ms = stroke->latency->total.p95;
+                ex.strokeFreezes = static_cast<int>(stroke->intervals.freezeOverLimit);
             }
         }
         if (plan.tabCount > 0 || plan.fixtureDocument) { // le banc retrouve un onglet et la page générée

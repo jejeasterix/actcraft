@@ -2,10 +2,12 @@
 #include <actcraft/core/clipboardedits.h>
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
+#include <actcraft/core/hittest.h>
 #include <actcraft/core/replace.h>
 
 #include <algorithm>
 #include <numeric>
+#include <optional>
 #include <set>
 #include <unordered_map>
 #include <utility>
@@ -132,25 +134,16 @@ std::vector<PageObject> preparePaste(std::vector<PageObject> objects, double dx,
 std::vector<PageObject> pasteOnto(std::vector<PageObject> objects, const PageObject& target,
                                   const RectF& targetBounds)
 {
-    bool any = false;
-    double left = 0;
-    double top = 0;
-    double right = 0;
-    double bottom = 0;
+    std::optional<RectF> united;
     for (const PageObject& object : objects) {
-        if (!hasExtent(object)) {
-            continue;
+        if (hasExtent(object)) {
+            const RectF r = boundsOnPage(object);
+            united = united ? enclosingRect(*united, r) : r;
         }
-        const RectF r = boundsOnPage(object);
-        left = any ? std::min(left, r.x) : r.x;
-        top = any ? std::min(top, r.y) : r.y;
-        right = any ? std::max(right, r.x + r.width) : r.x + r.width;
-        bottom = any ? std::max(bottom, r.y + r.height) : r.y + r.height;
-        any = true;
     }
     const PointF to = targetBounds.center();
-    const double dx = any ? to.x - (left + right) / 2 : 0;
-    const double dy = any ? to.y - (top + bottom) / 2 : 0;
+    const double dx = united ? to.x - united->center().x : 0;
+    const double dy = united ? to.y - united->center().y : 0;
     std::vector<PageObject> out = preparePaste(std::move(objects), dx, dy);
     for (PageObject& object : out) {
         object.common.layer = target.common.layer;

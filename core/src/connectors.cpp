@@ -1,6 +1,7 @@
 #include <actcraft/core/connectors.h>
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
+#include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
 
 #include <algorithm>
@@ -63,31 +64,6 @@ std::size_t nearestIndex(const std::vector<PointF>& points, PointF p) noexcept
         }
     }
     return best;
-}
-
-std::optional<Transform> inverted(const Transform& t) noexcept
-{
-    const double det = t.m11 * t.m22 - t.m12 * t.m21;
-    if (det == 0 || !std::isfinite(det)) {
-        return std::nullopt;
-    }
-    Transform r;
-    r.m11 = t.m22 / det;
-    r.m12 = -t.m12 / det;
-    r.m21 = -t.m21 / det;
-    r.m22 = t.m11 / det;
-    r.dx = -(r.m11 * t.dx + r.m21 * t.dy);
-    r.dy = -(r.m12 * t.dx + r.m22 * t.dy);
-    return r;
-}
-
-RectF unite(const RectF& a, const RectF& b) noexcept
-{
-    const double left = std::min(a.x, b.x);
-    const double top = std::min(a.y, b.y);
-    const double right = std::max(a.x + a.width, b.x + b.width);
-    const double bottom = std::max(a.y + a.height, b.y + b.height);
-    return {left, top, right - left, bottom - top};
 }
 
 bool samePoint(PointF a, PointF b) noexcept
@@ -295,7 +271,7 @@ void FollowingConnectorsCommand::redo(Document& document, Changes& changes)
             continue;
         }
         changes.push_back({Change::Kind::ObjectChanged, m_page, link.connector,
-                           unite(boundsOnPage(before), boundsOnPage(object))});
+                           enclosingRect(boundsOnPage(before), boundsOnPage(object))});
         m_connectorsBefore.push_back(std::move(before));
     }
 }
@@ -314,7 +290,7 @@ void FollowingConnectorsCommand::undo(Document& document, Changes& changes)
             if (i == kAbsent) {
                 continue;
             }
-            const RectF area = unite(boundsOnPage(page.objects[i]), boundsOnPage(*it));
+            const RectF area = enclosingRect(boundsOnPage(page.objects[i]), boundsOnPage(*it));
             page.objects[i] = *it;
             changes.push_back({Change::Kind::ObjectChanged, m_page, it->common.id, area});
         }

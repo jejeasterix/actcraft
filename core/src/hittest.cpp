@@ -106,6 +106,15 @@ RectF unitedRect(const RectF& a, const RectF& b) noexcept
     return {x0, y0, x1 - x0, y1 - y0};
 }
 
+RectF enclosingRect(const RectF& a, const RectF& b) noexcept
+{
+    const double x0 = std::min(a.x, b.x);
+    const double y0 = std::min(a.y, b.y);
+    const double x1 = std::max(a.x + a.width, b.x + b.width);
+    const double y1 = std::max(a.y + a.height, b.y + b.height);
+    return {x0, y0, x1 - x0, y1 - y0};
+}
+
 bool rectsTouch(const RectF& a, const RectF& b) noexcept
 {
     return a.x <= b.x + b.width && b.x <= a.x + a.width && a.y <= b.y + b.height && b.y <= a.y + a.height;

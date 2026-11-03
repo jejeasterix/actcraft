@@ -1,3 +1,5 @@
+#include "asyncrun.h"
+
 #include <actcraft/export/pdfexport.h>
 #include <actcraft/formats/urlio.h>
 #include <actcraft/render/pagepainter.h>
@@ -16,19 +18,11 @@ namespace actcraft::exporting {
 
 namespace detail {
 void noteRenderThread(); // pageexport.cpp
-QFuture<ExportResult> runAsync(std::function<ExportResult()> work);
 } // namespace detail
 
 namespace {
 
 constexpr double kPointsPerPixel = 72.0 / 96.0;
-
-ExportResult failure(const QString& error)
-{
-    ExportResult result;
-    result.error = error;
-    return result;
-}
 
 QPageSize pageSizeOf(const core::Page& page)
 {
@@ -44,7 +38,7 @@ ExportResult writePdf(const core::Document& document, const QUrl& url, std::vect
     }
     for (const std::size_t index : pages) {
         if (index >= document.pageCount()) {
-            return failure(QStringLiteral("Cette page n'existe pas."));
+            return detail::failure<ExportResult>(QStringLiteral("Cette page n'existe pas."));
         }
     }
     detail::noteRenderThread();
@@ -62,7 +56,7 @@ ExportResult writePdf(const core::Document& document, const QUrl& url, std::vect
         writer.setPageSize(pageSizeOf(document.page(pages.front())));
         QPainter painter;
         if (!painter.begin(&writer)) {
-            return failure(QStringLiteral("Le PDF n'a pas pu être préparé."));
+            return detail::failure<ExportResult>(QStringLiteral("Le PDF n'a pas pu être préparé."));
         }
         for (std::size_t n = 0; n < pages.size(); ++n) {
             const core::Page& page = document.page(pages[n]);
@@ -80,7 +74,7 @@ ExportResult writePdf(const core::Document& document, const QUrl& url, std::vect
     }
     QString error;
     if (!formats::writeUrl(url, bytes, &error)) {
-        return failure(error);
+        return detail::failure<ExportResult>(error);
     }
     ExportResult result;
     result.ok = true;

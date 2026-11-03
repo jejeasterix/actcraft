@@ -27,6 +27,8 @@ std::optional<ObjectId> objectAt(const Page& page, PointF point, double toleranc
 std::vector<ObjectId> objectsTouching(const Page& page, const RectF& rect);
 RectF normalizedRect(PointF a, PointF b) noexcept;
 RectF unitedRect(const RectF& a, const RectF& b) noexcept; // un rectangle 0 × 0 est neutre
+// Plus petit rectangle contenant a et b, sans élément neutre (contrairement à unitedRect).
+RectF enclosingRect(const RectF& a, const RectF& b) noexcept;
 bool rectsTouch(const RectF& a, const RectF& b) noexcept;
 
 } // namespace actcraft::core

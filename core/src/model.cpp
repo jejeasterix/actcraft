@@ -295,6 +295,22 @@ void hashBody(Fnv1a& h, const PageObject& object) noexcept
 
 } // namespace
 
+std::optional<Transform> inverted(const Transform& t) noexcept
+{
+    const double det = t.m11 * t.m22 - t.m12 * t.m21;
+    if (det == 0 || !std::isfinite(det)) {
+        return std::nullopt;
+    }
+    Transform r;
+    r.m11 = t.m22 / det;
+    r.m12 = -t.m12 / det;
+    r.m21 = -t.m21 / det;
+    r.m22 = t.m11 / det;
+    r.dx = -(r.m11 * t.dx + r.m21 * t.dy);
+    r.dy = -(r.m12 * t.dx + r.m22 * t.dy);
+    return r;
+}
+
 Transform compose(const Transform& a, const Transform& b) noexcept
 {
     Transform t;

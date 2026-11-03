@@ -138,10 +138,41 @@ bool FileExchange::powerpointAvailable() const
 // (editAboutToApply) et ce qui est soulevé est déposé sans étape d'annulation avant de capturer le document.
 void FileExchange::settleEditing()
 {
+    if (!m_document) {
+        return;
+    }
     emit m_document->editAboutToApply();
     if (m_document->isLifting()) {
         m_document->dropLifted(nullptr);
     }
+}
+
+void FileExchange::finishExport(const exporting::ExportResult& result, const QUrl& target,
+                                const QString& okFormat, const QString& failFormat)
+{
+    setBusy(false);
+    if (result.ok) {
+        emit finished(okFormat.arg(fileName(target)));
+    } else {
+        fail(failFormat.arg(result.error));
+    }
+}
+
+void FileExchange::finishImport(exporting::ImportResult result, const QUrl& source, const QString& failFormat,
+                                const QString& busyMessage, const QString& doneFormat)
+{
+    setBusy(false);
+    if (!result.ok) {
+        fail(failFormat.arg(result.error));
+        return;
+    }
+    const QString title =
+        QFileInfo(source.isLocalFile() ? source.toLocalFile() : source.path()).completeBaseName();
+    if (!installInNewTab(m_tabs, m_document, std::move(result.document), title)) {
+        fail(busyMessage);
+        return;
+    }
+    emit finished(doneFormat.arg(fileName(source)));
 }
 
 // La copie du document est prise ici, sur le fil principal ; le rendu et l'écriture tournent sur un fil
@@ -155,12 +186,7 @@ void FileExchange::exportPdf(const QUrl& url)
     settleEditing();
     watch(this, exporting::exportPdf(m_document->document(), target),
           [this, target](exporting::ExportResult r) {
-              setBusy(false);
-              if (r.ok) {
-                  emit finished(tr("PDF enregistré : %1").arg(fileName(target)));
-              } else {
-                  fail(tr("Export PDF impossible : %1").arg(r.error));
-              }
+              finishExport(r, target, tr("PDF enregistré : %1"), tr("Export PDF impossible : %1"));
           });
 }
 
@@ -174,12 +200,7 @@ void FileExchange::exportPageImage(const QUrl& url)
     settleEditing();
     watch(this, exporting::exportPageImage(m_document->document(), page, target),
           [this, target](exporting::ExportResult r) {
-              setBusy(false);
-              if (r.ok) {
-                  emit finished(tr("Image enregistrée : %1").arg(fileName(target)));
-              } else {
-                  fail(tr("Export de la page impossible : %1").arg(r.error));
-              }
+              finishExport(r, target, tr("Image enregistrée : %1"), tr("Export de la page impossible : %1"));
           });
 }
 
@@ -200,18 +221,9 @@ void FileExchange::importPdf(const QUrl& url)
     }
     const QUrl source = localized(url);
     watch(this, exporting::importPdf(source), [this, source](exporting::ImportResult r) {
-        setBusy(false);
-        if (!r.ok) {
-            fail(tr("Import PDF impossible : %1").arg(r.error));
-            return;
-        }
-        const QString title =
-            QFileInfo(source.isLocalFile() ? source.toLocalFile() : source.path()).completeBaseName();
-        if (!installInNewTab(m_tabs, m_document, std::move(r.document), title)) {
-            fail(tr("Import PDF impossible : un autre fichier est en cours de lecture."));
-            return;
-        }
-        emit finished(tr("PDF importé : %1").arg(fileName(source)));
+        finishImport(std::move(r), source, tr("Import PDF impossible : %1"),
+                     tr("Import PDF impossible : un autre fichier est en cours de lecture."),
+                     tr("PDF importé : %1"));
     });
 }
 
@@ -252,18 +264,10 @@ void FileExchange::importPowerpointImages(const QUrl& url)
         watch(this, exporting::importPdf(QUrl::fromLocalFile(c.pdfPath)),
               [this, source, folder](exporting::ImportResult r) {
                   QDir(folder).removeRecursively();
-                  setBusy(false);
-                  if (!r.ok) {
-                      fail(tr("Import de la présentation impossible : %1").arg(r.error));
-                      return;
-                  }
-                  if (!installInNewTab(m_tabs, m_document, std::move(r.document),
-                                       QFileInfo(source.toLocalFile()).completeBaseName())) {
-                      fail(tr("Import de la présentation impossible : un autre fichier est en cours de "
-                              "lecture."));
-                      return;
-                  }
-                  emit finished(tr("Présentation importée : %1").arg(fileName(source)));
+                  finishImport(std::move(r), source, tr("Import de la présentation impossible : %1"),
+                               tr("Import de la présentation impossible : un autre fichier est en cours de "
+                                  "lecture."),
+                               tr("Présentation importée : %1"));
               });
     });
 }
