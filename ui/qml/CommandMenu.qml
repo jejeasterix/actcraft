@@ -34,11 +34,14 @@ Menu {
         id: entries
     }
     function syncEntries() {
-        entries.clear()
         const items = menu.spec.items || []
-        for (let i = 0; i < items.length; ++i) {
-            entries.append({ kind: items[i].submenu === true ? "submenu" : "item", payload: JSON.stringify(items[i]) })
-        }
+        const rows = items.map(it => ({ kind: it.submenu === true ? "submenu" : "item", payload: JSON.stringify(it) }))
+        // Même contenu (layoutChanged émis pour une autre commande) : rien à recréer.
+        if (rows.length === entries.count && rows.every((row, i) => entries.get(i).payload === row.payload))
+            return
+        entries.clear()
+        for (const row of rows)
+            entries.append(row)
     }
     onSpecChanged: syncEntries()
     Component.onCompleted: syncEntries()
