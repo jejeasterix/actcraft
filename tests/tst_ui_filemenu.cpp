@@ -341,7 +341,8 @@ private slots:
         QVERIFY(loaded.wait(10000));
         QCOMPARE(tabs->rowCount(), 2);
         QCOMPARE(tabs->currentIndex(), 1);
-        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(run(s, QStringLiteral("page.insert-after")));
+        QVERIFY(doc->isModified());
         QVERIFY(run(s, QStringLiteral("file.open"), path)); // modifié : un onglet, sans demande
         QVERIFY(loaded.wait(10000));
         QVERIFY(!dialogVisible(s, "saveChangesDialog"));
