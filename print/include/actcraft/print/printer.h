@@ -5,6 +5,8 @@
 #include <QString>
 #include <QStringList>
 
+#include <cstddef>
+
 namespace actcraft::print {
 
 bool printingAvailable(); // construit avec ACTCRAFT_PRINT
@@ -13,6 +15,9 @@ QString defaultPrinterName();
 QImage renderSheet(const core::Document& document, const core::Sheet& sheet,
                    const core::PrintSettings& settings, core::SizeF sheetMm,
                    int dpi); // gris si settings.gray
+// Couture de test : nombre d'images que le dernier renderSheet de ce fil a décodées (aucune pour une feuille
+// de notes).
+std::size_t lastSheetDecodedImageCount();
 struct PrintJob
 {
     QString printer;

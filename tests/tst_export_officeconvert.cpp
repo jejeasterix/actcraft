@@ -105,6 +105,72 @@ private slots:
         QVERIFY(found->scriptResource.isEmpty());
     }
 
+#ifndef Q_OS_WIN
+    // M10 : LibreOffice part avec un profil temporaire propre à la conversion (sinon, avec LibreOffice déjà
+    // ouvert, la conversion est confiée à l'instance ouverte et ne produit rien). `soffice` factice sur PATH.
+    void libreOfficeGetsItsOwnProfile()
+    {
+        EnvGuard guard;
+        QTemporaryDir bin;
+        QTemporaryDir work;
+        const QString dump = work.filePath("dump.txt");
+        QFile script(bin.filePath("soffice"));
+        QVERIFY(script.open(QIODevice::WriteOnly));
+        script.write("#!/bin/sh\n"
+                     "out=\"\"; prof=\"\"; prev=\"\"\n"
+                     "for a in \"$@\"; do\n"
+                     "  [ \"$prev\" = \"--outdir\" ] && out=\"$a\"\n"
+                     "  case \"$a\" in -env:UserInstallation=file://*) "
+                     "prof=\"${a#-env:UserInstallation=file://}\";; esac\n"
+                     "  prev=\"$a\"\n"
+                     "done\n"
+                     "printf '%s\\n' \"$@\" > \"$ACTCRAFT_FAKE_DUMP\"\n"
+                     "[ -n \"$prof\" ] && mkdir -p \"$prof\" && echo x > \"$prof/registry\" && "
+                     "echo \"$prof\" > \"$ACTCRAFT_FAKE_DUMP.profil\"\n"
+                     "echo x > \"$out/cours.pdf\"\n");
+        script.close();
+        QVERIFY(script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray oldPath = qgetenv("PATH");
+        struct PathGuard
+        {
+            QByteArray old;
+            ~PathGuard() { qputenv("PATH", old); }
+        } pathGuard{oldPath};
+        qputenv("PATH", (bin.path().toLocal8Bit() + ":" + oldPath));
+        qputenv("ACTCRAFT_FAKE_DUMP", dump.toLocal8Bit());
+        qunsetenv("ACTCRAFT_OFFICE_CONVERTER");
+        qunsetenv("ACTCRAFT_POWERSHELL");
+        const auto found = exporting::findConverter();
+        QVERIFY(found.has_value());
+        QCOMPARE(found->name, QStringLiteral("LibreOffice"));
+        QStringList profileArguments;
+        for (const QString& argument : found->arguments)
+            if (argument.startsWith(QStringLiteral("-env:UserInstallation=")))
+                profileArguments << argument;
+        QCOMPARE(profileArguments.size(), 1);
+
+        QStringList profiles;
+        for (int i = 0; i < 2; ++i) {
+            const QString presentation = makeFile(work, "cours.pptx");
+            const auto result = exporting::convertToPdf(*found, presentation).result();
+            QVERIFY2(result.ok, qPrintable(result.error));
+            QFile seen(dump + ".profil");
+            QVERIFY(seen.open(QIODevice::ReadOnly));
+            const QString profile = QString::fromLocal8Bit(seen.readAll()).trimmed();
+            seen.close();
+            seen.remove();
+            QVERIFY(!profile.isEmpty());
+            QVERIFY(profile.startsWith(
+                QFileInfo(result.pdfPath).absolutePath())); // dans le dossier de la conversion
+            QVERIFY(!QFileInfo::exists(profile));           // supprimé après la conversion
+            QVERIFY(QFileInfo(result.pdfPath).size() > 0);
+            profiles << profile;
+            QDir(QFileInfo(result.pdfPath).absolutePath()).removeRecursively();
+        }
+        QVERIFY(profiles[0] != profiles[1]); // un profil par conversion
+    }
+#endif
+
     void argumentsSubstituted()
     {
         EnvGuard guard;

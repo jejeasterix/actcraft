@@ -1,6 +1,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documenttabs.h>
 #include <actcraft/ui/insertion.h>
 
 #include <QFile>
@@ -69,6 +70,46 @@ private slots:
         QVERIFY(file.open(QIODevice::ReadOnly));
         QCOMPARE(resource->data, file.readAll());
         QCOMPARE(resource->extension, std::string("png"));
+    }
+
+    // M9 : Ctrl+Tab pendant le décodage ne verse pas l'image dans l'autre onglet.
+    void decodedImageNeverLandsInAnotherTab()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::DocumentTabs tabs;
+        tabs.setDocument(&controller);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        insertion.insertImage(QUrl::fromLocalFile(writePng(dir, "a.png", 100, 100)));
+        tabs.newTab(); // avant la fin du décodage (la boucle d'événements n'a pas tourné)
+        QCOMPARE(tabs.currentIndex(), 1);
+        QTRY_VERIFY(!insertion.isBusy());
+        QCOMPARE(inserted.count(), 0);
+        QCOMPARE(failed.count(), 1);                    // abandon annoncé
+        QVERIFY(firstPage(controller).objects.empty()); // l'onglet 1 n'a rien reçu
+        tabs.activate(0);
+        QVERIFY(firstPage(controller).objects.empty()); // ni l'onglet 0 : abandon
+    }
+
+    // M9 : dans le même onglet, l'image va sur la page où l'insertion a été demandée.
+    void decodedImageStaysOnItsOriginPage()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        insertion.insertImage(QUrl::fromLocalFile(writePng(dir, "a.png", 100, 100)));
+        controller.nextPage(); // page 2 (neuve) affichée pendant le décodage
+        QCOMPARE(controller.currentIndex(), 1);
+        QTRY_COMPARE(inserted.count(), 1);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t(1));
+        QVERIFY(controller.document().page(1).objects.empty());
     }
 
     void smallImageKeepsItsSize()

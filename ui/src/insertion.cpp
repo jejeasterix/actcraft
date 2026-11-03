@@ -205,11 +205,11 @@ bool Insertion::lastDecodeOffMainThread() const
 
 namespace {
 
-// Pose les objets sur la page affichée en une étape. Retour : nombre d'objets posés.
-int place(DocumentController& controller, std::vector<Item>& items)
+// Pose les objets sur la page `pageIndex` en une étape. Retour : nombre d'objets posés.
+int place(DocumentController& controller, std::vector<Item>& items, std::size_t pageIndex)
 {
-    const std::size_t pageIndex = static_cast<std::size_t>(controller.currentIndex());
-    const QSizeF size = controller.pageSize();
+    const core::Page& target = controller.document().page(pageIndex);
+    const QSizeF size(target.width, target.height);
     std::vector<InsertCommand::Entry> entries;
     for (Item& item : items) {
         const QPointF center = item.hasCenter ? item.center : QPointF(size.width() / 2, size.height() / 2);
@@ -253,13 +253,21 @@ void Insertion::start(std::vector<InsertionJob> jobs)
         emit busyChanged();
     auto* watcher = new QFutureWatcher<Result>(this);
     QThread* mainThread = QThread::currentThread();
-    connect(watcher, &QFutureWatcher<Result>::finished, this, [this, watcher]() {
+    // Document et page devant lesquels l'insertion est demandée : un changement d'onglet pendant le décodage
+    // ne doit pas verser l'image dans l'autre.
+    const std::uint64_t generation = m_document->generation();
+    const std::size_t originPage = static_cast<std::size_t>(m_document->currentIndex());
+    connect(watcher, &QFutureWatcher<Result>::finished, this, [this, watcher, generation, originPage]() {
         Result result = watcher->result();
         watcher->deleteLater();
         m_lastOff = result.offMainThread;
         int count = 0;
-        if (m_document != nullptr && !result.items.empty())
-            count = place(*m_document, result.items);
+        if (m_document != nullptr && !result.items.empty()) {
+            if (m_document->generation() == generation && originPage < m_document->document().pageCount())
+                count = place(*m_document, result.items, originPage);
+            else if (result.error.isEmpty())
+                result.error = QStringLiteral("Insertion abandonnée : le document affiché a changé.");
+        }
         if (--m_pending == 0)
             emit busyChanged();
         if (!result.error.isEmpty())

@@ -1,8 +1,11 @@
+#include <actcraft/core/model.h>
 #include <actcraft/core/printlayout.h>
 #include <actcraft/print/printer.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/printcontroller.h>
 
+#include <QBuffer>
+#include <QColor>
 #include <QDesktopServices>
 #include <QDir>
 #include <QElapsedTimer>
@@ -178,6 +181,36 @@ class TstUiPrintDialog : public QObject
 {
     Q_OBJECT
 private slots:
+    // M5 : une feuille ne décode que les ressources des pages qu'elle porte, jamais celles du document
+    // entier (l'aperçu synchrone et chaque copie la rejouent). Observation par compteur, sans chrono.
+    void sheetDecodesOnlyItsPagesImages()
+    {
+        core::Document d(std::vector<core::Page>(3));
+        for (int i = 0; i < 3; ++i) {
+            QImage image(8, 8, QImage::Format_RGB32);
+            image.fill(QColor(40 * (i + 1), 10, 200));
+            QByteArray bytes;
+            QBuffer buffer(&bytes);
+            buffer.open(QIODevice::WriteOnly);
+            QVERIFY(image.save(&buffer, "PNG"));
+            core::ImageObject object;
+            object.resource = d.addResource(bytes, "png");
+            object.bounds = {100, 100, 300, 300};
+            d.page(static_cast<std::size_t>(i)).objects.emplace_back(object);
+        }
+        QCOMPARE(d.resources().size(), std::size_t(3));
+        const core::PrintSettings s; // une page par feuille
+        const auto sheets = core::layoutSheets(d, s, 0, kSheet);
+        QCOMPARE(sheets.size(), std::size_t(3));
+        QVERIFY(!print::renderSheet(d, sheets[1], s, kSheet, 50).isNull());
+        QCOMPARE(print::lastSheetDecodedImageCount(), std::size_t(1));
+        core::PrintSettings two;
+        two.columns = 2;
+        const auto pair = core::layoutSheets(d, two, 0, kSheet);
+        QVERIFY(!print::renderSheet(d, pair[0], two, kSheet, 50).isNull());
+        QCOMPARE(print::lastSheetDecodedImageCount(), std::size_t(2));
+    }
+
     void sheetCountFollowsSettings();
     void settingsSurviveRestart();
     void previewMatchesSheets();

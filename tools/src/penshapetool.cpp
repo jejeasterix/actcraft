@@ -37,6 +37,8 @@ bool PenShapeTool::isBusy() const noexcept
 
 void PenShapeTool::setShape(core::PenShape shape)
 {
+    if (shape == m_shape)
+        return; // même tracé (choisir une couleur, une épaisseur) : la polyligne en cours reste
     reset();
     m_shape = shape;
 }

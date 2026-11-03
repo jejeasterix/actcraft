@@ -25,7 +25,7 @@ struct Converter
 // (4) PowerPoint, présent si la clé HKCR\PowerPoint.Application existe (QSettings, format natif), lancé par
 // le chemin absolu de powershell.exe (dossier système, puis son sous-dossier WindowsPowerShell\v1.0\) ; voie
 // PowerPoint : pathsByEnvironment vrai, scriptResource = ":/actcraft/export/pptx-to-pdf.ps1". Hors Windows :
-// (1) et (3) seulement.
+// (1) et (3) seulement (PowerPoint n'existe que sous Windows ; la voie (2) y reste une couture de test).
 std::optional<Converter> findConverter();
 struct ConvertResult
 {
