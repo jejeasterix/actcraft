@@ -1,3 +1,5 @@
+#include "parkedsession.h"
+
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/objectedits.h>
@@ -331,21 +333,56 @@ bool DocumentController::isLifting() const noexcept
     return !m_lifted.empty() && m_liftGeneration == m_generation;
 }
 
-// Talon L5-T1 : rempli par L5-T20.
-struct DocumentController::ParkedSession
-{
-};
-
-// Talon L5-T1 : rempli par L5-T20.
+// L5-T20 : la session affichée part avec tout ce qui appartient au document (pile, URL, titre, état
+// modifié, avertissements, page affichée, référence de « Rétablir la page »). Annonce d'abord (la vue finit
+// le trait en cours, le texte se valide, les outils abandonnent leur geste), puis dépôt sans étape d'un
+// soulèvement : le document garé est entier. Aucune demande de redessin, aucun rattachement : la page fixe
+// garde son ancienne scène jusqu'à resumeSession, qui la reconstruit une fois (amendement 3, M1). L'appelant
+// reprend une session avant de rendre la main à la boucle d'événements.
 std::unique_ptr<DocumentController::ParkedSession> DocumentController::parkSession()
 {
-    return nullptr;
+    announceEdit();
+    auto session = std::make_unique<ParkedSession>();
+    const QSizeF size = pageSize();
+    session->document = std::exchange(m_document, core::Document(size.width(), size.height()));
+    session->undo = std::exchange(m_undo, core::UndoStack());
+    session->current = std::exchange(m_current, 0);
+    session->fileUrl = std::exchange(m_fileUrl, QUrl());
+    session->title = std::exchange(m_title, untitled());
+    session->modifiedOutsideStack = std::exchange(m_modifiedOutsideStack, false);
+    session->warnings = m_warnings;
+    session->reference = m_referenceGeneration == m_generation ? m_reference : nullptr;
+    m_reference.reset();
+    m_lifted.clear(); // déjà déposé ; rien de l'ancien document ne reste soulevé
+    ++m_generation;   // une écriture finie après le garage ne rattache pas son fichier à un autre document
+    ++m_revision;
+    return session;
 }
 
-// Talon L5-T1 : rempli par L5-T20.
+// Une reconstruction de la page affichée : attach → setSource → restart, qui vide la couche d'attente
+// (aucun fantôme de l'onglet quitté) et émet contentChanged, d'où un redessin du cache.
 void DocumentController::resumeSession(std::unique_ptr<ParkedSession> session)
 {
-    static_cast<void>(session);
+    if (!session) {
+        return;
+    }
+    m_lifted.clear();
+    m_document = std::move(session->document);
+    m_undo = std::move(session->undo);
+    m_current = std::min(session->current, m_document.pageCount() - 1);
+    m_fileUrl = session->fileUrl;
+    m_title = session->title.isEmpty() ? untitled() : session->title;
+    m_modifiedOutsideStack = session->modifiedOutsideStack;
+    ++m_generation;
+    ++m_revision;
+    m_reference = std::move(session->reference);
+    m_referenceGeneration = m_reference ? m_generation : 0;
+    attach();
+    emit pagesChanged();
+    emit fileUrlChanged();
+    emit titleChanged();
+    setWarnings(session->warnings);
+    notifyState(false);
 }
 
 void DocumentController::announceEdit()

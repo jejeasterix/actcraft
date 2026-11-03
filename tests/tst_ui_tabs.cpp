@@ -28,12 +28,13 @@ namespace {
 core::Stroke redStroke(QPointF a, QPointF b)
 {
     core::Stroke stroke;
-    stroke.color = core::Color{255, 0, 0, 255};
-    stroke.width = 12;
+    stroke.color = 0xFFFF0000u;
+    stroke.baseWidth = 12;
     const int steps = 20;
     for (int i = 0; i <= steps; ++i) {
         const double t = double(i) / steps;
-        stroke.points.push_back(core::StrokePoint{a.x() + (b.x() - a.x()) * t, a.y() + (b.y() - a.y()) * t, 1.0});
+        stroke.points.push_back(
+            core::StrokePoint{a.x() + (b.x() - a.x()) * t, a.y() + (b.y() - a.y()) * t, 0.5f});
     }
     return stroke;
 }
@@ -44,8 +45,9 @@ bool near(const QColor& a, const QColor& b, int tolerance)
            qAbs(a.blue() - b.blue()) <= tolerance;
 }
 
-// Un DocumentController et ses onglets ; avec `withView`, la zone de page réelle (PageArea : vue unique, cache
-// dont chaque rendu terminé appelle notifyCacheUpdated, D21) dans une fenêtre hors écran, rendu logiciel.
+// Un DocumentController et ses onglets ; avec `withView`, la zone de page réelle (PageArea : vue unique,
+// cache dont chaque rendu terminé appelle notifyCacheUpdated, D21) dans une fenêtre hors écran, rendu
+// logiciel.
 struct Fixture
 {
     QQmlEngine engine;
@@ -71,7 +73,7 @@ struct Fixture
                 return;
             }
             window = qobject_cast<QQuickWindow*>(root.get());
-            QQuickItem* area = window->contentItem()->findChild<QQuickItem*>(QStringLiteral("area"));
+            QQuickItem* area = window->findChild<QQuickItem*>(QStringLiteral("area"));
             area->setProperty("documentController", QVariant::fromValue(&document));
             view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
             fixed = window->findChild<render::FixedPageItem*>(QStringLiteral("fixedPage"));
@@ -86,10 +88,10 @@ struct Fixture
         }
     }
 
-    core::ObjectId firstId() const { return document.document().pages.front().objects.front().common.id; }
+    core::ObjectId firstId() const { return document.document().page(0).objects.front().common.id; }
     bool pageHasObjects(int page) const
     {
-        return !document.document().pages.at(static_cast<std::size_t>(page)).objects.empty();
+        return !document.document().page(static_cast<std::size_t>(page)).objects.empty();
     }
 
     // cacheReady, puis kCacheFoldIdleMs + 300 ms sans rendu terminé (D21), borné à 20 s.
@@ -235,7 +237,8 @@ private slots:
         QVERIFY(!f.document.canUndo());
         QCOMPARE(f.tabs.data(f.tabs.index(0), ui::DocumentTabs::TitleRole).toString(),
                  QStringLiteral("Sans titre"));
-        QVERIFY(f.tabs.requestClose(0)); // document vide non modifié : fermé sans demande, remplacé par un vide
+        QVERIFY(
+            f.tabs.requestClose(0)); // document vide non modifié : fermé sans demande, remplacé par un vide
         QCOMPARE(asked.count(), 1);
         QCOMPARE(f.tabs.rowCount(), 1);
     }
@@ -255,8 +258,8 @@ private slots:
 
     void copyPagesGoBeforeFirstPage()
     {
-        Fixture f;          // onglet 0 : page 1 avec un trait
-        f.document.undo();  // page 1 vide
+        Fixture f;         // onglet 0 : page 1 avec un trait
+        f.document.undo(); // page 1 vide
         f.document.nextPage();
         f.drawStrokeOnShown();
         f.document.showPage(0);
