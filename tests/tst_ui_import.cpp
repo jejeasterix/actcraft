@@ -19,6 +19,9 @@
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include <array>
+#include <optional>
+
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 using namespace actcraft;
@@ -113,6 +116,54 @@ bool inMenus(const QVariantList& items, const QString& id)
     return false;
 }
 
+// Faux « soffice » exécutable dans un dossier à part, pour mettre une machine « avec LibreOffice » sous le
+// test.
+QString fakeSofficeDirectory(QTemporaryDir& dir)
+{
+    QFile file(dir.filePath(QStringLiteral("soffice")));
+    if (!file.open(QIODevice::WriteOnly) || file.write("#!/bin/sh\nexit 0\n") <= 0) {
+        return {};
+    }
+    file.close();
+    file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+    return dir.path();
+}
+
+// PATH, TMPDIR, TMP, TEMP : valeurs d'origine mémorisées au départ, remises telles quelles (ou retirées si
+// elles n'existaient pas) à la fin de chaque cas.
+struct SavedEnvironment
+{
+    static constexpr std::array<const char*, 4> kNames{"PATH", "TMPDIR", "TMP", "TEMP"};
+    std::array<std::optional<QByteArray>, 4> saved;
+
+    void remember()
+    {
+        for (std::size_t i = 0; i < kNames.size(); ++i) {
+            saved[i] = qEnvironmentVariableIsSet(kNames[i]) ? std::optional<QByteArray>(qgetenv(kNames[i]))
+                                                            : std::nullopt;
+        }
+    }
+    void restore() const
+    {
+        for (std::size_t i = 0; i < kNames.size(); ++i) {
+            if (saved[i]) {
+                qputenv(kNames[i], *saved[i]);
+            } else {
+                qunsetenv(kNames[i]);
+            }
+        }
+    }
+};
+
+SavedEnvironment g_environment;
+
+void pointTempAt(const QString& directory)
+{
+    for (const char* variable : {"TMPDIR", "TMP", "TEMP"}) {
+        qputenv(variable, QFile::encodeName(directory));
+    }
+}
+
 } // namespace
 
 class TestUiImport : public QObject
@@ -123,13 +174,12 @@ private slots:
     {
         qunsetenv("ACTCRAFT_OFFICE_CONVERTER");
         qunsetenv("ACTCRAFT_POWERSHELL");
+        g_environment.remember();
     }
     void cleanup()
     {
         qunsetenv("ACTCRAFT_OFFICE_CONVERTER");
-        for (const char* variable : {"TMPDIR", "TMP", "TEMP"}) {
-            qunsetenv(variable);
-        }
+        g_environment.restore();
     }
 
     // L5-C13 : l'entrée « Présentation en images » n'est dans le menu que si un convertisseur existe.
@@ -139,14 +189,34 @@ private slots:
             QSKIP("Qt PDF absent : import PDF indisponible dans cette construction");
         }
         const QString id = QStringLiteral("file.import-powerpoint-images");
+        // PATH réduit à un dossier vide : aucun soffice, quelle que soit la machine. LibreOffice dans
+        // /Applications ou PowerPoint (Windows) restent hors d'atteinte du test : si l'un d'eux est détecté,
+        // l'entrée doit alors être visible, et le test ne juge que cette cohérence.
+        QTemporaryDir emptyDir;
+        QVERIFY(emptyDir.isValid());
+        qputenv("PATH", QFile::encodeName(emptyDir.path()));
         {
             Shell s;
             QVERIFY(s.start());
             auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
             QVERIFY(commands);
-            QVERIFY(!s.exchange->powerpointAvailable());
-            QVERIFY(!inMenus(commands->menus(), id));
+            QCOMPARE(inMenus(commands->menus(), id), s.exchange->powerpointAvailable());
+            if (!exporting::findConverter().has_value()) {
+                QVERIFY(!s.exchange->powerpointAvailable());
+                QVERIFY(!inMenus(commands->menus(), id));
+            }
             QVERIFY(inMenus(commands->menus(), QStringLiteral("file.import-pdf")));
+#ifndef Q_OS_WIN
+            // Un soffice exécutable sur le PATH (machine avec LibreOffice) : l'entrée apparaît.
+            QTemporaryDir sofficeDir;
+            QVERIFY(sofficeDir.isValid());
+            QVERIFY(!fakeSofficeDirectory(sofficeDir).isEmpty());
+            qputenv("PATH", QFile::encodeName(sofficeDir.path()));
+            emit s.exchange->converterChanged();
+            QVERIFY(s.exchange->powerpointAvailable());
+            QVERIFY(inMenus(commands->menus(), id));
+            qputenv("PATH", QFile::encodeName(emptyDir.path()));
+#endif
             // Le convertisseur apparaît, et l'objet l'annonce : l'entrée revient.
             qputenv("ACTCRAFT_OFFICE_CONVERTER", fakeConverter(fixturePdf()));
             emit s.exchange->converterChanged();
@@ -180,9 +250,7 @@ private slots:
         const QString deck = dummyPresentation(dir, QStringLiteral("cours.pptx"));
         QVERIFY(!deck.isEmpty());
         qputenv("ACTCRAFT_OFFICE_CONVERTER", fakeConverter(fixturePdf()));
-        for (const char* variable : {"TMPDIR", "TMP", "TEMP"}) {
-            qputenv(variable, QFile::encodeName(scratch.path()));
-        }
+        pointTempAt(scratch.path());
 
         Shell s;
         QVERIFY(s.start());
@@ -202,9 +270,6 @@ private slots:
         // Le PDF converti et son dossier sont supprimés après l'import.
         QVERIFY2(QDir(scratch.path()).isEmpty(), qPrintable(QDir(scratch.path()).entryList().join(' ')));
         QVERIFY(QFile::exists(deck)); // la présentation n'est pas touchée
-        for (const char* variable : {"TMPDIR", "TMP", "TEMP"}) {
-            qunsetenv(variable);
-        }
     }
 
     void failureShowsBanner()
@@ -224,9 +289,7 @@ private slots:
         bad.write("ceci n'est pas un PDF");
         bad.close();
         qputenv("ACTCRAFT_OFFICE_CONVERTER", fakeConverter(notPdf));
-        for (const char* variable : {"TMPDIR", "TMP", "TEMP"}) {
-            qputenv(variable, QFile::encodeName(scratch.path()));
-        }
+        pointTempAt(scratch.path());
 
         Shell s;
         QVERIFY(s.start());
@@ -243,16 +306,12 @@ private slots:
                       dir.filePath(QStringLiteral("absente.pptx"))));
         QTRY_VERIFY_WITH_TIMEOUT(failed.count() == 1 && !s.exchange->isBusy(), 20000);
         QCOMPARE(s.tabs->rowCount(), 1);
-        for (const char* variable : {"TMPDIR", "TMP", "TEMP"}) {
-            qunsetenv(variable);
-        }
     }
 
-    void refusedWithoutConverter()
+    void availabilityFollowsTheConverter()
     {
-        // Aucun convertisseur : variable absente, PATH vide, pas de couture ; LibreOffice installé dans
-        // /Applications ou PowerPoint (Windows) rendraient la valeur vraie : le test ne juge que la
-        // cohérence.
+        // Sans la variable de test, la détection regarde la machine (soffice sur le PATH, LibreOffice dans
+        // /Applications, PowerPoint sous Windows) : le test ne juge que la cohérence, sur toute machine.
         Shell s;
         QVERIFY(s.start());
         // Sans import PDF construit, rien n'est offert, convertisseur ou non.
@@ -265,7 +324,9 @@ private slots:
     void menuHidesUnavailableImports()
     {
         ui::Commands commands;
-        commands.setProfileDir(QTemporaryDir().path());
+        QTemporaryDir profile; // vivant pendant tout le test : le dossier existe encore
+        QVERIFY(profile.isValid());
+        commands.setProfileDir(profile.path());
         commands.setPlatform(actions::Platform::Windows);
         QCOMPARE(importEntries(commands), QStringList({QStringLiteral("file.import-pdf"),
                                                        QStringLiteral("file.import-powerpoint-images")}));
