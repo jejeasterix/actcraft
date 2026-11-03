@@ -31,6 +31,13 @@ class PrintController : public QObject
     Q_PROPERTY(QString printer READ printer WRITE setPrinter NOTIFY settingsChanged)
     Q_PROPERTY(QStringList printers READ printers CONSTANT)
     Q_PROPERTY(int sheetCount READ sheetCount NOTIFY settingsChanged)
+    // Ajoutés par L5-T28. `settingsFile` : fichier de réglages (tests, banc), comme ToolHost ; vide : les
+    // réglages de l'application, seulement si elle a un nom d'organisation. `available` : l'impression par
+    // QPrinter est construite (ACTCRAFT_PRINT). `previewRenders` : feuilles composées pour l'aperçu depuis
+    // le début (mesure de la paresse de l'aperçu).
+    Q_PROPERTY(QString settingsFile READ settingsFile WRITE setSettingsFile NOTIFY settingsFileChanged)
+    Q_PROPERTY(bool available READ available CONSTANT)
+    Q_PROPERTY(int previewRenders READ previewRenders NOTIFY previewRendersChanged)
 public:
     explicit PrintController(QObject* parent = nullptr);
     DocumentController* document() const;
@@ -65,6 +72,10 @@ public:
     void setPrinter(const QString& printer);
     QStringList printers() const;
     int sheetCount() const;
+    QString settingsFile() const;
+    void setSettingsFile(const QString& path);
+    bool available() const;
+    int previewRenders() const;
 
     Q_INVOKABLE QImage previewSheet(int index, int dpi);
     Q_INVOKABLE bool print(const QString& outputFile = {});
@@ -74,6 +85,10 @@ public:
 signals:
     void documentChanged();
     void settingsChanged();
+    void settingsFileChanged();
+    void previewRendersChanged();
+    void finished(QString message);
+    void failed(QString message);
 
 private:
     DocumentController* m_document = nullptr;
@@ -91,6 +106,8 @@ private:
     bool m_noteBreak = true;
     bool m_noteSeparator = false;
     QString m_printer;
+    QString m_settingsFile;
+    int m_previewRenders = 0;
 };
 
 } // namespace actcraft::ui

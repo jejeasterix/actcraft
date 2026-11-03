@@ -215,4 +215,28 @@ void PrintController::saveSettings() {}
 // Talon L5-T1 : rempli par L5-T28.
 void PrintController::loadSettings() {}
 
+// Talon L5-T1 : rempli par L5-T28.
+QString PrintController::settingsFile() const
+{
+    return m_settingsFile;
+}
+
+// Talon L5-T1 : rempli par L5-T28.
+void PrintController::setSettingsFile(const QString& path)
+{
+    m_settingsFile = path;
+}
+
+// Talon L5-T1 : rempli par L5-T28.
+bool PrintController::available() const
+{
+    return false;
+}
+
+// Talon L5-T1 : rempli par L5-T28.
+int PrintController::previewRenders() const
+{
+    return m_previewRenders;
+}
+
 } // namespace actcraft::ui
