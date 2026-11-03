@@ -78,7 +78,7 @@ public:
     QString endAction() const;
     // Refuse (sans effet) une commande hors de la liste endActions().
     void setEndAction(const QString& command);
-    // [{command, label}] : « aucune » (commande vide), page suivante, page précédente.
+    // [{command, label}] : « aucune » (commande vide), page suivante, page précédente, rétablir la page.
     QVariantList endActions() const;
     QString displayText() const;
     QString remainingText() const;

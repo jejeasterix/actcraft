@@ -123,8 +123,9 @@ private slots:
         QCOMPARE(combo->property("count").toInt(), 4);
     }
 
-    // F-290 : « rétablir la page » à l'échéance : la page reprend son état d'ouverture (document neuf :
-    // vierge) par la commande page.revert du lot 3, une seule fois ; un annuler rend le trait.
+    // F-290 : « rétablir la page » à l'échéance : la page reprend son état enregistré par la commande
+    // page.revert du lot 3, une seule fois ; un annuler rend le trait. La page part avec du contenu (un trait
+    // enregistré) : rétablir la garde, alors que la vider l'effacerait (revue conformité z3).
     void countdownCanRevertThePage()
     {
         MainWindow main;
@@ -139,18 +140,44 @@ private slots:
                                       main.pageView()->pageToScene(QPointF(40, 700)),
                                       main.pageView()->pageToScene(QPointF(140, 700)));
         QTRY_COMPARE(main.pageObjectCount(), before + 1);
+        QTemporaryDir folder;
+        QVERIFY(folder.isValid());
+        controller->saveToUrl(QUrl::fromLocalFile(folder.filePath(QStringLiteral("retablir.flipchart"))));
+        QTRY_VERIFY_WITH_TIMEOUT(!controller->property("canRevertPage").toBool(), 10000); // enregistrée
+
+        presentationharness::strokeAt(main.window(), presentationharness::Pointer::Stylus,
+                                      main.pageView()->pageToScene(QPointF(40, 600)),
+                                      main.pageView()->pageToScene(QPointF(140, 600)));
+        QTRY_COMPARE(main.pageObjectCount(), before + 2);
+        QTRY_VERIFY(controller->property("canRevertPage").toBool());
 
         QVERIFY(clock->applyCountdownText(QStringLiteral("00:00:02")));
         clock->setEndAction(QStringLiteral("page.revert"));
         QCOMPARE(clock->endAction(), QStringLiteral("page.revert"));
         clock->startCountdown();
         clock->setClockNowOffsetMs(2500);
-        QTRY_COMPARE(main.pageObjectCount(), before);
+        QTRY_COMPARE(main.pageObjectCount(), before + 1); // le trait enregistré reste
+        QVERIFY(main.waitReady());
+        QCOMPARE(main.pageObjectCount(), before + 1);
         QCOMPARE(controller->pageCount(), 1);
         QCOMPARE(ended.count(), 1);
 
         QVERIFY(main.run(QStringLiteral("edit.undo")));
-        QTRY_COMPARE(main.pageObjectCount(), before + 1);
+        QTRY_COMPARE(main.pageObjectCount(), before + 2);
+    }
+
+    // Revue qualité z2 (clockcontroller.cpp:86-94, 331-338) : panneau caché (contrôleur inactif), un compte à
+    // rebours lancé finit quand même à l'heure. Le temps est avancé sans relève : seule la minuterie peut
+    // constater l'échéance ; arrêtée avec le panneau, elle l'aurait laissée attendre son retour.
+    void countdownEndsWhileThePanelIsHidden()
+    {
+        ClockController clock;
+        QVERIFY(!clock.active());
+        QSignalSpy ended(&clock, &ClockController::countdownEnded);
+        QVERIFY(clock.applyCountdownText(QStringLiteral("00:00:01")));
+        clock.startCountdown();
+        clock.setClockNowOffsetMs(1500);
+        QTRY_COMPARE_WITH_TIMEOUT(ended.count(), 1, 5000);
     }
 
     // 3 s, « page suivante » : à l'échéance la page 2 existe et est affichée ; une seule fin (le temps est
@@ -181,7 +208,9 @@ private slots:
         QCOMPARE(clock->remainingText(), QStringLiteral("00:00:00"));
 
         clock->setClockNowOffsetMs(9000);
-        QTest::qWait(600);
+        // Relève synchrone (réactivation) au lieu d'une attente fixe : une seconde fin serait émise ici.
+        clock->setActive(false);
+        clock->setActive(true);
         QCOMPARE(controller->pageCount(), 2);
         QCOMPARE(ended.count(), 1);
     }
@@ -282,7 +311,7 @@ private slots:
                                           button + QPointF(6, 0), 3);
         }
         QTRY_VERIFY(clock->paused());
-        QTest::qWait(50);
+        QVERIFY(main.waitReady());
         QCOMPARE(main.pageObjectCount(), before);
 
         // Coin : le panneau grandit en gardant ses proportions, aucun trait.
@@ -290,7 +319,8 @@ private slots:
         const qreal height = panel->height();
         const QPointF grip = centreOf(corner);
         presentationharness::strokeAt(main.window(), pointer, grip, grip + QPointF(60, 45));
-        QTest::qWait(50);
+        QTRY_VERIFY2(panel->width() > width + 20, "panneau agrandi par son coin");
+        QVERIFY(main.waitReady());
         QCOMPARE(main.pageObjectCount(), before);
         QVERIFY2(panel->width() > width + 20, "panneau agrandi par son coin");
         QVERIFY2(qAbs(panel->width() / panel->height() - width / height) < 0.01, "proportions gardées");
@@ -299,14 +329,14 @@ private slots:
         const QPointF start = panel->position();
         const QPointF bar = panel->mapToScene(QPointF(100, 22));
         presentationharness::strokeAt(main.window(), pointer, bar, bar + QPointF(-60, 40));
-        QTest::qWait(50);
+        QTRY_VERIFY2(panel->position() != start, "panneau déplacé par sa barre");
+        QVERIFY(main.waitReady());
         QCOMPARE(main.pageObjectCount(), before);
-        QVERIFY2(panel->position() != start, "panneau déplacé par sa barre");
 
         // Corps, sans gestionnaire : seule la couverture retient le trait.
         const QPointF body = panel->mapToScene(QPointF(30, 70));
         presentationharness::strokeAt(main.window(), pointer, body, body + QPointF(100, 0));
-        QTest::qWait(50);
+        QVERIFY(main.waitReady());
         QCOMPARE(main.pageObjectCount(), before);
 
         if (pointer == Pointer::Mouse) {
@@ -343,9 +373,11 @@ private slots:
         QTRY_COMPARE(main.pageObjectCount(), before + 1);
     }
 
-    // Revue M7 : un coin haut tiré de 300 px vers l'extérieur, panneau posé à 10 px du bord haut. Le panneau
+    // Revue M7 : un coin haut tiré de 300 px vers l'extérieur et jusqu'au haut de la fenêtre, panneau posé à
+    // 10 px sous le haut de la vue de page (au-dessus, la barre d'outils prendrait l'appui). Le panneau
     // grandit en gardant ses proportions et son coin opposé, mais ne sort pas de la couche : son bord haut
-    // (barre de titre, croix) reste atteignable. Sans borne, l'échelle 1,43 le ferait monter de 137 px au-dessus.
+    // (barre de titre, croix) reste atteignable. Sans borne, l'échelle tirée (plus de 1,6) le ferait passer
+    // au-dessus.
     void cornerGripsKeepThePanelInside()
     {
         MainWindow main;
@@ -354,16 +386,22 @@ private slots:
         QVERIFY(panel != nullptr);
         QQuickItem* layer = panel->parentItem();
         QVERIFY(layer != nullptr);
-        for (const QString& name : {QStringLiteral("clockCornerTopLeft"), QStringLiteral("clockCornerTopRight")}) {
+        const QQuickItem* view = main.pageView();
+        const QRectF shown =
+            layer->mapRectFromScene(view->mapRectToScene(QRectF(0, 0, view->width(), view->height())));
+        QVERIFY2(shown.width() > 280 + 40 + 300 + 20, "vue assez large pour le glissé");
+        for (const QString& name :
+             {QStringLiteral("clockCornerTopLeft"), QStringLiteral("clockCornerTopRight")}) {
             QQuickItem* corner = presentationharness::findItem(panel, name);
             QVERIFY2(corner != nullptr, qPrintable(name));
             const bool left = name.endsWith(QStringLiteral("Left"));
             panel->setSize(QSizeF(280, 340));
-            panel->setPosition(QPointF(left ? layer->width() - 280 - 40 : 40, 10));
+            panel->setPosition(
+                QPointF(left ? shown.right() - 280 - 40 : shown.left() + 40, shown.top() + 10));
             const QRectF before(panel->position(), panel->size());
             const QPointF grip = centreOf(corner);
             presentationharness::strokeAt(main.window(), Pointer::Mouse, grip,
-                                          grip + QPointF(left ? -300 : 300, 0));
+                                          QPointF(grip.x() + (left ? -300 : 300), 2));
             const QRectF after(panel->position(), panel->size());
             QVERIFY2(after.width() > before.width() + 1, qPrintable(name + QStringLiteral(" : agrandi")));
             QVERIFY2(qAbs(after.width() / after.height() - before.width() / before.height()) < 0.01,
