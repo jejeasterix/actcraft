@@ -35,7 +35,8 @@ core::Stroke redStroke()
     return stroke;
 }
 
-// L'interface réelle (Main.qml) : les commandes passent par leurs gestionnaires, comme au menu et aux scénarios.
+// L'interface réelle (Main.qml) : les commandes passent par leurs gestionnaires, comme au menu et aux
+// scénarios.
 struct Shell
 {
     QQmlApplicationEngine engine;

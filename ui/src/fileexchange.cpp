@@ -29,10 +29,9 @@ QString fileName(const QUrl& url)
     return QFileInfo(url.isLocalFile() ? url.toLocalFile() : url.path()).fileName();
 }
 
-// Suit un travail du module export : `done` est appelé sur le fil principal avec son résultat, puis l'observateur
-// disparaît.
-template <typename Result, typename Done>
-void watch(QObject* owner, QFuture<Result> future, Done done)
+// Suit un travail du module export : `done` est appelé sur le fil principal avec son résultat, puis
+// l'observateur disparaît.
+template <typename Result, typename Done> void watch(QObject* owner, QFuture<Result> future, Done done)
 {
     auto* watcher = new QFutureWatcher<Result>(owner);
     QObject::connect(watcher, &QFutureWatcherBase::finished, owner, [watcher, done]() {
@@ -127,14 +126,15 @@ void FileExchange::exportPdf(const QUrl& url)
         return;
     }
     const QUrl target = localized(url);
-    watch(this, exporting::exportPdf(m_document->document(), target), [this, target](exporting::ExportResult r) {
-        setBusy(false);
-        if (r.ok) {
-            emit finished(tr("PDF enregistré : %1").arg(fileName(target)));
-        } else {
-            fail(tr("Export PDF impossible : %1").arg(r.error));
-        }
-    });
+    watch(this, exporting::exportPdf(m_document->document(), target),
+          [this, target](exporting::ExportResult r) {
+              setBusy(false);
+              if (r.ok) {
+                  emit finished(tr("PDF enregistré : %1").arg(fileName(target)));
+              } else {
+                  fail(tr("Export PDF impossible : %1").arg(r.error));
+              }
+          });
 }
 
 void FileExchange::exportPageImage(const QUrl& url)
@@ -155,8 +155,8 @@ void FileExchange::exportPageImage(const QUrl& url)
           });
 }
 
-// Le PDF est lu sur un fil secondaire ; le document rendu s'installe dans un onglet neuf (L5-T20), jamais dans
-// l'onglet affiché.
+// Le PDF est lu sur un fil secondaire ; le document rendu s'installe dans un onglet neuf (L5-T20), jamais
+// dans l'onglet affiché.
 void FileExchange::importPdf(const QUrl& url)
 {
     if (!exporting::pdfImportAvailable()) {
@@ -183,7 +183,8 @@ void FileExchange::importPdf(const QUrl& url)
             fail(tr("Import PDF impossible : un autre fichier est en cours de lecture."));
             return;
         }
-        const QString title = QFileInfo(source.isLocalFile() ? source.toLocalFile() : source.path()).completeBaseName();
+        const QString title =
+            QFileInfo(source.isLocalFile() ? source.toLocalFile() : source.path()).completeBaseName();
         m_document->replaceDocument(std::move(r.document), QUrl(), title);
         emit finished(tr("PDF importé : %1").arg(fileName(source)));
     });
@@ -192,9 +193,9 @@ void FileExchange::importPdf(const QUrl& url)
 // Talon L5-T1 : rempli par L5-T30.
 void FileExchange::importPowerpointImages(const QUrl&) {}
 
-// Hors Windows (N1-15) : la mise en page de la boîte d'impression n'existe pas, le paperboard part par l'export
-// PDF de L5-T23 (même rendu que l'écran) dans le dossier temporaire, puis le lecteur de PDF du système
-// l'ouvre et imprime.
+// Hors Windows (N1-15) : la mise en page de la boîte d'impression n'existe pas, le paperboard part par
+// l'export PDF de L5-T23 (même rendu que l'écran) dans le dossier temporaire, puis le lecteur de PDF du
+// système l'ouvre et imprime.
 void FileExchange::printThroughPdf()
 {
     if (!begin()) {
@@ -209,17 +210,19 @@ void FileExchange::printThroughPdf()
     }
     const QUrl target = QUrl::fromLocalFile(file.fileName());
     file.close();
-    watch(this, exporting::exportPdf(m_document->document(), target), [this, target](exporting::ExportResult r) {
-        setBusy(false);
-        if (!r.ok) {
-            QFile::remove(target.toLocalFile());
-            fail(tr("Impression impossible : %1").arg(r.error));
-        } else if (!QDesktopServices::openUrl(target)) {
-            fail(tr("Impression impossible : aucun lecteur de PDF n'a pu ouvrir %1.").arg(target.toLocalFile()));
-        } else {
-            emit finished(tr("PDF ouvert pour l'impression."));
-        }
-    });
+    watch(this, exporting::exportPdf(m_document->document(), target),
+          [this, target](exporting::ExportResult r) {
+              setBusy(false);
+              if (!r.ok) {
+                  QFile::remove(target.toLocalFile());
+                  fail(tr("Impression impossible : %1").arg(r.error));
+              } else if (!QDesktopServices::openUrl(target)) {
+                  fail(tr("Impression impossible : aucun lecteur de PDF n'a pu ouvrir %1.")
+                           .arg(target.toLocalFile()));
+              } else {
+                  emit finished(tr("PDF ouvert pour l'impression."));
+              }
+          });
 }
 
 } // namespace actcraft::ui

@@ -9,9 +9,9 @@
 
 namespace actcraft::ui {
 
-// Export, import PDF et PowerPoint (F-020 à F-023) ; rempli par L5-T25 (export, import PDF, impression par PDF)
-// et L5-T30 (PowerPoint). Le rendu et l'écriture se font sur un fil secondaire (module export) ; `finished` et
-// `failed` sont émis sur le fil principal, la bannière de la fenêtre les montre.
+// Export, import PDF et PowerPoint (F-020 à F-023) ; rempli par L5-T25 (export, import PDF, impression par
+// PDF) et L5-T30 (PowerPoint). Le rendu et l'écriture se font sur un fil secondaire (module export) ;
+// `finished` et `failed` sont émis sur le fil principal, la bannière de la fenêtre les montre.
 class FileExchange : public QObject
 {
     Q_OBJECT
