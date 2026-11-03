@@ -47,12 +47,18 @@ Item {
     }
     Connections {
         target: root.tabs.document
+        // Jugé après les autres gestionnaires de la fin (FileActions relance l'enregistrement attendu) : le
+        // résultat ne dépend pas de l'ordre de connexion. Écriture relancée (occupé) : on attend la suivante.
         function onSaveFinished(ok, message) {
             if (!root.closeAfterSave)
                 return
-            root.closeAfterSave = false
-            if (ok && !root.tabs.document.modified)
-                root.tabs.closeWithoutSaving(root.tabs.currentIndex)
+            Qt.callLater(function () {
+                if (!root.closeAfterSave || (ok && root.tabs.document.busy))
+                    return
+                root.closeAfterSave = false
+                if (ok && !root.tabs.document.modified)
+                    root.tabs.closeWithoutSaving(root.tabs.currentIndex)
+            })
         }
     }
 
