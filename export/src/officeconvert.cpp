@@ -10,6 +10,7 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QThread>
+#include <QUrl>
 
 #ifdef Q_OS_WIN
 #include <QSettings>
@@ -111,8 +112,10 @@ Converter powerPointVia(const QString& program)
     return converter;
 }
 
-QString replaced(QString text, const QString& in, const QString& out, const QString& outdir)
+QString replaced(QString text, const QString& in, const QString& out, const QString& outdir,
+                 const QString& profileUrl)
 {
+    text.replace(QStringLiteral("{profileurl}"), profileUrl);
     text.replace(QStringLiteral("{in}"), in);
     text.replace(QStringLiteral("{outdir}"), outdir);
     text.replace(QStringLiteral("{out}"), out);
@@ -141,6 +144,16 @@ ConvertResult runConversion(const Converter& converter, const QString& presentat
         return failure(error);
     };
 
+    // Profil LibreOffice propre à cette conversion (-env:UserInstallation={profileurl}) : sans lui, avec
+    // LibreOffice déjà ouvert, la commande part à l'instance ouverte et ne produit rien. Supprimé ensuite.
+    const QString profileDir = QDir(outDir).filePath(QStringLiteral("profil-lo"));
+    const QString profileUrl = QUrl::fromLocalFile(profileDir).toString();
+    struct ProfileCleanup
+    {
+        QString path;
+        ~ProfileCleanup() { QDir(path).removeRecursively(); }
+    } profileCleanup{profileDir};
+
     QProcess process;
     QStringList arguments;
     if (converter.pathsByEnvironment) {
@@ -159,7 +172,7 @@ ConvertResult runConversion(const Converter& converter, const QString& presentat
         }
     } else {
         for (const QString& argument : converter.arguments) {
-            arguments << replaced(argument, inPath, outPath, outDir);
+            arguments << replaced(argument, inPath, outPath, outDir, profileUrl);
         }
     }
     process.setProgram(converter.program);
@@ -224,9 +237,11 @@ std::optional<Converter> findConverter()
     if (const QString soffice = libreOfficeProgram(); !soffice.isEmpty()) {
         Converter converter;
         converter.program = soffice;
-        converter.arguments = {QStringLiteral("--headless"), QStringLiteral("--convert-to"),
-                               QStringLiteral("pdf"),        QStringLiteral("--outdir"),
-                               QStringLiteral("{outdir}"),   QStringLiteral("{in}")};
+        converter.arguments = {
+            QStringLiteral("--headless"),   QStringLiteral("-env:UserInstallation={profileurl}"),
+            QStringLiteral("--convert-to"), QStringLiteral("pdf"),
+            QStringLiteral("--outdir"),     QStringLiteral("{outdir}"),
+            QStringLiteral("{in}")};
         converter.name = QStringLiteral("LibreOffice");
         return converter;
     }

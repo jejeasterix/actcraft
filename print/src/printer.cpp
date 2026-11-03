@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -39,7 +40,9 @@ QRectF toPixels(const core::RectF& mm, double pxPerMm)
     return {mm.x * pxPerMm, mm.y * pxPerMm, mm.width * pxPerMm, mm.height * pxPerMm};
 }
 
-// Marge bornée comme dans core::layoutSheets : jamais négative, toujours sous la demi-feuille.
+// Marge des feuilles de notes : jamais négative, au plus 45 % du petit côté (la zone de texte garde une
+// largeur). Les cellules de pages ont leur propre borne, min/2 (core::layoutSheets) : cette marge-ci ne sert
+// qu'aux notes, où une zone vide n'a pas de sens.
 double clampedMargin(double marginMm, core::SizeF sheetMm)
 {
     const double limit = 0.45 * std::min(sheetMm.width, sheetMm.height);
@@ -156,11 +159,42 @@ void paintNotesSheet(QPainter& p, const core::Document& document, const core::Sh
     p.restore();
 }
 
+// Ressources que le peintre lit pour peindre une page : fond, images, espace réservé d'un média.
+void addImageKeys(const core::Page& page, std::set<std::string>& keys)
+{
+    if (!page.background.image.empty())
+        keys.insert(page.background.image);
+    for (const core::PageObject& object : page.objects) {
+        if (const auto* image = std::get_if<core::ImageObject>(&object)) {
+            if (!image->resource.empty())
+                keys.insert(image->resource);
+        } else if (const auto* media = std::get_if<core::Media>(&object)) {
+            if (!media->placeholder.empty())
+                keys.insert(media->placeholder);
+        }
+    }
+}
+
+render::DecodedImages decodeSheetImages(const core::Document& document, const core::Sheet& sheet)
+{
+    std::set<std::string> keys;
+    for (const core::SheetCell& cell : sheet.cells)
+        if (cell.page < document.pageCount())
+            addImageKeys(document.page(cell.page), keys);
+    // Document réduit à ces ressources (même clé : empreinte des octets, octets partagés) pour decodeImages.
+    core::Document restricted;
+    for (const std::string& key : keys)
+        if (const core::Resource* resource = document.resource(key))
+            restricted.addResource(resource->data, resource->extension);
+    return render::decodeImages(restricted);
+}
+
 void paintPagesSheet(QPainter& p, const core::Document& document, const core::Sheet& sheet,
                      const core::PrintSettings& settings, double pxPerMm)
 {
-    // Images du document en pleine résolution (jamais celles, réduites, des miniatures).
-    const render::DecodedImages images = render::decodeImages(document);
+    // Images en pleine résolution (jamais celles, réduites, des miniatures), mais seulement celles des pages
+    // de la feuille : l'aperçu synchrone et chaque copie rejouent cette composition.
+    const render::DecodedImages images = decodeSheetImages(document, sheet);
     g_decodedImages = images.size();
     const render::ImageLookup lookup = images.lookup();
     const double unitPerPx = kPainterDpi / kMmPerInch / pxPerMm;

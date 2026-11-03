@@ -89,7 +89,7 @@ private slots:
         QCOMPARE(tabs.currentIndex(), 1);
         QTRY_VERIFY(!insertion.isBusy());
         QCOMPARE(inserted.count(), 0);
-        QCOMPARE(failed.count(), 1); // abandon annoncé
+        QCOMPARE(failed.count(), 1);                    // abandon annoncé
         QVERIFY(firstPage(controller).objects.empty()); // l'onglet 1 n'a rien reçu
         tabs.activate(0);
         QVERIFY(firstPage(controller).objects.empty()); // ni l'onglet 0 : abandon

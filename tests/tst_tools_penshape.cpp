@@ -233,7 +233,8 @@ private slots:
         QCOMPARE(stroke->points[2].y, 100.0);
     }
 
-    // Choisir une couleur ou une épaisseur rappelle setShape avec le même tracé : la polyligne en cours reste.
+    // Choisir une couleur ou une épaisseur rappelle setShape avec le même tracé : la polyligne en cours
+    // reste.
     void sameShapeKeepsThePolylineInProgress()
     {
         Harness h;

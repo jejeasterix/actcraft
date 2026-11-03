@@ -144,6 +144,9 @@ public:
     // core::changesAfterLift.
     void dropLifted(std::unique_ptr<core::UndoCommand> command);
     bool isLifting() const noexcept;
+    // Change à chaque remplacement du document affiché (ouverture, « Nouveau », garage ou reprise d'un
+    // onglet) : une tâche de fond y reconnaît le document devant lequel elle a été lancée (L5-C21).
+    std::uint64_t generation() const noexcept { return m_generation; }
 
     // Document garé par un onglet (L5-T20) : document, pile d'annulation, URL, état modifié, avertissements,
     // page affichée.

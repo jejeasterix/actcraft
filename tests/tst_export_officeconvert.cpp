@@ -120,7 +120,8 @@ private slots:
                      "out=\"\"; prof=\"\"; prev=\"\"\n"
                      "for a in \"$@\"; do\n"
                      "  [ \"$prev\" = \"--outdir\" ] && out=\"$a\"\n"
-                     "  case \"$a\" in -env:UserInstallation=file://*) prof=\"${a#-env:UserInstallation=file://}\";; esac\n"
+                     "  case \"$a\" in -env:UserInstallation=file://*) "
+                     "prof=\"${a#-env:UserInstallation=file://}\";; esac\n"
                      "  prev=\"$a\"\n"
                      "done\n"
                      "printf '%s\\n' \"$@\" > \"$ACTCRAFT_FAKE_DUMP\"\n"
@@ -159,8 +160,9 @@ private slots:
             seen.close();
             seen.remove();
             QVERIFY(!profile.isEmpty());
-            QVERIFY(profile.startsWith(QFileInfo(result.pdfPath).absolutePath())); // dans le dossier de la conversion
-            QVERIFY(!QFileInfo::exists(profile)); // supprimé après la conversion
+            QVERIFY(profile.startsWith(
+                QFileInfo(result.pdfPath).absolutePath())); // dans le dossier de la conversion
+            QVERIFY(!QFileInfo::exists(profile));           // supprimé après la conversion
             QVERIFY(QFileInfo(result.pdfPath).size() > 0);
             profiles << profile;
             QDir(QFileInfo(result.pdfPath).absolutePath()).removeRecursively();
