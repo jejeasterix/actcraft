@@ -40,6 +40,12 @@ void ConnectorTool::setStyle(std::uint8_t style)
     m_style = style;
 }
 
+void ConnectorTool::setCaps(core::ConnectorCap capA, core::ConnectorCap capB)
+{
+    m_capA = capA;
+    m_capB = capB;
+}
+
 // Points d'attache de l'objet sous le pointeur (ou de celui dont un point est à portée d'accrochage).
 void ConnectorTool::showAttachPoints(core::PointF point)
 {
@@ -95,7 +101,11 @@ core::PageObject ConnectorTool::currentConnector(core::PointF point) const
         end = snap->point;
         objectB = snap->object;
     }
-    return core::makeConnector(m_start, m_objectA, end, objectB, m_style);
+    core::PageObject object = core::makeConnector(m_start, m_objectA, end, objectB, m_style);
+    auto& connector = std::get<core::Connector>(object);
+    connector.capA = m_capA;
+    connector.capB = m_capB;
+    return object;
 }
 
 void ConnectorTool::onSample(const input::Sample& sample)

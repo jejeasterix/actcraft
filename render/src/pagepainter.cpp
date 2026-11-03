@@ -1,5 +1,6 @@
 #include "equationlayout.h"
 
+#include <actcraft/core/connectors.h>
 #include <actcraft/render/imagecolor.h>
 #include <actcraft/render/imagesynth.h>
 #include <actcraft/render/objectrenderer.h>
@@ -756,7 +757,7 @@ void paintConnector(QPainter& p, const core::Connector& c)
     QPointF b(c.secondEnd.x, c.secondEnd.y);
     const QPointF tipA = a;
     const QPointF tipB = b;
-    const double size = std::max(3.0 * c.pen.width, 8.0);
+    const double size = core::connectorCapSize(c.pen.width);
     const QLineF line(a, b);
     const double length = line.length();
     const QPointF dir = length > 0 ? QPointF((b.x() - a.x()) / length, (b.y() - a.y()) / length) : QPointF();

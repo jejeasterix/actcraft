@@ -59,6 +59,7 @@ bool isInkTool(const QString& id)
 }
 
 constexpr int kConnectorStyleCount = 14; // panneau des connecteurs (D11)
+constexpr int kConnectorCapCount = 3;    // extrémités : aucune, rayon, flèche (D11)
 
 // Outils dont la palette principale règle la couleur : l'encre, le pot de peinture (L5-T17), et l'outil des
 // formes pour son contour (P6, réglage propre ; L4-C7). Le dernier outil d'encre (m_lastInk) reste un outil
@@ -494,6 +495,33 @@ void ToolHost::setConnectorStyle(int style)
     emit settingsChanged();
 }
 
+// Extrémités A et B du connecteur (D11, M3 de L5-C18) : gardées et rendues à l'outil comme le style.
+void ToolHost::setConnectorCaps(int capA, int capB)
+{
+    ensureSettings();
+    m_connectorCapA = std::clamp(capA, 0, kConnectorCapCount - 1);
+    m_connectorCapB = std::clamp(capB, 0, kConnectorCapCount - 1);
+    writeValue(settingsKey(QStringLiteral("connector"), QStringLiteral("capA")), m_connectorCapA);
+    writeValue(settingsKey(QStringLiteral("connector"), QStringLiteral("capB")), m_connectorCapB);
+    configureTool(existingTool(QStringLiteral("connector")));
+    emit settingsChanged();
+}
+
+int ToolHost::connectorStyle() const noexcept
+{
+    return m_connectorStyle;
+}
+
+int ToolHost::connectorCapA() const noexcept
+{
+    return m_connectorCapA;
+}
+
+int ToolHost::connectorCapB() const noexcept
+{
+    return m_connectorCapB;
+}
+
 void ToolHost::writeValue(const QString& key, const QVariant& value) const
 {
     if (const std::unique_ptr<QSettings> store = openSettings(m_settingsFile)) {
@@ -512,6 +540,8 @@ void ToolHost::configureTool(tools::Tool* tool) const
         });
     } else if (auto* connector = dynamic_cast<tools::ConnectorTool*>(tool)) {
         connector->setStyle(static_cast<std::uint8_t>(m_connectorStyle));
+        connector->setCaps(static_cast<core::ConnectorCap>(m_connectorCapA),
+                           static_cast<core::ConnectorCap>(m_connectorCapB));
     } else if (auto* penShape = dynamic_cast<tools::PenShapeTool*>(tool)) {
         // Le trait suit l'encre dont la modification vient ; seule l'alpha de la couleur rend le marqueur
         // translucide (stroke.color).
@@ -664,11 +694,19 @@ void ToolHost::ensureSettings()
     }
     user().setShapeSettings(shape);
     m_connectorStyle = 0;
+    m_connectorCapA = 0;
+    m_connectorCapB = 0;
     m_penShape.clear();
     if (store) {
         m_connectorStyle = std::clamp(
             store->value(settingsKey(QStringLiteral("connector"), QStringLiteral("style")), 0).toInt(), 0,
             kConnectorStyleCount - 1);
+        m_connectorCapA = std::clamp(
+            store->value(settingsKey(QStringLiteral("connector"), QStringLiteral("capA")), 0).toInt(), 0,
+            kConnectorCapCount - 1);
+        m_connectorCapB = std::clamp(
+            store->value(settingsKey(QStringLiteral("connector"), QStringLiteral("capB")), 0).toInt(), 0,
+            kConnectorCapCount - 1);
         const QString trace =
             store->value(settingsKey(QStringLiteral("pen-shape"), QStringLiteral("trace"))).toString();
         if (core::penShapeFromId(trace.toStdString())) {

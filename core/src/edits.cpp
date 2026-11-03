@@ -1,3 +1,4 @@
+#include <actcraft/core/connectors.h>
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 
@@ -84,6 +85,9 @@ std::optional<RectF> localBounds(const PageObject& object) noexcept
         box.add(c->firstEnd);
         box.add(c->secondEnd);
         margin = c->pen.width / 2;
+        if (c->capA != ConnectorCap::None || c->capB != ConnectorCap::None) {
+            margin = std::max(margin, connectorCapSize(c->pen.width) / 2); // M8 : flèche et disque débordent
+        }
     } else if (const auto* e = std::get_if<Equation>(&object)) {
         box.addRect(e->bounds);
         margin = 1; // repère d'un pixel (render/) : son anticrénelage déborde de la boîte

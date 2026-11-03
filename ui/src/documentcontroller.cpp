@@ -1,5 +1,6 @@
 #include "parkedsession.h"
 
+#include <actcraft/core/connectors.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/objectedits.h>
@@ -176,6 +177,14 @@ core::Changes DocumentController::run(std::unique_ptr<core::UndoCommand> command
     core::Changes changes;
     if (!command) {
         return changes;
+    }
+    // M2 (L5-C18) : point unique du suivi des connecteurs. Toute commande du document passe ici (execute, la
+    // corbeille, et le dépôt une fois les objets soulevés remis à leur rang) : un connecteur lié suit l'objet
+    // qu'elle déplace, transforme ou retire, dans la même étape. Une commande déjà enveloppée (dépôt d'un
+    // point de forme) ne l'est pas une seconde fois.
+    if (m_current < m_document.pageCount() &&
+        !dynamic_cast<core::FollowingConnectorsCommand*>(command.get())) {
+        command = core::withFollowingConnectors(m_document.page(m_current), m_current, std::move(command));
     }
     command->redo(m_document, changes);
     if (!changes.empty()) {

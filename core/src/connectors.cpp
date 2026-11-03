@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <utility>
 
@@ -93,15 +94,32 @@ bool samePoint(PointF a, PointF b) noexcept
     return a.x == b.x && a.y == b.y;
 }
 
-// Bout lié, relevé avant la commande : l'objet et l'indice de son point d'attache le plus proche du bout.
+bool samePoints(const std::vector<PointF>& a, const std::vector<PointF>& b) noexcept
+{
+    return std::equal(a.begin(), a.end(), b.begin(), b.end(), samePoint);
+}
+
+bool sameTransform(const Transform& a, const Transform& b) noexcept
+{
+    return a.m11 == b.m11 && a.m12 == b.m12 && a.m21 == b.m21 && a.m22 == b.m22 && a.dx == b.dx &&
+           a.dy == b.dy;
+}
+
+// Bout lié, relevé avant la commande : l'objet, l'indice de son point d'attache le plus proche du bout et ses
+// points d'attache d'alors (pour savoir s'il a bougé).
 struct LinkedEnd
 {
     ObjectId object = 0;
     std::size_t index = 0;
+    std::vector<PointF> points;
 };
+// Connecteur relié, relevé avant la commande : sa position d'alors (pour savoir s'il a bougé) et ses bouts.
 struct Link
 {
     ObjectId connector = 0;
+    Transform transform;
+    PointF firstEnd;
+    PointF secondEnd;
     std::optional<LinkedEnd> first;
     std::optional<LinkedEnd> second;
 };
@@ -112,11 +130,12 @@ std::optional<LinkedEnd> linkedEnd(const Page& page, ObjectId object, PointF end
     if (i == kAbsent) {
         return std::nullopt;
     }
-    const auto points = attachPoints(page.objects[i]);
+    auto points = attachPoints(page.objects[i]);
     if (points.empty()) {
         return std::nullopt;
     }
-    return LinkedEnd{object, nearestIndex(points, endOnPage)};
+    const std::size_t index = nearestIndex(points, endOnPage);
+    return LinkedEnd{object, index, std::move(points)};
 }
 
 std::vector<Link> linksOf(const Page& page)
@@ -128,13 +147,38 @@ std::vector<Link> linksOf(const Page& page)
             continue;
         }
         const Transform& t = object.common.transform;
-        Link link{object.common.id, linkedEnd(page, c->objectA, t.map(c->firstEnd)),
+        Link link{object.common.id,
+                  t,
+                  c->firstEnd,
+                  c->secondEnd,
+                  linkedEnd(page, c->objectA, t.map(c->firstEnd)),
                   linkedEnd(page, c->objectB, t.map(c->secondEnd))};
         if (link.first || link.second) {
             links.push_back(std::move(link));
         }
     }
     return links;
+}
+
+// Un bout suit si son objet a bougé ou disparu, ou si le connecteur a bougé (soulevé avec son objet, par
+// exemple) ; une commande sans rapport laisse un bout où il est, même posé à côté d'un sommet.
+bool mustFollow(const Page& page, const LinkedEnd& link, bool connectorMoved)
+{
+    if (connectorMoved) {
+        return true;
+    }
+    const std::size_t i = find(page, link.object);
+    return i == kAbsent || !samePoints(attachPoints(page.objects[i]), link.points);
+}
+
+// Page insérée, retirée ou remplacée (Rétablir la page) : la commande donne la page telle qu'elle la veut.
+bool reshapesPages(const Changes& changes, std::size_t from) noexcept
+{
+    return std::any_of(changes.begin() + static_cast<std::ptrdiff_t>(from), changes.end(),
+                       [](const Change& c) {
+                           return c.kind == Change::Kind::PageInserted ||
+                                  c.kind == Change::Kind::PageRemoved || c.kind == Change::Kind::PageChanged;
+                       });
 }
 
 // Après la commande : le bout rejoint le même point d'attache de son objet, ou se détache sur place.
@@ -215,9 +259,14 @@ void FollowingConnectorsCommand::redo(Document& document, Changes& changes)
     if (!m_inner) {
         return;
     }
-    const std::vector<Link> links = linksOf(document.page(m_page)); // avant la commande
-    m_inner->redo(document, changes);
     m_connectorsBefore.clear();
+    const std::vector<Link> links = m_page < document.pageCount() ? linksOf(document.page(m_page))
+                                                                  : std::vector<Link>{}; // avant la commande
+    const std::size_t from = changes.size();
+    m_inner->redo(document, changes);
+    if (links.empty() || m_page >= document.pageCount() || reshapesPages(changes, from)) {
+        return;
+    }
     Page& page = document.page(m_page);
     for (const Link& link : links) {
         const std::size_t i = find(page, link.connector);
@@ -227,10 +276,13 @@ void FollowingConnectorsCommand::redo(Document& document, Changes& changes)
         PageObject& object = page.objects[i];
         PageObject before = object; // après la commande, avant le suivi : ce que l'annulation remet
         auto& c = std::get<Connector>(object);
-        if (link.first) {
+        const bool connectorMoved = !sameTransform(object.common.transform, link.transform) ||
+                                    !samePoint(c.firstEnd, link.firstEnd) ||
+                                    !samePoint(c.secondEnd, link.secondEnd);
+        if (link.first && mustFollow(page, *link.first, connectorMoved)) {
             follow(page, object.common.transform, *link.first, c.objectA, c.firstEnd);
         }
-        if (link.second) {
+        if (link.second && mustFollow(page, *link.second, connectorMoved)) {
             follow(page, object.common.transform, *link.second, c.objectB, c.secondEnd);
         }
         const auto& old = std::get<Connector>(before);
@@ -249,18 +301,41 @@ void FollowingConnectorsCommand::undo(Document& document, Changes& changes)
     if (!m_inner) {
         return;
     }
-    // Inverse exact du redo : connecteurs remis à leur état d'après la commande, puis commande annulée.
-    Page& page = document.page(m_page);
-    for (auto it = m_connectorsBefore.rbegin(); it != m_connectorsBefore.rend(); ++it) {
-        const std::size_t i = find(page, it->common.id);
-        if (i == kAbsent) {
-            continue;
+    // Inverse exact du redo : connecteurs remis à leur état d'après la commande, puis commande annulée. Sans
+    // connecteur suivi, la page n'est pas lue : la commande a pu la retirer.
+    if (!m_connectorsBefore.empty()) {
+        Page& page = document.page(m_page);
+        for (auto it = m_connectorsBefore.rbegin(); it != m_connectorsBefore.rend(); ++it) {
+            const std::size_t i = find(page, it->common.id);
+            if (i == kAbsent) {
+                continue;
+            }
+            const RectF area = unite(boundsOnPage(page.objects[i]), boundsOnPage(*it));
+            page.objects[i] = *it;
+            changes.push_back({Change::Kind::ObjectChanged, m_page, it->common.id, area});
         }
-        const RectF area = unite(boundsOnPage(page.objects[i]), boundsOnPage(*it));
-        page.objects[i] = *it;
-        changes.push_back({Change::Kind::ObjectChanged, m_page, it->common.id, area});
     }
     m_inner->undo(document, changes);
+}
+
+int FollowingConnectorsCommand::mergeId() const noexcept
+{
+    return m_inner ? m_inner->mergeId() : -1;
+}
+
+// Une réglette (lot 3) garde sa fusion sur une page reliée : la commande suivante, qui n'a suivi aucun
+// connecteur, s'absorbe dans la commande enveloppée ; l'annulation remet les connecteurs de la première.
+bool FollowingConnectorsCommand::mergeWith(const UndoCommand& other)
+{
+    if (!m_inner) {
+        return false;
+    }
+    const auto* wrapped = dynamic_cast<const FollowingConnectorsCommand*>(&other);
+    if (!wrapped) {
+        return m_inner->mergeWith(other);
+    }
+    return wrapped->m_inner && wrapped->m_page == m_page && wrapped->m_connectorsBefore.empty() &&
+           m_inner->mergeWith(*wrapped->m_inner);
 }
 
 std::unique_ptr<UndoCommand> withFollowingConnectors(const Page& page, std::size_t pageIndex,

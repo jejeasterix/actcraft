@@ -662,6 +662,11 @@ Window {
             if (root.hasArgument(rank) || rank === 0)
                 appTools.setConnectorStyle(Number(rank))
         })
+        appCommands.setHandler("connector.caps", function (caps) {
+            const ranks = root.hasArgument(caps) ? String(caps).split(",") : []
+            if (ranks.length === 2)
+                appTools.setConnectorCaps(Number(ranks[0]), Number(ranks[1]))
+        })
         appCommands.setHandler("view.pen-modifiers", function () { penModifierBar.visible = !penModifierBar.visible })
         appCommands.setHandler("insert.image", function (url) {
             if (root.hasArgument(url))
