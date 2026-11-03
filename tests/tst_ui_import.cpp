@@ -255,9 +255,11 @@ private slots:
         // cohérence.
         Shell s;
         QVERIFY(s.start());
-        QCOMPARE(s.exchange->powerpointAvailable(), exporting::findConverter().has_value());
+        // Sans import PDF construit, rien n'est offert, convertisseur ou non.
+        QCOMPARE(s.exchange->powerpointAvailable(),
+                 exporting::pdfImportAvailable() && exporting::findConverter().has_value());
         qputenv("ACTCRAFT_OFFICE_CONVERTER", fakeConverter(fixturePdf()));
-        QVERIFY(s.exchange->powerpointAvailable());
+        QCOMPARE(s.exchange->powerpointAvailable(), exporting::pdfImportAvailable());
     }
 
     void menuHidesUnavailableImports()
