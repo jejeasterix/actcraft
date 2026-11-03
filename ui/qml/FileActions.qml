@@ -6,7 +6,8 @@ import ActCraft.Ui
 // content:// sous Android). Tout ce qui remplace un document modifié demande d'abord de l'enregistrer.
 // Lot 5 (F-010) : Nouveau et Ouvrir ouvrent un onglet, sans rien demander (le document affiché est garé, pas
 // remplacé) ; seul un « Sans titre » vierge et non modifié est remplacé par Ouvrir, dans son onglet (H5-23).
-// Fermer laisse un paperboard vierge « Sans titre » dans l'onglet affiché (F-656).
+// Fermer ferme l'onglet affiché, comme sa croix (DocumentTabBar) ; le dernier devient un « Sans titre » vierge.
+// Quitter demande l'enregistrement de chaque onglet modifié, affiché ou garé, l'un après l'autre (L5-C11).
 Item {
     id: actions
     objectName: "fileActions"
@@ -76,8 +77,36 @@ Item {
         saveDialog.selectedFile = folder + "/" + encodeURIComponent(actions.document.suggestedFileName)
         saveDialog.open()
     }
-    function close() { guard(function () { actions.document.newDocument(1024, 768) }) }
-    function quit() { guard(function () { actions.quitting = true; Qt.quit() }) }
+    function close() {
+        if (actions.textEditing) actions.textEditing.commit()
+        actions.tabs.requestClose(actions.tabs.currentIndex)
+    }
+    // Un onglet, affiché ou garé, a-t-il des modifications ? (fermeture de la fenêtre)
+    function hasUnsavedTabs() {
+        if (actions.textEditing) actions.textEditing.commit()
+        for (let i = 0; i < actions.tabs.count; ++i)
+            if (actions.tabs.isModifiedAt(i)) return true
+        return false
+    }
+    function quit() {
+        if (actions.textEditing) actions.textEditing.commit()
+        actions.quitFrom(0)
+    }
+    // Demande l'enregistrement du premier onglet modifié à partir de `from` (il est montré d'abord), puis passe
+    // au suivant ; « Annuler » ou un « Enregistrer sous » refusé abandonne la sortie. Quitte quand tous sont réglés.
+    function quitFrom(from) {
+        for (let i = from; i < actions.tabs.count; ++i) {
+            if (!actions.tabs.isModifiedAt(i)) continue
+            if (i !== actions.tabs.currentIndex) actions.tabs.activate(i)
+            if (i !== actions.tabs.currentIndex) return // lecture ou écriture en cours : rien ne bouge
+            actions.pending = function () { actions.quitFrom(i + 1) }
+            saveChanges.documentTitle = actions.document.title
+            saveChanges.open()
+            return
+        }
+        actions.quitting = true
+        Qt.quit()
+    }
 
     FileDialog {
         id: openDialog

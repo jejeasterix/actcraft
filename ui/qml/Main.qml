@@ -446,7 +446,7 @@ Window {
     // Fermeture de la fenêtre : même demande que « Quitter ».
     onClosing: close => {
         appText.commit() // avant de lire `modified` : le texte en cours compte
-        if (appDocument.modified && !fileActions.quitting) {
+        if (!fileActions.quitting && fileActions.hasUnsavedTabs()) {
             close.accepted = false
             fileActions.quit()
         }
@@ -461,6 +461,12 @@ Window {
         anchors.right: parent.right
         anchors.margins: Theme.espace2
         z: 10
+    }
+    // Échanges de fichiers (L5-T25) : l'échec et la fin arrivent à la bannière.
+    Connections {
+        target: appExchange
+        function onFailed(message) { messageBanner.show(message) }
+        function onFinished(message) { messageBanner.show(message) }
     }
     Connections {
         target: appDocument

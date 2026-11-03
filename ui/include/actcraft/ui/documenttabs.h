@@ -55,6 +55,8 @@ public:
     Q_INVOKABLE void closeWithoutSaving(int index);
     Q_INVOKABLE void copyPagesToTab(const QVariantList& pageIndexes,
                                     int tabIndex); // F-011 : avant la première page
+    // L5-C11 : un onglet garé ou affiché est-il modifié ? (Quitter les parcourt tous ; ajout seul.)
+    Q_INVOKABLE bool isModifiedAt(int index) const;
     Q_INVOKABLE void next();
     Q_INVOKABLE void previous();
 

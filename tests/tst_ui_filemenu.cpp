@@ -268,7 +268,7 @@ private slots:
         QVERIFY(run(s, QStringLiteral("page.next")));
         QVERIFY(run(s, QStringLiteral("file.close")));
         // Un Dialog est un Popup, pas un QQuickItem : item() ne le voit pas.
-        QObject* dialog = namedObject(s, "saveChangesDialog");
+        QObject* dialog = namedObject(s, "tabSaveChangesDialog");
         QVERIFY(dialog);
         QTRY_VERIFY(dialog->property("visible").toBool());
         QCOMPARE(doc->pageCount(), 2); // rien n'est fermé avant la réponse
@@ -285,7 +285,8 @@ private slots:
         QVERIFY(run(s, QStringLiteral("page.next")));
         QVERIFY(
             run(s, QStringLiteral("file.close"))); // L5-C10 : « Nouveau » n'écrase plus, « Fermer » demande
-        QObject* dialog = namedObject(s, "saveChangesDialog");
+        QObject* dialog =
+            namedObject(s, "tabSaveChangesDialog"); // L5-C11 : Fermer suit le chemin de la croix
         QVERIFY(dialog);
         QTRY_VERIFY(dialog->property("visible").toBool());
         QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
@@ -399,6 +400,165 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
         QTRY_VERIFY(!dialog->property("visible").toBool());
         QVERIFY(doc->isModified());
+    }
+
+    // L5-C11 : deux onglets modifiés dont un garé : « Quitter » demande deux fois, l'un après l'autre, en
+    // basculant vers l'onglet concerné ; « Annuler » à la deuxième abandonne la sortie, rien n'est perdu.
+    void quitAsksForEachModifiedTabAndCancelKeepsAll()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        tabs->newTab(); // le document modifié est garé dans l'onglet 0
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QCOMPARE(tabs->currentIndex(), 1);
+        QObject* dialog = namedObject(s, "saveChangesDialog");
+        QObject* actions = namedObject(s, "fileActions");
+        QVERIFY(dialog && actions);
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QCOMPARE(tabs->currentIndex(), 0);                     // l'onglet garé est montré avant la demande
+        QVERIFY(QMetaObject::invokeMethod(dialog, "discard")); // « Ne pas enregistrer » : le suivant
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QCOMPARE(tabs->currentIndex(), 1);
+        QVERIFY(!actions->property("quitting").toBool());
+        QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
+        QTRY_VERIFY(!dialog->property("visible").toBool());
+        QTest::qWait(50);
+        QVERIFY(!actions->property("quitting").toBool());
+        QCOMPARE(tabs->rowCount(), 2);
+        QVERIFY(tabs->data(tabs->index(0), ui::DocumentTabs::ModifiedRole).toBool());
+        QVERIFY(tabs->data(tabs->index(1), ui::DocumentTabs::ModifiedRole).toBool());
+        QVERIFY(doc->isModified());
+    }
+
+    // L5-C11 : seul un onglet garé est modifié (l'affiché est propre) : « Quitter » le demande quand même.
+    void quitAsksForAParkedModifiedTab()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        tabs->newTab();
+        QVERIFY(!controller(s)->isModified());
+        QObject* dialog = namedObject(s, "saveChangesDialog");
+        QObject* actions = namedObject(s, "fileActions");
+        QVERIFY(dialog && actions);
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QCOMPARE(tabs->currentIndex(), 0);
+        QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
+        QTRY_VERIFY(!dialog->property("visible").toBool());
+        QVERIFY(!actions->property("quitting").toBool());
+        QVERIFY(tabs->data(tabs->index(0), ui::DocumentTabs::ModifiedRole).toBool());
+    }
+
+    // L5-C11 : la fermeture de la fenêtre passe par la même demande (onglet garé modifié).
+    void closingTheWindowAsksForAParkedModifiedTab()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        tabs->newTab();
+        QObject* dialog = namedObject(s, "saveChangesDialog");
+        QVERIFY(dialog);
+        s.window->close();
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
+        QTRY_VERIFY(!dialog->property("visible").toBool());
+        QVERIFY(tabs->data(tabs->index(0), ui::DocumentTabs::ModifiedRole).toBool());
+    }
+
+    // L5-C11 : « Enregistrer » d'un sans-titre ouvre « Enregistrer sous » ; son annulation abandonne la
+    // sortie.
+    void quitSaveAsCancelledAbandonsTheQuit()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QTemporaryDir root;
+        auto* doc = controller(s);
+        doc->setDocumentsRoot(root.path());
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QObject* dialog = namedObject(s, "saveChangesDialog");
+        QObject* saveDialog = namedObject(s, "saveDialog");
+        QObject* actions = namedObject(s, "fileActions");
+        QVERIFY(dialog && saveDialog && actions);
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(dialog, "save"));
+        QVERIFY(QMetaObject::invokeMethod(saveDialog, "reject"));
+        QTest::qWait(50);
+        QVERIFY(!actions->property("quitting").toBool());
+        QVERIFY(doc->isModified());
+    }
+
+    // L5-C11 : « Fermer » ferme l'onglet affiché, comme sa croix ; le dernier devient un « Sans titre »
+    // vierge.
+    void closeClosesTheShownTab()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        tabs->newTab();
+        QCOMPARE(tabs->rowCount(), 2);
+        QVERIFY(run(s, QStringLiteral("file.close")));
+        QCOMPARE(tabs->rowCount(), 1); // onglet propre : fermé sans demande
+        QVERIFY(!dialogVisible(s, "tabSaveChangesDialog"));
+        QVERIFY(run(s, QStringLiteral("page.next"))); // un seul onglet, modifié
+        QVERIFY(run(s, QStringLiteral("file.close")));
+        QObject* dialog = namedObject(s, "tabSaveChangesDialog");
+        QVERIFY(dialog);
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(dialog, "discard"));
+        QTRY_COMPARE(doc->pageCount(), 1);
+        QCOMPARE(tabs->rowCount(), 1); // jamais zéro onglet
+        QVERIFY(!doc->isModified());
+        QVERIFY(doc->fileUrl().isEmpty());
+    }
+
+    // L5-C11 : « Fermer » sur un onglet modifié d'un jeu de deux : la demande, puis l'onglet est fermé.
+    void closeAskedForAModifiedTabAmongTwo()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        tabs->newTab();
+        QVERIFY(run(s, QStringLiteral("page.next"))); // onglet 1 modifié
+        QVERIFY(run(s, QStringLiteral("file.close")));
+        QObject* dialog = namedObject(s, "tabSaveChangesDialog");
+        QVERIFY(dialog);
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QCOMPARE(tabs->rowCount(), 2); // rien n'est fermé avant la réponse
+        QVERIFY(QMetaObject::invokeMethod(dialog, "discard"));
+        QTRY_COMPARE(tabs->rowCount(), 1);
+    }
+
+    // L5-C11 : les messages de L5-T25 (échec ou fin d'un échange de fichier) arrivent à la bannière.
+    void exchangeMessagesReachTheBanner()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* exchange = s.window->findChild<QObject*>(QStringLiteral("appExchange"));
+        QQuickItem* banner = item(s, "messageBanner");
+        QQuickItem* text = item(s, "messageText");
+        QVERIFY(exchange && banner && text);
+        QVERIFY(!banner->isVisible());
+        QVERIFY(
+            QMetaObject::invokeMethod(exchange, "failed", Q_ARG(QString, QStringLiteral("export échoué"))));
+        QTRY_VERIFY(banner->isVisible());
+        QCOMPARE(text->property("text").toString(), QStringLiteral("export échoué"));
+        QVERIFY(
+            QMetaObject::invokeMethod(exchange, "finished", Q_ARG(QString, QStringLiteral("export fini"))));
+        QTRY_COMPARE(text->property("text").toString(), QStringLiteral("export fini"));
     }
 
     // L2-C9, constat 5 : « Quitter » pendant un enregistrement, puis « Enregistrer » : l'enregistrement
@@ -886,7 +1046,7 @@ private slots:
         QCOMPARE(text->property("textFormat").toInt(), int(Qt::PlainText));
         QVERIFY(run(s, QStringLiteral("page.next")));
         QVERIFY(run(s, QStringLiteral("file.close")));
-        QObject* ask = namedObject(s, "saveChangesDialog");
+        QObject* ask = namedObject(s, "tabSaveChangesDialog");
         QVERIFY(ask);
         QObject* message = ask->findChild<QObject*>(QStringLiteral("saveChangesText"));
         QVERIFY(message);
@@ -902,17 +1062,19 @@ private slots:
         doc->setDocumentsRoot(root.path());
         QVERIFY(run(s, QStringLiteral("page.next")));
         QVERIFY(run(s, QStringLiteral("file.close")));
-        QObject* ask = namedObject(s, "saveChangesDialog");
+        QObject* ask = namedObject(s, "tabSaveChangesDialog");
         QVERIFY(ask);
         QTRY_VERIFY(ask->property("visible").toBool());
         QVERIFY(QMetaObject::invokeMethod(ask, "save")); // document sans fichier : « Enregistrer sous »
         QObject* saveDialog = namedObject(s, "saveDialog");
-        QVERIFY(saveDialog);
+        QObject* bar = namedObject(s, "documentTabBar");
+        QVERIFY(saveDialog && bar);
+        QVERIFY(bar->property("closeAfterSave").toBool()); // L5-C11 : la fermeture attend, dans la barre
+        QVERIFY(QMetaObject::invokeMethod(saveDialog, "reject"));
+        QTRY_VERIFY(!bar->property("closeAfterSave").toBool());
         QObject* actions = namedObject(s, "fileActions");
         QVERIFY(actions);
-        QVERIFY(!isNullAction(actions->property("afterSave")));
-        QVERIFY(QMetaObject::invokeMethod(saveDialog, "reject"));
-        QTRY_VERIFY(isNullAction(actions->property("afterSave")));
+        QVERIFY(isNullAction(actions->property("afterSave")));
         // Un enregistrement plus tard ne doit pas fermer le document (l'action abandonnée est oubliée).
         QTemporaryDir dir;
         QSignalSpy saved(doc, &ui::DocumentController::saveFinished);

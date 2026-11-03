@@ -194,6 +194,11 @@ void DocumentTabs::activate(int index)
     switchTo(index, m_document->parkSession());
 }
 
+bool DocumentTabs::isModifiedAt(int index) const
+{
+    return index >= 0 && index < rowCount() && data(this->index(index), ModifiedRole).toBool();
+}
+
 bool DocumentTabs::requestClose(int index)
 {
     if (!m_document || index < 0 || index >= rowCount()) {
