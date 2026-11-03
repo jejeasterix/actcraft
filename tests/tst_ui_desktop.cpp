@@ -932,19 +932,23 @@ private slots:
         QTRY_COMPARE(window->visibility(), QWindow::FullScreen);
     }
 
-    // M8 (relecture du lot 7) : un outil lancé depuis un anneau de la roue (horloge, dés, calculatrice) se
-    // voit : la fenêtre qui le porte n'est plus réduite. Mutant : l'entrée déclenche seulement la commande de
-    // l'outil (le panneau s'ouvre dans la fenêtre principale réduite, invisible).
+    // M8 (relecture du lot 7) : un outil lancé depuis un anneau de la roue (horloge, dés, calculatrice,
+    // message défilant : tous dans la fenêtre principale) se voit : la fenêtre qui le porte n'est plus réduite,
+    // le panneau est ouvert. Mutant : l'entrée déclenche seulement la commande de l'outil (le panneau s'ouvre
+    // dans la fenêtre principale réduite, invisible).
     void wheelToolIsVisible_data()
     {
         QTest::addColumn<QString>("command");
-        QTest::newRow("horloge") << QStringLiteral("tool.clock");
-        QTest::newRow("des") << QStringLiteral("tool.dice");
-        QTest::newRow("calculatrice") << QStringLiteral("tool.calculator");
+        QTest::addColumn<QString>("panel"); // racine du panneau ; vide : le message défile sur la page
+        QTest::newRow("horloge") << QStringLiteral("tool.clock") << QStringLiteral("clockRoot");
+        QTest::newRow("des") << QStringLiteral("tool.dice") << QStringLiteral("diceRoot");
+        QTest::newRow("calculatrice") << QStringLiteral("tool.calculator") << QStringLiteral("calculatorRoot");
+        QTest::newRow("message defilant") << QStringLiteral("tool.ticker") << QString();
     }
     void wheelToolIsVisible()
     {
         QFETCH(QString, command);
+        QFETCH(QString, panel);
         MainWindow main;
         QVERIFY(main.window());
         DesktopController* desktop = desktopOf(main);
@@ -982,6 +986,13 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(entry(entryName), "click"));
         QTRY_VERIFY(main.window()->visibility() != QWindow::Minimized);
         QVERIFY(main.window()->isVisible());
+        QVERIFY(!desktop->property("toolsShown").toBool());
+        if (!panel.isEmpty()) {
+            QQuickItem* root = main.item(panel);
+            QVERIFY2(root, qPrintable(panel));
+            QTRY_VERIFY(root->isVisible());
+            QCOMPARE(root->window(), main.window());
+        }
     }
 
     // M2 (relecture du lot 7 ; plan 7b, L7-T30 ; F-640 : effets désactivés pendant l'annotation de bureau) :

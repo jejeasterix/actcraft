@@ -18,6 +18,7 @@ Item {
     property QtObject controller: transitionController
     property QtObject curtain: null
     property QtObject spotlight: null
+    property QtObject desktop: null // DesktopController : aucun effet pendant l'annotation (F-640)
     // Instantanés pris depuis le chargement (crochet de test : aucun quand il n'y a pas d'effet à jouer).
     property int snapshotCount: 0
     // Morceaux de l'instantané en cours ; leur génération écarte le signal d'un instantané déjà retiré.
@@ -31,6 +32,7 @@ Item {
         objectName: "transition"
         documentController: root.documentController
         blocked: (root.curtain ? root.curtain.active : false) || (root.spotlight ? root.spotlight.active : false)
+        desktopAnnotation: root.desktop ? root.desktop.annotating : false
         onCaptureRequested: effect => root.capture(effect)
         onPlayRequested: (effect, durationMs) => root.play(durationMs)
         onStopRequested: root.clear()
