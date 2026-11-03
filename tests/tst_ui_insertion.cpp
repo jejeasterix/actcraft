@@ -1,5 +1,6 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/pageedits.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documenttabs.h>
 #include <actcraft/ui/insertion.h>
@@ -11,6 +12,7 @@
 #include <QTest>
 #include <QUrl>
 
+#include <memory>
 #include <string>
 #include <variant>
 
@@ -110,6 +112,47 @@ private slots:
         QTRY_COMPARE(inserted.count(), 1);
         QCOMPARE(controller.document().page(0).objects.size(), std::size_t(1));
         QVERIFY(controller.document().page(1).objects.empty());
+    }
+
+    // L5-C23 (mineur D, H5-32) : la page d'origine est retirée pendant le décodage : l'image n'est versée sur
+    // aucune autre page (celle qui prend son indice) ; abandon annoncé.
+    void imageIsDroppedWhenItsPageDisappears()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        controller.nextPage();
+        controller.pageBack(); // page 1 affichée, page 2 derrière
+        QCOMPARE(controller.currentIndex(), 0);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        insertion.insertImage(QUrl::fromLocalFile(writePng(dir, "a.png", 100, 100)));
+        controller.execute(std::make_unique<core::RemovePagesCommand>(std::vector<std::size_t>{0}));
+        QCOMPARE(controller.document().pageCount(), std::size_t(1));
+        QTRY_VERIFY(!insertion.isBusy());
+        QCOMPARE(inserted.count(), 0);
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(controller.document().page(0).objects.empty());
+    }
+
+    // L5-C23 (mineur D) : une page insérée avant l'origine pendant le décodage décale son indice ; l'image reste
+    // sur sa page.
+    void imageFollowsItsPageWhenOneIsInsertedBefore()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        insertion.insertImage(QUrl::fromLocalFile(writePng(dir, "a.png", 100, 100)));
+        controller.execute(std::make_unique<core::InsertPagesCommand>(0, std::vector<core::Page>{core::Page{}}));
+        QCOMPARE(controller.document().pageCount(), std::size_t(2));
+        QTRY_COMPARE(inserted.count(), 1);
+        QVERIFY(controller.document().page(0).objects.empty());
+        QCOMPARE(controller.document().page(1).objects.size(), std::size_t(1));
     }
 
     void smallImageKeepsItsSize()

@@ -207,15 +207,22 @@ private slots:
             }
             QVERIFY(inMenus(commands->menus(), QStringLiteral("file.import-pdf")));
 #ifndef Q_OS_WIN
-            // Un soffice exécutable sur le PATH (machine avec LibreOffice) : l'entrée apparaît.
-            QTemporaryDir sofficeDir;
-            QVERIFY(sofficeDir.isValid());
-            QVERIFY(!fakeSofficeDirectory(sofficeDir).isEmpty());
-            qputenv("PATH", QFile::encodeName(sofficeDir.path()));
-            emit s.exchange->converterChanged();
-            QVERIFY(s.exchange->powerpointAvailable());
-            QVERIFY(inMenus(commands->menus(), id));
-            qputenv("PATH", QFile::encodeName(emptyDir.path()));
+            // Un soffice exécutable sur le PATH (machine avec LibreOffice) : l'entrée apparaît. Sur une machine
+            // où LibreOffice est installé hors du PATH (/Applications sur Mac), findConverter() est déjà vrai
+            // avec le PATH vide : le faux soffice ne prouverait rien, ce bloc seul est passé (pas un talon : le
+            // reste du test s'exécute).
+            if (exporting::findConverter().has_value()) {
+                qInfo("Bloc « faux soffice » passé : un convertisseur est déjà trouvé avec le PATH vide.");
+            } else {
+                QTemporaryDir sofficeDir;
+                QVERIFY(sofficeDir.isValid());
+                QVERIFY(!fakeSofficeDirectory(sofficeDir).isEmpty());
+                qputenv("PATH", QFile::encodeName(sofficeDir.path()));
+                emit s.exchange->converterChanged();
+                QVERIFY(s.exchange->powerpointAvailable());
+                QVERIFY(inMenus(commands->menus(), id));
+                qputenv("PATH", QFile::encodeName(emptyDir.path()));
+            }
 #endif
             // Le convertisseur apparaît, et l'objet l'annonce : l'entrée revient.
             qputenv("ACTCRAFT_OFFICE_CONVERTER", fakeConverter(fixturePdf()));

@@ -206,6 +206,24 @@ private slots:
         QCOMPARE(connector(d, c).objectA, a); // l'annulation le rattache
     }
 
+    // L5-C23 (mineur C) : Effacer ▸ Objets retire l'objet relié ; le connecteur verrouillé qui reste détache
+    // son bout (comme la suppression), et l'annulation le rattache.
+    void clearingObjectsDetachesTheEnd()
+    {
+        auto d = blank();
+        const auto a = addRect(d, {100, 100, 100, 50});
+        const auto c = addConnectorAt(d, {200, 150}, a, {600, 600}, 0);
+        objectById(d, c).common.locked = true; // survit à l'effacement
+        core::UndoStack stack;
+        stack.push(d, core::withFollowingConnectors(
+                          d.page(0), 0, std::make_unique<core::ClearPageCommand>(0, core::ClearKind::Objects)));
+        QCOMPARE(core::indexOf(d.page(0), a), d.page(0).objects.size()); // l'objet est parti
+        QCOMPARE(connector(d, c).objectA, core::ObjectId(0));
+        QCOMPARE(xy(connector(d, c).firstEnd), XY(200, 150)); // reste en place
+        stack.undo(d);
+        QCOMPARE(connector(d, c).objectA, a);
+    }
+
     // Distingue le suivi par indice de point d'attache (contrat) du suivi par décalage, du réaccrochage par
     // distance et du suivi propre à une commande : après une mise à l'échelle, le coin bas droit reste le
     // coin bas droit.
