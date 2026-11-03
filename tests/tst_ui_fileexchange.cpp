@@ -197,8 +197,8 @@ private slots:
         UrlCatcher catcher;
         QDesktopServices::setUrlHandler(QStringLiteral("file"), &catcher, "got");
         QSignalSpy done(s.exchange, &ui::FileExchange::finished);
-        // « Imprimer » ouvre la boîte d'impression (L5-C15) ; son repli sans QPrinter appelle printThroughPdf :
-        // on appelle cette voie directement, la boîte est couverte par tst_ui_filemenu.
+        // « Imprimer » ouvre la boîte (L5-C15) ; son repli sans QPrinter appelle printThroughPdf : on
+        // appelle cette voie directement, la boîte est couverte par tst_ui_filemenu.
         QMetaObject::invokeMethod(s.exchange, "printThroughPdf");
         QTRY_VERIFY_WITH_TIMEOUT(done.count() == 1 && !s.exchange->isBusy(), 15000);
         QDesktopServices::unsetUrlHandler(QStringLiteral("file"));
