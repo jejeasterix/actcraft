@@ -321,6 +321,36 @@ private slots:
         QCOMPARE(r.center().y, 35.0);
         QCOMPARE(rotationOf(*find(t, b)), 0.0 + rotationOf(objectById(d, a).common.transform));
     }
+    // L5-C23 (majeur A) : un groupe dont un membre manque (fichier édité à la main, accepté à la lecture) est
+    // traité sur ses membres présents ; aucune lecture hors bornes. Le membre absent est ignoré.
+    void groupWithAnAbsentMemberUsesTheOthers()
+    {
+        auto d = blank();
+        const auto a = addRect(d, {100, 10, 50, 50});
+        const auto b = addRect(d, {300, 80, 20, 20});
+        const core::ObjectId absent = 9999;
+        core::Group group;
+        group.members = {a, absent};
+        core::PageObject object = group;
+        object.common.id = d.allocateId();
+        d.page(0).objects.push_back(std::move(object));
+        const core::ObjectId g = d.page(0).objects.back().common.id;
+        const auto aligned = core::alignTransforms(d.page(0), {g, b}, core::AlignMode::Left);
+        QVERIFY(find(aligned, b) != nullptr);
+        QCOMPARE(boundsWith(d, b, *find(aligned, b)).x, 100.0); // l'emprise du groupe est celle de a
+        for (const auto& entry : aligned) {
+            QVERIFY(entry.first != absent);
+        }
+        const auto fitted = core::fitTransforms(d.page(0), {g}, core::FitMode::Height);
+        for (const auto& entry : fitted) {
+            QVERIFY(entry.first != absent);
+        }
+        const auto flipped = core::flipTransforms(d.page(0), {g}, core::Axis::X);
+        QVERIFY(!flipped.empty());
+        for (const auto& entry : flipped) {
+            QVERIFY(entry.first != absent);
+        }
+    }
     void fitHeight()
     {
         auto d = blank();

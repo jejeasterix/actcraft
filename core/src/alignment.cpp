@@ -81,7 +81,11 @@ std::vector<Unit> units(const Page& page, const std::vector<ObjectId>& ids)
         if (std::holds_alternative<Group>(body(object))) {
             unit.group = true;
             for (const ObjectId member : expandGroups(page, {id})) {
-                const PageObject& m = page.objects[indexOf(page, member)];
+                const std::size_t at = indexOf(page, member);
+                if (at >= page.objects.size()) {
+                    continue; // membre absent (fichier édité à la main) : ignoré, comme pageExtent
+                }
+                const PageObject& m = page.objects[at];
                 if (!std::holds_alternative<Group>(body(m)) && !m.common.locked && hasExtent(m)) {
                     unit.parts.push_back(&m);
                 }

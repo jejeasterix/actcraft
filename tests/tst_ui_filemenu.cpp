@@ -806,6 +806,71 @@ private slots:
         QCOMPARE(tabs->rowCount(), 2);
     }
 
+    // L5-C23 (majeur B) : ouverture en cours dans un onglet neuf, onglet garé modifié ; « Enregistrer » puis
+    // « Quitter » pendant la lecture : la lecture finit dans la branche de l'enregistrement en attente, et la
+    // sortie reprend quand même (une fois), au lieu de se perdre.
+    void quitIsNotLostWhenASaveWaitsForTheOpen()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        auto* tabs = tabsOf(s);
+        QVERIFY(tabs);
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("deux.actcraft"));
+        QVERIFY(writeTwoPages(path));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(doc->isModified());
+        QSignalSpy loaded(doc, &ui::DocumentController::loadFinished);
+        QObject* ask = namedObject(s, "saveChangesDialog");
+        QObject* actions = namedObject(s, "fileActions");
+        QVERIFY(ask && actions);
+        PoolHold pool;
+        QVERIFY(pool.held());
+        QVERIFY(run(s, QStringLiteral("file.open"), path));
+        QVERIFY(doc->isBusy());
+        QVERIFY(run(s, QStringLiteral("file.save"))); // en attente de la fin de la lecture
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        pool.release();
+        QVERIFY(loaded.wait(20000));
+        QTRY_VERIFY_WITH_TIMEOUT(ask->property("visible").toBool(), 20000); // la sortie a repris
+        QCOMPARE(tabs->currentIndex(), 0);
+        QVERIFY(QMetaObject::invokeMethod(ask, "cancel"));
+        QTRY_VERIFY(!ask->property("visible").toBool());
+        QCOMPARE(actions->property("quitResume").toInt(), -1);
+        QVERIFY(!actions->property("quitting").toBool());
+    }
+
+    // L5-C23 (majeur B) : « Quitter » pressé deux fois pendant une lecture, puis l'utilisateur annule (une
+    // boîte « Annuler ») : la sortie est oubliée, elle ne reprend pas à la fin de la lecture.
+    void cancellingForgetsAPendingQuit()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("deux.actcraft"));
+        QVERIFY(writeTwoPages(path));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QSignalSpy loaded(doc, &ui::DocumentController::loadFinished);
+        QObject* ask = namedObject(s, "saveChangesDialog");
+        QObject* actions = namedObject(s, "fileActions");
+        QVERIFY(ask && actions);
+        PoolHold pool;
+        QVERIFY(pool.held());
+        QVERIFY(run(s, QStringLiteral("file.open"), path));
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        QVERIFY(run(s, QStringLiteral("file.quit")));
+        QCOMPARE(actions->property("quitResume").toInt(), 0);
+        QVERIFY(QMetaObject::invokeMethod(ask, "cancel")); // l'utilisateur annule
+        QCOMPARE(actions->property("quitResume").toInt(), -1);
+        pool.release();
+        QVERIFY(loaded.wait(20000));
+        QTest::qWait(200);
+        QVERIFY(!ask->property("visible").toBool());
+        QVERIFY(!actions->property("quitting").toBool());
+    }
+
     // L5-C19 (M20) : fermer un onglet modifié, « Enregistrer », écriture réussie : l'onglet se ferme.
     void closingAModifiedTabThenSavingClosesIt()
     {

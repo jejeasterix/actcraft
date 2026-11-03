@@ -1,6 +1,7 @@
 #include <actcraft/core/connectors.h>
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
+#include <actcraft/core/objectedits.h>
 
 #include <algorithm>
 #include <cmath>
@@ -172,13 +173,15 @@ bool mustFollow(const Page& page, const LinkedEnd& link, bool connectorMoved)
 }
 
 // Page insérée, retirée ou remplacée (Rétablir la page) : la commande donne la page telle qu'elle la veut.
-bool reshapesPages(const Changes& changes, std::size_t from) noexcept
+// Un PageChanged d'une autre commande (Effacer, grille, fond) ne remplace pas la page : les bouts suivent ou
+// se détachent comme pour une suppression.
+bool reshapesPages(const Changes& changes, std::size_t from, bool replaces) noexcept
 {
-    return std::any_of(changes.begin() + static_cast<std::ptrdiff_t>(from), changes.end(),
-                       [](const Change& c) {
-                           return c.kind == Change::Kind::PageInserted ||
-                                  c.kind == Change::Kind::PageRemoved || c.kind == Change::Kind::PageChanged;
-                       });
+    return std::any_of(
+        changes.begin() + static_cast<std::ptrdiff_t>(from), changes.end(), [replaces](const Change& c) {
+            return c.kind == Change::Kind::PageInserted || c.kind == Change::Kind::PageRemoved ||
+                   (replaces && c.kind == Change::Kind::PageChanged);
+        });
 }
 
 // Après la commande : le bout rejoint le même point d'attache de son objet, ou se détache sur place.
@@ -264,7 +267,8 @@ void FollowingConnectorsCommand::redo(Document& document, Changes& changes)
                                                                   : std::vector<Link>{}; // avant la commande
     const std::size_t from = changes.size();
     m_inner->redo(document, changes);
-    if (links.empty() || m_page >= document.pageCount() || reshapesPages(changes, from)) {
+    if (links.empty() || m_page >= document.pageCount() ||
+        reshapesPages(changes, from, dynamic_cast<const ReplacePageCommand*>(m_inner.get()) != nullptr)) {
         return;
     }
     Page& page = document.page(m_page);

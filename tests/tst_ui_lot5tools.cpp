@@ -14,6 +14,7 @@
 
 #include <QBuffer>
 #include <QColor>
+#include <QCoreApplication>
 #include <QDir>
 #include <QImage>
 #include <QQmlApplicationEngine>
@@ -116,7 +117,9 @@ private:
         if (!app.view || !app.document || !app.tools || !app.commands) {
             return false;
         }
-        app.tools->setSettingsFile(m_dir.filePath(name)); // jamais le profil réel
+        if (!name.isEmpty()) {
+            app.tools->setSettingsFile(m_dir.filePath(name)); // jamais le profil réel
+        }
         if (!QTest::qWaitForWindowExposed(app.window)) {
             return false;
         }
@@ -330,6 +333,31 @@ private slots:
         QCOMPARE(panel->property("capB").toInt(), 1);
         app.tools->setConnectorStyle(8);
         QCOMPARE(panel->property("chosen").toInt(), 8); // le panneau suit la mémoire
+    }
+
+    // L5-C23 (E) : sans fichier de réglages posé (le cas de l'application), la mémoire se relit dans le
+    // magasin par défaut à la première ouverture : le panneau montre le style et les extrémités gardés.
+    void connectorPanelShowsRememberedChoiceFromTheDefaultStore()
+    {
+        // Comme l'application (main.cpp) : sans nom d'organisation, il n'y a pas de magasin par défaut.
+        QCoreApplication::setOrganizationName(QStringLiteral("ActCraftTest"));
+        struct Restore
+        {
+            ~Restore() { QCoreApplication::setOrganizationName(QString()); }
+        } restore;
+        {
+            App app;
+            QVERIFY(start(app, QString())); // magasin par défaut (redirigé vers le dossier du test)
+            app.tools->setConnectorStyle(7);
+            app.trigger("connector.caps", QStringLiteral("1,2"));
+        }
+        App app;
+        QVERIFY(start(app, QString()));
+        QObject* panel = app.window->findChild<QObject*>(QStringLiteral("connectorPanel"));
+        QVERIFY(panel != nullptr);
+        QCOMPARE(panel->property("chosen").toInt(), 7);
+        QCOMPARE(panel->property("capA").toInt(), 1);
+        QCOMPARE(panel->property("capB").toInt(), 2);
     }
 
     // Échap (tool.select, au repos) et la désactivation quittent le mode points de forme.

@@ -36,6 +36,15 @@ Item {
         actions.quitFrom(from)
     }
 
+    // « Quitter » demandé pendant une opération reprend une seule fois, quand plus rien n'est en cours ni en
+    // attente (lecture, écriture, enregistrement ou action à suivre, boîte ouverte).
+    function resumeWhenIdle() {
+        if (actions.quitResume < 0 || actions.document.busy || actions.saveWaiting || actions.afterSave
+            || actions.pending || saveChanges.visible)
+            return
+        actions.resumeQuit()
+    }
+
     function guard(action) {
         if (actions.textEditing) actions.textEditing.commit()
         if (!actions.document.modified) { action(); return }
@@ -104,6 +113,7 @@ Item {
     // Demande l'enregistrement du premier onglet modifié à partir de `from` (il est montré d'abord), puis passe
     // au suivant ; « Annuler » ou un « Enregistrer sous » refusé abandonne la sortie. Quitte quand tous sont réglés.
     function quitFrom(from) {
+        actions.quitResume = -1 // la chaîne vit : elle repose elle-même sa reprise si une bascule est refusée
         for (let i = from; i < actions.tabs.count; ++i) {
             if (!actions.tabs.isModifiedAt(i)) continue
             if (i !== actions.tabs.currentIndex) actions.tabs.activate(i)
@@ -138,15 +148,15 @@ Item {
         nameFilters: [qsTr("Paperboards ActCraft (*.actcraft)")]
         onAccepted: actions.document.saveToUrl(selectedFile)
         // « Enregistrer sous » abandonné après « Enregistrer les modifications ? » : l'action en attente est oubliée.
-        onRejected: { actions.afterSave = null; actions.saveAbandoned() }
+        onRejected: { actions.afterSave = null; actions.quitResume = -1; actions.saveAbandoned() }
     }
     SaveChangesDialog {
         id: saveChanges
         onOpened: actions.popupOpened()
         onClosed: actions.popupClosed()
         onSaveRequested: { actions.afterSave = actions.pending; actions.pending = null; actions.save() }
-        onDiscardRequested: { const a = actions.pending; actions.pending = null; if (a) a() }
-        onRejected: actions.pending = null
+        onDiscardRequested: { const a = actions.pending; actions.pending = null; if (a) a(); actions.resumeWhenIdle() }
+        onRejected: { actions.pending = null; actions.quitResume = -1 }
     }
     PageSizeDialog {
         id: sizeDialog
@@ -158,10 +168,6 @@ Item {
     Connections {
         target: actions.document
         function onSaveFinished(ok, message) {
-            if (actions.quitResume >= 0 && !actions.saveWaiting && !actions.afterSave) {
-                actions.resumeQuit()
-                return
-            }
             // L'enregistrement en attente part d'abord, l'action qui le suit attend sa fin à lui ; sauf si
             // l'écriture finie a déjà mis l'écran dans le fichier (document propre) : l'action reprend aussitôt.
             if (actions.saveWaiting) {
@@ -171,20 +177,20 @@ Item {
             const a = actions.afterSave
             actions.afterSave = null
             if (ok && a) a()
+            actions.resumeWhenIdle()
         }
         function onLoadFinished(ok, message) {
-            if (!actions.saveWaiting) {
-                actions.resumeQuit()
-                return
+            if (actions.saveWaiting) {
+                actions.saveWaiting = false
+                // Lecture ratée : le document est le même, l'enregistrement demandé part. Lecture réussie : il
+                // visait le document remplacé, il est abandonné (jamais relancé sur le document ouvert) ; l'action
+                // en attente est réévaluée sur le nouveau document (revue de L2-C9).
+                if (!ok) { actions.save(); return }
+                const a = actions.afterSave
+                actions.afterSave = null
+                if (a) actions.guard(a)
             }
-            actions.saveWaiting = false
-            // Lecture ratée : le document est le même, l'enregistrement demandé part. Lecture réussie : il
-            // visait le document remplacé, il est abandonné (jamais relancé sur le document ouvert) ; l'action
-            // en attente est réévaluée sur le nouveau document (revue de L2-C9).
-            if (!ok) { actions.save(); return }
-            const a = actions.afterSave
-            actions.afterSave = null
-            if (a) actions.guard(a)
+            actions.resumeWhenIdle()
         }
     }
 }
