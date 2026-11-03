@@ -2,6 +2,14 @@
 
 namespace actcraft::exporting {
 
+namespace detail {
+// Couture de test : délai du convertisseur en millisecondes, 0 = 120 s.
+void setConvertTimeoutMs(int milliseconds)
+{
+    static_cast<void>(milliseconds);
+}
+} // namespace detail
+
 // Talon L5-T1 : rempli par L5-T29.
 std::optional<Converter> findConverter()
 {
