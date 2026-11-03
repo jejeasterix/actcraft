@@ -2,12 +2,14 @@
 #include <actcraft/bench/fixtures.h>
 #include <actcraft/bench/injector.h>
 #include <actcraft/bench/uiscenario.h>
+#include <actcraft/export/pdfexport.h>
 #include <actcraft/formats/nativefile.h>
 #include <actcraft/formats/urlio.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
@@ -22,7 +24,6 @@
 #include <QPointingDevice>
 #include <QQuickItem>
 #include <QQuickWindow>
-#include <QRegularExpression>
 #include <QShortcutEvent>
 #include <QTabletEvent>
 #include <QTest>
@@ -348,7 +349,9 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
         }
         if (hasSize) {
             QPointF size;
-            if (readPoint(o.value(QStringLiteral("imageSize")), size) && size.x() >= 1.0 && size.y() >= 1.0) {
+            // Entiers seulement : une taille fractionnaire est refusée, pas arrondie.
+            if (readPoint(o.value(QStringLiteral("imageSize")), size) && size.x() >= 1.0 && size.y() >= 1.0 &&
+                size.x() == std::floor(size.x()) && size.y() == std::floor(size.y())) {
                 step.imageSize = QSize(qRound(size.x()), qRound(size.y()));
             }
         }
@@ -1446,6 +1449,12 @@ bool UiScenarioPlayer::fileCheck(const UiStep& step, QStringList& report)
         return false;
     }
     const QString absolute = QDir::current().absoluteFilePath(path);
+    // Un fichier d'un passage précédent ne prouve pas l'export de celui-ci.
+    const QFileInfo info(absolute);
+    if (info.exists() && info.lastModified() < m_startedAt) {
+        report << QStringLiteral("FICHIER %1 ECART (fichier antérieur au scénario)").arg(path);
+        return false;
+    }
     if (step.pdfPages >= 0) {
         QFile file(absolute);
         if (!file.open(QIODevice::ReadOnly)) {
@@ -1457,13 +1466,7 @@ bool UiScenarioPlayer::fileCheck(const UiStep& step, QStringList& report)
             report << QStringLiteral("FICHIER %1 ECART (pas un PDF)").arg(path);
             return false;
         }
-        // « /Type /Page » seul : « /Type /Pages » (l'arbre) ne compte pas.
-        static const QRegularExpression pageObject(QStringLiteral("/Type\\s*/Page(?![A-Za-z])"));
-        const QString text = QString::fromLatin1(data);
-        int pages = 0;
-        for (auto it = pageObject.globalMatch(text); it.hasNext(); it.next()) {
-            ++pages;
-        }
+        const int pages = exporting::countPdfPages(data);
         const bool ok = pages == step.pdfPages;
         report << (ok ? QStringLiteral("FICHIER %1 PDF %2 pages OK").arg(path).arg(pages)
                       : QStringLiteral("FICHIER %1 ECART (PDF de %2 pages, attendu %3)")
@@ -1595,6 +1598,7 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
         return false;
     }
     m_scenarioName = scenario.name;
+    m_startedAt = QDateTime::currentDateTime();
     m_outputDir = outputDir;
     m_captureIndex = 0;
     m_index.clear();

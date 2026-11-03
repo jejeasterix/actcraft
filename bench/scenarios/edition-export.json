@@ -49,6 +49,9 @@
   {"checkPixel": "alignement-annule", "at": [260, 385], "color": "#FFFFFF", "tolerance": 8},
   {"checkPixel": "forme-seule-revenue", "at": [670, 360], "color": "#FFAA00", "tolerance": 40},
   {"capture": "onglet-2-annule"},
+  {"command": "export.page-image", "argument": "${SORTIE}/s8.png"},
+  {"waitFor": "appExchange.busy", "value": false, "timeoutMs": 15000},
+  {"file": "${SORTIE}/s8.png", "imageSize": [1024, 768]},
   {"command": "page.insert-after"},
   {"command": "page.insert-after"},
   {"waitReady": true},
@@ -56,9 +59,6 @@
   {"command": "export.pdf", "argument": "${SORTIE}/s8.pdf"},
   {"waitFor": "appExchange.busy", "value": false, "timeoutMs": 15000},
   {"file": "${SORTIE}/s8.pdf", "pdfPages": 3},
-  {"command": "export.page-image", "argument": "${SORTIE}/s8.png"},
-  {"waitFor": "appExchange.busy", "value": false, "timeoutMs": 15000},
-  {"file": "${SORTIE}/s8.png", "imageSize": [1024, 768]},
   {"expect": "appTabs.count", "value": 2}
  ]
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QColor>
+#include <QDateTime>
 #include <QEvent>
 #include <QHash>
 #include <QPointF>
@@ -207,6 +208,7 @@ private:
     std::unique_ptr<Injector> m_gestures; // doigt et souris synthétiques (L0-S2)
     QString m_scenarioName;
     QString m_outputDir;
+    QDateTime m_startedAt; // départ de play() : un fichier contrôlé doit être plus récent
     QStringList m_index;
     int m_captureIndex = 0;
     LineSink m_sink;
