@@ -1,18 +1,21 @@
 #pragma once
 #include <actcraft/ui/documentcontroller.h>
 
+#include <QHash>
 #include <QImage>
 #include <QObject>
 #include <QQmlEngine>
+#include <QQmlParserStatus>
 #include <QString>
 #include <QStringList>
 
 namespace actcraft::ui {
 
 // Boîte d'impression (F-670 à F-679) ; remplie par L5-T28.
-class PrintController : public QObject
+class PrintController : public QObject, public QQmlParserStatus
 {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(DocumentController* document READ document WRITE setDocument NOTIFY documentChanged)
     Q_PROPERTY(int rows READ rows WRITE setRows NOTIFY settingsChanged)
@@ -31,8 +34,17 @@ class PrintController : public QObject
     Q_PROPERTY(QString printer READ printer WRITE setPrinter NOTIFY settingsChanged)
     Q_PROPERTY(QStringList printers READ printers CONSTANT)
     Q_PROPERTY(int sheetCount READ sheetCount NOTIFY settingsChanged)
+    // Ajoutés par L5-T28. `settingsFile` : fichier de réglages (tests, banc), comme ToolHost ; vide : les
+    // réglages de l'application, seulement si elle a un nom d'organisation. `available` : l'impression par
+    // QPrinter est construite (ACTCRAFT_PRINT). `previewRenders` : feuilles composées pour l'aperçu depuis
+    // le début (mesure de la paresse de l'aperçu).
+    Q_PROPERTY(QString settingsFile READ settingsFile WRITE setSettingsFile NOTIFY settingsFileChanged)
+    Q_PROPERTY(bool available READ available CONSTANT)
+    Q_PROPERTY(int previewRenders READ previewRenders NOTIFY previewRendersChanged)
 public:
     explicit PrintController(QObject* parent = nullptr);
+    void classBegin() override {}
+    void componentComplete() override; // fournisseur d'images « printpreview » du moteur
     DocumentController* document() const;
     void setDocument(DocumentController* document);
     int rows() const;
@@ -65,8 +77,14 @@ public:
     void setPrinter(const QString& printer);
     QStringList printers() const;
     int sheetCount() const;
+    QString settingsFile() const;
+    void setSettingsFile(const QString& path);
+    bool available() const;
+    int previewRenders() const;
 
     Q_INVOKABLE QImage previewSheet(int index, int dpi);
+    // Adresse (image://printpreview/…) de la feuille `index` ; change quand le document ou un réglage change.
+    Q_INVOKABLE QString previewSource(int index, int dpi) const;
     Q_INVOKABLE bool print(const QString& outputFile = {});
     Q_INVOKABLE void saveSettings();
     Q_INVOKABLE void loadSettings();
@@ -74,8 +92,15 @@ public:
 signals:
     void documentChanged();
     void settingsChanged();
+    void settingsFileChanged();
+    void previewRendersChanged();
+    void finished(QString message);
+    void failed(QString message);
 
 private:
+    void invalidate();
+    void changed();
+    bool report(bool ok, const QString& message);
     DocumentController* m_document = nullptr;
     int m_rows = 1;
     int m_columns = 1;
@@ -91,6 +116,10 @@ private:
     bool m_noteBreak = true;
     bool m_noteSeparator = false;
     QString m_printer;
+    QString m_settingsFile;
+    int m_previewRenders = 0;
+    int m_revision = 0;
+    QHash<qint64, QImage> m_cache;
 };
 
 } // namespace actcraft::ui
