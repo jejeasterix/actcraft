@@ -3,7 +3,6 @@
 #include <actcraft/export/pdfimport.h>
 
 #include <QCoreApplication>
-#include <chrono>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
@@ -14,6 +13,8 @@
 #include <QTemporaryDir>
 #include <QTest>
 #include <QThread>
+
+#include <chrono>
 
 using namespace actcraft;
 

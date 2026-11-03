@@ -26,3 +26,10 @@ if(ACTCRAFT_IMPORT_PDF)
     target_link_libraries(actcraft_export PUBLIC Qt6::Pdf)
     target_compile_definitions(actcraft_export PUBLIC ACTCRAFT_IMPORT_PDF=1)
 endif()
+
+# Script PowerShell de conversion PowerPoint → PDF (L5-T29) : ressource Qt copiée dans un dossier temporaire
+# avant l'appel (officeconvert.cpp).
+qt_add_resources(actcraft_export "export_resources"
+    PREFIX "/actcraft/export"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/resources"
+    FILES resources/pptx-to-pdf.ps1)
