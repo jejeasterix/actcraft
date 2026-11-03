@@ -159,8 +159,7 @@ private slots:
         clock->startCountdown();
         clock->setClockNowOffsetMs(2500);
         QTRY_COMPARE(main.pageObjectCount(), before + 1); // le trait enregistré reste
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before + 1);
+        QVERIFY(main.countStaysAt(before + 1));
         QCOMPARE(controller->pageCount(), 1);
         QCOMPARE(ended.count(), 1);
 
@@ -313,8 +312,7 @@ private slots:
                                           button + QPointF(6, 0), 3);
         }
         QTRY_VERIFY(clock->paused());
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         // Coin : le panneau grandit en gardant ses proportions, aucun trait.
         const qreal width = panel->width();
@@ -322,8 +320,7 @@ private slots:
         const QPointF grip = centreOf(corner);
         presentationharness::strokeAt(main.window(), pointer, grip, grip + QPointF(60, 45));
         QTRY_VERIFY2(panel->width() > width + 20, "panneau agrandi par son coin");
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
         QVERIFY2(panel->width() > width + 20, "panneau agrandi par son coin");
         QVERIFY2(qAbs(panel->width() / panel->height() - width / height) < 0.01, "proportions gardées");
 
@@ -332,14 +329,12 @@ private slots:
         const QPointF bar = panel->mapToScene(QPointF(100, 22));
         presentationharness::strokeAt(main.window(), pointer, bar, bar + QPointF(-60, 40));
         QTRY_VERIFY2(panel->position() != start, "panneau déplacé par sa barre");
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         // Corps, sans gestionnaire : seule la couverture retient le trait.
         const QPointF body = panel->mapToScene(QPointF(30, 70));
         presentationharness::strokeAt(main.window(), pointer, body, body + QPointF(100, 0));
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         if (pointer == Pointer::Mouse) {
             // Le clic droit, que la vue teste par sa couverture (menu de la page), discrimine.

@@ -352,16 +352,14 @@ private slots:
                                           button + QPointF(6, 0), 3);
         }
         QTRY_COMPARE(textOf(main, QStringLiteral("calculatorDisplay")), QStringLiteral("7"));
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         // Barre de titre : le panneau se déplace, aucun trait.
         const QPointF start = panel->position();
         const QPointF bar = panel->mapToScene(QPointF(100, 22));
         presentationharness::strokeAt(main.window(), pointer, bar, bar + QPointF(60, 40));
         QTRY_VERIFY2(panel->position() != start, "panneau déplacé par sa barre");
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         // Corps, sans gestionnaire : seule la couverture retient le trait. Visé sur la ligne du calcul, sans
         // gestionnaire (le résultat porte le glisser du calcul, qui prendrait le trait à la souris et au
@@ -370,8 +368,7 @@ private slots:
         QVERIFY(expression != nullptr);
         const QPointF body = centreOf(expression);
         presentationharness::strokeAt(main.window(), pointer, body - QPointF(50, 0), body + QPointF(50, 0));
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         if (pointer == Pointer::Mouse) {
             // L'appui gauche de la souris sur un élément sans gestionnaire ne prouve rien seul : le clic

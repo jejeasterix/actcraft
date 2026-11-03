@@ -246,22 +246,19 @@ private slots:
         }
         QTRY_VERIFY(dice->rolling());
         dice->skip();
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         // Barre de titre : le panneau se déplace, aucun trait.
         const QPointF start = panel->position();
         const QPointF bar = panel->mapToScene(QPointF(100, 22));
         presentationharness::strokeAt(main.window(), pointer, bar, bar + QPointF(60, 40));
         QTRY_VERIFY2(panel->position() != start, "panneau déplacé par sa barre");
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         // Corps, sans gestionnaire : seule la couverture retient le trait.
         const QPointF body = centreOf(total) - QPointF(50, 0);
         presentationharness::strokeAt(main.window(), pointer, body, body + QPointF(100, 0));
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         if (pointer == Pointer::Mouse) {
             // L'appui gauche de la souris sur un élément sans gestionnaire ne prouve rien seul : le clic

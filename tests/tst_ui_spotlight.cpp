@@ -128,8 +128,7 @@ private slots:
             closeTo(read(spotlight, "centerX"), 562) && closeTo(read(spotlight, "centerY"), 404),
             qPrintable(
                 QStringLiteral("%1,%2").arg(read(spotlight, "centerX")).arg(read(spotlight, "centerY"))));
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         // Glissé dans la zone éclairée (loin du pourtour) : un trait versé, le spot n'a pas bougé.
         presentationharness::strokeAt(main.window(), pointer, inWindow(main, QPointF(530, 404)),
@@ -144,8 +143,7 @@ private slots:
                                       inWindow(main, QPointF(580, 404)));
         QTRY_VERIFY2(closeTo(read(spotlight, "centerX"), 602),
                      qPrintable(QString::number(read(spotlight, "centerX"))));
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before + 1);
+        QVERIFY(main.countStaysAt(before + 1));
     }
 
     // Le contour par défaut est celui du réglage embarqué (10), lu sur la surcouche ; jamais 15.

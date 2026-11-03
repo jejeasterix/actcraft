@@ -65,7 +65,7 @@ private slots:
         presentationharness::strokeAt(main.window(), Pointer::Mouse, topEdge(curtain, main),
                                       middleOf(curtain, main));
         QTRY_VERIFY2(coverageIs(curtain, 0.5), qPrintable(curtain->property("coverage").toString()));
-        QVERIFY(main.waitReady());
+        QVERIFY(main.countStaysAt(before));
         QCOMPARE(spy.count(), 0);
         QCOMPARE(main.pageObjectCount(), before);
 
@@ -92,16 +92,14 @@ private slots:
         // Rideau fermé, trait au milieu du store : aucun trait, le store n'a pas bougé.
         presentationharness::strokeAt(main.window(), pointer, inWindow(main, QPointF(300, 400)),
                                       inWindow(main, QPointF(700, 400)));
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
         QVERIFY(coverageIs(curtain, 1.0));
 
         // Bord haut tiré jusqu'au milieu : la moitié est découverte, toujours aucun trait.
         presentationharness::strokeAt(main.window(), pointer, topEdge(curtain, main),
                                       middleOf(curtain, main));
         QTRY_VERIFY2(coverageIs(curtain, 0.5), qPrintable(curtain->property("coverage").toString()));
-        QVERIFY(main.waitReady());
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         // Trait dans la moitié découverte : versé, et le store n'a pas bougé.
         presentationharness::strokeAt(main.window(), pointer, inWindow(main, QPointF(300, 100)),
