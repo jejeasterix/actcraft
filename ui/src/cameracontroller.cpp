@@ -453,6 +453,18 @@ bool CameraController::eventFilter(QObject* watched, QEvent* event)
         }
         return true;
     }
+    // Fermée par le système : la capture s'arrête, hors du traitement de l'événement.
+    if (watched == m_window.data() && event->type() == QEvent::Close) {
+        const QPointer<QQuickWindow> guard(m_window);
+        static_cast<void>(QMetaObject::invokeMethod(
+            this,
+            [this, guard] {
+                if (guard && m_window == guard) {
+                    cancel();
+                }
+            },
+            Qt::QueuedConnection));
+    }
     return QObject::eventFilter(watched, event);
 }
 
@@ -540,22 +552,9 @@ bool CameraController::openWindow()
         window->setScreen(screen);
     }
     window->setGeometry(m_screen);
-    // Fermée par le système (Alt+F4…) : la capture s'arrête, hors du traitement de l'événement (closeWindow
-    // se déconnecte avant de la cacher).
-    const QPointer<QQuickWindow> guard(window);
-    connect(window, &QWindow::visibleChanged, this, [this, guard](bool visible) {
-        if (!visible) {
-            static_cast<void>(QMetaObject::invokeMethod(
-                this,
-                [this, guard] {
-                    if (guard && m_window == guard) {
-                        cancel();
-                    }
-                },
-                Qt::QueuedConnection));
-        }
-    });
-    window->installEventFilter(this); // Échap, quel que soit le focus
+    // Échap, quel que soit le focus ; fermeture par le système (Alt+F4…), vue au QEvent::Close : un simple
+    // masquage (la capture du bureau masque nos fenêtres le temps de la saisie) n'arrête pas la sélection.
+    window->installEventFilter(this);
     m_window = window;
     emit windowChanged();
     window->show();

@@ -1,4 +1,5 @@
 #include "cameracontroller.h"
+#include "desktopcontroller.h"
 #include "support/lot7registry.h"
 #include "support/presentationharness.h"
 
@@ -674,6 +675,38 @@ private slots:
 #else
         QVERIFY(actcraft::features::topLevelWindows().empty());
 #endif
+    }
+
+    // Relecture du lot 7 : la capture du bureau masque toutes nos fenêtres le temps de la saisie, la
+    // sélection de la caméra comprise. Ce masquage n'est pas une fermeture : la sélection reste ouverte.
+    // Fermée par le système (événement de fermeture, Alt+F4), elle s'arrête. Mutant : tout masquage arrête la
+    // sélection (visibleChanged → cancel).
+    void desktopCaptureKeepsTheSelection()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        CameraController* camera = cameraOf(main);
+        QVERIFY(camera);
+        QObject* desktopRoot = main.window()->findChild<QObject*>(QStringLiteral("desktopRoot"));
+        QVERIFY(desktopRoot);
+        auto* desktop = qobject_cast<actcraft::ui::DesktopController*>(
+            desktopRoot->property("controller").value<QObject*>());
+        QVERIFY(desktop);
+        camera->setCaptureSource([] { return fakeScreen(); });
+        desktop->setCaptureSource([] { return fakeScreen(); });
+        QQuickWindow* window = openCapture(main, camera, QStringLiteral("tool.camera-area"));
+        QVERIFY(window);
+        QSignalSpy captured(desktop, &actcraft::ui::DesktopController::backgroundCaptured);
+        QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
+        QVERIFY(!window->isVisible()); // masquée pour la saisie
+        QVERIFY(captured.wait(5000));
+        QVERIFY(captured.first().at(0).toBool());
+        QCoreApplication::processEvents(); // un arrêt posté en file aurait lieu ici
+        QCOMPARE(camera->window(), window);
+        QVERIFY(window->isVisible());
+        // Fermée par le système : la sélection s'arrête.
+        QVERIFY(window->close());
+        QTRY_VERIFY(!camera->window());
     }
 };
 
