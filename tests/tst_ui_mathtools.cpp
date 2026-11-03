@@ -10,6 +10,7 @@
 #include <actcraft/features/mathtools.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/tools/selectiongeometry.h>
 #include <actcraft/tools/userstate.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
@@ -423,6 +424,41 @@ const actcraft::core::PageObject* objectWithId(const actcraft::core::Page& page,
         std::find_if(page.objects.begin(), page.objects.end(),
                      [id](const actcraft::core::PageObject& object) { return object.common.id == id; });
     return it == page.objects.end() ? nullptr : &*it;
+}
+
+// `p` tourné de `degrees` autour de `pivot`, repère de page (y vers le bas : le sens de atan2).
+QPointF turnedAbout(QPointF pivot, QPointF p, double degrees)
+{
+    const double rad = qDegreesToRadians(degrees);
+    const QPointF v = p - pivot;
+    return pivot + QPointF(v.x() * std::cos(rad) - v.y() * std::sin(rad),
+                           v.x() * std::sin(rad) + v.y() * std::cos(rad));
+}
+
+// Cadre de la sélection tel que l'outil Sélectionner le pose (barre d'objet de layout.json).
+actcraft::tools::SelectionView selectionLayout(const MainWindow& w, actcraft::ui::DocumentController& doc,
+                                               actcraft::ui::ToolHost& host)
+{
+    const QStringList bar = {QStringLiteral("object.move-free"), QStringLiteral("object.rotate"),
+                             QStringLiteral("object.translucency"), QStringLiteral("object.enlarge"),
+                             QStringLiteral("object.reduce")};
+    return actcraft::tools::layoutSelection(doc.document().page(static_cast<std::size_t>(doc.currentIndex())),
+                                            host.user().selection(), w.pageView()->zoom(), bar);
+}
+
+QPointF frameCentre(const actcraft::tools::SelectionView& view)
+{
+    return {(view.corners[0].x + view.corners[2].x) / 2, (view.corners[0].y + view.corners[2].y) / 2};
+}
+
+QPointF rotateGrip(const actcraft::tools::SelectionView& view)
+{
+    for (const auto& spot : view.bar) {
+        if (spot.command == QStringLiteral("object.rotate")) {
+            return {spot.center.x, spot.center.y};
+        }
+    }
+    return {-1e9, -1e9};
 }
 
 class TstUiMathTools : public QObject
@@ -1240,6 +1276,182 @@ private slots:
         QVERIFY(second);
         QVERIFY(allOnCircle(*second, turned));
         QCOMPARE(QColor::fromRgba(second->color), blue);
+    }
+
+    // F-280, L7-T34 : le marqueur du lot 3 suit le bord de la règle comme le stylo (même filtre
+    // d'échantillons, en amont de l'outil actif) ; le marqueur lui-même ne sait pas qu'une règle existe.
+    void markerFollowsTheRuler()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("tool.highlighter")));
+        QVERIFY(w.run(QStringLiteral("math.ruler")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QVERIFY(tools->toolHost());
+        QCOMPARE(tools->toolHost()->currentTool(), QStringLiteral("highlighter"));
+        const double top = frameOf(*tools, 0).top();
+        const int before = w.pageObjectCount();
+        stylusPath(w, {{300, top - 4}, {400, top - 1}, {500, top + 2}, {600, top + 3}, {700, top + 3}});
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        const actcraft::core::Stroke* guided = lastStroke(w);
+        QVERIFY(guided);
+        QVERIFY(guided->points.size() >= 2);
+        QVERIFY2(allOnLine(*guided, top), "marqueur : tous les points du trait sur le bord haut");
+        QVERIFY(qAbs(guided->points.front().x - 300) <= 0.5);
+        QVERIFY(qAbs(guided->points.back().x - 700) <= 0.5);
+    }
+
+    // F-282, L7-T34 : la gomme du lot 3 suit la mine du compas (même filtre) : le bras tourne avec elle. Elle
+    // ne verse aucun trait : « marquer le centre » n'ajoute aucune croix, ni à son relâché, ni au trait libre
+    // que le stylo verse ensuite.
+    void eraserFollowsTheCompass()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        actcraft::ui::DocumentController* doc = documentController(w);
+        QVERIFY(doc);
+        QVERIFY(w.run(QStringLiteral("math.compass")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        tools->setMarkCentre(0, true);
+        const Comp c = compassOf(*tools, 0);
+        QVERIFY(qAbs(c.angle) < 1e-6);
+        QVERIFY(w.run(QStringLiteral("tool.eraser")));
+        QVERIFY(tools->toolHost());
+        QCOMPARE(tools->toolHost()->currentTool(), QStringLiteral("eraser"));
+        const int lines = countOf<actcraft::core::Line>(doc->document().page(0));
+        stylusPath(w, circlePath(c, 0, 60, 5));
+        QTRY_VERIFY2(qAbs(compassOf(*tools, 0).angle - 60) <= 1, "gomme guidée : le bras suit jusqu'à 60°");
+        QTest::qWait(50);
+        QCOMPARE(countOf<actcraft::core::Line>(doc->document().page(0)), lines);
+
+        // Trait libre au stylo, loin du compas : il ne reçoit pas la croix restée armée par la gomme.
+        QVERIFY(w.run(QStringLiteral("tool.pen")));
+        const int before = w.pageObjectCount();
+        stylusPath(w, {c.at(-60, 260), c.at(40, 260)});
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        QTest::qWait(50);
+        QCOMPARE(countOf<actcraft::core::Line>(doc->document().page(0)), lines);
+        QCOMPARE(w.pageObjectCount(), before + 1);
+    }
+
+    // Report de L7-T33, arbitré par l'original (extras/mathtools.py:967-970, _ink_style : couleur de l'outil
+    // d'encre, translucidité du marqueur rendue à part) : sous le marqueur, la mine prend sa couleur, opaque,
+    // pas PageView::inkColor (qui porte l'alpha du marqueur, toolhost.cpp:578-583).
+    void compassLeadTakesTheMarkerColour()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("tool.highlighter")));
+        const QColor marker(0x22, 0x66, 0xaa);
+        QVERIFY(w.run(QStringLiteral("pen.color"), marker.name()));
+        QVERIFY(w.run(QStringLiteral("math.compass")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QVERIFY(tools->toolHost());
+        QCOMPARE(tools->toolHost()->currentTool(), QStringLiteral("highlighter"));
+        QVERIFY2(w.pageView()->inkColor().alpha() < 255, "la vue porte l'alpha du marqueur");
+        QQuickItem* lead = w.item(QStringLiteral("compassLead"));
+        QVERIFY(lead);
+        const Comp c = compassOf(*tools, 0);
+        QVERIFY(stylusHover(w.window(), scene(w, c.lead() + QPointF(2, 1))));
+        QVERIFY(stylusHover(w.window(), scene(w, c.lead() + QPointF(3, 1))));
+        QTRY_VERIFY2(lead->isVisible(), "stylet près du porte-mine : la mine apparaît");
+        QCOMPARE(lead->property("color").value<QColor>(), marker);
+        // Le trait du marqueur versé depuis la mine : même couleur (sa translucidité est à part).
+        const int before = w.pageObjectCount();
+        stylusPath(w, circlePath(c, 0, -60, 4));
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        const actcraft::core::Stroke* stroke = lastStroke(w);
+        QVERIFY(stroke);
+        QVERIFY(allOnCircle(*stroke, c));
+        QCOMPARE(QColor::fromRgba(stroke->color).rgb(), marker.rgb());
+    }
+
+    // F-284, L7-T34 : l'origine XY montrée, le bouton de rotation de la barre d'objet (lot 3) fait tourner la
+    // sélection autour de l'origine, non du centre de son cadre ; l'origine retirée, il retrouve ce centre.
+    void rotationPivotsOnTheOrigin()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        actcraft::ui::DocumentController* doc = documentController(w);
+        QVERIFY(doc);
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        actcraft::ui::ToolHost* host = tools->toolHost();
+        QVERIFY(host);
+        const int before = w.pageObjectCount();
+        stylusPath(w, {{600, 350}, {700, 350}, {700, 410}, {600, 410}, {600, 352}});
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        QVERIFY(w.run(QStringLiteral("math.xy-origin")));
+        QVERIFY(tools->originVisible());
+        const QPointF pivot(500, 300);
+        QVERIFY(tools->moveOrigin(pivot));
+        QTRY_COMPARE(tools->origin(), pivot);
+        QVERIFY(w.run(QStringLiteral("tool.select")));
+        QVERIFY(w.run(QStringLiteral("edit.select-all")));
+        QCOMPARE(host->user().selection().size(), std::size_t(1));
+
+        // Glisser le bouton de rotation de 90° autour de `about`, par pas de 15°.
+        const auto rotateBy = [&](QPointF about) {
+            const QPointF grip = rotateGrip(selectionLayout(w, *doc, *host));
+            QVERIFY(grip.x() > -1e8);
+            std::vector<QPointF> path;
+            for (int turn = 0; turn <= 90; turn += 15) {
+                path.push_back(turnedAbout(about, grip, turn));
+            }
+            stylusPath(w, path);
+        };
+        const QPointF c0 = frameCentre(selectionLayout(w, *doc, *host));
+        const QPointF expected = turnedAbout(pivot, c0, 90);
+        rotateBy(pivot);
+        QTRY_VERIFY2(QLineF(frameCentre(selectionLayout(w, *doc, *host)), expected).length() <= 1,
+                     "origine montrée : le centre du cadre tourne autour de l'origine");
+        QCOMPARE(host->user().selection().size(), std::size_t(1));
+
+        // Origine retirée : la rotation se fait autour du centre du cadre, qui ne bouge pas.
+        QVERIFY(w.run(QStringLiteral("math.xy-origin")));
+        QVERIFY(!tools->originVisible());
+        const actcraft::tools::SelectionView turned = selectionLayout(w, *doc, *host);
+        const QPointF c1 = frameCentre(turned);
+        const QPointF corner(turned.corners[0].x, turned.corners[0].y);
+        rotateBy(c1);
+        QTRY_VERIFY2(QLineF(QPointF(selectionLayout(w, *doc, *host).corners[0].x,
+                                    selectionLayout(w, *doc, *host).corners[0].y),
+                            corner)
+                             .length() > 20,
+                     "le cadre a tourné");
+        QVERIFY2(QLineF(frameCentre(selectionLayout(w, *doc, *host)), c1).length() <= 1,
+                 "sans origine : autour du centre du cadre");
+    }
+
+    // Revue de L7-T9 : avec l'outil Sélectionner, la règle ne guide pas. Un cadre de sélection tiré depuis
+    // le bord garde ses coordonnées et prend le trait placé au-dessus de la règle ; guidé, il serait plat
+    // (y = bord) et ne prendrait rien.
+    void selectionIsNotGuided()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.ruler")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QVERIFY(tools->toolHost());
+        const Frame f = frameOf(*tools, 0);
+        const double top = f.top();
+        // Règle écartée le temps de verser le trait libre, puis remise.
+        tools->setFrame(0, QPointF(f.cx, f.cy + 300), f.length, f.thickness, 0);
+        const int before = w.pageObjectCount();
+        stylusPath(w, {{400, top - 16}, {450, top - 16}, {500, top - 16}});
+        QTRY_COMPARE(w.pageObjectCount(), before + 1);
+        tools->setFrame(0, QPointF(f.cx, f.cy), f.length, f.thickness, 0);
+        QVERIFY(qAbs(frameOf(*tools, 0).top() - top) < 1e-6);
+        QVERIFY(w.run(QStringLiteral("tool.select")));
+        QCOMPARE(tools->toolHost()->currentTool(), QStringLiteral("select"));
+        QCOMPARE(tools->toolHost()->selectionCount(), 0);
+        stylusPath(w, {{300, top - 3}, {500, top - 20}, {700, top - 30}});
+        QTRY_COMPARE(tools->toolHost()->selectionCount(), 1);
+        QCOMPARE(w.pageObjectCount(), before + 1);
     }
 
     // Translucidité du corps : kDefaultToolOpacity (100 sur 255), jamais opaque.

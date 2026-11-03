@@ -82,10 +82,10 @@ class TstUiClock : public QObject
     Q_OBJECT
 
 private slots:
-    // H7-14 : les actions de fin de ce lot sont « aucune », « page suivante », « page précédente » ;
-    // « rétablir la page » n'y est pas (elle n'existe qu'après le lot 3, L7-T34). La liste de la boîte est
-    // celle du contrôleur.
-    void endActionsAreTheThreeOfThisLot()
+    // H7-14, F-290 : les quatre actions de fin de la spécification, dans son ordre : « aucune », « page
+    // suivante », « page précédente », « rétablir la page » (commande page.revert du lot 3, L7-T34). Remplace
+    // endActionsAreTheThreeOfThisLot (revue M4). La liste de la boîte est celle du contrôleur.
+    void endActionsAreTheFourOfTheSpecification()
     {
         MainWindow main;
         QVERIFY(main.window() != nullptr);
@@ -100,18 +100,19 @@ private slots:
             commands << map.value(QStringLiteral("command")).toString();
             labels << map.value(QStringLiteral("label")).toString();
         }
-        QCOMPARE(commands,
-                 (QStringList{QString(), QStringLiteral("page.next"), QStringLiteral("page.previous")}));
-        QCOMPARE(labels, (QStringList{QStringLiteral("Aucune"), QStringLiteral("Page suivante"),
-                                      QStringLiteral("Page précédente")}));
-        QVERIFY(!commands.contains(QStringLiteral("page.revert")));
+        QCOMPARE(commands, (QStringList{QString(), QStringLiteral("page.next"),
+                                        QStringLiteral("page.previous"), QStringLiteral("page.revert")}));
+        QCOMPARE(labels,
+                 (QStringList{QStringLiteral("Aucune"), QStringLiteral("Page suivante"),
+                              QStringLiteral("Page précédente"), QStringLiteral("Rétablir la page")}));
 
-        // Une action hors liste est refusée, l'action en cours reste.
-        clock->setEndAction(QStringLiteral("page.next"));
+        // « rétablir la page » est acceptée ; une action hors liste est refusée, l'action en cours reste.
         clock->setEndAction(QStringLiteral("page.revert"));
-        QCOMPARE(clock->endAction(), QStringLiteral("page.next"));
+        QCOMPARE(clock->endAction(), QStringLiteral("page.revert"));
+        clock->setEndAction(QStringLiteral("file.quit"));
+        QCOMPARE(clock->endAction(), QStringLiteral("page.revert"));
 
-        // La boîte offre les mêmes trois choix.
+        // La boîte offre les mêmes quatre choix.
         QVERIFY(main.run(QStringLiteral("tool.clock")));
         QQuickItem* settings = main.item(QStringLiteral("clockSettingsButton"));
         QVERIFY(settings != nullptr);
@@ -119,7 +120,37 @@ private slots:
         QCoreApplication::processEvents();
         QQuickItem* combo = main.item(QStringLiteral("countdownEndAction"));
         QVERIFY(combo != nullptr);
-        QCOMPARE(combo->property("count").toInt(), 3);
+        QCOMPARE(combo->property("count").toInt(), 4);
+    }
+
+    // F-290 : « rétablir la page » à l'échéance : la page reprend son état d'ouverture (document neuf :
+    // vierge) par la commande page.revert du lot 3, une seule fois ; un annuler rend le trait.
+    void countdownCanRevertThePage()
+    {
+        MainWindow main;
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        QVERIFY(openClock(main) != nullptr);
+        ClockController* clock = clockOf(main);
+        QVERIFY(clock != nullptr);
+        QSignalSpy ended(clock, &ClockController::countdownEnded);
+        const int before = main.pageObjectCount();
+        presentationharness::strokeAt(main.window(), presentationharness::Pointer::Stylus,
+                                      main.pageView()->pageToScene(QPointF(40, 700)),
+                                      main.pageView()->pageToScene(QPointF(140, 700)));
+        QTRY_COMPARE(main.pageObjectCount(), before + 1);
+
+        QVERIFY(clock->applyCountdownText(QStringLiteral("00:00:02")));
+        clock->setEndAction(QStringLiteral("page.revert"));
+        QCOMPARE(clock->endAction(), QStringLiteral("page.revert"));
+        clock->startCountdown();
+        clock->setClockNowOffsetMs(2500);
+        QTRY_COMPARE(main.pageObjectCount(), before);
+        QCOMPARE(controller->pageCount(), 1);
+        QCOMPARE(ended.count(), 1);
+
+        QVERIFY(main.run(QStringLiteral("edit.undo")));
+        QTRY_COMPARE(main.pageObjectCount(), before + 1);
     }
 
     // 3 s, « page suivante » : à l'échéance la page 2 existe et est affichée ; une seule fin (le temps est

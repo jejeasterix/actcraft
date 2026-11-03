@@ -11,10 +11,12 @@
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 
+#include <QGuiApplication>
 #include <QImage>
 #include <QPainter>
 #include <QPicture>
 #include <QSignalSpy>
+#include <QStyleHints>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -644,6 +646,52 @@ private slots:
         QCOMPARE(shown(*controller).objects.size(), count);
         controller->redo();
         QCOMPARE(QString::fromStdString(equationById(*controller, id)->mathml), written);
+    }
+
+    // F-301, L7-T34 : avec l'outil Sélectionner, un double appui sur une équation de la page la rouvre dans
+    // l'éditeur (equation.edit <id>) ; un appui simple ne l'ouvre pas ; avec le stylo, rien ne s'ouvre.
+    void doubleClickEditsTheEquation()
+    {
+        MainWindow main;
+        DocumentController* controller = controllerOf(main);
+        QVERIFY(controller != nullptr);
+        const core::ObjectId id = addEquation(*controller, "<math><mi>x</mi><mo>+</mo><mi>y</mi></math>");
+        QVERIFY(id != 0);
+        const core::Equation* equation = equationById(*controller, id);
+        QVERIFY(equation != nullptr);
+        const QPointF centre =
+            main.pageView()->pageToScene(QPointF(equation->bounds.x + equation->bounds.width / 2,
+                                                 equation->bounds.y + equation->bounds.height / 2));
+        QQuickItem* panel = main.item(u"equationRoot"_s);
+        QVERIFY(panel != nullptr);
+        QVERIFY(!panel->isVisible());
+        const int interval = QGuiApplication::styleHints()->mouseDoubleClickInterval();
+
+        // Stylo : deux appuis rapprochés versent des points, aucun éditeur ; les points sont annulés.
+        const std::size_t count = shown(*controller).objects.size();
+        QVERIFY(main.run(u"tool.pen"_s));
+        stylusTap(main.window(), centre);
+        stylusTap(main.window(), centre);
+        QTest::qWait(50);
+        QVERIFY2(!panel->isVisible(), "stylo : pas d'éditeur");
+        for (int i = 0; i < 4 && shown(*controller).objects.size() > count; ++i) {
+            controller->undo();
+        }
+        QCOMPARE(shown(*controller).objects.size(), count);
+        QTest::qWait(interval + 100);
+
+        // Sélectionner : un appui simple n'ouvre rien ; deux appuis rapprochés ouvrent l'éditeur sur elle.
+        QVERIFY(main.run(u"tool.select"_s));
+        stylusTap(main.window(), centre);
+        QTest::qWait(interval + 100);
+        QVERIFY2(!panel->isVisible(), "appui simple : pas d'éditeur");
+        stylusTap(main.window(), centre);
+        stylusTap(main.window(), centre);
+        QTRY_VERIFY2(panel->isVisible(), "double appui : l'éditeur s'ouvre");
+        EquationController* editor = equationOf(main);
+        QVERIFY(editor != nullptr);
+        QCOMPARE(editor->editingId(), static_cast<quint64>(id));
+        QCOMPARE(editor->mathml(), u"<math><mi>x</mi><mo>+</mo><mi>y</mi></math>"_s);
     }
 
     // Une équation rééditée puis enregistrée en .actcraft se relit identique (empreinte du document

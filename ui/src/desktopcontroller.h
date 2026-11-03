@@ -97,6 +97,10 @@ public:
     Q_INVOKABLE void showTools();
     // Rend la fenêtre principale et ferme la roue.
     Q_INVOKABLE void restore();
+    // Outil courant de l'utilisateur (ToolHost::currentTool, F-070) : pendant l'annotation, « select » fait
+    // passer les clics vers le bureau, tout autre outil rend la saisie à l'annotation ; hors annotation,
+    // rien.
+    Q_INVOKABLE void followTool(const QString& toolId);
     // Entrées de la roue, prêtes pour QML : {command, label, x, y, ring: [...]}, positions relatives au
     // centre, sens horaire depuis le haut ; les entrées d'un anneau secondaire sont sur le cercle extérieur.
     Q_INVOKABLE QVariantList wheelEntries(double radius, double ringRadius) const;

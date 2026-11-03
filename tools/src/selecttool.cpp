@@ -523,8 +523,9 @@ void SelectTool::liftForGesture(std::vector<core::ObjectId> ids, State state)
 core::Transform SelectTool::gestureTransform(core::PointF point) const
 {
     if (m_state == State::Rotating) {
-        const core::PointF center{(m_frame.corners[0].x + m_frame.corners[2].x) / 2,
+        const core::PointF middle{(m_frame.corners[0].x + m_frame.corners[2].x) / 2,
                                   (m_frame.corners[0].y + m_frame.corners[2].y) / 2};
+        const core::PointF center = m_context.view.rotationPivot().value_or(middle);
         double delta = toDegrees(std::atan2(point.y - center.y, point.x - center.x)) -
                        toDegrees(std::atan2(m_start.y - center.y, m_start.x - center.x));
         if ((m_modifiers & static_cast<int>(Qt::ShiftModifier)) != 0) {

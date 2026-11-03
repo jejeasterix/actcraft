@@ -5,6 +5,7 @@
 #include <actcraft/features/handwriting.h>
 #include <actcraft/features/recognitionsession.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/toolhost.h> // type complet exigé par moc pour la propriété
 
 #include <QColor>
 #include <QElapsedTimer>
@@ -42,6 +43,9 @@ class RecognitionController : public QObject
     QML_ELEMENT
     Q_PROPERTY(DocumentController* documentController READ documentController WRITE setDocumentController
                    NOTIFY documentControllerChanged)
+    // Outils du lot 3 : leur sélection (UserState::selection) est ce que les conversions a posteriori
+    // convertissent (F-295, F-296, L7-T34).
+    Q_PROPERTY(actcraft::ui::ToolHost* tools READ tools WRITE setTools NOTIFY toolsChanged)
     Q_PROPERTY(bool shapeMode READ shapeMode WRITE setShapeMode NOTIFY shapeModeChanged)
     Q_PROPERTY(bool fillShapes READ fillShapes WRITE setFillShapes NOTIFY fillShapesChanged)
     // Couleur de remplissage choisie ; invalide (défaut) : celle du contour, donc du trait.
@@ -70,6 +74,8 @@ public:
 
     DocumentController* documentController() const noexcept;
     void setDocumentController(DocumentController* controller);
+    ToolHost* tools() const noexcept;
+    void setTools(ToolHost* tools);
     bool shapeMode() const noexcept;
     void setShapeMode(bool on); // fermé : la session est vidée
     bool fillShapes() const noexcept;
@@ -104,11 +110,18 @@ public:
     // Traits mûrs à l'instant de l'horloge : reconnus et remplacés. Le minuteur l'appelle tant qu'un trait
     // attend.
     Q_INVOKABLE void processDue();
-    // recognition.convert-to-shape : les traits en attente sont reconnus tout de suite, sans le délai.
+    // Les traits en attente sont reconnus tout de suite, sans le délai, selon le mode ouvert.
     Q_INVOKABLE void convertPending();
+    // recognition.convert-to-shape : les annotations sélectionnées deviennent des formes, mode fermé ou non,
+    // en une étape ; sans sélection, les traits en attente (convertPending).
+    Q_INVOKABLE void convertToShape();
+    // recognition.convert-to-text : les annotations sélectionnées sont lues comme de l'écriture et
+    // deviennent un texte, en une étape ; sans sélection, les traits en attente. Rien sans reconnaisseur.
+    Q_INVOKABLE void convertToText();
 
 signals:
     void documentControllerChanged();
+    void toolsChanged();
     void shapeModeChanged();
     void fillShapesChanged();
     void fillColorChanged();
@@ -122,6 +135,7 @@ signals:
 private:
     void onChanges(const core::Changes& applied, DocumentController::ChangeOrigin origin);
     void resetSession();
+    std::vector<core::ObjectId> selectedObjects() const; // vide sans outils ou sans sélection
     void recognizeShapes(const std::vector<core::ObjectId>& strokes);
     void dispatch(const std::vector<core::ObjectId>& strokes);
     void recognizeHandwriting(const std::vector<core::ObjectId>& strokes);
@@ -133,6 +147,7 @@ private:
     std::int64_t now() const;
 
     QPointer<DocumentController> m_document;
+    QPointer<ToolHost> m_tools;
     QMetaObject::Connection m_replacedConnection;
     int m_observer = 0;
     features::RecognitionSession m_session;

@@ -3,6 +3,8 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/hittest.h>
+#include <actcraft/features/recognitionsession.h>
+#include <actcraft/features/shapefinder.h>
 #include <actcraft/render/paintedrenderer.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pagethumbnails.h>
@@ -14,7 +16,9 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <optional>
 #include <set>
+#include <vector>
 
 using namespace actcraft;
 using bench::InputKind;
@@ -127,8 +131,9 @@ private slots:
         // compte passe de 5 à 7 : les cinq premiers gardent leur nom et leur ordre). L4-T14 : « forme-page-
         // annotee » et « grille-dessus » après eux (le compte passe de 7 à 9 : les sept premiers inchangés).
         // L4-T29 : « miniatures » et « miniatures-ferme » après eux (le compte passe de 9 à 11), puis «
-        // miniatures-pauses » (12). L4-T28 : « zones-zoom » en dernier (13 : les douze premiers inchangés).
-        QCOMPARE(plans.size(), std::size_t{13});
+        // miniatures-pauses » (12). L4-T28 : « zones-zoom » (13). L7-T34 : « reconnaissance » en dernier (14
+        // : les treize premiers gardent leur nom et leur rang).
+        QCOMPARE(plans.size(), std::size_t{14});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
@@ -142,9 +147,58 @@ private slots:
         QCOMPARE(plans[10].name, QStringLiteral("miniatures-ferme"));
         QCOMPARE(plans[11].name, QStringLiteral("miniatures-pauses"));
         QCOMPARE(plans[12].name, QStringLiteral("zones-zoom"));
+        QCOMPARE(plans[13].name, QStringLiteral("reconnaissance"));
         for (std::size_t i = 0; i < 5; ++i) {
             QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
             QVERIFY(plans[i].seedStrokes.empty());
+        }
+    }
+
+    // L7-T34 (lot 10, écart 5) : « reconnaissance », en dernier. La reconnaissance de forme est ouverte par
+    // sa commande avant la mesure (setupCommands, pas toolCommand : ce n'est pas un outil, le stylo reste) ;
+    // un cercle d'un seul appui, reconnu comme cercle ; la dernière entrée referme le mode, le délai de la
+    // session + 300 ms après le relâché : la conversion tombe dans la mesure.
+    void recognitionScenarioListed()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const auto plans = bench::allScenarios(set);
+            QVERIFY(!plans.empty());
+            const bench::ScenarioPlan& plan = plans.back();
+            QCOMPARE(plan.name, QStringLiteral("reconnaissance"));
+            QVERIFY(plan.toolCommand.isEmpty());
+            QCOMPARE(plan.setupCommands.size(), std::size_t{1});
+            QCOMPARE(plan.setupCommands.front().first, QStringLiteral("tool.shape-recognition"));
+            QVERIFY(!plan.freezeExempt);
+            QVERIFY(plan.inputs.size() > 2);
+            QCOMPARE(plan.inputs.front().kind, InputKind::TabletPress);
+
+            std::vector<QPointF> drawn;
+            int presses = 0;
+            int releases = 0;
+            std::int64_t releaseAt = -1;
+            for (const bench::PlannedInput& in : plan.inputs) {
+                presses += in.kind == InputKind::TabletPress ? 1 : 0;
+                if (in.kind == InputKind::TabletRelease) {
+                    ++releases;
+                    releaseAt = in.offsetNs;
+                }
+                if (in.kind == InputKind::TabletPress || in.kind == InputKind::TabletMove) {
+                    QVERIFY(releaseAt < 0); // rien n'est tracé après le relâché
+                    drawn.push_back(in.pagePos);
+                }
+            }
+            QCOMPARE(presses, 1);
+            QCOMPARE(releases, 1);
+            const std::optional<features::RecognizedShape> found = features::recognizeShape(drawn);
+            QVERIFY(found.has_value());
+            QVERIFY(found->kind == features::RecognizedShape::Kind::Circle);
+
+            const bench::PlannedInput& last = plan.inputs.back();
+            QCOMPARE(last.kind, InputKind::Command);
+            QCOMPARE(last.command, QStringLiteral("tool.shape-recognition"));
+            QCOMPARE(last.offsetNs - releaseAt,
+                     std::int64_t{features::RecognitionSession::kDefaultDelayMs + 300} * 1'000'000);
+            QCOMPARE(bench::planDurationNs(plan), last.offsetNs);
         }
     }
 

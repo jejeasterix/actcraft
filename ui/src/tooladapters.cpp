@@ -130,6 +130,16 @@ void ViewInfoAdapter::setTrashHover(bool hover)
     m_hover(hover);
 }
 
+std::optional<core::PointF> ViewInfoAdapter::rotationPivot() const
+{
+    // F-284 : l'origine XY montrée, posée sur la vue par MathToolsController (kRotationPivotProperty).
+    const QVariant pivot = m_view.property("actcraftRotationPivot");
+    if (!pivot.isValid()) {
+        return std::nullopt;
+    }
+    return core::PointF{pivot.toPointF().x(), pivot.toPointF().y()};
+}
+
 QStringList ViewInfoAdapter::objectBarCommands() const
 {
     QStringList ids;

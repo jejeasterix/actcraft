@@ -90,6 +90,9 @@ public:
     virtual bool overTrash(core::PointF pagePoint) const = 0; // F-050
     virtual void setTrashHover(bool hover) = 0;               // flèche de la corbeille
     virtual QStringList objectBarCommands() const = 0;        // disposition (`objectBar`)
+
+    // Pivot de la rotation (F-284 : l'origine XY montrée) ; vide, le centre du cadre (défaut neutre).
+    virtual std::optional<core::PointF> rotationPivot() const { return std::nullopt; }
 };
 
 class CommandSink

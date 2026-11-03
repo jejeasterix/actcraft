@@ -153,7 +153,8 @@ void ClockController::setEndAction(const QString& command)
 QVariantList ClockController::endActions() const
 {
     return {action(QString(), tr("Aucune")), action(QStringLiteral("page.next"), tr("Page suivante")),
-            action(QStringLiteral("page.previous"), tr("Page précédente"))};
+            action(QStringLiteral("page.previous"), tr("Page précédente")),
+            action(QStringLiteral("page.revert"), tr("Rétablir la page"))};
 }
 
 QString ClockController::remainingText() const

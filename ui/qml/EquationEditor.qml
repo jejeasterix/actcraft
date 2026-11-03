@@ -76,6 +76,33 @@ FloatingPanel {
     }
 
     // Réédition d'une équation de la page (commande equation.edit, argument : son identifiant).
+    // F-301, L7-T34 : double appui de l'outil Sélectionner sur une équation de la page → equation.edit <id>.
+    // Deux relâchés de contact de la vue (contactActive) à moins de l'intervalle du double-clic et de la
+    // distance de glisser ; le point est le dernier reçu par la vue (pointerPosition, coordonnées de la vue).
+    property real lastTapTime: 0
+    property point lastTapAt: Qt.point(-1e6, -1e6)
+    Connections {
+        target: root.tools ? root.tools.view : null
+        function onContactActiveChanged() {
+            const view = root.tools ? root.tools.view : null
+            if (!view || view.contactActive || root.tools.currentTool !== "select")
+                return
+            const at = view.pointerPosition
+            const now = Date.now()
+            const slop = Qt.styleHints.startDragDistance
+            if (now - root.lastTapTime <= Qt.styleHints.mouseDoubleClickInterval
+                    && Math.abs(at.x - root.lastTapAt.x) <= slop && Math.abs(at.y - root.lastTapAt.y) <= slop) {
+                root.lastTapTime = 0
+                const id = equationController.equationAt(view.sceneToPage(view.mapToItem(null, at.x, at.y)), view.zoom)
+                if (id > 0 && root.commands)
+                    root.commands.trigger("equation.edit", id)
+                return
+            }
+            root.lastTapTime = now
+            root.lastTapAt = at
+        }
+    }
+
     function editEquation(id) {
         if (!equationController.edit(Number(id)))
             return

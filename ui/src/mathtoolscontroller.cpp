@@ -48,8 +48,10 @@ constexpr double kMaxLeg = 600;
 constexpr double kLegStep = 1.2;
 constexpr double kRadiusPerLeg = 1.9;
 constexpr double kCompassDrop = 80;
-constexpr double kCrossHalf = 6;       // croix du centre : 12 pixels de page
-const char* const kGuidedTool = "pen"; // tools::PenTool::id()
+constexpr double kCrossHalf = 6;                    // croix du centre : 12 pixels de page
+const char* const kPenTool = "pen";                 // tools::PenTool::id()
+const char* const kHighlighterTool = "highlighter"; // tools/tool.h
+const char* const kEraserTool = "eraser";           // tools::EraserTool::id()
 const char* const kRulerGroup = "mathtools/ruler";
 const char* const kSquareGroup = "mathtools/setsquare";
 const char* const kProtractorGroup = "mathtools/protractor";
@@ -263,13 +265,20 @@ input::Sample MathToolsController::CompassGuide::follow(const input::Sample& sam
     return compass.follow(sample);
 }
 
-MathToolsController::MathToolsController(QObject* parent) : QObject(parent) {}
+MathToolsController::MathToolsController(QObject* parent) : QObject(parent)
+{
+    connect(this, &MathToolsController::originVisibleChanged, this, &MathToolsController::syncPivot);
+    connect(this, &MathToolsController::originChanged, this, &MathToolsController::syncPivot);
+}
 
 MathToolsController::~MathToolsController()
 {
     // Le filtre et l'observateur tiennent `this` : jamais laissés à une vue ou un document qui survit.
     if (m_view && m_filterInstalled) {
         m_view->setSampleFilter({});
+    }
+    if (m_view) {
+        m_view->setProperty(kRotationPivotProperty, QVariant());
     }
     if (m_document && m_strokeObserver != 0) {
         m_document->removeChangeObserver(m_strokeObserver);
@@ -294,6 +303,9 @@ void MathToolsController::setView(PageView* view)
     }
     m_filterInstalled = false;
     disconnect(m_zoomConnection);
+    if (m_view) {
+        m_view->setProperty(kRotationPivotProperty, QVariant());
+    }
     m_view = view;
     if (m_view) {
         m_zoomConnection = connect(m_view, &PageView::zoomChanged, this, &MathToolsController::syncTolerance);
@@ -301,6 +313,7 @@ void MathToolsController::setView(PageView* view)
     syncTolerance();
     updateFilter();
     refreshOrigin();
+    syncPivot();
     emit viewChanged();
 }
 
@@ -421,6 +434,9 @@ QSizeF MathToolsController::pageSize() const
 int MathToolsController::add(Entry entry, const QString& kind)
 {
     m_guides.add(entry.guide());
+    if (entry.compass) {
+        m_compassGuides.add(entry.guide());
+    }
     m_tools.push_back(std::move(entry));
     updateFilter();
     storeOpenTools();
@@ -521,6 +537,9 @@ void MathToolsController::close(int index)
     // Retiré des guides avant d'être détruit : un trait guidé en cours finit libre, rien n'est effacé.
     auto it = m_tools.begin() + index;
     m_guides.remove(it->guide());
+    if (it->compass) {
+        m_compassGuides.remove(it->guide());
+    }
     m_tools.erase(it);
     updateFilter();
     storeOpenTools();
@@ -781,15 +800,23 @@ void MathToolsController::updateFilter()
     m_filterInstalled = wanted;
 }
 
-bool MathToolsController::guidesTool(input::UserId user) const
+MathToolsController::GuidedBy MathToolsController::guidedBy(input::UserId user) const
 {
     // Sans hôte d'outils (annotation de bureau), la vue n'a que son stylo.
-    return !m_toolHost || m_toolHost->user(user).currentTool() == QLatin1String(kGuidedTool);
+    if (!m_toolHost) {
+        return GuidedBy::All;
+    }
+    const QString tool = m_toolHost->user(user).currentTool();
+    if (tool == QLatin1String(kPenTool) || tool == QLatin1String(kHighlighterTool)) {
+        return GuidedBy::All;
+    }
+    return tool == QLatin1String(kEraserTool) ? GuidedBy::Compass : GuidedBy::None;
 }
 
 input::Sample MathToolsController::guide(const input::Sample& sample)
 {
-    if (!guidesTool(sample.user)) {
+    const GuidedBy scope = guidedBy(sample.user);
+    if (scope == GuidedBy::None) {
         return sample;
     }
     if (sample.phase == input::Phase::Press) {
@@ -803,9 +830,10 @@ input::Sample MathToolsController::guide(const input::Sample& sample)
             }
         }
     }
-    const input::Sample out = m_guides.filter(sample);
+    const input::Sample out =
+        scope == GuidedBy::Compass ? m_compassGuides.filter(sample) : m_guides.filter(sample);
     if (Entry* const held = seizedCompass()) {
-        followCompass(*held, sample.phase);
+        followCompass(*held, sample.phase, scope == GuidedBy::All);
         return out;
     }
     Entry* const arc = seizedProtractor();
@@ -863,14 +891,14 @@ MathToolsController::Entry* MathToolsController::compassEntry(int index) noexcep
                : nullptr;
 }
 
-void MathToolsController::followCompass(Entry& entry, input::Phase phase)
+void MathToolsController::followCompass(Entry& entry, input::Phase phase, bool poursInk)
 {
     const features::Compass& compass = entry.compass->compass;
     if (phase == input::Phase::Release) {
         entry.compass->seized = false;
         // Rien n'est écrit ici : la croix suit le trait que le stylo verse juste après ce relâché
         // (watchStrokes).
-        if (entry.markCentre && compass.sweptDegrees() >= kMinSweep) {
+        if (poursInk && entry.markCentre && compass.sweptDegrees() >= kMinSweep) {
             PendingAddition pending;
             pending.kind = PendingAddition::Kind::Cross;
             pending.center = compass.pivot();
@@ -965,6 +993,7 @@ void MathToolsController::insertAddition(const PendingAddition& pending)
 void MathToolsController::syncTolerance()
 {
     m_guides.setTolerance(guideBand());
+    m_compassGuides.setTolerance(guideBand());
     emit guideBandChanged();
 }
 
@@ -993,6 +1022,13 @@ void MathToolsController::setOriginVisible(bool visible)
     }
     m_originVisible = visible;
     emit originVisibleChanged();
+}
+
+void MathToolsController::syncPivot()
+{
+    if (m_view) {
+        m_view->setProperty(kRotationPivotProperty, m_originVisible ? QVariant(m_origin) : QVariant());
+    }
 }
 
 QPointF MathToolsController::origin() const noexcept
