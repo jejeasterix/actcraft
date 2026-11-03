@@ -19,6 +19,7 @@ public:
     bool isBusy() const noexcept override;
     void cancel() override;
     void setStyle(std::uint8_t style);
+    void setCaps(core::ConnectorCap capA, core::ConnectorCap capB); // L5-C18 (D11) : extrémités A et B
 
 private:
     void showAttachPoints(core::PointF point);
@@ -28,6 +29,8 @@ private:
 
     ToolContext& m_context;
     std::uint8_t m_style = 0;
+    core::ConnectorCap m_capA = core::ConnectorCap::None;
+    core::ConnectorCap m_capB = core::ConnectorCap::None;
     bool m_active = false;
     core::PointF m_rawPress; // presse brute : seuil de clic
     core::PointF m_start;    // bout de départ, accroché ou libre

@@ -1,6 +1,5 @@
 #include "tooladapters.h"
 
-#include <actcraft/core/connectors.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
@@ -70,13 +69,10 @@ std::vector<core::PageObject> DocumentEditorAdapter::lift(const std::vector<core
     return m_controller.liftObjects(ids);
 }
 
+// L5-T17 : le connecteur lié suit l'objet déposé, en une étape. Le suivi se décide dans le contrôleur
+// (DocumentController::run, M2 de L5-C18), sur la page où les objets soulevés sont revenus.
 void DocumentEditorAdapter::drop(std::unique_ptr<core::UndoCommand> command)
 {
-    // L5-T17 : le connecteur lié suit l'objet déposé (déplacé, redimensionné, tourné, retiré), en une étape.
-    // Une commande déjà enveloppée par l'outil (dépôt d'un point de forme) ne l'est pas une seconde fois.
-    if (command && !dynamic_cast<core::FollowingConnectorsCommand*>(command.get())) {
-        command = core::withFollowingConnectors(page(), pageIndex(), std::move(command));
-    }
     m_controller.dropLifted(std::move(command));
 }
 

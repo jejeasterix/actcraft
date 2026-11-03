@@ -4,6 +4,7 @@
 #include <actcraft/core/connectors.h>
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
+#include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/undo.h>
 
@@ -309,6 +310,79 @@ private slots:
         auto again = translateCommand({a}, 5, 0);
         const auto* rawAgain = again.get();
         QVERIFY(core::withFollowingConnectors(d.page(0), 0, std::move(again)).get() != rawAgain);
+    }
+
+    // L5-C18 : le contrôleur enveloppe toute commande d'une page reliée ; une réglette (fusion, lot 3) y
+    // garde une seule étape.
+    void wrappedSliderCommandsStillMerge()
+    {
+        auto d = blank();
+        const auto a = addRect(d, {100, 100, 100, 50});
+        const auto b = addRect(d, {400, 100, 100, 50});
+        addConnectorAt(d, {200, 100}, a, {400, 100}, b);
+        core::UndoStack stack;
+        for (const std::uint8_t value : std::initializer_list<std::uint8_t>{40, 80, 120}) {
+            stack.push(d, core::withFollowingConnectors(d.page(0), 0,
+                                                        std::make_unique<core::SetTranslucencyCommand>(
+                                                            0, std::vector<core::ObjectId>{a}, value)));
+        }
+        QCOMPARE(stack.count(), std::size_t(1));
+    }
+
+    // L5-C18 : un bout lié ne se recale que si son objet bouge ou disparaît, ou si le connecteur bouge ; une
+    // commande sans rapport laisse où il est un bout posé près d'un sommet sans être dessus.
+    void unrelatedCommandLeavesEndsAlone()
+    {
+        auto d = blank();
+        const auto a = addRect(d, {100, 100, 100, 50});
+        const auto c = addConnectorAt(d, {205, 103}, a, {400, 300}, 0); // près du sommet (200, 100)
+        core::Shape other;
+        other.bounds = {600, 600, 10, 10};
+        core::UndoStack stack;
+        stack.push(d,
+                   core::withFollowingConnectors(
+                       d.page(0), 0, std::make_unique<core::AddObjectCommand>(0, core::PageObject{other})));
+        QCOMPARE(d.page(0).objects.size(), std::size_t(3));
+        QCOMPARE(xy(connector(d, c).firstEnd), XY(205, 103));
+        QCOMPARE(connector(d, c).objectA, a);
+    }
+
+    // L5-C18 : « Rétablir la page » rend la page de référence telle quelle ; ses connecteurs ne suivent pas
+    // les liens de la page remplacée.
+    void revertedPageKeepsItsConnectorsAsSaved()
+    {
+        auto d = blank();
+        const auto a = addRect(d, {100, 100, 100, 50});
+        const auto e = addRect(d, {100, 400, 100, 50});
+        const auto c = addConnectorAt(d, {200, 100}, a, {700, 700}, 0);
+        core::Page reference = d.page(0);
+        auto& saved = std::get<core::Connector>(reference.objects[core::indexOf(reference, c)]);
+        saved.objectA = e; // dans la référence, le bout est sur l'autre forme
+        saved.firstEnd = {200, 400};
+        core::UndoStack stack;
+        stack.push(d, core::withFollowingConnectors(
+                          d.page(0), 0, std::make_unique<core::ReplacePageCommand>(0, std::move(reference))));
+        QCOMPARE(connector(d, c).objectA, e);
+        QCOMPARE(xy(connector(d, c).firstEnd), XY(200, 400));
+    }
+
+    // M8 (L5-C18) : flèche et disque débordent du trait jusqu'à max(3 × largeur, 8) / 2 ; l'emprise (zone
+    // redessinée) et la touche les comptent.
+    void capsWidenTheExtentAndTheTouch()
+    {
+        auto d = blank();
+        const auto c = addConnectorAt(d, {100, 100}, 0, {300, 100}, 0);
+        auto& object = objectById(d, c);
+        auto& body = std::get<core::Connector>(object);
+        body.pen.width = 2;
+        QCOMPARE(core::boundsOnPage(object).y, 99.0); // sans extrémité : le trait et la moitié de sa largeur
+        body.capA = core::ConnectorCap::Round;
+        body.capB = core::ConnectorCap::Arrow;
+        const core::RectF capped = core::boundsOnPage(object);
+        QVERIFY(capped.contains({292, 103.5})); // aile de la flèche : base à 292, demi-largeur 4
+        QVERIFY(capped.contains({96.5, 100}));  // bord du disque, rayon 4
+        QVERIFY(core::objectAt(d.page(0), {292, 103.5}, 0) == c);
+        QVERIFY(core::objectAt(d.page(0), {96.5, 100}, 0) == c);
     }
 };
 

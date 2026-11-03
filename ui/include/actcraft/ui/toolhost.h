@@ -60,6 +60,10 @@ class ToolHost : public QObject
     // Nuancier de la palette des formes (L4-C7) : remplissage courant, et défaut de l'outil (1re case).
     Q_PROPERTY(QColor shapeFillColor READ shapeFillColor NOTIFY settingsChanged)
     Q_PROPERTY(QColor shapeDefaultFillColor READ shapeDefaultFillColor CONSTANT)
+    // L5-C18 (M3, M18) : mémoire du connecteur, relue par son panneau.
+    Q_PROPERTY(int connectorStyle READ connectorStyle NOTIFY settingsChanged)
+    Q_PROPERTY(int connectorCapA READ connectorCapA NOTIFY settingsChanged)
+    Q_PROPERTY(int connectorCapB READ connectorCapB NOTIFY settingsChanged)
 
 public:
     explicit ToolHost(QObject* parent = nullptr);
@@ -77,6 +81,9 @@ public:
     QColor color() const;
     qreal width() const;
     int selectionCount() const;
+    int connectorStyle() const noexcept;
+    int connectorCapA() const noexcept;
+    int connectorCapB() const noexcept;
     bool handlesVisible() const;
     QVariantMap selectionFrame() const;
     QRectF trashArea() const noexcept;
@@ -105,7 +112,8 @@ public:
     Q_INVOKABLE void reduceSelection();
     Q_INVOKABLE void setSelectionTranslucency(int value);
     Q_INVOKABLE void cancelGesture();
-    Q_INVOKABLE void setConnectorStyle(int style); // L5-T17
+    Q_INVOKABLE void setConnectorStyle(int style);         // L5-T17
+    Q_INVOKABLE void setConnectorCaps(int capA, int capB); // L5-C18 : rangs 0 aucune, 1 rayon, 2 flèche
 
     // Outil courant de l'utilisateur ; nullptr tant que le contrôleur, la vue et la couche ne sont pas
     // branchés.
@@ -176,7 +184,9 @@ private:
     bool m_settingsLoaded = false;
     bool m_filtering = false;
     int m_connectorStyle = 0; // L5-T17 : style du connecteur (rang du panneau)
-    QString m_penShape;       // L5-T17 : tracé choisi de la modification de stylo
+    int m_connectorCapA = 0;  // L5-C18 : extrémités A et B (rang de core::ConnectorCap)
+    int m_connectorCapB = 0;
+    QString m_penShape; // L5-T17 : tracé choisi de la modification de stylo
     int m_observer = 0;
 };
 

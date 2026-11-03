@@ -1069,6 +1069,7 @@ private slots:
                                "tool.fill",
                                "tool.connector",
                                "connector.style",
+                               "connector.caps", // L5-C18 : extrémités du connecteur
                                "view.pen-modifiers",
                                "pen.shape",
                                "insert.image",
@@ -1081,7 +1082,7 @@ private slots:
                                "file.import-pdf",
                                "file.import-powerpoint-images",
                                "file.print"};
-        QCOMPARE(lot5.size(), 53);
+        QCOMPARE(lot5.size(), 54);
         for (const QString& id : lot5) {
             QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
         }
