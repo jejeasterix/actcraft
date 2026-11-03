@@ -696,8 +696,8 @@ private slots:
         QVERIFY(tabs->data(tabs->index(0), ui::DocumentTabs::ModifiedRole).toBool());
     }
 
-    // L5-C19 (M12) : l'entrée du menu Affichage déclenche « view.tabs » sans argument, comme CommandEntry : la
-    // barre passe à la position suivante (haut, bas, masquée) ; une valeur inconnue ne change rien.
+    // L5-C19 (M12) : l'entrée du menu Affichage déclenche « view.tabs » sans argument, comme CommandEntry :
+    // la barre passe à la position suivante (haut, bas, masquée) ; une valeur inconnue ne change rien.
     void tabsMenuEntryCyclesThePositionsAndRejectsUnknownValues()
     {
         Shell s;
@@ -732,8 +732,8 @@ private slots:
         QVERIFY(!commands->isChecked(QStringLiteral("view.pen-modifiers")));
     }
 
-    // L5-C19 (M13) : Insertion > Image… et Média… sans argument ouvrent leur boîte de fichier ; le fichier choisi
-    // est inséré sur la page.
+    // L5-C19 (M13) : Insertion > Image… et Média… sans argument ouvrent leur boîte de fichier ; le fichier
+    // choisi est inséré sur la page.
     void insertImageAndMediaWithoutArgumentOpenTheirDialogsAndInsertTheChosenFile()
     {
         Shell s;
@@ -750,7 +750,8 @@ private slots:
         media.write("ID3-pas-vraiment-du-son");
         media.close();
         for (const auto& [command, dialogName, path] :
-             {std::tuple{"insert.image", "insertImageDialog", png}, std::tuple{"insert.media", "insertMediaDialog", mp3}}) {
+             {std::tuple{"insert.image", "insertImageDialog", png},
+              std::tuple{"insert.media", "insertMediaDialog", mp3}}) {
             QObject* dialog = namedObject(s, dialogName);
             QVERIFY2(dialog, dialogName);
             QVERIFY(!dialog->property("visible").toBool());
@@ -857,8 +858,8 @@ private slots:
         QVERIFY(pool.held());
         QVERIFY(run(s, QStringLiteral("file.save"))); // une écriture est en cours
         QVERIFY(doc->isBusy());
-        QVERIFY(QMetaObject::invokeMethod(ask, "save")); // « Enregistrer » : attend la fin de l'écriture
-        QVERIFY(run(s, QStringLiteral("page.insert-after")));       // modification pendant l'écriture
+        QVERIFY(QMetaObject::invokeMethod(ask, "save"));      // « Enregistrer » : attend la fin de l'écriture
+        QVERIFY(run(s, QStringLiteral("page.insert-after"))); // modification pendant l'écriture
         pool.release();
         QTRY_COMPARE_WITH_TIMEOUT(saved.count(), 2, 20000); // l'écriture, puis celle qui était attendue
         QTRY_COMPARE_WITH_TIMEOUT(tabs->rowCount(), 1, 20000);
