@@ -2,12 +2,14 @@
 #include <actcraft/bench/fixtures.h>
 #include <actcraft/bench/injector.h>
 #include <actcraft/bench/uiscenario.h>
+#include <actcraft/export/pdfexport.h>
 #include <actcraft/formats/nativefile.h>
 #include <actcraft/formats/urlio.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
@@ -332,6 +334,31 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
         }
         if (step.path.isEmpty() || step.values.isEmpty()) {
             why = QStringLiteral("archive invalide (archive, contains)");
+            return false;
+        }
+        return true;
+    }
+    if (o.contains(QStringLiteral("file"))) {
+        step.kind = UiStepKind::FileCheck;
+        step.path = o.value(QStringLiteral("file")).toString();
+        const bool hasPages = o.contains(QStringLiteral("pdfPages"));
+        const bool hasSize = o.contains(QStringLiteral("imageSize"));
+        if (hasPages) {
+            const QJsonValue pages = o.value(QStringLiteral("pdfPages"));
+            step.pdfPages = pages.isDouble() ? pages.toInt(-1) : -1;
+        }
+        if (hasSize) {
+            QPointF size;
+            // Entiers seulement : une taille fractionnaire est refusée, pas arrondie.
+            if (readPoint(o.value(QStringLiteral("imageSize")), size) && size.x() >= 1.0 && size.y() >= 1.0 &&
+                size.x() == std::floor(size.x()) && size.y() == std::floor(size.y())) {
+                step.imageSize = QSize(qRound(size.x()), qRound(size.y()));
+            }
+        }
+        if (step.path.isEmpty() || hasPages == hasSize || (hasPages && step.pdfPages < 1) ||
+            (hasSize && !step.imageSize.isValid())) {
+            why = QStringLiteral(
+                "fichier invalide (file, puis pdfPages ≥ 1 ou imageSize [largeur, hauteur], un seul)");
             return false;
         }
         return true;
@@ -1415,6 +1442,56 @@ bool UiScenarioPlayer::archiveContains(const UiStep& step, QStringList& report)
     return missing.isEmpty();
 }
 
+bool UiScenarioPlayer::fileCheck(const UiStep& step, QStringList& report)
+{
+    QString path;
+    if (!expandOrFail(step.path, QStringLiteral("FICHIER %1").arg(step.path), path, report)) {
+        return false;
+    }
+    const QString absolute = QDir::current().absoluteFilePath(path);
+    // Un fichier d'un passage précédent ne prouve pas l'export de celui-ci.
+    const QFileInfo info(absolute);
+    if (info.exists() && info.lastModified() < m_startedAt) {
+        report << QStringLiteral("FICHIER %1 ECART (fichier antérieur au scénario)").arg(path);
+        return false;
+    }
+    if (step.pdfPages >= 0) {
+        QFile file(absolute);
+        if (!file.open(QIODevice::ReadOnly)) {
+            report << QStringLiteral("FICHIER %1 ECHEC (illisible)").arg(path);
+            return false;
+        }
+        const QByteArray data = file.readAll();
+        if (!data.startsWith("%PDF-")) {
+            report << QStringLiteral("FICHIER %1 ECART (pas un PDF)").arg(path);
+            return false;
+        }
+        const int pages = exporting::countPdfPages(data);
+        const bool ok = pages == step.pdfPages;
+        report << (ok ? QStringLiteral("FICHIER %1 PDF %2 pages OK").arg(path).arg(pages)
+                      : QStringLiteral("FICHIER %1 ECART (PDF de %2 pages, attendu %3)")
+                            .arg(path)
+                            .arg(pages)
+                            .arg(step.pdfPages));
+        return ok;
+    }
+    const QImage image(absolute);
+    if (image.isNull()) {
+        report << QStringLiteral("FICHIER %1 ECHEC (image illisible)").arg(path);
+        return false;
+    }
+    const bool ok = image.size() == step.imageSize;
+    report
+        << (ok ? QStringLiteral("FICHIER %1 image %2x%3 OK").arg(path).arg(image.width()).arg(image.height())
+               : QStringLiteral("FICHIER %1 ECART (image %2x%3, attendu %4x%5)")
+                     .arg(path)
+                     .arg(image.width())
+                     .arg(image.height())
+                     .arg(step.imageSize.width())
+                     .arg(step.imageSize.height()));
+    return ok;
+}
+
 bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
 {
     switch (step.kind) {
@@ -1496,6 +1573,8 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return remember(step, report);
     case UiStepKind::ArchiveContains:
         return archiveContains(step, report);
+    case UiStepKind::FileCheck:
+        return fileCheck(step, report);
     case UiStepKind::Touch:
         return touch(step, report);
     case UiStepKind::Pinch:
@@ -1519,6 +1598,7 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
         return false;
     }
     m_scenarioName = scenario.name;
+    m_startedAt = QDateTime::currentDateTime();
     m_outputDir = outputDir;
     m_captureIndex = 0;
     m_index.clear();
