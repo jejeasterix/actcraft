@@ -4,16 +4,20 @@ import ActCraft.Ui
 
 // Commandes de fichier (F-700) : avec une URL, sans dialogue ; sans URL, le dialogue de fichier (natif ;
 // content:// sous Android). Tout ce qui remplace un document modifié demande d'abord de l'enregistrer.
-// Pas d'onglets avant le lot 5 : Nouveau et Ouvrir remplacent le document affiché ; Fermer laisse un paperboard
-// vierge « Sans titre » (F-656).
+// Lot 5 (F-010) : Nouveau et Ouvrir ouvrent un onglet, sans rien demander (le document affiché est garé, pas
+// remplacé) ; seul un « Sans titre » vierge et non modifié est remplacé par Ouvrir, dans son onglet (H5-23).
+// Fermer laisse un paperboard vierge « Sans titre » dans l'onglet affiché (F-656).
 Item {
     id: actions
     objectName: "fileActions"
     required property DocumentController document
+    required property DocumentTabs tabs
     // Édition de texte en cours : validée avant de lire `modified` (sinon Fermer, Nouveau ou Quitter la perdraient).
     property TextEditing textEditing: null
     signal popupOpened()
     signal popupClosed()
+    // « Enregistrer sous » abandonné : ce qui attendait l'enregistrement (fermer un onglet) est oublié.
+    signal saveAbandoned()
     property var pending: null    // action à reprendre après « enregistrer ? »
     property var afterSave: null  // action à reprendre après un enregistrement réussi
     property bool quitting: false
@@ -29,21 +33,34 @@ Item {
         saveChanges.documentTitle = actions.document.title
         saveChanges.open()
     }
-    function newDocument(w, h) { guard(function () { actions.document.newDocument(w, h) }) }
+    // Un onglet neuf, puis `fill` le met à la taille voulue. Refusé pendant une lecture ou une écriture (le
+    // nombre d'onglets ne change pas) : rien n'est alors remplacé.
+    function inNewTab(fill) {
+        if (actions.textEditing) actions.textEditing.commit()
+        const before = actions.tabs.count
+        actions.tabs.newTab()
+        if (actions.tabs.count > before) fill()
+    }
+    function newDocument(w, h) { inNewTab(function () { actions.document.newDocument(w, h) }) }
     function newDocumentWithFrames(w, h, across, down) {
-        guard(function () { actions.document.newDocumentWithFrames(w, h, across, down) })
+        inNewTab(function () { actions.document.newDocumentWithFrames(w, h, across, down) })
+    }
+    function openUrl(url) {
+        if (actions.textEditing) actions.textEditing.commit()
+        if (!actions.document.modified && actions.document.fileUrl.toString() === "")
+            actions.document.openUrl(url)
+        else
+            actions.tabs.openInNewTab(url)
     }
     function askSize() { sizeDialog.open() }
     function open(argument) {
         const url = actions.document.urlFromArgument(argument)
         if (url.toString() === "") {
-            guard(function () {
-                // Le dialogue crée le dossier par défaut en s'ouvrant (jamais ailleurs).
-                openDialog.currentFolder = actions.document.defaultFolderUrl(true)
-                openDialog.open()
-            })
+            // Le dialogue crée le dossier par défaut en s'ouvrant (jamais ailleurs).
+            openDialog.currentFolder = actions.document.defaultFolderUrl(true)
+            openDialog.open()
         } else {
-            guard(function () { actions.document.openUrl(url) })
+            actions.openUrl(url)
         }
     }
     function save() {
@@ -68,7 +85,7 @@ Item {
         title: qsTr("Ouvrir un paperboard")
         fileMode: FileDialog.OpenFile
         nameFilters: [qsTr("Paperboards (*.actcraft *.flipchart)"), qsTr("Tous les fichiers (*)")]
-        onAccepted: actions.document.openUrl(selectedFile)
+        onAccepted: actions.openUrl(selectedFile)
     }
     FileDialog {
         id: saveDialog
@@ -79,7 +96,7 @@ Item {
         nameFilters: [qsTr("Paperboards ActCraft (*.actcraft)")]
         onAccepted: actions.document.saveToUrl(selectedFile)
         // « Enregistrer sous » abandonné après « Enregistrer les modifications ? » : l'action en attente est oubliée.
-        onRejected: actions.afterSave = null
+        onRejected: { actions.afterSave = null; actions.saveAbandoned() }
     }
     SaveChangesDialog {
         id: saveChanges
