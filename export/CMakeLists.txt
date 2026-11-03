@@ -8,3 +8,21 @@ actcraft_add_module(export
         src/officeconvert.cpp
     DEPENDS
         ActCraft::render ActCraft::formats ActCraft::core Qt6::Gui Qt6::Concurrent)
+
+# Import PDF par Qt PDF (liaison dynamique, LGPLv3) ; sans l'option, pdfImportAvailable() reste faux.
+if(ACTCRAFT_IMPORT_PDF)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Pdf)
+    # Homebrew sépare Qt PDF (paquet qtwebengine) : le Qt6::Pdf du paquet qt annonce un dossier d'en-têtes
+    # inexistant (include/QtPdf) ; les en-têtes viennent du framework. On écarte les dossiers absents.
+    get_target_property(_pdf_inc Qt6::Pdf INTERFACE_INCLUDE_DIRECTORIES)
+    set(_pdf_inc_ok "")
+    foreach(_dir IN LISTS _pdf_inc)
+        if(NOT _dir MATCHES "^\\$<" AND NOT EXISTS "${_dir}")
+            continue()
+        endif()
+        list(APPEND _pdf_inc_ok "${_dir}")
+    endforeach()
+    set_property(TARGET Qt6::Pdf PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${_pdf_inc_ok}")
+    target_link_libraries(actcraft_export PUBLIC Qt6::Pdf)
+    target_compile_definitions(actcraft_export PUBLIC ACTCRAFT_IMPORT_PDF=1)
+endif()
