@@ -52,3 +52,9 @@ Qt6LabsPlatform
 # GPL-3.0-only », la même que QuickControls2Basic ; lié dynamiquement. Il ne tire que QtCore, QtGui et QtNetwork,
 # déjà listés plus haut ; PDFium, qu'il embarque, est sous BSD-3-Clause ou Apache-2.0.
 Qt6Pdf
+# Qt PrintSupport (impression, ACTCRAFT_PRINT, DA-A2, L5-T27) et Qt Widgets, qu'il tire (QtPrintSupport ne dépend que
+# de QtCore, QtGui et QtWidgets, relevé par otool -L sur Qt 6.12 de Homebrew). Licence vérifiée dans les en-têtes
+# qprinter.h et qwidget.h de Qt 6.12 (ligne SPDX) : « LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR
+# GPL-3.0-only », la même que QuickControls2Basic ; liés dynamiquement. L'application reste une QGuiApplication.
+Qt6PrintSupport
+Qt6Widgets
