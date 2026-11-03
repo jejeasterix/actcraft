@@ -24,13 +24,27 @@ bool coverageIs(const QObject* curtain, double expected)
     return qAbs(curtain->property("coverage").toDouble() - expected) <= 0.02;
 }
 
+// Points tirés de la géométrie du store (sa surface, la page), jamais d'une taille de page supposée : le bord
+// haut, saisi à 1 px de page sous lui, et le milieu de la page.
+QPointF topEdge(const QObject* curtain, const MainWindow& main)
+{
+    const QSizeF area = curtain->property("area").toSizeF();
+    return inWindow(main, QPointF(area.width() / 2, 1));
+}
+
+QPointF middleOf(const QObject* curtain, const MainWindow& main)
+{
+    const QSizeF area = curtain->property("area").toSizeF();
+    return inWindow(main, QPointF(area.width() / 2, area.height() / 2));
+}
+
 class TstUiCurtain : public QObject
 {
     Q_OBJECT
 
 private slots:
-    // Surcouche : aucune demande de redessin du cache (ouverture, fermeture, tirage complet) ; le stylet
-    // écrit ensuite dans la partie découverte.
+    // Surcouche : aucune demande de redessin du cache (ouverture, fermeture et réouverture, tirage du bord
+    // haut jusqu'à la moitié) ; le stylet écrit ensuite dans la partie découverte.
     void curtainNeverRefreshesTheCache()
     {
         MainWindow main;
@@ -48,10 +62,10 @@ private slots:
         QVERIFY(curtain->property("active").toBool());
         QVERIFY(coverageIs(curtain, 1.0));
 
-        presentationharness::strokeAt(main.window(), Pointer::Mouse, inWindow(main, QPointF(512, 2)),
-                                      inWindow(main, QPointF(512, 384)));
-        QTest::qWait(100);
-        QVERIFY2(coverageIs(curtain, 0.5), qPrintable(curtain->property("coverage").toString()));
+        presentationharness::strokeAt(main.window(), Pointer::Mouse, topEdge(curtain, main),
+                                      middleOf(curtain, main));
+        QTRY_VERIFY2(coverageIs(curtain, 0.5), qPrintable(curtain->property("coverage").toString()));
+        QVERIFY(main.waitReady());
         QCOMPARE(spy.count(), 0);
         QCOMPARE(main.pageObjectCount(), before);
 
@@ -78,15 +92,15 @@ private slots:
         // Rideau fermé, trait au milieu du store : aucun trait, le store n'a pas bougé.
         presentationharness::strokeAt(main.window(), pointer, inWindow(main, QPointF(300, 400)),
                                       inWindow(main, QPointF(700, 400)));
-        QTest::qWait(150);
+        QVERIFY(main.waitReady());
         QCOMPARE(main.pageObjectCount(), before);
         QVERIFY(coverageIs(curtain, 1.0));
 
         // Bord haut tiré jusqu'au milieu : la moitié est découverte, toujours aucun trait.
-        presentationharness::strokeAt(main.window(), pointer, inWindow(main, QPointF(512, 2)),
-                                      inWindow(main, QPointF(512, 384)));
-        QTest::qWait(150);
-        QVERIFY2(coverageIs(curtain, 0.5), qPrintable(curtain->property("coverage").toString()));
+        presentationharness::strokeAt(main.window(), pointer, topEdge(curtain, main),
+                                      middleOf(curtain, main));
+        QTRY_VERIFY2(coverageIs(curtain, 0.5), qPrintable(curtain->property("coverage").toString()));
+        QVERIFY(main.waitReady());
         QCOMPARE(main.pageObjectCount(), before);
 
         // Trait dans la moitié découverte : versé, et le store n'a pas bougé.
