@@ -1,6 +1,5 @@
-#include <actcraft/ui/labeltips.h>
-
 #include <actcraft/core/hittest.h>
+#include <actcraft/ui/labeltips.h>
 
 namespace actcraft::ui {
 
@@ -94,7 +93,8 @@ void LabelTips::hoverAt(QPointF pagePoint)
         clear();
         return;
     }
-    const core::Page& page = m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
+    const core::Page& page =
+        m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
     const std::optional<core::ObjectId> id =
         core::objectAt(page, core::PointF{pagePoint.x(), pagePoint.y()}, m_tolerance);
     const core::ObjectCommon* common = nullptr;
