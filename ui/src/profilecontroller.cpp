@@ -3,6 +3,7 @@
 #include <QFileInfo>
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QUrl>
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QVariantMap>
@@ -14,6 +15,36 @@ namespace actcraft::ui {
 namespace {
 
 const QString kActivateCommand = QStringLiteral("profile.activate");
+const QString kSaveAsCommand = QStringLiteral("profile.save-as");
+const QString kDeleteCommand = QStringLiteral("profile.delete");
+const QString kResetCommand = QStringLiteral("profile.reset");
+const QString kImportCommand = QStringLiteral("profile.import");
+const QString kExportCommand = QStringLiteral("profile.export");
+
+// Chemin local d'une URL de fichier (QUrl ou texte « file:… ») ou chemin tel quel ; vide sans argument.
+QString localPath(const QVariant& argument)
+{
+    const QUrl url = argument.metaType().id() == QMetaType::QUrl ? argument.toUrl() : QUrl(argument.toString());
+    if (url.isLocalFile()) {
+        return url.toLocalFile();
+    }
+    return argument.toString();
+}
+
+// « Mon profil 2 » -> « mon-profil-2 » ; vide si rien n'est utilisable.
+QString slugFor(const QString& name)
+{
+    static const QRegularExpression invalid(QStringLiteral("[^a-z0-9]+"));
+    QString slug = name.trimmed().toLower();
+    slug.replace(invalid, QStringLiteral("-"));
+    while (slug.startsWith(QLatin1Char('-'))) {
+        slug.remove(0, 1);
+    }
+    while (slug.endsWith(QLatin1Char('-'))) {
+        slug.chop(1);
+    }
+    return slug;
+}
 constexpr int kRecentToolsMax = 8; // F-140
 
 QString builtinRoot()
@@ -243,12 +274,101 @@ void ProfileController::bindCommands()
     }
     m_commands->setNativeHandler(kActivateCommand,
                                  [this](const QVariant& argument) { activate(argument.toString()); });
+    m_commands->setNativeHandler(kSaveAsCommand,
+                                 [this](const QVariant& argument) { saveAs(argument.toString()); });
+    m_commands->setNativeHandler(kDeleteCommand, [this](const QVariant&) { deleteCurrent(); });
+    m_commands->setNativeHandler(kResetCommand, [this](const QVariant&) { resetCurrent(); });
+    m_commands->setNativeHandler(kImportCommand, [this](const QVariant& argument) { importFrom(argument); });
+    m_commands->setNativeHandler(kExportCommand,
+                                 [this](const QVariant& argument) { exportCurrent(argument); });
+}
+
+// Sans nom : rien (le QML ouvre alors son champ de nom). Le profil courant, modifications en attente
+// comprises, est copié sous le nouvel identifiant ; l'original garde son état enregistré.
+void ProfileController::saveAs(const QString& name)
+{
+    const QString label = name.trimmed();
+    if (label.isEmpty()) {
+        return;
+    }
+    const QString id = slugFor(label);
+    QString error;
+    if (!validId(id)) {
+        emit failed(tr("Nom de profil refusé : « %1 »").arg(label));
+        return;
+    }
+    if (!m_store.saveAs(m_profile, id, label, error)) {
+        emit failed(error);
+        return;
+    }
+    m_saveTimer.stop();
+    m_dirty = false;
+    activate(id);
+}
+
+void ProfileController::deleteCurrent()
+{
+    const QString id = m_profile.id;
+    QString error;
+    if (!m_store.remove(id, error)) {
+        emit failed(error);
+        return;
+    }
+    m_saveTimer.stop();
+    m_dirty = false;
+    m_departed.remove(id);
+    activate(defaultProfileId());
+}
+
+void ProfileController::resetCurrent()
+{
+    const QString id = m_profile.id;
+    QString error;
+    if (!m_store.reset(id, error)) {
+        emit failed(error);
+        return;
+    }
+    m_saveTimer.stop();
+    m_dirty = false;
+    m_departed.remove(id);
+    activate(id);
+}
+
+void ProfileController::importFrom(const QVariant& source)
+{
+    const QString path = localPath(source);
+    if (path.isEmpty()) {
+        return; // le QML ouvre son sélecteur de fichier
+    }
+    QString error;
+    const std::optional<QString> id = m_store.importFrom(path, error);
+    if (!id) {
+        emit failed(error);
+        return;
+    }
+    activate(*id);
+}
+
+void ProfileController::exportCurrent(const QVariant& target)
+{
+    const QString path = localPath(target);
+    if (path.isEmpty()) {
+        return;
+    }
+    saveNow(); // le fichier exporté relit le profil enregistré
+    QString error;
+    if (!m_store.exportTo(m_profile.id, path, error)) {
+        emit failed(error);
+    }
 }
 
 void ProfileController::unbindCommands()
 {
     if (m_commands) {
-        m_commands->setNativeHandler(kActivateCommand, {});
+        for (const QString& id : {kActivateCommand, kSaveAsCommand, kDeleteCommand, kResetCommand,
+                                  kImportCommand, kExportCommand}) {
+            m_commands->setNativeHandler(id, {});
+        }
     }
 }
 
@@ -438,6 +558,20 @@ void ProfileController::setBrowsersVisible(bool on)
     touch();
 }
 
+bool ProfileController::browsersPinned() const
+{
+    return m_profile.browsers.pinned;
+}
+
+void ProfileController::setBrowsersPinned(bool on)
+{
+    if (m_profile.browsers.pinned == on) {
+        return;
+    }
+    m_profile.browsers.pinned = on;
+    touch();
+}
+
 QString ProfileController::browsersSide() const
 {
     return m_profile.browsers.side;
@@ -535,6 +669,15 @@ bool ProfileController::fitPage() const
 bool ProfileController::trashVisible() const
 {
     return m_profile.trashVisible;
+}
+
+void ProfileController::setTrashVisible(bool on)
+{
+    if (m_profile.trashVisible == on) {
+        return;
+    }
+    m_profile.trashVisible = on;
+    touch();
 }
 
 bool ProfileController::contactActive() const noexcept
