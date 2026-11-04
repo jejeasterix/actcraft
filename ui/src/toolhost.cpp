@@ -112,18 +112,27 @@ protected:
 };
 
 // L6-P1 : tout le texte prend la couleur, comme text.color dans l'éditeur (textediting.cpp : setForeground
-// puis fusion) ; les lignes lues (runs) aussi, pour le peintre.
-core::Text recolored(const core::Text& text, core::Argb color)
+// puis fusion) ; les lignes lues (runs) aussi, pour le peintre. Texte qui l'a déjà : rien (pas d'étape vide).
+// Comme TextEditing::commit (unchanged = live == m_initialHtml), le HTML est comparé après le même
+// aller-retour par QTextDocument, jamais à celui du fichier, que toHtml réécrit toujours.
+std::optional<core::Text> recolored(const core::Text& text, core::Argb color)
 {
-    core::Text out = text;
     RecolorDocument doc;
     doc.setHtml(QString::fromStdString(text.html));
+    const QString before = doc.toHtml();
     QTextCursor cursor(&doc);
     cursor.select(QTextCursor::Document);
     QTextCharFormat format;
     format.setForeground(QColor::fromRgba(color));
     cursor.mergeCharFormat(format);
-    out.html = doc.toHtml().toStdString();
+    const QString after = doc.toHtml();
+    const bool runsTaken = std::all_of(text.runs.begin(), text.runs.end(),
+                                       [color](const core::TextSpan& run) { return run.color == color; });
+    if (after == before && runsTaken) {
+        return std::nullopt;
+    }
+    core::Text out = text;
+    out.html = after.toStdString();
     for (core::TextSpan& run : out.runs) {
         run.color = color;
     }
@@ -439,21 +448,25 @@ bool ToolHost::recolorSelectedTexts(const QColor& color)
     const std::vector<core::ObjectId>& ids = user().selection();
     const auto pageIndex = static_cast<std::size_t>(m_controller->currentIndex());
     const core::Argb argb = opaque(color);
-    std::vector<std::pair<core::ObjectId, core::Text>> texts;
+    bool anyText = false;
+    std::vector<std::pair<core::ObjectId, core::Text>> texts; // seulement ceux que la couleur change
     for (const core::PageObject& object : m_controller->document().page(pageIndex).objects) {
         if (std::find(ids.begin(), ids.end(), object.common.id) == ids.end()) {
             continue;
         }
         // Un groupe sélectionné n'est pas parcouru (supposé, L6-P1).
         if (const auto* text = std::get_if<core::Text>(&core::body(object))) {
-            texts.emplace_back(object.common.id, recolored(*text, argb));
+            anyText = true;
+            if (std::optional<core::Text> value = recolored(*text, argb)) {
+                texts.emplace_back(object.common.id, std::move(*value));
+            }
         }
     }
-    if (texts.empty()) {
-        return false;
+    if (!texts.empty()) {
+        m_controller->execute(std::make_unique<core::SetTextsCommand>(pageIndex, std::move(texts)));
     }
-    m_controller->execute(std::make_unique<core::SetTextsCommand>(pageIndex, std::move(texts)));
-    return true;
+    // Textes qui ont tous déjà la couleur : ni étape, ni couleur passée à l'encre (relecture L6-P1).
+    return anyText;
 }
 
 void ToolHost::setWidth(qreal width)
