@@ -1,7 +1,7 @@
 {
   "format": "actcraft-scenario/1",
   "name": "proprietes",
-  "description": "S9.4 : navigateur de propriétés. Page sans sélection (titre Page), un trait noir fin, sélection du trait (titre Trait), épaisseur du contour saisie à 12 dans l'éditeur (une étape, trait épaissi), annulation (trait fin, sélection vidée, retour à la page). L6-P1 : un texte « Rouge » validé par Échap, sélectionné, prend la pastille rouge (swatch-0, #E53935) sans changer d'outil ni de sélection ; une annulation le rend noir. Le fût du R se lit comme dans texte.json (304, 310).",
+  "description": "S9.4 : navigateur de propriétés. Page sans sélection (titre Page), un trait noir fin, sélection du trait (titre Trait), épaisseur du contour saisie à 12 dans l'éditeur (une étape, trait épaissi), annulation (trait fin, sélection vidée, retour à la page). L6-P1 : un texte « Rouge » (taille 48) validé par Échap, sélectionné, prend la pastille rouge (swatch-0, #E53935) sans changer d'outil ni de sélection (lectures nommées) ; désélectionné par un appui dans le vide, son R se lit rouge hors de toute poignée ; une annulation le rend noir.",
   "steps": [
     {"waitReady": true},
     {"command": "pen.color", "argument": "#000000"},
@@ -37,12 +37,14 @@
     {"waitFor": "appText.active", "value": true, "timeoutMs": 10000},
     {"typeText": "Rouge"},
     {"expect": "appText.plainText", "value": "Rouge"},
+    {"command": "text.select-all"},
+    {"command": "text.size", "argument": 48},
     {"key": "Escape"},
     {"waitFor": "appText.active", "value": false, "timeoutMs": 10000},
     {"waitReady": true},
     {"expect": "documentController.shownObjectCount", "value": 2},
     {"command": "tool.select"},
-    {"pointer": [[310, 310]]},
+    {"pointer": [[320, 330]]},
     {"waitReady": true},
     {"expect": "appTools.selectionCount", "value": 1},
     {"expect": "appProperties.title", "value": "Texte"},
@@ -52,11 +54,15 @@
     {"expect": "appTools.currentTool", "value": "select"},
     {"expect": "appTools.selectionCount", "value": 1},
     {"expect": "appProperties.title", "value": "Texte"},
+    {"pointer": [[800, 200]]},
+    {"waitReady": true},
+    {"expect": "appTools.selectionCount", "value": 0},
     {"capture": "texte-rouge"},
-    {"checkPixel": "texte-recolore", "at": [304, 310], "color": "#E53935", "tolerance": 110},
+    {"checkPixel": "texte-recolore", "at": [308, 340], "color": "#E53935", "tolerance": 60},
     {"command": "edit.undo"},
     {"waitReady": true},
     {"expect": "documentController.shownObjectCount", "value": 2},
-    {"checkPixel": "texte-annule", "at": [304, 310], "color": "#000000", "tolerance": 110}
+    {"capture": "texte-annule"},
+    {"checkPixel": "texte-annule", "at": [308, 340], "color": "#000000", "tolerance": 60}
   ]
 }
