@@ -9,6 +9,8 @@
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QScreen>
+#include <QSettings>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
@@ -54,6 +56,17 @@ int main(int argc, char* argv[])
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Captures"));
+    // Réglages propres à la passe, dans un dossier temporaire, comme MainWindow des tests
+    // (tests/support/presentationharness.h) : une passe ne lit jamais ce qu'une autre a écrit (effets.json
+    // choisit le fondu global), ni les réglages réels de l'utilisateur. QStandardPaths::setTestModeEnabled ne
+    // suffirait pas : le format natif de QSettings (CFPreferences sous macOS, registre sous Windows) l'ignore.
+    // Déclaré avant le moteur QML, donc détruit après lui.
+    const QTemporaryDir settingsDir;
+    if (!settingsDir.isValid()) {
+        return invalid(QStringLiteral("dossier de réglages temporaire impossible : %1").arg(settingsDir.errorString()));
+    }
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir.path());
     const QStringList args = QGuiApplication::arguments();
 
     RenderBackend backend = RenderBackend::Auto;
