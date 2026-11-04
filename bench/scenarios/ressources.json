@@ -1,0 +1,10 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "ressources",
+  "description": "Talon L6 : rempli par L6-T21.",
+  "steps": [
+    {
+      "waitReady": true
+    }
+  ]
+}

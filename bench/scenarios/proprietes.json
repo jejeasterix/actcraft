@@ -1,0 +1,10 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "proprietes",
+  "description": "Talon L6 : rempli par L6-T13.",
+  "steps": [
+    {
+      "waitReady": true
+    }
+  ]
+}

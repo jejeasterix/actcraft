@@ -105,3 +105,17 @@ actcraft_add_test(tst_core_penmodifiers
 actcraft_add_test(tst_core_printlayout
     SOURCES tst_core_printlayout.cpp
     LIBS ActCraft::core)
+
+# Lot 6 (L6-T1) : tests réservés (talons QSKIP), remplis par les tâches nommées.
+# L6-T11
+actcraft_add_test(tst_core_propertyedits
+    SOURCES tst_core_propertyedits.cpp
+    LIBS ActCraft::core)
+# L6-T16
+actcraft_add_test(tst_core_notesedits
+    SOURCES tst_core_notesedits.cpp
+    LIBS ActCraft::core)
+# L6-T33
+actcraft_add_test(tst_core_spellcheck
+    SOURCES tst_core_spellcheck.cpp
+    LIBS ActCraft::core)

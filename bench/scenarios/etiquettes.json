@@ -1,0 +1,10 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "etiquettes",
+  "description": "Talon L6 : rempli par L6-T17.",
+  "steps": [
+    {
+      "waitReady": true
+    }
+  ]
+}

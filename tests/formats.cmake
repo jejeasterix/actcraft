@@ -26,3 +26,13 @@ actcraft_add_test(tst_formats_lot4
 actcraft_add_test(tst_formats_clipboard
     SOURCES tst_formats_clipboard.cpp
     LIBS ActCraft::formats)
+
+# Lot 6 (L6-T1) : tests réservés (talons QSKIP), remplis par les tâches nommées.
+# L6-T10
+actcraft_add_test(tst_formats_lot6
+    SOURCES tst_formats_lot6.cpp
+    LIBS ActCraft::formats)
+# L6-T19
+actcraft_add_test(tst_formats_fragment
+    SOURCES tst_formats_fragment.cpp
+    LIBS ActCraft::formats)

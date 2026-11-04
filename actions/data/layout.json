@@ -1,7 +1,7 @@
 {
   "format": "actcraft-layout/1",
   "menus": [
-    { "id": "file", "label": "Fichier", "items": ["file.new", "file.new-screen", "file.new-1024x768", "file.new-1152x864", "file.new-1280x1024", "file.new-custom", "-", "file.open", "-", "file.save", "file.save-as", "-",
+    { "id": "file", "label": "Fichier", "items": ["file.new", "file.new-screen", "file.new-1024x768", "file.new-1152x864", "file.new-1280x1024", "file.new-custom", "-", "file.open", "file.recent-clear", "-", "file.save", "file.save-as", "-",
       { "submenu": "import", "label": "Importer", "items": ["file.import-pdf", "file.import-powerpoint-images"] },
       { "submenu": "export", "label": "Exporter", "items": ["export.pdf", "export.page-image"] },
       "file.print", "-", "file.close", "-", "file.quit"] },
@@ -12,7 +12,9 @@
       { "submenu": "transform", "label": "Transformer", "items": ["object.enlarge", "object.reduce", "transform.original-size", "transform.fit-width", "transform.fit-height", "transform.fit-page", "-", "transform.mirror-x", "transform.mirror-y", "transform.flip-x", "transform.flip-y", "transform.origin-flip-x", "transform.origin-flip-y"] },
       { "submenu": "align", "label": "Aligner", "items": ["align.left", "align.center-x", "align.right", "align.top", "align.center-y", "align.bottom", "align.width", "align.height", "align.angle", "align.all"] },
       { "submenu": "arrange", "label": "Organiser", "items": ["arrange.front", "arrange.back", "arrange.forward", "arrange.backward", "-", "arrange.layer-top", "arrange.layer-middle", "arrange.layer-bottom"] }] },
-    { "id": "view", "label": "Affichage", "items": ["view.fullscreen", "-", "page.previous", "page.next", "-", "view.fit", "-", "view.page-zoom", "view.page-effects", "-", "view.trash", "-", "view.browsers", "view.page-extension", "-", "view.pen-modifiers", "view.tabs"] },
+    { "id": "view", "label": "Affichage", "items": ["view.fullscreen", "-", "page.previous", "page.next", "-", "view.fit", "-", "view.page-zoom", "view.page-effects", "-", "view.trash", "-", "view.browsers", "view.page-extension", "-", "view.pen-modifiers", "view.tabs", "-", "view.dashboard",
+      { "submenu": "palette", "label": "Palette", "items": ["palette.dock-left", "palette.dock-right", "palette.dock-top", "palette.dock-bottom", "palette.float", "-", "palette.collapse", "palette.collapse-full", "palette.pin"] },
+      "browser.objects", "browser.properties", "browser.notes", "browser.resources", "mode.design"] },
     { "id": "insert", "label": "Insérer", "items": ["insert.date-time", "insert.equation", "-",
       { "submenu": "insert-page", "label": "Page", "items": ["page.insert-before", "page.insert-after"] },
       "-", "insert.image", "insert.media", "tool.connector"] },
@@ -21,11 +23,12 @@
       { "submenu": "spot", "label": "Spot", "items": ["present.spotlight-circle", "present.spotlight-square", "present.spotlight-solid-circle", "present.spotlight-solid-square"] },
       { "submenu": "camera", "label": "Caméra", "items": ["tool.camera-area", "tool.camera-polygon", "tool.camera-freehand", "tool.camera-window", "tool.camera-screen"] },
       { "submenu": "math", "label": "Outils de maths", "items": ["math.ruler", "math.protractor", "math.set-square", "math.compass", "math.xy-origin", "tool.dice", "tool.calculator"] },
-      { "submenu": "other-tools", "label": "Autres outils", "items": ["tool.keyboard", "tool.clock", "tool.ticker", "tool.web-browser", "tool.text-vertical"] }] },
-    { "id": "help", "label": "Aide", "items": ["help.website", "-", "help.about"] }
+      { "submenu": "other-tools", "label": "Autres outils", "items": ["tool.keyboard", "tool.clock", "tool.ticker", "tool.web-browser", "tool.text-vertical"] },
+      "-", "spell.check", "launcher.edit", "classroom.lock", "classroom.password", "-", "profile.edit"] },
+    { "id": "help", "label": "Aide", "items": ["help.contents", "help.website", "-", "help.about"] }
   ],
   "palette": [
-    { "group": "commandes", "items": ["menu.main", "menu.tools"] },
+    { "group": "commandes", "items": ["menu.main", "menu.tools", "profile.choose", "mode.design"] },
     { "group": "pages", "items": ["page.previous", "page.next"] },
     { "group": "couleurs" },
     { "group": "epaisseur" },

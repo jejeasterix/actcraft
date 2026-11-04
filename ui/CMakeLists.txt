@@ -29,6 +29,64 @@ set(ACTCRAFT_UI_LOT7_QML "")
 set(ACTCRAFT_UI_LOT7_SOURCES "")
 include(${CMAKE_CURRENT_SOURCE_DIR}/presentation.cmake OPTIONAL)
 
+# Lot 6 (L6-T1) : sources réservées (talons marqués), remplies par les tâches nommées dans leurs marqueurs.
+# Les 22 fichiers QML du lot sont créés par L6-T2 : enregistrés ici par leur nom, ceux qui existent déjà seulement
+# (CMake refuse un fichier absent) ; un nouveau fichier est pris au prochain configure (build.ps1 reconfigure).
+set(ACTCRAFT_UI_LOT6_QML "")
+foreach(_name PaletteFrame ShortcutBar ExtendedColors ColorLoupe ObjectBrowser PropertyBrowser PropertyEditor NotesBrowser ResourceBrowser LabelTip Dashboard ProfileChooser ProfileEditor FormatPage CommandsPage LaunchersPage SettingsPage NetworkPage ClassroomLockDialog SpellingDialog HelpViewer SaveSummaryDialog)
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/qml/${_name}.qml)
+        list(APPEND ACTCRAFT_UI_LOT6_QML qml/${_name}.qml)
+    endif()
+endforeach()
+set(ACTCRAFT_UI_LOT6_SOURCES
+    include/actcraft/ui/preferences.h
+    include/actcraft/ui/profilecontroller.h
+    include/actcraft/ui/colorpalette.h
+    include/actcraft/ui/shortcutbar.h
+    include/actcraft/ui/propertymodel.h
+    include/actcraft/ui/objecttree.h
+    include/actcraft/ui/notescontroller.h
+    include/actcraft/ui/labeltips.h
+    include/actcraft/ui/resourcelibrary.h
+    include/actcraft/ui/designmode.h
+    include/actcraft/ui/recentdocuments.h
+    include/actcraft/ui/layouteditor.h
+    include/actcraft/ui/settingsschema.h
+    include/actcraft/ui/secretstore.h
+    include/actcraft/ui/networksettings.h
+    include/actcraft/ui/launchers.h
+    include/actcraft/ui/classroomlock.h
+    include/actcraft/ui/spelling.h
+    include/actcraft/ui/helpviewer.h
+    include/actcraft/ui/language.h
+    src/preferences.cpp
+    src/profilecontroller.cpp
+    src/colorpalette.cpp
+    src/shortcutbar.cpp
+    src/propertymodel.cpp
+    src/objecttree.cpp
+    src/notescontroller.cpp
+    src/labeltips.cpp
+    src/resourcelibrary.cpp
+    src/designmode.cpp
+    src/recentdocuments.cpp
+    src/layouteditor.cpp
+    src/settingsschema.cpp
+    src/networksettings.cpp
+    src/launchers.cpp
+    src/classroomlock.cpp
+    src/spelling.cpp
+    src/helpviewer.cpp
+    src/language.cpp
+)
+if(WIN32)
+    list(APPEND ACTCRAFT_UI_LOT6_SOURCES src/secretstore_win.cpp)
+else()
+    list(APPEND ACTCRAFT_UI_LOT6_SOURCES src/secretstore_other.cpp)
+endif()
+# Hachage et mandataire du lot 6 (Qt6::Network).
+find_package(Qt6 6.12 REQUIRED COMPONENTS Network)
+
 qt_add_qml_module(actcraft_ui
     URI ActCraft.Ui
     VERSION 1.0
@@ -78,6 +136,7 @@ qt_add_qml_module(actcraft_ui
         qml/PrintSetupDialog.qml
         qml/SheetPreview.qml
         ${ACTCRAFT_UI_LOT7_QML}
+        ${ACTCRAFT_UI_LOT6_QML}
     RESOURCES
         icons/menu.svg
         icons/outils.svg
@@ -182,6 +241,32 @@ qt_add_qml_module(actcraft_ui
         icons/exporter.svg
         icons/imprimer.svg
         icons/importer.svg
+        icons/palette-gauche.svg
+        icons/palette-droite.svg
+        icons/palette-haut.svg
+        icons/palette-bas.svg
+        icons/palette-flottante.svg
+        icons/palette-reduire.svg
+        icons/palette-reduire-tout.svg
+        icons/palette-epingler.svg
+        icons/couleurs-plus.svg
+        icons/pipette.svg
+        icons/nav-objets-masque.svg
+        icons/nav-objets-verrou.svg
+        icons/notes-page.svg
+        icons/profil.svg
+        icons/profils.svg
+        icons/conception.svg
+        icons/accueil.svg
+        icons/recents.svg
+        icons/ressources-miennes.svg
+        icons/ressources-partagees.svg
+        icons/ressources-autre.svg
+        icons/tampon.svg
+        icons/classe-verrou.svg
+        icons/orthographe.svg
+        icons/aide-sommaire.svg
+        icons/programme.svg
     SOURCES
         include/actcraft/ui/viewtransform.h
         include/actcraft/ui/pageview.h
@@ -220,7 +305,8 @@ qt_add_qml_module(actcraft_ui
         src/fileexchange.cpp
         include/actcraft/ui/printcontroller.h
         src/printcontroller.cpp
-        ${ACTCRAFT_UI_LOT7_SOURCES})
+        ${ACTCRAFT_UI_LOT7_SOURCES}
+        ${ACTCRAFT_UI_LOT6_SOURCES})
 
 # Le code d'enregistrement QML généré inclut les en-têtes par leur seul nom : d'où le dossier privé.
 # MSVC, C4702 (code inatteignable) dans les sources C++ que qmlcachegen produit : le code généré instancie
@@ -244,7 +330,7 @@ target_include_directories(actcraft_ui
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/actcraft/ui ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(actcraft_ui PUBLIC
     Qt6::Quick ActCraft::actions ActCraft::formats ActCraft::input ActCraft::render ActCraft::tools
-    ActCraft::features ActCraft::export ActCraft::print Qt6::Concurrent)
+    ActCraft::features ActCraft::export ActCraft::print Qt6::Concurrent Qt6::Network)
 actcraft_set_warnings(actcraft_ui)
 
 # Version affichée par « À propos » (décision 31).
@@ -256,3 +342,9 @@ set_source_files_properties(${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md
 qt_add_resources(actcraft_ui "ui_notices"
     PREFIX "/actcraft"
     FILES ${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md)
+
+# Lot 6 : aide embarquée et traductions (talons, L6-T35 et L6-T36).
+qt_add_resources(actcraft_ui "ui_lot6_data"
+    PREFIX "/actcraft"
+    BASE ${CMAKE_CURRENT_SOURCE_DIR}
+    FILES help/index.html i18n/actcraft_fr.ts)

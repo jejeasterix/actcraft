@@ -488,3 +488,18 @@ set_tests_properties(tst_captures_edition_export PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
+# Lot 6 (L6-T1) : quinze scénarios de captures réservés (talons à une étape waitReady), remplis par les tâches
+# nommées dans leur « description ». Hors écran, rendu logiciel, comme premiers-pas.
+foreach(_scn IN ITEMS profils palette couleurs proprietes navigateur-objets notes etiquettes reglages-gardes ressources mode-creation tableau-de-bord raccourcis-programmes classe-protegee orthographe aide-langue)
+    string(REPLACE "-" "_" _scn_id "${_scn}")
+    add_test(NAME tst_captures_${_scn_id}
+        COMMAND $<TARGET_FILE:actcraft-captures>
+            --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/${_scn}.json
+            --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-${_scn})
+    set_tests_properties(tst_captures_${_scn_id} PROPERTIES
+        TIMEOUT 300
+        ENVIRONMENT "${_bench_env_offscreen}"
+        PASS_REGULAR_EXPRESSION "SCENARIO OK"
+        FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+endforeach()
