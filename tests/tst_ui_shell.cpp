@@ -1309,15 +1309,18 @@ private slots:
     {
         Shell s;
         QVERIFY(start(s));
-        for (const char* name : {"paletteFrame", "shortcutBar", "extendedColors", "colorLoupe", "objectBrowser",
-                                 "propertyBrowser", "notesBrowser", "resourceBrowser", "labelTip", "dashboard",
-                                 "profileChooser", "profileEditor", "classroomLockDialog", "spellingDialog",
-                                 "helpViewer", "saveSummaryDialog", "notesIcon"})
+        for (const char* name :
+             {"paletteFrame", "shortcutBar", "extendedColors", "colorLoupe", "objectBrowser",
+              "propertyBrowser", "notesBrowser", "resourceBrowser", "labelTip", "dashboard", "profileChooser",
+              "profileEditor", "classroomLockDialog", "spellingDialog", "helpViewer", "saveSummaryDialog",
+              "notesIcon"})
             QVERIFY2(s.window->findChild<QObject*>(QString::fromLatin1(name)), name);
-        // Amendement 4 (C2) : chaque emplacement reçoit les commandes par propriété, jamais par l'id de Main.qml.
-        for (const char* name : {"paletteFrame", "shortcutBar", "objectBrowser", "propertyBrowser", "notesBrowser",
-                                 "resourceBrowser", "labelTip", "dashboard", "profileEditor", "classroomLockDialog",
-                                 "spellingDialog", "helpViewer", "saveSummaryDialog"}) {
+        // Amendement 4 (C2) : chaque emplacement reçoit les commandes par propriété, jamais par l'id de
+        // Main.qml.
+        for (const char* name :
+             {"paletteFrame", "shortcutBar", "objectBrowser", "propertyBrowser", "notesBrowser",
+              "resourceBrowser", "labelTip", "dashboard", "profileEditor", "classroomLockDialog",
+              "spellingDialog", "helpViewer", "saveSummaryDialog"}) {
             QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
             QVERIFY2(o && o->property("commands").value<QObject*>() != nullptr, name);
         }
@@ -1330,7 +1333,8 @@ private slots:
         auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
         QVERIFY(commands);
         const QByteArray json = actcraft::actions::defaultCommandsJson();
-        const QJsonArray all = QJsonDocument::fromJson(json).object().value(QStringLiteral("commands")).toArray();
+        const QJsonArray all =
+            QJsonDocument::fromJson(json).object().value(QStringLiteral("commands")).toArray();
         bool inLot6 = false;
         for (const QJsonValue& v : all) {
             const QString id = v.toObject().value(QStringLiteral("id")).toString();
