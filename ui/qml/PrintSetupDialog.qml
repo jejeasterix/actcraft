@@ -69,7 +69,13 @@ Popup {
         function onFinished(text) { dialog.message = text }
     }
 
-    background: Rectangle { color: "#f4f4f4"; border.color: "#808080"; radius: 4 }
+    // Fond du thème, comme GridDesigner : les libellés suivent la palette claire sur sombre de Main.qml
+    // (un fond clair fixe les rendait illisibles, contraste ≈ 1,07 relevé à l'écran en D3D11).
+    background: Rectangle {
+        color: Theme.palette
+        radius: Theme.rayon
+        border.color: Theme.contour
+    }
 
     contentItem: RowLayout {
         spacing: 16
@@ -187,7 +193,7 @@ Popup {
                 objectName: "messageLabel"
                 text: dialog.message
                 wrapMode: Text.Wrap
-                color: "#404040"
+                color: Theme.texteDiscret
             }
             Item { Layout.fillHeight: true; Layout.columnSpan: 2 }
         }
