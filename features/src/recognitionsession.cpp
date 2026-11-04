@@ -46,4 +46,10 @@ void RecognitionSession::clear() noexcept
     m_pending.clear();
 }
 
+void RecognitionSession::remove(const std::vector<core::ObjectId>& ids)
+{
+    std::erase_if(m_pending,
+                  [&ids](core::ObjectId id) { return std::find(ids.begin(), ids.end(), id) != ids.end(); });
+}
+
 } // namespace actcraft::features

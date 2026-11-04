@@ -474,6 +474,7 @@ void RecognitionController::convertToShape()
         convertPending();
         return;
     }
+    forgetPending(selected);
     recognizeShapes(selected);
 }
 
@@ -491,8 +492,22 @@ void RecognitionController::convertToText()
         m_session.clear();
         emit pendingCountChanged();
         updateTimer();
+    } else {
+        forgetPending(strokes);
     }
     recognizeHandwriting(strokes);
+}
+
+// Un trait en attente converti par la sélection quitte la session : sinon il resterait compté en attente, et
+// son délai courrait encore après la conversion.
+void RecognitionController::forgetPending(const std::vector<core::ObjectId>& converted)
+{
+    const std::size_t before = m_session.pending().size();
+    m_session.remove(converted);
+    if (m_session.pending().size() != before) {
+        emit pendingCountChanged();
+        updateTimer();
+    }
 }
 
 void RecognitionController::onChanges(const core::Changes& applied, DocumentController::ChangeOrigin origin)
@@ -525,7 +540,9 @@ void RecognitionController::onChanges(const core::Changes& applied, DocumentCont
                                          .intersects(m_anchor.adjusted(-kValidationMargin, -kValidationMargin,
                                                                        kValidationMargin, kValidationMargin));
         m_session.addStroke(change.object, now());
-        m_arrivedAt[change.object] = now();
+        if (m_handwritingMode) {
+            m_arrivedAt[change.object] = now(); // lu par recognizeHandwriting seule, qui l'oublie
+        }
         added = true;
     }
     // P19 : un trait loin du texte reconnu le valide ; un trait qui le recoupe le corrige, rien ne se ferme.

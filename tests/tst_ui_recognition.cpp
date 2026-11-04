@@ -685,6 +685,12 @@ private slots:
         controller->redo(); // B revient
         QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 2);
         QVERIFY(!controller->canRedo());
+        // Rétablir n'arme aucune reconnaissance : le délai échu ne convertit ni A ni B.
+        QCOMPARE(recognition->pendingCount(), 0);
+        now = atMs(20 * RecognitionSession::kMaxDelayMs);
+        recognition->processDue();
+        QCOMPARE(countOf(*controller, core::ObjectKind::Shape), 0);
+        QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 2);
     }
 
     // Mode écriture ouvert par la commande : un mot écrit reste un trait jusqu'au délai, puis devient UN
@@ -738,6 +744,88 @@ private slots:
         QVERIFY(htmlOf(*textsOf(*w.controller).front()).contains(QStringLiteral(">bonjour</p>")));
     }
 
+    // Relecture du lot 7 : conversion en texte limitée au stylo (penStrokeOf, comme la conversion en formes).
+    // Un trait de marqueur sélectionné avec le mot n'est pas lu : il reste un trait. Mutant : penStrokeOf
+    // accepte tout trait → le marqueur part avec le mot.
+    void convertToTextTakesThePenOnly()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        DocumentController* controller = controllerOf(main);
+        RecognitionController* recognition = recognitionOf(main);
+        ToolHost* tools = toolsOf(main);
+        QVERIFY(controller != nullptr);
+        QVERIFY(recognition != nullptr);
+        QVERIFY(tools != nullptr);
+        QVERIFY(declareWindows(main));
+        const std::shared_ptr<FakeLog> log = installFake(*recognition, true, {{QStringLiteral("bonjour")}});
+        QTRY_VERIFY_WITH_TIMEOUT(recognition->handwritingAvailable(), 10000);
+        QVERIFY(main.run(QStringLiteral("tool.select")));
+        controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310))); // mot au stylo
+        core::Stroke marker = strokeThrough(inkLine(300, 360, 500, 370));
+        marker.kind = core::StrokeKind::Highlighter;
+        controller->commitStroke(marker);
+        tools->selectAll();
+        QTRY_COMPARE(tools->selectionCount(), 2);
+
+        QVERIFY(main.run(QStringLiteral("recognition.convert-to-text")));
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*controller, core::ObjectKind::Text), 1, 10000);
+        QCOMPARE(countOf(*controller, core::ObjectKind::Stroke), 1);
+        for (const core::PageObject& object : shownObjects(*controller)) {
+            if (const auto* stroke = std::get_if<core::Stroke>(&core::body(object)))
+                QVERIFY(stroke->kind == core::StrokeKind::Highlighter);
+        }
+    }
+
+    // Relecture du lot 7 : un trait en attente (mode écriture ouvert), sélectionné puis converti par
+    // « Convertir en texte », quitte la session : plus rien n'attend, et le délai échu ne relance rien. Avant :
+    // compté en attente après sa conversion (pendingCount 1), son délai courait encore.
+    void selectionTakesThePendingStrokeOutOfTheSession()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("bonjour")}}));
+        ToolHost* tools = toolsOf(w.main);
+        QVERIFY(tools != nullptr);
+        w.controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310)));
+        QVERIFY(w.main.run(QStringLiteral("tool.select")));
+        tools->selectAll();
+        QTRY_COMPARE(tools->selectionCount(), 1);
+        QVERIFY(w.recognition->handwritingMode());
+        QCOMPARE(w.recognition->pendingCount(), 1); // en attente ET sélectionné
+
+        QVERIFY(w.main.run(QStringLiteral("recognition.convert-to-text")));
+        QCOMPARE(w.recognition->pendingCount(), 0);
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 1, 10000);
+        w.now = atMs(10 * RecognitionSession::kMaxDelayMs);
+        w.recognition->processDue();
+        QCOMPARE(w.recognition->pendingCount(), 0);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Text), 1);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 0);
+    }
+
+    // Relecture du lot 7 : autres lectures d'un mot écrit au bas de la page, six lectures. Le panneau reste
+    // entier dans la couche (placeAlternatives le borne avec sa hauteur à jour).
+    void alternativesStayInsideTheLayer()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("bonjour"), QStringLiteral("bonjours"), QStringLiteral("bonsoir"),
+                         QStringLiteral("bonjou"), QStringLiteral("bonjoux"), QStringLiteral("bonjoul")}}));
+        QQuickItem* panel = presentationharness::findItem(w.main.window()->contentItem(),
+                                                          QStringLiteral("recognitionAlternatives"));
+        QVERIFY(panel != nullptr);
+        QQuickItem* layer = panel->parentItem();
+        QVERIFY(layer != nullptr);
+        const double bottom = w.controller->pageSize().height() - 4;
+        w.controller->commitStroke(strokeThrough(inkLine(300, bottom - 30, 500, bottom)));
+        w.now = atMs(w.recognition->delayMs());
+        w.recognition->processDue();
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 1, 10000);
+        QTRY_VERIFY(panel->isVisible());
+        QVERIFY(w.recognition->alternatives().size() >= 5);
+        QVERIFY2(panel->y() >= 0 && panel->y() + panel->height() <= layer->height() + 0.5,
+                 qPrintable(QStringLiteral("%1 + %2 / %3").arg(panel->y()).arg(panel->height()).arg(layer->height())));
+    }
+
     // Moteur indisponible : mode refusé, commande grisée, explication du moteur gardée (info-bulle).
     void handwritingDisabledWithExplanation()
     {
@@ -747,17 +835,21 @@ private slots:
         auto* commands = main.window()->findChild<Commands*>(QStringLiteral("commands"));
         QVERIFY(recognition != nullptr);
         QVERIFY(commands != nullptr);
+        // Fenêtre déclarée Windows : ailleurs, les deux commandes sont absentes, donc grisées d'office.
+        QVERIFY(declareWindows(main));
         installFake(*recognition, false, {}, QStringLiteral("Moteur d'essai absent"));
         QTRY_COMPARE_WITH_TIMEOUT(recognition->handwritingStatus(), QStringLiteral("Moteur d'essai absent"),
                                   10000);
         QVERIFY(!recognition->handwritingAvailable());
         QTRY_VERIFY(!commands->isEnabled(QStringLiteral("tool.handwriting")));
+        QVERIFY(!commands->isEnabled(QStringLiteral("recognition.convert-to-text"))); // relecture du lot 7
         recognition->setHandwritingMode(true);
         QVERIFY(!recognition->handwritingMode()); // refusé : aucun trait ne partirait
 
         installFake(*recognition, true,
                     {{QStringLiteral("a")}}); // moteur disponible : la commande se dégrise
         QTRY_VERIFY(commands->isEnabled(QStringLiteral("tool.handwriting")));
+        QVERIFY(commands->isEnabled(QStringLiteral("recognition.convert-to-text")));
         QVERIFY(recognition->handwritingAvailable());
     }
 

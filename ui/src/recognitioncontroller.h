@@ -135,6 +135,7 @@ signals:
 private:
     void onChanges(const core::Changes& applied, DocumentController::ChangeOrigin origin);
     void resetSession();
+    void forgetPending(const std::vector<core::ObjectId>& converted);
     std::vector<core::ObjectId> selectedObjects() const; // vide sans outils ou sans sélection
     void recognizeShapes(const std::vector<core::ObjectId>& strokes);
     void dispatch(const std::vector<core::ObjectId>& strokes);
