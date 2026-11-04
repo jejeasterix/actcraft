@@ -231,6 +231,7 @@ Hypothèses du lot 6 décidées sur le Mac : **H6-11** (orchestrateur, 2026-11-0
 **H6-12** (orchestrateur, 2026-11-04) — profils : la règle du format natif (clés inconnues gardées dans leurs sous-objets, `formats/include/actcraft/formats/nativejson.h:79-80`) l'emporte sur l'en-tête figé de L6-T4 (« premier niveau ») ; appliquée par L6-C1.
 Questions à Jérôme (lot 6) : aucune ouverte (H6-6 accordée le 2026-10-18 ; H6-6b « MPL 1.1 » le 2026-10-21).
 Reprise après la relève (2026-11-04, ouvrière du pilote du Mac, handoff `1c566e9c`) : chantier réenregistré ; L6-C3 en rejeu ; L6-T14 essai 3 relancé (`concepteur-critique`) ; L6-T7 relancée depuis c8146ed ; L6-T11 en revue immédiate, rejeu après L6-C3.
+Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstruites) : 207/207, 0 avertissement — orchestrateur, 2026-11-04.
 Tâche : L6-C4 — correctif de la revue de L6-T14 — depuis 2026-11-04
 Tâche : L6-T8 — couleurs étendues — depuis 2026-11-04
 Tâche : L6-T16 — navigateur de notes — depuis 2026-11-04
