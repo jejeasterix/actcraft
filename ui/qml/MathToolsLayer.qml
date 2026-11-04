@@ -140,7 +140,10 @@ Item {
         }
     }
 
-    Component.onCompleted: {
+    // Commandes posées après la création (ou remplacées) : les gestionnaires sont reposés.
+    onCommandsChanged: registerCommands()
+    Component.onCompleted: registerCommands()
+    function registerCommands() {
         if (!root.commands)
             return
         root.commands.setHandler("math.ruler", function () { mathTools.openRuler() })
@@ -152,5 +155,7 @@ Item {
             if (root.commands)
                 root.commands.setChecked("math.xy-origin", mathTools.originVisible)
         })
+        // Commandes remplacées alors que l'origine est déjà visible : la coche reprend l'état du contrôleur.
+        root.commands.setChecked("math.xy-origin", mathTools.originVisible)
     }
 }

@@ -23,6 +23,8 @@ public:
     std::vector<core::ObjectId> due(std::int64_t nowNs); // mûrs : rendus puis oubliés
     const std::vector<core::ObjectId>& pending() const noexcept;
     void clear() noexcept;
+    // Traits convertis par une autre voie (la sélection) : retirés de l'attente, le délai des autres tient.
+    void remove(const std::vector<core::ObjectId>& ids);
 
 private:
     int m_delayMs = 0;

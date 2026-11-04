@@ -4,7 +4,7 @@ import ActCraft.Ui
 
 // Reconnaissance (F-295 et F-296, L7-T21 et L7-T23) : porte le contrôleur et les gestionnaires de
 // `tool.shape-recognition` et `tool.handwriting` (cochables, exclusifs), et de `recognition.convert-to-shape`.
-// La commande d'écriture est grisée tant que le moteur n'a pas répondu disponible (le contrôleur possède le fil
+// La commande d'écriture et « Convertir en texte » sont grisées tant que le moteur n'a pas répondu disponible (le contrôleur possède le fil
 // de reconnaissance et l'interroge au démarrage) ; absente d'Android, elle n'interroge rien. Les autres lectures
 // du dernier texte reconnu s'affichent dans un FloatingPanel près du texte : couverture de la page (ni stylet,
 // ni doigt, ni souris ne tracent dessous) ; les choisir remplace le texte, la croix valide.
@@ -87,6 +87,7 @@ Item {
         })
         syncChecked()
         root.commands.setEnabled("tool.handwriting", recognitionController.handwritingAvailable)
+        root.commands.setEnabled("recognition.convert-to-text", recognitionController.handwritingAvailable)
         if (!root.probed && root.commands.isAvailable("tool.handwriting")) {
             root.probed = true
             recognitionController.probeHandwriting()
@@ -108,6 +109,7 @@ Item {
             if (root.commands) {
                 // Moteur indisponible : grisée ; l'explication est recognitionController.handwritingStatus.
                 root.commands.setEnabled("tool.handwriting", recognitionController.handwritingAvailable)
+                root.commands.setEnabled("recognition.convert-to-text", recognitionController.handwritingAvailable)
             }
         }
         function onAlternativesChanged() {

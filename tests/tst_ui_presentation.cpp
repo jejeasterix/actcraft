@@ -754,9 +754,6 @@ private slots:
             QVERIFY2(ids.contains(QLatin1String(named)), named);
         }
         for (const QString& id : ids) {
-            if (id == QLatin1String("recognition.convert-to-text")) {
-                continue; // gestionnaire branché par L7-T34 (menu contextuel) ; hors de ce contrôle
-            }
             QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
         }
     }

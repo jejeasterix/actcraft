@@ -61,7 +61,14 @@ private slots:
     {
         TransitionSettings s;
         s.global = QStringLiteral("dissolve");
-        QCOMPARE(effectForLeaving(s, {}, NavigationKind::Next, {true, false, false}), QStringLiteral("none"));
+        QCOMPARE(effectForLeaving(s, {}, NavigationKind::Next, {.curtainOrSpotlight = true}),
+                 QStringLiteral("none"));
+    }
+    // Saut direct (navigateur de pages, S22) : aucun effet, sans aucun bloqueur.
+    void jumpPlaysNoEffect()
+    {
+        TransitionSettings s;
+        s.global = QStringLiteral("dissolve");
         QCOMPARE(effectForLeaving(s, {}, NavigationKind::Jump, {}), QStringLiteral("none"));
     }
     void unknownEffectFallsBackToNone()

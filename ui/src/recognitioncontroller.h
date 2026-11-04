@@ -98,6 +98,7 @@ public:
     // Tests : fabrique du reconnaisseur, appelée sur le fil dédié (nul : celui de la plateforme). Le fil est
     // recréé et interrogé de nouveau.
     void setHandwritingFactoryForTest(features::HandwritingThread::Factory factory);
+    std::size_t trackedArrivalsForTest() const { return m_arrivedAt.size(); } // pour les tests
     // Crée le fil au premier appel et lui demande si le moteur est disponible : handwritingProbed en réponse.
     Q_INVOKABLE void probeHandwriting();
     // Remplace le texte reconnu par l'une des autres lectures (index dans alternatives()), en une étape.
@@ -135,6 +136,7 @@ signals:
 private:
     void onChanges(const core::Changes& applied, DocumentController::ChangeOrigin origin);
     void resetSession();
+    void forgetPending(const std::vector<core::ObjectId>& converted);
     std::vector<core::ObjectId> selectedObjects() const; // vide sans outils ou sans sélection
     void recognizeShapes(const std::vector<core::ObjectId>& strokes);
     void dispatch(const std::vector<core::ObjectId>& strokes);
@@ -164,7 +166,8 @@ private:
     QString m_status;
     std::uint64_t m_epoch = 0;     // session remise à zéro : les reconnaissances en vol sont abandonnées
     std::uint64_t m_threadGen = 0; // fil recréé : ses réponses en vol sont abandonnées
-    std::map<core::ObjectId, std::int64_t> m_arrivedAt; // instant d'arrivée de chaque trait en attente
+    std::map<core::ObjectId, std::int64_t> m_arrivedAt; // instant d'arrivée de chaque trait tracé depuis la
+                                                        // dernière remise à zéro, tant qu'il reste un trait
     features::HandwritingThread::Factory m_factory;
     QStringList m_readings; // lectures du dernier texte, la première est celle du texte posé
     int m_current = 0;      // lecture actuellement dans le texte

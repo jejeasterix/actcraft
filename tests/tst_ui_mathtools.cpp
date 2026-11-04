@@ -20,6 +20,8 @@
 #include <QColor>
 #include <QCursor>
 #include <QLineF>
+#include <QPointer>
+#include <QQuickItem>
 #include <QSignalSpy>
 #include <QUrl>
 #include <QtMath>
@@ -126,6 +128,86 @@ void pointerStep(QQuickWindow* window, Pointer pointer, QEvent::Type phase, QPoi
         break;
     }
     QCoreApplication::processEvents();
+}
+
+// Menu d'un outil ouvert : objet non visuel, enfant direct de l'élément de l'outil. Cherché en suivant
+// l'arbre visuel (les délégués du Repeater de la couche n'ont pas la fenêtre pour ancêtre dans l'arbre des
+// objets).
+QObject* menuIn(QQuickItem* item, const QString& name)
+{
+    if (!item) {
+        return nullptr;
+    }
+    if (QObject* found = item->findChild<QObject*>(name, Qt::FindDirectChildrenOnly)) {
+        return found;
+    }
+    const QList<QQuickItem*> children = item->childItems();
+    for (QQuickItem* child : children) {
+        if (QObject* found = menuIn(child, name)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+QObject* menuOf(const MainWindow& w, const QString& name)
+{
+    return w.window() ? menuIn(w.window()->contentItem(), name) : nullptr;
+}
+
+QQuickItem* menuEntry(QObject* menu, const QString& text)
+{
+    const int count = menu ? menu->property("count").toInt() : 0;
+    for (int i = 0; i < count; ++i) {
+        QQuickItem* item = nullptr;
+        QMetaObject::invokeMethod(menu, "itemAt", Q_RETURN_ARG(QQuickItem*, item), Q_ARG(int, i));
+        if (item && item->property("text").toString() == text) {
+            return item;
+        }
+    }
+    return nullptr;
+}
+
+// Clic de souris sur l'entrée `text` du menu, une fois ouvert (une entrée à sous-menu ouvre celui-ci).
+bool clickEntry(const MainWindow& w, QObject* menu, const QString& text)
+{
+    if (!menu || !QTest::qWaitFor([menu] { return menu->property("opened").toBool(); }, 3000)) {
+        return false;
+    }
+    QQuickItem* entry = menuEntry(menu, text);
+    if (!entry) {
+        return false;
+    }
+    // Menu dans sa propre fenêtre si le style en ouvre une ; sinon dans la couche de la fenêtre principale.
+    QQuickWindow* target = entry->window() ? entry->window() : w.window();
+    QTest::mouseClick(target, Qt::LeftButton, Qt::NoModifier,
+                      entry->mapToScene(QPointF(entry->width() / 2, entry->height() / 2)).toPoint());
+    QCoreApplication::processEvents();
+    return true;
+}
+
+// Le menu ouvert, l'entrée cliquée comme à la main ; le menu se referme. « Fermer » détruit l'outil, donc son
+// délégué et le menu qui en est l'enfant, parfois dès le clic : suivi par QPointer depuis l'entrée, un menu
+// détruit compte pour fermé (lu par un pointeur brut, il faisait planter rulerMenu, signal 11, le
+// 2026-11-04).
+bool chooseFromMenu(const MainWindow& w, QObject* menu, const QString& text)
+{
+    const QPointer<QObject> watched(menu);
+    if (!menu || !QMetaObject::invokeMethod(menu, "open") || !clickEntry(w, menu, text)) {
+        return false;
+    }
+    return QTest::qWaitFor([watched] { return !watched || !watched->property("visible").toBool(); }, 3000);
+}
+
+bool entryChecked(QObject* menu, const QString& text)
+{
+    QQuickItem* entry = menuEntry(menu, text);
+    return entry && entry->property("checked").toBool();
+}
+
+QVariant toolValue(const MathToolsController& tools, const char* key)
+{
+    return tools.toolAt(0).value(QLatin1String(key));
 }
 
 const actcraft::core::Stroke* lastStroke(const actcraft::core::Page& page)
@@ -1308,6 +1390,166 @@ private slots:
         QVERIFY(qAbs(guided->points.back().x - 700) <= 0.5);
     }
 
+    // Relecture du lot 7 : un test par menu d'outil de maths, chaque entrée cliquée à la souris. Règle :
+    // angle affiché, sous-menus des unités présents, fermeture.
+    void rulerMenu()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.ruler")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QPointer<QObject>
+            menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
+        QTRY_VERIFY(!(menu = menuOf(w, QStringLiteral("rulerMenu"))).isNull());
+        const bool angle = toolValue(*tools, "showAngle").toBool();
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Afficher l'angle")));
+        QTRY_COMPARE(toolValue(*tools, "showAngle").toBool(), !angle);
+        QCOMPARE(entryChecked(menu, QStringLiteral("Afficher l'angle")), !angle);
+        // Sous-menu des unités du bord haut : ouvert par son entrée, « Pouces » cliqué dedans ; tout se
+        // referme.
+        const QString topUnit = toolValue(*tools, "topUnit").toString();
+        QVERIFY(QMetaObject::invokeMethod(menu, "open"));
+        QVERIFY(clickEntry(w, menu, QStringLiteral("Unités du bord haut")));
+        QQuickItem* top = menuEntry(menu, QStringLiteral("Unités du bord haut"));
+        QVERIFY(top);
+        const QPointer<QObject> units = top->property("subMenu").value<QObject*>();
+        QVERIFY(clickEntry(w, units, QStringLiteral("Pouces")));
+        QTRY_VERIFY(toolValue(*tools, "topUnit").toString() != topUnit);
+        QTRY_VERIFY(menu && !menu->property("visible").toBool());
+        QVERIFY(menuEntry(menu, QStringLiteral("Unités du bord bas")));
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Fermer")));
+        QTRY_COMPARE(tools->count(), 0);
+    }
+
+    // Équerre : angle affiché, fermeture.
+    void setSquareMenu()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.set-square")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QPointer<QObject>
+            menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
+        QTRY_VERIFY(!(menu = menuOf(w, QStringLiteral("setSquareMenu"))).isNull());
+        const bool angle = toolValue(*tools, "showAngle").toBool();
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Afficher l'angle")));
+        QTRY_COMPARE(toolValue(*tools, "showAngle").toBool(), !angle);
+        QCOMPARE(entryChecked(menu, QStringLiteral("Afficher l'angle")), !angle);
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Fermer")));
+        QTRY_COMPARE(tools->count(), 0);
+    }
+
+    // Compas : chaque réglage cochable bascule sa valeur, et sa coche suit ; fermeture.
+    void compassMenu()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.compass")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QPointer<QObject>
+            menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
+        QTRY_VERIFY(!(menu = menuOf(w, QStringLiteral("compassMenu"))).isNull());
+        const std::pair<const char*, const char*> entries[] = {{"Réfléchi", "mirrored"},
+                                                               {"Afficher l'angle", "showAngle"},
+                                                               {"Afficher le rayon", "showRadius"},
+                                                               {"Marquer le centre", "markCentre"}};
+        for (const auto& [text, key] : entries) {
+            const QString entry = QString::fromUtf8(text);
+            const bool before = toolValue(*tools, key).toBool();
+            QVERIFY2(chooseFromMenu(w, menu, entry), text);
+            QTRY_COMPARE(toolValue(*tools, key).toBool(), !before);
+            QCOMPARE(entryChecked(menu, entry), !before);
+        }
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Fermer")));
+        QTRY_COMPARE(tools->count(), 0);
+    }
+
+    // Rapporteur : coches de la forme et du style d'arc. Cliquer l'entrée déjà cochée la laisse cochée ;
+    // cocher l'autre décoche la première (groupes exclusifs de ProtractorTool.qml ; sans eux, « Rapporteur
+    // complet » recliqué restait décoché, `checked: !tool.half` ne se réévaluant pas : rouge ici le
+    // 2026-11-04).
+    void protractorMenu()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.protractor")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QPointer<QObject>
+            menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
+        QTRY_VERIFY(!(menu = menuOf(w, QStringLiteral("protractorMenu"))).isNull());
+        const QString full = QStringLiteral("Rapporteur complet");
+        const QString half = QStringLiteral("Demi-rapporteur");
+        QVERIFY(toolValue(*tools, "shape").toString() != QLatin1String("half"));
+        QVERIFY(entryChecked(menu, full));
+        QVERIFY(chooseFromMenu(w, menu, full));
+        QVERIFY(entryChecked(menu, full));
+        QVERIFY(toolValue(*tools, "shape").toString() != QLatin1String("half"));
+        QVERIFY(chooseFromMenu(w, menu, half));
+        QTRY_COMPARE(toolValue(*tools, "shape").toString(), QStringLiteral("half"));
+        QVERIFY(entryChecked(menu, half));
+        QVERIFY(!entryChecked(menu, full));
+
+        const QString filled = QStringLiteral("Arc plein");
+        QVERIFY(chooseFromMenu(w, menu, filled));
+        QTRY_COMPARE(toolValue(*tools, "arcStyle").toString(), QStringLiteral("filled"));
+        QVERIFY(chooseFromMenu(w, menu, filled));
+        QVERIFY(entryChecked(menu, filled));
+        QVERIFY(!entryChecked(menu, QStringLiteral("Arc")));
+        QVERIFY(!entryChecked(menu, QStringLiteral("Arc fermé")));
+        QCOMPARE(toolValue(*tools, "arcStyle").toString(), QStringLiteral("filled"));
+
+        // Relecture du lot 7 : les coches suivent le modèle, pas seulement le clic (liaisons `checked:`).
+        // Forme et style changés par l'API directe, menu resté ouvert à sa place : les coches se déplacent.
+        tools->setProtractorShape(0, QStringLiteral("full"));
+        QTRY_VERIFY(entryChecked(menu, full));
+        QVERIFY(!entryChecked(menu, half));
+        tools->setProtractorShape(0, QStringLiteral("half"));
+        QTRY_VERIFY(entryChecked(menu, half));
+        QVERIFY(!entryChecked(menu, full));
+        tools->setArcStyle(0, QStringLiteral("closed"));
+        QTRY_VERIFY(entryChecked(menu, QStringLiteral("Arc fermé")));
+        QVERIFY(!entryChecked(menu, filled));
+        QVERIFY(!entryChecked(menu, QStringLiteral("Arc")));
+        tools->setArcStyle(0, QStringLiteral("arc"));
+        QTRY_VERIFY(entryChecked(menu, QStringLiteral("Arc")));
+        QVERIFY(!entryChecked(menu, QStringLiteral("Arc fermé")));
+        tools->setArcStyle(0, QStringLiteral("filled")); // l'entrée décochée par le groupe se recoche
+        QTRY_VERIFY(entryChecked(menu, filled));
+        QVERIFY(!entryChecked(menu, QStringLiteral("Arc")));
+
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Fermer")));
+        QTRY_COMPARE(tools->count(), 0);
+    }
+
+    // Relecture du lot 7 : `commands` remplacé après la création (onCommandsChanged) : les gestionnaires
+    // math.* sont reposés sur les nouvelles commandes, et la coche de l'origine XY reprend l'état du
+    // contrôleur.
+    void replacedCommandsGetTheHandlers()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QQuickItem* layer = w.item(QStringLiteral("mathToolsRoot"));
+        QVERIFY(layer);
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        tools->setOriginVisible(true);
+
+        auto* fresh = new actcraft::ui::Commands(layer);
+        QVERIFY(layer->setProperty("commands", QVariant::fromValue(fresh)));
+        QCOMPARE(tools->count(), 0);
+        QVERIFY(fresh->trigger(QStringLiteral("math.ruler")));
+        QCOMPARE(tools->count(), 1);
+        QVERIFY(fresh->isChecked(QStringLiteral("math.xy-origin")));
+
+        QVERIFY(fresh->trigger(QStringLiteral("math.xy-origin"))); // bascule : masquée, coche retirée
+        QVERIFY(!tools->originVisible());
+        QVERIFY(!fresh->isChecked(QStringLiteral("math.xy-origin")));
+    }
+
     // F-282, L7-T34 : la gomme du lot 3 suit la mine du compas (même filtre) : le bras tourne avec elle. Elle
     // ne verse aucun trait : « marquer le centre » n'ajoute aucune croix, ni à son relâché, ni au trait libre
     // que le stylo verse ensuite.
@@ -1340,6 +1582,36 @@ private slots:
         QTest::qWait(50);
         QCOMPARE(countOf<actcraft::core::Line>(doc->document().page(0)), lines);
         QCOMPARE(w.pageObjectCount(), before + 1);
+    }
+
+    // Relecture du lot 7, « gomme : compas seulement » (guidedBy, mathtoolscontroller.cpp:813) : le long de
+    // l'arc du rapporteur, la gomme ne saisit pas l'outil (l'angle balayé reste à zéro, aucun secteur). Règle
+    // et équerre passent par le même filtre que le rapporteur (m_guides) : une gomme guidée par lui le serait
+    // par elles. Témoin : le même chemin au stylo saisit le rapporteur, il est donc à sa portée.
+    void eraserIgnoresTheOtherMathTools()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.protractor")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        tools->setArcStyle(0, QStringLiteral("filled"));
+        const Dial d = dialOf(*tools, 0);
+        const std::vector<QPointF> quarter = rimPath(d, -90, 0, 6); // haut → droite, bande extérieure
+        QVERIFY(w.run(QStringLiteral("tool.eraser")));
+        QVERIFY(tools->toolHost());
+        QCOMPARE(tools->toolHost()->currentTool(), QStringLiteral("eraser"));
+        const int before = w.pageObjectCount();
+        stylusPath(w, quarter);
+        QTest::qWait(50);
+        QCOMPARE(toolValue(*tools, "swept").toInt(), 0);
+        QCOMPARE(w.pageObjectCount(), before);
+
+        QVERIFY(w.run(QStringLiteral("tool.pen")));
+        stylusPath(w, quarter, false);
+        QTRY_VERIFY2(toolValue(*tools, "swept").toInt() >= 80,
+                     "témoin : au stylo, le même chemin saisit le rapporteur");
+        presentationharness::sendTablet(w.window(), QEvent::TabletRelease, scene(w, quarter.back()));
     }
 
     // Report de L7-T33, arbitré par l'original (extras/mathtools.py:967-970, _ink_style : couleur de l'outil

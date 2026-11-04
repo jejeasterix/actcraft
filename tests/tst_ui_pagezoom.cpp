@@ -81,11 +81,13 @@ private slots:
         QVERIFY(spy.isValid());
 
         const QPointF center = inWindow(main, QPointF(512, 384));
+        QElapsedTimer held;
+        held.start();
         pressAt(main.window(), Pointer::Mouse, center);
-        QTest::qWait(kHoldMs);
+        // Maintien d'au moins 600 ms, prolongé tant que le zoom n'a pas pris 20 % (machine chargée).
+        QTRY_VERIFY2(held.elapsed() >= kHoldMs && main.pageView()->zoom() > before * 1.2,
+                     qPrintable(QString::number(main.pageView()->zoom())));
         QCOMPARE(spy.count(), 0);
-        QVERIFY2(main.pageView()->zoom() > before * 1.2,
-                 qPrintable(QString::number(main.pageView()->zoom())));
         releaseAt(main.window(), Pointer::Mouse, center);
 
         QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 3000);
@@ -106,20 +108,31 @@ private slots:
 
         const QPointF center = inWindow(main, QPointF(512, 384));
         pressAt(main.window(), Pointer::Mouse, center);
-        QTest::qWait(400);
+        QTRY_VERIFY(main.pageView()->zoom() > startZoom * 1.1);
         releaseAt(main.window(), Pointer::Mouse, center);
         const qreal zoomed = main.pageView()->zoom();
         QVERIFY(zoomed > startZoom * 1.1);
 
+        // Chaque appui suivant loin du précédent (au-delà de kDoubleClickPixels) : aucun ne compte comme un
+        // double appui, qui remettrait la page à l'écran et passerait pour un panoramique ou un dézoom.
+        const QPointF panFrom = center + QPointF(-120, 0);
         const QPointF panBefore = main.pageView()->pan();
-        presentationharness::strokeAt(main.window(), Pointer::Mouse, center, center + QPointF(-90, -60));
-        QTest::qWait(100);
-        QVERIFY(main.pageView()->pan() != panBefore);
+        presentationharness::strokeAt(main.window(), Pointer::Mouse, panFrom, panFrom + QPointF(-90, -60));
+        QTRY_VERIFY(main.pageView()->pan() != panBefore);
+        QCOMPARE(main.pageView()->zoom(), zoomed);
 
-        pressAt(main.window(), Pointer::Mouse, center, Qt::RightButton);
-        QTest::qWait(300);
-        releaseAt(main.window(), Pointer::Mouse, center, Qt::RightButton);
-        QVERIFY(main.pageView()->zoom() < zoomed);
+        // Relecture du lot 7 (M10) : le bouton droit tenu dézoome peu à peu, tant qu'il est tenu (un double
+        // appui ne ferait qu'un saut). Mutant : sens du bouton droit ignoré (`press(…, false)`) → le zoom
+        // grandit ; sous l'ancien test (dézoom au même point que l'appui d'avant), ce mutant passait.
+        const QPointF outAt = center + QPointF(120, 0);
+        pressAt(main.window(), Pointer::Mouse, outAt, Qt::RightButton);
+        QTRY_VERIFY2(main.pageView()->zoom() < zoomed * 0.95,
+                     qPrintable(QString::number(main.pageView()->zoom())));
+        const qreal during = main.pageView()->zoom();
+        QTRY_VERIFY2(main.pageView()->zoom() < during * 0.95,
+                     qPrintable(QString::number(main.pageView()->zoom())));
+        releaseAt(main.window(), Pointer::Mouse, outAt, Qt::RightButton);
+        QVERIFY(main.pageView()->zoom() < during);
 
         QTest::qWait(300);
         QCOMPARE(main.pageObjectCount(), before);

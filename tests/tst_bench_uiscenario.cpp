@@ -1001,8 +1001,9 @@ private slots:
         QCOMPARE(all.count(QLatin1String("DOUBLECLIC OK")), 2);
     }
 
-    // L7-T41 : « pointer » sur un nom d'objet clique au centre de l'élément trouvé (la vue de page, au centre de
-    // la fenêtre) ; introuvable, caché, sans taille ou centre hors de la fenêtre, l'étape échoue avec sa raison.
+    // L7-T41 : « pointer » sur un nom d'objet clique au centre de l'élément trouvé (la vue de page, au centre
+    // de la fenêtre) ; introuvable, caché, sans taille ou centre hors de la fenêtre, l'étape échoue avec sa
+    // raison.
     void pointerStepOnANamedItemPlays()
     {
         Fixture f;

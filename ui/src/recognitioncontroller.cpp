@@ -474,6 +474,7 @@ void RecognitionController::convertToShape()
         convertPending();
         return;
     }
+    forgetPending(selected);
     recognizeShapes(selected);
 }
 
@@ -491,8 +492,22 @@ void RecognitionController::convertToText()
         m_session.clear();
         emit pendingCountChanged();
         updateTimer();
+    } else {
+        forgetPending(strokes);
     }
     recognizeHandwriting(strokes);
+}
+
+// Un trait en attente converti par la sélection quitte la session : sinon il resterait compté en attente, et
+// son délai courrait encore après la conversion.
+void RecognitionController::forgetPending(const std::vector<core::ObjectId>& converted)
+{
+    const std::size_t before = m_session.pending().size();
+    m_session.remove(converted);
+    if (m_session.pending().size() != before) {
+        emit pendingCountChanged();
+        updateTimer();
+    }
 }
 
 void RecognitionController::onChanges(const core::Changes& applied, DocumentController::ChangeOrigin origin)
@@ -525,7 +540,7 @@ void RecognitionController::onChanges(const core::Changes& applied, DocumentCont
                                          .intersects(m_anchor.adjusted(-kValidationMargin, -kValidationMargin,
                                                                        kValidationMargin, kValidationMargin));
         m_session.addStroke(change.object, now());
-        m_arrivedAt[change.object] = now();
+        m_arrivedAt[change.object] = now(); // lu par recognizeHandwriting, quel que soit le mode du tracé
         added = true;
     }
     // P19 : un trait loin du texte reconnu le valide ; un trait qui le recoupe le corrige, rien ne se ferme.
@@ -722,6 +737,10 @@ void RecognitionController::recognizeShapes(const std::vector<core::ObjectId>& s
     }
     if (removed.empty()) {
         return;
+    }
+    // Remplacés par une forme : plus suivis. Les traits restés traits gardent leur heure d'arrivée.
+    for (const core::ObjectId id : removed) {
+        m_arrivedAt.erase(id);
     }
     // Une étape : Annuler rend les traits d'un coup (core::ReplaceObjectsCommand par DocumentInsertions).
     insertions.replaceObjects(std::move(removed), std::move(added));

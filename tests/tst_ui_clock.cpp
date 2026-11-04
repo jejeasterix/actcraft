@@ -353,20 +353,24 @@ private slots:
             QVERIFY(pageMenu);
             // Lot 4 : le menu de la page (16 entrées) couvre désormais le corps du panneau ; le clic de
             // fermeture va sur la barre de titre, hors du menu (sans glisser, il ne déplace pas le panneau).
-            // L7-T41 : avec les polices de Windows, le menu élargi du lot 5 couvre aussi le point (100, 22) de la
-            // barre ; le point de fermeture est alors le premier de la barre, de gauche à droite, hors du menu et
-            // avant la croix (comme tickerBlocksTheStylus, c20a23b5). Les gardes restent.
+            // L7-T41 : avec les polices de Windows, le menu élargi du lot 5 couvre aussi le point (100, 22)
+            // de la barre ; le point de fermeture est alors le premier de la barre, de gauche à droite, hors
+            // du menu et avant la croix (comme tickerBlocksTheStylus, c20a23b5). Les gardes restent.
             auto* menuContent = pageMenu->property("contentItem").value<QQuickItem*>();
             QVERIFY(menuContent);
             QQuickItem* menuBox = menuContent->parentItem() ? menuContent->parentItem() : menuContent;
-            QQuickItem* titleBar = presentationharness::findItem(panel, QStringLiteral("floatingPanelTitleBar"));
+            QQuickItem* titleBar =
+                presentationharness::findItem(panel, QStringLiteral("floatingPanelTitleBar"));
             QQuickItem* cross = presentationharness::findItem(panel, QStringLiteral("floatingPanelClose"));
             QVERIFY(titleBar != nullptr && cross != nullptr);
-            const QRectF menuRect = menuBox->mapRectToScene(QRectF(0, 0, menuBox->width(), menuBox->height()));
-            const QRectF barRect = titleBar->mapRectToScene(QRectF(0, 0, titleBar->width(), titleBar->height()));
+            const QRectF menuRect =
+                menuBox->mapRectToScene(QRectF(0, 0, menuBox->width(), menuBox->height()));
+            const QRectF barRect =
+                titleBar->mapRectToScene(QRectF(0, 0, titleBar->width(), titleBar->height()));
             const QRectF crossRect = cross->mapRectToScene(QRectF(0, 0, cross->width(), cross->height()));
             QPointF outside = panel->mapToScene(QPointF(100, 22));
-            for (qreal x = barRect.left() + 8; menuRect.contains(outside) && x < crossRect.left() - 8; x += 8) {
+            for (qreal x = barRect.left() + 8; menuRect.contains(outside) && x < crossRect.left() - 8;
+                 x += 8) {
                 outside = QPointF(x, barRect.center().y());
             }
             QVERIFY2(barRect.contains(outside) && !crossRect.contains(outside),

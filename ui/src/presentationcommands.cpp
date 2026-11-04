@@ -90,13 +90,12 @@ bool PresentationCommands::openWebHome()
     const bool web = (scheme == QLatin1String("http") || scheme == QLatin1String("https")) && url.isValid() &&
                      !url.host().isEmpty();
     if (!web) {
-        setMessage(QObject::tr("Adresse refusée : seules les adresses http et https sont ouvertes (%1).")
-                       .arg(address));
+        setMessage(
+            tr("Adresse refusée : seules les adresses http et https sont ouvertes (%1).").arg(address));
         return false;
     }
     const bool opened = m_opener ? m_opener(url) : QDesktopServices::openUrl(url);
-    setMessage(opened ? QString()
-                      : QObject::tr("Le navigateur du système n’a pas pu ouvrir %1.").arg(address));
+    setMessage(opened ? QString() : tr("Le navigateur du système n’a pas pu ouvrir %1.").arg(address));
     return opened;
 }
 
