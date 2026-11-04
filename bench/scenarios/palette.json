@@ -1,10 +1,27 @@
 {
   "format": "actcraft-scenario/1",
   "name": "palette",
-  "description": "Talon L6 : rempli par L6-T7.",
+  "description": "Palette (L6-T7) : ancrage à gauche, réduite, désépinglée et repliée, icônes de 32 pixels.",
   "steps": [
-    {
-      "waitReady": true
-    }
+    {"waitReady": true},
+    {"command": "palette.dock-left"},
+    {"wait": 400},
+    {"expect": "appProfile.paletteDock", "value": "left"},
+    {"expect": "toolPalette.x", "value": 0},
+    {"capture": "gauche"},
+    {"command": "palette.collapse"},
+    {"wait": 400},
+    {"capture": "reduite"},
+    {"command": "palette.collapse"},
+    {"command": "palette.dock-right"},
+    {"command": "palette.pin"},
+    {"pointer": [[300, 400]]},
+    {"wait": 1500},
+    {"expect": "paletteFrame.folded", "value": true},
+    {"capture": "repliee"},
+    {"command": "palette.icon-size", "argument": 32},
+    {"wait": 300},
+    {"expect": "appProfile.iconPixels", "value": 32},
+    {"capture": "icones-32"}
   ]
 }
