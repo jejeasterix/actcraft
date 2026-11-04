@@ -148,6 +148,7 @@ private slots:
     void resourceExtensionsKept();
     void danglingActionTargetIsCleared();
     void selectedActionTargetFollowsTheNewIds();
+    void missingResourceRefused();
 };
 
 void TstFormatsFragment::objectsAndResourcesRoundTrip()
@@ -346,6 +347,32 @@ void TstFormatsFragment::selectedActionTargetFollowsTheNewIds()
     const core::PageObject& insertedShape = &inserted[0] == insertedButton ? inserted[1] : inserted[0];
     QVERIFY(insertedShape.common.id != s.shape);
     QCOMPARE(insertedButton->common.actions.at(0).target, insertedShape.common.id); // suit la renumérotation
+}
+
+void TstFormatsFragment::missingResourceRefused()
+{
+    const Source s = makeSource();
+    QString error;
+    const QByteArray bytes = writeToBytes(s.document, 0, {s.imageA}, error);
+    QVERIFY2(!bytes.isEmpty(), qPrintable(error));
+    QVERIFY2(readFromBytes(bytes, error).has_value(), qPrintable(error)); // témoin : intact, il est lu
+
+    // Illisible : les octets de A, rangés tels quels dans l'archive, ne sont plus les siens.
+    QByteArray corrupt = bytes;
+    QCOMPARE(corrupt.count("image-A"), qsizetype(1));
+    corrupt.replace("image-A", "image-Z");
+    error.clear();
+    QVERIFY(!readFromBytes(corrupt, error).has_value());
+    QVERIFY2(error.contains(QString::fromStdString(s.keyA)), qPrintable(error));
+
+    // Absente : l'entrée de A porte un autre nom (en-tête local et répertoire central).
+    QByteArray absent = bytes;
+    const QByteArray entry = resourceEntry(s.keyA, "png").toLatin1();
+    QCOMPARE(absent.count(entry), qsizetype(2));
+    absent.replace(entry, resourceEntry(s.keyA, "pnx").toLatin1());
+    error.clear();
+    QVERIFY(!readFromBytes(absent, error).has_value());
+    QVERIFY2(error.contains(QString::fromStdString(s.keyA)), qPrintable(error));
 }
 
 QTEST_MAIN(TstFormatsFragment)
