@@ -234,6 +234,7 @@ Reprise après la relève (2026-11-04, ouvrière du pilote du Mac, handoff `1c56
 Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstruites) : 207/207, 0 avertissement — orchestrateur, 2026-11-04.
 Tâche : L6-T26 — onglet commandes (F-910) — depuis 2026-11-05
 Tâche : L6-T21 — navigateur de ressources (QML) — depuis 2026-11-05
+Tâche : L6-T29 — raccourcis vers des programmes — depuis 2026-11-05
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
