@@ -18,9 +18,10 @@ class TstUiProfiles : public QObject
 private slots:
     void fiveBuiltinsInOrder()
     {
-        QCOMPARE(builtins().ids(), (QStringList{QStringLiteral("en-classe"), QStringLiteral("preparation"),
-                                                QStringLiteral("lecture-ecriture"),
-                                                QStringLiteral("calcul-geometrie"), QStringLiteral("son-image")}));
+        QCOMPARE(builtins().ids(),
+                 (QStringList{QStringLiteral("en-classe"), QStringLiteral("preparation"),
+                              QStringLiteral("lecture-ecriture"), QStringLiteral("calcul-geometrie"),
+                              QStringLiteral("son-image")}));
     }
     void pinnedCommandsExist()
     {
@@ -66,10 +67,13 @@ private slots:
         QVERIFY(registry.loadDeclarations(actions::defaultCommandsJson(), error));
         auto store = builtins();
         int filtered = 0;
-        for (const QString& id : store.ids())
-            for (const QString& command : store.load(id, error)->pinned)
+        for (const QString& id : store.ids()) {
+            const auto p = store.load(id, error);
+            QVERIFY(p);
+            for (const QString& command : p->pinned)
                 if (!registry.isAvailable(command, actions::Platform::Android))
                     ++filtered;
+        }
         QVERIFY(filtered >= 1); // au moins le clavier à l'écran ou la reconnaissance d'écriture
     }
     void namesAreOurs()
@@ -82,7 +86,8 @@ private slots:
         if (list.isEmpty() || !file.open(QIODevice::ReadOnly | QIODevice::Text))
             QSKIP("ACTCRAFT_REFERENCE_NAMES absent : liste hors dépôt non fournie");
         QStringList theirs;
-        for (const QString& line : QString::fromUtf8(file.readAll()).toLower().split(u'\n', Qt::SkipEmptyParts))
+        for (const QString& line :
+             QString::fromUtf8(file.readAll()).toLower().split(u'\n', Qt::SkipEmptyParts))
             theirs << line.trimmed();
         for (const QString& id : store.ids())
             QVERIFY2(!theirs.contains(store.load(id, error)->label.toLower()), qPrintable(id));

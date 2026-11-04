@@ -1,10 +1,28 @@
 {
   "format": "actcraft-scenario/1",
   "name": "profils",
-  "description": "Talon L6 : rempli par L6-T6.",
+  "description": "Cinq profils fournis (L6-T6) : chacun est activé par profile.activate, l'identifiant courant est relu et l'écran capturé ; le scénario se termine sur le profil de calcul et de géométrie.",
   "steps": [
-    {
-      "waitReady": true
-    }
+    {"waitReady": true},
+    {"command": "profile.activate", "argument": "en-classe"},
+    {"wait": 400},
+    {"expect": "appProfile.currentId", "value": "en-classe"},
+    {"capture": "en-classe"},
+    {"command": "profile.activate", "argument": "preparation"},
+    {"wait": 400},
+    {"expect": "appProfile.currentId", "value": "preparation"},
+    {"capture": "preparation"},
+    {"command": "profile.activate", "argument": "lecture-ecriture"},
+    {"wait": 400},
+    {"expect": "appProfile.currentId", "value": "lecture-ecriture"},
+    {"capture": "lecture-ecriture"},
+    {"command": "profile.activate", "argument": "son-image"},
+    {"wait": 400},
+    {"expect": "appProfile.currentId", "value": "son-image"},
+    {"capture": "son-image"},
+    {"command": "profile.activate", "argument": "calcul-geometrie"},
+    {"wait": 400},
+    {"expect": "appProfile.currentId", "value": "calcul-geometrie"},
+    {"capture": "calcul-geometrie"}
   ]
 }
