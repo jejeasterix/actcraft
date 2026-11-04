@@ -363,6 +363,14 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
         }
         return true;
     }
+    if (o.contains(QStringLiteral("restart"))) {
+        step.kind = UiStepKind::Restart;
+        if (!o.value(QStringLiteral("restart")).isBool() || !o.value(QStringLiteral("restart")).toBool()) {
+            why = QStringLiteral("relance invalide (restart : true)");
+            return false;
+        }
+        return true;
+    }
     if (o.contains(QStringLiteral("touch"))) {
         step.kind = UiStepKind::Touch;
         if (!parsePoints(o.value(QStringLiteral("touch")), step.points)) {
@@ -1492,6 +1500,50 @@ bool UiScenarioPlayer::fileCheck(const UiStep& step, QStringList& report)
     return ok;
 }
 
+void UiScenarioPlayer::setRestartHandler(RestartHandler handler)
+{
+    m_restart = std::move(handler);
+}
+
+// Quitter et relancer (S9) : le profil est écrit (saveCount stable 2 s au plus), puis l'hôte recrée l'interface.
+bool UiScenarioPlayer::restart(QStringList& report)
+{
+    if (!m_restart) {
+        report << QStringLiteral("RELANCE ECHEC (aucun gestionnaire de relance)");
+        return false;
+    }
+    report << QStringLiteral("RELANCE");
+    const auto saves = [this] {
+        const QObject* profile = find(QStringLiteral("appProfile"));
+        return profile ? profile->property("saveCount").toInt() : -1;
+    };
+    int last = saves();
+    QElapsedTimer total;
+    total.start();
+    QElapsedTimer quiet;
+    quiet.start();
+    waitUntil(
+        [&] {
+            const int now = saves();
+            if (now != last) {
+                last = now;
+                quiet.restart();
+            }
+            return quiet.elapsed() >= 400 || total.elapsed() >= 2000;
+        },
+        2500);
+    QQuickWindow* fresh = m_restart();
+    if (!fresh) {
+        report << QStringLiteral("RELANCE ECHEC (interface non rechargée)");
+        return false;
+    }
+    m_window = fresh;
+    m_gestures.reset(); // lié à l'ancienne fenêtre
+    m_loopProbe.reset();
+    report << QStringLiteral("RELANCE OK");
+    return true;
+}
+
 bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
 {
     switch (step.kind) {
@@ -1575,6 +1627,8 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return archiveContains(step, report);
     case UiStepKind::FileCheck:
         return fileCheck(step, report);
+    case UiStepKind::Restart:
+        return restart(report);
     case UiStepKind::Touch:
         return touch(step, report);
     case UiStepKind::Pinch:
