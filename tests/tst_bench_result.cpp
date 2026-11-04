@@ -5,6 +5,8 @@
 #include <QSysInfo>
 #include <QTest>
 
+#include <limits>
+
 // Juge le JSON produit par tst_bench_smoke (fixture ctest bench_smoke_json).
 class TstBenchResult : public QObject
 {
@@ -313,6 +315,46 @@ private slots:
                          !reason.toString().startsWith(QLatin1String("error: ticker")),
                      qPrintable(reason.toString()));
         }
+    }
+
+    // L7-T38 (relecture) : les 17 choix d'effet (view.page-effect, entrées de rang pair) écrivent les
+    // réglages (QSettings, synchrone). Ce sont des réglages, pas des gestes : ils n'entrent pas dans le
+    // verdict. L'intervalle où chacun est planifié, fini avant le changement de page qui le suit, reste au
+    // repos ; une commande ordinaire le classerait actif (entrée, fenêtre « commande -> image suivante »).
+    void pageEffectChoicesAreNotJudged()
+    {
+        QJsonObject effects;
+        for (const QJsonValue& value : m_root.value("scenarios").toArray()) {
+            if (value.toObject().value("name").toString() == QLatin1String("effets-page")) {
+                effects = value.toObject();
+            }
+        }
+        QVERIFY2(!effects.isEmpty(), "scénario effets-page absent");
+        const QJsonObject raw = effects.value("raw").toObject();
+        const QJsonArray inputs = raw.value("input_ns").toArray();
+        const QJsonArray swaps = raw.value("swap_ns").toArray();
+        const QString classes = raw.value("interval_class").toString();
+        QCOMPARE(inputs.size(), 33); // 16 effets x (choix, changement de page), puis « none »
+        QCOMPARE(classes.size(), swaps.size() - 1);
+        qsizetype checked = 0;
+        for (qsizetype i = 0; i < inputs.size(); i += 2) {
+            const double choice = inputs.at(i).toDouble();
+            const double turn =
+                i + 1 < inputs.size() ? inputs.at(i + 1).toDouble() : std::numeric_limits<double>::infinity();
+            for (qsizetype k = 0; k < classes.size(); ++k) {
+                const double start = swaps.at(k).toDouble();
+                const double end = swaps.at(k + 1).toDouble();
+                if (start < choice && choice <= end && end < turn) {
+                    ++checked;
+                    QVERIFY2(classes.at(k) == u'I',
+                             qPrintable(QStringLiteral("intervalle %1 (choix %2) classé %3")
+                                            .arg(k)
+                                            .arg(i / 2)
+                                            .arg(classes.at(k))));
+                }
+            }
+        }
+        QVERIFY(checked > 0);
     }
 
     void strokeHasLatency()

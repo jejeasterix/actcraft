@@ -1162,6 +1162,25 @@ private slots:
         QVERIFY(bench::pageEffectsCheck(page, 0).isEmpty());
     }
 
+    // L7-T38 (relecture) : les choix d'effet d'« effets-page » (view.page-effect) sont des commandes de
+    // réglage : ni entrée ni fenêtre de changement de page, leurs images restent au repos. Aucune autre
+    // commande, d'« effets-page » ou d'un autre scénario, ne l'est : leurs verdicts ne changent pas.
+    void effectChoicesAreSettings()
+    {
+        for (const bench::ScenarioSet set : {bench::ScenarioSet::Court, bench::ScenarioSet::Complet}) {
+            for (const bench::ScenarioPlan& plan : bench::allScenarios(set)) {
+                int settings = 0;
+                for (const bench::PlannedInput& in : plan.inputs) {
+                    if (in.setting) {
+                        ++settings;
+                        QCOMPARE(in.command, QStringLiteral("view.page-effect"));
+                    }
+                }
+                QCOMPARE(settings, plan.name == QLatin1String("effets-page") ? 17 : 0);
+            }
+        }
+    }
+
     // L2-T23 : document du scénario « page » : deux pages générées, la seconde peinte (20 textes, 20 formes à
     // chemins), identifiants uniques dans le document, état propre comme une ouverture, page 1 affichée.
     void generatedPagesForThePageScenario()

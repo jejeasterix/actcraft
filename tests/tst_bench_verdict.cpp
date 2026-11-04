@@ -13,6 +13,8 @@
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QMetaMethod>
+#include <QMetaProperty>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -179,6 +181,36 @@ QString describeChecks(const BenchResult& r)
 
 } // namespace
 
+// L7-T38 : tient un animateur arrêté (« running » remis à faux à chaque notification suivie) : message
+// défilant démarré mais immobile.
+class MotionHold : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit MotionHold(QObject* motion) : m_motion(motion) {}
+    // Suit la notification de « running » de `source`.
+    bool follow(QObject* source)
+    {
+        const QMetaObject* const meta = source->metaObject();
+        const int property = meta->indexOfProperty("running");
+        const int slot = metaObject()->indexOfSlot("hold()");
+        return property >= 0 && slot >= 0 && meta->property(property).hasNotifySignal() &&
+               connect(source, meta->property(property).notifySignal(), this, metaObject()->method(slot));
+    }
+
+private slots:
+    void hold()
+    {
+        if (m_motion->property("running").toBool()) {
+            m_motion->setProperty("running", false);
+        }
+    }
+
+private:
+    QObject* m_motion = nullptr;
+};
+
 class TstBenchVerdict : public QObject
 {
     Q_OBJECT
@@ -194,6 +226,74 @@ private slots:
         QVERIFY(m_settingsDir.isValid());
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+        // Contrôlé avant tout passage, sans rien écrire (un échec ici arrête le test) : les réglages par
+        // défaut (QSettings(), ceux de TransitionController) vont dans l'INI du dossier temporaire, jamais
+        // dans les réglages natifs de la machine (CFPreferences, registre).
+        const QSettings settings;
+        QCOMPARE(settings.format(), QSettings::IniFormat);
+        QVERIFY2(settings.fileName().startsWith(m_settingsDir.path() + u'/'),
+                 qPrintable(settings.fileName()));
+    }
+
+    // L7-T38 (relecture) : « effets-page » arrêté avant sa mesure (commande de préparation refusée : break,
+    // teardownCommands non joué) rend l'effet et la durée d'avant le scénario.
+    void pageEffectRestoredAfterEarlyStop()
+    {
+        ScenarioPlan plan = effectsScenario(ScenarioSet::Court);
+        QVERIFY(plan.pageEffects && plan.inputs.size() > 2);
+        const QString before = plan.inputs.at(0).argument.toString(); // deux effets du catalogue
+        const QString chosen = plan.inputs.at(2).argument.toString();
+        QVERIFY(!before.isEmpty() && before != chosen);
+        plan.setupCommands.emplace_back(QStringLiteral("view.page-effect"), chosen);
+        plan.setupCommands.emplace_back(QStringLiteral("banc.commande-inconnue"), QVariant());
+        BenchOptions options;
+        options.scenarioSet = ScenarioSet::Court;
+        options.plans = {plan};
+        Runner runner(options); // avant le moteur QML : survit à la fenêtre (runner.h)
+        QQmlApplicationEngine engine;
+        StartupOptions startup;
+        startup.generatedPage = true;
+        QQuickWindow* const window = loadMainWindow(engine, startup);
+        QVERIFY(window);
+        QObject* const transition = window->findChild<QObject*>(QStringLiteral("transition"));
+        QVERIFY(transition);
+        QVERIFY(transition->setProperty("globalEffect", before));
+        QVERIFY(transition->setProperty("durationTenths", 12));
+        QCOMPARE(transition->property("globalEffect").toString(), before);
+        QCOMPARE(transition->property("durationTenths").toInt(), 12);
+        const BenchResult r = runner.run(window);
+        QVERIFY2(r.invalidReasons.contains(
+                     QStringLiteral("error: command banc.commande-inconnue refused before effets-page")),
+                 qPrintable(r.invalidReasons.join(QStringLiteral(" ; "))));
+        QCOMPARE(transition->property("globalEffect").toString(), before);
+        QCOMPARE(transition->property("durationTenths").toInt(), 12);
+    }
+
+    // L7-T38 (relecture) : « message-defilant » démarré mais immobile (animateur tenu arrêté) : mesure
+    // invalide, « ticker not moving ».
+    void stillTickerIsInvalid()
+    {
+        BenchOptions options;
+        options.scenarioSet = ScenarioSet::Court;
+        options.plans = {tickerScenario(ScenarioSet::Court)};
+        Runner runner(options); // avant le moteur QML : survit à la fenêtre (runner.h)
+        QQmlApplicationEngine engine;
+        StartupOptions startup;
+        startup.generatedPage = true;
+        QQuickWindow* const window = loadMainWindow(engine, startup);
+        QVERIFY(window);
+        QObject* const ticker = window->findChild<QObject*>(QStringLiteral("ticker"));
+        QObject* const motion = window->findChild<QObject*>(QStringLiteral("tickerMotion"));
+        QVERIFY(ticker && motion);
+        MotionHold hold(motion);
+        QVERIFY(hold.follow(ticker) && hold.follow(motion));
+        const BenchResult r = runner.run(window);
+        const QString reasons = r.invalidReasons.join(QStringLiteral(" ; "));
+        QVERIFY2(
+            !r.invalidReasons.contains(QStringLiteral("error: ticker not running before message-defilant")),
+            qPrintable(reasons));
+        QVERIFY2(r.invalidReasons.contains(QStringLiteral("error: ticker not moving in message-defilant")),
+                 qPrintable(reasons));
     }
 
     void goodRunIsWithinBudget()
