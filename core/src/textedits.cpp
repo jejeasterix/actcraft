@@ -52,6 +52,31 @@ void SetTextCommand::undo(Document& document, Changes& changes)
     changes.push_back(apply(document, m_page, m_id, m_before));
 }
 
+SetTextsCommand::SetTextsCommand(std::size_t page, std::vector<std::pair<ObjectId, Text>> texts)
+    : m_page(page), m_after(std::move(texts))
+{}
+
+void SetTextsCommand::redo(Document& document, Changes& changes)
+{
+    m_before.clear();
+    for (const auto& [id, value] : m_after) {
+        const Text* text = textOf(document, m_page, id);
+        if (text == nullptr)
+            continue;
+        m_before.emplace_back(id, *text);
+        changes.push_back(apply(document, m_page, id, value));
+    }
+}
+
+void SetTextsCommand::undo(Document& document, Changes& changes)
+{
+    for (auto it = m_before.rbegin(); it != m_before.rend(); ++it) {
+        if (textOf(document, m_page, it->first) == nullptr)
+            continue;
+        changes.push_back(apply(document, m_page, it->first, it->second));
+    }
+}
+
 std::optional<PointF> textBaseline(const Text& text) noexcept
 {
     if (text.runs.empty()) {
