@@ -1,6 +1,7 @@
 #include <actcraft/core/connectors.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/objectflags.h>
 #include <actcraft/formats/clipboard.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/objectediting.h>
@@ -10,6 +11,7 @@
 #include <QGuiApplication>
 #include <QImage>
 #include <QMimeData>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -308,6 +310,19 @@ private slots:
         QCOMPARE(f.selection().size(), std::size_t(2));
         for (const core::ObjectId id : f.selection())
             QVERIFY(std::find(before.begin(), before.end(), id) == before.end());
+    }
+
+    // L6-C6 : un drapeau posé ailleurs (arbre des objets, propriétés) ne rend aucun Change ; la sélection le
+    // suit par objectFlagsChanged.
+    void flagsSetElsewhereNotifySelectionState()
+    {
+        Fixture f;
+        QVERIFY(!f.editing.selectionLocked());
+        QSignalSpy spy(&f.editing, &ui::ObjectEditing::selectionStateChanged);
+        f.document.execute(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{f.ids().front()},
+                                                                        core::ObjectFlag::Locked, true));
+        QVERIFY(spy.count() >= 1);
+        QVERIFY(f.editing.selectionLocked());
     }
 
     void flagsAreToggledAndReported()

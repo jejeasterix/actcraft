@@ -2,6 +2,7 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/objectflags.h>
 #include <actcraft/core/pagecache.h>
 #include <actcraft/core/pagesettings.h>
 #include <actcraft/core/pagezones.h>
@@ -944,6 +945,191 @@ private slots:
         QCOMPARE(controller.currentIndex(), 0);
         controller.showPage(9);
         QCOMPARE(controller.currentIndex(), 2);
+    }
+
+    // L6-C2 (H6-15) : un objectFlagsChanged par changement de drapeau d'objet, quel que soit le chemin
+    // (exécution, annulation, rétablissement), avec sa page et ses objets ; aucun quand rien ne change. Le
+    // test qui distingue : verrouiller ne rend aucun Change et documentChanged reste muet, un signal accroché
+    // à settle() ne le dirait pas ; un signal émis par commande de drapeau le dirait aussi pour un drapeau
+    // déjà posé, ou pour l'annulation d'une étape sans effet.
+    void objectFlagsChangedOncePerChange()
+    {
+        using actcraft::core::ObjectFlag;
+        actcraft::ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        controller.nextPage(); // deux pages, la 2e affichée : le signal porte la page de l'objet
+        actcraft::core::Stroke stroke;
+        stroke.points = {{10, 10, 0.5f}, {50, 50, 0.5f}};
+        controller.execute(
+            std::make_unique<actcraft::core::AddObjectCommand>(1, actcraft::core::PageObject{stroke}));
+        QCOMPARE(controller.document().page(1).objects.size(), std::size_t{1});
+        const actcraft::core::ObjectId id = controller.document().page(1).objects.front().common.id;
+        const QList<quint64> ids{static_cast<quint64>(id)};
+        const auto flag = [&](ObjectFlag which, bool value) {
+            controller.execute(
+                std::make_unique<actcraft::core::SetObjectFlagCommand>(1, std::vector{id}, which, value));
+        };
+        QSignalSpy flags(&controller, &actcraft::ui::DocumentController::objectFlagsChanged);
+        QSignalSpy document(&controller, &actcraft::ui::DocumentController::documentChanged);
+
+        flag(ObjectFlag::Locked, true);
+        QCOMPARE(flags.count(), 1);
+        QCOMPARE(flags.at(0).at(0).toInt(), 1);
+        QCOMPARE(flags.at(0).at(1).value<QList<quint64>>(), ids);
+        QCOMPARE(document.count(), 0);   // hors de la pile (règle du lot 5) : ce signal seul le dit
+        flag(ObjectFlag::Locked, true);  // déjà posé
+        controller.commitStroke(stroke); // aucun drapeau
+        QCOMPARE(flags.count(), 1);
+        flag(ObjectFlag::DragCopy, true);
+        QCOMPARE(flags.count(), 2);
+
+        flag(ObjectFlag::Hidden, true); // une étape
+        QCOMPARE(flags.count(), 3);
+        flag(ObjectFlag::Hidden, true); // déjà masqué : une étape (ObjectChanged rendu), aucun drapeau changé
+        QCOMPARE(flags.count(), 3);
+        controller.undo(); // l'étape sans effet
+        QCOMPARE(flags.count(), 3);
+        controller.undo(); // le masquage
+        QCOMPARE(flags.count(), 4);
+        QVERIFY(controller.document().page(1).objects.front().common.visible);
+        controller.redo();
+        QCOMPARE(flags.count(), 5);
+        QCOMPARE(flags.at(4).at(0).toInt(), 1);
+        QCOMPARE(flags.at(4).at(1).value<QList<quint64>>(), ids);
+
+        // L'objet sort puis revient avec ses drapeaux (L6-C6 : par la suppression, dont l'annulation rend
+        // ObjectInserted, chemin que l'ajout annulé puis rétabli n'empruntait pas : AddObjectCommand::redo
+        // remet l'objet sans ses drapeaux) : aucun n'a changé, aucune émission.
+        controller.undo(); // masquage
+        QCOMPARE(flags.count(), 6);
+        controller.undo(); // trait
+        QCOMPARE(controller.document().page(1).objects.size(), std::size_t{1});
+        QVERIFY(controller.document().page(1).objects.front().common.locked);
+        controller.deleteObjects({id}); // objet verrouillé et copie au glissement
+        QVERIFY(controller.document().page(1).objects.empty());
+        QCOMPARE(flags.count(), 6); // sorti avec ses drapeaux : rien
+        controller.undo();          // ObjectInserted
+        QCOMPARE(controller.document().page(1).objects.size(), std::size_t{1});
+        QVERIFY(controller.document().page(1).objects.front().common.locked);
+        QCOMPARE(flags.count(), 6);
+    }
+
+    // L6-C6 : un objet masqué qui revient par un PageChanged (Effacer la page puis Annuler : ni
+    // ObjectInserted ni PageInserted) n'a changé aucun drapeau.
+    void flagsUnchangedWhenPageComesBack()
+    {
+        using actcraft::core::ObjectFlag;
+        actcraft::ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        actcraft::core::Stroke stroke;
+        stroke.points = {{10, 10, 0.5f}, {50, 50, 0.5f}};
+        controller.execute(
+            std::make_unique<actcraft::core::AddObjectCommand>(0, actcraft::core::PageObject{stroke}));
+        const actcraft::core::ObjectId id = controller.document().page(0).objects.front().common.id;
+        controller.execute(std::make_unique<actcraft::core::SetObjectFlagCommand>(0, std::vector{id},
+                                                                                  ObjectFlag::Hidden, true));
+        QSignalSpy flags(&controller, &actcraft::ui::DocumentController::objectFlagsChanged);
+        controller.clearPage(static_cast<int>(actcraft::core::ClearKind::Page));
+        QVERIFY(controller.document().page(0).objects.empty());
+        controller.undo(); // l'objet masqué revient par un PageChanged
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t{1});
+        QVERIFY(!controller.document().page(0).objects.front().common.visible);
+        controller.redo();
+        controller.undo();
+        QCOMPARE(flags.count(), 0);
+    }
+
+    // L6-C6 : les identifiants d'une émission sont croissants, quel que soit l'ordre demandé.
+    void flagIdsAreSorted()
+    {
+        actcraft::ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        actcraft::core::Stroke stroke;
+        stroke.points = {{10, 10, 0.5f}, {50, 50, 0.5f}};
+        for (int i = 0; i < 3; ++i) {
+            controller.execute(
+                std::make_unique<actcraft::core::AddObjectCommand>(0, actcraft::core::PageObject{stroke}));
+        }
+        const auto& objects = controller.document().page(0).objects;
+        const std::vector<actcraft::core::ObjectId> asked{objects[2].common.id, objects[0].common.id,
+                                                          objects[1].common.id};
+        QSignalSpy flags(&controller, &actcraft::ui::DocumentController::objectFlagsChanged);
+        controller.execute(std::make_unique<actcraft::core::SetObjectFlagCommand>(
+            0, asked, actcraft::core::ObjectFlag::Locked, true));
+        QCOMPARE(flags.count(), 1);
+        const QList<quint64> ids = flags.at(0).at(1).value<QList<quint64>>();
+        QCOMPARE(ids.size(), 3);
+        QVERIFY(ids.at(0) < ids.at(1));
+        QVERIFY(ids.at(1) < ids.at(2));
+    }
+
+    // L6-C6 : une commande qui touche deux pages émet une fois par page, page croissante.
+    void flagsGroupedByPage()
+    {
+        class LockBothPages final : public actcraft::core::UndoCommand
+        {
+        public:
+            void redo(actcraft::core::Document& document, actcraft::core::Changes&) override
+            {
+                set(document, true);
+            }
+            void undo(actcraft::core::Document& document, actcraft::core::Changes&) override
+            {
+                set(document, false);
+            }
+
+        private:
+            static void set(actcraft::core::Document& document, bool value)
+            {
+                for (std::size_t page = 0; page < document.pageCount(); ++page) {
+                    for (actcraft::core::PageObject& object : document.page(page).objects) {
+                        object.common.locked = value;
+                    }
+                }
+            }
+        };
+        actcraft::ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        controller.nextPage();
+        actcraft::core::Stroke stroke;
+        stroke.points = {{10, 10, 0.5f}, {50, 50, 0.5f}};
+        for (std::size_t page : {std::size_t{1}, std::size_t{0}}) {
+            controller.execute(
+                std::make_unique<actcraft::core::AddObjectCommand>(page, actcraft::core::PageObject{stroke}));
+        }
+        const actcraft::core::ObjectId onFirst = controller.document().page(0).objects.front().common.id;
+        const actcraft::core::ObjectId onSecond = controller.document().page(1).objects.front().common.id;
+        QSignalSpy flags(&controller, &actcraft::ui::DocumentController::objectFlagsChanged);
+        controller.execute(std::make_unique<LockBothPages>());
+        QCOMPARE(flags.count(), 2);
+        QCOMPARE(flags.at(0).at(0).toInt(), 0);
+        QCOMPARE(flags.at(0).at(1).value<QList<quint64>>(), QList<quint64>{static_cast<quint64>(onFirst)});
+        QCOMPARE(flags.at(1).at(0).toInt(), 1);
+        QCOMPARE(flags.at(1).at(1).value<QList<quint64>>(), QList<quint64>{static_cast<quint64>(onSecond)});
+    }
+
+    // L6-C6 : la copie au glissement posée par le dépôt d'un soulèvement (dropLifted) émet aussi.
+    void flagsFromDropLifted()
+    {
+        actcraft::ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        actcraft::core::Stroke stroke;
+        stroke.points = {{10, 10, 0.5f}, {50, 50, 0.5f}};
+        controller.execute(
+            std::make_unique<actcraft::core::AddObjectCommand>(0, actcraft::core::PageObject{stroke}));
+        const actcraft::core::ObjectId id = controller.document().page(0).objects.front().common.id;
+        QSignalSpy flags(&controller, &actcraft::ui::DocumentController::objectFlagsChanged);
+        QCOMPARE(controller.liftObjects({id}).size(), std::size_t{1});
+        QCOMPARE(flags.count(), 0);
+        controller.dropLifted(std::make_unique<actcraft::core::SetObjectFlagCommand>(
+            0, std::vector{id}, actcraft::core::ObjectFlag::DragCopy, true));
+        QCOMPARE(flags.count(), 1);
+        QCOMPARE(flags.at(0).at(0).toInt(), 0);
+        QCOMPARE(flags.at(0).at(1).value<QList<quint64>>(), QList<quint64>{static_cast<quint64>(id)});
+        // Soulevé puis reposé sans changement : rien.
+        QCOMPARE(controller.liftObjects({id}).size(), std::size_t{1});
+        controller.dropLifted(nullptr);
+        QCOMPARE(flags.count(), 1);
     }
 };
 
