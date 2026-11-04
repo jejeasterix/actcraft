@@ -81,6 +81,29 @@ bool majorVersionIsOne(const QString& format)
     return version.section(QLatin1Char('.'), 0, 0) == QLatin1String("1");
 }
 
+// Ce qui reste de `object` une fois ses clés connues retirées (H6-12 : gardé et réécrit tel quel).
+QJsonObject withoutKeys(QJsonObject object, const QStringList& known)
+{
+    for (const QString& key : known)
+        object.remove(key);
+    return object;
+}
+
+// Écrit `known` par-dessus `unknown` : une clé inconnue n'écrase jamais une clé connue.
+QJsonObject mergedOver(QJsonObject unknown, const QJsonObject& known)
+{
+    for (auto it = known.begin(); it != known.end(); ++it)
+        unknown.insert(it.key(), it.value());
+    return unknown;
+}
+
+const QStringList kPaletteKeys{
+    QStringLiteral("dock"),      QStringLiteral("float-x"),          QStringLiteral("float-y"),
+    QStringLiteral("collapsed"), QStringLiteral("shortcuts-hidden"), QStringLiteral("pinned"),
+    QStringLiteral("swatches")};
+const QStringList kBrowserKeys{QStringLiteral("visible"), QStringLiteral("side"), QStringLiteral("pinned"),
+                               QStringLiteral("current"), QStringLiteral("width")};
+
 PaletteSettings paletteFrom(const QJsonObject& object)
 {
     PaletteSettings palette;
@@ -93,20 +116,21 @@ PaletteSettings paletteFrom(const QJsonObject& object)
     palette.pinned = object.value(QStringLiteral("pinned")).toBool(palette.pinned);
     const int swatches = object.value(QStringLiteral("swatches")).toInt(palette.swatches);
     palette.swatches = (swatches == 8 || swatches == 16 || swatches == 24) ? swatches : 16;
+    palette.unknown = withoutKeys(object, kPaletteKeys);
     return palette;
 }
 
 QJsonObject paletteTo(const PaletteSettings& palette)
 {
-    return QJsonObject{
-        {QStringLiteral("dock"), dockName(palette.dock)},
-        {QStringLiteral("float-x"), palette.floatX},
-        {QStringLiteral("float-y"), palette.floatY},
-        {QStringLiteral("collapsed"), palette.collapsed},
-        {QStringLiteral("shortcuts-hidden"), palette.shortcutsHidden},
-        {QStringLiteral("pinned"), palette.pinned},
-        {QStringLiteral("swatches"), palette.swatches},
-    };
+    return mergedOver(palette.unknown, QJsonObject{
+                                           {QStringLiteral("dock"), dockName(palette.dock)},
+                                           {QStringLiteral("float-x"), palette.floatX},
+                                           {QStringLiteral("float-y"), palette.floatY},
+                                           {QStringLiteral("collapsed"), palette.collapsed},
+                                           {QStringLiteral("shortcuts-hidden"), palette.shortcutsHidden},
+                                           {QStringLiteral("pinned"), palette.pinned},
+                                           {QStringLiteral("swatches"), palette.swatches},
+                                       });
 }
 
 BrowserSettings browsersFrom(const QJsonObject& object)
@@ -118,16 +142,19 @@ BrowserSettings browsersFrom(const QJsonObject& object)
     const QString current = object.value(QStringLiteral("current")).toString();
     browsers.current = kNavigators.contains(current) ? current : QStringLiteral("pages");
     browsers.width = object.value(QStringLiteral("width")).toInt(browsers.width);
+    browsers.unknown = withoutKeys(object, kBrowserKeys);
     return browsers;
 }
 
 QJsonObject browsersTo(const BrowserSettings& browsers)
 {
-    return QJsonObject{
-        {QStringLiteral("visible"), browsers.visible}, {QStringLiteral("side"), browsers.side},
-        {QStringLiteral("pinned"), browsers.pinned},   {QStringLiteral("current"), browsers.current},
-        {QStringLiteral("width"), browsers.width},
-    };
+    return mergedOver(browsers.unknown, QJsonObject{
+                                            {QStringLiteral("visible"), browsers.visible},
+                                            {QStringLiteral("side"), browsers.side},
+                                            {QStringLiteral("pinned"), browsers.pinned},
+                                            {QStringLiteral("current"), browsers.current},
+                                            {QStringLiteral("width"), browsers.width},
+                                        });
 }
 
 } // namespace
