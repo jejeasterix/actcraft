@@ -124,7 +124,8 @@ void hashKeywords(Fnv1a& h, const std::vector<std::string>& words) noexcept
 
 void hashLabelStyle(Fnv1a& h, const LabelStyle& style) noexcept
 {
-    const auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background, unknownKeys] = style;
+    const auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background, unknownKeys] =
+        style;
     h.text(fontFamily);
     h.f64(pointSize);
     h.u32(textColor);

@@ -556,7 +556,8 @@ QJsonArray keywordsJson(const std::vector<std::string>& words)
 // Style de légende (L6-T10) : ses six clés, écrites ensemble dès qu'une valeur n'est pas celle par défaut.
 QJsonObject labelStyleJson(const LabelStyle& style)
 {
-    const auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background, unknownKeys] = style;
+    const auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background, unknownKeys] =
+        style;
     return withKept(QJsonObject{{u"fontFamily"_s, str(fontFamily)},
                                 {u"pointSize"_s, pointSize},
                                 {u"color"_s, colorText(textColor)},
@@ -1646,8 +1647,8 @@ std::optional<PageObject> readObject(Reader& r, const QJsonValue& value)
     PageObject object = blankObject(index);
     std::visit([&r, &j](auto& held) { readBody(r, *j, held); }, body(object));
     object.common = readCommon(r, *j);
-    // « labelStyle » est lue par readLabelStyle, qui garde ses sous-clés inconnues ; hors des clés inconnues de
-    // l'objet, elle y serait gardée en double.
+    // « labelStyle » est lue par readLabelStyle, qui garde ses sous-clés inconnues ; hors des clés inconnues
+    // de l'objet, elle y serait gardée en double.
     QJsonObject objectKeys = *j;
     objectKeys.remove(u"labelStyle"_s);
     object.unknownKeys = unknownKeysOf(objectKeys, r.known->objects[index]);

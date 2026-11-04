@@ -180,7 +180,7 @@ struct LabelStyle
     Argb color = 0xFF000000;
     PenStyle outline = PenStyle::None; // contour du cadre de la légende
     Argb outlineColor = 0xFF000000;
-    Argb fill = 0x00000000; // fond ; transparent par défaut
+    Argb fill = 0x00000000;  // fond ; transparent par défaut
     std::string unknownKeys; // sous-clés inconnues gardées (JSON compact), réécrites avec le style
     bool operator==(const LabelStyle&) const = default;
 };
