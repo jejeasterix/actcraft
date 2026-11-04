@@ -1014,8 +1014,8 @@ private slots:
         QCOMPARE(flags.count(), 6);
     }
 
-    // L6-C6 : un objet masqué qui revient par un PageChanged (Effacer la page puis Annuler : ni ObjectInserted
-    // ni PageInserted) n'a changé aucun drapeau.
+    // L6-C6 : un objet masqué qui revient par un PageChanged (Effacer la page puis Annuler : ni
+    // ObjectInserted ni PageInserted) n'a changé aucun drapeau.
     void flagsUnchangedWhenPageComesBack()
     {
         using actcraft::core::ObjectFlag;
@@ -1026,8 +1026,8 @@ private slots:
         controller.execute(
             std::make_unique<actcraft::core::AddObjectCommand>(0, actcraft::core::PageObject{stroke}));
         const actcraft::core::ObjectId id = controller.document().page(0).objects.front().common.id;
-        controller.execute(
-            std::make_unique<actcraft::core::SetObjectFlagCommand>(0, std::vector{id}, ObjectFlag::Hidden, true));
+        controller.execute(std::make_unique<actcraft::core::SetObjectFlagCommand>(0, std::vector{id},
+                                                                                  ObjectFlag::Hidden, true));
         QSignalSpy flags(&controller, &actcraft::ui::DocumentController::objectFlagsChanged);
         controller.clearPage(static_cast<int>(actcraft::core::ClearKind::Page));
         QVERIFY(controller.document().page(0).objects.empty());
@@ -1069,8 +1069,14 @@ private slots:
         class LockBothPages final : public actcraft::core::UndoCommand
         {
         public:
-            void redo(actcraft::core::Document& document, actcraft::core::Changes&) override { set(document, true); }
-            void undo(actcraft::core::Document& document, actcraft::core::Changes&) override { set(document, false); }
+            void redo(actcraft::core::Document& document, actcraft::core::Changes&) override
+            {
+                set(document, true);
+            }
+            void undo(actcraft::core::Document& document, actcraft::core::Changes&) override
+            {
+                set(document, false);
+            }
 
         private:
             static void set(actcraft::core::Document& document, bool value)
