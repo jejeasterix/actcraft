@@ -795,8 +795,8 @@
     "semantic_hash": ""
   },
   "scripts/captures.ps1": {
-    "mtime": 1793752187.712664,
-    "ast_hash": "0f5b7b601294d9ac7fc318e5d68c10f9",
+    "mtime": 1793819425.6762476,
+    "ast_hash": "58434991f26920a7c16f4ef5446aa081",
     "semantic_hash": ""
   },
   "scripts/dev-env-android.ps1": {
@@ -970,8 +970,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793815490.7654445,
-    "ast_hash": "78685e45cb89da23af1626a4ae1382fa",
+    "mtime": 1793829157.0705771,
+    "ast_hash": "50507e892bed9161ef18abb6495a9107",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -2675,8 +2675,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_fileexchange.cpp": {
-    "mtime": 1793752187.926835,
-    "ast_hash": "13246d01d3a6670eb75828c76f15a5e8",
+    "mtime": 1793825735.8193097,
+    "ast_hash": "79f3a55a6f478a71e2a2718f269010dd",
     "semantic_hash": ""
   },
   "tests/tst_ui_import.cpp": {
@@ -2775,8 +2775,8 @@
     "semantic_hash": ""
   },
   "ui/src/fileexchange.cpp": {
-    "mtime": 1793752188.2559507,
-    "ast_hash": "30534de4f1a952a3bb6f07fd06a46e03",
+    "mtime": 1793825876.5364766,
+    "ast_hash": "24d3786f52be88e73e9841c0c0be0333",
     "semantic_hash": ""
   },
   "ui/src/insertion.cpp": {
@@ -2982,6 +2982,11 @@
   "docs/sessions/2026-11-03-handoff-livraison-complete-2.md": {
     "mtime": 1793752186.333715,
     "ast_hash": "194b6d2791dd6e1fa1eefbe48f81df8c",
+    "semantic_hash": ""
+  },
+  "docs/mesures/2026-11-04-lot5-cloture.md": {
+    "mtime": 1793829141.4274285,
+    "ast_hash": "161d812d13b8366798d13a6eb38e0913",
     "semantic_hash": ""
   }
 }
