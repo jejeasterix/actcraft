@@ -73,8 +73,10 @@ private:
     std::vector<ObjectId> m_objects;
     ObjectProperty m_property;
     PropertyValue m_value;
-    std::vector<std::pair<ObjectId, PageObject>>
-        m_old; // objets modifiés, état d'avant ; rempli à chaque redo
+    // Par objet auquel la propriété s'applique, sa valeur d'avant, ou sa transformation pour position,
+    // taille, angle et miroir (comme TransformObjectsCommand) ; rempli à chaque redo. Annuler ne rétablit
+    // qu'elle, jamais l'objet entier : un verrou posé hors pile depuis (SetObjectFlagCommand) resterait.
+    std::vector<std::pair<ObjectId, std::variant<PropertyValue, Transform>>> m_old;
 };
 
 enum class PageProperty : std::uint8_t

@@ -28,18 +28,27 @@ bool isGeometry(ObjectProperty property) noexcept
     }
 }
 
-double angleOf(const Transform& t) noexcept
-{
-    double degrees = std::atan2(t.m12, t.m11) * 180.0 / std::numbers::pi;
-    if (degrees < 0) {
-        degrees += 360.0;
-    }
-    return degrees >= 360.0 ? 0.0 : degrees;
-}
-
 bool isMirrored(const Transform& t) noexcept
 {
     return t.m11 * t.m22 - t.m12 * t.m21 < 0;
+}
+
+// 0 … 360. En miroir, la transformation est le retournement (scalingAbout(-1, 1)) suivi d'une rotation :
+// l'angle est celui de la rotation, sans le demi-tour que le retournement ajoute à atan2(m12, m11).
+double angleOf(const Transform& t) noexcept
+{
+    const double radians = isMirrored(t) ? std::atan2(-t.m12, -t.m11) : std::atan2(t.m12, t.m11);
+    double degrees = radians * 180.0 / std::numbers::pi;
+    if (degrees < 0) {
+        degrees += 360.0;
+    }
+    return degrees >= 360.0 || degrees == 0.0 ? 0.0 : degrees; // −0 compris
+}
+
+bool sameTransform(const Transform& s, const Transform& t) noexcept
+{
+    return s.m11 == t.m11 && s.m12 == t.m12 && s.m21 == t.m21 && s.m22 == t.m22 && s.dx == t.dx &&
+           s.dy == t.dy;
 }
 
 // Contour et remplissage, selon le type : une forme lue (Path) dessine avec `pen` et `brush`, les autres
@@ -110,19 +119,14 @@ bool write(PageObject& object, ObjectProperty property, const PropertyValue& val
             return assign<std::uint32_t>(stroke->color, value);
         }
         return pen != nullptr && assign<std::uint32_t>(pen->color, value);
-    case ObjectProperty::OutlineWidth: {
-        const double* width = std::get_if<double>(&value);
-        if (width == nullptr || !std::isfinite(*width) || *width < 0) {
-            return false;
-        }
+    case ObjectProperty::OutlineWidth:
         if (plainShape) {
             return assign<double>(shape->outlineWidth, value);
         }
         if (stroke != nullptr) {
-            return *width > 0 && assign<double>(stroke->baseWidth, value);
+            return assign<double>(stroke->baseWidth, value);
         }
         return pen != nullptr && assign<double>(pen->width, value);
-    }
     case ObjectProperty::FillStyle:
         return shape != nullptr && !plainShape && assign<FillKind>(shape->brush.kind, value);
     case ObjectProperty::FillColor:
@@ -190,15 +194,42 @@ bool write(PageObject& object, ObjectProperty property, const PropertyValue& val
     return true;
 }
 
-bool sameValue(const PageObject& a, const PageObject& b, ObjectProperty property)
+// Saisie refusée : épaisseur non finie ou négative, nulle pour un trait. Annuler n'y passe pas : il remet la
+// valeur lue sur l'objet.
+bool refused(const PageObject& object, ObjectProperty property, const PropertyValue& value)
+{
+    const double* width = std::get_if<double>(&value);
+    if (property != ObjectProperty::OutlineWidth || width == nullptr) {
+        return false;
+    }
+    return !std::isfinite(*width) || *width < 0 ||
+           (*width == 0 && std::holds_alternative<Stroke>(body(object)));
+}
+
+// Ce qu'Annuler rétablira : la valeur de la propriété, ou la transformation pour la géométrie ; rien si la
+// propriété ne s'applique pas à l'objet.
+using Before = std::variant<PropertyValue, Transform>;
+
+std::optional<Before> valueBefore(const PageObject& object, ObjectProperty property)
 {
     if (isGeometry(property)) {
-        const Transform& s = a.common.transform;
-        const Transform& t = b.common.transform;
-        return s.m11 == t.m11 && s.m12 == t.m12 && s.m21 == t.m21 && s.m22 == t.m22 && s.dx == t.dx &&
-               s.dy == t.dy;
+        return hasExtent(object) ? std::optional<Before>(object.common.transform) : std::nullopt;
     }
-    return readProperty(a, property) == readProperty(b, property);
+    std::optional<PropertyValue> value = readProperty(object, property);
+    return value ? std::optional<Before>(std::move(*value)) : std::nullopt;
+}
+
+// Vrai si l'objet a changé.
+bool restore(PageObject& object, ObjectProperty property, const Before& before)
+{
+    if (const auto* transform = std::get_if<Transform>(&before)) {
+        if (sameTransform(object.common.transform, *transform)) {
+            return false;
+        }
+        object.common.transform = *transform;
+        return true;
+    }
+    return write(object, property, std::get<PropertyValue>(before));
 }
 
 Change changeFor(ObjectProperty property, std::size_t page, ObjectId id, const RectF& before,
@@ -275,8 +306,9 @@ SetObjectPropertiesCommand::SetObjectPropertiesCommand(int page, std::vector<Obj
     : m_page(page), m_objects(std::move(objects)), m_property(property), m_value(std::move(value))
 {}
 
-// Garde l'état d'avant de chaque objet présent, modifié ou non : une étape fusionnée dont le premier pas
-// laissait un objet tel quel doit encore le rendre à son état d'avant le glissé.
+// Garde la valeur d'avant de chaque objet auquel la propriété s'applique, modifié ou non : une étape
+// fusionnée dont le premier pas laissait un objet tel quel doit encore le rendre à son état d'avant le
+// glissé.
 void SetObjectPropertiesCommand::redo(Document& document, Changes& changes)
 {
     m_old.clear();
@@ -291,14 +323,15 @@ void SetObjectPropertiesCommand::redo(Document& document, Changes& changes)
             continue;
         }
         PageObject& object = page.objects[rank];
-        PageObject before = object;
-        if (!write(object, m_property, m_value)) {
-            m_old.emplace_back(id, std::move(before));
+        std::optional<Before> before = valueBefore(object, m_property);
+        if (!before) {
             continue;
         }
-        changes.push_back(
-            changeFor(m_property, pageIndex, id, boundsOnPage(page, before), boundsOnPage(page, object)));
-        m_old.emplace_back(id, std::move(before));
+        m_old.emplace_back(id, std::move(*before));
+        const RectF area = boundsOnPage(page, object);
+        if (!refused(object, m_property, m_value) && write(object, m_property, m_value)) {
+            changes.push_back(changeFor(m_property, pageIndex, id, area, boundsOnPage(page, object)));
+        }
     }
 }
 
@@ -315,12 +348,10 @@ void SetObjectPropertiesCommand::undo(Document& document, Changes& changes)
             continue;
         }
         PageObject& object = page.objects[rank];
-        if (sameValue(object, it->second, m_property)) {
-            continue;
+        const RectF area = boundsOnPage(page, object);
+        if (restore(object, m_property, it->second)) {
+            changes.push_back(changeFor(m_property, pageIndex, it->first, area, boundsOnPage(page, object)));
         }
-        const RectF before = boundsOnPage(page, object);
-        object = it->second;
-        changes.push_back(changeFor(m_property, pageIndex, it->first, before, boundsOnPage(page, object)));
     }
 }
 
