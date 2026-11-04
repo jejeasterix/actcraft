@@ -8,8 +8,6 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <QImage>
-#include <QQmlContext>
-#include <QQmlExpression>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -265,10 +263,8 @@ private slots:
         QObject* motion = main.window()->findChild<QObject*>(QStringLiteral("tickerMotion"));
         QObject* resume = main.window()->findChild<QObject*>(QStringLiteral("tickerResume"));
         QVERIFY(motion != nullptr && resume != nullptr);
-        QQmlExpression infinite(qmlContext(motion), motion, QStringLiteral("Animation.Infinite"));
-        const int endless = infinite.evaluate().toInt();
-        QVERIFY(!infinite.hasError());
-        QCOMPARE(motion->property("loops").toInt(), endless);
+        // Animation.Infinite (-2) est rendu -1 par la propriété loops (QAbstractAnimation : négatif, sans fin).
+        QVERIFY2(motion->property("loops").toInt() < 0, qPrintable(motion->property("loops").toString()));
         QSignalSpy motionEnded(motion, SIGNAL(finished()));
         QSignalSpy resumeEnded(resume, SIGNAL(finished()));
         QTest::qWait(pass * 3 / 2);
