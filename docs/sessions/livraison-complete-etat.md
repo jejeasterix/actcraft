@@ -234,6 +234,8 @@ Reprise après la relève (2026-11-04, ouvrière du pilote du Mac, handoff `1c56
 Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstruites) : 207/207, 0 avertissement — orchestrateur, 2026-11-04.
 Tâche : L6-T9 — barre de raccourcis — depuis 2026-11-04
 Tâche : L6-C5 — tête rouge : couleurs de L6-T8 × profils de L6-T6 — depuis 2026-11-04
+Tâche : L6-T12 — modèle des propriétés — depuis 2026-11-04
+Tâche : L6-C6 — mineurs de la revue de L6-C2 — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -257,6 +259,8 @@ Tâche : L6-C5 — tête rouge : couleurs de L6-T8 × profils de L6-T6 — depui
 | L6-T15 | terminée | 1/3 | a990030 (rouge), …, 227ee46, fusion de la tête c473be9 → merge b4f6476 | rejoué par l'orchestrateur sur la tête fusionnée : 205/207, `tst_captures_navigateur_objets` Passed, les 2 rouges sont ceux de la tête (L6-C5), pas de la tâche → mergée ; `LU objectBrowser.visible=true`, `appObjectTree.rowCount=6`, `appTools.selectionCount=1`, `SCENARIO OK` (agent) ; `rowCount` ajouté côté QML ; `BrowserPanel.qml` ne passe toujours pas `preferences` (amendement 4) → tâche suivante qui le touche ; restes PC : `captures.ps1 -Scenario navigateur-objets`, banc joint, MSVC |
 | L6-T9 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T9`, base b36efff | V6 ; `implementeur-tdd` |
 | L6-C5 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C5`, base fda7a9f | tête rouge 205/207 après les merges de L6-T6 et L6-T8, verts chacun sur leur base ; `concepteur-critique` |
+| L6-T12 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T12`, base ef0a762 | V5 ; `concepteur-critique` ; brief : `objectFlagsChanged` au lieu de `m_lockConnection`/`triggered`, `lockFromElsewhereRefreshes` réécrit, `closeMerge()` après chaque modification ponctuelle |
+| L6-C6 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C6`, base ef0a762 | 4 mineurs de la revue de L6-C2 (test `arrived`, émission de trop après une page rétablie, `pageOf`, `selectionLocked` relié au signal) ; `implementeur-tdd` |
 
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
