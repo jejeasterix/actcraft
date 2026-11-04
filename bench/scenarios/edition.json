@@ -561,7 +561,7 @@
   },
   {
    "expect": "objectEditMenu.visibleCommandCount",
-   "value": 14
+   "value": 16
   },
   {
    "capture": "menu-objet"
