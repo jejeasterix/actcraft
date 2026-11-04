@@ -186,6 +186,23 @@ bool CommandRegistry::loadDeclarations(const QByteArray& json, QString& error)
             error = where + QStringLiteral(" : argument facultatif sans argument déclaré");
             return false;
         }
+        // Attributs facultatifs (L6-T3) ; absents, ils gardent le défaut sûr de CommandInfo.
+        const auto readFlag = [&](const QString& key, bool& field) {
+            const QJsonValue value = o.value(key);
+            if (value.isUndefined()) {
+                return true;
+            }
+            if (!value.isBool()) {
+                error = where + QStringLiteral(" : %1 n'est pas un booléen").arg(key);
+                return false;
+            }
+            field = value.toBool();
+            return true;
+        };
+        if (!readFlag(QStringLiteral("lockable"), info.lockable) ||
+            !readFlag(QStringLiteral("restrictable"), info.restrictable)) {
+            return false;
+        }
         seen.insert(info.id);
         parsed.push_back(std::move(info));
     }
@@ -264,6 +281,16 @@ void CommandRegistry::setEnabled(const QString& id, bool enabled)
 bool CommandRegistry::isEnabled(const QString& id) const
 {
     const Entry* e = entry(id);
+    if (!e) {
+        return false;
+    }
+    // Porte du verrou (D6-7) : un état à part, combiné ici, jamais écrit dans l'état propre.
+    return e->enabled && !(m_locked && e->info.lockable);
+}
+
+bool CommandRegistry::isOwnEnabled(const QString& id) const
+{
+    const Entry* e = entry(id);
     return e && e->enabled;
 }
 
@@ -283,7 +310,8 @@ bool CommandRegistry::isChecked(const QString& id) const
 bool CommandRegistry::trigger(const QString& id, const QVariant& argument, Platform platform) const
 {
     const Entry* e = entry(id);
-    if (!e || !isAvailable(id, platform) || !e->enabled || !e->handler ||
+    // isEnabled() et non e->enabled : trigger() passe par la même porte du verrou que le grisage.
+    if (!e || !isAvailable(id, platform) || !isEnabled(id) || !e->handler ||
         !(argumentIsValid(e->info.argument, argument) || (e->info.argumentOptional && !argument.isValid()))) {
         return false;
     }

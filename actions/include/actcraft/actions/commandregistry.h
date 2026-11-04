@@ -51,6 +51,10 @@ struct CommandInfo
     // Vrai : la commande se déclenche aussi sans argument (QVariant invalide) — dialogue au lieu d'une URL
     // (décision 22). Un argument présent doit rester valide.
     bool argumentOptional = false;
+    // Amendement 1, § 1 : le mode classe protégé peut la griser (F-298) ; une diffusion protégée peut
+    // l'interdire (F-680, lot 8). Défaut sûr : verrouillable, non restreignable.
+    bool lockable = true;
+    bool restrictable = false;
 };
 
 bool argumentIsValid(ArgumentKind kind, const QVariant& argument);
@@ -73,14 +77,22 @@ public:
     void setHandler(const QString& id, Handler handler);
     bool hasHandler(const QString& id) const;
     void setEnabled(const QString& id, bool enabled);
-    bool isEnabled(const QString& id) const; // vrai par défaut ; faux pour une commande inconnue
+    // Vrai par défaut ; faux pour une commande inconnue, et pour une commande verrouillable tant que le
+    // verrou de classe est posé, quel que soit setEnabled().
+    bool isEnabled(const QString& id) const;
+    bool isOwnEnabled(const QString& id) const; // état posé par setEnabled, sans le verrou ; faux si inconnue
     void setChecked(const QString& id, bool checked);
     bool isChecked(const QString& id) const; // faux par défaut
 
-    // Faux, sans rien appeler, si la commande est inconnue, absente de `platform`, désactivée, sans
-    // gestionnaire, ou si l'argument ne convient pas (un argument absent convient à une
-    // commande dont l'argument est facultatif). Le gestionnaire est copié avant l'appel : il peut
-    // modifier le registre.
+    // Verrou de classe (D6-7) : tant qu'il est posé, une commande verrouillable est désactivée et refusée par
+    // trigger(), quel que soit setEnabled() ; l'état propre de chaque commande est gardé à part.
+    void setLocked(bool locked) noexcept { m_locked = locked; }
+    bool isLocked() const noexcept { return m_locked; }
+
+    // Faux, sans rien appeler, si la commande est inconnue, absente de `platform`, désactivée (au sens
+    // d'isEnabled : verrou compris), sans gestionnaire, ou si l'argument ne convient pas (un argument absent
+    // convient à une commande dont l'argument est facultatif). Le gestionnaire est copié avant l'appel : il
+    // peut modifier le registre.
     bool trigger(const QString& id, const QVariant& argument, Platform platform) const;
 
 private:
@@ -96,6 +108,7 @@ private:
 
     std::vector<Entry> m_entries;
     QHash<QString, std::size_t> m_index;
+    bool m_locked = false;
 };
 
 // Dossier des données intégrées du module (« :/actcraft/actions »), ressources initialisées.
