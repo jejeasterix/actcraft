@@ -96,15 +96,18 @@ struct Bench
 {
     QTemporaryDir root;
     ui::Commands commands;
-    ui::Preferences preferences;
+    ui::Preferences preferences{root.filePath(QStringLiteral("preferences.ini")), nullptr};
     std::unique_ptr<ui::ProfileController> profile;
     ui::LayoutEditor editor;
 
     explicit Bench(actions::Platform platform = actions::Platform::Windows)
     {
         commands.setPlatform(platform);
-        profile = std::make_unique<ui::ProfileController>(actions::ProfileStore(root.path()), &preferences,
-                                                          &commands);
+        profile = std::make_unique<ui::ProfileController>(
+            actions::ProfileStore(root.filePath(QStringLiteral("profiles")),
+                                  QStringLiteral(":/actcraft/actions/profiles"),
+                                  ui::ProfileController::builtinOrder()),
+            &preferences, &commands);
         profile->start();
         editor.setCommands(&commands);
         editor.setProfile(profile.get());
@@ -128,9 +131,9 @@ private slots:
     {
         Bench bench;
         const QStringList targets = ids(bench.editor.targets());
-        for (const QString& expected : {QStringLiteral("palette"), QStringLiteral("objectBar"),
-                                        QStringLiteral("contextMenu"), QStringLiteral("objectMenu"),
-                                        QStringLiteral("menu:file")})
+        for (const QString& expected :
+             {QStringLiteral("palette"), QStringLiteral("objectBar"), QStringLiteral("contextMenu"),
+              QStringLiteral("objectMenu"), QStringLiteral("menu:file")})
             QVERIFY2(targets.contains(expected), qPrintable(expected));
         QCOMPARE(bench.editor.target(), QStringLiteral("palette"));
         bench.editor.setTarget(QStringLiteral("menu:file"));
@@ -161,10 +164,12 @@ private slots:
         QVERIFY(bench.editor.moveUp(1));
         QCOMPARE(tokens(bench.editor.items()), before);
         QVERIFY(!bench.editor.moveUp(0));
-        QVERIFY(!bench.editor.moveDown(before.size() - 1));
+        const int last = static_cast<int>(before.size()) - 1;
+        QVERIFY(!bench.editor.moveDown(last));
         QVERIFY(bench.editor.removeAt(0));
         QCOMPARE(tokens(bench.editor.items()), before.mid(1));
-        QVERIFY(!bench.editor.removeAt(before.size() + 4));
+        QVERIFY(!bench.editor.removeAt(last + 4));
+        QVERIFY(!bench.editor.removeAt(-1));
     }
 
     void separatorAllowed()
@@ -199,8 +204,9 @@ private slots:
         QCOMPARE(objectBar.last().toString(), QStringLiteral("file.save"));
         for (const QString& other : ui::ProfileController::builtinOrder())
             if (other != bench.profile->currentId())
-                QVERIFY2(!QFile::exists(bench.profile->store().directory(other) + QStringLiteral("/layout.json")),
-                         qPrintable(other));
+                QVERIFY2(
+                    !QFile::exists(bench.profile->store().directory(other) + QStringLiteral("/layout.json")),
+                    qPrintable(other));
     }
 
     void defaultLayoutUntouched()
@@ -253,7 +259,8 @@ private slots:
         QJsonObject layout = readJson(defaultLayoutPath());
         QVERIFY(!layout.isEmpty());
         layout.insert(QStringLiteral("x-extension"), QJsonObject{{QStringLiteral("a"), 1}});
-        layout.insert(QStringLiteral("shortcuts"), QJsonObject{{QStringLiteral("file.save"), QStringLiteral("Ctrl+Alt+S")}});
+        layout.insert(QStringLiteral("shortcuts"),
+                      QJsonObject{{QStringLiteral("file.save"), QStringLiteral("Ctrl+Alt+S")}});
         QJsonArray menus = layout.value(QStringLiteral("menus")).toArray();
         QJsonObject file = menus.at(0).toObject();
         QCOMPARE(file.value(QStringLiteral("id")).toString(), QStringLiteral("file"));
@@ -261,8 +268,10 @@ private slots:
         menus.replace(0, file);
         layout.insert(QStringLiteral("menus"), menus);
         QVERIFY(writeJson(bench.profileLayout(), layout));
-        bench.commands.reload();
+        bench.commands.setProfileDir(QFileInfo(bench.profileLayout()).absolutePath());
         bench.editor.reload();
+        bench.editor.setTarget(QStringLiteral("menu:file"));
+        QVERIFY(tokens(bench.editor.items()).contains(QStringLiteral(">import")));
 
         bench.editor.setTarget(QStringLiteral("objectBar"));
         QVERIFY(bench.editor.add(QStringLiteral("file.save")));
