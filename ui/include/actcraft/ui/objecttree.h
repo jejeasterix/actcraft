@@ -21,14 +21,17 @@ namespace actcraft::ui {
 
 // Navigateur d'objet (F-820, F-821), modèle à plat : quatre lignes de couche (`depth` 0 : du dessus,
 // intermédiaire, inférieure, fond), chacune suivie des objets de la page affichée qui y sont, du plus haut au
-// plus bas dans l'ordre de superposition (`depth` 1). Les membres d'un groupe sont portés par leur groupe :
-// seul le groupe a sa ligne.
+// plus bas dans l'ordre de dessin (`depth` 1). Les membres d'un groupe sont portés par leur groupe : seul le
+// groupe a sa ligne, au rang de son membre le plus haut (l'objet Group, que rien ne dessine, est au sommet de
+// sa couche). Règle D9, comme `object.lock` et `object.hide` : masquer ou verrouiller un groupe agit sur ses
+// membres, et sa ligne est masquée (verrouillée) quand tous ses membres le sont.
 //
 // Remise à jour : une seule par tour de boucle (`resetCount` + 1), reportée pendant un contact (D6-5). Elle
-// suit l'observateur du contrôleur, `documentChanged` (document remplacé) et `pagesChanged` (page affichée),
-// `ToolHost::selectionChanged`, et le verrou : verrouiller ne rend aucun core::Change (objectflags.h), le
-// contrôleur n'émet alors rien. `setLocked` demande donc lui-même la remise à jour, et un verrouillage fait
-// ailleurs se suit par `Commands::triggered` (`object.lock`, `object.drag-copy`).
+// suit l'observateur du contrôleur, `documentChanged` (émis après chaque `execute`, annulation et
+// rétablissement, comme au remplacement du document : demande en double, regroupée), `pagesChanged` (page
+// affichée), `ToolHost::selectionChanged`, et le verrou : verrouiller ne rend aucun core::Change
+// (objectflags.h), le contrôleur n'émet alors rien. `setLocked` demande donc lui-même la remise à jour, et un
+// verrouillage fait ailleurs se suit par `Commands::triggered` (`object.lock`, `object.drag-copy`).
 //
 // Modifications fermées par défaut (B1) : sans `commands`, ou sous le verrou du registre, `move`, `setHidden`
 // et `setLocked` rendent faux et ne touchent pas le document.
@@ -67,11 +70,12 @@ public:
     // ajoute ou retire l'objet de la sélection. Ligne de couche : rien.
     Q_INVOKABLE void select(int row, int modifiers);
     // La ligne `row` passe juste sous la ligne `beforeRow` − 1 (indices d'avant le déplacement ; `rowCount()`
-    // : en fin). Même couche : core::ReorderObjectsCommand ; autre couche : core::SetLayerCommand (sommet de
-    // la couche d'arrivée). Une étape. Faux : ligne de couche, arrivée dans le fond, rien ne bouge, refus.
+    // : en fin). Même couche : core::ReorderObjectsCommand (sous une ligne de groupe : sous le plus bas de
+    // ses membres) ; autre couche : core::SetLayerCommand (sommet de la couche d'arrivée). Une étape. Faux :
+    // ligne de couche, arrivée dans le fond, rien ne bouge, refus.
     Q_INVOKABLE bool move(int row, int beforeRow);
-    // core::SetObjectFlagCommand ; faux si la ligne est une couche, si le drapeau a déjà cette valeur, ou
-    // refus.
+    // core::SetObjectFlagCommand sur l'objet, ou sur le groupe et ses membres (D9) ; faux si la ligne est une
+    // couche, si le drapeau a déjà cette valeur (sur tous les membres d'un groupe), ou refus.
     Q_INVOKABLE bool setHidden(int row, bool hidden); // une étape
     Q_INVOKABLE bool setLocked(int row, bool locked); // hors de la pile (aucun Change, règle du lot 5)
 

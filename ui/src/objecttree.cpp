@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <variant>
+#include <vector>
 
 namespace actcraft::ui {
 
@@ -100,6 +102,33 @@ QString kindLabel(core::ObjectKind kind)
         break;
     }
     return QCoreApplication::translate("actcraft::ui::ObjectTreeModel", text);
+}
+
+std::unordered_set<core::ObjectId> groupIds(const core::Page& page)
+{
+    std::unordered_set<core::ObjectId> groups;
+    for (const core::PageObject& object : page.objects) {
+        if (std::get_if<core::Group>(&object) != nullptr) {
+            groups.insert(object.common.id);
+        }
+    }
+    return groups;
+}
+
+// Objets dessinés d'une ligne : l'objet, ou les membres de son groupe, sous-groupes dépliés. Le dessin, la
+// sélection et le déplacement lisent chaque membre, jamais l'objet Group (règle D9).
+std::vector<core::ObjectId> drawnIds(const core::Page& page, core::ObjectId id,
+                                     const std::unordered_set<core::ObjectId>& groups)
+{
+    if (groups.count(id) == 0) {
+        return {id};
+    }
+    std::vector<core::ObjectId> ids = core::expandGroups(page, {id});
+    std::erase_if(ids, [&groups](core::ObjectId candidate) { return groups.count(candidate) != 0; });
+    if (ids.empty()) {
+        ids.push_back(id); // groupe sans membre
+    }
+    return ids;
 }
 
 } // namespace
@@ -237,7 +266,12 @@ bool ObjectTreeModel::move(int row, int beforeRow)
         }
         at = last.base();
     } else {
-        at = std::find(rest.begin(), rest.end(), anchor.id);
+        // Juste sous l'objet ; sous un groupe : sous le plus bas de ses membres dans l'ordre de dessin (sa
+        // ligne est au rang du plus haut, et l'objet Group, au sommet de sa couche, n'est pas dessiné).
+        const std::vector<core::ObjectId> under = core::expandGroups(page, {anchor.id});
+        const std::unordered_set<core::ObjectId> anchored(under.begin(), under.end());
+        at = std::find_if(rest.begin(), rest.end(),
+                          [&](core::ObjectId id) { return anchored.count(id) != 0; });
         if (at == rest.end()) {
             return false;
         }
@@ -275,11 +309,13 @@ bool ObjectTreeModel::setFlag(int row, int flag, bool value)
     const core::Page& page = m_document->document().page(pageIndex);
     const bool exists = std::any_of(page.objects.begin(), page.objects.end(),
                                     [&](const core::PageObject& o) { return o.common.id == target->id; });
-    if (!exists || core::flagOfAll(page, {target->id}, which) == value) {
+    // « Déjà » se lit comme la ligne l'affiche : tous les objets dessinés de la ligne.
+    if (!exists || core::flagOfAll(page, drawnIds(page, target->id, groupIds(page)), which) == value) {
         return false;
     }
+    // Règle D9, comme object.lock et object.hide (ObjectEditing) : un groupe agit sur ses membres.
     m_document->execute(std::make_unique<core::SetObjectFlagCommand>(
-        pageIndex, std::vector<core::ObjectId>{target->id}, which, value));
+        pageIndex, core::expandGroups(page, {target->id}), which, value));
     return true;
 }
 
@@ -389,8 +425,13 @@ void ObjectTreeModel::rebuild()
     }
     const core::Page& page =
         m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
+    const std::unordered_set<core::ObjectId> groups = groupIds(page);
     std::unordered_set<core::ObjectId> members;
-    for (const core::PageObject& object : page.objects) {
+    std::unordered_map<core::ObjectId, std::size_t>
+        drawRank; // place dans la page : dessiné après = plus haut
+    for (std::size_t i = 0; i < page.objects.size(); ++i) {
+        const core::PageObject& object = page.objects[i];
+        drawRank.emplace(object.common.id, i);
         if (const auto* group = std::get_if<core::Group>(&object)) {
             members.insert(group->members.begin(), group->members.end());
         }
@@ -400,8 +441,47 @@ void ObjectTreeModel::rebuild()
         const std::vector<core::ObjectId>& selection = m_tools->user().selection();
         selected.insert(selection.begin(), selection.end());
     }
+    // Lignes d'objet par couche, avec leur rang de dessin.
+    std::array<std::vector<std::pair<std::size_t, Row>>, kShownLayers.size()> byLayer;
+    for (std::size_t i = 0; i < page.objects.size(); ++i) {
+        const core::PageObject& object = page.objects[i];
+        const core::ObjectCommon& common = object.common;
+        const auto shown = std::find(kShownLayers.begin(), kShownLayers.end(), common.layer);
+        if (shown == kShownLayers.end() || members.count(common.id) != 0) {
+            continue;
+        }
+        Row row;
+        row.depth = 1;
+        row.layer = common.layer;
+        row.id = common.id;
+        const core::ObjectKind kind = core::kindOf(object);
+        row.kind = kindKey(kind);
+        row.name = common.name.empty() ? kindLabel(kind) : QString::fromStdString(common.name);
+        row.selected = selected.count(common.id) != 0;
+        std::size_t rank = i;
+        if (groups.count(common.id) != 0) {
+            // Règle D9 : le groupe se range au rang de son membre le plus haut (l'objet Group, au sommet de
+            // sa couche, n'est pas dessiné) ; masqué ou verrouillé quand tous ses membres le sont.
+            const std::vector<core::ObjectId> drawn = drawnIds(page, common.id, groups);
+            bool ranked = false;
+            for (const core::ObjectId id : drawn) {
+                const auto it = drawRank.find(id);
+                if (it != drawRank.end()) {
+                    rank = ranked ? std::max(rank, it->second) : it->second;
+                    ranked = true;
+                }
+            }
+            row.hidden = core::flagOfAll(page, drawn, core::ObjectFlag::Hidden);
+            row.locked = core::flagOfAll(page, drawn, core::ObjectFlag::Locked);
+        } else {
+            row.hidden = !common.visible;
+            row.locked = common.locked;
+        }
+        byLayer[static_cast<std::size_t>(shown - kShownLayers.begin())].emplace_back(rank, std::move(row));
+    }
     m_rows.reserve(page.objects.size() + kShownLayers.size());
-    for (const core::Layer layer : kShownLayers) {
+    for (std::size_t index = 0; index < kShownLayers.size(); ++index) {
+        const core::Layer layer = kShownLayers[index];
         Row node;
         node.layer = layer;
         switch (layer) {
@@ -419,23 +499,11 @@ void ObjectTreeModel::rebuild()
             break;
         }
         m_rows.push_back(std::move(node));
-        // Dernier de la page = le plus haut de sa couche.
-        for (auto it = page.objects.rbegin(); it != page.objects.rend(); ++it) {
-            const core::ObjectCommon& common = it->common;
-            if (common.layer != layer || members.count(common.id) != 0) {
-                continue;
-            }
-            Row row;
-            row.depth = 1;
-            row.layer = layer;
-            row.id = common.id;
-            const core::ObjectKind kind = core::kindOf(*it);
-            row.kind = kindKey(kind);
-            row.name = common.name.empty() ? kindLabel(kind) : QString::fromStdString(common.name);
-            row.hidden = !common.visible;
-            row.locked = common.locked;
-            row.selected = selected.count(common.id) != 0;
-            m_rows.push_back(std::move(row));
+        // Du plus haut au plus bas dans l'ordre de dessin (rangs distincts : un membre n'a pas de ligne).
+        std::vector<std::pair<std::size_t, Row>>& rows = byLayer[index];
+        std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+        for (std::pair<std::size_t, Row>& entry : rows) {
+            m_rows.push_back(std::move(entry.second));
         }
     }
 }
