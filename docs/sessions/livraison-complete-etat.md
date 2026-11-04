@@ -233,6 +233,9 @@ Questions à Jérôme (lot 6) : aucune ouverte (H6-6 accordée le 2026-10-18 ; H
 Reprise après la relève (2026-11-04, ouvrière du pilote du Mac, handoff `1c566e9c`) : chantier réenregistré ; L6-C3 en rejeu ; L6-T14 essai 3 relancé (`concepteur-critique`) ; L6-T7 relancée depuis c8146ed ; L6-T11 en revue immédiate, rejeu après L6-C3.
 Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstruites) : 207/207, 0 avertissement — orchestrateur, 2026-11-04.
 Tâche : L6-C9 — mineurs de la contre-revue de L6-T12 (n1, n3, n4) — depuis 2026-11-04
+Tâche : L6-T17 — étiquettes au survol, scénario `etiquettes` — depuis 2026-11-04
+Tâche : L6-P1 — couleur appliquée aux textes sélectionnés, une étape — depuis 2026-11-04
+Tâche : L6-P2 — entrées du lot 6 dans le menu d'objet — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -261,6 +264,9 @@ Tâche : L6-C9 — mineurs de la contre-revue de L6-T12 (n1, n3, n4) — depuis 
 | L6-C7 | terminée | 1/3 | e640820 (rouge), 38eaeaf, fusion de la tête 4c37be2 → merge (voir journal git) | rejoué par l'orchestrateur sur la branche fusionnée avec la tête : **207/207**, 0 avertissement, `tst_ui_shortcutbar`, `tst_ui_shell`, `tst_captures_edition` Passed ; aucun signal de glisser de la sélection au lot 5 : voie de repli du plan, commande `shortcutbar.add-selection` (« Ajouter à la barre de raccourcis ») dans `objectMenu` de `layout.json`, verrouillable, gestionnaire natif posé par `ShortcutBar::setCommands`, propriété `tools` ; `notePaletteTrigger` retirée (le filtre sur `commands.palette()` suffit) ; épinglages relevés de 1 (`tst_actions_layout` 46, `tst_actions_registry`, `tst_ui_shell` 14/16, `edition.json` 14), aucune assertion retirée ; mutation du gestionnaire rouge (agent) ; rouge non vu avant l'implémentation (prouvé par mutation) ; restes PC : MSVC |
 | L6-C8 | terminée | 1/3 | f4217ee (rouge), 8440d42, fusion de la tête 22a6afb → merge (voir journal git) | rejoué par l'orchestrateur sur la branche fusionnée avec la tête : **207/207**, 0 avertissement ; `tst_captures_couleurs` en détail : `LU swatch-15.modelData=#FFFFFF OK`, `LU swatch-16.modelData=#12AB34 OK`, deux `PIXEL … OK`, `SCENARIO OK` ; décision : un pas refusé en partie ne fusionne plus (`m_partlyRefused`, `mergeWith`), Refaire rend l'état d'avant Annuler, un glissé fini sur un refus partiel compte deux étapes ; tests `partlyRefusedStepDoesNotMerge`, `refusedThicknessChangesNothing` (négative, NaN, ±inf, 0 sur un trait), `swatchesFilterDuplicatesOfAnEditedProfile` ; commentaire de `duplicatesIgnored` reformulé ; mutations rouges (agent ; deux sans ligne `FAIL` capturée) ; diff : seule la description du scénario est réécrite ; restes PC : `captures.ps1`, MSVC |
 | L6-T13 | terminée | 1/3 | merge 25257ab0 | navigateur de propriétés QML, scénario `proprietes` ; rejeu 207/207, 0 avertissement, `SCENARIO OK` ; `preferences` ajoutée à `BrowserPanel.qml` ; restes PC : `captures.ps1 -Scenario proprietes`, `NOMS OK`, MSVC |
+| L6-T17 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T17`, base 2cb850e8 | étiquettes au survol, scénario `etiquettes` ; `implementeur-tdd` |
+| L6-P1 | en cours | 1/3 | `.worktrees/livraison-complete--L6-P1`, base 2cb850e8 | couleur appliquée aux textes sélectionnés, une étape ; `concepteur-critique`, revue immédiate au retour |
+| L6-P2 | en cours | 1/3 | `.worktrees/livraison-complete--L6-P2`, base 2cb850e8 | entrées du lot 6 dans le menu d'objet ; `implementeur-tdd` |
 | L6-C9 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C9`, base 5ea6a4f | n1 `setValue` vrai sans effet (épaisseur 0 d'un trait), n3 premier pas d'un glissé sans clôture, n4 tests (index de `dataChanged`, NaN, `endEdit()`) ; `implementeur-tdd` |
 
 ### Pièges trouvés (lot 6, Mac)
