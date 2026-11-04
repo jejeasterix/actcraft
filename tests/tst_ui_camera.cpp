@@ -72,11 +72,11 @@ DocumentController* openDocumentOf(const MainWindow& main)
     return main.pageView() ? main.pageView()->documentController() : nullptr;
 }
 
-// Écran figé injecté (aucune capture réelle dans les tests) : la taille de l'écran principal, moitié gauche
-// bleue, moitié droite orange.
-QImage fakeScreen()
+// Écran figé injecté (aucune capture réelle dans les tests) : la taille de l'écran principal multipliée par
+// `ratio` (rapport de pixels de l'écran photographié), moitié gauche bleue, moitié droite orange.
+QImage fakeScreen(int ratio = 1)
 {
-    const QSize size = QGuiApplication::primaryScreen()->geometry().size();
+    const QSize size = QGuiApplication::primaryScreen()->geometry().size() * ratio;
     QImage image(size, QImage::Format_ARGB32);
     image.fill(QColor(20, 120, 200));
     QPainter painter(&image);
@@ -619,6 +619,38 @@ private slots:
         QCOMPARE(camera->selection(), chosen);
         QVERIFY(camera->deliver(CameraController::Clipboard));
         QCOMPARE(QGuiApplication::clipboard()->image().size(), QSize(300, 200));
+    }
+
+    // Relecture du lot 7 (M9) : écran photographié au rapport de pixels 2, image figée deux fois plus grande
+    // que l'écran en pixels logiques (hors écran, l'écran de Qt a un rapport 1 : seule l'image injectée porte
+    // le rapport 2). La zone de 100 x 60 pixels logiques devient une image de 200 x 120 pixels, découpée en
+    // pixels de l'image, posée sur la page à 100 x 60 (pixels logiques de l'écran). Mutants : rapport ignoré
+    // à la découpe (`cropped`, zone prise en pixels logiques dans l'image : 100 x 60, toute bleue) ; rapport
+    // ignoré à l'insertion (`insertOnPage` : objet de 200 x 120).
+    void captureAtPixelRatioTwoKeepsTheLogicalSize()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        CameraController* camera = cameraOf(main);
+        QVERIFY(camera);
+        camera->setCaptureSource([] { return fakeScreen(2); });
+        DocumentController* open = openDocumentOf(main);
+        QVERIFY(open);
+        const int objects = main.pageObjectCount();
+        const QStringList known = imageKeys(shownPage(*open));
+        QVERIFY(openCapture(main, camera, QStringLiteral("tool.camera-area")));
+        camera->setSelection(straddlingZone());
+        QVERIFY(camera->deliver(CameraController::CurrentPage));
+        QTRY_VERIFY(!camera->window());
+        QTRY_COMPARE(main.pageObjectCount(), objects + 1);
+        const core::ImageObject* image = newImageOn(shownPage(*open), known);
+        QVERIFY(image);
+        const QImage decoded = decodedResource(*open, image->resource);
+        QCOMPARE(decoded.size(), QSize(200, 120));
+        QCOMPARE(QColor(decoded.pixel(20, 60)), kLeftColor);
+        QCOMPARE(QColor(decoded.pixel(180, 60)), kRightColor);
+        QCOMPARE(image->bounds.width, 100.0);
+        QCOMPARE(image->bounds.height, 60.0);
     }
 
     // Liste des fenêtres du bureau (Windows) : une fenêtre native de test y figure, à sa place. Les fenêtres
