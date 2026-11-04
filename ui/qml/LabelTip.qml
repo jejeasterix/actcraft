@@ -57,7 +57,11 @@ Item {
     HoverHandler {
         id: hover
         onPointChanged: {
-            root.pointer = hover.point.position
+            const next = hover.point.position
+            // Un événement qui ne bouge pas le pointeur (rafraîchissement de la scène) ne ferme pas la bulle.
+            if (next.x === root.pointer.x && next.y === root.pointer.y)
+                return
+            root.pointer = next
             tips.leave()
             if (hover.hovered)
                 dwell.restart()

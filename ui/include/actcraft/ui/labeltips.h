@@ -60,9 +60,11 @@ signals:
 
 private:
     void clear();
+    void refresh();
 
     QPointer<DocumentController> m_document;
     qreal m_tolerance = core::kHitToleranceScreen;
+    QPointF m_point;
     bool m_visible = false;
     QString m_text;
     QString m_fontFamily;

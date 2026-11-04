@@ -22,9 +22,9 @@ void LabelTips::setDocument(DocumentController* document)
     m_document = document;
     if (m_document) {
         // Le contenu change (annulation, suppression, autre page) : la bulle n'est plus celle du survol.
-        connect(m_document, &DocumentController::pagesChanged, this, &LabelTips::clear);
-        connect(m_document, &DocumentController::documentChanged, this, &LabelTips::clear);
-        connect(m_document, &DocumentController::pageContentChanged, this, &LabelTips::clear);
+        connect(m_document, &DocumentController::pagesChanged, this, &LabelTips::refresh);
+        connect(m_document, &DocumentController::documentChanged, this, &LabelTips::refresh);
+        connect(m_document, &DocumentController::pageContentChanged, this, &LabelTips::refresh);
     }
     clear();
     emit documentChanged();
@@ -79,8 +79,17 @@ void LabelTips::setTolerance(qreal tolerance)
     emit toleranceChanged();
 }
 
+// Le contenu a changé : la bulle reste si le même point désigne encore une légende, sinon elle disparaît.
+void LabelTips::refresh()
+{
+    if (m_visible) {
+        hoverAt(m_point);
+    }
+}
+
 void LabelTips::hoverAt(QPointF pagePoint)
 {
+    m_point = pagePoint;
     if (!m_document || m_document->document().pageCount() == 0) {
         clear();
         return;
