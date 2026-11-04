@@ -16,13 +16,15 @@ namespace actcraft::ui {
 namespace {
 
 // Un chemin donné en texte par une commande (« C:/x.pdf » devient un schéma « c » pour QUrl) devient une URL
-// de fichier ; une URL à schéma (file:, content:) reste telle quelle.
+// de fichier ; une URL à schéma (file:, content:) reste telle quelle. Le chemin est recomposé par scheme() et
+// path() : toString(), même décodé, laisse « %5C » à la place des barres obliques inverses d'un chemin natif.
 QUrl localized(const QUrl& url)
 {
     if (url.isEmpty() || url.scheme().size() > 1) {
         return url;
     }
-    return QUrl::fromLocalFile(QDir::cleanPath(QDir::current().absoluteFilePath(url.toString())));
+    return QUrl::fromLocalFile(
+        QDir::cleanPath(QDir::current().absoluteFilePath(url.scheme() + QLatin1Char(':') + url.path())));
 }
 
 QString fileName(const QUrl& url)
