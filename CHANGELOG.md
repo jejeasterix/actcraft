@@ -18,12 +18,12 @@ section 0.5.0 du journal des versions) sont aussi dans cette version.
 - Verrouiller, masquer, glisser une copie : bascules d'objet, propagées aux membres d'un groupe.
 - Pot de peinture : il remplit l'intérieur ou le contour d'une forme, le fond de la page ou une zone d'une image,
   avec une tolérance.
-- Connecteur : il relie deux objets par leurs points d'attache (accrochage à 20 px) et suit les objets quand ils
+- Connecteur : il relie deux objets par leurs points d'attache (accrochage à 20 unités de page) et suit les objets quand ils
   bougent. Le panneau propose 14 styles (ligne, courbes, marches, coude, oblique, pointillés, flèches) avec leur
   vignette ; chaque extrémité se règle à part (aucune, rond, flèche).
 - Modification de stylo : le stylo trace aussi des lignes et des formes géométriques, gardées comme annotations. Les
   points d'une forme se déplacent un à un.
-- Insérer une image ou un média : par fichier ou par glisser-déposer, décodé sans figer la fenêtre.
+- Insérer une image ou un média : par fichier, décodé sans figer la fenêtre.
 - Onglets : plusieurs paperboards s'ouvrent dans une barre d'onglets ; on bascule, on ferme, et on glisse des pages
   d'un onglet à l'autre.
 - Export : la page en image, le paperboard en PDF, sans figer la fenêtre.

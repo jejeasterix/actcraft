@@ -184,6 +184,28 @@ private slots:
         QVERIFY(QFileInfo::exists(dir.filePath(QStringLiteral("relatif.png"))));
     }
 
+    // « # » dans un nom de dossier ou de fichier fait partie du chemin, pas d'un fragment d'URL, avec des barres
+    // obliques comme avec des barres obliques inverses.
+    void exportPageImageWithHashInPath()
+    {
+        Shell s;
+        QVERIFY(s.start());
+        s.threePages();
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QVERIFY(QDir(dir.path()).mkpath(QStringLiteral("Projets C#")));
+        const QStringList paths = {dir.filePath(QStringLiteral("Projets C#/a#1.png")),
+                                   QDir::toNativeSeparators(dir.filePath(QStringLiteral("Projets C#/b#2.png")))};
+        for (const QString& path : paths) {
+            QSignalSpy done(s.exchange, &ui::FileExchange::finished);
+            QSignalSpy failed(s.exchange, &ui::FileExchange::failed);
+            QVERIFY(s.run(QStringLiteral("export.page-image"), path));
+            QTRY_VERIFY_WITH_TIMEOUT(done.count() + failed.count() == 1, 15000);
+            QCOMPARE(failed.count(), 0);
+            QVERIFY2(QFileInfo::exists(QDir::fromNativeSeparators(path)), qPrintable(path));
+        }
+    }
+
     void importPdfOpensATab()
     {
         if (!exporting::pdfImportAvailable()) {

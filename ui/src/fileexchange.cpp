@@ -23,9 +23,23 @@ QUrl localized(const QUrl& url)
     if (url.isEmpty() || url.scheme().size() > 1) {
         return url;
     }
-    // Sans schéma (chemin relatif, ou absolu « /… » sous macOS et Linux), le chemin est path() seul.
-    const QString path = url.scheme().isEmpty() ? url.path() : url.scheme() + QLatin1Char(':') + url.path();
-    return QUrl::fromLocalFile(QDir::cleanPath(QDir::current().absoluteFilePath(path)));
+    // Toutes les parties que QUrl a découpées font partie du chemin : « //serveur » (autorité), « ?… » (requête),
+    // « #… » (fragment). Sans schéma (relatif, ou absolu « /… » sous macOS et Linux), pas de « : » en tête.
+    QString path;
+    if (!url.scheme().isEmpty()) {
+        path += url.scheme() + QLatin1Char(':');
+    }
+    if (!url.authority().isEmpty()) {
+        path += QStringLiteral("//") + url.authority(QUrl::FullyDecoded);
+    }
+    path += url.path(QUrl::FullyDecoded);
+    if (url.hasQuery()) {
+        path += QLatin1Char('?') + url.query(QUrl::FullyDecoded);
+    }
+    if (url.hasFragment()) {
+        path += QLatin1Char('#') + url.fragment(QUrl::FullyDecoded);
+    }
+    return QUrl::fromLocalFile(QDir::cleanPath(QDir::current().absoluteFilePath(QDir::fromNativeSeparators(path))));
 }
 
 QString fileName(const QUrl& url)
