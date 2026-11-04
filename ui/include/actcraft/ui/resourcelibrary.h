@@ -100,10 +100,13 @@ public:
     Q_INVOKABLE void openFolder(const QString& path);
     // Dans toute la racine : nom de fichier et (ou) mots-clés des fragments, sans casse ; annulable.
     Q_INVOKABLE void search(const QString& text, bool byName, bool byKeywords);
-    Q_INVOKABLE void cancelSearch(); // rend la main sans attendre ; le dossier courant est relu
+    // Rend la main sans attendre ; le dossier courant est relu, recherche finie ou non. Tout dossier relu
+    // (ouverture, ajout, renommage, suppression) termine aussi une recherche en cours.
+    Q_INVOKABLE void cancelSearch();
     // Les opérations suivantes rendent faux (ou vide) sans `commands`. insert et addSelection aussi sous
-    // verrou ; rename, remove, createFolder et addSelection aussi pendant un contact (aucun accès disque sur
-    // le fil principal pendant un contact).
+    // verrou ; toutes aussi pendant un contact (aucun accès disque sur le fil principal pendant un contact).
+    // Dossier courant (ou un de ses parents) renommé ou supprimé : le dossier courant passe au parent de
+    // l'élément touché. La racine elle-même ne se renomme ni ne se supprime.
     Q_INVOKABLE bool rename(const QString& path,
                             const QString& newName); // extension gardée ; nom pris : faux
     // Corbeille si usesTrash et pas `permanently`, sinon suppression définitive. Corbeille en échec : faux et
@@ -153,8 +156,11 @@ private:
     void refresh();
     void setItems(std::vector<Item> items);
     void setSearching(bool searching);
+    void endSearch();
     void requestThumbnails();
+    void dropThumbnails();
     void pumpThumbnails();
+    void leaveFolder(const QString& path);
 
     DocumentController* m_document = nullptr;
     ProfileController* m_profile = nullptr;
@@ -173,9 +179,11 @@ private:
     std::uint64_t m_itemsGeneration = 0; // un listage ou une recherche périmés ne s'appliquent pas
     std::uint64_t m_treeGeneration = 0;
     std::shared_ptr<std::atomic<bool>> m_searchCancelled;
-    std::vector<Item> m_thumbnailQueue; // demandes gardées pendant un contact
-    Insertion m_insertion;              // image : le chemin du dépôt sur la page (lot 5, A11)
-    QThreadPool m_pool;                 // vignettes : à part, pour ne retarder ni la recherche ni l'insertion
+    std::uint64_t m_thumbnailGeneration = 0; // une vignette d'éléments remplacés ne s'applique pas
+    std::deque<Item> m_thumbnailQueue;       // demandes en attente : une à la fois, hors contact
+    bool m_thumbnailInFlight = false;
+    Insertion m_insertion; // image : le chemin du dépôt sur la page (lot 5, A11)
+    QThreadPool m_pool;    // vignettes : à part, pour ne retarder ni la recherche ni l'insertion
 };
 
 } // namespace actcraft::ui

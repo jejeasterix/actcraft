@@ -42,7 +42,7 @@ struct TestHooks
     bool useTrash = true;
     bool trashFails = false;
     QMutex observerMutex;
-    std::function<void()> observer;
+    std::function<void()> renderObserver;
     std::function<void()> searchObserver;
 };
 
@@ -50,6 +50,19 @@ TestHooks& hooks()
 {
     static TestHooks instance;
     return instance;
+}
+
+// Copie l'observateur sous le verrou et l'appelle hors du verrou : un observateur qui attend ne retient ni
+// les autres fils ni la pose d'un autre observateur.
+void notify(std::function<void()> TestHooks::* which)
+{
+    std::function<void()> observer;
+    {
+        QMutexLocker lock(&hooks().observerMutex);
+        observer = hooks().*which;
+    }
+    if (observer)
+        observer();
 }
 
 bool isImageSuffix(const QString& suffix)
@@ -154,6 +167,7 @@ std::vector<Item> searchRoot(const QString& root, const QString& text, bool name
         if (cancelled->load())
             return {};
         const QFileInfo info(it.next());
+        notify(&TestHooks::searchObserver);
         const QString kind = kindOf(info);
         if (kind.isEmpty())
             continue;
@@ -230,11 +244,7 @@ ThumbnailJob makeThumbnail(std::uint64_t generation, const Item& item, int width
     } else {
         image = imageThumbnail(item.path, width);
     }
-    {
-        QMutexLocker lock(&hooks().observerMutex);
-        if (hooks().observer)
-            hooks().observer();
-    }
+    notify(&TestHooks::renderObserver);
     if (image.isNull() || !QDir().mkpath(dir))
         return out;
     QSaveFile save(file);
@@ -286,7 +296,7 @@ private:
 
 ResourceLibrary::ResourceLibrary(QObject* parent) : QAbstractListModel(parent)
 {
-    m_pool.setMaxThreadCount(2);
+    m_pool.setMaxThreadCount(1); // une vignette en vol au plus (pumpThumbnails)
 }
 
 ResourceLibrary::~ResourceLibrary()
@@ -511,7 +521,7 @@ void ResourceLibrary::setTrashForTests(bool useTrash, bool fails)
 void ResourceLibrary::setRenderObserverForTests(std::function<void()> observer)
 {
     QMutexLocker lock(&hooks().observerMutex);
-    hooks().observer = std::move(observer);
+    hooks().renderObserver = std::move(observer);
 }
 
 void ResourceLibrary::setSearchObserverForTests(std::function<void()> observer)
@@ -563,10 +573,6 @@ void ResourceLibrary::openFolder(const QString& path)
 {
     if (path.isEmpty())
         return;
-    if (m_searching) {
-        m_searchCancelled->store(true);
-        setSearching(false);
-    }
     const QString cleaned = QDir::cleanPath(path);
     if (m_folder != cleaned) {
         m_folder = cleaned;
@@ -575,9 +581,15 @@ void ResourceLibrary::openFolder(const QString& path)
     refresh();
 }
 
-// Relit l'arbre de la racine et le dossier courant sur un fil secondaire ; un résultat périmé est jeté.
+// Relit l'arbre de la racine et le dossier courant sur un fil secondaire ; un résultat périmé est jeté. Une
+// recherche en cours est terminée : le dossier relu la remplace (sinon son résultat, jeté par la génération,
+// laisserait `searching` vrai).
 void ResourceLibrary::refresh()
 {
+    endSearch();
+    if (m_folder.isEmpty())
+        return;
+    dropThumbnails();
     const std::uint64_t items = ++m_itemsGeneration;
     const std::uint64_t tree = ++m_treeGeneration;
     const QString root = m_rootPath;
@@ -613,6 +625,13 @@ void ResourceLibrary::setItems(std::vector<Item> items)
     requestThumbnails();
 }
 
+void ResourceLibrary::endSearch()
+{
+    if (m_searchCancelled)
+        m_searchCancelled->store(true);
+    setSearching(false);
+}
+
 void ResourceLibrary::setSearching(bool searching)
 {
     if (m_searching == searching)
@@ -627,10 +646,10 @@ void ResourceLibrary::search(const QString& text, bool byName, bool byKeywords)
         m_searchCancelled->store(true);
     const QString needle = text.trimmed();
     if (needle.isEmpty() || m_rootPath.isEmpty()) {
-        setSearching(false);
         refresh();
         return;
     }
+    dropThumbnails();
     const std::uint64_t generation = ++m_itemsGeneration;
     auto cancelled = std::make_shared<std::atomic<bool>>(false);
     m_searchCancelled = cancelled;
@@ -651,38 +670,45 @@ void ResourceLibrary::search(const QString& text, bool byName, bool byKeywords)
     }));
 }
 
+// Recherche finie ou non : le dossier courant est relu (refresh termine la recherche en cours).
 void ResourceLibrary::cancelSearch()
 {
-    if (!m_searching)
-        return;
-    m_searchCancelled->store(true);
-    setSearching(false);
     refresh();
 }
 
 void ResourceLibrary::requestThumbnails()
 {
     m_thumbnailWidth = thumbnailWidth();
-    m_thumbnailQueue = m_items;
+    ++m_thumbnailGeneration;
+    m_thumbnailQueue.assign(m_items.begin(), m_items.end());
     pumpThumbnails();
 }
 
-// Aucun rendu lancé pendant un contact : la file est gardée et part au relâché (setContactActive).
+// Les éléments vont être remplacés (dossier quitté ou relu, recherche) : la file est vidée et la vignette en
+// vol sera jetée à son retour.
+void ResourceLibrary::dropThumbnails()
+{
+    ++m_thumbnailGeneration;
+    m_thumbnailQueue.clear();
+}
+
+// Patron de PageThumbnails::pump (L4-T17) : une vignette en vol au plus, la suivante part à son retour, et
+// seulement hors contact ; pendant un contact la file attend le relâché (setContactActive).
 void ResourceLibrary::pumpThumbnails()
 {
-    if (m_contactActive || m_thumbnailQueue.empty())
+    if (m_thumbnailInFlight || m_contactActive || m_thumbnailQueue.empty())
         return;
-    const std::vector<Item> queue = std::exchange(m_thumbnailQueue, {});
-    const std::uint64_t generation = m_itemsGeneration;
+    const Item item = std::move(m_thumbnailQueue.front());
+    m_thumbnailQueue.pop_front();
+    const std::uint64_t generation = m_thumbnailGeneration;
     const int width = m_thumbnailWidth;
-    for (const Item& item : queue) {
-        auto* watcher = new QFutureWatcher<ThumbnailJob>(this);
-        connect(watcher, &QFutureWatcher<ThumbnailJob>::finished, this, [this, watcher, width] {
-            const ThumbnailJob thumbnail = watcher->result();
-            watcher->deleteLater();
-            if (thumbnail.generation != m_itemsGeneration || width != m_thumbnailWidth ||
-                thumbnail.file.isEmpty())
-                return;
+    m_thumbnailInFlight = true;
+    auto* watcher = new QFutureWatcher<ThumbnailJob>(this);
+    connect(watcher, &QFutureWatcher<ThumbnailJob>::finished, this, [this, watcher] {
+        const ThumbnailJob thumbnail = watcher->result();
+        watcher->deleteLater();
+        m_thumbnailInFlight = false;
+        if (thumbnail.generation == m_thumbnailGeneration && !thumbnail.file.isEmpty()) {
             for (std::size_t row = 0; row < m_items.size(); ++row) {
                 if (m_items[row].path != thumbnail.path)
                     continue;
@@ -694,10 +720,20 @@ void ResourceLibrary::pumpThumbnails()
                 ++m_thumbnailsRendered;
                 emit thumbnailsRenderedChanged();
             }
-        });
-        watcher->setFuture(QtConcurrent::run(
-            &m_pool, [generation, item, width] { return makeThumbnail(generation, item, width); }));
-    }
+        }
+        pumpThumbnails();
+    });
+    watcher->setFuture(QtConcurrent::run(
+        &m_pool, [generation, item, width] { return makeThumbnail(generation, item, width); }));
+}
+
+// `path` renommé ou supprimé : si le dossier courant est `path` ou en dessous, il passe au parent de `path`.
+void ResourceLibrary::leaveFolder(const QString& path)
+{
+    if (m_folder != path && !m_folder.startsWith(path + QLatin1Char('/')))
+        return;
+    m_folder = QFileInfo(path).absolutePath();
+    emit folderChanged();
 }
 
 bool ResourceLibrary::mayEdit() const
@@ -709,7 +745,9 @@ bool ResourceLibrary::rename(const QString& path, const QString& newName)
 {
     const QString name = newName.trimmed();
     const QFileInfo info(path);
-    if (m_commands == nullptr || m_contactActive || !validName(name) || !info.exists())
+    const QString source = QDir::cleanPath(info.absoluteFilePath());
+    if (m_commands == nullptr || m_contactActive || !validName(name) || source == m_rootPath ||
+        !info.exists())
         return false;
     QString target = name;
     if (info.isFile() && QFileInfo(name).suffix().compare(info.suffix(), Qt::CaseInsensitive) != 0)
@@ -717,27 +755,36 @@ bool ResourceLibrary::rename(const QString& path, const QString& newName)
     const QString destination = info.dir().filePath(target);
     if (QFileInfo::exists(destination))
         return false;
-    const bool done = info.isDir() ? QDir().rename(info.absoluteFilePath(), destination)
-                                   : QFile::rename(info.absoluteFilePath(), destination);
-    if (done)
+    const bool done = info.isDir() ? QDir().rename(source, destination) : QFile::rename(source, destination);
+    if (done) {
+        leaveFolder(source);
         refresh();
+    }
     return done;
 }
 
 bool ResourceLibrary::remove(const QString& path, bool permanently)
 {
     const QFileInfo info(path);
-    if (m_commands == nullptr || m_contactActive || !info.exists())
+    const QString target = QDir::cleanPath(info.absoluteFilePath());
+    if (m_commands == nullptr || m_contactActive || target == m_rootPath || !info.exists())
         return false;
     bool done = false;
-    if (usesTrash() && !permanently)
-        done = !hooks().trashFails && QFile::moveToTrash(info.absoluteFilePath());
-    else if (info.isDir())
-        done = QDir(info.absoluteFilePath()).removeRecursively();
-    else
-        done = QFile::remove(info.absoluteFilePath());
-    if (done)
+    if (usesTrash() && !permanently) {
+        done = !hooks().trashFails && QFile::moveToTrash(target);
+        if (!done) {
+            emit trashFailed(target); // rien n'est supprimé ; le QML peut proposer la suppression définitive
+            return false;
+        }
+    } else if (info.isDir()) {
+        done = QDir(target).removeRecursively();
+    } else {
+        done = QFile::remove(target);
+    }
+    if (done) {
+        leaveFolder(target);
         refresh();
+    }
     return done;
 }
 
@@ -783,7 +830,9 @@ QString ResourceLibrary::addSelection()
 
 bool ResourceLibrary::insert(const QString& path, QPointF pagePoint)
 {
-    if (!mayEdit())
+    // Un fragment se lit et s'analyse ici, sur le fil principal : refusé pendant un contact, comme les autres
+    // éditions disque (l'image aussi, pour une seule règle).
+    if (!mayEdit() || m_contactActive)
         return false;
     const QFileInfo info(path);
     const QString kind = kindOf(info);

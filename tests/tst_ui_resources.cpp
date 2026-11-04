@@ -549,8 +549,8 @@ private slots:
     }
 
     // Patron de PageThumbnails::pump (une vignette en vol au plus, contact vérifié avant chacune). Le premier
-    // rendu est retenu : rien d'autre ne part ; un contact posé APRÈS le lancement arrête la file au retour de
-    // celle en vol, jusqu'au relâché.
+    // rendu est retenu : rien d'autre ne part ; un contact posé APRÈS le lancement arrête la file au retour
+    // de celle en vol, jusqu'au relâché.
     void thumbnailsOneAtATimeStoppedByContact()
     {
         std::atomic<int> renders{0};
@@ -710,7 +710,8 @@ private slots:
         Fixture f;
         const QString image = QDir(f.mine).filePath(QStringLiteral("photo.png"));
         QVERIFY(writeImage(image, "PNG"));
-        ui::ResourceLibrary::setTrashForTests(true, true); // corbeille simulée en échec, jamais celle du poste
+        ui::ResourceLibrary::setTrashForTests(true,
+                                              true); // corbeille simulée en échec, jamais celle du poste
         QSignalSpy failed(&f.library, &ui::ResourceLibrary::trashFailed);
         QVERIFY(!f.library.remove(image));
         QVERIFY(QFile::exists(image));
