@@ -110,7 +110,7 @@ private slots:
         profile->setPaletteDock(QStringLiteral("right"));
         QTRY_COMPARE(sceneOf(palette, QPointF(palette->width(), 0)).x(), double(s.window->width()));
         profile->setPaletteDock(QStringLiteral("top"));
-        QTRY_COMPARE(sceneOf(palette, QPointF(0, 0)).y(), item(s, "paletteFrame")->parentItem()->mapToScene(QPointF(0, 0)).y());
+        QTRY_COMPARE(sceneOf(palette, QPointF(0, 0)).y(), sceneOf(item(s, "paletteFrame")->parentItem(), QPointF(0, 0)).y() + item(s, "paletteTitle")->height());
         profile->setPaletteDock(QStringLiteral("bottom"));
         QTRY_COMPARE(sceneOf(palette, QPointF(0, palette->height())).y(), double(s.window->height()));
     }
@@ -140,7 +140,7 @@ private slots:
         profile->setPaletteFloat(QPointF(400, 200));
         auto* title = item(s, "paletteTitle");
         QVERIFY(title);
-        QTRY_COMPARE(sceneOf(item(s, "toolPalette"), QPointF(0, 0)).x(), 400.0);
+        QTRY_COMPARE(sceneOf(item(s, "palettePanel"), QPointF(0, 0)).x(), 400.0);
         const QPoint from = sceneOf(title, QPointF(title->width() / 2, title->height() / 2)).toPoint();
         const QPoint to(from.x() - 400 + 10, from.y() + 50); // bord gauche à 10 px
         QTest::mousePress(s.window, Qt::LeftButton, {}, from);
@@ -158,7 +158,7 @@ private slots:
         profile->setPaletteDock(QStringLiteral("floating"));
         profile->setPaletteFloat(QPointF(300, 120));
         auto* palette = item(s, "toolPalette");
-        QTRY_COMPARE(sceneOf(palette, QPointF(0, 0)), QPointF(300, 120));
+        QTRY_COMPARE(sceneOf(item(s, "palettePanel"), QPointF(0, 0)), QPointF(300, 120));
     }
 
     void collapsedShowsFirstRowOnly()

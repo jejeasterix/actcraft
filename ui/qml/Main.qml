@@ -347,7 +347,7 @@ Window {
             id: paletteFrame
             Layout.fillHeight: true
             implicitHeight: 0 // la hauteur vient de la ligne, pas du contenu (sinon boucle de mise en page)
-            Layout.preferredWidth: Theme.largeurPalette
+            Layout.preferredWidth: paletteFrame.slotWidth
             commands: appCommands
             documentController: appDocument
             tools: appTools
@@ -363,6 +363,7 @@ Window {
                 tools: appTools
                 documentController: appDocument
                 profile: appProfile
+                preferences: appPreferences
             }
         }
     }
