@@ -23,12 +23,17 @@
 #include <actcraft/ui/objecttree.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QQmlApplicationEngine>
+#include <QSettings>
 #include <QTemporaryDir>
+#include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
 #include <algorithm>
 #include <memory>
 #include <vector>
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 namespace core = actcraft::core;
 namespace ui = actcraft::ui;
@@ -393,8 +398,8 @@ private slots:
     }
 
     // Le test qui distingue (L6-C2, H6-15) : un verrou posé par un autre chemin (gestionnaire d'object.lock,
-    // modèle de propriétés) passe par DocumentController::execute, sans Change ni Commands::triggered. Sous le
-    // patron écarté (suivre triggered par identifiant de commande), LockedRole resterait à faux tant que
+    // modèle de propriétés) passe par DocumentController::execute, sans Change ni Commands::triggered. Sous
+    // le patron écarté (suivre triggered par identifiant de commande), LockedRole resterait à faux tant que
     // personne n'émet `object.lock` ; le signal du contrôleur objectFlagsChanged le remet à jour seul, une
     // fois, et triggered ne déclenche plus rien.
     void lockFromElsewhereRefreshes()
@@ -408,7 +413,7 @@ private slots:
         QCOMPARE(f.tree.resetCount(), resets + 1); // sans autre événement
         QCOMPARE(roleOf(f.tree, f.shape1, ui::ObjectTreeModel::LockedRole).toBool(), true);
 
-        emit f.commands.triggered(QStringLiteral("view.fit"), QVariant()); // commande étrangère : rien
+        emit f.commands.triggered(QStringLiteral("view.fit"), QVariant());    // commande étrangère : rien
         emit f.commands.triggered(QStringLiteral("object.lock"), QVariant()); // contournement retiré : rien
         emit f.commands.triggered(QStringLiteral("object.drag-copy"), QVariant());
         QCoreApplication::processEvents();
@@ -444,6 +449,50 @@ private slots:
         QCoreApplication::processEvents();
         QCOMPARE(f.tree.resetCount(), resets + 2);
         QCOMPARE(roleOf(f.tree, f.shape2, ui::ObjectTreeModel::HiddenRole).toBool(), true);
+    }
+
+    // La coche d'object.lock (Main.qml, syncObjectFlags) suit un verrou posé hors du gestionnaire de la
+    // commande : par l'arbre (setLocked) ou par execute (chemin du modèle de propriétés). Sous le patron
+    // écarté, ObjectEditing::selectionStateChanged reste muet (aucun Change) et la coche reste éteinte.
+    void lockCheckFollowsTheTree()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        // Réglages du poste (Preferences de Main.qml) dans le dossier jetable, jamais ceux du poste.
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, dir.filePath(QStringLiteral("poste")));
+        QQmlApplicationEngine engine;
+        engine.setInitialProperties(
+            {{QStringLiteral("cacheEnabled"), true},
+             {QStringLiteral("generatedPage"), false},
+             {QStringLiteral("profileRoot"), dir.filePath(QStringLiteral("profiles"))}});
+        engine.loadFromModule("ActCraft.Ui", "Main");
+        QVERIFY(!engine.rootObjects().isEmpty());
+        QObject* window = engine.rootObjects().constFirst();
+        auto* tools = window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        auto* document = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        auto* commands = window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(tools && document && commands);
+        tools->setSettingsFile(dir.filePath(QStringLiteral("outils.ini"))); // jamais le profil réel
+        const core::ObjectId shape = addObject(*document, shapeAt(100), core::Layer::Middle);
+        QVERIFY(shape != 0);
+        tools->selectObjects({shape});
+        ui::ObjectTreeModel tree;
+        tree.setCommands(commands);
+        tree.setDocument(document);
+        tree.setTools(tools);
+        QCoreApplication::processEvents();
+        const QString lock = QStringLiteral("object.lock");
+        QVERIFY(!commands->isChecked(lock));
+
+        QVERIFY(tree.setLocked(rowOf(tree, shape), true));
+        QVERIFY(commands->isChecked(lock)); // aussitôt, sans autre événement
+        QCoreApplication::processEvents();
+        QVERIFY(tree.setLocked(rowOf(tree, shape), false));
+        QVERIFY(!commands->isChecked(lock));
+        document->execute(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{shape},
+                                                                       core::ObjectFlag::Locked, true));
+        QVERIFY(commands->isChecked(lock));
     }
 
     // Branche « ancre = objet » de move : la ligne passe juste sous l'objet de la ligne d'au-dessus.
