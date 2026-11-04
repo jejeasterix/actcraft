@@ -680,6 +680,24 @@ private slots:
         QVERIFY(hiddenInDocument(f.controller, f.shape1));
         QVERIFY(!hiddenInDocument(f.controller, f.shape2));
     }
+
+    // Sélection faite au canevas : core::objectAt et core::objectsTouching (hittest.cpp) rendent les objets
+    // dessinés, jamais l'objet Group. La ligne d'un groupe s'allume quand tous ses membres sont sélectionnés
+    // (règle D9, comme masqué et verrouillé). Un modèle qui ne lirait que l'identifiant du groupe la
+    // laisserait éteinte.
+    void groupRowSelectedWithItsMembers()
+    {
+        Fixture f;
+        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        QVERIFY(g != 0);
+        f.tools.selectObjects({f.shape1});
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::SelectedRole).toBool(), false); // un membre sur deux
+        f.tools.selectObjects({f.shape1, f.shape2});
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::SelectedRole).toBool(), true);
+        QCOMPARE(roleOf(f.tree, f.stroke, ui::ObjectTreeModel::SelectedRole).toBool(), false);
+    }
 };
 
 QTEST_MAIN(TstUiObjecttree)
