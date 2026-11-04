@@ -1064,7 +1064,7 @@ private slots:
         core::Equation e;
         e.bounds = {100, 100, 200, 80};
         e.mathml = mathml.toStdString();
-        const auto draw = [&e](const std::function<void(QPainter&)>& paint) {
+        const auto draw = [](const std::function<void(QPainter&)>& paint) {
             QImage image(400, 300, QImage::Format_ARGB32_Premultiplied);
             image.fill(Qt::white);
             QPainter p(&image);
