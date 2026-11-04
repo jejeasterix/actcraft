@@ -136,7 +136,8 @@ core::Connector styled(int rank, core::PointF a, core::PointF b)
 bool inside(const core::RectF& box, core::PointF p)
 {
     constexpr double e = 1e-9;
-    return p.x >= box.x - e && p.x <= box.x + box.width + e && p.y >= box.y - e && p.y <= box.y + box.height + e;
+    return p.x >= box.x - e && p.x <= box.x + box.width + e && p.y >= box.y - e &&
+           p.y <= box.y + box.height + e;
 }
 
 } // namespace
@@ -438,8 +439,8 @@ private slots:
         QVERIFY(core::objectAt(d.page(0), {96.5, 100}, 0) == c);
     }
 
-    // L5-C3 : les 14 rangs du panneau, (tracé, flèche au départ, flèche à l'arrivée, pointillés), d'après notre
-    // ancêtre Python (CONNECTOR_TYPES) ; un rang hors du panneau est la ligne simple du rang 0.
+    // L5-C3 : les 14 rangs du panneau, (tracé, flèche au départ, flèche à l'arrivée, pointillés), d'après
+    // notre ancêtre Python (CONNECTOR_TYPES) ; un rang hors du panneau est la ligne simple du rang 0.
     void styleTableFollowsThePanel()
     {
         using R = core::ConnectorRoute;
@@ -451,10 +452,12 @@ private slots:
             bool dashed;
         };
         const Row rows[] = {
-            {R::Straight, false, false, false}, {R::Straight, true, false, false}, {R::Straight, false, true, false},
-            {R::Straight, true, true, false},   {R::Straight, false, false, true}, {R::Straight, true, false, true},
-            {R::Straight, false, true, true},   {R::Straight, true, true, true},   {R::CurveA, false, false, false},
-            {R::CurveB, false, false, false},   {R::Step, false, false, false},    {R::Elbow, false, false, false},
+            {R::Straight, false, false, false}, {R::Straight, true, false, false},
+            {R::Straight, false, true, false},  {R::Straight, true, true, false},
+            {R::Straight, false, false, true},  {R::Straight, true, false, true},
+            {R::Straight, false, true, true},   {R::Straight, true, true, true},
+            {R::CurveA, false, false, false},   {R::CurveB, false, false, false},
+            {R::Step, false, false, false},     {R::Elbow, false, false, false},
             {R::Angle, false, false, false},    {R::Angle, true, false, false},
         };
         QCOMPARE(core::kConnectorStyleCount, 14);
@@ -495,7 +498,8 @@ private slots:
     {
         const core::PointF a{20, 30};
         const core::PointF b{220, 130};
-        QCOMPARE(xys(core::connectorPath(styled(11, a, b))), xys(core::connectorControlPoints(styled(11, a, b))));
+        QCOMPARE(xys(core::connectorPath(styled(11, a, b))),
+                 xys(core::connectorControlPoints(styled(11, a, b))));
         const std::vector<core::PointF> curve = core::connectorPath(styled(8, a, b));
         QCOMPARE(int(curve.size()), core::kConnectorCurveSegments + 1);
         QVERIFY(same(curve.front(), 20, 30));
@@ -559,8 +563,9 @@ private slots:
         QCOMPARE(point.b.reach, 0.0);
     }
 
-    // L5-C3 : tous les tracés restent dans le rectangle a–b et chaque flèche (le long de sa tangente, bornée par
-    // `reach`, demi-largeur connectorCapSize / 2) dans la marge : l'emprise et la touche d'avant suffisent.
+    // L5-C3 : tous les tracés restent dans le rectangle a–b et chaque flèche (le long de sa tangente, bornée
+    // par `reach`, demi-largeur connectorCapSize / 2) dans la marge : l'emprise et la touche d'avant
+    // suffisent.
     void routesAndArrowsStayInTheExtent()
     {
         const std::pair<core::PointF, core::PointF> ends[] = {

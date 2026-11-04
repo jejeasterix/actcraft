@@ -344,7 +344,8 @@ private slots:
         QVERIFY(start(app, QStringLiteral("panneau.ini")));
         QObject* panel = app.window->findChild<QObject*>(QStringLiteral("connectorPanel"));
         QVERIFY(panel != nullptr);
-        QCOMPARE(panel->property("chosen").toInt(), 5); // « Style 6 », celui que dessine le connecteur
+        QCOMPARE(panel->property("chosen").toInt(),
+                 5); // « Pointillés, flèche au départ », celui que dessine le connecteur
         QCOMPARE(panel->property("capA").toInt(), 2);
         QCOMPARE(panel->property("capB").toInt(), 1);
         app.tools->setConnectorStyle(8);
@@ -398,7 +399,8 @@ private slots:
             QStringLiteral("Oblique puis horizontal, flèche au départ"),
         };
         for (int rank = 0; rank < core::kConnectorStyleCount; ++rank) {
-            QQuickItem* entry = itemNamed(app.window->contentItem(), QStringLiteral("connectorStyle-%1").arg(rank));
+            QQuickItem* entry =
+                itemNamed(app.window->contentItem(), QStringLiteral("connectorStyle-%1").arg(rank));
             QVERIFY(entry != nullptr);
             QCOMPARE(entry->property("label").toString(), expected.at(rank));
             QVERIFY(itemNamed(entry, QStringLiteral("connectorSketch-%1").arg(rank)) != nullptr);
@@ -406,14 +408,15 @@ private slots:
     }
 
     // H5-33 : choisir un style au panneau (connector.style) règle les extrémités de l'outil selon ses flèches
-    // (départ → A, arrivée → B : 2 flèche, sinon 0) ; elles restent réglables ensuite ; un connecteur déjà posé
-    // garde les siennes ; le réglage du rang seul (relecture de la mémoire) ne touche pas aux extrémités.
+    // (départ → A, arrivée → B : 2 flèche, sinon 0) ; elles restent réglables ensuite ; un connecteur déjà
+    // posé garde les siennes ; le réglage du rang seul (relecture de la mémoire) ne touche pas aux
+    // extrémités.
     void choosingAConnectorStyleSetsTheCaps()
     {
         App app;
         QVERIFY(start(app));
-        app.document->execute(
-            std::make_unique<core::AddObjectCommand>(0, core::makeConnector({100, 100}, 0, {300, 100}, 0, 0)));
+        app.document->execute(std::make_unique<core::AddObjectCommand>(
+            0, core::makeConnector({100, 100}, 0, {300, 100}, 0, 0)));
         const core::ObjectId placed = app.page().objects.back().common.id;
         const auto caps = [&] {
             return std::pair{app.tools->property("connectorCapA").toInt(),
@@ -438,19 +441,21 @@ private slots:
         QCOMPARE(kept.style, std::uint8_t{0});
     }
 
-    // L5-C3 : la vignette du panneau dessine le tracé de core (connectorPath) dans sa boîte, a en haut à gauche,
-    // b en bas à droite, à 4 du bord ; flèches et pointillés du style.
+    // L5-C3 : la vignette du panneau dessine le tracé de core (connectorPath) dans sa boîte, a en haut à
+    // gauche, b en bas à droite, à 4 du bord ; flèches et pointillés du style.
     void connectorStyleSketchUsesTheSharedRoute()
     {
         App app;
         QVERIFY(start(app));
-        const QVariantList step = app.tools->connectorStyleSketch(10, 44, 24).value(QStringLiteral("points")).toList();
+        const QVariantList step =
+            app.tools->connectorStyleSketch(10, 44, 24).value(QStringLiteral("points")).toList();
         QCOMPARE(step.size(), 4);
         QCOMPARE(step.at(0).toPointF(), QPointF(4, 4));
         QCOMPARE(step.at(1).toPointF(), QPointF(22, 4));
         QCOMPARE(step.at(2).toPointF(), QPointF(22, 20));
         QCOMPARE(step.at(3).toPointF(), QPointF(40, 20));
-        const QVariantList curve = app.tools->connectorStyleSketch(8, 44, 24).value(QStringLiteral("points")).toList();
+        const QVariantList curve =
+            app.tools->connectorStyleSketch(8, 44, 24).value(QStringLiteral("points")).toList();
         QCOMPARE(curve.size(), core::kConnectorCurveSegments + 1);
         const QVariantMap angle = app.tools->connectorStyleSketch(13, 44, 24);
         QVERIFY(angle.value(QStringLiteral("arrowStart")).toBool());

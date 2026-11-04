@@ -903,8 +903,8 @@ private slots:
         return connector;
     }
 
-    // L5-C3 : le rang porte le tracé ; chaque style courbe ou coudé passe par un pixel hors de la diagonale et
-    // laisse la diagonale blanche.
+    // L5-C3 : le rang porte le tracé ; chaque style courbe ou coudé passe par un pixel hors de la diagonale
+    // et laisse la diagonale blanche.
     void connectorStyleDrawsItsRoute()
     {
         const QImage curveA = renderConnector(styledConnector(8)); // contrôle (20, 220), milieu (70, 170)
@@ -928,13 +928,14 @@ private slots:
         QVERIFY(near(angle.pixelColor(120, 120), Qt::white, 2));
     }
 
-    // L5-C3 : la courbe A arrive horizontale en (220, 220) ; la flèche (longueur 12, demi-largeur 6) suit cette
-    // tangente, pas la diagonale a→b.
+    // L5-C3 : la courbe A arrive horizontale en (220, 220) ; la flèche (longueur 12, demi-largeur 6) suit
+    // cette tangente, pas la diagonale a→b.
     void connectorArrowFollowsTheEndTangent()
     {
         const QImage image = renderConnector(styledConnector(8, core::ConnectorCap::Arrow));
-        QVERIFY(near(image.pixelColor(210, 223), Qt::red, 10));   // aile basse de la flèche horizontale
-        QVERIFY(near(image.pixelColor(214, 210), Qt::white, 2)); // là où tomberait une flèche sur la diagonale
+        QVERIFY(near(image.pixelColor(210, 223), Qt::red, 10)); // aile basse de la flèche horizontale
+        QVERIFY(
+            near(image.pixelColor(214, 210), Qt::white, 2)); // là où tomberait une flèche sur la diagonale
     }
 
     // L5-C3 : les rangs 4 à 7 sont en pointillés, le rang 0 en trait plein.
@@ -945,7 +946,8 @@ private slots:
         const QImage image = renderConnector(dashed);
         QVERIFY(countPixels(image, QRect(20, 50, 170, 1), isLight) > 10);
         QVERIFY(countPixels(image, QRect(20, 50, 170, 1), isRed) > 10);
-        const QImage plain = renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::None));
+        const QImage plain =
+            renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::None));
         QCOMPARE(countPixels(plain, QRect(20, 50, 170, 1), isLight), 0);
     }
 
