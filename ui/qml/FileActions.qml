@@ -19,6 +19,9 @@ Item {
     signal popupClosed()
     // « Enregistrer sous » abandonné : ce qui attendait l'enregistrement (fermer un onglet) est oublié.
     signal saveAbandoned()
+    property var preferences: null // lié par L6-T23 (Main.qml) à appPreferences
+    readonly property alias recents: recentList
+    signal saved(url url) // enregistrement réussi ; Main.qml décide du résumé (L6-T23)
     property var pending: null    // action à reprendre après « enregistrer ? »
     property var afterSave: null  // action à reprendre après un enregistrement réussi
     property bool quitting: false
@@ -196,6 +199,25 @@ Item {
                 if (a) actions.guard(a)
             }
             actions.resumeWhenIdle()
+        }
+    }
+    RecentDocuments {
+        id: recentList
+        objectName: "appRecents"
+        preferences: actions.preferences
+    }
+    // Documents récents (L6-T24) : à côté de la Connections du lot 5, qui reste inchangée.
+    Connections {
+        target: actions.document
+        function onSaveFinished(ok, message) {
+            if (!ok)
+                return
+            recentList.note(actions.document.fileUrl)
+            actions.saved(actions.document.fileUrl)
+        }
+        function onLoadFinished(ok, message) {
+            if (ok)
+                recentList.note(actions.document.fileUrl)
         }
     }
 }
