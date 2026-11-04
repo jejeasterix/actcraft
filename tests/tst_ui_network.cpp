@@ -221,25 +221,37 @@ void TstUiNetwork::passwordNeverInSettings()
     QCOMPARE(stored, SecretStore::available() ? kPassword : QByteArray());
 }
 
+// « Aucun mandataire par défaut » se lit « aucun mandataire posé par ActCraft » : sans hôte, la main revient
+// à la configuration du système (mandataire imposé par GPO ou WPAD), que setApplicationProxy(NoProxy)
+// couperait. Le test qui distingue est usesSystemConfiguration() : vrai sous setUseSystemConfiguration(true),
+// faux sous NoProxy comme sous un constructeur qui ne ferait rien (le reste posé ci-dessous l'a mis à faux).
+// applicationProxy().type() ne distingue pas : sur un poste sans mandataire, le système répond NoProxy aussi.
 void TstUiNetwork::noProxyByDefault()
 {
-    // Reste d'un réglage antérieur : la construction doit appliquer l'absence de mandataire.
+    // Reste d'un réglage antérieur : un mandataire applicatif traîne, la configuration du système est coupée.
     QNetworkProxy::setApplicationProxy(
         QNetworkProxy(QNetworkProxy::HttpProxy, QStringLiteral("reste.test"), 8081));
+    QVERIFY(!QNetworkProxyFactory::usesSystemConfiguration());
     Preferences prefs(iniPath(), nullptr);
     NetworkSettings settings(&prefs, secretName(), nullptr);
     QVERIFY(settings.host().isEmpty());
     QVERIFY(settings.user().isEmpty());
-    QCOMPARE(QNetworkProxy::applicationProxy().type(), QNetworkProxy::NoProxy);
+    QVERIFY(QNetworkProxyFactory::usesSystemConfiguration());
+    QVERIFY(QNetworkProxy::applicationProxy().hostName() != QStringLiteral("reste.test"));
 
-    // clear() revient à l'absence de mandataire et efface ce qui était gardé.
+    // Avec un hôte : le mandataire saisi, qui prime sur le système.
     settings.setHost(QStringLiteral("proxy.test"));
     settings.setPort(3128);
     settings.setUser(QStringLiteral("eleve"));
     settings.setPassword(QString::fromLatin1(kPassword));
     QCOMPARE(QNetworkProxy::applicationProxy().type(), QNetworkProxy::HttpProxy);
+    QCOMPARE(QNetworkProxy::applicationProxy().hostName(), QStringLiteral("proxy.test"));
+    QVERIFY(!QNetworkProxyFactory::usesSystemConfiguration());
+
+    // clear() rend la main au système et efface ce qui était gardé.
     settings.clear();
-    QCOMPARE(QNetworkProxy::applicationProxy().type(), QNetworkProxy::NoProxy);
+    QVERIFY(QNetworkProxyFactory::usesSystemConfiguration());
+    QVERIFY(QNetworkProxy::applicationProxy().hostName() != QStringLiteral("proxy.test"));
     QVERIFY(settings.host().isEmpty());
     QVERIFY(settings.user().isEmpty());
     QVERIFY(!prefs.value(QString::fromLatin1(NetworkSettings::kHost)).isValid());
