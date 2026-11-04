@@ -7,6 +7,7 @@
 #include <QByteArray>
 
 #include <cstddef>
+#include <set>
 #include <string>
 #include <utility>
 
@@ -27,6 +28,22 @@ void copyCitedResources(const core::Document& from, const std::vector<core::Page
     }
 }
 
+// Une action sur un objet hors du fragment désignerait, une fois inséré dans un autre cours, un objet sans
+// rapport : sa cible est remise à 0, comme closureForCopy le fait des extrémités de connecteur. Une cible du
+// fragment suit sa renumérotation (withFreshIds) à l'insertion.
+void clearDanglingTargets(std::vector<core::PageObject>& objects)
+{
+    std::set<core::ObjectId> kept;
+    for (const core::PageObject& object : objects)
+        kept.insert(object.common.id);
+    for (core::PageObject& object : objects) {
+        for (core::Action& action : object.common.actions) {
+            if (action.kind == core::ActionKind::OnObject && kept.count(action.target) == 0)
+                action.target = 0;
+        }
+    }
+}
+
 } // namespace
 
 bool writeFragment(const core::Document& document, int page, const std::vector<core::ObjectId>& objects,
@@ -42,11 +59,16 @@ bool writeFragment(const core::Document& document, int page, const std::vector<c
         error = QStringLiteral("fragment : aucun des objets choisis n'est sur la page %1").arg(page);
         return false;
     }
+    clearDanglingTargets(chosen);
 
     // Un document neuf, jamais celui d'origine élagué : l'écrivain natif écrit toute sa table de ressources
-    // et ses entrées inconnues (nativefile.cpp), celles d'un autre cours comprises.
+    // et ses entrées inconnues (nativefile.cpp), celles d'un autre cours comprises. De la page, seuls la
+    // taille, la description et les mots-clés (L6-T10, cherchés par la bibliothèque) suivent ; fond et grille
+    // non.
     core::Document fragment(source.width, source.height);
     copyCitedResources(document, chosen, fragment);
+    fragment.page(0).description = source.description;
+    fragment.page(0).keywords = source.keywords;
     fragment.page(0).objects = std::move(chosen);
     fragment.refreshNextId();
 
@@ -76,6 +98,15 @@ std::optional<Fragment> readFragment(QIODevice& in, QString& error)
     }
     if (decoded.document.pageCount() != 1) {
         error = QStringLiteral("fragment : %1 pages, une seule attendue").arg(decoded.document.pageCount());
+        return std::nullopt;
+    }
+    // Une ressource absente, illisible ou d'empreinte fausse est écartée par le lecteur natif, avec un
+    // avertissement « ressource … » (nativejson.cpp) : l'objet qui la cite garderait une clé pendante. Le
+    // fragment est refusé plutôt qu'inséré incomplet. Les autres avertissements (objet de type inconnu gardé
+    // tel quel, L2-C8) n'empêchent pas la lecture.
+    const QStringList damaged = decoded.warnings.filter(QStringLiteral("ressource "));
+    if (!damaged.isEmpty()) {
+        error = QStringLiteral("fragment : %1").arg(damaged.join(QStringLiteral(" ; ")));
         return std::nullopt;
     }
 
