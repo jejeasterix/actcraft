@@ -935,8 +935,8 @@
     "semantic_hash": ""
   },
   "CHANGELOG.md": {
-    "mtime": 1793775277.749421,
-    "ast_hash": "59c73931de404c84c87730d174fd8c13",
+    "mtime": 1793829988.3353837,
+    "ast_hash": "beb46f66b03ea41fef7f232d9d8c9eb4",
     "semantic_hash": ""
   },
   "LICENSES/GPL-3.0.txt": {
@@ -2675,8 +2675,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_fileexchange.cpp": {
-    "mtime": 1793825735.8193097,
-    "ast_hash": "79f3a55a6f478a71e2a2718f269010dd",
+    "mtime": 1793830009.4304996,
+    "ast_hash": "fbea6ca9d5bdfe336c2fdf6c6a1bfe49",
     "semantic_hash": ""
   },
   "tests/tst_ui_import.cpp": {
@@ -2775,8 +2775,8 @@
     "semantic_hash": ""
   },
   "ui/src/fileexchange.cpp": {
-    "mtime": 1793825876.5364766,
-    "ast_hash": "24d3786f52be88e73e9841c0c0be0333",
+    "mtime": 1793830009.921729,
+    "ast_hash": "b5f5d3bfbbe9250404ad4c5b56e112c0",
     "semantic_hash": ""
   },
   "ui/src/insertion.cpp": {
