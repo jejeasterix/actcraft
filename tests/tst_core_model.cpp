@@ -413,9 +413,9 @@ private slots:
     }
 
     // L6-T10 : mots-clés (page, objet), description de page, style de légende. Absents, rien dans le flux :
-    // les valeurs figées restent. Présents, ils entrent en toute fin de flux derrière l'octet 0x6A : l'empreinte
-    // est alors la suite FNV-1a de celle de la même page sans eux. Un champ glissé au milieu du flux, même
-    // seulement hors défaut (comme dragCopy), donnerait une autre valeur.
+    // les valeurs figées restent. Présents, ils entrent en toute fin de flux derrière l'octet 0x6A :
+    // l'empreinte est alors la suite FNV-1a de celle de la même page sans eux. Un champ glissé au milieu du
+    // flux, même seulement hors défaut (comme dragCopy), donnerait une autre valeur.
     void lot6FieldsKeepOldFingerprints()
     {
         QCOMPARE(fingerprint(samplePage()), std::uint64_t{0x29E4AA55B1A00D2Eull}); // figée avant L6-T10

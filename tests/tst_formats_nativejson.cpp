@@ -335,9 +335,12 @@ private slots:
         {
             // dragCopy (lot 5) : champ facultatif laissé à son défaut dans le document riche (référence
             // figée) ; son aller-retour : lot5FieldsRoundTrip.
+            // labelStyle, keywords (L6-T10) : de même ; leur aller-retour : labelStyleRoundTrip,
+            // keywordsRoundTrip (tst_formats_lot6).
             const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform,
-                         label, actions] = p1.objects[0].common;
+                         label, labelStyle, keywords, actions] = p1.objects[0].common;
             QVERIFY(!dragCopy);
+            QVERIFY(labelStyle == LabelStyle{} && keywords.empty());
             QVERIFY(id != 0 && !name.empty() && layer != Layer::Middle && !visible && locked &&
                     translucency != 0);
             const auto& [movable, resizable, rotatable] = restrictions;
@@ -420,9 +423,13 @@ private slots:
                     pen.color != 0xFF000000u);
         }
         {
-            const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys,
-                         baseHeight, zones] = d.page(1);
+            const auto& [width, height, objects, background, grid, name, notes, description, keywords,
+                         presentation, unknownKeys, baseHeight, zones] = d.page(1);
             QVERIFY(width != 1024 && height != 768 && objects.empty() && !name.empty() && !notes.empty());
+            // Description et mots-clés (L6-T10) : jamais dans le document riche, dont les clés sont figées
+            // (référence) ; leur aller-retour : pageDescriptionRoundTrip, keywordsRoundTrip
+            // (tst_formats_lot6).
+            QVERIFY(description.empty() && keywords.empty());
             // Zones de page (L4-T27) : jamais dans le document riche, dont les clés sont figées (référence) ;
             // leur aller-retour : zonesRoundTrip, zonesKeyIsKnown (tst_formats_lot4).
             QVERIFY(isDefault(zones));
