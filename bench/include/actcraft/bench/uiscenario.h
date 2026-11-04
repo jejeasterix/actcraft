@@ -158,8 +158,8 @@ public:
     // Reçoit chaque ligne du rapport dès qu'elle est écrite (sortie au fil de l'eau d'actcraft-captures).
     void setLineSink(LineSink sink);
 
-    // Étape « restart » : l'hôte ferme la fenêtre, recrée l'interface sur les MÊMES dossiers de réglages et de
-    // profils (jamais ceux du poste) et rend la nouvelle fenêtre exposée ; nul en cas d'échec. Sans
+    // Étape « restart » : l'hôte ferme la fenêtre, recrée l'interface sur les MÊMES dossiers de réglages et
+    // de profils (jamais ceux du poste) et rend la nouvelle fenêtre exposée ; nul en cas d'échec. Sans
     // gestionnaire, l'étape échoue.
     using RestartHandler = std::function<QQuickWindow*()>;
     void setRestartHandler(RestartHandler handler);

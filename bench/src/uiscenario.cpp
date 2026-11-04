@@ -1505,7 +1505,8 @@ void UiScenarioPlayer::setRestartHandler(RestartHandler handler)
     m_restart = std::move(handler);
 }
 
-// Quitter et relancer (S9) : le profil est écrit (saveCount stable 2 s au plus), puis l'hôte recrée l'interface.
+// Quitter et relancer (S9) : le profil est écrit (saveCount stable 2 s au plus), puis l'hôte recrée
+// l'interface.
 bool UiScenarioPlayer::restart(QStringList& report)
 {
     if (!m_restart) {

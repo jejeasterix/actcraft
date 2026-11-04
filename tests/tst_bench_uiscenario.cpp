@@ -910,15 +910,16 @@ private slots:
     // Lot 6 (L6-T18, S9) : l'étape `restart`, ajoutée à la fin de l'énumération.
     void restartStepParsed()
     {
-        const QByteArray json = R"({"format":"actcraft-scenario/1","name":"r","steps":[{"waitReady":true},{"restart":true},{"waitReady":true}]})";
+        const QByteArray json =
+            R"({"format":"actcraft-scenario/1","name":"r","steps":[{"waitReady":true},{"restart":true},{"waitReady":true}]})";
         UiScenario scenario;
         QString error;
         QVERIFY2(parseUiScenario(json, scenario, error), qPrintable(error));
         QCOMPARE(scenario.steps.size(), std::size_t(3));
         QCOMPARE(scenario.steps[1].kind, UiStepKind::Restart);
         QCOMPARE(static_cast<int>(UiStepKind::FileCheck) + 1, static_cast<int>(UiStepKind::Restart));
-        QVERIFY(!parseUiScenario(
-            R"({"format":"actcraft-scenario/1","name":"r","steps":[{"restart":false}]})", scenario, error));
+        QVERIFY(!parseUiScenario(R"({"format":"actcraft-scenario/1","name":"r","steps":[{"restart":false}]})",
+                                 scenario, error));
         QVERIFY2(error.contains(QStringLiteral("restart")), qPrintable(error));
     }
 
