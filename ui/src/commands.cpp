@@ -38,6 +38,12 @@ void Commands::setPlatform(actions::Platform platform)
 
 void Commands::reload()
 {
+    // Un gestionnaire peut recharger (activer un profil change le dossier de disposition) : remplacer le
+    // registre pendant qu'il s'exécute détruirait la fonction en cours. Relu dès que trigger() rend la main.
+    if (m_triggerDepth > 0) {
+        m_reloadPending = true;
+        return;
+    }
     // L'état coché (outil courant, plein écran) n'est pas dans les fichiers relus : gardé pour les commandes
     // qui existent encore.
     QStringList checked;
@@ -77,6 +83,9 @@ void Commands::reload()
     for (auto it = m_handlers.cbegin(); it != m_handlers.cend(); ++it) {
         bindHandler(it.key());
     }
+    for (auto it = m_nativeHandlers.cbegin(); it != m_nativeHandlers.cend(); ++it) {
+        bindHandler(it.key());
+    }
     for (const QString& message : std::as_const(m_errors)) {
         qWarning("ActCraft : %s", qPrintable(message));
     }
@@ -87,6 +96,18 @@ void Commands::reload()
 
 void Commands::bindHandler(const QString& id)
 {
+    if (m_triggerDepth > 0) {
+        m_reloadPending = true; // reload() relie tous les gestionnaires
+        return;
+    }
+    if (const auto native = m_nativeHandlers.constFind(id); native != m_nativeHandlers.cend()) {
+        m_registry.setHandler(id, native.value());
+        return;
+    }
+    if (!m_handlers.contains(id)) {
+        m_registry.setHandler(id, {});
+        return;
+    }
     m_registry.setHandler(id, [this, id](const QVariant& argument) {
         const QJSValue handler = m_handlers.value(id);
         QJSEngine* engine = qjsEngine(this);
@@ -267,7 +288,14 @@ const actions::CommandRegistry& Commands::registry() const noexcept
 
 bool Commands::trigger(const QString& id, const QVariant& argument)
 {
-    if (!m_registry.trigger(id, argument, m_platform)) {
+    ++m_triggerDepth;
+    const bool done = m_registry.trigger(id, argument, m_platform);
+    --m_triggerDepth;
+    if (m_triggerDepth == 0 && m_reloadPending) {
+        m_reloadPending = false;
+        reload();
+    }
+    if (!done) {
         return false;
     }
     emit triggered(id, argument);
@@ -281,6 +309,20 @@ void Commands::setHandler(const QString& id, const QJSValue& handler)
         return;
     }
     m_handlers.insert(id, handler);
+    bindHandler(id);
+}
+
+void Commands::setNativeHandler(const QString& id, actions::CommandRegistry::Handler handler)
+{
+    if (!m_registry.find(id)) {
+        qWarning("ActCraft : gestionnaire pour une commande inconnue : %s", qPrintable(id));
+        return;
+    }
+    if (handler) {
+        m_nativeHandlers.insert(id, std::move(handler));
+    } else {
+        m_nativeHandlers.remove(id);
+    }
     bindHandler(id);
 }
 

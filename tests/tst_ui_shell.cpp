@@ -43,6 +43,7 @@ namespace {
 
 struct Shell
 {
+    QTemporaryDir profiles; // profils d'essai (amendement 3, N1), détruit après le moteur
     QQmlApplicationEngine engine;
     QQuickWindow* window = nullptr;
     ui::PageView* view = nullptr;
@@ -56,7 +57,9 @@ bool ready(Shell& s)
 
 bool start(Shell& s)
 {
-    s.window = loadMainWindow(s.engine, StartupOptions{});
+    StartupOptions options;
+    options.profileRoot = s.profiles.path();
+    s.window = loadMainWindow(s.engine, options);
     if (!s.window || !QTest::qWaitForWindowExposed(s.window)) {
         return false;
     }
@@ -339,7 +342,7 @@ class TstUiShell : public QObject
 
 private:
     std::unique_ptr<QPointingDevice> m_stylus;
-    // Réglages des outils (ToolHost) : jamais dans le vrai registre.
+    // Réglages des outils (ToolHost) et du poste (Preferences) : jamais dans le vrai registre.
     QTemporaryDir m_settingsDir;
 
     void post(Shell& s, QEvent::Type type, QPointF scene, Qt::MouseButtons buttons)
@@ -1340,9 +1343,6 @@ private slots:
             const QString id = v.toObject().value(QStringLiteral("id")).toString();
             if (id == QStringLiteral("palette.dock-left"))
                 inLot6 = true;
-            // Talon L6 : rempli par L6-T5.
-            if (id == QStringLiteral("profile.activate"))
-                continue;
             if (inLot6 && commands->isAvailable(id))
                 QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
         }
@@ -1380,7 +1380,8 @@ private slots:
         QObject* profile = s.window->findChild<QObject*>(QStringLiteral("appProfile"));
         QVERIFY(profile);
         QVERIFY(s.window->findChild<QObject*>(QStringLiteral("appPreferences")));
-        for (const char* name : {"paletteFrame", "toolPalette", "browserPanel", "profileEditor", "dashboard"}) {
+        for (const char* name :
+             {"paletteFrame", "toolPalette", "browserPanel", "profileEditor", "dashboard"}) {
             QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
             QVERIFY2(o, name);
             QVERIFY2(o->property("profile").value<QObject*>() == profile, name);
