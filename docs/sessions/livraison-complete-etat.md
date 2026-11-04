@@ -235,6 +235,7 @@ Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstrui
 Tâche : L6-C2 — signal unique des drapeaux d'objet (H6-15) — depuis 2026-11-04
 Tâche : L6-T15 — navigateur d'objet QML — depuis 2026-11-04
 Tâche : L6-T9 — barre de raccourcis — depuis 2026-11-04
+Tâche : L6-C5 — tête rouge : couleurs de L6-T8 × profils de L6-T6 — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -255,8 +256,9 @@ Tâche : L6-T9 — barre de raccourcis — depuis 2026-11-04
 | L6-T16 | terminée | 1/3 | ae272be (rouges), 4d6a417, e41b4cf, fusion de la tête e0d5397 → merge cebc61d | rejoué par l'orchestrateur sur la branche fusionnée avec la tête : 207/207, 0 avertissement, `tst_core_notesedits`, `tst_ui_notes`, `tst_captures_notes` Passed ; diff des tests : seuls les deux talons partent ; mutation `mergeId = -1` rouge (agent) ; `kMergeNotes = 7` ; gras/italique/souligné par `NotesController::toggleStyle` ; icône par `browserPanel.hasNotes` (amendement), `TopBar.qml`/`Main.qml` intacts ; restes PC : `captures.ps1 -Scenario notes` (`notes-p2.png`, `p1-sans.png`), MSVC, `NOMS OK` |
 | L6-T6 | terminée | 1/3 | 93bb6f7 (rouge), 96306ed, fusion de la tête 0e4339a → merge 1cfcc8d | rejoué par l'orchestrateur sur la branche fusionnée avec la tête : 207/207, 0 avertissement, `tst_ui_profiles`, `tst_captures_profils` Passed ; diff des tests : seul le talon part ; épinglages de l'amendement 4 (A15), 22 commandes existantes ; libellés choisis par l'agent (« Faire la classe », « Préparer un cours », « Lire et écrire », « Compter et construire », « Sons et images ») ; `namesAreOurs` sautée sans `ACTCRAFT_REFERENCE_NAMES` ; restes PC : `captures.ps1 -Scenario profils`, `NOMS OK`, MSVC, `namesAreOurs` avec la variable posée |
 | L6-C2 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C2`, base d164339 | H6-15 ; `concepteur-critique` ; avant L6-T12 |
-| L6-T15 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T15`, base d164339 | V4 ; `implementeur-tdd` ; `preferences` de `BrowserPanel.qml` (amendement 4) au brief |
+| L6-T15 | rendue, en attente de L6-C5 | 1/3 | a990030 (rouge), …, 227ee46, fusion de la tête c473be9 ; `.worktrees/livraison-complete--L6-T15` | rapporté : 207/207, `LU objectBrowser.visible=true`, `LU appObjectTree.rowCount=6`, `LU appTools.selectionCount=1`, `SCENARIO OK` ; `rowCount` ajouté côté QML (composant inline), `objecttree.*` intact ; rejeu de l'orchestrateur sur la tête fusionnée : 205/207, les 2 rouges sont de la tête (`tst_ui_colors::duplicatesIgnored` 17 au lieu de 16, `tst_captures_couleurs` `PIXEL pastille-ajoutee ECART`) → **L6-C5** ; `BrowserPanel.qml` ne passe toujours pas `preferences` (amendement 4) → tâche suivante qui le touche ; restes PC : `captures.ps1 -Scenario navigateur-objets`, banc joint (`cache.refreshes` du scénario `court`), MSVC |
 | L6-T9 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T9`, base b36efff | V6 ; `implementeur-tdd` |
+| L6-C5 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C5`, base fda7a9f | tête rouge 205/207 après les merges de L6-T6 et L6-T8, verts chacun sur leur base ; `concepteur-critique` |
 
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
