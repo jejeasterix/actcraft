@@ -80,7 +80,7 @@ Window {
         documentController: appDocument
         view: pageArea.view
         // Amendement 5 (L4-T19) : aucun rendu de miniature panneau des navigateurs caché.
-        active: browserPanel.visible
+        active: browserPanel.visible && browserPanel.current === "pages"
     }
     Pages {
         id: appPages
@@ -245,6 +245,7 @@ Window {
         commands: appCommands
         documentController: appDocument
         view: pageArea.view
+        notesVisible: browserPanel.hasNotes
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -278,6 +279,8 @@ Window {
             pages: appPages
             documentController: appDocument
             commands: appCommands
+            tools: appTools
+            view: pageArea.view
             onPopupOpened: root.popupOpened()
             onPopupClosed: root.popupClosed()
         }
@@ -323,13 +326,25 @@ Window {
             tools: appTools
         }
 
-        ToolPalette {
-            id: toolPalette
+        // Lot 6 : cadre de la palette (L6-T7), ancré à droite comme avant.
+        PaletteFrame {
+            id: paletteFrame
             Layout.fillHeight: true
+            implicitHeight: 0 // la hauteur vient de la ligne, pas du contenu (sinon boucle de mise en page)
             Layout.preferredWidth: Theme.largeurPalette
             commands: appCommands
-            view: pageArea.view
+            documentController: appDocument
             tools: appTools
+            view: pageArea.view
+
+            ToolPalette {
+                id: toolPalette
+                anchors.fill: parent
+                commands: appCommands
+                view: pageArea.view
+                tools: appTools
+                documentController: appDocument
+            }
         }
     }
 
@@ -498,6 +513,92 @@ Window {
         }
     }
 
+    // Lot 6 : emplacements de la coquille, instanciés une fois, masqués (talons remplis par leurs tâches).
+    ExtendedColors {
+        id: extendedColors
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+    ColorLoupe {
+        id: colorLoupe
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+    LabelTip {
+        id: labelTip
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+    Dashboard {
+        id: dashboard
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+    ProfileChooser {
+        id: profileChooser
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+    ProfileEditor {
+        id: profileEditor
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+    ClassroomLockDialog {
+        id: classroomLockDialog
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+    SpellingDialog {
+        id: spellingDialog
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+    HelpViewer {
+        id: helpViewer
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+    SaveSummaryDialog {
+        id: saveSummaryDialog
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+    SettingsPage {
+        id: settingsPage
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+    LaunchersPage {
+        id: launchersPage
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+    }
+
     // Lot 7 : surcouches plein cadre et panneaux flottants (rideau, spot, message défilant, dés, horloge…).
     Item {
         id: presentationLayer
@@ -610,6 +711,8 @@ Window {
                           "text.spacing-down", "text.indent", "text.outdent", "text.bullets", "text.select-all",
                           "text.symbol"])
             appCommands.setHandler(id, function (arg) { appText.apply(id, arg) })
+        // Talon L6 : rempli par L6-T22.
+        appCommands.setHandler("mode.design", function () { console.info("mode.design") })
         appCommands.setHandler("view.browsers", function () { browserPanel.visible = !browserPanel.visible })
         appCommands.setHandler("browsers.dock-left", function () { browserPanel.side = "left" })
         appCommands.setHandler("browsers.dock-right", function () { browserPanel.side = "right" })

@@ -8,6 +8,7 @@ Grid {
     objectName: "colorSwatches"
     required property Commands commands
     required property PageView view
+    property var profile: null
     columns: 4
     spacing: Theme.espace1
 

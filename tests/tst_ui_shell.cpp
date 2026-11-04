@@ -1,5 +1,6 @@
 #include "startup.h"
 
+#include <actcraft/actions/commandregistry.h>
 #include <actcraft/core/document.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
@@ -11,6 +12,10 @@
 #include <actcraft/ui/toolhost.h>
 
 #include <QImage>
+#include <QJSValue>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
@@ -1297,6 +1302,71 @@ private slots:
         QVERIFY(run(s, QStringLiteral("edit.delete")));
         QTRY_VERIFY(!editing->selectionIsAnnotation());
         QVERIFY(!ids().contains(toShape));
+    }
+
+    // Lot 6 (L6-T2) : les emplacements de la coquille existent et reçoivent les commandes par propriété.
+    void lot6ShellPlaceholders()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name :
+             {"paletteFrame", "shortcutBar", "extendedColors", "colorLoupe", "objectBrowser",
+              "propertyBrowser", "notesBrowser", "resourceBrowser", "labelTip", "dashboard", "profileChooser",
+              "profileEditor", "classroomLockDialog", "spellingDialog", "helpViewer", "saveSummaryDialog",
+              "notesIcon"})
+            QVERIFY2(s.window->findChild<QObject*>(QString::fromLatin1(name)), name);
+        // Amendement 4 (C2) : chaque emplacement reçoit les commandes par propriété, jamais par l'id de
+        // Main.qml.
+        for (const char* name :
+             {"paletteFrame", "shortcutBar", "objectBrowser", "propertyBrowser", "notesBrowser",
+              "resourceBrowser", "labelTip", "dashboard", "profileEditor", "classroomLockDialog",
+              "spellingDialog", "helpViewer", "saveSummaryDialog"}) {
+            QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
+            QVERIFY2(o && o->property("commands").value<QObject*>() != nullptr, name);
+        }
+    }
+
+    void everyLot6CommandHasAHandler()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands);
+        const QByteArray json = actcraft::actions::defaultCommandsJson();
+        const QJsonArray all =
+            QJsonDocument::fromJson(json).object().value(QStringLiteral("commands")).toArray();
+        bool inLot6 = false;
+        for (const QJsonValue& v : all) {
+            const QString id = v.toObject().value(QStringLiteral("id")).toString();
+            if (id == QStringLiteral("palette.dock-left"))
+                inLot6 = true;
+            // Talon L6 : rempli par L6-T5.
+            if (id == QStringLiteral("profile.activate"))
+                continue;
+            if (inLot6 && commands->isAvailable(id))
+                QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
+        }
+        QVERIFY(inLot6);
+    }
+
+    void browserTabsInOrder()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* panel = s.window->findChild<QObject*>(QStringLiteral("browserPanel"));
+        QVERIFY(panel);
+        QVariant navigators = panel->property("navigators");
+        if (navigators.metaType() == QMetaType::fromType<QJSValue>())
+            navigators = navigators.value<QJSValue>().toVariant();
+        QStringList ids;
+        for (const QVariant& n : navigators.toList())
+            ids << n.toMap().value(QStringLiteral("id")).toString();
+        QCOMPARE(ids, (QStringList{"pages", "ressources", "objets", "notes", "proprietes", "actions"}));
+        QCOMPARE(panel->property("current").toString(), QStringLiteral("pages"));
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands && commands->trigger(QStringLiteral("browser.objects")));
+        QCOMPARE(panel->property("current").toString(), QStringLiteral("objets"));
+        QVERIFY(panel->property("visible").toBool());
     }
 
     // Aucun avertissement QML (propriété requise absente, type inconnu, liaison nulle...), au chargement
