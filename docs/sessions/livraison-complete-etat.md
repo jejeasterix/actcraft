@@ -233,6 +233,8 @@ Questions à Jérôme (lot 6) : aucune ouverte (H6-6 accordée le 2026-10-18 ; H
 Reprise après la relève (2026-11-04, ouvrière du pilote du Mac, handoff `1c566e9c`) : chantier réenregistré ; L6-C3 en rejeu ; L6-T14 essai 3 relancé (`concepteur-critique`) ; L6-T7 relancée depuis c8146ed ; L6-T11 en revue immédiate, rejeu après L6-C3.
 Tâche : L6-C4 — correctif de la revue de L6-T14 — depuis 2026-11-04
 Tâche : L6-T7 — palette, reprise — depuis 2026-11-04
+Tâche : L6-T8 — couleurs étendues — depuis 2026-11-04
+Tâche : L6-T16 — navigateur de notes — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -249,6 +251,8 @@ Tâche : L6-T7 — palette, reprise — depuis 2026-11-04
 | L6-C3 | terminée | 1/3 | 5f4a023 (rouge), 8ac0a5c → merge 05204a8 | rejoué par l'orchestrateur après la relève : 207/207 (`ninja: no work to do`, construction de l'agent ; avertissements à relire à la prochaine suite de la tête) ; diff des tests vérifié (seuls `loaders >= 5` et un `initTestCase` déplacé partent) ; `tst_ui_shapes`, `tst_ui_tools`, `tst_ui_lot5tools` isolés, liste `pending` vidée |
 | L6-T11 | terminée | 2/3 | essai 2 : af1b056 (rouge), 81c496f, fusion de la tête 16d7d69 → merge ed8500f | rejoué par l'orchestrateur sur la branche fusionnée avec la tête : 207/207, 0 avertissement (312 étapes recompilées), `tst_core_propertyedits` Passed ; diff des tests : seul le talon part ; `m_old` = `variant<PropertyValue, Transform>` par objet, `undo` ne rétablit que la propriété ; angle en miroir corrigé ; revue de l'essai 2 : mergeable, 2 mineurs → correctif à venir (pas refusé en partie fusionné : Refaire ne rend pas l'état d'avant Annuler ; aucun test des épaisseurs refusées -1, NaN, 0) ; essai 1 : revue mergeable après correctifs (2 majeurs : `undo` remettait l'objet entier, angle 180 après miroir) ; hors périmètre : `rotationDegrees` (`alignment.cpp:115`) même défaut de miroir, `rotationAbout`/`scalingAbout` en double dans `alignment.cpp` → simplification du lot ; brief de L6-T12 : `closeMerge()` après chaque modification ponctuelle ; carnets `side-session-notes/.../relecture-L6-T11*.md` |
 | L6-T1 | terminée | 1/3 | e48fc01 (rouge), 25e14fe → merge 743a351 | rejoué par l'orchestrateur après reconstruction à neuf : 207/207 (164 + 43), 0 avertissement ; deux assertions de tests existants ajustées aux ajouts prévus (`toolsMenuFollowsF750`, `defaultCommandsFileDeclaresLotOne` + 45, `tst_actions_registry.cpp` hors de la liste de fichiers) ; talons des captures en `Passed` (étape `waitReady`), unitaires en `SKIP` ; `profile.choose`, `mode.design` dans le groupe de palette `commandes`, `profile.edit` en fin du menu Outils (aucune section « ligne supérieure ») ; QML du lot enregistrés par `if(EXISTS …)` : reconfigurer après L6-T2 |
+| L6-T8 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T8`, base 955e4a4 | V5 avancée (dépendances T2, T5 faites) ; `implementeur-tdd` |
+| L6-T16 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T16`, base 955e4a4 | V6 avancée (dépendance T2 faite) ; `implementeur-tdd` |
 
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
