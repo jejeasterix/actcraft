@@ -9,7 +9,9 @@
 #include <actcraft/ui/fileexchange.h>
 
 #include <QDesktopServices>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QImage>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
@@ -140,6 +142,24 @@ private slots:
         QVERIFY(s.run(QStringLiteral("export.page-image"), inked));
         QTRY_VERIFY_WITH_TIMEOUT(done.count() == 2, 15000);
         QVERIFY(hasRed(QImage(inked)));
+    }
+
+    // Un chemin natif (barres obliques inverses, lettre de lecteur) donné en texte par une commande doit
+    // aboutir au même fichier que le chemin à barres obliques.
+    void exportPageImageWithNativeSeparators()
+    {
+        Shell s;
+        QVERIFY(s.start());
+        s.threePages();
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString path = dir.filePath(QStringLiteral("natif.png"));
+        QSignalSpy done(s.exchange, &ui::FileExchange::finished);
+        QSignalSpy failed(s.exchange, &ui::FileExchange::failed);
+        QVERIFY(s.run(QStringLiteral("export.page-image"), QDir::toNativeSeparators(path)));
+        QTRY_VERIFY_WITH_TIMEOUT(done.count() + failed.count() == 1, 15000);
+        QCOMPARE(failed.count(), 0);
+        QVERIFY(QFileInfo::exists(path));
     }
 
     void importPdfOpensATab()
