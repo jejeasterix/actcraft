@@ -20,8 +20,10 @@ Item {
     readonly property int delay: 400
     property point pointer: Qt.point(0, 0)
 
-    anchors.fill: parent
-    z: 900
+    // Sans surface propre : la zone de survol et la bulle vivent dans la vue de page (un élément plein fenêtre au
+    // dessus de la page prenait le survol des autres HoverHandler de PageArea).
+    width: 0
+    height: 0
 
     LabelTips {
         id: tips
@@ -29,14 +31,30 @@ Item {
         tolerance: root.view && root.view.zoom > 0 ? 6 / root.view.zoom : 6
     }
 
-    // Point du pointeur (coordonnées de cet élément) → coordonnées de page, ou null hors de la vue.
+    // Zone de survol : la zone de PageArea, parente de la vue. Un survol posé sur un élément voisin, au dessus
+    // ou au dessous d'elle, prenait le survol des autres (ToolCursor, indicateur de largeur) ou ne recevait rien :
+    // le gestionnaire est donc créé sur ce parent, comme ceux de PageArea.
+    readonly property Item area: root.view ? root.view.parent : null
+    property HoverHandler handler: null
+
+    function attach() {
+        if (root.handler) {
+            root.handler.destroy()
+            root.handler = null
+        }
+        if (root.area)
+            root.handler = hoverComponent.createObject(root.area)
+    }
+    onAreaChanged: attach()
+    Component.onCompleted: attach()
+
+    // Point du pointeur (coordonnées de la zone) → coordonnées de page, ou null hors de la vue.
     function pagePointAt(p) {
-        if (!root.view)
+        if (!root.view || !root.area)
             return null
-        const local = root.view.mapFromItem(root, p.x, p.y)
-        if (!root.view.contains(local))
+        if (!root.view.contains(root.view.mapFromItem(root.area, p.x, p.y)))
             return null
-        const scene = root.mapToItem(null, p.x, p.y)
+        const scene = root.area.mapToItem(null, p.x, p.y)
         return root.view.sceneToPage(Qt.point(scene.x, scene.y))
     }
 
@@ -48,37 +66,42 @@ Item {
             tips.hoverAt(page)
     }
 
+    function moved(next) {
+        // Un événement qui ne bouge pas le pointeur (rafraîchissement de la scène) ne ferme pas la bulle.
+        if (next.x === root.pointer.x && next.y === root.pointer.y)
+            return
+        root.pointer = next
+        tips.leave()
+        dwell.restart()
+    }
+
+    function pointerLeft() {
+        dwell.stop()
+        tips.leave()
+    }
+
     Timer {
         id: dwell
         interval: root.delay
         onTriggered: root.reveal()
     }
 
-    HoverHandler {
-        id: hover
-        onPointChanged: {
-            const next = hover.point.position
-            // Un événement qui ne bouge pas le pointeur (rafraîchissement de la scène) ne ferme pas la bulle.
-            if (next.x === root.pointer.x && next.y === root.pointer.y)
-                return
-            root.pointer = next
-            tips.leave()
-            if (hover.hovered)
-                dwell.restart()
-        }
-        onHoveredChanged: {
-            if (!hover.hovered) {
-                dwell.stop()
-                tips.leave()
-            }
+    Component {
+        id: hoverComponent
+        HoverHandler {
+            onPointChanged: root.moved(point.position)
+            onHoveredChanged: if (!hovered) root.pointerLeft()
         }
     }
 
+    // Bulle : un élément de la zone, sans gestionnaire, au dessus de la page (hors du cache).
     Rectangle {
         id: bubble
-        visible: tips.visible
-        x: Math.max(0, Math.min(root.width - width, root.pointer.x + 14))
-        y: Math.max(0, Math.min(root.height - height, root.pointer.y + 22))
+        parent: root.area
+        z: 900
+        visible: tips.visible && root.area !== null
+        x: root.area ? Math.max(0, Math.min(root.area.width - width, root.pointer.x + 14)) : 0
+        y: root.area ? Math.max(0, Math.min(root.area.height - height, root.pointer.y + 22)) : 0
         width: tipText.implicitWidth + 16
         height: tipText.implicitHeight + 10
         radius: 4
