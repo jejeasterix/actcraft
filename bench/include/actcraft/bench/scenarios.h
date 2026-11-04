@@ -40,6 +40,10 @@ struct PlannedInput
     bool measured = false; // compte dans la latence d'encre (appui et déplacements du tracé)
     QString command;       // InputKind::Command : commande nommée appelée par runCommand
     QVariant argument;     // son argument éventuel
+    // L7-T38 : commande de réglage (choix d'effet d'« effets-page » : écriture QSettings synchrone). Jouée
+    // et relevée (input_ns), elle n'entre pas dans le verdict : ni entrée classée, ni fenêtre de changement
+    // de page, ses images restent au repos.
+    bool setting = false;
 };
 
 enum class ScenarioSet

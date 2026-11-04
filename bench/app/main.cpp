@@ -46,6 +46,8 @@ int main(int argc, char* argv[])
     }
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir.path());
+    // Relevé avant toute mesure, sans rien écrire (tst_bench_reglages_isoles, sur une sortie refusée).
+    std::fprintf(stderr, "REGLAGES %s\n", qPrintable(QSettings().fileName()));
     const QStringList args = QGuiApplication::arguments();
 
     RenderBackend backend = RenderBackend::Auto;

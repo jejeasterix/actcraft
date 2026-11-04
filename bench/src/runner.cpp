@@ -841,8 +841,21 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     s.frames.refreshPeriodNs = refreshPeriodNs; // période de l'écran ; ≤ 0 → invalid-refresh-period
     // Commandes : leurs changements (commande → première image après le prêt) comptent actifs.
     FrameSeries classified = s.frames;
+    // L7-T38 : une commande de réglage (PlannedInput::setting) reste relevée (input_ns) mais n'entre pas
+    // dans le verdict : ni entrée classée, ni fenêtre (-1 : « jamais jouée » pour pageChangeWindows).
+    std::vector<std::int64_t> judgedRun = commandRun;
+    for (std::size_t i = 0; i < commands.size(); ++i) {
+        if (commands[i].setting && commandRun[i] >= 0) {
+            judgedRun[i] = -1;
+            const auto at =
+                std::find(classified.inputNs.begin(), classified.inputNs.end(), commandPlanned[i]);
+            if (at != classified.inputNs.end()) {
+                classified.inputNs.erase(at);
+            }
+        }
+    }
     const std::vector<std::int64_t> marks = pageChangeMarks(
-        s.frames.swapNs, pageChangeWindows(commandRun, commandAwaits, shownNs, commandPlaysEffect,
+        s.frames.swapNs, pageChangeWindows(judgedRun, commandAwaits, shownNs, commandPlaysEffect,
                                            effects ? effects->idleNs() : std::vector<std::int64_t>{}));
     classified.inputNs.insert(classified.inputNs.end(), marks.begin(), marks.end());
     std::sort(classified.inputNs.begin(), classified.inputNs.end());
@@ -1113,7 +1126,9 @@ BenchResult Runner::run(QQuickWindow* window)
     result.refresh.measuredMedianNs = warmUp(2000 / durationDivisor(m_options.scenarioSet));
     const std::int64_t refreshPeriodNs = result.refresh.referenceNs;
 
-    for (const ScenarioPlan& plan : allScenarios(m_options.scenarioSet)) {
+    const std::vector<ScenarioPlan> plans =
+        m_options.plans.empty() ? allScenarios(m_options.scenarioSet) : m_options.plans;
+    for (const ScenarioPlan& plan : plans) {
         if (plan.generatedPages > 0) {
             // Scénario « page » (L2-T23) : document de pages générées (pages paires peintes), page 1 prête.
             document->loadGeneratedPages(plan.generatedPages, true);

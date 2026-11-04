@@ -689,6 +689,7 @@ ScenarioPlan effectsScenario(ScenarioSet set)
         choose.kind = InputKind::Command;
         choose.command = QStringLiteral("view.page-effect");
         choose.argument = effect.id;
+        choose.setting = true;
         plan.inputs.push_back(choose);
         PlannedInput turn;
         turn.offsetNs = at + kEffectPageDelayNs;
@@ -703,6 +704,7 @@ ScenarioPlan effectsScenario(ScenarioSet set)
     reset.kind = InputKind::Command;
     reset.command = QStringLiteral("view.page-effect");
     reset.argument = QStringLiteral("none");
+    reset.setting = true;
     plan.inputs.push_back(reset);
     return plan;
 }
