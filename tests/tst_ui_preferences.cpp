@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
+#include <QFileInfo>
 #include <QPointer>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -18,6 +19,7 @@
 #include <QtTest>
 
 #include <memory>
+#include <stdexcept>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
@@ -210,11 +212,153 @@ private slots:
         ui::Commands commands;
         ui::Preferences prefs(ini(), nullptr);
         auto c = controller(&prefs, &commands);
+        QSignalSpy layout(&commands, &ui::Commands::layoutChanged);
         QVERIFY(commands.trigger(QStringLiteral("profile.activate"), QStringLiteral("en-classe")));
         QCOMPARE(c->currentId(), QStringLiteral("en-classe"));
+        // Rechargement différé pendant le gestionnaire, joué une fois au retour de trigger().
+        QCOMPARE(layout.count(), 1);
         commands.reload();
         QVERIFY(commands.trigger(QStringLiteral("profile.activate"), QStringLiteral("calcul-geometrie")));
         QCOMPARE(c->currentId(), QStringLiteral("calcul-geometrie"));
+    }
+
+    // reload() reconstruit le registre : l'état actif posé par l'interface (Annuler sans historique) survit à
+    // une activation, par la commande (rechargement différé) comme par l'appel direct.
+    void activateKeepsCommandState()
+    {
+        ui::Commands commands;
+        ui::Preferences prefs(ini(), nullptr);
+        auto c = controller(&prefs, &commands);
+        const QString undo = QStringLiteral("edit.undo");
+        commands.setEnabled(undo, false); // document sans historique (Main.qml, syncEditCommands)
+        QVERIFY(commands.trigger(QStringLiteral("profile.activate"), QStringLiteral("en-classe")));
+        QCOMPARE(c->currentId(), QStringLiteral("en-classe"));
+        QVERIFY(!commands.isEnabled(undo));
+        QVERIFY(c->activate(QStringLiteral("calcul-geometrie")));
+        QVERIFY(!commands.isEnabled(undo));
+    }
+
+    // Verrou de classe (L6-T3) gardé par reload(), et l'état propre recopié, pas l'état vu à travers le
+    // verrou : recopier isEnabled() éteindrait pour de bon une commande verrouillable rechargée sous verrou.
+    void reloadKeepsTheLock()
+    {
+        ui::Commands commands;
+        const QString lockable = QStringLiteral("file.new");
+        const QString undo = QStringLiteral("edit.undo");
+        commands.setEnabled(undo, false);
+        commands.setLocked(true);
+        QVERIFY(!commands.isEnabled(lockable));
+        commands.reload();
+        QVERIFY(commands.isLocked());
+        QVERIFY(!commands.isEnabled(lockable));
+        commands.setLocked(false);
+        QVERIFY(commands.isEnabled(lockable));
+        QVERIFY(!commands.isEnabled(undo));
+    }
+
+    // Un gestionnaire qui lève une exception rend la profondeur : reload() n'est plus différé à jamais.
+    void throwingHandlerReleasesTheDepth()
+    {
+        ui::Commands commands;
+        commands.setNativeHandler(QStringLiteral("profile.activate"),
+                                  [](const QVariant&) { throw std::runtime_error("essai"); });
+        bool thrown = false;
+        try {
+            commands.trigger(QStringLiteral("profile.activate"), QStringLiteral("en-classe"));
+        } catch (const std::runtime_error&) {
+            thrown = true;
+        }
+        QVERIFY(thrown);
+        QSignalSpy layout(&commands, &ui::Commands::layoutChanged);
+        commands.reload();
+        QCOMPARE(layout.count(), 1); // rechargé tout de suite
+    }
+
+    // Écriture refusée : la modification reste en attente et part à l'enregistrement suivant.
+    void failedSaveIsRetried()
+    {
+        QFile blocker(profileRoot()); // un fichier à la place du dossier des profils : écriture impossible
+        QVERIFY(blocker.open(QIODevice::WriteOnly));
+        blocker.close();
+        ui::Commands commands;
+        ui::Preferences prefs(ini(), nullptr);
+        auto c = controller(&prefs, &commands);
+        const int before = c->saveCount();
+        QSignalSpy failed(c.get(), &ui::ProfileController::failed);
+        const QString dock = c->paletteDock() == QStringLiteral("left") ? QStringLiteral("right")
+                                                                        : QStringLiteral("left");
+        c->setPaletteDock(dock);
+        c->saveNow();
+        QCOMPARE(failed.count(), 1);
+        QCOMPARE(c->saveCount(), before);
+        QVERIFY(QFile::remove(profileRoot()));
+        c->saveNow();
+        QCOMPARE(c->saveCount(), before + 1);
+        QVERIFY(c->store().hasUserCopy(c->currentId()));
+    }
+
+    // Activer pendant un contact n'écrit rien : le profil quitté part au relâché, et le reprendre avant
+    // rend sa modification en attente (pas la version du disque).
+    void activateDuringContactWritesAtRelease()
+    {
+        ui::Commands commands;
+        ui::Preferences prefs(ini(), nullptr);
+        auto c = controller(&prefs, &commands);
+        const QString left = c->currentId();
+        const QString other = QStringLiteral("en-classe");
+        QVERIFY(left != other);
+        const int before = c->saveCount();
+        const QString dock = c->paletteDock() == QStringLiteral("left") ? QStringLiteral("right")
+                                                                        : QStringLiteral("left");
+        c->setContactActive(true);
+        c->setPaletteDock(dock);
+        QVERIFY(c->activate(other));
+        QCOMPARE(c->saveCount(), before);
+        QVERIFY(!c->store().hasUserCopy(left));
+        QVERIFY(c->activate(left));
+        QCOMPARE(c->paletteDock(), dock);
+        QVERIFY(c->activate(other));
+        QTest::qWait(ui::ProfileController::kSaveDelayMs * 2);
+        QCOMPARE(c->saveCount(), before);
+        c->setContactActive(false);
+        QTRY_COMPARE_WITH_TIMEOUT(c->saveCount(), before + 1, 2000);
+        QVERIFY(c->store().hasUserCopy(left));
+        QVERIFY(c->activate(left));
+        QCOMPARE(c->paletteDock(), dock);
+    }
+
+    // Garde-fou (N1) : tout test qui charge la fenêtre principale isole les réglages (INI dans un dossier
+    // jetable) et les profils (profileRoot). Main.qml crée Preferences {} (QSettings()) et active un profil au
+    // démarrage : sans isolation, chaque passage écrit le profil courant dans les réglages du poste.
+    void mainWindowTestsAreIsolated()
+    {
+        const QDir tests = QFileInfo(QString::fromUtf8(__FILE__)).absoluteDir();
+        QVERIFY2(tests.exists(QStringLiteral("tst_ui_preferences.cpp")), qPrintable(tests.path()));
+        // Relevés hors du périmètre de L6-T5 (2026-11-04) : à isoler, puis à retirer de cette liste.
+        const QStringList pending{QStringLiteral("tst_ui_lot5tools.cpp"), QStringLiteral("tst_ui_shapes.cpp"),
+                                  QStringLiteral("tst_ui_tools.cpp")};
+        const QRegularExpression loadsMain(
+            QStringLiteral(R"(loadFromModule\("ActCraft\.Ui",\s*"Main"\)|loadMainWindow\()"));
+        int loaders = 0;
+        QStringList missing;
+        const QFileInfoList files = tests.entryInfoList({QStringLiteral("*.cpp")}, QDir::Files);
+        for (const QFileInfo& file : files) {
+            QFile f(file.absoluteFilePath());
+            QVERIFY2(f.open(QIODevice::ReadOnly), qPrintable(file.fileName()));
+            const QString source = QString::fromUtf8(f.readAll());
+            if (!loadsMain.match(source).hasMatch() || pending.contains(file.fileName())) {
+                continue;
+            }
+            ++loaders;
+            for (const char* needed : {"QSettings::setDefaultFormat(QSettings::IniFormat)",
+                                       "QSettings::setPath(QSettings::IniFormat", "profileRoot"}) {
+                if (!source.contains(QLatin1String(needed))) {
+                    missing << file.fileName() + QStringLiteral(" : ") + QLatin1String(needed);
+                }
+            }
+        }
+        QVERIFY(loaders >= 5);
+        QVERIFY2(missing.isEmpty(), qPrintable(missing.join(QLatin1Char('\n'))));
     }
 
     void pathLikeIdRefused()
