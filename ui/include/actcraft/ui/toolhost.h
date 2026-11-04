@@ -64,6 +64,9 @@ class ToolHost : public QObject
     Q_PROPERTY(int connectorStyle READ connectorStyle NOTIFY settingsChanged)
     Q_PROPERTY(int connectorCapA READ connectorCapA NOTIFY settingsChanged)
     Q_PROPERTY(int connectorCapB READ connectorCapB NOTIFY settingsChanged)
+    // Mode conception (F-560, L6-T22) : rendus aux outils par leur contexte ; Main.qml les lie à DesignMode.
+    Q_PROPERTY(bool lockIgnored READ lockIgnored WRITE setLockIgnored NOTIFY designFlagsChanged)
+    Q_PROPERTY(bool snapDisabled READ snapDisabled WRITE setSnapDisabled NOTIFY designFlagsChanged)
 
 public:
     explicit ToolHost(QObject* parent = nullptr);
@@ -119,6 +122,10 @@ public:
     // branchés.
     tools::Tool* activeTool(input::UserId user = input::kFirstUser) const;
     tools::UserState& user(input::UserId id = input::kFirstUser); // un utilisateur jusqu'au lot 11 (D-S10)
+    bool lockIgnored() const noexcept;
+    void setLockIgnored(bool ignored); // republie la sélection (poignées d'un verrouillé)
+    bool snapDisabled() const noexcept;
+    void setSnapDisabled(bool disabled);
 
     // Lot 4 (outil des formes), L4-T11.
     QString shapePreset() const;
@@ -142,6 +149,7 @@ signals:
     void trashAreaChanged();
     void trashHoverChanged();
     void settingsFileChanged();
+    void designFlagsChanged();
 
 private:
     // Adaptateurs et outils ; nullptr tant que contrôleur, vue (et son encre) et couche ne sont pas branchés.
@@ -183,6 +191,8 @@ private:
     QString m_settingsFile;
     std::unique_ptr<tools::UserState> m_user;
     mutable std::unique_ptr<ToolAdapters> m_adapters;
+    bool m_lockIgnored = false;  // mode conception, recopié dans le contexte des adaptateurs
+    bool m_snapDisabled = false; // idem
     QString m_lastInk = QStringLiteral("pen"); // dernier outil d'encre (L3-T0)
     QVariantMap m_selectionFrame;
     bool m_handlesVisible = false;

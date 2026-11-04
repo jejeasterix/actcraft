@@ -19,8 +19,9 @@ inline constexpr double kEnlargeStep = 1.1;        // F-523
 
 // Cadre (emprise réunie ; un seul objet : son cadre transformé), 8 poignées (ordre de HandleKind), barre
 // au-dessus du cadre, replacée sous lui si elle sortirait du haut de la page (F-521). Coordonnées de page.
+// `lockIgnored` (mode conception, F-560) : un objet verrouillé garde poignées, rotation et points.
 SelectionView layoutSelection(const core::Page& page, const std::vector<core::ObjectId>& ids, double zoom,
-                              const QStringList& barCommands);
+                              const QStringList& barCommands, bool lockIgnored = false);
 
 enum class SelectionHitKind : std::uint8_t
 {

@@ -29,6 +29,10 @@ class FixedPageItem : public QQuickItem, public core::PageCache
     Q_PROPERTY(bool ready READ isReady NOTIFY readyChanged)
     Q_PROPERTY(int objectCount READ objectCount NOTIFY objectCountChanged)
     Q_PROPERTY(int pendingCount READ pendingCount NOTIFY pendingChanged)
+    // Mode conception (F-560, L6-T22) : objets masqués dessinés translucides par cette vue seulement (les
+    // miniatures et l'export n'en savent rien) ; chaque bascule reconstruit la scène une fois.
+    Q_PROPERTY(bool showHiddenTranslucent READ showHiddenTranslucent WRITE setShowHiddenTranslucent NOTIFY
+                   showHiddenTranslucentChanged)
 
 public:
     explicit FixedPageItem(QQuickItem* parent = nullptr);
@@ -103,6 +107,8 @@ public:
     // Crochet de test : le moteur peint, le fond peint et la grille passent par des textures (chemin RHI)
     // même en rendu logiciel ; reconstruit la scène.
     void setForceRasterized(bool on);
+    bool showHiddenTranslucent() const noexcept; // lu aussi par les couches d'attente et soulevée
+    void setShowHiddenTranslucent(bool on);
     // Crochet de test : nœuds rastérisés créés (construction et changements d'échelle).
     int rasterizationCount() const noexcept;
 
@@ -113,6 +119,7 @@ signals:
     void contentChanged();
     void pendingChanged();
     void rasterScaleChanged(); // L4-T7 : lu par GridOverlayItem
+    void showHiddenTranslucentChanged();
 
 protected:
     QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData* data) override;
@@ -170,6 +177,7 @@ private:
     double m_rasterScale = 1;
     std::atomic<int> m_rebuildCount{0};
     bool m_forceRasterized = false;
+    bool m_showHiddenTranslucent = false;
     bool m_rescale = false;                // nouvelle échelle : refaire les nœuds rastérisés seulement
     std::vector<RasterSlot> m_rasterSlots; // fil de rendu
     std::atomic<int> m_rasterNodes{0};

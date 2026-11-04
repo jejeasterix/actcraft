@@ -380,6 +380,23 @@ void FixedPageItem::setForceRasterized(bool on)
     update();
 }
 
+bool FixedPageItem::showHiddenTranslucent() const noexcept
+{
+    return m_showHiddenTranslucent;
+}
+
+void FixedPageItem::setShowHiddenTranslucent(bool on)
+{
+    if (m_showHiddenTranslucent == on) {
+        return;
+    }
+    m_showHiddenTranslucent = on;
+    m_rebuild = true; // une reconstruction par bascule, et un redessin du cache de la vue (contentChanged)
+    update();
+    emit showHiddenTranslucentChanged();
+    emit contentChanged();
+}
+
 int FixedPageItem::rasterizationCount() const noexcept
 {
     return m_rasterizationCount.load();
@@ -432,7 +449,7 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     // logiciel de Qt 6.12 peint les nœuds ajoutés sans la transformation de l'élément (voir InkItem).
     QSGNode* root = old ? old : (software ? new QSGTransformNode : new QSGNode);
     const NodeContexts contexts =
-        nodeContexts(window(), software, &m_images, m_rasterScale, m_forceRasterized);
+        nodeContexts(window(), software, &m_images, m_rasterScale, m_forceRasterized, m_showHiddenTranslucent);
     const RenderContext& painted = contexts.painted;
     const bool rasterized = !painted.software;
     const core::Page& shown = page();
