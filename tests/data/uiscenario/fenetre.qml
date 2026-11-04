@@ -90,4 +90,32 @@ Window {
             property real py: survol.point.position.y
         }
     }
+    // L5-C28 : cibles du clic nommé {"tap": "cible"}. « cible » compte ses clics ; « cibleCachee » est
+    // invisible ; « cibleDecalee » est posée ailleurs pour qu'un clic aux coordonnées de « cible » ne la touche pas.
+    Rectangle {
+        objectName: "cible"
+        property int clics: 0
+        x: 620
+        y: 30
+        width: 60
+        height: 40
+        color: "#a33"
+        MouseArea {
+            anchors.fill: parent
+            onClicked: parent.clics += 1
+        }
+    }
+    Rectangle {
+        objectName: "cibleCachee"
+        property int clics: 0
+        visible: false
+        x: 620
+        y: 130
+        width: 60
+        height: 40
+        MouseArea {
+            anchors.fill: parent
+            onClicked: parent.clics += 1
+        }
+    }
 }

@@ -1585,6 +1585,8 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return doubleClick(step, report);
     case UiStepKind::TypeText:
         return typeText(step, report);
+    case UiStepKind::Tap:
+        return false;
     }
     return false;
 }

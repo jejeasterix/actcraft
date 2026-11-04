@@ -801,6 +801,43 @@ private slots:
         QCOMPARE(spy.presses[1], Qt::KeyboardModifiers(Qt::NoModifier));
     }
 
+    // L5-C28 : clic nommé. Le centre de l'élément est visé en repère fenêtre : la mise en page ne compte pas.
+    void tapStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"tap\": \"grayRadio\"}", s, error), qPrintable(error));
+        QVERIFY(s.steps[0].kind == UiStepKind::Tap);
+        QCOMPARE(s.steps[0].target, QStringLiteral("grayRadio"));
+        QVERIFY(!parseSteps("{\"tap\": \"\"}", s, error));
+        QVERIFY(!parseSteps("{\"tap\": 3}", s, error));
+    }
+
+    void tapStepClicksTheCenterOfTheNamedItem()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("tap", "[{\"waitReady\":true},{\"tap\":\"cible\"},{\"tap\":\"cible\"},"
+                                                "{\"expect\":\"cible.clics\",\"value\":2}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+    }
+
+    void tapStepOnUnknownOrHiddenItemFailsReadably()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        for (const char* name : {"absente", "cibleCachee"}) {
+            QStringList report;
+            const QByteArray steps = QByteArray("[{\"waitReady\":true},{\"tap\":\"") + name + "\"}]";
+            QVERIFY(!f.player->play(scenario("tap-ko", steps.constData()), f.out.path(), report));
+            QVERIFY2(report.last().startsWith(QStringLiteral("TAP %1 ECHEC").arg(QLatin1String(name))),
+                     qPrintable(report.last()));
+        }
+        QCOMPARE(f.window->findChild<QObject*>(QStringLiteral("cibleCachee"))->property("clics").toInt(), 0);
+    }
+
     void doubleClickStepParsed()
     {
         UiScenario s;
