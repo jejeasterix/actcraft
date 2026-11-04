@@ -467,6 +467,68 @@ private slots:
                  QStringList{QStringLiteral("nope.cmd")});
     }
 
+    void lot6EntriesDeclared()
+    {
+        CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        const QStringList ids = {
+            QStringLiteral("palette.dock-left"),
+            QStringLiteral("palette.dock-right"),
+            QStringLiteral("palette.dock-top"),
+            QStringLiteral("palette.dock-bottom"),
+            QStringLiteral("palette.float"),
+            QStringLiteral("palette.collapse"),
+            QStringLiteral("palette.collapse-full"),
+            QStringLiteral("palette.pin"),
+            QStringLiteral("palette.icon-size"),
+            QStringLiteral("color.more"),
+            QStringLiteral("color.pick"),
+            QStringLiteral("color.dialog"),
+            QStringLiteral("color.add"),
+            QStringLiteral("browser.objects"),
+            QStringLiteral("browser.properties"),
+            QStringLiteral("browser.notes"),
+            QStringLiteral("browser.resources"),
+            QStringLiteral("profile.choose"),
+            QStringLiteral("profile.activate"),
+            QStringLiteral("profile.edit"),
+            QStringLiteral("profile.save-as"),
+            QStringLiteral("profile.import"),
+            QStringLiteral("profile.export"),
+            QStringLiteral("profile.delete"),
+            QStringLiteral("profile.reset"),
+            QStringLiteral("mode.design"),
+            QStringLiteral("view.dashboard"),
+            QStringLiteral("file.recent-clear"),
+            QStringLiteral("resources.mine"),
+            QStringLiteral("resources.shared"),
+            QStringLiteral("resources.other"),
+            QStringLiteral("resources.insert"),
+            QStringLiteral("resources.add"),
+            QStringLiteral("resources.stamp"),
+            QStringLiteral("resources.new-folder"),
+            QStringLiteral("resources.rename"),
+            QStringLiteral("resources.delete"),
+            QStringLiteral("classroom.lock"),
+            QStringLiteral("classroom.password"),
+            QStringLiteral("spell.check"),
+            QStringLiteral("launcher.run"),
+            QStringLiteral("launcher.edit"),
+            QStringLiteral("help.contents"),
+            QStringLiteral("shortcutbar.insert"),
+            QStringLiteral("settings.language"),
+        };
+        QCOMPARE(ids.size(), 45);
+        for (const QString& id : ids) {
+            QVERIFY2(registry.find(id) != nullptr, qPrintable(id));
+        }
+        QCOMPARE(registry.find(QStringLiteral("help.contents"))->shortcut, QStringLiteral("F1"));
+        QVERIFY(registry.find(QStringLiteral("help.website"))->shortcut.isEmpty());
+        QCOMPARE(registry.find(QStringLiteral("launcher.edit"))->platforms, Platforms(Platform::Windows));
+        QVERIFY(registry.find(QStringLiteral("mode.design"))->checkable);
+    }
+
     void unknownCommandsAreListedOnce()
     {
         Layout layout;
