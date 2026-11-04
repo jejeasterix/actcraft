@@ -1,6 +1,5 @@
-#include <actcraft/core/notesedits.h>
-
 #include <actcraft/core/document.h>
+#include <actcraft/core/notesedits.h>
 
 #include <cstddef>
 #include <utility>

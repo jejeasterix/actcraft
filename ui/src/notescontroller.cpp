@@ -1,6 +1,5 @@
-#include <actcraft/ui/notescontroller.h>
-
 #include <actcraft/core/notesedits.h>
+#include <actcraft/ui/notescontroller.h>
 
 #include <QQuickTextDocument>
 #include <QTextCharFormat>
@@ -85,8 +84,8 @@ void NotesController::setHtml(const QString& html)
     }
     m_html = html;
     m_hasNotes = visibleText(html);
-    m_document->execute(std::make_unique<core::SetPageNotesCommand>(m_document->currentIndex(),
-                                                                    html.toStdString()));
+    m_document->execute(
+        std::make_unique<core::SetPageNotesCommand>(m_document->currentIndex(), html.toStdString()));
     emit htmlChanged();
 }
 

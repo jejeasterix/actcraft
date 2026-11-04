@@ -9,8 +9,6 @@
 #include <QString>
 #include <QtQml/qqmlregistration.h>
 
-
-
 namespace actcraft::ui {
 
 // Notes de la page affichée (F-830) : texte riche (HTML) lu dans la page courante et écrit par
@@ -20,7 +18,8 @@ class NotesController : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
-    Q_PROPERTY(actcraft::ui::DocumentController* document READ document WRITE setDocument NOTIFY wiringChanged)
+    Q_PROPERTY(
+        actcraft::ui::DocumentController* document READ document WRITE setDocument NOTIFY wiringChanged)
     Q_PROPERTY(actcraft::ui::Commands* commands READ commands WRITE setCommands NOTIFY wiringChanged)
     Q_PROPERTY(QString html READ html WRITE setHtml NOTIFY htmlChanged)
     Q_PROPERTY(bool hasNotes READ hasNotes NOTIFY htmlChanged)
