@@ -10,10 +10,11 @@ namespace actcraft::ui {
 
 class Preferences;
 
-// Mandataire réseau du poste (F-930, section Réseau ; Windows). Hôte, port et compte dans les préférences du poste
-// (`network/proxy-*`) ; mot de passe dans le trousseau (SecretStore) et nulle part ailleurs : ni QSettings, ni
-// journal, ni message. Appliqué par QNetworkProxy::setApplicationProxy à la construction (démarrage) et à chaque
-// changement ; sans hôte, aucun mandataire.
+// Mandataire réseau du poste (F-930, section Réseau ; Windows). Hôte, port et compte dans les préférences du
+// poste
+// (`network/proxy-*`) ; mot de passe dans le trousseau (SecretStore) et nulle part ailleurs : ni QSettings,
+// ni journal, ni message. Appliqué par QNetworkProxy::setApplicationProxy à la construction (démarrage) et à
+// chaque changement ; sans hôte, aucun mandataire.
 class NetworkSettings : public QObject
 {
     Q_OBJECT

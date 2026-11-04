@@ -150,7 +150,8 @@ void TstUiNetwork::proxyApplied()
         QCOMPARE(proxy.user(), QStringLiteral("eleve"));
     }
     // Gardés au poste, sous les clés du plan.
-    QCOMPARE(prefs.value(QString::fromLatin1(NetworkSettings::kHost)).toString(), QStringLiteral("proxy.test"));
+    QCOMPARE(prefs.value(QString::fromLatin1(NetworkSettings::kHost)).toString(),
+             QStringLiteral("proxy.test"));
     QCOMPARE(prefs.value(QString::fromLatin1(NetworkSettings::kPort)).toInt(), 3128);
     QCOMPARE(prefs.value(QString::fromLatin1(NetworkSettings::kUser)).toString(), QStringLiteral("eleve"));
 
@@ -166,8 +167,9 @@ void TstUiNetwork::proxyApplied()
     QCOMPARE(proxy.port(), quint16(3128));
 }
 
-// Le test qui distingue : le mot de passe ne suit pas le chemin de l'hôte, du port et du compte (QSettings), ni
-// quand le trousseau existe, ni quand il manque (hors Windows, où un repli vers QSettings serait la tentation).
+// Le test qui distingue : le mot de passe ne suit pas le chemin de l'hôte, du port et du compte (QSettings),
+// ni quand le trousseau existe, ni quand il manque (hors Windows, où un repli vers QSettings serait la
+// tentation).
 void TstUiNetwork::passwordNeverInSettings()
 {
     const QString secret = secretName();
@@ -198,7 +200,8 @@ void TstUiNetwork::passwordNeverInSettings()
     }
     qInstallMessageHandler(nullptr);
 
-    // Aucun fichier de réglages du dossier du test (préférences du test et QSettings par défaut) ne le contient.
+    // Aucun fichier de réglages du dossier du test (préférences du test et QSettings par défaut) ne le
+    // contient.
     QDirIterator files(m_dir->path(), QDir::Files | QDir::Hidden, QDirIterator::Subdirectories);
     int count = 0;
     while (files.hasNext()) {

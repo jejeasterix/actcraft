@@ -3,57 +3,121 @@
 #include "actcraft/ui/preferences.h"
 #include "actcraft/ui/secretstore.h"
 
+#include <QNetworkProxy>
+
 namespace actcraft::ui {
 
-// Talon rouge (L6-T28, étape 2) : rien n'est gardé, rien n'est appliqué.
+namespace {
 
-NetworkSettings::NetworkSettings(QObject* parent)
-    : QObject(parent)
-    , m_ownPreferences(std::make_unique<Preferences>())
-    , m_preferences(m_ownPreferences.get())
-    , m_secretName(QString::fromLatin1(kSecret))
+QString key(const char* name)
 {
+    return QString::fromLatin1(name);
 }
 
-NetworkSettings::NetworkSettings(Preferences* preferences, const QString& secretName, QObject* parent)
-    : QObject(parent)
-    , m_preferences(preferences)
-    , m_secretName(secretName)
+// Une valeur vide efface la clé : « aucun mandataire » ne laisse rien au poste.
+void store(Preferences& preferences, const char* name, const QString& value)
 {
+    if (value.isEmpty())
+        preferences.remove(key(name));
+    else
+        preferences.setValue(key(name), value);
+}
+
+} // namespace
+
+NetworkSettings::NetworkSettings(QObject* parent)
+    : NetworkSettings(nullptr, QString::fromLatin1(kSecret), parent)
+{}
+
+NetworkSettings::NetworkSettings(Preferences* preferences, const QString& secretName, QObject* parent)
+    : QObject(parent), m_ownPreferences(preferences ? nullptr : std::make_unique<Preferences>()),
+      m_preferences(preferences ? preferences : m_ownPreferences.get()), m_secretName(secretName)
+{
+    apply(); // au démarrage : le mandataire gardé, ou aucun
 }
 
 NetworkSettings::~NetworkSettings() = default;
 
 QString NetworkSettings::host() const
 {
-    return {};
+    return m_preferences->value(key(kHost)).toString();
 }
 
-void NetworkSettings::setHost(const QString&) {}
+void NetworkSettings::setHost(const QString& value)
+{
+    const QString trimmed = value.trimmed();
+    if (trimmed == host())
+        return;
+    store(*m_preferences, kHost, trimmed);
+    emit changed();
+    apply();
+}
 
 int NetworkSettings::port() const
 {
-    return kDefaultPort;
+    bool ok = false;
+    const int value = m_preferences->value(key(kPort)).toInt(&ok);
+    return ok && value >= 1 && value <= 65535 ? value : kDefaultPort;
 }
 
-void NetworkSettings::setPort(int) {}
+void NetworkSettings::setPort(int value)
+{
+    if (value < 1 || value > 65535 || value == port())
+        return;
+    m_preferences->setValue(key(kPort), value);
+    emit changed();
+    apply();
+}
 
 QString NetworkSettings::user() const
 {
-    return {};
+    return m_preferences->value(key(kUser)).toString();
 }
 
-void NetworkSettings::setUser(const QString&) {}
+void NetworkSettings::setUser(const QString& value)
+{
+    if (value == user())
+        return;
+    store(*m_preferences, kUser, value);
+    emit changed();
+    apply();
+}
 
 bool NetworkSettings::available() const
 {
     return SecretStore::available();
 }
 
-void NetworkSettings::setPassword(const QString&) {}
+void NetworkSettings::setPassword(const QString& password)
+{
+    // Trousseau seulement : sans trousseau (hors Windows), le mot de passe n'est gardé nulle part.
+    if (password.isEmpty())
+        SecretStore::remove(m_secretName);
+    else
+        SecretStore::write(m_secretName, password.toUtf8());
+    apply();
+}
 
-void NetworkSettings::apply() {}
+void NetworkSettings::apply()
+{
+    const QString proxyHost = host();
+    if (proxyHost.isEmpty()) {
+        QNetworkProxy::setApplicationProxy(QNetworkProxy(QNetworkProxy::NoProxy));
+        return;
+    }
+    const QString password = QString::fromUtf8(SecretStore::read(m_secretName).value_or(QByteArray()));
+    QNetworkProxy::setApplicationProxy(
+        QNetworkProxy(QNetworkProxy::HttpProxy, proxyHost, static_cast<quint16>(port()), user(), password));
+}
 
-void NetworkSettings::clear() {}
+void NetworkSettings::clear()
+{
+    m_preferences->remove(key(kHost));
+    m_preferences->remove(key(kPort));
+    m_preferences->remove(key(kUser));
+    SecretStore::remove(m_secretName);
+    emit changed();
+    apply();
+}
 
 } // namespace actcraft::ui
