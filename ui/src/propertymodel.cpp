@@ -7,6 +7,7 @@
 #include <actcraft/ui/propertymodel.h>
 
 #include <QColor>
+#include <QRegularExpression>
 #include <QStringList>
 
 #include <algorithm>
@@ -246,7 +247,9 @@ std::vector<std::string> keywordsOf(const QVariant& value)
 {
     QStringList list;
     if (value.metaType().id() == QMetaType::QString) {
-        list = value.toString().split(QLatin1Char(','));
+        // Éditeur de mots-clés de L6-T13 : séparés par des espaces ; une virgule sépare aussi.
+        static const QRegularExpression separators(QStringLiteral("[\\s,]+"));
+        list = value.toString().split(separators, Qt::SkipEmptyParts);
     } else {
         list = value.toStringList();
     }
@@ -276,6 +279,11 @@ std::optional<core::PropertyValue> fromVariant(const Descriptor& descriptor, con
         bool ok = false;
         const double number = value.toDouble(&ok);
         if (!ok || !std::isfinite(number)) {
+            return std::nullopt;
+        }
+        // Bornes publiées (MinRole, MaxRole) : hors d'elles, refus, jamais écrêtage.
+        if ((!std::isnan(descriptor.min) && number < descriptor.min) ||
+            (!std::isnan(descriptor.max) && number > descriptor.max)) {
             return std::nullopt;
         }
         return core::PropertyValue{number};
@@ -420,6 +428,13 @@ bool PropertyModel::setValue(int row, const QVariant& value)
     if (!converted) {
         return false;
     }
+    // Une modification ponctuelle reste une étape à elle (L6-T11 : la commande fusionne avec sa voisine de
+    // même page, mêmes objets, même propriété) : elle clôt l'étape restée ouverte avant elle, puis la
+    // sienne. Seule la réglette glissée fusionne, jusqu'à endEdit().
+    const bool point = d.editor != Editor::Slider;
+    if (point) {
+        m_document->closeMerge();
+    }
     const auto page = static_cast<std::size_t>(m_page);
     if (d.page) {
         m_document->execute(
@@ -430,10 +445,7 @@ bool PropertyModel::setValue(int row, const QVariant& value)
         }
         m_document->execute(objectCommand(page, m_ids, d.objectProperty, std::move(*converted)));
     }
-    // Une modification ponctuelle reste une étape à elle (L6-T11 : la commande fusionnerait avec la
-    // suivante de même page, mêmes objets, même propriété). Seule la réglette glissée fusionne ; elle est
-    // close au relâcher (DocumentController::closeMerge).
-    if (d.editor != Editor::Slider) {
+    if (point) {
         m_document->closeMerge();
     }
     return true;
@@ -561,20 +573,38 @@ void PropertyModel::flush()
         return; // pendant un contact : repris à sa fin (contactActiveChanged)
     }
     m_pending = false;
-    beginResetModel();
-    rebuild();
-    endResetModel();
+    std::vector<Row> rows = rebuild();
+    const bool sameRows = rows.size() == m_rows.size() &&
+                          std::equal(rows.begin(), rows.end(), m_rows.begin(),
+                                     [](const Row& a, const Row& b) { return a.descriptor == b.descriptor; });
+    if (sameRows) {
+        // Mêmes lignes : seules les valeurs changent, les délégués restent (réglette tenue, champ en saisie).
+        std::vector<int> changed;
+        for (std::size_t i = 0; i < rows.size(); ++i) {
+            if (rows[i].value != m_rows[i].value) {
+                m_rows[i].value = std::move(rows[i].value);
+                changed.push_back(static_cast<int>(i));
+            }
+        }
+        for (const int row : changed) {
+            emit dataChanged(index(row), index(row), {ValueRole});
+        }
+    } else {
+        beginResetModel();
+        m_rows = std::move(rows);
+        endResetModel();
+    }
     ++m_refreshes;
     emit refreshed();
 }
 
-void PropertyModel::rebuild()
+std::vector<PropertyModel::Row> PropertyModel::rebuild()
 {
-    m_rows.clear();
+    std::vector<Row> rows;
     m_ids.clear();
     m_title.clear();
     if (!m_document || m_document->pageCount() <= 0) {
-        return;
+        return rows;
     }
     m_page = m_document->currentIndex();
     const core::Page& page = m_document->document().page(static_cast<std::size_t>(m_page));
@@ -592,9 +622,9 @@ void PropertyModel::rebuild()
     if (objects.empty()) {
         m_title = tr("Page");
         for (const Descriptor& d : kPageRows) {
-            m_rows.push_back({&d, toVariant(core::readPageProperty(page, d.pageProperty))});
+            rows.push_back({&d, toVariant(core::readPageProperty(page, d.pageProperty))});
         }
-        return;
+        return rows;
     }
     m_title = objects.size() == 1 ? kindLabel(core::kindOf(*objects.front()))
                                   : tr("%1 objets").arg(static_cast<qlonglong>(objects.size()));
@@ -615,9 +645,10 @@ void PropertyModel::rebuild()
             }
         }
         if (applies) {
-            m_rows.push_back({&d, common ? toVariant(*first) : QVariant()});
+            rows.push_back({&d, common ? toVariant(*first) : QVariant()});
         }
     }
+    return rows;
 }
 
 void PropertyModel::attachDocument()
@@ -651,7 +682,12 @@ void PropertyModel::detachDocument()
     m_observer = 0;
 }
 
-void PropertyModel::endEdit() {}
+void PropertyModel::endEdit()
+{
+    if (m_document) {
+        m_document->closeMerge();
+    }
+}
 
 void PropertyModel::updateEditable()
 {

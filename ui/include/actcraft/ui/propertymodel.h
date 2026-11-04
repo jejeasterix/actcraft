@@ -99,7 +99,8 @@ private:
     void requestRefresh(); // regroupe : un seul refresh() par tour de boucle, rien pendant un contact
     void schedule();
     void flush();
-    void rebuild();
+    // Lignes de la page affichée et de la sélection ; met à jour m_page, m_ids et m_title.
+    std::vector<Row> rebuild();
     void attachDocument();
     void detachDocument();
     void updateEditable();
