@@ -324,25 +324,49 @@ private slots:
         }
     }
 
-    // Amendement 1 : bascule pendant un contact gardée, appliquée au relâché avec son seul redessin.
+    // Amendement 1 : bascule pendant un contact gardée, appliquée au relâché avec son seul redessin. Par la
+    // liaison réelle de Main.qml (contactActive de la vue) : ni reconstruction ni redessin pendant le
+    // contact.
     void toggleDeferredDuringContact()
     {
-        ui::DesignMode mode;
-        QSignalSpy effects(&mode, &ui::DesignMode::effectsChanged);
-        mode.setContactActive(true);
-        mode.toggle();
-        QVERIFY(!mode.active());
-        QCOMPARE(effects.count(), 0);
-        mode.setContactActive(false);
-        QVERIFY(mode.active());
-        QCOMPARE(effects.count(), 1);
+        App& app = *m_app;
+        QVERIFY(freshPage());
+        app.add(hiddenRedRectangle({400, 300, 200, 200}));
+        QTRY_VERIFY(app.view->cacheReady());
+        QVERIFY(app.trigger("tool.select"));
+        auto* fixed = app.document->fixedPage();
+        QVERIFY(fixed != nullptr);
+        const int rebuilds = fixed->rebuildCount();
+        const int refreshes = app.view->cacheRefreshCount();
+        const QPoint spot = app.scene({100, 100}); // vide : un clic, aucun objet touché
 
-        mode.setContactActive(true);
-        mode.toggle();
-        mode.toggle(); // aller et retour pendant le même contact : rien au relâché
-        mode.setContactActive(false);
-        QVERIFY(mode.active());
-        QCOMPARE(effects.count(), 1);
+        QTest::mousePress(app.window, Qt::LeftButton, Qt::NoModifier, spot);
+        QVERIFY(app.view->contactActive());
+        QVERIFY(app.design->property("contactActive").toBool());
+        QVERIFY(app.trigger("mode.design"));
+        QVERIFY(!app.design->active());
+        QVERIFY(!fixed->showHiddenTranslucent());
+        QCOMPARE(fixed->rebuildCount(), rebuilds);
+        QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, spot);
+        QVERIFY(!app.view->contactActive());
+        QVERIFY(app.design->active());
+        QVERIFY(fixed->showHiddenTranslucent());
+        QTRY_VERIFY(app.view->cacheRefreshCount() > refreshes && app.view->cacheReady());
+        QCOMPARE(fixed->rebuildCount(), rebuilds + 1); // le seul redessin, au relâché
+        QCOMPARE(app.view->cacheRefreshCount(), refreshes + 1);
+
+        QTest::mousePress(app.window, Qt::LeftButton, Qt::NoModifier, spot);
+        QVERIFY(app.trigger("mode.design"));
+        QVERIFY(app.trigger("mode.design")); // aller et retour pendant le même contact : rien au relâché
+        QTest::mouseRelease(app.window, Qt::LeftButton, Qt::NoModifier, spot);
+        QVERIFY(app.design->active());
+        QCOMPARE(fixed->rebuildCount(), rebuilds + 1);
+
+        QVERIFY(app.trigger("mode.design")); // hors contact : appliquée tout de suite, un redessin de plus
+        QVERIFY(!app.design->active());
+        QTRY_VERIFY(app.view->cacheRefreshCount() > refreshes + 1 && app.view->cacheReady());
+        QCOMPARE(fixed->rebuildCount(), rebuilds + 2); // + 3 si l'aller et retour avait redessiné
+        QCOMPARE(app.view->cacheRefreshCount(), refreshes + 2);
     }
 
     // Discriminant du patron écarté (amendements 1 et 5) : le mode ne bascule pas `visible` dans le document
