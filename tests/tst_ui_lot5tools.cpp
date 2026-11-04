@@ -18,6 +18,7 @@
 #include <QDir>
 #include <QImage>
 #include <QQmlApplicationEngine>
+#include <QQuickItem>
 #include <QQuickWindow>
 #include <QSettings>
 #include <QTemporaryDir>
@@ -27,6 +28,7 @@
 
 #include <cmath>
 #include <memory>
+#include <utility>
 #include <variant>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
@@ -84,6 +86,20 @@ const core::Connector* lastConnector(const App& app)
     for (auto it = app.page().objects.rbegin(); it != app.page().objects.rend(); ++it) {
         if (const auto* connector = std::get_if<core::Connector>(&*it)) {
             return connector;
+        }
+    }
+    return nullptr;
+}
+
+// Délégués d'un Repeater : cherchés dans l'arbre des éléments visuels, pas dans celui des QObject.
+QQuickItem* itemNamed(QQuickItem* root, const QString& name)
+{
+    if (root->objectName() == name) {
+        return root;
+    }
+    for (QQuickItem* child : root->childItems()) {
+        if (QQuickItem* found = itemNamed(child, name)) {
+            return found;
         }
     }
     return nullptr;
@@ -174,7 +190,7 @@ private slots:
         core::ObjectId imageId = 0;
         app.document->replaceDocument(documentWithImage(&imageId), QUrl(), QStringLiteral("image"));
         QVERIFY(QTest::qWaitFor([&] { return app.view->cacheReady(); }, 20000));
-        const QColor penColor = app.tools->color();
+        const QColor toolColor = app.tools->color();
 
         QVERIFY(app.trigger("tool.fill"));
         QCOMPARE(app.tools->currentTool(), QStringLiteral("fill"));
@@ -192,7 +208,7 @@ private slots:
                                   10000);
 
         QVERIFY(app.trigger("tool.pen"));
-        QCOMPARE(app.tools->color(), penColor); // la mémoire est par outil
+        QCOMPARE(app.tools->color(), toolColor); // la mémoire est par outil
         QVERIFY(app.trigger("tool.fill"));
         QCOMPARE(app.tools->color(), QColor(QStringLiteral("#00aa00")));
     }
@@ -328,7 +344,8 @@ private slots:
         QVERIFY(start(app, QStringLiteral("panneau.ini")));
         QObject* panel = app.window->findChild<QObject*>(QStringLiteral("connectorPanel"));
         QVERIFY(panel != nullptr);
-        QCOMPARE(panel->property("chosen").toInt(), 5); // « Style 6 », celui que dessine le connecteur
+        QCOMPARE(panel->property("chosen").toInt(),
+                 5); // « Pointillés, flèche au départ », celui que dessine le connecteur
         QCOMPARE(panel->property("capA").toInt(), 2);
         QCOMPARE(panel->property("capB").toInt(), 1);
         app.tools->setConnectorStyle(8);
@@ -358,6 +375,94 @@ private slots:
         QCOMPARE(panel->property("chosen").toInt(), 7);
         QCOMPARE(panel->property("capA").toInt(), 1);
         QCOMPARE(panel->property("capB").toInt(), 2);
+    }
+
+    // L5-C3 : chaque style du panneau porte un libellé tiré de son dessin, plus de « Style N ».
+    void connectorPanelNamesTheStyles()
+    {
+        App app;
+        QVERIFY(start(app));
+        const QStringList expected = {
+            QStringLiteral("Ligne"),
+            QStringLiteral("Flèche au départ"),
+            QStringLiteral("Flèche à l'arrivée"),
+            QStringLiteral("Deux flèches"),
+            QStringLiteral("Pointillés"),
+            QStringLiteral("Pointillés, flèche au départ"),
+            QStringLiteral("Pointillés, flèche à l'arrivée"),
+            QStringLiteral("Pointillés, deux flèches"),
+            QStringLiteral("Courbe, départ vertical"),
+            QStringLiteral("Courbe, départ horizontal"),
+            QStringLiteral("Marches"),
+            QStringLiteral("Coude"),
+            QStringLiteral("Oblique puis horizontal"),
+            QStringLiteral("Oblique puis horizontal, flèche au départ"),
+        };
+        for (int rank = 0; rank < core::kConnectorStyleCount; ++rank) {
+            QQuickItem* entry =
+                itemNamed(app.window->contentItem(), QStringLiteral("connectorStyle-%1").arg(rank));
+            QVERIFY(entry != nullptr);
+            QCOMPARE(entry->property("label").toString(), expected.at(rank));
+            QVERIFY(itemNamed(entry, QStringLiteral("connectorSketch-%1").arg(rank)) != nullptr);
+        }
+    }
+
+    // H5-33 : choisir un style au panneau (connector.style) règle les extrémités de l'outil selon ses flèches
+    // (départ → A, arrivée → B : 2 flèche, sinon 0) ; elles restent réglables ensuite ; un connecteur déjà
+    // posé garde les siennes ; le réglage du rang seul (relecture de la mémoire) ne touche pas aux
+    // extrémités.
+    void choosingAConnectorStyleSetsTheCaps()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.document->execute(std::make_unique<core::AddObjectCommand>(
+            0, core::makeConnector({100, 100}, 0, {300, 100}, 0, 0)));
+        const core::ObjectId placed = app.page().objects.back().common.id;
+        const auto caps = [&] {
+            return std::pair{app.tools->property("connectorCapA").toInt(),
+                             app.tools->property("connectorCapB").toInt()};
+        };
+        QVERIFY(app.trigger("connector.style", 3)); // deux flèches
+        QCOMPARE(app.tools->connectorStyle(), 3);
+        QCOMPARE(caps(), (std::pair{2, 2}));
+        QVERIFY(app.trigger("connector.style", 13)); // oblique puis horizontal, flèche au départ
+        QCOMPARE(caps(), (std::pair{2, 0}));
+        QVERIFY(app.trigger("connector.caps", QStringLiteral("1,2"))); // toujours réglables
+        QCOMPARE(caps(), (std::pair{1, 2}));
+        QCOMPARE(app.tools->connectorStyle(), 13);
+        QVERIFY(app.trigger("connector.style", 8)); // courbe sans flèche
+        QCOMPARE(caps(), (std::pair{0, 0}));
+        app.tools->setConnectorCaps(1, 1);
+        app.tools->setConnectorStyle(6);
+        QCOMPARE(caps(), (std::pair{1, 1}));
+        const auto& kept = std::get<core::Connector>(app.object(placed));
+        QCOMPARE(kept.capA, core::ConnectorCap::None);
+        QCOMPARE(kept.capB, core::ConnectorCap::None);
+        QCOMPARE(kept.style, std::uint8_t{0});
+    }
+
+    // L5-C3 : la vignette du panneau dessine le tracé de core (connectorPath) dans sa boîte, a en haut à
+    // gauche, b en bas à droite, à 4 du bord ; flèches et pointillés du style.
+    void connectorStyleSketchUsesTheSharedRoute()
+    {
+        App app;
+        QVERIFY(start(app));
+        const QVariantList step =
+            app.tools->connectorStyleSketch(10, 44, 24).value(QStringLiteral("points")).toList();
+        QCOMPARE(step.size(), 4);
+        QCOMPARE(step.at(0).toPointF(), QPointF(4, 4));
+        QCOMPARE(step.at(1).toPointF(), QPointF(22, 4));
+        QCOMPARE(step.at(2).toPointF(), QPointF(22, 20));
+        QCOMPARE(step.at(3).toPointF(), QPointF(40, 20));
+        const QVariantList curve =
+            app.tools->connectorStyleSketch(8, 44, 24).value(QStringLiteral("points")).toList();
+        QCOMPARE(curve.size(), core::kConnectorCurveSegments + 1);
+        const QVariantMap angle = app.tools->connectorStyleSketch(13, 44, 24);
+        QVERIFY(angle.value(QStringLiteral("arrowStart")).toBool());
+        QVERIFY(!angle.value(QStringLiteral("arrowEnd")).toBool());
+        QCOMPARE(angle.value(QStringLiteral("outwardB")).toPointF(), QPointF(1, 0));
+        QVERIFY(app.tools->connectorStyleSketch(4, 44, 24).value(QStringLiteral("dashed")).toBool());
+        QVERIFY(!app.tools->connectorStyleSketch(8, 44, 24).value(QStringLiteral("dashed")).toBool());
     }
 
     // Échap (tool.select, au repos) et la désactivation quittent le mode points de forme.
@@ -505,10 +610,11 @@ private slots:
         QVERIFY(shift > 50);
         const core::PageObject& object = app.object(connectorId);
         const auto& connector = std::get<core::Connector>(object);
-        const core::PointF endA = object.common.transform.map(connector.firstEnd);
-        const core::PointF endB = object.common.transform.map(connector.secondEnd);
-        QVERIFY2(std::abs(endA.y - (100 + shift)) < 0.01, "le bout A suit A");
-        QVERIFY2(std::abs(endB.x - 400) < 0.01 && std::abs(endB.y - 100) < 0.01, "le bout B reste sur B");
+        const core::PointF firstTip = object.common.transform.map(connector.firstEnd);
+        const core::PointF secondTip = object.common.transform.map(connector.secondEnd);
+        QVERIFY2(std::abs(firstTip.y - (100 + shift)) < 0.01, "le bout A suit A");
+        QVERIFY2(std::abs(secondTip.x - 400) < 0.01 && std::abs(secondTip.y - 100) < 0.01,
+                 "le bout B reste sur B");
         QCOMPARE(connector.objectB, b);
     }
 };

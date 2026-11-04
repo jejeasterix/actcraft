@@ -44,7 +44,7 @@ class PrintController : public QObject, public QQmlParserStatus
 public:
     explicit PrintController(QObject* parent = nullptr);
     void classBegin() override {}
-    void componentComplete() override; // fournisseur d'images « printpreview » du moteur
+    void componentComplete() override; // fournisseur d'images « sheetpreview » du moteur
     DocumentController* document() const;
     void setDocument(DocumentController* document);
     int rows() const;
@@ -83,7 +83,7 @@ public:
     int previewRenders() const;
 
     Q_INVOKABLE QImage previewSheet(int index, int dpi);
-    // Adresse (image://printpreview/…) de la feuille `index` ; change quand le document ou un réglage change.
+    // Adresse (image://sheetpreview/…) de la feuille `index` ; change quand le document ou un réglage change.
     Q_INVOKABLE QString previewSource(int index, int dpi) const;
     Q_INVOKABLE bool print(const QString& outputFile = {});
     Q_INVOKABLE void saveSettings();

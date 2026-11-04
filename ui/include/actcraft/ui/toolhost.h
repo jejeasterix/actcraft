@@ -114,6 +114,12 @@ public:
     Q_INVOKABLE void cancelGesture();
     Q_INVOKABLE void setConnectorStyle(int style);         // L5-T17
     Q_INVOKABLE void setConnectorCaps(int capA, int capB); // L5-C18 : rangs 0 aucune, 1 rayon, 2 flèche
+    // H5-33 (L5-C3) : le choix d'un style au panneau (connector.style) règle aussi les extrémités selon ses
+    // flèches ; setConnectorStyle seul ne les touche pas.
+    Q_INVOKABLE void chooseConnectorStyle(int style);
+    // L5-C3 : vignette d'un style du panneau, tracé de core dans une boîte width × height : « points »,
+    // « outwardA », « outwardB », « arrowStart », « arrowEnd », « dashed ».
+    Q_INVOKABLE QVariantMap connectorStyleSketch(int style, qreal width, qreal height) const;
 
     // Outil courant de l'utilisateur ; nullptr tant que le contrôleur, la vue et la couche ne sont pas
     // branchés.

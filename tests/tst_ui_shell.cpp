@@ -1102,9 +1102,9 @@ private slots:
                      name);
         }
         // L5-C19 : l'aperçu de la feuille n'est plus gardé à la racine ; il vit dans la boîte d'impression.
-        QObject* printDialog = s.window->findChild<QObject*>(QStringLiteral("printSetupDialog"));
-        QVERIFY(printDialog);
-        const auto parts = printDialog->findChildren<QObject*>();
+        QObject* setupDialog = s.window->findChild<QObject*>(QStringLiteral("printSetupDialog"));
+        QVERIFY(setupDialog);
+        const auto parts = setupDialog->findChildren<QObject*>();
         QVERIFY(std::any_of(parts.begin(), parts.end(), [](QObject* part) {
             return QByteArray(part->metaObject()->className()).startsWith("SheetPreview");
         }));

@@ -33,6 +33,12 @@ try {
         if ($LASTEXITCODE -ne 0) { Stop-Captures 'compilation' }
     }
     . "$PSScriptRoot/dev-env.ps1"
+    # Scénario `importer` : convertisseur de présentations factice (même valeur que le test ctest), sauf si
+    # l'appelant en a posé un.
+    if (-not $env:ACTCRAFT_OFFICE_CONVERTER) {
+        $pdf = Join-Path (Get-Location) 'tests/data/import/deux-pages.pdf'
+        $env:ACTCRAFT_OFFICE_CONVERTER = (Get-Command cmake).Source + "|-E|copy|$pdf|{out}"
+    }
 
     $exe = Join-Path (Get-Location) "build/$Preset/actcraft-captures.exe"
     if (-not (Test-Path $exe)) { Stop-Captures "$exe introuvable" }
