@@ -181,7 +181,8 @@ private slots:
     void sliderDragMergesIntoOneStep()
     {
         const std::size_t before = m_stack.count();
-        for (const double width : {10.0, 20.0, 30.0}) {
+        // Premier pas : 2, la valeur de m_a, qu'il laisse tel quel ; l'étape doit quand même le lui rendre.
+        for (const double width : {2.0, 10.0, 20.0, 30.0}) {
             push({m_a, m_b}, ObjectProperty::OutlineWidth, width);
         }
         QCOMPARE(m_stack.count(), before + 1);
@@ -288,6 +289,32 @@ private slots:
         QVERIFY(valueOf(m_a, ObjectProperty::Visible) == PropertyValue{true});
         QVERIFY(valueOf(m_a, ObjectProperty::Locked) == PropertyValue{false});
         QVERIFY(valueOf(m_a, ObjectProperty::Translucency) == PropertyValue{0.0});
+    }
+
+    // Position, taille, angle, miroir : par la transformation, lus sur la boîte transformée (boundsOnPage).
+    void geometryGoesThroughTheTransform()
+    {
+        const RectF box = boundsOnPage(*objectWith(m_a));
+        push({m_a}, ObjectProperty::Left, 150.0);
+        QCOMPARE(numberOf(m_a, ObjectProperty::Left), 150.0);
+        QCOMPARE(numberOf(m_a, ObjectProperty::Top), box.y);
+        push({m_a}, ObjectProperty::Top, 60.0);
+        QCOMPARE(numberOf(m_a, ObjectProperty::Top), 60.0);
+        push({m_a}, ObjectProperty::Width, box.width * 2);
+        QCOMPARE(numberOf(m_a, ObjectProperty::Width), box.width * 2);
+        QCOMPARE(numberOf(m_a, ObjectProperty::Left), 150.0);
+        QCOMPARE(numberOf(m_a, ObjectProperty::Height), box.height);
+        push({m_a}, ObjectProperty::Angle, 90.0);
+        QCOMPARE(numberOf(m_a, ObjectProperty::Angle), 90.0);
+        QVERIFY(valueOf(m_a, ObjectProperty::Mirrored) == PropertyValue{false});
+        push({m_a}, ObjectProperty::Mirrored, true);
+        QVERIFY(valueOf(m_a, ObjectProperty::Mirrored) == PropertyValue{true});
+        QCOMPARE(m_stack.count(), std::size_t{5});
+        while (m_stack.canUndo()) {
+            m_stack.undo(*m_document);
+        }
+        QVERIFY(objectWith(m_a)->common.transform.isIdentity());
+        QCOMPARE(numberOf(m_a, ObjectProperty::Left), box.x);
     }
 
     // Largeur de page : une étape (pas fusionnés compris), PageChanged ; la hauteur ne fusionne pas avec elle.

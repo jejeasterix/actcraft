@@ -27,7 +27,7 @@ void SetObjectPropertiesCommand::undo(Document&, Changes&) {}
 
 int SetObjectPropertiesCommand::mergeId() const noexcept
 {
-    return -1;
+    return m_page < -1 && m_property == ObjectProperty::Name ? 0 : -1;
 }
 
 bool SetObjectPropertiesCommand::mergeWith(const UndoCommand&)
@@ -45,7 +45,7 @@ void SetPagePropertiesCommand::undo(Document&, Changes&) {}
 
 int SetPagePropertiesCommand::mergeId() const noexcept
 {
-    return -1;
+    return m_page < -1 && m_property == PageProperty::Name ? 0 : -1;
 }
 
 bool SetPagePropertiesCommand::mergeWith(const UndoCommand&)

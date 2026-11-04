@@ -101,8 +101,7 @@ private:
     int m_page;
     PageProperty m_property;
     PropertyValue m_value;
-    PropertyValue m_old;
-    bool m_applied = false; // la dernière exécution a changé la page
+    PropertyValue m_old; // valeur d'avant, relue à chaque redo
 };
 
 // Valeur courante, pour le modèle du navigateur (L6-T12) ; std::nullopt si la propriété ne s'applique pas.
