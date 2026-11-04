@@ -30,6 +30,7 @@ struct PaletteSettings
     bool shortcutsHidden = false; // F-032 : barre de raccourcis masquée
     bool pinned = true;           // F-031 : faux = repli au retrait du pointeur
     int swatches = 16;            // F-900 : 8, 16 ou 24
+    QJsonObject unknown; // clés de « palette » inconnues de cette version, réécrites telles quelles (H6-12)
 };
 
 struct BrowserSettings
@@ -41,6 +42,7 @@ struct BrowserSettings
     // notes », « proprietes », « actions » ; une valeur inconnue lue d'un fichier devient « pages ».
     QString current = QStringLiteral("pages");
     int width = 240;
+    QJsonObject unknown; // clés de « browsers » inconnues de cette version, réécrites telles quelles (H6-12)
 };
 
 inline constexpr int kIconPixelsMin = 16;
@@ -62,7 +64,8 @@ struct Profile
     QJsonObject shortcutObjects; // F-141 : { "<id>": { "label", "objects" (fragment) } }
     QJsonObject launchers;       // F-920 : écrit par L6-T29
     QJsonObject settings;        // sections de F-930 : { "<section>": { "<clé>": valeur } }
-    QJsonObject unknownKeys; // clés de premier niveau inconnues de cette version, réécrites telles quelles
+    QJsonObject unknownKeys; // clés de premier niveau inconnues de cette version, réécrites telles quelles (celles des
+                             // sous-objets : PaletteSettings::unknown, BrowserSettings::unknown)
 };
 
 inline constexpr char kProfileFormat[] = "actcraft-profile/1";
