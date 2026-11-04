@@ -268,12 +268,12 @@ private slots:
         QVERIFY(idleAfter > 0);
     }
 
-    // L7-T38 (relecture, bloquant) : avec un effet, page.next ne change la page qu'à TransitionController::frozen() ;
-    // page et cache sont encore prêts juste après la commande, sa fenêtre « commande -> prêt » se fermait aussitôt
-    // et les images de l'effet tombaient en intervalles au repos (« I »), non jugés. Chaque changement de page
-    // d'« effets-page » (entrées de rang impair : view.page-effect, puis page.next ou page.previous 50 ms plus
-    // tard) joue un effet de 500 ms en court : un intervalle qui commence entre 150 et 450 ms après la commande
-    // est dans l'effet, il doit être actif.
+    // L7-T38 (relecture, bloquant) : avec un effet, page.next ne change la page qu'à
+    // TransitionController::frozen() ; page et cache sont encore prêts juste après la commande, sa fenêtre «
+    // commande -> prêt » se fermait aussitôt et les images de l'effet tombaient en intervalles au repos (« I
+    // »), non jugés. Chaque changement de page d'« effets-page » (entrées de rang impair : view.page-effect,
+    // puis page.next ou page.previous 50 ms plus tard) joue un effet de 500 ms en court : un intervalle qui
+    // commence entre 150 et 450 ms après la commande est dans l'effet, il doit être actif.
     void pageEffectFramesAreActive()
     {
         QJsonObject effects;
@@ -305,6 +305,14 @@ private slots:
             }
         }
         QVERIFY(inEffect > 0);
+        // Contrôles du runner : les 16 effets sont partis (aucun repli de capture), le message défilait
+        // encore.
+        for (const QJsonValue& reason :
+             m_root.value("verdict").toObject().value("invalid_reasons").toArray()) {
+            QVERIFY2(!reason.toString().startsWith(QLatin1String("error: page effects")) &&
+                         !reason.toString().startsWith(QLatin1String("error: ticker")),
+                     qPrintable(reason.toString()));
+        }
     }
 
     void strokeHasLatency()

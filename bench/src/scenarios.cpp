@@ -668,14 +668,16 @@ ScenarioPlan recognitionScenario(ScenarioSet set)
 
 ScenarioPlan effectsScenario(ScenarioSet set)
 {
-    const int tenths = set == ScenarioSet::Court ? 5 : kEffectDefaultTenths; // 0,5 s : le minimum permis
+    // 0,5 s en court : le minimum permis ; la durée par défaut en complet.
+    const int tenths = set == ScenarioSet::Court ? 5 : features::TransitionSettings{}.durationTenths;
     const std::int64_t period = std::int64_t{tenths} * 100'000'000 + kEffectMarginNs;
     ScenarioPlan plan;
     plan.name = QStringLiteral("effets-page");
     plan.generatedPages = 2; // page 1 et page 2 : les effets alternent entre elles
+    plan.pageEffects = true;
     plan.setupCommands.emplace_back(QStringLiteral("view.page-effect-duration"), QVariant(tenths));
-    plan.teardownCommands.emplace_back(QStringLiteral("view.page-effect-duration"),
-                                       QVariant(kEffectDefaultTenths));
+    // Mesure interrompue avant sa dernière entrée : l'effet choisi ne reste pas (la durée : le runner).
+    plan.teardownCommands.emplace_back(QStringLiteral("view.page-effect"), QStringLiteral("none"));
     std::int64_t at = 0;
     int k = 0;
     for (const features::TransitionEffect& effect : features::transitionCatalogue()) {
@@ -800,13 +802,19 @@ std::vector<std::int64_t> pageChangeMarks(const std::vector<std::int64_t>& swapN
 
 std::vector<std::pair<std::int64_t, std::int64_t>>
 pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<bool>& awaitsReady,
-                  const std::vector<std::int64_t>& shownNs)
+                  const std::vector<std::int64_t>& shownNs, const std::vector<bool>& playsEffect,
+                  const std::vector<std::int64_t>& idleNs)
 {
     std::vector<std::pair<std::int64_t, std::int64_t>> windows;
     for (std::size_t i = 0; i < commandNs.size(); ++i) {
         const std::int64_t at = commandNs[i];
         if (at < 0) {
             continue; // commande jamais jouée
+        }
+        if (i < playsEffect.size() && playsEffect[i]) {
+            const auto idle = std::lower_bound(idleNs.begin(), idleNs.end(), at);
+            windows.emplace_back(at, idle == idleNs.end() ? std::numeric_limits<std::int64_t>::max() : *idle);
+            continue;
         }
         if (i < awaitsReady.size() && !awaitsReady[i]) {
             windows.emplace_back(at, at);
@@ -816,6 +824,29 @@ pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<
         windows.emplace_back(at, shown == shownNs.end() ? std::numeric_limits<std::int64_t>::max() : *shown);
     }
     return windows;
+}
+
+int expectedPageEffects(const ScenarioPlan& plan)
+{
+    if (!plan.pageEffects) {
+        return 0;
+    }
+    return static_cast<int>(std::count_if(plan.inputs.begin(), plan.inputs.end(), [](const PlannedInput& in) {
+        return in.kind == InputKind::Command &&
+               (in.command == QLatin1String("page.next") || in.command == QLatin1String("page.previous"));
+    }));
+}
+
+QString pageEffectsCheck(const ScenarioPlan& plan, int played)
+{
+    const int expected = expectedPageEffects(plan);
+    if (played == expected) {
+        return {};
+    }
+    return QStringLiteral("error: page effects played %1 of %2 in %3")
+        .arg(played)
+        .arg(expected)
+        .arg(plan.name);
 }
 
 } // namespace actcraft::bench

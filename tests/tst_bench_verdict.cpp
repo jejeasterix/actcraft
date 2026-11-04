@@ -16,6 +16,8 @@
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QSettings>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
 
@@ -181,7 +183,19 @@ class TstBenchVerdict : public QObject
 {
     Q_OBJECT
 
+    // L7-T38 : réglages propres au test, dans un dossier temporaire (comme presentationharness::MainWindow) :
+    // un effet de page laissé par un passage interrompu d'« effets-page » ne touche pas les passages
+    // suivants.
+    QTemporaryDir m_settingsDir;
+
 private slots:
+    void initTestCase()
+    {
+        QVERIFY(m_settingsDir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+    }
+
     void goodRunIsWithinBudget()
     {
         BenchResult r = good();

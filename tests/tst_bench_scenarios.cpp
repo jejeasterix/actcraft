@@ -194,9 +194,16 @@ private slots:
             QCOMPARE(plan.setupCommands.size(), std::size_t{1});
             QCOMPARE(plan.setupCommands.front().first, QStringLiteral("view.page-effect-duration"));
             QCOMPARE(plan.setupCommands.front().second.toInt(), tenths);
+            // L7-T38 : la durée d'avant le scénario, le runner la rétablit ; l'effet, teardownCommands
+            // (mesure interrompue avant la dernière entrée). Les images des effets sont jugées (pageEffects).
+            QVERIFY(plan.pageEffects);
+            QCOMPARE(bench::expectedPageEffects(plan), 16);
             QCOMPARE(plan.teardownCommands.size(), std::size_t{1});
-            QCOMPARE(plan.teardownCommands.front().first, QStringLiteral("view.page-effect-duration"));
-            QCOMPARE(plan.teardownCommands.front().second.toInt(), 15); // durée par défaut rétablie
+            QCOMPARE(plan.teardownCommands.front().first, QStringLiteral("view.page-effect"));
+            QCOMPARE(plan.teardownCommands.front().second.toString(), QStringLiteral("none"));
+            for (const auto& other : bench::allScenarios(set)) {
+                QCOMPARE(other.pageEffects, other.name == QStringLiteral("effets-page"));
+            }
             QCOMPARE(plan.inputs.size(), expected.size() * 2 + 1);
             const std::int64_t period = std::int64_t{tenths} * 100'000'000 + 400'000'000;
             for (std::size_t k = 0; k < expected.size(); ++k) {
@@ -1125,6 +1132,34 @@ private slots:
         const std::vector<Window> windows =
             bench::pageChangeWindows({20, 600, 1300, -1, 1400}, {true, true, false, true, true}, {70, 650});
         QCOMPARE(windows, (std::vector<Window>{{20, 70}, {600, 650}, {1300, 1300}, {1400, kNever}}));
+    }
+
+    // L7-T38 (relecture, bloquant) : une commande qui a lancé un effet garde sa fenêtre jusqu'au premier
+    // retour au repos de la transition après elle, même sans prêt attendu (page encore prête juste après
+    // page.next) ; sans retour relevé, jusqu'à la fin. Les autres commandes gardent la leur.
+    void pageChangeWindowsKeepEffectsOpenUntilIdle()
+    {
+        constexpr std::int64_t kNever = std::numeric_limits<std::int64_t>::max();
+        using Window = std::pair<std::int64_t, std::int64_t>;
+        const std::vector<Window> windows =
+            bench::pageChangeWindows({20, 600, 900, 1300}, {false, false, true, false}, {950},
+                                     {true, false, false, true}, {10, 540, 1200});
+        QCOMPARE(windows, (std::vector<Window>{{20, 540}, {600, 600}, {900, 950}, {1300, kNever}}));
+    }
+
+    // L7-T38 (relecture, majeur) : un effet tombé au repli de capture (page changée sans effet) ou jamais
+    // parti rend la mesure d'« effets-page » invalide ; un plan sans effet n'est pas contrôlé.
+    void pageEffectsCheckWantsEveryEffectPlayed()
+    {
+        const bench::ScenarioPlan effects = bench::effectsScenario(bench::ScenarioSet::Court);
+        QCOMPARE(bench::expectedPageEffects(effects), 16);
+        QVERIFY(bench::pageEffectsCheck(effects, 16).isEmpty());
+        QCOMPARE(bench::pageEffectsCheck(effects, 15),
+                 QStringLiteral("error: page effects played 15 of 16 in effets-page"));
+        QVERIFY(!bench::pageEffectsCheck(effects, 0).isEmpty());
+        const bench::ScenarioPlan page = bench::pageScenario(bench::ScenarioSet::Court);
+        QCOMPARE(bench::expectedPageEffects(page), 0);
+        QVERIFY(bench::pageEffectsCheck(page, 0).isEmpty());
     }
 
     // L2-T23 : document du scénario « page » : deux pages générées, la seconde peinte (20 textes, 20 formes à
