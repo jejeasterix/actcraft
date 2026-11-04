@@ -389,7 +389,7 @@ private slots:
         const std::size_t before = f.page().objects.size();
 
         QVERIFY(f.library.insert(image, QPointF(300, 300)));
-        QCOMPARE(f.page().objects.size(), before + 1);
+        QTRY_COMPARE(f.page().objects.size(), before + 1); // image : décodée hors du fil principal (lot 5)
         const auto* picture = std::get_if<core::ImageObject>(&f.page().objects.back());
         QVERIFY(picture != nullptr);
         QVERIFY(f.document.document().resource(picture->resource) != nullptr);
@@ -435,8 +435,9 @@ private slots:
         const std::size_t before = f.page().objects.size();
         f.commands.setLocked(true);
         QVERIFY(!f.library.insert(image, QPointF(300, 300)));
-        QCOMPARE(f.page().objects.size(), before);
         QVERIFY(f.library.addSelection().isEmpty());
+        QTest::qWait(300); // aucune insertion différée
+        QCOMPARE(f.page().objects.size(), before);
         QVERIFY(!QFile::exists(QDir(f.mine).filePath(QStringLiteral("Ressource1.actcraft"))));
     }
 
