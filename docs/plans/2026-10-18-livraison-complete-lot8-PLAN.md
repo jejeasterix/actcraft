@@ -1738,7 +1738,7 @@ garde de contact est encore vraie, et un glisser commencerait par une action).
   dans l'aiguillage des échantillons, si l'outil courant est la sélection, l'appui va d'abord à `press`, les
   déplacements à `move` tant qu'il les prend, le relâché à `release` ; sinon l'outil reçoit l'appui retenu puis les
   suivants (aucun échantillon perdu). `ActionOverlays.qml` : cadre rouge à nous sur les objets d'action quand
-  `appDesign.highlightActions` est vrai, curseur `Qt.PointingHandCursor` quand `appActionRunner.hovering`.
+  `appDesign.actionsHighlighted` est vrai (l'effet, qui suit `active` ; `highlightActions` est le réglage seul, revue de L6-T22), curseur `Qt.PointingHandCursor` quand `appActionRunner.hovering`.
 - [ ] **Étape 5 : vert** ; banc hors écran ; preuve de tâche ; commit « Lot 8 : exécuteur d'actions (L8-T9) ».
 
 **Amendement 1 (L8-T9).**

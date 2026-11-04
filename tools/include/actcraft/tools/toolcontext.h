@@ -123,6 +123,10 @@ struct ToolContext
     ViewInfo& view;
     CommandSink& commands;
     UserState& user;
+    // Mode conception (F-560, L6-T22), posés par ToolHost : un objet verrouillé se glisse et garde ses
+    // poignées (son drapeau `locked` ne change pas) ; aucun accrochage à la grille.
+    bool lockIgnored = false;
+    bool snapDisabled = false;
 };
 
 } // namespace actcraft::tools

@@ -32,6 +32,8 @@ struct NodeContexts
 {
     RenderContext context;
     RenderContext painted;
+    // Mode conception (F-560, L6-T22) : objets masqués posés à kHiddenShownOpacity ; drapeau de la vue.
+    bool showHidden = false;
 };
 
 ObjectNode createObjectNode(const core::PageObject& object, std::size_t index,
@@ -42,6 +44,6 @@ ObjectNode createObjectNode(const core::PageObject& object, std::size_t index,
 void clearChildren(QSGNode* root);
 
 NodeContexts nodeContexts(QQuickWindow* window, bool software, const ImageStore* images, double rasterScale,
-                          bool forceRasterized);
+                          bool forceRasterized, bool showHidden = false);
 
 } // namespace actcraft::render

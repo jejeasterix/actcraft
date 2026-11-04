@@ -38,6 +38,9 @@ bool ShapeTool::dragged() const
 
 core::PointF ShapeTool::snapped(core::PointF point) const
 {
+    if (m_context.snapDisabled) {
+        return point; // mode conception (F-560) : accrochage coupé
+    }
     const core::Page& page = m_context.document.page();
     return core::nearestGridPoint(page.grid, point, page.width, page.height).value_or(point);
 }
