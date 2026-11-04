@@ -1,9 +1,10 @@
 // L6-T14 : modèle du navigateur d'objet (F-820, F-821).
 //
-// Invariant gardé (amendement 4, A9) : verrouiller ne rend aucun core::Change (objectflags.h) ; le contrôleur
-// n'émet alors ni observateur, ni pageContentChanged, ni documentChanged. Un modèle qui ne suivrait que les
-// signaux du document (comme PageThumbnails) garderait LockedRole périmé : lockFromElsewhereRefreshes et
-// toggleHiddenAndLocked le distinguent.
+// Invariant gardé (amendement 4, A9 ; L6-C2) : verrouiller ne rend aucun core::Change (objectflags.h) ; le
+// contrôleur n'émet alors ni observateur, ni pageContentChanged, ni documentChanged, mais objectFlagsChanged,
+// à chaque changement de drapeau d'objet, quel que soit le chemin. Un modèle qui ne suivrait que les signaux
+// de contenu (comme PageThumbnails), ou Commands::triggered par identifiant de commande, garderait LockedRole
+// périmé : lockFromElsewhereRefreshes et toggleHiddenAndLocked le distinguent.
 //
 // Groupes (règle D9) : le dessin et la sélection lisent chaque membre, jamais l'objet Group, rangé au sommet
 // de sa couche par makeGroupCommand. Un modèle qui lirait l'objet Group (drapeau, rang) masquerait sans effet
@@ -391,8 +392,11 @@ private slots:
         QVERIFY(!lockedInDocument(f.controller, f.shape2));
     }
 
-    // Le test qui distingue : sous le patron de PageThumbnails (signaux du document seulement), la seconde
-    // moitié resterait à `resets` et LockedRole à faux.
+    // Le test qui distingue (L6-C2, H6-15) : un verrou posé par un autre chemin (gestionnaire d'object.lock,
+    // modèle de propriétés) passe par DocumentController::execute, sans Change ni Commands::triggered. Sous le
+    // patron écarté (suivre triggered par identifiant de commande), LockedRole resterait à faux tant que
+    // personne n'émet `object.lock` ; le signal du contrôleur objectFlagsChanged le remet à jour seul, une
+    // fois, et triggered ne déclenche plus rien.
     void lockFromElsewhereRefreshes()
     {
         Fixture f;
@@ -401,20 +405,45 @@ private slots:
                                                                           core::ObjectFlag::Locked, true));
         QVERIFY(lockedInDocument(f.controller, f.shape1));
         QCoreApplication::processEvents();
-        QCOMPARE(f.tree.resetCount(), resets); // le document n'a rien émis
-
-        emit f.commands.triggered(QStringLiteral("view.fit"), QVariant()); // commande étrangère : rien
-        QCoreApplication::processEvents();
-        QCOMPARE(f.tree.resetCount(), resets);
-
-        emit f.commands.triggered(QStringLiteral("object.lock"), QVariant());
-        QCoreApplication::processEvents();
-        QCOMPARE(f.tree.resetCount(), resets + 1);
+        QCOMPARE(f.tree.resetCount(), resets + 1); // sans autre événement
         QCOMPARE(roleOf(f.tree, f.shape1, ui::ObjectTreeModel::LockedRole).toBool(), true);
 
+        emit f.commands.triggered(QStringLiteral("view.fit"), QVariant()); // commande étrangère : rien
+        emit f.commands.triggered(QStringLiteral("object.lock"), QVariant()); // contournement retiré : rien
         emit f.commands.triggered(QStringLiteral("object.drag-copy"), QVariant());
         QCoreApplication::processEvents();
+        QCOMPARE(f.tree.resetCount(), resets + 1);
+
+        // Verrou déjà posé : rien ne change, aucune remise à jour.
+        f.controller.execute(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{f.shape1},
+                                                                          core::ObjectFlag::Locked, true));
+        QCoreApplication::processEvents();
+        QCOMPARE(f.tree.resetCount(), resets + 1);
+
+        f.controller.execute(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{f.shape1},
+                                                                          core::ObjectFlag::Locked, false));
+        QCoreApplication::processEvents();
         QCOMPARE(f.tree.resetCount(), resets + 2);
+        QCOMPARE(roleOf(f.tree, f.shape1, ui::ObjectTreeModel::LockedRole).toBool(), false);
+    }
+
+    // Masquer entre dans la pile : la ligne suit l'annulation et le rétablissement (une remise à jour chacun,
+    // regroupée avec documentChanged et l'observateur).
+    void hiddenRowFollowsUndoAndRedo()
+    {
+        Fixture f;
+        QVERIFY(f.tree.setHidden(rowOf(f.tree, f.shape2), true));
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, f.shape2, ui::ObjectTreeModel::HiddenRole).toBool(), true);
+        const int resets = f.tree.resetCount();
+        f.controller.undo();
+        QCoreApplication::processEvents();
+        QCOMPARE(f.tree.resetCount(), resets + 1);
+        QCOMPARE(roleOf(f.tree, f.shape2, ui::ObjectTreeModel::HiddenRole).toBool(), false);
+        f.controller.redo();
+        QCoreApplication::processEvents();
+        QCOMPARE(f.tree.resetCount(), resets + 2);
+        QCOMPARE(roleOf(f.tree, f.shape2, ui::ObjectTreeModel::HiddenRole).toBool(), true);
     }
 
     // Branche « ancre = objet » de move : la ligne passe juste sous l'objet de la ligne d'au-dessus.
