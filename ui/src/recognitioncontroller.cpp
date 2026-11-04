@@ -475,9 +475,6 @@ void RecognitionController::convertToShape()
         return;
     }
     forgetPending(selected);
-    for (const core::ObjectId id : selected) {
-        m_arrivedAt.erase(id); // recognizeShapes ne lit pas l'heure d'arrivée : seul le texte la consomme
-    }
     recognizeShapes(selected);
 }
 
@@ -740,6 +737,10 @@ void RecognitionController::recognizeShapes(const std::vector<core::ObjectId>& s
     }
     if (removed.empty()) {
         return;
+    }
+    // Remplacés par une forme : plus suivis. Les traits restés traits gardent leur heure d'arrivée.
+    for (const core::ObjectId id : removed) {
+        m_arrivedAt.erase(id);
     }
     // Une étape : Annuler rend les traits d'un coup (core::ReplaceObjectsCommand par DocumentInsertions).
     insertions.replaceObjects(std::move(removed), std::move(added));

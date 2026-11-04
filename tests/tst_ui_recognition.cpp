@@ -892,7 +892,7 @@ private slots:
         ToolHost* tools = toolsOf(w.main);
         QVERIFY(tools != nullptr);
         w.controller->commitStroke(strokeThrough(circlePoints({400, 300}, 120))); // devient une ellipse
-        w.controller->commitStroke(strokeThrough(scribblePoints()));                // reste un trait
+        w.controller->commitStroke(strokeThrough(scribblePoints()));              // reste un trait
         QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
         QVERIFY(w.main.run(QStringLiteral("tool.select")));
         tools->selectAll();
