@@ -770,8 +770,18 @@ private slots:
         QTRY_COMPARE(menu.count(), 1);
         QVERIFY(ticker->running());
 
-        // Clic droit sur la bande : aucun menu de la page, le message s'arrête.
-        QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, zone.center().toPoint());
+        // Clic droit sur la bande : aucun menu de la page, le message s'arrête. Le menu de la page ouvert
+        // ci-dessus reste ouvert : le clic doit tomber sur la bande hors de lui (précédent : tst_ui_clock.cpp).
+        QObject* pageMenu = main.window()->findChild<QObject*>(QStringLiteral("pageContextMenu"));
+        QVERIFY(pageMenu);
+        auto* menuContent = pageMenu->property("contentItem").value<QQuickItem*>();
+        QVERIFY(menuContent);
+        QQuickItem* menuBox = menuContent->parentItem() ? menuContent->parentItem() : menuContent;
+        const QPointF onBand = zone.center();
+        QVERIFY(zone.contains(onBand));
+        QVERIFY2(!menuBox->mapRectToScene(QRectF(0, 0, menuBox->width(), menuBox->height())).contains(onBand),
+                 "clic sur la bande hors du menu de la page");
+        QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, onBand.toPoint());
         QTRY_VERIFY(!ticker->running());
         QCOMPARE(menu.count(), 1);
     }
