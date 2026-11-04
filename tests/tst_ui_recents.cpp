@@ -134,16 +134,18 @@ private slots:
         QTemporaryDir dir;
         ui::DocumentController controller;
         ui::RecentDocuments list;
-        QObject::connect(&controller, &ui::DocumentController::saveFinished, &list, [&](bool ok, const QString&) {
-            if (ok) {
-                list.note(controller.fileUrl());
-            }
-        });
-        QObject::connect(&controller, &ui::DocumentController::loadFinished, &list, [&](bool ok, const QString&) {
-            if (ok) {
-                list.note(controller.fileUrl());
-            }
-        });
+        QObject::connect(&controller, &ui::DocumentController::saveFinished, &list,
+                         [&](bool ok, const QString&) {
+                             if (ok) {
+                                 list.note(controller.fileUrl());
+                             }
+                         });
+        QObject::connect(&controller, &ui::DocumentController::loadFinished, &list,
+                         [&](bool ok, const QString&) {
+                             if (ok) {
+                                 list.note(controller.fileUrl());
+                             }
+                         });
         const QUrl first = QUrl::fromLocalFile(dir.filePath(QStringLiteral("premier.actcraft")));
         const QUrl second = QUrl::fromLocalFile(dir.filePath(QStringLiteral("second.actcraft")));
         QVERIFY(ui::saveDocument(core::Document(), second).ok);
