@@ -4,6 +4,7 @@
 #include <actcraft/ui/commands.h> // types complets exigés par moc pour les propriétés
 #include <actcraft/ui/preferences.h>
 
+#include <QHash>
 #include <QObject>
 #include <QPointF>
 #include <QPointer>
@@ -139,12 +140,17 @@ private:
     void bindCommands();
     void unbindCommands();
     void applyLayoutDir(const QString& id);
+    bool write(const actions::Profile& profile); // faux, signal failed émis, si l'écriture est refusée
+    bool hasPendingWrite() const noexcept;
 
     actions::ProfileStore m_store;
     QString m_userRoot;
     QPointer<Preferences> m_preferences;
     QPointer<Commands> m_commands;
     actions::Profile m_profile;
+    // Profils quittés avec une modification non écrite (activation pendant un contact, ou écriture refusée) :
+    // écrits par le prochain saveNow(), repris tels quels si on les réactive avant. Jamais le profil courant.
+    QHash<QString, actions::Profile> m_departed;
     QTimer m_saveTimer;
     bool m_contactActive = false;
     bool m_dirty = false;

@@ -285,8 +285,8 @@ private slots:
         auto c = controller(&prefs, &commands);
         const int before = c->saveCount();
         QSignalSpy failed(c.get(), &ui::ProfileController::failed);
-        const QString dock = c->paletteDock() == QStringLiteral("left") ? QStringLiteral("right")
-                                                                        : QStringLiteral("left");
+        const QString dock =
+            c->paletteDock() == QStringLiteral("left") ? QStringLiteral("right") : QStringLiteral("left");
         c->setPaletteDock(dock);
         c->saveNow();
         QCOMPARE(failed.count(), 1);
@@ -308,8 +308,8 @@ private slots:
         const QString other = QStringLiteral("en-classe");
         QVERIFY(left != other);
         const int before = c->saveCount();
-        const QString dock = c->paletteDock() == QStringLiteral("left") ? QStringLiteral("right")
-                                                                        : QStringLiteral("left");
+        const QString dock =
+            c->paletteDock() == QStringLiteral("left") ? QStringLiteral("right") : QStringLiteral("left");
         c->setContactActive(true);
         c->setPaletteDock(dock);
         QVERIFY(c->activate(other));
@@ -328,8 +328,8 @@ private slots:
     }
 
     // Garde-fou (N1) : tout test qui charge la fenêtre principale isole les réglages (INI dans un dossier
-    // jetable) et les profils (profileRoot). Main.qml crée Preferences {} (QSettings()) et active un profil au
-    // démarrage : sans isolation, chaque passage écrit le profil courant dans les réglages du poste.
+    // jetable) et les profils (profileRoot). Main.qml crée Preferences {} (QSettings()) et active un profil
+    // au démarrage : sans isolation, chaque passage écrit le profil courant dans les réglages du poste.
     void mainWindowTestsAreIsolated()
     {
         const QDir tests = QFileInfo(QString::fromUtf8(__FILE__)).absoluteDir();

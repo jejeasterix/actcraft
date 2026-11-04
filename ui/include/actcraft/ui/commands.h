@@ -81,6 +81,10 @@ public:
     Q_INVOKABLE void setEnabled(const QString& id, bool enabled);
     Q_INVOKABLE bool isChecked(const QString& id) const;
     Q_INVOKABLE void setChecked(const QString& id, bool checked);
+    // Verrou de classe du registre (D6-7) : désactive les commandes verrouillables sans toucher leur état
+    // propre ; gardé à travers reload().
+    void setLocked(bool locked);
+    bool isLocked() const noexcept;
 
 signals:
     void layoutChanged();

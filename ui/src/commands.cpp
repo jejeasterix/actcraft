@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QJSEngine>
+#include <QScopeGuard>
 #include <QStandardPaths>
 
 #include <algorithm>
@@ -44,14 +45,21 @@ void Commands::reload()
         m_reloadPending = true;
         return;
     }
-    // L'état coché (outil courant, plein écran) n'est pas dans les fichiers relus : gardé pour les commandes
-    // qui existent encore.
+    // L'état posé par l'interface n'est pas dans les fichiers relus : coché (outil courant, plein écran),
+    // désactivé (Annuler sans historique) et verrou de classe, gardés pour les commandes qui existent encore.
+    // L'état propre (isOwnEnabled), pas isEnabled() : celui-ci voit à travers le verrou, et le recopier
+    // éteindrait pour de bon une commande verrouillable rechargée sous verrou.
     QStringList checked;
+    QStringList disabled;
     for (const QString& id : m_registry.ids()) {
         if (m_registry.isChecked(id)) {
             checked << id;
         }
+        if (!m_registry.isOwnEnabled(id)) {
+            disabled << id;
+        }
     }
+    const bool locked = m_registry.isLocked();
     m_registry = actions::CommandRegistry{};
     m_layout = actions::Layout{};
     m_errors.clear();
@@ -62,6 +70,12 @@ void Commands::reload()
     for (const QString& id : std::as_const(checked)) {
         m_registry.setChecked(id, true); // sans effet sur une commande disparue
     }
+    for (const QString& id : std::as_const(disabled)) {
+        if (m_registry.find(id)) {
+            m_registry.setEnabled(id, false);
+        }
+    }
+    m_registry.setLocked(locked);
     const QString resourceDir = actions::dataResourceDir();
     QString used;
     const QByteArray json =
@@ -288,9 +302,14 @@ const actions::CommandRegistry& Commands::registry() const noexcept
 
 bool Commands::trigger(const QString& id, const QVariant& argument)
 {
-    ++m_triggerDepth;
-    const bool done = m_registry.trigger(id, argument, m_platform);
-    --m_triggerDepth;
+    bool done = false;
+    {
+        // Profondeur rendue même si le gestionnaire lève une exception : sinon tout reload() serait différé
+        // à jamais.
+        ++m_triggerDepth;
+        const auto leave = qScopeGuard([this] { --m_triggerDepth; });
+        done = m_registry.trigger(id, argument, m_platform);
+    }
     if (m_triggerDepth == 0 && m_reloadPending) {
         m_reloadPending = false;
         reload();
@@ -394,6 +413,20 @@ void Commands::setChecked(const QString& id, bool checked)
     }
     m_registry.setChecked(id, checked);
     bumpState();
+}
+
+void Commands::setLocked(bool locked)
+{
+    if (m_registry.isLocked() == locked) {
+        return;
+    }
+    m_registry.setLocked(locked);
+    bumpState();
+}
+
+bool Commands::isLocked() const noexcept
+{
+    return m_registry.isLocked();
 }
 
 } // namespace actcraft::ui

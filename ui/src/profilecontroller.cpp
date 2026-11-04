@@ -117,15 +117,34 @@ bool ProfileController::activate(const QString& id)
         emit failed(tr("Identifiant de profil refusé : « %1 »").arg(id));
         return false;
     }
+    // Le profil quitté garde sa dernière modification : écrite tout de suite, mais jamais pendant un contact
+    // (mise de côté jusqu'au relâché).
+    if (!m_contactActive) {
+        saveNow();
+    }
+    // Version la plus récente : le profil courant s'il reste modifié, un profil mis de côté, sinon le disque.
     QString error;
-    std::optional<actions::Profile> loaded = m_store.load(id, error);
+    std::optional<actions::Profile> loaded;
+    bool carried = false;
+    if (id == m_profile.id && m_dirty) {
+        loaded = m_profile;
+        carried = true;
+    } else if (const auto it = m_departed.constFind(id); it != m_departed.cend()) {
+        loaded = it.value();
+        carried = true;
+    } else {
+        loaded = m_store.load(id, error);
+    }
     if (!loaded) {
         emit failed(error);
         return false;
     }
-    saveNow(); // le profil quitté garde sa dernière modification
+    m_departed.remove(id);
+    if (m_dirty && id != m_profile.id) {
+        m_departed.insert(m_profile.id, m_profile);
+    }
     m_profile = std::move(*loaded);
-    m_dirty = false;
+    m_dirty = carried;
     applyLayoutDir(id);
     if (m_preferences) {
         m_preferences->setCurrentProfile(id);
@@ -149,18 +168,35 @@ void ProfileController::applyLayoutDir(const QString& id)
 void ProfileController::saveNow()
 {
     m_saveTimer.stop();
-    if (!m_dirty) {
-        return;
+    // Une écriture refusée reste en attente : réessayée au prochain enregistrement, au plus tard à la
+    // fermeture. Copie : un récepteur de saved() peut réactiver un profil pendant la boucle.
+    const QHash<QString, actions::Profile> departed = std::exchange(m_departed, {});
+    for (const actions::Profile& profile : departed) {
+        if (!write(profile) && !m_departed.contains(profile.id) && profile.id != m_profile.id) {
+            m_departed.insert(profile.id, profile);
+        }
     }
-    m_dirty = false;
+    if (m_dirty && write(m_profile)) {
+        m_dirty = false;
+    }
+}
+
+bool ProfileController::write(const actions::Profile& profile)
+{
     QString error;
-    if (!m_store.save(m_profile, error)) {
+    if (!m_store.save(profile, error)) {
         emit failed(error);
-        return;
+        return false;
     }
     ++m_saveCount;
     emit saved();
     emit listChanged(); // « modifié » d'un profil fourni
+    return true;
+}
+
+bool ProfileController::hasPendingWrite() const noexcept
+{
+    return m_dirty || !m_departed.isEmpty();
 }
 
 const actions::Profile& ProfileController::profile() const noexcept
@@ -514,7 +550,7 @@ void ProfileController::setContactActive(bool active)
     m_contactActive = active;
     if (active) {
         m_saveTimer.stop(); // aucune écriture pendant un contact
-    } else if (m_dirty) {
+    } else if (hasPendingWrite()) {
         m_saveTimer.start(); // le relâché relance l'attente entière
     }
     emit contactActiveChanged();
