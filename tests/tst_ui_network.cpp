@@ -58,6 +58,7 @@ private slots:
     void passwordNeverInSettings();
     void noProxyByDefault();
     void unavailableOffWindows();
+    void passwordFailureReported();
 
 private:
     QString iniPath() const { return m_dir->filePath(QStringLiteral("poste.ini")); }
@@ -269,6 +270,20 @@ void TstUiNetwork::unavailableOffWindows()
         QVERIFY(!SecretStore::write(m_secrets.constLast(), kPassword));
         QVERIFY(!SecretStore::read(m_secrets.constLast()).has_value());
     }
+}
+
+// Un mot de passe que le trousseau n'a pas gardé ne se perd pas en silence : setPassword() le dit, et la page
+// garde le champ. Hors Windows, le magasin indisponible fait échouer l'écriture.
+void TstUiNetwork::passwordFailureReported()
+{
+    const QString secret = secretName();
+    Preferences prefs(iniPath(), nullptr);
+    NetworkSettings settings(&prefs, secret, nullptr);
+    QCOMPARE(settings.setPassword(QString::fromLatin1(kPassword)), SecretStore::available());
+    QCOMPARE(SecretStore::read(secret).has_value(), SecretStore::available());
+    // Vide : rien à garder, jamais un échec, même sans trousseau.
+    QVERIFY(settings.setPassword(QString()));
+    QVERIFY(!SecretStore::read(secret).has_value());
 }
 
 QTEST_MAIN(TstUiNetwork)

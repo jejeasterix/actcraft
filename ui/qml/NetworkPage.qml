@@ -41,7 +41,7 @@ Item {
             TextField {
                 objectName: "proxyHostField"
                 Layout.fillWidth: true
-                placeholderText: qsTr("aucun mandataire")
+                placeholderText: qsTr("mandataire du système")
                 text: network.host
                 onEditingFinished: network.host = text
             }
@@ -50,6 +50,9 @@ Item {
                 objectName: "proxyPortBox"
                 from: 1; to: 65535; editable: true
                 value: network.port
+                // Un port s'écrit sans séparateur de milliers : « 8080 », pas « 8 080 ».
+                textFromValue: function(value) { return value.toString() }
+                valueFromText: function(text) { return parseInt(text, 10) }
                 onValueModified: network.port = value
             }
             Label { text: qsTr("Compte") }
@@ -66,14 +69,25 @@ Item {
                 Layout.fillWidth: true
                 echoMode: TextInput.Password
                 placeholderText: qsTr("gardé dans le trousseau du poste")
-                // Un champ quitté vide ne l'efface pas : seul « Aucun mandataire » efface le mot de passe.
+                // Un champ quitté vide ne l'efface pas : seul « Mandataire du système » efface le mot de passe.
+                // Le champ n'est vidé que si le trousseau a gardé le mot de passe ; sinon il reste, et le dit.
                 onEditingFinished: {
                     if (passwordField.text.length > 0) {
-                        network.setPassword(passwordField.text)
-                        passwordField.text = ""
+                        const kept = network.setPassword(passwordField.text)
+                        passwordErrorLabel.visible = !kept
+                        if (kept)
+                            passwordField.text = ""
                     }
                 }
             }
+        }
+        Label {
+            id: passwordErrorLabel
+            objectName: "proxyPasswordErrorLabel"
+            visible: false
+            text: qsTr("Le trousseau du poste n'a pas gardé le mot de passe : il n'est pas enregistré.")
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
         }
         RowLayout {
             enabled: network.available
@@ -84,8 +98,11 @@ Item {
             }
             Button {
                 objectName: "proxyClearButton"
-                text: qsTr("Aucun mandataire")
-                onClicked: network.clear()
+                text: qsTr("Mandataire du système")
+                onClicked: {
+                    network.clear()
+                    passwordErrorLabel.visible = false
+                }
             }
         }
     }

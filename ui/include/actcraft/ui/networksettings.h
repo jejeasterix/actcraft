@@ -14,7 +14,7 @@ class Preferences;
 // poste
 // (`network/proxy-*`) ; mot de passe dans le trousseau (SecretStore) et nulle part ailleurs : ni QSettings,
 // ni journal, ni message. Appliqué par QNetworkProxy::setApplicationProxy à la construction (démarrage) et à
-// chaque changement ; sans hôte, aucun mandataire.
+// chaque changement ; sans hôte, ActCraft n'en pose aucun et rend la main à la configuration du système.
 class NetworkSettings : public QObject
 {
     Q_OBJECT
@@ -44,9 +44,10 @@ public:
     void setUser(const QString& value);
     bool available() const; // trousseau présent (Windows)
 
-    Q_INVOKABLE void setPassword(const QString& password); // trousseau seulement ; vide : effacé
+    // Trousseau seulement ; vide : effacé. Faux si le trousseau n'a pas gardé le mot de passe.
+    Q_INVOKABLE bool setPassword(const QString& password);
     Q_INVOKABLE void apply();
-    Q_INVOKABLE void clear(); // hôte, port, compte et mot de passe effacés : aucun mandataire
+    Q_INVOKABLE void clear(); // hôte, port, compte et mot de passe effacés : mandataire du système
 
 signals:
     void changed();
