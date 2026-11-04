@@ -3,13 +3,14 @@
 Statut : repris le 2026-11-02, session « PC - ActCraft B (reprise 1) » — levée de la pause, décision de Jérôme du 2026-11-02 relayée par le Pilote, mot pour mot : « Je te laisse manager les sessions ActCraft. Il ne doit plus y avoir de blocage, surtout au lot 5. Et relance l'ActCraft B. » Elle remplace la pause du 2026-10-27 : enchaîner tâches et lots sans go jusqu'à la livraison du périmètre ; une question bloquante est tranchée depuis le cadrage et notée en hypothèse à revoir ; seule la release attend le go écrit de Jérôme. Règles : B sur le PC, P = 1, jamais de rebase, ne pas pousser main — en cours — ouvert le 2026-10-18 par l'orchestrateur de `livraison-complete`, sur la décision de Jérôme (parallélisation A, B, C : « Ok, pour À,B et C. Je te laisse entièrement à la manœuvre », relayé mot pour mot par la session Pilote)
 Gabarit : lots (lot 7 du chantier `livraison-complete`, exécuté en parallèle du lot 3)
 Étage : 3 (phase 2 du lot 7 : reprise par la nouvelle session le 2026-10-26 ; T19, T21, T24 mergées ; suite V11 verte ; V13 : L7-T23 et L7-T25 mergées ; V14 : L7-T26 ‖ L7-T30 lancées, L7-T30 mergée ; L7-T26 mergée ; V15 : L7-T31 et L7-T27 mergées ; V16 : L7-T29 et L7-T28 mergées ; V17 : L7-T32 mergée le 2026-11-02 ; V18 : L7-T33 essai 1 en échec (écarts de comportement du lot 3), essai 2 mergé le 2026-11-02 (812caaf) ; V19 : L7-T33b (fusion du lot 4) mergée (b2db837) ; V20 : L7-T34 mergée le 2026-11-03 (bbf4859) ; fin de lot 3.8 ; arrêt de vague du 2026-10-27 annulé, B reste sur le PC ; plan de phase 2 : docs/plans/2026-10-18-livraison-complete-lot7-phase2-amendement.md @ 141411d)
+Machine : Mac depuis le 2026-11-04 vers 9 h 40 (relève, mode Mac seul, consigne du Pilote) ; worktrees Mac : `~/projets/actcraft/.worktrees/livraison-complete-b` (chantier) et `…/livraison-complete-b--L7-corr` (tâches) ; build Mac dans `build-mac/` (Debug, Qt Homebrew), P = 1 ; restent au PC : banc, D3D11, `keyinjector_win`, `NOMS OK` (script de l'ancien dépôt absent du Mac), `captures.ps1`, graphe (`graphify update .` sur le Mac réécrit les chemins, piège noté par A)
 Worktree : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete-b   Branche : feat/livraison-complete-b   Base : feat/livraison-complete @ 7bb551c (+ merge du plan du lot 7 bf8c930 → 2d76ba6)
 Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Relectures : mac
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 33/33 tâches terminées (+ L7-T33b, corrective) ; fin de lot (3.8) en cours
-Tâche : fin du lot 7 (3.8) — correctifs de la relecture, L7-T36b (merge du lot 5 de A) — depuis 2026-11-04
+Tâche : L7-T36b — merge du lot 5 de A, essai 1 repris sur le Mac (preuves) — depuis 2026-11-04
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
