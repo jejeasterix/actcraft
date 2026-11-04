@@ -126,13 +126,14 @@ private:
 
     Changes push(std::vector<ObjectId> ids, ObjectProperty property, PropertyValue value)
     {
-        return m_stack.push(*m_document, std::make_unique<SetObjectPropertiesCommand>(0, std::move(ids), property,
-                                                                                      std::move(value)));
+        return m_stack.push(*m_document, std::make_unique<SetObjectPropertiesCommand>(
+                                             0, std::move(ids), property, std::move(value)));
     }
 
     Changes pushPage(PageProperty property, PropertyValue value)
     {
-        return m_stack.push(*m_document, std::make_unique<SetPagePropertiesCommand>(0, property, std::move(value)));
+        return m_stack.push(*m_document,
+                            std::make_unique<SetPagePropertiesCommand>(0, property, std::move(value)));
     }
 
 private slots:
@@ -222,7 +223,8 @@ private slots:
         QCOMPARE(numberOf(m_b, ObjectProperty::OutlineWidth), 5.0);
     }
 
-    // Nom, mots-clés, légende et son style : une étape, aucun pixel du cache (ni ObjectChanged, ni PageChanged).
+    // Nom, mots-clés, légende et son style : une étape, aucun pixel du cache (ni ObjectChanged, ni
+    // PageChanged).
     void nameOnlyChangeSparesTheCache()
     {
         LabelStyle style;
@@ -317,7 +319,8 @@ private slots:
         QCOMPARE(numberOf(m_a, ObjectProperty::Left), box.x);
     }
 
-    // Largeur de page : une étape (pas fusionnés compris), PageChanged ; la hauteur ne fusionne pas avec elle.
+    // Largeur de page : une étape (pas fusionnés compris), PageChanged ; la hauteur ne fusionne pas avec
+    // elle.
     void pageWidthChangeIsOneStep()
     {
         QCOMPARE(page().width, 1024.0);

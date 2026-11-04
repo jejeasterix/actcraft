@@ -49,14 +49,13 @@ bool isDelegated(ObjectProperty property) noexcept;
 
 // Types : texte (nom, légende, page), liste de textes (mots-clés), double (épaisseur, translucidité 0 … 255,
 // position, taille, angle), bool (visible, verrouillé, miroir), std::uint32_t (couleur Argb), énumérations.
-using PropertyValue =
-    std::variant<std::string, std::vector<std::string>, double, bool, std::uint32_t, Layer, PenStyle, FillKind,
-                 LabelStyle>;
+using PropertyValue = std::variant<std::string, std::vector<std::string>, double, bool, std::uint32_t, Layer,
+                                   PenStyle, FillKind, LabelStyle>;
 
-// Une même valeur posée sur un ou plusieurs objets d'une page : une étape d'annulation, chaque ancienne valeur
-// gardée par objet. Fusionne avec la suivante de même page, mêmes objets et même propriété (réglette glissée) ;
-// UndoStack::closeMerge() clôt l'étape (D10). Identifiants absents et objets auxquels la propriété ne
-// s'applique pas : ignorés. Changes : ObjectChanged par objet modifié (zone = emprise avant ∪ après) si la
+// Une même valeur posée sur un ou plusieurs objets d'une page : une étape d'annulation, chaque ancienne
+// valeur gardée par objet. Fusionne avec la suivante de même page, mêmes objets et même propriété (réglette
+// glissée) ; UndoStack::closeMerge() clôt l'étape (D10). Identifiants absents et objets auxquels la propriété
+// ne s'applique pas : ignorés. Changes : ObjectChanged par objet modifié (zone = emprise avant ∪ après) si la
 // propriété touche le cache, PageSettingsChanged par objet modifié sinon.
 class SetObjectPropertiesCommand final : public UndoCommand
 {
@@ -74,7 +73,8 @@ private:
     std::vector<ObjectId> m_objects;
     ObjectProperty m_property;
     PropertyValue m_value;
-    std::vector<std::pair<ObjectId, PageObject>> m_old; // objets modifiés, état d'avant ; rempli à chaque redo
+    std::vector<std::pair<ObjectId, PageObject>>
+        m_old; // objets modifiés, état d'avant ; rempli à chaque redo
 };
 
 enum class PageProperty : std::uint8_t
