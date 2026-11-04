@@ -218,7 +218,7 @@ Lot 2b (plan `docs/plans/2026-10-15-livraison-complete-lot2b-PLAN.md` ; vagues V
 
 ## Lot 6 — exécution sur le Mac (session « Mac 6 », depuis le 2026-11-04)
 
-Lot : 6 « Navigateurs, propriétés, profils » — 24/43 tâches mergées (L6-T0 à L6-T5, L6-T7, L6-T9, L6-T10, L6-T11, L6-T12, L6-T13, L6-T6, L6-T8, L6-T14 (+ L6-C4), L6-T15, L6-T16, L6-C2, L6-C1, L6-C3, L6-C5, L6-C6, L6-C7, L6-C8 ; 38 + L6-P1, L6-P2) ; V1 close ; amendements 4 (a00ffee) et 4b (5f29ec3) appliqués ; V2 close ; V3 en cours (L6-T14 essai 3) ; V4 en cours (L6-T7, L6-T11) ; L6-C3 à rejouer ; interrompu le 2026-11-04 par la relève de machine (PC éteint, Mac seul) — depuis 2026-11-04
+Lot : 6 « Navigateurs, propriétés, profils » — 25/43 tâches mergées (L6-T0 à L6-T5, L6-T7, L6-T9, L6-T10, L6-T11, L6-T12, L6-T13, L6-T6, L6-T8, L6-T14 (+ L6-C4), L6-T15, L6-T16, L6-C2, L6-C1, L6-C3, L6-C5, L6-C6, L6-C7, L6-C8, L6-C9 ; 38 + L6-P1, L6-P2) ; V1 close ; amendements 4 (a00ffee) et 4b (5f29ec3) appliqués ; V2 close ; V3 en cours (L6-T14 essai 3) ; V4 en cours (L6-T7, L6-T11) ; L6-C3 à rejouer ; interrompu le 2026-11-04 par la relève de machine (PC éteint, Mac seul) — depuis 2026-11-04
 Référence rapide du lot 6 (Mac, 06a3f8f, `build-mac` debug hors écran) : 164/164 (3 sautés : oracles et miniatures des paperboards réels absents). N6 = 164.
 Reprise (lot 6) : lancé le 2026-11-04 par le pilote, sur le Mac (décision de Jérôme, 2026-11-04, à la question « Je lance le lot 6 d'ActCraft sur Mac 6 ? » : « Oui. Tu n'as pas besoin de mon accord, la demande d'origine vient de moi. »). Base : `feat/livraison-complete` @ 692e62f (lot 5 mergé dans `main`, c1046b9). Le PC mène en parallèle la passe Windows et la porte de fin du lot 5 sur la même branche : `git pull` (merge) avant chaque commit, push aussitôt ; cette section et les sections du lot 6 sont les seules écrites par la session du Mac.
 Règles du Mac (consignes `~/pilotage-mac/consignes-actcraft.md`) : construction `build-mac` (Qt Homebrew, Ninja, Debug, banc ON), suites `ctest` hors écran sous `jeton.cjs` (qui prend `~/.verrou-suite`), **une seule tâche qui construit à la fois** (P = 1, 8 Go) ; ccache installé pour les worktrees de tâche. Reportés au PC (« restes pour le PC », passe groupée en fin de lot) : `TESTS OK` MSVC hors CI, captures et banc D3D11 à l'écran, `captures.ps1`/`bench.ps1`, `NOMS OK`, contrôle des titres du corpus, confrontation vidéos/REA de L6-T0 (corpus et ancien dépôt absents du Mac, comme H5-11). Preuve Windows des PR : CI gratuite (dépôt public).
@@ -232,7 +232,6 @@ Hypothèses du lot 6 décidées sur le Mac : **H6-11** (orchestrateur, 2026-11-0
 Questions à Jérôme (lot 6) : aucune ouverte (H6-6 accordée le 2026-10-18 ; H6-6b « MPL 1.1 » le 2026-10-21).
 Reprise après la relève (2026-11-04, ouvrière du pilote du Mac, handoff `1c566e9c`) : chantier réenregistré ; L6-C3 en rejeu ; L6-T14 essai 3 relancé (`concepteur-critique`) ; L6-T7 relancée depuis c8146ed ; L6-T11 en revue immédiate, rejeu après L6-C3.
 Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstruites) : 207/207, 0 avertissement — orchestrateur, 2026-11-04.
-Tâche : L6-C9 — mineurs de la contre-revue de L6-T12 (n1, n3, n4) — depuis 2026-11-04
 Tâche : L6-T17 — étiquettes au survol, scénario `etiquettes` — depuis 2026-11-04
 Tâche : L6-P1 — couleur appliquée aux textes sélectionnés, une étape — depuis 2026-11-04
 Tâche : L6-P2 — entrées du lot 6 dans le menu d'objet — depuis 2026-11-04
@@ -267,7 +266,7 @@ Tâche : L6-P2 — entrées du lot 6 dans le menu d'objet — depuis 2026-11-04
 | L6-T17 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T17`, base 2cb850e8 | étiquettes au survol, scénario `etiquettes` ; `implementeur-tdd` |
 | L6-P1 | en cours | 1/3 | `.worktrees/livraison-complete--L6-P1`, base 2cb850e8 | couleur appliquée aux textes sélectionnés, une étape ; `concepteur-critique`, revue immédiate au retour |
 | L6-P2 | en cours | 1/3 | `.worktrees/livraison-complete--L6-P2`, base 2cb850e8 | entrées du lot 6 dans le menu d'objet ; `implementeur-tdd` |
-| L6-C9 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C9`, base 5ea6a4f | n1 `setValue` vrai sans effet (épaisseur 0 d'un trait), n3 premier pas d'un glissé sans clôture, n4 tests (index de `dataChanged`, NaN, `endEdit()`) ; `implementeur-tdd` |
+| L6-C9 | terminée | 1/3 | merge e98c9fbc | mineurs n1, n3, n4 de la revue de L6-T12 (PropertyModel) ; rejeu 207/207, 0 avertissement ; mutations n1, n3, n4 rouges ; n2 laissé à la porte de fin |
 
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
