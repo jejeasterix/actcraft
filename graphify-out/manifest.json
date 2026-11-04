@@ -2475,8 +2475,8 @@
     "semantic_hash": ""
   },
   "tests/support/presentationharness.h": {
-    "mtime": 1793686974.1618595,
-    "ast_hash": "2761e02edd6e4c7b25ca723e89f6c134",
+    "mtime": 1793745499.4906056,
+    "ast_hash": "06247212e80c828582c4b8157e055faa",
     "semantic_hash": ""
   },
   "tests/tst_core_equation.cpp": {
@@ -2495,8 +2495,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_calculator.cpp": {
-    "mtime": 1793731908.503724,
-    "ast_hash": "d9dae925ed42512c39d46c0d774953f0",
+    "mtime": 1793745505.0961392,
+    "ast_hash": "65e905b5dd7a7be10b8df4eff9a8135c",
     "semantic_hash": ""
   },
   "tests/tst_ui_camera.cpp": {
@@ -2505,13 +2505,13 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_clock.cpp": {
-    "mtime": 1793741365.40705,
-    "ast_hash": "cf266102b92250aa2e0b34efcfe822f4",
+    "mtime": 1793745505.0930586,
+    "ast_hash": "ac854875039f8779771f18c7d4dbd3f3",
     "semantic_hash": ""
   },
   "tests/tst_ui_curtain.cpp": {
-    "mtime": 1793731908.5616765,
-    "ast_hash": "c2f86a2e9e8b80ece3e23c31b1b6fb55",
+    "mtime": 1793745514.0339584,
+    "ast_hash": "20c02b4029a2d44401fec06ccac7d3fe",
     "semantic_hash": ""
   },
   "tests/tst_ui_desktop.cpp": {
@@ -2520,8 +2520,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_dice.cpp": {
-    "mtime": 1793731704.014047,
-    "ast_hash": "e9f7115c7f7206978614aa2d15e86f7f",
+    "mtime": 1793745505.0977125,
+    "ast_hash": "c16e6f7fe3c5e7225523d35ddfef2037",
     "semantic_hash": ""
   },
   "tests/tst_ui_equation.cpp": {
@@ -2570,13 +2570,13 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_spotlight.cpp": {
-    "mtime": 1793731908.937668,
-    "ast_hash": "0c9470def04171f7d871d743f3a29d3f",
+    "mtime": 1793745505.0845163,
+    "ast_hash": "f837935aab3b1a5707523666b87d427a",
     "semantic_hash": ""
   },
   "tests/tst_ui_ticker.cpp": {
-    "mtime": 1793731901.0696354,
-    "ast_hash": "10a6da3679d7d8d55c802c5d1ad4d2b3",
+    "mtime": 1793758092.8512015,
+    "ast_hash": "c6353084c67655322792c61c4056c2ff",
     "semantic_hash": ""
   },
   "tests/tst_ui_transitions.cpp": {
@@ -2695,13 +2695,13 @@
     "semantic_hash": ""
   },
   "ui/src/tickercontroller.cpp": {
-    "mtime": 1793686974.3971717,
-    "ast_hash": "1155fa6ef02a31c445dbf8dcd4c3ee90",
+    "mtime": 1793756217.5229304,
+    "ast_hash": "3cc018b999bef673708724251cdab538",
     "semantic_hash": ""
   },
   "ui/src/tickercontroller.h": {
-    "mtime": 1793686974.398172,
-    "ast_hash": "8f4b844c1f9af504fa2a6565b4a56808",
+    "mtime": 1793756217.526927,
+    "ast_hash": "67727648211663ba00f732584c0f22ce",
     "semantic_hash": ""
   },
   "docs/sessions/2026-10-21-handoff-livraison-complete-b.md": {
