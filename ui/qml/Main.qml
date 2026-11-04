@@ -73,6 +73,22 @@ Window {
         userRoot: root.profileRoot
     }
 
+    // Lot 6 (L6-T22) : mode conception (F-560). Gestionnaire natif de `mode.design`, réglages du profil
+    // (section design-mode), bascule gardée pendant un contact. Il ne touche pas au document : la vue de page
+    // montre les objets masqués, les outils ignorent le verrou et l'accrochage ; miniatures et export non.
+    DesignMode {
+        id: appDesign
+        objectName: "appDesign"
+        commands: appCommands
+        profile: appProfile
+        contactActive: pageArea.view ? pageArea.view.contactActive : false
+    }
+    Binding {
+        target: pageArea.fixedPage
+        property: "showHiddenTranslucent"
+        value: appDesign.hiddenShown
+    }
+
     DocumentController {
         id: appDocument
         objectName: "documentController"
@@ -117,6 +133,8 @@ Window {
         documentController: appDocument
         view: pageArea.view
         liftLayer: pageArea.liftLayer
+        lockIgnored: appDesign.lockIgnored
+        snapDisabled: appDesign.snapDisabled
     }
 
     // Lot 5 : édition des objets, insertion, onglets, échanges de fichiers et impression (types C++ de L5-T1).
@@ -756,8 +774,6 @@ Window {
                           "text.spacing-down", "text.indent", "text.outdent", "text.bullets", "text.select-all",
                           "text.symbol"])
             appCommands.setHandler(id, function (arg) { appText.apply(id, arg) })
-        // Talon L6 : rempli par L6-T22.
-        appCommands.setHandler("mode.design", function () { console.info("mode.design") })
         appCommands.setHandler("view.browsers", function () { browserPanel.visible = !browserPanel.visible })
         appCommands.setHandler("browsers.dock-left", function () { browserPanel.side = "left" })
         appCommands.setHandler("browsers.dock-right", function () { browserPanel.side = "right" })

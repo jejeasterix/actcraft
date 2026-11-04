@@ -652,6 +652,41 @@ tools::UserState& ToolHost::user(input::UserId)
     return *m_user;
 }
 
+bool ToolHost::lockIgnored() const noexcept
+{
+    return m_lockIgnored;
+}
+
+void ToolHost::setLockIgnored(bool ignored)
+{
+    if (m_lockIgnored == ignored) {
+        return;
+    }
+    m_lockIgnored = ignored;
+    if (m_adapters) {
+        m_adapters->context.lockIgnored = ignored;
+    }
+    refreshSelection();
+    emit designFlagsChanged();
+}
+
+bool ToolHost::snapDisabled() const noexcept
+{
+    return m_snapDisabled;
+}
+
+void ToolHost::setSnapDisabled(bool disabled)
+{
+    if (m_snapDisabled == disabled) {
+        return;
+    }
+    m_snapDisabled = disabled;
+    if (m_adapters) {
+        m_adapters->context.snapDisabled = disabled;
+    }
+    emit designFlagsChanged();
+}
+
 ToolAdapters* ToolHost::adapters() const
 {
     render::InkItem* ink = m_view ? m_view->ink() : nullptr;
@@ -671,6 +706,8 @@ ToolAdapters* ToolHost::adapters() const
         *m_controller, *m_view, *ink, *m_liftLayer, m_commands.data(), self->user(),
         [self](const QVariantMap& frame, bool handles) { self->showSelection(frame, handles); },
         [self] { return self->m_trashArea; }, [self](bool hover) { self->setTrashHoverState(hover); });
+    m_adapters->context.lockIgnored = m_lockIgnored;
+    m_adapters->context.snapDisabled = m_snapDisabled;
     return m_adapters.get();
 }
 
