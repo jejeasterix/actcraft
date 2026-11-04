@@ -490,13 +490,14 @@ set_tests_properties(tst_captures_edition_export PROPERTIES
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
 
 # L7-T41 : chaque passe d'actcraft-captures a ses propres réglages. Deux passes à la suite dans un seul test (ordre
-# garanti, même sous -j) : la seconde lit les valeurs par défaut, pas le fondu écrit par la première.
+# garanti, même sous -j) : la seconde lit les valeurs par défaut, pas le fondu écrit par la première. Scénarios sous
+# tests/data/ : ce ne sont pas des preuves visuelles, captures.ps1 ne les joue pas.
 add_test(NAME tst_captures_reglages_isoles
     COMMAND ${CMAKE_COMMAND} -DCAPTURES=$<TARGET_FILE:actcraft-captures>
-        -DSCENARIOS=${PROJECT_SOURCE_DIR}/bench/scenarios -DSORTIE=${CMAKE_BINARY_DIR}/captures-reglages-isoles
+        -DSCENARIOS=${PROJECT_SOURCE_DIR}/tests/data/captures-reglages -DSORTIE=${CMAKE_BINARY_DIR}/captures-reglages-isoles
         -P ${CMAKE_CURRENT_LIST_DIR}/captures_reglages_isoles.cmake)
 set_tests_properties(tst_captures_reglages_isoles PROPERTIES
     TIMEOUT 300
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "REGLAGES ISOLES OK"
-    FAIL_REGULAR_EXPRESSION "REGLAGES PARTAGES|ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+    FAIL_REGULAR_EXPRESSION "REGLAGES PARTAGES|PASSE EN ECHEC|ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")

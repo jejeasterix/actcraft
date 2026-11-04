@@ -10,7 +10,12 @@ foreach(passe IN ITEMS reglages-ecrits reglages-vierges)
         OUTPUT_VARIABLE sortie ERROR_VARIABLE erreurs RESULT_VARIABLE code)
     message("== ${passe}\n${sortie}${erreurs}")
     if(NOT code EQUAL 0 OR NOT sortie MATCHES "SCENARIO OK")
-        message(FATAL_ERROR "REGLAGES PARTAGES : la passe ${passe} finit en ${code}")
+        # « REGLAGES PARTAGES » pour l'écart de l'effet global seul ; tout autre échec (plantage, scénario
+        # invalide, commande inconnue) garde son motif.
+        if(sortie MATCHES "LU transition\\.globalEffect=[^\n]* ECART")
+            message(FATAL_ERROR "REGLAGES PARTAGES : la passe ${passe} lit un effet global qu'elle n'a pas choisi")
+        endif()
+        message(FATAL_ERROR "PASSE EN ECHEC : ${passe} finit en « ${code} » sans écart d'effet global (sortie ci-dessus)")
     endif()
 endforeach()
 message("REGLAGES ISOLES OK")
