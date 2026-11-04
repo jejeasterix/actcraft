@@ -1,0 +1,10 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "reglages-gardes",
+  "description": "Talon L6 : rempli par L6-T18.",
+  "steps": [
+    {
+      "waitReady": true
+    }
+  ]
+}

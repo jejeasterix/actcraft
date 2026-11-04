@@ -1,0 +1,10 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "tableau-de-bord",
+  "description": "Talon L6 : rempli par L6-T23.",
+  "steps": [
+    {
+      "waitReady": true
+    }
+  ]
+}

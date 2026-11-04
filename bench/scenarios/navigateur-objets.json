@@ -1,0 +1,10 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "navigateur-objets",
+  "description": "Talon L6 : rempli par L6-T15.",
+  "steps": [
+    {
+      "waitReady": true
+    }
+  ]
+}

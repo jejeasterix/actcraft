@@ -4,6 +4,10 @@ actcraft_add_module(actions
         src/actions.cpp
         src/commandregistry.cpp
         src/layout.cpp
+        include/actcraft/actions/profile.h
+        src/profile.cpp
+        include/actcraft/actions/profilestore.h
+        src/profilestore.cpp
     DEPENDS
         ActCraft::core)
 
@@ -13,4 +17,9 @@ qt_add_resources(actcraft_actions "actions_data"
     BASE data
     FILES
         data/commands.json
-        data/layout.json)
+        data/layout.json
+        data/profiles/en-classe.json
+        data/profiles/preparation.json
+        data/profiles/lecture-ecriture.json
+        data/profiles/calcul-geometrie.json
+        data/profiles/son-image.json)

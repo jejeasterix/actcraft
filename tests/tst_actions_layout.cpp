@@ -358,7 +358,10 @@ private slots:
                 QCOMPARE(m.items, (QStringList{"desktop.annotate", "desktop.tools", "-", "tool.pen",
                                                "tool.highlighter", "tool.eraser", "-", "tool.handwriting",
                                                "tool.shape-recognition", "-", "present.curtain", ">spot",
-                                               ">camera", ">math", ">other-tools"}));
+                                               ">camera", ">math", ">other-tools",
+                                               // Lot 6 (L6-T1) : fin du menu, après « Autres outils ».
+                                               "-", "spell.check", "launcher.edit", "classroom.lock",
+                                               "classroom.password", "-", "profile.edit"}));
                 // Amendement 1 du lot 4, F-750 : « tool.text-vertical » en fin d'« Autres outils ».
                 for (const MenuSpec& sub : m.submenus) {
                     if (sub.id == QLatin1String("other-tools")) {
