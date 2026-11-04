@@ -22,6 +22,7 @@ Item {
         commands: root.commands
         profile: root.profile
         document: root.documentController
+        tools: root.tools
     }
 
     Column {
@@ -67,7 +68,8 @@ Item {
         }
     }
 
-    // Le glisser de la sélection n'existe pas encore : l'ajout et l'insertion passent par la commande
+    // Le lot 5 n'émet aucun signal de glisser de la sélection : l'ajout passe par la commande
+    // `shortcutbar.add-selection` (menu d'objet, gestionnaire posé par le modèle), l'insertion par
     // `shortcutbar.insert` (argument : identifiant du bouton).
     Component.onCompleted: {
         root.commands.setHandler("shortcutbar.insert", function (id) {
