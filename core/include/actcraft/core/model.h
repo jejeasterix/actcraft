@@ -171,6 +171,20 @@ struct Action
     std::string unknownKeys; // clés de l'élément inconnues de cette version (comme PageObject::unknownKeys)
 };
 
+// Style de la légende d'un objet (F-576), écrit par nous. Valeurs par défaut : pas de clé dans le fichier,
+// rien dans l'empreinte.
+struct LabelStyle
+{
+    std::string fontFamily; // vide : police de l'interface
+    double pointSize = 12;
+    Argb color = 0xFF000000;
+    PenStyle outline = PenStyle::None; // contour du cadre de la légende
+    Argb outlineColor = 0xFF000000;
+    Argb fill = 0x00000000;  // fond ; transparent par défaut
+    std::string unknownKeys; // sous-clés inconnues gardées (JSON compact), réécrites avec le style
+    bool operator==(const LabelStyle&) const = default;
+};
+
 // Propriétés communes à tout objet (décision 15).
 struct ObjectCommon
 {
@@ -182,8 +196,10 @@ struct ObjectCommon
     bool dragCopy = false;         // F-587 : chaque glissement dépose une copie, l'original reste
     std::uint8_t translucency = 0; // 0 opaque … 255 invisible : opacité = 1 − t / 255
     Restrictions restrictions;
-    Transform transform; // coordonnées de l'objet → coordonnées de page
-    std::string label;   // légende (F-576) ; vide : aucune
+    Transform transform;               // coordonnées de l'objet → coordonnées de page
+    std::string label;                 // légende (F-576) ; vide : aucune
+    LabelStyle labelStyle;             // style de la légende (F-576, L6-T10)
+    std::vector<std::string> keywords; // mots-clés (F-570, L6-T10) ; vide : aucun
     std::vector<Action> actions;
 };
 
@@ -523,6 +539,8 @@ struct Page
     Grid grid;
     std::string name;
     std::string notes;
+    std::string description;           // description de la page (F-570, L6-T10) ; vide : aucune
+    std::vector<std::string> keywords; // mots-clés de la page (F-570, L6-T10) ; vide : aucun
     PagePresentation presentation;
     // Clés de la page que cette version ne connaît pas (comme PageObject::unknownKeys) ; vide : aucune.
     std::string unknownKeys;
@@ -536,7 +554,9 @@ struct Page
 // flux et s'il y en a, celles d'une action, d'une ligne de texte ou d'un niveau de grille avec l'élément :
 // une page qui n'en a pas garde son empreinte d'avant L2-C8. Les réglages de présentation n'y entrent que
 // s'ils ne sont pas ceux par défaut (isDefault), en fin de flux avant les clés inconnues : une page sans eux
-// garde son empreinte d'avant le socle des lots 3 et 7.
+// garde son empreinte d'avant le socle des lots 3 et 7. Les données des lots 4 et 6 (mots-clés, description,
+// style de légende) n'y entrent qu'en toute fin, et seulement hors défaut : une page qui n'en a pas garde son
+// empreinte d'avant, une page qui en a prolonge le flux de la même page sans elles.
 std::uint64_t fingerprint(const Page& page) noexcept;
 
 } // namespace actcraft::core

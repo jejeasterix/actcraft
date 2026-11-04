@@ -32,6 +32,7 @@ namespace {
 
 struct App
 {
+    QTemporaryDir profiles; // profils d'essai (amendement 3, N1), détruit après le moteur
     QQmlApplicationEngine engine;
     QQuickWindow* window = nullptr;
     ui::PageView* view = nullptr;
@@ -44,6 +45,7 @@ bool start(App& app, bool cacheEnabled, bool generatedPage = true)
     StartupOptions options;
     options.cacheEnabled = cacheEnabled;
     options.generatedPage = generatedPage;
+    options.profileRoot = app.profiles.path();
     app.window = loadMainWindow(app.engine, options);
     if (!app.window || !QTest::qWaitForWindowExposed(app.window)) {
         return false;
@@ -162,7 +164,7 @@ private:
 private slots:
     void initTestCase()
     {
-        // Main.qml porte ToolHost (réglages par outil) : jamais le profil réel.
+        // Main.qml porte ToolHost (réglages par outil) et Preferences : jamais le profil réel.
         QVERIFY(m_settingsDir.isValid());
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());

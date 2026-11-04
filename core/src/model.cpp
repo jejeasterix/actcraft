@@ -108,10 +108,38 @@ void hashUnknownKeys(Fnv1a& h, const std::string& keys) noexcept
     }
 }
 
+// Données du lot 6 d'un objet (L6-T10) : vrai s'il en porte une hors défaut.
+bool hasLot6Data(const ObjectCommon& c) noexcept
+{
+    return !c.keywords.empty() || c.labelStyle != LabelStyle{};
+}
+
+void hashKeywords(Fnv1a& h, const std::vector<std::string>& words) noexcept
+{
+    h.u64(static_cast<std::uint64_t>(words.size()));
+    for (const std::string& word : words) {
+        h.text(word);
+    }
+}
+
+void hashLabelStyle(Fnv1a& h, const LabelStyle& style) noexcept
+{
+    const auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background, unknownKeys] =
+        style;
+    h.text(fontFamily);
+    h.f64(pointSize);
+    h.u32(textColor);
+    h.tag(outlineStyle);
+    h.u32(outlineColor);
+    h.u32(background);
+    hashUnknownKeys(h, unknownKeys); // vide : le flux d'avant les sous-clés gardées
+}
+
 void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
 {
+    // labelStyle, keywords : fin du flux (fingerprint, L6-T10), jamais ici.
     const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
-                 actions] = c;
+                 labelStyle, keywords, actions] = c;
     h.u64(id);
     h.text(name);
     h.tag(layer);
@@ -401,8 +429,8 @@ static_assert(std::variant_size_v<ObjectVariant> == kObjectKindCount,
 
 std::uint64_t fingerprint(const Page& page) noexcept
 {
-    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight,
-                 zones] = page;
+    const auto& [width, height, objects, background, grid, name, notes, description, keywords, presentation,
+                 unknownKeys, baseHeight, zones] = page; // description, keywords : fin du flux (L6-T10)
     Fnv1a h;
     h.f64(width);
     h.f64(height);
@@ -509,6 +537,28 @@ std::uint64_t fingerprint(const Page& page) noexcept
         h.i32(vertical);
         h.f64(frameWidth);
         h.f64(frameHeight);
+    }
+    // Données du lot 6 (L6-T10) : description et mots-clés de la page, mots-clés et style de légende des
+    // objets. En toute fin, derrière l'octet 0x6A, et seulement s'il y en a : une page sans elles garde son
+    // empreinte, une page qui en a prolonge le flux de la même page sans elles
+    // (lot6FieldsKeepOldFingerprints).
+    std::uint64_t carriers = 0;
+    for (const PageObject& object : objects) {
+        carriers += hasLot6Data(object.common) ? 1u : 0u;
+    }
+    if (carriers > 0 || !description.empty() || !keywords.empty()) {
+        h.byte(0x6A);
+        h.text(description);
+        hashKeywords(h, keywords);
+        h.u64(carriers);
+        for (std::size_t i = 0; i < objects.size(); ++i) {
+            const ObjectCommon& common = objects[i].common;
+            if (hasLot6Data(common)) {
+                h.u64(static_cast<std::uint64_t>(i));
+                hashKeywords(h, common.keywords);
+                hashLabelStyle(h, common.labelStyle);
+            }
+        }
     }
     return h.value();
 }

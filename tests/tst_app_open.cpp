@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
@@ -19,8 +20,17 @@ using namespace actcraft;
 class TstAppOpen : public QObject
 {
     Q_OBJECT
+    QTemporaryDir m_settingsDir;
 
 private slots:
+    void initTestCase()
+    {
+        // Main.qml porte Preferences et ProfileController : réglages INI d'essai, jamais ceux du poste.
+        QVERIFY(m_settingsDir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+    }
+
     void firstNonOptionArgumentIsTheFile()
     {
         QCOMPARE(openFileArgument({QStringLiteral("actcraft.exe"), QStringLiteral("C:/a/b.flipchart")}),
@@ -47,8 +57,10 @@ private slots:
         QVERIFY(file.open(QIODevice::WriteOnly));
         file.write(formats::encodeActcraft(core::Document(std::vector<core::Page>(3)), {}));
         file.close();
+        QTemporaryDir profiles; // profils d'essai (amendement 3, N1)
         StartupOptions options;
         options.openUrl = QUrl::fromLocalFile(path);
+        options.profileRoot = profiles.path();
         QQmlApplicationEngine engine;
         QQuickWindow* window = loadMainWindow(engine, options);
         QVERIFY(window);
