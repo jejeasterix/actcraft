@@ -12,8 +12,8 @@ namespace actcraft::features {
 class Spotlight
 {
 public:
-    // Mêmes valeurs que core::SpotlightShape (socle L0-S3) : la phase 2 les relie par une conversion
-    // vérifiée.
+    // Mêmes valeurs que core::SpotlightShape (socle L0-S3) : toPageToolsSettings convertit de l'une à
+    // l'autre, valeurs vérifiées par les static_assert de pagetools.cpp.
     enum class Shape
     {
         Off = 0,

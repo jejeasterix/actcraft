@@ -11,8 +11,8 @@
 namespace actcraft::features {
 
 // Outil de présentation d'une page (F-591). Type de features/, valeurs égales à core::PageToolsMode (socle) :
-// la phase 2 fournit la conversion depuis core::PagePresentation (addendum 1 : aucun type du socle recréé
-// ici).
+// toPageToolsSettings convertit depuis core::PagePresentation, valeurs vérifiées par les static_assert de
+// pagetools.cpp (addendum 1 : aucun type du socle recréé ici).
 enum class PageToolChoice : std::uint8_t
 {
     Keep = 0,
