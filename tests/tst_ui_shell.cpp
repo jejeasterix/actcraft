@@ -1371,6 +1371,22 @@ private slots:
 
     // Aucun avertissement QML (propriété requise absente, type inconnu, liaison nulle...), au chargement
     // comme à la fermeture de la fenêtre.
+    // Amendement 4, C3 : `appProfile` et `appPreferences` trouvés par leur nom ; les instances du lot
+    // reçoivent le profil par propriété (C2).
+    void profileFoundByName()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* profile = s.window->findChild<QObject*>(QStringLiteral("appProfile"));
+        QVERIFY(profile);
+        QVERIFY(s.window->findChild<QObject*>(QStringLiteral("appPreferences")));
+        for (const char* name : {"paletteFrame", "toolPalette", "browserPanel", "profileEditor", "dashboard"}) {
+            QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
+            QVERIFY2(o, name);
+            QVERIFY2(o->property("profile").value<QObject*>() == profile, name);
+        }
+    }
+
     void shellLoadsWithoutQmlWarning()
     {
         QTest::failOnWarning(QRegularExpression(QStringLiteral("qrc:.*\\.qml")));
