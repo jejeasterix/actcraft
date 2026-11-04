@@ -771,9 +771,10 @@ private slots:
         QVERIFY(ticker->running());
 
         // Clic droit sur la bande : aucun menu de la page, le message s'arrête. Le menu de la page ouvert
-        // ci-dessus reste ouvert : le clic doit tomber sur la bande hors de lui (précédent : tst_ui_clock.cpp).
-        // Lot 5 : le menu prend la largeur de sa plus large entrée (CommandMenu.qml) et couvre le centre de la
-        // bande ; le clic va à gauche de la bande, en deçà du point (page 300) où le menu s'est ouvert.
+        // ci-dessus reste ouvert : le clic doit tomber sur la bande hors de lui (précédent :
+        // tst_ui_clock.cpp). Lot 5 : le menu prend la largeur de sa plus large entrée (CommandMenu.qml) et
+        // couvre le centre de la bande ; le clic va à gauche de la bande, en deçà du point (page 300) où le
+        // menu s'est ouvert.
         QObject* pageMenu = main.window()->findChild<QObject*>(QStringLiteral("pageContextMenu"));
         QVERIFY(pageMenu);
         auto* menuContent = pageMenu->property("contentItem").value<QQuickItem*>();

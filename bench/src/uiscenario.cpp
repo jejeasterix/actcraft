@@ -1125,7 +1125,9 @@ bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
         } else {
             centre = item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
             if (!QRectF(0, 0, m_window->width(), m_window->height()).contains(centre)) {
-                why = QStringLiteral("élément hors de la fenêtre, centre (%1, %2)").arg(centre.x()).arg(centre.y());
+                why = QStringLiteral("élément hors de la fenêtre, centre (%1, %2)")
+                          .arg(centre.x())
+                          .arg(centre.y());
             }
         }
         if (!why.isEmpty()) {

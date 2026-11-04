@@ -130,8 +130,9 @@ void pointerStep(QQuickWindow* window, Pointer pointer, QEvent::Type phase, QPoi
     QCoreApplication::processEvents();
 }
 
-// Menu d'un outil ouvert : objet non visuel, enfant direct de l'élément de l'outil. Cherché en suivant l'arbre
-// visuel (les délégués du Repeater de la couche n'ont pas la fenêtre pour ancêtre dans l'arbre des objets).
+// Menu d'un outil ouvert : objet non visuel, enfant direct de l'élément de l'outil. Cherché en suivant
+// l'arbre visuel (les délégués du Repeater de la couche n'ont pas la fenêtre pour ancêtre dans l'arbre des
+// objets).
 QObject* menuIn(QQuickItem* item, const QString& name)
 {
     if (!item) {
@@ -187,7 +188,8 @@ bool clickEntry(const MainWindow& w, QObject* menu, const QString& text)
 
 // Le menu ouvert, l'entrée cliquée comme à la main ; le menu se referme. « Fermer » détruit l'outil, donc son
 // délégué et le menu qui en est l'enfant, parfois dès le clic : suivi par QPointer depuis l'entrée, un menu
-// détruit compte pour fermé (lu par un pointeur brut, il faisait planter rulerMenu, signal 11, le 2026-11-04).
+// détruit compte pour fermé (lu par un pointeur brut, il faisait planter rulerMenu, signal 11, le
+// 2026-11-04).
 bool chooseFromMenu(const MainWindow& w, QObject* menu, const QString& text)
 {
     const QPointer<QObject> watched(menu);
@@ -1397,13 +1399,15 @@ private slots:
         QVERIFY(w.run(QStringLiteral("math.ruler")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
-        QPointer<QObject> menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
+        QPointer<QObject>
+            menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
         QTRY_VERIFY(!(menu = menuOf(w, QStringLiteral("rulerMenu"))).isNull());
         const bool angle = toolValue(*tools, "showAngle").toBool();
         QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Afficher l'angle")));
         QTRY_COMPARE(toolValue(*tools, "showAngle").toBool(), !angle);
         QCOMPARE(entryChecked(menu, QStringLiteral("Afficher l'angle")), !angle);
-        // Sous-menu des unités du bord haut : ouvert par son entrée, « Pouces » cliqué dedans ; tout se referme.
+        // Sous-menu des unités du bord haut : ouvert par son entrée, « Pouces » cliqué dedans ; tout se
+        // referme.
         const QString topUnit = toolValue(*tools, "topUnit").toString();
         QVERIFY(QMetaObject::invokeMethod(menu, "open"));
         QVERIFY(clickEntry(w, menu, QStringLiteral("Unités du bord haut")));
@@ -1426,7 +1430,8 @@ private slots:
         QVERIFY(w.run(QStringLiteral("math.set-square")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
-        QPointer<QObject> menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
+        QPointer<QObject>
+            menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
         QTRY_VERIFY(!(menu = menuOf(w, QStringLiteral("setSquareMenu"))).isNull());
         const bool angle = toolValue(*tools, "showAngle").toBool();
         QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Afficher l'angle")));
@@ -1444,7 +1449,8 @@ private slots:
         QVERIFY(w.run(QStringLiteral("math.compass")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
-        QPointer<QObject> menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
+        QPointer<QObject>
+            menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
         QTRY_VERIFY(!(menu = menuOf(w, QStringLiteral("compassMenu"))).isNull());
         const std::pair<const char*, const char*> entries[] = {{"Réfléchi", "mirrored"},
                                                                {"Afficher l'angle", "showAngle"},
@@ -1461,9 +1467,10 @@ private slots:
         QTRY_COMPARE(tools->count(), 0);
     }
 
-    // Rapporteur : coches de la forme et du style d'arc. Cliquer l'entrée déjà cochée la laisse cochée ; cocher
-    // l'autre décoche la première (groupes exclusifs de ProtractorTool.qml ; sans eux, « Rapporteur complet »
-    // recliqué restait décoché, `checked: !tool.half` ne se réévaluant pas : rouge ici le 2026-11-04).
+    // Rapporteur : coches de la forme et du style d'arc. Cliquer l'entrée déjà cochée la laisse cochée ;
+    // cocher l'autre décoche la première (groupes exclusifs de ProtractorTool.qml ; sans eux, « Rapporteur
+    // complet » recliqué restait décoché, `checked: !tool.half` ne se réévaluant pas : rouge ici le
+    // 2026-11-04).
     void protractorMenu()
     {
         MainWindow w;
@@ -1471,7 +1478,8 @@ private slots:
         QVERIFY(w.run(QStringLiteral("math.protractor")));
         MathToolsController* tools = mathTools(w);
         QVERIFY(tools);
-        QPointer<QObject> menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
+        QPointer<QObject>
+            menu; // délégué de l'outil créé par la couche, après la commande ; nul une fois détruit
         QTRY_VERIFY(!(menu = menuOf(w, QStringLiteral("protractorMenu"))).isNull());
         const QString full = QStringLiteral("Rapporteur complet");
         const QString half = QStringLiteral("Demi-rapporteur");
@@ -1533,9 +1541,9 @@ private slots:
     }
 
     // Relecture du lot 7, « gomme : compas seulement » (guidedBy, mathtoolscontroller.cpp:813) : le long de
-    // l'arc du rapporteur, la gomme ne saisit pas l'outil (l'angle balayé reste à zéro, aucun secteur). Règle et
-    // équerre passent par le même filtre que le rapporteur (m_guides) : une gomme guidée par lui le serait par
-    // elles. Témoin : le même chemin au stylo saisit le rapporteur, il est donc à sa portée.
+    // l'arc du rapporteur, la gomme ne saisit pas l'outil (l'angle balayé reste à zéro, aucun secteur). Règle
+    // et équerre passent par le même filtre que le rapporteur (m_guides) : une gomme guidée par lui le serait
+    // par elles. Témoin : le même chemin au stylo saisit le rapporteur, il est donc à sa portée.
     void eraserIgnoresTheOtherMathTools()
     {
         MainWindow w;
@@ -1557,7 +1565,8 @@ private slots:
 
         QVERIFY(w.run(QStringLiteral("tool.pen")));
         stylusPath(w, quarter, false);
-        QTRY_VERIFY2(toolValue(*tools, "swept").toInt() >= 80, "témoin : au stylo, le même chemin saisit le rapporteur");
+        QTRY_VERIFY2(toolValue(*tools, "swept").toInt() >= 80,
+                     "témoin : au stylo, le même chemin saisit le rapporteur");
         presentationharness::sendTablet(w.window(), QEvent::TabletRelease, scene(w, quarter.back()));
     }
 

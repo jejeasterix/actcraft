@@ -222,12 +222,13 @@ QString htmlOf(const core::PageObject& object)
 }
 
 // L'écriture manuscrite et sa conversion n'existent que sous Windows (« platforms » de tool.handwriting et de
-// recognition.convert-to-text dans commands.json) ; le reconnaisseur factice ne dépend d'aucun moteur. La fenêtre
-// se déclare donc Windows : sans cela, sous macOS, ces commandes sont absentes et le test ne prouve rien
-// (L7-T41). La restriction de plateforme elle-même est prouvée par handwritingAbsentOnAndroid.
+// recognition.convert-to-text dans commands.json) ; le reconnaisseur factice ne dépend d'aucun moteur. La
+// fenêtre se déclare donc Windows : sans cela, sous macOS, ces commandes sont absentes et le test ne prouve
+// rien (L7-T41). La restriction de plateforme elle-même est prouvée par handwritingAbsentOnAndroid.
 bool declareWindows(const MainWindow& main)
 {
-    auto* commands = main.window() ? main.window()->findChild<Commands*>(QStringLiteral("commands")) : nullptr;
+    auto* commands =
+        main.window() ? main.window()->findChild<Commands*>(QStringLiteral("commands")) : nullptr;
     if (!commands) {
         return false;
     }
@@ -778,8 +779,8 @@ private slots:
     }
 
     // Relecture du lot 7 : un trait en attente (mode écriture ouvert), sélectionné puis converti par
-    // « Convertir en texte », quitte la session : plus rien n'attend, et le délai échu ne relance rien. Avant :
-    // compté en attente après sa conversion (pendingCount 1), son délai courait encore.
+    // « Convertir en texte », quitte la session : plus rien n'attend, et le délai échu ne relance rien. Avant
+    // : compté en attente après sa conversion (pendingCount 1), son délai courait encore.
     void selectionTakesThePendingStrokeOutOfTheSession()
     {
         Writing w;
@@ -822,8 +823,10 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 1, 10000);
         QTRY_VERIFY(panel->isVisible());
         QVERIFY(w.recognition->alternatives().size() >= 5);
-        QVERIFY2(panel->y() >= 0 && panel->y() + panel->height() <= layer->height() + 0.5,
-                 qPrintable(QStringLiteral("%1 + %2 / %3").arg(panel->y()).arg(panel->height()).arg(layer->height())));
+        QVERIFY2(
+            panel->y() >= 0 && panel->y() + panel->height() <= layer->height() + 0.5,
+            qPrintable(
+                QStringLiteral("%1 + %2 / %3").arg(panel->y()).arg(panel->height()).arg(layer->height())));
     }
 
     // Moteur indisponible : mode refusé, commande grisée, explication du moteur gardée (info-bulle).
