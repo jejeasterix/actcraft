@@ -63,7 +63,34 @@ Source makeSource()
     d.page(0).objects = {withId(core::PageObject(stroke), s.stroke), withId(imageOf(s.keyA, 100), s.imageA),
                          withId(core::PageObject(shape), s.shape)};
     d.page(1).objects = {withId(imageOf(s.keyB, 300), s.imageB)};
+    d.page(0).description = "Acides et bases";
+    d.page(0).keywords = {"acide", "pH"};
     return s;
+}
+
+// Bouton de la page 1 dont l'action « masquer » vise `target` (ActionKind::OnObject).
+core::ObjectId addButton(Source& s, core::ObjectId target)
+{
+    core::Shape shape;
+    shape.bounds = {400, 400, 60, 30};
+    core::PageObject button(shape);
+    core::Action hide;
+    hide.kind = core::ActionKind::OnObject;
+    hide.target = target;
+    button.common.actions.push_back(hide);
+    const core::ObjectId id = s.document.allocateId();
+    s.document.page(0).objects.push_back(withId(std::move(button), id));
+    return id;
+}
+
+// Le seul objet de `objects` qui porte une action.
+const core::PageObject* withAction(const std::vector<core::PageObject>& objects)
+{
+    for (const core::PageObject& object : objects) {
+        if (!object.common.actions.empty())
+            return &object;
+    }
+    return nullptr;
 }
 
 QByteArray writeToBytes(const core::Document& document, int page, const std::vector<core::ObjectId>& objects,
@@ -119,6 +146,8 @@ private slots:
     void unknownObjectKept();
     void notAFragmentRefused();
     void resourceExtensionsKept();
+    void danglingActionTargetIsCleared();
+    void selectedActionTargetFollowsTheNewIds();
 };
 
 void TstFormatsFragment::objectsAndResourcesRoundTrip()
@@ -139,6 +168,12 @@ void TstFormatsFragment::objectsAndResourcesRoundTrip()
     QVERIFY(a != nullptr);
     QCOMPARE(a->data, s.document.resource(s.keyA)->data);
     QVERIFY(fragment->resources.resource(s.keyB) == nullptr);
+
+    // Mots-clés et description de la page (L6-T10) suivent le fragment : la recherche de la bibliothèque
+    // (L6-T20) les lit.
+    QCOMPARE(QString::fromStdString(fragment->page.description), QStringLiteral("Acides et bases"));
+    QVERIFY(fragment->page.keywords == source.keywords);
+    QCOMPARE(fragment->page.keywords.size(), std::size_t(2));
 }
 
 void TstFormatsFragment::onlyReferencedResourcesAreWritten()
@@ -198,6 +233,14 @@ void TstFormatsFragment::insertGivesFreshIdentifiers()
     QCOMPARE(second.size(), std::size_t(2));
     for (const core::PageObject& object : second)
         QVERIFY2(taken.count(object.common.id) == 0, "identifiant déjà rendu par la première insertion");
+
+    // Un cours qui n'a pas A : la préparation l'y copie.
+    core::Document other;
+    QVERIFY(other.resource(s.keyA) == nullptr);
+    QCOMPARE(formats::prepareInsertion(*fragment, other).size(), std::size_t(2));
+    const core::Resource* copied = other.resource(s.keyA);
+    QVERIFY2(copied != nullptr, "ressource citée absente du document cible après la préparation");
+    QCOMPARE(copied->data, s.document.resource(s.keyA)->data);
 }
 
 void TstFormatsFragment::unknownObjectKept()
@@ -218,6 +261,7 @@ void TstFormatsFragment::unknownObjectKept()
     const auto* kept = std::get_if<core::UnknownObject>(&fragment->page.objects[0]);
     QVERIFY(kept != nullptr);
     QCOMPARE(QString::fromStdString(kept->type), QStringLiteral("hologram"));
+    QVERIFY2(QString::fromStdString(kept->json).contains(QLatin1String(R"("depth":3)")), kept->json.c_str());
 
     // Réécrit depuis le fragment relu : mêmes octets.
     core::Document again(std::vector<core::Page>{fragment->page});
@@ -256,6 +300,52 @@ void TstFormatsFragment::resourceExtensionsKept()
     const core::Resource* copied = target.resource(s.keyA);
     QVERIFY(copied != nullptr);
     QCOMPARE(QString::fromStdString(copied->extension), QStringLiteral("png"));
+}
+
+void TstFormatsFragment::danglingActionTargetIsCleared()
+{
+    // Bouton « masquer la forme » ; la forme n'est pas choisie.
+    Source s = makeSource();
+    const core::ObjectId button = addButton(s, s.shape);
+    QString error;
+    const std::optional<formats::Fragment> fragment =
+        readFromBytes(writeToBytes(s.document, 0, {button}, error), error);
+    QVERIFY2(fragment.has_value(), qPrintable(error));
+    QCOMPARE(fragment->page.objects.size(), std::size_t(1));
+    const std::vector<core::Action>& actions = fragment->page.objects[0].common.actions;
+    QCOMPARE(actions.size(), std::size_t(1));
+    QVERIFY(actions[0].kind == core::ActionKind::OnObject);
+    QCOMPARE(actions[0].target, core::ObjectId(0)); // pas l'identifiant du cours d'origine
+
+    // Inséré dans un autre cours où cet identifiant désigne un autre objet : le bouton ne le vise pas.
+    Source other = makeSource();
+    QVERIFY(other.document.page(0).objects.at(2).common.id == s.shape);
+    const std::vector<core::PageObject> inserted = formats::prepareInsertion(*fragment, other.document);
+    QCOMPARE(inserted.size(), std::size_t(1));
+    QCOMPARE(inserted[0].common.actions.at(0).target, core::ObjectId(0));
+}
+
+void TstFormatsFragment::selectedActionTargetFollowsTheNewIds()
+{
+    // Bouton « masquer la forme » ; la forme est choisie avec lui.
+    Source s = makeSource();
+    const core::ObjectId button = addButton(s, s.shape);
+    QString error;
+    const std::optional<formats::Fragment> fragment =
+        readFromBytes(writeToBytes(s.document, 0, {button, s.shape}, error), error);
+    QVERIFY2(fragment.has_value(), qPrintable(error));
+    QCOMPARE(fragment->page.objects.size(), std::size_t(2));
+    const core::PageObject* carried = withAction(fragment->page.objects);
+    QVERIFY(carried != nullptr);
+    QCOMPARE(carried->common.actions.at(0).target, s.shape); // cible choisie : gardée
+
+    const std::vector<core::PageObject> inserted = formats::prepareInsertion(*fragment, s.document);
+    QCOMPARE(inserted.size(), std::size_t(2));
+    const core::PageObject* insertedButton = withAction(inserted);
+    QVERIFY(insertedButton != nullptr);
+    const core::PageObject& insertedShape = &inserted[0] == insertedButton ? inserted[1] : inserted[0];
+    QVERIFY(insertedShape.common.id != s.shape);
+    QCOMPARE(insertedButton->common.actions.at(0).target, insertedShape.common.id); // suit la renumérotation
 }
 
 QTEST_MAIN(TstFormatsFragment)
