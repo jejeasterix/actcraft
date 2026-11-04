@@ -4,7 +4,13 @@
 // n'émet alors ni observateur, ni pageContentChanged, ni documentChanged. Un modèle qui ne suivrait que les
 // signaux du document (comme PageThumbnails) garderait LockedRole périmé : lockFromElsewhereRefreshes et
 // toggleHiddenAndLocked le distinguent.
+//
+// Groupes (règle D9) : le dessin et la sélection lisent chaque membre, jamais l'objet Group, rangé au sommet
+// de sa couche par makeGroupCommand. Un modèle qui lirait l'objet Group (drapeau, rang) masquerait sans effet
+// visible et rangerait le groupe au-dessus d'objets dessinés sur lui : hideAndLockAGroupActOnItsMembers,
+// groupRowReflectsItsMembers et groupRowSitsAtItsTopMember le distinguent.
 #include <actcraft/actions/commandregistry.h>
+#include <actcraft/core/arrange.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/objectflags.h>
@@ -47,6 +53,37 @@ core::ObjectId addObject(ui::DocumentController& controller, core::PageObject ob
         }
     }
     return 0;
+}
+
+// Groupe `ids` par la pile (core::makeGroupCommand, comme object.group) ; rend l'identifiant du groupe.
+core::ObjectId groupObjects(ui::DocumentController& controller, const std::vector<core::ObjectId>& ids)
+{
+    const std::vector<core::ObjectId> before = idsOnPage(controller);
+    std::unique_ptr<core::UndoCommand> command =
+        core::makeGroupCommand(controller.document().page(0), 0, ids);
+    if (!command) {
+        return 0;
+    }
+    controller.execute(std::move(command));
+    for (const core::ObjectId id : idsOnPage(controller)) {
+        if (std::find(before.begin(), before.end(), id) == before.end()) {
+            return id;
+        }
+    }
+    return 0;
+}
+
+// Ordre de dessin (du bas vers le haut) des objets `ids` sur la page 1.
+std::vector<core::ObjectId> drawOrderOf(const ui::DocumentController& controller,
+                                        const std::vector<core::ObjectId>& ids)
+{
+    std::vector<core::ObjectId> order;
+    for (const core::ObjectId id : idsOnPage(controller)) {
+        if (std::find(ids.begin(), ids.end(), id) != ids.end()) {
+            order.push_back(id);
+        }
+    }
+    return order;
 }
 
 core::PageObject shapeAt(double x)
@@ -367,6 +404,144 @@ private slots:
         emit f.commands.triggered(QStringLiteral("object.drag-copy"), QVariant());
         QCoreApplication::processEvents();
         QCOMPARE(f.tree.resetCount(), resets + 2);
+    }
+
+    // Branche « ancre = objet » de move : la ligne passe juste sous l'objet de la ligne d'au-dessus.
+    void moveAnchoredOnObject()
+    {
+        Fixture f;
+        const QString before = f.controller.fingerprintText();
+        const int middle = layerRow(f.tree, QStringLiteral("middle"));
+        QCOMPARE(rowOf(f.tree, f.shape2), middle + 1);
+        QVERIFY(f.tree.move(middle + 1, middle + 3)); // shape2 sous shape1 (ligne middle + 2)
+        QCOMPARE(drawOrderOf(f.controller, {f.shape1, f.shape2}),
+                 (std::vector<core::ObjectId>{f.shape2, f.shape1}));
+        QCoreApplication::processEvents();
+        QCOMPARE(rowOf(f.tree, f.shape1), middle + 1);
+        QCOMPARE(rowOf(f.tree, f.shape2), middle + 2);
+        f.controller.undo(); // une étape
+        QCOMPARE(f.controller.fingerprintText(), before);
+    }
+
+    // D9 : masquer ou verrouiller un groupe agit sur ses membres, en une étape. Sous le patron « objet de la
+    // ligne seul », seul l'objet Group changerait : pagepainter et selecttool, qui lisent les membres, rien.
+    void hideAndLockAGroupActOnItsMembers()
+    {
+        Fixture f;
+        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        QVERIFY(g != 0);
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::KindRole).toString(), QStringLiteral("group"));
+        QCOMPARE(rowOf(f.tree, f.shape1), -1); // membres portés par le groupe
+        QCOMPARE(rowOf(f.tree, f.shape2), -1);
+
+        const QString before = f.controller.fingerprintText();
+        QVERIFY(f.tree.setHidden(rowOf(f.tree, g), true));
+        QVERIFY(hiddenInDocument(f.controller, f.shape1));
+        QVERIFY(hiddenInDocument(f.controller, f.shape2));
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::HiddenRole).toBool(), true);
+        QVERIFY(!f.tree.setHidden(rowOf(f.tree, g), true)); // déjà masqué
+        f.controller.undo();                                // une seule étape
+        QCOMPARE(f.controller.fingerprintText(), before);
+        QVERIFY(!hiddenInDocument(f.controller, f.shape1));
+
+        QVERIFY(f.tree.setLocked(rowOf(f.tree, g), true));
+        QVERIFY(lockedInDocument(f.controller, f.shape1));
+        QVERIFY(lockedInDocument(f.controller, f.shape2));
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::LockedRole).toBool(), true);
+        QVERIFY(f.tree.setLocked(rowOf(f.tree, g), false));
+        QVERIFY(!lockedInDocument(f.controller, f.shape1));
+        QVERIFY(!lockedInDocument(f.controller, f.shape2));
+    }
+
+    // Choix : une ligne de groupe est masquée (verrouillée) quand TOUS ses membres le sont — ce que le dessin
+    // et la sélection lisent —, quel que soit le drapeau de l'objet Group lui-même.
+    void groupRowReflectsItsMembers()
+    {
+        Fixture f;
+        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        QVERIFY(g != 0);
+        // Drapeau posé sur l'objet Group seul (chemin sans dépliage) : les membres restent dessinés.
+        f.controller.execute(
+            std::make_unique<core::SetObjectFlagCommand>(0, std::vector{g}, core::ObjectFlag::Hidden, true));
+        f.controller.execute(
+            std::make_unique<core::SetObjectFlagCommand>(0, std::vector{g}, core::ObjectFlag::Locked, true));
+        emit f.commands.triggered(QStringLiteral("object.lock"), QVariant());
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::HiddenRole).toBool(), false);
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::LockedRole).toBool(), false);
+
+        // Un membre masqué : pas tous. Les deux : la ligne est masquée.
+        f.controller.execute(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{f.shape1},
+                                                                          core::ObjectFlag::Hidden, true));
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::HiddenRole).toBool(), false);
+        f.controller.execute(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{f.shape2},
+                                                                          core::ObjectFlag::Hidden, true));
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::HiddenRole).toBool(), true);
+
+        // L'état affiché et le refus « déjà » lisent les mêmes objets : le clic rend les membres visibles.
+        QVERIFY(f.tree.setHidden(rowOf(f.tree, g), false));
+        QVERIFY(!hiddenInDocument(f.controller, f.shape1));
+        QVERIFY(!hiddenInDocument(f.controller, f.shape2));
+    }
+
+    // La ligne d'un groupe se range au rang de son membre le plus haut (ordre de dessin réel), et move ancré
+    // sur un groupe passe sous son membre le plus bas. Sous le patron « rang de l'objet Group » (sommet de la
+    // couche, edits.cpp insertAtTopOfLayer), l'arbre montrerait le groupe au-dessus de B, et A sous le groupe
+    // passerait au-dessus de tout à l'écran.
+    void groupRowSitsAtItsTopMember()
+    {
+        Fixture f;
+        const core::ObjectId a = addObject(f.controller, shapeAt(400), core::Layer::Middle);
+        const core::ObjectId m1 = addObject(f.controller, shapeAt(450), core::Layer::Middle);
+        const core::ObjectId m2 = addObject(f.controller, shapeAt(500), core::Layer::Middle);
+        const core::ObjectId b = addObject(f.controller, shapeAt(550), core::Layer::Middle);
+        const core::ObjectId g = groupObjects(f.controller, {m1, m2});
+        QVERIFY(g != 0);
+        const std::vector<core::ObjectId> all{f.shape1, f.shape2, a, m1, m2, b, g};
+        QCOMPARE(drawOrderOf(f.controller, all),
+                 (std::vector<core::ObjectId>{f.shape1, f.shape2, a, m1, m2, b, g}));
+        QCoreApplication::processEvents();
+        const int middle = layerRow(f.tree, QStringLiteral("middle"));
+        QCOMPARE(rowOf(f.tree, b), middle + 1); // B est dessiné au-dessus de m1 et m2
+        QCOMPARE(rowOf(f.tree, g), middle + 2);
+        QCOMPARE(rowOf(f.tree, a), middle + 3);
+
+        // A au sommet de la couche (ancre : la couche).
+        QVERIFY(f.tree.move(rowOf(f.tree, a), middle + 1));
+        QCOMPARE(drawOrderOf(f.controller, all),
+                 (std::vector<core::ObjectId>{f.shape1, f.shape2, m1, m2, b, g, a}));
+        QCoreApplication::processEvents();
+        QCOMPARE(rowOf(f.tree, a), middle + 1);
+        QCOMPARE(rowOf(f.tree, b), middle + 2);
+        QCOMPARE(rowOf(f.tree, g), middle + 3);
+
+        // A sous le groupe (ancre : le groupe) : sous m1, son membre le plus bas ; B reste au-dessus du
+        // groupe.
+        const QString before = f.controller.fingerprintText();
+        QVERIFY(f.tree.move(rowOf(f.tree, a), rowOf(f.tree, g) + 1));
+        QCOMPARE(drawOrderOf(f.controller, all),
+                 (std::vector<core::ObjectId>{f.shape1, f.shape2, a, m1, m2, b, g}));
+        QCoreApplication::processEvents();
+        QCOMPARE(rowOf(f.tree, b), middle + 1);
+        QCOMPARE(rowOf(f.tree, g), middle + 2);
+        QCOMPARE(rowOf(f.tree, a), middle + 3);
+        f.controller.undo(); // une étape
+        QCOMPARE(f.controller.fingerprintText(), before);
+        QCoreApplication::processEvents();
+
+        // A sous B (ancre : un objet) : entre le groupe et B, à l'écran comme dans l'arbre.
+        QVERIFY(f.tree.move(rowOf(f.tree, a), rowOf(f.tree, b) + 1));
+        QCOMPARE(drawOrderOf(f.controller, all),
+                 (std::vector<core::ObjectId>{f.shape1, f.shape2, m1, m2, a, b, g}));
+        QCoreApplication::processEvents();
+        QCOMPARE(rowOf(f.tree, b), middle + 1);
+        QCOMPARE(rowOf(f.tree, a), middle + 2);
+        QCOMPARE(rowOf(f.tree, g), middle + 3);
     }
 };
 
