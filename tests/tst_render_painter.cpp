@@ -893,6 +893,74 @@ private slots:
         return render::renderPage(page, kNoImages, 1.0);
     }
 
+    // L5-C3 : a (20, 20), b (220, 220) ; la diagonale a→b passe par (70, 70) et (120, 120).
+    static core::Connector styledConnector(int style, core::ConnectorCap capB = core::ConnectorCap::None)
+    {
+        core::Connector connector = capConnector(core::ConnectorCap::None, capB);
+        connector.firstEnd = {20, 20};
+        connector.secondEnd = {220, 220};
+        connector.style = static_cast<std::uint8_t>(style);
+        return connector;
+    }
+
+    // L5-C3 : le rang porte le tracé ; chaque style courbe ou coudé passe par un pixel hors de la diagonale
+    // et laisse la diagonale blanche.
+    void connectorStyleDrawsItsRoute()
+    {
+        const QImage curveA = renderConnector(styledConnector(8)); // contrôle (20, 220), milieu (70, 170)
+        QVERIFY(near(curveA.pixelColor(70, 170), Qt::red, 10));
+        QVERIFY(near(curveA.pixelColor(120, 120), Qt::white, 2));
+        const QImage curveB = renderConnector(styledConnector(9)); // contrôle (220, 20), milieu (170, 70)
+        QVERIFY(near(curveB.pixelColor(170, 70), Qt::red, 10));
+        QVERIFY(near(curveB.pixelColor(120, 120), Qt::white, 2));
+        const QImage step = renderConnector(styledConnector(10)); // (120, 20), (120, 220)
+        QVERIFY(near(step.pixelColor(70, 20), Qt::red, 10));
+        QVERIFY(near(step.pixelColor(120, 70), Qt::red, 10));
+        QVERIFY(near(step.pixelColor(170, 220), Qt::red, 10));
+        QVERIFY(near(step.pixelColor(70, 70), Qt::white, 2));
+        const QImage elbow = renderConnector(styledConnector(11)); // (220, 20)
+        QVERIFY(near(elbow.pixelColor(120, 20), Qt::red, 10));
+        QVERIFY(near(elbow.pixelColor(220, 120), Qt::red, 10));
+        QVERIFY(near(elbow.pixelColor(120, 120), Qt::white, 2));
+        const QImage angle = renderConnector(styledConnector(12)); // (120, 220)
+        QVERIFY(near(angle.pixelColor(70, 120), Qt::red, 10));
+        QVERIFY(near(angle.pixelColor(170, 220), Qt::red, 10));
+        QVERIFY(near(angle.pixelColor(120, 120), Qt::white, 2));
+    }
+
+    // L5-C3 : la courbe A arrive horizontale en (220, 220) ; la flèche (longueur 12, demi-largeur 6) suit
+    // cette tangente, pas la diagonale a→b.
+    void connectorArrowFollowsTheEndTangent()
+    {
+        const QImage image = renderConnector(styledConnector(8, core::ConnectorCap::Arrow));
+        QVERIFY(near(image.pixelColor(210, 223), Qt::red, 10)); // aile basse de la flèche horizontale
+        QVERIFY(
+            near(image.pixelColor(214, 210), Qt::white, 2)); // là où tomberait une flèche sur la diagonale
+    }
+
+    // L5-C3 : les rangs 4 à 7 sont en pointillés, le rang 0 en trait plein.
+    void connectorDashedStyleLeavesGaps()
+    {
+        core::Connector dashed = capConnector(core::ConnectorCap::None, core::ConnectorCap::None);
+        dashed.style = 4;
+        const QImage image = renderConnector(dashed);
+        QVERIFY(countPixels(image, QRect(20, 50, 170, 1), isLight) > 10);
+        QVERIFY(countPixels(image, QRect(20, 50, 170, 1), isRed) > 10);
+        const QImage plain =
+            renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::None));
+        QCOMPARE(countPixels(plain, QRect(20, 50, 170, 1), isLight), 0);
+    }
+
+    // H5-33 : le rang porte le tracé et les pointillés ; les flèches restent celles de capA / capB.
+    void connectorStyleArrowsDoNotOverrideTheCaps()
+    {
+        core::Connector styled = capConnector(core::ConnectorCap::None, core::ConnectorCap::None);
+        styled.style = 2; // flèche à l'arrivée au panneau, mais capB aucune : pas de flèche
+        QVERIFY(near(renderConnector(styled).pixelColor(189, 54), Qt::white, 2));
+        const core::Connector capped = capConnector(core::ConnectorCap::None, core::ConnectorCap::Arrow);
+        QVERIFY(near(renderConnector(capped).pixelColor(189, 54), Qt::red, 10));
+    }
+
     void connectorRoundCapIsDrawn()
     {
         const QImage image =

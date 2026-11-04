@@ -17,6 +17,50 @@ constexpr double connectorCapSize(double width) noexcept
     return 3.0 * width > 8.0 ? 3.0 * width : 8.0;
 }
 
+// Panneau des connecteurs (L5-C3, D11) : 14 rangs, chacun (tracé, flèche au départ, flèche à l'arrivée,
+// pointillés), d'après notre ancêtre Python (CONNECTOR_TYPES). Le rang porte le tracé et les pointillés ; les
+// flèches dessinées restent celles de capA / capB (H5-33) : celles du rang ne règlent l'outil qu'au choix
+// d'un style dans le panneau.
+enum class ConnectorRoute : std::uint8_t
+{
+    Straight, // droite a→b
+    CurveA,   // quadratique de contrôle (a.x, b.y) : part vertical, arrive horizontal
+    CurveB,   // quadratique de contrôle (b.x, a.y) : part horizontal, arrive vertical
+    Step,     // horizontal, vertical à mi-largeur, horizontal
+    Elbow,    // horizontal puis vertical
+    Angle,    // oblique jusqu'à mi-largeur à la hauteur de b, puis horizontal
+};
+struct ConnectorStyle
+{
+    ConnectorRoute route = ConnectorRoute::Straight;
+    bool arrowStart = false;
+    bool arrowEnd = false;
+    bool dashed = false;
+};
+inline constexpr int kConnectorStyleCount = 14;
+inline constexpr int kConnectorCurveSegments =
+    32;                                           // échantillonnage d'une courbe, segments égaux en paramètre
+ConnectorStyle connectorStyle(int rank) noexcept; // hors de 0..13 : le rang 0, la ligne simple
+
+// Géométrie du tracé, seule source du dessin (render/), de la vignette du panneau (ui/) et de l'emprise :
+// tous les points restent dans le rectangle a–b, que boundsOnPage englobe déjà (la touche, objectAt, la
+// suit).
+std::vector<PointF> connectorControlPoints(const Connector& c); // sommets ; [a, contrôle, b] pour une courbe
+std::vector<PointF> connectorPath(const Connector& c);          // polyligne, la courbe échantillonnée
+struct ConnectorTip
+{
+    PointF point;   // a ou b
+    PointF outward; // direction unitaire de la flèche, hors du tracé : sa tangente au bout ; (0, 0) si a == b
+    double reach =
+        0; // longueur du segment de contrôle au bout : une flèche plus longue sortirait du rectangle
+};
+struct ConnectorTips
+{
+    ConnectorTip a;
+    ConnectorTip b;
+};
+ConnectorTips connectorTips(const Connector& c); // premier segment de contrôle non nul depuis chaque bout
+
 std::vector<PointF> attachPoints(const PageObject& object); // sommets d'une forme, coins de l'emprise sinon
 struct Attachment
 {

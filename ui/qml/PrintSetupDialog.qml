@@ -107,6 +107,8 @@ Popup {
             Label { text: qsTr("Pages par feuille : lignes") }
             SpinBox {
                 id: rowsBox; objectName: "rowsBox"; from: 1; to: 20; editable: true
+                // Cible du clic nommé des scénarios (« tap »), qui vise le centre du bouton « plus ».
+                Component.onCompleted: up.indicator.objectName = "rowsBoxPlus"
                 onValueChanged: if (dialog.printing.rows !== value) dialog.printing.rows = value
             }
             Label { text: qsTr("Pages par feuille : colonnes") }
@@ -135,12 +137,16 @@ Popup {
             Label { text: qsTr("De la page"); enabled: rangeBox.currentIndex === 2 }
             SpinBox {
                 id: fromBox; objectName: "fromBox"; from: 1; to: 9999; editable: true
+                // Cible du clic nommé des scénarios (« tap »), qui vise le centre du bouton « plus ».
+                Component.onCompleted: up.indicator.objectName = "fromBoxPlus"
                 enabled: rangeBox.currentIndex === 2
                 onValueChanged: if (dialog.printing.from !== value) dialog.printing.from = value
             }
             Label { text: qsTr("à la page"); enabled: rangeBox.currentIndex === 2 }
             SpinBox {
                 id: toBox; objectName: "toBox"; from: 1; to: 9999; editable: true
+                // Cible du clic nommé des scénarios (« tap »), qui vise le centre du bouton « plus ».
+                Component.onCompleted: up.indicator.objectName = "toBoxPlus"
                 enabled: rangeBox.currentIndex === 2
                 onValueChanged: if (dialog.printing.to !== value) dialog.printing.to = value
             }

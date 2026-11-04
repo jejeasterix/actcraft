@@ -216,6 +216,92 @@ std::optional<Attachment> snapConnectorEnd(const Page& page, PointF point)
     return best;
 }
 
+namespace {
+
+constexpr ConnectorStyle kStyles[kConnectorStyleCount] = {
+    {ConnectorRoute::Straight, false, false, false}, {ConnectorRoute::Straight, true, false, false},
+    {ConnectorRoute::Straight, false, true, false},  {ConnectorRoute::Straight, true, true, false},
+    {ConnectorRoute::Straight, false, false, true},  {ConnectorRoute::Straight, true, false, true},
+    {ConnectorRoute::Straight, false, true, true},   {ConnectorRoute::Straight, true, true, true},
+    {ConnectorRoute::CurveA, false, false, false},   {ConnectorRoute::CurveB, false, false, false},
+    {ConnectorRoute::Step, false, false, false},     {ConnectorRoute::Elbow, false, false, false},
+    {ConnectorRoute::Angle, false, false, false},    {ConnectorRoute::Angle, true, false, false},
+};
+
+// Bout de la polyligne de contrôle : le premier point distinct de `tip` en partant de lui donne la tangente.
+ConnectorTip tipOf(const std::vector<PointF>& points, bool atEnd)
+{
+    const std::size_t n = points.size();
+    ConnectorTip tip;
+    tip.point = atEnd ? points[n - 1] : points[0];
+    for (std::size_t i = 1; i < n; ++i) {
+        const PointF& inner = atEnd ? points[n - 1 - i] : points[i];
+        const double length = distance(tip.point, inner);
+        if (length > 0) {
+            tip.outward = {(tip.point.x - inner.x) / length, (tip.point.y - inner.y) / length};
+            tip.reach = length;
+            break;
+        }
+    }
+    return tip;
+}
+
+} // namespace
+
+ConnectorStyle connectorStyle(int rank) noexcept
+{
+    return rank >= 0 && rank < kConnectorStyleCount ? kStyles[rank] : kStyles[0];
+}
+
+std::vector<PointF> connectorControlPoints(const Connector& c)
+{
+    const PointF a = c.firstEnd;
+    const PointF b = c.secondEnd;
+    const double midX = a.x + 0.5 * (b.x - a.x);
+    switch (connectorStyle(c.style).route) {
+    case ConnectorRoute::CurveA:
+        return {a, {a.x, b.y}, b};
+    case ConnectorRoute::CurveB:
+        return {a, {b.x, a.y}, b};
+    case ConnectorRoute::Step:
+        return {a, {midX, a.y}, {midX, b.y}, b};
+    case ConnectorRoute::Elbow:
+        return {a, {b.x, a.y}, b};
+    case ConnectorRoute::Angle:
+        return {a, {midX, b.y}, b};
+    case ConnectorRoute::Straight:
+        break;
+    }
+    return {a, b};
+}
+
+std::vector<PointF> connectorPath(const Connector& c)
+{
+    std::vector<PointF> control = connectorControlPoints(c);
+    const ConnectorRoute route = connectorStyle(c.style).route;
+    if (route != ConnectorRoute::CurveA && route != ConnectorRoute::CurveB) {
+        return control;
+    }
+    const PointF a = control[0];
+    const PointF k = control[1];
+    const PointF b = control[2];
+    std::vector<PointF> curve;
+    curve.reserve(kConnectorCurveSegments + 1);
+    for (int i = 0; i <= kConnectorCurveSegments; ++i) {
+        const double t = static_cast<double>(i) / kConnectorCurveSegments;
+        const double u = 1 - t;
+        curve.push_back(
+            {u * u * a.x + 2 * u * t * k.x + t * t * b.x, u * u * a.y + 2 * u * t * k.y + t * t * b.y});
+    }
+    return curve;
+}
+
+ConnectorTips connectorTips(const Connector& c)
+{
+    const std::vector<PointF> control = connectorControlPoints(c);
+    return {tipOf(control, false), tipOf(control, true)};
+}
+
 PageObject makeConnector(PointF a, ObjectId objectA, PointF b, ObjectId objectB, std::uint8_t style)
 {
     Connector c;

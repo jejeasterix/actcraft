@@ -30,7 +30,7 @@ namespace {
 // papier).
 constexpr core::SizeF kSheetMm{210.0, 297.0};
 constexpr int kFallbackDpi = 150; // PDF écrit sans QPrinter : A4 = 1240 × 1754 px
-const char* const kProviderId = "printpreview";
+const char* const kProviderId = "sheetpreview";
 
 QString rangeName(core::PrintRange r)
 {

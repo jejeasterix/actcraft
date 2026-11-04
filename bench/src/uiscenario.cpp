@@ -341,9 +341,9 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
     if (o.contains(QStringLiteral("file"))) {
         step.kind = UiStepKind::FileCheck;
         step.path = o.value(QStringLiteral("file")).toString();
-        const bool hasPages = o.contains(QStringLiteral("pdfPages"));
+        const bool withPdfPages = o.contains(QStringLiteral("pdfPages"));
         const bool hasSize = o.contains(QStringLiteral("imageSize"));
-        if (hasPages) {
+        if (withPdfPages) {
             const QJsonValue pages = o.value(QStringLiteral("pdfPages"));
             step.pdfPages = pages.isDouble() ? pages.toInt(-1) : -1;
         }
@@ -355,7 +355,7 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
                 step.imageSize = QSize(qRound(size.x()), qRound(size.y()));
             }
         }
-        if (step.path.isEmpty() || hasPages == hasSize || (hasPages && step.pdfPages < 1) ||
+        if (step.path.isEmpty() || withPdfPages == hasSize || (withPdfPages && step.pdfPages < 1) ||
             (hasSize && !step.imageSize.isValid())) {
             why = QStringLiteral(
                 "fichier invalide (file, puis pdfPages ≥ 1 ou imageSize [largeur, hauteur], un seul)");
@@ -450,6 +450,16 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         return readSpace(o, step.windowSpace, why);
+    }
+    if (o.contains(QStringLiteral("tap"))) {
+        step.kind = UiStepKind::Tap;
+        const QJsonValue name = o.value(QStringLiteral("tap"));
+        if (!name.isString() || name.toString().isEmpty()) {
+            why = QStringLiteral("clic nommé invalide (tap : l'objectName d'un élément)");
+            return false;
+        }
+        step.target = name.toString();
+        return true;
     }
     if (o.contains(QStringLiteral("typeText"))) {
         step.kind = UiStepKind::TypeText;
@@ -1084,6 +1094,36 @@ bool UiScenarioPlayer::pinch(const UiStep& step, QStringList& report)
     return ok;
 }
 
+// Clic gauche au centre de l'élément nommé, par le chemin de « pointer » en repère fenêtre (L5-C28) : la
+// position ne dépend plus de la mise en page (polices, liste d'imprimantes). Élément absent ou invisible :
+// échec, jamais un clic ailleurs.
+bool UiScenarioPlayer::tap(const UiStep& step, QStringList& report)
+{
+    const QString head = QStringLiteral("TAP %1").arg(step.target);
+    // La mise en page en attente se termine avant de mesurer le centre.
+    m_window->grabWindow();
+    const auto* item = qobject_cast<const QQuickItem*>(find(step.target));
+    if (!item) {
+        report << head + QStringLiteral(" ECHEC (élément introuvable : aucun objectName « %1 »)")
+                             .arg(step.target);
+        return false;
+    }
+    if (!item->isVisible() || item->width() <= 0 || item->height() <= 0) {
+        report << head + QStringLiteral(" ECHEC (élément invisible ou sans surface)");
+        return false;
+    }
+    UiStep click;
+    click.kind = UiStepKind::Pointer;
+    click.windowSpace = true;
+    click.points.push_back(item->mapToScene(QPointF(item->width() / 2, item->height() / 2)));
+    QStringList inner;
+    const bool ok = pointer(click, inner);
+    const QPoint at = click.points.front().toPoint();
+    report << head + (ok ? QStringLiteral(" OK (%1, %2)").arg(at.x()).arg(at.y())
+                         : QStringLiteral(" ECHEC (%1)").arg(inner.join(QStringLiteral("; "))));
+    return ok;
+}
+
 bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
 {
     const QString head = QStringLiteral("POINTEUR %1").arg(step.points.size());
@@ -1585,6 +1625,8 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return doubleClick(step, report);
     case UiStepKind::TypeText:
         return typeText(step, report);
+    case UiStepKind::Tap:
+        return tap(step, report);
     }
     return false;
 }

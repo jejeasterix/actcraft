@@ -747,44 +747,73 @@ DecodedImages decodeImages(const core::Document& document, int maxSide)
     return out;
 }
 
+namespace {
+
+// Polyligne raccourcie de `fromStart` et de `fromEnd` le long de son tracé (bases des flèches) ; vide si rien
+// ne reste.
+QPolygonF trimmedPolyline(const std::vector<core::PointF>& points, double fromStart, double fromEnd)
+{
+    QPolygonF line;
+    for (const core::PointF& q : points) {
+        line << QPointF(q.x, q.y);
+    }
+    const auto cutFront = [&line](double length) {
+        while (length > 0 && line.size() >= 2) {
+            const QLineF first(line.at(0), line.at(1));
+            if (first.length() > length) {
+                line[0] = first.pointAt(length / first.length());
+                return;
+            }
+            length -= first.length();
+            line.removeFirst();
+        }
+    };
+    cutFront(fromStart);
+    std::reverse(line.begin(), line.end());
+    cutFront(fromEnd);
+    std::reverse(line.begin(), line.end());
+    return line.size() >= 2 ? line : QPolygonF();
+}
+
+} // namespace
+
 // Extrémités de connecteur (F-245, D11) : taille proportionnelle à l'épaisseur du trait, max(3 × épaisseur,
 // 8 px) ; disque de ce diamètre pour `Round`, flèche pleine de cette longueur et de cette largeur pour
-// `Arrow`. La ligne s'arrête à la base de la flèche. Le rang `style` du panneau n'est pas dessiné ici.
+// `Arrow`. Le rang `style` porte le tracé et les pointillés (L5-C3) : la polyligne de core (connectorPath,
+// même source que l'emprise et la vignette du panneau) ; chaque flèche suit la tangente du tracé à son bout
+// (connectorTips), bornée par son segment de contrôle, et la ligne s'arrête à sa base. Les flèches dessinées
+// sont celles de capA / capB, jamais celles du rang (H5-33).
 void paintConnector(QPainter& p, const core::Connector& c)
 {
-    const QPen pen = penOf(c.pen);
-    QPointF a(c.firstEnd.x, c.firstEnd.y);
-    QPointF b(c.secondEnd.x, c.secondEnd.y);
-    const QPointF tipA = a;
-    const QPointF tipB = b;
-    const double size = core::connectorCapSize(c.pen.width);
-    const QLineF line(a, b);
-    const double length = line.length();
-    const QPointF dir = length > 0 ? QPointF((b.x() - a.x()) / length, (b.y() - a.y()) / length) : QPointF();
-    if (length > 0) {
-        if (c.capA == core::ConnectorCap::Arrow) {
-            a += dir * std::min(size, length);
-        }
-        if (c.capB == core::ConnectorCap::Arrow) {
-            b -= dir * std::min(size, length);
-        }
+    QPen pen = penOf(c.pen);
+    if (core::connectorStyle(c.style).dashed && pen.style() == Qt::SolidLine) {
+        pen.setStyle(Qt::DashLine);
     }
+    const double size = core::connectorCapSize(c.pen.width);
+    const core::ConnectorTips tips = core::connectorTips(c);
+    const auto arrowLength = [&](core::ConnectorCap cap, const core::ConnectorTip& tip) {
+        return cap == core::ConnectorCap::Arrow ? std::min(size, tip.reach) : 0.0;
+    };
     p.setPen(pen);
-    p.drawLine(a, b);
+    p.setBrush(Qt::NoBrush);
+    p.drawPolyline(
+        trimmedPolyline(core::connectorPath(c), arrowLength(c.capA, tips.a), arrowLength(c.capB, tips.b)));
     p.setPen(Qt::NoPen);
     p.setBrush(color(c.pen.color));
-    const auto drawCap = [&](core::ConnectorCap cap, const QPointF& tip, const QPointF& outward) {
+    const auto drawCap = [&](core::ConnectorCap cap, const core::ConnectorTip& end) {
+        const QPointF tip(end.point.x, end.point.y);
         if (cap == core::ConnectorCap::Round) {
             p.drawEllipse(tip, size / 2, size / 2);
-        } else if (cap == core::ConnectorCap::Arrow && length > 0) {
-            const QPointF base = tip - outward * std::min(size, length);
+        } else if (cap == core::ConnectorCap::Arrow && end.reach > 0) {
+            const QPointF outward(end.outward.x, end.outward.y);
+            const QPointF base = tip - outward * arrowLength(cap, end);
             const QPointF side(-outward.y() * size / 2, outward.x() * size / 2);
             p.drawPolygon(QPolygonF({tip, base + side, base - side}));
         }
     };
     if (c.pen.style != core::PenStyle::None && c.pen.width > 0) {
-        drawCap(c.capA, tipA, -dir);
-        drawCap(c.capB, tipB, dir);
+        drawCap(c.capA, tips.a);
+        drawCap(c.capB, tips.b);
     }
 }
 
