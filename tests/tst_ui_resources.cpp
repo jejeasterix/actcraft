@@ -17,6 +17,7 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QRectF>
+#include <QScopeGuard>
 #include <QSemaphore>
 #include <QSet>
 #include <QSignalSpy>
@@ -348,6 +349,10 @@ private slots:
         QSemaphore gate;
         ui::ResourceLibrary::setSearchObserverForTests(holdFirst(visited, gate));
         Fixture f;
+        const auto settle = qScopeGuard([&gate] { // le fil de recherche ne survit pas à l'essai
+            gate.release();
+            QThreadPool::globalInstance()->waitForDone(10000);
+        });
         for (int i = 0; i < 200; ++i)
             QVERIFY(
                 writeStrokeFragment(QDir(f.mine).filePath(QStringLiteral("f%1.actcraft").arg(i)), {"mot"}));
@@ -564,6 +569,9 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(renders.load(), 1, 10000);
         QTest::qWait(200);
         QCOMPARE(renders.load(), 1); // une seule en vol
+        // Relâché puis reposé pendant le vol : rien ne part en plus (la suivante attend le retour).
+        f.library.setContactActive(true);
+        f.library.setContactActive(false);
         f.library.setContactActive(true);
         gate.release();
         QTRY_COMPARE_WITH_TIMEOUT(f.library.thumbnailsRendered(), 1, 10000); // celle en vol aboutit
@@ -599,6 +607,37 @@ private slots:
         QCOMPARE(renders.load(), 2);
         QCOMPARE(f.paths(), QStringList{only});
         QVERIFY(f.library.data(f.library.index(0), ui::ResourceLibrary::ThumbnailRole).toUrl().isLocalFile());
+    }
+
+    // Recherche lancée pendant un rendu (recherche retenue au premier fichier, ses résultats ne peuvent donc
+    // pas encore remplacer les éléments) : la vignette en vol est jetée, la file vidée.
+    void thumbnailsDroppedWhenASearchStarts()
+    {
+        std::atomic<int> renders{0};
+        std::atomic<int> visited{0};
+        QSemaphore renderGate;
+        QSemaphore searchGate;
+        ui::ResourceLibrary::setRenderObserverForTests(holdFirst(renders, renderGate));
+        ui::ResourceLibrary::setSearchObserverForTests(holdFirst(visited, searchGate));
+        Fixture f;
+        const auto settle = qScopeGuard([&renderGate, &searchGate] {
+            renderGate.release();
+            searchGate.release();
+            QThreadPool::globalInstance()->waitForDone(10000);
+        });
+        for (int i = 0; i < 12; ++i)
+            QVERIFY(writeImage(QDir(f.mine).filePath(QStringLiteral("i%1.png").arg(i)), "PNG"));
+        f.library.openFolder(f.mine);
+        QTRY_COMPARE_WITH_TIMEOUT(renders.load(), 1, 10000);
+        f.library.search(QStringLiteral("absent"), true, false);
+        QTRY_COMPARE_WITH_TIMEOUT(visited.load(), 1, 10000);
+        renderGate.release();
+        QTest::qWait(300);
+        QCOMPARE(renders.load(), 1);
+        QCOMPARE(f.library.thumbnailsRendered(), 0); // celle en vol, jetée
+        searchGate.release();
+        QTRY_VERIFY(!f.library.searching());
+        QCOMPARE(f.library.itemCount(), 0);
     }
 
     // Vignette trouvée dans le cache : montrée sans nouveau rendu.
