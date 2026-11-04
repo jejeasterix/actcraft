@@ -43,7 +43,7 @@
     { "submenu": "transform", "label": "Transformer", "items": ["object.enlarge", "object.reduce", "transform.original-size", "transform.fit-width", "transform.fit-height", "transform.fit-page", "-", "transform.mirror-x", "transform.mirror-y", "transform.flip-x", "transform.flip-y", "transform.origin-flip-x", "transform.origin-flip-y"] },
     { "submenu": "align", "label": "Aligner", "items": ["align.left", "align.center-x", "align.right", "align.top", "align.center-y", "align.bottom", "align.width", "align.height", "align.angle", "align.all"] },
     { "submenu": "arrange", "label": "Organiser", "items": ["arrange.front", "arrange.back", "arrange.forward", "arrange.backward", "-", "arrange.layer-top", "arrange.layer-middle", "arrange.layer-bottom"] },
-    "-", "object.lock", "object.group", "object.hide", "object.drag-copy", "shortcutbar.add-selection", "-", "recognition.convert-to-text", "recognition.convert-to-shape"],
+    "-", "object.lock", "object.group", "object.hide", "object.drag-copy", "shortcutbar.add-selection", "-", "recognition.convert-to-text", "recognition.convert-to-shape", "-", "browser.properties", "resources.add"],
   "contextMenu": ["tool.select", "tool.pen", "-", "recognition.convert-to-text",
     "-", { "submenu": "page-insert", "label": "Insérer une page", "items": ["page.insert-before", "page.insert-after"] },
     "-", "page.background", "grid.designer", "grid.hide", "grid.snap",
