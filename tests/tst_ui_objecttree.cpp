@@ -8,7 +8,9 @@
 // Groupes (règle D9) : le dessin et la sélection lisent chaque membre, jamais l'objet Group, rangé au sommet
 // de sa couche par makeGroupCommand. Un modèle qui lirait l'objet Group (drapeau, rang) masquerait sans effet
 // visible et rangerait le groupe au-dessus d'objets dessinés sur lui : hideAndLockAGroupActOnItsMembers,
-// groupRowReflectsItsMembers et groupRowSitsAtItsTopMember le distinguent.
+// groupRowReflectsItsMembers et groupRowSitsAtItsTopMember le distinguent. La ligne d'un groupe s'allume par
+// ses membres : Ctrl+clic bascule ce que la ligne montre, pas la présence de G dans la sélection
+// (ctrlClickTogglesAGroupLitByItsMembers).
 #include <actcraft/actions/commandregistry.h>
 #include <actcraft/core/arrange.h>
 #include <actcraft/core/edits.h>
@@ -610,14 +612,26 @@ private slots:
         QCOMPARE(rowOf(f.tree, f.shape2), middle + 2);
         QCOMPARE(rowOf(f.tree, g), middle + 3); // rang de shape1, son membre de la couche intermédiaire
 
+        const std::vector<core::ObjectId> watched{f.shape1, f.shape2, x, g, f.stroke};
+        const std::vector<core::ObjectId> initial = drawOrderOf(f.controller, watched);
+        const QString before = f.controller.fingerprintText();
         QVERIFY(f.tree.move(rowOf(f.tree, g), rowOf(f.tree, x) + 1));
         QVERIFY(layersSorted(f.controller));
-        QCOMPARE(drawOrderOf(f.controller, {f.shape1, f.shape2, x, g, f.stroke}),
+        QCOMPARE(drawOrderOf(f.controller, watched),
                  (std::vector<core::ObjectId>{f.shape2, f.shape1, g, x, f.stroke}));
         QCoreApplication::processEvents();
         QCOMPARE(rowOf(f.tree, x), middle + 1);
         QCOMPARE(rowOf(f.tree, g), middle + 2);
         QCOMPARE(rowOf(f.tree, f.shape2), middle + 3);
+
+        f.controller.undo(); // une étape : l'ordre initial revient
+        QCOMPARE(f.controller.fingerprintText(), before);
+        QCOMPARE(drawOrderOf(f.controller, watched), initial);
+        QVERIFY(layersSorted(f.controller));
+        QCoreApplication::processEvents();
+        QCOMPARE(rowOf(f.tree, x), middle + 1);
+        QCOMPARE(rowOf(f.tree, f.shape2), middle + 2);
+        QCOMPARE(rowOf(f.tree, g), middle + 3);
     }
 
     // Groupe imbriqué : une seule ligne, celle du groupe de tête ; masquer agit sur toutes les feuilles.
@@ -698,6 +712,66 @@ private slots:
         QCoreApplication::processEvents();
         QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::SelectedRole).toBool(), true);
         QCOMPARE(roleOf(f.tree, f.stroke, ui::ObjectTreeModel::SelectedRole).toBool(), false);
+    }
+
+    // Le test qui distingue (revue de L6-T14) : Ctrl bascule ce que la ligne montre. Sous le patron
+    // « identifiant de la ligne dans la sélection », Ctrl+clic sur la ligne d'un groupe allumée par ses membres
+    // ajouterait G ({A, C, G}) et la ligne ne s'éteindrait jamais. Sous le patron « ligne de la dernière remise
+    // à jour », la bascule faite avant cette remise à jour (même tour, contact) irait dans le mauvais sens.
+    void ctrlClickTogglesAGroupLitByItsMembers()
+    {
+        Fixture f;
+        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        QVERIFY(g != 0);
+        f.tools.selectObjects({f.shape1, f.shape2}); // comme le canevas : les membres, jamais l'objet Group
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::SelectedRole).toBool(), true);
+
+        f.tree.select(rowOf(f.tree, g), Qt::ControlModifier); // éteinte : ni G ni ses membres
+        QVERIFY(f.tools.user().selection().empty());
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::SelectedRole).toBool(), false);
+
+        f.tree.select(rowOf(f.tree, g), Qt::ControlModifier); // rallumée
+        QCOMPARE(f.tools.user().selection(), (std::vector<core::ObjectId>{g}));
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::SelectedRole).toBool(), true);
+
+        // Sans attendre la remise à jour (la ligne affichée est encore éteinte) : la bascule lit la sélection
+        // courante, et seuls le groupe et ses membres en sortent.
+        f.tools.selectObjects({f.stroke});
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::SelectedRole).toBool(), false);
+        f.tools.selectObjects({f.stroke, f.shape1, f.shape2});
+        f.tree.select(rowOf(f.tree, g), Qt::ControlModifier);
+        QCOMPARE(f.tools.user().selection(), (std::vector<core::ObjectId>{f.stroke}));
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::SelectedRole).toBool(), false);
+        QCOMPARE(roleOf(f.tree, f.stroke, ui::ObjectTreeModel::SelectedRole).toBool(), true);
+    }
+
+    // Un masqué n'est pas sélectionnable au canevas : la ligne d'un groupe s'allume quand tous ses membres
+    // visibles sont sélectionnés. Un groupe entièrement masqué ne s'allume pas par ses membres (« tous » d'un
+    // ensemble vide ne compte pas).
+    void groupRowSelectedIgnoresHiddenMembers()
+    {
+        Fixture f;
+        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        QVERIFY(g != 0);
+        f.controller.execute(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{f.shape2},
+                                                                          core::ObjectFlag::Hidden, true));
+        f.tools.selectObjects({f.shape1});
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::SelectedRole).toBool(), true);
+        f.tree.select(rowOf(f.tree, g), Qt::ControlModifier); // éteinte : le membre visible sort aussi
+        QVERIFY(f.tools.user().selection().empty());
+
+        f.controller.execute(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{f.shape1},
+                                                                          core::ObjectFlag::Hidden, true));
+        f.tools.selectObjects({f.stroke});
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::HiddenRole).toBool(), true);
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::SelectedRole).toBool(), false);
     }
 };
 
