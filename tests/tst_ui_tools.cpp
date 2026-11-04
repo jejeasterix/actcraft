@@ -1,3 +1,4 @@
+#include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/render/inkitem.h>
@@ -645,6 +646,49 @@ private slots:
         QCOMPARE(app.document->fingerprintText(), before);
         QTest::touchEvent(app.window, m_touch).release(0, app.scene(QPointF(440, 300)));
         QCOMPARE(app.document->fingerprintText(), before);
+    }
+
+    // L6-P1 (P11 de L6-T0) : sous Sélectionner, la couleur choisie recolore les textes sélectionnés en une
+    // seule étape d'annulation ; l'outil et la sélection restent.
+    void colorRecolorsSelectedTexts()
+    {
+        App app;
+        QVERIFY(start(app));
+        const auto page = static_cast<std::size_t>(app.document->currentIndex());
+        for (int i = 0; i < 2; ++i) {
+            core::Text text;
+            text.bounds = {100.0 + 200 * i, 100, 150, 40};
+            text.html = "<p>mot</p>";
+            core::TextSpan run;
+            run.text = "mot";
+            text.runs.push_back(run);
+            app.document->execute(std::make_unique<core::AddObjectCommand>(page, core::PageObject{text}));
+        }
+        app.tools->selectObjects({app.idAt(0), app.idAt(1)});
+        app.tools->setColor(QColor(Qt::red));
+        QCOMPARE(app.tools->currentTool(), QStringLiteral("select"));
+        QCOMPARE(app.tools->selectionCount(), 2);
+        for (std::size_t i = 0; i < 2; ++i) {
+            const auto& text = std::get<core::Text>(core::body(app.page().objects.at(i)));
+            QCOMPARE(text.runs.front().color, core::Argb{0xFFFF0000u});
+            QVERIFY2(QString::fromStdString(text.html).contains(QStringLiteral("#ff0000"), Qt::CaseInsensitive),
+                     text.html.c_str());
+        }
+        app.document->undo(); // une seule étape rend les deux textes
+        for (std::size_t i = 0; i < 2; ++i) {
+            QCOMPARE(std::get<core::Text>(core::body(app.page().objects.at(i))).html, std::string("<p>mot</p>"));
+        }
+    }
+
+    // Sans texte sélectionné, la règle de L3-T0 reste : la couleur va au dernier outil d'encre.
+    void colorWithoutSelectedTextKeepsTheInkRule()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->activate(QStringLiteral("select"));
+        app.tools->setColor(QColor(Qt::blue));
+        QVERIFY(app.tools->currentTool() != QStringLiteral("select"));
+        QCOMPARE(app.tools->color(), QColor(Qt::blue));
     }
 };
 
