@@ -1114,11 +1114,25 @@ bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
     if (!step.target.isEmpty()) {
         // Centre de l'élément nommé, lu après la mise en page (grabWindow ci-dessus).
         const auto* item = qobject_cast<const QQuickItem*>(find(step.target));
-        if (!item || !item->isVisible() || item->width() <= 0 || item->height() <= 0) {
-            report << head + QStringLiteral(" ECHEC (élément introuvable ou invisible)");
+        QString why;
+        QPointF centre;
+        if (!item) {
+            why = QStringLiteral("élément introuvable");
+        } else if (!item->isVisible()) {
+            why = QStringLiteral("élément invisible");
+        } else if (item->width() <= 0 || item->height() <= 0) {
+            why = QStringLiteral("élément sans taille");
+        } else {
+            centre = item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
+            if (!QRectF(0, 0, m_window->width(), m_window->height()).contains(centre)) {
+                why = QStringLiteral("élément hors de la fenêtre, centre (%1, %2)").arg(centre.x()).arg(centre.y());
+            }
+        }
+        if (!why.isEmpty()) {
+            report << head + QStringLiteral(" ECHEC (%1)").arg(why);
             return false;
         }
-        points = {item->mapToScene(QPointF(item->width() / 2, item->height() / 2))};
+        points = {centre};
     }
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
