@@ -14,6 +14,9 @@ struct StartupOptions
     bool generatedPage = false;
     // Fichier à ouvrir au lancement, vide sinon.
     QUrl openUrl;
+    // Dossier des profils de l'utilisateur ; vide : <AppConfigLocation>/profiles. Joueur, banc et tests : un
+    // dossier d'essai propre au lancement (L6-T5).
+    QString profileRoot;
 };
 
 // Lit `--sans-cache` (décision 8) et `--ouvrir <fichier>`.

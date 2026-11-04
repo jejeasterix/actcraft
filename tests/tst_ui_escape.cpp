@@ -3,8 +3,11 @@
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QDir>
+#include <QFileInfo>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
@@ -26,8 +29,11 @@ struct Rig
 
     bool start(const QString& settingsFile)
     {
-        engine.setInitialProperties(
-            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+        // Profils d'essai à côté des réglages des outils (amendement 3, N1) : jamais ceux du poste.
+        const QString profileRoot = QFileInfo(settingsFile).dir().filePath(QStringLiteral("profiles"));
+        engine.setInitialProperties({{QStringLiteral("cacheEnabled"), true},
+                                     {QStringLiteral("generatedPage"), false},
+                                     {QStringLiteral("profileRoot"), profileRoot}});
         engine.loadFromModule("ActCraft.Ui", "Main");
         if (engine.rootObjects().isEmpty()) {
             return false;
@@ -65,7 +71,15 @@ private:
     QTemporaryDir m_dir;
 
 private slots:
-    void initTestCase() { QVERIFY(m_dir.isValid()); }
+    void initTestCase()
+    {
+        QVERIFY(m_dir.isValid());
+        // Réglages du poste (Preferences de Main.qml) : INI dans le dossier jetable, jamais ceux du poste
+        // (N1).
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                           m_dir.filePath(QStringLiteral("poste")));
+    }
 
     void modalDialogClosesOnEscape_data()
     {

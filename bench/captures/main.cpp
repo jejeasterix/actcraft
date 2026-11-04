@@ -9,6 +9,8 @@
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QScreen>
+#include <QSettings>
+#include <QStandardPaths>
 #include <QTest>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
@@ -100,10 +102,24 @@ int main(int argc, char* argv[])
         }
     }
 
+    // Réglages et profils d'essai propres à ce lancement (L6-T5, amendement 3, N1), posés avant tout objet :
+    // jamais ceux du poste. `<sortie>` est propre au scénario et au rendu ; l'étape `restart` ne vide rien.
+    const QDir outputDir(output);
+    const QString settingsDir = outputDir.filePath(QStringLiteral("reglages"));
+    const QString profilesDir = outputDir.filePath(QStringLiteral("profils"));
+    QDir(settingsDir).removeRecursively();
+    QDir(profilesDir).removeRecursively();
+    QStandardPaths::setTestModeEnabled(true);
+    QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);
+    StartupOptions startup = parseStartupOptions(args); // --sans-cache compris
+    startup.profileRoot = profilesDir;
+
     // Déclaré AVANT le moteur QML, donc détruit APRÈS la fenêtre : Qt Quick garde le stylet synthétique.
     std::unique_ptr<UiScenarioPlayer> player;
     QQmlApplicationEngine engine;
-    QQuickWindow* window = loadMainWindow(engine, parseStartupOptions(args)); // --sans-cache compris
+    QQuickWindow* window = loadMainWindow(engine, startup);
     if (!window) {
         return invalid(QStringLiteral("interface non chargée"));
     }
