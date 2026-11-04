@@ -221,6 +221,21 @@ QString htmlOf(const core::PageObject& object)
     return QString::fromStdString(std::get<core::Text>(core::body(object)).html);
 }
 
+// L'écriture manuscrite et sa conversion n'existent que sous Windows (« platforms » de tool.handwriting et de
+// recognition.convert-to-text dans commands.json) ; le reconnaisseur factice ne dépend d'aucun moteur. La fenêtre
+// se déclare donc Windows : sans cela, sous macOS, ces commandes sont absentes et le test ne prouve rien
+// (L7-T41). La restriction de plateforme elle-même est prouvée par handwritingAbsentOnAndroid.
+bool declareWindows(const MainWindow& main)
+{
+    auto* commands = main.window() ? main.window()->findChild<Commands*>(QStringLiteral("commands")) : nullptr;
+    if (!commands) {
+        return false;
+    }
+    commands->setPlatform(actcraft::actions::Platform::Windows);
+    return commands->isAvailable(QStringLiteral("tool.handwriting")) &&
+           commands->isAvailable(QStringLiteral("recognition.convert-to-text"));
+}
+
 // Fenêtre prête, mode écriture ouvert avec un reconnaisseur factice disponible ; horloge injectée.
 struct Writing
 {
@@ -234,7 +249,7 @@ struct Writing
     {
         controller = controllerOf(main);
         recognition = recognitionOf(main);
-        if (!main.window() || !controller || !recognition)
+        if (!main.window() || !controller || !recognition || !declareWindows(main))
             return false;
         log = installFake(*recognition, true, std::move(answers));
         recognition->setClock([this] { return now; });
@@ -601,6 +616,7 @@ private slots:
         QVERIFY(controller != nullptr);
         QVERIFY(recognition != nullptr);
         QVERIFY(tools != nullptr);
+        QVERIFY(declareWindows(main));
         const std::shared_ptr<FakeLog> log =
             installFake(*recognition, true, {{QStringLiteral("bonjour"), QStringLiteral("bonjours")}});
         if (!QTest::qWaitFor([recognition] { return recognition->handwritingAvailable(); }, 10000))
