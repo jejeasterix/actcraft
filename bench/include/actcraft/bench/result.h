@@ -84,6 +84,47 @@ struct ThumbnailStats
 int launchesDuringContact(const std::vector<std::int64_t>& launchNs,
                           const std::vector<std::pair<std::int64_t, std::int64_t>>& windowsNs);
 
+// L5-T19 (D21) : redessins du cache terminés (PageView::cacheRefreshCount) pendant la fenêtre de chaque geste
+// du scénario « edition » ; -1 : geste non mesuré. Un résultat, jamais une porte (attendu : chacun <= 1).
+struct EditionRefreshes
+{
+    int paste = -1;
+    int group = -1;
+    int align = -1;
+    int front = -1;
+};
+
+// L5-T31 (S8.5) : clé `tabs` de « onglets ». memoryDeltaMb = mémoire privée avec kTabsCount onglets moins
+// celle avec un seul (même document synthétique dans l'onglet 1), en Mio (2^20 o) ; seuil = largeur x hauteur
+// x 20 o. Un résultat, jamais une porte.
+struct TabsStats
+{
+    double memoryOneTabMb = 0;
+    double memoryFourTabsMb = 0;
+    double memoryDeltaMb = 0;
+    double memoryBudgetMb = 0;
+    std::vector<double> switchMs; // de la commande à la page affichée et son cache redessiné
+};
+
+// L5-T31 : clé `export_background` de « export-fond ». Latence d'encre p95 pendant les exports PDF contre
+// celle de la référence sans export, même page et même tracé, du même passage (budget 1,2) ; « stroke »
+// (page de 300 objets) n'est gardé que pour information. Un résultat, jamais une porte.
+struct ExportBackgroundStats
+{
+    int exports = 0;  // exports terminés pendant la mesure
+    int failures = 0; // dont en échec
+    double maxExportMs = 0;
+    double inkP95Ms = 0;
+    double strokeInkP95Ms = 0;
+    double baselineInkP95Ms = 0; // L5-C12 : « export-fond-reference »
+    // L5-C14 : tours du fil de charge témoin de la référence (SpinningLoad) ; 0 : la référence n'a porté
+    // aucune charge (mesure à ne pas comparer à celles de L5-C14).
+    std::int64_t baselineControlLoadIterations = 0;
+    int freezes = 0;
+    int baselineFreezes = 0;
+    int strokeFreezes = 0;
+};
+
 struct ScenarioResult
 {
     QString name;             // stroke | zoom | scroll | page | pauses | gommer | soulever
@@ -111,6 +152,7 @@ struct ScenarioResult
     // hors limite ne sont pas jugés (relevés, marqués « excluded » dans le verdict) ; fps, p95 et part des
     // intervalles > 25 ms le restent.
     bool freezeExempt = false;
+    std::int64_t controlLoadIterations = 0; // L5-C14 : tours de la charge témoin (plan.spinsInBackground)
     // Attendu chiffré S36 sur cache.refreshes (cacheRequestNs.size()) ; < 0 : pas de critère.
     int maxCacheRefreshes = -1;
     int rebuilds = -1;
@@ -119,6 +161,9 @@ struct ScenarioResult
     // (shape_preview ; absent : scénario qui ne trace pas de forme).
     int placedShapes = -1;
     std::optional<ShapePreviewStats> shapePreview;
+    std::optional<EditionRefreshes> edition;               // L5-T19 : absent hors « edition »
+    std::optional<TabsStats> tabs;                         // L5-T31 : absent hors « onglets »
+    std::optional<ExportBackgroundStats> exportBackground; // L5-T31 : absent hors « export-fond »
     std::optional<ThumbnailStats>
         thumbnails; // L4-T29 : absent hors « miniatures », « miniatures-ferme » et « miniatures-pauses »
 };

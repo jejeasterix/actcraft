@@ -75,7 +75,7 @@ private slots:
         QTest::newRow("grille") << "gridDesigner" << "open";
         QTest::newRow("taille") << "pageSizeDialog" << "file.new-custom";
         QTest::newRow("a-propos") << "aboutDialog" << "help.about";
-        QTest::newRow("enregistrer") << "saveChangesDialog" << "file.close";
+        QTest::newRow("enregistrer") << "tabSaveChangesDialog" << "file.close";
     }
 
     // Boîte modale ouverte : Échap la ferme comme « Annuler », sans changer d'outil ni créer d'étape.

@@ -3,6 +3,10 @@
 
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSet>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -23,6 +27,102 @@ bool writeFile(const QString& path, const QByteArray& data)
 {
     QFile file(path);
     return file.open(QIODevice::WriteOnly) && file.write(data) == data.size();
+}
+
+// Les 54 commandes du lot 5 (53 de L5-T1, plus connector.caps de L5-C18), dans l'ordre de commands.json ; la
+// liste de L5-T2 est la même.
+const QStringList kLot5{"edit.cut",
+                        "edit.copy",
+                        "edit.paste",
+                        "edit.paste-onto",
+                        "edit.duplicate",
+                        "object.menu",
+                        "object.group",
+                        "object.lock",
+                        "object.hide",
+                        "object.drag-copy",
+                        "object.shape-points",
+                        "arrange.front",
+                        "arrange.back",
+                        "arrange.forward",
+                        "arrange.backward",
+                        "arrange.layer-top",
+                        "arrange.layer-middle",
+                        "arrange.layer-bottom",
+                        "align.left",
+                        "align.center-x",
+                        "align.right",
+                        "align.top",
+                        "align.center-y",
+                        "align.bottom",
+                        "align.width",
+                        "align.height",
+                        "align.angle",
+                        "align.all",
+                        "transform.original-size",
+                        "transform.fit-width",
+                        "transform.fit-height",
+                        "transform.fit-page",
+                        "transform.mirror-x",
+                        "transform.mirror-y",
+                        "transform.flip-x",
+                        "transform.flip-y",
+                        "transform.origin-flip-x",
+                        "transform.origin-flip-y",
+                        "tool.fill",
+                        "tool.connector",
+                        "connector.style",
+                        "connector.caps", // L5-C18 : extrémités du connecteur
+                        "view.pen-modifiers",
+                        "pen.shape",
+                        "insert.image",
+                        "insert.media",
+                        "tab.next",
+                        "tab.previous",
+                        "view.tabs",
+                        "export.page-image",
+                        "export.pdf",
+                        "file.import-pdf",
+                        "file.import-powerpoint-images",
+                        "file.print"};
+
+// Registre lu des ressources livrées.
+CommandRegistry registryFromResources()
+{
+    CommandRegistry registry;
+    QString error;
+    if (!registry.loadDeclarations(defaultCommandsJson(), error)) {
+        qWarning("%s", qPrintable(error));
+    }
+    return registry;
+}
+
+// Disposition lue des ressources livrées.
+Layout layoutFromResources()
+{
+    Layout layout;
+    QString error;
+    const QByteArray json = readLayeredFile(QStringLiteral("layout.json"), QString(), dataResourceDir());
+    if (!parseLayout(json, layout, error)) {
+        qWarning("%s", qPrintable(error));
+    }
+    return layout;
+}
+
+// kLayout (format gardé) avec la liste `objectMenu` donnée ; les sous-menus d'objectMenu sont déclarés en
+// ligne, comme ceux de contextMenu (patron du lot 4).
+QByteArray layoutWith(const QJsonArray& objectMenu)
+{
+    QJsonObject root = QJsonDocument::fromJson(kLayout).object();
+    root.insert(QStringLiteral("objectMenu"), objectMenu);
+    return QJsonDocument(root).toJson(QJsonDocument::Compact);
+}
+
+QJsonObject inlineSubmenu(const QString& id)
+{
+    return QJsonObject{{QStringLiteral("submenu"), id},
+                       {QStringLiteral("label"), id},
+                       {QStringLiteral("items"), QJsonArray{QStringLiteral("help.about")}}};
 }
 
 } // namespace
@@ -201,8 +301,10 @@ private slots:
         const QByteArray json = readLayeredFile(QStringLiteral("layout.json"), QString(), dataResourceDir());
         QVERIFY2(parseLayout(json, layout, error), qPrintable(error));
         QVERIFY(unknownCommands(layout, registry).isEmpty());
-        QCOMPARE(layout.objectBar, (QStringList{"object.move-free", "object.rotate", "object.translucency",
-                                                "object.enlarge", "object.reduce"}));
+        // Lot 5 (L5-T1) : six boutons ajoutés en fin ; les cinq du lot 3 restent en tête.
+        QCOMPARE(layout.objectBar.mid(0, 5),
+                 (QStringList{"object.move-free", "object.rotate", "object.translucency", "object.enlarge",
+                              "object.reduce"}));
         // Amendement 1 du lot 4 : entrées du menu de page ajoutées en fin ; celles du socle restent en tête.
         QCOMPARE(layout.contextMenu.mid(0, 4),
                  (QStringList{"tool.select", "tool.pen", "-", "recognition.convert-to-text"}));
@@ -284,6 +386,85 @@ private slots:
         QCOMPARE(layout.contextSubmenus.size(), std::size_t{1});
         QCOMPARE(layout.contextSubmenus.front().items,
                  (QStringList{QStringLiteral("page.insert-before"), QStringLiteral("page.insert-after")}));
+    }
+
+    void lot5EntriesDeclared()
+    {
+        QCOMPARE(kLot5.size(), 54);
+        const CommandRegistry registry = registryFromResources();
+        QSet<QString> shortcuts;
+        for (const QString& id : registry.ids()) {
+            const CommandInfo* command = registry.find(id);
+            QVERIFY(command != nullptr);
+            if (command->shortcut.isEmpty()) {
+                continue;
+            }
+            QVERIFY2(!shortcuts.contains(command->shortcut), qPrintable(command->shortcut));
+            shortcuts.insert(command->shortcut);
+        }
+        QSet<QString> seen;
+        for (const QString& id : kLot5) {
+            QVERIFY2(registry.find(id) != nullptr, qPrintable(id));
+            QVERIFY2(!seen.contains(id), qPrintable(id));
+            seen.insert(id);
+        }
+        QCOMPARE(registry.ids().count(QStringLiteral("edit.cut")), 1); // déclarée une seule fois
+    }
+
+    void objectMenuOrder()
+    {
+        const Layout layout = layoutFromResources();
+        const QStringList expected{"object.shape-points",
+                                   "-",
+                                   "edit.cut",
+                                   "edit.copy",
+                                   "edit.paste-onto",
+                                   "edit.duplicate",
+                                   "edit.delete",
+                                   "-",
+                                   ">transform",
+                                   ">align",
+                                   ">arrange",
+                                   "-",
+                                   "object.lock",
+                                   "object.group",
+                                   "object.hide",
+                                   "object.drag-copy",
+                                   "-",
+                                   "recognition.convert-to-text",
+                                   "recognition.convert-to-shape"};
+        QCOMPARE(layout.objectMenu, expected);
+        QCOMPARE(layout.objectSubmenus.size(), std::size_t{3});
+        QCOMPARE(layout.objectSubmenus[0].items.size(), 13);
+    }
+
+    // Patron du lot 4 : les sous-menus d'objectMenu sont déclarés en ligne ; un jeton « >id » sans
+    // déclaration et un sous-menu déclaré deux fois sont refusés, avec leur nom.
+    void objectMenuSubmenusResolve()
+    {
+        Layout layout;
+        QString error;
+        QVERIFY2(parseLayout(layoutWith({inlineSubmenu(QStringLiteral("present")), QStringLiteral("-"),
+                                         QStringLiteral("help.about")}),
+                             layout, error),
+                 qPrintable(error));
+        QCOMPARE(layout.objectMenu, (QStringList{QStringLiteral(">present"), QStringLiteral("-"),
+                                                 QStringLiteral("help.about")}));
+        QCOMPARE(layout.objectSubmenus.size(), std::size_t{1});
+        Layout refused;
+        QVERIFY(!parseLayout(layoutWith({QStringLiteral(">absent")}), refused, error));
+        QVERIFY2(error.contains(QStringLiteral("objectMenu : sous-menu absent inconnu")), qPrintable(error));
+        QVERIFY(!parseLayout(
+            layoutWith({inlineSubmenu(QStringLiteral("present")), inlineSubmenu(QStringLiteral("present"))}),
+            refused, error));
+        QVERIFY2(error.contains(QStringLiteral("sous-menu present déclaré deux fois")), qPrintable(error));
+        Layout withUnknown;
+        QVERIFY2(
+            parseLayout(layoutWith({QStringLiteral("nope.cmd"), inlineSubmenu(QStringLiteral("present"))}),
+                        withUnknown, error),
+            qPrintable(error));
+        QCOMPARE(unknownCommands(withUnknown, registryFromResources()),
+                 QStringList{QStringLiteral("nope.cmd")});
     }
 
     void unknownCommandsAreListedOnce()

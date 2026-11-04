@@ -132,7 +132,7 @@ SelectionView layoutSelection(const core::Page& page, const std::vector<core::Ob
             continue;
         }
         const core::PageObject& object = page.objects[index];
-        const core::RectF bounds = core::boundsOnPage(object);
+        const core::RectF bounds = core::boundsOnPage(page, object);
         united = united ? core::unitedRect(*united, bounds) : bounds;
         single = &object;
         ++count;
@@ -149,7 +149,7 @@ SelectionView layoutSelection(const core::Page& page, const std::vector<core::Ob
         // sans transformation.
         core::PageObject plain = *single;
         plain.common.transform = core::Transform{};
-        const core::RectF local = core::boundsOnPage(plain);
+        const core::RectF local = core::boundsOnPage(page, plain);
         const core::Transform& t = single->common.transform;
         out.corners = {t.map({local.x, local.y}), t.map({local.x + local.width, local.y}),
                        t.map({local.x + local.width, local.y + local.height}),

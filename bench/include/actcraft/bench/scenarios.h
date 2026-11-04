@@ -3,10 +3,12 @@
 // Scénarios rejoués par le banc (décision 22, durées N2-1) : tracé, zoom, défilement, changement de page
 // (L2-T23), et trait de démonstration.
 
+#include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 
 #include <QPoint>
 #include <QPointF>
+#include <QSize>
 #include <QString>
 #include <QVariant>
 #include <Qt>
@@ -100,6 +102,24 @@ struct ScenarioPlan
     // Le panneau des navigateurs est ouvert pendant la mesure : le banc attend les miniatures à jour avant la
     // mesure et le rendu d'une miniature dans la fenêtre ; le runner vérifie l'état réel du panneau.
     bool browsersOpen = false;
+    // L5-T19 : les commandes `edition.*` de ce plan sont des gestes d'édition (editionGestures), jouées par
+    // le runner par ObjectEditing et ToolHost, chacune dans sa fenêtre de mesure des redessins du cache. Lu
+    // par ce booléen, jamais par le nom.
+    bool measuresEdition = false;
+    // L5-T31 (S8.5) : > 0, le runner ouvre ce nombre d'onglets de documents synthétiques
+    // (tabsFixtureDocument) avant la mesure, relève la mémoire avec un onglet puis avec tous, et joue les
+    // commandes `tabs.switch`. Lu par ce nombre, jamais par le nom.
+    int tabCount = 0;
+    // L5-T31 : un export PDF du document synthétique tourne sur son fil pendant les traits (relancé tant que
+    // le scénario dure) ; le runner relève ses durées et la latence d'encre. Lu par ce booléen.
+    bool exportsInBackground = false;
+    // L5-C14 : charge témoin de « export-fond-reference » : un fil qui calcule sans fin pendant les traits
+    // (aucun export). Mesuré : la référence n'est pas plus lente par démarrage à froid, mais parce que
+    // l'export, en gardant un cœur actif, abaisse la latence d'encre ; la référence porte donc une charge
+    // qui n'écrit rien, pour que le rapport ne mesure que le coût de l'export. Lu par ce booléen.
+    bool spinsInBackground = false;
+    // L5-T31 : le document chargé avant la mesure est tabsFixtureDocument(0) (20 pages de 50 traits).
+    bool fixtureDocument = false;
     std::vector<PlannedInput> inputs;
 };
 
@@ -159,10 +179,49 @@ ScenarioPlan gridAboveScenario(ScenarioSet set);
 inline constexpr int kBenchZonesAcross = 40;
 inline constexpr int kBenchZonesDown = 53;
 ScenarioPlan zonesZoomScenario(ScenarioSet scenarioSet);
+// L5-T19 (S8.2, D21). « edition » : page générée portant kEditionAnnotations annotations (couche du dessus) ;
+// quatre gestes d'édition passés par ObjectEditing et ToolHost, dans l'ordre de editionGestures() : coller
+// kEditionPasted objets, les grouper, aligner cinq annotations, mettre une annotation au premier plan. Un
+// trait est écrit toutes les kEditionStrokePeriodNs, jamais pendant la fenêtre d'un geste
+// (kEditionGestureSpanNs réservées après sa commande). Le runner relève, par geste, les redessins du cache
+// terminés (PageView::cacheRefreshCount, jamais cache.refreshes) : clé `edition.refreshes_by_gesture` du
+// JSON.
+inline constexpr int kEditionAnnotations = 200;
+inline constexpr int kEditionPasted = 20;
+inline constexpr std::int64_t kEditionStrokePeriodNs = 2'000'000'000;
+inline constexpr std::int64_t kEditionGestureSpanNs = 3'500'000'000;
+inline constexpr std::size_t kEditionGestureCount = 4;
+// Commandes `edition.*` du plan, dans l'ordre joué.
+const char* const* editionGestures() noexcept;
+ScenarioPlan editionScenario(ScenarioSet scenarioSet);
+// L5-T31 (S8.5, D21). « onglets » : kTabsCount documents synthétiques de kTabsPages pages de
+// kTabsStrokesPerPage traits, sans image (fixés par le banc), ouverts chacun dans un onglet, puis
+// kTabsSwitches bascules (commande `tabs.switch`, argument : l'indice de l'onglet à afficher, jamais deux
+// fois le même de suite, en partant de l'onglet 0). « export-fond » : les traits de « stroke » pendant un
+// export PDF du document synthétique (exporting::exportPdf). Résultats, jamais une porte.
+inline constexpr int kTabsCount = 4;
+inline constexpr int kTabsPages = 20;
+inline constexpr int kTabsStrokesPerPage = 50;
+inline constexpr int kTabsSwitches = 10;
+inline constexpr std::int64_t kTabsSwitchPeriodNs = 800'000'000; // complet ; ÷ 5 en court
+inline constexpr double kCacheBytesPerPixel = 20.0;              // cache d'une vue (L10-T8)
+inline constexpr double kExportInkRatioBudget =
+    1.2; // p95 d'encre avec export / p95 de la référence sans export
+core::Document tabsFixtureDocument(int index);
+// Seuil de `memory_delta_mb` : largeur x hauteur x kCacheBytesPerPixel, en Mio (2^20 o).
+double tabsMemoryBudgetMb(const QSize& windowSize) noexcept;
+ScenarioPlan tabsScenario(ScenarioSet set);
+ScenarioPlan exportBackgroundScenario(ScenarioSet set);
+// L5-C12 : « export-fond-reference », jouée juste avant « export-fond » dans le même passage : même page
+// (document synthétique), même tracé, aucun export. Sa latence d'encre p95 est le dénominateur du rapport.
+// L5-C14 : elle porte une charge témoin (spinsInBackground, SpinningLoad) : sans elle, la référence tourne
+// sur une machine au repos et paraît plus lente que l'export (rapport 0,81 mesuré ; le démarrage à froid
+// est écarté : 16,74 puis 16,85 ms rejouée). Le JSON le dit (`baseline_control_load`).
+ScenarioPlan exportBackgroundReferenceScenario(ScenarioSet set);
 // Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);
 // stroke, zoom, scroll, page, pauses, gommer, soulever, forme-page-annotee, grille-dessus, miniatures,
-// miniatures-ferme, miniatures-pauses, zones-zoom
+// miniatures-ferme, miniatures-pauses, zones-zoom, edition, onglets, export-fond-reference, export-fond
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set);
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();

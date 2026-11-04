@@ -24,7 +24,30 @@ QVariantList pointList(const std::vector<core::PointF>& points)
 
 } // namespace
 
-DocumentEditorAdapter::DocumentEditorAdapter(DocumentController& controller) : m_controller(controller) {}
+DocumentEditorAdapter::DocumentEditorAdapter(DocumentController& controller)
+    : m_controller(controller), m_alive(&controller)
+{
+    m_observer = controller.addChangeObserver(
+        [this](const core::Changes&, DocumentController::ChangeOrigin) { ++m_revision; });
+}
+
+DocumentEditorAdapter::~DocumentEditorAdapter()
+{
+    if (m_alive && m_observer != 0) {
+        m_alive->removeChangeObserver(m_observer);
+    }
+}
+
+QByteArray DocumentEditorAdapter::resourceData(const std::string& key) const
+{
+    const core::Resource* resource = m_controller.document().resource(key);
+    return resource ? resource->data : QByteArray();
+}
+
+std::uint64_t DocumentEditorAdapter::revision() const
+{
+    return m_revision;
+}
 
 const core::Page& DocumentEditorAdapter::page() const
 {
@@ -46,6 +69,8 @@ std::vector<core::PageObject> DocumentEditorAdapter::lift(const std::vector<core
     return m_controller.liftObjects(ids);
 }
 
+// L5-T17 : le connecteur lié suit l'objet déposé, en une étape. Le suivi se décide dans le contrôleur
+// (DocumentController::run, M2 de L5-C18), sur la page où les objets soulevés sont revenus.
 void DocumentEditorAdapter::drop(std::unique_ptr<core::UndoCommand> command)
 {
     m_controller.dropLifted(std::move(command));
@@ -99,6 +124,7 @@ QVariantMap selectionFrameMap(const tools::SelectionView& view, Commands* comman
                        {QStringLiteral("corners"), pointList(view.corners)},
                        {QStringLiteral("handles"), pointList(view.handles)},
                        {QStringLiteral("smartPoints"), pointList(view.smartPoints)},
+                       {QStringLiteral("shapePoints"), pointList(view.shapePoints)},
                        {QStringLiteral("bar"), bar},
                        {QStringLiteral("rubberBand"), band},
                        {QStringLiteral("handlesVisible"), view.visible && view.handlesVisible}};

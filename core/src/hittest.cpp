@@ -53,6 +53,11 @@ bool isSelectable(const PageObject& object) noexcept
     return object.common.visible && hasExtent(object);
 }
 
+bool isSelectable(const Page& page, const PageObject& object) noexcept
+{
+    return object.common.visible && hasExtent(page, object);
+}
+
 std::optional<ObjectId> objectAt(const Page& page, PointF point, double tolerance)
 {
     for (auto it = page.objects.rbegin(); it != page.objects.rend(); ++it) {
@@ -94,6 +99,15 @@ RectF unitedRect(const RectF& a, const RectF& b) noexcept
         return b;
     if (empty(b))
         return a;
+    const double x0 = std::min(a.x, b.x);
+    const double y0 = std::min(a.y, b.y);
+    const double x1 = std::max(a.x + a.width, b.x + b.width);
+    const double y1 = std::max(a.y + a.height, b.y + b.height);
+    return {x0, y0, x1 - x0, y1 - y0};
+}
+
+RectF enclosingRect(const RectF& a, const RectF& b) noexcept
+{
     const double x0 = std::min(a.x, b.x);
     const double y0 = std::min(a.y, b.y);
     const double x1 = std::max(a.x + a.width, b.x + b.width);

@@ -1,0 +1,19 @@
+{
+ "format": "actcraft-scenario/1",
+ "name": "importer",
+ "description": "S8 : une présentation importée en images. Le convertisseur est factice (ACTCRAFT_OFFICE_CONVERTER copie tests/data/import/deux-pages.pdf vers {out}) ; la « présentation » est un fichier quelconque produit sous le dossier de sortie. Le PDF converti s'ouvre dans un nouvel onglet de deux pages.",
+ "steps": [
+  {"waitReady": true},
+  {"expect": "appTabs.count", "value": 1},
+  {"fixture": "trois-pages", "path": "${SORTIE}/cours.actcraft"},
+  {"capture": "avant-import"},
+  {"command": "file.import-powerpoint-images", "argument": "${SORTIE}/cours.actcraft"},
+  {"waitFor": "appTabs.count", "value": 2, "timeoutMs": 30000},
+  {"waitFor": "appExchange.busy", "value": false, "timeoutMs": 30000},
+  {"waitReady": true},
+  {"expect": "appTabs.currentIndex", "value": 1},
+  {"expect": "documentController.pageCount", "value": 2},
+  {"expect": "documentController.title", "value": "cours"},
+  {"capture": "presentation-importee"}
+ ]
+}

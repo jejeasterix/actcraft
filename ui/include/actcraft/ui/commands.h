@@ -6,6 +6,7 @@
 #include <QHash>
 #include <QJSValue>
 #include <QObject>
+#include <QSet>
 #include <QStringList>
 #include <QVariant>
 #include <QtQml/qqmlregistration.h>
@@ -25,6 +26,7 @@ class Commands : public QObject
     Q_PROPERTY(QVariantList palette READ palette NOTIFY layoutChanged)
     Q_PROPERTY(QVariantList objectBar READ objectBar NOTIFY layoutChanged)
     Q_PROPERTY(QVariantList contextMenu READ contextMenu NOTIFY layoutChanged)
+    Q_PROPERTY(QVariantList objectMenu READ objectMenu NOTIFY layoutChanged)
     Q_PROPERTY(QVariantList shortcuts READ shortcuts NOTIFY layoutChanged)
     Q_PROPERTY(QStringList colors READ colors NOTIFY layoutChanged)
     Q_PROPERTY(QVariantList penWidths READ penWidths NOTIFY layoutChanged)
@@ -49,6 +51,7 @@ public:
     QVariantList objectBar() const;
     // Menu contextuel de la page : mêmes éléments qu'un menu (séparateurs nettoyés comme au premier niveau).
     QVariantList contextMenu() const;
+    QVariantList objectMenu() const;
     // [{group, items: [{id, label, icon, checkable}]}] ; « couleurs » et « epaisseur » gardés sans items.
     QVariantList palette() const;
     // [{id, sequence}] des commandes disponibles qui ont un raccourci.
@@ -67,6 +70,10 @@ public:
     Q_INVOKABLE QString iconUrl(const QString& id) const;
     Q_INVOKABLE QString shortcut(const QString& id) const;
     Q_INVOKABLE bool isAvailable(const QString& id) const;
+    // Retire (ou rend) une commande aux menus, barres et raccourcis sans l'ôter du registre : une
+    // fonction que le poste ne peut pas rendre (convertisseur absent) n'est pas offerte. Les scénarios et
+    // `trigger` la jouent encore ; son gestionnaire refuse visiblement.
+    Q_INVOKABLE void setHidden(const QString& id, bool hidden);
     Q_INVOKABLE bool isEnabled(const QString& id) const;
     Q_INVOKABLE void setEnabled(const QString& id, bool enabled);
     Q_INVOKABLE bool isChecked(const QString& id) const;
@@ -88,6 +95,7 @@ private:
     actions::Platform m_platform;
     QString m_profileDir;
     QStringList m_errors;
+    QSet<QString> m_hidden;
     QHash<QString, QJSValue> m_handlers;
     int m_revision = 0;
 };

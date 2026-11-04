@@ -1,5 +1,6 @@
 # Construction
 build/
+build-mac/
 out/
 CMakeUserPresets.json
 *.user

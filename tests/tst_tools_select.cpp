@@ -828,6 +828,23 @@ private slots:
         QCOMPARE(r.editor.lifts, 0);
     }
 
+    void groupFrameIsTheUnionOfItsMembers() // L5-C5
+    {
+        Rig r;
+        core::Group g;
+        g.members = {1, 3};
+        core::PageObject group = g;
+        group.common.id = 90;
+        r.editor.document.page(0).objects.push_back(group);
+        const tools::SelectionView v = tools::layoutSelection(r.editor.page(), {90}, 1.0, {});
+        QVERIFY(v.visible);
+        const core::RectF united = core::unitedRect(core::boundsOnPage(r.editor.page().objects[0]),
+                                                    core::boundsOnPage(r.editor.page().objects[2]));
+        QVERIFY(closeTo(v.corners[0].x, united.x) && closeTo(v.corners[0].y, united.y));
+        QVERIFY(closeTo(v.corners[2].x, united.x + united.width));
+        QVERIFY(closeTo(v.corners[2].y, united.y + united.height));
+    }
+
     void singleRotatedFrameTurnsButMultipleDoesNot()
     {
         Rig r;

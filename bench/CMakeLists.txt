@@ -79,7 +79,7 @@ actcraft_add_module(benchui
         include/actcraft/bench/fixtures.h
         src/fixtures.cpp
     DEPENDS
-        ActCraft::bench ActCraft::formats)
+        ActCraft::bench ActCraft::formats ActCraft::export)
 target_link_libraries(actcraft_benchui PRIVATE Qt6::Test Qt6::GuiPrivate)
 # Fixture « flipchart-synthetique » (L2-T21) : paperboard de notre écrivain de tests, jamais un fichier réel.
 target_include_directories(actcraft_benchui PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)

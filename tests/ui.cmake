@@ -94,3 +94,38 @@ actcraft_add_test(tst_ui_textformatpopup
 actcraft_add_test(tst_ui_escape
     SOURCES tst_ui_escape.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+# Lot 5 (L5-T1) : tests réservés (talons QSKIP), remplis par les tâches nommées.
+# L5-T14
+actcraft_add_test(tst_ui_objectediting
+    SOURCES tst_ui_objectediting.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L5-T15
+actcraft_add_test(tst_ui_insertion
+    SOURCES tst_ui_insertion.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L5-T17
+actcraft_add_test(tst_ui_lot5tools
+    SOURCES tst_ui_lot5tools.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L5-T20
+actcraft_add_test(tst_ui_tabs
+    SOURCES tst_ui_tabs.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L5-T25
+actcraft_add_test(tst_ui_fileexchange
+    SOURCES tst_ui_fileexchange.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_fileexchange PRIVATE ${PROJECT_SOURCE_DIR}/app)
+# L5-T28
+actcraft_add_test(tst_ui_printdialog
+    SOURCES tst_ui_printdialog.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L5-T30
+actcraft_add_test(tst_ui_import
+    SOURCES tst_ui_import.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_import PRIVATE ${PROJECT_SOURCE_DIR}/app)
+target_compile_definitions(tst_ui_import PRIVATE
+    ACTCRAFT_CMAKE="${CMAKE_COMMAND}"
+    ACTCRAFT_IMPORT_DATA="${PROJECT_SOURCE_DIR}/tests/data/import")

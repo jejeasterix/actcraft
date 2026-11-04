@@ -8,6 +8,8 @@ actcraft_add_module(formats
         src/formats.cpp
         ${ACTCRAFT_FORMATS_NATIVE_SOURCES}
         ${ACTCRAFT_FORMATS_FLIPCHART_SOURCES}
+        include/actcraft/formats/clipboard.h
+        src/clipboard.cpp
     DEPENDS
         ActCraft::core)
 target_link_libraries(actcraft_formats PRIVATE ActCraft::miniz)

@@ -57,6 +57,8 @@ struct Transform
 
 // `first` appliquée d'abord, puis `second` (QTransform : first * second).
 Transform compose(const Transform& first, const Transform& second) noexcept;
+// Inverse de `t` ; rien si elle n'existe pas (déterminant nul ou non fini).
+std::optional<Transform> inverted(const Transform& t) noexcept;
 Transform translation(double dx, double dy) noexcept;
 Transform scaling(double sx, double sy) noexcept;
 // Degrés, sens horaire à l'écran (y vers le bas), comme QTransform::rotate ; angles droits exacts.
@@ -177,6 +179,7 @@ struct ObjectCommon
     Layer layer = Layer::Middle;
     bool visible = true;
     bool locked = false;
+    bool dragCopy = false;         // F-587 : chaque glissement dépose une copie, l'original reste
     std::uint8_t translucency = 0; // 0 opaque … 255 invisible : opacité = 1 − t / 255
     Restrictions restrictions;
     Transform transform; // coordonnées de l'objet → coordonnées de page
@@ -333,6 +336,14 @@ struct Group
     std::vector<ObjectId> members;
 };
 
+// Extrémité d'un connecteur (F-245).
+enum class ConnectorCap : std::uint8_t
+{
+    None = 0,
+    Round = 1,
+    Arrow = 2,
+};
+
 struct Connector
 {
     PointF firstEnd;
@@ -340,6 +351,9 @@ struct Connector
     ObjectId objectA = 0;
     ObjectId objectB = 0;
     Outline pen;
+    std::uint8_t style = 0; // rang dans le panneau des connecteurs (0 : ligne simple), D11
+    ConnectorCap capA = ConnectorCap::None;
+    ConnectorCap capB = ConnectorCap::None;
 };
 
 // Équation (F-301) : MathML gardé tel quel, jamais interprété au socle ; dessinée par un repère neutre sur

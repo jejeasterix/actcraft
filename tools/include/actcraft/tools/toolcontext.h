@@ -4,12 +4,15 @@
 #include <actcraft/core/undo.h>
 #include <actcraft/tools/pentool.h>
 
+#include <QByteArray>
 #include <QString>
 #include <QStringList>
 #include <QVariant>
 
+#include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace actcraft::tools {
@@ -31,6 +34,16 @@ public:
     // Remet les objets soulevés puis exécute `command` par la pile (une étape) ; nullptr : remise sans étape.
     virtual void drop(std::unique_ptr<core::UndoCommand> command) = 0;
     virtual bool isLifting() const = 0;
+    // L5-T12 (ajouts à valeur par défaut, aucune signature existante changée). Octets de la ressource `key`
+    // du document ; vide si absente.
+    virtual QByteArray resourceData(const std::string& key) const
+    {
+        static_cast<void>(key);
+        return {};
+    }
+    // Révision du document : index de la pile d'annulation. Un calcul différé la capture pour jeter un
+    // résultat périmé.
+    virtual std::uint64_t revision() const { return 0; }
 };
 
 // Couche soulevée : dessine les copies au-dessus de la page pendant le geste.
@@ -73,6 +86,7 @@ struct SelectionView
     std::optional<core::RectF> rubberBand;
     std::vector<core::PointF>
         smartPoints; // F-242 : points intelligents de la forme sélectionnée seule (page)
+    std::vector<core::PointF> shapePoints; // L5-T16
 };
 
 class SelectionSurface
