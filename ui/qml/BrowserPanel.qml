@@ -21,6 +21,20 @@ Rectangle {
     property var preferences: null
     property string current: "pages" // identifiant de `navigators` (A8)
     readonly property bool hasNotes: notesBrowser.hasNotes
+    // L6-T18 (S9) : le navigateur courant vient du profil et y retourne à chaque changement.
+    function syncFromProfile() {
+        if (root.profile && root.profile.browsersCurrent !== root.current)
+            root.current = root.profile.browsersCurrent
+    }
+    onCurrentChanged: {
+        if (root.profile && root.profile.browsersCurrent !== root.current)
+            root.profile.browsersCurrent = root.current
+    }
+    onProfileChanged: syncFromProfile()
+    Connections {
+        target: root.profile
+        function onProfileChanged() { root.syncFromProfile() }
+    }
     function showNavigator(id) {
         root.visible = true
         root.current = id
@@ -71,6 +85,7 @@ Rectangle {
     }
     onVisibleChanged: root.syncChecked()
     Component.onCompleted: {
+        root.syncFromProfile()
         root.syncChecked()
         root.commands.setHandler("browser.objects", function () { root.showNavigator("objets") })
         root.commands.setHandler("browser.properties", function () { root.showNavigator("proprietes") })
