@@ -18,11 +18,25 @@ namespace {
 const QString kExportFormatPrefix = QStringLiteral("actcraft-profile-export/");
 const QString kExportFormat = QStringLiteral("actcraft-profile-export/1");
 const QString kLayoutFile = QStringLiteral("/layout.json");
+// Clés inconnues de l'enveloppe d'export, gardées dans le dossier du profil et réécrites à l'export.
+const QString kEnvelopeFile = QStringLiteral("/envelope.json");
 
-// `^[a-z0-9-]+$` sans le piège du `$` de QRegularExpression, qui accepte un saut de ligne final.
+// Noms de périphériques réservés de Windows : « con.json » y serait inutilisable.
+bool isWindowsReserved(const QString& id)
+{
+    static const QStringList fixed{QStringLiteral("con"), QStringLiteral("prn"), QStringLiteral("aux"),
+                                   QStringLiteral("nul")};
+    if (fixed.contains(id))
+        return true;
+    return id.size() == 4 && (id.startsWith(QLatin1String("com")) || id.startsWith(QLatin1String("lpt"))) &&
+           id.at(3) >= QLatin1Char('1') && id.at(3) <= QLatin1Char('9');
+}
+
+// `^[a-z0-9-]+$` sans le piège du `$` de QRegularExpression, qui accepte un saut de ligne final ; moins les
+// noms réservés de Windows.
 bool isValidId(const QString& id)
 {
-    if (id.isEmpty())
+    if (id.isEmpty() || isWindowsReserved(id))
         return false;
     for (const QChar c : id) {
         const char16_t u = c.unicode();
@@ -90,7 +104,9 @@ ProfileStore::ProfileStore(QString userRoot, QString builtinRoot, QStringList bu
 
 QString ProfileStore::userFile(const QString& id) const
 {
-    return isValidId(id) ? m_userRoot + QLatin1Char('/') + id + QStringLiteral(".json") : QString();
+    return isValidId(id) && !m_userRoot.isEmpty()
+               ? m_userRoot + QLatin1Char('/') + id + QStringLiteral(".json")
+               : QString();
 }
 
 QStringList ProfileStore::ids() const
@@ -100,6 +116,8 @@ QStringList ProfileStore::ids() const
         if (isBuiltin(id) && !builtins.contains(id))
             builtins << id;
     }
+    if (m_userRoot.isEmpty()) // aucun dossier utilisateur (jamais le dossier courant)
+        return builtins;
     QStringList users;
     const QStringList files = QDir(m_userRoot).entryList({QStringLiteral("*.json")}, QDir::Files);
     for (const QString& name : files) {
@@ -119,7 +137,7 @@ bool ProfileStore::isBuiltin(const QString& id) const
 
 bool ProfileStore::hasUserCopy(const QString& id) const
 {
-    return isValidId(id) && QFileInfo(userFile(id)).isFile();
+    return !m_userRoot.isEmpty() && isValidId(id) && QFileInfo(userFile(id)).isFile();
 }
 
 std::optional<Profile> ProfileStore::load(const QString& id, QString& error) const
@@ -150,13 +168,17 @@ std::optional<Profile> ProfileStore::load(const QString& id, QString& error) con
 
 QString ProfileStore::directory(const QString& id) const
 {
-    return isValidId(id) ? m_userRoot + QLatin1Char('/') + id : QString();
+    return isValidId(id) && !m_userRoot.isEmpty() ? m_userRoot + QLatin1Char('/') + id : QString();
 }
 
 bool ProfileStore::save(const Profile& profile, QString& error)
 {
     if (refuseId(profile.id, error))
         return false;
+    if (m_userRoot.isEmpty()) {
+        error = QStringLiteral("aucun dossier utilisateur : écriture refusée");
+        return false;
+    }
     if (!QDir().mkpath(m_userRoot)) {
         error = QStringLiteral("dossier des profils impossible à créer : %1").arg(m_userRoot);
         return false;
@@ -168,7 +190,9 @@ bool ProfileStore::saveAs(const Profile& profile, const QString& newId, const QS
 {
     if (refuseId(newId, error))
         return false;
-    if (isBuiltin(newId) || hasUserCopy(newId)) {
+    // Occupé : profil fourni, copie utilisateur, ou dossier <id> orphelin (même règle que l'import).
+    if (isBuiltin(newId) || hasUserCopy(newId) ||
+        (!m_userRoot.isEmpty() && QFileInfo::exists(directory(newId)))) {
         error = QStringLiteral("un profil « %1 » existe déjà").arg(newId);
         return false;
     }
@@ -206,6 +230,10 @@ bool ProfileStore::reset(const QString& id, QString& error)
         error = QStringLiteral("seul un profil fourni se réinitialise : %1").arg(id);
         return false;
     }
+    if (m_userRoot.isEmpty()) {
+        error = QStringLiteral("aucun dossier utilisateur : réinitialisation refusée");
+        return false;
+    }
     if ((hasUserCopy(id) && !QFile::remove(userFile(id))) || !QDir(directory(id)).removeRecursively()) {
         error = QStringLiteral("réinitialisation impossible : %1").arg(id);
         return false;
@@ -222,7 +250,7 @@ bool ProfileStore::exportTo(const QString& id, const QString& filePath, QString&
         return false;
     QJsonValue layout(QJsonValue::Null);
     const QString layoutPath = directory(id) + kLayoutFile;
-    if (QFileInfo(layoutPath).isFile()) {
+    if (!m_userRoot.isEmpty() && QFileInfo(layoutPath).isFile()) {
         QByteArray bytes;
         if (!readBytes(layoutPath, bytes, error))
             return false;
@@ -234,11 +262,17 @@ bool ProfileStore::exportTo(const QString& id, const QString& filePath, QString&
         layout = *object;
     }
     // Le profil passe par profileToJson, qui réécrit aussi ses clés inconnues.
-    const QJsonObject envelope{
-        {QStringLiteral("format"), kExportFormat},
-        {QStringLiteral("profile"), objectFrom(profileToJson(*profile)).value_or(QJsonObject())},
-        {QStringLiteral("layout"), layout},
-    };
+    QJsonObject envelope;
+    if (!m_userRoot
+             .isEmpty()) { // clés inconnues de l'enveloppe lue à l'import, d'abord ; les connues par-dessus
+        QByteArray extra;
+        QString ignored;
+        if (readBytes(directory(id) + kEnvelopeFile, extra, ignored))
+            envelope = objectFrom(extra).value_or(QJsonObject());
+    }
+    envelope.insert(QStringLiteral("format"), kExportFormat);
+    envelope.insert(QStringLiteral("profile"), objectFrom(profileToJson(*profile)).value_or(QJsonObject()));
+    envelope.insert(QStringLiteral("layout"), layout);
     return writeAtomically(filePath, QJsonDocument(envelope).toJson(QJsonDocument::Indented), error);
 }
 
@@ -282,16 +316,22 @@ std::optional<QString> ProfileStore::importFrom(const QString& filePath, QString
     for (int n = 2; isBuiltin(id) || hasUserCopy(id) || QFileInfo::exists(directory(id)); ++n)
         id = profile.id + QLatin1Char('-') + QString::number(n);
     profile.id = id;
+    QJsonObject extras = *envelope;
+    for (const char* known : {"format", "profile", "layout"})
+        extras.remove(QLatin1String(known));
     if (!save(profile, error))
         return std::nullopt;
-    if (layout.isObject()) {
+    if (layout.isObject() || !extras.isEmpty()) {
         const QString dir = directory(id);
         bool written = QDir().mkpath(dir);
         if (!written)
             error = QStringLiteral("dossier du profil impossible à créer : %1").arg(dir);
-        else
+        if (written && layout.isObject())
             written = writeAtomically(
                 dir + kLayoutFile, QJsonDocument(layout.toObject()).toJson(QJsonDocument::Indented), error);
+        if (written && !extras.isEmpty())
+            written = writeAtomically(dir + kEnvelopeFile,
+                                      QJsonDocument(extras).toJson(QJsonDocument::Indented), error);
         if (!written) {
             QFile::remove(userFile(id));
             QDir(dir).removeRecursively();

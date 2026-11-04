@@ -62,7 +62,8 @@ Profile sample()
     p.pinned = {QStringLiteral("math.ruler")};
     p.fitPage = true;
     p.trashVisible = false;
-    p.shortcutObjects.insert(QStringLiteral("s1"), QJsonObject{{QStringLiteral("label"), QStringLiteral("S")}});
+    p.shortcutObjects.insert(QStringLiteral("s1"),
+                             QJsonObject{{QStringLiteral("label"), QStringLiteral("S")}});
     p.launchers.insert(QStringLiteral("l1"), QJsonObject{{QStringLiteral("path"), QStringLiteral("/x")}});
     p.settings.insert(QStringLiteral("objects"), QJsonObject{{QStringLiteral("auto-group"), false}});
     return p;
@@ -383,8 +384,10 @@ private slots:
                  QJsonValue(QJsonObject{{QStringLiteral("a"), 2}}));
         // Une clé inconnue n'écrase jamais une clé connue.
         p.palette.unknown.insert(QStringLiteral("dock"), QStringLiteral("top"));
-        QCOMPARE(objectOf(profileToJson(p)).value(QStringLiteral("palette")).toObject().value(
-                     QStringLiteral("dock")),
+        QCOMPARE(objectOf(profileToJson(p))
+                     .value(QStringLiteral("palette"))
+                     .toObject()
+                     .value(QStringLiteral("dock")),
                  QJsonValue(QStringLiteral("left")));
     }
     void unknownSubKeysAndEnvelopeKeysSurviveTheStore()
@@ -419,8 +422,12 @@ private slots:
         const QJsonObject second = objectOf(readFile(again));
         QCOMPARE(second.value(QStringLiteral("exported-by")),
                  QJsonValue(QJsonObject{{QStringLiteral("v"), 7}}));
-        QCOMPARE(second.value(QStringLiteral("format")), QJsonValue(QStringLiteral("actcraft-profile-export/1")));
-        QCOMPARE(second.value(QStringLiteral("profile")).toObject().value(QStringLiteral("palette")).toObject()
+        QCOMPARE(second.value(QStringLiteral("format")),
+                 QJsonValue(QStringLiteral("actcraft-profile-export/1")));
+        QCOMPARE(second.value(QStringLiteral("profile"))
+                     .toObject()
+                     .value(QStringLiteral("palette"))
+                     .toObject()
                      .value(QStringLiteral("opacity")),
                  QJsonValue(0.8));
     }
@@ -456,7 +463,8 @@ private slots:
             QVERIFY(objectOf(readFile(cwd.filePath(QStringLiteral("out.json"))))
                         .value(QStringLiteral("layout"))
                         .isNull()); // le « b1/layout.json » du dossier courant n'est pas lu
-            QVERIFY2(writeFile(cwd.filePath(QStringLiteral("imp.json")), readFile(cwd.filePath(QStringLiteral("out.json")))),
+            QVERIFY2(writeFile(cwd.filePath(QStringLiteral("imp.json")),
+                               readFile(cwd.filePath(QStringLiteral("out.json")))),
                      "export");
             QVERIFY(!s.importFrom(cwd.filePath(QStringLiteral("imp.json")), error));
             QVERIFY(!error.isEmpty());

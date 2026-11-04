@@ -64,8 +64,8 @@ struct Profile
     QJsonObject shortcutObjects; // F-141 : { "<id>": { "label", "objects" (fragment) } }
     QJsonObject launchers;       // F-920 : écrit par L6-T29
     QJsonObject settings;        // sections de F-930 : { "<section>": { "<clé>": valeur } }
-    QJsonObject unknownKeys; // clés de premier niveau inconnues de cette version, réécrites telles quelles (celles des
-                             // sous-objets : PaletteSettings::unknown, BrowserSettings::unknown)
+    QJsonObject unknownKeys; // clés de premier niveau inconnues de cette version, réécrites telles quelles
+                             // (celles des sous-objets : PaletteSettings::unknown, BrowserSettings::unknown)
 };
 
 inline constexpr char kProfileFormat[] = "actcraft-profile/1";
