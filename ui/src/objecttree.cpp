@@ -1,2 +1,483 @@
-// Talon L6 : rempli par L6-T14.
-#include <QtGlobal> // une unité de traduction jamais vide (C4206 sous /W4 /WX)
+#include <actcraft/actions/commandregistry.h>
+#include <actcraft/core/arrange.h>
+#include <actcraft/core/objectflags.h>
+#include <actcraft/tools/userstate.h>
+#include <actcraft/ui/objecttree.h>
+
+#include <QCoreApplication>
+
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+
+namespace actcraft::ui {
+
+namespace {
+
+// Ordre d'affichage : du dessus vers le fond.
+constexpr std::array<core::Layer, 4> kShownLayers{core::Layer::Top, core::Layer::Middle, core::Layer::Bottom,
+                                                  core::Layer::Background};
+
+QString layerKey(core::Layer layer)
+{
+    switch (layer) {
+    case core::Layer::Top:
+        return QStringLiteral("top");
+    case core::Layer::Middle:
+        return QStringLiteral("middle");
+    case core::Layer::Bottom:
+        return QStringLiteral("bottom");
+    case core::Layer::Background:
+        break;
+    }
+    return QStringLiteral("background");
+}
+
+QString kindKey(core::ObjectKind kind)
+{
+    switch (kind) {
+    case core::ObjectKind::Shape:
+        return QStringLiteral("shape");
+    case core::ObjectKind::Image:
+        return QStringLiteral("image");
+    case core::ObjectKind::Stroke:
+        return QStringLiteral("stroke");
+    case core::ObjectKind::Line:
+        return QStringLiteral("line");
+    case core::ObjectKind::Text:
+        return QStringLiteral("text");
+    case core::ObjectKind::Media:
+        return QStringLiteral("media");
+    case core::ObjectKind::Group:
+        return QStringLiteral("group");
+    case core::ObjectKind::Connector:
+        return QStringLiteral("connector");
+    case core::ObjectKind::Equation:
+        return QStringLiteral("equation");
+    case core::ObjectKind::Unknown:
+        break;
+    }
+    return QStringLiteral("unknown");
+}
+
+// Nom affiché d'un objet sans nom : le genre, dans la langue de l'interface.
+QString kindLabel(core::ObjectKind kind)
+{
+    const char* text = "Objet";
+    switch (kind) {
+    case core::ObjectKind::Shape:
+        text = "Forme";
+        break;
+    case core::ObjectKind::Image:
+        text = "Image";
+        break;
+    case core::ObjectKind::Stroke:
+        text = "Trait";
+        break;
+    case core::ObjectKind::Line:
+        text = "Ligne";
+        break;
+    case core::ObjectKind::Text:
+        text = "Texte";
+        break;
+    case core::ObjectKind::Media:
+        text = "Média";
+        break;
+    case core::ObjectKind::Group:
+        text = "Groupe";
+        break;
+    case core::ObjectKind::Connector:
+        text = "Connecteur";
+        break;
+    case core::ObjectKind::Equation:
+        text = "Équation";
+        break;
+    case core::ObjectKind::Unknown:
+        break;
+    }
+    return QCoreApplication::translate("actcraft::ui::ObjectTreeModel", text);
+}
+
+} // namespace
+
+ObjectTreeModel::ObjectTreeModel(QObject* parent) : QAbstractListModel(parent)
+{
+    // Fin d'un contact : la remise à jour retenue part au tour suivant.
+    connect(this, &ObjectTreeModel::contactActiveChanged, this, [this] {
+        if (!m_contactActive && m_pending) {
+            schedule();
+        }
+    });
+}
+
+ObjectTreeModel::~ObjectTreeModel()
+{
+    detachDocument();
+}
+
+int ObjectTreeModel::rowCount(const QModelIndex& parent) const
+{
+    return parent.isValid() ? 0 : static_cast<int>(m_rows.size());
+}
+
+QVariant ObjectTreeModel::data(const QModelIndex& index, int role) const
+{
+    if (!index.isValid() || index.row() < 0 || index.row() >= rowCount()) {
+        return {};
+    }
+    const Row& row = m_rows[static_cast<std::size_t>(index.row())];
+    switch (role) {
+    case DepthRole:
+        return row.depth;
+    case LayerRole:
+        return layerKey(row.layer);
+    case ObjectIdRole:
+        return QVariant::fromValue<qulonglong>(row.id);
+    case Qt::DisplayRole:
+    case NameRole:
+        return row.name;
+    case KindRole:
+        return row.kind;
+    case HiddenRole:
+        return row.hidden;
+    case LockedRole:
+        return row.locked;
+    case SelectedRole:
+        return row.selected;
+    default:
+        return {};
+    }
+}
+
+QHash<int, QByteArray> ObjectTreeModel::roleNames() const
+{
+    return {
+        {DepthRole, QByteArrayLiteral("depth")},       {LayerRole, QByteArrayLiteral("layer")},
+        {ObjectIdRole, QByteArrayLiteral("objectId")}, {NameRole, QByteArrayLiteral("name")},
+        {KindRole, QByteArrayLiteral("kind")},         {HiddenRole, QByteArrayLiteral("hidden")},
+        {LockedRole, QByteArrayLiteral("locked")},     {SelectedRole, QByteArrayLiteral("selected")},
+    };
+}
+
+void ObjectTreeModel::select(int row, int modifiers)
+{
+    const Row* target = objectRow(row);
+    if (m_tools == nullptr || target == nullptr) {
+        return;
+    }
+    const core::ObjectId id = target->id;
+    std::vector<core::ObjectId> ids;
+    const auto held = Qt::KeyboardModifiers::fromInt(static_cast<Qt::KeyboardModifiers::Int>(modifiers));
+    if (held.testFlag(Qt::ControlModifier)) {
+        ids = m_tools->user().selection();
+        const auto it = std::find(ids.begin(), ids.end(), id);
+        if (it != ids.end()) {
+            ids.erase(it);
+        } else {
+            ids.push_back(id);
+        }
+    } else {
+        ids = {id};
+    }
+    if (ids.empty()) {
+        m_tools->clearSelection();
+    } else {
+        m_tools->selectObjects(ids); // active l'outil Sélection ; le document n'est pas modifié
+    }
+}
+
+bool ObjectTreeModel::move(int row, int beforeRow)
+{
+    const Row* moved = objectRow(row);
+    if (!canEdit() || moved == nullptr || beforeRow < 1 || beforeRow > rowCount()) {
+        return false;
+    }
+    // La ligne déplacée arrive juste sous `anchor` : couche → sommet de cette couche ; objet → juste en
+    // dessous.
+    const Row& anchor = m_rows[static_cast<std::size_t>(beforeRow - 1)];
+    if (anchor.layer == core::Layer::Background || anchor.id == moved->id) {
+        return false;
+    }
+    const auto pageIndex = static_cast<std::size_t>(m_document->currentIndex());
+    const core::Page& page = m_document->document().page(pageIndex);
+    std::unordered_map<core::ObjectId, core::Layer> layers;
+    std::vector<core::ObjectId> order;
+    order.reserve(page.objects.size());
+    for (const core::PageObject& object : page.objects) {
+        layers.emplace(object.common.id, object.common.layer);
+        order.push_back(object.common.id);
+    }
+    const auto found = layers.find(moved->id);
+    if (found == layers.end()) {
+        return false; // objet retiré depuis la dernière remise à jour
+    }
+    // Le groupe bouge avec ses membres (comme core::arrangedOrder).
+    const std::vector<core::ObjectId> block = core::expandGroups(page, {moved->id});
+    if (found->second != anchor.layer) {
+        m_document->execute(std::make_unique<core::SetLayerCommand>(pageIndex, block, anchor.layer));
+        return true;
+    }
+    const std::unordered_set<core::ObjectId> inBlock(block.begin(), block.end());
+    std::vector<core::ObjectId> rest;
+    std::vector<core::ObjectId> carried; // ordre relatif gardé
+    for (const core::ObjectId id : order) {
+        (inBlock.count(id) != 0 ? carried : rest).push_back(id);
+    }
+    std::vector<core::ObjectId>::iterator at = rest.end();
+    if (anchor.depth == 0) {
+        // Sommet de la couche : après le dernier objet de la couche dans l'ordre de la page.
+        const auto last = std::find_if(rest.rbegin(), rest.rend(),
+                                       [&](core::ObjectId id) { return layers[id] == anchor.layer; });
+        if (last == rest.rend()) {
+            return false; // seul dans sa couche
+        }
+        at = last.base();
+    } else {
+        at = std::find(rest.begin(), rest.end(), anchor.id);
+        if (at == rest.end()) {
+            return false;
+        }
+    }
+    rest.insert(at, carried.begin(), carried.end());
+    if (rest == order) {
+        return false;
+    }
+    m_document->execute(std::make_unique<core::ReorderObjectsCommand>(pageIndex, std::move(rest)));
+    return true;
+}
+
+bool ObjectTreeModel::setHidden(int row, bool hidden)
+{
+    return setFlag(row, static_cast<int>(core::ObjectFlag::Hidden), hidden);
+}
+
+bool ObjectTreeModel::setLocked(int row, bool locked)
+{
+    if (!setFlag(row, static_cast<int>(core::ObjectFlag::Locked), locked)) {
+        return false;
+    }
+    requestReset(); // aucun Change : le contrôleur n'émet rien (objectflags.h)
+    return true;
+}
+
+bool ObjectTreeModel::setFlag(int row, int flag, bool value)
+{
+    const Row* target = objectRow(row);
+    if (!canEdit() || target == nullptr) {
+        return false;
+    }
+    const auto which = static_cast<core::ObjectFlag>(flag);
+    const auto pageIndex = static_cast<std::size_t>(m_document->currentIndex());
+    const core::Page& page = m_document->document().page(pageIndex);
+    const bool exists = std::any_of(page.objects.begin(), page.objects.end(),
+                                    [&](const core::PageObject& o) { return o.common.id == target->id; });
+    if (!exists || core::flagOfAll(page, {target->id}, which) == value) {
+        return false;
+    }
+    m_document->execute(std::make_unique<core::SetObjectFlagCommand>(
+        pageIndex, std::vector<core::ObjectId>{target->id}, which, value));
+    return true;
+}
+
+DocumentController* ObjectTreeModel::document() const noexcept
+{
+    return m_document.data();
+}
+
+void ObjectTreeModel::setDocument(DocumentController* document)
+{
+    if (m_document == document) {
+        return;
+    }
+    detachDocument();
+    m_document = document;
+    attachDocument();
+    emit sourcesChanged();
+    requestReset();
+}
+
+ToolHost* ObjectTreeModel::tools() const noexcept
+{
+    return m_tools.data();
+}
+
+void ObjectTreeModel::setTools(ToolHost* tools)
+{
+    if (m_tools == tools) {
+        return;
+    }
+    disconnect(m_selectionConnection);
+    m_tools = tools;
+    if (m_tools) {
+        m_selectionConnection =
+            connect(m_tools.data(), &ToolHost::selectionChanged, this, &ObjectTreeModel::requestReset);
+    }
+    emit sourcesChanged();
+    requestReset();
+}
+
+Commands* ObjectTreeModel::commands() const noexcept
+{
+    return m_commands.data();
+}
+
+void ObjectTreeModel::setCommands(Commands* commands)
+{
+    if (m_commands == commands) {
+        return;
+    }
+    disconnect(m_lockConnection);
+    m_commands = commands;
+    if (m_commands) {
+        // Verrou posé ailleurs : la commande a déjà été exécutée (triggered suit le gestionnaire), sans
+        // Change.
+        m_lockConnection = connect(
+            m_commands.data(), &Commands::triggered, this, [this](const QString& id, const QVariant&) {
+                if (id == QLatin1String("object.lock") || id == QLatin1String("object.drag-copy")) {
+                    requestReset();
+                }
+            });
+    }
+    emit sourcesChanged();
+}
+
+int ObjectTreeModel::resetCount() const noexcept
+{
+    return m_resets;
+}
+
+void ObjectTreeModel::requestReset()
+{
+    m_pending = true;
+    if (!m_contactActive) {
+        schedule();
+    }
+}
+
+void ObjectTreeModel::schedule()
+{
+    if (m_scheduled) {
+        return;
+    }
+    m_scheduled = true;
+    QMetaObject::invokeMethod(this, &ObjectTreeModel::flush, Qt::QueuedConnection);
+}
+
+void ObjectTreeModel::flush()
+{
+    m_scheduled = false;
+    if (!m_pending || m_contactActive) {
+        return; // pendant un contact : repris à sa fin (contactActiveChanged)
+    }
+    m_pending = false;
+    beginResetModel();
+    rebuild();
+    endResetModel();
+    ++m_resets;
+    emit reset();
+}
+
+void ObjectTreeModel::rebuild()
+{
+    m_rows.clear();
+    if (!m_document) {
+        return;
+    }
+    const core::Page& page =
+        m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
+    std::unordered_set<core::ObjectId> members;
+    for (const core::PageObject& object : page.objects) {
+        if (const auto* group = std::get_if<core::Group>(&object)) {
+            members.insert(group->members.begin(), group->members.end());
+        }
+    }
+    std::unordered_set<core::ObjectId> selected;
+    if (m_tools) {
+        const std::vector<core::ObjectId>& selection = m_tools->user().selection();
+        selected.insert(selection.begin(), selection.end());
+    }
+    m_rows.reserve(page.objects.size() + kShownLayers.size());
+    for (const core::Layer layer : kShownLayers) {
+        Row node;
+        node.layer = layer;
+        switch (layer) {
+        case core::Layer::Top:
+            node.name = tr("Couche du dessus");
+            break;
+        case core::Layer::Middle:
+            node.name = tr("Couche intermédiaire");
+            break;
+        case core::Layer::Bottom:
+            node.name = tr("Couche inférieure");
+            break;
+        case core::Layer::Background:
+            node.name = tr("Arrière-plan");
+            break;
+        }
+        m_rows.push_back(std::move(node));
+        // Dernier de la page = le plus haut de sa couche.
+        for (auto it = page.objects.rbegin(); it != page.objects.rend(); ++it) {
+            const core::ObjectCommon& common = it->common;
+            if (common.layer != layer || members.count(common.id) != 0) {
+                continue;
+            }
+            Row row;
+            row.depth = 1;
+            row.layer = layer;
+            row.id = common.id;
+            const core::ObjectKind kind = core::kindOf(*it);
+            row.kind = kindKey(kind);
+            row.name = common.name.empty() ? kindLabel(kind) : QString::fromStdString(common.name);
+            row.hidden = !common.visible;
+            row.locked = common.locked;
+            row.selected = selected.count(common.id) != 0;
+            m_rows.push_back(std::move(row));
+        }
+    }
+}
+
+void ObjectTreeModel::attachDocument()
+{
+    if (!m_document) {
+        return;
+    }
+    DocumentController* controller = m_document.data();
+    m_observer = controller->addChangeObserver(
+        [this](const core::Changes&, DocumentController::ChangeOrigin) { requestReset(); });
+    m_documentConnections = {
+        connect(controller, &DocumentController::documentChanged, this, &ObjectTreeModel::requestReset),
+        connect(controller, &DocumentController::pagesChanged, this, &ObjectTreeModel::requestReset),
+    };
+}
+
+void ObjectTreeModel::detachDocument()
+{
+    for (const QMetaObject::Connection& connection : std::as_const(m_documentConnections)) {
+        disconnect(connection);
+    }
+    m_documentConnections.clear();
+    if (m_document && m_observer > 0) {
+        m_document->removeChangeObserver(m_observer);
+    }
+    m_observer = 0;
+}
+
+bool ObjectTreeModel::canEdit() const
+{
+    return m_document != nullptr && m_commands != nullptr && !m_commands->registry().isLocked();
+}
+
+const ObjectTreeModel::Row* ObjectTreeModel::objectRow(int row) const
+{
+    if (row < 0 || row >= rowCount()) {
+        return nullptr;
+    }
+    const Row& candidate = m_rows[static_cast<std::size_t>(row)];
+    return candidate.depth == 1 ? &candidate : nullptr;
+}
+
+} // namespace actcraft::ui

@@ -4,14 +4,17 @@
 // n'émet alors ni observateur, ni pageContentChanged, ni documentChanged. Un modèle qui ne suivrait que les
 // signaux du document (comme PageThumbnails) garderait LockedRole périmé : lockFromElsewhereRefreshes et
 // toggleHiddenAndLocked le distinguent.
-#include <actcraft/core/arrange.h>
+#include <actcraft/actions/commandregistry.h>
+#include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/objectflags.h>
+#include <actcraft/core/shapegeometry.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/objecttree.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QTemporaryDir>
 #include <QtTest>
 
 #include <algorithm>
@@ -60,14 +63,16 @@ core::PageObject strokeObject()
 
 core::PageObject imageObject()
 {
-    core::Image image;
+    core::ImageObject image;
     image.bounds = core::RectF{300, 300, 64, 64};
     return core::PageObject{image};
 }
 
+// ui::Commands n'expose que registry() const ; le verrou du mode classe (L6-T31) n'a pas encore de voie dans
+// Commands. Le registre n'est pas un objet const : const_cast est sûr ici.
 void setLocked(ui::Commands& commands, bool locked)
 {
-    commands.setLocked(locked);
+    const_cast<actcraft::actions::CommandRegistry&>(commands.registry()).setLocked(locked);
 }
 
 int rowOf(const ui::ObjectTreeModel& tree, core::ObjectId id)
@@ -112,6 +117,7 @@ bool hiddenInDocument(const ui::DocumentController& controller, core::ObjectId i
 // Document de la section : un trait couche du dessus, deux formes intermédiaires, une image inférieure.
 struct Fixture
 {
+    QTemporaryDir dir;
     ui::DocumentController controller;
     ui::Commands commands;
     ui::ToolHost tools;
@@ -124,6 +130,8 @@ struct Fixture
     Fixture()
     {
         controller.newDocument(800, 600);
+        commands.setProfileDir(dir.filePath(QStringLiteral("disposition")));
+        tools.setSettingsFile(dir.filePath(QStringLiteral("outils.ini")));
         tools.setCommands(&commands);
         tools.setDocumentController(&controller);
         tree.setCommands(&commands); // amendement 3, n1 : fermé par défaut
@@ -155,8 +163,8 @@ private slots:
                 QCOMPARE(f.tree.data(index, ui::ObjectTreeModel::ObjectIdRole).toULongLong(), 0ULL);
             }
         }
-        QCOMPARE(layers, (QStringList{QStringLiteral("top"), QStringLiteral("middle"), QStringLiteral("bottom"),
-                                      QStringLiteral("background")}));
+        QCOMPARE(layers, (QStringList{QStringLiteral("top"), QStringLiteral("middle"),
+                                      QStringLiteral("bottom"), QStringLiteral("background")}));
         QCOMPARE(f.tree.rowCount(), 8); // quatre couches, quatre objets
     }
 
@@ -170,10 +178,12 @@ private slots:
         QCOMPARE(rowOf(f.tree, f.shape2), middle + 1); // ajoutée en dernier : au-dessus
         QCOMPARE(rowOf(f.tree, f.shape1), middle + 2);
         QCOMPARE(rowOf(f.tree, f.image), bottom + 1);
-        QCOMPARE(roleOf(f.tree, f.stroke, ui::ObjectTreeModel::KindRole).toString(), QStringLiteral("stroke"));
+        QCOMPARE(roleOf(f.tree, f.stroke, ui::ObjectTreeModel::KindRole).toString(),
+                 QStringLiteral("stroke"));
         QCOMPARE(roleOf(f.tree, f.shape1, ui::ObjectTreeModel::KindRole).toString(), QStringLiteral("shape"));
         QCOMPARE(roleOf(f.tree, f.image, ui::ObjectTreeModel::KindRole).toString(), QStringLiteral("image"));
-        QCOMPARE(roleOf(f.tree, f.shape1, ui::ObjectTreeModel::LayerRole).toString(), QStringLiteral("middle"));
+        QCOMPARE(roleOf(f.tree, f.shape1, ui::ObjectTreeModel::LayerRole).toString(),
+                 QStringLiteral("middle"));
         QVERIFY(!roleOf(f.tree, f.shape1, ui::ObjectTreeModel::NameRole).toString().isEmpty());
         QCOMPARE(roleOf(f.tree, f.shape1, ui::ObjectTreeModel::HiddenRole).toBool(), false);
         QCOMPARE(roleOf(f.tree, f.shape1, ui::ObjectTreeModel::LockedRole).toBool(), false);
@@ -230,12 +240,14 @@ private slots:
         // Vers une autre couche : l'image passe au sommet de la couche intermédiaire, une étape.
         QVERIFY(f.tree.move(rowOf(f.tree, f.image), middle + 1));
         QCoreApplication::processEvents();
-        QCOMPARE(roleOf(f.tree, f.image, ui::ObjectTreeModel::LayerRole).toString(), QStringLiteral("middle"));
+        QCOMPARE(roleOf(f.tree, f.image, ui::ObjectTreeModel::LayerRole).toString(),
+                 QStringLiteral("middle"));
         QCOMPARE(rowOf(f.tree, f.image), layerRow(f.tree, QStringLiteral("middle")) + 1);
         f.controller.undo();
         QCOMPARE(f.controller.fingerprintText(), before);
         QCoreApplication::processEvents();
-        QCOMPARE(roleOf(f.tree, f.image, ui::ObjectTreeModel::LayerRole).toString(), QStringLiteral("bottom"));
+        QCOMPARE(roleOf(f.tree, f.image, ui::ObjectTreeModel::LayerRole).toString(),
+                 QStringLiteral("bottom"));
     }
 
     void dragToBackgroundRefused()
@@ -244,12 +256,13 @@ private slots:
         const QString before = f.controller.fingerprintText();
         const bool couldUndo = f.controller.canUndo();
         const int background = layerRow(f.tree, QStringLiteral("background"));
-        QVERIFY(!f.tree.move(rowOf(f.tree, f.shape1), background + 1)); // sous « background »
+        QVERIFY(!f.tree.move(rowOf(f.tree, f.shape1), background + 1));       // sous « background »
         QVERIFY(!f.tree.move(layerRow(f.tree, QStringLiteral("middle")), 0)); // une couche seule
         QCOMPARE(f.controller.fingerprintText(), before);
         QCOMPARE(f.controller.canUndo(), couldUndo);
         QCoreApplication::processEvents();
-        QCOMPARE(roleOf(f.tree, f.shape1, ui::ObjectTreeModel::LayerRole).toString(), QStringLiteral("middle"));
+        QCOMPARE(roleOf(f.tree, f.shape1, ui::ObjectTreeModel::LayerRole).toString(),
+                 QStringLiteral("middle"));
     }
 
     void toggleHiddenAndLocked()
