@@ -651,6 +651,8 @@ void PropertyModel::detachDocument()
     m_observer = 0;
 }
 
+void PropertyModel::endEdit() {}
+
 void PropertyModel::updateEditable()
 {
     const bool now = editable();

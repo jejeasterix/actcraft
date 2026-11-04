@@ -117,6 +117,13 @@ bool hiddenInDocument(const ui::DocumentController& controller, core::ObjectId i
     return core::flagOfAll(controller.document().page(0), {id}, core::ObjectFlag::Hidden);
 }
 
+double translucencyOf(const ui::DocumentController& controller, core::ObjectId id)
+{
+    const std::optional<core::PropertyValue> value =
+        inDocument(controller, id, core::ObjectProperty::Translucency);
+    return value && std::holds_alternative<double>(*value) ? std::get<double>(*value) : -1.0;
+}
+
 QVariant roleOf(const ui::PropertyModel& model, const QString& key, int role)
 {
     const int row = model.rowOf(key);
@@ -381,7 +388,7 @@ private slots:
 
         QVERIFY(f.model.setValue(f.model.rowOf(QStringLiteral("visible")), false));
         QVERIFY(hiddenInDocument(f.controller, f.shape1));
-        QTRY_COMPARE(valueOf(f.model, QStringLiteral("visible")).toBool(), false);
+        QTRY_COMPARE(valueOf(f.model, QStringLiteral("visible")), QVariant(false));
 
         QCOMPARE(roleOf(f.model, QStringLiteral("translucency"), ui::PropertyModel::EditorRole).toString(),
                  QStringLiteral("slider"));
@@ -473,6 +480,122 @@ private slots:
         QCOMPARE(changed.count(), 3);
     }
 
+    // Relecture M1 : un glissé fusionne ses pas jusqu'au relâcher (endEdit) ; le glissé suivant fait une
+    // autre étape (D10). Sans endEdit, SetTranslucencyCommand::mergeWith fondrait les deux glissés en une
+    // étape.
+    void slideStepsMergeUntilEndEdit()
+    {
+        Fixture f;
+        f.select({f.shape1});
+        const double before = translucencyOf(f.controller, f.shape1);
+        const int row = f.model.rowOf(QStringLiteral("translucency"));
+        QVERIFY(f.model.setValue(row, 100)); // premier glissé : deux pas
+        QVERIFY(f.model.setValue(row, 120));
+        f.model.endEdit();
+        QVERIFY(f.model.setValue(row, 200)); // second glissé
+        f.model.endEdit();
+        QCOMPARE(translucencyOf(f.controller, f.shape1), 200.0);
+        f.controller.undo();
+        QCOMPARE(translucencyOf(f.controller, f.shape1), 120.0);
+        f.controller.undo();
+        QCOMPARE(translucencyOf(f.controller, f.shape1), before);
+    }
+
+    // Relecture M1 : une modification ponctuelle clôt aussi l'étape restée ouverte avant elle (ici une
+    // commande de même famille, mêmes objets, même propriété, exécutée ailleurs sans closeMerge).
+    void pointEditClosesAStepLeftOpen()
+    {
+        Fixture f;
+        f.select({f.shape1});
+        const double before = outlineWidth(f.controller, f.shape1);
+        QVERIFY(before != 9.0);
+        f.controller.execute(std::make_unique<core::SetObjectPropertiesCommand>(
+            0, std::vector<core::ObjectId>{f.shape1}, core::ObjectProperty::OutlineWidth, 9.0));
+        QCoreApplication::processEvents();
+        QVERIFY(f.model.setValue(f.model.rowOf(QStringLiteral("outline-width")), 12));
+        f.controller.undo();
+        QCOMPARE(outlineWidth(f.controller, f.shape1), 9.0);
+        f.controller.undo();
+        QCOMPARE(outlineWidth(f.controller, f.shape1), before);
+    }
+
+    // Relecture M2 : une valeur changée, lignes inchangées : dataChanged sur ValueRole, jamais modelReset
+    // (un reset détruirait les délégués, la réglette tenue sous le doigt comprise). Le reset reste pour un
+    // changement de structure.
+    void valueEditKeepsTheRows()
+    {
+        Fixture f;
+        f.select({f.shape1});
+        QSignalSpy resets(&f.model, &QAbstractItemModel::modelReset);
+        QSignalSpy changed(&f.model, &QAbstractItemModel::dataChanged);
+        const int refreshes = f.model.refreshCount();
+        const int row = f.model.rowOf(QStringLiteral("outline-width"));
+        QVERIFY(f.model.setValue(row, 12));
+        QCoreApplication::processEvents();
+        QCOMPARE(resets.count(), 0);
+        QCOMPARE(f.model.refreshCount(), refreshes + 1);
+        QCOMPARE(f.model.rowOf(QStringLiteral("outline-width")), row);
+        QCOMPARE(valueOf(f.model, QStringLiteral("outline-width")).toDouble(), 12.0);
+        bool covered = false;
+        for (const QList<QVariant>& arguments : std::as_const(changed)) {
+            const int first = arguments.at(0).value<QModelIndex>().row();
+            const int last = arguments.at(1).value<QModelIndex>().row();
+            QCOMPARE(arguments.at(2).value<QList<int>>(), QList<int>{ui::PropertyModel::ValueRole});
+            covered = covered || (first <= row && row <= last);
+        }
+        QVERIFY(covered);
+        // Un pas de réglette, puis la même structure sur un autre objet : toujours aucun reset.
+        QVERIFY(f.model.setValue(f.model.rowOf(QStringLiteral("translucency")), 50));
+        QCoreApplication::processEvents();
+        f.select({f.shape2});
+        QCOMPARE(resets.count(), 0);
+        QCOMPARE(f.model.refreshCount(), refreshes + 3);
+        // Structure changée (trait : pas de remplissage) : un reset.
+        f.select({f.stroke});
+        QCOMPARE(resets.count(), 1);
+        QCOMPARE(f.model.rowOf(QStringLiteral("fill-color")), -1);
+        QCOMPARE(f.model.title(), QStringLiteral("Trait"));
+    }
+
+    // Relecture M3 : « number » et « slider » refusent une valeur hors de [MinRole, MaxRole] ; rien n'est
+    // exécuté (une page de 1e6 px contournerait le plafond du contrôleur).
+    void valuesOutOfRangeAreRefused()
+    {
+        Fixture f;
+        const int width = f.model.rowOf(QStringLiteral("width"));
+        QCOMPARE(roleOf(f.model, QStringLiteral("width"), ui::PropertyModel::MaxRole).toDouble(),
+                 ui::DocumentController::kMaxPageSide);
+        QVERIFY(!f.model.setValue(width, 1e6));
+        QVERIFY(!f.model.setValue(width, 0));
+        QCOMPARE(f.controller.document().page(0).width, 800.0);
+        QVERIFY(f.model.setValue(width, ui::DocumentController::kMaxPageSide)); // borne comprise
+        QCOMPARE(f.controller.document().page(0).width, ui::DocumentController::kMaxPageSide);
+        f.select({f.shape1});
+        const double outline = outlineWidth(f.controller, f.shape1);
+        const double translucency = translucencyOf(f.controller, f.shape1);
+        QVERIFY(!f.model.setValue(f.model.rowOf(QStringLiteral("outline-width")), -5));
+        QVERIFY(!f.model.setValue(f.model.rowOf(QStringLiteral("translucency")), 300));
+        QCOMPARE(outlineWidth(f.controller, f.shape1), outline);
+        QCOMPARE(translucencyOf(f.controller, f.shape1), translucency);
+    }
+
+    // Relecture m2 : mots-clés en une chaîne, séparés par des espaces (L6-T13) ou des virgules.
+    void keywordsSplitOnSpacesAndCommas()
+    {
+        Fixture f;
+        f.select({f.shape1});
+        QVERIFY(f.model.setValue(f.model.rowOf(QStringLiteral("keywords")),
+                                 QStringLiteral("maths  géométrie, angles")));
+        const std::vector<std::string> expected{"maths", "géométrie", "angles"};
+        const std::optional<core::PropertyValue> stored =
+            inDocument(f.controller, f.shape1, core::ObjectProperty::Keywords);
+        QVERIFY(stored && std::holds_alternative<std::vector<std::string>>(*stored));
+        QVERIFY(std::get<std::vector<std::string>>(*stored) == expected);
+        QTRY_COMPARE(
+            valueOf(f.model, QStringLiteral("keywords")).toStringList(),
+            (QStringList{QStringLiteral("maths"), QStringLiteral("géométrie"), QStringLiteral("angles")}));
+    }
+
     // Distingue (brief, point 1) : le verrou est posé par DocumentController::execute, sans
     // Commands::triggered. Le patron du plan (m_lockConnection sur « object.lock ») ne remettrait rien à
     // jour : refreshCount inchangé, « locked » faux.
@@ -480,7 +603,7 @@ private slots:
     {
         Fixture f;
         f.select({f.stroke});
-        QCOMPARE(valueOf(f.model, QStringLiteral("locked")).toBool(), false);
+        QCOMPARE(valueOf(f.model, QStringLiteral("locked")), QVariant(false));
         QSignalSpy triggered(&f.commands, &ui::Commands::triggered);
         const int before = f.model.refreshCount();
         f.controller.execute(std::make_unique<core::SetObjectFlagCommand>(
@@ -495,7 +618,7 @@ private slots:
             0, std::vector<core::ObjectId>{f.stroke}, core::ObjectFlag::Locked, false));
         QCoreApplication::processEvents();
         QCOMPARE(f.model.refreshCount(), before + 2);
-        QCOMPARE(valueOf(f.model, QStringLiteral("locked")).toBool(), false);
+        QCOMPARE(valueOf(f.model, QStringLiteral("locked")), QVariant(false));
     }
 
     // Filtre de objectFlagsChanged : un objet hors de la sélection affichée ne remet rien à jour.

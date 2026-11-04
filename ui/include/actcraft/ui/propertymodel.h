@@ -65,10 +65,15 @@ public:
 
     // Exécute une commande de L6-T11 (ou SetLayerCommand, SetObjectFlagCommand, SetTranslucencyCommand pour
     // couche, visibilité, verrou et translucidité) sur la page affichée ou les objets sélectionnés. Faux sans
-    // document ni commandes, verrou de classe posé, ligne inconnue ou valeur illisible. Une modification
-    // ponctuelle (tout éditeur sauf « slider ») est close aussitôt (closeMerge) : elle reste une étape à
-    // elle. Seule la réglette glissée fusionne ; DocumentController::closeMerge la clôt au relâcher.
+    // document ni commandes, verrou de classe posé, ligne inconnue, valeur illisible, ou nombre hors de
+    // [MinRole, MaxRole] pour « number » et « slider » (refusé, jamais écrêté : rien n'est exécuté).
+    // Mots-clés reçus en une chaîne : séparés par des espaces ou des virgules. Une modification ponctuelle
+    // (tout éditeur sauf « slider ») clôt l'étape restée ouverte avant elle et la sienne après elle
+    // (closeMerge) : elle reste une étape à elle. Seule la réglette glissée fusionne, jusqu'à endEdit().
     Q_INVOKABLE bool setValue(int row, const QVariant& value);
+    // Relâcher de la réglette (D10) : clôt l'étape du glissé (DocumentController::closeMerge), pour que le
+    // glissé suivant en fasse une autre. Le QML n'appelle jamais le document lui-même (L6-T13).
+    Q_INVOKABLE void endEdit();
     Q_INVOKABLE int rowOf(const QString& key) const; // -1 si absente
 
     DocumentController* document() const noexcept;
