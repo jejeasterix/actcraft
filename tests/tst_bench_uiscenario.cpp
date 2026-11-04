@@ -757,6 +757,27 @@ private slots:
         QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"holdMs\": -1}", s, error));
     }
 
+    // L7-T41 : « pointer » vise un élément par son nom (le modèle « fraction » d'equation.json), pas par des
+    // coordonnées que les polices déplacent. Nom vide ou repère donné : refusé.
+    void pointerStepTargetsANamedItem()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"pointer\": \"equationTemplate_fraction\"},"
+                            "{\"pointer\": \"survol\", \"button\": \"right\"}",
+                            s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{2});
+        QVERIFY(s.steps[0].kind == UiStepKind::Pointer);
+        QCOMPARE(s.steps[0].target, QStringLiteral("equationTemplate_fraction"));
+        QVERIFY(s.steps[0].points.empty());
+        QVERIFY(s.steps[0].windowSpace); // centre lu dans la scène
+        QVERIFY(s.steps[1].button == Qt::RightButton);
+        QVERIFY(!parseSteps("{\"pointer\": \"\"}", s, error));
+        QVERIFY(error.contains(QStringLiteral("nom d'objet")));
+        QVERIFY(!parseSteps("{\"pointer\": \"survol\", \"space\": \"page\"}", s, error));
+    }
+
     // L4-C21 : les étapes « pointer » portent des modificateurs (Ctrl+clic d'une miniature).
     void pointerStepModifiersParsed()
     {

@@ -396,8 +396,17 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
     }
     if (o.contains(QStringLiteral("pointer"))) {
         step.kind = UiStepKind::Pointer;
-        if (!parsePoints(o.value(QStringLiteral("pointer")), step.points)) {
-            why = QStringLiteral("pointeur invalide (pointer : au moins un point [x, y])");
+        const QJsonValue pointer = o.value(QStringLiteral("pointer"));
+        // L7-T41 : un nom d'objet au lieu des points vise le centre de cet élément (comme clickIn de
+        // tst_ui_equation), où que les polices l'aient placé ; repère de la fenêtre, « space » refusé.
+        if (pointer.isString()) {
+            step.target = pointer.toString();
+            if (step.target.isEmpty() || o.contains(QStringLiteral("space"))) {
+                why = QStringLiteral("pointeur invalide (pointer : nom d'objet non vide, sans « space »)");
+                return false;
+            }
+        } else if (!parsePoints(pointer, step.points)) {
+            why = QStringLiteral("pointeur invalide (pointer : au moins un point [x, y], ou un nom d'objet)");
             return false;
         }
         if (o.contains(QStringLiteral("button"))) {
@@ -440,6 +449,10 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
                 why = QStringLiteral("maintien invalide (holdMs de 0 à %1)").arg(kHoldMaxMs);
                 return false;
             }
+        }
+        if (!step.target.isEmpty()) {
+            step.windowSpace = true;
+            return true;
         }
         return readSpace(o, step.windowSpace, why);
     }
@@ -1086,7 +1099,8 @@ bool UiScenarioPlayer::pinch(const UiStep& step, QStringList& report)
 
 bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
 {
-    const QString head = QStringLiteral("POINTEUR %1").arg(step.points.size());
+    const QString head = step.target.isEmpty() ? QStringLiteral("POINTEUR %1").arg(step.points.size())
+                                               : QStringLiteral("POINTEUR sur %1").arg(step.target);
     if (!step.windowSpace && !view()) {
         report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
         return false;
@@ -1096,13 +1110,23 @@ bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
     // abandonne alors le geste de l'outil (PageView::finishStroke). grabWindow() termine la mise en page
     // en attente avant le premier point ; les points de page sont convertis ensuite, à la taille définitive.
     m_window->grabWindow();
+    std::vector<QPointF> points = step.points;
+    if (!step.target.isEmpty()) {
+        // Centre de l'élément nommé, lu après la mise en page (grabWindow ci-dessus).
+        const auto* item = qobject_cast<const QQuickItem*>(find(step.target));
+        if (!item || !item->isVisible() || item->width() <= 0 || item->height() <= 0) {
+            report << head + QStringLiteral(" ECHEC (élément introuvable ou invisible)");
+            return false;
+        }
+        points = {item->mapToScene(QPointF(item->width() / 2, item->height() / 2))};
+    }
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
     const Qt::MouseButton button = step.button;
     const Qt::KeyboardModifiers modifiers = step.modifiers;
     QPoint lastPoint;
     const bool sent = gestures().pointerPath(
-        step.points,
+        points,
         [this, button, modifiers, &lastPoint](GesturePhase phase, QPointF position) {
             const QPoint point = position.toPoint();
             lastPoint = point;
