@@ -52,8 +52,8 @@ TestHooks& hooks()
 
 bool isImageSuffix(const QString& suffix)
 {
-    return suffix == QLatin1String("png") || suffix == QLatin1String("jpg") || suffix == QLatin1String("jpeg") ||
-           suffix == QLatin1String("svg");
+    return suffix == QLatin1String("png") || suffix == QLatin1String("jpg") ||
+           suffix == QLatin1String("jpeg") || suffix == QLatin1String("svg");
 }
 
 // Genre d'un fichier de la bibliothèque ; vide s'il n'en est pas.
@@ -105,8 +105,8 @@ struct ListingJob
 
 void listFolders(const QString& dir, int depth, QVariantList& out)
 {
-    const QFileInfoList children =
-        QDir(dir).entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::NoSymLinks, QDir::Name | QDir::IgnoreCase);
+    const QFileInfoList children = QDir(dir).entryInfoList(
+        QDir::Dirs | QDir::NoDotAndDotDot | QDir::NoSymLinks, QDir::Name | QDir::IgnoreCase);
     for (const QFileInfo& child : children) {
         out.push_back(QVariantMap{{QStringLiteral("path"), child.absoluteFilePath()},
                                   {QStringLiteral("name"), child.fileName()},
@@ -185,8 +185,8 @@ QImage imageThumbnail(const QString& path, int width)
     reader.setAutoTransform(true);
     const QSize size = reader.size();
     if (size.isValid() && size.width() > width)
-        reader.setScaledSize(QSize(width, std::max(1, qRound(size.height() * static_cast<double>(width) /
-                                                                 size.width()))));
+        reader.setScaledSize(
+            QSize(width, std::max(1, qRound(size.height() * static_cast<double>(width) / size.width()))));
     return reader.read();
 }
 
@@ -198,7 +198,8 @@ struct ThumbnailJob
     bool rendered = false; // faux : trouvée dans le cache
 };
 
-// Fil secondaire : cache <CacheLocation>/vignettes/<empreinte>.png (chemin, taille, date, largeur), sinon rendu.
+// Fil secondaire : cache <CacheLocation>/vignettes/<empreinte>.png (chemin, taille, date, largeur), sinon
+// rendu.
 ThumbnailJob makeThumbnail(std::uint64_t generation, const Item& item, int width)
 {
     ThumbnailJob out;
@@ -214,7 +215,8 @@ ThumbnailJob makeThumbnail(std::uint64_t generation, const Item& item, int width
     hash.addData(QByteArray::number(width));
     const QString dir =
         QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/vignettes");
-    const QString file = dir + QLatin1Char('/') + QString::fromLatin1(hash.result().toHex()) + QStringLiteral(".png");
+    const QString file =
+        dir + QLatin1Char('/') + QString::fromLatin1(hash.result().toHex()) + QStringLiteral(".png");
     if (QFileInfo::exists(file)) {
         out.file = file;
         return out;
@@ -241,7 +243,8 @@ ThumbnailJob makeThumbnail(std::uint64_t generation, const Item& item, int width
     return out;
 }
 
-// --- Insertion d'un fragment --------------------------------------------------------------------------------
+// --- Insertion d'un fragment
+// --------------------------------------------------------------------------------
 
 // Une étape. prepareInsertion rend de VRAIS identifiants, tirés dans le document (withFreshIds), alors que
 // PasteObjectsCommand n'accepte que des rangs provisoires 1..n (clipboardedits.h) : passés tels quels, un
@@ -428,7 +431,8 @@ bool ResourceLibrary::searching() const noexcept
 bool ResourceLibrary::grid() const
 {
     return m_profile != nullptr &&
-           m_profile->setting(QString::fromLatin1(kSettingsSection), QStringLiteral("grille"), false).toBool();
+           m_profile->setting(QString::fromLatin1(kSettingsSection), QStringLiteral("grille"), false)
+               .toBool();
 }
 
 void ResourceLibrary::setGrid(bool grid)
@@ -440,7 +444,8 @@ void ResourceLibrary::setGrid(bool grid)
 bool ResourceLibrary::large() const
 {
     return m_profile != nullptr &&
-           m_profile->setting(QString::fromLatin1(kSettingsSection), QStringLiteral("grande"), false).toBool();
+           m_profile->setting(QString::fromLatin1(kSettingsSection), QStringLiteral("grande"), false)
+               .toBool();
 }
 
 void ResourceLibrary::setLarge(bool large)
@@ -473,7 +478,8 @@ QString ResourceLibrary::mineRoot()
     if (!hooks().mine.isEmpty())
         return hooks().mine;
 #if defined(Q_OS_ANDROID)
-    return QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)).filePath(QStringLiteral("Ressources"));
+    return QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
+        .filePath(QStringLiteral("Ressources"));
 #else
     return QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
         .filePath(QStringLiteral("ActCraft/Ressources"));
@@ -510,11 +516,11 @@ QString ResourceLibrary::rootPath(const QString& root) const
     if (root == QLatin1String("mine"))
         return QDir::cleanPath(mineRoot());
     if (root == QLatin1String("shared")) {
-        const QString chosen =
-            m_profile != nullptr
-                ? m_profile->setting(QString::fromLatin1(kSettingsSection), QStringLiteral("partagees"), QString())
-                      .toString()
-                : QString();
+        const QString chosen = m_profile != nullptr ? m_profile
+                                                          ->setting(QString::fromLatin1(kSettingsSection),
+                                                                    QStringLiteral("partagees"), QString())
+                                                          .toString()
+                                                    : QString();
         return QDir::cleanPath(chosen.isEmpty() ? sharedRoot() : chosen);
     }
     if (root == QLatin1String("other"))
@@ -621,14 +627,15 @@ void ResourceLibrary::search(const QString& text, bool byName, bool byKeywords)
     m_searchCancelled = cancelled;
     setSearching(true);
     auto* watcher = new QFutureWatcher<std::vector<Item>>(this);
-    connect(watcher, &QFutureWatcher<std::vector<Item>>::finished, this, [this, watcher, generation, cancelled] {
-        std::vector<Item> found = watcher->result();
-        watcher->deleteLater();
-        if (cancelled->load() || generation != m_itemsGeneration)
-            return; // annulée ou remplacée : jamais appliquée
-        setSearching(false);
-        setItems(std::move(found));
-    });
+    connect(watcher, &QFutureWatcher<std::vector<Item>>::finished, this,
+            [this, watcher, generation, cancelled] {
+                std::vector<Item> found = watcher->result();
+                watcher->deleteLater();
+                if (cancelled->load() || generation != m_itemsGeneration)
+                    return; // annulée ou remplacée : jamais appliquée
+                setSearching(false);
+                setItems(std::move(found));
+            });
     const QString root = m_rootPath;
     watcher->setFuture(QtConcurrent::run([root, needle, byName, byKeywords, cancelled] {
         return searchRoot(root, needle, byName, byKeywords, cancelled);
@@ -664,7 +671,8 @@ void ResourceLibrary::pumpThumbnails()
         connect(watcher, &QFutureWatcher<ThumbnailJob>::finished, this, [this, watcher, width] {
             const ThumbnailJob thumbnail = watcher->result();
             watcher->deleteLater();
-            if (thumbnail.generation != m_itemsGeneration || width != m_thumbnailWidth || thumbnail.file.isEmpty())
+            if (thumbnail.generation != m_itemsGeneration || width != m_thumbnailWidth ||
+                thumbnail.file.isEmpty())
                 return;
             for (std::size_t row = 0; row < m_items.size(); ++row) {
                 if (m_items[row].path != thumbnail.path)
@@ -678,8 +686,8 @@ void ResourceLibrary::pumpThumbnails()
                 emit thumbnailsRenderedChanged();
             }
         });
-        watcher->setFuture(
-            QtConcurrent::run(&m_pool, [generation, item, width] { return makeThumbnail(generation, item, width); }));
+        watcher->setFuture(QtConcurrent::run(
+            &m_pool, [generation, item, width] { return makeThumbnail(generation, item, width); }));
     }
 }
 
@@ -692,7 +700,7 @@ bool ResourceLibrary::rename(const QString& path, const QString& newName)
 {
     const QString name = newName.trimmed();
     const QFileInfo info(path);
-    if (m_commands == nullptr || !validName(name) || !info.exists())
+    if (m_commands == nullptr || m_contactActive || !validName(name) || !info.exists())
         return false;
     QString target = name;
     if (info.isFile() && QFileInfo(name).suffix().compare(info.suffix(), Qt::CaseInsensitive) != 0)
@@ -710,7 +718,7 @@ bool ResourceLibrary::rename(const QString& path, const QString& newName)
 bool ResourceLibrary::remove(const QString& path)
 {
     const QFileInfo info(path);
-    if (m_commands == nullptr || !info.exists())
+    if (m_commands == nullptr || m_contactActive || !info.exists())
         return false;
     bool done = false;
     if (usesTrash())
@@ -727,7 +735,7 @@ bool ResourceLibrary::remove(const QString& path)
 bool ResourceLibrary::createFolder(const QString& name)
 {
     const QString trimmed = name.trimmed();
-    if (m_commands == nullptr || m_folder.isEmpty() || !validName(trimmed))
+    if (m_commands == nullptr || m_contactActive || m_folder.isEmpty() || !validName(trimmed))
         return false;
     const bool done = QDir(m_folder).mkdir(trimmed);
     if (done)
@@ -737,7 +745,7 @@ bool ResourceLibrary::createFolder(const QString& name)
 
 QString ResourceLibrary::addSelection()
 {
-    if (!mayEdit() || m_tools == nullptr || m_folder.isEmpty())
+    if (!mayEdit() || m_contactActive || m_tools == nullptr || m_folder.isEmpty())
         return {};
     const std::vector<core::ObjectId>& selected = m_tools->user().selection();
     if (selected.empty())
@@ -792,8 +800,8 @@ bool ResourceLibrary::insert(const QString& path, QPointF pagePoint)
     }
     const double dx = any ? pagePoint.x() - (left + right) / 2 : 0;
     const double dy = any ? pagePoint.y() - (top + bottom) / 2 : 0;
-    m_document->execute(std::make_unique<InsertFragmentCommand>(static_cast<std::size_t>(m_document->currentIndex()),
-                                                                std::move(*fragment), dx, dy));
+    m_document->execute(std::make_unique<InsertFragmentCommand>(
+        static_cast<std::size_t>(m_document->currentIndex()), std::move(*fragment), dx, dy));
     return true;
 }
 

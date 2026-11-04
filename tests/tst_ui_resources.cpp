@@ -218,14 +218,15 @@ private slots:
         QDir(f.mine).mkpath(QStringLiteral("a/b"));
         QDir(f.mine).mkpath(QStringLiteral("c"));
         f.library.setRoot(QStringLiteral("mine"));
-        QTRY_COMPARE(f.folderNames(), (QStringList{QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c")}));
+        QTRY_COMPARE(f.folderNames(),
+                     (QStringList{QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c")}));
         QCOMPARE(f.folderDepths(), (QList<int>{0, 1, 0}));
         QCOMPARE(f.library.folders().at(1).toMap().value(QStringLiteral("path")).toString(),
                  QDir(f.mine).filePath(QStringLiteral("a/b")));
         QVERIFY(f.library.createFolder(QStringLiteral("d")));
         QVERIFY(QFileInfo(QDir(f.mine).filePath(QStringLiteral("d"))).isDir());
-        QTRY_COMPARE(f.folderNames(), (QStringList{QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c"),
-                                                   QStringLiteral("d")}));
+        QTRY_COMPARE(f.folderNames(), (QStringList{QStringLiteral("a"), QStringLiteral("b"),
+                                                   QStringLiteral("c"), QStringLiteral("d")}));
     }
 
     void itemsOfAFolder()
@@ -271,9 +272,12 @@ private slots:
             QVERIFY(!g_renderThreads.contains(QThread::currentThread()));
         }
         for (int row = 0; row < 3; ++row) {
-            QTRY_VERIFY(f.library.data(f.library.index(row), ui::ResourceLibrary::ThumbnailRole).toUrl().isLocalFile());
-            const QString file =
-                f.library.data(f.library.index(row), ui::ResourceLibrary::ThumbnailRole).toUrl().toLocalFile();
+            QTRY_VERIFY(f.library.data(f.library.index(row), ui::ResourceLibrary::ThumbnailRole)
+                            .toUrl()
+                            .isLocalFile());
+            const QString file = f.library.data(f.library.index(row), ui::ResourceLibrary::ThumbnailRole)
+                                     .toUrl()
+                                     .toLocalFile();
             QVERIFY2(file.startsWith(cacheDir() + QLatin1Char('/')), qPrintable(file));
             QVERIFY(file.endsWith(QLatin1String(".png")));
             QVERIFY(!QImage(file).isNull());
@@ -289,7 +293,8 @@ private slots:
         QVERIFY(writeImage(byName, "PNG"));
         QVERIFY(writeImage(QDir(f.mine).filePath(QStringLiteral("lune.png")), "PNG"));
         QVERIFY(writeStrokeFragment(byKeywords, {"été", "soleil"}));
-        QVERIFY(writeStrokeFragment(QDir(f.mine).filePath(QStringLiteral("plages/vent.actcraft")), {"nuage"}));
+        QVERIFY(
+            writeStrokeFragment(QDir(f.mine).filePath(QStringLiteral("plages/vent.actcraft")), {"nuage"}));
 
         f.library.search(QStringLiteral("Soleil"), true, true);
         QTRY_VERIFY(!f.library.searching());
@@ -311,7 +316,8 @@ private slots:
     {
         Fixture f;
         for (int i = 0; i < 200; ++i)
-            QVERIFY(writeStrokeFragment(QDir(f.mine).filePath(QStringLiteral("f%1.actcraft").arg(i)), {"mot"}));
+            QVERIFY(
+                writeStrokeFragment(QDir(f.mine).filePath(QStringLiteral("f%1.actcraft").arg(i)), {"mot"}));
         f.library.openFolder(f.mine);
         QTRY_COMPARE_WITH_TIMEOUT(f.library.itemCount(), 200, 10000);
         f.library.search(QStringLiteral("absent"), true, true);
@@ -374,9 +380,9 @@ private slots:
         QVERIFY(f.library.addSelection().isEmpty());
     }
 
-    // Piège de L6-T19 : prepareInsertion rend de vrais identifiants pris dans la cible ; les passer à un collage
-    // qui attend des rangs 1..n viderait le groupe. La cible porte déjà quatre objets : les identifiants neufs du
-    // fragment sortent des rangs 1..3.
+    // Piège de L6-T19 : prepareInsertion rend de vrais identifiants pris dans la cible ; les passer à un
+    // collage qui attend des rangs 1..n viderait le groupe. La cible porte déjà quatre objets : les
+    // identifiants neufs du fragment sortent des rangs 1..3.
     void insertImageAndFragment()
     {
         Fixture f;
@@ -423,6 +429,29 @@ private slots:
         QCOMPARE(f.library.thumbnailsRendered(), 0);
         f.library.setContactActive(false);
         QTRY_COMPARE_WITH_TIMEOUT(f.library.thumbnailsRendered(), 3, 10000);
+    }
+
+    // Aucun accès disque sur le fil principal pendant un contact : les éditions de fichiers sont refusées,
+    // sans effet.
+    void diskEditsRefusedDuringContact()
+    {
+        Fixture f;
+        const QString image = QDir(f.mine).filePath(QStringLiteral("photo.png"));
+        QVERIFY(writeImage(image, "PNG"));
+        const core::ObjectId id = addStroke(f.document, 300, 200);
+        f.tools.user().setSelection({id});
+        f.library.setContactActive(true);
+        QVERIFY(!f.library.rename(image, QStringLiteral("autre")));
+        QVERIFY(QFile::exists(image));
+        QVERIFY(!f.library.remove(image));
+        QVERIFY(QFile::exists(image));
+        QVERIFY(!f.library.createFolder(QStringLiteral("neuf")));
+        QVERIFY(!QFileInfo::exists(QDir(f.mine).filePath(QStringLiteral("neuf"))));
+        QVERIFY(f.library.addSelection().isEmpty());
+        QVERIFY(!QFile::exists(QDir(f.mine).filePath(QStringLiteral("Ressource1.actcraft"))));
+        f.library.setContactActive(false); // relâché : de nouveau permis
+        QVERIFY(f.library.createFolder(QStringLiteral("neuf")));
+        QVERIFY(f.library.rename(image, QStringLiteral("autre")));
     }
 
     void refusedWhileLocked()

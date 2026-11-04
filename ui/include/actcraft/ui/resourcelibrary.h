@@ -33,18 +33,19 @@ class ResourceLibrary : public QAbstractListModel
 {
     Q_OBJECT
     QML_ELEMENT
-    Q_PROPERTY(actcraft::ui::DocumentController* document READ document WRITE setDocument NOTIFY documentChanged)
+    Q_PROPERTY(
+        actcraft::ui::DocumentController* document READ document WRITE setDocument NOTIFY documentChanged)
     Q_PROPERTY(actcraft::ui::ProfileController* profile READ profile WRITE setProfile NOTIFY profileChanged)
     Q_PROPERTY(actcraft::ui::Commands* commands READ commands WRITE setCommands NOTIFY commandsChanged)
     Q_PROPERTY(actcraft::ui::ToolHost* tools READ tools WRITE setTools NOTIFY toolsChanged) // sélection
     Q_PROPERTY(bool contactActive READ contactActive WRITE setContactActive NOTIFY contactActiveChanged)
-    Q_PROPERTY(QString root READ root NOTIFY rootChanged)          // « mine », « shared » ou « other »
-    Q_PROPERTY(QString folder READ folder NOTIFY folderChanged)    // chemin absolu du dossier courant
+    Q_PROPERTY(QString root READ root NOTIFY rootChanged)               // « mine », « shared » ou « other »
+    Q_PROPERTY(QString folder READ folder NOTIFY folderChanged)         // chemin absolu du dossier courant
     Q_PROPERTY(QVariantList folders READ folders NOTIFY foldersChanged) // [{path, name, depth}] de la racine
     Q_PROPERTY(int itemCount READ itemCount NOTIFY itemCountChanged)
     Q_PROPERTY(bool searching READ searching NOTIFY searchingChanged)
-    Q_PROPERTY(bool grid READ grid WRITE setGrid NOTIFY viewChanged)     // réglage du profil : grille ou liste
-    Q_PROPERTY(bool large READ large WRITE setLarge NOTIFY viewChanged)  // réglage du profil : grande taille
+    Q_PROPERTY(bool grid READ grid WRITE setGrid NOTIFY viewChanged)    // réglage du profil : grille ou liste
+    Q_PROPERTY(bool large READ large WRITE setLarge NOTIFY viewChanged) // réglage du profil : grande taille
     Q_PROPERTY(int thumbnailWidth READ thumbnailWidth NOTIFY viewChanged) // 96 ou 160 pixels
     Q_PROPERTY(bool usesTrash READ usesTrash CONSTANT) // faux : remove() supprime, la commande QML confirme
     Q_PROPERTY(int thumbnailsRendered READ thumbnailsRendered NOTIFY thumbnailsRenderedChanged) // tests
@@ -99,9 +100,12 @@ public:
     // Dans toute la racine : nom de fichier et (ou) mots-clés des fragments, sans casse ; annulable.
     Q_INVOKABLE void search(const QString& text, bool byName, bool byKeywords);
     Q_INVOKABLE void cancelSearch(); // rend la main sans attendre ; le dossier courant est relu
-    // Les opérations suivantes rendent faux (ou vide) sans `commands`. insert et addSelection aussi sous verrou.
-    Q_INVOKABLE bool rename(const QString& path, const QString& newName); // extension gardée ; nom pris : faux
-    Q_INVOKABLE bool remove(const QString& path); // corbeille si usesTrash, sinon suppression définitive
+    // Les opérations suivantes rendent faux (ou vide) sans `commands`. insert et addSelection aussi sous
+    // verrou ; rename, remove, createFolder et addSelection aussi pendant un contact (aucun accès disque sur
+    // le fil principal pendant un contact).
+    Q_INVOKABLE bool rename(const QString& path,
+                            const QString& newName); // extension gardée ; nom pris : faux
+    Q_INVOKABLE bool remove(const QString& path);    // corbeille si usesTrash, sinon suppression définitive
     Q_INVOKABLE bool createFolder(const QString& name);
     Q_INVOKABLE QString addSelection(); // Ressource<N>.actcraft dans le dossier courant, N premier libre
     Q_INVOKABLE bool insert(const QString& path, QPointF pagePoint); // dans la page courante, une étape
