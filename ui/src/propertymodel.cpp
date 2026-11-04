@@ -428,27 +428,35 @@ bool PropertyModel::setValue(int row, const QVariant& value)
     if (!converted) {
         return false;
     }
+    if (!d.page && m_ids.empty()) {
+        return false;
+    }
     // Une modification ponctuelle reste une étape à elle (L6-T11 : la commande fusionne avec sa voisine de
     // même page, mêmes objets, même propriété) : elle clôt l'étape restée ouverte avant elle, puis la
-    // sienne. Seule la réglette glissée fusionne, jusqu'à endEdit().
+    // sienne. Seule la réglette glissée fusionne, jusqu'à endEdit() ; son premier pas clôt l'étape restée
+    // ouverte avant le glissé.
     const bool point = d.editor != Editor::Slider;
     if (point) {
         m_document->closeMerge();
+        m_sliding = false;
+    } else if (!m_sliding) {
+        m_document->closeMerge();
+        m_sliding = true;
     }
     const auto page = static_cast<std::size_t>(m_page);
+    const int appliedBefore = m_applied;
     if (d.page) {
         m_document->execute(
             std::make_unique<core::SetPagePropertiesCommand>(m_page, d.pageProperty, std::move(*converted)));
     } else {
-        if (m_ids.empty()) {
-            return false;
-        }
         m_document->execute(objectCommand(page, m_ids, d.objectProperty, std::move(*converted)));
     }
     if (point) {
         m_document->closeMerge();
     }
-    return true;
+    // Le cœur peut refuser ce que la ligne publie (un trait n'a pas d'épaisseur nulle) : sans changement
+    // observé ni drapeau modifié, rien n'a été appliqué.
+    return m_applied != appliedBefore;
 }
 
 int PropertyModel::rowOf(const QString& key) const
@@ -657,8 +665,11 @@ void PropertyModel::attachDocument()
         return;
     }
     DocumentController* controller = m_document.data();
-    m_observer = controller->addChangeObserver(
-        [this](const core::Changes&, DocumentController::ChangeOrigin) { requestRefresh(); });
+    m_observer =
+        controller->addChangeObserver([this](const core::Changes&, DocumentController::ChangeOrigin) {
+            ++m_applied;
+            requestRefresh();
+        });
     m_documentConnections = {
         connect(controller, &DocumentController::documentChanged, this, &PropertyModel::requestRefresh),
         connect(controller, &DocumentController::pagesChanged, this, &PropertyModel::requestRefresh),
@@ -676,6 +687,7 @@ void PropertyModel::detachDocument()
         disconnect(connection);
     }
     m_documentConnections.clear();
+    m_sliding = false;
     if (m_document && m_observer > 0) {
         m_document->removeChangeObserver(m_observer);
     }
@@ -684,6 +696,7 @@ void PropertyModel::detachDocument()
 
 void PropertyModel::endEdit()
 {
+    m_sliding = false;
     if (m_document) {
         m_document->closeMerge();
     }
@@ -700,6 +713,7 @@ void PropertyModel::updateEditable()
 
 void PropertyModel::onObjectFlagsChanged(int page, const QList<quint64>& ids)
 {
+    ++m_applied;
     // Filtre : seuls comptent les objets montrés, c'est-à-dire sélectionnés sur la page affichée.
     if (!m_document || !m_tools || page != m_document->currentIndex()) {
         return;
