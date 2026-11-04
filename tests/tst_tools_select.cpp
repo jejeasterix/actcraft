@@ -1,3 +1,4 @@
+#include <actcraft/core/shapepoints.h>
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/hittest.h>
@@ -33,6 +34,7 @@ public:
     int executes = 0;
     int lifts = 0;
     int drops = 0;
+    std::vector<std::unique_ptr<core::UndoCommand>> dropped;
 
     const core::Page& page() const override { return document.page(0); }
     std::size_t pageIndex() const override { return 0; }
@@ -64,6 +66,7 @@ public:
         if (command) {
             core::Changes changes;
             command->redo(document, changes);
+            dropped.push_back(std::move(command)); // une étape par dépôt, annulable par le test
         }
     }
     bool isLifting() const override { return !m_lifted.empty(); }
@@ -1008,6 +1011,110 @@ private slots:
         r.drag(300, 200, 400, 220, 4);
         QCOMPARE(r.editor.lifts, 0);
         QVERIFY(r.editor.find(1)->common.transform.isIdentity());
+    }
+
+    // Mode conception (F-560, L6-C10) : le point d'une forme verrouillée suit le geste (aperçu compris) et se
+    // dépose en une étape, que l'annulation remet ; le drapeau `locked` du document reste posé. La commande
+    // reçoit le choix « verrou ignoré » de l'outil : sans lui, le dépôt rejouerait une commande sans effet.
+    void lockedShapePointMovesWhileDesigning()
+    {
+        Rig r;
+        r.onlyShape("rectangle", 100, 100, 200, 100);
+        r.first().common.locked = true;
+        r.context.lockIgnored = true;
+        r.tool.setShapePointsMode(true);
+        const std::vector<core::PointF> before = r.selection.last().shapePoints;
+        QVERIFY(!before.empty());
+        QVERIFY(closeTo(before.front().x, 100) && closeTo(before.front().y, 100));
+
+        r.press(100, 100);
+        for (int i = 1; i <= 5; ++i) {
+            r.move(100 - 8 * i, 100 - 8 * i);
+        }
+        const core::PointF preview = r.selection.last().shapePoints.front();
+        QVERIFY2(closeTo(preview.x, 60) && closeTo(preview.y, 60), "l'aperçu suit le point");
+        r.release(60, 60);
+
+        QCOMPARE(r.editor.lifts, 1);
+        QCOMPARE(r.editor.executes, 0);
+        QCOMPARE(r.editor.drops, 1);
+        QCOMPARE(r.editor.dropped.size(), std::size_t(1)); // une étape
+        const core::PointF moved = core::shapePoints(r.first()).front();
+        QVERIFY(closeTo(moved.x, 60) && closeTo(moved.y, 60));
+        QVERIFY(r.first().common.locked);
+
+        core::Changes changes;
+        r.editor.dropped.back()->undo(r.editor.document, changes);
+        const std::vector<core::PointF> undone = core::shapePoints(r.first());
+        QCOMPARE(undone.size(), before.size());
+        for (std::size_t i = 0; i < before.size(); ++i) {
+            QVERIFY(closeTo(undone[i].x, before[i].x) && closeTo(undone[i].y, before[i].y));
+        }
+        QVERIFY(r.first().common.locked);
+    }
+
+    // Témoin hors du mode conception : le geste sur un point d'une forme verrouillée ne soulève rien, et la
+    // garde du cœur tient : MoveShapePointCommand sans le choix de l'outil refuse un objet verrouillé.
+    void lockedShapePointRefusedOutsideDesign()
+    {
+        Rig r;
+        r.onlyShape("rectangle", 100, 100, 200, 100);
+        r.first().common.locked = true;
+        r.tool.setShapePointsMode(true);
+        const std::vector<core::PointF> before = r.selection.last().shapePoints;
+        QVERIFY(!before.empty());
+        r.drag(100, 100, 60, 60, 5);
+        QCOMPARE(r.editor.lifts, 0);
+        QCOMPARE(r.editor.drops, 0);
+        QVERIFY(closeTo(core::shapePoints(r.first()).front().x, 100));
+
+        core::Changes changes;
+        core::MoveShapePointCommand(0, 1, 0, core::PointF{60, 60}).redo(r.editor.document, changes);
+        QVERIFY(changes.empty());
+        QVERIFY(closeTo(core::shapePoints(r.first()).front().x, 100));
+        QVERIFY(r.first().common.locked);
+    }
+
+    // Mode conception : Agrandir et Réduire suivent la règle des poignées, verrou ignoré, restrictions gardées.
+    void growShrinkLockedWhileDesigning()
+    {
+        {
+            Rig r;
+            r.only(100, 100, 200, 100);
+            r.first().common.locked = true;
+            r.context.lockIgnored = true;
+            r.tool.enlarge();
+            QVERIFY(closeTo(r.bounds1().width, 220.0));
+            r.tool.reduce();
+            QVERIFY(closeTo(r.bounds1().width, 200.0));
+            QCOMPARE(r.editor.executes, 2);
+            QVERIFY(r.first().common.locked);
+        }
+        {
+            Rig r; // verrouillé et non dimensionnable : la restriction retient encore
+            r.only(100, 100, 200, 100);
+            r.first().common.locked = true;
+            r.first().common.restrictions.resizable = false;
+            r.context.lockIgnored = true;
+            r.tool.enlarge();
+            r.tool.reduce();
+            QCOMPARE(r.editor.executes, 0);
+            QVERIFY(r.first().common.transform.isIdentity());
+        }
+    }
+
+    // Accrochage coupé (réglage disableSnap du mode conception) : le dépôt ne s'accroche plus à la grille.
+    void snapDisabledDropDoesNotSnap()
+    {
+        Rig r;
+        r.only(12, 12, 40, 30);
+        snappingGrid(r);
+        r.context.snapDisabled = true;
+        r.drag(20, 20, 50, 20, 5);
+        QCOMPARE(r.editor.calls.back(), std::string("drop:Transform"));
+        const core::Transform t = r.editor.find(1)->common.transform;
+        QCOMPARE(t.dx, 30.0);
+        QCOMPARE(t.dy, 0.0);
     }
 
     void escapeCancelsResize()
