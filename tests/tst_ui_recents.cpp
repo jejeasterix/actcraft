@@ -109,11 +109,11 @@ private slots:
         QTemporaryDir dir;
         core::Document document(std::vector<core::Page>(2));
         for (int i = 0; i < 3; ++i) {
-            core::ShapeObject shape;
+            core::ImageObject shape;
             shape.bounds = core::RectF{10.0 * i, 10, 50, 50};
             core::PageObject object = shape;
             object.common.id = document.allocateId();
-            document.page(i % 2).objects.push_back(object);
+            document.page(static_cast<std::size_t>(i % 2)).objects.push_back(object);
         }
         ui::DocumentController controller;
         const QUrl url = QUrl::fromLocalFile(dir.filePath(QStringLiteral("deux.actcraft")));
