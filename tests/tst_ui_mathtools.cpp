@@ -1462,8 +1462,8 @@ private slots:
     }
 
     // Rapporteur : coches de la forme et du style d'arc. Cliquer l'entrée déjà cochée la laisse cochée ; cocher
-    // l'autre décoche la première (le cadre relu après chaque réglage rétablit les liaisons `checked`, sans
-    // groupe exclusif : vert aussi sans ButtonGroup, vu le 2026-11-04).
+    // l'autre décoche la première (groupes exclusifs de ProtractorTool.qml ; sans eux, « Rapporteur complet »
+    // recliqué restait décoché, `checked: !tool.half` ne se réévaluant pas : rouge ici le 2026-11-04).
     void protractorMenu()
     {
         MainWindow w;

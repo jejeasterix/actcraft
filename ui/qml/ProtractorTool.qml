@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Templates as T
 import ActCraft.Ui
 
 // Rapporteur (F-281), délégué de MathToolsLayer, en coordonnées de page : disque (complet) ou demi-disque
@@ -198,18 +199,25 @@ Item {
         TapHandler { onTapped: protractorMenu.popup() }
     }
 
+    // Coches exclusives : recliquer l'entrée cochée la laisse cochée. Sans groupe, le clic basculait `checked`
+    // et seule une liaison réévaluée le rétablissait : jamais pour la forme (`tool.half` ne change pas).
+    T.ButtonGroup { id: shapeGroup }
+    T.ButtonGroup { id: arcGroup }
+
     Menu {
         id: protractorMenu
         objectName: "protractorMenu"
         MenuItem {
             text: qsTr("Rapporteur complet")
             checkable: true
+            T.ButtonGroup.group: shapeGroup
             checked: !tool.half
             onTriggered: if (tool.controller) tool.controller.setProtractorShape(tool.toolIndex, "full")
         }
         MenuItem {
             text: qsTr("Demi-rapporteur")
             checkable: true
+            T.ButtonGroup.group: shapeGroup
             checked: tool.half
             onTriggered: if (tool.controller) tool.controller.setProtractorShape(tool.toolIndex, "half")
         }
@@ -217,18 +225,21 @@ Item {
         MenuItem {
             text: qsTr("Arc")
             checkable: true
+            T.ButtonGroup.group: arcGroup
             checked: tool.frame.arcStyle === "arc"
             onTriggered: if (tool.controller) tool.controller.setArcStyle(tool.toolIndex, "arc")
         }
         MenuItem {
             text: qsTr("Arc fermé")
             checkable: true
+            T.ButtonGroup.group: arcGroup
             checked: tool.frame.arcStyle === "closed"
             onTriggered: if (tool.controller) tool.controller.setArcStyle(tool.toolIndex, "closed")
         }
         MenuItem {
             text: qsTr("Arc plein")
             checkable: true
+            T.ButtonGroup.group: arcGroup
             checked: tool.frame.arcStyle === "filled"
             onTriggered: if (tool.controller) tool.controller.setArcStyle(tool.toolIndex, "filled")
         }
