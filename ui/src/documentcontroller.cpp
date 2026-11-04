@@ -86,40 +86,6 @@ std::uint8_t flagsOf(const core::PageObject& object) noexcept
                                      (object.common.dragCopy ? 4U : 0U));
 }
 
-// Page de l'objet `id` s'il est encore dans le document, `hint` (sa page d'avant) d'abord.
-std::optional<std::size_t> pageOf(const core::Document& document, core::ObjectId id, std::size_t hint)
-{
-    if (hint < document.pageCount() &&
-        core::indexOf(document.page(hint), id) < document.page(hint).objects.size()) {
-        return hint;
-    }
-    for (std::size_t page = 0; page < document.pageCount(); ++page) {
-        if (core::indexOf(document.page(page), id) < document.page(page).objects.size()) {
-            return page;
-        }
-    }
-    return std::nullopt;
-}
-
-// Vrai si la modification a fait entrer l'objet `id` dans le document (ajout, objet rendu par l'annulation,
-// page insérée) : ses drapeaux arrivent avec lui, aucun n'a changé. Retiré puis remis dans la même
-// modification, il y était déjà.
-bool arrived(const core::Changes& changes, core::ObjectId id, std::size_t page)
-{
-    bool inserted = false;
-    bool removed = false;
-    for (const core::Change& c : changes) {
-        if (c.kind == core::Change::Kind::PageInserted && c.page == page) {
-            return true;
-        }
-        if (c.object == id) {
-            inserted = inserted || c.kind == core::Change::Kind::ObjectInserted;
-            removed = removed || c.kind == core::Change::Kind::ObjectRemoved;
-        }
-    }
-    return inserted && !removed;
-}
-
 } // namespace
 
 DocumentController::DocumentController(QObject* parent)
@@ -250,7 +216,7 @@ void DocumentController::executeAs(std::unique_ptr<core::UndoCommand> command, C
         notifyState(settle(changes, origin) || pageSize() != shownSize);
     }
     // Sans Change (verrou, copie au glissement) : ni pile, ni observateur, ni état ; objectFlagsChanged seul.
-    notifyFlags(flags, changes);
+    notifyFlags(flags);
 }
 
 // L2-T15 : l'annonce d'abord. La vue y termine son trait, qui entre dans la pile et devient l'étape annulée ;
@@ -267,7 +233,7 @@ void DocumentController::undo()
     const std::vector<FlaggedObject> flags = flaggedObjects();
     const core::Changes changes = m_undo.undo(m_document);
     notifyState(settle(changes, ChangeOrigin::Undo) || pageSize() != shownSize);
-    notifyFlags(flags, changes);
+    notifyFlags(flags);
 }
 
 void DocumentController::redo()
@@ -281,7 +247,7 @@ void DocumentController::redo()
     const std::vector<FlaggedObject> flags = flaggedObjects();
     const core::Changes changes = m_undo.redo(m_document);
     notifyState(settle(changes, ChangeOrigin::Redo) || pageSize() != shownSize);
-    notifyFlags(flags, changes);
+    notifyFlags(flags);
 }
 
 void DocumentController::closeMerge()
@@ -366,7 +332,7 @@ void DocumentController::dropLifted(std::unique_ptr<core::UndoCommand> command)
     const std::vector<FlaggedObject> flags = flaggedObjects(); // objets soulevés revenus
     const core::Changes commandChanges = run(std::move(command));
     if (lifted.empty() && commandChanges.empty()) {
-        notifyFlags(flags, commandChanges);
+        notifyFlags(flags);
         return; // rien soulevé, commande sans effet
     }
     const core::Page none{};
@@ -386,7 +352,7 @@ void DocumentController::dropLifted(std::unique_ptr<core::UndoCommand> command)
     if (!lifted.empty()) {
         emit liftingChanged();
     }
-    notifyFlags(flags, commandChanges); // changements bruts de la commande : les soulevés n'y entrent pas
+    notifyFlags(flags);
 }
 
 bool DocumentController::isLifting() const noexcept
@@ -605,44 +571,27 @@ bool DocumentController::settle(const core::Changes& changes, ChangeOrigin origi
 
 std::vector<DocumentController::FlaggedObject> DocumentController::flaggedObjects() const
 {
-    std::vector<FlaggedObject> flagged;
+    std::vector<FlaggedObject> all;
     for (std::size_t page = 0; page < m_document.pageCount(); ++page) {
         for (const core::PageObject& object : m_document.page(page).objects) {
-            if (const std::uint8_t flags = flagsOf(object); flags != 0) {
-                flagged.push_back(FlaggedObject{object.common.id, page, flags});
-            }
+            all.push_back(FlaggedObject{object.common.id, page, flagsOf(object)});
         }
     }
-    std::sort(flagged.begin(), flagged.end(),
+    std::sort(all.begin(), all.end(),
               [](const FlaggedObject& a, const FlaggedObject& b) { return a.id < b.id; });
-    return flagged;
+    return all;
 }
 
-void DocumentController::notifyFlags(const std::vector<FlaggedObject>& before, const core::Changes& changes)
+void DocumentController::notifyFlags(const std::vector<FlaggedObject>& before)
 {
-    const std::vector<FlaggedObject> after = flaggedObjects();
     std::vector<std::pair<std::size_t, core::ObjectId>> touched; // (page, objet)
-    auto b = before.begin();
-    auto a = after.begin();
-    while (b != before.end() || a != after.end()) {
-        if (a == after.end() || (b != before.end() && b->id < a->id)) {
-            // Plus aucun drapeau, ou objet sorti du document (rien n'a changé pour lui).
-            if (const std::optional<std::size_t> page = pageOf(m_document, b->id, b->page)) {
-                touched.emplace_back(*page, b->id);
-            }
-            ++b;
-        } else if (b == before.end() || a->id < b->id) {
-            // Drapeau posé, ou objet entré avec les siens.
-            if (!arrived(changes, a->id, a->page)) {
-                touched.emplace_back(a->page, a->id);
-            }
-            ++a;
-        } else {
-            if (a->flags != b->flags) {
-                touched.emplace_back(a->page, a->id);
-            }
-            ++a;
-            ++b;
+    for (const FlaggedObject& now : flaggedObjects()) {
+        const auto was =
+            std::lower_bound(before.begin(), before.end(), now.id,
+                             [](const FlaggedObject& o, core::ObjectId id) { return o.id < id; });
+        // Absent du relevé : entré dans le document avec ses drapeaux (ajout, annulation, page rétablie).
+        if (was != before.end() && was->id == now.id && was->flags != now.flags) {
+            touched.emplace_back(now.page, now.id);
         }
     }
     std::sort(touched.begin(), touched.end());
