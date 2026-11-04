@@ -86,6 +86,15 @@ std::vector<core::ObjectId> drawOrderOf(const ui::DocumentController& controller
     return order;
 }
 
+// La page reste rangée par couche (insertAtTopOfLayer, core::arrangedOrder) : le dessin suit cet ordre.
+bool layersSorted(const ui::DocumentController& controller)
+{
+    const std::vector<core::PageObject>& objects = controller.document().page(0).objects;
+    return std::is_sorted(
+        objects.begin(), objects.end(),
+        [](const core::PageObject& a, const core::PageObject& b) { return a.common.layer < b.common.layer; });
+}
+
 core::PageObject shapeAt(double x)
 {
     return core::makeShapeObject("rectangle", core::RectF{x, 100, 80, 60}, core::ShapeStyle{});
@@ -542,6 +551,134 @@ private slots:
         QCOMPARE(rowOf(f.tree, b), middle + 1);
         QCOMPARE(rowOf(f.tree, a), middle + 2);
         QCOMPARE(rowOf(f.tree, g), middle + 3);
+    }
+
+    // makeGroupCommand laisse chaque membre à sa place : un groupe peut être entrelacé. Sous le patron « sous
+    // le membre le plus bas », D posé sous G tomberait sous B, et B déposé à sa place passerait sous A (une
+    // étape, liste inchangée).
+    void moveUnderAnInterleavedGroup()
+    {
+        Fixture f;
+        const core::ObjectId a = addObject(f.controller, shapeAt(400), core::Layer::Middle);
+        const core::ObjectId b = addObject(f.controller, shapeAt(450), core::Layer::Middle);
+        const core::ObjectId c = addObject(f.controller, shapeAt(500), core::Layer::Middle);
+        const core::ObjectId d = addObject(f.controller, shapeAt(550), core::Layer::Middle);
+        const core::ObjectId g = groupObjects(f.controller, {a, c});
+        QVERIFY(g != 0);
+        const std::vector<core::ObjectId> all{f.shape1, f.shape2, a, b, c, d, g};
+        QCOMPARE(drawOrderOf(f.controller, all),
+                 (std::vector<core::ObjectId>{f.shape1, f.shape2, a, b, c, d, g}));
+        QCoreApplication::processEvents();
+        const int middle = layerRow(f.tree, QStringLiteral("middle"));
+        QCOMPARE(rowOf(f.tree, d), middle + 1);
+        QCOMPARE(rowOf(f.tree, g), middle + 2); // rang de C
+        QCOMPARE(rowOf(f.tree, b), middle + 3);
+
+        // B déposé à sa place (ancre : G) : rien ne bouge.
+        const QString before = f.controller.fingerprintText();
+        QVERIFY(!f.tree.move(rowOf(f.tree, b), rowOf(f.tree, g) + 1));
+        QCOMPARE(f.controller.fingerprintText(), before);
+
+        // D sous G : entre C (le membre le plus haut) et B ; la ligne obtenue est celle demandée.
+        QVERIFY(f.tree.move(rowOf(f.tree, d), rowOf(f.tree, g) + 1));
+        QCOMPARE(drawOrderOf(f.controller, all),
+                 (std::vector<core::ObjectId>{f.shape1, f.shape2, a, b, d, c, g}));
+        QCoreApplication::processEvents();
+        QCOMPARE(rowOf(f.tree, g), middle + 1);
+        QCOMPARE(rowOf(f.tree, d), middle + 2);
+        QCOMPARE(rowOf(f.tree, b), middle + 3);
+        f.controller.undo(); // une étape
+        QCOMPARE(f.controller.fingerprintText(), before);
+    }
+
+    // Groupe à cheval sur deux couches (makeGroupCommand : la plus basse) : sa ligne se range dans sa section
+    // par ses membres de cette couche, et seuls ceux-là bougent. Sous le patron « tout le bloc », le trait
+    // (couche du dessus) passerait sous x (intermédiaire) : l'ordre par couche de la page serait cassé.
+    void moveKeepsThePageSortedByLayer()
+    {
+        Fixture f;
+        const core::ObjectId x = addObject(f.controller, shapeAt(400), core::Layer::Middle);
+        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.stroke});
+        QVERIFY(g != 0);
+        QVERIFY(layersSorted(f.controller));
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::LayerRole).toString(), QStringLiteral("middle"));
+        QCOMPARE(rowOf(f.tree, f.stroke), -1);
+        const int middle = layerRow(f.tree, QStringLiteral("middle"));
+        QCOMPARE(rowOf(f.tree, x), middle + 1);
+        QCOMPARE(rowOf(f.tree, f.shape2), middle + 2);
+        QCOMPARE(rowOf(f.tree, g), middle + 3); // rang de shape1, son membre de la couche intermédiaire
+
+        QVERIFY(f.tree.move(rowOf(f.tree, g), rowOf(f.tree, x) + 1));
+        QVERIFY(layersSorted(f.controller));
+        QCOMPARE(drawOrderOf(f.controller, {f.shape1, f.shape2, x, g, f.stroke}),
+                 (std::vector<core::ObjectId>{f.shape2, f.shape1, g, x, f.stroke}));
+        QCoreApplication::processEvents();
+        QCOMPARE(rowOf(f.tree, x), middle + 1);
+        QCOMPARE(rowOf(f.tree, g), middle + 2);
+        QCOMPARE(rowOf(f.tree, f.shape2), middle + 3);
+    }
+
+    // Groupe imbriqué : une seule ligne, celle du groupe de tête ; masquer agit sur toutes les feuilles.
+    void nestedGroupIsOneRow()
+    {
+        Fixture f;
+        const core::ObjectId extra = addObject(f.controller, shapeAt(400), core::Layer::Middle);
+        const core::ObjectId inner = groupObjects(f.controller, {f.shape1, f.shape2});
+        const core::ObjectId outer = groupObjects(f.controller, {inner, extra});
+        QVERIFY(inner != 0 && outer != 0);
+        QCoreApplication::processEvents();
+        const int middle = layerRow(f.tree, QStringLiteral("middle"));
+        QCOMPARE(rowOf(f.tree, outer), middle + 1);
+        QCOMPARE(rowOf(f.tree, inner), -1);
+        QCOMPARE(rowOf(f.tree, f.shape1), -1);
+        QCOMPARE(rowOf(f.tree, extra), -1);
+        QCOMPARE(f.tree.rowCount(), 7); // quatre couches, le trait, le groupe, l'image
+        QVERIFY(f.tree.setHidden(rowOf(f.tree, outer), true));
+        QVERIFY(hiddenInDocument(f.controller, f.shape1));
+        QVERIFY(hiddenInDocument(f.controller, f.shape2));
+        QVERIFY(hiddenInDocument(f.controller, extra));
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, outer, ui::ObjectTreeModel::HiddenRole).toBool(), true);
+    }
+
+    // Groupe sans membre : rangé à sa propre place, ses drapeaux sont les siens.
+    void emptyGroupRow()
+    {
+        Fixture f;
+        const core::ObjectId g =
+            addObject(f.controller, core::PageObject{core::Group{}}, core::Layer::Middle);
+        QVERIFY(g != 0);
+        QCoreApplication::processEvents();
+        const int middle = layerRow(f.tree, QStringLiteral("middle"));
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::KindRole).toString(), QStringLiteral("group"));
+        QCOMPARE(rowOf(f.tree, g), middle + 1); // ajouté en dernier : au sommet
+        QVERIFY(f.tree.setHidden(rowOf(f.tree, g), true));
+        QVERIFY(hiddenInDocument(f.controller, g));
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::HiddenRole).toBool(), true);
+        QVERIFY(f.tree.move(rowOf(f.tree, g), rowOf(f.tree, f.shape1) + 1));
+        QCOMPARE(drawOrderOf(f.controller, {f.shape1, f.shape2, g}),
+                 (std::vector<core::ObjectId>{g, f.shape1, f.shape2}));
+        QCoreApplication::processEvents();
+        QCOMPARE(rowOf(f.tree, g), middle + 3);
+    }
+
+    // Annuler le masquage d'un groupe rend à chaque membre son état d'avant : un membre déjà masqué le reste.
+    void undoKeepsAMemberAlreadyHidden()
+    {
+        Fixture f;
+        f.controller.execute(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{f.shape1},
+                                                                          core::ObjectFlag::Hidden, true));
+        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        QVERIFY(g != 0);
+        QCoreApplication::processEvents();
+        QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::HiddenRole).toBool(), false); // pas tous
+        QVERIFY(f.tree.setHidden(rowOf(f.tree, g), true));
+        QVERIFY(hiddenInDocument(f.controller, f.shape2));
+        f.controller.undo();
+        QVERIFY(hiddenInDocument(f.controller, f.shape1));
+        QVERIFY(!hiddenInDocument(f.controller, f.shape2));
     }
 };
 
