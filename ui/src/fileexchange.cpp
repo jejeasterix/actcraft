@@ -23,8 +23,9 @@ QUrl localized(const QUrl& url)
     if (url.isEmpty() || url.scheme().size() > 1) {
         return url;
     }
-    return QUrl::fromLocalFile(
-        QDir::cleanPath(QDir::current().absoluteFilePath(url.scheme() + QLatin1Char(':') + url.path())));
+    // Sans schéma (chemin relatif, ou absolu « /… » sous macOS et Linux), le chemin est path() seul.
+    const QString path = url.scheme().isEmpty() ? url.path() : url.scheme() + QLatin1Char(':') + url.path();
+    return QUrl::fromLocalFile(QDir::cleanPath(QDir::current().absoluteFilePath(path)));
 }
 
 QString fileName(const QUrl& url)

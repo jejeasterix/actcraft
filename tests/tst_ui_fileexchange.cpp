@@ -162,6 +162,28 @@ private slots:
         QVERIFY(QFileInfo::exists(path));
     }
 
+    // Un chemin sans lettre de lecteur (relatif ici ; absolu « /… » sous macOS et Linux) n'a pas de schéma :
+    // il se résout tel quel depuis le dossier courant.
+    void exportPageImageWithRelativePath()
+    {
+        Shell s;
+        QVERIFY(s.start());
+        s.threePages();
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString previous = QDir::currentPath();
+        QVERIFY(QDir::setCurrent(dir.path()));
+        QSignalSpy done(s.exchange, &ui::FileExchange::finished);
+        QSignalSpy failed(s.exchange, &ui::FileExchange::failed);
+        const bool ran = s.run(QStringLiteral("export.page-image"), QStringLiteral("relatif.png"));
+        const bool settled = QTest::qWaitFor([&] { return done.count() + failed.count() == 1; }, 15000);
+        QDir::setCurrent(previous);
+        QVERIFY(ran);
+        QVERIFY(settled);
+        QCOMPARE(failed.count(), 0);
+        QVERIFY(QFileInfo::exists(dir.filePath(QStringLiteral("relatif.png"))));
+    }
+
     void importPdfOpensATab()
     {
         if (!exporting::pdfImportAvailable()) {
