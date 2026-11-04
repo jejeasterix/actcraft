@@ -6,6 +6,7 @@
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/profilecontroller.h>
 #include <actcraft/ui/shortcutbar.h>
+#include <actcraft/ui/toolhost.h>
 
 #include <QBuffer>
 #include <QByteArray>
@@ -29,6 +30,7 @@ struct Fixture
     ui::Preferences prefs;
     ui::DocumentController document;
     std::unique_ptr<ui::ProfileController> profile;
+    ui::ToolHost tools;
     ui::ShortcutBar bar;
 
     Fixture() : prefs(dir.filePath(QStringLiteral("poste.ini")), nullptr)
@@ -38,13 +40,16 @@ struct Fixture
                                     ui::ProfileController::builtinOrder());
         profile = std::make_unique<ui::ProfileController>(std::move(store), &prefs, &commands);
         profile->start();
+        // Une commande n'est « déclenchée » que si elle a un gestionnaire.
+        for (const QString& id : commands.registry().ids())
+            commands.setNativeHandler(id, [](const QVariant&) {});
         document.newDocument(1024, 768);
         bar.setCommands(&commands);
         bar.setProfile(profile.get());
         bar.setProperty("document", QVariant::fromValue(&document));
-        // Une commande n'est « déclenchée » que si elle a un gestionnaire.
-        for (const QString& id : commands.registry().ids())
-            commands.setNativeHandler(id, [](const QVariant&) {});
+        tools.setSettingsFile(dir.filePath(QStringLiteral("outils.ini")));
+        tools.setDocumentController(&document);
+        bar.setProperty("tools", QVariant::fromValue(&tools));
     }
     // Commandes outil ou fonction absentes de la palette par défaut, dans l'ordre du registre.
     QStringList outOfPalette()
@@ -93,10 +98,10 @@ private slots:
     void paletteToolIsNotRecorded()
     {
         Fixture f;
-        f.bar.notePaletteTrigger(QStringLiteral("tool.pen"));
+        // Un outil de la palette n'entre pas, qu'il vienne de la palette, du menu ou du raccourci : le filtre
+        // sur commands.palette() suffit, la palette n'a pas à l'annoncer.
         QVERIFY(f.commands.trigger(QStringLiteral("tool.pen")));
         QVERIFY(f.bar.buttons().isEmpty());
-        // Même sans l'annonce de la palette, un outil de la palette n'entre pas (menu, raccourci).
         QVERIFY(f.commands.trigger(QStringLiteral("tool.pen")));
         QVERIFY(f.bar.buttons().isEmpty());
     }
@@ -151,6 +156,45 @@ private slots:
         QVERIFY(f.page().objects.size() > before);
         f.document.undo();
         QCOMPARE(f.page().objects.size(), before);
+    }
+    // Chemin de l'interface (menu d'objet) : la commande ajoute la sélection courante à la barre.
+    void addSelectionCommandMakesAnObjectButton()
+    {
+        Fixture f;
+        const core::ObjectId id = f.addStroke();
+        f.tools.user().setSelection({id});
+        QVERIFY(f.commands.registry().find(QStringLiteral("shortcutbar.add-selection")) != nullptr);
+        QVERIFY(f.commands.trigger(QStringLiteral("shortcutbar.add-selection")));
+        QCOMPARE(f.bar.buttons().size(), 1);
+        QCOMPARE(f.button(0).value(QStringLiteral("kind")).toString(), QStringLiteral("object"));
+        QVERIFY(!f.profile->profile().shortcutObjects.isEmpty());
+        // Sans sélection : rien.
+        f.tools.user().setSelection({});
+        QVERIFY(f.bar.addSelection().isEmpty());
+        QCOMPARE(f.bar.buttons().size(), 1);
+    }
+    void addSelectionRefusedWhileLocked()
+    {
+        Fixture f;
+        const core::ObjectId id = f.addStroke();
+        f.tools.user().setSelection({id});
+        f.commands.setLocked(true);
+        QVERIFY(f.bar.addSelection().isEmpty());
+        f.commands.trigger(QStringLiteral("shortcutbar.add-selection"));
+        QVERIFY(f.profile->profile().shortcutObjects.isEmpty());
+        QVERIFY(f.bar.buttons().isEmpty());
+    }
+    void addSelectionRefusedWithoutCommands()
+    {
+        Fixture f;
+        const core::ObjectId id = f.addStroke();
+        f.tools.user().setSelection({id});
+        ui::ShortcutBar bare;
+        bare.setProfile(f.profile.get());
+        bare.setProperty("document", QVariant::fromValue(&f.document));
+        bare.setProperty("tools", QVariant::fromValue(&f.tools));
+        QVERIFY(bare.addSelection().isEmpty());
+        QVERIFY(f.profile->profile().shortcutObjects.isEmpty());
     }
     void refusedWhileLocked()
     {
