@@ -157,7 +157,6 @@ private slots:
         auto* profile = profileOf(s);
         profile->setPaletteDock(QStringLiteral("floating"));
         profile->setPaletteFloat(QPointF(300, 120));
-        auto* palette = item(s, "toolPalette");
         QTRY_COMPARE(sceneOf(item(s, "palettePanel"), QPointF(0, 0)), QPointF(300, 120));
     }
 

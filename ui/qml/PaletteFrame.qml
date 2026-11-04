@@ -115,7 +115,7 @@ Item {
         const l = root.dragRX
         const r = root.regionW - (root.dragRX + root.panelW)
         const t = root.dragRY
-        const b = root.regionH - (root.dragRY + root.panelH)
+        const b = root.regionH - (root.dragRY + root.titleHeight)
         const nearest = Math.min(l, r, t, b)
         const scenePoint = Qt.point(root.dragRX + (root.region ? root.region.x : 0),
                                     root.dragRY + (root.region ? root.region.y : 0))
@@ -188,38 +188,38 @@ Item {
             width: parent.width
             height: root.titleHeight
 
-            MouseArea {
+            Item {
                 id: titleDrag
                 objectName: "paletteTitle"
                 anchors.fill: parent
-                property point pressScene
                 property real baseX: 0
                 property real baseY: 0
-                function sceneOf(mouse) { return titleDrag.mapToItem(null, mouse.x, mouse.y) }
-                onPressed: mouse => {
-                    console.info('DBG press')
-                    titleDrag.pressScene = titleDrag.sceneOf(mouse)
-                    titleDrag.baseX = root.homeX + root.shiftX
-                    titleDrag.baseY = root.homeY + root.shiftY
+
+                DragHandler {
+                    id: dragHandler
+                    target: null
+                    acceptedButtons: Qt.LeftButton
+                    function follow() {
+                        const dx = dragHandler.centroid.scenePosition.x - dragHandler.centroid.scenePressPosition.x
+                        const dy = dragHandler.centroid.scenePosition.y - dragHandler.centroid.scenePressPosition.y
+                        root.dragRX = Math.max(-root.panelW / 2, Math.min(titleDrag.baseX + dx, root.regionW - root.panelW / 2))
+                        root.dragRY = Math.max(0, Math.min(titleDrag.baseY + dy, root.regionH - root.titleHeight))
+                        root.dragging = true
+                    }
+                    onActiveChanged: {
+                        if (dragHandler.active) {
+                            titleDrag.baseX = root.homeX + root.shiftX
+                            titleDrag.baseY = root.homeY + root.shiftY
+                            dragHandler.follow()
+                        } else if (root.dragging) {
+                            root.finishDrag()
+                        }
+                    }
+                    onCentroidChanged: {
+                        if (dragHandler.active)
+                            dragHandler.follow()
+                    }
                 }
-                onPositionChanged: mouse => {
-                    if (!titleDrag.pressed)
-                        return
-                    const p = titleDrag.sceneOf(mouse)
-                    const dx = p.x - titleDrag.pressScene.x
-                    const dy = p.y - titleDrag.pressScene.y
-                    if (!root.dragging && Math.hypot(dx, dy) < 6)
-                        return
-                    root.dragRX = Math.max(-root.panelW / 2, Math.min(titleDrag.baseX + dx, root.regionW - root.panelW / 2))
-                    root.dragRY = Math.max(0, Math.min(titleDrag.baseY + dy, root.regionH - root.titleHeight))
-                    root.dragging = true
-                }
-                onReleased: {
-                    console.info('DBG release', root.dragging)
-                    if (root.dragging)
-                        root.finishDrag()
-                }
-                onCanceled: { console.info('DBG cancel'); root.dragging = false }
             }
 
             ToolButton {
