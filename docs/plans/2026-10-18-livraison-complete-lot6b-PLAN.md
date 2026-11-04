@@ -470,6 +470,14 @@ l'orchestrateur amende la ligne avant de relancer.
   peintre reprise par les miniatures et l'export. Discriminants : `thumbnailsNeverShowHidden` et l'empreinte du
   document inchangée après la bascule.
 
+**Amendement 6 (L6-T22, essai 2, 2026-11-04).** Écart sur A20 : l'écran ne passe pas par `paintPage` mais par les
+nœuds de scène (`render/src/objectnodes.cpp:58` saute les objets masqués ; appelé par `fixedpageitem.cpp:505`,
+`pendinglayeritem.cpp:124`, `liftlayeritem.cpp:115`). Fichiers touchés étendus : `objectnodes.*` (drapeau par vue
+dans `NodeContext`), `fixedpageitem.*`, `pendinglayeritem.*`, `liftlayeritem.*` ; `ui/include/actcraft/ui/toolhost.h`,
+`ui/src/tooladapters.cpp` (construction du contexte d'outil), `tools/include/actcraft/tools/selectiongeometry.h`,
+l'en-tête de `ToolContext`, et `tools/src/shapetool.cpp` seulement si un des neuf réglages l'exige. Le drapeau vaut
+par vue ; `PaintOptions::showHiddenTranslucent` garde un défaut faux (miniatures, impression, export inchangés).
+
 <a id="tache-l6-t23"></a>
 ### Tâche L6-T23 — Tableau d'accueil
 
