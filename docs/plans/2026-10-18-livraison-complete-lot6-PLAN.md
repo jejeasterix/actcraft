@@ -32,7 +32,7 @@ Windows) et p = 0 : L6-P1 et L6-P2 ajoutent des fonctions à des tests déjà en
 | C2 | hors de `Main.qml`, aucun fichier QML ne nomme un identifiant de `Main.qml` (convention observée : `BrowserPanel.qml:14-17`, `ToolPalette.qml:11-13`, `ColorSwatches.qml:9-10` reçoivent `commands`, `view`, `tools` par propriété ; un accès non qualifié reposerait sur la portée dynamique, déconseillée par Qt) | règle « Identifiants de `Main.qml` » ci-dessous | L6-T2, L6-T5, L6-T7 à L6-T9, L6-T13, L6-T15 à L6-T17 ; 6b : toutes les sections QML |
 | C3 | objets lus par `LU` ou `expect` sans `objectName`, ou sous un autre nom | `objectName: "appProfile"` et `objectName: "appPreferences"` posés par L6-T5 ; `appDocument` se lit sous **`documentController`** (`Main.qml:60-62`) : `appDocument.<p>` → `documentController.<p>` ; `appSelection.count` → `appTools.selectionCount` ; les racines des talons de L6-T2 (`paletteFrame`, `shortcutBar`, `objectBrowser`, `notesIcon`, `labelTip`, `dashboard`, `spellingDialog`, `helpViewer`…) gardent leur `objectName` quand leur tâche les remplit ; déjà nommés par leur tâche : `appColors` (L6-T8), `appShortcuts` (L6-T9), `appProperties` (L6-T13), `appObjectTree` (L6-T15), `appNotes` (L6-T16) ; en 6b `appResources`, `appDesign`, `appClassroom`, `appSpelling`, `appRecents`, `launcherButton<n>` | L6-T5, L6-T13, L6-T15 ; 6b : L6-T21, L6-T23, L6-T24 |
 | C4 | étape `expect` : `{"expect": "objet.propriété", "value": …}` (`bench/src/uiscenario.cpp:247-255`), pas `equals` ; `-Lire` ne compare qu'à l'égalité (`parseReadSpec`, `:620-633`) ; « strictement supérieur » : `"above": true` dans le JSON (`uiscenario.h:107`) | formes corrigées | L6-T6 ; 6b : L6-T31 |
-| C5 | nom QML en double dans le module `ActCraft.Ui` : la classe `ui::ShortcutBar` (`QML_ELEMENT`, L6-T9) et `ShortcutBar.qml` (L6-T2) ; `ui::HelpViewer` (`QML_ELEMENT`, L6-T35) et `HelpViewer.qml` | les classes C++ gardent leur nom ; type QML `QML_NAMED_ELEMENT(ShortcutBarModel)` et `QML_NAMED_ELEMENT(HelpViewerModel)` ; posé dans les talons par L6-T2 | L6-T2, L6-T9 ; 6b : L6-T35 |
+| C5 | nom QML en double dans le module `ActCraft.Ui` : la classe `ui::ShortcutBar` (`QML_ELEMENT`, L6-T9) et `ShortcutBar.qml` (L6-T2) ; `ui::HelpViewer` (`QML_ELEMENT`, L6-T35) et `HelpViewer.qml` | les classes C++ gardent leur nom ; type QML `QML_NAMED_ELEMENT(ShortcutBarModel)` et `QML_NAMED_ELEMENT(HelpViewerModel)` ; écrit par la tâche propriétaire dans son en-tête (L6-T9, L6-T35) : les talons de L6-T1 sont vides (4b) | L6-T9 ; 6b : L6-T35 |
 | D3 | liste de L6-T3 retenue : `view.fit` et `view.zoom` libres | H6-7 alignée | H6-7, L6-T3 |
 | D5 | licence de Hunspell : MPL 1.1 (Jérôme, 2026-10-21, H6-6b) ; dictionnaire de Grammalecte traité comme couvert (H6-6) | L6-T32 débloquée, option MPL 1.1 (bibliothèque statique) | D6-9, H6-6, H6-6b ; 6b : L6-T32 |
 | D14 | haute qualité pendant l'édition d'objets : faux par défaut (H6-12, supposé) ; regroupement automatique : faux (spécification), non tranché | défauts écrits dans le schéma et vérifiés | 6b : L6-T27 |
@@ -65,6 +65,38 @@ D14 : regroupement automatique (binaire actif, spécification inactive) ; P3 (cu
 aucun) et P12 (coupure des gestes du toucher) : à écrire dans le schéma de L6-T27 ou à renvoyer au lot 11 ; ordre exact
 des entrées de L6-P2 dans F-770 ; liste des épinglages de L7-T32 (à réaligner sur L6-T6 quand le lot 7 est fusionné) ;
 N6 sous Windows.
+
+**4b (relecture de l'amendement 4).** Constats de la relecture de l'amendement 4, corrigés en place dans ce plan et
+dans celui de 6b ; ce sous-bloc prime sur le reste de l'amendement 4.
+1. **C2 en 6b.** Les sections QML de 6b qui nommaient encore `appProfile`, `appDocument`, `appCommands` ou
+   `appPreferences` lisent `root.profile`, `root.documentController`, `root.commands`, `root.preferences` : blocs
+   « Amendement 4 » de L6-T25 (choix du profil, setters du profil), L6-T26, L6-T30, L6-T34 (`document:
+   root.documentController` dans `SpellingDialog.qml`), L6-T36. Les lectures de scénario (`-Lire`, `expect`) et les
+   `findChild` des tests gardent les `objectName` (`appProfile`, `appPreferences`, `documentController`, `commands`).
+2. **Disposition de `profile.choose`, `mode.design`, `profile.edit`** (décision de l'orchestrateur, hypothèse H6-11,
+   à confronter au PC). La disposition livrée par L6-T1 fait foi : `profile.choose` et `mode.design` dans le groupe
+   `commandes` de la palette (`actions/data/layout.json:31`), `profile.edit` en fin du menu Outils, après un
+   séparateur (`:27`). L6-T2 ne pose **aucun** `CommandButton` de ces commandes dans `TopBar.qml` (son seul ajout y est
+   l'icône `notesIcon`). Corrigés : étape 4 de L6-T1, objectif et étape 4 de L6-T2, objectif de L6-T22 (6b).
+3. **Dépendances.** L6-T5 dépend aussi de L6-T2 (`Main.qml`, `tests/tst_ui_shell.cpp`) ; L6-P2 dépend aussi de L6-T5
+   (`tests/tst_ui_shell.cpp`) ; L6-P1 dépend aussi de L6-T13 (point 7). Vagues **inchangées**, vérifié : L6-T2 (V2)
+   avant L6-T5 (V3) ; L6-T5 (V3) et L6-T13 (V6) avant L6-P1 et L6-P2 (V7).
+4. **L6-T2, étapes 4 et 5** réécrites selon les amendements 1 et 4 : gestionnaires `browser.*` dans `BrowserPanel.qml`,
+   aucun dans `Main.qml` (seul y reste le talon de `mode.design`, amendement 1) ; `navigators` et `current`, plus de
+   `tabs`. Le `StackLayout` prend les ancres de l'instance `PageNavigator` (`ui/qml/BrowserPanel.qml:115-120`), qui
+   les perd : sinon Qt écrit « Detected anchors on an item that is managed by a layout » et
+   `shellLoadsWithoutQmlWarning` échoue.
+5. **C5.** `ui/include/actcraft/ui/shortcutbar.h` et `ui/include/actcraft/ui/helpviewer.h` sont des talons vides
+   (`#pragma once` et le marqueur) : ils sortent des fichiers de L6-T2. L6-T9 écrit
+   `QML_NAMED_ELEMENT(ShortcutBarModel)` dans `shortcutbar.h`, L6-T35 `QML_NAMED_ELEMENT(HelpViewerModel)` dans
+   `helpviewer.h` (chaînes `L6-T1 → L6-T9` et `L6-T1 → L6-T35`).
+6. **6b, L6-T21.** Lecture `-Lire "documentController.shownObjectCount=4"` (C3).
+7. **S9.4 sur L6-P1 et L6-P2.** Voie retenue, sans recoupement de fichiers : L6-P1 ajoute une étape au scénario
+   existant `bench/scenarios/proprietes.json` (texte sélectionné recoloré en une étape, Annuler) et dépend de L6-T13,
+   son propriétaire (V6) ; en V7, `proprietes.json` n'est touché que par L6-P1 (L6-T17 : `etiquettes.json` ; L6-P2 :
+   aucun scénario). L6-P2 (entrées d'un menu contextuel, rien qu'un scénario lise) perd S9.4 et sert **S9** comme
+   L6-T1 et L6-T2 (preuve par `tst_actions_layout` et `tst_ui_shell`).
+8. **6b, L6-T22.** Bloc « Amendement 4 (L6-T22) » : relire A17 à A21 au début de la tâche (non revérifiés par L6-T0).
 
 ## Amendement 3 (relecture tour 3)
 
@@ -218,10 +250,10 @@ mandataire, Test), CMake + Ninja, MSVC 2022, PowerShell 7. Bibliothèque tierce 
 |----|-------|-----------|------------------|----------|----------|--------|----------|---------|
 | L6-T0 | Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; API A1 à A16 revérifiées ; N6 relevé | — | `docs/verifications/2026-10-19-lot6-principes.md` (hors dépôt : `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot6.md`) | isolé | concepteur-critique | rapport commité, relevé brut hors dépôt présent, décisions D1 à D14 et table A1 à A16 écrites, `git grep` des titres du corpus vide, `NOMS OK`, N6 relevé | S30 | #tache-l6-t0 |
 | L6-T1 | Réservation : 43 tests enregistrés, fichiers neufs des deux sous-lots (talons marqués), commandes et disposition du lot, icônes | — | `actions/data/commands.json`, `actions/data/layout.json`, `actions/CMakeLists.txt`, `core/CMakeLists.txt`, `formats/CMakeLists.txt`, `ui/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/{actions,core,formats,ui,bench}.cmake`, `tests/tst_actions_layout.cpp`, `ui/icons/{palette-gauche,palette-droite,palette-haut,palette-bas,palette-flottante,palette-reduire,palette-reduire-tout,palette-epingler,couleurs-plus,pipette,nav-objets-masque,nav-objets-verrou,notes-page,profil,profils,conception,accueil,recents,ressources-miennes,ressources-partagees,ressources-autre,tampon,classe-verrou,orthographe,aide-sommaire,programme}.svg`, `tests/tst_ui_theme.cpp`, talons : `actions/include/actcraft/actions/{profile,profilestore}.h`, `actions/src/{profile,profilestore}.cpp`, `actions/data/profiles/{en-classe,preparation,lecture-ecriture,calcul-geometrie,son-image}.json`, `core/include/actcraft/core/{propertyedits,notesedits,spellcheck}.h`, `core/src/{propertyedits,notesedits,spellcheck,hunspellengine}.cpp`, `formats/include/actcraft/formats/fragment.h`, `formats/src/fragment.cpp`, `ui/include/actcraft/ui/{preferences,profilecontroller,colorpalette,shortcutbar,propertymodel,objecttree,notescontroller,labeltips,resourcelibrary,designmode,recentdocuments,layouteditor,settingsschema,secretstore,networksettings,launchers,classroomlock,spelling,helpviewer,language}.h`, `ui/src/{preferences,profilecontroller,colorpalette,shortcutbar,propertymodel,objecttree,notescontroller,labeltips,resourcelibrary,designmode,recentdocuments,layouteditor,settingsschema,secretstore_win,secretstore_other,networksettings,launchers,classroomlock,spelling,helpviewer,language}.cpp`, `ui/help/index.html`, `ui/i18n/actcraft_fr.ts`, `tests/launcher_probe.cpp`, 28 tests talons `tests/tst_{actions_profile,actions_lockable,ui_preferences,ui_profiles,ui_palette,ui_colors,ui_shortcutbar,formats_lot6,core_propertyedits,ui_propertymodel,ui_objecttree,core_notesedits,ui_notes,ui_labels,formats_fragment,ui_resources,ui_designmode,ui_recents,ui_profileeditor,ui_layouteditor,ui_settingsschema,ui_network,ui_launchers,ui_classroomlock,core_spellcheck,ui_spelling,ui_help,ui_language}.cpp`, 15 scénarios talons `bench/scenarios/{palette,couleurs,navigateur-objets,proprietes,notes,etiquettes,reglages-gardes,ressources,mode-creation,tableau-de-bord,profils,raccourcis-programmes,classe-protegee,orthographe,aide-langue}.json` | isolé | implementeur-tdd | `100% tests passed … out of N`, N = N6 + 43, `TESTS OK`, `tst_actions_layout` (dont `lot6EntriesDeclared`) et `tst_actions_registry` (dont `noShortcutTwice`) Passed, 43 tests neufs `SKIP` nommant leur tâche ; `premiers-pas` hors écran `CAPTURES OK` ; `NOMS OK` | S9, S19, S20, S21 | #tache-l6-t1 |
-| L6-T2 | Coquille QML du lot : emplacements de la palette, de la barre de raccourcis, des quatre navigateurs, des fenêtres du lot ; gestionnaires des commandes | L6-T1 | `ui/qml/Main.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/BrowserPanel.qml`, `ui/qml/TopBar.qml`, `ui/qml/ColorSwatches.qml`, `ui/include/actcraft/ui/shortcutbar.h`, `ui/include/actcraft/ui/helpviewer.h` (C5, talons de L6-T1), `ui/qml/{PaletteFrame,ShortcutBar,ExtendedColors,ColorLoupe,ObjectBrowser,PropertyBrowser,PropertyEditor,NotesBrowser,ResourceBrowser,LabelTip,Dashboard,ProfileChooser,ProfileEditor,FormatPage,CommandsPage,LaunchersPage,SettingsPage,NetworkPage,ClassroomLockDialog,SpellingDialog,HelpViewer,SaveSummaryDialog}.qml`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N6 + 43, `tst_ui_shell` (dont `lot6ShellPlaceholders`, `everyLot6CommandHasAHandler`, `browserTabsInOrder` sur `navigators` et `current`, A8) Passed ; `premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S9 | #tache-l6-t2 |
+| L6-T2 | Coquille QML du lot : emplacements de la palette, de la barre de raccourcis, des quatre navigateurs, des fenêtres du lot ; gestionnaires des commandes | L6-T1 | `ui/qml/Main.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/BrowserPanel.qml`, `ui/qml/TopBar.qml`, `ui/qml/ColorSwatches.qml`, `ui/qml/{PaletteFrame,ShortcutBar,ExtendedColors,ColorLoupe,ObjectBrowser,PropertyBrowser,PropertyEditor,NotesBrowser,ResourceBrowser,LabelTip,Dashboard,ProfileChooser,ProfileEditor,FormatPage,CommandsPage,LaunchersPage,SettingsPage,NetworkPage,ClassroomLockDialog,SpellingDialog,HelpViewer,SaveSummaryDialog}.qml`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N6 + 43, `tst_ui_shell` (dont `lot6ShellPlaceholders`, `everyLot6CommandHasAHandler`, `browserTabsInOrder` sur `navigators` et `current`, A8) Passed ; `premiers-pas` hors écran `CAPTURES OK` ; banc hors écran `content_check.ok = True` | S9 | #tache-l6-t2 |
 | L6-T3 | `actions` : attributs `lockable` et `restrictable`, porte du verrou dans le registre ; remplis pour toutes les commandes présentes (lots 1 à 5, 7, socle) | L6-T1 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `actions/data/commands.json`, `tests/tst_actions_lockable.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_actions_lockable` Passed (dont `attributesRead`, `lockGreysOnlyLockable`, `lockedTriggerCallsNothing`, `enableCannotBypassTheLock`, `everyCommandDeclaresBoth`, `fileAndQuitStayFree`, `ownStateSurvivesTheLock`), `tst_actions_registry` Passed ; mutation de la porte (`isEnabled` sans le verrou) rouge puis remise | S19 | #tache-l6-t3 |
 | L6-T4 | `actions` : modèle de profil `actcraft-profile/1` et magasin (fournis, utilisateur, enregistrer sous, supprimer, réinitialiser, exporter, importer) | L6-T1 | `actions/include/actcraft/actions/profile.h`, `actions/src/profile.cpp`, `actions/include/actcraft/actions/profilestore.h`, `actions/src/profilestore.cpp`, `tests/tst_actions_profile.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_actions_profile` Passed (dont `roundTripKeepsEveryField`, `unknownKeysKept`, `majorVersionRefused`, `iconPixelsClamped`, `builtinFirstThenUser`, `userCopyShadowsBuiltin`, `resetRemovesTheUserCopy`, `builtinCannotBeRemoved`, `saveIsAtomic`, `exportImportRoundTrip`, `importNeverOverwrites`, `importRejectsPathId`) | S9, S9.7 | #tache-l6-t4 |
-| L6-T5 | `ui` : réglages du poste (`Preferences`, QSettings) et `ProfileController` (profil courant, enregistrement implicite différé hors contact, dossier de disposition) | L6-T3, L6-T4 | `ui/include/actcraft/ui/preferences.h`, `ui/src/preferences.cpp`, `ui/include/actcraft/ui/profilecontroller.h`, `ui/src/profilecontroller.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `ui/qml/Main.qml`, `app/startup.h`, `app/startup.cpp`, `bench/captures/main.cpp`, `bench/app/main.cpp`, `tests/tst_ui_preferences.cpp`, `tests/tst_ui_shell.cpp`, `tests/tst_ui_filemenu.cpp`, `tests/tst_ui_drawing.cpp`, `tests/tst_app_open.cpp`, `tests/tst_bench_verdict.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_preferences` Passed (dont `keysAreOurs`, `currentProfileRestored`, `implicitSaveIsDebounced`, `noSaveDuringContact`, `activateSwitchesTheLayoutDir`, `brokenProfileFallsBack`, `settingDefaultsComeFromTheSchema`, `activateCommandIsNative`, `pathLikeIdRefused`, `defaultConstructorFollowsTheDefaultFormat`, `createdFromQml`, `startsOnceFromComponentComplete`), `tst_ui_shell` (dont `everyLot6CommandHasAHandler` sans exclusion, `profileFoundByName`) Passed | S9, S9.7 | #tache-l6-t5 |
+| L6-T5 | `ui` : réglages du poste (`Preferences`, QSettings) et `ProfileController` (profil courant, enregistrement implicite différé hors contact, dossier de disposition) | L6-T2, L6-T3, L6-T4 | `ui/include/actcraft/ui/preferences.h`, `ui/src/preferences.cpp`, `ui/include/actcraft/ui/profilecontroller.h`, `ui/src/profilecontroller.cpp`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `ui/qml/Main.qml`, `app/startup.h`, `app/startup.cpp`, `bench/captures/main.cpp`, `bench/app/main.cpp`, `tests/tst_ui_preferences.cpp`, `tests/tst_ui_shell.cpp`, `tests/tst_ui_filemenu.cpp`, `tests/tst_ui_drawing.cpp`, `tests/tst_app_open.cpp`, `tests/tst_bench_verdict.cpp` | isolé | concepteur-critique | `TESTS OK`, `tst_ui_preferences` Passed (dont `keysAreOurs`, `currentProfileRestored`, `implicitSaveIsDebounced`, `noSaveDuringContact`, `activateSwitchesTheLayoutDir`, `brokenProfileFallsBack`, `settingDefaultsComeFromTheSchema`, `activateCommandIsNative`, `pathLikeIdRefused`, `defaultConstructorFollowsTheDefaultFormat`, `createdFromQml`, `startsOnceFromComponentComplete`), `tst_ui_shell` (dont `everyLot6CommandHasAHandler` sans exclusion, `profileFoundByName`) Passed | S9, S9.7 | #tache-l6-t5 |
 | L6-T6 | Cinq profils fournis, à nos noms, avec les épinglages du lot 7 et du lot 8 annoncé | L6-T4, L6-T5, L6-T7 | `actions/data/profiles/{en-classe,preparation,lecture-ecriture,calcul-geometrie,son-image}.json`, `tests/tst_ui_profiles.cpp`, `bench/scenarios/profils.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_profiles` (dont `fiveBuiltinsInOrder`, `pinnedCommandsExist`, `pinnedFilteredByPlatform`, `namesAreOurs`, `preparationOpensThePageBrowser`), `tst_captures_profils` Passed ; `captures.ps1 -Scenario profils` : `LU appProfile.currentId=calcul-geometrie OK`, `CAPTURES OK` | S9.7, S32 | #tache-l6-t6 |
 | L6-T7 | Palette : ancrage (4 bords, flottante), réduite, réduite au maximum, épinglée (repli au retrait du pointeur), taille des icônes 16 à 32 ; persistance | L6-T2, L6-T5 | `ui/qml/PaletteFrame.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/Theme.qml`, `tests/tst_ui_palette.cpp`, `bench/scenarios/palette.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_palette` (dont `dockFollowsTheProfile`, `dragToCenterFloats`, `collapsedShowsFirstRowOnly`, `fullCollapseHidesShortcuts`, `unpinnedHidesAfterLeave`, `iconPixelsScaleEveryIcon`), `tst_captures_palette` Passed ; `captures.ps1 -Scenario palette` : `LU appProfile.paletteDock=left OK`, `LU toolPalette.x=0 OK`, `CAPTURES OK` ; banc hors écran joint | S9, S9.1 | #tache-l6-t7 |
 | L6-T8 | Palette de couleurs étendue (6 × 6), copieur de couleur, boîte de couleur, couleurs ajoutées gardées ; 8, 16 ou 24 pastilles | L6-T2, L6-T5 | `ui/include/actcraft/ui/colorpalette.h`, `ui/src/colorpalette.cpp`, `ui/qml/ExtendedColors.qml`, `ui/qml/ColorLoupe.qml`, `ui/qml/ColorSwatches.qml`, `tests/tst_ui_colors.cpp`, `bench/scenarios/couleurs.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_colors` (dont `extendedGridIsSixBySix`, `addedColorIsKept`, `duplicatesIgnored`, `swatchCountFollowsTheProfile`, `loupeSamplesOnceOnOpen`), `tst_captures_couleurs` Passed ; `captures.ps1 -Scenario couleurs` : `LU appColors.extraCount=1 OK`, `PIXEL pastille-ajoutee OK`, `CAPTURES OK` | S9, S9.2 | #tache-l6-t8 |
@@ -235,8 +267,8 @@ mandataire, Test), CMake + Ninja, MSVC 2022, PowerShell 7. Bibliothèque tierce 
 | L6-T16 | Navigateur de notes : `SetPageNotesCommand` (fusionnée), éditeur riche, icône de notes dans la ligne supérieure | L6-T2 | `core/include/actcraft/core/notesedits.h`, `core/src/notesedits.cpp`, `tests/tst_core_notesedits.cpp`, `ui/include/actcraft/ui/notescontroller.h`, `ui/src/notescontroller.cpp`, `tests/tst_ui_notes.cpp`, `ui/qml/NotesBrowser.qml`, `bench/scenarios/notes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_core_notesedits` (dont `typingMergesIntoOneStep`, `notesTouchNoCache`), `tst_ui_notes` (dont `followsTheCurrentPage`, `hasNotesFlag`, `switchingPageCreatesNoStep`, `refusedWhileLocked`, `refusedWithoutCommands`, `editableFollowsTheLock`), `tst_captures_notes` Passed ; `captures.ps1 -Scenario notes` : `LU appNotes.hasNotes=true OK`, `LU notesIcon.visible=true OK`, `CAPTURES OK` | S9, S9.5 | #tache-l6-t16 |
 | L6-T17 | Étiquettes : légende d'un objet montrée au survol, selon son style | L6-T10, L6-T2, L6-T13 | `ui/include/actcraft/ui/labeltips.h`, `ui/src/labeltips.cpp`, `ui/qml/LabelTip.qml`, `tests/tst_ui_labels.cpp`, `bench/scenarios/etiquettes.json` | isolé | implementeur-tdd | `TESTS OK`, `tst_ui_labels` (dont `hoverShowsTheLabel`, `noLabelNoTip`, `hiddenObjectHasNoTip`, `styleIsApplied`), `tst_captures_etiquettes` Passed ; `captures.ps1 -Scenario etiquettes` : `LU labelTip.text=Soleil OK`, `CAPTURES OK` | S9.10 | #tache-l6-t17 |
 | L6-T18 | Point d'étape 6a : scénario S9 `reglages-gardes` (quitter, relancer), comptes des talons, graphe | L6-T6 à L6-T9, L6-T13, L6-T15 à L6-T17, L6-P1, L6-P2 | `bench/scenarios/reglages-gardes.json`, `bench/src/uiscenario.cpp`, `bench/include/actcraft/bench/uiscenario.h`, `tests/tst_bench_uiscenario.cpp`, `tests/tst_ui_shell.cpp`, `graphify-out/` | partagé | implementeur-tdd | `TESTS OK`, N = N6 + 43, `tst_bench_uiscenario` (dont `restartStepParsed`), `tst_ui_shell` (dont `lot6ControllersWired`), `tst_captures_reglages_gardes` Passed ; `captures.ps1 -Scenario reglages-gardes` : `LU appProfile.paletteDock=left OK` **après** l'étape `restart`, `LU appColors.extraCount=1 OK`, `LU browserPanel.current=objets OK`, `CAPTURES OK` ; talons « par L6-T2 » à « par L6-T17 » absents ; `NOMS OK` ; `graphify update .` commité | S9 | #tache-l6-t18 |
-| L6-P1 | Couleur choisie appliquée aux textes sélectionnés (P11 de L6-T0) : une étape, outil et sélection gardés | L6-T0 | `core/include/actcraft/core/textedits.h`, `core/src/textedits.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `tests/tst_core_textedits.cpp`, `tests/tst_ui_tools.cpp` | isolé | concepteur-critique | `TESTS OK`, N = N6 + 43 (207 sur le Mac), `tst_core_textedits` (dont `setTextsIsOneStep`, `setTextsUndoRestoresEach`, `setTextsSkipsWhatIsNotAText`) et `tst_ui_tools` (dont `colorRecolorsSelectedTexts`, `colorWithoutSelectedTextKeepsTheInkRule`) Passed ; banc hors écran joint | S9.4 | #tache-l6-p1 |
-| L6-P2 | Entrées du lot 6 dans le menu d'édition d'objet (P13 de L6-T0) : propriétés de l'objet, ajout à la bibliothèque | L6-T1, L6-T13 | `actions/data/layout.json`, `tests/tst_actions_layout.cpp`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N6 + 43 (207 sur le Mac), `tst_actions_layout` (dont `objectMenuOrder`, `lot6EntriesInObjectMenu`) et `tst_ui_shell` (dont `objectMenuMatchesLayout`) Passed | S9.4 | #tache-l6-p2 |
+| L6-P1 | Couleur choisie appliquée aux textes sélectionnés (P11 de L6-T0) : une étape, outil et sélection gardés | L6-T0, L6-T13 | `core/include/actcraft/core/textedits.h`, `core/src/textedits.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `tests/tst_core_textedits.cpp`, `tests/tst_ui_tools.cpp`, `bench/scenarios/proprietes.json` | isolé | concepteur-critique | `TESTS OK`, N = N6 + 43 (207 sur le Mac), `tst_core_textedits` (dont `setTextsIsOneStep`, `setTextsUndoRestoresEach`, `setTextsSkipsWhatIsNotAText`) et `tst_ui_tools` (dont `colorRecolorsSelectedTexts`, `colorWithoutSelectedTextKeepsTheInkRule`) et `tst_captures_proprietes` Passed ; `captures.ps1 -Scenario proprietes` : `PIXEL texte-recolore OK`, `PIXEL texte-annule OK`, `CAPTURES OK` (4b) ; banc hors écran joint | S9.4 | #tache-l6-p1 |
+| L6-P2 | Entrées du lot 6 dans le menu d'édition d'objet (P13 de L6-T0) : propriétés de l'objet, ajout à la bibliothèque | L6-T1, L6-T5, L6-T13 | `actions/data/layout.json`, `tests/tst_actions_layout.cpp`, `tests/tst_ui_shell.cpp` | isolé | implementeur-tdd | `TESTS OK`, N = N6 + 43 (207 sur le Mac), `tst_actions_layout` (dont `objectMenuOrder`, `lot6EntriesInObjectMenu`) et `tst_ui_shell` (dont `objectMenuMatchesLayout`) Passed | S9 | #tache-l6-p2 |
 
 19 tâches dans ce sous-lot (19 dans 6b : 38 pour le lot), plus L6-P1 et L6-P2 (amendement 4) : 21 dans 6a, 40 pour le lot. Les tâches de principes que L6-T0 demanderait (au plus 2,
 amendement 1, § 4) s'ajoutent par amendement du plan, comme au lot 7 ; elles prennent les identifiants `L6-P1`,
@@ -273,12 +305,13 @@ Vérification des recoupements (colonne « fichiers touchés ») :
   `proprietes.json`) / L6-T16 (`notesedits.*`, `notescontroller.*`, `NotesBrowser.qml`, deux tests, `notes.json`) —
   disjoints.
 - V7 (amendement 4) : L6-T17 (`labeltips.*`, `LabelTip.qml`, `tst_ui_labels.cpp`, `etiquettes.json`) / L6-P1
-  (`textedits.*`, `toolhost.h`, `toolhost.cpp`, `tst_core_textedits.cpp`, `tst_ui_tools.cpp`) / L6-P2 (`layout.json`,
-  `tst_actions_layout.cpp`, `tst_ui_shell.cpp`) — disjoints. `toolhost.cpp` est repris par L6-T22 (6b, V9) ;
+  (`textedits.*`, `toolhost.h`, `toolhost.cpp`, `tst_core_textedits.cpp`, `tst_ui_tools.cpp`, `proprietes.json`, 4b) /
+  L6-P2 (`layout.json`, `tst_actions_layout.cpp`, `tst_ui_shell.cpp`) — disjoints. `proprietes.json` vient de L6-T13 (V6). `toolhost.cpp` est repris par L6-T22 (6b, V9) ;
   `tst_ui_shell.cpp` par L6-T18 (V8), qui dépend de L6-P2 ; `layout.json` vient de L6-T1 (V1).
 - Fichiers repris d'une vague à l'autre, tenus par « dépend de » : talons de L6-T1 → leur tâche ; `commands.json`
   (L6-T1 → L6-T3) ; `ToolPalette.qml` (L6-T2 → L6-T7) ; QML des emplacements (L6-T2 → leur tâche) ; `ColorSwatches.qml`
-  (L6-T2 → L6-T8) ; `shortcutbar.h` (L6-T1 → L6-T2 → L6-T9) ; `helpviewer.h` (L6-T1 → L6-T2 → L6-T35).
+  (L6-T2 → L6-T8) ; `shortcutbar.h` (L6-T1 → L6-T9) ; `helpviewer.h` (L6-T1 → L6-T35) ; `Main.qml` et `tst_ui_shell.cpp` (L6-T2 →
+  L6-T5 → L6-P2 → L6-T18, 4b) ; `proprietes.json` (L6-T1 → L6-T13 → L6-P1, 4b).
 
 **Places.** Le jeton `tests` a 3 places, dont **2 pour ce lot** (les revues statiques tournent à côté). Une vague de
 3 tâches qui construisent en a toujours une qui attend la notification du jeton : c'est prévu, l'agent attend, il ne
@@ -466,7 +499,8 @@ profils fournis et leurs épinglages ; contrôle au lot 11). Sous-scénarios de 
   verrouiller par les colonnes.
 - **S9.4 — Propriétés.** Un trait sélectionné : sections Identification, Apparence, Contour, Position ; largeur de
   contour 4 → 12 : le trait s'épaissit (pixels) ; Annuler : il revient (pixels) ; rien de sélectionné : propriétés de
-  la page.
+  la page. Un texte sélectionné, une couleur choisie : le texte la prend en une étape, outil et sélection gardés ;
+  Annuler : il la perd (pixels ; L6-P1, 4b).
 - **S9.5 — Notes.** Taper une note sur la page 2 : l'icône de notes apparaît dans la ligne supérieure sur la page 2,
   pas sur la page 1 ; la note survit à l'aller-retour `.actcraft`.
 - **S9.6 — Ressources** (6b). Ajouter un objet de la page à « Mes ressources » : `Ressource1.actcraft` apparaît ; le
@@ -485,11 +519,11 @@ profils fournis et leurs épinglages ; contrôle au lot 11). Sous-scénarios de 
 
 | Scénario | Tâches (6a et 6b) |
 |---|---|
-| S9 | L6-T1, L6-T2, L6-T4, L6-T5, L6-T7 à L6-T9, L6-T11 à L6-T16, L6-T18, L6-T37 |
+| S9 | L6-T1, L6-T2, L6-T4, L6-T5, L6-T7 à L6-T9, L6-T11 à L6-T16, L6-T18, L6-T37, L6-P2 |
 | S9.1 | L6-T7, L6-T9 |
 | S9.2 | L6-T8 |
 | S9.3 | L6-T14, L6-T15 |
-| S9.4 | L6-T10 à L6-T13, L6-P1, L6-P2 |
+| S9.4 | L6-T10 à L6-T13, L6-P1 |
 | S9.5 | L6-T16 |
 | S9.6 | L6-T19 à L6-T21 |
 | S9.7 | L6-T4 à L6-T6, L6-T25, L6-T26 |
@@ -743,8 +777,9 @@ reprise de l'original ni du clone Python ; aucun libellé de l'original (N1-12) 
   `palette.dock-bottom`, `palette.float`, séparateur, `palette.collapse`, `palette.collapse-full`, `palette.pin`), puis
   `browser.objects`, `browser.properties`, `browser.notes`, `browser.resources`, `mode.design` ; menu Fichier :
   `file.recent-clear` sous l'entrée d'ouverture ; menu Outils : `spell.check`, `launcher.edit`, `classroom.lock`,
-  `classroom.password` ; menu Aide : `help.contents` en tête ; ligne supérieure : `profile.choose`, `mode.design` ;
-  menu principal de la palette : `profile.edit`. Aucune autre entrée n'est déplacée.
+  `classroom.password` ; menu Aide : `help.contents` en tête ; groupe `commandes` de la palette : `profile.choose`,
+  `mode.design` ; fin du menu Outils, après un séparateur : `profile.edit` (disposition livrée,
+  `actions/data/layout.json:27` et `:31`, qui fait foi : amendement 4b). Aucune autre entrée n'est déplacée.
 - [ ] **Étape 5 : CMake et fichiers vides.** Créer chaque fichier talon de la ligne L6-T1 avec le marqueur de sa tâche
   propriétaire (table ci-dessous), et l'enregistrer : en-têtes et sources dans le `CMakeLists.txt` de leur module
   (`secretstore_win.cpp` seulement sous `WIN32`, `secretstore_other.cpp` sinon ; `ui` lié à `Qt6::Network`),
@@ -802,7 +837,8 @@ supposent `ArgumentKind::Text` (A22, L0-S4) : s'il manque au départ de la tâch
 
 **Objectif.** Créer les 22 fichiers QML neufs du lot (talons qui s'affichent vides ou masqués), les placer dans
 `Main.qml`, ajouter les quatre navigateurs comme contenus de `BrowserPanel.qml` (A8), poser l'emplacement de la
-barre de raccourcis dans `ToolPalette.qml`, l'icône de notes et le bouton de profil dans `TopBar.qml`, et un
+barre de raccourcis dans `ToolPalette.qml`, l'icône de notes dans `TopBar.qml` (aucun bouton de `profile.choose` ni de
+`mode.design` : ils sont dans le groupe `commandes` de la palette, amendement 4b), et un
 gestionnaire pour **chaque** commande du lot (talon : `console.info` + rien, sauf les bascules de navigateur et de
 palette qui mettent déjà à jour une propriété QML).
 
@@ -896,18 +932,88 @@ ses tests existants, `shellLoadsWithoutQmlWarning` compris.
   `CommandsPage` L6-T26 ; `SettingsPage` L6-T27 ; `NetworkPage` L6-T28 ; `LaunchersPage` L6-T30 ;
   `ClassroomLockDialog` L6-T31 ; `SpellingDialog` L6-T34 ; `HelpViewer` L6-T35. `objectName` en `camelCase` du nom de
   fichier (`paletteFrame`, `shortcutBar`…).
-- [ ] **Étape 4 : placement.** `Main.qml` : `PaletteFrame { id: paletteFrame }` enveloppe la palette existante (aucun
-  changement de position tant que L6-T7 n'est pas fait : la palette reste ancrée à droite) ; dialogues et fenêtres du
-  lot instanciés une fois, masqués ; `LabelTip` au-dessus de la page, sous les surcouches de présentation.
-  `BrowserPanel.qml` : propriété `tabs` (liste ci-dessus), contenus `ResourceBrowser`, `ObjectBrowser`, `NotesBrowser`,
-  `PropertyBrowser` par onglet ; `actions` reste grisé (lot 8). `ToolPalette.qml` : `ShortcutBar { objectName:
-  "shortcutBar" }` en troisième colonne, masquée. `TopBar.qml` : `CommandButton` de `profile.choose` et de
-  `mode.design`, et une icône `notesIcon` (`notes-page.svg`), masquée.
-- [ ] **Étape 5 : gestionnaires.** Dans `Main.qml`, un `appCommands.setHandler` par commande du bloc lot 6 :
-  `browser.*` → `browserPanel.visible = true; browserPanel.current = "<identifiant de navigators>"` (`objets`,
-  `proprietes`, `notes`, `ressources` ; amendement 4, A8) ; `palette.*` →
-  `console.info("palette", id)` (rempli par L6-T7) ; les autres → `console.info(id)` avec un commentaire
-  `// Talon L6 : rempli par L6-T<n>.` qui nomme la tâche.
+- [ ] **Étape 4 : placement** (amendements 1 et 4, A8, C2 ; réécrite par l'amendement 4b). `Main.qml` :
+  `PaletteFrame { id: paletteFrame }` enveloppe la palette existante (aucun changement de position tant que L6-T7 n'est
+  pas fait : la palette reste ancrée à droite) ; dialogues et fenêtres du lot instanciés une fois, masqués, chacun avec
+  `commands: appCommands`, `documentController: appDocument`, `tools: appTools`, `view: pageArea.view` ; `LabelTip`
+  au-dessus de la page, sous les surcouches de présentation. `BrowserPanel.qml` : propriétés `tools`, `view`, `profile`,
+  `current` (identifiant de `navigators`, A8 ; **aucune** propriété `tabs`), `hasNotes` et fonction `showNavigator`
+  (code de l'amendement 4) ; `navigators` : `enabled: true` pour `ressources`, `objets`, `notes`, `proprietes`,
+  `actions` reste grisé (lot 8). Sous la rangée d'icônes, un `StackLayout` prend les ancres que porte aujourd'hui
+  l'instance `PageNavigator` (`ui/qml/BrowserPanel.qml:115-120`) ; l'instance `PageNavigator` les perd **toutes**
+  (`anchors.left`, `anchors.right`, `anchors.top`, `anchors.bottom`, `anchors.topMargin`) : un enfant ancré d'un layout
+  fait écrire à Qt « Detected anchors on an item that is managed by a layout », et `shellLoadsWithoutQmlWarning` échoue.
+  ```qml
+  StackLayout {
+      id: navigatorStack
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: iconRow.bottom
+      anchors.bottom: parent.bottom
+      anchors.topMargin: Theme.espace2
+      currentIndex: Math.max(0, root.navigators.findIndex(n => n.id === root.current))
+
+      PageNavigator {
+          objectName: "pageNavigator"
+          thumbnails: root.thumbnails
+          pages: root.pages
+          documentController: root.documentController
+          commands: root.commands
+          onPopupOpened: root.popupOpened()
+          onPopupClosed: root.popupClosed()
+      }
+      ResourceBrowser {
+          id: resourceBrowser
+          commands: root.commands
+          documentController: root.documentController
+          tools: root.tools
+          view: root.view
+          profile: root.profile
+      }
+      ObjectBrowser {
+          id: objectBrowser
+          commands: root.commands
+          documentController: root.documentController
+          tools: root.tools
+          view: root.view
+          profile: root.profile
+      }
+      NotesBrowser {
+          id: notesBrowser
+          commands: root.commands
+          documentController: root.documentController
+          tools: root.tools
+          view: root.view
+          profile: root.profile
+      }
+      PropertyBrowser {
+          id: propertyBrowser
+          commands: root.commands
+          documentController: root.documentController
+          tools: root.tools
+          view: root.view
+          profile: root.profile
+      }
+      Item {} // actions (lot 8)
+  }
+  ```
+  L'ordre des enfants suit `navigators` (`pages`, `ressources`, `objets`, `notes`, `proprietes`, `actions`) ; le
+  talon d'un navigateur a `visible: false`, que le `StackLayout` remplace pour l'enfant courant. `ToolPalette.qml` :
+  `ShortcutBar { objectName: "shortcutBar"; … }` en troisième colonne, masquée (liaisons de l'amendement 4).
+  `TopBar.qml` : l'icône `notesIcon` (`notes-page.svg`), `visible: bar.notesVisible` ; **aucun** `CommandButton` de
+  `profile.choose` ni de `mode.design` (groupe `commandes` de la palette, `actions/data/layout.json:31`, amendement 4b).
+- [ ] **Étape 5 : gestionnaires** (amendement 1, points 4 et 5 ; amendement 4, A8 ; réécrite par l'amendement 4b).
+  Aucun gestionnaire `browser.*` dans `Main.qml` : les quatre sont posés, **définitifs**, dans le
+  `Component.onCompleted` existant de `BrowserPanel.qml`, après `root.syncChecked()` (`root.showNavigator("objets")`,
+  `"proprietes"`, `"notes"`, `"ressources"` ; code de l'amendement 4). Chaque autre talon de gestionnaire est posé dans
+  le `Component.onCompleted` du fichier QML propriétaire (liste de l'amendement 1 ; seul `mode.design` reste dans
+  `Main.qml`, L6-T22 l'y remplace ; `profile.activate` n'en a aucun, C++ de L6-T5), sous la forme
+  ```qml
+  // Talon L6 : rempli par L6-T<n>.
+  root.commands.setHandler("<id>", function () { console.info("<id>") })
+  ```
+  (`palette.*` : `console.info("palette", "<id>")`, dans `PaletteFrame.qml`). `everyLot6CommandHasAHandler` exclut
+  `profile.activate` avec le commentaire `// Talon L6 : rempli par L6-T5.` (amendement 2).
 - [ ] **Étape 6 : vert.** `-R tst_ui_shell` vert ; preuve de tâche ; preuve visuelle `premiers-pas` ; banc sans écran.
 - [ ] **Étape 7 : commit.** `git add` des fichiers de la ligne ; `NOMS OK` ; commit « Lot 6 : coquille QML et
   gestionnaires (L6-T2) ».
@@ -995,10 +1101,10 @@ commentaire `// Talon L6 : rempli par L6-T5.` ; L6-T5 la retire.
   `toolPalette` reçoit `documentController: appDocument` ; `topBar` reçoit `notesVisible: browserPanel.hasNotes` ;
   `appThumbnails.active: browserPanel.visible && browserPanel.current === "pages"` (aucun rendu de miniature quand un
   autre navigateur est affiché). `profile` et `preferences` sont liés par L6-T5.
-- **Noms QML (C5)** : dans les talons `ui/include/actcraft/ui/shortcutbar.h` et `ui/include/actcraft/ui/helpviewer.h`
-  posés par L6-T1, `QML_ELEMENT` devient `QML_NAMED_ELEMENT(ShortcutBarModel)` et `QML_NAMED_ELEMENT(HelpViewerModel)`
-  (les fichiers `ShortcutBar.qml` et `HelpViewer.qml` portent les noms `ShortcutBar` et `HelpViewer` dans le même
-  module `ActCraft.Ui`) ; s'ils ne portent pas encore de macro QML, ajouter celle-ci. Le reste du talon ne change pas.
+- **Noms QML (C5)** : sans objet pour L6-T2 (amendement 4b). Les talons `ui/include/actcraft/ui/shortcutbar.h` et
+  `ui/include/actcraft/ui/helpviewer.h` de L6-T1 sont vides (`#pragma once` et le marqueur) et ne sont pas dans les
+  fichiers de L6-T2 : L6-T9 écrit `QML_NAMED_ELEMENT(ShortcutBarModel)` dans le sien, L6-T35
+  `QML_NAMED_ELEMENT(HelpViewerModel)` dans le sien.
 
 <a id="tache-l6-t3"></a>
 ### Tâche L6-T3 — `actions` : attributs « verrouillable » et « restreignable », porte du verrou
@@ -2429,7 +2535,8 @@ Fermé par défaut : sans `commands`, `insert` et `addObjects` rendent faux (tes
   `insert` passe `payload.extensions` (défaut « bin » pour une clé absente) à l'ajout des ressources manquantes. Test
   neuf `imageButtonKeepsItsExtension` : une image PNG glissée (`addObjects`), le document vidé de sa ressource, `insert`
   → `document().resource(clé)->extension` vaut `png`.
-- Type QML : `ui::ShortcutBar` est enregistré sous `QML_NAMED_ELEMENT(ShortcutBarModel)` (C5). Dans `ShortcutBar.qml`
+- Type QML : `ui::ShortcutBar` est enregistré sous `QML_NAMED_ELEMENT(ShortcutBarModel)` (C5) ; L6-T9 écrit la macro
+  dans `ui/include/actcraft/ui/shortcutbar.h`, talon vide de L6-T1 (amendement 4b). Dans `ShortcutBar.qml`
   (racine `root`) : `ShortcutBarModel { id: appShortcuts; objectName: "appShortcuts"; commands: root.commands; profile: root.profile; document: root.documentController }`.
 - Règle de l'historique : préfixe `camera.` retiré (A15).
 
@@ -3247,7 +3354,8 @@ la couleur va à l'outil d'encre (L3-T0, `ToolHost::setColor`). Hypothèse (supp
 changée quand des textes la prennent ; un groupe sélectionné n'est pas parcouru.
 
 **Fichiers.** `core/include/actcraft/core/textedits.h`, `core/src/textedits.cpp`, `ui/include/actcraft/ui/toolhost.h`,
-`ui/src/toolhost.cpp`, `tests/tst_core_textedits.cpp`, `tests/tst_ui_tools.cpp`.
+`ui/src/toolhost.cpp`, `tests/tst_core_textedits.cpp`, `tests/tst_ui_tools.cpp`, `bench/scenarios/proprietes.json`
+(amendement 4b).
 
 **Interfaces.** Consomme : `core::Text` (`html`, `runs[].color` en `core::Argb`), `core::body`,
 `DocumentController::execute`, `document()`, `currentIndex()`, `ToolHost::user().selection()`, `currentTool()`.
@@ -3485,6 +3593,24 @@ l'original.
 - [ ] **Étape 8 : commit.** `git add` des six fichiers ; `NOMS OK` ; commit « Lot 6 : couleur choisie appliquée aux
   textes sélectionnés (L6-P1) ».
 
+**Amendement 4b (L6-P1).** Scénario S9.4. La tâche dépend aussi de L6-T13 (propriétaire de
+`bench/scenarios/proprietes.json`, V6) et ajoute une étape à ce scénario existant.
+- **Contraintes (recopiées).** En V7, seul L6-P1 touche `proprietes.json` : ne toucher ni `etiquettes.json` (L6-T17) ni
+  `actions/data/layout.json`, `tests/tst_actions_layout.cpp`, `tests/tst_ui_shell.cpp` (L6-P2) ; les étapes existantes
+  de `proprietes.json` (trait, `contour-epais`, `contour-annule`) ne changent pas ; sur le Mac, commandes de
+  `/Users/jeromedenis/pilotage-mac/regles-tache-lot6-mac.md` (`captures.ps1` passe en reste pour le PC).
+- **Test et commande bornée.** Commande ciblée `-R 'tst_core_textedits|tst_ui_tools|tst_captures_proprietes'` ; preuve :
+  `tst_captures_proprietes` Passed (1 test, nom présent), puis `captures.ps1 -Scenario proprietes` : `PIXEL
+  texte-recolore OK`, `PIXEL texte-annule OK`, `CAPTURES OK` ; décrire `texte-rouge.png`.
+- **Étape ajoutée, avant le commit : scénario.** À la fin de `proprietes.json` (après `contour-annule`) : `tool.text` ;
+  `pointer` (appui puis relâché) au point (300, 300) de la page ; `typeText "Rouge"` ; Échap ; `tool.select` ; `pointer`
+  sur le texte ; choix de la pastille rouge (`pointer` sur la pastille de `ColorSwatches` dont la couleur est
+  `#ff0000` ; relire `ColorSwatches.qml` pour son nom) ; `expect appTools.selectionCount = 1` (sélection gardée) ;
+  contrôle `texte-recolore` (dans la boîte du texte : au moins 20 px à dominante rouge) ; capture `texte-rouge.png` ;
+  `edit.undo` ; contrôle `texte-annule` (aucun pixel à dominante rouge dans la boîte). Rouge tant que `ToolHost` ne recolore pas :
+  `PIXEL texte-recolore` en échec ; `git add` du scénario avec les autres fichiers.
+- **Terminé quand** s'y ajoute : `tst_captures_proprietes` Passed et les deux `PIXEL … OK`.
+
 <a id="tache-l6-p2"></a>
 ### Tâche L6-P2 — Entrées du lot 6 dans le menu d'édition d'objet
 
@@ -3534,6 +3660,10 @@ N = N6 + 43 (aucun test enregistré) ; sur le Mac, commandes de
 - [ ] **Étape 4 : vert** (commande ciblée), preuve de tâche.
 - [ ] **Étape 5 : commit.** `git add` des trois fichiers ; `NOMS OK` ; commit « Lot 6 : entrées du lot dans le menu
   d'édition d'objet (L6-P2) ».
+
+**Amendement 4b (L6-P2).** Dépend aussi de L6-T5 (`tests/tst_ui_shell.cpp`, V3). Scénario : **S9** (S9.4 retiré :
+un menu contextuel n'a rien qu'un scénario lise). **Contrainte (recopiée)** : aucun fichier de scénario touché ; en V7,
+`proprietes.json` est à L6-P1 et `etiquettes.json` à L6-T17.
 
 ---
 

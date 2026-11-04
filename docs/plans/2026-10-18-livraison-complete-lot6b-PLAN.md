@@ -25,12 +25,25 @@ preuve MSVC passent en restes pour le PC.
 | C2 | hors de `Main.qml`, aucun identifiant de `Main.qml` (règle de l'amendement 4 de 6a) | les instances écrites dans les fichiers du lot lisent les propriétés du talon : `root.commands`, `root.documentController`, `root.tools`, `root.view`, `root.profile`, `root.preferences` | toutes les sections QML de 6b (L6-T21, L6-T23 à L6-T27, L6-T30, L6-T31, L6-T34 à L6-T36) |
 | C3 | `appDocument` se lit sous `documentController` | `documentController.shownObjectCount`, `documentController.pageCount` | L6-T21, L6-T23 |
 | C4 | `-Lire` ne compare qu'à l'égalité ; `"above": true` dans le JSON d'une étape `expect` | forme corrigée | L6-T31 |
-| C5 | `ui::HelpViewer` (`QML_ELEMENT`) et `HelpViewer.qml` portent le même nom dans `ActCraft.Ui` | type QML `QML_NAMED_ELEMENT(HelpViewerModel)` (posé dans le talon par L6-T2) | L6-T35 |
+| C5 | `ui::HelpViewer` (`QML_ELEMENT`) et `HelpViewer.qml` portent le même nom dans `ActCraft.Ui` | type QML `QML_NAMED_ELEMENT(HelpViewerModel)`, écrit par L6-T35 dans `helpviewer.h` (talon vide de L6-T1, 4b) | L6-T35 |
 | D5 | licence de Hunspell : MPL 1.1 (Jérôme, 2026-10-21) ; dictionnaire de Grammalecte couvert | L6-T32 débloquée, option MPL 1.1 | L6-T32, vagues |
 | D14 | haute qualité pendant l'édition d'objets : faux par défaut (supposé) ; regroupement automatique : faux, non tranché | défauts vérifiés par le test | L6-T27 |
 
 **Non revérifié par L6-T0** (sur le Mac) : A17 à A21 (caméra, effets et réglages du lot 7, non fusionné ; options du
 peintre ; verrou de la sélection) ; L6-T21, L6-T22 et L6-T27 les relisent à leur début et le notent au rapport.
+
+**4b (relecture de l'amendement 4).** Recopié de l'amendement 4b du plan 6a (qui fait autorité), pour ce qui
+touche 6b ; corrigé en place :
+- **C2** : blocs « Amendement 4 » de L6-T25, L6-T26, L6-T30, L6-T34, L6-T36 : `root.documentController`,
+  `root.profile`, `root.commands`, `root.preferences` au lieu des identifiants de `Main.qml` ; les lectures de
+  scénario et les `findChild` gardent les `objectName`.
+- **Disposition** (décision de l'orchestrateur, H6-11, à confronter au PC) : celle livrée par L6-T1 fait foi ;
+  `profile.choose` et `mode.design` sont dans le groupe `commandes` de la palette (`actions/data/layout.json:31`),
+  `profile.edit` en fin du menu Outils (`:27`) ; aucun bouton de ces commandes dans `TopBar.qml` (objectif de L6-T22).
+- **C5** : le talon `ui/include/actcraft/ui/helpviewer.h` de L6-T1 est vide ; L6-T35 y écrit
+  `QML_NAMED_ELEMENT(HelpViewerModel)` (L6-T2 n'y touche pas).
+- **L6-T21** : `-Lire "documentController.shownObjectCount=4"`.
+- **L6-T22** : bloc « Amendement 4 (L6-T22) » : A17 à A21 relus au début de la tâche.
 
 **But.** Fin du lot 6 et version **0.7.0** : navigateur de ressources, mode conception (mode Création de F-560), tableau
 d'accueil, documents récents et résumé, éditeur de profils (choix du profil, onglets format, commandes, paramètres),
@@ -341,7 +354,7 @@ Ajout : glisser la sélection de la page sur un dossier ou sur la moitié basse 
 
 **Test et commande bornée.** Commande ciblée `-R 'tst_captures_ressources|tst_ui_shell'` ; banc sans écran.
 
-**Preuve visuelle.** `captures.ps1 -Scenario ressources … -Lire "appResources.itemCount=1" -Lire "appDocument.shownObjectCount=4"` :
+**Preuve visuelle.** `captures.ps1 -Scenario ressources … -Lire "appResources.itemCount=1" -Lire "documentController.shownObjectCount=4"` :
 `LU … OK`, `CAPTURES OK` ; décrire `bibliotheque.png`, `insere.png`, `tampon.png`.
 
 **Interdits.** Le tampon ne trace jamais de trait ; aucune ressource de l'original ; aucun nom de paperboard réel dans
@@ -375,7 +388,7 @@ rapport (la ligne de la table ne gagne aucun fichier).
 <a id="tache-l6-t22"></a>
 ### Tâche L6-T22 — Mode conception (F-560)
 
-**Objectif.** D6-12 : `ui::DesignMode` porte la bascule (`mode.design`, F2, icône de la ligne supérieure) et neuf
+**Objectif.** D6-12 : `ui::DesignMode` porte la bascule (`mode.design`, F2, bouton du groupe `commandes` de la palette, `actions/data/layout.json:31`, amendement 4b) et neuf
 réglages, tous vrais par défaut (F-560 ; D11 de L6-T0 fait foi) : objets verrouillés modifiables (`editLocked`),
 objets masqués affichés (`showHidden`, en translucide à 40 %), actions mises en évidence (`highlightActions`),
 actions et glisser-une-copie désactivés (`disableActions`), restrictions désactivées (`disableRestrictions`), objets
@@ -428,6 +441,14 @@ l'écriture.
 - Le gestionnaire `mode.design` remplace celui du talon dans `Main.qml`.
 - Verrou : le refus de déplacer un objet `Locked` vit dans le fichier relevé par L6-T0 (A21) ; si ce n'est pas
   `ui/src/toolhost.cpp`, l'orchestrateur amende la ligne avant la vague.
+
+**Amendement 4 (L6-T22).** Amendement 4b. A17 à A21 n'ont pas été revérifiés par L6-T0 (relevé sur le Mac, lot 7 non
+fusionné). **Au début de la tâche**, avant le test rouge, relire dans le code à la tête du chantier : A18 (effets de
+changement de page du lot 7 et réglage qui les suspend), A20 (options de rendu de `paintPage`,
+`render/include/actcraft/render/pagepainter.h`), A21 (fichier où vit le refus de déplacer un objet `Locked`), et A17,
+A19 pour ce qu'ils touchent de la tâche ; noter au rapport chaque API trouvée, avec `fichier:ligne`, et chaque écart.
+Si A21 désigne un autre fichier que `ui/src/toolhost.cpp`, ou si A18 n'existe pas encore, s'arrêter et le signaler :
+l'orchestrateur amende la ligne avant de relancer.
 
 <a id="tache-l6-t23"></a>
 ### Tâche L6-T23 — Tableau d'accueil
@@ -558,7 +579,7 @@ premier (connexion faite en C++ dans le test, comme `FileActions.qml`).
 <a id="tache-l6-t25"></a>
 ### Tâche L6-T25 — Éditeur de profils, choix du profil, onglet format
 
-**Objectif.** F-123 : `profile.choose` ouvre `ProfileChooser.qml` (liste `appProfile.profiles`, un clic active et
+**Objectif.** F-123 : `profile.choose` ouvre `ProfileChooser.qml` (liste `root.profile.profiles`, C2, un clic active et
 ferme). F-882 : `profile.edit` ouvre `ProfileEditor.qml` : en haut, liste du profil courant (changer l'active) et
 boutons importer, enregistrer, enregistrer sous, supprimer (grisé pour un profil fourni), revenir à l'origine (profil
 fourni modifié) ; quatre onglets : Format (`FormatPage.qml`, ci-dessous), Commandes (L6-T26), Raccourcis vers des
@@ -574,7 +595,7 @@ des icônes (16 à 32), palette (ancrage, 8/16/24 couleurs, épinglée, réduite
 **Preuve visuelle.** `captures.ps1 -Scenario profils … -Lire "appProfile.currentId=mon-profil"` : `LU … OK`,
 `CAPTURES OK` ; décrire `editeur.png`, `format.png`.
 
-**Interdits.** Tout passe par les commandes `profile.*` et les setters de `appProfile` ; aucun accès disque en QML.
+**Interdits.** Tout passe par les commandes `profile.*` et les setters du profil, lus par `root.profile` (C2, amendement 4b) ; aucun accès disque en QML.
 
 **Terminé quand** les cinq fonctions et le scénario passent.
 
@@ -596,6 +617,14 @@ talon dans `ProfileEditor.qml`.
 **Amendement 3 (L6-T25).** N1 : `tst_ui_profileeditor` pose, dans `initTestCase`, le format INI et son chemin dans un
 `QTemporaryDir`, et charge `Main.qml` avec un `profileRoot` temporaire ; le scénario `profils` crée `mon-profil` dans
 `<sortie>/profils`, vidé à chaque lancement du joueur.
+
+**Amendement 4 (L6-T25).** C2 (amendement 4b). `ProfileChooser.qml`, `ProfileEditor.qml` et `FormatPage.qml` (racine
+`root`, propriétés du talon de L6-T2) lisent le profil par `root.profile` (`root.profile.profiles`,
+`root.profile.currentId`, setters du `ProfileController` de L6-T5 appelés sur `root.profile`) et déclenchent par
+`root.commands.trigger(…)`. `ProfileEditor.qml` instancie ses onglets (`FormatPage`, `CommandsPage`, `SettingsPage`,
+`LaunchersPage`) avec `commands: root.commands`, `documentController: root.documentController`, `profile: root.profile`,
+`preferences: root.preferences`. Aucun `appProfile`, `appCommands` ni `appPreferences` dans ces fichiers. Le test C++
+(`findChild` de `appProfile`) et la lecture `-Lire "appProfile.currentId=mon-profil"` gardent l'`objectName`.
 
 <a id="tache-l6-t26"></a>
 ### Tâche L6-T26 — Onglet commandes (F-910)
@@ -629,6 +658,10 @@ pas proposée.
   ajoutée), `unavailableCommandsHidden` (plateforme Android : `launcher.edit` absent du catalogue).
 - [ ] **Étape 3 : implémentation, QML** (`CommandsPage.qml` : deux listes, quatre boutons), **vert**, preuve de tâche ;
   commit « Lot 6 : onglet commandes de l'éditeur de profils (L6-T26) ».
+
+**Amendement 4 (L6-T26).** C2 (amendement 4b). Dans `CommandsPage.qml` (racine `root`, propriétés du talon de L6-T2,
+liées par `ProfileEditor.qml`) :
+`LayoutEditor { id: layoutEditor; commands: root.commands; profile: root.profile }` ; ni `appCommands` ni `appProfile`.
 
 <a id="tache-l6-t27"></a>
 ### Tâche L6-T27 — Onglet paramètres (F-930, F-935)
@@ -829,6 +862,12 @@ S20 de bout en bout.
 
 **Amendement 1 (L6-T30).** Les gestionnaires `launcher.*` remplacent ceux du talon dans `LaunchersPage.qml`.
 
+**Amendement 4 (L6-T30).** C2 (amendement 4b). Dans `LaunchersPage.qml` et `ShortcutBar.qml` (racine `root`,
+propriétés du talon de L6-T2) : `Launchers { id: launchers; profile: root.profile }` (toute autre propriété de l'en-tête
+de L6-T29 se lie de même à `root.<propriété>`) ; gestionnaires `launcher.*` posés par `root.commands.setHandler(…)` ;
+ni `appProfile` ni `appCommands`. Les lectures `launcherButton0.toolTip` et `shortcutBar.launcherCount` gardent
+l'`objectName`.
+
 <a id="tache-l6-t31"></a>
 ### Tâche L6-T31 — Mode classe protégé (F-298) ; scénario S19
 
@@ -1019,13 +1058,17 @@ de l'original.
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge** `tst_ui_spelling.cpp` : `showsThePageOfTheWord` ; `endMessage`.
-- [ ] **Étape 2 : implémentation et QML** (`Spelling { id: appSpelling; objectName: "appSpelling"; document: appDocument }`),
+- [ ] **Étape 2 : implémentation et QML** (dans `SpellingDialog.qml`, racine `root` : `Spelling { id: appSpelling; objectName: "appSpelling"; document: root.documentController }`, C2),
   **scénario** (document synthétique de 2 pages, texte « bonjour mosieur » en page 2 et un mot « exemplle » ignoré
   toujours ; `spell.check` ; `expect spellingDialog.word = mosieur` ; capture `mot.png` ; remplacer ; texte relu
   « bonjour monsieur » ; ignorer toujours « exemplle » ; `expect appSpelling.finished = true` ; capture `fin.png`).
 - [ ] **Étape 3 : vert**, preuve visuelle, preuve de tâche ; commit « Lot 6 : vérification de l'orthographe (L6-T34) ».
 
 **Amendement 1 (L6-T34).** Le gestionnaire `spell.check` remplace celui du talon dans `SpellingDialog.qml`.
+
+**Amendement 4 (L6-T34).** C2 (amendement 4b). L'instance vit dans `SpellingDialog.qml` (racine `root`, propriétés du
+talon de L6-T2) : `Spelling { id: appSpelling; objectName: "appSpelling"; document: root.documentController }` ; le
+gestionnaire `spell.check` est posé par `root.commands.setHandler(…)` ; ni `appDocument` ni `appCommands`.
 
 <a id="tache-l6-t35"></a>
 ### Tâche L6-T35 — Lecteur d'aide hors ligne
@@ -1056,8 +1099,8 @@ des fonctions et procédure « mot de passe de la classe oublié »). Les autres
 
 **Amendement 1 (L6-T35).** Le gestionnaire `help.contents` remplace celui du talon dans `HelpViewer.qml`.
 
-**Amendement 4 (L6-T35).** C2, C5. `ui::HelpViewer` est enregistré sous `QML_NAMED_ELEMENT(HelpViewerModel)` (talon
-corrigé par L6-T2) ; `HelpViewer.qml` (racine `root`) l'instancie `HelpViewerModel { id: help }` et lit l'outil courant
+**Amendement 4 (L6-T35).** C2, C5. `ui::HelpViewer` est enregistré sous `QML_NAMED_ELEMENT(HelpViewerModel)`, macro
+qu'écrit L6-T35 dans `ui/include/actcraft/ui/helpviewer.h` (talon vide de L6-T1 ; amendement 4b) ; `HelpViewer.qml` (racine `root`) l'instancie `HelpViewerModel { id: help }` et lit l'outil courant
 par `root.tools.currentTool`.
 
 <a id="tache-l6-t36"></a>
@@ -1097,6 +1140,12 @@ scénario couvre aussi F1 (S9.11).
 **Amendement 2 (L6-T36).** M1 : `appPreferences` est une instance QML ; pour installer le traducteur avant le chargement
 du QML, `app/main.cpp` crée un `ui::Preferences` temporaire (même `QSettings` par défaut), lit `language()` et appelle
 `Language::install` avant `loadMainWindow`.
+
+**Amendement 4 (L6-T36).** C2 (amendement 4b). Le gestionnaire `settings.language`, dans `SettingsPage.qml` (racine
+`root`, propriétés du talon de L6-T2), écrit le réglage par `root.preferences` et se pose par
+`root.commands.setHandler(…)` ; ni `appPreferences` ni `appCommands` dans ce fichier. `app/main.cpp` (amendement 2) n'est
+pas du QML ; les lectures `-Lire "appPreferences.language=fr"` et `expect appPreferences.language` gardent
+l'`objectName`.
 
 <a id="tache-l6-t37"></a>
 ### Tâche L6-T37 — Contrôle du lot
