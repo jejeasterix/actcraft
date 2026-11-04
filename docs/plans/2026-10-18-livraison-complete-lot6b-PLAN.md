@@ -654,6 +654,14 @@ talon dans `ProfileEditor.qml`.
 `preferences: root.preferences`. Aucun `appProfile`, `appCommands` ni `appPreferences` dans ces fichiers. Le test C++
 (`findChild` de `appProfile`) et la lecture `-Lire "appProfile.currentId=mon-profil"` gardent l'`objectName`.
 
+**Amendement 7 (L6-T25, essai 1, 2026-11-04).** Les « setters du `ProfileController` de L6-T5 » de l'amendement 4 n'existent
+pas tous : seuls `activate`, `saveNow`, `addColor`, `pushRecentTool`, `setting`, `setSetting` et les propriétés de
+palette et de navigateurs sont exposés ; `trashVisible` est en lecture seule. Fichiers touchés étendus à
+`ui/include/actcraft/ui/profilecontroller.h`, `ui/src/profilecontroller.cpp` (et leur test existant) : gestionnaires
+natifs `profile.save-as`, `profile.delete`, `profile.reset`, `profile.import`, `profile.export` (sur `ProfileStore`),
+setter de `trashVisible` ; plein écran au démarrage et palette réduite au maximum par un champ du profil s'il existe,
+sinon `setSetting("format", "fullScreenAtStart")` et `setSetting("palette", "collapsedMax")`. Le QML ne touche pas le disque.
+
 <a id="tache-l6-t26"></a>
 ### Tâche L6-T26 — Onglet commandes (F-910)
 
