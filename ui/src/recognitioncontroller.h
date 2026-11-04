@@ -98,6 +98,7 @@ public:
     // Tests : fabrique du reconnaisseur, appelée sur le fil dédié (nul : celui de la plateforme). Le fil est
     // recréé et interrogé de nouveau.
     void setHandwritingFactoryForTest(features::HandwritingThread::Factory factory);
+    std::size_t trackedArrivalsForTest() const { return m_arrivedAt.size(); } // pour les tests
     // Crée le fil au premier appel et lui demande si le moteur est disponible : handwritingProbed en réponse.
     Q_INVOKABLE void probeHandwriting();
     // Remplace le texte reconnu par l'une des autres lectures (index dans alternatives()), en une étape.

@@ -804,6 +804,53 @@ private slots:
         QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 0);
     }
 
+    // Relecture du lot 7 (mineur 1b) : deux mots séparés d'une pause, tracés en mode formes, puis convertis
+    // a posteriori par « Convertir en texte » : deux textes, comme avant le lot. Sans l'heure d'arrivée notée
+    // hors mode écriture, tous les traits valaient 0 et ne faisaient plus qu'un mot.
+    void textConversionSplitsWordsTracedInShapeMode()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("un")}, {QStringLiteral("deux")}}));
+        ToolHost* tools = toolsOf(w.main);
+        QVERIFY(tools != nullptr);
+        QVERIFY(w.main.run(QStringLiteral("tool.shape-recognition")));
+        QVERIFY(w.recognition->shapeMode());
+        QVERIFY(!w.recognition->handwritingMode());
+        QVERIFY(w.recognition->delayMs() > 800);
+
+        w.controller->commitStroke(strokeThrough(inkLine(100, 100, 200, 110)));
+        w.now = atMs(800); // pause plus longue que celle d'un mot, plus courte que le délai
+        w.controller->commitStroke(strokeThrough(inkLine(500, 100, 600, 110)));
+        QCOMPARE(w.recognition->pendingCount(), 2);
+        QVERIFY(w.main.run(QStringLiteral("tool.select")));
+        tools->selectAll();
+        QTRY_COMPARE(tools->selectionCount(), 2);
+
+        QVERIFY(w.main.run(QStringLiteral("recognition.convert-to-text")));
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 2, 10000);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 0);
+    }
+
+    // Relecture du lot 7 (mineur 1a) : un trait en attente converti en forme par la sélection n'est plus
+    // suivi : son heure d'arrivée est oubliée avec lui (sinon elle resterait jusqu'à la remise à zéro).
+    void selectionToShapeForgetsTheArrivalTime()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("un")}}));
+        ToolHost* tools = toolsOf(w.main);
+        QVERIFY(tools != nullptr);
+        w.controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310)));
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{1});
+        QVERIFY(w.main.run(QStringLiteral("tool.select")));
+        tools->selectAll();
+        QTRY_COMPARE(tools->selectionCount(), 1);
+        QVERIFY(w.recognition->handwritingMode());
+
+        w.recognition->convertToShape();
+        QCOMPARE(w.recognition->pendingCount(), 0);
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{0});
+    }
+
     // Relecture du lot 7 : autres lectures d'un mot écrit au bas de la page, six lectures. Le panneau reste
     // entier dans la couche (placeAlternatives le borne avec sa hauteur à jour).
     void alternativesStayInsideTheLayer()
