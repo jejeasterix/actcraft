@@ -556,13 +556,14 @@ QJsonArray keywordsJson(const std::vector<std::string>& words)
 // Style de légende (L6-T10) : ses six clés, écrites ensemble dès qu'une valeur n'est pas celle par défaut.
 QJsonObject labelStyleJson(const LabelStyle& style)
 {
-    const auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background] = style;
-    return QJsonObject{{u"font"_s, str(fontFamily)},
-                       {u"size"_s, pointSize},
-                       {u"color"_s, colorText(textColor)},
-                       {u"outline"_s, nameText(outlineStyle)},
-                       {u"outline-color"_s, colorText(outlineColor)},
-                       {u"fill"_s, colorText(background)}};
+    const auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background, unknownKeys] = style;
+    return withKept(QJsonObject{{u"fontFamily"_s, str(fontFamily)},
+                                {u"pointSize"_s, pointSize},
+                                {u"color"_s, colorText(textColor)},
+                                {u"outline"_s, nameText(outlineStyle)},
+                                {u"outlineColor"_s, colorText(outlineColor)},
+                                {u"fill"_s, colorText(background)}},
+                    unknownKeys);
 }
 
 void writeCommon(QJsonObject& j, const ObjectCommon& common)
@@ -584,7 +585,7 @@ void writeCommon(QJsonObject& j, const ObjectCommon& common)
     j.insert(u"transform"_s, transformJson(transform));
     j.insert(u"label"_s, str(label));
     if (labelStyle != LabelStyle{}) {
-        j.insert(u"label-style"_s, labelStyleJson(labelStyle)); // facultative (L6-T10) : absente, défaut
+        j.insert(u"labelStyle"_s, labelStyleJson(labelStyle)); // facultative (L6-T10) : absente, défaut
     }
     if (!keywords.empty()) {
         j.insert(u"keywords"_s, keywordsJson(keywords)); // facultative (L6-T10) : absente, aucun mot-clé
@@ -943,6 +944,7 @@ struct KnownKeys
     std::array<QJsonObject, kObjectKindCount> objects; // Unknown : vide, jamais consulté
     QJsonObject page;
     QJsonObject presentation; // toutes les sous-clés, « origin » comprise
+    QJsonObject labelStyle;   // les six sous-clés du style de légende (L6-T10)
     QJsonObject action;
     QJsonObject run;
     QJsonObject level;
@@ -1340,12 +1342,13 @@ std::vector<std::string> readKeywords(Reader& r, const QJsonObject& j)
 LabelStyle readLabelStyle(Reader& r, const QJsonObject& j)
 {
     LabelStyle style;
-    auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background] = style;
-    fontFamily = r.readString(j, u"font");
-    pointSize = r.readNumber(j, u"size", pointSize);
+    auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background, unknownKeys] = style;
+    unknownKeys = unknownKeysOf(j, r.known->labelStyle);
+    fontFamily = r.readString(j, u"fontFamily");
+    pointSize = r.readNumber(j, u"pointSize", pointSize);
     textColor = r.readColor(j, u"color", textColor);
     outlineStyle = r.readEnum(kPenStyles, j, u"outline", outlineStyle);
-    outlineColor = r.readColor(j, u"outline-color", outlineColor);
+    outlineColor = r.readColor(j, u"outlineColor", outlineColor);
     background = r.readColor(j, u"fill", background);
     return style;
 }
@@ -1369,7 +1372,7 @@ ObjectCommon readCommon(Reader& r, const QJsonObject& j)
     rotatable = r.readFlag(jr, u"rotate", rotatable);
     transform = r.readTransform(j, u"transform", transform);
     label = r.readString(j, u"label");
-    labelStyle = readLabelStyle(r, r.readChild(j, u"label-style"));
+    labelStyle = readLabelStyle(r, r.readChild(j, u"labelStyle"));
     keywords = readKeywords(r, j);
     for (const QJsonValue& value : r.readArray(j, u"actions")) {
         if (const std::optional<QJsonObject> ja = r.readElement(value, u"actions")) {
@@ -1565,7 +1568,7 @@ PageObject everyKeyObject(std::size_t index)
 {
     PageObject object = blankObject(index);
     object.common.dragCopy = true;          // lot 5 : clé facultative
-    object.common.labelStyle.pointSize = 1; // L6-T10 : « label-style » et ses six clés, écrites hors défaut
+    object.common.labelStyle.pointSize = 1; // L6-T10 : « labelStyle » et ses six clés, écrites hors défaut
     object.common.keywords = {"keyword"};   // L6-T10 : « keywords », écrite hors défaut
     if (auto* connector = std::get_if<Connector>(&body(object))) {
         connector->style = 1;
@@ -1643,7 +1646,11 @@ std::optional<PageObject> readObject(Reader& r, const QJsonValue& value)
     PageObject object = blankObject(index);
     std::visit([&r, &j](auto& held) { readBody(r, *j, held); }, body(object));
     object.common = readCommon(r, *j);
-    object.unknownKeys = unknownKeysOf(*j, r.known->objects[index]);
+    // « labelStyle » est lue par readLabelStyle, qui garde ses sous-clés inconnues ; hors des clés inconnues de
+    // l'objet, elle y serait gardée en double.
+    QJsonObject objectKeys = *j;
+    objectKeys.remove(u"labelStyle"_s);
+    object.unknownKeys = unknownKeysOf(objectKeys, r.known->objects[index]);
     return object;
 }
 
@@ -1817,6 +1824,7 @@ KnownKeys knownKeys()
     PagePresentation everyPresentationKey;
     everyPresentationKey.hasOrigin = true;
     known.presentation = presentationJson(everyPresentationKey);
+    known.labelStyle = labelStyleJson(LabelStyle{});
     known.action = actionJson(Action{});
     known.run = runJson(TextSpan{});
     known.level = gridLevelJson(GridLevel{});

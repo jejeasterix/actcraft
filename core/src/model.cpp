@@ -124,13 +124,14 @@ void hashKeywords(Fnv1a& h, const std::vector<std::string>& words) noexcept
 
 void hashLabelStyle(Fnv1a& h, const LabelStyle& style) noexcept
 {
-    const auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background] = style;
+    const auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background, unknownKeys] = style;
     h.text(fontFamily);
     h.f64(pointSize);
     h.u32(textColor);
     h.tag(outlineStyle);
     h.u32(outlineColor);
     h.u32(background);
+    hashUnknownKeys(h, unknownKeys); // vide : le flux d'avant les sous-clés gardées
 }
 
 void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept

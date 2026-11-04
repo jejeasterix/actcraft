@@ -109,11 +109,11 @@ private slots:
         style.outlineColor = 0x80112233u;
         style.fill = 0x40FFFFFFu;
         source.page(0).objects[1].common.labelStyle.pointSize = 9; // un seul champ hors défaut
-        const QJsonObject written = objectJsonOf(source, 0).value(u"label-style"_s).toObject();
-        QCOMPARE(written.value(u"font"_s).toString(), u"DejaVu Sans"_s);
-        QCOMPARE(written.value(u"size"_s).toDouble(), 18.5);
+        const QJsonObject written = objectJsonOf(source, 0).value(u"labelStyle"_s).toObject();
+        QCOMPARE(written.value(u"fontFamily"_s).toString(), u"DejaVu Sans"_s);
+        QCOMPARE(written.value(u"pointSize"_s).toDouble(), 18.5);
         QCOMPARE(written.value(u"color"_s).toString(), u"#ffff8000"_s);
-        QCOMPARE(written.value(u"outline-color"_s).toString(), u"#80112233"_s);
+        QCOMPARE(written.value(u"outlineColor"_s).toString(), u"#80112233"_s);
         QCOMPARE(written.value(u"fill"_s).toString(), u"#40ffffff"_s);
         QVERIFY(written.value(u"outline"_s).isString());
 
@@ -126,6 +126,40 @@ private slots:
         QCOMPARE(core::fingerprint(back), core::fingerprint(source));
     }
 
+    void labelStyleUnknownKeysKept()
+    {
+        // Une sous-clé inconnue de « labelStyle » va au style, pas à l'objet, et est réécrite avec lui.
+        core::Document source = plainDocument();
+        source.page(0).objects[0].common.labelStyle.pointSize = 18;
+        QJsonObject root = formats::documentToJson(source);
+        QJsonArray pages = root.value(u"pages"_s).toArray();
+        QJsonObject page = pages.at(0).toObject();
+        QJsonArray objects = page.value(u"objects"_s).toArray();
+        QJsonObject object = objects.at(0).toObject();
+        QJsonObject style = object.value(u"labelStyle"_s).toObject();
+        style.insert(u"futureKey"_s, 7);
+        object.insert(u"labelStyle"_s, style);
+        objects.replace(0, object);
+        page.insert(u"objects"_s, objects);
+        pages.replace(0, page);
+        root.insert(u"pages"_s, pages);
+
+        core::Document back;
+        const auto r = formats::documentFromJson(root, noResource, back);
+        QVERIFY2(r.ok && r.warnings.isEmpty(), qPrintable(r.error + r.warnings.join(u'\n')));
+        const core::PageObject& read = back.page(0).objects[0];
+        QVERIFY(read.common.labelStyle.unknownKeys.find("futureKey") != std::string::npos);
+        QVERIFY(read.unknownKeys.empty());
+        QCOMPARE(read.common.labelStyle.pointSize, 18.0);
+        const QJsonObject again = objectJsonOf(back, 0).value(u"labelStyle"_s).toObject();
+        QCOMPARE(again.value(u"futureKey"_s).toInt(), 7);
+        QCOMPARE(again.value(u"pointSize"_s).toDouble(), 18.0);
+
+        // Même remis aux valeurs par défaut, le style qui porte une clé inconnue est réécrit.
+        back.page(0).objects[0].common.labelStyle.pointSize = core::LabelStyle{}.pointSize;
+        QCOMPARE(objectJsonOf(back, 0).value(u"labelStyle"_s).toObject().value(u"futureKey"_s).toInt(), 7);
+    }
+
     void defaultsAreOmitted()
     {
         const core::Document plain = plainDocument();
@@ -135,7 +169,7 @@ private slots:
         for (qsizetype i = 0; i < 2; ++i) {
             const QJsonObject object = objectJsonOf(plain, i);
             QVERIFY(!object.contains(u"keywords"_s));
-            QVERIFY(!object.contains(u"label-style"_s));
+            QVERIFY(!object.contains(u"labelStyle"_s));
         }
 
         // Lues puis remises au défaut, les clés ne reviennent pas : elles ne sont pas gardées comme
@@ -156,7 +190,7 @@ private slots:
         QVERIFY(!reset.contains(u"keywords"_s));
         QVERIFY(!reset.contains(u"description"_s));
         QVERIFY(!objectJsonOf(back, 0).contains(u"keywords"_s));
-        QVERIFY(!objectJsonOf(back, 0).contains(u"label-style"_s));
+        QVERIFY(!objectJsonOf(back, 0).contains(u"labelStyle"_s));
         QCOMPARE(core::fingerprint(back), core::fingerprint(plain));
     }
 
@@ -176,9 +210,9 @@ private slots:
         page.remove(u"description"_s);
         QJsonArray objects = page.value(u"objects"_s).toArray();
         QJsonObject object = objects.at(0).toObject();
-        QVERIFY(object.contains(u"keywords"_s) && object.contains(u"label-style"_s));
+        QVERIFY(object.contains(u"keywords"_s) && object.contains(u"labelStyle"_s));
         object.remove(u"keywords"_s);
-        object.remove(u"label-style"_s);
+        object.remove(u"labelStyle"_s);
         objects.replace(0, object);
         page.insert(u"objects"_s, objects);
         pages.replace(0, page);
