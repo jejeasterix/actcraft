@@ -613,7 +613,8 @@ private slots:
         const core::PointF firstTip = object.common.transform.map(connector.firstEnd);
         const core::PointF secondTip = object.common.transform.map(connector.secondEnd);
         QVERIFY2(std::abs(firstTip.y - (100 + shift)) < 0.01, "le bout A suit A");
-        QVERIFY2(std::abs(secondTip.x - 400) < 0.01 && std::abs(secondTip.y - 100) < 0.01, "le bout B reste sur B");
+        QVERIFY2(std::abs(secondTip.x - 400) < 0.01 && std::abs(secondTip.y - 100) < 0.01,
+                 "le bout B reste sur B");
         QCOMPARE(connector.objectB, b);
     }
 };
