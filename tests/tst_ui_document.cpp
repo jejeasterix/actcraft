@@ -2,6 +2,7 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/objectflags.h>
 #include <actcraft/core/pagecache.h>
 #include <actcraft/core/pagesettings.h>
 #include <actcraft/core/pagezones.h>
@@ -944,6 +945,67 @@ private slots:
         QCOMPARE(controller.currentIndex(), 0);
         controller.showPage(9);
         QCOMPARE(controller.currentIndex(), 2);
+    }
+
+    // L6-C2 (H6-15) : un objectFlagsChanged par changement de drapeau d'objet, quel que soit le chemin
+    // (exécution, annulation, rétablissement), avec sa page et ses objets ; aucun quand rien ne change. Le
+    // test qui distingue : verrouiller ne rend aucun Change et documentChanged reste muet, un signal accroché
+    // à settle() ne le dirait pas ; un signal émis par commande de drapeau le dirait aussi pour un drapeau
+    // déjà posé, ou pour l'annulation d'une étape sans effet.
+    void objectFlagsChangedOncePerChange()
+    {
+        using actcraft::core::ObjectFlag;
+        actcraft::ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        controller.nextPage(); // deux pages, la 2e affichée : le signal porte la page de l'objet
+        actcraft::core::Stroke stroke;
+        stroke.points = {{10, 10, 0.5f}, {50, 50, 0.5f}};
+        controller.execute(
+            std::make_unique<actcraft::core::AddObjectCommand>(1, actcraft::core::PageObject{stroke}));
+        QCOMPARE(controller.document().page(1).objects.size(), std::size_t{1});
+        const actcraft::core::ObjectId id = controller.document().page(1).objects.front().common.id;
+        const QList<quint64> ids{static_cast<quint64>(id)};
+        const auto flag = [&](ObjectFlag which, bool value) {
+            controller.execute(
+                std::make_unique<actcraft::core::SetObjectFlagCommand>(1, std::vector{id}, which, value));
+        };
+        QSignalSpy flags(&controller, &actcraft::ui::DocumentController::objectFlagsChanged);
+        QSignalSpy document(&controller, &actcraft::ui::DocumentController::documentChanged);
+
+        flag(ObjectFlag::Locked, true);
+        QCOMPARE(flags.count(), 1);
+        QCOMPARE(flags.at(0).at(0).toInt(), 1);
+        QCOMPARE(flags.at(0).at(1).value<QList<quint64>>(), ids);
+        QCOMPARE(document.count(), 0);   // hors de la pile (règle du lot 5) : ce signal seul le dit
+        flag(ObjectFlag::Locked, true);  // déjà posé
+        controller.commitStroke(stroke); // aucun drapeau
+        QCOMPARE(flags.count(), 1);
+        flag(ObjectFlag::DragCopy, true);
+        QCOMPARE(flags.count(), 2);
+
+        flag(ObjectFlag::Hidden, true); // une étape
+        QCOMPARE(flags.count(), 3);
+        flag(ObjectFlag::Hidden, true); // déjà masqué : une étape (ObjectChanged rendu), aucun drapeau changé
+        QCOMPARE(flags.count(), 3);
+        controller.undo(); // l'étape sans effet
+        QCOMPARE(flags.count(), 3);
+        controller.undo(); // le masquage
+        QCOMPARE(flags.count(), 4);
+        QVERIFY(controller.document().page(1).objects.front().common.visible);
+        controller.redo();
+        QCOMPARE(flags.count(), 5);
+        QCOMPARE(flags.at(4).at(0).toInt(), 1);
+        QCOMPARE(flags.at(4).at(1).value<QList<quint64>>(), ids);
+
+        // L'objet sort puis revient avec ses drapeaux (annuler, rétablir son ajout) : aucun n'a changé.
+        controller.undo(); // masquage
+        QCOMPARE(flags.count(), 6);
+        controller.undo(); // trait
+        controller.undo(); // ajout de l'objet verrouillé
+        QVERIFY(controller.document().page(1).objects.empty());
+        controller.redo();
+        QCOMPARE(controller.document().page(1).objects.size(), std::size_t{1});
+        QCOMPARE(flags.count(), 6);
     }
 };
 
