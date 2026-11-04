@@ -189,6 +189,7 @@ private:
     bool touch(const UiStep& step, QStringList& report);
     bool pinch(const UiStep& step, QStringList& report);
     bool pointer(const UiStep& step, QStringList& report);
+    bool tap(const UiStep& step, QStringList& report);
     bool doubleClick(const UiStep& step, QStringList& report);
     bool typeText(const UiStep& step, QStringList& report);
     Injector& gestures(); // injecteur des gestes directs, créé à la première étape qui en a besoin

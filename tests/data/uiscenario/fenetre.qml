@@ -99,7 +99,7 @@ Window {
         y: 30
         width: 60
         height: 40
-        color: "#a33"
+        color: "transparent" // invisible à l'image : la capture de page vierge reste uniforme
         MouseArea {
             anchors.fill: parent
             onClicked: parent.clics += 1

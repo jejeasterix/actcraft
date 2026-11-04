@@ -818,10 +818,11 @@ private slots:
         Fixture f;
         QVERIFY(load(f));
         QStringList report;
-        QVERIFY2(f.player->play(scenario("tap", "[{\"waitReady\":true},{\"tap\":\"cible\"},{\"tap\":\"cible\"},"
-                                                "{\"expect\":\"cible.clics\",\"value\":2}]"),
-                                f.out.path(), report),
-                 qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(
+            f.player->play(scenario("tap", "[{\"waitReady\":true},{\"tap\":\"cible\"},{\"tap\":\"cible\"},"
+                                           "{\"expect\":\"cible.clics\",\"value\":2}]"),
+                           f.out.path(), report),
+            qPrintable(report.join(QLatin1Char('\n'))));
     }
 
     void tapStepOnUnknownOrHiddenItemFailsReadably()
