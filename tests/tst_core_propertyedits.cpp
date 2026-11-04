@@ -1,5 +1,6 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
+#include <actcraft/core/objectflags.h>
 #include <actcraft/core/pagecache.h>
 #include <actcraft/core/propertyedits.h>
 #include <actcraft/core/undo.h>
@@ -8,6 +9,7 @@
 #include <QTest>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -177,6 +179,40 @@ private slots:
         QCOMPARE(numberOf(m_b, ObjectProperty::OutlineWidth), 12.0);
     }
 
+    // Verrou et copie au glisser posés après la modification, hors pile (SetObjectFlagCommand sans Change,
+    // A9) : Annuler ne rétablit que la propriété (la transformation pour la géométrie), pas l'objet entier.
+    void undoKeepsFlagsSetOutsideTheStack()
+    {
+        const std::vector<ObjectFlag> flags = {ObjectFlag::Locked, ObjectFlag::DragCopy};
+        const auto setOutsideTheStack = [&](bool value) {
+            for (const ObjectFlag flag : flags) {
+                SetObjectFlagCommand command(0, {m_a, m_b}, flag, value);
+                Changes none;
+                command.redo(*m_document, none);
+                QVERIFY(none.empty());
+            }
+        };
+        const std::vector<std::pair<ObjectProperty, PropertyValue>> cases = {
+            {ObjectProperty::OutlineWidth, 12.0},
+            {ObjectProperty::Name, std::string("Soleil")},
+            {ObjectProperty::Left, 150.0},
+        };
+        for (const auto& [property, value] : cases) {
+            const auto label = QStringLiteral("propriété %1").arg(int(property));
+            const std::optional<PropertyValue> oldA = valueOf(m_a, property);
+            const std::optional<PropertyValue> oldB = valueOf(m_b, property);
+            push({m_a, m_b}, property, value);
+            setOutsideTheStack(true);
+            m_stack.undo(*m_document);
+            QVERIFY2(valueOf(m_a, property) == oldA, qPrintable(label));
+            QVERIFY2(valueOf(m_b, property) == oldB, qPrintable(label));
+            for (const ObjectFlag flag : flags) {
+                QVERIFY2(flagOfAll(page(), {m_a, m_b}, flag), qPrintable(label));
+            }
+            setOutsideTheStack(false); // chaque cas pose ses drapeaux après sa modification
+        }
+    }
+
     // Amendement 1 : la translucidité est déléguée (SetTranslucencyCommand) ; le glissé se prouve sur
     // l'épaisseur du contour, autre réglette du navigateur.
     void sliderDragMergesIntoOneStep()
@@ -223,6 +259,22 @@ private slots:
         QCOMPARE(numberOf(m_b, ObjectProperty::OutlineWidth), 5.0);
     }
 
+    // Mêmes objets, même propriété, autre page (document de deux pages) : pas de fusion.
+    void otherPageDoesNotMerge()
+    {
+        QCOMPARE(m_document->appendPage(), std::size_t{1});
+        const std::size_t before = m_stack.count();
+        push({m_a, m_b}, ObjectProperty::OutlineWidth, 7.0);
+        m_stack.push(*m_document, std::make_unique<SetObjectPropertiesCommand>(
+                                      1, std::vector<ObjectId>{m_a, m_b}, ObjectProperty::OutlineWidth, 9.0));
+        QCOMPARE(m_stack.count(), before + 2);
+        m_stack.undo(*m_document); // l'étape de la page 2 : aucun de ces objets n'y est
+        QCOMPARE(numberOf(m_a, ObjectProperty::OutlineWidth), 7.0);
+        m_stack.undo(*m_document);
+        QCOMPARE(numberOf(m_a, ObjectProperty::OutlineWidth), 2.0);
+        QCOMPARE(numberOf(m_b, ObjectProperty::OutlineWidth), 5.0);
+    }
+
     // Nom, mots-clés, légende et son style : une étape, aucun pixel du cache (ni ObjectChanged, ni
     // PageChanged).
     void nameOnlyChangeSparesTheCache()
@@ -240,6 +292,7 @@ private slots:
             const auto label = QStringLiteral("propriété %1").arg(int(property));
             QVERIFY2(!propertyTouchesTheCache(property), qPrintable(label));
             const std::optional<PropertyValue> old = valueOf(m_a, property);
+            const std::optional<PropertyValue> oldB = valueOf(m_b, property);
             const std::size_t before = m_stack.count();
             const Changes changes = push({m_a, m_b}, property, value);
             QCOMPARE(m_stack.count(), before + 1);
@@ -249,6 +302,7 @@ private slots:
             QVERIFY2(touched.isEmpty(), qPrintable(label + u" : " + touched));
             const Changes undone = m_stack.undo(*m_document);
             QVERIFY2(valueOf(m_a, property) == old, qPrintable(label));
+            QVERIFY2(valueOf(m_b, property) == oldB, qPrintable(label));
             const QString touchedByUndo = cacheTouches(undone);
             QVERIFY2(touchedByUndo.isEmpty(), qPrintable(label + u" (Annuler) : " + touchedByUndo));
             m_stack.redo(*m_document);
@@ -317,6 +371,30 @@ private slots:
         }
         QVERIFY(objectWith(m_a)->common.transform.isIdentity());
         QCOMPARE(numberOf(m_a, ObjectProperty::Left), box.x);
+    }
+
+    // En miroir, l'angle se lit sur la rotation, sans le demi-tour du retournement : taper 0 laisse la forme
+    // en miroir, sans la retourner.
+    void mirroredObjectKeepsItsAngle()
+    {
+        const auto isPureMirror = [](const Transform& t) {
+            return qFuzzyCompare(t.m11, -1.0) && qFuzzyIsNull(t.m12) && qFuzzyIsNull(t.m21) &&
+                   qFuzzyCompare(t.m22, 1.0);
+        };
+        push({m_a}, ObjectProperty::Mirrored, true);
+        const double mirrorOnly = numberOf(m_a, ObjectProperty::Angle);
+        QCOMPARE(mirrorOnly, 0.0);
+        QVERIFY(!std::signbit(mirrorOnly));
+        push({m_a}, ObjectProperty::Angle, 0.0);
+        QVERIFY(isPureMirror(objectWith(m_a)->common.transform));
+
+        // Tournée de 30 puis retournée : l'image d'une rotation de −30 (330).
+        push({m_b}, ObjectProperty::Angle, 30.0);
+        push({m_b}, ObjectProperty::Mirrored, true);
+        QCOMPARE(numberOf(m_b, ObjectProperty::Angle), 330.0);
+        push({m_b}, ObjectProperty::Angle, 0.0);
+        QVERIFY(isPureMirror(objectWith(m_b)->common.transform));
+        QVERIFY(valueOf(m_b, ObjectProperty::Mirrored) == PropertyValue{true});
     }
 
     // Largeur de page : une étape (pas fusionnés compris), PageChanged ; la hauteur ne fusionne pas avec
