@@ -218,7 +218,7 @@ Lot 2b (plan `docs/plans/2026-10-15-livraison-complete-lot2b-PLAN.md` ; vagues V
 
 ## Lot 6 — exécution sur le Mac (session « Mac 6 », depuis le 2026-11-04)
 
-Lot : 6 « Navigateurs, propriétés, profils » — 1/38 tâches mergées (L6-T0) ; V1 : L6-T1 en cours ; amendement 4 des plans en cours — depuis 2026-11-04
+Lot : 6 « Navigateurs, propriétés, profils » — 2/40 tâches mergées (L6-T0, L6-T1 ; 38 + L6-P1, L6-P2) ; V1 close ; amendement 4 des plans (a00ffee) en relecture avant V2 — depuis 2026-11-04
 Référence rapide du lot 6 (Mac, 06a3f8f, `build-mac` debug hors écran) : 164/164 (3 sautés : oracles et miniatures des paperboards réels absents). N6 = 164.
 Reprise (lot 6) : lancé le 2026-11-04 par le pilote, sur le Mac (décision de Jérôme, 2026-11-04, à la question « Je lance le lot 6 d'ActCraft sur Mac 6 ? » : « Oui. Tu n'as pas besoin de mon accord, la demande d'origine vient de moi. »). Base : `feat/livraison-complete` @ 692e62f (lot 5 mergé dans `main`, c1046b9). Le PC mène en parallèle la passe Windows et la porte de fin du lot 5 sur la même branche : `git pull` (merge) avant chaque commit, push aussitôt ; cette section et les sections du lot 6 sont les seules écrites par la session du Mac.
 Règles du Mac (consignes `~/pilotage-mac/consignes-actcraft.md`) : construction `build-mac` (Qt Homebrew, Ninja, Debug, banc ON), suites `ctest` hors écran sous `jeton.cjs` (qui prend `~/.verrou-suite`), **une seule tâche qui construit à la fois** (P = 1, 8 Go) ; ccache installé pour les worktrees de tâche. Reportés au PC (« restes pour le PC », passe groupée en fin de lot) : `TESTS OK` MSVC hors CI, captures et banc D3D11 à l'écran, `captures.ps1`/`bench.ps1`, `NOMS OK`, contrôle des titres du corpus, confrontation vidéos/REA de L6-T0 (corpus et ancien dépôt absents du Mac, comme H5-11). Preuve Windows des PR : CI gratuite (dépôt public).
@@ -230,10 +230,14 @@ Questions à Jérôme (lot 6) : aucune ouverte (H6-6 accordée le 2026-10-18 ; H
 | id | statut | essais | worktree / commit | note |
 |----|--------|--------|-------------------|------|
 | L6-T0 | terminée | 1/3 | 30a845f → merge 7c73646 | rapport `docs/verifications/2026-10-19-lot6-principes.md` ; écarts A4, A5, A8, A9, A13, A15, A16 ; `appCommands` et `appProfile` ; L6-P1 et L6-P2 proposées → amendement 4 ; D1-D14 au défaut du plan |
-| L6-T1 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T1` | |
+| L6-T1 | terminée | 1/3 | e48fc01 (rouge), 25e14fe → merge 743a351 | rejoué par l'orchestrateur après reconstruction à neuf : 207/207 (164 + 43), 0 avertissement ; deux assertions de tests existants ajustées aux ajouts prévus (`toolsMenuFollowsF750`, `defaultCommandsFileDeclaresLotOne` + 45, `tst_actions_registry.cpp` hors de la liste de fichiers) ; talons des captures en `Passed` (étape `waitReady`), unitaires en `SKIP` ; `profile.choose`, `mode.design` dans le groupe de palette `commandes`, `profile.edit` en fin du menu Outils (aucune section « ligne supérieure ») ; QML du lot enregistrés par `if(EXISTS …)` : reconfigurer après L6-T2 |
+
+### Pièges trouvés (lot 6, Mac)
+- ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
 
 ### Restes pour le PC (lot 6)
 - L6-T0 : confrontation des 17 constats au corpus vidéo et à REA ; D1 à D14 (d'abord D2, D3, D5, D14) ; relevé brut `REA - Activinspire\docs\re\lots\lot6.md` ; `NOMS OK` ; titres du corpus ; N6 sous Windows.
+- L6-T1 : `NOMS OK`, titres du corpus, `TESTS OK` MSVC `/W4 /WX`, `captures.ps1 premiers-pas`.
 
 ## Tâches du lot 10
 Plan : `docs/plans/2026-10-18-livraison-complete-lot10-PLAN.md` (66a9300, relu en 3 tours, prêt) — fichiers touchés exacts et preuves : table du plan. Vagues : V1 T0 ‖ T1 · V2 T2 ‖ T5 · V3 T3 · V4 T4 · V5 T6 · V6 T7 (si exigée). Version 0.3.0 (amendement 1, § 6). Écarts 1-6, hypothèses H10-1 à H10-9.
