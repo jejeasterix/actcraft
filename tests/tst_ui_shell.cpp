@@ -1264,7 +1264,7 @@ private slots:
             QCOMPARE(menuIds(menu->property("entries").toList()), cleaned);
         }
         commands->setPlatform(actions::Platform::Windows);
-        QCOMPARE(menu->property("visibleCommandCount").toInt(), 13);
+        QCOMPARE(menu->property("visibleCommandCount").toInt(), 14);
         QVERIFY(menuIds(menu->property("entries").toList()).contains(QStringLiteral("transform")));
     }
 
@@ -1298,7 +1298,7 @@ private slots:
         QTRY_VERIFY(editing->selectionIsAnnotation());
         QVERIFY(ids().contains(toShape));
         QVERIFY(ids().contains(toText));
-        QCOMPARE(menu->property("visibleCommandCount").toInt(), 15);
+        QCOMPARE(menu->property("visibleCommandCount").toInt(), 16);
         commands->setPlatform(actions::Platform::MacOS);
         QVERIFY(ids().contains(toShape));
         QVERIFY(!ids().contains(toText));

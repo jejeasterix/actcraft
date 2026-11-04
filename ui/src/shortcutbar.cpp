@@ -100,6 +100,8 @@ void ShortcutBar::setCommands(Commands* commands)
         disconnect(m_commands, nullptr, this, nullptr);
     m_commands = commands;
     if (commands != nullptr) {
+        commands->setNativeHandler(QStringLiteral("shortcutbar.add-selection"),
+                                   [this](const QVariant&) { addSelection(); });
         connect(commands, &Commands::triggered, this, [this](const QString& id) { onTriggered(id); });
         connect(commands, &Commands::layoutChanged, this, &ShortcutBar::changed);
     }
@@ -136,17 +138,10 @@ QVariantList ShortcutBar::buttons() const
     return out;
 }
 
-void ShortcutBar::notePaletteTrigger(const QString& id)
-{
-    m_lastPaletteTrigger = id;
-}
-
 void ShortcutBar::onTriggered(const QString& id)
 {
-    const bool fromPalette = m_lastPaletteTrigger == id;
-    m_lastPaletteTrigger.clear();
-    if (fromPalette || m_profile == nullptr || m_commands == nullptr || !isToolLike(id) ||
-        inPalette(*m_commands, id))
+    // Un outil de la palette n'entre pas (palette, menu ou raccourci) : le filtre sur la palette suffit.
+    if (m_profile == nullptr || m_commands == nullptr || !isToolLike(id) || inPalette(*m_commands, id))
         return;
     m_profile->pushRecentTool(id);
 }
@@ -175,6 +170,20 @@ QString ShortcutBar::addObjects(const QList<quint64>& objectIds)
     m_profile->editProfile().shortcutObjects.insert(id, entry);
     m_profile->touch();
     return id;
+}
+
+QString ShortcutBar::addSelection()
+{
+    if (!open() || m_tools == nullptr)
+        return {};
+    const core::Page& page =
+        m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
+    QList<quint64> ids;
+    const std::vector<core::ObjectId>& selected = m_tools->user().selection();
+    for (const core::PageObject& object : page.objects)
+        if (std::find(selected.begin(), selected.end(), object.common.id) != selected.end())
+            ids.append(object.common.id);
+    return addObjects(ids);
 }
 
 bool ShortcutBar::insert(const QString& buttonId)
