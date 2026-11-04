@@ -851,6 +851,59 @@ private slots:
         QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{0});
     }
 
+    // Relecture du lot 7 (correctif 2) : « Convertir en forme » sans forme reconnue laisse les traits en
+    // traits : leur heure d'arrivée est gardée, et « Convertir en texte » sépare toujours les deux mots.
+    // Avant : l'heure était effacée pour toute la sélection, les deux mots n'en faisaient plus qu'un.
+    void shapeConversionKeepsTheArrivalOfStrokesLeftAsStrokes()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("un")}, {QStringLiteral("deux")}}));
+        ToolHost* tools = toolsOf(w.main);
+        QVERIFY(tools != nullptr);
+        const auto shifted = [](double dx) {
+            std::vector<QPointF> points = scribblePoints();
+            for (QPointF& p : points)
+                p.rx() += dx;
+            return points;
+        };
+        w.controller->commitStroke(strokeThrough(shifted(0)));
+        w.now = atMs(800); // pause plus longue que celle d'un mot, avant l'échéance du premier trait
+        w.controller->commitStroke(strokeThrough(shifted(500)));
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
+        QVERIFY(w.main.run(QStringLiteral("tool.select")));
+        tools->selectAll();
+        QTRY_COMPARE(tools->selectionCount(), 2);
+
+        w.recognition->convertToShape(); // aucune forme : les deux restent des traits
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 2);
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
+
+        QVERIFY(w.main.run(QStringLiteral("recognition.convert-to-text")));
+        QTRY_COMPARE_WITH_TIMEOUT(countOf(*w.controller, core::ObjectKind::Text), 2, 10000);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 0);
+    }
+
+    // Relecture du lot 7 (correctif 2, point 2) : la table ne garde que les traits restés traits, un trait
+    // devenu forme en sort (borne la croissance en mode formes).
+    void shapeConversionTracksOnlyStrokesLeftAsStrokes()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("un")}}));
+        ToolHost* tools = toolsOf(w.main);
+        QVERIFY(tools != nullptr);
+        w.controller->commitStroke(strokeThrough(circlePoints({400, 300}, 120))); // devient une ellipse
+        w.controller->commitStroke(strokeThrough(scribblePoints()));                // reste un trait
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
+        QVERIFY(w.main.run(QStringLiteral("tool.select")));
+        tools->selectAll();
+        QTRY_COMPARE(tools->selectionCount(), 2);
+
+        w.recognition->convertToShape();
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Shape), 1);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 1);
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{1});
+    }
+
     // Relecture du lot 7 : autres lectures d'un mot écrit au bas de la page, six lectures. Le panneau reste
     // entier dans la couche (placeAlternatives le borne avec sa hauteur à jour).
     void alternativesStayInsideTheLayer()
