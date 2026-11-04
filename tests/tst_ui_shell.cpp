@@ -1353,6 +1353,30 @@ private slots:
         QVERIFY(inLot6);
     }
 
+    // Lot 6 (L6-T18, amendement 2) : les contrôleurs du lot reçoivent les commandes, et suivent le contact.
+    void lot6ControllersWired()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name : {"appProperties", "appObjectTree", "appNotes", "appShortcuts"}) {
+            QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
+            QVERIFY2(o, name);
+            QVERIFY2(o->property("commands").value<QObject*>() != nullptr, name);
+        }
+        // N2 : contactActive suit pageArea.view.contactActive dans l'application.
+        const QStringList followers = {QStringLiteral("appProfile"), QStringLiteral("appProperties"),
+                                       QStringLiteral("appObjectTree"), QStringLiteral("appNotes")};
+        const QPointF a = s.view->mapToScene(QPointF(s.view->width() / 2, s.view->height() / 2));
+        post(s, QEvent::TabletPress, a, Qt::LeftButton);
+        for (const QString& name : followers)
+            QTRY_VERIFY2(s.window->findChild<QObject*>(name)->property("contactActive").toBool(),
+                         qPrintable(name));
+        post(s, QEvent::TabletRelease, a, Qt::NoButton);
+        for (const QString& name : followers)
+            QTRY_VERIFY2(!s.window->findChild<QObject*>(name)->property("contactActive").toBool(),
+                         qPrintable(name));
+    }
+
     void browserTabsInOrder()
     {
         Shell s;

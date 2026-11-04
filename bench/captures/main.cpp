@@ -118,24 +118,43 @@ int main(int argc, char* argv[])
 
     // Déclaré AVANT le moteur QML, donc détruit APRÈS la fenêtre : Qt Quick garde le stylet synthétique.
     std::unique_ptr<UiScenarioPlayer> player;
-    QQmlApplicationEngine engine;
-    QQuickWindow* window = loadMainWindow(engine, startup);
+    auto engine = std::make_unique<QQmlApplicationEngine>();
+    // Charge l'interface sur les dossiers d'essai ci-dessus et l'affiche ; sert au démarrage et à l'étape
+    // `restart` (mêmes dossiers, jamais ceux du poste).
+    const auto launch = [&]() -> QQuickWindow* {
+        QQuickWindow* shown = loadMainWindow(*engine, startup);
+        if (!shown) {
+            return nullptr;
+        }
+        QScreen* screen = QGuiApplication::primaryScreen();
+        shown->setScreen(screen); // écran principal (4 moniteurs sur le poste de Jérôme)
+        if (fullScreen) {
+            shown->setGeometry(screen->geometry());
+            shown->showFullScreen();
+        } else {
+            shown->resize(windowSize);
+            shown->setPosition(screen->availableGeometry().center() -
+                               QPoint(windowSize.width() / 2, windowSize.height() / 2));
+            shown->showNormal();
+        }
+        return shown;
+    };
+    QQuickWindow* window = launch();
     if (!window) {
         return invalid(QStringLiteral("interface non chargée"));
     }
-    QScreen* screen = QGuiApplication::primaryScreen();
-    window->setScreen(screen); // écran principal (4 moniteurs sur le poste de Jérôme)
-    if (fullScreen) {
-        window->setGeometry(screen->geometry());
-        window->showFullScreen();
-    } else {
-        window->resize(windowSize);
-        window->setPosition(screen->availableGeometry().center() -
-                            QPoint(windowSize.width() / 2, windowSize.height() / 2));
-        window->showNormal();
-    }
     player = std::make_unique<UiScenarioPlayer>(window);
     player->setLineSink(printLine); // une ligne par étape, au fil de l'eau
+    player->setRestartHandler([&]() -> QQuickWindow* {
+        engine.reset(); // détruit l'ancien moteur et sa fenêtre avant d'en créer un autre
+        engine = std::make_unique<QQmlApplicationEngine>();
+        QQuickWindow* fresh = launch();
+        if (!fresh || !QTest::qWaitForWindowExposed(fresh, 10000)) {
+            return nullptr;
+        }
+        window = fresh;
+        return fresh;
+    });
 
     int code = 2;
     QTimer::singleShot(0, &app, [&] {

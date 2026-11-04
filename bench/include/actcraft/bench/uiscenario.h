@@ -66,6 +66,8 @@ enum class UiStepKind : std::uint8_t
     TypeText, // {"typeText": "Bonjour"} — un QKeyEvent par caractère, avec son texte (dans `value`)
     // Ajoutée par L5-T32 (S8), à la fin.
     FileCheck, // {"file": "<chemin>", "pdfPages": 3} ou {"file": "<chemin>", "imageSize": [1024, 768]}
+    // Ajoutée par L6-T18 (S9), à la fin.
+    Restart, // {"restart": true} — quitter et relancer : mêmes dossiers de réglages et de profils
 };
 
 struct UiStep
@@ -156,6 +158,12 @@ public:
     // Reçoit chaque ligne du rapport dès qu'elle est écrite (sortie au fil de l'eau d'actcraft-captures).
     void setLineSink(LineSink sink);
 
+    // Étape « restart » : l'hôte ferme la fenêtre, recrée l'interface sur les MÊMES dossiers de réglages et
+    // de profils (jamais ceux du poste) et rend la nouvelle fenêtre exposée ; nul en cas d'échec. Sans
+    // gestionnaire, l'étape échoue.
+    using RestartHandler = std::function<QQuickWindow*()>;
+    void setRestartHandler(RestartHandler handler);
+
     // Livraison d'un appui ou d'un relâché à la fenêtre ; vrai si la touche a été acceptée. Par défaut
     // QWindowSystemInterface::handleKeyEvent, synchrone : le chemin d'une vraie touche après la plateforme.
     // Remplaçable pour les tests seulement, pour simuler une plateforme dont la livraison ne consulte pas la
@@ -197,6 +205,7 @@ private:
     bool remember(const UiStep& step, QStringList& report);
     bool archiveContains(const UiStep& step, QStringList& report);
     bool fileCheck(const UiStep& step, QStringList& report);
+    bool restart(QStringList& report);
     // Remplace les variables de `text` en une passe (les valeurs insérées ne sont pas relues) ; faux et
     // `why` si une variable est inconnue, non fermée, ou ${SAMPLES} sans ACTCRAFT_SAMPLES_DIR.
     bool expand(const QString& text, QString& out, QString& why) const;
@@ -212,6 +221,7 @@ private:
     QStringList m_index;
     int m_captureIndex = 0;
     LineSink m_sink;
+    RestartHandler m_restart;
     KeyDelivery m_keyDelivery;
     QHash<QString, QString> m_memory;            // « remember » : nom → valeur
     std::unique_ptr<EventLoopProbe> m_loopProbe; // sonde de boucle armée par « watchEventLoop »
