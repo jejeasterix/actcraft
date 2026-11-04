@@ -230,6 +230,11 @@ Hypothèses du lot 6 décidées sur le Mac : **H6-11** (orchestrateur, 2026-11-0
 **H6-15** (orchestrateur, 2026-11-04) — un verrou d'objet posé par un chemin (menu `object.lock`, arbre L6-T14, propriétés L6-T12) ne prévient pas les autres vues (`SetObjectFlagCommand(Locked)` n'émet ni `Change` ni `triggered`) : correctif **L6-C2** — un signal unique du `DocumentController` à chaque changement de drapeau d'objet, écouté par l'arbre, la coche de `object.lock` et le modèle de propriétés ; à placer avant L6-T12.
 **H6-12** (orchestrateur, 2026-11-04) — profils : la règle du format natif (clés inconnues gardées dans leurs sous-objets, `formats/include/actcraft/formats/nativejson.h:79-80`) l'emporte sur l'en-tête figé de L6-T4 (« premier niveau ») ; appliquée par L6-C1.
 Questions à Jérôme (lot 6) : aucune ouverte (H6-6 accordée le 2026-10-18 ; H6-6b « MPL 1.1 » le 2026-10-21).
+Reprise après la relève (2026-11-04, ouvrière du pilote du Mac, handoff `1c566e9c`) : chantier réenregistré ; L6-C3 en rejeu ; L6-T14 essai 3 relancé (`concepteur-critique`) ; L6-T7 relancée depuis c8146ed ; L6-T11 en revue immédiate, rejeu après L6-C3.
+Tâche : L6-C3 — rejeu de la suite — depuis 2026-11-04
+Tâche : L6-T14 — essai 3 — depuis 2026-11-04
+Tâche : L6-T7 — palette, reprise — depuis 2026-11-04
+Tâche : L6-T11 — revue immédiate — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
