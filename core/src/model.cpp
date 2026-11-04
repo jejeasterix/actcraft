@@ -110,12 +110,16 @@ void hashUnknownKeys(Fnv1a& h, const std::string& keys) noexcept
 
 void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
 {
-    const auto& [id, name, layer, visible, locked, translucency, restrictions, transform, label, actions] = c;
+    const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
+                 actions] = c;
     h.u64(id);
     h.text(name);
     h.tag(layer);
     h.boolean(visible);
     h.boolean(locked);
+    if (dragCopy) { // lot 5 : haché seulement hors défaut, les empreintes d'avant restent inchangées
+        h.byte(0xD7);
+    }
     h.byte(translucency);
     const auto& [movable, resizable, rotatable] = restrictions;
     h.boolean(movable);
@@ -251,12 +255,18 @@ void hashType(Fnv1a& h, const Group& group) noexcept
 
 void hashType(Fnv1a& h, const Connector& connector) noexcept
 {
-    const auto& [firstEnd, secondEnd, objectA, objectB, pen] = connector;
+    const auto& [firstEnd, secondEnd, objectA, objectB, pen, style, capA, capB] = connector;
     h.point(firstEnd);
     h.point(secondEnd);
     h.u64(objectA);
     h.u64(objectB);
     h.outline(pen);
+    if (style != 0 || capA != ConnectorCap::None || capB != ConnectorCap::None) { // lot 5, idem
+        h.byte(0xC5);
+        h.byte(style);
+        h.tag(capA);
+        h.tag(capB);
+    }
 }
 
 void hashType(Fnv1a& h, const Equation& equation) noexcept
@@ -284,6 +294,22 @@ void hashBody(Fnv1a& h, const PageObject& object) noexcept
 }
 
 } // namespace
+
+std::optional<Transform> inverted(const Transform& t) noexcept
+{
+    const double det = t.m11 * t.m22 - t.m12 * t.m21;
+    if (det == 0 || !std::isfinite(det)) {
+        return std::nullopt;
+    }
+    Transform r;
+    r.m11 = t.m22 / det;
+    r.m12 = -t.m12 / det;
+    r.m21 = -t.m21 / det;
+    r.m22 = t.m11 / det;
+    r.dx = -(r.m11 * t.dx + r.m21 * t.dy);
+    r.dy = -(r.m12 * t.dx + r.m22 * t.dy);
+    return r;
+}
 
 Transform compose(const Transform& a, const Transform& b) noexcept
 {

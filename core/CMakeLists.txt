@@ -34,5 +34,23 @@ actcraft_add_module(core
         src/pageedits.cpp
         include/actcraft/core/textedits.h
         src/textedits.cpp
+        include/actcraft/core/clipboardedits.h
+        src/clipboardedits.cpp
+        include/actcraft/core/arrange.h
+        src/arrange.cpp
+        include/actcraft/core/alignment.h
+        src/alignment.cpp
+        include/actcraft/core/objectflags.h
+        src/objectflags.cpp
+        include/actcraft/core/fill.h
+        src/fill.cpp
+        include/actcraft/core/shapepoints.h
+        src/shapepoints.cpp
+        include/actcraft/core/connectors.h
+        src/connectors.cpp
+        include/actcraft/core/penmodifiers.h
+        src/penmodifiers.cpp
+        include/actcraft/core/printlayout.h
+        src/printlayout.cpp
     DEPENDS
         Qt6::Core)

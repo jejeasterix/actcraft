@@ -1,4 +1,5 @@
 #include <actcraft/bench/result.h>
+#include <actcraft/bench/scenarios.h>
 
 #include <QDir>
 #include <QFileInfo>
@@ -156,6 +157,45 @@ QJsonObject scenarioJson(const ScenarioResult& s)
         out.insert(QStringLiteral("shape_preview"), QJsonObject{{"frames", s.shapePreview->frames},
                                                                 {"p95_ms", s.shapePreview->p95Ms},
                                                                 {"max_ms", s.shapePreview->maxMs}});
+    }
+    if (s.edition) { // L5-T19 : redessins du cache terminés par geste (D21), jamais cache.refreshes
+        out.insert(QStringLiteral("edition"),
+                   QJsonObject{{"refreshes_by_gesture", QJsonObject{{"paste", s.edition->paste},
+                                                                    {"group", s.edition->group},
+                                                                    {"align", s.edition->align},
+                                                                    {"front", s.edition->front}}}});
+    }
+    if (s.tabs) { // L5-T31 : mémoire des onglets et durée des bascules
+        out.insert(QStringLiteral("tabs"),
+                   QJsonObject{{"memory_delta_mb", s.tabs->memoryDeltaMb},
+                               {"memory_budget_mb", s.tabs->memoryBudgetMb},
+                               {"memory_within_budget", s.tabs->memoryDeltaMb < s.tabs->memoryBudgetMb},
+                               {"memory_one_tab_mb", s.tabs->memoryOneTabMb},
+                               {"memory_four_tabs_mb", s.tabs->memoryFourTabsMb},
+                               {"switch_ms", percentiles(summarize(s.tabs->switchMs))}});
+    }
+    if (s.exportBackground) { // L5-T31 : encre pendant l'export, contre la référence du même passage
+        const ExportBackgroundStats& e = *s.exportBackground;
+        const double ratio = e.baselineInkP95Ms > 0 ? e.inkP95Ms / e.baselineInkP95Ms : 0;
+        const double ratioToStroke = e.strokeInkP95Ms > 0 ? e.inkP95Ms / e.strokeInkP95Ms : 0;
+        out.insert(
+            QStringLiteral("export_background"),
+            QJsonObject{{"exports", e.exports},
+                        {"failures", e.failures},
+                        {"max_export_ms", e.maxExportMs},
+                        {"ink_p95_ms", e.inkP95Ms},
+                        {"stroke_ink_p95_ms", e.strokeInkP95Ms},
+                        {"baseline_ink_p95_ms", e.baselineInkP95Ms},
+                        {"baseline_control_load", e.baselineControlLoadIterations > 0},
+                        {"control_load_iterations", static_cast<qint64>(e.baselineControlLoadIterations)},
+                        {"ratio_to_baseline", ratio},
+                        {"ratio_to_stroke", ratioToStroke}, // pour information
+                        {"ratio_budget", kExportInkRatioBudget},
+                        {"within_ratio", e.baselineInkP95Ms > 0 && ratio <= kExportInkRatioBudget},
+                        {"freezes", e.freezes},
+                        {"baseline_freezes", e.baselineFreezes},
+                        {"stroke_freezes", e.strokeFreezes},
+                        {"no_more_freezes", e.freezes <= e.baselineFreezes}});
     }
     if (s.thumbnails) {
         out.insert(QStringLiteral("thumbnails"),

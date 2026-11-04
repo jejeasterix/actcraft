@@ -12,6 +12,7 @@
 #include <actcraft/render/inkitem.h>
 #include <actcraft/tools/selectiongeometry.h>
 #include <actcraft/tools/userstate.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
@@ -435,13 +436,18 @@ QPointF turnedAbout(QPointF pivot, QPointF p, double degrees)
                            v.x() * std::sin(rad) + v.y() * std::cos(rad));
 }
 
-// Cadre de la sélection tel que l'outil Sélectionner le pose (barre d'objet de layout.json).
+// Cadre de la sélection tel que l'outil Sélectionner le pose : la barre d'objet lue comme l'outil la lit
+// (Commands::objectBar, via ViewInfoAdapter::objectBarCommands), pas une copie de layout.json, que le lot 5 a
+// rendue fausse (5 → 11 boutons : la poignée « Tourner » visée n'était plus sous le stylet).
 actcraft::tools::SelectionView selectionLayout(const MainWindow& w, actcraft::ui::DocumentController& doc,
                                                actcraft::ui::ToolHost& host)
 {
-    const QStringList bar = {QStringLiteral("object.move-free"), QStringLiteral("object.rotate"),
-                             QStringLiteral("object.translucency"), QStringLiteral("object.enlarge"),
-                             QStringLiteral("object.reduce")};
+    const auto* commands =
+        w.window() ? w.window()->findChild<actcraft::ui::Commands*>(QStringLiteral("commands")) : nullptr;
+    QStringList bar;
+    for (const QVariant& entry : commands ? commands->objectBar() : QVariantList()) {
+        bar.push_back(entry.toMap().value(QStringLiteral("id")).toString());
+    }
     return actcraft::tools::layoutSelection(doc.document().page(static_cast<std::size_t>(doc.currentIndex())),
                                             host.user().selection(), w.pageView()->zoom(), bar);
 }

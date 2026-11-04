@@ -1,9 +1,11 @@
 #pragma once
 
 #include <QColor>
+#include <QDateTime>
 #include <QEvent>
 #include <QHash>
 #include <QPointF>
+#include <QSize>
 #include <QString>
 #include <QStringList>
 #include <QVariant>
@@ -58,10 +60,12 @@ enum class UiStepKind : std::uint8_t
     Touch,       // {"touch": [[x, y], …]} — un doigt, coordonnées de page
     Pinch,       // {"pinch": [cx, cy], "from": 100, "to": 200, "steps": 12} — écarts en pixels de vue
     Pointer,     // {"pointer": [[x, y], …], "button": "left", "modifiers": ["ctrl"], "holdMs": 0, "space":
-                 // "page"}
+                 // "page"} ; ou {"pointer": "<objectName>"} : centre de l'élément, repère fenêtre (L7-T41)
     DoubleClick, // {"doubleClick": [x, y], "space": "page"}
     // Ajoutée par L4-T14, à la fin.
     TypeText, // {"typeText": "Bonjour"} — un QKeyEvent par caractère, avec son texte (dans `value`)
+    // Ajoutée par L5-T32 (S8), à la fin.
+    FileCheck, // {"file": "<chemin>", "pdfPages": 3} ou {"file": "<chemin>", "imageSize": [1024, 768]}
 };
 
 struct UiStep
@@ -82,6 +86,8 @@ struct UiStep
     QString value;      // attendue, en texte (propertyText)
     QString path;       // Fixture, ArchiveContains
     QStringList values; // ArchiveContains : préfixes d'entrées attendus
+    int pdfPages = -1;  // FileCheck : nombre de pages attendu du PDF (-1 : non contrôlé)
+    QSize imageSize;    // FileCheck : taille attendue de l'image (invalide : non contrôlée)
     QPointF to;         // CheckEdge : fin du segment (début : at)
     int minIntermediate = 0;
     int maxIntermediate = -1; // -1 : sans plafond
@@ -190,6 +196,7 @@ private:
     bool maxEventLoopGap(const UiStep& step, QStringList& report);
     bool remember(const UiStep& step, QStringList& report);
     bool archiveContains(const UiStep& step, QStringList& report);
+    bool fileCheck(const UiStep& step, QStringList& report);
     // Remplace les variables de `text` en une passe (les valeurs insérées ne sont pas relues) ; faux et
     // `why` si une variable est inconnue, non fermée, ou ${SAMPLES} sans ACTCRAFT_SAMPLES_DIR.
     bool expand(const QString& text, QString& out, QString& why) const;
@@ -201,6 +208,7 @@ private:
     std::unique_ptr<Injector> m_gestures; // doigt et souris synthétiques (L0-S2)
     QString m_scenarioName;
     QString m_outputDir;
+    QDateTime m_startedAt; // départ de play() : un fichier contrôlé doit être plus récent
     QStringList m_index;
     int m_captureIndex = 0;
     LineSink m_sink;

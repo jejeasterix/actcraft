@@ -81,7 +81,7 @@
     {"waitFor": "appText.active", "value": true, "timeoutMs": 10000},
     {"typeText": "Perdu"},
     {"command": "file.close"},
-    {"waitFor": "saveChangesDialog.opened", "value": true, "timeoutMs": 10000},
+    {"waitFor": "tabSaveChangesDialog.opened", "value": true, "timeoutMs": 10000},
     {"expect": "appText.active", "value": false},
     {"expect": "documentController.shownObjectCount", "value": 1}
   ]

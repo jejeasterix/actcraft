@@ -13,11 +13,13 @@
 #include <QRectF>
 #include <QString>
 #include <QStringList>
+#include <QVariant>
 #include <QVariantList>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
 #include <memory>
+#include <vector>
 
 namespace actcraft::tools {
 class SelectTool;
@@ -58,6 +60,10 @@ class ToolHost : public QObject
     // Nuancier de la palette des formes (L4-C7) : remplissage courant, et défaut de l'outil (1re case).
     Q_PROPERTY(QColor shapeFillColor READ shapeFillColor NOTIFY settingsChanged)
     Q_PROPERTY(QColor shapeDefaultFillColor READ shapeDefaultFillColor CONSTANT)
+    // L5-C18 (M3, M18) : mémoire du connecteur, relue par son panneau.
+    Q_PROPERTY(int connectorStyle READ connectorStyle NOTIFY settingsChanged)
+    Q_PROPERTY(int connectorCapA READ connectorCapA NOTIFY settingsChanged)
+    Q_PROPERTY(int connectorCapB READ connectorCapB NOTIFY settingsChanged)
 
 public:
     explicit ToolHost(QObject* parent = nullptr);
@@ -75,6 +81,9 @@ public:
     QColor color() const;
     qreal width() const;
     int selectionCount() const;
+    int connectorStyle() const noexcept;
+    int connectorCapA() const noexcept;
+    int connectorCapB() const noexcept;
     bool handlesVisible() const;
     QVariantMap selectionFrame() const;
     QRectF trashArea() const noexcept;
@@ -86,17 +95,25 @@ public:
     // « select », « pen », « highlighter », « eraser » : outil courant de l'utilisateur 1, commande tool.<id>
     // cochée, réglages de l'outil rendus à la vue (couleur et épaisseur de l'encre).
     Q_INVOKABLE void activate(const QString& toolId);
+    // L5-T17 : « pen-shape » avec le tracé choisi (identifiant de pen.shape ; « free » : retour au trait
+    // libre) ; seulement sous le stylo, le marqueur ou ce même outil, sinon sans effet (F-221). Autre outil :
+    // activate(id).
+    Q_INVOKABLE void activate(const QString& toolId, const QVariant& argument);
     // Outil courant s'il a sa couleur (encre ; formes : le contour, L4-C7), sinon le dernier outil d'encre
     // (F-134).
     Q_INVOKABLE void setColor(const QColor& color);
     Q_INVOKABLE void setWidth(qreal width);
     Q_INVOKABLE void selectAll();
     Q_INVOKABLE void clearSelection();
+    // H5-15 : active l'outil Sélection et sélectionne ces objets de la page affichée (ceux qui existent).
+    void selectObjects(const std::vector<core::ObjectId>& ids);
     Q_INVOKABLE void deleteSelection();
     Q_INVOKABLE void enlargeSelection();
     Q_INVOKABLE void reduceSelection();
     Q_INVOKABLE void setSelectionTranslucency(int value);
     Q_INVOKABLE void cancelGesture();
+    Q_INVOKABLE void setConnectorStyle(int style);         // L5-T17
+    Q_INVOKABLE void setConnectorCaps(int capA, int capB); // L5-C18 : rangs 0 aucune, 1 rayon, 2 flèche
 
     // Outil courant de l'utilisateur ; nullptr tant que le contrôleur, la vue et la couche ne sont pas
     // branchés.
@@ -144,6 +161,10 @@ private:
     void setTrashHoverState(bool hover);
     void refreshSelection();
     void relayModifiers(int key, int modifiers);
+    // L5-T17 : réglages gardés par outil (couleur du pot, style du connecteur, tracé choisi) rendus à
+    // l'outil.
+    void configureTool(tools::Tool* tool) const;
+    void writeValue(const QString& key, const QVariant& value) const;
     QString shownInkTool() const;
     QString shownWidthTool() const;
     bool eventFilter(QObject* watched, QEvent* event) override; // Maj et Ctrl (L3-T8)
@@ -162,6 +183,10 @@ private:
     bool m_handlesVisible = false;
     bool m_settingsLoaded = false;
     bool m_filtering = false;
+    int m_connectorStyle = 0; // L5-T17 : style du connecteur (rang du panneau)
+    int m_connectorCapA = 0;  // L5-C18 : extrémités A et B (rang de core::ConnectorCap)
+    int m_connectorCapB = 0;
+    QString m_penShape; // L5-T17 : tracé choisi de la modification de stylo
     int m_observer = 0;
 };
 

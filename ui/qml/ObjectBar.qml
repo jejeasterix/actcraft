@@ -24,7 +24,11 @@ Item {
             width: 24
             height: 24
             radius: 4
-            color: Theme.surface
+            // Bouton du lot actif : coché (groupe, points de forme) en accent, indisponible atténué.
+            readonly property bool checked: bar.commands.revision >= 0 && bar.commands.isChecked(modelData.command)
+            readonly property bool available: bar.commands.revision >= 0 && bar.commands.isEnabled(modelData.command)
+            opacity: available ? 1.0 : 0.5
+            color: checked ? Theme.surfaceActive : Theme.surface
             border.width: 1
             border.color: Theme.contour
             Accessible.name: bar.commands.label(modelData.command)

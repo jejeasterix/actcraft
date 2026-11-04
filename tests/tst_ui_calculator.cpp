@@ -29,11 +29,13 @@ DocumentController* controllerOf(const MainWindow& main)
                          : nullptr;
 }
 
+#ifdef Q_OS_WIN // seul appel : le lancement de la calculatrice du système, sous Windows
 CalculatorController* calculatorOf(const MainWindow& main)
 {
     return main.window() ? main.window()->findChild<CalculatorController*>(QStringLiteral("calculator"))
                          : nullptr;
 }
+#endif
 
 const core::Page& shown(const DocumentController& controller)
 {

@@ -428,3 +428,76 @@ set_tests_properties(tst_captures_formes_texte_pages_grille PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
+# Scénarios du lot 5 (S8, S17, S8.1 à S8.6), hors écran en rendu logiciel.
+add_test(NAME tst_captures_edition
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/edition.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-edition)
+set_tests_properties(tst_captures_edition PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+add_test(NAME tst_captures_onglets
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/onglets.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-onglets)
+set_tests_properties(tst_captures_onglets PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+add_test(NAME tst_captures_exporter
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/exporter.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-exporter)
+set_tests_properties(tst_captures_exporter PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+# Impression : par PDF, sans QPrinter (H5-27), sur toutes les plateformes.
+add_test(NAME tst_captures_imprimer
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/imprimer.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-imprimer)
+set_tests_properties(tst_captures_imprimer PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+# Import : convertisseur factice (jamais PowerPoint en CI), PDF produit par notre export.
+if(ACTCRAFT_IMPORT_PDF)
+    add_test(NAME tst_captures_importer
+        COMMAND $<TARGET_FILE:actcraft-captures>
+            --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/importer.json
+            --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-importer)
+    set_tests_properties(tst_captures_importer PROPERTIES
+        TIMEOUT 300
+        ENVIRONMENT "${_bench_env_offscreen};ACTCRAFT_OFFICE_CONVERTER=${CMAKE_COMMAND}|-E|copy|${PROJECT_SOURCE_DIR}/tests/data/import/deux-pages.pdf|{out}"
+        PASS_REGULAR_EXPRESSION "SCENARIO OK"
+        FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+endif()
+add_test(NAME tst_captures_edition_export
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/edition-export.json
+        --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-edition-export)
+set_tests_properties(tst_captures_edition_export PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
+# L7-T41 : chaque passe d'actcraft-captures a ses propres réglages. Deux passes à la suite dans un seul test (ordre
+# garanti, même sous -j) : la seconde lit les valeurs par défaut, pas le fondu écrit par la première. Scénarios sous
+# tests/data/ : ce ne sont pas des preuves visuelles, captures.ps1 ne les joue pas.
+add_test(NAME tst_captures_reglages_isoles
+    COMMAND ${CMAKE_COMMAND} -DCAPTURES=$<TARGET_FILE:actcraft-captures>
+        -DSCENARIOS=${PROJECT_SOURCE_DIR}/tests/data/captures-reglages -DSORTIE=${CMAKE_BINARY_DIR}/captures-reglages-isoles
+        -P ${CMAKE_CURRENT_LIST_DIR}/captures_reglages_isoles.cmake)
+set_tests_properties(tst_captures_reglages_isoles PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "REGLAGES ISOLES OK"
+    FAIL_REGULAR_EXPRESSION "REGLAGES PARTAGES|PASSE EN ECHEC|ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")

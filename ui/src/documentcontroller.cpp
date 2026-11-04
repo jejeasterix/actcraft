@@ -1,3 +1,6 @@
+#include "parkedsession.h"
+
+#include <actcraft/core/connectors.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/objectedits.h>
@@ -175,6 +178,14 @@ core::Changes DocumentController::run(std::unique_ptr<core::UndoCommand> command
     if (!command) {
         return changes;
     }
+    // M2 (L5-C18) : point unique du suivi des connecteurs. Toute commande du document passe ici (execute, la
+    // corbeille, et le dépôt une fois les objets soulevés remis à leur rang) : un connecteur lié suit l'objet
+    // qu'elle déplace, transforme ou retire, dans la même étape. Une commande déjà enveloppée (dépôt d'un
+    // point de forme) ne l'est pas une seconde fois.
+    if (m_current < m_document.pageCount() &&
+        !dynamic_cast<core::FollowingConnectorsCommand*>(command.get())) {
+        command = core::withFollowingConnectors(m_document.page(m_current), m_current, std::move(command));
+    }
     command->redo(m_document, changes);
     if (!changes.empty()) {
         ++m_revision;
@@ -329,6 +340,58 @@ void DocumentController::dropLifted(std::unique_ptr<core::UndoCommand> command)
 bool DocumentController::isLifting() const noexcept
 {
     return !m_lifted.empty() && m_liftGeneration == m_generation;
+}
+
+// L5-T20 : la session affichée part avec tout ce qui appartient au document (pile, URL, titre, état
+// modifié, avertissements, page affichée, référence de « Rétablir la page »). Annonce d'abord (la vue finit
+// le trait en cours, le texte se valide, les outils abandonnent leur geste), puis dépôt sans étape d'un
+// soulèvement : le document garé est entier. Aucune demande de redessin, aucun rattachement : la page fixe
+// garde son ancienne scène jusqu'à resumeSession, qui la reconstruit une fois (amendement 3, M1). L'appelant
+// reprend une session avant de rendre la main à la boucle d'événements.
+std::unique_ptr<DocumentController::ParkedSession> DocumentController::parkSession()
+{
+    announceEdit();
+    auto session = std::make_unique<ParkedSession>();
+    const QSizeF size = pageSize();
+    session->document = std::exchange(m_document, core::Document(size.width(), size.height()));
+    session->undo = std::exchange(m_undo, core::UndoStack());
+    session->current = std::exchange(m_current, 0);
+    session->fileUrl = std::exchange(m_fileUrl, QUrl());
+    session->title = std::exchange(m_title, untitled());
+    session->modifiedOutsideStack = std::exchange(m_modifiedOutsideStack, false);
+    session->warnings = m_warnings;
+    session->reference = m_referenceGeneration == m_generation ? m_reference : nullptr;
+    m_reference.reset();
+    m_lifted.clear(); // déjà déposé ; rien de l'ancien document ne reste soulevé
+    ++m_generation;   // une écriture finie après le garage ne rattache pas son fichier à un autre document
+    ++m_revision;
+    return session;
+}
+
+// Une reconstruction de la page affichée : attach → setSource → restart, qui vide la couche d'attente
+// (aucun fantôme de l'onglet quitté) et émet contentChanged, d'où un redessin du cache.
+void DocumentController::resumeSession(std::unique_ptr<ParkedSession> session)
+{
+    if (!session) {
+        return;
+    }
+    m_lifted.clear();
+    m_document = std::move(session->document);
+    m_undo = std::move(session->undo);
+    m_current = std::min(session->current, m_document.pageCount() - 1);
+    m_fileUrl = session->fileUrl;
+    m_title = session->title.isEmpty() ? untitled() : session->title;
+    m_modifiedOutsideStack = session->modifiedOutsideStack;
+    ++m_generation;
+    ++m_revision;
+    m_reference = std::move(session->reference);
+    m_referenceGeneration = m_reference ? m_generation : 0;
+    attach();
+    emit pagesChanged();
+    emit fileUrlChanged();
+    emit titleChanged();
+    setWarnings(session->warnings);
+    notifyState(false);
 }
 
 void DocumentController::announceEdit()
@@ -870,9 +933,9 @@ void DocumentController::saveToUrl(const QUrl& url)
     const std::uint64_t generation = m_generation;
     const std::uint64_t revision = m_revision;
     std::shared_ptr<IoRelay> relay = m_relay;
-    QThreadPool::globalInstance()->start([relay, url = target, snapshot, generation, revision] {
-        const SaveOutcome outcome = saveDocument(*snapshot, url);
-        relay->post([relay, url, outcome, generation, revision, snapshot] {
+    QThreadPool::globalInstance()->start([relay, file = target, snapshot, generation, revision] {
+        const SaveOutcome outcome = saveDocument(*snapshot, file);
+        relay->post([relay, file, outcome, generation, revision, snapshot] {
             DocumentController& self = *relay->target; // livré au contrôleur vivant (IoRelay)
             self.setBusy(false);
             self.setLastIo(outcome.offMainThread);
@@ -899,11 +962,11 @@ void DocumentController::saveToUrl(const QUrl& url)
                 } else {
                     self.m_modifiedOutsideStack = true;
                 }
-                if (url != self.m_fileUrl) {
-                    self.m_fileUrl = url;
+                if (file != self.m_fileUrl) {
+                    self.m_fileUrl = file;
                     emit self.fileUrlChanged();
                 }
-                const QString title = titleFromUrl(url);
+                const QString title = titleFromUrl(file);
                 if (title != self.m_title) {
                     self.m_title = title;
                     emit self.titleChanged();

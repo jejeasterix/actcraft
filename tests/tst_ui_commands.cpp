@@ -122,14 +122,17 @@ private slots:
         bool found = false;
         for (const QVariant& it : edit.value(QStringLiteral("items")).toList()) {
             const QVariantMap item = it.toMap();
-            if (item.value(QStringLiteral("submenu")).toBool()) {
+            // Lot 5 : le menu Éditer gagne trois sous-menus (Transformer, Aligner, Organiser) après « Effacer
+            // ».
+            if (item.value(QStringLiteral("submenu")).toBool() &&
+                item.value(QStringLiteral("id")).toString() == QLatin1String("clear")) {
                 found = true;
                 QCOMPARE(item.value(QStringLiteral("label")).toString(), QStringLiteral("Effacer"));
                 QCOMPARE(item.value(QStringLiteral("items")).toList().size(), 5);
             }
         }
         QVERIFY(found);
-        QCOMPARE(commands.objectBar().size(), 5);
+        QCOMPARE(commands.objectBar().size(), 11); // 5 d'avant le lot 5, 6 du lot 5
     }
 
     void submenuFilteredByPlatform()
@@ -165,7 +168,17 @@ private slots:
         c.setProfileDir(m_emptyProfile.path());
         c.setPlatform(Platform::Windows);
         const QVariantList bar = c.objectBar();
-        QCOMPARE(bar.size(), 5);
+        // Lot 5 (L5-T1, F-521) : les cinq éléments d'avant le lot 5 inchangés en tête, les six du lot à la
+        // fin.
+        QCOMPARE(bar.size(), 11);
+        QStringList barIds;
+        for (const QVariant& entry : bar) {
+            barIds << entry.toMap().value(QStringLiteral("id")).toString();
+        }
+        QCOMPARE(barIds,
+                 (QStringList{"object.move-free", "object.rotate", "object.translucency", "object.enlarge",
+                              "object.reduce", "object.menu", "object.group", "arrange.front", "arrange.back",
+                              "edit.duplicate", "object.shape-points"}));
         const QVariantMap first = bar.at(0).toMap();
         QCOMPARE(first.value(QStringLiteral("id")).toString(), QStringLiteral("object.move-free"));
         QVERIFY(first.contains(QStringLiteral("label")));
@@ -176,9 +189,53 @@ private slots:
                  (QStringList{QStringLiteral("tool.select"), QStringLiteral("tool.pen"), QStringLiteral("-"),
                               QStringLiteral("recognition.convert-to-text")}));
         QVERIFY(c.contextMenu().at(2).toMap().value(QStringLiteral("separator")).toBool());
+        // Lot 5 : le menu de page finit par l'export de la page en image.
+        QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}).last(),
+                 QStringLiteral("export.page-image"));
         c.setPlatform(Platform::Android);
         QCOMPARE(itemIds(QVariantMap{{QStringLiteral("items"), c.contextMenu()}}).mid(0, 2),
                  (QStringList{QStringLiteral("tool.select"), QStringLiteral("tool.pen")}));
+    }
+
+    // objectMenu est rendu comme menus() : « >transform » devient une entrée de sous-menu portant ses
+    // éléments (12 commandes et 1 séparateur, comme dans le menu Éditer).
+    void objectMenuRenderedLikeMenus()
+    {
+        Commands c;
+        c.setProfileDir(m_emptyProfile.path());
+        c.setPlatform(Platform::Windows);
+        const QVariantList menu = c.objectMenu();
+        const QStringList ids = itemIds(QVariantMap{{QStringLiteral("items"), menu}});
+        QCOMPARE(ids.mid(0, 3), (QStringList{"object.shape-points", "-", "edit.cut"}));
+        QVERIFY(ids.contains(QStringLiteral("transform")));
+        QVERIFY(ids.contains(QStringLiteral("align")));
+        QVERIFY(ids.contains(QStringLiteral("arrange")));
+        const auto submenuOf = [](const QVariantList& items, const QString& id) {
+            for (const QVariant& item : items) {
+                const QVariantMap map = item.toMap();
+                if (map.value(QStringLiteral("submenu")).toBool() &&
+                    map.value(QStringLiteral("id")).toString() == id) {
+                    return map;
+                }
+            }
+            return QVariantMap{};
+        };
+        const QVariantMap objectTransform = submenuOf(menu, QStringLiteral("transform"));
+        QVERIFY(!objectTransform.isEmpty());
+        QCOMPARE(objectTransform.value(QStringLiteral("items")).toList().size(), 13);
+        QVariantMap editMenu;
+        for (const QVariant& entry : c.menus()) {
+            if (entry.toMap().value(QStringLiteral("id")).toString() == QLatin1String("edit")) {
+                editMenu = entry.toMap();
+            }
+        }
+        QCOMPARE(objectTransform.value(QStringLiteral("items")),
+                 submenuOf(editMenu.value(QStringLiteral("items")).toList(), QStringLiteral("transform"))
+                     .value(QStringLiteral("items")));
+        // Sous Android, les entrées de la reconnaissance (Windows) disparaissent sans casser la liste.
+        c.setPlatform(Platform::Android);
+        QVERIFY(!itemIds(QVariantMap{{QStringLiteral("items"), c.objectMenu()}})
+                     .contains(QStringLiteral("recognition.convert-to-text")));
     }
 
     void contextMenuWithSubmenu()
@@ -244,6 +301,58 @@ private slots:
         QCOMPARE(menuLabels(c), (QStringList{QStringLiteral("Fichier"), QStringLiteral("Éditer"),
                                              QStringLiteral("Affichage"), QStringLiteral("Insérer"),
                                              QStringLiteral("Outils"), QStringLiteral("Aide")}));
+    }
+
+    // Un layoutChanged (commande masquée ailleurs) ne recrée pas les entrées d'un menu dont le contenu est
+    // identique (L5-C25) ; le menu qui contenait la commande, lui, se met à jour.
+    void layoutChangeKeepsUnchangedMenuEntries()
+    {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nimport ActCraft.Ui\nItem {\n"
+                          "  property alias registre: commandes\n"
+                          "  Commands { id: commandes }\n"
+                          "  function menuSpec(id) {\n"
+                          "    const m = commandes.menus\n"
+                          "    for (let i = 0; i < m.length; ++i) if (m[i].id === id) return m[i]\n"
+                          "    return { id: \"\", label: \"\", items: [] }\n"
+                          "  }\n"
+                          "  function entree(menu, i) { return menu.itemAt(i) }\n"
+                          "  property alias fichier: fichierMenu\n"
+                          "  property alias editer: editerMenu\n"
+                          "  CommandMenu { id: fichierMenu; commands: commandes; spec: menuSpec(\"file\") }\n"
+                          "  CommandMenu { id: editerMenu; commands: commandes; spec: menuSpec(\"edit\") }\n"
+                          "}\n",
+                          QUrl());
+        std::unique_ptr<QObject> root(component.create());
+        QVERIFY2(root, qPrintable(component.errorString()));
+        auto* c = qobject_cast<Commands*>(root->property("registre").value<QObject*>());
+        QVERIFY(c);
+        c->setProfileDir(m_emptyProfile.path());
+        c->setPlatform(Platform::Windows);
+        auto* fichier = root->property("fichier").value<QObject*>();
+        auto* editer = root->property("editer").value<QObject*>();
+        QVERIFY(fichier && editer);
+        const auto itemAt = [&root](QObject* menu, int index) {
+            QVariant item;
+            QMetaObject::invokeMethod(root.get(), "entree", Q_RETURN_ARG(QVariant, item),
+                                      Q_ARG(QVariant, QVariant::fromValue(menu)), Q_ARG(QVariant, index));
+            return item.value<QObject*>();
+        };
+        const auto count = [](QObject* menu) { return menu->property("count").toInt(); };
+        QObject* fichierFirst = itemAt(fichier, 0);
+        QObject* editerFirst = itemAt(editer, 0);
+        QVERIFY(fichierFirst && editerFirst);
+        const int fichierCount = count(fichier);
+        const int editerCount = count(editer);
+        QCOMPARE(editerFirst->property("text").toString(), QStringLiteral("Annuler"));
+
+        c->setHidden(QStringLiteral("edit.undo"), true); // commande du menu Éditer seulement
+
+        QCOMPARE(count(fichier), fichierCount);
+        QCOMPARE(itemAt(fichier, 0), fichierFirst); // même objet : rien n'a été recréé
+        QCOMPARE(count(editer), editerCount - 1);
+        QVERIFY(itemAt(editer, 0)->property("text").toString() != QStringLiteral("Annuler"));
     }
 
     void triggerReachesTheQmlHandler()

@@ -56,17 +56,20 @@ private slots:
     void lot4bScenariosWithFrames()
     {
         const QJsonArray scenarios = m_root.value("scenarios").toArray();
-        // L4-T28 : « zones-zoom » (douze avant) ; L7-T34 : « reconnaissance » en dernier (treize avant, rangs
-        // inchangés).
-        QCOMPARE(scenarios.size(), 14);
+        // L4-T28 : « zones-zoom » (douze avant) ; L5-T31 : « onglets » et « export-fond » après « edition »
+        // (quatorze avant) ; L5-C12 : « export-fond-reference » juste avant « export-fond » ; L7-T34 :
+        // « reconnaissance » en dernier (dix-sept avant, rangs inchangés).
+        QCOMPARE(scenarios.size(), 18);
         const QStringList names{QStringLiteral("stroke"),           QStringLiteral("zoom"),
                                 QStringLiteral("scroll"),           QStringLiteral("page"),
                                 QStringLiteral("pauses"),           QStringLiteral("gommer"),
                                 QStringLiteral("soulever"),         QStringLiteral("forme-page-annotee"),
                                 QStringLiteral("grille-dessus"),    QStringLiteral("miniatures"),
                                 QStringLiteral("miniatures-ferme"), QStringLiteral("miniatures-pauses"),
-                                QStringLiteral("zones-zoom"),       QStringLiteral("reconnaissance")};
-        for (qsizetype i = 0; i < 14; ++i) {
+                                QStringLiteral("zones-zoom"),       QStringLiteral("edition"),
+                                QStringLiteral("onglets"),          QStringLiteral("export-fond-reference"),
+                                QStringLiteral("export-fond"),      QStringLiteral("reconnaissance")};
+        for (qsizetype i = 0; i < 18; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);

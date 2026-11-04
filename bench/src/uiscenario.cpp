@@ -2,12 +2,14 @@
 #include <actcraft/bench/fixtures.h>
 #include <actcraft/bench/injector.h>
 #include <actcraft/bench/uiscenario.h>
+#include <actcraft/export/pdfexport.h>
 #include <actcraft/formats/nativefile.h>
 #include <actcraft/formats/urlio.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
@@ -336,6 +338,31 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
         }
         return true;
     }
+    if (o.contains(QStringLiteral("file"))) {
+        step.kind = UiStepKind::FileCheck;
+        step.path = o.value(QStringLiteral("file")).toString();
+        const bool hasPages = o.contains(QStringLiteral("pdfPages"));
+        const bool hasSize = o.contains(QStringLiteral("imageSize"));
+        if (hasPages) {
+            const QJsonValue pages = o.value(QStringLiteral("pdfPages"));
+            step.pdfPages = pages.isDouble() ? pages.toInt(-1) : -1;
+        }
+        if (hasSize) {
+            QPointF size;
+            // Entiers seulement : une taille fractionnaire est refusée, pas arrondie.
+            if (readPoint(o.value(QStringLiteral("imageSize")), size) && size.x() >= 1.0 && size.y() >= 1.0 &&
+                size.x() == std::floor(size.x()) && size.y() == std::floor(size.y())) {
+                step.imageSize = QSize(qRound(size.x()), qRound(size.y()));
+            }
+        }
+        if (step.path.isEmpty() || hasPages == hasSize || (hasPages && step.pdfPages < 1) ||
+            (hasSize && !step.imageSize.isValid())) {
+            why = QStringLiteral(
+                "fichier invalide (file, puis pdfPages ≥ 1 ou imageSize [largeur, hauteur], un seul)");
+            return false;
+        }
+        return true;
+    }
     if (o.contains(QStringLiteral("touch"))) {
         step.kind = UiStepKind::Touch;
         if (!parsePoints(o.value(QStringLiteral("touch")), step.points)) {
@@ -369,8 +396,17 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
     }
     if (o.contains(QStringLiteral("pointer"))) {
         step.kind = UiStepKind::Pointer;
-        if (!parsePoints(o.value(QStringLiteral("pointer")), step.points)) {
-            why = QStringLiteral("pointeur invalide (pointer : au moins un point [x, y])");
+        const QJsonValue pointer = o.value(QStringLiteral("pointer"));
+        // L7-T41 : un nom d'objet au lieu des points vise le centre de cet élément (comme clickIn de
+        // tst_ui_equation), où que les polices l'aient placé ; repère de la fenêtre, « space » refusé.
+        if (pointer.isString()) {
+            step.target = pointer.toString();
+            if (step.target.isEmpty() || o.contains(QStringLiteral("space"))) {
+                why = QStringLiteral("pointeur invalide (pointer : nom d'objet non vide, sans « space »)");
+                return false;
+            }
+        } else if (!parsePoints(pointer, step.points)) {
+            why = QStringLiteral("pointeur invalide (pointer : au moins un point [x, y], ou un nom d'objet)");
             return false;
         }
         if (o.contains(QStringLiteral("button"))) {
@@ -413,6 +449,10 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
                 why = QStringLiteral("maintien invalide (holdMs de 0 à %1)").arg(kHoldMaxMs);
                 return false;
             }
+        }
+        if (!step.target.isEmpty()) {
+            step.windowSpace = true;
+            return true;
         }
         return readSpace(o, step.windowSpace, why);
     }
@@ -1059,7 +1099,8 @@ bool UiScenarioPlayer::pinch(const UiStep& step, QStringList& report)
 
 bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
 {
-    const QString head = QStringLiteral("POINTEUR %1").arg(step.points.size());
+    const QString head = step.target.isEmpty() ? QStringLiteral("POINTEUR %1").arg(step.points.size())
+                                               : QStringLiteral("POINTEUR sur %1").arg(step.target);
     if (!step.windowSpace && !view()) {
         report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
         return false;
@@ -1069,13 +1110,37 @@ bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
     // abandonne alors le geste de l'outil (PageView::finishStroke). grabWindow() termine la mise en page
     // en attente avant le premier point ; les points de page sont convertis ensuite, à la taille définitive.
     m_window->grabWindow();
+    std::vector<QPointF> points = step.points;
+    if (!step.target.isEmpty()) {
+        // Centre de l'élément nommé, lu après la mise en page (grabWindow ci-dessus).
+        const auto* item = qobject_cast<const QQuickItem*>(find(step.target));
+        QString why;
+        QPointF centre;
+        if (!item) {
+            why = QStringLiteral("élément introuvable");
+        } else if (!item->isVisible()) {
+            why = QStringLiteral("élément invisible");
+        } else if (item->width() <= 0 || item->height() <= 0) {
+            why = QStringLiteral("élément sans taille");
+        } else {
+            centre = item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
+            if (!QRectF(0, 0, m_window->width(), m_window->height()).contains(centre)) {
+                why = QStringLiteral("élément hors de la fenêtre, centre (%1, %2)").arg(centre.x()).arg(centre.y());
+            }
+        }
+        if (!why.isEmpty()) {
+            report << head + QStringLiteral(" ECHEC (%1)").arg(why);
+            return false;
+        }
+        points = {centre};
+    }
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
     const Qt::MouseButton button = step.button;
     const Qt::KeyboardModifiers modifiers = step.modifiers;
     QPoint lastPoint;
     const bool sent = gestures().pointerPath(
-        step.points,
+        points,
         [this, button, modifiers, &lastPoint](GesturePhase phase, QPointF position) {
             const QPoint point = position.toPoint();
             lastPoint = point;
@@ -1415,6 +1480,56 @@ bool UiScenarioPlayer::archiveContains(const UiStep& step, QStringList& report)
     return missing.isEmpty();
 }
 
+bool UiScenarioPlayer::fileCheck(const UiStep& step, QStringList& report)
+{
+    QString path;
+    if (!expandOrFail(step.path, QStringLiteral("FICHIER %1").arg(step.path), path, report)) {
+        return false;
+    }
+    const QString absolute = QDir::current().absoluteFilePath(path);
+    // Un fichier d'un passage précédent ne prouve pas l'export de celui-ci.
+    const QFileInfo info(absolute);
+    if (info.exists() && info.lastModified() < m_startedAt) {
+        report << QStringLiteral("FICHIER %1 ECART (fichier antérieur au scénario)").arg(path);
+        return false;
+    }
+    if (step.pdfPages >= 0) {
+        QFile file(absolute);
+        if (!file.open(QIODevice::ReadOnly)) {
+            report << QStringLiteral("FICHIER %1 ECHEC (illisible)").arg(path);
+            return false;
+        }
+        const QByteArray data = file.readAll();
+        if (!data.startsWith("%PDF-")) {
+            report << QStringLiteral("FICHIER %1 ECART (pas un PDF)").arg(path);
+            return false;
+        }
+        const int pages = exporting::countPdfPages(data);
+        const bool ok = pages == step.pdfPages;
+        report << (ok ? QStringLiteral("FICHIER %1 PDF %2 pages OK").arg(path).arg(pages)
+                      : QStringLiteral("FICHIER %1 ECART (PDF de %2 pages, attendu %3)")
+                            .arg(path)
+                            .arg(pages)
+                            .arg(step.pdfPages));
+        return ok;
+    }
+    const QImage image(absolute);
+    if (image.isNull()) {
+        report << QStringLiteral("FICHIER %1 ECHEC (image illisible)").arg(path);
+        return false;
+    }
+    const bool ok = image.size() == step.imageSize;
+    report
+        << (ok ? QStringLiteral("FICHIER %1 image %2x%3 OK").arg(path).arg(image.width()).arg(image.height())
+               : QStringLiteral("FICHIER %1 ECART (image %2x%3, attendu %4x%5)")
+                     .arg(path)
+                     .arg(image.width())
+                     .arg(image.height())
+                     .arg(step.imageSize.width())
+                     .arg(step.imageSize.height()));
+    return ok;
+}
+
 bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
 {
     switch (step.kind) {
@@ -1496,6 +1611,8 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return remember(step, report);
     case UiStepKind::ArchiveContains:
         return archiveContains(step, report);
+    case UiStepKind::FileCheck:
+        return fileCheck(step, report);
     case UiStepKind::Touch:
         return touch(step, report);
     case UiStepKind::Pinch:
@@ -1519,6 +1636,7 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
         return false;
     }
     m_scenarioName = scenario.name;
+    m_startedAt = QDateTime::currentDateTime();
     m_outputDir = outputDir;
     m_captureIndex = 0;
     m_index.clear();

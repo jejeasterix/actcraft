@@ -511,6 +511,131 @@ ScenarioPlan zonesZoomScenario(ScenarioSet scenarioSet)
     return plan;
 }
 
+namespace {
+const char* const kEditionCommands[kEditionGestureCount] = {"edition.paste", "edition.group", "edition.align",
+                                                            "edition.front"};
+
+// Annotation k de la page d'« edition » : 25 rangées sur 8 colonnes, un court trait ondulé chacune, zone
+// centrale (x 230-776, y 160-592).
+std::vector<QPointF> editionSeed(int k)
+{
+    const int row = k % 25;
+    const int column = k / 25;
+    const double x0 = 230.0 + 70.0 * column;
+    const double y = 160.0 + 18.0 * row;
+    std::vector<QPointF> points;
+    for (double x = x0; x <= x0 + 56.0; x += 14.0) {
+        points.emplace_back(x, y + 3.0 * std::sin(x / 40.0 + k));
+    }
+    return points;
+}
+} // namespace
+
+const char* const* editionGestures() noexcept
+{
+    return kEditionCommands;
+}
+
+ScenarioPlan editionScenario(ScenarioSet scenarioSet)
+{
+    const bool court = scenarioSet == ScenarioSet::Court;
+    const int samples = court ? 20 : 100;      // 0,1 s ou 0,5 s à 200 points/s
+    const int strokesPerCycle = court ? 1 : 2; // un trait toutes les 2 s (complet)
+    ScenarioPlan plan;
+    plan.name = QStringLiteral("edition");
+    plan.zoom = 1.0;
+    plan.generatedPages = 1;
+    // Figements et reprises restent jugés (métriques existantes) : le verdict est un résultat, pas une porte.
+    plan.measuresEdition = true;
+    for (int k = 0; k < kEditionAnnotations; ++k) {
+        plan.seedStrokes.push_back(editionSeed(k));
+    }
+    std::int64_t start = 0;
+    int row = 0;
+    for (std::size_t gesture = 0; gesture < kEditionGestureCount; ++gesture) {
+        std::int64_t lastStart = start;
+        for (int s = 0; s < strokesPerCycle; ++s) {
+            lastStart = start + s * kEditionStrokePeriodNs;
+            const std::size_t first = plan.inputs.size();
+            appendWaveStroke(plan.inputs, lastStart, samples, row++ % 10, 2);
+            for (std::size_t i = first; i < plan.inputs.size(); ++i) {
+                plan.inputs[i].measured = false; // pas de latence d'encre ici : on mesure des gestes
+            }
+        }
+        // Le dernier trait est fini et versé (kCacheFoldIdleMs) avant que la fenêtre du geste s'ouvre.
+        const std::int64_t at = lastStart + (samples - 1) * kStylusPeriodNs + 300'000'000;
+        PlannedInput in;
+        in.offsetNs = at;
+        in.kind = InputKind::Command;
+        in.command = QString::fromLatin1(kEditionCommands[gesture]);
+        plan.inputs.push_back(in);
+        start = at + kEditionGestureSpanNs;
+    }
+    return plan;
+}
+
+core::Document tabsFixtureDocument(int index)
+{
+    core::Document document(std::vector<core::Page>(static_cast<std::size_t>(kTabsPages)));
+    for (int p = 0; p < kTabsPages; ++p) {
+        for (int k = 0; k < kTabsStrokesPerPage; ++k) {
+            const double phase = 0.7 * index + 0.31 * p + 0.17 * k;
+            std::vector<QPointF> points;
+            for (double x = 220.0; x <= 804.0; x += 25.0) {
+                points.emplace_back(x, 170.0 + 9.0 * k + 8.0 * std::sin(x / 40.0 + phase));
+            }
+            core::PageObject object = seedAnnotation(points);
+            object.common.layer = core::Layer::Top;
+            object.common.id = document.allocateId();
+            document.page(static_cast<std::size_t>(p)).objects.push_back(std::move(object));
+        }
+    }
+    return document;
+}
+
+double tabsMemoryBudgetMb(const QSize& windowSize) noexcept
+{
+    return static_cast<double>(windowSize.width()) * windowSize.height() * kCacheBytesPerPixel / 1048576.0;
+}
+
+ScenarioPlan tabsScenario(ScenarioSet scenarioSet)
+{
+    ScenarioPlan plan;
+    plan.name = QStringLiteral("onglets");
+    plan.zoom = 1.0;
+    plan.tabCount = kTabsCount;
+    const std::int64_t period = kTabsSwitchPeriodNs / durationDivisor(scenarioSet);
+    int shown = 0;
+    for (int i = 0; i < kTabsSwitches; ++i) {
+        shown = (shown + 1) % kTabsCount; // 1, 2, 3, 0, 1, 2, 3, 0, 1, 2
+        PlannedInput in;
+        in.offsetNs = (i + 1) * period;
+        in.kind = InputKind::Command;
+        in.command = QStringLiteral("tabs.switch");
+        in.argument = shown;
+        plan.inputs.push_back(in);
+    }
+    return plan;
+}
+
+ScenarioPlan exportBackgroundScenario(ScenarioSet scenarioSet)
+{
+    ScenarioPlan plan = strokeScenario(scenarioSet);
+    plan.name = QStringLiteral("export-fond");
+    plan.exportsInBackground = true;
+    plan.fixtureDocument = true;
+    return plan;
+}
+
+ScenarioPlan exportBackgroundReferenceScenario(ScenarioSet scenarioSet)
+{
+    ScenarioPlan plan = exportBackgroundScenario(scenarioSet);
+    plan.name = QStringLiteral("export-fond-reference");
+    plan.exportsInBackground = false;
+    plan.spinsInBackground = true; // L5-C14 : charge témoin, voir ScenarioPlan::spinsInBackground
+    return plan;
+}
+
 ScenarioPlan recognitionScenario(ScenarioSet set)
 {
     (void)set; // le délai de la session ne se divise pas : même plan en court et en complet
@@ -570,6 +695,10 @@ std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
             closedThumbnailsScenario(set),
             thumbnailsPausesScenario(set),
             zonesZoomScenario(set),
+            editionScenario(set),
+            tabsScenario(set),
+            exportBackgroundReferenceScenario(set),
+            exportBackgroundScenario(set),
             recognitionScenario(set)};
 }
 

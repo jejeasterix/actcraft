@@ -53,6 +53,8 @@ formats/     lecture/écriture : .flipchart (lecture), format natif ouvert, PDF,
 actions/     registre central des commandes nommées ; menus, raccourcis et barres décrits par fichiers de données
 input/       chaîne stylet : événements bruts → filtrage → prédiction → outil ; un module natif par système
 render/      un moteur de rendu par type d'objet (nœuds du graphe de scène Qt Quick), choisi dans un registre
+export/      export d'une page en image ou en PDF, import PDF (Qt PDF, option ACTCRAFT_IMPORT_PDF), conversion de présentations (DA12)
+print/       impression : mise en page des feuilles, aperçu, QPrinter sous Windows, PDF ailleurs (DA-A2)
 tools/       un outil = une extension autonome (stylo, gomme, formes, texte, sélection, grille…)
 features/    règle, rapporteur, dés, horloge, rideau, spot… chacun activable ou retirable
 ui/          interface QML (module ActCraft.Ui) : boîte à outils, navigateurs, menus, thèmes

@@ -316,7 +316,7 @@ private slots:
         QVERIFY(main.run(QStringLiteral("page.next")));
         QVERIFY(main.waitReady());
         QTest::qWait(200);
-        const int withoutEffect = spy.count();
+        const int withoutEffect = static_cast<int>(spy.count());
         QVERIFY(withoutEffect >= 1);
         QVERIFY(main.run(QStringLiteral("page.previous")));
         QVERIFY(main.waitReady());

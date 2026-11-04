@@ -1,9 +1,13 @@
+#include <actcraft/core/clipboardedits.h>
+#include <actcraft/core/connectors.h>
+#include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/gridsnap.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/shapeedits.h>
 #include <actcraft/core/shapegeometry.h>
+#include <actcraft/core/shapepoints.h>
 #include <actcraft/tools/selectiongeometry.h>
 #include <actcraft/tools/selecttool.h>
 #include <actcraft/tools/userstate.h>
@@ -110,11 +114,81 @@ std::vector<core::ObjectId> present(const core::Page& page, const std::vector<co
     std::vector<core::ObjectId> out;
     for (const core::ObjectId id : ids) {
         const std::size_t index = core::indexOf(page, id);
-        if (index != page.objects.size() && core::isSelectable(page.objects[index])) {
+        if (index != page.objects.size() && core::isSelectable(page, page.objects[index])) {
             out.push_back(id);
         }
     }
     return out;
+}
+
+// Point de forme sous `point` (le plus proche, au rayon d'une poignée) ; aucun hors de ce rayon.
+std::optional<std::size_t> shapePointAt(const std::vector<core::PointF>& points, core::PointF point,
+                                        double zoom)
+{
+    const double radius = kHandleRadiusScreen / zoom;
+    std::optional<std::size_t> found;
+    double best = radius;
+    for (std::size_t i = 0; i < points.size(); ++i) {
+        const double distance = std::hypot(point.x - points[i].x, point.y - points[i].y);
+        if (distance <= best) {
+            best = distance;
+            found = i;
+        }
+    }
+    return found;
+}
+
+// Dépôt d'un glissement mêlé (D9) : objets ordinaires transformés, objets à copier laissés en place et copiés
+// ; une étape.
+class MoveAndPasteCommand final : public core::UndoCommand
+{
+public:
+    MoveAndPasteCommand(std::unique_ptr<core::UndoCommand> move, std::unique_ptr<core::UndoCommand> paste)
+        : m_move(std::move(move)), m_paste(std::move(paste))
+    {}
+    void redo(core::Document& document, core::Changes& changes) override
+    {
+        m_move->redo(document, changes);
+        m_paste->redo(document, changes);
+    }
+    void undo(core::Document& document, core::Changes& changes) override
+    {
+        m_paste->undo(document, changes);
+        m_move->undo(document, changes);
+    }
+
+private:
+    std::unique_ptr<core::UndoCommand> m_move;
+    std::unique_ptr<core::UndoCommand> m_paste;
+};
+
+// Commande du dépôt d'un glissement (lot 3 et D9) : `lifted` transformés par `delta`, sauf ceux de `copied`,
+// qui restent et dont la fermeture `sources` est collée à la position de dépôt (PasteObjectsCommand, L5-T4).
+std::unique_ptr<core::UndoCommand> dragDropCommand(std::size_t page,
+                                                   const std::vector<core::ObjectId>& lifted,
+                                                   const std::vector<core::ObjectId>& copied,
+                                                   std::vector<core::PageObject> sources,
+                                                   const core::Transform& delta)
+{
+    std::vector<core::ObjectId> moved;
+    for (const core::ObjectId id : lifted) {
+        if (!contains(copied, id)) {
+            moved.push_back(id);
+        }
+    }
+    std::unique_ptr<core::UndoCommand> move;
+    if (!moved.empty()) {
+        move = std::make_unique<core::TransformObjectsCommand>(page, std::move(moved), delta);
+    }
+    if (copied.empty()) {
+        return move;
+    }
+    auto paste = std::make_unique<core::PasteObjectsCommand>(
+        page, core::preparePaste(std::move(sources), delta.dx, delta.dy));
+    if (!move) {
+        return paste;
+    }
+    return std::make_unique<MoveAndPasteCommand>(std::move(move), std::move(paste));
 }
 
 } // namespace
@@ -134,6 +208,7 @@ void SelectTool::activate()
 void SelectTool::deactivate()
 {
     cancel();
+    m_shapePointsMode = false;
     publish(SelectionView{}); // la sélection reste dans UserState, le cadre se masque
 }
 
@@ -183,6 +258,9 @@ void SelectTool::cancel()
     case State::SmartPoint:
         endSmartPoint(true);
         return;
+    case State::ShapePoint:
+        endShapePoint(true);
+        return;
     }
 }
 
@@ -191,7 +269,11 @@ bool SelectTool::onKey(int key, int modifiers)
     m_modifiers = modifiers;
     if (key == Qt::Key_Escape) {
         if (m_state == State::Idle) {
-            return false;
+            if (!m_shapePointsMode) {
+                return false;
+            }
+            setShapePointsMode(false); // Échap au repos quitte le mode points de forme
+            return true;
         }
         cancel();
         return true;
@@ -279,6 +361,33 @@ void SelectTool::refresh()
     showFrame();
 }
 
+void SelectTool::setShapePointsMode(bool on)
+{
+    if (m_state != State::Idle) {
+        cancel();
+    }
+    m_shapePointsMode = on;
+    showFrame();
+}
+
+bool SelectTool::shapePointsMode() const noexcept
+{
+    return m_shapePointsMode;
+}
+
+std::vector<core::PointF> SelectTool::shownShapePoints(const std::vector<core::ObjectId>& selection) const
+{
+    if (!m_shapePointsMode || selection.size() != 1) {
+        return {};
+    }
+    const core::Page& page = m_context.document.page();
+    const std::size_t index = core::indexOf(page, selection.front());
+    if (index == page.objects.size()) {
+        return {};
+    }
+    return core::shapePoints(page.objects[index]); // L5-T9 : sommets puis milieux, vide hors d'une forme
+}
+
 void SelectTool::press(const input::Sample& sample)
 {
     const core::Page& page = m_context.document.page();
@@ -295,6 +404,12 @@ void SelectTool::press(const input::Sample& sample)
     const double zoom = m_context.view.zoom();
     const std::optional<core::ObjectId> hit = core::objectAt(page, m_start, core::kHitToleranceScreen / zoom);
     const std::vector<core::ObjectId>& selection = m_context.user.selection();
+    const std::vector<core::PointF> points = shownShapePoints(selection);
+    if (const std::optional<std::size_t> point = shapePointAt(points, m_start, zoom)) {
+        m_grab = Grab::ShapePoint; // les carrés remplacent les poignées (mode points de forme)
+        m_shapePoint = *point;
+        return;
+    }
     if (!selection.empty()) { // barre et poignées passent avant tout, même avec Maj ou Ctrl
         const SelectionView grabFrame =
             layoutSelection(page, selection, zoom, m_context.view.objectBarCommands());
@@ -312,12 +427,12 @@ void SelectTool::press(const input::Sample& sample)
             }
             return;
         }
-        if (grabbed.kind == SelectionHitKind::Handle) {
+        if (grabbed.kind == SelectionHitKind::Handle && points.empty()) {
             m_grab = Grab::Handle;
             m_handle = grabbed.handle;
             return;
         }
-        if (grabbed.kind == SelectionHitKind::SmartPoint) {
+        if (grabbed.kind == SelectionHitKind::SmartPoint && points.empty()) {
             m_grab = Grab::SmartPoint;
             m_smartPoint = grabbed.smartPoint;
             return;
@@ -389,6 +504,9 @@ void SelectTool::move(const input::Sample& sample)
         case Grab::SmartPoint:
             beginSmartPoint();
             break;
+        case Grab::ShapePoint:
+            beginShapePoint();
+            break;
         case Grab::None:
         case Grab::Command:
             return;
@@ -402,6 +520,8 @@ void SelectTool::move(const input::Sample& sample)
         showBand(point);
     } else if (m_state == State::SmartPoint) {
         updateSmartPoint(point);
+    } else if (m_state == State::ShapePoint) {
+        updateShapePoint(point);
     } else {
         updateDrag(point);
     }
@@ -419,6 +539,18 @@ void SelectTool::beginDrag(bool force)
     }
     if (ids.empty()) {
         return;
+    }
+    m_copied.clear();
+    m_copySources.clear();
+    if (!force) { // D9 : la poignée « Déplacer » déplace ; un glissement d'objet à dragCopy le copie
+        for (const core::ObjectId id : ids) {
+            if (page.objects[core::indexOf(page, id)].common.dragCopy) {
+                m_copied.push_back(id);
+            }
+        }
+        if (!m_copied.empty()) {
+            m_copySources = core::closureForCopy(page, m_copied); // soulevés, ils quittent la page
+        }
     }
     m_frame = layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {});
     liftForGesture(std::move(ids), State::Dragging);
@@ -500,6 +632,64 @@ void SelectTool::endSmartPoint(bool cancelled)
     } else {
         m_context.document.drop(std::make_unique<core::SetShapeParametersCommand>(
             m_context.document.pageIndex(), m_lifted.front(), m_smartParameters));
+    }
+    m_context.lift.clear();
+    reset();
+    showFrame();
+}
+
+// Un point de forme d'une forme seule, non verrouillée : soulevée, son aperçu est le résultat de
+// MoveShapePointCommand sur une copie (L5-T9, aucune règle refaite ici) ; le dépôt est une seule commande.
+void SelectTool::beginShapePoint()
+{
+    const core::Page& page = m_context.document.page();
+    const std::vector<core::ObjectId>& selection = m_context.user.selection();
+    if (selection.size() != 1) {
+        return;
+    }
+    const std::size_t index = core::indexOf(page, selection.front());
+    if (index == page.objects.size() || page.objects[index].common.locked ||
+        m_shapePoint >= core::shapePoints(page.objects[index]).size()) {
+        return; // D9 : un verrouillé ne bouge pas par ses points
+    }
+    m_frame = layoutSelection(page, selection, m_context.view.zoom(), {});
+    m_shapePointTo.reset();
+    liftForGesture({selection.front()}, State::ShapePoint);
+}
+
+void SelectTool::updateShapePoint(core::PointF point)
+{
+    if (!m_firstLifted) {
+        return;
+    }
+    core::Document probe; // hors du document : aucun redessin du cache pendant le geste
+    probe.page(0).objects.push_back(*m_firstLifted);
+    core::Changes ignored;
+    core::MoveShapePointCommand(0, m_firstLifted->common.id, m_shapePoint, point).redo(probe, ignored);
+    core::PageObject preview = probe.page(0).objects.front();
+    m_shapePointTo = point;
+    SelectionView view = m_frame;
+    view.handlesVisible = false;
+    view.smartPoints.clear();
+    view.shapePoints = core::shapePoints(preview);
+    std::vector<core::PageObject> shown;
+    shown.push_back(std::move(preview));
+    m_context.lift.show(std::move(shown));
+    publish(view);
+}
+
+void SelectTool::endShapePoint(bool cancelled)
+{
+    if (cancelled || !m_shapePointTo) {
+        m_context.document.drop(nullptr);
+    } else {
+        // L5-T10 : le connecteur lié suit ; enveloppée, la commande ne fusionne plus, le geste reste une
+        // étape parce qu'il n'en dépose qu'une, au relâché.
+        const std::size_t page = m_context.document.pageIndex();
+        m_context.document.drop(
+            core::withFollowingConnectors(m_context.document.page(), page,
+                                          std::make_unique<core::MoveShapePointCommand>(
+                                              page, m_lifted.front(), m_shapePoint, *m_shapePointTo)));
     }
     m_context.lift.clear();
     reset();
@@ -605,14 +795,23 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
     }
     const bool trash = m_state == State::Dragging && !cancelled && m_context.view.overTrash(point);
     if (trash) {
+        std::vector<core::ObjectId> removed; // D9 : un objet à dragCopy reste, même sur la corbeille
+        for (const core::ObjectId id : m_lifted) {
+            if (!contains(m_copied, id)) {
+                removed.push_back(id);
+            }
+        }
         std::vector<core::ObjectId> selection = m_context.user.selection();
-        std::erase_if(selection, [this](core::ObjectId id) { return contains(m_lifted, id); });
-        m_context.document.drop(std::make_unique<core::RemoveObjectsCommand>(page, m_lifted));
+        std::erase_if(selection, [&removed](core::ObjectId id) { return contains(removed, id); });
+        m_context.document.drop(
+            removed.empty() ? nullptr : std::make_unique<core::RemoveObjectsCommand>(page, removed));
         m_context.user.setSelection(std::move(selection));
     } else if (cancelled || delta.isIdentity()) {
         m_context.document.drop(nullptr);
     } else {
-        m_context.document.drop(std::make_unique<core::TransformObjectsCommand>(page, m_lifted, delta));
+        // Même chemin qu'au lot 3 (drop : objets remis, une étape) ; D9 : un objet à dragCopy est remis sans
+        // étape et sa copie ajoutée (PasteObjectsCommand), jamais transformé.
+        m_context.document.drop(dragDropCommand(page, m_lifted, m_copied, std::move(m_copySources), delta));
     }
     m_context.lift.clear();
     if (m_trashHover) {
@@ -674,6 +873,9 @@ void SelectTool::release(const input::Sample& sample)
     case State::SmartPoint:
         endSmartPoint(false);
         return;
+    case State::ShapePoint:
+        endShapePoint(false);
+        return;
     }
     reset();
     showFrame();
@@ -681,8 +883,14 @@ void SelectTool::release(const input::Sample& sample)
 
 void SelectTool::showFrame()
 {
-    publish(layoutSelection(m_context.document.page(), m_context.user.selection(), m_context.view.zoom(),
-                            m_context.view.objectBarCommands()));
+    SelectionView view = layoutSelection(m_context.document.page(), m_context.user.selection(),
+                                         m_context.view.zoom(), m_context.view.objectBarCommands());
+    view.shapePoints = shownShapePoints(m_context.user.selection());
+    if (!view.shapePoints.empty()) { // les carrés remplacent poignées et points intelligents (F-527)
+        view.handlesVisible = false;
+        view.smartPoints.clear();
+    }
+    publish(view);
 }
 
 void SelectTool::publish(const SelectionView& view)
@@ -700,6 +908,10 @@ void SelectTool::reset() noexcept
     m_command.clear();
     m_smartParameters.clear();
     m_smartMoved = false;
+    m_shapePoint = 0;
+    m_shapePointTo.reset();
+    m_copied.clear();
+    m_copySources.clear();
     m_base.clear();
     m_grabbed.clear();
     m_lifted.clear();

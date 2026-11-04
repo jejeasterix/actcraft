@@ -927,6 +927,26 @@ private slots:
         QCOMPARE(f.cached.fixed->pendingCount(), 0); // versé par la demande elle-même
     }
 
+    // L5-C4 : un geste qui reconstruit la page (retrait ou réordonnancement : « remove » puis « insert » de
+    // chaque objet) puis insère en fin de page, dans le même tour, ne laisse pas ce dernier objet en attente
+    // : le redessin demandé par la reconstruction le couvre ; sinon le versement après l'inactivité fait un
+    // second redessin pour un seul geste (collage, « premier plan » : 2 mesurés au banc, S8.2 exige 1).
+    void insertAfterRebuildOfTheSameTurnIsNotLeftWaiting()
+    {
+        PendingFixture f;
+        QVERIFY(openPending(f, m_stylus.get()));
+        QCoreApplication::processEvents(); // les demandes de l'ouverture sont d'un tour passé
+        QSignalSpy requested(f.cached.view, &PageView::cacheRefreshRequested);
+        f.cached.fixed->remove(0, actcraft::core::RectF{}); // reconstruction de la page
+        f.cached.fixed->appendStroke(line(300));            // même tour, fin de page
+        QCOMPARE(f.cached.fixed->pendingCount(), 0);
+        QCOMPARE(requested.count(), 1);
+        f.cached.view->notifyCacheUpdated();
+        QTest::qWait(kCacheFoldIdleMs + 300);
+        QCOMPARE(requested.count(), 1); // aucun versement tardif : un seul redessin pour le geste
+        QCOMPARE(f.cached.fixed->pendingCount(), 0);
+    }
+
     void inputPostponesTheFold()
     {
         PendingFixture f;

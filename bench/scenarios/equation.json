@@ -7,7 +7,7 @@
     {"command": "insert.equation"},
     {"expect": "equationRoot.visible", "value": true},
     {"wait": 300},
-    {"pointer": [[448, 268]], "button": "left", "space": "window"},
+    {"pointer": "equationTemplate_fraction", "button": "left"},
     {"key": "1"},
     {"key": "Right"},
     {"key": "2"},

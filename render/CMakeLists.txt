@@ -35,6 +35,8 @@ actcraft_add_module(render
         src/liftlayeritem.cpp
         include/actcraft/render/gridoverlayitem.h
         src/gridoverlayitem.cpp
+        include/actcraft/render/imagefill.h
+        src/imagefill.cpp
     DEPENDS
         ActCraft::core Qt6::Quick)
 
