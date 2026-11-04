@@ -17,6 +17,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -105,7 +106,9 @@ public:
     // le fil principal pendant un contact).
     Q_INVOKABLE bool rename(const QString& path,
                             const QString& newName); // extension gardée ; nom pris : faux
-    Q_INVOKABLE bool remove(const QString& path);    // corbeille si usesTrash, sinon suppression définitive
+    // Corbeille si usesTrash et pas `permanently`, sinon suppression définitive. Corbeille en échec : faux et
+    // trashFailed(path) ; le QML peut alors proposer la suppression définitive.
+    Q_INVOKABLE bool remove(const QString& path, bool permanently = false);
     Q_INVOKABLE bool createFolder(const QString& name);
     Q_INVOKABLE QString addSelection(); // Ressource<N>.actcraft dans le dossier courant, N premier libre
     Q_INVOKABLE bool insert(const QString& path, QPointF pagePoint); // dans la page courante, une étape
@@ -113,10 +116,12 @@ public:
     static QString mineRoot();   // Documents/ActCraft/Ressources
     static QString sharedRoot(); // <AppDataLocation>/ressources-partagees (réglable par le profil)
 
-    // Essais : racines, corbeille et observateur du rendu (appelé sur le fil de la tâche de vignette).
+    // Essais : racines, corbeille (`fails` : moveToTrash simulé en échec), observateurs du rendu (fil de la
+    // tâche de vignette, à chaque rendu) et de la recherche (fil de la recherche, à chaque fichier visité).
     static void setRootPathsForTests(const QString& mine, const QString& shared);
-    static void setTrashForTests(bool useTrash);
+    static void setTrashForTests(bool useTrash, bool fails = false);
     static void setRenderObserverForTests(std::function<void()> observer);
+    static void setSearchObserverForTests(std::function<void()> observer);
 
 signals:
     void documentChanged();
@@ -131,6 +136,7 @@ signals:
     void searchingChanged();
     void viewChanged();
     void thumbnailsRenderedChanged();
+    void trashFailed(const QString& path); // remove : corbeille en échec, rien n'est supprimé
 
 public:
     struct Item

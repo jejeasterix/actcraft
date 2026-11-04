@@ -16,13 +16,18 @@
 #include <QImage>
 #include <QMutex>
 #include <QMutexLocker>
+#include <QRectF>
+#include <QSemaphore>
 #include <QSet>
+#include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QThread>
+#include <QThreadPool>
 #include <QUrl>
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <variant>
@@ -109,6 +114,28 @@ int insertedGroupMembers(const core::Page& page, std::size_t first)
     return resolved;
 }
 
+// Emprise des objets de la page à partir du rang `first` (un groupe n'en a pas : ses membres).
+QRectF insertedBounds(const core::Page& page, std::size_t first)
+{
+    QRectF out;
+    for (std::size_t i = first; i < page.objects.size(); ++i) {
+        if (!core::hasExtent(page.objects[i]))
+            continue;
+        const core::RectF box = core::boundsOnPage(page.objects[i]);
+        out = out.united(QRectF(box.x, box.y, box.width, box.height));
+    }
+    return out;
+}
+
+// Observateur qui compte ses appels et retient le premier jusqu'à `gate.release()` (5 s au plus).
+std::function<void()> holdFirst(std::atomic<int>& calls, QSemaphore& gate)
+{
+    return [&calls, &gate] {
+        if (calls.fetch_add(1) == 0)
+            gate.tryAcquire(1, 5000);
+    };
+}
+
 // Bibliothèque montée sur des documents, commandes et profil d'essai réels ; racines dans un dossier
 // temporaire (aucun réglage ni dossier du poste touché).
 struct Fixture
@@ -189,6 +216,7 @@ private slots:
     {
         QDir(cacheDir()).removeRecursively(); // chaque essai rend ses vignettes
         ui::ResourceLibrary::setRenderObserverForTests({});
+        ui::ResourceLibrary::setSearchObserverForTests({});
         QMutexLocker lock(&g_threadsMutex);
         g_renderThreads.clear();
     }
@@ -312,8 +340,13 @@ private slots:
         QCOMPARE(f.library.itemCount(), 1);
     }
 
+    // Le fil de recherche est retenu au premier fichier ; annulée, la recherche s'arrête au suivant (le fil
+    // ne parcourt pas les 199 autres).
     void searchIsCancellable()
     {
+        std::atomic<int> visited{0};
+        QSemaphore gate;
+        ui::ResourceLibrary::setSearchObserverForTests(holdFirst(visited, gate));
         Fixture f;
         for (int i = 0; i < 200; ++i)
             QVERIFY(
@@ -322,11 +355,15 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(f.library.itemCount(), 200, 10000);
         f.library.search(QStringLiteral("absent"), true, true);
         QVERIFY(f.library.searching());
+        QTRY_COMPARE_WITH_TIMEOUT(visited.load(), 1, 10000);
         QElapsedTimer timer;
         timer.start();
         f.library.cancelSearch();
         QTRY_VERIFY_WITH_TIMEOUT(!f.library.searching(), 200);
         QVERIFY(timer.elapsed() < 200);
+        gate.release();
+        QVERIFY(QThreadPool::globalInstance()->waitForDone(10000));
+        QCOMPARE(visited.load(), 1);
         // Le résultat d'une recherche annulée n'est jamais appliqué.
         QTest::qWait(500);
         QVERIFY(!f.library.searching());
@@ -403,6 +440,9 @@ private slots:
         QVERIFY(f.library.insert(fragment, QPointF(600, 400)));
         QCOMPARE(f.page().objects.size(), before + 4);
         QCOMPARE(insertedGroupMembers(f.page(), before + 1), 2);
+        const QRectF placed = insertedBounds(f.page(), before + 1); // centre de l'ensemble sur le point visé
+        QVERIFY2(qAbs(placed.center().x() - 600) < 0.5 && qAbs(placed.center().y() - 400) < 0.5,
+                 qPrintable(QStringLiteral("%1, %2").arg(placed.center().x()).arg(placed.center().y())));
 
         f.document.undo(); // une étape : le fragment entier
         QCOMPARE(f.page().objects.size(), before + 1);
@@ -438,9 +478,15 @@ private slots:
         Fixture f;
         const QString image = QDir(f.mine).filePath(QStringLiteral("photo.png"));
         QVERIFY(writeImage(image, "PNG"));
+        const QString fragment = QDir(f.mine).filePath(QStringLiteral("trait.actcraft"));
+        QVERIFY(writeStrokeFragment(fragment));
         const core::ObjectId id = addStroke(f.document, 300, 200);
         f.tools.user().setSelection({id});
+        const std::size_t before = f.page().objects.size();
         f.library.setContactActive(true);
+        // Un fragment se lit sur le fil principal : insert est refusé pendant le contact, image comprise.
+        QVERIFY(!f.library.insert(fragment, QPointF(300, 300)));
+        QVERIFY(!f.library.insert(image, QPointF(300, 300)));
         QVERIFY(!f.library.rename(image, QStringLiteral("autre")));
         QVERIFY(QFile::exists(image));
         QVERIFY(!f.library.remove(image));
@@ -449,7 +495,11 @@ private slots:
         QVERIFY(!QFileInfo::exists(QDir(f.mine).filePath(QStringLiteral("neuf"))));
         QVERIFY(f.library.addSelection().isEmpty());
         QVERIFY(!QFile::exists(QDir(f.mine).filePath(QStringLiteral("Ressource1.actcraft"))));
+        QTest::qWait(300); // aucune insertion différée
+        QCOMPARE(f.page().objects.size(), before);
         f.library.setContactActive(false); // relâché : de nouveau permis
+        QVERIFY(f.library.insert(fragment, QPointF(300, 300)));
+        QCOMPARE(f.page().objects.size(), before + 1);
         QVERIFY(f.library.createFolder(QStringLiteral("neuf")));
         QVERIFY(f.library.rename(image, QStringLiteral("autre")));
     }
@@ -462,8 +512,11 @@ private slots:
         const core::ObjectId id = addStroke(f.document, 300, 200);
         f.tools.user().setSelection({id});
         const std::size_t before = f.page().objects.size();
+        const QString fragment = QDir(f.mine).filePath(QStringLiteral("trait.actcraft"));
+        QVERIFY(writeStrokeFragment(fragment));
         f.commands.setLocked(true);
         QVERIFY(!f.library.insert(image, QPointF(300, 300)));
+        QVERIFY(!f.library.insert(fragment, QPointF(300, 300)));
         QVERIFY(f.library.addSelection().isEmpty());
         QTest::qWait(300); // aucune insertion différée
         QCOMPARE(f.page().objects.size(), before);
@@ -493,6 +546,179 @@ private slots:
         QVERIFY(QFile::exists(image));
         QVERIFY(!bare.createFolder(QStringLiteral("neuf")));
         QVERIFY(!QFileInfo::exists(QDir(f.mine).filePath(QStringLiteral("neuf"))));
+    }
+
+    // Patron de PageThumbnails::pump (une vignette en vol au plus, contact vérifié avant chacune). Le premier
+    // rendu est retenu : rien d'autre ne part ; un contact posé APRÈS le lancement arrête la file au retour de
+    // celle en vol, jusqu'au relâché.
+    void thumbnailsOneAtATimeStoppedByContact()
+    {
+        std::atomic<int> renders{0};
+        QSemaphore gate;
+        ui::ResourceLibrary::setRenderObserverForTests(holdFirst(renders, gate));
+        Fixture f;
+        constexpr int kCount = 12;
+        for (int i = 0; i < kCount; ++i)
+            QVERIFY(writeImage(QDir(f.mine).filePath(QStringLiteral("i%1.png").arg(i)), "PNG"));
+        f.library.openFolder(f.mine);
+        QTRY_COMPARE_WITH_TIMEOUT(renders.load(), 1, 10000);
+        QTest::qWait(200);
+        QCOMPARE(renders.load(), 1); // une seule en vol
+        f.library.setContactActive(true);
+        gate.release();
+        QTRY_COMPARE_WITH_TIMEOUT(f.library.thumbnailsRendered(), 1, 10000); // celle en vol aboutit
+        QTest::qWait(300);
+        QCOMPARE(renders.load(), 1); // aucune autre pendant le contact
+        QCOMPARE(f.library.thumbnailsRendered(), 1);
+        f.library.setContactActive(false);
+        QTRY_COMPARE_WITH_TIMEOUT(f.library.thumbnailsRendered(), kCount, 10000);
+        QCOMPARE(renders.load(), kCount);
+    }
+
+    // Dossier quitté pendant un rendu : la vignette en vol est jetée, aucune autre de l'ancien dossier n'est
+    // rendue, le nouveau dossier est servi ensuite.
+    void thumbnailsOfALeftFolderNotRendered()
+    {
+        std::atomic<int> renders{0};
+        QSemaphore gate;
+        ui::ResourceLibrary::setRenderObserverForTests(holdFirst(renders, gate));
+        Fixture f;
+        for (int i = 0; i < 12; ++i)
+            QVERIFY(writeImage(QDir(f.mine).filePath(QStringLiteral("i%1.png").arg(i)), "PNG"));
+        const QString next = QDir(f.mine).filePath(QStringLiteral("suivant"));
+        const QString only = QDir(next).filePath(QStringLiteral("seule.png"));
+        QVERIFY(QDir().mkpath(next));
+        QVERIFY(writeImage(only, "PNG"));
+        f.library.openFolder(f.mine);
+        QTRY_COMPARE_WITH_TIMEOUT(renders.load(), 1, 10000);
+        f.library.openFolder(next);
+        gate.release();
+        QTRY_COMPARE_WITH_TIMEOUT(f.library.thumbnailsRendered(), 1, 10000);
+        QCOMPARE(renders.load(), 2); // celle en vol (jetée) et celle du nouveau dossier
+        QTest::qWait(300);
+        QCOMPARE(renders.load(), 2);
+        QCOMPARE(f.paths(), QStringList{only});
+        QVERIFY(f.library.data(f.library.index(0), ui::ResourceLibrary::ThumbnailRole).toUrl().isLocalFile());
+    }
+
+    // Vignette trouvée dans le cache : montrée sans nouveau rendu.
+    void thumbnailFoundInCache()
+    {
+        std::atomic<int> renders{0};
+        ui::ResourceLibrary::setRenderObserverForTests([&renders] { ++renders; });
+        Fixture f;
+        QVERIFY(writeImage(QDir(f.mine).filePath(QStringLiteral("a.png")), "PNG"));
+        QVERIFY(writeStrokeFragment(QDir(f.mine).filePath(QStringLiteral("b.actcraft"))));
+        f.library.openFolder(f.mine);
+        QTRY_COMPARE_WITH_TIMEOUT(f.library.thumbnailsRendered(), 2, 10000);
+        QCOMPARE(renders.load(), 2);
+        ui::ResourceLibrary second;
+        second.setProfile(f.profile.get());
+        second.setRoot(QStringLiteral("mine"));
+        QTRY_COMPARE(second.itemCount(), 2);
+        for (int row = 0; row < 2; ++row) {
+            QTRY_VERIFY(
+                second.data(second.index(row), ui::ResourceLibrary::ThumbnailRole).toUrl().isLocalFile());
+            QCOMPARE(second.data(second.index(row), ui::ResourceLibrary::ThumbnailRole),
+                     f.library.data(f.library.index(row), ui::ResourceLibrary::ThumbnailRole));
+        }
+        QCOMPARE(renders.load(), 2);
+        QCOMPARE(second.thumbnailsRendered(), 0);
+    }
+
+    // Un dossier relu pendant une recherche (ajout, renommage) la termine : searching faux tout de suite, le
+    // dossier affiché, le résultat abandonné jamais appliqué.
+    void rereadEndsTheSearch()
+    {
+        Fixture f;
+        const QString a = QDir(f.mine).filePath(QStringLiteral("a.png"));
+        QVERIFY(writeImage(a, "PNG"));
+        QVERIFY(writeImage(QDir(f.mine).filePath(QStringLiteral("b.png")), "PNG"));
+        f.library.openFolder(f.mine);
+        QTRY_COMPARE(f.library.itemCount(), 2);
+        const core::ObjectId id = addStroke(f.document, 300, 200);
+        f.tools.user().setSelection({id});
+
+        f.library.search(QStringLiteral("a"), true, false);
+        QVERIFY(f.library.searching());
+        const QString added = f.library.addSelection();
+        QVERIFY(!added.isEmpty());
+        QVERIFY(!f.library.searching());
+        QTRY_COMPARE(f.library.itemCount(), 3);
+        QVERIFY(f.paths().contains(added));
+
+        f.library.search(QStringLiteral("a"), true, false);
+        QVERIFY(f.library.searching());
+        QVERIFY(f.library.rename(a, QStringLiteral("z")));
+        QVERIFY(!f.library.searching());
+        QTRY_VERIFY(f.paths().contains(QDir(f.mine).filePath(QStringLiteral("z.png"))));
+        QTest::qWait(300);
+        QVERIFY(!f.library.searching());
+        QCOMPARE(f.library.itemCount(), 3);
+    }
+
+    // cancelSearch après une recherche finie : retour au dossier (resourcelibrary.h, cancelSearch).
+    void cancelAfterTheSearchRestoresTheFolder()
+    {
+        Fixture f;
+        for (const char* name : {"rouge.png", "vert.png", "bleu.png"})
+            QVERIFY(writeImage(QDir(f.mine).filePath(QString::fromLatin1(name)), "PNG"));
+        f.library.openFolder(f.mine);
+        QTRY_COMPARE(f.library.itemCount(), 3);
+        f.library.search(QStringLiteral("rouge"), true, false);
+        QTRY_VERIFY(!f.library.searching());
+        QCOMPARE(f.library.itemCount(), 1);
+        f.library.cancelSearch();
+        QTRY_COMPARE(f.library.itemCount(), 3);
+    }
+
+    // Dossier courant (ou un de ses parents) renommé ou supprimé : le dossier courant passe au parent de
+    // l'élément touché ; l'ancien chemin n'est jamais recréé.
+    void currentFolderRenamedOrRemoved()
+    {
+        Fixture f;
+        const QString x = QDir(f.mine).filePath(QStringLiteral("x"));
+        const QString inner = QDir(x).filePath(QStringLiteral("dedans"));
+        const QString near = QDir(f.mine).filePath(QStringLiteral("xy")); // même début de nom, épargné
+        QVERIFY(QDir().mkpath(inner));
+        QVERIFY(QDir().mkpath(near));
+        const core::ObjectId id = addStroke(f.document, 300, 200);
+        f.tools.user().setSelection({id});
+        f.library.openFolder(near);
+        QVERIFY(f.library.rename(x, QStringLiteral("w")));
+        QCOMPARE(f.library.folder(), near);
+        const QString w = QDir(f.mine).filePath(QStringLiteral("w"));
+        f.library.openFolder(QDir(w).filePath(QStringLiteral("dedans")));
+        QVERIFY(f.library.rename(w, QStringLiteral("y")));
+        QCOMPARE(f.library.folder(), f.mine);
+        QCOMPARE(f.library.addSelection(), QDir(f.mine).filePath(QStringLiteral("Ressource1.actcraft")));
+        QVERIFY(!QFileInfo::exists(w));
+        const QString y = QDir(f.mine).filePath(QStringLiteral("y"));
+        f.library.openFolder(y);
+        QVERIFY(f.library.remove(y));
+        QCOMPARE(f.library.folder(), f.mine);
+        QCOMPARE(f.library.addSelection(), QDir(f.mine).filePath(QStringLiteral("Ressource2.actcraft")));
+        QVERIFY(!QFileInfo::exists(y));
+        QVERIFY(!f.library.remove(f.mine)); // la racine elle-même : refusée
+        QVERIFY(QFileInfo(f.mine).isDir());
+    }
+
+    // Corbeille en échec : remove rend faux et le dit (trashFailed) ; le QML peut alors proposer la
+    // suppression définitive.
+    void trashFailureReported()
+    {
+        Fixture f;
+        const QString image = QDir(f.mine).filePath(QStringLiteral("photo.png"));
+        QVERIFY(writeImage(image, "PNG"));
+        ui::ResourceLibrary::setTrashForTests(true, true); // corbeille simulée en échec, jamais celle du poste
+        QSignalSpy failed(&f.library, &ui::ResourceLibrary::trashFailed);
+        QVERIFY(!f.library.remove(image));
+        QVERIFY(QFile::exists(image));
+        QCOMPARE(failed.count(), 1);
+        QCOMPARE(failed.at(0).at(0).toString(), image);
+        QVERIFY(f.library.remove(image, true));
+        QVERIFY(!QFile::exists(image));
+        ui::ResourceLibrary::setTrashForTests(false);
     }
 };
 

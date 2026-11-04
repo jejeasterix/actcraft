@@ -40,8 +40,10 @@ struct TestHooks
     QString mine;
     QString shared;
     bool useTrash = true;
+    bool trashFails = false;
     QMutex observerMutex;
     std::function<void()> observer;
+    std::function<void()> searchObserver;
 };
 
 TestHooks& hooks()
@@ -500,15 +502,22 @@ void ResourceLibrary::setRootPathsForTests(const QString& mine, const QString& s
     hooks().shared = shared;
 }
 
-void ResourceLibrary::setTrashForTests(bool useTrash)
+void ResourceLibrary::setTrashForTests(bool useTrash, bool fails)
 {
     hooks().useTrash = useTrash;
+    hooks().trashFails = fails;
 }
 
 void ResourceLibrary::setRenderObserverForTests(std::function<void()> observer)
 {
     QMutexLocker lock(&hooks().observerMutex);
     hooks().observer = std::move(observer);
+}
+
+void ResourceLibrary::setSearchObserverForTests(std::function<void()> observer)
+{
+    QMutexLocker lock(&hooks().observerMutex);
+    hooks().searchObserver = std::move(observer);
 }
 
 QString ResourceLibrary::rootPath(const QString& root) const
@@ -715,14 +724,14 @@ bool ResourceLibrary::rename(const QString& path, const QString& newName)
     return done;
 }
 
-bool ResourceLibrary::remove(const QString& path)
+bool ResourceLibrary::remove(const QString& path, bool permanently)
 {
     const QFileInfo info(path);
     if (m_commands == nullptr || m_contactActive || !info.exists())
         return false;
     bool done = false;
-    if (usesTrash())
-        done = QFile::moveToTrash(info.absoluteFilePath());
+    if (usesTrash() && !permanently)
+        done = !hooks().trashFails && QFile::moveToTrash(info.absoluteFilePath());
     else if (info.isDir())
         done = QDir(info.absoluteFilePath()).removeRecursively();
     else
