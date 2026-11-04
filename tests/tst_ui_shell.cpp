@@ -1264,7 +1264,9 @@ private slots:
             QCOMPARE(menuIds(menu->property("entries").toList()), cleaned);
         }
         commands->setPlatform(actions::Platform::Windows);
-        QCOMPARE(menu->property("visibleCommandCount").toInt(), 14);
+        // 14 entrées d'avant le lot 6 (sélection sans annotation : les deux « Convertir » masquées), plus
+        // browser.properties et resources.add (L6-P2) = 16.
+        QCOMPARE(menu->property("visibleCommandCount").toInt(), 16);
         QVERIFY(menuIds(menu->property("entries").toList()).contains(QStringLiteral("transform")));
     }
 
