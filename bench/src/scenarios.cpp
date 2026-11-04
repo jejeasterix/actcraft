@@ -804,7 +804,7 @@ std::vector<std::int64_t> pageChangeMarks(const std::vector<std::int64_t>& swapN
 
 std::vector<std::pair<std::int64_t, std::int64_t>>
 pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<bool>& awaitsReady,
-                  const std::vector<std::int64_t>& shownNs, const std::vector<bool>& playsEffect,
+                  const std::vector<std::int64_t>& shownNs, const std::vector<int>& effectIdleRank,
                   const std::vector<std::int64_t>& idleNs)
 {
     std::vector<std::pair<std::int64_t, std::int64_t>> windows;
@@ -813,7 +813,7 @@ pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<
         if (at < 0) {
             continue; // commande jamais jouée
         }
-        if (i < playsEffect.size() && playsEffect[i]) {
+        if (i < effectIdleRank.size() && effectIdleRank[i] >= 0) {
             const auto idle = std::lower_bound(idleNs.begin(), idleNs.end(), at);
             windows.emplace_back(at, idle == idleNs.end() ? std::numeric_limits<std::int64_t>::max() : *idle);
             continue;
@@ -849,6 +849,13 @@ QString pageEffectsCheck(const ScenarioPlan& plan, int played)
         .arg(played)
         .arg(expected)
         .arg(plan.name);
+}
+
+QString pageEffectEndCheck(const ScenarioPlan& plan, bool playing)
+{
+    Q_UNUSED(plan);
+    Q_UNUSED(playing);
+    return {};
 }
 
 } // namespace actcraft::bench

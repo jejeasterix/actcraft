@@ -1134,17 +1134,33 @@ private slots:
         QCOMPARE(windows, (std::vector<Window>{{20, 70}, {600, 650}, {1300, 1300}, {1400, kNever}}));
     }
 
-    // L7-T38 (relecture, bloquant) : une commande qui a lancé un effet garde sa fenêtre jusqu'au premier
-    // retour au repos de la transition après elle, même sans prêt attendu (page encore prête juste après
-    // page.next) ; sans retour relevé, jusqu'à la fin. Les autres commandes gardent la leur.
+    // L7-T38 (relecture, bloquant) : une commande qui a lancé un effet garde sa fenêtre jusqu'au retour au
+    // repos de son rang (un repos relevé avant elle, 10 : rang 1 ; trois : rang 3), même sans prêt attendu
+    // (page encore prête juste après page.next) ; sans retour relevé, jusqu'à la fin. Les autres commandes
+    // (rang -1) gardent la leur.
     void pageChangeWindowsKeepEffectsOpenUntilIdle()
     {
         constexpr std::int64_t kNever = std::numeric_limits<std::int64_t>::max();
         using Window = std::pair<std::int64_t, std::int64_t>;
         const std::vector<Window> windows =
             bench::pageChangeWindows({20, 600, 900, 1300}, {false, false, true, false}, {950},
-                                     {true, false, false, true}, {10, 540, 1200});
+                                     {1, -1, -1, 3}, {10, 540, 1200});
         QCOMPARE(windows, (std::vector<Window>{{20, 540}, {600, 600}, {900, 950}, {1300, kNever}}));
+    }
+
+    // L7-T38 (relecture tour 2, majeur) : un effet qui déborde sa période tourne encore quand la commande
+    // suivante part (900). navigate() le clôt d'abord (settle() : repos relevé à 905, APRÈS l'heure de la
+    // commande), puis lance le nouvel effet, fini à 1400. La fenêtre de la commande 900 se ferme sur le repos
+    // de son rang (1 : idleNs.size() relevé après elle), la fin de son propre effet ; le premier repos
+    // postérieur à 900 (lower_bound) la fermerait à 905 et laisserait l'animation du second effet au repos.
+    // Le troisième effet (rang 2) ne revient jamais au repos : fenêtre ouverte jusqu'à la fin.
+    void pageChangeWindowsCloseOverrunEffectsOnTheirOwnIdle()
+    {
+        constexpr std::int64_t kNever = std::numeric_limits<std::int64_t>::max();
+        using Window = std::pair<std::int64_t, std::int64_t>;
+        const std::vector<Window> windows =
+            bench::pageChangeWindows({20, 900, 1500}, {false, false, false}, {}, {0, 1, 2}, {905, 1400});
+        QCOMPARE(windows, (std::vector<Window>{{20, 905}, {900, 1400}, {1500, kNever}}));
     }
 
     // L7-T38 (relecture, majeur) : un effet tombé au repli de capture (page changée sans effet) ou jamais
@@ -1160,6 +1176,18 @@ private slots:
         const bench::ScenarioPlan page = bench::pageScenario(bench::ScenarioSet::Court);
         QCOMPARE(bench::expectedPageEffects(page), 0);
         QVERIFY(bench::pageEffectsCheck(page, 0).isEmpty());
+    }
+
+    // L7-T38 (relecture tour 2) : le dernier effet encore en cours après l'attente de fin de mesure (jamais
+    // revenu au repos) rend la mesure invalide : sa fenêtre resterait ouverte jusqu'à la fin et la
+    // transition, encore en surcouche, passerait au scénario suivant. Un plan sans effet n'est pas contrôlé.
+    void pageEffectEndCheckWantsTheLastEffectFinished()
+    {
+        const bench::ScenarioPlan effects = bench::effectsScenario(bench::ScenarioSet::Court);
+        QCOMPARE(bench::pageEffectEndCheck(effects, true),
+                 QStringLiteral("error: page effect not finished in effets-page"));
+        QVERIFY(bench::pageEffectEndCheck(effects, false).isEmpty());
+        QVERIFY(bench::pageEffectEndCheck(bench::pageScenario(bench::ScenarioSet::Court), true).isEmpty());
     }
 
     // L7-T38 (relecture) : les choix d'effet d'« effets-page » (view.page-effect) sont des commandes de

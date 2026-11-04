@@ -575,9 +575,9 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     std::vector<std::int64_t> commandPlanned(commands.size(), 0);
     std::vector<std::int64_t> commandRun(commands.size(), -1);
     std::vector<bool> commandAwaits(commands.size(), true); // un prêt (page, cache) doit suivre la commande
-    // L7-T38 : commandes qui lancent un effet de page (pageEffects) : fenêtre ouverte jusqu'à la fin de
-    // l'effet.
-    std::vector<bool> commandPlaysEffect(commands.size(), false);
+    // L7-T38 : commandes qui lancent un effet de page (pageEffects) : rang, dans effects->idleNs(), du
+    // retour au repos qui finit leur effet (-1 : aucun effet) ; leur fenêtre reste ouverte jusque-là.
+    std::vector<int> commandEffectIdle(commands.size(), -1);
     std::unique_ptr<TransitionWatch> effects;
     if (plan.pageEffects) {
         effects =
@@ -646,7 +646,11 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
             // Page et cache encore prêts : aucun prêt ne viendra (zoom sans cache), la fenêtre se ferme à la
             // première image qui suit la commande.
             commandAwaits[nextCommand] = !(m_fixed->isReady() && m_view->cacheReady());
-            commandPlaysEffect[nextCommand] = effects && effects->playing();
+            // Relevé APRÈS la commande : navigate() a déjà clos l'effet précédent s'il tournait encore
+            // (settle(), son repos est relevé) ; le prochain repos est la fin du sien.
+            if (effects && effects->playing()) {
+                commandEffectIdle[nextCommand] = static_cast<int>(effects->idleNs().size());
+            }
             ++nextCommand;
         }
         if (nextCommand < commands.size()) {
@@ -855,7 +859,7 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
         }
     }
     const std::vector<std::int64_t> marks = pageChangeMarks(
-        s.frames.swapNs, pageChangeWindows(judgedRun, commandAwaits, shownNs, commandPlaysEffect,
+        s.frames.swapNs, pageChangeWindows(judgedRun, commandAwaits, shownNs, commandEffectIdle,
                                            effects ? effects->idleNs() : std::vector<std::int64_t>{}));
     classified.inputNs.insert(classified.inputNs.end(), marks.begin(), marks.end());
     std::sort(classified.inputNs.begin(), classified.inputNs.end());

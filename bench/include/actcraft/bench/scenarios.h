@@ -273,11 +273,15 @@ std::vector<std::int64_t> pageChangeMarks(const std::vector<std::int64_t>& swapN
 // Fenêtres des commandes jouées (`commandNs[i]` ≥ 0) : jusqu'au premier prêt relevé après elles (`shownNs`,
 // trié ; aucun : jusqu'à la fin), ou jusqu'à la commande elle-même si elle n'en attend aucun
 // (`awaitsReady[i]` faux : page et cache encore prêts juste après elle, comme un zoom sans cache).
-// L7-T38 : une commande qui a lancé un effet de page (`playsEffect[i]`) garde la sienne jusqu'au premier
-// retour au repos de la transition relevé après elle (`idleNs`, trié ; aucun : jusqu'à la fin).
+// L7-T38 : une commande qui a lancé un effet de page garde la sienne jusqu'au retour au repos de la
+// transition de rang `effectIdleRank[i]` dans `idleNs` (trié ; absent : jusqu'à la fin), soit
+// idleNs.size() relevé juste APRÈS la commande : la fin de son propre effet. Pas le premier repos relevé
+// après l'heure de la commande : navigate() clôt d'abord l'effet précédent encore en cours (settle()),
+// et ce repos-là, postérieur à la commande, fermerait la fenêtre au départ du nouvel effet. Rang négatif :
+// aucun effet.
 std::vector<std::pair<std::int64_t, std::int64_t>>
 pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<bool>& awaitsReady,
-                  const std::vector<std::int64_t>& shownNs, const std::vector<bool>& playsEffect = {},
+                  const std::vector<std::int64_t>& shownNs, const std::vector<int>& effectIdleRank = {},
                   const std::vector<std::int64_t>& idleNs = {});
 // L7-T38 : effets attendus d'un plan à effets (pageEffects) : un par page.next ou page.previous ; 0 sinon.
 int expectedPageEffects(const ScenarioPlan& plan);
@@ -285,6 +289,9 @@ int expectedPageEffects(const ScenarioPlan& plan);
 // jamais émis par le repli de capture, qui change la page sans effet) n'est pas expectedPageEffects(plan) ;
 // vide sinon.
 QString pageEffectsCheck(const ScenarioPlan& plan, int played);
+// L7-T38 : raison d'invalidité quand un plan à effets (pageEffects) a encore un effet en cours (`playing` :
+// TransitionController::playing) après l'attente de fin de mesure ; vide sinon.
+QString pageEffectEndCheck(const ScenarioPlan& plan, bool playing);
 
 // Annotation de départ d'un scénario : un trait de 4 de large, un point par QPointF, à pression moyenne.
 core::Stroke seedAnnotation(const std::vector<QPointF>& points);

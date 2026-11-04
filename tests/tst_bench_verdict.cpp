@@ -220,6 +220,11 @@ class TstBenchVerdict : public QObject
     // suivants.
     QTemporaryDir m_settingsDir;
 
+    // L7-T38 (relecture tour 2) : clés laissées dans l'INI temporaire, partagé par tout le processus
+    // (pageEffectRestoredAfterEarlyStop y laisse un effet global et une durée de 1,2 s) ; vide : les
+    // réglages par défaut de l'application.
+    static QString leftoverSettings() { return QSettings().allKeys().join(QStringLiteral(", ")); }
+
 private slots:
     void initTestCase()
     {
@@ -899,6 +904,8 @@ private slots:
     // »). Une taille LxH explicite l'emporte sur la taille fixe hors écran.
     void benchRunReadsItsTargetsAt1366x768()
     {
+        const QString left = leftoverSettings();
+        QVERIFY2(left.isEmpty(), qPrintable(left)); // configuration réelle, rien d'un passage précédent
         BenchOptions options;
         options.fullScreen = false;
         options.windowSize = QSize(1366, 768);
@@ -916,6 +923,8 @@ private slots:
     void offscreenFullScreenGetsTheFixedSize()
     {
         QCOMPARE(QGuiApplication::platformName(), QStringLiteral("offscreen"));
+        const QString left = leftoverSettings();
+        QVERIFY2(left.isEmpty(), qPrintable(left)); // configuration réelle, rien d'un passage précédent
         BenchOptions options;
         QVERIFY(options.fullScreen);
         const BenchResult r = runBench(options);
