@@ -312,6 +312,7 @@ SetObjectPropertiesCommand::SetObjectPropertiesCommand(int page, std::vector<Obj
 void SetObjectPropertiesCommand::redo(Document& document, Changes& changes)
 {
     m_old.clear();
+    m_partlyRefused = false;
     if (isDelegated(m_property) || !validPage(document, m_page)) {
         return;
     }
@@ -329,7 +330,9 @@ void SetObjectPropertiesCommand::redo(Document& document, Changes& changes)
         }
         m_old.emplace_back(id, std::move(*before));
         const RectF area = boundsOnPage(page, object);
-        if (!refused(object, m_property, m_value) && write(object, m_property, m_value)) {
+        if (refused(object, m_property, m_value)) {
+            m_partlyRefused = true;
+        } else if (write(object, m_property, m_value)) {
             changes.push_back(changeFor(m_property, pageIndex, id, area, boundsOnPage(page, object)));
         }
     }
@@ -367,6 +370,11 @@ bool SetObjectPropertiesCommand::mergeWith(const UndoCommand& other)
     const auto* next = dynamic_cast<const SetObjectPropertiesCommand*>(&other);
     if (next == nullptr || next->m_page != m_page || next->m_property != m_property ||
         next->m_objects != m_objects) {
+        return false;
+    }
+    // Un pas refusé en partie (forme et trait, épaisseur 0) reste une étape à part : fusionné, il laisserait
+    // une valeur refusée dans l'étape, et Refaire après Annuler ne rejouerait pas le glissé.
+    if (next->m_partlyRefused) {
         return false;
     }
     m_value = next->m_value;
