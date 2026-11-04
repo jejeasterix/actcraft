@@ -86,7 +86,7 @@ bool movable(const core::PageObject& object, bool lockIgnored)
 }
 
 // Dimensionnable : la règle des poignées (layoutSelection, beginTransform ; P28, P30), pas celle du glisser.
-bool resizable(const core::PageObject& object, bool lockIgnored = false)
+bool resizable(const core::PageObject& object, bool lockIgnored)
 {
     return (lockIgnored || !object.common.locked) && object.common.restrictions.resizable;
 }
@@ -97,12 +97,14 @@ bool rotatable(const core::PageObject& object, bool lockIgnored)
     return (lockIgnored || !object.common.locked) && object.common.restrictions.rotatable;
 }
 
-// Parmi `ids` (présents), ceux qu'Agrandir et Réduire changent (M1, L3-C9).
-std::vector<core::ObjectId> resizableAmong(const core::Page& page, const std::vector<core::ObjectId>& ids)
+// Parmi `ids` (présents), ceux qu'Agrandir et Réduire changent (M1, L3-C9) : la règle des poignées, verrou
+// ignoré compris (mode conception).
+std::vector<core::ObjectId> resizableAmong(const core::Page& page, const std::vector<core::ObjectId>& ids,
+                                           bool lockIgnored)
 {
     std::vector<core::ObjectId> out;
     for (const core::ObjectId id : ids) {
-        if (resizable(page.objects[core::indexOf(page, id)])) {
+        if (resizable(page.objects[core::indexOf(page, id)], lockIgnored)) {
             out.push_back(id);
         }
     }
@@ -333,7 +335,7 @@ void SelectTool::scaleSelection(double factor)
 {
     const core::Page& page = m_context.document.page();
     const std::vector<core::ObjectId> ids = present(page, m_context.user.selection());
-    const std::vector<core::ObjectId> scaled = resizableAmong(page, ids);
+    const std::vector<core::ObjectId> scaled = resizableAmong(page, ids, m_context.lockIgnored);
     if (scaled.empty()) {
         return;
     }
@@ -642,8 +644,9 @@ void SelectTool::endSmartPoint(bool cancelled)
     showFrame();
 }
 
-// Un point de forme d'une forme seule, non verrouillée : soulevée, son aperçu est le résultat de
-// MoveShapePointCommand sur une copie (L5-T9, aucune règle refaite ici) ; le dépôt est une seule commande.
+// Un point de forme d'une forme seule, non verrouillée (ou verrou ignoré) : soulevée, son aperçu est le
+// résultat de MoveShapePointCommand sur une copie (L5-T9, aucune règle refaite ici) ; le dépôt est une seule
+// commande. Aperçu et dépôt passent à la commande le choix « verrou ignoré » : sa garde reste au cœur.
 void SelectTool::beginShapePoint()
 {
     const core::Page& page = m_context.document.page();
@@ -669,7 +672,8 @@ void SelectTool::updateShapePoint(core::PointF point)
     core::Document probe; // hors du document : aucun redessin du cache pendant le geste
     probe.page(0).objects.push_back(*m_firstLifted);
     core::Changes ignored;
-    core::MoveShapePointCommand(0, m_firstLifted->common.id, m_shapePoint, point).redo(probe, ignored);
+    core::MoveShapePointCommand(0, m_firstLifted->common.id, m_shapePoint, point, m_context.lockIgnored)
+        .redo(probe, ignored);
     core::PageObject preview = probe.page(0).objects.front();
     m_shapePointTo = point;
     SelectionView view = m_frame;
@@ -690,10 +694,10 @@ void SelectTool::endShapePoint(bool cancelled)
         // L5-T10 : le connecteur lié suit ; enveloppée, la commande ne fusionne plus, le geste reste une
         // étape parce qu'il n'en dépose qu'une, au relâché.
         const std::size_t page = m_context.document.pageIndex();
-        m_context.document.drop(
-            core::withFollowingConnectors(m_context.document.page(), page,
-                                          std::make_unique<core::MoveShapePointCommand>(
-                                              page, m_lifted.front(), m_shapePoint, *m_shapePointTo)));
+        m_context.document.drop(core::withFollowingConnectors(
+            m_context.document.page(), page,
+            std::make_unique<core::MoveShapePointCommand>(page, m_lifted.front(), m_shapePoint,
+                                                          *m_shapePointTo, m_context.lockIgnored)));
     }
     m_context.lift.clear();
     reset();

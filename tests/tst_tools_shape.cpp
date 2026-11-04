@@ -269,6 +269,26 @@ private slots:
         QCOMPARE(o.common.transform.dy, 50.0); // Q4a2-m9 : l'axe Y aussi (52 -> 50, 103 -> 100)
         QCOMPARE(std::get<core::Shape>(core::body(o)).bounds.height, 50.0);
     }
+    // Accrochage coupé (mode conception, disableSnap) : appui et relâché gardent leurs coordonnées.
+    void snapDisabledKeepsPressAndRelease()
+    {
+        Harness h;
+        h.user.setShapeSettings(settings("rectangle", true, false));
+        auto& grid = h.doc.document.page(0).grid;
+        grid.snapEnabled = true;
+        core::GridLevel level;
+        level.spacingX = level.spacingY = 50;
+        grid.levels.push_back(level);
+        h.context.snapDisabled = true;
+        tools::ShapeTool tool(h.context);
+        tool.onSample(at(48, 52, Phase::Press));
+        tool.onSample(at(147, 103, Phase::Release));
+        const auto& o = h.doc.document.page(0).objects.back();
+        QCOMPARE(o.common.transform.dx, 48.0);
+        QCOMPARE(o.common.transform.dy, 52.0);
+        QCOMPARE(std::get<core::Shape>(core::body(o)).bounds.width, 99.0);
+        QCOMPARE(std::get<core::Shape>(core::body(o)).bounds.height, 51.0);
+    }
     void cancelClearsThePreview()
     {
         Harness h;
