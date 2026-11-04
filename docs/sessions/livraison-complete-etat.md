@@ -234,6 +234,7 @@ Reprise après la relève (2026-11-04, ouvrière du pilote du Mac, handoff `1c56
 Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstruites) : 207/207, 0 avertissement — orchestrateur, 2026-11-04.
 Tâche : L6-C5 — tête rouge : couleurs de L6-T8 × profils de L6-T6 — depuis 2026-11-04
 Tâche : L6-T12 — modèle des propriétés — depuis 2026-11-04
+Tâche : L6-C7 — objets de la page en boutons de la barre de raccourcis (F-141) — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -259,6 +260,7 @@ Tâche : L6-T12 — modèle des propriétés — depuis 2026-11-04
 | L6-C5 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C5`, base fda7a9f | tête rouge 205/207 après les merges de L6-T6 et L6-T8, verts chacun sur leur base ; `concepteur-critique` |
 | L6-T12 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T12`, base ef0a762 | V5 ; `concepteur-critique` ; brief : `objectFlagsChanged` au lieu de `m_lockConnection`/`triggered`, `lockFromElsewhereRefreshes` réécrit, `closeMerge()` après chaque modification ponctuelle |
 | L6-C6 | terminée | 1/3 | ec8efa6 (rouge), 17b7b2a, fusion de la tête 005738a → merge 04d4a57 | rejoué par l'orchestrateur sur la branche fusionnée avec la tête : 205/207, 0 avertissement ; seuls rouges `tst_ui_colors` et `tst_captures_couleurs`, ceux de la tête (L6-C5) ; `tst_ui_document`, `tst_ui_objectediting`, `tst_ui_objecttree` Passed ; diff des tests : aucune assertion retirée ; relevé trié par identifiant (recherche dichotomique, `arrived`/`pageOf` retirés) ; `ObjectEditing` relie `objectFlagsChanged` à `selectionStateChanged`, `Connections` de `Main.qml` retiré ; mutation du `connect` rouge (agent) ; restes PC : MSVC |
+| L6-C7 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C7`, base e8cca29 | écart de L6-T9 : chemin de l'interface vers `ShortcutBar::addObjects` (glisser ou commande du menu contextuel), sort de `notePaletteTrigger` ; `implementeur-tdd` |
 
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
