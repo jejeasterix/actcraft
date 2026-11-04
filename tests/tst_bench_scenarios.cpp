@@ -6,6 +6,7 @@
 #include <actcraft/core/hittest.h>
 #include <actcraft/features/recognitionsession.h>
 #include <actcraft/features/shapefinder.h>
+#include <actcraft/features/transitions.h>
 #include <actcraft/render/paintedrenderer.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pagethumbnails.h>
@@ -139,8 +140,9 @@ private slots:
         // miniatures-pauses » (12). L4-T28 : « zones-zoom » (13). L5-T19 : « edition » (14). L5-T31 :
         // « onglets » et « export-fond » après eux (16). L5-C12 : « export-fond-reference » juste avant
         // « export-fond » (17). L7-T34 : « reconnaissance » en dernier (18 : les dix-sept premiers gardent
-        // leur nom et leur rang).
-        QCOMPARE(plans.size(), std::size_t{18});
+        // leur nom et leur rang). L7-T38 (M1) : « effets-page » (S22) et « message-defilant » (S23) en dernier
+        // (20 : les dix-huit premiers gardent leur nom et leur rang).
+        QCOMPARE(plans.size(), std::size_t{20});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
@@ -158,10 +160,83 @@ private slots:
         QCOMPARE(plans[14].name, QStringLiteral("onglets"));
         QCOMPARE(plans[15].name, QStringLiteral("export-fond-reference"));
         QCOMPARE(plans[16].name, QStringLiteral("export-fond"));
-        QCOMPARE(plans[17].name, QStringLiteral("reconnaissance")); // L7-T34 : en dernier (dix-sept avant)
+        QCOMPARE(plans[17].name, QStringLiteral("reconnaissance")); // L7-T34 : dix-sept avant
+        QCOMPARE(plans[18].name, QStringLiteral("effets-page"));    // L7-T38 : S22
+        QCOMPARE(plans[19].name, QStringLiteral("message-defilant")); // L7-T38 : S23
         for (std::size_t i = 0; i < 5; ++i) {
             QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
             QVERIFY(plans[i].seedStrokes.empty());
+        }
+    }
+
+    // L7-T38 (M1, S22) : « effets-page » joue chaque effet de transitionCatalogue() (hors « none » et « random
+    // », qui ne montrent aucun mouvement propre) par page.next / page.previous en alternance, dans l'ordre du
+    // catalogue : view.page-effect <id>, puis le changement de page 50 ms après, un effet par période (durée
+    // de l'effet + marge). La dernière entrée remet « none » après la dernière période, pour que le dernier
+    // effet finisse dans la mesure. Durée de l'effet : 0,5 s en court, 1,5 s en complet.
+    void effectsScenarioPlaysEveryCatalogueEffect()
+    {
+        std::vector<QString> expected;
+        const auto& catalogue = features::transitionCatalogue();
+        for (const auto& e : catalogue) {
+            if (e.id != QLatin1String("none") && e.id != QLatin1String("random")) {
+                expected.push_back(e.id);
+            }
+        }
+        QCOMPARE(expected.size(), std::size_t{16});
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bool court = set == bench::ScenarioSet::Court;
+            const bench::ScenarioPlan plan = bench::effectsScenario(set);
+            QCOMPARE(plan.name, QStringLiteral("effets-page"));
+            QCOMPARE(plan.generatedPages, 2);
+            QVERIFY(!plan.tickerRuns);
+            const int tenths = court ? 5 : 15;
+            QCOMPARE(plan.setupCommands.size(), std::size_t{1});
+            QCOMPARE(plan.setupCommands.front().first, QStringLiteral("view.page-effect-duration"));
+            QCOMPARE(plan.setupCommands.front().second.toInt(), tenths);
+            QCOMPARE(plan.teardownCommands.size(), std::size_t{1});
+            QCOMPARE(plan.teardownCommands.front().first, QStringLiteral("view.page-effect-duration"));
+            QCOMPARE(plan.teardownCommands.front().second.toInt(), 15); // durée par défaut rétablie
+            QCOMPARE(plan.inputs.size(), expected.size() * 2 + 1);
+            const std::int64_t period = std::int64_t{tenths} * 100'000'000 + 400'000'000;
+            for (std::size_t k = 0; k < expected.size(); ++k) {
+                const bench::PlannedInput& effect = plan.inputs[2 * k];
+                const bench::PlannedInput& page = plan.inputs[2 * k + 1];
+                QVERIFY(effect.kind == InputKind::Command && page.kind == InputKind::Command);
+                QCOMPARE(effect.command, QStringLiteral("view.page-effect"));
+                QCOMPARE(effect.argument.toString(), expected[k]);
+                QCOMPARE(effect.offsetNs, static_cast<std::int64_t>(k) * period);
+                QCOMPARE(page.command,
+                         k % 2 == 0 ? QStringLiteral("page.next") : QStringLiteral("page.previous"));
+                QCOMPARE(page.offsetNs, effect.offsetNs + 50'000'000);
+            }
+            const bench::PlannedInput& last = plan.inputs.back();
+            QCOMPARE(last.command, QStringLiteral("view.page-effect"));
+            QCOMPARE(last.argument.toString(), QStringLiteral("none"));
+            QCOMPARE(last.offsetNs, static_cast<std::int64_t>(expected.size()) * period);
+        }
+    }
+
+    // L7-T38 (M1, S23) : « message-defilant » = les traits de « stroke » (mêmes entrées, même latence mesurée)
+    // pendant que le message défile en boucle (tickerRuns : le banc règle boucle et vitesse 10, démarre le
+    // message avant la mesure et l'arrête après). Aucun autre scénario ne porte le drapeau.
+    void tickerScenarioWritesWhileTheMessageScrolls()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan stroke = bench::strokeScenario(set);
+            const bench::ScenarioPlan ticker = bench::tickerScenario(set);
+            QCOMPARE(ticker.name, QStringLiteral("message-defilant"));
+            QVERIFY(ticker.tickerRuns);
+            QCOMPARE(ticker.inputs.size(), stroke.inputs.size());
+            for (std::size_t i = 0; i < stroke.inputs.size(); ++i) {
+                QVERIFY(ticker.inputs[i].kind == stroke.inputs[i].kind);
+                QCOMPARE(ticker.inputs[i].offsetNs, stroke.inputs[i].offsetNs);
+                QCOMPARE(ticker.inputs[i].pagePos, stroke.inputs[i].pagePos);
+                QCOMPARE(ticker.inputs[i].measured, stroke.inputs[i].measured);
+            }
+            for (const auto& plan : bench::allScenarios(set)) {
+                QCOMPARE(plan.tickerRuns, plan.name == QStringLiteral("message-defilant"));
+            }
         }
     }
 
@@ -173,8 +248,8 @@ private slots:
     {
         for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
             const auto plans = bench::allScenarios(set);
-            QVERIFY(!plans.empty());
-            const bench::ScenarioPlan& plan = plans.back();
+            QVERIFY(plans.size() > 17);
+            const bench::ScenarioPlan& plan = plans[17]; // L7-T38 : deux scénarios la suivent désormais
             QCOMPARE(plan.name, QStringLiteral("reconnaissance"));
             QVERIFY(plan.toolCommand.isEmpty());
             QCOMPARE(plan.setupCommands.size(), std::size_t{1});

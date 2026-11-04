@@ -59,7 +59,8 @@ private slots:
         // L4-T28 : « zones-zoom » (douze avant) ; L5-T31 : « onglets » et « export-fond » après « edition »
         // (quatorze avant) ; L5-C12 : « export-fond-reference » juste avant « export-fond » ; L7-T34 :
         // « reconnaissance » en dernier (dix-sept avant, rangs inchangés).
-        QCOMPARE(scenarios.size(), 18);
+        // L7-T38 (M1) : « effets-page » (S22) et « message-defilant » (S23) après lui (vingt, rangs inchangés).
+        QCOMPARE(scenarios.size(), 20);
         const QStringList names{QStringLiteral("stroke"),           QStringLiteral("zoom"),
                                 QStringLiteral("scroll"),           QStringLiteral("page"),
                                 QStringLiteral("pauses"),           QStringLiteral("gommer"),
@@ -68,8 +69,9 @@ private slots:
                                 QStringLiteral("miniatures-ferme"), QStringLiteral("miniatures-pauses"),
                                 QStringLiteral("zones-zoom"),       QStringLiteral("edition"),
                                 QStringLiteral("onglets"),          QStringLiteral("export-fond-reference"),
-                                QStringLiteral("export-fond"),      QStringLiteral("reconnaissance")};
-        for (qsizetype i = 0; i < 18; ++i) {
+                                QStringLiteral("export-fond"),      QStringLiteral("reconnaissance"),
+                                QStringLiteral("effets-page"),      QStringLiteral("message-defilant")};
+        for (qsizetype i = 0; i < 20; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);
