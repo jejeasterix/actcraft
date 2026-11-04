@@ -234,6 +234,8 @@ Reprise après la relève (2026-11-04, ouvrière du pilote du Mac, handoff `1c56
 Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstruites) : 207/207, 0 avertissement — orchestrateur, 2026-11-04.
 Tâche : L6-C7 — objets de la page en boutons de la barre de raccourcis (F-141) — depuis 2026-11-04
 Tâche : L6-C8 — mineurs des revues de L6-C5 et L6-T11 — depuis 2026-11-04
+Tâche : L6-T13 — navigateur de propriétés QML, scénario `proprietes` — depuis 2026-11-04
+Tâche : L6-C9 — mineurs de la contre-revue de L6-T12 (n1, n3, n4) — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -261,6 +263,8 @@ Tâche : L6-C8 — mineurs des revues de L6-C5 et L6-T11 — depuis 2026-11-04
 | L6-C6 | terminée | 1/3 | ec8efa6 (rouge), 17b7b2a, fusion de la tête 005738a → merge 04d4a57 | rejoué par l'orchestrateur sur la branche fusionnée avec la tête : 205/207, 0 avertissement ; seuls rouges `tst_ui_colors` et `tst_captures_couleurs`, ceux de la tête (L6-C5) ; `tst_ui_document`, `tst_ui_objectediting`, `tst_ui_objecttree` Passed ; diff des tests : aucune assertion retirée ; relevé trié par identifiant (recherche dichotomique, `arrived`/`pageOf` retirés) ; `ObjectEditing` relie `objectFlagsChanged` à `selectionStateChanged`, `Connections` de `Main.qml` retiré ; mutation du `connect` rouge (agent) ; restes PC : MSVC |
 | L6-C7 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C7`, base e8cca29 | écart de L6-T9 : chemin de l'interface vers `ShortcutBar::addObjects` (glisser ou commande du menu contextuel), sort de `notePaletteTrigger` ; `implementeur-tdd` |
 | L6-C8 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C8`, base 7396e6a | mineurs de L6-C5 (commentaire et test du filtre de doublons de `swatches()`, lectures `swatch-15`/`swatch-16` du scénario `couleurs`) et de L6-T11 (pas refusé en partie fusionné, Refaire faux ; épaisseurs -1, NaN, 0 sans test) ; `implementeur-tdd` |
+| L6-T13 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T13`, base 5ea6a4f | navigateur de propriétés QML, scénario `proprietes` ; brief : rôles du modèle, `endEdit()` au relâcher, bornes, `preferences` de `BrowserPanel.qml` si touché ; `implementeur-tdd` |
+| L6-C9 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C9`, base 5ea6a4f | n1 `setValue` vrai sans effet (épaisseur 0 d'un trait), n3 premier pas d'un glissé sans clôture, n4 tests (index de `dataChanged`, NaN, `endEdit()`) ; `implementeur-tdd` |
 
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
