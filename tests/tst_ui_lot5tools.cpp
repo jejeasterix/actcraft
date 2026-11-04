@@ -190,7 +190,7 @@ private slots:
         core::ObjectId imageId = 0;
         app.document->replaceDocument(documentWithImage(&imageId), QUrl(), QStringLiteral("image"));
         QVERIFY(QTest::qWaitFor([&] { return app.view->cacheReady(); }, 20000));
-        const QColor penColor = app.tools->color();
+        const QColor toolColor = app.tools->color();
 
         QVERIFY(app.trigger("tool.fill"));
         QCOMPARE(app.tools->currentTool(), QStringLiteral("fill"));
@@ -208,7 +208,7 @@ private slots:
                                   10000);
 
         QVERIFY(app.trigger("tool.pen"));
-        QCOMPARE(app.tools->color(), penColor); // la mémoire est par outil
+        QCOMPARE(app.tools->color(), toolColor); // la mémoire est par outil
         QVERIFY(app.trigger("tool.fill"));
         QCOMPARE(app.tools->color(), QColor(QStringLiteral("#00aa00")));
     }
@@ -610,10 +610,10 @@ private slots:
         QVERIFY(shift > 50);
         const core::PageObject& object = app.object(connectorId);
         const auto& connector = std::get<core::Connector>(object);
-        const core::PointF endA = object.common.transform.map(connector.firstEnd);
-        const core::PointF endB = object.common.transform.map(connector.secondEnd);
-        QVERIFY2(std::abs(endA.y - (100 + shift)) < 0.01, "le bout A suit A");
-        QVERIFY2(std::abs(endB.x - 400) < 0.01 && std::abs(endB.y - 100) < 0.01, "le bout B reste sur B");
+        const core::PointF firstTip = object.common.transform.map(connector.firstEnd);
+        const core::PointF secondTip = object.common.transform.map(connector.secondEnd);
+        QVERIFY2(std::abs(firstTip.y - (100 + shift)) < 0.01, "le bout A suit A");
+        QVERIFY2(std::abs(secondTip.x - 400) < 0.01 && std::abs(secondTip.y - 100) < 0.01, "le bout B reste sur B");
         QCOMPARE(connector.objectB, b);
     }
 };

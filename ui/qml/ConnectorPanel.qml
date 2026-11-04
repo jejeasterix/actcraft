@@ -146,11 +146,11 @@ Rectangle {
                 delegate: Column {
                     id: capGroup
                     required property int index
-                    readonly property bool endA: index === 0
+                    readonly property bool startSide: index === 0
                     width: parent.width
                     spacing: Theme.espace1
                     Text {
-                        text: capGroup.endA ? qsTr("Extrémité A") : qsTr("Extrémité B")
+                        text: capGroup.startSide ? qsTr("Extrémité A") : qsTr("Extrémité B")
                         font.pixelSize: Theme.taillePolice
                         color: Theme.texte
                     }
@@ -160,8 +160,8 @@ Rectangle {
                             id: capEntry
                             required property int index
                             required property string modelData
-                            readonly property bool current: (capGroup.endA ? root.capA : root.capB) === index
-                            objectName: (capGroup.endA ? "connectorCapA-" : "connectorCapB-") + index
+                            readonly property bool current: (capGroup.startSide ? root.capA : root.capB) === index
+                            objectName: (capGroup.startSide ? "connectorCapA-" : "connectorCapB-") + index
                             width: parent.width
                             height: Theme.tailleBouton
                             radius: Theme.rayon
@@ -169,7 +169,7 @@ Rectangle {
                             border.width: 1
                             border.color: Theme.contour
                             Accessible.role: Accessible.RadioButton
-                            Accessible.name: (capGroup.endA ? qsTr("Extrémité A : %1") : qsTr("Extrémité B : %1")).arg(modelData)
+                            Accessible.name: (capGroup.startSide ? qsTr("Extrémité A : %1") : qsTr("Extrémité B : %1")).arg(modelData)
                             Accessible.checked: current
                             Text {
                                 anchors.centerIn: parent
@@ -178,7 +178,7 @@ Rectangle {
                                 color: capEntry.current ? Theme.texteSurActive : Theme.texte
                             }
                             TapHandler {
-                                onTapped: capGroup.endA ? root.chooseCaps(capEntry.index, root.capB)
+                                onTapped: capGroup.startSide ? root.chooseCaps(capEntry.index, root.capB)
                                                         : root.chooseCaps(root.capA, capEntry.index)
                             }
                         }

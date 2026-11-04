@@ -341,9 +341,9 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
     if (o.contains(QStringLiteral("file"))) {
         step.kind = UiStepKind::FileCheck;
         step.path = o.value(QStringLiteral("file")).toString();
-        const bool hasPages = o.contains(QStringLiteral("pdfPages"));
+        const bool withPdfPages = o.contains(QStringLiteral("pdfPages"));
         const bool hasSize = o.contains(QStringLiteral("imageSize"));
-        if (hasPages) {
+        if (withPdfPages) {
             const QJsonValue pages = o.value(QStringLiteral("pdfPages"));
             step.pdfPages = pages.isDouble() ? pages.toInt(-1) : -1;
         }
@@ -355,7 +355,7 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
                 step.imageSize = QSize(qRound(size.x()), qRound(size.y()));
             }
         }
-        if (step.path.isEmpty() || hasPages == hasSize || (hasPages && step.pdfPages < 1) ||
+        if (step.path.isEmpty() || withPdfPages == hasSize || (withPdfPages && step.pdfPages < 1) ||
             (hasSize && !step.imageSize.isValid())) {
             why = QStringLiteral(
                 "fichier invalide (file, puis pdfPages ≥ 1 ou imageSize [largeur, hauteur], un seul)");
