@@ -3,9 +3,9 @@
 #include <QFileInfo>
 #include <QJsonObject>
 #include <QJsonValue>
-#include <QUrl>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QUrl>
 #include <QVariantMap>
 
 #include <utility>
@@ -24,7 +24,8 @@ const QString kExportCommand = QStringLiteral("profile.export");
 // Chemin local d'une URL de fichier (QUrl ou texte « file:… ») ou chemin tel quel ; vide sans argument.
 QString localPath(const QVariant& argument)
 {
-    const QUrl url = argument.metaType().id() == QMetaType::QUrl ? argument.toUrl() : QUrl(argument.toString());
+    const QUrl url =
+        argument.metaType().id() == QMetaType::QUrl ? argument.toUrl() : QUrl(argument.toString());
     if (url.isLocalFile()) {
         return url.toLocalFile();
     }
