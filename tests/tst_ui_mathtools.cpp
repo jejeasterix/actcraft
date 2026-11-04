@@ -1517,6 +1517,9 @@ private slots:
         tools->setArcStyle(0, QStringLiteral("arc"));
         QTRY_VERIFY(entryChecked(menu, QStringLiteral("Arc")));
         QVERIFY(!entryChecked(menu, QStringLiteral("Arc fermé")));
+        tools->setArcStyle(0, QStringLiteral("filled")); // l'entrée décochée par le groupe se recoche
+        QTRY_VERIFY(entryChecked(menu, filled));
+        QVERIFY(!entryChecked(menu, QStringLiteral("Arc")));
 
         QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Fermer")));
         QTRY_COMPARE(tools->count(), 0);
@@ -1537,10 +1540,10 @@ private slots:
 
         auto* fresh = new actcraft::ui::Commands(layer);
         QVERIFY(layer->setProperty("commands", QVariant::fromValue(fresh)));
-        QVERIFY(fresh->isChecked(QStringLiteral("math.xy-origin")));
         QCOMPARE(tools->count(), 0);
         QVERIFY(fresh->trigger(QStringLiteral("math.ruler")));
         QCOMPARE(tools->count(), 1);
+        QVERIFY(fresh->isChecked(QStringLiteral("math.xy-origin")));
 
         QVERIFY(fresh->trigger(QStringLiteral("math.xy-origin"))); // bascule : masquée, coche retirée
         QVERIFY(!tools->originVisible());
