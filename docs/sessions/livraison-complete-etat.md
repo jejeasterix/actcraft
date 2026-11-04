@@ -218,7 +218,7 @@ Lot 2b (plan `docs/plans/2026-10-15-livraison-complete-lot2b-PLAN.md` ; vagues V
 
 ## Lot 6 — exécution sur le Mac (session « Mac 6 », depuis le 2026-11-04)
 
-Lot : 6 « Navigateurs, propriétés, profils » — 17/43 tâches mergées (L6-T0 à L6-T5, L6-T7, L6-T10, L6-T11, L6-T6, L6-T8, L6-T14 (+ L6-C4), L6-T15, L6-T16, L6-C2, L6-C1, L6-C3 ; 38 + L6-P1, L6-P2) ; V1 close ; amendements 4 (a00ffee) et 4b (5f29ec3) appliqués ; V2 close ; V3 en cours (L6-T14 essai 3) ; V4 en cours (L6-T7, L6-T11) ; L6-C3 à rejouer ; interrompu le 2026-11-04 par la relève de machine (PC éteint, Mac seul) — depuis 2026-11-04
+Lot : 6 « Navigateurs, propriétés, profils » — 18/43 tâches mergées (L6-T0 à L6-T5, L6-T7, L6-T10, L6-T11, L6-T6, L6-T8, L6-T14 (+ L6-C4), L6-T15, L6-T16, L6-C2, L6-C1, L6-C3, L6-C6 ; 38 + L6-P1, L6-P2) ; V1 close ; amendements 4 (a00ffee) et 4b (5f29ec3) appliqués ; V2 close ; V3 en cours (L6-T14 essai 3) ; V4 en cours (L6-T7, L6-T11) ; L6-C3 à rejouer ; interrompu le 2026-11-04 par la relève de machine (PC éteint, Mac seul) — depuis 2026-11-04
 Référence rapide du lot 6 (Mac, 06a3f8f, `build-mac` debug hors écran) : 164/164 (3 sautés : oracles et miniatures des paperboards réels absents). N6 = 164.
 Reprise (lot 6) : lancé le 2026-11-04 par le pilote, sur le Mac (décision de Jérôme, 2026-11-04, à la question « Je lance le lot 6 d'ActCraft sur Mac 6 ? » : « Oui. Tu n'as pas besoin de mon accord, la demande d'origine vient de moi. »). Base : `feat/livraison-complete` @ 692e62f (lot 5 mergé dans `main`, c1046b9). Le PC mène en parallèle la passe Windows et la porte de fin du lot 5 sur la même branche : `git pull` (merge) avant chaque commit, push aussitôt ; cette section et les sections du lot 6 sont les seules écrites par la session du Mac.
 Règles du Mac (consignes `~/pilotage-mac/consignes-actcraft.md`) : construction `build-mac` (Qt Homebrew, Ninja, Debug, banc ON), suites `ctest` hors écran sous `jeton.cjs` (qui prend `~/.verrou-suite`), **une seule tâche qui construit à la fois** (P = 1, 8 Go) ; ccache installé pour les worktrees de tâche. Reportés au PC (« restes pour le PC », passe groupée en fin de lot) : `TESTS OK` MSVC hors CI, captures et banc D3D11 à l'écran, `captures.ps1`/`bench.ps1`, `NOMS OK`, contrôle des titres du corpus, confrontation vidéos/REA de L6-T0 (corpus et ancien dépôt absents du Mac, comme H5-11). Preuve Windows des PR : CI gratuite (dépôt public).
@@ -235,7 +235,6 @@ Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstrui
 Tâche : L6-T9 — barre de raccourcis — depuis 2026-11-04
 Tâche : L6-C5 — tête rouge : couleurs de L6-T8 × profils de L6-T6 — depuis 2026-11-04
 Tâche : L6-T12 — modèle des propriétés — depuis 2026-11-04
-Tâche : L6-C6 — mineurs de la revue de L6-C2 — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -260,7 +259,7 @@ Tâche : L6-C6 — mineurs de la revue de L6-C2 — depuis 2026-11-04
 | L6-T9 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T9`, base b36efff | V6 ; `implementeur-tdd` |
 | L6-C5 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C5`, base fda7a9f | tête rouge 205/207 après les merges de L6-T6 et L6-T8, verts chacun sur leur base ; `concepteur-critique` |
 | L6-T12 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T12`, base ef0a762 | V5 ; `concepteur-critique` ; brief : `objectFlagsChanged` au lieu de `m_lockConnection`/`triggered`, `lockFromElsewhereRefreshes` réécrit, `closeMerge()` après chaque modification ponctuelle |
-| L6-C6 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C6`, base ef0a762 | 4 mineurs de la revue de L6-C2 (test `arrived`, émission de trop après une page rétablie, `pageOf`, `selectionLocked` relié au signal) ; `implementeur-tdd` |
+| L6-C6 | terminée | 1/3 | ec8efa6 (rouge), 17b7b2a, fusion de la tête 005738a → merge 04d4a57 | rejoué par l'orchestrateur sur la branche fusionnée avec la tête : 205/207, 0 avertissement ; seuls rouges `tst_ui_colors` et `tst_captures_couleurs`, ceux de la tête (L6-C5) ; `tst_ui_document`, `tst_ui_objectediting`, `tst_ui_objecttree` Passed ; diff des tests : aucune assertion retirée ; relevé trié par identifiant (recherche dichotomique, `arrived`/`pageOf` retirés) ; `ObjectEditing` relie `objectFlagsChanged` à `selectionStateChanged`, `Connections` de `Main.qml` retiré ; mutation du `connect` rouge (agent) ; restes PC : MSVC |
 
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
