@@ -22,9 +22,14 @@ Item {
     property int dragFrom: -1
     property int dropBefore: -1
 
-    ObjectTreeModel {
+    // rowCount n'est pas une propriété du modèle C++ : le banc lit les propriétés, on la lui donne ici.
+    component TreeModel: ObjectTreeModel {
+        property int rowCount: 0
+    }
+    TreeModel {
         id: appObjectTree
         objectName: "appObjectTree"
+        rowCount: list.count
         document: root.documentController
         tools: root.tools
         commands: root.commands
