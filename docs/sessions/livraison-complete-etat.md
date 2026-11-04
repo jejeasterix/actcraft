@@ -235,6 +235,8 @@ Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstrui
 Tâche : L6-T8 — couleurs étendues — depuis 2026-11-04
 Tâche : L6-T16 — navigateur de notes — depuis 2026-11-04
 Tâche : L6-T6 — cinq profils fournis — depuis 2026-11-04
+Tâche : L6-C2 — signal unique des drapeaux d'objet (H6-15) — depuis 2026-11-04
+Tâche : L6-T15 — navigateur d'objet QML — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -254,6 +256,8 @@ Tâche : L6-T6 — cinq profils fournis — depuis 2026-11-04
 | L6-T8 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T8`, base 955e4a4 | V5 avancée (dépendances T2, T5 faites) ; `implementeur-tdd` |
 | L6-T16 | rendue, rejeu en cours | 1/3 | ae272be (rouges), 4d6a417, e41b4cf, fusion de la tête e0d5397 ; `.worktrees/livraison-complete--L6-T16` | rapporté : 207/207, 0 avertissement, mutation `mergeId = -1` rouge ; `kMergeNotes = 7` ; icône par `browserPanel.hasNotes` (amendement), `TopBar.qml`/`Main.qml` intacts ; restes PC : `captures.ps1 -Scenario notes`, MSVC, `NOMS OK` |
 | L6-T6 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T6`, base 9cf2444 | V5 (T4, T5, T7 faites) ; `implementeur-tdd` |
+| L6-C2 | en cours | 1/3 | `.worktrees/livraison-complete--L6-C2`, base d164339 | H6-15 ; `concepteur-critique` ; avant L6-T12 |
+| L6-T15 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T15`, base d164339 | V4 ; `implementeur-tdd` ; `preferences` de `BrowserPanel.qml` (amendement 4) au brief |
 
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
