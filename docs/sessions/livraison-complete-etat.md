@@ -218,7 +218,7 @@ Lot 2b (plan `docs/plans/2026-10-15-livraison-complete-lot2b-PLAN.md` ; vagues V
 
 ## Lot 6 — exécution sur le Mac (session « Mac 6 », depuis le 2026-11-04)
 
-Lot : 6 « Navigateurs, propriétés, profils » — 28/43 tâches mergées (L6-T0 à L6-T5, L6-T7, L6-T9, L6-T10, L6-T11, L6-T12, L6-T13, L6-T6, L6-T8, L6-T14 (+ L6-C4), L6-T15, L6-T16, L6-T17, L6-C2, L6-C1, L6-C3, L6-C5, L6-C6, L6-C7, L6-C8, L6-C9, L6-P2, L6-P1 ; 38 + L6-P1, L6-P2) ; V1 close ; amendements 4 (a00ffee) et 4b (5f29ec3) appliqués ; V2 close ; V3 en cours (L6-T14 essai 3) ; V4 en cours (L6-T7, L6-T11) ; L6-C3 à rejouer ; interrompu le 2026-11-04 par la relève de machine (PC éteint, Mac seul) — depuis 2026-11-04
+Lot : 6 « Navigateurs, propriétés, profils » — 29/43 tâches mergées (L6-T0 à L6-T5, L6-T7, L6-T9, L6-T10, L6-T11, L6-T12, L6-T13, L6-T6, L6-T8, L6-T14 (+ L6-C4), L6-T15, L6-T16, L6-T17, L6-C2, L6-C1, L6-C3, L6-C5, L6-C6, L6-C7, L6-C8, L6-C9, L6-P2, L6-P1, L6-T18 ; sous-lot 6a clos ; V9 (L6-T19, L6-T22, L6-T24) en cours ; 38 + L6-P1, L6-P2) ; V1 close ; amendements 4 (a00ffee) et 4b (5f29ec3) appliqués ; V2 close ; V3 en cours (L6-T14 essai 3) ; V4 en cours (L6-T7, L6-T11) ; L6-C3 à rejouer ; interrompu le 2026-11-04 par la relève de machine (PC éteint, Mac seul) — depuis 2026-11-04
 Référence rapide du lot 6 (Mac, 06a3f8f, `build-mac` debug hors écran) : 164/164 (3 sautés : oracles et miniatures des paperboards réels absents). N6 = 164.
 Reprise (lot 6) : lancé le 2026-11-04 par le pilote, sur le Mac (décision de Jérôme, 2026-11-04, à la question « Je lance le lot 6 d'ActCraft sur Mac 6 ? » : « Oui. Tu n'as pas besoin de mon accord, la demande d'origine vient de moi. »). Base : `feat/livraison-complete` @ 692e62f (lot 5 mergé dans `main`, c1046b9). Le PC mène en parallèle la passe Windows et la porte de fin du lot 5 sur la même branche : `git pull` (merge) avant chaque commit, push aussitôt ; cette section et les sections du lot 6 sont les seules écrites par la session du Mac.
 Règles du Mac (consignes `~/pilotage-mac/consignes-actcraft.md`) : construction `build-mac` (Qt Homebrew, Ninja, Debug, banc ON), suites `ctest` hors écran sous `jeton.cjs` (qui prend `~/.verrou-suite`), **une seule tâche qui construit à la fois** (P = 1, 8 Go) ; ccache installé pour les worktrees de tâche. Reportés au PC (« restes pour le PC », passe groupée en fin de lot) : `TESTS OK` MSVC hors CI, captures et banc D3D11 à l'écran, `captures.ps1`/`bench.ps1`, `NOMS OK`, contrôle des titres du corpus, confrontation vidéos/REA de L6-T0 (corpus et ancien dépôt absents du Mac, comme H5-11). Preuve Windows des PR : CI gratuite (dépôt public).
@@ -232,7 +232,9 @@ Hypothèses du lot 6 décidées sur le Mac : **H6-11** (orchestrateur, 2026-11-0
 Questions à Jérôme (lot 6) : aucune ouverte (H6-6 accordée le 2026-10-18 ; H6-6b « MPL 1.1 » le 2026-10-21).
 Reprise après la relève (2026-11-04, ouvrière du pilote du Mac, handoff `1c566e9c`) : chantier réenregistré ; L6-C3 en rejeu ; L6-T14 essai 3 relancé (`concepteur-critique`) ; L6-T7 relancée depuis c8146ed ; L6-T11 en revue immédiate, rejeu après L6-C3.
 Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstruites) : 207/207, 0 avertissement — orchestrateur, 2026-11-04.
-Tâche : L6-T18 — point d'étape 6a, S9 `reglages-gardes` — depuis 2026-11-04
+Tâche : L6-T19 — fragment de ressource — depuis 2026-11-04
+Tâche : L6-T22 — mode conception (F-560) — depuis 2026-11-04
+Tâche : L6-T24 — documents récents et résumé — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -265,7 +267,10 @@ Tâche : L6-T18 — point d'étape 6a, S9 `reglages-gardes` — depuis 2026-11-0
 | L6-P1 | terminée | 2/3 | ebb24ed0 → merge afd91eb2 | couleur appliquée aux textes sélectionnés, une étape ; essai 2 : majeur de revue traité (même couleur → aucune étape, `colorAlreadyTakenAddsNoStep`), 2 mineurs traités ; rejeu : 207/207, 0 avertissement, `tst_captures_proprietes` `SCENARIO OK` (`PIXEL texte-recolore`, `PIXEL texte-annule`) ; décision : `recolorSelectedTexts` rend vrai dès qu'un texte est sélectionné, même sans changement |
 | L6-P2 | terminée | 1/3 | merge 6414a9be | entrées `browser.properties` et `resources.add` au menu d'objet ; rejeu 207/207, 0 avertissement, `LU objectEditMenu.visibleCommandCount=16 OK` ; `edition.json` 14 → 16 sur décision de l'orchestrateur (la contrainte 4b protégeait `proprietes.json` et `etiquettes.json`, en vol) |
 | L6-C9 | terminée | 1/3 | merge e98c9fbc | mineurs n1, n3, n4 de la revue de L6-T12 (PropertyModel) ; rejeu 207/207, 0 avertissement ; mutations n1, n3, n4 rouges ; n2 laissé à la porte de fin |
-| L6-T18 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T18`, depuis afd91eb2, 981cbaa1 (S9 rouge) | point d'étape 6a : S9 `reglages-gardes`, talons, graphe ; `implementeur-tdd` ; S9 rouge sur `browserPanel.current=objets` après `restart` : `BrowserPanel.qml` ne lit ni n'écrit `profile.browsersCurrent` → périmètre élargi par l'orchestrateur à `ui/qml/BrowserPanel.qml` et `bench/captures/main.cpp` (relance du moteur QML), même essai |
+| L6-T18 | terminée | 1/3 | merge 4f9449ea | point d'étape 6a : étape `restart` (joueur, `bench/captures/main.cpp` recrée le moteur QML sur les mêmes dossiers d'essai) ; `BrowserPanel.qml` lit et réécrit `profile.browsersCurrent` (périmètre élargi par l'orchestrateur, mutation rouge) ; rejeu : 207/207, 0 avertissement, `tst_captures_reglages_gardes` `SCENARIO OK` avec `paletteDock=left`, `extraCount=1`, `current=objets` après `RELANCE OK` ; talons L6-T2 à T17 absents ; graphe 285d8f3b. Pour 3.8 : `browsersVisible` lu par aucun QML ; `.graphifyignore` sans `build-mac/` (graphify à court de mémoire). Au PC : release, `TESTS OK` ×2, `NOMS OK`, `captures.ps1` |
+| L6-T24 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T24`, depuis 4f9449ea | V9 |
+| L6-T22 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T22`, depuis 4f9449ea | V9 |
+| L6-T19 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T19`, depuis 4f9449ea | V9 |
 
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
