@@ -1142,9 +1142,8 @@ private slots:
     {
         constexpr std::int64_t kNever = std::numeric_limits<std::int64_t>::max();
         using Window = std::pair<std::int64_t, std::int64_t>;
-        const std::vector<Window> windows =
-            bench::pageChangeWindows({20, 600, 900, 1300}, {false, false, true, false}, {950},
-                                     {1, -1, -1, 3}, {10, 540, 1200});
+        const std::vector<Window> windows = bench::pageChangeWindows(
+            {20, 600, 900, 1300}, {false, false, true, false}, {950}, {1, -1, -1, 3}, {10, 540, 1200});
         QCOMPARE(windows, (std::vector<Window>{{20, 540}, {600, 600}, {900, 950}, {1300, kNever}}));
     }
 

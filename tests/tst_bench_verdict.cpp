@@ -240,6 +240,15 @@ private slots:
                  qPrintable(settings.fileName()));
     }
 
+    // L7-T38 (relecture tour 2) : l'INI temporaire sert à tout le processus ; chaque passage le vide en
+    // sortant, le suivant part des réglages par défaut (configuration réelle du banc).
+    void cleanup()
+    {
+        QSettings settings;
+        settings.clear();
+        settings.sync();
+    }
+
     // L7-T38 (relecture) : « effets-page » arrêté avant sa mesure (commande de préparation refusée : break,
     // teardownCommands non joué) rend l'effet et la durée d'avant le scénario.
     void pageEffectRestoredAfterEarlyStop()

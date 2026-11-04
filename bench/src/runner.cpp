@@ -742,9 +742,13 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     // (debug, machine chargée) restait ouvert jusqu'à la fin de la mesure : aucun intervalle au repos après
     // la première commande (tst_bench_result, pageChangesAreActiveUntilShown, rouge sous charge). Sans prêt
     // relevé, l'attente va au plafond et la fenêtre reste ouverte, comme avant.
-    // L7-T38 : le dernier effet finit dans la mesure (sa fenêtre se ferme à son retour au repos).
+    // L7-T38 : le dernier effet finit dans la mesure (sa fenêtre se ferme à son retour au repos). Encore en
+    // cours au plafond : mesure invalide (fenêtre ouverte jusqu'à la fin, transition laissée en surcouche).
     if (effects && effects->playing()) {
         waitFor([&effects] { return !effects->playing(); }, kPageShownTimeoutMs);
+        if (const QString error = pageEffectEndCheck(plan, effects->playing()); !error.isEmpty()) {
+            invalidReasons << error;
+        }
     }
     if (!commands.empty()) {
         std::int64_t awaited = -1; // dernière commande jouée qui attend un prêt

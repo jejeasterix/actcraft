@@ -814,8 +814,9 @@ pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<
             continue; // commande jamais jouée
         }
         if (i < effectIdleRank.size() && effectIdleRank[i] >= 0) {
-            const auto idle = std::lower_bound(idleNs.begin(), idleNs.end(), at);
-            windows.emplace_back(at, idle == idleNs.end() ? std::numeric_limits<std::int64_t>::max() : *idle);
+            const auto rank = static_cast<std::size_t>(effectIdleRank[i]);
+            windows.emplace_back(at, rank < idleNs.size() ? idleNs[rank]
+                                                          : std::numeric_limits<std::int64_t>::max());
             continue;
         }
         if (i < awaitsReady.size() && !awaitsReady[i]) {
@@ -853,9 +854,10 @@ QString pageEffectsCheck(const ScenarioPlan& plan, int played)
 
 QString pageEffectEndCheck(const ScenarioPlan& plan, bool playing)
 {
-    Q_UNUSED(plan);
-    Q_UNUSED(playing);
-    return {};
+    if (!plan.pageEffects || !playing) {
+        return {};
+    }
+    return QStringLiteral("error: page effect not finished in %1").arg(plan.name);
 }
 
 } // namespace actcraft::bench

@@ -1,7 +1,7 @@
 {
   "format": "actcraft-scenario/1",
   "name": "compte-a-rebours",
-  "description": "F-290 : tool.clock ouvre le panneau horloge (cadran analogique et affichage numérique) ; le bouton Réglage ouvre la boîte du compte à rebours ; la durée 00:00:03 est saisie au clavier dans countdownField, l'action de fin « page suivante » choisie au clavier (Tab puis flèche bas), Entrée valide ; à l'échéance la page 2 est affichée (pageIndicator.text = 2 / 2) et le compte à rebours indique 00:00:00. Le déroulé du compte à rebours (saisie de 00:00:03, action « page suivante ») est le même que dans presentation.json (étapes de tool.clock à clockDigital.text) : une modification de l'un se reporte dans l'autre (le lecteur de scénarios n'a pas d'inclusion).",
+  "description": "F-290 : tool.clock ouvre le panneau horloge (cadran analogique et affichage numérique) ; le bouton Réglage ouvre la boîte du compte à rebours ; la durée 00:00:03 est saisie au clavier dans countdownField, l'action de fin « page suivante » choisie au clavier (Tab puis flèche bas), Entrée valide ; à l'échéance la page 2 est affichée (pageIndicator.text = 2 / 2) et le compte à rebours indique 00:00:00. Les étapes de tool.clock à clockDigital.text reprennent celles de presentation.json, avec deux captures que presentation.json n'a pas : « horloge-ouverte » (panneau ouvert, avant le clic sur Réglage) et « reglage » (boîte remplie, avant Entrée) ; la capture finale s'appelle « horloge » ici, « apres-compte-a-rebours » dans presentation.json. Le lecteur de scénarios n'a pas d'inclusion : une modification de ces étapes se reporte dans l'autre fichier.",
   "steps": [
     {"waitReady": true},
     {"command": "tool.clock"},
