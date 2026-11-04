@@ -126,7 +126,9 @@ private:
     bool start(App& app, const QString& settingsFile = QString())
     {
         app.engine.setInitialProperties(
-            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+            {{QStringLiteral("cacheEnabled"), true},
+             {QStringLiteral("generatedPage"), false},
+             {QStringLiteral("profileRoot"), m_settingsDir.filePath(QStringLiteral("profiles"))}});
         app.engine.loadFromModule("ActCraft.Ui", "Main");
         if (app.engine.rootObjects().isEmpty()) {
             return false;
