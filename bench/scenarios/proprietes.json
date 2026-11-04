@@ -1,10 +1,36 @@
 {
   "format": "actcraft-scenario/1",
   "name": "proprietes",
-  "description": "Talon L6 : rempli par L6-T13.",
+  "description": "S9.4 : navigateur de propriétés. Page sans sélection (titre Page), un trait noir fin, sélection du trait (titre Trait), épaisseur du contour saisie à 12 dans l'éditeur (une étape, trait épaissi), annulation (trait fin, sélection vidée, retour à la page).",
   "steps": [
-    {
-      "waitReady": true
-    }
+    {"waitReady": true},
+    {"command": "pen.color", "argument": "#000000"},
+    {"command": "pen.width", "argument": 2},
+    {"command": "browser.properties"},
+    {"waitReady": true},
+    {"expect": "browserPanel.current", "value": "proprietes"},
+    {"expect": "appProperties.title", "value": "Page"},
+    {"capture": "page"},
+    {"stroke": [[300, 400], [700, 400]], "pressure": 0.5},
+    {"waitReady": true},
+    {"command": "tool.select"},
+    {"pointer": [[500, 400]]},
+    {"waitReady": true},
+    {"expect": "appTools.selectionCount", "value": 1},
+    {"expect": "appProperties.title", "value": "Trait"},
+    {"capture": "trait"},
+    {"pointer": [[145, 539]], "space": "window"},
+    {"waitFor": "prop-outline-width.activeFocus", "value": true, "timeoutMs": 5000},
+    {"typeText": "12"},
+    {"key": "Return"},
+    {"waitReady": true},
+    {"expect": "documentController.canUndo", "value": true},
+    {"capture": "epais"},
+    {"checkPixel": "contour-epais", "at": [400, 402], "color": "#000000", "tolerance": 60},
+    {"command": "edit.undo"},
+    {"waitReady": true},
+    {"expect": "appProperties.title", "value": "Page"},
+    {"checkPixel": "contour-annule", "at": [400, 402], "color": "#FFFFFF", "tolerance": 60},
+    {"capture": "annule"}
   ]
 }

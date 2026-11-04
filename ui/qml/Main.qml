@@ -297,6 +297,7 @@ Window {
             tools: appTools
             view: pageArea.view
             profile: appProfile
+            preferences: appPreferences
             onPopupOpened: root.popupOpened()
             onPopupClosed: root.popupClosed()
         }
