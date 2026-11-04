@@ -32,7 +32,8 @@ QJsonObject objectOf(const QByteArray& json)
 QStringList treeOf(const QString& root)
 {
     QStringList entries;
-    QDirIterator it(root, QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden, QDirIterator::Subdirectories);
+    QDirIterator it(root, QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden,
+                    QDirIterator::Subdirectories);
     while (it.hasNext())
         entries << QDir(root).relativeFilePath(it.next());
     entries.sort();
@@ -93,7 +94,8 @@ private slots:
     {
         Profile p;
         QString error;
-        QVERIFY(profileFromJson(R"({"format":"actcraft-profile/1","id":"x","label":"X","future":{"a":1}})", p, error));
+        QVERIFY(profileFromJson(R"({"format":"actcraft-profile/1","id":"x","label":"X","future":{"a":1}})", p,
+                                error));
         QCOMPARE(p.unknownKeys.keys(), QStringList{QStringLiteral("future")});
         const QJsonObject again = objectOf(profileToJson(p));
         QCOMPARE(again.value(QStringLiteral("future")).toObject().value(QStringLiteral("a")).toInt(), 1);
@@ -112,16 +114,18 @@ private slots:
         Profile p = *s.load(QStringLiteral("u"), error);
         p.iconPixels = 20;
         QVERIFY2(s.save(p, error), qPrintable(error));
-        QCOMPARE(objectOf(readFile(m_user->filePath(QStringLiteral("u.json")))).value(QStringLiteral("future")),
-                 QJsonValue(QJsonArray{1, 2}));
+        QCOMPARE(
+            objectOf(readFile(m_user->filePath(QStringLiteral("u.json")))).value(QStringLiteral("future")),
+            QJsonValue(QJsonArray{1, 2}));
         const QString file = m_user->filePath(QStringLiteral("u-export.json"));
         QVERIFY2(s.exportTo(QStringLiteral("u"), file, error), qPrintable(error));
         QTemporaryDir other;
         ProfileStore fresh(other.path(), m_builtin.path(), kOrder);
         const auto id = fresh.importFrom(file, error);
         QVERIFY2(id, qPrintable(error));
-        QCOMPARE(objectOf(readFile(other.filePath(*id + QStringLiteral(".json")))).value(QStringLiteral("future")),
-                 QJsonValue(QJsonArray{1, 2}));
+        QCOMPARE(
+            objectOf(readFile(other.filePath(*id + QStringLiteral(".json")))).value(QStringLiteral("future")),
+            QJsonValue(QJsonArray{1, 2}));
     }
     void majorVersionRefused()
     {
@@ -148,7 +152,8 @@ private slots:
         QCOMPARE(clampIconPixels(20), 20);
         Profile p;
         QString error;
-        QVERIFY(profileFromJson(R"({"format":"actcraft-profile/1","id":"x","label":"X","icon-pixels":99})", p, error));
+        QVERIFY(profileFromJson(R"({"format":"actcraft-profile/1","id":"x","label":"X","icon-pixels":99})", p,
+                                error));
         QCOMPARE(p.iconPixels, 32);
     }
     void outOfRangeValuesFallBack()
@@ -165,8 +170,8 @@ private slots:
         QCOMPARE(p.recentTools.first(), QStringLiteral("a"));
         QVERIFY(p.unknownKeys.isEmpty());
     }
-    // Amendement 4 (A8) : identifiants de BrowserPanel.navigators ; une valeur inconnue devient « pages » et n'est
-    // pas gardée.
+    // Amendement 4 (A8) : identifiants de BrowserPanel.navigators ; une valeur inconnue devient « pages » et
+    // n'est pas gardée.
     void browserCurrentUsesNavigatorIds()
     {
         Profile p;
@@ -254,7 +259,8 @@ private slots:
         QVERIFY2(id, qPrintable(error));
         QCOMPARE(*id, QStringLiteral("d"));
         QCOMPARE(fresh.load(*id, error)->iconPixels, 32);
-        QCOMPARE(objectOf(readFile(fresh.directory(*id) + QStringLiteral("/layout.json"))).value(QStringLiteral("x")),
+        QCOMPARE(objectOf(readFile(fresh.directory(*id) + QStringLiteral("/layout.json")))
+                     .value(QStringLiteral("x")),
                  QJsonValue(1));
     }
     void importNeverOverwrites()
@@ -308,7 +314,9 @@ private slots:
                           R"({"format":"actcraft-profile/1","id":"x","label":"X"})"));
         ProfileStore s(root.filePath(QStringLiteral("a/b")), m_builtin.path(), kOrder);
         const QStringList before = treeOf(root.path());
-        for (const QString& bad : {QStringLiteral("../x"), QStringLiteral("B1"), QString()}) {
+        // « x\n » : le `$` de QRegularExpression l'accepterait.
+        for (const QString& bad :
+             {QStringLiteral("../x"), QStringLiteral("B1"), QStringLiteral("x\n"), QString()}) {
             QString error;
             Profile p = sample();
             p.id = bad;

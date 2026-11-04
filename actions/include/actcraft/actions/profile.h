@@ -37,8 +37,8 @@ struct BrowserSettings
     bool visible = false;
     QString side = QStringLiteral("left");
     bool pinned = true;
-    // Identifiant d'un navigateur de `BrowserPanel.navigators` : « pages », « ressources », « objets », « notes »,
-    // « proprietes », « actions » ; une valeur inconnue lue d'un fichier devient « pages ».
+    // Identifiant d'un navigateur de `BrowserPanel.navigators` : « pages », « ressources », « objets », «
+    // notes », « proprietes », « actions » ; une valeur inconnue lue d'un fichier devient « pages ».
     QString current = QStringLiteral("pages");
     int width = 240;
 };
@@ -62,13 +62,14 @@ struct Profile
     QJsonObject shortcutObjects; // F-141 : { "<id>": { "label", "objects" (fragment) } }
     QJsonObject launchers;       // F-920 : écrit par L6-T29
     QJsonObject settings;        // sections de F-930 : { "<section>": { "<clé>": valeur } }
-    QJsonObject unknownKeys;     // clés de premier niveau inconnues de cette version, réécrites telles quelles
+    QJsonObject unknownKeys; // clés de premier niveau inconnues de cette version, réécrites telles quelles
 };
 
 inline constexpr char kProfileFormat[] = "actcraft-profile/1";
 
 QByteArray profileToJson(const Profile& profile);
-// Faux si le JSON est invalide, si « format » manque ou si sa version majeure n'est pas 1 ; `error` dit pourquoi.
+// Faux si le JSON est invalide, si « format » manque ou si sa version majeure n'est pas 1 ; `error` dit
+// pourquoi.
 bool profileFromJson(const QByteArray& json, Profile& profile, QString& error);
 
 } // namespace actcraft::actions
