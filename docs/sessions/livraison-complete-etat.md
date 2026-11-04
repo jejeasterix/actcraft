@@ -235,6 +235,7 @@ Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstrui
 Tâche : L6-C4 — correctif de la revue de L6-T14 — depuis 2026-11-04
 Tâche : L6-T8 — couleurs étendues — depuis 2026-11-04
 Tâche : L6-T16 — navigateur de notes — depuis 2026-11-04
+Tâche : L6-T6 — cinq profils fournis — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -253,6 +254,7 @@ Tâche : L6-T16 — navigateur de notes — depuis 2026-11-04
 | L6-T1 | terminée | 1/3 | e48fc01 (rouge), 25e14fe → merge 743a351 | rejoué par l'orchestrateur après reconstruction à neuf : 207/207 (164 + 43), 0 avertissement ; deux assertions de tests existants ajustées aux ajouts prévus (`toolsMenuFollowsF750`, `defaultCommandsFileDeclaresLotOne` + 45, `tst_actions_registry.cpp` hors de la liste de fichiers) ; talons des captures en `Passed` (étape `waitReady`), unitaires en `SKIP` ; `profile.choose`, `mode.design` dans le groupe de palette `commandes`, `profile.edit` en fin du menu Outils (aucune section « ligne supérieure ») ; QML du lot enregistrés par `if(EXISTS …)` : reconfigurer après L6-T2 |
 | L6-T8 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T8`, base 955e4a4 | V5 avancée (dépendances T2, T5 faites) ; `implementeur-tdd` |
 | L6-T16 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T16`, base 955e4a4 | V6 avancée (dépendance T2 faite) ; `implementeur-tdd` |
+| L6-T6 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T6`, base 9cf2444 | V5 (T4, T5, T7 faites) ; `implementeur-tdd` |
 
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
