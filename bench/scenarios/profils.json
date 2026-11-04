@@ -23,6 +23,13 @@
     {"command": "profile.activate", "argument": "calcul-geometrie"},
     {"wait": 400},
     {"expect": "appProfile.currentId", "value": "calcul-geometrie"},
-    {"capture": "calcul-geometrie"}
+    {"capture": "calcul-geometrie"},
+    {"command": "profile.edit"},
+    {"wait": 400},
+    {"capture": "editeur"},
+    {"command": "profile.save-as", "argument": "mon-profil"},
+    {"wait": 400},
+    {"capture": "format"},
+    {"expect": "appProfile.currentId", "value": "mon-profil"}
   ]
 }

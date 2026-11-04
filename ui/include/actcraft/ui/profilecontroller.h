@@ -42,13 +42,14 @@ class ProfileController : public QObject, public QQmlParserStatus
     Q_PROPERTY(bool palettePinned READ palettePinned WRITE setPalettePinned NOTIFY profileChanged)
     Q_PROPERTY(int swatches READ swatches WRITE setSwatches NOTIFY profileChanged)
     Q_PROPERTY(bool browsersVisible READ browsersVisible WRITE setBrowsersVisible NOTIFY profileChanged)
+    Q_PROPERTY(bool browsersPinned READ browsersPinned WRITE setBrowsersPinned NOTIFY profileChanged)
     Q_PROPERTY(QString browsersSide READ browsersSide WRITE setBrowsersSide NOTIFY profileChanged)
     Q_PROPERTY(QString browsersCurrent READ browsersCurrent WRITE setBrowsersCurrent NOTIFY profileChanged)
     Q_PROPERTY(QStringList extraColors READ extraColors NOTIFY profileChanged)
     Q_PROPERTY(QStringList recentTools READ recentTools NOTIFY profileChanged)
     Q_PROPERTY(QStringList pinned READ pinned NOTIFY profileChanged)
     Q_PROPERTY(bool fitPage READ fitPage NOTIFY profileChanged)
-    Q_PROPERTY(bool trashVisible READ trashVisible NOTIFY profileChanged)
+    Q_PROPERTY(bool trashVisible READ trashVisible WRITE setTrashVisible NOTIFY profileChanged)
     Q_PROPERTY(bool contactActive READ contactActive WRITE setContactActive NOTIFY contactActiveChanged)
     Q_PROPERTY(int saveCount READ saveCount NOTIFY saved)     // tests et scénarios
     Q_PROPERTY(int startCount READ startCount NOTIFY started) // tests : 1 après componentComplete
@@ -104,6 +105,8 @@ public:
     void setSwatches(int count);
     bool browsersVisible() const;
     void setBrowsersVisible(bool on);
+    bool browsersPinned() const;
+    void setBrowsersPinned(bool on);
     QString browsersSide() const;
     void setBrowsersSide(const QString& side);
     QString browsersCurrent() const;
@@ -113,6 +116,7 @@ public:
     QStringList pinned() const;
     bool fitPage() const;
     bool trashVisible() const;
+    void setTrashVisible(bool on);
     bool contactActive() const noexcept;
     void setContactActive(bool active); // lié par Main.qml à la garde de contact de la vue (A6, L6-T7)
     int saveCount() const noexcept;
@@ -138,6 +142,12 @@ private:
     void scheduleSave();
     void onSaveTimeout();
     void bindCommands();
+    // Gestionnaires natifs profile.save-as, delete, reset, import, export (F-882).
+    void saveAs(const QString& name);
+    void deleteCurrent();
+    void resetCurrent();
+    void importFrom(const QVariant& source);
+    void exportCurrent(const QVariant& target);
     void unbindCommands();
     void applyLayoutDir(const QString& id);
     bool write(const actions::Profile& profile); // faux, signal failed émis, si l'écriture est refusée
