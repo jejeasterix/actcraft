@@ -89,13 +89,24 @@ private slots:
         ui::ColorPalette palette;
         palette.setProfile(profile.get());
         palette.setProperty("baseColors", sixteen());
+        // Nombre de pastilles posé ici : le profil par défaut (24 pastilles) n'entre pas dans le test.
+        // Avec 24 places pour 16 couleurs de base, un doublon gardé prendrait une place de plus.
+        profile->setSwatches(24);
         palette.add(QStringLiteral("#12ab34"));
         palette.add(QStringLiteral("#12ab34"));
         palette.add(QStringLiteral("#12AB34"));
         palette.add(sixteen().first().toUpper()); // une couleur de base
         palette.add(QStringLiteral("pas une couleur"));
         QCOMPARE(palette.extraCount(), 1);
+        // Les 16 couleurs de base restent, la couleur ajoutée prend la première place libre, une seule fois.
+        QCOMPARE(palette.swatches().size(), 17);
+        QCOMPARE(palette.swatches().mid(0, 16), sixteen());
+        QCOMPARE(palette.swatches().last().toUpper(), QStringLiteral("#12AB34"));
+        // Palette pleine (16 places) : l'ajoutée remplace la dernière couleur de base, une seule fois.
+        profile->setSwatches(16);
         QCOMPARE(palette.swatches().size(), 16);
+        QCOMPARE(palette.swatches().mid(0, 15), sixteen().mid(0, 15));
+        QCOMPARE(palette.swatches().last().toUpper(), QStringLiteral("#12AB34"));
     }
 
     void swatchCountFollowsTheProfile()
