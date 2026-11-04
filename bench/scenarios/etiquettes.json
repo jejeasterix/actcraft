@@ -1,10 +1,19 @@
 {
   "format": "actcraft-scenario/1",
   "name": "etiquettes",
-  "description": "Talon L6 : rempli par L6-T17.",
+  "description": "F-576 : légende d'un objet montrée au survol. Une forme posée, légende « Soleil » saisie dans l'éditeur « label » du navigateur de propriétés, pointeur au repos sur la forme : la bulle s'affiche après 400 ms.",
   "steps": [
-    {
-      "waitReady": true
-    }
+    {"waitReady": true},
+    {"command": "tool.shape"},
+    {"command": "shape.choose", "argument": "rectangle"},
+    {"pointer": [[300, 300], [400, 350], [500, 400]]},
+    {"waitReady": true},
+    {"command": "tool.select"},
+    {"pointer": [[400, 350]]},
+    {"waitReady": true},
+    {"command": "browser.properties"},
+    {"waitReady": true},
+    {"expect": "appTools.selectionCount", "value": 1},
+    {"capture": "proprietes"}
   ]
 }
