@@ -40,6 +40,10 @@ struct PlannedInput
     bool measured = false; // compte dans la latence d'encre (appui et déplacements du tracé)
     QString command;       // InputKind::Command : commande nommée appelée par runCommand
     QVariant argument;     // son argument éventuel
+    // L7-T38 : commande de réglage (choix d'effet d'« effets-page » : écriture QSettings synchrone). Jouée
+    // et relevée (input_ns), elle n'entre pas dans le verdict : ni entrée classée, ni fenêtre de changement
+    // de page, ses images restent au repos.
+    bool setting = false;
 };
 
 enum class ScenarioSet
@@ -120,6 +124,15 @@ struct ScenarioPlan
     bool spinsInBackground = false;
     // L5-T31 : le document chargé avant la mesure est tabsFixtureDocument(0) (20 pages de 50 traits).
     bool fixtureDocument = false;
+    // L7-T38 (S23) : le message défilant tourne pendant la mesure : le runner règle boucle et vitesse 10 sur
+    // l'objet « ticker », le démarre avant la mesure (sans ouvrir la fenêtre d'édition) et l'arrête après.
+    // Lu par ce booléen, jamais par le nom.
+    bool tickerRuns = false;
+    // L7-T38 (S22) : les changements de page jouent un effet. La fenêtre de chaque commande qui en lance un
+    // reste ouverte jusqu'au retour de TransitionController::playing à faux (pageChangeWindows) ; le nombre
+    // d'effets partis est contrôlé (pageEffectsCheck) ; l'effet et la durée d'avant le scénario sont rétablis
+    // à toute sortie. Lu par ce booléen, jamais par le nom.
+    bool pageEffects = false;
     std::vector<PlannedInput> inputs;
 };
 
@@ -223,11 +236,25 @@ ScenarioPlan exportBackgroundReferenceScenario(ScenarioSet set);
 // referme le mode, features::RecognitionSession::kDefaultDelayMs + 300 ms après le relâché : la conversion
 // du trait en forme (et son redessin du cache) tombe dans la mesure. Même durée en court et en complet.
 ScenarioPlan recognitionScenario(ScenarioSet set);
+// L7-T38 (M1, S22). « effets-page » : chaque effet de transitionCatalogue() (hors « none » et « random »)
+// joué par page.next / page.previous en alternance sur deux pages générées : view.page-effect <id>, puis le
+// changement de page kEffectPageDelayNs plus tard, un effet par période (durée de l'effet + kEffectMarginNs).
+// Durée de l'effet : 0,5 s en court, celle par défaut (features::TransitionSettings) en complet, posée avant
+// (setupCommands) ; le runner rétablit celle d'avant le scénario à toute sortie. La dernière entrée remet
+// « none », teardownCommands aussi (mesure interrompue). Jugé sur les images des effets : avec un effet, la
+// page ne change qu'à TransitionController::frozen(), page et cache sont encore prêts juste après la commande
+// et sa fenêtre « commande -> prêt » se fermerait aussitôt (effet en intervalles au repos) ; pageEffects la
+// garde ouverte jusqu'à la fin de l'effet et contrôle le nombre d'effets partis.
+inline constexpr std::int64_t kEffectPageDelayNs = 50'000'000;
+inline constexpr std::int64_t kEffectMarginNs = 400'000'000;
+ScenarioPlan effectsScenario(ScenarioSet set);
+// L7-T38 (M1, S23). « message-defilant » : les traits de « stroke » pendant que le message défile en boucle.
+ScenarioPlan tickerScenario(ScenarioSet set);
 // Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);
 // stroke, zoom, scroll, page, pauses, gommer, soulever, forme-page-annotee, grille-dessus, miniatures,
 // miniatures-ferme, miniatures-pauses, zones-zoom, edition, onglets, export-fond-reference, export-fond,
-// reconnaissance
+// reconnaissance, effets-page, message-defilant
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set);
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();
@@ -246,9 +273,25 @@ std::vector<std::int64_t> pageChangeMarks(const std::vector<std::int64_t>& swapN
 // Fenêtres des commandes jouées (`commandNs[i]` ≥ 0) : jusqu'au premier prêt relevé après elles (`shownNs`,
 // trié ; aucun : jusqu'à la fin), ou jusqu'à la commande elle-même si elle n'en attend aucun
 // (`awaitsReady[i]` faux : page et cache encore prêts juste après elle, comme un zoom sans cache).
+// L7-T38 : une commande qui a lancé un effet de page garde la sienne jusqu'au retour au repos de la
+// transition de rang `effectIdleRank[i]` dans `idleNs` (trié ; absent : jusqu'à la fin), soit
+// idleNs.size() relevé juste APRÈS la commande : la fin de son propre effet. Pas le premier repos relevé
+// après l'heure de la commande : navigate() clôt d'abord l'effet précédent encore en cours (settle()),
+// et ce repos-là, postérieur à la commande, fermerait la fenêtre au départ du nouvel effet. Rang négatif :
+// aucun effet.
 std::vector<std::pair<std::int64_t, std::int64_t>>
 pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<bool>& awaitsReady,
-                  const std::vector<std::int64_t>& shownNs);
+                  const std::vector<std::int64_t>& shownNs, const std::vector<int>& effectIdleRank = {},
+                  const std::vector<std::int64_t>& idleNs = {});
+// L7-T38 : effets attendus d'un plan à effets (pageEffects) : un par page.next ou page.previous ; 0 sinon.
+int expectedPageEffects(const ScenarioPlan& plan);
+// Raison d'invalidité quand `played` (effets partis pendant la mesure : TransitionController::playedChanged,
+// jamais émis par le repli de capture, qui change la page sans effet) n'est pas expectedPageEffects(plan) ;
+// vide sinon.
+QString pageEffectsCheck(const ScenarioPlan& plan, int played);
+// L7-T38 : raison d'invalidité quand un plan à effets (pageEffects) a encore un effet en cours (`playing` :
+// TransitionController::playing) après l'attente de fin de mesure ; vide sinon.
+QString pageEffectEndCheck(const ScenarioPlan& plan, bool playing);
 
 // Annotation de départ d'un scénario : un trait de 4 de large, un point par QPointF, à pression moyenne.
 core::Stroke seedAnnotation(const std::vector<QPointF>& points);

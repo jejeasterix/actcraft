@@ -5,6 +5,8 @@
 #include <QSysInfo>
 #include <QTest>
 
+#include <limits>
+
 // Juge le JSON produit par tst_bench_smoke (fixture ctest bench_smoke_json).
 class TstBenchResult : public QObject
 {
@@ -59,7 +61,9 @@ private slots:
         // L4-T28 : « zones-zoom » (douze avant) ; L5-T31 : « onglets » et « export-fond » après « edition »
         // (quatorze avant) ; L5-C12 : « export-fond-reference » juste avant « export-fond » ; L7-T34 :
         // « reconnaissance » en dernier (dix-sept avant, rangs inchangés).
-        QCOMPARE(scenarios.size(), 18);
+        // L7-T38 (M1) : « effets-page » (S22) et « message-defilant » (S23) après lui (vingt, rangs
+        // inchangés).
+        QCOMPARE(scenarios.size(), 20);
         const QStringList names{QStringLiteral("stroke"),           QStringLiteral("zoom"),
                                 QStringLiteral("scroll"),           QStringLiteral("page"),
                                 QStringLiteral("pauses"),           QStringLiteral("gommer"),
@@ -68,8 +72,9 @@ private slots:
                                 QStringLiteral("miniatures-ferme"), QStringLiteral("miniatures-pauses"),
                                 QStringLiteral("zones-zoom"),       QStringLiteral("edition"),
                                 QStringLiteral("onglets"),          QStringLiteral("export-fond-reference"),
-                                QStringLiteral("export-fond"),      QStringLiteral("reconnaissance")};
-        for (qsizetype i = 0; i < 18; ++i) {
+                                QStringLiteral("export-fond"),      QStringLiteral("reconnaissance"),
+                                QStringLiteral("effets-page"),      QStringLiteral("message-defilant")};
+        for (qsizetype i = 0; i < 20; ++i) {
             const QJsonObject s = scenarios.at(i).toObject();
             QCOMPARE(s.value("name").toString(), names.at(i));
             QVERIFY(s.value("frames").toObject().value("count").toInt() > 0);
@@ -263,6 +268,93 @@ private slots:
             }
         }
         QVERIFY(idleAfter > 0);
+    }
+
+    // L7-T38 (relecture, bloquant) : avec un effet, page.next ne change la page qu'à
+    // TransitionController::frozen() ; page et cache sont encore prêts juste après la commande, sa fenêtre «
+    // commande -> prêt » se fermait aussitôt et les images de l'effet tombaient en intervalles au repos (« I
+    // »), non jugés. Chaque changement de page d'« effets-page » (entrées de rang impair : view.page-effect,
+    // puis page.next ou page.previous 50 ms plus tard) joue un effet de 500 ms en court : un intervalle qui
+    // commence entre 150 et 450 ms après la commande est dans l'effet, il doit être actif.
+    void pageEffectFramesAreActive()
+    {
+        QJsonObject effects;
+        for (const QJsonValue& value : m_root.value("scenarios").toArray()) {
+            if (value.toObject().value("name").toString() == QLatin1String("effets-page")) {
+                effects = value.toObject();
+            }
+        }
+        QVERIFY2(!effects.isEmpty(), "scénario effets-page absent");
+        const QJsonObject raw = effects.value("raw").toObject();
+        const QJsonArray inputs = raw.value("input_ns").toArray();
+        const QJsonArray swaps = raw.value("swap_ns").toArray();
+        const QString classes = raw.value("interval_class").toString();
+        QCOMPARE(inputs.size(), 33); // 16 effets x (choix, changement de page), puis « none »
+        QCOMPARE(classes.size(), swaps.size() - 1);
+        qsizetype inEffect = 0;
+        for (qsizetype i = 1; i < inputs.size(); i += 2) {
+            const double turn = inputs.at(i).toDouble();
+            for (qsizetype k = 0; k < classes.size(); ++k) {
+                const double start = swaps.at(k).toDouble();
+                if (start >= turn + 150e6 && start < turn + 450e6) {
+                    ++inEffect;
+                    QVERIFY2(classes.at(k) == u'A',
+                             qPrintable(QStringLiteral("intervalle %1 (changement %2) classé %3")
+                                            .arg(k)
+                                            .arg(i / 2)
+                                            .arg(classes.at(k))));
+                }
+            }
+        }
+        QVERIFY(inEffect > 0);
+        // Contrôles du runner : les 16 effets sont partis (aucun repli de capture), le message défilait
+        // encore.
+        for (const QJsonValue& reason :
+             m_root.value("verdict").toObject().value("invalid_reasons").toArray()) {
+            QVERIFY2(!reason.toString().startsWith(QLatin1String("error: page effects")) &&
+                         !reason.toString().startsWith(QLatin1String("error: ticker")),
+                     qPrintable(reason.toString()));
+        }
+    }
+
+    // L7-T38 (relecture) : les 17 choix d'effet (view.page-effect, entrées de rang pair) écrivent les
+    // réglages (QSettings, synchrone). Ce sont des réglages, pas des gestes : ils n'entrent pas dans le
+    // verdict. L'intervalle où chacun est planifié, fini avant le changement de page qui le suit, reste au
+    // repos ; une commande ordinaire le classerait actif (entrée, fenêtre « commande -> image suivante »).
+    void pageEffectChoicesAreNotJudged()
+    {
+        QJsonObject effects;
+        for (const QJsonValue& value : m_root.value("scenarios").toArray()) {
+            if (value.toObject().value("name").toString() == QLatin1String("effets-page")) {
+                effects = value.toObject();
+            }
+        }
+        QVERIFY2(!effects.isEmpty(), "scénario effets-page absent");
+        const QJsonObject raw = effects.value("raw").toObject();
+        const QJsonArray inputs = raw.value("input_ns").toArray();
+        const QJsonArray swaps = raw.value("swap_ns").toArray();
+        const QString classes = raw.value("interval_class").toString();
+        QCOMPARE(inputs.size(), 33); // 16 effets x (choix, changement de page), puis « none »
+        QCOMPARE(classes.size(), swaps.size() - 1);
+        qsizetype checked = 0;
+        for (qsizetype i = 0; i < inputs.size(); i += 2) {
+            const double choice = inputs.at(i).toDouble();
+            const double turn =
+                i + 1 < inputs.size() ? inputs.at(i + 1).toDouble() : std::numeric_limits<double>::infinity();
+            for (qsizetype k = 0; k < classes.size(); ++k) {
+                const double start = swaps.at(k).toDouble();
+                const double end = swaps.at(k + 1).toDouble();
+                if (start < choice && choice <= end && end < turn) {
+                    ++checked;
+                    QVERIFY2(classes.at(k) == u'I',
+                             qPrintable(QStringLiteral("intervalle %1 (choix %2) classé %3")
+                                            .arg(k)
+                                            .arg(i / 2)
+                                            .arg(classes.at(k))));
+                }
+            }
+        }
+        QVERIFY(checked > 0);
     }
 
     void strokeHasLatency()

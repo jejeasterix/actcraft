@@ -81,6 +81,16 @@ set_tests_properties(tst_bench_smoke PROPERTIES
     FIXTURES_REQUIRED bench_smoke_clean
     FIXTURES_SETUP bench_smoke_json)
 
+# L7-T38 : le banc lit et écrit ses réglages (QSettings(), l'effet de page d'« effets-page ») dans l'INI de son
+# dossier temporaire (QTemporaryDir « ActCraft-Banc-XXXXXX »), jamais dans les réglages natifs (CFPreferences,
+# registre). Relevé au démarrage sur une sortie refusée : aucune mesure, rien d'écrit, ni sous le correctif ni
+# sous un banc sans dossier temporaire (une passe à deux tours, comme tst_captures_reglages_isoles, écrirait alors
+# dans les réglages réels de la machine).
+add_test(NAME tst_bench_reglages_isoles COMMAND actcraft-bench --sortie refus.txt)
+set_tests_properties(tst_bench_reglages_isoles PROPERTIES
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "REGLAGES [^\n]*/ActCraft-Banc-[A-Za-z0-9]+/[^\n]*ActCraft-Banc\\.ini")
+
 actcraft_add_test(tst_bench_result
     SOURCES tst_bench_result.cpp
     LIBS Qt6::Core)

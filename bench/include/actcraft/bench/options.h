@@ -6,6 +6,8 @@
 #include <QString>
 #include <QStringList>
 
+#include <vector>
+
 namespace actcraft::bench {
 
 // Options du banc (décision 21). --rendu est validé par parseRenderBackend (app/renderbackend.cpp).
@@ -19,6 +21,9 @@ struct BenchOptions
     bool fullScreen = true;   // --taille plein-ecran (défaut) | LxH
     QSize windowSize;
     QString capturesDir; // --captures : PNG écrits seulement si non vide
+    // L7-T38 : vide, allScenarios(scenarioSet) ; sinon ces plans, dans l'ordre (tests du runner : arrêt
+    // anticipé, contrôles d'un seul scénario). Aucune option de ligne de commande.
+    std::vector<ScenarioPlan> plans;
 };
 
 bool parseBenchOptions(const QStringList& args, BenchOptions& out, QString& error);

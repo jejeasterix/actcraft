@@ -9,6 +9,8 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QSettings>
+#include <QTemporaryDir>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
 
@@ -30,6 +32,22 @@ int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Banc"));
+    // L7-T38 : réglages propres à la passe, dans un dossier temporaire, comme bench/captures/main.cpp :
+    // l'effet de page choisi par « effets-page » (QSettings, TransitionController) ne survit pas à une passe
+    // interrompue (Ctrl+C) et ne touche ni les passes suivantes ni de vrais réglages. QSettings natif
+    // (CFPreferences, registre) ignorerait QStandardPaths::setTestModeEnabled. Déclaré avant le moteur QML,
+    // détruit après lui.
+    const QTemporaryDir settingsDir;
+    if (!settingsDir.isValid()) {
+        std::fprintf(stderr, "dossier de réglages temporaire impossible : %s\n",
+                     qPrintable(settingsDir.errorString()));
+        printLine(QStringLiteral("MESURE INVALIDE"));
+        return 2;
+    }
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir.path());
+    // Relevé avant toute mesure, sans rien écrire (tst_bench_reglages_isoles, sur une sortie refusée).
+    std::fprintf(stderr, "REGLAGES %s\n", qPrintable(QSettings().fileName()));
     const QStringList args = QGuiApplication::arguments();
 
     RenderBackend backend = RenderBackend::Auto;
