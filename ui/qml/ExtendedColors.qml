@@ -16,8 +16,11 @@ Item {
     property var preferences: null
     visible: false
 
+    // Même nom que l'instance de ColorSwatches.qml : celle-ci vit dans un Loader et la fenêtre ne la retrouve pas
+    // par findChild (lectures des scénarios) ; les deux lisent le même profil.
     ColorPalette {
-        id: palette
+        id: pal
+        objectName: "appColors"
         profile: root.profile
         baseColors: root.commands ? root.commands.colors : []
     }
@@ -25,6 +28,7 @@ Item {
     Popup {
         id: popup
         objectName: "extendedColorsPopup"
+        parent: Overlay.overlay
         padding: Theme.espace2
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         enter: null
@@ -41,7 +45,7 @@ Item {
                 columns: 6
                 spacing: Theme.espace1
                 Repeater {
-                    model: palette.extended
+                    model: pal.extended
                     delegate: Rectangle {
                         required property string modelData
                         required property int index
@@ -93,9 +97,10 @@ Item {
 
     Component.onCompleted: {
         root.commands.setHandler("color.more", function (spot) {
-            popup.x = spot && spot.x !== undefined ? spot.x : 0
-            popup.y = spot && spot.y !== undefined ? spot.y : 0
             popup.open()
+            // Dans la fenêtre : la palette est au bord droit.
+            popup.x = Math.max(0, Math.min(spot && spot.x !== undefined ? spot.x : 0, popup.parent.width - popup.width))
+            popup.y = Math.max(0, Math.min(spot && spot.y !== undefined ? spot.y : 0, popup.parent.height - popup.height))
         })
         root.commands.setHandler("color.dialog", function () { dialog.open() })
         // Couleur du stylo, puis palette : sans doublon (ColorPalette.add).
@@ -103,7 +108,7 @@ Item {
             if (!color)
                 return
             root.commands.trigger("pen.color", color)
-            palette.add(color)
+            pal.add(color)
         })
     }
 }

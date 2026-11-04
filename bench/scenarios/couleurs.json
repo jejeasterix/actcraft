@@ -1,10 +1,24 @@
 {
   "format": "actcraft-scenario/1",
   "name": "couleurs",
-  "description": "Talon L6 : rempli par L6-T8.",
+  "description": "S9.2 : clic droit sur une pastille (grille étendue 6 × 6), couleur ajoutée gardée en dernière pastille, copieur de couleur (loupe).",
   "steps": [
-    {
-      "waitReady": true
-    }
+    {"waitReady": true},
+    {"pointer": [[1186, 232]], "button": "right", "space": "window"},
+    {"wait": 300},
+    {"capture": "etendue"},
+    {"pointer": [[700, 22]], "space": "window"},
+    {"command": "color.add", "argument": "#12AB34"},
+    {"wait": 200},
+    {"expect": "appColors.extraCount", "value": 1},
+    {"checkPixel": "pastille-ajoutee", "at": [1261, 253], "color": "#12AB34", "tolerance": 8},
+    {"command": "color.pick"},
+    {"wait": 200},
+    {"expect": "colorLoupe.active", "value": true},
+    {"capture": "loupe"},
+    {"pointer": [[60, 400]], "space": "window", "button": "left"},
+    {"expect": "colorLoupe.active", "value": false},
+    {"expect": "appColors.extraCount", "value": 2},
+    {"key": "Esc"}
   ]
 }

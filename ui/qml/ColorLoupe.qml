@@ -27,7 +27,7 @@ Item {
     focus: active
 
     ColorPalette {
-        id: palette
+        id: pal
         profile: root.profile
         baseColors: root.commands ? root.commands.colors : []
         onSnapshotRequested: grabFrom(root)
@@ -37,13 +37,13 @@ Item {
 
     function open() {
         active = false // la capture ne montre pas la loupe
-        palette.beginPick()
+        pal.beginPick()
         active = true
         forceActiveFocus()
     }
 
     function choose(x, y) {
-        const color = palette.colorAt(Math.round(x), Math.round(y))
+        const color = pal.colorAt(Math.round(x), Math.round(y))
         close()
         if (color)
             root.commands.trigger("color.add", color)
@@ -88,7 +88,7 @@ Item {
                     readonly property int dy: Math.floor(index / root.cells) - 3
                     width: root.cellSize
                     height: root.cellSize
-                    color: palette.colorAt(Math.round(root.pointerX) + dx, Math.round(root.pointerY) + dy) || "transparent"
+                    color: pal.colorAt(Math.round(root.pointerX) + dx, Math.round(root.pointerY) + dy) || "transparent"
                     border.width: dx === 0 && dy === 0 ? 2 : 0
                     border.color: "white"
                 }
@@ -101,7 +101,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             color: "white"
             font.pixelSize: 11
-            text: palette.colorAt(Math.round(root.pointerX), Math.round(root.pointerY)).toUpperCase()
+            text: pal.colorAt(Math.round(root.pointerX), Math.round(root.pointerY)).toUpperCase()
         }
     }
 
