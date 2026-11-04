@@ -268,6 +268,45 @@ private slots:
         QVERIFY(idleAfter > 0);
     }
 
+    // L7-T38 (relecture, bloquant) : avec un effet, page.next ne change la page qu'à TransitionController::frozen() ;
+    // page et cache sont encore prêts juste après la commande, sa fenêtre « commande -> prêt » se fermait aussitôt
+    // et les images de l'effet tombaient en intervalles au repos (« I »), non jugés. Chaque changement de page
+    // d'« effets-page » (entrées de rang impair : view.page-effect, puis page.next ou page.previous 50 ms plus
+    // tard) joue un effet de 500 ms en court : un intervalle qui commence entre 150 et 450 ms après la commande
+    // est dans l'effet, il doit être actif.
+    void pageEffectFramesAreActive()
+    {
+        QJsonObject effects;
+        for (const QJsonValue& value : m_root.value("scenarios").toArray()) {
+            if (value.toObject().value("name").toString() == QLatin1String("effets-page")) {
+                effects = value.toObject();
+            }
+        }
+        QVERIFY2(!effects.isEmpty(), "scénario effets-page absent");
+        const QJsonObject raw = effects.value("raw").toObject();
+        const QJsonArray inputs = raw.value("input_ns").toArray();
+        const QJsonArray swaps = raw.value("swap_ns").toArray();
+        const QString classes = raw.value("interval_class").toString();
+        QCOMPARE(inputs.size(), 33); // 16 effets x (choix, changement de page), puis « none »
+        QCOMPARE(classes.size(), swaps.size() - 1);
+        qsizetype inEffect = 0;
+        for (qsizetype i = 1; i < inputs.size(); i += 2) {
+            const double turn = inputs.at(i).toDouble();
+            for (qsizetype k = 0; k < classes.size(); ++k) {
+                const double start = swaps.at(k).toDouble();
+                if (start >= turn + 150e6 && start < turn + 450e6) {
+                    ++inEffect;
+                    QVERIFY2(classes.at(k) == u'A',
+                             qPrintable(QStringLiteral("intervalle %1 (changement %2) classé %3")
+                                            .arg(k)
+                                            .arg(i / 2)
+                                            .arg(classes.at(k))));
+                }
+            }
+        }
+        QVERIFY(inEffect > 0);
+    }
+
     void strokeHasLatency()
     {
         const QJsonObject latency =
