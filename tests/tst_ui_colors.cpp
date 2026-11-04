@@ -4,6 +4,8 @@
 #include <actcraft/ui/profilecontroller.h>
 
 #include <QColor>
+#include <QDir>
+#include <QFile>
 #include <QImage>
 #include <QSet>
 #include <QSignalSpy>
@@ -90,7 +92,8 @@ private slots:
         palette.setProfile(profile.get());
         palette.setProperty("baseColors", sixteen());
         // Nombre de pastilles posé ici : le profil par défaut (24 pastilles) n'entre pas dans le test.
-        // Avec 24 places pour 16 couleurs de base, un doublon gardé prendrait une place de plus.
+        // Avec 24 places pour 16 couleurs de base, la place de la couleur ajoutée se lit sur la taille (17) ;
+        // les doublons, eux, se lisent sur extraCount.
         profile->setSwatches(24);
         palette.add(QStringLiteral("#12ab34"));
         palette.add(QStringLiteral("#12ab34"));
@@ -107,6 +110,33 @@ private slots:
         QCOMPARE(palette.swatches().size(), 16);
         QCOMPARE(palette.swatches().mid(0, 15), sixteen().mid(0, 15));
         QCOMPARE(palette.swatches().last().toUpper(), QStringLiteral("#12AB34"));
+    }
+
+    // Revue L6-C5 : swatches() filtre lui-même les doublons et les couleurs de base d'un profil importé ou
+    // édité à la main (add() et addColor() filtrent en amont, donc rien d'autre ne couvre ce filtre).
+    void swatchesFilterDuplicatesOfAnEditedProfile()
+    {
+        QVERIFY(QDir().mkpath(m_dir->filePath(QStringLiteral("profiles"))));
+        QFile file(m_dir->filePath(QStringLiteral("profiles/preparation.json")));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("{\"format\": \"actcraft-profile/1\", \"id\": \"preparation\", \"label\": \"Preparer\","
+                   " \"palette\": {\"swatches\": 24},"
+                   " \"extra-colors\": [\"#FFFFFF\", \"#12ab34\", \"#12AB34\"]}");
+        file.close();
+        ui::Commands commands;
+        ui::Preferences prefs(ini(), nullptr);
+        auto profile = controller(&prefs, &commands);
+        QVERIFY(profile->activate(QStringLiteral("preparation")));
+        QCOMPARE(profile->extraColors().size(), 3); // le profil garde ce que le fichier dit
+        ui::ColorPalette palette;
+        palette.setProfile(profile.get());
+        QStringList base = sixteen();
+        base[15] = QStringLiteral("#ffffff");
+        palette.setProperty("baseColors", base);
+        const QStringList swatches = palette.swatches();
+        QCOMPARE(swatches.size(), 17); // 16 de base + #12AB34 une seule fois ; #FFFFFF est déjà de base
+        QCOMPARE(swatches.mid(0, 16), base);
+        QCOMPARE(swatches.last().toUpper(), QStringLiteral("#12AB34"));
     }
 
     void swatchCountFollowsTheProfile()
