@@ -475,6 +475,9 @@ void RecognitionController::convertToShape()
         return;
     }
     forgetPending(selected);
+    for (const core::ObjectId id : selected) {
+        m_arrivedAt.erase(id); // recognizeShapes ne lit pas l'heure d'arrivée : seul le texte la consomme
+    }
     recognizeShapes(selected);
 }
 
@@ -540,9 +543,7 @@ void RecognitionController::onChanges(const core::Changes& applied, DocumentCont
                                          .intersects(m_anchor.adjusted(-kValidationMargin, -kValidationMargin,
                                                                        kValidationMargin, kValidationMargin));
         m_session.addStroke(change.object, now());
-        if (m_handwritingMode) {
-            m_arrivedAt[change.object] = now(); // lu par recognizeHandwriting seule, qui l'oublie
-        }
+        m_arrivedAt[change.object] = now(); // lu par recognizeHandwriting, quel que soit le mode du tracé
         added = true;
     }
     // P19 : un trait loin du texte reconnu le valide ; un trait qui le recoupe le corrige, rien ne se ferme.

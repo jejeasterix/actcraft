@@ -29,6 +29,25 @@ private slots:
         QVERIFY(s.due(5'500'000'000).empty());
         QCOMPARE(s.due(8'000'000'000).size(), std::size_t{2}); // les deux traits ensemble (écriture : un mot)
     }
+    // Relecture du lot 7 : retirer un trait (converti par la sélection) laisse l'autre en attente, avec son
+    // échéance : celle du dernier trait ajouté (3 s + 5 s), ni avancée, ni effacée.
+    void removeKeepsTheOtherStrokeAndItsDeadline()
+    {
+        RecognitionSession s(5000);
+        s.addStroke(1, 0);
+        s.addStroke(2, 3'000'000'000);
+        s.remove({1});
+        QCOMPARE(s.pending().size(), std::size_t{1});
+        QCOMPARE(s.pending().front(), actcraft::core::ObjectId{2});
+        QVERIFY(s.due(7'999'000'000).empty()); // pas avant 3 s + 5 s
+        QCOMPARE(s.pending().size(), std::size_t{1});
+        const auto due = s.due(8'000'000'000);
+        QCOMPARE(due.size(), std::size_t{1});
+        QCOMPARE(due.front(), actcraft::core::ObjectId{2});
+        s.addStroke(3, 9'000'000'000);
+        s.remove({7}); // identifiant inconnu : rien ne change
+        QCOMPARE(s.pending().size(), std::size_t{1});
+    }
     void zeroDelayIsImmediate()
     {
         RecognitionSession s(0);
