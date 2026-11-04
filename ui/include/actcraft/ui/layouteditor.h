@@ -81,6 +81,10 @@ private:
     void loadTarget();
     void setTokens(const QJsonArray& tokens);
     void onProfileChanged();
+    QVariantList buildItems() const;
+    QVariantList buildCatalog() const;
+    void refreshItems(bool force);
+    void refreshCatalog();
 
     QPointer<Commands> m_commands;
     QPointer<ProfileController> m_profile;
@@ -89,6 +93,8 @@ private:
     QString m_profileId;
     QJsonObject m_effective;
     QVariantList m_targets;
+    QVariantList m_catalog; // caches : lus par les délégués à chaque évaluation
+    QVariantList m_items;
     QString m_target;
     QJsonArray m_tokens;                // jetons de la cible, tels qu'écrits dans le JSON
     QHash<QString, QJsonArray> m_edits; // cibles modifiées depuis la dernière lecture

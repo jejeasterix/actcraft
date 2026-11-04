@@ -15,8 +15,8 @@ Item {
     property PageView view: null
     property var profile: null
     property var preferences: null
-    implicitWidth: 560
-    implicitHeight: 420
+    // Pas de taille implicite, comme le talon : avec 560 × 420, le StackLayout de ProfileEditor.qml passait à
+    // 879 × 460 et le bas de FormatPage sortait de la fenêtre (tst_ui_profileeditor).
 
     LayoutEditor { id: layoutEditor; commands: root.commands; profile: root.profile }
 
@@ -41,8 +41,7 @@ Item {
                     required property int index
                     width: ListView.view.width
                     Label {
-                        visible: catalogEntry.index === 0
-                                 || layoutEditor.catalog[catalogEntry.index - 1].category !== catalogEntry.modelData.category
+                        visible: catalogEntry.modelData.categoryStart
                         text: catalogEntry.modelData.category
                         font.italic: true
                     }

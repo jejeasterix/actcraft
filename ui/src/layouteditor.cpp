@@ -9,6 +9,8 @@
 #include <QSet>
 #include <QVariantMap>
 
+#include <utility>
+
 namespace actcraft::ui {
 
 namespace {
@@ -154,11 +156,12 @@ void LayoutEditor::setCommands(Commands* commands)
     if (m_commands) {
         // Plateforme, commandes cachées, libellés : le catalogue et l'affichage suivent ; les jetons restent.
         m_layoutConnection = connect(m_commands, &Commands::layoutChanged, this, [this]() {
-            emit catalogChanged();
-            emit itemsChanged();
+            refreshCatalog();
+            refreshItems(false);
         });
     }
     emit commandsChanged();
+    refreshCatalog();
     reload();
 }
 
@@ -219,6 +222,11 @@ void LayoutEditor::setTarget(const QString& id)
 
 QVariantList LayoutEditor::items() const
 {
+    return m_items;
+}
+
+QVariantList LayoutEditor::buildItems() const
+{
     QVariantList out;
     for (const QJsonValue& token : m_tokens) {
         QVariantMap item{
@@ -256,6 +264,12 @@ QVariantList LayoutEditor::items() const
 // leur première rencontre, puis dans l'ordre de déclaration.
 QVariantList LayoutEditor::catalog() const
 {
+    return m_catalog;
+}
+
+// categoryStart : première entrée de sa catégorie (en-tête dans la liste).
+QVariantList LayoutEditor::buildCatalog() const
+{
     if (!m_commands) {
         return {};
     }
@@ -272,13 +286,37 @@ QVariantList LayoutEditor::catalog() const
         byCategory[category].append(QVariantMap{{QStringLiteral("id"), id},
                                                 {QStringLiteral("label"), m_commands->label(id)},
                                                 {QStringLiteral("icon"), m_commands->iconUrl(id)},
-                                                {QStringLiteral("category"), category}});
+                                                {QStringLiteral("category"), category},
+                                                {QStringLiteral("categoryStart"), false}});
     }
     QVariantList out;
     for (const QString& category : categories) {
-        out.append(byCategory.value(category));
+        QVariantList entries = byCategory.value(category);
+        QVariantMap first = entries.constFirst().toMap();
+        first.insert(QStringLiteral("categoryStart"), true);
+        entries.replace(0, first);
+        out.append(entries);
     }
     return out;
+}
+
+void LayoutEditor::refreshCatalog()
+{
+    QVariantList catalog = buildCatalog();
+    if (catalog != m_catalog) {
+        m_catalog = std::move(catalog);
+        emit catalogChanged();
+    }
+}
+
+// Les délégués QML lisent la liste mise en cache : chaque lecture ne la reconstruit pas.
+void LayoutEditor::refreshItems(bool force)
+{
+    QVariantList items = buildItems();
+    if (force || items != m_items) {
+        m_items = std::move(items);
+        emit itemsChanged();
+    }
 }
 
 bool LayoutEditor::separatorAllowed() const
@@ -443,14 +481,14 @@ void LayoutEditor::rebuildTargets()
 void LayoutEditor::loadTarget()
 {
     m_tokens = m_edits.value(m_target, tokensOf(m_effective, m_target));
-    emit itemsChanged();
+    refreshItems(true);
 }
 
 void LayoutEditor::setTokens(const QJsonArray& tokens)
 {
     m_tokens = tokens;
     m_edits.insert(m_target, tokens);
-    emit itemsChanged();
+    refreshItems(true);
 }
 
 } // namespace actcraft::ui
