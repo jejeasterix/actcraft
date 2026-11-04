@@ -18,7 +18,8 @@ using namespace actcraft;
 
 namespace {
 
-// Montage de tst_ui_shell : l'interface réelle, avec des profils d'essai propres au montage (amendement 3, N1).
+// Montage de tst_ui_shell : l'interface réelle, avec des profils d'essai propres au montage (amendement 3,
+// N1).
 struct Shell
 {
     QTemporaryDir profiles; // détruit après le moteur
@@ -110,7 +111,9 @@ private slots:
         profile->setPaletteDock(QStringLiteral("right"));
         QTRY_COMPARE(sceneOf(palette, QPointF(palette->width(), 0)).x(), double(s.window->width()));
         profile->setPaletteDock(QStringLiteral("top"));
-        QTRY_COMPARE(sceneOf(palette, QPointF(0, 0)).y(), sceneOf(item(s, "paletteFrame")->parentItem(), QPointF(0, 0)).y() + item(s, "paletteTitle")->height());
+        QTRY_COMPARE(sceneOf(palette, QPointF(0, 0)).y(),
+                     sceneOf(item(s, "paletteFrame")->parentItem(), QPointF(0, 0)).y() +
+                         item(s, "paletteTitle")->height());
         profile->setPaletteDock(QStringLiteral("bottom"));
         QTRY_COMPARE(sceneOf(palette, QPointF(0, palette->height())).y(), double(s.window->height()));
     }
