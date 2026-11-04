@@ -11,6 +11,7 @@
 //   deux saisies successives ne feraient qu'une étape. pointEditsStaySeparateSteps le distingue.
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/objectedits.h>
 #include <actcraft/core/objectflags.h>
 #include <actcraft/core/propertyedits.h>
 #include <actcraft/core/shapegeometry.h>
@@ -34,6 +35,7 @@
 #include <QtTest>
 
 #include <algorithm>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <variant>
@@ -397,7 +399,7 @@ private slots:
         const int translucency = f.model.rowOf(QStringLiteral("translucency"));
         QVERIFY(f.model.setValue(translucency, 100));
         QVERIFY(f.model.setValue(translucency, 128));
-        f.controller.closeMerge(); // relâcher de la réglette
+        f.model.endEdit(); // relâcher de la réglette
         QTRY_COMPARE(valueOf(f.model, QStringLiteral("translucency")).toInt(), 128);
 
         // Verrou : hors de la pile (règle du lot 5) ; valeur relue vraie par objectFlagsChanged.
@@ -536,14 +538,17 @@ private slots:
         QCOMPARE(f.model.refreshCount(), refreshes + 1);
         QCOMPARE(f.model.rowOf(QStringLiteral("outline-width")), row);
         QCOMPARE(valueOf(f.model, QStringLiteral("outline-width")).toDouble(), 12.0);
-        bool covered = false;
+        // dataChanged ne couvre que les lignes dont la valeur a changé, une par une (l'épaisseur change aussi
+        // l'étendue, donc d'autres lignes de position) : jamais toutes les lignes d'un coup.
+        QSet<int> emitted;
         for (const QList<QVariant>& arguments : std::as_const(changed)) {
             const int first = arguments.at(0).value<QModelIndex>().row();
-            const int last = arguments.at(1).value<QModelIndex>().row();
+            QCOMPARE(arguments.at(1).value<QModelIndex>().row(), first);
             QCOMPARE(arguments.at(2).value<QList<int>>(), QList<int>{ui::PropertyModel::ValueRole});
-            covered = covered || (first <= row && row <= last);
+            emitted.insert(first);
         }
-        QVERIFY(covered);
+        QVERIFY(emitted.contains(row));
+        QVERIFY(emitted.size() < f.model.rowCount());
         // Un pas de réglette, puis la même structure sur un autre objet : toujours aucun reset.
         QVERIFY(f.model.setValue(f.model.rowOf(QStringLiteral("translucency")), 50));
         QCoreApplication::processEvents();
@@ -555,6 +560,83 @@ private slots:
         QCOMPARE(resets.count(), 1);
         QCOMPARE(f.model.rowOf(QStringLiteral("fill-color")), -1);
         QCOMPARE(f.model.title(), QStringLiteral("Trait"));
+    }
+
+    // Relecture n1 : l'épaisseur publie un minimum de 0, que le cœur refuse pour un trait. setValue rend faux
+    // quand rien n'est appliqué (aucune étape entrée dans la pile), et la valeur affichée reste celle du
+    // document.
+    void refusedByTheCoreIsNotApplied()
+    {
+        Fixture f;
+        f.select({f.stroke});
+        const double before = outlineWidth(f.controller, f.stroke);
+        const int row = f.model.rowOf(QStringLiteral("outline-width"));
+        QVERIFY(before != 7.0);
+        QVERIFY(f.model.setValue(row, 7));
+        QVERIFY(!f.model.setValue(row, 0)); // le cœur refuse 0 pour un trait
+        QCoreApplication::processEvents();
+        QCOMPARE(outlineWidth(f.controller, f.stroke), 7.0);
+        QCOMPARE(valueOf(f.model, QStringLiteral("outline-width")).toDouble(), 7.0);
+        QVERIFY(!f.model.setValue(row, 7)); // valeur inchangée : rien d'appliqué
+        // Aucune étape entrée pour les deux refus : un Annuler défait la saisie de 7.
+        f.controller.undo();
+        QCOMPARE(outlineWidth(f.controller, f.stroke), before);
+    }
+
+    // Relecture n3 : le premier pas d'un glissé clôt l'étape restée ouverte avant lui.
+    void firstSlideStepClosesAStepLeftOpen()
+    {
+        Fixture f;
+        f.select({f.shape1});
+        const double before = translucencyOf(f.controller, f.shape1);
+        QVERIFY(before != 77.0);
+        f.controller.execute(std::make_unique<core::SetTranslucencyCommand>(
+            0, std::vector<core::ObjectId>{f.shape1}, static_cast<std::uint8_t>(77)));
+        QCoreApplication::processEvents();
+        const int row = f.model.rowOf(QStringLiteral("translucency"));
+        QVERIFY(f.model.setValue(row, 150));
+        QVERIFY(f.model.setValue(row, 160));
+        f.model.endEdit();
+        f.controller.undo();
+        QCOMPARE(translucencyOf(f.controller, f.shape1), 77.0);
+        f.controller.undo();
+        QCOMPARE(translucencyOf(f.controller, f.shape1), before);
+    }
+
+    // Relecture n4 : voie sans reset (select), valeur affichée et cible de setValue.
+    void selectionWithoutResetShowsAndTargetsTheNewObject()
+    {
+        Fixture f;
+        f.select({f.shape1});
+        const int row = f.model.rowOf(QStringLiteral("outline-width"));
+        const double second = outlineWidth(f.controller, f.shape2);
+        QVERIFY(f.model.setValue(row, 12));
+        QCoreApplication::processEvents();
+        QSignalSpy resets(&f.model, &QAbstractItemModel::modelReset);
+        f.select({f.shape2});
+        QCOMPARE(resets.count(), 0);
+        QCOMPARE(valueOf(f.model, QStringLiteral("outline-width")).toDouble(), second);
+        QVERIFY(second != 12.0);
+        QVERIFY(f.model.setValue(f.model.rowOf(QStringLiteral("outline-width")), 31));
+        QCOMPARE(outlineWidth(f.controller, f.shape2), 31.0);
+        QCOMPARE(outlineWidth(f.controller, f.shape1), 12.0);
+    }
+
+    // Relecture n4 : une valeur illisible (NaN, texte) est refusée par un éditeur numérique.
+    void unreadableNumbersAreRefused()
+    {
+        Fixture f;
+        f.select({f.shape1});
+        const double outline = outlineWidth(f.controller, f.shape1);
+        const double translucency = translucencyOf(f.controller, f.shape1);
+        const int width = f.model.rowOf(QStringLiteral("outline-width"));
+        const int slider = f.model.rowOf(QStringLiteral("translucency"));
+        QVERIFY(!f.model.setValue(width, std::numeric_limits<double>::quiet_NaN()));
+        QVERIFY(!f.model.setValue(width, QStringLiteral("abc")));
+        QVERIFY(!f.model.setValue(slider, std::numeric_limits<double>::quiet_NaN()));
+        QVERIFY(!f.model.setValue(slider, QStringLiteral("abc")));
+        QCOMPARE(outlineWidth(f.controller, f.shape1), outline);
+        QCOMPARE(translucencyOf(f.controller, f.shape1), translucency);
     }
 
     // Relecture M3 : « number » et « slider » refusent une valeur hors de [MinRole, MaxRole] ; rien n'est

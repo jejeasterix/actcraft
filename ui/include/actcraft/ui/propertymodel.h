@@ -25,8 +25,12 @@ namespace actcraft::ui {
 //
 // Le modèle ne modifie le document que par DocumentController::execute (une commande de L6-T11 par
 // setValue) et ne sélectionne rien. Remise à jour regroupée (une par tour de boucle) et reportée pendant un
-// contact (D6-5). Un changement de drapeau d'objet (verrou, masqué, copie au glissement) ne rend aucun
-// core::Change : il se suit par DocumentController::objectFlagsChanged, quel que soit le chemin (L6-C2).
+// contact (D6-5). Garantie pour L6-T13 : tant que les lignes sont les mêmes (mêmes descripteurs, dans le même
+// ordre), seules les valeurs changent et dataChanged part sur la seule colonne de valeur (ValueRole), ligne
+// par ligne, sans reset : les délégués sont gardés (réglette tenue, champ en saisie). Un reset n'a lieu que
+// si la structure change (page ou objet, autre sélection de types). Un changement de drapeau d'objet (verrou,
+// masqué, copie au glissement) ne rend aucun core::Change : il se suit par
+// DocumentController::objectFlagsChanged, quel que soit le chemin (L6-C2).
 class PropertyModel : public QAbstractListModel
 {
     Q_OBJECT
@@ -66,10 +70,12 @@ public:
     // Exécute une commande de L6-T11 (ou SetLayerCommand, SetObjectFlagCommand, SetTranslucencyCommand pour
     // couche, visibilité, verrou et translucidité) sur la page affichée ou les objets sélectionnés. Faux sans
     // document ni commandes, verrou de classe posé, ligne inconnue, valeur illisible, ou nombre hors de
-    // [MinRole, MaxRole] pour « number » et « slider » (refusé, jamais écrêté : rien n'est exécuté).
-    // Mots-clés reçus en une chaîne : séparés par des espaces ou des virgules. Une modification ponctuelle
-    // (tout éditeur sauf « slider ») clôt l'étape restée ouverte avant elle et la sienne après elle
-    // (closeMerge) : elle reste une étape à elle. Seule la réglette glissée fusionne, jusqu'à endEdit().
+    // [MinRole, MaxRole] pour « number » et « slider » (refusé, jamais écrêté : rien n'est exécuté), ou si le
+    // cœur refuse la valeur (rien n'est appliqué : aucune étape entrée dans la pile, aucun drapeau changé) ;
+    // la valeur affichée reste celle du document. Mots-clés reçus en une chaîne : séparés par des espaces ou
+    // des virgules. Une modification ponctuelle (tout éditeur sauf « slider ») clôt l'étape restée ouverte
+    // avant elle et la sienne après elle (closeMerge) : elle reste une étape à elle. Seule la réglette
+    // glissée fusionne, jusqu'à endEdit().
     Q_INVOKABLE bool setValue(int row, const QVariant& value);
     // Relâcher de la réglette (D10) : clôt l'étape du glissé (DocumentController::closeMerge), pour que le
     // glissé suivant en fasse une autre. Le QML n'appelle jamais le document lui-même (L6-T13).
@@ -122,6 +128,8 @@ private:
     bool m_scheduled = false;
     bool m_editable = false;
     int m_refreshes = 0;
+    int m_applied = 0;      // changements et drapeaux vus : setValue compare avant/après
+    bool m_sliding = false; // un glissé de réglette est en cours (entre son premier pas et endEdit)
     QString m_title;
 };
 

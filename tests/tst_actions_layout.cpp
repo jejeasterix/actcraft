@@ -414,6 +414,17 @@ private slots:
         QCOMPARE(registry.ids().count(QStringLiteral("edit.cut")), 1); // déclarée une seule fois
     }
 
+    // L6-P2 (P13) : les deux entrées du lot 6 forment un groupe final, après la reconnaissance.
+    void lot6EntriesInObjectMenu()
+    {
+        const Layout layout = layoutFromResources();
+        const qsizetype properties = layout.objectMenu.indexOf(QStringLiteral("browser.properties"));
+        const qsizetype add = layout.objectMenu.indexOf(QStringLiteral("resources.add"));
+        QVERIFY(properties > 0 && add == properties + 1);
+        QCOMPARE(layout.objectMenu.at(properties - 1), QStringLiteral("-"));
+        QCOMPARE(layout.objectMenu.count(QStringLiteral("browser.properties")), 1);
+    }
+
     void objectMenuOrder()
     {
         const Layout layout = layoutFromResources();
@@ -436,7 +447,10 @@ private slots:
                                    "shortcutbar.add-selection",
                                    "-",
                                    "recognition.convert-to-text",
-                                   "recognition.convert-to-shape"};
+                                   "recognition.convert-to-shape",
+                                   "-",
+                                   "browser.properties",
+                                   "resources.add"};
         QCOMPARE(layout.objectMenu, expected);
         QCOMPARE(layout.objectSubmenus.size(), std::size_t{3});
         QCOMPARE(layout.objectSubmenus[0].items.size(), 13);
